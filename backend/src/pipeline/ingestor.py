@@ -29,6 +29,7 @@ def _embed_with_retry(text: str) -> list[float]:
                 time.sleep(_RETRY_WAIT_SEC)
             else:
                 raise
+    raise RuntimeError(f"임베딩 실패: {_MAX_RETRIES}회 재시도 소진")
 
 
 def ingest_chunks(

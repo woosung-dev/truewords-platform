@@ -4,7 +4,6 @@
 """
 import json
 import httpx
-import sys
 from pathlib import Path
 
 TEST_QUESTIONS = [
