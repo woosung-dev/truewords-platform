@@ -32,22 +32,22 @@ def test_generate_answer_calls_gemini_and_returns_text():
     mock_response = MagicMock()
     mock_response.text = "사랑은 하나님의 본질입니다."
 
-    with patch("src.chat.generator.model") as mock_model:
-        mock_model.generate_content.return_value = mock_response
+    with patch("src.chat.generator._client") as mock_client:
+        mock_client.models.generate_content.return_value = mock_response
         answer = generate_answer("사랑이란?", _make_results())
 
     assert answer == "사랑은 하나님의 본질입니다."
-    mock_model.generate_content.assert_called_once()
+    mock_client.models.generate_content.assert_called_once()
 
 
 def test_generate_answer_passes_context_in_prompt():
     mock_response = MagicMock()
     mock_response.text = "답변"
 
-    with patch("src.chat.generator.model") as mock_model:
-        mock_model.generate_content.return_value = mock_response
+    with patch("src.chat.generator._client") as mock_client:
+        mock_client.models.generate_content.return_value = mock_response
         generate_answer("질문", _make_results())
 
-    call_args = mock_model.generate_content.call_args
-    prompt_text = call_args.args[0]
-    assert "하나님은 사랑이시다." in prompt_text
+    call_args = mock_client.models.generate_content.call_args
+    _, kwargs = call_args
+    assert "하나님은 사랑이시다." in kwargs["contents"]

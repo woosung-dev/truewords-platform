@@ -1,8 +1,9 @@
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from fastembed import SparseTextEmbedding
 from src.config import settings
 
-genai.configure(api_key=settings.gemini_api_key)
+_client = genai.Client(api_key=settings.gemini_api_key)
 
 _sparse_model: SparseTextEmbedding | None = None
 
@@ -15,21 +16,21 @@ def get_sparse_model() -> SparseTextEmbedding:
 
 
 def embed_dense_document(text: str) -> list[float]:
-    result = genai.embed_content(
-        model="models/gemini-embedding-001",
-        content=text,
-        task_type="RETRIEVAL_DOCUMENT",
+    result = _client.models.embed_content(
+        model="gemini-embedding-001",
+        contents=text,
+        config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT"),
     )
-    return result["embedding"]
+    return result.embeddings[0].values
 
 
 def embed_dense_query(text: str) -> list[float]:
-    result = genai.embed_content(
-        model="models/gemini-embedding-001",
-        content=text,
-        task_type="RETRIEVAL_QUERY",
+    result = _client.models.embed_content(
+        model="gemini-embedding-001",
+        contents=text,
+        config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY"),
     )
-    return result["embedding"]
+    return result.embeddings[0].values
 
 
 def embed_sparse(text: str) -> tuple[list[int], list[float]]:

@@ -17,13 +17,15 @@ _BATCH_SIZE = 10
 
 def _embed_with_retry(text: str) -> list[float]:
     """Rate limit 대응용 재시도 임베딩 함수."""
-    import google.api_core.exceptions
+    from google.genai import errors as genai_errors
     for attempt in range(_MAX_RETRIES):
         try:
             result = embed_dense_document(text)
             time.sleep(_EMBED_DELAY_SEC)
             return result
-        except google.api_core.exceptions.ResourceExhausted:
+        except genai_errors.ClientError as e:
+            if e.code != 429:
+                raise
             if attempt < _MAX_RETRIES - 1:
                 print(f"  Rate limit 초과, {_RETRY_WAIT_SEC}초 대기 후 재시도... (시도 {attempt + 1}/{_MAX_RETRIES})")
                 time.sleep(_RETRY_WAIT_SEC)

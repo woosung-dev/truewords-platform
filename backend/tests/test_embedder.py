@@ -2,31 +2,42 @@ from unittest.mock import patch, MagicMock
 from src.pipeline.embedder import embed_dense_document, embed_dense_query, embed_sparse
 
 
-def test_embed_dense_document_returns_768_floats():
-    mock_result = {"embedding": [0.1] * 768}
-    with patch("src.pipeline.embedder.genai.embed_content", return_value=mock_result):
+def _make_embed_response(values: list[float]) -> MagicMock:
+    embedding = MagicMock()
+    embedding.values = values
+    response = MagicMock()
+    response.embeddings = [embedding]
+    return response
+
+
+def test_embed_dense_document_returns_3072_floats():
+    mock_response = _make_embed_response([0.1] * 3072)
+    with patch("src.pipeline.embedder._client") as mock_client:
+        mock_client.models.embed_content.return_value = mock_response
         result = embed_dense_document("테스트 텍스트")
 
-    assert len(result) == 768
+    assert len(result) == 3072
     assert all(isinstance(v, float) for v in result)
 
 
 def test_embed_dense_document_uses_retrieval_document_task():
-    mock_result = {"embedding": [0.0] * 768}
-    with patch("src.pipeline.embedder.genai.embed_content", return_value=mock_result) as mock_embed:
+    mock_response = _make_embed_response([0.0] * 3072)
+    with patch("src.pipeline.embedder._client") as mock_client:
+        mock_client.models.embed_content.return_value = mock_response
         embed_dense_document("텍스트")
 
-    _, kwargs = mock_embed.call_args
-    assert kwargs.get("task_type") == "RETRIEVAL_DOCUMENT"
+    _, kwargs = mock_client.models.embed_content.call_args
+    assert kwargs["config"].task_type == "RETRIEVAL_DOCUMENT"
 
 
 def test_embed_dense_query_uses_retrieval_query_task():
-    mock_result = {"embedding": [0.0] * 768}
-    with patch("src.pipeline.embedder.genai.embed_content", return_value=mock_result) as mock_embed:
+    mock_response = _make_embed_response([0.0] * 3072)
+    with patch("src.pipeline.embedder._client") as mock_client:
+        mock_client.models.embed_content.return_value = mock_response
         embed_dense_query("질문")
 
-    _, kwargs = mock_embed.call_args
-    assert kwargs.get("task_type") == "RETRIEVAL_QUERY"
+    _, kwargs = mock_client.models.embed_content.call_args
+    assert kwargs["config"].task_type == "RETRIEVAL_QUERY"
 
 
 def test_embed_sparse_returns_indices_and_values():
