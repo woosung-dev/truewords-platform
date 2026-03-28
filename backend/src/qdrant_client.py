@@ -16,7 +16,7 @@ def create_collection(client: QdrantClient, collection_name: str) -> None:
     client.create_collection(
         collection_name=collection_name,
         vectors_config={
-            "dense": VectorParams(size=768, distance=Distance.COSINE)
+            "dense": VectorParams(size=3072, distance=Distance.COSINE)
         },
         sparse_vectors_config={
             "sparse": SparseVectorParams(

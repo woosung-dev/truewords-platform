@@ -16,7 +16,7 @@ def get_sparse_model() -> SparseTextEmbedding:
 
 def embed_dense_document(text: str) -> list[float]:
     result = genai.embed_content(
-        model="models/text-embedding-004",
+        model="models/gemini-embedding-001",
         content=text,
         task_type="RETRIEVAL_DOCUMENT",
     )
@@ -25,7 +25,7 @@ def embed_dense_document(text: str) -> list[float]:
 
 def embed_dense_query(text: str) -> list[float]:
     result = genai.embed_content(
-        model="models/text-embedding-004",
+        model="models/gemini-embedding-001",
         content=text,
         task_type="RETRIEVAL_QUERY",
     )
