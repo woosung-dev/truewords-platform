@@ -1,0 +1,10 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/backend",
+    "${workspaceFolder}/backend/src"
+  ],
+  "python.analysis.venvPath": "${workspaceFolder}/backend",
+  "python.analysis.venv": ".venv",
+  "pyrightconfig": "${workspaceFolder}/pyrightconfig.json"
+}
