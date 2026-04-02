@@ -1,7 +1,7 @@
 """ChatbotConfig DB 모델."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlmodel import Field, SQLModel, Column
 from sqlalchemy import JSON
@@ -19,5 +19,5 @@ class ChatbotConfig(SQLModel, table=True):
     search_tiers: dict = Field(default_factory=dict, sa_column=Column(JSON))
     is_active: bool = Field(default=True)
     organization_id: uuid.UUID | None = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

@@ -2,7 +2,7 @@
 
 import enum
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlmodel import Field, SQLModel, Column
 from sqlalchemy import JSON, Text
@@ -30,7 +30,7 @@ class ResearchSession(SQLModel, table=True):
     client_fingerprint: str | None = None
     organization_id: uuid.UUID | None = None
     started_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), index=True
+        default_factory=datetime.utcnow, index=True
     )
     ended_at: datetime | None = None
 
@@ -44,7 +44,7 @@ class SessionMessage(SQLModel, table=True):
     content: str = Field(sa_column=Column(Text))
     token_count: int | None = None
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), index=True
+        default_factory=datetime.utcnow, index=True
     )
 
 
@@ -59,7 +59,7 @@ class SearchEvent(SQLModel, table=True):
     total_results: int = 0
     latency_ms: int = 0
     qdrant_request_id: str | None = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class AnswerCitation(SQLModel, table=True):
@@ -73,7 +73,7 @@ class AnswerCitation(SQLModel, table=True):
     text_snippet: str = Field(sa_column=Column(Text))
     relevance_score: float = 0.0
     rank_position: int = 0
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class AnswerFeedback(SQLModel, table=True):
@@ -84,4 +84,4 @@ class AnswerFeedback(SQLModel, table=True):
     feedback_type: FeedbackType
     comment: str | None = None
     user_id: uuid.UUID | None = None  # 미래 확장용
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
