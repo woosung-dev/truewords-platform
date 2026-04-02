@@ -61,6 +61,7 @@ def ingest_chunks(
                     "text": chunk.text,
                     "volume": chunk.volume,
                     "chunk_index": chunk.chunk_index,
+                    "source": chunk.source,
                 },
             )
         )

@@ -6,6 +6,7 @@ class Chunk:
     text: str
     volume: str
     chunk_index: int
+    source: str = ""
 
 
 def chunk_text(
@@ -13,6 +14,7 @@ def chunk_text(
     volume: str,
     max_chars: int = 500,
     overlap: int = 50,
+    source: str = "",
 ) -> list[Chunk]:
     if not text.strip():
         return []
@@ -26,7 +28,7 @@ def chunk_text(
         candidate = (buffer + "\n\n" + para).strip() if buffer else para
 
         if len(candidate) > max_chars and buffer:
-            chunks.append(Chunk(text=buffer.strip(), volume=volume, chunk_index=chunk_index))
+            chunks.append(Chunk(text=buffer.strip(), volume=volume, chunk_index=chunk_index, source=source))
             chunk_index += 1
             tail = buffer[-overlap:] if overlap > 0 and len(buffer) > overlap else ""
             buffer = (tail + "\n\n" + para).strip() if tail else para
@@ -34,6 +36,6 @@ def chunk_text(
             buffer = candidate
 
     if buffer.strip():
-        chunks.append(Chunk(text=buffer.strip(), volume=volume, chunk_index=chunk_index))
+        chunks.append(Chunk(text=buffer.strip(), volume=volume, chunk_index=chunk_index, source=source))
 
     return chunks

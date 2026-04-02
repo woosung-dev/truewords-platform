@@ -46,3 +46,13 @@ def test_whitespace_only_paragraphs_are_skipped():
 
     texts = [c.text for c in chunks]
     assert not any(t.strip() == "" for t in texts)
+
+
+def test_chunk_has_source_field_default_empty():
+    chunks = chunk_text("짧은 텍스트", volume="vol_001")
+    assert chunks[0].source == ""
+
+
+def test_chunk_has_source_field_set():
+    chunks = chunk_text("짧은 텍스트", volume="vol_001", source="A")
+    assert chunks[0].source == "A"

@@ -60,4 +60,4 @@ Phase 4: 전체 공개
 - 대사전 데이터를 **별도 용어사전 컬렉션**에 저장
 - 시스템 프롬프트에 핵심 용어 100~200개의 정의 삽입
 - 검색 시 관련 용어 정의를 동적으로 주입하여 LLM이 맥락에 맞게 해석
-- 자세한 구조는 [06-terminology-dictionary-structure.md](./06-terminology-dictionary-structure.md) 참고
+- 자세한 구조는 [06-terminology-dictionary-structure.md](../02_domain/06-terminology-dictionary-structure.md) 참고
