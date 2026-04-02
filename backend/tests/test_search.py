@@ -44,3 +44,35 @@ def test_hybrid_search_calls_query_points_with_rrf():
     call_kwargs = mock_client.query_points.call_args.kwargs
     assert call_kwargs["limit"] == 5
     assert call_kwargs["query"] is not None
+
+
+def test_hybrid_search_with_source_filter():
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.points = [
+        _make_mock_point("A 말씀", "vol_001", 0.90),
+    ]
+    mock_client.query_points.return_value = mock_response
+
+    with (
+        patch("src.search.hybrid.embed_dense_query", return_value=[0.1] * 768),
+        patch("src.search.hybrid.embed_sparse", return_value=([1, 2], [0.5, 0.3])),
+    ):
+        results = hybrid_search(mock_client, "질문", top_k=10, source_filter=["A"])
+
+    call_kwargs = mock_client.query_points.call_args.kwargs
+    assert call_kwargs["query_filter"] is not None
+
+
+def test_hybrid_search_without_filter_passes_none():
+    mock_client = MagicMock()
+    mock_client.query_points.return_value = MagicMock(points=[])
+
+    with (
+        patch("src.search.hybrid.embed_dense_query", return_value=[0.0] * 768),
+        patch("src.search.hybrid.embed_sparse", return_value=([0], [1.0])),
+    ):
+        hybrid_search(mock_client, "질문", top_k=5)
+
+    call_kwargs = mock_client.query_points.call_args.kwargs
+    assert call_kwargs.get("query_filter") is None
