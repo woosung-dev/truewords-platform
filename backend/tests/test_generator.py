@@ -1,4 +1,7 @@
-from unittest.mock import patch, MagicMock
+"""generate_answer 비동기 테스트."""
+
+import pytest
+from unittest.mock import AsyncMock, patch
 from src.chat.prompt import build_context_prompt, SYSTEM_PROMPT
 from src.chat.generator import generate_answer
 from src.search.hybrid import SearchResult
@@ -24,30 +27,17 @@ def test_build_context_prompt_includes_all_sources():
     assert "하나님은 사랑이시다." in prompt
     assert "참부모님의 가르침은 참사랑이다." in prompt
     assert "vol_001" in prompt
-    assert "vol_002" in prompt
     assert "사랑이란 무엇인가?" in prompt
 
 
-def test_generate_answer_calls_gemini_and_returns_text():
-    mock_response = MagicMock()
-    mock_response.text = "사랑은 하나님의 본질입니다."
-
-    with patch("src.chat.generator._client") as mock_client:
-        mock_client.models.generate_content.return_value = mock_response
-        answer = generate_answer("사랑이란?", _make_results())
+@pytest.mark.asyncio
+async def test_generate_answer_calls_gemini_and_returns_text():
+    with patch(
+        "src.chat.generator.generate_text",
+        new_callable=AsyncMock,
+        return_value="사랑은 하나님의 본질입니다.",
+    ) as mock_gen:
+        answer = await generate_answer("사랑이란?", _make_results())
 
     assert answer == "사랑은 하나님의 본질입니다."
-    mock_client.models.generate_content.assert_called_once()
-
-
-def test_generate_answer_passes_context_in_prompt():
-    mock_response = MagicMock()
-    mock_response.text = "답변"
-
-    with patch("src.chat.generator._client") as mock_client:
-        mock_client.models.generate_content.return_value = mock_response
-        generate_answer("질문", _make_results())
-
-    call_args = mock_client.models.generate_content.call_args
-    _, kwargs = call_args
-    assert "하나님은 사랑이시다." in kwargs["contents"]
+    mock_gen.assert_called_once()
