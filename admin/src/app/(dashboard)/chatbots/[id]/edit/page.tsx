@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { chatbotAPI, type SearchTier } from "@/lib/api";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -85,14 +85,9 @@ export default function EditChatbotPage({
     return (
       <div className="rounded-lg border border-dashed p-8 text-center">
         <p className="text-muted-foreground">설정을 불러올 수 없습니다.</p>
-        <Button
-          render={<Link href="/chatbots" />}
-          variant="outline"
-          size="sm"
-          className="mt-3"
-        >
+        <Link href="/chatbots" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3" })}>
           목록으로 돌아가기
-        </Button>
+        </Link>
       </div>
     );
   }

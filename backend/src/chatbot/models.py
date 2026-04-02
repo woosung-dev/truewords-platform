@@ -1,14 +1,15 @@
 """ChatbotConfig DB 모델."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from sqlmodel import Field, SQLModel, Column
 from sqlalchemy import JSON
 
 
 def _utcnow() -> datetime:
-    return datetime.now(UTC)
+    """naive UTC datetime (asyncpg 호환)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class ChatbotConfig(SQLModel, table=True):

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { authAPI } from "@/lib/api";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import AuthGuard from "@/components/auth-guard";
@@ -70,10 +70,7 @@ export default function DashboardLayout({
           <header className="flex h-14 items-center justify-between border-b px-4">
             {/* 모바일 햄버거 */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-              <SheetTrigger
-                className="md:hidden"
-                render={<Button variant="ghost" size="sm" />}
-              >
+              <SheetTrigger className={buttonVariants({ variant: "ghost", size: "sm", className: "md:hidden" })}>
                 ☰
               </SheetTrigger>
               <SheetContent side="left" className="w-56 p-0">

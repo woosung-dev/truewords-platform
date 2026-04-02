@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { chatbotAPI } from "@/lib/api";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -32,9 +32,9 @@ export default function ChatbotsPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">챗봇 관리</h1>
-        <Button render={<Link href="/chatbots/new" />}>
+        <Link href="/chatbots/new" className={buttonVariants()}>
           새 챗봇 만들기
-        </Button>
+        </Link>
       </div>
 
       <div className="mt-6">
@@ -63,9 +63,9 @@ export default function ChatbotsPage() {
             <p className="text-muted-foreground">
               등록된 챗봇이 없습니다. 첫 챗봇을 만들어보세요.
             </p>
-            <Button render={<Link href="/chatbots/new" />} variant="outline" size="sm" className="mt-3">
+            <Link href="/chatbots/new" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3" })}>
               새 챗봇 만들기
-            </Button>
+            </Link>
           </div>
         ) : (
           <>
@@ -109,9 +109,9 @@ export default function ChatbotsPage() {
                         {new Date(config.updated_at).toLocaleDateString("ko-KR")}
                       </TableCell>
                       <TableCell>
-                        <Button render={<Link href={`/chatbots/${config.id}/edit`} />} variant="ghost" size="sm">
+                        <Link href={`/chatbots/${config.id}/edit`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
                           편집
-                        </Button>
+                        </Link>
                       </TableCell>
                     </TableRow>
                   ))}

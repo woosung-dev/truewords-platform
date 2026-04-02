@@ -1,7 +1,7 @@
 """챗봇 설정 Repository."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -66,7 +66,8 @@ class ChatbotRepository:
         for key, value in updates.items():
             if value is not None:
                 setattr(config, key, value)
-        config.updated_at = datetime.now(UTC)
+        # DB 기존 데이터가 naive datetime이므로 naive UTC 유지 (asyncpg 호환)
+        config.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await self.session.flush()
         return config
 
