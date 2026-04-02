@@ -1,10 +1,14 @@
 """ChatbotConfig DB 모델."""
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlmodel import Field, SQLModel, Column
 from sqlalchemy import JSON
+
+
+def _utcnow() -> datetime:
+    return datetime.now(UTC)
 
 
 class ChatbotConfig(SQLModel, table=True):
@@ -19,5 +23,5 @@ class ChatbotConfig(SQLModel, table=True):
     search_tiers: dict = Field(default_factory=dict, sa_column=Column(JSON))
     is_active: bool = Field(default=True)
     organization_id: uuid.UUID | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)

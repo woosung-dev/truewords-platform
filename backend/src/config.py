@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     admin_jwt_algorithm: str = "HS256"
     admin_jwt_expire_minutes: int = 60 * 24  # 24시간
 
+    # Admin Frontend (CORS)
+    admin_frontend_url: str = "http://localhost:3000"
+
+    # Cookie 보안 (운영 환경에서 True)
+    cookie_secure: bool = False
+
     # Cascading search 기본값
     cascade_score_threshold: float = 0.75
     cascade_fallback_threshold: float = 0.60

@@ -19,3 +19,8 @@ build/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Node.js / Next.js
+node_modules/
+.next/
+out/

@@ -6,8 +6,13 @@ from fastapi import HTTPException, status
 
 from src.chatbot.models import ChatbotConfig
 from src.chatbot.repository import ChatbotRepository
-from src.chatbot.schemas import ChatbotConfigCreate, ChatbotConfigUpdate
+from src.chatbot.schemas import ChatbotConfigCreate, ChatbotConfigUpdate, SearchTiersConfig
 from src.search.cascading import CascadingConfig, SearchTier
+
+# 단일 기본값 상수 (DRY)
+DEFAULT_CASCADING_CONFIG = CascadingConfig(
+    tiers=[SearchTier(sources=["A", "B", "C"], min_results=3, score_threshold=0.60)]
+)
 
 
 class ChatbotService:
@@ -20,16 +25,33 @@ class ChatbotService:
     async def list_all(self) -> list[ChatbotConfig]:
         return await self.repo.list_all()
 
-    async def get_cascading_config(self, chatbot_id: str | None) -> CascadingConfig:
-        """chatbot_id로 CascadingConfig를 조회. None이면 기본값."""
-        if chatbot_id is None:
-            return CascadingConfig(
-                tiers=[SearchTier(sources=["A", "B", "C"], min_results=3, score_threshold=0.60)]
+    async def list_paginated(
+        self, limit: int = 20, offset: int = 0
+    ) -> tuple[list[ChatbotConfig], int]:
+        """페이지네이션된 전체 목록 + 총 개수."""
+        items = await self.repo.list_paginated(limit=limit, offset=offset)
+        total = await self.repo.count_all()
+        return items, total
+
+    async def get_by_id(self, config_id: uuid.UUID) -> ChatbotConfig:
+        """단건 조회. 없으면 404."""
+        config = await self.repo.get_by_id(config_id)
+        if config is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="챗봇 설정을 찾을 수 없습니다",
             )
+        return config
+
+    async def get_cascading_config(self, chatbot_id: str | None) -> CascadingConfig:
+        """chatbot_id로 CascadingConfig를 조회. None이면 기본값, 미존재 시 404."""
+        if chatbot_id is None:
+            return DEFAULT_CASCADING_CONFIG
         config = await self.repo.get_by_chatbot_id(chatbot_id)
         if config is None:
-            return CascadingConfig(
-                tiers=[SearchTier(sources=["A", "B", "C"], min_results=3, score_threshold=0.60)]
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"chatbot_id '{chatbot_id}'를 찾을 수 없습니다",
             )
         return self._parse_search_tiers(config.search_tiers)
 
@@ -47,7 +69,10 @@ class ChatbotService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"chatbot_id '{data.chatbot_id}' 이미 존재합니다",
             )
-        config = ChatbotConfig(**data.model_dump())
+        # SearchTiersConfig → dict 변환 (JSONB 저장)
+        dump = data.model_dump()
+        dump["search_tiers"] = dump["search_tiers"] if isinstance(dump["search_tiers"], dict) else data.search_tiers.model_dump()
+        config = ChatbotConfig(**dump)
         saved = await self.repo.create(config)
         await self.repo.commit()
         return saved
@@ -62,6 +87,11 @@ class ChatbotService:
                 detail="챗봇 설정을 찾을 수 없습니다",
             )
         updates = data.model_dump(exclude_unset=True)
+        # SearchTiersConfig → dict 변환 (JSONB 저장)
+        if "search_tiers" in updates and updates["search_tiers"] is not None:
+            st = updates["search_tiers"]
+            if not isinstance(st, dict):
+                updates["search_tiers"] = data.search_tiers.model_dump()
         updated = await self.repo.update(config, updates)
         await self.repo.commit()
         return updated

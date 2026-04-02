@@ -2,15 +2,16 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 
-from src.admin.dependencies import get_admin_service, get_current_admin
+from src.admin.dependencies import get_admin_service, get_current_admin, verify_csrf
 from src.admin.service import AdminService
 from src.chatbot.dependencies import get_chatbot_service
 from src.chatbot.schemas import (
     ChatbotConfigCreate,
     ChatbotConfigResponse,
     ChatbotConfigUpdate,
+    PaginatedResponse,
 )
 from src.chatbot.service import ChatbotService
 
@@ -31,16 +32,35 @@ async def list_chatbots(
 admin_router = APIRouter(prefix="/admin/chatbot-configs", tags=["admin-chatbot"])
 
 
-@admin_router.get("", response_model=list[ChatbotConfigResponse])
+@admin_router.get("", response_model=PaginatedResponse[ChatbotConfigResponse])
 async def list_all_configs(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     service: ChatbotService = Depends(get_chatbot_service),
     current_admin: dict = Depends(get_current_admin),
-) -> list[ChatbotConfigResponse]:
-    configs = await service.list_all()
-    return [ChatbotConfigResponse.model_validate(c, from_attributes=True) for c in configs]
+) -> PaginatedResponse[ChatbotConfigResponse]:
+    """챗봇 설정 목록 조회 (페이지네이션, created_at DESC)."""
+    items, total = await service.list_paginated(limit=limit, offset=offset)
+    return PaginatedResponse(
+        items=[ChatbotConfigResponse.model_validate(c, from_attributes=True) for c in items],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
-@admin_router.post("", response_model=ChatbotConfigResponse, status_code=201)
+@admin_router.get("/{config_id}", response_model=ChatbotConfigResponse)
+async def get_config(
+    config_id: uuid.UUID,
+    service: ChatbotService = Depends(get_chatbot_service),
+    current_admin: dict = Depends(get_current_admin),
+) -> ChatbotConfigResponse:
+    """챗봇 설정 단건 조회."""
+    config = await service.get_by_id(config_id)
+    return ChatbotConfigResponse.model_validate(config, from_attributes=True)
+
+
+@admin_router.post("", response_model=ChatbotConfigResponse, status_code=201, dependencies=[Depends(verify_csrf)])
 async def create_config(
     data: ChatbotConfigCreate,
     service: ChatbotService = Depends(get_chatbot_service),
@@ -53,12 +73,12 @@ async def create_config(
         action="chatbot_config.create",
         target_table="chatbot_configs",
         target_id=config.id,
-        changes=data.model_dump(),
+        changes=data.model_dump(mode="json"),
     )
     return ChatbotConfigResponse.model_validate(config, from_attributes=True)
 
 
-@admin_router.put("/{config_id}", response_model=ChatbotConfigResponse)
+@admin_router.put("/{config_id}", response_model=ChatbotConfigResponse, dependencies=[Depends(verify_csrf)])
 async def update_config(
     config_id: uuid.UUID,
     data: ChatbotConfigUpdate,
@@ -72,6 +92,6 @@ async def update_config(
         action="chatbot_config.update",
         target_table="chatbot_configs",
         target_id=config_id,
-        changes=data.model_dump(exclude_unset=True),
+        changes=data.model_dump(exclude_unset=True, mode="json"),
     )
     return ChatbotConfigResponse.model_validate(config, from_attributes=True)

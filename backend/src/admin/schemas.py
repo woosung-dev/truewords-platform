@@ -16,6 +16,11 @@ class AdminLoginResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class AdminMeResponse(BaseModel):
+    user_id: uuid.UUID
+    role: str
+
+
 class AdminUserResponse(BaseModel):
     id: uuid.UUID
     email: str
