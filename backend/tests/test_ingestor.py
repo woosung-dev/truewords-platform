@@ -44,3 +44,33 @@ def test_empty_chunks_does_not_call_upsert():
     mock_client = MagicMock()
     ingest_chunks(mock_client, "test_collection", [])
     mock_client.upsert.assert_not_called()
+
+
+def test_ingest_payload_includes_source():
+    mock_client = MagicMock()
+    chunks = [Chunk(text="테스트 말씀", volume="vol_001", chunk_index=0, source="A")]
+
+    with (
+        patch("src.pipeline.ingestor.embed_dense_document", return_value=[0.1] * 3072),
+        patch("src.pipeline.ingestor.embed_sparse", return_value=([1, 2], [0.5, 0.3])),
+    ):
+        ingest_chunks(mock_client, "test_collection", chunks)
+
+    upsert_call = mock_client.upsert.call_args
+    points = upsert_call.kwargs["points"]
+    assert points[0].payload["source"] == "A"
+
+
+def test_ingest_payload_source_default_empty():
+    mock_client = MagicMock()
+    chunks = [Chunk(text="테스트 말씀", volume="vol_001", chunk_index=0)]
+
+    with (
+        patch("src.pipeline.ingestor.embed_dense_document", return_value=[0.1] * 3072),
+        patch("src.pipeline.ingestor.embed_sparse", return_value=([1, 2], [0.5, 0.3])),
+    ):
+        ingest_chunks(mock_client, "test_collection", chunks)
+
+    upsert_call = mock_client.upsert.call_args
+    points = upsert_call.kwargs["points"]
+    assert points[0].payload["source"] == ""

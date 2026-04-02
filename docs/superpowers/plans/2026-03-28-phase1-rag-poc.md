@@ -1355,3 +1355,154 @@ Expected response:
   ]
 }
 ```
+
+---
+
+## Engineering Review Report
+
+> **리뷰 일자:** 2026-03-28
+> **리뷰 범위:** Phase 1 RAG PoC 계획 vs 실제 구현 코드 전체 대조
+> **최종 판정:** APPROVED WITH CHANGES
+
+---
+
+### 1. 발견된 이슈 목록
+
+#### High 심각도
+
+| # | 이슈 | 위치 | 설명 | 권고 |
+|---|------|------|------|------|
+| H-1 | Gemini API 키 보호 미흡 | `src/config.py` | `gemini_api_key: str`로 선언. `SecretStr` 미사용. 로그/traceback에 키 노출 가능 | Phase 2에서 `SecretStr` 적용 + 로깅 필터 |
+| H-2 | 엔드포인트 인증 없음 | `api/routes.py` | POST /chat가 완전 오픈. 누구나 호출 가능 → API 키 과금 위험 | Phase 2에서 API Key 또는 JWT 인증 추가 |
+| H-3 | Gemini 생성 에러 미처리 | `src/chat/generator.py` | `generate_answer()`에 try-except 없음. Gemini 429/500 시 500 Internal Server Error 전파 | Phase 2에서 에러 핸들링 + 재시도 로직 추가 |
+
+#### Medium 심각도
+
+| # | 이슈 | 위치 | 설명 | 권고 |
+|---|------|------|------|------|
+| M-1 | 계획 vs 구현 - 임베딩 모델 변경 | 계획: `text-embedding-004` (768d), 구현: `gemini-embedding-001` (3072d) | 계획 문서와 실제 코드의 모델/차원 불일치. 테스트 mock도 768로 작성되어 있어 실제 차원과 불일치 | 계획 문서 업데이트 + 테스트 mock 차원 3072로 수정 |
+| M-2 | 계획 vs 구현 - SDK 변경 | 계획: `google-generativeai` + `genai.embed_content()`, 구현: `google-genai` + `Client().models.embed_content()` | SDK 전면 교체로 API 인터페이스 변경. 계획의 테스트 코드와 실제 테스트 코드가 다름 | 문서 정합성 확보 (이미 구현에 맞게 동작 중이므로 문서만 업데이트) |
+| M-3 | Qdrant Docker 버전 고정 안 됨 | `docker-compose.yml` | 계획: `qdrant/qdrant:v1.12.0`, 구현: `qdrant/qdrant:latest`. 빌드 재현성 위험 | 특정 버전 태그로 고정 권장 |
+| M-4 | QdrantClient 매 요청 생성 | `api/routes.py` L27 | `client = get_client()` 매 /chat 호출마다 새 클라이언트 생성. 연결 풀링 없음 | 싱글톤 또는 FastAPI lifespan으로 공유 |
+| M-5 | 검색 결과 빈 경우 생성 모델에 빈 컨텍스트 전달 | `api/routes.py` | `results=[]`일 때 `generate_answer()`에 빈 컨텍스트 전달. 시스템 프롬프트 규칙에 의존하여 환각 억제 | 검색 결과 0건 시 LLM 호출 없이 즉시 "찾지 못했습니다" 반환 고려 |
+| M-6 | 핵심 용어 7개 vs 계획 20개 | `src/chat/prompt.py` | 계획에서 "핵심 용어 20개 고정"을 명시했으나 실제 구현은 7개 | 나머지 13개 용어 추가 또는 계획 문서 수정 |
+
+#### Low 심각도
+
+| # | 이슈 | 위치 | 설명 | 권고 |
+|---|------|------|------|------|
+| L-1 | pyproject.toml에 pythonpath 미설정 | `pyproject.toml` | `pythonpath = ["."]`이 pytest 설정에만 있고, 일반 실행 시 `scripts/ingest.py`에서 `sys.path.insert` 필요 | Phase 2에서 패키지 구조 정리 |
+| L-2 | evaluate.py 결과 자동 검증 없음 | `scripts/evaluate.py` | 결과를 JSON 파일로 저장만 하고 자동 pass/fail 판정 없음 | 기대 답변 대비 유사도 메트릭 추가 |
+| L-3 | 타입 힌트 불완전 | `api/routes.py` | `chat()` 함수 반환 타입 미명시 (FastAPI가 response_model로 추론) | 명시적 반환 타입 추가 |
+| L-4 | 로깅 대신 print 사용 | `src/pipeline/ingestor.py` | `print()` 문으로 진행 상황 출력 | Python logging 모듈 사용 |
+| L-5 | .gitignore에 .env 포함 여부 미확인 | 프로젝트 루트 | `.env` 파일이 git에 커밋될 위험 | `.gitignore`에 `.env` 확인 필요 |
+
+---
+
+### 2. 테스트 커버리지 분석
+
+**총 테스트: 24개 (8개 파일)**
+
+| 테스트 파일 | 테스트 수 | 커버 모듈 | 평가 |
+|------------|----------|----------|------|
+| `test_chunker.py` | 6 | `pipeline/chunker.py` | 우수 - 엣지 케이스 충분 (빈 텍스트, 공백 문단, 단일 문단) |
+| `test_embedder.py` | 4 | `pipeline/embedder.py` | 양호 - dense/sparse 분리 테스트, task_type 검증 |
+| `test_ingestor.py` | 3 | `pipeline/ingestor.py` | 양호 - upsert 호출, payload 검증, 빈 청크 처리 |
+| `test_qdrant_setup.py` | 1 | `qdrant_client.py` | 최소 - 컬렉션 생성만 테스트 |
+| `test_search.py` | 2 | `search/hybrid.py` | 양호 - 반환값 구조, RRF 호출 검증 |
+| `test_generator.py` | 4 | `chat/prompt.py`, `chat/generator.py` | 양호 - 프롬프트 조립, 생성 호출, 컨텍스트 포함 검증 |
+| `test_api.py` | 4 | `api/routes.py`, `main.py` | 양호 - 200 응답, 응답 구조, 422 유효성, 빈 결과 |
+
+**커버되지 않은 영역:**
+
+| 미커버 영역 | 심각도 | 비고 |
+|------------|--------|------|
+| `config.py` 환경변수 로딩 실패 | Medium | GEMINI_API_KEY 누락 시 동작 |
+| `ingestor.py` rate limit 재시도 로직 | Medium | `_embed_with_retry()` 429 재시도 경로 미테스트 |
+| `ingestor.py` 배치 중간 저장 | Low | `_BATCH_SIZE=10` 배치 분할 동작 미검증 |
+| `routes.py` Gemini 에러 전파 | Medium | 생성 모델 예외 시 API 응답 |
+| `qdrant_client.py` get_client() 연결 실패 | Low | Qdrant 다운 시 동작 |
+| `evaluate.py` E2E 테스트 | Low | 스크립트이므로 별도 테스트 불필요하나, CI에 포함 고려 |
+| `hybrid.py` 검색 결과 0건 | Low | Qdrant 빈 응답 시 동작 (현재 mock에서 간접 테스트) |
+
+**커버리지 판정:** 핵심 경로(happy path) 충분히 커버. 에러 경로 및 rate limit 재시도 테스트 부족.
+
+---
+
+### 3. 실패 모드 목록
+
+| # | 실패 모드 | 현재 대응 | 사용자 영향 | 개선 방향 |
+|---|----------|----------|-----------|----------|
+| F-1 | Gemini API 429 (rate limit) - 검색 시 | 대응 없음 | 500 에러 반환 | embed 함수에 retry 래퍼 적용 (ingestor에만 있음) |
+| F-2 | Gemini API 429 (rate limit) - 생성 시 | 대응 없음 | 500 에러 반환 | generate_answer에 retry 로직 추가 |
+| F-3 | Gemini API 다운 (5xx) | 대응 없음 | 500 에러 반환 | Circuit breaker + fallback 메시지 |
+| F-4 | Qdrant Docker 미실행 | 대응 없음 | 연결 에러 → 500 | health 엔드포인트에 Qdrant 상태 확인 추가 |
+| F-5 | 빈 검색 결과 | 시스템 프롬프트 규칙에 의존 | LLM이 "찾지 못했습니다" 응답 (불확실) | 코드 레벨에서 즉시 반환 |
+| F-6 | 매우 긴 질문 입력 | 제한 없음 | 토큰 초과 가능 | 입력 길이 제한 (max 500자) |
+| F-7 | 악의적 프롬프트 인젝션 | 시스템 프롬프트 규칙만 | 방어 불확실 | 입력 필터링 + 별도 방어 레이어 |
+| F-8 | Gemini API 키 만료/무효 | 대응 없음 | 모든 요청 실패 | 시작 시 키 검증 + 에러 메시지 |
+
+---
+
+### 4. 계획 vs 실제 구현 차이
+
+| 항목 | 계획 | 실제 구현 | 평가 |
+|------|------|----------|------|
+| 임베딩 모델 | `text-embedding-004` (768d) | `gemini-embedding-001` (3072d) | 개선 - 더 높은 임베딩 품질 |
+| Python SDK | `google-generativeai` | `google-genai` (신규 SDK) | 개선 - 최신 API, 더 나은 타입 지원 |
+| 임베딩 차원 | 768 | 3072 | 개선 - Qdrant, 테스트 코드에 반영됨 |
+| 생성 모델 | `gemini-2.5-flash` | `gemini-2.5-flash` | 일치 |
+| Docker 이미지 | `qdrant/qdrant:v1.12.0` | `qdrant/qdrant:latest` | 후퇴 - 재현성 약화 |
+| 핵심 용어 수 | 20개 | 7개 | 축소 - 충분성 검토 필요 |
+| Rate limit 대응 | 미계획 | 구현 (0.2초 딜레이, 429 재시도) | 추가 구현 - 실제 필요에 의해 추가 |
+| 배치 적재 | 미계획 (전체 한 번에 upsert) | 10개 단위 배치 upsert | 추가 구현 - 대량 적재 안정성 향상 |
+| evaluate.py | 미계획 | 구현 (5개 질문 E2E 평가) | 추가 구현 - 품질 검증 수단 |
+| 테스트 mock 차원 | 768 | 768 (구현은 3072이나 테스트는 768 유지) | 불일치 - 동작에 영향 없으나 정합성 문제 |
+| Ingestor 구조 | 단순 upsert | retry + batch + delay | 대폭 개선 |
+
+---
+
+### 5. 개선 권고사항
+
+#### Phase 2에서 해결 (우선순위 높음)
+
+1. **H-1:** `gemini_api_key`를 `SecretStr`로 변경
+2. **H-2:** API 인증 미들웨어 추가 (최소 API Key 인증)
+3. **H-3:** `generate_answer()`에 try-except + 재시도 로직
+4. **M-4:** QdrantClient 싱글톤화 (FastAPI lifespan)
+5. **M-5:** 검색 결과 0건 시 LLM 호출 스킵
+6. SSE 스트리밍 응답 도입
+
+#### Phase 3에서 해결
+
+7. **M-1, M-2:** 계획 문서를 실제 구현에 맞게 업데이트
+8. **M-6:** 핵심 용어 확장 (7 → 20개)
+9. 대규모 평가 세트 + 자동 메트릭 (faithfulness, relevancy)
+10. Re-ranker 도입
+11. 계층적 청킹
+
+#### Phase 4에서 해결
+
+12. **M-3:** Docker 이미지 버전 고정
+13. **L-4:** Python logging 모듈 전환
+14. CI/CD 파이프라인 + 테스트 자동화
+15. 모니터링 + 알림
+
+---
+
+### 6. 최종 판정
+
+**APPROVED WITH CHANGES**
+
+Phase 1 RAG PoC는 목표를 달성했다. 핵심 파이프라인(적재 → 검색 → 생성)이 정상 동작하며, 24개 테스트가 전부 통과하고, 환각 억제 동작이 확인되었다.
+
+**긍정적 평가:**
+- 모듈 분리가 깔끔함 (config / pipeline / search / chat / api)
+- TDD 접근법 적용 (테스트 먼저 작성)
+- 계획 대비 실제 구현이 더 나은 부분이 많음 (임베딩 모델 업그레이드, rate limit 대응, 배치 처리)
+- 하이브리드 검색(RRF) 구현이 Qdrant 네이티브 API를 잘 활용
+
+**Phase 2 진입 전 필수 조치:**
+- H-1 ~ H-3 이슈 해결 (보안 + 에러 핸들링)
+- M-4 (QdrantClient 싱글톤) 적용
+- 테스트 mock 차원 수 정합성 확보 (768 → 3072)
