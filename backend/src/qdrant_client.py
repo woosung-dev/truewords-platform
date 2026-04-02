@@ -1,4 +1,4 @@
-from qdrant_client import QdrantClient
+from qdrant_client import AsyncQdrantClient, QdrantClient
 from qdrant_client.models import (
     Distance,
     VectorParams,
@@ -8,7 +8,19 @@ from qdrant_client.models import (
 )
 from src.config import settings
 
+# 비동기 클라이언트 (API 요청 처리용)
+_async_client: AsyncQdrantClient | None = None
 
+
+def get_async_client() -> AsyncQdrantClient:
+    """비동기 Qdrant 클라이언트 싱글턴."""
+    global _async_client
+    if _async_client is None:
+        _async_client = AsyncQdrantClient(url=settings.qdrant_url)
+    return _async_client
+
+
+# 동기 클라이언트 (데이터 적재 스크립트용 — pipeline/)
 def get_client() -> QdrantClient:
     return QdrantClient(url=settings.qdrant_url)
 

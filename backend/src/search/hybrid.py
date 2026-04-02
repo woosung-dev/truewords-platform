@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from qdrant_client import QdrantClient
+
+from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import (
     Prefetch,
     FusionQuery,
@@ -9,7 +10,8 @@ from qdrant_client.models import (
     FieldCondition,
     MatchAny,
 )
-from src.pipeline.embedder import embed_dense_query, embed_sparse
+from src.common.gemini import embed_dense_query
+from src.pipeline.embedder import embed_sparse_async
 from src.config import settings
 
 
@@ -22,14 +24,15 @@ class SearchResult:
     source: str = ""
 
 
-def hybrid_search(
-    client: QdrantClient,
+async def hybrid_search(
+    client: AsyncQdrantClient,
     query: str,
     top_k: int = 10,
     source_filter: list[str] | None = None,
 ) -> list[SearchResult]:
-    dense = embed_dense_query(query)
-    sparse_indices, sparse_values = embed_sparse(query)
+    """비동기 하이브리드 검색 (dense + sparse RRF)."""
+    dense = await embed_dense_query(query)
+    sparse_indices, sparse_values = await embed_sparse_async(query)
 
     query_filter = None
     if source_filter:
@@ -37,7 +40,7 @@ def hybrid_search(
             must=[FieldCondition(key="source", match=MatchAny(any=source_filter))]
         )
 
-    response = client.query_points(
+    response = await client.query_points(
         collection_name=settings.collection_name,
         prefetch=[
             Prefetch(query=dense, using="dense", limit=50),

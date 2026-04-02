@@ -57,6 +57,14 @@
 
 ---
 
+## guides/ — 개발 가이드
+
+| 문서 | 설명 | 키워드 |
+|------|------|--------|
+| [development-workflow](./guides/development-workflow.md) | 개발 워크플로우 (gstack + superpowers + ai-rules), 작업 유형별 프로세스, 현재 진행 상태 | 워크플로우, 방법론, 다음 작업 |
+
+---
+
 ## 핵심 아키텍처 결정
 
 ```

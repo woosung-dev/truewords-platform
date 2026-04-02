@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from qdrant_client import QdrantClient
+
+from qdrant_client import AsyncQdrantClient
 from src.search.hybrid import hybrid_search, SearchResult
 
 
@@ -17,17 +18,17 @@ class CascadingConfig:
     tiers: list[SearchTier] = field(default_factory=list)
 
 
-def cascading_search(
-    client: QdrantClient,
+async def cascading_search(
+    client: AsyncQdrantClient,
     query: str,
     config: CascadingConfig,
     top_k: int = 10,
 ) -> list[SearchResult]:
-    """티어별 순차 검색. 충분한 결과가 모이면 중단."""
+    """비동기 티어별 순차 검색. 충분한 결과가 모이면 중단."""
     all_results: list[SearchResult] = []
 
     for tier in config.tiers:
-        results = hybrid_search(
+        results = await hybrid_search(
             client,
             query,
             top_k=top_k,
