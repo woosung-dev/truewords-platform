@@ -17,6 +17,7 @@ from src.chat.schemas import ChatRequest, ChatResponse, FeedbackRequest, Source
 from src.chatbot.service import ChatbotService
 from src.qdrant_client import get_async_client
 from src.search.cascading import cascading_search
+from src.search.reranker import rerank
 
 
 class ChatService:
@@ -29,7 +30,7 @@ class ChatService:
         self.chatbot_service = chatbot_service
 
     async def process_chat(self, request: ChatRequest) -> ChatResponse:
-        """채팅 처리: 세션 관리 → 검색 → 생성 → DB 기록."""
+        """채팅 처리: 세션 관리 → 검색 → Re-ranking → 생성 → DB 기록 (단일 트랜잭션)."""
         # 1. 세션 판단
         session = await self._get_or_create_session(request)
 
@@ -41,20 +42,35 @@ class ChatService:
                 content=request.query,
             )
         )
-        await self.chat_repo.commit()
 
-        # 3. 검색 실행
+        # 3. 검색 실행 (넓은 후보 풀)
         qdrant = get_async_client()
-        cascading_config = await self.chatbot_service.get_cascading_config(request.chatbot_id)
+        cascading_config, rerank_enabled = await self.chatbot_service.get_search_config(
+            request.chatbot_id
+        )
 
         start_time = time.monotonic()
-        results = await cascading_search(qdrant, request.query, cascading_config, top_k=10)
-        latency_ms = int((time.monotonic() - start_time) * 1000)
+        results = await cascading_search(qdrant, request.query, cascading_config, top_k=50)
+        search_latency_ms = int((time.monotonic() - start_time) * 1000)
 
-        # 4. 답변 생성
-        answer = await generate_answer(request.query, results)
+        # 4. Re-ranking (활성화된 경우)
+        reranked = False
+        rerank_latency_ms = 0
+        if rerank_enabled and results:
+            rerank_start = time.monotonic()
+            results = await rerank(request.query, results, top_k=10)
+            rerank_latency_ms = int((time.monotonic() - rerank_start) * 1000)
+            reranked = any(r.rerank_score is not None for r in results)
+        else:
+            results = results[:10]
 
-        # 5. 답변 메시지 저장
+        total_latency_ms = search_latency_ms + rerank_latency_ms
+
+        # 5. 답변 생성 (상위 5개 context만 전달)
+        context_results = results[:5]
+        answer = await generate_answer(request.query, context_results)
+
+        # 6. 답변 메시지 저장
         assistant_msg = await self.chat_repo.create_message(
             SessionMessage(
                 session_id=session.id,
@@ -62,14 +78,18 @@ class ChatService:
                 content=answer,
             )
         )
-        await self.chat_repo.commit()
 
-        # 6. 검색 이벤트 + 인용 기록 (동기로 — 응답 반환 전 기록)
-        await self._record_search_event(assistant_msg.id, request, results, latency_ms)
+        # 7. 검색 이벤트 + 인용 기록
+        await self._record_search_event(
+            assistant_msg.id, request, results, total_latency_ms,
+            reranked=reranked, rerank_latency_ms=rerank_latency_ms,
+        )
         await self._record_citations(assistant_msg.id, results)
+
+        # 8. 단일 commit (전체 트랜잭션)
         await self.chat_repo.commit()
 
-        # 7. 응답 반환
+        # 9. 응답 반환 (상위 3개 출처)
         return ChatResponse(
             answer=answer,
             sources=[
@@ -120,9 +140,8 @@ class ChatService:
                 return session
 
         config_id = await self.chatbot_service.get_config_id(request.chatbot_id)
-        # config_id가 None이면 기본 chatbot_config를 사용하거나 없이 생성
         session = ResearchSession(
-            chatbot_config_id=config_id or uuid.uuid4(),
+            chatbot_config_id=config_id,
             client_fingerprint=None,
         )
         return await self.chat_repo.create_session(session)
@@ -133,11 +152,17 @@ class ChatService:
         request: ChatRequest,
         results: list,
         latency_ms: int,
+        reranked: bool = False,
+        rerank_latency_ms: int = 0,
     ) -> None:
         event = SearchEvent(
             message_id=message_id,
             query_text=request.query,
-            applied_filters={"chatbot_id": request.chatbot_id},
+            applied_filters={
+                "chatbot_id": request.chatbot_id,
+                "reranked": reranked,
+                "rerank_latency_ms": rerank_latency_ms,
+            },
             total_results=len(results),
             latency_ms=latency_ms,
         )

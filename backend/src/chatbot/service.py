@@ -13,6 +13,7 @@ from src.search.cascading import CascadingConfig, SearchTier
 DEFAULT_CASCADING_CONFIG = CascadingConfig(
     tiers=[SearchTier(sources=["A", "B", "C"], min_results=3, score_threshold=0.60)]
 )
+DEFAULT_RERANK_ENABLED = False
 
 
 class ChatbotService:
@@ -54,6 +55,20 @@ class ChatbotService:
                 detail=f"chatbot_id '{chatbot_id}'를 찾을 수 없습니다",
             )
         return self._parse_search_tiers(config.search_tiers)
+
+    async def get_search_config(self, chatbot_id: str | None) -> tuple[CascadingConfig, bool]:
+        """chatbot_id로 CascadingConfig + rerank_enabled를 조회."""
+        if chatbot_id is None:
+            return DEFAULT_CASCADING_CONFIG, DEFAULT_RERANK_ENABLED
+        config = await self.repo.get_by_chatbot_id(chatbot_id)
+        if config is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"chatbot_id '{chatbot_id}'를 찾을 수 없습니다",
+            )
+        cascading = self._parse_search_tiers(config.search_tiers)
+        rerank_enabled = config.search_tiers.get("rerank_enabled", DEFAULT_RERANK_ENABLED)
+        return cascading, rerank_enabled
 
     async def get_config_id(self, chatbot_id: str | None) -> uuid.UUID | None:
         """chatbot_id로 DB PK를 조회."""

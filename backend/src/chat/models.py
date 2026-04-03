@@ -26,7 +26,7 @@ class ResearchSession(SQLModel, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID | None = None  # 미래 확장용
-    chatbot_config_id: uuid.UUID = Field(foreign_key="chatbot_configs.id", index=True)
+    chatbot_config_id: uuid.UUID | None = Field(default=None, foreign_key="chatbot_configs.id", index=True)
     client_fingerprint: str | None = None
     organization_id: uuid.UUID | None = None
     started_at: datetime = Field(

@@ -22,6 +22,7 @@ class SearchResult:
     chunk_index: int
     score: float
     source: str = ""
+    rerank_score: float | None = None
 
 
 async def hybrid_search(

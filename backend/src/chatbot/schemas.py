@@ -24,6 +24,7 @@ class SearchTiersConfig(BaseModel):
     """search_tiers JSONB 구조."""
 
     tiers: list[SearchTierSchema] = Field(default_factory=list)
+    rerank_enabled: bool = False
 
 
 # --- 페이지네이션 ---
