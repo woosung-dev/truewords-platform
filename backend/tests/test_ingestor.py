@@ -74,3 +74,19 @@ def test_ingest_payload_source_default_empty():
     upsert_call = mock_client.upsert.call_args
     points = upsert_call.kwargs["points"]
     assert points[0].payload["source"] == ""
+
+
+def test_ingest_payload_includes_title_and_date():
+    """payload에 title, date 필드가 포함되어야 함."""
+    mock_client = MagicMock()
+    chunks = [Chunk(text="말씀", volume="vol_001", chunk_index=0, title="창조원리", date="1966.5.1")]
+
+    with (
+        patch("src.pipeline.ingestor.embed_dense_document", return_value=[0.1] * 3072),
+        patch("src.pipeline.ingestor.embed_sparse", return_value=([1], [0.5])),
+    ):
+        ingest_chunks(mock_client, "test_collection", chunks)
+
+    points = mock_client.upsert.call_args.kwargs["points"]
+    assert points[0].payload["title"] == "창조원리"
+    assert points[0].payload["date"] == "1966.5.1"

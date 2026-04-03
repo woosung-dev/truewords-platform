@@ -8,6 +8,11 @@
 - [x] Gemini LLM Re-ranking 구현 (retrieval 50 → rerank → context 5, graceful degradation)
 - [x] ChatService 단일 commit 전환 + chatbot_config_id nullable 수정
 - [x] ChatService 통합 테스트 7개 + Reranker 테스트 6개 추가 (총 81개)
+- [x] E2E 테스트 Playwright 12개 (로그인, 챗봇 CRUD, 인증 가드)
+- [x] Phase 2A 데이터 파이프라인 (extractor/metadata/chunker kss/progress/reporter/ingest CLI)
+- [x] 멀티포맷 텍스트 추출 (PDF pymupdf + DOCX python-docx + TXT, HWP 제출 제한)
+- [x] 폴더 기반 A/B source 자동 분류 + 증분 적재 + 배치 리포트
+- [x] 파이프라인 테스트 31개 추가 (총 112개)
 
 ## Next Actions
 

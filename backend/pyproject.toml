@@ -17,6 +17,9 @@ dependencies = [
     # Auth
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
+    "pymupdf>=1.27.2.2",
+    "python-docx>=1.2.0",
+    "kss>=6.0.6",
 ]
 
 [dependency-groups]

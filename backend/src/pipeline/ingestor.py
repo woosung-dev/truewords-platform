@@ -1,48 +1,55 @@
+"""Qdrant 적재. 지수 백오프 + 메타 payload + 적재 통계."""
+
 import time
 import uuid
+
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, SparseVector
+
+from src.config import settings
 from src.pipeline.chunker import Chunk
 from src.pipeline.embedder import embed_dense_document, embed_sparse
 
-# Gemini 무료 티어: 임베딩 API 분당 1500 요청 (초당 25)
-# 안전하게 초당 5 요청으로 제한
-_EMBED_DELAY_SEC = 0.2
-# 429 오류 발생 시 재시도 대기 시간 (초)
-_RETRY_WAIT_SEC = 60
-_MAX_RETRIES = 3
-# 중간 저장: N개 청크마다 upsert
 _BATCH_SIZE = 10
 
 
 def _embed_with_retry(text: str) -> list[float]:
-    """Rate limit 대응용 재시도 임베딩 함수."""
+    """Rate limit 대응 지수 백오프 임베딩."""
     from google.genai import errors as genai_errors
-    for attempt in range(_MAX_RETRIES):
+
+    base_wait = getattr(settings, "retry_base_wait", 30.0)
+    max_retries = getattr(settings, "retry_max_retries", 5)
+    delay = getattr(settings, "embed_delay", 0.2)
+
+    for attempt in range(max_retries):
         try:
             result = embed_dense_document(text)
-            time.sleep(_EMBED_DELAY_SEC)
+            time.sleep(delay)
             return result
         except genai_errors.ClientError as e:
             if e.code != 429:
                 raise
-            if attempt < _MAX_RETRIES - 1:
-                print(f"  Rate limit 초과, {_RETRY_WAIT_SEC}초 대기 후 재시도... (시도 {attempt + 1}/{_MAX_RETRIES})")
-                time.sleep(_RETRY_WAIT_SEC)
+            if attempt < max_retries - 1:
+                wait = base_wait * (2 ** attempt)
+                print(f"  Rate limit, {wait:.0f}초 대기 (시도 {attempt + 1}/{max_retries})")
+                time.sleep(wait)
             else:
                 raise
-    raise RuntimeError(f"임베딩 실패: {_MAX_RETRIES}회 재시도 소진")
+    raise RuntimeError(f"임베딩 실패: {max_retries}회 재시도 소진")
 
 
 def ingest_chunks(
     client: QdrantClient,
     collection_name: str,
     chunks: list[Chunk],
-) -> None:
+) -> dict:
+    """청크 적재. 반환: {"chunk_count": int, "elapsed_sec": float}."""
     if not chunks:
-        return
+        return {"chunk_count": 0, "elapsed_sec": 0.0}
 
+    start = time.monotonic()
     batch: list[PointStruct] = []
+
     for i, chunk in enumerate(chunks):
         dense = _embed_with_retry(chunk.text)
         sparse_indices, sparse_values = embed_sparse(chunk.text)
@@ -62,17 +69,20 @@ def ingest_chunks(
                     "volume": chunk.volume,
                     "chunk_index": chunk.chunk_index,
                     "source": chunk.source,
+                    "title": chunk.title,
+                    "date": chunk.date,
                 },
             )
         )
 
-        # 배치 단위로 upsert (중간 저장)
         if len(batch) >= _BATCH_SIZE:
             client.upsert(collection_name=collection_name, points=batch)
             print(f"  [{i + 1}/{len(chunks)}] 청크 적재 중...")
             batch = []
 
-    # 남은 청크 처리
     if batch:
         client.upsert(collection_name=collection_name, points=batch)
         print(f"  [{len(chunks)}/{len(chunks)}] 청크 적재 완료")
+
+    elapsed = time.monotonic() - start
+    return {"chunk_count": len(chunks), "elapsed_sec": round(elapsed, 2)}
