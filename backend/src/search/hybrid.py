@@ -30,10 +30,18 @@ async def hybrid_search(
     query: str,
     top_k: int = 10,
     source_filter: list[str] | None = None,
+    dense_embedding: list[float] | None = None,
+    sparse_embedding: tuple[list[int], list[float]] | None = None,
 ) -> list[SearchResult]:
-    """비동기 하이브리드 검색 (dense + sparse RRF)."""
-    dense = await embed_dense_query(query)
-    sparse_indices, sparse_values = await embed_sparse_async(query)
+    """비동기 하이브리드 검색 (dense + sparse RRF).
+
+    임베딩을 외부에서 주입하면 재계산을 스킵하여 레이턴시 절감.
+    """
+    dense = dense_embedding if dense_embedding is not None else await embed_dense_query(query)
+    if sparse_embedding is not None:
+        sparse_indices, sparse_values = sparse_embedding
+    else:
+        sparse_indices, sparse_values = await embed_sparse_async(query)
 
     query_filter = None
     if source_filter:

@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 
 from qdrant_client import AsyncQdrantClient
+from src.common.gemini import embed_dense_query
+from src.pipeline.embedder import embed_sparse_async
 from src.search.hybrid import hybrid_search, SearchResult
 
 
@@ -23,8 +25,13 @@ async def cascading_search(
     query: str,
     config: CascadingConfig,
     top_k: int = 10,
+    dense_embedding: list[float] | None = None,
 ) -> list[SearchResult]:
-    """비동기 티어별 순차 검색. 충분한 결과가 모이면 중단."""
+    """비동기 티어별 순차 검색. 임베딩을 1회만 계산하여 모든 티어에서 재사용."""
+    # 임베딩 1회 계산 (외부 주입 시 스킵)
+    dense = dense_embedding if dense_embedding is not None else await embed_dense_query(query)
+    sparse = await embed_sparse_async(query)
+
     all_results: list[SearchResult] = []
 
     for tier in config.tiers:
@@ -33,6 +40,8 @@ async def cascading_search(
             query,
             top_k=top_k,
             source_filter=tier.sources,
+            dense_embedding=dense,
+            sparse_embedding=sparse,
         )
         qualified = [r for r in results if r.score >= tier.score_threshold]
         all_results.extend(qualified)

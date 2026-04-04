@@ -5,6 +5,10 @@ from unittest.mock import AsyncMock, patch
 from src.search.cascading import cascading_search, SearchTier, CascadingConfig
 from src.search.hybrid import SearchResult
 
+# cascading_search가 임베딩을 직접 계산하므로 모든 테스트에서 mock 필요
+_DENSE_PATCH = "src.search.cascading.embed_dense_query"
+_SPARSE_PATCH = "src.search.cascading.embed_sparse_async"
+
 
 def _make_results(source: str, scores: list[float]) -> list[SearchResult]:
     return [
@@ -27,7 +31,11 @@ async def test_cascading_returns_first_tier_when_sufficient():
     ])
     a_results = _make_results("A", [0.95, 0.85, 0.80])
 
-    with patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search:
+    with (
+        patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search,
+        patch(_DENSE_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
+        patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])),
+    ):
         mock_search.return_value = a_results
         results = await cascading_search(AsyncMock(), "질문", config, top_k=10)
 
@@ -45,7 +53,11 @@ async def test_cascading_falls_back_to_next_tier():
     a_results = _make_results("A", [0.80])
     b_results = _make_results("B", [0.70, 0.65, 0.62])
 
-    with patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search:
+    with (
+        patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search,
+        patch(_DENSE_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
+        patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])),
+    ):
         mock_search.side_effect = [a_results, b_results]
         results = await cascading_search(AsyncMock(), "질문", config, top_k=10)
 
@@ -62,7 +74,11 @@ async def test_cascading_filters_by_score_threshold():
     ])
     a_results = _make_results("A", [0.95, 0.85, 0.60, 0.50])
 
-    with patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search:
+    with (
+        patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search,
+        patch(_DENSE_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
+        patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])),
+    ):
         mock_search.return_value = a_results
         results = await cascading_search(AsyncMock(), "질문", config, top_k=10)
 
@@ -77,7 +93,11 @@ async def test_cascading_returns_empty_when_all_tiers_empty():
         SearchTier(sources=["B"], min_results=1, score_threshold=0.60),
     ])
 
-    with patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search:
+    with (
+        patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search,
+        patch(_DENSE_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
+        patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])),
+    ):
         mock_search.return_value = []
         results = await cascading_search(AsyncMock(), "질문", config, top_k=10)
 
@@ -91,7 +111,11 @@ async def test_cascading_respects_top_k():
     ])
     a_results = _make_results("A", [0.95, 0.90, 0.85, 0.80, 0.75])
 
-    with patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search:
+    with (
+        patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search,
+        patch(_DENSE_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
+        patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])),
+    ):
         mock_search.return_value = a_results
         results = await cascading_search(AsyncMock(), "질문", config, top_k=3)
 
@@ -107,7 +131,11 @@ async def test_cascading_sorts_by_score_descending():
     a_results = _make_results("A", [0.70])
     b_results = _make_results("B", [0.90, 0.60])
 
-    with patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search:
+    with (
+        patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search,
+        patch(_DENSE_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
+        patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])),
+    ):
         mock_search.side_effect = [a_results, b_results]
         results = await cascading_search(AsyncMock(), "질문", config, top_k=10)
 

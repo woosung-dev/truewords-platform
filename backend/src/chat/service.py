@@ -85,7 +85,10 @@ class ChatService:
         )
 
         start_time = time.monotonic()
-        results = await cascading_search(qdrant, request.query, cascading_config, top_k=50)
+        results = await cascading_search(
+            qdrant, request.query, cascading_config, top_k=50,
+            dense_embedding=query_embedding,
+        )
         search_latency_ms = int((time.monotonic() - start_time) * 1000)
 
         # 4. Re-ranking (활성화된 경우)
@@ -201,7 +204,10 @@ class ChatService:
         )
 
         start_time = time.monotonic()
-        results = await cascading_search(qdrant, request.query, cascading_config, top_k=50)
+        results = await cascading_search(
+            qdrant, request.query, cascading_config, top_k=50,
+            dense_embedding=query_embedding,
+        )
         search_latency_ms = int((time.monotonic() - start_time) * 1000)
 
         reranked = False
