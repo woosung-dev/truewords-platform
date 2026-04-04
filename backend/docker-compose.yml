@@ -1,4 +1,18 @@
 services:
+  backend:
+    build: .
+    ports:
+      - "8000:8080"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://truewords:truewords@postgres:5432/truewords
+      QDRANT_URL: http://qdrant:6333
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+
   qdrant:
     image: qdrant/qdrant:latest
     ports:
@@ -17,6 +31,11 @@ services:
       POSTGRES_DB: truewords
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U truewords"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   qdrant_data:

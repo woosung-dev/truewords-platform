@@ -1,8 +1,11 @@
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    # 환경 구분
+    environment: str = "development"  # development | staging | production
+
     # AI
     gemini_api_key: SecretStr
 
@@ -42,6 +45,16 @@ class Settings(BaseSettings):
     cascade_min_results: int = 3
 
     model_config = {"env_file": ".env"}
+
+    @model_validator(mode="after")
+    def validate_production(self):
+        """프로덕션 환경에서 보안 필수값 검증."""
+        if self.environment == "production":
+            if self.admin_jwt_secret.get_secret_value() == "change-me-in-production":
+                raise ValueError("ADMIN_JWT_SECRET must be changed in production")
+            if not self.cookie_secure:
+                raise ValueError("COOKIE_SECURE must be True in production")
+        return self
 
 
 settings = Settings()

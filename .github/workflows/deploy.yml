@@ -1,0 +1,65 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  GCP_REGION: asia-northeast3
+  CLOUD_RUN_SERVICE: truewords-backend
+  ARTIFACT_REGISTRY: truewords-docker
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend to Cloud Run
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, 'backend') || contains(github.event.head_commit.message, 'feat') || contains(github.event.head_commit.message, 'fix')
+
+    permissions:
+      contents: read
+      id-token: write  # Workload Identity Federation
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.CLOUD_RUN_SERVICE }}:${{ github.sha }} \
+            -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.CLOUD_RUN_SERVICE }}:latest \
+            ./backend
+
+      - name: Push to Artifact Registry
+        run: |
+          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.CLOUD_RUN_SERVICE }} --all-tags
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.CLOUD_RUN_SERVICE }}
+          region: ${{ env.GCP_REGION }}
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.CLOUD_RUN_SERVICE }}:${{ github.sha }}
+          flags: --allow-unauthenticated --memory=512Mi --cpu=1 --min-instances=0 --max-instances=3
+          env_vars: |
+            ENVIRONMENT=production
+            QDRANT_URL=${{ secrets.QDRANT_URL }}
+            COLLECTION_NAME=malssum_poc
+            ADMIN_FRONTEND_URL=${{ secrets.ADMIN_FRONTEND_URL }}
+            COOKIE_SECURE=true
+            CACHE_COLLECTION_NAME=semantic_cache
+          secrets: |
+            GEMINI_API_KEY=gemini-api-key:latest
+            ADMIN_JWT_SECRET=admin-jwt-secret:latest
+            DATABASE_URL=database-url:latest
+
+  # Vercel 배포는 GitHub 연동으로 자동 실행 (별도 Actions 불필요)
+  # Vercel 대시보드에서 Root Directory = "admin" 설정 필요

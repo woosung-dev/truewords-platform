@@ -33,7 +33,10 @@ async def get_background_session() -> AsyncSession:
 
 
 async def init_db() -> None:
-    """테이블 생성 (개발 환경). 프로덕션은 Alembic 사용."""
+    """테이블 생성 (개발 환경). 프로덕션은 Alembic 마이그레이션 사용."""
+    if settings.environment == "production":
+        return  # 프로덕션: Alembic으로 관리
+
     # 모든 모델을 import하여 SQLModel.metadata에 등록
     from src.admin.models import AdminUser, AdminAuditLog  # noqa: F401
     from src.chat.models import (  # noqa: F401
