@@ -28,6 +28,18 @@ Query Rewriting + 용어 감지 (LLM이 질문 확장/재작성)
 
 ## 대용량 데이터 고도화 방향 (5가지)
 
+> **구현 현황 (2026-04-04)**
+>
+> | # | 방향 | 추천도 | 구현 상태 |
+> |---|------|--------|----------|
+> | 1 | 하이브리드 검색 (BM25 + 벡터) | ★★★★★ | ✅ 완료 (`search/hybrid.py`) |
+> | 2 | 계층적 청킹 | ★★★★★ | ✅ 완료 (`pipeline/chunker.py`) |
+> | 3 | Re-ranking | ★★★★☆ | ✅ 완료 (`search/reranker.py`, Gemini LLM 기반) |
+> | 4 | Query Expansion / Rewriting | ★★★★☆ | ❌ 미구현 |
+> | 5 | Agentic RAG | ★★★☆☆ | ❌ 미구현 (Phase 3 이후) |
+>
+> 추가 구현: Semantic Cache (`cache/service.py`), Safety Layer (`safety/`), SSE 스트리밍 (`chat/stream_generator.py`), 임베딩 재사용 최적화
+
 ### 방향 1: 하이브리드 검색 (BM25 + 벡터) — ★★★★★
 
 ```

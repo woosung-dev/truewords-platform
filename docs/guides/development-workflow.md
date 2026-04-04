@@ -157,77 +157,48 @@ gstack 커맨드 실행 시 아래 구조로 프롬프트를 작성하면 효과
 | Docker Compose PostgreSQL 추가 | `590e36e` | Done |
 | Seed/Admin 초기화 스크립트 | `590e36e` | Done |
 
+### 완료 (Phase 3 + 인프라, 2026-04-04 기준)
+
+| 항목 | 커밋 | 상태 |
+|------|------|------|
+| 관리자 대시보드 (Next.js) | `bcc4e1b` | Done |
+| Phase 3 보안 가드레일 (Prompt Injection, Rate Limiting, 면책 고지) | `4f2b848` | Done |
+| SSE 스트리밍 응답 (POST /chat/stream) | `4f2b848` | Done |
+| Semantic Cache (Qdrant, 유사도 0.93, TTL 7일) | `4f2b848` | Done |
+| 배포 인프라 (Dockerfile, CI/CD, Vercel) | `3fd75d7` | Done |
+| 임베딩 중복 계산 최적화 | `ea75d62` | Done |
+| Alembic 초기 마이그레이션 | `3fd75d7` | Done |
+| 테스트 190개 (백엔드) + 25 (Vitest) + 12 (E2E) | - | Done |
+
 ### 미완료 (우선순위 순)
 
-| 우선순위 | 항목 | 설계 문서 | 워크플로우 | 비고 |
-|----------|------|-----------|-----------|------|
-| **P0** | 관리자 페이지 프론트엔드 | 없음 (설계 필요) | 큰 기능 | Flutter 웹? React? 별도 결정 필요 |
-| **P1** | 종교 용어 사전 동적 주입 | `docs/02_domain/06-terminology-dictionary-structure.md` | 기존 기능 개선 | dictionary_collection + 질문 내 용어 감지 |
-| **P1** | Semantic Cache | `docs/04_architecture/08-semantic-cache.md` | 기존 기능 개선 | Qdrant semantic_cache 컬렉션 기반 |
-| **P1** | 보안/가드레일 | `docs/04_architecture/09-security-countermeasures.md` | 보안 작업 | Prompt injection 방어, 워터마킹, rate limit |
-| **P1** | SSE 스트리밍 응답 | 기능 스펙 M-01 | 기존 기능 개선 | /chat 응답을 SSE로 전환 |
-| **P2** | Flutter 프론트엔드 (채팅 UI) | `docs/01_requirements/16-app-feature-spec.md` | UI 작업 | MVP 6개 화면 |
-| **P2** | Re-ranking (Cross-encoder) | `docs/04_architecture/05-rag-pipeline.md` | 기존 기능 개선 | Top-50 → Top-10 정밀 선별 |
-| **P2** | Query Expansion/Rewriting | `docs/04_architecture/05-rag-pipeline.md` | 기존 기능 개선 | LLM으로 질문 확장/재작성 |
-| **P3** | Context Caching (Gemini) | `docs/04_architecture/04-gemini-file-search-analysis.md` | 기존 기능 개선 | 대용량 정적 콘텐츠 캐싱 |
-| **P3** | 단계적 공개 (Staged Rollout) | `docs/04_architecture/09-security-countermeasures.md` | 보안 작업 | Phase 1~4 롤아웃 |
+| 우선순위 | 항목 | 설계 문서 | 비고 |
+|----------|------|-----------|------|
+| **P0** | GCP/Vercel 실제 배포 | `docs/07_infra/` | 수동 설정 (GCP 프로젝트, Secret Manager 등) |
+| **P0** | 레드팀 테스트 | `docs/04_architecture/09-security-countermeasures.md` | 배포 후 내부 팀 테스트 |
+| **P1** | 검색 에러 핸들링 | - | Qdrant/Gemini 실패 시 사용자 친화적 에러 |
+| **P1** | Query Expansion/Rewriting | `docs/04_architecture/05-rag-pipeline.md` | LLM으로 질문 확장/재작성 |
+| **P2** | Flutter 모바일 앱 | `docs/01_requirements/16-app-feature-spec.md` | 레드팀 후 Phase 4 |
+| **P2** | 사용자 인증 (Clerk) | - | Flutter와 함께 |
+| **보류** | 종교 용어 사전 동적 주입 | `docs/02_domain/06-terminology-dictionary-structure.md` | 데이터 미확보 |
+| **P3** | Context Caching (Gemini) | `docs/04_architecture/04-gemini-file-search-analysis.md` | 대용량 정적 콘텐츠 캐싱 |
 
 ### 다음 작업 추천 순서
 
-**즉시 진행 가능 (백엔드 확장):**
-
 ```
-1. 보안/가드레일 (/cso → 수정 → /review)
-   - Prompt injection 방어, rate limit, 답변 워터마킹
-   - 조직 프로젝트이므로 배포 전 필수
+1. GCP/Vercel 실제 배포 (수동 작업)
+   - GCP 프로젝트 + Cloud SQL + Secret Manager + Artifact Registry
+   - Vercel 연결 (Root Directory: admin)
 
-2. SSE 스트리밍 응답 (/brainstorm → 구현 → /review)
-   - /chat 응답을 실시간 스트리밍으로 전환
-   - UX 체감 속도 대폭 향상
+2. 레드팀 테스트
+   - 악의적 질문 테스트, 답변 품질 평가
+   - 보안 가드레일 검증
 
-3. 종교 용어 사전 동적 주입 (/brainstorm → 구현 → /review)
-   - dictionary_collection 생성 + 질문 내 용어 감지 + 컨텍스트 주입
-   - 검색 품질 향상의 핵심
-```
+3. 검색 에러 핸들링
+   - 외부 서비스 장애 시 500 → 사용자 친화적 메시지
 
-**UI 작업 시작 시 (프론트엔드):**
-
-```
-4. 관리자 페이지 프론트엔드 (/office-hours → /plan-design-review → 구현)
-   - 프레임워크 결정 필요 (Flutter 웹 vs React/Next.js)
-   - 챗봇 설정 CRUD + 사용 통계 대시보드
-
-5. Flutter 채팅 UI (/office-hours → /plan-design-review → 구현)
-   - MVP 6개 화면: 홈, AI 대화, 기도문, 성경, 마이페이지, 온보딩
-   - SSE 스트리밍 + 출처 표시 연동
-```
-
-**검색 품질 고도화 (RAG 개선):**
-
-```
-6. Re-ranking (/brainstorm → 구현 → /review)
-7. Query Expansion (/brainstorm → 구현 → /review)
-8. Semantic Cache (/brainstorm → 구현 → /review)
-```
-
-### 프롬프트 예시
-
-```
-# 보안/가드레일 시작
-/cso
-
-TrueWords 말씀 AI 챗봇의 보안 검토를 시작합니다.
-현재 /chat 엔드포인트가 인증 없이 공개되어 있고,
-Prompt injection 방어, rate limit, 답변 워터마킹이 없습니다.
-참조: docs/04_architecture/09-security-countermeasures.md
-
-# SSE 스트리밍 전환
-/office-hours
-
-TrueWords /chat 엔드포인트를 SSE 스트리밍으로 전환하려 합니다.
-현재 동기 응답(전체 답변 완성 후 반환)이고,
-Gemini client.aio는 스트리밍을 지원합니다.
-참조: .ai/rules/backend.md 섹션 6 (SSE 스트리밍 응답)
+4. Flutter 모바일 앱 (레드팀 후)
+   - MVP 3개 화면: 채팅(SSE), 챗봇 선택, 설정
 ```
 
 ---

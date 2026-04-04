@@ -57,6 +57,30 @@
 
 ---
 
+## 05_env/ — 환경 설정
+
+| 문서 | 설명 | 키워드 |
+|------|------|--------|
+| [environment-setup](./05_env/environment-setup.md) | 로컬/스테이징/프로덕션 환경 설정, 환경변수 레퍼런스 | 개발환경, Docker Compose |
+
+---
+
+## 06_devops/ — CI/CD 파이프라인
+
+| 문서 | 설명 | 키워드 |
+|------|------|--------|
+| [ci-cd-pipeline](./06_devops/ci-cd-pipeline.md) | GitHub Actions CI/CD, Cloud Run 배포, Vercel 연동 | CI/CD, 배포, 롤백 |
+
+---
+
+## 07_infra/ — 인프라 구성
+
+| 문서 | 설명 | 키워드 |
+|------|------|--------|
+| [gcp-vercel-infrastructure](./07_infra/gcp-vercel-infrastructure.md) | GCP Cloud Run + Vercel 인프라, 리소스 구성, 월 비용 | 클라우드, 아키텍처, 비용 |
+
+---
+
 ## guides/ — 개발 가이드
 
 | 문서 | 설명 | 키워드 |
@@ -73,7 +97,8 @@ Flutter (프론트엔드) + FastAPI (백엔드) + Qdrant (검색) + PostgreSQL (
 
 - **Qdrant**: 종합 평가 8.75/10으로 선정 (10종 비교)
 - **Gemini File Search**: 단독 사용 비추 (4.85/10), 생성 모델 + Context Caching으로 활용
-- **예상 월 비용**: ~$105-215/월
+- **배포**: Vercel (admin) + GCP Cloud Run (백엔드)
+- **예상 월 비용**: ~$66-210/월
 
 ## 문서 간 참조 관계
 
