@@ -60,6 +60,7 @@ jobs:
             GEMINI_API_KEY=gemini-api-key:latest
             ADMIN_JWT_SECRET=admin-jwt-secret:latest
             DATABASE_URL=database-url:latest
+            QDRANT_API_KEY=qdrant-api-key:latest
 
   # Vercel 배포는 GitHub 연동으로 자동 실행 (별도 Actions 불필요)
   # Vercel 대시보드에서 Root Directory = "admin" 설정 필요
