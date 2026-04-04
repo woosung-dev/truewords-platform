@@ -45,6 +45,8 @@ export interface SearchTier {
 
 export interface SearchTiersConfig {
   tiers: SearchTier[];
+  rerank_enabled?: boolean;
+  dictionary_enabled?: boolean;
 }
 
 export interface ChatbotConfig {
@@ -52,7 +54,8 @@ export interface ChatbotConfig {
   chatbot_id: string;
   display_name: string;
   description: string;
-  system_prompt_version: string | null;
+  system_prompt: string;
+  persona_name: string;
   search_tiers: SearchTiersConfig;
   is_active: boolean;
   created_at: string;
@@ -96,6 +99,8 @@ export const chatbotAPI = {
     chatbot_id: string;
     display_name: string;
     description?: string;
+    persona_name?: string;
+    system_prompt?: string;
     search_tiers?: SearchTiersConfig;
     is_active?: boolean;
   }) =>
@@ -108,6 +113,8 @@ export const chatbotAPI = {
     data: {
       display_name?: string;
       description?: string;
+      persona_name?: string;
+      system_prompt?: string;
       search_tiers?: SearchTiersConfig;
       is_active?: boolean;
     }

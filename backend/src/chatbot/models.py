@@ -19,8 +19,9 @@ class ChatbotConfig(SQLModel, table=True):
     chatbot_id: str = Field(unique=True, index=True)
     display_name: str
     description: str = ""
-    system_prompt_version: str | None = None
-    # JSONB: {"tiers": [{"sources": ["A"], "min_results": 3, "score_threshold": 0.75}]}
+    system_prompt: str = Field(default="")
+    persona_name: str = Field(default="")
+    # JSONB: {"tiers": [...], "rerank_enabled": false, "dictionary_enabled": false}
     search_tiers: dict = Field(default_factory=dict, sa_column=Column(JSON))
     is_active: bool = Field(default=True)
     organization_id: uuid.UUID | None = None

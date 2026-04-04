@@ -25,6 +25,7 @@ class SearchTiersConfig(BaseModel):
 
     tiers: list[SearchTierSchema] = Field(default_factory=list)
     rerank_enabled: bool = False
+    dictionary_enabled: bool = False
 
 
 # --- 페이지네이션 ---
@@ -47,7 +48,8 @@ class ChatbotConfigResponse(BaseModel):
     chatbot_id: str
     display_name: str
     description: str
-    system_prompt_version: str | None
+    system_prompt: str
+    persona_name: str
     search_tiers: SearchTiersConfig
     is_active: bool
     created_at: datetime
@@ -58,7 +60,8 @@ class ChatbotConfigCreate(BaseModel):
     chatbot_id: str
     display_name: str
     description: str = ""
-    system_prompt_version: str | None = None
+    system_prompt: str = ""
+    persona_name: str = ""
     search_tiers: SearchTiersConfig = Field(
         default_factory=lambda: SearchTiersConfig(tiers=[])
     )
@@ -68,6 +71,7 @@ class ChatbotConfigCreate(BaseModel):
 class ChatbotConfigUpdate(BaseModel):
     display_name: str | None = None
     description: str | None = None
-    system_prompt_version: str | None = None
+    system_prompt: str | None = None
+    persona_name: str | None = None
     search_tiers: SearchTiersConfig | None = None
     is_active: bool | None = None

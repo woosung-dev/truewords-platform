@@ -29,16 +29,22 @@ export default function EditChatbotPage({
 
   const [displayName, setDisplayName] = useState("");
   const [description, setDescription] = useState("");
+  const [personaName, setPersonaName] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [tiers, setTiers] = useState<SearchTier[]>([]);
+  const [dictionaryEnabled, setDictionaryEnabled] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     if (config && !initialized) {
       setDisplayName(config.display_name);
       setDescription(config.description);
+      setPersonaName(config.persona_name ?? "");
+      setSystemPrompt(config.system_prompt ?? "");
       setIsActive(config.is_active);
       setTiers(config.search_tiers?.tiers ?? []);
+      setDictionaryEnabled(config.search_tiers?.dictionary_enabled ?? false);
       setInitialized(true);
     }
   }, [config, initialized]);
@@ -48,7 +54,9 @@ export default function EditChatbotPage({
       chatbotAPI.update(id, {
         display_name: displayName,
         description,
-        search_tiers: { tiers },
+        persona_name: personaName,
+        system_prompt: systemPrompt,
+        search_tiers: { tiers, dictionary_enabled: dictionaryEnabled },
         is_active: isActive,
       }),
     onSuccess: () => {
@@ -139,8 +147,52 @@ export default function EditChatbotPage({
           <Label htmlFor="is-active">활성화</Label>
         </div>
 
+        {/* 페르소나 설정 */}
+        <div className="space-y-4 rounded-lg border p-4">
+          <h3 className="font-semibold">페르소나 설정</h3>
+
+          <div className="space-y-2">
+            <Label htmlFor="persona-name">페르소나 이름</Label>
+            <Input
+              id="persona-name"
+              value={personaName}
+              onChange={(e) => setPersonaName(e.target.value)}
+              placeholder="예: 30년 경력 목회공직자"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="system-prompt">시스템 프롬프트</Label>
+            <textarea
+              id="system-prompt"
+              className="w-full rounded-md border bg-transparent px-3 py-2 text-sm min-h-[200px] resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              placeholder="봇의 역할, 응답 규칙, 가드레일 등을 입력하세요. 비워두면 기본 시스템 프롬프트가 적용됩니다."
+            />
+            <p className="text-xs text-muted-foreground">
+              비워두면 기본 시스템 프롬프트가 적용됩니다
+            </p>
+          </div>
+        </div>
+
         <div className="space-y-2">
           <Label>검색 티어 설정</Label>
+
+          <div className="flex items-center gap-2 mb-3">
+            <Checkbox
+              id="dictionary-enabled"
+              checked={dictionaryEnabled}
+              onCheckedChange={(checked) => setDictionaryEnabled(checked === true)}
+            />
+            <Label htmlFor="dictionary-enabled" className="text-sm">
+              용어 사전 자동 주입 (D)
+            </Label>
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+              준비중
+            </span>
+          </div>
+
           <SearchTierEditor tiers={tiers} onChange={setTiers} />
         </div>
 
