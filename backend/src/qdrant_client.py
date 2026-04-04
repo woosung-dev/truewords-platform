@@ -16,13 +16,15 @@ def get_async_client() -> AsyncQdrantClient:
     """비동기 Qdrant 클라이언트 싱글턴."""
     global _async_client
     if _async_client is None:
-        _async_client = AsyncQdrantClient(url=settings.qdrant_url)
+        _api_key = settings.qdrant_api_key.get_secret_value() if settings.qdrant_api_key else None
+        _async_client = AsyncQdrantClient(url=settings.qdrant_url, api_key=_api_key)
     return _async_client
 
 
 # 동기 클라이언트 (데이터 적재 스크립트용 — pipeline/)
 def get_client() -> QdrantClient:
-    return QdrantClient(url=settings.qdrant_url)
+    api_key = settings.qdrant_api_key.get_secret_value() if settings.qdrant_api_key else None
+    return QdrantClient(url=settings.qdrant_url, api_key=api_key)
 
 
 def create_collection(client: QdrantClient, collection_name: str) -> None:

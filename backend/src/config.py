@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     # Qdrant
     qdrant_url: str = "http://localhost:6333"
+    qdrant_api_key: SecretStr | None = None
     collection_name: str = "malssum_poc"
 
     # PostgreSQL
