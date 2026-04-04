@@ -26,6 +26,16 @@ class Settings(BaseSettings):
     # Cookie 보안 (운영 환경에서 True)
     cookie_secure: bool = False
 
+    # Safety 설정
+    safety_max_query_length: int = 1000
+    rate_limit_max_requests: int = 20
+    rate_limit_window_seconds: int = 60
+
+    # Semantic Cache 설정
+    cache_collection_name: str = "semantic_cache"
+    cache_threshold: float = 0.93
+    cache_ttl_days: int = 7
+
     # Cascading search 기본값
     cascade_score_threshold: float = 0.75
     cascade_fallback_threshold: float = 0.60

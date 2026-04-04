@@ -2,7 +2,8 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from src.chat.dependencies import get_chat_service
 from src.chat.schemas import (
@@ -13,16 +14,52 @@ from src.chat.schemas import (
     SessionHistoryResponse,
 )
 from src.chat.service import ChatService
+from src.safety.exceptions import InputBlockedError, RateLimitExceededError
+from src.safety.middleware import check_rate_limit
 
 router = APIRouter(tags=["chat"])
 
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post("/chat", response_model=ChatResponse, dependencies=[Depends(check_rate_limit)])
 async def chat(
     request: ChatRequest,
     service: ChatService = Depends(get_chat_service),
-) -> ChatResponse:
-    return await service.process_chat(request)
+) -> Response:
+    try:
+        return await service.process_chat(request)
+    except InputBlockedError as e:
+        return JSONResponse(status_code=400, content={"detail": e.reason})
+    except RateLimitExceededError as e:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": str(e)},
+            headers={"Retry-After": str(e.retry_after)},
+        )
+
+
+@router.post("/chat/stream", response_model=None, dependencies=[Depends(check_rate_limit)])
+async def chat_stream(
+    request: ChatRequest,
+    service: ChatService = Depends(get_chat_service),
+) -> Response:
+    try:
+        return StreamingResponse(
+            service.process_chat_stream(request),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+    except InputBlockedError as e:
+        return JSONResponse(status_code=400, content={"detail": e.reason})
+    except RateLimitExceededError as e:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": str(e)},
+            headers={"Retry-After": str(e.retry_after)},
+        )
 
 
 @router.get("/chat/sessions/{session_id}", response_model=SessionHistoryResponse)

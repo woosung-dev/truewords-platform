@@ -8,8 +8,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from src.chat.service import ChatService
 from src.chat.schemas import ChatRequest
 from src.chat.models import ResearchSession, SessionMessage, MessageRole
+from src.safety.output_filter import DISCLAIMER
 from src.search.hybrid import SearchResult
 from src.search.cascading import CascadingConfig, SearchTier
+
+# 모든 테스트에서 embed_dense_query를 mock 처리
+pytestmark = pytest.mark.usefixtures()
+
+_EMBED_PATCH = "src.chat.service.embed_dense_query"
 
 
 def _make_search_results(count: int = 5) -> list[SearchResult]:
@@ -70,12 +76,14 @@ async def test_process_chat_without_rerank():
         patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=results) as mock_cascade,
         patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="답변입니다."),
         patch("src.chat.service.rerank", new_callable=AsyncMock) as mock_rerank,
+        patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         response = await service.process_chat(ChatRequest(query="질문"))
 
     # rerank가 호출되지 않아야 함
     mock_rerank.assert_not_called()
-    assert response.answer == "답변입니다."
+    assert "답변입니다." in response.answer
+    assert DISCLAIMER in response.answer
     assert len(response.sources) == 3
     # 단일 commit 확인
     chat_repo.commit.assert_called_once()
@@ -103,11 +111,12 @@ async def test_process_chat_with_rerank():
         patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=results),
         patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="재순위 답변."),
         patch("src.chat.service.rerank", new_callable=AsyncMock, return_value=reranked_results) as mock_rerank,
+        patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         response = await service.process_chat(ChatRequest(query="질문"))
 
     mock_rerank.assert_called_once()
-    assert response.answer == "재순위 답변."
+    assert "재순위 답변." in response.answer
 
 
 @pytest.mark.asyncio
@@ -132,6 +141,7 @@ async def test_process_chat_records_rerank_in_search_event():
         patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=results),
         patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="답변"),
         patch("src.chat.service.rerank", new_callable=AsyncMock, return_value=reranked),
+        patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         await service.process_chat(ChatRequest(query="질문"))
 
@@ -155,6 +165,7 @@ async def test_process_chat_single_commit():
         patch("src.chat.service.get_async_client"),
         patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=_make_search_results(3)),
         patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="답변"),
+        patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         await service.process_chat(ChatRequest(query="질문"))
 
@@ -176,6 +187,7 @@ async def test_process_chat_empty_results():
         patch("src.chat.service.get_async_client"),
         patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=[]),
         patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="해당 내용을 말씀에서 찾지 못했습니다."),
+        patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         response = await service.process_chat(ChatRequest(query="없는 내용"))
 
@@ -199,6 +211,7 @@ async def test_process_chat_with_session_id():
         patch("src.chat.service.get_async_client"),
         patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=_make_search_results(3)),
         patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="답변"),
+        patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         response = await service.process_chat(
             ChatRequest(query="질문", session_id=existing_session.id)
@@ -225,6 +238,7 @@ async def test_process_chat_context_limited_to_top_5():
         patch("src.chat.service.get_async_client"),
         patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=results),
         patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="답변") as mock_gen,
+        patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         await service.process_chat(ChatRequest(query="질문"))
 

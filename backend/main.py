@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.cache.setup import ensure_cache_collection
 from src.common.database import init_db
 from src.config import settings
 from src.chat.router import router as chat_router
@@ -12,8 +13,9 @@ from src.admin.router import router as admin_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """앱 시작 시 DB 초기화."""
+    """앱 시작 시 DB + 캐시 컬렉션 초기화."""
     await init_db()
+    await ensure_cache_collection()
     yield
 
 

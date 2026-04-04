@@ -1,5 +1,7 @@
 """Gemini 클라이언트 중앙 관리. 모든 Gemini 호출은 이 모듈을 통해서만 수행."""
 
+from collections.abc import AsyncGenerator
+
 from google import genai
 from google.genai import types
 from src.config import settings
@@ -48,3 +50,23 @@ async def generate_text(
         config=config,
     )
     return response.text
+
+
+async def generate_text_stream(
+    prompt: str,
+    system_instruction: str = "",
+    model: str = MODEL_FLASH,
+) -> AsyncGenerator[str, None]:
+    """텍스트 스트리밍 생성 (비동기 제너레이터)."""
+    config = types.GenerateContentConfig()
+    if system_instruction:
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
+        )
+    async for chunk in _client.aio.models.generate_content_stream(
+        model=model,
+        contents=prompt,
+        config=config,
+    ):
+        if chunk.text:
+            yield chunk.text
