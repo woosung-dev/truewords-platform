@@ -19,6 +19,7 @@ from src.chat.models import (  # noqa: F401
     AnswerFeedback,
 )
 from src.chatbot.models import ChatbotConfig  # noqa: F401
+from src.datasource.models import DataSourceCategory  # noqa: F401
 
 config = context.config
 

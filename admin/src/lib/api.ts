@@ -1,7 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-// 모든 요청에 credentials: include (HttpOnly Cookie)
-// 상태 변경 요청에 X-Requested-With 헤더 (CSRF 방어)
+// Next.js rewrites가 /admin/* → 백엔드로 프록시 (same-origin, CORS 불필요)
 async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -10,7 +7,7 @@ async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
       : {}),
   };
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(path, {
     ...options,
     credentials: "include",
     headers: { ...headers, ...(options?.headers as Record<string, string>) },
@@ -151,7 +148,7 @@ export const dataAPI = {
       "X-Requested-With": "XMLHttpRequest",
     }
 
-    const res = await fetch(`${API_BASE}/admin/data-sources/upload`, {
+    const res = await fetch(`/admin/data-sources/upload`, {
       method: "POST",
       credentials: "include",
       headers,
@@ -174,4 +171,35 @@ export const dataAPI = {
   },
 
   getStatus: () => fetchAPI<IngestionStatus>("/admin/data-sources/status"),
+};
+
+// Data Source Category API
+export interface DataSourceCategory {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  color: string;
+  sort_order: number;
+  is_active: boolean;
+  is_searchable: boolean;
+}
+
+export const dataSourceCategoryAPI = {
+  list: () =>
+    fetchAPI<DataSourceCategory[]>("/admin/data-source-categories"),
+  create: (data: Omit<DataSourceCategory, "id">) =>
+    fetchAPI<DataSourceCategory>("/admin/data-source-categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<DataSourceCategory>) =>
+    fetchAPI<DataSourceCategory>(`/admin/data-source-categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  delete: (id: string) =>
+    fetchAPI<void>(`/admin/data-source-categories/${id}`, {
+      method: "DELETE",
+    }),
 };

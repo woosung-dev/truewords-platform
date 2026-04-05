@@ -43,6 +43,7 @@ async def init_db() -> None:
         ResearchSession, SessionMessage, SearchEvent, AnswerCitation, AnswerFeedback,
     )
     from src.chatbot.models import ChatbotConfig  # noqa: F401
+    from src.datasource.models import DataSourceCategory  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)

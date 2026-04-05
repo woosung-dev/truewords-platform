@@ -3,6 +3,18 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import SearchTierEditor from "@/components/search-tier-editor";
 import type { SearchTier } from "@/lib/api";
 
+// useSearchableCategories 훅 mock
+vi.mock("@/lib/hooks/use-data-source-categories", () => ({
+  useSearchableCategories: () => ({
+    data: [
+      { key: "A", name: "말씀선집", color: "indigo", is_searchable: true },
+      { key: "B", name: "어머니말씀", color: "violet", is_searchable: true },
+      { key: "C", name: "원리강론", color: "blue", is_searchable: true },
+    ],
+    isLoading: false,
+  }),
+}));
+
 describe("SearchTierEditor", () => {
   // --- 빈 상태 ---
 
@@ -40,17 +52,17 @@ describe("SearchTierEditor", () => {
     expect(screen.getByText("Tier 2")).toBeInTheDocument();
   });
 
-  it("데이터 소스 버튼을 표시한다", () => {
+  it("데이터 소스 버튼을 한글 이름으로 표시한다", () => {
     const tiers: SearchTier[] = [
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
     ];
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
 
-    // 각 소스 토글 버튼이 표시됨
-    expect(screen.getAllByText("A").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("B").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("C").length).toBeGreaterThan(0);
+    // 한글 레이블로 표시
+    expect(screen.getAllByText("말씀선집").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("어머니말씀").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("원리강론").length).toBeGreaterThan(0);
     expect(screen.getByText(/높을수록 정확한 결과만 표시/)).toBeInTheDocument();
     expect(screen.getByText(/이 티어에서 최소 몇 개가 나와야 통과/)).toBeInTheDocument();
   });
@@ -64,7 +76,6 @@ describe("SearchTierEditor", () => {
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={existing} onChange={onChange} />);
 
-    // 하단에 있는 "티어 추가" 버튼 클릭
     const addButtons = screen.getAllByText("티어 추가");
     fireEvent.click(addButtons[addButtons.length - 1]);
 

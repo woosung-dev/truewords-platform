@@ -1,48 +1,36 @@
 "use client";
 
-import { useCallback } from "react";
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { dataAPI } from "@/lib/api";
+import { useDataSourceCategories } from "@/lib/hooks/use-data-source-categories";
 import { Badge } from "@/components/ui/badge";
-import { Upload, FileText, Database, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Upload,
+  FileText,
+  Database,
+  AlertCircle,
+  CheckCircle2,
+  X,
+  Loader2,
+} from "lucide-react";
 
-const DATA_SOURCES = [
-  {
-    value: "A",
-    label: "말씀선집",
-    desc: "615권 텍스트 데이터",
-    color: "text-indigo-600 bg-indigo-50 border-indigo-200",
-    activeRing: "ring-2 ring-indigo-500 border-indigo-500",
-  },
-  {
-    value: "B",
-    label: "어머니말씀",
-    desc: "주요 어록 및 연설",
-    color: "text-violet-600 bg-violet-50 border-violet-200",
-    activeRing: "ring-2 ring-violet-500 border-violet-500",
-  },
-  {
-    value: "C",
-    label: "원리강론",
-    desc: "기본 교리서",
-    color: "text-blue-600 bg-blue-50 border-blue-200",
-    activeRing: "ring-2 ring-blue-500 border-blue-500",
-  },
-  {
-    value: "D",
-    label: "용어사전",
-    desc: "동적 프롬프트 인젝션용",
-    color: "text-slate-500 bg-slate-50 border-slate-200",
-    activeRing: "ring-2 ring-slate-400 border-slate-400",
-  },
-] as const;
+interface PendingFile {
+  id: string;
+  file: File;
+  source: string;
+  uploading: boolean;
+}
 
 export default function DataSourcesPage() {
   const queryClient = useQueryClient();
-  const [selectedSource, setSelectedSource] = useState<string>("A");
+  const { data: categories = [] } = useDataSourceCategories();
   const [dragActive, setDragActive] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+
+  const defaultSource = categories[0]?.key ?? "";
 
   const { data: status } = useQuery({
     queryKey: ["ingest-status"],
@@ -50,16 +38,31 @@ export default function DataSourcesPage() {
     refetchInterval: 3000,
   });
 
-  const uploadMutation = useMutation({
-    mutationFn: (file: File) => dataAPI.uploadFile(file, selectedSource),
-    onSuccess: () => {
-      toast.success("업로드 시작 — 백그라운드에서 처리됩니다");
-      queryClient.invalidateQueries({ queryKey: ["ingest-status"] });
+  const addFiles = useCallback(
+    (files: FileList | File[]) => {
+      const allowed = [".txt", ".pdf", ".docx"];
+      const newPending: PendingFile[] = [];
+
+      for (const file of Array.from(files)) {
+        const ext = "." + (file.name.split(".").pop()?.toLowerCase() ?? "");
+        if (!allowed.includes(ext)) {
+          toast.error(`${file.name}: TXT, PDF, DOCX만 지원합니다`);
+          continue;
+        }
+        newPending.push({
+          id: crypto.randomUUID(),
+          file,
+          source: defaultSource,
+          uploading: false,
+        });
+      }
+
+      if (newPending.length > 0) {
+        setPendingFiles((prev) => [...prev, ...newPending]);
+      }
     },
-    onError: (err: Error) => {
-      toast.error(err.message || "업로드 실패");
-    },
-  });
+    [defaultSource]
+  );
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -76,28 +79,59 @@ export default function DataSourcesPage() {
       e.preventDefault();
       e.stopPropagation();
       setDragActive(false);
-      if (e.dataTransfer.files?.[0]) handleFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files?.length) {
+        addFiles(e.dataTransfer.files);
+      }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedSource]
+    [addFiles]
   );
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) handleFile(e.target.files[0]);
-  };
-
-  const handleFile = (file: File) => {
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!["txt", "pdf", "docx"].includes(ext ?? "")) {
-      toast.error("TXT, PDF, DOCX 파일만 업로드 가능합니다");
-      return;
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.length) {
+      addFiles(e.target.files);
+      e.target.value = ""; // 같은 파일 재선택 허용
     }
-    uploadMutation.mutate(file);
   };
 
-  const isUploading = uploadMutation.isPending;
+  const updateSource = (id: string, source: string) => {
+    setPendingFiles((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, source } : f))
+    );
+  };
+
+  const removePending = (id: string) => {
+    setPendingFiles((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const uploadOne = async (pf: PendingFile) => {
+    setPendingFiles((prev) =>
+      prev.map((f) => (f.id === pf.id ? { ...f, uploading: true } : f))
+    );
+    try {
+      await dataAPI.uploadFile(pf.file, pf.source);
+      toast.success(`${pf.file.name} 업로드 시작`);
+      queryClient.invalidateQueries({ queryKey: ["ingest-status"] });
+      setPendingFiles((prev) => prev.filter((f) => f.id !== pf.id));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : `${pf.file.name} 업로드 실패`
+      );
+      setPendingFiles((prev) =>
+        prev.map((f) => (f.id === pf.id ? { ...f, uploading: false } : f))
+      );
+    }
+  };
+
+  const uploadAll = async () => {
+    const toUpload = pendingFiles.filter((f) => !f.uploading);
+    for (const pf of toUpload) {
+      await uploadOne(pf);
+    }
+  };
+
   const completedEntries = Object.entries(status?.completed ?? {});
   const failedEntries = Object.entries(status?.failed ?? {});
+  const hasAnyUploading = pendingFiles.some((f) => f.uploading);
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -156,50 +190,12 @@ export default function DataSourcesPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* 업로드 패널 */}
-        <div className="rounded-xl border bg-card p-5 space-y-5">
+        <div className="rounded-xl border bg-card p-5 space-y-4">
           <div>
             <h3 className="font-semibold text-sm">문서 업로드</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              TXT, PDF, DOCX 지원 · 최대 50MB · HWP는 TXT 변환 후 업로드
+              파일을 먼저 추가한 뒤, 분류를 확인하고 업로드하세요
             </p>
-          </div>
-
-          {/* 소스 선택 */}
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              대상 소스
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {DATA_SOURCES.map((s) => {
-                const isSelected = selectedSource === s.value;
-                return (
-                  <button
-                    key={s.value}
-                    type="button"
-                    onClick={() => setSelectedSource(s.value)}
-                    className={`flex flex-col items-start rounded-lg border p-3 text-left transition-all ${
-                      isSelected
-                        ? `${s.activeRing} ${s.color}`
-                        : "border-border hover:bg-accent/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span
-                        className={`text-xs font-bold px-1.5 py-0.5 rounded-sm ${
-                          isSelected ? "bg-white/60" : "bg-muted"
-                        }`}
-                      >
-                        {s.value}
-                      </span>
-                      <span className="font-medium text-sm">{s.label}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {s.desc}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
           </div>
 
           {/* 드래그 앤 드롭 영역 */}
@@ -208,31 +204,110 @@ export default function DataSourcesPage() {
             onDragOver={handleDrag}
             onDragLeave={handleDrag}
             onDrop={handleDrop}
-            className={`relative flex h-36 flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all ${
+            className={`relative flex h-32 flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all ${
               dragActive
                 ? "border-primary bg-primary/5 scale-[1.01]"
                 : "border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-accent/30"
-            } ${isUploading ? "opacity-50 pointer-events-none" : "cursor-pointer"}`}
+            } cursor-pointer`}
           >
             <Upload
-              className={`w-6 h-6 mb-2 transition-colors ${
+              className={`w-5 h-5 mb-1.5 transition-colors ${
                 dragActive ? "text-primary" : "text-muted-foreground"
               }`}
             />
             <p className="text-sm font-medium">
-              {isUploading ? "업로드 중..." : "파일을 드래그하거나 클릭"}
+              파일을 드래그하거나 클릭하여 추가
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              선택된 소스: <span className="font-medium">{selectedSource}</span>
+              TXT, PDF, DOCX · 최대 50MB
             </p>
             <input
               type="file"
+              multiple
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              onChange={handleChange}
+              onChange={handleFileInput}
               accept=".txt,.pdf,.docx"
-              disabled={isUploading}
             />
           </div>
+
+          {/* 대기 목록 */}
+          {pendingFiles.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                대기 중 ({pendingFiles.length}개)
+              </p>
+              <div className="space-y-1.5">
+                {pendingFiles.map((pf) => (
+                  <div
+                    key={pf.id}
+                    className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span
+                      className="text-xs truncate flex-1 min-w-0"
+                      title={pf.file.name}
+                    >
+                      {pf.file.name}
+                    </span>
+                    <select
+                      value={pf.source}
+                      onChange={(e) => updateSource(pf.id, e.target.value)}
+                      disabled={pf.uploading}
+                      className="text-xs border rounded-md px-2 py-1 bg-background shrink-0"
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat.key} value={cat.key}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs"
+                      disabled={pf.uploading}
+                      onClick={() => uploadOne(pf)}
+                    >
+                      {pf.uploading ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Upload className="w-3 h-3" />
+                      )}
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => removePending(pf.id)}
+                      disabled={pf.uploading}
+                      className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {pendingFiles.length >= 2 && (
+                <Button
+                  size="sm"
+                  className="w-full"
+                  disabled={hasAnyUploading}
+                  onClick={uploadAll}
+                >
+                  {hasAnyUploading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                      업로드 중...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5 mr-1.5" />
+                      전체 업로드 ({pendingFiles.length}개)
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 처리 현황 패널 */}
@@ -244,7 +319,6 @@ export default function DataSourcesPage() {
             </p>
           </div>
 
-          {/* 성공 이력 */}
           {completedEntries.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -274,7 +348,6 @@ export default function DataSourcesPage() {
             </div>
           )}
 
-          {/* 실패 내역 */}
           {failedEntries.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-destructive uppercase tracking-wider">
@@ -286,7 +359,10 @@ export default function DataSourcesPage() {
                     key={filename}
                     className="rounded-lg bg-red-50 border border-red-100 px-3 py-2"
                   >
-                    <p className="text-xs font-medium text-red-800 truncate" title={filename}>
+                    <p
+                      className="text-xs font-medium text-red-800 truncate"
+                      title={filename}
+                    >
                       {filename}
                     </p>
                     <p className="text-xs text-red-600 mt-0.5 break-all">

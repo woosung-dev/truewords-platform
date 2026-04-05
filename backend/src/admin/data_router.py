@@ -1,15 +1,15 @@
 """RAG 데이터 적재 (Data Ingestion) 관련 관리자 API 라우터."""
 
-import os
 import shutil
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
-import sys
 
 from src.admin.dependencies import get_current_admin
 from src.config import settings
+from src.datasource.dependencies import get_datasource_service
+from src.datasource.service import DataSourceCategoryService
 from src.pipeline.chunker import chunk_text
 from src.pipeline.extractor import extract_text
 from src.pipeline.ingestor import ingest_chunks
@@ -65,14 +65,36 @@ def _process_file(file_path: Path, filename: str, source: str):
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    source: str = Form(..., description="데이터 소스 분류 (A, B, C, D)"),
+    source: str = Form(..., description="데이터 소스 카테고리 key"),
     current_admin: dict = Depends(get_current_admin),
+    datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
 ):
     """업로드된 파일을 백그라운드에서 RAG 지식 베이스로 적재합니다."""
+    # source 유효성 검증 (DB 등록된 카테고리만 허용)
+    category = await datasource_service.get_by_key(source)
+    if not category or not category.is_active:
+        raise HTTPException(
+            status_code=400,
+            detail=f"유효하지 않은 데이터 소스입니다: {source}",
+        )
+
+    # 파일명 sanitize (path traversal 방지)
+    safe_filename = Path(file.filename or "unknown").name  # 디렉토리 경로 제거
+    if not safe_filename or safe_filename.startswith("."):
+        raise HTTPException(status_code=400, detail="유효하지 않은 파일명입니다")
+
+    # 파일 크기 제한 (50MB)
+    max_size = 50 * 1024 * 1024
+    if file.size and file.size > max_size:
+        raise HTTPException(
+            status_code=400,
+            detail=f"파일 크기가 50MB를 초과합니다 ({file.size // 1024 // 1024}MB)",
+        )
+
     # 확장자 검증
     allowed_extensions = {".txt", ".pdf", ".docx"}
-    ext = Path(file.filename or "").suffix.lower()
-    
+    ext = Path(safe_filename).suffix.lower()
+
     if ext not in allowed_extensions:
         raise HTTPException(
             status_code=400,
@@ -81,7 +103,7 @@ async def upload_document(
     
     # 임시 파일로 저장
     try:
-        suffix = Path(file.filename).suffix
+        suffix = Path(safe_filename).suffix
         with NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
             shutil.copyfileobj(file.file, tmp_file)
             tmp_path = Path(tmp_file.name)
@@ -94,16 +116,16 @@ async def upload_document(
     # ProgressTracker에 상태 초기화 (진행중 임의 등록은 없으므로 failed/completed만 남음)
     # UI의 즉각적인 피드백을 위해 우선 failed에서 없앰
     tracker = ProgressTracker(_PROGRESS_FILE)
-    if file.filename in tracker.completed:
-        del tracker.completed[file.filename]
-    if file.filename in tracker.failed:
-        del tracker.failed[file.filename]
+    if safe_filename in tracker.completed:
+        del tracker.completed[safe_filename]
+    if safe_filename in tracker.failed:
+        del tracker.failed[safe_filename]
     tracker._save()
 
     # 백그라운드 태스크 큐 추가
-    background_tasks.add_task(_process_file, tmp_path, file.filename, source)
+    background_tasks.add_task(_process_file, tmp_path, safe_filename, source)
 
-    return {"message": "파일 업로드 및 처리 예약 완료", "filename": file.filename}
+    return {"message": "파일 업로드 및 처리 예약 완료", "filename": safe_filename}
 
 @router.get("/status")
 async def get_ingest_status(current_admin: dict = Depends(get_current_admin)):

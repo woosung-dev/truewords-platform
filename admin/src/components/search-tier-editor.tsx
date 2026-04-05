@@ -6,12 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { ChevronUp, ChevronDown, X, Plus, GripVertical } from "lucide-react";
 import type { SearchTier } from "@/lib/api";
-
-const DATA_SOURCES = [
-  { value: "A", label: "A" },
-  { value: "B", label: "B" },
-  { value: "C", label: "C" },
-] as const;
+import { useSearchableCategories } from "@/lib/hooks/use-data-source-categories";
 
 interface SearchTierEditorProps {
   tiers: SearchTier[];
@@ -22,10 +17,13 @@ export default function SearchTierEditor({
   tiers,
   onChange,
 }: SearchTierEditorProps) {
+  const { data: categories = [] } = useSearchableCategories();
+
   function addTier() {
+    const defaultSource = categories[0]?.key ?? "A";
     onChange([
       ...tiers,
-      { sources: ["A"], min_results: 3, score_threshold: 0.75 },
+      { sources: [defaultSource], min_results: 3, score_threshold: 0.75 },
     ]);
   }
 
@@ -135,27 +133,31 @@ export default function SearchTierEditor({
                 데이터 소스
               </Label>
               <div className="flex gap-1.5">
-                {DATA_SOURCES.map((ds) => {
-                  const isSelected = tier.sources.includes(ds.value);
+                {categories.map((cat) => {
+                  const isSelected = tier.sources.includes(cat.key);
                   return (
                     <button
-                      key={ds.value}
+                      key={cat.key}
                       type="button"
-                      onClick={() => toggleSource(index, ds.value)}
+                      onClick={() => toggleSource(index, cat.key)}
                       className={`px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors ${
                         isSelected
                           ? "bg-primary text-primary-foreground border-primary"
                           : "bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
                       }`}
                     >
-                      {ds.label}
+                      {cat.name}
                     </button>
                   );
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
                 선택된 소스:{" "}
-                <span className="font-medium">{tier.sources.join(", ")}</span>
+                <span className="font-medium">
+                  {tier.sources
+                    .map((s) => categories.find((c) => c.key === s)?.name ?? s)
+                    .join(", ")}
+                </span>
               </p>
             </div>
 

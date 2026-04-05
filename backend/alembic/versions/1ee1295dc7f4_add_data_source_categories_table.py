@@ -1,0 +1,54 @@
+"""add data_source_categories table
+
+Revision ID: 1ee1295dc7f4
+Revises: 84b935925eaa
+Create Date: 2026-04-05 23:29:32.619751
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+revision: str = '1ee1295dc7f4'
+down_revision: Union[str, None] = '84b935925eaa'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    # init_db()가 서버 기본값 없이 생성했을 수 있으므로 재생성
+    op.execute("DROP TABLE IF EXISTS data_source_categories")
+    op.execute("""
+        CREATE TABLE data_source_categories (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            key VARCHAR(20) NOT NULL UNIQUE,
+            name VARCHAR NOT NULL,
+            description VARCHAR NOT NULL DEFAULT '',
+            color VARCHAR NOT NULL DEFAULT '',
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            is_active BOOLEAN NOT NULL DEFAULT true,
+            is_searchable BOOLEAN NOT NULL DEFAULT true,
+            created_at TIMESTAMP NOT NULL DEFAULT now(),
+            updated_at TIMESTAMP NOT NULL DEFAULT now()
+        )
+    """)
+    op.execute(
+        "CREATE INDEX ix_data_source_categories_key "
+        "ON data_source_categories (key)"
+    )
+
+    # 시드 데이터
+    op.execute("""
+        INSERT INTO data_source_categories (key, name, description, color, sort_order, is_searchable)
+        VALUES
+            ('A', '말씀선집', '615권 텍스트 데이터', 'indigo', 1, true),
+            ('B', '어머니말씀', '주요 어록 및 연설', 'violet', 2, true),
+            ('C', '원리강론', '기본 교리서', 'blue', 3, true),
+            ('D', '용어사전', '동적 프롬프트 인젝션용', 'slate', 4, false)
+    """)
+
+
+def downgrade() -> None:
+    op.drop_table("data_source_categories")
