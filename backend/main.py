@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.cache.setup import ensure_cache_collection
 from src.common.database import init_db
 from src.config import settings
+
+logger = logging.getLogger(__name__)
 from src.chat.router import router as chat_router
 from src.chatbot.router import router as chatbot_router, admin_router as chatbot_admin_router
 from src.admin.router import router as admin_router
@@ -15,9 +18,15 @@ from src.datasource.router import router as datasource_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """앱 시작 시 DB + 캐시 컬렉션 초기화."""
-    await init_db()
-    await ensure_cache_collection()
+    """앱 시작 시 DB + 캐시 컬렉션 초기화. 실패해도 앱은 시작."""
+    try:
+        await init_db()
+    except Exception as e:
+        logger.warning("init_db 실패 (프로덕션에서는 Alembic 사용): %s", e)
+    try:
+        await ensure_cache_collection()
+    except Exception as e:
+        logger.warning("캐시 컬렉션 초기화 실패 (lazy init으로 대체): %s", e)
     yield
 
 
