@@ -33,7 +33,7 @@ async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
   if (!contentType || !contentType.includes("application/json")) {
     return {} as T;
   }
-  return res.json();
+  return (await res.json()) as T;
 }
 
 // Types
@@ -123,4 +123,55 @@ export const chatbotAPI = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+};
+
+// Data (RAG Ingestion) API
+export interface IngestionStatusSummary {
+  total_files: number;
+  completed_count: number;
+  failed_count: number;
+  total_chunks: number;
+}
+
+export interface IngestionStatus {
+  completed: Record<string, number>; // filename -> chunk count
+  failed: Record<string, string>; // filename -> error message
+  summary: IngestionStatusSummary;
+}
+
+export const dataAPI = {
+  uploadFile: async (file: File, source: string) => {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("source", source)
+
+    // FormData requests don't use "Content-Type: application/json"
+    // Fetch automatically applies the correct multipart/form-data boundary
+    const headers = {
+      "X-Requested-With": "XMLHttpRequest",
+    }
+
+    const res = await fetch(`${API_BASE}/admin/data-sources/upload`, {
+      method: "POST",
+      credentials: "include",
+      headers,
+      body: formData,
+    })
+
+    if (res.status === 401) {
+      if (typeof window !== "undefined") {
+        window.location.href = "/login"
+      }
+      throw new Error("인증이 필요합니다")
+    }
+
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(text || `요청 실패 (${res.status})`)
+    }
+
+    return res.json()
+  },
+
+  getStatus: () => fetchAPI<IngestionStatus>("/admin/data-sources/status"),
 };

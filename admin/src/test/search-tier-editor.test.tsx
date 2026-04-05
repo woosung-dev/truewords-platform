@@ -10,15 +10,15 @@ describe("SearchTierEditor", () => {
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={[]} onChange={onChange} />);
 
-    expect(screen.getByText("검색 티어가 없습니다. 추가하세요.")).toBeInTheDocument();
-    expect(screen.getByText("+ 티어 추가")).toBeInTheDocument();
+    expect(screen.getByText("검색 티어가 없습니다. 티어를 추가해주세요.")).toBeInTheDocument();
+    expect(screen.getByText("티어 추가")).toBeInTheDocument();
   });
 
-  it("빈 상태에서 '+ 티어 추가' 클릭 시 기본 티어를 추가한다", () => {
+  it("빈 상태에서 '티어 추가' 클릭 시 기본 티어를 추가한다", () => {
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={[]} onChange={onChange} />);
 
-    fireEvent.click(screen.getByText("+ 티어 추가"));
+    fireEvent.click(screen.getByText("티어 추가"));
 
     expect(onChange).toHaveBeenCalledWith([
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
@@ -35,34 +35,38 @@ describe("SearchTierEditor", () => {
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
 
-    expect(screen.getByText("Tier 1 (최우선)")).toBeInTheDocument();
+    expect(screen.getByText("Tier 1")).toBeInTheDocument();
+    expect(screen.getByText("최우선")).toBeInTheDocument();
     expect(screen.getByText("Tier 2")).toBeInTheDocument();
   });
 
-  it("도움말 텍스트를 표시한다", () => {
+  it("데이터 소스 버튼을 표시한다", () => {
     const tiers: SearchTier[] = [
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
     ];
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
 
-    expect(screen.getByText("A: 말씀선집")).toBeInTheDocument();
-    expect(screen.getByText("B: 어머니말씀")).toBeInTheDocument();
-    expect(screen.getByText("C: 원리강론")).toBeInTheDocument();
+    // 각 소스 토글 버튼이 표시됨
+    expect(screen.getAllByText("A").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("B").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("C").length).toBeGreaterThan(0);
     expect(screen.getByText(/높을수록 정확한 결과만 표시/)).toBeInTheDocument();
-    expect(screen.getByText(/이 티어에서 최소 몇 개 결과를 찾아야 하는지/)).toBeInTheDocument();
+    expect(screen.getByText(/이 티어에서 최소 몇 개가 나와야 통과/)).toBeInTheDocument();
   });
 
   // --- 티어 추가 ---
 
-  it("기존 티어가 있을 때 '+ 티어 추가'로 티어를 추가한다", () => {
+  it("기존 티어가 있을 때 '티어 추가'로 티어를 추가한다", () => {
     const existing: SearchTier[] = [
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
     ];
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={existing} onChange={onChange} />);
 
-    fireEvent.click(screen.getByText("+ 티어 추가"));
+    // 하단에 있는 "티어 추가" 버튼 클릭
+    const addButtons = screen.getAllByText("티어 추가");
+    fireEvent.click(addButtons[addButtons.length - 1]);
 
     expect(onChange).toHaveBeenCalledWith([
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
