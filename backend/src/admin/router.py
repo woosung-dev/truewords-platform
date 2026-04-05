@@ -25,7 +25,7 @@ _COOKIE_OPTS = {
     "key": COOKIE_NAME,
     "httponly": True,
     "secure": settings.cookie_secure,
-    "samesite": "lax",
+    "samesite": "none",
     "path": "/",
     "max_age": settings.admin_jwt_expire_minutes * 60,
 }
@@ -53,7 +53,7 @@ async def logout(
         key=COOKIE_NAME,
         httponly=True,
         secure=settings.cookie_secure,
-        samesite="lax",
+        samesite="none",
         path="/",
     )
     return {"message": "로그아웃 완료"}
