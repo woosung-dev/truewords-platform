@@ -20,6 +20,7 @@
 - [x] **임베딩 중복 계산 최적화** — dense/sparse 1회 계산 후 모든 티어에서 재사용
 - [x] **Alembic 초기 마이그레이션** — init_db() 프로덕션 스킵, 마이그레이션 파일 생성
 - [x] 테스트 총 190개 (백엔드 190 + 프론트엔드 Vitest 25 + E2E 12)
+- [x] GCP/Vercel 프로덕션 실제 인프라 배포 완료
 
 ## Blocked
 - [ ] 종교 용어 사전 동적 주입 — 대사전 데이터 미확보 [데이터 수급 필요]
@@ -32,12 +33,7 @@
 
 ## Next Actions
 
-### 1. GCP/Vercel 실제 배포 (수동 작업)
-- GCP 프로젝트 생성, Artifact Registry, Cloud SQL, Secret Manager 설정
-- Vercel에 GitHub 리포지토리 연결, Root Directory = admin
-- 초기 배포 후 `alembic stamp head`로 현재 스키마 마킹
-
-### 2. 레드팀 테스트
+### 1. 레드팀 테스트
 - 내부 팀 대상 악의적 질문 테스트
 - 보안 가드레일 검증 (Prompt Injection, Rate Limiting)
 - 답변 품질/출처 정확도 평가

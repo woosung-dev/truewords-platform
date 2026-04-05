@@ -9,6 +9,7 @@ from src.config import settings
 from src.chat.router import router as chat_router
 from src.chatbot.router import router as chatbot_router, admin_router as chatbot_admin_router
 from src.admin.router import router as admin_router
+from src.admin.data_router import router as admin_data_router
 
 
 @asynccontextmanager
@@ -41,6 +42,7 @@ app.include_router(chatbot_router)
 # 관리자 라우터
 app.include_router(admin_router)
 app.include_router(chatbot_admin_router)
+app.include_router(admin_data_router)
 
 
 @app.get("/health")

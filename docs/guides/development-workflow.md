@@ -169,12 +169,12 @@ gstack 커맨드 실행 시 아래 구조로 프롬프트를 작성하면 효과
 | 임베딩 중복 계산 최적화 | `ea75d62` | Done |
 | Alembic 초기 마이그레이션 | `3fd75d7` | Done |
 | 테스트 190개 (백엔드) + 25 (Vitest) + 12 (E2E) | - | Done |
+| GCP/Vercel 실제 인프라 배포 완료 | - | Done |
 
 ### 미완료 (우선순위 순)
 
 | 우선순위 | 항목 | 설계 문서 | 비고 |
 |----------|------|-----------|------|
-| **P0** | GCP/Vercel 실제 배포 | `docs/07_infra/` | 수동 설정 (GCP 프로젝트, Secret Manager 등) |
 | **P0** | 레드팀 테스트 | `docs/04_architecture/09-security-countermeasures.md` | 배포 후 내부 팀 테스트 |
 | **P1** | 검색 에러 핸들링 | - | Qdrant/Gemini 실패 시 사용자 친화적 에러 |
 | **P1** | Query Expansion/Rewriting | `docs/04_architecture/05-rag-pipeline.md` | LLM으로 질문 확장/재작성 |
@@ -186,18 +186,14 @@ gstack 커맨드 실행 시 아래 구조로 프롬프트를 작성하면 효과
 ### 다음 작업 추천 순서
 
 ```
-1. GCP/Vercel 실제 배포 (수동 작업)
-   - GCP 프로젝트 + Cloud SQL + Secret Manager + Artifact Registry
-   - Vercel 연결 (Root Directory: admin)
-
-2. 레드팀 테스트
+1. 레드팀 테스트
    - 악의적 질문 테스트, 답변 품질 평가
    - 보안 가드레일 검증
 
-3. 검색 에러 핸들링
+2. 검색 에러 핸들링
    - 외부 서비스 장애 시 500 → 사용자 친화적 메시지
 
-4. Flutter 모바일 앱 (레드팀 후)
+3. Flutter 모바일 앱 (레드팀 후)
    - MVP 3개 화면: 채팅(SSE), 챗봇 선택, 설정
 ```
 

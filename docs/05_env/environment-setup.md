@@ -40,6 +40,12 @@ npm run dev
 # → http://localhost:3000
 ```
 
+### 테스트용 관리자 계정 정보 (초기 셋업용)
+
+로컬 서버 구동 시 아래 계정으로 대시보드(`http://localhost:3000`)에 바로 접근할 수 있습니다.
+- **이메일:** `admin@truewords.com`
+- **비밀번호:** `admin1234`
+
 ### Docker Compose 전체 실행 (백엔드 포함)
 
 ```bash
