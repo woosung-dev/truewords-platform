@@ -54,7 +54,7 @@ export default function DashboardPage() {
   const { data: status, isLoading: statusLoading } = useQuery({
     queryKey: ["ingest-status"],
     queryFn: dataAPI.getStatus,
-    refetchInterval: 10000,
+    staleTime: 30000, // 30초 캐시 (불필요한 폴링 제거)
   });
 
   const totalChatbots = chatbots?.total ?? 0;

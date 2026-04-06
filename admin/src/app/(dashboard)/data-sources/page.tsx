@@ -31,13 +31,15 @@ export default function DataSourcesPage() {
   const { data: categories = [] } = useDataSourceCategories();
   const [dragActive, setDragActive] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [activeTab, setActiveTab] = useState<"upload" | "categories">("upload");
 
   const defaultSource = categories[0]?.key ?? "";
 
   const { data: status } = useQuery({
     queryKey: ["ingest-status"],
     queryFn: dataAPI.getStatus,
-    refetchInterval: 3000,
+    // 업로드 탭이 활성일 때만 폴링 (다른 탭/페이지에서 불필요한 요청 방지)
+    refetchInterval: activeTab === "upload" ? 3000 : false,
   });
 
   const addFiles = useCallback(
@@ -134,7 +136,6 @@ export default function DataSourcesPage() {
   const completedEntries = Object.entries(status?.completed ?? {});
   const failedEntries = Object.entries(status?.failed ?? {});
   const hasAnyUploading = pendingFiles.some((f) => f.uploading);
-  const [activeTab, setActiveTab] = useState<"upload" | "categories">("upload");
 
   return (
     <div className="max-w-5xl space-y-6">

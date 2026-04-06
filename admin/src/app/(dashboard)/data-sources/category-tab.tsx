@@ -33,7 +33,6 @@ const COLOR_OPTIONS = [
 ] as const;
 
 interface FormState {
-  key: string;
   name: string;
   description: string;
   color: string;
@@ -42,13 +41,26 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
-  key: "",
   name: "",
   description: "",
   color: "indigo",
   is_searchable: true,
   is_active: true,
 };
+
+/** 다음 사용 가능한 알파벳 key를 자동 생성 */
+function getNextKey(existingKeys: string[]): string {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  for (const ch of alphabet) {
+    if (!existingKeys.includes(ch)) return ch;
+  }
+  // 알파벳 소진 시 숫자 조합
+  for (let i = 1; i <= 99; i++) {
+    const k = `S${i}`;
+    if (!existingKeys.includes(k)) return k;
+  }
+  return `S${Date.now()}`;
+}
 
 export default function CategoryTab() {
   const queryClient = useQueryClient();
@@ -58,16 +70,19 @@ export default function CategoryTab() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   const createMutation = useMutation({
-    mutationFn: (data: typeof form) =>
-      dataSourceCategoryAPI.create({
-        key: data.key,
+    mutationFn: (data: FormState) => {
+      const existingKeys = categories.map((c) => c.key);
+      const key = getNextKey(existingKeys);
+      return dataSourceCategoryAPI.create({
+        key,
         name: data.name,
         description: data.description,
         color: data.color,
         sort_order: categories.length + 1,
         is_active: data.is_active,
         is_searchable: data.is_searchable,
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success("카테고리가 생성되었습니다");
       queryClient.invalidateQueries({ queryKey: ["data-source-categories"] });
@@ -105,7 +120,6 @@ export default function CategoryTab() {
   function openEdit(cat: DataSourceCategory) {
     setEditing(cat);
     setForm({
-      key: cat.key,
       name: cat.name,
       description: cat.description,
       color: cat.color,
@@ -144,6 +158,11 @@ export default function CategoryTab() {
   }
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+  const [showInactive, setShowInactive] = useState(false);
+  const visibleCategories = showInactive
+    ? categories
+    : categories.filter((c) => c.is_active);
+  const inactiveCount = categories.filter((c) => !c.is_active).length;
 
   if (isLoading) {
     return (
@@ -162,10 +181,20 @@ export default function CategoryTab() {
             데이터 소스 분류를 추가하거나 수정합니다
           </p>
         </div>
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="w-3.5 h-3.5 mr-1.5" />
-          새 카테고리
-        </Button>
+        <div className="flex items-center gap-2">
+          {inactiveCount > 0 && (
+            <button
+              onClick={() => setShowInactive((v) => !v)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showInactive ? "비활성 숨기기" : `비활성 ${inactiveCount}개 보기`}
+            </button>
+          )}
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            새 카테고리
+          </Button>
+        </div>
       </div>
 
       {/* 테이블 */}
@@ -185,7 +214,7 @@ export default function CategoryTab() {
             </tr>
           </thead>
           <tbody>
-            {categories.map((cat) => {
+            {visibleCategories.map((cat) => {
               const colors = getCategoryColors(cat.color);
               return (
                 <tr
@@ -252,7 +281,7 @@ export default function CategoryTab() {
                 </tr>
               );
             })}
-            {categories.length === 0 && (
+            {visibleCategories.length === 0 && (
               <tr>
                 <td
                   colSpan={7}
@@ -275,29 +304,18 @@ export default function CategoryTab() {
             </SheetTitle>
           </SheetHeader>
           <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            {/* Key */}
-            <div className="space-y-2">
-              <Label htmlFor="cat-key">
-                Key <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="cat-key"
-                value={form.key}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, key: e.target.value }))
-                }
-                placeholder="예: E, F, hoon_dok"
-                pattern="^[A-Za-z0-9_]+$"
-                required
-                disabled={!!editing}
-                className={editing ? "opacity-60" : ""}
-              />
-              <p className="text-xs text-muted-foreground">
-                {editing
-                  ? "Key는 변경할 수 없습니다"
-                  : "영문, 숫자, 밑줄만 사용. 생성 후 변경 불가"}
-              </p>
-            </div>
+            {/* Key (수정 시에만 표시) */}
+            {editing && (
+              <div className="space-y-2">
+                <Label>Key</Label>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="font-mono text-sm px-3 py-1">
+                    {editing.key}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">자동 생성됨 (변경 불가)</span>
+                </div>
+              </div>
+            )}
 
             {/* 이름 */}
             <div className="space-y-2">
