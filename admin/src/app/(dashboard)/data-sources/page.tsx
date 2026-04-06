@@ -15,7 +15,9 @@ import {
   CheckCircle2,
   X,
   Loader2,
+  FolderOpen,
 } from "lucide-react";
+import CategoryTab from "./category-tab";
 
 interface PendingFile {
   id: string;
@@ -132,6 +134,7 @@ export default function DataSourcesPage() {
   const completedEntries = Object.entries(status?.completed ?? {});
   const failedEntries = Object.entries(status?.failed ?? {});
   const hasAnyUploading = pendingFiles.some((f) => f.uploading);
+  const [activeTab, setActiveTab] = useState<"upload" | "categories">("upload");
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -188,6 +191,36 @@ export default function DataSourcesPage() {
         </div>
       </div>
 
+      {/* 탭 */}
+      <div className="flex gap-1 border-b">
+        <button
+          onClick={() => setActiveTab("upload")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "upload"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Upload className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
+          문서 업로드
+        </button>
+        <button
+          onClick={() => setActiveTab("categories")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "categories"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <FolderOpen className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
+          카테고리 관리
+        </button>
+      </div>
+
+      {/* 탭 콘텐츠 */}
+      {activeTab === "categories" ? (
+        <CategoryTab />
+      ) : (
       <div className="grid gap-6 lg:grid-cols-2">
         {/* 업로드 패널 */}
         <div className="rounded-xl border bg-card p-5 space-y-4">
@@ -381,6 +414,7 @@ export default function DataSourcesPage() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }
