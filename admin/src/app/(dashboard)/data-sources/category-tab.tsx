@@ -262,6 +262,7 @@ export default function CategoryTab() {
                         size="sm"
                         variant="ghost"
                         className="h-7 px-2"
+                        title="편집"
                         onClick={() => openEdit(cat)}
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -271,6 +272,7 @@ export default function CategoryTab() {
                           size="sm"
                           variant="ghost"
                           className="h-7 px-2 text-destructive hover:text-destructive"
+                          title="비활성화"
                           onClick={() => handleDeactivate(cat)}
                         >
                           <Power className="w-3.5 h-3.5" />
