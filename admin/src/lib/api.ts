@@ -25,7 +25,11 @@ async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error(text || `요청 실패 (${res.status})`);
   }
 
-  // 204 No Content or empty body
+  // 204 No Content (body 없음)
+  if (res.status === 204) {
+    return {} as T;
+  }
+
   const contentType = res.headers.get("content-type");
   if (!contentType || !contentType.includes("application/json")) {
     return {} as T;

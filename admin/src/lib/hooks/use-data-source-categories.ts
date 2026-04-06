@@ -9,10 +9,18 @@ export function useDataSourceCategories() {
   });
 }
 
+export function useActiveCategories() {
+  const query = useDataSourceCategories();
+  return {
+    ...query,
+    data: query.data?.filter((c: DataSourceCategory) => c.is_active),
+  };
+}
+
 export function useSearchableCategories() {
   const query = useDataSourceCategories();
   return {
     ...query,
-    data: query.data?.filter((c: DataSourceCategory) => c.is_searchable),
+    data: query.data?.filter((c: DataSourceCategory) => c.is_searchable && c.is_active),
   };
 }

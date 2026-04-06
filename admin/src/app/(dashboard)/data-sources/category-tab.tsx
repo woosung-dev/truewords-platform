@@ -33,6 +33,7 @@ const COLOR_OPTIONS = [
 ] as const;
 
 interface FormState {
+  key: string;
   name: string;
   description: string;
   color: string;
@@ -41,26 +42,13 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
+  key: "",
   name: "",
   description: "",
   color: "indigo",
   is_searchable: true,
   is_active: true,
 };
-
-/** 다음 사용 가능한 알파벳 key를 자동 생성 */
-function getNextKey(existingKeys: string[]): string {
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  for (const ch of alphabet) {
-    if (!existingKeys.includes(ch)) return ch;
-  }
-  // 알파벳 소진 시 숫자 조합
-  for (let i = 1; i <= 99; i++) {
-    const k = `S${i}`;
-    if (!existingKeys.includes(k)) return k;
-  }
-  return `S${Date.now()}`;
-}
 
 export default function CategoryTab() {
   const queryClient = useQueryClient();
@@ -71,10 +59,8 @@ export default function CategoryTab() {
 
   const createMutation = useMutation({
     mutationFn: (data: FormState) => {
-      const existingKeys = categories.map((c) => c.key);
-      const key = getNextKey(existingKeys);
       return dataSourceCategoryAPI.create({
-        key,
+        key: data.key,
         name: data.name,
         description: data.description,
         color: data.color,
@@ -120,6 +106,7 @@ export default function CategoryTab() {
   function openEdit(cat: DataSourceCategory) {
     setEditing(cat);
     setForm({
+      key: cat.key,
       name: cat.name,
       description: cat.description,
       color: cat.color,
@@ -306,18 +293,35 @@ export default function CategoryTab() {
             </SheetTitle>
           </SheetHeader>
           <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            {/* Key (수정 시에만 표시) */}
-            {editing && (
-              <div className="space-y-2">
-                <Label>Key</Label>
+            {/* Key */}
+            <div className="space-y-2">
+              <Label htmlFor="cat-key">Key <span className="text-destructive">*</span></Label>
+              {editing ? (
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-sm px-3 py-1">
                     {editing.key}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">자동 생성됨 (변경 불가)</span>
+                  <span className="text-xs text-muted-foreground">변경 불가</span>
                 </div>
-              </div>
-            )}
+              ) : (
+                <>
+                  <Input
+                    id="cat-key"
+                    value={form.key}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, key: e.target.value.toUpperCase() }))
+                    }
+                    placeholder="예: E, F, G"
+                    pattern="^[A-Za-z0-9_]+$"
+                    maxLength={20}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    영문, 숫자, 밑줄만 사용. 생성 후 변경 불가
+                  </p>
+                </>
+              )}
+            </div>
 
             {/* 이름 */}
             <div className="space-y-2">

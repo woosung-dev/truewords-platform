@@ -120,7 +120,7 @@ async def upload_document(
         del tracker.completed[safe_filename]
     if safe_filename in tracker.failed:
         del tracker.failed[safe_filename]
-    tracker._save()
+    tracker.save()
 
     # 백그라운드 태스크 큐 추가
     background_tasks.add_task(_process_file, tmp_path, safe_filename, source)
