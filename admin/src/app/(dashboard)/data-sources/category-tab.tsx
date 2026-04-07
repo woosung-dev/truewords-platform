@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -20,7 +20,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Plus, Pencil, Power, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Pencil, Power } from "lucide-react";
 
 const COLOR_OPTIONS = [
   { key: "indigo", label: "인디고" },
@@ -37,7 +37,6 @@ interface FormState {
   name: string;
   description: string;
   color: string;
-  is_searchable: boolean;
   is_active: boolean;
 }
 
@@ -46,7 +45,6 @@ const EMPTY_FORM: FormState = {
   name: "",
   description: "",
   color: "indigo",
-  is_searchable: true,
   is_active: true,
 };
 
@@ -58,17 +56,16 @@ export default function CategoryTab() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   const createMutation = useMutation({
-    mutationFn: (data: FormState) => {
-      return dataSourceCategoryAPI.create({
+    mutationFn: (data: FormState) =>
+      dataSourceCategoryAPI.create({
         key: data.key,
         name: data.name,
         description: data.description,
         color: data.color,
         sort_order: categories.length + 1,
         is_active: data.is_active,
-        is_searchable: data.is_searchable,
-      });
-    },
+        is_searchable: true, // 미구현 기능, 기본값 유지
+      }),
     onSuccess: () => {
       toast.success("카테고리가 생성되었습니다");
       queryClient.invalidateQueries({ queryKey: ["data-source-categories"] });
@@ -97,9 +94,19 @@ export default function CategoryTab() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  // 다음 사용 가능한 알파벳 자동 계산 (A→Z 순)
+  const nextKey = useMemo(() => {
+    const usedKeys = new Set(categories.map((c) => c.key.toUpperCase()));
+    for (let i = 65; i <= 90; i++) {
+      const letter = String.fromCharCode(i);
+      if (!usedKeys.has(letter)) return letter;
+    }
+    return "";
+  }, [categories]);
+
   function openCreate() {
     setEditing(null);
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, key: nextKey });
     setSheetOpen(true);
   }
 
@@ -110,7 +117,6 @@ export default function CategoryTab() {
       name: cat.name,
       description: cat.description,
       color: cat.color,
-      is_searchable: cat.is_searchable,
       is_active: cat.is_active,
     });
     setSheetOpen(true);
@@ -121,7 +127,7 @@ export default function CategoryTab() {
     setEditing(null);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (editing) {
       updateMutation.mutate({
@@ -130,7 +136,6 @@ export default function CategoryTab() {
           name: form.name,
           description: form.description,
           color: form.color,
-          is_searchable: form.is_searchable,
           is_active: form.is_active,
         },
       });
@@ -191,11 +196,8 @@ export default function CategoryTab() {
             <tr className="border-b bg-muted/40">
               <th className="text-left font-medium px-4 py-2.5">Key</th>
               <th className="text-left font-medium px-4 py-2.5">이름</th>
-              <th className="text-left font-medium px-4 py-2.5 hidden sm:table-cell">
-                설명
-              </th>
+              <th className="text-left font-medium px-4 py-2.5 hidden sm:table-cell">설명</th>
               <th className="text-left font-medium px-4 py-2.5">색상</th>
-              <th className="text-center font-medium px-4 py-2.5">검색</th>
               <th className="text-center font-medium px-4 py-2.5">상태</th>
               <th className="text-right font-medium px-4 py-2.5">액션</th>
             </tr>
@@ -224,13 +226,6 @@ export default function CategoryTab() {
                       className={`w-5 h-5 rounded-full ${colors.bg} border ${colors.border}`}
                       title={cat.color}
                     />
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {cat.is_searchable ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-muted-foreground/40 mx-auto" />
-                    )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <Badge
@@ -273,7 +268,7 @@ export default function CategoryTab() {
             {visibleCategories.length === 0 && (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={6}
                   className="px-4 py-12 text-center text-muted-foreground"
                 >
                   카테고리가 없습니다. 새 카테고리를 추가하세요.
@@ -286,142 +281,92 @@ export default function CategoryTab() {
 
       {/* 추가/수정 Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>
-              {editing ? "카테고리 수정" : "새 카테고리 추가"}
-            </SheetTitle>
+        <SheetContent className="flex flex-col p-0 gap-0">
+          {/* 헤더 */}
+          <SheetHeader className="px-6 pt-6 pb-4 border-b">
+            <div className="flex items-center gap-2">
+              <SheetTitle className="text-base">
+                {editing ? "카테고리 수정" : "새 카테고리 추가"}
+              </SheetTitle>
+              <Badge variant="outline" className="font-mono text-xs">
+                {editing ? editing.key : nextKey || "—"}
+              </Badge>
+            </div>
           </SheetHeader>
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            {/* Key */}
-            <div className="space-y-2">
-              <Label htmlFor="cat-key">Key <span className="text-destructive">*</span></Label>
-              {editing ? (
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="font-mono text-sm px-3 py-1">
-                    {editing.key}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">변경 불가</span>
+
+          {/* 폼 본문 */}
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-y-auto">
+            <div className="flex-1 px-6 py-6 space-y-6">
+              {/* 이름 */}
+              <div className="space-y-2">
+                <Label htmlFor="cat-name">
+                  이름 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="cat-name"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="예: 말씀선집"
+                  required
+                />
+              </div>
+
+              {/* 설명 */}
+              <div className="space-y-2">
+                <Label htmlFor="cat-desc">설명</Label>
+                <Input
+                  id="cat-desc"
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="예: 615권 텍스트 데이터"
+                />
+              </div>
+
+              {/* 색상 */}
+              <div className="space-y-3">
+                <Label>색상</Label>
+                <div className="flex items-center gap-3">
+                  {COLOR_OPTIONS.map((opt) => {
+                    const c = getCategoryColors(opt.key);
+                    const selected = form.color === opt.key;
+                    return (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, color: opt.key }))}
+                        className={`w-8 h-8 rounded-full border-2 transition-all ${c.bg} ${
+                          selected
+                            ? `${c.border} ring-2 ring-offset-2 ${c.activeRing}`
+                            : "border-transparent hover:scale-110"
+                        }`}
+                        title={opt.label}
+                      />
+                    );
+                  })}
                 </div>
-              ) : (
-                <>
-                  <Input
-                    id="cat-key"
-                    value={form.key}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, key: e.target.value.toUpperCase() }))
-                    }
-                    placeholder="예: E, F, G"
-                    pattern="^[A-Za-z0-9_]+$"
-                    maxLength={20}
-                    required
+              </div>
+
+              {/* 활성 상태 (수정 시에만) */}
+              {editing && (
+                <div className="flex items-center gap-3 py-1">
+                  <Checkbox
+                    id="cat-active"
+                    checked={form.is_active}
+                    onCheckedChange={(v) => setForm((f) => ({ ...f, is_active: !!v }))}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    영문, 숫자, 밑줄만 사용. 생성 후 변경 불가
-                  </p>
-                </>
+                  <Label htmlFor="cat-active" className="text-sm font-normal cursor-pointer">
+                    활성 상태
+                  </Label>
+                </div>
               )}
             </div>
 
-            {/* 이름 */}
-            <div className="space-y-2">
-              <Label htmlFor="cat-name">
-                이름 <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="cat-name"
-                value={form.name}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, name: e.target.value }))
-                }
-                placeholder="예: 말씀선집"
-                required
-              />
-            </div>
-
-            {/* 설명 */}
-            <div className="space-y-2">
-              <Label htmlFor="cat-desc">설명</Label>
-              <Input
-                id="cat-desc"
-                value={form.description}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, description: e.target.value }))
-                }
-                placeholder="예: 615권 텍스트 데이터"
-              />
-            </div>
-
-            {/* 색상 */}
-            <div className="space-y-2">
-              <Label>색상</Label>
-              <div className="flex gap-2">
-                {COLOR_OPTIONS.map((opt) => {
-                  const c = getCategoryColors(opt.key);
-                  const selected = form.color === opt.key;
-                  return (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      onClick={() =>
-                        setForm((f) => ({ ...f, color: opt.key }))
-                      }
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${c.bg} ${
-                        selected
-                          ? `${c.border} ring-2 ring-offset-2 ${c.activeRing}`
-                          : "border-transparent hover:scale-110"
-                      }`}
-                      title={opt.label}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 검색 가능 */}
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="cat-searchable"
-                checked={form.is_searchable}
-                onCheckedChange={(v) =>
-                  setForm((f) => ({ ...f, is_searchable: !!v }))
-                }
-              />
-              <Label htmlFor="cat-searchable" className="text-sm">
-                검색 티어에서 사용 가능
-              </Label>
-            </div>
-
-            {/* 활성 (수정 시에만) */}
-            {editing && (
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="cat-active"
-                  checked={form.is_active}
-                  onCheckedChange={(v) =>
-                    setForm((f) => ({ ...f, is_active: !!v }))
-                  }
-                />
-                <Label htmlFor="cat-active" className="text-sm">
-                  활성 상태
-                </Label>
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-2">
+            {/* 하단 버튼 — 고정 */}
+            <div className="px-6 py-4 border-t bg-background flex gap-2">
               <Button type="submit" disabled={isPending} className="flex-1">
-                {isPending
-                  ? "저장 중..."
-                  : editing
-                    ? "수정"
-                    : "생성"}
+                {isPending ? "저장 중..." : editing ? "수정" : "생성"}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={closeSheet}
-                className="flex-1"
-              >
+              <Button type="button" variant="outline" onClick={closeSheet} className="flex-1">
                 취소
               </Button>
             </div>
