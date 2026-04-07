@@ -54,13 +54,26 @@ def _process_file(file_path: Path, filename: str, source: str):
         )
         logger.info("[%s] 청킹 완료 (%d개 청크)", volume_key, len(chunks))
 
-        # 4. Qdrant 적재
+        # 4. 재개 지점 확인 (청크 레벨 체크포인트)
+        start_chunk = tracker.get_resume_point(volume_key)
+        if start_chunk > 0:
+            logger.info("[%s] 청크 %d번부터 재개 (총 %d청크)", volume_key, start_chunk, len(chunks))
+
+        # 5. Qdrant 적재
         client = get_client()
-        stats = ingest_chunks(client, settings.collection_name, chunks)
+        stats = ingest_chunks(
+            client,
+            settings.collection_name,
+            chunks,
+            start_chunk=start_chunk,
+            title=meta["title"],
+            tracker=tracker,
+            volume_key=volume_key,
+        )
         logger.info("[%s] 적재 완료 (%d청크, %.1f초)",
                     volume_key, stats["chunk_count"], stats["elapsed_sec"])
 
-        # 5. 성공 기록
+        # 6. 성공 기록 (in_progress 자동 삭제)
         tracker.mark_completed(volume_key, stats["chunk_count"])
 
     except Exception as e:
@@ -124,8 +137,7 @@ async def upload_document(
     # 파일 닫기
     file.file.close()
 
-    # ProgressTracker에 상태 초기화 (진행중 임의 등록은 없으므로 failed/completed만 남음)
-    # UI의 즉각적인 피드백을 위해 우선 failed에서 없앰
+    # completed/failed 초기화. in_progress는 유지 → 재업로드 시 중단 지점부터 재개
     tracker = ProgressTracker(_PROGRESS_FILE)
     if safe_filename in tracker.completed:
         del tracker.completed[safe_filename]

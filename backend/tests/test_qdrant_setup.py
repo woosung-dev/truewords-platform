@@ -12,4 +12,4 @@ def test_create_collection_uses_dense_and_sparse_vectors():
     assert call_kwargs["collection_name"] == "test_collection"
     assert "dense" in call_kwargs["vectors_config"]
     assert "sparse" in call_kwargs["sparse_vectors_config"]
-    assert call_kwargs["vectors_config"]["dense"].size == 3072
+    assert call_kwargs["vectors_config"]["dense"].size == 1536

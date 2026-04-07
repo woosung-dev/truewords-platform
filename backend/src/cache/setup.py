@@ -23,7 +23,7 @@ async def ensure_cache_collection() -> None:
     await client.create_collection(
         collection_name=settings.cache_collection_name,
         vectors_config={
-            "dense": VectorParams(size=3072, distance=Distance.COSINE),
+            "dense": VectorParams(size=1536, distance=Distance.COSINE),
         },
     )
 

@@ -1,8 +1,11 @@
-"""Qdrant 적재. 배치 임베딩 + 지수 백오프 + 메타 payload + 적재 통계."""
+"""Qdrant 적재. 배치 임베딩 + 청크 레벨 체크포인트 + 지수 백오프."""
+
+from __future__ import annotations
 
 import logging
 import time
 import uuid
+from typing import TYPE_CHECKING
 
 from google.genai import errors as genai_errors
 from qdrant_client import QdrantClient
@@ -10,7 +13,10 @@ from qdrant_client.models import PointStruct, SparseVector
 
 from src.config import settings
 from src.pipeline.chunker import Chunk
-from src.pipeline.embedder import EMBED_BATCH_SIZE, embed_dense_batch, embed_sparse
+from src.pipeline.embedder import EMBED_BATCH_SIZE, embed_dense_batch, embed_sparse_batch
+
+if TYPE_CHECKING:
+    from src.pipeline.progress import ProgressTracker
 
 logger = logging.getLogger(__name__)
 
@@ -18,14 +24,14 @@ logger = logging.getLogger(__name__)
 _UPSERT_BATCH_SIZE = 50
 
 
-def _embed_batch_with_retry(texts: list[str]) -> list[list[float]]:
+def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[float]]:
     """배치 임베딩 + Rate limit 대응 지수 백오프."""
     base_wait = getattr(settings, "retry_base_wait", 30.0)
     max_retries = getattr(settings, "retry_max_retries", 5)
 
     for attempt in range(max_retries):
         try:
-            return embed_dense_batch(texts)
+            return embed_dense_batch(texts, title=title)
         except genai_errors.ClientError as e:
             if e.code != 429:
                 raise
@@ -42,30 +48,53 @@ def ingest_chunks(
     client: QdrantClient,
     collection_name: str,
     chunks: list[Chunk],
+    start_chunk: int = 0,
+    title: str = "",
+    tracker: ProgressTracker | None = None,
+    volume_key: str = "",
 ) -> dict:
-    """청크 적재. 배치 임베딩으로 API 호출 최소화.
+    """청크 적재. 배치 임베딩 + 청크 레벨 체크포인트.
 
-    반환: {"chunk_count": int, "elapsed_sec": float}."""
+    Args:
+        start_chunk: 재개 시작 인덱스 (0 = 처음부터). tracker.get_resume_point()에서 전달.
+        title: 임베딩 품질 향상을 위한 문서 제목 (Gemini 권장).
+        tracker: 체크포인트 저장용 ProgressTracker 인스턴스.
+        volume_key: tracker에 저장할 볼륨 키 (보통 파일명).
+
+    반환: {"chunk_count": int, "elapsed_sec": float}
+    """
     if not chunks:
+        return {"chunk_count": 0, "elapsed_sec": 0.0}
+
+    total = len(chunks)
+
+    # start_chunk부터 슬라이스 (이미 완료된 청크 건너뜀)
+    effective_chunks = chunks[start_chunk:]
+    effective_total = len(effective_chunks)
+
+    if effective_total == 0:
+        logger.info("모든 청크 이미 적재됨 (start_chunk=%d, total=%d)", start_chunk, total)
         return {"chunk_count": 0, "elapsed_sec": 0.0}
 
     start = time.monotonic()
     points: list[PointStruct] = []
-    total = len(chunks)
 
-    # 배치 단위로 dense 임베딩 처리
-    for batch_start in range(0, total, EMBED_BATCH_SIZE):
-        batch_end = min(batch_start + EMBED_BATCH_SIZE, total)
-        batch_chunks = chunks[batch_start:batch_end]
+    for batch_offset in range(0, effective_total, EMBED_BATCH_SIZE):
+        batch_end = min(batch_offset + EMBED_BATCH_SIZE, effective_total)
+        batch_chunks = effective_chunks[batch_offset:batch_end]
         batch_texts = [c.text for c in batch_chunks]
 
-        # Dense 임베딩 (1회 API 호출로 최대 50개 처리)
-        dense_vectors = _embed_batch_with_retry(batch_texts)
+        # 이 배치의 절대 인덱스 (전체 chunks 기준)
+        abs_batch_end = start_chunk + batch_end
 
-        # Sparse 임베딩 (로컬 CPU, API 호출 없음)
+        # Dense 임베딩 (배치, 1회 API 호출, title 포함)
+        dense_vectors = _embed_batch_with_retry(batch_texts, title=title)
+
+        # Sparse 임베딩 (배치, 로컬 CPU, API 호출 없음)
+        sparse_results = embed_sparse_batch(batch_texts)
+
         for i, chunk in enumerate(batch_chunks):
-            sparse_indices, sparse_values = embed_sparse(chunk.text)
-
+            sparse_indices, sparse_values = sparse_results[i]
             points.append(
                 PointStruct(
                     id=str(uuid.uuid4()),
@@ -87,19 +116,26 @@ def ingest_chunks(
                 )
             )
 
-        # Qdrant upsert (points가 충분히 쌓이면)
+        # Qdrant upsert (충분히 쌓이면 flush)
         if len(points) >= _UPSERT_BATCH_SIZE:
             client.upsert(collection_name=collection_name, points=points)
-            logger.info("  [%d/%d] 청크 적재 중...", batch_end, total)
+            logger.info("  [%d/%d] 청크 적재 중...", abs_batch_end, total)
             points = []
 
-        # TPM 한도 대응: 배치 간 1초 대기 (분당 ~50 배치 × 50청크 = 2,500 < TPM 30K)
-        time.sleep(1.0)
+            # 체크포인트 저장 (upsert 성공 후에만)
+            if tracker and volume_key:
+                tracker.mark_chunk_progress(volume_key, abs_batch_end, total)
 
-    # 남은 points 적재
+        # TPM 한도 대응: 배치당 ~8,666 토큰, TPM 30K 기준 17초 대기
+        # 유료(TPM 1M)에서는 0.5초로 충분하지만 보수적으로 유지
+        time.sleep(getattr(settings, "embed_batch_sleep", 17.0))
+
+    # 남은 points flush
     if points:
         client.upsert(collection_name=collection_name, points=points)
         logger.info("  [%d/%d] 청크 적재 완료", total, total)
+        if tracker and volume_key:
+            tracker.mark_chunk_progress(volume_key, total, total)
 
     elapsed = time.monotonic() - start
-    return {"chunk_count": total, "elapsed_sec": round(elapsed, 2)}
+    return {"chunk_count": effective_total, "elapsed_sec": round(elapsed, 2)}

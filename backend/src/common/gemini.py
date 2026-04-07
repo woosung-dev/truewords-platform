@@ -14,21 +14,27 @@ MODEL_EMBEDDING = "gemini-embedding-001"
 
 
 async def embed_dense_document(text: str) -> list[float]:
-    """문서용 dense 임베딩 (비동기)."""
+    """문서용 dense 임베딩 (비동기). output_dimensionality=1536 고정."""
     result = await _client.aio.models.embed_content(
         model=MODEL_EMBEDDING,
         contents=text,
-        config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT"),
+        config=types.EmbedContentConfig(
+            task_type="RETRIEVAL_DOCUMENT",
+            output_dimensionality=1536,
+        ),
     )
     return result.embeddings[0].values
 
 
 async def embed_dense_query(text: str) -> list[float]:
-    """쿼리용 dense 임베딩 (비동기)."""
+    """쿼리용 dense 임베딩 (비동기). output_dimensionality=1536 고정."""
     result = await _client.aio.models.embed_content(
         model=MODEL_EMBEDDING,
         contents=text,
-        config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY"),
+        config=types.EmbedContentConfig(
+            task_type="RETRIEVAL_QUERY",
+            output_dimensionality=1536,
+        ),
     )
     return result.embeddings[0].values
 

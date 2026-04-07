@@ -38,19 +38,34 @@ def embed_dense_document(text: str) -> list[float]:
     return result.embeddings[0].values
 
 
-def embed_dense_batch(texts: list[str]) -> list[list[float]]:
-    """여러 텍스트를 1회 API 호출로 배치 임베딩. RPD 소비를 1/50로 줄임."""
+def embed_dense_batch(texts: list[str], title: str = "") -> list[list[float]]:
+    """여러 텍스트를 1회 API 호출로 배치 임베딩. RPD 소비를 1/50로 줄임.
+
+    title 제공 시 RETRIEVAL_DOCUMENT 품질 향상 (Gemini 공식 권장).
+    output_dimensionality=1536: 3072 대비 품질 손실 ~1%, 저장 50% 절감."""
     if not texts:
         return []
-    # contents에 리스트 전달 → SDK가 batchEmbedContents로 처리
     contents: list[str | types.Part] = list(texts)
+    embed_config = types.EmbedContentConfig(
+        task_type="RETRIEVAL_DOCUMENT",
+        output_dimensionality=1536,
+        title=title if title else None,
+    )
     result = _client.models.embed_content(
         model="gemini-embedding-001",
         contents=contents,
-        config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT"),
+        config=embed_config,
     )
     embeddings = result.embeddings or []
     return [emb.values for emb in embeddings if emb.values is not None]
+
+
+def embed_sparse_batch(texts: list[str]) -> list[tuple[list[int], list[float]]]:
+    """여러 텍스트를 한 번에 sparse 임베딩. fastembed 네이티브 배치 지원."""
+    if not texts:
+        return []
+    model = get_sparse_model()
+    return [(e.indices.tolist(), e.values.tolist()) for e in model.embed(texts)]
 
 
 def embed_dense_query(text: str) -> list[float]:

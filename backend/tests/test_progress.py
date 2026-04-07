@@ -76,3 +76,50 @@ def test_corrupted_json_recovery(tmp_path: Path):
     assert tracker.failed == {}
     # 손상 파일이 .bak으로 백업됨
     assert filepath.with_suffix(".json.bak").exists()
+
+
+def test_mark_chunk_progress(tmp_path: Path):
+    """청크 체크포인트 저장."""
+    tracker = ProgressTracker(tmp_path / "progress.json")
+    tracker.mark_chunk_progress("vol_001.txt", 100, 500)
+    assert tracker.in_progress["vol_001.txt"] == {"total": 500, "next_chunk": 100}
+
+
+def test_get_resume_point_no_entry(tmp_path: Path):
+    """진행 기록 없으면 0 반환."""
+    tracker = ProgressTracker(tmp_path / "progress.json")
+    assert tracker.get_resume_point("vol_001.txt") == 0
+
+
+def test_get_resume_point_existing(tmp_path: Path):
+    """기존 체크포인트에서 재개 지점 반환."""
+    tracker = ProgressTracker(tmp_path / "progress.json")
+    tracker.mark_chunk_progress("vol_001.txt", 1500, 3000)
+    assert tracker.get_resume_point("vol_001.txt") == 1500
+
+
+def test_mark_completed_clears_in_progress(tmp_path: Path):
+    """완료 기록 시 in_progress 제거."""
+    tracker = ProgressTracker(tmp_path / "progress.json")
+    tracker.mark_chunk_progress("vol_001.txt", 50, 100)
+    assert "vol_001.txt" in tracker.in_progress
+    tracker.mark_completed("vol_001.txt", 100)
+    assert "vol_001.txt" not in tracker.in_progress
+
+
+def test_in_progress_persists_across_reload(tmp_path: Path):
+    """체크포인트가 JSON에 저장되고 재로드 후에도 유지됨."""
+    filepath = tmp_path / "progress.json"
+    tracker = ProgressTracker(filepath)
+    tracker.mark_chunk_progress("vol_001.txt", 200, 1000)
+
+    tracker2 = ProgressTracker(filepath)
+    assert tracker2.get_resume_point("vol_001.txt") == 200
+
+
+def test_get_summary_includes_in_progress_count(tmp_path: Path):
+    """get_summary에 in_progress_count 포함."""
+    tracker = ProgressTracker(tmp_path / "progress.json")
+    tracker.mark_chunk_progress("vol_001.txt", 50, 200)
+    summary = tracker.get_summary()
+    assert summary["in_progress_count"] == 1
