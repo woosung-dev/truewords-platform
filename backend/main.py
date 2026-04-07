@@ -1,6 +1,9 @@
 import logging
 from contextlib import asynccontextmanager
 
+# 앱 로거가 INFO 레벨 출력하도록 기본 설정
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

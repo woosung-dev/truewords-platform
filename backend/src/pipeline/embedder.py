@@ -2,15 +2,22 @@
 이 모듈은 pipeline(데이터 적재) 전용 동기 함수 + async sparse 래퍼 제공."""
 
 import asyncio
+import logging
 
 from fastembed import SparseTextEmbedding
 from google import genai
 from google.genai import types
 from src.config import settings
 
+logger = logging.getLogger(__name__)
+
 _client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
 
 _sparse_model: SparseTextEmbedding | None = None
+
+# Gemini embed_content 배치 한도: 요청당 20,000 토큰
+# 한국어 청크 ~400토큰 기준 → 안전하게 50개씩 배치
+EMBED_BATCH_SIZE = 50
 
 
 def get_sparse_model() -> SparseTextEmbedding:
@@ -29,6 +36,21 @@ def embed_dense_document(text: str) -> list[float]:
         config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT"),
     )
     return result.embeddings[0].values
+
+
+def embed_dense_batch(texts: list[str]) -> list[list[float]]:
+    """여러 텍스트를 1회 API 호출로 배치 임베딩. RPD 소비를 1/50로 줄임."""
+    if not texts:
+        return []
+    # contents에 리스트 전달 → SDK가 batchEmbedContents로 처리
+    contents: list[str | types.Part] = list(texts)
+    result = _client.models.embed_content(
+        model="gemini-embedding-001",
+        contents=contents,
+        config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT"),
+    )
+    embeddings = result.embeddings or []
+    return [emb.values for emb in embeddings if emb.values is not None]
 
 
 def embed_dense_query(text: str) -> list[float]:

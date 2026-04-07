@@ -25,3 +25,7 @@ node_modules/
 .next/
 out/
 .gstack/
+
+# 로컬 테스트 결과
+backend/progress.json
+eval_results.json

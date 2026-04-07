@@ -11,7 +11,7 @@ def test_ingest_calls_upsert_with_correct_payload():
     ]
 
     with (
-        patch("src.pipeline.ingestor.embed_dense_document", return_value=[0.1] * 768),
+        patch("src.pipeline.ingestor.embed_dense_batch", return_value=[[0.1] * 768] * 2),
         patch("src.pipeline.ingestor.embed_sparse", return_value=([1, 2], [0.5, 0.3])),
     ):
         ingest_chunks(mock_client, "test_collection", chunks)
@@ -28,7 +28,7 @@ def test_ingest_payload_contains_text_and_volume():
     chunks = [Chunk(text="참부모님 말씀.", volume="vol_005", chunk_index=0)]
 
     with (
-        patch("src.pipeline.ingestor.embed_dense_document", return_value=[0.0] * 768),
+        patch("src.pipeline.ingestor.embed_dense_batch", return_value=[[0.0] * 768]),
         patch("src.pipeline.ingestor.embed_sparse", return_value=([0], [1.0])),
     ):
         ingest_chunks(mock_client, "test_collection", chunks)
@@ -51,7 +51,7 @@ def test_ingest_payload_includes_source():
     chunks = [Chunk(text="테스트 말씀", volume="vol_001", chunk_index=0, source="A")]
 
     with (
-        patch("src.pipeline.ingestor.embed_dense_document", return_value=[0.1] * 3072),
+        patch("src.pipeline.ingestor.embed_dense_batch", return_value=[[0.1] * 3072]),
         patch("src.pipeline.ingestor.embed_sparse", return_value=([1, 2], [0.5, 0.3])),
     ):
         ingest_chunks(mock_client, "test_collection", chunks)
@@ -66,7 +66,7 @@ def test_ingest_payload_source_default_empty():
     chunks = [Chunk(text="테스트 말씀", volume="vol_001", chunk_index=0)]
 
     with (
-        patch("src.pipeline.ingestor.embed_dense_document", return_value=[0.1] * 3072),
+        patch("src.pipeline.ingestor.embed_dense_batch", return_value=[[0.1] * 3072]),
         patch("src.pipeline.ingestor.embed_sparse", return_value=([1, 2], [0.5, 0.3])),
     ):
         ingest_chunks(mock_client, "test_collection", chunks)
@@ -82,7 +82,7 @@ def test_ingest_payload_includes_title_and_date():
     chunks = [Chunk(text="말씀", volume="vol_001", chunk_index=0, title="창조원리", date="1966.5.1")]
 
     with (
-        patch("src.pipeline.ingestor.embed_dense_document", return_value=[0.1] * 3072),
+        patch("src.pipeline.ingestor.embed_dense_batch", return_value=[[0.1] * 3072]),
         patch("src.pipeline.ingestor.embed_sparse", return_value=([1], [0.5])),
     ):
         ingest_chunks(mock_client, "test_collection", chunks)

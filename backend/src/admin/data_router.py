@@ -1,10 +1,13 @@
 """RAG 데이터 적재 (Data Ingestion) 관련 관리자 API 라우터."""
 
+import logging
 import shutil
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+
+logger = logging.getLogger(__name__)
 
 from src.admin.dependencies import get_current_admin
 from src.config import settings
@@ -25,10 +28,13 @@ def _process_file(file_path: Path, filename: str, source: str):
     """백그라운드에서 파일 청크 및 임베딩 처리."""
     tracker = ProgressTracker(_PROGRESS_FILE)
     volume_key = filename
-    
+
     try:
+        logger.info("[%s] 처리 시작 (file_path=%s)", volume_key, file_path)
+
         # 1. 텍스트 추출
         text = extract_text(file_path)
+        logger.info("[%s] 텍스트 추출 완료 (%d자)", volume_key, len(text))
         if not text.strip():
             tracker.mark_failed(volume_key, "빈 파일")
             return
@@ -46,15 +52,19 @@ def _process_file(file_path: Path, filename: str, source: str):
             title=meta["title"],
             date=meta["date"],
         )
+        logger.info("[%s] 청킹 완료 (%d개 청크)", volume_key, len(chunks))
 
         # 4. Qdrant 적재
         client = get_client()
         stats = ingest_chunks(client, settings.collection_name, chunks)
+        logger.info("[%s] 적재 완료 (%d청크, %.1f초)",
+                    volume_key, stats["chunk_count"], stats["elapsed_sec"])
 
         # 5. 성공 기록
         tracker.mark_completed(volume_key, stats["chunk_count"])
 
     except Exception as e:
+        logger.exception("[%s] 처리 실패", volume_key)
         tracker.mark_failed(volume_key, str(e))
     finally:
         # 임시 파일 삭제
@@ -105,6 +115,7 @@ async def upload_document(
     try:
         suffix = Path(safe_filename).suffix
         with NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+            file.file.seek(0)  # 안전장치: 대형 파일 SpooledTemporaryFile 위치 보장
             shutil.copyfileobj(file.file, tmp_file)
             tmp_path = Path(tmp_file.name)
     except Exception as e:
