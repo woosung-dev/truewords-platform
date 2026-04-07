@@ -119,8 +119,8 @@ uv run uvicorn main:app --reload --port 8000
 ```bash
 cd admin
 
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 - Admin 대시보드: http://localhost:3000
@@ -178,10 +178,10 @@ uv run python scripts/ingest.py
 cd backend && uv run pytest
 
 # Admin 단위 테스트
-cd admin && npm test
+cd admin && pnpm test
 
 # Admin E2E 테스트
-cd admin && npm run test:e2e
+cd admin && pnpm test:e2e
 ```
 
 ---

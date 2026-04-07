@@ -1,6 +1,11 @@
 """기존 configs.py 하드코딩 데이터를 PostgreSQL에 삽입하는 seed 스크립트."""
 
 import asyncio
+import sys
+from pathlib import Path
+
+# 프로젝트 루트(backend/)를 sys.path에 추가하여 src 모듈 import 가능하게 함
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.chatbot.models import ChatbotConfig
 from src.common.database import async_session_factory, init_db

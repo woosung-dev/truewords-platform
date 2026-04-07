@@ -75,8 +75,8 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:8000' > .env.local
 ### 2. 의존성 설치 + 실행
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 - Admin 대시보드: http://localhost:3000
@@ -99,16 +99,16 @@ npm run dev
 
 ```bash
 # 개발 서버 (자동 리로드)
-npm run dev
+pnpm dev
 
 # 프로덕션 빌드
-npm run build
+pnpm build
 
 # 프로덕션 서버
-npm start
+pnpm start
 
 # 린트
-npm run lint
+pnpm lint
 ```
 
 ---
@@ -117,16 +117,16 @@ npm run lint
 
 ```bash
 # 단위 테스트
-npm test
+pnpm test
 
 # 단위 테스트 (Watch 모드)
-npm run test:watch
+pnpm test:watch
 
 # E2E 테스트 (Playwright)
-npm run test:e2e
+pnpm test:e2e
 
 # E2E 테스트 (UI 모드)
-npm run test:e2e:ui
+pnpm test:e2e:ui
 ```
 
 ---
@@ -142,7 +142,7 @@ Vercel에 자동 배포됩니다.
 // vercel.json
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build",
+  "buildCommand": "pnpm build",
   "installCommand": "npm ci"
 }
 ```
