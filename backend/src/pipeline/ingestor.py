@@ -126,9 +126,9 @@ def ingest_chunks(
             if tracker and volume_key:
                 tracker.mark_chunk_progress(volume_key, abs_batch_end, total)
 
-        # TPM 한도 대응: 배치당 ~8,666 토큰, TPM 30K 기준 17초 대기
-        # 유료(TPM 1M)에서는 0.5초로 충분하지만 보수적으로 유지
-        time.sleep(getattr(settings, "embed_batch_sleep", 17.0))
+        # TPM 한도 대응: 90청크 × 200토큰 = 18K 토큰/배치, 65초 sleep으로 60초 윈도우에 1배치만
+        # 유료(TPM 1M) 전환 시: .env에서 EMBED_BATCH_SLEEP=3 으로 변경
+        time.sleep(getattr(settings, "embed_batch_sleep", 40.0))
 
     # 남은 points flush
     if points:

@@ -158,5 +158,6 @@ async def get_ingest_status(current_admin: dict = Depends(get_current_admin)):
     return {
         "completed": tracker.completed,
         "failed": tracker.failed,
+        "in_progress": tracker.in_progress,
         "summary": summary
     }

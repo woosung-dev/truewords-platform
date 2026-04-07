@@ -134,9 +134,15 @@ export interface IngestionStatusSummary {
   total_chunks: number;
 }
 
+export interface InProgressEntry {
+  total: number;
+  next_chunk: number;
+}
+
 export interface IngestionStatus {
-  completed: Record<string, number>; // filename -> chunk count
-  failed: Record<string, string>; // filename -> error message
+  completed: Record<string, number>;   // filename -> chunk count
+  failed: Record<string, string>;      // filename -> error message
+  in_progress: Record<string, InProgressEntry>; // filename -> {total, next_chunk}
   summary: IngestionStatusSummary;
 }
 

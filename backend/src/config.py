@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     cascade_fallback_threshold: float = 0.60
     cascade_min_results: int = 3
 
+    # 임베딩 파이프라인
+    # 무료 TPM 30K → 40초, 유료 TPM 1M → 3초
+    embed_batch_sleep: float = 65.0
+
     model_config = {"env_file": ".env"}
 
     @model_validator(mode="after")

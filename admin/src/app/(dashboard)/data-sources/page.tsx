@@ -18,6 +18,7 @@ import {
   FolderOpen,
   Clock,
   ArrowUpFromLine,
+  RotateCcw,
 } from "lucide-react";
 import CategoryTab from "./category-tab";
 
@@ -53,6 +54,10 @@ export default function DataSourcesPage() {
   const failedEntries = useMemo(
     () => Object.entries(status?.failed ?? {}),
     [status?.failed]
+  );
+  const inProgressEntries = useMemo(
+    () => Object.entries(status?.in_progress ?? {}),
+    [status?.in_progress]
   );
 
   const processingFiles = pendingFiles.filter((f) => f.status === "processing");
@@ -408,6 +413,63 @@ export default function DataSourcesPage() {
                     )}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* 중단된 파일 — 재개 업로드 */}
+          {inProgressEntries.length > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/30 overflow-hidden">
+              <div className="px-4 py-3 border-b border-amber-200 bg-amber-50/50 flex items-center gap-2">
+                <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+                <span className="text-xs font-medium text-amber-700">중단된 파일 — 재개 가능</span>
+                <span className="text-xs text-amber-600/70">같은 파일을 다시 업로드하면 중단 지점부터 이어서 처리합니다</span>
+              </div>
+              <div className="divide-y divide-amber-100">
+                {inProgressEntries.map(([filename, entry]) => {
+                  const pct = Math.round((entry.next_chunk / entry.total) * 100);
+                  return (
+                    <div key={`inprogress-${filename}`} className="flex items-center gap-3 px-4 py-3">
+                      <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate" title={filename}>{filename}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex-1 h-1.5 bg-amber-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-amber-400 rounded-full transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-amber-600 shrink-0">
+                            {entry.next_chunk.toLocaleString()} / {entry.total.toLocaleString()} ({pct}%)
+                          </span>
+                        </div>
+                      </div>
+                      <label className="cursor-pointer">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2.5 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 shrink-0 pointer-events-none"
+                          tabIndex={-1}
+                        >
+                          <Upload className="w-3 h-3 mr-1" />
+                          재개 업로드
+                        </Button>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".txt,.pdf,.docx"
+                          onChange={(e) => {
+                            if (e.target.files?.length) {
+                              addFiles(e.target.files);
+                              e.target.value = "";
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

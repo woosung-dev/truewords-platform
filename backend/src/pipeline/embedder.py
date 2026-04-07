@@ -16,8 +16,9 @@ _client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
 _sparse_model: SparseTextEmbedding | None = None
 
 # Gemini embed_content 배치 한도: 요청당 20,000 토큰
-# 한국어 청크 ~400토큰 기준 → 안전하게 50개씩 배치
-EMBED_BATCH_SIZE = 50
+# 한국어 청크 ~200토큰 기준 → 90개 × 200 = 18K 토큰/배치 (TPM 30K의 60%)
+# 슬라이딩 윈도우 60초에 1배치만 허용 → sleep=65초 (config.embed_batch_sleep)
+EMBED_BATCH_SIZE = 90
 
 
 def get_sparse_model() -> SparseTextEmbedding:
@@ -39,7 +40,7 @@ def embed_dense_document(text: str) -> list[float]:
 
 
 def embed_dense_batch(texts: list[str], title: str = "") -> list[list[float]]:
-    """여러 텍스트를 1회 API 호출로 배치 임베딩. RPD 소비를 1/50로 줄임.
+    """여러 텍스트를 1회 API 호출로 배치 임베딩. RPD 소비를 1/90로 줄임.
 
     title 제공 시 RETRIEVAL_DOCUMENT 품질 향상 (Gemini 공식 권장).
     output_dimensionality=1536: 3072 대비 품질 손실 ~1%, 저장 50% 절감."""
