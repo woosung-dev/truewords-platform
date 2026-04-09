@@ -10,6 +10,18 @@ const nextConfig: NextConfig = {
         source: "/admin/:path*",
         destination: `${BACKEND_URL}/admin/:path*`,
       },
+      {
+        source: "/api/chat",
+        destination: `${BACKEND_URL}/chat`,
+      },
+      {
+        source: "/api/chat/:path*",
+        destination: `${BACKEND_URL}/chat/:path*`,
+      },
+      {
+        source: "/api/chatbots",
+        destination: `${BACKEND_URL}/chatbots`,
+      },
     ];
   },
 };
