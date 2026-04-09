@@ -7,7 +7,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
-from qdrant_client.models import Filter, FieldCondition, MatchValue
+from qdrant_client.models import Filter, FieldCondition, MatchAny, MatchValue
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +184,7 @@ async def get_category_stats(
         result = await client.count(
             collection_name=collection,
             count_filter=Filter(
-                must=[FieldCondition(key="source", match=MatchValue(value=source_key))]
+                must=[FieldCondition(key="source", match=MatchAny(any=[source_key]))]
             ),
             exact=True,
         )
@@ -198,7 +198,7 @@ async def get_category_stats(
             points, offset = await client.scroll(
                 collection_name=collection,
                 scroll_filter=Filter(
-                    must=[FieldCondition(key="source", match=MatchValue(value=source_key))]
+                    must=[FieldCondition(key="source", match=MatchAny(any=[source_key]))]
                 ),
                 with_payload=["volume"],
                 with_vectors=False,
