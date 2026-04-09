@@ -4,6 +4,7 @@ import {
   type DataSourceCategory,
   type CategoryDocumentStats,
   type VolumeTagRequest,
+  type VolumeInfo,
 } from "@/lib/api";
 
 export function useDataSourceCategories() {
@@ -55,5 +56,14 @@ export function useRemoveVolumeTag() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["category-stats"] });
     },
+  });
+}
+
+export function useAllVolumes() {
+  return useQuery<VolumeInfo[]>({
+    queryKey: ["all-volumes"],
+    queryFn: dataSourceCategoryAPI.getAllVolumes,
+    staleTime: 60_000,
+    enabled: false, // Transfer Sheet 열릴 때 수동 refetch
   });
 }

@@ -213,6 +213,12 @@ export interface VolumeTagResponse {
   updated_chunks: number;
 }
 
+export interface VolumeInfo {
+  volume: string;
+  sources: string[];
+  chunk_count: number;
+}
+
 export const dataSourceCategoryAPI = {
   list: () =>
     fetchAPI<DataSourceCategory[]>("/admin/data-source-categories"),
@@ -242,4 +248,6 @@ export const dataSourceCategoryAPI = {
       method: "DELETE",
       body: JSON.stringify(data),
     }),
+  getAllVolumes: () =>
+    fetchAPI<VolumeInfo[]>("/admin/data-sources/volumes"),
 };
