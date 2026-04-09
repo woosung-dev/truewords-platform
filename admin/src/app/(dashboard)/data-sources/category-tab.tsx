@@ -337,8 +337,7 @@ export default function CategoryTab() {
                       <td />
                       <td colSpan={6} className="px-4 pb-3 pt-1">
                         <div
-                          className="border-l-[3px] pl-3 ml-2"
-                          style={{ borderColor: `var(--color-${cat.color}, #94a3b8)` }}
+                          className={`border-l-[3px] pl-3 ml-2 ${colors.border}`}
                         >
                           <p className="text-xs text-muted-foreground mb-2">포함된 문서</p>
                           <div className="flex flex-wrap gap-1.5">
