@@ -37,3 +37,11 @@ class DataSourceCategoryUpdate(BaseModel):
     sort_order: int | None = None
     is_active: bool | None = None
     is_searchable: bool | None = None
+
+
+class CategoryDocumentStats(BaseModel):
+    """카테고리별 Qdrant 문서 통계."""
+    source: str              # 카테고리 key (e.g. "A")
+    total_chunks: int        # Qdrant 포인트 총 수
+    volumes: list[str]       # 고유 volume 목록 (알파벳순 정렬)
+    volume_count: int        # len(volumes) — 프론트 편의용
