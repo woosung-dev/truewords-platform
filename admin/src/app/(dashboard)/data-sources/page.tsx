@@ -147,6 +147,7 @@ export default function DataSourcesPage() {
       );
       toast.success(`${pf.file.name} 업로드 완료, 백그라운드 처리 시작`);
       queryClient.invalidateQueries({ queryKey: ["ingest-status"] });
+      queryClient.invalidateQueries({ queryKey: ["category-stats"] });
       // 10초 후 processing 상태 제거 (status 폴링이 처리 결과를 가져옴)
       setTimeout(() => {
         setPendingFiles((prev) => prev.filter((f) => f.id !== pf.id));
