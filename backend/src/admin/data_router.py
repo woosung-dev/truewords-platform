@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import shutil
+import unicodedata
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -245,6 +246,9 @@ async def add_volume_tag(
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
 ):
     """문서에 카테고리 태그를 추가합니다. 이미 있으면 무시."""
+    # macOS NFD 정규화 (파일시스템에서 NFD로 저장된 volume 이름 매칭)
+    volume_name = unicodedata.normalize("NFD", request.volume)
+
     # 카테고리 유효성 검증
     category = await datasource_service.get_by_key(request.source)
     if not category:
@@ -260,7 +264,7 @@ async def add_volume_tag(
         points, offset = await client.scroll(
             collection_name=collection,
             scroll_filter=Filter(
-                must=[FieldCondition(key="volume", match=MatchValue(value=request.volume))]
+                must=[FieldCondition(key="volume", match=MatchValue(value=volume_name))]
             ),
             with_payload=["source"],
             with_vectors=False,
@@ -286,7 +290,7 @@ async def add_volume_tag(
     sample_points, _ = await client.scroll(
         collection_name=collection,
         scroll_filter=Filter(
-            must=[FieldCondition(key="volume", match=MatchValue(value=request.volume))]
+            must=[FieldCondition(key="volume", match=MatchValue(value=volume_name))]
         ),
         with_payload=["source"],
         with_vectors=False,
@@ -309,6 +313,9 @@ async def remove_volume_tag(
     current_admin: dict = Depends(get_current_admin),
 ):
     """문서에서 카테고리 태그를 제거합니다. 마지막 태그는 제거 불가."""
+    # macOS NFD 정규화
+    volume_name = unicodedata.normalize("NFD", request.volume)
+
     client = get_async_client()
     collection = settings.collection_name
 
@@ -319,7 +326,7 @@ async def remove_volume_tag(
         points, offset = await client.scroll(
             collection_name=collection,
             scroll_filter=Filter(
-                must=[FieldCondition(key="volume", match=MatchValue(value=request.volume))]
+                must=[FieldCondition(key="volume", match=MatchValue(value=volume_name))]
             ),
             with_payload=["source"],
             with_vectors=False,
@@ -350,7 +357,7 @@ async def remove_volume_tag(
     sample_points, _ = await client.scroll(
         collection_name=collection,
         scroll_filter=Filter(
-            must=[FieldCondition(key="volume", match=MatchValue(value=request.volume))]
+            must=[FieldCondition(key="volume", match=MatchValue(value=volume_name))]
         ),
         with_payload=["source"],
         with_vectors=False,
