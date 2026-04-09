@@ -52,11 +52,16 @@ def _get_rpd_count() -> int:
     return _rpd_counter
 
 
-def _increment_rpd() -> int:
-    """RPD 카운터 1 증가 후 현재 값 반환."""
+def _increment_rpd(text_count: int = 1) -> int:
+    """RPD 카운터 증가 후 현재 값 반환.
+
+    Google 무료 티어의 embed_content_free_tier_requests는
+    배치 API 호출 수가 아니라 개별 텍스트 수를 카운트한다.
+    (검증: 새 계정에서 20배치 × ~50텍스트 = ~1000 → 429 발생 확인)
+    """
     global _rpd_counter
     _get_rpd_count()  # 리셋 체크
-    _rpd_counter += 1
+    _rpd_counter += text_count
     return _rpd_counter
 
 
@@ -75,7 +80,7 @@ def _check_rpd_budget(needed: int) -> None:
             f"내일 리셋 후 재시도하거나 유료 플랜으로 전환하세요."
         )
     logger.info(
-        "RPD 예산 확인: %d/%d 사용 중, %d배치 추가 예정 → 잔여 %d",
+        "RPD 예산 확인: %d/%d 텍스트 사용 중, %d텍스트 추가 예정 → 잔여 %d",
         current, _RPD_LIMIT, needed, remaining - needed,
     )
 
@@ -93,7 +98,7 @@ def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[floa
     for attempt in range(max_retries):
         try:
             result = embed_dense_batch(texts, title=title)
-            _increment_rpd()  # 성공한 요청만 카운트
+            _increment_rpd(len(texts))  # 텍스트 수 단위로 카운트
             return result
         except genai_errors.ClientError as e:
             if e.code != 429:
@@ -160,21 +165,22 @@ def ingest_chunks(
         return {"chunk_count": 0, "elapsed_sec": 0.0}
 
     # RPD 예산 사전 검증 — 부족하면 시작 전에 실패
+    # Google 무료 RPD는 텍스트 수 단위 (배치 수가 아님)
     import math
     max_chars: int = settings.embed_max_chars_per_batch or 31000
     batch_sleep: float = settings.embed_batch_sleep or 60.0
+    _check_rpd_budget(effective_total)  # 텍스트 수로 예산 검증
     total_chars = sum(len(c.text) for c in effective_chunks)
     estimated_batches = max(1, math.ceil(total_chars / max_chars))
-    _check_rpd_budget(estimated_batches)
 
     start = time.monotonic()
     points: list[PointStruct] = []
 
     logger.info(
-        "임베딩 시작 — RPD: %d/%d, 배치 간 %.0f초 대기, "
-        "동적 배치(상한 %d자), 예상 배치: %d개",
+        "임베딩 시작 — RPD: %d/%d 텍스트, 배치 간 %.0f초 대기, "
+        "동적 배치(상한 %d자), 예상 배치: %d개, 잔여 텍스트: %d개",
         _get_rpd_count(), _RPD_LIMIT, batch_sleep,
-        max_chars, estimated_batches,
+        max_chars, estimated_batches, effective_total,
     )
 
     # 동적 배치: 글자 수 합계가 max_chars를 넘지 않도록 청크를 묶음

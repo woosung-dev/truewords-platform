@@ -33,6 +33,16 @@
 
 ## Next Actions
 
+### 0. 임베딩 Batch API 지원 (유료 전용)
+- [ ] Gemini Batch API로 인제스트 옵션 추가 ($0.075/M, Standard 대비 50% 할인)
+- [ ] 관리자 UI에서 Standard/Batch 모드 선택 가능하도록
+- [ ] Batch 흐름: 청크 → Google 배치 제출 → 상태 폴링 → 결과 수신 → Qdrant 적재
+- [ ] 배치 상태 관리 (batch_id 저장, 진행률 표시, 실패 처리)
+- [ ] 무료 티어에서는 Batch 선택 비활성화 (유료 전용)
+- 참고: Standard는 실시간 처리 (현재 구현), Batch는 비동기 24시간 내 처리
+- 참고: 결과물(벡터)은 Standard와 동일, 비용만 다름
+- 참고: 1GB 기준 Standard ~$37 vs Batch ~$19
+
 ### 1. 레드팀 테스트
 - 내부 팀 대상 악의적 질문 테스트
 - 보안 가드레일 검증 (Prompt Injection, Rate Limiting)
