@@ -36,7 +36,7 @@ export default function DataSourcesPage() {
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [activeTab, setActiveTab] = useState<"upload" | "categories">("upload");
 
-  const defaultSource = categories[0]?.key ?? "";
+  const defaultSource = "";
 
   const hasProcessing = pendingFiles.some((f) => f.status === "processing");
   const { data: status } = useQuery({
@@ -383,9 +383,10 @@ export default function DataSourcesPage() {
                           onChange={(e) => updateSource(pf.id, e.target.value)}
                           className="text-xs border rounded-md px-2 py-1.5 bg-background shrink-0 cursor-pointer"
                         >
+                          <option value="">미분류 (선택 안함)</option>
                           {categories.map((cat) => (
                             <option key={cat.key} value={cat.key}>
-                              {cat.name}
+                              {cat.name} ({cat.key})
                             </option>
                           ))}
                         </select>
