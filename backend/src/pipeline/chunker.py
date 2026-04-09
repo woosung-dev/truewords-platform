@@ -108,7 +108,7 @@ def chunk_text(
     source: str = "",
     title: str = "",
     date: str = "",
-    overlap_sentences: int = 1,
+    overlap_sentences: int = 2,
 ) -> list[Chunk]:
     """문장 경계 기반 청킹. 문장 중간 절단 없이 max_chars 단위로 분리."""
     if not text.strip():

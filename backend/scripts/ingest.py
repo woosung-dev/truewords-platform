@@ -18,6 +18,7 @@ HWP 파일은 스킵됩니다 (TXT로 변환 후 제공 필요).
 
 import argparse
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -89,7 +90,8 @@ def main() -> None:
     # 적재 루프
     total = len(files)
     for idx, filepath in enumerate(files, 1):
-        volume_key = filepath.stem
+        # 상대 경로 기반 key: 서로 다른 폴더의 동명 파일 충돌 방지
+        volume_key = str(filepath.relative_to(data_dir))
 
         # 증분: 이미 완료된 파일 스킵
         if args.resume and tracker.is_completed(volume_key):
@@ -122,17 +124,39 @@ def main() -> None:
             )
             print(f"  📝 {len(chunks)}개 청크 생성 (source={source})")
 
-            # 4. Qdrant 적재
-            stats = ingest_chunks(client, settings.collection_name, chunks)
+            # 4. Qdrant 적재 (청크 레벨 체크포인트 + title 품질 향상 포함)
+            stats = ingest_chunks(
+                client,
+                settings.collection_name,
+                chunks,
+                start_chunk=tracker.get_resume_point(volume_key),
+                title=meta["title"] or volume_key,
+                tracker=tracker,
+                volume_key=volume_key,
+            )
 
             # 5. 진행 기록
             tracker.mark_completed(volume_key, stats["chunk_count"])
             reporter.add_volume_stat(volume_key, stats["chunk_count"], stats["elapsed_sec"])
 
         except Exception as e:
+            err_str = str(e)
             print(f"  ❌ 에러: {e}")
-            tracker.mark_failed(volume_key, str(e))
-            reporter.add_error(volume_key, str(e))
+            tracker.mark_failed(volume_key, err_str)
+            reporter.add_error(volume_key, err_str)
+
+            is_rate_limit = "429" in err_str or "rate" in err_str.lower() or "quota" in err_str.lower()
+            if is_rate_limit:
+                # 3회 연속 429 = RPD 소진 가능성이 높음 → 오늘 더 시도해도 낭비
+                # 파이프라인 전체 중단. --resume으로 내일 이어서 실행.
+                print(
+                    f"\n🛑 Rate limit 3회 연속 실패 — RPD 쿼터 소진으로 판단합니다.\n"
+                    f"   오늘({__import__('datetime').date.today()}) 더 이상 진행해도 RPD만 낭비됩니다.\n"
+                    f"   내일 자정(UTC) 이후 --resume 옵션으로 재시작하세요.\n"
+                    f"   완료: {tracker.get_summary()['completed_count']}개 / "
+                    f"실패: {tracker.get_summary()['failed_count']}개"
+                )
+                break  # 파일 루프 중단
 
     # 리포트 생성
     report_path = reporter.generate(Path(args.report_dir))

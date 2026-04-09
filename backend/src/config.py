@@ -46,10 +46,39 @@ class Settings(BaseSettings):
     cascade_min_results: int = 3
 
     # 임베딩 파이프라인
-    # 무료 TPM 30K → 40초, 유료 TPM 1M → 3초
-    embed_batch_sleep: float = 65.0
+    # GEMINI_TIER 하나로 무료/유료 전환. 개별 override도 가능.
+    #   embed_max_chars_per_batch → TPM 방어 (분당 토큰)
+    #   embed_batch_sleep         → RPM 방어 (분당 요청)
+    #   embed_rpd_limit           → RPD 방어 (일일 요청)
+    gemini_tier: str = "free"  # free | paid
+
+    # 개별 override용 (설정하지 않으면 gemini_tier 프리셋 적용)
+    embed_max_chars_per_batch: int | None = None
+    embed_batch_sleep: float | None = None
+    embed_rpd_limit: int | None = None
 
     model_config = {"env_file": ".env"}
+
+    @model_validator(mode="after")
+    def apply_gemini_tier_presets(self):
+        """GEMINI_TIER 프리셋 적용. 개별 환경변수가 설정되면 그 값을 우선 사용."""
+        presets = {
+            "free": {
+                "embed_max_chars_per_batch": 31000,   # TPM 30K × 70%
+                "embed_batch_sleep": 60.0,            # TPM 윈도우 리셋 대기
+                "embed_rpd_limit": 950,               # RPD 1K - 5% 안전 마진
+            },
+            "paid": {
+                "embed_max_chars_per_batch": 900000,  # TPM 1M (사실상 무제한)
+                "embed_batch_sleep": 3.0,             # RPM 3K 여유
+                "embed_rpd_limit": 100000,            # RPD 무제한
+            },
+        }
+        tier = presets.get(self.gemini_tier, presets["free"])
+        for key, default in tier.items():
+            if getattr(self, key) is None:
+                object.__setattr__(self, key, default)
+        return self
 
     @model_validator(mode="after")
     def validate_production(self):

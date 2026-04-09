@@ -11,14 +11,34 @@ from src.config import settings
 
 logger = logging.getLogger(__name__)
 
-_client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
+# ──────────────────────────────────────────────────────────────
+# SDK 내부 retry 에서 429(Rate Limit)를 제외.
+#
+# 문제: SDK의 tenacity가 429에 대해 기본 5회 재시도(1→2→4→8초)를 수행.
+#       ingestor.py의 _embed_batch_with_retry와 이중 retry 구조가 되어
+#       실제 API 요청 수가 기대치의 5배로 급증 → RPD 한도 조기 소진.
+#
+# 해결: SDK retry는 서버 에러(500/502/503/504)만 처리하도록 제한.
+#       429는 ingestor.py에서 직접 제어 (긴 대기시간 + RPD 카운터).
+# ──────────────────────────────────────────────────────────────
+_retry_options = types.HttpRetryOptions(
+    attempts=3,
+    initial_delay=1.0,
+    max_delay=10.0,
+    # 429를 의도적으로 제외 — rate limit은 ingestor.py에서 제어
+    http_status_codes=[408, 500, 502, 503, 504],
+)
+
+_client = genai.Client(
+    api_key=settings.gemini_api_key.get_secret_value(),
+    http_options=types.HttpOptions(retry_options=_retry_options),
+)
 
 _sparse_model: SparseTextEmbedding | None = None
 
-# Gemini embed_content 배치 한도: 요청당 20,000 토큰
-# 한국어 청크 ~200토큰 기준 → 90개 × 200 = 18K 토큰/배치 (TPM 30K의 60%)
-# 슬라이딩 윈도우 60초에 1배치만 허용 → sleep=65초 (config.embed_batch_sleep)
-EMBED_BATCH_SIZE = 90
+# 동적 배치: config.embed_max_chars_per_batch (글자 수)로 TPM 제어.
+# Gemini API 1회 호출 최대 텍스트 수 제한 (안전 상한)
+MAX_TEXTS_PER_BATCH = 100
 
 
 def get_sparse_model() -> SparseTextEmbedding:
