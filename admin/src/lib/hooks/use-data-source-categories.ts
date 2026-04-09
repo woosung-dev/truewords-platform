@@ -1,5 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { dataSourceCategoryAPI, type DataSourceCategory } from "@/lib/api";
+import {
+  dataSourceCategoryAPI,
+  type DataSourceCategory,
+  type CategoryDocumentStats,
+} from "@/lib/api";
 
 export function useDataSourceCategories() {
   return useQuery({
@@ -23,4 +27,12 @@ export function useSearchableCategories() {
     ...query,
     data: query.data?.filter((c: DataSourceCategory) => c.is_searchable && c.is_active),
   };
+}
+
+export function useCategoryStats() {
+  return useQuery<CategoryDocumentStats[]>({
+    queryKey: ["category-stats"],
+    queryFn: dataSourceCategoryAPI.getCategoryStats,
+    staleTime: 60_000, // 60초 캐시
+  });
 }
