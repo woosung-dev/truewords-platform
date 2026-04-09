@@ -15,7 +15,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       .then(() => setIsAuth(true))
       .catch(() => router.replace("/login"))
       .finally(() => setLoading(false));
-  }, [router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- router는 마운트 시 1회만 실행
+  }, []);
 
   if (loading) {
     return (
