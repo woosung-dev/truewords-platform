@@ -91,18 +91,19 @@ def _process_file(file_path: Path, filename: str, source: str):
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    source: str = Form(..., description="데이터 소스 카테고리 key"),
+    source: str = Form("", description="데이터 소스 카테고리 key (비워두면 미분류로 적재)"),
     current_admin: dict = Depends(get_current_admin),
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
 ):
     """업로드된 파일을 백그라운드에서 RAG 지식 베이스로 적재합니다."""
-    # source 유효성 검증 (DB 등록된 카테고리만 허용)
-    category = await datasource_service.get_by_key(source)
-    if not category or not category.is_active:
-        raise HTTPException(
-            status_code=400,
-            detail=f"유효하지 않은 데이터 소스입니다: {source}",
-        )
+    # source 유효성 검증 (값이 있을 때만 검증 — 빈 문자열은 미분류 허용)
+    if source:
+        category = await datasource_service.get_by_key(source)
+        if not category or not category.is_active:
+            raise HTTPException(
+                status_code=400,
+                detail=f"유효하지 않은 데이터 소스입니다: {source}",
+            )
 
     # 파일명 sanitize (path traversal 방지)
     safe_filename = Path(file.filename or "unknown").name  # 디렉토리 경로 제거
