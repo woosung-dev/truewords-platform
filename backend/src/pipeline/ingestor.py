@@ -231,10 +231,13 @@ def ingest_chunks(
 
         for i, chunk in enumerate(batch_chunks):
             sparse_indices, sparse_values = sparse_results[i]
-            # 결정적 ID: volume + chunk_index + source 기반 UUID5
-            # → 동일 청크는 항상 같은 ID → 재적재 시 중복 없이 덮어씀 (idempotent)
-            chunk_key = f"{chunk.volume}:{chunk.chunk_index}:{chunk.source}"
+            # 결정적 ID: volume + chunk_index 기반 UUID5
+            # source는 다중 카테고리 지원으로 배열이 되므로 ID에서 제외
+            # → 동일 문서의 동일 청크는 항상 같은 ID (idempotent)
+            chunk_key = f"{chunk.volume}:{chunk.chunk_index}"
             point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, chunk_key))
+            # source를 배열로 저장 (다중 카테고리 지원)
+            source_list = chunk.source if isinstance(chunk.source, list) else [chunk.source] if chunk.source else []
             points.append(
                 PointStruct(
                     id=point_id,
@@ -249,7 +252,7 @@ def ingest_chunks(
                         "text": chunk.text,
                         "volume": chunk.volume,
                         "chunk_index": chunk.chunk_index,
-                        "source": chunk.source,
+                        "source": source_list,
                         "title": chunk.title,
                         "date": chunk.date,
                     },

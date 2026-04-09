@@ -18,7 +18,7 @@ class Chunk:
     text: str
     volume: str
     chunk_index: int
-    source: str = ""
+    source: list[str] | str = ""
     title: str = ""
     date: str = ""
 
