@@ -7,7 +7,7 @@ import {
   dataSourceCategoryAPI,
   type DataSourceCategory,
 } from "@/lib/api";
-import { useDataSourceCategories } from "@/lib/hooks/use-data-source-categories";
+import { useDataSourceCategories, useAddVolumeTag, useRemoveVolumeTag, useActiveCategories } from "@/lib/hooks/use-data-source-categories";
 import { getCategoryColors } from "@/lib/category-colors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Plus, Pencil, Power, ChevronRight, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Power, ChevronRight, ChevronDown, Tag, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCategoryStats } from "@/lib/hooks/use-data-source-categories";
 import type { CategoryDocumentStats } from "@/lib/api";
@@ -59,6 +59,9 @@ export default function CategoryTab() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const { data: categoryStats, isLoading: statsLoading } = useCategoryStats();
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const addTagMutation = useAddVolumeTag();
+  const removeTagMutation = useRemoveVolumeTag();
+  const { data: allCategories = [] } = useActiveCategories();
 
   // source key → stats 매핑 (O(1) 조회용)
   const statsMap = useMemo(() => {
@@ -340,12 +343,59 @@ export default function CategoryTab() {
                           className={`border-l-[3px] pl-3 ml-2 ${colors.border}`}
                         >
                           <p className="text-xs text-muted-foreground mb-2">포함된 문서</p>
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="space-y-2">
                             {stat.volumes.map((vol) => (
-                              <Badge key={vol} variant="secondary" className="text-xs font-normal">
-                                {vol}
-                              </Badge>
+                              <div key={vol} className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm">{vol}</span>
+                                <Badge variant="outline" className="text-xs gap-1">
+                                  <Tag className="w-3 h-3" />
+                                  {cat.key}
+                                </Badge>
+                                <button
+                                  type="button"
+                                  className="text-muted-foreground hover:text-destructive transition-colors"
+                                  title={`${cat.key} 카테고리에서 제거`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`"${vol}"을(를) ${cat.name} 카테고리에서 제거하시겠습니까?`)) {
+                                      removeTagMutation.mutate(
+                                        { volume: vol, source: cat.key },
+                                        { onError: (err: Error) => toast.error(err.message) }
+                                      );
+                                    }
+                                  }}
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             ))}
+                            <div className="pt-1">
+                              <select
+                                className="text-xs border rounded-md px-2 py-1 bg-background cursor-pointer"
+                                defaultValue=""
+                                onChange={(e) => {
+                                  const targetSource = e.target.value;
+                                  if (!targetSource) return;
+                                  stat.volumes.forEach((v) => {
+                                    addTagMutation.mutate(
+                                      { volume: v, source: targetSource },
+                                      { onError: (err: Error) => toast.error(err.message) }
+                                    );
+                                  });
+                                  e.target.value = "";
+                                  toast.success(`${cat.name}의 문서를 선택한 카테고리에 추가했습니다`);
+                                }}
+                              >
+                                <option value="">+ 카테고리 태그 추가...</option>
+                                {allCategories
+                                  .filter((c) => c.key !== cat.key)
+                                  .map((c) => (
+                                    <option key={c.key} value={c.key}>
+                                      {c.name} ({c.key})
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
                           </div>
                         </div>
                       </td>
