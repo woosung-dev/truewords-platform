@@ -302,8 +302,9 @@ async def add_volume_tag(
     client = get_async_client()
     collection = settings.collection_name
 
-    # 해당 volume의 모든 청크 조회
-    updated = 0
+    # 해당 volume의 모든 청크 조회 → 같은 source 조합끼리 그룹핑하여 배치 업데이트
+    # key: 기존 sources의 frozenset → value: point id 목록
+    groups: dict[frozenset[str], list] = {}
     offset = None
     while True:
         points, offset = await client.scroll(
@@ -313,7 +314,7 @@ async def add_volume_tag(
             ),
             with_payload=["source"],
             with_vectors=False,
-            limit=500,
+            limit=1000,
             offset=offset,
         )
         for p in points:
@@ -321,33 +322,28 @@ async def add_volume_tag(
             if isinstance(sources, str):
                 sources = [sources]
             if request.source not in sources:
-                sources.append(request.source)
-                await client.set_payload(
-                    collection_name=collection,
-                    payload={"source": sources},
-                    points=[p.id],
-                )
-                updated += 1
+                key = frozenset(sources)
+                groups.setdefault(key, []).append(p.id)
         if offset is None:
             break
 
-    # 변경 후 source 목록 확인 (첫 번째 청크 기준)
-    sample_points, _ = await client.scroll(
-        collection_name=collection,
-        scroll_filter=Filter(
-            must=[FieldCondition(key="volume", match=MatchValue(value=volume_name))]
-        ),
-        with_payload=["source"],
-        with_vectors=False,
-        limit=1,
-    )
-    final_sources = sample_points[0].payload.get("source", []) if sample_points else []
-    if isinstance(final_sources, str):
-        final_sources = [final_sources]
+    # 그룹별로 한 번에 set_payload (동일 source 조합 → 동일 새 payload)
+    updated = 0
+    for existing_sources_set, point_ids in groups.items():
+        new_sources = sorted(existing_sources_set | {request.source})
+        await client.set_payload(
+            collection_name=collection,
+            payload={"source": new_sources},
+            points=point_ids,
+        )
+        updated += len(point_ids)
+
+    # 최종 source 목록 (새로 추가한 태그 포함)
+    final_sources = sorted({request.source} | {s for fs in groups for s in fs}) if groups else [request.source]
 
     return VolumeTagResponse(
         volume=request.volume,
-        updated_sources=sorted(final_sources),
+        updated_sources=final_sources,
         updated_chunks=updated,
     )
 
@@ -364,8 +360,8 @@ async def remove_volume_tag(
     client = get_async_client()
     collection = settings.collection_name
 
-    # 해당 volume의 모든 청크 조회 + 태그 제거
-    updated = 0
+    # 해당 volume의 모든 청크 조회 → 그룹핑 후 배치 업데이트
+    groups: dict[frozenset[str], list] = {}
     offset = None
     while True:
         points, offset = await client.scroll(
@@ -375,7 +371,7 @@ async def remove_volume_tag(
             ),
             with_payload=["source"],
             with_vectors=False,
-            limit=500,
+            limit=1000,
             offset=offset,
         )
         for p in points:
@@ -388,32 +384,26 @@ async def remove_volume_tag(
                         status_code=400,
                         detail="마지막 카테고리 태그는 제거할 수 없습니다. 최소 1개 카테고리가 필요합니다.",
                     )
-                sources.remove(request.source)
-                await client.set_payload(
-                    collection_name=collection,
-                    payload={"source": sources},
-                    points=[p.id],
-                )
-                updated += 1
+                key = frozenset(sources)
+                groups.setdefault(key, []).append(p.id)
         if offset is None:
             break
 
-    # 변경 후 source 목록 확인
-    sample_points, _ = await client.scroll(
-        collection_name=collection,
-        scroll_filter=Filter(
-            must=[FieldCondition(key="volume", match=MatchValue(value=volume_name))]
-        ),
-        with_payload=["source"],
-        with_vectors=False,
-        limit=1,
-    )
-    final_sources = sample_points[0].payload.get("source", []) if sample_points else []
-    if isinstance(final_sources, str):
-        final_sources = [final_sources]
+    # 그룹별로 한 번에 set_payload
+    updated = 0
+    final_sources_set: set[str] = set()
+    for existing_sources_set, point_ids in groups.items():
+        new_sources = sorted(existing_sources_set - {request.source})
+        await client.set_payload(
+            collection_name=collection,
+            payload={"source": new_sources},
+            points=point_ids,
+        )
+        updated += len(point_ids)
+        final_sources_set.update(new_sources)
 
     return VolumeTagResponse(
         volume=request.volume,
-        updated_sources=sorted(final_sources),
+        updated_sources=sorted(final_sources_set) if final_sources_set else [],
         updated_chunks=updated,
     )
