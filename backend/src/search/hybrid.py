@@ -21,7 +21,7 @@ class SearchResult:
     volume: str
     chunk_index: int
     score: float
-    source: str = ""
+    source: list[str] | str = ""
     rerank_score: float | None = None
 
 
@@ -73,7 +73,7 @@ async def hybrid_search(
             volume=point.payload["volume"],
             chunk_index=point.payload.get("chunk_index", 0),
             score=point.score,
-            source=point.payload.get("source", ""),
+            source=point.payload.get("source", []),
         )
         for point in response.points
     ]
