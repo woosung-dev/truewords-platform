@@ -7,7 +7,7 @@ import {
   dataSourceCategoryAPI,
   type DataSourceCategory,
 } from "@/lib/api";
-import { useDataSourceCategories, useAddVolumeTag, useRemoveVolumeTag, useActiveCategories } from "@/lib/hooks/use-data-source-categories";
+import { useDataSourceCategories, useRemoveVolumeTag } from "@/lib/hooks/use-data-source-categories";
 import { getCategoryColors } from "@/lib/category-colors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +20,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Plus, Pencil, Power, ChevronRight, ChevronDown, Tag, X } from "lucide-react";
+import { Plus, Pencil, Power, ChevronRight, ChevronDown, Tag, X, FolderOpen } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCategoryStats } from "@/lib/hooks/use-data-source-categories";
+import VolumeTransferSheet from "@/components/ui/volume-transfer-sheet";
+import { useCategoryStats, useAllVolumes } from "@/lib/hooks/use-data-source-categories";
 import type { CategoryDocumentStats } from "@/lib/api";
 
 const COLOR_OPTIONS = [
@@ -59,9 +60,28 @@ export default function CategoryTab() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const { data: categoryStats, isLoading: statsLoading } = useCategoryStats();
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
-  const addTagMutation = useAddVolumeTag();
   const removeTagMutation = useRemoveVolumeTag();
-  const { data: allCategories = [] } = useActiveCategories();
+
+  // Transfer Sheet 상태
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferTarget, setTransferTarget] = useState<{
+    key: string | null;
+    name: string;
+    color?: string;
+  } | null>(null);
+
+  // 미분류 volume 계산을 위한 allVolumes
+  const { data: allVolumes = [] } = useAllVolumes();
+
+  const uncategorizedVolumes = useMemo(
+    () => allVolumes.filter((v) => v.sources.length === 0),
+    [allVolumes]
+  );
+
+  const openTransfer = (key: string | null, name: string, color?: string) => {
+    setTransferTarget({ key, name, color });
+    setTransferOpen(true);
+  };
 
   // source key → stats 매핑 (O(1) 조회용)
   const statsMap = useMemo(() => {
@@ -316,6 +336,18 @@ export default function CategoryTab() {
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openTransfer(cat.key, cat.name, cat.color);
+                          }}
+                          title="문서 관리"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5" />
+                        </Button>
                         {cat.is_active && (
                           <Button
                             size="sm"
@@ -369,33 +401,6 @@ export default function CategoryTab() {
                                 </button>
                               </div>
                             ))}
-                            <div className="pt-1">
-                              <select
-                                className="text-xs border rounded-md px-2 py-1 bg-background cursor-pointer"
-                                defaultValue=""
-                                onChange={(e) => {
-                                  const targetSource = e.target.value;
-                                  if (!targetSource) return;
-                                  stat.volumes.forEach((v) => {
-                                    addTagMutation.mutate(
-                                      { volume: v, source: targetSource },
-                                      { onError: (err: Error) => toast.error(err.message) }
-                                    );
-                                  });
-                                  e.target.value = "";
-                                  toast.success(`${cat.name}의 문서를 선택한 카테고리에 추가했습니다`);
-                                }}
-                              >
-                                <option value="">+ 카테고리 태그 추가...</option>
-                                {allCategories
-                                  .filter((c) => c.key !== cat.key)
-                                  .map((c) => (
-                                    <option key={c.key} value={c.key}>
-                                      {c.name} ({c.key})
-                                    </option>
-                                  ))}
-                              </select>
-                            </div>
                           </div>
                         </div>
                       </td>
@@ -404,6 +409,39 @@ export default function CategoryTab() {
                 </Fragment>
               );
             })}
+            {uncategorizedVolumes.length > 0 && (
+              <tr className="border-t-2 border-dashed border-amber-300 bg-amber-50/50">
+                <td className="px-4 py-3 w-8"></td>
+                <td className="px-4 py-3">
+                  <Badge variant="outline" className="font-mono text-xs bg-amber-100 text-amber-800 border-amber-300">
+                    —
+                  </Badge>
+                </td>
+                <td className="px-4 py-3 font-semibold text-amber-800">미분류 문서</td>
+                <td className="px-4 py-3 text-amber-800">
+                  {uncategorizedVolumes.length}권 /{" "}
+                  {uncategorizedVolumes.reduce((sum, v) => sum + v.chunk_count, 0).toLocaleString()}
+                </td>
+                <td className="px-4 py-3 hidden sm:table-cell">
+                  <div className="w-5 h-5 rounded-full bg-gray-300 border border-gray-400" />
+                </td>
+                <td className="px-4 py-3">
+                  <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">
+                    미분류
+                  </Badge>
+                </td>
+                <td className="px-4 py-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs text-amber-800 border-amber-300"
+                    onClick={() => openTransfer(null, "미분류 문서")}
+                  >
+                    분류하기
+                  </Button>
+                </td>
+              </tr>
+            )}
             {visibleCategories.length === 0 && (
               <tr>
                 <td
@@ -512,6 +550,16 @@ export default function CategoryTab() {
           </form>
         </SheetContent>
       </Sheet>
+
+      {transferTarget && (
+        <VolumeTransferSheet
+          open={transferOpen}
+          onOpenChange={setTransferOpen}
+          categoryKey={transferTarget.key}
+          categoryName={transferTarget.name}
+          categoryColor={transferTarget.color}
+        />
+      )}
     </div>
   );
 }

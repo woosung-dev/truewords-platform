@@ -64,6 +64,5 @@ export function useAllVolumes() {
     queryKey: ["all-volumes"],
     queryFn: dataSourceCategoryAPI.getAllVolumes,
     staleTime: 60_000,
-    enabled: false, // Transfer Sheet 열릴 때 수동 refetch
   });
 }
