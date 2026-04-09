@@ -57,7 +57,7 @@ def test_ingest_payload_includes_source():
         ingest_chunks(mock_client, "test_collection", chunks)
 
     points = mock_client.upsert.call_args.kwargs["points"]
-    assert points[0].payload["source"] == "A"
+    assert points[0].payload["source"] == ["A"]
 
 
 def test_ingest_payload_source_default_empty():
@@ -71,7 +71,7 @@ def test_ingest_payload_source_default_empty():
         ingest_chunks(mock_client, "test_collection", chunks)
 
     points = mock_client.upsert.call_args.kwargs["points"]
-    assert points[0].payload["source"] == ""
+    assert points[0].payload["source"] == []
 
 
 def test_ingest_payload_includes_title_and_date():
