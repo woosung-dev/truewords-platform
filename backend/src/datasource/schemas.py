@@ -58,3 +58,10 @@ class VolumeTagResponse(BaseModel):
     volume: str
     updated_sources: list[str]  # 변경 후 전체 카테고리 목록
     updated_chunks: int         # 변경된 청크 수
+
+
+class VolumeInfo(BaseModel):
+    """전체 volume 목록 조회 응답 — Transfer UI용."""
+    volume: str = Field(..., description="문서(volume) 이름")
+    sources: list[str] = Field(default_factory=list, description="속한 카테고리 key 배열")
+    chunk_count: int = Field(..., description="청크 수")
