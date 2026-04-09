@@ -1,5 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { dataSourceCategoryAPI, type DataSourceCategory } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  dataSourceCategoryAPI,
+  type DataSourceCategory,
+  type CategoryDocumentStats,
+  type VolumeTagRequest,
+  type VolumeInfo,
+} from "@/lib/api";
 
 export function useDataSourceCategories() {
   return useQuery({
@@ -23,4 +29,40 @@ export function useSearchableCategories() {
     ...query,
     data: query.data?.filter((c: DataSourceCategory) => c.is_searchable && c.is_active),
   };
+}
+
+export function useCategoryStats() {
+  return useQuery<CategoryDocumentStats[]>({
+    queryKey: ["category-stats"],
+    queryFn: dataSourceCategoryAPI.getCategoryStats,
+    staleTime: 60_000, // 60초 캐시
+  });
+}
+
+export function useAddVolumeTag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: VolumeTagRequest) => dataSourceCategoryAPI.addVolumeTag(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["category-stats"] });
+    },
+  });
+}
+
+export function useRemoveVolumeTag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: VolumeTagRequest) => dataSourceCategoryAPI.removeVolumeTag(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["category-stats"] });
+    },
+  });
+}
+
+export function useAllVolumes() {
+  return useQuery<VolumeInfo[]>({
+    queryKey: ["all-volumes"],
+    queryFn: dataSourceCategoryAPI.getAllVolumes,
+    staleTime: 60_000,
+  });
 }

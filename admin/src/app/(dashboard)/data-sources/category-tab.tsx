@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { Fragment, useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   dataSourceCategoryAPI,
   type DataSourceCategory,
 } from "@/lib/api";
-import { useDataSourceCategories } from "@/lib/hooks/use-data-source-categories";
+import { useDataSourceCategories, useRemoveVolumeTag } from "@/lib/hooks/use-data-source-categories";
 import { getCategoryColors } from "@/lib/category-colors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Plus, Pencil, Power } from "lucide-react";
+import { Plus, Pencil, Power, ChevronRight, ChevronDown, Tag, X, FolderOpen } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import VolumeTransferSheet from "@/components/ui/volume-transfer-sheet";
+import { useCategoryStats, useAllVolumes } from "@/lib/hooks/use-data-source-categories";
+import type { CategoryDocumentStats } from "@/lib/api";
 
 const COLOR_OPTIONS = [
   { key: "indigo", label: "인디고" },
@@ -54,6 +58,49 @@ export default function CategoryTab() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<DataSourceCategory | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const { data: categoryStats, isLoading: statsLoading } = useCategoryStats();
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const removeTagMutation = useRemoveVolumeTag();
+
+  // Transfer Sheet 상태
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferTarget, setTransferTarget] = useState<{
+    key: string | null;
+    name: string;
+    color?: string;
+  } | null>(null);
+
+  // 미분류 volume 계산을 위한 allVolumes
+  const { data: allVolumes = [] } = useAllVolumes();
+
+  const uncategorizedVolumes = useMemo(
+    () => allVolumes.filter((v) => v.sources.length === 0),
+    [allVolumes]
+  );
+
+  const openTransfer = (key: string | null, name: string, color?: string) => {
+    setTransferTarget({ key, name, color });
+    setTransferOpen(true);
+  };
+
+  // source key → stats 매핑 (O(1) 조회용)
+  const statsMap = useMemo(() => {
+    const map = new Map<string, CategoryDocumentStats>();
+    categoryStats?.forEach((s) => map.set(s.source, s));
+    return map;
+  }, [categoryStats]);
+
+  function toggleExpand(key: string) {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
 
   const createMutation = useMutation({
     mutationFn: (data: FormState) =>
@@ -194,10 +241,11 @@ export default function CategoryTab() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
+              <th className="w-8 px-2 py-2.5" />
               <th className="text-left font-medium px-4 py-2.5">Key</th>
               <th className="text-left font-medium px-4 py-2.5">이름</th>
-              <th className="text-left font-medium px-4 py-2.5 hidden sm:table-cell">설명</th>
-              <th className="text-left font-medium px-4 py-2.5">색상</th>
+              <th className="text-left font-medium px-4 py-2.5">문서 / 청크</th>
+              <th className="text-left font-medium px-4 py-2.5 hidden sm:table-cell">색상</th>
               <th className="text-center font-medium px-4 py-2.5">상태</th>
               <th className="text-right font-medium px-4 py-2.5">액션</th>
             </tr>
@@ -205,70 +253,199 @@ export default function CategoryTab() {
           <tbody>
             {visibleCategories.map((cat) => {
               const colors = getCategoryColors(cat.color);
+              const stat = statsMap.get(cat.key);
+              const hasVolumes = stat && stat.volume_count > 0;
+              const isExpanded = expandedKeys.has(cat.key);
+
               return (
-                <tr
-                  key={cat.id}
-                  className={`border-b last:border-0 hover:bg-accent/30 transition-colors ${
-                    !cat.is_active ? "opacity-50" : ""
-                  }`}
-                >
-                  <td className="px-4 py-3">
-                    <Badge variant="outline" className="font-mono text-xs">
-                      {cat.key}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 font-medium">{cat.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
-                    {cat.description}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div
-                      className={`w-5 h-5 rounded-full ${colors.bg} border ${colors.border}`}
-                      title={cat.color}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <Badge
-                      className={
-                        cat.is_active
-                          ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0"
-                          : "bg-slate-100 text-slate-500 hover:bg-slate-100 border-0"
-                      }
-                    >
-                      {cat.is_active ? "활성" : "비활성"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 px-2"
-                        title="편집"
-                        onClick={() => openEdit(cat)}
+                <Fragment key={cat.id}>
+                  <tr
+                    className={`border-b last:border-0 transition-colors ${
+                      !cat.is_active ? "opacity-50" : ""
+                    } ${hasVolumes ? "cursor-pointer hover:bg-accent/30" : "hover:bg-accent/30"}`}
+                    onClick={() => hasVolumes && toggleExpand(cat.key)}
+                  >
+                    {/* 확장 아이콘 */}
+                    <td className="w-8 px-2 py-3 text-center">
+                      {hasVolumes && (
+                        <button
+                          type="button"
+                          className="p-0.5 rounded hover:bg-accent"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpand(cat.key);
+                          }}
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {cat.key}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 font-medium">{cat.name}</td>
+                    {/* 문서 / 청크 */}
+                    <td className="px-4 py-3">
+                      {statsLoading ? (
+                        <Skeleton className="h-4 w-28" />
+                      ) : stat && stat.volume_count > 0 ? (
+                        <span className="text-sm">
+                          <span className="font-semibold">{stat.volume_count}</span>
+                          <span className="text-muted-foreground"> 문서 · </span>
+                          <span className="font-semibold">{stat.total_chunks.toLocaleString()}</span>
+                          <span className="text-muted-foreground"> 청크</span>
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">문서 없음</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      <div
+                        className={`w-5 h-5 rounded-full ${colors.bg} border ${colors.border}`}
+                        title={cat.color}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Badge
+                        className={
+                          cat.is_active
+                            ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0"
+                            : "bg-slate-100 text-slate-500 hover:bg-slate-100 border-0"
+                        }
                       >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      {cat.is_active && (
+                        {cat.is_active ? "활성" : "비활성"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 px-2 text-destructive hover:text-destructive"
-                          title="비활성화"
-                          onClick={() => handleDeactivate(cat)}
+                          className="h-7 px-2"
+                          title="편집"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(cat);
+                          }}
                         >
-                          <Power className="w-3.5 h-3.5" />
+                          <Pencil className="w-3.5 h-3.5" />
                         </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openTransfer(cat.key, cat.name, cat.color);
+                          }}
+                          title="문서 관리"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5" />
+                        </Button>
+                        {cat.is_active && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-destructive hover:text-destructive"
+                            title="비활성화"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeactivate(cat);
+                            }}
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* 확장 행: volume 목록 */}
+                  {isExpanded && stat && (
+                    <tr className="bg-muted/20">
+                      <td />
+                      <td colSpan={6} className="px-4 pb-3 pt-1">
+                        <div
+                          className={`border-l-[3px] pl-3 ml-2 ${colors.border}`}
+                        >
+                          <p className="text-xs text-muted-foreground mb-2">포함된 문서</p>
+                          <div className="space-y-2">
+                            {stat.volumes.map((vol) => (
+                              <div key={vol} className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm">{vol}</span>
+                                <Badge variant="outline" className="text-xs gap-1">
+                                  <Tag className="w-3 h-3" />
+                                  {cat.key}
+                                </Badge>
+                                <button
+                                  type="button"
+                                  className="text-muted-foreground hover:text-destructive transition-colors"
+                                  title={`${cat.key} 카테고리에서 제거`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`"${vol}"을(를) ${cat.name} 카테고리에서 제거하시겠습니까?`)) {
+                                      removeTagMutation.mutate(
+                                        { volume: vol, source: cat.key },
+                                        { onError: (err: Error) => toast.error(err.message) }
+                                      );
+                                    }
+                                  }}
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
+            {uncategorizedVolumes.length > 0 && (
+              <tr className="border-t-2 border-dashed border-amber-300 bg-amber-50/50">
+                <td className="px-4 py-3 w-8"></td>
+                <td className="px-4 py-3">
+                  <Badge variant="outline" className="font-mono text-xs bg-amber-100 text-amber-800 border-amber-300">
+                    —
+                  </Badge>
+                </td>
+                <td className="px-4 py-3 font-semibold text-amber-800">미분류 문서</td>
+                <td className="px-4 py-3 text-amber-800">
+                  {uncategorizedVolumes.length}권 /{" "}
+                  {uncategorizedVolumes.reduce((sum, v) => sum + v.chunk_count, 0).toLocaleString()}
+                </td>
+                <td className="px-4 py-3 hidden sm:table-cell">
+                  <div className="w-5 h-5 rounded-full bg-gray-300 border border-gray-400" />
+                </td>
+                <td className="px-4 py-3">
+                  <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">
+                    미분류
+                  </Badge>
+                </td>
+                <td className="px-4 py-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs text-amber-800 border-amber-300"
+                    onClick={() => openTransfer(null, "미분류 문서")}
+                  >
+                    분류하기
+                  </Button>
+                </td>
+              </tr>
+            )}
             {visibleCategories.length === 0 && (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-12 text-center text-muted-foreground"
                 >
                   카테고리가 없습니다. 새 카테고리를 추가하세요.
@@ -373,6 +550,16 @@ export default function CategoryTab() {
           </form>
         </SheetContent>
       </Sheet>
+
+      {transferTarget && (
+        <VolumeTransferSheet
+          open={transferOpen}
+          onOpenChange={setTransferOpen}
+          categoryKey={transferTarget.key}
+          categoryName={transferTarget.name}
+          categoryColor={transferTarget.color}
+        />
+      )}
     </div>
   );
 }

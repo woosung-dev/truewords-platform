@@ -36,7 +36,7 @@ export default function DataSourcesPage() {
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [activeTab, setActiveTab] = useState<"upload" | "categories">("upload");
 
-  const defaultSource = categories[0]?.key ?? "";
+  const defaultSource = "";
 
   const hasProcessing = pendingFiles.some((f) => f.status === "processing");
   const { data: status } = useQuery({
@@ -147,6 +147,7 @@ export default function DataSourcesPage() {
       );
       toast.success(`${pf.file.name} 업로드 완료, 백그라운드 처리 시작`);
       queryClient.invalidateQueries({ queryKey: ["ingest-status"] });
+      queryClient.invalidateQueries({ queryKey: ["category-stats"] });
       // 10초 후 processing 상태 제거 (status 폴링이 처리 결과를 가져옴)
       setTimeout(() => {
         setPendingFiles((prev) => prev.filter((f) => f.id !== pf.id));
@@ -382,9 +383,10 @@ export default function DataSourcesPage() {
                           onChange={(e) => updateSource(pf.id, e.target.value)}
                           className="text-xs border rounded-md px-2 py-1.5 bg-background shrink-0 cursor-pointer"
                         >
+                          <option value="">미분류 (선택 안함)</option>
                           {categories.map((cat) => (
                             <option key={cat.key} value={cat.key}>
-                              {cat.name}
+                              {cat.name} ({cat.key})
                             </option>
                           ))}
                         </select>

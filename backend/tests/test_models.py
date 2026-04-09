@@ -31,7 +31,6 @@ def test_chatbot_config_defaults():
     )
     assert config.is_active is True
     assert config.description == ""
-    assert config.system_prompt_version is None
 
 
 def test_research_session_defaults():

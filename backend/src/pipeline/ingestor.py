@@ -66,23 +66,29 @@ def _increment_rpd(text_count: int = 1) -> int:
 
 
 def _check_rpd_budget(needed: int) -> None:
-    """남은 RPD 예산이 부족하면 ValueError 발생.
+    """RPD 예산 확인. 부족하면 경고 로그만 출력하고 가능한 만큼 진행.
 
     Args:
-        needed: 이번 인제스트에서 추가로 필요한 예상 배치 수.
+        needed: 이번 인제스트에서 필요한 텍스트 수.
     """
     current = _get_rpd_count()
     remaining = _RPD_LIMIT - current
-    if remaining < needed:
+    if remaining <= 0:
         raise ValueError(
-            f"RPD 예산 부족: 현재 {current}/{_RPD_LIMIT} 사용, "
-            f"추가 {needed}배치 필요하지만 {remaining}배치만 가능. "
+            f"RPD 예산 소진: 현재 {current}/{_RPD_LIMIT} 텍스트 사용. "
             f"내일 리셋 후 재시도하거나 유료 플랜으로 전환하세요."
         )
-    logger.info(
-        "RPD 예산 확인: %d/%d 텍스트 사용 중, %d텍스트 추가 예정 → 잔여 %d",
-        current, _RPD_LIMIT, needed, remaining - needed,
-    )
+    if remaining < needed:
+        logger.warning(
+            "RPD 예산 부족: %d/%d 텍스트 사용 중, %d텍스트 필요하지만 %d만 가능. "
+            "한도까지 처리 후 중단됩니다. --resume으로 내일 이어서 실행하세요.",
+            current, _RPD_LIMIT, needed, remaining,
+        )
+    else:
+        logger.info(
+            "RPD 예산 확인: %d/%d 텍스트 사용 중, %d텍스트 추가 예정 → 잔여 %d",
+            current, _RPD_LIMIT, needed, remaining - needed,
+        )
 
 
 def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[float]]:
@@ -189,6 +195,16 @@ def ingest_chunks(
     idx = 0
     batch_num = 0
     while idx < effective_total:
+        # RPD 한도 도달 시 조기 중단 (가능한 만큼 처리 후 멈춤)
+        current_rpd = _get_rpd_count()
+        if current_rpd >= _RPD_LIMIT:
+            logger.warning(
+                "RPD 한도 도달 (%d/%d 텍스트). 여기까지 처리 후 중단. "
+                "--resume으로 내일 이어서 실행하세요.",
+                current_rpd, _RPD_LIMIT,
+            )
+            break
+
         # 배치 빌더: 글자 수 합계와 텍스트 수 모두 제한
         batch_chunks: list[Chunk] = []
         batch_chars = 0
@@ -215,10 +231,13 @@ def ingest_chunks(
 
         for i, chunk in enumerate(batch_chunks):
             sparse_indices, sparse_values = sparse_results[i]
-            # 결정적 ID: volume + chunk_index + source 기반 UUID5
-            # → 동일 청크는 항상 같은 ID → 재적재 시 중복 없이 덮어씀 (idempotent)
-            chunk_key = f"{chunk.volume}:{chunk.chunk_index}:{chunk.source}"
+            # 결정적 ID: volume + chunk_index 기반 UUID5
+            # source는 다중 카테고리 지원으로 배열이 되므로 ID에서 제외
+            # → 동일 문서의 동일 청크는 항상 같은 ID (idempotent)
+            chunk_key = f"{chunk.volume}:{chunk.chunk_index}"
             point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, chunk_key))
+            # source를 배열로 저장 (다중 카테고리 지원)
+            source_list = chunk.source if isinstance(chunk.source, list) else [chunk.source] if chunk.source else []
             points.append(
                 PointStruct(
                     id=point_id,
@@ -233,7 +252,7 @@ def ingest_chunks(
                         "text": chunk.text,
                         "volume": chunk.volume,
                         "chunk_index": chunk.chunk_index,
-                        "source": chunk.source,
+                        "source": source_list,
                         "title": chunk.title,
                         "date": chunk.date,
                     },

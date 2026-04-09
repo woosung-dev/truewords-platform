@@ -195,6 +195,30 @@ export interface DataSourceCategory {
   is_searchable: boolean;
 }
 
+export interface CategoryDocumentStats {
+  source: string;
+  total_chunks: number;
+  volumes: string[];
+  volume_count: number;
+}
+
+export interface VolumeTagRequest {
+  volume: string;
+  source: string;
+}
+
+export interface VolumeTagResponse {
+  volume: string;
+  updated_sources: string[];
+  updated_chunks: number;
+}
+
+export interface VolumeInfo {
+  volume: string;
+  sources: string[];
+  chunk_count: number;
+}
+
 export const dataSourceCategoryAPI = {
   list: () =>
     fetchAPI<DataSourceCategory[]>("/admin/data-source-categories"),
@@ -212,4 +236,18 @@ export const dataSourceCategoryAPI = {
     fetchAPI<void>(`/admin/data-source-categories/${id}`, {
       method: "DELETE",
     }),
+  getCategoryStats: () =>
+    fetchAPI<CategoryDocumentStats[]>("/admin/data-sources/category-stats"),
+  addVolumeTag: (data: VolumeTagRequest) =>
+    fetchAPI<VolumeTagResponse>("/admin/data-sources/volume-tags", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  removeVolumeTag: (data: VolumeTagRequest) =>
+    fetchAPI<VolumeTagResponse>("/admin/data-sources/volume-tags", {
+      method: "DELETE",
+      body: JSON.stringify(data),
+    }),
+  getAllVolumes: () =>
+    fetchAPI<VolumeInfo[]>("/admin/data-sources/volumes"),
 };
