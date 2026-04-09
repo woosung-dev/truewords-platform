@@ -195,6 +195,13 @@ export interface DataSourceCategory {
   is_searchable: boolean;
 }
 
+export interface CategoryDocumentStats {
+  source: string;
+  total_chunks: number;
+  volumes: string[];
+  volume_count: number;
+}
+
 export const dataSourceCategoryAPI = {
   list: () =>
     fetchAPI<DataSourceCategory[]>("/admin/data-source-categories"),
@@ -212,4 +219,6 @@ export const dataSourceCategoryAPI = {
     fetchAPI<void>(`/admin/data-source-categories/${id}`, {
       method: "DELETE",
     }),
+  getCategoryStats: () =>
+    fetchAPI<CategoryDocumentStats[]>("/admin/data-sources/category-stats"),
 };
