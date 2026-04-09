@@ -45,3 +45,16 @@ class CategoryDocumentStats(BaseModel):
     total_chunks: int        # Qdrant 포인트 총 수
     volumes: list[str]       # 고유 volume 목록 (알파벳순 정렬)
     volume_count: int        # len(volumes) — 프론트 편의용
+
+
+class VolumeTagRequest(BaseModel):
+    """문서에 카테고리 태그 추가/제거 요청."""
+    volume: str                # 대상 문서 이름
+    source: str                # 추가 또는 제거할 카테고리 key
+
+
+class VolumeTagResponse(BaseModel):
+    """태그 변경 결과."""
+    volume: str
+    updated_sources: list[str]  # 변경 후 전체 카테고리 목록
+    updated_chunks: int         # 변경된 청크 수

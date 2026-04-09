@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 from src.admin.dependencies import get_current_admin
 from src.config import settings
 from src.datasource.dependencies import get_datasource_service
-from src.datasource.schemas import CategoryDocumentStats
+from src.datasource.schemas import CategoryDocumentStats, VolumeTagRequest, VolumeTagResponse
 from src.datasource.service import DataSourceCategoryService
 from src.pipeline.chunker import chunk_text
 from src.pipeline.extractor import extract_text
@@ -236,3 +236,132 @@ async def get_category_stats(
         )
 
     return stats
+
+
+@router.put("/volume-tags", response_model=VolumeTagResponse)
+async def add_volume_tag(
+    request: VolumeTagRequest,
+    current_admin: dict = Depends(get_current_admin),
+    datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
+):
+    """문서에 카테고리 태그를 추가합니다. 이미 있으면 무시."""
+    # 카테고리 유효성 검증
+    category = await datasource_service.get_by_key(request.source)
+    if not category:
+        raise HTTPException(status_code=404, detail=f"카테고리 '{request.source}'를 찾을 수 없습니다")
+
+    client = get_async_client()
+    collection = settings.collection_name
+
+    # 해당 volume의 모든 청크 조회
+    updated = 0
+    offset = None
+    while True:
+        points, offset = await client.scroll(
+            collection_name=collection,
+            scroll_filter=Filter(
+                must=[FieldCondition(key="volume", match=MatchValue(value=request.volume))]
+            ),
+            with_payload=["source"],
+            with_vectors=False,
+            limit=500,
+            offset=offset,
+        )
+        for p in points:
+            sources = p.payload.get("source", [])
+            if isinstance(sources, str):
+                sources = [sources]
+            if request.source not in sources:
+                sources.append(request.source)
+                await client.set_payload(
+                    collection_name=collection,
+                    payload={"source": sources},
+                    points=[p.id],
+                )
+                updated += 1
+        if offset is None:
+            break
+
+    # 변경 후 source 목록 확인 (첫 번째 청크 기준)
+    sample_points, _ = await client.scroll(
+        collection_name=collection,
+        scroll_filter=Filter(
+            must=[FieldCondition(key="volume", match=MatchValue(value=request.volume))]
+        ),
+        with_payload=["source"],
+        with_vectors=False,
+        limit=1,
+    )
+    final_sources = sample_points[0].payload.get("source", []) if sample_points else []
+    if isinstance(final_sources, str):
+        final_sources = [final_sources]
+
+    return VolumeTagResponse(
+        volume=request.volume,
+        updated_sources=sorted(final_sources),
+        updated_chunks=updated,
+    )
+
+
+@router.delete("/volume-tags", response_model=VolumeTagResponse)
+async def remove_volume_tag(
+    request: VolumeTagRequest,
+    current_admin: dict = Depends(get_current_admin),
+):
+    """문서에서 카테고리 태그를 제거합니다. 마지막 태그는 제거 불가."""
+    client = get_async_client()
+    collection = settings.collection_name
+
+    # 해당 volume의 모든 청크 조회 + 태그 제거
+    updated = 0
+    offset = None
+    while True:
+        points, offset = await client.scroll(
+            collection_name=collection,
+            scroll_filter=Filter(
+                must=[FieldCondition(key="volume", match=MatchValue(value=request.volume))]
+            ),
+            with_payload=["source"],
+            with_vectors=False,
+            limit=500,
+            offset=offset,
+        )
+        for p in points:
+            sources = p.payload.get("source", [])
+            if isinstance(sources, str):
+                sources = [sources]
+            if request.source in sources:
+                if len(sources) <= 1:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="마지막 카테고리 태그는 제거할 수 없습니다. 최소 1개 카테고리가 필요합니다.",
+                    )
+                sources.remove(request.source)
+                await client.set_payload(
+                    collection_name=collection,
+                    payload={"source": sources},
+                    points=[p.id],
+                )
+                updated += 1
+        if offset is None:
+            break
+
+    # 변경 후 source 목록 확인
+    sample_points, _ = await client.scroll(
+        collection_name=collection,
+        scroll_filter=Filter(
+            must=[FieldCondition(key="volume", match=MatchValue(value=request.volume))]
+        ),
+        with_payload=["source"],
+        with_vectors=False,
+        limit=1,
+    )
+    final_sources = sample_points[0].payload.get("source", []) if sample_points else []
+    if isinstance(final_sources, str):
+        final_sources = [final_sources]
+
+    return VolumeTagResponse(
+        volume=request.volume,
+        updated_sources=sorted(final_sources),
+        updated_chunks=updated,
+    )
