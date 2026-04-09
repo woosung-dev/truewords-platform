@@ -202,6 +202,17 @@ export interface CategoryDocumentStats {
   volume_count: number;
 }
 
+export interface VolumeTagRequest {
+  volume: string;
+  source: string;
+}
+
+export interface VolumeTagResponse {
+  volume: string;
+  updated_sources: string[];
+  updated_chunks: number;
+}
+
 export const dataSourceCategoryAPI = {
   list: () =>
     fetchAPI<DataSourceCategory[]>("/admin/data-source-categories"),
@@ -221,4 +232,14 @@ export const dataSourceCategoryAPI = {
     }),
   getCategoryStats: () =>
     fetchAPI<CategoryDocumentStats[]>("/admin/data-sources/category-stats"),
+  addVolumeTag: (data: VolumeTagRequest) =>
+    fetchAPI<VolumeTagResponse>("/admin/data-sources/volume-tags", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  removeVolumeTag: (data: VolumeTagRequest) =>
+    fetchAPI<VolumeTagResponse>("/admin/data-sources/volume-tags", {
+      method: "DELETE",
+      body: JSON.stringify(data),
+    }),
 };

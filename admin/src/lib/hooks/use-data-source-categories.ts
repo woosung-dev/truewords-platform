@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   dataSourceCategoryAPI,
   type DataSourceCategory,
   type CategoryDocumentStats,
+  type VolumeTagRequest,
 } from "@/lib/api";
 
 export function useDataSourceCategories() {
@@ -34,5 +35,25 @@ export function useCategoryStats() {
     queryKey: ["category-stats"],
     queryFn: dataSourceCategoryAPI.getCategoryStats,
     staleTime: 60_000, // 60초 캐시
+  });
+}
+
+export function useAddVolumeTag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: VolumeTagRequest) => dataSourceCategoryAPI.addVolumeTag(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["category-stats"] });
+    },
+  });
+}
+
+export function useRemoveVolumeTag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: VolumeTagRequest) => dataSourceCategoryAPI.removeVolumeTag(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["category-stats"] });
+    },
   });
 }
