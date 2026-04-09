@@ -25,6 +25,8 @@ node_modules/
 .next/
 out/
 .gstack/
+.superpowers/
+docs/superpowers/
 
 # 로컬 테스트 결과
 backend/progress.json
