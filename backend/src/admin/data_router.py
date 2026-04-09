@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 from src.admin.dependencies import get_current_admin
 from src.config import settings
 from src.datasource.dependencies import get_datasource_service
-from src.datasource.schemas import CategoryDocumentStats, VolumeTagRequest, VolumeTagResponse
+from src.datasource.schemas import CategoryDocumentStats, VolumeInfo, VolumeTagRequest, VolumeTagResponse
 from src.datasource.service import DataSourceCategoryService
 from src.pipeline.chunker import chunk_text
 from src.pipeline.extractor import extract_text
@@ -223,6 +223,64 @@ async def get_category_stats(
         )
 
     return stats
+
+
+@router.get("/volumes", response_model=list[VolumeInfo])
+async def get_all_volumes(
+    current_admin: dict = Depends(get_current_admin),
+):
+    """전체 volume 목록 조회 — Transfer UI용. volume별 sources와 chunk_count 반환."""
+    client = get_client()
+    collection = settings.collection_name
+    volume_map: dict[str, dict] = {}
+    offset = None
+
+    while True:
+        results = client.scroll(
+            collection_name=collection,
+            limit=1000,
+            offset=offset,
+            with_payload=["volume", "source"],
+            with_vectors=False,
+        )
+        points, next_offset = results
+
+        if not points:
+            break
+
+        for point in points:
+            payload = point.payload or {}
+            volume = payload.get("volume", "")
+            if not volume:
+                continue
+
+            raw_source = payload.get("source", [])
+            if isinstance(raw_source, str):
+                sources = [raw_source] if raw_source else []
+            else:
+                sources = list(raw_source) if raw_source else []
+
+            if volume not in volume_map:
+                volume_map[volume] = {"sources": set(), "chunk_count": 0}
+
+            volume_map[volume]["sources"].update(sources)
+            volume_map[volume]["chunk_count"] += 1
+
+        offset = next_offset
+        if offset is None:
+            break
+
+    return sorted(
+        [
+            VolumeInfo(
+                volume=vol,
+                sources=sorted(info["sources"]),
+                chunk_count=info["chunk_count"],
+            )
+            for vol, info in volume_map.items()
+        ],
+        key=lambda v: v.volume,
+    )
 
 
 @router.put("/volume-tags", response_model=VolumeTagResponse)
