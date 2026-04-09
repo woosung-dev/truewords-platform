@@ -1,6 +1,5 @@
 """RAG 데이터 적재 (Data Ingestion) 관련 관리자 API 라우터."""
 
-import asyncio
 import logging
 import shutil
 import unicodedata
@@ -8,7 +7,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
-from qdrant_client.models import Filter, FieldCondition, MatchAny, MatchValue
+from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 logger = logging.getLogger(__name__)
 
@@ -172,67 +171,54 @@ async def get_category_stats(
     current_admin: dict = Depends(get_current_admin),
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
 ):
-    """카테고리별 Qdrant 문서/청크 통계를 반환합니다."""
+    """카테고리별 Qdrant 문서/청크 통계를 반환합니다.
+
+    전체 포인트를 1회 순회하여 source별로 집계 (카테고리 수에 무관한 호출 횟수).
+    """
     categories = await datasource_service.list_all()
     if not categories:
         return []
 
     client = get_async_client()
     collection = settings.collection_name
+    category_keys = {cat.key for cat in categories}
 
-    async def count_chunks(source_key: str) -> int:
-        """카테고리별 청크 수 조회."""
-        result = await client.count(
+    # 전체 포인트 1회 순회 → source별 청크 수 + volume 집계
+    counts: dict[str, int] = {}
+    volumes_map: dict[str, set[str]] = {}
+
+    offset = None
+    while True:
+        points, offset = await client.scroll(
             collection_name=collection,
-            count_filter=Filter(
-                must=[FieldCondition(key="source", match=MatchAny(any=[source_key]))]
-            ),
-            exact=True,
+            with_payload=["source", "volume"],
+            with_vectors=False,
+            limit=1000,
+            offset=offset,
         )
-        return result.count
+        for p in points:
+            sources = p.payload.get("source", [])
+            if isinstance(sources, str):
+                sources = [sources]
+            vol = p.payload.get("volume", "")
+            for src in sources:
+                if src in category_keys:
+                    counts[src] = counts.get(src, 0) + 1
+                    if vol:
+                        volumes_map.setdefault(src, set()).add(vol)
+        if offset is None:
+            break
 
-    async def collect_volumes(source_key: str) -> list[str]:
-        """카테고리별 고유 volume 목록 수집 (페이지네이션 순회)."""
-        volumes: set[str] = set()
-        offset = None
-        while True:
-            points, offset = await client.scroll(
-                collection_name=collection,
-                scroll_filter=Filter(
-                    must=[FieldCondition(key="source", match=MatchAny(any=[source_key]))]
-                ),
-                with_payload=["volume"],
-                with_vectors=False,
-                limit=1000,
-                offset=offset,
-            )
-            for p in points:
-                vol = p.payload.get("volume")
-                if vol:
-                    volumes.add(vol)
-            if offset is None:
-                break
-        return sorted(volumes)
-
-    # 모든 카테고리에 대해 count + scroll 병렬 실행
-    tasks: list = []
-    for cat in categories:
-        tasks.append(count_chunks(cat.key))
-        tasks.append(collect_volumes(cat.key))
-
-    results = await asyncio.gather(*tasks)
-
-    # 결과 조합: [count_A, volumes_A, count_B, volumes_B, ...]
+    # 결과 조합
     stats: list[CategoryDocumentStats] = []
-    for i, cat in enumerate(categories):
-        chunk_count = results[i * 2]
-        volumes = results[i * 2 + 1]
+    for cat in categories:
+        cat_volumes = sorted(volumes_map.get(cat.key, set()))
         stats.append(
             CategoryDocumentStats(
                 source=cat.key,
-                total_chunks=chunk_count,
-                volumes=volumes,
-                volume_count=len(volumes),
+                total_chunks=counts.get(cat.key, 0),
+                volumes=cat_volumes,
+                volume_count=len(cat_volumes),
             )
         )
 
