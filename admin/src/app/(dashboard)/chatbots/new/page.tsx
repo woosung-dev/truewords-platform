@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { chatbotAPI, type SearchTier } from "@/lib/api";
+import { chatbotAPI } from "@/features/chatbot/api";
+import type { SearchTier } from "@/features/chatbot/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import SearchTierEditor from "@/components/search-tier-editor";
+import SearchTierEditor from "@/features/chatbot/components/search-tier-editor";
 import { Info, User, Search, ChevronLeft } from "lucide-react";
 
 export default function NewChatbotPage() {

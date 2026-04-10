@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import SearchTierEditor from "@/components/search-tier-editor";
-import type { SearchTier } from "@/lib/api";
+import SearchTierEditor from "@/features/chatbot/components/search-tier-editor";
+import type { SearchTier } from "@/features/chatbot/types";
 
 // useSearchableCategories 훅 mock
-vi.mock("@/lib/hooks/use-data-source-categories", () => ({
+vi.mock("@/features/data-source/hooks", () => ({
   useSearchableCategories: () => ({
     data: [
       { key: "A", name: "말씀선집", color: "indigo", is_searchable: true },

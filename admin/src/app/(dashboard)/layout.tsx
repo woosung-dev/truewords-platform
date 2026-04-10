@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { authAPI } from "@/lib/api";
+import { authAPI } from "@/features/auth/api";
 import { buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import AuthGuard from "@/components/auth-guard";
+import AuthGuard from "@/features/auth/components/auth-guard";
 import { useState } from "react";
 import {
   LayoutDashboard,
