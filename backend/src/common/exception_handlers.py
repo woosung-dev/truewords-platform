@@ -10,7 +10,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from src.common.schemas import ErrorResponse
-from src.safety.exceptions import InputBlockedError
+from src.safety.exceptions import InputBlockedError, RateLimitExceededError
 
 logger = logging.getLogger(__name__)
 
@@ -31,4 +31,19 @@ async def input_blocked_handler(
             message=exc.reason,
             request_id=_get_request_id(request),
         ).model_dump(),
+    )
+
+
+async def rate_limit_handler(
+    request: Request, exc: RateLimitExceededError
+) -> JSONResponse:
+    """요청 빈도 제한 초과 (429). Retry-After 헤더 보존."""
+    return JSONResponse(
+        status_code=429,
+        content=ErrorResponse(
+            error_code="RATE_LIMIT_EXCEEDED",
+            message=str(exc),
+            request_id=_get_request_id(request),
+        ).model_dump(),
+        headers={"Retry-After": str(exc.retry_after)},
     )

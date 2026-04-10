@@ -7,8 +7,8 @@ import pytest
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from src.common.exception_handlers import input_blocked_handler
-from src.safety.exceptions import InputBlockedError
+from src.common.exception_handlers import input_blocked_handler, rate_limit_handler
+from src.safety.exceptions import InputBlockedError, RateLimitExceededError
 
 
 def _make_mock_request(request_id: str = "test-rid-001") -> Request:
@@ -61,3 +61,39 @@ async def test_input_blocked_handler_handles_missing_request_id():
     body = _parse_json_response(response)
 
     assert body["request_id"] == "no-request-id"
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_handler_returns_429_status():
+    """RateLimitExceededError → 429 Too Many Requests."""
+    req = _make_mock_request()
+    exc = RateLimitExceededError(retry_after=60)
+
+    response = await rate_limit_handler(req, exc)
+
+    assert response.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_handler_preserves_retry_after_header():
+    """Retry-After 헤더가 exception의 retry_after 값으로 설정됨."""
+    req = _make_mock_request()
+    exc = RateLimitExceededError(retry_after=120)
+
+    response = await rate_limit_handler(req, exc)
+
+    assert response.headers.get("Retry-After") == "120"
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_handler_returns_error_response_format():
+    """응답 body가 ErrorResponse 포맷."""
+    req = _make_mock_request("test-rid-rate")
+    exc = RateLimitExceededError(retry_after=60)
+
+    response = await rate_limit_handler(req, exc)
+    body = _parse_json_response(response)
+
+    assert body["error_code"] == "RATE_LIMIT_EXCEEDED"
+    assert "요청 빈도 제한" in body["message"]
+    assert body["request_id"] == "test-rid-rate"
