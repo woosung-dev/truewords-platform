@@ -1,17 +1,21 @@
 # 개발 워크플로우 가이드
 
 > **"다음에 뭘 해야 하지?"** 할 때 이 문서를 보세요.
+>
+> **기본 원칙: Phase-Adaptive** — `/office-hours`는 Phase 시작 시에만, 일상 개발은 작업 크기에 따라 superpowers 축약/확장.
+> 상세 논증: `docs/dev-log/23-development-process-analysis.md`
 
 ---
 
 ## 1. 전체 개발 사이클
 
-세 가지 도구가 역할을 나눠 담당합니다:
+네 가지 도구가 역할을 나눠 담당합니다:
 
 | 도구 | 역할 | 언제 |
 |------|------|------|
-| **gstack** | 전문가 관점 부여 (CEO, 디자이너, 엔지니어, 보안) | 기획·리뷰·배포 |
-| **superpowers** | 구현 워크플로우 강제 (Brainstorm → Plan → TDD) | 코드 작성 |
+| **gstack** | 전문가 관점 부여 (CEO, 디자이너, 엔지니어, 보안) | Phase 시작, 리뷰, 배포 |
+| **superpowers** | 구현 워크플로우 강제 (Brainstorm → Plan → TDD) | 모든 코드 작성 |
+| **ui-ux-pro-max** | UI/UX 디자인 지능 (색상, 타이포, 컴포넌트) | 프론트엔드 Phase 시작 1회 |
 | **ai-rules** (`.ai/rules/`) | 코딩 컨벤션, 아키텍처 패턴 | 항상 |
 
 ---
@@ -56,38 +60,56 @@ Phase 4: 배포
 
 ---
 
-## 3. 작업 유형별 축약 워크플로우
+## 3. 작업 크기별 축약 워크플로우 (Phase-Adaptive)
 
-모든 작업이 풀 사이클을 필요로 하지는 않습니다.
+모든 작업이 풀 사이클을 필요로 하지는 않습니다. 작업 크기에 비례하는 프로세스를 사용합니다.
 
-### 큰 기능 (새로운 모듈, DB 설계 등)
-
-```
-/office-hours → /plan-eng-review → /brainstorm → Plan → 구현 → /review → /qa → /ship
-```
-
-### 기존 기능 개선/확장
+### Phase 시작 (새로운 방향, 큰 결정)
 
 ```
-/brainstorm → Plan → 구현 → /review → /ship
+/office-hours → /plan-eng-review (→ /plan-design-review, 프론트엔드 시)
+→ (프론트엔드 Phase만 1회) /design-consultation + ui-ux-pro-max
+→ /brainstorming → /writing-plans
+```
+
+### Large 작업 (3일+, 예: Flutter 모바일 MVP)
+
+```
+/brainstorming → /writing-plans → /checkpoint
+→ TDD → /verification-before-completion → /requesting-code-review
+→ /ship
+```
+
+### Medium 작업 (반나절~2일, 예: 새 기능 모듈)
+
+```
+/brainstorming → /writing-plans → TDD → /verification-before-completion
+→ /review → /ship
+```
+
+### Small 작업 (< 2시간, 예: ErrorResponse 스키마 추가)
+
+```
+/brainstorming → TDD → /verification-before-completion
 ```
 
 ### 버그 수정
 
 ```
-/investigate → 수정 → /review → /ship
-```
-
-### UI/프론트엔드 작업
-
-```
-/office-hours → /plan-design-review → /brainstorm → 구현 → /design-review → /qa → /ship
+/systematic-debugging (또는 /investigate) → TDD → /verification-before-completion
+→ /ship
 ```
 
 ### 보안 관련 작업
 
 ```
 /cso → 수정 → /review → /ship
+```
+
+### 주기적 (매 2주)
+
+```
+/retro → /health → 우선순위 재조정
 ```
 
 ---
