@@ -26,7 +26,6 @@ node_modules/
 out/
 .gstack/
 .superpowers/
-docs/superpowers/
 
 # 로컬 테스트 결과
 backend/progress.json
