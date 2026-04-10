@@ -3,6 +3,11 @@ name: Deploy
 on:
   push:
     branches: [main]
+    # backend 관련 변경이 있을 때만 워크플로를 트리거한다.
+    # (Vercel 프론트엔드 배포는 GitHub 연동으로 별도 동작하므로 여기선 backend만 고려)
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy.yml'
 
 env:
   GCP_REGION: asia-northeast3
@@ -13,7 +18,6 @@ jobs:
   deploy-backend:
     name: Deploy Backend to Cloud Run
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'backend') || contains(github.event.head_commit.message, 'feat') || contains(github.event.head_commit.message, 'fix')
 
     permissions:
       contents: read
