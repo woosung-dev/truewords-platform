@@ -5,8 +5,34 @@ on:
     branches: [main]
 
 jobs:
+  # 변경 경로 감지: backend/admin이 실제로 바뀌었는지 판정한다.
+  # 워크플로 자체를 paths 필터로 스킵하지 않는 이유:
+  # required check으로 지정된 경우 트리거조차 되지 않으면 PR이 pending에 걸리기 때문.
+  # 대신 잡 레벨에서 if로 게이트하고, 스킵된 잡도 required check을 만족시키도록 한다.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'admin/**'
+              - '.github/workflows/ci.yml'
+
   backend-test:
     name: Backend Tests
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,6 +59,8 @@ jobs:
 
   frontend-test:
     name: Frontend Tests
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
