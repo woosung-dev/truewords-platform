@@ -17,9 +17,9 @@ from src.chatbot.router import router as chatbot_router, admin_router as chatbot
 from src.admin.router import router as admin_router
 from src.admin.data_router import router as admin_data_router
 from src.datasource.router import router as datasource_router
-from src.common.exception_handlers import input_blocked_handler
+from src.common.exception_handlers import input_blocked_handler, rate_limit_handler
 from src.common.middleware import RequestIdMiddleware
-from src.safety.exceptions import InputBlockedError
+from src.safety.exceptions import InputBlockedError, RateLimitExceededError
 
 
 @asynccontextmanager
@@ -58,6 +58,7 @@ app.add_middleware(
 
 # 예외 핸들러 (중앙 집중 — src/common/exception_handlers.py)
 app.add_exception_handler(InputBlockedError, input_blocked_handler)  # type: ignore[arg-type]
+app.add_exception_handler(RateLimitExceededError, rate_limit_handler)  # type: ignore[arg-type]
 
 # 공개 라우터
 app.include_router(chat_router)
