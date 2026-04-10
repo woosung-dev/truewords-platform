@@ -38,8 +38,13 @@ async def lifespan(app: FastAPI):
         logger.warning("init_db 실패 (프로덕션에서는 Alembic 사용): %s", e)
     try:
         await ensure_cache_collection()
+        app.state.cache_available = True
     except Exception as e:
-        logger.warning("캐시 컬렉션 초기화 실패 (lazy init으로 대체): %s", e)
+        logger.warning(
+            "캐시 컬렉션 초기화 실패 — graceful degradation으로 동작: %s", e
+        )
+        app.state.cache_available = False
+
     yield
 
 
