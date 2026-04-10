@@ -20,8 +20,8 @@ def _make_mock_request(request_id: str = "test-rid-001") -> Request:
 
 
 def _parse_json_response(response: JSONResponse) -> dict:
-    """JSONResponse body를 dict로."""
-    return json.loads(response.body.decode("utf-8"))
+    """JSONResponse body를 dict로. json.loads는 bytes-like 객체를 직접 받음."""
+    return json.loads(bytes(response.body))
 
 
 @pytest.mark.asyncio
