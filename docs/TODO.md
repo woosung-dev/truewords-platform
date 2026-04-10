@@ -1,6 +1,7 @@
 # TODO
 
 ## Completed
+- [x] **RRF score_threshold 불일치 핫픽스** — `malssum_priority` 0.75→0.1, semantic_cache 초기화, SearchResult.source 정규화 (2026-04-10, 상세: `docs/dev-log/24-rrf-score-threshold-fix.md`)
 - [x] 관리자 대시보드 MVP 구현 (로그인, 챗봇 CRUD, SearchTierEditor)
 - [x] HttpOnly Cookie 인증 전환 (logout, me, CSRF 방어 포함)
 - [x] configs.py 하드코딩 제거, DB single source of truth
@@ -26,6 +27,7 @@
 - [ ] 종교 용어 사전 동적 주입 — 대사전 데이터 미확보 [데이터 수급 필요]
 - [ ] 민감 인명 필터 구체화 — SENSITIVE_PATTERNS 목록 비어있음 [도메인 전문가 협의 필요]
 - [ ] 멀티테넌시 (organization_id 필터링) — 다중 조직 운영 요구사항 미확정 [확인 필요]
+- [ ] 데이터 source 라벨 체계 통일 — 적재 데이터는 `L/M`, 설계/기본 챗봇은 `A/B/C/D` 이원화. ingest를 `A/B/C/D`로 정규화할지 챗봇 설정을 `L/M`로 리라이트할지 결정 필요 [확인 필요] — 상세: `docs/dev-log/24-rrf-score-threshold-fix.md` §4-1
 
 ## Questions
 - Flutter 모바일 앱 시작 시점? — 레드팀 테스트 후 Phase 4에서 진행 예정
@@ -51,6 +53,11 @@
 ### 3. 검색 파이프라인 에러 핸들링
 - Qdrant/임베딩/Gemini 실패 시 사용자 친화적 에러 메시지
 - 현재 외부 서비스 장애 시 500 에러 노출
+
+### 3-1. RRF 점수 스케일 후속 조치 (docs/dev-log/24 §4)
+- [ ] `SearchTierEditor` 관리자 UI에 "RRF fusion 점수는 일반적으로 0.0~0.5 범위" 힌트/검증 추가
+- [ ] `backend/src/chatbot/service.py:13-15` `DEFAULT_CASCADING_CONFIG` 의 `score_threshold` 기본값을 RRF 스케일(예: 0.1)로 하향 + 주석 명시
+- [ ] `process_chat()`/`process_chat_stream()` 에서 검색 결과 0건이거나 "찾지 못했습니다" 응답은 semantic_cache 에 저장하지 않도록 가드 추가
 
 ### 4. Flutter 모바일 앱 (Phase 4)
 - 레드팀 테스트 완료 후 착수

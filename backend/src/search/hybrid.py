@@ -21,7 +21,7 @@ class SearchResult:
     volume: str
     chunk_index: int
     score: float
-    source: list[str] | str = ""
+    source: str = ""
     rerank_score: float | None = None
 
 
@@ -67,13 +67,21 @@ async def hybrid_search(
         limit=top_k,
     )
 
+    def _extract_source(payload: dict) -> str:
+        # Qdrant payload의 source는 ["L"] 같은 리스트로 저장되어 있지만
+        # 다운스트림(DB VARCHAR, 응답 스키마)은 단일 문자열을 기대하므로 여기서 정규화한다.
+        raw = payload.get("source")
+        if isinstance(raw, list):
+            return raw[0] if raw else ""
+        return raw or ""
+
     return [
         SearchResult(
             text=point.payload["text"],
             volume=point.payload["volume"],
             chunk_index=point.payload.get("chunk_index", 0),
             score=point.score,
-            source=point.payload.get("source", []),
+            source=_extract_source(point.payload),
         )
         for point in response.points
     ]
