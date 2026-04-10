@@ -1,3 +1,9 @@
+"""Hybrid Search — Dense + Sparse RRF 융합 검색.
+
+Qdrant의 Prefetch + FusionQuery(RRF)를 사용하여
+dense(의미적 유사도)와 sparse(키워드 매칭) 결과를 융합한다.
+"""
+
 from dataclasses import dataclass
 
 from qdrant_client import AsyncQdrantClient
@@ -17,6 +23,17 @@ from src.config import settings
 
 @dataclass
 class SearchResult:
+    """검색 결과 단일 항목.
+
+    Attributes:
+        text: 청크 원문 텍스트.
+        volume: 원본 문서 권호 식별자 (예: ``"001"``).
+        chunk_index: 문서 내 청크 순번.
+        score: RRF fusion 점수 (일반적으로 0.0~0.5 범위).
+        source: 데이터 소스 라벨 (예: ``"A"``, ``"L"``).
+        rerank_score: Re-ranking 후 점수 (미적용 시 None).
+    """
+
     text: str
     volume: str
     chunk_index: int
@@ -33,9 +50,22 @@ async def hybrid_search(
     dense_embedding: list[float] | None = None,
     sparse_embedding: tuple[list[int], list[float]] | None = None,
 ) -> list[SearchResult]:
-    """비동기 하이브리드 검색 (dense + sparse RRF).
+    """Dense + Sparse RRF 하이브리드 검색.
 
-    임베딩을 외부에서 주입하면 재계산을 스킵하여 레이턴시 절감.
+    Qdrant Prefetch로 dense(50건)·sparse(50건)를 각각 검색한 뒤
+    RRF(Reciprocal Rank Fusion)로 융합하여 top_k건을 반환한다.
+    임베딩을 외부에서 주입하면 재계산을 스킵하여 레이턴시를 절감한다.
+
+    Args:
+        client: Qdrant 비동기 클라이언트.
+        query: 사용자 질의 텍스트.
+        top_k: 반환할 최대 결과 수.
+        source_filter: 데이터 소스 필터 (예: ``["A", "B"]``). None이면 전체 검색.
+        dense_embedding: 사전 계산된 dense 벡터 (None이면 내부 계산).
+        sparse_embedding: 사전 계산된 (indices, values) 튜플 (None이면 내부 계산).
+
+    Returns:
+        RRF 점수 기준 정렬된 SearchResult 리스트 (최대 top_k건).
     """
     dense = dense_embedding if dense_embedding is not None else await embed_dense_query(query)
     if sparse_embedding is not None:
