@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { chatAPI, type ChatBot, type ChatResponse } from "@/lib/chat-api";
+import { chatAPI, type ChatBot, type ChatResponse } from "@/features/chatbot/chat-api";
 import { SendHorizontal, Bot, User, BookOpen } from "lucide-react";
 
 interface Message {

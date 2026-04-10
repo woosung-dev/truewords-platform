@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { chatbotAPI, dataAPI } from "@/lib/api";
+import { chatbotAPI } from "@/features/chatbot/api";
+import { dataAPI } from "@/features/data-source/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Bot, Database, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
 

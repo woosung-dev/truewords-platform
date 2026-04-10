@@ -10,14 +10,14 @@ vi.mock("next/navigation", () => ({
 }));
 
 // API mock
-vi.mock("@/lib/api", () => ({
+vi.mock("@/features/auth/api", () => ({
   authAPI: {
     login: vi.fn(),
     me: vi.fn(),
   },
 }));
 
-import { authAPI } from "@/lib/api";
+import { authAPI } from "@/features/auth/api";
 import LoginPage from "@/app/login/page";
 
 beforeEach(() => {

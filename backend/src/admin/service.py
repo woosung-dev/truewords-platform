@@ -45,6 +45,12 @@ class AdminService:
         await self.repo.commit()
         return saved
 
+    async def get_audit_logs(
+        self, limit: int = 50, offset: int = 0
+    ) -> list[AdminAuditLog]:
+        """감사 로그 조회."""
+        return await self.repo.get_audit_logs(limit=limit, offset=offset)
+
     async def log_audit(
         self,
         admin_user_id: uuid.UUID,

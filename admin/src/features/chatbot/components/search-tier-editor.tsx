@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { ChevronUp, ChevronDown, X, Plus, GripVertical } from "lucide-react";
-import type { SearchTier } from "@/lib/api";
-import { useSearchableCategories } from "@/lib/hooks/use-data-source-categories";
+import type { SearchTier } from "@/features/chatbot/types";
+import { useSearchableCategories } from "@/features/data-source/hooks";
 
 interface SearchTierEditorProps {
   tiers: SearchTier[];

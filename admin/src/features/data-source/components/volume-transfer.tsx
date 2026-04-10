@@ -5,7 +5,7 @@ import { Search, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { VolumeInfo } from "@/lib/api";
+import type { VolumeInfo } from "@/features/data-source/types";
 
 interface VolumeTransferProps {
   /** 전체 volume 목록 */

@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { chatbotAPI, type SearchTier } from "@/lib/api";
+import { chatbotAPI } from "@/features/chatbot/api";
+import type { SearchTier } from "@/features/chatbot/types";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import SearchTierEditor from "@/components/search-tier-editor";
+import SearchTierEditor from "@/features/chatbot/components/search-tier-editor";
 import { Info, User, Search, ChevronRight } from "lucide-react";
 
 export default function EditChatbotPage({

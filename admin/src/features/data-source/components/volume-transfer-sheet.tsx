@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import VolumeTransfer from "@/components/ui/volume-transfer";
-import { useAllVolumes, useActiveCategories, useAddVolumeTag, useRemoveVolumeTag } from "@/lib/hooks/use-data-source-categories";
-import { getCategoryColors } from "@/lib/category-colors";
+import VolumeTransfer from "@/features/data-source/components/volume-transfer";
+import { useAllVolumes, useActiveCategories, useAddVolumeTag, useRemoveVolumeTag } from "@/features/data-source/hooks";
+import { getCategoryColors } from "@/features/data-source/category-colors";
 
 interface VolumeTransferSheetProps {
   /** Sheet 열림 상태 */

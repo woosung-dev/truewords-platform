@@ -5,10 +5,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   dataSourceCategoryAPI,
-  type DataSourceCategory,
-} from "@/lib/api";
-import { useDataSourceCategories, useRemoveVolumeTag } from "@/lib/hooks/use-data-source-categories";
-import { getCategoryColors } from "@/lib/category-colors";
+} from "@/features/data-source/api";
+import type { DataSourceCategory } from "@/features/data-source/types";
+import { useDataSourceCategories, useRemoveVolumeTag } from "@/features/data-source/hooks";
+import { getCategoryColors } from "@/features/data-source/category-colors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,9 +22,9 @@ import {
 } from "@/components/ui/sheet";
 import { Plus, Pencil, Power, ChevronRight, ChevronDown, Tag, X, FolderOpen } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import VolumeTransferSheet from "@/components/ui/volume-transfer-sheet";
-import { useCategoryStats, useAllVolumes } from "@/lib/hooks/use-data-source-categories";
-import type { CategoryDocumentStats } from "@/lib/api";
+import VolumeTransferSheet from "@/features/data-source/components/volume-transfer-sheet";
+import { useCategoryStats, useAllVolumes } from "@/features/data-source/hooks";
+import type { CategoryDocumentStats } from "@/features/data-source/types";
 
 const COLOR_OPTIONS = [
   { key: "indigo", label: "인디고" },

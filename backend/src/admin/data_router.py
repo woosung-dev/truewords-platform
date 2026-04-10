@@ -2,18 +2,17 @@
 
 import logging
 import shutil
-import unicodedata
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
-from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 logger = logging.getLogger(__name__)
 
 from src.admin.dependencies import get_current_admin
 from src.config import settings
-from src.datasource.dependencies import get_datasource_service
+from src.datasource.dependencies import get_datasource_service, get_qdrant_service
+from src.datasource.qdrant_service import DataSourceQdrantService
 from src.datasource.schemas import CategoryDocumentStats, VolumeInfo, VolumeTagRequest, VolumeTagResponse
 from src.datasource.service import DataSourceCategoryService
 from src.pipeline.chunker import chunk_text
@@ -21,11 +20,12 @@ from src.pipeline.extractor import extract_text
 from src.pipeline.ingestor import ingest_chunks
 from src.pipeline.metadata import extract_metadata
 from src.pipeline.progress import ProgressTracker
-from src.qdrant_client import get_async_client, get_client
+from src.qdrant_client import get_client
 
 router = APIRouter(prefix="/admin/data-sources", tags=["data-sources"])
 
 _PROGRESS_FILE = Path(__file__).parent.parent.parent / "progress.json"
+
 
 def _process_file(file_path: Path, filename: str, source: str):
     """백그라운드에서 파일 청크 및 임베딩 처리."""
@@ -87,6 +87,7 @@ def _process_file(file_path: Path, filename: str, source: str):
         if file_path.exists():
             file_path.unlink()
 
+
 @router.post("/upload", status_code=202)
 async def upload_document(
     background_tasks: BackgroundTasks,
@@ -96,7 +97,7 @@ async def upload_document(
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
 ):
     """업로드된 파일을 백그라운드에서 RAG 지식 베이스로 적재합니다."""
-    # source 유효성 검증 (값이 있을 때만 검증 — 빈 문자열은 미분류 허용)
+    # source 유효성 검증
     if source:
         category = await datasource_service.get_by_key(source)
         if not category or not category.is_active:
@@ -106,7 +107,7 @@ async def upload_document(
             )
 
     # 파일명 sanitize (path traversal 방지)
-    safe_filename = Path(file.filename or "unknown").name  # 디렉토리 경로 제거
+    safe_filename = Path(file.filename or "unknown").name
     if not safe_filename or safe_filename.startswith("."):
         raise HTTPException(status_code=400, detail="유효하지 않은 파일명입니다")
 
@@ -121,27 +122,25 @@ async def upload_document(
     # 확장자 검증
     allowed_extensions = {".txt", ".pdf", ".docx"}
     ext = Path(safe_filename).suffix.lower()
-
     if ext not in allowed_extensions:
         raise HTTPException(
             status_code=400,
             detail=f"지원하지 않는 파일 형식입니다. (지원: {', '.join(allowed_extensions)})"
         )
-    
+
     # 임시 파일로 저장
     try:
         suffix = Path(safe_filename).suffix
         with NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-            file.file.seek(0)  # 안전장치: 대형 파일 SpooledTemporaryFile 위치 보장
+            file.file.seek(0)
             shutil.copyfileobj(file.file, tmp_file)
             tmp_path = Path(tmp_file.name)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"파일 저장 실패: {str(e)}")
 
-    # 파일 닫기
     file.file.close()
 
-    # completed/failed 초기화. in_progress는 유지 → 재업로드 시 중단 지점부터 재개
+    # completed/failed 초기화
     tracker = ProgressTracker(_PROGRESS_FILE)
     if safe_filename in tracker.completed:
         del tracker.completed[safe_filename]
@@ -149,10 +148,9 @@ async def upload_document(
         del tracker.failed[safe_filename]
     tracker.save()
 
-    # 백그라운드 태스크 큐 추가
     background_tasks.add_task(_process_file, tmp_path, safe_filename, source)
-
     return {"message": "파일 업로드 및 처리 예약 완료", "filename": safe_filename}
+
 
 @router.get("/status")
 async def get_ingest_status(current_admin: dict = Depends(get_current_admin)):
@@ -163,7 +161,7 @@ async def get_ingest_status(current_admin: dict = Depends(get_current_admin)):
         "completed": tracker.completed,
         "failed": tracker.failed,
         "in_progress": tracker.in_progress,
-        "summary": summary
+        "summary": summary,
     }
 
 
@@ -171,117 +169,23 @@ async def get_ingest_status(current_admin: dict = Depends(get_current_admin)):
 async def get_category_stats(
     current_admin: dict = Depends(get_current_admin),
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
+    qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
-    """카테고리별 Qdrant 문서/청크 통계를 반환합니다.
-
-    전체 포인트를 1회 순회하여 source별로 집계 (카테고리 수에 무관한 호출 횟수).
-    """
+    """카테고리별 Qdrant 문서/청크 통계를 반환합니다."""
     categories = await datasource_service.list_all()
     if not categories:
         return []
-
-    client = get_async_client()
-    collection = settings.collection_name
     category_keys = {cat.key for cat in categories}
-
-    # 전체 포인트 1회 순회 → source별 청크 수 + volume 집계
-    counts: dict[str, int] = {}
-    volumes_map: dict[str, set[str]] = {}
-
-    offset = None
-    while True:
-        points, offset = await client.scroll(
-            collection_name=collection,
-            with_payload=["source", "volume"],
-            with_vectors=False,
-            limit=1000,
-            offset=offset,
-        )
-        for p in points:
-            sources = p.payload.get("source", [])
-            if isinstance(sources, str):
-                sources = [sources]
-            vol = p.payload.get("volume", "")
-            for src in sources:
-                if src in category_keys:
-                    counts[src] = counts.get(src, 0) + 1
-                    if vol:
-                        volumes_map.setdefault(src, set()).add(vol)
-        if offset is None:
-            break
-
-    # 결과 조합
-    stats: list[CategoryDocumentStats] = []
-    for cat in categories:
-        cat_volumes = sorted(volumes_map.get(cat.key, set()))
-        stats.append(
-            CategoryDocumentStats(
-                source=cat.key,
-                total_chunks=counts.get(cat.key, 0),
-                volumes=cat_volumes,
-                volume_count=len(cat_volumes),
-            )
-        )
-
-    return stats
+    return await qdrant_service.get_category_stats(category_keys)
 
 
 @router.get("/volumes", response_model=list[VolumeInfo])
 async def get_all_volumes(
     current_admin: dict = Depends(get_current_admin),
+    qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
-    """전체 volume 목록 조회 — Transfer UI용. volume별 sources와 chunk_count 반환."""
-    client = get_client()
-    collection = settings.collection_name
-    volume_map: dict[str, dict] = {}
-    offset = None
-
-    while True:
-        results = client.scroll(
-            collection_name=collection,
-            limit=1000,
-            offset=offset,
-            with_payload=["volume", "source"],
-            with_vectors=False,
-        )
-        points, next_offset = results
-
-        if not points:
-            break
-
-        for point in points:
-            payload = point.payload or {}
-            volume = payload.get("volume", "")
-            if not volume:
-                continue
-
-            raw_source = payload.get("source", [])
-            if isinstance(raw_source, str):
-                sources = [raw_source] if raw_source else []
-            else:
-                sources = list(raw_source) if raw_source else []
-
-            if volume not in volume_map:
-                volume_map[volume] = {"sources": set(), "chunk_count": 0}
-
-            volume_map[volume]["sources"].update(sources)
-            volume_map[volume]["chunk_count"] += 1
-
-        offset = next_offset
-        if offset is None:
-            break
-
-    return sorted(
-        [
-            VolumeInfo(
-                volume=vol,
-                sources=sorted(info["sources"]),
-                chunk_count=info["chunk_count"],
-            )
-            for vol, info in volume_map.items()
-        ],
-        key=lambda v: v.volume,
-    )
+    """전체 volume 목록 조회 — Transfer UI용."""
+    return qdrant_service.get_all_volumes()
 
 
 @router.put("/volume-tags", response_model=VolumeTagResponse)
@@ -289,121 +193,23 @@ async def add_volume_tag(
     request: VolumeTagRequest,
     current_admin: dict = Depends(get_current_admin),
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
+    qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
-    """문서에 카테고리 태그를 추가합니다. 이미 있으면 무시."""
-    # macOS NFD 정규화 (파일시스템에서 NFD로 저장된 volume 이름 매칭)
-    volume_name = unicodedata.normalize("NFD", request.volume)
-
-    # 카테고리 유효성 검증
+    """문서에 카테고리 태그를 추가합니다."""
     category = await datasource_service.get_by_key(request.source)
     if not category:
         raise HTTPException(status_code=404, detail=f"카테고리 '{request.source}'를 찾을 수 없습니다")
-
-    client = get_async_client()
-    collection = settings.collection_name
-
-    # 해당 volume의 모든 청크 조회 → 같은 source 조합끼리 그룹핑하여 배치 업데이트
-    # key: 기존 sources의 frozenset → value: point id 목록
-    groups: dict[frozenset[str], list] = {}
-    offset = None
-    while True:
-        points, offset = await client.scroll(
-            collection_name=collection,
-            scroll_filter=Filter(
-                must=[FieldCondition(key="volume", match=MatchValue(value=volume_name))]
-            ),
-            with_payload=["source"],
-            with_vectors=False,
-            limit=1000,
-            offset=offset,
-        )
-        for p in points:
-            sources = p.payload.get("source", [])
-            if isinstance(sources, str):
-                sources = [sources]
-            if request.source not in sources:
-                key = frozenset(sources)
-                groups.setdefault(key, []).append(p.id)
-        if offset is None:
-            break
-
-    # 그룹별로 한 번에 set_payload (동일 source 조합 → 동일 새 payload)
-    updated = 0
-    for existing_sources_set, point_ids in groups.items():
-        new_sources = sorted(existing_sources_set | {request.source})
-        await client.set_payload(
-            collection_name=collection,
-            payload={"source": new_sources},
-            points=point_ids,
-        )
-        updated += len(point_ids)
-
-    # 최종 source 목록 (새로 추가한 태그 포함)
-    final_sources = sorted({request.source} | {s for fs in groups for s in fs}) if groups else [request.source]
-
-    return VolumeTagResponse(
-        volume=request.volume,
-        updated_sources=final_sources,
-        updated_chunks=updated,
-    )
+    return await qdrant_service.add_volume_tag(request.volume, request.source)
 
 
 @router.delete("/volume-tags", response_model=VolumeTagResponse)
 async def remove_volume_tag(
     request: VolumeTagRequest,
     current_admin: dict = Depends(get_current_admin),
+    qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
-    """문서에서 카테고리 태그를 제거합니다. 마지막 태그는 제거 불가."""
-    # macOS NFD 정규화
-    volume_name = unicodedata.normalize("NFD", request.volume)
-
-    client = get_async_client()
-    collection = settings.collection_name
-
-    # 해당 volume의 모든 청크 조회 → 그룹핑 후 배치 업데이트
-    groups: dict[frozenset[str], list] = {}
-    offset = None
-    while True:
-        points, offset = await client.scroll(
-            collection_name=collection,
-            scroll_filter=Filter(
-                must=[FieldCondition(key="volume", match=MatchValue(value=volume_name))]
-            ),
-            with_payload=["source"],
-            with_vectors=False,
-            limit=1000,
-            offset=offset,
-        )
-        for p in points:
-            sources = p.payload.get("source", [])
-            if isinstance(sources, str):
-                sources = [sources]
-            if request.source in sources:
-                if len(sources) <= 1:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="마지막 카테고리 태그는 제거할 수 없습니다. 최소 1개 카테고리가 필요합니다.",
-                    )
-                key = frozenset(sources)
-                groups.setdefault(key, []).append(p.id)
-        if offset is None:
-            break
-
-    # 그룹별로 한 번에 set_payload
-    updated = 0
-    final_sources_set: set[str] = set()
-    for existing_sources_set, point_ids in groups.items():
-        new_sources = sorted(existing_sources_set - {request.source})
-        await client.set_payload(
-            collection_name=collection,
-            payload={"source": new_sources},
-            points=point_ids,
-        )
-        updated += len(point_ids)
-        final_sources_set.update(new_sources)
-
-    return VolumeTagResponse(
-        volume=request.volume,
-        updated_sources=sorted(final_sources_set) if final_sources_set else [],
-        updated_chunks=updated,
-    )
+    """문서에서 카테고리 태그를 제거합니다."""
+    try:
+        return await qdrant_service.remove_volume_tag(request.volume, request.source)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

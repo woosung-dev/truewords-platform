@@ -98,7 +98,7 @@ async def get_audit_logs(
     service: AdminService = Depends(get_admin_service),
     current_admin: dict = Depends(get_current_admin),
 ) -> list[AuditLogResponse]:
-    logs = await service.repo.get_audit_logs(limit=limit, offset=offset)
+    logs = await service.get_audit_logs(limit=limit, offset=offset)
     return [
         AuditLogResponse(
             id=log.id,

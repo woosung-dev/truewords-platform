@@ -5,14 +5,15 @@ const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
 // 테스트마다 import를 새로 해야 하므로 dynamic import 사용
-let authAPI: typeof import("@/lib/api").authAPI;
-let chatbotAPI: typeof import("@/lib/api").chatbotAPI;
+let authAPI: typeof import("@/features/auth/api").authAPI;
+let chatbotAPI: typeof import("@/features/chatbot/api").chatbotAPI;
 
 beforeEach(async () => {
   vi.clearAllMocks();
-  const mod = await import("@/lib/api");
-  authAPI = mod.authAPI;
-  chatbotAPI = mod.chatbotAPI;
+  const authMod = await import("@/features/auth/api");
+  authAPI = authMod.authAPI;
+  const chatbotMod = await import("@/features/chatbot/api");
+  chatbotAPI = chatbotMod.chatbotAPI;
 });
 
 function jsonResponse(data: unknown, status = 200) {

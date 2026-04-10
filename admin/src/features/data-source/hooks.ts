@@ -1,11 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   dataSourceCategoryAPI,
-  type DataSourceCategory,
-  type CategoryDocumentStats,
-  type VolumeTagRequest,
-  type VolumeInfo,
-} from "@/lib/api";
+} from "./api";
+import type {
+  DataSourceCategory,
+  CategoryDocumentStats,
+  VolumeTagRequest,
+  VolumeInfo,
+} from "./types";
 
 export function useDataSourceCategories() {
   return useQuery({
