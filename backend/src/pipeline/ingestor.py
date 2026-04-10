@@ -1,4 +1,10 @@
-"""Qdrant 적재. 배치 임베딩 + 청크 레벨 체크포인트 + 지수 백오프 + RPD 방어."""
+"""Qdrant 적재 — 배치 임베딩 + 청크 레벨 체크포인트 + RPD 방어.
+
+청크 리스트를 받아 dense/sparse 임베딩 후 Qdrant에 upsert한다.
+Google 무료 티어 RPD(1K/일) 제한을 카운터로 관리하며,
+429 발생 시 지수 백오프(90→180초)로 재시도한다.
+``--resume`` 을 통한 청크 레벨 체크포인트 재개를 지원한다.
+"""
 
 from __future__ import annotations
 
@@ -43,7 +49,7 @@ _rpd_reset_time: float = 0.0  # monotonic 시각 기준 다음 리셋 시점
 
 
 def _get_rpd_count() -> int:
-    """현재 세션의 누적 RPD 요청 수 반환. 24시간 경과 시 자동 리셋."""
+    """현재 세션의 누적 RPD 요청 수 반환 (24시간 경과 시 자동 리셋)."""
     global _rpd_counter, _rpd_reset_time
     now = time.monotonic()
     if now >= _rpd_reset_time:
@@ -53,11 +59,15 @@ def _get_rpd_count() -> int:
 
 
 def _increment_rpd(text_count: int = 1) -> int:
-    """RPD 카운터 증가 후 현재 값 반환.
+    """RPD 카운터를 text_count만큼 증가 후 현재 값 반환.
 
-    Google 무료 티어의 embed_content_free_tier_requests는
-    배치 API 호출 수가 아니라 개별 텍스트 수를 카운트한다.
-    (검증: 새 계정에서 20배치 × ~50텍스트 = ~1000 → 429 발생 확인)
+    Google 무료 티어는 배치 API 호출 수가 아니라 개별 텍스트 수를 카운트한다.
+
+    Args:
+        text_count: 증가할 텍스트 수 (기본 1).
+
+    Returns:
+        증가 후 누적 RPD 카운트.
     """
     global _rpd_counter
     _get_rpd_count()  # 리셋 체크
@@ -66,10 +76,13 @@ def _increment_rpd(text_count: int = 1) -> int:
 
 
 def _check_rpd_budget(needed: int) -> None:
-    """RPD 예산 확인. 부족하면 경고 로그만 출력하고 가능한 만큼 진행.
+    """RPD 예산 사전 검증 — 소진 시 ValueError, 부족 시 경고 후 계속 진행.
 
     Args:
         needed: 이번 인제스트에서 필요한 텍스트 수.
+
+    Raises:
+        ValueError: RPD 예산이 완전히 소진된 경우.
     """
     current = _get_rpd_count()
     remaining = _RPD_LIMIT - current
@@ -92,11 +105,20 @@ def _check_rpd_budget(needed: int) -> None:
 
 
 def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[float]]:
-    """배치 임베딩 + Rate limit 대응 지수 백오프.
+    """배치 dense 임베딩 + 429 지수 백오프 (90→180초, 최대 3회).
 
-    429 발생 시 최대 2회 재시도 (총 3회 시도).
-    SDK 내부 retry에서 429를 제외했으므로 여기서 정확히 제어.
-    대기: 90초 → 180초 (TPM 60초 윈도우 + RPD 안전 마진).
+    SDK 내부 retry에서 429를 제외했으므로 여기서 직접 제어한다.
+    성공 시 RPD 카운터를 텍스트 수만큼 증가시킨다.
+
+    Args:
+        texts: 임베딩할 텍스트 리스트.
+        title: Gemini 임베딩 품질 향상용 문서 제목.
+
+    Returns:
+        각 텍스트에 대응하는 dense 벡터 리스트.
+
+    Raises:
+        google.genai.errors.ClientError: 429 외 API 에러 또는 3회 재시도 소진.
     """
     base_wait = getattr(settings, "retry_base_wait", 90.0)
     max_retries = 3
@@ -147,15 +169,23 @@ def ingest_chunks(
     tracker: ProgressTracker | None = None,
     volume_key: str = "",
 ) -> dict:
-    """청크 적재. 배치 임베딩 + 청크 레벨 체크포인트.
+    """청크를 배치 임베딩 후 Qdrant에 upsert — 청크 레벨 체크포인트 지원.
+
+    동적 배치(글자 수 기준)로 묶어 dense + sparse 임베딩을 수행하고,
+    ``_UPSERT_BATCH_SIZE`` 단위로 Qdrant에 upsert한다.
+    RPD 한도 도달 시 조기 중단되며, ``--resume``으로 이어서 실행 가능.
 
     Args:
-        start_chunk: 재개 시작 인덱스 (0 = 처음부터). tracker.get_resume_point()에서 전달.
-        title: 임베딩 품질 향상을 위한 문서 제목 (Gemini 권장).
-        tracker: 체크포인트 저장용 ProgressTracker 인스턴스.
+        client: Qdrant 동기 클라이언트.
+        collection_name: 적재 대상 Qdrant 컬렉션명.
+        chunks: 적재할 Chunk 리스트.
+        start_chunk: 재개 시작 인덱스 (0이면 처음부터).
+        title: Gemini 임베딩 품질 향상용 문서 제목.
+        tracker: 체크포인트 저장용 ProgressTracker (None이면 체크포인트 비활성).
         volume_key: tracker에 저장할 볼륨 키 (보통 파일명).
 
-    반환: {"chunk_count": int, "elapsed_sec": float}
+    Returns:
+        ``{"chunk_count": int, "elapsed_sec": float}`` 형태 dict.
     """
     if not chunks:
         return {"chunk_count": 0, "elapsed_sec": 0.0}

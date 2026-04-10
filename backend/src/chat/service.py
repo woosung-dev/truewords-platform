@@ -1,4 +1,8 @@
-"""채팅 Service. 검색 + 생성 + DB 기록 오케스트레이션."""
+"""채팅 Service — RAG 파이프라인 오케스트레이션.
+
+입력 검증 → 캐시 → 검색 → Re-ranking → 생성 → Safety → DB 기록의
+전체 흐름을 조율하며, 동기/SSE 스트리밍 두 가지 모드를 지원한다.
+"""
 
 import json
 import time
@@ -29,6 +33,17 @@ from src.search.reranker import rerank
 
 
 class ChatService:
+    """RAG 채팅 오케스트레이터.
+
+    검색 파이프라인(cascading → rerank), LLM 생성, 캐시, DB 기록을
+    단일 트랜잭션으로 조율한다. Router에서 DI로 주입받아 사용.
+
+    Attributes:
+        chat_repo: 세션·메시지·피드백 DB 접근 레포지토리.
+        chatbot_service: 챗봇별 검색 설정(CascadingConfig) 조회.
+        cache_service: Semantic Cache (None이면 캐시 비활성).
+    """
+
     def __init__(
         self,
         chat_repo: ChatRepository,
@@ -40,7 +55,23 @@ class ChatService:
         self.cache_service = cache_service
 
     async def process_chat(self, request: ChatRequest) -> ChatResponse:
-        """RAG 9단계: 입력 검증 → 캐시 체크 → 검색 → Re-ranking → 생성 → Safety → 캐시 저장 → DB 기록."""
+        """동기 RAG 처리 — 전체 답변을 한 번에 반환.
+
+        9단계 파이프라인:
+        입력 검증 → 세션 → 캐시 체크 → 검색(50) → Re-ranking(10) →
+        생성(context 5) → Safety → 캐시 저장 → DB 기록.
+
+        Args:
+            request: 사용자 질의 (query, chatbot_id, session_id).
+
+        Returns:
+            ChatResponse: 답변 텍스트, 출처 3건, session_id, message_id.
+
+        Raises:
+            InputBlockedError: Prompt Injection 탐지 시.
+            EmbeddingFailedError: 임베딩 API 실패 시.
+            SearchFailedError: 모든 검색 티어 실패 시.
+        """
         # [Safety] 입력 검증 — Prompt Injection 방어
         await validate_input(request.query)
 
@@ -165,7 +196,23 @@ class ChatService:
         )
 
     async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:
-        """SSE 스트리밍: 입력 검증 → 캐시 체크 → 검색 → 스트리밍 생성 → Safety → 캐시 저장 → DB."""
+        """SSE 스트리밍 RAG 처리 — chunk/sources/done 이벤트를 순차 yield.
+
+        검색·Re-ranking은 블로킹으로 선행 처리한 뒤,
+        Gemini 스트리밍 응답을 chunk 이벤트로 실시간 전송한다.
+        스트림 완료 후 Safety 필터 → DB 기록 → sources/done 이벤트.
+
+        Args:
+            request: 사용자 질의 (query, chatbot_id, session_id).
+
+        Yields:
+            SSE 포맷 문자열 (event: chunk|sources|done).
+
+        Raises:
+            InputBlockedError: Prompt Injection 탐지 시.
+            EmbeddingFailedError: 임베딩 API 실패 시.
+            SearchFailedError: 모든 검색 티어 실패 시.
+        """
         # [Safety] 입력 검증
         await validate_input(request.query)
 
@@ -279,7 +326,15 @@ class ChatService:
         yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
 
     async def get_session_history(self, session_id: uuid.UUID) -> dict:
-        """세션 대화 이력 조회."""
+        """세션 대화 이력 조회.
+
+        Args:
+            session_id: 조회할 세션 UUID.
+
+        Returns:
+            ``{"session_id", "messages": [{"role", "content", "created_at"}]}`` 형태 dict.
+            세션이 존재하지 않으면 빈 messages 리스트 반환.
+        """
         session = await self.chat_repo.get_session(session_id)
         if session is None:
             return {"session_id": session_id, "messages": []}
@@ -293,7 +348,14 @@ class ChatService:
         }
 
     async def submit_feedback(self, request: FeedbackRequest) -> AnswerFeedback:
-        """답변 피드백 제출."""
+        """답변 피드백(좋아요/싫어요) 제출 및 DB 저장.
+
+        Args:
+            request: message_id, feedback_type, 선택적 comment.
+
+        Returns:
+            저장된 AnswerFeedback 모델 인스턴스.
+        """
         feedback = AnswerFeedback(
             message_id=request.message_id,
             feedback_type=request.feedback_type,
@@ -306,7 +368,11 @@ class ChatService:
     # --- Private ---
 
     async def _get_or_create_session(self, request: ChatRequest) -> ResearchSession:
-        """세션 ID가 있으면 기존 세션, 없으면 새로 생성."""
+        """기존 세션 조회 또는 신규 생성.
+
+        request.session_id가 유효한 기존 세션이면 재사용,
+        없거나 찾을 수 없으면 chatbot_config_id로 새 세션을 생성한다.
+        """
         if request.session_id:
             session = await self.chat_repo.get_session(request.session_id)
             if session:
@@ -328,6 +394,7 @@ class ChatService:
         reranked: bool = False,
         rerank_latency_ms: int = 0,
     ) -> None:
+        """검색 이벤트(쿼리, 필터, 레이턴시 등)를 DB에 기록."""
         event = SearchEvent(
             message_id=message_id,
             query_text=request.query,
@@ -344,6 +411,7 @@ class ChatService:
     async def _record_citations(
         self, message_id: uuid.UUID, results: list
     ) -> None:
+        """검색 결과 상위 5건을 AnswerCitation으로 DB에 기록."""
         citations = [
             AnswerCitation(
                 message_id=message_id,

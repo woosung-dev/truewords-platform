@@ -1,3 +1,10 @@
+"""Cascading Search — 다중 티어 순차 검색 엔진.
+
+우선순위가 다른 데이터 소스(예: A→B→C)를 티어별로 순차 탐색하여,
+min_results 이상의 결과가 확보되면 조기 종료한다.
+개별 티어 실패는 격리 처리(로그 후 다음 티어 시도).
+"""
+
 import logging
 from dataclasses import dataclass, field
 
@@ -12,7 +19,14 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SearchTier:
-    """검색 우선순위 계층 설정."""
+    """단일 검색 티어 설정.
+
+    Attributes:
+        sources: 이 티어에서 검색할 데이터 소스 필터 (예: ``["A", "B"]``).
+        min_results: 다음 티어로 넘어가지 않기 위한 최소 결과 수.
+        score_threshold: RRF fusion 점수 하한 (일반적으로 0.0~0.5 범위).
+    """
+
     sources: list[str]
     min_results: int = 3
     score_threshold: float = 0.75
@@ -20,7 +34,13 @@ class SearchTier:
 
 @dataclass
 class CascadingConfig:
-    """Cascading Search 설정. tiers는 우선순위 순서."""
+    """Cascading Search 전체 설정.
+
+    Attributes:
+        tiers: 우선순위 순서대로 나열된 SearchTier 리스트.
+               첫 번째 티어부터 검색하며, min_results 충족 시 조기 종료.
+    """
+
     tiers: list[SearchTier] = field(default_factory=list)
 
 
@@ -31,10 +51,23 @@ async def cascading_search(
     top_k: int = 10,
     dense_embedding: list[float] | None = None,
 ) -> list[SearchResult]:
-    """비동기 티어별 순차 검색. 임베딩을 1회만 계산하여 모든 티어에서 재사용.
+    """티어별 순차 검색 — 임베딩 1회 계산 후 모든 티어에서 재사용.
 
-    각 tier의 hybrid_search 실패는 격리 처리 (로그 + 다음 tier 시도).
+    각 tier의 hybrid_search 실패는 격리 처리(로그 + 다음 tier 시도).
     모든 tier가 소진된 경우에만 SearchFailedError를 raise한다.
+
+    Args:
+        client: Qdrant 비동기 클라이언트.
+        query: 사용자 질의 텍스트.
+        config: 티어 우선순위 및 임계값 설정.
+        top_k: 최종 반환할 최대 결과 수.
+        dense_embedding: 사전 계산된 dense 벡터 (None이면 내부 계산).
+
+    Returns:
+        score 내림차순 정렬된 SearchResult 리스트 (최대 top_k건).
+
+    Raises:
+        SearchFailedError: 모든 티어가 예외로 실패한 경우.
     """
     # 임베딩 1회 계산 (외부 주입 시 스킵)
     dense = dense_embedding if dense_embedding is not None else await embed_dense_query(query)
