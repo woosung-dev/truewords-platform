@@ -52,6 +52,12 @@ export default function VolumeTransferSheet({
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
+  // 카테고리 key → { name, color } 매핑 (뱃지 렌더링용)
+  const categoryMap = useMemo(
+    () => new Map(activeCategories.map((c) => [c.key, { name: c.name, color: c.color }])),
+    [activeCategories]
+  );
+
   // 미분류 모드에서 선택한 카테고리
   const [selectedCategoryForUncategorized, setSelectedCategoryForUncategorized] =
     useState<string>("");
@@ -215,6 +221,7 @@ export default function VolumeTransferSheet({
             allVolumes={allVolumes}
             includedVolumes={includedVolumes}
             onMove={handleMove}
+            categoryMap={categoryMap}
           />
         </div>
 
