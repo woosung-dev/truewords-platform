@@ -24,6 +24,7 @@ from src.qdrant_client import get_async_client
 from src.safety.input_validator import validate_input
 from src.safety.output_filter import DISCLAIMER, apply_safety_layer
 from src.search.cascading import cascading_search
+from src.search.exceptions import EmbeddingFailedError
 from src.search.reranker import rerank
 
 
@@ -56,7 +57,10 @@ class ChatService:
         )
 
         # [Cache] Step 1 — 캐시 체크 (임베딩은 검색에서 재사용)
-        query_embedding = await embed_dense_query(request.query)
+        try:
+            query_embedding = await embed_dense_query(request.query)
+        except Exception as e:
+            raise EmbeddingFailedError(f"임베딩 생성 실패: {e}") from e
         if self.cache_service:
             cache_hit = await self.cache_service.check_cache(
                 query_embedding, request.chatbot_id
@@ -176,7 +180,10 @@ class ChatService:
         )
 
         # [Cache] 캐시 체크
-        query_embedding = await embed_dense_query(request.query)
+        try:
+            query_embedding = await embed_dense_query(request.query)
+        except Exception as e:
+            raise EmbeddingFailedError(f"임베딩 생성 실패: {e}") from e
         if self.cache_service:
             cache_hit = await self.cache_service.check_cache(
                 query_embedding, request.chatbot_id

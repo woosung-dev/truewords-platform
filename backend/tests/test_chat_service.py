@@ -11,6 +11,7 @@ from src.chat.models import ResearchSession, SessionMessage, MessageRole
 from src.safety.output_filter import DISCLAIMER
 from src.search.hybrid import SearchResult
 from src.search.cascading import CascadingConfig, SearchTier
+from src.search.exceptions import EmbeddingFailedError
 
 # 모든 테스트에서 embed_dense_query를 mock 처리
 pytestmark = pytest.mark.usefixtures()
@@ -246,3 +247,26 @@ async def test_process_chat_context_limited_to_top_5():
     call_args = mock_gen.call_args
     context_results = call_args[0][1]  # 두 번째 positional arg
     assert len(context_results) == 5
+
+
+@pytest.mark.asyncio
+async def test_process_chat_wraps_embedding_failure_as_embedding_failed_error():
+    """embed_dense_query 실패가 EmbeddingFailedError로 래핑됨."""
+    service, _, chatbot_service = _make_chat_service()
+
+    chatbot_service.get_search_config.return_value = (
+        CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
+        False,
+    )
+    chatbot_service.get_config_id.return_value = None
+
+    with (
+        patch("src.chat.service.get_async_client"),
+        patch("src.chat.service.cascading_search", new_callable=AsyncMock),
+        patch("src.chat.service.generate_answer", new_callable=AsyncMock),
+        patch(_EMBED_PATCH, new_callable=AsyncMock, side_effect=RuntimeError("Gemini API quota exceeded")),
+    ):
+        with pytest.raises(EmbeddingFailedError) as exc_info:
+            await service.process_chat(ChatRequest(query="test query"))
+
+    assert "Gemini API quota exceeded" in str(exc_info.value) or "임베딩 생성 실패" in str(exc_info.value)

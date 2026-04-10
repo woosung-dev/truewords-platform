@@ -1,0 +1,21 @@
+{
+  "include": [
+    "backend/src",
+    "backend/tests",
+    "backend/main.py"
+  ],
+  "exclude": [
+    "admin",
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.venv",
+    "**/dist",
+    "**/build"
+  ],
+  "venvPath": "backend",
+  "venv": ".venv",
+  "pythonVersion": "3.12",
+  "extraPaths": ["backend"],
+  "reportMissingImports": "warning",
+  "reportMissingTypeStubs": "none"
+}

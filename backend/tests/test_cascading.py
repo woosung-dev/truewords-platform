@@ -141,3 +141,120 @@ async def test_cascading_sorts_by_score_descending():
 
     scores = [r.score for r in results]
     assert scores == sorted(scores, reverse=True)
+
+
+# ── Task 1.3.2: 티어별 실패 격리 테스트 ──────────────────────────────────────
+
+from src.search.exceptions import SearchFailedError  # noqa: E402
+
+
+@pytest.mark.asyncio
+async def test_cascading_search_tier_fallback_on_first_tier_failure():
+    """tier 0이 실패하면 tier 1로 fallback (예외 전파 안 함)."""
+    config = CascadingConfig(
+        tiers=[
+            SearchTier(sources=["A"], min_results=3, score_threshold=0.75),
+            SearchTier(sources=["B"], min_results=3, score_threshold=0.75),
+        ]
+    )
+    mock_client = AsyncMock()
+
+    call_count = {"n": 0}
+
+    async def fake_hybrid_search(*args, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            raise ConnectionError("Qdrant timeout")
+        return _make_results("B", [0.90, 0.85, 0.80, 0.76, 0.75])
+
+    with patch("src.search.cascading.hybrid_search", side_effect=fake_hybrid_search):
+        with patch(
+            "src.search.cascading.embed_dense_query",
+            new_callable=AsyncMock,
+            return_value=[0.1] * 3072,
+        ):
+            with patch(
+                "src.search.cascading.embed_sparse_async",
+                new_callable=AsyncMock,
+                return_value=([1], [0.5]),
+            ):
+                results = await cascading_search(
+                    client=mock_client,
+                    query="test",
+                    config=config,
+                    top_k=5,
+                )
+
+    assert call_count["n"] == 2, "tier 0 실패 후 tier 1을 시도해야 함"
+    assert len(results) > 0, "tier 1에서 결과를 받아야 함"
+
+
+@pytest.mark.asyncio
+async def test_cascading_search_raises_search_failed_when_all_tiers_fail():
+    """모든 tier가 실패하면 SearchFailedError raise."""
+    config = CascadingConfig(
+        tiers=[
+            SearchTier(sources=["A"], min_results=3),
+            SearchTier(sources=["B"], min_results=3),
+        ]
+    )
+    mock_client = AsyncMock()
+
+    async def always_fail(*args, **kwargs):
+        raise ConnectionError("Qdrant down")
+
+    with patch("src.search.cascading.hybrid_search", side_effect=always_fail):
+        with patch(
+            "src.search.cascading.embed_dense_query",
+            new_callable=AsyncMock,
+            return_value=[0.1] * 3072,
+        ):
+            with patch(
+                "src.search.cascading.embed_sparse_async",
+                new_callable=AsyncMock,
+                return_value=([1], [0.5]),
+            ):
+                with pytest.raises(SearchFailedError):
+                    await cascading_search(
+                        client=mock_client,
+                        query="test",
+                        config=config,
+                    )
+
+
+@pytest.mark.asyncio
+async def test_cascading_search_normal_path_first_tier_succeeds():
+    """기존 정상 동작: tier 0 성공 시 바로 반환 (fallback 안 함)."""
+    config = CascadingConfig(
+        tiers=[
+            SearchTier(sources=["A"], min_results=3, score_threshold=0.75),
+            SearchTier(sources=["B"], min_results=3, score_threshold=0.75),
+        ]
+    )
+    mock_client = AsyncMock()
+
+    call_count = {"n": 0}
+
+    async def fake_hybrid_search(*args, **kwargs):
+        call_count["n"] += 1
+        return _make_results("A", [0.95, 0.90, 0.85, 0.80, 0.76])
+
+    with patch("src.search.cascading.hybrid_search", side_effect=fake_hybrid_search):
+        with patch(
+            "src.search.cascading.embed_dense_query",
+            new_callable=AsyncMock,
+            return_value=[0.1] * 3072,
+        ):
+            with patch(
+                "src.search.cascading.embed_sparse_async",
+                new_callable=AsyncMock,
+                return_value=([1], [0.5]),
+            ):
+                results = await cascading_search(
+                    client=mock_client,
+                    query="test",
+                    config=config,
+                )
+
+    assert call_count["n"] == 1, "tier 0 성공 시 tier 1 호출 안 함"
+    assert len(results) >= 3
