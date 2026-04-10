@@ -22,6 +22,7 @@ from src.common.exception_handlers import (
     input_blocked_handler,
     rate_limit_handler,
     search_failed_handler,
+    unhandled_exception_handler,
 )
 from src.common.middleware import RequestIdMiddleware
 from src.safety.exceptions import InputBlockedError, RateLimitExceededError
@@ -67,6 +68,9 @@ app.add_exception_handler(InputBlockedError, input_blocked_handler)  # type: ign
 app.add_exception_handler(RateLimitExceededError, rate_limit_handler)  # type: ignore[arg-type]
 app.add_exception_handler(SearchFailedError, search_failed_handler)  # type: ignore[arg-type]
 app.add_exception_handler(EmbeddingFailedError, embedding_failed_handler)  # type: ignore[arg-type]
+
+# Catch-all — 반드시 마지막에 등록 (구체 예외 핸들러가 먼저 매칭되도록)
+app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignore[arg-type]
 
 # 공개 라우터
 app.include_router(chat_router)

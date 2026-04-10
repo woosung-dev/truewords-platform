@@ -12,6 +12,7 @@ from src.common.exception_handlers import (
     input_blocked_handler,
     rate_limit_handler,
     search_failed_handler,
+    unhandled_exception_handler,
 )
 from src.safety.exceptions import InputBlockedError, RateLimitExceededError
 from src.search.exceptions import EmbeddingFailedError, SearchFailedError
@@ -162,3 +163,45 @@ async def test_embedding_failed_handler_does_not_leak_upstream_details():
     message_lower = body["message"].lower()
     assert "gemini" not in message_lower
     assert "401" not in body["message"]
+
+
+@pytest.mark.asyncio
+async def test_unhandled_exception_handler_returns_500():
+    """일반 Exception → 500."""
+    req = _make_mock_request("rid-unhandled")
+    exc = KeyError("some_missing_key")
+
+    response = await unhandled_exception_handler(req, exc)
+
+    assert response.status_code == 500
+    body = _parse_json_response(response)
+    assert body["error_code"] == "INTERNAL_ERROR"
+    assert body["request_id"] == "rid-unhandled"
+
+
+@pytest.mark.asyncio
+async def test_unhandled_exception_handler_generic_message():
+    """응답 메시지가 generic (예외 타입/상세 노출 안 함)."""
+    req = _make_mock_request()
+    exc = KeyError("secret_internal_key")
+
+    response = await unhandled_exception_handler(req, exc)
+    body = _parse_json_response(response)
+
+    assert "secret_internal_key" not in body["message"]
+    assert "KeyError" not in body["message"]
+    assert body["message"] == "서버 내부 오류가 발생했습니다."
+
+
+@pytest.mark.asyncio
+async def test_unhandled_exception_handler_logs_details(caplog):
+    """예외 stacktrace가 로그에 남는다."""
+    import logging
+    req = _make_mock_request("rid-log-test")
+    exc = ValueError("internal debug info that must be logged")
+
+    with caplog.at_level(logging.ERROR):
+        await unhandled_exception_handler(req, exc)
+
+    # logger.exception이 호출되어 에러 레벨 로그가 기록됨
+    assert any("Unhandled exception" in rec.message for rec in caplog.records)

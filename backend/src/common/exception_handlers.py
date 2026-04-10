@@ -93,3 +93,26 @@ async def embedding_failed_handler(
             request_id=rid,
         ).model_dump(),
     )
+
+
+async def unhandled_exception_handler(
+    request: Request, exc: Exception
+) -> JSONResponse:
+    """예상치 못한 모든 예외에 대한 catch-all → 500.
+
+    상세 정보(예외 타입, 메시지, stacktrace)는 로그에만 기록.
+    응답에는 generic 메시지만 노출 (보안).
+    """
+    rid = _get_request_id(request)
+    logger.exception(
+        "Unhandled exception",
+        extra={"request_id": rid},
+    )
+    return JSONResponse(
+        status_code=500,
+        content=ErrorResponse(
+            error_code="INTERNAL_ERROR",
+            message="서버 내부 오류가 발생했습니다.",
+            request_id=rid,
+        ).model_dump(),
+    )
