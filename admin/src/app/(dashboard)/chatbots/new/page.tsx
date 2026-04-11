@@ -23,6 +23,7 @@ export default function NewChatbotPage() {
   const [isActive, setIsActive] = useState(true);
   const [tiers, setTiers] = useState<SearchTier[]>([]);
   const [dictionaryEnabled, setDictionaryEnabled] = useState(false);
+  const [queryRewriteEnabled, setQueryRewriteEnabled] = useState(false);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -32,7 +33,7 @@ export default function NewChatbotPage() {
         description,
         persona_name: personaName,
         system_prompt: systemPrompt,
-        search_tiers: { tiers, dictionary_enabled: dictionaryEnabled },
+        search_tiers: { tiers, dictionary_enabled: dictionaryEnabled, query_rewrite_enabled: queryRewriteEnabled },
         is_active: isActive,
       }),
     onSuccess: (data) => {
@@ -166,6 +167,22 @@ export default function NewChatbotPage() {
           <div className="flex items-center gap-2 border-b pb-3">
             <Search className="w-4 h-4 text-muted-foreground" />
             <h3 className="font-semibold text-sm">검색 티어 설정</h3>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Checkbox
+              id="query-rewrite-enabled"
+              checked={queryRewriteEnabled}
+              onCheckedChange={(checked) =>
+                setQueryRewriteEnabled(checked === true)
+              }
+            />
+            <Label htmlFor="query-rewrite-enabled" className="cursor-pointer text-sm">
+              Query Rewriting
+            </Label>
+            <span className="text-xs text-muted-foreground">
+              사용자 질문을 종교 용어로 자동 재작성
+            </span>
           </div>
 
           <div className="flex items-center gap-2.5">

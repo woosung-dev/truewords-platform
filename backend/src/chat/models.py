@@ -54,6 +54,7 @@ class SearchEvent(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     message_id: uuid.UUID = Field(foreign_key="session_messages.id", index=True)
     query_text: str = Field(sa_column=Column(Text))
+    rewritten_query: str | None = Field(default=None, sa_column=Column(Text))
     applied_filters: dict = Field(default_factory=dict, sa_column=Column(JSON))
     search_tier: int = 0
     total_results: int = 0

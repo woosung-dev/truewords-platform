@@ -27,6 +27,7 @@ class SearchTiersConfig(BaseModel):
     tiers: list[SearchTierSchema] = Field(default_factory=list)
     rerank_enabled: bool = False
     dictionary_enabled: bool = False
+    query_rewrite_enabled: bool = False
 
 
 # --- 페이지네이션 ---

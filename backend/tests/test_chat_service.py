@@ -69,7 +69,7 @@ async def test_process_chat_without_rerank():
     cascading_config = CascadingConfig(
         tiers=[SearchTier(sources=["A"], min_results=3, score_threshold=0.5)]
     )
-    chatbot_service.get_search_config.return_value = (cascading_config, False)
+    chatbot_service.get_search_config.return_value = (cascading_config, False, False)
     chatbot_service.get_config_id.return_value = None
 
     with (
@@ -104,7 +104,7 @@ async def test_process_chat_with_rerank():
     cascading_config = CascadingConfig(
         tiers=[SearchTier(sources=["A"], min_results=3, score_threshold=0.5)]
     )
-    chatbot_service.get_search_config.return_value = (cascading_config, True)
+    chatbot_service.get_search_config.return_value = (cascading_config, True, False)
     chatbot_service.get_config_id.return_value = None
 
     with (
@@ -133,7 +133,7 @@ async def test_process_chat_records_rerank_in_search_event():
 
     chatbot_service.get_search_config.return_value = (
         CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
-        True,
+        True, False,
     )
     chatbot_service.get_config_id.return_value = None
 
@@ -158,7 +158,7 @@ async def test_process_chat_single_commit():
     service, chat_repo, chatbot_service = _make_chat_service()
     chatbot_service.get_search_config.return_value = (
         CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
-        False,
+        False, False,
     )
     chatbot_service.get_config_id.return_value = None
 
@@ -180,13 +180,14 @@ async def test_process_chat_empty_results():
     service, chat_repo, chatbot_service = _make_chat_service()
     chatbot_service.get_search_config.return_value = (
         CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
-        False,
+        False, False,
     )
     chatbot_service.get_config_id.return_value = None
 
     with (
         patch("src.chat.service.get_async_client"),
         patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=[]),
+        patch("src.chat.service.fallback_search", new_callable=AsyncMock, return_value=([], "suggestions")),
         patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="해당 내용을 말씀에서 찾지 못했습니다."),
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
@@ -205,7 +206,7 @@ async def test_process_chat_with_session_id():
 
     chatbot_service.get_search_config.return_value = (
         CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
-        False,
+        False, False,
     )
 
     with (
@@ -231,7 +232,7 @@ async def test_process_chat_context_limited_to_top_5():
 
     chatbot_service.get_search_config.return_value = (
         CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
-        False,
+        False, False,
     )
     chatbot_service.get_config_id.return_value = None
 
@@ -256,7 +257,7 @@ async def test_process_chat_wraps_embedding_failure_as_embedding_failed_error():
 
     chatbot_service.get_search_config.return_value = (
         CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
-        False,
+        False, False,
     )
     chatbot_service.get_config_id.return_value = None
 

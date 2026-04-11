@@ -29,6 +29,8 @@ from src.safety.input_validator import validate_input
 from src.safety.output_filter import DISCLAIMER, apply_safety_layer
 from src.search.cascading import cascading_search
 from src.search.exceptions import EmbeddingFailedError
+from src.search.fallback import fallback_search
+from src.search.query_rewriter import rewrite_query
 from src.search.reranker import rerank
 
 
@@ -115,16 +117,36 @@ class ChatService:
 
         # 3. 검색 실행 (넓은 후보 풀)
         qdrant = get_async_client()
-        cascading_config, rerank_enabled = await self.chatbot_service.get_search_config(
-            request.chatbot_id
+        cascading_config, rerank_enabled, query_rewrite_enabled = (
+            await self.chatbot_service.get_search_config(request.chatbot_id)
         )
+
+        # [Query Rewrite] 쿼리 재작성 (활성화된 경우)
+        search_query = request.query
+        rewritten_query = None
+        if query_rewrite_enabled:
+            search_query = await rewrite_query(request.query)
+            if search_query != request.query:
+                rewritten_query = search_query
+                # 재작성된 쿼리로 임베딩 재계산
+                query_embedding = await embed_dense_query(search_query)
 
         start_time = time.monotonic()
         results = await cascading_search(
-            qdrant, request.query, cascading_config, top_k=50,
+            qdrant, search_query, cascading_config, top_k=50,
             dense_embedding=query_embedding,
         )
         search_latency_ms = int((time.monotonic() - start_time) * 1000)
+
+        # [Fallback] 검색 결과 0건 시 fallback
+        fallback_type = "none"
+        if not results:
+            results, fallback_type = await fallback_search(
+                client=qdrant,
+                query=search_query,
+                original_results=results,
+                dense_embedding=query_embedding,
+            )
 
         # 4. Re-ranking (활성화된 경우)
         reranked = False
@@ -159,6 +181,7 @@ class ChatService:
         await self._record_search_event(
             assistant_msg.id, request, results, total_latency_ms,
             reranked=reranked, rerank_latency_ms=rerank_latency_ms,
+            rewritten_query=rewritten_query, fallback_type=fallback_type,
         )
         await self._record_citations(assistant_msg.id, results)
 
@@ -253,16 +276,35 @@ class ChatService:
 
         # 2. 검색 + Re-ranking (스트림 시작 전 블로킹)
         qdrant = get_async_client()
-        cascading_config, rerank_enabled = await self.chatbot_service.get_search_config(
-            request.chatbot_id
+        cascading_config, rerank_enabled, query_rewrite_enabled = (
+            await self.chatbot_service.get_search_config(request.chatbot_id)
         )
+
+        # [Query Rewrite] 쿼리 재작성 (활성화된 경우)
+        search_query = request.query
+        rewritten_query = None
+        if query_rewrite_enabled:
+            search_query = await rewrite_query(request.query)
+            if search_query != request.query:
+                rewritten_query = search_query
+                query_embedding = await embed_dense_query(search_query)
 
         start_time = time.monotonic()
         results = await cascading_search(
-            qdrant, request.query, cascading_config, top_k=50,
+            qdrant, search_query, cascading_config, top_k=50,
             dense_embedding=query_embedding,
         )
         search_latency_ms = int((time.monotonic() - start_time) * 1000)
+
+        # [Fallback] 검색 결과 0건 시 fallback
+        fallback_type = "none"
+        if not results:
+            results, fallback_type = await fallback_search(
+                client=qdrant,
+                query=search_query,
+                original_results=results,
+                dense_embedding=query_embedding,
+            )
 
         reranked = False
         rerank_latency_ms = 0
@@ -298,6 +340,7 @@ class ChatService:
         await self._record_search_event(
             assistant_msg.id, request, results, total_latency_ms,
             reranked=reranked, rerank_latency_ms=rerank_latency_ms,
+            rewritten_query=rewritten_query, fallback_type=fallback_type,
         )
         await self._record_citations(assistant_msg.id, results)
 
@@ -393,15 +436,19 @@ class ChatService:
         latency_ms: int,
         reranked: bool = False,
         rerank_latency_ms: int = 0,
+        rewritten_query: str | None = None,
+        fallback_type: str = "none",
     ) -> None:
         """검색 이벤트(쿼리, 필터, 레이턴시 등)를 DB에 기록."""
         event = SearchEvent(
             message_id=message_id,
             query_text=request.query,
+            rewritten_query=rewritten_query,
             applied_filters={
                 "chatbot_id": request.chatbot_id,
                 "reranked": reranked,
                 "rerank_latency_ms": rerank_latency_ms,
+                "fallback_type": fallback_type,
             },
             total_results=len(results),
             latency_ms=latency_ms,

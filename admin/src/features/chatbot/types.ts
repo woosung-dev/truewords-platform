@@ -8,6 +8,7 @@ export interface SearchTiersConfig {
   tiers: SearchTier[];
   rerank_enabled?: boolean;
   dictionary_enabled?: boolean;
+  query_rewrite_enabled?: boolean;
 }
 
 export interface ChatbotConfig {

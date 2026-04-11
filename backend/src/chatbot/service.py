@@ -15,6 +15,7 @@ DEFAULT_CASCADING_CONFIG = CascadingConfig(
     tiers=[SearchTier(sources=["A", "B", "C"], min_results=3, score_threshold=0.1)]
 )
 DEFAULT_RERANK_ENABLED = False
+DEFAULT_QUERY_REWRITE_ENABLED = False
 
 
 class ChatbotService:
@@ -57,10 +58,12 @@ class ChatbotService:
             )
         return self._parse_search_tiers(config.search_tiers)
 
-    async def get_search_config(self, chatbot_id: str | None) -> tuple[CascadingConfig, bool]:
-        """chatbot_id로 CascadingConfig + rerank_enabled를 조회."""
+    async def get_search_config(
+        self, chatbot_id: str | None
+    ) -> tuple[CascadingConfig, bool, bool]:
+        """chatbot_id로 CascadingConfig + rerank_enabled + query_rewrite_enabled를 조회."""
         if chatbot_id is None:
-            return DEFAULT_CASCADING_CONFIG, DEFAULT_RERANK_ENABLED
+            return DEFAULT_CASCADING_CONFIG, DEFAULT_RERANK_ENABLED, DEFAULT_QUERY_REWRITE_ENABLED
         config = await self.repo.get_by_chatbot_id(chatbot_id)
         if config is None:
             raise HTTPException(
@@ -69,7 +72,10 @@ class ChatbotService:
             )
         cascading = self._parse_search_tiers(config.search_tiers)
         rerank_enabled = config.search_tiers.get("rerank_enabled", DEFAULT_RERANK_ENABLED)
-        return cascading, rerank_enabled
+        query_rewrite_enabled = config.search_tiers.get(
+            "query_rewrite_enabled", DEFAULT_QUERY_REWRITE_ENABLED
+        )
+        return cascading, rerank_enabled, query_rewrite_enabled
 
     async def get_config_id(self, chatbot_id: str | None) -> uuid.UUID | None:
         """chatbot_id로 DB PK를 조회."""
