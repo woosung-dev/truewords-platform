@@ -103,7 +103,7 @@ docs/
 ```
 
 > **"문서가 없으면 기능도 없다."**
-> 상세 규칙(ID 체계, TODO.md 운영)은 `.ai/rules/global.md` 참조.
+> 상세 규칙(ID 체계, TODO.md 운영)은 `.ai/common/global.md` 참조.
 
 ---
 
@@ -130,7 +130,17 @@ test: 테스트 추가/수정
 
 ## 7. 코딩 스타일
 
-### 프론트엔드 (Flutter/Dart)
+### 프론트엔드 — Admin Dashboard (Next.js 16 / TypeScript)
+
+상세 규칙은 `.ai/rules/frontend.md` 참조.
+
+- Next.js 16 App Router, TypeScript Strict
+- React Query (서버 상태) + useState (로컬 상태)
+- shadcn/ui v4 + Tailwind CSS v4
+- Custom JWT + HttpOnly Cookie 인증 (Clerk 미사용)
+- FSD 구조: `features/[domain]/api.ts`, `types.ts`, `components/`
+
+### 프론트엔드 — Mobile (Flutter/Dart) [Phase 4 예정]
 
 상세 규칙은 `.ai/stacks/flutter/mobile.md` 참조.
 
@@ -142,11 +152,12 @@ test: 테스트 추가/수정
 
 ### 백엔드 (FastAPI/Python)
 
-상세 규칙은 `.ai/rules/backend.md` 참조.
+상세 규칙은 `.ai/stacks/fastapi/backend.md` 참조.
 
 - 100% Async, Router/Service/Repository 레이어 분리
 - AsyncSession은 Repository만 보유
 - Pydantic V2 패턴 필수
+- Custom JWT + bcrypt 인증 (Clerk 미사용)
 
 ### 공통 네이밍 규칙
 
@@ -167,7 +178,7 @@ test: 테스트 추가/수정
 
 - **이름:** TrueWords Platform (말씀 AI 챗봇)
 - **한 줄 설명:** 종교 텍스트(615권) 기반 RAG AI 챗봇 플랫폼
-- **기술 스택:** Flutter + FastAPI + Qdrant + PostgreSQL + Gemini 2.5
+- **기술 스택:** Next.js 16 (Admin) + Flutter (Mobile, Phase 4) + FastAPI + Qdrant + PostgreSQL + Gemini 2.5
 
 ### 핵심 도메인
 
@@ -179,8 +190,10 @@ test: 테스트 추가/수정
 
 ### 현재 작업
 
-- MVP 개발 준비 단계 (아키텍처/설계 문서 완료, 코드 작성 시작 전)
-- Qdrant 기반 새 아키텍처로 재개발
+- Backend 95%, Admin Dashboard 95% 구현 완료
+- 274 pytest + 25 Vitest + 12 E2E 테스트 운영 중
+- GCP Cloud Run + Vercel 배포 완료
+- Flutter Mobile MVP (Phase 4) 미착수
 
 ### 핵심 설계 문서
 
@@ -193,11 +206,13 @@ test: 테스트 추가/수정
 > 아래 파일에 상세 스택 규칙이 정의되어 있습니다.
 > `@import`를 지원하지 않는 도구는 이 경로를 직접 열어 참조하세요.
 
-- `.ai/rules/backend.md` — FastAPI + SQLModel + Gemini + Qdrant 규칙
-- `.ai/rules/global.md` — 문서화, Git Convention, 환경변수
-- `.ai/rules/rag-pipeline.md` — RAG 파이프라인 코딩 패턴
-- `.ai/rules/domain.md` — 종교 도메인 규칙, 보안 가드레일
-- `.ai/stacks/flutter/mobile.md` — Flutter 프론트엔드 규칙
+- `.ai/stacks/fastapi/backend.md` — FastAPI + SQLModel + Gemini + Qdrant 규칙
+- `.ai/common/global.md` — 문서화, Git Convention, 환경변수
+- `.ai/project/rag-pipeline.md` — RAG 파이프라인 코딩 패턴
+- `.ai/project/domain.md` — 종교 도메인 규칙, 보안 가드레일
+- `.ai/rules/frontend.md` — Next.js 16 Admin Dashboard 규칙
+- `.ai/common/typescript.md` — TypeScript 공통 규칙
+- `.ai/stacks/flutter/mobile.md` — Flutter 모바일 규칙 (Phase 4)
 
 ## Skill routing
 

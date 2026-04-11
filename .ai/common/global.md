@@ -96,29 +96,42 @@ test: 테스트 추가/수정
 - `.env.example` 파일을 항상 최신 상태로 유지한다
 
 ```bash
-# 환경 변수 목록 (.env.example 기준)
+# 환경 변수 목록 (실제 사용 기준)
 
-# Auth
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-
-# Database
-DATABASE_URL=                    # PostgreSQL connection string
-
-# Storage (Cloudflare R2)
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET_NAME=
-R2_PUBLIC_URL=
+# 환경 구분
+ENVIRONMENT=development          # development | staging | production
 
 # AI (Gemini)
-GEMINI_API_KEY=
+GEMINI_API_KEY=                  # SecretStr
+GEMINI_TIER=free                 # free | paid (임베딩 배치 프리셋 자동 적용)
+
+# Database
+DATABASE_URL=                    # PostgreSQL connection string (SecretStr)
 
 # Vector DB (Qdrant)
-QDRANT_URL=
-QDRANT_API_KEY=
+QDRANT_URL=http://localhost:6333
+QDRANT_API_KEY=                  # SecretStr (optional)
+COLLECTION_NAME=malssum_poc
 
-# App
-NEXT_PUBLIC_API_URL=
+# Admin JWT 인증
+ADMIN_JWT_SECRET=                # SecretStr (프로덕션 필수 변경)
+ADMIN_JWT_ALGORITHM=HS256
+ADMIN_JWT_EXPIRE_MINUTES=1440    # 24시간
+
+# Admin Frontend (CORS)
+ADMIN_FRONTEND_URL=http://localhost:3000
+COOKIE_SECURE=false              # 프로덕션 True 필수
+
+# Safety
+SAFETY_MAX_QUERY_LENGTH=1000
+RATE_LIMIT_MAX_REQUESTS=20
+RATE_LIMIT_WINDOW_SECONDS=60
+
+# Semantic Cache
+CACHE_COLLECTION_NAME=semantic_cache
+CACHE_THRESHOLD=0.93
+CACHE_TTL_DAYS=7
+
+# Frontend (Next.js Admin)
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
