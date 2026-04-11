@@ -11,6 +11,8 @@ import {
   LayoutDashboard,
   Bot,
   Database,
+  ScrollText,
+  Settings,
   Menu,
   LogOut,
 } from "lucide-react";
@@ -19,6 +21,8 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
   { href: "/chatbots", label: "챗봇", icon: Bot },
   { href: "/data-sources", label: "데이터 소스", icon: Database },
+  { href: "/audit-logs", label: "감사 로그", icon: ScrollText },
+  { href: "/settings", label: "설정", icon: Settings },
 ];
 
 function SidebarContent({

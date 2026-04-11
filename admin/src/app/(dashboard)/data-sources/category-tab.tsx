@@ -78,6 +78,15 @@ export default function CategoryTab() {
     [allVolumes]
   );
 
+  // Qdrant에는 있지만 카테고리 테이블에 없는 source 감지 (ADR-26)
+  const unregisteredSources = useMemo(() => {
+    if (!categoryStats) return [];
+    const registeredKeys = new Set(categories.map((c) => c.key));
+    return categoryStats
+      .filter((s) => !registeredKeys.has(s.source))
+      .map((s) => s.source);
+  }, [categoryStats, categories]);
+
   const openTransfer = (key: string | null, name: string, color?: string) => {
     setTransferTarget({ key, name, color });
     setTransferOpen(true);
@@ -235,6 +244,39 @@ export default function CategoryTab() {
           </Button>
         </div>
       </div>
+
+      {/* 미등록 source 경고 (ADR-26: Qdrant에 있지만 카테고리 미등록) */}
+      {unregisteredSources.length > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 flex items-start gap-3">
+          <Tag className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-amber-800">
+              Qdrant에 등록되지 않은 소스가 {unregisteredSources.length}개 있습니다
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              검색 티어에서 사용하려면 카테고리로 등록하세요
+            </p>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {unregisteredSources.map((source) => (
+                <Button
+                  key={source}
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs border-amber-300 text-amber-800 hover:bg-amber-100"
+                  onClick={() => {
+                    setEditing(null);
+                    setForm({ ...EMPTY_FORM, key: source, name: source });
+                    setSheetOpen(true);
+                  }}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  {source} 등록
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 테이블 */}
       <div className="rounded-xl border bg-card overflow-hidden">
