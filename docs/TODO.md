@@ -111,9 +111,19 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] 보안 가드레일 검증 (Prompt Injection, Rate Limiting)
 - [ ] 답변 품질/출처 정확도 평가
 
-### 3. 검색 파이프라인 고도화 (고우선순위)
-- [ ] Query Expansion/Rewriting 구현
-- [ ] 검색 결과 0건 시 사용자 친화적 fallback 메시지
+### 3. 검색 파이프라인 고도화 (고우선순위, 진행 중)
+> 브랜치: `feat/query-rewriting-fallback`
+> 설계: `~/.gstack/projects/woosung-dev-truewords-platform/woosung-main-design-20260411-094500.md`
+> 구현 계획: `docs/superpowers/plans/2026-04-11-query-rewriting-fallback.md`
+
+- [x] Task 1: Query Rewriter 모듈 (`search/query_rewriter.py` + 테스트 5개)
+- [x] Task 2: Fallback Search 모듈 (`search/fallback.py` + 테스트 6개)
+- [ ] Task 3: 스키마 확장 — SearchTiersConfig에 `query_rewrite_enabled`, SearchEvent에 `rewritten_query` 컬럼, Admin types, Alembic 마이그레이션
+- [ ] Task 4: ChatbotService `get_search_config` 반환값 확장 — `tuple[CascadingConfig, bool, bool]`로 변경
+- [ ] Task 5: chat/service.py 파이프라인 통합 — process_chat/process_chat_stream에 rewrite + fallback 삽입
+- [ ] Task 6: Admin UI 토글 — 챗봇 설정 폼에 query_rewrite_enabled Switch 추가
+- [ ] Task 7: 기존 테스트 호환성 수정 — get_search_config mock 2-tuple → 3-tuple
+- [ ] Task 8: TODO.md 업데이트 + 전체 테스트 검증
 
 ### 4. 임베딩 Batch API 지원 (중우선순위, 유료 전용)
 - [ ] Gemini Batch API 인제스트 옵션 추가 ($0.075/M, Standard 대비 50% 할인)
