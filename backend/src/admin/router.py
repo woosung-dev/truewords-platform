@@ -111,3 +111,11 @@ async def get_audit_logs(
         )
         for log in logs
     ]
+
+
+@router.get("/settings/config")
+async def get_settings_config(
+    current_admin: dict = Depends(get_current_admin),
+) -> dict:
+    """프론트엔드에 필요한 시스템 설정 조회."""
+    return {"gemini_tier": settings.gemini_tier}
