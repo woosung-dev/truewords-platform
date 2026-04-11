@@ -6,9 +6,9 @@
 
 ```
 설계/문서     ████████████████████ 100%
-Backend       ██████████████████░░  90%
-Admin Web     █████████████████░░░  85%
-테스트        ████████████████░░░░  82%  (244 + 25개)
+Backend       ██████████████████░░  92%
+Admin Web     ██████████████████░░  92%
+테스트        █████████████████░░░  85%  (274 + 25개)
 인프라/배포    ██████████████████░░  90%
 Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 데이터        ██████████░░░░░░░░░░  50%  (L+M만 적재)
@@ -68,6 +68,17 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] 문서 Transfer 왼쪽 패널 전체 문서 목록 재설계 (PR #10, 2026-04-11)
 - [x] SearchTierEditor 점수 임계값 힌트를 RRF 스케일(0.05~0.3 권장)로 변경 + 새 티어 기본값 0.1
 
+### Admin UI 개선 (2026-04-11)
+- [x] 감사 로그 조회 페이지 — 테이블 + 페이지네이션, 기존 GET /admin/audit-logs API 활용
+- [x] 관리자 계정 생성 페이지 — 설정 페이지에 계정 생성 폼, POST /admin/users API 활용
+- [x] 사이드바 네비게이션 확장 — 감사 로그 + 설정 메뉴 추가
+- [x] Qdrant 미등록 source 감지 배너 — 카테고리 탭에서 미등록 source 자동 감지 + 원클릭 등록 (ADR-26 후속)
+
+### Backend — 보안 강화 (2026-04-11)
+- [x] Prompt Injection 패턴 강화 — Zero-width 정규화, 패턴 7개 추가 (16→23개)
+- [x] 시스템 프롬프트 보안 규칙 — 유출 방어, 컨텍스트 주입 방어, 범위 이탈 방어
+- [x] 레드팀 테스트 32개 — injection 우회, 오탐, 출력 안전성, rate limit
+
 ### Backend — 검색 파이프라인 고도화 (2026-04-11)
 - [x] Query Rewriting — 구어체→종교 용어 재작성, Gemini 3.1 Pro Lite, 800ms timeout, graceful degradation
 - [x] 0건 Fallback — source 필터 제거 재검색 → LLM 질문 제안 두 단계
@@ -77,7 +88,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] Admin UI 토글 (new/edit 페이지에 Query Rewriting 체크박스)
 
 ### 테스트
-- [x] Backend pytest 244개 (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback 등)
+- [x] Backend pytest 274개 (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback, 레드팀 등)
 - [x] Admin Vitest 25개 (로그인, SearchTierEditor, API)
 - [x] Admin Playwright E2E 12개 (로그인, 챗봇 CRUD, 인증 가드)
 
@@ -114,10 +125,11 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] `backend/src/chatbot/service.py` `DEFAULT_CASCADING_CONFIG` score_threshold 기본값을 RRF 스케일(0.1)로 하향 + 주석 명시
 - [x] `process_chat()`/`process_chat_stream()` 에서 검색 결과 0건 또는 "찾지 못했습니다" 응답은 semantic_cache에 저장하지 않도록 가드 추가
 
-### 2. 레드팀 테스트 (고우선순위)
-- [ ] 내부 팀 대상 악의적 질문 테스트 시나리오 작성
-- [ ] 보안 가드레일 검증 (Prompt Injection, Rate Limiting)
-- [ ] 답변 품질/출처 정확도 평가
+### 2. 레드팀 테스트 (완료)
+- [x] 테스트 시나리오 작성 + 자동화 테스트 32개 (PR #13, 2026-04-11)
+- [x] Prompt Injection 패턴 강화 (16→23개) + 입력 정규화
+- [x] 시스템 프롬프트 보안 규칙 추가
+- [ ] 답변 품질/출처 정확도 평가 (실제 데이터 확보 후)
 
 ### 3. 검색 파이프라인 고도화 (완료)
 > 브랜치: `feat/query-rewriting-fallback`
@@ -136,8 +148,10 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] 인제스트 파이프라인으로 적재
 - [ ] 다중 챗봇 버전 실제 동작 검증
 
-### 6. Admin UI 개선 (중우선순위)
-- [ ] 카테고리/태그 관리 UI 완성
+### 6. Admin UI 개선 (완료)
+- [x] 카테고리/태그 관리 UI — 이미 구현 완료 확인
+- [x] 감사 로그 / 관리자 관리 / 네비게이션 확장 (2026-04-11)
+- [x] Qdrant 미등록 source 감지 배너 (ADR-26 후속)
 - [x] SearchTierEditor 점수 범위 힌트 UI
 
 ### 7. Flutter 모바일 앱 (저우선순위, Phase 4)
