@@ -12,6 +12,8 @@ import {
   Bot,
   Database,
   ScrollText,
+  BarChart3,
+  MessageSquare,
   Settings,
   Menu,
   LogOut,
@@ -21,6 +23,8 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
   { href: "/chatbots", label: "챗봇", icon: Bot },
   { href: "/data-sources", label: "데이터 소스", icon: Database },
+  { href: "/analytics", label: "검색 분석", icon: BarChart3 },
+  { href: "/feedback", label: "피드백", icon: MessageSquare },
   { href: "/audit-logs", label: "감사 로그", icon: ScrollText },
   { href: "/settings", label: "설정", icon: Settings },
 ];

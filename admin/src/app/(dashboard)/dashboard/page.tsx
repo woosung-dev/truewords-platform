@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { chatbotAPI } from "@/features/chatbot/api";
 import { dataAPI } from "@/features/data-source/api";
+import { analyticsAPI } from "@/features/analytics/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Database, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
+import { Bot, Database, CheckCircle2, AlertCircle, ArrowRight, Search, ThumbsUp, ThumbsDown } from "lucide-react";
 
 function StatCard({
   label,
@@ -55,13 +56,23 @@ export default function DashboardPage() {
   const { data: status, isLoading: statusLoading } = useQuery({
     queryKey: ["ingest-status"],
     queryFn: dataAPI.getStatus,
-    staleTime: 30000, // 30초 캐시 (불필요한 폴링 제거)
+    staleTime: 30000,
+  });
+
+  const { data: summary, isLoading: summaryLoading } = useQuery({
+    queryKey: ["dashboard-summary"],
+    queryFn: analyticsAPI.getDashboardSummary,
+    staleTime: 60000,
   });
 
   const totalChatbots = chatbots?.total ?? 0;
   const activeChatbots = chatbots?.items.filter((c) => c.is_active).length ?? 0;
   const totalChunks = status?.summary.total_chunks ?? 0;
   const failedFiles = status?.summary.failed_count ?? 0;
+  const todayQuestions = summary?.today_questions ?? 0;
+  const weekQuestions = summary?.week_questions ?? 0;
+  const helpfulCount = summary?.feedback_helpful ?? 0;
+  const negativeCount = summary?.feedback_negative ?? 0;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -100,6 +111,37 @@ export default function DashboardPage() {
           icon={AlertCircle}
           color={failedFiles > 0 ? "red" : "default"}
           loading={statusLoading}
+        />
+      </div>
+
+      {/* 검색 & 피드백 메트릭 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="오늘 질문"
+          value={todayQuestions}
+          icon={Search}
+          loading={summaryLoading}
+        />
+        <StatCard
+          label="이번 주 질문"
+          value={weekQuestions}
+          icon={Search}
+          color="blue"
+          loading={summaryLoading}
+        />
+        <StatCard
+          label="긍정 피드백"
+          value={helpfulCount}
+          icon={ThumbsUp}
+          color="green"
+          loading={summaryLoading}
+        />
+        <StatCard
+          label="부정 피드백"
+          value={negativeCount}
+          icon={ThumbsDown}
+          color={negativeCount > 0 ? "red" : "default"}
+          loading={summaryLoading}
         />
       </div>
 
