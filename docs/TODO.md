@@ -6,9 +6,9 @@
 
 ```
 설계/문서     ████████████████████ 100%
-Backend       █████████████████░░░  88%
-Admin Web     █████████████████░░░  83%
-테스트        ████████████████░░░░  80%  (190 + 37개)
+Backend       ██████████████████░░  90%
+Admin Web     █████████████████░░░  85%
+테스트        ████████████████░░░░  82%  (244 + 25개)
 인프라/배포    ██████████████████░░  90%
 Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 데이터        ██████████░░░░░░░░░░  50%  (L+M만 적재)
@@ -68,8 +68,16 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] 문서 Transfer 왼쪽 패널 전체 문서 목록 재설계 (PR #10, 2026-04-11)
 - [x] SearchTierEditor 점수 임계값 힌트를 RRF 스케일(0.05~0.3 권장)로 변경 + 새 티어 기본값 0.1
 
+### Backend — 검색 파이프라인 고도화 (2026-04-11)
+- [x] Query Rewriting — 구어체→종교 용어 재작성, Gemini 3.1 Pro Lite, 800ms timeout, graceful degradation
+- [x] 0건 Fallback — source 필터 제거 재검색 → LLM 질문 제안 두 단계
+- [x] chatbot_config query_rewrite_enabled 토글 (챗봇별 ON/OFF)
+- [x] SearchEvent rewritten_query 컬럼 추가
+- [x] chat/service.py 파이프라인 통합 (process_chat + process_chat_stream)
+- [x] Admin UI 토글 (new/edit 페이지에 Query Rewriting 체크박스)
+
 ### 테스트
-- [x] Backend pytest 190개 (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍 등)
+- [x] Backend pytest 244개 (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback 등)
 - [x] Admin Vitest 25개 (로그인, SearchTierEditor, API)
 - [x] Admin Playwright E2E 12개 (로그인, 챗봇 CRUD, 인증 가드)
 
@@ -111,9 +119,11 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] 보안 가드레일 검증 (Prompt Injection, Rate Limiting)
 - [ ] 답변 품질/출처 정확도 평가
 
-### 3. 검색 파이프라인 고도화 (고우선순위)
-- [ ] Query Expansion/Rewriting 구현
-- [ ] 검색 결과 0건 시 사용자 친화적 fallback 메시지
+### 3. 검색 파이프라인 고도화 (완료)
+> 브랜치: `feat/query-rewriting-fallback`
+> 구현 계획: `docs/superpowers/plans/2026-04-11-query-rewriting-fallback.md`
+
+- [x] Task 1~8 전체 완료 (2026-04-11)
 
 ### 4. 임베딩 Batch API 지원 (중우선순위, 유료 전용)
 - [ ] Gemini Batch API 인제스트 옵션 추가 ($0.075/M, Standard 대비 50% 할인)

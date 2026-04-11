@@ -169,6 +169,16 @@ def test_search_tiers_config_empty_tiers():
     assert config.tiers == []
 
 
+def test_search_tiers_config_query_rewrite_default():
+    config = SearchTiersConfig(tiers=[])
+    assert config.query_rewrite_enabled is False
+
+
+def test_search_tiers_config_query_rewrite_enabled():
+    config = SearchTiersConfig(tiers=[], query_rewrite_enabled=True)
+    assert config.query_rewrite_enabled is True
+
+
 def test_search_tiers_config_valid():
     config = SearchTiersConfig(
         tiers=[

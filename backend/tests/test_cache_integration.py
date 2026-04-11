@@ -38,7 +38,7 @@ def _make_chat_service(cache_service=None):
     chat_repo.create_message.return_value = msg
 
     config = CascadingConfig(tiers=[SearchTier(sources=["A", "B"])])
-    chatbot_service.get_search_config.return_value = (config, False)
+    chatbot_service.get_search_config.return_value = (config, False, False)
     chatbot_service.get_config_id.return_value = 1
 
     return (

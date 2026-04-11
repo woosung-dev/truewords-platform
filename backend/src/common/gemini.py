@@ -11,6 +11,7 @@ _client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
 
 MODEL_FLASH = "gemini-2.5-flash"
 MODEL_EMBEDDING = "gemini-embedding-001"
+MODEL_PRO_LITE = "gemini-3.1-pro-lite"
 
 
 async def embed_dense_document(text: str) -> list[float]:

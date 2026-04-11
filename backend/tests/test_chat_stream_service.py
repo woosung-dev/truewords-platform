@@ -42,7 +42,7 @@ def _make_chat_service() -> tuple[ChatService, AsyncMock, AsyncMock]:
     chat_repo.create_message.return_value = msg
 
     config = CascadingConfig(tiers=[SearchTier(sources=["A", "B"])])
-    chatbot_service.get_search_config.return_value = (config, False)
+    chatbot_service.get_search_config.return_value = (config, False, False)
     chatbot_service.get_config_id.return_value = 1
 
     return ChatService(chat_repo=chat_repo, chatbot_service=chatbot_service), chat_repo, chatbot_service
