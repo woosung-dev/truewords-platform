@@ -28,11 +28,26 @@ paths: ["admin/**/*"]
 
 ### Next.js 16 필수 패턴
 
-- `params`, `searchParams`는 **`Promise<>`** 타입 → `await` 필수
+- `params`, `searchParams`는 **`Promise<>`** 타입
+- 클라이언트 컴포넌트: `use(params)` (React 19 `use()` 훅)
+- 서버 컴포넌트: `await params` (async function)
 - `node_modules/next/dist/docs/` 참조 필수
 
 ```typescript
-// ✅ Next.js 16
+// ✅ 클라이언트 컴포넌트 — use() 훅 사용 (현재 패턴)
+"use client";
+import { use } from "react";
+
+export default function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  return <Detail id={id} />;
+}
+
+// ✅ 서버 컴포넌트 — await 사용
 export default async function Page({
   params,
 }: {

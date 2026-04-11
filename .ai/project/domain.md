@@ -89,33 +89,28 @@ async def apply_safety_layer(answer: str) -> str:
 
 ## 3. 다중 챗봇 버전
 
-### Payload 기반 필터
+### source 기반 필터 (Cascading Search)
 
-챗봇 버전에 따라 검색 대상 데이터를 필터링한다.
+챗봇 버전에 따라 `ChatbotConfig.search_tiers` JSON으로 검색 전략을 정의한다.
+Payload의 `source` 필드(리스트)로 데이터를 필터링한다.
 
 ```python
-CHATBOT_FILTERS = {
-    "말씀선집_only":     {"book_type": "malssum"},
-    "어머니말씀_only":   {"book_type": "mother"},
-    "말씀선집+원리강론": {"book_type": ["malssum", "wonri"]},
-    "전체":             {},  # 필터 없음
+# chatbot/models.py — ChatbotConfig.search_tiers 예시
+{
+    "tiers": [
+        {"sources": ["A", "B"], "min_results": 3, "score_threshold": 0.1},
+        {"sources": ["C"], "min_results": 3, "score_threshold": 0.08}
+    ],
+    "rerank_enabled": true,
+    "query_rewrite_enabled": true
 }
 
-def get_filter_for_chatbot(chatbot_id: str) -> dict:
-    return CHATBOT_FILTERS.get(chatbot_id, {})
+# search/cascading.py — Tier별 순차 검색
+# Tier 1: source=["A", "B"] → 결과 부족 시 → Tier 2: source=["C"] 폴백
 ```
 
-### book_type 열거형
-
-```python
-from enum import StrEnum
-
-class BookType(StrEnum):
-    MALSSUM = "malssum"     # 말씀선집
-    MOTHER = "mother"       # 어머니 말씀
-    WONRI = "wonri"         # 원리강론
-    DICT = "dict"           # 대사전
-```
+> **참고:** `book_type` 열거형은 아키텍처 설계에 계획되어 있으나 현재 미구현.
+> 현재는 `source` 필드(문자열 리스트)로 카테고리를 구분한다.
 
 ---
 

@@ -48,19 +48,20 @@ Admin 대시보드 인증은 HttpOnly Cookie 기반 JWT를 사용한다. (Clerk 
 
 ```python
 # admin/auth.py
-from passlib.context import CryptContext
-from jose import jwt
-
-pwd_context = CryptContext(schemes=["bcrypt"])
+import bcrypt
+from jose import JWTError, jwt
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 def create_access_token(data: dict) -> str:
-    return jwt.encode(data, settings.admin_jwt_secret.get_secret_value(), algorithm="HS256")
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.admin_jwt_expire_minutes)
+    to_encode["exp"] = expire
+    return jwt.encode(to_encode, settings.admin_jwt_secret.get_secret_value(), algorithm=settings.admin_jwt_algorithm)
 
 # admin/dependencies.py — HttpOnly Cookie에서 JWT 추출
 async def get_current_admin(request: Request) -> AdminUser:
@@ -191,61 +192,31 @@ client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
 ### 모델 선택
 
 ```python
-# 일반 답변 (속도 우선)
+# 일반 답변 + 스트리밍 생성 (속도 우선)
 MODEL_FLASH = "gemini-2.5-flash"
 
-# 심층 분석 (품질 우선)
-MODEL_PRO = "gemini-2.5-pro"
+# 임베딩
+MODEL_EMBEDDING = "gemini-embedding-001"
+
+# 경량 분석 (리랭킹, 쿼리 재작성)
+MODEL_PRO_LITE = "gemini-3.1-pro-lite"
 ```
 
-### 스트리밍 생성
+### 텍스트 생성 / 스트리밍
 
 ```python
-async def stream_generate(prompt: str, model: str = MODEL_FLASH):
-    response = client.models.generate_content_stream(
-        model=model,
-        contents=prompt,
-    )
-    for chunk in response:
-        yield chunk.text
-```
+# common/gemini.py — 비동기 aio 클라이언트 사용
+async def generate_text(prompt: str, system_instruction: str = "", model: str = MODEL_FLASH) -> str:
+    config = types.GenerateContentConfig()
+    if system_instruction:
+        config = types.GenerateContentConfig(system_instruction=system_instruction)
+    response = await _client.aio.models.generate_content(model=model, contents=prompt, config=config)
+    return response.text
 
-### JSON 모드
-
-```python
-response = client.models.generate_content(
-    model=MODEL_FLASH,
-    contents=prompt,
-    config={
-        "response_mime_type": "application/json",
-    },
-)
-```
-
-### Context Caching (정적 콘텐츠)
-
-원리강론, 대사전 등 변경 빈도가 낮은 대용량 콘텐츠는 Context Caching 활용.
-
-```python
-from google.genai import types
-
-cache = client.caches.create(
-    model=MODEL_FLASH,
-    contents=[large_static_content],
-    config=types.CreateCachedContentConfig(
-        display_name="wonri-gangron-cache",
-        ttl="3600s",
-    ),
-)
-
-# 캐시된 컨텍스트로 생성
-response = client.models.generate_content(
-    model=MODEL_FLASH,
-    contents=user_question,
-    config=types.GenerateContentConfig(
-        cached_content=cache.name,
-    ),
-)
+async def generate_text_stream(prompt: str, system_instruction: str = "", model: str = MODEL_FLASH) -> AsyncGenerator[str, None]:
+    async for chunk in _client.aio.models.generate_content_stream(model=model, contents=prompt, config=config):
+        if chunk.text:
+            yield chunk.text
 ```
 
 ---
@@ -270,25 +241,31 @@ async def upload_document(
 
 ## 6. SSE 스트리밍 응답
 
+3가지 이벤트 타입으로 구성: `chunk` (텍스트 조각), `sources` (출처 + 세션 ID), `done` (면책 고지).
+
 ```python
-from fastapi.responses import StreamingResponse
-from common.gemini import client, MODEL_FLASH
-
-@router.post("/ask")
-async def ask(
-    data: AskRequest,
-    service: RAGService = Depends(get_rag_service),
-):
-    async def generate():
-        async for chunk in service.stream_answer(data):
-            yield f"data: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
-        yield "data: [DONE]\n\n"
-
+# chat/router.py
+@router.post("/chat/stream")
+async def chat_stream(request: ChatRequest, service: ChatService = Depends(get_chat_service)):
     return StreamingResponse(
-        generate(),
+        service.process_chat_stream(request),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+# chat/service.py — 3가지 SSE 이벤트 yield
+async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:
+    # 검색 + Re-ranking (스트림 시작 전 블로킹)
+    ...
+    # LLM 스트리밍 응답 → chunk 이벤트
+    async for text in generate_text_stream(prompt, system_prompt):
+        yield f"event: chunk\ndata: {json.dumps({'text': text}, ensure_ascii=False)}\n\n"
+
+    # 출처 + 메타데이터 → sources 이벤트
+    yield f"event: sources\ndata: {json.dumps({'sources': sources_data, 'session_id': str(session.id), 'message_id': str(msg.id)}, ensure_ascii=False)}\n\n"
+
+    # 면책 고지 → done 이벤트
+    yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
 ```
 
 ---
@@ -316,68 +293,69 @@ def get_async_client() -> AsyncQdrantClient:
 
 ### 컬렉션 구조
 
-3개의 독립 컬렉션 운영 (doc 02 아키텍처 참조):
+현재 2개 컬렉션 운영:
 
 ```python
-COLLECTIONS = {
-    "malssum": "malssum_collection",      # 말씀 본문 (sparse+dense)
-    "dictionary": "dictionary_collection",  # 용어사전 (dense only)
-    "wonri": "wonri_collection",           # 원리강론 (sparse+dense)
-    "cache": "semantic_cache",             # Semantic Cache
-}
+# config.py 기준
+settings.collection_name = "malssum_poc"        # 말씀 본문 (sparse + dense)
+settings.cache_collection_name = "semantic_cache" # Semantic Cache (dense only)
 ```
+
+> **참고:** 아키텍처 문서(doc 02)에는 dictionary_collection, wonri_collection도 계획되어 있으나,
+> 현재 구현은 단일 malssum 컬렉션 + 카테고리(source) 필터링 방식.
 
 ### Payload 스키마
 
 ```python
-# 모든 청크에 필수 메타데이터
+# pipeline/ingestor.py — 실제 적재 포맷
 payload = {
     "text": "말씀 본문...",
-    "source": "A",                  # 데이터 소스 식별자
-    "book_type": "malssum",         # malssum | mother | wonri | dict
-    "volume": 45,                   # 권
-    "year": 1990,                   # 연도
-    "chapter": "제3장",             # 장
-    "parent_chunk_id": "chunk_001", # 계층적 청킹 부모 ID
+    "volume": "001권",              # 권 이름 (문자열)
+    "chunk_index": 0,               # 청크 순서 번호
+    "source": ["A"],                # 데이터 소스 식별자 (리스트)
+    "title": "제목",                # 추출된 제목
+    "date": "1956년 10월 3일",      # 추출된 날짜
 }
 ```
 
 ### 하이브리드 검색 (sparse + dense)
 
 ```python
+# search/hybrid.py
 from qdrant_client.models import (
-    FieldCondition, Filter, MatchValue,
-    Prefetch, Query, FusionQuery, Fusion,
+    FieldCondition, Filter, MatchAny,
+    Prefetch, FusionQuery, Fusion,
 )
 
 async def hybrid_search(
+    qdrant: AsyncQdrantClient,
     query_dense: list[float],
-    query_sparse: dict,
-    book_type_filter: str | None = None,
-    limit: int = 50,
-) -> list:
+    query_sparse: SparseVector,
+    source_filter: list[str] | None = None,  # ["A", "B"] 소스 필터
+    top_k: int = 50,
+) -> list[SearchResult]:
     filter_conditions = None
-    if book_type_filter:
+    if source_filter:
         filter_conditions = Filter(
-            must=[FieldCondition(key="book_type", match=MatchValue(value=book_type_filter))]
+            must=[FieldCondition(key="source", match=MatchAny(any=source_filter))]
         )
 
     results = await qdrant.query_points(
-        collection_name=COLLECTIONS["malssum"],
+        collection_name=settings.collection_name,
         prefetch=[
-            Prefetch(query=query_sparse, using="sparse", limit=limit),
-            Prefetch(query=query_dense, using="dense", limit=limit),
+            Prefetch(query=query_sparse, using="sparse", limit=top_k),
+            Prefetch(query=query_dense, using="dense", limit=top_k),
         ],
-        query=FusionQuery(fusion=Fusion.RRF),  # Reciprocal Rank Fusion
+        query=FusionQuery(fusion=Fusion.RRF),
         query_filter=filter_conditions,
-        limit=limit,
+        limit=top_k,
     )
-    return results.points
+    return [SearchResult(...) for point in results.points]
 ```
 
 ### 금지 사항
-- 사전(dictionary)과 말씀(malssum) 데이터를 같은 컬렉션에 혼합 금지
-- 임베딩 차원은 사용하는 모델에 맞게 설정
+- 임베딩 차원은 1536 고정 (gemini-embedding-001 기준)
+- Qdrant 호출은 반드시 `get_async_client()` 싱글톤 사용
 
 ---
 

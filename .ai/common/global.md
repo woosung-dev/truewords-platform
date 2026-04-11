@@ -132,6 +132,16 @@ CACHE_COLLECTION_NAME=semantic_cache
 CACHE_THRESHOLD=0.93
 CACHE_TTL_DAYS=7
 
+# Cascading Search 기본값
+CASCADE_SCORE_THRESHOLD=0.75
+CASCADE_FALLBACK_THRESHOLD=0.60
+CASCADE_MIN_RESULTS=3
+
+# 임베딩 파이프라인 (개별 override, 미설정 시 GEMINI_TIER 프리셋 적용)
+# EMBED_MAX_CHARS_PER_BATCH=       # TPM 방어 (분당 토큰)
+# EMBED_BATCH_SLEEP=               # RPM 방어 (분당 요청)
+# EMBED_RPD_LIMIT=                 # RPD 방어 (일일 요청)
+
 # Frontend (Next.js Admin)
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```

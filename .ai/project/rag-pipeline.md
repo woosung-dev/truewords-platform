@@ -36,32 +36,29 @@ paths: ["backend/src/search/**/*", "backend/src/pipeline/**/*", "backend/src/cac
 
 ---
 
-## 2. 3컬렉션 검색 패턴
+## 2. 컬렉션 구조 (현재 구현)
 
-각 컬렉션은 역할이 명확히 분리된다. **절대 혼합하지 않는다.**
+현재는 단일 컬렉션 + source 기반 카테고리 필터링으로 운영한다.
 
 | 컬렉션 | 데이터 | 검색 방식 | 용도 |
 |--------|--------|----------|------|
-| `malssum_collection` | 말씀 본문 청크 | sparse + dense (하이브리드) | 메인 검색 |
-| `dictionary_collection` | 종교 용어 사전 | dense only | 용어 감지 시 동적 주입 |
-| `wonri_collection` | 원리강론 청크 | sparse + dense (하이브리드) | 교리 질문 시 참조 |
+| `malssum_poc` (settings.collection_name) | 말씀 본문 청크 | sparse + dense (하이브리드) | 메인 검색 |
+| `semantic_cache` (settings.cache_collection_name) | 질문-답변 캐시 | dense only | Semantic Cache |
 
-### 검색 흐름
+> **향후 계획:** 아키텍처 문서(doc 02)에 `dictionary_collection`, `wonri_collection` 분리가 계획되어 있으나,
+> 현재는 단일 컬렉션 내 `source` payload 필터로 데이터를 구분한다.
+
+### 검색 흐름 (현재)
 
 ```python
-# 1. 모든 질문 → malssum 검색 (필수)
-malssum_results = await hybrid_search(malssum_collection, query, filter)
+# search/cascading.py — 단일 컬렉션, source 필터로 카테고리 구분
+# Tier 1: source=["A", "B"] 필터로 우선 검색
+results = await hybrid_search(qdrant, query_dense, query_sparse, source_filter=["A", "B"], top_k=50)
 
-# 2. 용어 감지 시 → dictionary 검색 (조건부)
-if detected_terms:
-    term_results = await dense_search(dictionary_collection, detected_terms)
-
-# 3. 교리 관련 질문 → wonri 검색 (조건부)
-if is_doctrine_question:
-    wonri_results = await hybrid_search(wonri_collection, query)
-
-# 4. 결과 병합 → RRF
-merged = rrf_fusion(malssum_results, wonri_results)
+# 결과 부족 시 → Tier 2: source=["C"] 폴백
+if len(results) < min_results:
+    fallback = await hybrid_search(qdrant, query_dense, query_sparse, source_filter=["C"], top_k=50)
+    results.extend(fallback)
 ```
 
 ---
