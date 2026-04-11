@@ -10,8 +10,9 @@ from src.chatbot.schemas import ChatbotConfigCreate, ChatbotConfigUpdate, Search
 from src.search.cascading import CascadingConfig, SearchTier
 
 # 단일 기본값 상수 (DRY)
+# RRF fusion 점수는 일반적으로 0.0~0.5 범위 (코사인 유사도 스케일이 아님)
 DEFAULT_CASCADING_CONFIG = CascadingConfig(
-    tiers=[SearchTier(sources=["A", "B", "C"], min_results=3, score_threshold=0.60)]
+    tiers=[SearchTier(sources=["A", "B", "C"], min_results=3, score_threshold=0.1)]
 )
 DEFAULT_RERANK_ENABLED = False
 
@@ -119,7 +120,7 @@ class ChatbotService:
             SearchTier(
                 sources=t["sources"],
                 min_results=t.get("min_results", 3),
-                score_threshold=t.get("score_threshold", 0.75),
+                score_threshold=t.get("score_threshold", 0.1),
             )
             for t in tiers_list
         ]
