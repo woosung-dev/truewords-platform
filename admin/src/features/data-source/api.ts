@@ -9,10 +9,11 @@ import type {
 } from "./types";
 
 export const dataAPI = {
-  uploadFile: async (file: File, source: string) => {
+  uploadFile: async (file: File, source: string, mode: "standard" | "batch" = "standard") => {
     const formData = new FormData()
     formData.append("file", file)
     formData.append("source", source)
+    formData.append("mode", mode)
 
     // FormData requests don't use "Content-Type: application/json"
     // Fetch automatically applies the correct multipart/form-data boundary

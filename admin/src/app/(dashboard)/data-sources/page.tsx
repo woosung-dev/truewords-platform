@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { dataAPI } from "@/features/data-source/api";
 import { useActiveCategories } from "@/features/data-source/hooks";
+import { fetchAPI } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +36,14 @@ export default function DataSourcesPage() {
   const [dragActive, setDragActive] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [activeTab, setActiveTab] = useState<"upload" | "categories">("upload");
+  const [mode, setMode] = useState<"standard" | "batch">("standard");
+
+  // Gemini 티어 조회 (유료 전용 배치 모드 활성화 여부)
+  const { data: configData } = useQuery({
+    queryKey: ["admin-config"],
+    queryFn: () => fetchAPI<{ gemini_tier: string }>("/admin/settings/config"),
+  });
+  const isPaidTier = configData?.gemini_tier === "paid";
 
   const defaultSource = "";
 
@@ -138,7 +147,7 @@ export default function DataSourcesPage() {
       prev.map((f) => (f.id === pf.id ? { ...f, status: "uploading" as const } : f))
     );
     try {
-      await dataAPI.uploadFile(pf.file, pf.source);
+      await dataAPI.uploadFile(pf.file, pf.source, mode);
       // 업로드 성공 → "처리 중" 상태로 변경
       setPendingFiles((prev) =>
         prev.map((f) =>
@@ -294,6 +303,39 @@ export default function DataSourcesPage() {
               onChange={handleFileInput}
               accept=".txt,.pdf,.docx"
             />
+          </div>
+
+          {/* 처리 방식 선택 */}
+          <div className="rounded-xl border bg-card p-4 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">처리 방식</p>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="upload-mode"
+                  value="standard"
+                  checked={mode === "standard"}
+                  onChange={() => setMode("standard")}
+                  className="accent-primary"
+                />
+                <span className="text-sm">즉시 처리</span>
+              </label>
+              <label className={`flex items-center gap-2 ${!isPaidTier ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+                <input
+                  type="radio"
+                  name="upload-mode"
+                  value="batch"
+                  checked={mode === "batch"}
+                  onChange={() => isPaidTier && setMode("batch")}
+                  disabled={!isPaidTier}
+                  className="accent-primary"
+                />
+                <span className="text-sm">배치 처리 (50% 할인)</span>
+                {!isPaidTier && (
+                  <Badge variant="outline" className="text-xs">유료 전용</Badge>
+                )}
+              </label>
+            </div>
           </div>
 
           {/* 대기 목록 */}
@@ -529,6 +571,9 @@ export default function DataSourcesPage() {
             </div>
           )}
 
+          {/* 배치 작업 목록 */}
+          <BatchJobList />
+
           {/* 빈 상태 */}
           {pendingFiles.length === 0 &&
             completedEntries.length === 0 &&
@@ -545,6 +590,68 @@ export default function DataSourcesPage() {
             )}
         </div>
       )}
+    </div>
+  );
+}
+
+interface BatchJobItem {
+  id: string;
+  filename: string;
+  total_chunks: number;
+  status: string;
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+function BatchJobList() {
+  const { data: jobs = [] } = useQuery({
+    queryKey: ["batch-jobs"],
+    queryFn: () => fetchAPI<BatchJobItem[]>("/admin/data-sources/batch-jobs"),
+    refetchInterval: (query) => {
+      const data = query.state.data ?? [];
+      const hasActive = data.some(
+        (j: BatchJobItem) => j.status === "pending" || j.status === "processing"
+      );
+      return hasActive ? 10000 : false;
+    },
+  });
+
+  if (jobs.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border bg-card p-5 space-y-3">
+      <h3 className="font-semibold text-sm">배치 작업</h3>
+      <div className="space-y-2">
+        {jobs.map((job) => (
+          <div
+            key={job.id}
+            className="flex items-center justify-between text-sm border-b pb-2 last:border-0"
+          >
+            <span className="truncate max-w-[200px]">{job.filename}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{job.total_chunks} 청크</span>
+              <Badge
+                variant={
+                  job.status === "completed"
+                    ? "default"
+                    : job.status === "failed"
+                      ? "destructive"
+                      : "secondary"
+                }
+              >
+                {job.status === "pending"
+                  ? "대기 중"
+                  : job.status === "processing"
+                    ? "처리 중"
+                    : job.status === "completed"
+                      ? "완료"
+                      : "실패"}
+              </Badge>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

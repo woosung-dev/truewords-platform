@@ -27,13 +27,13 @@ router = APIRouter(prefix="/admin/data-sources", tags=["data-sources"])
 _PROGRESS_FILE = Path(__file__).parent.parent.parent / "progress.json"
 
 
-def _process_file(file_path: Path, filename: str, source: str):
+def _process_file(file_path: Path, filename: str, source: str, mode: str = "standard"):
     """백그라운드에서 파일 청크 및 임베딩 처리."""
     tracker = ProgressTracker(_PROGRESS_FILE)
     volume_key = filename
 
     try:
-        logger.info("[%s] 처리 시작 (file_path=%s)", volume_key, file_path)
+        logger.info("[%s] 처리 시작 (file_path=%s, mode=%s)", volume_key, file_path, mode)
 
         # 1. 텍스트 추출
         text = extract_text(file_path)
@@ -57,27 +57,49 @@ def _process_file(file_path: Path, filename: str, source: str):
         )
         logger.info("[%s] 청킹 완료 (%d개 청크)", volume_key, len(chunks))
 
-        # 4. 재개 지점 확인 (청크 레벨 체크포인트)
-        start_chunk = tracker.get_resume_point(volume_key)
-        if start_chunk > 0:
-            logger.info("[%s] 청크 %d번부터 재개 (총 %d청크)", volume_key, start_chunk, len(chunks))
+        # 4. 모드별 분기
+        if mode == "batch":
+            # 배치 모드: Gemini Batch API에 제출
+            import asyncio
+            from src.common.database import async_session_factory
+            from src.pipeline.batch_repository import BatchJobRepository
+            from src.pipeline.batch_service import BatchService
 
-        # 5. Qdrant 적재
-        client = get_client()
-        stats = ingest_chunks(
-            client,
-            settings.collection_name,
-            chunks,
-            start_chunk=start_chunk,
-            title=meta["title"],
-            tracker=tracker,
-            volume_key=volume_key,
-        )
-        logger.info("[%s] 적재 완료 (%d청크, %.1f초)",
-                    volume_key, stats["chunk_count"], stats["elapsed_sec"])
+            chunk_texts = [c.text for c in chunks]
 
-        # 6. 성공 기록 (in_progress 자동 삭제)
-        tracker.mark_completed(volume_key, stats["chunk_count"])
+            async def _submit_batch():
+                from src.common.database import async_session_factory
+                async with async_session_factory() as session:
+                    repo = BatchJobRepository(session)
+                    svc = BatchService(repo=repo)
+                    await svc.submit(
+                        chunks_texts=chunk_texts,
+                        filename=filename,
+                        volume_key=volume_key,
+                        source=source,
+                    )
+
+            asyncio.run(_submit_batch())
+            logger.info("[%s] 배치 작업 제출 완료 (%d청크)", volume_key, len(chunks))
+        else:
+            # 즉시 모드: 기존 Standard API 적재
+            start_chunk = tracker.get_resume_point(volume_key)
+            if start_chunk > 0:
+                logger.info("[%s] 청크 %d번부터 재개 (총 %d청크)", volume_key, start_chunk, len(chunks))
+
+            client = get_client()
+            stats = ingest_chunks(
+                client,
+                settings.collection_name,
+                chunks,
+                start_chunk=start_chunk,
+                title=meta["title"],
+                tracker=tracker,
+                volume_key=volume_key,
+            )
+            logger.info("[%s] 적재 완료 (%d청크, %.1f초)",
+                        volume_key, stats["chunk_count"], stats["elapsed_sec"])
+            tracker.mark_completed(volume_key, stats["chunk_count"])
 
     except Exception as e:
         logger.exception("[%s] 처리 실패", volume_key)
@@ -93,10 +115,17 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     source: str = Form("", description="데이터 소스 카테고리 key (비워두면 미분류로 적재)"),
+    mode: str = Form("standard", description="처리 모드: standard | batch"),
     current_admin: dict = Depends(get_current_admin),
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
 ):
     """업로드된 파일을 백그라운드에서 RAG 지식 베이스로 적재합니다."""
+    # mode 검증
+    if mode not in ("standard", "batch"):
+        raise HTTPException(status_code=400, detail="mode는 standard 또는 batch만 가능합니다")
+    if mode == "batch" and settings.gemini_tier != "paid":
+        raise HTTPException(status_code=400, detail="배치 처리는 유료 티어에서만 사용 가능합니다")
+
     # source 유효성 검증
     if source:
         category = await datasource_service.get_by_key(source)
@@ -148,8 +177,8 @@ async def upload_document(
         del tracker.failed[safe_filename]
     tracker.save()
 
-    background_tasks.add_task(_process_file, tmp_path, safe_filename, source)
-    return {"message": "파일 업로드 및 처리 예약 완료", "filename": safe_filename}
+    background_tasks.add_task(_process_file, tmp_path, safe_filename, source, mode)
+    return {"message": "파일 업로드 및 처리 예약 완료", "filename": safe_filename, "mode": mode}
 
 
 @router.get("/status")
@@ -213,3 +242,31 @@ async def remove_volume_tag(
         return await qdrant_service.remove_volume_tag(request.volume, request.source)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/batch-jobs")
+async def list_batch_jobs(
+    current_admin: dict = Depends(get_current_admin),
+):
+    """배치 작업 목록 조회."""
+    from src.common.database import async_session_factory
+    from src.pipeline.batch_repository import BatchJobRepository
+
+    async with async_session_factory() as session:
+        repo = BatchJobRepository(session)
+        jobs = await repo.list_recent(limit=20)
+
+    return [
+        {
+            "id": str(job.id),
+            "batch_id": job.batch_id,
+            "filename": job.filename,
+            "source": job.source,
+            "total_chunks": job.total_chunks,
+            "status": job.status.value,
+            "error_message": job.error_message,
+            "created_at": job.created_at.isoformat(),
+            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+        }
+        for job in jobs
+    ]
