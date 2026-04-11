@@ -94,7 +94,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] **종교 용어 사전 동적 주입** — 대사전 데이터 미확보 [데이터 수급 필요]
 - [ ] **민감 인명 필터 구체화** — SENSITIVE_PATTERNS 목록 비어있음 [도메인 전문가 협의 필요]
 - [ ] **멀티테넌시** (organization_id 필터링) — 다중 조직 운영 요구사항 미확정 [확인 필요]
-- [ ] **데이터 source 라벨 체계 통일** — 적재 데이터 `L/M` vs 설계 `A/B/C/D` 이원화. 정규화 방향 결정 필요 [확인 필요] — 상세: `docs/dev-log/24-rrf-score-threshold-fix.md` §4-1
+- [x] ~~데이터 source 라벨 체계 통일~~ — **결정 완료 (2026-04-11)**: 옵션 A "라벨은 데이터가 정한다" 채택. 실제 적재 라벨(L/M 등)을 single source of truth로 사용, 설계 문서의 A/B/C/D는 논리적 분류 예시로 격하. SearchTierEditor에서 Qdrant 실제 source 값을 동적 표시하는 방향. 상세: `docs/dev-log/26-source-label-decision.md`
 
 ---
 
