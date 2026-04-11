@@ -29,7 +29,8 @@ class SearchTier:
 
     sources: list[str]
     min_results: int = 3
-    score_threshold: float = 0.75
+    # RRF fusion 점수는 Σ1/(k+rank) 형태로 일반적으로 0.0~0.5 범위
+    score_threshold: float = 0.1
 
 
 @dataclass

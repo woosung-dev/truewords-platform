@@ -126,7 +126,7 @@ def test_search_tier_schema_valid():
 def test_search_tier_schema_defaults():
     tier = SearchTierSchema(sources=["A"])
     assert tier.min_results == 3
-    assert tier.score_threshold == 0.75
+    assert tier.score_threshold == 0.1
 
 
 def test_search_tier_schema_invalid_min_results():

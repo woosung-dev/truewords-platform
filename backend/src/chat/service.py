@@ -162,12 +162,12 @@ class ChatService:
         )
         await self._record_citations(assistant_msg.id, results)
 
-        # [Cache] Step 9 — 캐시 저장
+        # [Cache] Step 9 — 캐시 저장 (빈 응답은 저장하지 않음)
         sources_for_cache = [
             {"volume": r.volume, "text": r.text, "score": r.score, "source": r.source}
             for r in results[:3]
         ]
-        if self.cache_service:
+        if self.cache_service and results and "찾지 못했습니다" not in answer:
             await self.cache_service.store_cache(
                 query=request.query,
                 query_embedding=query_embedding,
@@ -301,12 +301,12 @@ class ChatService:
         )
         await self._record_citations(assistant_msg.id, results)
 
-        # [Cache] 캐시 저장
+        # [Cache] 캐시 저장 (빈 응답은 저장하지 않음)
         sources_data = [
             {"volume": r.volume, "text": r.text[:200], "score": r.score, "source": r.source}
             for r in results[:3]
         ]
-        if self.cache_service:
+        if self.cache_service and results and "찾지 못했습니다" not in safe_answer:
             await self.cache_service.store_cache(
                 query=request.query,
                 query_embedding=query_embedding,

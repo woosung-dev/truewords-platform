@@ -23,7 +23,7 @@ export default function SearchTierEditor({
     const defaultSource = categories[0]?.key ?? "A";
     onChange([
       ...tiers,
-      { sources: [defaultSource], min_results: 3, score_threshold: 0.75 },
+      { sources: [defaultSource], min_results: 3, score_threshold: 0.1 },
     ]);
   }
 
@@ -196,7 +196,7 @@ export default function SearchTierEditor({
                 <Label className="text-xs text-muted-foreground">
                   점수 임계값
                   <span className="ml-1 text-[10px] text-muted-foreground/70">
-                    (높을수록 정확한 결과만 표시, 0.6~0.8 권장)
+                    (RRF fusion 점수 기준, 0.05~0.3 권장)
                   </span>
                 </Label>
               </div>

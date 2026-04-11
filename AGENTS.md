@@ -109,6 +109,8 @@ docs/
 
 ## 6. Git Convention
 
+### 커밋 메시지
+
 ```
 feat: 새로운 기능 추가
 fix: 버그 수정
@@ -117,6 +119,12 @@ docs: 문서 수정
 chore: 빌드, 설정 파일 수정
 test: 테스트 추가/수정
 ```
+
+### 브랜치 전략
+
+- main에 직접 커밋/푸쉬하지 않는다
+- 기능 브랜치를 만들고 PR을 통해 merge한다
+- 브랜치 네이밍: `{type}/{짧은-설명}` (예: `feat/volume-transfer-redesign`, `fix/rrf-score-threshold`)
 
 ---
 

@@ -33,7 +33,7 @@ describe("SearchTierEditor", () => {
     fireEvent.click(screen.getByText("티어 추가"));
 
     expect(onChange).toHaveBeenCalledWith([
-      { sources: ["A"], min_results: 3, score_threshold: 0.75 },
+      { sources: ["A"], min_results: 3, score_threshold: 0.1 },
     ]);
   });
 
@@ -63,7 +63,7 @@ describe("SearchTierEditor", () => {
     expect(screen.getAllByText("말씀선집").length).toBeGreaterThan(0);
     expect(screen.getAllByText("어머니말씀").length).toBeGreaterThan(0);
     expect(screen.getAllByText("원리강론").length).toBeGreaterThan(0);
-    expect(screen.getByText(/높을수록 정확한 결과만 표시/)).toBeInTheDocument();
+    expect(screen.getByText(/RRF fusion 점수 기준/)).toBeInTheDocument();
     expect(screen.getByText(/이 티어에서 최소 몇 개가 나와야 통과/)).toBeInTheDocument();
   });
 
@@ -81,7 +81,7 @@ describe("SearchTierEditor", () => {
 
     expect(onChange).toHaveBeenCalledWith([
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
-      { sources: ["A"], min_results: 3, score_threshold: 0.75 },
+      { sources: ["A"], min_results: 3, score_threshold: 0.1 },
     ]);
   });
 

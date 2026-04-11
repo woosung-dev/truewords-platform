@@ -17,7 +17,8 @@ class SearchTierSchema(BaseModel):
 
     sources: list[str] = Field(min_length=1)
     min_results: int = Field(ge=1, le=20, default=3)
-    score_threshold: float = Field(ge=0.0, le=1.0, default=0.75)
+    # RRF fusion 점수 기준 (일반적으로 0.0~0.5 범위)
+    score_threshold: float = Field(ge=0.0, le=1.0, default=0.1)
 
 
 class SearchTiersConfig(BaseModel):
