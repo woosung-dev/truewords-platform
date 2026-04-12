@@ -38,52 +38,34 @@ _UPSERT_BATCH_SIZE = 50
 #
 # 해결:
 #   1. embedder.py에서 SDK retry 중 429를 제외 (내부 retry 차단)
-#   2. 여기서 RPD 카운터로 한도 근접 시 사전 중단
+#   2. ProgressTracker.rpd 카운터로 한도 근접 시 사전 중단 (파일 영속화)
 #   3. 배치 간 sleep으로 TPM/RPM 동시 제어
+#
+# RPD 카운터는 progress.json에 날짜별로 저장되어 서버 재시작 후에도 유지된다.
 # ──────────────────────────────────────────────────────────────
 
-# 무료: 1000 RPD, 안전 마진 5% → 950에서 중단
 _RPD_LIMIT = getattr(settings, "embed_rpd_limit", 950)
-_rpd_counter: int = 0
-_rpd_reset_time: float = 0.0  # monotonic 시각 기준 다음 리셋 시점
+
+# 모듈 레벨 tracker 참조 (ingest_chunks에서 설정)
+_active_tracker: ProgressTracker | None = None
 
 
 def _get_rpd_count() -> int:
-    """현재 세션의 누적 RPD 요청 수 반환 (24시간 경과 시 자동 리셋)."""
-    global _rpd_counter, _rpd_reset_time
-    now = time.monotonic()
-    if now >= _rpd_reset_time:
-        _rpd_counter = 0
-        _rpd_reset_time = now + 86400  # 24시간 후 리셋
-    return _rpd_counter
+    """현재 RPD 사용량 반환. tracker가 있으면 파일 기반, 없으면 0."""
+    if _active_tracker is None:
+        return 0
+    return _active_tracker.get_rpd_count()
 
 
 def _increment_rpd(text_count: int = 1) -> int:
-    """RPD 카운터를 text_count만큼 증가 후 현재 값 반환.
-
-    Google 무료 티어는 배치 API 호출 수가 아니라 개별 텍스트 수를 카운트한다.
-
-    Args:
-        text_count: 증가할 텍스트 수 (기본 1).
-
-    Returns:
-        증가 후 누적 RPD 카운트.
-    """
-    global _rpd_counter
-    _get_rpd_count()  # 리셋 체크
-    _rpd_counter += text_count
-    return _rpd_counter
+    """RPD 카운터를 text_count만큼 증가 후 현재 값 반환. 파일에 즉시 저장."""
+    if _active_tracker is None:
+        return 0
+    return _active_tracker.increment_rpd(text_count)
 
 
 def _check_rpd_budget(needed: int) -> None:
-    """RPD 예산 사전 검증 — 소진 시 ValueError, 부족 시 경고 후 계속 진행.
-
-    Args:
-        needed: 이번 인제스트에서 필요한 텍스트 수.
-
-    Raises:
-        ValueError: RPD 예산이 완전히 소진된 경우.
-    """
+    """RPD 예산 사전 검증 — 소진 시 ValueError, 부족 시 경고 후 계속 진행."""
     current = _get_rpd_count()
     remaining = _RPD_LIMIT - current
     if remaining <= 0:
@@ -94,7 +76,7 @@ def _check_rpd_budget(needed: int) -> None:
     if remaining < needed:
         logger.warning(
             "RPD 예산 부족: %d/%d 텍스트 사용 중, %d텍스트 필요하지만 %d만 가능. "
-            "한도까지 처리 후 중단됩니다. --resume으로 내일 이어서 실행하세요.",
+            "한도까지 처리 후 중단됩니다. 재업로드로 내일 이어서 실행하세요.",
             current, _RPD_LIMIT, needed, remaining,
         )
     else:
@@ -187,8 +169,11 @@ def ingest_chunks(
     Returns:
         ``{"chunk_count": int, "elapsed_sec": float}`` 형태 dict.
     """
+    global _active_tracker
+    _active_tracker = tracker
+
     if not chunks:
-        return {"chunk_count": 0, "elapsed_sec": 0.0}
+        return {"chunk_count": 0, "total_chunks": 0, "elapsed_sec": 0.0, "is_partial": False}
 
     total = len(chunks)
 
@@ -198,7 +183,7 @@ def ingest_chunks(
 
     if effective_total == 0:
         logger.info("모든 청크 이미 적재됨 (start_chunk=%d, total=%d)", start_chunk, total)
-        return {"chunk_count": 0, "elapsed_sec": 0.0}
+        return {"chunk_count": 0, "total_chunks": 0, "elapsed_sec": 0.0, "is_partial": False}
 
     # RPD 예산 사전 검증 — 부족하면 시작 전에 실패
     # Google 무료 RPD는 텍스트 수 단위 (배치 수가 아님)
@@ -310,16 +295,25 @@ def ingest_chunks(
         time.sleep(batch_sleep)
 
     # 남은 points flush
+    processed_count = idx
     if points:
         client.upsert(collection_name=collection_name, points=points)
-        logger.info("  [%d/%d] 청크 적재 완료", total, total)
+        abs_flushed = start_chunk + processed_count
+        logger.info("  [%d/%d] 청크 적재 완료", abs_flushed, total)
         if tracker and volume_key:
-            tracker.mark_chunk_progress(volume_key, total, total)
+            tracker.mark_chunk_progress(volume_key, abs_flushed, total)
 
     elapsed = time.monotonic() - start
     rpd_final = _get_rpd_count()
+    is_partial = processed_count < effective_total
     logger.info(
-        "인제스트 완료: %d청크, %.1f초, RPD 누적: %d/%d",
-        effective_total, elapsed, rpd_final, _RPD_LIMIT,
+        "인제스트 %s: %d/%d청크, %.1f초, RPD 누적: %d/%d",
+        "부분 완료 (RPD 한도)" if is_partial else "완료",
+        processed_count, effective_total, elapsed, rpd_final, _RPD_LIMIT,
     )
-    return {"chunk_count": effective_total, "elapsed_sec": round(elapsed, 2)}
+    return {
+        "chunk_count": processed_count,
+        "total_chunks": effective_total,
+        "elapsed_sec": round(elapsed, 2),
+        "is_partial": is_partial,
+    }

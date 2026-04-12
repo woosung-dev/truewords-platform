@@ -97,9 +97,16 @@ def _process_file(file_path: Path, filename: str, source: str, mode: str = "stan
                 tracker=tracker,
                 volume_key=volume_key,
             )
-            logger.info("[%s] 적재 완료 (%d청크, %.1f초)",
-                        volume_key, stats["chunk_count"], stats["elapsed_sec"])
-            tracker.mark_completed(volume_key, stats["chunk_count"])
+            if stats.get("is_partial"):
+                logger.warning(
+                    "[%s] 부분 적재 (%d/%d청크, %.1f초) — RPD 한도 도달, 재업로드로 이어서 처리 가능",
+                    volume_key, stats["chunk_count"], stats["total_chunks"], stats["elapsed_sec"],
+                )
+                tracker.mark_chunk_progress(volume_key, stats["chunk_count"], stats["total_chunks"])
+            else:
+                logger.info("[%s] 적재 완료 (%d청크, %.1f초)",
+                            volume_key, stats["chunk_count"], stats["elapsed_sec"])
+                tracker.mark_completed(volume_key, stats["chunk_count"])
 
     except Exception as e:
         logger.exception("[%s] 처리 실패", volume_key)
