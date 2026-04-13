@@ -81,7 +81,7 @@ test.describe("챗봇 목록", () => {
     await expect(editLink).toBeVisible({ timeout: 5_000 });
     await editLink.click();
     await page.waitForURL("**/chatbots/*/edit", { timeout: 5_000 });
-    await expect(page.getByText("편집")).toBeVisible();
+    await expect(page.locator("#display-name")).toBeVisible();
   });
 });
 
