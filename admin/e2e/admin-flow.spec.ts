@@ -158,6 +158,61 @@ test.describe("챗봇 편집 + search_tiers 수정", () => {
   });
 });
 
+test.describe("검색 모드 선택 (Weighted Search)", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+    const editLink = page.getByRole("link", { name: "편집" }).first();
+    await expect(editLink).toBeVisible({ timeout: 5_000 });
+    await editLink.click();
+    await page.waitForURL("**/chatbots/*/edit", { timeout: 5_000 });
+  });
+
+  test("검색 전략 라디오 버튼이 표시된다", async ({ page }) => {
+    await expect(page.getByText("순차 검색 (Cascading)")).toBeVisible();
+    await expect(page.getByText("비중 검색 (Weighted)")).toBeVisible();
+  });
+
+  test("비중 검색 모드로 전환하면 WeightedSourceEditor가 표시된다", async ({
+    page,
+  }) => {
+    // 기본: Cascading 모드 → 티어 에디터 표시
+    const cascadingRadio = page.locator('input[value="cascading"]');
+    await expect(cascadingRadio).toBeChecked();
+
+    // Weighted 모드로 전환
+    const weightedRadio = page.locator('input[value="weighted"]');
+    await weightedRadio.click();
+    await expect(weightedRadio).toBeChecked();
+
+    // WeightedSourceEditor UI 확인
+    await expect(page.getByText("소스 추가")).toBeVisible();
+  });
+
+  test("모드 전환 후 저장 → 재로드 시 설정 유지", async ({ page }) => {
+    // Weighted 모드로 전환
+    await page.locator('input[value="weighted"]').click();
+
+    // 소스 추가
+    const addBtn = page.getByRole("button", { name: "소스 추가" });
+    if (await addBtn.isVisible()) {
+      await addBtn.click();
+      await page.waitForTimeout(500);
+    }
+
+    // 저장
+    await page.getByRole("button", { name: "저장" }).click();
+    await page.waitForTimeout(1_500);
+
+    // 페이지 새로고침
+    await page.reload();
+    await page.waitForTimeout(2_000);
+
+    // Weighted 모드가 유지되는지 확인
+    const weightedRadio = page.locator('input[value="weighted"]');
+    await expect(weightedRadio).toBeChecked({ timeout: 5_000 });
+  });
+});
+
 test.describe("인증 가드", () => {
   test("비로그인 상태에서 챗봇 페이지 접근 시 로그인으로 리다이렉트", async ({
     page,
