@@ -28,6 +28,7 @@ from src.qdrant_client import get_async_client
 from src.safety.input_validator import validate_input
 from src.safety.output_filter import DISCLAIMER, apply_safety_layer
 from src.search.cascading import cascading_search
+from src.search.weighted import WeightedConfig, weighted_search
 from src.search.exceptions import EmbeddingFailedError
 from src.search.fallback import fallback_search
 from src.search.query_rewriter import rewrite_query
@@ -55,6 +56,17 @@ class ChatService:
         self.chat_repo = chat_repo
         self.chatbot_service = chatbot_service
         self.cache_service = cache_service
+
+    @staticmethod
+    async def _execute_search(qdrant, query, config, top_k, dense_embedding):
+        """검색 모드에 따라 cascading 또는 weighted 검색 디스패치."""
+        if isinstance(config, WeightedConfig):
+            return await weighted_search(
+                qdrant, query, config, top_k=top_k, dense_embedding=dense_embedding,
+            )
+        return await cascading_search(
+            qdrant, query, config, top_k=top_k, dense_embedding=dense_embedding,
+        )
 
     async def process_chat(self, request: ChatRequest) -> ChatResponse:
         """동기 RAG 처리 — 전체 답변을 한 번에 반환.
@@ -117,7 +129,7 @@ class ChatService:
 
         # 3. 검색 실행 (넓은 후보 풀)
         qdrant = get_async_client()
-        cascading_config, rerank_enabled, query_rewrite_enabled = (
+        search_config, rerank_enabled, query_rewrite_enabled = (
             await self.chatbot_service.get_search_config(request.chatbot_id)
         )
 
@@ -132,8 +144,8 @@ class ChatService:
                 query_embedding = await embed_dense_query(search_query)
 
         start_time = time.monotonic()
-        results = await cascading_search(
-            qdrant, search_query, cascading_config, top_k=50,
+        results = await self._execute_search(
+            qdrant, search_query, search_config, top_k=50,
             dense_embedding=query_embedding,
         )
         search_latency_ms = int((time.monotonic() - start_time) * 1000)
@@ -276,7 +288,7 @@ class ChatService:
 
         # 2. 검색 + Re-ranking (스트림 시작 전 블로킹)
         qdrant = get_async_client()
-        cascading_config, rerank_enabled, query_rewrite_enabled = (
+        search_config, rerank_enabled, query_rewrite_enabled = (
             await self.chatbot_service.get_search_config(request.chatbot_id)
         )
 
@@ -290,8 +302,8 @@ class ChatService:
                 query_embedding = await embed_dense_query(search_query)
 
         start_time = time.monotonic()
-        results = await cascading_search(
-            qdrant, search_query, cascading_config, top_k=50,
+        results = await self._execute_search(
+            qdrant, search_query, search_config, top_k=50,
             dense_embedding=query_embedding,
         )
         search_latency_ms = int((time.monotonic() - start_time) * 1000)

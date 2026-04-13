@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Generic, TypeVar
+from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -21,10 +21,20 @@ class SearchTierSchema(BaseModel):
     score_threshold: float = Field(ge=0.0, le=1.0, default=0.1)
 
 
+class WeightedSourceSchema(BaseModel):
+    """Weighted 검색 소스별 비중 설정."""
+
+    source: str
+    weight: float = Field(ge=0.1, le=100, default=1)
+    score_threshold: float = Field(ge=0.0, le=1.0, default=0.1)
+
+
 class SearchTiersConfig(BaseModel):
     """search_tiers JSONB 구조."""
 
+    search_mode: Literal["cascading", "weighted"] = "cascading"
     tiers: list[SearchTierSchema] = Field(default_factory=list)
+    weighted_sources: list[WeightedSourceSchema] = Field(default_factory=list)
     rerank_enabled: bool = False
     dictionary_enabled: bool = False
     query_rewrite_enabled: bool = False

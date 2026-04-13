@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { chatbotAPI } from "@/features/chatbot/api";
-import type { SearchTier } from "@/features/chatbot/types";
+import type { SearchTier, WeightedSource } from "@/features/chatbot/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import SearchTierEditor from "@/features/chatbot/components/search-tier-editor";
+import SearchModeSelector from "@/features/chatbot/components/search-mode-selector";
+import WeightedSourceEditor from "@/features/chatbot/components/weighted-source-editor";
 import { Info, User, Search, ChevronLeft } from "lucide-react";
 
 export default function NewChatbotPage() {
@@ -22,6 +24,8 @@ export default function NewChatbotPage() {
   const [systemPrompt, setSystemPrompt] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [tiers, setTiers] = useState<SearchTier[]>([]);
+  const [searchMode, setSearchMode] = useState<"cascading" | "weighted">("cascading");
+  const [weightedSources, setWeightedSources] = useState<WeightedSource[]>([]);
   const [dictionaryEnabled, setDictionaryEnabled] = useState(false);
   const [queryRewriteEnabled, setQueryRewriteEnabled] = useState(false);
 
@@ -33,7 +37,7 @@ export default function NewChatbotPage() {
         description,
         persona_name: personaName,
         system_prompt: systemPrompt,
-        search_tiers: { tiers, dictionary_enabled: dictionaryEnabled, query_rewrite_enabled: queryRewriteEnabled },
+        search_tiers: { search_mode: searchMode, tiers, weighted_sources: weightedSources, dictionary_enabled: dictionaryEnabled, query_rewrite_enabled: queryRewriteEnabled },
         is_active: isActive,
       }),
     onSuccess: (data) => {
@@ -205,7 +209,18 @@ export default function NewChatbotPage() {
             </span>
           </div>
 
-          <SearchTierEditor tiers={tiers} onChange={setTiers} />
+          <SearchModeSelector mode={searchMode} onChange={setSearchMode} />
+
+          <div className="mt-4">
+            {searchMode === "cascading" ? (
+              <SearchTierEditor tiers={tiers} onChange={setTiers} />
+            ) : (
+              <WeightedSourceEditor
+                sources={weightedSources}
+                onChange={setWeightedSources}
+              />
+            )}
+          </div>
         </div>
 
         {/* 하단 액션 바 */}

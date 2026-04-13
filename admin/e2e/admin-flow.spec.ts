@@ -32,8 +32,8 @@ async function login(page: Page) {
 test.describe("관리자 로그인", () => {
   test("로그인 페이지가 렌더링된다", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.getByText("TrueWords Admin")).toBeVisible();
-    await expect(page.getByText("말씀 AI 챗봇 관리자")).toBeVisible();
+    await expect(page.getByText("관리자 로그인")).toBeVisible();
+    await expect(page.getByText("관리자 계정으로 로그인하세요")).toBeVisible();
     await expect(page.locator("#email")).toBeVisible();
     await expect(page.locator("#password")).toBeVisible();
   });
@@ -50,7 +50,7 @@ test.describe("관리자 로그인", () => {
     // 혹은 리다이렉트만 발생하여 로그인 페이지에 머무름
     await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
     // 챗봇 목록으로 이동하지 않았음을 확인 (로그인 실패)
-    await expect(page.getByText("TrueWords Admin")).toBeVisible();
+    await expect(page.getByText("관리자 로그인")).toBeVisible();
   });
 
   test("올바른 계정으로 로그인 성공 → 챗봇 목록 이동", async ({ page }) => {
@@ -72,16 +72,16 @@ test.describe("챗봇 목록", () => {
 
   test("새 챗봇 만들기 링크가 존재한다", async ({ page }) => {
     await expect(
-      page.getByRole("link", { name: "새 챗봇 만들기" })
+      page.getByRole("link", { name: /새 챗봇/ })
     ).toBeVisible();
   });
 
   test("편집 링크를 클릭하면 편집 페이지로 이동한다", async ({ page }) => {
-    const editLink = page.getByRole("link", { name: "편집" }).first();
+    const editLink = page.getByRole("link", { name: /편집/ }).first();
     await expect(editLink).toBeVisible({ timeout: 5_000 });
     await editLink.click();
     await page.waitForURL("**/chatbots/*/edit", { timeout: 5_000 });
-    await expect(page.getByText("편집")).toBeVisible();
+    await expect(page.locator("#display-name")).toBeVisible();
   });
 });
 
@@ -89,7 +89,7 @@ test.describe("챗봇 편집 + search_tiers 수정", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
     // 첫 번째 챗봇의 편집 페이지로 이동
-    const editLink = page.getByRole("link", { name: "편집" }).first();
+    const editLink = page.getByRole("link", { name: /편집/ }).first();
     await expect(editLink).toBeVisible({ timeout: 5_000 });
     await editLink.click();
     await page.waitForURL("**/chatbots/*/edit", { timeout: 5_000 });
@@ -158,6 +158,66 @@ test.describe("챗봇 편집 + search_tiers 수정", () => {
   });
 });
 
+test.describe("검색 모드 선택 (Weighted Search)", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+    const editLink = page.getByRole("link", { name: /편집/ }).first();
+    await expect(editLink).toBeVisible({ timeout: 5_000 });
+    await editLink.click();
+    await page.waitForURL("**/chatbots/*/edit", { timeout: 5_000 });
+  });
+
+  test("검색 전략 라디오 버튼이 표시된다", async ({ page }) => {
+    await expect(page.getByText("순차 검색 (Cascading)")).toBeVisible();
+    await expect(page.getByText("비중 검색 (Weighted)")).toBeVisible();
+  });
+
+  test("비중 검색 모드로 전환하면 WeightedSourceEditor가 표시된다", async ({
+    page,
+  }) => {
+    // 검색 설정 섹션으로 스크롤
+    const weightedRadio = page.locator('input[value="weighted"]');
+    await weightedRadio.scrollIntoViewIfNeeded();
+
+    // Weighted 모드로 전환 (이미 weighted일 수도 있음)
+    await weightedRadio.click();
+    await expect(weightedRadio).toBeChecked();
+
+    // WeightedSourceEditor UI 확인
+    await expect(page.getByText("소스 추가")).toBeVisible();
+  });
+
+  test("모드 전환 후 저장 → 재로드 시 설정 유지", async ({ page }) => {
+    // Weighted 모드로 전환
+    await page.locator('input[value="weighted"]').click();
+
+    // 소스 추가
+    const addBtn = page.getByRole("button", { name: "소스 추가" });
+    if (await addBtn.isVisible()) {
+      await addBtn.click();
+      await page.waitForTimeout(500);
+    }
+
+    // 저장 + 성공 토스트 대기
+    await page.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("저장되었습니다")).toBeVisible({ timeout: 5_000 });
+
+    // 페이지 새로고침
+    await page.reload();
+
+    // 데이터 로드 대기
+    await expect(page.locator("#display-name")).toBeVisible({ timeout: 10_000 });
+    await page.waitForTimeout(1_500);
+
+    // 검색 설정 섹션으로 스크롤
+    const weightedRadio = page.locator('input[value="weighted"]');
+    await weightedRadio.scrollIntoViewIfNeeded();
+
+    // Weighted 모드가 유지되는지 확인
+    await expect(weightedRadio).toBeChecked({ timeout: 5_000 });
+  });
+});
+
 test.describe("인증 가드", () => {
   test("비로그인 상태에서 챗봇 페이지 접근 시 로그인으로 리다이렉트", async ({
     page,
@@ -165,7 +225,7 @@ test.describe("인증 가드", () => {
     await page.goto("/chatbots");
     // AuthGuard가 로그인 페이지로 리다이렉트
     await page.waitForURL("**/login", { timeout: 10_000 });
-    await expect(page.getByText("TrueWords Admin")).toBeVisible();
+    await expect(page.getByText("관리자 로그인")).toBeVisible();
   });
 
   test("비로그인 상태에서 대시보드 접근 시 로그인으로 리다이렉트", async ({

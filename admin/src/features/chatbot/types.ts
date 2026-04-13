@@ -4,8 +4,16 @@ export interface SearchTier {
   score_threshold: number;
 }
 
+export interface WeightedSource {
+  source: string;
+  weight: number;
+  score_threshold: number;
+}
+
 export interface SearchTiersConfig {
+  search_mode?: "cascading" | "weighted";
   tiers: SearchTier[];
+  weighted_sources?: WeightedSource[];
   rerank_enabled?: boolean;
   dictionary_enabled?: boolean;
   query_rewrite_enabled?: boolean;
