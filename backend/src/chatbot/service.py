@@ -8,6 +8,10 @@ from src.chatbot.models import ChatbotConfig
 from src.chatbot.repository import ChatbotRepository
 from src.chatbot.schemas import ChatbotConfigCreate, ChatbotConfigUpdate, SearchTiersConfig
 from src.search.cascading import CascadingConfig, SearchTier
+from src.search.weighted import WeightedConfig, WeightedSource
+
+# 검색 설정 타입 유니온
+SearchConfig = CascadingConfig | WeightedConfig
 
 # 단일 기본값 상수 (DRY)
 # RRF fusion 점수는 일반적으로 0.0~0.5 범위 (코사인 유사도 스케일이 아님)
@@ -46,22 +50,10 @@ class ChatbotService:
             )
         return config
 
-    async def get_cascading_config(self, chatbot_id: str | None) -> CascadingConfig:
-        """chatbot_id로 CascadingConfig를 조회. None이면 기본값, 미존재 시 404."""
-        if chatbot_id is None:
-            return DEFAULT_CASCADING_CONFIG
-        config = await self.repo.get_by_chatbot_id(chatbot_id)
-        if config is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"chatbot_id '{chatbot_id}'를 찾을 수 없습니다",
-            )
-        return self._parse_search_tiers(config.search_tiers)
-
     async def get_search_config(
         self, chatbot_id: str | None
-    ) -> tuple[CascadingConfig, bool, bool]:
-        """chatbot_id로 CascadingConfig + rerank_enabled + query_rewrite_enabled를 조회."""
+    ) -> tuple[SearchConfig, bool, bool]:
+        """chatbot_id로 SearchConfig + rerank_enabled + query_rewrite_enabled를 조회."""
         if chatbot_id is None:
             return DEFAULT_CASCADING_CONFIG, DEFAULT_RERANK_ENABLED, DEFAULT_QUERY_REWRITE_ENABLED
         config = await self.repo.get_by_chatbot_id(chatbot_id)
@@ -70,12 +62,12 @@ class ChatbotService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"chatbot_id '{chatbot_id}'를 찾을 수 없습니다",
             )
-        cascading = self._parse_search_tiers(config.search_tiers)
+        search_cfg = self._parse_search_config(config.search_tiers)
         rerank_enabled = config.search_tiers.get("rerank_enabled", DEFAULT_RERANK_ENABLED)
         query_rewrite_enabled = config.search_tiers.get(
             "query_rewrite_enabled", DEFAULT_QUERY_REWRITE_ENABLED
         )
-        return cascading, rerank_enabled, query_rewrite_enabled
+        return search_cfg, rerank_enabled, query_rewrite_enabled
 
     async def get_config_id(self, chatbot_id: str | None) -> uuid.UUID | None:
         """chatbot_id로 DB PK를 조회."""
@@ -119,8 +111,27 @@ class ChatbotService:
         return updated
 
     @staticmethod
-    def _parse_search_tiers(tiers_data: dict) -> CascadingConfig:
-        """JSONB search_tiers → CascadingConfig 변환."""
+    def _parse_search_config(tiers_data: dict) -> SearchConfig:
+        """JSONB search_tiers → CascadingConfig | WeightedConfig 변환.
+
+        search_mode가 "weighted"이면 WeightedConfig를, 그 외(미지정/cascading/잘못된 값)는
+        CascadingConfig를 반환하여 하위 호환성을 유지한다.
+        """
+        mode = tiers_data.get("search_mode", "cascading")
+
+        if mode == "weighted":
+            weighted_sources = tiers_data.get("weighted_sources", [])
+            sources = [
+                WeightedSource(
+                    source=ws["source"],
+                    weight=ws.get("weight", 1.0),
+                    score_threshold=ws.get("score_threshold", 0.1),
+                )
+                for ws in weighted_sources
+            ]
+            return WeightedConfig(sources=sources)
+
+        # cascading (기본값) 또는 잘못된 mode → CascadingConfig fallback
         tiers_list = tiers_data.get("tiers", [])
         tiers = [
             SearchTier(
