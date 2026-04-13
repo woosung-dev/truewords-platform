@@ -192,14 +192,11 @@ client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
 ### 모델 선택
 
 ```python
-# 일반 답변 + 스트리밍 생성 (속도 우선)
-MODEL_FLASH = "gemini-2.5-flash"
+# 텍스트 생성 (답변, 스트리밍, 리랭킹, 쿼리 재작성)
+MODEL_GENERATE = "gemini-3.1-flash-lite-preview"
 
 # 임베딩
 MODEL_EMBEDDING = "gemini-embedding-001"
-
-# 경량 분석 (리랭킹, 쿼리 재작성)
-MODEL_PRO_LITE = "gemini-3.1-pro-lite"
 ```
 
 ### 텍스트 생성 / 스트리밍

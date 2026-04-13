@@ -3,7 +3,7 @@
 import asyncio
 import logging
 
-from src.common.gemini import MODEL_PRO_LITE, generate_text
+from src.common.gemini import MODEL_GENERATE, generate_text
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ async def rewrite_query(query: str) -> str:
             generate_text(
                 prompt=query,
                 system_instruction=REWRITE_SYSTEM_PROMPT,
-                model=MODEL_PRO_LITE,
+                model=MODEL_GENERATE,
             ),
             timeout=REWRITE_TIMEOUT_SECONDS,
         )

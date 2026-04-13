@@ -13,7 +13,7 @@ from qdrant_client.models import (
     Prefetch, FusionQuery, Fusion, SparseVector,
 )
 
-from src.common.gemini import generate_text, MODEL_PRO_LITE
+from src.common.gemini import generate_text, MODEL_GENERATE
 from src.config import settings
 from src.pipeline.embedder import embed_sparse_async
 from src.search.hybrid import SearchResult
@@ -122,7 +122,7 @@ async def _generate_suggestions(query: str) -> list[str]:
         response = await generate_text(
             prompt=f"사용자 질문: {query}",
             system_instruction=SUGGEST_SYSTEM_PROMPT,
-            model=MODEL_PRO_LITE,
+            model=MODEL_GENERATE,
         )
         suggestions = json.loads(response.strip())
         if isinstance(suggestions, list):

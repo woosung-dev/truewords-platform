@@ -9,9 +9,8 @@ from src.config import settings
 # 싱글턴 클라이언트 — sync/async 모두 이 인스턴스 사용
 _client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
 
-MODEL_FLASH = "gemini-2.5-flash"
+MODEL_GENERATE = "gemini-3.1-flash-lite-preview"
 MODEL_EMBEDDING = "gemini-embedding-001"
-MODEL_PRO_LITE = "gemini-3.1-pro-lite"
 
 
 async def embed_dense_document(text: str) -> list[float]:
@@ -43,7 +42,7 @@ async def embed_dense_query(text: str) -> list[float]:
 async def generate_text(
     prompt: str,
     system_instruction: str = "",
-    model: str = MODEL_FLASH,
+    model: str = MODEL_GENERATE,
 ) -> str:
     """텍스트 생성 (비동기)."""
     config = types.GenerateContentConfig()
@@ -62,7 +61,7 @@ async def generate_text(
 async def generate_text_stream(
     prompt: str,
     system_instruction: str = "",
-    model: str = MODEL_FLASH,
+    model: str = MODEL_GENERATE,
 ) -> AsyncGenerator[str, None]:
     """텍스트 스트리밍 생성 (비동기 제너레이터)."""
     config = types.GenerateContentConfig()
