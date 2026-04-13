@@ -3,13 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Loader2, X } from "lucide-react";
+import { Dialog } from "@base-ui/react/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import VolumeTransfer from "@/features/data-source/components/volume-transfer";
@@ -17,14 +12,10 @@ import { useAllVolumes, useActiveCategories, useAddVolumeTag, useRemoveVolumeTag
 import { getCategoryColors } from "@/features/data-source/category-colors";
 
 interface VolumeTransferSheetProps {
-  /** Sheet 열림 상태 */
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** 대상 카테고리 key (미분류 모드일 때 null) */
   categoryKey: string | null;
-  /** 대상 카테고리 이름 */
   categoryName: string;
-  /** 대상 카테고리 색상 */
   categoryColor?: string;
 }
 
@@ -41,31 +32,21 @@ export default function VolumeTransferSheet({
   const addTagMutation = useAddVolumeTag();
   const removeTagMutation = useRemoveVolumeTag();
 
-  // 현재 포함된 volume Set (로컬 state)
-  const [includedVolumes, setIncludedVolumes] = useState<Set<string>>(
-    new Set()
-  );
-  // 초기 상태 (diff 계산용)
-  const [initialIncluded, setInitialIncluded] = useState<Set<string>>(
-    new Set()
-  );
+  const [includedVolumes, setIncludedVolumes] = useState<Set<string>>(new Set());
+  const [initialIncluded, setInitialIncluded] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
-  // 카테고리 key → { name, color } 매핑 (뱃지 렌더링용)
   const categoryMap = useMemo(
     () => new Map(activeCategories.map((c) => [c.key, { name: c.name, color: c.color }])),
     [activeCategories]
   );
 
-  // 미분류 모드에서 선택한 카테고리
   const [selectedCategoryForUncategorized, setSelectedCategoryForUncategorized] =
     useState<string>("");
 
-  // 실제 사용할 카테고리 key
   const effectiveKey = categoryKey ?? selectedCategoryForUncategorized;
 
-  // Sheet 열릴 때 데이터 fetch + 초기 상태 설정
   useEffect(() => {
     if (open) {
       refetch();
@@ -84,7 +65,6 @@ export default function VolumeTransferSheet({
     }
   }, [open, allVolumes, effectiveKey]);
 
-  // 이동 핸들러 (로컬 state만 변경)
   const handleMove = useCallback(
     (volumes: string[], direction: "add" | "remove") => {
       setIncludedVolumes((prev) => {
@@ -100,7 +80,6 @@ export default function VolumeTransferSheet({
     []
   );
 
-  // diff 계산
   const diff = useMemo(() => {
     const added = Array.from(includedVolumes).filter(
       (v) => !initialIncluded.has(v)
@@ -113,7 +92,6 @@ export default function VolumeTransferSheet({
 
   const hasChanges = diff.added.length > 0 || diff.removed.length > 0;
 
-  // 일괄 저장
   const handleSave = async () => {
     if (!effectiveKey || !hasChanges) return;
 
@@ -124,7 +102,6 @@ export default function VolumeTransferSheet({
     let completed = 0;
     const errors: string[] = [];
 
-    // 추가 처리
     for (const volume of diff.added) {
       try {
         await addTagMutation.mutateAsync({ volume, source: effectiveKey });
@@ -135,7 +112,6 @@ export default function VolumeTransferSheet({
       }
     }
 
-    // 제거 처리
     for (const volume of diff.removed) {
       try {
         await removeTagMutation.mutateAsync({ volume, source: effectiveKey });
@@ -162,7 +138,6 @@ export default function VolumeTransferSheet({
     }
   };
 
-  // 취소 (변경사항 버리기)
   const handleCancel = () => {
     setIncludedVolumes(initialIncluded);
     onOpenChange(false);
@@ -171,99 +146,111 @@ export default function VolumeTransferSheet({
   const colors = categoryColor ? getCategoryColors(categoryColor) : null;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-2xl w-full flex flex-col">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            {categoryKey ? (
-              <>
-                <Badge
-                  variant="outline"
-                  className={`font-mono text-xs ${colors?.text ?? ""} ${colors?.bg ?? ""}`}
-                >
-                  {categoryKey}
-                </Badge>
-                {categoryName}
-              </>
-            ) : (
-              <span className="text-amber-700">미분류 문서 분류</span>
-            )}
-            <span className="text-muted-foreground font-normal text-sm">
-              — 문서 관리
-            </span>
-          </SheetTitle>
-        </SheetHeader>
-
-        {/* 미분류 모드: 카테고리 선택 드롭다운 */}
-        {!categoryKey && (
-          <div className="mt-3 px-1">
-            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-              분류할 카테고리 선택
-            </label>
-            <select
-              value={selectedCategoryForUncategorized}
-              onChange={(e) => setSelectedCategoryForUncategorized(e.target.value)}
-              className="w-full text-sm border rounded-md px-3 py-2 bg-background"
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
+        <Dialog.Popup className="fixed inset-4 z-50 mx-auto my-auto flex max-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col rounded-2xl bg-popover shadow-2xl transition duration-200 data-ending-style:opacity-0 data-ending-style:scale-95 data-starting-style:opacity-0 data-starting-style:scale-95 sm:inset-8 sm:max-h-[calc(100vh-6rem)]">
+          {/* 헤더 */}
+          <div className="flex items-center justify-between border-b px-6 py-4 shrink-0">
+            <Dialog.Title className="flex items-center gap-2.5 text-base font-semibold">
+              {categoryKey ? (
+                <>
+                  <Badge
+                    variant="outline"
+                    className={`font-mono text-xs ${colors?.text ?? ""} ${colors?.bg ?? ""}`}
+                  >
+                    {categoryKey}
+                  </Badge>
+                  {categoryName}
+                </>
+              ) : (
+                <span className="text-amber-700">미분류 문서 분류</span>
+              )}
+              <span className="text-muted-foreground font-normal text-sm">
+                — 문서 관리
+              </span>
+            </Dialog.Title>
+            <Dialog.Close
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
-              <option value="">카테고리를 선택하세요</option>
-              {activeCategories.map((c) => (
-                <option key={c.key} value={c.key}>
-                  {c.name} ({c.key})
-                </option>
-              ))}
-            </select>
+              <X className="h-5 w-5" />
+            </Dialog.Close>
           </div>
-        )}
 
-        {/* Transfer 컴포넌트 */}
-        <div className="flex-1 min-h-0 mt-4">
-          <VolumeTransfer
-            allVolumes={allVolumes}
-            includedVolumes={includedVolumes}
-            onMove={handleMove}
-            categoryMap={categoryMap}
-          />
-        </div>
+          {/* 미분류 모드: 카테고리 선택 */}
+          {!categoryKey && (
+            <div className="px-6 pt-4 shrink-0">
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+                분류할 카테고리 선택
+              </label>
+              <select
+                value={selectedCategoryForUncategorized}
+                onChange={(e) => setSelectedCategoryForUncategorized(e.target.value)}
+                className="w-full max-w-xs text-sm border rounded-lg px-3 py-2 bg-background"
+              >
+                <option value="">카테고리를 선택하세요</option>
+                {activeCategories.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.name} ({c.key})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-        {/* 변경 요약 */}
-        {hasChanges && (
-          <div className="mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-            변경 예정:
-            {diff.added.length > 0 && (
-              <span className="font-medium"> +{diff.added.length}건 추가</span>
-            )}
-            {diff.removed.length > 0 && (
-              <span className="font-medium"> -{diff.removed.length}건 제거</span>
-            )}
+          {/* Transfer 컴포넌트 */}
+          <div className="flex-1 min-h-0 px-6 py-4">
+            <VolumeTransfer
+              allVolumes={allVolumes}
+              includedVolumes={includedVolumes}
+              onMove={handleMove}
+              categoryMap={categoryMap}
+            />
           </div>
-        )}
 
-        {/* 저장 프로그레스 */}
-        {saving && (
-          <div className="mt-2 text-sm text-muted-foreground text-center">
-            {progress.total}건 중 {progress.current}건 처리 중...
-          </div>
-        )}
-
-        {/* 하단 버튼 */}
-        <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-          <Button variant="outline" onClick={handleCancel} disabled={saving}>
-            취소
-          </Button>
-          <Button onClick={handleSave} disabled={!hasChanges || saving || !effectiveKey}>
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                저장 중...
-              </>
-            ) : hasChanges ? (
-              `저장 (${diff.added.length + diff.removed.length}건 변경)`
-            ) : (
-              "변경 없음"
+          {/* 하단 */}
+          <div className="border-t px-6 py-4 shrink-0">
+            {/* 변경 요약 */}
+            {hasChanges && (
+              <div className="mb-3 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                변경 예정:
+                {diff.added.length > 0 && (
+                  <span className="font-medium"> +{diff.added.length}건 추가</span>
+                )}
+                {diff.removed.length > 0 && (
+                  <span className="font-medium"> -{diff.removed.length}건 제거</span>
+                )}
+              </div>
             )}
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
+
+            {/* 저장 프로그레스 */}
+            {saving && (
+              <div className="mb-3 text-sm text-muted-foreground text-center">
+                {progress.total}건 중 {progress.current}건 처리 중...
+              </div>
+            )}
+
+            {/* 버튼 */}
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={handleCancel} disabled={saving}>
+                취소
+              </Button>
+              <Button onClick={handleSave} disabled={!hasChanges || saving || !effectiveKey}>
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                    저장 중...
+                  </>
+                ) : hasChanges ? (
+                  `저장 (${diff.added.length + diff.removed.length}건 변경)`
+                ) : (
+                  "변경 없음"
+                )}
+              </Button>
+            </div>
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
