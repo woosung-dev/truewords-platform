@@ -97,7 +97,7 @@ export default function WeightedSourceEditor({
                   type="number"
                   min={0.1}
                   max={100}
-                  step={1}
+                  step="any"
                   value={s.weight}
                   onChange={(e) => {
                     const val = parseFloat(e.target.value);
