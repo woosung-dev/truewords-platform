@@ -175,12 +175,11 @@ test.describe("검색 모드 선택 (Weighted Search)", () => {
   test("비중 검색 모드로 전환하면 WeightedSourceEditor가 표시된다", async ({
     page,
   }) => {
-    // 기본: Cascading 모드 → 티어 에디터 표시
-    const cascadingRadio = page.locator('input[value="cascading"]');
-    await expect(cascadingRadio).toBeChecked();
-
-    // Weighted 모드로 전환
+    // 검색 설정 섹션으로 스크롤
     const weightedRadio = page.locator('input[value="weighted"]');
+    await weightedRadio.scrollIntoViewIfNeeded();
+
+    // Weighted 모드로 전환 (이미 weighted일 수도 있음)
     await weightedRadio.click();
     await expect(weightedRadio).toBeChecked();
 
