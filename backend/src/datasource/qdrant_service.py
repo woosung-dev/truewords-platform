@@ -169,23 +169,30 @@ class DataSourceQdrantService:
     ) -> VolumeTagsBulkResponse:
         """여러 volume에 동일 source 태그를 한 번의 scroll로 추가.
 
-        기존 단일 volume add를 N번 반복하면 각 call마다 scroll이 발생하지만,
-        bulk는 `MatchAny`로 전체 volume을 한 번에 scroll 후 메모리에서 grouping해
-        최소한의 set_payload로 처리한다.
+        Qdrant 내부 volume 페이로드가 NFC/NFD 혼재 가능 (과거 ingest 코드가 NFD,
+        최근 코드는 NFC 저장). 검색어는 두 형태 모두 제공, 매칭 비교는 NFC canonical.
         """
-        volume_names = [unicodedata.normalize("NFD", v) for v in volumes]
-        volume_name_set = set(volume_names)
+        # 입력 NFC → 원본 매핑 (응답용)
+        input_nfc_to_original: dict[str, str] = {
+            unicodedata.normalize("NFC", v): v for v in volumes
+        }
+        input_nfc_set = set(input_nfc_to_original.keys())
 
-        # (volume, frozenset(sources)) 기준으로 그룹핑 — set_payload를 그룹별 1회로 압축
+        # Qdrant 검색 후보: NFC + NFD 둘 다
+        search_terms: set[str] = set()
+        for v in volumes:
+            search_terms.add(unicodedata.normalize("NFC", v))
+            search_terms.add(unicodedata.normalize("NFD", v))
+
         groups: dict[tuple[str, frozenset[str]], list] = {}
-        volumes_seen: set[str] = set()
+        volumes_seen_nfc: set[str] = set()
 
         offset = None
         while True:
             points, offset = await self.async_client.scroll(
                 collection_name=self.collection_name,
                 scroll_filter=Filter(
-                    must=[FieldCondition(key="volume", match=MatchAny(any=volume_names))]
+                    must=[FieldCondition(key="volume", match=MatchAny(any=list(search_terms)))]
                 ),
                 with_payload=["source", "volume"],
                 with_vectors=False,
@@ -194,23 +201,24 @@ class DataSourceQdrantService:
             )
             for p in points:
                 payload = p.payload or {}
-                vol = payload.get("volume", "")
-                if vol not in volume_name_set:
+                vol_raw = payload.get("volume", "")
+                vol_nfc = unicodedata.normalize("NFC", vol_raw)
+                if vol_nfc not in input_nfc_set:
                     continue
-                volumes_seen.add(vol)
+                volumes_seen_nfc.add(vol_nfc)
                 sources = payload.get("source", [])
                 if isinstance(sources, str):
                     sources = [sources]
                 if source in sources:
-                    continue  # 이미 태그 존재, skip
-                key = (vol, frozenset(sources))
+                    continue  # 이미 태그 존재
+                key = (vol_nfc, frozenset(sources))
                 groups.setdefault(key, []).append(p.id)
             if offset is None:
                 break
 
         updated_chunks = 0
-        updated_volumes_set: set[str] = set()
-        for (vol, existing_sources), point_ids in groups.items():
+        updated_nfc: set[str] = set()
+        for (vol_nfc, existing_sources), point_ids in groups.items():
             new_sources = sorted(existing_sources | {source})
             await self.async_client.set_payload(
                 collection_name=self.collection_name,
@@ -218,18 +226,15 @@ class DataSourceQdrantService:
                 points=point_ids,
             )
             updated_chunks += len(point_ids)
-            updated_volumes_set.add(vol)
+            updated_nfc.add(vol_nfc)
 
-        # volume_name(NFD) → 원본 입력 이름으로 복원 매핑
-        nfd_to_input = {unicodedata.normalize("NFD", v): v for v in volumes}
-        updated_volumes = sorted(nfd_to_input[v] for v in updated_volumes_set if v in nfd_to_input)
-
-        skipped = []
+        updated_volumes = sorted(input_nfc_to_original[v] for v in updated_nfc)
+        skipped: list[dict] = []
         for v in volumes:
-            nfd = unicodedata.normalize("NFD", v)
-            if nfd not in volumes_seen:
+            nfc = unicodedata.normalize("NFC", v)
+            if nfc not in volumes_seen_nfc:
                 skipped.append({"volume": v, "reason": "Qdrant에 해당 volume 없음"})
-            elif nfd not in updated_volumes_set:
+            elif nfc not in updated_nfc:
                 skipped.append({"volume": v, "reason": "이미 태그가 있음"})
 
         return VolumeTagsBulkResponse(
@@ -243,21 +248,33 @@ class DataSourceQdrantService:
     ) -> VolumeTagsBulkResponse:
         """여러 volume에서 동일 source 태그를 한 번의 scroll로 제거.
 
-        마지막 태그인 경우 해당 volume은 스킵하고 skipped_volumes에 기록.
-        """
-        volume_names = [unicodedata.normalize("NFD", v) for v in volumes]
-        volume_name_set = set(volume_names)
+        마지막 남은 태그를 제거하면 해당 volume은 source=[] 즉 "미분류"가 된다.
+        이는 업로드 파이프라인이 `source=""` 업로드를 허용하는 것과 일관된
+        정상 상태이며, Admin UI도 `sources.length === 0` volume을 "미분류"
+        섹션으로 노출하므로 데이터 유실이 아니다.
 
-        # volume별 (sources_by_point) 수집 후, 마지막 태그 검사 → 그룹 빌드
-        volume_points: dict[str, list[tuple[str, frozenset[str]]]] = {}
-        volumes_seen: set[str] = set()
+        NFC/NFD 혼재 대응은 add_volume_tags_bulk와 동일.
+        """
+        input_nfc_to_original: dict[str, str] = {
+            unicodedata.normalize("NFC", v): v for v in volumes
+        }
+        input_nfc_set = set(input_nfc_to_original.keys())
+
+        search_terms: set[str] = set()
+        for v in volumes:
+            search_terms.add(unicodedata.normalize("NFC", v))
+            search_terms.add(unicodedata.normalize("NFD", v))
+
+        groups: dict[frozenset[str], list] = {}
+        volumes_seen_nfc: set[str] = set()
+        updated_nfc: set[str] = set()
 
         offset = None
         while True:
             points, offset = await self.async_client.scroll(
                 collection_name=self.collection_name,
                 scroll_filter=Filter(
-                    must=[FieldCondition(key="volume", match=MatchAny(any=volume_names))]
+                    must=[FieldCondition(key="volume", match=MatchAny(any=list(search_terms)))]
                 ),
                 with_payload=["source", "volume"],
                 with_vectors=False,
@@ -266,36 +283,20 @@ class DataSourceQdrantService:
             )
             for p in points:
                 payload = p.payload or {}
-                vol = payload.get("volume", "")
-                if vol not in volume_name_set:
+                vol_raw = payload.get("volume", "")
+                vol_nfc = unicodedata.normalize("NFC", vol_raw)
+                if vol_nfc not in input_nfc_set:
                     continue
-                volumes_seen.add(vol)
+                volumes_seen_nfc.add(vol_nfc)
                 sources = payload.get("source", [])
                 if isinstance(sources, str):
                     sources = [sources]
                 if source not in sources:
                     continue  # 태그 없으면 skip
-                volume_points.setdefault(vol, []).append((p.id, frozenset(sources)))
+                groups.setdefault(frozenset(sources), []).append(p.id)
+                updated_nfc.add(vol_nfc)
             if offset is None:
                 break
-
-        nfd_to_input = {unicodedata.normalize("NFD", v): v for v in volumes}
-        skipped: list[dict] = []
-        updated_volumes_set: set[str] = set()
-        groups: dict[frozenset[str], list] = {}
-
-        for vol, point_entries in volume_points.items():
-            # volume의 어느 point라도 마지막 태그면 해당 volume 전체 스킵
-            has_single = any(len(fs) <= 1 for _, fs in point_entries)
-            if has_single:
-                skipped.append({
-                    "volume": nfd_to_input.get(vol, vol),
-                    "reason": "마지막 카테고리 태그라 제거 불가",
-                })
-                continue
-            for point_id, fs in point_entries:
-                groups.setdefault(fs, []).append(point_id)
-            updated_volumes_set.add(vol)
 
         updated_chunks = 0
         for existing_sources, point_ids in groups.items():
@@ -307,14 +308,15 @@ class DataSourceQdrantService:
             )
             updated_chunks += len(point_ids)
 
+        skipped: list[dict] = []
         for v in volumes:
-            nfd = unicodedata.normalize("NFD", v)
-            if nfd not in volumes_seen:
+            nfc = unicodedata.normalize("NFC", v)
+            if nfc not in volumes_seen_nfc:
                 skipped.append({"volume": v, "reason": "Qdrant에 해당 volume 없음"})
-            elif nfd not in volume_points:
+            elif nfc not in updated_nfc:
                 skipped.append({"volume": v, "reason": "이미 태그가 없음"})
 
-        updated_volumes = sorted(nfd_to_input[v] for v in updated_volumes_set if v in nfd_to_input)
+        updated_volumes = sorted(input_nfc_to_original[v] for v in updated_nfc)
 
         return VolumeTagsBulkResponse(
             updated_volumes=updated_volumes,
@@ -323,7 +325,11 @@ class DataSourceQdrantService:
         )
 
     async def remove_volume_tag(self, volume: str, source: str) -> VolumeTagResponse:
-        """문서에서 카테고리 태그를 제거. 마지막 태그는 제거 불가."""
+        """문서에서 카테고리 태그를 제거.
+
+        마지막 남은 태그를 제거하면 source=[]가 되어 "미분류" 상태로 전이된다.
+        이는 정상 상태이며, 다시 분류하려면 미분류 섹션에서 태그를 붙이면 된다.
+        """
         # macOS NFD 정규화
         volume_name = unicodedata.normalize("NFD", volume)
 
@@ -341,16 +347,12 @@ class DataSourceQdrantService:
                 offset=offset,
             )
             for p in points:
-                sources = p.payload.get("source", [])
+                payload = p.payload or {}
+                sources = payload.get("source", [])
                 if isinstance(sources, str):
                     sources = [sources]
                 if source in sources:
-                    if len(sources) <= 1:
-                        raise ValueError(
-                            "마지막 카테고리 태그는 제거할 수 없습니다. 최소 1개 카테고리가 필요합니다."
-                        )
-                    key = frozenset(sources)
-                    groups.setdefault(key, []).append(p.id)
+                    groups.setdefault(frozenset(sources), []).append(p.id)
             if offset is None:
                 break
 
