@@ -11,7 +11,7 @@ import logging
 import math
 import time
 import uuid
-from typing import TYPE_CHECKING
+from typing import Callable
 
 from google.genai import errors as genai_errors
 from qdrant_client import QdrantClient
@@ -20,9 +20,6 @@ from qdrant_client.models import PointStruct, SparseVector
 from src.config import settings
 from src.pipeline.chunker import Chunk
 from src.pipeline.embedder import MAX_TEXTS_PER_BATCH, embed_dense_batch, embed_sparse_batch
-
-if TYPE_CHECKING:
-    from src.pipeline.progress import ProgressTracker
 
 logger = logging.getLogger(__name__)
 
@@ -83,8 +80,7 @@ def ingest_chunks(
     chunks: list[Chunk],
     start_chunk: int = 0,
     title: str = "",
-    tracker: ProgressTracker | None = None,
-    volume_key: str = "",
+    on_progress: Callable[[int], None] | None = None,
 ) -> dict:
     """청크를 배치 임베딩 후 Qdrant에 upsert — 청크 레벨 체크포인트 지원.
 
@@ -98,8 +94,8 @@ def ingest_chunks(
         chunks: 적재할 Chunk 리스트.
         start_chunk: 재개 시작 인덱스 (0이면 처음부터).
         title: Gemini 임베딩 품질 향상용 문서 제목.
-        tracker: 체크포인트 저장용 ProgressTracker (None이면 체크포인트 비활성).
-        volume_key: tracker에 저장할 볼륨 키 (보통 파일명).
+        on_progress: upsert 성공 시 누적 처리 청크 수(abs_batch_end)를 전달받는 콜백.
+            None이면 체크포인트 저장을 생략한다.
 
     Returns:
         dict: chunk_count, total_chunks, elapsed_sec, is_partial.
@@ -203,8 +199,8 @@ def ingest_chunks(
             points = []
 
             # 체크포인트 저장 (upsert 성공 후에만)
-            if tracker and volume_key:
-                tracker.mark_chunk_progress(volume_key, abs_batch_end, total)
+            if on_progress:
+                on_progress(abs_batch_end)
 
         # RPM/TPM 방어: .env EMBED_BATCH_SLEEP 으로 제어
         time.sleep(batch_sleep)
@@ -215,8 +211,8 @@ def ingest_chunks(
         client.upsert(collection_name=collection_name, points=points)
         abs_flushed = start_chunk + processed_count
         logger.info("  [%d/%d] 청크 적재 완료", abs_flushed, total)
-        if tracker and volume_key:
-            tracker.mark_chunk_progress(volume_key, abs_flushed, total)
+        if on_progress:
+            on_progress(abs_flushed)
 
     elapsed = time.monotonic() - start
     is_partial = processed_count < effective_total
