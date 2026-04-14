@@ -206,6 +206,24 @@ async def get_ingest_status(current_admin: dict = Depends(get_current_admin)):
     """
     tracker = ProgressTracker(_PROGRESS_FILE)
 
+    # in_progress 항목만 Qdrant 실제 수로 보정 (페이지 열 때 1회)
+    if tracker.in_progress:
+        from qdrant_client.models import FieldCondition, Filter, MatchValue
+        sync_client = get_client()
+        changed = False
+        for volume_key, info in tracker.in_progress.items():
+            qdrant_count = sync_client.count(
+                collection_name=settings.collection_name,
+                count_filter=Filter(must=[
+                    FieldCondition(key="volume", match=MatchValue(value=volume_key)),
+                ]),
+            ).count
+            if qdrant_count > info.get("next_chunk", 0):
+                info["next_chunk"] = qdrant_count
+                changed = True
+        if changed:
+            tracker.save()
+
     summary = tracker.get_summary()
     return {
         "completed": tracker.completed,
