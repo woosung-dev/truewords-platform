@@ -2,6 +2,7 @@
 
 import logging
 import shutil
+import threading
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -26,17 +27,109 @@ router = APIRouter(prefix="/admin/data-sources", tags=["data-sources"])
 
 _PROGRESS_FILE = Path(__file__).parent.parent.parent / "progress.json"
 
+# 즉시 모드 업로드 워커 큐 (TPM 한도 준수 + 스레드 풀 보호)
+# FastAPI BackgroundTasks는 병렬 실행되어 Semaphore로 직렬화하면 대기 태스크들이
+# 스레드 풀을 점유해 HTTP 응답이 느려짐. 대신 Queue + 전용 워커 1개로 처리.
+import queue
+
+_INGEST_QUEUE: "queue.Queue[tuple]" = queue.Queue(maxsize=100)
+_WORKER_STARTED = threading.Event()
+_WORKER_LOCK = threading.Lock()
+
+
+def _ingest_worker():
+    """즉시 모드 파일을 Queue에서 하나씩 꺼내 처리하는 전용 워커."""
+    logger.info("[ingest-worker] 워커 시작")
+    while True:
+        try:
+            task = _INGEST_QUEUE.get()
+            if task is None:
+                break
+            file_path, filename, source = task
+            try:
+                _process_file_standard(file_path, filename, source)
+            except Exception:
+                logger.exception("[ingest-worker] 처리 중 예외")
+            finally:
+                _INGEST_QUEUE.task_done()
+        except Exception:
+            logger.exception("[ingest-worker] 워커 루프 예외")
+
+
+def _ensure_worker():
+    """워커 스레드가 없으면 시작 (멀티 요청에 안전)."""
+    with _WORKER_LOCK:
+        if not _WORKER_STARTED.is_set():
+            t = threading.Thread(target=_ingest_worker, name="ingest-worker", daemon=True)
+            t.start()
+            _WORKER_STARTED.set()
+
 
 
 
 def _process_file(file_path: Path, filename: str, source: str, mode: str = "standard"):
-    """백그라운드에서 파일 청크 및 임베딩 처리."""
+    """BackgroundTask 진입점. 배치 모드는 즉시 처리, 즉시 모드는 워커 큐에 투입.
+
+    스레드 풀 점유 방지를 위해 즉시 모드는 Queue로 이관하여 전용 워커가 처리.
+    이 함수는 빠르게 return해서 스레드를 반납한다.
+    """
+    if mode == "batch":
+        _process_file_batch(file_path, filename, source)
+    else:
+        _ensure_worker()
+        _INGEST_QUEUE.put((file_path, filename, source))
+        logger.info("[%s] 처리 큐에 투입 (대기열 %d개)", filename, _INGEST_QUEUE.qsize())
+
+
+def _process_file_batch(file_path: Path, filename: str, source: str):
+    """배치 모드: Gemini Batch API에 즉시 제출."""
+    import asyncio
     import unicodedata
     tracker = ProgressTracker(_PROGRESS_FILE)
     volume_key = unicodedata.normalize("NFC", filename)
 
     try:
-        logger.info("[%s] 처리 시작 (file_path=%s, mode=%s)", volume_key, file_path, mode)
+        logger.info("[%s] 배치 모드 처리 시작", volume_key)
+        text = extract_text(file_path)
+        if not text.strip():
+            tracker.mark_failed(volume_key, "빈 파일")
+            return
+        meta = extract_metadata(file_path, text)
+        volume = unicodedata.normalize("NFC", meta["volume"] or volume_key)
+        chunks = chunk_text(text, volume=volume, max_chars=500, source=source,
+                            title=meta["title"], date=meta["date"])
+
+        from src.common.database import async_session_factory
+        from src.pipeline.batch_repository import BatchJobRepository
+        from src.pipeline.batch_service import BatchService
+
+        chunk_texts = [c.text for c in chunks]
+
+        async def _submit_batch():
+            async with async_session_factory() as session:
+                repo = BatchJobRepository(session)
+                svc = BatchService(repo=repo)
+                await svc.submit(chunks_texts=chunk_texts, filename=filename,
+                                 volume_key=volume_key, source=source)
+
+        asyncio.run(_submit_batch())
+        logger.info("[%s] 배치 작업 제출 완료 (%d청크)", volume_key, len(chunks))
+    except Exception as e:
+        logger.exception("[%s] 배치 처리 실패", volume_key)
+        tracker.mark_failed(volume_key, str(e))
+    finally:
+        if file_path.exists():
+            file_path.unlink()
+
+
+def _process_file_standard(file_path: Path, filename: str, source: str):
+    """즉시 모드: 전용 워커에서 호출. 청크 추출 → 임베딩 → Qdrant 적재."""
+    import unicodedata
+    tracker = ProgressTracker(_PROGRESS_FILE)
+    volume_key = unicodedata.normalize("NFC", filename)
+
+    try:
+        logger.info("[%s] 처리 시작 (file_path=%s)", volume_key, file_path)
 
         # 1. 텍스트 추출
         text = extract_text(file_path)
@@ -45,84 +138,49 @@ def _process_file(file_path: Path, filename: str, source: str, mode: str = "stan
             tracker.mark_failed(volume_key, "빈 파일")
             return
 
-        # 2. 메타데이터 (title, date 등). 파일명 기반 추출을 기본으로 사용.
+        # 2. 메타데이터 추출
         meta = extract_metadata(file_path, text)
         volume = unicodedata.normalize("NFC", meta["volume"] or volume_key)
 
         # 3. 문서 청킹
-        chunks = chunk_text(
-            text,
-            volume=volume,
-            max_chars=500,
-            source=source,
-            title=meta["title"],
-            date=meta["date"],
-        )
+        chunks = chunk_text(text, volume=volume, max_chars=500, source=source,
+                            title=meta["title"], date=meta["date"])
         logger.info("[%s] 청킹 완료 (%d개 청크)", volume_key, len(chunks))
 
-        # 4. 모드별 분기
-        if mode == "batch":
-            # 배치 모드: Gemini Batch API에 제출
-            import asyncio
-            from src.common.database import async_session_factory
-            from src.pipeline.batch_repository import BatchJobRepository
-            from src.pipeline.batch_service import BatchService
+        # 4. Qdrant에서 재개 지점 조회
+        from qdrant_client.models import Filter, FieldCondition, MatchValue
+        sync_client = get_client()
+        start_chunk = sync_client.count(
+            collection_name=settings.collection_name,
+            count_filter=Filter(must=[
+                FieldCondition(key="volume", match=MatchValue(value=volume)),
+            ]),
+        ).count
+        if start_chunk > 0:
+            logger.info("[%s] Qdrant %d청크 확인 → %d번부터 재개 (총 %d청크)",
+                        volume_key, start_chunk, start_chunk, len(chunks))
 
-            chunk_texts = [c.text for c in chunks]
-
-            async def _submit_batch():
-                from src.common.database import async_session_factory
-                async with async_session_factory() as session:
-                    repo = BatchJobRepository(session)
-                    svc = BatchService(repo=repo)
-                    await svc.submit(
-                        chunks_texts=chunk_texts,
-                        filename=filename,
-                        volume_key=volume_key,
-                        source=source,
-                    )
-
-            asyncio.run(_submit_batch())
-            logger.info("[%s] 배치 작업 제출 완료 (%d청크)", volume_key, len(chunks))
-        else:
-            # 즉시 모드: Qdrant에서 실제 적재 수 조회 → 재개 지점 결정
-            from qdrant_client.models import Filter, FieldCondition, MatchValue
-            sync_client = get_client()
-            start_chunk = sync_client.count(
-                collection_name=settings.collection_name,
-                count_filter=Filter(must=[
-                    FieldCondition(key="volume", match=MatchValue(value=volume)),
-                ]),
-            ).count
-            if start_chunk > 0:
-                logger.info("[%s] Qdrant %d청크 확인 → %d번부터 재개 (총 %d청크)",
-                            volume_key, start_chunk, start_chunk, len(chunks))
-
-            stats = ingest_chunks(
-                sync_client,
-                settings.collection_name,
-                chunks,
-                start_chunk=start_chunk,
-                title=meta["title"],
-                tracker=tracker,
-                volume_key=volume_key,
+        # 5. 임베딩 + 적재
+        stats = ingest_chunks(
+            sync_client, settings.collection_name, chunks,
+            start_chunk=start_chunk, title=meta["title"],
+            tracker=tracker, volume_key=volume_key,
+        )
+        if stats.get("is_partial"):
+            logger.warning(
+                "[%s] 부분 적재 (%d/%d청크, %.1f초) — 재업로드로 이어서 처리 가능",
+                volume_key, stats["chunk_count"], stats["total_chunks"], stats["elapsed_sec"],
             )
-            if stats.get("is_partial"):
-                logger.warning(
-                    "[%s] 부분 적재 (%d/%d청크, %.1f초) — 재업로드로 이어서 처리 가능",
-                    volume_key, stats["chunk_count"], stats["total_chunks"], stats["elapsed_sec"],
-                )
-                tracker.mark_chunk_progress(volume_key, start_chunk + stats["chunk_count"], len(chunks))
-            else:
-                logger.info("[%s] 적재 완료 (%d청크, %.1f초)",
-                            volume_key, stats["chunk_count"], stats["elapsed_sec"])
-                tracker.mark_completed(volume_key, len(chunks))
+            tracker.mark_chunk_progress(volume_key, start_chunk + stats["chunk_count"], len(chunks))
+        else:
+            logger.info("[%s] 적재 완료 (%d청크, %.1f초)",
+                        volume_key, stats["chunk_count"], stats["elapsed_sec"])
+            tracker.mark_completed(volume_key, len(chunks))
 
     except Exception as e:
         logger.exception("[%s] 처리 실패", volume_key)
         tracker.mark_failed(volume_key, str(e))
     finally:
-        # 임시 파일 삭제
         if file_path.exists():
             file_path.unlink()
 
