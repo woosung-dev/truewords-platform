@@ -65,3 +65,19 @@ class VolumeInfo(BaseModel):
     volume: str = Field(..., description="문서(volume) 이름")
     sources: list[str] = Field(default_factory=list, description="속한 카테고리 key 배열")
     chunk_count: int = Field(..., description="청크 수")
+
+
+class VolumeTagsBulkRequest(BaseModel):
+    """다중 volume에 동일 source 태그를 추가/제거 요청."""
+    volumes: list[str] = Field(..., min_length=1, description="대상 volume 리스트")
+    source: str = Field(..., min_length=1, description="추가 또는 제거할 카테고리 key")
+
+
+class VolumeTagsBulkResponse(BaseModel):
+    """bulk 태그 변경 결과."""
+    updated_volumes: list[str] = Field(default_factory=list, description="실제로 변경된 volume 리스트")
+    skipped_volumes: list[dict] = Field(
+        default_factory=list,
+        description="스킵된 volume 리스트. 각 항목: {volume, reason}",
+    )
+    total_chunks_modified: int = Field(0, description="변경된 청크 총 수")

@@ -3,9 +3,14 @@
 import unicodedata
 
 from qdrant_client import AsyncQdrantClient, QdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
+from qdrant_client.models import FieldCondition, Filter, MatchAny, MatchValue
 
-from src.datasource.schemas import CategoryDocumentStats, VolumeInfo, VolumeTagResponse
+from src.datasource.schemas import (
+    CategoryDocumentStats,
+    VolumeInfo,
+    VolumeTagResponse,
+    VolumeTagsBulkResponse,
+)
 
 
 class DataSourceQdrantService:
@@ -157,6 +162,164 @@ class DataSourceQdrantService:
             volume=volume,
             updated_sources=final_sources,
             updated_chunks=updated,
+        )
+
+    async def add_volume_tags_bulk(
+        self, volumes: list[str], source: str
+    ) -> VolumeTagsBulkResponse:
+        """여러 volume에 동일 source 태그를 한 번의 scroll로 추가.
+
+        기존 단일 volume add를 N번 반복하면 각 call마다 scroll이 발생하지만,
+        bulk는 `MatchAny`로 전체 volume을 한 번에 scroll 후 메모리에서 grouping해
+        최소한의 set_payload로 처리한다.
+        """
+        volume_names = [unicodedata.normalize("NFD", v) for v in volumes]
+        volume_name_set = set(volume_names)
+
+        # (volume, frozenset(sources)) 기준으로 그룹핑 — set_payload를 그룹별 1회로 압축
+        groups: dict[tuple[str, frozenset[str]], list] = {}
+        volumes_seen: set[str] = set()
+
+        offset = None
+        while True:
+            points, offset = await self.async_client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=Filter(
+                    must=[FieldCondition(key="volume", match=MatchAny(any=volume_names))]
+                ),
+                with_payload=["source", "volume"],
+                with_vectors=False,
+                limit=1000,
+                offset=offset,
+            )
+            for p in points:
+                payload = p.payload or {}
+                vol = payload.get("volume", "")
+                if vol not in volume_name_set:
+                    continue
+                volumes_seen.add(vol)
+                sources = payload.get("source", [])
+                if isinstance(sources, str):
+                    sources = [sources]
+                if source in sources:
+                    continue  # 이미 태그 존재, skip
+                key = (vol, frozenset(sources))
+                groups.setdefault(key, []).append(p.id)
+            if offset is None:
+                break
+
+        updated_chunks = 0
+        updated_volumes_set: set[str] = set()
+        for (vol, existing_sources), point_ids in groups.items():
+            new_sources = sorted(existing_sources | {source})
+            await self.async_client.set_payload(
+                collection_name=self.collection_name,
+                payload={"source": new_sources},
+                points=point_ids,
+            )
+            updated_chunks += len(point_ids)
+            updated_volumes_set.add(vol)
+
+        # volume_name(NFD) → 원본 입력 이름으로 복원 매핑
+        nfd_to_input = {unicodedata.normalize("NFD", v): v for v in volumes}
+        updated_volumes = sorted(nfd_to_input[v] for v in updated_volumes_set if v in nfd_to_input)
+
+        skipped = []
+        for v in volumes:
+            nfd = unicodedata.normalize("NFD", v)
+            if nfd not in volumes_seen:
+                skipped.append({"volume": v, "reason": "Qdrant에 해당 volume 없음"})
+            elif nfd not in updated_volumes_set:
+                skipped.append({"volume": v, "reason": "이미 태그가 있음"})
+
+        return VolumeTagsBulkResponse(
+            updated_volumes=updated_volumes,
+            skipped_volumes=skipped,
+            total_chunks_modified=updated_chunks,
+        )
+
+    async def remove_volume_tags_bulk(
+        self, volumes: list[str], source: str
+    ) -> VolumeTagsBulkResponse:
+        """여러 volume에서 동일 source 태그를 한 번의 scroll로 제거.
+
+        마지막 태그인 경우 해당 volume은 스킵하고 skipped_volumes에 기록.
+        """
+        volume_names = [unicodedata.normalize("NFD", v) for v in volumes]
+        volume_name_set = set(volume_names)
+
+        # volume별 (sources_by_point) 수집 후, 마지막 태그 검사 → 그룹 빌드
+        volume_points: dict[str, list[tuple[str, frozenset[str]]]] = {}
+        volumes_seen: set[str] = set()
+
+        offset = None
+        while True:
+            points, offset = await self.async_client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=Filter(
+                    must=[FieldCondition(key="volume", match=MatchAny(any=volume_names))]
+                ),
+                with_payload=["source", "volume"],
+                with_vectors=False,
+                limit=1000,
+                offset=offset,
+            )
+            for p in points:
+                payload = p.payload or {}
+                vol = payload.get("volume", "")
+                if vol not in volume_name_set:
+                    continue
+                volumes_seen.add(vol)
+                sources = payload.get("source", [])
+                if isinstance(sources, str):
+                    sources = [sources]
+                if source not in sources:
+                    continue  # 태그 없으면 skip
+                volume_points.setdefault(vol, []).append((p.id, frozenset(sources)))
+            if offset is None:
+                break
+
+        nfd_to_input = {unicodedata.normalize("NFD", v): v for v in volumes}
+        skipped: list[dict] = []
+        updated_volumes_set: set[str] = set()
+        groups: dict[frozenset[str], list] = {}
+
+        for vol, point_entries in volume_points.items():
+            # volume의 어느 point라도 마지막 태그면 해당 volume 전체 스킵
+            has_single = any(len(fs) <= 1 for _, fs in point_entries)
+            if has_single:
+                skipped.append({
+                    "volume": nfd_to_input.get(vol, vol),
+                    "reason": "마지막 카테고리 태그라 제거 불가",
+                })
+                continue
+            for point_id, fs in point_entries:
+                groups.setdefault(fs, []).append(point_id)
+            updated_volumes_set.add(vol)
+
+        updated_chunks = 0
+        for existing_sources, point_ids in groups.items():
+            new_sources = sorted(existing_sources - {source})
+            await self.async_client.set_payload(
+                collection_name=self.collection_name,
+                payload={"source": new_sources},
+                points=point_ids,
+            )
+            updated_chunks += len(point_ids)
+
+        for v in volumes:
+            nfd = unicodedata.normalize("NFD", v)
+            if nfd not in volumes_seen:
+                skipped.append({"volume": v, "reason": "Qdrant에 해당 volume 없음"})
+            elif nfd not in volume_points:
+                skipped.append({"volume": v, "reason": "이미 태그가 없음"})
+
+        updated_volumes = sorted(nfd_to_input[v] for v in updated_volumes_set if v in nfd_to_input)
+
+        return VolumeTagsBulkResponse(
+            updated_volumes=updated_volumes,
+            skipped_volumes=skipped,
+            total_chunks_modified=updated_chunks,
         )
 
     async def remove_volume_tag(self, volume: str, source: str) -> VolumeTagResponse:

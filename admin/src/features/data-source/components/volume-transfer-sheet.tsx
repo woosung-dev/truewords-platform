@@ -8,7 +8,12 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import VolumeTransfer from "@/features/data-source/components/volume-transfer";
-import { useAllVolumes, useActiveCategories, useAddVolumeTag, useRemoveVolumeTag } from "@/features/data-source/hooks";
+import {
+  useAllVolumes,
+  useActiveCategories,
+  useAddVolumeTagsBulk,
+  useRemoveVolumeTagsBulk,
+} from "@/features/data-source/hooks";
 import { getCategoryColors } from "@/features/data-source/category-colors";
 
 interface VolumeTransferSheetProps {
@@ -29,13 +34,12 @@ export default function VolumeTransferSheet({
   const queryClient = useQueryClient();
   const { data: allVolumes = [], refetch } = useAllVolumes();
   const { data: activeCategories = [] } = useActiveCategories();
-  const addTagMutation = useAddVolumeTag();
-  const removeTagMutation = useRemoveVolumeTag();
+  const bulkAddMutation = useAddVolumeTagsBulk();
+  const bulkRemoveMutation = useRemoveVolumeTagsBulk();
 
   const [includedVolumes, setIncludedVolumes] = useState<Set<string>>(new Set());
   const [initialIncluded, setInitialIncluded] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
 
   const categoryMap = useMemo(
     () => new Map(activeCategories.map((c) => [c.key, { name: c.name, color: c.color }])),
@@ -96,46 +100,54 @@ export default function VolumeTransferSheet({
     if (!effectiveKey || !hasChanges) return;
 
     setSaving(true);
-    const totalOps = diff.added.length + diff.removed.length;
-    setProgress({ current: 0, total: totalOps });
-
-    let completed = 0;
     const errors: string[] = [];
+    const skippedMessages: string[] = [];
+    let totalChunks = 0;
 
-    for (const volume of diff.added) {
-      try {
-        await addTagMutation.mutateAsync({ volume, source: effectiveKey });
-        completed++;
-        setProgress({ current: completed, total: totalOps });
-      } catch {
-        errors.push(`추가 실패: ${volume}`);
+    try {
+      if (diff.added.length > 0) {
+        const res = await bulkAddMutation.mutateAsync({
+          volumes: diff.added,
+          source: effectiveKey,
+        });
+        totalChunks += res.total_chunks_modified;
+        res.skipped_volumes.forEach((s) =>
+          skippedMessages.push(`${s.volume}: ${s.reason}`)
+        );
       }
-    }
-
-    for (const volume of diff.removed) {
-      try {
-        await removeTagMutation.mutateAsync({ volume, source: effectiveKey });
-        completed++;
-        setProgress({ current: completed, total: totalOps });
-      } catch {
-        errors.push(`제거 실패: ${volume}`);
+      if (diff.removed.length > 0) {
+        const res = await bulkRemoveMutation.mutateAsync({
+          volumes: diff.removed,
+          source: effectiveKey,
+        });
+        totalChunks += res.total_chunks_modified;
+        res.skipped_volumes.forEach((s) =>
+          skippedMessages.push(`${s.volume}: ${s.reason}`)
+        );
       }
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : "요청 실패");
     }
 
     setSaving(false);
 
     if (errors.length > 0) {
-      toast.error(`일부 작업 실패 (${errors.length}건)`, {
-        description: errors.slice(0, 3).join(", "),
+      toast.error("저장 실패", { description: errors.join(", ") });
+      return;
+    }
+
+    if (skippedMessages.length > 0) {
+      toast.warning(`일부 볼륨 스킵 (${skippedMessages.length}건)`, {
+        description: skippedMessages.slice(0, 3).join(", "),
       });
     } else {
       toast.success(
-        `저장 완료 (추가 ${diff.added.length}건, 제거 ${diff.removed.length}건)`
+        `저장 완료 (추가 ${diff.added.length}건, 제거 ${diff.removed.length}건, ${totalChunks.toLocaleString()}청크)`
       );
-      queryClient.invalidateQueries({ queryKey: ["category-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
-      onOpenChange(false);
     }
+    queryClient.invalidateQueries({ queryKey: ["category-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
+    onOpenChange(false);
   };
 
   const handleCancel = () => {
@@ -226,7 +238,7 @@ export default function VolumeTransferSheet({
             {/* 저장 프로그레스 */}
             {saving && (
               <div className="mb-3 text-sm text-muted-foreground text-center">
-                {progress.total}건 중 {progress.current}건 처리 중...
+                처리 중... (한 번의 요청으로 일괄 적용)
               </div>
             )}
 

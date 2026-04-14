@@ -51,3 +51,19 @@ export interface VolumeInfo {
   sources: string[];
   chunk_count: number;
 }
+
+export interface VolumeTagsBulkRequest {
+  volumes: string[];
+  source: string;
+}
+
+export interface SkippedVolume {
+  volume: string;
+  reason: string;
+}
+
+export interface VolumeTagsBulkResponse {
+  updated_volumes: string[];
+  skipped_volumes: SkippedVolume[];
+  total_chunks_modified: number;
+}
