@@ -7,6 +7,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+import asyncio
+
+from src.admin.data_router import set_main_loop as set_ingest_main_loop
 from src.cache.setup import ensure_cache_collection
 from src.common.database import init_db
 from src.config import settings
@@ -33,6 +36,10 @@ from src.search.exceptions import EmbeddingFailedError, SearchFailedError
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """앱 시작 시 DB + 캐시 컬렉션 초기화. 실패해도 앱은 시작."""
+    # 워커 스레드가 DB 호출을 위임할 수 있도록 메인 event loop 참조 저장.
+    # AsyncEngine connection pool은 단일 loop에 바인딩되므로 필수.
+    set_ingest_main_loop(asyncio.get_running_loop())
+
     try:
         await init_db()
     except Exception as e:

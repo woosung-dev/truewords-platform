@@ -39,6 +39,17 @@ _INGEST_QUEUE: "queue.Queue[tuple]" = queue.Queue(maxsize=100)
 _WORKER_STARTED = threading.Event()
 _WORKER_LOCK = threading.Lock()
 
+# FastAPI 메인 event loop 참조 — 워커 스레드가 DB 호출을 메인 loop에 위임한다.
+# AsyncEngine의 connection pool은 단일 loop에 바인딩되므로 워커가 직접 새 loop로
+# 접근하면 "attached to a different loop" 런타임 에러 발생. lifespan에서 주입.
+_main_loop: "asyncio.AbstractEventLoop | None" = None
+
+
+def set_main_loop(loop: "asyncio.AbstractEventLoop") -> None:
+    """FastAPI lifespan에서 호출. 메인 loop을 워커가 쓸 수 있도록 저장."""
+    global _main_loop
+    _main_loop = loop
+
 
 def _ingest_worker():
     """즉시 모드 파일을 Queue에서 하나씩 꺼내 처리하는 전용 워커."""
@@ -79,8 +90,15 @@ def _process_file(file_path: Path, filename: str, source: str, mode: str = "stan
 
 
 def _process_file_batch(file_path: Path, filename: str, source: str):
-    """배치 모드: Gemini Batch API에 즉시 제출."""
+    """배치 모드: Gemini Batch API에 즉시 제출.
+
+    DB 호출은 메인 loop에 위임 (AsyncEngine 단일 loop 바인딩 제약).
+    """
     volume_key = unicodedata.normalize("NFC", filename)
+
+    if _main_loop is None:
+        logger.error("[%s] 메인 loop 미설정 — 배치 처리 불가", volume_key)
+        return
 
     try:
         logger.info("[%s] 배치 모드 처리 시작", volume_key)
@@ -105,7 +123,8 @@ def _process_file_batch(file_path: Path, filename: str, source: str):
                 await svc.submit(chunks_texts=chunk_texts, filename=filename,
                                  volume_key=volume_key, source=source)
 
-        asyncio.run(_submit_batch())
+        future = asyncio.run_coroutine_threadsafe(_submit_batch(), _main_loop)
+        future.result()
         logger.info("[%s] 배치 작업 제출 완료 (%d청크)", volume_key, len(chunks))
     except Exception:
         logger.exception("[%s] 배치 처리 실패", volume_key)
@@ -117,21 +136,25 @@ def _process_file_batch(file_path: Path, filename: str, source: str):
 def _process_file_standard(file_path: Path, filename: str, source: str):
     """즉시 모드: 전용 워커에서 호출. 청크 추출 → 임베딩 → Qdrant 적재.
 
-    워커 스레드 내에서 전용 event loop를 생성하여 DB 호출에 재사용.
-    각 상태 전이는 짧은 트랜잭션으로 커밋되어 race 없음.
+    DB 호출은 FastAPI 메인 loop에 위임 (run_coroutine_threadsafe)하여
+    AsyncEngine connection pool의 단일 loop 바인딩 제약을 준수한다.
     """
     volume_key = unicodedata.normalize("NFC", filename)
-    loop = asyncio.new_event_loop()
+
+    if _main_loop is None:
+        logger.error("[%s] 메인 loop 미설정 — 워커 실행 불가 (lifespan 초기화 확인)", volume_key)
+        return
 
     def run_repo(fn):
-        """Repository 작업을 짧은 트랜잭션으로 실행."""
+        """Repository 작업을 메인 loop에 제출하고 결과를 blocking으로 받는다."""
         async def _exec():
             async with async_session_factory() as session:
                 repo = IngestionJobRepository(session)
                 result = await fn(repo)
                 await repo.commit()
                 return result
-        return loop.run_until_complete(_exec())
+        future = asyncio.run_coroutine_threadsafe(_exec(), _main_loop)
+        return future.result()
 
     try:
         run_repo(lambda r: r.upsert_pending(volume_key, filename, source))
@@ -202,7 +225,6 @@ def _process_file_standard(file_path: Path, filename: str, source: str):
         except Exception:
             logger.exception("[%s] 실패 상태 기록도 실패", volume_key)
     finally:
-        loop.close()
         if file_path.exists():
             file_path.unlink()
 
