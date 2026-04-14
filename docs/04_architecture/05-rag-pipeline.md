@@ -13,7 +13,7 @@ Query Rewriting + 용어 감지 (LLM이 질문 확장/재작성)
 └────┬─────┴────┬─────┴────┬─────┘
      └──────────┼──────────┘
                 ↓
-         Re-ranker (Cross-encoder로 상위 10개 선별)
+         Re-ranker (Gemini LLM으로 상위 10개 선별)
                 ↓
          시스템 프롬프트 + 검색 결과 + 사용자 질문
                 ↓
@@ -95,7 +95,7 @@ for result in search_results:
 ```
 1차 검색: 벡터 + BM25 → Top-50 후보
     ↓
-2차 Re-ranker: Cross-encoder 모델로 정밀 재순위
+2차 Re-ranker: Gemini LLM으로 정밀 재순위 (JSON 점수 응답)
     ↓
 Top-10만 LLM에 전달
 ```
@@ -105,10 +105,15 @@ Top-10만 LLM에 전달
 - Re-ranker는 질문과 문서를 동시에 읽고 관련도를 정밀 판단
 - 60만 청크에서 정말 관련 있는 10개만 선별
 
-**추천 모델:**
-- `ms-marco-MiniLM-L-12` (가볍고 빠름)
-- Cohere Rerank API (한국어 지원 양호)
-- `bge-reranker-v2-m3` (다국어, 셀프호스팅)
+**현재 구현:** `backend/src/search/reranker.py` — Gemini LLM 프롬프트 기반 재순위.
+Cross-encoder 모델(`ms-marco-MiniLM`, `bge-reranker-v2-m3` 등)은 초기 설계 단계에서 검토되었으나,
+Gemini API를 이미 사용 중인 점과 한국어 품질을 고려하여 LLM 기반으로 구현되었다.
+
+**동작:**
+- 각 문단을 `[문단 N] (출처: volume)` 형식으로 프롬프트 구성
+- Gemini에게 0.0~1.0 관련성 점수를 JSON(`{"scores": [...]}`)으로 요청
+- 파싱/API 실패 시 원본 RRF 결과 반환 (graceful degradation)
+- 원본 `score`는 보존, 별도 `rerank_score` 필드에 LLM 점수 저장
 
 ---
 
