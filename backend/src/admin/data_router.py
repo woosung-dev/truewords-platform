@@ -27,10 +27,13 @@ router = APIRouter(prefix="/admin/data-sources", tags=["data-sources"])
 _PROGRESS_FILE = Path(__file__).parent.parent.parent / "progress.json"
 
 
+
+
 def _process_file(file_path: Path, filename: str, source: str, mode: str = "standard"):
     """백그라운드에서 파일 청크 및 임베딩 처리."""
+    import unicodedata
     tracker = ProgressTracker(_PROGRESS_FILE)
-    volume_key = filename
+    volume_key = unicodedata.normalize("NFC", filename)
 
     try:
         logger.info("[%s] 처리 시작 (file_path=%s, mode=%s)", volume_key, file_path, mode)
@@ -44,7 +47,7 @@ def _process_file(file_path: Path, filename: str, source: str, mode: str = "stan
 
         # 2. 메타데이터 (title, date 등). 파일명 기반 추출을 기본으로 사용.
         meta = extract_metadata(file_path, text)
-        volume = meta["volume"] or volume_key
+        volume = unicodedata.normalize("NFC", meta["volume"] or volume_key)
 
         # 3. 문서 청킹
         chunks = chunk_text(
@@ -82,14 +85,21 @@ def _process_file(file_path: Path, filename: str, source: str, mode: str = "stan
             asyncio.run(_submit_batch())
             logger.info("[%s] 배치 작업 제출 완료 (%d청크)", volume_key, len(chunks))
         else:
-            # 즉시 모드: 기존 Standard API 적재
-            start_chunk = tracker.get_resume_point(volume_key)
+            # 즉시 모드: Qdrant에서 실제 적재 수 조회 → 재개 지점 결정
+            from qdrant_client.models import Filter, FieldCondition, MatchValue
+            sync_client = get_client()
+            start_chunk = sync_client.count(
+                collection_name=settings.collection_name,
+                count_filter=Filter(must=[
+                    FieldCondition(key="volume", match=MatchValue(value=volume)),
+                ]),
+            ).count
             if start_chunk > 0:
-                logger.info("[%s] 청크 %d번부터 재개 (총 %d청크)", volume_key, start_chunk, len(chunks))
+                logger.info("[%s] Qdrant %d청크 확인 → %d번부터 재개 (총 %d청크)",
+                            volume_key, start_chunk, start_chunk, len(chunks))
 
-            client = get_client()
             stats = ingest_chunks(
-                client,
+                sync_client,
                 settings.collection_name,
                 chunks,
                 start_chunk=start_chunk,
@@ -99,14 +109,14 @@ def _process_file(file_path: Path, filename: str, source: str, mode: str = "stan
             )
             if stats.get("is_partial"):
                 logger.warning(
-                    "[%s] 부분 적재 (%d/%d청크, %.1f초) — RPD 한도 도달, 재업로드로 이어서 처리 가능",
+                    "[%s] 부분 적재 (%d/%d청크, %.1f초) — 재업로드로 이어서 처리 가능",
                     volume_key, stats["chunk_count"], stats["total_chunks"], stats["elapsed_sec"],
                 )
-                tracker.mark_chunk_progress(volume_key, stats["chunk_count"], stats["total_chunks"])
+                tracker.mark_chunk_progress(volume_key, start_chunk + stats["chunk_count"], len(chunks))
             else:
                 logger.info("[%s] 적재 완료 (%d청크, %.1f초)",
                             volume_key, stats["chunk_count"], stats["elapsed_sec"])
-                tracker.mark_completed(volume_key, stats["chunk_count"])
+                tracker.mark_completed(volume_key, len(chunks))
 
     except Exception as e:
         logger.exception("[%s] 처리 실패", volume_key)
@@ -190,8 +200,12 @@ async def upload_document(
 
 @router.get("/status")
 async def get_ingest_status(current_admin: dict = Depends(get_current_admin)):
-    """현재까지 처리된 progress.json 상태를 반환합니다."""
+    """현재까지 처리된 progress.json 상태를 반환합니다.
+
+    in_progress 항목은 Qdrant 실제 적재 수로 보정하여 정확한 진행률을 표시합니다.
+    """
     tracker = ProgressTracker(_PROGRESS_FILE)
+
     summary = tracker.get_summary()
     return {
         "completed": tracker.completed,
