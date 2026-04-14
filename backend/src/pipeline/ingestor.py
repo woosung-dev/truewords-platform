@@ -1,14 +1,14 @@
-"""Qdrant 적재 — 배치 임베딩 + 청크 레벨 체크포인트 + RPD 방어.
+"""Qdrant 적재 — 배치 임베딩 + 청크 레벨 체크포인트.
 
 청크 리스트를 받아 dense/sparse 임베딩 후 Qdrant에 upsert한다.
-Google 무료 티어 RPD(1K/일) 제한을 카운터로 관리하며,
 429 발생 시 지수 백오프(90→180초)로 재시도한다.
-``--resume`` 을 통한 청크 레벨 체크포인트 재개를 지원한다.
+재업로드를 통한 청크 레벨 체크포인트 재개를 지원한다.
 """
 
 from __future__ import annotations
 
 import logging
+import math
 import time
 import uuid
 from typing import TYPE_CHECKING
@@ -30,67 +30,10 @@ logger = logging.getLogger(__name__)
 _UPSERT_BATCH_SIZE = 50
 
 
-# ──────────────────────────────────────────────────────────────
-# RPD (Requests Per Day) 방어 카운터
-#
-# 문제: 무료 등급 RPD 1K/일 — SDK 내부 retry + 코드 retry가 중복되면
-#       실제 기대치보다 5배 이상 많은 요청이 발생, RPD 조기 소진.
-#
-# 해결:
-#   1. embedder.py에서 SDK retry 중 429를 제외 (내부 retry 차단)
-#   2. ProgressTracker.rpd 카운터로 한도 근접 시 사전 중단 (파일 영속화)
-#   3. 배치 간 sleep으로 TPM/RPM 동시 제어
-#
-# RPD 카운터는 progress.json에 날짜별로 저장되어 서버 재시작 후에도 유지된다.
-# ──────────────────────────────────────────────────────────────
-
-_RPD_LIMIT = getattr(settings, "embed_rpd_limit", 950)
-
-# 모듈 레벨 tracker 참조 (ingest_chunks에서 설정)
-_active_tracker: ProgressTracker | None = None
-
-
-def _get_rpd_count() -> int:
-    """현재 RPD 사용량 반환. tracker가 있으면 파일 기반, 없으면 0."""
-    if _active_tracker is None:
-        return 0
-    return _active_tracker.get_rpd_count()
-
-
-def _increment_rpd(text_count: int = 1) -> int:
-    """RPD 카운터를 text_count만큼 증가 후 현재 값 반환. 파일에 즉시 저장."""
-    if _active_tracker is None:
-        return 0
-    return _active_tracker.increment_rpd(text_count)
-
-
-def _check_rpd_budget(needed: int) -> None:
-    """RPD 예산 사전 검증 — 소진 시 ValueError, 부족 시 경고 후 계속 진행."""
-    current = _get_rpd_count()
-    remaining = _RPD_LIMIT - current
-    if remaining <= 0:
-        raise ValueError(
-            f"RPD 예산 소진: 현재 {current}/{_RPD_LIMIT} 텍스트 사용. "
-            f"내일 리셋 후 재시도하거나 유료 플랜으로 전환하세요."
-        )
-    if remaining < needed:
-        logger.warning(
-            "RPD 예산 부족: %d/%d 텍스트 사용 중, %d텍스트 필요하지만 %d만 가능. "
-            "한도까지 처리 후 중단됩니다. 재업로드로 내일 이어서 실행하세요.",
-            current, _RPD_LIMIT, needed, remaining,
-        )
-    else:
-        logger.info(
-            "RPD 예산 확인: %d/%d 텍스트 사용 중, %d텍스트 추가 예정 → 잔여 %d",
-            current, _RPD_LIMIT, needed, remaining - needed,
-        )
-
-
 def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[float]]:
     """배치 dense 임베딩 + 429 지수 백오프 (90→180초, 최대 3회).
 
     SDK 내부 retry에서 429를 제외했으므로 여기서 직접 제어한다.
-    성공 시 RPD 카운터를 텍스트 수만큼 증가시킨다.
 
     Args:
         texts: 임베딩할 텍스트 리스트.
@@ -103,39 +46,31 @@ def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[floa
         google.genai.errors.ClientError: 429 외 API 에러 또는 3회 재시도 소진.
     """
     base_wait = getattr(settings, "retry_base_wait", 90.0)
-    max_retries = 3
+    max_retries = 2
 
     for attempt in range(max_retries):
         try:
-            result = embed_dense_batch(texts, title=title)
-            _increment_rpd(len(texts))  # 텍스트 수 단위로 카운트
-            return result
+            return embed_dense_batch(texts, title=title)
         except genai_errors.ClientError as e:
             if e.code != 429:
                 raise
 
-            current_rpd = _get_rpd_count()
-            # Google API 원본 에러 메시지를 그대로 출력 (RPM/RPD/TPM 구분 포함)
             api_message = str(e)
 
             if attempt < max_retries - 1:
-                wait = base_wait * (2 ** attempt)  # 90초, 180초
+                wait = base_wait * (2 ** attempt)
                 logger.warning(
                     "Rate limit 429 — %.0f초 대기 (시도 %d/%d)\n"
-                    "  RPD 누적: %d/%d\n"
                     "  API 원본 에러: %s",
                     wait, attempt + 1, max_retries,
-                    current_rpd, _RPD_LIMIT,
                     api_message,
                 )
                 time.sleep(wait)
             else:
                 logger.error(
                     "Rate limit 3회 연속 실패 — 파이프라인 중단.\n"
-                    "  RPD 누적: %d/%d\n"
                     "  API 원본 에러: %s\n"
                     "  → 에러 메시지를 확인하여 RPM/RPD/TPM 중 어디에 걸렸는지 판단하세요.",
-                    current_rpd, _RPD_LIMIT,
                     api_message,
                 )
                 raise
@@ -155,7 +90,7 @@ def ingest_chunks(
 
     동적 배치(글자 수 기준)로 묶어 dense + sparse 임베딩을 수행하고,
     ``_UPSERT_BATCH_SIZE`` 단위로 Qdrant에 upsert한다.
-    RPD 한도 도달 시 조기 중단되며, ``--resume``으로 이어서 실행 가능.
+    429 발생 시 재시도하며, 3회 소진 시 부분 완료로 처리한다.
 
     Args:
         client: Qdrant 동기 클라이언트.
@@ -167,11 +102,8 @@ def ingest_chunks(
         volume_key: tracker에 저장할 볼륨 키 (보통 파일명).
 
     Returns:
-        ``{"chunk_count": int, "elapsed_sec": float}`` 형태 dict.
+        dict: chunk_count, total_chunks, elapsed_sec, is_partial.
     """
-    global _active_tracker
-    _active_tracker = tracker
-
     if not chunks:
         return {"chunk_count": 0, "total_chunks": 0, "elapsed_sec": 0.0, "is_partial": False}
 
@@ -185,12 +117,8 @@ def ingest_chunks(
         logger.info("모든 청크 이미 적재됨 (start_chunk=%d, total=%d)", start_chunk, total)
         return {"chunk_count": 0, "total_chunks": 0, "elapsed_sec": 0.0, "is_partial": False}
 
-    # RPD 예산 사전 검증 — 부족하면 시작 전에 실패
-    # Google 무료 RPD는 텍스트 수 단위 (배치 수가 아님)
-    import math
     max_chars: int = settings.embed_max_chars_per_batch or 31000
     batch_sleep: float = settings.embed_batch_sleep or 60.0
-    _check_rpd_budget(effective_total)  # 텍스트 수로 예산 검증
     total_chars = sum(len(c.text) for c in effective_chunks)
     estimated_batches = max(1, math.ceil(total_chars / max_chars))
 
@@ -198,28 +126,16 @@ def ingest_chunks(
     points: list[PointStruct] = []
 
     logger.info(
-        "임베딩 시작 — RPD: %d/%d 텍스트, 배치 간 %.0f초 대기, "
-        "동적 배치(상한 %d자), 예상 배치: %d개, 잔여 텍스트: %d개",
-        _get_rpd_count(), _RPD_LIMIT, batch_sleep,
-        max_chars, estimated_batches, effective_total,
+        "임베딩 시작 — 배치 간 %.0f초 대기, 동적 배치(상한 %d자), "
+        "예상 배치: %d개, 잔여 텍스트: %d개 (start_chunk=%d)",
+        batch_sleep, max_chars, estimated_batches, effective_total, start_chunk,
     )
 
-    # 동적 배치: 글자 수 합계가 max_chars를 넘지 않도록 청크를 묶음
-    # 짧은 청크 → 배치 크기 ↑ (최대 MAX_TEXTS_PER_BATCH)
-    # 긴 청크 → 배치 크기 ↓ (TPM 초과 방지)
     idx = 0
     batch_num = 0
-    while idx < effective_total:
-        # RPD 한도 도달 시 조기 중단 (가능한 만큼 처리 후 멈춤)
-        current_rpd = _get_rpd_count()
-        if current_rpd >= _RPD_LIMIT:
-            logger.warning(
-                "RPD 한도 도달 (%d/%d 텍스트). 여기까지 처리 후 중단. "
-                "--resume으로 내일 이어서 실행하세요.",
-                current_rpd, _RPD_LIMIT,
-            )
-            break
+    rate_limit_exhausted = False
 
+    while idx < effective_total:
         # 배치 빌더: 글자 수 합계와 텍스트 수 모두 제한
         batch_chunks: list[Chunk] = []
         batch_chars = 0
@@ -238,20 +154,22 @@ def ingest_chunks(
         abs_batch_end = start_chunk + idx
         batch_num += 1
 
-        # Dense 임베딩 (1회 API 호출, title 포함)
-        dense_vectors = _embed_batch_with_retry(batch_texts, title=title)
+        # Dense 임베딩 (429 시 3회 재시도, 소진 시 부분 완료)
+        try:
+            dense_vectors = _embed_batch_with_retry(batch_texts, title=title)
+        except (genai_errors.ClientError, RuntimeError):
+            logger.warning("임베딩 실패로 중단 — 여기까지 처리 후 부분 완료 처리")
+            idx -= len(batch_chunks)  # 실패한 배치 롤백
+            rate_limit_exhausted = True
+            break
 
         # Sparse 임베딩 (로컬 CPU, API 호출 없음)
         sparse_results = embed_sparse_batch(batch_texts)
 
         for i, chunk in enumerate(batch_chunks):
             sparse_indices, sparse_values = sparse_results[i]
-            # 결정적 ID: volume + chunk_index 기반 UUID5
-            # source는 다중 카테고리 지원으로 배열이 되므로 ID에서 제외
-            # → 동일 문서의 동일 청크는 항상 같은 ID (idempotent)
             chunk_key = f"{chunk.volume}:{chunk.chunk_index}"
             point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, chunk_key))
-            # source를 배열로 저장 (다중 카테고리 지원)
             source_list = chunk.source if isinstance(chunk.source, list) else [chunk.source] if chunk.source else []
             points.append(
                 PointStruct(
@@ -277,11 +195,10 @@ def ingest_chunks(
         # Qdrant upsert (충분히 쌓이면 flush)
         if len(points) >= _UPSERT_BATCH_SIZE:
             client.upsert(collection_name=collection_name, points=points)
-            rpd_now = _get_rpd_count()
             logger.info(
-                "  [%d/%d] 청크 적재 중... (배치 %d: %d청크/%d자, RPD: %d/%d)",
+                "  [%d/%d] 청크 적재 중... (배치 %d: %d청크/%d자)",
                 abs_batch_end, total, batch_num,
-                len(batch_chunks), batch_chars, rpd_now, _RPD_LIMIT,
+                len(batch_chunks), batch_chars,
             )
             points = []
 
@@ -290,8 +207,6 @@ def ingest_chunks(
                 tracker.mark_chunk_progress(volume_key, abs_batch_end, total)
 
         # RPM/TPM 방어: .env EMBED_BATCH_SLEEP 으로 제어
-        # 무료(TPM 30K): 60초 (TPM 윈도우 리셋 대기)
-        # 유료(TPM 1M): 3초
         time.sleep(batch_sleep)
 
     # 남은 points flush
@@ -304,12 +219,11 @@ def ingest_chunks(
             tracker.mark_chunk_progress(volume_key, abs_flushed, total)
 
     elapsed = time.monotonic() - start
-    rpd_final = _get_rpd_count()
     is_partial = processed_count < effective_total
     logger.info(
-        "인제스트 %s: %d/%d청크, %.1f초, RPD 누적: %d/%d",
-        "부분 완료 (RPD 한도)" if is_partial else "완료",
-        processed_count, effective_total, elapsed, rpd_final, _RPD_LIMIT,
+        "인제스트 %s: %d/%d청크, %.1f초",
+        "부분 완료 (API 한도)" if is_partial else "완료",
+        processed_count, effective_total, elapsed,
     )
     return {
         "chunk_count": processed_count,
