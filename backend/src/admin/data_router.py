@@ -21,6 +21,7 @@ from src.datasource.dependencies import get_datasource_service, get_qdrant_servi
 from src.datasource.qdrant_service import DataSourceQdrantService
 from src.datasource.schemas import (
     CategoryDocumentStats,
+    DuplicateCheckResponse,
     VolumeInfo,
     VolumeTagRequest,
     VolumeTagResponse,
@@ -300,6 +301,43 @@ async def get_ingest_status(
 ):
     """현재까지 처리된 적재 작업 상태를 반환합니다."""
     return await service.build_status_response()
+
+
+@router.get("/check-duplicate", response_model=DuplicateCheckResponse)
+async def check_duplicate(
+    filename: str,
+    current_admin: dict = Depends(get_current_admin),
+    service: IngestionJobService = Depends(get_ingestion_service),
+    qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
+):
+    """업로드 전 동일 파일명의 기존 적재 여부를 조회합니다.
+
+    재업로드 시 기존 데이터가 덮어써지므로, UI가 사용자에게 경고를 띄우고
+    "덮어쓰기 / 태그만 추가 / 취소" 중에서 선택하도록 돕는다.
+    """
+    if not filename.strip():
+        raise HTTPException(status_code=400, detail="filename이 비어있습니다")
+
+    safe_filename = Path(filename).name
+    volume_key = unicodedata.normalize("NFC", safe_filename)
+
+    job = await service.find_by_filename(safe_filename)
+    sources, chunk_count = await qdrant_service.get_volume_snapshot(volume_key)
+
+    exists = job is not None or chunk_count > 0
+    status_value = job.status.value if job else None
+    last_uploaded_at = job.updated_at if job else None
+    stored_filename = job.filename if job else safe_filename
+
+    return DuplicateCheckResponse(
+        exists=exists,
+        volume_key=volume_key,
+        filename=stored_filename,
+        sources=sources,
+        chunk_count=chunk_count,
+        status=status_value,
+        last_uploaded_at=last_uploaded_at,
+    )
 
 
 @router.get("/category-stats", response_model=list[CategoryDocumentStats])

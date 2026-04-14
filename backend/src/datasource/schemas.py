@@ -81,3 +81,14 @@ class VolumeTagsBulkResponse(BaseModel):
         description="스킵된 volume 리스트. 각 항목: {volume, reason}",
     )
     total_chunks_modified: int = Field(0, description="변경된 청크 총 수")
+
+
+class DuplicateCheckResponse(BaseModel):
+    """업로드 전 중복 문서 검사 결과."""
+    exists: bool = Field(..., description="동일 파일명(NFC 정규화 기준)의 기존 적재 여부")
+    volume_key: str = Field(..., description="NFC 정규화된 volume 키")
+    filename: str = Field(..., description="기존 저장된 원본 파일명")
+    sources: list[str] = Field(default_factory=list, description="기존 문서의 카테고리 태그")
+    chunk_count: int = Field(0, description="Qdrant에 적재된 청크 수")
+    status: str | None = Field(None, description="IngestionJob 최종 상태 (completed/partial/failed/running/pending)")
+    last_uploaded_at: datetime | None = Field(None, description="마지막 업로드/갱신 시각")

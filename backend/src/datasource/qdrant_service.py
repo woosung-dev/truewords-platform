@@ -24,6 +24,47 @@ class DataSourceQdrantService:
         self.sync_client = sync_client
         self.collection_name = collection_name
 
+    async def get_volume_snapshot(self, volume: str) -> tuple[list[str], int]:
+        """특정 volume의 (sources, chunk_count) 조회.
+
+        NFC/NFD 두 형태를 모두 조회해 과거 적재 데이터까지 포함해서 집계한다.
+        중복 적재 감지용.
+        """
+        import unicodedata as _u
+
+        volume_nfc = _u.normalize("NFC", volume)
+        volume_nfd = _u.normalize("NFD", volume)
+        candidates = [volume_nfc] if volume_nfc == volume_nfd else [volume_nfc, volume_nfd]
+
+        sources: set[str] = set()
+        chunk_count = 0
+        for candidate in candidates:
+            offset = None
+            while True:
+                points, offset = await self.async_client.scroll(
+                    collection_name=self.collection_name,
+                    scroll_filter=Filter(
+                        must=[FieldCondition(key="volume", match=MatchValue(value=candidate))]
+                    ),
+                    with_payload=["source"],
+                    with_vectors=False,
+                    limit=1000,
+                    offset=offset,
+                )
+                for p in points:
+                    chunk_count += 1
+                    payload = p.payload or {}
+                    raw = payload.get("source", [])
+                    if isinstance(raw, str):
+                        if raw:
+                            sources.add(raw)
+                    else:
+                        sources.update(raw)
+                if offset is None:
+                    break
+
+        return sorted(sources), chunk_count
+
     async def get_category_stats(
         self, category_keys: set[str]
     ) -> list[CategoryDocumentStats]:

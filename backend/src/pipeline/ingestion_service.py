@@ -1,12 +1,19 @@
 """IngestionJob 비즈니스 서비스 — /status 응답 조립 및 상태 전이 조율."""
 
-from src.pipeline.ingestion_models import IngestionStatus
+import unicodedata
+
+from src.pipeline.ingestion_models import IngestionJob, IngestionStatus
 from src.pipeline.ingestion_repository import IngestionJobRepository
 
 
 class IngestionJobService:
     def __init__(self, repo: IngestionJobRepository) -> None:
         self.repo = repo
+
+    async def find_by_filename(self, filename: str) -> IngestionJob | None:
+        """NFC 정규화된 파일명으로 기존 IngestionJob 조회."""
+        volume_key = unicodedata.normalize("NFC", filename)
+        return await self.repo.get_by_volume_key(volume_key)
 
     async def build_status_response(self) -> dict:
         """/status 엔드포인트용 UI 호환 응답 조립.

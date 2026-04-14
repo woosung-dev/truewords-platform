@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-04-11
+> 마지막 업데이트: 2026-04-14
 
 ## Progress Overview
 
@@ -73,6 +73,14 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] 관리자 계정 생성 페이지 — 설정 페이지에 계정 생성 폼, POST /admin/users API 활용
 - [x] 사이드바 네비게이션 확장 — 감사 로그 + 설정 메뉴 추가
 - [x] Qdrant 미등록 source 감지 배너 — 카테고리 탭에서 미등록 source 자동 감지 + 원클릭 등록 (ADR-26 후속)
+
+### Admin UI — 업로드 덮어쓰기 경고 (2026-04-14)
+- [x] Backend `GET /admin/data-sources/check-duplicate` — NFC 정규화된 volume 기준 기존 IngestionJob + Qdrant sources/chunk_count 조회
+- [x] `DuplicateConfirmDialog` — 덮어쓰기 / 태그만 추가 / 취소 3분기 UX
+- [x] 업로드 페이지 흐름 연결 — upload 버튼 클릭 시 중복 확인 선행
+- [x] API 명세: `docs/03_api/check_duplicate.md`
+- [ ] **[Follow-up]** NFC/NFD 혼재 데이터 정리 마이그레이션 스크립트 — `말씀선집 002`처럼 과거 업로드가 NFD로 남아 두 개의 volume으로 보이는 현상 해결 필요 [확인 필요]
+- [ ] **[Follow-up]** `qdrant_service.add_volume_tag`/`add_volume_tags_bulk` NFD → NFC로 통일 (현재 업로드 파이프라인은 NFC로 저장 중)
 
 ### Backend — 보안 강화 (2026-04-11)
 - [x] Prompt Injection 패턴 강화 — Zero-width 정규화, 패턴 7개 추가 (16→23개)
