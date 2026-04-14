@@ -1,6 +1,7 @@
 import { fetchAPI } from "@/lib/api";
 import type {
   DataSourceCategory,
+  DuplicateCheckResponse,
   IngestionStatus,
   CategoryDocumentStats,
   VolumeTagRequest,
@@ -46,6 +47,11 @@ export const dataAPI = {
   },
 
   getStatus: () => fetchAPI<IngestionStatus>("/admin/data-sources/status"),
+
+  checkDuplicate: (filename: string) =>
+    fetchAPI<DuplicateCheckResponse>(
+      `/admin/data-sources/check-duplicate?filename=${encodeURIComponent(filename)}`
+    ),
 };
 
 export const dataSourceCategoryAPI = {

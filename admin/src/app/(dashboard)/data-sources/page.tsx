@@ -3,8 +3,12 @@
 import { useCallback, useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { dataAPI } from "@/features/data-source/api";
+import { dataAPI, dataSourceCategoryAPI } from "@/features/data-source/api";
 import { useActiveCategories } from "@/features/data-source/hooks";
+import DuplicateConfirmDialog, {
+  type DuplicateDecision,
+} from "@/features/data-source/components/duplicate-confirm-dialog";
+import type { DuplicateCheckResponse } from "@/features/data-source/types";
 import { fetchAPI } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,6 +41,13 @@ export default function DataSourcesPage() {
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [activeTab, setActiveTab] = useState<"upload" | "categories">("upload");
   const [mode, setMode] = useState<"standard" | "batch">("standard");
+
+  // 중복 업로드 확인 다이얼로그 상태
+  const [duplicateDialog, setDuplicateDialog] = useState<{
+    open: boolean;
+    pendingFile: PendingFile | null;
+    duplicate: DuplicateCheckResponse | null;
+  }>({ open: false, pendingFile: null, duplicate: null });
 
   // Gemini 티어 조회 (유료 전용 배치 모드 활성화 여부)
   const { data: configData } = useQuery({
@@ -142,7 +153,7 @@ export default function DataSourcesPage() {
     setPendingFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const uploadOne = async (pf: PendingFile) => {
+  const performUpload = async (pf: PendingFile) => {
     setPendingFiles((prev) =>
       prev.map((f) => (f.id === pf.id ? { ...f, status: "uploading" as const } : f))
     );
@@ -157,6 +168,7 @@ export default function DataSourcesPage() {
       toast.success(`${pf.file.name} 업로드 완료, 백그라운드 처리 시작`);
       queryClient.invalidateQueries({ queryKey: ["ingest-status"] });
       queryClient.invalidateQueries({ queryKey: ["category-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
       // 10초 후 processing 상태 제거 (status 폴링이 처리 결과를 가져옴)
       setTimeout(() => {
         setPendingFiles((prev) => prev.filter((f) => f.id !== pf.id));
@@ -168,6 +180,58 @@ export default function DataSourcesPage() {
       setPendingFiles((prev) =>
         prev.map((f) => (f.id === pf.id ? { ...f, status: "pending" as const } : f))
       );
+    }
+  };
+
+  const uploadOne = async (pf: PendingFile) => {
+    // 1. 업로드 전 중복 검사
+    try {
+      const dup = await dataAPI.checkDuplicate(pf.file.name);
+      if (dup.exists) {
+        setDuplicateDialog({ open: true, pendingFile: pf, duplicate: dup });
+        return;
+      }
+    } catch (err) {
+      // 중복 검사 실패는 업로드를 막지 않음 (경고만 토스트)
+      console.warn("중복 검사 실패, 그대로 진행", err);
+    }
+    // 2. 중복 없으면 바로 업로드
+    await performUpload(pf);
+  };
+
+  const handleDuplicateDecision = async (decision: DuplicateDecision) => {
+    const { pendingFile, duplicate } = duplicateDialog;
+    if (!pendingFile || !duplicate) return;
+
+    if (decision === "cancel") {
+      // 대기 상태 유지 — 사용자가 다시 업로드 버튼 누를 수 있도록
+      return;
+    }
+
+    if (decision === "overwrite") {
+      await performUpload(pendingFile);
+      return;
+    }
+
+    if (decision === "add-tag") {
+      if (!pendingFile.source) {
+        toast.error("태그 추가는 카테고리 선택이 필요합니다");
+        return;
+      }
+      try {
+        await dataSourceCategoryAPI.addVolumeTag({
+          volume: duplicate.volume_key,
+          source: pendingFile.source,
+        });
+        toast.success(
+          `${pendingFile.file.name}에 "${pendingFile.source}" 태그 추가 완료`
+        );
+        setPendingFiles((prev) => prev.filter((f) => f.id !== pendingFile.id));
+        queryClient.invalidateQueries({ queryKey: ["category-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "태그 추가 실패");
+      }
     }
   };
 
@@ -183,6 +247,18 @@ export default function DataSourcesPage() {
 
   return (
     <div className="max-w-5xl space-y-6">
+      {/* 중복 업로드 확인 다이얼로그 */}
+      <DuplicateConfirmDialog
+        open={duplicateDialog.open}
+        onOpenChange={(open) =>
+          setDuplicateDialog((prev) => ({ ...prev, open }))
+        }
+        filename={duplicateDialog.pendingFile?.file.name ?? ""}
+        targetSource={duplicateDialog.pendingFile?.source ?? ""}
+        duplicate={duplicateDialog.duplicate}
+        onDecision={handleDuplicateDecision}
+      />
+
       {/* 헤더 */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">데이터 소스</h1>

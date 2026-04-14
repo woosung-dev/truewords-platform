@@ -67,3 +67,13 @@ export interface VolumeTagsBulkResponse {
   skipped_volumes: SkippedVolume[];
   total_chunks_modified: number;
 }
+
+export interface DuplicateCheckResponse {
+  exists: boolean;
+  volume_key: string;
+  filename: string;
+  sources: string[];
+  chunk_count: number;
+  status: string | null;
+  last_uploaded_at: string | null;
+}
