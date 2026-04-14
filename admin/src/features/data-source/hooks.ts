@@ -7,6 +7,7 @@ import type {
   CategoryDocumentStats,
   VolumeTagRequest,
   VolumeInfo,
+  VolumeTagsBulkRequest,
 } from "./types";
 
 export function useDataSourceCategories() {
@@ -66,5 +67,19 @@ export function useAllVolumes() {
     queryKey: ["all-volumes"],
     queryFn: dataSourceCategoryAPI.getAllVolumes,
     staleTime: 60_000,
+  });
+}
+
+export function useAddVolumeTagsBulk() {
+  return useMutation({
+    mutationFn: (data: VolumeTagsBulkRequest) =>
+      dataSourceCategoryAPI.addVolumeTagsBulk(data),
+  });
+}
+
+export function useRemoveVolumeTagsBulk() {
+  return useMutation({
+    mutationFn: (data: VolumeTagsBulkRequest) =>
+      dataSourceCategoryAPI.removeVolumeTagsBulk(data),
   });
 }

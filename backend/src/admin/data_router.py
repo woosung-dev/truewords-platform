@@ -19,7 +19,14 @@ from src.common.database import async_session_factory
 from src.config import settings
 from src.datasource.dependencies import get_datasource_service, get_qdrant_service
 from src.datasource.qdrant_service import DataSourceQdrantService
-from src.datasource.schemas import CategoryDocumentStats, VolumeInfo, VolumeTagRequest, VolumeTagResponse
+from src.datasource.schemas import (
+    CategoryDocumentStats,
+    VolumeInfo,
+    VolumeTagRequest,
+    VolumeTagResponse,
+    VolumeTagsBulkRequest,
+    VolumeTagsBulkResponse,
+)
 from src.datasource.service import DataSourceCategoryService
 from src.pipeline.chunker import chunk_text
 from src.pipeline.dependencies import get_ingestion_service
@@ -343,6 +350,33 @@ async def remove_volume_tag(
         return await qdrant_service.remove_volume_tag(request.volume, request.source)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.put("/volume-tags/bulk", response_model=VolumeTagsBulkResponse)
+async def add_volume_tags_bulk(
+    request: VolumeTagsBulkRequest,
+    current_admin: dict = Depends(get_current_admin),
+    datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
+    qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
+):
+    """여러 문서에 카테고리 태그를 한 번에 추가합니다."""
+    category = await datasource_service.get_by_key(request.source)
+    if not category:
+        raise HTTPException(status_code=404, detail=f"카테고리 '{request.source}'를 찾을 수 없습니다")
+    return await qdrant_service.add_volume_tags_bulk(request.volumes, request.source)
+
+
+@router.post("/volume-tags/bulk-remove", response_model=VolumeTagsBulkResponse)
+async def remove_volume_tags_bulk(
+    request: VolumeTagsBulkRequest,
+    current_admin: dict = Depends(get_current_admin),
+    qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
+):
+    """여러 문서에서 카테고리 태그를 한 번에 제거합니다.
+
+    DELETE + body는 일부 클라이언트/프록시에서 문제 가능성이 있어 POST로 운영.
+    """
+    return await qdrant_service.remove_volume_tags_bulk(request.volumes, request.source)
 
 
 @router.get("/batch-jobs")

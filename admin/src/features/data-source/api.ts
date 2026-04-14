@@ -6,6 +6,8 @@ import type {
   VolumeTagRequest,
   VolumeTagResponse,
   VolumeInfo,
+  VolumeTagsBulkRequest,
+  VolumeTagsBulkResponse,
 } from "./types";
 
 export const dataAPI = {
@@ -77,4 +79,14 @@ export const dataSourceCategoryAPI = {
     }),
   getAllVolumes: () =>
     fetchAPI<VolumeInfo[]>("/admin/data-sources/volumes"),
+  addVolumeTagsBulk: (data: VolumeTagsBulkRequest) =>
+    fetchAPI<VolumeTagsBulkResponse>("/admin/data-sources/volume-tags/bulk", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  removeVolumeTagsBulk: (data: VolumeTagsBulkRequest) =>
+    fetchAPI<VolumeTagsBulkResponse>("/admin/data-sources/volume-tags/bulk-remove", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
