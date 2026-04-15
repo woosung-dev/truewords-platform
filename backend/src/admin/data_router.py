@@ -301,15 +301,27 @@ async def get_ingest_status(
 ):
     """현재까지 처리된 적재 작업 상태를 반환합니다.
 
-    summary.total_chunks 는 ingestion_jobs 이력 합계가 아니라 Qdrant 컬렉션의
-    실제 포인트 수로 덮어쓴다 — 운영 데이터 이관 등으로 이력이 비어 있어도
-    "검색 가능한 청크"의 실제 규모를 반영한다.
+    summary 의 핵심 카운터는 ingestion_jobs 이력이 아니라 Qdrant 컬렉션의 실제
+    상태로 덮어쓴다. 운영 데이터 이관 등으로 이력이 비어 있어도 "검색 가능한
+    데이터셋" 의 실제 규모가 UI 에 정직하게 반영되도록 한다.
+
+      summary.total_chunks    = Qdrant 총 포인트 수
+      summary.completed_count = Qdrant 고유 volume 수 (= 인제스트 완료된 파일)
+      summary.failed_count    = ingestion_jobs 중 FAILED 건 (실제 실패만)
+      프론트의 총파일 = completed_count + failed_count
     """
     response = await service.build_status_response()
     try:
         client = get_async_client()
-        info = await client.count(collection_name=settings.collection_name)
-        response["summary"]["total_chunks"] = info.count
+        count_info = await client.count(collection_name=settings.collection_name)
+        response["summary"]["total_chunks"] = count_info.count
+        # volume facet 1회로 고유 volume 수 파악 (hits 길이)
+        vol_facet = await client.facet(
+            collection_name=settings.collection_name,
+            key="volume",
+            limit=10000,
+        )
+        response["summary"]["completed_count"] = len(vol_facet.hits)
     except Exception:
         # Qdrant 일시 실패 시 ingestion_jobs 기반 값을 그대로 노출
         pass
