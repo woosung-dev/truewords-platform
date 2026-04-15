@@ -55,16 +55,15 @@ jobs:
           flags: --allow-unauthenticated --memory=1Gi --cpu=1 --min-instances=0 --max-instances=3
           env_vars: |
             ENVIRONMENT=production
-            QDRANT_URL=${{ secrets.QDRANT_URL }}
             COLLECTION_NAME=malssum_poc
-            ADMIN_FRONTEND_URL=${{ secrets.ADMIN_FRONTEND_URL }}
             COOKIE_SECURE=true
             CACHE_COLLECTION_NAME=semantic_cache
-          secrets: |
-            GEMINI_API_KEY=gemini-api-key:latest
-            ADMIN_JWT_SECRET=admin-jwt-secret:latest
-            DATABASE_URL=database-url:latest
-            QDRANT_API_KEY=qdrant-api-key:latest
+            ADMIN_FRONTEND_URL=${{ secrets.ADMIN_FRONTEND_URL }}
+            QDRANT_URL=${{ secrets.QDRANT_URL }}
+            QDRANT_API_KEY=${{ secrets.QDRANT_API_KEY }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            ADMIN_JWT_SECRET=${{ secrets.ADMIN_JWT_SECRET }}
 
   # Vercel 배포는 GitHub 연동으로 자동 실행 (별도 Actions 불필요)
   # Vercel 대시보드에서 Root Directory = "admin" 설정 필요
