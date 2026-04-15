@@ -79,8 +79,9 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] `DuplicateConfirmDialog` — 덮어쓰기 / 태그만 추가 / 취소 3분기 UX
 - [x] 업로드 페이지 흐름 연결 — upload 버튼 클릭 시 중복 확인 선행
 - [x] API 명세: `docs/03_api/check_duplicate.md`
-- [ ] **[Follow-up]** NFC/NFD 혼재 데이터 정리 마이그레이션 스크립트 — `말씀선집 002`처럼 과거 업로드가 NFD로 남아 두 개의 volume으로 보이는 현상 해결 필요 [확인 필요]
-- [ ] **[Follow-up]** `qdrant_service.add_volume_tag`/`add_volume_tags_bulk` NFD → NFC로 통일 (현재 업로드 파이프라인은 NFC로 저장 중)
+- [x] **[Follow-up]** NFC/NFD 혼재 데이터 정리 마이그레이션 스크립트 — `backend/scripts/migrate_nfc_nfd_volumes.py` (dry-run 우선, 중복 그룹 감지 → canonical payload 업데이트 + 중복 포인트 삭제)
+- [x] **[Follow-up]** bulk 엔드포인트 NFD → NFC 통일 — PR #24로 NFC/NFD 둘 다 매칭하도록 픽스 완료
+- [ ] **[Follow-up]** `qdrant_service.remove_volume_tag`(단일)도 NFC+NFD 양쪽 매칭으로 통일 (bulk만 PR #24에서 처리됨)
 
 ### Backend — 보안 강화 (2026-04-11)
 - [x] Prompt Injection 패턴 강화 — Zero-width 정규화, 패턴 7개 추가 (16→23개)
