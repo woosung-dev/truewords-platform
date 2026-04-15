@@ -52,7 +52,8 @@ jobs:
           service: ${{ env.CLOUD_RUN_SERVICE }}
           region: ${{ env.GCP_REGION }}
           image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.CLOUD_RUN_SERVICE }}:${{ github.sha }}
-          flags: --allow-unauthenticated --memory=1Gi --cpu=1 --min-instances=0 --max-instances=3
+          # --clear-secrets: 기존 Secret Manager 참조 제거 (GitHub Secrets로 일원화 과정에서 필요)
+          flags: --allow-unauthenticated --memory=1Gi --cpu=1 --min-instances=0 --max-instances=3 --clear-secrets
           env_vars: |
             ENVIRONMENT=production
             COLLECTION_NAME=malssum_poc
