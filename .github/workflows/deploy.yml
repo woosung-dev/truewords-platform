@@ -46,14 +46,22 @@ jobs:
         run: |
           docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.CLOUD_RUN_SERVICE }} --all-tags
 
+      # 기존 Secret Manager 참조를 먼저 별도 호출로 제거한다.
+      # deploy-cloudrun 액션 1회 호출 안에서 clear + env_vars 적용 시 타입 충돌 발생하므로 분리.
+      - name: Clear existing secret references
+        continue-on-error: true
+        run: |
+          gcloud run services update ${{ env.CLOUD_RUN_SERVICE }} \
+            --region=${{ env.GCP_REGION }} \
+            --clear-secrets
+
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.CLOUD_RUN_SERVICE }}
           region: ${{ env.GCP_REGION }}
           image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.CLOUD_RUN_SERVICE }}:${{ github.sha }}
-          # --clear-secrets: 기존 Secret Manager 참조 제거 (GitHub Secrets로 일원화 과정에서 필요)
-          flags: --allow-unauthenticated --memory=1Gi --cpu=1 --min-instances=0 --max-instances=3 --clear-secrets
+          flags: --allow-unauthenticated --memory=1Gi --cpu=1 --min-instances=0 --max-instances=3
           env_vars: |
             ENVIRONMENT=production
             COLLECTION_NAME=malssum_poc
