@@ -33,8 +33,8 @@ class AnalyticsRepository:
         result = await self.session.execute(
             text("""
                 SELECT
-                    COUNT(*) FILTER (WHERE feedback_type = 'helpful') AS helpful,
-                    COUNT(*) FILTER (WHERE feedback_type != 'helpful') AS negative
+                    COUNT(*) FILTER (WHERE feedback_type = 'HELPFUL') AS helpful,
+                    COUNT(*) FILTER (WHERE feedback_type != 'HELPFUL') AS negative
                 FROM answer_feedback
             """)
         )
@@ -132,14 +132,14 @@ class AnalyticsRepository:
                         SELECT sm_q.content
                         FROM session_messages sm_q
                         WHERE sm_q.session_id = sm_answer.session_id
-                          AND sm_q.role = 'user'
+                          AND sm_q.role = 'USER'
                           AND sm_q.created_at < sm_answer.created_at
                         ORDER BY sm_q.created_at DESC
                         LIMIT 1
                     ) AS question
                 FROM answer_feedback af
                 JOIN session_messages sm_answer ON sm_answer.id = af.message_id
-                WHERE af.feedback_type != 'helpful'
+                WHERE af.feedback_type != 'HELPFUL'
                 ORDER BY af.created_at DESC
                 LIMIT :limit OFFSET :offset
             """),
