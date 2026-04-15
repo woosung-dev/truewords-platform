@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     embed_max_chars_per_batch: int | None = None
     embed_batch_sleep: float | None = None
 
-    model_config = {"env_file": ".env"}
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
     @model_validator(mode="after")
     def apply_gemini_tier_presets(self):
