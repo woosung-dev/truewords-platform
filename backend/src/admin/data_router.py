@@ -373,7 +373,7 @@ async def get_all_volumes(
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
     """전체 volume 목록 조회 — Transfer UI용."""
-    return qdrant_service.get_all_volumes()
+    return await qdrant_service.get_all_volumes()
 
 
 @router.put("/volume-tags", response_model=VolumeTagResponse)

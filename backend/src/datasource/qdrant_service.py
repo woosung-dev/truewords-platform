@@ -1,6 +1,6 @@
 """Qdrant 기반 데이터 소스 조작 Service. 카테고리 태그 관리 + 통계 집계."""
 
-import time
+import asyncio
 import unicodedata
 
 from qdrant_client import AsyncQdrantClient, QdrantClient
@@ -13,24 +13,11 @@ from src.datasource.schemas import (
     VolumeTagsBulkResponse,
 )
 
-# 전체 컬렉션 스캔 결과를 일정 시간 캐시한다.
-# 무료 Qdrant Cloud 티어에서 66k+ 포인트 scroll 시 30~60초 소요되어 첫 호출만 비용,
-# 이후엔 캐시로 즉시 응답.  태그 변경 등 쓰기 작업이 있을 때 명시적으로 무효화.
-_SCAN_CACHE_TTL_SEC = 60.0
+# Qdrant facet API 결과 상한 — 카테고리 수/볼륨 수 여유분 포함.
+_FACET_LIMIT = 1000
 
 
 class DataSourceQdrantService:
-    # 클래스 레벨 캐시 (인스턴스마다 새로 만들어지지 않도록)
-    _category_stats_cache: list[CategoryDocumentStats] | None = None
-    _category_stats_cache_at: float = 0.0
-    _all_volumes_cache: list[VolumeInfo] | None = None
-    _all_volumes_cache_at: float = 0.0
-
-    @classmethod
-    def invalidate_caches(cls) -> None:
-        """태그 변경 후 호출하여 캐시를 무효화."""
-        cls._category_stats_cache = None
-        cls._all_volumes_cache = None
     def __init__(
         self,
         async_client: AsyncQdrantClient,
@@ -85,122 +72,106 @@ class DataSourceQdrantService:
     async def get_category_stats(
         self, category_keys: set[str]
     ) -> list[CategoryDocumentStats]:
-        """카테고리별 Qdrant 문서/청크 통계 — 전체 포인트 1회 순회.
+        """카테고리별 Qdrant 문서/청크 통계 — Facet API 기반.
 
-        결과는 클래스 레벨 캐시에 60초 보관 (Qdrant Cloud 무료 티어 대응).
-        category_keys 와 무관하게 모든 source 통계를 캐시한 뒤, 호출 시 요청된
-        keys 만 필터하여 반환한다.
+        Qdrant 서버에서 group-by+count 집계를 수행하므로 전체 포인트 scroll
+        없이 수백 ms로 응답. 66k 포인트 기준 0.5초 이내.
+
+        호출 구성 (전체 N ≈ 1 + |category_keys|):
+          1) source 전체 카운트 1회
+          2) 각 category 별 volume facet (source 필터) — 병렬 gather
         """
-        cls = type(self)
-        now = time.monotonic()
-        cached = cls._category_stats_cache
-        if cached is not None and now - cls._category_stats_cache_at < _SCAN_CACHE_TTL_SEC:
-            cached_keys = {s.source for s in cached}
-            if category_keys.issubset(cached_keys):
-                return [s for s in cached if s.source in category_keys]
+        # 1) 카테고리별 chunk count
+        source_facet = await self.async_client.facet(
+            collection_name=self.collection_name,
+            key="source",
+            limit=_FACET_LIMIT,
+        )
+        counts: dict[str, int] = {
+            str(hit.value): int(hit.count) for hit in source_facet.hits
+        }
 
-        counts: dict[str, int] = {}
-        volumes_map: dict[str, set[str]] = {}
-
-        offset = None
-        while True:
-            points, offset = await self.async_client.scroll(
+        # 2) 요청된 카테고리마다 volume 목록을 병렬로 조회
+        async def _volumes_for_source(src: str) -> tuple[str, list[str]]:
+            resp = await self.async_client.facet(
                 collection_name=self.collection_name,
-                with_payload=["source", "volume"],
-                with_vectors=False,
-                limit=1000,
-                offset=offset,
+                key="volume",
+                facet_filter=Filter(
+                    must=[FieldCondition(key="source", match=MatchValue(value=src))]
+                ),
+                limit=_FACET_LIMIT,
             )
-            for p in points:
-                sources = p.payload.get("source", [])
-                if isinstance(sources, str):
-                    sources = [sources]
-                vol = p.payload.get("volume", "")
-                for src in sources:
-                    counts[src] = counts.get(src, 0) + 1
-                    if vol:
-                        volumes_map.setdefault(src, set()).add(vol)
-            if offset is None:
-                break
+            return src, sorted(str(h.value) for h in resp.hits if h.value)
 
-        # 캐시는 모든 source(요청 외 포함) 보관 — 다른 호출이 다른 keys 요청해도 재사용
-        all_sources = set(counts) | category_keys
-        full_stats = [
+        results = await asyncio.gather(*(_volumes_for_source(k) for k in category_keys))
+        volumes_map: dict[str, list[str]] = dict(results)
+
+        return [
             CategoryDocumentStats(
                 source=key,
                 total_chunks=counts.get(key, 0),
-                volumes=sorted(volumes_map.get(key, set())),
-                volume_count=len(volumes_map.get(key, set())),
+                volumes=volumes_map.get(key, []),
+                volume_count=len(volumes_map.get(key, [])),
             )
-            for key in all_sources
+            for key in category_keys
         ]
-        cls._category_stats_cache = full_stats
-        cls._category_stats_cache_at = now
-        return [s for s in full_stats if s.source in category_keys]
 
-    def get_all_volumes(self) -> list[VolumeInfo]:
-        """전체 volume 목록 조회 — Transfer UI용. (동기 클라이언트 사용)
+    async def get_all_volumes(self) -> list[VolumeInfo]:
+        """전체 volume 목록 조회 — Transfer UI용. Facet API 기반.
 
-        결과는 60초간 클래스 레벨 캐시 (Qdrant Cloud 무료 티어 대응).
-        태그 변경 작업 후엔 invalidate_caches()로 무효화한다.
+        구성:
+          1) volume facet (필터 없음) → volume별 총 chunk_count
+          2) source facet → 존재하는 source 목록
+          3) 각 source 별 volume facet (source 필터) → volume-source 역매핑
+          (source 수가 적어 N=1~10 정도, 전체 ~1초 이내)
         """
-        cls = type(self)
-        now = time.monotonic()
-        cached = cls._all_volumes_cache
-        if cached is not None and now - cls._all_volumes_cache_at < _SCAN_CACHE_TTL_SEC:
-            return cached
+        # 1) 각 volume의 total chunk_count
+        volume_facet = await self.async_client.facet(
+            collection_name=self.collection_name,
+            key="volume",
+            limit=_FACET_LIMIT,
+        )
+        volume_chunks: dict[str, int] = {
+            str(h.value): int(h.count) for h in volume_facet.hits if h.value
+        }
 
-        volume_map: dict[str, dict] = {}
-        offset = None
+        # 2) 어떤 source 값들이 존재하는지
+        source_facet = await self.async_client.facet(
+            collection_name=self.collection_name,
+            key="source",
+            limit=_FACET_LIMIT,
+        )
+        sources = [str(h.value) for h in source_facet.hits if h.value]
 
-        while True:
-            points, next_offset = self.sync_client.scroll(
+        # 3) source 별 volume 목록을 병렬 조회 → volume → sources 역매핑
+        async def _volumes_for_source(src: str) -> tuple[str, list[str]]:
+            resp = await self.async_client.facet(
                 collection_name=self.collection_name,
-                limit=1000,
-                offset=offset,
-                with_payload=["volume", "source"],
-                with_vectors=False,
+                key="volume",
+                facet_filter=Filter(
+                    must=[FieldCondition(key="source", match=MatchValue(value=src))]
+                ),
+                limit=_FACET_LIMIT,
             )
+            return src, [str(h.value) for h in resp.hits if h.value]
 
-            if not points:
-                break
+        pairs = await asyncio.gather(*(_volumes_for_source(s) for s in sources))
+        volume_sources: dict[str, set[str]] = {}
+        for src, vols in pairs:
+            for v in vols:
+                volume_sources.setdefault(v, set()).add(src)
 
-            for point in points:
-                payload = point.payload or {}
-                volume = payload.get("volume", "")
-                if not volume:
-                    continue
-
-                raw_source = payload.get("source", [])
-                if isinstance(raw_source, str):
-                    sources = [raw_source] if raw_source else []
-                else:
-                    sources = list(raw_source) if raw_source else []
-
-                if volume not in volume_map:
-                    volume_map[volume] = {"sources": set(), "chunk_count": 0}
-
-                volume_map[volume]["sources"].update(sources)
-                volume_map[volume]["chunk_count"] += 1
-
-            offset = next_offset
-            if offset is None:
-                break
-
-        result = sorted(
+        return sorted(
             [
                 VolumeInfo(
                     volume=vol,
-                    sources=sorted(info["sources"]),
-                    chunk_count=info["chunk_count"],
+                    sources=sorted(volume_sources.get(vol, set())),
+                    chunk_count=volume_chunks[vol],
                 )
-                for vol, info in volume_map.items()
+                for vol in volume_chunks
             ],
             key=lambda v: v.volume,
         )
-        cls._all_volumes_cache = result
-        cls._all_volumes_cache_at = now
-        return result
 
     async def add_volume_tag(self, volume: str, source: str) -> VolumeTagResponse:
         """문서에 카테고리 태그를 추가. 이미 있으면 무시."""
@@ -245,9 +216,6 @@ class DataSourceQdrantService:
         final_sources = sorted(
             {source} | {s for fs in groups for s in fs}
         ) if groups else [source]
-
-        if updated:
-            type(self).invalidate_caches()
 
         return VolumeTagResponse(
             volume=volume,
@@ -327,9 +295,6 @@ class DataSourceQdrantService:
                 skipped.append({"volume": v, "reason": "Qdrant에 해당 volume 없음"})
             elif nfc not in updated_nfc:
                 skipped.append({"volume": v, "reason": "이미 태그가 있음"})
-
-        if updated_chunks:
-            type(self).invalidate_caches()
 
         return VolumeTagsBulkResponse(
             updated_volumes=updated_volumes,
@@ -412,9 +377,6 @@ class DataSourceQdrantService:
 
         updated_volumes = sorted(input_nfc_to_original[v] for v in updated_nfc)
 
-        if updated_chunks:
-            type(self).invalidate_caches()
-
         return VolumeTagsBulkResponse(
             updated_volumes=updated_volumes,
             skipped_volumes=skipped,
@@ -465,9 +427,6 @@ class DataSourceQdrantService:
             )
             updated += len(point_ids)
             final_sources_set.update(new_sources)
-
-        if updated:
-            type(self).invalidate_caches()
 
         return VolumeTagResponse(
             volume=volume,
