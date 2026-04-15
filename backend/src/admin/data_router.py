@@ -36,7 +36,7 @@ from src.pipeline.ingestion_repository import IngestionJobRepository
 from src.pipeline.ingestion_service import IngestionJobService
 from src.pipeline.ingestor import ingest_chunks
 from src.pipeline.metadata import extract_metadata
-from src.qdrant_client import get_client
+from src.qdrant_client import get_async_client, get_client
 
 router = APIRouter(prefix="/admin/data-sources", tags=["data-sources"])
 
@@ -299,8 +299,21 @@ async def get_ingest_status(
     current_admin: dict = Depends(get_current_admin),
     service: IngestionJobService = Depends(get_ingestion_service),
 ):
-    """현재까지 처리된 적재 작업 상태를 반환합니다."""
-    return await service.build_status_response()
+    """현재까지 처리된 적재 작업 상태를 반환합니다.
+
+    summary.total_chunks 는 ingestion_jobs 이력 합계가 아니라 Qdrant 컬렉션의
+    실제 포인트 수로 덮어쓴다 — 운영 데이터 이관 등으로 이력이 비어 있어도
+    "검색 가능한 청크"의 실제 규모를 반영한다.
+    """
+    response = await service.build_status_response()
+    try:
+        client = get_async_client()
+        info = await client.count(collection_name=settings.collection_name)
+        response["summary"]["total_chunks"] = info.count
+    except Exception:
+        # Qdrant 일시 실패 시 ingestion_jobs 기반 값을 그대로 노출
+        pass
+    return response
 
 
 @router.get("/check-duplicate", response_model=DuplicateCheckResponse)
@@ -360,7 +373,7 @@ async def get_all_volumes(
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ):
     """전체 volume 목록 조회 — Transfer UI용."""
-    return qdrant_service.get_all_volumes()
+    return await qdrant_service.get_all_volumes()
 
 
 @router.put("/volume-tags", response_model=VolumeTagResponse)
