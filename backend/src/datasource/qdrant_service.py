@@ -1,5 +1,6 @@
 """Qdrant 기반 데이터 소스 조작 Service. 카테고리 태그 관리 + 통계 집계."""
 
+import time
 import unicodedata
 
 from qdrant_client import AsyncQdrantClient, QdrantClient
@@ -12,8 +13,24 @@ from src.datasource.schemas import (
     VolumeTagsBulkResponse,
 )
 
+# 전체 컬렉션 스캔 결과를 일정 시간 캐시한다.
+# 무료 Qdrant Cloud 티어에서 66k+ 포인트 scroll 시 30~60초 소요되어 첫 호출만 비용,
+# 이후엔 캐시로 즉시 응답.  태그 변경 등 쓰기 작업이 있을 때 명시적으로 무효화.
+_SCAN_CACHE_TTL_SEC = 60.0
+
 
 class DataSourceQdrantService:
+    # 클래스 레벨 캐시 (인스턴스마다 새로 만들어지지 않도록)
+    _category_stats_cache: list[CategoryDocumentStats] | None = None
+    _category_stats_cache_at: float = 0.0
+    _all_volumes_cache: list[VolumeInfo] | None = None
+    _all_volumes_cache_at: float = 0.0
+
+    @classmethod
+    def invalidate_caches(cls) -> None:
+        """태그 변경 후 호출하여 캐시를 무효화."""
+        cls._category_stats_cache = None
+        cls._all_volumes_cache = None
     def __init__(
         self,
         async_client: AsyncQdrantClient,
@@ -68,7 +85,20 @@ class DataSourceQdrantService:
     async def get_category_stats(
         self, category_keys: set[str]
     ) -> list[CategoryDocumentStats]:
-        """카테고리별 Qdrant 문서/청크 통계 — 전체 포인트 1회 순회."""
+        """카테고리별 Qdrant 문서/청크 통계 — 전체 포인트 1회 순회.
+
+        결과는 클래스 레벨 캐시에 60초 보관 (Qdrant Cloud 무료 티어 대응).
+        category_keys 와 무관하게 모든 source 통계를 캐시한 뒤, 호출 시 요청된
+        keys 만 필터하여 반환한다.
+        """
+        cls = type(self)
+        now = time.monotonic()
+        cached = cls._category_stats_cache
+        if cached is not None and now - cls._category_stats_cache_at < _SCAN_CACHE_TTL_SEC:
+            cached_keys = {s.source for s in cached}
+            if category_keys.issubset(cached_keys):
+                return [s for s in cached if s.source in category_keys]
+
         counts: dict[str, int] = {}
         volumes_map: dict[str, set[str]] = {}
 
@@ -87,25 +117,39 @@ class DataSourceQdrantService:
                     sources = [sources]
                 vol = p.payload.get("volume", "")
                 for src in sources:
-                    if src in category_keys:
-                        counts[src] = counts.get(src, 0) + 1
-                        if vol:
-                            volumes_map.setdefault(src, set()).add(vol)
+                    counts[src] = counts.get(src, 0) + 1
+                    if vol:
+                        volumes_map.setdefault(src, set()).add(vol)
             if offset is None:
                 break
 
-        return [
+        # 캐시는 모든 source(요청 외 포함) 보관 — 다른 호출이 다른 keys 요청해도 재사용
+        all_sources = set(counts) | category_keys
+        full_stats = [
             CategoryDocumentStats(
                 source=key,
                 total_chunks=counts.get(key, 0),
                 volumes=sorted(volumes_map.get(key, set())),
                 volume_count=len(volumes_map.get(key, set())),
             )
-            for key in category_keys
+            for key in all_sources
         ]
+        cls._category_stats_cache = full_stats
+        cls._category_stats_cache_at = now
+        return [s for s in full_stats if s.source in category_keys]
 
     def get_all_volumes(self) -> list[VolumeInfo]:
-        """전체 volume 목록 조회 — Transfer UI용. (동기 클라이언트 사용)"""
+        """전체 volume 목록 조회 — Transfer UI용. (동기 클라이언트 사용)
+
+        결과는 60초간 클래스 레벨 캐시 (Qdrant Cloud 무료 티어 대응).
+        태그 변경 작업 후엔 invalidate_caches()로 무효화한다.
+        """
+        cls = type(self)
+        now = time.monotonic()
+        cached = cls._all_volumes_cache
+        if cached is not None and now - cls._all_volumes_cache_at < _SCAN_CACHE_TTL_SEC:
+            return cached
+
         volume_map: dict[str, dict] = {}
         offset = None
 
@@ -143,7 +187,7 @@ class DataSourceQdrantService:
             if offset is None:
                 break
 
-        return sorted(
+        result = sorted(
             [
                 VolumeInfo(
                     volume=vol,
@@ -154,6 +198,9 @@ class DataSourceQdrantService:
             ],
             key=lambda v: v.volume,
         )
+        cls._all_volumes_cache = result
+        cls._all_volumes_cache_at = now
+        return result
 
     async def add_volume_tag(self, volume: str, source: str) -> VolumeTagResponse:
         """문서에 카테고리 태그를 추가. 이미 있으면 무시."""
@@ -198,6 +245,9 @@ class DataSourceQdrantService:
         final_sources = sorted(
             {source} | {s for fs in groups for s in fs}
         ) if groups else [source]
+
+        if updated:
+            type(self).invalidate_caches()
 
         return VolumeTagResponse(
             volume=volume,
@@ -277,6 +327,9 @@ class DataSourceQdrantService:
                 skipped.append({"volume": v, "reason": "Qdrant에 해당 volume 없음"})
             elif nfc not in updated_nfc:
                 skipped.append({"volume": v, "reason": "이미 태그가 있음"})
+
+        if updated_chunks:
+            type(self).invalidate_caches()
 
         return VolumeTagsBulkResponse(
             updated_volumes=updated_volumes,
@@ -359,6 +412,9 @@ class DataSourceQdrantService:
 
         updated_volumes = sorted(input_nfc_to_original[v] for v in updated_nfc)
 
+        if updated_chunks:
+            type(self).invalidate_caches()
+
         return VolumeTagsBulkResponse(
             updated_volumes=updated_volumes,
             skipped_volumes=skipped,
@@ -409,6 +465,9 @@ class DataSourceQdrantService:
             )
             updated += len(point_ids)
             final_sources_set.update(new_sources)
+
+        if updated:
+            type(self).invalidate_caches()
 
         return VolumeTagResponse(
             volume=volume,
