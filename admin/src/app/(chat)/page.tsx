@@ -32,6 +32,7 @@ import {
   Bot,
   BookOpen,
   Copy,
+  Loader2,
   MessageSquarePlus,
   Square,
   ThumbsDown,
@@ -82,13 +83,17 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [botsLoading, setBotsLoading] = useState(true);
+  // 2.5초 이상 로딩이 지속되면 "서버를 깨우고 있어요" 문구로 전환.
+  // Cloud Run 콜드 스타트 상황에서 사용자에게 대기 이유를 설명한다.
+  const [warmingUp, setWarmingUp] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // 챗봇 목록 로드
+  // 챗봇 목록 로드 + 콜드 스타트 감지
   useEffect(() => {
+    const slowTimer = setTimeout(() => setWarmingUp(true), 2500);
     chatAPI
       .listBots()
       .then((data) => {
@@ -96,7 +101,12 @@ export default function ChatPage() {
         if (data.length > 0) setSelectedBot(data[0].chatbot_id);
       })
       .catch(() => setBots([]))
-      .finally(() => setBotsLoading(false));
+      .finally(() => {
+        clearTimeout(slowTimer);
+        setBotsLoading(false);
+        setWarmingUp(false);
+      });
+    return () => clearTimeout(slowTimer);
   }, []);
 
   // 메시지 스크롤
@@ -292,31 +302,56 @@ export default function ChatPage() {
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center gap-6 py-20 text-muted-foreground">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                <Bot className="h-8 w-8 text-primary" />
+                {botsLoading ? (
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                ) : (
+                  <Bot className="h-8 w-8 text-primary" />
+                )}
               </div>
-              <p className="text-center text-sm">
-                {selectedBotName
-                  ? `${selectedBotName}에게 질문해보세요`
-                  : "챗봇을 선택하고 질문해보세요"}
-              </p>
-              {selectedBot && (
-                <div className="flex w-full flex-col gap-2 px-2 sm:flex-row sm:flex-wrap sm:justify-center">
-                  {SUGGESTED_PROMPTS.map((prompt) => (
-                    <button
-                      key={prompt}
-                      type="button"
-                      onClick={() => {
-                        setInput(prompt);
-                        requestAnimationFrame(() =>
-                          textareaRef.current?.focus(),
-                        );
-                      }}
-                      className="rounded-full border bg-card px-4 py-2 text-xs text-foreground/80 transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
+              {botsLoading ? (
+                <div
+                  className="space-y-1.5 text-center"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <p className="text-sm font-medium text-foreground/80">
+                    {warmingUp
+                      ? "서버를 깨우고 있어요"
+                      : "챗봇을 불러오는 중..."}
+                  </p>
+                  {warmingUp && (
+                    <p className="text-xs">
+                      첫 접속 시 최대 10초 정도 걸릴 수 있어요
+                    </p>
+                  )}
                 </div>
+              ) : (
+                <>
+                  <p className="text-center text-sm">
+                    {selectedBotName
+                      ? `${selectedBotName}에게 질문해보세요`
+                      : "챗봇을 선택하고 질문해보세요"}
+                  </p>
+                  {selectedBot && (
+                    <div className="flex w-full flex-col gap-2 px-2 sm:flex-row sm:flex-wrap sm:justify-center">
+                      {SUGGESTED_PROMPTS.map((prompt) => (
+                        <button
+                          key={prompt}
+                          type="button"
+                          onClick={() => {
+                            setInput(prompt);
+                            requestAnimationFrame(() =>
+                              textareaRef.current?.focus(),
+                            );
+                          }}
+                          className="rounded-full border bg-card px-4 py-2 text-xs text-foreground/80 transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -474,9 +509,13 @@ export default function ChatPage() {
               }
               onKeyDown={handleKeyDown}
               placeholder={
-                selectedBot
-                  ? "메시지를 입력하세요 (Shift+Enter로 줄바꿈)"
-                  : "상단에서 먼저 챗봇을 선택해 주세요"
+                botsLoading
+                  ? warmingUp
+                    ? "서버를 깨우고 있어요... 잠시만 기다려주세요"
+                    : "챗봇을 불러오는 중..."
+                  : selectedBot
+                    ? "메시지를 입력하세요 (Shift+Enter로 줄바꿈)"
+                    : "상단에서 먼저 챗봇을 선택해 주세요"
               }
               disabled={!selectedBot}
               autoFocus
