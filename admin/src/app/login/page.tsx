@@ -23,6 +23,11 @@ export default function LoginPage() {
 
     try {
       await authAPI.login(email, password);
+      // [Warm-up] Cloud Run 컨테이너를 유지하고 채팅 페이지 첫 진입 지연을
+      // 완화하기 위해 챗봇 목록 엔드포인트를 fire-and-forget으로 선호출한다.
+      // 채팅 라우트도 prefetch 하여 코드/데이터 로드를 미리 시작한다.
+      void fetch("/api/chatbots", { credentials: "include" }).catch(() => {});
+      router.prefetch("/");
       router.push("/chatbots");
     } catch (err) {
       setError(
