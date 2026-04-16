@@ -5,6 +5,7 @@
 # 환경 변수 (API 키 포함)
 **/.env
 .env
+.env.production.local
 
 # Python 캐시
 __pycache__/
@@ -30,3 +31,14 @@ out/
 # 로컬 테스트 결과
 backend/progress.json
 eval_results.json
+
+# Playwright MCP 세션 로그 (console / page snapshots)
+.playwright-mcp/
+
+# Playwright 테스트 산출물
+**/test-results/
+
+# 가이드 배포 파생본 (md가 원본, 나머지는 빌드 결과)
+docs/guides/*.pdf
+docs/guides/*.docx
+docs/guides/*.html
