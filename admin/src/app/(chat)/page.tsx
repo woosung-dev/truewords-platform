@@ -31,7 +31,6 @@ import {
   ArrowUp,
   Bot,
   BookOpen,
-  Check,
   Copy,
   MessageSquarePlus,
   Square,
@@ -54,12 +53,20 @@ interface Message {
   feedback?: FeedbackType;
 }
 
-const NEGATIVE_REASONS: { key: Exclude<FeedbackType, "HELPFUL">; label: string }[] = [
-  { key: "INACCURATE", label: "부정확한 답변" },
-  { key: "MISSING_CITATION", label: "출처 부족/누락" },
-  { key: "IRRELEVANT", label: "질문과 무관함" },
-  { key: "OTHER", label: "기타 (아래 의견 작성)" },
+const NEGATIVE_REASONS: { key: Exclude<FeedbackType, "helpful">; label: string }[] = [
+  { key: "inaccurate", label: "부정확한 답변" },
+  { key: "missing_citation", label: "출처 부족/누락" },
+  { key: "irrelevant", label: "질문과 무관함" },
+  { key: "other", label: "기타 (아래 의견 작성)" },
 ];
+
+// 백엔드 safety layer가 답변 말미에 붙이는 면책 고지를 제거.
+// 동일 문구는 입력창 하단 footer에 고정으로 이미 노출된다.
+const DISCLAIMER_PREFIX = "\n\n---\n_이 답변은 AI가 생성한";
+const stripDisclaimer = (text: string): string => {
+  const idx = text.indexOf(DISCLAIMER_PREFIX);
+  return idx >= 0 ? text.slice(0, idx).trimEnd() : text;
+};
 
 const SUGGESTED_PROMPTS = [
   "하나님을 왜 '하늘부모님'이라고 부르나요?",
@@ -222,7 +229,7 @@ export default function ChatPage() {
         prev.map((m, i) => (i === idx ? { ...m, feedback: type } : m)),
       );
       toast.success(
-        type === "HELPFUL"
+        type === "helpful"
           ? "긍정 피드백 감사합니다"
           : "피드백을 기록했습니다",
       );
@@ -337,7 +344,9 @@ export default function ChatPage() {
                   }`}
                 >
                   <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {msg.content}
+                    {msg.role === "assistant"
+                      ? stripDisclaimer(msg.content)
+                      : msg.content}
                   </p>
                 </Card>
 
@@ -353,45 +362,71 @@ export default function ChatPage() {
                   </div>
                 )}
 
-                {/* 어시스턴트 메시지 하단 액션: 복사 / 👍 / 👎 */}
+                {/* 어시스턴트 메시지 하단 액션 툴바: 복사 | 👍 / 👎 */}
                 {msg.role === "assistant" && msg.messageId && (
-                  <div className="flex items-center gap-1 pl-1 opacity-60 transition group-hover:opacity-100">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      aria-label="답변 복사"
-                      onClick={() => handleCopy(msg.content)}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      aria-label="도움이 됐어요"
-                      aria-pressed={msg.feedback === "HELPFUL"}
-                      disabled={!!msg.feedback}
-                      onClick={() => submitFeedback(i, "HELPFUL")}
-                      className={`h-7 w-7 ${msg.feedback === "HELPFUL" ? "text-emerald-600" : ""}`}
-                    >
-                      {msg.feedback === "HELPFUL" ? (
-                        <Check className="h-3.5 w-3.5" />
-                      ) : (
-                        <ThumbsUp className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
+                  <div
+                    className={`flex items-center gap-2 pl-1 transition ${
+                      msg.feedback
+                        ? "opacity-100"
+                        : "opacity-60 group-hover:opacity-100"
+                    }`}
+                  >
+                    <div className="inline-flex items-center gap-0.5 rounded-lg border bg-card/70 px-1 py-0.5 shadow-sm">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        aria-label="답변 복사"
+                        onClick={() => handleCopy(stripDisclaimer(msg.content))}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
 
-                    <NegativeFeedbackPopover
-                      disabled={!!msg.feedback}
-                      active={
-                        msg.feedback !== undefined && msg.feedback !== "HELPFUL"
-                      }
-                      onSubmit={(reason, comment) =>
-                        submitFeedback(i, reason, comment)
-                      }
-                    />
+                      <div
+                        className="mx-0.5 h-4 w-px bg-border"
+                        aria-hidden="true"
+                      />
+
+                      {/* 긍정 — 미제출이거나 "helpful" 선택 시만 노출 */}
+                      {(!msg.feedback || msg.feedback === "helpful") && (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          aria-label="도움이 됐어요"
+                          aria-pressed={msg.feedback === "helpful"}
+                          disabled={!!msg.feedback}
+                          onClick={() => submitFeedback(i, "helpful")}
+                          className={`h-7 w-7 ${
+                            msg.feedback === "helpful"
+                              ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-50 disabled:opacity-100 dark:bg-emerald-950/40"
+                              : ""
+                          }`}
+                        >
+                          <ThumbsUp className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+
+                      {/* 부정 — 미제출이거나 부정 선택 시만 노출 */}
+                      {(!msg.feedback || msg.feedback !== "helpful") && (
+                        <NegativeFeedbackPopover
+                          disabled={!!msg.feedback}
+                          active={!!msg.feedback}
+                          onSubmit={(reason, comment) =>
+                            submitFeedback(i, reason, comment)
+                          }
+                        />
+                      )}
+                    </div>
+
+                    {msg.feedback && (
+                      <span className="text-[11px] text-muted-foreground">
+                        {msg.feedback === "helpful"
+                          ? "피드백 감사합니다"
+                          : "의견이 기록됐습니다"}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -492,8 +527,8 @@ function NegativeFeedbackPopover({
   onSubmit: (type: FeedbackType, comment?: string) => Promise<void> | void;
 }) {
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState<Exclude<FeedbackType, "HELPFUL">>(
-    "INACCURATE",
+  const [reason, setReason] = useState<Exclude<FeedbackType, "helpful">>(
+    "inaccurate",
   );
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -511,19 +546,25 @@ function NegativeFeedbackPopover({
 
   return (
     <Popover open={open} onOpenChange={(v: boolean) => !disabled && setOpen(v)}>
-      <PopoverTrigger render={(props: React.ComponentProps<"button">) => <Button type="button" {...props} />}>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-label="개선이 필요해요"
-          aria-pressed={active}
-          disabled={disabled}
-          className={`h-7 w-7 ${active ? "text-rose-600" : ""}`}
-        >
-          {active ? <Check className="h-3.5 w-3.5" /> : <ThumbsDown className="h-3.5 w-3.5" />}
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label="개선이 필요해요"
+            aria-pressed={active}
+            disabled={disabled}
+            className={`h-7 w-7 ${
+              active
+                ? "bg-rose-50 text-rose-600 hover:bg-rose-50 disabled:opacity-100 dark:bg-rose-950/40"
+                : ""
+            }`}
+          >
+            <ThumbsDown className="h-3.5 w-3.5" />
+          </Button>
+        }
+      />
       <PopoverContent className="w-80" align="start">
         <div className="space-y-3">
           <div>
