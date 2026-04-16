@@ -19,11 +19,11 @@ export interface ChatResponse {
 }
 
 export type FeedbackType =
-  | "HELPFUL"
-  | "INACCURATE"
-  | "MISSING_CITATION"
-  | "IRRELEVANT"
-  | "OTHER";
+  | "helpful"
+  | "inaccurate"
+  | "missing_citation"
+  | "irrelevant"
+  | "other";
 
 export interface FeedbackRequest {
   message_id: string;
