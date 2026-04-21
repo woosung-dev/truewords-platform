@@ -352,3 +352,108 @@ class AnalyticsRepository:
             }
             for row in result.all()
         ]
+
+    async def get_queries(
+        self,
+        q: str = "",
+        days: int = 30,
+        sort: str = "count_desc",
+        page: int = 1,
+        size: int = 50,
+    ) -> dict:
+        """고유 질문 집계 + 검색/정렬/페이지네이션.
+
+        반환 구조:
+            {
+                "items": list[dict],  # query_text, count, latest_at, negative_feedback_count
+                "total": int,
+                "page": int,
+                "size": int,
+                "days": int,
+            }
+        """
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        q_pattern = f"%{q}%" if q else ""
+        offset = (page - 1) * size
+
+        # 1) 총 고유 질문 수
+        total_result = await self.session.execute(
+            text("""
+                SELECT COUNT(DISTINCT query_text) AS total
+                FROM search_events
+                WHERE created_at >= :cutoff
+                  AND (:q = '' OR query_text ILIKE :q_pattern)
+            """),
+            {"cutoff": cutoff, "q": q, "q_pattern": q_pattern},
+        )
+        total = total_result.scalar_one() or 0
+
+        if total == 0:
+            return {
+                "items": [],
+                "total": 0,
+                "page": page,
+                "size": size,
+                "days": days,
+            }
+
+        # 2) 페이지 항목 + 부정 피드백 집계
+        items_result = await self.session.execute(
+            text("""
+                WITH agg AS (
+                    SELECT
+                        se.query_text,
+                        COUNT(*)::int AS count,
+                        MAX(se.created_at) AS latest_at,
+                        ARRAY_AGG(DISTINCT se.message_id) AS assistant_ids
+                    FROM search_events se
+                    WHERE se.created_at >= :cutoff
+                      AND (:q = '' OR se.query_text ILIKE :q_pattern)
+                    GROUP BY se.query_text
+                )
+                SELECT
+                    agg.query_text,
+                    agg.count,
+                    agg.latest_at,
+                    COALESCE(
+                        (SELECT COUNT(*) FROM answer_feedback af
+                         WHERE af.message_id = ANY(agg.assistant_ids)
+                           AND af.feedback_type != 'HELPFUL'),
+                        0
+                    )::int AS negative_feedback_count
+                FROM agg
+                ORDER BY
+                    CASE WHEN :sort = 'count_desc'  THEN agg.count END DESC,
+                    CASE WHEN :sort = 'count_asc'   THEN agg.count END ASC,
+                    CASE WHEN :sort = 'recent_desc' THEN agg.latest_at END DESC,
+                    CASE WHEN :sort = 'recent_asc'  THEN agg.latest_at END ASC,
+                    agg.query_text ASC
+                LIMIT :limit OFFSET :offset
+            """),
+            {
+                "cutoff": cutoff,
+                "q": q,
+                "q_pattern": q_pattern,
+                "sort": sort,
+                "limit": size,
+                "offset": offset,
+            },
+        )
+
+        items = [
+            {
+                "query_text": row.query_text,
+                "count": row.count,
+                "latest_at": row.latest_at,
+                "negative_feedback_count": row.negative_feedback_count,
+            }
+            for row in items_result.all()
+        ]
+
+        return {
+            "items": items,
+            "total": total,
+            "page": page,
+            "size": size,
+            "days": days,
+        }
