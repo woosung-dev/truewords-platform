@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DashboardSummary(BaseModel):
@@ -50,3 +50,44 @@ class NegativeFeedbackItem(BaseModel):
     feedback_type: str
     comment: str | None
     created_at: datetime
+
+
+class CitationItem(BaseModel):
+    source: str
+    volume: int
+    chapter: str | None = None
+    text_snippet: str
+    relevance_score: float
+    rank_position: int
+
+
+class FeedbackItem(BaseModel):
+    feedback_type: str
+    comment: str | None = None
+    created_at: datetime
+
+
+class QueryOccurrence(BaseModel):
+    search_event_id: uuid.UUID
+    user_message_id: uuid.UUID | None = None
+    assistant_message_id: uuid.UUID | None = None
+    session_id: uuid.UUID
+    chatbot_id: uuid.UUID | None = None
+    chatbot_name: str | None = None
+    asked_at: datetime
+    rewritten_query: str | None = None
+    search_tier: int
+    total_results: int
+    latency_ms: int
+    applied_filters: dict = Field(default_factory=dict)
+    answer_text: str | None = None
+    citations: list[CitationItem] = Field(default_factory=list)
+    feedback: FeedbackItem | None = None
+
+
+class QueryDetailResponse(BaseModel):
+    query_text: str
+    total_count: int
+    returned_count: int
+    days: int
+    occurrences: list[QueryOccurrence]

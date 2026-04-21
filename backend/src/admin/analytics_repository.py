@@ -2,6 +2,8 @@
 
 from datetime import datetime, timedelta
 
+from uuid import UUID
+
 from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -117,6 +119,200 @@ class AnalyticsRepository:
             {"cutoff": cutoff},
         )
         return [{"feedback_type": row.feedback_type, "count": row.count} for row in result.all()]
+
+    async def get_query_details(
+        self,
+        query_text: str,
+        days: int = 30,
+        limit: int = 50,
+    ) -> dict:
+        """특정 질문의 모든 발생 상세 조회.
+
+        반환 구조:
+            {
+                "query_text": str,
+                "total_count": int,       # 기간 내 전체 발생 수
+                "returned_count": int,    # 응답에 담긴 수 (<= limit)
+                "days": int,
+                "occurrences": list[dict] # asked_at desc
+            }
+        """
+        cutoff = datetime.utcnow() - timedelta(days=days)
+
+        # 1) 전체 발생 수 (limit 초과 감지용)
+        # 주: search_events.message_id 는 assistant 메시지를 가리킨다.
+        count_result = await self.session.execute(
+            text("""
+                SELECT COUNT(*) AS total
+                FROM search_events
+                WHERE query_text = :q
+                  AND created_at >= :cutoff
+            """),
+            {"q": query_text, "cutoff": cutoff},
+        )
+        total_count = count_result.scalar_one() or 0
+
+        if total_count == 0:
+            return {
+                "query_text": query_text,
+                "total_count": 0,
+                "returned_count": 0,
+                "days": days,
+                "occurrences": [],
+            }
+
+        # 2) 발생 목록 + 답변(assistant) + 봇명 조회
+        occ_result = await self.session.execute(
+            text("""
+                SELECT
+                    se.id AS search_event_id,
+                    se.message_id AS assistant_message_id,
+                    se.rewritten_query,
+                    se.search_tier,
+                    se.total_results,
+                    se.latency_ms,
+                    se.applied_filters,
+                    sm.session_id,
+                    sm.content AS answer_text,
+                    sm.created_at AS answered_at,
+                    rs.chatbot_config_id AS chatbot_id,
+                    cc.display_name AS chatbot_name
+                FROM search_events se
+                JOIN session_messages sm ON sm.id = se.message_id
+                JOIN research_sessions rs ON rs.id = sm.session_id
+                LEFT JOIN chatbot_configs cc ON cc.id = rs.chatbot_config_id
+                WHERE se.query_text = :q
+                  AND sm.role = 'ASSISTANT'
+                  AND se.created_at >= :cutoff
+                ORDER BY sm.created_at DESC
+                LIMIT :limit
+            """),
+            {"q": query_text, "cutoff": cutoff, "limit": limit},
+        )
+        occ_rows = occ_result.all()
+
+        if not occ_rows:
+            return {
+                "query_text": query_text,
+                "total_count": total_count,
+                "returned_count": 0,
+                "days": days,
+                "occurrences": [],
+            }
+
+        assistant_ids = [row.assistant_message_id for row in occ_rows]
+
+        # 3) 각 assistant 메시지의 직전 user 메시지 (질문 시점/텍스트 추적용)
+        user_msg_result = await self.session.execute(
+            text("""
+                SELECT
+                    assistant_sm.id AS assistant_message_id,
+                    user_sm.id AS user_message_id,
+                    user_sm.created_at AS asked_at
+                FROM session_messages assistant_sm
+                JOIN LATERAL (
+                    SELECT id, created_at
+                    FROM session_messages
+                    WHERE session_id = assistant_sm.session_id
+                      AND role = 'USER'
+                      AND created_at < assistant_sm.created_at
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                ) user_sm ON TRUE
+                WHERE assistant_sm.id = ANY(:ids)
+            """),
+            {"ids": assistant_ids},
+        )
+        user_msg_map: dict[UUID, dict] = {}
+        for row in user_msg_result.all():
+            user_msg_map[row.assistant_message_id] = {
+                "user_message_id": row.user_message_id,
+                "asked_at": row.asked_at,
+            }
+
+        # 4) 출처 조회 — assistant 메시지 기준
+        citations_map: dict[UUID, list[dict]] = {aid: [] for aid in assistant_ids}
+        cite_result = await self.session.execute(
+            text("""
+                SELECT
+                    message_id,
+                    source,
+                    volume,
+                    chapter,
+                    text_snippet,
+                    relevance_score,
+                    rank_position
+                FROM answer_citations
+                WHERE message_id = ANY(:ids)
+                ORDER BY rank_position ASC
+            """),
+            {"ids": assistant_ids},
+        )
+        for row in cite_result.all():
+            citations_map.setdefault(row.message_id, []).append({
+                "source": row.source,
+                "volume": row.volume,
+                "chapter": row.chapter,
+                "text_snippet": row.text_snippet,
+                "relevance_score": float(row.relevance_score),
+                "rank_position": row.rank_position,
+            })
+
+        # 5) 피드백 조회 — assistant 메시지 기준 최신 1건
+        feedback_map: dict[UUID, dict] = {}
+        fb_result = await self.session.execute(
+            text("""
+                SELECT DISTINCT ON (message_id)
+                    message_id,
+                    feedback_type,
+                    comment,
+                    created_at
+                FROM answer_feedback
+                WHERE message_id = ANY(:ids)
+                ORDER BY message_id, created_at DESC
+            """),
+            {"ids": assistant_ids},
+        )
+        for row in fb_result.all():
+            feedback_map[row.message_id] = {
+                "feedback_type": row.feedback_type,
+                "comment": row.comment,
+                "created_at": row.created_at,
+            }
+
+        # 6) 조합
+        occurrences: list[dict] = []
+        for row in occ_rows:
+            aid = row.assistant_message_id
+            user_info = user_msg_map.get(aid)
+            # user 메시지가 없는 이례적 케이스는 assistant 시점으로 폴백
+            asked_at = user_info["asked_at"] if user_info else row.answered_at
+            user_message_id = user_info["user_message_id"] if user_info else None
+            occurrences.append({
+                "search_event_id": row.search_event_id,
+                "user_message_id": user_message_id,
+                "assistant_message_id": aid,
+                "session_id": row.session_id,
+                "chatbot_id": row.chatbot_id,
+                "chatbot_name": row.chatbot_name,
+                "asked_at": asked_at,
+                "rewritten_query": row.rewritten_query,
+                "search_tier": row.search_tier,
+                "total_results": row.total_results,
+                "latency_ms": row.latency_ms,
+                "applied_filters": row.applied_filters or {},
+                "answer_text": row.answer_text,
+                "citations": citations_map.get(aid, []),
+                "feedback": feedback_map.get(aid),
+            })
+
+        return {
+            "query_text": query_text,
+            "total_count": total_count,
+            "returned_count": len(occurrences),
+            "days": days,
+            "occurrences": occurrences,
+        }
 
     async def get_negative_feedback(self, limit: int = 20, offset: int = 0) -> list[dict]:
         """부정 피드백 목록 (질문 + 답변 포함)."""
