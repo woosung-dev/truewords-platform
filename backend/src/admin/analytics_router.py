@@ -10,6 +10,7 @@ from src.admin.analytics_schemas import (
     FeedbackSummary,
     FeedbackDistribution,
     NegativeFeedbackItem,
+    QueryDetailResponse,
     SearchStats,
     TopQuery,
 )
@@ -107,3 +108,16 @@ async def get_negative_feedback(
     """부정 피드백 목록."""
     rows = await repo.get_negative_feedback(limit, offset)
     return [NegativeFeedbackItem(**r) for r in rows]
+
+
+@router.get("/search/query-details", response_model=QueryDetailResponse)
+async def get_query_details(
+    query_text: str = Query(..., min_length=1, max_length=1000),
+    days: int = Query(default=30, ge=1, le=365),
+    limit: int = Query(default=50, ge=1, le=100),
+    repo: AnalyticsRepository = Depends(_get_repo),
+    current_admin: dict = Depends(get_current_admin),
+) -> QueryDetailResponse:
+    """인기 질문의 모든 발생 상세 조회."""
+    data = await repo.get_query_details(query_text, days, limit)
+    return QueryDetailResponse(**data)
