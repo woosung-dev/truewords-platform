@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ResponsiveContainer,
@@ -12,6 +13,7 @@ import {
 import { analyticsAPI } from "@/features/analytics/api";
 import type { SearchStats, DailyCount, TopQuery } from "@/features/analytics/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
 
 // ─────────────────────────────────────────────
 // StatCard (inline, 카드 컴포넌트 미사용 패턴 유지)
@@ -92,7 +94,15 @@ function FallbackDistribution({ stats, loading }: { stats?: SearchStats; loading
 // ─────────────────────────────────────────────
 // Top 10 쿼리 테이블
 // ─────────────────────────────────────────────
-function TopQueriesTable({ queries, loading }: { queries?: TopQuery[]; loading: boolean }) {
+function TopQueriesTable({
+  queries,
+  loading,
+  onSelect,
+}: {
+  queries?: TopQuery[];
+  loading: boolean;
+  onSelect: (queryText: string) => void;
+}) {
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
       <h2 className="text-sm font-semibold">인기 질문 Top 10</h2>
@@ -124,7 +134,23 @@ function TopQueriesTable({ queries, loading }: { queries?: TopQuery[]; loading: 
             </thead>
             <tbody>
               {queries.map((q, i) => (
-                <tr key={i} className={i !== 0 ? "border-t" : ""}>
+                <tr
+                  key={i}
+                  className={
+                    (i !== 0 ? "border-t " : "") +
+                    "cursor-pointer hover:bg-muted/40 transition-colors"
+                  }
+                  onClick={() => onSelect(q.query_text)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onSelect(q.query_text);
+                    }
+                  }}
+                  title="클릭하면 상세 정보를 확인할 수 있습니다"
+                >
                   <td className="py-2 px-3 text-muted-foreground font-mono text-xs">
                     {i + 1}
                   </td>
@@ -150,6 +176,8 @@ function TopQueriesTable({ queries, loading }: { queries?: TopQuery[]; loading: 
 // 메인 페이지
 // ─────────────────────────────────────────────
 export default function AnalyticsPage() {
+  const [selectedQuery, setSelectedQuery] = useState<string | null>(null);
+
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["search-stats"],
     queryFn: () => analyticsAPI.getSearchStats(30),
@@ -266,8 +294,21 @@ export default function AnalyticsPage() {
       {/* 하단 2열 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FallbackDistribution stats={stats} loading={statsLoading} />
-        <TopQueriesTable queries={topQueries} loading={topQueriesLoading} />
+        <TopQueriesTable
+          queries={topQueries}
+          loading={topQueriesLoading}
+          onSelect={(q) => setSelectedQuery(q)}
+        />
       </div>
+
+      <QueryDetailModal
+        open={selectedQuery !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedQuery(null);
+        }}
+        queryText={selectedQuery}
+        days={30}
+      />
     </div>
   );
 }
