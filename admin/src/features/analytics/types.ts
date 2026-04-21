@@ -61,7 +61,7 @@ export interface FeedbackItem {
 
 export interface QueryOccurrence {
   search_event_id: string;
-  user_message_id: string;
+  user_message_id: string | null;
   assistant_message_id: string | null;
   session_id: string;
   chatbot_id: string | null;

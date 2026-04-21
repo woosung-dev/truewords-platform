@@ -69,7 +69,7 @@ class FeedbackItem(BaseModel):
 
 class QueryOccurrence(BaseModel):
     search_event_id: uuid.UUID
-    user_message_id: uuid.UUID
+    user_message_id: uuid.UUID | None = None
     assistant_message_id: uuid.UUID | None = None
     session_id: uuid.UUID
     chatbot_id: uuid.UUID | None = None
