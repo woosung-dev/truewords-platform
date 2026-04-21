@@ -11,6 +11,7 @@ from src.admin.analytics_schemas import (
     FeedbackDistribution,
     NegativeFeedbackItem,
     QueryDetailResponse,
+    QueryListResponse,
     SearchStats,
     TopQuery,
 )
@@ -121,3 +122,21 @@ async def get_query_details(
     """인기 질문의 모든 발생 상세 조회."""
     data = await repo.get_query_details(query_text, days, limit)
     return QueryDetailResponse(**data)
+
+
+@router.get("/search/queries", response_model=QueryListResponse)
+async def get_queries(
+    q: str = Query(default="", max_length=500),
+    days: int = Query(default=30, ge=1, le=365),
+    sort: str = Query(
+        default="count_desc",
+        pattern="^(count_desc|count_asc|recent_desc|recent_asc)$",
+    ),
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=50, ge=1, le=100),
+    repo: AnalyticsRepository = Depends(_get_repo),
+    current_admin: dict = Depends(get_current_admin),
+) -> QueryListResponse:
+    """고유 질문 집계 + 검색/정렬/페이지네이션."""
+    data = await repo.get_queries(q=q, days=days, sort=sort, page=page, size=size)
+    return QueryListResponse(**data)

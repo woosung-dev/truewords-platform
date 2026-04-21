@@ -7,6 +7,8 @@ import type {
   FeedbackSummary,
   NegativeFeedbackItem,
   QueryDetail,
+  QueryListResponse,
+  QuerySortKey,
 } from "./types";
 
 export const analyticsAPI = {
@@ -40,4 +42,22 @@ export const analyticsAPI = {
         queryText
       )}&days=${days}&limit=${limit}`
     ),
+
+  getQueries: (params: {
+    q?: string;
+    days?: number;
+    sort?: QuerySortKey;
+    page?: number;
+    size?: number;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.q) qs.set("q", params.q);
+    qs.set("days", String(params.days ?? 30));
+    qs.set("sort", params.sort ?? "count_desc");
+    qs.set("page", String(params.page ?? 1));
+    qs.set("size", String(params.size ?? 50));
+    return fetchAPI<QueryListResponse>(
+      `/admin/analytics/search/queries?${qs.toString()}`
+    );
+  },
 };

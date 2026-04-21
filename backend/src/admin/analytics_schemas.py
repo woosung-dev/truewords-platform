@@ -91,3 +91,18 @@ class QueryDetailResponse(BaseModel):
     returned_count: int
     days: int
     occurrences: list[QueryOccurrence]
+
+
+class QueryListItem(BaseModel):
+    query_text: str
+    count: int
+    latest_at: datetime
+    negative_feedback_count: int
+
+
+class QueryListResponse(BaseModel):
+    items: list[QueryListItem]
+    total: int
+    page: int
+    size: int
+    days: int

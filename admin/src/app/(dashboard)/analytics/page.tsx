@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   ResponsiveContainer,
@@ -13,6 +14,7 @@ import {
 import { analyticsAPI } from "@/features/analytics/api";
 import type { SearchStats, DailyCount, TopQuery } from "@/features/analytics/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
 import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
 
 // ─────────────────────────────────────────────
@@ -105,7 +107,15 @@ function TopQueriesTable({
 }) {
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
-      <h2 className="text-sm font-semibold">인기 질문 Top 10</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold">인기 질문 Top 10</h2>
+        <Link
+          href="/analytics/queries"
+          className="text-xs text-primary hover:underline"
+        >
+          모두 보기 →
+        </Link>
+      </div>
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -154,10 +164,8 @@ function TopQueriesTable({
                   <td className="py-2 px-3 text-muted-foreground font-mono text-xs">
                     {i + 1}
                   </td>
-                  <td className="py-2 px-3 truncate max-w-0 w-full">
-                    <span className="block truncate" title={q.query_text}>
-                      {q.query_text}
-                    </span>
+                  <td className="py-2 px-3 max-w-0 w-full">
+                    <TruncateTooltip text={q.query_text} />
                   </td>
                   <td className="py-2 px-3 text-right font-medium">
                     {q.count.toLocaleString()}
