@@ -84,3 +84,24 @@ export interface QueryDetail {
   days: number;
   occurrences: QueryOccurrence[];
 }
+
+export type QuerySortKey =
+  | "count_desc"
+  | "count_asc"
+  | "recent_desc"
+  | "recent_asc";
+
+export interface QueryListItem {
+  query_text: string;
+  count: number;
+  latest_at: string;
+  negative_feedback_count: number;
+}
+
+export interface QueryListResponse {
+  items: QueryListItem[];
+  total: number;
+  page: number;
+  size: number;
+  days: number;
+}
