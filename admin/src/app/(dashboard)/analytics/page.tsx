@@ -274,16 +274,16 @@ export default function AnalyticsPage() {
                 contentStyle={{
                   fontSize: 12,
                   borderRadius: 8,
-                  border: "1px solid hsl(var(--border))",
-                  background: "hsl(var(--card))",
-                  color: "hsl(var(--foreground))",
+                  border: "1px solid var(--border)",
+                  background: "var(--card)",
+                  color: "var(--foreground)",
                 }}
-                cursor={{ fill: "hsl(var(--muted))" }}
+                cursor={{ fill: "var(--muted)" }}
               />
               <Bar
                 dataKey="count"
                 name="검색 수"
-                fill="hsl(var(--primary))"
+                fill="var(--primary)"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
