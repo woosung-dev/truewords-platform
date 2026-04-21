@@ -6,6 +6,7 @@ import type {
   TopQuery,
   FeedbackSummary,
   NegativeFeedbackItem,
+  QueryDetail,
 } from "./types";
 
 export const analyticsAPI = {
@@ -31,5 +32,12 @@ export const analyticsAPI = {
   getNegativeFeedback: (limit = 20, offset = 0) =>
     fetchAPI<NegativeFeedbackItem[]>(
       `/admin/analytics/feedback/negative?limit=${limit}&offset=${offset}`
+    ),
+
+  getQueryDetails: (queryText: string, days = 30, limit = 50) =>
+    fetchAPI<QueryDetail>(
+      `/admin/analytics/search/query-details?query_text=${encodeURIComponent(
+        queryText
+      )}&days=${days}&limit=${limit}`
     ),
 };
