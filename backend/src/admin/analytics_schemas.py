@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DashboardSummary(BaseModel):
@@ -79,9 +79,9 @@ class QueryOccurrence(BaseModel):
     search_tier: int
     total_results: int
     latency_ms: int
-    applied_filters: dict = {}
+    applied_filters: dict = Field(default_factory=dict)
     answer_text: str | None = None
-    citations: list[CitationItem] = []
+    citations: list[CitationItem] = Field(default_factory=list)
     feedback: FeedbackItem | None = None
 
 
