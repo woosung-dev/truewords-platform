@@ -201,7 +201,6 @@ class AnalyticsRepository:
             }
 
         user_message_ids = [row.user_message_id for row in occ_rows]
-        session_ids = [row.session_id for row in occ_rows]
 
         # 3) 답변 조회 — 각 session에서 user 메시지 직후 assistant 최초 메시지
         answer_result = await self.session.execute(
