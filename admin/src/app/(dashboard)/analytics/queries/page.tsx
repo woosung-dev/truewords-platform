@@ -84,12 +84,16 @@ export default function QueriesExplorerPage() {
     <div className="space-y-6 max-w-5xl">
       {/* 헤더 */}
       <div>
-        <nav className="text-xs text-muted-foreground">
-          <Link href="/analytics" className="hover:underline">
+        <nav className="flex items-center gap-1 text-xs">
+          <Link
+            href="/analytics"
+            className="inline-flex items-center gap-1 text-primary hover:underline"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
             검색 분석
           </Link>
-          <span className="mx-1">›</span>
-          <span>질문 탐색</span>
+          <span className="text-muted-foreground">›</span>
+          <span className="text-muted-foreground">질문 탐색</span>
         </nav>
         <h1 className="text-2xl font-bold tracking-tight mt-2">질문 탐색</h1>
         <p className="text-sm text-muted-foreground mt-1">
