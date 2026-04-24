@@ -77,6 +77,21 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def apply_environment_suffix(self):
+        """ENVIRONMENT=staging 일 때 기본 Qdrant 컬렉션명에 '_staging' 접미사 자동 부여.
+
+        env var 로 COLLECTION_NAME 등을 명시 설정한 경우(기본값과 다름) 그대로 존중.
+        상세 설계: docs/07_infra/staging-separation.md §5.
+        """
+        if self.environment != "staging":
+            return self
+        if self.collection_name == "malssum_poc":
+            object.__setattr__(self, "collection_name", "malssum_poc_staging")
+        if self.cache_collection_name == "semantic_cache":
+            object.__setattr__(self, "cache_collection_name", "semantic_cache_staging")
+        return self
+
+    @model_validator(mode="after")
     def validate_production(self):
         """프로덕션 환경에서 보안 필수값 검증."""
         if self.environment == "production":

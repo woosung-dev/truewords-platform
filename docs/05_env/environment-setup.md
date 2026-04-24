@@ -83,12 +83,17 @@ docker compose up --build
 | 변수 | 로컬 | 스테이징 | 프로덕션 |
 |------|------|----------|----------|
 | `ENVIRONMENT` | `development` | `staging` | `production` |
-| `DATABASE_URL` | `localhost:5432` | Cloud SQL | Cloud SQL |
-| `QDRANT_URL` | `localhost:6333` | Qdrant Cloud | Qdrant Cloud |
+| `DATABASE_URL` | `localhost:5432/truewords` | Cloud SQL · DB `truewords_staging` | Cloud SQL · DB `truewords` |
+| `QDRANT_URL` | `localhost:6333` | Qdrant Cloud (같은 클러스터) | Qdrant Cloud (같은 클러스터) |
+| `COLLECTION_NAME` | `malssum_poc` | `malssum_poc_staging` (자동) | `malssum_poc` |
+| `CACHE_COLLECTION_NAME` | `semantic_cache` | `semantic_cache_staging` (자동) | `semantic_cache` |
 | `ADMIN_FRONTEND_URL` | `localhost:3000` | Vercel Preview URL | `https://admin.truewords.app` |
 | `COOKIE_SECURE` | `false` | `true` | `true` |
-| `GEMINI_API_KEY` | 로컬 키 | GCP Secret Manager | GCP Secret Manager |
-| `ADMIN_JWT_SECRET` | 개발용 | GCP Secret Manager | GCP Secret Manager |
+| `GEMINI_API_KEY` | 로컬 키 | Secret Manager `gemini-api-key-staging` | Secret Manager `gemini-api-key` |
+| `ADMIN_JWT_SECRET` | 개발용 | Secret Manager `admin-jwt-secret-staging` | Secret Manager `admin-jwt-secret` |
+
+> "자동" 표기는 `ENVIRONMENT=staging` 시 `backend/src/config.py` 의 `apply_environment_suffix` validator 가 접미사를 자동으로 부여하는 동작(기본값일 때만, 명시 override 존중).
+> 전체 분리 설계(Cloud Run 서비스 분리, Vercel Preview, GitHub Actions 파이프라인, Secret Manager) 는 [Staging 환경 분리 설계](../07_infra/staging-separation.md) 참조.
 
 ---
 
