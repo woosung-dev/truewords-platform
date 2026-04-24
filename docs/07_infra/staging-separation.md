@@ -236,16 +236,160 @@ DB URL 자동 suffix는 **제외**: Cloud SQL 접속 문자열 구조(Host/port/
 §7 결정 완료 (2026-04-25). 아래 순서로 인프라 프로비저닝 + 배포 파이프라인 구성. 각 단계는 사용자가 GCP 콘솔/CLI에서 실행하거나, 필요 시 이 리포에서 스크립트로 자동화.
 
 
-1. `backend/src/config.py` staging validator 는 이번 세션에서 이미 PoC 추가됨. 기본 OFF 성격(`environment == "staging"`일 때만 동작)이라 즉시 운영 영향 없음.
-2. Cloud SQL staging DB 생성 (`CREATE DATABASE truewords_staging;`).
-3. Qdrant staging 컬렉션 생성 (API 또는 admin 스크립트).
-4. Secret Manager에 `*-staging` 3종 등록.
-5. Cloud Run `truewords-backend-staging` 서비스 생성 + 초기 배포 (Artifact Registry 이미지 공유).
-6. Vercel Preview scope 환경변수 업데이트.
-7. GitHub Actions `deploy.yml`에 staging job 추가 (matrix 또는 별도 job, D4 결정에 따라).
-8. `develop` 브랜치 생성 + 보호 규칙 설정.
-9. staging 스모크 테스트 실행 + 결과 기록.
-10. 선행 #3 운영 Qdrant dry-run, 선행 #5 품질 게이트 기준선은 **staging 환경에서 수행** — 이때부터 운영 데이터 미오염.
+### 9.0 선반영 완료 (PR #42)
+
+- `backend/src/config.py` — `apply_environment_suffix` validator (`ENVIRONMENT=staging` 시 기본 컬렉션명에 `_staging` 자동 부여). 기본 OFF.
+- `.github/workflows/deploy.yml` — `deploy-staging` job 추가 (`github.ref == 'refs/heads/develop'` 가드). `develop` 브랜치 미존재 시 트리거 안 됨.
+
+사용자 작업은 §9.1 부터 순서대로 수행.
+
+### 9.1 Cloud SQL staging DB 생성
+
+```bash
+PROJECT_ID="<GCP_PROJECT_ID>"
+INSTANCE_NAME="truewords-pg"    # 실제 운영 Cloud SQL 인스턴스 이름으로 교체
+
+gcloud sql databases create truewords_staging \
+  --instance="$INSTANCE_NAME" \
+  --project="$PROJECT_ID"
+```
+
+DB 생성 직후엔 스키마 비어 있음. Cloud Run staging 첫 배포 시 Dockerfile 이 `alembic upgrade head` 를 수행(또는 컨테이너 내부에서 수동 실행) 하여 스키마 생성. 관리자 계정은 이후 admin API 로 별도 생성.
+
+### 9.2 Qdrant staging 컬렉션 생성
+
+같은 Qdrant Cloud 클러스터에 접미사 컬렉션 2종.
+
+```bash
+QDRANT_URL="https://<cluster>.qdrant.io:6333"
+QDRANT_API_KEY="<api-key>"
+
+# 운영 컬렉션의 정확한 vectors_config 는 아래로 먼저 확인:
+curl -s "$QDRANT_URL/collections/malssum_poc" -H "api-key: $QDRANT_API_KEY" | jq .result.config
+
+# 본 컬렉션 (dense 1536 Cosine + sparse BM25 named vector)
+curl -X PUT "$QDRANT_URL/collections/malssum_poc_staging" \
+  -H "api-key: $QDRANT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vectors": {"dense": {"size": 1536, "distance": "Cosine"}},
+    "sparse_vectors": {"sparse": {}}
+  }'
+
+# 캐시 컬렉션 (dense only) — backend 기동 시 자동 생성될 수 있지만 선생성 권장
+curl -X PUT "$QDRANT_URL/collections/semantic_cache_staging" \
+  -H "api-key: $QDRANT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"vectors": {"size": 1536, "distance": "Cosine"}}'
+```
+
+### 9.3 GitHub Secrets 등록 (staging 전용)
+
+`deploy.yml` 의 `deploy-staging` job 이 참조. **Repository → Settings → Secrets and variables → Actions**:
+
+| Secret 이름 | 설명 / 값 |
+|-------------|-----------|
+| `DATABASE_URL_STAGING` | `postgresql+asyncpg://truewords:<pw>@/truewords_staging?host=/cloudsql/<INSTANCE_CONNECTION_NAME>` 형식 |
+| `ADMIN_JWT_SECRET_STAGING` | `openssl rand -base64 32` 결과 |
+| `ADMIN_FRONTEND_URL_STAGING` | Vercel Preview URL 패턴 (예: `https://truewords-admin-git-develop-<team>.vercel.app`) |
+
+기존 공유 secret(`GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT`, `QDRANT_URL`, `QDRANT_API_KEY`, `GEMINI_API_KEY`) 은 production 과 그대로 공유 (D1/D7 결정).
+
+### 9.4 Cloud Run staging 서비스 초기 배포
+
+`deploy.yml` 이 `develop` push 시 자동 배포하지만, **서비스 최초 생성은 수동 배포**가 안전 (IAM 연결, Cloud SQL 연결 등을 먼저 확인):
+
+```bash
+PROJECT_ID="<GCP_PROJECT_ID>"
+INSTANCE_CONNECTION_NAME="$PROJECT_ID:asia-northeast3:truewords-pg"
+STAGING_DB_URL="postgresql+asyncpg://truewords:<pw>@/truewords_staging?host=/cloudsql/$INSTANCE_CONNECTION_NAME"
+STAGING_JWT_SECRET="<ADMIN_JWT_SECRET_STAGING 값>"
+VERCEL_PREVIEW_URL="https://truewords-admin-git-develop-<team>.vercel.app"
+
+# 운영과 같은 이미지(:latest) 로 최초 생성
+gcloud run deploy truewords-backend-staging \
+  --project="$PROJECT_ID" \
+  --region=asia-northeast3 \
+  --image="asia-northeast3-docker.pkg.dev/$PROJECT_ID/truewords-docker/truewords-backend:latest" \
+  --platform=managed \
+  --allow-unauthenticated \
+  --min-instances=0 --max-instances=2 \
+  --cpu=1 --memory=512Mi \
+  --set-env-vars="ENVIRONMENT=staging,COOKIE_SECURE=true,ADMIN_FRONTEND_URL=$VERCEL_PREVIEW_URL,QDRANT_URL=<Qdrant URL>,QDRANT_API_KEY=<Qdrant key>,DATABASE_URL=$STAGING_DB_URL,GEMINI_API_KEY=<Gemini key>,ADMIN_JWT_SECRET=$STAGING_JWT_SECRET" \
+  --add-cloudsql-instances="$INSTANCE_CONNECTION_NAME"
+```
+
+서비스 생성 성공 시 나오는 URL(`https://truewords-backend-staging-xxxx-an.a.run.app`) 을 §9.5 / §9.7 에 사용.
+
+이후 `develop` 브랜치에 push 되면 `deploy-staging` job 이 자동으로 이 서비스를 업데이트.
+
+### 9.5 Vercel Preview scope 환경변수
+
+Vercel 대시보드 → `truewords-admin` 프로젝트 → Settings → Environment Variables:
+
+| 변수 | Scope | 값 |
+|------|-------|----|
+| `NEXT_PUBLIC_API_URL` | Preview | §9.4 에서 얻은 staging Cloud Run URL |
+| `NEXT_PUBLIC_API_URL` | Production | 기존 prod Cloud Run URL (유지) |
+
+저장 후 `develop` 브랜치에 push 하면 Vercel Preview 가 staging backend 와 연결.
+
+### 9.6 `develop` 브랜치 생성 + 보호 규칙
+
+```bash
+git checkout main
+git pull
+git checkout -b develop
+git push -u origin develop
+
+# 보호 규칙 — CI 통과 필수
+gh api "repos/:owner/:repo/branches/develop/protection" \
+  --method PUT \
+  --input - <<'JSON'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["Detect changes", "Backend Tests", "Frontend Tests"]
+  },
+  "enforce_admins": false,
+  "required_pull_request_reviews": null,
+  "restrictions": null,
+  "allow_force_pushes": false,
+  "allow_deletions": false
+}
+JSON
+```
+
+`gh api` 의 `:owner/:repo` 가 현재 repo 로 치환됨. 수동 대체 시 `woosung-dev/truewords-platform`.
+
+### 9.7 Staging 스모크 테스트
+
+```bash
+STAGING_URL="https://truewords-backend-staging-<hash>-an.a.run.app"
+
+# 1. Backend 기동 + Alembic 적용 확인
+curl -I "$STAGING_URL/health"
+
+# 2. 관리자 계정 생성 (최초 1회)
+curl -X POST "$STAGING_URL/admin/users" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@staging.truewords.com","password":"<temp>","role":"admin"}'
+
+# 3. Admin preview UI 에서 로그인 → 챗봇 목록 → 채팅 쿼리 1건
+
+# 4. Qdrant staging 컬렉션 적재 확인
+curl -s "$QDRANT_URL/collections/malssum_poc_staging" \
+  -H "api-key: $QDRANT_API_KEY" | jq .result.points_count
+curl -s "$QDRANT_URL/collections/semantic_cache_staging" \
+  -H "api-key: $QDRANT_API_KEY" | jq .result.points_count
+```
+
+이 스모크가 통과하면 **staging 환경 준비 완료**. 이후 선행 #3 / #5 를 staging 에서 수행 → 본 리팩토링(R1/R2/R3) 착수 가능.
+
+### 9.8 선행 #3 / #5 수행 (staging 이후)
+
+- **선행 #3 운영 Qdrant 1000건 payload dry-run** — staging 컬렉션에 운영 샘플 1000건 복사 → schema drift 사전 확인. `backend/scripts/migrate_from_qdrant_cloud.py` 또는 신규 스크립트 활용.
+- **선행 #5 품질 게이트 기준선 200건** — staging 에서 실제 질문 200건 응답 수집. R1/R2/R3 전/후 비교용 baseline.
 
 ---
 
