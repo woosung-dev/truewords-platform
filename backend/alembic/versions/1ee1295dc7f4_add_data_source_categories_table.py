@@ -18,28 +18,34 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # init_db()가 서버 기본값 없이 생성했을 수 있으므로 재생성
-    op.execute("DROP TABLE IF EXISTS data_source_categories")
-    op.execute("""
-        CREATE TABLE data_source_categories (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            key VARCHAR(20) NOT NULL UNIQUE,
-            name VARCHAR NOT NULL,
-            description VARCHAR NOT NULL DEFAULT '',
-            color VARCHAR NOT NULL DEFAULT '',
-            sort_order INTEGER NOT NULL DEFAULT 0,
-            is_active BOOLEAN NOT NULL DEFAULT true,
-            is_searchable BOOLEAN NOT NULL DEFAULT true,
-            created_at TIMESTAMP NOT NULL DEFAULT now(),
-            updated_at TIMESTAMP NOT NULL DEFAULT now()
-        )
-    """)
-    op.execute(
-        "CREATE INDEX ix_data_source_categories_key "
-        "ON data_source_categories (key)"
-    )
+    # §13.2 S2: 파괴적 DROP TABLE IF EXISTS 제거. round-trip(up→down→up) 시 데이터 소실 방지.
+    # - 테이블 존재 여부를 inspector 로 확인 후 부재 시에만 CREATE.
+    # - 시드 INSERT 는 ON CONFLICT (key) DO NOTHING 으로 idempotent 처리.
+    #   기존 row 의 사용자 수정값(description 등)을 덮지 않음.
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
 
-    # 시드 데이터
+    if "data_source_categories" not in inspector.get_table_names():
+        op.execute("""
+            CREATE TABLE data_source_categories (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                key VARCHAR(20) NOT NULL UNIQUE,
+                name VARCHAR NOT NULL,
+                description VARCHAR NOT NULL DEFAULT '',
+                color VARCHAR NOT NULL DEFAULT '',
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                is_active BOOLEAN NOT NULL DEFAULT true,
+                is_searchable BOOLEAN NOT NULL DEFAULT true,
+                created_at TIMESTAMP NOT NULL DEFAULT now(),
+                updated_at TIMESTAMP NOT NULL DEFAULT now()
+            )
+        """)
+        op.execute(
+            "CREATE INDEX ix_data_source_categories_key "
+            "ON data_source_categories (key)"
+        )
+
+    # 시드 데이터 — idempotent (ON CONFLICT DO NOTHING)
     op.execute("""
         INSERT INTO data_source_categories (key, name, description, color, sort_order, is_searchable)
         VALUES
@@ -47,6 +53,7 @@ def upgrade() -> None:
             ('B', '어머니말씀', '주요 어록 및 연설', 'violet', 2, true),
             ('C', '원리강론', '기본 교리서', 'blue', 3, true),
             ('D', '용어사전', '동적 프롬프트 인젝션용', 'slate', 4, false)
+        ON CONFLICT (key) DO NOTHING
     """)
 
 
