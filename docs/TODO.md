@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-04-14
+> 마지막 업데이트: 2026-04-24
 
 ## Progress Overview
 
@@ -176,3 +176,18 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] Streak 트래커 (M-03)
 - [ ] Agentic RAG
 - [ ] 단계적 공개 (Staged Rollout)
+
+### 9. 아키텍처 리팩토링 선행 작업 (2026-04-24 착수)
+> 플랜: `~/.claude/plans/sleepy-sleeping-summit.md` (v4.1)
+> 브랜치: `refactor/runtime-config-prep`
+> 관련 dev-log: `docs/dev-log/25-sdk-survey-genai-qdrant.md`
+
+- [x] **선행 #1 SDK 실측** — google-genai 1.68 HttpRetryOptions + qdrant-client 1.17 payload_schema (커밋 `fb9feb2`, Δ 6건 정밀화)
+- [ ] **선행 #2 Staging 환경 분리** — Qdrant staging 컬렉션 / PG staging schema / Vercel preview 연결 [인프라 준비 필요]
+- [ ] **선행 #3 운영 Qdrant 1,000건 payload dry-run** — R3 Payload 통일 전 schema drift 사전 확인
+- [ ] **선행 #4 Alembic advisory lock + batch backfill PoC** — §19.11 / §21.8 기반
+- [ ] **선행 #5 품질 게이트 기준선 수집** — 200건 실제 질문 답변 품질 측정 (Q2 과제)
+- [ ] R2 ChatbotRuntimeConfig 승격 (§17 / §21)
+- [ ] R3 Payload 통일 + Collection Resolver
+- [ ] R1 Pipeline Stage + Strategy Protocol (God Object 분해)
+- [ ] v4.1 스팟 패치 N2(DI 스코프) / N3(FSM force_transition) / N4(Alembic rollback) / N7(Legacy 태그)
