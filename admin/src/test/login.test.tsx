@@ -5,9 +5,25 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 const mockPush = vi.fn();
 const mockReplace = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush, replace: mockReplace, back: vi.fn() }),
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    back: vi.fn(),
+    // LoginPage 가 로그인 성공 후 router.prefetch("/") 를 호출 (Cloud Run
+    // warm-up). mock 에 prefetch 가 없으면 TypeError → catch 블록 진입 →
+    // push 호출되지 않아 테스트 실패하므로 mock 추가.
+    prefetch: vi.fn(),
+  }),
   usePathname: () => "/login",
 }));
+
+// LoginPage 가 fire-and-forget 으로 /api/chatbots 를 fetch — jsdom 에
+// 글로벌 fetch 가 없을 수 있으므로 정의되지 않았을 때만 shim 추가.
+// .catch() 로 처리되지만 TypeError 자체가 sync throw 되지 않도록.
+if (typeof globalThis.fetch !== "function") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).fetch = vi.fn(() => Promise.resolve(new Response(null)));
+}
 
 // API mock
 vi.mock("@/features/auth/api", () => ({
