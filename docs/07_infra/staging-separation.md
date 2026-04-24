@@ -194,16 +194,19 @@ DB URL 자동 suffix는 **제외**: Cloud SQL 접속 문자열 구조(Host/port/
 
 ## 7. 사용자 결정 체크리스트
 
+> **결정 완료 (2026-04-25)** — D1~D8 전 항목 권장안 채택. 일관된 "같은 리소스 풀 + 네임스페이스 격리 + 브랜치 기반 CI" 전략으로 월 +$5~20 증가 수준. §9 순서대로 인프라 프로비저닝 진행.
+
+
 | # | 항목 | 옵션 | 권장 | 결정 |
 |---|------|------|------|------|
-| D1 | Qdrant 격리 수준 | 같은 클러스터 + 컬렉션 suffix / 별도 클러스터 | **같은 클러스터 + suffix** (비용↓) | ☐ |
-| D2 | PostgreSQL 격리 수준 | 같은 인스턴스 + DB 분리 / 별도 인스턴스 / schema 분리 | **같은 인스턴스 + DB 분리** | ☐ |
-| D3 | Cloud Run 서비스 구성 | 별도 서비스 / 같은 서비스 + revision tag | **별도 서비스** | ☐ |
-| D4 | GitHub Actions 트리거 | 브랜치 기반 / workflow_dispatch / Tag 기반 | **브랜치 기반 (`develop`→staging, `main`→production)** | ☐ |
-| D5 | staging 공개 URL | Cloud Run 기본 URL / DNS (`admin.staging.truewords.app`) | 초기엔 **Cloud Run 기본 URL**, 안정화 후 DNS | ☐ |
-| D6 | staging 데이터 초기 공급 | 비움 (파이프라인 재실행) / production 일부 복제 | **비움 + 파이프라인 재실행** (PII 회피) | ☐ |
-| D7 | staging 접근 제한 | IAP / IP allowlist / 기본 공개 | 초기엔 **기본 공개 + 관리자 계정 필요**, 필요 시 IAP | ☐ |
-| D8 | 브랜치 전략 | 새 `develop` 브랜치 도입 / 기존 `main` 외 별도 장기 브랜치 없음 | **`develop` 브랜치 도입** | ☐ |
+| D1 | Qdrant 격리 수준 | 같은 클러스터 + 컬렉션 suffix / 별도 클러스터 | **같은 클러스터 + suffix** (비용↓) | ☑ (2026-04-25) |
+| D2 | PostgreSQL 격리 수준 | 같은 인스턴스 + DB 분리 / 별도 인스턴스 / schema 분리 | **같은 인스턴스 + DB 분리** | ☑ (2026-04-25) |
+| D3 | Cloud Run 서비스 구성 | 별도 서비스 / 같은 서비스 + revision tag | **별도 서비스** | ☑ (2026-04-25) |
+| D4 | GitHub Actions 트리거 | 브랜치 기반 / workflow_dispatch / Tag 기반 | **브랜치 기반 (`develop`→staging, `main`→production)** | ☑ (2026-04-25) |
+| D5 | staging 공개 URL | Cloud Run 기본 URL / DNS (`admin.staging.truewords.app`) | 초기엔 **Cloud Run 기본 URL**, 안정화 후 DNS | ☑ (2026-04-25) |
+| D6 | staging 데이터 초기 공급 | 비움 (파이프라인 재실행) / production 일부 복제 | **비움 + 파이프라인 재실행** (PII 회피) | ☑ (2026-04-25) |
+| D7 | staging 접근 제한 | IAP / IP allowlist / 기본 공개 | 초기엔 **기본 공개 + 관리자 계정 필요**, 필요 시 IAP | ☑ (2026-04-25) |
+| D8 | 브랜치 전략 | 새 `develop` 브랜치 도입 / 기존 `main` 외 별도 장기 브랜치 없음 | **`develop` 브랜치 도입** | ☑ (2026-04-25) |
 
 각 항목에 대한 결정이 모이면 §6 마이그레이션 순서대로 별도 세션에서 실행.
 
@@ -230,7 +233,8 @@ DB URL 자동 suffix는 **제외**: Cloud SQL 접속 문자열 구조(Host/port/
 
 ## 9. 후속 구현 단계 (별도 세션)
 
-§7 결정 완료 후 순서:
+§7 결정 완료 (2026-04-25). 아래 순서로 인프라 프로비저닝 + 배포 파이프라인 구성. 각 단계는 사용자가 GCP 콘솔/CLI에서 실행하거나, 필요 시 이 리포에서 스크립트로 자동화.
+
 
 1. `backend/src/config.py` staging validator 는 이번 세션에서 이미 PoC 추가됨. 기본 OFF 성격(`environment == "staging"`일 때만 동작)이라 즉시 운영 영향 없음.
 2. Cloud SQL staging DB 생성 (`CREATE DATABASE truewords_staging;`).

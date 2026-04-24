@@ -183,7 +183,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 > 관련 dev-log: `docs/dev-log/25-sdk-survey-genai-qdrant.md`
 
 - [x] **선행 #1 SDK 실측** — google-genai 1.68 HttpRetryOptions + qdrant-client 1.17 payload_schema (커밋 `fb9feb2`, Δ 6건 정밀화)
-- [~] **선행 #2 Staging 환경 분리 — 설계 초안 완료** — `docs/07_infra/staging-separation.md` + `backend/src/config.py` environment suffix validator PoC (기본 OFF). 사용자 §7 체크리스트(D1~D8) 결정 후 인프라 프로비저닝 + `deploy.yml` staging job 추가 별도 세션.
+- [~] **선행 #2 Staging 환경 분리 — 설계 + 결정 완료** — `docs/07_infra/staging-separation.md`. §7 D1~D8 전 항목 권장안 채택(2026-04-25): 같은 Qdrant 클러스터 + `_staging` 접미사 · 같은 Cloud SQL + DB 분리 · Cloud Run 별도 서비스 · `develop` 브랜치 → staging / `main` → production · Cloud Run 기본 URL(DNS 추후) · staging 데이터 비움 + 파이프라인 재실행 · 관리자 JWT 인증. **다음**: §9 순서대로 인프라 프로비저닝(Cloud SQL DB · Qdrant 컬렉션 · Secret Manager · Cloud Run 서비스 · `develop` 브랜치 · Vercel Preview env · deploy.yml staging job).
 - [ ] **선행 #3 운영 Qdrant 1,000건 payload dry-run** — R3 Payload 통일 전 schema drift 사전 확인
 - [x] **선행 #4 Alembic advisory lock + expected-head skip PoC** — 커밋 `a15ff0a` (dev-log 26). 단위 22 + 실측 4 통과. 기본 OFF(`ALEMBIC_USE_ADVISORY_LOCK`), 실환경 활성화는 staging 후
 - [ ] **선행 #4.1 Alembic batch backfill PoC** — §19.15 X-1 기반 (Alembic 배치 commit 제어, 장기 backfill 안정성)
