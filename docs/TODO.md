@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-04-14
+> 마지막 업데이트: 2026-04-24
 
 ## Progress Overview
 
@@ -176,3 +176,26 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] Streak 트래커 (M-03)
 - [ ] Agentic RAG
 - [ ] 단계적 공개 (Staged Rollout)
+
+### 9. 아키텍처 리팩토링 선행 작업 (2026-04-24 착수)
+> 플랜: `~/.claude/plans/sleepy-sleeping-summit.md` (v4.1)
+> 브랜치: `refactor/runtime-config-prep`
+> 관련 dev-log: `docs/dev-log/25-sdk-survey-genai-qdrant.md`
+
+- [x] **선행 #1 SDK 실측** — google-genai 1.68 HttpRetryOptions + qdrant-client 1.17 payload_schema (커밋 `fb9feb2`, Δ 6건 정밀화)
+- [~] **선행 #2 Staging 환경 분리 — 설계 + 결정 완료** — `docs/07_infra/staging-separation.md`. §7 D1~D8 전 항목 권장안 채택(2026-04-25): 같은 Qdrant 클러스터 + `_staging` 접미사 · 같은 Cloud SQL + DB 분리 · Cloud Run 별도 서비스 · `develop` 브랜치 → staging / `main` → production · Cloud Run 기본 URL(DNS 추후) · staging 데이터 비움 + 파이프라인 재실행 · 관리자 JWT 인증. **다음**: §9 순서대로 인프라 프로비저닝(Cloud SQL DB · Qdrant 컬렉션 · Secret Manager · Cloud Run 서비스 · `develop` 브랜치 · Vercel Preview env · deploy.yml staging job).
+- [ ] **선행 #3 운영 Qdrant 1,000건 payload dry-run** — R3 Payload 통일 전 schema drift 사전 확인
+- [x] **선행 #4 Alembic advisory lock + expected-head skip PoC** — 커밋 `a15ff0a` (dev-log 26). 단위 22 + 실측 4 통과. 기본 OFF(`ALEMBIC_USE_ADVISORY_LOCK`), 실환경 활성화는 staging 후
+- [x] **선행 #4.1 Alembic batch backfill PoC** — 커밋 `d5614b3` (dev-log 29). run_batch_backfill 유틸 + 템플릿 스크립트 + 단위 6 PASS + 실측 500 row PASS
+- [ ] **선행 #5 품질 게이트 기준선 수집** — 200건 실제 질문 답변 품질 측정 (Q2 과제)
+- [x] **부수 S1 Gemini 클라이언트 팩토리 단일화** — 커밋 `6dd2855` (dev-log 30). common/gemini + pipeline/embedder + batch_embedder 3곳을 get_client(retry_429) 팩토리로 일원화. 팩토리 7 + 전체 352 PASS
+- [x] **부수 S2 Alembic DROP TABLE IF EXISTS 제거** — 커밋 `f4865bb` (dev-log 28). idempotent CREATE + ON CONFLICT DO NOTHING. round-trip 실측 PASS
+- [x] **부수 S3 프론트 챗봇 폼 중복 제거** — 커밋 `b238579` (dev-log 31). ChatbotForm 공통 컴포넌트 추출 (new 242→56 / edit 292→130 lines). Vitest 6 + tsc 0 에러
+- [ ] R2 ChatbotRuntimeConfig 승격 (§17 / §21)
+- [ ] R3 Payload 통일 + Collection Resolver
+- [ ] R1 Pipeline Stage + Strategy Protocol (God Object 분해)
+- [ ] v4.1 스팟 패치:
+  - [ ] N2 DI 스코프 (`@lru_cache` 제거) — R1/R2 맥락에서
+  - [ ] N3 FSM `force_transition_to` — R1 Pipeline Stage 맥락에서
+  - [x] N4 `ALEMBIC_EXPECTED_HEAD` 빌드 artifact + `_is_ancestor` rollback — dev-log 27, 단위 39 PASS. Cloud Run 실배포 검증은 staging 후
+  - [ ] N7 Legacy `[legacy]` 태그 + 재인용 금지 — R1 cutover 시점

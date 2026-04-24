@@ -104,3 +104,9 @@
 ### DNS (추후)
 - [ ] `api.truewords.app` → Cloud Run
 - [ ] `admin.truewords.app` → Vercel
+
+---
+
+## 관련 문서
+
+- [Staging 환경 분리 설계](./staging-separation.md) — production 과 staging 을 같은 Qdrant 클러스터 / Cloud SQL 인스턴스에서 네임스페이스(컬렉션 접미사, DB 분리) 로 격리하는 설계 초안 (선행 #2). 사용자 의사결정 체크리스트 §7 포함.

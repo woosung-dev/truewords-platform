@@ -1,16 +1,19 @@
-"""Gemini Batch API 래퍼 — 배치 임베딩 제출/폴링/결과 처리."""
+"""Gemini Batch API 래퍼 — 배치 임베딩 제출/폴링/결과 처리.
+
+§13.1 S1: 클라이언트 초기화는 src.common.gemini_client 팩토리에 위임. Batch API 는
+SDK 기본 retry 정책 (429 포함) 사용 — Batch 엔드포인트는 RPM 압박이 낮고 장기 작업.
+"""
 
 import json
 import logging
 from pathlib import Path
 
-from google import genai
 from google.genai import types
-from src.config import settings
+from src.common.gemini_client import get_client
 
 logger = logging.getLogger(__name__)
 
-_client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
+_client = get_client()  # retry_429=True (기본)
 
 EMBEDDING_MODEL = "gemini-embedding-001"
 

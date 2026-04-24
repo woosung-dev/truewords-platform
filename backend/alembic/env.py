@@ -44,9 +44,19 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection):
-    context.configure(connection=connection, target_metadata=target_metadata)
-    with context.begin_transaction():
-        context.run_migrations()
+    # §19.11 O-5 + §21.8 B4 PoC: ALEMBIC_USE_ADVISORY_LOCK=true 시
+    # pg_try_advisory_lock 으로 동시 실행 직렬화. 기본 OFF → 기존 동작 그대로.
+    from src.alembic_support.advisory_lock import is_enabled, run_with_lock
+
+    def _inner(conn):
+        context.configure(connection=conn, target_metadata=target_metadata)
+        with context.begin_transaction():
+            context.run_migrations()
+
+    if is_enabled():
+        run_with_lock(connection, _inner)
+    else:
+        _inner(connection)
 
 
 async def run_migrations_online() -> None:

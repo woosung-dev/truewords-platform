@@ -13,6 +13,11 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY . .
 RUN uv sync --frozen --no-dev
 
+# §22.7 N4: 빌드 시점의 alembic head 를 artifact 로 고정.
+# 런타임에 ALEMBIC_EXPECTED_HEAD env 가 미설정일 때 파일에서 fallback 읽음.
+RUN uv run alembic heads | head -1 | awk '{print $1}' > /app/ALEMBIC_EXPECTED_HEAD \
+ && echo "[build] ALEMBIC_EXPECTED_HEAD=$(cat /app/ALEMBIC_EXPECTED_HEAD)"
+
 # === Stage 2: runtime ===
 FROM python:3.12-slim
 
