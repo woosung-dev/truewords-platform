@@ -191,4 +191,8 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] R2 ChatbotRuntimeConfig 승격 (§17 / §21)
 - [ ] R3 Payload 통일 + Collection Resolver
 - [ ] R1 Pipeline Stage + Strategy Protocol (God Object 분해)
-- [ ] v4.1 스팟 패치 N2(DI 스코프) / N3(FSM force_transition) / N4(Alembic rollback) / N7(Legacy 태그)
+- [ ] v4.1 스팟 패치:
+  - [ ] N2 DI 스코프 (`@lru_cache` 제거) — R1/R2 맥락에서
+  - [ ] N3 FSM `force_transition_to` — R1 Pipeline Stage 맥락에서
+  - [x] N4 `ALEMBIC_EXPECTED_HEAD` 빌드 artifact + `_is_ancestor` rollback — dev-log 27, 단위 39 PASS. Cloud Run 실배포 검증은 staging 후
+  - [ ] N7 Legacy `[legacy]` 태그 + 재인용 금지 — R1 cutover 시점
