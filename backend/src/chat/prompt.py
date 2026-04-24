@@ -37,3 +37,9 @@ def build_context_prompt(query: str, results: list[SearchResult]) -> str:
     ]
     context_text = "\n\n".join(context_parts)
     return f"말씀 문단:\n{context_text}\n\n질문: {query}"
+
+
+# R2 Vertical Slice (2026-04-25): ChatbotConfig.system_prompt 가 빈 값일 때의
+# fallback 을 명시적으로 참조하기 위한 alias. 기존 SYSTEM_PROMPT import 경로는
+# 후방 호환 유지.
+DEFAULT_SYSTEM_PROMPT = SYSTEM_PROMPT
