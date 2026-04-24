@@ -1,38 +1,22 @@
 """임베딩 생성. API 레이어는 common/gemini.py의 async 함수 사용.
-이 모듈은 pipeline(데이터 적재) 전용 동기 함수 + async sparse 래퍼 제공."""
+이 모듈은 pipeline(데이터 적재) 전용 동기 함수 + async sparse 래퍼 제공.
+
+§13.1 S1: Gemini 클라이언트 초기화는 src.common.gemini_client 팩토리에 위임.
+retry_429=False — SDK 기본 retry 가 429 를 재시도하면 ingestor.py 의 수동 rate-limit
+제어와 이중 retry 가 되어 RPD 가 조기 소진되므로 SDK 는 5xx/408 만 재시도.
+"""
 
 import asyncio
 import logging
 
 from fastembed import SparseTextEmbedding
-from google import genai
 from google.genai import types
-from src.config import settings
+from src.common.gemini_client import get_client
 
 logger = logging.getLogger(__name__)
 
-# ──────────────────────────────────────────────────────────────
-# SDK 내부 retry 에서 429(Rate Limit)를 제외.
-#
-# 문제: SDK의 tenacity가 429에 대해 기본 5회 재시도(1→2→4→8초)를 수행.
-#       ingestor.py의 _embed_batch_with_retry와 이중 retry 구조가 되어
-#       실제 API 요청 수가 기대치의 5배로 급증 → RPD 한도 조기 소진.
-#
-# 해결: SDK retry는 서버 에러(500/502/503/504)만 처리하도록 제한.
-#       429는 ingestor.py에서 직접 제어 (긴 대기시간 + RPD 카운터).
-# ──────────────────────────────────────────────────────────────
-_retry_options = types.HttpRetryOptions(
-    attempts=3,
-    initial_delay=1.0,
-    max_delay=10.0,
-    # 429를 의도적으로 제외 — rate limit은 ingestor.py에서 제어
-    http_status_codes=[408, 500, 502, 503, 504],
-)
-
-_client = genai.Client(
-    api_key=settings.gemini_api_key.get_secret_value(),
-    http_options=types.HttpOptions(retry_options=_retry_options),
-)
+# 429 제외 + 5xx/408 만 3회 재시도. rate limit 은 ingestor.py 가 직접 제어.
+_client = get_client(retry_429=False)
 
 _sparse_model: SparseTextEmbedding | None = None
 

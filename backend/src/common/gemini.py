@@ -1,13 +1,16 @@
-"""Gemini 클라이언트 중앙 관리. 모든 Gemini 호출은 이 모듈을 통해서만 수행."""
+"""Gemini 클라이언트 중앙 관리. 모든 Gemini 호출은 이 모듈을 통해서만 수행.
+
+§13.1 S1: 초기화는 src.common.gemini_client.get_client() 팩토리에 위임. 이 모듈은
+고수준 API (임베딩/생성/스트리밍) 만 노출.
+"""
 
 from collections.abc import AsyncGenerator
 
-from google import genai
 from google.genai import types
-from src.config import settings
+from src.common.gemini_client import get_client
 
-# 싱글턴 클라이언트 — sync/async 모두 이 인스턴스 사용
-_client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
+# 싱글턴 — retry_429=True (SDK 기본, 429 포함 재시도). chat 생성/쿼리 임베딩 전용.
+_client = get_client()
 
 MODEL_GENERATE = "gemini-3.1-flash-lite-preview"
 MODEL_EMBEDDING = "gemini-embedding-001"
