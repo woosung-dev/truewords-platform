@@ -195,7 +195,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] R3 Payload 통일 + Collection Resolver
 - [ ] R1 Pipeline Stage + Strategy Protocol (God Object 분해)
 - [ ] v4.1 스팟 패치:
-  - [ ] N2 DI 스코프 (`@lru_cache` 제거) — R1/R2 맥락에서
-  - [ ] N3 FSM `force_transition_to` — R1 Pipeline Stage 맥락에서
+  - [x] N2 DI 스코프 (`@lru_cache` 제거) — dev-log 32 조사 결과 현재 `@lru_cache` 사용 0건, 문제 자체 부재. R1 Phase 1 체크리스트에 "`@lru_cache` factory 금지" 리뷰 규칙 추가로 대체
+  - [ ] N3 FSM `force_transition_to` — dev-log 32 조사 결과 R1 Phase 1(PipelineState 도입) 필수 의존, 단독 선구현 불가
   - [x] N4 `ALEMBIC_EXPECTED_HEAD` 빌드 artifact + `_is_ancestor` rollback — dev-log 27, 단위 39 PASS. Cloud Run 실배포 검증은 staging 후
-  - [ ] N7 Legacy `[legacy]` 태그 + 재인용 금지 — R1 cutover 시점
+  - [ ] N7 Legacy `[legacy]` 태그 + 재인용 금지 — dev-log 32 조사 결과 R2 preparatory migration(`SessionMessage.pipeline_version` 추가) 필수 의존, 단독 선구현 불가
