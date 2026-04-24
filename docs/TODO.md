@@ -185,7 +185,8 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] **선행 #1 SDK 실측** — google-genai 1.68 HttpRetryOptions + qdrant-client 1.17 payload_schema (커밋 `fb9feb2`, Δ 6건 정밀화)
 - [ ] **선행 #2 Staging 환경 분리** — Qdrant staging 컬렉션 / PG staging schema / Vercel preview 연결 [인프라 준비 필요]
 - [ ] **선행 #3 운영 Qdrant 1,000건 payload dry-run** — R3 Payload 통일 전 schema drift 사전 확인
-- [ ] **선행 #4 Alembic advisory lock + batch backfill PoC** — §19.11 / §21.8 기반
+- [x] **선행 #4 Alembic advisory lock + expected-head skip PoC** — 커밋 `a15ff0a` (dev-log 26). 단위 22 + 실측 4 통과. 기본 OFF(`ALEMBIC_USE_ADVISORY_LOCK`), 실환경 활성화는 staging 후
+- [ ] **선행 #4.1 Alembic batch backfill PoC** — §19.15 X-1 기반 (Alembic 배치 commit 제어, 장기 backfill 안정성)
 - [ ] **선행 #5 품질 게이트 기준선 수집** — 200건 실제 질문 답변 품질 측정 (Q2 과제)
 - [ ] R2 ChatbotRuntimeConfig 승격 (§17 / §21)
 - [ ] R3 Payload 통일 + Collection Resolver
