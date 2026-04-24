@@ -81,7 +81,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] API 명세: `docs/03_api/check_duplicate.md`
 - [x] **[Follow-up]** NFC/NFD 혼재 데이터 정리 마이그레이션 스크립트 — `backend/scripts/migrate_nfc_nfd_volumes.py` (dry-run 우선, 중복 그룹 감지 → canonical payload 업데이트 + 중복 포인트 삭제)
 - [x] **[Follow-up]** bulk 엔드포인트 NFD → NFC 통일 — PR #24로 NFC/NFD 둘 다 매칭하도록 픽스 완료
-- [ ] **[Follow-up]** `qdrant_service.remove_volume_tag`(단일)도 NFC+NFD 양쪽 매칭으로 통일 (bulk만 PR #24에서 처리됨)
+- [x] **[Follow-up]** `qdrant_service.remove_volume_tag`(단일)도 NFC+NFD 양쪽 매칭으로 통일 — bulk 경로(PR #24)와 동일 패턴 적용. search_terms 에 NFC/NFD 둘 다 + scroll 결과를 NFC 기준 재확인
 
 ### Backend — 보안 강화 (2026-04-11)
 - [x] Prompt Injection 패턴 강화 — Zero-width 정규화, 패턴 7개 추가 (16→23개)

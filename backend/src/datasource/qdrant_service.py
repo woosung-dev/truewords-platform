@@ -388,9 +388,16 @@ class DataSourceQdrantService:
 
         마지막 남은 태그를 제거하면 source=[]가 되어 "미분류" 상태로 전이된다.
         이는 정상 상태이며, 다시 분류하려면 미분류 섹션에서 태그를 붙이면 된다.
+
+        NFC/NFD 혼재 대응 (PR #24 bulk 경로와 동일 패턴):
+        - search term 으로 두 정규화 형태 모두 사용.
+        - scroll 결과의 volume 을 NFC 기준으로 입력과 비교해 실제 매칭 확정.
         """
-        # macOS NFD 정규화
-        volume_name = unicodedata.normalize("NFD", volume)
+        input_nfc = unicodedata.normalize("NFC", volume)
+        input_nfd = unicodedata.normalize("NFD", volume)
+        search_terms = (
+            [input_nfc] if input_nfc == input_nfd else [input_nfc, input_nfd]
+        )
 
         groups: dict[frozenset[str], list] = {}
         offset = None
@@ -398,15 +405,19 @@ class DataSourceQdrantService:
             points, offset = await self.async_client.scroll(
                 collection_name=self.collection_name,
                 scroll_filter=Filter(
-                    must=[FieldCondition(key="volume", match=MatchValue(value=volume_name))]
+                    must=[FieldCondition(key="volume", match=MatchAny(any=search_terms))]
                 ),
-                with_payload=["source"],
+                with_payload=["source", "volume"],
                 with_vectors=False,
                 limit=1000,
                 offset=offset,
             )
             for p in points:
                 payload = p.payload or {}
+                vol_raw = payload.get("volume", "")
+                # Qdrant 필터가 NFC/NFD 둘 다 매칭했으므로 NFC 기준으로 한 번 더 확인.
+                if unicodedata.normalize("NFC", vol_raw) != input_nfc:
+                    continue
                 sources = payload.get("source", [])
                 if isinstance(sources, str):
                     sources = [sources]
