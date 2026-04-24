@@ -174,8 +174,12 @@ class ChatService:
         total_latency_ms = search_latency_ms + rerank_latency_ms
 
         # 5. 답변 생성 (상위 5개 context만 전달)
+        # R2 Vertical Slice: ChatbotConfig.system_prompt 동적 주입 (빈값이면 기본 프롬프트)
+        system_prompt = await self.chatbot_service.get_system_prompt(request.chatbot_id)
         context_results = results[:5]
-        answer = await generate_answer(request.query, context_results)
+        answer = await generate_answer(
+            request.query, context_results, system_prompt=system_prompt
+        )
 
         # [Safety] 출력 안전 레이어 — 면책 고지 + 민감 인명 필터
         answer = await apply_safety_layer(answer)
@@ -331,9 +335,13 @@ class ChatService:
         total_latency_ms = search_latency_ms + rerank_latency_ms
 
         # 3. 스트리밍 생성 — chunk 이벤트 yield
+        # R2 Vertical Slice: ChatbotConfig.system_prompt 동적 주입 (빈값이면 기본 프롬프트)
+        system_prompt = await self.chatbot_service.get_system_prompt(request.chatbot_id)
         context_results = results[:5]
         full_answer: list[str] = []
-        async for chunk in generate_answer_stream(request.query, context_results):
+        async for chunk in generate_answer_stream(
+            request.query, context_results, system_prompt=system_prompt
+        ):
             full_answer.append(chunk)
             yield f"event: chunk\ndata: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
 
