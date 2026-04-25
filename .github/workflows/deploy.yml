@@ -2,9 +2,8 @@ name: Deploy
 
 on:
   push:
-    # main  → production Cloud Run 배포
-    # develop → staging Cloud Run 배포 (선행 #2 Staging 분리)
-    branches: [main, develop]
+    # main → production Cloud Run 배포
+    branches: [main]
     paths:
       - 'backend/**'
       - '.github/workflows/deploy.yml'
@@ -75,71 +74,6 @@ jobs:
             GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
             ADMIN_JWT_SECRET=${{ secrets.ADMIN_JWT_SECRET }}
 
-  deploy-staging:
-    name: Deploy Backend to Cloud Run (staging)
-    # 선행 #2 Staging 분리 — develop 브랜치에 push 될 때만 staging 배포.
-    # develop 브랜치 미존재 시 이 job 은 트리거되지 않으므로 기본 유휴 상태.
-    if: github.ref == 'refs/heads/develop'
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
-
-      - name: Build Docker image
-        run: |
-          docker build \
-            -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }} \
-            -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.BACKEND_IMAGE }}:staging \
-            ./backend
-
-      - name: Push to Artifact Registry
-        run: |
-          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.BACKEND_IMAGE }}:staging
-
-      - name: Clear existing secret references
-        continue-on-error: true
-        run: |
-          gcloud run services update truewords-backend-staging \
-            --region=${{ env.GCP_REGION }} \
-            --clear-secrets
-
-      - name: Deploy to Cloud Run (staging)
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: truewords-backend-staging
-          region: ${{ env.GCP_REGION }}
-          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-          # staging: 비용 최소화 (min-instances=0, max-instances=2, memory=512Mi).
-          flags: --allow-unauthenticated --memory=512Mi --cpu=1 --min-instances=0 --max-instances=2
-          # 주의: COLLECTION_NAME / CACHE_COLLECTION_NAME 은 설정하지 않음.
-          # ENVIRONMENT=staging 이면 config.py apply_environment_suffix validator 가
-          # 기본 컬렉션명(malssum_poc, semantic_cache) 에 _staging 접미사 자동 부여.
-          # (docs/07_infra/staging-separation.md §5 참조)
-          env_vars: |
-            ENVIRONMENT=staging
-            COOKIE_SECURE=true
-            ADMIN_FRONTEND_URL=${{ secrets.ADMIN_FRONTEND_URL_STAGING }}
-            QDRANT_URL=${{ secrets.QDRANT_URL }}
-            QDRANT_API_KEY=${{ secrets.QDRANT_API_KEY }}
-            DATABASE_URL=${{ secrets.DATABASE_URL_STAGING }}
-            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-            ADMIN_JWT_SECRET=${{ secrets.ADMIN_JWT_SECRET_STAGING }}
-
   # Vercel 배포는 GitHub 연동으로 자동 실행 (별도 Actions 불필요)
   # - Production: main push
-  # - Preview (staging 포함): develop push · PR 브랜치 push 시 자동
-  # Vercel 대시보드에서 Preview scope NEXT_PUBLIC_API_URL 을 staging Cloud Run URL 로 설정 필요.
+  # - Preview: PR 브랜치 push 시 자동
