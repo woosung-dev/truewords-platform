@@ -11,6 +11,7 @@ from collections.abc import AsyncGenerator
 
 from src.cache.service import SemanticCacheService
 from src.chat.generator import generate_answer
+from src.chat.prompt import DEFAULT_SYSTEM_PROMPT
 from src.chat.stream_generator import generate_answer_stream
 from src.chat.models import (
     AnswerCitation,
@@ -22,17 +23,61 @@ from src.chat.models import (
 )
 from src.chat.repository import ChatRepository
 from src.chat.schemas import ChatRequest, ChatResponse, FeedbackRequest, Source
+from src.chatbot.runtime_config import (
+    ChatbotRuntimeConfig,
+    GenerationConfig,
+    RetrievalConfig,
+    SafetyConfig,
+    SearchModeConfig,
+    TierConfig,
+)
 from src.chatbot.service import ChatbotService
 from src.common.gemini import embed_dense_query
 from src.qdrant_client import get_async_client
 from src.safety.input_validator import validate_input
 from src.safety.output_filter import DISCLAIMER, apply_safety_layer
-from src.search.cascading import cascading_search
-from src.search.weighted import WeightedConfig, weighted_search
+from src.search.cascading import CascadingConfig, SearchTier, cascading_search
+from src.search.weighted import WeightedConfig, WeightedSource, weighted_search
 from src.search.exceptions import EmbeddingFailedError
 from src.search.fallback import fallback_search
 from src.search.query_rewriter import rewrite_query
 from src.search.reranker import rerank
+
+
+# R2: chatbot_id=None 일 때 사용할 시스템 기본 RuntimeConfig.
+# 기존 DEFAULT_RERANK_ENABLED=False / DEFAULT_QUERY_REWRITE_ENABLED=False 보존.
+DEFAULT_RUNTIME_CONFIG = ChatbotRuntimeConfig(
+    chatbot_id="<system-default>",
+    name="default",
+    search=SearchModeConfig(
+        mode="cascading",
+        tiers=[
+            TierConfig(sources=["A", "B", "C"], min_results=3, score_threshold=0.1),
+        ],
+    ),
+    generation=GenerationConfig(system_prompt=DEFAULT_SYSTEM_PROMPT),
+    retrieval=RetrievalConfig(rerank_enabled=False, query_rewrite_enabled=False),
+    safety=SafetyConfig(),
+)
+
+
+def _to_search_config(smc: SearchModeConfig) -> CascadingConfig | WeightedConfig:
+    """SearchModeConfig (Pydantic) → 기존 search 함수가 기대하는 SearchConfig 변환."""
+    if smc.mode == "weighted":
+        return WeightedConfig(
+            sources=[WeightedSource(source=k, weight=v) for k, v in smc.weights.items()]
+        )
+    tiers = smc.tiers or DEFAULT_RUNTIME_CONFIG.search.tiers
+    return CascadingConfig(
+        tiers=[
+            SearchTier(
+                sources=t.sources,
+                min_results=t.min_results,
+                score_threshold=t.score_threshold,
+            )
+            for t in tiers
+        ]
+    )
 
 
 class ChatService:
@@ -129,15 +174,18 @@ class ChatService:
 
         # 3. 검색 실행 (넓은 후보 풀)
         qdrant = get_async_client()
-        search_config, rerank_enabled, query_rewrite_enabled = (
-            await self.chatbot_service.get_search_config(request.chatbot_id)
+        # R2: 단일 ChatbotRuntimeConfig 로 검색/생성 설정 통합
+        runtime_config = (
+            await self.chatbot_service.build_runtime_config(request.chatbot_id)
+            or DEFAULT_RUNTIME_CONFIG
         )
+        search_config = _to_search_config(runtime_config.search)
 
         # [Query Rewrite] 쿼리 재작성 (활성화된 경우)
         search_query = request.query
         rewritten_query = None
-        if query_rewrite_enabled:
-            search_query = await rewrite_query(request.query)
+        if runtime_config.retrieval.query_rewrite_enabled:
+            search_query = await rewrite_query(request.query, enabled=True)
             if search_query != request.query:
                 rewritten_query = search_query
                 # 재작성된 쿼리로 임베딩 재계산
@@ -163,7 +211,7 @@ class ChatService:
         # 4. Re-ranking (활성화된 경우)
         reranked = False
         rerank_latency_ms = 0
-        if rerank_enabled and results:
+        if runtime_config.retrieval.rerank_enabled and results:
             rerank_start = time.monotonic()
             results = await rerank(request.query, results, top_k=10)
             rerank_latency_ms = int((time.monotonic() - rerank_start) * 1000)
@@ -174,11 +222,12 @@ class ChatService:
         total_latency_ms = search_latency_ms + rerank_latency_ms
 
         # 5. 답변 생성 (상위 5개 context만 전달)
-        # R2 Vertical Slice: ChatbotConfig.system_prompt 동적 주입 (빈값이면 기본 프롬프트)
-        system_prompt = await self.chatbot_service.get_system_prompt(request.chatbot_id)
+        # R2: GenerationConfig 단일 객체 — system_prompt + persona 치환 완료 상태
         context_results = results[:5]
         answer = await generate_answer(
-            request.query, context_results, system_prompt=system_prompt
+            request.query,
+            context_results,
+            generation_config=runtime_config.generation,
         )
 
         # [Safety] 출력 안전 레이어 — 면책 고지 + 민감 인명 필터
@@ -292,15 +341,18 @@ class ChatService:
 
         # 2. 검색 + Re-ranking (스트림 시작 전 블로킹)
         qdrant = get_async_client()
-        search_config, rerank_enabled, query_rewrite_enabled = (
-            await self.chatbot_service.get_search_config(request.chatbot_id)
+        # R2: 단일 ChatbotRuntimeConfig 로 검색/생성 설정 통합
+        runtime_config = (
+            await self.chatbot_service.build_runtime_config(request.chatbot_id)
+            or DEFAULT_RUNTIME_CONFIG
         )
+        search_config = _to_search_config(runtime_config.search)
 
         # [Query Rewrite] 쿼리 재작성 (활성화된 경우)
         search_query = request.query
         rewritten_query = None
-        if query_rewrite_enabled:
-            search_query = await rewrite_query(request.query)
+        if runtime_config.retrieval.query_rewrite_enabled:
+            search_query = await rewrite_query(request.query, enabled=True)
             if search_query != request.query:
                 rewritten_query = search_query
                 query_embedding = await embed_dense_query(search_query)
@@ -324,7 +376,7 @@ class ChatService:
 
         reranked = False
         rerank_latency_ms = 0
-        if rerank_enabled and results:
+        if runtime_config.retrieval.rerank_enabled and results:
             rerank_start = time.monotonic()
             results = await rerank(request.query, results, top_k=10)
             rerank_latency_ms = int((time.monotonic() - rerank_start) * 1000)
@@ -334,13 +386,13 @@ class ChatService:
 
         total_latency_ms = search_latency_ms + rerank_latency_ms
 
-        # 3. 스트리밍 생성 — chunk 이벤트 yield
-        # R2 Vertical Slice: ChatbotConfig.system_prompt 동적 주입 (빈값이면 기본 프롬프트)
-        system_prompt = await self.chatbot_service.get_system_prompt(request.chatbot_id)
+        # 3. 스트리밍 생성 — chunk 이벤트 yield (R2: GenerationConfig 단일 인자)
         context_results = results[:5]
         full_answer: list[str] = []
         async for chunk in generate_answer_stream(
-            request.query, context_results, system_prompt=system_prompt
+            request.query,
+            context_results,
+            generation_config=runtime_config.generation,
         ):
             full_answer.append(chunk)
             yield f"event: chunk\ndata: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"

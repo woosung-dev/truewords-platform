@@ -4,6 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, patch
 from src.chat.prompt import build_context_prompt, SYSTEM_PROMPT
 from src.chat.generator import generate_answer
+from src.chatbot.runtime_config import GenerationConfig
 from src.search.hybrid import SearchResult
 
 
@@ -12,6 +13,10 @@ def _make_results():
         SearchResult(text="하나님은 사랑이시다.", volume="vol_001", chunk_index=0, score=0.95),
         SearchResult(text="참부모님의 가르침은 참사랑이다.", volume="vol_002", chunk_index=1, score=0.88),
     ]
+
+
+def _gen_cfg(prompt: str = SYSTEM_PROMPT) -> GenerationConfig:
+    return GenerationConfig(system_prompt=prompt)
 
 
 def test_system_prompt_contains_core_terms():
@@ -37,7 +42,9 @@ async def test_generate_answer_calls_gemini_and_returns_text():
         new_callable=AsyncMock,
         return_value="사랑은 하나님의 본질입니다.",
     ) as mock_gen:
-        answer = await generate_answer("사랑이란?", _make_results())
+        answer = await generate_answer(
+            "사랑이란?", _make_results(), generation_config=_gen_cfg()
+        )
 
     assert answer == "사랑은 하나님의 본질입니다."
     mock_gen.assert_called_once()

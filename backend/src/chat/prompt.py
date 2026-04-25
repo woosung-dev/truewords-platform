@@ -43,3 +43,12 @@ def build_context_prompt(query: str, results: list[SearchResult]) -> str:
 # fallback 을 명시적으로 참조하기 위한 alias. 기존 SYSTEM_PROMPT import 경로는
 # 후방 호환 유지.
 DEFAULT_SYSTEM_PROMPT = SYSTEM_PROMPT
+
+
+def apply_persona(template: str, persona: str | None) -> str:
+    """system_prompt 의 `{persona}` placeholder 치환.
+
+    persona 가 None/빈값이면 placeholder 를 빈 문자열로 치환.
+    placeholder 가 없으면 원본 그대로 반환.
+    """
+    return template.replace("{persona}", (persona or "").strip())

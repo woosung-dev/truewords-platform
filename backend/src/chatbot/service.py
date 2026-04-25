@@ -76,18 +76,70 @@ class ChatbotService:
         config = await self.repo.get_by_chatbot_id(chatbot_id)
         return config.id if config else None
 
-    async def get_system_prompt(self, chatbot_id: str | None) -> str:
-        """chatbot_id의 system_prompt를 조회. None 또는 미설정/빈값은 "" 반환.
+    async def build_runtime_config(
+        self, chatbot_id: str | None
+    ) -> "ChatbotRuntimeConfig | None":
+        """ChatbotConfig → ChatbotRuntimeConfig (불변 단일 객체) 조립.
 
-        R2 Vertical Slice — generator 의 system_prompt 파라미터로 주입.
-        빈 문자열은 generator 측 fallback(DEFAULT_SYSTEM_PROMPT) 을 유도한다.
+        chatbot_id is None  → None 반환 (router 측에서 시스템 기본값 분기)
+        config 미존재       → HTTPException 404 (get_search_config 와 동일 정책)
+        빈 system_prompt    → DEFAULT_SYSTEM_PROMPT fallback
+        persona_name        → system_prompt 의 {persona} 치환
+        search_tiers JSON   → SearchModeConfig + RetrievalConfig 분리
         """
+        from src.chat.prompt import DEFAULT_SYSTEM_PROMPT, apply_persona
+        from src.chatbot.runtime_config import (
+            ChatbotRuntimeConfig,
+            GenerationConfig,
+            RetrievalConfig,
+            SafetyConfig,
+            SearchModeConfig,
+            TierConfig,
+        )
+
         if chatbot_id is None:
-            return ""
-        config = await self.repo.get_by_chatbot_id(chatbot_id)
-        if config is None:
-            return ""
-        return config.system_prompt or ""
+            return None
+        record = await self.repo.get_by_chatbot_id(chatbot_id)
+        if record is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"chatbot_id '{chatbot_id}'를 찾을 수 없습니다",
+            )
+
+        raw = record.search_tiers or {}
+        mode_str = raw.get("mode", "cascading")
+        tiers_in = raw.get("tiers", []) or []
+        tiers = [
+            TierConfig(
+                sources=list(t.get("sources", [])),
+                min_results=t.get("min_results", 3),
+                score_threshold=t.get("score_threshold", 0.1),
+            )
+            for t in tiers_in
+        ]
+
+        base_prompt = (record.system_prompt or "").strip() or DEFAULT_SYSTEM_PROMPT
+        persona = (record.persona_name or "").strip() or None
+
+        return ChatbotRuntimeConfig(
+            chatbot_id=record.chatbot_id,
+            name=record.display_name,
+            search=SearchModeConfig(
+                mode=mode_str,
+                tiers=tiers,
+                weights=raw.get("weights", {}),
+                dictionary_enabled=raw.get("dictionary_enabled", False),
+            ),
+            generation=GenerationConfig(
+                system_prompt=apply_persona(base_prompt, persona),
+                persona_name=persona,
+            ),
+            retrieval=RetrievalConfig(
+                rerank_enabled=raw.get("rerank_enabled", True),
+                query_rewrite_enabled=raw.get("query_rewrite_enabled", True),
+            ),
+            safety=SafetyConfig(),
+        )
 
     async def create(self, data: ChatbotConfigCreate) -> ChatbotConfig:
         existing = await self.repo.get_by_chatbot_id(data.chatbot_id)
