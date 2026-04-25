@@ -38,4 +38,6 @@ EXPOSE 8080
 # 시작 시 alembic upgrade head 자동 적용 — 새 migration 이 코드와 함께 배포될 때
 # DB schema 와의 동기화를 보장. dev-log 41 (incident 2026-04-25) 재발 방지.
 # advisory lock (ALEMBIC_USE_ADVISORY_LOCK=true) 은 Cloud Run env 로 별도 toggle.
-CMD ["sh", "-c", "uv run alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8080"]
+# NOTE: `uv` binary 는 builder stage 에만 있음 (runtime 에 미복사). PATH 우선이
+#       /app/.venv/bin 이라 alembic / uvicorn 을 직접 호출.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8080"]
