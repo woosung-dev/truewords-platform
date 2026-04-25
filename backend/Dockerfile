@@ -35,4 +35,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8080
 
 # Cloud Run: 단일 워커 (인스턴스 레벨 스케일링)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# 시작 시 alembic upgrade head 자동 적용 — 새 migration 이 코드와 함께 배포될 때
+# DB schema 와의 동기화를 보장. dev-log 41 (incident 2026-04-25) 재발 방지.
+# advisory lock (ALEMBIC_USE_ADVISORY_LOCK=true) 은 Cloud Run env 로 별도 toggle.
+CMD ["sh", "-c", "uv run alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8080"]
