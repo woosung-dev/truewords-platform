@@ -71,3 +71,24 @@ def test_tier_config_defaults():
 def test_runtime_config_validation_rejects_unknown_mode():
     with pytest.raises(ValidationError):
         SearchModeConfig(mode="unknown")  # type: ignore[arg-type]
+
+
+# --- apply_persona helper (chat/prompt.py) ---
+
+from src.chat.prompt import apply_persona  # noqa: E402
+
+
+def test_apply_persona_substitutes_placeholder():
+    assert apply_persona("안녕 {persona}, 질문에 답해.", "지식이") == "안녕 지식이, 질문에 답해."
+
+
+def test_apply_persona_strips_whitespace():
+    assert apply_persona("{persona}!", "  지식이  ") == "지식이!"
+
+
+def test_apply_persona_none_yields_empty():
+    assert apply_persona("나는 {persona}.", None) == "나는 ."
+
+
+def test_apply_persona_no_placeholder_returns_original():
+    assert apply_persona("placeholder 없음.", "지식이") == "placeholder 없음."
