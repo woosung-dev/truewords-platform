@@ -536,6 +536,7 @@ class ChatService:
                 message_id=message_id,
                 source=r.source,
                 volume=int(r.volume) if r.volume.isdigit() else 0,
+                volume_raw=r.volume,
                 text_snippet=r.text[:500],
                 relevance_score=r.score,
                 rank_position=i,
