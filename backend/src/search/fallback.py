@@ -16,7 +16,7 @@ from qdrant_client.models import (
 from src.common.gemini import generate_text, MODEL_GENERATE
 from src.config import settings
 from src.pipeline.embedder import embed_sparse_async
-from src.search.hybrid import SearchResult
+from src.search.hybrid import SearchResult, point_to_search_result
 
 logger = logging.getLogger(__name__)
 
@@ -86,13 +86,7 @@ async def fallback_search(
     )
 
     relaxed_results = [
-        SearchResult(
-            text=point.payload["text"],
-            volume=point.payload["volume"],
-            chunk_index=point.payload.get("chunk_index", 0),
-            score=point.score,
-            source=_extract_source(point.payload),
-        )
+        point_to_search_result(point)
         for point in response.points
         if point.score >= score_threshold
     ]
@@ -130,20 +124,3 @@ async def _generate_suggestions(query: str) -> list[str]:
     except Exception as e:
         logger.warning("Failed to generate suggestions (%s: %s)", type(e).__name__, e)
     return []
-
-
-def _extract_source(payload: dict) -> str:
-    """Qdrant payload에서 source 값을 단일 문자열로 정규화한다.
-
-    payload의 source는 ``["L"]`` 같은 리스트 또는 단일 문자열로 저장될 수 있다.
-
-    Args:
-        payload: Qdrant 포인트의 payload 딕셔너리.
-
-    Returns:
-        정규화된 source 문자열. 없으면 빈 문자열.
-    """
-    raw = payload.get("source")
-    if isinstance(raw, list):
-        return raw[0] if raw else ""
-    return raw or ""

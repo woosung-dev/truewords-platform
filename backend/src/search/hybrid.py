@@ -16,9 +16,12 @@ from qdrant_client.models import (
     FieldCondition,
     MatchAny,
 )
+from pydantic import ValidationError
+
 from src.common.gemini import embed_dense_query
-from src.pipeline.embedder import embed_sparse_async
 from src.config import settings
+from src.pipeline.chunk_payload import QdrantChunkPayload
+from src.pipeline.embedder import embed_sparse_async
 
 
 @dataclass
@@ -97,21 +100,40 @@ async def hybrid_search(
         limit=top_k,
     )
 
-    def _extract_source(payload: dict) -> str:
-        # Qdrant payload의 source는 ["L"] 같은 리스트로 저장되어 있지만
-        # 다운스트림(DB VARCHAR, 응답 스키마)은 단일 문자열을 기대하므로 여기서 정규화한다.
-        raw = payload.get("source")
-        if isinstance(raw, list):
-            return raw[0] if raw else ""
-        return raw or ""
+    return [point_to_search_result(point) for point in response.points]
 
-    return [
-        SearchResult(
-            text=point.payload["text"],
-            volume=point.payload["volume"],
-            chunk_index=point.payload.get("chunk_index", 0),
-            score=point.score,
-            source=_extract_source(point.payload),
-        )
-        for point in response.points
-    ]
+
+def _normalize_source(raw: object) -> str:
+    """Qdrant payload 의 source(list) 를 다운스트림용 단일 문자열로 정규화."""
+    if isinstance(raw, list):
+        return raw[0] if raw else ""
+    if isinstance(raw, str):
+        return raw
+    return ""
+
+
+def point_to_search_result(point) -> "SearchResult":
+    """Qdrant point.payload → SearchResult 변환.
+
+    R3 PoC: v1 (QdrantChunkPayload) 우선 파싱, 실패 시 v0 legacy dict 인덱싱
+    fallback. 자연 마이그레이션 (강제 재적재 0건) 을 위함.
+    """
+    raw = point.payload or {}
+    try:
+        cp = QdrantChunkPayload.model_validate(raw)
+        text = cp.text
+        volume = cp.volume
+        chunk_index = cp.chunk_index
+        source_list: object = cp.source
+    except ValidationError:
+        text = raw.get("text", "")
+        volume = raw.get("volume", "")
+        chunk_index = raw.get("chunk_index", 0)
+        source_list = raw.get("source")
+    return SearchResult(
+        text=text,
+        volume=volume,
+        chunk_index=chunk_index,
+        score=point.score,
+        source=_normalize_source(source_list),
+    )
