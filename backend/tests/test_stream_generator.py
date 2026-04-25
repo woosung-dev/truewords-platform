@@ -3,7 +3,9 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 
+from src.chat.prompt import DEFAULT_SYSTEM_PROMPT
 from src.chat.stream_generator import generate_answer_stream
+from src.chatbot.runtime_config import GenerationConfig
 from src.search.hybrid import SearchResult
 
 
@@ -18,6 +20,10 @@ def _make_results(count: int = 3) -> list[SearchResult]:
         )
         for i in range(count)
     ]
+
+
+def _gen_cfg(prompt: str = DEFAULT_SYSTEM_PROMPT) -> GenerationConfig:
+    return GenerationConfig(system_prompt=prompt)
 
 
 class TestGenerateAnswerStream:
@@ -35,7 +41,9 @@ class TestGenerateAnswerStream:
 
         results = _make_results()
         collected = []
-        async for chunk in generate_answer_stream("참사랑이란?", results):
+        async for chunk in generate_answer_stream(
+            "참사랑이란?", results, generation_config=_gen_cfg()
+        ):
             collected.append(chunk)
 
         assert collected == ["참사랑은 ", "자기희생적 ", "사랑입니다."]
@@ -49,7 +57,9 @@ class TestGenerateAnswerStream:
         mock_stream.return_value = fake_gen()
 
         collected = []
-        async for chunk in generate_answer_stream("알 수 없는 질문", []):
+        async for chunk in generate_answer_stream(
+            "알 수 없는 질문", [], generation_config=_gen_cfg()
+        ):
             collected.append(chunk)
 
         assert len(collected) == 1
@@ -63,8 +73,11 @@ class TestGenerateAnswerStream:
         mock_stream.return_value = fake_gen()
 
         results = _make_results(1)
-        async for _ in generate_answer_stream("질문", results):
+        async for _ in generate_answer_stream(
+            "질문", results, generation_config=_gen_cfg()
+        ):
             pass
 
         call_kwargs = mock_stream.call_args
         assert "system_instruction" in call_kwargs.kwargs
+        assert call_kwargs.kwargs["system_instruction"] == DEFAULT_SYSTEM_PROMPT

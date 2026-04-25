@@ -1,5 +1,6 @@
 from src.common.gemini import generate_text
-from src.chat.prompt import DEFAULT_SYSTEM_PROMPT, build_context_prompt
+from src.chat.prompt import build_context_prompt
+from src.chatbot.runtime_config import GenerationConfig
 from src.search.hybrid import SearchResult
 
 
@@ -7,13 +8,14 @@ async def generate_answer(
     query: str,
     results: list[SearchResult],
     *,
-    system_prompt: str | None = None,
+    generation_config: GenerationConfig,
 ) -> str:
-    """검색 결과 기반 답변 생성 (비동기).
+    """검색 결과 기반 답변 생성. system_prompt 는 GenerationConfig 에서 직접 사용.
 
-    system_prompt 가 None 또는 빈 문자열이면 DEFAULT_SYSTEM_PROMPT 로 fallback.
-    ChatbotConfig.system_prompt 동적 주입을 위한 R2 Vertical Slice.
+    R2 본 리팩토링 — ChatbotRuntimeConfig.generation 단일 객체로 통일.
     """
-    effective = (system_prompt or "").strip() or DEFAULT_SYSTEM_PROMPT
     prompt = build_context_prompt(query, results)
-    return await generate_text(prompt, system_instruction=effective)
+    return await generate_text(
+        prompt,
+        system_instruction=generation_config.system_prompt,
+    )

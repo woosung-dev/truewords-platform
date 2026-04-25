@@ -8,6 +8,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from src.chat.service import ChatService
 from src.chat.schemas import ChatRequest
 from src.chat.models import ResearchSession, SessionMessage, MessageRole
+from src.chatbot.runtime_config import (
+    ChatbotRuntimeConfig,
+    GenerationConfig,
+    RetrievalConfig,
+    SafetyConfig,
+    SearchModeConfig,
+    TierConfig,
+)
 from src.safety.output_filter import DISCLAIMER
 from src.search.hybrid import SearchResult
 from src.search.cascading import CascadingConfig, SearchTier
@@ -32,10 +40,43 @@ def _make_search_results(count: int = 5) -> list[SearchResult]:
     ]
 
 
+def _make_runtime_config(
+    *,
+    sources: list[str] | None = None,
+    score_threshold: float = 0.5,
+    rerank_enabled: bool = False,
+    query_rewrite_enabled: bool = False,
+    system_prompt: str = "테스트 시스템 프롬프트",
+) -> ChatbotRuntimeConfig:
+    return ChatbotRuntimeConfig(
+        chatbot_id="cb-test",
+        name="테스트",
+        search=SearchModeConfig(
+            mode="cascading",
+            tiers=[
+                TierConfig(
+                    sources=sources or ["A"],
+                    min_results=3,
+                    score_threshold=score_threshold,
+                )
+            ],
+        ),
+        generation=GenerationConfig(system_prompt=system_prompt),
+        retrieval=RetrievalConfig(
+            rerank_enabled=rerank_enabled,
+            query_rewrite_enabled=query_rewrite_enabled,
+        ),
+        safety=SafetyConfig(),
+    )
+
+
 def _make_chat_service() -> tuple[ChatService, AsyncMock, AsyncMock]:
     """ChatService + mock chat_repo + mock chatbot_service 생성."""
     chat_repo = AsyncMock()
     chatbot_service = AsyncMock()
+
+    # R2: build_runtime_config 기본 None → DEFAULT_RUNTIME_CONFIG fallback
+    chatbot_service.build_runtime_config.return_value = None
 
     # 기본 repo 동작
     session = ResearchSession(
@@ -105,6 +146,7 @@ async def test_process_chat_with_rerank():
         tiers=[SearchTier(sources=["A"], min_results=3, score_threshold=0.5)]
     )
     chatbot_service.get_search_config.return_value = (cascading_config, True, False)
+    chatbot_service.build_runtime_config.return_value = _make_runtime_config(rerank_enabled=True)
     chatbot_service.get_config_id.return_value = None
 
     with (
@@ -135,6 +177,7 @@ async def test_process_chat_records_rerank_in_search_event():
         CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
         True, False,
     )
+    chatbot_service.build_runtime_config.return_value = _make_runtime_config(rerank_enabled=True)
     chatbot_service.get_config_id.return_value = None
 
     with (
