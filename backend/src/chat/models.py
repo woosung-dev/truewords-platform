@@ -69,7 +69,10 @@ class AnswerCitation(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     message_id: uuid.UUID = Field(foreign_key="session_messages.id", index=True)
     source: str  # A, B, C
+    # volume 은 Qdrant 의 문자열 권 식별자(예: "001권") 를 강제 캐스팅한 정수.
+    # R3 PoC: 원본 문자열 보존을 위해 volume_raw 컬럼 추가 (2단계 마이그레이션 1단계).
     volume: int
+    volume_raw: str | None = Field(default=None, max_length=64)
     chapter: str | None = None
     text_snippet: str = Field(sa_column=Column(Text))
     relevance_score: float = 0.0
