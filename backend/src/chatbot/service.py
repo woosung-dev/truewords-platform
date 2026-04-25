@@ -95,6 +95,7 @@ class ChatbotService:
             SafetyConfig,
             SearchModeConfig,
             TierConfig,
+            WeightedSourceConfig,
         )
 
         if chatbot_id is None:
@@ -107,7 +108,7 @@ class ChatbotService:
             )
 
         raw = record.search_tiers or {}
-        mode_str = raw.get("mode", "cascading")
+        mode_str = raw.get("search_mode") or raw.get("mode") or "cascading"
         tiers_in = raw.get("tiers", []) or []
         tiers = [
             TierConfig(
@@ -116,6 +117,15 @@ class ChatbotService:
                 score_threshold=t.get("score_threshold", 0.1),
             )
             for t in tiers_in
+        ]
+        weighted_sources_in = raw.get("weighted_sources", []) or []
+        weighted_sources = [
+            WeightedSourceConfig(
+                source=ws.get("source", ""),
+                weight=ws.get("weight", 1.0),
+                score_threshold=ws.get("score_threshold", 0.1),
+            )
+            for ws in weighted_sources_in
         ]
 
         base_prompt = (record.system_prompt or "").strip() or DEFAULT_SYSTEM_PROMPT
@@ -127,7 +137,7 @@ class ChatbotService:
             search=SearchModeConfig(
                 mode=mode_str,
                 tiers=tiers,
-                weights=raw.get("weights", {}),
+                weighted_sources=weighted_sources,
                 dictionary_enabled=raw.get("dictionary_enabled", False),
             ),
             generation=GenerationConfig(

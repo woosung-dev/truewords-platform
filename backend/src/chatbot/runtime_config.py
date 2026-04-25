@@ -18,6 +18,16 @@ class TierConfig(BaseModel):
     score_threshold: float = 0.75
 
 
+class WeightedSourceConfig(BaseModel):
+    """Weighted 전략의 단일 source 설정 (source/weight/score_threshold)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    source: str
+    weight: float = 1.0
+    score_threshold: float = 0.1
+
+
 class SearchModeConfig(BaseModel):
     """검색 전략 선택 + 파라미터. R1 Strategy Registry 키 역할."""
 
@@ -25,7 +35,7 @@ class SearchModeConfig(BaseModel):
 
     mode: Literal["cascading", "weighted"]
     tiers: list[TierConfig] = Field(default_factory=list)
-    weights: dict[str, float] = Field(default_factory=dict)
+    weighted_sources: list[WeightedSourceConfig] = Field(default_factory=list)
     dictionary_enabled: bool = False
 
 
