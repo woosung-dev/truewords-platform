@@ -16,6 +16,7 @@ from src.pipeline.batch_embedder import (
 )
 from src.pipeline.batch_models import BatchJob, BatchStatus
 from src.pipeline.batch_repository import BatchJobRepository
+from src.pipeline.chunk_payload import QdrantChunkPayload
 from src.pipeline.embedder import embed_sparse_batch
 from src.config import settings
 from src.qdrant_client import get_client
@@ -132,12 +133,12 @@ class BatchService:
                         "dense": dense,
                         "sparse": SparseVector(indices=sparse_indices, values=sparse_values),
                     },
-                    payload={
-                        "text": text,
-                        "volume": job.volume_key,
-                        "chunk_index": i,
-                        "source": [job.source] if job.source else [],
-                    },
+                    payload=QdrantChunkPayload(
+                        text=text,
+                        volume=job.volume_key,
+                        chunk_index=i,
+                        source=[job.source] if job.source else [],
+                    ).model_dump(),
                 )
             )
 

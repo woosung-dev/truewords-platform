@@ -18,6 +18,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, SparseVector
 
 from src.config import settings
+from src.pipeline.chunk_payload import QdrantChunkPayload
 from src.pipeline.chunker import Chunk
 from src.pipeline.embedder import MAX_TEXTS_PER_BATCH, embed_dense_batch, embed_sparse_batch
 
@@ -177,14 +178,14 @@ def ingest_chunks(
                             values=sparse_values,
                         ),
                     },
-                    payload={
-                        "text": chunk.text,
-                        "volume": chunk.volume,
-                        "chunk_index": chunk.chunk_index,
-                        "source": source_list,
-                        "title": chunk.title,
-                        "date": chunk.date,
-                    },
+                    payload=QdrantChunkPayload(
+                        text=chunk.text,
+                        volume=chunk.volume,
+                        chunk_index=chunk.chunk_index,
+                        source=source_list,
+                        title=chunk.title,
+                        date=chunk.date,
+                    ).model_dump(),
                 )
             )
 
