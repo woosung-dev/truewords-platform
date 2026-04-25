@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import AsyncMock, patch
-from src.chat.prompt import build_context_prompt, SYSTEM_PROMPT
+from src.chat.prompt import build_context_prompt, DEFAULT_SYSTEM_PROMPT
 from src.chat.generator import generate_answer
 from src.chatbot.runtime_config import GenerationConfig
 from src.search.hybrid import SearchResult
@@ -15,14 +15,14 @@ def _make_results():
     ]
 
 
-def _gen_cfg(prompt: str = SYSTEM_PROMPT) -> GenerationConfig:
+def _gen_cfg(prompt: str = DEFAULT_SYSTEM_PROMPT) -> GenerationConfig:
     return GenerationConfig(system_prompt=prompt)
 
 
 def test_system_prompt_contains_core_terms():
-    assert "참부모님" in SYSTEM_PROMPT
-    assert "말씀" in SYSTEM_PROMPT
-    assert "원리강론" in SYSTEM_PROMPT
+    assert "참부모님" in DEFAULT_SYSTEM_PROMPT
+    assert "말씀" in DEFAULT_SYSTEM_PROMPT
+    assert "원리강론" in DEFAULT_SYSTEM_PROMPT
 
 
 def test_build_context_prompt_includes_all_sources():

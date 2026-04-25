@@ -62,10 +62,21 @@ DEFAULT_RUNTIME_CONFIG = ChatbotRuntimeConfig(
 
 
 def _to_search_config(smc: SearchModeConfig) -> CascadingConfig | WeightedConfig:
-    """SearchModeConfig (Pydantic) → 기존 search 함수가 기대하는 SearchConfig 변환."""
+    """SearchModeConfig (Pydantic) → 기존 search 함수가 기대하는 SearchConfig 변환.
+
+    weighted 분기는 score_threshold 까지 보존 (기존 ChatbotService._parse_search_config
+    가 갖던 변환 책임을 흡수). cascading 분기는 빈 tiers 면 시스템 기본값 fallback.
+    """
     if smc.mode == "weighted":
         return WeightedConfig(
-            sources=[WeightedSource(source=k, weight=v) for k, v in smc.weights.items()]
+            sources=[
+                WeightedSource(
+                    source=ws.source,
+                    weight=ws.weight,
+                    score_threshold=ws.score_threshold,
+                )
+                for ws in smc.weighted_sources
+            ]
         )
     tiers = smc.tiers or DEFAULT_RUNTIME_CONFIG.search.tiers
     return CascadingConfig(

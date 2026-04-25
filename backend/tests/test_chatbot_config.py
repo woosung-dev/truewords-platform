@@ -7,15 +7,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi import HTTPException
 
-from src.chatbot.service import ChatbotService, DEFAULT_CASCADING_CONFIG
+from src.chatbot.service import ChatbotService
 from src.chatbot.models import ChatbotConfig
 from src.chatbot.schemas import (
-    ChatbotConfigCreate,
-    ChatbotConfigUpdate,
     SearchTierSchema,
     SearchTiersConfig,
 )
-from src.search.cascading import CascadingConfig
 
 
 @pytest.fixture
@@ -26,42 +23,6 @@ def mock_repo():
 @pytest.fixture
 def service(mock_repo):
     return ChatbotService(repo=mock_repo)
-
-
-# --- get_search_config ---
-
-
-@pytest.mark.asyncio
-async def test_get_search_config_returns_default_when_none(service):
-    search_cfg, rerank, query_rewrite = await service.get_search_config(None)
-    assert search_cfg is DEFAULT_CASCADING_CONFIG
-
-
-@pytest.mark.asyncio
-async def test_get_search_config_raises_404_when_not_found(service, mock_repo):
-    mock_repo.get_by_chatbot_id.return_value = None
-    with pytest.raises(HTTPException) as exc_info:
-        await service.get_search_config("nonexistent")
-    assert exc_info.value.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_get_search_config_parses_db_tiers(service, mock_repo):
-    db_config = MagicMock(spec=ChatbotConfig)
-    db_config.search_tiers = {
-        "tiers": [
-            {"sources": ["A"], "min_results": 3, "score_threshold": 0.75},
-            {"sources": ["B"], "min_results": 2, "score_threshold": 0.65},
-        ]
-    }
-    mock_repo.get_by_chatbot_id.return_value = db_config
-
-    search_cfg, rerank, query_rewrite = await service.get_search_config("malssum_priority")
-
-    assert isinstance(search_cfg, CascadingConfig)
-    assert len(search_cfg.tiers) == 2
-    assert search_cfg.tiers[0].sources == ["A"]
-    assert search_cfg.tiers[1].score_threshold == 0.65
 
 
 # --- get_by_id ---

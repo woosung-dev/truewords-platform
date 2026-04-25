@@ -36,7 +36,7 @@ def test_runtime_config_is_frozen():
 def test_search_mode_config_defaults():
     smc = SearchModeConfig(mode="cascading")
     assert smc.tiers == []
-    assert smc.weights == {}
+    assert smc.weighted_sources == []
     assert smc.dictionary_enabled is False
 
 
