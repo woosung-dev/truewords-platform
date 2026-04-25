@@ -1,0 +1,18 @@
+[
+  {
+    "collection": "malssum_poc",
+    "missing_in_target": [],
+    "extra_in_target": [],
+    "type_mismatch": [],
+    "is_drift": false
+  },
+  {
+    "collection": "semantic_cache",
+    "missing_in_target": [],
+    "extra_in_target": [
+      "created_at"
+    ],
+    "type_mismatch": [],
+    "is_drift": true
+  }
+]
