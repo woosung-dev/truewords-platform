@@ -18,7 +18,6 @@ from src.chatbot.runtime_config import (
 )
 from src.safety.output_filter import DISCLAIMER
 from src.search.hybrid import SearchResult
-from src.search.cascading import CascadingConfig, SearchTier
 from src.search.exceptions import EmbeddingFailedError
 
 # 모든 테스트에서 embed_dense_query를 mock 처리
@@ -107,10 +106,6 @@ async def test_process_chat_without_rerank():
     service, chat_repo, chatbot_service = _make_chat_service()
     results = _make_search_results(10)
 
-    cascading_config = CascadingConfig(
-        tiers=[SearchTier(sources=["A"], min_results=3, score_threshold=0.5)]
-    )
-    chatbot_service.get_search_config.return_value = (cascading_config, False, False)
     chatbot_service.get_config_id.return_value = None
 
     with (
@@ -142,10 +137,6 @@ async def test_process_chat_with_rerank():
         for i, r in enumerate(results)
     ]
 
-    cascading_config = CascadingConfig(
-        tiers=[SearchTier(sources=["A"], min_results=3, score_threshold=0.5)]
-    )
-    chatbot_service.get_search_config.return_value = (cascading_config, True, False)
     chatbot_service.build_runtime_config.return_value = _make_runtime_config(rerank_enabled=True)
     chatbot_service.get_config_id.return_value = None
 
@@ -173,10 +164,6 @@ async def test_process_chat_records_rerank_in_search_event():
         for r in results
     ]
 
-    chatbot_service.get_search_config.return_value = (
-        CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
-        True, False,
-    )
     chatbot_service.build_runtime_config.return_value = _make_runtime_config(rerank_enabled=True)
     chatbot_service.get_config_id.return_value = None
 
@@ -199,10 +186,6 @@ async def test_process_chat_records_rerank_in_search_event():
 async def test_process_chat_single_commit():
     """전체 process_chat이 단일 commit으로 처리되어야 함."""
     service, chat_repo, chatbot_service = _make_chat_service()
-    chatbot_service.get_search_config.return_value = (
-        CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
-        False, False,
-    )
     chatbot_service.get_config_id.return_value = None
 
     with (
@@ -221,10 +204,6 @@ async def test_process_chat_single_commit():
 async def test_process_chat_empty_results():
     """검색 결과 0건일 때도 정상 응답."""
     service, chat_repo, chatbot_service = _make_chat_service()
-    chatbot_service.get_search_config.return_value = (
-        CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
-        False, False,
-    )
     chatbot_service.get_config_id.return_value = None
 
     with (
@@ -247,10 +226,6 @@ async def test_process_chat_with_session_id():
     existing_session = ResearchSession(id=uuid.uuid4(), chatbot_config_id=None)
     chat_repo.get_session.return_value = existing_session
 
-    chatbot_service.get_search_config.return_value = (
-        CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
-        False, False,
-    )
 
     with (
         patch("src.chat.service.get_async_client"),
@@ -273,10 +248,6 @@ async def test_process_chat_context_limited_to_top_5():
     service, chat_repo, chatbot_service = _make_chat_service()
     results = _make_search_results(20)
 
-    chatbot_service.get_search_config.return_value = (
-        CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
-        False, False,
-    )
     chatbot_service.get_config_id.return_value = None
 
     with (
@@ -298,10 +269,6 @@ async def test_process_chat_wraps_embedding_failure_as_embedding_failed_error():
     """embed_dense_query 실패가 EmbeddingFailedError로 래핑됨."""
     service, _, chatbot_service = _make_chat_service()
 
-    chatbot_service.get_search_config.return_value = (
-        CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=1, score_threshold=0.5)]),
-        False, False,
-    )
     chatbot_service.get_config_id.return_value = None
 
     with (

@@ -12,7 +12,6 @@ from src.chat.models import ResearchSession, SessionMessage, MessageRole
 from src.safety.exceptions import InputBlockedError
 from src.safety.output_filter import DISCLAIMER
 from src.search.hybrid import SearchResult
-from src.search.cascading import CascadingConfig, SearchTier
 
 
 def _make_search_results(count: int = 5) -> list[SearchResult]:
@@ -41,8 +40,6 @@ def _make_chat_service() -> tuple[ChatService, AsyncMock, AsyncMock]:
     msg.id = uuid.uuid4()
     chat_repo.create_message.return_value = msg
 
-    config = CascadingConfig(tiers=[SearchTier(sources=["A", "B"])])
-    chatbot_service.get_search_config.return_value = (config, False, False)
     chatbot_service.get_config_id.return_value = 1
 
     return ChatService(chat_repo=chat_repo, chatbot_service=chatbot_service), chat_repo, chatbot_service

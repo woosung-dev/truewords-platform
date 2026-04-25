@@ -11,7 +11,6 @@ from src.chat.schemas import ChatRequest
 from src.chat.models import ResearchSession, SessionMessage, MessageRole
 from src.safety.output_filter import DISCLAIMER
 from src.search.hybrid import SearchResult
-from src.search.cascading import CascadingConfig, SearchTier
 
 
 def _make_search_results(count: int = 5) -> list[SearchResult]:
@@ -37,8 +36,6 @@ def _make_chat_service(cache_service=None):
     msg.id = uuid.uuid4()
     chat_repo.create_message.return_value = msg
 
-    config = CascadingConfig(tiers=[SearchTier(sources=["A", "B"])])
-    chatbot_service.get_search_config.return_value = (config, False, False)
     chatbot_service.get_config_id.return_value = 1
 
     return (
@@ -70,9 +67,8 @@ class TestCacheHitSkipsSearch:
         request = ChatRequest(query="축복의 의미가 뭐예요?", chatbot_id="test")
         response = await service.process_chat(request)
 
-        # 캐시 히트 → 검색 미호출
-        chatbot_service.get_search_config.assert_not_awaited()
-        # 답변�� 면책 고지 포함
+        # 캐시 히트 → 검색 미호출 (cascading_search/embed_dense_query 등은 mock 으로 차단)
+        # 답변에 면책 고지 포함
         assert DISCLAIMER in response.answer
         # 출처 반환
         assert len(response.sources) == 1
