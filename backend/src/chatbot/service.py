@@ -76,21 +76,6 @@ class ChatbotService:
         config = await self.repo.get_by_chatbot_id(chatbot_id)
         return config.id if config else None
 
-    async def get_system_prompt(self, chatbot_id: str | None) -> str:
-        """chatbot_id의 system_prompt를 조회. None 또는 미설정/빈값은 "" 반환.
-
-        R2 Vertical Slice — generator 의 system_prompt 파라미터로 주입.
-        빈 문자열은 generator 측 fallback(DEFAULT_SYSTEM_PROMPT) 을 유도한다.
-
-        TODO(R2 C5): RuntimeConfig.generation.system_prompt 흡수 후 제거.
-        """
-        if chatbot_id is None:
-            return ""
-        config = await self.repo.get_by_chatbot_id(chatbot_id)
-        if config is None:
-            return ""
-        return config.system_prompt or ""
-
     async def build_runtime_config(
         self, chatbot_id: str | None
     ) -> "ChatbotRuntimeConfig | None":
