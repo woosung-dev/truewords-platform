@@ -37,6 +37,9 @@ class SearchModeConfig(BaseModel):
     tiers: list[TierConfig] = Field(default_factory=list)
     weighted_sources: list[WeightedSourceConfig] = Field(default_factory=list)
     dictionary_enabled: bool = False
+    # R3: multi-collection 지원. None 이면 settings 기본값 fallback.
+    collection_main: str | None = None
+    collection_cache: str | None = None
 
 
 class GenerationConfig(BaseModel):

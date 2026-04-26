@@ -37,6 +37,7 @@ from src.qdrant_client import get_async_client
 from src.safety.input_validator import validate_input
 from src.safety.output_filter import DISCLAIMER, apply_safety_layer
 from src.search.cascading import CascadingConfig, SearchTier, cascading_search
+from src.search.collection_resolver import resolve_collections
 from src.search.weighted import WeightedConfig, WeightedSource, weighted_search
 from src.search.exceptions import EmbeddingFailedError
 from src.search.fallback import fallback_search
@@ -114,14 +115,16 @@ class ChatService:
         self.cache_service = cache_service
 
     @staticmethod
-    async def _execute_search(qdrant, query, config, top_k, dense_embedding):
+    async def _execute_search(qdrant, query, config, top_k, dense_embedding, collection_name=None):
         """검색 모드에 따라 cascading 또는 weighted 검색 디스패치."""
         if isinstance(config, WeightedConfig):
             return await weighted_search(
                 qdrant, query, config, top_k=top_k, dense_embedding=dense_embedding,
+                collection_name=collection_name,
             )
         return await cascading_search(
             qdrant, query, config, top_k=top_k, dense_embedding=dense_embedding,
+            collection_name=collection_name,
         )
 
     async def process_chat(self, request: ChatRequest) -> ChatResponse:
@@ -191,6 +194,7 @@ class ChatService:
             or DEFAULT_RUNTIME_CONFIG
         )
         search_config = _to_search_config(runtime_config.search)
+        resolved = resolve_collections(runtime_config)
 
         # [Query Rewrite] 쿼리 재작성 (활성화된 경우)
         search_query = request.query
@@ -206,6 +210,7 @@ class ChatService:
         results = await self._execute_search(
             qdrant, search_query, search_config, top_k=50,
             dense_embedding=query_embedding,
+            collection_name=resolved.main,
         )
         search_latency_ms = int((time.monotonic() - start_time) * 1000)
 
@@ -217,6 +222,7 @@ class ChatService:
                 query=search_query,
                 original_results=results,
                 dense_embedding=query_embedding,
+                collection_name=resolved.main,
             )
 
         # 4. Re-ranking (활성화된 경우)
@@ -273,6 +279,7 @@ class ChatService:
                 answer=answer,
                 sources=sources_for_cache,
                 chatbot_id=request.chatbot_id,
+                collection_name=resolved.cache,
             )
 
         # 8. 단일 commit (전체 트랜잭션)
@@ -358,6 +365,7 @@ class ChatService:
             or DEFAULT_RUNTIME_CONFIG
         )
         search_config = _to_search_config(runtime_config.search)
+        resolved = resolve_collections(runtime_config)
 
         # [Query Rewrite] 쿼리 재작성 (활성화된 경우)
         search_query = request.query
@@ -372,6 +380,7 @@ class ChatService:
         results = await self._execute_search(
             qdrant, search_query, search_config, top_k=50,
             dense_embedding=query_embedding,
+            collection_name=resolved.main,
         )
         search_latency_ms = int((time.monotonic() - start_time) * 1000)
 
@@ -383,6 +392,7 @@ class ChatService:
                 query=search_query,
                 original_results=results,
                 dense_embedding=query_embedding,
+                collection_name=resolved.main,
             )
 
         reranked = False
@@ -439,6 +449,7 @@ class ChatService:
                 answer=safe_answer,
                 sources=sources_data,
                 chatbot_id=request.chatbot_id,
+                collection_name=resolved.cache,
             )
 
         await self.chat_repo.commit()

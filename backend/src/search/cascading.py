@@ -51,6 +51,7 @@ async def cascading_search(
     config: CascadingConfig,
     top_k: int = 10,
     dense_embedding: list[float] | None = None,
+    collection_name: str | None = None,
 ) -> list[SearchResult]:
     """티어별 순차 검색 — 임베딩 1회 계산 후 모든 티어에서 재사용.
 
@@ -87,6 +88,7 @@ async def cascading_search(
                 source_filter=tier.sources,
                 dense_embedding=dense,
                 sparse_embedding=sparse,
+                collection_name=collection_name,
             )
         except Exception as e:
             logger.warning(
