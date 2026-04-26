@@ -35,7 +35,7 @@ from src.chatbot.runtime_config import (
     TierConfig,
 )
 from src.chatbot.service import ChatbotService
-from src.safety.output_filter import DISCLAIMER, apply_safety_layer
+from src.safety.output_filter import DISCLAIMER
 
 
 # R2: chatbot_id=None 일 때 사용할 시스템 기본 RuntimeConfig.
@@ -91,11 +91,23 @@ class ChatService:
         self.safety_output_stage = SafetyOutputStage()
         self.persist_stage = PersistStage(chat_repo, cache_service)
 
+    async def _run_pre_pipeline(self, request: ChatRequest) -> ChatContext:
+        """입력 검증 → 세션 → 임베딩 → 캐시 체크. 양 경로 공통.
+
+        cache_hit 분기는 호출자 책임 (동기는 ChatResponse, 스트림은 SSE yield).
+        """
+        ctx = ChatContext(request=request)
+        ctx = await self.input_validation_stage.execute(ctx)
+        ctx = await self.session_stage.execute(ctx)
+        ctx = await self.embedding_stage.execute(ctx)
+        ctx = await self.cache_check_stage.execute(ctx)
+        return ctx
+
     async def process_chat(self, request: ChatRequest) -> ChatResponse:
         """동기 RAG 처리 — 전체 답변을 한 번에 반환.
 
         9단계 파이프라인:
-        입력 검증 → 세션 → 캐시 체크 → 검색(50) → Re-ranking(10) →
+        입력 검증 → 세션 → 임베딩 → 캐시 체크 → 검색(50) → Re-ranking(10) →
         생성(context 5) → Safety → 캐시 저장 → DB 기록.
 
         Args:
@@ -109,12 +121,7 @@ class ChatService:
             EmbeddingFailedError: 임베딩 API 실패 시.
             SearchFailedError: 모든 검색 티어 실패 시.
         """
-        # Stage 체인: 입력 검증 → 세션 → 임베딩 → 캐시 체크
-        ctx = ChatContext(request=request)
-        ctx = await self.input_validation_stage.execute(ctx)
-        ctx = await self.session_stage.execute(ctx)
-        ctx = await self.embedding_stage.execute(ctx)
-        ctx = await self.cache_check_stage.execute(ctx)
+        ctx = await self._run_pre_pipeline(request)
 
         # Cache hit early return (mini-persist — full PersistStage 미실행)
         if ctx.cache_hit and ctx.cache_response and ctx.session:
@@ -154,12 +161,7 @@ class ChatService:
 
     async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:
         """SSE 스트리밍 RAG 처리 — chunk/sources/done 이벤트를 순차 yield."""
-        # Stage 체인: 입력 검증 → 세션 → 임베딩 → 캐시 체크
-        ctx = ChatContext(request=request)
-        ctx = await self.input_validation_stage.execute(ctx)
-        ctx = await self.session_stage.execute(ctx)
-        ctx = await self.embedding_stage.execute(ctx)
-        ctx = await self.cache_check_stage.execute(ctx)
+        ctx = await self._run_pre_pipeline(request)
 
         # Cache hit early return (SSE — mini-persist)
         if ctx.cache_hit and ctx.cache_response and ctx.session:
