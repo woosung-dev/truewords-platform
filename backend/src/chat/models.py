@@ -43,6 +43,9 @@ class SessionMessage(SQLModel, table=True):
     role: MessageRole
     content: str = Field(sa_column=Column(Text))
     token_count: int | None = None
+    # R1 Phase 3 N7: 파이프라인 버전 태그.
+    # default=1 (legacy/backfill 의미), 신규 코드는 항상 명시적 2 주입.
+    pipeline_version: int = Field(default=1, index=False)
     created_at: datetime = Field(
         default_factory=datetime.utcnow, index=True
     )
