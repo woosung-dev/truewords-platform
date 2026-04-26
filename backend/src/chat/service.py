@@ -4,6 +4,7 @@
 전체 흐름을 조율하며, 동기/SSE 스트리밍 두 가지 모드를 지원한다.
 """
 
+import asyncio
 import json
 import uuid
 from collections.abc import AsyncGenerator
@@ -22,6 +23,7 @@ from src.chat.pipeline.stages.runtime_config import RuntimeConfigStage
 from src.chat.pipeline.stages.safety_output import SafetyOutputStage
 from src.chat.pipeline.stages.search import SearchStage
 from src.chat.pipeline.stages.session import SessionStage
+from src.chat.pipeline.state import PipelineState, force_transition_to
 from src.chat.prompt import DEFAULT_SYSTEM_PROMPT
 from src.chat.repository import ChatRepository
 from src.chat.schemas import ChatRequest, ChatResponse, FeedbackRequest, Source
@@ -161,7 +163,11 @@ class ChatService:
         )
 
     async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:
-        """SSE 스트리밍 RAG 처리 — chunk/sources/done 이벤트를 순차 yield."""
+        """SSE 스트리밍 RAG 처리 — chunk/sources/done 이벤트를 순차 yield.
+
+        Client disconnect 또는 task cancellation 시 force_transition_to 로
+        ctx.pipeline_state = STREAM_ABORTED 갱신 후 re-raise (관찰성 baseline).
+        """
         ctx = await self._run_pre_pipeline(request)
 
         # Cache hit early return (SSE — mini-persist)
@@ -182,37 +188,41 @@ class ChatService:
             yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
             return
 
-        # Stage 체인: 런타임 설정 → 쿼리 재작성 → 검색 → 리랭킹
-        ctx = await self.runtime_config_stage.execute(ctx)
-        ctx = await self.query_rewrite_stage.execute(ctx)
-        ctx = await self.search_stage.execute(ctx)
-        ctx = await self.rerank_stage.execute(ctx)
+        try:
+            # Stage 체인: 런타임 설정 → 쿼리 재작성 → 검색 → 리랭킹
+            ctx = await self.runtime_config_stage.execute(ctx)
+            ctx = await self.query_rewrite_stage.execute(ctx)
+            ctx = await self.search_stage.execute(ctx)
+            ctx = await self.rerank_stage.execute(ctx)
 
-        # 스트리밍 생성 (inline — async generator yield 때문에 Stage 분리 불가)
-        context_results = ctx.results[:5]
-        full_answer: list[str] = []
-        async for chunk in generate_answer_stream(
-            request.query,
-            context_results,
-            generation_config=ctx.runtime_config.generation,
-        ):
-            full_answer.append(chunk)
-            yield f"event: chunk\ndata: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
+            # 스트리밍 생성 (inline — async generator yield 때문에 Stage 분리 불가)
+            context_results = ctx.results[:5]
+            full_answer: list[str] = []
+            async for chunk in generate_answer_stream(
+                request.query,
+                context_results,
+                generation_config=ctx.runtime_config.generation,
+            ):
+                full_answer.append(chunk)
+                yield f"event: chunk\ndata: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
 
-        # Safety + Persist (Stage 체인)
-        ctx.answer = "".join(full_answer)
-        ctx = await self.safety_output_stage.execute(ctx)
-        ctx = await self.persist_stage.execute(ctx)
+            # Safety + Persist (Stage 체인)
+            ctx.answer = "".join(full_answer)
+            ctx = await self.safety_output_stage.execute(ctx)
+            ctx = await self.persist_stage.execute(ctx)
 
-        # Sources + Done 이벤트 yield
-        sources_data = [
-            {"volume": r.volume, "text": r.text[:200], "score": r.score, "source": r.source}
-            for r in ctx.results[:3]
-        ]
-        yield (
-            f"event: sources\ndata: {json.dumps({'sources': sources_data, 'session_id': str(ctx.session.id), 'message_id': str(ctx.assistant_message.id)}, ensure_ascii=False)}\n\n"
-        )
-        yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
+            # Sources + Done 이벤트 yield
+            sources_data = [
+                {"volume": r.volume, "text": r.text[:200], "score": r.score, "source": r.source}
+                for r in ctx.results[:3]
+            ]
+            yield (
+                f"event: sources\ndata: {json.dumps({'sources': sources_data, 'session_id': str(ctx.session.id), 'message_id': str(ctx.assistant_message.id)}, ensure_ascii=False)}\n\n"
+            )
+            yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
+        except (asyncio.CancelledError, GeneratorExit):
+            force_transition_to(ctx, PipelineState.STREAM_ABORTED, reason="client_disconnect")
+            raise
 
     async def get_session_history(self, session_id: uuid.UUID) -> dict:
         """세션 대화 이력 조회.
