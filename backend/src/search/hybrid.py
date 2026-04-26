@@ -52,6 +52,7 @@ async def hybrid_search(
     source_filter: list[str] | None = None,
     dense_embedding: list[float] | None = None,
     sparse_embedding: tuple[list[int], list[float]] | None = None,
+    collection_name: str | None = None,
 ) -> list[SearchResult]:
     """Dense + Sparse RRF 하이브리드 검색.
 
@@ -83,7 +84,7 @@ async def hybrid_search(
         )
 
     response = await client.query_points(
-        collection_name=settings.collection_name,
+        collection_name=collection_name or settings.collection_name,
         prefetch=[
             Prefetch(query=dense, using="dense", limit=50),
             Prefetch(

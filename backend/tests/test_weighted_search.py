@@ -36,7 +36,7 @@ async def test_basic_3_sources():
 
     # A: score 0.3, B: score 0.4, C: score 0.5
     # weighted: A=0.3*(5/10)=0.15, B=0.4*(3/10)=0.12, C=0.5*(2/10)=0.10
-    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding):
+    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding, **kwargs):
         src = source_filter[0]
         if src == "A":
             return [_make_result("a1", 0.3, "A")]
@@ -68,7 +68,7 @@ async def test_score_threshold_filters_before_weight():
         WeightedSource(source="A", weight=5.0, score_threshold=0.15),
     ])
 
-    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding):
+    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding, **kwargs):
         return [
             _make_result("low", 0.1, "A"),   # threshold 미달 → 필터
             _make_result("high", 0.2, "A"),   # 통과
@@ -93,7 +93,7 @@ async def test_source_failure_isolation():
 
     call_count = 0
 
-    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding):
+    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding, **kwargs):
         nonlocal call_count
         call_count += 1
         if source_filter[0] == "A":
@@ -117,7 +117,7 @@ async def test_all_sources_zero_results():
         WeightedSource(source="B", weight=1.0),
     ])
 
-    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding):
+    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding, **kwargs):
         return []
 
     with patch("src.search.weighted.hybrid_search", side_effect=fake_hybrid):
@@ -135,7 +135,7 @@ async def test_single_source():
         WeightedSource(source="A", weight=1.0, score_threshold=0.0),
     ])
 
-    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding):
+    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding, **kwargs):
         return [
             _make_result("a1", 0.5, "A"),
             _make_result("a2", 0.3, "A"),
@@ -169,7 +169,7 @@ async def test_non_integer_weights():
         WeightedSource(source="B", weight=0.3, score_threshold=0.0),
     ])
 
-    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding):
+    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding, **kwargs):
         src = source_filter[0]
         return [_make_result(f"{src.lower()}1", 0.5, src)]
 

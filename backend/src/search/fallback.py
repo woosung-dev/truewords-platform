@@ -40,6 +40,7 @@ async def fallback_search(
     sparse_embedding: tuple[list[int], list[float]] | None = None,
     top_k: int = 10,
     score_threshold: float = 0.05,
+    collection_name: str | None = None,
 ) -> tuple[list[SearchResult], FallbackType]:
     """검색 결과 0건 시 두 단계 fallback.
 
@@ -72,7 +73,7 @@ async def fallback_search(
         sparse_indices, sparse_values = await embed_sparse_async(query)
 
     response = await client.query_points(
-        collection_name=settings.collection_name,
+        collection_name=collection_name or settings.collection_name,
         prefetch=[
             Prefetch(query=dense_embedding, using="dense", limit=50),
             Prefetch(
