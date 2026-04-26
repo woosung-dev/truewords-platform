@@ -34,6 +34,7 @@ class SemanticCacheService:
         self,
         query_embedding: list[float],
         chatbot_id: str | None = None,
+        collection_name: str | None = None,
     ) -> CacheHit | None:
         """캐시 히트 검사. 유사도 >= threshold 이면 CacheHit 반환."""
         now = time.time()
@@ -49,7 +50,7 @@ class SemanticCacheService:
             )
 
         hits = await self.client.query_points(
-            collection_name=self.collection,
+            collection_name=collection_name or self.collection,
             query=query_embedding,
             using="dense",
             query_filter=Filter(must=must_conditions),
@@ -76,6 +77,7 @@ class SemanticCacheService:
         answer: str,
         sources: list[dict],
         chatbot_id: str | None = None,
+        collection_name: str | None = None,
     ) -> None:
         """파이프라인 완료 후 캐시 저장."""
         point = PointStruct(
@@ -90,6 +92,6 @@ class SemanticCacheService:
             },
         )
         await self.client.upsert(
-            collection_name=self.collection,
+            collection_name=collection_name or self.collection,
             points=[point],
         )
