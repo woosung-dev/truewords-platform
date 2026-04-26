@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from src.chat.pipeline.state import PipelineState
 from src.chat.schemas import ChatRequest
 
 if TYPE_CHECKING:
@@ -47,3 +48,6 @@ class ChatContext:
     rerank_latency_ms: int = 0
     reranked: bool = False
     fallback_type: str = "none"
+
+    # R1 Phase 3 N3: FSM 상태 (Stage 가 진입/완료 시 갱신, logger.warning 검증)
+    pipeline_state: PipelineState = PipelineState.INIT
