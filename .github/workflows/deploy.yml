@@ -42,6 +42,15 @@ jobs:
             -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest \
             ./backend
 
+      # dev-log 41~42 메타 학습: Dockerfile 변경 PR 이 runtime stage 에 binary 부재로 startup
+      # 실패하는 사고 (PR #55 의 'uv: not found') 재발 방지. push/deploy 전에 image 가
+      # 최소한의 entrypoint binary (alembic, uvicorn) 를 가지고 있는지 verify.
+      - name: Verify image entrypoint binaries
+        run: |
+          docker run --rm --entrypoint sh \
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }} \
+            -c "alembic --version && uvicorn --version"
+
       - name: Push to Artifact Registry
         run: |
           docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.BACKEND_IMAGE }} --all-tags
