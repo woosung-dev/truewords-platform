@@ -130,6 +130,7 @@ class ChatService:
                     session_id=ctx.session.id,
                     role=MessageRole.ASSISTANT,
                     content=ctx.cache_response.answer,
+                    pipeline_version=2,
                 )
             )
             await self.chat_repo.commit()
@@ -171,6 +172,7 @@ class ChatService:
                     session_id=ctx.session.id,
                     role=MessageRole.ASSISTANT,
                     content=safe_answer,
+                    pipeline_version=2,
                 )
             )
             await self.chat_repo.commit()

@@ -27,12 +27,13 @@ class PersistStage:
         if not session or not ctx.answer:
             return ctx
 
-        # 답변 메시지 저장
+        # 답변 메시지 저장 (N7: 신규 파이프라인 = v2)
         ctx.assistant_message = await self.chat_repo.create_message(
             SessionMessage(
                 session_id=session.id,
                 role=MessageRole.ASSISTANT,
                 content=ctx.answer,
+                pipeline_version=2,
             )
         )
 
