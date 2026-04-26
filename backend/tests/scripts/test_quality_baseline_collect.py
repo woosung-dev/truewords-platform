@@ -121,7 +121,8 @@ def test_parse_args_dry_run_defaults():
     ns = _parse_args(["--dry-run"])
     assert ns.dry_run is True
     assert ns.api_base is None
-    assert ns.rate_per_sec == 1.0
+    # 운영 RATE_LIMIT 한도 (0.33 req/s) 안 보수적 default.
+    assert ns.rate_per_sec == 0.3
     assert ns.limit is None
 
 
