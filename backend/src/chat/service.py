@@ -17,6 +17,7 @@ from src.chat.pipeline.stages.input_validation import InputValidationStage
 from src.chat.pipeline.stages.persist import PersistStage
 from src.chat.pipeline.stages.query_rewrite import QueryRewriteStage
 from src.chat.pipeline.stages.rerank import RerankStage
+from src.chat.pipeline.stages.runtime_config import RuntimeConfigStage
 from src.chat.pipeline.stages.safety_output import SafetyOutputStage
 from src.chat.pipeline.stages.search import SearchStage
 from src.chat.pipeline.stages.session import SessionStage
@@ -78,6 +79,9 @@ class ChatService:
         self.input_validation_stage = InputValidationStage()
         self.session_stage = SessionStage(chat_repo, chatbot_service)
         self.embedding_stage = EmbeddingStage()
+        self.runtime_config_stage = RuntimeConfigStage(
+            chatbot_service, default_config=DEFAULT_RUNTIME_CONFIG
+        )
         self.query_rewrite_stage = QueryRewriteStage()
         self.search_stage = SearchStage(default_tiers=DEFAULT_RUNTIME_CONFIG.search.tiers)
         self.rerank_stage = RerankStage()
@@ -131,13 +135,8 @@ class ChatService:
                     message_id=assistant_msg.id,
                 )
 
-        # RuntimeConfig 조회
-        ctx.runtime_config = (
-            await self.chatbot_service.build_runtime_config(request.chatbot_id)
-            or DEFAULT_RUNTIME_CONFIG
-        )
-
-        # Stage 체인: 쿼리 재작성 → 검색 → 리랭킹 → 생성 → Safety → DB 기록
+        # Stage 체인: 런타임 설정 → 쿼리 재작성 → 검색 → 리랭킹 → 생성 → Safety → DB 기록
+        ctx = await self.runtime_config_stage.execute(ctx)
         ctx = await self.query_rewrite_stage.execute(ctx)
         ctx = await self.search_stage.execute(ctx)
         ctx = await self.rerank_stage.execute(ctx)
@@ -184,13 +183,8 @@ class ChatService:
                 yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
                 return
 
-        # RuntimeConfig 조회
-        ctx.runtime_config = (
-            await self.chatbot_service.build_runtime_config(request.chatbot_id)
-            or DEFAULT_RUNTIME_CONFIG
-        )
-
-        # Stage 체인: 쿼리 재작성 → 검색 → 리랭킹
+        # Stage 체인: 런타임 설정 → 쿼리 재작성 → 검색 → 리랭킹
+        ctx = await self.runtime_config_stage.execute(ctx)
         ctx = await self.query_rewrite_stage.execute(ctx)
         ctx = await self.search_stage.execute(ctx)
         ctx = await self.rerank_stage.execute(ctx)
