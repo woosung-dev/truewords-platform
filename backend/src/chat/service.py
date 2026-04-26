@@ -34,7 +34,13 @@ from src.chatbot.service import ChatbotService
 from src.common.gemini import embed_dense_query
 from src.qdrant_client import get_async_client
 from src.chat.pipeline.context import ChatContext
+from src.chat.pipeline.stages.generation import GenerationStage
 from src.chat.pipeline.stages.input_validation import InputValidationStage
+from src.chat.pipeline.stages.persist import PersistStage
+from src.chat.pipeline.stages.query_rewrite import QueryRewriteStage
+from src.chat.pipeline.stages.rerank import RerankStage
+from src.chat.pipeline.stages.safety_output import SafetyOutputStage
+from src.chat.pipeline.stages.search import SearchStage
 from src.chat.pipeline.stages.session import SessionStage
 from src.safety.output_filter import DISCLAIMER, apply_safety_layer
 from src.search.cascading import CascadingConfig, SearchTier, cascading_search
@@ -114,9 +120,15 @@ class ChatService:
         self.chat_repo = chat_repo
         self.chatbot_service = chatbot_service
         self.cache_service = cache_service
-        # R1 Phase 1: 첫 2 Stage. 나머지는 inline 유지 (점진 전환).
+        # R1 Phase 2: 전체 Stage 체인 (process_chat 동기 경로).
         self.input_validation_stage = InputValidationStage()
         self.session_stage = SessionStage(chat_repo, chatbot_service)
+        self.query_rewrite_stage = QueryRewriteStage()
+        self.search_stage = SearchStage(default_tiers=DEFAULT_RUNTIME_CONFIG.search.tiers)
+        self.rerank_stage = RerankStage()
+        self.generation_stage = GenerationStage()
+        self.safety_output_stage = SafetyOutputStage()
+        self.persist_stage = PersistStage(chat_repo, cache_service)
 
     @staticmethod
     async def _execute_search(qdrant, query, config, top_k, dense_embedding, collection_name=None):
@@ -149,26 +161,27 @@ class ChatService:
             EmbeddingFailedError: 임베딩 API 실패 시.
             SearchFailedError: 모든 검색 티어 실패 시.
         """
-        # R1 Phase 1: 첫 2 Stage (입력 검증 + 세션)
+        # Stage 체인: 입력 검증 → 세션
         ctx = ChatContext(request=request)
         ctx = await self.input_validation_stage.execute(ctx)
         ctx = await self.session_stage.execute(ctx)
-        session = ctx.session
 
-        # [Cache] Step 1 — 캐시 체크 (임베딩은 검색에서 재사용)
+        # 임베딩 계산 (캐시 체크 + 검색 공용)
         try:
-            query_embedding = await embed_dense_query(request.query)
+            ctx.query_embedding = await embed_dense_query(request.query)
         except Exception as e:
             raise EmbeddingFailedError(f"임베딩 생성 실패: {e}") from e
+
+        # 캐시 체크 (early return — Stage 분리 어려움)
         if self.cache_service:
             cache_hit = await self.cache_service.check_cache(
-                query_embedding, request.chatbot_id
+                ctx.query_embedding, request.chatbot_id
             )
             if cache_hit:
                 safe_answer = await apply_safety_layer(cache_hit.answer)
                 assistant_msg = await self.chat_repo.create_message(
                     SessionMessage(
-                        session_id=session.id,
+                        session_id=ctx.session.id,
                         role=MessageRole.ASSISTANT,
                         content=safe_answer,
                     )
@@ -177,123 +190,32 @@ class ChatService:
                 return ChatResponse(
                     answer=safe_answer,
                     sources=[Source(**s) for s in cache_hit.sources],
-                    session_id=session.id,
+                    session_id=ctx.session.id,
                     message_id=assistant_msg.id,
                 )
 
-        # 3. 검색 실행 (넓은 후보 풀)
-        qdrant = get_async_client()
-        # R2: 단일 ChatbotRuntimeConfig 로 검색/생성 설정 통합
-        runtime_config = (
+        # RuntimeConfig 조회
+        ctx.runtime_config = (
             await self.chatbot_service.build_runtime_config(request.chatbot_id)
             or DEFAULT_RUNTIME_CONFIG
         )
-        search_config = _to_search_config(runtime_config.search)
-        resolved = resolve_collections(runtime_config)
 
-        # [Query Rewrite] 쿼리 재작성 (활성화된 경우)
-        search_query = request.query
-        rewritten_query = None
-        if runtime_config.retrieval.query_rewrite_enabled:
-            search_query = await rewrite_query(request.query, enabled=True)
-            if search_query != request.query:
-                rewritten_query = search_query
-                # 재작성된 쿼리로 임베딩 재계산
-                query_embedding = await embed_dense_query(search_query)
+        # Stage 체인: 쿼리 재작성 → 검색 → 리랭킹 → 생성 → Safety → DB 기록
+        ctx = await self.query_rewrite_stage.execute(ctx)
+        ctx = await self.search_stage.execute(ctx)
+        ctx = await self.rerank_stage.execute(ctx)
+        ctx = await self.generation_stage.execute(ctx)
+        ctx = await self.safety_output_stage.execute(ctx)
+        ctx = await self.persist_stage.execute(ctx)
 
-        start_time = time.monotonic()
-        results = await self._execute_search(
-            qdrant, search_query, search_config, top_k=50,
-            dense_embedding=query_embedding,
-            collection_name=resolved.main,
-        )
-        search_latency_ms = int((time.monotonic() - start_time) * 1000)
-
-        # [Fallback] 검색 결과 0건 시 fallback
-        fallback_type = "none"
-        if not results:
-            results, fallback_type = await fallback_search(
-                client=qdrant,
-                query=search_query,
-                original_results=results,
-                dense_embedding=query_embedding,
-                collection_name=resolved.main,
-            )
-
-        # 4. Re-ranking (활성화된 경우)
-        reranked = False
-        rerank_latency_ms = 0
-        if runtime_config.retrieval.rerank_enabled and results:
-            rerank_start = time.monotonic()
-            results = await rerank(request.query, results, top_k=10)
-            rerank_latency_ms = int((time.monotonic() - rerank_start) * 1000)
-            reranked = any(r.rerank_score is not None for r in results)
-        else:
-            results = results[:10]
-
-        total_latency_ms = search_latency_ms + rerank_latency_ms
-
-        # 5. 답변 생성 (상위 5개 context만 전달)
-        # R2: GenerationConfig 단일 객체 — system_prompt + persona 치환 완료 상태
-        context_results = results[:5]
-        answer = await generate_answer(
-            request.query,
-            context_results,
-            generation_config=runtime_config.generation,
-        )
-
-        # [Safety] 출력 안전 레이어 — 면책 고지 + 민감 인명 필터
-        answer = await apply_safety_layer(answer)
-
-        # 6. 답변 메시지 저장
-        assistant_msg = await self.chat_repo.create_message(
-            SessionMessage(
-                session_id=session.id,
-                role=MessageRole.ASSISTANT,
-                content=answer,
-            )
-        )
-
-        # 7. 검색 이벤트 + 인용 기록
-        await self._record_search_event(
-            assistant_msg.id, request, results, total_latency_ms,
-            reranked=reranked, rerank_latency_ms=rerank_latency_ms,
-            rewritten_query=rewritten_query, fallback_type=fallback_type,
-        )
-        await self._record_citations(assistant_msg.id, results)
-
-        # [Cache] Step 9 — 캐시 저장 (빈 응답은 저장하지 않음)
-        sources_for_cache = [
-            {"volume": r.volume, "text": r.text, "score": r.score, "source": r.source}
-            for r in results[:3]
-        ]
-        if self.cache_service and results and "찾지 못했습니다" not in answer:
-            await self.cache_service.store_cache(
-                query=request.query,
-                query_embedding=query_embedding,
-                answer=answer,
-                sources=sources_for_cache,
-                chatbot_id=request.chatbot_id,
-                collection_name=resolved.cache,
-            )
-
-        # 8. 단일 commit (전체 트랜잭션)
-        await self.chat_repo.commit()
-
-        # 9. 응답 반환 (상위 3개 출처)
         return ChatResponse(
-            answer=answer,
+            answer=ctx.answer or "",
             sources=[
-                Source(
-                    volume=r.volume,
-                    text=r.text,
-                    score=r.score,
-                    source=r.source,
-                )
-                for r in results[:3]
+                Source(volume=r.volume, text=r.text, score=r.score, source=r.source)
+                for r in ctx.results[:3]
             ],
-            session_id=session.id,
-            message_id=assistant_msg.id,
+            session_id=ctx.session.id,
+            message_id=ctx.assistant_message.id,
         )
 
     async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:

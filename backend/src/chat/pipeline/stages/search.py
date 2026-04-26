@@ -32,30 +32,31 @@ def _to_search_config(smc: SearchModeConfig, default_tiers: list[TierConfig]) ->
 
 
 class SearchStage:
-    def __init__(self, qdrant: AsyncQdrantClient, default_tiers: list[TierConfig]) -> None:
-        self.qdrant = qdrant
+    def __init__(self, default_tiers: list[TierConfig]) -> None:
         self.default_tiers = default_tiers
 
     async def execute(self, ctx: ChatContext) -> ChatContext:
+        from src.qdrant_client import get_async_client
+
         if not ctx.runtime_config:
             return ctx
 
+        qdrant = get_async_client()
         search_config = _to_search_config(ctx.runtime_config.search, self.default_tiers)
         resolved = resolve_collections(ctx.runtime_config)
         ctx.resolved_collections = resolved
 
+        query = ctx.search_query or ctx.request.query
         start = time.monotonic()
         if isinstance(search_config, WeightedConfig):
             ctx.results = await weighted_search(
-                self.qdrant, ctx.search_query or ctx.request.query,
-                search_config, top_k=50,
+                qdrant, query, search_config, top_k=50,
                 dense_embedding=ctx.query_embedding,
                 collection_name=resolved.main,
             )
         else:
             ctx.results = await cascading_search(
-                self.qdrant, ctx.search_query or ctx.request.query,
-                search_config, top_k=50,
+                qdrant, query, search_config, top_k=50,
                 dense_embedding=ctx.query_embedding,
                 collection_name=resolved.main,
             )
@@ -63,8 +64,8 @@ class SearchStage:
 
         if not ctx.results:
             ctx.results, ctx.fallback_type = await fallback_search(
-                client=self.qdrant,
-                query=ctx.search_query or ctx.request.query,
+                client=qdrant,
+                query=query,
                 original_results=ctx.results,
                 dense_embedding=ctx.query_embedding or [],
                 collection_name=resolved.main,
