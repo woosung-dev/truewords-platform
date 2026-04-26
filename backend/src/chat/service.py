@@ -34,7 +34,9 @@ from src.chatbot.runtime_config import (
 from src.chatbot.service import ChatbotService
 from src.common.gemini import embed_dense_query
 from src.qdrant_client import get_async_client
-from src.safety.input_validator import validate_input
+from src.chat.pipeline.context import ChatContext
+from src.chat.pipeline.stages.input_validation import InputValidationStage
+from src.chat.pipeline.stages.session import SessionStage
 from src.safety.output_filter import DISCLAIMER, apply_safety_layer
 from src.search.cascading import CascadingConfig, SearchTier, cascading_search
 from src.search.collection_resolver import resolve_collections
@@ -113,6 +115,9 @@ class ChatService:
         self.chat_repo = chat_repo
         self.chatbot_service = chatbot_service
         self.cache_service = cache_service
+        # R1 Phase 1: 첫 2 Stage. 나머지는 inline 유지 (점진 전환).
+        self.input_validation_stage = InputValidationStage()
+        self.session_stage = SessionStage(chat_repo, chatbot_service)
 
     @staticmethod
     async def _execute_search(qdrant, query, config, top_k, dense_embedding, collection_name=None):
@@ -145,20 +150,11 @@ class ChatService:
             EmbeddingFailedError: 임베딩 API 실패 시.
             SearchFailedError: 모든 검색 티어 실패 시.
         """
-        # [Safety] 입력 검증 — Prompt Injection 방어
-        await validate_input(request.query)
-
-        # 1. 세션 판단
-        session = await self._get_or_create_session(request)
-
-        # 2. 사용자 메시지 저장
-        await self.chat_repo.create_message(
-            SessionMessage(
-                session_id=session.id,
-                role=MessageRole.USER,
-                content=request.query,
-            )
-        )
+        # R1 Phase 1: 첫 2 Stage (입력 검증 + 세션)
+        ctx = ChatContext(request=request)
+        ctx = await self.input_validation_stage.execute(ctx)
+        ctx = await self.session_stage.execute(ctx)
+        session = ctx.session
 
         # [Cache] Step 1 — 캐시 체크 (임베딩은 검색에서 재사용)
         try:
@@ -319,18 +315,11 @@ class ChatService:
             EmbeddingFailedError: 임베딩 API 실패 시.
             SearchFailedError: 모든 검색 티어 실패 시.
         """
-        # [Safety] 입력 검증
-        await validate_input(request.query)
-
-        # 1. 세션 + 사용자 메시지 저장
-        session = await self._get_or_create_session(request)
-        await self.chat_repo.create_message(
-            SessionMessage(
-                session_id=session.id,
-                role=MessageRole.USER,
-                content=request.query,
-            )
-        )
+        # R1 Phase 1: 첫 2 Stage (입력 검증 + 세션)
+        ctx = ChatContext(request=request)
+        ctx = await self.input_validation_stage.execute(ctx)
+        ctx = await self.session_stage.execute(ctx)
+        session = ctx.session
 
         # [Cache] 캐시 체크
         try:
