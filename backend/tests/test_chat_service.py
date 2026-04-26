@@ -23,7 +23,7 @@ from src.search.exceptions import EmbeddingFailedError
 # 모든 테스트에서 embed_dense_query를 mock 처리
 pytestmark = pytest.mark.usefixtures()
 
-_EMBED_PATCH = "src.chat.service.embed_dense_query"
+_EMBED_PATCH = "src.chat.pipeline.stages.embedding.embed_dense_query"
 
 
 def _make_search_results(count: int = 5) -> list[SearchResult]:

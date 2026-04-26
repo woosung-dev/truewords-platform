@@ -49,7 +49,7 @@ class TestCacheHitSkipsSearch:
     """캐시 히트 시 검색/생성 스킵 검증."""
 
     @pytest.mark.asyncio
-    @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock)
+    @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock)
     async def test_cache_hit_skips_search(self, mock_embed) -> None:
         mock_embed.return_value = [0.1] * 3072
 
@@ -74,7 +74,7 @@ class TestCacheHitSkipsSearch:
         assert len(response.sources) == 1
 
     @pytest.mark.asyncio
-    @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock)
+    @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
     @patch("src.qdrant_client.get_async_client")
@@ -102,7 +102,7 @@ class TestCacheHitSkipsSearch:
         assert DISCLAIMER in response.answer
 
     @pytest.mark.asyncio
-    @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock)
+    @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
     @patch("src.qdrant_client.get_async_client")

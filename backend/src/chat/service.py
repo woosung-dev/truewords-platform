@@ -11,6 +11,7 @@ from collections.abc import AsyncGenerator
 from src.cache.service import SemanticCacheService
 from src.chat.models import AnswerFeedback, MessageRole, SessionMessage
 from src.chat.pipeline.context import ChatContext
+from src.chat.pipeline.stages.embedding import EmbeddingStage
 from src.chat.pipeline.stages.generation import GenerationStage
 from src.chat.pipeline.stages.input_validation import InputValidationStage
 from src.chat.pipeline.stages.persist import PersistStage
@@ -32,11 +33,7 @@ from src.chatbot.runtime_config import (
     TierConfig,
 )
 from src.chatbot.service import ChatbotService
-from src.common.gemini import embed_dense_query
 from src.safety.output_filter import DISCLAIMER, apply_safety_layer
-from src.search.exceptions import EmbeddingFailedError
-from src.search.query_rewriter import rewrite_query
-from src.search.reranker import rerank
 
 
 # R2: chatbot_id=None 일 때 사용할 시스템 기본 RuntimeConfig.
@@ -77,9 +74,10 @@ class ChatService:
         self.chat_repo = chat_repo
         self.chatbot_service = chatbot_service
         self.cache_service = cache_service
-        # R1 Phase 2: 전체 Stage 체인 (process_chat 동기 경로).
+        # R1 Phase 2 + 3: 전체 Stage 체인 (process_chat 동기 경로).
         self.input_validation_stage = InputValidationStage()
         self.session_stage = SessionStage(chat_repo, chatbot_service)
+        self.embedding_stage = EmbeddingStage()
         self.query_rewrite_stage = QueryRewriteStage()
         self.search_stage = SearchStage(default_tiers=DEFAULT_RUNTIME_CONFIG.search.tiers)
         self.rerank_stage = RerankStage()
@@ -105,16 +103,11 @@ class ChatService:
             EmbeddingFailedError: 임베딩 API 실패 시.
             SearchFailedError: 모든 검색 티어 실패 시.
         """
-        # Stage 체인: 입력 검증 → 세션
+        # Stage 체인: 입력 검증 → 세션 → 임베딩
         ctx = ChatContext(request=request)
         ctx = await self.input_validation_stage.execute(ctx)
         ctx = await self.session_stage.execute(ctx)
-
-        # 임베딩 계산 (캐시 체크 + 검색 공용)
-        try:
-            ctx.query_embedding = await embed_dense_query(request.query)
-        except Exception as e:
-            raise EmbeddingFailedError(f"임베딩 생성 실패: {e}") from e
+        ctx = await self.embedding_stage.execute(ctx)
 
         # 캐시 체크 (early return — Stage 분리 어려움)
         if self.cache_service:
@@ -164,16 +157,13 @@ class ChatService:
 
     async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:
         """SSE 스트리밍 RAG 처리 — chunk/sources/done 이벤트를 순차 yield."""
-        # Stage 체인: 입력 검증 → 세션
+        # Stage 체인: 입력 검증 → 세션 → 임베딩
         ctx = ChatContext(request=request)
         ctx = await self.input_validation_stage.execute(ctx)
         ctx = await self.session_stage.execute(ctx)
+        ctx = await self.embedding_stage.execute(ctx)
 
-        # 임베딩 + 캐시 체크 (inline, early return SSE)
-        try:
-            ctx.query_embedding = await embed_dense_query(request.query)
-        except Exception as e:
-            raise EmbeddingFailedError(f"임베딩 생성 실패: {e}") from e
+        # 캐시 체크 (inline, early return SSE)
         if self.cache_service:
             cache_hit = await self.cache_service.check_cache(
                 ctx.query_embedding, request.chatbot_id
