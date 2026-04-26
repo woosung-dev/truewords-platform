@@ -106,7 +106,34 @@ cache hit 시 SafetyLayer 적용 + 메시지 저장 + ChatResponse|SSE yield 까
 
 ---
 
-## 6. 메타 학습
+## 6. 사후 검증 (Phase A — After R1 baseline 측정, 2026-04-26~27)
+
+머지 + Cloud Run revision `00089-btf` 배포 후 quality_baseline_collect 200건 재호출.
+
+### 운영 검증 결과
+- ✅ Alembic auto upgrade `33d34f262dc2 → a7b2c8d4e1f0` 자동 적용
+- ✅ Chat smoke 200 OK (6.79s, sources 3건)
+- 200 OK 양쪽 모두 비교 (n=160):
+
+| 지표 | BEFORE (R1 이전) | AFTER (R1 후) | 변화 |
+|------|---------|--------|------|
+| latency mean | 3771 ms | 2027 ms | -46% (cache hit) |
+| latency p50 | 4096 ms | 1612 ms | -61% |
+| latency p95 | 5389 ms | 4142 ms | -23% |
+| citations mean | 3.00 | 3.00 | 0% |
+| zero_citations | 0 | 0 | 0 |
+| 답변 텍스트 변화 | — | 9% (14/160) | LLM non-determinism + cache TTL |
+| adversarial 거부 | 0/6 | 0/6 | 일관 ✓ |
+
+**결론**: R1 Stage 분리로 인한 회귀 0건. citations / latency / adversarial 모두 정상.
+
+### 사고 사례 + 즉시 fix
+- ⚠ 2차 측정 시 **rate limit 36건 차단** (default --rate-per-sec=1.0 vs 운영 한도 0.33 req/s)
+- 1차 (4/25) 도 동일 default 였으나 통과 — 정확한 원인 미상 (sliding window 카운터 상태 차이 추정)
+- **Fix**: `quality_baseline_collect.py` default `1.0 → 0.3` 변경 (본 PR `chore/baseline-after-r1-results`)
+- baseline 결과 + 비교 스크립트 `backend/scripts/baseline_diff.py` 함께 commit (재사용)
+
+## 7. 메타 학습
 
 - **"브랜치 위 commit 자율" 원칙** (`feedback_commit_autonomy.md`) 이 본 세션 효율의 핵심. push/PR 만 사용자 승인 받고, 10 commit 까지 자율 진행. 사용자가 매 commit 마다 승인 요청받았으면 흐름이 끊겼을 것.
 - **plan 단계의 보수적 default + 대안 기록** 이 auto mode 에서 작동. 모호한 결정 (CacheCheckStage 옵션 A vs B, FSM 로깅 vs 차단, pipeline_version 값) 모두 plan 에 사전 기록 + dev-log 에 사유.

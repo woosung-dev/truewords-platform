@@ -108,7 +108,10 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--execute", action="store_true")
     parser.add_argument("--api-base", help="Chat API base URL (execute 필수)")
-    parser.add_argument("--rate-per-sec", type=float, default=1.0)
+    # 운영 RATE_LIMIT_MAX_REQUESTS=20 / WINDOW=60s → 한도 0.33 req/s.
+    # 0.3 default 로 보수적 (200건 × ~3.3s = ~11분). 사고 사례: 2차 baseline (2026-04-27)
+    # 에서 default=1.0 사용 → 36건 429 차단. 본 default 변경으로 재발 방지.
+    parser.add_argument("--rate-per-sec", type=float, default=0.3)
     parser.add_argument("--limit", type=int, default=None, help="카탈로그 상위 N건만")
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args(argv)
