@@ -17,7 +17,6 @@ from src.chat.models import (
     AnswerCitation,
     AnswerFeedback,
     MessageRole,
-    ResearchSession,
     SearchEvent,
     SessionMessage,
 )
@@ -492,24 +491,6 @@ class ChatService:
         return saved
 
     # --- Private ---
-
-    async def _get_or_create_session(self, request: ChatRequest) -> ResearchSession:
-        """기존 세션 조회 또는 신규 생성.
-
-        request.session_id가 유효한 기존 세션이면 재사용,
-        없거나 찾을 수 없으면 chatbot_config_id로 새 세션을 생성한다.
-        """
-        if request.session_id:
-            session = await self.chat_repo.get_session(request.session_id)
-            if session:
-                return session
-
-        config_id = await self.chatbot_service.get_config_id(request.chatbot_id)
-        session = ResearchSession(
-            chatbot_config_id=config_id,
-            client_fingerprint=None,
-        )
-        return await self.chat_repo.create_session(session)
 
     async def _record_search_event(
         self,
