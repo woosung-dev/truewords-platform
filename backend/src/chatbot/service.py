@@ -107,6 +107,8 @@ class ChatbotService:
                 tiers=tiers,
                 weighted_sources=weighted_sources,
                 dictionary_enabled=raw.get("dictionary_enabled", False),
+                collection_main=raw.get("collection_main"),
+                collection_cache=raw.get("collection_cache"),
             ),
             generation=GenerationConfig(
                 system_prompt=apply_persona(base_prompt, persona),
