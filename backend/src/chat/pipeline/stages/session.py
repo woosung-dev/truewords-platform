@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from src.chat.models import MessageRole, ResearchSession, SessionMessage
 from src.chat.pipeline.context import ChatContext
+from src.chat.pipeline.state import PipelineState, check_precondition
 from src.chat.repository import ChatRepository
 from src.chatbot.service import ChatbotService
 
@@ -14,6 +15,7 @@ class SessionStage:
         self.chatbot_service = chatbot_service
 
     async def execute(self, ctx: ChatContext) -> ChatContext:
+        check_precondition(self.__class__.__name__, ctx)
         ctx.session = await self._get_or_create_session(ctx)
         ctx.user_message = await self.chat_repo.create_message(
             SessionMessage(
@@ -22,6 +24,7 @@ class SessionStage:
                 content=ctx.request.query,
             )
         )
+        ctx.pipeline_state = PipelineState.SESSION_READY
         return ctx
 
     async def _get_or_create_session(self, ctx: ChatContext) -> ResearchSession:

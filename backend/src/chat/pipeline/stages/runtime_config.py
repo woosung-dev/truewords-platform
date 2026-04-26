@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from src.chat.pipeline.context import ChatContext
+from src.chat.pipeline.state import PipelineState, check_precondition
 from src.chatbot.runtime_config import ChatbotRuntimeConfig
 from src.chatbot.service import ChatbotService
 
@@ -23,8 +24,10 @@ class RuntimeConfigStage:
         self.default_config = default_config
 
     async def execute(self, ctx: ChatContext) -> ChatContext:
+        check_precondition(self.__class__.__name__, ctx)
         ctx.runtime_config = (
             await self.chatbot_service.build_runtime_config(ctx.request.chatbot_id)
             or self.default_config
         )
+        ctx.pipeline_state = PipelineState.RUNTIME_RESOLVED
         return ctx
