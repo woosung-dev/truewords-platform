@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from src.chat.schemas import ChatRequest
 
 if TYPE_CHECKING:
+    from src.cache.schemas import CacheHit
     from src.chat.models import ResearchSession, SessionMessage
     from src.chatbot.runtime_config import ChatbotRuntimeConfig
     from src.search.collection_resolver import ResolvedCollections
@@ -36,6 +37,10 @@ class ChatContext:
     results: list[SearchResult] = field(default_factory=list)
     answer: str | None = None
     assistant_message: SessionMessage | None = None
+
+    # Phase 3 (Cache check — early return)
+    cache_hit: bool = False
+    cache_response: CacheHit | None = None  # apply_safety_layer 적용된 답변 보유
 
     # 메타데이터
     search_latency_ms: int = 0

@@ -11,6 +11,7 @@ from collections.abc import AsyncGenerator
 from src.cache.service import SemanticCacheService
 from src.chat.models import AnswerFeedback, MessageRole, SessionMessage
 from src.chat.pipeline.context import ChatContext
+from src.chat.pipeline.stages.cache_check import CacheCheckStage
 from src.chat.pipeline.stages.embedding import EmbeddingStage
 from src.chat.pipeline.stages.generation import GenerationStage
 from src.chat.pipeline.stages.input_validation import InputValidationStage
@@ -79,6 +80,7 @@ class ChatService:
         self.input_validation_stage = InputValidationStage()
         self.session_stage = SessionStage(chat_repo, chatbot_service)
         self.embedding_stage = EmbeddingStage()
+        self.cache_check_stage = CacheCheckStage(cache_service)
         self.runtime_config_stage = RuntimeConfigStage(
             chatbot_service, default_config=DEFAULT_RUNTIME_CONFIG
         )
@@ -107,33 +109,29 @@ class ChatService:
             EmbeddingFailedError: 임베딩 API 실패 시.
             SearchFailedError: 모든 검색 티어 실패 시.
         """
-        # Stage 체인: 입력 검증 → 세션 → 임베딩
+        # Stage 체인: 입력 검증 → 세션 → 임베딩 → 캐시 체크
         ctx = ChatContext(request=request)
         ctx = await self.input_validation_stage.execute(ctx)
         ctx = await self.session_stage.execute(ctx)
         ctx = await self.embedding_stage.execute(ctx)
+        ctx = await self.cache_check_stage.execute(ctx)
 
-        # 캐시 체크 (early return — Stage 분리 어려움)
-        if self.cache_service:
-            cache_hit = await self.cache_service.check_cache(
-                ctx.query_embedding, request.chatbot_id
-            )
-            if cache_hit:
-                safe_answer = await apply_safety_layer(cache_hit.answer)
-                assistant_msg = await self.chat_repo.create_message(
-                    SessionMessage(
-                        session_id=ctx.session.id,
-                        role=MessageRole.ASSISTANT,
-                        content=safe_answer,
-                    )
-                )
-                await self.chat_repo.commit()
-                return ChatResponse(
-                    answer=safe_answer,
-                    sources=[Source(**s) for s in cache_hit.sources],
+        # Cache hit early return (mini-persist — full PersistStage 미실행)
+        if ctx.cache_hit and ctx.cache_response and ctx.session:
+            assistant_msg = await self.chat_repo.create_message(
+                SessionMessage(
                     session_id=ctx.session.id,
-                    message_id=assistant_msg.id,
+                    role=MessageRole.ASSISTANT,
+                    content=ctx.cache_response.answer,
                 )
+            )
+            await self.chat_repo.commit()
+            return ChatResponse(
+                answer=ctx.cache_response.answer,
+                sources=[Source(**s) for s in ctx.cache_response.sources],
+                session_id=ctx.session.id,
+                message_id=assistant_msg.id,
+            )
 
         # Stage 체인: 런타임 설정 → 쿼리 재작성 → 검색 → 리랭킹 → 생성 → Safety → DB 기록
         ctx = await self.runtime_config_stage.execute(ctx)
@@ -156,32 +154,29 @@ class ChatService:
 
     async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:
         """SSE 스트리밍 RAG 처리 — chunk/sources/done 이벤트를 순차 yield."""
-        # Stage 체인: 입력 검증 → 세션 → 임베딩
+        # Stage 체인: 입력 검증 → 세션 → 임베딩 → 캐시 체크
         ctx = ChatContext(request=request)
         ctx = await self.input_validation_stage.execute(ctx)
         ctx = await self.session_stage.execute(ctx)
         ctx = await self.embedding_stage.execute(ctx)
+        ctx = await self.cache_check_stage.execute(ctx)
 
-        # 캐시 체크 (inline, early return SSE)
-        if self.cache_service:
-            cache_hit = await self.cache_service.check_cache(
-                ctx.query_embedding, request.chatbot_id
-            )
-            if cache_hit:
-                safe_answer = await apply_safety_layer(cache_hit.answer)
-                assistant_msg = await self.chat_repo.create_message(
-                    SessionMessage(
-                        session_id=ctx.session.id,
-                        role=MessageRole.ASSISTANT,
-                        content=safe_answer,
-                    )
+        # Cache hit early return (SSE — mini-persist)
+        if ctx.cache_hit and ctx.cache_response and ctx.session:
+            safe_answer = ctx.cache_response.answer
+            assistant_msg = await self.chat_repo.create_message(
+                SessionMessage(
+                    session_id=ctx.session.id,
+                    role=MessageRole.ASSISTANT,
+                    content=safe_answer,
                 )
-                await self.chat_repo.commit()
-                yield f"event: chunk\ndata: {json.dumps({'text': safe_answer}, ensure_ascii=False)}\n\n"
-                sources_data = cache_hit.sources[:3]
-                yield f"event: sources\ndata: {json.dumps({'sources': sources_data, 'session_id': str(ctx.session.id), 'message_id': str(assistant_msg.id)}, ensure_ascii=False)}\n\n"
-                yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
-                return
+            )
+            await self.chat_repo.commit()
+            yield f"event: chunk\ndata: {json.dumps({'text': safe_answer}, ensure_ascii=False)}\n\n"
+            sources_data = ctx.cache_response.sources[:3]
+            yield f"event: sources\ndata: {json.dumps({'sources': sources_data, 'session_id': str(ctx.session.id), 'message_id': str(assistant_msg.id)}, ensure_ascii=False)}\n\n"
+            yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
+            return
 
         # Stage 체인: 런타임 설정 → 쿼리 재작성 → 검색 → 리랭킹
         ctx = await self.runtime_config_stage.execute(ctx)
