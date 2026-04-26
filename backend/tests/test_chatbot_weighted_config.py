@@ -87,7 +87,7 @@ async def test_weighted_empty_sources():
 @pytest.mark.asyncio
 async def test_to_search_config_preserves_weighted_score_threshold():
     """build_runtime_config → _to_search_config 통합 흐름이 weighted score_threshold 보존."""
-    from src.chat.service import _to_search_config
+    from src.chat.pipeline.stages.search import _to_search_config
     from src.search.weighted import WeightedConfig
 
     cfg = _stub_db_config({
@@ -99,7 +99,7 @@ async def test_to_search_config_preserves_weighted_score_threshold():
     svc = _make_service(cfg)
     rc = await svc.build_runtime_config("cb-test")
     assert rc is not None
-    sc = _to_search_config(rc.search)
+    sc = _to_search_config(rc.search, default_tiers=[])
     assert isinstance(sc, WeightedConfig)
     assert len(sc.sources) == 1
     assert sc.sources[0].score_threshold == 0.12
