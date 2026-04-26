@@ -49,7 +49,7 @@ class TestProcessChatStream:
     """process_chat_stream SSE 이벤트 테스트."""
 
     @pytest.mark.asyncio
-    @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.service.generate_answer_stream")
     @patch("src.qdrant_client.get_async_client")
@@ -82,7 +82,7 @@ class TestProcessChatStream:
         assert event_types[-1] == "done"
 
     @pytest.mark.asyncio
-    @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.service.generate_answer_stream")
     @patch("src.qdrant_client.get_async_client")
@@ -107,7 +107,7 @@ class TestProcessChatStream:
         assert chunk_texts == ["축복이란 ", "참부모님으로부터 받는 것입니다."]
 
     @pytest.mark.asyncio
-    @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.service.generate_answer_stream")
     @patch("src.qdrant_client.get_async_client")
@@ -131,7 +131,7 @@ class TestProcessChatStream:
         assert done_data["disclaimer"] == DISCLAIMER
 
     @pytest.mark.asyncio
-    @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.service.generate_answer_stream")
     @patch("src.qdrant_client.get_async_client")
@@ -165,7 +165,7 @@ class TestProcessChatStream:
                 pass
 
     @pytest.mark.asyncio
-    @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.service.generate_answer_stream")
     @patch("src.qdrant_client.get_async_client")

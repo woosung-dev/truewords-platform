@@ -39,13 +39,23 @@ class ChatRepository:
         return message
 
     async def get_messages_by_session(
-        self, session_id: uuid.UUID
+        self,
+        session_id: uuid.UUID,
+        *,
+        pipeline_version: int | None = None,
     ) -> list[SessionMessage]:
-        result = await self.session.execute(
-            select(SessionMessage)
-            .where(SessionMessage.session_id == session_id)
-            .order_by(SessionMessage.created_at)
+        """세션 메시지 조회. pipeline_version 지정 시 해당 버전만 필터링.
+
+        N7 (R1 Phase 3): pipeline_version=2 → 신규 파이프라인 메시지만,
+        =1 → legacy/backfill 메시지만, None → 모든 버전 (하위 호환).
+        """
+        stmt = select(SessionMessage).where(
+            SessionMessage.session_id == session_id
         )
+        if pipeline_version is not None:
+            stmt = stmt.where(SessionMessage.pipeline_version == pipeline_version)
+        stmt = stmt.order_by(SessionMessage.created_at)
+        result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
     async def get_message(self, message_id: uuid.UUID) -> SessionMessage | None:

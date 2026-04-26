@@ -10,6 +10,7 @@ from src.chat.models import (
     SessionMessage,
 )
 from src.chat.pipeline.context import ChatContext
+from src.chat.pipeline.state import PipelineState, check_precondition
 from src.chat.repository import ChatRepository
 
 
@@ -23,16 +24,18 @@ class PersistStage:
         self.cache_service = cache_service
 
     async def execute(self, ctx: ChatContext) -> ChatContext:
+        check_precondition(self.__class__.__name__, ctx)
         session = ctx.session
         if not session or not ctx.answer:
             return ctx
 
-        # 답변 메시지 저장
+        # 답변 메시지 저장 (N7: 신규 파이프라인 = v2)
         ctx.assistant_message = await self.chat_repo.create_message(
             SessionMessage(
                 session_id=session.id,
                 role=MessageRole.ASSISTANT,
                 content=ctx.answer,
+                pipeline_version=2,
             )
         )
 
@@ -86,4 +89,5 @@ class PersistStage:
 
         # 단일 commit
         await self.chat_repo.commit()
+        ctx.pipeline_state = PipelineState.PERSISTED
         return ctx

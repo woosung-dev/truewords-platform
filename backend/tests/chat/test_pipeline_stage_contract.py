@@ -6,6 +6,7 @@ import pytest
 
 from src.chat.pipeline.context import ChatContext
 from src.chat.pipeline.stage import Stage
+from src.chat.pipeline.state import PipelineState
 from src.chat.schemas import ChatRequest
 
 
@@ -34,6 +35,9 @@ class TestChatContext:
         assert ctx.request.query == "hello"
         assert ctx.session is None
         assert ctx.user_message is None
+        assert ctx.cache_hit is False
+        assert ctx.cache_response is None
+        assert ctx.pipeline_state == PipelineState.INIT
 
     def test_mutable(self) -> None:
         ctx = ChatContext(request=ChatRequest(query="q"))

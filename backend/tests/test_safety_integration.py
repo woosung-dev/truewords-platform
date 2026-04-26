@@ -66,7 +66,7 @@ class TestSafetyOutputLayer:
     """출력 안전 레이어가 ChatService에 통합되었는지 테스트."""
 
     @pytest.mark.asyncio
-    @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
     @patch("src.qdrant_client.get_async_client")
@@ -84,7 +84,7 @@ class TestSafetyOutputLayer:
         assert DISCLAIMER in response.answer
 
     @pytest.mark.asyncio
-    @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
     @patch("src.qdrant_client.get_async_client")

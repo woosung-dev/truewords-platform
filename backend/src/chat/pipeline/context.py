@@ -5,9 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from src.chat.pipeline.state import PipelineState
 from src.chat.schemas import ChatRequest
 
 if TYPE_CHECKING:
+    from src.cache.schemas import CacheHit
     from src.chat.models import ResearchSession, SessionMessage
     from src.chatbot.runtime_config import ChatbotRuntimeConfig
     from src.search.collection_resolver import ResolvedCollections
@@ -37,8 +39,15 @@ class ChatContext:
     answer: str | None = None
     assistant_message: SessionMessage | None = None
 
+    # Phase 3 (Cache check — early return)
+    cache_hit: bool = False
+    cache_response: CacheHit | None = None  # apply_safety_layer 적용된 답변 보유
+
     # 메타데이터
     search_latency_ms: int = 0
     rerank_latency_ms: int = 0
     reranked: bool = False
     fallback_type: str = "none"
+
+    # R1 Phase 3 N3: FSM 상태 (Stage 가 진입/완료 시 갱신, logger.warning 검증)
+    pipeline_state: PipelineState = PipelineState.INIT

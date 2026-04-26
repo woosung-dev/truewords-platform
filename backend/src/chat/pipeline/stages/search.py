@@ -7,6 +7,7 @@ import time
 from qdrant_client import AsyncQdrantClient
 
 from src.chat.pipeline.context import ChatContext
+from src.chat.pipeline.state import PipelineState, check_precondition
 from src.chatbot.runtime_config import SearchModeConfig, TierConfig
 from src.search.cascading import CascadingConfig, SearchTier, cascading_search
 from src.search.collection_resolver import resolve_collections
@@ -38,6 +39,7 @@ class SearchStage:
     async def execute(self, ctx: ChatContext) -> ChatContext:
         from src.qdrant_client import get_async_client
 
+        check_precondition(self.__class__.__name__, ctx)
         if not ctx.runtime_config:
             return ctx
 
@@ -71,4 +73,5 @@ class SearchStage:
                 collection_name=resolved.main,
             )
 
+        ctx.pipeline_state = PipelineState.SEARCHED
         return ctx
