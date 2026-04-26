@@ -31,6 +31,7 @@ EXPECTED_MAIN_SCHEMA: SchemaDict = {
 
 EXPECTED_CACHE_SCHEMA: SchemaDict = {
     "chatbot_id": PayloadSchemaType.KEYWORD,
+    "created_at": PayloadSchemaType.FLOAT,
 }
 
 
