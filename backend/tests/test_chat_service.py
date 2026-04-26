@@ -109,10 +109,10 @@ async def test_process_chat_without_rerank():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("src.chat.service.get_async_client") as mock_qdrant,
-        patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=results) as mock_cascade,
-        patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="답변입니다."),
-        patch("src.chat.service.rerank", new_callable=AsyncMock) as mock_rerank,
+        patch("src.qdrant_client.get_async_client") as mock_qdrant,
+        patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results) as mock_cascade,
+        patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변입니다."),
+        patch("src.chat.pipeline.stages.rerank.rerank", new_callable=AsyncMock) as mock_rerank,
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         response = await service.process_chat(ChatRequest(query="질문"))
@@ -141,10 +141,10 @@ async def test_process_chat_with_rerank():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("src.chat.service.get_async_client"),
-        patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=results),
-        patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="재순위 답변."),
-        patch("src.chat.service.rerank", new_callable=AsyncMock, return_value=reranked_results) as mock_rerank,
+        patch("src.qdrant_client.get_async_client"),
+        patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results),
+        patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="재순위 답변."),
+        patch("src.chat.pipeline.stages.rerank.rerank", new_callable=AsyncMock, return_value=reranked_results) as mock_rerank,
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         response = await service.process_chat(ChatRequest(query="질문"))
@@ -168,10 +168,10 @@ async def test_process_chat_records_rerank_in_search_event():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("src.chat.service.get_async_client"),
-        patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=results),
-        patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="답변"),
-        patch("src.chat.service.rerank", new_callable=AsyncMock, return_value=reranked),
+        patch("src.qdrant_client.get_async_client"),
+        patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results),
+        patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변"),
+        patch("src.chat.pipeline.stages.rerank.rerank", new_callable=AsyncMock, return_value=reranked),
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         await service.process_chat(ChatRequest(query="질문"))
@@ -189,9 +189,9 @@ async def test_process_chat_single_commit():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("src.chat.service.get_async_client"),
-        patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=_make_search_results(3)),
-        patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="답변"),
+        patch("src.qdrant_client.get_async_client"),
+        patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=_make_search_results(3)),
+        patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변"),
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         await service.process_chat(ChatRequest(query="질문"))
@@ -207,10 +207,10 @@ async def test_process_chat_empty_results():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("src.chat.service.get_async_client"),
-        patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=[]),
-        patch("src.chat.service.fallback_search", new_callable=AsyncMock, return_value=([], "suggestions")),
-        patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="해당 내용을 말씀에서 찾지 못했습니다."),
+        patch("src.qdrant_client.get_async_client"),
+        patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=[]),
+        patch("src.chat.pipeline.stages.search.fallback_search", new_callable=AsyncMock, return_value=([], "suggestions")),
+        patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="해당 내용을 말씀에서 찾지 못했습니다."),
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         response = await service.process_chat(ChatRequest(query="없는 내용"))
@@ -228,9 +228,9 @@ async def test_process_chat_with_session_id():
 
 
     with (
-        patch("src.chat.service.get_async_client"),
-        patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=_make_search_results(3)),
-        patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="답변"),
+        patch("src.qdrant_client.get_async_client"),
+        patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=_make_search_results(3)),
+        patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변"),
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         response = await service.process_chat(
@@ -251,9 +251,9 @@ async def test_process_chat_context_limited_to_top_5():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("src.chat.service.get_async_client"),
-        patch("src.chat.service.cascading_search", new_callable=AsyncMock, return_value=results),
-        patch("src.chat.service.generate_answer", new_callable=AsyncMock, return_value="답변") as mock_gen,
+        patch("src.qdrant_client.get_async_client"),
+        patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results),
+        patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변") as mock_gen,
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         await service.process_chat(ChatRequest(query="질문"))
@@ -272,9 +272,9 @@ async def test_process_chat_wraps_embedding_failure_as_embedding_failed_error():
     chatbot_service.get_config_id.return_value = None
 
     with (
-        patch("src.chat.service.get_async_client"),
-        patch("src.chat.service.cascading_search", new_callable=AsyncMock),
-        patch("src.chat.service.generate_answer", new_callable=AsyncMock),
+        patch("src.qdrant_client.get_async_client"),
+        patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock),
+        patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock),
         patch(_EMBED_PATCH, new_callable=AsyncMock, side_effect=RuntimeError("Gemini API quota exceeded")),
     ):
         with pytest.raises(EmbeddingFailedError) as exc_info:

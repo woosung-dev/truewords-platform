@@ -75,9 +75,9 @@ class TestCacheHitSkipsSearch:
 
     @pytest.mark.asyncio
     @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock)
-    @patch("src.chat.service.cascading_search", new_callable=AsyncMock)
-    @patch("src.chat.service.generate_answer", new_callable=AsyncMock)
-    @patch("src.chat.service.get_async_client")
+    @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
+    @patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
+    @patch("src.qdrant_client.get_async_client")
     async def test_cache_miss_runs_full_pipeline(
         self, mock_qdrant, mock_generate, mock_search, mock_embed,
     ) -> None:
@@ -103,9 +103,9 @@ class TestCacheHitSkipsSearch:
 
     @pytest.mark.asyncio
     @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock)
-    @patch("src.chat.service.cascading_search", new_callable=AsyncMock)
-    @patch("src.chat.service.generate_answer", new_callable=AsyncMock)
-    @patch("src.chat.service.get_async_client")
+    @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
+    @patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
+    @patch("src.qdrant_client.get_async_client")
     async def test_no_cache_service_works(
         self, mock_qdrant, mock_generate, mock_search, mock_embed,
     ) -> None:

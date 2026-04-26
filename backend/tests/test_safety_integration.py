@@ -67,9 +67,9 @@ class TestSafetyOutputLayer:
 
     @pytest.mark.asyncio
     @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
-    @patch("src.chat.service.cascading_search", new_callable=AsyncMock)
-    @patch("src.chat.service.generate_answer", new_callable=AsyncMock)
-    @patch("src.chat.service.get_async_client")
+    @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
+    @patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
+    @patch("src.qdrant_client.get_async_client")
     async def test_answer_includes_disclaimer(
         self, mock_qdrant, mock_generate, mock_search, mock_embed,
     ) -> None:
@@ -85,9 +85,9 @@ class TestSafetyOutputLayer:
 
     @pytest.mark.asyncio
     @patch("src.chat.service.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
-    @patch("src.chat.service.cascading_search", new_callable=AsyncMock)
-    @patch("src.chat.service.generate_answer", new_callable=AsyncMock)
-    @patch("src.chat.service.get_async_client")
+    @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
+    @patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
+    @patch("src.qdrant_client.get_async_client")
     async def test_original_answer_preserved_with_disclaimer(
         self, mock_qdrant, mock_generate, mock_search, mock_embed,
     ) -> None:
