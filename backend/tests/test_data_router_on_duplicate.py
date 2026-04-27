@@ -71,3 +71,52 @@ def test_predict_outcome_merge_when_data_exists():
 def test_predict_outcome_qdrant_only_no_db():
     """DB row는 없지만 Qdrant에 청크만 있는 경우도 exists로 간주."""
     assert _predict_outcome("merge", existing_status=None, existing_chunk_count=10) == "merge"
+
+
+# ---------------------------------------------------------------------------
+# Codex P1/P2 회귀: _process_file_standard 의 reset 분기 + total_chunks 보존
+# (전체 통합은 메인 loop/워커/Qdrant/AsyncSession 의존성이 무거워 mock 비용 큼.
+#  대신 핵심 코드 분기가 코드에 남아있는지 inspect로 회귀 검사.)
+# ---------------------------------------------------------------------------
+
+
+def test_process_file_standard_has_completed_reupload_reset_branch():
+    """COMPLETED 재업로드 시 Qdrant 청크 reset + start_chunk=0 분기가 살아있어야 한다."""
+    import inspect
+
+    from src.admin.data_router import _process_file_standard
+
+    src = inspect.getsource(_process_file_standard)
+    # P1 픽스: reset 분기 존재
+    assert "needs_reset" in src, "needs_reset 분기 누락 — start_chunk no-op 회귀 위험"
+    assert "sync_client.delete" in src
+    assert "start_chunk = 0" in src
+    # P2 픽스: skip 단축 경로에서 total_chunks 보존
+    assert "total_chunks=preserved_total" in src
+    # P2 픽스: 정상 적재 완료 후 total_chunks 명시
+    assert "total_chunks=len(chunks)" in src
+    # skip + hash 불일치는 merge와 동일 정책 (payload_sources 계산)
+    assert 'on_duplicate in ("merge", "skip")' in src
+
+
+def test_complete_job_accepts_total_chunks_kwarg():
+    """skip 단축 경로 + 정상 완료 모두 total_chunks 키워드 인자로 복구 가능해야 함."""
+    import inspect
+
+    from src.pipeline.ingestion_repository import IngestionJobRepository
+
+    sig = inspect.signature(IngestionJobRepository.complete_job)
+    assert "total_chunks" in sig.parameters
+    assert sig.parameters["total_chunks"].default is None
+    assert sig.parameters["total_chunks"].kind == inspect.Parameter.KEYWORD_ONLY
+
+
+def test_batch_service_ingest_results_uses_namespace_url():
+    """ADR-30 follow-up — batch가 standard와 동일 NAMESPACE_URL이어야 한다 (Codex P2)."""
+    import inspect
+
+    from src.pipeline.batch_service import BatchService
+
+    src = inspect.getsource(BatchService._ingest_batch_results)
+    assert "NAMESPACE_URL" in src
+    assert "NAMESPACE_DNS" not in src

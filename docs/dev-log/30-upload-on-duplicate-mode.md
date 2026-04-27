@@ -122,6 +122,17 @@ DuplicateDecision = "merge" | "replace" | "add-tag" | "cancel"
 3. ✅ 일괄 업로드 결과 리포트 — `UploadResponse.predicted_outcome`, Admin UI 통계 토스트 + bulk skip 토글. 커밋 `fb99d00`, `cf86ef1`.
 4. ✅ [부수 픽스] batch `uuid.NAMESPACE_DNS` → `NAMESPACE_URL`로 standard와 Point ID 정렬. 커밋 `ef971a3`.
 
+### Phase 2 — Codex review 후속 (2026-04-27)
+
+Codex CLI 코드 리뷰가 발견한 [P1] 1건 + [P2] 3건과 추가 UI 결함을 같은 PR에 합쳐 머지.
+
+5. ✅ **[P1]** `_process_file_standard`의 `start_chunk` 자동 재개가 merge/replace를 silent no-op으로 만들던 결함 — COMPLETED + Qdrant chunk_count > 0 조건에서 기존 청크 삭제 + `start_chunk=0` 강제. skip+hash 불일치 fallback도 merge와 동일 정책으로 payload union 적용. 커밋 `443d20f`.
+6. ✅ **[P2]** skip 단축 경로에서 `complete_job(total_chunks=preserved_total)`로 dashboard 표시 정확성 회복. `IngestionJobRepository.complete_job`에 `total_chunks` 키워드 인자 추가. 커밋 `443d20f`.
+7. ✅ **[P2]** legacy NAMESPACE_DNS 점 마이그레이션 스크립트 — `backend/scripts/migrate_batch_dns_to_url.py`. dry-run 우선 + 충돌 통계 + URL-ID upsert 후 DNS-ID 삭제. 커밋 `f840046`.
+8. ✅ **[BUG-A]** 일괄 업로드 단건 dialog 충돌(silent failure) — `BulkPrecheckDialog` 신규로 사전 검사 + 단일 정책 결정 모달 + `runBulkUpload` sequential 실행. `performUpload`에 silent 옵션. 커밋 `c24fdea`.
+9. ✅ a11y + 라벨 명확화 — `Dialog.Close aria-label`, default 권장 버튼 `autoFocus`, `aria-describedby`로 위험 안내, bulk skip 토글 라벨/hint 재작성. 커밋 `0bc774d`.
+10. ✅ 회귀 검사 — `inspect`-based 테스트 3건으로 reset 분기 / `total_chunks` 키워드 / `NAMESPACE_URL` 사용을 잠금 (29 PASS).
+
 ---
 
 ## 4. Alternatives Considered

@@ -193,6 +193,16 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] **부수: batch UUID NAMESPACE_URL 정렬** — `batch_service` `NAMESPACE_DNS`→`NAMESPACE_URL`로 정렬해 standard와 Point ID 정합성 확보 (잠재 중복 적재 버그 픽스). 커밋 `ef971a3`
 - [x] **부수: BatchJob.on_duplicate 컬럼** — Alembic 마이그레이션(`4d872f8826ad`), default 'merge'. 커밋 `1ffcf61`
 
+### 10b. ADR-30 Phase 2 — Codex review 후속 (2026-04-27 완료)
+> Codex CLI 코드 리뷰 후 발견된 [P1] 1건 + [P2] 3건 + UI BUG 1건을 같은 PR에 합쳐 머지. 검증 잠금까지.
+
+- [x] **[P1] start_chunk 자동 재개로 인한 merge/replace silent no-op 픽스** — `_process_file_standard`에 needs_reset 분기 추가, COMPLETED 재업로드 시 기존 Qdrant 청크 삭제 + start_chunk=0. skip+hash 불일치 fallback도 merge와 동일 정책. 커밋 `443d20f`
+- [x] **[P2] skip 단축 경로 total_chunks 보존** — `complete_job(total_chunks=...)` 키워드 인자 + 두 호출처에 적용. 커밋 `443d20f`
+- [x] **[P2] legacy NAMESPACE_DNS 마이그레이션 스크립트** — `backend/scripts/migrate_batch_dns_to_url.py` (dry-run + 충돌 통계 + URL-ID upsert 후 DNS-ID 삭제). 커밋 `f840046`
+- [x] **[BUG-A] 일괄 업로드 dialog 충돌 silent failure 픽스** — `BulkPrecheckDialog` + `runBulkUpload` sequential + performUpload silent 옵션. 커밋 `c24fdea`
+- [x] **a11y / 라벨 명확화** — Dialog.Close `aria-label`, default 권장 `autoFocus`, `aria-describedby` 위험 안내, bulk skip 토글 라벨/hint 재작성. 커밋 `0bc774d`
+- [x] **회귀 잠금** — `inspect`-based 테스트 3건 (reset 분기 / total_chunks 키워드 / NAMESPACE_URL 사용) — 29 PASS
+
 ### 9. 아키텍처 리팩토링 선행 작업 (2026-04-24 착수)
 > 플랜: `~/.claude/plans/sleepy-sleeping-summit.md` (v4.1)
 > 브랜치: `refactor/runtime-config-prep`
