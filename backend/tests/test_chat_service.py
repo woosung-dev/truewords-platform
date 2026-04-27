@@ -243,8 +243,8 @@ async def test_process_chat_with_session_id():
 
 
 @pytest.mark.asyncio
-async def test_process_chat_context_limited_to_top_5():
-    """generate_answer에는 상위 5개 결과만 전달되어야 함."""
+async def test_process_chat_context_limited_to_top_8():
+    """generate_answer에는 상위 8개 결과만 전달되어야 함 (이전 5개에서 확장)."""
     service, chat_repo, chatbot_service = _make_chat_service()
     results = _make_search_results(20)
 
@@ -258,10 +258,10 @@ async def test_process_chat_context_limited_to_top_5():
     ):
         await service.process_chat(ChatRequest(query="질문"))
 
-    # generate_answer에 전달된 결과가 5개인지 확인
+    # generate_answer에 전달된 결과가 8개인지 확인
     call_args = mock_gen.call_args
     context_results = call_args[0][1]  # 두 번째 positional arg
-    assert len(context_results) == 5
+    assert len(context_results) == 8
 
 
 @pytest.mark.asyncio
