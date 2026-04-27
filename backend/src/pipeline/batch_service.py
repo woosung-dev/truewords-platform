@@ -125,7 +125,8 @@ class BatchService:
             dense = dense_embeddings[i] if i < len(dense_embeddings) else [0.0] * 1536
             sparse_indices, sparse_values = sparse_embeddings[i] if i < len(sparse_embeddings) else ([], [])
 
-            point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{job.volume_key}:{i}"))
+            chunk_key = f"{job.volume_key}:{i}"
+            point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, chunk_key))
             points.append(
                 PointStruct(
                     id=point_id,
