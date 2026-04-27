@@ -115,11 +115,12 @@ DuplicateDecision = "merge" | "replace" | "add-tag" | "cancel"
 - Frontend: `dialog`/`api`/`page` 4개 파일 수정.
 - 테스트: `test_ingestor.py`에 모드별 케이스 3건 추가.
 
-### 후속 작업 (별도 PR)
+### 후속 작업 — 2026-04-27 모두 완료 (PR #66 동일 브랜치)
 
-1. `mode=batch` 경로에 동일 정책 정렬 — `BatchService.submit` 흐름.
-2. `IngestionJob.content_hash` 컬럼 도입 → `skip` 모드에서 동일 콘텐츠면 임베딩 호출 자체 차단(Gemini 비용 절감).
-3. 일괄 업로드 결과 리포트(병합 통계) UI.
+1. ✅ `mode=batch` 경로에 동일 정책 정렬 — `BatchService.submit(on_duplicate=...)` + `_ingest_batch_results`에 payload union, `_process_file_batch`에 skip 사전 차단. `BatchJob.on_duplicate` 컬럼 추가. 커밋 `b7c56fb`, `1ffcf61`.
+2. ✅ `IngestionJob.content_hash` 컬럼 도입 → `skip` 모드에서 동일 콘텐츠면 임베딩 호출 자체 차단(Gemini 비용 절감). Alembic `dcf99a84bff1`. 커밋 `f2efd20`, `1e8c5b3`, `4e57a40`.
+3. ✅ 일괄 업로드 결과 리포트 — `UploadResponse.predicted_outcome`, Admin UI 통계 토스트 + bulk skip 토글. 커밋 `fb99d00`, `cf86ef1`.
+4. ✅ [부수 픽스] batch `uuid.NAMESPACE_DNS` → `NAMESPACE_URL`로 standard와 Point ID 정렬. 커밋 `ef971a3`.
 
 ---
 

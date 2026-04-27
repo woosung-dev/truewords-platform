@@ -186,10 +186,12 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] Agentic RAG
 - [ ] 단계적 공개 (Staged Rollout)
 
-### 10. ADR-30 후속 (재업로드 정책)
-- [ ] **batch 모드 정렬** — `mode=batch` 흐름(`_process_file_batch`/`BatchService.submit`)에 동일 `on_duplicate` 정책 적용. 현재는 무시 + warning만.
-- [ ] **`IngestionJob.content_hash` 도입** — `skip` 모드에서 콘텐츠 동일 시 Gemini 임베딩 호출 자체 차단(비용 절감). Alembic 마이그레이션 필요.
-- [ ] **일괄 업로드 결과 리포트** — 다중 파일 업로드 시 모달 없이 기본 `merge`로 흘리고, 처리 후 토스트/배너에 "N개 병합 / M개 신규 / K개 스킵" 통계 표시.
+### 10. ADR-30 후속 (재업로드 정책) — 2026-04-27 완료
+- [x] **batch 모드 정렬** — `mode=batch`도 `on_duplicate` Form 파라미터 받음. `BatchService.submit`/`_ingest_batch_results`에 정책 적용 (merge union + skip 사전 차단). `_process_file` warning 제거. 커밋 `b7c56fb`
+- [x] **`IngestionJob.content_hash` 도입** — SHA-256 hex 컬럼 + Alembic 마이그레이션(`dcf99a84bff1`). `_process_file_standard`에서 hash 비교로 skip 강화 (Gemini 호출 0회). 커밋 `f2efd20`, `1e8c5b3`, `4e57a40`
+- [x] **일괄 업로드 결과 리포트** — UploadResponse `predicted_outcome` 추가, Admin UI에서 일괄 업로드 후 "신규/병합/덮어쓰기/스킵" 통계 토스트 + bulk skip 토글 노출. 커밋 `fb99d00`, `cf86ef1`
+- [x] **부수: batch UUID NAMESPACE_URL 정렬** — `batch_service` `NAMESPACE_DNS`→`NAMESPACE_URL`로 정렬해 standard와 Point ID 정합성 확보 (잠재 중복 적재 버그 픽스). 커밋 `ef971a3`
+- [x] **부수: BatchJob.on_duplicate 컬럼** — Alembic 마이그레이션(`4d872f8826ad`), default 'merge'. 커밋 `1ffcf61`
 
 ### 9. 아키텍처 리팩토링 선행 작업 (2026-04-24 착수)
 > 플랜: `~/.claude/plans/sleepy-sleeping-summit.md` (v4.1)
