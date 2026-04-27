@@ -8,6 +8,9 @@ import { useActiveCategories } from "@/features/data-source/hooks";
 import DuplicateConfirmDialog, {
   type DuplicateDecision,
 } from "@/features/data-source/components/duplicate-confirm-dialog";
+import BulkPrecheckDialog, {
+  type BulkPrecheckEntry,
+} from "@/features/data-source/components/bulk-precheck-dialog";
 import type {
   DuplicateCheckResponse,
   PredictedOutcome,
@@ -55,6 +58,15 @@ export default function DataSourcesPage() {
     pendingFile: PendingFile | null;
     duplicate: DuplicateCheckResponse | null;
   }>({ open: false, pendingFile: null, duplicate: null });
+
+  // ADR-30 follow-up: 일괄 업로드 사전 검사 다이얼로그.
+  // BUG-A 해결 — uploadAll 진입 시 모든 파일을 병렬 checkDuplicate 후 한 번에 정책 결정.
+  const [bulkPrecheckDialog, setBulkPrecheckDialog] = useState<{
+    open: boolean;
+    files: PendingFile[];
+    duplicates: BulkPrecheckEntry[];
+    newCount: number;
+  }>({ open: false, files: [], duplicates: [], newCount: 0 });
 
   // Gemini 티어 조회 (유료 전용 배치 모드 활성화 여부)
   const { data: configData } = useQuery({
@@ -163,6 +175,7 @@ export default function DataSourcesPage() {
   const performUpload = async (
     pf: PendingFile,
     onDuplicate: OnDuplicateMode = "merge",
+    options: { silent?: boolean } = {},
   ): Promise<UploadResponse | null> => {
     setPendingFiles((prev) =>
       prev.map((f) => (f.id === pf.id ? { ...f, status: "uploading" as const } : f))
@@ -175,7 +188,10 @@ export default function DataSourcesPage() {
           f.id === pf.id ? { ...f, status: "processing" as const } : f
         )
       );
-      toast.success(`${pf.file.name} 업로드 완료, 백그라운드 처리 시작`);
+      // ADR-30 follow-up: 일괄 업로드는 끝에 통계 토스트 1회만 표시 (BUG-C 픽스).
+      if (!options.silent) {
+        toast.success(`${pf.file.name} 업로드 완료, 백그라운드 처리 시작`);
+      }
       queryClient.invalidateQueries({ queryKey: ["ingest-status"] });
       queryClient.invalidateQueries({ queryKey: ["category-stats"] });
       queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
@@ -255,11 +271,12 @@ export default function DataSourcesPage() {
     }
   };
 
-  const uploadAll = async () => {
-    const toUpload = pendingFiles.filter((f) => f.status === "pending");
-    // ADR-30 follow-up: bulkSkipMode가 활성이면 모든 파일을 skip 정책으로 흘리고,
-    // 그렇지 않으면 default merge. 단건 dialog는 우회된다.
-    const bulkPolicy: OnDuplicateMode = bulkSkipMode ? "skip" : "merge";
+  // ADR-30 follow-up — 일괄 업로드 실제 실행 (사전 검사 후 호출).
+  // 단건 dialog 우회 + silent 토스트 + 끝에 1회만 통계 토스트.
+  const runBulkUpload = async (
+    files: PendingFile[],
+    policy: OnDuplicateMode,
+  ) => {
     const stats: Record<PredictedOutcome, number> = {
       new: 0,
       merge: 0,
@@ -267,18 +284,67 @@ export default function DataSourcesPage() {
       skip: 0,
     };
     let attempted = 0;
-    for (const pf of toUpload) {
-      const res = await uploadOne(pf, bulkPolicy);
+    let failed = 0;
+    for (const pf of files) {
+      const res = await performUpload(pf, policy, { silent: true });
       attempted += 1;
       if (res) {
         stats[res.predicted_outcome] += 1;
+      } else {
+        failed += 1;
       }
     }
-    if (toUpload.length >= 2) {
-      toast.success(
-        `일괄 업로드 (${attempted}개): 신규 ${stats.new} · 병합 ${stats.merge} · 덮어쓰기 ${stats.replace} · 스킵 ${stats.skip}`,
-      );
+    const failedSuffix = failed > 0 ? ` · 실패 ${failed}` : "";
+    toast.success(
+      `일괄 업로드 (${attempted}개): 신규 ${stats.new} · 병합 ${stats.merge} · 덮어쓰기 ${stats.replace} · 스킵 ${stats.skip}${failedSuffix}`,
+    );
+  };
+
+  const uploadAll = async () => {
+    const toUpload = pendingFiles.filter((f) => f.status === "pending");
+    if (toUpload.length === 0) return;
+
+    // ADR-30 follow-up: 모든 파일을 병렬 사전 검사. BUG-A(단건 dialog 충돌) 해결의 핵심.
+    const checks = await Promise.all(
+      toUpload.map(async (pf) => {
+        try {
+          const dup = await dataAPI.checkDuplicate(pf.file.name);
+          return { pf, dup: dup.exists ? dup : null };
+        } catch (err) {
+          console.warn("checkDuplicate 실패, 신규로 간주", pf.file.name, err);
+          return { pf, dup: null };
+        }
+      }),
+    );
+
+    const duplicates: BulkPrecheckEntry[] = checks
+      .filter((c) => c.dup !== null)
+      .map((c) => ({ filename: c.pf.file.name, duplicate: c.dup! }));
+    const newCount = checks.length - duplicates.length;
+
+    // 중복 없으면 사용자 default 정책으로 바로 일괄 적재.
+    if (duplicates.length === 0) {
+      await runBulkUpload(toUpload, bulkSkipMode ? "skip" : "merge");
+      return;
     }
+
+    // 중복 있으면 사전 검사 모달로 정책 결정 (단일 모달, 단건 dialog 우회).
+    setBulkPrecheckDialog({
+      open: true,
+      files: toUpload,
+      duplicates,
+      newCount,
+    });
+  };
+
+  const handleBulkPrecheckConfirm = async (policy: OnDuplicateMode) => {
+    const files = bulkPrecheckDialog.files;
+    setBulkPrecheckDialog({ open: false, files: [], duplicates: [], newCount: 0 });
+    await runBulkUpload(files, policy);
+  };
+
+  const handleBulkPrecheckCancel = () => {
+    setBulkPrecheckDialog({ open: false, files: [], duplicates: [], newCount: 0 });
   };
 
   const pendingCount = pendingFiles.filter((f) => f.status === "pending").length;
@@ -286,7 +352,7 @@ export default function DataSourcesPage() {
 
   return (
     <div className="max-w-5xl space-y-6">
-      {/* 중복 업로드 확인 다이얼로그 */}
+      {/* 중복 업로드 확인 다이얼로그 (단건) */}
       <DuplicateConfirmDialog
         open={duplicateDialog.open}
         onOpenChange={(open) =>
@@ -296,6 +362,19 @@ export default function DataSourcesPage() {
         targetSource={duplicateDialog.pendingFile?.source ?? ""}
         duplicate={duplicateDialog.duplicate}
         onDecision={handleDuplicateDecision}
+      />
+
+      {/* ADR-30 follow-up — 일괄 업로드 사전 검사 다이얼로그 */}
+      <BulkPrecheckDialog
+        open={bulkPrecheckDialog.open}
+        onOpenChange={(open) =>
+          setBulkPrecheckDialog((prev) => ({ ...prev, open }))
+        }
+        newCount={bulkPrecheckDialog.newCount}
+        duplicates={bulkPrecheckDialog.duplicates}
+        defaultPolicy={bulkSkipMode ? "skip" : "merge"}
+        onConfirm={handleBulkPrecheckConfirm}
+        onCancel={handleBulkPrecheckCancel}
       />
 
       {/* 헤더 */}
