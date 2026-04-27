@@ -227,20 +227,12 @@ def _process_file_standard(
         return future.result()
 
     try:
-        # ADR-30: skip 모드는 COMPLETED 동일 파일이면 임베딩/upsert 모두 생략.
-        # PARTIAL/RUNNING은 재개 의도가 명확하므로 이어서 적재한다.
+        # ADR-30: skip 모드는 텍스트 추출 후 content_hash까지 비교해야 정확하므로
+        # 기존 job을 보관해 두고 사전 차단은 하지 않는다.
+        # PARTIAL/RUNNING은 재개 의도가 명확하므로 이 분기를 통과시켜 이어서 적재.
+        existing_job = None
         if on_duplicate == "skip":
             existing_job = run_repo(lambda r: r.get_by_volume_key(volume_key))
-            if (
-                existing_job is not None
-                and existing_job.status == IngestionStatus.COMPLETED
-                and existing_job.processed_chunks > 0
-            ):
-                logger.info(
-                    "[%s] on_duplicate=skip + COMPLETED(%d청크) → 임베딩 생략",
-                    volume_key, existing_job.processed_chunks,
-                )
-                return
 
         run_repo(lambda r: r.upsert_pending(volume_key, filename, source))
 
@@ -254,6 +246,25 @@ def _process_file_standard(
         logger.info("[%s] 텍스트 추출 완료 (%d자)", volume_key, len(text))
         if not text.strip():
             run_repo(lambda r: r.fail_job(volume_key, "빈 파일"))
+            return
+
+        # ADR-30 follow-up: skip + COMPLETED + 콘텐츠 hash 일치면 임베딩/upsert 모두 생략.
+        # 처리 진입 시 upsert_pending이 PENDING으로 리셋했으므로 COMPLETED 복구도 수행.
+        new_hash = _compute_content_hash(text)
+        if (
+            on_duplicate == "skip"
+            and existing_job is not None
+            and existing_job.status == IngestionStatus.COMPLETED
+            and existing_job.processed_chunks > 0
+            and existing_job.content_hash == new_hash
+        ):
+            preserved_chunks = existing_job.processed_chunks
+            logger.info(
+                "[%s] skip + COMPLETED + content_hash 일치(%d청크) → 임베딩 생략 (Gemini 호출 0회)",
+                volume_key, preserved_chunks,
+            )
+            run_repo(lambda r: r.complete_job(volume_key, preserved_chunks))
+            run_repo(lambda r: r.update_content_hash(volume_key, new_hash))
             return
 
         # 2. 메타데이터 추출
@@ -321,6 +332,9 @@ def _process_file_standard(
             logger.info("[%s] 적재 완료 (%d청크, %.1f초)",
                         volume_key, stats["chunk_count"], stats["elapsed_sec"])
             run_repo(lambda r: r.complete_job(volume_key, len(chunks)))
+            # ADR-30 follow-up: 완전 적재 성공 시에만 hash 기록 (PARTIAL은 콘텐츠 일부만
+            # 반영된 상태라 후속 skip 비교에서 사용하면 부정확).
+            run_repo(lambda r: r.update_content_hash(volume_key, new_hash))
 
     except Exception as e:
         logger.exception("[%s] 처리 실패", volume_key)
