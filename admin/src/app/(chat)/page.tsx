@@ -282,7 +282,16 @@ export default function ChatPage() {
               onValueChange={(val) => handleBotChange(val)}
             >
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="챗봇 선택" />
+                {/* base-ui-react Select는 라벨 변환을 children 함수로 받는다.
+                    미지정 시 trigger에 raw value(chatbot_id)가 그대로 노출됨. */}
+                <SelectValue placeholder="챗봇 선택">
+                  {(value: string | null) =>
+                    value
+                      ? (bots.find((b) => b.chatbot_id === value)
+                          ?.display_name ?? value)
+                      : null
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {bots.map((bot) => (
