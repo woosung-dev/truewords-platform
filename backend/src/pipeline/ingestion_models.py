@@ -31,3 +31,6 @@ class IngestionJob(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: datetime | None = None
+    # 추출된 원본 텍스트의 SHA-256 hex digest. ADR-30 skip 모드에서 콘텐츠
+    # 변경 여부를 비교해 동일하면 임베딩을 생략한다 (Gemini 호출 비용 절감).
+    content_hash: str | None = Field(default=None, max_length=64)
