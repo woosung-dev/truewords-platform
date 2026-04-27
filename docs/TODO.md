@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-04-24
+> 마지막 업데이트: 2026-04-27
 
 ## Progress Overview
 
@@ -82,6 +82,15 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] **[Follow-up]** NFC/NFD 혼재 데이터 정리 마이그레이션 스크립트 — `backend/scripts/migrate_nfc_nfd_volumes.py` (dry-run 우선, 중복 그룹 감지 → canonical payload 업데이트 + 중복 포인트 삭제)
 - [x] **[Follow-up]** bulk 엔드포인트 NFD → NFC 통일 — PR #24로 NFC/NFD 둘 다 매칭하도록 픽스 완료
 - [x] **[Follow-up]** `qdrant_service.remove_volume_tag`(단일)도 NFC+NFD 양쪽 매칭으로 통일 — bulk 경로(PR #24)와 동일 패턴 적용. search_terms 에 NFC/NFD 둘 다 + scroll 결과를 NFC 기준 재확인
+
+### 재업로드 정책 `on_duplicate` (ADR-30, 2026-04-27)
+- [x] ADR-30 — `docs/dev-log/30-upload-on-duplicate-mode.md`
+- [x] Backend `POST /admin/data-sources/upload` `on_duplicate=merge|replace|skip` Form 파라미터 (default `merge`)
+- [x] `ingestor.py` — `payload_sources` 파라미터로 chunk.source override (merge union 지원)
+- [x] `_process_file_standard` — skip(COMPLETED 동일 파일이면 임베딩 생략) + merge(기존 ∪ 신규) 분기
+- [x] pytest 3건 추가 (`test_payload_sources_*`) — 12 PASS, 전체 collect 452 import OK
+- [x] Admin `DuplicateDecision` 4분기로 확장 (`merge`/`add-tag`/`replace`/`cancel`) + `uploadFile`이 `on_duplicate` 전달
+- [x] Dialog merge 미리보기(기존 ∪ 신규) + default 권장 버튼을 "내용 갱신 (분류 유지)"로 변경
 
 ### Backend — 보안 강화 (2026-04-11)
 - [x] Prompt Injection 패턴 강화 — Zero-width 정규화, 패턴 7개 추가 (16→23개)
@@ -176,6 +185,11 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] Streak 트래커 (M-03)
 - [ ] Agentic RAG
 - [ ] 단계적 공개 (Staged Rollout)
+
+### 10. ADR-30 후속 (재업로드 정책)
+- [ ] **batch 모드 정렬** — `mode=batch` 흐름(`_process_file_batch`/`BatchService.submit`)에 동일 `on_duplicate` 정책 적용. 현재는 무시 + warning만.
+- [ ] **`IngestionJob.content_hash` 도입** — `skip` 모드에서 콘텐츠 동일 시 Gemini 임베딩 호출 자체 차단(비용 절감). Alembic 마이그레이션 필요.
+- [ ] **일괄 업로드 결과 리포트** — 다중 파일 업로드 시 모달 없이 기본 `merge`로 흘리고, 처리 후 토스트/배너에 "N개 병합 / M개 신규 / K개 스킵" 통계 표시.
 
 ### 9. 아키텍처 리팩토링 선행 작업 (2026-04-24 착수)
 > 플랜: `~/.claude/plans/sleepy-sleeping-summit.md` (v4.1)

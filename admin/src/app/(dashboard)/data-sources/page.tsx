@@ -3,7 +3,7 @@
 import { useCallback, useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { dataAPI, dataSourceCategoryAPI } from "@/features/data-source/api";
+import { dataAPI, dataSourceCategoryAPI, type OnDuplicateMode } from "@/features/data-source/api";
 import { useActiveCategories } from "@/features/data-source/hooks";
 import DuplicateConfirmDialog, {
   type DuplicateDecision,
@@ -153,12 +153,12 @@ export default function DataSourcesPage() {
     setPendingFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const performUpload = async (pf: PendingFile) => {
+  const performUpload = async (pf: PendingFile, onDuplicate: OnDuplicateMode = "merge") => {
     setPendingFiles((prev) =>
       prev.map((f) => (f.id === pf.id ? { ...f, status: "uploading" as const } : f))
     );
     try {
-      await dataAPI.uploadFile(pf.file, pf.source, mode);
+      await dataAPI.uploadFile(pf.file, pf.source, mode, onDuplicate);
       // 업로드 성공 → "처리 중" 상태로 변경
       setPendingFiles((prev) =>
         prev.map((f) =>
@@ -208,8 +208,9 @@ export default function DataSourcesPage() {
       return;
     }
 
-    if (decision === "overwrite") {
-      await performUpload(pendingFile);
+    // ADR-30: merge / replace 는 backend on_duplicate 파라미터로 그대로 전달.
+    if (decision === "merge" || decision === "replace") {
+      await performUpload(pendingFile, decision);
       return;
     }
 

@@ -82,6 +82,7 @@ def ingest_chunks(
     start_chunk: int = 0,
     title: str = "",
     on_progress: Callable[[int], None] | None = None,
+    payload_sources: list[str] | None = None,
 ) -> dict:
     """청크를 배치 임베딩 후 Qdrant에 upsert — 청크 레벨 체크포인트 지원.
 
@@ -97,6 +98,9 @@ def ingest_chunks(
         title: Gemini 임베딩 품질 향상용 문서 제목.
         on_progress: upsert 성공 시 누적 처리 청크 수(abs_batch_end)를 전달받는 콜백.
             None이면 체크포인트 저장을 생략한다.
+        payload_sources: 모든 청크에 적용할 source 리스트. None이면 chunk.source를
+            그대로 사용. 재업로드 merge 모드에서 기존 ∪ 신규 source를 미리 계산해
+            전달한다. ADR-30 참조.
 
     Returns:
         dict: chunk_count, total_chunks, elapsed_sec, is_partial.
@@ -167,7 +171,10 @@ def ingest_chunks(
             sparse_indices, sparse_values = sparse_results[i]
             chunk_key = f"{chunk.volume}:{chunk.chunk_index}"
             point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, chunk_key))
-            source_list = chunk.source if isinstance(chunk.source, list) else [chunk.source] if chunk.source else []
+            if payload_sources is not None:
+                source_list = payload_sources
+            else:
+                source_list = chunk.source if isinstance(chunk.source, list) else [chunk.source] if chunk.source else []
             points.append(
                 PointStruct(
                     id=point_id,

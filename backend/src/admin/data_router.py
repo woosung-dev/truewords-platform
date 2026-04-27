@@ -32,11 +32,16 @@ from src.datasource.service import DataSourceCategoryService
 from src.pipeline.chunker import chunk_text
 from src.pipeline.dependencies import get_ingestion_service
 from src.pipeline.extractor import extract_text
+from src.pipeline.ingestion_models import IngestionStatus
 from src.pipeline.ingestion_repository import IngestionJobRepository
 from src.pipeline.ingestion_service import IngestionJobService
 from src.pipeline.ingestor import ingest_chunks
 from src.pipeline.metadata import extract_metadata
 from src.qdrant_client import get_async_client, get_client
+
+# 재업로드 정책 (ADR-30) — merge: 기존 source ∪ 신규, replace: 신규로 교체,
+# skip: COMPLETED 동일 파일이면 임베딩/upsert 모두 건너뜀.
+_VALID_ON_DUPLICATE = ("merge", "replace", "skip")
 
 router = APIRouter(prefix="/admin/data-sources", tags=["data-sources"])
 
@@ -67,9 +72,9 @@ def _ingest_worker():
             task = _INGEST_QUEUE.get()
             if task is None:
                 break
-            file_path, filename, source = task
+            file_path, filename, source, on_duplicate = task
             try:
-                _process_file_standard(file_path, filename, source)
+                _process_file_standard(file_path, filename, source, on_duplicate)
             except Exception:
                 logger.exception("[ingest-worker] 처리 중 예외")
             finally:
@@ -87,14 +92,44 @@ def _ensure_worker():
             _WORKER_STARTED.set()
 
 
-def _process_file(file_path: Path, filename: str, source: str, mode: str = "standard"):
-    """BackgroundTask 진입점. 배치 모드는 즉시 처리, 즉시 모드는 워커 큐에 투입."""
+def _process_file(
+    file_path: Path,
+    filename: str,
+    source: str,
+    mode: str = "standard",
+    on_duplicate: str = "merge",
+):
+    """BackgroundTask 진입점. 배치 모드는 즉시 처리, 즉시 모드는 워커 큐에 투입.
+
+    on_duplicate는 ADR-30 정책으로 mode=standard에서만 적용된다. batch에서는
+    무시되며 기존 동작(replace 동등)을 유지한다.
+    """
     if mode == "batch":
+        if on_duplicate != "merge":
+            logger.warning(
+                "[%s] batch 모드는 on_duplicate=%s를 지원하지 않음 — 무시 (ADR-30)",
+                filename, on_duplicate,
+            )
         _process_file_batch(file_path, filename, source)
     else:
         _ensure_worker()
-        _INGEST_QUEUE.put((file_path, filename, source))
-        logger.info("[%s] 처리 큐에 투입 (대기열 %d개)", filename, _INGEST_QUEUE.qsize())
+        _INGEST_QUEUE.put((file_path, filename, source, on_duplicate))
+        logger.info(
+            "[%s] 처리 큐에 투입 (대기열 %d개, on_duplicate=%s)",
+            filename, _INGEST_QUEUE.qsize(), on_duplicate,
+        )
+
+
+async def _get_existing_snapshot(volume_key: str) -> tuple[list[str], int]:
+    """기존 volume의 (sources, chunk_count) 조회 — 워커가 메인 loop에 위임해 사용.
+
+    DataSourceQdrantService를 직접 인스턴스화한다 (Depends 미사용 컨텍스트).
+    NFC/NFD 혼재 대응은 서비스 메서드 내부에서 처리한다.
+    """
+    async_client = get_async_client()
+    sync_client = get_client()
+    svc = DataSourceQdrantService(async_client, sync_client, settings.collection_name)
+    return await svc.get_volume_snapshot(volume_key)
 
 
 def _process_file_batch(file_path: Path, filename: str, source: str):
@@ -141,17 +176,28 @@ def _process_file_batch(file_path: Path, filename: str, source: str):
             file_path.unlink()
 
 
-def _process_file_standard(file_path: Path, filename: str, source: str):
+def _process_file_standard(
+    file_path: Path,
+    filename: str,
+    source: str,
+    on_duplicate: str = "merge",
+):
     """즉시 모드: 전용 워커에서 호출. 청크 추출 → 임베딩 → Qdrant 적재.
 
     DB 호출은 FastAPI 메인 loop에 위임 (run_coroutine_threadsafe)하여
     AsyncEngine connection pool의 단일 loop 바인딩 제약을 준수한다.
+
+    on_duplicate (ADR-30):
+      - merge   : 기존 payload.source ∪ 신규 source 로 union (default).
+      - replace : 신규 source 로 통째로 교체 (기존 동작).
+      - skip    : 동일 파일이 COMPLETED 상태면 임베딩/upsert 모두 건너뜀.
     """
     volume_key = unicodedata.normalize("NFC", filename)
 
     if _main_loop is None:
         logger.error("[%s] 메인 loop 미설정 — 워커 실행 불가 (lifespan 초기화 확인)", volume_key)
         return
+    loop = _main_loop  # 클로저 캡처 (None narrowing 유지)
 
     def run_repo(fn):
         """Repository 작업을 메인 loop에 제출하고 결과를 blocking으로 받는다."""
@@ -161,13 +207,36 @@ def _process_file_standard(file_path: Path, filename: str, source: str):
                 result = await fn(repo)
                 await repo.commit()
                 return result
-        future = asyncio.run_coroutine_threadsafe(_exec(), _main_loop)
+        future = asyncio.run_coroutine_threadsafe(_exec(), loop)
+        return future.result()
+
+    def run_async(coro):
+        """임의 코루틴을 메인 loop에 제출하고 결과를 blocking으로 받는다."""
+        future = asyncio.run_coroutine_threadsafe(coro, loop)
         return future.result()
 
     try:
+        # ADR-30: skip 모드는 COMPLETED 동일 파일이면 임베딩/upsert 모두 생략.
+        # PARTIAL/RUNNING은 재개 의도가 명확하므로 이어서 적재한다.
+        if on_duplicate == "skip":
+            existing_job = run_repo(lambda r: r.get_by_volume_key(volume_key))
+            if (
+                existing_job is not None
+                and existing_job.status == IngestionStatus.COMPLETED
+                and existing_job.processed_chunks > 0
+            ):
+                logger.info(
+                    "[%s] on_duplicate=skip + COMPLETED(%d청크) → 임베딩 생략",
+                    volume_key, existing_job.processed_chunks,
+                )
+                return
+
         run_repo(lambda r: r.upsert_pending(volume_key, filename, source))
 
-        logger.info("[%s] 처리 시작 (file_path=%s)", volume_key, file_path)
+        logger.info(
+            "[%s] 처리 시작 (file_path=%s, on_duplicate=%s)",
+            volume_key, file_path, on_duplicate,
+        )
 
         # 1. 텍스트 추출
         text = extract_text(file_path)
@@ -203,7 +272,22 @@ def _process_file_standard(file_path: Path, filename: str, source: str):
         if start_chunk > 0:
             run_repo(lambda r: r.update_progress(volume_key, start_chunk))
 
-        # 6. 임베딩 + 적재 (upsert마다 on_progress 콜백으로 DB 갱신)
+        # 6. ADR-30 merge 모드: 기존 payload.source 와 신규 source 합집합 계산.
+        # 결과가 비어있으면 None으로 넘겨 ingest_chunks가 chunk.source를 사용하게 한다.
+        payload_sources: list[str] | None = None
+        if on_duplicate == "merge":
+            existing_sources, _ = run_async(_get_existing_snapshot(volume_key))
+            union = {s for s in existing_sources if s}
+            if source:
+                union.add(source)
+            payload_sources = sorted(union) if union else None
+            if payload_sources:
+                logger.info(
+                    "[%s] merge 정책: 기존 source=%s + 신규 '%s' → 적재 source=%s",
+                    volume_key, existing_sources, source, payload_sources,
+                )
+
+        # 7. 임베딩 + 적재 (upsert마다 on_progress 콜백으로 DB 갱신)
         def on_progress(abs_processed: int):
             run_repo(lambda r: r.update_progress(volume_key, abs_processed))
 
@@ -211,9 +295,10 @@ def _process_file_standard(file_path: Path, filename: str, source: str):
             sync_client, settings.collection_name, chunks,
             start_chunk=start_chunk, title=meta["title"],
             on_progress=on_progress,
+            payload_sources=payload_sources,
         )
 
-        # 7. 최종 상태 전이
+        # 8. 최종 상태 전이
         final_processed = start_chunk + stats["chunk_count"]
         if stats.get("is_partial"):
             logger.warning(
@@ -243,6 +328,14 @@ async def upload_document(
     file: UploadFile = File(...),
     source: str = Form("", description="데이터 소스 카테고리 key (비워두면 미분류로 적재)"),
     mode: str = Form("standard", description="처리 모드: standard | batch"),
+    on_duplicate: str = Form(
+        "merge",
+        description=(
+            "재업로드 정책 (ADR-30). merge: 기존 카테고리 ∪ 신규 (default), "
+            "replace: 신규로 통째 교체, skip: COMPLETED 동일 파일이면 임베딩 생략. "
+            "mode=batch에서는 무시된다."
+        ),
+    ),
     current_admin: dict = Depends(get_current_admin),
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
 ):
@@ -251,6 +344,11 @@ async def upload_document(
         raise HTTPException(status_code=400, detail="mode는 standard 또는 batch만 가능합니다")
     if mode == "batch" and settings.gemini_tier != "paid":
         raise HTTPException(status_code=400, detail="배치 처리는 유료 티어에서만 사용 가능합니다")
+    if on_duplicate not in _VALID_ON_DUPLICATE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"on_duplicate는 {_VALID_ON_DUPLICATE} 중 하나여야 합니다",
+        )
 
     if source:
         category = await datasource_service.get_by_key(source)
@@ -290,8 +388,15 @@ async def upload_document(
 
     file.file.close()
 
-    background_tasks.add_task(_process_file, tmp_path, safe_filename, source, mode)
-    return {"message": "파일 업로드 및 처리 예약 완료", "filename": safe_filename, "mode": mode}
+    background_tasks.add_task(
+        _process_file, tmp_path, safe_filename, source, mode, on_duplicate
+    )
+    return {
+        "message": "파일 업로드 및 처리 예약 완료",
+        "filename": safe_filename,
+        "mode": mode,
+        "on_duplicate": on_duplicate,
+    }
 
 
 @router.get("/status")
@@ -337,8 +442,11 @@ async def check_duplicate(
 ):
     """업로드 전 동일 파일명의 기존 적재 여부를 조회합니다.
 
-    재업로드 시 기존 데이터가 덮어써지므로, UI가 사용자에게 경고를 띄우고
-    "덮어쓰기 / 태그만 추가 / 취소" 중에서 선택하도록 돕는다.
+    UI는 응답을 보고 사용자에게 ADR-30의 4가지 결정을 노출한다:
+      - merge   : 콘텐츠 갱신 + 기존 카테고리 보존 (default 권장)
+      - replace : 신규 카테고리로 통째 교체
+      - add-tag : 임베딩 없이 카테고리 태그만 추가 (volume-tags API)
+      - cancel  : 업로드 중단
     """
     if not filename.strip():
         raise HTTPException(status_code=400, detail="filename이 비어있습니다")

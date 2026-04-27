@@ -11,12 +11,20 @@ import type {
   VolumeTagsBulkResponse,
 } from "./types";
 
+export type OnDuplicateMode = "merge" | "replace" | "skip";
+
 export const dataAPI = {
-  uploadFile: async (file: File, source: string, mode: "standard" | "batch" = "standard") => {
+  uploadFile: async (
+    file: File,
+    source: string,
+    mode: "standard" | "batch" = "standard",
+    onDuplicate: OnDuplicateMode = "merge",
+  ) => {
     const formData = new FormData()
     formData.append("file", file)
     formData.append("source", source)
     formData.append("mode", mode)
+    formData.append("on_duplicate", onDuplicate)
 
     // FormData requests don't use "Content-Type: application/json"
     // Fetch automatically applies the correct multipart/form-data boundary
