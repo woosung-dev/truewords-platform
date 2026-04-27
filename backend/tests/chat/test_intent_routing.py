@@ -1,13 +1,13 @@
-"""4 intent × (rerank top_k, generation context slice) 분기 통합 검증.
+"""4 intent × (rerank top_k, generation context slice) 분기 + meta short-circuit 통합 검증.
 
-IntentClassifierStage 가 ctx.intent 를 채우면 후속 RerankStage / GenerationStage 가
-intent 별로 다른 K 를 사용하는지 process_chat 전체 경로로 확인한다.
+- factoid/conceptual/reasoning: 본 chain 통과, intent 별 K 분기.
+- meta: Phase E short-circuit. Search/Rerank/Generation 미실행, META_FALLBACK_ANSWER prefill.
 
 매핑 (src/search/intent_classifier.py):
     factoid    → rerank_top_k=15, gen_ctx_slice=8
     conceptual → rerank_top_k=12, gen_ctx_slice=6
     reasoning  → rerank_top_k=8,  gen_ctx_slice=4
-    meta       → rerank_top_k=12, gen_ctx_slice=6  (Phase E 에서 short-circuit)
+    meta       → short-circuit (mini-persist + META_FALLBACK_ANSWER)
 """
 
 from __future__ import annotations
@@ -89,7 +89,6 @@ def _make_service() -> tuple[ChatService, AsyncMock]:
         ("factoid", 15, 8),
         ("conceptual", 12, 6),
         ("reasoning", 8, 4),
-        ("meta", 12, 6),  # Phase D: meta = conceptual fallback
     ],
 )
 @pytest.mark.asyncio
@@ -142,6 +141,47 @@ async def test_intent_drives_rerank_and_generation_K(
     assert len(context_results) == expected_gen_slice, (
         f"intent={intent}: expected gen slice={expected_gen_slice}, got {len(context_results)}"
     )
+
+
+@pytest.mark.asyncio
+async def test_meta_intent_short_circuits_pipeline() -> None:
+    """Phase E: meta intent 시 Search/Rerank/Generation 호출 없이 META_FALLBACK_ANSWER 반환."""
+    from src.search.intent_classifier import META_FALLBACK_ANSWER
+
+    service, _ = _make_service()
+
+    with (
+        patch("src.qdrant_client.get_async_client"),
+        patch(
+            "src.chat.pipeline.stages.intent_classifier.classify_intent",
+            new_callable=AsyncMock,
+            return_value="meta",
+        ),
+        patch(
+            "src.chat.pipeline.stages.search.cascading_search",
+            new_callable=AsyncMock,
+        ) as mock_search,
+        patch(
+            "src.chat.pipeline.stages.rerank.rerank",
+            new_callable=AsyncMock,
+        ) as mock_rerank,
+        patch(
+            "src.chat.pipeline.stages.generation.generate_answer",
+            new_callable=AsyncMock,
+        ) as mock_gen,
+        patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
+    ):
+        response = await service.process_chat(ChatRequest(query="너는 누구야?", chatbot_id="t"))
+
+    # Search/Rerank/Generation 미호출
+    mock_search.assert_not_called()
+    mock_rerank.assert_not_called()
+    mock_gen.assert_not_called()
+
+    # 답변에 META_FALLBACK_ANSWER 포함 (SafetyOutput가 면책고지를 추가했을 수 있음)
+    assert META_FALLBACK_ANSWER in response.answer
+    # sources 없음
+    assert response.sources == []
 
 
 @pytest.mark.asyncio

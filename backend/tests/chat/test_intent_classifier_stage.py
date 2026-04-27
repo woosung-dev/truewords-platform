@@ -164,6 +164,27 @@ class TestIntentClassifierStage:
         assert result.pipeline_state == PipelineState.INTENT_CLASSIFIED
 
     @pytest.mark.asyncio
+    async def test_meta_prefills_fallback_and_transitions_to_META_TERMINATED(self) -> None:
+        """Phase E — meta intent 시 ctx.answer prefill + ctx.results 비움 + META_TERMINATED."""
+        from src.search.intent_classifier import META_FALLBACK_ANSWER
+
+        ctx = ChatContext(request=ChatRequest(query="너는 누구야?"))
+        ctx.pipeline_state = PipelineState.RUNTIME_RESOLVED
+        ctx.runtime_config = _runtime_config()
+
+        with patch(
+            "src.chat.pipeline.stages.intent_classifier.classify_intent",
+            new_callable=AsyncMock,
+            return_value="meta",
+        ):
+            result = await IntentClassifierStage().execute(ctx)
+
+        assert result.intent == "meta"
+        assert result.answer == META_FALLBACK_ANSWER
+        assert result.results == []
+        assert result.pipeline_state == PipelineState.META_TERMINATED
+
+    @pytest.mark.asyncio
     async def test_warns_when_precondition_state_wrong(self, caplog) -> None:
         ctx = ChatContext(request=ChatRequest(query="질문"))
         # Wrong prior state (should be RUNTIME_RESOLVED) — Stage 는 logger.warning 만 발생.

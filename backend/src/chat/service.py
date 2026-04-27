@@ -148,9 +148,30 @@ class ChatService:
                 message_id=assistant_msg.id,
             )
 
-        # Stage 체인: 런타임 설정 → intent 분류 → 쿼리 재작성 → 검색 → 리랭킹 → 생성 → Safety → DB 기록
+        # Stage 체인: 런타임 설정 → intent 분류
         ctx = await self.runtime_config_stage.execute(ctx)
         ctx = await self.intent_classifier_stage.execute(ctx)
+
+        # Meta intent early return (Search/Rerank/Generation 스킵, Safety + mini-persist 만)
+        if ctx.pipeline_state == PipelineState.META_TERMINATED and ctx.session:
+            ctx = await self.safety_output_stage.execute(ctx)
+            assistant_msg = await self.chat_repo.create_message(
+                SessionMessage(
+                    session_id=ctx.session.id,
+                    role=MessageRole.ASSISTANT,
+                    content=ctx.answer or "",
+                    pipeline_version=2,
+                )
+            )
+            await self.chat_repo.commit()
+            return ChatResponse(
+                answer=ctx.answer or "",
+                sources=[],
+                session_id=ctx.session.id,
+                message_id=assistant_msg.id,
+            )
+
+        # 본 chain: 쿼리 재작성 → 검색 → 리랭킹 → 생성 → Safety → DB 기록
         ctx = await self.query_rewrite_stage.execute(ctx)
         ctx = await self.search_stage.execute(ctx)
         ctx = await self.rerank_stage.execute(ctx)
@@ -195,9 +216,28 @@ class ChatService:
             return
 
         try:
-            # Stage 체인: 런타임 설정 → intent 분류 → 쿼리 재작성 → 검색 → 리랭킹
+            # Stage 체인: 런타임 설정 → intent 분류
             ctx = await self.runtime_config_stage.execute(ctx)
             ctx = await self.intent_classifier_stage.execute(ctx)
+
+            # Meta intent early return (SSE chunk + sources + done + mini-persist)
+            if ctx.pipeline_state == PipelineState.META_TERMINATED and ctx.session:
+                ctx = await self.safety_output_stage.execute(ctx)
+                assistant_msg = await self.chat_repo.create_message(
+                    SessionMessage(
+                        session_id=ctx.session.id,
+                        role=MessageRole.ASSISTANT,
+                        content=ctx.answer or "",
+                        pipeline_version=2,
+                    )
+                )
+                await self.chat_repo.commit()
+                yield f"event: chunk\ndata: {json.dumps({'text': ctx.answer or ''}, ensure_ascii=False)}\n\n"
+                yield f"event: sources\ndata: {json.dumps({'sources': [], 'session_id': str(ctx.session.id), 'message_id': str(assistant_msg.id)}, ensure_ascii=False)}\n\n"
+                yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
+                return
+
+            # 본 chain: 쿼리 재작성 → 검색 → 리랭킹
             ctx = await self.query_rewrite_stage.execute(ctx)
             ctx = await self.search_stage.execute(ctx)
             ctx = await self.rerank_stage.execute(ctx)

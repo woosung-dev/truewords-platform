@@ -51,6 +51,13 @@ INTENT_GEN_CONTEXT_SLICE: dict[Intent, int] = {
 LEGACY_RERANK_TOP_K = 15
 LEGACY_GEN_CONTEXT_SLICE = 8
 
+# Phase E — meta intent 시 사용할 표준 답변. 보안 가드레일 §4 답변 범위 제한 정신.
+# admin UI 의 system_prompt 와 별개로, 코드 레벨 안전망 (LLM 호출 비용/오답 위험 회피).
+META_FALLBACK_ANSWER = (
+    "해당 질문은 가정연합 말씀 학습 도우미의 답변 범위를 벗어납니다. "
+    "말씀이나 원리에 관한 질문을 해 주시면 도와드리겠습니다."
+)
+
 
 def rerank_top_k_for(intent: Intent | None) -> int:
     """ctx.intent → rerank top_k. None 이면 legacy 값."""
