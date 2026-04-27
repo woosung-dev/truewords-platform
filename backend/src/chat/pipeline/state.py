@@ -27,6 +27,7 @@ class PipelineState(str, enum.Enum):
     CACHE_CHECKED = "CACHE_CHECKED"
     CACHE_HIT_TERMINATED = "CACHE_HIT_TERMINATED"
     RUNTIME_RESOLVED = "RUNTIME_RESOLVED"
+    INTENT_CLASSIFIED = "INTENT_CLASSIFIED"
     QUERY_REWRITTEN = "QUERY_REWRITTEN"
     SEARCHED = "SEARCHED"
     RERANKED = "RERANKED"
@@ -44,7 +45,8 @@ EXPECTED_PRIOR: dict[str, set[PipelineState]] = {
     "EmbeddingStage": {PipelineState.SESSION_READY},
     "CacheCheckStage": {PipelineState.EMBEDDED},
     "RuntimeConfigStage": {PipelineState.CACHE_CHECKED},
-    "QueryRewriteStage": {PipelineState.RUNTIME_RESOLVED},
+    "IntentClassifierStage": {PipelineState.RUNTIME_RESOLVED},
+    "QueryRewriteStage": {PipelineState.INTENT_CLASSIFIED},
     "SearchStage": {PipelineState.QUERY_REWRITTEN},
     "RerankStage": {PipelineState.SEARCHED},
     "GenerationStage": {PipelineState.RERANKED},

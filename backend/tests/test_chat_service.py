@@ -243,8 +243,13 @@ async def test_process_chat_with_session_id():
 
 
 @pytest.mark.asyncio
-async def test_process_chat_context_limited_to_top_8():
-    """generate_answer에는 상위 8개 결과만 전달되어야 함 (이전 5개에서 확장)."""
+async def test_process_chat_default_intent_uses_conceptual_slice():
+    """IntentClassifier가 default(conceptual) 반환 시 generate_answer 에 [:6] 전달.
+
+    intent 별 분기 K 값은 별도 test_intent_routing.py 에서 4 케이스 정식 검증.
+    이 테스트는 chat_service 의 stage 체인이 IntentClassifierStage 를 거쳐
+    ctx.intent → GenerationStage 슬라이스로 전파되는 baseline 만 확인한다.
+    """
     service, chat_repo, chatbot_service = _make_chat_service()
     results = _make_search_results(20)
 
@@ -252,16 +257,21 @@ async def test_process_chat_context_limited_to_top_8():
 
     with (
         patch("src.qdrant_client.get_async_client"),
+        patch(
+            "src.chat.pipeline.stages.intent_classifier.classify_intent",
+            new_callable=AsyncMock,
+            return_value="conceptual",
+        ),
         patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results),
         patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변") as mock_gen,
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         await service.process_chat(ChatRequest(query="질문"))
 
-    # generate_answer에 전달된 결과가 8개인지 확인
+    # conceptual intent → generate_answer 컨텍스트 슬라이스 6
     call_args = mock_gen.call_args
     context_results = call_args[0][1]  # 두 번째 positional arg
-    assert len(context_results) == 8
+    assert len(context_results) == 6
 
 
 @pytest.mark.asyncio
