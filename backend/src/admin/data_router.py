@@ -34,7 +34,6 @@ from src.datasource.service import DataSourceCategoryService
 from src.pipeline.chunker import chunk_text
 from src.pipeline.dependencies import get_ingestion_service
 from src.pipeline.extractor import extract_text
-from src.pipeline.ingestion_models import IngestionStatus
 from src.pipeline.ingestion_repository import IngestionJobRepository
 from src.pipeline.ingestion_service import IngestionJobService
 from src.pipeline.ingestor import ingest_chunks
@@ -54,6 +53,89 @@ def _compute_content_hash(text: str) -> str:
     호출자가 결정.
     """
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _resolve_upload_strategy(
+    *,
+    on_duplicate: str,
+    existing_status: str | None,
+    existing_processed_chunks: int,
+    existing_total_chunks: int,
+    existing_content_hash: str | None,
+    existing_chunk_count: int,
+    existing_sources: list[str],
+    new_source: str,
+    new_hash: str,
+) -> dict:
+    """ADR-30 재업로드 정책의 분기 결정을 한 번에 계산하는 순수 함수.
+
+    ``_process_file_standard``에서 IO/임베딩과 분리해 호출함으로써 Codex P1/P2
+    수정사항(reset / total_chunks 보존 / skip 단축 / payload union)을 mock 없는
+    단위 테스트로 잠글 수 있다.
+
+    Args:
+        on_duplicate: "merge" | "replace" | "skip".
+        existing_status: 기존 IngestionJob.status.value (없으면 None).
+        existing_processed_chunks: 기존 row의 processed_chunks (skip 단축 복구용).
+        existing_total_chunks: 기존 row의 total_chunks (없으면 0).
+        existing_content_hash: 기존 row의 content_hash (없으면 None).
+        existing_chunk_count: Qdrant에 적재된 청크 수.
+        existing_sources: Qdrant payload.source 합집합 (NFC/NFD 정규화 후).
+        new_source: 이번 업로드의 source.
+        new_hash: 이번 추출 텍스트의 SHA-256.
+
+    Returns:
+        dict with:
+          - skip_short_circuit (bool): True면 임베딩 건너뛰고 complete_job 복구.
+          - needs_reset (bool): True면 Qdrant 청크 삭제 + start_chunk=0.
+          - payload_sources (list[str] | None): ingest_chunks에 전달할 source 리스트.
+              None이면 chunk.source([source])를 그대로 사용.
+          - preserved_processed (int): skip 단축 시 복구할 processed_chunks.
+          - preserved_total (int): skip 단축 시 복구할 total_chunks.
+    """
+    is_completed = existing_status == "completed"
+
+    # skip + COMPLETED + processed > 0 + hash 일치 → 임베딩 건너뜀.
+    skip_short_circuit = (
+        on_duplicate == "skip"
+        and is_completed
+        and existing_processed_chunks > 0
+        and existing_content_hash is not None
+        and existing_content_hash == new_hash
+    )
+    if skip_short_circuit:
+        preserved_processed = existing_processed_chunks
+        preserved_total = existing_total_chunks or preserved_processed
+        return {
+            "skip_short_circuit": True,
+            "needs_reset": False,
+            "payload_sources": None,
+            "preserved_processed": preserved_processed,
+            "preserved_total": preserved_total,
+        }
+
+    # COMPLETED + Qdrant chunks > 0 → reset (기존 청크 삭제 후 0부터 적재).
+    # PARTIAL/RUNNING은 재개 의도라 reset하지 않는다.
+    needs_reset = is_completed and existing_chunk_count > 0
+
+    # payload_sources 정책:
+    # - merge: 기존 ∪ 신규 (existing_sources는 reset 직전 스냅샷)
+    # - skip(여기 도달 = hash 불일치 fallback): merge와 동일 정책으로 분류 보존
+    # - replace: None → ingest_chunks가 chunk.source([source])를 그대로 사용
+    payload_sources: list[str] | None = None
+    if on_duplicate in ("merge", "skip"):
+        union = {s for s in existing_sources if s}
+        if new_source:
+            union.add(new_source)
+        payload_sources = sorted(union) if union else None
+
+    return {
+        "skip_short_circuit": False,
+        "needs_reset": needs_reset,
+        "payload_sources": payload_sources,
+        "preserved_processed": 0,
+        "preserved_total": 0,
+    }
 
 router = APIRouter(prefix="/admin/data-sources", tags=["data-sources"])
 
@@ -275,18 +357,30 @@ def _process_file_standard(
             run_repo(lambda r: r.fail_job(volume_key, "빈 파일"))
             return
 
-        # ADR-30 follow-up: skip + COMPLETED + 콘텐츠 hash 일치면 임베딩/upsert 모두 생략.
-        # upsert_pending이 total_chunks=0/processed=0으로 리셋했으므로 둘 다 복구 (Codex P2).
         new_hash = _compute_content_hash(text)
-        if (
-            on_duplicate == "skip"
-            and existing_job is not None
-            and existing_job.status == IngestionStatus.COMPLETED
-            and existing_job.processed_chunks > 0
-            and existing_job.content_hash == new_hash
-        ):
-            preserved_processed = existing_job.processed_chunks
-            preserved_total = existing_job.total_chunks or preserved_processed
+
+        # 2. 메타데이터 + volume 정규화 (NFC) — _get_existing_snapshot도 같은 키로 조회한다.
+        meta = extract_metadata(file_path, text)
+        volume = unicodedata.normalize("NFC", meta["volume"] or volume_key)
+
+        # 3. ADR-30 정책 분기 — Qdrant 스냅샷(reset 직전) + helper로 결정.
+        existing_sources, existing_chunk_count = run_async(_get_existing_snapshot(volume))
+        strategy = _resolve_upload_strategy(
+            on_duplicate=on_duplicate,
+            existing_status=existing_job.status.value if existing_job else None,
+            existing_processed_chunks=existing_job.processed_chunks if existing_job else 0,
+            existing_total_chunks=existing_job.total_chunks if existing_job else 0,
+            existing_content_hash=existing_job.content_hash if existing_job else None,
+            existing_chunk_count=existing_chunk_count,
+            existing_sources=existing_sources,
+            new_source=source,
+            new_hash=new_hash,
+        )
+
+        # 4. skip 단축 — 임베딩/upsert 생략 + COMPLETED + total_chunks 복구 (Codex P2).
+        if strategy["skip_short_circuit"]:
+            preserved_processed = strategy["preserved_processed"]
+            preserved_total = strategy["preserved_total"]
             logger.info(
                 "[%s] skip + COMPLETED + content_hash 일치(%d/%d청크) → 임베딩 생략 (Gemini 호출 0회)",
                 volume_key, preserved_processed, preserved_total,
@@ -299,28 +393,15 @@ def _process_file_standard(
             run_repo(lambda r: r.update_content_hash(volume_key, new_hash))
             return
 
-        # 2. 메타데이터 추출
-        meta = extract_metadata(file_path, text)
-        volume = unicodedata.normalize("NFC", meta["volume"] or volume_key)
-
-        # 3. 문서 청킹
+        # 5. 문서 청킹
         chunks = chunk_text(text, volume=volume, max_chars=500, source=source,
                             title=meta["title"], date=meta["date"])
         logger.info("[%s] 청킹 완료 (%d개 청크)", volume_key, len(chunks))
 
-        # 4. ADR-30 P1 (Codex 권고): COMPLETED 재업로드는 reset 후 0부터 적재한다.
-        #    start_chunk 자동 재개를 그대로 두면 같은 길이 재업로드 시 effective_chunks=[]
-        #    → upsert 0회 → payload_sources(merge union)이 적용되지 않는 silent no-op 발생.
-        #    PARTIAL/RUNNING은 재개 의도가 명확하므로 reset 안 함 (이어서 적재).
+        # 6. ADR-30 P1: COMPLETED 재업로드는 reset 후 0부터 적재. start_chunk 자동 재개를
+        #    그대로 두면 같은 길이 재업로드 시 effective_chunks=[]로 빠져 silent no-op 발생.
         sync_client = get_client()
-        existing_sources, existing_chunk_count = run_async(_get_existing_snapshot(volume))
-
-        needs_reset = (
-            existing_job is not None
-            and existing_job.status == IngestionStatus.COMPLETED
-            and existing_chunk_count > 0
-        )
-        if needs_reset:
+        if strategy["needs_reset"]:
             sync_client.delete(
                 collection_name=settings.collection_name,
                 points_selector=Filter(must=[
@@ -340,28 +421,20 @@ def _process_file_standard(
                     volume_key, start_chunk, start_chunk, len(chunks),
                 )
 
-        # 5. RUNNING 상태 + total_chunks 저장
+        # 7. RUNNING 상태 + total_chunks 저장
         run_repo(lambda r: r.start_run(volume_key, total_chunks=len(chunks)))
         if start_chunk > 0:
             run_repo(lambda r: r.update_progress(volume_key, start_chunk))
 
-        # 6. ADR-30: payload.source 정책 적용.
-        #    - merge: 기존 ∪ 신규 (existing_sources는 reset 직전 스냅샷이므로 신뢰 가능)
-        #    - skip(여기 도달 = hash 불일치 fallback): merge와 동일 정책으로 분류 보존
-        #    - replace: None → ingest_chunks가 chunk.source([source])를 그대로 사용
-        payload_sources: list[str] | None = None
-        if on_duplicate in ("merge", "skip"):
-            union = {s for s in existing_sources if s}
-            if source:
-                union.add(source)
-            payload_sources = sorted(union) if union else None
-            if payload_sources:
-                logger.info(
-                    "[%s] %s 정책: 기존 source=%s + 신규 '%s' → 적재 source=%s",
-                    volume_key, on_duplicate, existing_sources, source, payload_sources,
-                )
+        # 8. payload_sources는 strategy가 결정 (merge/skip union or None)
+        payload_sources = strategy["payload_sources"]
+        if payload_sources is not None:
+            logger.info(
+                "[%s] %s 정책: 기존 source=%s + 신규 '%s' → 적재 source=%s",
+                volume_key, on_duplicate, existing_sources, source, payload_sources,
+            )
 
-        # 7. 임베딩 + 적재 (upsert마다 on_progress 콜백으로 DB 갱신)
+        # 9. 임베딩 + 적재 (upsert마다 on_progress 콜백으로 DB 갱신)
         def on_progress(abs_processed: int):
             run_repo(lambda r: r.update_progress(volume_key, abs_processed))
 
@@ -372,7 +445,7 @@ def _process_file_standard(
             payload_sources=payload_sources,
         )
 
-        # 8. 최종 상태 전이
+        # 10. 최종 상태 전이
         final_processed = start_chunk + stats["chunk_count"]
         if stats.get("is_partial"):
             logger.warning(

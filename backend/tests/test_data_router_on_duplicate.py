@@ -80,23 +80,29 @@ def test_predict_outcome_qdrant_only_no_db():
 # ---------------------------------------------------------------------------
 
 
-def test_process_file_standard_has_completed_reupload_reset_branch():
-    """COMPLETED 재업로드 시 Qdrant 청크 reset + start_chunk=0 분기가 살아있어야 한다."""
+def test_process_file_standard_wires_strategy_correctly():
+    """_process_file_standard가 strategy 결과를 실제 IO 호출로 wiring해야 한다.
+
+    Strategy 단위 테스트는 정책 자체를 검증, 이 테스트는 wiring(IO 호출) 회귀 잠금.
+    """
     import inspect
 
     from src.admin.data_router import _process_file_standard
 
     src = inspect.getsource(_process_file_standard)
-    # P1 픽스: reset 분기 존재
-    assert "needs_reset" in src, "needs_reset 분기 누락 — start_chunk no-op 회귀 위험"
+    # P1 wiring: strategy["needs_reset"] → sync_client.delete + start_chunk=0
+    assert 'strategy["needs_reset"]' in src
     assert "sync_client.delete" in src
     assert "start_chunk = 0" in src
-    # P2 픽스: skip 단축 경로에서 total_chunks 보존
+    # P2 wiring: skip 단축 시 complete_job(total_chunks=preserved_total)
+    assert 'strategy["skip_short_circuit"]' in src
     assert "total_chunks=preserved_total" in src
-    # P2 픽스: 정상 적재 완료 후 total_chunks 명시
+    # 정상 적재 완료 후 total_chunks 명시
     assert "total_chunks=len(chunks)" in src
-    # skip + hash 불일치는 merge와 동일 정책 (payload_sources 계산)
-    assert 'on_duplicate in ("merge", "skip")' in src
+    # payload_sources는 strategy에서 가져와 ingest_chunks에 전달
+    assert 'strategy["payload_sources"]' in src or "payload_sources = strategy" in src
+    # _resolve_upload_strategy 호출 자체
+    assert "_resolve_upload_strategy" in src
 
 
 def test_complete_job_accepts_total_chunks_kwarg():
@@ -120,3 +126,227 @@ def test_batch_service_ingest_results_uses_namespace_url():
     src = inspect.getsource(BatchService._ingest_batch_results)
     assert "NAMESPACE_URL" in src
     assert "NAMESPACE_DNS" not in src
+
+
+# ---------------------------------------------------------------------------
+# Codex P1/P2 회귀: _resolve_upload_strategy 순수 함수 (mock 없는 단위 검증)
+#
+# 이 helper는 _process_file_standard의 분기 결정을 IO와 분리해 캡슐화한다.
+# 모든 시나리오(skip/merge/replace × 신규/PARTIAL/COMPLETED × hash 일치/불일치)를
+# 직접 검증하는 진짜 동작 회귀 잠금이다.
+# ---------------------------------------------------------------------------
+
+
+from src.admin.data_router import _resolve_upload_strategy
+
+
+def _strategy(**overrides) -> dict:
+    """기본 인자 + override 만으로 strategy 호출하는 헬퍼."""
+    base = {
+        "on_duplicate": "merge",
+        "existing_status": None,
+        "existing_processed_chunks": 0,
+        "existing_total_chunks": 0,
+        "existing_content_hash": None,
+        "existing_chunk_count": 0,
+        "existing_sources": [],
+        "new_source": "",
+        "new_hash": "h_new",
+    }
+    base.update(overrides)
+    return _resolve_upload_strategy(**base)
+
+
+# --- 신규 파일 (existing 없음) ---
+
+
+def test_strategy_new_file_no_reset_no_short_circuit():
+    s = _strategy(on_duplicate="merge", new_source="A")
+    assert s["skip_short_circuit"] is False
+    assert s["needs_reset"] is False
+    # 신규 source는 union에 들어가 sorted=["A"]
+    assert s["payload_sources"] == ["A"]
+
+
+def test_strategy_new_file_replace_payload_sources_none():
+    s = _strategy(on_duplicate="replace", new_source="A")
+    assert s["needs_reset"] is False
+    # replace는 chunk.source([source]) 그대로 사용 → None
+    assert s["payload_sources"] is None
+
+
+def test_strategy_new_file_skip_no_existing_runs_normal():
+    """skip + 신규 → 단축 없음, payload_sources는 신규만."""
+    s = _strategy(on_duplicate="skip", new_source="A")
+    assert s["skip_short_circuit"] is False
+    assert s["needs_reset"] is False
+    assert s["payload_sources"] == ["A"]
+
+
+# --- COMPLETED 재업로드 — P1 reset 보장 ---
+
+
+def test_strategy_completed_merge_triggers_reset_and_union():
+    """Codex P1: COMPLETED + merge → reset + 기존 ∪ 신규 union."""
+    s = _strategy(
+        on_duplicate="merge",
+        existing_status="completed",
+        existing_processed_chunks=10,
+        existing_total_chunks=10,
+        existing_content_hash="h_old",
+        existing_chunk_count=10,
+        existing_sources=["A"],
+        new_source="B",
+    )
+    assert s["needs_reset"] is True
+    assert s["skip_short_circuit"] is False
+    assert s["payload_sources"] == ["A", "B"]
+
+
+def test_strategy_completed_replace_resets_but_no_union():
+    """COMPLETED + replace → reset, payload_sources None (chunk.source 사용)."""
+    s = _strategy(
+        on_duplicate="replace",
+        existing_status="completed",
+        existing_processed_chunks=10,
+        existing_chunk_count=10,
+        existing_sources=["A"],
+        new_source="B",
+        existing_content_hash="h_old",
+    )
+    assert s["needs_reset"] is True
+    assert s["payload_sources"] is None
+
+
+def test_strategy_merge_with_empty_new_source_keeps_existing():
+    """미분류로 재업로드 — 기존 분류 보존(빈 source는 union에서 제외)."""
+    s = _strategy(
+        on_duplicate="merge",
+        existing_status="completed",
+        existing_processed_chunks=5,
+        existing_chunk_count=5,
+        existing_sources=["말씀선집"],
+        new_source="",
+        existing_content_hash="h_old",
+    )
+    assert s["needs_reset"] is True
+    # 사용자 보고 시나리오: ["말씀선집"]만 보존, 빈 source 추가 안 됨
+    assert s["payload_sources"] == ["말씀선집"]
+
+
+# --- skip 단축 경로 (P2 total_chunks 보존) ---
+
+
+def test_strategy_skip_short_circuits_when_hash_matches():
+    """Codex P2: skip + COMPLETED + hash 일치 → 단축 + total_chunks 복구 정보."""
+    s = _strategy(
+        on_duplicate="skip",
+        existing_status="completed",
+        existing_processed_chunks=23,
+        existing_total_chunks=25,
+        existing_chunk_count=23,
+        existing_content_hash="h_new",  # 일치
+        existing_sources=["A"],
+        new_source="B",
+        new_hash="h_new",
+    )
+    assert s["skip_short_circuit"] is True
+    assert s["needs_reset"] is False
+    assert s["preserved_processed"] == 23
+    assert s["preserved_total"] == 25
+
+
+def test_strategy_skip_short_circuit_uses_processed_when_total_zero():
+    """existing_total_chunks가 0이면 processed로 fallback (upsert_pending 리셋 후 복구)."""
+    s = _strategy(
+        on_duplicate="skip",
+        existing_status="completed",
+        existing_processed_chunks=12,
+        existing_total_chunks=0,  # upsert_pending 리셋 직후
+        existing_content_hash="h_new",
+        existing_chunk_count=12,
+        new_hash="h_new",
+    )
+    assert s["skip_short_circuit"] is True
+    assert s["preserved_total"] == 12
+
+
+def test_strategy_skip_falls_through_when_hash_mismatches():
+    """skip + hash 불일치 → 단축 X, merge 정책으로 fallback (분류 보존)."""
+    s = _strategy(
+        on_duplicate="skip",
+        existing_status="completed",
+        existing_processed_chunks=10,
+        existing_total_chunks=10,
+        existing_chunk_count=10,
+        existing_content_hash="h_old",  # 불일치
+        existing_sources=["A"],
+        new_source="B",
+        new_hash="h_new",
+    )
+    assert s["skip_short_circuit"] is False
+    assert s["needs_reset"] is True
+    # skip fallback도 merge처럼 union
+    assert s["payload_sources"] == ["A", "B"]
+
+
+def test_strategy_skip_with_no_hash_falls_through():
+    """이전에 hash 안 기록된 row(legacy)는 단축 안 함."""
+    s = _strategy(
+        on_duplicate="skip",
+        existing_status="completed",
+        existing_processed_chunks=10,
+        existing_chunk_count=10,
+        existing_content_hash=None,  # legacy
+        existing_sources=["A"],
+        new_source="A",
+    )
+    assert s["skip_short_circuit"] is False
+    assert s["needs_reset"] is True
+
+
+# --- PARTIAL/RUNNING 재개 (reset 안 함) ---
+
+
+def test_strategy_partial_merge_no_reset_resumes():
+    """PARTIAL + merge → reset 안 함, 이어서 적재. payload union 적용."""
+    s = _strategy(
+        on_duplicate="merge",
+        existing_status="partial",
+        existing_processed_chunks=5,
+        existing_chunk_count=5,
+        existing_sources=["A"],
+        new_source="B",
+    )
+    assert s["needs_reset"] is False  # PARTIAL은 재개
+    assert s["payload_sources"] == ["A", "B"]
+
+
+def test_strategy_running_replace_no_reset():
+    s = _strategy(
+        on_duplicate="replace",
+        existing_status="running",
+        existing_processed_chunks=3,
+        existing_chunk_count=3,
+        existing_sources=["A"],
+        new_source="B",
+    )
+    assert s["needs_reset"] is False
+    assert s["payload_sources"] is None
+
+
+# --- DB row 없고 Qdrant chunks만 (legacy 운영 데이터) ---
+
+
+def test_strategy_qdrant_chunks_without_db_row_no_reset():
+    """status=None + chunks > 0 → COMPLETED가 아니므로 reset X (안전 fallback)."""
+    s = _strategy(
+        on_duplicate="merge",
+        existing_status=None,
+        existing_chunk_count=8,
+        existing_sources=["A"],
+        new_source="B",
+    )
+    assert s["needs_reset"] is False
+    # 그래도 union은 계산
+    assert s["payload_sources"] == ["A", "B"]
