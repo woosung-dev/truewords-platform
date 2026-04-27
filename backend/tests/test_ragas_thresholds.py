@@ -6,8 +6,11 @@
 
 기본은 SKIP. CI/local 둘 다 다음 환경변수로 명시 활성화한다:
 
-    RAGAS_RUN=1 ANTHROPIC_API_KEY=... GEMINI_API_KEY=... \\
+    RAGAS_RUN=1 GEMINI_API_KEY=... \\
         uv run --group eval pytest tests/test_ragas_thresholds.py -v
+
+평가 LLM 은 임시로 Gemini 3.1 Pro (Anthropic 크레딧 충전 후 Claude Haiku 4.5 환원 예정).
+docs/TODO.md "RAGAS 평가 LLM 환원" 참조.
 
 이유:
 - 무거운 의존성(ragas/langchain-anthropic) 설치가 dev 그룹이 아닌 eval 그룹.
@@ -60,8 +63,10 @@ def ragas_scores():
         Faithfulness,
         ResponseRelevancy,
     )
-    from langchain_anthropic import ChatAnthropic
-    from langchain_google_genai import GoogleGenerativeAIEmbeddings
+    from langchain_google_genai import (
+        ChatGoogleGenerativeAI,
+        GoogleGenerativeAIEmbeddings,
+    )
     from ragas.embeddings import LangchainEmbeddingsWrapper
     from ragas.llms import LangchainLLMWrapper
 
@@ -79,14 +84,19 @@ def ragas_scores():
     ]
     dataset = EvaluationDataset(samples=samples)
     eval_llm = LangchainLLMWrapper(
-        ChatAnthropic(model_name="claude-haiku-4-5-20251001", timeout=60, stop=None)
+        ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0)
     )
     eval_embeddings = LangchainEmbeddingsWrapper(
         GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     )
     result = evaluate(
         dataset=dataset,
-        metrics=[Faithfulness(), ContextPrecision(), ContextRecall(), ResponseRelevancy()],
+        metrics=[
+            Faithfulness(),
+            ContextPrecision(),
+            ContextRecall(),
+            ResponseRelevancy(strictness=1),
+        ],
         llm=eval_llm,
         embeddings=eval_embeddings,
         show_progress=False,

@@ -72,8 +72,9 @@ def generation_context_slice_for(intent: Intent | None) -> int:
         return LEGACY_GEN_CONTEXT_SLICE
     return INTENT_GEN_CONTEXT_SLICE[intent]
 
-# LLM 호출 타임아웃 — 검색 지연 최소화. query_rewriter (1.5s) 보다 짧게 잡는다.
-INTENT_TIMEOUT_SECONDS = 0.8
+# LLM 호출 타임아웃 — 검색 지연 최소화. query_rewriter (1.5s) 와 비슷한 수준.
+# 0.8s 로는 Gemini Flash 한국어 분류 호출이 자주 timeout 발생 → 2.0s 로 상향.
+INTENT_TIMEOUT_SECONDS = 2.0
 
 INTENT_CLASSIFIER_SYSTEM_PROMPT = """당신은 가정연합 말씀 RAG 검색 시스템의 질문 분류기입니다.
 사용자 질문을 아래 4가지 의도(intent) 중 정확히 하나로 분류하세요.

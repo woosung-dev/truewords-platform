@@ -8,13 +8,14 @@ RAGAS의 다음 4메트릭을 산출하고 xlsx로 저장한다.
 - ContextRecall        : ground_truth를 contexts로 얼마나 회수하는가
 - ResponseRelevancy    : 답변이 질문에 얼마나 관련 있는가
 
-LLM (평가용): claude-haiku-4-5-20251001 — G-Eval 논문이 경고한 LLM-self-bias
-회피 (생성은 Gemini, 평가는 Claude로 분리).
+LLM (평가용): gemini-3.1-pro (임시 — docs/TODO.md "RAGAS 평가 LLM 환원" 참조).
+인계 문서 §5 사전 결정은 Claude Haiku 4.5 였으나 Anthropic 크레딧 잔액 부족으로
+일시적 Gemini 3.1 Pro 대체. 충전 후 환원 예정 (생성/평가 같은 모델 패밀리는
+G-Eval LLM-self-bias 우려 — 잠정).
 임베딩: gemini-embedding-001 (ResponseRelevancy의 cosine similarity용).
 
 환경변수:
-    ANTHROPIC_API_KEY (필수): Claude Haiku 호출용
-    GEMINI_API_KEY    (필수): Gemini embedding 호출용
+    GEMINI_API_KEY (필수): Gemini Pro 호출 + Gemini embedding 호출 모두 사용
 
 사용:
     # 1) dry-run: 시드 로드 + RAGAS dataset 변환 검증만 (키 불필요)
@@ -53,8 +54,11 @@ from openpyxl.worksheet.worksheet import Worksheet
 # ragas는 평가 시점에만 import (dry-run에서는 무거운 의존성 회피)
 DEFAULT_OUTPUT_DIR = Path.home() / "Downloads"
 
-# 평가용 모델 (인계 문서 §5 사전 결정)
-EVAL_LLM_MODEL = "claude-haiku-4-5-20251001"
+# 평가용 모델 (임시 — Anthropic 크레딧 충전 후 Claude Haiku 4.5 로 환원 예정).
+# 환원 작업: docs/TODO.md "RAGAS 평가 LLM 환원" Blocked 항목 참조.
+# gemini-3.1-pro-preview 는 RAGAS 평가에서 RPM throttling/응답 hang 다발로 사용 불가
+# → gemini-2.5-pro (production 안정 모델) 로 fallback.
+EVAL_LLM_MODEL = "gemini-2.5-pro"
 EVAL_EMBEDDING_MODEL = "models/gemini-embedding-001"
 
 
@@ -111,11 +115,6 @@ def to_ragas_samples(items: list[SeedItem]) -> Any:
 
 def build_evaluator() -> tuple[Any, Any]:
     """평가용 LLM/Embedding wrapper를 만든다. 환경변수 검증 포함."""
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        raise SystemExit(
-            "ANTHROPIC_API_KEY 미설정. console.anthropic.com에서 키를 발급해 "
-            "환경변수에 설정 후 재시도하세요."
-        )
     if not os.getenv("GEMINI_API_KEY"):
         # backend/.env에서 로드 시도 — 운영 코드와 동일 키 사용
         env_path = Path(__file__).resolve().parent.parent / ".env"
@@ -135,13 +134,17 @@ def build_evaluator() -> tuple[Any, Any]:
     # langchain-google-genai는 GOOGLE_API_KEY를 본다
     os.environ.setdefault("GOOGLE_API_KEY", os.environ["GEMINI_API_KEY"])
 
-    from langchain_anthropic import ChatAnthropic
-    from langchain_google_genai import GoogleGenerativeAIEmbeddings
+    from langchain_google_genai import (
+        ChatGoogleGenerativeAI,
+        GoogleGenerativeAIEmbeddings,
+    )
     from ragas.embeddings import LangchainEmbeddingsWrapper
     from ragas.llms import LangchainLLMWrapper
 
+    # 첫 sanity (1m58s 5건 timeout 0) 와 동일 — 완전 default. 추가 파라미터(timeout, max_retries,
+    # RunConfig)를 명시하면 hang 발생 (RAGAS 0.4.3 + langchain-google-genai 4.2.2 조합 이슈).
     eval_llm = LangchainLLMWrapper(
-        ChatAnthropic(model_name=EVAL_LLM_MODEL, timeout=60, stop=None)
+        ChatGoogleGenerativeAI(model=EVAL_LLM_MODEL, temperature=0)
     )
     eval_embeddings = LangchainEmbeddingsWrapper(
         GoogleGenerativeAIEmbeddings(model=EVAL_EMBEDDING_MODEL)
@@ -163,12 +166,15 @@ def run_evaluation(
 
     eval_llm, eval_embeddings = build_evaluator()
     dataset = to_ragas_samples(items)
+    # strictness=1: Gemini Pro 가 multiple candidates 미지원 → multi-sampling 메트릭은
+    # 단일 candidate 로 계산. Claude Haiku 환원 시 strictness 기본값(3) 으로 복원 가능.
     metrics = [
         Faithfulness(),
         ContextPrecision(),
         ContextRecall(),
-        ResponseRelevancy(),
+        ResponseRelevancy(strictness=1),
     ]
+    # RAGAS default 설정 사용 (RunConfig 명시 시 hang 발생 — RAGAS 0.4.3 이슈).
     result = evaluate(
         dataset=dataset,
         metrics=metrics,
