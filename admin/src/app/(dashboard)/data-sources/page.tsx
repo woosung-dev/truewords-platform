@@ -8,7 +8,11 @@ import { useActiveCategories } from "@/features/data-source/hooks";
 import DuplicateConfirmDialog, {
   type DuplicateDecision,
 } from "@/features/data-source/components/duplicate-confirm-dialog";
-import type { DuplicateCheckResponse } from "@/features/data-source/types";
+import type {
+  DuplicateCheckResponse,
+  PredictedOutcome,
+  UploadResponse,
+} from "@/features/data-source/types";
 import { fetchAPI } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +45,9 @@ export default function DataSourcesPage() {
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [activeTab, setActiveTab] = useState<"upload" | "categories">("upload");
   const [mode, setMode] = useState<"standard" | "batch">("standard");
+  // ADR-30 follow-up: 일괄 업로드 시 이미 적재된 파일은 건너뛰는 skip 모드 토글.
+  // 단건 업로드(파일 1개)는 dialog가 사용자 선택을 받으므로 이 토글의 영향을 받지 않는다.
+  const [bulkSkipMode, setBulkSkipMode] = useState(false);
 
   // 중복 업로드 확인 다이얼로그 상태
   const [duplicateDialog, setDuplicateDialog] = useState<{
@@ -153,12 +160,15 @@ export default function DataSourcesPage() {
     setPendingFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const performUpload = async (pf: PendingFile, onDuplicate: OnDuplicateMode = "merge") => {
+  const performUpload = async (
+    pf: PendingFile,
+    onDuplicate: OnDuplicateMode = "merge",
+  ): Promise<UploadResponse | null> => {
     setPendingFiles((prev) =>
       prev.map((f) => (f.id === pf.id ? { ...f, status: "uploading" as const } : f))
     );
     try {
-      await dataAPI.uploadFile(pf.file, pf.source, mode, onDuplicate);
+      const res = await dataAPI.uploadFile(pf.file, pf.source, mode, onDuplicate);
       // 업로드 성공 → "처리 중" 상태로 변경
       setPendingFiles((prev) =>
         prev.map((f) =>
@@ -173,6 +183,7 @@ export default function DataSourcesPage() {
       setTimeout(() => {
         setPendingFiles((prev) => prev.filter((f) => f.id !== pf.id));
       }, 10000);
+      return res;
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : `${pf.file.name} 업로드 실패`
@@ -180,23 +191,31 @@ export default function DataSourcesPage() {
       setPendingFiles((prev) =>
         prev.map((f) => (f.id === pf.id ? { ...f, status: "pending" as const } : f))
       );
+      return null;
     }
   };
 
-  const uploadOne = async (pf: PendingFile) => {
+  const uploadOne = async (
+    pf: PendingFile,
+    onDuplicate: OnDuplicateMode = "merge",
+  ): Promise<UploadResponse | null> => {
     // 1. 업로드 전 중복 검사
     try {
       const dup = await dataAPI.checkDuplicate(pf.file.name);
       if (dup.exists) {
-        setDuplicateDialog({ open: true, pendingFile: pf, duplicate: dup });
-        return;
+        // ADR-30: 일괄 업로드(onDuplicate=skip 등 명시적 정책 전달)는 모달 우회.
+        // 단건(default merge)일 때만 사용자 의사 확인 모달을 띄운다.
+        if (onDuplicate === "merge") {
+          setDuplicateDialog({ open: true, pendingFile: pf, duplicate: dup });
+          return null;
+        }
       }
     } catch (err) {
       // 중복 검사 실패는 업로드를 막지 않음 (경고만 토스트)
       console.warn("중복 검사 실패, 그대로 진행", err);
     }
-    // 2. 중복 없으면 바로 업로드
-    await performUpload(pf);
+    // 2. 중복 없거나 일괄 정책 명시 → 그대로 업로드
+    return await performUpload(pf, onDuplicate);
   };
 
   const handleDuplicateDecision = async (decision: DuplicateDecision) => {
@@ -238,8 +257,27 @@ export default function DataSourcesPage() {
 
   const uploadAll = async () => {
     const toUpload = pendingFiles.filter((f) => f.status === "pending");
+    // ADR-30 follow-up: bulkSkipMode가 활성이면 모든 파일을 skip 정책으로 흘리고,
+    // 그렇지 않으면 default merge. 단건 dialog는 우회된다.
+    const bulkPolicy: OnDuplicateMode = bulkSkipMode ? "skip" : "merge";
+    const stats: Record<PredictedOutcome, number> = {
+      new: 0,
+      merge: 0,
+      replace: 0,
+      skip: 0,
+    };
+    let attempted = 0;
     for (const pf of toUpload) {
-      await uploadOne(pf);
+      const res = await uploadOne(pf, bulkPolicy);
+      attempted += 1;
+      if (res) {
+        stats[res.predicted_outcome] += 1;
+      }
+    }
+    if (toUpload.length >= 2) {
+      toast.success(
+        `일괄 업로드 (${attempted}개): 신규 ${stats.new} · 병합 ${stats.merge} · 덮어쓰기 ${stats.replace} · 스킵 ${stats.skip}`,
+      );
     }
   };
 
@@ -383,7 +421,7 @@ export default function DataSourcesPage() {
           </div>
 
           {/* 처리 방식 선택 */}
-          <div className="rounded-xl border bg-card p-4 space-y-2">
+          <div className="rounded-xl border bg-card p-4 space-y-3">
             <p className="text-xs font-medium text-muted-foreground">처리 방식</p>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -413,6 +451,21 @@ export default function DataSourcesPage() {
                 )}
               </label>
             </div>
+            {/* ADR-30 follow-up — 일괄 업로드 시에만 적용. 단건은 모달이 사용자 의사 확인. */}
+            <label className="flex items-start gap-2 cursor-pointer pt-2 border-t">
+              <input
+                type="checkbox"
+                checked={bulkSkipMode}
+                onChange={(e) => setBulkSkipMode(e.target.checked)}
+                className="accent-primary mt-0.5"
+              />
+              <span className="text-sm">
+                일괄 업로드 시 이미 적재된 파일은 건너뜀 (skip 모드)
+                <span className="block text-xs text-muted-foreground">
+                  콘텐츠 동일 시 임베딩 호출 0회 — Gemini API 비용 절감. 단건 업로드는 모달이 우선.
+                </span>
+              </span>
+            </label>
           </div>
 
           {/* 대기 목록 */}

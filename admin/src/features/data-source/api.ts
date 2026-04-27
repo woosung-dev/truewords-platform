@@ -4,6 +4,7 @@ import type {
   DuplicateCheckResponse,
   IngestionStatus,
   CategoryDocumentStats,
+  UploadResponse,
   VolumeTagRequest,
   VolumeTagResponse,
   VolumeInfo,
@@ -19,7 +20,7 @@ export const dataAPI = {
     source: string,
     mode: "standard" | "batch" = "standard",
     onDuplicate: OnDuplicateMode = "merge",
-  ) => {
+  ): Promise<UploadResponse> => {
     const formData = new FormData()
     formData.append("file", file)
     formData.append("source", source)
@@ -51,7 +52,7 @@ export const dataAPI = {
       throw new Error(text || `요청 실패 (${res.status})`)
     }
 
-    return res.json()
+    return (await res.json()) as UploadResponse
   },
 
   getStatus: () => fetchAPI<IngestionStatus>("/admin/data-sources/status"),

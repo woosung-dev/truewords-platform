@@ -77,3 +77,14 @@ export interface DuplicateCheckResponse {
   status: string | null;
   last_uploaded_at: string | null;
 }
+
+// ADR-30 follow-up: upload 응답 — predicted_outcome으로 일괄 토스트 통계 집계.
+export type PredictedOutcome = "new" | "merge" | "replace" | "skip";
+
+export interface UploadResponse {
+  message: string;
+  filename: string;
+  mode: "standard" | "batch";
+  on_duplicate: "merge" | "replace" | "skip";
+  predicted_outcome: PredictedOutcome;
+}
