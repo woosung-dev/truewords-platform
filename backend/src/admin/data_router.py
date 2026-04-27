@@ -112,16 +112,12 @@ def _process_file(
 ):
     """BackgroundTask 진입점. 배치 모드는 즉시 처리, 즉시 모드는 워커 큐에 투입.
 
-    on_duplicate는 ADR-30 정책으로 mode=standard에서만 적용된다. batch에서는
-    무시되며 기존 동작(replace 동등)을 유지한다.
+    ADR-30 follow-up: batch/standard 둘 다 on_duplicate를 따른다.
+    standard는 content_hash 기반 정밀 비교, batch는 Qdrant chunk_count > 0
+    여부로 단순 비교(BatchJob에 hash 컬럼 추가는 후속 작업).
     """
     if mode == "batch":
-        if on_duplicate != "merge":
-            logger.warning(
-                "[%s] batch 모드는 on_duplicate=%s를 지원하지 않음 — 무시 (ADR-30)",
-                filename, on_duplicate,
-            )
-        _process_file_batch(file_path, filename, source)
+        _process_file_batch(file_path, filename, source, on_duplicate)
     else:
         _ensure_worker()
         _INGEST_QUEUE.put((file_path, filename, source, on_duplicate))
@@ -143,8 +139,18 @@ async def _get_existing_snapshot(volume_key: str) -> tuple[list[str], int]:
     return await svc.get_volume_snapshot(volume_key)
 
 
-def _process_file_batch(file_path: Path, filename: str, source: str):
+def _process_file_batch(
+    file_path: Path,
+    filename: str,
+    source: str,
+    on_duplicate: str = "merge",
+):
     """배치 모드: Gemini Batch API에 즉시 제출.
+
+    ADR-30 follow-up: on_duplicate는 BatchJob.on_duplicate에 저장되어 적재
+    시점(``BatchService._ingest_batch_results``)에 payload.source 결정에 사용.
+    skip 모드는 Qdrant chunk_count > 0이면 batch 제출 자체 생략(보수적 — hash
+    비교는 BatchJob.content_hash 추가 후속 작업).
 
     DB 호출은 메인 loop에 위임 (AsyncEngine 단일 loop 바인딩 제약).
     """
@@ -153,9 +159,25 @@ def _process_file_batch(file_path: Path, filename: str, source: str):
     if _main_loop is None:
         logger.error("[%s] 메인 loop 미설정 — 배치 처리 불가", volume_key)
         return
+    loop = _main_loop  # 클로저 캡처
 
     try:
-        logger.info("[%s] 배치 모드 처리 시작", volume_key)
+        logger.info(
+            "[%s] 배치 모드 처리 시작 (on_duplicate=%s)", volume_key, on_duplicate,
+        )
+
+        # ADR-30 follow-up: skip 모드 — 이미 Qdrant에 적재된 파일이면 batch 제출 생략.
+        if on_duplicate == "skip":
+            existing_sources, existing_chunks = asyncio.run_coroutine_threadsafe(
+                _get_existing_snapshot(volume_key), loop
+            ).result()
+            if existing_chunks > 0:
+                logger.info(
+                    "[%s] skip + Qdrant 청크 %d개 존재(분류 %s) → 배치 제출 생략",
+                    volume_key, existing_chunks, existing_sources,
+                )
+                return
+
         text = extract_text(file_path)
         if not text.strip():
             logger.warning("[%s] 빈 파일, 배치 제출 생략", volume_key)
@@ -174,12 +196,20 @@ def _process_file_batch(file_path: Path, filename: str, source: str):
             async with async_session_factory() as session:
                 repo = BatchJobRepository(session)
                 svc = BatchService(repo=repo)
-                await svc.submit(chunks_texts=chunk_texts, filename=filename,
-                                 volume_key=volume_key, source=source)
+                await svc.submit(
+                    chunks_texts=chunk_texts,
+                    filename=filename,
+                    volume_key=volume_key,
+                    source=source,
+                    on_duplicate=on_duplicate,
+                )
 
-        future = asyncio.run_coroutine_threadsafe(_submit_batch(), _main_loop)
+        future = asyncio.run_coroutine_threadsafe(_submit_batch(), loop)
         future.result()
-        logger.info("[%s] 배치 작업 제출 완료 (%d청크)", volume_key, len(chunks))
+        logger.info(
+            "[%s] 배치 작업 제출 완료 (%d청크, on_duplicate=%s)",
+            volume_key, len(chunks), on_duplicate,
+        )
     except Exception:
         logger.exception("[%s] 배치 처리 실패", volume_key)
     finally:
