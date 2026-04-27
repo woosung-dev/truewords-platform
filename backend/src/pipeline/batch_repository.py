@@ -51,5 +51,20 @@ class BatchJobRepository:
         await self.session.flush()
         return job
 
+    async def delete_by_volume_key(self, volume_key: str) -> int:
+        """volume_key 일치하는 BatchJob row를 모두 삭제. 같은 파일이 여러 batch에 있을 수
+        있으므로(과거 시도 등) 모든 row를 fetch 후 개별 delete.
+
+        Returns: 삭제된 row 수.
+        """
+        stmt = select(BatchJob).where(BatchJob.volume_key == volume_key)
+        result = await self.session.execute(stmt)
+        jobs = list(result.scalars().all())
+        for job in jobs:
+            await self.session.delete(job)
+        if jobs:
+            await self.session.flush()
+        return len(jobs)
+
     async def commit(self) -> None:
         await self.session.commit()

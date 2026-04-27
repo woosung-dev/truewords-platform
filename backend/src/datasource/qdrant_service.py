@@ -8,6 +8,7 @@ from qdrant_client.models import FieldCondition, Filter, MatchAny, MatchValue
 
 from src.datasource.schemas import (
     CategoryDocumentStats,
+    VolumeDeleteResponse,
     VolumeInfo,
     VolumeTagResponse,
     VolumeTagsBulkResponse,
@@ -381,6 +382,87 @@ class DataSourceQdrantService:
             updated_volumes=updated_volumes,
             skipped_volumes=skipped,
             total_chunks_modified=updated_chunks,
+        )
+
+    async def delete_volumes(self, volumes: list[str]) -> VolumeDeleteResponse:
+        """volume(파일) 단위로 Qdrant 청크를 영구 삭제한다.
+
+        NFC/NFD 혼재 운영 데이터에 대응해 두 형태 모두 매칭 후 일괄 삭제.
+        실제 존재하지 않는 volume은 skipped에 사유와 함께 기록한다.
+        """
+        if not volumes:
+            return VolumeDeleteResponse(
+                deleted_volumes=[], total_chunks_deleted=0, skipped=[]
+            )
+
+        # NFC 입력으로 정규화 (응답에 사용)
+        input_nfc_to_original: dict[str, str] = {
+            unicodedata.normalize("NFC", v): v for v in volumes
+        }
+        input_nfc_set = set(input_nfc_to_original.keys())
+
+        # Qdrant 검색 후보: NFC + NFD 둘 다
+        search_terms: set[str] = set()
+        for v in volumes:
+            search_terms.add(unicodedata.normalize("NFC", v))
+            search_terms.add(unicodedata.normalize("NFD", v))
+
+        # 1) 삭제 전 청크 카운트 + volume별 매칭 ID 수집 (skipped 판별용)
+        volume_chunk_count: dict[str, int] = {}
+        offset = None
+        while True:
+            points, offset = await self.async_client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=Filter(
+                    must=[FieldCondition(key="volume", match=MatchAny(any=list(search_terms)))]
+                ),
+                with_payload=["volume"],
+                with_vectors=False,
+                limit=1000,
+                offset=offset,
+            )
+            for p in points:
+                payload = p.payload or {}
+                vol_raw = str(payload.get("volume", ""))
+                vol_nfc = unicodedata.normalize("NFC", vol_raw)
+                if vol_nfc not in input_nfc_set:
+                    continue
+                volume_chunk_count[vol_nfc] = volume_chunk_count.get(vol_nfc, 0) + 1
+            if offset is None:
+                break
+
+        # 2) 매칭된 volume이 있는 입력만 실제 삭제 (NFC/NFD 모두 search_terms로 한 번에 처리)
+        deleted_nfc = set(volume_chunk_count.keys())
+        if deleted_nfc:
+            # search_terms에는 NFD까지 포함되어 있으나 매칭 안 된 입력은 별도로 skip 처리되므로
+            # 여기서는 매칭된 volume(NFC)에 대응하는 NFC + NFD 두 형태만 다시 추려 삭제 필터로 사용.
+            delete_terms: list[str] = []
+            for nfc in deleted_nfc:
+                delete_terms.append(nfc)
+                nfd = unicodedata.normalize("NFD", nfc)
+                if nfd != nfc:
+                    delete_terms.append(nfd)
+            await self.async_client.delete(
+                collection_name=self.collection_name,
+                points_selector=Filter(
+                    must=[FieldCondition(key="volume", match=MatchAny(any=delete_terms))]
+                ),
+            )
+
+        # 3) skipped 산출
+        skipped: list[dict] = []
+        for v in volumes:
+            nfc = unicodedata.normalize("NFC", v)
+            if nfc not in deleted_nfc:
+                skipped.append({"volume": v, "reason": "Qdrant에 해당 volume 없음"})
+
+        deleted_volumes = sorted(input_nfc_to_original[nfc] for nfc in deleted_nfc)
+        total_chunks = sum(volume_chunk_count.values())
+
+        return VolumeDeleteResponse(
+            deleted_volumes=deleted_volumes,
+            total_chunks_deleted=total_chunks,
+            skipped=skipped,
         )
 
     async def remove_volume_tag(self, volume: str, source: str) -> VolumeTagResponse:
