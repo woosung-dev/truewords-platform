@@ -23,6 +23,7 @@ from src.datasource.qdrant_service import DataSourceQdrantService
 from src.datasource.schemas import (
     CategoryDocumentStats,
     DuplicateCheckResponse,
+    UploadResponse,
     VolumeInfo,
     VolumeTagRequest,
     VolumeTagResponse,
@@ -377,7 +378,27 @@ def _process_file_standard(
             file_path.unlink()
 
 
-@router.post("/upload", status_code=202)
+def _predict_outcome(
+    on_duplicate: str,
+    existing_status: str | None,
+    existing_chunk_count: int,
+) -> str:
+    """ADR-30 follow-up: 업로드 시점에 처리 예상 동작을 노출 (UI 토스트용).
+
+    실제 처리는 background에서 일어나며, skip은 hash가 다르면 merge로 fallback.
+    여기서는 가장 가능성 높은 outcome을 반환한다.
+    """
+    exists = existing_status is not None or existing_chunk_count > 0
+    if not exists:
+        return "new"
+    if on_duplicate == "skip" and existing_status == "completed":
+        return "skip"
+    if on_duplicate == "replace":
+        return "replace"
+    return "merge"
+
+
+@router.post("/upload", status_code=202, response_model=UploadResponse)
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -388,12 +409,14 @@ async def upload_document(
         description=(
             "재업로드 정책 (ADR-30). merge: 기존 카테고리 ∪ 신규 (default), "
             "replace: 신규로 통째 교체, skip: COMPLETED 동일 파일이면 임베딩 생략. "
-            "mode=batch에서는 무시된다."
+            "mode=batch에서도 적용된다."
         ),
     ),
     current_admin: dict = Depends(get_current_admin),
     datasource_service: DataSourceCategoryService = Depends(get_datasource_service),
-):
+    ingestion_service: IngestionJobService = Depends(get_ingestion_service),
+    qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
+) -> UploadResponse:
     """업로드된 파일을 백그라운드에서 RAG 지식 베이스로 적재합니다."""
     if mode not in ("standard", "batch"):
         raise HTTPException(status_code=400, detail="mode는 standard 또는 batch만 가능합니다")
@@ -432,6 +455,16 @@ async def upload_document(
             detail=f"지원하지 않는 파일 형식입니다. (지원: {', '.join(allowed_extensions)})"
         )
 
+    # ADR-30 follow-up: 처리 예상 outcome을 사전에 노출. 실제 결과는 polling으로 확인.
+    volume_key = unicodedata.normalize("NFC", safe_filename)
+    existing_job = await ingestion_service.find_by_filename(safe_filename)
+    _, existing_chunk_count = await qdrant_service.get_volume_snapshot(volume_key)
+    predicted = _predict_outcome(
+        on_duplicate=on_duplicate,
+        existing_status=existing_job.status.value if existing_job else None,
+        existing_chunk_count=existing_chunk_count,
+    )
+
     try:
         suffix = Path(safe_filename).suffix
         with NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
@@ -446,12 +479,13 @@ async def upload_document(
     background_tasks.add_task(
         _process_file, tmp_path, safe_filename, source, mode, on_duplicate
     )
-    return {
-        "message": "파일 업로드 및 처리 예약 완료",
-        "filename": safe_filename,
-        "mode": mode,
-        "on_duplicate": on_duplicate,
-    }
+    return UploadResponse(
+        message="파일 업로드 및 처리 예약 완료",
+        filename=safe_filename,
+        mode=mode,
+        on_duplicate=on_duplicate,
+        predicted_outcome=predicted,
+    )
 
 
 @router.get("/status")

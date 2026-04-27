@@ -83,6 +83,22 @@ class VolumeTagsBulkResponse(BaseModel):
     total_chunks_modified: int = Field(0, description="변경된 청크 총 수")
 
 
+class UploadResponse(BaseModel):
+    """파일 업로드 예약 응답 (ADR-30 follow-up).
+
+    predicted_outcome은 처리 *예상* 동작을 사전에 노출해 일괄 업로드 결과
+    토스트에 사용된다. 실제 결과(특히 skip→merge fallback)는 polling으로 확인.
+    """
+    message: str
+    filename: str
+    mode: str = Field(..., description="standard | batch")
+    on_duplicate: str = Field(..., description="merge | replace | skip")
+    predicted_outcome: str = Field(
+        ...,
+        description="new | merge | replace | skip — 처리 예상 동작",
+    )
+
+
 class DuplicateCheckResponse(BaseModel):
     """업로드 전 중복 문서 검사 결과."""
     exists: bool = Field(..., description="동일 파일명(NFC 정규화 기준)의 기존 적재 여부")
