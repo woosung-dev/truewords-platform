@@ -1,6 +1,7 @@
 """RAG 데이터 적재 (Data Ingestion) 관련 관리자 API 라우터."""
 
 import asyncio
+import hashlib
 import logging
 import queue
 import shutil
@@ -42,6 +43,16 @@ from src.qdrant_client import get_async_client, get_client
 # 재업로드 정책 (ADR-30) — merge: 기존 source ∪ 신규, replace: 신규로 교체,
 # skip: COMPLETED 동일 파일이면 임베딩/upsert 모두 건너뜀.
 _VALID_ON_DUPLICATE = ("merge", "replace", "skip")
+
+
+def _compute_content_hash(text: str) -> str:
+    """추출된 원본 텍스트의 SHA-256 hex digest.
+
+    skip 모드(ADR-30 follow-up)에서 동일 파일명이라도 콘텐츠가 변경되었는지
+    판단하는 진실 원점. UTF-8 인코딩의 raw 바이트 기반 — NFC/NFD 정규화 여부는
+    호출자가 결정.
+    """
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 router = APIRouter(prefix="/admin/data-sources", tags=["data-sources"])
 

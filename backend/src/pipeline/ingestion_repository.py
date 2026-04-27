@@ -87,6 +87,19 @@ class IngestionJobRepository:
         self.session.add(job)
         await self.session.flush()
 
+    async def update_content_hash(self, volume_key: str, content_hash: str) -> None:
+        """ADR-30 follow-up: 적재 완료 시점에 텍스트 SHA-256 hash를 기록한다.
+
+        skip 모드에서 후속 재업로드 시 이 값과 비교해 콘텐츠 변경 여부를 판단.
+        """
+        job = await self.get_by_volume_key(volume_key)
+        if job is None:
+            return
+        job.content_hash = content_hash
+        job.updated_at = datetime.utcnow()
+        self.session.add(job)
+        await self.session.flush()
+
     async def fail_job(self, volume_key: str, reason: str) -> None:
         job = await self.get_by_volume_key(volume_key)
         if job is None:
