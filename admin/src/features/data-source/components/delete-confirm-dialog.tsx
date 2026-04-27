@@ -59,8 +59,10 @@ export default function DeleteConfirmDialog({
       // 와 동일 패턴 (eslint react-hooks/set-state-in-effect는 의도된 동작이라 disable).
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTypedValue("");
-      // a11y — focus-management: 입력 필드에 모달 진입 직후 포커스
-      requestAnimationFrame(() => inputRef.current?.focus());
+      // a11y — focus-management: base-ui Dialog의 자체 focus trap이 default focusable
+      // (보통 Close 버튼)에 먼저 focus를 주므로, setTimeout으로 다음 tick에서 input에 다시 이동.
+      const id = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(id);
     }
   }, [open]);
 
