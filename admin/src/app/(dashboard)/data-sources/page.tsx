@@ -530,18 +530,23 @@ export default function DataSourcesPage() {
                 )}
               </label>
             </div>
-            {/* ADR-30 follow-up — 일괄 업로드 시에만 적용. 단건은 모달이 사용자 의사 확인. */}
+            {/* ADR-30 follow-up — 일괄 업로드 사전 검사 모달의 default 정책에 영향. */}
             <label className="flex items-start gap-2 cursor-pointer pt-2 border-t">
               <input
                 type="checkbox"
                 checked={bulkSkipMode}
                 onChange={(e) => setBulkSkipMode(e.target.checked)}
                 className="accent-primary mt-0.5"
+                aria-describedby="bulk-skip-mode-hint"
               />
               <span className="text-sm">
-                일괄 업로드 시 이미 적재된 파일은 건너뜀 (skip 모드)
-                <span className="block text-xs text-muted-foreground">
-                  콘텐츠 동일 시 임베딩 호출 0회 — Gemini API 비용 절감. 단건 업로드는 모달이 우선.
+                일괄 업로드 default를 <strong>skip</strong>으로 설정
+                <span
+                  id="bulk-skip-mode-hint"
+                  className="block text-xs text-muted-foreground"
+                >
+                  사전 검사 모달에서 권장 옵션이 skip으로 미리 선택됩니다 — 콘텐츠 동일 시 Gemini 호출 0회로 비용 절감.
+                  단건 업로드는 별도 모달이 사용자 의사를 확인합니다.
                 </span>
               </span>
             </label>

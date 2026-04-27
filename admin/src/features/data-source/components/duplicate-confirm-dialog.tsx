@@ -74,7 +74,10 @@ export default function DuplicateConfirmDialog({
               <AlertTriangle className="h-5 w-5" />
               동일 파일이 이미 존재합니다
             </Dialog.Title>
-            <Dialog.Close className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+            <Dialog.Close
+              aria-label="닫기"
+              className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
@@ -127,7 +130,8 @@ export default function DuplicateConfirmDialog({
           <div className="flex flex-col gap-2 border-t px-6 py-4">
             <Button
               variant="default"
-              className="w-full justify-center"
+              autoFocus
+              className="w-full justify-center whitespace-normal break-words text-left"
               onClick={() => decide("merge")}
             >
               내용 갱신 (분류 유지: {mergedPreview})
@@ -135,7 +139,7 @@ export default function DuplicateConfirmDialog({
             {canAddTag && (
               <Button
                 variant="outline"
-                className="w-full justify-center"
+                className="w-full justify-center whitespace-normal break-words"
                 onClick={() => decide("add-tag")}
               >
                 임베딩 없이 &quot;{targetSource}&quot; 태그만 추가
@@ -143,11 +147,15 @@ export default function DuplicateConfirmDialog({
             )}
             <Button
               variant="outline"
-              className="w-full justify-center border-amber-300 text-amber-700 hover:bg-amber-50"
+              className="w-full justify-center whitespace-normal break-words border-amber-300 text-amber-700 hover:bg-amber-50"
+              aria-describedby="replace-warning-text"
               onClick={() => decide("replace")}
             >
               덮어쓰기 (분류를 &quot;{targetLabel}&quot;로 교체)
             </Button>
+            <span id="replace-warning-text" className="sr-only">
+              위험: 기존 분류가 사라지고 신규 분류로 통째 교체됩니다.
+            </span>
             <Button
               variant="ghost"
               className="w-full justify-center"
