@@ -132,6 +132,25 @@ class TestIntentClassifierStage:
         assert result.pipeline_state == PipelineState.INTENT_CLASSIFIED
 
     @pytest.mark.asyncio
+    async def test_force_off_env_skips_llm_and_uses_default(self, monkeypatch) -> None:
+        """INTENT_CLASSIFIER_FORCE_OFF=1 환경변수 시 LLM 호출 없이 default 사용 (평가용 토글)."""
+        ctx = ChatContext(request=ChatRequest(query="질문"))
+        ctx.pipeline_state = PipelineState.RUNTIME_RESOLVED
+        ctx.runtime_config = _runtime_config(intent_enabled=True)  # chatbot 토글은 켜져 있어도
+
+        monkeypatch.setenv("INTENT_CLASSIFIER_FORCE_OFF", "1")
+
+        with patch(
+            "src.chat.pipeline.stages.intent_classifier.classify_intent",
+            new_callable=AsyncMock,
+        ) as mock_classify:
+            result = await IntentClassifierStage().execute(ctx)
+
+        assert result.intent == DEFAULT_INTENT
+        assert result.pipeline_state == PipelineState.INTENT_CLASSIFIED
+        mock_classify.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_disabled_skips_llm_and_uses_default(self) -> None:
         ctx = ChatContext(request=ChatRequest(query="질문"))
         ctx.pipeline_state = PipelineState.RUNTIME_RESOLVED
