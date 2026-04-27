@@ -10,7 +10,7 @@ from src.chat.pipeline.state import PipelineState, check_precondition
 class GenerationStage:
     async def execute(self, ctx: ChatContext) -> ChatContext:
         check_precondition(self.__class__.__name__, ctx)
-        context_results = ctx.results[:5]
+        context_results = ctx.results[:8]
         ctx.answer = await generate_answer(
             ctx.request.query,
             context_results,

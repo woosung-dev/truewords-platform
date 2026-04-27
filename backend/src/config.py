@@ -37,7 +37,7 @@ class Settings(BaseSettings):
 
     # Semantic Cache 설정
     cache_collection_name: str = "semantic_cache"
-    cache_threshold: float = 0.93
+    cache_threshold: float = 0.88
     cache_ttl_days: int = 7
 
     # Cascading search 기본값

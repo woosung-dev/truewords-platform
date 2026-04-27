@@ -14,7 +14,7 @@ class RerankStage:
         check_precondition(self.__class__.__name__, ctx)
         if ctx.runtime_config and ctx.runtime_config.retrieval.rerank_enabled and ctx.results:
             start = time.monotonic()
-            ctx.results = await rerank(ctx.request.query, ctx.results, top_k=10)
+            ctx.results = await rerank(ctx.request.query, ctx.results, top_k=15)
             ctx.rerank_latency_ms = int((time.monotonic() - start) * 1000)
             ctx.reranked = any(r.rerank_score is not None for r in ctx.results)
         else:
