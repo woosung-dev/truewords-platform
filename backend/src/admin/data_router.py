@@ -258,12 +258,8 @@ def _process_file_standard(
         return future.result()
 
     try:
-        # ADR-30: skip 모드는 텍스트 추출 후 content_hash까지 비교해야 정확하므로
-        # 기존 job을 보관해 두고 사전 차단은 하지 않는다.
-        # PARTIAL/RUNNING은 재개 의도가 명확하므로 이 분기를 통과시켜 이어서 적재.
-        existing_job = None
-        if on_duplicate == "skip":
-            existing_job = run_repo(lambda r: r.get_by_volume_key(volume_key))
+        # ADR-30 follow-up: 모든 모드에서 기존 job을 먼저 조회 (skip 단축 + reset 판단용)
+        existing_job = run_repo(lambda r: r.get_by_volume_key(volume_key))
 
         run_repo(lambda r: r.upsert_pending(volume_key, filename, source))
 
@@ -280,7 +276,7 @@ def _process_file_standard(
             return
 
         # ADR-30 follow-up: skip + COMPLETED + 콘텐츠 hash 일치면 임베딩/upsert 모두 생략.
-        # 처리 진입 시 upsert_pending이 PENDING으로 리셋했으므로 COMPLETED 복구도 수행.
+        # upsert_pending이 total_chunks=0/processed=0으로 리셋했으므로 둘 다 복구 (Codex P2).
         new_hash = _compute_content_hash(text)
         if (
             on_duplicate == "skip"
@@ -289,12 +285,17 @@ def _process_file_standard(
             and existing_job.processed_chunks > 0
             and existing_job.content_hash == new_hash
         ):
-            preserved_chunks = existing_job.processed_chunks
+            preserved_processed = existing_job.processed_chunks
+            preserved_total = existing_job.total_chunks or preserved_processed
             logger.info(
-                "[%s] skip + COMPLETED + content_hash 일치(%d청크) → 임베딩 생략 (Gemini 호출 0회)",
-                volume_key, preserved_chunks,
+                "[%s] skip + COMPLETED + content_hash 일치(%d/%d청크) → 임베딩 생략 (Gemini 호출 0회)",
+                volume_key, preserved_processed, preserved_total,
             )
-            run_repo(lambda r: r.complete_job(volume_key, preserved_chunks))
+            run_repo(
+                lambda r: r.complete_job(
+                    volume_key, preserved_processed, total_chunks=preserved_total
+                )
+            )
             run_repo(lambda r: r.update_content_hash(volume_key, new_hash))
             return
 
@@ -307,37 +308,57 @@ def _process_file_standard(
                             title=meta["title"], date=meta["date"])
         logger.info("[%s] 청킹 완료 (%d개 청크)", volume_key, len(chunks))
 
-        # 4. Qdrant에서 재개 지점 조회
+        # 4. ADR-30 P1 (Codex 권고): COMPLETED 재업로드는 reset 후 0부터 적재한다.
+        #    start_chunk 자동 재개를 그대로 두면 같은 길이 재업로드 시 effective_chunks=[]
+        #    → upsert 0회 → payload_sources(merge union)이 적용되지 않는 silent no-op 발생.
+        #    PARTIAL/RUNNING은 재개 의도가 명확하므로 reset 안 함 (이어서 적재).
         sync_client = get_client()
-        start_chunk = sync_client.count(
-            collection_name=settings.collection_name,
-            count_filter=Filter(must=[
-                FieldCondition(key="volume", match=MatchValue(value=volume)),
-            ]),
-        ).count
-        if start_chunk > 0:
-            logger.info("[%s] Qdrant %d청크 확인 → %d번부터 재개 (총 %d청크)",
-                        volume_key, start_chunk, start_chunk, len(chunks))
+        existing_sources, existing_chunk_count = run_async(_get_existing_snapshot(volume))
+
+        needs_reset = (
+            existing_job is not None
+            and existing_job.status == IngestionStatus.COMPLETED
+            and existing_chunk_count > 0
+        )
+        if needs_reset:
+            sync_client.delete(
+                collection_name=settings.collection_name,
+                points_selector=Filter(must=[
+                    FieldCondition(key="volume", match=MatchValue(value=volume)),
+                ]),
+            )
+            logger.info(
+                "[%s] 재업로드 reset: 기존 %d청크 삭제 + start_chunk=0 (on_duplicate=%s)",
+                volume_key, existing_chunk_count, on_duplicate,
+            )
+            start_chunk = 0
+        else:
+            start_chunk = existing_chunk_count
+            if start_chunk > 0:
+                logger.info(
+                    "[%s] Qdrant %d청크 확인 → %d번부터 재개 (총 %d청크)",
+                    volume_key, start_chunk, start_chunk, len(chunks),
+                )
 
         # 5. RUNNING 상태 + total_chunks 저장
         run_repo(lambda r: r.start_run(volume_key, total_chunks=len(chunks)))
-        # 재개 지점 반영
         if start_chunk > 0:
             run_repo(lambda r: r.update_progress(volume_key, start_chunk))
 
-        # 6. ADR-30 merge 모드: 기존 payload.source 와 신규 source 합집합 계산.
-        # 결과가 비어있으면 None으로 넘겨 ingest_chunks가 chunk.source를 사용하게 한다.
+        # 6. ADR-30: payload.source 정책 적용.
+        #    - merge: 기존 ∪ 신규 (existing_sources는 reset 직전 스냅샷이므로 신뢰 가능)
+        #    - skip(여기 도달 = hash 불일치 fallback): merge와 동일 정책으로 분류 보존
+        #    - replace: None → ingest_chunks가 chunk.source([source])를 그대로 사용
         payload_sources: list[str] | None = None
-        if on_duplicate == "merge":
-            existing_sources, _ = run_async(_get_existing_snapshot(volume_key))
+        if on_duplicate in ("merge", "skip"):
             union = {s for s in existing_sources if s}
             if source:
                 union.add(source)
             payload_sources = sorted(union) if union else None
             if payload_sources:
                 logger.info(
-                    "[%s] merge 정책: 기존 source=%s + 신규 '%s' → 적재 source=%s",
-                    volume_key, existing_sources, source, payload_sources,
+                    "[%s] %s 정책: 기존 source=%s + 신규 '%s' → 적재 source=%s",
+                    volume_key, on_duplicate, existing_sources, source, payload_sources,
                 )
 
         # 7. 임베딩 + 적재 (upsert마다 on_progress 콜백으로 DB 갱신)
@@ -362,7 +383,11 @@ def _process_file_standard(
         else:
             logger.info("[%s] 적재 완료 (%d청크, %.1f초)",
                         volume_key, stats["chunk_count"], stats["elapsed_sec"])
-            run_repo(lambda r: r.complete_job(volume_key, len(chunks)))
+            run_repo(
+                lambda r: r.complete_job(
+                    volume_key, len(chunks), total_chunks=len(chunks)
+                )
+            )
             # ADR-30 follow-up: 완전 적재 성공 시에만 hash 기록 (PARTIAL은 콘텐츠 일부만
             # 반영된 상태라 후속 skip 비교에서 사용하면 부정확).
             run_repo(lambda r: r.update_content_hash(volume_key, new_hash))

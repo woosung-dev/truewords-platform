@@ -65,13 +65,27 @@ class IngestionJobRepository:
         self.session.add(job)
         await self.session.flush()
 
-    async def complete_job(self, volume_key: str, processed_chunks: int) -> None:
+    async def complete_job(
+        self,
+        volume_key: str,
+        processed_chunks: int,
+        *,
+        total_chunks: int | None = None,
+    ) -> None:
+        """COMPLETED 상태로 전이.
+
+        ADR-30 follow-up: skip 단축 경로처럼 upsert_pending이 total_chunks를 0으로
+        리셋한 뒤 호출되는 경우 ``total_chunks``를 명시 전달해 dashboard 표시
+        정확성을 회복한다. None이면 기존 값 유지.
+        """
         job = await self.get_by_volume_key(volume_key)
         if job is None:
             return
         now = datetime.utcnow()
         job.status = IngestionStatus.COMPLETED
         job.processed_chunks = processed_chunks
+        if total_chunks is not None:
+            job.total_chunks = total_chunks
         job.completed_at = now
         job.updated_at = now
         self.session.add(job)
