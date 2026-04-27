@@ -12,6 +12,11 @@ engine = create_async_engine(
     echo=False,
     pool_size=5,
     max_overflow=10,
+    # Cloud Run idle 후 Cloud SQL/middlebox가 connection을 끊는 케이스 방어.
+    # pre_ping: 사용 직전 SELECT 1 으로 liveness 체크.
+    # recycle: 1800s 경과 connection은 재사용하지 않고 새로 발급.
+    pool_pre_ping=True,
+    pool_recycle=1800,
 )
 
 async_session_factory = async_sessionmaker(
