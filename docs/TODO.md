@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-04-24
+> 마지막 업데이트: 2026-04-27
 
 ## Progress Overview
 
@@ -82,6 +82,15 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] **[Follow-up]** NFC/NFD 혼재 데이터 정리 마이그레이션 스크립트 — `backend/scripts/migrate_nfc_nfd_volumes.py` (dry-run 우선, 중복 그룹 감지 → canonical payload 업데이트 + 중복 포인트 삭제)
 - [x] **[Follow-up]** bulk 엔드포인트 NFD → NFC 통일 — PR #24로 NFC/NFD 둘 다 매칭하도록 픽스 완료
 - [x] **[Follow-up]** `qdrant_service.remove_volume_tag`(단일)도 NFC+NFD 양쪽 매칭으로 통일 — bulk 경로(PR #24)와 동일 패턴 적용. search_terms 에 NFC/NFD 둘 다 + scroll 결과를 NFC 기준 재확인
+
+### 재업로드 정책 `on_duplicate` (ADR-30, 2026-04-27)
+- [x] ADR-30 — `docs/dev-log/30-upload-on-duplicate-mode.md`
+- [x] Backend `POST /admin/data-sources/upload` `on_duplicate=merge|replace|skip` Form 파라미터 (default `merge`)
+- [x] `ingestor.py` — `payload_sources` 파라미터로 chunk.source override (merge union 지원)
+- [x] `_process_file_standard` — skip(COMPLETED 동일 파일이면 임베딩 생략) + merge(기존 ∪ 신규) 분기
+- [x] pytest 3건 추가 (`test_payload_sources_*`) — 12 PASS, 전체 collect 452 import OK
+- [x] Admin `DuplicateDecision` 4분기로 확장 (`merge`/`add-tag`/`replace`/`cancel`) + `uploadFile`이 `on_duplicate` 전달
+- [x] Dialog merge 미리보기(기존 ∪ 신규) + default 권장 버튼을 "내용 갱신 (분류 유지)"로 변경
 
 ### Backend — 보안 강화 (2026-04-11)
 - [x] Prompt Injection 패턴 강화 — Zero-width 정규화, 패턴 7개 추가 (16→23개)
@@ -176,6 +185,23 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] Streak 트래커 (M-03)
 - [ ] Agentic RAG
 - [ ] 단계적 공개 (Staged Rollout)
+
+### 10. ADR-30 후속 (재업로드 정책) — 2026-04-27 완료
+- [x] **batch 모드 정렬** — `mode=batch`도 `on_duplicate` Form 파라미터 받음. `BatchService.submit`/`_ingest_batch_results`에 정책 적용 (merge union + skip 사전 차단). `_process_file` warning 제거. 커밋 `b7c56fb`
+- [x] **`IngestionJob.content_hash` 도입** — SHA-256 hex 컬럼 + Alembic 마이그레이션(`dcf99a84bff1`). `_process_file_standard`에서 hash 비교로 skip 강화 (Gemini 호출 0회). 커밋 `f2efd20`, `1e8c5b3`, `4e57a40`
+- [x] **일괄 업로드 결과 리포트** — UploadResponse `predicted_outcome` 추가, Admin UI에서 일괄 업로드 후 "신규/병합/덮어쓰기/스킵" 통계 토스트 + bulk skip 토글 노출. 커밋 `fb99d00`, `cf86ef1`
+- [x] **부수: batch UUID NAMESPACE_URL 정렬** — `batch_service` `NAMESPACE_DNS`→`NAMESPACE_URL`로 정렬해 standard와 Point ID 정합성 확보 (잠재 중복 적재 버그 픽스). 커밋 `ef971a3`
+- [x] **부수: BatchJob.on_duplicate 컬럼** — Alembic 마이그레이션(`4d872f8826ad`), default 'merge'. 커밋 `1ffcf61`
+
+### 10b. ADR-30 Phase 2 — Codex review 후속 (2026-04-27 완료)
+> Codex CLI 코드 리뷰 후 발견된 [P1] 1건 + [P2] 3건 + UI BUG 1건을 같은 PR에 합쳐 머지. 검증 잠금까지.
+
+- [x] **[P1] start_chunk 자동 재개로 인한 merge/replace silent no-op 픽스** — `_process_file_standard`에 needs_reset 분기 추가, COMPLETED 재업로드 시 기존 Qdrant 청크 삭제 + start_chunk=0. skip+hash 불일치 fallback도 merge와 동일 정책. 커밋 `443d20f`
+- [x] **[P2] skip 단축 경로 total_chunks 보존** — `complete_job(total_chunks=...)` 키워드 인자 + 두 호출처에 적용. 커밋 `443d20f`
+- [x] **[P2] legacy NAMESPACE_DNS 마이그레이션 스크립트** — `backend/scripts/migrate_batch_dns_to_url.py` (dry-run + 충돌 통계 + URL-ID upsert 후 DNS-ID 삭제). 커밋 `f840046`
+- [x] **[BUG-A] 일괄 업로드 dialog 충돌 silent failure 픽스** — `BulkPrecheckDialog` + `runBulkUpload` sequential + performUpload silent 옵션. 커밋 `c24fdea`
+- [x] **a11y / 라벨 명확화** — Dialog.Close `aria-label`, default 권장 `autoFocus`, `aria-describedby` 위험 안내, bulk skip 토글 라벨/hint 재작성. 커밋 `0bc774d`
+- [x] **회귀 잠금** — `inspect`-based 테스트 3건 (reset 분기 / total_chunks 키워드 / NAMESPACE_URL 사용) — 29 PASS
 
 ### 9. 아키텍처 리팩토링 선행 작업 (2026-04-24 착수)
 > 플랜: `~/.claude/plans/sleepy-sleeping-summit.md` (v4.1)

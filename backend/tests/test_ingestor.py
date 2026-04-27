@@ -133,3 +133,68 @@ def test_ingest_passes_title_to_embed_dense_batch():
     assert call_args.kwargs.get("title") == "창조원리" or (
         len(call_args.args) > 1 and call_args.args[1] == "창조원리"
     )
+
+
+# ---------------------------------------------------------------------------
+# ADR-30: payload_sources (재업로드 merge/replace 정책 지원)
+# ---------------------------------------------------------------------------
+
+
+def test_payload_sources_overrides_chunk_source():
+    """payload_sources를 명시하면 chunk.source 값을 무시하고 그 리스트로 통일."""
+    mock_client = MagicMock()
+    chunks = [
+        Chunk(text="청크1", volume="vol_001", chunk_index=0, source="A"),
+        Chunk(text="청크2", volume="vol_001", chunk_index=1, source=["B"]),
+    ]
+
+    with (
+        patch("src.pipeline.ingestor.embed_dense_batch", return_value=[[0.1] * 1536] * 2),
+        patch("src.pipeline.ingestor.embed_sparse_batch", return_value=[([1], [0.5])] * 2),
+    ):
+        ingest_chunks(
+            mock_client,
+            "test_collection",
+            chunks,
+            payload_sources=["A", "C"],
+        )
+
+    points = mock_client.upsert.call_args.kwargs["points"]
+    assert points[0].payload["source"] == ["A", "C"]
+    assert points[1].payload["source"] == ["A", "C"]
+
+
+def test_payload_sources_none_keeps_chunk_source():
+    """payload_sources=None(기본값)일 때 기존 chunk.source 동작이 유지됨."""
+    mock_client = MagicMock()
+    chunks = [Chunk(text="청크", volume="vol_001", chunk_index=0, source="A")]
+
+    with (
+        patch("src.pipeline.ingestor.embed_dense_batch", return_value=[[0.1] * 1536]),
+        patch("src.pipeline.ingestor.embed_sparse_batch", return_value=[([1], [0.5])]),
+    ):
+        ingest_chunks(mock_client, "test_collection", chunks, payload_sources=None)
+
+    points = mock_client.upsert.call_args.kwargs["points"]
+    assert points[0].payload["source"] == ["A"]
+
+
+def test_payload_sources_empty_chunk_source_replaced_when_provided():
+    """기존 source 비어있어도 payload_sources가 명시되면 그대로 적용 (merge 시나리오)."""
+    mock_client = MagicMock()
+    chunks = [Chunk(text="청크", volume="vol_001", chunk_index=0)]  # source 미지정
+
+    with (
+        patch("src.pipeline.ingestor.embed_dense_batch", return_value=[[0.1] * 1536]),
+        patch("src.pipeline.ingestor.embed_sparse_batch", return_value=[([1], [0.5])]),
+    ):
+        ingest_chunks(
+            mock_client,
+            "test_collection",
+            chunks,
+            payload_sources=["A", "B"],
+        )
+
+    points = mock_client.upsert.call_args.kwargs["points"]
+    # merge 모드에서 기존 ["A"] + 새 "B" → 모든 청크 ["A", "B"]
+    assert points[0].payload["source"] == ["A", "B"]

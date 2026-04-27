@@ -28,3 +28,5 @@ class BatchJob(SQLModel, table=True):
     error_message: str | None = Field(default=None, sa_column=Column(Text))
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     completed_at: datetime | None = None
+    # ADR-30 follow-up — 재업로드 정책. 적재 시점에 payload.source union 적용 등에 사용.
+    on_duplicate: str = Field(default="merge", max_length=16)
