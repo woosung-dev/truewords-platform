@@ -5,6 +5,8 @@ import type {
   IngestionStatus,
   CategoryDocumentStats,
   UploadResponse,
+  VolumeDeleteRequest,
+  VolumeDeleteResponse,
   VolumeTagRequest,
   VolumeTagResponse,
   VolumeInfo,
@@ -61,6 +63,17 @@ export const dataAPI = {
     fetchAPI<DuplicateCheckResponse>(
       `/admin/data-sources/check-duplicate?filename=${encodeURIComponent(filename)}`
     ),
+  // ADR-30 Phase 3 — volume(파일) 영구 삭제 (Qdrant + IngestionJob + BatchJob)
+  deleteVolume: (volume: string) =>
+    fetchAPI<VolumeDeleteResponse>(
+      `/admin/data-sources/volumes/${encodeURIComponent(volume)}`,
+      { method: "DELETE" },
+    ),
+  deleteVolumesBulk: (data: VolumeDeleteRequest) =>
+    fetchAPI<VolumeDeleteResponse>("/admin/data-sources/volumes/delete-bulk", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
 
 export const dataSourceCategoryAPI = {

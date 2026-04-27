@@ -88,3 +88,14 @@ export interface UploadResponse {
   on_duplicate: "merge" | "replace" | "skip";
   predicted_outcome: PredictedOutcome;
 }
+
+// Volume 영구 삭제 (Qdrant 청크 + IngestionJob/BatchJob row).
+export interface VolumeDeleteRequest {
+  volumes: string[];
+}
+
+export interface VolumeDeleteResponse {
+  deleted_volumes: string[];
+  total_chunks_deleted: number;
+  skipped: SkippedVolume[];
+}
