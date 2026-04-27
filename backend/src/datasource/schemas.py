@@ -83,6 +83,21 @@ class VolumeTagsBulkResponse(BaseModel):
     total_chunks_modified: int = Field(0, description="변경된 청크 총 수")
 
 
+class VolumeDeleteResponse(BaseModel):
+    """Volume(파일) 영구 삭제 결과."""
+    deleted_volumes: list[str] = Field(default_factory=list, description="실제 삭제된 volume 이름")
+    total_chunks_deleted: int = Field(0, description="Qdrant에서 삭제된 청크 총수")
+    skipped: list[dict] = Field(
+        default_factory=list,
+        description="삭제되지 않은 volume 리스트. 각 항목: {volume, reason}",
+    )
+
+
+class VolumeDeleteRequest(BaseModel):
+    """다중 volume 영구 삭제 요청."""
+    volumes: list[str] = Field(..., min_length=1, description="삭제할 volume 이름 리스트")
+
+
 class UploadResponse(BaseModel):
     """파일 업로드 예약 응답 (ADR-30 follow-up).
 

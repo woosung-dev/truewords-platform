@@ -126,6 +126,18 @@ class IngestionJobRepository:
         self.session.add(job)
         await self.session.flush()
 
+    async def delete_by_volume_key(self, volume_key: str) -> bool:
+        """volume(파일) 단위로 IngestionJob row를 영구 삭제한다.
+
+        Returns: True면 row를 찾아 삭제, False면 없어서 skip.
+        """
+        job = await self.get_by_volume_key(volume_key)
+        if job is None:
+            return False
+        await self.session.delete(job)
+        await self.session.flush()
+        return True
+
     async def list_all(self) -> list[IngestionJob]:
         stmt = select(IngestionJob).order_by(IngestionJob.created_at.desc())
         result = await self.session.execute(stmt)

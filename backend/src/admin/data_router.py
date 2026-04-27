@@ -24,6 +24,8 @@ from src.datasource.schemas import (
     CategoryDocumentStats,
     DuplicateCheckResponse,
     UploadResponse,
+    VolumeDeleteRequest,
+    VolumeDeleteResponse,
     VolumeInfo,
     VolumeTagRequest,
     VolumeTagResponse,
@@ -735,6 +737,143 @@ async def remove_volume_tags_bulk(
     DELETE + body는 일부 클라이언트/프록시에서 문제 가능성이 있어 POST로 운영.
     """
     return await qdrant_service.remove_volume_tags_bulk(request.volumes, request.source)
+
+
+# ---------------------------------------------------------------------------
+# Volume(파일) 영구 삭제 — Qdrant 청크 + IngestionJob row + BatchJob row 일괄 정리.
+# 운영자가 잘못 적재했거나 더 이상 학습에 사용하지 않을 파일을 깨끗이 제거하는 용도.
+# 되돌릴 수 없는 destructive 작업이므로 UI는 typed-confirm 패턴 권장.
+# ---------------------------------------------------------------------------
+
+
+async def _delete_volume_artifacts(
+    volume_key: str,
+    qdrant_service: DataSourceQdrantService,
+) -> dict:
+    """단일 volume에 대해 Qdrant + IngestionJob + BatchJob 모두 삭제.
+
+    순서: Qdrant 먼저(검색에 즉시 영향) → DB. Qdrant 실패 시 DB는 건드리지 않아
+    Qdrant↔DB 불일치를 최소화한다. DB 단계 실패는 Qdrant cleanup 후이므로 다음
+    재시도/재업로드로 자연 정리된다.
+    """
+    qdrant_result = await qdrant_service.delete_volumes([volume_key])
+    chunks_deleted = qdrant_result.total_chunks_deleted
+
+    ingestion_deleted = False
+    batch_deleted_count = 0
+    async with async_session_factory() as session:
+        ing_repo = IngestionJobRepository(session)
+        ingestion_deleted = await ing_repo.delete_by_volume_key(
+            unicodedata.normalize("NFC", volume_key)
+        )
+        from src.pipeline.batch_repository import BatchJobRepository
+
+        batch_repo = BatchJobRepository(session)
+        batch_deleted_count = await batch_repo.delete_by_volume_key(
+            unicodedata.normalize("NFC", volume_key)
+        )
+        await session.commit()
+
+    return {
+        "volume": volume_key,
+        "chunks_deleted": chunks_deleted,
+        "ingestion_row_deleted": ingestion_deleted,
+        "batch_rows_deleted": batch_deleted_count,
+        "skipped": qdrant_result.skipped,
+    }
+
+
+@router.delete(
+    "/volumes/{volume_key:path}",
+    response_model=VolumeDeleteResponse,
+    summary="단일 volume 영구 삭제",
+)
+async def delete_volume(
+    volume_key: str,
+    current_admin: dict = Depends(get_current_admin),
+    qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
+):
+    """volume(파일) 한 건을 영구 삭제합니다.
+
+    - Qdrant의 모든 청크 삭제 (NFC/NFD 둘 다 매칭)
+    - PostgreSQL의 ``IngestionJob`` row 삭제
+    - 같은 volume의 ``BatchJob`` row 모두 삭제
+
+    되돌릴 수 없는 destructive 작업입니다. UI는 typed-confirm 패턴으로 사용자
+    의사를 한 번 더 확인할 것을 권장합니다.
+    """
+    if not volume_key.strip():
+        raise HTTPException(status_code=400, detail="volume_key가 비어있습니다")
+
+    result = await _delete_volume_artifacts(volume_key, qdrant_service)
+    deleted = bool(result["chunks_deleted"]) or result["ingestion_row_deleted"] or bool(
+        result["batch_rows_deleted"]
+    )
+    skipped: list[dict] = []
+    if not deleted:
+        skipped.append({"volume": volume_key, "reason": "Qdrant/DB 어디에도 데이터 없음"})
+
+    logger.warning(
+        "[delete_volume] %s — chunks=%d ingestion=%s batch=%d (admin=%s)",
+        volume_key,
+        result["chunks_deleted"],
+        result["ingestion_row_deleted"],
+        result["batch_rows_deleted"],
+        current_admin.get("username") if isinstance(current_admin, dict) else current_admin,
+    )
+
+    return VolumeDeleteResponse(
+        deleted_volumes=[volume_key] if deleted else [],
+        total_chunks_deleted=result["chunks_deleted"],
+        skipped=skipped,
+    )
+
+
+@router.post(
+    "/volumes/delete-bulk",
+    response_model=VolumeDeleteResponse,
+    summary="다수 volume 영구 삭제 (bulk)",
+)
+async def delete_volumes_bulk(
+    request: VolumeDeleteRequest,
+    current_admin: dict = Depends(get_current_admin),
+    qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
+):
+    """다수 volume을 한 번에 영구 삭제합니다.
+
+    DELETE + body는 일부 클라이언트/프록시에서 문제 가능성이 있어 POST로 운영
+    (``volume-tags/bulk-remove``와 동일 패턴).
+    """
+    deleted_volumes: list[str] = []
+    total_chunks = 0
+    skipped: list[dict] = []
+    for vol in request.volumes:
+        try:
+            result = await _delete_volume_artifacts(vol, qdrant_service)
+        except Exception as e:
+            logger.exception("[delete_volumes_bulk] %s 삭제 실패", vol)
+            skipped.append({"volume": vol, "reason": f"오류: {e}"})
+            continue
+        if result["chunks_deleted"] or result["ingestion_row_deleted"] or result["batch_rows_deleted"]:
+            deleted_volumes.append(vol)
+            total_chunks += result["chunks_deleted"]
+        else:
+            skipped.append({"volume": vol, "reason": "Qdrant/DB 어디에도 데이터 없음"})
+
+    logger.warning(
+        "[delete_volumes_bulk] requested=%d deleted=%d chunks=%d skipped=%d (admin=%s)",
+        len(request.volumes),
+        len(deleted_volumes),
+        total_chunks,
+        len(skipped),
+        current_admin.get("username") if isinstance(current_admin, dict) else current_admin,
+    )
+
+    return VolumeDeleteResponse(
+        deleted_volumes=sorted(deleted_volumes),
+        total_chunks_deleted=total_chunks,
+        skipped=skipped,
+    )
 
 
 @router.get("/batch-jobs")
