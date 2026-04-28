@@ -140,17 +140,19 @@ class TestB5PersonaOverride:
 
 
 class TestB4HotlineEnforced:
-    """B4 — pastoral 답변에 1393 강제 append (LLM omit 방어)."""
+    """B4 — pastoral 답변에 hotline footer 강제 append (PoC: 무조건 append)."""
 
-    def test_answer_with_1393_unchanged(self) -> None:
+    def test_answer_with_inline_1393_still_gets_footer(self) -> None:
+        """PoC 정책: LLM 이 inline 으로 1393 만 언급해도 footer 박스 강제 append.
+
+        이전 정책은 1393 substring 있으면 통과시켰으나, false positive 위험
+        (예: "보고서 1393 번") 으로 footer 누락 가능. 안전 우선 정책으로 전환.
+        """
         original = "지금 많이 힘드시군요. 1393 으로 연락해보세요."
         result = ensure_hotline_in_answer(original)
-        assert result == original
-
-    def test_answer_with_1577_0199_unchanged(self) -> None:
-        original = "정신건강위기상담 1577-0199 도 24시간 무료입니다."
-        result = ensure_hotline_in_answer(original)
-        assert result == original
+        assert result.startswith(original)
+        # footer 박스 자체는 무조건 추가됨
+        assert "💙 즉각적인 도움이 필요하시다면" in result
 
     def test_answer_without_hotline_appends_footer(self) -> None:
         original = "지금 많이 힘드시군요. 함께 천천히 나눠봐요."
@@ -165,11 +167,12 @@ class TestB4HotlineEnforced:
         assert "1393" in result
 
     def test_idempotent_when_already_appended(self) -> None:
-        """이미 footer 가 있으면 중복 append 안 함."""
+        """이미 footer 박스가 있으면 중복 append 안 함."""
         with_footer = "위로 답변" + PASTORAL_HOTLINE_FOOTER
         result = ensure_hotline_in_answer(with_footer)
-        # 두 번 들어가지 않아야 함
-        assert result.count("1393") == 1
+        # footer 박스는 정확히 한 번만
+        assert result.count("💙 즉각적인 도움이 필요하시다면") == 1
+        assert result == with_footer  # 변경되지 않음
 
 
 class TestResolveModeReturnsTuple:

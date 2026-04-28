@@ -65,6 +65,11 @@ class ClosingTemplateStage:
         if not ctx.answer:
             ctx.closing = None
             return ctx
+        # PoC hotfix (Codex review #2 권고) — pastoral 모드는 위기 답변이므로
+        # "기도문 자동 생성" 이 의료 윤리적으로 부적절. 자동 skip.
+        if ctx.resolved_answer_mode == "pastoral":
+            ctx.closing = None
+            return ctx
 
         system_prompt = CLOSING_PROMPTS.get(gen_cfg.closing_kind)
         if system_prompt is None:

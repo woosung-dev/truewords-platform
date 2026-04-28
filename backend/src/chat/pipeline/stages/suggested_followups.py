@@ -76,6 +76,11 @@ class SuggestedFollowupsStage:
         if not ctx.answer:
             ctx.suggested_followups = None
             return ctx
+        # PoC hotfix (Codex review #2 권고) — pastoral 모드는 위기 답변이므로
+        # "다음 질문 추천" 노출이 의료 윤리적으로 부적절. 자동 skip.
+        if ctx.resolved_answer_mode == "pastoral":
+            ctx.suggested_followups = None
+            return ctx
 
         prompt = _build_prompt(ctx.request.query, ctx.answer)
         try:

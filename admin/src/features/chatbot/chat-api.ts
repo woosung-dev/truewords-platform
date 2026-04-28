@@ -1,7 +1,6 @@
 import type {
   AnswerMode,
   TheologicalEmphasis,
-  Visibility,
 } from "@/features/chat/types";
 
 export interface ChatBot {
@@ -11,13 +10,11 @@ export interface ChatBot {
 }
 
 /**
- * 입력 화면(W2-②)에서 sendMessage 에 함께 실어보내는 옵션.
- * 백엔드 schema 통합(W2-③ feat/chat-request-schema)이 머지되면 자동 검증됨.
+ * 입력 화면에서 sendMessage 에 함께 실어보내는 옵션.
  */
 export interface ChatRequestOptions {
   answer_mode?: AnswerMode;
   theological_emphasis?: TheologicalEmphasis;
-  visibility?: Visibility;
 }
 
 export interface Source {
@@ -87,7 +84,6 @@ export const chatAPI = {
         ...(options?.theological_emphasis
           ? { theological_emphasis: options.theological_emphasis }
           : {}),
-        ...(options?.visibility ? { visibility: options.visibility } : {}),
       }),
       signal,
     });

@@ -22,11 +22,6 @@ export interface SourceChunkDetail {
   text: string;
   volume: string;
   sources: string[];
-  citation_label: string | null;
-  volume_no: number | null;
-  delivered_at: string | null;
-  delivered_place: string | null;
-  chapter_title: string | null;
 }
 
 export interface SourceOriginalModalProps {
@@ -103,7 +98,7 @@ export function SourceOriginalModal({
       return (
         <article className="space-y-3">
           <p className="font-mono text-xs text-muted-foreground tabular-nums break-keep-all">
-            {state.detail.citation_label ?? fallbackLabel ?? state.detail.volume}
+            {fallbackLabel ?? state.detail.volume}
           </p>
           <p className="font-reading text-[16px] leading-[1.85] text-foreground break-keep-all whitespace-pre-line">
             {renderWithHighlight(state.detail.text, highlightSnippet)}

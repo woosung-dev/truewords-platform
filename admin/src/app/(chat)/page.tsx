@@ -63,12 +63,9 @@ import {
   EmphasisSheet,
   EmphasisRowTrigger,
 } from "@/features/chat/components/emphasis-sheet";
-import { VisibilityToggle } from "@/features/chat/components/visibility-toggle";
-import { PopularQuestions } from "@/features/chat/components/popular-questions";
 import type {
   AnswerMode,
   TheologicalEmphasis,
-  Visibility,
 } from "@/features/chat/types";
 
 interface Message {
@@ -126,7 +123,6 @@ export default function ChatPage() {
   // W2-② P0-E / P1-G / P2-D — 입력 화면 옵션 state
   const [answerMode, setAnswerMode] = useState<AnswerMode>("standard");
   const [emphasis, setEmphasis] = useState<TheologicalEmphasis>("all");
-  const [visibility, setVisibility] = useState<Visibility>("private");
   const [personaSheetOpen, setPersonaSheetOpen] = useState(false);
   const [emphasisSheetOpen, setEmphasisSheetOpen] = useState(false);
 
@@ -201,7 +197,6 @@ export default function ChatPage() {
         {
           answer_mode: answerMode,
           theological_emphasis: emphasis,
-          visibility,
         },
       );
       setSessionId(res.session_id);
@@ -233,7 +228,7 @@ export default function ChatPage() {
       // textarea focus 복원 (응답 후 자연스러운 연속 질문)
       requestAnimationFrame(() => textareaRef.current?.focus());
     }
-  }, [input, selectedBot, sessionId, loading, answerMode, emphasis, visibility]);
+  }, [input, selectedBot, sessionId, loading, answerMode, emphasis]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -485,17 +480,7 @@ export default function ChatPage() {
               }}
             />
 
-            {/* P1-C — 동적 인기 질문 (이번 주). 데이터 없으면 자동 숨김. */}
-            {!botsLoading && selectedBot && (
-              <PopularQuestions
-                chatbotId={selectedBot}
-                onSelect={(q) => setInput(q)}
-                period="7d"
-                limit={5}
-              />
-            )}
-
-            {/* 추천 질문 (chip) — 정적 fallback */}
+            {/* 추천 질문 (chip) — 정적 SUGGESTED_PROMPTS */}
             {!botsLoading && selectedBot && (
               <div className="flex w-full flex-wrap justify-center gap-2">
                 {SUGGESTED_PROMPTS.map((prompt) => (
@@ -530,7 +515,6 @@ export default function ChatPage() {
                 onClick={() => setEmphasisSheetOpen(true)}
               />
 
-              <VisibilityToggle value={visibility} onChange={setVisibility} />
             </section>
 
             {/* 보내기 CTA */}

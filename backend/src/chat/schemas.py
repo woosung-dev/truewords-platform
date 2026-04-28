@@ -6,7 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from src.chat.models import FeedbackType
-from src.chat.types import AnswerMode, MessageVisibility, TheologicalEmphasis
+from src.chat.types import AnswerMode, TheologicalEmphasis
 
 
 class ChatRequest(BaseModel):
@@ -17,8 +17,6 @@ class ChatRequest(BaseModel):
     answer_mode: AnswerMode | None = None
     # P1-G 신학 강조점 토글 — runtime_config 의 system prompt 추가절(節) 분기
     theological_emphasis: TheologicalEmphasis | None = None
-    # P2-D 공개/비공개 — chat_message.visibility 와 매핑
-    visibility: MessageVisibility | None = None
 
 
 class Source(BaseModel):

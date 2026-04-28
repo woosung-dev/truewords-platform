@@ -207,19 +207,21 @@ def select_system_prompt(
 
 
 def ensure_hotline_in_answer(answer: str) -> str:
-    """B4 — pastoral 답변에 1393 또는 1577-0199 미포함 시 강제 append.
+    """B4 — pastoral 답변에 hotline 강제 append (PoC hotfix: 무조건 append).
 
-    LLM 이 system prompt 의 hotline 안내를 출력에서 omit 했을 때 코드가 보장한다.
+    이전 구현은 답변에 1393/1577-0199 substring 이 있으면 통과시켰지만, Codex
+    review #2 가 지적한 false-positive 위험 (예: "보고서 1393 번" 등 무관한
+    컨텍스트의 1393) 으로 footer 가 누락될 수 있었다.
+
+    PoC 단계 안전 우선 정책: pastoral 답변은 **항상** PASTORAL_HOTLINE_FOOTER
+    를 append. idempotent — 답변에 이미 footer 가 있으면 중복 추가 안 함.
     """
     if not answer:
         return PASTORAL_HOTLINE_FOOTER.lstrip("\n")
-    has_hotline = any(token in answer for token in _HOTLINE_TOKENS)
-    if has_hotline:
+    # idempotent — 이미 footer 가 박혀 있으면 그대로 반환 (string 포함 검사).
+    footer_marker = PASTORAL_HOTLINE_FOOTER.strip().split("\n")[1]  # "💙 즉각적인 도움이..."
+    if footer_marker in answer:
         return answer
-    logger.warning(
-        "pastoral 답변에 hotline 누락 감지 — 강제 append 적용",
-        extra={"answer_length": len(answer)},
-    )
     return answer + PASTORAL_HOTLINE_FOOTER
 
 

@@ -532,14 +532,10 @@ class DataSourceQdrantService:
     async def get_chunk_detail(self, chunk_id: str) -> SourceChunkDetail | None:
         """P0-B — 인용 카드 원문보기 모달용 단일 청크 조회.
 
-        Qdrant point_id (chunk_id) 로 직접 retrieve. 권/일자/장소/제목 메타가
-        있으면 함께 반환. 청크 없으면 None.
+        Qdrant point_id (chunk_id) 로 직접 retrieve. 단순 텍스트 + volume + source 만 반환.
+        PoC 정리 (2026-04-29) — P1-B 4중 메타 (citation_meta) 제거. 인덱싱
+        파이프라인이 4 필드를 채우게 되면 schema 와 함께 재추가.
         """
-        from src.datasource.citation_meta import (
-            extract_meta_from_payload,
-            format_citation_label,
-        )
-
         try:
             points = await self.async_client.retrieve(
                 collection_name=self.collection_name,
@@ -552,17 +548,11 @@ class DataSourceQdrantService:
         if not points:
             return None
         payload: dict[str, Any] = points[0].payload or {}
-        meta = extract_meta_from_payload(payload)
         return SourceChunkDetail(
             chunk_id=str(points[0].id),
             text=str(payload.get("text", "")),
             volume=str(payload.get("volume", "")),
             sources=_coerce_sources(payload.get("source")),
-            citation_label=format_citation_label(meta) or None,
-            volume_no=meta.volume_no,
-            delivered_at=meta.delivered_at,
-            delivered_place=meta.delivered_place,
-            chapter_title=meta.chapter_title,
         )
 
 

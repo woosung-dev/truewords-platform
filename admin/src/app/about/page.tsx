@@ -67,22 +67,8 @@ const PRINCIPLES: Principle[] = [
   },
 ];
 
-type ReviewMetric = {
-  label: string;
-  value: string;
-  tone: "ok" | "warn";
-  hint: string;
-};
-
-// B3 보안 (Cross-review Codex) — 한국 표시광고법 부당광고 위험 회피.
-// 정식 운영 전 P1-K (검수 사이클 백엔드) 가 머지되기 전까지는 모든 수치를
-// 명백한 placeholder (`??.?%`) 로 노출한다. 캡처/공유돼도 가짜 통계로 오인되지 않게.
-const REVIEW_METRICS: ReviewMetric[] = [
-  { label: "적합", value: "??.?%", tone: "ok", hint: "신학·인용·톤 모두 통과" },
-  { label: "톤 부적합", value: "??.?%", tone: "warn", hint: "단정·강압적 어조" },
-  { label: "인용 오류", value: "??.?%", tone: "warn", hint: "권/장/절 불일치" },
-  { label: "신학적 오류", value: "??.?%", tone: "warn", hint: "교리 단정·오해석" },
-];
+// PoC 정리 (2026-04-29) — P1-K 검수 사이클 placeholder 통계 섹션 제거.
+// 운영 인력 (신학 자문 4명) 확보 + 검수 시작 시점에 재추가.
 
 export default function AboutPage() {
   return (
@@ -132,66 +118,6 @@ export default function AboutPage() {
               </article>
             );
           })}
-        </div>
-      </section>
-
-      {/* 검수 통계 — placeholder (P1-K W3 백엔드 연동 예정).
-          B3 (Cross-review Codex) — 표시광고법 위험 회피를 위해 ??.?% 표기 +
-          "Coming Soon" 배지 + 점선 외곽선으로 명백한 미공개 데이터 시각화. */}
-      <section
-        className="border-t border-dashed border-amber-300/60 bg-amber-50/40 dark:bg-amber-950/10"
-        aria-label="검수 통계 — 데이터 준비 중"
-      >
-        <div className="mx-auto max-w-5xl px-6 py-16 md:py-20">
-          <div className="flex items-baseline justify-between gap-4 flex-wrap">
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                  Review · Last 4 weeks
-                </p>
-                <span
-                  className="rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-200 ring-1 ring-amber-300/70"
-                  aria-label="Coming soon"
-                >
-                  Coming Soon
-                </span>
-              </div>
-              <h2 className="font-display mt-2 text-2xl md:text-3xl font-semibold tracking-tight text-muted-foreground/80">
-                검수 통계 (최근 4주)
-              </h2>
-            </div>
-            <p className="font-mono text-[11px] text-amber-700 dark:text-amber-300">
-              운영 전 — 실데이터 미연동
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-4 md:grid-cols-4">
-            {REVIEW_METRICS.map((m) => (
-              <div
-                key={m.label}
-                className="rounded-xl border border-dashed border-amber-300/60 bg-card/50 p-5"
-              >
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                  {m.label}
-                </p>
-                <p
-                  className="mt-3 font-display text-3xl font-semibold tabular-nums text-muted-foreground/60"
-                  aria-label="placeholder, awaiting real data"
-                >
-                  {m.value}
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground/70 break-keep-all">
-                  {m.hint}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <p className="mt-6 font-mono text-[11px] text-amber-800 dark:text-amber-300">
-            ⚠ 본 수치는 정식 운영 전 placeholder 입니다. 실데이터 연동은 P1-K
-            (검수 사이클 백엔드) 작업에서 적용됩니다. 외부에 인용 시 반드시
-            「데이터 준비 중」을 함께 명시해주세요.
-          </p>
         </div>
       </section>
 

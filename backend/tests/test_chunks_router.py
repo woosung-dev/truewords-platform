@@ -1,4 +1,7 @@
-"""인용 원문보기 endpoint 테스트 (P0-B + B1 ACL)."""
+"""인용 원문보기 endpoint 테스트 (P0-B + B1 ACL).
+
+PoC 정리 (2026-04-29) — P1-B 4중 메타 제거 후 단순 텍스트 응답 검증.
+"""
 
 from __future__ import annotations
 
@@ -45,11 +48,6 @@ async def test_get_chunk_returns_detail_when_chatbot_allows_source() -> None:
             text="참사랑은 위함을 위함을 본질로 합니다.",
             volume="347권",
             sources=["A"],
-            citation_label="[347권 · 2001.07.03 · 청평수련소 · 참사랑의 길]",
-            volume_no=347,
-            delivered_at="2001.07.03",
-            delivered_place="청평수련소",
-            chapter_title="참사랑의 길",
         )
     )
     app = _make_app(service, _runtime_with_sources("A", "B"))
@@ -59,7 +57,8 @@ async def test_get_chunk_returns_detail_when_chatbot_allows_source() -> None:
     assert resp.status_code == 200
     body = resp.json()
     assert body["chunk_id"] == "abc-123"
-    assert body["volume_no"] == 347
+    assert body["volume"] == "347권"
+    assert body["text"].startswith("참사랑은")
 
 
 @pytest.mark.asyncio
@@ -72,7 +71,6 @@ async def test_get_chunk_403_when_chatbot_lacks_source() -> None:
             text="비공개 자료",
             volume="999권",
             sources=["D"],  # chatbot 은 A, B 만 허용
-            citation_label=None,
         )
     )
     app = _make_app(service, _runtime_with_sources("A", "B"))
@@ -116,27 +114,3 @@ async def test_get_chunk_400_when_chatbot_id_missing() -> None:
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/api/sources/chunks/abc-123")
     assert resp.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_get_chunk_with_partial_meta_passes_acl() -> None:
-    """일부 메타 누락 + ACL 통과."""
-    service = AsyncMock()
-    service.get_chunk_detail = AsyncMock(
-        return_value=SourceChunkDetail(
-            chunk_id="x",
-            text="...",
-            volume="180권",
-            sources=["A"],
-            citation_label="[180권]",
-            volume_no=180,
-        )
-    )
-    app = _make_app(service, _runtime_with_sources("A"))
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/api/sources/chunks/x?chatbot_id=cb1")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["volume_no"] == 180
-    assert body["delivered_at"] is None

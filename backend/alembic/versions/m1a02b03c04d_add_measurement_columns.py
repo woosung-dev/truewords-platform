@@ -1,7 +1,7 @@
 """add measurement columns to session_messages (M1)
 
 Revision ID: m1a02b03c04d
-Revises: p1h02a3b4c5d6
+Revises: p1a01f00d51e
 Create Date: 2026-04-29 00:30:00.000000
 
 ADR-46 측정 인프라 — Cross-review #2 Opus W4-blocking 권고.
@@ -13,6 +13,9 @@ session_messages 에 4 컬럼 추가:
 
 목적: A/B 효과 분석 (페르소나 토글 영향, 위기 라우팅 정확도, false-positive 율)
 의 baseline. 미적용 시 W4 후속 분석에서 false-null 위험.
+
+PoC 정리 (2026-04-29) — P1-K answer_reviews / P1-H chat_message_notes 마이그레이션
+삭제로 down_revision 을 reactions(p1a01f00d51e) 직결로 갱신.
 """
 from typing import Sequence, Union
 
@@ -22,7 +25,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "m1a02b03c04d"
-down_revision: Union[str, None] = "p1h02a3b4c5d6"
+down_revision: Union[str, None] = "p1a01f00d51e"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
