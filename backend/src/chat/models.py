@@ -121,3 +121,36 @@ class MessageReaction(SQLModel, table=True):
     user_session_id: str = Field(index=True, max_length=128)
     kind: MessageReactionKind
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ReviewLabel(str, enum.Enum):
+    """P1-K — 운영자 검수 라벨.
+
+    AnswerFeedback (사용자 자유서술/혼합) 와 별도. 운영자가 답변을 검수해
+    이단/오류 여부를 라벨링하기 위한 enum 이며, 부적합 라벨 (theological_error,
+    citation_error, tone_error) 은 추후 negative few-shot 학습 데이터로 활용된다.
+    """
+
+    APPROVED = "approved"
+    THEOLOGICAL_ERROR = "theological_error"
+    CITATION_ERROR = "citation_error"
+    TONE_ERROR = "tone_error"
+    OFF_DOMAIN = "off_domain"
+
+
+class AnswerReview(SQLModel, table=True):
+    """P1-K — 운영자 검수 사이클 + 이단/오류 학습 데이터 테이블.
+
+    - reviewer_user_id: admin_users.id 를 가리키지만, 향후 외부 SSO 도입 시
+      admin_users 행이 없는 reviewer 도 허용하도록 명시 FK 는 두지 않는다.
+    - 한 메시지에 여러 reviewer 의 라벨을 누적할 수 있다 (의견 차이 추적).
+    """
+
+    __tablename__ = "answer_reviews"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    message_id: uuid.UUID = Field(foreign_key="session_messages.id", index=True)
+    reviewer_user_id: uuid.UUID = Field(index=True)
+    label: ReviewLabel
+    notes: str | None = Field(default=None, sa_column=Column(Text))
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)

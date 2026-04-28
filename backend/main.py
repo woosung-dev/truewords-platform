@@ -24,6 +24,7 @@ from src.chat.popular_router import (
 from src.chatbot.router import router as chatbot_router, admin_router as chatbot_admin_router
 from src.admin.router import router as admin_router
 from src.admin.analytics_router import router as analytics_router
+from src.admin.answer_review_router import router as answer_review_router
 from src.admin.data_router import router as admin_data_router
 from src.datasource.router import router as datasource_router
 from src.datasource.chunks_router import chunks_router
@@ -105,6 +106,7 @@ app.include_router(admin_data_router)
 app.include_router(datasource_router)
 app.include_router(chunks_router)
 app.include_router(analytics_router)
+app.include_router(answer_review_router)
 
 
 @app.get("/health")
