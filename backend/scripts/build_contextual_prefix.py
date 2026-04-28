@@ -88,9 +88,68 @@ async def generate_prefix_for_volume(
                 c["prefix_text"] = ""
                 c["prefix_error"] = str(exc)
             if i % 10 == 0 or i == n:
-                print(f"  {i}/{n} prefix 생성 완료")
+                print(f"  {i}/{n} prefix 생성 완료", flush=True)
             out_f.write(json.dumps(c, ensure_ascii=False) + "\n")
             out_f.flush()
+
+
+async def _generate_one(
+    chunk: dict, full_doc: str, semaphore: asyncio.Semaphore
+) -> dict:
+    """단일 청크 prefix 생성 — Semaphore로 동시성 제한, exception 격리.
+
+    실패 시 chunk["prefix_text"]=""+chunk["prefix_error"]만 채우고 정상 반환.
+    """
+    async with semaphore:
+        prompt = build_prompt(
+            full_doc,
+            str(chunk.get("text", "") or ""),
+            chunk.get("chunk_index", 0),
+        )
+        try:
+            raw = await generate_text(prompt, model="gemini-2.5-flash")
+            chunk["prefix_text"] = parse_prefix_response(raw)
+        except Exception as exc:
+            chunk["prefix_text"] = ""
+            chunk["prefix_error"] = str(exc)
+    return chunk
+
+
+async def generate_prefix_for_volume_concurrent(
+    volume_path: Path,
+    output: Path,
+    semaphore: asyncio.Semaphore,
+    limit: int | None = None,
+) -> None:
+    """asyncio.Semaphore + as_completed로 청크 동시 prefix 생성.
+
+    출력 jsonl은 입력 chunk_index 순서를 보존 (as_completed 결과를 인덱스별
+    버킷에 채우고 마지막에 순서대로 직렬화).
+    """
+    chunks = list(iter_chunks_from_volume_jsonl(volume_path))
+    if limit:
+        chunks = chunks[:limit]
+    full_doc = "\n".join(str(c.get("text", "") or "") for c in chunks)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    n = len(chunks)
+
+    async def _wrapped(idx: int, chunk: dict) -> tuple[int, dict]:
+        result = await _generate_one(chunk, full_doc, semaphore)
+        return idx, result
+
+    coros = [_wrapped(i, c) for i, c in enumerate(chunks)]
+    results: list[dict | None] = [None] * n
+    completed = 0
+    for coro in asyncio.as_completed(coros):
+        idx, result = await coro
+        results[idx] = result
+        completed += 1
+        if completed % 100 == 0 or completed == n:
+            print(f"  {completed}/{n} prefix 생성 완료 ({volume_path.name})", flush=True)
+
+    with output.open("w", encoding="utf-8") as out_f:
+        for r in results:
+            out_f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
 def main() -> int:
@@ -100,23 +159,59 @@ def main() -> int:
     p.add_argument("--input-dir", type=Path, help="전체 권 JSONL 디렉토리")
     p.add_argument("--output-dir", type=Path)
     p.add_argument("--limit", type=int, help="권당 처리 청크 수 (dry-run용)")
+    p.add_argument(
+        "--mode",
+        choices=("sequential", "concurrent"),
+        default="sequential",
+        help="청크 처리 방식 (concurrent = asyncio.Semaphore + as_completed)",
+    )
+    p.add_argument(
+        "--concurrency",
+        type=int,
+        default=20,
+        help="concurrent 모드의 동시 진행 청크 상한 (paid tier 권장 20~50)",
+    )
     args = p.parse_args()
 
     if args.input:
         if not args.output:
             raise SystemExit("--input 사용 시 --output 필요")
-        asyncio.run(generate_prefix_for_volume(args.input, args.output, args.limit))
-        print(f"완료: {args.output}")
+        if args.mode == "concurrent":
+            sem = asyncio.Semaphore(args.concurrency)
+            asyncio.run(
+                generate_prefix_for_volume_concurrent(
+                    args.input, args.output, sem, args.limit
+                )
+            )
+        else:
+            asyncio.run(generate_prefix_for_volume(args.input, args.output, args.limit))
+        print(f"완료: {args.output}", flush=True)
     elif args.input_dir:
         if not args.output_dir:
             raise SystemExit("--input-dir 사용 시 --output-dir 필요")
-        for vol in sorted(args.input_dir.glob("*.jsonl")):
-            out = args.output_dir / vol.name
-            if out.exists():
-                print(f"이미 처리됨, skip: {out.name}")
-                continue
-            asyncio.run(generate_prefix_for_volume(vol, out, args.limit))
-            print(f"완료: {out}")
+        if args.mode == "concurrent":
+            # 전권 공유 Semaphore — 마지막 권까지 균등 처리
+            async def _run_all() -> None:
+                sem = asyncio.Semaphore(args.concurrency)
+                for vol in sorted(args.input_dir.glob("*.jsonl")):
+                    out = args.output_dir / vol.name
+                    if out.exists():
+                        print(f"이미 처리됨, skip: {out.name}", flush=True)
+                        continue
+                    await generate_prefix_for_volume_concurrent(
+                        vol, out, sem, args.limit
+                    )
+                    print(f"완료: {out}", flush=True)
+
+            asyncio.run(_run_all())
+        else:
+            for vol in sorted(args.input_dir.glob("*.jsonl")):
+                out = args.output_dir / vol.name
+                if out.exists():
+                    print(f"이미 처리됨, skip: {out.name}", flush=True)
+                    continue
+                asyncio.run(generate_prefix_for_volume(vol, out, args.limit))
+                print(f"완료: {out}", flush=True)
     else:
         raise SystemExit("--input 또는 --input-dir 필요")
     return 0
