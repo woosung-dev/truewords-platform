@@ -110,6 +110,7 @@ async def test_process_chat_without_rerank():
 
     with (
         patch("src.qdrant_client.get_async_client") as mock_qdrant,
+        patch("src.chat.pipeline.stages.intent_classifier.classify_intent", new_callable=AsyncMock, return_value="conceptual"),
         patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results) as mock_cascade,
         patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변입니다."),
         patch("src.chat.pipeline.stages.rerank.rerank", new_callable=AsyncMock) as mock_rerank,
@@ -142,6 +143,7 @@ async def test_process_chat_with_rerank():
 
     with (
         patch("src.qdrant_client.get_async_client"),
+        patch("src.chat.pipeline.stages.intent_classifier.classify_intent", new_callable=AsyncMock, return_value="conceptual"),
         patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results),
         patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="재순위 답변."),
         patch("src.chat.pipeline.stages.rerank.rerank", new_callable=AsyncMock, return_value=reranked_results) as mock_rerank,
@@ -169,6 +171,7 @@ async def test_process_chat_records_rerank_in_search_event():
 
     with (
         patch("src.qdrant_client.get_async_client"),
+        patch("src.chat.pipeline.stages.intent_classifier.classify_intent", new_callable=AsyncMock, return_value="conceptual"),
         patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results),
         patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변"),
         patch("src.chat.pipeline.stages.rerank.rerank", new_callable=AsyncMock, return_value=reranked),
@@ -208,6 +211,7 @@ async def test_process_chat_empty_results():
 
     with (
         patch("src.qdrant_client.get_async_client"),
+        patch("src.chat.pipeline.stages.intent_classifier.classify_intent", new_callable=AsyncMock, return_value="conceptual"),
         patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=[]),
         patch("src.chat.pipeline.stages.search.fallback_search", new_callable=AsyncMock, return_value=([], "suggestions")),
         patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="해당 내용을 말씀에서 찾지 못했습니다."),
