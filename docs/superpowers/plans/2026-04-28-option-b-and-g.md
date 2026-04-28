@@ -10,6 +10,34 @@
 
 ---
 
+## Progress (2026-04-28 본 세션 종료 시점)
+
+본 plan은 2026-04-28 첫 세션에서 시작했으며 Group A·B·C(부분)·D(부분)까지 완료. 이후 시나리오 A(약점 source M/O/B 우선 인덱싱 + 단일 다음 세션에서 본 작업·평가까지 시도)로 진행. 다음 세션의 첫 task는 **Group C-12a "Gemini Batch API 변환"**.
+
+### 완료 (15 commits, brach `feat/phase-2-contextual-retrieval-and-source-ablation`)
+- ✅ Group A (G PoC) — `1cd520f` `2057c4b` `a949795`. 약점 source 식별: M (-0.10) / O (0.31 최저) / B (44% share). RAGAS 4메트릭은 timeout 폭주로 보류, NotebookLM 200건 휴리스틱 fallback 사용.
+- ✅ Group B (B 인프라) — `ca9380a` `cb4cb89` `0122caf` `708cf05`. Chunk.prefix_text + ChatbotConfig.collection_main(Alembic) + build_runtime_config 라우팅 + admin UI select.
+- ✅ Group C Task 9-11 — `2c97144` `acae2b6`. build_contextual_prefix.py + 평화경 50청크 dry-run 0 error / 시기·편·주제 100% 충족.
+- ✅ Group D Task 13-14 — `0d462ee` `e772ebe`. malssum_poc_v2 컬렉션(50 points status=green) + reindex_with_prefix.py + 평화경 50 sanity.
+
+### 시나리오 A 시간표 (남은 작업)
+
+| 다음 세션 | 작업 시간 | 백그라운드 | 비고 |
+|---|---|---|---|
+| #1 (3~4h) | Batch API 변환 + 약점 source 청크 dump + prefix 생성 launch + main 5건 회귀 fix PR | 12~24h prefix gen | 약점 source(M+O+B 86%, ~155k 청크) 우선 |
+| #2 (3~4h) | prefix 검증 + v2 재인덱싱 launch + RAGAS hang 디버깅 | 12~15h reindex | 약점 source만 1차 적재 |
+| #3 (4~5h) | RAGAS 50 v1 vs v2 + NotebookLM 200 v2 + A/B 보고서 + push + PR | — | 1차 평가, 미달 시 L+N 추가 |
+| #4 (선택) | 옵션 F PoC + H Citation eval | — | 1차 평가 결과 따라 |
+
+### 본 세션 외 (다음 세션 안건)
+1. **C-12a Batch API 변환** ← 다음 세션 첫 task (별도 task spec 작성 — Plan §Group C 끝에)
+2. **C-12b 약점 source 우선 prefix 생성** ← M/O/B만 = 약 155k 청크 (~12~24h Batch)
+3. **D-15a 약점 source v2 재인덱싱** ← ~12~15h
+4. **별도 PR**: main HEAD `c2bb05b` 5건 chat_service/stream_abort 회귀 fix (1~2h, 병렬)
+5. **RAGAS hang 원인 조사** (인계서 §7 미완) ← Group E 1차 평가 전 fix 시도
+
+---
+
 ## Context — 왜 이 일을 하는가
 
 본 세션 옵션 D 결과 (`docs/dev-log/2026-04-28-phase-1-eval-report.md`):
@@ -1089,6 +1117,35 @@ Expected: total ≈ 18만, empty_prefix < 5% (이상 시 retry).
 - [ ] **Step 5: commit (메타데이터만, 산출물은 ~/Downloads/)**
 
 `~/Downloads/`는 untracked. 별도 commit 없이 다음 task로.
+
+---
+
+#### Task 12a: Gemini Batch API 변환 (다음 세션 첫 task) ⭐
+
+**왜 필요한가:** dry-run(Task 11)에서 단발 호출 6초/청크 검증. 18만 청크 × 6s = 47만초 = 13일/615권 → 비현실적. Anthropic 검증치 + 인계서 §4-B 추정에 따르면 Gemini Batch API로 변환 시 **24~48h + $10~50** 일회성 가능.
+
+**기존 인프라 재사용:** `backend/src/pipeline/batch_embedder.py` + `batch_service.py:111-171`이 이미 Gemini Batch JSONL 패턴(요청·폴링·결과 파싱·`BatchJob` 체크포인트)을 구현. `embed_dense_batch` 용도는 임베딩이지만 **JSONL 입력 포맷과 폴링 흐름은 동일**, 모델만 `text-embedding-001` → `gemini-2.5-flash`로 변경 + 응답 텍스트 파싱 변경.
+
+**Files:**
+- Modify: `backend/scripts/build_contextual_prefix.py` — `--mode batch` 케이스 구현 (현재 `raise SystemExit("--input-dir 사용 시 --output-dir 필요")` 까지만 작성됨, 본 batch 흐름 미구현)
+- Reference: `backend/src/pipeline/batch_embedder.py` (JSONL 빌더), `batch_service.py:111-171` (폴링)
+- Create: `backend/tests/scripts/test_build_contextual_prefix_batch.py` — JSONL 빌더·결과 파싱 단위 테스트
+
+**Step 1: 기존 batch 인프라 검토** — `read backend/src/pipeline/batch_embedder.py` + `batch_service.py`. JSONL 입력 schema, polling loop, 결과 파싱 흐름을 generate_text 용으로 어떻게 재사용할지 결정.
+
+**Step 2: 실패 테스트 (TDD)** — JSONL 라인이 prompt + chunk metadata(volume, chunk_index, point_id)를 보존하는지, 결과 파싱이 (point_id → prefix_text) 매핑을 정확히 만드는지 검증.
+
+**Step 3: build_contextual_prefix.py에 batch mode 구현** — `_to_batch_jsonl(chunks: list[dict]) -> Path` + `_submit_batch(jsonl: Path) -> str` (job_id) + `_poll_until_complete(job_id) -> Path` (results) + `_parse_results(results: Path) -> dict[str, str]` (point_id → prefix).
+
+**Step 4: 약점 source 우선 디렉토리 분리** — Group A G 보고서의 `M`, `O`, `B` source 청크만 `priority_chunks_jsonl/`에 분리(나머지는 `low_priority_chunks_jsonl/`). 비율: M+O+B ≈ 155k / 25k 분리 → 1차 batch는 priority만.
+
+**Step 5: 1권 sanity batch** — 평화경 7869 청크 batch 호출 → 1~2h 내 완료 검증 → 품질 sample 5건이 dry-run과 비슷한지 확인.
+
+**Step 6: 본 priority batch launch (background)** — M+O+B 청크 ~155k batch 제출, 폴링 background. 24h 추정.
+
+**Step 7: commit** — batch 변환 + 단위 테스트 + 1권 sanity 결과 메모.
+
+> **NOTE:** Step 6 백그라운드는 본 세션 한도 내에 완료 안 될 가능성 큼. 다음 세션에서 폴링 + 결과 다운로드부터 이어서 진행.
 
 ---
 
