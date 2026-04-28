@@ -6,9 +6,12 @@ import pytest
 
 from src.chat.pipeline.stages.generation import (
     PASTORAL_HOTLINE_FOOTER,
+    PASTORAL_HOTLINE_NOTICE,
     ensure_hotline_in_answer,
     resolve_answer_mode,
+    select_system_prompt,
 )
+from src.chatbot.runtime_config import GenerationConfig
 
 
 class TestC3KeywordExpansion:
@@ -173,6 +176,106 @@ class TestB4HotlineEnforced:
         # footer 박스는 정확히 한 번만
         assert result.count("💙 즉각적인 도움이 필요하시다면") == 1
         assert result == with_footer  # 변경되지 않음
+
+
+class TestModeAndEmphasisToneWiring:
+    """P0-E + P1-G B-minimal — 모드/강조점 톤이 system prompt 에 실제 반영."""
+
+    def _cfg(self) -> GenerationConfig:
+        return GenerationConfig(system_prompt="기본 시스템 프롬프트")
+
+    def test_standard_mode_no_suffix(self) -> None:
+        result = select_system_prompt(
+            generation_config=self._cfg(), answer_mode="standard"
+        )
+        assert result == "기본 시스템 프롬프트"
+
+    def test_theological_mode_appends_tone(self) -> None:
+        result = select_system_prompt(
+            generation_config=self._cfg(), answer_mode="theological"
+        )
+        assert "원리·교리에 깊이 있는 신학적 해설" in result
+        assert result.startswith("기본 시스템 프롬프트")
+
+    def test_beginner_mode_appends_tone(self) -> None:
+        result = select_system_prompt(
+            generation_config=self._cfg(), answer_mode="beginner"
+        )
+        assert "신앙의 기초부터 쉬운 말로" in result
+
+    def test_kids_mode_appends_tone(self) -> None:
+        result = select_system_prompt(
+            generation_config=self._cfg(), answer_mode="kids"
+        )
+        assert "어린이 눈높이로" in result
+
+    def test_pastoral_mode_appends_hotline_notice(self) -> None:
+        """pastoral 은 PASTORAL_HOTLINE_NOTICE (1393 안내) 가 추가."""
+        result = select_system_prompt(
+            generation_config=self._cfg(), answer_mode="pastoral"
+        )
+        assert "1393" in result
+
+    def test_emphasis_principle_appends(self) -> None:
+        result = select_system_prompt(
+            generation_config=self._cfg(),
+            answer_mode="standard",
+            emphasis="principle",
+        )
+        assert "통일원리·교리 기반의 체계적 설명" in result
+
+    def test_emphasis_providence_appends(self) -> None:
+        result = select_system_prompt(
+            generation_config=self._cfg(),
+            answer_mode="standard",
+            emphasis="providence",
+        )
+        assert "섭리 시대 흐름과 후천기 의미" in result
+
+    def test_emphasis_family_appends(self) -> None:
+        result = select_system_prompt(
+            generation_config=self._cfg(),
+            answer_mode="standard",
+            emphasis="family",
+        )
+        assert "참가정·축복·가정연합" in result
+
+    def test_emphasis_youth_appends(self) -> None:
+        result = select_system_prompt(
+            generation_config=self._cfg(),
+            answer_mode="standard",
+            emphasis="youth",
+        )
+        assert "청년 신앙 생활과 실천 적용" in result
+
+    def test_emphasis_all_no_suffix(self) -> None:
+        result = select_system_prompt(
+            generation_config=self._cfg(),
+            answer_mode="standard",
+            emphasis="all",
+        )
+        assert result == "기본 시스템 프롬프트"
+
+    def test_mode_and_emphasis_combined(self) -> None:
+        """모드 톤 + 강조점 둘 다 적용."""
+        result = select_system_prompt(
+            generation_config=self._cfg(),
+            answer_mode="beginner",
+            emphasis="family",
+        )
+        assert "신앙의 기초부터 쉬운 말로" in result
+        assert "참가정·축복·가정연합" in result
+
+    def test_idempotent_mode_suffix(self) -> None:
+        """이미 동일 suffix 가 있으면 중복 append 안 함."""
+        from src.chat.pipeline.stages.generation import _MODE_TONE_SUFFIX
+        cfg = GenerationConfig(
+            system_prompt="기본" + _MODE_TONE_SUFFIX["theological"]
+        )
+        result = select_system_prompt(
+            generation_config=cfg, answer_mode="theological"
+        )
+        assert result.count(_MODE_TONE_SUFFIX["theological"]) == 1
 
 
 class TestResolveModeReturnsTuple:

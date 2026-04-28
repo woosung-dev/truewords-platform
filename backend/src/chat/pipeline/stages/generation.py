@@ -189,18 +189,74 @@ def resolve_answer_mode(
     return "standard", False, None
 
 
+# P0-E + P1-G — 모드/강조점별 톤 suffix (B-minimal wiring, 2026-04-29).
+# system prompt 끝에 한 문장 분기 append 로 LLM 톤 차별화. 운영자가 5x5 = 25개
+# system prompt 를 작성할 필요 없이 "강한 시그널 한 문장" 만으로도 Gemini 2.5
+# Flash 가 톤을 분명히 분기한다. 향후 도메인 전문가 검수 시 정교화 가능.
+_MODE_TONE_SUFFIX: dict[str, str] = {
+    "standard": "",  # 기본 톤 그대로
+    # pastoral 은 PASTORAL_HOTLINE_NOTICE 가 별도로 append (1393 안내).
+    "pastoral": "",
+    "theological": (
+        "\n\n[톤] 원리·교리에 깊이 있는 신학적 해설을 우선합니다. "
+        "관련 원리 용어와 출처를 분명히 제시하세요."
+    ),
+    "beginner": (
+        "\n\n[톤] 신앙의 기초부터 쉬운 말로 짧고 친절하게 설명하세요. "
+        "전문 용어는 풀어 쓰고, 답변은 핵심 위주로 간결하게."
+    ),
+    "kids": (
+        "\n\n[톤] 어린이 눈높이로 짧고 따뜻하게, 비유와 이야기로 설명하세요. "
+        "어려운 용어는 피하고 친근한 어조로 답변합니다."
+    ),
+}
+
+_EMPHASIS_SUFFIX: dict[str, str] = {
+    "all": "",  # 균형 — 추가 강조 없음
+    "principle": (
+        "\n\n[강조점] 통일원리·교리 기반의 체계적 설명을 우선합니다."
+    ),
+    "providence": (
+        "\n\n[강조점] 섭리 시대 흐름과 후천기 의미를 중심으로 답변합니다."
+    ),
+    "family": (
+        "\n\n[강조점] 참가정·축복·가정연합 관점을 중심으로 답변합니다."
+    ),
+    "youth": (
+        "\n\n[강조점] 청년 신앙 생활과 실천 적용을 중심으로 답변합니다."
+    ),
+}
+
+
 def select_system_prompt(
     *,
     generation_config: GenerationConfig,
     answer_mode: str,
+    emphasis: str | None = None,
 ) -> str:
-    """모드별 system prompt 선택. pastoral 일 때 1393 핫라인 안내 자동 동봉.
+    """모드별 + 강조점별 system prompt 선택 (P0-E + P1-G B-minimal wiring).
 
-    system_prompt_by_mode 가 비어있거나 해당 키 없으면 default system_prompt 사용.
+    1. ``system_prompt_by_mode`` 가 비어있으면 default ``system_prompt`` 사용.
+    2. ``_MODE_TONE_SUFFIX`` 에서 모드별 톤 가이드 한 문장 append.
+    3. ``_EMPHASIS_SUFFIX`` 에서 강조점별 한 문장 append (None / "all" 이면 skip).
+    4. pastoral 일 때만 ``PASTORAL_HOTLINE_NOTICE`` 추가 동봉 (1393 안내).
     """
     base: str = generation_config.system_prompt
     by_mode = generation_config.system_prompt_by_mode or {}
     chosen = by_mode.get(answer_mode, base)
+
+    # 모드 톤 suffix
+    mode_suffix = _MODE_TONE_SUFFIX.get(answer_mode, "")
+    if mode_suffix and mode_suffix not in chosen:
+        chosen = chosen + mode_suffix
+
+    # 강조점 suffix
+    if emphasis is not None:
+        emp_suffix = _EMPHASIS_SUFFIX.get(emphasis, "")
+        if emp_suffix and emp_suffix not in chosen:
+            chosen = chosen + emp_suffix
+
+    # pastoral 핫라인 안내 (시스템 프롬프트 끝, 답변 후처리는 ensure_hotline_in_answer)
     if answer_mode == "pastoral" and PASTORAL_HOTLINE_NOTICE not in chosen:
         chosen = chosen + PASTORAL_HOTLINE_NOTICE
     return chosen
@@ -259,9 +315,12 @@ class GenerationStage:
         # M1 — 위기 매칭 origin 영속화 (PersistStage 가 session_messages 에 wire).
         ctx.crisis_trigger = crisis_trigger
 
+        # P1-G — 사용자 명시 강조점도 함께 전달 (None 또는 "all" 이면 추가 분기 없음).
+        emphasis = getattr(ctx.request, "theological_emphasis", None)
         system_prompt = select_system_prompt(
             generation_config=gen_cfg,
             answer_mode=answer_mode,
+            emphasis=emphasis,
         )
 
         # GenerationConfig 는 frozen — model_copy 로 system_prompt 만 교체한 임시 객체 사용.
