@@ -26,6 +26,10 @@ class ChatResponse(BaseModel):
     sources: list[Source]
     session_id: uuid.UUID
     message_id: uuid.UUID
+    # P0-A — 자동 follow-up 추천 3개. 생성 실패/비활성 시 None.
+    suggested_followups: list[str] | None = None
+    # P1-J — 기도문/결의문 마무리. 비활성/생성 실패 시 None.
+    closing: str | None = None
 
 
 class FeedbackRequest(BaseModel):

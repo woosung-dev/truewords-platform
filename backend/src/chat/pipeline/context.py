@@ -43,6 +43,15 @@ class ChatContext:
     answer: str | None = None
     assistant_message: SessionMessage | None = None
 
+    # P0-E — 최종 결정된 답변 모드 (standard/theological/pastoral/beginner/kids).
+    # GenerationStage 가 IntentClassifier 결과 + req.answer_mode 우선순위로 결정.
+    resolved_answer_mode: str | None = None
+
+    # P0-A — 후속 질문 추천 3개. SuggestedFollowupsStage 가 채움.
+    suggested_followups: list[str] | None = None
+    # P1-J — 기도문/결의문 마무리 텍스트. ClosingTemplateStage 가 채움.
+    closing: str | None = None
+
     # Phase 3 (Cache check — early return)
     cache_hit: bool = False
     cache_response: CacheHit | None = None  # apply_safety_layer 적용된 답변 보유
