@@ -39,3 +39,9 @@ export type {
   StreamingTextProps,
   AnswerSkeletonProps,
 } from "./streaming-text";
+
+export { SourceOriginalModal } from "./source-original-modal";
+export type {
+  SourceOriginalModalProps,
+  SourceChunkDetail,
+} from "./source-original-modal";

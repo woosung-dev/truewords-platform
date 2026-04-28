@@ -114,6 +114,30 @@ class UploadResponse(BaseModel):
     )
 
 
+class SourceChunkDetail(BaseModel):
+    """P0-B — 인용 카드 원문보기 모달용 단일 청크 상세.
+
+    chat 답변에서 노출된 청크의 전체 본문 + 인용 메타. 사용자가 답변 페이지의
+    "원문보기" 를 클릭했을 때 모달로 노출된다. 4중 메타 필드는 모두 Optional —
+    기존 데이터 호환.
+    """
+
+    chunk_id: str = Field(..., description="Qdrant point id")
+    text: str = Field("", description="청크 본문 (정규화된 텍스트)")
+    volume: str = Field("", description="원본 volume (파일명 또는 권명)")
+    sources: list[str] = Field(
+        default_factory=list, description="해당 청크가 속한 카테고리 key 목록"
+    )
+    citation_label: str | None = Field(
+        default=None,
+        description="UI 표기 레이블 — 예: [347권 · 2001.07.03 · 청평수련소 · 참사랑의 길]",
+    )
+    volume_no: int | None = Field(default=None)
+    delivered_at: str | None = Field(default=None)
+    delivered_place: str | None = Field(default=None)
+    chapter_title: str | None = Field(default=None)
+
+
 class DuplicateCheckResponse(BaseModel):
     """업로드 전 중복 문서 검사 결과."""
     exists: bool = Field(..., description="동일 파일명(NFC 정규화 기준)의 기존 적재 여부")
