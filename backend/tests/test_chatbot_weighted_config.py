@@ -17,6 +17,7 @@ def _stub_db_config(search_tiers: dict) -> MagicMock:
     cfg.display_name = "Test"
     cfg.system_prompt = ""
     cfg.persona_name = ""
+    cfg.collection_main = "malssum_poc"
     cfg.search_tiers = search_tiers
     return cfg
 
