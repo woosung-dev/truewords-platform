@@ -16,6 +16,7 @@ from src.chat.pipeline.stages.cache_check import CacheCheckStage
 from src.chat.pipeline.stages.embedding import EmbeddingStage
 from src.chat.pipeline.stages.generation import GenerationStage
 from src.chat.pipeline.stages.input_validation import InputValidationStage
+from src.chat.pipeline.stages.intent_classifier import IntentClassifierStage
 from src.chat.pipeline.stages.persist import PersistStage
 from src.chat.pipeline.stages.query_rewrite import QueryRewriteStage
 from src.chat.pipeline.stages.rerank import RerankStage
@@ -24,6 +25,7 @@ from src.chat.pipeline.stages.safety_output import SafetyOutputStage
 from src.chat.pipeline.stages.search import SearchStage
 from src.chat.pipeline.stages.session import SessionStage
 from src.chat.pipeline.state import PipelineState, force_transition_to
+from src.search.intent_classifier import generation_context_slice_for
 from src.chat.prompt import DEFAULT_SYSTEM_PROMPT
 from src.chat.repository import ChatRepository
 from src.chat.schemas import ChatRequest, ChatResponse, FeedbackRequest, Source
@@ -86,6 +88,9 @@ class ChatService:
         self.runtime_config_stage = RuntimeConfigStage(
             chatbot_service, default_config=DEFAULT_RUNTIME_CONFIG
         )
+        # Phase D — IntentClassifierStage. RuntimeConfig 다음, QueryRewrite 전.
+        # 후속 Stage(Rerank/Generation/스트림 inline)는 ctx.intent 로 K 분기.
+        self.intent_classifier_stage = IntentClassifierStage()
         self.query_rewrite_stage = QueryRewriteStage()
         self.search_stage = SearchStage(default_tiers=DEFAULT_RUNTIME_CONFIG.search.tiers)
         self.rerank_stage = RerankStage()
@@ -143,8 +148,30 @@ class ChatService:
                 message_id=assistant_msg.id,
             )
 
-        # Stage 체인: 런타임 설정 → 쿼리 재작성 → 검색 → 리랭킹 → 생성 → Safety → DB 기록
+        # Stage 체인: 런타임 설정 → intent 분류
         ctx = await self.runtime_config_stage.execute(ctx)
+        ctx = await self.intent_classifier_stage.execute(ctx)
+
+        # Meta intent early return (Search/Rerank/Generation 스킵, Safety + mini-persist 만)
+        if ctx.pipeline_state == PipelineState.META_TERMINATED and ctx.session:
+            ctx = await self.safety_output_stage.execute(ctx)
+            assistant_msg = await self.chat_repo.create_message(
+                SessionMessage(
+                    session_id=ctx.session.id,
+                    role=MessageRole.ASSISTANT,
+                    content=ctx.answer or "",
+                    pipeline_version=2,
+                )
+            )
+            await self.chat_repo.commit()
+            return ChatResponse(
+                answer=ctx.answer or "",
+                sources=[],
+                session_id=ctx.session.id,
+                message_id=assistant_msg.id,
+            )
+
+        # 본 chain: 쿼리 재작성 → 검색 → 리랭킹 → 생성 → Safety → DB 기록
         ctx = await self.query_rewrite_stage.execute(ctx)
         ctx = await self.search_stage.execute(ctx)
         ctx = await self.rerank_stage.execute(ctx)
@@ -189,14 +216,35 @@ class ChatService:
             return
 
         try:
-            # Stage 체인: 런타임 설정 → 쿼리 재작성 → 검색 → 리랭킹
+            # Stage 체인: 런타임 설정 → intent 분류
             ctx = await self.runtime_config_stage.execute(ctx)
+            ctx = await self.intent_classifier_stage.execute(ctx)
+
+            # Meta intent early return (SSE chunk + sources + done + mini-persist)
+            if ctx.pipeline_state == PipelineState.META_TERMINATED and ctx.session:
+                ctx = await self.safety_output_stage.execute(ctx)
+                assistant_msg = await self.chat_repo.create_message(
+                    SessionMessage(
+                        session_id=ctx.session.id,
+                        role=MessageRole.ASSISTANT,
+                        content=ctx.answer or "",
+                        pipeline_version=2,
+                    )
+                )
+                await self.chat_repo.commit()
+                yield f"event: chunk\ndata: {json.dumps({'text': ctx.answer or ''}, ensure_ascii=False)}\n\n"
+                yield f"event: sources\ndata: {json.dumps({'sources': [], 'session_id': str(ctx.session.id), 'message_id': str(assistant_msg.id)}, ensure_ascii=False)}\n\n"
+                yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
+                return
+
+            # 본 chain: 쿼리 재작성 → 검색 → 리랭킹
             ctx = await self.query_rewrite_stage.execute(ctx)
             ctx = await self.search_stage.execute(ctx)
             ctx = await self.rerank_stage.execute(ctx)
 
-            # 스트리밍 생성 (inline — async generator yield 때문에 Stage 분리 불가)
-            context_results = ctx.results[:5]
+            # 스트리밍 생성 (inline — async generator yield 때문에 Stage 분리 불가).
+            # 동기 GenerationStage 와 동일 intent 분기 슬라이스 사용.
+            context_results = ctx.results[: generation_context_slice_for(ctx.intent)]
             full_answer: list[str] = []
             async for chunk in generate_answer_stream(
                 request.query,

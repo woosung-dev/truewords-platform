@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from src.chat.pipeline.state import PipelineState
 from src.chat.schemas import ChatRequest
+from src.search.intent_classifier import Intent
 
 if TYPE_CHECKING:
     from src.cache.schemas import CacheHit
@@ -35,6 +36,9 @@ class ChatContext:
     resolved_collections: ResolvedCollections | None = None
     search_query: str | None = None
     rewritten_query: str | None = None
+    # Phase D (액션 1) — 사용자 질문 의도. RuntimeConfig 다음 IntentClassifierStage 가 채움.
+    # Rerank/Generation 은 이 값으로 K 분기. None 이면 IntentClassifier 미실행 (legacy 경로).
+    intent: Intent | None = None
     results: list[SearchResult] = field(default_factory=list)
     answer: str | None = None
     assistant_message: SessionMessage | None = None

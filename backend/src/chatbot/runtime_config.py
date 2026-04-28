@@ -61,6 +61,8 @@ class RetrievalConfig(BaseModel):
     rerank_top_k: int = 10
     query_rewrite_enabled: bool = True
     fallback_enabled: bool = True
+    # Phase D — IntentClassifierStage 토글. False 시 LLM 호출 없이 conceptual default 사용.
+    intent_classifier_enabled: bool = True
 
 
 class SafetyConfig(BaseModel):

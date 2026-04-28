@@ -123,6 +123,11 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] **종교 용어 사전 동적 주입** — 대사전 데이터 미확보 [데이터 수급 필요]
 - [ ] **민감 인명 필터 구체화** — SENSITIVE_PATTERNS 목록 비어있음 [도메인 전문가 협의 필요]
 - [ ] **멀티테넌시** (organization_id 필터링) — 다중 조직 운영 요구사항 미확정 [확인 필요]
+- [ ] **RAGAS 평가 LLM 환원 — Gemini 2.5 Pro → Claude Haiku 4.5** [Anthropic 크레딧 충전 필요]
+  - 현재 `backend/scripts/eval_ragas.py` + `tests/test_ragas_thresholds.py` 가 평가용 LLM 으로 Gemini 2.5 Pro 사용 (Anthropic 크레딧 잔액 부족 임시 대체).
+  - 시도 이력: `gemini-3.1-pro-preview` 는 RAGAS 평가에서 RPM throttling/응답 hang 다발로 사용 불가 (5건 sanity 1회 정상 후 모든 후속 호출 hang). `gemini-2.5-pro` 로 fallback.
+  - 인계 문서 §5 사전 결정은 Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) — 생성=Gemini, 평가=Claude 분리로 G-Eval LLM-self-bias 회피.
+  - 충전 후 작업: (1) `EVAL_LLM_MODEL = "claude-haiku-4-5-20251001"` 으로 환원, (2) `LangchainLLMWrapper` 를 `ChatAnthropic` 으로 교체, (3) RAGAS 3-way 재측정 + 보고서 비교 (Gemini-2.5-Pro 평가본 vs Claude-Haiku 평가본 메트릭 차이 기록).
 - [x] ~~데이터 source 라벨 체계 통일~~ — **결정 완료 (2026-04-11)**: 옵션 A "라벨은 데이터가 정한다" 채택. 실제 적재 라벨(L/M 등)을 single source of truth로 사용, 설계 문서의 A/B/C/D는 논리적 분류 예시로 격하. SearchTierEditor에서 Qdrant 실제 source 값을 동적 표시하는 방향. 상세: `docs/dev-log/26-source-label-decision.md`
 
 ---
