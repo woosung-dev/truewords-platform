@@ -203,6 +203,7 @@ class ChatService:
             message_id=ctx.assistant_message.id,
             suggested_followups=ctx.suggested_followups,
             closing=ctx.closing,
+            persona_overridden=getattr(ctx, "persona_overridden", False),
         )
 
     async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:
