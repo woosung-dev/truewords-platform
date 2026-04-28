@@ -9,6 +9,12 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+# P0-E — 모드별 system prompt 라우팅. 5개 모드.
+AnswerMode = Literal["standard", "theological", "pastoral", "beginner", "kids"]
+
+# P1-J — 대화 마무리 템플릿 종류.
+ClosingKind = Literal["prayer", "resolution", "off"]
+
 
 class TierConfig(BaseModel):
     """Cascading 전략의 단일 Tier."""
@@ -50,6 +56,18 @@ class GenerationConfig(BaseModel):
     model_name: Literal["gemini-2.5-flash", "gemini-2.5-pro"] = "gemini-2.5-flash"
     temperature: float = 0.7
     max_output_tokens: int = 4096
+
+    # P0-E — 모드별 system prompt override. None 또는 빈 dict 면 system_prompt 사용.
+    # key: AnswerMode, value: 해당 모드 전용 system prompt
+    system_prompt_by_mode: dict[str, str] | None = None
+
+    # P1-J — 답변 마무리 템플릿 토글.
+    # enable_closing=True 일 때만 closing_kind 에 따라 후속 LLM 호출.
+    enable_closing: bool = False
+    closing_kind: ClosingKind = "off"
+
+    # P0-A — 자동 follow-up 추천 토글. 기본 활성 (모든 답변에 노출).
+    enable_suggested_followups: bool = True
 
 
 class RetrievalConfig(BaseModel):
