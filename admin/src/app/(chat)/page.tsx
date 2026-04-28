@@ -45,6 +45,14 @@ import {
   type ChatResponse,
   type FeedbackType,
 } from "@/features/chatbot/chat-api";
+import { FloatingActionBar } from "@/components/truewords";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 interface Message {
   role: "user" | "assistant";
@@ -87,6 +95,13 @@ export default function ChatPage() {
   // Cloud Run 콜드 스타트 상황에서 사용자에게 대기 이유를 설명한다.
   const [warmingUp, setWarmingUp] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
+  // P0-G — 답변 화면 floating action bar 상태
+  // 북마크: assistant 메시지의 messageId 기준으로 토글 (Set 으로 메모리 관리)
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  // 추천 follow-up sheet — 본 worktree 에서는 placeholder, P0-A 와 결합 예정
+  const [followupOpen, setFollowupOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -252,6 +267,69 @@ export default function ChatPage() {
   const selectedBotName =
     bots.find((b) => b.chatbot_id === selectedBot)?.display_name ?? "";
 
+  // 가장 최근 assistant 답변 — FloatingActionBar 노출/핸들러 기준
+  const latestAssistant = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const m = messages[i];
+      if (m.role === "assistant" && m.messageId) return m;
+    }
+    return null;
+  }, [messages]);
+
+  const showFloatingBar = !!latestAssistant && !loading;
+  const isLatestBookmarked = !!(
+    latestAssistant?.messageId &&
+    bookmarkedIds.has(latestAssistant.messageId)
+  );
+
+  const handleFloatingNewQuestion = useCallback(() => {
+    setFollowupOpen(true);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  }, []);
+
+  const handleFloatingBookmark = useCallback(() => {
+    const id = latestAssistant?.messageId;
+    if (!id) return;
+    setBookmarkedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        toast("북마크를 해제했어요");
+      } else {
+        next.add(id);
+        toast.success("북마크에 저장했어요");
+      }
+      return next;
+    });
+  }, [latestAssistant]);
+
+  const handleFloatingShare = useCallback(async () => {
+    const text = latestAssistant
+      ? stripDisclaimer(latestAssistant.content)
+      : "";
+    const shareData = {
+      title: "TrueWords 답변",
+      text,
+      url: typeof window !== "undefined" ? window.location.href : undefined,
+    };
+    // navigator.share 가 사용 가능하면 OS-level 공유 시트 호출, 아니면 클립보드로 폴백
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (e) {
+        // 사용자가 취소(AbortError)한 경우는 조용히 무시
+        if ((e as Error)?.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("답변을 클립보드에 복사했어요");
+    } catch {
+      toast.error("공유에 실패했어요");
+    }
+  }, [latestAssistant]);
+
   return (
     <div className="flex h-dvh flex-col bg-background">
       {/* 헤더 */}
@@ -305,9 +383,13 @@ export default function ChatPage() {
         </div>
       </header>
 
-      {/* 메시지 영역 */}
+      {/* 메시지 영역 — P0-G: floating action bar 가림 방지를 위해 하단 padding */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="mx-auto max-w-2xl space-y-4">
+        <div
+          className={`mx-auto max-w-2xl space-y-4 ${
+            showFloatingBar ? "pb-28" : ""
+          }`}
+        >
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center gap-6 py-20 text-muted-foreground">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
@@ -560,6 +642,31 @@ export default function ChatPage() {
           </p>
         </div>
       </div>
+
+      {/* P0-G — 답변이 표시될 때만 floating action bar 노출 (ADR-46) */}
+      {showFloatingBar && (
+        <FloatingActionBar
+          onNewQuestion={handleFloatingNewQuestion}
+          onBookmark={handleFloatingBookmark}
+          onShare={handleFloatingShare}
+          bookmarked={isLatestBookmarked}
+        />
+      )}
+
+      {/* 추천 follow-up sheet — placeholder. 추후 P0-A worktree (followup-pills) 와 결합 */}
+      <Sheet open={followupOpen} onOpenChange={(v: boolean) => setFollowupOpen(v)}>
+        <SheetContent side="bottom" className="max-h-[60vh]">
+          <SheetHeader>
+            <SheetTitle>이어서 물어볼만한 질문</SheetTitle>
+            <SheetDescription>
+              관련된 추천 질문을 곧 여기 표시합니다 (P0-A 연동 예정).
+            </SheetDescription>
+          </SheetHeader>
+          <div className="px-4 pb-6 pt-2 text-sm text-muted-foreground">
+            지금은 placeholder입니다. 입력창에 직접 질문을 입력해 주세요.
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
