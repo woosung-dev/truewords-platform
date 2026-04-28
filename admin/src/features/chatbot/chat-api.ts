@@ -1,7 +1,23 @@
+import type {
+  AnswerMode,
+  TheologicalEmphasis,
+  Visibility,
+} from "@/features/chat/types";
+
 export interface ChatBot {
   chatbot_id: string;
   display_name: string;
   description: string;
+}
+
+/**
+ * 입력 화면(W2-②)에서 sendMessage 에 함께 실어보내는 옵션.
+ * 백엔드 schema 통합(W2-③ feat/chat-request-schema)이 머지되면 자동 검증됨.
+ */
+export interface ChatRequestOptions {
+  answer_mode?: AnswerMode;
+  theological_emphasis?: TheologicalEmphasis;
+  visibility?: Visibility;
 }
 
 export interface Source {
@@ -50,6 +66,7 @@ export const chatAPI = {
     chatbotId: string,
     sessionId?: string,
     signal?: AbortSignal,
+    options?: ChatRequestOptions,
   ): Promise<ChatResponse> => {
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -58,6 +75,12 @@ export const chatAPI = {
         query,
         chatbot_id: chatbotId,
         session_id: sessionId,
+        // 백엔드 schema 통합(W2-③) 전에는 무시되며, 머지 후 자동 검증됨.
+        ...(options?.answer_mode ? { answer_mode: options.answer_mode } : {}),
+        ...(options?.theological_emphasis
+          ? { theological_emphasis: options.theological_emphasis }
+          : {}),
+        ...(options?.visibility ? { visibility: options.visibility } : {}),
       }),
       signal,
     });
