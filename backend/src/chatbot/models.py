@@ -23,6 +23,8 @@ class ChatbotConfig(SQLModel, table=True):
     persona_name: str = Field(default="")
     # JSONB: {"tiers": [...], "rerank_enabled": false, "dictionary_enabled": false}
     search_tiers: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    # Qdrant 메인 컬렉션 — A/B 토글용 (옵션 B Anthropic Contextual Retrieval)
+    collection_main: str = Field(default="malssum_poc")
     is_active: bool = Field(default=True)
     organization_id: uuid.UUID | None = None
     created_at: datetime = Field(default_factory=_utcnow)

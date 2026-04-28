@@ -63,6 +63,7 @@ class ChatbotConfigResponse(BaseModel):
     system_prompt: str
     persona_name: str
     search_tiers: SearchTiersConfig
+    collection_main: str = "malssum_poc"
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -77,6 +78,7 @@ class ChatbotConfigCreate(BaseModel):
     search_tiers: SearchTiersConfig = Field(
         default_factory=lambda: SearchTiersConfig(tiers=[])
     )
+    collection_main: str = "malssum_poc"
     is_active: bool = True
 
 
@@ -86,4 +88,5 @@ class ChatbotConfigUpdate(BaseModel):
     system_prompt: str | None = None
     persona_name: str | None = None
     search_tiers: SearchTiersConfig | None = None
+    collection_main: str | None = None
     is_active: bool | None = None

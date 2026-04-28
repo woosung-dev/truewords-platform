@@ -21,6 +21,7 @@ class Chunk:
     source: list[str] | str = ""
     title: str = ""
     date: str = ""
+    prefix_text: str = ""  # Anthropic Contextual Retrieval prefix (옵션 B)
 
 
 # 한국어 문장 종결 패턴: 다/요/까/죠/세요 + 마침표, 또는 ?!

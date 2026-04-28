@@ -28,6 +28,13 @@ logger = logging.getLogger(__name__)
 _UPSERT_BATCH_SIZE = 50
 
 
+def _build_text_for_embedding(chunk: Chunk) -> str:
+    """Anthropic Contextual Retrieval prefix가 있으면 prepend, 없으면 원문만 (옵션 B)."""
+    if chunk.prefix_text:
+        return f"{chunk.prefix_text}\n\n{chunk.text}"
+    return chunk.text
+
+
 def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[float]]:
     """배치 dense 임베딩 + 429 지수 백오프 (90→180초, 최대 3회).
 
@@ -151,7 +158,7 @@ def ingest_chunks(
             batch_chars += chunk_len
             idx += 1
 
-        batch_texts = [c.text for c in batch_chunks]
+        batch_texts = [_build_text_for_embedding(c) for c in batch_chunks]
         abs_batch_end = start_chunk + idx
         batch_num += 1
 
