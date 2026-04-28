@@ -53,6 +53,41 @@ SEED_DATA = [
             ]
         },
     ),
+    # 옵션 F 청킹 PoC — 평화경 1권 재청킹 + 나머지 614권 baseline (vector copy)
+    # 검색 동작은 'all' 봇과 동일, collection_main만 PoC 컬렉션으로 라우팅
+    ChatbotConfig(
+        chatbot_id="chunking-sentence",
+        display_name="청킹 PoC: 문장",
+        description="옵션 F PoC — 평화경 sentence-based 청킹 (baseline 비교용)",
+        search_tiers={
+            "tiers": [
+                {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
+            ]
+        },
+        collection_main="malssum_chunking_poc_sentence",
+    ),
+    ChatbotConfig(
+        chatbot_id="chunking-token1024",
+        display_name="청킹 PoC: 토큰",
+        description="옵션 F PoC — 평화경 char-based 2560/500 sliding window",
+        search_tiers={
+            "tiers": [
+                {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
+            ]
+        },
+        collection_main="malssum_chunking_poc_token1024",
+    ),
+    ChatbotConfig(
+        chatbot_id="chunking-paragraph",
+        display_name="청킹 PoC: 단락",
+        description="옵션 F PoC — 평화경 blank-line 단락 + min_chars=200 병합",
+        search_tiers={
+            "tiers": [
+                {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
+            ]
+        },
+        collection_main="malssum_chunking_poc_paragraph",
+    ),
 ]
 
 
