@@ -18,10 +18,30 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
-from scripts.eval_ragas import load_seed, run_evaluation
+from scripts.eval_ragas import SeedItem, load_seed, run_evaluation
 
 
 METRICS = ("faithfulness", "context_precision", "context_recall", "answer_relevancy")
+
+
+def run_evaluation_in_batches(
+    items: list[SeedItem], batch_size: int = 5
+) -> dict[str, list[float | None]]:
+    """RAGAS 평가를 batch_size 단위 직렬로 호출.
+
+    이유: RAGAS 0.4.3 + langchain-google-genai 4.2.2에서 50건 한 번 호출 시
+    Job multiplexing이 timeout으로 90% 이상 실패. 5건 sanity는 timeout 0이므로
+    items를 batch_size 단위로 chunk해서 직렬 evaluate → 결과를 원본 순서대로 합침.
+    """
+    accumulated: dict[str, list[float | None]] = {m: [] for m in METRICS}
+    n = len(items)
+    for start in range(0, n, batch_size):
+        chunk = items[start : start + batch_size]
+        print(f"  batch {start // batch_size + 1}/{(n + batch_size - 1) // batch_size} (items {start + 1}~{start + len(chunk)})")
+        scores = run_evaluation(chunk)
+        for m in METRICS:
+            accumulated[m].extend(scores.get(m, [None] * len(chunk)))
+    return accumulated
 
 
 def group_seed_by_source(seed_path: Path) -> dict[str, list[dict]]:
@@ -83,10 +103,10 @@ def main() -> int:
     p.add_argument("--output", required=True, type=Path)
     args = p.parse_args()
 
-    # 1) RAGAS 한 번 호출 — 50건 일괄 (eval_ragas.run_evaluation 재사용)
+    # 1) RAGAS 평가 — 5건 단위 직렬 batch (RAGAS 0.4.3 timeout 회피)
     items = load_seed(args.seed)
-    print(f"RAGAS 평가 시작: {len(items)}건")
-    scores = run_evaluation(items)
+    print(f"RAGAS 평가 시작: {len(items)}건 (5건 단위 직렬 batch)")
+    scores = run_evaluation_in_batches(items, batch_size=5)
 
     # 2) gold_source 별로 그룹핑
     seed_rows = json.loads(args.seed.read_text(encoding="utf-8"))
