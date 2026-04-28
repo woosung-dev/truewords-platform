@@ -92,3 +92,32 @@ class AnswerFeedback(SQLModel, table=True):
     comment: str | None = None
     user_id: uuid.UUID | None = None  # 미래 확장용
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class MessageReactionKind(str, enum.Enum):
+    """P1-A — 답변 즉시 토글 3종.
+
+    AnswerFeedback (자유서술 + 운영자 라벨링용) 과 분리. 사용자는 1-탭으로
+    👍 / 👎 / 💾 를 즉시 누른다. ADR-46 §C.3 답변 평가 영역.
+    """
+
+    THUMBS_UP = "thumbs_up"
+    THUMBS_DOWN = "thumbs_down"
+    SAVE = "save"
+
+
+class MessageReaction(SQLModel, table=True):
+    """P1-A — 사용자 즉시 반응 (👍/👎/💾).
+
+    Unique (message_id, user_session_id, kind) — 동일 사용자 동일 메시지에 같은
+    반응 중복 저장 방지. 토글 해제 시 row delete.
+    """
+
+    __tablename__ = "chat_message_reactions"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    message_id: uuid.UUID = Field(foreign_key="session_messages.id", index=True)
+    # 비로그인 사용자도 토글 가능 — 클라이언트가 보내는 fingerprint/cookie 기반 id.
+    user_session_id: str = Field(index=True, max_length=128)
+    kind: MessageReactionKind
+    created_at: datetime = Field(default_factory=datetime.utcnow)
