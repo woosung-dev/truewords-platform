@@ -22,6 +22,7 @@ from src.admin.router import router as admin_router
 from src.admin.analytics_router import router as analytics_router
 from src.admin.data_router import router as admin_data_router
 from src.datasource.router import router as datasource_router
+from src.datasource.chunks_router import chunks_router
 from src.common.exception_handlers import (
     embedding_failed_handler,
     input_blocked_handler,
@@ -96,6 +97,7 @@ app.include_router(admin_router)
 app.include_router(chatbot_admin_router)
 app.include_router(admin_data_router)
 app.include_router(datasource_router)
+app.include_router(chunks_router)
 app.include_router(analytics_router)
 
 

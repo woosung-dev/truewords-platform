@@ -2,12 +2,14 @@
 
 import asyncio
 import unicodedata
+from typing import Any
 
 from qdrant_client import AsyncQdrantClient, QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchAny, MatchValue
 
 from src.datasource.schemas import (
     CategoryDocumentStats,
+    SourceChunkDetail,
     VolumeDeleteResponse,
     VolumeInfo,
     VolumeTagResponse,
@@ -526,3 +528,50 @@ class DataSourceQdrantService:
             updated_sources=sorted(final_sources_set) if final_sources_set else [],
             updated_chunks=updated,
         )
+
+    async def get_chunk_detail(self, chunk_id: str) -> SourceChunkDetail | None:
+        """P0-B — 인용 카드 원문보기 모달용 단일 청크 조회.
+
+        Qdrant point_id (chunk_id) 로 직접 retrieve. 권/일자/장소/제목 메타가
+        있으면 함께 반환. 청크 없으면 None.
+        """
+        from src.datasource.citation_meta import (
+            extract_meta_from_payload,
+            format_citation_label,
+        )
+
+        try:
+            points = await self.async_client.retrieve(
+                collection_name=self.collection_name,
+                ids=[chunk_id],
+                with_payload=True,
+                with_vectors=False,
+            )
+        except Exception:
+            return None
+        if not points:
+            return None
+        payload: dict[str, Any] = points[0].payload or {}
+        meta = extract_meta_from_payload(payload)
+        return SourceChunkDetail(
+            chunk_id=str(points[0].id),
+            text=str(payload.get("text", "")),
+            volume=str(payload.get("volume", "")),
+            sources=_coerce_sources(payload.get("source")),
+            citation_label=format_citation_label(meta) or None,
+            volume_no=meta.volume_no,
+            delivered_at=meta.delivered_at,
+            delivered_place=meta.delivered_place,
+            chapter_title=meta.chapter_title,
+        )
+
+
+def _coerce_sources(raw: Any) -> list[str]:
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        return [raw]
+    if isinstance(raw, list):
+        return [str(s) for s in raw if s]
+    return []
+
