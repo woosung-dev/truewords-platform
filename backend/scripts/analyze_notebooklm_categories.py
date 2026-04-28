@@ -46,7 +46,7 @@ def _cited_text(row: dict) -> str:
 
 
 def _is_hit(row: dict) -> bool:
-    keywords = str(row.get("참고키워드", "") or "")
+    keywords = str(row.get("참고 키워드") or row.get("참고키워드") or "")
     tokens = [t.strip() for t in keywords.replace("\n", ",").split(",") if t.strip()]
     if not tokens:
         return False
