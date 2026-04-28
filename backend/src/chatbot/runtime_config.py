@@ -84,3 +84,6 @@ class ChatbotRuntimeConfig(BaseModel):
     generation: GenerationConfig
     retrieval: RetrievalConfig
     safety: SafetyConfig
+    # P1-F: 운영 투명성 — 챗봇별 신학 입장 (About 페이지 노출, 후속에서 활용).
+    # 미설정 챗봇은 None → About 페이지에서 시스템 기본 카피 사용.
+    theological_stance: str | None = None
