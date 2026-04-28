@@ -1,13 +1,16 @@
 """채팅 Repository. 세션, 메시지, 검색 이벤트, 인용, 피드백 DB 접근."""
 
 import uuid
+from datetime import datetime, timedelta
 
+from sqlalchemy import desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from src.chat.models import (
     AnswerCitation,
     AnswerFeedback,
+    MessageRole,
     ResearchSession,
     SearchEvent,
     SessionMessage,
@@ -84,6 +87,49 @@ class ChatRepository:
         self.session.add(feedback)
         await self.session.flush()
         return feedback
+
+    # --- 인기 질문 (P1-C) ---
+
+    async def get_popular_questions(
+        self,
+        chatbot_id: uuid.UUID,
+        *,
+        period_days: int | None = 7,
+        limit: int = 10,
+    ) -> list[tuple[str, int]]:
+        """특정 챗봇의 인기 질문 (USER 메시지 content) 집계.
+
+        - ``chatbot_id`` (= ``ChatbotConfig.id``) 의 ResearchSession 에 속한
+          USER 메시지의 content 를 group by + count.
+        - ``period_days`` 가 None 이면 전체 기간 (period=all).
+        - 결과는 count 내림차순, 동률 시 최근 created_at 기준 보조 정렬.
+
+        Returns:
+            list of (question_text, count) — count desc.
+        """
+        stmt = (
+            select(
+                SessionMessage.content,
+                func.count(SessionMessage.id).label("cnt"),
+            )
+            .join(
+                ResearchSession,
+                ResearchSession.id == SessionMessage.session_id,
+            )
+            .where(
+                ResearchSession.chatbot_config_id == chatbot_id,
+                SessionMessage.role == MessageRole.USER,
+            )
+            .group_by(SessionMessage.content)
+            .order_by(desc("cnt"))
+            .limit(limit)
+        )
+        if period_days is not None and period_days > 0:
+            cutoff = datetime.utcnow() - timedelta(days=period_days)
+            stmt = stmt.where(SessionMessage.created_at >= cutoff)
+
+        result = await self.session.execute(stmt)
+        return [(row[0], int(row[1])) for row in result.all()]
 
     async def commit(self) -> None:
         await self.session.commit()

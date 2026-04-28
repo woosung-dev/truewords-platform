@@ -64,6 +64,7 @@ import {
   EmphasisRowTrigger,
 } from "@/features/chat/components/emphasis-sheet";
 import { VisibilityToggle } from "@/features/chat/components/visibility-toggle";
+import { PopularQuestions } from "@/features/chat/components/popular-questions";
 import type {
   AnswerMode,
   TheologicalEmphasis,
@@ -484,7 +485,17 @@ export default function ChatPage() {
               }}
             />
 
-            {/* 추천 질문 (chip) */}
+            {/* P1-C — 동적 인기 질문 (이번 주). 데이터 없으면 자동 숨김. */}
+            {!botsLoading && selectedBot && (
+              <PopularQuestions
+                chatbotId={selectedBot}
+                onSelect={(q) => setInput(q)}
+                period="7d"
+                limit={5}
+              />
+            )}
+
+            {/* 추천 질문 (chip) — 정적 fallback */}
             {!botsLoading && selectedBot && (
               <div className="flex w-full flex-wrap justify-center gap-2">
                 {SUGGESTED_PROMPTS.map((prompt) => (
