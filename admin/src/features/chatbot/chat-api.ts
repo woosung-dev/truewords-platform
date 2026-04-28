@@ -36,6 +36,9 @@ export interface ChatResponse {
   suggested_followups?: string[] | null;
   // P1-J — 기도문/결의문 마무리 (비활성 시 null).
   closing?: string | null;
+  // B5 — 사용자 명시 페르소나가 위기 신호로 pastoral 강제 override 됐는지.
+  // True 면 UI 가 "위기 신호로 감지되어 상담 모드로 전환됐어요" 노티 노출.
+  persona_overridden?: boolean;
 }
 
 export type FeedbackType =

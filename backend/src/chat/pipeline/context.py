@@ -47,6 +47,10 @@ class ChatContext:
     # GenerationStage 가 IntentClassifier 결과 + req.answer_mode 우선순위로 결정.
     resolved_answer_mode: str | None = None
 
+    # B5 — 사용자가 명시한 페르소나가 위기 신호로 인해 pastoral 로 강제 override 됐는지.
+    # True 면 응답 클라이언트가 "위기 신호로 감지되어 상담 모드로 전환됐어요" 노티 노출.
+    persona_overridden: bool = False
+
     # P0-A — 후속 질문 추천 3개. SuggestedFollowupsStage 가 채움.
     suggested_followups: list[str] | None = None
     # P1-J — 기도문/결의문 마무리 텍스트. ClosingTemplateStage 가 채움.

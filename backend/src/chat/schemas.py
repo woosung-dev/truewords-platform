@@ -37,6 +37,9 @@ class ChatResponse(BaseModel):
     suggested_followups: list[str] | None = None
     # P1-J — 기도문/결의문 마무리. 비활성/생성 실패 시 None.
     closing: str | None = None
+    # B5 — 사용자 명시 페르소나가 위기 신호로 pastoral 강제 override 됐는지.
+    # True 면 UI 가 "위기 신호로 감지되어 상담 모드로 전환됐어요" 노티 노출.
+    persona_overridden: bool = False
 
 
 class FeedbackRequest(BaseModel):
