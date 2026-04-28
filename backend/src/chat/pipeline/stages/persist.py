@@ -29,13 +29,18 @@ class PersistStage:
         if not session or not ctx.answer:
             return ctx
 
-        # 답변 메시지 저장 (N7: 신규 파이프라인 = v2)
+        # 답변 메시지 저장 (N7: 신규 파이프라인 = v2 + M1 측정 컬럼 4종)
         ctx.assistant_message = await self.chat_repo.create_message(
             SessionMessage(
                 session_id=session.id,
                 role=MessageRole.ASSISTANT,
                 content=ctx.answer,
                 pipeline_version=2,
+                # M1 — 측정 인프라 (Cross-review #2 W4-blocking).
+                requested_answer_mode=getattr(ctx.request, "answer_mode", None),
+                resolved_answer_mode=ctx.resolved_answer_mode,
+                persona_overridden=ctx.persona_overridden,
+                crisis_trigger=ctx.crisis_trigger,
             )
         )
 

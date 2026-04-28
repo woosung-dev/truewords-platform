@@ -118,6 +118,13 @@ async def upsert_citation_note(
     user_session_id = _get_or_issue_session_id(request, response)
 
     repo = ChatMessageNoteRepository(session)
+    # B7 (Cross-review #2) — message_id ownership 1차 검증.
+    # 임의 uuid 로 spam INSERT 차단. FK 만으로는 IntegrityError → 500 누설 위험.
+    # strict ownership (anon_session 매칭) 은 chat flow client_fingerprint
+    # wiring 후 W4 후속 PR.
+    if not await repo.message_exists(message_id):
+        raise HTTPException(status_code=404, detail="존재하지 않는 메시지입니다")
+
     note = await repo.upsert(
         message_id=message_id,
         chunk_id=payload.chunk_id,
@@ -147,6 +154,10 @@ async def get_citation_note(
     user_session_id = _get_or_issue_session_id(request, response)
 
     repo = ChatMessageNoteRepository(session)
+    # B7 — GET 도 동일하게 message 존재 검증 (random uuid 노출 방지)
+    if not await repo.message_exists(message_id):
+        raise HTTPException(status_code=404, detail="존재하지 않는 메시지입니다")
+
     note = await repo.get(
         message_id=message_id,
         chunk_id=chunk_id,

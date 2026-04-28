@@ -63,7 +63,7 @@ def upgrade() -> None:
         sa.Column(
             "message_id",
             sa.UUID(),
-            sa.ForeignKey("session_messages.id"),
+            sa.ForeignKey("session_messages.id", ondelete="CASCADE"),
             nullable=False,
         ),
         sa.Column("reviewer_user_id", sa.UUID(), nullable=False),

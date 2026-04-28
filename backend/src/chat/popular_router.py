@@ -12,13 +12,16 @@ ADR-46 Screen 1 §C.1.2 — 입력 화면 상단의 정적 SUGGESTED_PROMPTS 옆
 
 집계 정의:
     SessionMessage.role == USER && ResearchSession.chatbot_config_id == X
-    → group by content, count desc, limit N.
+    → group by content, having count >= k, count desc, limit N.
 
-인증/ACL:
+인증/ACL/k-anonymity:
     - period=7d / 30d → 인증 없이 호출 가능 (rate limit 만 적용).
     - period=all      → admin 전용 (전체 기간 집계는 부하/프라이버시 고려).
-    - 챗봇 단위 ACL 은 본 PR 범위 외 (ChatbotConfig 에 visibility 컬럼이 없어
-      향후 W3 후속 작업에서 정책 합의 후 확장).
+    - **B6 k-anonymity (Cross-review #2)**: public endpoint 는 ``count >= 3``
+      미만 질문 제외. 한 명만 입력한 질문이 외부 노출되어 PII / inference attack /
+      prompt injection 등극 가능성을 차단.
+    - admin endpoint 는 운영 디버깅을 위해 ``count >= 1`` 허용.
+    - 챗봇 단위 visibility ACL 은 ChatbotConfig 에 컬럼이 없어 W4 후속 작업.
 """
 
 from __future__ import annotations
@@ -90,6 +93,9 @@ async def list_popular_questions(
         config_id,
         period_days=period_days,
         limit=limit,
+        # B6 k-anonymity — public endpoint 는 count >= 3 미만 질문 차단.
+        # 한 명만 입력한 질문이 외부 노출되는 것을 방지 (PII / inference / injection).
+        min_count=3,
     )
     return [{"question": q, "count": c} for q, c in rows]
 

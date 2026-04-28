@@ -50,6 +50,13 @@ class SessionMessage(SQLModel, table=True):
     created_at: datetime = Field(
         default_factory=datetime.utcnow, index=True
     )
+    # M1 — 측정 인프라 (Cross-review #2 Opus W4-blocking).
+    # 답변 단위로 어떤 페르소나/위기 신호가 작동했는지 영속화 → A/B 효과 분석 가능.
+    # 모두 nullable — assistant message 만 채움 (user 는 None).
+    requested_answer_mode: str | None = Field(default=None, max_length=32)
+    resolved_answer_mode: str | None = Field(default=None, max_length=32, index=True)
+    persona_overridden: bool | None = Field(default=None)
+    crisis_trigger: str | None = Field(default=None, max_length=128)
 
 
 class SearchEvent(SQLModel, table=True):

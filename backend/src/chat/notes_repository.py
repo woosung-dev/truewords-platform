@@ -16,12 +16,23 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.chat.models import ChatMessageNote
+from src.chat.models import ChatMessageNote, SessionMessage
 
 
 class ChatMessageNoteRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    async def message_exists(self, message_id: uuid.UUID) -> bool:
+        """B7 ownership 검증 — message_id 가 실제 session_messages 에 있는지.
+
+        random uuid spam 차단의 1차 게이트. 본 PR 의 ownership 검증은 "message
+        가 실재한다" 까지만 — 누가 받은 message 인지(client_fingerprint 매칭)는
+        chat flow 의 anon_session wiring (W4 별도 PR) 후에 추가 가능.
+        """
+        stmt = select(SessionMessage.id).where(SessionMessage.id == message_id)
+        res = await self.session.exec(stmt)
+        return res.first() is not None
 
     async def get(
         self,

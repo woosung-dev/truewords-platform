@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import re
+import unicodedata
 
 from src.chat.generator import generate_answer
 from src.chat.pipeline.context import ChatContext
@@ -44,29 +45,22 @@ PASTORAL_HOTLINE_FOOTER = (
 _HOTLINE_TOKENS: tuple[str, ...] = ("1393", "1577-0199")
 
 
-# C3 — 위기 키워드 30+개 (직접/간접/청소년 은어/영어).
-# 장기적으로는 IntentClassifier crisis 라벨 (LLM 분류) 로 대체. 현재는 cost-floor.
-# false negative 확장 우선 — false positive (예: "불안" 일반어) 일부 감수.
+# C3 + M4 — 위기 키워드 (DIRECT 좁힘 + EMOTIONAL 확장).
+#
+# **DIRECT (high signal, 사용자 명시 모드 override)**: 명백한 자해/죽음 의도만.
+# 학술/전문 질문 false positive 회수 (Codex review #2 권고 — `이만 됐`, `더는 못`,
+# `삶의 의미가 없` 등 모호 표현은 EMOTIONAL 로 이동).
+#
+# **EMOTIONAL (medium signal, 사용자 명시 모드 *보존*, 미설정 시만 pastoral)**.
+# 정서 표현 + 청소년 은어 + 모호한 위기 신호.
 _PASTORAL_KEYWORDS_DIRECT: tuple[str, ...] = (
-    # 직접 위기 표현 (high signal)
+    # 명백한 자해/죽음 의도 (한국어)
     "죽고 싶",
     "자살",
     "사라지고 싶",
-    "끝내고 싶",
     "끝내버리",
-    "이만 됐",
-    "더는 못",
-    "더 이상 못 버티",
-    "마지막 페이지",
-    "삶의 의미가 없",
-    "의미가 없어",
-    "살 이유가 없",
-    "혼자가 편",
-    "세상이 무거",
-    "세상이 너무 무거",
-    "다 끝내",
-    "다 포기",
-    # 영어 직접 표현
+    "내가 사라지면",
+    # 영어 명시 표현
     "want to die",
     "kill myself",
     "end it all",
@@ -82,6 +76,20 @@ _PASTORAL_KEYWORDS_EMOTIONAL: tuple[str, ...] = (
     "절망",
     "공허",
     "무기력",
+    # M4 — DIRECT 에서 이동 (모호 표현, 사용자 학술 질문에서도 출현 가능)
+    "이만 됐",
+    "더는 못",
+    "더 이상 못 버티",
+    "마지막 페이지",
+    "삶의 의미가 없",
+    "의미가 없어",
+    "살 이유가 없",
+    "혼자가 편",
+    "세상이 무거",
+    "세상이 너무 무거",
+    "다 끝내",
+    "다 포기",
+    "끝내고 싶",
     # 청소년 은어 (medium signal)
     "갓생 안",
     "현타",
@@ -91,11 +99,22 @@ _PASTORAL_KEYWORDS_EMOTIONAL: tuple[str, ...] = (
 )
 
 
+def _normalize_for_keyword_match(query: str) -> str:
+    """M3 — 키워드 매칭용 정규화.
+
+    - NFC 정규화: macOS / iOS clipboard 의 한글 NFD 우회 방어 (Sonnet review #2).
+    - 소문자 + 공백 압축.
+    """
+    if not query:
+        return ""
+    return re.sub(r"\s+", " ", unicodedata.normalize("NFC", query).lower())
+
+
 def _matches_pastoral_keyword(query: str) -> bool:
-    """C3 — 위기/정서 키워드 매칭. 정규화(소문자 + 공백 압축) 적용."""
+    """C3 + M3 — 위기/정서 키워드 매칭. NFC 정규화 + 소문자."""
     if not query:
         return False
-    normalized = re.sub(r"\s+", " ", query.lower())
+    normalized = _normalize_for_keyword_match(query)
     for kw in (*_PASTORAL_KEYWORDS_DIRECT, *_PASTORAL_KEYWORDS_EMOTIONAL):
         if kw.lower() in normalized:
             return True
@@ -103,14 +122,26 @@ def _matches_pastoral_keyword(query: str) -> bool:
 
 
 def _matches_high_signal_crisis(query: str) -> bool:
-    """B5 — 사용자 명시 페르소나를 override 할 수준의 강한 위기 신호.
+    """B5 + M3 — 사용자 명시 페르소나를 override 할 수준의 강한 위기 신호.
 
-    DIRECT 키워드만 매칭 (EMOTIONAL 은 일반 표현일 가능성 → override 대상 아님).
+    DIRECT 키워드만 매칭 (M4 로 좁혀진 — 명백한 자해/죽음 의도). EMOTIONAL 은
+    일반 표현일 가능성 → override 대상 아님. NFC 정규화 + 소문자 적용 (M3).
     """
     if not query:
         return False
-    normalized = re.sub(r"\s+", " ", query.lower())
+    normalized = _normalize_for_keyword_match(query)
     return any(kw.lower() in normalized for kw in _PASTORAL_KEYWORDS_DIRECT)
+
+
+def _find_first_direct_keyword(query: str) -> str | None:
+    """M1 — 매칭된 DIRECT 키워드 식별 (영속화용 crisis_trigger 값)."""
+    if not query:
+        return None
+    normalized = _normalize_for_keyword_match(query)
+    for kw in _PASTORAL_KEYWORDS_DIRECT:
+        if kw.lower() in normalized:
+            return kw
+    return None
 
 
 def resolve_answer_mode(
@@ -118,12 +149,15 @@ def resolve_answer_mode(
     requested_mode: str | None,
     intent: Intent | None,
     query: str,
-) -> tuple[str, bool]:
-    """답변 모드 결정 우선순위 (P0-E + B5).
+) -> tuple[str, bool, str | None]:
+    """답변 모드 결정 우선순위 (P0-E + B5 + M1).
 
     Returns:
-        (mode, overridden) — overridden=True 면 사용자 명시 모드를 위기 신호로 덮어씀.
-        UI 는 overridden=True 일 때 "위기 신호로 감지되어 상담 모드로 전환됐어요" 노티.
+        (mode, overridden, crisis_trigger):
+        - mode: 최종 답변 모드.
+        - overridden: True 면 사용자 명시 모드를 위기 신호로 덮어씀 (UI 노티).
+        - crisis_trigger: 매칭된 DIRECT 키워드 텍스트 또는 ``"intent:crisis"`` 또는 ``None``
+          (M1 측정 — session_messages 영속화).
 
     Priority:
         1. 강한 위기 신호 (HIGH_SIGNAL_CRISIS) → ``pastoral`` 강제 (사용자 모드 무시 — B5)
@@ -136,21 +170,23 @@ def resolve_answer_mode(
     valid_modes = {"standard", "theological", "pastoral", "beginner", "kids"}
 
     # B5 — 강한 위기 신호 시 사용자 모드 override.
-    if _matches_high_signal_crisis(query) or intent == "crisis":  # type: ignore[comparison-overlap]
+    direct_kw = _find_first_direct_keyword(query)
+    if direct_kw is not None or intent == "crisis":  # type: ignore[comparison-overlap]
         overridden = (
             requested_mode in valid_modes and requested_mode != "pastoral"
         )
-        return "pastoral", overridden
+        trigger = direct_kw if direct_kw is not None else "intent:crisis"
+        return "pastoral", overridden, trigger
 
     if requested_mode in valid_modes:
-        return requested_mode, False  # type: ignore[return-value]
+        return requested_mode, False, None  # type: ignore[return-value]
 
     # 미설정: 약한 정서 키워드 → pastoral (override 아님)
     if _matches_pastoral_keyword(query):
-        return "pastoral", False
+        return "pastoral", False, "emotional"
     if intent == "reasoning":
-        return "theological", False
-    return "standard", False
+        return "theological", False, None
+    return "standard", False, None
 
 
 def select_system_prompt(
@@ -210,17 +246,16 @@ class GenerationStage:
             ctx.pipeline_state = PipelineState.GENERATED
             return ctx
 
-        answer_mode, persona_overridden = resolve_answer_mode(
+        answer_mode, persona_overridden, crisis_trigger = resolve_answer_mode(
             requested_mode=requested_mode,
             intent=ctx.intent,
             query=ctx.request.query,
         )
         ctx.resolved_answer_mode = answer_mode
-        # B5 — UI 노티용 ctx flag (없으면 setattr — ChatContext 가 향후 정식 필드 추가)
-        try:
-            ctx.persona_overridden = persona_overridden  # type: ignore[attr-defined]
-        except Exception:  # pragma: no cover — defensive
-            setattr(ctx, "persona_overridden", persona_overridden)
+        # B5 — UI 노티 + 영속화. ChatContext 가 정식 필드로 보유.
+        ctx.persona_overridden = persona_overridden
+        # M1 — 위기 매칭 origin 영속화 (PersistStage 가 session_messages 에 wire).
+        ctx.crisis_trigger = crisis_trigger
 
         system_prompt = select_system_prompt(
             generation_config=gen_cfg,

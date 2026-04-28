@@ -51,6 +51,11 @@ class ChatContext:
     # True 면 응답 클라이언트가 "위기 신호로 감지되어 상담 모드로 전환됐어요" 노티 노출.
     persona_overridden: bool = False
 
+    # M1 — 측정 인프라. PersistStage 가 session_messages row 생성 시 영속화.
+    # B5/C3 효과 분석 baseline. crisis_trigger 는 매칭된 키워드 텍스트 또는
+    # "intent:crisis" / None.
+    crisis_trigger: str | None = None
+
     # P0-A — 후속 질문 추천 3개. SuggestedFollowupsStage 가 채움.
     suggested_followups: list[str] | None = None
     # P1-J — 기도문/결의문 마무리 텍스트. ClosingTemplateStage 가 채움.

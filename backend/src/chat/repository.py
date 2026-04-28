@@ -96,13 +96,15 @@ class ChatRepository:
         *,
         period_days: int | None = 7,
         limit: int = 10,
+        min_count: int = 1,
     ) -> list[tuple[str, int]]:
         """특정 챗봇의 인기 질문 (USER 메시지 content) 집계.
 
         - ``chatbot_id`` (= ``ChatbotConfig.id``) 의 ResearchSession 에 속한
           USER 메시지의 content 를 group by + count.
         - ``period_days`` 가 None 이면 전체 기간 (period=all).
-        - 결과는 count 내림차순, 동률 시 최근 created_at 기준 보조 정렬.
+        - ``min_count`` 미만은 결과에서 제외 (B6 k-anonymity / PII 보호).
+          public endpoint 는 3 (k=3), admin endpoint 는 1.
 
         Returns:
             list of (question_text, count) — count desc.
@@ -121,6 +123,7 @@ class ChatRepository:
                 SessionMessage.role == MessageRole.USER,
             )
             .group_by(SessionMessage.content)
+            .having(func.count(SessionMessage.id) >= min_count)
             .order_by(desc("cnt"))
             .limit(limit)
         )
