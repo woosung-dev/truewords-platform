@@ -1,14 +1,22 @@
-"""입력 검증 — Prompt Injection 방어 + 길이/공백 체크."""
+"""입력 검증 — Prompt Injection 방어 + 길이/공백 체크.
+
+P1-E (W2-⑦) Soft Refusal 전환:
+- 빈 입력 / 길이 초과 → 여전히 ``InputBlockedError`` (hard fail).
+- Prompt Injection 패턴 매치 → 예외 대신 ``InputValidationResult(passed=False, reason="injection")``
+  반환. 호출자(InputValidationStage)가 ctx flag 로 변환 후, service.py 가
+  generation/search 를 스킵하고 표준 거절 + 추천 질문 3개를 응답한다.
+"""
 
 import re
 import unicodedata
+from dataclasses import dataclass
 
 from src.config import settings
 from src.safety.exceptions import InputBlockedError
 
 # Zero-width 및 비표준 공백 문자 정규화 패턴
 _INVISIBLE_CHARS = re.compile(
-    r"[\u200b\u200c\u200d\u200e\u200f\ufeff\u00ad\u2060\u180e]"
+    r"[​‌‍‎‏﻿­⁠᠎]"
 )
 
 # 컴파일된 정규식 패턴 — 악의적 입력 탐지
@@ -47,6 +55,20 @@ BLOCKED_PATTERNS: list[re.Pattern[str]] = [
 ]
 
 
+@dataclass(frozen=True)
+class InputValidationResult:
+    """입력 검증 결과.
+
+    passed=True  → 정상 입력. reason 은 None.
+    passed=False → soft refusal 대상. reason 은 거절 사유 코드 ('injection').
+                   호출자는 ctx flag 로 변환해 generation/search 를 스킵하고
+                   표준 거절 + 추천 질문 응답을 구성한다.
+    """
+
+    passed: bool
+    reason: str | None = None
+
+
 def _normalize_input(query: str) -> str:
     """비표준 공백/제어문자 정규화. 패턴 우회 방지."""
     # Zero-width 문자를 공백으로 치환 (단어 사이 삽입 우회 방지)
@@ -58,14 +80,17 @@ def _normalize_input(query: str) -> str:
     return cleaned
 
 
-async def validate_input(query: str) -> None:
-    """입력 검증. 차단 시 InputBlockedError 발생.
+async def validate_input(query: str) -> InputValidationResult:
+    """입력 검증.
 
     검증 순서:
-    1. 빈 문자열 / 공백만 있는 경우
-    2. 길이 제한 초과
-    3. 입력 정규화 (zero-width 문자, 비표준 공백 제거)
-    4. Prompt Injection 패턴 매칭
+    1. 빈 문자열 / 공백만 있는 경우 → ``InputBlockedError`` (hard fail).
+    2. 길이 제한 초과 → ``InputBlockedError`` (hard fail).
+    3. 입력 정규화 (zero-width 문자, 비표준 공백 제거).
+    4. Prompt Injection 패턴 매칭 → ``InputValidationResult(passed=False, reason="injection")``.
+
+    Returns:
+        ``InputValidationResult``. passed=True 이면 정상, passed=False 이면 soft refusal.
     """
     # 1. 빈 문자열 / 공백
     stripped = query.strip()
@@ -81,7 +106,9 @@ async def validate_input(query: str) -> None:
     # 3. 정규화 (패턴 우회 방지)
     normalized = _normalize_input(stripped)
 
-    # 4. Prompt Injection 패턴
+    # 4. Prompt Injection 패턴 → soft refusal (예외 대신 결과 반환)
     for pattern in BLOCKED_PATTERNS:
         if pattern.search(normalized):
-            raise InputBlockedError("허용되지 않는 입력 패턴이 감지되었습니다.")
+            return InputValidationResult(passed=False, reason="injection")
+
+    return InputValidationResult(passed=True)
