@@ -21,6 +21,7 @@ from src.chat.popular_router import (
     router as popular_router,
     admin_popular_router,
 )
+from src.chat.notes_router import notes_router
 from src.chatbot.router import router as chatbot_router, admin_router as chatbot_admin_router
 from src.admin.router import router as admin_router
 from src.admin.analytics_router import router as analytics_router
@@ -96,6 +97,7 @@ app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignor
 app.include_router(chat_router)
 app.include_router(reactions_router)
 app.include_router(popular_router)
+app.include_router(notes_router)
 app.include_router(chatbot_router)
 
 # 관리자 라우터

@@ -6,6 +6,7 @@ from datetime import datetime
 
 from sqlmodel import Field, SQLModel, Column
 from sqlalchemy import JSON, Text
+from sqlalchemy import UniqueConstraint
 
 
 class MessageRole(str, enum.Enum):
@@ -154,3 +155,37 @@ class AnswerReview(SQLModel, table=True):
     label: ReviewLabel
     notes: str | None = Field(default=None, sa_column=Column(Text))
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+
+
+class ChatMessageNote(SQLModel, table=True):
+    """P1-H — 인용 카드 단위 사용자 노트 (3-tab 의 노트 탭 영속화).
+
+    답변 메시지의 각 인용 카드(chunk_id 단위)에 대해 사용자가 자유롭게 메모를
+    남긴다. ``MessageReaction`` 과 동일하게 익명 ``user_session_id`` (HttpOnly
+    cookie 발급) 로 사용자를 식별한다.
+
+    UNIQUE (message_id, chunk_id, user_session_id) — 한 사용자가 한 인용 카드에
+    하나의 노트만 가진다. 갱신은 in-place UPDATE.
+    """
+
+    __tablename__ = "chat_message_notes"
+    __table_args__ = (
+        UniqueConstraint(
+            "message_id",
+            "chunk_id",
+            "user_session_id",
+            name="uq_message_note_user_chunk",
+        ),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    message_id: uuid.UUID = Field(foreign_key="session_messages.id", index=True)
+    # Qdrant point id (chunk 식별자). 인용 카드 단위 노트 키.
+    chunk_id: str = Field(max_length=128)
+    # MessageReaction 과 동일한 익명 cookie 세션 id.
+    user_session_id: str = Field(index=True, max_length=128)
+    body: str = Field(sa_column=Column(Text))
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        index=True,
+    )
