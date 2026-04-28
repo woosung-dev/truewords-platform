@@ -33,6 +33,8 @@ export interface SourceOriginalModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   chunkId: string | null;
+  /** ACL 검증용 chatbot_id (필수) — 답변을 받은 chatbot 의 source filter 적용 */
+  chatbotId: string;
   /** 인용 카드에서 노출됐던 부분 — 모달 본문에서 노란 하이라이트로 강조 */
   highlightSnippet?: string;
   /** 답변 화면의 인용 카드 메타 (서버 응답 전 placeholder) */
@@ -49,21 +51,26 @@ export function SourceOriginalModal({
   open,
   onOpenChange,
   chunkId,
+  chatbotId,
   highlightSnippet,
   fallbackLabel,
 }: SourceOriginalModalProps) {
   const [state, setState] = React.useState<FetchState>({ status: "idle" });
 
   React.useEffect(() => {
-    if (!open || !chunkId) return;
+    if (!open || !chunkId || !chatbotId) return;
     setState({ status: "loading" });
     const ctrl = new AbortController();
-    fetch(`/api/sources/chunks/${encodeURIComponent(chunkId)}`, {
+    const url = `/api/sources/chunks/${encodeURIComponent(chunkId)}?chatbot_id=${encodeURIComponent(chatbotId)}`;
+    fetch(url, {
       signal: ctrl.signal,
     })
       .then(async (res) => {
         if (res.status === 404) {
           throw new Error("청크를 찾을 수 없어요");
+        }
+        if (res.status === 403) {
+          throw new Error("이 챗봇의 검색 범위에 포함되지 않은 자료입니다");
         }
         if (!res.ok) {
           throw new Error("원문을 불러오지 못했어요");

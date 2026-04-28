@@ -39,22 +39,19 @@ class TestEnumContract:
 
 
 class TestReactionRequest:
+    """B2 — user_session_id 는 cookie 발급으로 전환되어 ReactionRequest 에서 제거됨."""
+
     def test_valid_request(self) -> None:
-        req = ReactionRequest(kind="thumbs_up", user_session_id="u-1")
+        req = ReactionRequest(kind="thumbs_up")
         assert req.kind == "thumbs_up"
 
     def test_invalid_kind_rejected(self) -> None:
         with pytest.raises(ValidationError):
-            ReactionRequest(kind="love", user_session_id="u-1")  # type: ignore[arg-type]
+            ReactionRequest(kind="love")  # type: ignore[arg-type]
 
-    def test_empty_session_id_rejected(self) -> None:
-        with pytest.raises(ValidationError):
-            ReactionRequest(kind="thumbs_up", user_session_id="")
-
-    def test_session_id_max_length(self) -> None:
-        too_long = "x" * 129
-        with pytest.raises(ValidationError):
-            ReactionRequest(kind="thumbs_up", user_session_id=too_long)
+    def test_user_session_id_not_in_request_body(self) -> None:
+        """B2 보안 — user_session_id 는 schema 에서 제거됨 (서버 cookie 발급)."""
+        assert "user_session_id" not in ReactionRequest.model_fields
 
 
 class TestReactionAggregate:

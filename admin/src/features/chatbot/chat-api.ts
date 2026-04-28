@@ -32,6 +32,10 @@ export interface ChatResponse {
   sources: Source[];
   session_id: string;
   message_id: string;
+  // P0-A — 자동 follow-up 추천 (생성 실패/비활성 시 null).
+  suggested_followups?: string[] | null;
+  // P1-J — 기도문/결의문 마무리 (비활성 시 null).
+  closing?: string | null;
 }
 
 export type FeedbackType =

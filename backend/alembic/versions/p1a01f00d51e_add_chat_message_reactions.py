@@ -27,15 +27,25 @@ def upgrade() -> None:
     AnswerFeedback (운영자 라벨링용) 과 분리. 사용자가 1-tap 으로 토글한다.
     Unique (message_id, user_session_id, kind) 로 중복 방지.
     """
-    # PostgreSQL ENUM 타입 — checkfirst 로 멱등성 보장.
+    # PostgreSQL ENUM 타입 — DO 블록으로 멱등성 보장.
+    # CREATE TYPE 은 IF NOT EXISTS 미지원 → DO 블록 안에서 SELECT pg_type 검사.
     reaction_kind_enum = sa.Enum(
         *_REACTION_KINDS,
         name="messagereactionkind",
         create_type=False,
     )
     op.execute(
-        "CREATE TYPE messagereactionkind AS ENUM "
-        "('thumbs_up', 'thumbs_down', 'save')"
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_type WHERE typname = 'messagereactionkind'
+            ) THEN
+                CREATE TYPE messagereactionkind AS ENUM
+                    ('thumbs_up', 'thumbs_down', 'save');
+            END IF;
+        END$$;
+        """
     )
 
     op.create_table(

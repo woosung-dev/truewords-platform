@@ -13,6 +13,7 @@ from src.cache.service import SemanticCacheService
 from src.chat.models import AnswerFeedback, MessageRole, SessionMessage
 from src.chat.pipeline.context import ChatContext
 from src.chat.pipeline.stages.cache_check import CacheCheckStage
+from src.chat.pipeline.stages.closing_template import ClosingTemplateStage
 from src.chat.pipeline.stages.embedding import EmbeddingStage
 from src.chat.pipeline.stages.generation import GenerationStage
 from src.chat.pipeline.stages.input_validation import InputValidationStage
@@ -24,6 +25,7 @@ from src.chat.pipeline.stages.runtime_config import RuntimeConfigStage
 from src.chat.pipeline.stages.safety_output import SafetyOutputStage
 from src.chat.pipeline.stages.search import SearchStage
 from src.chat.pipeline.stages.session import SessionStage
+from src.chat.pipeline.stages.suggested_followups import SuggestedFollowupsStage
 from src.chat.pipeline.state import PipelineState, force_transition_to
 from src.search.intent_classifier import generation_context_slice_for
 from src.chat.prompt import DEFAULT_SYSTEM_PROMPT
@@ -95,6 +97,11 @@ class ChatService:
         self.search_stage = SearchStage(default_tiers=DEFAULT_RUNTIME_CONFIG.search.tiers)
         self.rerank_stage = RerankStage()
         self.generation_stage = GenerationStage()
+        # P0-A 후속 질문 추천 + P1-J 기도문/결의문 (asyncio.gather 병렬 실행)
+        # 두 stage 모두 0.5s timeout 으로 실패 시 silent fallback (None).
+        # runtime_config 가 None 이거나 enable_* 토글이 꺼져있으면 즉시 skip.
+        self.suggested_followups_stage = SuggestedFollowupsStage()
+        self.closing_template_stage = ClosingTemplateStage()
         self.safety_output_stage = SafetyOutputStage()
         self.persist_stage = PersistStage(chat_repo, cache_service)
 
@@ -177,6 +184,13 @@ class ChatService:
         ctx = await self.rerank_stage.execute(ctx)
         ctx = await self.generation_stage.execute(ctx)
         ctx = await self.safety_output_stage.execute(ctx)
+        # P0-A + P1-J: 두 stage 는 본 답변과 독립적이므로 병렬 실행.
+        # 실패해도 답변 본체에 영향 없도록 return_exceptions=True.
+        await asyncio.gather(
+            self.suggested_followups_stage.execute(ctx),
+            self.closing_template_stage.execute(ctx),
+            return_exceptions=True,
+        )
         ctx = await self.persist_stage.execute(ctx)
 
         return ChatResponse(
@@ -187,6 +201,8 @@ class ChatService:
             ],
             session_id=ctx.session.id,
             message_id=ctx.assistant_message.id,
+            suggested_followups=ctx.suggested_followups,
+            closing=ctx.closing,
         )
 
     async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:

@@ -65,6 +65,26 @@ class MessageReactionRepository:
         await self.session.flush()
         return "added", reaction
 
+    async def delete_existing(
+        self,
+        *,
+        message_id: uuid.UUID,
+        user_session_id: str,
+        kind: MessageReactionKind,
+    ) -> int:
+        """B2 race fallback — race 로 IntegrityError 발생 시 호출.
+
+        해당 (message_id, user_session_id, kind) 의 row 가 *지금* 존재하면 삭제.
+        """
+        await self.session.exec(  # type: ignore[call-overload]
+            delete(MessageReaction).where(
+                MessageReaction.message_id == message_id,
+                MessageReaction.user_session_id == user_session_id,
+                MessageReaction.kind == kind,
+            )
+        )
+        return 1
+
     async def get_aggregate(
         self, message_id: uuid.UUID
     ) -> dict[MessageReactionKind, int]:

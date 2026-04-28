@@ -9,18 +9,20 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 # 클라이언트와 1-1 매칭되는 Literal — DB enum 과 동일 값.
 ReactionKind = Literal["thumbs_up", "thumbs_down", "save"]
 
 
 class ReactionRequest(BaseModel):
-    """POST /api/chat/messages/{id}/reaction body."""
+    """POST /api/chat/messages/{id}/reaction body.
+
+    B2 보안: ``user_session_id`` 는 더 이상 클라이언트 입력이 아니다 —
+    서버가 HttpOnly cookie ``tw_anon_session`` 으로 발급/관리한다.
+    """
 
     kind: ReactionKind
-    # 비로그인 사용자도 토글 가능 — 클라이언트가 자체 fingerprint/cookie 로 발급.
-    user_session_id: str = Field(min_length=1, max_length=128)
 
 
 class ReactionResponse(BaseModel):

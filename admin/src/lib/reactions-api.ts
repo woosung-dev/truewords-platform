@@ -1,16 +1,9 @@
 // P1-A — 답변 반응 (👍/👎/💾) API 래퍼.
 // foundation 의 FeedbackButtons.onFeedback 핸들러에서 호출하면 된다.
-
-const SESSION_KEY = "tw_user_session_id";
-
-function makeRandomId(): string {
-  // crypto.randomUUID 가 modern 브라우저/Node18+ 에서 표준. SSR fallback 도 처리.
-  if (typeof globalThis.crypto !== "undefined" && globalThis.crypto.randomUUID) {
-    return globalThis.crypto.randomUUID();
-  }
-  // weak fallback — 실 사용 케이스에서는 거의 도달하지 않음.
-  return `tw-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
+//
+// B2 보안: user_session_id 는 더 이상 클라이언트가 관리하지 않는다.
+// 서버가 HttpOnly cookie `tw_anon_session` 으로 발급/유지한다. 따라서 이
+// 모듈은 fetch 시 `credentials: "include"` 를 명시해 cookie 전송을 보장한다.
 
 export type ReactionKind = "thumbs_up" | "thumbs_down" | "save";
 
@@ -32,30 +25,19 @@ export interface ReactionAggregate {
   save: number;
 }
 
-/**
- * 비로그인 사용자도 토글 가능 — localStorage 기반 user_session_id 발급.
- * 로그인 시 jwt sub 또는 user_id 로 마이그레이션 가능하도록 키만 분리.
- */
-export function getOrCreateUserSessionId(): string {
-  if (typeof window === "undefined") return "ssr-fallback";
-  let sid = window.localStorage.getItem(SESSION_KEY);
-  if (!sid) {
-    sid = makeRandomId();
-    window.localStorage.setItem(SESSION_KEY, sid);
-  }
-  return sid;
-}
-
 export async function toggleReaction(
   messageId: string,
   kind: ReactionKind,
 ): Promise<ReactionToggleResult> {
-  const userSessionId = getOrCreateUserSessionId();
   const res = await fetch(`/api/chat/messages/${encodeURIComponent(messageId)}/reaction`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind, user_session_id: userSessionId }),
+    credentials: "include", // B2 — HttpOnly cookie 전송
+    body: JSON.stringify({ kind }),
   });
+  if (res.status === 429) {
+    throw new Error("너무 자주 눌렀어요. 잠시 후 다시 시도해주세요.");
+  }
   if (!res.ok) {
     throw new Error(`reaction toggle failed: ${res.status}`);
   }
@@ -65,7 +47,9 @@ export async function toggleReaction(
 export async function getReactionAggregate(
   messageId: string,
 ): Promise<ReactionAggregate> {
-  const res = await fetch(`/api/chat/messages/${encodeURIComponent(messageId)}/reactions`);
+  const res = await fetch(`/api/chat/messages/${encodeURIComponent(messageId)}/reactions`, {
+    credentials: "include",
+  });
   if (!res.ok) {
     throw new Error(`reactions aggregate failed: ${res.status}`);
   }
