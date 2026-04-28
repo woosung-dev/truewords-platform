@@ -14,6 +14,7 @@ from scripts.build_contextual_prefix import (
     generate_prefix_for_volume_concurrent,
     iter_chunks_from_volume_jsonl,
     parse_prefix_response,
+    retry_failed_chunks_in_jsonl,
 )
 
 
@@ -129,6 +130,104 @@ async def test_concurrent_mode_isolates_exceptions(tmp_path: Path) -> None:
     for i in (0, 1, 3, 4):
         assert by_idx[i]["prefix_text"] == "ok prefix"
         assert "prefix_error" not in by_idx[i]
+
+
+@pytest.mark.asyncio
+async def test_retry_only_failed_chunks_skips_successful(tmp_path: Path) -> None:
+    """기존 JSONL에서 prefix_text 비어있거나 prefix_error 있는 청크만 재시도."""
+    p = tmp_path / "v.jsonl"
+    initial = [
+        {"chunk_index": 0, "text": "ok0", "volume": "v", "prefix_text": "kept0"},
+        {"chunk_index": 1, "text": "fail1", "volume": "v", "prefix_text": "",
+         "prefix_error": "429"},
+        {"chunk_index": 2, "text": "ok2", "volume": "v", "prefix_text": "kept2"},
+        {"chunk_index": 3, "text": "fail3", "volume": "v", "prefix_text": ""},
+    ]
+    p.write_text("\n".join(json.dumps(c) for c in initial) + "\n", encoding="utf-8")
+
+    call_count = {"n": 0}
+
+    async def fake_generate_text(prompt: str, model: str = "") -> str:
+        call_count["n"] += 1
+        if "<chunk>fail1</chunk>" in prompt:
+            return "recovered prefix 1"
+        if "<chunk>fail3</chunk>" in prompt:
+            return "recovered prefix 3"
+        # 성공한 청크는 절대 호출되지 않아야 함
+        raise AssertionError(f"unexpected call: {prompt[:40]}")
+
+    with patch(
+        "scripts.build_contextual_prefix.generate_text",
+        side_effect=fake_generate_text,
+    ):
+        sem = asyncio.Semaphore(5)
+        stats = await retry_failed_chunks_in_jsonl(p, sem)
+
+    # 성공한 청크만 호출됨
+    assert call_count["n"] == 2
+    assert stats == {"total": 4, "failed_before": 2, "success_now": 4, "still_failed": 0}
+
+    # 파일 갱신 확인 — 기존 성공 청크는 그대로, 실패 청크는 prefix 채워짐 + error 사라짐
+    lines = [json.loads(l) for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+    assert lines[0]["prefix_text"] == "kept0"
+    assert lines[1]["prefix_text"] == "recovered prefix 1"
+    assert "prefix_error" not in lines[1]
+    assert lines[2]["prefix_text"] == "kept2"
+    assert lines[3]["prefix_text"] == "recovered prefix 3"
+
+
+@pytest.mark.asyncio
+async def test_retry_no_failures_returns_zero_retry(tmp_path: Path) -> None:
+    """모든 청크가 이미 성공이면 호출 0회 + still_failed=0."""
+    p = tmp_path / "v.jsonl"
+    initial = [
+        {"chunk_index": 0, "text": "t0", "volume": "v", "prefix_text": "p0"},
+        {"chunk_index": 1, "text": "t1", "volume": "v", "prefix_text": "p1"},
+    ]
+    p.write_text("\n".join(json.dumps(c) for c in initial) + "\n", encoding="utf-8")
+
+    async def boom(*a, **kw):
+        raise AssertionError("must not be called")
+
+    with patch(
+        "scripts.build_contextual_prefix.generate_text",
+        side_effect=boom,
+    ):
+        sem = asyncio.Semaphore(5)
+        stats = await retry_failed_chunks_in_jsonl(p, sem)
+
+    assert stats == {"total": 2, "failed_before": 0, "success_now": 2, "still_failed": 0}
+
+
+@pytest.mark.asyncio
+async def test_retry_persists_partial_recovery(tmp_path: Path) -> None:
+    """재시도에서 일부만 성공하면 still_failed 카운트가 남고 prefix_error도 갱신."""
+    p = tmp_path / "v.jsonl"
+    initial = [
+        {"chunk_index": 0, "text": "fail0", "volume": "v", "prefix_text": "",
+         "prefix_error": "429"},
+        {"chunk_index": 1, "text": "fail1", "volume": "v", "prefix_text": ""},
+    ]
+    p.write_text("\n".join(json.dumps(c) for c in initial) + "\n", encoding="utf-8")
+
+    async def fake_generate_text(prompt: str, model: str = "") -> str:
+        if "<chunk>fail0</chunk>" in prompt:
+            return "recovered 0"
+        raise RuntimeError("still 429")
+
+    with patch(
+        "scripts.build_contextual_prefix.generate_text",
+        side_effect=fake_generate_text,
+    ):
+        sem = asyncio.Semaphore(5)
+        stats = await retry_failed_chunks_in_jsonl(p, sem)
+
+    assert stats == {"total": 2, "failed_before": 2, "success_now": 1, "still_failed": 1}
+    lines = [json.loads(l) for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+    assert lines[0]["prefix_text"] == "recovered 0"
+    assert "prefix_error" not in lines[0]
+    assert lines[1]["prefix_text"] == ""
+    assert "still 429" in lines[1]["prefix_error"]
 
 
 @pytest.mark.asyncio
