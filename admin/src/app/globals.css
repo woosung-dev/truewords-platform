@@ -5,11 +5,14 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* shadcn 표준 토큰 */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
+  --font-reading: var(--font-reading);
+  --font-display: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,6 +42,16 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  /* TrueWords 확장 토큰 (Plan A.2) */
+  --color-highlight: var(--tw-highlight);
+  --color-highlight-foreground: var(--tw-highlight-fg);
+  --color-pastoral: var(--tw-pastoral);
+  --color-pastoral-foreground: var(--tw-pastoral-fg);
+  --color-success: var(--tw-success);
+  --color-success-foreground: var(--tw-success-fg);
+  --color-fg-subtle: var(--tw-fg-subtle);
+  --color-border-strong: var(--tw-border-strong);
+  --color-surface-muted: var(--tw-surface-muted);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -46,42 +59,99 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* 모션 토큰 (Plan A.5) */
+  --animate-shimmer: shimmer 1.5s linear infinite;
+  --animate-blink: blink 1s step-start infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* TrueWords Light Mode (Plan A.2) — Paper × Scholar × AI */
+  /* Background: warm paper #FFFBEB */
+  --background: oklch(0.988 0.024 95);
+  /* Foreground: deep ink #1C1714 */
+  --foreground: oklch(0.180 0.012 50);
+  /* Card: pure white surface */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.180 0.012 50);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  /* indigo-600 */
-  --primary: oklch(0.511 0.262 277);
+  --popover-foreground: oklch(0.180 0.012 50);
+  /* Primary: scholarly navy #1E3A8A */
+  --primary: oklch(0.319 0.155 264);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  /* indigo-400 for focus rings */
-  --ring: oklch(0.673 0.182 277);
-  --chart-1: oklch(0.511 0.262 277);
-  --chart-2: oklch(0.673 0.182 277);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  /* Secondary: warm muted paper #FAF5EE */
+  --secondary: oklch(0.969 0.014 87);
+  --secondary-foreground: oklch(0.180 0.012 50);
+  /* Muted: same as secondary for shadcn compatibility */
+  --muted: oklch(0.969 0.014 87);
+  /* Muted foreground: warm gray #6B5D4F */
+  --muted-foreground: oklch(0.451 0.024 70);
+  /* Accent: brass / warm gold #B45309 (인용 강조, CTA) */
+  --accent: oklch(0.539 0.166 47);
+  --accent-foreground: oklch(1 0 0);
+  /* Destructive: warm red #B91C1C */
+  --destructive: oklch(0.466 0.211 25);
+  /* Border: warm border #E8DFD0 */
+  --border: oklch(0.890 0.025 78);
+  --input: oklch(0.890 0.025 78);
+  /* Ring: navy primary for focus */
+  --ring: oklch(0.319 0.155 264);
+  --chart-1: oklch(0.319 0.155 264); /* navy */
+  --chart-2: oklch(0.539 0.166 47);  /* brass */
+  --chart-3: oklch(0.501 0.152 144); /* success green */
+  --chart-4: oklch(0.486 0.105 213); /* pastoral teal */
+  --chart-5: oklch(0.466 0.211 25);  /* destructive */
+  --radius: 0.75rem;
+  /* TrueWords 확장 토큰 (Plan A.2) */
+  /* Highlight: 인용 노란 하이라이트 #FEF3C7 */
+  --tw-highlight: oklch(0.965 0.067 92);
+  --tw-highlight-fg: oklch(0.180 0.012 50);
+  /* Pastoral: 목회 상담 모드 톤 #0E7490 (차분 청록) */
+  --tw-pastoral: oklch(0.486 0.105 213);
+  --tw-pastoral-fg: oklch(1 0 0);
+  /* Success: 검수 적합 #15803D (forest green) */
+  --tw-success: oklch(0.501 0.152 144);
+  --tw-success-fg: oklch(1 0 0);
+  /* Subtle: placeholder fg #A89C8A */
+  --tw-fg-subtle: oklch(0.677 0.022 75);
+  /* Border strong: 인용 brass border #D4C4A8 */
+  --tw-border-strong: oklch(0.808 0.045 75);
+  /* Surface muted: 인용 카드 배경 (= secondary) */
+  --tw-surface-muted: oklch(0.969 0.014 87);
+  /* Motion 토큰 */
+  --tw-duration-fast: 150ms;
+  --tw-duration-normal: 250ms;
+  --tw-duration-slow: 350ms;
+  --tw-duration-streaming: 35ms;
+  --tw-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --tw-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --tw-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Shadow 토큰 */
+  --tw-shadow-card: 0 1px 3px oklch(0.180 0.012 50 / 6%), 0 1px 2px oklch(0.180 0.012 50 / 4%);
+  --tw-shadow-card-hover: 0 4px 12px oklch(0.180 0.012 50 / 8%), 0 2px 4px oklch(0.180 0.012 50 / 4%);
+  --tw-shadow-float: 0 -4px 16px oklch(0.180 0.012 50 / 8%), 0 -1px 2px oklch(0.180 0.012 50 / 4%);
+  --tw-shadow-modal: 0 20px 48px oklch(0.180 0.012 50 / 16%), 0 4px 12px oklch(0.180 0.012 50 / 6%);
   /* 사이드바: 항상 다크 (라이트/다크 모드 무관) */
   /* slate-950 */
   --sidebar: oklch(0.129 0.042 265);
   /* slate-100 */
   --sidebar-foreground: oklch(0.968 0.007 248);
-  /* indigo-400 - 어두운 배경에서 잘 보이도록 밝은 계열 */
-  --sidebar-primary: oklch(0.673 0.182 277);
+  /* navy primary - 어두운 배경에서 잘 보이도록 brass 사용 */
+  --sidebar-primary: oklch(0.539 0.166 47);
   --sidebar-primary-foreground: oklch(1 0 0);
   /* slate-900 */
   --sidebar-accent: oklch(0.208 0.042 266);
@@ -89,43 +159,64 @@
   --sidebar-accent-foreground: oklch(0.968 0.007 248);
   /* slate-800 */
   --sidebar-border: oklch(0.279 0.041 260);
-  /* indigo-400 */
-  --sidebar-ring: oklch(0.673 0.182 277);
+  /* brass for accent ring */
+  --sidebar-ring: oklch(0.539 0.166 47);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.673 0.182 277);
-  --primary-foreground: oklch(0.129 0.042 265);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.673 0.182 277);
-  --chart-1: oklch(0.673 0.182 277);
-  --chart-2: oklch(0.511 0.262 277);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  /* 다크모드에서도 사이드바는 동일하게 유지 */
+  /* TrueWords Dark Mode (Plan A.2) — Mahogany × Parchment */
+  /* Background: mahogany ink #1C1714 */
+  --background: oklch(0.180 0.012 50);
+  /* Foreground: parchment #E8DFD4 */
+  --foreground: oklch(0.890 0.025 78);
+  /* Card: oak #251E19 */
+  --card: oklch(0.220 0.012 55);
+  --card-foreground: oklch(0.890 0.025 78);
+  --popover: oklch(0.220 0.012 55);
+  --popover-foreground: oklch(0.890 0.025 78);
+  /* Primary: lighter blue for dark contrast */
+  --primary: oklch(0.770 0.140 264);
+  --primary-foreground: oklch(0.180 0.012 50);
+  --secondary: oklch(0.260 0.014 55);
+  --secondary-foreground: oklch(0.890 0.025 78);
+  --muted: oklch(0.260 0.014 55);
+  --muted-foreground: oklch(0.677 0.022 75);
+  /* Accent: brighter brass for dark */
+  --accent: oklch(0.700 0.166 60);
+  --accent-foreground: oklch(0.180 0.012 50);
+  --destructive: oklch(0.604 0.222 25);
+  --border: oklch(0.330 0.018 60);
+  --input: oklch(0.330 0.018 60);
+  --ring: oklch(0.770 0.140 264);
+  --chart-1: oklch(0.770 0.140 264);
+  --chart-2: oklch(0.700 0.166 60);
+  --chart-3: oklch(0.620 0.152 144);
+  --chart-4: oklch(0.620 0.105 213);
+  --chart-5: oklch(0.604 0.222 25);
+  /* TrueWords 확장 토큰 — Dark */
+  --tw-highlight: oklch(0.700 0.140 90 / 30%);
+  --tw-highlight-fg: oklch(0.890 0.025 78);
+  --tw-pastoral: oklch(0.620 0.105 213);
+  --tw-pastoral-fg: oklch(0.180 0.012 50);
+  --tw-success: oklch(0.620 0.152 144);
+  --tw-success-fg: oklch(0.180 0.012 50);
+  --tw-fg-subtle: oklch(0.500 0.020 70);
+  --tw-border-strong: oklch(0.500 0.040 75);
+  --tw-surface-muted: oklch(0.260 0.014 55);
+  /* Shadow 토큰 — Dark (검정에 가까운 잉크 그림자 더 진하게) */
+  --tw-shadow-card: 0 1px 3px oklch(0 0 0 / 30%), 0 1px 2px oklch(0 0 0 / 20%);
+  --tw-shadow-card-hover: 0 4px 12px oklch(0 0 0 / 40%), 0 2px 4px oklch(0 0 0 / 20%);
+  --tw-shadow-float: 0 -4px 16px oklch(0 0 0 / 40%), 0 -1px 2px oklch(0 0 0 / 20%);
+  --tw-shadow-modal: 0 20px 48px oklch(0 0 0 / 60%), 0 4px 12px oklch(0 0 0 / 30%);
+  /* 사이드바: 다크모드에서도 동일하게 유지 */
   --sidebar: oklch(0.129 0.042 265);
   --sidebar-foreground: oklch(0.968 0.007 248);
-  --sidebar-primary: oklch(0.673 0.182 277);
+  --sidebar-primary: oklch(0.700 0.166 60);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.208 0.042 266);
   --sidebar-accent-foreground: oklch(0.968 0.007 248);
   --sidebar-border: oklch(0.279 0.041 260);
-  --sidebar-ring: oklch(0.673 0.182 277);
+  --sidebar-ring: oklch(0.700 0.166 60);
 }
 
 @layer base {
@@ -137,5 +228,52 @@
   }
   html {
     @apply font-sans;
+  }
+  /* 묵상/본문 페이지 — Noto Serif KR 가독성 강화 */
+  .prose-reading {
+    font-family: var(--font-reading), "Iropke Batang", Georgia, serif;
+    line-height: 1.85;
+    letter-spacing: 0;
+  }
+  /* 디스플레이 헤딩 — Cormorant Garamond + Noto Serif KR fallback */
+  .font-display {
+    font-family: var(--font-display), "Noto Serif KR", "Cormorant Garamond", serif;
+    letter-spacing: -0.02em;
+  }
+  /* 인용 노란 하이라이트 */
+  mark.tw-highlight {
+    background-color: var(--tw-highlight);
+    color: var(--tw-highlight-fg);
+    padding: 0 4px;
+    border-radius: 2px;
+  }
+  /* 스트리밍 커서 */
+  .tw-streaming-cursor::after {
+    content: "▌";
+    margin-left: 2px;
+    animation: var(--animate-blink);
+    color: var(--primary);
+  }
+  /* 안전영역 패딩 */
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+  }
+  .pt-safe {
+    padding-top: max(env(safe-area-inset-top), 0.5rem);
+  }
+  /* 한국어 줄바꿈 */
+  .break-keep-all {
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  /* prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
