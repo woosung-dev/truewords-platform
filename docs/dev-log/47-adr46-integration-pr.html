@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PR #71 ADR-46 통합 보고서 — TrueWords</title>
+<style>
+  :root {
+    --bg: #FFFBEB;
+    --surface: #FFFFFF;
+    --muted: #FAF5EE;
+    --border: #E8DFD0;
+    --strong: #D4C4A8;
+    --ink: #1C1714;
+    --ink-soft: #6B5D4F;
+    --subtle: #A89C8A;
+    --primary: #1E3A8A;
+    --accent: #B45309;
+    --highlight: #FEF3C7;
+    --success: #15803D;
+    --pastoral: #0E7490;
+    --destructive: #B91C1C;
+    --shadow: 0 1px 3px rgba(28,23,20,.06), 0 1px 2px rgba(28,23,20,.04);
+  }
+  * { box-sizing: border-box }
+  html, body { margin: 0; padding: 0 }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 -apple-system, "Apple SD Gothic Neo", "Pretendard Variable",
+         "Noto Sans KR", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  .page { max-width: 980px; margin: 0 auto; padding: 48px 24px 96px }
+  header.hero { padding: 32px 0 28px; border-bottom: 1px solid var(--border) }
+  .eyebrow {
+    font: 600 11px/1.4 ui-monospace, "JetBrains Mono", monospace;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft);
+  }
+  h1 {
+    font: 700 42px/1.18 "Cormorant Garamond", "Noto Serif KR", Georgia, serif;
+    letter-spacing: -.02em; margin: 12px 0 6px;
+  }
+  .subtitle { font-size: 18px; color: var(--ink-soft); margin: 0 0 8px }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 12px 24px;
+    font: 500 13px/1.4 ui-monospace, "JetBrains Mono", monospace;
+    color: var(--ink-soft); margin-top: 14px;
+  }
+  .meta b { color: var(--accent); font-weight: 700 }
+  nav.toc {
+    background: var(--muted); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 22px; margin: 28px 0;
+    box-shadow: var(--shadow); position: sticky; top: 16px; z-index: 10;
+  }
+  nav.toc h2 {
+    font: 600 12px/1 ui-monospace, monospace; letter-spacing: .15em;
+    text-transform: uppercase; color: var(--ink-soft); margin: 0 0 8px;
+  }
+  nav.toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 32px }
+  nav.toc li { font-size: 14px; padding: 2px 0; break-inside: avoid }
+  nav.toc a { color: var(--ink); text-decoration: none }
+  nav.toc a:hover { color: var(--primary); text-decoration: underline }
+  section { padding: 28px 0; border-bottom: 1px solid var(--border) }
+  section:last-of-type { border-bottom: none }
+  h2.section {
+    font: 700 28px/1.2 "Cormorant Garamond", "Noto Serif KR", serif;
+    letter-spacing: -.01em; margin: 0 0 18px;
+    border-left: 3px solid var(--accent); padding-left: 14px;
+  }
+  h3 {
+    font: 600 18px/1.3 inherit; margin: 24px 0 10px; color: var(--primary);
+  }
+  h4 { font: 600 15px/1.3 inherit; margin: 14px 0 6px; color: var(--ink) }
+  p { margin: 8px 0 12px }
+  small.caption {
+    font: 500 12px/1.5 ui-monospace, monospace;
+    color: var(--ink-soft); display: block; margin: 4px 0;
+  }
+  code, pre {
+    font: 13px/1.6 ui-monospace, "JetBrains Mono", "D2 Coding", monospace;
+  }
+  code {
+    background: var(--muted); padding: 1px 6px; border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  pre {
+    background: var(--ink); color: #E8DFD4; padding: 16px 18px;
+    border-radius: 10px; overflow-x: auto; box-shadow: var(--shadow);
+    margin: 12px 0; font-size: 12.5px;
+  }
+  pre code { background: transparent; border: 0; padding: 0; color: inherit }
+  table {
+    width: 100%; border-collapse: collapse; margin: 14px 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; font-size: 14px;
+    box-shadow: var(--shadow);
+  }
+  th, td {
+    padding: 10px 14px; text-align: left; vertical-align: top;
+    border-bottom: 1px solid var(--border);
+  }
+  thead th {
+    background: var(--muted); color: var(--ink-soft);
+    font: 600 12px/1 ui-monospace, monospace; letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  tbody tr:last-child td { border-bottom: none }
+  tbody tr:hover { background: var(--muted) }
+  ul, ol { padding-left: 22px; margin: 8px 0 }
+  li { padding: 3px 0 }
+  blockquote {
+    margin: 14px 0; padding: 12px 16px;
+    border-left: 3px solid var(--strong); background: var(--muted);
+    color: var(--ink-soft); border-radius: 6px;
+    font-style: italic;
+  }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font: 600 10.5px/1.6 ui-monospace, monospace; letter-spacing: .06em;
+    text-transform: uppercase; vertical-align: middle;
+    margin-right: 6px;
+  }
+  .b-keep { background: rgba(21,128,61,.12); color: var(--success);
+            border: 1px solid rgba(21,128,61,.3) }
+  .b-drop { background: rgba(185,28,28,.10); color: var(--destructive);
+            border: 1px solid rgba(185,28,28,.3) }
+  .b-fix  { background: rgba(180,83,9,.12); color: var(--accent);
+            border: 1px solid rgba(180,83,9,.3) }
+  .b-info { background: rgba(30,58,138,.10); color: var(--primary);
+            border: 1px solid rgba(30,58,138,.3) }
+  .b-pastoral { background: rgba(14,116,144,.10); color: var(--pastoral);
+            border: 1px solid rgba(14,116,144,.3) }
+  mark.hl { background: var(--highlight); color: var(--ink); padding: 0 4px;
+            border-radius: 2px }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px }
+  @media (max-width: 700px) {
+    .grid-2 { grid-template-columns: 1fr }
+    nav.toc ol { columns: 1 }
+    h1 { font-size: 32px }
+    .page { padding: 24px 16px 64px }
+  }
+  .commit-row { font-family: ui-monospace, monospace; font-size: 12.5px }
+  .commit-row td:first-child { color: var(--accent); white-space: nowrap }
+  .stat-pill {
+    display: inline-block; padding: 4px 10px; margin-right: 8px;
+    background: var(--muted); border: 1px solid var(--border);
+    border-radius: 6px; font: 600 12px/1.4 ui-monospace, monospace;
+    color: var(--ink-soft);
+  }
+  .stat-pill .num { color: var(--accent); font-size: 14px }
+  details { margin: 8px 0; padding: 8px 12px; background: var(--muted);
+            border: 1px solid var(--border); border-radius: 8px }
+  details summary { cursor: pointer; font-weight: 600; color: var(--primary) }
+  details[open] summary { margin-bottom: 8px }
+  hr.section-divider { border: 0; height: 1px;
+                       background: linear-gradient(to right, transparent, var(--border), transparent);
+                       margin: 32px 0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="hero">
+  <p class="eyebrow">Pull Request · feat/ui-ux-foundation → main</p>
+  <h1>PR #71 — ADR-46 사용자 입력 처리 개편 통합</h1>
+  <p class="subtitle">페르소나 5종 + 강조점 5종 + 위기 라우팅 + 측정 인프라 + PoC trim</p>
+  <div class="meta">
+    <span><b>34</b> commits</span>
+    <span>+<b>4,904</b> / -<b>294</b> lines</span>
+    <span><b>54</b> files changed</span>
+    <span>2026-04-28 ~ 04-29</span>
+    <span>backend 87 / frontend 43 tests passed</span>
+  </div>
+  <p style="margin-top:14px">
+    <a href="https://github.com/woosung-dev/truewords-platform/pull/71"
+       style="color:var(--primary)">github.com/woosung-dev/truewords-platform/pull/71 ↗</a>
+  </p>
+</header>
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#overview">1. 개요</a></li>
+    <li><a href="#timeline">2. 작업 타임라인</a></li>
+    <li><a href="#w1">3. W1 — Foundation 디자인 시스템</a></li>
+    <li><a href="#w2">4. W2 — 10 worktree 병렬 + Wave 통합</a></li>
+    <li><a href="#review1">5. Cross-Review 1 + 5 fix</a></li>
+    <li><a href="#w3">6. W3 — popular / review / notes</a></li>
+    <li><a href="#crisis">7. B4/B5/C3 위기 라우팅 강화</a></li>
+    <li><a href="#review2">8. Cross-Review 2 + 6 fix</a></li>
+    <li><a href="#poc-trim">9. PoC trim — 작동 기능만 남김</a></li>
+    <li><a href="#wiring">10. B-minimal 톤 wiring (마지막)</a></li>
+    <li><a href="#final">11. 최종 적용 범위 + 검증</a></li>
+    <li><a href="#followup">12. 후속 PR 트리거</a></li>
+  </ol>
+</nav>
+
+<!-- ===================== 1 ===================== -->
+<section id="overview">
+<h2 class="section">1. 개요</h2>
+
+<p>
+ADR-46 (한국·글로벌 종교 AI 챗봇 12종 벤치마크 — 말씀선집·초원AI·cogScript·스님AI 등) 의
+<b>30개 액션</b> 중 PoC 단계 가치가 명확한 <b>11건</b>을 통합한 PR. 5단계 진화를 거쳐
+안전·성능·운영 부담이 적은 단일 통합 PR 로 정리됐다.
+</p>
+
+<h3>핵심 진화 단계</h3>
+<table>
+  <thead><tr><th>Phase</th><th>commits</th><th>핵심</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge b-info">W1</span></td><td>1</td><td>디자인 시스템 + 9 컴포넌트 + /design-system 데모</td></tr>
+    <tr><td><span class="badge b-info">W2</span></td><td>20</td><td>10 worktree 병렬 dispatch + Wave A/B/C 머지 (P0/P1/P2)</td></tr>
+    <tr><td><span class="badge b-fix">Cross-review 1</span></td><td>1</td><td>Opus + Sonnet + Codex 외부시각 → 5 fix (보안 + wiring)</td></tr>
+    <tr><td><span class="badge b-info">W3</span></td><td>4</td><td>popular-q + answer-review + citation-note 분기</td></tr>
+    <tr><td><span class="badge b-pastoral">B4/B5/C3</span></td><td>2</td><td>위기 라우팅 안전성 강화 (자살예방법)</td></tr>
+    <tr><td><span class="badge b-fix">Cross-review 2</span></td><td>1</td><td>3 reviewer → 6 fix (popular k-anon, notes ownership, 측정, FK CASCADE, NFC, B5 좁히기)</td></tr>
+    <tr><td><span class="badge b-drop">PoC trim</span></td><td>1</td><td>운영 인프라 부재 7묶음 삭제 (~3,300줄)</td></tr>
+    <tr><td><span class="badge b-keep">B-minimal wiring</span></td><td>1</td><td>모드/강조점 톤 시스템 프롬프트 wiring (placebo → 작동)</td></tr>
+    <tr><td>docs</td><td>2</td><td>PR 본문 + HTML 보고서</td></tr>
+  </tbody>
+</table>
+
+<h3>최종 산출물</h3>
+<p>
+<span class="stat-pill">backend tests <span class="num">87</span></span>
+<span class="stat-pill">frontend tsc <span class="num">0</span></span>
+<span class="stat-pill">next build <span class="num">0</span></span>
+<span class="stat-pill">vitest <span class="num">43</span></span>
+<span class="stat-pill">e2e <span class="num">12</span></span>
+</p>
+</section>
+
+<!-- ===================== 2 ===================== -->
+<section id="timeline">
+<h2 class="section">2. 작업 타임라인 (34 commits)</h2>
+<small class="caption">최신 → 과거 순. 같은 날 (2026-04-28 ~ 04-29) 9시간 작업.</small>
+<table>
+  <thead><tr><th>Time</th><th>SHA</th><th>Subject</th></tr></thead>
+  <tbody>
+    <tr class="commit-row"><td>04-29 01:10</td><td>9e5ef0d</td><td>feat(generation): 답변 모드/강조점 톤 wiring (P0-E + P1-G B-minimal)</td></tr>
+    <tr class="commit-row"><td>04-29 00:56</td><td>ba19836</td><td>docs(adr-46): 통합 PR 본문 초안 (47)</td></tr>
+    <tr class="commit-row"><td>04-29 00:48</td><td>fb7a579</td><td>refactor(poc): PoC 단계에 작동하는 기능만 남기는 정리 + B4/pastoral hotfix</td></tr>
+    <tr class="commit-row"><td>04-29 00:17</td><td>00c443f</td><td>fix(security+measure): cross-review #2 6-fix bundle (B6/B7 + M1/M2/M3/M4)</td></tr>
+    <tr class="commit-row"><td>04-28 23:55</td><td>908672e</td><td>merge: fix/safety-crisis-overrides (B4+B5+C3)</td></tr>
+    <tr class="commit-row"><td>04-28 23:55</td><td>07f911e</td><td>fix(safety): 위기 라우팅 안전성 강화 (B4 + B5 + C3)</td></tr>
+    <tr class="commit-row"><td>04-28 23:41</td><td>d83c87a</td><td>merge: feat/citation-note-tab (W3-⑪c) — alembic chain 정리</td></tr>
+    <tr class="commit-row"><td>04-28 23:38</td><td>21c5f58</td><td>merge: feat/answer-review (W3-⑪b)</td></tr>
+    <tr class="commit-row"><td>04-28 23:38</td><td>50794e4</td><td>merge: feat/popular-q (W3-⑪a)</td></tr>
+    <tr class="commit-row"><td>04-28 23:37</td><td>2c2e501</td><td>feat(chat/notes): citation 단위 사용자 노트 영속화 (P1-H)</td></tr>
+    <tr class="commit-row"><td>04-28 23:35</td><td>7fee728</td><td>feat(chat/popular): 인기 질문 집계 endpoint + 프론트 동적 리스트 (P1-C)</td></tr>
+    <tr class="commit-row"><td>04-28 23:35</td><td>345bc62</td><td>feat(admin/review): AnswerReview 모델 + 운영자 검수 endpoint (P1-K)</td></tr>
+    <tr class="commit-row"><td>04-28 23:23</td><td>9193f5f</td><td>fix(security+wiring): cross-review C2/C1/B1/B2/B3 (5 fixes)</td></tr>
+    <tr class="commit-row"><td>04-28 23:00</td><td>3755d10</td><td>merge: feat/chat-input-pack (W2-② Wave C)</td></tr>
+    <tr class="commit-row"><td>04-28 22:55</td><td>2b5d9d9</td><td>merge: feat/about-page (W2-⑧ Wave B)</td></tr>
+    <tr class="commit-row"><td>04-28 22:55</td><td>ab98d8e</td><td>merge: feat/answer-pipeline-pack (W2-④ Wave B)</td></tr>
+    <tr class="commit-row"><td>04-28 22:54</td><td>0242edc</td><td>merge: feat/source-modal (W2-⑥ Wave B)</td></tr>
+    <tr class="commit-row"><td>04-28 22:54</td><td>096b6b8</td><td>merge: feat/floating-bar (W2-⑤ Wave A)</td></tr>
+    <tr class="commit-row"><td>04-28 22:54</td><td>51b9015</td><td>merge: feat/share-image (W2-⑨ Wave A)</td></tr>
+    <tr class="commit-row"><td>04-28 22:54</td><td>964429f</td><td>merge: feat/feedback-foundation (W2-⑩ Wave A)</td></tr>
+    <tr class="commit-row"><td>04-28 22:54</td><td>afe7ecf</td><td>merge: feat/safety-soft-refusal (W2-⑦ Wave A)</td></tr>
+    <tr class="commit-row"><td>04-28 22:54</td><td>3d4bfd7</td><td>merge: feat/citation-meta (W2-⑪ Wave A)</td></tr>
+    <tr class="commit-row"><td>04-28 22:54</td><td>791fd0f</td><td>merge: feat/chat-request-schema (W2-③ Wave A)</td></tr>
+    <tr class="commit-row"><td>04-28 22:46</td><td>b764af3</td><td>feat(chat/reactions): MessageReaction 테이블 + 토글 endpoint + admin API (P1-A)</td></tr>
+    <tr class="commit-row"><td>04-28 22:42</td><td>6a26cc9</td><td>feat(sources): GET /api/sources/chunks/{id} + 원문보기 모달 (P0-B)</td></tr>
+    <tr class="commit-row"><td>04-28 22:38</td><td>0a34d63</td><td>feat(datasource): CitationMeta 4중 메타 schema + extractor (P1-B)</td></tr>
+    <tr class="commit-row"><td>04-28 22:36</td><td>b51b30b</td><td>feat(chat/pipeline): P0-A follow-up + P0-E mode routing + P1-J closing (ADR-46)</td></tr>
+    <tr class="commit-row"><td>04-28 22:32</td><td>277a4d5</td><td>feat(admin/about): 신학 입장 + 운영 투명성 페이지 + runtime_config (P1-F)</td></tr>
+    <tr class="commit-row"><td>04-28 22:31</td><td>484a858</td><td>feat(admin/share): 공유 이미지 카드 + UTM 추적 (P1-D + P2-E)</td></tr>
+    <tr class="commit-row"><td>04-28 22:30</td><td>87cc320</td><td>feat(admin/chat-input): P0-C/P0-D/P0-E/P1-G/P2-D 입력 화면 통합</td></tr>
+    <tr class="commit-row"><td>04-28 22:29</td><td>49262fc</td><td>refactor(safety): InputValidationResult dataclass 도입 (P1-E 토대)</td></tr>
+    <tr class="commit-row"><td>04-28 22:26</td><td>323797e</td><td>feat(admin/chat): P0-G floating action bar 답변 화면 통합</td></tr>
+    <tr class="commit-row"><td>04-28 22:14</td><td>40bf4af</td><td>feat(chat/schema): ChatRequest에 answer_mode/theological_emphasis/visibility 추가</td></tr>
+    <tr class="commit-row"><td>04-28 22:03</td><td>0d48bca</td><td>feat(admin/foundation): TrueWords 디자인 시스템 + 컴포넌트 라이브러리 W1</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ===================== 3 ===================== -->
+<section id="w1">
+<h2 class="section">3. W1 — Foundation 디자인 시스템 <small class="caption" style="display:inline">commit 0d48bca</small></h2>
+<p>
+모든 후속 W2/W3 작업의 prerequisite. <b>Paper × Scholar × AI</b> 컨셉의 디자인 토큰 + 9 컴포넌트 라이브러리 + 라이브 데모 페이지.
+</p>
+
+<div class="grid-2">
+<div>
+<h3>디자인 토큰 (globals.css)</h3>
+<ul>
+  <li><code>--bg</code> warm paper <code>#FFFBEB</code> (Light) / mahogany ink (Dark)</li>
+  <li><code>--primary</code> scholarly navy <code>#1E3A8A</code></li>
+  <li><code>--accent</code> brass / warm gold <code>#B45309</code></li>
+  <li><code>--highlight</code> 인용 노란 하이라이트 <code>#FEF3C7</code></li>
+  <li><code>--pastoral</code> 목회 상담 청록 <code>#0E7490</code></li>
+  <li><code>--success</code> forest green / <code>--destructive</code> warm red</li>
+  <li>모션 토큰 (duration / easing / spring), 그림자 (card / float / modal)</li>
+  <li>Light/Dark 양 모드 자동 전환</li>
+</ul>
+</div>
+<div>
+<h3>폰트 시스템</h3>
+<ul>
+  <li><code>--font-sans</code> Pretendard Variable (UI 기본)</li>
+  <li><code>--font-reading</code> Noto Serif KR (묵상/본문)</li>
+  <li><code>--font-display</code> Cormorant Garamond + Noto Serif KR fallback</li>
+  <li><code>--font-mono</code> JetBrains Mono / D2 Coding</li>
+</ul>
+</div>
+</div>
+
+<h3>9 컴포넌트 라이브러리 (admin/src/components/truewords/)</h3>
+<table>
+  <thead><tr><th>컴포넌트</th><th>역할</th><th>주요 props</th></tr></thead>
+  <tbody>
+    <tr><td><code>ChatButton</code></td><td>primary / brass / pastoral / kakao 5종 + 44~56h size</td><td>variant, size, fullWidth, loading</td></tr>
+    <tr><td><code>QuestionInput</code></td><td>두 줄 placeholder + 1000자 카운터 (P0-C)</td><td>placeholderLine1/2, maxLength, helperText, errorText</td></tr>
+    <tr><td><code>CitationCard</code></td><td>인용 카드 + 3-탭 (해설/본문/노트)</td><td>meta, haeseol, bonmun, note, onJumpToSource, onOpenOriginal</td></tr>
+    <tr><td><code>PersonaSheet</code></td><td>답변 모드 5종 (P0-E)</td><td>open, value, onValueChange</td></tr>
+    <tr><td><code>FloatingActionBar</code></td><td>답변 화면 새질문/북마크/공유 (P0-G)</td><td>onNewQuestion, onBookmark, onShare, bookmarked</td></tr>
+    <tr><td><code>FollowupPills</code></td><td>follow-up 추천 (P0-A)</td><td>suggestions, visibleCount, authenticated</td></tr>
+    <tr><td><code>FeedbackButtons</code></td><td>👍 👎 💾 (P1-A)</td><td>state, onFeedback</td></tr>
+    <tr><td><code>ClosingTemplate</code></td><td>기도문/결의문 박스 (P1-J)</td><td>kind, body, signature</td></tr>
+    <tr><td><code>StreamingText</code> + <code>AnswerSkeleton</code></td><td>토큰 단위 스트리밍 + 로딩</td><td>text, streaming, intervalMs</td></tr>
+  </tbody>
+</table>
+
+<h3>검증 페이지</h3>
+<p>
+<code>/design-system</code> 라우트 — 모든 컴포넌트 라이브 데모 + 다크모드 토글.
+지금도 dev 서버 (<code>http://localhost:3001/design-system</code>) 에서 확인 가능.
+</p>
+</section>
+
+<!-- ===================== 4 ===================== -->
+<section id="w2">
+<h2 class="section">4. W2 — 10 worktree 병렬 dispatch + Wave 통합</h2>
+<p>
+worktree 분리 후 10개 sub-agent 동시 dispatch (Anthropic API rate limit 주의), 충돌 회피를
+위해 Wave A → B → C 순서로 머지. 각 worktree 는 ADR-46 의 30 액션 중 1~3건을 담당.
+</p>
+
+<h3>10 worktree 매핑</h3>
+<table>
+  <thead><tr><th>#</th><th>worktree</th><th>담당 액션</th><th>commit</th><th>Wave</th></tr></thead>
+  <tbody>
+    <tr><td>②</td><td><code>feat/chat-input-pack</code></td><td>P0-C placeholder + P0-D 면책 + P0-E/P1-G UI sheet + P2-D 토글</td><td>87cc320</td><td>C</td></tr>
+    <tr><td>③</td><td><code>feat/chat-request-schema</code></td><td>ChatRequest 에 <code>answer_mode</code> / <code>theological_emphasis</code> / <code>visibility</code> 필드 (31 tests)</td><td>40bf4af</td><td>A</td></tr>
+    <tr><td>④</td><td><code>feat/answer-pipeline-pack</code></td><td>P0-A follow-up + P0-E 모드 라우팅 + P1-J 기도문</td><td>b51b30b</td><td>B</td></tr>
+    <tr><td>⑤</td><td><code>feat/floating-bar</code></td><td>P0-G admin 답변 화면 통합</td><td>323797e</td><td>A</td></tr>
+    <tr><td>⑥</td><td><code>feat/source-modal</code></td><td>P0-B GET /api/sources/chunks/{id} + 모달</td><td>6a26cc9</td><td>B</td></tr>
+    <tr><td>⑦</td><td><code>feat/safety-soft-refusal</code></td><td>P1-E InputValidationResult 토대</td><td>49262fc</td><td>A</td></tr>
+    <tr><td>⑧</td><td><code>feat/about-page</code></td><td>P1-F 신학 입장 페이지 + runtime_config</td><td>277a4d5</td><td>B</td></tr>
+    <tr><td>⑨</td><td><code>feat/share-image</code></td><td>P1-D 이미지 카드 + P2-E UTM (이후 PoC trim 으로 제거)</td><td>484a858</td><td>A</td></tr>
+    <tr><td>⑩</td><td><code>feat/feedback-foundation</code></td><td>P1-A MessageReaction + 토글 endpoint</td><td>b764af3</td><td>A</td></tr>
+    <tr><td>⑪</td><td><code>feat/citation-meta</code></td><td>P1-B 4중 메타 schema (이후 PoC trim 으로 제거)</td><td>0a34d63</td><td>A</td></tr>
+  </tbody>
+</table>
+
+<h3>Wave 머지 순서</h3>
+<details>
+<summary>Wave A (6 worktree) — 충돌 없음</summary>
+<p>
+<code>chat-request-schema</code> → <code>citation-meta</code> → <code>safety-soft-refusal</code> → <code>feedback-foundation</code> → <code>share-image</code> → <code>floating-bar</code> 순. 모두 자동 머지.
+</p>
+</details>
+<details>
+<summary>Wave B (3 worktree) — schema 통합 후</summary>
+<p>
+<code>source-modal</code> → <code>answer-pipeline-pack</code> → <code>about-page</code>. <code>schemas.py</code> ChatResponse 신규 필드 추가 / <code>runtime_config.py</code> theological_stance 등 자동 머지.
+</p>
+</details>
+<details>
+<summary>Wave C (1 worktree) — admin chat page 충돌 해결</summary>
+<p>
+<code>chat-input-pack</code> 의 <code>(chat)/page.tsx</code> 559 줄 변경 vs <code>floating-bar</code> 의 109 줄 추가가 5 conflict 영역에서 충돌. <code>chat-input-pack</code> 의 isEmptyState ternary 구조를 base 로 채택 + floating-bar 의 state/handler/JSX 수동 통합.
+</p>
+</details>
+
+<h3>주요 데이터 모델 / 마이그레이션</h3>
+<ul>
+  <li><b>P1-A reactions</b> — <code>chat_message_reactions</code> 테이블 (UNIQUE (message_id, user_session_id, kind)) + alembic <code>p1a01f00d51e</code></li>
+  <li><b>P0-E + P1-G + P2-D</b> — <code>ChatRequest</code> 에 3 Literal 필드</li>
+  <li><b>P0-A + P1-J</b> — <code>SuggestedFollowupsStage</code> + <code>ClosingTemplateStage</code> 신규 stage (이후 W3 후 service.py wiring)</li>
+  <li><b>P0-E mode routing</b> — <code>resolve_answer_mode</code> + <code>select_system_prompt</code> + <code>system_prompt_by_mode</code> dict 토대</li>
+</ul>
+</section>
+
+<!-- ===================== 5 ===================== -->
+<section id="review1">
+<h2 class="section">5. Cross-Review #1 + 5 fix bundle <small class="caption" style="display:inline">commit 9193f5f</small></h2>
+<p>
+W1+W2 통합 직후 3 reviewer (Opus 4.7 / Sonnet 4.6 / Codex 외부시각) 병렬 dispatch.
+컨텍스트가 비어 있는 sub-agent 가 독립 평가 → 합의/이견/미해결 정리.
+</p>
+
+<h3>Reviewer 종합</h3>
+<table>
+  <thead><tr><th>Reviewer</th><th>점수</th><th>권고</th></tr></thead>
+  <tbody>
+    <tr><td>Opus 4.7 (전략·아키텍처)</td><td>6.0/10</td><td>Request Changes (Block 직전)</td></tr>
+    <tr><td>Sonnet 4.6 (기술 구체성)</td><td>Build/Test/Type 점수</td><td>Recommended (Critical 없음)</td></tr>
+    <tr><td>외부시각 (Codex)</td><td>—</td><td><b>BLOCK 2건</b> + Mitigate 다수</td></tr>
+  </tbody>
+</table>
+
+<h3>처리한 5 fix</h3>
+<table>
+  <thead><tr><th>ID</th><th>이슈</th><th>수정</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge b-fix">C2</span></td><td>Alembic ENUM 멱등성 누락</td><td>CREATE TYPE 을 DO 블록 + pg_type 검사로 멱등성 보장</td></tr>
+    <tr><td><span class="badge b-fix">C1</span></td><td>SuggestedFollowups + ClosingTemplate stage chain 미배선</td><td>service.py 의 process_chat 끝에 asyncio.gather 병렬 실행 추가</td></tr>
+    <tr><td><span class="badge b-fix">B1</span></td><td>chunks endpoint chatbot ACL 부재 (Codex BLOCK)</td><td>chatbot_id 쿼리 파라미터 필수 + source filter 검증, 권한 없으면 403</td></tr>
+    <tr><td><span class="badge b-fix">B2</span></td><td>reactions endpoint 무인증 + 임의 user_session_id (Codex BLOCK)</td><td>HttpOnly cookie <code>tw_anon_session</code> 서버 발급 + IP rate limit + atomic toggle (IntegrityError catch)</td></tr>
+    <tr><td><span class="badge b-fix">B3</span></td><td>About page placeholder 검수 통계 (광고법 위험)</td><td>모든 수치를 ??.?% + Coming Soon 배지 + 점선 외곽선 + 경고문 (이후 PoC trim 으로 섹션 자체 제거)</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ===================== 6 ===================== -->
+<section id="w3">
+<h2 class="section">6. W3 — popular / answer-review / citation-note 분기</h2>
+<p>
+<code>feat/feedback-foundation</code> 머지 완료 후 의존하는 3개 worktree 동시 dispatch.
+이후 <b>PoC trim 단계에서 모두 제거</b> 되지만, 작업 자체는 PR history 에 남음.
+</p>
+
+<table>
+  <thead><tr><th>worktree</th><th>commit</th><th>내용</th><th>최종 상태</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>feat/popular-q</code></td>
+      <td>7fee728</td>
+      <td>P1-C 인기 질문 — <code>SessionMessage USER × ResearchSession</code> join + group by + count desc. public/admin 두 endpoint. 15 tests.</td>
+      <td><span class="badge b-drop">trim 으로 제거</span></td>
+    </tr>
+    <tr>
+      <td><code>feat/answer-review</code></td>
+      <td>345bc62</td>
+      <td>P1-K 검수 사이클 — AnswerReview 테이블 + 5종 ReviewLabel ENUM + admin 검수 큐 (queue/create/stats endpoint) + alembic <code>p1k01a02b03c</code> + 17 tests</td>
+      <td><span class="badge b-drop">trim 으로 제거</span></td>
+    </tr>
+    <tr>
+      <td><code>feat/citation-note-tab</code></td>
+      <td>2c2e501</td>
+      <td>P1-H 인용 노트 — ChatMessageNote 테이블 + atomic upsert + 프론트 textarea autosave + alembic <code>p1h02a3b4c5d6</code> + 12 tests</td>
+      <td><span class="badge b-drop">trim 으로 제거</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Alembic chain 재정리</h3>
+<p>
+⑪b 와 ⑪c 둘 다 <code>down_revision = p1a01f00d51e</code> (reactions) 로 분기 → 단일 head 회복을 위해 ⑪c 의 down_revision 을 <code>p1k01a02b03c</code> 로 갱신해 stack.
+</p>
+</section>
+
+<!-- ===================== 7 ===================== -->
+<section id="crisis">
+<h2 class="section">7. B4/B5/C3 위기 라우팅 안전성 강화 <small class="caption" style="display:inline">commit 07f911e + 머지 908672e</small></h2>
+<p>
+Cross-review #1 의 SOFT BLOCK 3건 (자살예방법 / 안전성) 일괄 처리. <code>fix/safety-crisis-overrides</code> 신규 worktree.
+</p>
+
+<h3>B4 — pastoral 답변 1393 hotline 강제 보장</h3>
+<p>
+<code>ensure_hotline_in_answer()</code> 후처리 게이트 추가. LLM 이 system prompt 의 hotline 안내를 출력에서 omit 했을 때 코드가 보장.
+</p>
+<pre><code>PASTORAL_HOTLINE_FOOTER = (
+    "\n\n---\n"
+    "💙 즉각적인 도움이 필요하시다면\n"
+    "- 자살예방상담전화 1393 (24시간 무료, 익명)\n"
+    "- 정신건강위기상담 1577-0199 (24시간 무료)\n"
+    "혼자 견디지 마세요. 전문 상담사와 이야기 나눠보시길 권합니다."
+)</code></pre>
+
+<h3>B5 — 사용자 명시 페르소나 위기 override</h3>
+<p>
+<code>resolve_answer_mode()</code> 가 <code>(mode, overridden, crisis_trigger)</code> 3-tuple 반환. 사용자가 "신학자" 모드 켰어도 "죽고 싶어요" 입력 시 pastoral 강제 + <code>ctx.persona_overridden=True</code> → UI 노티 가능.
+</p>
+
+<h3>C3 — 위기 키워드 11종 → 30+종 확장</h3>
+<table>
+  <thead><tr><th>레이어</th><th>키워드 수</th><th>예시</th><th>override?</th></tr></thead>
+  <tbody>
+    <tr><td>DIRECT (강한 신호)</td><td>9 (M4 좁힘 후)</td><td>죽고 싶 / 자살 / 사라지고 싶 / 끝내버리 / 내가 사라지면 + want to die / kill myself / end it all / no reason to live</td><td>✅ 사용자 모드 무시</td></tr>
+    <tr><td>EMOTIONAL (정서/은어)</td><td>13</td><td>너무 힘들 / 우울 / 외로 / 절망 / 공허 / 갓생 안 / 현타 / 번아웃 / 이만 됐 / 더는 못 / 삶의 의미가 없 / 혼자가 편 / 세상이 무거</td><td>❌ 미설정 시만 pastoral</td></tr>
+  </tbody>
+</table>
+<small class="caption">M3 NFC 정규화 + 소문자 + 공백 압축 적용 → macOS/iOS NFD 우회 방어.</small>
+</section>
+
+<!-- ===================== 8 ===================== -->
+<section id="review2">
+<h2 class="section">8. Cross-Review #2 + 6 fix bundle <small class="caption" style="display:inline">commit 00c443f</small></h2>
+<p>
+W3 + B4/B5/C3 추가 후 두 번째 cross-review. 3 reviewer 모두 도착.
+</p>
+
+<h3>Reviewer 종합</h3>
+<table>
+  <thead><tr><th>Reviewer</th><th>점수</th><th>권고</th></tr></thead>
+  <tbody>
+    <tr><td>Opus 4.7</td><td>7.5/10</td><td>Approve with W4-blocking follow-ups</td></tr>
+    <tr><td>Sonnet 4.6</td><td>Build 9.5 / Sec 8.5</td><td>Approve with Recommended</td></tr>
+    <tr><td>외부시각 (Codex)</td><td>—</td><td><b>BLOCK 2건</b> + Mitigate 다수</td></tr>
+  </tbody>
+</table>
+
+<h3>처리한 6 fix</h3>
+<table>
+  <thead><tr><th>ID</th><th>평가자</th><th>이슈</th><th>수정</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge b-fix">B7</span></td><td>Codex BLOCK</td><td>notes_router message_id ownership 미검증</td><td><code>message_exists()</code> 1차 검증 추가, PUT/GET 모두 random uuid spam 차단 + 404 명시</td></tr>
+    <tr><td><span class="badge b-fix">B6</span></td><td>Codex BLOCK</td><td>popular endpoint k-anonymity 부재 (PII / inference / injection)</td><td><code>HAVING count &gt;= 3</code> public + admin은 1. (이후 PoC trim 으로 popular 자체 제거)</td></tr>
+    <tr><td><span class="badge b-fix">M1</span></td><td>Opus W4-blocking</td><td>측정 인프라 부재 → 6개월 false-null 위험</td><td><code>session_messages</code> 4 컬럼 (requested_answer_mode / resolved_answer_mode / persona_overridden / crisis_trigger) + alembic <code>m1a02b03c04d</code> + persist.py wire</td></tr>
+    <tr><td><span class="badge b-fix">M2</span></td><td>Sonnet</td><td>FK CASCADE 누락 (GDPR orphan)</td><td>3 마이그레이션 모두 <code>ondelete="CASCADE"</code></td></tr>
+    <tr><td><span class="badge b-fix">M3</span></td><td>Sonnet</td><td>NFC normalization 부재 (Flutter NFD 우회)</td><td><code>_normalize_for_keyword_match()</code> 헬퍼 + 키워드 매칭 모두 적용</td></tr>
+    <tr><td><span class="badge b-fix">M4</span></td><td>Codex</td><td>B5 DIRECT 키워드 너무 넓음 (false positive)</td><td>DIRECT 17→9, 모호 11개를 EMOTIONAL 로 이동 (사용자 학술 질문 보존)</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ===================== 9 ===================== -->
+<section id="poc-trim">
+<h2 class="section">9. PoC trim — 작동 기능만 남기기 <small class="caption" style="display:inline">commit fb7a579</small></h2>
+<p>
+사용자 의사결정: <i>"PoC 단계에서 정말 작동하는 기능만 남도록"</i>. 운영 인프라 부재로 영영 dead 가 될 위험이 있는 7묶음 일괄 제거 + B4 hotline 강제 정책 변경 + pastoral closing/followups 자동 disable.
+</p>
+
+<h3>제거 7묶음 (~3,300줄)</h3>
+<table>
+  <thead><tr><th>항목</th><th>코드량</th><th>제거 사유</th><th>재추가 트리거</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge b-drop">P1-D 이미지 SNS 공유 + P2-E UTM</span></td><td>~340줄</td><td>frontend 만 있고 floating bar 와 미통합. 카카오톡 공유 SDK + analytics 인프라 부재</td><td>공유 SDK 도입 시</td></tr>
+    <tr><td><span class="badge b-drop">P1-K AnswerReview 검수 사이클</span></td><td>~1,000줄</td><td>운영 인력 (신학 자문 4명) 미확보. about page placeholder 도 함께 제거</td><td>운영 인력 확보 + SOP 작성 시</td></tr>
+    <tr><td><span class="badge b-drop">P1-H ChatMessageNote 인용 노트</span></td><td>~600줄</td><td>chat 화면에 인용 카드 통합 안 됨. 사용자 노트 시나리오 PoC 단계 X</td><td>사용자 노트 시나리오 본격</td></tr>
+    <tr><td><span class="badge b-drop">P1-C 인기 질문 동적 노출</span></td><td>~400줄</td><td>k=3 적용 후 PoC 데이터 양으로 거의 빈 결과. 정적 SUGGESTED_PROMPTS 4개로 충분</td><td>사용자 1만+ 도달</td></tr>
+    <tr><td><span class="badge b-drop">P1-B citation 4중 메타</span></td><td>~200줄</td><td>Qdrant payload 인덱싱 파이프라인 미연결 → 항상 빈 라벨</td><td>인덱싱 파이프라인 보강</td></tr>
+    <tr><td><span class="badge b-drop">P2-D 공개/비공개 토글</span></td><td>~80줄</td><td>ChatbotConfig.visibility 컬럼 + 백엔드 검증 부재</td><td>visibility 정책 도입</td></tr>
+    <tr><td><span class="badge b-drop">P2-K follow-up 부분 블러 + 카카오 로그인 CTA</span></td><td>비활성</td><td>카카오 로그인 인프라 미구축 → dead CTA = 사용자 좌절</td><td>카카오 로그인 도입</td></tr>
+  </tbody>
+</table>
+
+<h3>추가 hotfix</h3>
+<ul>
+  <li><b>B4 정책 변경</b> — 이전 substring 검사 (1393/1577 둘 중 하나라도 있으면 통과) 의 false positive 위험 회수. <b>pastoral 답변은 항상 PASTORAL_HOTLINE_FOOTER append</b>. idempotent (footer marker 검사로 중복 방지).</li>
+  <li><b>pastoral 모드 closing/followups 자동 disable</b> — <code>ctx.resolved_answer_mode == "pastoral"</code> 시 두 stage 즉시 skip. 위기 답변에 "기도문 자동 생성" / "다음 질문 추천" 노출은 의료 윤리 부적절.</li>
+</ul>
+
+<h3>Alembic chain 재정리</h3>
+<p>
+<code>m1a02b03c04d</code> (head) 의 <code>down_revision</code> 을 <code>p1h02a3b4c5d6</code> → <code>p1a01f00d51e</code> (reactions) 직결. p1k 와 p1h 마이그레이션 파일 자체 제거.
+</p>
+</section>
+
+<!-- ===================== 10 ===================== -->
+<section id="wiring">
+<h2 class="section">10. B-minimal 톤 wiring <small class="caption" style="display:inline">commit 9e5ef0d (마지막)</small></h2>
+<p>
+사용자 지적: <i>"답변 차이가 없으면 의미 없는 것 아닌가?"</i>. PoC trim 후에도 답변 모드 5종 + 강조점 5종 토글이 백엔드 LLM 답변에 차별화 효과 0 (placebo).
+</p>
+
+<h3>해결 방안</h3>
+<p>
+운영자가 <code>system_prompt_by_mode</code> 5종 + emphasis 5종 = <b>25개 시스템 프롬프트</b> 를 작성하는 대신, <code>select_system_prompt()</code> 끝에 <b>한 문장 분기 append</b> 로 LLM 톤 차별화. Gemini 2.5 Flash 가 강한 시그널 한 문장만으로 톤 분기 가능.
+</p>
+
+<h3>5종 모드 톤 suffix</h3>
+<table>
+  <thead><tr><th>모드</th><th>System Prompt 끝 append</th></tr></thead>
+  <tbody>
+    <tr><td><b>standard</b></td><td>(없음, 기본 톤)</td></tr>
+    <tr><td><b>theological</b></td><td>"[톤] 원리·교리에 깊이 있는 신학적 해설을 우선합니다. 관련 원리 용어와 출처를 분명히 제시하세요."</td></tr>
+    <tr><td><b>pastoral</b></td><td>1393/1577 hotline 안내 (PASTORAL_HOTLINE_NOTICE)</td></tr>
+    <tr><td><b>beginner</b></td><td>"[톤] 신앙의 기초부터 쉬운 말로 짧고 친절하게 설명하세요. 전문 용어는 풀어 쓰고, 답변은 핵심 위주로 간결하게."</td></tr>
+    <tr><td><b>kids</b></td><td>"[톤] 어린이 눈높이로 짧고 따뜻하게, 비유와 이야기로 설명하세요. 어려운 용어는 피하고 친근한 어조로 답변합니다."</td></tr>
+  </tbody>
+</table>
+
+<h3>5종 강조점 suffix</h3>
+<table>
+  <thead><tr><th>강조점</th><th>System Prompt 끝 append</th></tr></thead>
+  <tbody>
+    <tr><td><b>all</b></td><td>(없음, 균형)</td></tr>
+    <tr><td><b>principle</b></td><td>"[강조점] 통일원리·교리 기반의 체계적 설명을 우선합니다."</td></tr>
+    <tr><td><b>providence</b></td><td>"[강조점] 섭리 시대 흐름과 후천기 의미를 중심으로 답변합니다."</td></tr>
+    <tr><td><b>family</b></td><td>"[강조점] 참가정·축복·가정연합 관점을 중심으로 답변합니다."</td></tr>
+    <tr><td><b>youth</b></td><td>"[강조점] 청년 신앙 생활과 실천 적용을 중심으로 답변합니다."</td></tr>
+  </tbody>
+</table>
+
+<p>
+조합 25종 모두 작동. 모드 → 강조점 → pastoral hotline 순서로 append (idempotent).
+</p>
+</section>
+
+<!-- ===================== 11 ===================== -->
+<section id="final">
+<h2 class="section">11. 최종 적용 범위 + 검증</h2>
+
+<h3>실제 작동하는 11 액션</h3>
+<table>
+  <thead><tr><th>ID</th><th>기능</th><th>위치</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge b-keep">W1</span></td><td>디자인 시스템 + 9 컴포넌트 + /design-system</td><td>admin/src/components/truewords/</td></tr>
+    <tr><td><span class="badge b-keep">P0-A</span></td><td>자동 follow-up 추천 3개 (pastoral 자동 disable)</td><td>SuggestedFollowupsStage</td></tr>
+    <tr><td><span class="badge b-keep">P0-B</span></td><td>인용 원문 모달 + chatbot ACL</td><td>GET /api/sources/chunks/{id}</td></tr>
+    <tr><td><span class="badge b-keep">P0-C</span></td><td>입력 placeholder 두 줄 가이드</td><td>QuestionInput</td></tr>
+    <tr><td><span class="badge b-keep">P0-D</span></td><td>면책 4문장 + 모델 버전 footer</td><td>(chat)/page.tsx</td></tr>
+    <tr><td><span class="badge b-keep">P0-E</span></td><td>답변 모드 5종 + system prompt 톤 wiring</td><td>PersonaSheet + select_system_prompt</td></tr>
+    <tr><td><span class="badge b-keep">P0-G</span></td><td>floating action bar (새질문/북마크/공유)</td><td>FloatingActionBar</td></tr>
+    <tr><td><span class="badge b-keep">P1-A</span></td><td>답변 평가 (👍/👎/💾) + cookie 기반 익명</td><td>POST /api/chat/messages/{id}/reaction</td></tr>
+    <tr><td><span class="badge b-keep">P1-G</span></td><td>강조점 5종 + system prompt 강조 wiring</td><td>EmphasisSheet + select_system_prompt</td></tr>
+    <tr><td><span class="badge b-keep">P1-J</span></td><td>기도문/결의문 마무리 (pastoral 자동 disable)</td><td>ClosingTemplateStage</td></tr>
+    <tr><td><span class="badge b-keep">P1-F</span></td><td>About 신학 입장 페이지 + runtime_config.theological_stance</td><td>/about</td></tr>
+  </tbody>
+</table>
+
+<h3>안전 / 측정 인프라</h3>
+<table>
+  <thead><tr><th>ID</th><th>기능</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge b-fix">B1</span></td><td>chunks endpoint chatbot_id ACL — 비공개 챗봇 자료 leak 차단 + brute force chunk dump 방어</td></tr>
+    <tr><td><span class="badge b-fix">B2</span></td><td>reactions endpoint HttpOnly cookie + IP rate limit + atomic toggle</td></tr>
+    <tr><td><span class="badge b-fix">B4</span></td><td>pastoral 답변 1393 footer 무조건 강제 (자살예방법)</td></tr>
+    <tr><td><span class="badge b-fix">B5</span></td><td>위기 신호 시 사용자 모드 강제 override + persona_overridden flag</td></tr>
+    <tr><td><span class="badge b-fix">C3</span></td><td>위기 키워드 30+종 (DIRECT 9 + EMOTIONAL 13) + NFC 정규화</td></tr>
+    <tr><td><span class="badge b-fix">M1</span></td><td>session_messages 4 측정 컬럼 (requested/resolved mode + persona_overridden + crisis_trigger)</td></tr>
+    <tr><td><span class="badge b-fix">M2</span></td><td>FK ondelete=CASCADE — GDPR 대응</td></tr>
+    <tr><td><span class="badge b-fix">M3</span></td><td>NFC unicode normalization — Flutter Phase 4 prerequisite</td></tr>
+  </tbody>
+</table>
+
+<h3>검증 결과</h3>
+<p>
+<span class="stat-pill">backend pytest <span class="num">87</span> passed</span>
+<span class="stat-pill">frontend tsc <span class="num">0</span> errors</span>
+<span class="stat-pill">next build <span class="num">0</span> errors</span>
+<span class="stat-pill">vitest <span class="num">43</span> passed</span>
+<span class="stat-pill">alembic single head <span class="num">m1a02b03c04d</span></span>
+</p>
+
+<h3>외부 검증 — 3-Reviewer Cross-Review (2 라운드)</h3>
+<ul>
+  <li>Round 1: Opus 6.0/10 → Sonnet Approve → Codex BLOCK 2 (chunks ACL / reactions auth) + Mitigate. <b>5 fix bundle</b>.</li>
+  <li>Round 2: Opus 7.5/10 → Sonnet Approve → Codex BLOCK 2 (popular k-anon / notes ownership) + Mitigate. <b>6 fix bundle</b>.</li>
+  <li>PoC trim — Round 2 W4-blocking 권고 (운영 인력 / 사용자 onboarding 트리거) 를 W4 미루지 않고 PoC 단계 영영 dead 위험으로 정리.</li>
+</ul>
+</section>
+
+<!-- ===================== 12 ===================== -->
+<section id="followup">
+<h2 class="section">12. 후속 PR 트리거</h2>
+<p>
+PoC trim 으로 의도적 제거된 7묶음은 운영 트리거가 충족될 때 git history (또는 새 PR) 에서 복구.
+</p>
+<table>
+  <thead><tr><th>트리거</th><th>후속 작업</th></tr></thead>
+  <tbody>
+    <tr><td>신학 자문 4명 확보</td><td>P1-K AnswerReview 재추가 + SOP docs (5종 라벨 의미·예시·경계선)</td></tr>
+    <tr><td>사용자 1만+ 도달</td><td>P1-C 인기 질문 + ChatbotConfig.visibility 정책 (k=3 의미 있는 데이터)</td></tr>
+    <tr><td>카카오 로그인 인프라</td><td>P1-D 이미지 공유 + P2-K 블러 + 로그인 CTA</td></tr>
+    <tr><td>Flutter Phase 4 시작</td><td>P1-H 노트 + 답변 화면 본격 통합 + P0-G floating bar 모바일 최적화</td></tr>
+    <tr><td>운영 데이터 14일 수집 후</td><td>crisis IntentClassifier LLM 승격 (C3 cost-floor 대체) + B5 persona_overridden UI 노티 효과 분석</td></tr>
+    <tr><td>Qdrant payload 인덱싱 파이프라인 보강</td><td>P1-B 4중 메타 (volume_no/delivered_at/delivered_place/chapter_title) 재추가</td></tr>
+  </tbody>
+</table>
+
+<h3>관련 문서</h3>
+<ul>
+  <li><code>docs/dev-log/45-input-handling-benchmark.md</code> — ADR-45 1차 벤치마크</li>
+  <li><code>docs/dev-log/46-input-handling-live-findings.md</code> — ADR-46 실측 + 30 액션 정의</li>
+  <li><code>docs/dev-log/47-adr46-integration-pr.md</code> — 본 PR 본문 초안</li>
+  <li><code>docs/dev-log/47-adr46-integration-pr.html</code> — 본 보고서 (HTML)</li>
+  <li><code>~/.claude/plans/ai-ai-radiant-grove.md</code> — UI/UX 풀 디테일 + worktree 전략</li>
+</ul>
+</section>
+
+<hr class="section-divider" />
+<p style="text-align:center; color:var(--ink-soft); font: 500 12px/1.6 ui-monospace, monospace;">
+  Generated with Claude Code · Opus 4.7 (1M context) · 2026-04-29 01:30
+</p>
+
+</div>
+</body>
+</html>
