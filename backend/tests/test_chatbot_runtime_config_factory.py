@@ -96,3 +96,34 @@ async def test_build_runtime_config_raises_when_id_unknown():
     svc = ChatbotService(repo=repo)
     with pytest.raises(HTTPException):
         await svc.build_runtime_config("missing")
+
+
+@pytest.mark.asyncio
+async def test_build_runtime_config_theological_stance_default_none():
+    """P1-F: search_tiers 에 theological_stance 키가 없으면 None."""
+    from src.chatbot.service import ChatbotService
+
+    repo = _make_repo(_stub_db_config())
+    svc = ChatbotService(repo=repo)
+    rc = await svc.build_runtime_config("cb-test")
+
+    assert rc is not None
+    assert rc.theological_stance is None
+
+
+@pytest.mark.asyncio
+async def test_build_runtime_config_theological_stance_propagated():
+    """P1-F: search_tiers.theological_stance 가 runtime_config 에 전파."""
+    from src.chatbot.service import ChatbotService
+
+    cfg = _stub_db_config()
+    cfg.search_tiers = {
+        **cfg.search_tiers,
+        "theological_stance": "초교파 복음주의 신학에 기반합니다.",
+    }
+    repo = _make_repo(cfg)
+    svc = ChatbotService(repo=repo)
+    rc = await svc.build_runtime_config("cb-test")
+
+    assert rc is not None
+    assert rc.theological_stance == "초교파 복음주의 신학에 기반합니다."
