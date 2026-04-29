@@ -228,7 +228,7 @@ export function ChatbotForm({
             value={values.collection_main}
             onValueChange={(v) => patch("collection_main", v ?? "malssum_poc")}
           >
-            <SelectTrigger id="collection-main">
+            <SelectTrigger id="collection-main" className="w-fit min-w-[480px]">
               <SelectValue placeholder="컬렉션 선택" />
             </SelectTrigger>
             <SelectContent>
