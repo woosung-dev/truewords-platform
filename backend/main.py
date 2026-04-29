@@ -48,8 +48,11 @@ async def lifespan(app: FastAPI):
         await ensure_cache_collection()
         app.state.cache_available = True
     except Exception as e:
+        # 동일 이슈 재발 시 빠른 진단을 위해 traceback 동시 출력
         logger.warning(
-            "캐시 컬렉션 초기화 실패 — graceful degradation으로 동작: %s", e
+            "캐시 컬렉션 초기화 실패 — graceful degradation으로 동작: %r",
+            e,
+            exc_info=True,
         )
         app.state.cache_available = False
 
