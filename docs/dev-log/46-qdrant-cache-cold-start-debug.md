@@ -121,18 +121,54 @@ hang 발생. warm path에서는 connection 재사용으로 동일 문제 회피.
 | asyncio.Lock 데드락 | `_cache_init_lock`이 모듈 전역, 단일 책임. 이중 acquire 경로 없음 |
 | 롤백 | git revert. 캐시 비활성 상태로 복귀 (현재 prod와 동일) |
 
-## 후속 — 만약 lazy init도 실패한다면
+## Phase 5-D — Lazy init·부분 raw httpx 도 실패 → 전면 raw httpx 전환 (PR #79~#82 후속, 2026-04-29)
 
-진단 결과 `httpx.AsyncClient(http2=False)`는 정상 동작 확인됐으므로, 최후 수단으로
-qdrant-client 우회 + raw httpx 호출 직접 사용:
+### 추가 재현 사실
 
-```python
-# 가장 마지막 카드 (이번 PR에선 미적용)
-async with httpx.AsyncClient(http2=False, timeout=30.0) as c:
-    r = await c.get(f"{settings.qdrant_url}/collections", headers={"api-key": ...})
-```
+- **PR #79 (Lazy init)** 머지 후: lifespan 2ms 통과되지만 첫 chat 요청 시 lazy
+  `ensure_cache_collection()` 도 60s ConnectTimeout. 첫 chat 60초 block →
+  Vercel `/api/chat` proxy disconnect → `ROUTER_EXTERNAL_TARGET_ERROR`
+- **PR #80 (ensure만 raw httpx)** 머지 후: ensure 0.3s 통과, 그러나
+  `SemanticCacheService.check_cache` 의 `client.query_points()` 가 동일 SDK hang
+  → chat 500 INTERNAL_ERROR
+- **PR #81 (#80 revert) + PR #82 (cache 영구 비활성)**: prod 안정화 임시 조치
 
-또는 qdrant-client GitHub에 HTTP/2 cold start hang 이슈 제출.
+→ **`qdrant-client` SDK의 모든 HTTP/2 호출 경로**가 Cloudflare Tunnel + Cloud Run
+환경에서 hang 한다. 부분 우회로는 부족.
+
+### 결정 — SemanticCacheService 전면 raw httpx 전환
+
+- `ensure_cache_collection` (PR #80 패턴 재적용)
+- **`SemanticCacheService.check_cache`** → `POST /collections/{name}/points/query`
+- **`SemanticCacheService.store_cache`** → `PUT /collections/{name}/points`
+- 모두 `httpx.AsyncClient(http2=False, timeout=30s/15s)` 사용
+- `__init__` 의 qdrant-client 인자 제거 (raw httpx로만 동작)
+- `get_cache_service` lazy init 패턴 (PR #79) 복원
+- 기타 SDK 사용처 (`hybrid_search` 등)는 warm path 라 그대로 유지 — 검증 후 필요 시 추후 전환
+
+### 단위 테스트 강화 (이번 PR)
+
+- 기존 `tests/test_cache_graceful_degradation.py` 5건 + **신규
+  `tests/test_cache_service_raw_httpx.py` 6건** = 총 11건 PASS
+- check_cache hit/miss/HTTP error/no-chatbot_id, store_cache point payload/error swallow 모두 모킹 검증
+- 다음 cold start 시 SemanticCacheService 동작까지 단위 수준에서 회귀 방지
+
+### 영향
+
+| 항목 | 변화 |
+|---|---|
+| lifespan startup | 2ms (lazy init 패턴) |
+| 첫 chat 요청 block | 60s+ → 0~10s (raw httpx HTTP/1.1) |
+| `ROUTER_EXTERNAL_TARGET_ERROR` | 해소 |
+| cache hit 동작 | 정상 회복 |
+| chat 500 (cache_check 단계 hang) | 해소 |
+| qdrant-client SDK 의존 | hybrid_search 등 warm path 그대로 (안전) |
+
+### 다음 머지 후 후속
+
+- PR #82 (cache 영구 비활성 hotfix) close (raw httpx PR이 대체)
+- prod 모니터링 → 첫 chat 정상 응답 + 동일 질문 2회 → cache hit 1~2s 확인
+- 24h 안정 후 본 ADR 의 "Phase 5" 시리즈 마무리
 
 ## 검증
 

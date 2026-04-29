@@ -34,9 +34,8 @@ async def test_get_cache_service_returns_service_when_cache_available():
     mock_request.app.state = Mock()
     mock_request.app.state.cache_available = True
 
-    with patch("src.chat.dependencies.get_async_client"):
-        result = await get_cache_service(mock_request)
-        assert result is not None
+    result = await get_cache_service(mock_request)
+    assert result is not None
 
 
 @pytest.mark.asyncio
@@ -44,13 +43,11 @@ async def test_get_cache_service_lazy_init_on_first_call():
     """state.cache_available=None(미시도)이면 lazy ensure 시도 후 결과 캐싱."""
     mock_request = Mock(spec=Request)
     mock_request.app = Mock()
-    # 단순 객체로 state 흉내 (Mock(spec=[])는 attribute set이 막혀서 부적합)
     state = _StateStub()
     state.cache_available = None
     mock_request.app.state = state
 
-    with patch("src.chat.dependencies.ensure_cache_collection") as mock_ensure, \
-         patch("src.chat.dependencies.get_async_client"):
+    with patch("src.chat.dependencies.ensure_cache_collection") as mock_ensure:
         mock_ensure.return_value = None
         result = await get_cache_service(mock_request)
         assert result is not None
@@ -91,8 +88,7 @@ async def test_get_cache_service_lazy_init_only_once_under_concurrency():
         call_count += 1
         await _asyncio.sleep(0.05)  # 다른 task가 lock 대기에 진입할 시간
 
-    with patch("src.chat.dependencies.ensure_cache_collection", side_effect=slow_ensure), \
-         patch("src.chat.dependencies.get_async_client"):
+    with patch("src.chat.dependencies.ensure_cache_collection", side_effect=slow_ensure):
         # 동시 5건 요청
         results = await _asyncio.gather(
             *[get_cache_service(mock_request) for _ in range(5)]
