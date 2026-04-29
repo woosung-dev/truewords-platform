@@ -176,6 +176,31 @@ async def test_store_cache_puts_point(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_store_cache_without_chatbot_id(monkeypatch):
+    """store_cache: chatbot_id 미지정 시 payload.chatbot_id == '' 빈 문자열."""
+    captured = {}
+
+    async def mock_put(self, url, headers, json):  # noqa: ARG001
+        captured["body"] = json
+
+        class _R:
+            status_code = 200
+
+            def raise_for_status(self_inner):  # noqa: ARG001
+                return None
+
+        return _R()
+
+    monkeypatch.setattr(httpx.AsyncClient, "put", mock_put)
+    svc = SemanticCacheService()
+    await svc.store_cache(
+        query="q", query_embedding=[0.1] * 1536, answer="a", sources=[],
+    )
+    point = captured["body"]["points"][0]
+    assert point["payload"]["chatbot_id"] == ""
+
+
+@pytest.mark.asyncio
 async def test_store_cache_swallows_errors(monkeypatch):
     """store_cache: 실패해도 예외 전파 X (RAG 응답 영향 없도록)."""
 
