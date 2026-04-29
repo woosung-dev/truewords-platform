@@ -33,6 +33,29 @@ from src.safety.exceptions import InputBlockedError, RateLimitExceededError
 from src.search.exceptions import EmbeddingFailedError, SearchFailedError
 
 
+async def _ensure_cache_with_retry(max_attempts: int = 3) -> None:
+    """Cold start 직후 일시적 ConnectTimeout 흡수용 retry (exponential backoff).
+
+    Cloud Run cold start 직후 첫 외부 connection이 DNS warmup·happy-eyeballs 경합으로
+    ConnectTimeout 나는 사례가 관찰됨 (timeout 늘려도 동일). 1~2회 backoff 후 재시도하면
+    connection이 안정화되어 통과한다.
+    """
+    delay = 2.0
+    for attempt in range(max_attempts):
+        try:
+            await ensure_cache_collection()
+            return
+        except Exception:
+            if attempt + 1 == max_attempts:
+                raise
+            logger.warning(
+                "ensure_cache_collection 시도 %d/%d 실패 — %.1fs 후 재시도",
+                attempt + 1, max_attempts, delay,
+            )
+            await asyncio.sleep(delay)
+            delay *= 2
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """앱 시작 시 DB + 캐시 컬렉션 초기화. 실패해도 앱은 시작."""
@@ -45,7 +68,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("init_db 실패 (프로덕션에서는 Alembic 사용): %s", e)
     try:
-        await ensure_cache_collection()
+        await _ensure_cache_with_retry()
         app.state.cache_available = True
     except Exception as e:
         # 동일 이슈 재발 시 빠른 진단을 위해 traceback 동시 출력
