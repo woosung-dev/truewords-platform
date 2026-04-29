@@ -28,6 +28,7 @@ export const chatbotAPI = {
       persona_name?: string;
       system_prompt?: string;
       search_tiers?: SearchTiersConfig;
+      collection_main?: string;
       is_active?: boolean;
     }
   ) =>
