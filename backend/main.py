@@ -1,5 +1,9 @@
 import logging
+import socket
+import ssl
+import time
 from contextlib import asynccontextmanager
+from urllib.parse import urlparse
 
 # 앱 로거가 INFO 레벨 출력하도록 기본 설정
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -8,6 +12,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import asyncio
+
+import httpx
 
 from src.admin.data_router import set_main_loop as set_ingest_main_loop
 from src.cache.setup import ensure_cache_collection
@@ -31,6 +37,104 @@ from src.common.exception_handlers import (
 from src.common.middleware import RequestIdMiddleware
 from src.safety.exceptions import InputBlockedError, RateLimitExceededError
 from src.search.exceptions import EmbeddingFailedError, SearchFailedError
+
+
+async def _diagnose_cold_start_outbound() -> None:
+    """[일회성 진단] cold start 시점의 outbound 네트워크 단계별 상태 로깅.
+
+    PR #73(Qdrant Cloud → Cloudflare Tunnel cutover) 후 lifespan
+    ensure_cache_collection이 매 cold start ConnectTimeout. 진단 결과로
+    가설(IPv6 happy-eyeballs / Cloud Run egress cold / HTTP/2 ALPN / DNS) 분기.
+
+    안전: 모든 호출은 짧은 timeout + try/except → lifespan 차단 X.
+    이 함수는 진단 끝나면 제거 예정.
+    """
+    parsed = urlparse(settings.qdrant_url)
+    host = parsed.hostname or "qdrant.woosung.dev"
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    api_key = settings.qdrant_api_key.get_secret_value() if settings.qdrant_api_key else ""
+
+    logger.info("[DIAG] === cold start outbound 진단 시작 host=%s port=%d ===", host, port)
+
+    # 1) DNS 해석 (IPv4·IPv6 결과·순서)
+    t0 = time.monotonic()
+    try:
+        addrs = await asyncio.get_running_loop().getaddrinfo(
+            host, port, type=socket.SOCK_STREAM
+        )
+        elapsed = time.monotonic() - t0
+        family_name = {socket.AF_INET: "IPv4", socket.AF_INET6: "IPv6"}
+        seen = []
+        for entry in addrs:
+            family = entry[0]
+            sockaddr = entry[4]
+            seen.append(f"{family_name.get(family, str(family))}:{sockaddr[0]}")
+        logger.info("[DIAG] DNS getaddrinfo OK in %.3fs → %s", elapsed, seen)
+    except Exception as e:
+        logger.warning("[DIAG] DNS getaddrinfo FAIL %.3fs: %r",
+                       time.monotonic() - t0, e)
+        addrs = []
+
+    # 2) 각 주소별 raw TCP+TLS connect probe (5초 timeout)
+    ssl_ctx = ssl.create_default_context()
+    for entry in addrs:
+        family = entry[0]
+        sockaddr = entry[4]
+        family_label = "IPv4" if family == socket.AF_INET else "IPv6"
+        ip = sockaddr[0]
+        t0 = time.monotonic()
+        try:
+            conn = await asyncio.wait_for(
+                asyncio.open_connection(host=ip, port=port, ssl=ssl_ctx,
+                                        server_hostname=host, family=family),
+                timeout=5.0,
+            )
+            elapsed = time.monotonic() - t0
+            logger.info("[DIAG] %s TCP+TLS connect %s OK in %.3fs",
+                        family_label, ip, elapsed)
+            writer = conn[1]
+            writer.close()
+            try:
+                await writer.wait_closed()
+            except Exception:
+                pass
+        except asyncio.TimeoutError:
+            logger.warning("[DIAG] %s TCP+TLS connect %s TIMEOUT after %.3fs",
+                           family_label, ip, time.monotonic() - t0)
+        except Exception as e:
+            logger.warning("[DIAG] %s TCP+TLS connect %s FAIL %.3fs: %r",
+                           family_label, ip, time.monotonic() - t0, e)
+
+    # 3) HTTP/1.1 강제 httpx로 GET /collections (qdrant-client 우회)
+    t0 = time.monotonic()
+    try:
+        async with httpx.AsyncClient(
+            http2=False,
+            timeout=httpx.Timeout(10.0, connect=5.0),
+        ) as c:
+            r = await c.get(f"{settings.qdrant_url}/collections",
+                            headers={"api-key": api_key})
+        elapsed = time.monotonic() - t0
+        logger.info("[DIAG] HTTP/1.1 raw GET /collections %d in %.3fs",
+                    r.status_code, elapsed)
+    except Exception as e:
+        logger.warning("[DIAG] HTTP/1.1 raw GET FAIL %.3fs: %r",
+                       time.monotonic() - t0, e)
+
+    # 4) 외부 통제 호출 (Google generate_204) — Cloud Run egress 자체 cold 여부
+    t0 = time.monotonic()
+    try:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(10.0, connect=5.0),
+        ) as c:
+            r = await c.get("https://www.google.com/generate_204")
+        logger.info("[DIAG] Google generate_204 %d in %.3fs",
+                    r.status_code, time.monotonic() - t0)
+    except Exception as e:
+        logger.warning("[DIAG] Google generate_204 FAIL %.3fs: %r",
+                       time.monotonic() - t0, e)
+
+    logger.info("[DIAG] === cold start outbound 진단 종료 ===")
 
 
 async def _ensure_cache_with_retry(max_attempts: int = 3) -> None:
@@ -62,6 +166,12 @@ async def lifespan(app: FastAPI):
     # 워커 스레드가 DB 호출을 위임할 수 있도록 메인 event loop 참조 저장.
     # AsyncEngine connection pool은 단일 loop에 바인딩되므로 필수.
     set_ingest_main_loop(asyncio.get_running_loop())
+
+    # [일회성] cold start 진단 — 결과 분석 후 본 블록 제거 예정
+    try:
+        await _diagnose_cold_start_outbound()
+    except Exception as e:
+        logger.warning("[DIAG] 진단 자체 실패: %r", e)
 
     try:
         await init_db()
