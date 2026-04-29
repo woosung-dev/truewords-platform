@@ -13,8 +13,6 @@ from src.chat.service import ChatService
 from src.chatbot.dependencies import get_chatbot_service
 from src.chatbot.service import ChatbotService
 from src.common.database import get_async_session
-from src.qdrant_client import get_async_client
-
 logger = logging.getLogger(__name__)
 
 # Lazy init 동시성 가드: 첫 요청 다발 시 ensure를 1회만 실행.
@@ -56,7 +54,7 @@ async def get_cache_service(request: Request) -> SemanticCacheService | None:
 
     if not state.cache_available:
         return None
-    return SemanticCacheService(get_async_client())
+    return SemanticCacheService()
 
 
 async def get_chat_service(
