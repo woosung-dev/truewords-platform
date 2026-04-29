@@ -70,10 +70,10 @@ def main() -> int:
         print(f"raw-dir 없음: {args.raw_dir}", file=sys.stderr)
         return 1
 
-    # raw 파일 스캔 (지원 확장자만)
+    # raw 파일 스캔 (지원 확장자만, macOS resource fork .__로 시작하는 파일 제외)
     raw_files: list[Path] = []
     for p in args.raw_dir.rglob("*"):
-        if p.is_file() and p.suffix.lower() in SUPPORTED_EXT:
+        if p.is_file() and p.suffix.lower() in SUPPORTED_EXT and not p.name.startswith("._"):
             raw_files.append(p)
     print(f"raw 파일 수: {len(raw_files)} (지원 확장자 {SUPPORTED_EXT})")
 
