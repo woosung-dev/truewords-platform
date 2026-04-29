@@ -7,6 +7,6 @@ Qdrant REST API 를 호출한다. (PR #78 진단, PR #83 cache 적용 검증 완
 상세: docs/dev-log/47-qdrant-sdk-http2-permanent-fix.md
 """
 
-from src.qdrant.raw_client import QdrantPoint, RawQdrantClient
+from src.qdrant.raw_client import FacetHit, QdrantPoint, RawQdrantClient
 
-__all__ = ["RawQdrantClient", "QdrantPoint"]
+__all__ = ["RawQdrantClient", "QdrantPoint", "FacetHit"]

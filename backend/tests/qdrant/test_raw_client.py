@@ -26,7 +26,7 @@ from src.qdrant.filters import (
     prefetch,
     sparse_vector,
 )
-from src.qdrant.raw_client import QdrantPoint, RawQdrantClient
+from src.qdrant.raw_client import FacetHit, QdrantPoint, RawQdrantClient
 
 
 # ─── 테스트 헬퍼 ───────────────────────────────────────────────────────────────
@@ -346,6 +346,195 @@ async def test_collection_exists_returns_true_when_present():
     client = _make_client(handler)
     assert await client.collection_exists("malssum_poc") is True
     assert await client.collection_exists("missing") is False
+
+
+# ─── scroll (admin 페이징) ────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_scroll_first_page_with_filter_and_pagination():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        captured["body"] = json.loads(request.content.decode())
+        return httpx.Response(
+            200,
+            json={
+                "result": {
+                    "points": [
+                        {"id": "p1", "score": 0.0, "payload": {"volume": "001"}},
+                        {"id": "p2", "score": 0.0, "payload": {"volume": "001"}},
+                    ],
+                    "next_page_offset": "offset-token",
+                }
+            },
+        )
+
+    client = _make_client(handler)
+    f = {"must": [{"key": "volume", "match": {"value": "001"}}]}
+    points, next_offset = await client.scroll(
+        "col", scroll_filter=f, with_payload=["volume"], limit=2
+    )
+
+    assert captured["url"].endswith("/collections/col/points/scroll")
+    assert captured["body"]["filter"] == f
+    assert captured["body"]["with_payload"] == ["volume"]
+    assert captured["body"]["limit"] == 2
+    assert captured["body"]["with_vector"] is False
+    assert "offset" not in captured["body"]
+    assert len(points) == 2
+    assert next_offset == "offset-token"
+
+
+@pytest.mark.asyncio
+async def test_scroll_with_offset_and_terminal_page():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(request.content.decode())
+        return httpx.Response(200, json={"result": {"points": []}})
+
+    client = _make_client(handler)
+    points, next_offset = await client.scroll(
+        "col", offset="offset-token", limit=100
+    )
+
+    assert captured["body"]["offset"] == "offset-token"
+    assert points == []
+    assert next_offset is None  # next_page_offset 미존재 시 None
+
+
+# ─── facet ────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_facet_basic_aggregation():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        captured["body"] = json.loads(request.content.decode())
+        return httpx.Response(
+            200,
+            json={
+                "result": {
+                    "hits": [
+                        {"value": "A", "count": 1200},
+                        {"value": "B", "count": 800},
+                    ]
+                }
+            },
+        )
+
+    client = _make_client(handler)
+    hits = await client.facet("col", key="source", limit=1000)
+
+    assert captured["url"].endswith("/collections/col/facet")
+    assert captured["body"] == {"key": "source", "limit": 1000, "exact": False}
+    assert len(hits) == 2
+    assert hits[0].value == "A"
+    assert hits[0].count == 1200
+    assert isinstance(hits[0], FacetHit)
+
+
+@pytest.mark.asyncio
+async def test_facet_with_filter_serializes_dict():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(request.content.decode())
+        return httpx.Response(200, json={"result": {"hits": []}})
+
+    client = _make_client(handler)
+    f = {"must": [{"key": "source", "match": {"value": "A"}}]}
+    await client.facet("col", key="volume", facet_filter=f, limit=500)
+
+    assert captured["body"]["filter"] == f
+    assert captured["body"]["key"] == "volume"
+    assert captured["body"]["limit"] == 500
+
+
+# ─── set_payload ──────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_set_payload_with_wait():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["method"] = request.method
+        captured["url"] = str(request.url)
+        captured["body"] = json.loads(request.content.decode())
+        return httpx.Response(
+            200, json={"result": {"operation_id": 7, "status": "completed"}}
+        )
+
+    client = _make_client(handler)
+    result = await client.set_payload(
+        "col", payload={"source": ["A", "B"]}, points=["p1", "p2"], wait=True
+    )
+
+    assert captured["method"] == "POST"
+    assert "/collections/col/points/payload" in captured["url"]
+    assert "wait=true" in captured["url"]
+    assert captured["body"] == {"payload": {"source": ["A", "B"]}, "points": ["p1", "p2"]}
+    assert result == {"operation_id": 7, "status": "completed"}
+
+
+# ─── delete ───────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_delete_by_point_ids():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        captured["body"] = json.loads(request.content.decode())
+        return httpx.Response(200, json={"result": {}})
+
+    client = _make_client(handler)
+    await client.delete("col", points_selector=["p1", "p2"])
+
+    assert "/collections/col/points/delete" in captured["url"]
+    assert captured["body"] == {"points": ["p1", "p2"]}
+
+
+@pytest.mark.asyncio
+async def test_delete_by_filter():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(request.content.decode())
+        return httpx.Response(200, json={"result": {}})
+
+    client = _make_client(handler)
+    f = {"must": [{"key": "volume", "match": {"any": ["001", "002"]}}]}
+    await client.delete("col", points_selector=f)
+
+    assert captured["body"] == {"filter": f}
+
+
+# ─── count ────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_count_exact_and_filter():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        captured["body"] = json.loads(request.content.decode())
+        return httpx.Response(200, json={"result": {"count": 12345}})
+
+    client = _make_client(handler)
+    f = {"must": [{"key": "source", "match": {"value": "A"}}]}
+    n = await client.count("col", count_filter=f, exact=True)
+
+    assert "/collections/col/points/count" in captured["url"]
+    assert captured["body"] == {"exact": True, "filter": f}
+    assert n == 12345
 
 
 # ─── 에러 전파 ─────────────────────────────────────────────────────────────────

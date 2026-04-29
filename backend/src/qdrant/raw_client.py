@@ -60,6 +60,21 @@ class QdrantPoint:
         )
 
 
+@dataclass(frozen=True)
+class FacetHit:
+    """Qdrant facet API 결과 단일 항목.
+
+    SDK ``qdrant_client.models.FacetValueHit`` 와 동등 (``hit.value``, ``hit.count``).
+    """
+
+    value: str | int | bool | None
+    count: int
+
+    @classmethod
+    def from_dict(cls, data: dict) -> FacetHit:
+        return cls(value=data.get("value"), count=int(data.get("count", 0)))
+
+
 class RawQdrantClient:
     """Cloudflare Tunnel 환경 호환 Qdrant REST 클라이언트.
 
@@ -228,6 +243,128 @@ class RawQdrantClient:
             path += "?wait=true"
         result = await self._put(path, {"points": points})
         return result.get("result", {})
+
+    # ---- admin scroll / facet / set_payload / delete --------------------
+
+    async def scroll(
+        self,
+        collection_name: str,
+        *,
+        scroll_filter: dict | None = None,
+        with_payload: bool | list[str] = True,
+        with_vectors: bool = False,
+        limit: int = 1000,
+        offset: str | int | None = None,
+    ) -> tuple[list[QdrantPoint], str | int | None]:
+        """Qdrant ``POST /collections/{name}/points/scroll``. 페이징 조회.
+
+        SDK ``async_client.scroll(collection_name=, scroll_filter=, ...)`` 와
+        동등한 시그니처. ``next_offset`` 이 ``None`` 이면 페이지 끝.
+
+        Returns:
+            (``QdrantPoint`` 리스트, 다음 offset).
+        """
+        body: dict = {
+            "limit": limit,
+            "with_payload": with_payload,
+            "with_vector": with_vectors,
+        }
+        if scroll_filter is not None:
+            body["filter"] = scroll_filter
+        if offset is not None:
+            body["offset"] = offset
+
+        result = await self._post(
+            f"/collections/{collection_name}/points/scroll", body
+        )
+        data = result.get("result", {})
+        points = [QdrantPoint.from_dict(p) for p in data.get("points", [])]
+        next_offset = data.get("next_page_offset")
+        return points, next_offset
+
+    async def facet(
+        self,
+        collection_name: str,
+        *,
+        key: str,
+        facet_filter: dict | None = None,
+        limit: int = 100,
+        exact: bool = False,
+    ) -> list[FacetHit]:
+        """Qdrant ``POST /collections/{name}/facet``. group-by + count 집계.
+
+        SDK ``async_client.facet(collection_name=, key=, facet_filter=, ...)`` 와
+        동등. ``hit.value`` / ``hit.count`` attribute access.
+        """
+        body: dict = {"key": key, "limit": limit, "exact": exact}
+        if facet_filter is not None:
+            body["filter"] = facet_filter
+
+        result = await self._post(
+            f"/collections/{collection_name}/facet", body
+        )
+        hits = result.get("result", {}).get("hits", [])
+        return [FacetHit.from_dict(h) for h in hits]
+
+    async def set_payload(
+        self,
+        collection_name: str,
+        *,
+        payload: dict,
+        points: list[str | int],
+        wait: bool = True,
+    ) -> dict:
+        """Qdrant ``POST /collections/{name}/points/payload``. payload 부분 갱신.
+
+        SDK ``async_client.set_payload(collection_name=, payload=, points=)`` 동등.
+        """
+        path = f"/collections/{collection_name}/points/payload"
+        if wait:
+            path += "?wait=true"
+        result = await self._post(path, {"payload": payload, "points": points})
+        return result.get("result", {})
+
+    async def delete(
+        self,
+        collection_name: str,
+        *,
+        points_selector: dict | list[str | int],
+        wait: bool = True,
+    ) -> dict:
+        """Qdrant ``POST /collections/{name}/points/delete``. 포인트 삭제.
+
+        ``points_selector`` 는 ID 리스트 또는 ``filter`` dict.
+        SDK ``async_client.delete(collection_name=, points_selector=)`` 동등.
+        """
+        path = f"/collections/{collection_name}/points/delete"
+        if wait:
+            path += "?wait=true"
+        if isinstance(points_selector, list):
+            body: dict = {"points": points_selector}
+        else:
+            body = {"filter": points_selector}
+        result = await self._post(path, body)
+        return result.get("result", {})
+
+    async def count(
+        self,
+        collection_name: str,
+        *,
+        count_filter: dict | None = None,
+        exact: bool = True,
+    ) -> int:
+        """Qdrant ``POST /collections/{name}/points/count``. 포인트 카운트.
+
+        SDK ``async_client.count(collection_name=)`` 와 동등. ``exact=True`` 시
+        정확 카운트(느림), ``False`` 시 추정.
+        """
+        body: dict = {"exact": exact}
+        if count_filter is not None:
+            body["filter"] = count_filter
+        result = await self._post(
+            f"/collections/{collection_name}/points/count", body
+        )
+        return int(result.get("result", {}).get("count", 0))
 
     # ---- collection mgmt -------------------------------------------------
 

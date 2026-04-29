@@ -40,7 +40,7 @@ from src.pipeline.ingestion_repository import IngestionJobRepository
 from src.pipeline.ingestion_service import IngestionJobService
 from src.pipeline.ingestor import ingest_chunks
 from src.pipeline.metadata import extract_metadata
-from src.qdrant_client import get_async_client, get_client
+from src.qdrant_client import get_client, get_raw_client
 
 # 재업로드 정책 (ADR-30) — merge: 기존 source ∪ 신규, replace: 신규로 교체,
 # skip: COMPLETED 동일 파일이면 임베딩/upsert 모두 건너뜀.
@@ -218,9 +218,7 @@ async def _get_existing_snapshot(volume_key: str) -> tuple[list[str], int]:
     DataSourceQdrantService를 직접 인스턴스화한다 (Depends 미사용 컨텍스트).
     NFC/NFD 혼재 대응은 서비스 메서드 내부에서 처리한다.
     """
-    async_client = get_async_client()
-    sync_client = get_client()
-    svc = DataSourceQdrantService(async_client, sync_client, settings.collection_name)
+    svc = DataSourceQdrantService(get_raw_client(), settings.collection_name)
     return await svc.get_volume_snapshot(volume_key)
 
 
@@ -606,16 +604,16 @@ async def get_ingest_status(
     """
     response = await service.build_status_response()
     try:
-        client = get_async_client()
-        count_info = await client.count(collection_name=settings.collection_name)
-        response["summary"]["total_chunks"] = count_info.count
+        client = get_raw_client()
+        total = await client.count(settings.collection_name)
+        response["summary"]["total_chunks"] = total
         # volume facet 1회로 고유 volume 수 파악 (hits 길이)
         vol_facet = await client.facet(
-            collection_name=settings.collection_name,
+            settings.collection_name,
             key="volume",
             limit=10000,
         )
-        response["summary"]["completed_count"] = len(vol_facet.hits)
+        response["summary"]["completed_count"] = len(vol_facet)
     except Exception:
         # Qdrant 일시 실패 시 ingestion_jobs 기반 값을 그대로 노출
         pass
