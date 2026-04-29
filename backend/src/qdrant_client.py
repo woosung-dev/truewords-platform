@@ -11,20 +11,29 @@ from src.config import settings
 # 비동기 클라이언트 (API 요청 처리용)
 _async_client: AsyncQdrantClient | None = None
 
+# Cloudflare Tunnel·셀프 호스팅 VM 환경에서 cold start 시 첫 호출이
+# qdrant-client 기본 timeout(5초)을 초과하는 사례가 관찰되어 60초로 명시.
+# (참고: docs/dev-log/45-qdrant-self-hosting.md)
+_QDRANT_TIMEOUT = 60
+
 
 def get_async_client() -> AsyncQdrantClient:
     """비동기 Qdrant 클라이언트 싱글턴."""
     global _async_client
     if _async_client is None:
         _api_key = settings.qdrant_api_key.get_secret_value() if settings.qdrant_api_key else None
-        _async_client = AsyncQdrantClient(url=settings.qdrant_url, api_key=_api_key)
+        _async_client = AsyncQdrantClient(
+            url=settings.qdrant_url,
+            api_key=_api_key,
+            timeout=_QDRANT_TIMEOUT,
+        )
     return _async_client
 
 
 # 동기 클라이언트 (데이터 적재 스크립트용 — pipeline/)
 def get_client() -> QdrantClient:
     api_key = settings.qdrant_api_key.get_secret_value() if settings.qdrant_api_key else None
-    return QdrantClient(url=settings.qdrant_url, api_key=api_key)
+    return QdrantClient(url=settings.qdrant_url, api_key=api_key, timeout=_QDRANT_TIMEOUT)
 
 
 def create_collection(client: QdrantClient, collection_name: str) -> None:
