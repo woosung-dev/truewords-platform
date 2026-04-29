@@ -1,9 +1,14 @@
-"""fallback_search 비동기 테스트."""
+"""fallback_search 비동기 테스트.
+
+raw httpx 전환 (PR-B) 이후 ``RawQdrantClient.query_points`` 가 ``list[QdrantPoint]``
+를 직접 반환하므로 mock 반환값도 리스트.
+"""
 
 import json
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
+from src.qdrant.raw_client import QdrantPoint
 from src.search.fallback import fallback_search
 from src.search.hybrid import SearchResult
 
@@ -23,12 +28,13 @@ def _make_result(text: str = "말씀", score: float = 0.3, source: str = "A") ->
     )
 
 
-def _make_point(text: str = "말씀", score: float = 0.3, source: str = "A") -> MagicMock:
-    """테스트용 Qdrant point mock 생성 헬퍼."""
-    point = MagicMock()
-    point.payload = {"text": text, "volume": "vol_001", "chunk_index": 0, "source": source}
-    point.score = score
-    return point
+def _make_point(text: str = "말씀", score: float = 0.3, source: str = "A") -> QdrantPoint:
+    """테스트용 QdrantPoint 생성 헬퍼."""
+    return QdrantPoint(
+        id="vol_001-0",
+        score=score,
+        payload={"text": text, "volume": "vol_001", "chunk_index": 0, "source": source},
+    )
 
 
 @pytest.mark.asyncio
@@ -55,7 +61,7 @@ async def test_fallback_relaxed_search_removes_source_filter():
     """원본 결과가 0건이면 source 필터 없이 전체 컬렉션을 재검색하고 fallback_type='relaxed'를 반환한다."""
     client = AsyncMock()
     point = _make_point("말씀 B", score=0.2, source="B")
-    client.query_points.return_value = MagicMock(points=[point])
+    client.query_points.return_value = [point]
 
     with patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1, 2], [0.5, 0.3])):
         results, fallback_type = await fallback_search(
@@ -81,7 +87,7 @@ async def test_fallback_suggestions_when_relaxed_also_empty():
     """relaxed 검색도 0건이면 LLM 질문 제안을 시도하고 fallback_type='suggestions'를 반환한다."""
     client = AsyncMock()
     # relaxed 검색 결과도 빈 포인트 목록
-    client.query_points.return_value = MagicMock(points=[])
+    client.query_points.return_value = []
 
     with (
         patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])),
@@ -132,7 +138,7 @@ async def test_fallback_score_threshold_filters_low_scores():
     # score 0.15 (threshold 이상), 0.03 (threshold 미만) 두 포인트
     high_point = _make_point("좋은 말씀", score=0.15)
     low_point = _make_point("낮은 점수 말씀", score=0.03)
-    client.query_points.return_value = MagicMock(points=[high_point, low_point])
+    client.query_points.return_value = [high_point, low_point]
 
     with patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])):
         results, fallback_type = await fallback_search(

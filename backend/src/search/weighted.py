@@ -4,10 +4,9 @@ import asyncio
 import logging
 from dataclasses import dataclass
 
-from qdrant_client import AsyncQdrantClient
-
 from src.common.gemini import embed_dense_query
 from src.pipeline.embedder import embed_sparse_async
+from src.qdrant import RawQdrantClient
 from src.search.hybrid import SearchResult, hybrid_search
 
 logger = logging.getLogger(__name__)
@@ -40,7 +39,7 @@ class WeightedConfig:
 
 
 async def weighted_search(
-    client: AsyncQdrantClient,
+    client: RawQdrantClient,
     query: str,
     config: WeightedConfig,
     top_k: int = 10,

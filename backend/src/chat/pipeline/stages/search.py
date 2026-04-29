@@ -1,10 +1,12 @@
-"""SearchStage — 하이브리드 검색 (cascading / weighted) + fallback."""
+"""SearchStage — 하이브리드 검색 (cascading / weighted) + fallback.
+
+raw httpx (HTTP/1.1) 클라이언트 사용 — qdrant-client SDK HTTP/2 hang 회피.
+(PR #78 진단, docs/dev-log/47 참조)
+"""
 
 from __future__ import annotations
 
 import time
-
-from qdrant_client import AsyncQdrantClient
 
 from src.chat.pipeline.context import ChatContext
 from src.chat.pipeline.state import PipelineState, check_precondition
@@ -37,13 +39,13 @@ class SearchStage:
         self.default_tiers = default_tiers
 
     async def execute(self, ctx: ChatContext) -> ChatContext:
-        from src.qdrant_client import get_async_client
+        from src.qdrant_client import get_raw_client
 
         check_precondition(self.__class__.__name__, ctx)
         if not ctx.runtime_config:
             return ctx
 
-        qdrant = get_async_client()
+        qdrant = get_raw_client()
         search_config = _to_search_config(ctx.runtime_config.search, self.default_tiers)
         resolved = resolve_collections(ctx.runtime_config)
         ctx.resolved_collections = resolved
