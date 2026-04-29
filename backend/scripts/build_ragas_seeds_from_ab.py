@@ -86,12 +86,76 @@ def detect_level(level_raw: str) -> str:
     return "기타"
 
 
+def build_seed_single(xlsx_path: Path, label: str, output_dir: Path, ts: str) -> Path | None:
+    """단일 측정 xlsx → seed JSON. stratify 없이 전체 사용. keywords 컬럼 포함."""
+    rows = load_rows(xlsx_path)
+    if not rows:
+        print(f"⚠️  {label} 로드 실패: {xlsx_path}")
+        return None
+    headers = list(rows[0].keys())
+    ans_col = find_answer_col(headers)
+
+    seed_items = []
+    for idx, r in enumerate(rows, 1):
+        q = (r.get("테스트용 질문") or "").strip()
+        if not q:
+            continue
+        answer = str(r.get(ans_col, "") if ans_col else "").strip()
+        ground_truth = str(r.get("봇 모범 답변", "")).strip()
+        keywords_raw = str(r.get("참고 키워드", "") or "").strip()
+        keywords = [k.strip() for k in keywords_raw.split(",") if k.strip()]
+        contexts = []
+        for col in ("참고1", "참고2", "참고3"):
+            c = parse_context_cell(r.get(col))
+            if c:
+                contexts.append(c)
+        level = detect_level(str(r.get("난이도(Level)", "")))
+        seed_items.append({
+            "id": f"{label}_{idx:03d}",
+            "source_file": xlsx_path.name,
+            "level": level,
+            "category": str(r.get("카테고리", "") or ""),
+            "question": q,
+            "answer": answer,
+            "ground_truth": ground_truth,
+            "keywords": keywords,
+            "contexts": contexts,
+        })
+
+    seed_path = output_dir / f"ragas_seed_{label}_{ts}.json"
+    seed_path.write_text(json.dumps(seed_items, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"  {label}: {len(seed_items)}건 → {seed_path.name}")
+    return seed_path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default=Path.home() / "Downloads", type=Path)
     parser.add_argument("--seed", type=int, default=20260429)
+    parser.add_argument("--xlsx", type=Path, default=None,
+                        help="단일 파일 모드: 측정 xlsx 경로")
+    parser.add_argument("--label", type=str, default=None,
+                        help="단일 파일 모드: seed JSON 라벨 (예: A_new50, F_new50)")
     args = parser.parse_args()
 
+    # 단일 파일 모드 (--xlsx + --label)
+    if args.xlsx is not None:
+        if args.label is None:
+            print("⚠️  --xlsx와 --label은 함께 지정해야 합니다.")
+            return 1
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M")
+        seed_path = build_seed_single(args.xlsx, args.label, args.output_dir, ts)
+        if seed_path is None:
+            return 1
+        print()
+        print("=== 다음 단계 ===")
+        out = args.output_dir / f"ragas_{args.label}_{ts}.xlsx"
+        print(f"  RAGAS: PYTHONPATH=. uv run python scripts/eval_metrics_direct.py "
+              f"--seed {seed_path} --output {out}")
+        return 0
+
+    # 기존 다중 파일 모드 (legacy v1/v2/v3)
     # v1을 기준으로 50문항 sample 선택 (질문 ID = "테스트용 질문" 텍스트)
     rng = random.Random(args.seed)
 

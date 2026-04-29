@@ -32,6 +32,8 @@ SEED_DATA = [
                 {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
             ]
         },
+        # Phase 2.2 (2026-04-30) — paragraph 청킹 v3 운영 전환 (dev-log 45)
+        collection_main="malssum_poc_v3",
     ),
     ChatbotConfig(
         chatbot_id="source_a_only",
