@@ -1,24 +1,18 @@
 """채팅 DI 조립."""
 
-import asyncio
 import logging
 
-from fastapi import Depends, Request
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.cache.service import SemanticCacheService
-from src.cache.setup import ensure_cache_collection
 from src.chat.repository import ChatRepository
 from src.chat.service import ChatService
 from src.chatbot.dependencies import get_chatbot_service
 from src.chatbot.service import ChatbotService
 from src.common.database import get_async_session
-from src.qdrant_client import get_async_client
 
 logger = logging.getLogger(__name__)
-
-# Lazy init 동시성 가드: 첫 요청 다발 시 ensure를 1회만 실행.
-_cache_init_lock = asyncio.Lock()
 
 
 async def get_chat_repository(
@@ -27,36 +21,16 @@ async def get_chat_repository(
     return ChatRepository(session)
 
 
-async def get_cache_service(request: Request) -> SemanticCacheService | None:
-    """Cache가 unavailable이면 None 반환 (graceful degradation).
+async def get_cache_service() -> SemanticCacheService | None:
+    """[HOTFIX] Cache 영구 비활성 — 모든 요청에 None 반환.
 
-    Lazy init: app.state.cache_available 가
-      - None : 아직 시도 전 → 잠금 획득 후 ensure 시도, 결과 캐싱
-      - True : 가용 → SemanticCacheService 반환
-      - False: 시도했으나 실패 → None 반환 (영속, 다음 cold start까지)
+    이유: PR #80 머지 후 SemanticCacheService.check_cache 가 qdrant-client SDK
+    HTTP/2 hang으로 chat 500 발생. PR #79 lazy init도 첫 chat 60s block 문제 잔존.
+    SemanticCacheService 전체를 raw httpx 로 전환하는 후속 PR 까지 임시 비활성.
 
-    NOTE: lifespan에서 ensure_cache_collection을 호출하지 않는 이유는
-    main.py 의 lifespan docstring 및 dev-log/46 참고.
+    상세: docs/dev-log/46-qdrant-cache-cold-start-debug.md (Phase 5-D)
     """
-    state = request.app.state
-    if getattr(state, "cache_available", None) is None:
-        async with _cache_init_lock:
-            if getattr(state, "cache_available", None) is None:
-                try:
-                    await ensure_cache_collection()
-                    state.cache_available = True
-                    logger.info("캐시 컬렉션 lazy init 성공 — cache_available=True")
-                except Exception as e:
-                    logger.warning(
-                        "캐시 컬렉션 lazy init 실패 — graceful degradation으로 동작: %r",
-                        e,
-                        exc_info=True,
-                    )
-                    state.cache_available = False
-
-    if not state.cache_available:
-        return None
-    return SemanticCacheService(get_async_client())
+    return None
 
 
 async def get_chat_service(
