@@ -35,7 +35,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 
 STATE_FILE = Path(__file__).resolve().parent / ".migration_state.json"
 SCROLL_LIMIT = 500
-UPSERT_BATCH = 200
+UPSERT_BATCH = 100
 DEFAULT_COLLECTIONS = ["malssum_poc", "semantic_cache"]
 
 
@@ -55,12 +55,12 @@ def make_clients() -> tuple[AsyncQdrantClient, AsyncQdrantClient]:
     src = AsyncQdrantClient(
         url=os.environ["QDRANT_CLOUD_URL"],
         api_key=os.environ["QDRANT_CLOUD_API_KEY"],
-        timeout=60,
+        timeout=300,
     )
     tgt = AsyncQdrantClient(
         url=os.environ["QDRANT_VM_URL"],
         api_key=os.environ["QDRANT_VM_API_KEY"],
-        timeout=60,
+        timeout=300,
     )
     return src, tgt
 
@@ -179,7 +179,8 @@ async def migrate_collection(
                 models.PointStruct(id=p.id, vector=p.vector, payload=p.payload)  # type: ignore[arg-type]
             )
             if len(buf) >= UPSERT_BATCH:
-                await tgt.upsert(collection_name=name, points=buf, wait=False)
+                # wait=True: qdrant 인덱싱 완료까지 대기 → 백로그 누적·OOM 방지
+                await tgt.upsert(collection_name=name, points=buf, wait=True)
                 uploaded += len(buf)
                 buf.clear()
 

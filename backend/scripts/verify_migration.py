@@ -158,12 +158,12 @@ async def main() -> None:
     src = AsyncQdrantClient(
         url=os.environ["QDRANT_CLOUD_URL"],
         api_key=os.environ["QDRANT_CLOUD_API_KEY"],
-        timeout=60,
+        timeout=300,
     )
     tgt = AsyncQdrantClient(
         url=os.environ["QDRANT_VM_URL"],
         api_key=os.environ["QDRANT_VM_API_KEY"],
-        timeout=60,
+        timeout=300,
     )
 
     print("=" * 72)
