@@ -1,12 +1,19 @@
-"""A/F 측정 xlsx 두 개를 비교하는 Codex 검토용 마크다운 생성.
+"""A/F 또는 A/B/F 측정 xlsx 비교 Codex 검토용 마크다운 생성.
 
-L별 2건씩 stratified 10건 추출 → Codex가 둘을 비교하기 좋은 형식.
+L별 2건씩 stratified 10건 추출 → Codex가 비교하기 좋은 형식.
 
-사용:
+2-way 사용 (A vs F):
     PYTHONPATH=. uv run python scripts/build_codex_compare_md.py \\
         --xlsx-a ~/Downloads/notebooklm_qa_A_sentence_new50_*.xlsx \\
         --xlsx-f ~/Downloads/notebooklm_qa_F_paragraph_new50_*.xlsx \\
         --output ~/Downloads/codex_compare_input.md
+
+3-way 사용 (A vs B vs F):
+    PYTHONPATH=. uv run python scripts/build_codex_compare_md.py \\
+        --xlsx-a ~/Downloads/notebooklm_qa_A_*.xlsx \\
+        --xlsx-b ~/Downloads/notebooklm_qa_B_*.xlsx \\
+        --xlsx-f ~/Downloads/notebooklm_qa_F_*.xlsx \\
+        --output ~/Downloads/codex_compare_3way.md
 """
 from __future__ import annotations
 
@@ -49,10 +56,24 @@ def load_rows(path: Path) -> list[dict]:
     return out
 
 
+def _extract_answer_and_ctx(row: dict | None, ans_col: str | None) -> tuple[str, list[str]]:
+    if row is None:
+        return "(매칭 실패)", []
+    answer = str(row.get(ans_col, "") if ans_col else "")
+    ctx = []
+    for col in ("참고1", "참고2", "참고3"):
+        c = row.get(col)
+        if c:
+            ctx.append(str(c)[:300])
+    return answer, ctx
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--xlsx-a", required=True, type=Path)
     parser.add_argument("--xlsx-f", required=True, type=Path)
+    parser.add_argument("--xlsx-b", type=Path, default=None,
+                        help="옵션 B (prefix) — 있으면 3-way 비교")
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--per-level", type=int, default=2)
     parser.add_argument("--seed", type=int, default=20260429)
@@ -64,14 +85,20 @@ def main() -> int:
         print(f"⚠️  로드 실패")
         return 1
 
-    headers_a = list(rows_a[0].keys())
-    headers_f = list(rows_f[0].keys())
-    ans_a = find_answer_col(headers_a)
-    ans_f = find_answer_col(headers_f)
+    has_b = args.xlsx_b is not None
+    rows_b = load_rows(args.xlsx_b) if has_b else []
+    if has_b and not rows_b:
+        print(f"⚠️  B xlsx 로드 실패: {args.xlsx_b}")
+        return 1
+
+    ans_a = find_answer_col(list(rows_a[0].keys()))
+    ans_f = find_answer_col(list(rows_f[0].keys()))
+    ans_b = find_answer_col(list(rows_b[0].keys())) if has_b else None
 
     by_q_f = {(r.get("테스트용 질문") or "").strip(): r for r in rows_f}
+    by_q_b = {(r.get("테스트용 질문") or "").strip(): r for r in rows_b} if has_b else {}
 
-    # L별 stratify
+    # L별 stratify (A를 기준)
     rng = random.Random(args.seed)
     by_level: dict[str, list[dict]] = {}
     for r in rows_a:
@@ -89,20 +116,37 @@ def main() -> int:
 
     # 마크다운 생성
     lines = []
-    lines.append("# Codex 독립 검토 — 옵션 A (sentence) vs 옵션 F (paragraph)")
-    lines.append("")
-    lines.append("## 평가 요청")
-    lines.append("")
-    lines.append("아래 10건의 비교 사례에서 **A와 F 중 어느 답변이 더 정확하고 유용한가**를")
-    lines.append("판정해 주세요. 각 사례마다:")
-    lines.append("")
-    lines.append("- **승자**: A / F / 동등")
-    lines.append("- **이유**: 모범답변/참고키워드 대비 정확도, 컨텍스트 활용도, 환각 여부 기준")
-    lines.append("")
-    lines.append("마지막에 종합 의견:")
-    lines.append("- 10건 중 A 승: N, F 승: M, 동등: K")
-    lines.append("- 메트릭별(정확도/문맥/환각) 우열 패턴")
-    lines.append("- 운영 적용 시 추천 옵션 + 보강할 약점")
+    if has_b:
+        lines.append("# Codex 독립 검토 — 옵션 A (sentence) vs B (prefix) vs F (paragraph)")
+        lines.append("")
+        lines.append("## 평가 요청")
+        lines.append("")
+        lines.append("아래 10건의 비교 사례에서 **A, B, F 중 어느 답변이 가장 정확하고 유용한가**를")
+        lines.append("판정해 주세요. 각 사례마다:")
+        lines.append("")
+        lines.append("- **승자**: A / B / F / 동등 (또는 부분 동등 명시)")
+        lines.append("- **이유**: 모범답변/참고키워드 대비 정확도, 컨텍스트 활용도, 환각 여부 기준")
+        lines.append("")
+        lines.append("마지막에 종합 의견:")
+        lines.append("- 10건 중 A 승: N, B 승: M, F 승: K, 동등: L")
+        lines.append("- 메트릭별(정확도/문맥/환각) 우열 패턴")
+        lines.append("- L별(L1~L5) 패턴")
+        lines.append("- 운영 적용 시 추천 옵션 + 보강할 약점")
+    else:
+        lines.append("# Codex 독립 검토 — 옵션 A (sentence) vs 옵션 F (paragraph)")
+        lines.append("")
+        lines.append("## 평가 요청")
+        lines.append("")
+        lines.append("아래 10건의 비교 사례에서 **A와 F 중 어느 답변이 더 정확하고 유용한가**를")
+        lines.append("판정해 주세요. 각 사례마다:")
+        lines.append("")
+        lines.append("- **승자**: A / F / 동등")
+        lines.append("- **이유**: 모범답변/참고키워드 대비 정확도, 컨텍스트 활용도, 환각 여부 기준")
+        lines.append("")
+        lines.append("마지막에 종합 의견:")
+        lines.append("- 10건 중 A 승: N, F 승: M, 동등: K")
+        lines.append("- 메트릭별(정확도/문맥/환각) 우열 패턴")
+        lines.append("- 운영 적용 시 추천 옵션 + 보강할 약점")
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -113,24 +157,10 @@ def main() -> int:
         cat = str(r_a.get("카테고리", "") or "")
         gt = str(r_a.get("봇 모범 답변", "") or "")
         kw = str(r_a.get("참고 키워드", "") or "")
-        a_answer = str(r_a.get(ans_a, "") if ans_a else "")
-        a_ctx = []
-        for col in ("참고1", "참고2", "참고3"):
-            c = r_a.get(col)
-            if c:
-                a_ctx.append(str(c)[:300])
 
-        r_f = by_q_f.get(q)
-        if not r_f:
-            f_answer = "(F 측정 매칭 실패)"
-            f_ctx = []
-        else:
-            f_answer = str(r_f.get(ans_f, "") if ans_f else "")
-            f_ctx = []
-            for col in ("참고1", "참고2", "참고3"):
-                c = r_f.get(col)
-                if c:
-                    f_ctx.append(str(c)[:300])
+        a_answer, a_ctx = _extract_answer_and_ctx(r_a, ans_a)
+        f_answer, f_ctx = _extract_answer_and_ctx(by_q_f.get(q), ans_f)
+        b_answer, b_ctx = (_extract_answer_and_ctx(by_q_b.get(q), ans_b) if has_b else ("", []))
 
         lines.append(f"## 사례 {idx} — {L} / {cat}")
         lines.append("")
@@ -140,30 +170,28 @@ def main() -> int:
         lines.append("")
         lines.append(f"**참고키워드**: {kw}")
         lines.append("")
-        lines.append("### 옵션 A (sentence chunking)")
-        lines.append("")
-        lines.append(f"**답변**: {a_answer[:1200]}")
-        lines.append("")
-        if a_ctx:
-            lines.append("**컨텍스트 요약**:")
-            for i, c in enumerate(a_ctx, 1):
-                lines.append(f"{i}. {c}")
+
+        for label, answer, ctx in [
+            ("A (sentence chunking)", a_answer, a_ctx),
+            *( [("B (prefix chunking)", b_answer, b_ctx)] if has_b else [] ),
+            ("F (paragraph chunking)", f_answer, f_ctx),
+        ]:
+            lines.append(f"### 옵션 {label}")
             lines.append("")
-        lines.append("### 옵션 F (paragraph chunking)")
-        lines.append("")
-        lines.append(f"**답변**: {f_answer[:1200]}")
-        lines.append("")
-        if f_ctx:
-            lines.append("**컨텍스트 요약**:")
-            for i, c in enumerate(f_ctx, 1):
-                lines.append(f"{i}. {c}")
+            lines.append(f"**답변**: {answer[:1200]}")
             lines.append("")
+            if ctx:
+                lines.append("**컨텍스트 요약**:")
+                for i, c in enumerate(ctx, 1):
+                    lines.append(f"{i}. {c}")
+                lines.append("")
         lines.append("---")
         lines.append("")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text("\n".join(lines), encoding="utf-8")
-    print(f"생성: {args.output} ({len(selected)} 사례)")
+    mode = "3-way (A/B/F)" if has_b else "2-way (A/F)"
+    print(f"생성: {args.output} ({len(selected)} 사례, {mode})")
     return 0
 
 

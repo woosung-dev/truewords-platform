@@ -1,9 +1,9 @@
 # 45. Paragraph 청킹 (옵션 F) 새 평가셋 50문항 재검증 + 운영 전환
 
 - 일자: 2026-04-30
-- 상태: 결정 (Decision)
+- 상태: 결정 (Decision) — **dev-log 47에서 3-way 재검증으로 보완**
 - 영역: Phase 2.2 — RAG retrieval 성능 비교
-- 후속: L2(출처 인용) 약점 보강 plan, Codex 독립 검토
+- 후속: dev-log 47 (B 추가 3-way 재검증), dev-log 46 (L2 약점 보강 plan)
 
 ---
 
