@@ -121,18 +121,48 @@ hang 발생. warm path에서는 connection 재사용으로 동일 문제 회피.
 | asyncio.Lock 데드락 | `_cache_init_lock`이 모듈 전역, 단일 책임. 이중 acquire 경로 없음 |
 | 롤백 | git revert. 캐시 비활성 상태로 복귀 (현재 prod와 동일) |
 
-## 후속 — 만약 lazy init도 실패한다면
+## 후속 — Lazy init 도 실패 (PR #79 머지 후 재진단, 2026-04-29)
 
-진단 결과 `httpx.AsyncClient(http2=False)`는 정상 동작 확인됐으므로, 최후 수단으로
-qdrant-client 우회 + raw httpx 호출 직접 사용:
+PR #79 (Lazy init) 머지 후 prod 재현:
+- revision `truewords-backend-00119-lq7` 정상 startup (lifespan 2ms 완료)
+- 첫 chat 요청 → `get_cache_service` 의 lazy `ensure_cache_collection()` 시도 →
+  **또 60s ConnectTimeout** (PR #75/#77/#79 모두 동일 패턴)
+- 결과: 첫 chat 요청이 60초 block → Vercel proxy 가 disconnect →
+  사용자 측 `ROUTER_EXTERNAL_TARGET_ERROR` 노출
+- 검증: `curl POST /chat` 직접 호출도 60s 후 timeout (Vercel 무관 backend 단계 block)
+
+→ **`qdrant-client` SDK 의 HTTP/2 코드 경로 자체가 Cloud Run 인스턴스 lifespan/lazy 직후 시점에선
+   warm/cold 무관하게 hang 한다.** 진단 빌드 (PR #78) 의 raw `httpx(http2=False)` 만 정상.
+
+### 결정 — Raw httpx (HTTP/1.1) 우회로 ensure 영구 해결
+
+`backend/src/cache/setup.py` 의 `ensure_cache_collection()` 을 qdrant-client SDK 사용
+대신 raw `httpx.AsyncClient(http2=False, timeout=30s)` 로 Qdrant REST API 직접 호출.
 
 ```python
-# 가장 마지막 카드 (이번 PR에선 미적용)
-async with httpx.AsyncClient(http2=False, timeout=30.0) as c:
-    r = await c.get(f"{settings.qdrant_url}/collections", headers={"api-key": ...})
+# backend/src/cache/setup.py (Phase 5-C, 이번 PR)
+async with httpx.AsyncClient(http2=False, timeout=httpx.Timeout(30.0, connect=10.0)) as client:
+    resp = await client.get(f"{base}/collections", headers={"api-key": ...})
+    existing = {c["name"] for c in resp.json()["result"]["collections"]}
+    if name in existing:
+        return
+    await client.put(f"{base}/collections/{name}",
+                     json={"vectors": {"dense": {"size": 1536, "distance": "Cosine"}}})
+    # payload index 2종도 PUT
 ```
 
-또는 qdrant-client GitHub에 HTTP/2 cold start hang 이슈 제출.
+**핵심 분리**:
+- `ensure_cache_collection()` (1회 init): raw httpx — qdrant-client 우회
+- `SemanticCacheService` (warm path 검색·저장): qdrant-client 그대로 — 이미 정상 동작
+
+영향:
+- ensure 실패 시 connect 10s, total 30s 안에 graceful degradation 분기 (block 60s → 10s 단축)
+- qdrant-client SDK 의존성·버전 변경 없음 (다른 cache 사용처 영향 0)
+- Cloud Run cold instance에서도 검증된 HTTP/1.1 경로 사용
+
+후속 옵션 (필요 시):
+- qdrant-client GitHub에 HTTP/2 cold start hang 이슈 제출
+- `SemanticCacheService` 도 raw httpx 로 전환 (현재는 warm path라 불필요)
 
 ## 검증
 
