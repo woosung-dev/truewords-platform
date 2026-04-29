@@ -43,11 +43,12 @@ LABELS = {
     "v3prodSync": "v3 ★ ('all-paragraph' 봇 system_prompt 동기화 후, 봇 설정 공평)",
 }
 
-# 5건 RAGAS 결과 (16:32 시점, 정상 측정 — 그 이후 환경 hang으로 100건 측정 차단)
-RAGAS_FILES = {
-    "v1": "/Users/woosung/Downloads/ragas_50_v1_20260429_1632.xlsx",
-    "v2": "/Users/woosung/Downloads/ragas_50_v2_20260429_1632.xlsx",
-    "v3prodOld": "/Users/woosung/Downloads/ragas_50_v3prod_20260429_1632.xlsx",
+# 100건 직접 4메트릭 측정 결과 (Gemini 3.1-flash-lite-preview, langchain 우회)
+DIRECT_METRICS_FILES = {
+    "v1": "/Users/woosung/Downloads/metrics_direct_v1_20260429_1742.xlsx",
+    "v2": "/Users/woosung/Downloads/metrics_direct_v2_20260429_1742.xlsx",
+    "v3new": "/Users/woosung/Downloads/metrics_direct_v3new_20260429_1742.xlsx",
+    "v3prodSync": "/Users/woosung/Downloads/metrics_direct_v3prodSync_20260429_1742.xlsx",
 }
 
 # 측정 시점에 사용된 봇 + 컬렉션 (audit 정보)
@@ -300,56 +301,82 @@ def main() -> int:
         for col_idx in range(1, 10):
             spec.cell(row=row_idx, column=col_idx).alignment = Alignment(wrap_text=True, vertical="top")
 
-    # === RAGAS 5건 부분 시트 ===
-    ragas_summary = wb.create_sheet("RAGAS (5건 부분)")
-    ragas_summary.append([
+    # === 4메트릭 직접 측정 시트 (langchain 우회, gemini-3.1-flash-lite-preview, n=100) ===
+    metrics_summary = wb.create_sheet("4메트릭 직접 측정 (n=100)")
+    metrics_summary.append([
         "방식", "라벨", "n",
-        "faithfulness", "context_precision", "context_recall", "answer_relevancy",
+        "faithfulness", "context_precision", "context_recall", "response_relevancy",
+        "평균",
     ])
-    for ver, ragas_path in RAGAS_FILES.items():
-        rp = Path(ragas_path)
-        if not rp.exists():
+    metric_cols = ["faithfulness", "context_precision", "context_recall", "response_relevancy"]
+    metrics_data: dict[str, dict[str, float]] = {}
+    for ver, mpath in DIRECT_METRICS_FILES.items():
+        mp = Path(mpath)
+        if not mp.exists():
             continue
-        rwb = load_workbook(rp, data_only=True)
-        rws = rwb.active
-        if rws is None:
+        mwb = load_workbook(mp, data_only=True)
+        mws = mwb["metrics"] if "metrics" in mwb.sheetnames else mwb.active
+        if mws is None:
             continue
-        rrows = list(rws.iter_rows(values_only=True))
-        if len(rrows) < 2:
+        mrows = list(mws.iter_rows(values_only=True))
+        if len(mrows) < 2:
             continue
-        rheaders = list(rrows[0])
-        # 컬럼 인덱스 찾기
-        col_idx = {}
-        for m in ["faithfulness", "context_precision", "context_recall", "answer_relevancy"]:
-            if m in rheaders:
-                col_idx[m] = rheaders.index(m)
-        # 평균 계산
+        mheaders = list(mrows[0])
+        col_idx = {m: mheaders.index(m) for m in metric_cols if m in mheaders}
         sums = {m: [] for m in col_idx}
-        for r in rrows[1:]:
+        for r in mrows[1:]:
             if all(c is None or c == "" for c in r):
                 continue
             for m, idx in col_idx.items():
                 if idx < len(r) and isinstance(r[idx], (int, float)):
                     sums[m].append(float(r[idx]))
-        n = len(rrows) - 1
-        ragas_summary.append([
+        avgs = {m: (sum(v)/len(v) if v else None) for m, v in sums.items()}
+        metrics_data[ver] = {m: v for m, v in avgs.items() if v is not None}
+        n = len(mrows) - 1
+        all_avg = sum(avgs[m] for m in metric_cols if avgs[m] is not None) / max(
+            sum(1 for m in metric_cols if avgs[m] is not None), 1
+        )
+        metrics_summary.append([
             ver,
             LABELS.get(ver, ver),
             n,
-            *[f"{sum(v)/len(v):.3f}" if v else "-" for v in sums.values()],
+            *[f"{avgs[m]:.3f}" if avgs[m] is not None else "-" for m in metric_cols],
+            f"{all_avg:.3f}",
         ])
-    for cell in ragas_summary[1]:
+    for cell in metrics_summary[1]:
         cell.font = bold
         cell.fill = header_fill
-    ragas_summary.column_dimensions["A"].width = 12
-    ragas_summary.column_dimensions["B"].width = 50
-    for c in "CDEFG":
-        ragas_summary.column_dimensions[c].width = 18
+    metrics_summary.column_dimensions["A"].width = 12
+    metrics_summary.column_dimensions["B"].width = 50
+    for c in "CDEFGH":
+        metrics_summary.column_dimensions[c].width = 18
 
-    # 노이즈 경고
-    ragas_summary.append([])
-    ragas_summary.append(["⚠️ 주의", "n=5는 통계 신뢰도 매우 낮음 — 트렌드 참고만. 100건 측정 시도했으나 ragas 환경 hang으로 차단."])
-    ragas_summary.append(["", "(LangChain GoogleGenerativeAI wrapper 180s timeout — Gemini API 직접 호출은 정상이나 ragas 통과 시 hang)"])
+    # Δ vs v1
+    metrics_summary.append([])
+    metrics_summary.append(["v1 대비 Δ"])
+    for ver, data in metrics_data.items():
+        if ver == "v1":
+            continue
+        v1_data = metrics_data.get("v1", {})
+        delta_cells = []
+        for m in metric_cols:
+            if m in data and m in v1_data:
+                d = data[m] - v1_data[m]
+                delta_cells.append(f"{d:+.3f}")
+            else:
+                delta_cells.append("-")
+        metrics_summary.append([ver, LABELS.get(ver, ver), "", *delta_cells, ""])
+
+    # 평가 환경 메모
+    metrics_summary.append([])
+    metrics_summary.append([
+        "측정 환경",
+        "gemini-3.1-flash-lite-preview, langchain 우회 (Gemini SDK 직접), concurrency=5, 봇당 ~45초",
+    ])
+    metrics_summary.append([
+        "RAGAS hang 원인",
+        "gemini-2.5-pro RPD 1,000 한도 초과 — flash-lite-preview RPD 150K 사용으로 해결",
+    ])
 
     # === 핵심 결론 시트 ===
     concl = wb.create_sheet("핵심 결론")
@@ -361,8 +388,8 @@ def main() -> int:
     concl.append([])
     concl.append(["★ 종합", "v1/v2/v3 모두 ±2%p 노이즈 범위 — 실용적 동등. v1(sentence) 그대로 유지가 안전"])
     concl.append([])
-    concl.append(["RAGAS (5건 참고)", "v1 faith ?, v2 0.674, v3prod 0.450 — n=5 신뢰도 매우 낮음"])
-    concl.append(["RAGAS 100건 차단 사유", "LangChain GoogleGenerativeAI wrapper 환경 hang — 추후 환경 fix 필요"])
+    concl.append(["4메트릭 직접 측정 (n=100)", "v3prodSync 모든 메트릭 1위 — faith 0.887, ctx_prec 0.754, ctx_recall 0.817, ans_rel 0.927"])
+    concl.append(["v1 vs v3prodSync Δ", "+0.018 / +0.028 / +0.017 / +0.045 — 4메트릭 모두 v3 약간 우월 (paragraph)"])
     concl.append([])
     concl.append(["NotebookLM hit rate 자체 노이즈", "같은 데이터/봇으로 측정해도 ±2%p 변동 (LLM 답변 비결정성)"])
     concl.append(["봇 설정 공평성 핵심", "system_prompt + search_tiers 동일성이 측정 결정변수 — 옵션 B 패턴 ('all' 봇 collection_main 토글) 표준"])
@@ -378,7 +405,7 @@ def main() -> int:
     print("  - 시트1: A_B 6단계 비교")
     print("  - 시트2: 요약 (6 방식 hit율)")
     print("  - 시트3: 봇 스펙 (공평성 검증) ★")
-    print("  - 시트4: RAGAS (5건 부분)")
+    print("  - 시트4: 4메트릭 직접 측정 (n=100) ★")
     print("  - 시트5: 핵심 결론")
     return 0
 
