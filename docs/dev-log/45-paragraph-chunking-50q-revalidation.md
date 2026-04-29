@@ -40,7 +40,7 @@
 
 ---
 
-## 결과 — 3가지 자동 평가 모두 F 우월 일치
+## 결과 — 4가지 평가 모두 F 우월 일치
 
 ### 1. RAGAS 4메트릭 (langchain 우회 직접 측정)
 
@@ -87,6 +87,25 @@
 | L5 (교리 추론) | 18.10 | 19.40 | +1.30 | F 우월 |
 
 → **F는 L2(출처 인용)만 약하고 L1/L3/L4/L5 모두 우월**.
+
+### 4. Codex 독립 검토 (10건 stratified, OpenAI gpt-5-codex)
+
+L별 2건 stratified 10건을 OpenAI Codex CLI(consult mode)로 독립 판정:
+
+| 판정 | 건수 |
+|---|---:|
+| **F 승** | **6건** |
+| 동등 | 3건 |
+| A 승 | 1건 |
+
+→ **Gemini 기반 자동 평가(RAGAS/LLM-Judge) + 다른 LLM(GPT-5-codex) 정성 판정 모두 F 우월 일치**. 4번째 검증으로 결론 확정.
+
+Codex 핵심 메시지:
+- 정확도/문맥/환각 모두 F 우세. 특히 L3~L5에서 모범답변 방향과 일치
+- A는 사례 1(여의도 120층 질문 → "지상 3층"으로 오답 확정)처럼 환각 위험 발견
+- 보강 권고: L1/L2 특정 사실 질문은 BM25/exact-match 가중치 강화, "근거 부족" 우선 응답, 출처형 질문은 출처명/권수/행사명/숫자/비유어 필수 매칭
+
+상세 결과: `~/Downloads/codex_review_new_dataset_n50.md`
 
 ---
 
@@ -136,8 +155,9 @@ DB 변경 적용 (2026-04-30):
 | `~/Downloads/llm_judge_F_new50_*_summary.md` + `_detail.csv` | F LLM-Judge |
 | `~/Downloads/llm_judge_A_new50_*_summary.md` + `_detail.csv` | A LLM-Judge |
 | `~/Downloads/codex_compare_input_new50.md` | Codex 검토 입력 (10 사례) |
-| `~/Downloads/ab_comparison_new_dataset_20260430_0003.xlsx` | 통합 5시트 |
-| `~/Downloads/phase2_new_dataset_report_20260430_0003.md` | 결론 보고서 |
+| `~/Downloads/codex_review_new_dataset_n50.md` | **Codex 판정 결과 (F 6승 / A 1승 / 동등 3)** |
+| `~/Downloads/ab_comparison_new_dataset_20260430_0136.xlsx` | 통합 5시트 (RAGAS/LLM-Judge/F1/Codex/이전 100선) |
+| `~/Downloads/phase2_new_dataset_report_20260430_0136.md` | 결론 보고서 |
 
 신규 스크립트:
 - `backend/scripts/eval_llm_judge.py` — 정성 4메트릭 + 키워드 F1
@@ -152,9 +172,10 @@ DB 변경 적용 (2026-04-30):
 ## 후속 액션
 
 1. **L2(출처 인용) 약점 보강** — paragraph 청킹의 메타데이터(권 번호, 날짜) 결합력 약함.
+   Codex가 동일하게 권고함(BM25/exact-match 가중치, 출처명/권수 필수 매칭).
    별도 plan: `docs/dev-log/46-paragraph-l2-citation-strengthening.md`
-2. **Codex 독립 검토** — `~/Downloads/codex_compare_input_new50.md`를
-   `/codex consult` 모드로 호출 (사용자 직접). 4번째 평가 방식.
-3. **Backend cache graceful degradation 결함 수정** — 별도 PR.
-4. **`scripts/seed_chatbot_configs.py` 동기화** — `'all'` 봇 default `collection_main`을
+2. **Backend cache graceful degradation 결함 수정** — 별도 PR.
+3. **`scripts/seed_chatbot_configs.py` 동기화** — `'all'` 봇 default `collection_main`을
    `malssum_poc_v3`로 변경 (본 commit에 포함).
+4. **"근거 부족" 우선 응답 정책** — Codex 권고 추가. 핵심 키워드가 컨텍스트에 없으면
+   일반론 답변 대신 명시적 근거 부족 응답 유도. 시스템 프롬프트 보강 후속 검토.
