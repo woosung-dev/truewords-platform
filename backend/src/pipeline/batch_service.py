@@ -1,12 +1,14 @@
-"""Batch 임베딩 오케스트레이션 — 제출, 폴링, 적재."""
+"""Batch 임베딩 오케스트레이션 — 제출, 폴링, 적재.
+
+raw httpx (HTTP/1.1) 클라이언트 사용 — qdrant-client SDK HTTP/2 hang 회피
+(PR #78 진단, docs/dev-log/47 참조).
+"""
 
 import json
 import logging
 import uuid
 from pathlib import Path
 from tempfile import mkdtemp
-
-from qdrant_client.models import PointStruct, SparseVector
 
 from src.pipeline.batch_embedder import (
     prepare_batch_input,
@@ -19,7 +21,7 @@ from src.pipeline.batch_repository import BatchJobRepository
 from src.pipeline.chunk_payload import QdrantChunkPayload
 from src.pipeline.embedder import embed_sparse_batch
 from src.config import settings
-from src.qdrant_client import get_client
+from src.qdrant_client import get_raw_client
 
 logger = logging.getLogger(__name__)
 
@@ -134,10 +136,7 @@ class BatchService:
         # ADR-30: 적재 시점에 on_duplicate 정책 적용 → payload_sources 결정
         if job.on_duplicate == "merge":
             from src.datasource.qdrant_service import DataSourceQdrantService
-            from src.qdrant_client import get_async_client
-            async_client = get_async_client()
-            sync_client = get_client()
-            svc = DataSourceQdrantService(async_client, sync_client, settings.collection_name)
+            svc = DataSourceQdrantService(get_raw_client(), settings.collection_name)
             existing_sources, _existing_chunks = await svc.get_volume_snapshot(job.volume_key)
             union = {s for s in existing_sources if s}
             if job.source:
@@ -146,9 +145,9 @@ class BatchService:
         else:  # replace (skip은 호출 측에서 사전 차단)
             payload_sources = [job.source] if job.source else []
 
-        # Qdrant 적재
-        client = get_client()
-        points = []
+        # Qdrant 적재 (raw httpx async)
+        client = get_raw_client()
+        points: list[dict] = []
         for i, text in enumerate(texts):
             dense = dense_embeddings[i] if i < len(dense_embeddings) else [0.0] * 1536
             sparse_indices, sparse_values = sparse_embeddings[i] if i < len(sparse_embeddings) else ([], [])
@@ -156,29 +155,29 @@ class BatchService:
             chunk_key = f"{job.volume_key}:{i}"
             point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, chunk_key))
             points.append(
-                PointStruct(
-                    id=point_id,
-                    vector={
+                {
+                    "id": point_id,
+                    "vector": {
                         "dense": dense,
-                        "sparse": SparseVector(indices=sparse_indices, values=sparse_values),
+                        "sparse": {"indices": sparse_indices, "values": sparse_values},
                     },
-                    payload=QdrantChunkPayload(
+                    "payload": QdrantChunkPayload(
                         text=text,
                         volume=job.volume_key,
                         chunk_index=i,
                         source=payload_sources,
                     ).model_dump(),
-                )
+                }
             )
 
             # 50개씩 upsert
             if len(points) >= 50:
-                client.upsert(collection_name=settings.collection_name, points=points)
+                await client.upsert(settings.collection_name, points)
                 points.clear()
 
         # 남은 포인트 flush
         if points:
-            client.upsert(collection_name=settings.collection_name, points=points)
+            await client.upsert(settings.collection_name, points)
 
         # JSONL 임시 파일 삭제
         if jsonl_path.exists():
