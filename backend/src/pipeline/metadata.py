@@ -35,6 +35,26 @@ def extract_metadata(filepath: Path, text: str) -> dict:
     return {"volume": volume, "title": title, "date": date}
 
 
+def derive_volume(volume_key: str) -> str:
+    """파일명(volume_key)에서 운영 payload 용 ``volume`` 문자열을 도출.
+
+    Standard 적재 (data_router) 와 Batch 적재 (batch_service) 양쪽이 동일한
+    규칙을 사용하도록 단일 진입점으로 유지한다.
+
+    - 권번호 패턴 매칭되면 zfill(3) 결과 반환 (예: ``"56권"`` → ``"056"``)
+    - 매칭 실패 시 ``volume_key`` 자체를 fallback (예: ``"천성경 (증보판).docx"``)
+
+    Args:
+        volume_key: NFC 정규화된 파일명(확장자 포함 가능). Batch 모드의
+            ``BatchJob.volume_key`` 또는 standard 모드의 ``volume_key``.
+
+    Returns:
+        Qdrant payload 의 ``volume`` 필드에 들어갈 문자열.
+    """
+    extracted = _extract_volume(volume_key)
+    return extracted or volume_key
+
+
 def classify_source(filepath: Path) -> str:
     """폴더 경로 기반 source 분류 (A/B)."""
     path_str = str(filepath)
