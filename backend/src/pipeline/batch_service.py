@@ -20,6 +20,7 @@ from src.pipeline.batch_models import BatchJob, BatchStatus
 from src.pipeline.batch_repository import BatchJobRepository
 from src.pipeline.chunk_payload import QdrantChunkPayload
 from src.pipeline.embedder import embed_sparse_batch
+from src.pipeline.ingestor import _ensure_payload_indexes
 from src.pipeline.metadata import derive_volume
 from src.config import settings
 from src.qdrant_client import get_raw_client
@@ -149,6 +150,9 @@ class BatchService:
         # 권번호 추출 — Standard 모드(data_router)와 동일 규칙 (derive_volume)
         # 파일명 fallback 시 v5 컬렉션의 file stem 형식을 유지하여 회귀 방지.
         payload_volume = derive_volume(job.volume_key)
+
+        # admin facet (category-stats / volumes) keyword 인덱스 멱등 보장.
+        _ensure_payload_indexes(settings.collection_name)
 
         # Qdrant 적재 (raw httpx async)
         client = get_raw_client()

@@ -54,6 +54,38 @@ def _sync_upsert(collection_name: str, points: list[dict]) -> None:
         resp.raise_for_status()
 
 
+# Facet API / payload filter 가 사용하는 keyword 인덱스 — 한 번 생성되면 멱등.
+# (qdrant 가 이미 있는 인덱스 PUT 도 200 OK 로 응답)
+_REQUIRED_PAYLOAD_INDEXES = ("source", "volume")
+
+
+def _ensure_payload_indexes(collection_name: str) -> None:
+    """Qdrant payload index 멱등 보장 — admin facet (category-stats / volumes) 활성화.
+
+    적재 시작 직전에 1회 PUT 호출. 인덱스 미존재 시에만 실제 생성, 이미 있으면
+    빠른 no-op. 실패해도 적재 자체는 진행 (warning 만 로그).
+    """
+    base = _qdrant_base()
+    with httpx.Client(http2=False, timeout=_INGEST_TIMEOUT) as client:
+        for field in _REQUIRED_PAYLOAD_INDEXES:
+            try:
+                resp = client.put(
+                    f"{base}/collections/{collection_name}/index?wait=true",
+                    headers=_qdrant_headers(),
+                    json={"field_name": field, "field_schema": "keyword"},
+                )
+                if resp.status_code != 200:
+                    logger.warning(
+                        "Qdrant payload index '%s' on '%s' 생성 실패 (status=%d): %s",
+                        field, collection_name, resp.status_code, resp.text[:200],
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "Qdrant payload index '%s' on '%s' 생성 예외: %s — 적재 진행",
+                    field, collection_name, exc,
+                )
+
+
 def _sync_delete_by_filter(collection_name: str, filter_dict: dict) -> None:
     """raw httpx (HTTP/1.1, sync) Qdrant delete by filter. SDK HTTP/2 hang 회피."""
     with httpx.Client(http2=False, timeout=_INGEST_TIMEOUT) as client:
@@ -149,6 +181,10 @@ def ingest_chunks(
     """
     if not chunks:
         return {"chunk_count": 0, "total_chunks": 0, "elapsed_sec": 0.0, "is_partial": False}
+
+    # admin facet (category-stats / volumes) 가 사용하는 payload keyword 인덱스
+    # — 멱등 보장. 신규 컬렉션 첫 적재 시 자동 생성, 이미 있으면 no-op.
+    _ensure_payload_indexes(collection_name)
 
     total = len(chunks)
 
