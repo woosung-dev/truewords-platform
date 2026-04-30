@@ -156,6 +156,11 @@ def run_evaluation(
     items: list[SeedItem],
 ) -> dict[str, list[float | None]]:
     """RAGAS 평가 실행. 항목별 4메트릭 점수 dict 반환."""
+    import time as _t
+    def _log(msg: str) -> None:
+        print(f"[ragas-debug {_t.strftime('%H:%M:%S')}] {msg}", flush=True)
+
+    _log("step 1: import ragas")
     from ragas import evaluate
     from ragas.metrics import (
         ContextPrecision,
@@ -163,9 +168,11 @@ def run_evaluation(
         Faithfulness,
         ResponseRelevancy,
     )
-
+    _log("step 2: build_evaluator()")
     eval_llm, eval_embeddings = build_evaluator()
+    _log("step 3: to_ragas_samples()")
     dataset = to_ragas_samples(items)
+    _log(f"step 4: build metrics (items={len(items)})")
     # strictness=1: Gemini Pro 가 multiple candidates 미지원 → multi-sampling 메트릭은
     # 단일 candidate 로 계산. Claude Haiku 환원 시 strictness 기본값(3) 으로 복원 가능.
     metrics = [
@@ -174,14 +181,18 @@ def run_evaluation(
         ContextRecall(),
         ResponseRelevancy(strictness=1),
     ]
-    # RAGAS default 설정 사용 (RunConfig 명시 시 hang 발생 — RAGAS 0.4.3 이슈).
+    _log("step 5: evaluate() 호출 시작 — allow_nest_asyncio=True 추가")
+    # ragas 0.4.3 hang 회피 — asyncio nested loop 허용
     result = evaluate(
         dataset=dataset,
         metrics=metrics,
         llm=eval_llm,
         embeddings=eval_embeddings,
         show_progress=True,
+        allow_nest_asyncio=True,
+        batch_size=1,
     )
+    _log("step 6: evaluate() 완료")
     # result.scores는 list[dict[metric_name, float|nan]]
     scores: dict[str, list[float | None]] = {
         "faithfulness": [],

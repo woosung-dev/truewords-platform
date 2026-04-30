@@ -167,3 +167,154 @@ def chunk_text(
         ))
 
     return chunks
+
+
+# =====================================================================
+# Phase 2.2 (dev-log 45) — paragraph 청킹 (운영 기본)
+# =====================================================================
+
+# token-based fallback 파라미터 (Korean ~2.5 chars/token 근사)
+_TOKEN_CHUNK_CHARS = 2560      # ~1024 token
+_TOKEN_OVERLAP_CHARS = 500     # ~200 token
+
+# paragraph 청킹 파라미터
+PARAGRAPH_MIN_CHARS = 200      # 짧은 단락은 다음 단락과 병합
+PARAGRAPH_MAX_CHARS = 3000     # 초과 단락은 token1024 fallback
+
+
+def _chunk_token_fallback(
+    text: str,
+    volume: str,
+    source: str | list[str] = "",
+    title: str = "",
+    date: str = "",
+) -> list[Chunk]:
+    """char-based sliding window. paragraph 단락이 max_chars 초과 시 fallback."""
+    if not text.strip():
+        return []
+    if len(text) <= _TOKEN_CHUNK_CHARS:
+        return [Chunk(
+            text=text, volume=volume, chunk_index=0,
+            source=source, title=title, date=date,
+        )]
+    chunks: list[Chunk] = []
+    step = _TOKEN_CHUNK_CHARS - _TOKEN_OVERLAP_CHARS
+    idx = 0
+    pos = 0
+    while pos < len(text):
+        end = min(pos + _TOKEN_CHUNK_CHARS, len(text))
+        chunks.append(Chunk(
+            text=text[pos:end], volume=volume, chunk_index=idx,
+            source=source, title=title, date=date,
+        ))
+        idx += 1
+        if end == len(text):
+            break
+        pos += step
+    return chunks
+
+
+def chunk_paragraph(
+    text: str,
+    volume: str,
+    source: str | list[str] = "",
+    title: str = "",
+    date: str = "",
+) -> list[Chunk]:
+    """단락 단위 청킹 (운영 기본 — Phase 2.2 dev-log 45 결정).
+
+    - 빈 줄(`\\n\\n+`) 기준 분할
+    - PARAGRAPH_MIN_CHARS(200) 미만은 다음 단락과 병합
+    - PARAGRAPH_MAX_CHARS(3000) 초과는 token-based fallback
+    """
+    parts = [p.strip() for p in re.split(r"\n\s*\n+", text) if p.strip()]
+    if not parts:
+        return []
+    # 짧은 단락 병합
+    merged: list[str] = []
+    buf = ""
+    for p in parts:
+        buf = f"{buf}\n\n{p}" if buf else p
+        if len(buf) >= PARAGRAPH_MIN_CHARS:
+            merged.append(buf)
+            buf = ""
+    if buf:
+        if merged:
+            merged[-1] = f"{merged[-1]}\n\n{buf}"
+        else:
+            merged.append(buf)
+    # max_chars 초과 단락은 token fallback
+    chunks: list[Chunk] = []
+    idx = 0
+    for m in merged:
+        if len(m) <= PARAGRAPH_MAX_CHARS:
+            chunks.append(Chunk(
+                text=m, volume=volume, chunk_index=idx,
+                source=source, title=title, date=date,
+            ))
+            idx += 1
+        else:
+            sub = _chunk_token_fallback(m, volume=volume, source=source, title=title, date=date)
+            for s in sub:
+                chunks.append(Chunk(
+                    text=s.text, volume=volume, chunk_index=idx,
+                    source=source, title=title, date=date,
+                ))
+                idx += 1
+    return chunks
+
+
+# =====================================================================
+# Phase 2.3 (dev-log 50) — Recursive 청킹 PoC (langchain RecursiveCharacterTextSplitter)
+# =====================================================================
+
+# Recursive 파라미터 — 사용자 자료 ★★★★★ "안전한 default"
+_RECURSIVE_CHUNK_SIZE = 700      # 한글 글자 수 기준
+_RECURSIVE_CHUNK_OVERLAP = 150   # ~21% overlap
+
+# 한국어 종결어미 우선순위 (단락 → 종결어미 → 일반 문장 → 공백 → 글자)
+_RECURSIVE_SEPARATORS = [
+    "\n\n",        # 단락 경계
+    "\n",          # 줄바꿈
+    "다. ",        # 한국어 평서문 종결
+    "니다. ",      # 한국어 격식체 종결
+    "까? ",        # 한국어 의문문 종결
+    "요. ",        # 한국어 비격식·구어체 종결
+    "라. ",        # 한국어 명령·간접 인용 종결
+    ". ",          # 일반 마침표
+    " ",           # 공백
+    "",            # 글자 단위 fallback
+]
+
+
+def chunk_recursive(
+    text: str,
+    volume: str,
+    source: str | list[str] = "",
+    title: str = "",
+    date: str = "",
+) -> list[Chunk]:
+    """RecursiveCharacterTextSplitter 기반 청킹 (한국어 종결어미 우선순위).
+
+    chunk_size=700, overlap=150, 한국어 종결 separators.
+    PARAGRAPH/SENTENCE 사이 중간 입자 — paragraph 정보 밀도 + sentence 검색 정확도 균형 시도.
+    """
+    if not text.strip():
+        return []
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=_RECURSIVE_CHUNK_SIZE,
+        chunk_overlap=_RECURSIVE_CHUNK_OVERLAP,
+        length_function=len,
+        keep_separator=True,
+        separators=_RECURSIVE_SEPARATORS,
+    )
+    pieces = splitter.split_text(text)
+    return [
+        Chunk(
+            text=p, volume=volume, chunk_index=i,
+            source=source, title=title, date=date,
+        )
+        for i, p in enumerate(pieces) if p.strip()
+    ]

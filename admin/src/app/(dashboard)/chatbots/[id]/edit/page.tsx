@@ -41,6 +41,7 @@ export default function EditChatbotPage({
         persona_name: values.persona_name,
         system_prompt: values.system_prompt,
         search_tiers: values.search_tiers,
+        collection_main: values.collection_main,
         is_active: values.is_active,
       }),
     onSuccess: () => {
@@ -125,6 +126,7 @@ export default function EditChatbotPage({
             persona_name: config.persona_name ?? "",
             system_prompt: config.system_prompt ?? "",
             is_active: config.is_active,
+            collection_main: config.collection_main ?? "malssum_poc",
             search_tiers: {
               search_mode: config.search_tiers?.search_mode ?? "cascading",
               tiers: config.search_tiers?.tiers ?? [],

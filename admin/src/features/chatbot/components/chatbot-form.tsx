@@ -228,20 +228,32 @@ export function ChatbotForm({
             value={values.collection_main}
             onValueChange={(v) => patch("collection_main", v ?? "malssum_poc")}
           >
-            <SelectTrigger id="collection-main">
+            <SelectTrigger id="collection-main" className="w-fit min-w-[480px]">
               <SelectValue placeholder="컬렉션 선택" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="malssum_poc">
-                malssum_poc (기본 — 컨텍스트 prefix 없음)
+                malssum_poc (기본 — 88권 sentence 청킹)
               </SelectItem>
               <SelectItem value="malssum_poc_v2">
-                malssum_poc_v2 (Anthropic Contextual Retrieval)
+                malssum_poc_v2 (옵션 B — Anthropic Contextual Retrieval, 폐기됨)
+              </SelectItem>
+              <SelectItem value="malssum_poc_v3">
+                malssum_poc_v3 (옵션 F — 88권 paragraph 청킹)
+              </SelectItem>
+              <SelectItem value="malssum_chunking_poc_sentence">
+                malssum_chunking_poc_sentence (PoC — 평화경 sentence)
+              </SelectItem>
+              <SelectItem value="malssum_chunking_poc_token1024">
+                malssum_chunking_poc_token1024 (PoC — 평화경 token1024)
+              </SelectItem>
+              <SelectItem value="malssum_chunking_poc_paragraph">
+                malssum_chunking_poc_paragraph (PoC — 평화경 paragraph)
               </SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            A/B 토글 — 옵션 B 적용 시 v2로 전환
+            A/B 토글 — v1=sentence / v2=Contextual Retrieval / v3=paragraph
           </p>
         </div>
 

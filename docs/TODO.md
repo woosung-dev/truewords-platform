@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-04-29
+> 마지막 업데이트: 2026-04-30
 
 ## Progress Overview
 
@@ -140,6 +140,16 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ---
 
 ## Next Actions
+
+### 0. Phase 2.2 — paragraph 청킹 운영 전환 후속 (2026-04-30)
+> 결정 ADR: `docs/dev-log/45-paragraph-chunking-50q-revalidation.md`
+> 후속 plan: `docs/dev-log/46-paragraph-l2-citation-strengthening.md`
+
+- [x] 새 평가셋 50문항 + 3가지 평가 방식(RAGAS / LLM-Judge / 키워드 F1) 통합 측정 — F 우월 일치 확인 (RAGAS +0.058, LLM-Judge +0.70)
+- [x] `'all'` 봇 `collection_main`을 `malssum_poc_v3` 영구 적용 (DB 변경 + `seed_chatbot_configs.py` 동기화)
+- [ ] **Codex 독립 검토** — `~/Downloads/codex_compare_input_new50.md`를 `/codex consult` 모드로 호출 (사용자 직접). 4번째 평가 방식 confirm 효과
+- [ ] **L2(출처 인용) 약점 보강** — dev-log 46의 방안 B(질문 파싱 + volume 필터) 우선 적용 → L2 회복 검증 → 미회복 시 방안 A(메타데이터 prefix injection 재임베딩)
+- [ ] **Backend cache graceful degradation 결함 수정** — `cache_check.py`/`SemanticCacheService.check_cache`에 collection NotFound try/except + cache_available=False 자동 전환 (별도 PR)
 
 ### 1. RRF 점수 스케일 후속 조치 (즉시)
 > 상세: `docs/dev-log/24-rrf-score-threshold-fix.md` §4

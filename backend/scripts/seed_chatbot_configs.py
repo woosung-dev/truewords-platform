@@ -32,6 +32,8 @@ SEED_DATA = [
                 {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
             ]
         },
+        # Phase 2.2 (2026-04-30) — paragraph 청킹 v3 운영 전환 (dev-log 45)
+        collection_main="malssum_poc_v3",
     ),
     ChatbotConfig(
         chatbot_id="source_a_only",
@@ -87,6 +89,19 @@ SEED_DATA = [
             ]
         },
         collection_main="malssum_chunking_poc_paragraph",
+    ),
+    # 옵션 F 본 가동 A/B (Phase 2.1) — 88권 모두 paragraph 재청킹된 v3 컬렉션
+    # 'all' 봇 (v1, malssum_poc 88권 sentence)과 동일 검색 정책, collection_main만 v3
+    ChatbotConfig(
+        chatbot_id="all-paragraph",
+        display_name="전체 검색 (paragraph 본 가동 후보)",
+        description="옵션 F 본 가동 A/B — 88권 paragraph 청킹 (malssum_poc_v3, 22,419 청크)",
+        search_tiers={
+            "tiers": [
+                {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
+            ]
+        },
+        collection_main="malssum_poc_v3",
     ),
 ]
 
