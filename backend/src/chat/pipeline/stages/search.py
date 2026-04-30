@@ -14,6 +14,7 @@ from src.chatbot.runtime_config import SearchModeConfig, TierConfig
 from src.search.cascading import CascadingConfig, SearchTier, cascading_search
 from src.search.collection_resolver import resolve_collections
 from src.search.fallback import fallback_search
+from src.search.metadata_extractor import extract_query_metadata
 from src.search.weighted import WeightedConfig, WeightedSource, weighted_search
 
 
@@ -51,18 +52,25 @@ class SearchStage:
         ctx.resolved_collections = resolved
 
         query = ctx.search_query or ctx.request.query
+        # Phase 3: 원문 질문(rewrite 전) 에서 권/날짜 메타데이터 추출.
+        # rewritten 본문은 LLM 이 재구성하면서 권번호 표현이 사라질 수 있어
+        # 사용자가 명시적으로 지정한 신호 보전을 위해 ctx.request.query 사용.
+        ctx.query_metadata = extract_query_metadata(ctx.request.query)
+
         start = time.monotonic()
         if isinstance(search_config, WeightedConfig):
             ctx.results = await weighted_search(
                 qdrant, query, search_config, top_k=50,
                 dense_embedding=ctx.query_embedding,
                 collection_name=resolved.main,
+                query_metadata=ctx.query_metadata,
             )
         else:
             ctx.results = await cascading_search(
                 qdrant, query, search_config, top_k=50,
                 dense_embedding=ctx.query_embedding,
                 collection_name=resolved.main,
+                query_metadata=ctx.query_metadata,
             )
         ctx.search_latency_ms = int((time.monotonic() - start) * 1000)
 

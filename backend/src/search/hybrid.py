@@ -52,6 +52,7 @@ async def hybrid_search(
     query: str,
     top_k: int = 10,
     source_filter: list[str] | None = None,
+    query_metadata: dict[str, int] | None = None,
     dense_embedding: list[float] | None = None,
     sparse_embedding: tuple[list[int], list[float]] | None = None,
     collection_name: str | None = None,
@@ -67,23 +68,28 @@ async def hybrid_search(
         query: 사용자 질의 텍스트.
         top_k: 반환할 최대 결과 수.
         source_filter: 데이터 소스 필터 (예: ``["A", "B"]``). None이면 전체 검색.
+        query_metadata: ``extract_query_metadata`` 결과 dict. 권번호 등이 추출된
+            경우 source filter 와 AND 결합되어 query_filter 에 추가된다.
         dense_embedding: 사전 계산된 dense 벡터 (None이면 내부 계산).
         sparse_embedding: 사전 계산된 (indices, values) 튜플 (None이면 내부 계산).
 
     Returns:
         RRF 점수 기준 정렬된 SearchResult 리스트 (최대 top_k건).
     """
+    from src.search.metadata_extractor import build_metadata_filter_conditions
+
     dense = dense_embedding if dense_embedding is not None else await embed_dense_query(query)
     if sparse_embedding is not None:
         sparse_indices, sparse_values = sparse_embedding
     else:
         sparse_indices, sparse_values = await embed_sparse_async(query)
 
-    query_filter = (
-        build_filter(must=[field_match_any("source", source_filter)])
-        if source_filter
-        else None
-    )
+    must_conditions: list[dict] = []
+    if source_filter:
+        must_conditions.append(field_match_any("source", source_filter))
+    if query_metadata:
+        must_conditions.extend(build_metadata_filter_conditions(query_metadata))
+    query_filter = build_filter(must=must_conditions) if must_conditions else None
 
     points = await client.query_points(
         collection_name=collection_name or settings.collection_name,

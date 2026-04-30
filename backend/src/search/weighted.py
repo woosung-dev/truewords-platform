@@ -45,6 +45,7 @@ async def weighted_search(
     top_k: int = 10,
     dense_embedding: list[float] | None = None,
     collection_name: str | None = None,
+    query_metadata: dict[str, int] | None = None,
 ) -> list[SearchResult]:
     """소스별 가중치 기반 병렬 하이브리드 검색.
 
@@ -87,6 +88,7 @@ async def weighted_search(
                 query,
                 top_k=top_k,
                 source_filter=[ws.source],
+                query_metadata=query_metadata,
                 dense_embedding=dense,
                 sparse_embedding=sparse,
                 collection_name=collection_name,
