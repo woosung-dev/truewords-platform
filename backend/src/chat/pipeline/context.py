@@ -40,6 +40,10 @@ class ChatContext:
     # Rerank/Generation 은 이 값으로 K 분기. None 이면 IntentClassifier 미실행 (legacy 경로).
     intent: Intent | None = None
     results: list[SearchResult] = field(default_factory=list)
+    # Phase 3 (메타데이터 필터): 검색 전 단계에서 질문에서 추출한 권/날짜/페이지.
+    # SearchStage 가 채우고 cascading/weighted_search 의 hybrid_search 로 전달된다.
+    # 빈 dict 면 metadata filter 적용 안 함 (= v5 baseline).
+    query_metadata: dict[str, int] = field(default_factory=dict)
     answer: str | None = None
     assistant_message: SessionMessage | None = None
 
