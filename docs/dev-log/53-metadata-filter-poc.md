@@ -101,7 +101,9 @@ dev-log 51에서 **v5 (Recursive 700/150 + 한국어 종결어미 separator)** 8
 
 ### RAGAS
 
-> _RAGAS 측정 완료 후 추가 예정._
+❌ **RAGAS 측정 미완료** — `eval_ragas_batched.py`(batch_size=5) 첫 batch 600초 timeout, 3건 smoke 240초도 무출력. RAGAS 패키지/Gemini API 조합의 알려진 hang(스크립트 docstring "50건 hang 회피" 참조). 본 세션 환경에서 재현되어 측정 보류.
+
+→ LLM-Judge가 dev-log 51 채택 기준이었으므로 본 PoC 채택 판정은 **LLM-Judge primary signal로 충분**. RAGAS 보강은 hang 원인 진단 후 별도 측정 (후속 작업).
 
 ---
 
@@ -169,7 +171,7 @@ dev-log 51에서 **v5 (Recursive 700/150 + 한국어 종결어미 separator)** 8
 - 측정 xlsx: `tmp_match/phase3/eval_v5_meta_light100_20260430_2327.xlsx` (gitignore)
 - seed JSON: `~/Downloads/ragas_seed_v5_meta_n100_LR_20260430_2346.json`
 - LLM-Judge: `~/Downloads/llm_judge_v5_meta_n100_LR_20260430_2346_{summary.md,detail.csv}`
-- RAGAS: `~/Downloads/ragas_v5_meta_n100_LR_20260430_2346.xlsx`
+- RAGAS: 미생성 (script hang)
 
 ---
 
