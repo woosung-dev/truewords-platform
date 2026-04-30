@@ -115,18 +115,40 @@ dev-log 51에서 **v5 (Recursive 700/150 + 한국어 종결어미 separator)** 8
 |---|---:|---:|---|
 | LLM-Judge 총점 | ≥ 18.5 | 18.03 | **미달** (+0.47 부족) |
 | L2 LLM-Judge | ≥ 18.0 | 17.55 | **미달** (+0.45 부족) |
-| Codex 정성 우월 | 우월 | 미실행 | 자동 미달이라 실행 의미 적음 |
+| Codex 정성 우월 | 우월 | **미달** (보류 권고) | gpt-5.5 high reasoning, 14건 비교 |
+
+### Codex 정성 평가 결과 (gpt-5.5)
+
+`tmp_match/phase3/codex_compare_phase3.md`(14건) → `codex exec` 평가 → `tmp_match/phase3/codex_review_phase3.md`.
+
+**Section 1 — 필터 적용 9건**:
+- Phase 3 우월: **4건** (S1-1, S1-2, S1-4, S1-8)
+- baseline 우월: **2건** (S1-3, S1-7)
+- 동등: **3건** (S1-5, S1-6, S1-9 — S1-9는 둘 다 실패)
+
+**Section 2 — Control 5건 (필터 미적용, 부작용 검증)**:
+- baseline 우월: **3건** (S2-2, S2-4, S2-5)
+- Phase 3 우월: 1건 (S2-3)
+- 동등: 1건 (S2-1)
+
+**Codex 종합 의견**:
+> "Phase 3는 권번호가 명확하고 메타데이터가 정확히 맞는 L2 질문에서 이득이 있다. 그러나 운영 적용은 아직 보류가 맞다. ① S1-3처럼 필터 적용 케이스에서도 다른 권 자료가 상위에 섞이고, ② S1-9처럼 권번호 필터가 실패하면 답변이 정답 스니펫을 보고도 엉뚱한 일반론으로 흐르고, ③ control에서 일부 정밀 정보가 빠지거나 핵심 근거가 교체된다. 현재 형태의 전면 운영 적용보다는 feature flag 기반 제한 적용이 적절하다."
+
+**중요 신호**:
+- **S1-9 권번호 필터 실패**: 12권 질문인데 16권 자료 회수 → 책별 메타데이터 분리 필요성 검증
+- **Control 부작용 신호**: "필터 미적용 케이스인데 결과가 달라졌다면, 메타필터 외에 후보 구성/정렬/생성 입력 순서가 바뀐 영향인지 별도 확인이 필요" → 후속 진단 필요
 
 ### 결론
 
-**❌ 운영 적용 보류** — 자동 채택 임계값 미달.
+**❌ 운영 적용 보류** — 자동 메트릭(LLM-Judge ≥ 18.5) **미달** + Codex 정성 **보류 권고** → "자동 + Codex 둘 다 우월" 임계값 미달 (dev-log 48 학습 그대로 적용).
 
 다만 **부분 효과는 분명히 검증됨**:
 - L2 (메타필터 영향 레벨) +0.47점, plan 예측치와 정확히 일치
 - 필터 적용 9건 평균 +0.78점, 015번처럼 +7.5점 강력 효과 사례 존재
-- 부작용 미미: 메타필터 미적용 레벨의 변화는 측정 변동성 범위 내
+- Codex Section 1: Phase 3 4승 / baseline 2승 / 동등 3 → 필터 적용 케이스는 net positive
+- Codex Section 2: baseline 3승 / Phase 3 1승 / 동등 1 → control 부작용 신호 (후속 진단 대상)
 
-영향 범위가 9% (9/100건)에 갇혀 전체 평균 동률에 머물렀다는 것이 핵심.
+영향 범위가 9% (9/100건)에 갇혀 전체 평균 동률에 머물렀고, control 부작용 신호도 일부 확인됨.
 
 ---
 
@@ -138,14 +160,16 @@ dev-log 51에서 **v5 (Recursive 700/150 + 한국어 종결어미 separator)** 8
 2. **책별 메타데이터 미분리**: "참어머님 말씀정선집 1권"과 "문선명선생 말씀선집 001권"이 모두 `volume="001권"`로 매칭됨. 지금은 운 좋게 두 시리즈가 source 또는 title로 자연 분리되어 충돌 적었지만 구조적 위험.
 3. **date / page filter 미구현**: payload 형식 이질성 + 미저장.
 
-### 권장 후속 PR
+### 권장 후속 PR (Codex 우선순위 반영)
 
 | 우선순위 | PR | 효과 |
 |---|---|---|
-| 1 | payload 책별 분리 (`book_series` 필드 추가) | 권번호 충돌 차단, 정확도 ↑ |
-| 2 | 방안 B (점수 부스팅) — 필터 hard-cut 대신 soft boost | 비명시 표현도 일부 커버, 부작용 ↓ |
-| 3 | date payload 형식 통일 (`YYYY-MM-DD` ISO) + text index → date filter 활성화 | year-only 추출 12건 활용 |
-| 4 | 방안 C (Reranker 메타데이터 가중치) | 원문 적합도 + 메타 적합도 분리 scoring |
+| **1** | **payload 책별 분리** (`book_series` + `volume_num` + `normalized_volume` 필드) | **Codex 최우선 권고** — 권번호 충돌 차단, S1-9 같은 실패 방지 |
+| **2** | **Reranker 가중치** (`metadata_exact_match` positive, `volume_mismatch` penalty) | Codex 권고 — 메타 일치 문서가 rerank 후 밀리는 문제 해결 |
+| 3 | 점수 부스팅 (질문 핵심어 본문 직접 일치 boost) | 비명시 표현도 일부 커버, `한국어`/`다이아 반지` 등 keyword anchor |
+| 4 | date payload ISO 통일 + text index → soft boost (hard filter 아님) | Codex 권고 — recall 손실 위험으로 tie-breaker 적용 |
+| 5 | RAGAS hang 원인 진단 + 재측정 | Gemini API 호출 패턴/패키지 버전 점검 |
+| 6 | Control 부작용 진단 | 필터 미적용 케이스에서 답변 변동 원인 파악 (생성 입력 순서 등) |
 
 ### 보존 결정
 
@@ -172,6 +196,9 @@ dev-log 51에서 **v5 (Recursive 700/150 + 한국어 종결어미 separator)** 8
 - seed JSON: `~/Downloads/ragas_seed_v5_meta_n100_LR_20260430_2346.json`
 - LLM-Judge: `~/Downloads/llm_judge_v5_meta_n100_LR_20260430_2346_{summary.md,detail.csv}`
 - RAGAS: 미생성 (script hang)
+- Codex 비교 입력: `tmp_match/phase3/codex_compare_phase3.md` (14건, gitignore)
+- Codex 평가 결과: `tmp_match/phase3/codex_review_phase3.md` (gpt-5.5 high reasoning)
+- Codex 비교 빌더: `backend/scripts/build_phase3_codex_compare.py`
 
 ---
 
@@ -181,4 +208,4 @@ dev-log 51에서 **v5 (Recursive 700/150 + 한국어 종결어미 separator)** 8
 |---|---|
 | 2.1 (4/29 100선) | F 0.847, A 0.819, B 0.821 — F 우월 |
 | 2.4 (88권 v3 vs v5) | v5 18.03, v3 16.88 (LLM-Judge) — v5 운영 채택 |
-| **3 (88권 v5 vs v5+메타필터)** | **동률 18.03 (전체) / +0.47 (L2) — 운영 보류, 부분 효과 검증** |
+| **3 (88권 v5 vs v5+메타필터)** | **자동: 동률 18.03 / +0.47 (L2) ｜ Codex: S1 4승 2패, S2 1승 3패 ｜ 운영 보류, 책별 분리 + Reranker 가중치 후속 PR로 진행** |
