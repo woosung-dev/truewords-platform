@@ -37,6 +37,9 @@ class SearchResult:
         score: RRF fusion 점수 (일반적으로 0.0~0.5 범위).
         source: 데이터 소스 라벨 (예: ``"A"``, ``"L"``).
         rerank_score: Re-ranking 후 점수 (미적용 시 None).
+        parent_text: Hierarchical chunk 일 때 자기 parent 의 본문 (LLM 컨텍스트용).
+            Recursive/Contextual 청크는 ``""``.
+        parent_chunk_index: parent 청크의 글로벌 index. ``-1`` = parent 없음.
     """
 
     text: str
@@ -45,6 +48,8 @@ class SearchResult:
     score: float
     source: str = ""
     rerank_score: float | None = None
+    parent_text: str = ""
+    parent_chunk_index: int = -1
 
 
 async def hybrid_search(
@@ -136,10 +141,17 @@ def point_to_search_result(point: QdrantPoint) -> "SearchResult":
         volume = raw.get("volume", "")
         chunk_index = raw.get("chunk_index", 0)
         source_list = raw.get("source")
+    # Hierarchical extra 필드는 QdrantChunkPayload 가 ignore 하므로 raw dict 에서 직접 읽음.
+    parent_text = raw.get("parent_text", "") or ""
+    parent_chunk_index = raw.get("parent_chunk_index", -1)
+    if not isinstance(parent_chunk_index, int):
+        parent_chunk_index = -1
     return SearchResult(
         text=text,
         volume=volume,
         chunk_index=chunk_index,
         score=point.score,
         source=_normalize_source(source_list),
+        parent_text=parent_text,
+        parent_chunk_index=parent_chunk_index,
     )

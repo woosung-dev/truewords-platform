@@ -20,11 +20,15 @@ import time
 import unicodedata
 from pathlib import Path
 
-from src.pipeline.chunker import chunk_text, chunk_paragraph, chunk_recursive
+from src.pipeline.chunker import (
+    chunk_hierarchical,
+    chunk_paragraph,
+    chunk_recursive,
+    chunk_text,
+)
 from src.pipeline.extractor import extract_text
-from src.pipeline.metadata import extract_metadata
 from src.pipeline.ingestor import ingest_chunks
-from src.qdrant_client import get_client
+from src.pipeline.metadata import extract_metadata
 
 
 THEOLOGY_KEYWORDS = ["원리강론", "3대경전", "통일사상요강"]
@@ -50,6 +54,9 @@ def get_chunker(method: str):
         return chunk_paragraph
     if method == "recursive":
         return chunk_recursive
+    if method == "hierarchical":
+        # parent=1500 / child=300 (Phase 4 PoC default)
+        return chunk_hierarchical
     raise ValueError(f"Unknown method: {method}")
 
 
@@ -57,7 +64,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--matched-file", required=True, type=Path)
     parser.add_argument("--method", required=True,
-                        choices=["sentence", "paragraph", "recursive"])
+                        choices=["sentence", "paragraph", "recursive", "hierarchical"])
     parser.add_argument("--collection", required=True,
                         help="대상 Qdrant 컬렉션 (사전 생성 필요)")
     parser.add_argument("--source-tag", default="A",
@@ -102,7 +109,6 @@ def main() -> int:
         print(f"resume: {done}권 완료")
     args.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-    client = get_client()
     success = 0
     failed = 0
     t0 = time.time()
@@ -135,7 +141,6 @@ def main() -> int:
                 continue
 
             stats = ingest_chunks(
-                client=client,
                 collection_name=args.collection,
                 chunks=chunks,
                 title=meta.get("title", "") or vol,
