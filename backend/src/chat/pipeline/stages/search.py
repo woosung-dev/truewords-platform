@@ -47,7 +47,7 @@ class SearchStage:
 
         qdrant = get_raw_client()
         search_config = _to_search_config(ctx.runtime_config.search, self.default_tiers)
-        resolved = resolve_collections(ctx.runtime_config)
+        resolved = resolve_collections()
         ctx.resolved_collections = resolved
 
         query = ctx.search_query or ctx.request.query

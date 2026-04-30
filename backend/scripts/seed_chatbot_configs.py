@@ -1,9 +1,10 @@
 """기존 configs.py 하드코딩 데이터를 PostgreSQL에 삽입하는 seed 스크립트.
 
-Phase 2.4 이후 메인 컬렉션 토글이 폐기되어, 모든 봇은 settings.collection_name
-(env COLLECTION_NAME) 단일 컬렉션을 공유한다. PoC 청킹 봇(chunking-*, all-paragraph)
-은 더 이상 별도 컬렉션을 가리키지 않으며 'all' 봇과 동작이 동일해진다.
-다음 배포에서 collection_main 컬럼이 drop되며, PoC 봇은 시드에서도 정리될 예정.
+Phase 2.4 (v5 Recursive 88권 단일 운영) 이후 모든 봇은 settings.collection_name
+(env COLLECTION_NAME) 단일 컬렉션을 공유한다. Phase 2.x 청킹 PoC 봇
+(chunking-*, all-paragraph) 은 Alembic 마이그레이션 aa6f4b908ef4 의 데이터
+정리 단계에서 is_active=False 로 비활성화되며, 본 시드에서는 더 이상 만들지
+않는다.
 """
 
 import asyncio
@@ -56,48 +57,6 @@ SEED_DATA = [
         search_tiers={
             "tiers": [
                 {"sources": ["B"], "min_results": 1, "score_threshold": 0.50},
-            ]
-        },
-    ),
-    # 청킹 PoC 봇 (Phase 2.x) — collection_main 폐기로 'all' 봇과 동일 동작.
-    # 다음 배포에서 시드에서도 제거 예정.
-    ChatbotConfig(
-        chatbot_id="chunking-sentence",
-        display_name="청킹 PoC: 문장",
-        description="[DEPRECATED] Phase 2.4 이후 'all' 봇과 동일 동작",
-        search_tiers={
-            "tiers": [
-                {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
-            ]
-        },
-    ),
-    ChatbotConfig(
-        chatbot_id="chunking-token1024",
-        display_name="청킹 PoC: 토큰",
-        description="[DEPRECATED] Phase 2.4 이후 'all' 봇과 동일 동작",
-        search_tiers={
-            "tiers": [
-                {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
-            ]
-        },
-    ),
-    ChatbotConfig(
-        chatbot_id="chunking-paragraph",
-        display_name="청킹 PoC: 단락",
-        description="[DEPRECATED] Phase 2.4 이후 'all' 봇과 동일 동작",
-        search_tiers={
-            "tiers": [
-                {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
-            ]
-        },
-    ),
-    ChatbotConfig(
-        chatbot_id="all-paragraph",
-        display_name="전체 검색 (paragraph 본 가동 후보)",
-        description="[DEPRECATED] Phase 2.4 이후 'all' 봇과 동일 동작",
-        search_tiers={
-            "tiers": [
-                {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
             ]
         },
     ),
