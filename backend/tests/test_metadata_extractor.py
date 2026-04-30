@@ -139,21 +139,21 @@ def test_extract_empty_string():
 
 
 def test_build_filter_volume_zfill_two_digit():
-    """volume_num 56 → '056권' exact match (zfill 적용)."""
+    """volume_num 56 → '056' exact match (zfill 적용, _extract_volume 형식)."""
     conditions = build_metadata_filter_conditions({"volume_num": 56})
-    assert conditions == [{"key": "volume", "match": {"value": "056권"}}]
+    assert conditions == [{"key": "volume", "match": {"value": "056"}}]
 
 
 def test_build_filter_volume_zfill_one_digit():
-    """volume_num 5 → '005권' (거짓 양성 방지: '005권' 만 매칭, '015/025/...' 제외)."""
+    """volume_num 5 → '005' (거짓 양성 방지: '005' 만 매칭, '015/025/...' 제외)."""
     conditions = build_metadata_filter_conditions({"volume_num": 5})
-    assert conditions == [{"key": "volume", "match": {"value": "005권"}}]
+    assert conditions == [{"key": "volume", "match": {"value": "005"}}]
 
 
 def test_build_filter_volume_three_digit():
-    """volume_num 200 → '200권' (zfill 효과 없음)."""
+    """volume_num 200 → '200' (zfill 효과 없음)."""
     conditions = build_metadata_filter_conditions({"volume_num": 200})
-    assert conditions == [{"key": "volume", "match": {"value": "200권"}}]
+    assert conditions == [{"key": "volume", "match": {"value": "200"}}]
 
 
 def test_build_filter_empty_meta():
@@ -166,5 +166,5 @@ def test_build_filter_only_volume_used_now():
     conditions = build_metadata_filter_conditions(
         {"volume_num": 56, "year": 1975, "month": 9, "day": 22, "page": 123}
     )
-    # volume 만 1개 condition 생성
-    assert conditions == [{"key": "volume", "match": {"value": "056권"}}]
+    # volume 만 1개 condition 생성, _extract_volume 형식
+    assert conditions == [{"key": "volume", "match": {"value": "056"}}]
