@@ -1,10 +1,33 @@
 # 53. 메타데이터 필터 PoC — 권번호 query parsing + Qdrant filter (방안 A)
 
-- 일자: 2026-04-30
-- 상태: PoC 완료, **운영 적용 보류** (자동 메트릭 임계값 미달, 부분 효과 확인)
+- 일자: 2026-04-30 (정정 2026-05-01)
+- 상태: PoC 완료, **운영 적용 보류** (자동 메트릭 임계값 미달 + 측정 자체 무효 발견)
 - 영역: Phase 3 — 검색 단계 메타데이터 구조화
 - 선행: dev-log 51 (v5 운영 채택)
-- 관련 PR: feat/phase-3-metadata-filter (커밋 `3d682be` 기준)
+- 관련 PR: feat/phase-3-metadata-filter (커밋 `5fbed43` 기준), PR #89 머지
+
+---
+
+## ⚠️ 정정 노트 (2026-05-01)
+
+**측정 자체가 무효였음.** PR #89 머지 후 v5 컬렉션 직접 조회로 다음을 확인:
+
+- `backend/src/pipeline/batch_service.py:166` 가 `volume=job.volume_key` (= filename) 을 하드코딩 → `_extract_volume()` 결과 무시
+- v5 컬렉션의 실제 payload `volume` 은 `"말씀선집 056권.pdf"` 같은 **file stem 전체**
+- Phase 3 필터 `MatchValue("056권")` 은 실제로 **0건 매칭** → 필터 적용 9건은 모두 0 결과 → fallback 으로 v5 baseline 동작
+
+**즉 본 dev-log 의 다음 수치는 측정 변동성으로 재해석해야 함**:
+- L2 +0.47 → 측정 변동 범위 (dev-log 51 측정 순서 효과 ±0.41 수준)
+- 필터 9건 평균 +0.78 → 9건 sample 의 통계적 잡음
+- 015번 +7.5점 (5→20) → baseline 측정에서 5점이었던 1건이 정상 회복
+
+**Codex 정성 평가의 "Phase 3 우월 4건" 신호는 그대로 유효** (답변 텍스트 비교는 측정 결과 그대로 반영). 다만 Phase 3 코드의 *실제* 필터 효과는 측정되지 않았음.
+
+**조치**:
+- Volume payload bug 수정 PR (`fix/batch-service-volume-payload`) 별도 진행 — `derive_volume()` 헬퍼 + backfill 스크립트
+- backfill 적용 후 Phase 3 재측정 권장 (선택). 다만 이미 후속 PR 우선순위 (책별 분리 등) 가 더 큰 가치이므로 재측정 건너뛰고 후속 PR 로 직행해도 무방.
+
+---
 
 ---
 
