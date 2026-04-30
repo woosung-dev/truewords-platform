@@ -12,8 +12,8 @@ class Settings(BaseSettings):
     # Qdrant
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: SecretStr | None = None
-    # Phase 2.2 (dev-log 45/49) — 운영 청킹은 paragraph(v3)
-    collection_name: str = "malssum_poc_v3"
+    # Phase 2.4 (dev-log 51) — 운영 청킹은 Recursive(v5, langchain RecursiveCharacterTextSplitter 700/150)
+    collection_name: str = "malssum_poc_v5"
 
     # PostgreSQL
     database_url: SecretStr = SecretStr(

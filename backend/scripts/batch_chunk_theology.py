@@ -70,14 +70,22 @@ def main() -> int:
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--invert-filter", action="store_true",
+                        help="신학원리 외 나머지(83권) 적재 — v5 88권 완성용")
     args = parser.parse_args()
 
     matched_all: list[dict] = json.loads(args.matched_file.read_text())
-    # 신학/원리 5권 필터 + macOS resource fork(._) 제외
-    matched = [
-        m for m in matched_all
-        if is_theology(m["raw_path"]) and not Path(m["raw_path"]).name.startswith("._")
-    ]
+    # 신학/원리 5권 필터 (또는 invert로 나머지) + macOS resource fork(._) 제외
+    if args.invert_filter:
+        matched = [
+            m for m in matched_all
+            if not is_theology(m["raw_path"]) and not Path(m["raw_path"]).name.startswith("._")
+        ]
+    else:
+        matched = [
+            m for m in matched_all
+            if is_theology(m["raw_path"]) and not Path(m["raw_path"]).name.startswith("._")
+        ]
     if args.limit:
         matched = matched[: args.limit]
     print(f"신학/원리 매칭 권 수: {len(matched)}")

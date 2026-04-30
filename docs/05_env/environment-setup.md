@@ -65,7 +65,7 @@ docker compose up --build
 | `ENVIRONMENT` | 환경 구분 | `development` | - |
 | `GEMINI_API_KEY` | Gemini API 키 | - | **��수** |
 | `QDRANT_URL` | Qdrant 서버 URL | `http://localhost:6333` | - |
-| `COLLECTION_NAME` | 말씀 컬렉션 이름 | `malssum_poc_v3` | - |
+| `COLLECTION_NAME` | 말씀 컬렉션 이름 | `malssum_poc_v5` | - |
 | `DATABASE_URL` | PostgreSQL 연결 문자열 | `postgresql+asyncpg://...localhost...` | - |
 | `ADMIN_JWT_SECRET` | JWT 서명 시크릿 | `change-me-in-production` | 프로덕션 필수 |
 | `ADMIN_JWT_EXPIRE_MINUTES` | JWT 만료 시간 (분) | `1440` | - |
@@ -85,7 +85,7 @@ docker compose up --build
 | `ENVIRONMENT` | `development` | `staging` | `production` |
 | `DATABASE_URL` | `localhost:5432/truewords` | Cloud SQL · DB `truewords_staging` | Cloud SQL · DB `truewords` |
 | `QDRANT_URL` | `localhost:6333` | Qdrant Cloud (같은 클러스터) | Qdrant Cloud (같은 클러스터) |
-| `COLLECTION_NAME` | `malssum_poc_v3` | `malssum_poc_v3_staging` (자동) | `malssum_poc_v3` |
+| `COLLECTION_NAME` | `malssum_poc_v5` | `malssum_poc_v5_staging` (자동) | `malssum_poc_v5` |
 | `CACHE_COLLECTION_NAME` | `semantic_cache` | `semantic_cache_staging` (자동) | `semantic_cache` |
 | `ADMIN_FRONTEND_URL` | `localhost:3000` | Vercel Preview URL | `https://admin.truewords.app` |
 | `COOKIE_SECURE` | `false` | `true` | `true` |
