@@ -240,3 +240,38 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
   - [ ] N3 FSM `force_transition_to` — dev-log 32 조사 결과 R1 Phase 1(PipelineState 도입) 필수 의존, 단독 선구현 불가
   - [x] N4 `ALEMBIC_EXPECTED_HEAD` 빌드 artifact + `_is_ancestor` rollback — dev-log 27, 단위 39 PASS. Cloud Run 실배포 검증은 staging 후
   - [ ] N7 Legacy `[legacy]` 태그 + 재인용 금지 — dev-log 32 조사 결과 R2 preparatory migration(`SessionMessage.pipeline_version` 추가) 필수 의존, 단독 선구현 불가
+
+### 11. Qdrant 셀프 호스팅 (2026-04-29 착수)
+> 워크트리: `../truewords-platform-qdrant-vm`, 브랜치: `feat/qdrant-self-hosting`
+> ADR: `docs/dev-log/45-qdrant-self-hosting.md` · 운영 가이드: `docs/07_infra/qdrant-self-hosting.md`
+> 플랜: `~/.claude/plans/tingly-watching-noodle.md`
+
+#### 코드 (완료)
+- [x] `infra/qdrant-vm/docker-compose.yml` — qdrant + cloudflared 2개 서비스
+- [x] `infra/qdrant-vm/.env.example` — API_KEY, TUNNEL_TOKEN 템플릿
+- [x] `infra/qdrant-vm/cloudflared/README.md` — 토큰 방식 운영 안내
+- [x] `infra/qdrant-vm/provision.sh` — gcloud 기반 VM/방화벽 프로비저닝
+- [x] `infra/qdrant-vm/setup-vm.sh` — VM 부트스트랩 (Docker, 디렉토리, compose up)
+- [x] `backend/scripts/migrate_cloud_to_vm.py` — 체크포인트 기반 풀 마이그레이션
+- [x] `backend/scripts/verify_migration.py` — count + 샘플 vector cosine 검증
+- [x] 문서: ADR-45, 운영 가이드, environment-setup 갱신
+
+#### 사용자 액션 필요
+- [ ] Cloudflare 계정 + Tunnel 생성 (`qdrant-truewords`), 토큰을 GitHub Secrets `CLOUDFLARE_TUNNEL_TOKEN`로 등록
+- [ ] `infra/qdrant-vm/.env` 작성 (`QDRANT_API_KEY=$(openssl rand -base64 32)`, `CLOUDFLARE_TUNNEL_TOKEN=...`)
+- [ ] gcloud 인증 후 `./infra/qdrant-vm/provision.sh` 실행
+- [ ] VM에 `infra/qdrant-vm` 업로드 후 `setup-vm.sh` 실행
+- [ ] `create_collection_v2.py` 새 VM 대상으로 실행 (malssum_poc, semantic_cache)
+
+#### 운영 단계
+- [ ] `migrate_cloud_to_vm.py --dry-run` → `--execute`
+- [ ] `verify_migration.py --sample 20` 통과
+- [ ] Staging Cloud Run 환경변수 교체 → 회귀 테스트 (pytest 274 + Vitest 25 + E2E 12)
+- [ ] Production cutover (GitHub Secrets 갱신 → 재배포 → 30분 모니터링)
+- [ ] 1주일 후 Qdrant Cloud 클러스터 종료
+
+#### 후속 (별도 ADR)
+- [ ] GCP Secret Manager 도입 (현재 GitHub Secrets 유지)
+- [ ] VM Snapshot → Cloud Storage 자동 백업 (cron + gcloud)
+- [ ] Qdrant 클러스터링 (3노드, 데이터 ≥ 10GB 시점)
+- [ ] AWS 이관 IaC 작성 (Terraform/CDK)

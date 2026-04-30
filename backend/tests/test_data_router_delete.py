@@ -52,8 +52,8 @@ def test_qdrant_delete_volumes_handles_nfc_and_nfd():
     src = inspect.getsource(DataSourceQdrantService.delete_volumes)
     assert 'unicodedata.normalize("NFC"' in src
     assert 'unicodedata.normalize("NFD"' in src
-    # MatchAny로 두 형태 모두 매칭하는 패턴
-    assert "MatchAny" in src
+    # field_match_any (raw httpx, MatchAny 동등)로 두 형태 모두 매칭하는 패턴
+    assert "field_match_any" in src
 
 
 # --- Repository 시그니처 ---

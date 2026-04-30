@@ -8,9 +8,9 @@ min_results 이상의 결과가 확보되면 조기 종료한다.
 import logging
 from dataclasses import dataclass, field
 
-from qdrant_client import AsyncQdrantClient
 from src.common.gemini import embed_dense_query
 from src.pipeline.embedder import embed_sparse_async
+from src.qdrant import RawQdrantClient
 from src.search.exceptions import SearchFailedError
 from src.search.hybrid import hybrid_search, SearchResult
 
@@ -46,7 +46,7 @@ class CascadingConfig:
 
 
 async def cascading_search(
-    client: AsyncQdrantClient,
+    client: RawQdrantClient,
     query: str,
     config: CascadingConfig,
     top_k: int = 10,

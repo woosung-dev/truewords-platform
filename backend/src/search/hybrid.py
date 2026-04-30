@@ -2,26 +2,28 @@
 
 Qdrant의 Prefetch + FusionQuery(RRF)를 사용하여
 dense(의미적 유사도)와 sparse(키워드 매칭) 결과를 융합한다.
+
+raw httpx (HTTP/1.1) 로 Qdrant REST API 직접 호출. qdrant-client SDK 의
+HTTP/2 경로가 Cloudflare Tunnel + Cloud Run 환경에서 60초 ConnectTimeout 으로
+hang 하는 문제를 회피. (PR #78 진단, docs/dev-log/47 참조)
 """
 
 from dataclasses import dataclass
 
-from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import (
-    Prefetch,
-    FusionQuery,
-    Fusion,
-    SparseVector,
-    Filter,
-    FieldCondition,
-    MatchAny,
-)
 from pydantic import ValidationError
 
 from src.common.gemini import embed_dense_query
 from src.config import settings
 from src.pipeline.chunk_payload import QdrantChunkPayload
 from src.pipeline.embedder import embed_sparse_async
+from src.qdrant import QdrantPoint, RawQdrantClient
+from src.qdrant.filters import (
+    build_filter,
+    field_match_any,
+    fusion_rrf,
+    prefetch as build_prefetch,
+    sparse_vector,
+)
 
 
 @dataclass
@@ -46,7 +48,7 @@ class SearchResult:
 
 
 async def hybrid_search(
-    client: AsyncQdrantClient,
+    client: RawQdrantClient,
     query: str,
     top_k: int = 10,
     source_filter: list[str] | None = None,
@@ -61,7 +63,7 @@ async def hybrid_search(
     임베딩을 외부에서 주입하면 재계산을 스킵하여 레이턴시를 절감한다.
 
     Args:
-        client: Qdrant 비동기 클라이언트.
+        client: ``RawQdrantClient`` (raw httpx, HTTP/1.1).
         query: 사용자 질의 텍스트.
         top_k: 반환할 최대 결과 수.
         source_filter: 데이터 소스 필터 (예: ``["A", "B"]``). None이면 전체 검색.
@@ -77,31 +79,28 @@ async def hybrid_search(
     else:
         sparse_indices, sparse_values = await embed_sparse_async(query)
 
-    query_filter = None
-    if source_filter:
-        query_filter = Filter(
-            must=[FieldCondition(key="source", match=MatchAny(any=source_filter))]
-        )
+    query_filter = (
+        build_filter(must=[field_match_any("source", source_filter)])
+        if source_filter
+        else None
+    )
 
-    response = await client.query_points(
+    points = await client.query_points(
         collection_name=collection_name or settings.collection_name,
+        query=fusion_rrf(),
         prefetch=[
-            Prefetch(query=dense, using="dense", limit=50),
-            Prefetch(
-                query=SparseVector(
-                    indices=sparse_indices,
-                    values=sparse_values,
-                ),
+            build_prefetch(dense, using="dense", limit=50),
+            build_prefetch(
+                sparse_vector(sparse_indices, sparse_values),
                 using="sparse",
                 limit=50,
             ),
         ],
-        query=FusionQuery(fusion=Fusion.RRF),
         query_filter=query_filter,
         limit=top_k,
     )
 
-    return [point_to_search_result(point) for point in response.points]
+    return [point_to_search_result(point) for point in points]
 
 
 def _normalize_source(raw: object) -> str:
@@ -113,7 +112,7 @@ def _normalize_source(raw: object) -> str:
     return ""
 
 
-def point_to_search_result(point) -> "SearchResult":
+def point_to_search_result(point: QdrantPoint) -> "SearchResult":
     """Qdrant point.payload → SearchResult 변환.
 
     R3 PoC: v1 (QdrantChunkPayload) 우선 파싱, 실패 시 v0 legacy dict 인덱싱

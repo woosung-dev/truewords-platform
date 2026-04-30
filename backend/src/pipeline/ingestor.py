@@ -3,6 +3,10 @@
 청크 리스트를 받아 dense/sparse 임베딩 후 Qdrant에 upsert한다.
 429 발생 시 지수 백오프(90→180초)로 재시도한다.
 재업로드를 통한 청크 레벨 체크포인트 재개를 지원한다.
+
+raw httpx (HTTP/1.1, sync) 사용 — qdrant-client SDK HTTP/2 hang 회피
+(PR #78 진단, docs/dev-log/47 참조). admin _process_file 이 sync 컨텍스트(thread)에서
+호출하므로 sync httpx.Client 직접 사용.
 """
 
 from __future__ import annotations
@@ -13,9 +17,8 @@ import time
 import uuid
 from typing import Callable
 
+import httpx
 from google.genai import errors as genai_errors
-from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct, SparseVector
 
 from src.config import settings
 from src.pipeline.chunk_payload import QdrantChunkPayload
@@ -26,6 +29,40 @@ logger = logging.getLogger(__name__)
 
 # Qdrant upsert 배치 크기
 _UPSERT_BATCH_SIZE = 50
+
+# Qdrant 적재 timeout — cold start 흡수 + 대용량 batch 안전.
+_INGEST_TIMEOUT = httpx.Timeout(60.0, connect=10.0)
+
+
+def _qdrant_headers() -> dict[str, str]:
+    api_key = settings.qdrant_api_key.get_secret_value() if settings.qdrant_api_key else ""
+    return {"api-key": api_key, "Content-Type": "application/json"}
+
+
+def _qdrant_base() -> str:
+    return settings.qdrant_url.rstrip("/")
+
+
+def _sync_upsert(collection_name: str, points: list[dict]) -> None:
+    """raw httpx (HTTP/1.1, sync) Qdrant upsert. SDK HTTP/2 hang 회피."""
+    with httpx.Client(http2=False, timeout=_INGEST_TIMEOUT) as client:
+        resp = client.put(
+            f"{_qdrant_base()}/collections/{collection_name}/points?wait=true",
+            headers=_qdrant_headers(),
+            json={"points": points},
+        )
+        resp.raise_for_status()
+
+
+def _sync_delete_by_filter(collection_name: str, filter_dict: dict) -> None:
+    """raw httpx (HTTP/1.1, sync) Qdrant delete by filter. SDK HTTP/2 hang 회피."""
+    with httpx.Client(http2=False, timeout=_INGEST_TIMEOUT) as client:
+        resp = client.post(
+            f"{_qdrant_base()}/collections/{collection_name}/points/delete?wait=true",
+            headers=_qdrant_headers(),
+            json={"filter": filter_dict},
+        )
+        resp.raise_for_status()
 
 
 def _build_text_for_embedding(chunk: Chunk) -> str:
@@ -83,7 +120,6 @@ def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[floa
 
 
 def ingest_chunks(
-    client: QdrantClient,
     collection_name: str,
     chunks: list[Chunk],
     start_chunk: int = 0,
@@ -98,7 +134,6 @@ def ingest_chunks(
     429 발생 시 재시도하며, 3회 소진 시 부분 완료로 처리한다.
 
     Args:
-        client: Qdrant 동기 클라이언트.
         collection_name: 적재 대상 Qdrant 컬렉션명.
         chunks: 적재할 Chunk 리스트.
         start_chunk: 재개 시작 인덱스 (0이면 처음부터).
@@ -131,7 +166,7 @@ def ingest_chunks(
     estimated_batches = max(1, math.ceil(total_chars / max_chars))
 
     start = time.monotonic()
-    points: list[PointStruct] = []
+    points: list[dict] = []
 
     logger.info(
         "임베딩 시작 — 배치 간 %.0f초 대기, 동적 배치(상한 %d자), "
@@ -183,16 +218,16 @@ def ingest_chunks(
             else:
                 source_list = chunk.source if isinstance(chunk.source, list) else [chunk.source] if chunk.source else []
             points.append(
-                PointStruct(
-                    id=point_id,
-                    vector={
+                {
+                    "id": point_id,
+                    "vector": {
                         "dense": dense_vectors[i],
-                        "sparse": SparseVector(
-                            indices=sparse_indices,
-                            values=sparse_values,
-                        ),
+                        "sparse": {
+                            "indices": sparse_indices,
+                            "values": sparse_values,
+                        },
                     },
-                    payload=QdrantChunkPayload(
+                    "payload": QdrantChunkPayload(
                         text=chunk.text,
                         volume=chunk.volume,
                         chunk_index=chunk.chunk_index,
@@ -200,12 +235,12 @@ def ingest_chunks(
                         title=chunk.title,
                         date=chunk.date,
                     ).model_dump(),
-                )
+                }
             )
 
         # Qdrant upsert (충분히 쌓이면 flush)
         if len(points) >= _UPSERT_BATCH_SIZE:
-            client.upsert(collection_name=collection_name, points=points)
+            _sync_upsert(collection_name, points)
             logger.info(
                 "  [%d/%d] 청크 적재 중... (배치 %d: %d청크/%d자)",
                 abs_batch_end, total, batch_num,
@@ -223,7 +258,7 @@ def ingest_chunks(
     # 남은 points flush
     processed_count = idx
     if points:
-        client.upsert(collection_name=collection_name, points=points)
+        _sync_upsert(collection_name, points)
         abs_flushed = start_chunk + processed_count
         logger.info("  [%d/%d] 청크 적재 완료", abs_flushed, total)
         if on_progress:
