@@ -141,6 +141,16 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Next Actions
 
+### 0-A. `collection_main` Phase 2 — DB 컬럼 drop (다음 배포)
+> 상세: `docs/dev-log/52-collection-main-deprecation.md`
+> Phase 1 (코드 사용 중단) 완료 — 2026-04-30, branch `refactor/deprecate-collection-main`
+
+- [ ] Phase 1 prod 안정 배포 확인 (1주 이상 권장)
+- [ ] Alembic 마이그레이션 — `chatbot_configs.collection_main` 컬럼 drop
+- [ ] `backend/src/chatbot/models.py` 컬럼 정의 + deprecation 주석 제거
+- [ ] `seed_chatbot_configs.py` PoC 봇 (`chunking-*`, `all-paragraph`) 시드 데이터 제거
+- [ ] `backend/src/search/collection_resolver.py` 더미 인자 제거 + 호출부 시그니처 일괄 변경
+
 ### 0. Phase 2.2 — paragraph 청킹 운영 전환 후속 (2026-04-30)
 > 결정 ADR: `docs/dev-log/45-paragraph-chunking-50q-revalidation.md`
 > 후속 plan: `docs/dev-log/46-paragraph-l2-citation-strengthening.md`

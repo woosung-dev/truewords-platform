@@ -1,4 +1,10 @@
-"""기존 configs.py 하드코딩 데이터를 PostgreSQL에 삽입하는 seed 스크립트."""
+"""기존 configs.py 하드코딩 데이터를 PostgreSQL에 삽입하는 seed 스크립트.
+
+Phase 2.4 이후 메인 컬렉션 토글이 폐기되어, 모든 봇은 settings.collection_name
+(env COLLECTION_NAME) 단일 컬렉션을 공유한다. PoC 청킹 봇(chunking-*, all-paragraph)
+은 더 이상 별도 컬렉션을 가리키지 않으며 'all' 봇과 동작이 동일해진다.
+다음 배포에서 collection_main 컬럼이 drop되며, PoC 봇은 시드에서도 정리될 예정.
+"""
 
 import asyncio
 import sys
@@ -32,8 +38,6 @@ SEED_DATA = [
                 {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
             ]
         },
-        # Phase 2.2 (2026-04-30) — paragraph 청킹 v3 운영 전환 (dev-log 45)
-        collection_main="malssum_poc_v3",
     ),
     ChatbotConfig(
         chatbot_id="source_a_only",
@@ -55,53 +59,47 @@ SEED_DATA = [
             ]
         },
     ),
-    # 옵션 F 청킹 PoC — 평화경 1권 재청킹 + 나머지 614권 baseline (vector copy)
-    # 검색 동작은 'all' 봇과 동일, collection_main만 PoC 컬렉션으로 라우팅
+    # 청킹 PoC 봇 (Phase 2.x) — collection_main 폐기로 'all' 봇과 동일 동작.
+    # 다음 배포에서 시드에서도 제거 예정.
     ChatbotConfig(
         chatbot_id="chunking-sentence",
         display_name="청킹 PoC: 문장",
-        description="옵션 F PoC — 평화경 sentence-based 청킹 (baseline 비교용)",
+        description="[DEPRECATED] Phase 2.4 이후 'all' 봇과 동일 동작",
         search_tiers={
             "tiers": [
                 {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
             ]
         },
-        collection_main="malssum_chunking_poc_sentence",
     ),
     ChatbotConfig(
         chatbot_id="chunking-token1024",
         display_name="청킹 PoC: 토큰",
-        description="옵션 F PoC — 평화경 char-based 2560/500 sliding window",
+        description="[DEPRECATED] Phase 2.4 이후 'all' 봇과 동일 동작",
         search_tiers={
             "tiers": [
                 {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
             ]
         },
-        collection_main="malssum_chunking_poc_token1024",
     ),
     ChatbotConfig(
         chatbot_id="chunking-paragraph",
         display_name="청킹 PoC: 단락",
-        description="옵션 F PoC — 평화경 blank-line 단락 + min_chars=200 병합",
+        description="[DEPRECATED] Phase 2.4 이후 'all' 봇과 동일 동작",
         search_tiers={
             "tiers": [
                 {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
             ]
         },
-        collection_main="malssum_chunking_poc_paragraph",
     ),
-    # 옵션 F 본 가동 A/B (Phase 2.1) — 88권 모두 paragraph 재청킹된 v3 컬렉션
-    # 'all' 봇 (v1, malssum_poc 88권 sentence)과 동일 검색 정책, collection_main만 v3
     ChatbotConfig(
         chatbot_id="all-paragraph",
         display_name="전체 검색 (paragraph 본 가동 후보)",
-        description="옵션 F 본 가동 A/B — 88권 paragraph 청킹 (malssum_poc_v3, 22,419 청크)",
+        description="[DEPRECATED] Phase 2.4 이후 'all' 봇과 동일 동작",
         search_tiers={
             "tiers": [
                 {"sources": ["A", "B", "C"], "min_results": 3, "score_threshold": 0.60},
             ]
         },
-        collection_main="malssum_poc_v3",
     ),
 ]
 
