@@ -27,7 +27,6 @@ export interface ChatbotConfig {
   system_prompt: string;
   persona_name: string;
   search_tiers: SearchTiersConfig;
-  collection_main: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;

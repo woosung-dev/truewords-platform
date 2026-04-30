@@ -13,13 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import SearchModeSelector from "@/features/chatbot/components/search-mode-selector";
 import SearchTierEditor from "@/features/chatbot/components/search-tier-editor";
 import WeightedSourceEditor from "@/features/chatbot/components/weighted-source-editor";
@@ -35,7 +28,6 @@ export interface ChatbotFormValues {
   persona_name: string;
   system_prompt: string;
   is_active: boolean;
-  collection_main: string;
   search_tiers: {
     search_mode: "cascading" | "weighted";
     tiers: SearchTier[];
@@ -64,7 +56,6 @@ function buildInitial(initial?: Partial<ChatbotFormValues>): ChatbotFormValues {
     persona_name: initial?.persona_name ?? "",
     system_prompt: initial?.system_prompt ?? "",
     is_active: initial?.is_active ?? true,
-    collection_main: initial?.collection_main ?? "malssum_poc",
     search_tiers: {
       search_mode: initial?.search_tiers?.search_mode ?? "cascading",
       tiers: initial?.search_tiers?.tiers ?? [],
@@ -220,41 +211,6 @@ export function ChatbotForm({
         <div className="flex items-center gap-2 border-b pb-3">
           <Search className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">검색 티어 설정</h3>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="collection-main">Qdrant 메인 컬렉션</Label>
-          <Select
-            value={values.collection_main}
-            onValueChange={(v) => patch("collection_main", v ?? "malssum_poc")}
-          >
-            <SelectTrigger id="collection-main" className="w-fit min-w-[480px]">
-              <SelectValue placeholder="컬렉션 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="malssum_poc">
-                malssum_poc (기본 — 88권 sentence 청킹)
-              </SelectItem>
-              <SelectItem value="malssum_poc_v2">
-                malssum_poc_v2 (옵션 B — Anthropic Contextual Retrieval, 폐기됨)
-              </SelectItem>
-              <SelectItem value="malssum_poc_v3">
-                malssum_poc_v3 (옵션 F — 88권 paragraph 청킹)
-              </SelectItem>
-              <SelectItem value="malssum_chunking_poc_sentence">
-                malssum_chunking_poc_sentence (PoC — 평화경 sentence)
-              </SelectItem>
-              <SelectItem value="malssum_chunking_poc_token1024">
-                malssum_chunking_poc_token1024 (PoC — 평화경 token1024)
-              </SelectItem>
-              <SelectItem value="malssum_chunking_poc_paragraph">
-                malssum_chunking_poc_paragraph (PoC — 평화경 paragraph)
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            A/B 토글 — v1=sentence / v2=Contextual Retrieval / v3=paragraph
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5">

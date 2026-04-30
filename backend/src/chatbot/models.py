@@ -23,7 +23,8 @@ class ChatbotConfig(SQLModel, table=True):
     persona_name: str = Field(default="")
     # JSONB: {"tiers": [...], "rerank_enabled": false, "dictionary_enabled": false}
     search_tiers: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    # Qdrant 메인 컬렉션 — A/B 토글용 (옵션 B Anthropic Contextual Retrieval)
+    # [DEPRECATED] Phase 2 청킹/Contextual Retrieval A/B 비교용 토글.
+    # Phase 2.4(v5 Recursive 88권 운영 채택) 이후 미사용. 다음 배포에서 Alembic drop 예정.
     collection_main: str = Field(default="malssum_poc")
     is_active: bool = Field(default=True)
     organization_id: uuid.UUID | None = None

@@ -20,7 +20,6 @@ def _stub_db_config(**overrides) -> MagicMock:
     cfg.display_name = "테스트 챗봇"
     cfg.system_prompt = "당신은 {persona} 학습 도우미입니다."
     cfg.persona_name = "지식이"
-    cfg.collection_main = "malssum_poc"
     cfg.search_tiers = {
         "tiers": [{"sources": ["A"], "min_results": 3, "score_threshold": 0.1}],
         "rerank_enabled": True,

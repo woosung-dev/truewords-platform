@@ -107,9 +107,6 @@ class ChatbotService:
                 tiers=tiers,
                 weighted_sources=weighted_sources,
                 dictionary_enabled=raw.get("dictionary_enabled", False),
-                # JSON 우선 (admin UI 호환), record 컬럼 fallback (옵션 B 신설)
-                collection_main=raw.get("collection_main") or record.collection_main,
-                collection_cache=raw.get("collection_cache"),
             ),
             generation=GenerationConfig(
                 system_prompt=apply_persona(base_prompt, persona),
