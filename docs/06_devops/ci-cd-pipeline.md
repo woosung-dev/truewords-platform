@@ -48,7 +48,7 @@ push
 - **Cloud Run 서비스**: `truewords-backend`
 - **이미지 태그**: `${{ github.sha }}` + `latest`
 - **리소스**: `memory=1Gi`, `cpu=1`, `min-instances=1`, `max-instances=3`
-- **환경변수**: `ENVIRONMENT=production`, `COLLECTION_NAME=malssum_poc`, `CACHE_COLLECTION_NAME=semantic_cache`, `COOKIE_SECURE=true`
+- **환경변수**: `ENVIRONMENT=production`, `COLLECTION_NAME=malssum_poc_v3`, `CACHE_COLLECTION_NAME=semantic_cache`, `COOKIE_SECURE=true`
 - **시크릿 주입**: GitHub Secrets → Cloud Run `env_vars` (아래 §GitHub Secrets 참조)
 
 ### `deploy-staging` (develop) — 선행 #2

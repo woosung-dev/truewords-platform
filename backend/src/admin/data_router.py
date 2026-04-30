@@ -33,7 +33,7 @@ from src.datasource.schemas import (
     VolumeTagsBulkResponse,
 )
 from src.datasource.service import DataSourceCategoryService
-from src.pipeline.chunker import chunk_text
+from src.pipeline.chunker import chunk_paragraph
 from src.pipeline.dependencies import get_ingestion_service
 from src.pipeline.extractor import extract_text
 from src.pipeline.ingestion_repository import IngestionJobRepository
@@ -269,8 +269,9 @@ def _process_file_batch(
             return
         meta = extract_metadata(file_path, text)
         volume = unicodedata.normalize("NFC", meta["volume"] or volume_key)
-        chunks = chunk_text(text, volume=volume, max_chars=500, source=source,
-                            title=meta["title"], date=meta["date"])
+        # Phase 2.2 운영 기본 청킹 (dev-log 45/49) — paragraph 단락 단위
+        chunks = chunk_paragraph(text, volume=volume, source=source,
+                                 title=meta["title"], date=meta["date"])
 
         from src.pipeline.batch_repository import BatchJobRepository
         from src.pipeline.batch_service import BatchService
@@ -395,10 +396,10 @@ def _process_file_standard(
             run_repo(lambda r: r.update_content_hash(volume_key, new_hash))
             return
 
-        # 5. 문서 청킹
-        chunks = chunk_text(text, volume=volume, max_chars=500, source=source,
-                            title=meta["title"], date=meta["date"])
-        logger.info("[%s] 청킹 완료 (%d개 청크)", volume_key, len(chunks))
+        # 5. 문서 청킹 — Phase 2.2 운영 기본 (dev-log 45/49) paragraph 단락 단위
+        chunks = chunk_paragraph(text, volume=volume, source=source,
+                                 title=meta["title"], date=meta["date"])
+        logger.info("[%s] 청킹 완료 (%d개 청크, paragraph)", volume_key, len(chunks))
 
         # 6. ADR-30 P1: COMPLETED 재업로드는 reset 후 0부터 적재. start_chunk 자동 재개를
         #    그대로 두면 같은 길이 재업로드 시 effective_chunks=[]로 빠져 silent no-op 발생.

@@ -167,3 +167,98 @@ def chunk_text(
         ))
 
     return chunks
+
+
+# =====================================================================
+# Phase 2.2 (dev-log 45) — paragraph 청킹 (운영 기본)
+# =====================================================================
+
+# token-based fallback 파라미터 (Korean ~2.5 chars/token 근사)
+_TOKEN_CHUNK_CHARS = 2560      # ~1024 token
+_TOKEN_OVERLAP_CHARS = 500     # ~200 token
+
+# paragraph 청킹 파라미터
+PARAGRAPH_MIN_CHARS = 200      # 짧은 단락은 다음 단락과 병합
+PARAGRAPH_MAX_CHARS = 3000     # 초과 단락은 token1024 fallback
+
+
+def _chunk_token_fallback(
+    text: str,
+    volume: str,
+    source: str | list[str] = "",
+    title: str = "",
+    date: str = "",
+) -> list[Chunk]:
+    """char-based sliding window. paragraph 단락이 max_chars 초과 시 fallback."""
+    if not text.strip():
+        return []
+    if len(text) <= _TOKEN_CHUNK_CHARS:
+        return [Chunk(
+            text=text, volume=volume, chunk_index=0,
+            source=source, title=title, date=date,
+        )]
+    chunks: list[Chunk] = []
+    step = _TOKEN_CHUNK_CHARS - _TOKEN_OVERLAP_CHARS
+    idx = 0
+    pos = 0
+    while pos < len(text):
+        end = min(pos + _TOKEN_CHUNK_CHARS, len(text))
+        chunks.append(Chunk(
+            text=text[pos:end], volume=volume, chunk_index=idx,
+            source=source, title=title, date=date,
+        ))
+        idx += 1
+        if end == len(text):
+            break
+        pos += step
+    return chunks
+
+
+def chunk_paragraph(
+    text: str,
+    volume: str,
+    source: str | list[str] = "",
+    title: str = "",
+    date: str = "",
+) -> list[Chunk]:
+    """단락 단위 청킹 (운영 기본 — Phase 2.2 dev-log 45 결정).
+
+    - 빈 줄(`\\n\\n+`) 기준 분할
+    - PARAGRAPH_MIN_CHARS(200) 미만은 다음 단락과 병합
+    - PARAGRAPH_MAX_CHARS(3000) 초과는 token-based fallback
+    """
+    parts = [p.strip() for p in re.split(r"\n\s*\n+", text) if p.strip()]
+    if not parts:
+        return []
+    # 짧은 단락 병합
+    merged: list[str] = []
+    buf = ""
+    for p in parts:
+        buf = f"{buf}\n\n{p}" if buf else p
+        if len(buf) >= PARAGRAPH_MIN_CHARS:
+            merged.append(buf)
+            buf = ""
+    if buf:
+        if merged:
+            merged[-1] = f"{merged[-1]}\n\n{buf}"
+        else:
+            merged.append(buf)
+    # max_chars 초과 단락은 token fallback
+    chunks: list[Chunk] = []
+    idx = 0
+    for m in merged:
+        if len(m) <= PARAGRAPH_MAX_CHARS:
+            chunks.append(Chunk(
+                text=m, volume=volume, chunk_index=idx,
+                source=source, title=title, date=date,
+            ))
+            idx += 1
+        else:
+            sub = _chunk_token_fallback(m, volume=volume, source=source, title=title, date=date)
+            for s in sub:
+                chunks.append(Chunk(
+                    text=s.text, volume=volume, chunk_index=idx,
+                    source=source, title=title, date=date,
+                ))
+                idx += 1
+    return chunks

@@ -73,7 +73,7 @@ jobs:
           flags: --allow-unauthenticated --memory=1Gi --cpu=1 --min-instances=1 --max-instances=3
           env_vars: |
             ENVIRONMENT=production
-            COLLECTION_NAME=malssum_poc
+            COLLECTION_NAME=malssum_poc_v3
             COOKIE_SECURE=true
             CACHE_COLLECTION_NAME=semantic_cache
             ADMIN_FRONTEND_URL=${{ secrets.ADMIN_FRONTEND_URL }}
