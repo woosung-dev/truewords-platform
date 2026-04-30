@@ -217,6 +217,20 @@ def ingest_chunks(
                 source_list = payload_sources
             else:
                 source_list = chunk.source if isinstance(chunk.source, list) else [chunk.source] if chunk.source else []
+            payload = QdrantChunkPayload(
+                text=chunk.text,
+                volume=chunk.volume,
+                chunk_index=chunk.chunk_index,
+                source=source_list,
+                title=chunk.title,
+                date=chunk.date,
+            ).model_dump()
+            # Hierarchical (Parent-Child) extra 필드 — QdrantChunkPayload 는
+            # extra="ignore" 라 schema 변경 없이 dict 머지로 적재.
+            if chunk.parent_text:
+                payload["parent_text"] = chunk.parent_text
+                payload["parent_chunk_index"] = chunk.parent_chunk_index
+                payload["chunk_type"] = "child"
             points.append(
                 {
                     "id": point_id,
@@ -227,14 +241,7 @@ def ingest_chunks(
                             "values": sparse_values,
                         },
                     },
-                    "payload": QdrantChunkPayload(
-                        text=chunk.text,
-                        volume=chunk.volume,
-                        chunk_index=chunk.chunk_index,
-                        source=source_list,
-                        title=chunk.title,
-                        date=chunk.date,
-                    ).model_dump(),
+                    "payload": payload,
                 }
             )
 

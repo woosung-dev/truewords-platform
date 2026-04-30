@@ -22,6 +22,10 @@ class Chunk:
     title: str = ""
     date: str = ""
     prefix_text: str = ""  # Anthropic Contextual Retrieval prefix (옵션 B)
+    # Hierarchical (Parent-Child) chunking — child chunk 가 자기 parent 의
+    # 본문/index 를 부착해서 검색 매칭은 child 로, LLM 컨텍스트는 parent 로 분리.
+    parent_text: str = ""
+    parent_chunk_index: int = -1
 
 
 # 한국어 문장 종결 패턴: 다/요/까/죠/세요 + 마침표, 또는 ?!
@@ -318,3 +322,85 @@ def chunk_recursive(
         )
         for i, p in enumerate(pieces) if p.strip()
     ]
+
+
+# Hierarchical (Parent-Child) 파라미터
+_HIERARCHICAL_PARENT_SIZE = 1500
+_HIERARCHICAL_PARENT_OVERLAP = 150
+_HIERARCHICAL_CHILD_SIZE = 300
+_HIERARCHICAL_CHILD_OVERLAP = 50
+
+
+def chunk_hierarchical(
+    text: str,
+    volume: str,
+    source: str | list[str] = "",
+    title: str = "",
+    date: str = "",
+    parent_size: int = _HIERARCHICAL_PARENT_SIZE,
+    parent_overlap: int = _HIERARCHICAL_PARENT_OVERLAP,
+    child_size: int = _HIERARCHICAL_CHILD_SIZE,
+    child_overlap: int = _HIERARCHICAL_CHILD_OVERLAP,
+) -> list[Chunk]:
+    """Hierarchical (Parent-Child) 청킹 — child 만 임베딩, parent 본문은 payload 동봉.
+
+    1) Recursive splitter 로 parent (default 1500자) 분할
+    2) 각 parent 안에서 다시 splitter 로 child (default 300자) 분할
+    3) **child 만 반환**, 각 child 의 ``parent_text`` / ``parent_chunk_index``
+       필드에 자기가 속한 parent 의 본문/index 부착
+    4) ``chunk_index`` 는 전체 child 순서 (0..N-1) 로 글로벌 부여
+
+    검색 단계는 child 로 정밀 매칭 → 답변 생성 단계에서 ``parent_text`` 로
+    컨텍스트 확장. 별도 parent fetch 호출 없음 (옵션 A — payload 직접 포함).
+
+    Args:
+        text: 원본 문서 본문.
+        volume: payload.volume 으로 들어갈 권 식별자.
+        source/title/date: 메타데이터 기본값.
+        parent_size/parent_overlap: parent 청크 파라미터.
+        child_size/child_overlap: child 청크 파라미터.
+
+    Returns:
+        child Chunk 리스트. ``parent_text`` 비어있지 않음.
+    """
+    if not text.strip():
+        return []
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    parent_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=parent_size,
+        chunk_overlap=parent_overlap,
+        length_function=len,
+        keep_separator=True,
+        separators=_RECURSIVE_SEPARATORS,
+    )
+    child_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=child_size,
+        chunk_overlap=child_overlap,
+        length_function=len,
+        keep_separator=True,
+        separators=_RECURSIVE_SEPARATORS,
+    )
+
+    parents = [p for p in parent_splitter.split_text(text) if p.strip()]
+    chunks: list[Chunk] = []
+    global_idx = 0
+    for parent_idx, parent_text in enumerate(parents):
+        children = child_splitter.split_text(parent_text)
+        for c in children:
+            if not c.strip():
+                continue
+            chunks.append(
+                Chunk(
+                    text=c,
+                    volume=volume,
+                    chunk_index=global_idx,
+                    source=source,
+                    title=title,
+                    date=date,
+                    parent_text=parent_text,
+                    parent_chunk_index=parent_idx,
+                )
+            )
+            global_idx += 1
+    return chunks
