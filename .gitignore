@@ -45,3 +45,6 @@ eval_results.json
 docs/guides/*.pdf
 docs/guides/*.docx
 docs/guides/*.html
+
+# 측정 임시 산출물 (xlsx/json/log) — 영구 보관은 ~/Downloads
+tmp_match/
