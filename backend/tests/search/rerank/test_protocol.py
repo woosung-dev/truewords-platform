@@ -3,6 +3,7 @@
 import pytest
 
 from src.search.rerank import _reset_instances_for_tests, get_reranker
+from src.search.rerank.bge import BGEReranker
 from src.search.rerank.gemini import GeminiReranker
 
 
@@ -32,9 +33,30 @@ def test_get_reranker_unknown_name_raises_keyerror():
         get_reranker("nonexistent-model")
 
 
-def test_get_reranker_bge_keys_unregistered_in_pr1():
-    """Literal 에 정의되어 있어도 PR 4 머지 전까진 미등록."""
-    with pytest.raises(KeyError):
-        get_reranker("bge-base")
-    with pytest.raises(KeyError):
-        get_reranker("bge-ko")
+def test_get_reranker_bge_base_returns_bge_instance():
+    """PR 4 — bge-base 키가 BGEReranker 로 등록되어 있어야 함."""
+    inst = get_reranker("bge-base")
+    assert isinstance(inst, BGEReranker)
+    assert inst.name == "bge-base"
+
+
+def test_get_reranker_bge_ko_returns_bge_instance():
+    """PR 4 — bge-ko 키가 BGEReranker 로 등록되어 있어야 함."""
+    inst = get_reranker("bge-ko")
+    assert isinstance(inst, BGEReranker)
+    assert inst.name == "bge-ko"
+
+
+def test_get_reranker_bge_caches_singleton():
+    """PR 4 — BGE 도 싱글톤 캐싱. 모델 1.1GB 중복 로드 방지."""
+    a = get_reranker("bge-base")
+    b = get_reranker("bge-base")
+    assert a is b
+
+
+def test_get_reranker_bge_base_and_ko_are_distinct_instances():
+    """서로 다른 키는 별개 인스턴스 (모델 이름이 다름)."""
+    base = get_reranker("bge-base")
+    ko = get_reranker("bge-ko")
+    assert base is not ko
+    assert base.name != ko.name
