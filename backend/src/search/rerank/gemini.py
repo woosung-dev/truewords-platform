@@ -36,7 +36,11 @@ def _build_rerank_prompt(query: str, results: list[SearchResult]) -> str:
 
 
 def _parse_scores(response_text: str, expected_count: int) -> list[float] | None:
-    """Gemini 응답에서 점수 리스트 파싱. 실패 시 None 반환."""
+    """Gemini 응답에서 점수 리스트 파싱. 실패 시 None.
+
+    부분 응답 허용: got < expected 면 부족분에 중립값 0.5 fill.
+    완전 누락 / JSON 파싱 실패 / 더 많은 score → None 반환 (graceful degradation).
+    """
     try:
         # JSON 블록 추출 (```json ... ``` 래핑 대응)
         text = response_text.strip()
@@ -46,12 +50,22 @@ def _parse_scores(response_text: str, expected_count: int) -> list[float] | None
 
         data = json.loads(text)
         scores = data.get("scores", [])
-        if len(scores) != expected_count:
+        if not isinstance(scores, list) or not scores:
+            logger.warning("Rerank scores 빈 배열")
+            return None
+        if len(scores) > expected_count:
             logger.warning(
-                "Rerank 점수 개수 불일치: expected=%d, got=%d",
+                "Rerank 점수 과잉: expected=%d, got=%d (overflow → fallback)",
                 expected_count, len(scores),
             )
             return None
+        if len(scores) < expected_count:
+            # 부족분은 중립 0.5 fill — 부분 응답 허용
+            logger.info(
+                "Rerank 점수 부족: expected=%d, got=%d (부족분 0.5 fill)",
+                expected_count, len(scores),
+            )
+            scores = list(scores) + [0.5] * (expected_count - len(scores))
         return [float(s) for s in scores]
     except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
         logger.warning("Rerank JSON 파싱 실패: %s", e)
