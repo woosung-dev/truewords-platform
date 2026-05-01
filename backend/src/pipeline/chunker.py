@@ -119,7 +119,11 @@ def chunk_text(
     date: str = "",
     overlap_sentences: int = 2,
 ) -> list[Chunk]:
-    """문장 경계 기반 청킹. 문장 중간 절단 없이 max_chars 단위로 분리."""
+    """문장 경계 기반 청킹. 문장 중간 절단 없이 max_chars 단위로 분리.
+
+    DEPRECATED — kss 기반 sentence 청킹. 운영 사용처 없음 (legacy).
+    운영 기본은 ``chunk_recursive`` (dev-log 51, v5).
+    """
     if not text.strip():
         return []
 
@@ -178,7 +182,9 @@ def chunk_text(
 
 
 # =====================================================================
-# Phase 2.2 (dev-log 45) — paragraph 청킹 (운영 기본)
+# Phase 2.2 (dev-log 45) — paragraph 청킹
+# DEPRECATED (dev-log 51, 2026-04-30) — v3 운영 기본 → v5 Recursive 전환.
+# 50%/75%/100% 적재 마일스톤 v3 vs v5 재측정 baseline 용도로만 보존.
 # =====================================================================
 
 # token-based fallback 파라미터 (Korean ~2.5 chars/token 근사)
@@ -229,7 +235,11 @@ def chunk_paragraph(
     title: str = "",
     date: str = "",
 ) -> list[Chunk]:
-    """단락 단위 청킹 (운영 기본 — Phase 2.2 dev-log 45 결정).
+    """단락 단위 청킹 (Phase 2.2 dev-log 45 결정).
+
+    DEPRECATED — v3 운영 기본이었으나 dev-log 51(2026-04-30)에서 v5
+    Recursive(``chunk_recursive``)로 전환. 현재 업로드 경로 미호출.
+    50%/75%/100% 적재 마일스톤마다 v3 baseline 재측정 용도로만 유지.
 
     - 빈 줄(`\\n\\n+`) 기준 분할
     - PARAGRAPH_MIN_CHARS(200) 미만은 다음 단락과 병합
@@ -274,6 +284,7 @@ def chunk_paragraph(
 
 # =====================================================================
 # Phase 2.3 (dev-log 50) — Recursive 청킹 PoC (langchain RecursiveCharacterTextSplitter)
+# Phase 2.4 (dev-log 51, 2026-04-30) — v5 운영 기본 채택.
 # =====================================================================
 
 # Recursive 파라미터 — 사용자 자료 ★★★★★ "안전한 default"
@@ -303,6 +314,8 @@ def chunk_recursive(
     date: str = "",
 ) -> list[Chunk]:
     """RecursiveCharacterTextSplitter 기반 청킹 (한국어 종결어미 우선순위).
+
+    ✅ 운영 기본 (dev-log 51, 2026-04-30 — malssum_poc_v5).
 
     chunk_size=700, overlap=150, 한국어 종결 separators.
     PARAGRAPH/SENTENCE 사이 중간 입자 — paragraph 정보 밀도 + sentence 검색 정확도 균형 시도.
@@ -347,6 +360,10 @@ def chunk_hierarchical(
     child_overlap: int = _HIERARCHICAL_CHILD_OVERLAP,
 ) -> list[Chunk]:
     """Hierarchical (Parent-Child) 청킹 — child 만 임베딩, parent 본문은 payload 동봉.
+
+    DEPRECATED — Phase 4 청킹 결정(PR #92, 2026-05-01)에서 Contextual
+    Retrieval과 함께 보류. 운영은 v5 Recursive 영구 확정.
+    재검토 가능성 있어 코드는 보존 (현재 업로드 경로 미호출).
 
     1) Recursive splitter 로 parent (default 1500자) 분할
     2) 각 parent 안에서 다시 splitter 로 child (default 300자) 분할
