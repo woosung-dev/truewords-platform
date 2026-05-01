@@ -83,6 +83,8 @@ class RetrievalConfig(BaseModel):
     score_threshold: float = 0.0
     rerank_enabled: bool = True
     rerank_top_k: int = 10
+    # PR 1 — swappable reranker. PR 4 에서 BGE 등록, 운영 default 는 PR 8 ADR 결정.
+    reranker_model: Literal["gemini-flash", "bge-base", "bge-ko"] = "gemini-flash"
     query_rewrite_enabled: bool = True
     fallback_enabled: bool = True
     # Phase D — IntentClassifierStage 토글. False 시 LLM 호출 없이 conceptual default 사용.

@@ -28,7 +28,7 @@ from src.common.gemini import embed_dense_query
 from src.pipeline.embedder import embed_sparse_async
 from src.qdrant_client import get_raw_client
 from src.search.hybrid import SearchResult, hybrid_search
-from src.search.reranker import rerank
+from src.search.rerank import get_reranker
 
 
 async def run_one(
@@ -51,7 +51,8 @@ async def run_one(
     )
     if not results:
         return "[오류] 검색 결과 없음", []
-    reranked = await rerank(question, results, top_k=top_k_rerank)
+    reranker = get_reranker("gemini-flash")
+    reranked = await reranker.rerank(question, results, top_k=top_k_rerank)
 
     # Hierarchical 의 경우, build_context_prompt 가 result.text 를 사용하므로
     # parent_text 가 있으면 SearchResult.text 를 parent 로 교체 (in-place)

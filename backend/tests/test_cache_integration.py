@@ -37,6 +37,9 @@ def _make_chat_service(cache_service=None):
     chat_repo.create_message.return_value = msg
 
     chatbot_service.get_config_id.return_value = 1
+    # build_runtime_config=None → DEFAULT_RUNTIME_CONFIG fallback (rerank_enabled=False).
+    # MagicMock 기본값이 반환되면 RerankStage 의 get_reranker 가 KeyError 를 던진다.
+    chatbot_service.build_runtime_config.return_value = None
 
     return (
         ChatService(chat_repo=chat_repo, chatbot_service=chatbot_service, cache_service=cache_service),
