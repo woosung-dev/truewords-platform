@@ -24,6 +24,8 @@ class Source(BaseModel):
     text: str
     score: float
     source: str = ""
+    # P0-B — 원문보기 모달 fetch 용 Qdrant point id.
+    chunk_id: str = ""
 
 
 class ChatResponse(BaseModel):

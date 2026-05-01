@@ -196,7 +196,13 @@ class ChatService:
         return ChatResponse(
             answer=ctx.answer or "",
             sources=[
-                Source(volume=r.volume, text=r.text, score=r.score, source=r.source)
+                Source(
+                    volume=r.volume,
+                    text=r.text,
+                    score=r.score,
+                    source=r.source,
+                    chunk_id=r.chunk_id,
+                )
                 for r in ctx.results[:3]
             ],
             session_id=ctx.session.id,

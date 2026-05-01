@@ -1,7 +1,7 @@
 """add chat_message_reactions table (P1-A)
 
 Revision ID: p1a01f00d51e
-Revises: 4d872f8826ad
+Revises: e1a8c5f7d3b2
 Create Date: 2026-04-28 22:50:00.000000
 
 """
@@ -9,11 +9,15 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
 revision: str = "p1a01f00d51e"
-down_revision: Union[str, None] = "4d872f8826ad"
+# main rebase (2026-05-01): main 의 chain head 위로 rebase.
+# 원래는 4d872f8826ad 분기였으나 main 이 c59c535a2200 → aa6f4b908ef4 →
+# e1a8c5f7d3b2 까지 진행되어 multi-head 발생.
+down_revision: Union[str, None] = "e1a8c5f7d3b2"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -29,7 +33,9 @@ def upgrade() -> None:
     """
     # PostgreSQL ENUM 타입 — DO 블록으로 멱등성 보장.
     # CREATE TYPE 은 IF NOT EXISTS 미지원 → DO 블록 안에서 SELECT pg_type 검사.
-    reaction_kind_enum = sa.Enum(
+    # postgresql.ENUM 의 create_type=False 는 op.create_table 에서 ENUM 재생성을
+    # 정확히 막아준다 (sa.Enum 은 dialect 에 따라 무시될 수 있음).
+    reaction_kind_enum = postgresql.ENUM(
         *_REACTION_KINDS,
         name="messagereactionkind",
         create_type=False,

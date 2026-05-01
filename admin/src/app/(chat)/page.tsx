@@ -49,6 +49,7 @@ import {
   FloatingActionBar,
   PersonaSheet,
   PersonaRowTrigger,
+  SourceOriginalModal,
   type PersonaMode,
 } from "@/components/truewords";
 import {
@@ -119,6 +120,13 @@ export default function ChatPage() {
   // Cloud Run 콜드 스타트 상황에서 사용자에게 대기 이유를 설명한다.
   const [warmingUp, setWarmingUp] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
+
+  // P0-B — 인용 카드 → 원문보기 모달 상태
+  const [chunkModal, setChunkModal] = useState<{
+    open: boolean;
+    chunkId: string | null;
+    snippet: string | null;
+  }>({ open: false, chunkId: null, snippet: null });
 
   // W2-② P0-E / P1-G / P2-D — 입력 화면 옵션 state
   const [answerMode, setAnswerMode] = useState<AnswerMode>("standard");
@@ -568,15 +576,36 @@ export default function ChatPage() {
                       </p>
                     </Card>
 
-                    {/* 출처 배지 */}
+                    {/* 출처 배지 — chunk_id 가 있으면 클릭 시 P0-B 원문보기 모달 */}
                     {msg.sources && msg.sources.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 pl-1">
-                        {msg.sources.map((src, j) => (
-                          <Badge key={j} variant="outline" className="text-xs">
-                            {src.volume}
-                            {src.source && ` (${src.source})`}
-                          </Badge>
-                        ))}
+                        {msg.sources.map((src, j) => {
+                          const label = `${src.volume}${src.source ? ` (${src.source})` : ""}`;
+                          if (!src.chunk_id) {
+                            return (
+                              <Badge key={j} variant="outline" className="text-xs">
+                                {label}
+                              </Badge>
+                            );
+                          }
+                          return (
+                            <Button
+                              key={j}
+                              type="button"
+                              variant="outline"
+                              className="h-auto px-2 py-0.5 text-xs font-normal"
+                              onClick={() =>
+                                setChunkModal({
+                                  open: true,
+                                  chunkId: src.chunk_id ?? null,
+                                  snippet: src.text,
+                                })
+                              }
+                            >
+                              {label}
+                            </Button>
+                          );
+                        })}
                       </div>
                     )}
 
@@ -775,6 +804,17 @@ export default function ChatPage() {
           bookmarked={isLatestBookmarked}
         />
       )}
+
+      {/* P0-B — 인용 카드 원문보기 모달 */}
+      <SourceOriginalModal
+        open={chunkModal.open}
+        onOpenChange={(open) =>
+          setChunkModal((prev) => ({ ...prev, open }))
+        }
+        chunkId={chunkModal.chunkId}
+        chatbotId={selectedBot}
+        highlightSnippet={chunkModal.snippet ?? undefined}
+      />
 
       {/* 추천 follow-up sheet — placeholder. P0-A worktree 결합 예정 */}
       <Sheet open={followupOpen} onOpenChange={(v: boolean) => setFollowupOpen(v)}>

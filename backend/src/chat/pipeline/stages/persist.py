@@ -79,7 +79,13 @@ class PersistStage:
         # 캐시 저장 (빈 응답은 저장 X)
         if self.cache_service and ctx.results and ctx.answer and "찾지 못했습니다" not in ctx.answer:
             sources_for_cache = [
-                {"volume": r.volume, "text": r.text, "score": r.score, "source": r.source}
+                {
+                    "volume": r.volume,
+                    "text": r.text,
+                    "score": r.score,
+                    "source": r.source,
+                    "chunk_id": r.chunk_id,  # P0-B 원문보기 cache hit 시에도 fetch 가능
+                }
                 for r in ctx.results[:3]
             ]
             collection_name = ctx.resolved_collections.cache if ctx.resolved_collections else None

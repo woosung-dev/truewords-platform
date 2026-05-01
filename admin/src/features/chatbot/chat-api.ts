@@ -22,6 +22,8 @@ export interface Source {
   text: string;
   score: number;
   source: string;
+  // P0-B — 원문보기 모달 fetch 용 Qdrant point id.
+  chunk_id?: string;
 }
 
 export interface ChatResponse {
