@@ -11,3 +11,9 @@ data/
 .git/
 .gitignore
 docker-compose.yml
+# PR 5 — 호스트의 HuggingFace 캐시가 의도치 않게 builder 컨텍스트에 포함되어
+# 빌드 시간/이미지 사이즈를 폭발시키지 않도록 명시적으로 배제.
+# 모델은 model-cache stage 에서 직접 다운로드.
+.cache/
+**/.cache/huggingface/
+huggingface_cache/
