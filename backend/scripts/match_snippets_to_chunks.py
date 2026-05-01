@@ -46,7 +46,10 @@ def normalize_text(s: str) -> str:
 
 
 async def search_for_snippet(
-    snippet: str, sources: list[str], top_k: int = 20,
+    snippet: str,
+    sources: list[str],
+    top_k: int = 20,
+    collection_name: str | None = None,
 ) -> list[Any]:
     """source 필터로 cascading top_k. rerank 없이 raw retrieval."""
     from src.qdrant_client import get_raw_client
@@ -56,11 +59,16 @@ async def search_for_snippet(
     config = CascadingConfig(
         tiers=[SearchTier(sources=sources, min_results=3, score_threshold=0.0)]
     )
-    return await cascading_search(client, snippet, config, top_k=top_k)
+    return await cascading_search(
+        client, snippet, config, top_k=top_k, collection_name=collection_name,
+    )
 
 
 async def match_query_entry(
-    query_entry: dict[str, Any], sources: list[str], top_k: int,
+    query_entry: dict[str, Any],
+    sources: list[str],
+    top_k: int,
+    collection_name: str | None = None,
 ) -> tuple[list[str], list[dict[str, Any]]]:
     """단일 query 의 모든 snippet 매칭. (high_confidence_chunk_ids, mid_candidates)."""
     chunk_ids: list[str] = []
@@ -71,7 +79,7 @@ async def match_query_entry(
         if not snippet:
             continue
 
-        results = await search_for_snippet(snippet, sources, top_k)
+        results = await search_for_snippet(snippet, sources, top_k, collection_name)
         norm_snippet = normalize_text(snippet)
 
         matched = False
@@ -97,7 +105,11 @@ async def match_query_entry(
 
 
 async def match_all_queries(
-    queries_path: Path, sources: list[str], top_k: int, dry_run: bool,
+    queries_path: Path,
+    sources: list[str],
+    top_k: int,
+    dry_run: bool,
+    collection_name: str | None = None,
 ) -> dict[str, Any]:
     """전체 queries.json 매칭 → 갱신 + 보고서 반환."""
     data = json.loads(queries_path.read_text(encoding="utf-8"))
@@ -106,11 +118,14 @@ async def match_all_queries(
         "n_queries": len(queries),
         "n_high_confidence": 0,
         "n_no_match": 0,
+        "collection_name": collection_name,
         "per_query": [],
     }
 
     for q in queries:
-        chunk_ids, mid_candidates = await match_query_entry(q, sources, top_k)
+        chunk_ids, mid_candidates = await match_query_entry(
+            q, sources, top_k, collection_name,
+        )
         q["expected_chunk_ids"] = chunk_ids
         if chunk_ids:
             report["n_high_confidence"] += 1
@@ -147,13 +162,18 @@ def main(argv: list[str] | None = None) -> int:
         help="cascading source filter (쉼표 구분, default: U)",
     )
     parser.add_argument("--top-k", type=int, default=20)
+    parser.add_argument(
+        "--collection",
+        default=None,
+        help="Qdrant collection 명. 미지정 시 settings.collection_name (현재 malssum_poc_v5) 사용",
+    )
     parser.add_argument("--dry-run", action="store_true",
                         help="queries.json 갱신 없이 보고서만 출력")
     args = parser.parse_args(argv)
 
     sources = [s.strip() for s in args.sources.split(",") if s.strip()]
     report = asyncio.run(match_all_queries(
-        Path(args.queries), sources, args.top_k, args.dry_run,
+        Path(args.queries), sources, args.top_k, args.dry_run, args.collection,
     ))
 
     print(f"\n=== 매칭 결과 ===")

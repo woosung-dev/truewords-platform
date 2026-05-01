@@ -81,13 +81,27 @@ def is_labeled(q: dict[str, Any]) -> bool:
 # ── 검색 호출 (cascading_search + reranker) ─────────────────────────────────
 
 
-async def _build_eval_cascading_config(chatbot_id: str | None):
-    """chatbot_id 가 주어지면 DB 에서 search_tiers 조회, 없으면 시스템 기본 사용.
+async def _build_eval_cascading_config(
+    chatbot_id: str | None,
+    sources_override: list[str] | None = None,
+):
+    """eval cascading config 생성.
 
-    시스템 기본은 ``src.chat.service.DEFAULT_RUNTIME_CONFIG`` 와 동기화한다
-    (cascading sources=A,B,C / min_results=3 / score_threshold=0.1).
+    우선순위:
+    1. ``sources_override`` 명시 시 — 단일 SearchTier 사용 (chatbot_id 무시).
+       측정용 컬렉션 (예: malssum_poc_v5 = source U) 와 production
+       chatbot.search_tiers (예: L/M/N) mismatch 회피.
+    2. ``chatbot_id`` 명시 시 — DB ``ChatbotConfig.search_tiers`` 사용.
+    3. 둘 다 없으면 시스템 기본 (cascading sources=A,B,C / min_results=3 / score_threshold=0.1).
     """
     from src.search.cascading import CascadingConfig, SearchTier
+
+    if sources_override:
+        return CascadingConfig(
+            tiers=[SearchTier(
+                sources=sources_override, min_results=10, score_threshold=0.0,
+            )]
+        )
 
     if chatbot_id is None:
         return CascadingConfig(
@@ -123,6 +137,8 @@ async def run_search(
     top_k: int = 10,
     rerank_model: str = "gemini-flash",
     chatbot_id: str | None = None,
+    collection_name: str | None = None,
+    sources: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """cascading_search → (선택) reranker 적용 → 상위 top_k 결과 dict 리스트 반환.
 
@@ -136,6 +152,8 @@ async def run_search(
         rerank_model: ``RERANKER_CHOICES`` 중 하나.
         chatbot_id: 지정 시 DB 의 ChatbotConfig 의 search_tiers 사용.
                     None 이면 시스템 기본 cascading config 사용.
+        collection_name: Qdrant collection 명. None 이면 settings.collection_name 사용.
+        sources: 명시 시 chatbot_id 무시하고 단일 SearchTier(sources=...) 사용.
 
     Returns:
         ``[{"volume", "chunk_index", "score", "rerank_score"}]`` 리스트.
@@ -145,11 +163,13 @@ async def run_search(
     from src.search.rerank import get_reranker
 
     client = get_raw_client()
-    config = await _build_eval_cascading_config(chatbot_id)
+    config = await _build_eval_cascading_config(chatbot_id, sources_override=sources)
 
     # 프로덕션 패턴: cascading top-50 → reranker top-K
     search_top_k = max(top_k * 5, 50)
-    results = await cascading_search(client, query, config, top_k=search_top_k)
+    results = await cascading_search(
+        client, query, config, top_k=search_top_k, collection_name=collection_name,
+    )
 
     if rerank_model != "none" and results:
         reranker = get_reranker(rerank_model)
@@ -176,6 +196,8 @@ async def evaluate_set(
     top_k: int = 10,
     rerank_model: str = "gemini-flash",
     chatbot_id: str | None = None,
+    collection_name: str | None = None,
+    sources: list[str] | None = None,
 ) -> dict[str, Any]:
     data = load_golden(golden_path)
     queries: list[dict[str, Any]] = data.get("queries", [])
@@ -194,7 +216,12 @@ async def evaluate_set(
             continue
 
         results = await run_search(
-            q["query"], top_k=top_k, rerank_model=rerank_model, chatbot_id=chatbot_id,
+            q["query"],
+            top_k=top_k,
+            rerank_model=rerank_model,
+            chatbot_id=chatbot_id,
+            collection_name=collection_name,
+            sources=sources,
         )
         actual_chunks = [f"{r['volume']}:{r['chunk_index']}" for r in results]
         actual_volumes = [r["volume"] for r in results]
@@ -228,6 +255,8 @@ async def evaluate_set(
         "skipped_ids": skipped,
         "rerank_model": rerank_model,
         "chatbot_id": chatbot_id,
+        "collection_name": collection_name,
+        "sources": sources,
         "macro": {
             key: (sum(vals) / len(vals) if vals else None)
             for key, vals in metrics_acc.items()
@@ -276,7 +305,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--chatbot-id",
         default=None,
-        help="DB 의 ChatbotConfig.search_tiers 사용 (env EVAL_CHATBOT_ID fallback)",
+        help="DB 의 ChatbotConfig.search_tiers 사용 (env EVAL_CHATBOT_ID fallback). "
+             "--sources 가 명시되면 chatbot_id 무시됨.",
+    )
+    parser.add_argument(
+        "--collection",
+        default=None,
+        help="Qdrant collection 명. 미지정 시 settings.collection_name (현재 malssum_poc_v5) 사용.",
+    )
+    parser.add_argument(
+        "--sources",
+        default=None,
+        help="cascading source 직접 지정 (쉼표 구분, 예: 'U'). 명시 시 chatbot_id 무시. "
+             "측정 컬렉션과 production search_tiers mismatch 회피용.",
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
@@ -299,11 +340,17 @@ def main(argv: list[str] | None = None) -> int:
         out = diff_runs(baseline, after)
     else:
         chatbot_id = args.chatbot_id or os.environ.get("EVAL_CHATBOT_ID") or None
+        sources = (
+            [s.strip() for s in args.sources.split(",") if s.strip()]
+            if args.sources else None
+        )
         out = asyncio.run(
             evaluate_set(
                 Path(args.golden),
                 rerank_model=args.rerank_model,
                 chatbot_id=chatbot_id,
+                collection_name=args.collection,
+                sources=sources,
             )
         )
 
