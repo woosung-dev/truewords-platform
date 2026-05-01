@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 
 from sentence_transformers import CrossEncoder
 
@@ -25,11 +26,18 @@ class BGEReranker:
         self.name = registry_key
         self._model_name = model_name
         self._model: CrossEncoder | None = None
+        # asyncio.to_thread 는 thread pool worker 에서 실행되므로 동시 첫호출 시
+        # _ensure_loaded() 가 병렬로 들어와 ~1GB 모델 중복 init 가능. threading.Lock
+        # + double-check 으로 방지 (asyncio.Lock 은 같은 event loop 안에서만 유효).
+        self._load_lock = threading.Lock()
 
     def _ensure_loaded(self) -> CrossEncoder:
-        if self._model is None:
-            logger.info("loading_bge_reranker", extra={"model": self._model_name})
-            self._model = CrossEncoder(self._model_name, max_length=512)
+        if self._model is not None:
+            return self._model
+        with self._load_lock:
+            if self._model is None:  # double-check
+                logger.info("loading_bge_reranker", extra={"model": self._model_name})
+                self._model = CrossEncoder(self._model_name, max_length=512)
         return self._model
 
     async def rerank(
@@ -46,9 +54,11 @@ class BGEReranker:
             pairs = [(query, r.text) for r in results]
             scores = await asyncio.to_thread(model.predict, pairs)
         except Exception as exc:  # graceful degradation
+            # 3rd-party tokenizer/model 예외 메시지가 사용자 query 를 echo 할 수 있어
+            # str(exc) 직접 로깅 X. type 만 기록 — production log PII 누출 방지.
             logger.warning(
                 "bge_rerank_failed",
-                extra={"model": self._model_name, "error": str(exc)},
+                extra={"model": self._model_name, "error_type": type(exc).__name__},
             )
             # gemini.py 패턴 일관성 — graceful 시에도 top_k 슬라이싱
             return results[:top_k]

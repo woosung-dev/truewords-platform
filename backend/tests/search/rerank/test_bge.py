@@ -123,6 +123,46 @@ async def test_bge_graceful_degradation_on_predict_failure():
 
 
 @pytest.mark.asyncio
+async def test_bge_failure_log_does_not_leak_query_or_exc_message(caplog):
+    """PII 누출 방어 — 3rd-party 예외 메시지가 user query 를 echo 해도 로그에 안 들어감.
+
+    sentence-transformers tokenizer 가 query 텍스트를 그대로 넣어 ValueError 던지는
+    경우를 시뮬레이션. 로그는 type 만 기록, str(exc) 는 기록 X.
+    """
+    import logging as _logging
+
+    reranker = BGEReranker(model_name="dummy/model", registry_key="bge-base")
+    secret_query = "SUPER_SECRET_USER_QUERY_xyz_42"
+    leaky_message = f"input contains forbidden char in: {secret_query}"
+
+    instance = MagicMock()
+    instance.predict = MagicMock(side_effect=RuntimeError(leaky_message))
+    with patch("src.search.rerank.bge.CrossEncoder", return_value=instance):
+        with caplog.at_level(_logging.WARNING, logger="src.search.rerank.bge"):
+            await reranker.rerank(secret_query, _make_results())
+
+    # 로그 record 들이 query 또는 leaky_message 를 포함해선 안 됨
+    full_text = " ".join(str(r.message) + " " + str(getattr(r, "error_type", "")) + " " + str(getattr(r, "error", "")) for r in caplog.records)
+    assert secret_query not in full_text
+    assert leaky_message not in full_text
+    # 대신 type 은 기록되어야 함
+    assert any(getattr(r, "error_type", None) == "RuntimeError" for r in caplog.records)
+
+
+def test_bge_has_threading_lock_for_lazy_load():
+    """thread-safety — _load_lock 이 threading.Lock 인스턴스로 노출되어야 함.
+
+    asyncio.to_thread 가 thread pool worker 에서 실행되므로 동시 첫호출 시
+    ~1GB 모델 중복 init 방지를 위해 threading.Lock + double-check 필요.
+    """
+    import threading as _threading
+
+    reranker = BGEReranker(model_name="dummy/model", registry_key="bge-base")
+    # threading.Lock() 은 _thread.lock 인스턴스를 반환 — type 비교로 검증
+    assert isinstance(reranker._load_lock, type(_threading.Lock()))
+
+
+@pytest.mark.asyncio
 async def test_bge_graceful_degradation_respects_top_k():
     """graceful 경로에서도 top_k 슬라이싱 적용 — gemini.py 일관성."""
     reranker = BGEReranker(model_name="dummy/model", registry_key="bge-base")
