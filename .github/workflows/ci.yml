@@ -2,7 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    # main 직행 PR + 통합 브랜치 (dev/**) 로 가는 sub-task PR 모두 CI 실행.
+    # 통합 브랜치 패턴: docs/guides/integration-branch-workflow.md 참조.
+    branches: [main, "dev/**"]
 
 jobs:
   # 변경 경로 감지: backend/admin이 실제로 바뀌었는지 판정한다.

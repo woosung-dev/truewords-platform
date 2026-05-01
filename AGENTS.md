@@ -126,6 +126,26 @@ test: 테스트 추가/수정
 - 기능 브랜치를 만들고 PR을 통해 merge한다
 - 브랜치 네이밍: `{type}/{짧은-설명}` (예: `feat/volume-transfer-redesign`, `fix/rrf-score-threshold`)
 
+### 통합 브랜치 (Phase / Sprint / 멀티 sub-task)
+
+여러 sub-task 가 묶이는 큰 작업은 3-tier PR 흐름으로 진행한다:
+
+```
+main (항상 안정, 직접 push 금지)
+  ↑ (sub-task 모두 머지 + 종합 검증 후 1개 PR, 수동 머지)
+dev/<phase 또는 작업명>  (통합 브랜치)
+  ↑ sub-task PR 1 (base=통합 브랜치, CI 통과 시 auto-merge)
+  ↑ sub-task PR 2
+  ↑ sub-task PR N
+```
+
+- 통합 브랜치는 별도 worktree (`../tw-<name>/`) 에 분리 — main 작업과 격리
+- sub-task PR 들은 `dev/**` base. CI 통과 시 `gh pr merge --auto --squash --delete-branch` 로 자동 머지
+- 통합 브랜치 → main PR 은 **항상 수동 검증** (`deploy.yml` 이 main push 시 production Cloud Run 배포)
+- main 머지 전 심도 테스트: 전체 backend `pytest` + admin `pnpm test` + E2E
+
+상세 가이드: `docs/guides/integration-branch-workflow.md`
+
 ---
 
 ## 7. 코딩 스타일
