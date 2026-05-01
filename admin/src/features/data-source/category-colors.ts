@@ -1,53 +1,58 @@
 /**
- * DB의 color 키워드를 Tailwind 클래스로 매핑.
- * Tailwind는 동적 클래스명을 빌드 시 스캔하지 못하므로 사전 정의 필수.
+ * DB의 color 키워드를 디자인 시스템 토큰 기반 Tailwind 클래스로 매핑.
+ * 옵션 A 톤다운: hue 7가지 유지하되 saturation 을 낮춰 paper 배경 친화.
+ * active 상태는 모든 카테고리 동일 brass(--accent) ring 으로 통일.
+ *
+ * 토큰 정의: admin/src/app/globals.css 의 --tw-cat-* (light) / .dark 의 --tw-cat-* (dark)
  */
+
+const ACTIVE_RING = "ring-2 ring-accent border-accent";
 
 const COLOR_MAP: Record<
   string,
   { text: string; bg: string; border: string; activeRing: string }
 > = {
   indigo: {
-    text: "text-indigo-600",
-    bg: "bg-indigo-50",
-    border: "border-indigo-200",
-    activeRing: "ring-2 ring-indigo-500 border-indigo-500",
+    text: "text-cat-indigo",
+    bg: "bg-cat-indigo/10",
+    border: "border-cat-indigo/25",
+    activeRing: ACTIVE_RING,
   },
   violet: {
-    text: "text-violet-600",
-    bg: "bg-violet-50",
-    border: "border-violet-200",
-    activeRing: "ring-2 ring-violet-500 border-violet-500",
+    text: "text-cat-violet",
+    bg: "bg-cat-violet/10",
+    border: "border-cat-violet/25",
+    activeRing: ACTIVE_RING,
   },
   blue: {
-    text: "text-blue-600",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    activeRing: "ring-2 ring-blue-500 border-blue-500",
+    text: "text-cat-blue",
+    bg: "bg-cat-blue/10",
+    border: "border-cat-blue/25",
+    activeRing: ACTIVE_RING,
   },
   slate: {
-    text: "text-slate-500",
-    bg: "bg-slate-50",
-    border: "border-slate-200",
-    activeRing: "ring-2 ring-slate-400 border-slate-400",
+    text: "text-cat-slate",
+    bg: "bg-cat-slate/10",
+    border: "border-cat-slate/25",
+    activeRing: ACTIVE_RING,
   },
   emerald: {
-    text: "text-emerald-600",
-    bg: "bg-emerald-50",
-    border: "border-emerald-200",
-    activeRing: "ring-2 ring-emerald-500 border-emerald-500",
+    text: "text-cat-emerald",
+    bg: "bg-cat-emerald/10",
+    border: "border-cat-emerald/25",
+    activeRing: ACTIVE_RING,
   },
   amber: {
-    text: "text-amber-600",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    activeRing: "ring-2 ring-amber-500 border-amber-500",
+    text: "text-cat-amber",
+    bg: "bg-cat-amber/10",
+    border: "border-cat-amber/25",
+    activeRing: ACTIVE_RING,
   },
   rose: {
-    text: "text-rose-600",
-    bg: "bg-rose-50",
-    border: "border-rose-200",
-    activeRing: "ring-2 ring-rose-500 border-rose-500",
+    text: "text-cat-rose",
+    bg: "bg-cat-rose/10",
+    border: "border-cat-rose/25",
+    activeRing: ACTIVE_RING,
   },
 };
 

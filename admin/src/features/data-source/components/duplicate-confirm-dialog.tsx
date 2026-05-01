@@ -70,13 +70,13 @@ export default function DuplicateConfirmDialog({
         <Dialog.Popup className="fixed inset-0 z-50 m-auto flex h-fit w-full max-w-md flex-col rounded-2xl bg-popover shadow-2xl transition duration-200 data-ending-style:opacity-0 data-ending-style:scale-95 data-starting-style:opacity-0 data-starting-style:scale-95">
           {/* 헤더 */}
           <div className="flex items-center justify-between border-b px-6 py-4">
-            <Dialog.Title className="flex items-center gap-2 text-base font-semibold text-amber-700">
+            <Dialog.Title className="flex items-center gap-2 text-base font-semibold text-warning">
               <AlertTriangle className="h-5 w-5" />
               동일 파일이 이미 존재합니다
             </Dialog.Title>
             <Dialog.Close
               aria-label="닫기"
-              className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="rounded-lg p-1 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors"
             >
               <X className="h-4 w-4" />
             </Dialog.Close>
@@ -84,7 +84,7 @@ export default function DuplicateConfirmDialog({
 
           {/* 본문 */}
           <div className="space-y-4 px-6 py-5">
-            <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-2">
+            <div className="rounded-lg border bg-admin-muted/30 p-3 text-sm space-y-2">
               <div className="flex gap-2">
                 <span className="text-muted-foreground shrink-0 w-20">파일명</span>
                 <span className="font-medium break-all">{filename}</span>
@@ -101,7 +101,7 @@ export default function DuplicateConfirmDialog({
                   ) : (
                     <Badge
                       variant="outline"
-                      className="text-xs bg-amber-50 text-amber-700 border-amber-200"
+                      className="text-xs bg-warning-soft text-warning border-warning-border"
                     >
                       미분류
                     </Badge>
@@ -157,7 +157,7 @@ export default function DuplicateConfirmDialog({
             )}
             <Button
               variant="outline"
-              className="w-full justify-center whitespace-normal break-words border-amber-300 text-amber-700 hover:bg-amber-50"
+              className="w-full justify-center whitespace-normal break-words border-warning-border text-warning hover:bg-warning-soft"
               aria-describedby="replace-warning-text"
               onClick={() => decide("replace")}
             >

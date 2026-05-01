@@ -396,10 +396,10 @@ export default function DataSourcesPage() {
               variant="outline"
               className={`font-mono ${
                 configData.environment === "production"
-                  ? "bg-red-50 text-red-700 border-red-300"
+                  ? "bg-danger-soft text-destructive border-danger-border"
                   : configData.environment === "staging"
-                    ? "bg-amber-50 text-amber-700 border-amber-300"
-                    : "bg-emerald-50 text-emerald-700 border-emerald-300"
+                    ? "bg-warning-soft text-warning border-warning-border"
+                    : "bg-info-soft text-info border-info-border"
               }`}
             >
               {configData.environment.toUpperCase()}
@@ -438,9 +438,9 @@ export default function DataSourcesPage() {
         <div className="rounded-xl border bg-card p-4">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">처리 완료</span>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-success" />
           </div>
-          <p className="text-2xl font-bold mt-1 text-emerald-600">
+          <p className="text-2xl font-bold mt-1 text-success">
             {completedCount}
           </p>
         </div>
@@ -472,7 +472,7 @@ export default function DataSourcesPage() {
           <Upload className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
           문서 업로드
           {processingFiles.length > 0 && (
-            <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
+            <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-warning-soft text-warning border border-warning-border text-xs font-bold">
               {processingFiles.length}
             </span>
           )}
@@ -504,12 +504,12 @@ export default function DataSourcesPage() {
             className={`relative flex h-36 flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all ${
               dragActive
                 ? "border-primary bg-primary/5 scale-[1.01]"
-                : "border-muted-foreground/20 hover:border-muted-foreground/40 hover:bg-accent/20"
+                : "border-muted-foreground/20 hover:border-muted-foreground/40 hover:bg-primary/5"
             } cursor-pointer`}
           >
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 transition-colors ${
-                dragActive ? "bg-primary/10" : "bg-muted"
+                dragActive ? "bg-primary/10" : "bg-admin-muted"
               }`}
             >
               <ArrowUpFromLine
@@ -559,7 +559,7 @@ export default function DataSourcesPage() {
           {/* 대기 목록 */}
           {pendingFiles.length > 0 && (
             <div className="rounded-xl border bg-card overflow-hidden">
-              <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between">
+              <div className="px-4 py-3 border-b bg-admin-muted/30 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium">
                     파일 목록
@@ -570,7 +570,7 @@ export default function DataSourcesPage() {
                     </Badge>
                   )}
                   {processingFiles.length > 0 && (
-                    <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">
+                    <Badge className="bg-warning-soft text-warning hover:bg-warning-soft border border-warning-border text-xs">
                       <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                       처리 중 {processingFiles.length}
                     </Badge>
@@ -598,15 +598,15 @@ export default function DataSourcesPage() {
                     key={pf.id}
                     className={`flex items-center gap-3 px-4 py-3 transition-colors ${
                       pf.status === "processing"
-                        ? "bg-amber-50/50"
+                        ? "bg-warning-soft/60"
                         : pf.status === "uploading"
                           ? "bg-primary/5"
-                          : "hover:bg-accent/30"
+                          : "hover:bg-primary/5"
                     }`}
                   >
                     {/* 상태 아이콘 */}
                     {pf.status === "processing" ? (
-                      <Clock className="w-4 h-4 text-amber-500 shrink-0 animate-pulse" />
+                      <Clock className="w-4 h-4 text-warning shrink-0 animate-pulse" />
                     ) : pf.status === "uploading" ? (
                       <Loader2 className="w-4 h-4 text-primary shrink-0 animate-spin" />
                     ) : (
@@ -628,7 +628,7 @@ export default function DataSourcesPage() {
 
                     {/* 상태 표시 */}
                     {pf.status === "processing" ? (
-                      <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs shrink-0">
+                      <Badge className="bg-warning-soft text-warning hover:bg-warning-soft border border-warning-border text-xs shrink-0">
                         처리 중...
                       </Badge>
                     ) : pf.status === "uploading" ? (
@@ -681,28 +681,28 @@ export default function DataSourcesPage() {
 
           {/* 중단된 파일 — 재개 업로드 */}
           {inProgressEntries.length > 0 && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/30 overflow-hidden">
-              <div className="px-4 py-3 border-b border-amber-200 bg-amber-50/50 flex items-center gap-2">
-                <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
-                <span className="text-xs font-medium text-amber-700">중단된 파일 — 재개 가능</span>
-                <span className="text-xs text-amber-600/70">같은 파일을 다시 업로드하면 중단 지점부터 이어서 처리합니다</span>
+            <div className="rounded-xl border border-warning-border bg-warning-soft/40 overflow-hidden">
+              <div className="px-4 py-3 border-b border-warning-border bg-warning-soft/60 flex items-center gap-2">
+                <RotateCcw className="w-3.5 h-3.5 text-warning" />
+                <span className="text-xs font-medium text-warning">중단된 파일 — 재개 가능</span>
+                <span className="text-xs text-warning/70">같은 파일을 다시 업로드하면 중단 지점부터 이어서 처리합니다</span>
               </div>
-              <div className="divide-y divide-amber-100">
+              <div className="divide-y divide-warning-border/50">
                 {inProgressEntries.map(([filename, entry]) => {
                   const pct = Math.round((entry.next_chunk / entry.total) * 100);
                   return (
                     <div key={`inprogress-${filename}`} className="flex items-center gap-3 px-4 py-3">
-                      <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                      <Clock className="w-4 h-4 text-warning shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm truncate" title={filename}>{filename}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <div className="flex-1 h-1.5 bg-amber-100 rounded-full overflow-hidden">
+                          <div className="flex-1 h-1.5 bg-warning-soft rounded-full overflow-hidden border border-warning-border">
                             <div
-                              className="h-full bg-amber-400 rounded-full transition-all"
+                              className="h-full bg-warning rounded-full transition-all"
                               style={{ width: `${pct}%` }}
                             />
                           </div>
-                          <span className="text-xs text-amber-600 shrink-0">
+                          <span className="text-xs text-warning shrink-0">
                             {entry.next_chunk.toLocaleString()} / {entry.total.toLocaleString()} ({pct}%)
                           </span>
                         </div>
@@ -711,7 +711,7 @@ export default function DataSourcesPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-7 px-2.5 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 shrink-0 pointer-events-none"
+                          className="h-7 px-2.5 text-xs border-warning-border text-warning hover:bg-warning-soft shrink-0 pointer-events-none"
                           tabIndex={-1}
                         >
                           <Upload className="w-3 h-3 mr-1" />
@@ -739,7 +739,7 @@ export default function DataSourcesPage() {
           {/* 처리 이력 */}
           {(completedEntries.length > 0 || failedEntries.length > 0) && (
             <div className="rounded-xl border bg-card overflow-hidden">
-              <div className="px-4 py-3 border-b bg-muted/30">
+              <div className="px-4 py-3 border-b bg-admin-muted/30">
                 <span className="text-xs font-medium">처리 이력</span>
                 <span className="text-xs text-muted-foreground ml-2">
                   자동 갱신
@@ -750,7 +750,7 @@ export default function DataSourcesPage() {
                 {failedEntries.map(([filename, error]) => (
                   <div
                     key={`fail-${filename}`}
-                    className="flex items-center gap-3 px-4 py-3 bg-red-50/50"
+                    className="flex items-center gap-3 px-4 py-3 bg-danger-soft/60"
                   >
                     <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -761,7 +761,7 @@ export default function DataSourcesPage() {
                         {String(error)}
                       </p>
                     </div>
-                    <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-0 text-xs shrink-0">
+                    <Badge className="bg-danger-soft text-destructive hover:bg-danger-soft border border-danger-border text-xs shrink-0">
                       실패
                     </Badge>
                   </div>
@@ -773,14 +773,14 @@ export default function DataSourcesPage() {
                     key={`done-${filename}`}
                     className="flex items-center gap-3 px-4 py-3"
                   >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
                     <span
                       className="text-sm truncate flex-1 min-w-0"
                       title={filename}
                     >
                       {filename}
                     </span>
-                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 text-xs shrink-0">
+                    <Badge className="bg-success-soft text-success hover:bg-success-soft border border-success-border text-xs shrink-0">
                       {chunks}청크
                     </Badge>
                   </div>
@@ -794,7 +794,7 @@ export default function DataSourcesPage() {
             completedEntries.length === 0 &&
             failedEntries.length === 0 && (
               <div className="rounded-xl border bg-card flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-admin-muted flex items-center justify-center mb-4">
                   <Upload className="w-6 h-6 text-muted-foreground" />
                 </div>
                 <p className="text-sm font-medium">아직 업로드된 문서가 없습니다</p>
