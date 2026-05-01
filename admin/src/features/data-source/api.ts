@@ -4,6 +4,9 @@ import type {
   DuplicateCheckResponse,
   IngestionStatus,
   CategoryDocumentStats,
+  UploadResponse,
+  VolumeDeleteRequest,
+  VolumeDeleteResponse,
   VolumeTagRequest,
   VolumeTagResponse,
   VolumeInfo,
@@ -11,12 +14,21 @@ import type {
   VolumeTagsBulkResponse,
 } from "./types";
 
+export type OnDuplicateMode = "merge" | "replace" | "skip";
+
 export const dataAPI = {
-  uploadFile: async (file: File, source: string, mode: "standard" | "batch" = "standard") => {
+  uploadFile: async (
+    file: File,
+    source: string,
+    // Batch API 제거됨 (PR #95). mode 인자는 백엔드 호환을 위해 standard 고정.
+    mode: "standard" = "standard",
+    onDuplicate: OnDuplicateMode = "merge",
+  ): Promise<UploadResponse> => {
     const formData = new FormData()
     formData.append("file", file)
     formData.append("source", source)
     formData.append("mode", mode)
+    formData.append("on_duplicate", onDuplicate)
 
     // FormData requests don't use "Content-Type: application/json"
     // Fetch automatically applies the correct multipart/form-data boundary
@@ -43,7 +55,7 @@ export const dataAPI = {
       throw new Error(text || `요청 실패 (${res.status})`)
     }
 
-    return res.json()
+    return (await res.json()) as UploadResponse
   },
 
   getStatus: () => fetchAPI<IngestionStatus>("/admin/data-sources/status"),
@@ -52,6 +64,17 @@ export const dataAPI = {
     fetchAPI<DuplicateCheckResponse>(
       `/admin/data-sources/check-duplicate?filename=${encodeURIComponent(filename)}`
     ),
+  // ADR-30 Phase 3 — volume(파일) 영구 삭제 (Qdrant + IngestionJob)
+  deleteVolume: (volume: string) =>
+    fetchAPI<VolumeDeleteResponse>(
+      `/admin/data-sources/volumes/${encodeURIComponent(volume)}`,
+      { method: "DELETE" },
+    ),
+  deleteVolumesBulk: (data: VolumeDeleteRequest) =>
+    fetchAPI<VolumeDeleteResponse>("/admin/data-sources/volumes/delete-bulk", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
 
 export const dataSourceCategoryAPI = {

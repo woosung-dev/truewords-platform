@@ -32,6 +32,9 @@ out/
 backend/progress.json
 eval_results.json
 
+# 로컬 서버 로그
+*.log
+
 # Playwright MCP 세션 로그 (console / page snapshots)
 .playwright-mcp/
 
@@ -42,3 +45,6 @@ eval_results.json
 docs/guides/*.pdf
 docs/guides/*.docx
 docs/guides/*.html
+
+# 측정 임시 산출물 (xlsx/json/log) — 영구 보관은 ~/Downloads
+tmp_match/

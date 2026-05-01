@@ -4,6 +4,7 @@ import { Fragment, useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+  dataAPI,
   dataSourceCategoryAPI,
 } from "@/features/data-source/api";
 import type { DataSourceCategory } from "@/features/data-source/types";
@@ -20,7 +21,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Plus, Pencil, Power, ChevronRight, ChevronDown, Tag, X, FolderOpen } from "lucide-react";
+import { Plus, Pencil, Power, ChevronRight, ChevronDown, Tag, Trash2, X, FolderOpen } from "lucide-react";
+import DeleteConfirmDialog, {
+  type DeleteTarget,
+} from "@/features/data-source/components/delete-confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import VolumeTransferSheet from "@/features/data-source/components/volume-transfer-sheet";
 import { useCategoryStats, useAllVolumes } from "@/features/data-source/hooks";
@@ -72,6 +76,73 @@ export default function CategoryTab() {
 
   // 미분류 volume 계산을 위한 allVolumes
   const { data: allVolumes = [] } = useAllVolumes();
+
+  // ADR-30 Phase 3 — volume 영구 삭제 다이얼로그 상태
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    targets: DeleteTarget[];
+    busy: boolean;
+  }>({ open: false, targets: [], busy: false });
+
+  const volumeChunkLookup = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const v of allVolumes) map.set(v.volume, v.chunk_count);
+    return map;
+  }, [allVolumes]);
+
+  const volumeSourcesLookup = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const v of allVolumes) map.set(v.volume, v.sources);
+    return map;
+  }, [allVolumes]);
+
+  const openDeleteSingle = (volume: string) => {
+    setDeleteDialog({
+      open: true,
+      targets: [
+        {
+          volume,
+          sources: volumeSourcesLookup.get(volume) ?? [],
+          chunkCount: volumeChunkLookup.get(volume) ?? 0,
+        },
+      ],
+      busy: false,
+    });
+  };
+
+  const handleDeleteConfirm = async () => {
+    const { targets } = deleteDialog;
+    if (targets.length === 0) return;
+    setDeleteDialog((prev) => ({ ...prev, busy: true }));
+    try {
+      let totalChunks = 0;
+      let totalSkipped = 0;
+      if (targets.length === 1) {
+        const res = await dataAPI.deleteVolume(targets[0].volume);
+        totalChunks = res.total_chunks_deleted;
+        totalSkipped = res.skipped.length;
+      } else {
+        const res = await dataAPI.deleteVolumesBulk({
+          volumes: targets.map((t) => t.volume),
+        });
+        totalChunks = res.total_chunks_deleted;
+        totalSkipped = res.skipped.length;
+      }
+      const skippedSuffix = totalSkipped > 0 ? ` · 스킵 ${totalSkipped}` : "";
+      toast.success(
+        `${targets.length}개 파일 영구 삭제 완료 (총 ${totalChunks.toLocaleString()}개 청크${skippedSuffix})`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["category-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
+      queryClient.invalidateQueries({ queryKey: ["ingest-status"] });
+      setDeleteDialog({ open: false, targets: [], busy: false });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "삭제 실패 — 다시 시도해주세요",
+      );
+      setDeleteDialog((prev) => ({ ...prev, busy: false }));
+    }
+  };
 
   const uncategorizedVolumes = useMemo(
     () => allVolumes.filter((v) => v.sources.length === 0),
@@ -284,7 +355,8 @@ export default function CategoryTab() {
           <thead>
             <tr className="border-b bg-muted/40">
               <th className="w-8 px-2 py-2.5" />
-              <th className="text-left font-medium px-4 py-2.5">Key</th>
+              {/* Key 컬럼은 사용자에게 의미가 없어 숨김 (시스템 내부 식별자).
+                  새 카테고리 추가 시 backend 가 자동 생성. */}
               <th className="text-left font-medium px-4 py-2.5">이름</th>
               <th className="text-left font-medium px-4 py-2.5">문서 / 청크</th>
               <th className="text-left font-medium px-4 py-2.5 hidden sm:table-cell">색상</th>
@@ -326,11 +398,7 @@ export default function CategoryTab() {
                         </button>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {cat.key}
-                      </Badge>
-                    </td>
+                    {/* Key cell 숨김 (header 와 일치) */}
                     <td className="px-4 py-3 font-medium">{cat.name}</td>
                     {/* 문서 / 청크 */}
                     <td className="px-4 py-3">
@@ -427,8 +495,9 @@ export default function CategoryTab() {
                                 </Badge>
                                 <button
                                   type="button"
-                                  className="text-muted-foreground hover:text-destructive transition-colors"
-                                  title={`${cat.key} 카테고리에서 제거`}
+                                  className="text-muted-foreground hover:text-foreground transition-colors"
+                                  aria-label={`${cat.key} 카테고리에서 ${vol} 제거`}
+                                  title={`${cat.key} 카테고리에서 제거 (데이터는 보존)`}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (confirm(`"${vol}"을(를) ${cat.name} 카테고리에서 제거하시겠습니까?`)) {
@@ -440,6 +509,18 @@ export default function CategoryTab() {
                                   }}
                                 >
                                   <X className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="text-muted-foreground hover:text-destructive transition-colors"
+                                  aria-label={`${vol} 영구 삭제`}
+                                  title="파일 영구 삭제 (Qdrant + DB 모두)"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openDeleteSingle(vol);
+                                  }}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             ))}
@@ -454,11 +535,7 @@ export default function CategoryTab() {
             {uncategorizedVolumes.length > 0 && (
               <tr className="border-t-2 border-dashed border-amber-300 bg-amber-50/50">
                 <td className="px-4 py-3 w-8"></td>
-                <td className="px-4 py-3">
-                  <Badge variant="outline" className="font-mono text-xs bg-amber-100 text-amber-800 border-amber-300">
-                    —
-                  </Badge>
-                </td>
+                {/* Key cell 숨김 (header 와 일치) */}
                 <td className="px-4 py-3 font-semibold text-amber-800">미분류 문서</td>
                 <td className="px-4 py-3 text-amber-800">
                   {uncategorizedVolumes.length}권 /{" "}
@@ -501,16 +578,11 @@ export default function CategoryTab() {
       {/* 추가/수정 Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="flex flex-col p-0 gap-0">
-          {/* 헤더 */}
+          {/* 헤더 — Key Badge 제거 (시스템 내부 식별자, 사용자에게 노출 안 함) */}
           <SheetHeader className="px-6 pt-6 pb-4 border-b">
-            <div className="flex items-center gap-2">
-              <SheetTitle className="text-base">
-                {editing ? "카테고리 수정" : "새 카테고리 추가"}
-              </SheetTitle>
-              <Badge variant="outline" className="font-mono text-xs">
-                {editing ? editing.key : nextKey || "—"}
-              </Badge>
-            </div>
+            <SheetTitle className="text-base">
+              {editing ? "카테고리 수정" : "새 카테고리 추가"}
+            </SheetTitle>
           </SheetHeader>
 
           {/* 폼 본문 */}
@@ -602,6 +674,22 @@ export default function CategoryTab() {
           categoryColor={transferTarget.color}
         />
       )}
+
+      {/* ADR-30 Phase 3 — 영구 삭제 확인 다이얼로그 */}
+      <DeleteConfirmDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) =>
+          setDeleteDialog((prev) =>
+            open ? prev : { open: false, targets: [], busy: false },
+          )
+        }
+        targets={deleteDialog.targets}
+        busy={deleteDialog.busy}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() =>
+          setDeleteDialog({ open: false, targets: [], busy: false })
+        }
+      />
     </div>
   );
 }

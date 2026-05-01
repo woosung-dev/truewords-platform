@@ -10,17 +10,18 @@ from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 
 from src.admin.data_router import set_main_loop as set_ingest_main_loop
-from src.cache.setup import ensure_cache_collection
 from src.common.database import init_db
 from src.config import settings
 
 logger = logging.getLogger(__name__)
 from src.chat.router import router as chat_router
+from src.chat.reactions_router import reactions_router
 from src.chatbot.router import router as chatbot_router, admin_router as chatbot_admin_router
 from src.admin.router import router as admin_router
 from src.admin.analytics_router import router as analytics_router
 from src.admin.data_router import router as admin_data_router
 from src.datasource.router import router as datasource_router
+from src.datasource.chunks_router import chunks_router
 from src.common.exception_handlers import (
     embedding_failed_handler,
     input_blocked_handler,
@@ -35,7 +36,15 @@ from src.search.exceptions import EmbeddingFailedError, SearchFailedError
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """앱 시작 시 DB + 캐시 컬렉션 초기화. 실패해도 앱은 시작."""
+    """앱 시작 시 DB만 초기화. 캐시 컬렉션은 첫 요청 시 lazy init.
+
+    NOTE: 캐시 컬렉션 ensure를 lifespan에서 호출하지 않는 이유 —
+    Cloud Run cold start 직후 lifespan 시점에 qdrant-client(httpx[http2])가
+    Cloudflare Tunnel에 connect할 때 일관 ConnectTimeout이 발생함.
+    동일 클라이언트가 warm path(첫 chat 요청 이후)에선 정상 동작.
+    Google Cloud 공식도 startup eager init보다 lazy 패턴을 권장.
+    상세: docs/dev-log/46-qdrant-cache-cold-start-debug.md
+    """
     # 워커 스레드가 DB 호출을 위임할 수 있도록 메인 event loop 참조 저장.
     # AsyncEngine connection pool은 단일 loop에 바인딩되므로 필수.
     set_ingest_main_loop(asyncio.get_running_loop())
@@ -44,14 +53,9 @@ async def lifespan(app: FastAPI):
         await init_db()
     except Exception as e:
         logger.warning("init_db 실패 (프로덕션에서는 Alembic 사용): %s", e)
-    try:
-        await ensure_cache_collection()
-        app.state.cache_available = True
-    except Exception as e:
-        logger.warning(
-            "캐시 컬렉션 초기화 실패 — graceful degradation으로 동작: %s", e
-        )
-        app.state.cache_available = False
+
+    # 캐시 가용성 플래그는 lazy 평가 (None = 미시도, True/False = 시도 결과)
+    app.state.cache_available = None
 
     yield
 
@@ -87,6 +91,7 @@ app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignor
 
 # 공개 라우터
 app.include_router(chat_router)
+app.include_router(reactions_router)
 app.include_router(chatbot_router)
 
 # 관리자 라우터
@@ -94,6 +99,7 @@ app.include_router(admin_router)
 app.include_router(chatbot_admin_router)
 app.include_router(admin_data_router)
 app.include_router(datasource_router)
+app.include_router(chunks_router)
 app.include_router(analytics_router)
 
 

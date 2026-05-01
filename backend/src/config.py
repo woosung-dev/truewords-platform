@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     # Qdrant
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: SecretStr | None = None
-    collection_name: str = "malssum_poc"
+    # Phase 2.4 (dev-log 51) — 운영 청킹은 Recursive(v5, langchain RecursiveCharacterTextSplitter 700/150)
+    collection_name: str = "malssum_poc_v5"
 
     # PostgreSQL
     database_url: SecretStr = SecretStr(
@@ -37,13 +38,8 @@ class Settings(BaseSettings):
 
     # Semantic Cache 설정
     cache_collection_name: str = "semantic_cache"
-    cache_threshold: float = 0.93
+    cache_threshold: float = 0.88
     cache_ttl_days: int = 7
-
-    # Cascading search 기본값
-    cascade_score_threshold: float = 0.75
-    cascade_fallback_threshold: float = 0.60
-    cascade_min_results: int = 3
 
     # 임베딩 파이프라인
     # GEMINI_TIER 하나로 무료/유료 전환. 개별 override도 가능.

@@ -65,12 +65,26 @@ def test_safety_config_defaults():
 def test_tier_config_defaults():
     t = TierConfig(sources=["A"])
     assert t.min_results == 3
-    assert t.score_threshold == 0.75
+    # 0.1 = build_runtime_config 의 fallback default 와 동기화 (RRF 점수대 0.0~0.5 범위)
+    # 이전 0.75 는 dead default 였음 (docs/dev-log/2026-05-01-cascade-distribution-measurement.md)
+    assert t.score_threshold == 0.1
 
 
 def test_runtime_config_validation_rejects_unknown_mode():
     with pytest.raises(ValidationError):
         SearchModeConfig(mode="unknown")  # type: ignore[arg-type]
+
+
+def test_runtime_config_theological_stance_default_none():
+    """P1-F: theological_stance 미지정 시 기본값 None."""
+    cfg = _make_config()
+    assert cfg.theological_stance is None
+
+
+def test_runtime_config_theological_stance_accepts_text():
+    """P1-F: theological_stance 에 임의 문자열 저장 가능."""
+    cfg = _make_config(theological_stance="개혁주의 신학에 기반합니다.")
+    assert cfg.theological_stance == "개혁주의 신학에 기반합니다."
 
 
 # --- apply_persona helper (chat/prompt.py) ---

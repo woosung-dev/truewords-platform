@@ -2,7 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    # main 직행 PR + 통합 브랜치 (dev/**) 로 가는 sub-task PR 모두 CI 실행.
+    # 통합 브랜치 패턴: docs/guides/integration-branch-workflow.md 참조.
+    branches: [main, "dev/**"]
 
 jobs:
   # 변경 경로 감지: backend/admin이 실제로 바뀌었는지 판정한다.
@@ -53,7 +55,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: uv sync --frozen
+        # eval group: openpyxl/ragas 등 평가 스크립트 의존성. tests/scripts/test_analyze_*
+        # 및 test_eval_* 가 import하므로 CI에서도 설치 필요.
+        run: uv sync --frozen --all-groups
 
       - name: Run pytest
         env:

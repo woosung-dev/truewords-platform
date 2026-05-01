@@ -27,10 +27,12 @@ class PipelineState(str, enum.Enum):
     CACHE_CHECKED = "CACHE_CHECKED"
     CACHE_HIT_TERMINATED = "CACHE_HIT_TERMINATED"
     RUNTIME_RESOLVED = "RUNTIME_RESOLVED"
+    INTENT_CLASSIFIED = "INTENT_CLASSIFIED"
     QUERY_REWRITTEN = "QUERY_REWRITTEN"
     SEARCHED = "SEARCHED"
     RERANKED = "RERANKED"
     GENERATED = "GENERATED"
+    META_TERMINATED = "META_TERMINATED"
     SAFETY_APPLIED = "SAFETY_APPLIED"
     PERSISTED = "PERSISTED"
     STREAM_ABORTED = "STREAM_ABORTED"
@@ -44,11 +46,14 @@ EXPECTED_PRIOR: dict[str, set[PipelineState]] = {
     "EmbeddingStage": {PipelineState.SESSION_READY},
     "CacheCheckStage": {PipelineState.EMBEDDED},
     "RuntimeConfigStage": {PipelineState.CACHE_CHECKED},
-    "QueryRewriteStage": {PipelineState.RUNTIME_RESOLVED},
+    "IntentClassifierStage": {PipelineState.RUNTIME_RESOLVED},
+    "QueryRewriteStage": {PipelineState.INTENT_CLASSIFIED},
     "SearchStage": {PipelineState.QUERY_REWRITTEN},
     "RerankStage": {PipelineState.SEARCHED},
     "GenerationStage": {PipelineState.RERANKED},
-    "SafetyOutputStage": {PipelineState.GENERATED},
+    # Phase E — meta short-circuit 시 IntentClassifierStage 가 META_TERMINATED 로 전이 후
+    # service.py 가 직접 SafetyOutputStage 만 호출 (Search/Rerank/Generation 스킵).
+    "SafetyOutputStage": {PipelineState.GENERATED, PipelineState.META_TERMINATED},
     "PersistStage": {PipelineState.SAFETY_APPLIED},
 }
 

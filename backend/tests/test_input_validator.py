@@ -1,4 +1,9 @@
-"""입력 검증 테스트 — Prompt Injection 방어, 길이 제한, 공백 체크."""
+"""입력 검증 테스트 — Prompt Injection 방어, 길이 제한, 공백 체크.
+
+P1-E (PR #71) 이후 prompt injection 패턴은 hard fail 대신 soft refusal:
+``InputValidationResult(passed=False, reason="injection")`` 반환. 빈 입력 / 길이
+초과는 여전히 ``InputBlockedError`` raise.
+"""
 
 import pytest
 
@@ -34,8 +39,9 @@ class TestPromptInjectionBlocking:
         ],
     )
     async def test_blocks_injection_patterns(self, malicious_query: str) -> None:
-        with pytest.raises(InputBlockedError, match="허용되지 않는 입력 패턴"):
-            await validate_input(malicious_query)
+        result = await validate_input(malicious_query)
+        assert result.passed is False
+        assert result.reason == "injection"
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -53,8 +59,9 @@ class TestPromptInjectionBlocking:
         ],
     )
     async def test_allows_legitimate_queries(self, normal_query: str) -> None:
-        # 예외 없이 통과해야 함
-        await validate_input(normal_query)
+        result = await validate_input(normal_query)
+        assert result.passed is True
+        assert result.reason is None
 
 
 class TestInputLengthValidation:

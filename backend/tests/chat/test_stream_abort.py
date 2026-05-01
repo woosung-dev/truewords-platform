@@ -70,6 +70,11 @@ class TestStreamAbortIntegration:
                 new_callable=AsyncMock,
             ),
             patch(
+                "src.chat.pipeline.stages.intent_classifier.classify_intent",
+                new_callable=AsyncMock,
+                return_value="conceptual",
+            ),
+            patch(
                 "src.chat.pipeline.stages.embedding.embed_dense_query",
                 new_callable=AsyncMock,
                 return_value=[0.1] * 1536,

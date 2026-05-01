@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { DuplicateCheckResponse } from "@/features/data-source/types";
 
-export type DuplicateDecision = "overwrite" | "add-tag" | "cancel";
+// ADR-30: 재업로드 시 사용자 의사결정.
+//   merge   — 기존 분류 보존 + 신규 분류 합집합 + 콘텐츠 갱신 (default 권장)
+//   add-tag — 임베딩 없이 카테고리 태그만 추가 (volume-tags API)
+//   replace — 신규 분류로 통째 교체 + 콘텐츠 갱신 (위험)
+//   cancel  — 업로드 중단
+export type DuplicateDecision = "merge" | "add-tag" | "replace" | "cancel";
 
 interface DuplicateConfirmDialogProps {
   open: boolean;
@@ -39,6 +44,16 @@ export default function DuplicateConfirmDialog({
   const existingSourcesLabel =
     duplicate.sources.length > 0 ? duplicate.sources.join(", ") : "미분류";
 
+  const targetLabel = targetSource ? targetSource : "미분류";
+
+  // merge 결과 미리보기 — 기존 ∪ 신규 (실제 backend 계산과 동일 시맨틱)
+  const mergedPreview = (() => {
+    const set = new Set(duplicate.sources.filter((s) => s));
+    if (targetSource) set.add(targetSource);
+    const arr = Array.from(set).sort();
+    return arr.length > 0 ? arr.join(", ") : "미분류";
+  })();
+
   const lastUploadedLabel = duplicate.last_uploaded_at
     ? new Date(duplicate.last_uploaded_at).toLocaleString("ko-KR")
     : "-";
@@ -59,7 +74,10 @@ export default function DuplicateConfirmDialog({
               <AlertTriangle className="h-5 w-5" />
               동일 파일이 이미 존재합니다
             </Dialog.Title>
-            <Dialog.Close className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+            <Dialog.Close
+              aria-label="닫기"
+              className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
@@ -98,39 +116,56 @@ export default function DuplicateConfirmDialog({
                 <span className="text-muted-foreground shrink-0 w-20">최근 업로드</span>
                 <span className="text-muted-foreground">{lastUploadedLabel}</span>
               </div>
+              {/* 파일 식별자 — PR #99 hash 시점 이동 후 PARTIAL 도 보존. 동일 파일 재업로드
+                  여부를 사용자가 직관 확인 (동일 파일이면 hash 8자리 동일). */}
+              {duplicate.content_hash && (
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground shrink-0 w-20">파일 식별자</span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {duplicate.content_hash}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="text-sm text-muted-foreground leading-relaxed">
-              이대로 업로드하면 기존 문서를{" "}
-              <span className="font-medium text-foreground">덮어쓰기</span>하며,
-              기존 카테고리 태그(
-              <span className="font-medium text-foreground">{existingSourcesLabel}</span>
-              )는{" "}
-              <span className="font-medium text-foreground">
-                {targetSource ? targetSource : "미분류"}
-              </span>
-              로 대체됩니다.
+              아래 옵션을 선택하세요. 기본은 <span className="font-medium text-foreground">내용 갱신 (분류 유지)</span>로,
+              기존 분류(<span className="font-medium text-foreground">{existingSourcesLabel}</span>)에 이번 업로드 분류
+              (<span className="font-medium text-foreground">{targetLabel}</span>)를 합쳐{" "}
+              <span className="font-medium text-foreground">{mergedPreview}</span>로 적재됩니다.
             </div>
           </div>
 
-          {/* 액션 */}
+          {/* 액션 — ADR-30 결정 매트릭스 */}
           <div className="flex flex-col gap-2 border-t px-6 py-4">
+            <Button
+              variant="default"
+              autoFocus
+              className="w-full justify-center whitespace-normal break-words text-left"
+              onClick={() => decide("merge")}
+            >
+              내용 갱신 (분류 유지: {mergedPreview})
+            </Button>
             {canAddTag && (
               <Button
-                variant="default"
-                className="w-full justify-center"
+                variant="outline"
+                className="w-full justify-center whitespace-normal break-words"
                 onClick={() => decide("add-tag")}
               >
-                기존 문서에 &quot;{targetSource}&quot; 태그만 추가
+                임베딩 없이 &quot;{targetSource}&quot; 태그만 추가
               </Button>
             )}
             <Button
               variant="outline"
-              className="w-full justify-center border-amber-300 text-amber-700 hover:bg-amber-50"
-              onClick={() => decide("overwrite")}
+              className="w-full justify-center whitespace-normal break-words border-amber-300 text-amber-700 hover:bg-amber-50"
+              aria-describedby="replace-warning-text"
+              onClick={() => decide("replace")}
             >
-              덮어쓰고 다시 업로드
+              덮어쓰기 (분류를 &quot;{targetLabel}&quot;로 교체)
             </Button>
+            <span id="replace-warning-text" className="sr-only">
+              위험: 기존 분류가 사라지고 신규 분류로 통째 교체됩니다.
+            </span>
             <Button
               variant="ghost"
               className="w-full justify-center"

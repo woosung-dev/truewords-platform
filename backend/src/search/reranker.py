@@ -74,7 +74,7 @@ async def rerank(
             logger.warning("Rerank 파싱 실패, 원본 결과 반환")
             return results[:top_k]
 
-        # rerank_score 부여 + 정렬
+        # rerank_score 부여 + 정렬. parent_*/chunk_id 등 메타데이터는 원본에서 그대로 carry.
         reranked = [
             SearchResult(
                 text=r.text,
@@ -83,6 +83,9 @@ async def rerank(
                 score=r.score,  # 원본 retrieval score 유지
                 source=r.source,
                 rerank_score=s,
+                parent_text=r.parent_text,
+                parent_chunk_index=r.parent_chunk_index,
+                chunk_id=r.chunk_id,
             )
             for r, s in zip(results, scores)
         ]

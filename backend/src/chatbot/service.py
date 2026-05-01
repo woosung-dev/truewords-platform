@@ -107,8 +107,6 @@ class ChatbotService:
                 tiers=tiers,
                 weighted_sources=weighted_sources,
                 dictionary_enabled=raw.get("dictionary_enabled", False),
-                collection_main=raw.get("collection_main"),
-                collection_cache=raw.get("collection_cache"),
             ),
             generation=GenerationConfig(
                 system_prompt=apply_persona(base_prompt, persona),
@@ -119,6 +117,8 @@ class ChatbotService:
                 query_rewrite_enabled=raw.get("query_rewrite_enabled", True),
             ),
             safety=SafetyConfig(),
+            # P1-F: search_tiers JSONB 안에 함께 저장된 신학 입장 텍스트 (선택).
+            theological_stance=raw.get("theological_stance"),
         )
 
     async def create(self, data: ChatbotConfigCreate) -> ChatbotConfig:

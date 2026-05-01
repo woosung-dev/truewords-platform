@@ -21,6 +21,7 @@ dependencies = [
     "python-docx>=1.2.0",
     "kss>=6.0.6",
     "python-multipart>=0.0.22",
+    "aiosqlite>=0.22.1",
 ]
 
 [dependency-groups]
@@ -30,6 +31,17 @@ dev = [
     "pytest-asyncio>=0.24.0",
     "pytest-mock>=3.14.0",
     "testcontainers[postgres]>=4.0.0",
+]
+
+# RAGAS 평가 도구 + xlsx I/O. 평가 스크립트(backend/scripts/eval_ragas.py,
+# sample_eval_pairs.py)와 임계값 회귀 테스트(tests/test_ragas_thresholds.py)에서 사용한다.
+# 운영 코드는 의존하지 않으므로 별도 group으로 분리한다.
+eval = [
+    "openpyxl>=3.1",
+    "ragas>=0.2",
+    "langchain-anthropic>=0.2",
+    "langchain-google-genai>=2.0",
+    "pandas>=2.0",
 ]
 
 [tool.pytest.ini_options]

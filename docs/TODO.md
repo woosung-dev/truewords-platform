@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-04-24
+> 마지막 업데이트: 2026-04-30
 
 ## Progress Overview
 
@@ -83,6 +83,15 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] **[Follow-up]** bulk 엔드포인트 NFD → NFC 통일 — PR #24로 NFC/NFD 둘 다 매칭하도록 픽스 완료
 - [x] **[Follow-up]** `qdrant_service.remove_volume_tag`(단일)도 NFC+NFD 양쪽 매칭으로 통일 — bulk 경로(PR #24)와 동일 패턴 적용. search_terms 에 NFC/NFD 둘 다 + scroll 결과를 NFC 기준 재확인
 
+### 재업로드 정책 `on_duplicate` (ADR-30, 2026-04-27)
+- [x] ADR-30 — `docs/dev-log/30-upload-on-duplicate-mode.md`
+- [x] Backend `POST /admin/data-sources/upload` `on_duplicate=merge|replace|skip` Form 파라미터 (default `merge`)
+- [x] `ingestor.py` — `payload_sources` 파라미터로 chunk.source override (merge union 지원)
+- [x] `_process_file_standard` — skip(COMPLETED 동일 파일이면 임베딩 생략) + merge(기존 ∪ 신규) 분기
+- [x] pytest 3건 추가 (`test_payload_sources_*`) — 12 PASS, 전체 collect 452 import OK
+- [x] Admin `DuplicateDecision` 4분기로 확장 (`merge`/`add-tag`/`replace`/`cancel`) + `uploadFile`이 `on_duplicate` 전달
+- [x] Dialog merge 미리보기(기존 ∪ 신규) + default 권장 버튼을 "내용 갱신 (분류 유지)"로 변경
+
 ### Backend — 보안 강화 (2026-04-11)
 - [x] Prompt Injection 패턴 강화 — Zero-width 정규화, 패턴 7개 추가 (16→23개)
 - [x] 시스템 프롬프트 보안 규칙 — 유출 방어, 컨텍스트 주입 방어, 범위 이탈 방어
@@ -114,6 +123,11 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] **종교 용어 사전 동적 주입** — 대사전 데이터 미확보 [데이터 수급 필요]
 - [ ] **민감 인명 필터 구체화** — SENSITIVE_PATTERNS 목록 비어있음 [도메인 전문가 협의 필요]
 - [ ] **멀티테넌시** (organization_id 필터링) — 다중 조직 운영 요구사항 미확정 [확인 필요]
+- [ ] **RAGAS 평가 LLM 환원 — Gemini 2.5 Pro → Claude Haiku 4.5** [Anthropic 크레딧 충전 필요]
+  - 현재 `backend/scripts/eval_ragas.py` + `tests/test_ragas_thresholds.py` 가 평가용 LLM 으로 Gemini 2.5 Pro 사용 (Anthropic 크레딧 잔액 부족 임시 대체).
+  - 시도 이력: `gemini-3.1-pro-preview` 는 RAGAS 평가에서 RPM throttling/응답 hang 다발로 사용 불가 (5건 sanity 1회 정상 후 모든 후속 호출 hang). `gemini-2.5-pro` 로 fallback.
+  - 인계 문서 §5 사전 결정은 Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) — 생성=Gemini, 평가=Claude 분리로 G-Eval LLM-self-bias 회피.
+  - 충전 후 작업: (1) `EVAL_LLM_MODEL = "claude-haiku-4-5-20251001"` 으로 환원, (2) `LangchainLLMWrapper` 를 `ChatAnthropic` 으로 교체, (3) RAGAS 3-way 재측정 + 보고서 비교 (Gemini-2.5-Pro 평가본 vs Claude-Haiku 평가본 메트릭 차이 기록).
 - [x] ~~데이터 source 라벨 체계 통일~~ — **결정 완료 (2026-04-11)**: 옵션 A "라벨은 데이터가 정한다" 채택. 실제 적재 라벨(L/M 등)을 single source of truth로 사용, 설계 문서의 A/B/C/D는 논리적 분류 예시로 격하. SearchTierEditor에서 Qdrant 실제 source 값을 동적 표시하는 방향. 상세: `docs/dev-log/26-source-label-decision.md`
 
 ---
@@ -126,6 +140,27 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ---
 
 ## Next Actions
+
+### 0-A. `collection_main` Phase 2 — DB 컬럼 drop (완료, stack PR)
+> 상세: `docs/dev-log/52-collection-main-deprecation.md`
+> Phase 1 (코드 사용 중단) PR #87, branch `refactor/deprecate-collection-main` (2026-04-30)
+> Phase 2 (DB 컬럼 drop) branch `refactor/drop-collection-main-phase2`, base = Phase 1 (2026-04-30)
+
+- [x] Alembic 마이그레이션 `aa6f4b908ef4` — `chatbot_configs.collection_main` 컬럼 drop + PoC 봇 4개 `is_active=FALSE` 처리 (FK 보호 위해 hard delete 대신 소프트 비활성)
+- [x] `backend/src/chatbot/models.py` 컬럼 정의 + deprecation 주석 제거
+- [x] `seed_chatbot_configs.py` PoC 봇 (`chunking-*`, `all-paragraph`) 시드 데이터 제거
+- [x] `backend/src/search/collection_resolver.py` — `resolve_collections()` 무인자로 단순화 + 호출부 일괄 변경
+- [ ] (배포 후) Phase 1 → Phase 2 순으로 prod 배포 + alembic head 확인
+
+### 0. Phase 2.2 — paragraph 청킹 운영 전환 후속 (2026-04-30)
+> 결정 ADR: `docs/dev-log/45-paragraph-chunking-50q-revalidation.md`
+> 후속 plan: `docs/dev-log/46-paragraph-l2-citation-strengthening.md`
+
+- [x] 새 평가셋 50문항 + 3가지 평가 방식(RAGAS / LLM-Judge / 키워드 F1) 통합 측정 — F 우월 일치 확인 (RAGAS +0.058, LLM-Judge +0.70)
+- [x] `'all'` 봇 `collection_main`을 `malssum_poc_v3` 영구 적용 (DB 변경 + `seed_chatbot_configs.py` 동기화)
+- [ ] **Codex 독립 검토** — `~/Downloads/codex_compare_input_new50.md`를 `/codex consult` 모드로 호출 (사용자 직접). 4번째 평가 방식 confirm 효과
+- [ ] **L2(출처 인용) 약점 보강** — dev-log 46의 방안 B(질문 파싱 + volume 필터) 우선 적용 → L2 회복 검증 → 미회복 시 방안 A(메타데이터 prefix injection 재임베딩)
+- [ ] **Backend cache graceful degradation 결함 수정** — `cache_check.py`/`SemanticCacheService.check_cache`에 collection NotFound try/except + cache_available=False 자동 전환 (별도 PR)
 
 ### 1. RRF 점수 스케일 후속 조치 (즉시)
 > 상세: `docs/dev-log/24-rrf-score-threshold-fix.md` §4
@@ -177,6 +212,23 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] Agentic RAG
 - [ ] 단계적 공개 (Staged Rollout)
 
+### 10. ADR-30 후속 (재업로드 정책) — 2026-04-27 완료
+- [x] **batch 모드 정렬** — `mode=batch`도 `on_duplicate` Form 파라미터 받음. `BatchService.submit`/`_ingest_batch_results`에 정책 적용 (merge union + skip 사전 차단). `_process_file` warning 제거. 커밋 `b7c56fb`
+- [x] **`IngestionJob.content_hash` 도입** — SHA-256 hex 컬럼 + Alembic 마이그레이션(`dcf99a84bff1`). `_process_file_standard`에서 hash 비교로 skip 강화 (Gemini 호출 0회). 커밋 `f2efd20`, `1e8c5b3`, `4e57a40`
+- [x] **일괄 업로드 결과 리포트** — UploadResponse `predicted_outcome` 추가, Admin UI에서 일괄 업로드 후 "신규/병합/덮어쓰기/스킵" 통계 토스트 + bulk skip 토글 노출. 커밋 `fb99d00`, `cf86ef1`
+- [x] **부수: batch UUID NAMESPACE_URL 정렬** — `batch_service` `NAMESPACE_DNS`→`NAMESPACE_URL`로 정렬해 standard와 Point ID 정합성 확보 (잠재 중복 적재 버그 픽스). 커밋 `ef971a3`
+- [x] **부수: BatchJob.on_duplicate 컬럼** — Alembic 마이그레이션(`4d872f8826ad`), default 'merge'. 커밋 `1ffcf61`
+
+### 10b. ADR-30 Phase 2 — Codex review 후속 (2026-04-27 완료)
+> Codex CLI 코드 리뷰 후 발견된 [P1] 1건 + [P2] 3건 + UI BUG 1건을 같은 PR에 합쳐 머지. 검증 잠금까지.
+
+- [x] **[P1] start_chunk 자동 재개로 인한 merge/replace silent no-op 픽스** — `_process_file_standard`에 needs_reset 분기 추가, COMPLETED 재업로드 시 기존 Qdrant 청크 삭제 + start_chunk=0. skip+hash 불일치 fallback도 merge와 동일 정책. 커밋 `443d20f`
+- [x] **[P2] skip 단축 경로 total_chunks 보존** — `complete_job(total_chunks=...)` 키워드 인자 + 두 호출처에 적용. 커밋 `443d20f`
+- [x] **[P2] legacy NAMESPACE_DNS 마이그레이션 스크립트** — `backend/scripts/migrate_batch_dns_to_url.py` (dry-run + 충돌 통계 + URL-ID upsert 후 DNS-ID 삭제). 커밋 `f840046`
+- [x] **[BUG-A] 일괄 업로드 dialog 충돌 silent failure 픽스** — `BulkPrecheckDialog` + `runBulkUpload` sequential + performUpload silent 옵션. 커밋 `c24fdea`
+- [x] **a11y / 라벨 명확화** — Dialog.Close `aria-label`, default 권장 `autoFocus`, `aria-describedby` 위험 안내, bulk skip 토글 라벨/hint 재작성. 커밋 `0bc774d`
+- [x] **회귀 잠금** — `inspect`-based 테스트 3건 (reset 분기 / total_chunks 키워드 / NAMESPACE_URL 사용) — 29 PASS
+
 ### 9. 아키텍처 리팩토링 선행 작업 (2026-04-24 착수)
 > 플랜: `~/.claude/plans/sleepy-sleeping-summit.md` (v4.1)
 > 브랜치: `refactor/runtime-config-prep`
@@ -199,3 +251,38 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
   - [ ] N3 FSM `force_transition_to` — dev-log 32 조사 결과 R1 Phase 1(PipelineState 도입) 필수 의존, 단독 선구현 불가
   - [x] N4 `ALEMBIC_EXPECTED_HEAD` 빌드 artifact + `_is_ancestor` rollback — dev-log 27, 단위 39 PASS. Cloud Run 실배포 검증은 staging 후
   - [ ] N7 Legacy `[legacy]` 태그 + 재인용 금지 — dev-log 32 조사 결과 R2 preparatory migration(`SessionMessage.pipeline_version` 추가) 필수 의존, 단독 선구현 불가
+
+### 11. Qdrant 셀프 호스팅 (2026-04-29 착수)
+> 워크트리: `../truewords-platform-qdrant-vm`, 브랜치: `feat/qdrant-self-hosting`
+> ADR: `docs/dev-log/45-qdrant-self-hosting.md` · 운영 가이드: `docs/07_infra/qdrant-self-hosting.md`
+> 플랜: `~/.claude/plans/tingly-watching-noodle.md`
+
+#### 코드 (완료)
+- [x] `infra/qdrant-vm/docker-compose.yml` — qdrant + cloudflared 2개 서비스
+- [x] `infra/qdrant-vm/.env.example` — API_KEY, TUNNEL_TOKEN 템플릿
+- [x] `infra/qdrant-vm/cloudflared/README.md` — 토큰 방식 운영 안내
+- [x] `infra/qdrant-vm/provision.sh` — gcloud 기반 VM/방화벽 프로비저닝
+- [x] `infra/qdrant-vm/setup-vm.sh` — VM 부트스트랩 (Docker, 디렉토리, compose up)
+- [x] `backend/scripts/migrate_cloud_to_vm.py` — 체크포인트 기반 풀 마이그레이션
+- [x] `backend/scripts/verify_migration.py` — count + 샘플 vector cosine 검증
+- [x] 문서: ADR-45, 운영 가이드, environment-setup 갱신
+
+#### 사용자 액션 필요
+- [ ] Cloudflare 계정 + Tunnel 생성 (`qdrant-truewords`), 토큰을 GitHub Secrets `CLOUDFLARE_TUNNEL_TOKEN`로 등록
+- [ ] `infra/qdrant-vm/.env` 작성 (`QDRANT_API_KEY=$(openssl rand -base64 32)`, `CLOUDFLARE_TUNNEL_TOKEN=...`)
+- [ ] gcloud 인증 후 `./infra/qdrant-vm/provision.sh` 실행
+- [ ] VM에 `infra/qdrant-vm` 업로드 후 `setup-vm.sh` 실행
+- [ ] `create_collection_v2.py` 새 VM 대상으로 실행 (malssum_poc, semantic_cache)
+
+#### 운영 단계
+- [ ] `migrate_cloud_to_vm.py --dry-run` → `--execute`
+- [ ] `verify_migration.py --sample 20` 통과
+- [ ] Staging Cloud Run 환경변수 교체 → 회귀 테스트 (pytest 274 + Vitest 25 + E2E 12)
+- [ ] Production cutover (GitHub Secrets 갱신 → 재배포 → 30분 모니터링)
+- [ ] 1주일 후 Qdrant Cloud 클러스터 종료
+
+#### 후속 (별도 ADR)
+- [ ] GCP Secret Manager 도입 (현재 GitHub Secrets 유지)
+- [ ] VM Snapshot → Cloud Storage 자동 백업 (cron + gcloud)
+- [ ] Qdrant 클러스터링 (3노드, 데이터 ≥ 10GB 시점)
+- [ ] AWS 이관 IaC 작성 (Terraform/CDK)

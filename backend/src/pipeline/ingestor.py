@@ -3,6 +3,10 @@
 청크 리스트를 받아 dense/sparse 임베딩 후 Qdrant에 upsert한다.
 429 발생 시 지수 백오프(90→180초)로 재시도한다.
 재업로드를 통한 청크 레벨 체크포인트 재개를 지원한다.
+
+raw httpx (HTTP/1.1, sync) 사용 — qdrant-client SDK HTTP/2 hang 회피
+(PR #78 진단, docs/dev-log/47 참조). admin _process_file 이 sync 컨텍스트(thread)에서
+호출하므로 sync httpx.Client 직접 사용.
 """
 
 from __future__ import annotations
@@ -13,9 +17,8 @@ import time
 import uuid
 from typing import Callable
 
+import httpx
 from google.genai import errors as genai_errors
-from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct, SparseVector
 
 from src.config import settings
 from src.pipeline.chunk_payload import QdrantChunkPayload
@@ -26,6 +29,79 @@ logger = logging.getLogger(__name__)
 
 # Qdrant upsert 배치 크기
 _UPSERT_BATCH_SIZE = 50
+
+# Qdrant 적재 timeout — cold start 흡수 + 대용량 batch 안전.
+_INGEST_TIMEOUT = httpx.Timeout(60.0, connect=10.0)
+
+
+def _qdrant_headers() -> dict[str, str]:
+    api_key = settings.qdrant_api_key.get_secret_value() if settings.qdrant_api_key else ""
+    return {"api-key": api_key, "Content-Type": "application/json"}
+
+
+def _qdrant_base() -> str:
+    return settings.qdrant_url.rstrip("/")
+
+
+def _sync_upsert(collection_name: str, points: list[dict]) -> None:
+    """raw httpx (HTTP/1.1, sync) Qdrant upsert. SDK HTTP/2 hang 회피."""
+    with httpx.Client(http2=False, timeout=_INGEST_TIMEOUT) as client:
+        resp = client.put(
+            f"{_qdrant_base()}/collections/{collection_name}/points?wait=true",
+            headers=_qdrant_headers(),
+            json={"points": points},
+        )
+        resp.raise_for_status()
+
+
+# Facet API / payload filter 가 사용하는 keyword 인덱스 — 한 번 생성되면 멱등.
+# (qdrant 가 이미 있는 인덱스 PUT 도 200 OK 로 응답)
+_REQUIRED_PAYLOAD_INDEXES = ("source", "volume")
+
+
+def _ensure_payload_indexes(collection_name: str) -> None:
+    """Qdrant payload index 멱등 보장 — admin facet (category-stats / volumes) 활성화.
+
+    적재 시작 직전에 1회 PUT 호출. 인덱스 미존재 시에만 실제 생성, 이미 있으면
+    빠른 no-op. 실패해도 적재 자체는 진행 (warning 만 로그).
+    """
+    base = _qdrant_base()
+    with httpx.Client(http2=False, timeout=_INGEST_TIMEOUT) as client:
+        for field in _REQUIRED_PAYLOAD_INDEXES:
+            try:
+                resp = client.put(
+                    f"{base}/collections/{collection_name}/index?wait=true",
+                    headers=_qdrant_headers(),
+                    json={"field_name": field, "field_schema": "keyword"},
+                )
+                if resp.status_code != 200:
+                    logger.warning(
+                        "Qdrant payload index '%s' on '%s' 생성 실패 (status=%d): %s",
+                        field, collection_name, resp.status_code, resp.text[:200],
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "Qdrant payload index '%s' on '%s' 생성 예외: %s — 적재 진행",
+                    field, collection_name, exc,
+                )
+
+
+def _sync_delete_by_filter(collection_name: str, filter_dict: dict) -> None:
+    """raw httpx (HTTP/1.1, sync) Qdrant delete by filter. SDK HTTP/2 hang 회피."""
+    with httpx.Client(http2=False, timeout=_INGEST_TIMEOUT) as client:
+        resp = client.post(
+            f"{_qdrant_base()}/collections/{collection_name}/points/delete?wait=true",
+            headers=_qdrant_headers(),
+            json={"filter": filter_dict},
+        )
+        resp.raise_for_status()
+
+
+def _build_text_for_embedding(chunk: Chunk) -> str:
+    """Anthropic Contextual Retrieval prefix가 있으면 prepend, 없으면 원문만 (옵션 B)."""
+    if chunk.prefix_text:
+        return f"{chunk.prefix_text}\n\n{chunk.text}"
+    return chunk.text
 
 
 def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[float]]:
@@ -76,12 +152,12 @@ def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[floa
 
 
 def ingest_chunks(
-    client: QdrantClient,
     collection_name: str,
     chunks: list[Chunk],
     start_chunk: int = 0,
     title: str = "",
     on_progress: Callable[[int], None] | None = None,
+    payload_sources: list[str] | None = None,
 ) -> dict:
     """청크를 배치 임베딩 후 Qdrant에 upsert — 청크 레벨 체크포인트 지원.
 
@@ -90,19 +166,25 @@ def ingest_chunks(
     429 발생 시 재시도하며, 3회 소진 시 부분 완료로 처리한다.
 
     Args:
-        client: Qdrant 동기 클라이언트.
         collection_name: 적재 대상 Qdrant 컬렉션명.
         chunks: 적재할 Chunk 리스트.
         start_chunk: 재개 시작 인덱스 (0이면 처음부터).
         title: Gemini 임베딩 품질 향상용 문서 제목.
         on_progress: upsert 성공 시 누적 처리 청크 수(abs_batch_end)를 전달받는 콜백.
             None이면 체크포인트 저장을 생략한다.
+        payload_sources: 모든 청크에 적용할 source 리스트. None이면 chunk.source를
+            그대로 사용. 재업로드 merge 모드에서 기존 ∪ 신규 source를 미리 계산해
+            전달한다. ADR-30 참조.
 
     Returns:
         dict: chunk_count, total_chunks, elapsed_sec, is_partial.
     """
     if not chunks:
         return {"chunk_count": 0, "total_chunks": 0, "elapsed_sec": 0.0, "is_partial": False}
+
+    # admin facet (category-stats / volumes) 가 사용하는 payload keyword 인덱스
+    # — 멱등 보장. 신규 컬렉션 첫 적재 시 자동 생성, 이미 있으면 no-op.
+    _ensure_payload_indexes(collection_name)
 
     total = len(chunks)
 
@@ -120,7 +202,7 @@ def ingest_chunks(
     estimated_batches = max(1, math.ceil(total_chars / max_chars))
 
     start = time.monotonic()
-    points: list[PointStruct] = []
+    points: list[dict] = []
 
     logger.info(
         "임베딩 시작 — 배치 간 %.0f초 대기, 동적 배치(상한 %d자), "
@@ -147,7 +229,7 @@ def ingest_chunks(
             batch_chars += chunk_len
             idx += 1
 
-        batch_texts = [c.text for c in batch_chunks]
+        batch_texts = [_build_text_for_embedding(c) for c in batch_chunks]
         abs_batch_end = start_chunk + idx
         batch_num += 1
 
@@ -167,31 +249,45 @@ def ingest_chunks(
             sparse_indices, sparse_values = sparse_results[i]
             chunk_key = f"{chunk.volume}:{chunk.chunk_index}"
             point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, chunk_key))
-            source_list = chunk.source if isinstance(chunk.source, list) else [chunk.source] if chunk.source else []
+            if payload_sources is not None:
+                source_list = payload_sources
+            else:
+                source_list = chunk.source if isinstance(chunk.source, list) else [chunk.source] if chunk.source else []
+            payload = QdrantChunkPayload(
+                text=chunk.text,
+                volume=chunk.volume,
+                chunk_index=chunk.chunk_index,
+                source=source_list,
+                title=chunk.title,
+                date=chunk.date,
+            ).model_dump()
+            # Hierarchical (Parent-Child) extra 필드 — QdrantChunkPayload 는
+            # extra="ignore" 라 schema 변경 없이 dict 머지로 적재.
+            if chunk.parent_text:
+                payload["parent_text"] = chunk.parent_text
+                payload["parent_chunk_index"] = chunk.parent_chunk_index
+                payload["chunk_type"] = "child"
+            # Phase 3 dev-log 53 권고 — book_series 분리 (같은 volume "001" 도
+            # 다른 책일 수 있음). 빈 문자열이면 미적용.
+            if chunk.book_series:
+                payload["book_series"] = chunk.book_series
             points.append(
-                PointStruct(
-                    id=point_id,
-                    vector={
+                {
+                    "id": point_id,
+                    "vector": {
                         "dense": dense_vectors[i],
-                        "sparse": SparseVector(
-                            indices=sparse_indices,
-                            values=sparse_values,
-                        ),
+                        "sparse": {
+                            "indices": sparse_indices,
+                            "values": sparse_values,
+                        },
                     },
-                    payload=QdrantChunkPayload(
-                        text=chunk.text,
-                        volume=chunk.volume,
-                        chunk_index=chunk.chunk_index,
-                        source=source_list,
-                        title=chunk.title,
-                        date=chunk.date,
-                    ).model_dump(),
-                )
+                    "payload": payload,
+                }
             )
 
         # Qdrant upsert (충분히 쌓이면 flush)
         if len(points) >= _UPSERT_BATCH_SIZE:
-            client.upsert(collection_name=collection_name, points=points)
+            _sync_upsert(collection_name, points)
             logger.info(
                 "  [%d/%d] 청크 적재 중... (배치 %d: %d청크/%d자)",
                 abs_batch_end, total, batch_num,
@@ -209,7 +305,7 @@ def ingest_chunks(
     # 남은 points flush
     processed_count = idx
     if points:
-        client.upsert(collection_name=collection_name, points=points)
+        _sync_upsert(collection_name, points)
         abs_flushed = start_chunk + processed_count
         logger.info("  [%d/%d] 청크 적재 완료", abs_flushed, total)
         if on_progress:

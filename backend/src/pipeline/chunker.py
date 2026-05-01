@@ -21,6 +21,15 @@ class Chunk:
     source: list[str] | str = ""
     title: str = ""
     date: str = ""
+    prefix_text: str = ""  # Anthropic Contextual Retrieval prefix (옵션 B)
+    # Hierarchical (Parent-Child) chunking — child chunk 가 자기 parent 의
+    # 본문/index 를 부착해서 검색 매칭은 child 로, LLM 컨텍스트는 parent 로 분리.
+    parent_text: str = ""
+    parent_chunk_index: int = -1
+    # Phase 3/4 후속 — Phase 3 dev-log 53 권고. 같은 volume("001") 이라도 다른
+    # 책 (참어머님 말씀정선집 vs 문선명선생 말씀선집) 구분 위한 series 필드.
+    # 빈 문자열이면 metadata 미분류.
+    book_series: str = ""
 
 
 # 한국어 문장 종결 패턴: 다/요/까/죠/세요 + 마침표, 또는 ?!
@@ -110,7 +119,11 @@ def chunk_text(
     date: str = "",
     overlap_sentences: int = 2,
 ) -> list[Chunk]:
-    """문장 경계 기반 청킹. 문장 중간 절단 없이 max_chars 단위로 분리."""
+    """문장 경계 기반 청킹. 문장 중간 절단 없이 max_chars 단위로 분리.
+
+    DEPRECATED — kss 기반 sentence 청킹. 운영 사용처 없음 (legacy).
+    운영 기본은 ``chunk_recursive`` (dev-log 51, v5).
+    """
     if not text.strip():
         return []
 
@@ -165,4 +178,250 @@ def chunk_text(
             date=date,
         ))
 
+    return chunks
+
+
+# =====================================================================
+# Phase 2.2 (dev-log 45) — paragraph 청킹
+# DEPRECATED (dev-log 51, 2026-04-30) — v3 운영 기본 → v5 Recursive 전환.
+# 50%/75%/100% 적재 마일스톤 v3 vs v5 재측정 baseline 용도로만 보존.
+# =====================================================================
+
+# token-based fallback 파라미터 (Korean ~2.5 chars/token 근사)
+_TOKEN_CHUNK_CHARS = 2560      # ~1024 token
+_TOKEN_OVERLAP_CHARS = 500     # ~200 token
+
+# paragraph 청킹 파라미터
+PARAGRAPH_MIN_CHARS = 200      # 짧은 단락은 다음 단락과 병합
+PARAGRAPH_MAX_CHARS = 3000     # 초과 단락은 token1024 fallback
+
+
+def _chunk_token_fallback(
+    text: str,
+    volume: str,
+    source: str | list[str] = "",
+    title: str = "",
+    date: str = "",
+) -> list[Chunk]:
+    """char-based sliding window. paragraph 단락이 max_chars 초과 시 fallback."""
+    if not text.strip():
+        return []
+    if len(text) <= _TOKEN_CHUNK_CHARS:
+        return [Chunk(
+            text=text, volume=volume, chunk_index=0,
+            source=source, title=title, date=date,
+        )]
+    chunks: list[Chunk] = []
+    step = _TOKEN_CHUNK_CHARS - _TOKEN_OVERLAP_CHARS
+    idx = 0
+    pos = 0
+    while pos < len(text):
+        end = min(pos + _TOKEN_CHUNK_CHARS, len(text))
+        chunks.append(Chunk(
+            text=text[pos:end], volume=volume, chunk_index=idx,
+            source=source, title=title, date=date,
+        ))
+        idx += 1
+        if end == len(text):
+            break
+        pos += step
+    return chunks
+
+
+def chunk_paragraph(
+    text: str,
+    volume: str,
+    source: str | list[str] = "",
+    title: str = "",
+    date: str = "",
+) -> list[Chunk]:
+    """단락 단위 청킹 (Phase 2.2 dev-log 45 결정).
+
+    DEPRECATED — v3 운영 기본이었으나 dev-log 51(2026-04-30)에서 v5
+    Recursive(``chunk_recursive``)로 전환. 현재 업로드 경로 미호출.
+    50%/75%/100% 적재 마일스톤마다 v3 baseline 재측정 용도로만 유지.
+
+    - 빈 줄(`\\n\\n+`) 기준 분할
+    - PARAGRAPH_MIN_CHARS(200) 미만은 다음 단락과 병합
+    - PARAGRAPH_MAX_CHARS(3000) 초과는 token-based fallback
+    """
+    parts = [p.strip() for p in re.split(r"\n\s*\n+", text) if p.strip()]
+    if not parts:
+        return []
+    # 짧은 단락 병합
+    merged: list[str] = []
+    buf = ""
+    for p in parts:
+        buf = f"{buf}\n\n{p}" if buf else p
+        if len(buf) >= PARAGRAPH_MIN_CHARS:
+            merged.append(buf)
+            buf = ""
+    if buf:
+        if merged:
+            merged[-1] = f"{merged[-1]}\n\n{buf}"
+        else:
+            merged.append(buf)
+    # max_chars 초과 단락은 token fallback
+    chunks: list[Chunk] = []
+    idx = 0
+    for m in merged:
+        if len(m) <= PARAGRAPH_MAX_CHARS:
+            chunks.append(Chunk(
+                text=m, volume=volume, chunk_index=idx,
+                source=source, title=title, date=date,
+            ))
+            idx += 1
+        else:
+            sub = _chunk_token_fallback(m, volume=volume, source=source, title=title, date=date)
+            for s in sub:
+                chunks.append(Chunk(
+                    text=s.text, volume=volume, chunk_index=idx,
+                    source=source, title=title, date=date,
+                ))
+                idx += 1
+    return chunks
+
+
+# =====================================================================
+# Phase 2.3 (dev-log 50) — Recursive 청킹 PoC (langchain RecursiveCharacterTextSplitter)
+# Phase 2.4 (dev-log 51, 2026-04-30) — v5 운영 기본 채택.
+# =====================================================================
+
+# Recursive 파라미터 — 사용자 자료 ★★★★★ "안전한 default"
+_RECURSIVE_CHUNK_SIZE = 700      # 한글 글자 수 기준
+_RECURSIVE_CHUNK_OVERLAP = 150   # ~21% overlap
+
+# 한국어 종결어미 우선순위 (단락 → 종결어미 → 일반 문장 → 공백 → 글자)
+_RECURSIVE_SEPARATORS = [
+    "\n\n",        # 단락 경계
+    "\n",          # 줄바꿈
+    "다. ",        # 한국어 평서문 종결
+    "니다. ",      # 한국어 격식체 종결
+    "까? ",        # 한국어 의문문 종결
+    "요. ",        # 한국어 비격식·구어체 종결
+    "라. ",        # 한국어 명령·간접 인용 종결
+    ". ",          # 일반 마침표
+    " ",           # 공백
+    "",            # 글자 단위 fallback
+]
+
+
+def chunk_recursive(
+    text: str,
+    volume: str,
+    source: str | list[str] = "",
+    title: str = "",
+    date: str = "",
+) -> list[Chunk]:
+    """RecursiveCharacterTextSplitter 기반 청킹 (한국어 종결어미 우선순위).
+
+    ✅ 운영 기본 (dev-log 51, 2026-04-30 — malssum_poc_v5).
+
+    chunk_size=700, overlap=150, 한국어 종결 separators.
+    PARAGRAPH/SENTENCE 사이 중간 입자 — paragraph 정보 밀도 + sentence 검색 정확도 균형 시도.
+    """
+    if not text.strip():
+        return []
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=_RECURSIVE_CHUNK_SIZE,
+        chunk_overlap=_RECURSIVE_CHUNK_OVERLAP,
+        length_function=len,
+        keep_separator=True,
+        separators=_RECURSIVE_SEPARATORS,
+    )
+    pieces = splitter.split_text(text)
+    return [
+        Chunk(
+            text=p, volume=volume, chunk_index=i,
+            source=source, title=title, date=date,
+        )
+        for i, p in enumerate(pieces) if p.strip()
+    ]
+
+
+# Hierarchical (Parent-Child) 파라미터
+_HIERARCHICAL_PARENT_SIZE = 1500
+_HIERARCHICAL_PARENT_OVERLAP = 150
+_HIERARCHICAL_CHILD_SIZE = 300
+_HIERARCHICAL_CHILD_OVERLAP = 50
+
+
+def chunk_hierarchical(
+    text: str,
+    volume: str,
+    source: str | list[str] = "",
+    title: str = "",
+    date: str = "",
+    parent_size: int = _HIERARCHICAL_PARENT_SIZE,
+    parent_overlap: int = _HIERARCHICAL_PARENT_OVERLAP,
+    child_size: int = _HIERARCHICAL_CHILD_SIZE,
+    child_overlap: int = _HIERARCHICAL_CHILD_OVERLAP,
+) -> list[Chunk]:
+    """Hierarchical (Parent-Child) 청킹 — child 만 임베딩, parent 본문은 payload 동봉.
+
+    DEPRECATED — Phase 4 청킹 결정(PR #92, 2026-05-01)에서 Contextual
+    Retrieval과 함께 보류. 운영은 v5 Recursive 영구 확정.
+    재검토 가능성 있어 코드는 보존 (현재 업로드 경로 미호출).
+
+    1) Recursive splitter 로 parent (default 1500자) 분할
+    2) 각 parent 안에서 다시 splitter 로 child (default 300자) 분할
+    3) **child 만 반환**, 각 child 의 ``parent_text`` / ``parent_chunk_index``
+       필드에 자기가 속한 parent 의 본문/index 부착
+    4) ``chunk_index`` 는 전체 child 순서 (0..N-1) 로 글로벌 부여
+
+    검색 단계는 child 로 정밀 매칭 → 답변 생성 단계에서 ``parent_text`` 로
+    컨텍스트 확장. 별도 parent fetch 호출 없음 (옵션 A — payload 직접 포함).
+
+    Args:
+        text: 원본 문서 본문.
+        volume: payload.volume 으로 들어갈 권 식별자.
+        source/title/date: 메타데이터 기본값.
+        parent_size/parent_overlap: parent 청크 파라미터.
+        child_size/child_overlap: child 청크 파라미터.
+
+    Returns:
+        child Chunk 리스트. ``parent_text`` 비어있지 않음.
+    """
+    if not text.strip():
+        return []
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    parent_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=parent_size,
+        chunk_overlap=parent_overlap,
+        length_function=len,
+        keep_separator=True,
+        separators=_RECURSIVE_SEPARATORS,
+    )
+    child_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=child_size,
+        chunk_overlap=child_overlap,
+        length_function=len,
+        keep_separator=True,
+        separators=_RECURSIVE_SEPARATORS,
+    )
+
+    parents = [p for p in parent_splitter.split_text(text) if p.strip()]
+    chunks: list[Chunk] = []
+    global_idx = 0
+    for parent_idx, parent_text in enumerate(parents):
+        children = child_splitter.split_text(parent_text)
+        for c in children:
+            if not c.strip():
+                continue
+            chunks.append(
+                Chunk(
+                    text=c,
+                    volume=volume,
+                    chunk_index=global_idx,
+                    source=source,
+                    title=title,
+                    date=date,
+                    parent_text=parent_text,
+                    parent_chunk_index=parent_idx,
+                )
+            )
+            global_idx += 1
     return chunks

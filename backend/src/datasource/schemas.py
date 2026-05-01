@@ -83,6 +83,56 @@ class VolumeTagsBulkResponse(BaseModel):
     total_chunks_modified: int = Field(0, description="변경된 청크 총 수")
 
 
+class VolumeDeleteResponse(BaseModel):
+    """Volume(파일) 영구 삭제 결과."""
+    deleted_volumes: list[str] = Field(default_factory=list, description="실제 삭제된 volume 이름")
+    total_chunks_deleted: int = Field(0, description="Qdrant에서 삭제된 청크 총수")
+    skipped: list[dict] = Field(
+        default_factory=list,
+        description="삭제되지 않은 volume 리스트. 각 항목: {volume, reason}",
+    )
+
+
+class VolumeDeleteRequest(BaseModel):
+    """다중 volume 영구 삭제 요청."""
+    volumes: list[str] = Field(..., min_length=1, description="삭제할 volume 이름 리스트")
+
+
+class UploadResponse(BaseModel):
+    """파일 업로드 예약 응답 (ADR-30 follow-up).
+
+    predicted_outcome은 처리 *예상* 동작을 사전에 노출해 일괄 업로드 결과
+    토스트에 사용된다. 실제 결과(특히 skip→merge fallback)는 polling으로 확인.
+    """
+    message: str
+    filename: str
+    mode: str = Field(..., description="standard (Batch API 제거됨, 항상 standard)")
+    on_duplicate: str = Field(..., description="merge | replace | skip")
+    predicted_outcome: str = Field(
+        ...,
+        description="new | merge | replace | skip — 처리 예상 동작",
+    )
+
+
+class SourceChunkDetail(BaseModel):
+    """P0-B — 인용 카드 원문보기 모달용 단일 청크 상세.
+
+    chat 답변에서 노출된 청크의 전체 본문 + 카테고리 메타. 사용자가 답변 페이지의
+    "원문보기" 를 클릭했을 때 모달로 노출된다.
+
+    PoC 정리 (2026-04-29) — P1-B 4중 메타 (volume_no/delivered_at/delivered_place/
+    chapter_title + citation_label) 제거. 인덱싱 파이프라인이 4 필드를 채우게
+    되면 재추가.
+    """
+
+    chunk_id: str = Field(..., description="Qdrant point id")
+    text: str = Field("", description="청크 본문 (정규화된 텍스트)")
+    volume: str = Field("", description="원본 volume (파일명 또는 권명)")
+    sources: list[str] = Field(
+        default_factory=list, description="해당 청크가 속한 카테고리 key 목록"
+    )
+
+
 class DuplicateCheckResponse(BaseModel):
     """업로드 전 중복 문서 검사 결과."""
     exists: bool = Field(..., description="동일 파일명(NFC 정규화 기준)의 기존 적재 여부")
@@ -92,3 +142,11 @@ class DuplicateCheckResponse(BaseModel):
     chunk_count: int = Field(0, description="Qdrant에 적재된 청크 수")
     status: str | None = Field(None, description="IngestionJob 최종 상태 (completed/partial/failed/running/pending)")
     last_uploaded_at: datetime | None = Field(None, description="마지막 업로드/갱신 시각")
+    content_hash: str | None = Field(
+        None,
+        description="기존 IngestionJob 의 content_hash 첫 8자리 (식별용). NULL 이면 기존 hash 미보존.",
+    )
+    # 부분 적재 진행률 — UI 가 PARTIAL/FAILED 파일을 시각적으로 식별하는데 사용.
+    # status=COMPLETED 면 processed == total. PARTIAL/FAILED 면 < total.
+    processed_chunks: int = Field(0, description="IngestionJob 의 처리 완료 청크 수")
+    total_chunks: int = Field(0, description="IngestionJob 의 총 청크 수 (start_run 시 결정)")

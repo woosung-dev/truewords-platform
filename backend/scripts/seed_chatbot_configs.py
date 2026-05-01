@@ -1,4 +1,11 @@
-"""기존 configs.py 하드코딩 데이터를 PostgreSQL에 삽입하는 seed 스크립트."""
+"""기존 configs.py 하드코딩 데이터를 PostgreSQL에 삽입하는 seed 스크립트.
+
+Phase 2.4 (v5 Recursive 88권 단일 운영) 이후 모든 봇은 settings.collection_name
+(env COLLECTION_NAME) 단일 컬렉션을 공유한다. Phase 2.x 청킹 PoC 봇
+(chunking-*, all-paragraph) 은 Alembic 마이그레이션 aa6f4b908ef4 의 데이터
+정리 단계에서 is_active=False 로 비활성화되며, 본 시드에서는 더 이상 만들지
+않는다.
+"""
 
 import asyncio
 import sys

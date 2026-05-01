@@ -9,13 +9,28 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+# P0-E — 모드별 system prompt 라우팅. 5개 모드.
+# Single source of truth: ``src.chat.types.AnswerMode`` (W2-③). 본 모듈은
+# ChatRequest 스키마와의 일관성을 위해 alias 만 재노출한다 (Sonnet review #4).
+from src.chat.types import AnswerMode  # noqa: E402,F401  (re-export)
+
+# P1-J — 대화 마무리 템플릿 종류.
+ClosingKind = Literal["prayer", "resolution", "off"]
+
 
 class TierConfig(BaseModel):
-    """Cascading 전략의 단일 Tier."""
+    """Cascading 전략의 단일 Tier.
+
+    score_threshold: RRF fusion 점수 (Σ1/(k+rank), 일반 0.0~0.5 범위) 의 cutoff.
+    default 0.1 은 ``ChatbotService.build_runtime_config`` 의 fallback 과 동기화.
+    이전에 0.75 였으나 운영 적용 0건 (dead default) 인 데다 RRF 점수대를 초과해
+    실수로 인스턴스에 적용되면 검색 결과 0건 위험. 측정 분포 (2026-05-01,
+    docs/dev-log/2026-05-01-cascade-distribution-measurement.md) 기반 정정.
+    """
 
     sources: list[str]
     min_results: int = 3
-    score_threshold: float = 0.75
+    score_threshold: float = 0.1
 
 
 class WeightedSourceConfig(BaseModel):
@@ -37,9 +52,6 @@ class SearchModeConfig(BaseModel):
     tiers: list[TierConfig] = Field(default_factory=list)
     weighted_sources: list[WeightedSourceConfig] = Field(default_factory=list)
     dictionary_enabled: bool = False
-    # R3: multi-collection 지원. None 이면 settings 기본값 fallback.
-    collection_main: str | None = None
-    collection_cache: str | None = None
 
 
 class GenerationConfig(BaseModel):
@@ -51,6 +63,18 @@ class GenerationConfig(BaseModel):
     temperature: float = 0.7
     max_output_tokens: int = 4096
 
+    # P0-E — 모드별 system prompt override. None 또는 빈 dict 면 system_prompt 사용.
+    # key: AnswerMode, value: 해당 모드 전용 system prompt
+    system_prompt_by_mode: dict[str, str] | None = None
+
+    # P1-J — 답변 마무리 템플릿 토글.
+    # enable_closing=True 일 때만 closing_kind 에 따라 후속 LLM 호출.
+    enable_closing: bool = False
+    closing_kind: ClosingKind = "off"
+
+    # P0-A — 자동 follow-up 추천 토글. 기본 활성 (모든 답변에 노출).
+    enable_suggested_followups: bool = True
+
 
 class RetrievalConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -61,6 +85,8 @@ class RetrievalConfig(BaseModel):
     rerank_top_k: int = 10
     query_rewrite_enabled: bool = True
     fallback_enabled: bool = True
+    # Phase D — IntentClassifierStage 토글. False 시 LLM 호출 없이 conceptual default 사용.
+    intent_classifier_enabled: bool = True
 
 
 class SafetyConfig(BaseModel):
@@ -82,3 +108,6 @@ class ChatbotRuntimeConfig(BaseModel):
     generation: GenerationConfig
     retrieval: RetrievalConfig
     safety: SafetyConfig
+    # P1-F: 운영 투명성 — 챗봇별 신학 입장 (About 페이지 노출, 후속에서 활용).
+    # 미설정 챗봇은 None → About 페이지에서 시스템 기본 카피 사용.
+    theological_stance: str | None = None

@@ -8,9 +8,9 @@ min_results 이상의 결과가 확보되면 조기 종료한다.
 import logging
 from dataclasses import dataclass, field
 
-from qdrant_client import AsyncQdrantClient
 from src.common.gemini import embed_dense_query
 from src.pipeline.embedder import embed_sparse_async
+from src.qdrant import RawQdrantClient
 from src.search.exceptions import SearchFailedError
 from src.search.hybrid import hybrid_search, SearchResult
 
@@ -46,12 +46,13 @@ class CascadingConfig:
 
 
 async def cascading_search(
-    client: AsyncQdrantClient,
+    client: RawQdrantClient,
     query: str,
     config: CascadingConfig,
     top_k: int = 10,
     dense_embedding: list[float] | None = None,
     collection_name: str | None = None,
+    query_metadata: dict[str, int] | None = None,
 ) -> list[SearchResult]:
     """티어별 순차 검색 — 임베딩 1회 계산 후 모든 티어에서 재사용.
 
@@ -64,6 +65,7 @@ async def cascading_search(
         config: 티어 우선순위 및 임계값 설정.
         top_k: 최종 반환할 최대 결과 수.
         dense_embedding: 사전 계산된 dense 벡터 (None이면 내부 계산).
+        query_metadata: ``extract_query_metadata`` 결과 dict. hybrid_search 로 그대로 전달.
 
     Returns:
         score 내림차순 정렬된 SearchResult 리스트 (최대 top_k건).
@@ -86,6 +88,7 @@ async def cascading_search(
                 query,
                 top_k=top_k,
                 source_filter=tier.sources,
+                query_metadata=query_metadata,
                 dense_embedding=dense,
                 sparse_embedding=sparse,
                 collection_name=collection_name,
@@ -101,6 +104,25 @@ async def cascading_search(
             continue
 
         qualified = [r for r in results if r.score >= tier.score_threshold]
+
+        # Phase 0: cascade score 분포 로깅 — cutoff 정책 변경 결정 근거.
+        # 자세한 배경: docs/dev-log/2026-05-01-cascade-threshold-paths.md
+        if results:
+            scores = [r.score for r in results]
+            logger.info(
+                "cascade_score_dist",
+                extra={
+                    "tier_idx": tier_idx,
+                    "tier_sources": tier.sources,
+                    "tier_threshold": tier.score_threshold,
+                    "score_top": scores[0],
+                    "score_p50": scores[len(scores) // 2],
+                    "score_bottom": scores[-1],
+                    "n_results": len(results),
+                    "n_qualified": len(qualified),
+                },
+            )
+
         all_results.extend(qualified)
 
         if len(all_results) >= tier.min_results:

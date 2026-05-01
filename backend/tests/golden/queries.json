@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "created_at": "2026-05-01",
+  "purpose": "Phase 0 cascade threshold cutoff 정책 변경 평가용 골든셋. judge LLM 미사용 — 정답 chunk_id/volume 라벨 매칭 기반 Recall@10 / MRR@10 / NDCG@10 측정 (사용자 정책: 2026-05-01).",
+  "labeling_policy": "각 쿼리에 expected_chunk_ids 또는 expected_volumes 중 최소 하나는 사람이 직접 라벨링해야 평가 대상에 포함된다. 라벨 비어있는 쿼리는 evaluate_threshold.py 가 자동 skip. judge LLM 미사용.",
+  "categories": {
+    "factoid": "사실 확인 — 정답 권/시기/사건 명확. (예: '성화 의식의 시작 시기는?')",
+    "conceptual": "개념 정의·설명 — 의미 검색 의존. (예: '참사랑의 정의?')",
+    "reasoning": "추론·비교·다중홉 — 여러 권 결합 가능. (예: '1960년대와 1980년대 가르침의 차이?')"
+  },
+  "label_format": {
+    "expected_chunk_ids": "['<volume>:<chunk_index>', ...] 형태. 예: ['001:42', '003:15']",
+    "expected_volumes": "['<volume>', ...] 형태. chunk 라벨이 어렵고 권 단위는 명확할 때. 예: ['001', '003']",
+    "priority": "expected_chunk_ids 가 비어있고 expected_volumes 만 있으면 권 단위 평가로 자동 fallback"
+  },
+  "queries": [
+    { "id": "f01", "category": "factoid", "query": "TODO: 사실 확인 쿼리 1 (사용자 라벨링 필요)", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "f02", "category": "factoid", "query": "TODO: 사실 확인 쿼리 2", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "f03", "category": "factoid", "query": "TODO: 사실 확인 쿼리 3", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "f04", "category": "factoid", "query": "TODO: 사실 확인 쿼리 4", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "f05", "category": "factoid", "query": "TODO: 사실 확인 쿼리 5", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "f06", "category": "factoid", "query": "TODO: 사실 확인 쿼리 6", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "f07", "category": "factoid", "query": "TODO: 사실 확인 쿼리 7", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "f08", "category": "factoid", "query": "TODO: 사실 확인 쿼리 8", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "f09", "category": "factoid", "query": "TODO: 사실 확인 쿼리 9", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "f10", "category": "factoid", "query": "TODO: 사실 확인 쿼리 10", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "f11", "category": "factoid", "query": "TODO: 사실 확인 쿼리 11", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "f12", "category": "factoid", "query": "TODO: 사실 확인 쿼리 12", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+
+    { "id": "c01", "category": "conceptual", "query": "TODO: 개념 설명 쿼리 1", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "c02", "category": "conceptual", "query": "TODO: 개념 설명 쿼리 2", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "c03", "category": "conceptual", "query": "TODO: 개념 설명 쿼리 3", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "c04", "category": "conceptual", "query": "TODO: 개념 설명 쿼리 4", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "c05", "category": "conceptual", "query": "TODO: 개념 설명 쿼리 5", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "c06", "category": "conceptual", "query": "TODO: 개념 설명 쿼리 6", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "c07", "category": "conceptual", "query": "TODO: 개념 설명 쿼리 7", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "c08", "category": "conceptual", "query": "TODO: 개념 설명 쿼리 8", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "c09", "category": "conceptual", "query": "TODO: 개념 설명 쿼리 9", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "c10", "category": "conceptual", "query": "TODO: 개념 설명 쿼리 10", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "c11", "category": "conceptual", "query": "TODO: 개념 설명 쿼리 11", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "c12", "category": "conceptual", "query": "TODO: 개념 설명 쿼리 12", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+
+    { "id": "r01", "category": "reasoning", "query": "TODO: 추론·비교 쿼리 1", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "r02", "category": "reasoning", "query": "TODO: 추론·비교 쿼리 2", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "r03", "category": "reasoning", "query": "TODO: 추론·비교 쿼리 3", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "r04", "category": "reasoning", "query": "TODO: 추론·비교 쿼리 4", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "r05", "category": "reasoning", "query": "TODO: 추론·비교 쿼리 5", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" },
+    { "id": "r06", "category": "reasoning", "query": "TODO: 추론·비교 쿼리 6", "expected_chunk_ids": [], "expected_volumes": [], "notes": "" }
+  ]
+}

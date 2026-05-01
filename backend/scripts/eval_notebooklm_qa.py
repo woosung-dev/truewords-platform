@@ -38,6 +38,8 @@ from openpyxl.styles import Alignment, Font
 EXPECTED_HEADER = [
     "번호", "난이도(Level)", "카테고리", "테스트용 질문", "봇 모범 답변", "참고 키워드",
 ]
+# 2번째 컬럼명만 다른 변형 헤더도 허용 (예: "질문 성향", "질문 수준")
+REQUIRED_FIXED = {0: "번호", 2: "카테고리", 3: "테스트용 질문", 4: "봇 모범 답변", 5: "참고 키워드"}
 
 
 @dataclass
@@ -57,10 +59,13 @@ def load_xlsx_rows(path: Path) -> list[QARow]:
     if not rows:
         raise SystemExit(f"{path} 비어 있음")
     header = [(c or "").strip() for c in rows[0]]
-    if header[: len(EXPECTED_HEADER)] != EXPECTED_HEADER:
-        raise SystemExit(
-            f"{path} 헤더 불일치\n  기대: {EXPECTED_HEADER}\n  실제: {header}"
-        )
+    if len(header) < 6:
+        raise SystemExit(f"{path} 컬럼 수 부족 (>=6 필요, 실제 {len(header)}): {header}")
+    for idx, expected in REQUIRED_FIXED.items():
+        if header[idx] != expected:
+            raise SystemExit(
+                f"{path} {idx+1}번째 컬럼이 '{expected}' 아님 (실제 {header[idx]!r})\n  헤더: {header}"
+            )
     out: list[QARow] = []
     for r in rows[1:]:
         if r is None or all(c is None for c in r):
@@ -156,8 +161,10 @@ def write_output(
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--light", required=True, type=Path)
-    p.add_argument("--level5", required=True, type=Path)
+    # 두 가지 모드: 단일 파일(--input) 또는 두 파일 합치기(--light + --level5)
+    p.add_argument("--input", type=Path, default=None, help="단일 입력 xlsx")
+    p.add_argument("--light", type=Path, default=None, help="합치기 모드: 첫 번째 xlsx")
+    p.add_argument("--level5", type=Path, default=None, help="합치기 모드: 두 번째 xlsx")
     p.add_argument("--output", required=True, type=Path)
     p.add_argument("--chatbot-id", default="all")
     p.add_argument("--api-base", default="http://localhost:8000")
@@ -165,7 +172,12 @@ def main() -> int:
     p.add_argument("--limit", type=int, default=None)
     args = p.parse_args()
 
-    qrows = load_xlsx_rows(args.light) + load_xlsx_rows(args.level5)
+    if args.input:
+        qrows = load_xlsx_rows(args.input)
+    elif args.light and args.level5:
+        qrows = load_xlsx_rows(args.light) + load_xlsx_rows(args.level5)
+    else:
+        raise SystemExit("--input 또는 (--light + --level5) 중 하나 필요")
     if args.limit:
         qrows = qrows[: args.limit]
     print(f"총 {len(qrows)}건 호출 예정 (chatbot_id={args.chatbot_id}, api={args.api_base})")

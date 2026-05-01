@@ -8,7 +8,7 @@ from src.config import settings
 from src.datasource.qdrant_service import DataSourceQdrantService
 from src.datasource.repository import DataSourceCategoryRepository
 from src.datasource.service import DataSourceCategoryService
-from src.qdrant_client import get_async_client, get_client
+from src.qdrant_client import get_raw_client
 
 
 async def get_datasource_repository(
@@ -25,7 +25,6 @@ async def get_datasource_service(
 
 async def get_qdrant_service() -> DataSourceQdrantService:
     return DataSourceQdrantService(
-        async_client=get_async_client(),
-        sync_client=get_client(),
+        client=get_raw_client(),
         collection_name=settings.collection_name,
     )
