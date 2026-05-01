@@ -88,9 +88,11 @@ class TestRerankStage:
         ctx.results = [_make_result(0.5), _make_result(0.3)]
 
         reranked = [_make_result(0.5, rerank_score=0.9), _make_result(0.3, rerank_score=0.7)]
+        mock_reranker_inst = AsyncMock()
+        mock_reranker_inst.rerank = AsyncMock(return_value=reranked)
         with patch(
-            "src.chat.pipeline.stages.rerank.rerank",
-            new_callable=AsyncMock, return_value=reranked,
+            "src.chat.pipeline.stages.rerank.get_reranker",
+            return_value=mock_reranker_inst,
         ):
             result = await RerankStage().execute(ctx)
 

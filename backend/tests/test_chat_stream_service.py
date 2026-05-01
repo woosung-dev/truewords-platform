@@ -41,6 +41,8 @@ def _make_chat_service() -> tuple[ChatService, AsyncMock, AsyncMock]:
     chat_repo.create_message.return_value = msg
 
     chatbot_service.get_config_id.return_value = 1
+    # build_runtime_config=None → DEFAULT_RUNTIME_CONFIG fallback (rerank_enabled=False).
+    chatbot_service.build_runtime_config.return_value = None
 
     return ChatService(chat_repo=chat_repo, chatbot_service=chatbot_service), chat_repo, chatbot_service
 

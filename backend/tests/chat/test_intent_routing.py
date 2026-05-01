@@ -34,6 +34,13 @@ from src.search.hybrid import SearchResult
 _EMBED_PATCH = "src.chat.pipeline.stages.embedding.embed_dense_query"
 
 
+def _default_mock_reranker(return_value: list[SearchResult]) -> AsyncMock:
+    """get_reranker patch 대신 사용할 mock reranker. .rerank() 호출 시 return_value 반환."""
+    inst = AsyncMock()
+    inst.rerank = AsyncMock(return_value=return_value)
+    return inst
+
+
 def _make_results(n: int) -> list[SearchResult]:
     return [
         SearchResult(
@@ -102,6 +109,9 @@ async def test_intent_drives_rerank_and_generation_K(
     search_results = _make_results(20)
     reranked_results = _make_results(expected_rerank_top_k)
 
+    mock_reranker_inst = AsyncMock()
+    mock_reranker_inst.rerank = AsyncMock(return_value=reranked_results)
+
     with (
         patch("src.qdrant_client.get_async_client"),
         patch(
@@ -115,10 +125,9 @@ async def test_intent_drives_rerank_and_generation_K(
             return_value=search_results,
         ),
         patch(
-            "src.chat.pipeline.stages.rerank.rerank",
-            new_callable=AsyncMock,
-            return_value=reranked_results,
-        ) as mock_rerank,
+            "src.chat.pipeline.stages.rerank.get_reranker",
+            return_value=mock_reranker_inst,
+        ),
         patch(
             "src.chat.pipeline.stages.generation.generate_answer",
             new_callable=AsyncMock,
@@ -128,9 +137,9 @@ async def test_intent_drives_rerank_and_generation_K(
     ):
         await service.process_chat(ChatRequest(query="질문", chatbot_id="t"))
 
-    # rerank() 가 intent 에 맞는 top_k 로 호출되었는가
-    assert mock_rerank.await_count == 1
-    rerank_kwargs = mock_rerank.await_args.kwargs
+    # reranker.rerank() 가 intent 에 맞는 top_k 로 호출되었는가
+    assert mock_reranker_inst.rerank.await_count == 1
+    rerank_kwargs = mock_reranker_inst.rerank.await_args.kwargs
     assert rerank_kwargs["top_k"] == expected_rerank_top_k, (
         f"intent={intent}: expected rerank top_k={expected_rerank_top_k}, got {rerank_kwargs['top_k']}"
     )
@@ -162,9 +171,8 @@ async def test_meta_intent_short_circuits_pipeline() -> None:
             new_callable=AsyncMock,
         ) as mock_search,
         patch(
-            "src.chat.pipeline.stages.rerank.rerank",
-            new_callable=AsyncMock,
-        ) as mock_rerank,
+            "src.chat.pipeline.stages.rerank.get_reranker",
+        ) as mock_get_reranker,
         patch(
             "src.chat.pipeline.stages.generation.generate_answer",
             new_callable=AsyncMock,
@@ -175,7 +183,7 @@ async def test_meta_intent_short_circuits_pipeline() -> None:
 
     # Search/Rerank/Generation 미호출
     mock_search.assert_not_called()
-    mock_rerank.assert_not_called()
+    mock_get_reranker.assert_not_called()
     mock_gen.assert_not_called()
 
     # 답변에 META_FALLBACK_ANSWER 포함 (SafetyOutput가 면책고지를 추가했을 수 있음)
@@ -230,9 +238,8 @@ async def test_disabled_intent_classifier_uses_default_K() -> None:
             return_value=_make_results(20),
         ),
         patch(
-            "src.chat.pipeline.stages.rerank.rerank",
-            new_callable=AsyncMock,
-            return_value=_make_results(12),
+            "src.chat.pipeline.stages.rerank.get_reranker",
+            return_value=_default_mock_reranker(_make_results(12)),
         ),
         patch(
             "src.chat.pipeline.stages.generation.generate_answer",
