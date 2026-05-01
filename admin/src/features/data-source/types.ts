@@ -77,6 +77,8 @@ export interface DuplicateCheckResponse {
   status: string | null;
   last_uploaded_at: string | null;
   content_hash: string | null;  // 8자리 partial, 식별용. PR #99 — start_run 직후 저장하여 PARTIAL 도 보존.
+  processed_chunks: number;     // PR #100 — 부분 적재 진행률 표시용 (BulkPrecheck status badge)
+  total_chunks: number;
 }
 
 // ADR-30 follow-up: upload 응답 — predicted_outcome으로 일괄 토스트 통계 집계.

@@ -2,11 +2,40 @@
 
 import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { AlertTriangle, FileText, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileText, Info, RefreshCw, X, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { OnDuplicateMode } from "@/features/data-source/api";
 import type { DuplicateCheckResponse } from "@/features/data-source/types";
+
+// Status 별 시각 메타 — completed/partial/failed/running
+function statusMeta(status: string | null) {
+  if (status === "completed") return null;  // 일반 (badge 미표시)
+  if (status === "partial")
+    return {
+      icon: RefreshCw,
+      label: "재개 필요",
+      className: "bg-amber-50 text-amber-700 border-amber-200",
+    };
+  if (status === "failed")
+    return {
+      icon: XCircle,
+      label: "실패",
+      className: "bg-red-50 text-red-700 border-red-200",
+    };
+  if (status === "running" || status === "pending")
+    return {
+      icon: RefreshCw,
+      label: "처리 중",
+      className: "bg-blue-50 text-blue-700 border-blue-200",
+    };
+  return null;
+}
+
+function progressPct(processed: number, total: number): number | null {
+  if (total <= 0) return null;
+  return Math.min(100, Math.round((processed / total) * 100));
+}
 
 // ADR-30 follow-up — 일괄 업로드 사전 검사 결과를 모은 뒤 정책을 한 번에 결정.
 // 단건 dialog가 마지막 1건만 표출되어 나머지가 silently 처리되지 않던 BUG-A 해결.
@@ -98,44 +127,98 @@ export default function BulkPrecheckDialog({
               </div>
             </div>
 
-            {/* 중복 파일 목록 */}
+            {/* 중복 파일 목록 — status badge + 진행률 표시 (PR #100). PARTIAL/FAILED 는
+                amber/red 강조하여 사용자가 부분 적재된 파일 즉시 식별. */}
             {dupCount > 0 && (
               <div className="rounded-lg border bg-muted/30 p-3">
                 <div className="text-xs font-medium text-muted-foreground mb-2">
                   중복 파일 목록
                 </div>
                 <ul className="space-y-1.5 text-sm">
-                  {duplicates.map((d) => (
-                    <li
-                      key={d.filename}
-                      className="flex items-center gap-2 min-w-0"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <span className="truncate min-w-0 flex-1" title={d.filename}>
-                        {d.filename}
-                      </span>
-                      <div className="flex flex-wrap gap-1 shrink-0">
-                        {d.duplicate.sources.length > 0 ? (
-                          d.duplicate.sources.map((src) => (
-                            <Badge key={src} variant="outline" className="text-xs">
-                              {src}
-                            </Badge>
-                          ))
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-amber-50 text-amber-700 border-amber-200"
-                          >
-                            미분류
-                          </Badge>
-                        )}
-                        <span className="text-xs text-muted-foreground ml-1">
-                          {d.duplicate.chunk_count.toLocaleString()}청크
+                  {duplicates.map((d) => {
+                    const meta = statusMeta(d.duplicate.status);
+                    const pct = progressPct(
+                      d.duplicate.processed_chunks ?? 0,
+                      d.duplicate.total_chunks ?? 0,
+                    );
+                    const isPartial =
+                      d.duplicate.status === "partial" ||
+                      d.duplicate.status === "failed";
+                    const StatusIcon = meta?.icon;
+                    return (
+                      <li
+                        key={d.filename}
+                        className={`flex items-center gap-2 min-w-0 rounded-md px-1 py-0.5 ${
+                          isPartial ? "bg-amber-50/40" : ""
+                        }`}
+                      >
+                        <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <span className="truncate min-w-0 flex-1" title={d.filename}>
+                          {d.filename}
                         </span>
-                      </div>
-                    </li>
-                  ))}
+                        <div className="flex flex-wrap gap-1 shrink-0 items-center">
+                          {d.duplicate.sources.length > 0 ? (
+                            d.duplicate.sources.map((src) => (
+                              <Badge key={src} variant="outline" className="text-xs">
+                                {src}
+                              </Badge>
+                            ))
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-amber-50 text-amber-700 border-amber-200"
+                            >
+                              미분류
+                            </Badge>
+                          )}
+                          {meta && StatusIcon && (
+                            <Badge variant="outline" className={`text-xs ${meta.className}`}>
+                              <StatusIcon className="w-3 h-3 mr-0.5" />
+                              {meta.label}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground ml-1 tabular-nums">
+                            {isPartial && pct !== null && d.duplicate.total_chunks > 0
+                              ? `${d.duplicate.chunk_count.toLocaleString()} / ${d.duplicate.total_chunks.toLocaleString()}청크 (${pct}%)`
+                              : `${d.duplicate.chunk_count.toLocaleString()}청크`}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
+
+                {/* PARTIAL/FAILED 가 1개 이상이면 안내문 */}
+                {duplicates.some(
+                  (d) =>
+                    d.duplicate.status === "partial" ||
+                    d.duplicate.status === "failed",
+                ) && (
+                  <div className="mt-3 rounded-md border border-amber-200 bg-amber-50/60 p-2 text-xs leading-relaxed text-amber-900 flex gap-1.5 items-start">
+                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>재개 필요</strong> / <strong>실패</strong> 표시 파일은 skip 옵션을
+                      선택해도 <strong>자동으로 재개·재청킹</strong>됩니다 (데이터 손실 방지).
+                      정상 완료된 파일만 skip 단축이 적용되어 Gemini 호출 0회로 절감됩니다.
+                    </span>
+                  </div>
+                )}
+
+                {/* 모든 PARTIAL/FAILED 가 0이고 다 COMPLETED 면 정상 안내 */}
+                {!duplicates.some(
+                  (d) =>
+                    d.duplicate.status === "partial" ||
+                    d.duplicate.status === "failed",
+                ) &&
+                  duplicates.length > 0 && (
+                    <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50/40 p-2 text-xs leading-relaxed text-emerald-900 flex gap-1.5 items-start">
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      <span>
+                        모두 <strong>정상 완료</strong> 상태 — skip 옵션 선택 시 콘텐츠 동일
+                        파일은 임베딩 호출 0회로 비용 절감됩니다.
+                      </span>
+                    </div>
+                  )}
               </div>
             )}
 
