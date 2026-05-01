@@ -112,6 +112,25 @@ async def weighted_search(
     for ws, results in zip(config.sources, per_source_results):
         threshold = threshold_map[ws.source]
         qualified = [r for r in results if r.score >= threshold]
+
+        # Phase 0: weighted score 분포 로깅 — cutoff 정책 변경 결정 근거.
+        # 자세한 배경: docs/dev-log/2026-05-01-cascade-threshold-paths.md
+        if results:
+            scores = [r.score for r in results]
+            logger.info(
+                "weighted_score_dist",
+                extra={
+                    "source": ws.source,
+                    "threshold": threshold,
+                    "weight_norm": weight_map.get(ws.source, 0),
+                    "score_top": scores[0],
+                    "score_p50": scores[len(scores) // 2],
+                    "score_bottom": scores[-1],
+                    "n_results": len(results),
+                    "n_qualified": len(qualified),
+                },
+            )
+
         all_results.extend(qualified)
 
     # 가중 점수 기준 정렬 (raw score 유지)

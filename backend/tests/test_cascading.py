@@ -223,6 +223,60 @@ async def test_cascading_search_raises_search_failed_when_all_tiers_fail():
 
 
 @pytest.mark.asyncio
+async def test_cascading_logs_score_distribution(caplog):
+    """Phase 0 분포 로깅: 결과 있을 때 cascade_score_dist 가 emit 되며 핵심 분포 통계가 포함."""
+    import logging
+
+    config = CascadingConfig(tiers=[
+        SearchTier(sources=["A"], min_results=2, score_threshold=0.1),
+    ])
+    a_results = _make_results("A", [0.45, 0.30, 0.15, 0.05])
+
+    with (
+        patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search,
+        patch(_DENSE_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
+        patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])),
+        caplog.at_level(logging.INFO, logger="src.search.cascading"),
+    ):
+        mock_search.return_value = a_results
+        await cascading_search(AsyncMock(), "질문", config, top_k=10)
+
+    dist_logs = [r for r in caplog.records if r.message == "cascade_score_dist"]
+    assert len(dist_logs) == 1
+    record = dist_logs[0]
+    assert record.tier_idx == 0
+    assert record.tier_sources == ["A"]
+    assert record.tier_threshold == 0.1
+    assert record.score_top == 0.45
+    assert record.score_bottom == 0.05
+    assert record.n_results == 4
+    # 0.45, 0.30, 0.15 통과 / 0.05 컷오프
+    assert record.n_qualified == 3
+
+
+@pytest.mark.asyncio
+async def test_cascading_skips_logging_when_results_empty(caplog):
+    """결과 0건이면 분포 로깅도 emit 하지 않는다 (IndexError 방지)."""
+    import logging
+
+    config = CascadingConfig(tiers=[
+        SearchTier(sources=["A"], min_results=1, score_threshold=0.1),
+    ])
+
+    with (
+        patch("src.search.cascading.hybrid_search", new_callable=AsyncMock) as mock_search,
+        patch(_DENSE_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
+        patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])),
+        caplog.at_level(logging.INFO, logger="src.search.cascading"),
+    ):
+        mock_search.return_value = []
+        await cascading_search(AsyncMock(), "질문", config, top_k=10)
+
+    dist_logs = [r for r in caplog.records if r.message == "cascade_score_dist"]
+    assert dist_logs == []
+
+
+@pytest.mark.asyncio
 async def test_cascading_search_normal_path_first_tier_succeeds():
     """기존 정상 동작: tier 0 성공 시 바로 반환 (fallback 안 함)."""
     config = CascadingConfig(

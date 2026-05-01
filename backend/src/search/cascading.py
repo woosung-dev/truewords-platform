@@ -104,6 +104,25 @@ async def cascading_search(
             continue
 
         qualified = [r for r in results if r.score >= tier.score_threshold]
+
+        # Phase 0: cascade score 분포 로깅 — cutoff 정책 변경 결정 근거.
+        # 자세한 배경: docs/dev-log/2026-05-01-cascade-threshold-paths.md
+        if results:
+            scores = [r.score for r in results]
+            logger.info(
+                "cascade_score_dist",
+                extra={
+                    "tier_idx": tier_idx,
+                    "tier_sources": tier.sources,
+                    "tier_threshold": tier.score_threshold,
+                    "score_top": scores[0],
+                    "score_p50": scores[len(scores) // 2],
+                    "score_bottom": scores[-1],
+                    "n_results": len(results),
+                    "n_qualified": len(qualified),
+                },
+            )
+
         all_results.extend(qualified)
 
         if len(all_results) >= tier.min_results:
