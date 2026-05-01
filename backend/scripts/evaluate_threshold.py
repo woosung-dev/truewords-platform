@@ -1,4 +1,4 @@
-"""Phase 0 — Cascade threshold cutoff 정책 평가 스크립트.
+"""Phase 0 — Cascade threshold cutoff 정책 + Reranker A/B 평가 스크립트.
 
 골든셋(`backend/tests/golden/queries.json`)의 expected_chunk_ids/volumes 를 정답으로 두고
 실제 검색 결과의 Recall@10 / MRR@10 / NDCG@10 를 측정한다.
@@ -8,21 +8,20 @@
 2026-05-01) 을 따른다.
 
 사용:
-    # baseline 측정 (현재 코드 기준)
-    uv run python -m scripts.evaluate_threshold --baseline > /tmp/baseline.json
+    # baseline 측정 (Gemini reranker, 시스템 기본 config)
+    uv run python -m scripts.evaluate_threshold --baseline --rerank-model gemini-flash > /tmp/baseline.json
 
-    # 정책 변경 후 측정
-    uv run python -m scripts.evaluate_threshold --after > /tmp/after.json
+    # reranker 변경 후 측정
+    uv run python -m scripts.evaluate_threshold --after --rerank-model bge-ko > /tmp/after.json
+
+    # chatbot 별 search_tiers 사용 시
+    EVAL_CHATBOT_ID=<uuid> uv run python -m scripts.evaluate_threshold --baseline
 
     # 비교
     uv run python -m scripts.evaluate_threshold --diff /tmp/baseline.json /tmp/after.json
 
 라벨 미작성 쿼리는 자동 skip. 라벨 채울 때 chunk_id 가 정확하면
 `expected_chunk_ids`, 권 단위만 명확하면 `expected_volumes` 사용.
-
-**TODO (다음 PR):** `run_search` stub 을 실제 cascading_search 호출로 채워야
---baseline / --after 가 동작한다. 환경 변수 `EVAL_CHATBOT_ID` 등을 통한
-주입 패턴은 staging 환경 셋업과 함께 결정.
 """
 from __future__ import annotations
 
@@ -30,9 +29,12 @@ import argparse
 import asyncio
 import json
 import math
+import os
 import sys
 from pathlib import Path
 from typing import Any
+
+RERANKER_CHOICES = ("gemini-flash", "bge-base", "bge-ko", "none")
 
 
 # ── 메트릭 함수 ──────────────────────────────────────────────────────────────
@@ -76,38 +78,105 @@ def is_labeled(q: dict[str, Any]) -> bool:
     return bool(q.get("expected_chunk_ids") or q.get("expected_volumes"))
 
 
-# ── 검색 호출 (stub — 다음 PR에서 채움) ─────────────────────────────────────
+# ── 검색 호출 (cascading_search + reranker) ─────────────────────────────────
 
 
-async def run_search(query: str, top_k: int = 10) -> list[dict[str, Any]]:
-    """staging Qdrant + 기본 챗봇 설정으로 cascading_search 호출.
+async def _build_eval_cascading_config(chatbot_id: str | None):
+    """chatbot_id 가 주어지면 DB 에서 search_tiers 조회, 없으면 시스템 기본 사용.
 
-    각 결과는 ``{"volume": str, "chunk_index": int, "score": float}`` 형태.
-
-    TODO: 다음 PR 에서 실제 환경 주입 후 활성화.
-        예시 (활성화 시):
-
-            from src.qdrant import get_async_client
-            from src.search.cascading import cascading_search, CascadingConfig, SearchTier
-            client = get_async_client()
-            config = CascadingConfig(tiers=[SearchTier(sources=["A", "B"], min_results=3)])
-            results = await cascading_search(client, query, config, top_k=top_k)
-            return [
-                {"volume": r.volume, "chunk_index": r.chunk_index, "score": r.score}
-                for r in results
-            ]
+    시스템 기본은 ``src.chat.service.DEFAULT_RUNTIME_CONFIG`` 와 동기화한다
+    (cascading sources=A,B,C / min_results=3 / score_threshold=0.1).
     """
-    raise NotImplementedError(
-        "staging Qdrant 클라이언트 + chatbot config 주입 필요. "
-        "이 함수를 채운 뒤에만 --baseline / --after 가 실행됩니다. "
-        "현재는 골격 + metric 함수 단위 테스트만 검증 완료."
+    from src.search.cascading import CascadingConfig, SearchTier
+
+    if chatbot_id is None:
+        return CascadingConfig(
+            tiers=[SearchTier(sources=["A", "B", "C"], min_results=3, score_threshold=0.1)]
+        )
+
+    from src.chatbot.repository import ChatbotRepository
+    from src.chatbot.service import ChatbotService
+    from src.common.database import async_session_factory
+
+    async with async_session_factory() as session:
+        repo = ChatbotRepository(session)
+        service = ChatbotService(repo)
+        runtime_config = await service.build_runtime_config(chatbot_id)
+
+    if runtime_config is None:
+        raise ValueError(f"chatbot_id={chatbot_id!r} 미존재 — DB 확인 필요")
+
+    return CascadingConfig(
+        tiers=[
+            SearchTier(
+                sources=list(t.sources),
+                min_results=t.min_results,
+                score_threshold=t.score_threshold,
+            )
+            for t in runtime_config.search.tiers
+        ]
     )
+
+
+async def run_search(
+    query: str,
+    top_k: int = 10,
+    rerank_model: str = "gemini-flash",
+    chatbot_id: str | None = None,
+) -> list[dict[str, Any]]:
+    """cascading_search → (선택) reranker 적용 → 상위 top_k 결과 dict 리스트 반환.
+
+    프로덕션 파이프라인과 동일하게 cascading 으로 top-50 후보 수집 후
+    reranker 가 top_k 로 압축한다. ``rerank_model="none"`` 일 때는
+    cascading 결과를 그대로 top_k 로 자른다.
+
+    Args:
+        query: 검색 질의.
+        top_k: 최종 반환 결과 수.
+        rerank_model: ``RERANKER_CHOICES`` 중 하나.
+        chatbot_id: 지정 시 DB 의 ChatbotConfig 의 search_tiers 사용.
+                    None 이면 시스템 기본 cascading config 사용.
+
+    Returns:
+        ``[{"volume", "chunk_index", "score", "rerank_score"}]`` 리스트.
+    """
+    from src.qdrant_client import get_raw_client
+    from src.search.cascading import cascading_search
+    from src.search.rerank import get_reranker
+
+    client = get_raw_client()
+    config = await _build_eval_cascading_config(chatbot_id)
+
+    # 프로덕션 패턴: cascading top-50 → reranker top-K
+    search_top_k = max(top_k * 5, 50)
+    results = await cascading_search(client, query, config, top_k=search_top_k)
+
+    if rerank_model != "none" and results:
+        reranker = get_reranker(rerank_model)
+        results = await reranker.rerank(query, results, top_k=top_k)
+    else:
+        results = results[:top_k]
+
+    return [
+        {
+            "volume": r.volume,
+            "chunk_index": r.chunk_index,
+            "score": r.score,
+            "rerank_score": r.rerank_score,
+        }
+        for r in results
+    ]
 
 
 # ── 평가 ────────────────────────────────────────────────────────────────────
 
 
-async def evaluate_set(golden_path: Path, top_k: int = 10) -> dict[str, Any]:
+async def evaluate_set(
+    golden_path: Path,
+    top_k: int = 10,
+    rerank_model: str = "gemini-flash",
+    chatbot_id: str | None = None,
+) -> dict[str, Any]:
     data = load_golden(golden_path)
     queries: list[dict[str, Any]] = data.get("queries", [])
 
@@ -124,7 +193,9 @@ async def evaluate_set(golden_path: Path, top_k: int = 10) -> dict[str, Any]:
             skipped.append(q["id"])
             continue
 
-        results = await run_search(q["query"], top_k=top_k)
+        results = await run_search(
+            q["query"], top_k=top_k, rerank_model=rerank_model, chatbot_id=chatbot_id,
+        )
         actual_chunks = [f"{r['volume']}:{r['chunk_index']}" for r in results]
         actual_volumes = [r["volume"] for r in results]
         expected_chunks = set(q.get("expected_chunk_ids", []))
@@ -155,6 +226,8 @@ async def evaluate_set(golden_path: Path, top_k: int = 10) -> dict[str, Any]:
         "n_evaluated": len(per_query),
         "n_skipped_no_label": len(skipped),
         "skipped_ids": skipped,
+        "rerank_model": rerank_model,
+        "chatbot_id": chatbot_id,
         "macro": {
             key: (sum(vals) / len(vals) if vals else None)
             for key, vals in metrics_acc.items()
@@ -187,12 +260,23 @@ def diff_runs(baseline: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Phase 0 cascade threshold cutoff 정책 평가 (judge LLM 미사용)"
+        description="Phase 0 cascade threshold + reranker A/B 평가 (judge LLM 미사용)"
     )
     parser.add_argument(
         "--golden",
         default="tests/golden/queries.json",
         help="골든셋 JSON 경로 (default: tests/golden/queries.json)",
+    )
+    parser.add_argument(
+        "--rerank-model",
+        choices=RERANKER_CHOICES,
+        default="gemini-flash",
+        help="reranker 모델 선택 (default: gemini-flash)",
+    )
+    parser.add_argument(
+        "--chatbot-id",
+        default=None,
+        help="DB 의 ChatbotConfig.search_tiers 사용 (env EVAL_CHATBOT_ID fallback)",
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
@@ -214,7 +298,14 @@ def main(argv: list[str] | None = None) -> int:
         after = json.loads(Path(args.diff[1]).read_text(encoding="utf-8"))
         out = diff_runs(baseline, after)
     else:
-        out = asyncio.run(evaluate_set(Path(args.golden)))
+        chatbot_id = args.chatbot_id or os.environ.get("EVAL_CHATBOT_ID") or None
+        out = asyncio.run(
+            evaluate_set(
+                Path(args.golden),
+                rerank_model=args.rerank_model,
+                chatbot_id=chatbot_id,
+            )
+        )
 
     json.dump(out, sys.stdout, indent=2, ensure_ascii=False)
     sys.stdout.write("\n")

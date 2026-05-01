@@ -1,25 +1,31 @@
-"""evaluate_threshold metric 함수 단위 테스트 (Phase 0).
+"""evaluate_threshold metric 함수 + run_search 통합 단위 테스트 (Phase 0).
 
-run_search 는 staging 환경 의존이라 stub. 본 테스트는 metric 함수의
-수학적 정확성과 골든셋 로더의 라벨 검증 로직만 검증한다.
+metric 함수의 수학적 정확성, 골든셋 로더의 라벨 검증, 그리고 PR 2 에서
+활성화된 run_search 의 cascading_search + reranker dispatch 동작을 검증한다.
 """
 from __future__ import annotations
 
 import json
 import sys
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # scripts/ 는 패키지가 아니므로 sys.path 조작
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from evaluate_threshold import (  # noqa: E402
     diff_runs,
+    evaluate_set,
     is_labeled,
     load_golden,
     mrr_at_k,
     ndcg_at_k,
     recall_at_k,
+    run_search,
 )
+from src.search.hybrid import SearchResult  # noqa: E402
 
 
 # ── recall_at_k ─────────────────────────────────────────────────────────────
@@ -133,3 +139,108 @@ def test_diff_runs_handles_none():
     after = {"n_evaluated": 0, "macro": {"recall@10": None}}
     out = diff_runs(baseline, after)
     assert out["diff"]["recall@10"]["delta"] is None
+
+
+# ── run_search ─────────────────────────────────────────────────────────────
+
+
+def _fake_search_results() -> list[SearchResult]:
+    return [
+        SearchResult(text="t1", volume="vol_001", chunk_index=0, score=0.9, source="A"),
+        SearchResult(text="t2", volume="vol_002", chunk_index=1, score=0.7, source="B"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_run_search_default_uses_gemini_reranker():
+    """rerank_model='gemini-flash' (default) → cascading_search + reranker.rerank 모두 호출."""
+    fake_results = _fake_search_results()
+    fake_reranked = [
+        SearchResult(
+            text="t1", volume="vol_001", chunk_index=0, score=0.9, source="A", rerank_score=0.95,
+        )
+    ]
+    mock_reranker = AsyncMock()
+    mock_reranker.rerank = AsyncMock(return_value=fake_reranked)
+
+    with (
+        patch("src.qdrant_client.get_raw_client", return_value=MagicMock()),
+        patch(
+            "src.search.cascading.cascading_search",
+            new_callable=AsyncMock, return_value=fake_results,
+        ) as mock_cascade,
+        patch("src.search.rerank.get_reranker", return_value=mock_reranker) as mock_get_reranker,
+    ):
+        out = await run_search("q", top_k=10, rerank_model="gemini-flash")
+
+    mock_cascade.assert_awaited_once()
+    # cascading top_k 는 max(top_k*5, 50) = 50
+    assert mock_cascade.await_args.kwargs.get("top_k", 0) >= 50
+    mock_get_reranker.assert_called_once_with("gemini-flash")
+    mock_reranker.rerank.assert_awaited_once()
+    assert out == [
+        {"volume": "vol_001", "chunk_index": 0, "score": 0.9, "rerank_score": 0.95},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_run_search_none_skips_reranker():
+    """rerank_model='none' → reranker 호출 없이 cascading 결과 그대로 top_k 자름."""
+    fake_results = _fake_search_results()
+
+    with (
+        patch("src.qdrant_client.get_raw_client", return_value=MagicMock()),
+        patch(
+            "src.search.cascading.cascading_search",
+            new_callable=AsyncMock, return_value=fake_results,
+        ),
+        patch("src.search.rerank.get_reranker") as mock_get_reranker,
+    ):
+        out = await run_search("q", top_k=1, rerank_model="none")
+
+    mock_get_reranker.assert_not_called()
+    assert len(out) == 1
+    assert out[0]["volume"] == "vol_001"
+    assert out[0]["rerank_score"] is None
+
+
+@pytest.mark.asyncio
+async def test_run_search_empty_results_skips_reranker():
+    """cascading 결과 0건 → reranker 호출 안 함, 빈 리스트 반환."""
+    with (
+        patch("src.qdrant_client.get_raw_client", return_value=MagicMock()),
+        patch(
+            "src.search.cascading.cascading_search",
+            new_callable=AsyncMock, return_value=[],
+        ),
+        patch("src.search.rerank.get_reranker") as mock_get_reranker,
+    ):
+        out = await run_search("q", top_k=10, rerank_model="gemini-flash")
+
+    mock_get_reranker.assert_not_called()
+    assert out == []
+
+
+@pytest.mark.asyncio
+async def test_evaluate_set_skips_unlabeled_queries_without_calling_search(tmp_path):
+    """마스터 plan 검증 시나리오: 라벨 없는 쿼리만 있으면 run_search 호출 0회, n_evaluated=0."""
+    golden = tmp_path / "g.json"
+    golden.write_text(
+        json.dumps({
+            "version": 1,
+            "queries": [
+                {"id": "q1", "query": "축복?", "expected_chunk_ids": [], "expected_volumes": []},
+                {"id": "q2", "query": "효정?", "expected_chunk_ids": [], "expected_volumes": []},
+            ],
+        }),
+        encoding="utf-8",
+    )
+
+    with patch("evaluate_threshold.run_search", new_callable=AsyncMock) as mock_search:
+        out = await evaluate_set(golden, rerank_model="gemini-flash")
+
+    mock_search.assert_not_awaited()
+    assert out["n_evaluated"] == 0
+    assert out["n_skipped_no_label"] == 2
+    assert out["rerank_model"] == "gemini-flash"
+    assert out["chatbot_id"] is None
