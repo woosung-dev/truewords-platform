@@ -3842,6 +3842,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "openpyxl" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-mock" },
@@ -3878,6 +3879,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pytest", specifier = ">=8.3.0" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "pytest-mock", specifier = ">=3.14.0" },

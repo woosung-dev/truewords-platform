@@ -82,7 +82,7 @@ class AnswerCitation(SQLModel, table=True):
     # volume 은 Qdrant 의 문자열 권 식별자(예: "001권") 를 강제 캐스팅한 정수.
     # R3 PoC: 원본 문자열 보존을 위해 volume_raw 컬럼 추가 (2단계 마이그레이션 1단계).
     volume: int
-    volume_raw: str | None = Field(default=None, max_length=64)
+    volume_raw: str | None = Field(default=None, max_length=255)
     chapter: str | None = None
     text_snippet: str = Field(sa_column=Column(Text))
     relevance_score: float = 0.0
