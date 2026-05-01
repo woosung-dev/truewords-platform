@@ -17,6 +17,9 @@
 | 문서 | 설명 | 키워드 |
 |------|------|--------|
 | [16-app-feature-spec](./01_requirements/16-app-feature-spec.md) | MVP 기능 목록, 모듈별 스펙, 릴리스 계획 | 기능 스펙, 화면 목록 |
+| [17-chatbot-system-prompt-spec](./01_requirements/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 관리 명세 | 시스템 프롬프트, 페르소나 |
+| [18-category-document-stats](./01_requirements/18-category-document-stats.md) | 카테고리별 문서/청크 현황 표시 기능 | 데이터소스, 카테고리 통계 |
+| [19-category-tag-management-ui](./01_requirements/19-category-tag-management-ui.md) | 문서 카테고리 태그 관리 UI | Transfer UI, 다중 태그 |
 
 ---
 
@@ -25,6 +28,14 @@
 | 문서 | 설명 | 키워드 |
 |------|------|--------|
 | [06-terminology-dictionary-structure](./02_domain/06-terminology-dictionary-structure.md) | 대사전 데이터 구조 5가지 방안 비교, 추천 조합 | 용어사전, 컬렉션 설계 |
+
+---
+
+## 03_api/ — API 명세
+
+| 문서 | 설명 | 키워드 |
+|------|------|--------|
+| [check_duplicate](./03_api/check_duplicate.md) | 업로드 전 중복 문서 확인 및 재업로드 정책 API | 업로드, 중복 확인, on_duplicate |
 
 ---
 
@@ -41,10 +52,14 @@
 | [09-security-countermeasures](./04_architecture/09-security-countermeasures.md) | 악의적 사용 대응 9가지, 단계적 공개 | 보안, 가드레일 |
 | [10-vibe-coding-and-pinecone-vs-qdrant](./04_architecture/10-vibe-coding-and-pinecone-vs-qdrant.md) | Pinecone과 Qdrant 상세 비교 | DB 비교 |
 | [11-data-routing-strategies](./04_architecture/11-data-routing-strategies.md) | 데이터 소스 선택/라우팅 20가지 전략 | 라우팅, 검색 전략 |
+| [redteam-test-plan](./04_architecture/redteam-test-plan.md) | 프롬프트 인젝션/안전성 레드팀 테스트 계획 | 보안 검증 |
+| [target-architecture-blueprint-2026-05-01](./04_architecture/target-architecture-blueprint-2026-05-01.html) | 외부 Target Architecture 청사진 사본 | 아키텍처 비교, 참고 자료 |
 
 ---
 
 ## dev-log/ — 조사 및 의사결정 기록
+
+> 전체 dev-log는 날짜/번호 기반 ADR입니다. 아래 표는 현재 개발 방향에 직접 영향을 주는 핵심 문서만 색인합니다.
 
 | 문서 | 설명 | 키워드 |
 |------|------|--------|
@@ -54,6 +69,21 @@
 | [15-local-llm-benchmark](./dev-log/15-local-llm-benchmark.md) | 13개 로컬 LLM 성능/품질 비교 | LLM, Spec Decoding |
 | [17-design-strategy](./dev-log/17-design-strategy.md) | UI/UX 디자인 전략 (초안, 고도화 필요) | 디자인, 컬러, 화면 |
 | [18-ai-rules-update-plan](./dev-log/18-ai-rules-update-plan.md) | .ai/rules 수정 계획 | 규칙 업데이트 |
+| [24-rrf-score-threshold-fix](./dev-log/24-rrf-score-threshold-fix.md) | RRF 점수 스케일 불일치 수정 | RRF, threshold |
+| [26-source-label-decision](./dev-log/26-source-label-decision.md) | source 라벨 체계 결정 | 데이터 라벨, 카테고리 |
+| [30-upload-on-duplicate-mode](./dev-log/30-upload-on-duplicate-mode.md) | 재업로드 정책 `merge|replace|skip` | 업로드, 중복 처리 |
+| [43-r1-phase3-completion](./dev-log/43-r1-phase3-completion.md) | Chat pipeline Stage/FSM 리팩토링 완료 | Pipeline Stage, FSM |
+| [44-rag-intent-routing-and-eval](./dev-log/44-rag-intent-routing-and-eval.md) | Intent routing + RAG 평가 | Intent, RAG 품질 |
+| [45-paragraph-chunking-50q-revalidation](./dev-log/45-paragraph-chunking-50q-revalidation.md) | paragraph 청킹 50문항 재검증 | 청킹, 평가 |
+| [45-qdrant-self-hosting](./dev-log/45-qdrant-self-hosting.md) | Qdrant 셀프 호스팅 결정 | Qdrant VM, Cloudflare Tunnel |
+| [46-qdrant-cache-cold-start-debug](./dev-log/46-qdrant-cache-cold-start-debug.md) | Qdrant cache cold start 진단 | Semantic Cache, raw HTTP |
+| [47-qdrant-sdk-http2-permanent-fix](./dev-log/47-qdrant-sdk-http2-permanent-fix.md) | qdrant-client HTTP/2 hang 영구 회피 | RawQdrantClient |
+| [51-recursive-v5-88vol-promotion](./dev-log/51-recursive-v5-88vol-promotion.md) | Recursive v5 88권 운영 채택 | 청킹 운영 전환 |
+| [52-collection-main-deprecation](./dev-log/52-collection-main-deprecation.md) | 봇별 `collection_main` 토글 폐기 | 단일 컬렉션 운영 |
+| [53-metadata-filter-poc](./dev-log/53-metadata-filter-poc.md) | 메타데이터 필터 PoC | volume/date filter |
+| [54-chunking-hierarchical-contextual-poc](./dev-log/54-chunking-hierarchical-contextual-poc.md) | Hierarchical/Contextual Retrieval PoC 보류 결정 | 청킹 PoC |
+| [2026-05-01-cascade-threshold-paths](./dev-log/2026-05-01-cascade-threshold-paths.md) | Cascading threshold 설정 전파 경로 조사 | score_threshold |
+| [2026-05-01-target-architecture-gap](./dev-log/2026-05-01-target-architecture-gap.md) | Target Architecture 청사진과 실제 코드 차이 | 아키텍처 gap |
 
 ---
 
@@ -78,6 +108,8 @@
 | 문서 | 설명 | 키워드 |
 |------|------|--------|
 | [gcp-vercel-infrastructure](./07_infra/gcp-vercel-infrastructure.md) | GCP Cloud Run + Vercel 인프라, 리소스 구성, 월 비용 | 클라우드, 아키텍처, 비용 |
+| [qdrant-self-hosting](./07_infra/qdrant-self-hosting.md) | Qdrant VM 셀프 호스팅 운영 가이드 | Qdrant, Cloudflare Tunnel |
+| [staging-separation](./07_infra/staging-separation.md) | Staging 환경 분리 설계 | staging, Cloud Run, Vercel |
 
 ---
 
@@ -86,6 +118,8 @@
 | 문서 | 설명 | 키워드 |
 |------|------|--------|
 | [development-workflow](./guides/development-workflow.md) | 개발 워크플로우 (gstack + superpowers + ai-rules), 작업 유형별 프로세스, 현재 진행 상태 | 워크플로우, 방법론, 다음 작업 |
+| [integration-branch-workflow](./guides/integration-branch-workflow.md) | 통합 브랜치/stack PR 운영 가이드 | git worktree, PR flow |
+| [redteam-test-guide](./guides/redteam-test-guide.md) | 레드팀 테스트 수행 가이드 | QA, 안전성 검증 |
 
 ---
 
@@ -98,6 +132,8 @@ Flutter (프론트엔드) + FastAPI (백엔드) + Qdrant (검색) + PostgreSQL (
 - **Qdrant**: 종합 평가 8.75/10으로 선정 (10종 비교)
 - **Gemini File Search**: 단독 사용 비추 (4.85/10), 생성 모델 + Context Caching으로 활용
 - **배포**: Vercel (admin) + GCP Cloud Run (백엔드)
+- **검색 컬렉션**: `settings.collection_name` 단일 메인 컬렉션 운영 (`malssum_poc_v5` 기본값)
+- **Semantic Cache**: 운영 기본 임계값 `CACHE_THRESHOLD=0.88`, TTL 7일, chatbot_id 격리
 - **예상 월 비용**: ~$66-210/월
 
 ## 문서 간 참조 관계

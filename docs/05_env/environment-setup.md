@@ -1,4 +1,4 @@
-# 환경 설정 ��이드
+# 환경 설정 가이드
 
 ## 로컬 개발 환경
 
@@ -63,7 +63,7 @@ docker compose up --build
 | 변수 | 설명 | 기본값 | 필수 |
 |------|------|--------|------|
 | `ENVIRONMENT` | 환경 구분 | `development` | - |
-| `GEMINI_API_KEY` | Gemini API 키 | - | **��수** |
+| `GEMINI_API_KEY` | Gemini API 키 | - | **필수** |
 | `QDRANT_URL` | Qdrant 서버 URL | `http://localhost:6333` | - |
 | `QDRANT_API_KEY` | Qdrant API Key (셀프 호스팅 VM·Cloud 공통) | - | 운영 환경 필수 |
 | `COLLECTION_NAME` | 말씀 컬렉션 이름 | `malssum_poc_v5` | - |
@@ -73,7 +73,7 @@ docker compose up --build
 | `ADMIN_FRONTEND_URL` | admin CORS 허용 URL | `http://localhost:3000` | - |
 | `COOKIE_SECURE` | HTTPS 전용 쿠키 | `false` | 프로덕션 `true` |
 | `CACHE_COLLECTION_NAME` | 시맨틱 캐시 컬렉션 | `semantic_cache` | - |
-| `CACHE_THRESHOLD` | 캐시 유사도 임계값 | `0.93` | - |
+| `CACHE_THRESHOLD` | 캐시 유사도 임계값 | `0.88` | - |
 | `CACHE_TTL_DAYS` | 캐시 TTL (일) | `7` | - |
 | `NEXT_PUBLIC_API_URL` | (프론트엔드) API 서버 URL | `http://localhost:8000` | - |
 

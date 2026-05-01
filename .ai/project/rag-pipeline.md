@@ -13,7 +13,7 @@ paths: ["backend/src/search/**/*", "backend/src/pipeline/**/*", "backend/src/cac
 ```
 사용자 질문
     ↓
-[1] Semantic Cache 검색 (유사도 ≥ 0.93 → 즉시 반환)
+[1] Semantic Cache 검색 (운영 기본 유사도 ≥ 0.88 → 즉시 반환)
     ↓ MISS
 [2] Query Rewriting (LLM 기반 질문 확장/재작성)
     ↓
@@ -94,7 +94,7 @@ async def cascading_search(
 유사 질문 캐시로 비용과 응답 시간을 절감한다. (doc 08)
 
 ```python
-CACHE_THRESHOLD = 0.93  # 유사도 임계값
+CACHE_THRESHOLD = 0.88  # 운영 기본 유사도 임계값
 CACHE_TTL_DAYS = 7
 
 async def check_cache(question_embedding: list[float]) -> str | None:

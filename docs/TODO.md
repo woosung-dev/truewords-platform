@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-04-30
+> 마지막 업데이트: 2026-05-01
 
 ## Progress Overview
 
@@ -8,7 +8,7 @@
 설계/문서     ████████████████████ 100%
 Backend       ███████████████████░  95%
 Admin Web     ███████████████████░  95%
-테스트        █████████████████░░░  86%  (282 + 25개)
+테스트        ███████████████████░  95%  (pytest 599 + Vitest 43 + E2E 20 scenarios)
 인프라/배포    ██████████████████░░  90%
 Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 데이터        ██████████░░░░░░░░░░  50%  (L+M만 적재)
@@ -30,7 +30,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] Cascading Search — 우선순위 검색 (tier1 → tier2 fallback)
 - [x] Gemini LLM Re-ranking — retrieval 50 → rerank → context 10, graceful degradation
 - [x] SSE 스트리밍 응답 — `POST /chat/stream` (chunk→sources→done)
-- [x] Semantic Cache — Qdrant semantic_cache 컬렉션, 유사도 0.93, TTL 7일, chatbot_id 격리
+- [x] Semantic Cache — Qdrant semantic_cache 컬렉션, 운영 임계값 0.88, TTL 7일, chatbot_id 격리
 - [x] 임베딩 중복 계산 최적화 — dense/sparse 1회 계산 후 모든 티어에서 재사용
 
 ### Backend — 데이터 파이프라인
@@ -106,15 +106,17 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] Admin UI 토글 (new/edit 페이지에 Query Rewriting 체크박스)
 
 ### 테스트
-- [x] Backend pytest 274개 (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback, 레드팀 등)
-- [x] Admin Vitest 25개 (로그인, SearchTierEditor, API)
-- [x] Admin Playwright E2E 12개 (로그인, 챗봇 CRUD, 인증 가드)
+- [x] Backend pytest 599 passed (마이그레이션 적용 상태, dev-log 52 기준)
+- [x] Admin Vitest 43 passed (dev-log 52 기준)
+- [x] Admin TypeScript typecheck clean (dev-log 52 기준)
+- [x] Admin Playwright E2E 20 scenarios 보유 (admin-flow 15 + data-source-delete 5)
 
 ### 문서/품질
 - [x] Docstring 체계화 — chat/service, search/cascading, search/hybrid, pipeline/ingestor (PR #9, 2026-04-11)
 - [x] Git 브랜치 전략 문서화 (2026-04-11)
 - [x] 아키텍처 설계 문서 9개 완료
 - [x] Superpowers plans/specs 8+8개
+- [x] 문서 색인/상태 정리 — `docs/README.md` 최신 dev-log/API/infra 색인 보강, Semantic Cache 운영 임계값 0.88 반영 (2026-05-01)
 
 ---
 

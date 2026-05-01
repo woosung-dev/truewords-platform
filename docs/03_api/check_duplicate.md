@@ -2,6 +2,7 @@
 
 > 추가일: 2026-04-14
 > 관련 엔드포인트: `GET /admin/data-sources/check-duplicate`
+> 현재 업로드 정책: `POST /admin/data-sources/upload`의 `on_duplicate=merge|replace|skip`
 
 ---
 
@@ -65,9 +66,12 @@ Authorization: HttpOnly Cookie (admin JWT)
 
 | 사용자 선택 | 동작 |
 |---|---|
-| **덮어쓰고 다시 업로드** | 기존 `POST /admin/data-sources/upload` 호출 (기존 동작 유지) |
+| **내용 갱신 (분류 유지)** | `POST /admin/data-sources/upload` 호출, `on_duplicate=merge` 전달. 기존 source와 신규 source를 합집합으로 보존 |
+| **신규 분류로 교체** | `POST /admin/data-sources/upload` 호출, `on_duplicate=replace` 전달. 기존 청크 삭제 후 신규 source로 재적재 |
 | **기존 문서에 "{source}" 태그만 추가** | `PUT /admin/data-sources/volume-tags { volume: volume_key, source }` 호출. 파일은 업로드하지 않음. `sources`에 이미 포함된 태그면 버튼 숨김. |
 | **취소** | 대기 상태 유지, 사용자가 다시 업로드 버튼을 누를 수 있도록 둠 |
+
+일괄 업로드에서는 `skip` 정책도 사용할 수 있다. `skip`은 기존 `completed` job의 content hash가 동일하면 임베딩과 Qdrant upsert를 생략한다. hash가 다르면 `merge`와 동일하게 기존 분류를 보존하며 재적재한다.
 
 관련 구현:
 - Backend: `backend/src/admin/data_router.py:get_ingest_status` 다음 라우트

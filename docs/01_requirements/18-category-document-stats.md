@@ -1,8 +1,13 @@
 # 18. 카테고리별 문서 매핑 현황 표시 기능
 
-> **상태:** 구현 대기
+> **상태:** 구현 완료
 > **작성일:** 2026-04-09
+> **구현 완료:** 2026-04
 > **관련:** 데이터 소스 관리, 카테고리 관리 탭
+
+> 구현 기준: `backend/src/admin/data_router.py`, `backend/src/datasource/qdrant_service.py`,
+> `admin/src/features/data-source/api.ts`, `admin/src/features/data-source/hooks.ts`,
+> `admin/src/app/(dashboard)/data-sources/category-tab.tsx`
 
 ---
 
@@ -18,7 +23,7 @@
 
 ---
 
-## 구현 계획
+## 구현 결과
 
 ### Step 1: 백엔드 — 응답 스키마 추가
 
@@ -45,19 +50,19 @@ class CategoryDocumentStats(BaseModel):
      - `client.scroll(filter=source, with_payload=["volume"], with_vectors=False)` → 고유 volume 수집
   3. 결과 집계 후 반환
 
-- **사용할 클라이언트:** `get_async_client()` (비동기, `qdrant_client.py:15`)
-- **성능:** `source`, `volume` 필드에 이미 payload index 존재 (`qdrant_client.py:44-55`)
+- **사용할 클라이언트:** `get_raw_client()` / `RawQdrantClient`
+- **성능:** Qdrant Facet API 기반 집계로 전체 포인트 scroll 비용을 줄인다.
 
 ### Step 3: 프론트엔드 — API 타입 & 클라이언트 추가
 
-**파일:** `admin/src/lib/api.ts`
+**파일:** `admin/src/features/data-source/api.ts`
 
 - `CategoryDocumentStats` 인터페이스 추가
 - `dataAPI`에 `getCategoryStats()` 메서드 추가
 
 ### Step 4: 프론트엔드 — React Query 훅 추가
 
-**파일:** `admin/src/lib/hooks/use-data-source-categories.ts`
+**파일:** `admin/src/features/data-source/hooks.ts`
 
 - `useCategoryStats()` 훅 추가 (staleTime: 60초)
 
@@ -91,14 +96,15 @@ class CategoryDocumentStats(BaseModel):
 
 ---
 
-## 수정 파일 목록
+## 구현 파일 목록
 
 | 파일 | 변경 내용 |
 |------|----------|
 | `backend/src/datasource/schemas.py` | `CategoryDocumentStats` 스키마 추가 |
 | `backend/src/admin/data_router.py` | `GET /category-stats` 엔드포인트 추가 |
-| `admin/src/lib/api.ts` | 타입 + API 메서드 추가 |
-| `admin/src/lib/hooks/use-data-source-categories.ts` | `useCategoryStats()` 훅 추가 |
+| `backend/src/datasource/qdrant_service.py` | Qdrant Facet API 기반 카테고리별 집계 |
+| `admin/src/features/data-source/api.ts` | 타입 + API 메서드 추가 |
+| `admin/src/features/data-source/hooks.ts` | `useCategoryStats()` 훅 추가 |
 | `admin/src/app/(dashboard)/data-sources/category-tab.tsx` | 테이블 확장 (문서 컬럼 + 확장 행) |
 | `admin/src/app/(dashboard)/data-sources/page.tsx` | 캐시 무효화 추가 |
 

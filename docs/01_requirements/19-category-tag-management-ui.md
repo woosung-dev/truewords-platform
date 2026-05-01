@@ -1,9 +1,15 @@
 # 19. 카테고리 태그 관리 UI 개선
 
-> **상태:** 구현 대기
+> **상태:** 구현 완료
 > **작성일:** 2026-04-09
+> **구현 완료:** 2026-04
 > **선행 작업:** 18-category-document-stats (완료), 다중 카테고리 태깅 백엔드 (완료)
 > **관련:** 카테고리 관리 탭, 문서 태그 추가/제거 API
+
+> 구현 기준: `backend/src/admin/data_router.py`, `backend/src/datasource/qdrant_service.py`,
+> `admin/src/features/data-source/components/volume-transfer-sheet.tsx`,
+> `admin/src/features/data-source/components/delete-confirm-dialog.tsx`,
+> `admin/src/app/(dashboard)/data-sources/category-tab.tsx`
 
 ---
 
@@ -45,7 +51,7 @@ Ant Design의 `Transfer` 컴포넌트가 좋은 참고 모델:
 
 ---
 
-## 설계 방향
+## 설계 방향 및 구현 결과
 
 ### 옵션 A: Transfer 패턴 (Sheet/모달)
 
@@ -85,7 +91,7 @@ Ant Design의 `Transfer` 컴포넌트가 좋은 참고 모델:
 - 장점: 인라인으로 즉시 편집, 각 문서의 전체 태그 확인 가능
 - 단점: 대량 문서 일괄 관리에 불편
 
-### 추천: 옵션 A (Transfer 패턴)
+### 채택: 옵션 A (Transfer 패턴)
 
 카테고리에 문서가 수십~수백 개가 될 수 있으므로, 검색 + 다중 선택 + 일괄 이동이 가능한 Transfer 패턴이 적합.
 
@@ -101,15 +107,21 @@ Ant Design의 `Transfer` 컴포넌트가 좋은 참고 모델:
   - `DELETE /admin/data-sources/volume-tags` — 태그 제거
   - `GET /admin/data-sources/category-stats` — 카테고리별 volume 목록
 
-### 필요한 추가 API
-- **전체 volume 목록 조회** — Transfer 좌측 패널용. 현재 category-stats에서 source별로만 제공.
-  - 옵션 1: 새 엔드포인트 `GET /admin/data-sources/volumes` — 전체 고유 volume 목록 + 각 volume의 source 배열
-  - 옵션 2: 프론트에서 모든 category-stats를 합쳐서 전체 volume 목록 구성
+### 추가 API
+- **전체 volume 목록 조회** — Transfer 좌측 패널용.
+  - 구현: `GET /admin/data-sources/volumes`
+  - 응답: 전체 고유 volume 목록 + 각 volume의 `sources`, `chunk_count`
+- **태그 일괄 추가/제거**
+  - 구현: `PUT /admin/data-sources/volume-tags/bulk`
+  - 구현: `POST /admin/data-sources/volume-tags/bulk-remove`
+- **volume 영구 삭제**
+  - 구현: `DELETE /admin/data-sources/volumes/{volume_key:path}`
+  - 구현: `POST /admin/data-sources/volumes/delete-bulk`
 
 ### NFD 정규화
 - macOS 파일시스템 한글 NFD 이슈가 있음
-- 태그 관리 API에 `unicodedata.normalize("NFD")` 적용 완료
-- 새 API 추가 시에도 동일 적용 필요
+- 태그 관리 API는 NFC/NFD 양쪽 후보를 모두 매칭한 뒤 NFC 기준으로 재확인한다.
+- 새 API 추가 시에도 동일한 정규화/재확인 패턴을 유지한다.
 
 ### 현재 데이터 구조 (Qdrant payload)
 ```json
@@ -123,13 +135,15 @@ Ant Design의 `Transfer` 컴포넌트가 좋은 참고 모델:
 
 ---
 
-## 수정 예상 파일
+## 구현 파일
 
 | 파일 | 변경 내용 |
 |------|----------|
-| `backend/src/admin/data_router.py` | (선택) 전체 volume 목록 API 추가 |
-| `backend/src/datasource/schemas.py` | (선택) VolumeInfo 스키마 추가 |
-| `admin/src/components/ui/transfer.tsx` | (신규) Transfer 컴포넌트 구현 |
-| `admin/src/app/(dashboard)/data-sources/category-tab.tsx` | Transfer 연동 |
-| `admin/src/lib/api.ts` | (선택) 전체 volume API 클라이언트 |
-| `admin/src/lib/hooks/use-data-source-categories.ts` | (선택) useAllVolumes 훅 |
+| `backend/src/admin/data_router.py` | 전체 volume 조회, 태그 추가/제거, bulk 태그, volume 삭제 API |
+| `backend/src/datasource/schemas.py` | `VolumeInfo`, `VolumeTag*`, `VolumeDelete*` 스키마 |
+| `backend/src/datasource/qdrant_service.py` | volume/tag Qdrant 조작 서비스 |
+| `admin/src/features/data-source/components/volume-transfer-sheet.tsx` | Transfer Sheet 구현 |
+| `admin/src/features/data-source/components/delete-confirm-dialog.tsx` | typed-confirm 삭제 다이얼로그 |
+| `admin/src/app/(dashboard)/data-sources/category-tab.tsx` | 카테고리 탭 연동 |
+| `admin/src/features/data-source/api.ts` | data source API 클라이언트 |
+| `admin/src/features/data-source/hooks.ts` | `useAllVolumes`, 태그 mutation 훅 |
