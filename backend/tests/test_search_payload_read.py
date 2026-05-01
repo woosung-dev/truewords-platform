@@ -12,7 +12,9 @@ from src.search.hybrid import SearchResult, point_to_search_result
 
 
 def _point(payload: dict, score: float = 0.5) -> SimpleNamespace:
-    return SimpleNamespace(payload=payload, score=score)
+    # P0-B 이후 ``point_to_search_result`` 가 ``str(point.id)`` 를
+    # ``SearchResult.chunk_id`` 로 매핑하므로 mock 도 id 를 가져야 한다.
+    return SimpleNamespace(payload=payload, score=score, id="test-chunk-id")
 
 
 def test_v1_payload_with_all_fields():
