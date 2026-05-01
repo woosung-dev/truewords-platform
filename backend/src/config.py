@@ -41,11 +41,6 @@ class Settings(BaseSettings):
     cache_threshold: float = 0.88
     cache_ttl_days: int = 7
 
-    # Cascading search 기본값
-    cascade_score_threshold: float = 0.75
-    cascade_fallback_threshold: float = 0.60
-    cascade_min_results: int = 3
-
     # 임베딩 파이프라인
     # GEMINI_TIER 하나로 무료/유료 전환. 개별 override도 가능.
     #   embed_max_chars_per_batch → TPM 방어 (분당 토큰)

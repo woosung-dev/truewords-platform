@@ -65,7 +65,9 @@ def test_safety_config_defaults():
 def test_tier_config_defaults():
     t = TierConfig(sources=["A"])
     assert t.min_results == 3
-    assert t.score_threshold == 0.75
+    # 0.1 = build_runtime_config 의 fallback default 와 동기화 (RRF 점수대 0.0~0.5 범위)
+    # 이전 0.75 는 dead default 였음 (docs/dev-log/2026-05-01-cascade-distribution-measurement.md)
+    assert t.score_threshold == 0.1
 
 
 def test_runtime_config_validation_rejects_unknown_mode():
