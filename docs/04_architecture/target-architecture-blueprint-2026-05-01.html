@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>TrueWords RAG — 목표 아키텍처 청사진</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 24px;
+    background: #f8fafc;
+    color: #0f172a;
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
+    line-height: 1.6;
+  }
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 8px;
+  }
+  .subtitle {
+    color: #64748b;
+    font-size: 15px;
+    margin-bottom: 32px;
+  }
+  h2 {
+    font-size: 20px;
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .diagram-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 16px 0;
+    overflow-x: auto;
+  }
+  .legend {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin: 16px 0 24px;
+    padding: 16px;
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1.5px solid;
+  }
+  .sw-keep { background: #e0f2fe; border-color: #0284c7; }
+  .sw-mod { background: #fef3c7; border-color: #d97706; }
+  .sw-new { background: #fee2e2; border-color: #dc2626; border-style: dashed; }
+  .key-points {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    padding: 16px 20px;
+    border-radius: 6px;
+    margin: 20px 0;
+  }
+  .key-points h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: #92400e;
+  }
+  .key-points ul {
+    margin: 8px 0 0 20px;
+    padding: 0;
+  }
+  .key-points li {
+    margin: 6px 0;
+    font-size: 14px;
+  }
+  .mermaid {
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>TrueWords RAG — 목표 아키텍처 청사진</h1>
+<div class="subtitle">
+  Cascade × Manual Routing → Parallel Fusion × Adaptive Routing 진화 경로
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="swatch sw-keep"></div> 기존 유지</div>
+  <div class="legend-item"><div class="swatch sw-mod"></div> 수정·개선</div>
+  <div class="legend-item"><div class="swatch sw-new"></div> 신규 추가</div>
+</div>
+
+<h2>📐 전체 파이프라인 (12 Stage 진화형)</h2>
+
+<div class="diagram-box">
+<div class="mermaid">
+flowchart TD
+    Q([사용자 질의<br/>+ chatbot_id 선택<br/>+ session_id]):::keep
+    S1[1️⃣ InputValidation<br/>47개 prompt injection 패턴<br/>길이 1000자 제한]:::keep
+    S2[2️⃣ Session<br/>세션 생성/재사용<br/>user_message DB 저장]:::keep
+    S3[3️⃣ Embedding<br/>Gemini RETRIEVAL_QUERY<br/>1536-dim]:::keep
+    S4[4️⃣ CacheCheck<br/>유사도 ≥ 0.93 · TTL 7일<br/>chatbot_id 격리]:::keep
+
+    HIT{cache hit?}:::keep
+    EARLY([⚡ Early Return<br/>mini-persist]):::ok
+
+    S50[🆕 5.0 RetrievalGateStage<br/>━━━━━━━━━━━━━<br/>NO_RETRIEVAL · SINGLE_STEP · MULTI_STEP<br/>━━━━━━━━━━━━━<br/>Adaptive RAG: 검색 필요성 판정]:::new
+    SKIP([⚡ NO_RETRIEVAL<br/>인사말·메타질문<br/>정중 안내 즉시 반환]):::ok
+
+    S55[🆕 5.5 QueryRoutingStage<br/>━━━━━━━━━━━━━<br/>TF-IDF + SVM 분류기 F1 0.928<br/>키워드 룰 보조<br/>━━━━━━━━━━━━━<br/>9봇 자동 선택<br/>사용자 미지정 시만]:::new
+
+    S6[6️⃣ RuntimeConfig<br/>chatbot_id 기반<br/>system_prompt · search_mode<br/>search_tiers · rerank_enabled]:::keep
+
+    S7[7️⃣ QueryRewrite<br/>━━━━━━━━━━━━━<br/>⚡ timeout 0.8s → 1.8s<br/>⚡ 종교용어 사전 동적 주입<br/>10개 → 100+개<br/>━━━━━━━━━━━━━<br/>실패시 원본 fallback]:::mod
+
+    S8{🔧 8. SearchStage<br/>search_mode 분기<br/>runtime_config 기반}:::mod
+
+    CASC[기존 Cascading 모드<br/>━━━━━━━━━━━━━<br/>⚡ 핵심 개선<br/>score_threshold 절대→상대<br/>score ≥ top × 0.7<br/>━━━━━━━━━━━━━<br/>권 우선순위 명확 시 사용]:::mod
+
+    WGT[기존 Weighted 모드<br/>━━━━━━━━━━━━━<br/>고정 가중치 0.5/0.3<br/>다중 소스 병렬 + 단일점수<br/>━━━━━━━━━━━━━<br/>점진적으로 parallel_fusion 권장]:::keep
+
+    PFUS[🆕 Parallel Fusion 모드<br/>━━━━━━━━━━━━━<br/>A·B·C 동시 검색<br/>Weighted RRF / Convex Combination<br/>━━━━━━━━━━━━━<br/>Cascade 누수 해결<br/>all 봇·Recall 중요 시 권장]:::new
+
+    RES[(results 50건<br/>SearchResult 통합 후보 풀)]:::keep
+    EMPTY{결과 비어있음?}:::keep
+
+    FB[Fallback 검색<br/>relaxed threshold 0.05<br/>+ 3개 suggestions]:::keep
+
+    S9[9️⃣ Rerank<br/>━━━━━━━━━━━━━<br/>⚡ Gemini LLM → Cross-encoder<br/>BGE-reranker-v2 / Cohere Rerank<br/>⚡ timeout 5s 추가<br/>━━━━━━━━━━━━━<br/>50건 → 10건 재정렬]:::mod
+
+    S10[🆕 10. ValidationStage 옵션<br/>━━━━━━━━━━━━━<br/>Self-Reflective<br/>결과 충분성 자체 평가<br/>━━━━━━━━━━━━━<br/>심화 채널 MULTI_STEP만<br/>부족 시 재검색 1회<br/>일반 검색은 우회]:::new
+
+    S11[1️⃣1️⃣ Generation<br/>Gemini · top-5 컨텍스트<br/>temp=0.7 · max_tokens=4096<br/>출처 권명 명시 강제]:::keep
+
+    S12[1️⃣2️⃣ Safety + Persist<br/>━━━━━━━━━━━━━<br/>⚡ SENSITIVE_PATTERNS 채우기<br/>━━━━━━━━━━━━━<br/>SessionMessage + Citations<br/>+ semantic_cache 갱신]:::mod
+
+    OUT([✅ ChatResponse / SSE Stream<br/>답변 + 출처 + 면책고지]):::ok
+
+    Q --> S1 --> S2 --> S3 --> S4 --> HIT
+    HIT -->|YES| EARLY --> OUT
+    HIT -->|NO, cache miss| S50
+    S50 -->|NO_RETRIEVAL| SKIP --> OUT
+    S50 -->|SINGLE_STEP / MULTI_STEP| S55
+    S55 --> S6 --> S7 --> S8
+
+    S8 -->|cascading| CASC
+    S8 -->|weighted| WGT
+    S8 -->|🆕 parallel_fusion| PFUS
+
+    CASC --> RES
+    WGT --> RES
+    PFUS --> RES
+    RES --> EMPTY
+
+    EMPTY -->|YES 0건| FB --> S12
+    EMPTY -->|NO| S9
+    S9 -->|일반| S11
+    S9 -->|MULTI_STEP만| S10
+    S10 --> S11
+    S11 --> S12 --> OUT
+
+    classDef keep fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#0c4a6e
+    classDef mod fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
+    classDef new fill:#fee2e2,stroke:#dc2626,stroke-width:2px,stroke-dasharray:5 2,color:#7f1d1d
+    classDef ok fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
+</div>
+</div>
+
+<h2>🔧 검색 모드 비교 (8단계 SearchStage 내부)</h2>
+
+<div class="diagram-box">
+<div class="mermaid">
+flowchart LR
+    subgraph CASC["📦 Cascading (기존, 유지·개선)"]
+        direction TB
+        C1[Tier 1: A권<br/>min_results=3<br/>threshold=top × 0.7]
+        C2[Tier 2: B권<br/>1차 부족 시 추가]
+        C3[Tier 3: C권<br/>최종 fallback]
+        C1 -.부족.-> C2 -.부족.-> C3
+    end
+
+    subgraph WGT["⚖️ Weighted (기존, 유지)"]
+        direction TB
+        W1[A 검색 × 0.5]
+        W2[B 검색 × 0.3]
+        W3[C 검색 × 0.2]
+        WS([단일 점수 합산])
+        W1 --> WS
+        W2 --> WS
+        W3 --> WS
+    end
+
+    subgraph PFUS["🆕 Parallel Fusion (신규 권장)"]
+        direction TB
+        P1[A 검색<br/>weight 1.0]
+        P2[B 검색<br/>weight 0.6]
+        P3[C 검색<br/>weight 0.3]
+        PRRF{{Weighted RRF<br/>또는 Convex Combination}}
+        P1 --> PRRF
+        P2 --> PRRF
+        P3 --> PRRF
+    end
+
+    classDef cascN fill:#fef3c7,stroke:#d97706,stroke-width:1.5px
+    classDef wgtN fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px
+    classDef pfusN fill:#fee2e2,stroke:#dc2626,stroke-width:2px,stroke-dasharray:5 2
+
+    class C1,C2,C3 cascN
+    class W1,W2,W3,WS wgtN
+    class P1,P2,P3,PRRF pfusN
+</div>
+</div>
+
+<div class="key-points">
+<h3>💡 검색 모드 선택 가이드</h3>
+<ul>
+  <li><strong>Cascading</strong> — 권 우선순위가 명확하고 비용 절감이 중요할 때 (예: 참부모님 직설 → 강해 → 해설 순). <strong>지금 사용 중인 방식.</strong></li>
+  <li><strong>Weighted</strong> — 사람이 정한 가중치로 다중 소스를 합산. <strong>parallel_fusion으로 점진 이전 권장.</strong></li>
+  <li><strong>Parallel Fusion (신규)</strong> — A·B·C를 동시에 보고 RRF/Convex Combination으로 융합. Cascade의 "Tier 1에서 놓치면 끝" 문제 해결. <strong>"all" 봇과 멀티권 통합 검색에 최적.</strong></li>
+</ul>
+</div>
+
+<h2>🛣️ 적응형 라우팅 의사결정 흐름</h2>
+
+<div class="diagram-box">
+<div class="mermaid">
+flowchart TD
+    QIN([사용자 질의 도착]):::keep
+
+    G1{🆕 5.0 RetrievalGate<br/>검색이 필요한 질의인가?}:::new
+
+    NR[NO_RETRIEVAL<br/>예: 안녕하세요, 고마워요<br/>메타 질문]:::skip
+    NRA([정중 안내 즉시 반환<br/>검색·LLM 호출 0건]):::ok
+
+    SS[SINGLE_STEP<br/>일반 말씀 질의<br/>대다수 케이스]:::path
+    MS[MULTI_STEP<br/>시기별 비교<br/>다중홉 추론<br/>심화 분석]:::path
+
+    G2{🆕 5.5 QueryRouting<br/>사용자가 봇 선택했나?}:::new
+
+    UB[사용자 선택 봇 사용]:::keep
+    AB[자동 분류기 작동<br/>TF-IDF + SVM]:::new
+
+    R1[theology_parents]:::bot
+    R2[providence_life]:::bot
+    R3[unification_thought]:::bot
+    R4[latest_mother_words]:::bot
+    R5[기타 5봇]:::bot
+
+    EXEC[8️⃣ SearchStage 실행]:::keep
+    VAL[🆕 10. ValidationStage<br/>결과 검증 + 재검색 옵션]:::new
+
+    QIN --> G1
+    G1 -->|NO_RETRIEVAL| NR --> NRA
+    G1 -->|SINGLE_STEP| SS --> G2
+    G1 -->|MULTI_STEP| MS --> G2
+
+    G2 -->|YES| UB --> EXEC
+    G2 -->|NO| AB
+    AB --> R1 & R2 & R3 & R4 & R5
+    R1 --> EXEC
+    R2 --> EXEC
+    R3 --> EXEC
+    R4 --> EXEC
+    R5 --> EXEC
+
+    EXEC -->|일반 SINGLE_STEP| OUT([답변 생성]):::ok
+    EXEC -->|MULTI_STEP만| VAL
+    VAL --> OUT
+
+    classDef keep fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#0c4a6e
+    classDef new fill:#fee2e2,stroke:#dc2626,stroke-width:2px,stroke-dasharray:5 2,color:#7f1d1d
+    classDef skip fill:#f1f5f9,stroke:#64748b,stroke-width:1.5px,color:#334155
+    classDef path fill:#fef9c3,stroke:#ca8a04,stroke-width:1.5px,color:#713f12
+    classDef ok fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
+    classDef bot fill:#f3e8ff,stroke:#9333ea,stroke-width:1.5px,color:#581c87
+</div>
+</div>
+
+<h2>📅 도입 우선순위 (ROI 순)</h2>
+
+<div class="diagram-box">
+<div class="mermaid">
+flowchart LR
+    P0[Phase 0<br/>━━━━━━━━━<br/>설정 버그 수정<br/>1주, 비용 0]:::p0
+    P1[Phase 1<br/>━━━━━━━━━<br/>임계값 상대화<br/>+ Reranker 교체<br/>2주]:::p1
+    P2[Phase 2<br/>━━━━━━━━━<br/>parallel_fusion<br/>옵션 추가<br/>3-4주]:::p2
+    P3[Phase 3<br/>━━━━━━━━━<br/>QueryRouting +<br/>RetrievalGate<br/>4-6주]:::p3
+    P4[Phase 4<br/>━━━━━━━━━<br/>ValidationStage<br/>심화 채널만<br/>선택 도입]:::p4
+
+    P0 --> P1 --> P2 --> P3 --> P4
+
+    classDef p0 fill:#fee2e2,stroke:#dc2626,stroke-width:2px
+    classDef p1 fill:#fed7aa,stroke:#ea580c,stroke-width:2px
+    classDef p2 fill:#fef3c7,stroke:#d97706,stroke-width:2px
+    classDef p3 fill:#dcfce7,stroke:#16a34a,stroke-width:2px
+    classDef p4 fill:#dbeafe,stroke:#2563eb,stroke-width:2px
+</div>
+</div>
+
+<div class="key-points">
+<h3>🎯 핵심 메시지</h3>
+<ul>
+  <li><strong>골격은 그대로, Stage만 추가/교체.</strong> 기존 11 Stage 파이프라인 구조를 깨지 않고 5.0·5.5·10번을 끼워넣고 8번 SearchStage에 옵션 하나 추가하는 방식.</li>
+  <li><strong>각 단계 도입은 평가셋 검증과 함께.</strong> 골든셋 50~100개 만들고 옵션 켜고 끄며 측정. 도메인·코퍼스에 따라 효과가 다르므로 무조건 적용 금지.</li>
+  <li><strong>Phase 0가 가장 먼저.</strong> 자체 문서가 이미 적신호로 표시한 5개 설정 버그(score_threshold 0.60, REWRITE_TIMEOUT 0.8s 등) 수정만으로도 체감 검색 성공률이 크게 오를 가능성.</li>
+</ul>
+</div>
+
+</div>
+
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'default',
+  themeVariables: {
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontSize: '13px'
+  },
+  flowchart: {
+    useMaxWidth: true,
+    htmlLabels: true,
+    curve: 'basis'
+  }
+});
+</script>
+</body>
+</html>

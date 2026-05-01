@@ -160,6 +160,42 @@ async def test_empty_config():
 
 
 @pytest.mark.asyncio
+async def test_weighted_logs_score_distribution(caplog):
+    """Phase 0 분포 로깅: 결과 있을 때 weighted_score_dist 가 emit 되며 핵심 분포 통계 포함."""
+    import logging
+
+    from src.search.weighted import weighted_search, WeightedConfig, WeightedSource
+
+    config = WeightedConfig(sources=[
+        WeightedSource(source="A", weight=1.0, score_threshold=0.1),
+    ])
+
+    async def fake_hybrid(client, query, top_k, source_filter, dense_embedding, sparse_embedding, **kwargs):
+        return [
+            _make_result("a1", 0.45, "A"),
+            _make_result("a2", 0.20, "A"),
+            _make_result("a3", 0.05, "A"),
+        ]
+
+    with (
+        patch("src.search.weighted.hybrid_search", side_effect=fake_hybrid),
+        caplog.at_level(logging.INFO, logger="src.search.weighted"),
+    ):
+        await weighted_search(client=None, query="test", config=config, top_k=10)
+
+    dist_logs = [r for r in caplog.records if r.message == "weighted_score_dist"]
+    assert len(dist_logs) == 1
+    record = dist_logs[0]
+    assert record.source == "A"
+    assert record.threshold == 0.1
+    assert record.score_top == 0.45
+    assert record.score_bottom == 0.05
+    assert record.n_results == 3
+    # 0.45, 0.20 통과 / 0.05 컷오프
+    assert record.n_qualified == 2
+
+
+@pytest.mark.asyncio
 async def test_non_integer_weights():
     """비정수 가중치 (0.7, 0.3) — 동일 점수일 때 가중치 높은 소스 우선."""
     from src.search.weighted import weighted_search, WeightedConfig, WeightedSource
