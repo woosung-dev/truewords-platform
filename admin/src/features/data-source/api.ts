@@ -20,7 +20,8 @@ export const dataAPI = {
   uploadFile: async (
     file: File,
     source: string,
-    mode: "standard" | "batch" = "standard",
+    // Batch API 제거됨 (PR #95). mode 인자는 백엔드 호환을 위해 standard 고정.
+    mode: "standard" = "standard",
     onDuplicate: OnDuplicateMode = "merge",
   ): Promise<UploadResponse> => {
     const formData = new FormData()
@@ -63,7 +64,7 @@ export const dataAPI = {
     fetchAPI<DuplicateCheckResponse>(
       `/admin/data-sources/check-duplicate?filename=${encodeURIComponent(filename)}`
     ),
-  // ADR-30 Phase 3 — volume(파일) 영구 삭제 (Qdrant + IngestionJob + BatchJob)
+  // ADR-30 Phase 3 — volume(파일) 영구 삭제 (Qdrant + IngestionJob)
   deleteVolume: (volume: string) =>
     fetchAPI<VolumeDeleteResponse>(
       `/admin/data-sources/volumes/${encodeURIComponent(volume)}`,

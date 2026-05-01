@@ -106,7 +106,7 @@ class UploadResponse(BaseModel):
     """
     message: str
     filename: str
-    mode: str = Field(..., description="standard | batch")
+    mode: str = Field(..., description="standard (Batch API 제거됨, 항상 standard)")
     on_duplicate: str = Field(..., description="merge | replace | skip")
     predicted_outcome: str = Field(
         ...,
