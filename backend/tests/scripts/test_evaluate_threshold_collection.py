@@ -52,8 +52,8 @@ async def test_run_search_passes_collection_to_cascading():
     assert mock_search.call_count == 1
     kwargs = mock_search.call_args.kwargs
     assert kwargs["collection_name"] == "malssum_poc_v5"
-    # cascading top-K 는 max(top_k * 5, 50)
-    assert kwargs["top_k"] == 50
+    # cascading top-K 는 max(top_k * 2, 20) — PR 7 fix 로 50→20 축소 (Gemini JSON 안정성)
+    assert kwargs["top_k"] == 20
 
 
 @pytest.mark.asyncio

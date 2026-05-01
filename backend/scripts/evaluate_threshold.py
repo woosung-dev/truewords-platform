@@ -11,8 +11,8 @@
     # baseline 측정 (Gemini reranker, 시스템 기본 config)
     uv run python -m scripts.evaluate_threshold --baseline --rerank-model gemini-flash > /tmp/baseline.json
 
-    # reranker 변경 후 측정
-    uv run python -m scripts.evaluate_threshold --after --rerank-model bge-ko > /tmp/after.json
+    # 향후 새 reranker 추가 시 동일 패턴
+    uv run python -m scripts.evaluate_threshold --after --rerank-model gemini-flash > /tmp/after.json
 
     # chatbot 별 search_tiers 사용 시
     EVAL_CHATBOT_ID=<uuid> uv run python -m scripts.evaluate_threshold --baseline
@@ -34,7 +34,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-RERANKER_CHOICES = ("gemini-flash", "bge-base", "bge-ko", "none")
+RERANKER_CHOICES = ("gemini-flash", "none")
 
 
 # ── 메트릭 함수 ──────────────────────────────────────────────────────────────
