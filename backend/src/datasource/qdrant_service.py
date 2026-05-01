@@ -535,8 +535,8 @@ class DataSourceQdrantService:
         파이프라인이 4 필드를 채우게 되면 schema 와 함께 재추가.
         """
         try:
-            points = await self.async_client.retrieve(
-                collection_name=self.collection_name,
+            points = await self.client.retrieve(
+                self.collection_name,
                 ids=[chunk_id],
                 with_payload=True,
                 with_vectors=False,
