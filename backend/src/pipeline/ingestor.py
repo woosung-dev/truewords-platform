@@ -267,6 +267,10 @@ def ingest_chunks(
                 payload["parent_text"] = chunk.parent_text
                 payload["parent_chunk_index"] = chunk.parent_chunk_index
                 payload["chunk_type"] = "child"
+            # Phase 3 dev-log 53 권고 — book_series 분리 (같은 volume "001" 도
+            # 다른 책일 수 있음). 빈 문자열이면 미적용.
+            if chunk.book_series:
+                payload["book_series"] = chunk.book_series
             points.append(
                 {
                     "id": point_id,

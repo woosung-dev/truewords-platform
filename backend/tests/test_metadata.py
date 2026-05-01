@@ -2,7 +2,12 @@
 
 from pathlib import Path
 
-from src.pipeline.metadata import classify_source, derive_volume, extract_metadata
+from src.pipeline.metadata import (
+    classify_book_series,
+    classify_source,
+    derive_volume,
+    extract_metadata,
+)
 
 
 def test_extract_volume_from_filename():
@@ -42,28 +47,75 @@ def test_fallback_when_no_metadata():
 
 
 def test_classify_source_wonri():
-    """원리강론 폴더 → source A."""
-    assert classify_source(Path("/data/원리강론/원리강론/파일.txt")) == "A"
+    """원리강론 폴더 → key L."""
+    assert classify_source(Path("/data/원리강론/원리강론/파일.txt")) == "L"
 
 
 def test_classify_source_3dae():
-    """3대경전 폴더 → source A."""
-    assert classify_source(Path("/data/3대경전(증보판)/천성경.docx")) == "A"
+    """3대경전 폴더 → key M."""
+    assert classify_source(Path("/data/3대경전(증보판)/천성경.docx")) == "M"
+
+
+def test_classify_source_3dae_via_chunk_filename():
+    """파일명에 천성경/평화경 키워드 → key M (폴더 정보 부족 시)."""
+    assert classify_source(Path("/data/random/천성경 (증보판).docx")) == "M"
+    assert classify_source(Path("/data/random/평화경.txt")) == "M"
 
 
 def test_classify_source_jaseo():
-    """참부모님 자서전 폴더 → source B."""
-    assert classify_source(Path("/data/참부모님 자서전/자서전.txt")) == "B"
+    """참부모님 자서전 폴더 → key N."""
+    assert classify_source(Path("/data/참부모님 자서전/자서전.txt")) == "N"
 
 
-def test_classify_source_malssum():
-    """말씀선집 폴더 → source B."""
-    assert classify_source(Path("/data/문선명선생 말씀선집/001권.pdf")) == "B"
+def test_classify_source_malssum_father():
+    """문선명선생 말씀선집 폴더 → key O."""
+    assert classify_source(Path("/data/문선명선생 말씀선집/001권.pdf")) == "O"
 
 
-def test_classify_source_default():
-    """알 수 없는 폴더 → 기본값 B."""
-    assert classify_source(Path("/data/기타/파일.txt")) == "B"
+def test_classify_source_mother_anthology():
+    """참어머님말씀 폴더 → key B (어머니말씀)."""
+    assert classify_source(Path("/data/참어머님말씀/001권.pdf")) == "B"
+
+
+def test_classify_source_chambumo_theology():
+    """참부모론 → key P."""
+    assert classify_source(Path("/data/참부모론_한민족선민대서사시/01.txt")) == "P"
+
+
+def test_classify_source_unification():
+    """통일사상요강 → key Q."""
+    assert classify_source(Path("/data/통일사상요강/통일사상요강(한글판).pdf")) == "Q"
+
+
+def test_classify_source_default_empty():
+    """알 수 없는 폴더 → 빈 문자열 (이전: B fallback)."""
+    assert classify_source(Path("/data/기타/파일.txt")) == ""
+
+
+# --- classify_book_series ---
+
+
+def test_classify_book_series_mother():
+    """참어머님말씀 → mother_anthology."""
+    assert classify_book_series(Path("/data/참어머님말씀/001권.pdf")) == "mother_anthology"
+
+
+def test_classify_book_series_father():
+    """문선명선생 말씀선집 → father_anthology."""
+    assert classify_book_series(Path("/data/문선명선생 말씀선집/001권.pdf")) == "father_anthology"
+
+
+def test_classify_book_series_specific_books():
+    """천성경/평화경/원리강론 등 단일 책."""
+    assert classify_book_series(Path("/data/3대경전(증보판)/천성경.docx")) == "cheonseong_gyeong"
+    assert classify_book_series(Path("/data/3대경전(증보판)/평화경.txt")) == "pyeonghwa_gyeong"
+    assert classify_book_series(Path("/data/원리강론/원리강론.txt")) == "wonri_gangron"
+    assert classify_book_series(Path("/data/통일사상요강/통일사상요강.pdf")) == "tongil_thought"
+
+
+def test_classify_book_series_default_empty():
+    """매칭 실패 시 빈 문자열."""
+    assert classify_book_series(Path("/data/기타/파일.txt")) == ""
 
 
 # --- derive_volume: Batch + Standard 적재 공용 헬퍼 ---

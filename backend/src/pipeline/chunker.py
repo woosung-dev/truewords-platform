@@ -26,6 +26,10 @@ class Chunk:
     # 본문/index 를 부착해서 검색 매칭은 child 로, LLM 컨텍스트는 parent 로 분리.
     parent_text: str = ""
     parent_chunk_index: int = -1
+    # Phase 3/4 후속 — Phase 3 dev-log 53 권고. 같은 volume("001") 이라도 다른
+    # 책 (참어머님 말씀정선집 vs 문선명선생 말씀선집) 구분 위한 series 필드.
+    # 빈 문자열이면 metadata 미분류.
+    book_series: str = ""
 
 
 # 한국어 문장 종결 패턴: 다/요/까/죠/세요 + 마침표, 또는 ?!

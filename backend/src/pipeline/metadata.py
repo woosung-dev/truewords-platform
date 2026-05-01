@@ -17,10 +17,43 @@ _DATE_PATTERNS = [
     re.compile(r"\d{4}-\d{1,2}-\d{1,2}"),               # 1956-10-3
 ]
 
-# source 분류 규칙: 폴더명 키워드 → source
+# source 분류 규칙: 폴더명 키워드 → 카테고리 key (admin DB data_source_categories.key 와 일치)
+# 우선순위 순서대로 매칭 — 먼저 매칭된 규칙이 적용됨.
+# 카테고리 키 정의 (admin DB):
+#   L: 원리강론
+#   M: 3대 경전
+#   N: 자서전
+#   O: 말씀선집 (문선명선생)
+#   B: 어머니말씀 (참어머님 말씀정선집)
+#   P: 참부모론 총론
+#   Q: 통일사상요강
+#   D: 용어사전 (현재 데이터 없음)
+#   R: 최근 현장 말씀 (2024~) (현재 데이터 없음, year 추출로 동적 감지 가능)
+#   T: 이벤트·현장 행사 말씀 (현재 데이터 없음)
 _SOURCE_RULES = [
-    (["원리강론", "3대경전"], "A"),
-    (["자서전", "말씀선집"], "B"),
+    # 더 구체적인 키워드 먼저 매칭 (참어머님말씀 → B 가 말씀선집 → O 보다 우선)
+    (["참어머님말씀", "참어머님 말씀"], "B"),         # 어머니말씀
+    (["문선명선생 말씀선집"], "O"),                    # 말씀선집 (Father's anthology)
+    (["참부모님 자서전", "자서전"], "N"),              # 자서전
+    (["3대경전", "천성경", "평화경", "참부모경"], "M"),  # 3대 경전
+    (["참부모론"], "P"),                               # 참부모론 총론
+    (["통일사상요강"], "Q"),                            # 통일사상요강
+    (["원리강론"], "L"),                                # 원리강론
+]
+
+
+# 책 시리즈 분류 — 같은 권번호("001")라도 다른 책일 수 있어
+# Phase 3 dev-log 53 권고로 별도 필드 분리. payload 확장 필드 (extra="ignore" 활용).
+_BOOK_SERIES_RULES = [
+    (["참어머님말씀", "참어머님 말씀정선집", "참어머님 말씀"], "mother_anthology"),
+    (["문선명선생 말씀선집", "말씀선집"], "father_anthology"),
+    (["천성경"], "cheonseong_gyeong"),
+    (["평화경"], "pyeonghwa_gyeong"),
+    (["참부모경"], "chambumo_gyeong"),
+    (["원리강론"], "wonri_gangron"),
+    (["통일사상요강"], "tongil_thought"),
+    (["참부모님 자서전"], "chambumo_autobiography"),
+    (["참부모론"], "chambumo_theology"),
 ]
 
 
@@ -56,12 +89,38 @@ def derive_volume(volume_key: str) -> str:
 
 
 def classify_source(filepath: Path) -> str:
-    """폴더 경로 기반 source 분류 (A/B)."""
-    path_str = str(filepath)
+    """폴더 경로 기반 source 분류 — admin 카테고리 키 (L/M/N/O/B/P/Q) 반환.
+
+    NFC/NFD 정규화 후 매칭하여 macOS 파일시스템 한글 표현 차이 흡수.
+    매칭 실패 시 빈 문자열 반환 (이전: "B" fallback). 호출자 (data_router /
+    배치 스크립트) 가 user-supplied source 우선이고 본 함수는 자동 분류 fallback.
+    """
+    import unicodedata
+    path_str = unicodedata.normalize("NFC", str(filepath))
     for keywords, source in _SOURCE_RULES:
-        if any(kw in path_str for kw in keywords):
-            return source
-    return "B"
+        for kw in keywords:
+            kw_nfc = unicodedata.normalize("NFC", kw)
+            if kw_nfc in path_str:
+                return source
+    return ""
+
+
+def classify_book_series(filepath: Path) -> str:
+    """폴더/파일명 기반 책 시리즈 분류 — Phase 3 dev-log 53 권고.
+
+    같은 권번호("001")라도 다른 책일 수 있어 (참어머님 말씀정선집 1권 vs
+    문선명선생 말씀선집 001권) 별도 필드로 분리. payload 확장 필드.
+
+    매칭 실패 시 빈 문자열.
+    """
+    import unicodedata
+    path_str = unicodedata.normalize("NFC", str(filepath))
+    for keywords, series in _BOOK_SERIES_RULES:
+        for kw in keywords:
+            kw_nfc = unicodedata.normalize("NFC", kw)
+            if kw_nfc in path_str:
+                return series
+    return ""
 
 
 def _extract_volume(filename: str) -> str:

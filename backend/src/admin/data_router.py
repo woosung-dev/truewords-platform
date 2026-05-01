@@ -266,9 +266,15 @@ def _process_file_batch(
             return
         meta = extract_metadata(file_path, text)
         volume = unicodedata.normalize("NFC", meta["volume"] or volume_key)
+        # Phase 3 dev-log 53 권고 — book_series 자동 분류 (참어머님 vs 문선명 등)
+        from src.pipeline.metadata import classify_book_series
+        book_series = classify_book_series(file_path)
         # Phase 2.4 운영 기본 청킹 (dev-log 51) — Recursive 700/150 + 한국어 종결어미
         chunks = chunk_recursive(text, volume=volume, source=source,
                                  title=meta["title"], date=meta["date"])
+        if book_series:
+            for c in chunks:
+                c.book_series = book_series
 
         from src.pipeline.batch_repository import BatchJobRepository
         from src.pipeline.batch_service import BatchService
@@ -394,9 +400,18 @@ def _process_file_standard(
             return
 
         # 5. 문서 청킹 — Phase 2.4 운영 기본 (dev-log 51) Recursive 700/150
+        # + Phase 3 dev-log 53 권고 — book_series 자동 분류
+        from src.pipeline.metadata import classify_book_series
+        book_series = classify_book_series(file_path)
         chunks = chunk_recursive(text, volume=volume, source=source,
                                  title=meta["title"], date=meta["date"])
-        logger.info("[%s] 청킹 완료 (%d개 청크, recursive)", volume_key, len(chunks))
+        if book_series:
+            for c in chunks:
+                c.book_series = book_series
+        logger.info(
+            "[%s] 청킹 완료 (%d개 청크, recursive, book_series=%r)",
+            volume_key, len(chunks), book_series,
+        )
 
         # 6. ADR-30 P1: COMPLETED 재업로드는 reset 후 0부터 적재. start_chunk 자동 재개를
         #    그대로 두면 같은 길이 재업로드 시 effective_chunks=[]로 빠져 silent no-op 발생.
