@@ -369,6 +369,7 @@ export default function DataSourcesPage() {
         targetSource={duplicateDialog.pendingFile?.source ?? ""}
         duplicate={duplicateDialog.duplicate}
         onDecision={handleDuplicateDecision}
+        pendingFile={duplicateDialog.pendingFile?.file ?? null}
       />
 
       {/* ADR-30 follow-up — 일괄 업로드 사전 검사 다이얼로그 */}
