@@ -40,6 +40,9 @@ class ChatContext:
     # Rerank/Generation 은 이 값으로 K 분기. None 이면 IntentClassifier 미실행 (legacy 경로).
     intent: Intent | None = None
     results: list[SearchResult] = field(default_factory=list)
+    # PR 6 — RerankStage 가 reranker.rerank 호출 직전 results 스냅샷.
+    # rerank_score_dist 로깅의 n_input vs n_output 비교에 사용. PR 7 측정 추적.
+    results_before_rerank: list[SearchResult] = field(default_factory=list)
     # Phase 3 (메타데이터 필터): 검색 전 단계에서 질문에서 추출한 권/날짜/페이지.
     # SearchStage 가 채우고 cascading/weighted_search 의 hybrid_search 로 전달된다.
     # 빈 dict 면 metadata filter 적용 안 함 (= v5 baseline).
