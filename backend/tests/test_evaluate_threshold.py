@@ -174,8 +174,8 @@ async def test_run_search_default_uses_gemini_reranker():
         out = await run_search("q", top_k=10, rerank_model="gemini-flash")
 
     mock_cascade.assert_awaited_once()
-    # cascading top_k 는 max(top_k*5, 50) = 50
-    assert mock_cascade.await_args.kwargs.get("top_k", 0) >= 50
+    # cascading top_k 는 max(top_k*2, 20) — PR 7 에서 Gemini JSON 안정성 위해 50→20 축소
+    assert mock_cascade.await_args.kwargs.get("top_k", 0) >= 20
     mock_get_reranker.assert_called_once_with("gemini-flash")
     mock_reranker.rerank.assert_awaited_once()
     assert out == [

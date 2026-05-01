@@ -22,8 +22,6 @@ dependencies = [
     "kss>=6.0.6",
     "python-multipart>=0.0.22",
     "aiosqlite>=0.22.1",
-    # Reranker (ML) — BGE cross-encoder. transformers + torch 자동 포함
-    "sentence-transformers>=2.7",
 ]
 
 [dependency-groups]

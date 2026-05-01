@@ -1,6 +1,6 @@
-"""3 reranker 모델 일괄 평가 + latency 측정 (PR 7/8).
+"""Reranker 모델 일괄 평가 + latency 측정 (PR 7/8).
 
-골든셋(``backend/tests/golden/queries.json``) 의 60 entry 에 대해 각 reranker
+골든셋(``backend/tests/golden/queries.json``) 의 라벨된 query 에 대해 각 reranker
 모델로 search → 메트릭 (NDCG@10 / MRR@10 / Recall@10) + latency (first_call /
 p50 / p95 / p99) 를 측정한다.
 
@@ -8,20 +8,22 @@ p50 / p95 / p99) 를 측정한다.
 * `evaluate_threshold.evaluate_set` 를 model 별로 호출해서 메트릭 일관성 보장.
 * per-query latency 측정은 reranker 단독 (cascading 제외) — `time.perf_counter`.
 * `--runs N` — 동일 query × N 회 → median 기록 + variance.
-* `first_call_ms` 분리 기록 — BGE 모델 lazy load (~30s) 가 p50 왜곡하지 않게.
+* `first_call_ms` 분리 기록 — 첫 호출의 cold start 영향 분리.
 * 카테고리별 (factoid / conceptual / reasoning) breakdown 자동 집계.
 * `--output-md` — markdown 표 + winner-per-query 자동 생성.
 
 사용:
     cd backend
     uv run python -m scripts.compare_rerankers \\
-        --models gemini-flash,bge-base,bge-ko \\
+        --models gemini-flash \\
         --runs 3 \\
         --collection malssum_poc_v5 \\
         --chatbot-id "신학/원리 전문 봇" \\
         --sources U \\
         --output both \\
         --output-path docs/dev-log/2026-05-XX-reranker-ab-results
+
+향후 새 reranker 추가 시 src/search/rerank/ 에 어댑터 등록 + VALID_MODELS 보강.
 """
 from __future__ import annotations
 
@@ -38,7 +40,7 @@ from typing import Any
 # scripts/ 는 패키지가 아니므로 sys.path 조작 불요 (-m scripts.compare_rerankers)
 
 
-VALID_MODELS = ("gemini-flash", "bge-base", "bge-ko", "none")
+VALID_MODELS = ("gemini-flash", "none")
 DEFAULT_TOP_K = 10
 
 
@@ -287,8 +289,8 @@ def main(argv: list[str] | None = None) -> int:
         help="골든셋 JSON 경로",
     )
     parser.add_argument(
-        "--models", default="gemini-flash,bge-base,bge-ko",
-        help="쉼표 구분 reranker 이름들 (gemini-flash | bge-base | bge-ko | none)",
+        "--models", default="gemini-flash",
+        help="쉼표 구분 reranker 이름들 (gemini-flash | none)",
     )
     parser.add_argument("--runs", type=int, default=3, help="동일 query 반복 횟수")
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)

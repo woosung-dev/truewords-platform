@@ -164,7 +164,38 @@ R1 의 cache 영향 우려를 해소하기 위해 R2 측정 수행. Gemini reran
 - **Gemini cache-bust 의 tail latency 위험 노출**: R2 의 p99 = 32222ms (32초) outlier. cache miss 시 Gemini API 의 변동성 → 운영 SLA 위협.
 - **Codex Q3 우선순위 ↑**: 운영 chat 핫패스의 search_top_k=50 + Gemini fallback 위험 (10절 백로그 #1) 의 시급성을 R2 데이터가 강화. 별도 PR 진행 권고.
 
-## 12. 참고
+## 12. PR 10 — BGE 어댑터 cleanup (2026-05-02)
+
+ADR 결정 (Gemini-flash-lite 유지) 확정 후 사용자 권고 ("사용 안 될 코드는 안 남기는 게 깨끗") 에 따라 BGE 어댑터를 dev/reranker-cross-encoder 에서 제거. main 머지 전 단계에서 정리.
+
+### 제거 항목
+
+- `backend/src/search/rerank/bge.py` (deleted)
+- `backend/src/search/rerank/__init__.py` 의 `bge-base` / `bge-ko` factory 분기
+- `backend/src/chatbot/runtime_config.py` Literal 축소 (`["gemini-flash"]` 만)
+- `backend/Dockerfile` 의 BGE bake-in stage (이미지 -2.2GB)
+- `backend/pyproject.toml` 의 `sentence-transformers` 의존성 + uv.lock 축소 (torch / transformers / scipy / setuptools 제거)
+- `backend/tests/search/rerank/test_bge.py` (deleted)
+- `backend/tests/search/rerank/test_protocol.py` 의 BGE 관련 케이스
+- `backend/scripts/evaluate_threshold.RERANKER_CHOICES` / `compare_rerankers.VALID_MODELS` 축소 (`("gemini-flash", "none")`)
+
+### 보존 항목 (의사결정 trace + 미래 재측정)
+
+- `backend/scripts/compare_rerankers.py` + 단위 테스트 (BGE 모델 이름은 `mock-base` / `mock-ko` 으로 fixture 화)
+- `backend/scripts/evaluate_threshold.py` (`--sources`, `--collection` override)
+- `backend/scripts/match_snippets_to_chunks.py` 4단계 매칭
+- `backend/tests/golden/queries.json` 60 entry 골든셋
+- 본 ADR 및 R1/R2 측정 결과 markdown / JSON
+- `backend/src/search/rerank/__init__.py` 의 Reranker Protocol (swappable 인터페이스 — 향후 새 모델 추가 시 즉시 활용)
+
+### 효과
+
+- Cloud Run 이미지 사이즈: ~3GB → ~250MB (-92%)
+- backend pytest 808 → 796 (BGE 단위 테스트 12개 제거)
+- 운영 동작 무변동 (default = `gemini-flash`)
+- 미래 재측정 비용: 새 reranker 추가 시 어댑터 1개 신규 작성만 필요 (Protocol + factory + measurement 인프라 모두 재사용)
+
+## 13. 참고
 
 - 마스터 plan: [`~/.claude/plans/phase-0-pr-whimsical-bird.md`](#) (8 PR 계획)
 - 본 세션 plan: [`~/.claude/plans/majestic-weaving-mccarthy.md`](#) (PR 6.5/7-pre/7/8)

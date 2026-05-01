@@ -89,13 +89,13 @@ async def test_evaluate_one_model_calls_evaluate_set_per_run(tmp_path):
 
     with patch(
         "scripts.evaluate_threshold.evaluate_set",
-        new=AsyncMock(return_value=_evaluate_set_result("bge-base", base=0.6)),
+        new=AsyncMock(return_value=_evaluate_set_result("mock-base", base=0.6)),
     ) as mock_eval, patch(
         "scripts.evaluate_threshold.run_search",
         new=AsyncMock(return_value=[]),
     ) as mock_run:
         out = await evaluate_one_model(
-            model="bge-base",
+            model="mock-base",
             runs=3,
             golden_path=golden,
             chatbot_id=None,
@@ -108,7 +108,7 @@ async def test_evaluate_one_model_calls_evaluate_set_per_run(tmp_path):
     assert mock_eval.call_count == 3
     # run_search 는 N runs × 3 labeled queries = 9 호출 (latency 측정용)
     assert mock_run.call_count == 9
-    assert out["model"] == "bge-base"
+    assert out["model"] == "mock-base"
     assert out["runs"] == 3
     assert out["macro"]["ndcg@10"] == pytest.approx(0.65)
 
@@ -148,13 +148,13 @@ async def test_evaluate_one_model_first_call_separated(tmp_path):
     _write_golden(golden)
     with patch(
         "scripts.evaluate_threshold.evaluate_set",
-        new=AsyncMock(return_value=_evaluate_set_result("bge-ko", base=0.7)),
+        new=AsyncMock(return_value=_evaluate_set_result("mock-ko", base=0.7)),
     ), patch(
         "scripts.evaluate_threshold.run_search",
         new=AsyncMock(return_value=[]),
     ):
         out = await evaluate_one_model(
-            model="bge-ko",
+            model="mock-ko",
             runs=1,
             golden_path=golden,
             chatbot_id=None,
@@ -182,7 +182,7 @@ async def test_run_all_returns_config_and_results(tmp_path):
         new=AsyncMock(return_value=[]),
     ):
         report = await run_all(
-            models=["gemini-flash", "bge-base"],
+            models=["gemini-flash", "mock-base"],
             runs=1,
             golden_path=golden,
             chatbot_id=None,
@@ -192,8 +192,8 @@ async def test_run_all_returns_config_and_results(tmp_path):
         )
     assert "config" in report
     assert "results" in report
-    assert set(report["results"].keys()) == {"gemini-flash", "bge-base"}
-    assert report["config"]["models"] == ["gemini-flash", "bge-base"]
+    assert set(report["results"].keys()) == {"gemini-flash", "mock-base"}
+    assert report["config"]["models"] == ["gemini-flash", "mock-base"]
     assert report["config"]["runs"] == 1
     assert report["config"]["n_queries_labeled"] == 3
 
@@ -205,7 +205,7 @@ def test_render_markdown_includes_winner_bold():
     report = {
         "config": {
             "ts": "2026-05-01T10:00:00",
-            "models": ["gemini-flash", "bge-ko"],
+            "models": ["gemini-flash", "mock-ko"],
             "runs": 3,
             "collection": "malssum_poc_v5",
             "chatbot_id": "신학/원리 전문 봇",
@@ -224,8 +224,8 @@ def test_render_markdown_includes_winner_bold():
                 },
                 "latency_ms": {"first_call": 3000, "p50": 2500, "p95": 4000, "p99": 5000},
             },
-            "bge-ko": {
-                "model": "bge-ko",
+            "mock-ko": {
+                "model": "mock-ko",
                 "macro": {"ndcg@10": 0.60, "mrr@10": 0.50, "recall@10": 0.70},
                 "by_category": {
                     "factoid": {"ndcg@10": 0.65, "mrr@10": 0.55, "recall@10": 0.75},
@@ -237,9 +237,9 @@ def test_render_markdown_includes_winner_bold():
         },
     }
     md = render_markdown(report)
-    # winner 인 bge-ko 는 NDCG/MRR/Recall 에서 bold
-    assert "**0.6000**" in md  # bge-ko NDCG
-    assert "`bge-ko`" in md
+    # winner 인 mock-ko 는 NDCG/MRR/Recall 에서 bold
+    assert "**0.6000**" in md  # mock-ko NDCG
+    assert "`mock-ko`" in md
     assert "factoid" in md
     assert "conceptual" in md
     assert "reasoning" in md
