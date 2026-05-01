@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 6,
   "created_at": "2026-05-01",
   "purpose": "Reranker A/B (PR 7) 측정용 골든셋. 챗봇=신학/원리 전문 봇 (sources=['U']). NotebookLM 으로 60 질문 (v1+v2), expected_chunk_ids 는 별도 매칭 단계에서 채움.",
   "labeling_policy": "expected_snippets 는 NotebookLM 인용 원문. expected_chunk_ids 는 scripts/match_snippets_to_chunks.py 가 Qdrant fuzzy match 로 자동 채움 + 사람 검수.",
@@ -40,7 +40,9 @@
           "snippet": "1951년 5월 11일에 『원리원본』의 집필을 시작하여 1952년 5월 10일에 완성하셨다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "하늘 섭리로 본 참부모님의 위상과 가치.pdf:194"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -55,7 +57,9 @@
           "snippet": "2013년 천력 1월 13일 기원절(基元節)은 섭리적으로 매우 중요한 한 날이다. 하늘부모님의 창조이상이 실현된 창조본연의 세계, 즉 천일국(天一國)이 시작된 날이기 때문이다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "하늘 섭리로 본 참부모님의 위상과 가치.pdf:59"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -85,7 +89,9 @@
           "snippet": "남편의 생식기 주인은 아내고, 아내 것의 주인은 남편입니다. 생식기의 주인이 서로 엇바뀌어 있는 것을 몰랐습니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "평화경.txt:430"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -100,7 +106,9 @@
           "snippet": "본인은 냉전의 와중에서 자유진영이 가장 큰 어려움에 봉착했던 1982년에 워싱턴타임스를 창간했습니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "평화경.txt:1779"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -130,7 +138,9 @@
           "snippet": "아브라함으로부터 예수님까지의 2천년기간은 ... '메시아를 위한 민족적(民族的)인 기대섭리시대(基臺攝理時代)'라고 한다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:380"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -145,7 +155,9 @@
           "snippet": "기도할 때에는 하나님을 하늘부모님으로 바꿉니다. ‘헤븐리 페어런트(Heavenly Parent)’입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "하늘 섭리로 본 참부모님의 위상과 가치.pdf:59"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -160,7 +172,9 @@
           "snippet": "여기에 판타날 호수가 있는데, 이 호수에는 3천6백 가지의 고기가 있습니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:1739"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -175,7 +189,9 @@
           "snippet": "여섯 살 때 허호빈 집단에서 나에게 ‘창조주 하나님의 딸이다.’라고 증거했고, ‘우주의 어머니가 되실 분이다.’라고 증거했습니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "하늘 섭리로 본 참부모님의 위상과 가치.pdf:320"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -190,7 +206,9 @@
           "snippet": "외적인 무지에서 외적인 지에 도달하기 위하여 외적인 진리를 찾아 나온 것이 과학(科學)이다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:4"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -205,7 +223,9 @@
           "snippet": "하나님이 이러한 존재로 계시기 위한 근본적인 힘도 영원히 자존하는 절대적인 것이며, 동시에 이것은 또 피조물이 존재하기 위한 모든 힘을 발생케 하는 힘의 근본이기도 하다. 이러한 힘의 근본된 힘을 우리는 만유원력(萬有原力)이라고 한다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:42"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -220,7 +240,9 @@
           "snippet": "하나님을 정(正)으로 하여 그로부터 분립(分立)되었다가 다시 합성일체화하 는 작용을 정분합작용(正分合作用)이라고 한다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:48"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -235,7 +257,9 @@
           "snippet": "타락이란 인간조상이 하나님의 종적인 참사랑 아래서 횡적으로 참사랑을 완결짓지 못하고 천사장의 침범을 받아 거짓된 횡적 사랑을 이룬 것입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "평화경.txt:421"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -250,7 +274,9 @@
           "snippet": "정분합작용에 의하여 정(正)을 중심하고 2성의 실체대상으로 분립된 주체와 대상과 그리고 그의 합성체가 각각 삼대상목적을 완성하면 사위기대(四位基臺)를 조성하게 된다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:48"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -265,7 +291,9 @@
           "snippet": "피조물이 원리 자체의 주관성이나 자율성에 의하여 성장하는 결과만을 보아서 간접적인 주관을 하시므로... 인간은 그 자신의 책임분담(責任分擔)을 다하면서 이 기간을 경과하여 완성하도록 창조되었다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:86"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -280,7 +308,9 @@
           "snippet": "부모 중의 부모, 왕부모가 하나님입니다. ... 3대 주체사상의 중심이 누구냐 하면 부모입니다. ... 그 마루 되는 가르침의 총결론이 참부모·참스승·참주인입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:120"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -295,7 +325,9 @@
           "snippet": "역사적으로 가중되어 내려온 조건들을 종적(縱的)인 탕감조건이라 하고, 이러한 모든 조건들을 어떤 특정한 사명자를 중심하고 일시에 탕감복귀하는 것을 횡적(橫的)인 탕감복귀라고 한다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:609"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -310,7 +342,9 @@
           "snippet": "실체성령은 성령이신 하늘부모님이 성령의 실체인 참부모의 체를 쓰고 나타나는 성령을 말한다. 즉 성령이신 하늘부모님과 성령의 실체인 참부모가 일체를 이루면 실체성령이 되신다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "하늘 섭리로 본 참부모님의 위상과 가치.pdf:298"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -325,7 +359,9 @@
           "snippet": "두익사상은 하나님을 절대 중심으로 세계의 모든 것을 수습하는 것입니다. ... 그래서 생겨나야 하는 것이 두익사상입니다. 두익사상은 심정주의입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:2842"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -340,7 +376,9 @@
           "snippet": "종족적 메시아는 장자권이 복귀된 기반 위에서 부모권 해방을 위해서 오시는 주님이 개인 아벨, 가정 아벨, 종족적 아벨... 세계적인 아벨권을 대표해서... 반대하던 공산당까지 무너뜨리고 통일천하할 수 있는 환경적 여건을 갖춘 터 위에 보내는 것입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:2542"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -370,7 +408,9 @@
           "snippet": "이 절대 성 개념으로만 가정 파괴를 방지하고 청소년 윤락을 막을 수 있습니다. ... 순결·순혈·순애가 향후 참된 인류의 교육이념이 될 것입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "평화경.txt:1093"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -389,7 +429,10 @@
           "snippet": "책임분담이라는 원칙이 있으니, 그 원칙에 있어서 도와주는 것은 탕감이 안 됩니다. 도울 수 있었다면 인간이 타락할 때 하나님이 간섭해서 타락 안 하게 했을 것입니다. 책임분담이 있기 때문에 돕지 못했다는 것입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:86",
+        "천성경.pdf:1039"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -404,7 +447,9 @@
           "snippet": "마리아나 유대교, 이스라엘 민족은 예수님의 본질을 몰랐습니다. 예수님이 독생자로 오셨으니 예수님의 사명은 참부모 자리에 나아가는 것입니다. ... 기독교 기반을 복귀하기 위한 준비를 하셨더라면 상황은 달라졌을지도 모릅니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "하늘 섭리로 본 참부모님의 위상과 가치.pdf:305"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -419,7 +464,9 @@
           "snippet": "과학이 발달한 오늘에 있어서 인간정신은 대단히 분석적이 되고 논리적이 되어서... 합리적인 답이 주어지지 않는 한 오늘날의 지성인들은 종교를 받아들이려 하지 않습니다. ... 절대가치는 하나님의 사랑에 바탕을 둔다고 강조해 왔습니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "평화경.txt:1532"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -434,7 +481,9 @@
           "snippet": "마음은 수직적 나이고, 몸은 수평적 나입니다. 수직적 부모와 수평적 부모가 함께 나를 만 들어 놓은 것입니다. ... 수평적 사랑과 수직적 사랑이 합해져서 하나가 된 참사랑의 중심존재입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:959"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -449,7 +498,9 @@
           "snippet": "타락한 이후에 먼저 태어난 아들은 사탄 편이고 다음에 태어난 아들은 하늘 편입니다. ... 사탄 편이 먼저 나왔으니, 천리의 대도를 훔쳤으니 이것을 복중에서 교체해야 됩니다. ... 탕감복귀역사에서 장자를 굴복시킬 수 있는 비법이 뭐냐? ... 나를 사랑했다는 조건을 세워야 합니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:491"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -464,7 +515,9 @@
           "snippet": "대상이 주체를 위하는 데에 이상적 기원을 둘 것이냐, 아니면 주체가 대상을 위하는 데 그 기원을 둘 것이냐 ... 상대를 위하라고 하는 입장에 세운다면, ... 위하라는 원칙을 세우지 않을 수 없는 것입니다. 그렇기 때문에 참다운 사랑은 위하는 데서부터, 참다운 이상은 위하는 데서부터, 참다운 평화도, 참다운 행복도 위하는 자리를 떠나서는 찾을 수 없다는 것입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "평화경.txt:96"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -479,7 +532,9 @@
           "snippet": "천일국 원년 천력 1월 13일 (양력 2013년 2월 22일)"
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:4"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -494,7 +549,9 @@
           "snippet": "천지의 중심과 우주의 근본은 무엇입니까? ... 아버지와 아들딸의 관계, 즉 부자의 관계라고 하셨습니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:143"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -509,7 +566,9 @@
           "snippet": "첫째는 참사랑의 이상세계를 잃어버렸고, 둘째는 참사랑의 이상가정을 잃어버렸습니다. 참사랑의 부부를 잃어버렸다는 것입니다. 셋째는 참사랑의 아들딸, 종손을 잃어버렸습니다. 이것이 하나님의 3대 비애입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:228"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -524,7 +583,9 @@
           "snippet": "마침내 2001년 1월 13일 ‘하나님왕권즉위식’을 봉헌해 올렸습니다. 다시 말하면 인간조상의 타락 이후 수천년간 참고 기다려 오신 하나님께 심정의 해방과 더불어 왕권을 찾아 드린 것입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "평화경.txt:2196"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -539,7 +600,9 @@
           "snippet": "본인은 하늘의 명을 따라 지난 4월 18일에 안시일을 제정 선포하고... 이제부터는 하나님이 7일 만에 돌아오는 일요일에만 안식하시는 것이 아니고 잃어버린 모든 7일간은 물론 매 8일째를 안시일로 정하시어 경축하며"
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "평화경.txt:2289"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -554,7 +617,9 @@
           "snippet": "하늘은 벌써 2013년 1월 13일을 ‘기원절’로 선포해 놓았습니다. 실체적 천일국의 시발이요 기원이 되는 날이 바로 그날인 것입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "평화경.txt:1992"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -569,7 +634,9 @@
           "snippet": "6일이란 기실 일출(日出) 일몰(日沒)의 회수로 계산되는 6일이 아니라, 창조과정의 여섯단계의 기간을 표시한 것이었음을 알 수 있는 것이다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:81"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -584,7 +651,9 @@
           "snippet": "아브라함으로부터 예수님까지의 2천년기간은, 부활섭리의 시대적인 혜택과 구약의 말씀에 의하여, 인간이 영형체급(靈形體級)까지 부활하는 시대였으므로, 이 시대를 '소생 부활섭리시대(蘇生復活攝理時代)'라고 한다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:378"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -599,7 +668,9 @@
           "snippet": "이스라엘 민족이 애급에서 고역하는 400년 기간은, 노아나 아브라함이 믿음의 조상으로 출발하려 했었던 그 입장을 민족적으로 탕감복귀하여 모세를 그 터전위에 세우시기 위한 기간이었다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:439"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -614,7 +685,9 @@
           "snippet": "천일국은 천주평화통일국의 줄임말이다. 천일국(天一國)은 두(二) 사람(人)이 하나(一)되어 출발한 나라(國)다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "하늘 섭리로 본 참부모님의 위상과 가치.pdf:236"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -644,7 +717,9 @@
           "snippet": "천원궁 천일성전 입궁식이 거행되는 천일국 13년을 맞아 전 세계 축복가정들이 창조주 하늘부모님을 실체로 모시고 사는 시대를 열어주셨다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "하늘 섭리로 본 참부모님의 위상과 가치.pdf:159"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -659,7 +734,9 @@
           "snippet": "피조물은 모두 무형의 주체로 계시는 하나님의 이성성상을 닮아 실체로 분립된 하나님의 실체 대상이라는 것을 알았다.이러한 실체대상을 우리는개성진리체(個性 眞理體)라고 한다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:38"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -674,7 +751,9 @@
           "snippet": "정분합작용에 의하여 정(正)을 중심하고 2성의 실체대상으로 분립된 주체와 대상과 그리고 그의 합성체가 각각 삼대상목적을 완성하면 사위기대(四位基臺)를 조성하게 된다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:48"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -689,7 +768,9 @@
           "snippet": "첫째는 동일(同一)한 것으로서의 탕감조건을 세우는 것이다... 둘째는 보다 작은 것으로써 탕감조건을 세우는 경우다... 셋째는 보다 큰 것으로써 탕감조건(蕩減條件)을 세우는 경우다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:363"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -704,7 +785,9 @@
           "snippet": "이 참사랑의 속성에는 사랑에 동참할 수 있는 동참권과 상속권이 있습니다. 그다음에는 같은 자리에 설 수 있는 동위권이 있습니다... 사랑의 인연을 맺게 될 때는 동위권·동참권·상속권을 갖습니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:710"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -719,7 +802,9 @@
           "snippet": "타락은 생식기를 잘못 사용한 것입니다. 생식기를 잘못 사용함으로써 신랑이 달라지고 사랑하는 상대가 달라졌습니다. 그래서 근본적인 타락입니다... 잘못된 사랑은 잘못된 생식기의 행동을 통해서 이루어졌습니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:1065"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -734,7 +819,9 @@
           "snippet": "구원섭리는 병나기 전의 기준으로 다시 돌이키는 것입니다. 그렇기 때문에 구원섭리는 복귀섭리입니다... 구원섭리는 복귀섭리입니다. 복귀섭리는 재창조섭리입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:250"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -749,7 +836,9 @@
           "snippet": "역사상 인생, 우주 그리고 신에 대한 여러 가지 다른 견해는... 참된 남자와 참된 여자가 참사랑 안에서 하나님과 함께 하나되어 절대적인 존재를 창조할 때에 발견될 수 있습니다. 이것이 절대가치의 근원인 것입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "평화경.txt:1704"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -779,7 +868,9 @@
           "snippet": "참사랑의 본질은 위함을 받겠다는 사랑이 아니고 남을 위해, 전체를 위해 먼저 베풀고 위해 주는 사랑입니다. 주고도 주었다는 사실 자체를 기억하지 않고 끊임없이 베푸는 사랑입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "평화경.txt:3187"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -794,7 +885,9 @@
           "snippet": "하늘 섭리를 완성할 수 있는 중심축은 하늘부모님의 직계 자녀인 독생자와 독생녀로 탄생하여 창조원리적 길을 걷는다. 하늘부모님의 직계 자녀로 탄생해서 창조원리적 길을 걸어가신 독생녀 참어머님은 섭리 완성의 중심축이시다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "하늘 섭리로 본 참부모님의 위상과 가치.pdf:43"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -809,7 +902,9 @@
           "snippet": "하늘아버지와 하늘어머니가 하나의 본체로 완전히 하나 되어 계신 것처럼, 참아버님과 참어머님은 하늘부모님을 중심으로 완전히 사랑의 일체를 이루어 천지인참부모가 되셨다... 기원절 이후 천일국 시대는 최종일체를 이루신 천지인참부모님을 실체로 모시며 사는 시대이기 때문에 하나님의 이름은 하늘부모님이 되어야 한다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "하늘 섭리로 본 참부모님의 위상과 가치.pdf:93"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -824,7 +919,9 @@
           "snippet": "‘홀리 마더 한’은 오직 독생녀 참어머님이 사용하는 이름이다. ‘홀리 마더 한’은 실체성령 독생녀 참어머님이시다... 실체하늘어머니의 정체성을 온 세상에 밝히 드러내신다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "하늘 섭리로 본 참부모님의 위상과 가치.pdf:167"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -843,7 +940,10 @@
           "snippet": "책임분담이라는 원칙이 있으니, 그 원칙에 있어서 도와주는 것은 탕감이 안 됩니다. 도울 수 있었다면 인간이 타락할 때 하나님이 간섭해서 타락 안 하게 했을 것입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:86",
+        "천성경.pdf:1039"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -862,7 +962,10 @@
           "snippet": "만일 아담 해와가 선악과를 따먹었다면 범죄 한 손이나 입을 가려야지 왜 하체를 가렸느냐는 것입니다. 이것만 보아도 타락은 음란으로 저질러졌다는 것을 부정할 수 없을 것입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:104",
+        "평화경.txt:3092"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -881,7 +984,10 @@
           "snippet": "타락의 후예 된 여러분의 몸에는 어느 누구도 예외 없이 사탄의 거짓 피가 준동하고 있습니다... 참된 뿌리인 참된 사랑, 참된 생명, 참된 혈통을 전수받는 일입니다. 이것이 바로 참된 인간을 찾아 나온 구원섭리역사의 목적입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:267",
+        "평화경.txt:2299"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -900,7 +1006,10 @@
           "snippet": "인간의 불행을 치유하는 해결 방안은 하나님께로 돌아가는 탕감복귀뿐입니다. 위하는 참사랑에 의하여 마음과 몸의 싸움을 중단시키고 본연의 참사랑의 인격으로 복귀되어야 하는 것입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "원리강론.txt:140",
+        "평화경.txt:1143"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -919,7 +1028,10 @@
           "snippet": "메시아 재림의 목적은 어린양 혼인 잔치다. 어린양 혼인 잔치를 위해서는 독생녀의 탄생이 전제되어야 한다. 독생녀 탄생이 결정되면... 하늘 섭리의 완성이 가능하게 된다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "평화경.txt:237",
+        "하늘 섭리로 본 참부모님의 위상과 가치.pdf:28"
+      ],
       "expected_volumes": [],
       "notes": ""
     },
@@ -938,7 +1050,9 @@
           "snippet": "죽음이 무서운 것이 아닙니다. 죽음은 시집가는 것과 같습니다. 이동하는 것입니다. 제한된 인간의 사랑, 벗어날 수 없는 사랑의 한계권에서 시공을 초월한 무한한 세계로 연장하는 것입니다."
         }
       ],
-      "expected_chunk_ids": [],
+      "expected_chunk_ids": [
+        "천성경.pdf:1232"
+      ],
       "expected_volumes": [],
       "notes": ""
     }
