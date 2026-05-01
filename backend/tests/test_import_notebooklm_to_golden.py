@@ -103,27 +103,27 @@ def test_parse_raw_rejects_non_list(tmp_path):
 
 
 def test_validate_accepts_valid_30_entries():
-    validate_entries(_fake_entries())
+    validate_entries(_fake_entries(), strict_30=True)
 
 
-def test_validate_rejects_wrong_count():
+def test_validate_strict_30_rejects_wrong_count():
     entries = _fake_entries()[:29]
-    with pytest.raises(ValueError, match="30개 기대"):
-        validate_entries(entries)
+    with pytest.raises(ValueError, match="strict-30"):
+        validate_entries(entries, strict_30=True)
 
 
 def test_validate_rejects_missing_required_field():
     entries = _fake_entries()
     entries[0]["query"] = ""
-    with pytest.raises(ValueError, match="query 누락"):
+    with pytest.raises(ValueError, match="query"):
         validate_entries(entries)
 
 
-def test_validate_rejects_wrong_category_distribution():
+def test_validate_strict_30_rejects_wrong_category_distribution():
     entries = _fake_entries()
     entries[0]["category"] = "conceptual"  # factoid 11 / conceptual 13 → 분배 깨짐
     with pytest.raises(ValueError, match="분배 불일치"):
-        validate_entries(entries)
+        validate_entries(entries, strict_30=True)
 
 
 def test_validate_rejects_source_outside_intended_volumes():
@@ -180,14 +180,14 @@ def test_import_adds_intended_chatbot_metadata(tmp_path):
     assert out["version"] == 2  # placeholder 1 → 2 로 bump
 
 
-def test_import_rejects_id_mismatch(tmp_path):
+def test_import_replace_rejects_id_mismatch(tmp_path):
     target_path = tmp_path / "queries.json"
     target_path.write_text(json.dumps(_placeholder_target()), encoding="utf-8")
 
     entries = _fake_entries()
     entries[0]["id"] = "f99"  # placeholder 에 없는 id
-    with pytest.raises(ValueError, match="id 불일치"):
-        import_into_target(entries, target_path)
+    with pytest.raises(ValueError, match="placeholder 만 있음|incoming 만 있음"):
+        import_into_target(entries, target_path, mode="replace")
 
 
 def test_import_rejects_category_mismatch_within_id(tmp_path):
@@ -201,4 +201,136 @@ def test_import_rejects_category_mismatch_within_id(tmp_path):
     c01_idx = next(i for i, e in enumerate(entries) if e["id"] == "c01")
     entries[c01_idx]["category"] = "factoid"
     with pytest.raises(ValueError, match="category 불일치"):
-        import_into_target(entries, target_path)
+        import_into_target(entries, target_path, mode="replace")
+
+
+# ── Merge mode tests (PR 6.5) ──────────────────────────────────────────────
+
+
+def test_validate_default_mode_accepts_60_entries():
+    """60 entry (v1+v2) 가 strict_30 미지정 시 통과."""
+    entries = _fake_entries()
+    # f13-f24, c13-c24, r07-r12 추가 → 60 entry
+    for i in range(13, 25):
+        entries.append({
+            "id": f"f{i:02d}",
+            "category": "factoid",
+            "query": f"q {i}",
+            "answer_summary": f"a {i}",
+            "source_citations": [{"file": "원리강론.txt", "snippet": f"s{i}"}],
+        })
+    for i in range(13, 25):
+        entries.append({
+            "id": f"c{i:02d}",
+            "category": "conceptual",
+            "query": f"q c{i}",
+            "answer_summary": f"a c{i}",
+            "source_citations": [{"file": "천성경.pdf", "snippet": f"s c{i}"}],
+        })
+    for i in range(7, 13):
+        entries.append({
+            "id": f"r{i:02d}",
+            "category": "reasoning",
+            "query": f"q r{i}",
+            "answer_summary": f"a r{i}",
+            "source_citations": [{"file": "평화경.txt", "snippet": f"s r{i}"}],
+        })
+    validate_entries(entries, strict_30=False)
+
+
+def test_validate_rejects_duplicate_id():
+    entries = _fake_entries()
+    dup = dict(entries[0])
+    dup["source_citations"] = [{"file": "원리강론.txt", "snippet": "다른 인용"}]
+    entries.append(dup)
+    with pytest.raises(ValueError, match="중복"):
+        validate_entries(entries, strict_30=False)
+
+
+def test_validate_rejects_invalid_category():
+    entries = _fake_entries()
+    entries[0]["category"] = "factoids"  # typo
+    with pytest.raises(ValueError, match="허용 카테고리 외부"):
+        validate_entries(entries, strict_30=False)
+
+
+def test_merge_mode_appends_new_ids(tmp_path):
+    target_path = tmp_path / "queries.json"
+    existing = {
+        "version": 1,
+        "purpose": "test",
+        "queries": [
+            {"id": "f01", "category": "factoid", "query": "기존",
+             "answer_summary": "기존", "expected_snippets": [],
+             "expected_chunk_ids": [], "expected_volumes": [], "notes": ""},
+        ],
+    }
+    target_path.write_text(json.dumps(existing), encoding="utf-8")
+
+    entries = [
+        {"id": "f01", "category": "factoid", "query": "갱신 q", "answer_summary": "갱신 a",
+         "source_citations": [{"file": "원리강론.txt", "snippet": "s1"}]},
+        {"id": "f02", "category": "factoid", "query": "신규 q", "answer_summary": "신규 a",
+         "source_citations": [{"file": "원리강론.txt", "snippet": "s2"}]},
+    ]
+    out = import_into_target(entries, target_path, mode="merge")
+    assert len(out["queries"]) == 2
+    by_id = {q["id"]: q for q in out["queries"]}
+    assert by_id["f01"]["query"] == "갱신 q"  # incoming update
+    assert by_id["f02"]["query"] == "신규 q"  # 신규 append
+
+
+def test_merge_mode_preserves_existing_chunk_ids(tmp_path, capsys):
+    target_path = tmp_path / "queries.json"
+    existing = {
+        "version": 1,
+        "purpose": "test",
+        "queries": [{
+            "id": "f01", "category": "factoid", "query": "기존",
+            "answer_summary": "기존",
+            "expected_snippets": [{"file": "원리강론.txt", "snippet": "기존 인용"}],
+            "expected_chunk_ids": ["원리강론.txt:42"],
+            "expected_volumes": [],
+            "notes": "",
+        }],
+    }
+    target_path.write_text(json.dumps(existing), encoding="utf-8")
+
+    entries = [{
+        "id": "f01", "category": "factoid", "query": "갱신 q", "answer_summary": "갱신 a",
+        "source_citations": [{"file": "원리강론.txt", "snippet": "갱신된 인용"}],
+    }]
+    out = import_into_target(entries, target_path, mode="merge")
+    by_id = {q["id"]: q for q in out["queries"]}
+    assert by_id["f01"]["expected_chunk_ids"] == ["원리강론.txt:42"]
+    assert by_id["f01"]["expected_snippets"][0]["snippet"] == "갱신된 인용"
+    assert by_id["f01"]["query"] == "갱신 q"
+    captured = capsys.readouterr()
+    assert "f01" in captured.out
+
+
+def test_merge_mode_rejects_category_change(tmp_path):
+    target_path = tmp_path / "queries.json"
+    existing = {
+        "version": 1,
+        "purpose": "test",
+        "queries": [{
+            "id": "f01", "category": "factoid", "query": "",
+            "answer_summary": "", "expected_snippets": [],
+            "expected_chunk_ids": [], "expected_volumes": [], "notes": "",
+        }],
+    }
+    target_path.write_text(json.dumps(existing), encoding="utf-8")
+    entries = [{
+        "id": "f01", "category": "conceptual", "query": "q", "answer_summary": "a",
+        "source_citations": [{"file": "원리강론.txt", "snippet": "s"}],
+    }]
+    with pytest.raises(ValueError, match="merge category 불일치"):
+        import_into_target(entries, target_path, mode="merge")
+
+
+def test_unknown_mode_raises(tmp_path):
+    target_path = tmp_path / "queries.json"
+    target_path.write_text(json.dumps({"queries": []}), encoding="utf-8")
+    with pytest.raises(ValueError, match="mode="):
+        import_into_target([], target_path, mode="bogus")
