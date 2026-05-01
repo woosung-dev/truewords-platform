@@ -49,6 +49,13 @@ class SessionMessage(SQLModel, table=True):
     created_at: datetime = Field(
         default_factory=datetime.utcnow, index=True
     )
+    # M1 — 측정 인프라 (Cross-review #2 Opus W4-blocking).
+    # 답변 단위로 어떤 페르소나/위기 신호가 작동했는지 영속화 → A/B 효과 분석 가능.
+    # 모두 nullable — assistant message 만 채움 (user 는 None).
+    requested_answer_mode: str | None = Field(default=None, max_length=32)
+    resolved_answer_mode: str | None = Field(default=None, max_length=32, index=True)
+    persona_overridden: bool | None = Field(default=None)
+    crisis_trigger: str | None = Field(default=None, max_length=128)
 
 
 class SearchEvent(SQLModel, table=True):
@@ -92,3 +99,36 @@ class AnswerFeedback(SQLModel, table=True):
     comment: str | None = None
     user_id: uuid.UUID | None = None  # 미래 확장용
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class MessageReactionKind(str, enum.Enum):
+    """P1-A — 답변 즉시 토글 3종.
+
+    AnswerFeedback (자유서술 + 운영자 라벨링용) 과 분리. 사용자는 1-탭으로
+    👍 / 👎 / 💾 를 즉시 누른다. ADR-46 §C.3 답변 평가 영역.
+    """
+
+    THUMBS_UP = "thumbs_up"
+    THUMBS_DOWN = "thumbs_down"
+    SAVE = "save"
+
+
+class MessageReaction(SQLModel, table=True):
+    """P1-A — 사용자 즉시 반응 (👍/👎/💾).
+
+    Unique (message_id, user_session_id, kind) — 동일 사용자 동일 메시지에 같은
+    반응 중복 저장 방지. 토글 해제 시 row delete.
+    """
+
+    __tablename__ = "chat_message_reactions"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    message_id: uuid.UUID = Field(foreign_key="session_messages.id", index=True)
+    # 비로그인 사용자도 토글 가능 — 클라이언트가 보내는 fingerprint/cookie 기반 id.
+    user_session_id: str = Field(index=True, max_length=128)
+    kind: MessageReactionKind
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# PoC 정리 (2026-04-29) — P1-K AnswerReview/ReviewLabel + P1-H ChatMessageNote 제거.
+# 운영 인력 (신학 자문 4명) 확보 시점 / 사용자 노트 시나리오 본격 시점에 재추가.

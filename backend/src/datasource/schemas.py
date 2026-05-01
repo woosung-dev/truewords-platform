@@ -114,6 +114,25 @@ class UploadResponse(BaseModel):
     )
 
 
+class SourceChunkDetail(BaseModel):
+    """P0-B — 인용 카드 원문보기 모달용 단일 청크 상세.
+
+    chat 답변에서 노출된 청크의 전체 본문 + 카테고리 메타. 사용자가 답변 페이지의
+    "원문보기" 를 클릭했을 때 모달로 노출된다.
+
+    PoC 정리 (2026-04-29) — P1-B 4중 메타 (volume_no/delivered_at/delivered_place/
+    chapter_title + citation_label) 제거. 인덱싱 파이프라인이 4 필드를 채우게
+    되면 재추가.
+    """
+
+    chunk_id: str = Field(..., description="Qdrant point id")
+    text: str = Field("", description="청크 본문 (정규화된 텍스트)")
+    volume: str = Field("", description="원본 volume (파일명 또는 권명)")
+    sources: list[str] = Field(
+        default_factory=list, description="해당 청크가 속한 카테고리 key 목록"
+    )
+
+
 class DuplicateCheckResponse(BaseModel):
     """업로드 전 중복 문서 검사 결과."""
     exists: bool = Field(..., description="동일 파일명(NFC 정규화 기준)의 기존 적재 여부")

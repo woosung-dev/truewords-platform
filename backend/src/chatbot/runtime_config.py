@@ -9,6 +9,14 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+# P0-E — 모드별 system prompt 라우팅. 5개 모드.
+# Single source of truth: ``src.chat.types.AnswerMode`` (W2-③). 본 모듈은
+# ChatRequest 스키마와의 일관성을 위해 alias 만 재노출한다 (Sonnet review #4).
+from src.chat.types import AnswerMode  # noqa: E402,F401  (re-export)
+
+# P1-J — 대화 마무리 템플릿 종류.
+ClosingKind = Literal["prayer", "resolution", "off"]
+
 
 class TierConfig(BaseModel):
     """Cascading 전략의 단일 Tier.
@@ -55,6 +63,18 @@ class GenerationConfig(BaseModel):
     temperature: float = 0.7
     max_output_tokens: int = 4096
 
+    # P0-E — 모드별 system prompt override. None 또는 빈 dict 면 system_prompt 사용.
+    # key: AnswerMode, value: 해당 모드 전용 system prompt
+    system_prompt_by_mode: dict[str, str] | None = None
+
+    # P1-J — 답변 마무리 템플릿 토글.
+    # enable_closing=True 일 때만 closing_kind 에 따라 후속 LLM 호출.
+    enable_closing: bool = False
+    closing_kind: ClosingKind = "off"
+
+    # P0-A — 자동 follow-up 추천 토글. 기본 활성 (모든 답변에 노출).
+    enable_suggested_followups: bool = True
+
 
 class RetrievalConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -88,3 +108,6 @@ class ChatbotRuntimeConfig(BaseModel):
     generation: GenerationConfig
     retrieval: RetrievalConfig
     safety: SafetyConfig
+    # P1-F: 운영 투명성 — 챗봇별 신학 입장 (About 페이지 노출, 후속에서 활용).
+    # 미설정 챗봇은 None → About 페이지에서 시스템 기본 카피 사용.
+    theological_stance: str | None = None

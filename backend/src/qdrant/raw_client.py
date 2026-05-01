@@ -282,6 +282,31 @@ class RawQdrantClient:
         next_offset = data.get("next_page_offset")
         return points, next_offset
 
+    async def retrieve(
+        self,
+        collection_name: str,
+        *,
+        ids: list[str | int],
+        with_payload: bool | list[str] = True,
+        with_vectors: bool = False,
+    ) -> list[QdrantPoint]:
+        """Qdrant ``POST /collections/{name}/points``. ID 리스트로 다수 포인트 조회.
+
+        SDK ``async_client.retrieve(collection_name=, ids=, ...)`` 와 동등.
+        ``score`` 는 검색 결과가 아니므로 응답에 없음 — ``QdrantPoint.from_dict``
+        가 0.0 으로 fallback 처리.
+        """
+        body: dict = {
+            "ids": ids,
+            "with_payload": with_payload,
+            "with_vector": with_vectors,
+        }
+        result = await self._post(
+            f"/collections/{collection_name}/points", body
+        )
+        records = result.get("result", [])
+        return [QdrantPoint.from_dict(r) for r in records]
+
     async def facet(
         self,
         collection_name: str,

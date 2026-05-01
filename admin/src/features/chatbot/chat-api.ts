@@ -1,7 +1,20 @@
+import type {
+  AnswerMode,
+  TheologicalEmphasis,
+} from "@/features/chat/types";
+
 export interface ChatBot {
   chatbot_id: string;
   display_name: string;
   description: string;
+}
+
+/**
+ * 입력 화면에서 sendMessage 에 함께 실어보내는 옵션.
+ */
+export interface ChatRequestOptions {
+  answer_mode?: AnswerMode;
+  theological_emphasis?: TheologicalEmphasis;
 }
 
 export interface Source {
@@ -9,6 +22,8 @@ export interface Source {
   text: string;
   score: number;
   source: string;
+  // P0-B — 원문보기 모달 fetch 용 Qdrant point id.
+  chunk_id?: string;
 }
 
 export interface ChatResponse {
@@ -16,6 +31,13 @@ export interface ChatResponse {
   sources: Source[];
   session_id: string;
   message_id: string;
+  // P0-A — 자동 follow-up 추천 (생성 실패/비활성 시 null).
+  suggested_followups?: string[] | null;
+  // P1-J — 기도문/결의문 마무리 (비활성 시 null).
+  closing?: string | null;
+  // B5 — 사용자 명시 페르소나가 위기 신호로 pastoral 강제 override 됐는지.
+  // True 면 UI 가 "위기 신호로 감지되어 상담 모드로 전환됐어요" 노티 노출.
+  persona_overridden?: boolean;
 }
 
 export type FeedbackType =
@@ -50,6 +72,7 @@ export const chatAPI = {
     chatbotId: string,
     sessionId?: string,
     signal?: AbortSignal,
+    options?: ChatRequestOptions,
   ): Promise<ChatResponse> => {
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -58,6 +81,11 @@ export const chatAPI = {
         query,
         chatbot_id: chatbotId,
         session_id: sessionId,
+        // 백엔드 schema 통합(W2-③) 전에는 무시되며, 머지 후 자동 검증됨.
+        ...(options?.answer_mode ? { answer_mode: options.answer_mode } : {}),
+        ...(options?.theological_emphasis
+          ? { theological_emphasis: options.theological_emphasis }
+          : {}),
       }),
       signal,
     });

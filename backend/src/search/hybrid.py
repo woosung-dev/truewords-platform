@@ -50,6 +50,8 @@ class SearchResult:
     rerank_score: float | None = None
     parent_text: str = ""
     parent_chunk_index: int = -1
+    # P0-B 원문보기 모달 fetch 용 Qdrant point id. 빈 문자열은 변환 실패/legacy.
+    chunk_id: str = ""
 
 
 async def hybrid_search(
@@ -154,4 +156,5 @@ def point_to_search_result(point: QdrantPoint) -> "SearchResult":
         source=_normalize_source(source_list),
         parent_text=parent_text,
         parent_chunk_index=parent_chunk_index,
+        chunk_id=str(point.id),
     )
