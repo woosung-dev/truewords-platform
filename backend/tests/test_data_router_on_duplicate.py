@@ -118,15 +118,8 @@ def test_complete_job_accepts_total_chunks_kwarg():
     assert sig.parameters["total_chunks"].kind == inspect.Parameter.KEYWORD_ONLY
 
 
-def test_batch_service_ingest_results_uses_namespace_url():
-    """ADR-30 follow-up — batch가 standard와 동일 NAMESPACE_URL이어야 한다 (Codex P2)."""
-    import inspect
-
-    from src.pipeline.batch_service import BatchService
-
-    src = inspect.getsource(BatchService._ingest_batch_results)
-    assert "NAMESPACE_URL" in src
-    assert "NAMESPACE_DNS" not in src
+# test_batch_service_ingest_results_uses_namespace_url 제거됨 — Batch API
+# 기능 폐기 (PR #95). BatchService 모듈 자체 삭제됨.
 
 
 # ---------------------------------------------------------------------------

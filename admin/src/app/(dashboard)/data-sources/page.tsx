@@ -47,7 +47,8 @@ export default function DataSourcesPage() {
   const [dragActive, setDragActive] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [activeTab, setActiveTab] = useState<"upload" | "categories">("upload");
-  const [mode, setMode] = useState<"standard" | "batch">("standard");
+  // Batch API 처리 방식은 PR #95 에서 제거됨. 항상 standard 로 호출 (인자 호환).
+  const mode = "standard" as const;
   // ADR-30 follow-up: 일괄 업로드 시 이미 적재된 파일은 건너뛰는 skip 모드 토글.
   // 단건 업로드(파일 1개)는 dialog가 사용자 선택을 받으므로 이 토글의 영향을 받지 않는다.
   const [bulkSkipMode, setBulkSkipMode] = useState(false);
@@ -69,12 +70,7 @@ export default function DataSourcesPage() {
   }>({ open: false, files: [], duplicates: [], newCount: 0 });
 
   // Gemini 티어 조회 (유료 전용 배치 모드 활성화 여부)
-  const { data: configData } = useQuery({
-    queryKey: ["admin-config"],
-    queryFn: () => fetchAPI<{ gemini_tier: string }>("/admin/settings/config"),
-  });
-  const isPaidTier = configData?.gemini_tier === "paid";
-
+  // Batch API 제거 (PR #95) 후 gemini_tier 기반 UI 분기 미사용.
   const defaultSource = "";
 
   const hasProcessing = pendingFiles.some((f) => f.status === "processing");
@@ -499,39 +495,11 @@ export default function DataSourcesPage() {
             />
           </div>
 
-          {/* 처리 방식 선택 */}
+          {/* ADR-30 follow-up — 일괄 업로드 사전 검사 모달의 default 정책에 영향.
+              Batch API 처리 방식은 PR #95 에서 제거됨 (polling 인프라 미완성).
+              항상 즉시 처리(standard) 로 동작. */}
           <div className="rounded-xl border bg-card p-4 space-y-3">
-            <p className="text-xs font-medium text-muted-foreground">처리 방식</p>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="upload-mode"
-                  value="standard"
-                  checked={mode === "standard"}
-                  onChange={() => setMode("standard")}
-                  className="accent-primary"
-                />
-                <span className="text-sm">즉시 처리</span>
-              </label>
-              <label className={`flex items-center gap-2 ${!isPaidTier ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
-                <input
-                  type="radio"
-                  name="upload-mode"
-                  value="batch"
-                  checked={mode === "batch"}
-                  onChange={() => isPaidTier && setMode("batch")}
-                  disabled={!isPaidTier}
-                  className="accent-primary"
-                />
-                <span className="text-sm">배치 처리 (50% 할인)</span>
-                {!isPaidTier && (
-                  <Badge variant="outline" className="text-xs">유료 전용</Badge>
-                )}
-              </label>
-            </div>
-            {/* ADR-30 follow-up — 일괄 업로드 사전 검사 모달의 default 정책에 영향. */}
-            <label className="flex items-start gap-2 cursor-pointer pt-2 border-t">
+            <label className="flex items-start gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={bulkSkipMode}
@@ -785,9 +753,6 @@ export default function DataSourcesPage() {
             </div>
           )}
 
-          {/* 배치 작업 목록 */}
-          <BatchJobList />
-
           {/* 빈 상태 */}
           {pendingFiles.length === 0 &&
             completedEntries.length === 0 &&
@@ -808,64 +773,5 @@ export default function DataSourcesPage() {
   );
 }
 
-interface BatchJobItem {
-  id: string;
-  filename: string;
-  total_chunks: number;
-  status: string;
-  error_message: string | null;
-  created_at: string;
-  completed_at: string | null;
-}
-
-function BatchJobList() {
-  const { data: jobs = [] } = useQuery({
-    queryKey: ["batch-jobs"],
-    queryFn: () => fetchAPI<BatchJobItem[]>("/admin/data-sources/batch-jobs"),
-    refetchInterval: (query) => {
-      const data = query.state.data ?? [];
-      const hasActive = data.some(
-        (j: BatchJobItem) => j.status === "pending" || j.status === "processing"
-      );
-      return hasActive ? 10000 : false;
-    },
-  });
-
-  if (jobs.length === 0) return null;
-
-  return (
-    <div className="rounded-xl border bg-card p-5 space-y-3">
-      <h3 className="font-semibold text-sm">배치 작업</h3>
-      <div className="space-y-2">
-        {jobs.map((job) => (
-          <div
-            key={job.id}
-            className="flex items-center justify-between text-sm border-b pb-2 last:border-0"
-          >
-            <span className="truncate max-w-[200px]">{job.filename}</span>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{job.total_chunks} 청크</span>
-              <Badge
-                variant={
-                  job.status === "completed"
-                    ? "default"
-                    : job.status === "failed"
-                      ? "destructive"
-                      : "secondary"
-                }
-              >
-                {job.status === "pending"
-                  ? "대기 중"
-                  : job.status === "processing"
-                    ? "처리 중"
-                    : job.status === "completed"
-                      ? "완료"
-                      : "실패"}
-              </Badge>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+// BatchJobList 컴포넌트는 PR #95 에서 제거됨 (Gemini Batch API 폴링 인프라
+// 미완성으로 batch 결과 영구 미반영 결함 발견 → 즉시 처리 standard 단일 모드).

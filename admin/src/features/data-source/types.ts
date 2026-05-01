@@ -84,12 +84,13 @@ export type PredictedOutcome = "new" | "merge" | "replace" | "skip";
 export interface UploadResponse {
   message: string;
   filename: string;
-  mode: "standard" | "batch";
+  // Batch 모드 제거됨 (PR #95). 항상 standard.
+  mode: "standard";
   on_duplicate: "merge" | "replace" | "skip";
   predicted_outcome: PredictedOutcome;
 }
 
-// Volume 영구 삭제 (Qdrant 청크 + IngestionJob/BatchJob row).
+// Volume 영구 삭제 (Qdrant 청크 + IngestionJob row).
 export interface VolumeDeleteRequest {
   volumes: string[];
 }
