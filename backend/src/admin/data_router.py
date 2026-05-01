@@ -544,6 +544,67 @@ async def get_ingest_status(
     return response
 
 
+@router.post("/check-duplicate/analyze")
+async def analyze_duplicate(
+    file: UploadFile = File(...),
+    current_admin: dict = Depends(get_current_admin),
+    service: IngestionJobService = Depends(get_ingestion_service),
+    qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
+):
+    """업로드 전 파일 내용 분석 — hash 비교 + 청크 수 추정 (1-3초 소요).
+
+    /check-duplicate 는 filename 만 보지만 본 endpoint 는 file body 를 받아
+    서버가 extract_text 후 SHA-256 hash 를 계산하고 기존 적재 데이터와 비교한다.
+
+    UI duplicate dialog 의 "내용 비교 분석" 버튼이 호출. 사용자가 옵션 (merge/
+    replace/skip) 선택 전에 내용 동일 여부 + 예상 청크 수를 보고 의사결정.
+
+    Returns:
+        - content_match: bool | None (기존 hash 없으면 None)
+        - existing_chunk_count / estimated_new_chunk_count / chunk_delta
+        - hash 는 첫 8자리만 노출 (식별용, 보안)
+    """
+    safe_filename = Path(file.filename or "unknown").name
+    if safe_filename.startswith("."):
+        raise HTTPException(status_code=400, detail="유효하지 않은 파일명")
+    volume_key = unicodedata.normalize("NFC", safe_filename)
+
+    # 임시 파일 — extract_text 가 file path 를 받아야 하므로
+    with NamedTemporaryFile(
+        delete=False, suffix=Path(safe_filename).suffix
+    ) as tmp:
+        content = await file.read()
+        tmp.write(content)
+        tmp_path = Path(tmp.name)
+
+    try:
+        text = extract_text(tmp_path)
+        new_hash = _compute_content_hash(text)
+
+        job = await service.find_by_filename(safe_filename)
+        existing_hash = job.content_hash if job else None
+        sources, existing_chunks = await qdrant_service.get_volume_snapshot(volume_key)
+
+        # Recursive 700자 default 기준 추정. 실제 청킹은 separator/overlap 으로
+        # ~10-20% 변동 가능하지만 대략적 신호로 충분.
+        estimated_chunks = max(1, len(text) // 700)
+
+        return {
+            "filename": safe_filename,
+            "existing_content_hash": existing_hash[:8] if existing_hash else None,
+            "new_content_hash": new_hash[:8],
+            "content_match": (
+                existing_hash == new_hash if existing_hash is not None else None
+            ),
+            "existing_chunk_count": existing_chunks,
+            "estimated_new_chunk_count": estimated_chunks,
+            "chunk_delta": estimated_chunks - existing_chunks,
+            "sources": sources,
+        }
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+
 @router.get("/check-duplicate", response_model=DuplicateCheckResponse)
 async def check_duplicate(
     filename: str,
