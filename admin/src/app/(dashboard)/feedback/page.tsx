@@ -159,7 +159,7 @@ function NegativeFeedbackTable({
         <div className="overflow-x-auto overflow-hidden rounded-lg border">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-muted/50 border-b">
+              <tr className="bg-admin-muted/50 border-b">
                 <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                   시간
                 </th>

@@ -62,7 +62,7 @@ export default function QueryDetailModal({
                   : "불러오는 중..."}
               </Dialog.Description>
             </div>
-            <Dialog.Close className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0">
+            <Dialog.Close className="rounded-lg p-1 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors shrink-0">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>

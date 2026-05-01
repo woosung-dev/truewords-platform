@@ -23,7 +23,7 @@ function StatCard({
 }) {
   const colorMap = {
     default: "text-foreground",
-    green: "text-emerald-600",
+    green: "text-success",
     red: "text-destructive",
     blue: "text-primary",
   };
@@ -32,7 +32,7 @@ function StatCard({
     <div className="rounded-xl border bg-card p-5 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">{label}</span>
-        <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+        <div className="w-8 h-8 rounded-md bg-admin-muted flex items-center justify-center">
           <Icon className="w-4 h-4 text-muted-foreground" />
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link
             href="/chatbots"
-            className="group flex items-center justify-between rounded-xl border bg-card p-5 hover:border-primary/50 hover:bg-accent/30 transition-colors"
+            className="group flex items-center justify-between rounded-xl border bg-card p-5 hover:border-primary/50 hover:bg-primary/5 transition-colors"
           >
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -171,7 +171,7 @@ export default function DashboardPage() {
 
           <Link
             href="/data-sources"
-            className="group flex items-center justify-between rounded-xl border bg-card p-5 hover:border-primary/50 hover:bg-accent/30 transition-colors"
+            className="group flex items-center justify-between rounded-xl border bg-card p-5 hover:border-primary/50 hover:bg-primary/5 transition-colors"
           >
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -208,14 +208,14 @@ export default function DashboardPage() {
               <Link
                 key={config.id}
                 href={`/chatbots/${config.id}/edit`}
-                className={`flex items-center justify-between px-5 py-3.5 hover:bg-accent/50 transition-colors ${
+                className={`flex items-center justify-between px-5 py-3.5 hover:bg-primary/5 transition-colors ${
                   i !== 0 ? "border-t" : ""
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className={`w-2 h-2 rounded-full shrink-0 ${
-                      config.is_active ? "bg-emerald-500" : "bg-slate-300"
+                      config.is_active ? "bg-success" : "bg-admin-muted-foreground/40"
                     }`}
                   />
                   <span className="font-medium text-sm truncate">

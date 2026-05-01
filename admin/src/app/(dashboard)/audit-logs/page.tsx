@@ -65,7 +65,7 @@ export default function AuditLogsPage() {
       <div className="rounded-xl border bg-card overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-muted/40">
+            <tr className="border-b bg-admin-muted/40">
               <th className="text-left font-medium px-4 py-2.5">시간</th>
               <th className="text-left font-medium px-4 py-2.5">액션</th>
               <th className="text-left font-medium px-4 py-2.5">대상 테이블</th>
@@ -97,7 +97,7 @@ export default function AuditLogsPage() {
                 variant: "outline" as const,
               };
               return (
-                <tr key={log.id} className="border-b last:border-0 hover:bg-accent/30">
+                <tr key={log.id} className="border-b last:border-0 hover:bg-primary/5">
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                     {formatDate(log.created_at)}
                   </td>
@@ -105,7 +105,7 @@ export default function AuditLogsPage() {
                     <Badge variant={actionInfo.variant}>{actionInfo.label}</Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                    <code className="text-xs bg-admin-muted px-1.5 py-0.5 rounded">
                       {log.target_table}
                     </code>
                   </td>
