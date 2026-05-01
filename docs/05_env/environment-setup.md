@@ -65,7 +65,8 @@ docker compose up --build
 | `ENVIRONMENT` | 환경 구분 | `development` | - |
 | `GEMINI_API_KEY` | Gemini API 키 | - | **��수** |
 | `QDRANT_URL` | Qdrant 서버 URL | `http://localhost:6333` | - |
-| `COLLECTION_NAME` | 말씀 컬렉션 이름 | `malssum_poc` | - |
+| `QDRANT_API_KEY` | Qdrant API Key (셀프 호스팅 VM·Cloud 공통) | - | 운영 환경 필수 |
+| `COLLECTION_NAME` | 말씀 컬렉션 이름 | `malssum_poc_v5` | - |
 | `DATABASE_URL` | PostgreSQL 연결 문자열 | `postgresql+asyncpg://...localhost...` | - |
 | `ADMIN_JWT_SECRET` | JWT 서명 시크릿 | `change-me-in-production` | 프로덕션 필수 |
 | `ADMIN_JWT_EXPIRE_MINUTES` | JWT 만료 시간 (분) | `1440` | - |
@@ -84,8 +85,9 @@ docker compose up --build
 |------|------|----------|----------|
 | `ENVIRONMENT` | `development` | `staging` | `production` |
 | `DATABASE_URL` | `localhost:5432/truewords` | Cloud SQL · DB `truewords_staging` | Cloud SQL · DB `truewords` |
-| `QDRANT_URL` | `localhost:6333` | Qdrant Cloud (같은 클러스터) | Qdrant Cloud (같은 클러스터) |
-| `COLLECTION_NAME` | `malssum_poc` | `malssum_poc_staging` (자동) | `malssum_poc` |
+| `QDRANT_URL` | `localhost:6333` | Qdrant Cloud (같은 클러스터) | **셀프 호스팅 VM** (`https://qdrant.<cf-zone>`, Cloudflare Tunnel 경유) |
+| `QDRANT_API_KEY` | (없음) | Cloud key | VM 발급 32바이트 (`openssl rand -base64 32`) |
+| `COLLECTION_NAME` | `malssum_poc_v5` | `malssum_poc_v5_staging` (자동) | `malssum_poc_v5` |
 | `CACHE_COLLECTION_NAME` | `semantic_cache` | `semantic_cache_staging` (자동) | `semantic_cache` |
 | `ADMIN_FRONTEND_URL` | `localhost:3000` | Vercel Preview URL | `https://admin.truewords.app` |
 | `COOKIE_SECURE` | `false` | `true` | `true` |
@@ -94,6 +96,21 @@ docker compose up --build
 
 > "자동" 표기는 `ENVIRONMENT=staging` 시 `backend/src/config.py` 의 `apply_environment_suffix` validator 가 접미사를 자동으로 부여하는 동작(기본값일 때만, 명시 override 존중).
 > 전체 분리 설계(Cloud Run 서비스 분리, Vercel Preview, GitHub Actions 파이프라인, Secret Manager) 는 [Staging 환경 분리 설계](../07_infra/staging-separation.md) 참조.
+> 프로덕션 Qdrant 셀프 호스팅 운영 가이드는 [Qdrant 셀프 호스팅](../07_infra/qdrant-self-hosting.md) (ADR `docs/dev-log/45-qdrant-self-hosting.md`) 참조.
+
+---
+
+## 마이그레이션 전용 환경변수 (일회성)
+
+Qdrant Cloud → VM 풀 마이그레이션 시 `backend/scripts/migrate_cloud_to_vm.py`,
+`verify_migration.py` 가 사용한다. 운영 환경에는 등록하지 않는다.
+
+| 변수 | 설명 |
+|------|------|
+| `QDRANT_CLOUD_URL` | 마이그레이션 소스 (기존 Qdrant Cloud) |
+| `QDRANT_CLOUD_API_KEY` | 소스 API key |
+| `QDRANT_VM_URL` | 마이그레이션 타겟 (`https://qdrant.<cf-zone>`) |
+| `QDRANT_VM_API_KEY` | 타겟 API key |
 
 ---
 

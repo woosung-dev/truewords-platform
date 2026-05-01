@@ -11,7 +11,6 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
-from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 logger = logging.getLogger(__name__)
 
@@ -33,14 +32,14 @@ from src.datasource.schemas import (
     VolumeTagsBulkResponse,
 )
 from src.datasource.service import DataSourceCategoryService
-from src.pipeline.chunker import chunk_text
+from src.pipeline.chunker import chunk_recursive
 from src.pipeline.dependencies import get_ingestion_service
 from src.pipeline.extractor import extract_text
 from src.pipeline.ingestion_repository import IngestionJobRepository
 from src.pipeline.ingestion_service import IngestionJobService
 from src.pipeline.ingestor import ingest_chunks
 from src.pipeline.metadata import extract_metadata
-from src.qdrant_client import get_async_client, get_client
+from src.qdrant_client import get_raw_client
 
 # 재업로드 정책 (ADR-30) — merge: 기존 source ∪ 신규, replace: 신규로 교체,
 # skip: COMPLETED 동일 파일이면 임베딩/upsert 모두 건너뜀.
@@ -195,21 +194,19 @@ def _process_file(
     mode: str = "standard",
     on_duplicate: str = "merge",
 ):
-    """BackgroundTask 진입점. 배치 모드는 즉시 처리, 즉시 모드는 워커 큐에 투입.
+    """BackgroundTask 진입점. standard 워커 큐에 투입.
 
-    ADR-30 follow-up: batch/standard 둘 다 on_duplicate를 따른다.
-    standard는 content_hash 기반 정밀 비교, batch는 Qdrant chunk_count > 0
-    여부로 단순 비교(BatchJob에 hash 컬럼 추가는 후속 작업).
+    ADR-30 follow-up: on_duplicate 정책 (merge/replace/skip) 적용.
+    Batch API 모드는 polling 인프라 미완성으로 제거됨 (PR #95). standard 즉시
+    처리만 지원.
     """
-    if mode == "batch":
-        _process_file_batch(file_path, filename, source, on_duplicate)
-    else:
-        _ensure_worker()
-        _INGEST_QUEUE.put((file_path, filename, source, on_duplicate))
-        logger.info(
-            "[%s] 처리 큐에 투입 (대기열 %d개, on_duplicate=%s)",
-            filename, _INGEST_QUEUE.qsize(), on_duplicate,
-        )
+    _ = mode  # 호환성 유지 — 인자 보존, 항상 standard 동작
+    _ensure_worker()
+    _INGEST_QUEUE.put((file_path, filename, source, on_duplicate))
+    logger.info(
+        "[%s] 처리 큐에 투입 (대기열 %d개, on_duplicate=%s)",
+        filename, _INGEST_QUEUE.qsize(), on_duplicate,
+    )
 
 
 async def _get_existing_snapshot(volume_key: str) -> tuple[list[str], int]:
@@ -218,88 +215,8 @@ async def _get_existing_snapshot(volume_key: str) -> tuple[list[str], int]:
     DataSourceQdrantService를 직접 인스턴스화한다 (Depends 미사용 컨텍스트).
     NFC/NFD 혼재 대응은 서비스 메서드 내부에서 처리한다.
     """
-    async_client = get_async_client()
-    sync_client = get_client()
-    svc = DataSourceQdrantService(async_client, sync_client, settings.collection_name)
+    svc = DataSourceQdrantService(get_raw_client(), settings.collection_name)
     return await svc.get_volume_snapshot(volume_key)
-
-
-def _process_file_batch(
-    file_path: Path,
-    filename: str,
-    source: str,
-    on_duplicate: str = "merge",
-):
-    """배치 모드: Gemini Batch API에 즉시 제출.
-
-    ADR-30 follow-up: on_duplicate는 BatchJob.on_duplicate에 저장되어 적재
-    시점(``BatchService._ingest_batch_results``)에 payload.source 결정에 사용.
-    skip 모드는 Qdrant chunk_count > 0이면 batch 제출 자체 생략(보수적 — hash
-    비교는 BatchJob.content_hash 추가 후속 작업).
-
-    DB 호출은 메인 loop에 위임 (AsyncEngine 단일 loop 바인딩 제약).
-    """
-    volume_key = unicodedata.normalize("NFC", filename)
-
-    if _main_loop is None:
-        logger.error("[%s] 메인 loop 미설정 — 배치 처리 불가", volume_key)
-        return
-    loop = _main_loop  # 클로저 캡처
-
-    try:
-        logger.info(
-            "[%s] 배치 모드 처리 시작 (on_duplicate=%s)", volume_key, on_duplicate,
-        )
-
-        # ADR-30 follow-up: skip 모드 — 이미 Qdrant에 적재된 파일이면 batch 제출 생략.
-        if on_duplicate == "skip":
-            existing_sources, existing_chunks = asyncio.run_coroutine_threadsafe(
-                _get_existing_snapshot(volume_key), loop
-            ).result()
-            if existing_chunks > 0:
-                logger.info(
-                    "[%s] skip + Qdrant 청크 %d개 존재(분류 %s) → 배치 제출 생략",
-                    volume_key, existing_chunks, existing_sources,
-                )
-                return
-
-        text = extract_text(file_path)
-        if not text.strip():
-            logger.warning("[%s] 빈 파일, 배치 제출 생략", volume_key)
-            return
-        meta = extract_metadata(file_path, text)
-        volume = unicodedata.normalize("NFC", meta["volume"] or volume_key)
-        chunks = chunk_text(text, volume=volume, max_chars=500, source=source,
-                            title=meta["title"], date=meta["date"])
-
-        from src.pipeline.batch_repository import BatchJobRepository
-        from src.pipeline.batch_service import BatchService
-
-        chunk_texts = [c.text for c in chunks]
-
-        async def _submit_batch():
-            async with async_session_factory() as session:
-                repo = BatchJobRepository(session)
-                svc = BatchService(repo=repo)
-                await svc.submit(
-                    chunks_texts=chunk_texts,
-                    filename=filename,
-                    volume_key=volume_key,
-                    source=source,
-                    on_duplicate=on_duplicate,
-                )
-
-        future = asyncio.run_coroutine_threadsafe(_submit_batch(), loop)
-        future.result()
-        logger.info(
-            "[%s] 배치 작업 제출 완료 (%d청크, on_duplicate=%s)",
-            volume_key, len(chunks), on_duplicate,
-        )
-    except Exception:
-        logger.exception("[%s] 배치 처리 실패", volume_key)
-    finally:
-        if file_path.exists():
-            file_path.unlink()
 
 
 def _process_file_standard(
@@ -395,20 +312,28 @@ def _process_file_standard(
             run_repo(lambda r: r.update_content_hash(volume_key, new_hash))
             return
 
-        # 5. 문서 청킹
-        chunks = chunk_text(text, volume=volume, max_chars=500, source=source,
-                            title=meta["title"], date=meta["date"])
-        logger.info("[%s] 청킹 완료 (%d개 청크)", volume_key, len(chunks))
+        # 5. 문서 청킹 — Phase 2.4 운영 기본 (dev-log 51) Recursive 700/150
+        # + Phase 3 dev-log 53 권고 — book_series 자동 분류
+        from src.pipeline.metadata import classify_book_series
+        book_series = classify_book_series(file_path)
+        chunks = chunk_recursive(text, volume=volume, source=source,
+                                 title=meta["title"], date=meta["date"])
+        if book_series:
+            for c in chunks:
+                c.book_series = book_series
+        logger.info(
+            "[%s] 청킹 완료 (%d개 청크, recursive, book_series=%r)",
+            volume_key, len(chunks), book_series,
+        )
 
         # 6. ADR-30 P1: COMPLETED 재업로드는 reset 후 0부터 적재. start_chunk 자동 재개를
         #    그대로 두면 같은 길이 재업로드 시 effective_chunks=[]로 빠져 silent no-op 발생.
-        sync_client = get_client()
         if strategy["needs_reset"]:
-            sync_client.delete(
-                collection_name=settings.collection_name,
-                points_selector=Filter(must=[
-                    FieldCondition(key="volume", match=MatchValue(value=volume)),
-                ]),
+            from src.pipeline.ingestor import _sync_delete_by_filter
+
+            _sync_delete_by_filter(
+                settings.collection_name,
+                {"must": [{"key": "volume", "match": {"value": volume}}]},
             )
             logger.info(
                 "[%s] 재업로드 reset: 기존 %d청크 삭제 + start_chunk=0 (on_duplicate=%s)",
@@ -428,6 +353,13 @@ def _process_file_standard(
         if start_chunk > 0:
             run_repo(lambda r: r.update_progress(volume_key, start_chunk))
 
+        # 7-bis. content_hash 즉시 저장 — Root cause fix (PR #99).
+        # 기존엔 COMPLETED 분기 (line 393) 에서만 저장되어 PARTIAL/FAILED 시 NULL.
+        # 결과: 부분 적재 후 재업로드 시 hash 비교 불가 → analyze 우회 등 부수 작업 유발.
+        # start_run 직후 저장하면 모든 상태에서 hash 보존, 재개 시 자동 일치 확인 가능.
+        # 하단 line 394 의 호출은 멱등으로 보존 (같은 hash 재저장 — 안전).
+        run_repo(lambda r: r.update_content_hash(volume_key, new_hash))
+
         # 8. payload_sources는 strategy가 결정 (merge/skip union or None)
         payload_sources = strategy["payload_sources"]
         if payload_sources is not None:
@@ -441,7 +373,7 @@ def _process_file_standard(
             run_repo(lambda r: r.update_progress(volume_key, abs_processed))
 
         stats = ingest_chunks(
-            sync_client, settings.collection_name, chunks,
+            settings.collection_name, chunks,
             start_chunk=start_chunk, title=meta["title"],
             on_progress=on_progress,
             payload_sources=payload_sources,
@@ -503,13 +435,12 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     source: str = Form("", description="데이터 소스 카테고리 key (비워두면 미분류로 적재)"),
-    mode: str = Form("standard", description="처리 모드: standard | batch"),
+    mode: str = Form("standard", description="호환용 (Batch API 제거됨, 항상 standard)"),
     on_duplicate: str = Form(
         "merge",
         description=(
             "재업로드 정책 (ADR-30). merge: 기존 카테고리 ∪ 신규 (default), "
-            "replace: 신규로 통째 교체, skip: COMPLETED 동일 파일이면 임베딩 생략. "
-            "mode=batch에서도 적용된다."
+            "replace: 신규로 통째 교체, skip: COMPLETED 동일 파일이면 임베딩 생략."
         ),
     ),
     current_admin: dict = Depends(get_current_admin),
@@ -518,10 +449,8 @@ async def upload_document(
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ) -> UploadResponse:
     """업로드된 파일을 백그라운드에서 RAG 지식 베이스로 적재합니다."""
-    if mode not in ("standard", "batch"):
-        raise HTTPException(status_code=400, detail="mode는 standard 또는 batch만 가능합니다")
-    if mode == "batch" and settings.gemini_tier != "paid":
-        raise HTTPException(status_code=400, detail="배치 처리는 유료 티어에서만 사용 가능합니다")
+    # mode 인자는 후방 호환을 위해 받지만 Batch API 제거 후 항상 standard 동작.
+    _ = mode
     if on_duplicate not in _VALID_ON_DUPLICATE:
         raise HTTPException(
             status_code=400,
@@ -606,16 +535,16 @@ async def get_ingest_status(
     """
     response = await service.build_status_response()
     try:
-        client = get_async_client()
-        count_info = await client.count(collection_name=settings.collection_name)
-        response["summary"]["total_chunks"] = count_info.count
+        client = get_raw_client()
+        total = await client.count(settings.collection_name)
+        response["summary"]["total_chunks"] = total
         # volume facet 1회로 고유 volume 수 파악 (hits 길이)
         vol_facet = await client.facet(
-            collection_name=settings.collection_name,
+            settings.collection_name,
             key="volume",
             limit=10000,
         )
-        response["summary"]["completed_count"] = len(vol_facet.hits)
+        response["summary"]["completed_count"] = len(vol_facet)
     except Exception:
         # Qdrant 일시 실패 시 ingestion_jobs 기반 값을 그대로 노출
         pass
@@ -650,6 +579,10 @@ async def check_duplicate(
     status_value = job.status.value if job else None
     last_uploaded_at = job.updated_at if job else None
     stored_filename = job.filename if job else safe_filename
+    # 8자리 partial — 식별용. start_run 직후 저장 (PR #99) 이라 PARTIAL/RUNNING 도 보존됨.
+    content_hash_partial = (
+        job.content_hash[:8] if job and job.content_hash else None
+    )
 
     return DuplicateCheckResponse(
         exists=exists,
@@ -659,6 +592,9 @@ async def check_duplicate(
         chunk_count=chunk_count,
         status=status_value,
         last_uploaded_at=last_uploaded_at,
+        content_hash=content_hash_partial,
+        processed_chunks=job.processed_chunks if job else 0,
+        total_chunks=job.total_chunks if job else 0,
     )
 
 
@@ -760,16 +696,9 @@ async def _delete_volume_artifacts(
     chunks_deleted = qdrant_result.total_chunks_deleted
 
     ingestion_deleted = False
-    batch_deleted_count = 0
     async with async_session_factory() as session:
         ing_repo = IngestionJobRepository(session)
         ingestion_deleted = await ing_repo.delete_by_volume_key(
-            unicodedata.normalize("NFC", volume_key)
-        )
-        from src.pipeline.batch_repository import BatchJobRepository
-
-        batch_repo = BatchJobRepository(session)
-        batch_deleted_count = await batch_repo.delete_by_volume_key(
             unicodedata.normalize("NFC", volume_key)
         )
         await session.commit()
@@ -778,7 +707,8 @@ async def _delete_volume_artifacts(
         "volume": volume_key,
         "chunks_deleted": chunks_deleted,
         "ingestion_row_deleted": ingestion_deleted,
-        "batch_rows_deleted": batch_deleted_count,
+        # batch_rows_deleted 0 — Batch API 제거 후 자리 보존 (PR #95).
+        "batch_rows_deleted": 0,
         "skipped": qdrant_result.skipped,
     }
 
@@ -876,28 +806,6 @@ async def delete_volumes_bulk(
     )
 
 
-@router.get("/batch-jobs")
-async def list_batch_jobs(
-    current_admin: dict = Depends(get_current_admin),
-):
-    """배치 작업 목록 조회."""
-    from src.pipeline.batch_repository import BatchJobRepository
-
-    async with async_session_factory() as session:
-        repo = BatchJobRepository(session)
-        jobs = await repo.list_recent(limit=20)
-
-    return [
-        {
-            "id": str(job.id),
-            "batch_id": job.batch_id,
-            "filename": job.filename,
-            "source": job.source,
-            "total_chunks": job.total_chunks,
-            "status": job.status.value,
-            "error_message": job.error_message,
-            "created_at": job.created_at.isoformat(),
-            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
-        }
-        for job in jobs
-    ]
+# /batch-jobs 엔드포인트 제거됨 (PR #95) — Gemini Batch API 폴링 인프라
+# 미완성으로 인해 batch 모드 결과가 영구 미반영되는 결함 발견. 즉시 처리
+# (standard) 모드만 운영 지원.

@@ -16,7 +16,6 @@ from src.admin.data_router import (
 )
 from src.datasource.qdrant_service import DataSourceQdrantService
 from src.datasource.schemas import VolumeDeleteRequest, VolumeDeleteResponse
-from src.pipeline.batch_repository import BatchJobRepository
 from src.pipeline.ingestion_repository import IngestionJobRepository
 
 
@@ -24,7 +23,7 @@ from src.pipeline.ingestion_repository import IngestionJobRepository
 
 
 def test_volume_delete_response_defaults():
-    r = VolumeDeleteResponse()
+    r = VolumeDeleteResponse(total_chunks_deleted=0)
     assert r.deleted_volumes == []
     assert r.total_chunks_deleted == 0
     assert r.skipped == []
@@ -52,8 +51,8 @@ def test_qdrant_delete_volumes_handles_nfc_and_nfd():
     src = inspect.getsource(DataSourceQdrantService.delete_volumes)
     assert 'unicodedata.normalize("NFC"' in src
     assert 'unicodedata.normalize("NFD"' in src
-    # MatchAny로 두 형태 모두 매칭하는 패턴
-    assert "MatchAny" in src
+    # field_match_any (raw httpx, MatchAny 동등)로 두 형태 모두 매칭하는 패턴
+    assert "field_match_any" in src
 
 
 # --- Repository 시그니처 ---
@@ -63,8 +62,8 @@ def test_ingestion_repository_has_delete_by_volume_key():
     assert hasattr(IngestionJobRepository, "delete_by_volume_key")
 
 
-def test_batch_repository_has_delete_by_volume_key():
-    assert hasattr(BatchJobRepository, "delete_by_volume_key")
+# test_batch_repository_has_delete_by_volume_key 제거됨 — Batch API 기능 폐기
+# (PR #95). BatchJobRepository / batch_jobs 테이블 삭제됨.
 
 
 # --- 라우터 wiring 회귀 ---
@@ -88,11 +87,12 @@ def test_delete_volumes_bulk_router_collects_skipped_and_logs():
 
 
 def test_delete_volume_artifacts_orders_qdrant_then_db():
-    """Codex P2 학습: Qdrant 먼저(검색 즉시 반영) → DB 순서로 일관성 보장."""
+    """Codex P2 학습: Qdrant 먼저(검색 즉시 반영) → DB 순서로 일관성 보장.
+
+    Batch API 제거 후 (PR #95) batch_repo 호출 사라졌으므로 Qdrant→IngestionJob 순서만 검증.
+    """
     src = inspect.getsource(_delete_volume_artifacts)
     qdrant_idx = src.find("qdrant_service.delete_volumes")
     ingestion_idx = src.find("ing_repo.delete_by_volume_key")
-    batch_idx = src.find("batch_repo.delete_by_volume_key")
-    assert qdrant_idx >= 0 and ingestion_idx >= 0 and batch_idx >= 0
+    assert qdrant_idx >= 0 and ingestion_idx >= 0
     assert qdrant_idx < ingestion_idx, "Qdrant delete가 IngestionJob delete보다 먼저여야 함"
-    assert qdrant_idx < batch_idx, "Qdrant delete가 BatchJob delete보다 먼저여야 함"

@@ -18,7 +18,7 @@ from src.admin.analytics_schemas import (
 from src.admin.dependencies import get_current_admin
 from src.common.database import get_async_session
 from src.config import settings
-from src.qdrant_client import get_client
+from src.qdrant_client import get_raw_client
 
 router = APIRouter(prefix="/admin/analytics", tags=["analytics"])
 
@@ -38,8 +38,7 @@ async def get_dashboard_summary(
 
     # Qdrant 포인트 수
     try:
-        client = get_client()
-        qdrant_count = client.count(collection_name=settings.collection_name).count
+        qdrant_count = await get_raw_client().count(settings.collection_name)
     except Exception:
         qdrant_count = 0
 

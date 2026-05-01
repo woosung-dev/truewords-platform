@@ -4,10 +4,9 @@ import asyncio
 import logging
 from dataclasses import dataclass
 
-from qdrant_client import AsyncQdrantClient
-
 from src.common.gemini import embed_dense_query
 from src.pipeline.embedder import embed_sparse_async
+from src.qdrant import RawQdrantClient
 from src.search.hybrid import SearchResult, hybrid_search
 
 logger = logging.getLogger(__name__)
@@ -40,12 +39,13 @@ class WeightedConfig:
 
 
 async def weighted_search(
-    client: AsyncQdrantClient,
+    client: RawQdrantClient,
     query: str,
     config: WeightedConfig,
     top_k: int = 10,
     dense_embedding: list[float] | None = None,
     collection_name: str | None = None,
+    query_metadata: dict[str, int] | None = None,
 ) -> list[SearchResult]:
     """소스별 가중치 기반 병렬 하이브리드 검색.
 
@@ -88,6 +88,7 @@ async def weighted_search(
                 query,
                 top_k=top_k,
                 source_filter=[ws.source],
+                query_metadata=query_metadata,
                 dense_embedding=dense,
                 sparse_embedding=sparse,
                 collection_name=collection_name,

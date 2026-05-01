@@ -106,7 +106,7 @@ class UploadResponse(BaseModel):
     """
     message: str
     filename: str
-    mode: str = Field(..., description="standard | batch")
+    mode: str = Field(..., description="standard (Batch API 제거됨, 항상 standard)")
     on_duplicate: str = Field(..., description="merge | replace | skip")
     predicted_outcome: str = Field(
         ...,
@@ -142,3 +142,11 @@ class DuplicateCheckResponse(BaseModel):
     chunk_count: int = Field(0, description="Qdrant에 적재된 청크 수")
     status: str | None = Field(None, description="IngestionJob 최종 상태 (completed/partial/failed/running/pending)")
     last_uploaded_at: datetime | None = Field(None, description="마지막 업로드/갱신 시각")
+    content_hash: str | None = Field(
+        None,
+        description="기존 IngestionJob 의 content_hash 첫 8자리 (식별용). NULL 이면 기존 hash 미보존.",
+    )
+    # 부분 적재 진행률 — UI 가 PARTIAL/FAILED 파일을 시각적으로 식별하는데 사용.
+    # status=COMPLETED 면 processed == total. PARTIAL/FAILED 면 < total.
+    processed_chunks: int = Field(0, description="IngestionJob 의 처리 완료 청크 수")
+    total_chunks: int = Field(0, description="IngestionJob 의 총 청크 수 (start_run 시 결정)")

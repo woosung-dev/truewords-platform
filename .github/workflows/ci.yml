@@ -53,7 +53,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: uv sync --frozen
+        # eval group: openpyxl/ragas 등 평가 스크립트 의존성. tests/scripts/test_analyze_*
+        # 및 test_eval_* 가 import하므로 CI에서도 설치 필요.
+        run: uv sync --frozen --all-groups
 
       - name: Run pytest
         env:

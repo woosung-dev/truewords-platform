@@ -90,9 +90,10 @@ def test_process_file_standard_wires_strategy_correctly():
     from src.admin.data_router import _process_file_standard
 
     src = inspect.getsource(_process_file_standard)
-    # P1 wiring: strategy["needs_reset"] → sync_client.delete + start_chunk=0
+    # P1 wiring: strategy["needs_reset"] → raw httpx delete + start_chunk=0
+    # (PR-E 이후 sync_client.delete → _sync_delete_by_filter (raw httpx HTTP/1.1))
     assert 'strategy["needs_reset"]' in src
-    assert "sync_client.delete" in src
+    assert "_sync_delete_by_filter" in src
     assert "start_chunk = 0" in src
     # P2 wiring: skip 단축 시 complete_job(total_chunks=preserved_total)
     assert 'strategy["skip_short_circuit"]' in src
@@ -117,15 +118,8 @@ def test_complete_job_accepts_total_chunks_kwarg():
     assert sig.parameters["total_chunks"].kind == inspect.Parameter.KEYWORD_ONLY
 
 
-def test_batch_service_ingest_results_uses_namespace_url():
-    """ADR-30 follow-up — batch가 standard와 동일 NAMESPACE_URL이어야 한다 (Codex P2)."""
-    import inspect
-
-    from src.pipeline.batch_service import BatchService
-
-    src = inspect.getsource(BatchService._ingest_batch_results)
-    assert "NAMESPACE_URL" in src
-    assert "NAMESPACE_DNS" not in src
+# test_batch_service_ingest_results_uses_namespace_url 제거됨 — Batch API
+# 기능 폐기 (PR #95). BatchService 모듈 자체 삭제됨.
 
 
 # ---------------------------------------------------------------------------

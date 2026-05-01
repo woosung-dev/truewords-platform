@@ -179,7 +179,7 @@ export default function DeleteConfirmDialog({
               <div className="space-y-1">
                 <div className="font-medium">되돌릴 수 없는 작업입니다.</div>
                 <div className="text-xs text-destructive/80">
-                  Qdrant의 모든 청크와 적재 이력(IngestionJob, BatchJob)이 영구 삭제됩니다.
+                  Qdrant의 모든 청크와 적재 이력(IngestionJob)이 영구 삭제됩니다.
                   취소하려면 같은 파일을 다시 업로드해야 합니다.
                 </div>
               </div>
