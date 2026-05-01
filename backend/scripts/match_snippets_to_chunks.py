@@ -45,6 +45,21 @@ def normalize_text(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
+def normalize_text_strict(s: str) -> str:
+    """더 강한 normalize: NFC + 공백 모두 제거 + 한자 병기 괄호 제거.
+
+    한국어 인용 (NotebookLM) vs Qdrant chunk 간 한자 병기 (한자), 줄바꿈,
+    띄어쓰기 차이를 흡수.
+    """
+    import unicodedata
+    s = unicodedata.normalize("NFC", s)
+    # 한자 병기 괄호 제거 (예: '장성기(長成期)' → '장성기')
+    s = re.sub(r"\([一-鿿]+\)", "", s)
+    # 모든 공백 제거 (띄어쓰기, 줄바꿈, 탭, U+00A0 등)
+    s = re.sub(r"\s+", "", s)
+    return s.strip()
+
+
 async def search_for_snippet(
     snippet: str,
     sources: list[str],
@@ -64,13 +79,28 @@ async def search_for_snippet(
     )
 
 
+def _split_by_ellipsis(snippet: str) -> list[str]:
+    """ellipsis ('...' 또는 '…') 로 split 하고 빈 fragment 제거. 길이 8자 이상만 유지."""
+    fragments = re.split(r"\.{3,}|…", snippet)
+    return [f.strip() for f in fragments if len(f.strip()) >= 8]
+
+
 async def match_query_entry(
     query_entry: dict[str, Any],
     sources: list[str],
     top_k: int,
     collection_name: str | None = None,
+    score_fallback_threshold: float = 0.95,
 ) -> tuple[list[str], list[dict[str, Any]]]:
-    """단일 query 의 모든 snippet 매칭. (high_confidence_chunk_ids, mid_candidates)."""
+    """단일 query 의 모든 snippet 매칭. (high_confidence_chunk_ids, mid_candidates).
+
+    매칭 우선순위 (보수적 → 관대 순):
+    1. ``normalize_text`` (공백 정규화) substring match → high confidence.
+    2. ``normalize_text_strict`` (NFC + 한자 병기 제거 + 공백 모두 제거) substring → high.
+    3. ellipsis ('...') split 후 첫 fragment 가 strict substring 으로 매칭 → high.
+    4. top-1 후보의 score 가 ``score_fallback_threshold`` 이상 → high (perfect cosine).
+    5. 모두 실패 → mid_candidates 에 top-1 보고서.
+    """
     chunk_ids: list[str] = []
     mid_candidates: list[dict[str, Any]] = []
 
@@ -81,16 +111,45 @@ async def match_query_entry(
 
         results = await search_for_snippet(snippet, sources, top_k, collection_name)
         norm_snippet = normalize_text(snippet)
+        strict_snippet = normalize_text_strict(snippet)
+        fragments = _split_by_ellipsis(snippet)
+        strict_fragments = [normalize_text_strict(f) for f in fragments]
 
         matched = False
+        # 1단계: 공백 정규화 substring
         for r in results:
-            norm_chunk = normalize_text(r.text)
-            if norm_snippet and norm_snippet in norm_chunk:
+            if norm_snippet and norm_snippet in normalize_text(r.text):
                 chunk_id = f"{r.volume}:{r.chunk_index}"
                 if chunk_id not in chunk_ids:
                     chunk_ids.append(chunk_id)
                 matched = True
-                break  # high-confidence 1건 확보 → 다음 snippet
+                break
+        # 2단계: strict normalize substring
+        if not matched:
+            for r in results:
+                if strict_snippet and strict_snippet in normalize_text_strict(r.text):
+                    chunk_id = f"{r.volume}:{r.chunk_index}"
+                    if chunk_id not in chunk_ids:
+                        chunk_ids.append(chunk_id)
+                    matched = True
+                    break
+        # 3단계: ellipsis fragment 매칭 — 첫 fragment 가 strict substring
+        if not matched and len(strict_fragments) >= 2:
+            for r in results:
+                strict_chunk = normalize_text_strict(r.text)
+                if strict_fragments[0] and strict_fragments[0] in strict_chunk:
+                    chunk_id = f"{r.volume}:{r.chunk_index}"
+                    if chunk_id not in chunk_ids:
+                        chunk_ids.append(chunk_id)
+                    matched = True
+                    break
+        # 4단계: score >= threshold 면 top-1 auto-accept
+        if not matched and results and results[0].score >= score_fallback_threshold:
+            top = results[0]
+            chunk_id = f"{top.volume}:{top.chunk_index}"
+            if chunk_id not in chunk_ids:
+                chunk_ids.append(chunk_id)
+            matched = True
 
         if not matched and results:
             top = results[0]
@@ -110,6 +169,7 @@ async def match_all_queries(
     top_k: int,
     dry_run: bool,
     collection_name: str | None = None,
+    score_fallback_threshold: float = 0.95,
 ) -> dict[str, Any]:
     """전체 queries.json 매칭 → 갱신 + 보고서 반환."""
     data = json.loads(queries_path.read_text(encoding="utf-8"))
@@ -119,12 +179,13 @@ async def match_all_queries(
         "n_high_confidence": 0,
         "n_no_match": 0,
         "collection_name": collection_name,
+        "score_fallback_threshold": score_fallback_threshold,
         "per_query": [],
     }
 
     for q in queries:
         chunk_ids, mid_candidates = await match_query_entry(
-            q, sources, top_k, collection_name,
+            q, sources, top_k, collection_name, score_fallback_threshold,
         )
         q["expected_chunk_ids"] = chunk_ids
         if chunk_ids:
@@ -167,13 +228,20 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Qdrant collection 명. 미지정 시 settings.collection_name (현재 malssum_poc_v5) 사용",
     )
+    parser.add_argument(
+        "--score-fallback-threshold",
+        type=float,
+        default=0.95,
+        help="substring 실패 시 top-1 후보 score 가 임계값 이상이면 auto-accept (default 0.95)",
+    )
     parser.add_argument("--dry-run", action="store_true",
                         help="queries.json 갱신 없이 보고서만 출력")
     args = parser.parse_args(argv)
 
     sources = [s.strip() for s in args.sources.split(",") if s.strip()]
     report = asyncio.run(match_all_queries(
-        Path(args.queries), sources, args.top_k, args.dry_run, args.collection,
+        Path(args.queries), sources, args.top_k, args.dry_run,
+        args.collection, args.score_fallback_threshold,
     ))
 
     print(f"\n=== 매칭 결과 ===")
