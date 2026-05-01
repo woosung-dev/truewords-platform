@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 from unittest.mock import AsyncMock, patch
 
@@ -108,6 +110,73 @@ class TestRerankStage:
         result = await RerankStage().execute(ctx)
         assert len(result.results) == 10
         assert result.reranked is False
+
+    @pytest.mark.asyncio
+    async def test_emits_rerank_score_dist_when_reranked(self, caplog) -> None:
+        """PR 6: rerank_score_dist 로그가 reranker_model + 점수 분포 + latency 와 함께 emit."""
+        ctx = ChatContext(request=ChatRequest(query="q"))
+        ctx.runtime_config = _make_runtime(rerank_enabled=True)
+        ctx.results = [_make_result(0.5), _make_result(0.4), _make_result(0.3)]
+
+        reranked = [
+            _make_result(0.5, rerank_score=0.92),
+            _make_result(0.4, rerank_score=0.71),
+            _make_result(0.3, rerank_score=0.45),
+        ]
+        mock_reranker_inst = AsyncMock()
+        mock_reranker_inst.rerank = AsyncMock(return_value=reranked)
+
+        with caplog.at_level(logging.INFO, logger="src.chat.pipeline.stages.rerank"):
+            with patch(
+                "src.chat.pipeline.stages.rerank.get_reranker",
+                return_value=mock_reranker_inst,
+            ):
+                await RerankStage().execute(ctx)
+
+        records = [r for r in caplog.records if r.message == "rerank_score_dist"]
+        assert len(records) == 1, f"expected 1 rerank_score_dist log, got {len(records)}"
+        rec = records[0]
+        assert rec.reranker_model == "gemini-flash"
+        assert rec.n_input == 3
+        assert rec.n_output == 3
+        assert rec.score_top == 0.92
+        assert rec.score_bottom == 0.45
+        assert rec.score_p50 == 0.71  # 정렬된 [0.92, 0.71, 0.45] 중간
+        assert rec.latency_ms >= 0
+        assert ctx.results_before_rerank == [_make_result(0.5), _make_result(0.4), _make_result(0.3)]
+
+    @pytest.mark.asyncio
+    async def test_skips_log_when_all_rerank_scores_none(self, caplog) -> None:
+        """PR 6: reranker 가 graceful degrade (rerank_score=None) 한 경우 로그 생략."""
+        ctx = ChatContext(request=ChatRequest(query="q"))
+        ctx.runtime_config = _make_runtime(rerank_enabled=True)
+        ctx.results = [_make_result(0.5)]
+
+        # reranker 가 graceful degradation: 점수 없는 원본 그대로 반환
+        degraded = [_make_result(0.5, rerank_score=None)]
+        mock_reranker_inst = AsyncMock()
+        mock_reranker_inst.rerank = AsyncMock(return_value=degraded)
+
+        with caplog.at_level(logging.INFO, logger="src.chat.pipeline.stages.rerank"):
+            with patch(
+                "src.chat.pipeline.stages.rerank.get_reranker",
+                return_value=mock_reranker_inst,
+            ):
+                await RerankStage().execute(ctx)
+
+        assert not [r for r in caplog.records if r.message == "rerank_score_dist"]
+
+    @pytest.mark.asyncio
+    async def test_no_log_when_rerank_disabled(self, caplog) -> None:
+        """PR 6: rerank_enabled=False 이면 stage 가 단순 truncate, 로그 없음."""
+        ctx = ChatContext(request=ChatRequest(query="q"))
+        ctx.runtime_config = _make_runtime(rerank_enabled=False)
+        ctx.results = [_make_result()] * 5
+
+        with caplog.at_level(logging.INFO, logger="src.chat.pipeline.stages.rerank"):
+            await RerankStage().execute(ctx)
+
+        assert not [r for r in caplog.records if r.message == "rerank_score_dist"]
 
 
 class TestSafetyOutputStage:
