@@ -143,7 +143,28 @@ PR 8 plan 에 명시된 규칙대로 적용:
 6. **Citation faithfulness / 비용 측정** — answer 단계 (reranker 이후) 의 인용 정확도 + token 비용. 본 ADR 범위 외.
 7. **Multi-run + variance** — 본 측정 1 run. 3-5 runs 로 variance / IQR 측정.
 
-## 11. 참고
+## 11. Round 2 검증 (cache-bust, 2026-05-02 추가)
+
+R1 의 cache 영향 우려를 해소하기 위해 R2 측정 수행. Gemini reranker prompt 에 unique nonce 주입 (`GEMINI_RERANK_CACHE_BUST=1`) 으로 paid tier implicit prompt cache 회피. 코드는 working tree 임시 적용 후 revert (commit X).
+
+### R1 vs R2 NDCG@10 비교
+
+| 모델 | R1 NDCG | **R2 NDCG** | Δ NDCG |
+|---|---|---|---|
+| gemini-flash | 0.5517 | **0.5670** | **+0.015** |
+| bge-base | 0.5251 | 0.5189 | -0.006 |
+| bge-ko | 0.5409 | 0.5292 | -0.012 |
+
+상세: [`./2026-05-01-reranker-ab-results-round2.md`](./2026-05-01-reranker-ab-results-round2.md)
+
+### R2 가 결정에 미치는 영향
+
+- **결정 변경 없음**: gemini-flash 우세가 cache-bust 후 오히려 강화 (R1 +0.011 → R2 +0.038 vs bge-ko). challenger 모두 NDCG 임계 (0.05) 미달 그대로.
+- **BGE deterministic 입증**: 카테고리 NDCG/MRR 동일 (로컬 모델, cache 무관).
+- **Gemini cache-bust 의 tail latency 위험 노출**: R2 의 p99 = 32222ms (32초) outlier. cache miss 시 Gemini API 의 변동성 → 운영 SLA 위협.
+- **Codex Q3 우선순위 ↑**: 운영 chat 핫패스의 search_top_k=50 + Gemini fallback 위험 (10절 백로그 #1) 의 시급성을 R2 데이터가 강화. 별도 PR 진행 권고.
+
+## 12. 참고
 
 - 마스터 plan: [`~/.claude/plans/phase-0-pr-whimsical-bird.md`](#) (8 PR 계획)
 - 본 세션 plan: [`~/.claude/plans/majestic-weaving-mccarthy.md`](#) (PR 6.5/7-pre/7/8)
