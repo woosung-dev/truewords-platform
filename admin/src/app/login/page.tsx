@@ -45,44 +45,44 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* 좌측 브랜딩 패널 */}
-      <div className="hidden lg:flex flex-col justify-between bg-slate-950 text-white p-10">
+      <div className="hidden lg:flex flex-col justify-between bg-primary text-primary-foreground p-10">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shrink-0">
-            <span className="text-sm font-bold">TW</span>
+          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0">
+            <span className="text-sm font-bold text-accent-foreground">TW</span>
           </div>
           <span className="font-semibold text-lg tracking-tight">TrueWords</span>
         </div>
 
         <div className="space-y-6">
-          <blockquote className="text-2xl font-light text-slate-200 leading-relaxed">
+          <blockquote className="text-2xl font-light text-primary-foreground/90 leading-relaxed">
             "말씀 데이터 기반<br />AI 챗봇 관리 시스템"
           </blockquote>
-          <div className="space-y-2 text-sm text-slate-400">
+          <div className="space-y-2 text-sm text-primary-foreground/70">
             <div className="flex items-center gap-2">
-              <div className="w-1 h-1 rounded-full bg-indigo-400" />
+              <div className="w-1 h-1 rounded-full bg-accent" />
               615권 텍스트 RAG 파이프라인
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-1 h-1 rounded-full bg-indigo-400" />
+              <div className="w-1 h-1 rounded-full bg-accent" />
               다중 챗봇 버전 관리
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-1 h-1 rounded-full bg-indigo-400" />
+              <div className="w-1 h-1 rounded-full bg-accent" />
               하이브리드 검색 & 리랭킹
             </div>
           </div>
         </div>
 
-        <p className="text-xs text-slate-600">© 2026 TrueWords Platform</p>
+        <p className="text-xs text-primary-foreground/50">© 2026 TrueWords Platform</p>
       </div>
 
       {/* 우측 로그인 폼 */}
-      <div className="flex items-center justify-center bg-white p-8">
+      <div className="flex items-center justify-center bg-background p-8">
         <div className="w-full max-w-sm space-y-8">
           {/* 모바일에서만 보이는 로고 */}
           <div className="flex items-center gap-2.5 lg:hidden">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-white">TW</span>
+            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-accent-foreground">TW</span>
             </div>
             <span className="font-semibold text-lg">TrueWords Admin</span>
           </div>
