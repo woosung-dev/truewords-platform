@@ -160,8 +160,7 @@ async def test_run_search_default_uses_gemini_reranker():
             text="t1", volume="vol_001", chunk_index=0, score=0.9, source="A", rerank_score=0.95,
         )
     ]
-    mock_reranker = AsyncMock()
-    mock_reranker.rerank = AsyncMock(return_value=fake_reranked)
+    mock_rerank = AsyncMock(return_value=fake_reranked)
 
     with (
         patch("src.qdrant_client.get_raw_client", return_value=MagicMock()),
@@ -169,15 +168,14 @@ async def test_run_search_default_uses_gemini_reranker():
             "src.search.cascading.cascading_search",
             new_callable=AsyncMock, return_value=fake_results,
         ) as mock_cascade,
-        patch("src.search.rerank.get_reranker", return_value=mock_reranker) as mock_get_reranker,
+        patch("src.search.reranker.rerank", new=mock_rerank),
     ):
         out = await run_search("q", top_k=10, rerank_model="gemini-flash")
 
     mock_cascade.assert_awaited_once()
     # cascading top_k 는 max(top_k*2, 20) — PR 7 에서 Gemini JSON 안정성 위해 50→20 축소
     assert mock_cascade.await_args.kwargs.get("top_k", 0) >= 20
-    mock_get_reranker.assert_called_once_with("gemini-flash")
-    mock_reranker.rerank.assert_awaited_once()
+    mock_rerank.assert_awaited_once()
     assert out == [
         {"volume": "vol_001", "chunk_index": 0, "score": 0.9, "rerank_score": 0.95},
     ]
@@ -194,7 +192,7 @@ async def test_run_search_none_skips_reranker():
             "src.search.cascading.cascading_search",
             new_callable=AsyncMock, return_value=fake_results,
         ),
-        patch("src.search.rerank.get_reranker") as mock_get_reranker,
+        patch("src.search.reranker.rerank") as mock_get_reranker,
     ):
         out = await run_search("q", top_k=1, rerank_model="none")
 
@@ -213,7 +211,7 @@ async def test_run_search_empty_results_skips_reranker():
             "src.search.cascading.cascading_search",
             new_callable=AsyncMock, return_value=[],
         ),
-        patch("src.search.rerank.get_reranker") as mock_get_reranker,
+        patch("src.search.reranker.rerank") as mock_get_reranker,
     ):
         out = await run_search("q", top_k=10, rerank_model="gemini-flash")
 

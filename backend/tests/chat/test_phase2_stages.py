@@ -90,11 +90,9 @@ class TestRerankStage:
         ctx.results = [_make_result(0.5), _make_result(0.3)]
 
         reranked = [_make_result(0.5, rerank_score=0.9), _make_result(0.3, rerank_score=0.7)]
-        mock_reranker_inst = AsyncMock()
-        mock_reranker_inst.rerank = AsyncMock(return_value=reranked)
         with patch(
-            "src.chat.pipeline.stages.rerank.get_reranker",
-            return_value=mock_reranker_inst,
+            "src.chat.pipeline.stages.rerank.rerank",
+            new=AsyncMock(return_value=reranked),
         ):
             result = await RerankStage().execute(ctx)
 
@@ -113,7 +111,7 @@ class TestRerankStage:
 
     @pytest.mark.asyncio
     async def test_emits_rerank_score_dist_when_reranked(self, caplog) -> None:
-        """PR 6: rerank_score_dist 로그가 reranker_model + 점수 분포 + latency 와 함께 emit."""
+        """PR 6: rerank_score_dist 로그가 점수 분포 + latency 와 함께 emit."""
         ctx = ChatContext(request=ChatRequest(query="q"))
         ctx.runtime_config = _make_runtime(rerank_enabled=True)
         ctx.results = [_make_result(0.5), _make_result(0.4), _make_result(0.3)]
@@ -123,20 +121,17 @@ class TestRerankStage:
             _make_result(0.4, rerank_score=0.71),
             _make_result(0.3, rerank_score=0.45),
         ]
-        mock_reranker_inst = AsyncMock()
-        mock_reranker_inst.rerank = AsyncMock(return_value=reranked)
 
         with caplog.at_level(logging.INFO, logger="src.chat.pipeline.stages.rerank"):
             with patch(
-                "src.chat.pipeline.stages.rerank.get_reranker",
-                return_value=mock_reranker_inst,
+                "src.chat.pipeline.stages.rerank.rerank",
+                new=AsyncMock(return_value=reranked),
             ):
                 await RerankStage().execute(ctx)
 
         records = [r for r in caplog.records if r.message == "rerank_score_dist"]
         assert len(records) == 1, f"expected 1 rerank_score_dist log, got {len(records)}"
         rec = records[0]
-        assert rec.reranker_model == "gemini-flash"
         assert rec.n_input == 3
         assert rec.n_output == 3
         assert rec.score_top == 0.92
@@ -154,13 +149,11 @@ class TestRerankStage:
 
         # reranker 가 graceful degradation: 점수 없는 원본 그대로 반환
         degraded = [_make_result(0.5, rerank_score=None)]
-        mock_reranker_inst = AsyncMock()
-        mock_reranker_inst.rerank = AsyncMock(return_value=degraded)
 
         with caplog.at_level(logging.INFO, logger="src.chat.pipeline.stages.rerank"):
             with patch(
-                "src.chat.pipeline.stages.rerank.get_reranker",
-                return_value=mock_reranker_inst,
+                "src.chat.pipeline.stages.rerank.rerank",
+                new=AsyncMock(return_value=degraded),
             ):
                 await RerankStage().execute(ctx)
 

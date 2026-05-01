@@ -160,23 +160,22 @@ async def run_search(
     """
     from src.qdrant_client import get_raw_client
     from src.search.cascading import cascading_search
-    from src.search.rerank import get_reranker
+    from src.search.reranker import rerank as _rerank
 
     client = get_raw_client()
     config = await _build_eval_cascading_config(chatbot_id, sources_override=sources)
 
     # cascading top-K 후보 수집. Gemini Flash JSON reranker 의 prompt 길이/응답 안정성을
-    # 위해 top_k * 2 (default 20) 로 제한. BGE cross-encoder 도 동일 수의 pair.
-    # 변경 사유: PR 7 1차 측정 시 50 candidate 에서 Gemini 가 부족한 score 응답
-    # ("expected=50, got=44~49") → 모든 호출 fallback. 20 으로 축소하면 안정.
+    # 위해 top_k * 2 (default 20) 로 제한. PR 7 fix.
     search_top_k = max(top_k * 2, 20)
     results = await cascading_search(
         client, query, config, top_k=search_top_k, collection_name=collection_name,
     )
 
     if rerank_model != "none" and results:
-        reranker = get_reranker(rerank_model)
-        results = await reranker.rerank(query, results, top_k=top_k)
+        # PR 10 cleanup: 단일 reranker (Gemini) 만 지원. rerank_model 인자는 후방
+        # 호환성용 — "none" 만 reranker 비활성, 그 외 모든 값은 동일 처리.
+        results = await _rerank(query, results, top_k=top_k)
     else:
         results = results[:top_k]
 

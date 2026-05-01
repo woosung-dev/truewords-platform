@@ -113,7 +113,7 @@ async def test_process_chat_without_rerank():
         patch("src.chat.pipeline.stages.intent_classifier.classify_intent", new_callable=AsyncMock, return_value="conceptual"),
         patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results) as mock_cascade,
         patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변입니다."),
-        patch("src.chat.pipeline.stages.rerank.get_reranker") as mock_get_reranker,
+        patch("src.chat.pipeline.stages.rerank.rerank") as mock_get_reranker,
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         response = await service.process_chat(ChatRequest(query="질문"))
@@ -141,20 +141,19 @@ async def test_process_chat_with_rerank():
     chatbot_service.build_runtime_config.return_value = _make_runtime_config(rerank_enabled=True)
     chatbot_service.get_config_id.return_value = None
 
-    mock_reranker_inst = AsyncMock()
-    mock_reranker_inst.rerank = AsyncMock(return_value=reranked_results)
+    mock_rerank = AsyncMock(return_value=reranked_results)
 
     with (
         patch("src.qdrant_client.get_async_client"),
         patch("src.chat.pipeline.stages.intent_classifier.classify_intent", new_callable=AsyncMock, return_value="conceptual"),
         patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results),
         patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="재순위 답변."),
-        patch("src.chat.pipeline.stages.rerank.get_reranker", return_value=mock_reranker_inst),
+        patch("src.chat.pipeline.stages.rerank.rerank", new=mock_rerank),
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         response = await service.process_chat(ChatRequest(query="질문"))
 
-    mock_reranker_inst.rerank.assert_called_once()
+    mock_rerank.assert_awaited_once()
     assert "재순위 답변." in response.answer
 
 
@@ -172,15 +171,14 @@ async def test_process_chat_records_rerank_in_search_event():
     chatbot_service.build_runtime_config.return_value = _make_runtime_config(rerank_enabled=True)
     chatbot_service.get_config_id.return_value = None
 
-    mock_reranker_inst = AsyncMock()
-    mock_reranker_inst.rerank = AsyncMock(return_value=reranked)
+    mock_rerank = AsyncMock(return_value=reranked)
 
     with (
         patch("src.qdrant_client.get_async_client"),
         patch("src.chat.pipeline.stages.intent_classifier.classify_intent", new_callable=AsyncMock, return_value="conceptual"),
         patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock, return_value=results),
         patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock, return_value="답변"),
-        patch("src.chat.pipeline.stages.rerank.get_reranker", return_value=mock_reranker_inst),
+        patch("src.chat.pipeline.stages.rerank.rerank", new=mock_rerank),
         patch(_EMBED_PATCH, new_callable=AsyncMock, return_value=[0.1] * 3072),
     ):
         await service.process_chat(ChatRequest(query="질문"))
