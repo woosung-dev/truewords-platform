@@ -123,3 +123,7 @@ class DuplicateCheckResponse(BaseModel):
     chunk_count: int = Field(0, description="Qdrant에 적재된 청크 수")
     status: str | None = Field(None, description="IngestionJob 최종 상태 (completed/partial/failed/running/pending)")
     last_uploaded_at: datetime | None = Field(None, description="마지막 업로드/갱신 시각")
+    content_hash: str | None = Field(
+        None,
+        description="기존 IngestionJob 의 content_hash 첫 8자리 (식별용). NULL 이면 기존 hash 미보존.",
+    )

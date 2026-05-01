@@ -353,6 +353,13 @@ def _process_file_standard(
         if start_chunk > 0:
             run_repo(lambda r: r.update_progress(volume_key, start_chunk))
 
+        # 7-bis. content_hash 즉시 저장 — Root cause fix (PR #99).
+        # 기존엔 COMPLETED 분기 (line 393) 에서만 저장되어 PARTIAL/FAILED 시 NULL.
+        # 결과: 부분 적재 후 재업로드 시 hash 비교 불가 → analyze 우회 등 부수 작업 유발.
+        # start_run 직후 저장하면 모든 상태에서 hash 보존, 재개 시 자동 일치 확인 가능.
+        # 하단 line 394 의 호출은 멱등으로 보존 (같은 hash 재저장 — 안전).
+        run_repo(lambda r: r.update_content_hash(volume_key, new_hash))
+
         # 8. payload_sources는 strategy가 결정 (merge/skip union or None)
         payload_sources = strategy["payload_sources"]
         if payload_sources is not None:
@@ -572,6 +579,10 @@ async def check_duplicate(
     status_value = job.status.value if job else None
     last_uploaded_at = job.updated_at if job else None
     stored_filename = job.filename if job else safe_filename
+    # 8자리 partial — 식별용. start_run 직후 저장 (PR #99) 이라 PARTIAL/RUNNING 도 보존됨.
+    content_hash_partial = (
+        job.content_hash[:8] if job and job.content_hash else None
+    )
 
     return DuplicateCheckResponse(
         exists=exists,
@@ -581,6 +592,7 @@ async def check_duplicate(
         chunk_count=chunk_count,
         status=status_value,
         last_uploaded_at=last_uploaded_at,
+        content_hash=content_hash_partial,
     )
 
 

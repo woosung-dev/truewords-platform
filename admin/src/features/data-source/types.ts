@@ -76,6 +76,7 @@ export interface DuplicateCheckResponse {
   chunk_count: number;
   status: string | null;
   last_uploaded_at: string | null;
+  content_hash: string | null;  // 8자리 partial, 식별용. PR #99 — start_run 직후 저장하여 PARTIAL 도 보존.
 }
 
 // ADR-30 follow-up: upload 응답 — predicted_outcome으로 일괄 토스트 통계 집계.

@@ -116,6 +116,16 @@ export default function DuplicateConfirmDialog({
                 <span className="text-muted-foreground shrink-0 w-20">최근 업로드</span>
                 <span className="text-muted-foreground">{lastUploadedLabel}</span>
               </div>
+              {/* 파일 식별자 — PR #99 hash 시점 이동 후 PARTIAL 도 보존. 동일 파일 재업로드
+                  여부를 사용자가 직관 확인 (동일 파일이면 hash 8자리 동일). */}
+              {duplicate.content_hash && (
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground shrink-0 w-20">파일 식별자</span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {duplicate.content_hash}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="text-sm text-muted-foreground leading-relaxed">
