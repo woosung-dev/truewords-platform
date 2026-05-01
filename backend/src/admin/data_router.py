@@ -593,6 +593,8 @@ async def check_duplicate(
         status=status_value,
         last_uploaded_at=last_uploaded_at,
         content_hash=content_hash_partial,
+        processed_chunks=job.processed_chunks if job else 0,
+        total_chunks=job.total_chunks if job else 0,
     )
 
 
