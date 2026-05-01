@@ -11,11 +11,18 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class TierConfig(BaseModel):
-    """Cascading 전략의 단일 Tier."""
+    """Cascading 전략의 단일 Tier.
+
+    score_threshold: RRF fusion 점수 (Σ1/(k+rank), 일반 0.0~0.5 범위) 의 cutoff.
+    default 0.1 은 ``ChatbotService.build_runtime_config`` 의 fallback 과 동기화.
+    이전에 0.75 였으나 운영 적용 0건 (dead default) 인 데다 RRF 점수대를 초과해
+    실수로 인스턴스에 적용되면 검색 결과 0건 위험. 측정 분포 (2026-05-01,
+    docs/dev-log/2026-05-01-cascade-distribution-measurement.md) 기반 정정.
+    """
 
     sources: list[str]
     min_results: int = 3
-    score_threshold: float = 0.75
+    score_threshold: float = 0.1
 
 
 class WeightedSourceConfig(BaseModel):
