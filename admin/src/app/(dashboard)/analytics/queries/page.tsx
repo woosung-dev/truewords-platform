@@ -174,7 +174,7 @@ export default function QueriesExplorerPage() {
           <div className="overflow-hidden rounded-lg border">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-muted/50 border-b">
+                <tr className="bg-admin-muted/50 border-b">
                   <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground w-10">
                     순위
                   </th>
@@ -200,7 +200,7 @@ export default function QueriesExplorerPage() {
                       key={`${item.query_text}-${i}`}
                       className={
                         (i !== 0 ? "border-t " : "") +
-                        "cursor-pointer hover:bg-muted/40 transition-colors"
+                        "cursor-pointer hover:bg-admin-muted/40 transition-colors"
                       }
                       onClick={() => setSelectedQuery(item.query_text)}
                       role="button"
@@ -224,7 +224,7 @@ export default function QueriesExplorerPage() {
                       </td>
                       <td className="py-2 px-3 text-right">
                         {item.negative_feedback_count > 0 ? (
-                          <span className="text-rose-600 font-medium">
+                          <span className="text-destructive font-medium">
                             {item.negative_feedback_count}
                           </span>
                         ) : (

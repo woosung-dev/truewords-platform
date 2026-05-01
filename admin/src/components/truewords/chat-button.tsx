@@ -30,7 +30,7 @@ const chatButtonVariants = cva(
         // Pastoral mode — 목회 상담 톤
         pastoral:
           "bg-pastoral text-pastoral-foreground hover:bg-pastoral/90 shadow-(--tw-shadow-card)",
-        // Kakao login CTA
+        // Kakao login CTA — brand: KakaoTalk official color, 디자인 토큰 적용 예외
         kakao: "bg-[#FEE500] text-[#000000] hover:bg-[#FEE500]/90",
       },
       size: {

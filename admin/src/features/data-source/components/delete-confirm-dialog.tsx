@@ -92,7 +92,7 @@ export default function DeleteConfirmDialog({
             </Dialog.Title>
             <Dialog.Close
               aria-label="닫기"
-              className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="rounded-lg p-1 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors"
             >
               <X className="h-4 w-4" />
             </Dialog.Close>
@@ -102,7 +102,7 @@ export default function DeleteConfirmDialog({
           <div className="space-y-4 px-6 py-5 max-h-[60vh] overflow-y-auto">
             {/* 영향 데이터 */}
             {isSingle ? (
-              <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-2">
+              <div className="rounded-lg border bg-admin-muted/30 p-3 text-sm space-y-2">
                 <div className="flex gap-2">
                   <span className="text-muted-foreground shrink-0 w-20">파일명</span>
                   <span className="font-medium break-all">{targets[0]?.volume}</span>
@@ -119,7 +119,7 @@ export default function DeleteConfirmDialog({
                     ) : (
                       <Badge
                         variant="outline"
-                        className="text-xs bg-amber-50 text-amber-700 border-amber-200"
+                        className="text-xs bg-warning-soft text-warning border-warning-border"
                       >
                         미분류
                       </Badge>
@@ -134,7 +134,7 @@ export default function DeleteConfirmDialog({
                 </div>
               </div>
             ) : (
-              <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+              <div className="rounded-lg border bg-admin-muted/30 p-3 text-sm">
                 <div className="flex gap-3 mb-2">
                   <span className="text-muted-foreground">총</span>
                   <span className="font-medium tabular-nums">
@@ -192,7 +192,7 @@ export default function DeleteConfirmDialog({
                 className="block text-sm font-medium"
               >
                 확인을 위해{" "}
-                <code className="px-1.5 py-0.5 rounded bg-muted text-xs font-mono break-all">
+                <code className="px-1.5 py-0.5 rounded bg-admin-muted text-xs font-mono break-all">
                   {expectedConfirm}
                 </code>
                 을 입력하세요
@@ -211,7 +211,7 @@ export default function DeleteConfirmDialog({
                   typedValue.length > 0 && !matched
                     ? "border-destructive/60 focus:border-destructive"
                     : matched
-                      ? "border-emerald-400 focus:border-emerald-500"
+                      ? "border-success focus:border-success"
                       : "border-input focus:border-ring"
                 }`}
                 placeholder={expectedConfirm}

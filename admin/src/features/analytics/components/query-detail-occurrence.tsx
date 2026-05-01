@@ -27,9 +27,9 @@ function FeedbackIcon({ type }: { type: string | undefined }) {
     return <Minus className="h-3.5 w-3.5 text-muted-foreground" aria-label="피드백 없음" />;
   }
   if (type.toUpperCase() === "HELPFUL") {
-    return <ThumbsUp className="h-3.5 w-3.5 text-emerald-600" aria-label="도움됨" />;
+    return <ThumbsUp className="h-3.5 w-3.5 text-success" aria-label="도움됨" />;
   }
-  return <ThumbsDown className="h-3.5 w-3.5 text-rose-600" aria-label="부정 피드백" />;
+  return <ThumbsDown className="h-3.5 w-3.5 text-destructive" aria-label="부정 피드백" />;
 }
 
 export default function QueryDetailOccurrence({
@@ -52,7 +52,7 @@ export default function QueryDetailOccurrence({
         onClick={onToggle}
         aria-expanded={expanded}
         aria-controls={panelId}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-admin-muted/40 transition-colors"
       >
         {expanded ? (
           <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -128,7 +128,7 @@ export default function QueryDetailOccurrence({
                 {occurrence.citations.map((c, i) => (
                   <li
                     key={`${c.source}-${c.volume}-${c.rank_position}-${i}`}
-                    className="rounded-md border bg-muted/30 p-3 space-y-1"
+                    className="rounded-md border bg-admin-muted/30 p-3 space-y-1"
                   >
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span className="font-mono">#{c.rank_position + 1}</span>
@@ -154,7 +154,7 @@ export default function QueryDetailOccurrence({
           {occurrence.feedback && (
             <div className="space-y-1">
               <h3 className="text-xs font-semibold text-muted-foreground">피드백</h3>
-              <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
+              <div className="rounded-md border bg-admin-muted/30 p-3 text-xs space-y-1">
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs">
                     {occurrence.feedback.feedback_type}

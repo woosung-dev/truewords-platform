@@ -318,13 +318,13 @@ export default function CategoryTab() {
 
       {/* 미등록 source 경고 (ADR-26: Qdrant에 있지만 카테고리 미등록) */}
       {unregisteredSources.length > 0 && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 flex items-start gap-3">
-          <Tag className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+        <div className="rounded-lg border border-warning-border bg-warning-soft p-3 flex items-start gap-3">
+          <Tag className="w-4 h-4 text-warning mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-amber-800">
+            <p className="text-sm font-medium text-warning">
               Qdrant에 등록되지 않은 소스가 {unregisteredSources.length}개 있습니다
             </p>
-            <p className="text-xs text-amber-600 mt-0.5">
+            <p className="text-xs text-warning/80 mt-0.5">
               검색 티어에서 사용하려면 카테고리로 등록하세요
             </p>
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -333,7 +333,7 @@ export default function CategoryTab() {
                   key={source}
                   size="sm"
                   variant="outline"
-                  className="h-7 text-xs border-amber-300 text-amber-800 hover:bg-amber-100"
+                  className="h-7 text-xs border-warning-border text-warning hover:bg-warning-soft"
                   onClick={() => {
                     setEditing(null);
                     setForm({ ...EMPTY_FORM, key: source, name: source });
@@ -353,7 +353,7 @@ export default function CategoryTab() {
       <div className="rounded-xl border bg-card overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-muted/40">
+            <tr className="border-b bg-admin-muted/40">
               <th className="w-8 px-2 py-2.5" />
               {/* Key 컬럼은 사용자에게 의미가 없어 숨김 (시스템 내부 식별자).
                   새 카테고리 추가 시 backend 가 자동 생성. */}
@@ -376,7 +376,7 @@ export default function CategoryTab() {
                   <tr
                     className={`border-b last:border-0 transition-colors ${
                       !cat.is_active ? "opacity-50" : ""
-                    } ${hasVolumes ? "cursor-pointer hover:bg-accent/30" : "hover:bg-accent/30"}`}
+                    } ${hasVolumes ? "cursor-pointer hover:bg-primary/5" : "hover:bg-primary/5"}`}
                     onClick={() => hasVolumes && toggleExpand(cat.key)}
                   >
                     {/* 확장 아이콘 */}
@@ -384,7 +384,7 @@ export default function CategoryTab() {
                       {hasVolumes && (
                         <button
                           type="button"
-                          className="p-0.5 rounded hover:bg-accent"
+                          className="p-0.5 rounded hover:bg-primary/10"
                           onClick={(e) => {
                             e.stopPropagation();
                             toggleExpand(cat.key);
@@ -425,8 +425,8 @@ export default function CategoryTab() {
                       <Badge
                         className={
                           cat.is_active
-                            ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0"
-                            : "bg-slate-100 text-slate-500 hover:bg-slate-100 border-0"
+                            ? "bg-success-soft text-success hover:bg-success-soft border border-success-border"
+                            : "bg-secondary text-muted-foreground hover:bg-secondary border border-border"
                         }
                       >
                         {cat.is_active ? "활성" : "비활성"}
@@ -478,7 +478,7 @@ export default function CategoryTab() {
 
                   {/* 확장 행: volume 목록 */}
                   {isExpanded && stat && (
-                    <tr className="bg-muted/20">
+                    <tr className="bg-admin-muted/20">
                       <td />
                       <td colSpan={6} className="px-4 pb-3 pt-1">
                         <div
@@ -533,19 +533,19 @@ export default function CategoryTab() {
               );
             })}
             {uncategorizedVolumes.length > 0 && (
-              <tr className="border-t-2 border-dashed border-amber-300 bg-amber-50/50">
+              <tr className="border-t-2 border-dashed border-warning-border bg-warning-soft/50">
                 <td className="px-4 py-3 w-8"></td>
                 {/* Key cell 숨김 (header 와 일치) */}
-                <td className="px-4 py-3 font-semibold text-amber-800">미분류 문서</td>
-                <td className="px-4 py-3 text-amber-800">
+                <td className="px-4 py-3 font-semibold text-warning">미분류 문서</td>
+                <td className="px-4 py-3 text-warning">
                   {uncategorizedVolumes.length}권 /{" "}
                   {uncategorizedVolumes.reduce((sum, v) => sum + v.chunk_count, 0).toLocaleString()}
                 </td>
                 <td className="px-4 py-3 hidden sm:table-cell">
-                  <div className="w-5 h-5 rounded-full bg-gray-300 border border-gray-400" />
+                  <div className="w-5 h-5 rounded-full bg-admin-muted-foreground/40 border border-muted-foreground/50" />
                 </td>
                 <td className="px-4 py-3">
-                  <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">
+                  <Badge className="bg-warning-soft text-warning hover:bg-warning-soft border border-warning-border text-xs">
                     미분류
                   </Badge>
                 </td>
@@ -553,7 +553,7 @@ export default function CategoryTab() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 text-xs text-amber-800 border-amber-300"
+                    className="h-7 text-xs text-warning border-warning-border"
                     onClick={() => openTransfer(null, "미분류 문서")}
                   >
                     분류하기

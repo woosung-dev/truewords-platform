@@ -80,10 +80,10 @@ export default function SearchTierEditor({
       {tiers.map((tier, index) => (
         <div
           key={index}
-          className="rounded-xl border bg-muted/20 overflow-hidden"
+          className="rounded-xl border bg-admin-muted/20 overflow-hidden"
         >
           {/* 티어 헤더 */}
-          <div className="flex items-center justify-between px-4 py-2.5 bg-muted/40 border-b">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-admin-muted/40 border-b">
             <div className="flex items-center gap-2">
               <GripVertical className="w-4 h-4 text-muted-foreground/50" />
               <span className="text-sm font-medium">Tier {index + 1}</span>

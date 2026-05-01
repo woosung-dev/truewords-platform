@@ -663,7 +663,7 @@ export default function ChatPage() {
                               onClick={() => submitFeedback(i, "helpful")}
                               className={`h-7 w-7 ${
                                 msg.feedback === "helpful"
-                                  ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-50 disabled:opacity-100 dark:bg-emerald-950/40"
+                                  ? "bg-success-soft text-success hover:bg-success-soft disabled:opacity-100"
                                   : ""
                               }`}
                             >
@@ -891,7 +891,7 @@ function NegativeFeedbackPopover({
             disabled={disabled}
             className={`h-7 w-7 ${
               active
-                ? "bg-rose-50 text-rose-600 hover:bg-rose-50 disabled:opacity-100 dark:bg-rose-950/40"
+                ? "bg-danger-soft text-destructive hover:bg-danger-soft disabled:opacity-100"
                 : ""
             }`}
           >

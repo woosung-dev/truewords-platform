@@ -176,14 +176,14 @@ export default function VolumeTransferSheet({
                   {categoryName}
                 </>
               ) : (
-                <span className="text-amber-700">미분류 문서 분류</span>
+                <span className="text-warning">미분류 문서 분류</span>
               )}
               <span className="text-muted-foreground font-normal text-sm">
                 — 문서 관리
               </span>
             </Dialog.Title>
             <Dialog.Close
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors"
             >
               <X className="h-5 w-5" />
             </Dialog.Close>
@@ -224,7 +224,7 @@ export default function VolumeTransferSheet({
           <div className="border-t px-6 py-4 shrink-0">
             {/* 변경 요약 */}
             {hasChanges && (
-              <div className="mb-3 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              <div className="mb-3 px-4 py-2.5 bg-warning-soft border border-warning-border rounded-lg text-sm text-warning">
                 변경 예정:
                 {diff.added.length > 0 && (
                   <span className="font-medium"> +{diff.added.length}건 추가</span>

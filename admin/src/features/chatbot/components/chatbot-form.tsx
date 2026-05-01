@@ -247,7 +247,7 @@ export function ChatbotForm({
           >
             용어 사전 자동 주입 (D)
           </Label>
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+          <span className="text-xs text-muted-foreground bg-admin-muted px-2 py-0.5 rounded-md">
             준비중
           </span>
         </div>

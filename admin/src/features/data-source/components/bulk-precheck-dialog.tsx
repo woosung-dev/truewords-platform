@@ -15,19 +15,19 @@ function statusMeta(status: string | null) {
     return {
       icon: RefreshCw,
       label: "재개 필요",
-      className: "bg-amber-50 text-amber-700 border-amber-200",
+      className: "bg-warning-soft text-warning border-warning-border",
     };
   if (status === "failed")
     return {
       icon: XCircle,
       label: "실패",
-      className: "bg-red-50 text-red-700 border-red-200",
+      className: "bg-danger-soft text-destructive border-danger-border",
     };
   if (status === "running" || status === "pending")
     return {
       icon: RefreshCw,
       label: "처리 중",
-      className: "bg-blue-50 text-blue-700 border-blue-200",
+      className: "bg-info-soft text-info border-info-border",
     };
   return null;
 }
@@ -102,12 +102,12 @@ export default function BulkPrecheckDialog({
           {/* 헤더 */}
           <div className="flex items-center justify-between border-b px-6 py-4">
             <Dialog.Title className="flex items-center gap-2 text-base font-semibold">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              <AlertTriangle className="h-5 w-5 text-warning" />
               일괄 업로드 사전 검사 ({totalCount}개)
             </Dialog.Title>
             <Dialog.Close
               aria-label="닫기"
-              className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="rounded-lg p-1 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors"
             >
               <X className="h-4 w-4" />
             </Dialog.Close>
@@ -117,20 +117,20 @@ export default function BulkPrecheckDialog({
           <div className="space-y-4 px-6 py-5 max-h-[60vh] overflow-y-auto">
             {/* 통계 */}
             <div className="flex gap-3 text-sm">
-              <div className="flex-1 rounded-lg border bg-muted/30 p-3">
+              <div className="flex-1 rounded-lg border bg-admin-muted/30 p-3">
                 <div className="text-xs text-muted-foreground">신규</div>
                 <div className="text-xl font-semibold">{newCount}</div>
               </div>
-              <div className="flex-1 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
-                <div className="text-xs text-amber-700">중복 감지</div>
-                <div className="text-xl font-semibold text-amber-800">{dupCount}</div>
+              <div className="flex-1 rounded-lg border border-warning-border bg-warning-soft/60 p-3">
+                <div className="text-xs text-warning">중복 감지</div>
+                <div className="text-xl font-semibold text-warning">{dupCount}</div>
               </div>
             </div>
 
             {/* 중복 파일 목록 — status badge + 진행률 표시 (PR #100). PARTIAL/FAILED 는
                 amber/red 강조하여 사용자가 부분 적재된 파일 즉시 식별. */}
             {dupCount > 0 && (
-              <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="rounded-lg border bg-admin-muted/30 p-3">
                 <div className="text-xs font-medium text-muted-foreground mb-2">
                   중복 파일 목록
                 </div>
@@ -149,7 +149,7 @@ export default function BulkPrecheckDialog({
                       <li
                         key={d.filename}
                         className={`flex items-center gap-2 min-w-0 rounded-md px-1 py-0.5 ${
-                          isPartial ? "bg-amber-50/40" : ""
+                          isPartial ? "bg-warning-soft/40" : ""
                         }`}
                       >
                         <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -166,7 +166,7 @@ export default function BulkPrecheckDialog({
                           ) : (
                             <Badge
                               variant="outline"
-                              className="text-xs bg-amber-50 text-amber-700 border-amber-200"
+                              className="text-xs bg-warning-soft text-warning border-warning-border"
                             >
                               미분류
                             </Badge>
@@ -194,7 +194,7 @@ export default function BulkPrecheckDialog({
                     d.duplicate.status === "partial" ||
                     d.duplicate.status === "failed",
                 ) && (
-                  <div className="mt-3 rounded-md border border-amber-200 bg-amber-50/60 p-2 text-xs leading-relaxed text-amber-900 flex gap-1.5 items-start">
+                  <div className="mt-3 rounded-md border border-warning-border bg-warning-soft/60 p-2 text-xs leading-relaxed text-warning flex gap-1.5 items-start">
                     <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <span>
                       <strong>재개 필요</strong> / <strong>실패</strong> 표시 파일은 skip 옵션을
@@ -211,7 +211,7 @@ export default function BulkPrecheckDialog({
                     d.duplicate.status === "failed",
                 ) &&
                   duplicates.length > 0 && (
-                    <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50/40 p-2 text-xs leading-relaxed text-emerald-900 flex gap-1.5 items-start">
+                    <div className="mt-3 rounded-md border border-success-border bg-success-soft/60 p-2 text-xs leading-relaxed text-success flex gap-1.5 items-start">
                       <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                       <span>
                         모두 <strong>정상 완료</strong> 상태 — skip 옵션 선택 시 콘텐츠 동일

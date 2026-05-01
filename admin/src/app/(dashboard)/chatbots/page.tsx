@@ -79,7 +79,7 @@ export default function ChatbotsPage() {
           <div className="overflow-x-auto rounded-xl border bg-card">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableRow className="bg-admin-muted/40 hover:bg-admin-muted/40">
                   <TableHead className="font-semibold text-foreground">이름</TableHead>
                   <TableHead className="font-semibold text-foreground">Chatbot ID</TableHead>
                   <TableHead className="font-semibold text-foreground">상태</TableHead>
@@ -92,13 +92,13 @@ export default function ChatbotsPage() {
                 {data?.items.map((config) => (
                   <TableRow
                     key={config.id}
-                    className="hover:bg-muted/30 transition-colors"
+                    className="hover:bg-admin-muted/30 transition-colors"
                   >
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <div
                           className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                            config.is_active ? "bg-emerald-500" : "bg-slate-300"
+                            config.is_active ? "bg-success" : "bg-admin-muted-foreground/40"
                           }`}
                         />
                         {config.display_name}
@@ -109,11 +109,11 @@ export default function ChatbotsPage() {
                     </TableCell>
                     <TableCell>
                       {config.is_active ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0">
+                        <Badge className="bg-success-soft text-success hover:bg-success-soft border border-success-border">
                           활성
                         </Badge>
                       ) : (
-                        <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100 border-0">
+                        <Badge className="bg-secondary text-muted-foreground hover:bg-secondary border border-border">
                           비활성
                         </Badge>
                       )}

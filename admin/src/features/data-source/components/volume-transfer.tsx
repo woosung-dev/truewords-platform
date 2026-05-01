@@ -77,7 +77,7 @@ function TransferPanel({
       <div
         className={cn(
           "px-4 py-3 flex items-center justify-between border-b",
-          isSource ? "bg-slate-50" : "bg-indigo-50/60"
+          isSource ? "bg-secondary" : "bg-primary/8 border-b-primary/20"
         )}
       >
         <label className="flex items-center gap-2.5 cursor-pointer">
@@ -99,7 +99,7 @@ function TransferPanel({
       </div>
 
       {/* 검색 */}
-      <div className="px-3 py-2.5 border-b bg-muted/20">
+      <div className="px-3 py-2.5 border-b bg-admin-muted/20">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <Input
@@ -111,7 +111,7 @@ function TransferPanel({
           {searchQuery && (
             <button
               onClick={() => onSearchChange("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-admin-muted"
             >
               <X className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
@@ -341,7 +341,7 @@ export default function VolumeTransfer({
               "py-2.5 text-sm font-semibold transition-colors",
               mobileTab === "all"
                 ? "bg-primary text-primary-foreground"
-                : "bg-muted/30 text-muted-foreground"
+                : "bg-admin-muted/30 text-muted-foreground"
             )}
           >
             전체 ({allVolumes.length})
@@ -352,7 +352,7 @@ export default function VolumeTransfer({
               "py-2.5 text-sm font-semibold transition-colors",
               mobileTab === "included"
                 ? "bg-primary text-primary-foreground"
-                : "bg-muted/30 text-muted-foreground"
+                : "bg-admin-muted/30 text-muted-foreground"
             )}
           >
             포함 ({includedVolumeList.length})

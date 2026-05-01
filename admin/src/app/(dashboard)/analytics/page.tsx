@@ -78,7 +78,7 @@ function FallbackDistribution({ stats, loading }: { stats?: SearchStats; loading
                     <span className="text-muted-foreground ml-1">({pct}%)</span>
                   </span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                <div className="h-2 w-full rounded-full bg-admin-muted overflow-hidden">
                   <div
                     className="h-full rounded-full bg-primary transition-all"
                     style={{ width: `${pct}%` }}
@@ -130,7 +130,7 @@ function TopQueriesTable({
         <div className="overflow-hidden rounded-lg border">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-muted/50 border-b">
+              <tr className="bg-admin-muted/50 border-b">
                 <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground w-10">
                   순위
                 </th>
@@ -148,7 +148,7 @@ function TopQueriesTable({
                   key={i}
                   className={
                     (i !== 0 ? "border-t " : "") +
-                    "cursor-pointer hover:bg-muted/40 transition-colors"
+                    "cursor-pointer hover:bg-admin-muted/40 transition-colors"
                   }
                   onClick={() => onSelect(q.query_text)}
                   role="button"
