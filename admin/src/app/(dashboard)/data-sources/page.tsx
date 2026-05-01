@@ -70,7 +70,18 @@ export default function DataSourcesPage() {
   }>({ open: false, files: [], duplicates: [], newCount: 0 });
 
   // Gemini 티어 조회 (유료 전용 배치 모드 활성화 여부)
-  // Batch API 제거 (PR #95) 후 gemini_tier 기반 UI 분기 미사용.
+  // 적재 대상 컬렉션 + 환경 — 헤더 indicator 에 표시 (PR #97).
+  // 사용자가 "어떤 컬렉션에 데이터가 들어가는지" 인지하여 운영 사고 방지.
+  const { data: configData } = useQuery({
+    queryKey: ["admin-config"],
+    queryFn: () => fetchAPI<{
+      gemini_tier: string;
+      environment: string;
+      collection_name: string;
+      qdrant_host: string;
+    }>("/admin/settings/config"),
+  });
+
   const defaultSource = "";
 
   const hasProcessing = pendingFiles.some((f) => f.status === "processing");
@@ -373,12 +384,37 @@ export default function DataSourcesPage() {
         onCancel={handleBulkPrecheckCancel}
       />
 
-      {/* 헤더 */}
+      {/* 헤더 + 적재 대상 컬렉션 indicator (PR #97) */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">데이터 소스</h1>
         <p className="text-sm text-muted-foreground mt-1">
           RAG 파이프라인에 문서를 업로드하고 임베딩 상태를 관리합니다
         </p>
+        {configData && (
+          <div className="flex items-center gap-2 mt-2 text-xs">
+            <Badge
+              variant="outline"
+              className={`font-mono ${
+                configData.environment === "production"
+                  ? "bg-red-50 text-red-700 border-red-300"
+                  : configData.environment === "staging"
+                    ? "bg-amber-50 text-amber-700 border-amber-300"
+                    : "bg-emerald-50 text-emerald-700 border-emerald-300"
+              }`}
+            >
+              {configData.environment.toUpperCase()}
+            </Badge>
+            <span className="text-muted-foreground">
+              적재 대상:{" "}
+              <span className="font-mono font-medium text-foreground">
+                {configData.collection_name}
+              </span>
+              <span className="text-muted-foreground/70 ml-1">
+                @ {configData.qdrant_host}
+              </span>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 통계 카드 */}
