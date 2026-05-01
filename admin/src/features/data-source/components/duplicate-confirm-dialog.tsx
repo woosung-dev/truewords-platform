@@ -1,18 +1,9 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  HelpCircle,
-  Loader2,
-  Sparkles,
-  X,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { DuplicateCheckResponse } from "@/features/data-source/types";
 
 // ADR-30: 재업로드 시 사용자 의사결정.
@@ -22,18 +13,6 @@ import type { DuplicateCheckResponse } from "@/features/data-source/types";
 //   cancel  — 업로드 중단
 export type DuplicateDecision = "merge" | "add-tag" | "replace" | "cancel";
 
-// 신규 — /admin/data-sources/check-duplicate/analyze 응답
-interface AnalyzeResponse {
-  filename: string;
-  existing_content_hash: string | null;
-  new_content_hash: string;
-  content_match: boolean | null;
-  existing_chunk_count: number;
-  estimated_new_chunk_count: number;
-  chunk_delta: number;
-  sources: string[];
-}
-
 interface DuplicateConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,7 +20,6 @@ interface DuplicateConfirmDialogProps {
   targetSource: string;       // 사용자가 이번 업로드에 선택한 카테고리 key (빈 문자열 = 미분류)
   duplicate: DuplicateCheckResponse | null;
   onDecision: (decision: DuplicateDecision) => void;
-  pendingFile?: File | null;  // 신규 — 내용 비교 분석에 사용
 }
 
 export default function DuplicateConfirmDialog({
@@ -51,39 +29,7 @@ export default function DuplicateConfirmDialog({
   targetSource,
   duplicate,
   onDecision,
-  pendingFile,
 }: DuplicateConfirmDialogProps) {
-  const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-
-  // dialog 닫힐 때 state reset
-  useEffect(() => {
-    if (!open) {
-      setAnalysis(null);
-      setAnalyzing(false);
-    }
-  }, [open]);
-
-  const runAnalyze = async () => {
-    if (!pendingFile || analyzing) return;
-    setAnalyzing(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", pendingFile);
-      const r = await fetch("/admin/data-sources/check-duplicate/analyze", {
-        method: "POST",
-        body: fd,
-        credentials: "include",
-      });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setAnalysis((await r.json()) as AnalyzeResponse);
-    } catch (e) {
-      toast.error(`내용 비교 분석 실패: ${e instanceof Error ? e.message : "Unknown"}`);
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
   if (!duplicate) return null;
 
   // "태그만 추가" 조건:
@@ -163,112 +109,24 @@ export default function DuplicateConfirmDialog({
                 </div>
               </div>
               <div className="flex gap-2">
-                <span className="text-muted-foreground shrink-0 w-20">기존 청크 수</span>
+                <span className="text-muted-foreground shrink-0 w-20">청크 수</span>
                 <span>{duplicate.chunk_count.toLocaleString()}</span>
               </div>
               <div className="flex gap-2">
                 <span className="text-muted-foreground shrink-0 w-20">최근 업로드</span>
                 <span className="text-muted-foreground">{lastUploadedLabel}</span>
               </div>
-
-              {/* 내용 비교 분석 — 분석 전 / 분석 중 / 분석 완료 3 상태 */}
-              <div className="border-t pt-2 mt-1 space-y-2">
-                <div className="flex gap-2 items-center">
-                  <span className="text-muted-foreground shrink-0 w-20">내용 비교</span>
-                  {analyzing ? (
-                    <Badge
-                      variant="outline"
-                      className="text-xs bg-blue-50 text-blue-700 border-blue-200"
-                    >
-                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                      분석 중...
-                    </Badge>
-                  ) : analysis === null ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={runAnalyze}
-                      disabled={!pendingFile}
-                      className="h-6 text-xs px-2 gap-1"
-                    >
-                      <HelpCircle className="w-3.5 h-3.5" />
-                      내용 비교 분석 (3초 소요)
-                    </Button>
-                  ) : analysis.content_match === true ? (
-                    <Badge className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      내용 동일 (hash 일치)
-                    </Badge>
-                  ) : analysis.content_match === false ? (
-                    <Badge className="text-xs bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50">
-                      <AlertTriangle className="w-3 h-3 mr-1" />
-                      내용 변경됨 (hash 불일치)
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs">
-                      기존 hash 없음 (신규 적재)
-                    </Badge>
-                  )}
+              {/* 파일 식별자 — PR #99 hash 시점 이동 후 PARTIAL 도 보존. 동일 파일 재업로드
+                  여부를 사용자가 직관 확인 (동일 파일이면 hash 8자리 동일). */}
+              {duplicate.content_hash && (
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground shrink-0 w-20">파일 식별자</span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {duplicate.content_hash}
+                  </span>
                 </div>
-
-                {analysis && (
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground shrink-0 w-20">예상 청크 수</span>
-                    <span className="text-sm">
-                      {analysis.estimated_new_chunk_count.toLocaleString()}
-                      {analysis.chunk_delta === 0 ? (
-                        <span className="ml-1 text-muted-foreground text-xs">(변동 없음)</span>
-                      ) : (
-                        <span
-                          className={`ml-1 text-xs font-medium ${
-                            analysis.chunk_delta > 0 ? "text-amber-600" : "text-blue-600"
-                          }`}
-                        >
-                          ({analysis.chunk_delta > 0 ? "+" : ""}
-                          {analysis.chunk_delta.toLocaleString()})
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-
-            {/* 권장 hint — 분석 결과에 따라 다른 색상 + 메시지 */}
-            {analysis && (
-              <div
-                className={`rounded-lg border p-3 text-xs leading-relaxed ${
-                  analysis.content_match === true
-                    ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
-                    : analysis.content_match === false
-                      ? "bg-blue-50/50 border-blue-200 text-blue-900"
-                      : "bg-muted/30 border-border text-muted-foreground"
-                }`}
-              >
-                {analysis.content_match === true ? (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5 inline mr-1" />
-                    <strong>임베딩 절감 가능</strong> — 내용이 동일하므로 재처리 시
-                    Gemini 호출이 0회입니다. &quot;내용 갱신&quot; 선택 시 청크 삭제
-                    후 동일 결과로 재적재됩니다.
-                  </>
-                ) : analysis.content_match === false ? (
-                  <>
-                    <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />
-                    <strong>재청킹 필요</strong> — 내용이 변경되어 기존 청크{" "}
-                    {analysis.existing_chunk_count.toLocaleString()}개 삭제 후 약{" "}
-                    {analysis.estimated_new_chunk_count.toLocaleString()}개로 새로
-                    적재됩니다.
-                  </>
-                ) : (
-                  <>
-                    <HelpCircle className="w-3.5 h-3.5 inline mr-1" />
-                    기존 IngestionJob hash 가 없어 비교 불가 (구버전 데이터).
-                    &quot;내용 갱신&quot; 으로 새로 적재 권장.
-                  </>
-                )}
-              </div>
-            )}
 
             <div className="text-sm text-muted-foreground leading-relaxed">
               아래 옵션을 선택하세요. 기본은 <span className="font-medium text-foreground">내용 갱신 (분류 유지)</span>로,
@@ -276,36 +134,17 @@ export default function DuplicateConfirmDialog({
               (<span className="font-medium text-foreground">{targetLabel}</span>)를 합쳐{" "}
               <span className="font-medium text-foreground">{mergedPreview}</span>로 적재됩니다.
             </div>
-
-            {/* 스크린 리더 알림 */}
-            <div className="sr-only" aria-live="polite">
-              {analysis?.content_match === true
-                ? "내용 동일 — hash 일치, 임베딩 절감 가능"
-                : analysis?.content_match === false
-                  ? `내용 변경 감지 — 청크 수 ${analysis.estimated_new_chunk_count}개로 변동`
-                  : ""}
-            </div>
           </div>
 
-          {/* 액션 — ADR-30 결정 매트릭스. 분석 후 권장 액션은 ring 강조. */}
+          {/* 액션 — ADR-30 결정 매트릭스 */}
           <div className="flex flex-col gap-2 border-t px-6 py-4">
             <Button
               variant="default"
               autoFocus
-              className={`w-full justify-center whitespace-normal break-words text-left ${
-                analysis?.content_match === true
-                  ? "ring-2 ring-emerald-300 ring-offset-2"
-                  : ""
-              }`}
+              className="w-full justify-center whitespace-normal break-words text-left"
               onClick={() => decide("merge")}
             >
-              {analysis?.content_match === true && (
-                <Sparkles className="w-4 h-4 mr-1.5 shrink-0" />
-              )}
               내용 갱신 (분류 유지: {mergedPreview})
-              {analysis?.content_match === true && (
-                <span className="ml-1 text-xs opacity-90">— 권장</span>
-              )}
             </Button>
             {canAddTag && (
               <Button
