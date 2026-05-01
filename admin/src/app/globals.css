@@ -42,16 +42,37 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  /* TrueWords 확장 토큰 (Plan A.2) */
+  /* TrueWords 확장 토큰 (Plan A.2 + Design Tokens Refactor) */
   --color-highlight: var(--tw-highlight);
   --color-highlight-foreground: var(--tw-highlight-fg);
   --color-pastoral: var(--tw-pastoral);
   --color-pastoral-foreground: var(--tw-pastoral-fg);
   --color-success: var(--tw-success);
   --color-success-foreground: var(--tw-success-fg);
+  --color-success-soft: var(--tw-success-soft);
+  --color-success-border: var(--tw-success-border);
+  --color-warning: var(--tw-warning);
+  --color-warning-foreground: var(--tw-warning-fg);
+  --color-warning-soft: var(--tw-warning-soft);
+  --color-warning-border: var(--tw-warning-border);
+  --color-danger-soft: var(--tw-danger-soft);
+  --color-danger-border: var(--tw-danger-border);
+  --color-info: var(--tw-info);
+  --color-info-soft: var(--tw-info-soft);
+  --color-info-border: var(--tw-info-border);
   --color-fg-subtle: var(--tw-fg-subtle);
   --color-border-strong: var(--tw-border-strong);
   --color-surface-muted: var(--tw-surface-muted);
+  --color-cat-indigo: var(--tw-cat-indigo);
+  --color-cat-violet: var(--tw-cat-violet);
+  --color-cat-blue: var(--tw-cat-blue);
+  --color-cat-slate: var(--tw-cat-slate);
+  --color-cat-emerald: var(--tw-cat-emerald);
+  --color-cat-amber: var(--tw-cat-amber);
+  --color-cat-rose: var(--tw-cat-rose);
+  --color-admin-bg: var(--tw-admin-bg);
+  --color-admin-surface: var(--tw-admin-surface);
+  --color-admin-muted: var(--tw-admin-muted);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -132,6 +153,34 @@
   --tw-border-strong: oklch(0.808 0.045 75);
   /* Surface muted: 인용 카드 배경 (= secondary) */
   --tw-surface-muted: oklch(0.969 0.014 87);
+  /* === Design Tokens Refactor (PR feat/design-tokens-refactor) === */
+  /* Warning: brass 계 amber (paper bg 위 명확 대비) */
+  --tw-warning: oklch(0.580 0.155 70);
+  --tw-warning-fg: oklch(1 0 0);
+  --tw-warning-soft: oklch(0.965 0.045 85);
+  --tw-warning-border: oklch(0.808 0.080 78);
+  /* Success/Danger/Info soft fill + border (배지/알림 박스용) */
+  --tw-success-soft: oklch(0.955 0.040 145);
+  --tw-success-border: oklch(0.808 0.060 144);
+  --tw-danger-soft: oklch(0.955 0.030 25);
+  --tw-danger-border: oklch(0.808 0.080 25);
+  --tw-info: var(--tw-pastoral);
+  --tw-info-soft: oklch(0.955 0.030 213);
+  --tw-info-border: oklch(0.808 0.060 213);
+  /* 카테고리 7색 (옵션 A: hue 유지, saturation 톤다운, paper 친화) */
+  --tw-cat-indigo: oklch(0.500 0.090 264);
+  --tw-cat-violet: oklch(0.500 0.090 295);
+  --tw-cat-blue: oklch(0.500 0.090 230);
+  --tw-cat-slate: oklch(0.500 0.020 250);
+  --tw-cat-emerald: oklch(0.500 0.090 150);
+  --tw-cat-amber: oklch(0.540 0.110 70);
+  --tw-cat-rose: oklch(0.500 0.110 15);
+  /* Admin dashboard 전용 background — chat 페이지의 warm paper 와 분리 */
+  /* light cool slate-50 톤. card(white) 와 미세 대비로 카드가 떠 보이게 */
+  --tw-admin-bg: oklch(0.985 0.005 250);
+  --tw-admin-surface: oklch(1 0 0);
+  /* admin 카드 내부 보조 영역 — cool slate-100 톤 (warm muted paper 대체) */
+  --tw-admin-muted: oklch(0.965 0.005 250);
   /* Motion 토큰 */
   --tw-duration-fast: 150ms;
   --tw-duration-normal: 250ms;
@@ -203,19 +252,44 @@
   --tw-fg-subtle: oklch(0.500 0.020 70);
   --tw-border-strong: oklch(0.500 0.040 75);
   --tw-surface-muted: oklch(0.260 0.014 55);
+  /* === Design Tokens Refactor — Dark === */
+  --tw-warning: oklch(0.770 0.150 75);
+  --tw-warning-fg: oklch(0.180 0.012 50);
+  --tw-warning-soft: oklch(0.580 0.155 70 / 18%);
+  --tw-warning-border: oklch(0.580 0.155 70 / 30%);
+  --tw-success-soft: oklch(0.620 0.152 144 / 18%);
+  --tw-success-border: oklch(0.620 0.152 144 / 30%);
+  --tw-danger-soft: oklch(0.604 0.222 25 / 18%);
+  --tw-danger-border: oklch(0.604 0.222 25 / 30%);
+  --tw-info: var(--tw-pastoral);
+  --tw-info-soft: oklch(0.620 0.105 213 / 18%);
+  --tw-info-border: oklch(0.620 0.105 213 / 30%);
+  /* Admin dashboard 전용 background — dark 는 body 와 동일 (mahogany) */
+  --tw-admin-bg: oklch(0.180 0.012 50);
+  --tw-admin-surface: oklch(0.220 0.012 55);
+  --tw-admin-muted: oklch(0.260 0.012 55);
+  /* 카테고리 다크: 채도 유지, 밝기 한 단계↑ */
+  --tw-cat-indigo: oklch(0.700 0.110 264);
+  --tw-cat-violet: oklch(0.700 0.110 295);
+  --tw-cat-blue: oklch(0.700 0.110 230);
+  --tw-cat-slate: oklch(0.700 0.025 250);
+  --tw-cat-emerald: oklch(0.700 0.110 150);
+  --tw-cat-amber: oklch(0.740 0.130 70);
+  --tw-cat-rose: oklch(0.700 0.130 15);
   /* Shadow 토큰 — Dark (검정에 가까운 잉크 그림자 더 진하게) */
   --tw-shadow-card: 0 1px 3px oklch(0 0 0 / 30%), 0 1px 2px oklch(0 0 0 / 20%);
   --tw-shadow-card-hover: 0 4px 12px oklch(0 0 0 / 40%), 0 2px 4px oklch(0 0 0 / 20%);
   --tw-shadow-float: 0 -4px 16px oklch(0 0 0 / 40%), 0 -1px 2px oklch(0 0 0 / 20%);
   --tw-shadow-modal: 0 20px 48px oklch(0 0 0 / 60%), 0 4px 12px oklch(0 0 0 / 30%);
-  /* 사이드바: 다크모드에서도 동일하게 유지 */
-  --sidebar: oklch(0.129 0.042 265);
+  /* 사이드바: 다크모드 본문 대비 강화 (Design Tokens Refactor) */
+  /* L 0.129 → 0.110 (한 단계↓), border 0.279 → 0.330 (한 단계↑) */
+  --sidebar: oklch(0.110 0.045 265);
   --sidebar-foreground: oklch(0.968 0.007 248);
   --sidebar-primary: oklch(0.700 0.166 60);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.208 0.042 266);
   --sidebar-accent-foreground: oklch(0.968 0.007 248);
-  --sidebar-border: oklch(0.279 0.041 260);
+  --sidebar-border: oklch(0.330 0.041 260);
   --sidebar-ring: oklch(0.700 0.166 60);
 }
 

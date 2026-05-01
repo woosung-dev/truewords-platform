@@ -115,7 +115,7 @@ export default function DashboardLayout({
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-admin-bg">
         {/* 데스크톱 사이드바 */}
         <aside className="hidden w-56 shrink-0 md:block border-r border-sidebar-border">
           <div className="sticky top-0 h-screen">
@@ -125,7 +125,7 @@ export default function DashboardLayout({
 
         <div className="flex flex-1 flex-col min-w-0">
           {/* 상단 헤더 */}
-          <header className="flex h-14 items-center gap-3 border-b bg-background px-4 shrink-0">
+          <header className="flex h-14 items-center gap-3 border-b bg-admin-bg px-4 shrink-0">
             {/* 모바일 햄버거 */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger
@@ -149,7 +149,7 @@ export default function DashboardLayout({
           </header>
 
           {/* 메인 콘텐츠 */}
-          <main className="flex-1 p-6 bg-muted/20">{children}</main>
+          <main className="flex-1 p-6 bg-admin-bg">{children}</main>
         </div>
       </div>
     </AuthGuard>
