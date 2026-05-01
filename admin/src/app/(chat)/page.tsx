@@ -47,6 +47,7 @@ import {
 } from "@/features/chatbot/chat-api";
 import {
   FloatingActionBar,
+  FollowupPills,
   PersonaSheet,
   PersonaRowTrigger,
   SourceOriginalModal,
@@ -75,6 +76,8 @@ interface Message {
   messageId?: string;
   sources?: ChatResponse["sources"];
   feedback?: FeedbackType;
+  // P0-A — 답변 후속 추천 질문 3개. None/빈 배열이면 미노출.
+  suggestedFollowups?: string[] | null;
 }
 
 const NEGATIVE_REASONS: { key: Exclude<FeedbackType, "helpful">; label: string }[] = [
@@ -215,6 +218,7 @@ export default function ChatPage() {
           content: res.answer,
           messageId: res.message_id,
           sources: res.sources,
+          suggestedFollowups: res.suggested_followups,
         },
       ]);
     } catch (e) {
@@ -608,6 +612,18 @@ export default function ChatPage() {
                         })}
                       </div>
                     )}
+
+                    {/* P0-A — 답변 후속 추천 질문 3개. SuggestedFollowupsStage 가 채움. */}
+                    {msg.role === "assistant" &&
+                      msg.suggestedFollowups &&
+                      msg.suggestedFollowups.length > 0 && (
+                        <FollowupPills
+                          suggestions={msg.suggestedFollowups}
+                          onSelect={(q) => setInput(q)}
+                          heading="다음 질문을 추천해 드립니다"
+                          className="pl-1"
+                        />
+                      )}
 
                     {/* 어시스턴트 메시지 하단 액션 툴바: 복사 | 👍 / 👎 */}
                     {msg.role === "assistant" && msg.messageId && (

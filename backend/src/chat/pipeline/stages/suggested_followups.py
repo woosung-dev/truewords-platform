@@ -19,7 +19,11 @@ from src.common.gemini import MODEL_GENERATE, generate_text
 logger = logging.getLogger(__name__)
 
 # 답변 후속 질문 1회 LLM 호출 예산.
-SUGGESTED_FOLLOWUPS_TIMEOUT_SECONDS = 0.5
+# 0.5s 는 Gemini Flash 의 cold start + 한국어 출력 budget 으로 부족 — 운영에서
+# 매번 타임아웃하여 None 으로 떨어지는 결함이 있었음 (PR #71 검증 시점).
+# 3.0s 로 상향 — 답변 본체(≈10s)와 비교해도 충분히 작은 비중이며, 실제 hot
+# call 은 0.6~1.5s 범위.
+SUGGESTED_FOLLOWUPS_TIMEOUT_SECONDS = 3.0
 
 SUGGESTED_FOLLOWUPS_SYSTEM_PROMPT = """당신은 가정연합 말씀 학습 도우미의 후속 질문 추천기입니다.
 
