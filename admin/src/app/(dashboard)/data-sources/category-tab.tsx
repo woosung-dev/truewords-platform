@@ -355,7 +355,8 @@ export default function CategoryTab() {
           <thead>
             <tr className="border-b bg-muted/40">
               <th className="w-8 px-2 py-2.5" />
-              <th className="text-left font-medium px-4 py-2.5">Key</th>
+              {/* Key 컬럼은 사용자에게 의미가 없어 숨김 (시스템 내부 식별자).
+                  새 카테고리 추가 시 backend 가 자동 생성. */}
               <th className="text-left font-medium px-4 py-2.5">이름</th>
               <th className="text-left font-medium px-4 py-2.5">문서 / 청크</th>
               <th className="text-left font-medium px-4 py-2.5 hidden sm:table-cell">색상</th>
@@ -397,11 +398,7 @@ export default function CategoryTab() {
                         </button>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {cat.key}
-                      </Badge>
-                    </td>
+                    {/* Key cell 숨김 (header 와 일치) */}
                     <td className="px-4 py-3 font-medium">{cat.name}</td>
                     {/* 문서 / 청크 */}
                     <td className="px-4 py-3">
@@ -538,11 +535,7 @@ export default function CategoryTab() {
             {uncategorizedVolumes.length > 0 && (
               <tr className="border-t-2 border-dashed border-amber-300 bg-amber-50/50">
                 <td className="px-4 py-3 w-8"></td>
-                <td className="px-4 py-3">
-                  <Badge variant="outline" className="font-mono text-xs bg-amber-100 text-amber-800 border-amber-300">
-                    —
-                  </Badge>
-                </td>
+                {/* Key cell 숨김 (header 와 일치) */}
                 <td className="px-4 py-3 font-semibold text-amber-800">미분류 문서</td>
                 <td className="px-4 py-3 text-amber-800">
                   {uncategorizedVolumes.length}권 /{" "}
@@ -585,16 +578,11 @@ export default function CategoryTab() {
       {/* 추가/수정 Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="flex flex-col p-0 gap-0">
-          {/* 헤더 */}
+          {/* 헤더 — Key Badge 제거 (시스템 내부 식별자, 사용자에게 노출 안 함) */}
           <SheetHeader className="px-6 pt-6 pb-4 border-b">
-            <div className="flex items-center gap-2">
-              <SheetTitle className="text-base">
-                {editing ? "카테고리 수정" : "새 카테고리 추가"}
-              </SheetTitle>
-              <Badge variant="outline" className="font-mono text-xs">
-                {editing ? editing.key : nextKey || "—"}
-              </Badge>
-            </div>
+            <SheetTitle className="text-base">
+              {editing ? "카테고리 수정" : "새 카테고리 추가"}
+            </SheetTitle>
           </SheetHeader>
 
           {/* 폼 본문 */}
