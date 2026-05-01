@@ -165,8 +165,11 @@ async def run_search(
     client = get_raw_client()
     config = await _build_eval_cascading_config(chatbot_id, sources_override=sources)
 
-    # 프로덕션 패턴: cascading top-50 → reranker top-K
-    search_top_k = max(top_k * 5, 50)
+    # cascading top-K 후보 수집. Gemini Flash JSON reranker 의 prompt 길이/응답 안정성을
+    # 위해 top_k * 2 (default 20) 로 제한. BGE cross-encoder 도 동일 수의 pair.
+    # 변경 사유: PR 7 1차 측정 시 50 candidate 에서 Gemini 가 부족한 score 응답
+    # ("expected=50, got=44~49") → 모든 호출 fallback. 20 으로 축소하면 안정.
+    search_top_k = max(top_k * 2, 20)
     results = await cascading_search(
         client, query, config, top_k=search_top_k, collection_name=collection_name,
     )
