@@ -2,6 +2,7 @@
 
 from datetime import datetime
 
+from sqlalchemy import func
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -142,6 +143,23 @@ class IngestionJobRepository:
         stmt = select(IngestionJob).order_by(IngestionJob.created_at.desc())
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+
+    async def get_max_completed_at(self) -> float:
+        """현재 corpus 의 max(completed_at) Unix timestamp.
+
+        Cache invalidation trigger — semantic_cache 의 corpus_updated_at filter
+        에 사용. ingestion 갱신 시 자동으로 stale cache 무효화된다.
+
+        반환값:
+          - COMPLETED 상태 row 가 1건 이상이면 가장 최근 completed_at 의 unix ts
+          - 0건이면 0.0 (cache filter 가 모든 cache 를 valid 로 처리)
+        """
+        stmt = select(func.max(IngestionJob.completed_at)).where(
+            IngestionJob.status == IngestionStatus.COMPLETED
+        )
+        result = await self.session.execute(stmt)
+        latest = result.scalar_one_or_none()
+        return latest.timestamp() if latest is not None else 0.0
 
     async def commit(self) -> None:
         await self.session.commit()

@@ -95,6 +95,7 @@ class PersistStage:
                 answer=ctx.answer,
                 sources=sources_for_cache,
                 chatbot_id=ctx.request.chatbot_id,
+                corpus_updated_at=ctx.corpus_updated_at or None,
                 collection_name=collection_name,
             )
 

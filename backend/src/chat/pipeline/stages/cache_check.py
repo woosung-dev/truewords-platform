@@ -25,7 +25,9 @@ class CacheCheckStage:
             return ctx
 
         hit = await self.cache_service.check_cache(
-            ctx.query_embedding, ctx.request.chatbot_id
+            ctx.query_embedding,
+            ctx.request.chatbot_id,
+            corpus_updated_at=ctx.corpus_updated_at or None,
         )
         if hit is None:
             ctx.pipeline_state = PipelineState.CACHE_CHECKED

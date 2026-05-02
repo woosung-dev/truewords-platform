@@ -51,7 +51,11 @@ class TestCacheCheckStage:
         assert result.cache_hit is True
         assert result.cache_response is not None
         assert result.cache_response.answer == "안전 답변"
-        cache_service.check_cache.assert_awaited_once_with([0.1] * 1536, "cid")
+        # corpus_updated_at 이 None 또는 0.0 이면 cache 가 corpus 검증 생략 (모든
+        # cache valid). ChatContext 기본값 0.0 → `or None` 처리되어 None 전달.
+        cache_service.check_cache.assert_awaited_once_with(
+            [0.1] * 1536, "cid", corpus_updated_at=None
+        )
 
     @pytest.mark.asyncio
     async def test_applies_safety_layer(self) -> None:

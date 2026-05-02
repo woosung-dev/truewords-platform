@@ -69,6 +69,12 @@ class ChatContext:
     cache_hit: bool = False
     cache_response: CacheHit | None = None  # apply_safety_layer 적용된 답변 보유
 
+    # Cache invalidation trigger — IngestionJob.completed_at 의 max Unix ts.
+    # _run_pre_pipeline 진입 시 1회 fetch 하여 ctx 에 주입. CacheCheckStage 와
+    # PersistStage 가 이 값을 SemanticCacheService 에 그대로 전달한다.
+    # corpus 가 갱신되면 이 값이 커지면서 기존 cache 가 자동 stale 처리된다.
+    corpus_updated_at: float = 0.0
+
     # 메타데이터
     search_latency_ms: int = 0
     rerank_latency_ms: int = 0

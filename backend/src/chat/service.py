@@ -41,6 +41,7 @@ from src.chatbot.runtime_config import (
     TierConfig,
 )
 from src.chatbot.service import ChatbotService
+from src.pipeline.ingestion_repository import IngestionJobRepository
 from src.safety.output_filter import DISCLAIMER
 
 
@@ -78,10 +79,14 @@ class ChatService:
         chat_repo: ChatRepository,
         chatbot_service: ChatbotService,
         cache_service: SemanticCacheService | None = None,
+        ingestion_repo: IngestionJobRepository | None = None,
     ) -> None:
         self.chat_repo = chat_repo
         self.chatbot_service = chatbot_service
         self.cache_service = cache_service
+        # Cache invalidation 의 corpus_updated_at trigger 조회용. None 이면 cache
+        # 가 corpus 갱신 검증 없이 동작 (테스트 fixture 호환).
+        self.ingestion_repo = ingestion_repo
         # R1 Phase 2 + 3: 전체 Stage 체인 (process_chat 동기 경로).
         self.input_validation_stage = InputValidationStage()
         self.session_stage = SessionStage(chat_repo, chatbot_service)
@@ -109,8 +114,20 @@ class ChatService:
         """입력 검증 → 세션 → 임베딩 → 캐시 체크. 양 경로 공통.
 
         cache_hit 분기는 호출자 책임 (동기는 ChatResponse, 스트림은 SSE yield).
+
+        Cache invalidation: ingestion_repo 가 주입돼 있으면 max(completed_at) 을
+        ctx.corpus_updated_at 에 주입하여 CacheCheck/Persist 가 사용한다. 조회
+        실패는 silent (graceful) — corpus_updated_at=0.0 으로 두면 모든 cache 가
+        valid 로 처리되며, 이는 cache invalidation 만 비활성화하고 RAG 본 흐름엔
+        영향 없다.
         """
         ctx = ChatContext(request=request)
+        if self.ingestion_repo is not None:
+            try:
+                ctx.corpus_updated_at = await self.ingestion_repo.get_max_completed_at()
+            except Exception:
+                # cross-domain 조회 실패는 RAG 본 흐름을 막지 않는다.
+                ctx.corpus_updated_at = 0.0
         ctx = await self.input_validation_stage.execute(ctx)
         ctx = await self.session_stage.execute(ctx)
         ctx = await self.embedding_stage.execute(ctx)
