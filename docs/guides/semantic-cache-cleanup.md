@@ -63,6 +63,40 @@ uv run python scripts/cleanup_semantic_cache.py --execute --ttl-days 14
 
 스크립트는 어디서든 똑같이 동작한다. 차이는 **언제 실행할지** 하나뿐.
 
+### ★ 1순위 추천: GitHub Actions cron
+
+운영 환경 (GCP/AWS/온프레미스) 에 무관하게 같은 workflow 가 동작. 운영을
+GCP→AWS 이전해도 secrets 의 `QDRANT_URL`/`QDRANT_API_KEY` 만 갱신하면 끝.
+
+**셋업 (1회, ~30분)**:
+
+1. **Repo Settings → Secrets and variables → Actions** 에 secrets 등록
+   - `QDRANT_URL` (예: `https://qdrant.your-zone.com`)
+   - `QDRANT_API_KEY`
+   - (선택) Variables 탭에 `CACHE_COLLECTION_NAME`, `CACHE_TTL_DAYS`
+
+2. workflow 파일은 이미 repo 에 포함됨: `.github/workflows/cache-cleanup.yml`
+   - 매일 03:00 KST 자동 실행 (cron `0 18 * * *` UTC)
+   - GHA 콘솔에서 `Run workflow` 로 수동 실행 가능 (mode: `dry-run` / `execute`,
+     `ttl_days` override 지원)
+
+**검증**:
+- GitHub repo → Actions 탭 → "Semantic Cache Cleanup" 워크플로 → 마지막 실행 로그
+- 실패 시 GitHub 가 commit author 에게 자동 이메일
+
+**비용**: $0 (GHA free minute 월 2,000분, 우리 사용량 월 ~30분)
+
+**약점**:
+- GHA 장애 시 (드물지만) cleanup 멈춤 → 그 때만 수동 1회 실행
+- Qdrant 가 외부 (Cloudflare Tunnel) 로 접근 가능해야 함 (이미 그렇게 설정됨)
+
+---
+
+### 그 외 환경 (백업 옵션)
+
+GHA 가 안 되는 환경 (예: 사내 망 격리) 또는 보조 백업이 필요한 경우 아래 4가지
+중 선택. 본 프로젝트의 운영은 GHA cron 1개만으로 충분하다.
+
 ### 1. EC2 / 일반 Linux 서버 (system cron)
 
 ```bash
