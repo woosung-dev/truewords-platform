@@ -1,0 +1,1591 @@
+{
+  "config": {
+    "ts": "2026-05-01T23:40:48",
+    "models": [
+      "gemini-flash",
+      "bge-base",
+      "bge-ko"
+    ],
+    "runs": 1,
+    "collection": "malssum_poc_v5",
+    "chatbot_id": null,
+    "sources": [
+      "U"
+    ],
+    "top_k": 10,
+    "n_queries_total": 60,
+    "n_queries_labeled": 54,
+    "golden_version": 6
+  },
+  "results": {
+    "gemini-flash": {
+      "model": "gemini-flash",
+      "runs": 1,
+      "n_evaluated": 54,
+      "n_skipped": 6,
+      "macro": {
+        "recall@10": 0.7037037037037037,
+        "mrr@10": 0.5058641975308642,
+        "ndcg@10": 0.5517456372989874
+      },
+      "by_category": {
+        "factoid": {
+          "recall@10": 1.0,
+          "mrr@10": 0.785,
+          "ndcg@10": 0.8385962468833579
+        },
+        "conceptual": {
+          "recall@10": 0.7272727272727273,
+          "mrr@10": 0.48257575757575755,
+          "ndcg@10": 0.5427609994817107
+        },
+        "reasoning": {
+          "recall@10": 0.16666666666666666,
+          "mrr@10": 0.08333333333333333,
+          "ndcg@10": 0.09013312399004379
+        }
+      },
+      "latency_ms": {
+        "first_call": 3477.2994170198217,
+        "p50": 2189.7830000380054,
+        "p95": 2733.0940830288455,
+        "p99": 3210.061624995433,
+        "n_samples": 53
+      },
+      "per_query_first_run": [
+        {
+          "id": "f02",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f03",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f05",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.25,
+            "ndcg@10": 0.43067655807339306
+          }
+        },
+        {
+          "id": "f06",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f08",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "f09",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f10",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.25,
+            "ndcg@10": 0.43067655807339306
+          }
+        },
+        {
+          "id": "f11",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "f12",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c01",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c02",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c03",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c04",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c05",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c06",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c07",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.25,
+            "ndcg@10": 0.43067655807339306
+          }
+        },
+        {
+          "id": "c08",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c09",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c10",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c12",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "r01",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r02",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r03",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r04",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.25,
+            "ndcg@10": 0.43067655807339306
+          }
+        },
+        {
+          "id": "r05",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r06",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "f13",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "f14",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f15",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f16",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f17",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f18",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f19",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f20",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f21",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "f22",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f24",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.2,
+            "ndcg@10": 0.38685280723454163
+          }
+        },
+        {
+          "id": "c13",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.3333333333333333,
+            "ndcg@10": 0.5
+          }
+        },
+        {
+          "id": "c14",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.2,
+            "ndcg@10": 0.38685280723454163
+          }
+        },
+        {
+          "id": "c15",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "c16",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c17",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c18",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c19",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c21",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.3333333333333333,
+            "ndcg@10": 0.5
+          }
+        },
+        {
+          "id": "c22",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.25,
+            "ndcg@10": 0.43067655807339306
+          }
+        },
+        {
+          "id": "c23",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.25,
+            "ndcg@10": 0.43067655807339306
+          }
+        },
+        {
+          "id": "c24",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "r07",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r08",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.5,
+            "mrr@10": 0.25,
+            "ndcg@10": 0.2640681225725909
+          }
+        },
+        {
+          "id": "r09",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r10",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r11",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.5,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.38685280723454163
+          }
+        },
+        {
+          "id": "r12",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        }
+      ]
+    },
+    "bge-base": {
+      "model": "bge-base",
+      "runs": 1,
+      "n_evaluated": 54,
+      "n_skipped": 6,
+      "macro": {
+        "recall@10": 0.7037037037037037,
+        "mrr@10": 0.4694885361552028,
+        "ndcg@10": 0.525060278191764
+      },
+      "by_category": {
+        "factoid": {
+          "recall@10": 1.0,
+          "mrr@10": 0.7558333333333334,
+          "ndcg@10": 0.8164192660136622
+        },
+        "conceptual": {
+          "recall@10": 0.7272727272727273,
+          "mrr@10": 0.43906926406926405,
+          "ndcg@10": 0.5094419766173591
+        },
+        "reasoning": {
+          "recall@10": 0.16666666666666666,
+          "mrr@10": 0.04801587301587301,
+          "ndcg@10": 0.06809551804167585
+        }
+      },
+      "latency_ms": {
+        "first_call": 2205.671584000811,
+        "p50": 2243.8703749794513,
+        "p95": 3390.9622919745743,
+        "p99": 4580.882792011835,
+        "n_samples": 53
+      },
+      "per_query_first_run": [
+        {
+          "id": "f02",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f03",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f05",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.25,
+            "ndcg@10": 0.43067655807339306
+          }
+        },
+        {
+          "id": "f06",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f08",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.2,
+            "ndcg@10": 0.38685280723454163
+          }
+        },
+        {
+          "id": "f09",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f10",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.16666666666666666,
+            "ndcg@10": 0.3562071871080222
+          }
+        },
+        {
+          "id": "f11",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f12",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c01",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c02",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "c03",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c04",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.1,
+            "ndcg@10": 0.2890648263178879
+          }
+        },
+        {
+          "id": "c05",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c06",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "c07",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.3333333333333333,
+            "ndcg@10": 0.5
+          }
+        },
+        {
+          "id": "c08",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c09",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c10",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c12",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "r01",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r02",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r03",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r04",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.14285714285714285,
+            "ndcg@10": 0.3333333333333333
+          }
+        },
+        {
+          "id": "r05",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r06",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "f13",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "f14",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f15",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f16",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f17",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f18",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f19",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "f20",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "f21",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "f22",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f24",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "c13",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.14285714285714285,
+            "ndcg@10": 0.3333333333333333
+          }
+        },
+        {
+          "id": "c14",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.25,
+            "ndcg@10": 0.43067655807339306
+          }
+        },
+        {
+          "id": "c15",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "c16",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c17",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c18",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.3333333333333333,
+            "ndcg@10": 0.5
+          }
+        },
+        {
+          "id": "c19",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c21",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c22",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "c23",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "c24",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "r07",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r08",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.5,
+            "mrr@10": 0.3333333333333333,
+            "ndcg@10": 0.3065735963827292
+          }
+        },
+        {
+          "id": "r09",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r10",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r11",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.5,
+            "mrr@10": 0.1,
+            "ndcg@10": 0.17723928678404774
+          }
+        },
+        {
+          "id": "r12",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        }
+      ]
+    },
+    "bge-ko": {
+      "model": "bge-ko",
+      "runs": 1,
+      "n_evaluated": 54,
+      "n_skipped": 6,
+      "macro": {
+        "recall@10": 0.6944444444444444,
+        "mrr@10": 0.4942827748383304,
+        "ndcg@10": 0.5409139830791652
+      },
+      "by_category": {
+        "factoid": {
+          "recall@10": 1.0,
+          "mrr@10": 0.8696428571428572,
+          "ndcg@10": 0.901293469927482
+        },
+        "conceptual": {
+          "recall@10": 0.7272727272727273,
+          "mrr@10": 0.40624098124098124,
+          "ndcg@10": 0.48265398043130475
+        },
+        "reasoning": {
+          "recall@10": 0.125,
+          "mrr@10": 0.03009259259259259,
+          "ndcg@10": 0.04709150985304767
+        }
+      },
+      "latency_ms": {
+        "first_call": 2059.7030830103904,
+        "p50": 2071.833207970485,
+        "p95": 2895.369124948047,
+        "p99": 3145.7032499602064,
+        "n_samples": 53
+      },
+      "per_query_first_run": [
+        {
+          "id": "f02",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f03",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f05",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.25,
+            "ndcg@10": 0.43067655807339306
+          }
+        },
+        {
+          "id": "f06",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f08",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.14285714285714285,
+            "ndcg@10": 0.3333333333333333
+          }
+        },
+        {
+          "id": "f09",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f10",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f11",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "f12",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c01",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c02",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.2,
+            "ndcg@10": 0.38685280723454163
+          }
+        },
+        {
+          "id": "c03",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c04",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.2,
+            "ndcg@10": 0.38685280723454163
+          }
+        },
+        {
+          "id": "c05",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c06",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.25,
+            "ndcg@10": 0.43067655807339306
+          }
+        },
+        {
+          "id": "c07",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.3333333333333333,
+            "ndcg@10": 0.5
+          }
+        },
+        {
+          "id": "c08",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c09",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c10",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c12",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "r01",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r02",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r03",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r04",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.1111111111111111,
+            "ndcg@10": 0.3010299956639812
+          }
+        },
+        {
+          "id": "r05",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r06",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "f13",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "f14",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f15",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f16",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f17",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f18",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f19",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f20",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f21",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f22",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "f24",
+          "category": "factoid",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c13",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "c14",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.1111111111111111,
+            "ndcg@10": 0.3010299956639812
+          }
+        },
+        {
+          "id": "c15",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "c16",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c17",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c18",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c19",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "c21",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          }
+        },
+        {
+          "id": "c22",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.14285714285714285,
+            "ndcg@10": 0.3333333333333333
+          }
+        },
+        {
+          "id": "c23",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.2,
+            "ndcg@10": 0.38685280723454163
+          }
+        },
+        {
+          "id": "c24",
+          "category": "conceptual",
+          "metrics": {
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          }
+        },
+        {
+          "id": "r07",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r08",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.5,
+            "mrr@10": 0.25,
+            "ndcg@10": 0.2640681225725909
+          }
+        },
+        {
+          "id": "r09",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r10",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r11",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        },
+        {
+          "id": "r12",
+          "category": "reasoning",
+          "metrics": {
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          }
+        }
+      ]
+    }
+  }
+}
