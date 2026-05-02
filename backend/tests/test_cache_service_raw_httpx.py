@@ -213,3 +213,148 @@ async def test_store_cache_swallows_errors(monkeypatch):
     await svc.store_cache(
         query="q", query_embedding=[0.1] * 1536, answer="a", sources=[],
     )
+
+
+# ─── invalidation 메타데이터 (R-cache-hardening) ────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_check_cache_includes_embedding_model_filter(monkeypatch):
+    """check_cache: embedding_model 필터가 항상 must 에 포함되어야 한다.
+
+    임베딩 모델 변경 시 cache 가 호환되지 않으므로 자동 stale 처리 보장.
+    """
+    captured = {}
+
+    async def mock_post(self, url, headers, json):  # noqa: ARG001
+        captured["body"] = json
+
+        class _R:
+            status_code = 200
+
+            def raise_for_status(self_inner):  # noqa: ARG001
+                return None
+
+            def json(self_inner):  # noqa: ARG001
+                return {"result": {"points": []}}
+
+        return _R()
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+    svc = SemanticCacheService()
+    await svc.check_cache([0.1] * 1536, chatbot_id="cb1")
+
+    must = captured["body"]["filter"]["must"]
+    embedding_filter = [c for c in must if c.get("key") == "embedding_model"]
+    assert len(embedding_filter) == 1
+    assert embedding_filter[0]["match"]["value"] == svc.embedding_model
+
+
+@pytest.mark.asyncio
+async def test_check_cache_includes_corpus_filter_when_provided(monkeypatch):
+    """check_cache: corpus_updated_at 인자 전달 시 must 필터 추가.
+
+    cache 의 corpus_updated_at 이 인자보다 작으면 Qdrant 가 자동 miss 처리.
+    """
+    captured = {}
+
+    async def mock_post(self, url, headers, json):  # noqa: ARG001
+        captured["body"] = json
+
+        class _R:
+            status_code = 200
+
+            def raise_for_status(self_inner):  # noqa: ARG001
+                return None
+
+            def json(self_inner):  # noqa: ARG001
+                return {"result": {"points": []}}
+
+        return _R()
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+    svc = SemanticCacheService()
+    await svc.check_cache(
+        [0.1] * 1536, chatbot_id="cb1", corpus_updated_at=1700000000.0
+    )
+
+    must = captured["body"]["filter"]["must"]
+    corpus_filter = [c for c in must if c.get("key") == "corpus_updated_at"]
+    assert len(corpus_filter) == 1
+    assert corpus_filter[0]["range"]["gte"] == 1700000000.0
+
+
+@pytest.mark.asyncio
+async def test_check_cache_omits_corpus_filter_when_none(monkeypatch):
+    """check_cache: corpus_updated_at=None 이면 corpus 필터 생략 (모두 valid)."""
+    captured = {}
+
+    async def mock_post(self, url, headers, json):  # noqa: ARG001
+        captured["body"] = json
+
+        class _R:
+            status_code = 200
+
+            def raise_for_status(self_inner):  # noqa: ARG001
+                return None
+
+            def json(self_inner):  # noqa: ARG001
+                return {"result": {"points": []}}
+
+        return _R()
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+    svc = SemanticCacheService()
+    await svc.check_cache([0.1] * 1536, chatbot_id="cb1")
+
+    must = captured["body"]["filter"]["must"]
+    keys = [c.get("key") for c in must]
+    assert "corpus_updated_at" not in keys
+
+
+@pytest.mark.asyncio
+async def test_store_cache_writes_invalidation_metadata(monkeypatch):
+    """store_cache: payload 에 corpus_updated_at + embedding_model 포함.
+
+    인자 미지정 시 corpus_updated_at=0.0 (legacy/테스트 호환), embedding_model 은
+    service 의 self.embedding_model 사용.
+    """
+    captured = {}
+
+    async def mock_put(self, url, headers, json):  # noqa: ARG001
+        captured["body"] = json
+
+        class _R:
+            status_code = 200
+
+            def raise_for_status(self_inner):  # noqa: ARG001
+                return None
+
+        return _R()
+
+    monkeypatch.setattr(httpx.AsyncClient, "put", mock_put)
+    svc = SemanticCacheService()
+
+    # 1. corpus_updated_at 명시
+    await svc.store_cache(
+        query="q",
+        query_embedding=[0.1] * 1536,
+        answer="a",
+        sources=[],
+        chatbot_id="cb1",
+        corpus_updated_at=1700000000.0,
+    )
+    payload = captured["body"]["points"][0]["payload"]
+    assert payload["corpus_updated_at"] == 1700000000.0
+    assert payload["embedding_model"] == svc.embedding_model
+
+    # 2. corpus_updated_at 미지정 → 0.0 (이후 corpus 갱신 시 자동 stale)
+    await svc.store_cache(
+        query="q",
+        query_embedding=[0.1] * 1536,
+        answer="a",
+        sources=[],
+    )
+    payload = captured["body"]["points"][0]["payload"]
+    assert payload["corpus_updated_at"] == 0.0
+    assert payload["embedding_model"] == svc.embedding_model
