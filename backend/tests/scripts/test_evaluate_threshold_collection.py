@@ -80,8 +80,8 @@ async def test_run_search_no_rerank_when_model_none():
         "src.qdrant_client.get_raw_client",
         return_value=MagicMock(),
     ), patch(
-        "src.search.rerank.get_reranker",
-    ) as mock_reranker:
+        "src.search.reranker.rerank",
+    ) as mock_rerank:
         await run_search("질문", rerank_model="none", sources=["U"])
 
-    mock_reranker.assert_not_called()
+    mock_rerank.assert_not_called()

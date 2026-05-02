@@ -35,10 +35,8 @@ _EMBED_PATCH = "src.chat.pipeline.stages.embedding.embed_dense_query"
 
 
 def _default_mock_reranker(return_value: list[SearchResult]) -> AsyncMock:
-    """get_reranker patch 대신 사용할 mock reranker. .rerank() 호출 시 return_value 반환."""
-    inst = AsyncMock()
-    inst.rerank = AsyncMock(return_value=return_value)
-    return inst
+    """rerank() 직접 호출 patch 용 AsyncMock."""
+    return AsyncMock(return_value=return_value)
 
 
 def _make_results(n: int) -> list[SearchResult]:
@@ -109,8 +107,7 @@ async def test_intent_drives_rerank_and_generation_K(
     search_results = _make_results(20)
     reranked_results = _make_results(expected_rerank_top_k)
 
-    mock_reranker_inst = AsyncMock()
-    mock_reranker_inst.rerank = AsyncMock(return_value=reranked_results)
+    mock_rerank = AsyncMock(return_value=reranked_results)
 
     with (
         patch("src.qdrant_client.get_async_client"),
@@ -125,8 +122,8 @@ async def test_intent_drives_rerank_and_generation_K(
             return_value=search_results,
         ),
         patch(
-            "src.chat.pipeline.stages.rerank.get_reranker",
-            return_value=mock_reranker_inst,
+            "src.chat.pipeline.stages.rerank.rerank",
+            new=mock_rerank,
         ),
         patch(
             "src.chat.pipeline.stages.generation.generate_answer",
@@ -137,9 +134,9 @@ async def test_intent_drives_rerank_and_generation_K(
     ):
         await service.process_chat(ChatRequest(query="질문", chatbot_id="t"))
 
-    # reranker.rerank() 가 intent 에 맞는 top_k 로 호출되었는가
-    assert mock_reranker_inst.rerank.await_count == 1
-    rerank_kwargs = mock_reranker_inst.rerank.await_args.kwargs
+    # rerank() 가 intent 에 맞는 top_k 로 호출되었는가
+    assert mock_rerank.await_count == 1
+    rerank_kwargs = mock_rerank.await_args.kwargs
     assert rerank_kwargs["top_k"] == expected_rerank_top_k, (
         f"intent={intent}: expected rerank top_k={expected_rerank_top_k}, got {rerank_kwargs['top_k']}"
     )
@@ -171,7 +168,7 @@ async def test_meta_intent_short_circuits_pipeline() -> None:
             new_callable=AsyncMock,
         ) as mock_search,
         patch(
-            "src.chat.pipeline.stages.rerank.get_reranker",
+            "src.chat.pipeline.stages.rerank.rerank",
         ) as mock_get_reranker,
         patch(
             "src.chat.pipeline.stages.generation.generate_answer",
@@ -238,8 +235,8 @@ async def test_disabled_intent_classifier_uses_default_K() -> None:
             return_value=_make_results(20),
         ),
         patch(
-            "src.chat.pipeline.stages.rerank.get_reranker",
-            return_value=_default_mock_reranker(_make_results(12)),
+            "src.chat.pipeline.stages.rerank.rerank",
+            new=_default_mock_reranker(_make_results(12)),
         ),
         patch(
             "src.chat.pipeline.stages.generation.generate_answer",
