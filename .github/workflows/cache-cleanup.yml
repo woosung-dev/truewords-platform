@@ -1,0 +1,77 @@
+name: Semantic Cache Cleanup
+
+# Qdrant 의 semantic_cache 컬렉션에서 TTL (CACHE_TTL_DAYS, 기본 7일) 만료된
+# point 를 매일 자동 삭제. Qdrant 가 native point TTL 을 지원하지 않아 필요한
+# 운영 작업.
+#
+# 인프라 무관성: GHA 가 외부 trigger 라 GCP/AWS 어느 환경에서도 동일 동작.
+# 운영을 GCP→AWS 로 이전해도 secrets 의 QDRANT_URL/API_KEY 만 갱신하면 끝.
+#
+# 상세: docs/guides/semantic-cache-cleanup.md, docs/dev-log/55-semantic-cache-hardening.md
+
+on:
+  schedule:
+    # 매일 03:00 KST = 18:00 UTC. 트래픽 가장 적은 시간대.
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    # GHA 콘솔에서 수동 trigger 가능 (긴급 cleanup, 디버깅용).
+    inputs:
+      mode:
+        description: "실행 모드"
+        required: true
+        default: "execute"
+        type: choice
+        options:
+          - dry-run
+          - execute
+      ttl_days:
+        description: "TTL override (기본: secrets/.env 의 CACHE_TTL_DAYS 또는 7)"
+        required: false
+        default: ""
+
+jobs:
+  cleanup:
+    name: Run cleanup
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install minimal deps (httpx only)
+        # cleanup 스크립트는 raw httpx 만 사용. 전체 sync 는 과함.
+        # 단 uv sync --frozen 이 lock 검증을 보장하므로 일관성 유지를 위해 사용.
+        run: uv sync --frozen
+
+      - name: Run cleanup
+        env:
+          # secrets 미설정 시 기본값 (local) 으로 fallback. 운영 적용 시
+          # repo Settings → Secrets and variables → Actions 에 등록 필요.
+          QDRANT_URL: ${{ secrets.QDRANT_URL }}
+          QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+          CACHE_COLLECTION_NAME: ${{ vars.CACHE_COLLECTION_NAME || 'semantic_cache' }}
+          CACHE_TTL_DAYS: ${{ vars.CACHE_TTL_DAYS || '7' }}
+          # GEMINI_API_KEY 는 settings 검증 통과용. cleanup 자체는 미사용.
+          GEMINI_API_KEY: not-used-by-cleanup-script
+        run: |
+          # workflow_dispatch 의 mode 입력 (수동 실행 시) 또는 schedule (자동) 시 execute.
+          MODE="${{ github.event.inputs.mode || 'execute' }}"
+          TTL_OVERRIDE="${{ github.event.inputs.ttl_days }}"
+
+          ARGS="--$MODE"
+          if [ -n "$TTL_OVERRIDE" ]; then
+            ARGS="$ARGS --ttl-days $TTL_OVERRIDE"
+          fi
+
+          echo "Running: scripts/cleanup_semantic_cache.py $ARGS"
+          uv run python scripts/cleanup_semantic_cache.py $ARGS
