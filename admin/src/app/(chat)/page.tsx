@@ -143,9 +143,9 @@ export default function ChatPage() {
   const [emphasisSheetOpen, setEmphasisSheetOpen] = useState(false);
 
   // P0-G — 답변 화면 floating action bar 상태
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(
-    () => new Set(),
-  );
+  // 북마크 영속화 미구현으로 UI 숨김 (FloatingActionBar 의 onBookmark 전달 안 함).
+  // 인프라 도입 시 재활성:
+  // const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => new Set());
   const [followupOpen, setFollowupOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -337,31 +337,14 @@ export default function ChatPage() {
   }, [messages]);
 
   const showFloatingBar = !!latestAssistant && !loading;
-  const isLatestBookmarked = !!(
-    latestAssistant?.messageId &&
-    bookmarkedIds.has(latestAssistant.messageId)
-  );
 
   const handleFloatingNewQuestion = useCallback(() => {
     setFollowupOpen(true);
     requestAnimationFrame(() => textareaRef.current?.focus());
   }, []);
 
-  const handleFloatingBookmark = useCallback(() => {
-    const id = latestAssistant?.messageId;
-    if (!id) return;
-    setBookmarkedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        toast("북마크를 해제했어요");
-      } else {
-        next.add(id);
-        toast.success("북마크에 저장했어요");
-      }
-      return next;
-    });
-  }, [latestAssistant]);
+  // 북마크 핸들러는 영속화 인프라 도입 시 재활성. 현재 FloatingActionBar 에 미전달.
+  // const handleFloatingBookmark = useCallback(() => { ... });
 
   const handleFloatingShare = useCallback(async () => {
     const text = latestAssistant
@@ -805,9 +788,10 @@ export default function ChatPage() {
       {showFloatingBar && (
         <FloatingActionBar
           onNewQuestion={handleFloatingNewQuestion}
-          onBookmark={handleFloatingBookmark}
           onShare={handleFloatingShare}
-          bookmarked={isLatestBookmarked}
+          // 북마크는 백엔드 영속화 미구현 — UI 레벨 hide. 인프라 도입 시 재활성.
+          // onBookmark={handleFloatingBookmark}
+          // bookmarked={isLatestBookmarked}
         />
       )}
 
