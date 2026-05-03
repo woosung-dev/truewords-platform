@@ -124,13 +124,20 @@ function FeedbackDistributionChart({
               ))}
             </Pie>
             <Tooltip
+              cursor={{ fill: "var(--color-admin-muted)", opacity: 0.4 }}
+              wrapperStyle={{ outline: "none", zIndex: 50 }}
               contentStyle={{
                 fontSize: 12,
                 borderRadius: 8,
-                border: "1px solid hsl(var(--border))",
-                background: "hsl(var(--card))",
-                color: "hsl(var(--foreground))",
+                border: "1px solid var(--color-border)",
+                background: "var(--color-card)",
+                color: "var(--color-foreground)",
+                boxShadow:
+                  "0 8px 24px oklch(0 0 0 / 0.10), 0 2px 4px oklch(0 0 0 / 0.06)",
+                padding: "8px 12px",
               }}
+              itemStyle={{ color: "var(--color-foreground)" }}
+              labelStyle={{ color: "var(--color-foreground)", fontWeight: 600 }}
             />
             <Legend
               iconType="circle"
