@@ -123,7 +123,7 @@ export function SourceOriginalModal({
               <span className="text-muted-foreground">{before}</span>
             )}
             {main && (
-              <span className="rounded-sm border-l-[3px] border-accent bg-accent/5 -ml-2 pl-2 py-0.5">
+              <span className="rounded-sm bg-accent/10 px-1 py-0.5 ring-1 ring-accent/20">
                 {renderWithHighlight(main, highlightSnippet)}
               </span>
             )}

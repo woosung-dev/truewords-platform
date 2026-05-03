@@ -35,24 +35,35 @@ export function FloatingActionBar({
       style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 0.5rem, 0.5rem)" }}
     >
       <div className="flex items-center justify-around gap-1">
-        <FloatingButton
-          icon={Plus}
-          label="새 질문"
-          onClick={onNewQuestion}
-        />
-        <span className="h-6 w-px bg-border" aria-hidden="true" />
-        <FloatingButton
-          icon={Bookmark}
-          label={bookmarked ? "저장됨" : "북마크"}
-          onClick={onBookmark}
-          active={bookmarked}
-        />
-        <span className="h-6 w-px bg-border" aria-hidden="true" />
-        <FloatingButton
-          icon={Share2}
-          label="공유"
-          onClick={onShare}
-        />
+        {onNewQuestion && (
+          <FloatingButton
+            icon={Plus}
+            label="새 질문"
+            onClick={onNewQuestion}
+          />
+        )}
+        {/* 북마크는 백엔드 영속화 미구현 (클라이언트 메모리만) — onBookmark 전달 시에만 노출. */}
+        {onBookmark && (
+          <>
+            <span className="h-6 w-px bg-border" aria-hidden="true" />
+            <FloatingButton
+              icon={Bookmark}
+              label={bookmarked ? "저장됨" : "북마크"}
+              onClick={onBookmark}
+              active={bookmarked}
+            />
+          </>
+        )}
+        {onShare && (
+          <>
+            <span className="h-6 w-px bg-border" aria-hidden="true" />
+            <FloatingButton
+              icon={Share2}
+              label="공유"
+              onClick={onShare}
+            />
+          </>
+        )}
       </div>
     </div>
   );
