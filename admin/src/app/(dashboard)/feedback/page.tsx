@@ -17,14 +17,14 @@ import { Badge } from "@/components/ui/badge";
 import SessionDetailModal from "@/features/analytics/components/session-detail-modal";
 
 // ─────────────────────────────────────────────
-// 피드백 유형 상수
+// 피드백 유형 상수 (cool slate × admin amber 충돌 회피 팔레트)
 // ─────────────────────────────────────────────
 const FEEDBACK_COLORS: Record<string, string> = {
-  helpful: "#10b981",
-  inaccurate: "#ef4444",
-  missing_citation: "#f59e0b",
-  irrelevant: "#6b7280",
-  other: "#8b5cf6",
+  helpful: "#0d9488",          // teal-600 — 긍정/시원함
+  inaccurate: "#dc2626",       // red-600 — 가장 심각한 부정
+  missing_citation: "#ea580c", // orange-600 — 경고 (admin amber 와 차별)
+  irrelevant: "#64748b",       // slate-500 — 중립적 부정
+  other: "#7c3aed",            // violet-600 — 기타
 };
 
 const FEEDBACK_LABELS: Record<string, string> = {
@@ -35,13 +35,20 @@ const FEEDBACK_LABELS: Record<string, string> = {
   other: "기타",
 };
 
+// backend ENUM 이 'HELPFUL' 등 대문자로 저장될 가능성 → 매핑 키 일관화
+function normalizeFeedbackType(t: string): string {
+  return (t || "").toLowerCase();
+}
+
 // ─────────────────────────────────────────────
 // 피드백 Badge 변형 매핑
 // ─────────────────────────────────────────────
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 
 function getBadgeVariant(feedbackType: string): BadgeVariant {
-  switch (feedbackType) {
+  switch (normalizeFeedbackType(feedbackType)) {
+    case "helpful":
+      return "default";
     case "inaccurate":
       return "destructive";
     case "missing_citation":
@@ -81,11 +88,14 @@ function FeedbackDistributionChart({
   data?: { feedback_type: string; count: number }[];
   loading: boolean;
 }) {
-  const chartData = (data ?? []).map((d) => ({
-    name: FEEDBACK_LABELS[d.feedback_type] ?? d.feedback_type,
-    value: d.count,
-    color: FEEDBACK_COLORS[d.feedback_type] ?? "#94a3b8",
-  }));
+  const chartData = (data ?? []).map((d) => {
+    const key = normalizeFeedbackType(d.feedback_type);
+    return {
+      name: FEEDBACK_LABELS[key] ?? d.feedback_type,
+      value: d.count,
+      color: FEEDBACK_COLORS[key] ?? "#94a3b8",
+    };
+  });
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
@@ -240,7 +250,8 @@ function FeedbackTable({
                   </td>
                   <td className="py-2 px-3 whitespace-nowrap">
                     <Badge variant={getBadgeVariant(item.feedback_type)}>
-                      {FEEDBACK_LABELS[item.feedback_type] ?? item.feedback_type}
+                      {FEEDBACK_LABELS[normalizeFeedbackType(item.feedback_type)] ??
+                        item.feedback_type}
                     </Badge>
                   </td>
                   <td className="py-2 px-3">
