@@ -21,6 +21,7 @@ const PAGE_SIZE = 20;
 
 export default function ChatbotsPage() {
   const [page, setPage] = useState(0);
+  const [showInactive, setShowInactive] = useState(false);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["chatbots", page],
@@ -28,6 +29,13 @@ export default function ChatbotsPage() {
   });
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
+
+  // 비활성 숨김 (기본) — 데이터 소스 카테고리 페이지와 동일 패턴
+  const allItems = data?.items ?? [];
+  const inactiveCount = allItems.filter((c) => !c.is_active).length;
+  const visibleItems = showInactive
+    ? allItems
+    : allItems.filter((c) => c.is_active);
 
   return (
     <div className="space-y-5 max-w-5xl">
@@ -37,13 +45,30 @@ export default function ChatbotsPage() {
           {data && (
             <p className="text-sm text-muted-foreground mt-1">
               총 {data.total}개
+              {!showInactive && inactiveCount > 0 && (
+                <span className="text-xs ml-1">
+                  · 활성 {data.total - inactiveCount}개 표시
+                </span>
+              )}
             </p>
           )}
         </div>
-        <Link href="/chatbots/new" className={buttonVariants({ size: "sm" })}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          새 챗봇
-        </Link>
+        <div className="flex items-center gap-2">
+          {inactiveCount > 0 && (
+            <button
+              onClick={() => setShowInactive((v) => !v)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showInactive
+                ? "비활성 숨기기"
+                : `비활성 ${inactiveCount}개 보기`}
+            </button>
+          )}
+          <Link href="/chatbots/new" className={buttonVariants({ size: "sm" })}>
+            <Plus className="w-4 h-4 mr-1.5" />
+            새 챗봇
+          </Link>
+        </div>
       </div>
 
       {isLoading ? (
@@ -74,6 +99,21 @@ export default function ChatbotsPage() {
             새 챗봇 만들기
           </Link>
         </div>
+      ) : visibleItems.length === 0 ? (
+        <div className="rounded-xl border border-dashed p-10 text-center space-y-3">
+          <p className="text-muted-foreground text-sm">
+            활성 챗봇이 없습니다.
+          </p>
+          {inactiveCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowInactive(true)}
+            >
+              비활성 {inactiveCount}개 보기
+            </Button>
+          )}
+        </div>
       ) : (
         <>
           <div className="overflow-x-auto rounded-xl border bg-card">
@@ -89,7 +129,7 @@ export default function ChatbotsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data?.items.map((config) => (
+                {visibleItems.map((config) => (
                   <TableRow
                     key={config.id}
                     className="hover:bg-admin-muted/30 transition-colors"
