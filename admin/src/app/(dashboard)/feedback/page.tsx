@@ -137,18 +137,40 @@ function FeedbackDistributionChart({
 // ─────────────────────────────────────────────
 // 최근 부정 피드백 테이블
 // ─────────────────────────────────────────────
-function NegativeFeedbackTable({
+function FeedbackTable({
+  polarity,
+  onPolarityChange,
   items,
   loading,
   onSelectSession,
 }: {
+  polarity: "positive" | "negative";
+  onPolarityChange: (p: "positive" | "negative") => void;
   items?: NegativeFeedbackItem[];
   loading: boolean;
   onSelectSession: (sessionId: string) => void;
 }) {
+  const polarityLabel = polarity === "positive" ? "긍정" : "부정";
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
-      <h2 className="text-sm font-semibold">최근 부정 피드백</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold">최근 {polarityLabel} 피드백</h2>
+        <div className="inline-flex rounded-lg border bg-admin-muted/40 p-0.5 text-xs">
+          {(["negative", "positive"] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => onPolarityChange(p)}
+              className={`px-3 py-1 rounded-md transition-colors ${
+                polarity === p
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p === "positive" ? "👍 긍정" : "👎 부정"}
+            </button>
+          ))}
+        </div>
+      </div>
       <p className="text-xs text-muted-foreground -mt-2">
         행을 클릭하면 해당 세션의 전체 대화를 볼 수 있습니다
       </p>
@@ -160,7 +182,7 @@ function NegativeFeedbackTable({
         </div>
       ) : !items || items.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4 text-center">
-          부정 피드백이 없습니다
+          {polarityLabel} 피드백이 없습니다
         </p>
       ) : (
         <div className="overflow-x-auto overflow-hidden rounded-lg border">
@@ -248,9 +270,11 @@ export default function FeedbackPage() {
     queryFn: () => analyticsAPI.getFeedbackSummary(30),
   });
 
-  const { data: negativeFeedback, isLoading: negativeLoading } = useQuery({
-    queryKey: ["negative-feedback"],
-    queryFn: () => analyticsAPI.getNegativeFeedback(20, 0),
+  const [polarity, setPolarity] = useState<"positive" | "negative">("negative");
+
+  const { data: feedbackList, isLoading: feedbackLoading } = useQuery({
+    queryKey: ["feedback-list", polarity],
+    queryFn: () => analyticsAPI.getFeedbackList(polarity, 20, 0),
   });
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
@@ -273,10 +297,12 @@ export default function FeedbackPage() {
         loading={summaryLoading}
       />
 
-      {/* 최근 부정 피드백 */}
-      <NegativeFeedbackTable
-        items={negativeFeedback}
-        loading={negativeLoading}
+      {/* 피드백 목록 (긍정/부정 토글) */}
+      <FeedbackTable
+        polarity={polarity}
+        onPolarityChange={setPolarity}
+        items={feedbackList}
+        loading={feedbackLoading}
         onSelectSession={setSelectedSessionId}
       />
 

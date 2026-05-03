@@ -127,4 +127,20 @@ describe("SessionDetailModal", () => {
     expect(await screen.findByText(/축복AI/)).toBeDefined();
     expect(screen.getByText(/메시지 2건/)).toBeDefined();
   });
+
+  it("feedback 가 있는 메시지로 자동 스크롤한다", async () => {
+    const scrollSpy = vi
+      .spyOn(Element.prototype, "scrollIntoView")
+      .mockImplementation(() => {});
+    mockGetSessionDetail.mockResolvedValue(detailFixture());
+    renderModal();
+    await screen.findByText("축복 절차는 다음과 같습니다");
+    // useEffect 의 setTimeout(50) 이후
+    await new Promise((r) => setTimeout(r, 100));
+    expect(scrollSpy).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "center",
+    });
+    scrollSpy.mockRestore();
+  });
 });
