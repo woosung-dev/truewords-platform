@@ -314,10 +314,20 @@ class AnalyticsRepository:
             "occurrences": occurrences,
         }
 
-    async def get_negative_feedback(self, limit: int = 20, offset: int = 0) -> list[dict]:
-        """부정 피드백 목록 (질문 + 답변 + 세션/봇 추적용 메타 포함)."""
+    async def get_feedback_list(
+        self,
+        polarity: str = "negative",
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[dict]:
+        """피드백 목록 (긍정/부정) — 질문 + 답변 + 세션/봇 추적용 메타.
+
+        polarity == "positive" → feedback_type = HELPFUL
+        polarity == "negative" → feedback_type != HELPFUL
+        """
+        cmp_op = "=" if polarity == "positive" else "!="
         result = await self.session.execute(
-            text("""
+            text(f"""
                 SELECT
                     af.id,
                     af.feedback_type,
@@ -339,7 +349,7 @@ class AnalyticsRepository:
                 JOIN session_messages sm_answer ON sm_answer.id = af.message_id
                 JOIN research_sessions rs ON rs.id = sm_answer.session_id
                 LEFT JOIN chatbot_configs cc ON cc.id = rs.chatbot_config_id
-                WHERE af.feedback_type != 'HELPFUL'
+                WHERE af.feedback_type {cmp_op} 'HELPFUL'
                 ORDER BY af.created_at DESC
                 LIMIT :limit OFFSET :offset
             """),
@@ -358,6 +368,10 @@ class AnalyticsRepository:
             }
             for row in result.all()
         ]
+
+    async def get_negative_feedback(self, limit: int = 20, offset: int = 0) -> list[dict]:
+        """기존 호출자 호환용 wrapper."""
+        return await self.get_feedback_list("negative", limit, offset)
 
     async def get_session_detail(self, session_id: UUID) -> dict | None:
         """세션 전체 메시지 + 반응/피드백/출처 inline (시간순).

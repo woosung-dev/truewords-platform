@@ -108,8 +108,21 @@ async def get_negative_feedback(
     repo: AnalyticsRepository = Depends(_get_repo),
     current_admin: dict = Depends(get_current_admin),
 ) -> list[NegativeFeedbackItem]:
-    """부정 피드백 목록."""
-    rows = await repo.get_negative_feedback(limit, offset)
+    """부정 피드백 목록 (backward compat — /feedback/list?polarity=negative 와 동일)."""
+    rows = await repo.get_feedback_list("negative", limit, offset)
+    return [NegativeFeedbackItem(**r) for r in rows]
+
+
+@router.get("/feedback/list", response_model=list[NegativeFeedbackItem])
+async def get_feedback_list(
+    polarity: str = Query(default="negative", pattern="^(positive|negative)$"),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    repo: AnalyticsRepository = Depends(_get_repo),
+    current_admin: dict = Depends(get_current_admin),
+) -> list[NegativeFeedbackItem]:
+    """피드백 목록 (긍정/부정) — polarity 로 필터링."""
+    rows = await repo.get_feedback_list(polarity, limit, offset)
     return [NegativeFeedbackItem(**r) for r in rows]
 
 
