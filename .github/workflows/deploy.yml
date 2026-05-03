@@ -81,6 +81,7 @@ jobs:
             QDRANT_API_KEY=${{ secrets.QDRANT_API_KEY }}
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            GEMINI_TIER=${{ secrets.GEMINI_TIER }}
             ADMIN_JWT_SECRET=${{ secrets.ADMIN_JWT_SECRET }}
 
   # Vercel 배포는 GitHub 연동으로 자동 실행 (별도 Actions 불필요)
