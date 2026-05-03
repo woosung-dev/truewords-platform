@@ -154,7 +154,11 @@ export default function ChatPage() {
       .listBots()
       .then((data) => {
         setBots(data);
-        if (data.length > 0) setSelectedBot(data[0].chatbot_id);
+        if (data.length > 0) {
+          // 디폴트는 "전체 검색" (chatbot_id="all"). 비활성/삭제 시 첫 항목 fallback.
+          const defaultBot = data.find((b) => b.chatbot_id === "all") ?? data[0];
+          setSelectedBot(defaultBot.chatbot_id);
+        }
       })
       .catch(() => setBots([]))
       .finally(() => {
