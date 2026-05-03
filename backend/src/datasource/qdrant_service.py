@@ -8,6 +8,7 @@ import asyncio
 import unicodedata
 from typing import Any
 
+from src.datasource.chunk_merge import merge_with_dedup
 from src.datasource.schemas import (
     CategoryDocumentStats,
     SourceChunkDetail,
@@ -21,6 +22,7 @@ from src.qdrant.filters import (
     build_filter,
     field_match,
     field_match_any,
+    field_range,
 )
 
 # Qdrant facet API 결과 상한 — 카테고리 수/볼륨 수 여유분 포함.
@@ -527,12 +529,25 @@ class DataSourceQdrantService:
             updated_chunks=updated,
         )
 
-    async def get_chunk_detail(self, chunk_id: str) -> SourceChunkDetail | None:
-        """P0-B — 인용 카드 원문보기 모달용 단일 청크 조회.
+    async def get_chunk_detail(
+        self,
+        chunk_id: str,
+        *,
+        context_window: int = 2,
+    ) -> SourceChunkDetail | None:
+        """P0-B — 인용 카드 원문보기 모달용 청크 + dedup 된 연속 문맥 조회.
 
-        Qdrant point_id (chunk_id) 로 직접 retrieve. 단순 텍스트 + volume + source 만 반환.
-        PoC 정리 (2026-04-29) — P1-B 4중 메타 (citation_meta) 제거. 인덱싱
-        파이프라인이 4 필드를 채우게 되면 schema 와 함께 재추가.
+        같은 volume 의 chunk_index 인접 ±``context_window`` 청크들을 가져와
+        suffix-prefix overlap dedup 후 **하나의 연속 본문** 으로 합쳐 반환한다.
+        프론트는 ``main_offset_start..main_offset_end`` 범위만 시각 강조하면
+        끊김/중복 없는 reading flow 가 자연스럽게 형성된다.
+
+        Chunking artifact (overlap=150) 의 부산물을 백엔드에서 한 번 정리.
+        ACL: 같은 volume → 동일 source 집합이므로 권한 변동 없음.
+
+        Args:
+            chunk_id: Qdrant point id.
+            context_window: 메인 위/아래로 가져올 인접 청크 수 (기본 2 → 총 5).
         """
         try:
             points = await self.client.retrieve(
@@ -546,12 +561,96 @@ class DataSourceQdrantService:
         if not points:
             return None
         payload: dict[str, Any] = points[0].payload or {}
+        main_text = str(payload.get("text", ""))
+        volume = str(payload.get("volume", ""))
+        main_idx_raw = payload.get("chunk_index")
+        main_chunk_index = (
+            int(main_idx_raw) if isinstance(main_idx_raw, (int, float)) else -1
+        )
+
+        before_texts, after_texts = await self._fetch_chunk_context_texts(
+            volume=volume,
+            main_chunk_index=main_chunk_index,
+            window=context_window,
+        )
+
+        merged = merge_with_dedup(
+            main_text=main_text,
+            before=before_texts,
+            after=after_texts,
+        )
+
         return SourceChunkDetail(
             chunk_id=str(points[0].id),
-            text=str(payload.get("text", "")),
-            volume=str(payload.get("volume", "")),
+            text=main_text,
+            volume=volume,
             sources=_coerce_sources(payload.get("source")),
+            chunk_index=main_chunk_index,
+            merged_text=merged.merged_text,
+            main_offset_start=merged.main_offset_start,
+            main_offset_end=merged.main_offset_end,
         )
+
+    async def _fetch_chunk_context_texts(
+        self,
+        *,
+        volume: str,
+        main_chunk_index: int,
+        window: int,
+    ) -> tuple[list[str], list[str]]:
+        """메인 청크 인접 ±window 청크 본문을 chunk_index 순서로 fetch.
+
+        chunk_index 가 메인과 정확히 인접 (idx == main±k, k=1..window) 인 경우만
+        반환 — 갭 (deletion 등) 은 dedup 시 잘못된 매칭 위험 → 갭 발견 시 그
+        지점에서 stop. volume/chunk_index 비정상이면 빈 리스트 (graceful).
+        """
+        if not volume or main_chunk_index < 0 or window <= 0:
+            return [], []
+
+        gte = max(0, main_chunk_index - window)
+        lte = main_chunk_index + window
+        try:
+            points, _ = await self.client.scroll(
+                self.collection_name,
+                scroll_filter=build_filter(
+                    must=[
+                        field_match("volume", volume),
+                        field_range("chunk_index", gte=gte, lte=lte),
+                    ]
+                ),
+                with_payload=["text", "chunk_index"],
+                with_vectors=False,
+                limit=window * 2 + 2,
+            )
+        except Exception:
+            return [], []
+
+        by_idx: dict[int, str] = {}
+        for p in points:
+            payload: dict[str, Any] = p.payload or {}
+            idx_raw = payload.get("chunk_index")
+            if not isinstance(idx_raw, (int, float)):
+                continue
+            idx = int(idx_raw)
+            if idx == main_chunk_index:
+                continue
+            by_idx[idx] = str(payload.get("text", ""))
+
+        # 메인에서 멀어지는 방향으로 연속(인접)인 동안만 채택 — 갭 발견 시 stop.
+        before: list[str] = []
+        for k in range(1, window + 1):
+            idx = main_chunk_index - k
+            if idx not in by_idx:
+                break
+            before.insert(0, by_idx[idx])
+        after: list[str] = []
+        for k in range(1, window + 1):
+            idx = main_chunk_index + k
+            if idx not in by_idx:
+                break
+            after.append(by_idx[idx])
+
+        return before, after
 
 
 def _coerce_sources(raw: Any) -> list[str]:

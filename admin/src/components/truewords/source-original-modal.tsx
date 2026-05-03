@@ -22,6 +22,13 @@ export interface SourceChunkDetail {
   text: string;
   volume: string;
   sources: string[];
+  chunk_index: number;
+  /** 메인 + 인접 청크를 백엔드에서 NFC + suffix-prefix dedup 후 합친 연속 본문 */
+  merged_text: string;
+  /** merged_text 안에서 메인 청크 시작 character offset (포함) */
+  main_offset_start: number;
+  /** merged_text 안에서 메인 청크 끝 character offset (제외) */
+  main_offset_end: number;
 }
 
 export interface SourceOriginalModalProps {
@@ -95,13 +102,34 @@ export function SourceOriginalModal({
       );
     }
     if (state.status === "ok") {
+      const { merged_text, main_offset_start, main_offset_end, text } = state.detail;
+      // merged_text 가 비어있는 비정상 케이스: 단일 청크 fallback.
+      const body = merged_text || text;
+      const mainStart = merged_text ? main_offset_start : 0;
+      const mainEnd = merged_text ? main_offset_end : text.length;
+      const before = body.slice(0, mainStart);
+      const main = body.slice(mainStart, mainEnd);
+      const after = body.slice(mainEnd);
+
       return (
-        <article className="space-y-3">
+        <article className="space-y-2">
           <p className="font-mono text-xs text-muted-foreground tabular-nums break-keep-all">
             {fallbackLabel ?? state.detail.volume}
           </p>
-          <p className="font-reading text-[16px] leading-[1.85] text-foreground break-keep-all whitespace-pre-line">
-            {renderWithHighlight(state.detail.text, highlightSnippet)}
+          {/* 단일 연속 본문 — 백엔드가 dedup 후 보낸 한 덩어리. 청크 경계 끊김 0.
+              메인 청크 영역만 brass 좌측 border + 옅은 accent 배경으로 강조. */}
+          <p className="font-reading text-[15.5px] leading-[1.85] text-foreground break-keep-all whitespace-pre-line">
+            {before && (
+              <span className="text-muted-foreground">{before}</span>
+            )}
+            {main && (
+              <span className="rounded-sm border-l-[3px] border-accent bg-accent/5 -ml-2 pl-2 py-0.5">
+                {renderWithHighlight(main, highlightSnippet)}
+              </span>
+            )}
+            {after && (
+              <span className="text-muted-foreground">{after}</span>
+            )}
           </p>
         </article>
       );
@@ -122,7 +150,7 @@ export function SourceOriginalModal({
             원문 보기
           </SheetTitle>
           <SheetDescription>
-            인용된 부분은 노란색으로 표시됩니다.
+            인용된 부분은 강조 표시되고, 위·아래 인접 문맥이 옅게 함께 노출됩니다.
           </SheetDescription>
         </SheetHeader>
         <div>{renderBody()}</div>

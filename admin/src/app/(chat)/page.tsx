@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -65,6 +64,10 @@ import {
   EmphasisSheet,
   EmphasisRowTrigger,
 } from "@/features/chat/components/emphasis-sheet";
+import {
+  AssistantMessage,
+  ClosingCallout,
+} from "@/features/chat/components/assistant-message";
 import type {
   AnswerMode,
   TheologicalEmphasis,
@@ -78,6 +81,8 @@ interface Message {
   feedback?: FeedbackType;
   // P0-A — 답변 후속 추천 질문 3개. None/빈 배열이면 미노출.
   suggestedFollowups?: string[] | null;
+  // P1-J — 기도문/결의문 마무리. 비활성/실패 시 null. ClosingCallout 가 정적 보조멘트로 fallback.
+  closing?: string | null;
 }
 
 const NEGATIVE_REASONS: { key: Exclude<FeedbackType, "helpful">; label: string }[] = [
@@ -154,7 +159,11 @@ export default function ChatPage() {
       .listBots()
       .then((data) => {
         setBots(data);
-        if (data.length > 0) setSelectedBot(data[0].chatbot_id);
+        if (data.length > 0) {
+          // 디폴트는 "전체 검색" (chatbot_id="all"). 비활성/삭제 시 첫 항목 fallback.
+          const defaultBot = data.find((b) => b.chatbot_id === "all") ?? data[0];
+          setSelectedBot(defaultBot.chatbot_id);
+        }
       })
       .catch(() => setBots([]))
       .finally(() => {
@@ -219,6 +228,7 @@ export default function ChatPage() {
           messageId: res.message_id,
           sources: res.sources,
           suggestedFollowups: res.suggested_followups,
+          closing: res.closing,
         },
       ]);
     } catch (e) {
@@ -566,51 +576,31 @@ export default function ChatPage() {
                       msg.role === "user" ? "order-first" : ""
                     }`}
                   >
-                    <Card
-                      className={`px-4 py-3 ${
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {msg.role === "assistant"
-                          ? stripDisclaimer(msg.content)
-                          : msg.content}
-                      </p>
-                    </Card>
-
-                    {/* 출처 배지 — chunk_id 가 있으면 클릭 시 P0-B 원문보기 모달 */}
-                    {msg.sources && msg.sources.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 pl-1">
-                        {msg.sources.map((src, j) => {
-                          const label = `${src.volume}${src.source ? ` (${src.source})` : ""}`;
-                          if (!src.chunk_id) {
-                            return (
-                              <Badge key={j} variant="outline" className="text-xs">
-                                {label}
-                              </Badge>
-                            );
+                    {msg.role === "user" ? (
+                      <Card className="bg-primary px-4 py-3 text-primary-foreground">
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                          {msg.content}
+                        </p>
+                      </Card>
+                    ) : (
+                      <Card className="bg-card px-4 py-3 shadow-sm">
+                        <AssistantMessage
+                          content={stripDisclaimer(msg.content)}
+                          sources={msg.sources}
+                          onSourceClick={(src) =>
+                            setChunkModal({
+                              open: true,
+                              chunkId: src.chunk_id ?? null,
+                              snippet: src.text,
+                            })
                           }
-                          return (
-                            <Button
-                              key={j}
-                              type="button"
-                              variant="outline"
-                              className="h-auto px-2 py-0.5 text-xs font-normal"
-                              onClick={() =>
-                                setChunkModal({
-                                  open: true,
-                                  chunkId: src.chunk_id ?? null,
-                                  snippet: src.text,
-                                })
-                              }
-                            >
-                              {label}
-                            </Button>
-                          );
-                        })}
-                      </div>
+                        />
+                        {/* B1 — 본문/권유 시각 분리. closing 있으면 기도/결의문, 없으면 정적 보조 멘트. */}
+                        <ClosingCallout
+                          closing={msg.closing}
+                          className="mt-3"
+                        />
+                      </Card>
                     )}
 
                     {/* P0-A — 답변 후속 추천 질문 3개. SuggestedFollowupsStage 가 채움. */}
