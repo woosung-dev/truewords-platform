@@ -293,6 +293,26 @@
   --sidebar-ring: oklch(0.700 0.166 60);
 }
 
+/* admin 컨텍스트 — chat 의 paper × warm 토큰을 cool slate 로 차단.
+   (dashboard)/layout 이 mount 되면 body 에 admin-scope 클래스 적용. portal
+   (Sheet/Dialog) 도 body 자손이라 자동 inherit. chat 영역은 admin-scope
+   없으므로 paper 토큰 그대로 사용. */
+.admin-scope {
+  --background: var(--tw-admin-bg);
+  --secondary: var(--tw-admin-muted);
+  --muted: var(--tw-admin-muted);
+  --border: oklch(0.910 0.005 250);
+  --input: oklch(0.910 0.005 250);
+}
+
+.dark .admin-scope {
+  --background: var(--tw-admin-bg);
+  --secondary: var(--tw-admin-muted);
+  --muted: var(--tw-admin-muted);
+  --border: oklch(0.330 0.010 250);
+  --input: oklch(0.330 0.010 250);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
