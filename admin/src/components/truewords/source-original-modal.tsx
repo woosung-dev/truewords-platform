@@ -17,11 +17,19 @@ import { cn } from "@/lib/utils";
 // 데이터 fetch 는 GET /api/sources/chunks/{chunk_id} 호출. 인용된 텍스트가
 // 본문 안에 있으면 노란 하이라이트 (`<mark className="tw-highlight">`) 처리.
 
+export interface ChunkContextItem {
+  chunk_index: number;
+  text: string;
+}
+
 export interface SourceChunkDetail {
   chunk_id: string;
   text: string;
   volume: string;
   sources: string[];
+  chunk_index: number;
+  context_before: ChunkContextItem[];
+  context_after: ChunkContextItem[];
 }
 
 export interface SourceOriginalModalProps {
@@ -95,14 +103,45 @@ export function SourceOriginalModal({
       );
     }
     if (state.status === "ok") {
+      const { context_before, context_after, text } = state.detail;
       return (
-        <article className="space-y-3">
+        <article className="space-y-2">
           <p className="font-mono text-xs text-muted-foreground tabular-nums break-keep-all">
             {fallbackLabel ?? state.detail.volume}
           </p>
-          <p className="font-reading text-[16px] leading-[1.85] text-foreground break-keep-all whitespace-pre-line">
-            {renderWithHighlight(state.detail.text, highlightSnippet)}
-          </p>
+
+          {/* 위쪽 문맥 — 메인 청크 직전 인접 본문 (옅게) */}
+          {context_before.map((c) => (
+            <p
+              key={`before-${c.chunk_index}`}
+              className="font-reading text-[15px] leading-[1.8] text-muted-foreground break-keep-all whitespace-pre-line"
+            >
+              {c.text}
+            </p>
+          ))}
+
+          {/* 메인 청크 — 노란 배경 + 좌측 brass 보더로 강조. snippet 일치 부분은 mark. */}
+          <div className="rounded-md border-l-[3px] border-accent bg-accent/5 px-3 py-2.5 my-1.5">
+            <p className="font-reading text-[16px] leading-[1.85] text-foreground break-keep-all whitespace-pre-line">
+              {renderWithHighlight(text, highlightSnippet)}
+            </p>
+          </div>
+
+          {/* 아래쪽 문맥 */}
+          {context_after.map((c) => (
+            <p
+              key={`after-${c.chunk_index}`}
+              className="font-reading text-[15px] leading-[1.8] text-muted-foreground break-keep-all whitespace-pre-line"
+            >
+              {c.text}
+            </p>
+          ))}
+
+          {context_before.length === 0 && context_after.length === 0 && (
+            <p className="text-[11px] text-muted-foreground italic">
+              인접 문맥이 색인되지 않았습니다.
+            </p>
+          )}
         </article>
       );
     }
@@ -122,7 +161,7 @@ export function SourceOriginalModal({
             원문 보기
           </SheetTitle>
           <SheetDescription>
-            인용된 부분은 노란색으로 표시됩니다.
+            인용된 부분은 강조 표시되고, 위·아래 인접 문맥이 옅게 함께 노출됩니다.
           </SheetDescription>
         </SheetHeader>
         <div>{renderBody()}</div>

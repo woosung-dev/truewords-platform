@@ -10,6 +10,7 @@ from typing import Any
 
 from src.datasource.schemas import (
     CategoryDocumentStats,
+    ChunkContextItem,
     SourceChunkDetail,
     VolumeDeleteResponse,
     VolumeInfo,
@@ -21,6 +22,7 @@ from src.qdrant.filters import (
     build_filter,
     field_match,
     field_match_any,
+    field_range,
 )
 
 # Qdrant facet API 결과 상한 — 카테고리 수/볼륨 수 여유분 포함.
@@ -527,12 +529,22 @@ class DataSourceQdrantService:
             updated_chunks=updated,
         )
 
-    async def get_chunk_detail(self, chunk_id: str) -> SourceChunkDetail | None:
-        """P0-B — 인용 카드 원문보기 모달용 단일 청크 조회.
+    async def get_chunk_detail(
+        self,
+        chunk_id: str,
+        *,
+        context_window: int = 2,
+    ) -> SourceChunkDetail | None:
+        """P0-B — 인용 카드 원문보기 모달용 청크 + 전후 문맥 조회.
 
-        Qdrant point_id (chunk_id) 로 직접 retrieve. 단순 텍스트 + volume + source 만 반환.
-        PoC 정리 (2026-04-29) — P1-B 4중 메타 (citation_meta) 제거. 인덱싱
-        파이프라인이 4 필드를 채우게 되면 schema 와 함께 재추가.
+        NotebookLM 패턴 — 메인 청크 단독이 아니라 같은 volume 의 인접 chunk_index
+        ±``context_window`` 청크들을 함께 반환해 사용자가 인용 부분을 문맥과
+        함께 확인할 수 있도록 한다. 동일 volume 의 다른 청크들은 chatbot
+        ACL 측면에서도 동일 source 집합에 속하므로 권한 변동 없음.
+
+        Args:
+            chunk_id: Qdrant point id.
+            context_window: 메인 청크 위/아래로 가져올 인접 청크 수 (기본 2 → 총 5청크).
         """
         try:
             points = await self.client.retrieve(
@@ -546,12 +558,82 @@ class DataSourceQdrantService:
         if not points:
             return None
         payload: dict[str, Any] = points[0].payload or {}
+        volume = str(payload.get("volume", ""))
+        main_idx_raw = payload.get("chunk_index")
+        main_chunk_index = (
+            int(main_idx_raw) if isinstance(main_idx_raw, (int, float)) else -1
+        )
+
+        before, after = await self._fetch_chunk_context(
+            volume=volume,
+            main_chunk_index=main_chunk_index,
+            window=context_window,
+        )
+
         return SourceChunkDetail(
             chunk_id=str(points[0].id),
             text=str(payload.get("text", "")),
-            volume=str(payload.get("volume", "")),
+            volume=volume,
             sources=_coerce_sources(payload.get("source")),
+            chunk_index=main_chunk_index,
+            context_before=before,
+            context_after=after,
         )
+
+    async def _fetch_chunk_context(
+        self,
+        *,
+        volume: str,
+        main_chunk_index: int,
+        window: int,
+    ) -> tuple[list[ChunkContextItem], list[ChunkContextItem]]:
+        """메인 청크 인접 ±window 청크들을 chunk_index 순서로 fetch.
+
+        volume 또는 chunk_index 가 비정상이면 빈 리스트 반환 (graceful).
+        """
+        if not volume or main_chunk_index < 0 or window <= 0:
+            return [], []
+
+        gte = max(0, main_chunk_index - window)
+        lte = main_chunk_index + window
+        try:
+            points, _ = await self.client.scroll(
+                self.collection_name,
+                scroll_filter=build_filter(
+                    must=[
+                        field_match("volume", volume),
+                        field_range("chunk_index", gte=gte, lte=lte),
+                    ]
+                ),
+                with_payload=["text", "chunk_index"],
+                with_vectors=False,
+                limit=window * 2 + 2,  # 메인 + 위 window + 아래 window 여유분
+            )
+        except Exception:
+            return [], []
+
+        before: list[ChunkContextItem] = []
+        after: list[ChunkContextItem] = []
+        for p in points:
+            payload: dict[str, Any] = p.payload or {}
+            idx_raw = payload.get("chunk_index")
+            if not isinstance(idx_raw, (int, float)):
+                continue
+            idx = int(idx_raw)
+            if idx == main_chunk_index:
+                continue
+            item = ChunkContextItem(
+                chunk_index=idx,
+                text=str(payload.get("text", "")),
+            )
+            if idx < main_chunk_index:
+                before.append(item)
+            else:
+                after.append(item)
+
+        before.sort(key=lambda c: c.chunk_index)
+        after.sort(key=lambda c: c.chunk_index)
+        return before, after
 
 
 def _coerce_sources(raw: Any) -> list[str]:
