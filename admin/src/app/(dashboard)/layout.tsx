@@ -6,7 +6,7 @@ import { authAPI } from "@/features/auth/api";
 import { buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import AuthGuard from "@/features/auth/components/auth-guard";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Bot,
@@ -104,6 +104,13 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // admin 컨텍스트에서 paper × warm 토큰을 cool slate 로 차단.
+  // body 에 클래스 적용해야 portal(Sheet/Dialog) 도 inherit.
+  useEffect(() => {
+    document.body.classList.add("admin-scope");
+    return () => document.body.classList.remove("admin-scope");
+  }, []);
 
   async function handleLogout() {
     try {
