@@ -45,20 +45,12 @@ import {
   type FeedbackType,
 } from "@/features/chatbot/chat-api";
 import {
-  FloatingActionBar,
   FollowupPills,
   PersonaSheet,
   PersonaRowTrigger,
   SourceOriginalModal,
   type PersonaMode,
 } from "@/components/truewords";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { QuestionInput } from "@/components/truewords/question-input";
 import {
   EmphasisSheet,
@@ -142,11 +134,11 @@ export default function ChatPage() {
   const [personaSheetOpen, setPersonaSheetOpen] = useState(false);
   const [emphasisSheetOpen, setEmphasisSheetOpen] = useState(false);
 
-  // P0-G — 답변 화면 floating action bar 상태
-  // 북마크 영속화 미구현으로 UI 숨김 (FloatingActionBar 의 onBookmark 전달 안 함).
-  // 인프라 도입 시 재활성:
+  // P0-G — 답변 화면 floating action bar (새 질문 / 북마크 / 공유) 전체 숨김.
+  // 북마크는 백엔드 영속화 미구현이고, 새 질문/공유도 헤더 액션과 중복돼 사용자
+  // 결정으로 일괄 hide. 인프라 도입 시 FloatingActionBar 와 followup sheet 동시 재활성.
   // const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => new Set());
-  const [followupOpen, setFollowupOpen] = useState(false);
+  // const [followupOpen, setFollowupOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -327,49 +319,10 @@ export default function ChatPage() {
   // 메시지가 있으면 기존 채팅 흐름을 유지한다.
   const isEmptyState = messages.length === 0 && !loading;
 
-  // P0-G — 가장 최근 assistant 답변 (FloatingActionBar 노출/핸들러 기준)
-  const latestAssistant = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i -= 1) {
-      const m = messages[i];
-      if (m.role === "assistant" && m.messageId) return m;
-    }
-    return null;
-  }, [messages]);
-
-  const showFloatingBar = !!latestAssistant && !loading;
-
-  const handleFloatingNewQuestion = useCallback(() => {
-    setFollowupOpen(true);
-    requestAnimationFrame(() => textareaRef.current?.focus());
-  }, []);
-
-  // 북마크 핸들러는 영속화 인프라 도입 시 재활성. 현재 FloatingActionBar 에 미전달.
-  // const handleFloatingBookmark = useCallback(() => { ... });
-
-  const handleFloatingShare = useCallback(async () => {
-    const text = latestAssistant
-      ? stripDisclaimer(latestAssistant.content)
-      : "";
-    const shareData = {
-      title: "TrueWords 답변",
-      text,
-      url: typeof window !== "undefined" ? window.location.href : undefined,
-    };
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share(shareData);
-        return;
-      } catch (e) {
-        if ((e as Error)?.name === "AbortError") return;
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("답변을 클립보드에 복사했어요");
-    } catch {
-      toast.error("공유에 실패했어요");
-    }
-  }, [latestAssistant]);
+  // FloatingActionBar 전체 hide. latestAssistant 추출 + 핸들러는 인프라 추가 시 재활성.
+  // - handleFloatingNewQuestion: setFollowupOpen(true) + textarea focus
+  // - handleFloatingBookmark: setBookmarkedIds (영속화 미구현)
+  // - handleFloatingShare: navigator.share / clipboard fallback
 
   return (
     <div className="flex h-dvh flex-col bg-background">
@@ -540,9 +493,7 @@ export default function ChatPage() {
         <>
           <div className="flex-1 overflow-y-auto px-4 py-6">
             <div
-              className={`mx-auto max-w-2xl space-y-4 ${
-                showFloatingBar ? "pb-28" : ""
-              }`}
+              className="mx-auto max-w-2xl space-y-4"
             >
               {messages.map((msg, i) => (
                 <div
@@ -784,17 +735,6 @@ export default function ChatPage() {
         onValueChange={setEmphasis}
       />
 
-      {/* P0-G — 답변이 표시될 때만 floating action bar 노출 (ADR-46) */}
-      {showFloatingBar && (
-        <FloatingActionBar
-          onNewQuestion={handleFloatingNewQuestion}
-          onShare={handleFloatingShare}
-          // 북마크는 백엔드 영속화 미구현 — UI 레벨 hide. 인프라 도입 시 재활성.
-          // onBookmark={handleFloatingBookmark}
-          // bookmarked={isLatestBookmarked}
-        />
-      )}
-
       {/* P0-B — 인용 카드 원문보기 모달 */}
       <SourceOriginalModal
         open={chunkModal.open}
@@ -806,20 +746,7 @@ export default function ChatPage() {
         highlightSnippet={chunkModal.snippet ?? undefined}
       />
 
-      {/* 추천 follow-up sheet — placeholder. P0-A worktree 결합 예정 */}
-      <Sheet open={followupOpen} onOpenChange={(v: boolean) => setFollowupOpen(v)}>
-        <SheetContent side="bottom" className="max-h-[60vh]">
-          <SheetHeader>
-            <SheetTitle>이어서 물어볼만한 질문</SheetTitle>
-            <SheetDescription>
-              관련된 추천 질문을 곧 여기 표시합니다 (P0-A 연동 예정).
-            </SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6 pt-2 text-sm text-muted-foreground">
-            지금은 placeholder입니다. 입력창에 직접 질문을 입력해 주세요.
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* 추천 follow-up sheet 는 FloatingActionBar 와 함께 숨김. 재활성 시 같이 복구. */}
     </div>
   );
 }
