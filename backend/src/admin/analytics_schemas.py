@@ -45,6 +45,8 @@ class FeedbackSummary(BaseModel):
 
 class NegativeFeedbackItem(BaseModel):
     id: uuid.UUID
+    session_id: uuid.UUID
+    chatbot_name: str | None = None
     question: str
     answer_snippet: str
     feedback_type: str
@@ -106,3 +108,29 @@ class QueryListResponse(BaseModel):
     page: int
     size: int
     days: int
+
+
+class ReactionCount(BaseModel):
+    kind: str
+    count: int
+
+
+class SessionMessageItem(BaseModel):
+    id: uuid.UUID
+    role: str
+    content: str
+    created_at: datetime
+    resolved_answer_mode: str | None = None
+    persona_overridden: bool | None = None
+    reactions: list[ReactionCount] = Field(default_factory=list)
+    feedback: FeedbackItem | None = None
+    citations: list[CitationItem] = Field(default_factory=list)
+
+
+class SessionDetailResponse(BaseModel):
+    session_id: uuid.UUID
+    chatbot_id: uuid.UUID | None = None
+    chatbot_name: str | None = None
+    started_at: datetime
+    ended_at: datetime | None = None
+    messages: list[SessionMessageItem] = Field(default_factory=list)

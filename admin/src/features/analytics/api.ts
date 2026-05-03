@@ -9,6 +9,7 @@ import type {
   QueryDetail,
   QueryListResponse,
   QuerySortKey,
+  SessionDetail,
 } from "./types";
 
 export const analyticsAPI = {
@@ -41,6 +42,11 @@ export const analyticsAPI = {
       `/admin/analytics/search/query-details?query_text=${encodeURIComponent(
         queryText
       )}&days=${days}&limit=${limit}`
+    ),
+
+  getSessionDetail: (sessionId: string) =>
+    fetchAPI<SessionDetail>(
+      `/admin/analytics/sessions/${encodeURIComponent(sessionId)}`
     ),
 
   getQueries: (params: {

@@ -37,11 +37,39 @@ export interface FeedbackSummary {
 
 export interface NegativeFeedbackItem {
   id: string;
+  session_id: string;
+  chatbot_name: string | null;
   question: string;
   answer_snippet: string;
   feedback_type: string;
   comment: string | null;
   created_at: string;
+}
+
+export interface ReactionCount {
+  kind: string;
+  count: number;
+}
+
+export interface SessionMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+  resolved_answer_mode: string | null;
+  persona_overridden: boolean | null;
+  reactions: ReactionCount[];
+  feedback: FeedbackItem | null;
+  citations: CitationItem[];
+}
+
+export interface SessionDetail {
+  session_id: string;
+  chatbot_id: string | null;
+  chatbot_name: string | null;
+  started_at: string;
+  ended_at: string | null;
+  messages: SessionMessage[];
 }
 
 export interface CitationItem {
