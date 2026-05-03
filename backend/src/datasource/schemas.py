@@ -114,19 +114,17 @@ class UploadResponse(BaseModel):
     )
 
 
-class ChunkContextItem(BaseModel):
-    """원문보기 모달의 전후 문맥 청크 — 메인 청크 위/아래에 표시될 인접 텍스트."""
-
-    chunk_index: int = Field(..., description="volume 내 청크 순서 번호")
-    text: str = Field("", description="문맥 청크 본문")
-
-
 class SourceChunkDetail(BaseModel):
-    """P0-B — 인용 카드 원문보기 모달용 청크 상세 + 전후 문맥.
+    """P0-B — 인용 카드 원문보기 모달용 청크 상세 + dedup 된 연속 문맥.
 
-    chat 답변에서 노출된 청크의 전체 본문 + 카테고리 메타. 사용자가 답변 페이지의
-    "원문보기" 를 클릭했을 때 모달로 노출된다. NotebookLM 패턴에 맞춰 인용 청크
-    위/아래 인접 청크들을 함께 반환해 사용자가 문맥을 확인할 수 있도록 한다.
+    NotebookLM 패턴: 메인 청크 + 같은 volume 의 chunk_index 인접 ±N 청크들을
+    suffix-prefix overlap dedup 후 **하나의 연속 본문** 으로 합쳐 반환한다.
+    사용자가 청크 경계의 끊김/중복 없이 자연스러운 reading flow 로 원문을
+    확인할 수 있다. 프론트는 ``main_offset_start..main_offset_end`` 범위만
+    시각적으로 강조 (좌측 brass border + accent 옅은 배경).
+
+    Chunking artifact (overlap=150) 의 부산물이 백엔드에서 정리되므로 프론트는
+    단순 substring slicing 만 수행.
 
     PoC 정리 (2026-04-29) — P1-B 4중 메타 (volume_no/delivered_at/delivered_place/
     chapter_title + citation_label) 제거. 인덱싱 파이프라인이 4 필드를 채우게
@@ -134,19 +132,23 @@ class SourceChunkDetail(BaseModel):
     """
 
     chunk_id: str = Field(..., description="Qdrant point id")
-    text: str = Field("", description="메인 청크 본문 (정규화된 텍스트)")
+    text: str = Field("", description="메인 청크 단독 본문 (legacy fallback 용)")
     volume: str = Field("", description="원본 volume (파일명 또는 권명)")
     sources: list[str] = Field(
         default_factory=list, description="해당 청크가 속한 카테고리 key 목록"
     )
     chunk_index: int = Field(-1, description="volume 내 메인 청크 순서 번호")
-    context_before: list[ChunkContextItem] = Field(
-        default_factory=list,
-        description="메인 청크 직전 인접 청크들 (chunk_index 오름차순)",
+    merged_text: str = Field(
+        "",
+        description="메인 + 인접 청크를 NFC 정규화 + suffix-prefix dedup 후 합친 연속 본문",
     )
-    context_after: list[ChunkContextItem] = Field(
-        default_factory=list,
-        description="메인 청크 직후 인접 청크들 (chunk_index 오름차순)",
+    main_offset_start: int = Field(
+        0,
+        description="merged_text 안에서 메인 청크 본문 시작 character offset (포함)",
+    )
+    main_offset_end: int = Field(
+        0,
+        description="merged_text 안에서 메인 청크 본문 끝 character offset (제외)",
     )
 
 

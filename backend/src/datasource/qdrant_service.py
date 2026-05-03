@@ -8,9 +8,9 @@ import asyncio
 import unicodedata
 from typing import Any
 
+from src.datasource.chunk_merge import merge_with_dedup
 from src.datasource.schemas import (
     CategoryDocumentStats,
-    ChunkContextItem,
     SourceChunkDetail,
     VolumeDeleteResponse,
     VolumeInfo,
@@ -535,16 +535,19 @@ class DataSourceQdrantService:
         *,
         context_window: int = 2,
     ) -> SourceChunkDetail | None:
-        """P0-B — 인용 카드 원문보기 모달용 청크 + 전후 문맥 조회.
+        """P0-B — 인용 카드 원문보기 모달용 청크 + dedup 된 연속 문맥 조회.
 
-        NotebookLM 패턴 — 메인 청크 단독이 아니라 같은 volume 의 인접 chunk_index
-        ±``context_window`` 청크들을 함께 반환해 사용자가 인용 부분을 문맥과
-        함께 확인할 수 있도록 한다. 동일 volume 의 다른 청크들은 chatbot
-        ACL 측면에서도 동일 source 집합에 속하므로 권한 변동 없음.
+        같은 volume 의 chunk_index 인접 ±``context_window`` 청크들을 가져와
+        suffix-prefix overlap dedup 후 **하나의 연속 본문** 으로 합쳐 반환한다.
+        프론트는 ``main_offset_start..main_offset_end`` 범위만 시각 강조하면
+        끊김/중복 없는 reading flow 가 자연스럽게 형성된다.
+
+        Chunking artifact (overlap=150) 의 부산물을 백엔드에서 한 번 정리.
+        ACL: 같은 volume → 동일 source 집합이므로 권한 변동 없음.
 
         Args:
             chunk_id: Qdrant point id.
-            context_window: 메인 청크 위/아래로 가져올 인접 청크 수 (기본 2 → 총 5청크).
+            context_window: 메인 위/아래로 가져올 인접 청크 수 (기본 2 → 총 5).
         """
         try:
             points = await self.client.retrieve(
@@ -558,38 +561,48 @@ class DataSourceQdrantService:
         if not points:
             return None
         payload: dict[str, Any] = points[0].payload or {}
+        main_text = str(payload.get("text", ""))
         volume = str(payload.get("volume", ""))
         main_idx_raw = payload.get("chunk_index")
         main_chunk_index = (
             int(main_idx_raw) if isinstance(main_idx_raw, (int, float)) else -1
         )
 
-        before, after = await self._fetch_chunk_context(
+        before_texts, after_texts = await self._fetch_chunk_context_texts(
             volume=volume,
             main_chunk_index=main_chunk_index,
             window=context_window,
         )
 
+        merged = merge_with_dedup(
+            main_text=main_text,
+            before=before_texts,
+            after=after_texts,
+        )
+
         return SourceChunkDetail(
             chunk_id=str(points[0].id),
-            text=str(payload.get("text", "")),
+            text=main_text,
             volume=volume,
             sources=_coerce_sources(payload.get("source")),
             chunk_index=main_chunk_index,
-            context_before=before,
-            context_after=after,
+            merged_text=merged.merged_text,
+            main_offset_start=merged.main_offset_start,
+            main_offset_end=merged.main_offset_end,
         )
 
-    async def _fetch_chunk_context(
+    async def _fetch_chunk_context_texts(
         self,
         *,
         volume: str,
         main_chunk_index: int,
         window: int,
-    ) -> tuple[list[ChunkContextItem], list[ChunkContextItem]]:
-        """메인 청크 인접 ±window 청크들을 chunk_index 순서로 fetch.
+    ) -> tuple[list[str], list[str]]:
+        """메인 청크 인접 ±window 청크 본문을 chunk_index 순서로 fetch.
 
-        volume 또는 chunk_index 가 비정상이면 빈 리스트 반환 (graceful).
+        chunk_index 가 메인과 정확히 인접 (idx == main±k, k=1..window) 인 경우만
+        반환 — 갭 (deletion 등) 은 dedup 시 잘못된 매칭 위험 → 갭 발견 시 그
+        지점에서 stop. volume/chunk_index 비정상이면 빈 리스트 (graceful).
         """
         if not volume or main_chunk_index < 0 or window <= 0:
             return [], []
@@ -607,13 +620,12 @@ class DataSourceQdrantService:
                 ),
                 with_payload=["text", "chunk_index"],
                 with_vectors=False,
-                limit=window * 2 + 2,  # 메인 + 위 window + 아래 window 여유분
+                limit=window * 2 + 2,
             )
         except Exception:
             return [], []
 
-        before: list[ChunkContextItem] = []
-        after: list[ChunkContextItem] = []
+        by_idx: dict[int, str] = {}
         for p in points:
             payload: dict[str, Any] = p.payload or {}
             idx_raw = payload.get("chunk_index")
@@ -622,17 +634,22 @@ class DataSourceQdrantService:
             idx = int(idx_raw)
             if idx == main_chunk_index:
                 continue
-            item = ChunkContextItem(
-                chunk_index=idx,
-                text=str(payload.get("text", "")),
-            )
-            if idx < main_chunk_index:
-                before.append(item)
-            else:
-                after.append(item)
+            by_idx[idx] = str(payload.get("text", ""))
 
-        before.sort(key=lambda c: c.chunk_index)
-        after.sort(key=lambda c: c.chunk_index)
+        # 메인에서 멀어지는 방향으로 연속(인접)인 동안만 채택 — 갭 발견 시 stop.
+        before: list[str] = []
+        for k in range(1, window + 1):
+            idx = main_chunk_index - k
+            if idx not in by_idx:
+                break
+            before.insert(0, by_idx[idx])
+        after: list[str] = []
+        for k in range(1, window + 1):
+            idx = main_chunk_index + k
+            if idx not in by_idx:
+                break
+            after.append(by_idx[idx])
+
         return before, after
 
 
