@@ -1,50 +1,39 @@
+# Root .gitignore — Hybrid 패턴 (cross-cutting 전용)
+#
+# 각 워크스페이스는 자기 toolchain 산출물을 직접 관리:
+#   - backend/.gitignore  → Python (uv, pytest, ruff, mypy, alembic 등)
+#   - admin/.gitignore    → Next.js (create-next-app 자동 관리: .next, node_modules, .vercel 등)
+#
+# 이 root 파일은 워크스페이스 경계를 넘는 패턴만 담는다.
+
+# ─── Editor / OS ────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Claude / AI 도구 산출물 ────────────────────────
 .ai/
 .claude/
 .agents/
-
-# 환경 변수 (API 키 포함)
-**/.env
-.env
-.env.production.local
-
-# Python 캐시
-__pycache__/
-**/__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.egg-info/
-dist/
-build/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-
-# Node.js / Next.js
-node_modules/
-.next/
-out/
 .gstack/
 .superpowers/
 
-# 로컬 테스트 결과
-backend/progress.json
-eval_results.json
+# ─── 환경 변수 (모든 워크스페이스 공통) ──────────────
+**/.env
+.env
+.env.local
+.env.production.local
 
-# 로컬 서버 로그
+# ─── 로그 (어떤 워크스페이스든) ──────────────────────
 *.log
 
-# Playwright MCP 세션 로그 (console / page snapshots)
+# ─── E2E / Playwright 테스트 ────────────────────────
 .playwright-mcp/
-
-# Playwright 테스트 산출물
 **/test-results/
 
-# 가이드 배포 파생본 (md가 원본, 나머지는 빌드 결과)
+# ─── Docs 빌드 파생본 (md 가 원본) ───────────────────
 docs/guides/*.pdf
 docs/guides/*.docx
 docs/guides/*.html
 
-# 측정 임시 산출물 (xlsx/json/log) — 영구 보관은 ~/Downloads
+# ─── 측정 임시 산출물 (root cwd 에 생성됨, 영구 보관은 ~/Downloads) ───
 tmp_match/
