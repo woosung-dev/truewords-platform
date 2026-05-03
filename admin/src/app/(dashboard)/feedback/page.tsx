@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ResponsiveContainer,
@@ -13,6 +14,7 @@ import { analyticsAPI } from "@/features/analytics/api";
 import type { NegativeFeedbackItem } from "@/features/analytics/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import SessionDetailModal from "@/features/analytics/components/session-detail-modal";
 
 // ─────────────────────────────────────────────
 // 피드백 유형 상수
@@ -138,13 +140,18 @@ function FeedbackDistributionChart({
 function NegativeFeedbackTable({
   items,
   loading,
+  onSelectSession,
 }: {
   items?: NegativeFeedbackItem[];
   loading: boolean;
+  onSelectSession: (sessionId: string) => void;
 }) {
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
       <h2 className="text-sm font-semibold">최근 부정 피드백</h2>
+      <p className="text-xs text-muted-foreground -mt-2">
+        행을 클릭하면 해당 세션의 전체 대화를 볼 수 있습니다
+      </p>
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -163,6 +170,9 @@ function NegativeFeedbackTable({
                 <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                   시간
                 </th>
+                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                  봇
+                </th>
                 <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">
                   질문
                 </th>
@@ -179,9 +189,16 @@ function NegativeFeedbackTable({
             </thead>
             <tbody>
               {items.map((item, i) => (
-                <tr key={item.id} className={i !== 0 ? "border-t" : ""}>
+                <tr
+                  key={item.id}
+                  className={`cursor-pointer hover:bg-admin-muted/30 transition-colors ${i !== 0 ? "border-t" : ""}`}
+                  onClick={() => onSelectSession(item.session_id)}
+                >
                   <td className="py-2 px-3 text-xs text-muted-foreground whitespace-nowrap">
                     {formatDate(item.created_at)}
+                  </td>
+                  <td className="py-2 px-3 text-xs whitespace-nowrap">
+                    {item.chatbot_name ?? "-"}
                   </td>
                   <td className="py-2 px-3">
                     <span
@@ -236,6 +253,10 @@ export default function FeedbackPage() {
     queryFn: () => analyticsAPI.getNegativeFeedback(20, 0),
   });
 
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null
+  );
+
   return (
     <div className="space-y-6 max-w-5xl">
       {/* 헤더 */}
@@ -253,7 +274,20 @@ export default function FeedbackPage() {
       />
 
       {/* 최근 부정 피드백 */}
-      <NegativeFeedbackTable items={negativeFeedback} loading={negativeLoading} />
+      <NegativeFeedbackTable
+        items={negativeFeedback}
+        loading={negativeLoading}
+        onSelectSession={setSelectedSessionId}
+      />
+
+      {/* 세션 상세 모달 */}
+      <SessionDetailModal
+        open={selectedSessionId !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedSessionId(null);
+        }}
+        sessionId={selectedSessionId}
+      />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 """분석 대시보드 API 라우터."""
 
-from fastapi import APIRouter, Depends, Query
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.admin.analytics_repository import AnalyticsRepository
@@ -13,6 +15,7 @@ from src.admin.analytics_schemas import (
     QueryDetailResponse,
     QueryListResponse,
     SearchStats,
+    SessionDetailResponse,
     TopQuery,
 )
 from src.admin.dependencies import get_current_admin
@@ -121,6 +124,22 @@ async def get_query_details(
     """인기 질문의 모든 발생 상세 조회."""
     data = await repo.get_query_details(query_text, days, limit)
     return QueryDetailResponse(**data)
+
+
+@router.get("/sessions/{session_id}", response_model=SessionDetailResponse)
+async def get_session_detail(
+    session_id: UUID,
+    repo: AnalyticsRepository = Depends(_get_repo),
+    current_admin: dict = Depends(get_current_admin),
+) -> SessionDetailResponse:
+    """세션 전체 메시지 + 반응/피드백/출처 inline (시간순).
+
+    피드백 row 에서 어떤 대화 맥락이었는지 추적하기 위한 진입점.
+    """
+    data = await repo.get_session_detail(session_id)
+    if data is None:
+        raise HTTPException(status_code=404, detail="session not found")
+    return SessionDetailResponse(**data)
 
 
 @router.get("/search/queries", response_model=QueryListResponse)

@@ -315,7 +315,7 @@ class AnalyticsRepository:
         }
 
     async def get_negative_feedback(self, limit: int = 20, offset: int = 0) -> list[dict]:
-        """부정 피드백 목록 (질문 + 답변 포함)."""
+        """부정 피드백 목록 (질문 + 답변 + 세션/봇 추적용 메타 포함)."""
         result = await self.session.execute(
             text("""
                 SELECT
@@ -324,6 +324,8 @@ class AnalyticsRepository:
                     af.comment,
                     af.created_at,
                     sm_answer.content AS answer,
+                    sm_answer.session_id AS session_id,
+                    cc.display_name AS chatbot_name,
                     (
                         SELECT sm_q.content
                         FROM session_messages sm_q
@@ -335,6 +337,8 @@ class AnalyticsRepository:
                     ) AS question
                 FROM answer_feedback af
                 JOIN session_messages sm_answer ON sm_answer.id = af.message_id
+                JOIN research_sessions rs ON rs.id = sm_answer.session_id
+                LEFT JOIN chatbot_configs cc ON cc.id = rs.chatbot_config_id
                 WHERE af.feedback_type != 'HELPFUL'
                 ORDER BY af.created_at DESC
                 LIMIT :limit OFFSET :offset
@@ -344,6 +348,8 @@ class AnalyticsRepository:
         return [
             {
                 "id": row.id,
+                "session_id": row.session_id,
+                "chatbot_name": row.chatbot_name,
                 "question": row.question or "",
                 "answer_snippet": (row.answer or "")[:200],
                 "feedback_type": row.feedback_type,
@@ -352,6 +358,139 @@ class AnalyticsRepository:
             }
             for row in result.all()
         ]
+
+    async def get_session_detail(self, session_id: UUID) -> dict | None:
+        """세션 전체 메시지 + 반응/피드백/출처 inline (시간순).
+
+        피드백 row 에서 어떤 대화 맥락이었는지 추적하기 위한 진입점.
+        세션 미존재 시 None.
+        """
+        # 1) 세션 메타 + 봇 표시명
+        session_result = await self.session.execute(
+            text("""
+                SELECT
+                    rs.id,
+                    rs.chatbot_config_id,
+                    cc.display_name AS chatbot_name,
+                    rs.started_at,
+                    rs.ended_at
+                FROM research_sessions rs
+                LEFT JOIN chatbot_configs cc ON cc.id = rs.chatbot_config_id
+                WHERE rs.id = :sid
+            """),
+            {"sid": session_id},
+        )
+        session_row = session_result.one_or_none()
+        if session_row is None:
+            return None
+
+        # 2) 메시지 시간순
+        msg_result = await self.session.execute(
+            text("""
+                SELECT
+                    id, role, content, created_at,
+                    resolved_answer_mode, persona_overridden
+                FROM session_messages
+                WHERE session_id = :sid
+                ORDER BY created_at ASC
+            """),
+            {"sid": session_id},
+        )
+        msg_rows = msg_result.all()
+        msg_ids = [row.id for row in msg_rows]
+
+        if not msg_ids:
+            return {
+                "session_id": session_row.id,
+                "chatbot_id": session_row.chatbot_config_id,
+                "chatbot_name": session_row.chatbot_name,
+                "started_at": session_row.started_at,
+                "ended_at": session_row.ended_at,
+                "messages": [],
+            }
+
+        # 3) 반응 (👍/👎/💾) — kind 별 count
+        reactions_map: dict[UUID, list[dict]] = {mid: [] for mid in msg_ids}
+        rx_result = await self.session.execute(
+            text("""
+                SELECT message_id, kind, COUNT(*)::int AS count
+                FROM chat_message_reactions
+                WHERE message_id = ANY(:ids)
+                GROUP BY message_id, kind
+            """),
+            {"ids": msg_ids},
+        )
+        for row in rx_result.all():
+            reactions_map.setdefault(row.message_id, []).append({
+                "kind": row.kind,
+                "count": row.count,
+            })
+
+        # 4) 피드백 — 메시지별 최신 1건
+        feedback_map: dict[UUID, dict] = {}
+        fb_result = await self.session.execute(
+            text("""
+                SELECT DISTINCT ON (message_id)
+                    message_id, feedback_type, comment, created_at
+                FROM answer_feedback
+                WHERE message_id = ANY(:ids)
+                ORDER BY message_id, created_at DESC
+            """),
+            {"ids": msg_ids},
+        )
+        for row in fb_result.all():
+            feedback_map[row.message_id] = {
+                "feedback_type": row.feedback_type,
+                "comment": row.comment,
+                "created_at": row.created_at,
+            }
+
+        # 5) 출처 (assistant 메시지)
+        cite_map: dict[UUID, list[dict]] = {}
+        ce_result = await self.session.execute(
+            text("""
+                SELECT
+                    message_id, source, volume, chapter, text_snippet,
+                    relevance_score, rank_position
+                FROM answer_citations
+                WHERE message_id = ANY(:ids)
+                ORDER BY rank_position ASC
+            """),
+            {"ids": msg_ids},
+        )
+        for row in ce_result.all():
+            cite_map.setdefault(row.message_id, []).append({
+                "source": row.source,
+                "volume": row.volume,
+                "chapter": row.chapter,
+                "text_snippet": row.text_snippet,
+                "relevance_score": float(row.relevance_score),
+                "rank_position": row.rank_position,
+            })
+
+        # 6) 조합
+        messages = [
+            {
+                "id": row.id,
+                "role": row.role,
+                "content": row.content,
+                "created_at": row.created_at,
+                "resolved_answer_mode": row.resolved_answer_mode,
+                "persona_overridden": row.persona_overridden,
+                "reactions": reactions_map.get(row.id, []),
+                "feedback": feedback_map.get(row.id),
+                "citations": cite_map.get(row.id, []),
+            }
+            for row in msg_rows
+        ]
+        return {
+            "session_id": session_row.id,
+            "chatbot_id": session_row.chatbot_config_id,
+            "chatbot_name": session_row.chatbot_name,
+            "started_at": session_row.started_at,
+            "ended_at": session_row.ended_at,
+            "messages": messages,
+        }
 
     async def get_queries(
         self,
