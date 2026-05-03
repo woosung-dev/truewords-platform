@@ -141,7 +141,7 @@ async def test_negative_feedback_includes_session_id_for_drilldown(
     session_id = uuid.uuid4()
 
     repo = AsyncMock(spec=AnalyticsRepository)
-    repo.get_negative_feedback.return_value = [
+    repo.get_feedback_list.return_value = [
         {
             "id": feedback_id,
             "session_id": session_id,
@@ -164,5 +164,62 @@ async def test_negative_feedback_includes_session_id_for_drilldown(
         assert len(items) == 1
         assert items[0]["session_id"] == str(session_id)
         assert items[0]["chatbot_name"] == "축복AI"
+        # repo 가 polarity="negative" 로 호출됐는지
+        repo.get_feedback_list.assert_called_with("negative", 20, 0)
+    finally:
+        _clear_repo_override()
+
+
+@pytest.mark.asyncio
+async def test_feedback_list_supports_positive_polarity(
+    async_client, override_admin_auth
+):
+    """긍정 피드백 (polarity=positive) 도 동일 schema 로 반환."""
+    feedback_id = uuid.uuid4()
+    session_id = uuid.uuid4()
+
+    repo = AsyncMock(spec=AnalyticsRepository)
+    repo.get_feedback_list.return_value = [
+        {
+            "id": feedback_id,
+            "session_id": session_id,
+            "chatbot_name": "축복AI",
+            "question": "감사합니다",
+            "answer_snippet": "도움이 되어 기쁩니다",
+            "feedback_type": "helpful",
+            "comment": "정확했어요",
+            "created_at": datetime(2026, 5, 3, 9, 8, 0),
+        }
+    ]
+    _override_repo(repo)
+    try:
+        async with async_client as client:
+            resp = await client.get(
+                "/admin/analytics/feedback/list",
+                params={"polarity": "positive", "limit": 10},
+            )
+        assert resp.status_code == 200
+        items = resp.json()
+        assert len(items) == 1
+        assert items[0]["feedback_type"] == "helpful"
+        repo.get_feedback_list.assert_called_with("positive", 10, 0)
+    finally:
+        _clear_repo_override()
+
+
+@pytest.mark.asyncio
+async def test_feedback_list_rejects_invalid_polarity(
+    async_client, override_admin_auth
+):
+    """폴라리티 값이 positive/negative 외엔 422."""
+    repo = AsyncMock(spec=AnalyticsRepository)
+    _override_repo(repo)
+    try:
+        async with async_client as client:
+            resp = await client.get(
+                "/admin/analytics/feedback/list",
+                params={"polarity": "neutral"},
+            )
+        assert resp.status_code == 422
     finally:
         _clear_repo_override()

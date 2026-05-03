@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { X, ThumbsDown, ThumbsUp, Bookmark } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -149,6 +150,22 @@ export default function SessionDetailModal({
     staleTime: 30_000,
   });
 
+  // 자동 스크롤 — feedback 가 있는 첫 메시지로 (피드백 row 클릭 의도와 일치)
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  useEffect(() => {
+    if (!open || !data || data.messages.length === 0) return;
+    const target = data.messages.find((m) => m.feedback);
+    if (!target) return;
+    // 다음 tick 까지 대기 — Dialog mount 직후 ref 가 안정되도록
+    const t = window.setTimeout(() => {
+      messageRefs.current[target.id]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [open, data]);
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -202,7 +219,14 @@ export default function SessionDetailModal({
               !isError &&
               data &&
               data.messages.map((msg) => (
-                <MessageBubble key={msg.id} msg={msg} />
+                <div
+                  key={msg.id}
+                  ref={(el) => {
+                    messageRefs.current[msg.id] = el;
+                  }}
+                >
+                  <MessageBubble msg={msg} />
+                </div>
               ))}
           </div>
         </Dialog.Popup>

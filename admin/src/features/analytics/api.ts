@@ -37,6 +37,15 @@ export const analyticsAPI = {
       `/admin/analytics/feedback/negative?limit=${limit}&offset=${offset}`
     ),
 
+  getFeedbackList: (
+    polarity: "positive" | "negative" = "negative",
+    limit = 20,
+    offset = 0
+  ) =>
+    fetchAPI<NegativeFeedbackItem[]>(
+      `/admin/analytics/feedback/list?polarity=${polarity}&limit=${limit}&offset=${offset}`
+    ),
+
   getQueryDetails: (queryText: string, days = 30, limit = 50) =>
     fetchAPI<QueryDetail>(
       `/admin/analytics/search/query-details?query_text=${encodeURIComponent(
