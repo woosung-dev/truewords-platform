@@ -1,15 +1,13 @@
-"""마이그레이션 검증: Qdrant Cloud(소스) ↔ VM(타겟) 일치성 확인.
+"""마이그레이션 검증 (raw httpx).
 
-검증 항목
+검증 항목:
   1. 컬렉션별 point count 동일성
-  2. 무작위 샘플 N건의 vector·payload 일치 (cosine 유사도 ≥ 0.999)
+  2. 무작위 샘플 N건의 vector·payload 일치 (cosine ≥ 0.999)
 
-환경변수 (migrate_cloud_to_vm.py 와 동일):
-  QDRANT_CLOUD_URL, QDRANT_CLOUD_API_KEY, QDRANT_VM_URL, QDRANT_VM_API_KEY
-
+환경변수: migrate_cloud_to_vm.py 와 동일
 사용:
   uv run python scripts/verify_migration.py
-  uv run python scripts/verify_migration.py --sample 20
+  uv run python scripts/verify_migration.py --sample 30 --collections malssum_poc_v5
 """
 import argparse
 import asyncio
@@ -18,8 +16,9 @@ import os
 import random
 import sys
 from pathlib import Path
+from typing import Any
 
-from qdrant_client import AsyncQdrantClient
+import httpx
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
@@ -49,8 +48,7 @@ def cosine(a: list[float], b: list[float]) -> float:
     return dot / (na * nb)
 
 
-def first_dense_vector(v: object) -> list[float] | None:
-    """단일 vector 또는 named-vector dict에서 dense 벡터 추출."""
+def first_dense_vector(v: Any) -> list[float] | None:
     if isinstance(v, list):
         return v
     if isinstance(v, dict):
@@ -60,38 +58,87 @@ def first_dense_vector(v: object) -> list[float] | None:
     return None
 
 
-async def verify_collection(
-    src: AsyncQdrantClient,
-    tgt: AsyncQdrantClient,
-    name: str,
-    sample_size: int,
-) -> bool:
-    try:
-        s_info = await src.get_collection(name)
-        t_info = await tgt.get_collection(name)
-    except Exception as e:
-        print(f"  ⚠️  {name}: 컬렉션 조회 실패 ({e})")
-        return False
+class QdrantHttp:
+    def __init__(self, base_url: str, api_key: str | None) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.headers = {"api-key": api_key} if api_key else {}
+        self.timeout = httpx.Timeout(60.0, connect=10.0)
 
-    s_count = s_info.points_count or 0
-    t_count = t_info.points_count or 0
+    def _client(self) -> httpx.AsyncClient:
+        return httpx.AsyncClient(http2=False, timeout=self.timeout, headers=self.headers)
+
+    async def get_collection(self, name: str) -> dict | None:
+        async with self._client() as cli:
+            r = await cli.get(f"{self.base_url}/collections/{name}")
+            if r.status_code == 404:
+                return None
+            r.raise_for_status()
+            return r.json()["result"]
+
+    async def exact_count(self, name: str) -> int:
+        # ``points_count`` 필드는 segment-level approximate. 검증엔 exact 사용
+        async with self._client() as cli:
+            r = await cli.post(
+                f"{self.base_url}/collections/{name}/points/count",
+                json={"exact": True},
+            )
+            r.raise_for_status()
+            return int(r.json()["result"]["count"])
+
+    async def scroll_ids(
+        self, name: str, *, limit: int, offset: Any | None
+    ) -> tuple[list, Any]:
+        body: dict[str, Any] = {
+            "limit": limit,
+            "with_payload": False,
+            "with_vector": False,
+        }
+        if offset is not None:
+            body["offset"] = offset
+        async with self._client() as cli:
+            r = await cli.post(
+                f"{self.base_url}/collections/{name}/points/scroll", json=body
+            )
+            r.raise_for_status()
+            d = r.json()["result"]
+            return [p["id"] for p in d["points"]], d.get("next_page_offset")
+
+    async def retrieve(self, name: str, ids: list) -> list[dict]:
+        body = {"ids": ids, "with_payload": True, "with_vector": True}
+        async with self._client() as cli:
+            r = await cli.post(
+                f"{self.base_url}/collections/{name}/points", json=body
+            )
+            r.raise_for_status()
+            return r.json()["result"]
+
+
+async def verify_collection(
+    src: QdrantHttp, tgt: QdrantHttp, name: str, sample_size: int
+) -> bool:
+    s_info = await src.get_collection(name)
+    t_info = await tgt.get_collection(name)
+    if s_info is None or t_info is None:
+        print(
+            f"  ⚠️  {name}: 컬렉션 부재 "
+            f"(src={s_info is not None}, tgt={t_info is not None})"
+        )
+        return False
+    s_count = await src.exact_count(name)
+    t_count = await tgt.exact_count(name)
     count_ok = s_count == t_count
-    print(f"\n[{name}] count: cloud={s_count:,}  vm={t_count:,}  {'✅' if count_ok else '⚠️'}")
+    print(
+        f"\n[{name}] count: src={s_count:,}  tgt={t_count:,}  "
+        f"{'✅' if count_ok else '⚠️'}"
+    )
     if not count_ok:
         print(f"     diff={s_count - t_count}")
 
-    # 샘플 ID 수집 (소스에서 scroll 한 번 → ID만 모아서 random sample)
     ids: list = []
     offset = None
     while len(ids) < max(sample_size * 20, 200):
-        pts, offset = await src.scroll(
-            collection_name=name,
-            limit=500,
-            offset=offset,
-            with_payload=False,
-            with_vectors=False,
-        )
-        ids.extend(p.id for p in pts)
+        page_ids, offset = await src.scroll_ids(name, limit=500, offset=offset)
+        ids.extend(page_ids)
         if offset is None:
             break
 
@@ -100,83 +147,71 @@ async def verify_collection(
         return count_ok
 
     sample_ids = random.sample(ids, min(sample_size, len(ids)))
-    s_pts = await src.retrieve(collection_name=name, ids=sample_ids,
-                               with_payload=True, with_vectors=True)
-    t_pts = await tgt.retrieve(collection_name=name, ids=sample_ids,
-                               with_payload=True, with_vectors=True)
+    s_pts = await src.retrieve(name, sample_ids)
+    t_pts = await tgt.retrieve(name, sample_ids)
+    s_map = {p["id"]: p for p in s_pts}
+    t_map = {p["id"]: p for p in t_pts}
 
-    s_map = {p.id: p for p in s_pts}
-    t_map = {p.id: p for p in t_pts}
-
-    matched = 0
-    vec_fail = 0
-    payload_fail = 0
-    missing = 0
-
+    matched = vec_fail = payload_fail = missing = 0
     for pid in sample_ids:
         sp = s_map.get(pid)
         tp = t_map.get(pid)
         if sp is None or tp is None:
             missing += 1
             continue
-        sv = first_dense_vector(sp.vector)
-        tv = first_dense_vector(tp.vector)
+        sv = first_dense_vector(sp.get("vector"))
+        tv = first_dense_vector(tp.get("vector"))
         if sv is None or tv is None or len(sv) != len(tv):
             vec_fail += 1
             continue
-        sim = cosine(sv, tv)
-        if sim < COSINE_THRESHOLD:
+        if cosine(sv, tv) < COSINE_THRESHOLD:
             vec_fail += 1
             continue
-        if (sp.payload or {}) != (tp.payload or {}):
+        if (sp.get("payload") or {}) != (tp.get("payload") or {}):
             payload_fail += 1
             continue
         matched += 1
 
     n = len(sample_ids)
-    print(f"  샘플 {n}건: 일치 {matched}, vector불일치 {vec_fail}, payload불일치 {payload_fail}, 누락 {missing}")
-    sample_ok = (matched == n)
-    return count_ok and sample_ok
+    print(
+        f"  샘플 {n}건: 일치 {matched}, vector불일치 {vec_fail}, "
+        f"payload불일치 {payload_fail}, 누락 {missing}"
+    )
+    return count_ok and matched == n
 
 
 async def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sample", type=int, default=10, help="컬렉션당 샘플 수 (default 10)")
+    parser.add_argument("--sample", type=int, default=10)
     parser.add_argument("--collections", nargs="+", default=DEFAULT_COLLECTIONS)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     load_env()
     random.seed(args.seed)
-
-    required = ["QDRANT_CLOUD_URL", "QDRANT_CLOUD_API_KEY", "QDRANT_VM_URL", "QDRANT_VM_API_KEY"]
+    required = ["QDRANT_CLOUD_URL", "QDRANT_VM_URL", "QDRANT_VM_API_KEY"]
     missing = [k for k in required if not os.environ.get(k)]
     if missing:
         print(f"ERROR: 환경변수 누락: {missing}", file=sys.stderr)
         sys.exit(2)
 
-    src = AsyncQdrantClient(
-        url=os.environ["QDRANT_CLOUD_URL"],
-        api_key=os.environ["QDRANT_CLOUD_API_KEY"],
-        timeout=300,
+    src = QdrantHttp(
+        os.environ["QDRANT_CLOUD_URL"],
+        os.environ.get("QDRANT_CLOUD_API_KEY") or None,
     )
-    tgt = AsyncQdrantClient(
-        url=os.environ["QDRANT_VM_URL"],
-        api_key=os.environ["QDRANT_VM_API_KEY"],
-        timeout=300,
+    tgt = QdrantHttp(
+        os.environ["QDRANT_VM_URL"],
+        os.environ.get("QDRANT_VM_API_KEY") or None,
     )
 
     print("=" * 72)
-    print("Migration Verification — Cloud ↔ VM")
+    print("Migration Verification (raw httpx)")
     print("=" * 72)
 
     all_ok = True
     for name in args.collections:
         ok = await verify_collection(src, tgt, name, args.sample)
         all_ok = all_ok and ok
-
-    await src.close()
-    await tgt.close()
 
     print("\n" + ("🎉 검증 통과" if all_ok else "⚠️  검증 실패 — 위 로그 참고"))
     sys.exit(0 if all_ok else 1)

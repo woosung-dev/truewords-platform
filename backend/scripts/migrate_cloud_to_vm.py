@@ -1,24 +1,18 @@
-"""Qdrant Cloud → 셀프 호스팅 VM Qdrant 풀 마이그레이션.
+"""Qdrant 멱등 마이그레이션 (raw httpx, Cloudflare Tunnel 호환).
 
-기존 `migrate_to_qdrant_cloud.py` 의 역방향 응용. 필터링 없이 모든 컬렉션·포인트
-를 1:1 복제하며, 1GB 데이터에서 중단되어도 안전하게 재개할 수 있도록
-체크포인트(`.migration_state.json`)를 사용한다.
+ADR-47 (PR #84/#86) 의 raw httpx 패턴 적용. SDK 의 HTTP/2 hang 회피.
+체크포인트(`.migration_state.json`)로 중단 후 재개 가능.
 
 환경변수 (backend/.env 또는 셸):
-  QDRANT_CLOUD_URL       소스(Qdrant Cloud) URL
-  QDRANT_CLOUD_API_KEY   소스 API key
-  QDRANT_VM_URL          타겟(VM, Cloudflare Tunnel) URL — 예: https://qdrant.<zone>
+  QDRANT_CLOUD_URL       소스 URL
+  QDRANT_CLOUD_API_KEY   소스 API key (없으면 None)
+  QDRANT_VM_URL          타겟 URL
   QDRANT_VM_API_KEY      타겟 API key
 
 사용:
-  uv run python scripts/migrate_cloud_to_vm.py --dry-run
-  uv run python scripts/migrate_cloud_to_vm.py --execute
-  uv run python scripts/migrate_cloud_to_vm.py --execute --collections malssum_poc
-  uv run python scripts/migrate_cloud_to_vm.py --execute --reset   # 체크포인트 무시
-
-체크포인트:
-  backend/scripts/.migration_state.json (자동 생성)
-  중단 후 같은 명령 재실행 시 자동 재개. --reset 로 초기화.
+  uv run python scripts/migrate_cloud_to_vm.py --dry-run --collections malssum_poc_v5
+  uv run python scripts/migrate_cloud_to_vm.py --execute --collections malssum_poc_v5
+  uv run python scripts/migrate_cloud_to_vm.py --execute --reset
 """
 import argparse
 import asyncio
@@ -27,8 +21,9 @@ import os
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
-from qdrant_client import AsyncQdrantClient, models
+import httpx
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
@@ -39,7 +34,6 @@ UPSERT_BATCH = 100
 DEFAULT_COLLECTIONS = ["malssum_poc", "semantic_cache"]
 
 
-# ─────────────────────────── 체크포인트 유틸 ───────────────────────────
 def load_state() -> dict:
     if STATE_FILE.exists():
         return json.loads(STATE_FILE.read_text())
@@ -50,42 +44,105 @@ def save_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2))
 
 
-# ─────────────────────────── 클라이언트 ───────────────────────────
-def make_clients() -> tuple[AsyncQdrantClient, AsyncQdrantClient]:
-    src = AsyncQdrantClient(
-        url=os.environ["QDRANT_CLOUD_URL"],
-        api_key=os.environ["QDRANT_CLOUD_API_KEY"],
-        timeout=300,
+class QdrantHttp:
+    """Cloudflare Tunnel 호환 raw httpx Qdrant 클라이언트 (마이그레이션 일회성)."""
+
+    def __init__(self, base_url: str, api_key: str | None) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.headers = {"api-key": api_key} if api_key else {}
+        self.timeout = httpx.Timeout(300.0, connect=10.0)
+
+    def _client(self) -> httpx.AsyncClient:
+        return httpx.AsyncClient(http2=False, timeout=self.timeout, headers=self.headers)
+
+    async def get_collection(self, name: str) -> dict | None:
+        async with self._client() as cli:
+            r = await cli.get(f"{self.base_url}/collections/{name}")
+            if r.status_code == 404:
+                return None
+            r.raise_for_status()
+            return r.json()["result"]
+
+    async def create_collection(self, name: str, params: dict) -> None:
+        body: dict = {}
+        if params.get("vectors"):
+            body["vectors"] = params["vectors"]
+        if params.get("sparse_vectors"):
+            body["sparse_vectors"] = params["sparse_vectors"]
+        body["on_disk_payload"] = True
+        async with self._client() as cli:
+            r = await cli.put(f"{self.base_url}/collections/{name}", json=body)
+            r.raise_for_status()
+
+    async def create_payload_index(self, name: str, field_name: str, field_schema: str) -> None:
+        async with self._client() as cli:
+            r = await cli.put(
+                f"{self.base_url}/collections/{name}/index?wait=true",
+                json={"field_name": field_name, "field_schema": field_schema},
+            )
+            r.raise_for_status()
+
+    async def scroll(
+        self, name: str, *, limit: int, offset: Any | None = None, with_vector: bool = True
+    ) -> tuple[list[dict], Any | None]:
+        body: dict[str, Any] = {
+            "limit": limit,
+            "with_payload": True,
+            "with_vector": with_vector,
+        }
+        if offset is not None:
+            body["offset"] = offset
+        async with self._client() as cli:
+            r = await cli.post(
+                f"{self.base_url}/collections/{name}/points/scroll", json=body
+            )
+            r.raise_for_status()
+            data = r.json()["result"]
+            return data["points"], data.get("next_page_offset")
+
+    async def upsert(self, name: str, points: list[dict]) -> None:
+        async with self._client() as cli:
+            r = await cli.put(
+                f"{self.base_url}/collections/{name}/points?wait=true",
+                json={"points": points},
+            )
+            r.raise_for_status()
+
+
+def make_clients() -> tuple[QdrantHttp, QdrantHttp]:
+    src = QdrantHttp(
+        os.environ["QDRANT_CLOUD_URL"],
+        os.environ.get("QDRANT_CLOUD_API_KEY") or None,
     )
-    tgt = AsyncQdrantClient(
-        url=os.environ["QDRANT_VM_URL"],
-        api_key=os.environ["QDRANT_VM_API_KEY"],
-        timeout=300,
+    tgt = QdrantHttp(
+        os.environ["QDRANT_VM_URL"],
+        os.environ.get("QDRANT_VM_API_KEY") or None,
     )
     return src, tgt
 
 
-async def collection_brief(client: AsyncQdrantClient, name: str) -> dict | None:
-    try:
-        info = await client.get_collection(name)
-        return {
-            "points": info.points_count,
-            "vectors": info.config.params.vectors,
-            "sparse": info.config.params.sparse_vectors,
-            "raw": info,
-        }
-    except Exception:
+async def collection_brief(client: QdrantHttp, name: str) -> dict | None:
+    info = await client.get_collection(name)
+    if info is None:
         return None
+    params = info["config"]["params"]
+    return {
+        "points": info.get("points_count") or 0,
+        "vectors": params.get("vectors"),
+        "sparse": params.get("sparse_vectors"),
+        "params": params,
+        "payload_schema": info.get("payload_schema") or {},
+    }
 
 
 # ─────────────────────────── DRY RUN ───────────────────────────
 async def preview(collections: list[str]) -> None:
     src, tgt = make_clients()
     print("=" * 72)
-    print("DRY RUN — Qdrant Cloud → VM 마이그레이션 미리보기")
+    print("DRY RUN — Qdrant migration (raw httpx)")
     print("=" * 72)
 
-    print("\n[소스 (Qdrant Cloud)]")
+    print("\n[소스]")
     src_totals: dict[str, int] = {}
     for name in collections:
         brief = await collection_brief(src, name)
@@ -93,9 +150,14 @@ async def preview(collections: list[str]) -> None:
             print(f"  {name}: 없음 (스킵)")
             continue
         src_totals[name] = brief["points"]
-        print(f"  {name}: {brief['points']:,} points")
+        print(
+            f"  {name}: {brief['points']:,} points  "
+            f"vectors={brief['vectors']}  sparse={brief['sparse']}"
+        )
+        if brief["payload_schema"]:
+            print(f"    payload_schema: {list(brief['payload_schema'].keys())}")
 
-    print("\n[타겟 (VM Qdrant)]")
+    print("\n[타겟]")
     for name in collections:
         brief = await collection_brief(tgt, name)
         if not brief:
@@ -107,84 +169,81 @@ async def preview(collections: list[str]) -> None:
     if state:
         print("\n[체크포인트 발견]")
         for name, st in state.items():
-            print(f"  {name}: uploaded={st.get('uploaded', 0):,} offset={st.get('offset')!r}")
+            print(
+                f"  {name}: uploaded={st.get('uploaded', 0):,} "
+                f"offset={st.get('offset')!r} done={st.get('done')}"
+            )
 
     total = sum(src_totals.values())
     print(f"\n[총 이동 예정] {total:,} points")
     print("실제 실행: --execute 추가")
 
-    await src.close()
-    await tgt.close()
-
 
 # ─────────────────────────── EXECUTE ───────────────────────────
 async def ensure_target_collection(
-    src: AsyncQdrantClient,
-    tgt: AsyncQdrantClient,
-    name: str,
+    src: QdrantHttp, tgt: QdrantHttp, name: str
 ) -> None:
-    src_info = (await collection_brief(src, name))
-    if not src_info:
+    src_brief = await collection_brief(src, name)
+    if not src_brief:
         return
-    tgt_info = await collection_brief(tgt, name)
-    if tgt_info:
-        return  # 이미 있음 — 스펙은 source-of-truth(create_collection_v2.py)로 사전 생성된 가정
-    params = src_info["raw"].config.params
-    await tgt.create_collection(
-        collection_name=name,
-        vectors_config=params.vectors,
-        sparse_vectors_config=params.sparse_vectors,
-        on_disk_payload=True,
-    )
+    tgt_brief = await collection_brief(tgt, name)
+    if tgt_brief:
+        return
+    await tgt.create_collection(name, src_brief["params"])
     print(f"    ✅ 타겟 컬렉션 생성: {name}")
+    # payload index 동기화
+    for field, schema in src_brief["payload_schema"].items():
+        if not isinstance(schema, dict):
+            continue
+        dt = schema.get("data_type")
+        if not dt:
+            continue
+        try:
+            await tgt.create_payload_index(name, field, dt)
+            print(f"    ✅ payload index 생성: {field} ({dt})")
+        except Exception as e:
+            print(f"    ⚠️  payload index 실패: {field} ({dt}) — {e}")
 
 
 async def migrate_collection(
-    src: AsyncQdrantClient,
-    tgt: AsyncQdrantClient,
-    name: str,
-    state: dict,
+    src: QdrantHttp, tgt: QdrantHttp, name: str, state: dict
 ) -> None:
-    src_info = await collection_brief(src, name)
-    if not src_info:
+    src_brief = await collection_brief(src, name)
+    if not src_brief:
         print(f"  ⚠️  {name}: 소스에 없음 → 스킵")
         return
 
-    total = src_info["points"]
+    total = src_brief["points"]
     coll_state = state.setdefault(name, {"uploaded": 0, "offset": None, "done": False})
 
     if coll_state.get("done"):
-        print(f"  ✓ {name}: 이미 완료됨 (skipped — 재실행 시 --reset 으로 초기화)")
+        print(f"  ✓ {name}: 이미 완료됨 (--reset 으로 초기화 가능)")
         return
 
     offset = coll_state.get("offset")
     uploaded = coll_state.get("uploaded", 0)
-    buf: list[models.PointStruct] = []
+    buf: list[dict] = []
     started = time.time()
 
     print(f"\n[{name}] {total:,} points 이전 시작 (재개 offset={offset!r})")
 
     while True:
-        pts, offset = await src.scroll(
-            collection_name=name,
-            limit=SCROLL_LIMIT,
-            offset=offset,
-            with_payload=True,
-            with_vectors=True,
-        )
+        pts, offset = await src.scroll(name, limit=SCROLL_LIMIT, offset=offset)
         for p in pts:
-            if p.vector is None:
+            if p.get("vector") is None:
                 continue
             buf.append(
-                models.PointStruct(id=p.id, vector=p.vector, payload=p.payload)  # type: ignore[arg-type]
+                {
+                    "id": p["id"],
+                    "vector": p["vector"],
+                    "payload": p.get("payload") or {},
+                }
             )
             if len(buf) >= UPSERT_BATCH:
-                # wait=True: qdrant 인덱싱 완료까지 대기 → 백로그 누적·OOM 방지
-                await tgt.upsert(collection_name=name, points=buf, wait=True)
+                await tgt.upsert(name, buf)
                 uploaded += len(buf)
                 buf.clear()
 
-        # 페이지 단위로 체크포인트 저장
         coll_state["uploaded"] = uploaded
         coll_state["offset"] = offset
         save_state(state)
@@ -193,13 +252,16 @@ async def migrate_collection(
             elapsed = time.time() - started
             rate = uploaded / max(elapsed, 1e-9)
             eta = (total - uploaded) / max(rate, 1e-9)
-            print(f"    ... {uploaded:,}/{total:,} ({rate:.0f}/s, ETA {eta/60:.1f}분)")
+            print(
+                f"    ... {uploaded:,}/{total:,} "
+                f"({rate:.0f}/s, ETA {eta/60:.1f}분)"
+            )
 
         if offset is None:
             break
 
     if buf:
-        await tgt.upsert(collection_name=name, points=buf, wait=True)
+        await tgt.upsert(name, buf)
         uploaded += len(buf)
         buf.clear()
 
@@ -214,11 +276,10 @@ async def execute(collections: list[str], reset: bool) -> None:
     if reset and STATE_FILE.exists():
         STATE_FILE.unlink()
         print("체크포인트 초기화됨")
-
     state = load_state()
 
     print("=" * 72)
-    print("EXECUTE — Qdrant Cloud → VM 마이그레이션")
+    print("EXECUTE — Qdrant migration (raw httpx)")
     print("=" * 72)
 
     for name in collections:
@@ -233,11 +294,11 @@ async def execute(collections: list[str], reset: bool) -> None:
         t = await collection_brief(tgt, name)
         if s and t:
             ok = "✅" if s["points"] == t["points"] else "⚠️"
-            print(f"  {ok} {name}: cloud={s['points']:,}  vm={t['points']:,}")
+            print(f"  {ok} {name}: src={s['points']:,}  tgt={t['points']:,}")
 
-    await src.close()
-    await tgt.close()
-    print("\n🎉 마이그레이션 완료. backend/scripts/verify_migration.py 로 샘플 검증을 추가 실행하세요.")
+    print(
+        "\n🎉 마이그레이션 완료. backend/scripts/verify_migration.py 로 샘플 검증."
+    )
 
 
 # ─────────────────────────── ENTRY ───────────────────────────
@@ -259,16 +320,13 @@ async def main() -> None:
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--reset", action="store_true", help="체크포인트 초기화")
     parser.add_argument(
-        "--collections",
-        nargs="+",
-        default=DEFAULT_COLLECTIONS,
+        "--collections", nargs="+", default=DEFAULT_COLLECTIONS,
         help=f"기본: {DEFAULT_COLLECTIONS}",
     )
     args = parser.parse_args()
 
     load_env()
-
-    required = ["QDRANT_CLOUD_URL", "QDRANT_CLOUD_API_KEY", "QDRANT_VM_URL", "QDRANT_VM_API_KEY"]
+    required = ["QDRANT_CLOUD_URL", "QDRANT_VM_URL", "QDRANT_VM_API_KEY"]
     missing = [k for k in required if not os.environ.get(k)]
     if missing:
         print(f"ERROR: 환경변수 누락: {missing}", file=sys.stderr)
