@@ -97,15 +97,18 @@ WITH paired AS (
   ) fb ON TRUE
   WHERE um.role = 'USER'
 )
-SELECT DISTINCT ON (lower(btrim(user_question)))
-  session_id, session_started_at, chatbot_key, chatbot_name,
-  user_msg_id, user_question, asked_at,
-  assistant_msg_id, assistant_answer, answered_at,
-  resolved_answer_mode, persona_overridden, crisis_trigger,
-  search_query, rewritten_query, search_tier, total_results, latency_ms,
-  sources_text, feedbacks_text, response_seconds
-FROM paired
-ORDER BY lower(btrim(user_question)), answered_at DESC;
+SELECT * FROM (
+  SELECT DISTINCT ON (lower(btrim(user_question)))
+    session_id, session_started_at, chatbot_key, chatbot_name,
+    user_msg_id, user_question, asked_at,
+    assistant_msg_id, assistant_answer, answered_at,
+    resolved_answer_mode, persona_overridden, crisis_trigger,
+    search_query, rewritten_query, search_tier, total_results, latency_ms,
+    sources_text, feedbacks_text, response_seconds
+  FROM paired
+  ORDER BY lower(btrim(user_question)), answered_at DESC
+) deduped
+ORDER BY answered_at DESC;  -- 최종 행 정렬: 최신 답변이 가장 위
 """
 
 
