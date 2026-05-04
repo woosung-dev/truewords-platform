@@ -216,6 +216,8 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
             )
 
     ws.freeze_panes = "E2"
+    # 헤더에 Excel 표준 auto-filter (드롭다운) 적용 — 챗봇/답변 모드/Tier 등 클라이언트 직접 필터링
+    ws.auto_filter.ref = ws.dimensions
 
     # Sheet 2: 요약 통계
     ws_meta = wb.create_sheet("요약 통계")
