@@ -73,7 +73,8 @@ WITH paired AS (
     ORDER BY m2.created_at ASC
     LIMIT 1
   ) am ON TRUE
-  LEFT JOIN search_events se ON se.message_id = um.id
+  -- search_events.message_id 는 ASSISTANT 메시지 id 를 가리킴 (운영 검증).
+  LEFT JOIN search_events se ON se.message_id = am.id
   LEFT JOIN LATERAL (
     SELECT string_agg(
       format('[%s] %s (%s) · score=%s',
