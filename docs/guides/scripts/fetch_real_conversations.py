@@ -145,7 +145,7 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
     ws.title = "실제 대화 (dedup)"
 
     headers = [
-        "#", "챗봇", "Chatbot ID", "Cache Hit", "질문", "답변",
+        "#", "챗봇", "Chatbot ID", "검색 수행", "질문", "답변",
         "출처 (volume / source / score)", "피드백",
         "답변 모드", "페르소나 override", "위기 트리거",
         "원본 검색 query", "재작성 query", "Tier", "검색 결과 수", "검색 지연(ms)",
@@ -159,14 +159,18 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
     EXCEL_CELL_LIMIT = 32_700
 
     for i, r in enumerate(rows, 1):
-        # Cache Hit 추정: search_events 와 answer_citations 가 둘 다 비어있으면 cache hit
-        # (backend src/chat/service.py:157 — cache hit 시 PersistStage 스킵하므로 둘 다 미생성).
-        cache_hit = (not r.get("search_query")) and (not r.get("sources_text"))
+        # "검색 수행" Y/N — SearchEvent + AnswerCitation 이 모두 기록된 경우 Y.
+        # 비어있는 경우(=N) 는 backend src/chat/service.py 의 mini-persist 분기:
+        #   (1) Semantic Cache Hit — line 157-173, 또는
+        #   (2) META_TERMINATED — line 180-196 (인사/메타 발화).
+        # 두 분기 모두 PersistStage 를 스킵하여 SearchEvent/AnswerCitation 미생성.
+        # 정확한 cache vs meta 분리는 backend 측 skip_reason ENUM 추가 후 가능.
+        retrieval_executed = bool(r.get("search_query")) or bool(r.get("sources_text"))
         ws.append([
             i,
             r.get("chatbot_name") or "",
             r.get("chatbot_key") or "",
-            "Y" if cache_hit else "N",
+            "Y" if retrieval_executed else "N",
             (r.get("user_question") or "")[:EXCEL_CELL_LIMIT],
             (r.get("assistant_answer") or "")[:EXCEL_CELL_LIMIT],
             (r.get("sources_text") or "")[:EXCEL_CELL_LIMIT],
@@ -230,7 +234,7 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
     feedback_count = 0
     persona_overridden_count = 0
     crisis_count = 0
-    cache_hit_count = 0
+    retrieval_skipped_count = 0  # mini-persist 분기 (Cache Hit + META intent 포함)
     for r in rows:
         b = r.get("chatbot_name") or "?"
         by_bot[b] = by_bot.get(b, 0) + 1
@@ -241,29 +245,32 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
         if r.get("crisis_trigger"):
             crisis_count += 1
         if (not r.get("search_query")) and (not r.get("sources_text")):
-            cache_hit_count += 1
+            retrieval_skipped_count += 1
 
     avg_response = (
         sum(r.get("response_seconds") or 0.0 for r in rows) / max(total, 1)
     )
     avg_answer_len = sum(len(r.get("assistant_answer") or "") for r in rows) / max(total, 1)
 
-    cache_hit_pct = round(cache_hit_count * 100 / max(total, 1), 1)
+    retrieval_executed_count = total - retrieval_skipped_count
+    retrieval_skipped_pct = round(retrieval_skipped_count * 100 / max(total, 1), 1)
     meta = [
         ["항목", "값"],
         ["수집 시각 (UTC)", time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())],
         ["환경", "Production (Neon PostgreSQL)"],
         ["동일 질문 정책", "정규화(trim + lowercase) 후 가장 최근 답변만 유지 (DISTINCT ON)"],
         ["총 dedup 페어", total],
-        ["Cache Hit 페어", f"{cache_hit_count} ({cache_hit_pct}%) — search/출처 둘 다 비어있는 페어"],
-        ["Cache Miss 페어 (정상 RAG)", total - cache_hit_count],
+        ["검색 수행 페어 (Y) — RAG 분석 대상", retrieval_executed_count],
+        ["검색 미수행 페어 (N)", f"{retrieval_skipped_count} ({retrieval_skipped_pct}%) — SearchEvent/AnswerCitation 미생성"],
         ["피드백 달린 페어", feedback_count],
         ["페르소나 자동 override 페어", persona_overridden_count],
         ["위기 트리거 페어", crisis_count],
         ["평균 응답 시간(s)", round(avg_response, 1)],
         ["평균 답변 길이(자)", int(avg_answer_len)],
         ["", ""],
-        ["Cache Hit 판단 근거", "backend/src/chat/service.py:157 — cache hit 시 full PersistStage 스킵 → SearchEvent/AnswerCitation 미생성. 둘 다 비어있는 메시지를 cache hit 으로 간주."],
+        ["\"검색 수행\" 컬럼 의미", "Y = SearchEvent + AnswerCitation 모두 기록된 정상 RAG 페어 (외부 테스터의 RAG 평가 대상). N = mini-persist 분기로 둘 다 미기록."],
+        ["\"검색 미수행(N)\" 의 두 가지 원인", "(1) Semantic Cache Hit — backend/src/chat/service.py:157-173. 자주 묻는 인기 질문이 cache_threshold=0.88 으로 매칭되어 search 스킵. (2) META_TERMINATED — line 180-196. 인사/메타 발화 (\"안녕\", \"고마워\" 등) 는 RAG 자체가 의미 없어 스킵."],
+        ["주의", "현재 데이터로는 (1) Cache vs (2) Meta 를 정확히 분리 불가. 둘을 분리하려면 backend 측 SessionMessage.skip_reason ENUM 추가가 필요 (별도 작업)."],
     ]
     meta.append(["", ""])
     meta.append(["챗봇별 페어 수", "(많은 순)"])
@@ -291,9 +298,9 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
         json.dumps(
             {
                 "total_pairs": total,
-                "cache_hit_count": cache_hit_count,
-                "cache_hit_pct": cache_hit_pct,
-                "cache_miss_count": total - cache_hit_count,
+                "retrieval_executed_count": retrieval_executed_count,
+                "retrieval_skipped_count": retrieval_skipped_count,
+                "retrieval_skipped_pct": retrieval_skipped_pct,
                 "feedback_count": feedback_count,
                 "persona_overridden_count": persona_overridden_count,
                 "crisis_count": crisis_count,
@@ -302,7 +309,7 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
                 "by_chatbot": dict(sorted(by_bot.items(), key=lambda x: -x[1])),
                 "collected_at_utc": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                 "policy": "DISTINCT ON normalized question — keep most recent answer",
-                "cache_hit_inference": "search_events 와 answer_citations 둘 다 비어있는 페어를 cache hit 으로 간주 (backend/src/chat/service.py:157)",
+                "retrieval_skipped_meaning": "검색 미수행 페어 (Y/N=N) 는 SearchEvent + AnswerCitation 미생성. 두 가지 원인: (1) Semantic Cache Hit — backend/src/chat/service.py:157-173, (2) META_TERMINATED 인사/메타 발화 — line 180-196. 정확한 분리는 backend skip_reason ENUM 추가 후 가능.",
             },
             ensure_ascii=False,
             indent=2,

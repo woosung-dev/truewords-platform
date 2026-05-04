@@ -1,8 +1,8 @@
 {
   "total_pairs": 644,
-  "cache_hit_count": 118,
-  "cache_hit_pct": 18.3,
-  "cache_miss_count": 526,
+  "retrieval_executed_count": 526,
+  "retrieval_skipped_count": 118,
+  "retrieval_skipped_pct": 18.3,
   "feedback_count": 9,
   "persona_overridden_count": 0,
   "crisis_count": 0,
@@ -21,7 +21,7 @@
     "청킹 PoC: 문장": 1,
     "통일사상 전문 봇": 1
   },
-  "collected_at_utc": "2026-05-04 02:51:01",
+  "collected_at_utc": "2026-05-04 03:18:57",
   "policy": "DISTINCT ON normalized question — keep most recent answer",
-  "cache_hit_inference": "search_events 와 answer_citations 둘 다 비어있는 페어를 cache hit 으로 간주 (backend/src/chat/service.py:157)"
+  "retrieval_skipped_meaning": "검색 미수행 페어 (Y/N=N) 는 SearchEvent + AnswerCitation 미생성. 두 가지 원인: (1) Semantic Cache Hit — backend/src/chat/service.py:157-173, (2) META_TERMINATED 인사/메타 발화 — line 180-196. 정확한 분리는 backend skip_reason ENUM 추가 후 가능."
 }
