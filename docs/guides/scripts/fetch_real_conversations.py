@@ -145,7 +145,7 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
     ws.title = "실제 대화 (dedup)"
 
     headers = [
-        "#", "챗봇", "Chatbot ID", "질문", "답변",
+        "#", "챗봇", "Chatbot ID", "Cache Hit", "질문", "답변",
         "출처 (volume / source / score)", "피드백",
         "답변 모드", "페르소나 override", "위기 트리거",
         "원본 검색 query", "재작성 query", "Tier", "검색 결과 수", "검색 지연(ms)",
@@ -159,10 +159,14 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
     EXCEL_CELL_LIMIT = 32_700
 
     for i, r in enumerate(rows, 1):
+        # Cache Hit 추정: search_events 와 answer_citations 가 둘 다 비어있으면 cache hit
+        # (backend src/chat/service.py:157 — cache hit 시 PersistStage 스킵하므로 둘 다 미생성).
+        cache_hit = (not r.get("search_query")) and (not r.get("sources_text"))
         ws.append([
             i,
             r.get("chatbot_name") or "",
             r.get("chatbot_key") or "",
+            "Y" if cache_hit else "N",
             (r.get("user_question") or "")[:EXCEL_CELL_LIMIT],
             (r.get("assistant_answer") or "")[:EXCEL_CELL_LIMIT],
             (r.get("sources_text") or "")[:EXCEL_CELL_LIMIT],
@@ -192,7 +196,7 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
         cell.font = header_font
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    widths = [5, 18, 22, 38, 60, 32, 22, 14, 14, 16, 32, 32, 6, 10, 12, 11, 18, 18, 22, 22, 22]
+    widths = [5, 18, 22, 9, 38, 60, 32, 22, 14, 14, 16, 32, 32, 6, 10, 12, 11, 18, 18, 22, 22, 22]
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
     ws.row_dimensions[1].height = 32
@@ -215,8 +219,8 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
                 start_color=color, end_color=color, fill_type="solid"
             )
 
-    ws.freeze_panes = "E2"
-    # 헤더에 Excel 표준 auto-filter (드롭다운) 적용 — 챗봇/답변 모드/Tier 등 클라이언트 직접 필터링
+    ws.freeze_panes = "F2"  # Cache Hit 컬럼까지 좌측 고정
+    # 헤더에 Excel 표준 auto-filter (드롭다운) 적용 — 챗봇/Cache Hit/답변 모드 등 클라이언트 직접 필터링
     ws.auto_filter.ref = ws.dimensions
 
     # Sheet 2: 요약 통계
@@ -226,6 +230,7 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
     feedback_count = 0
     persona_overridden_count = 0
     crisis_count = 0
+    cache_hit_count = 0
     for r in rows:
         b = r.get("chatbot_name") or "?"
         by_bot[b] = by_bot.get(b, 0) + 1
@@ -235,23 +240,30 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
             persona_overridden_count += 1
         if r.get("crisis_trigger"):
             crisis_count += 1
+        if (not r.get("search_query")) and (not r.get("sources_text")):
+            cache_hit_count += 1
 
     avg_response = (
         sum(r.get("response_seconds") or 0.0 for r in rows) / max(total, 1)
     )
     avg_answer_len = sum(len(r.get("assistant_answer") or "") for r in rows) / max(total, 1)
 
+    cache_hit_pct = round(cache_hit_count * 100 / max(total, 1), 1)
     meta = [
         ["항목", "값"],
         ["수집 시각 (UTC)", time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())],
         ["환경", "Production (Neon PostgreSQL)"],
         ["동일 질문 정책", "정규화(trim + lowercase) 후 가장 최근 답변만 유지 (DISTINCT ON)"],
         ["총 dedup 페어", total],
+        ["Cache Hit 페어", f"{cache_hit_count} ({cache_hit_pct}%) — search/출처 둘 다 비어있는 페어"],
+        ["Cache Miss 페어 (정상 RAG)", total - cache_hit_count],
         ["피드백 달린 페어", feedback_count],
         ["페르소나 자동 override 페어", persona_overridden_count],
         ["위기 트리거 페어", crisis_count],
         ["평균 응답 시간(s)", round(avg_response, 1)],
         ["평균 답변 길이(자)", int(avg_answer_len)],
+        ["", ""],
+        ["Cache Hit 판단 근거", "backend/src/chat/service.py:157 — cache hit 시 full PersistStage 스킵 → SearchEvent/AnswerCitation 미생성. 둘 다 비어있는 메시지를 cache hit 으로 간주."],
     ]
     meta.append(["", ""])
     meta.append(["챗봇별 페어 수", "(많은 순)"])
@@ -279,6 +291,9 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
         json.dumps(
             {
                 "total_pairs": total,
+                "cache_hit_count": cache_hit_count,
+                "cache_hit_pct": cache_hit_pct,
+                "cache_miss_count": total - cache_hit_count,
                 "feedback_count": feedback_count,
                 "persona_overridden_count": persona_overridden_count,
                 "crisis_count": crisis_count,
@@ -287,6 +302,7 @@ def write_xlsx(rows: list[dict], path: Path) -> None:
                 "by_chatbot": dict(sorted(by_bot.items(), key=lambda x: -x[1])),
                 "collected_at_utc": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                 "policy": "DISTINCT ON normalized question — keep most recent answer",
+                "cache_hit_inference": "search_events 와 answer_citations 둘 다 비어있는 페어를 cache hit 으로 간주 (backend/src/chat/service.py:157)",
             },
             ensure_ascii=False,
             indent=2,
