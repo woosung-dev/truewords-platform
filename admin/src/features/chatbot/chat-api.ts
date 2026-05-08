@@ -1,3 +1,4 @@
+import { throwApiError } from "@/lib/api";
 import type {
   AnswerMode,
   TheologicalEmphasis,
@@ -90,8 +91,7 @@ export const chatAPI = {
       signal,
     });
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || `요청 실패 (${res.status})`);
+      await throwApiError(res);
     }
     return res.json();
   },
@@ -105,8 +105,7 @@ export const chatAPI = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || `피드백 전송 실패 (${res.status})`);
+      await throwApiError(res);
     }
     return res.json();
   },

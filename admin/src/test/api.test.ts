@@ -145,3 +145,105 @@ describe("chatbotAPI", () => {
     ).rejects.toThrow("chatbot_id 이미 존재합니다");
   });
 });
+
+/**
+ * 회귀 방지 — 2026-05-08 운영 INPUT_BLOCKED / SEARCH_FAILED 가 raw JSON 으로
+ * 화면에 노출되던 결함. fetchAPI 가 ErrorResponse 를 ApiError 로 보존해야
+ * UI 측이 error_code 로 분기 가능.
+ */
+describe("ApiError — fetchAPI 가 ErrorResponse 를 구조 보존한다", () => {
+  let api: typeof import("@/lib/api");
+
+  beforeEach(async () => {
+    api = await import("@/lib/api");
+  });
+
+  it("application/json 응답은 error_code / message / request_id 를 보존한다", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      headers: new Headers({ "content-type": "application/json" }),
+      json: () =>
+        Promise.resolve({
+          error_code: "INPUT_BLOCKED",
+          message: "허용되지 않는 입력 패턴이 감지되었습니다.",
+          request_id: "req-abc",
+        }),
+      text: () => Promise.resolve("{}"),
+    });
+
+    let caught: unknown;
+    try {
+      await api.fetchAPI("/admin/whatever");
+    } catch (e) {
+      caught = e;
+    }
+
+    expect(caught).toBeInstanceOf(api.ApiError);
+    const err = caught as InstanceType<typeof api.ApiError>;
+    expect(err.status).toBe(400);
+    expect(err.errorCode).toBe("INPUT_BLOCKED");
+    expect(err.requestId).toBe("req-abc");
+    expect(err.message).toBe("허용되지 않는 입력 패턴이 감지되었습니다.");
+  });
+
+  it("503 SEARCH_FAILED 도 동일 구조로 보존된다 (Qdrant 다운 시나리오)", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      headers: new Headers({ "content-type": "application/json" }),
+      json: () =>
+        Promise.resolve({
+          error_code: "SEARCH_FAILED",
+          message: "검색 서비스에 일시적 장애가 발생했습니다. 잠시 후 다시 시도해주세요.",
+          request_id: "req-xyz",
+        }),
+      text: () => Promise.resolve("{}"),
+    });
+
+    await expect(api.fetchAPI("/api/chat")).rejects.toMatchObject({
+      status: 503,
+      errorCode: "SEARCH_FAILED",
+    });
+  });
+
+  it("plain text 응답은 raw text 가 message 로 들어가지만 errorCode 는 undefined", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      headers: new Headers({ "content-type": "text/html" }),
+      text: () => Promise.resolve("<html>Bad Gateway</html>"),
+    });
+
+    let caught: unknown;
+    try {
+      await api.fetchAPI("/api/chat");
+    } catch (e) {
+      caught = e;
+    }
+    const err = caught as InstanceType<typeof api.ApiError>;
+    expect(err.status).toBe(502);
+    expect(err.errorCode).toBeUndefined();
+    expect(err.message).toContain("Bad Gateway");
+  });
+
+  it("401 은 ApiError(UNAUTHORIZED) 로 throw 한다", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      headers: new Headers(),
+      text: () => Promise.resolve("Unauthorized"),
+    });
+
+    let caught: unknown;
+    try {
+      await api.fetchAPI("/admin/me");
+    } catch (e) {
+      caught = e;
+    }
+    const err = caught as InstanceType<typeof api.ApiError>;
+    expect(err).toBeInstanceOf(api.ApiError);
+    expect(err.status).toBe(401);
+    expect(err.errorCode).toBe("UNAUTHORIZED");
+  });
+});
