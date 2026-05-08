@@ -5,11 +5,20 @@
 
 raw httpx (HTTP/1.1) 로 Qdrant REST API 직접 호출. (PR #78 진단,
 docs/dev-log/47 참조)
+
+장애 처리:
+- relaxed step 의 Qdrant 호출은 ``_call_qdrant_with_retry`` 로 1회 retry 후
+  여전히 실패하면 ``SearchFailedError`` 로 변환한다 (503 응답).
+  raw httpx 예외(ConnectError/ReadTimeout/RemoteProtocolError 등)가 unhandled
+  로 ASGI 까지 전파돼 500 INTERNAL_ERROR 가 노출되는 회귀 방지.
 """
 
+import asyncio
 import json
 import logging
-from typing import Literal
+from typing import Any, Literal
+
+import httpx
 
 from src.common.gemini import generate_text, MODEL_GENERATE
 from src.config import settings
@@ -20,11 +29,51 @@ from src.qdrant.filters import (
     prefetch as build_prefetch,
     sparse_vector,
 )
+from src.search.exceptions import SearchFailedError
 from src.search.hybrid import SearchResult, point_to_search_result
 
 logger = logging.getLogger(__name__)
 
 FallbackType = Literal["none", "relaxed", "suggestions"]
+
+# relaxed search 단발 hiccup (Cloudflare Tunnel disconnect / 일시 timeout) 흡수용
+_RELAXED_RETRY_COUNT = 1
+_RELAXED_RETRY_BACKOFF_S = 0.3
+
+
+async def _call_qdrant_with_retry(
+    client: RawQdrantClient,
+    /,
+    **kwargs: Any,
+) -> list:
+    """relaxed search 전용 ``query_points`` wrapper.
+
+    raw httpx 예외(ConnectError / ReadTimeout / RemoteProtocolError 등) 발생 시
+    ``_RELAXED_RETRY_COUNT`` 만큼 retry 후 모두 실패하면 ``SearchFailedError`` 로
+    변환한다. ``cascading_search`` 와 동일한 503 경로로 합류해 사용자에게는
+    "검색 서비스에 일시적 장애가 발생했습니다." 메시지가 전달된다.
+    """
+    last_exc: Exception | None = None
+    total_attempts = _RELAXED_RETRY_COUNT + 1
+    for attempt in range(1, total_attempts + 1):
+        try:
+            return await client.query_points(**kwargs)
+        except (httpx.HTTPError, httpx.TimeoutException) as exc:
+            last_exc = exc
+            logger.warning(
+                "Fallback relaxed search Qdrant call failed "
+                "(attempt %d/%d, %s): %s",
+                attempt,
+                total_attempts,
+                type(exc).__name__,
+                exc,
+            )
+            if attempt < total_attempts:
+                await asyncio.sleep(_RELAXED_RETRY_BACKOFF_S)
+    raise SearchFailedError(
+        f"Fallback relaxed search failed after {total_attempts} attempts: "
+        f"{type(last_exc).__name__}"
+    ) from last_exc
 
 SUGGEST_SYSTEM_PROMPT = """당신은 가정연합 말씀 검색 도우미입니다.
 사용자가 검색했지만 결과를 찾지 못했습니다.
@@ -76,7 +125,8 @@ async def fallback_search(
     else:
         sparse_indices, sparse_values = await embed_sparse_async(query)
 
-    points = await client.query_points(
+    points = await _call_qdrant_with_retry(
+        client,
         collection_name=collection_name or settings.collection_name,
         query=fusion_rrf(),
         prefetch=[
