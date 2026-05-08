@@ -8,7 +8,10 @@ import json
 import pytest
 from unittest.mock import AsyncMock, patch
 
+import httpx
+
 from src.qdrant.raw_client import QdrantPoint
+from src.search.exceptions import SearchFailedError
 from src.search.fallback import fallback_search
 from src.search.hybrid import SearchResult
 
@@ -129,6 +132,77 @@ async def test_fallback_suggestions_graceful_on_llm_failure():
         result = await _generate_suggestions("아무 질문")
 
     assert result == []
+
+
+@pytest.mark.asyncio
+async def test_fallback_relaxed_converts_httpx_timeout_to_search_failed():
+    """relaxed Qdrant 호출이 httpx.ReadTimeout 으로 실패하면 SearchFailedError 로 변환된다.
+
+    회귀 방지: 운영 fallback 경로의 httpx 예외가 unhandled 로 ASGI 까지 전파돼
+    500 INTERNAL_ERROR 가 사용자에게 노출되던 결함 (2026-05-08).
+    """
+    client = AsyncMock()
+    client.query_points.side_effect = httpx.ReadTimeout("read timeout")
+
+    with patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1, 2], [0.5, 0.3])):
+        with pytest.raises(SearchFailedError) as exc_info:
+            await fallback_search(
+                client=client,
+                query="원죄",
+                original_results=[],
+                dense_embedding=[0.1] * 10,
+            )
+
+    # retry 1회 포함 총 2번 호출 시도
+    assert client.query_points.call_count == 2
+    # 메시지에 예외 타입 포함 (운영 디버깅용)
+    assert "ReadTimeout" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_fallback_relaxed_converts_httpx_connect_error_to_search_failed():
+    """Cloudflare Tunnel disconnect 등 ConnectError 도 SearchFailedError 로 변환된다."""
+    client = AsyncMock()
+    client.query_points.side_effect = httpx.ConnectError("connect failed")
+
+    with patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])):
+        with pytest.raises(SearchFailedError) as exc_info:
+            await fallback_search(
+                client=client,
+                query="아무 질문",
+                original_results=[],
+                dense_embedding=[0.1] * 10,
+            )
+
+    assert client.query_points.call_count == 2
+    assert "ConnectError" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_fallback_relaxed_retries_once_and_succeeds():
+    """첫 호출이 일시 실패 후 두 번째에 성공하면 정상 결과를 반환한다.
+
+    Cloudflare Tunnel 단발 hiccup 흡수용 retry 1회 동작 검증.
+    """
+    client = AsyncMock()
+    point = _make_point("말씀 B", score=0.2, source="B")
+    client.query_points.side_effect = [
+        httpx.ReadTimeout("transient timeout"),
+        [point],  # 두 번째 호출 성공
+    ]
+
+    with patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])):
+        results, fallback_type = await fallback_search(
+            client=client,
+            query="원죄",
+            original_results=[],
+            dense_embedding=[0.1] * 10,
+        )
+
+    assert client.query_points.call_count == 2
+    assert fallback_type == "relaxed"
+    assert len(results) == 1
+    assert results[0].text == "말씀 B"
 
 
 @pytest.mark.asyncio
