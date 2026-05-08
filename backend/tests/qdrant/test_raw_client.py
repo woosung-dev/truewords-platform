@@ -108,11 +108,17 @@ async def test_query_points_sends_api_key_and_content_type_headers():
 
 
 @pytest.mark.asyncio
-async def test_default_timeout_is_short_for_cloud_run_cold_start():
-    """timeout 미지정 시 connect=5s, total=15s 기본값. Vercel 60s proxy 에 안전."""
+async def test_default_timeout_buffers_large_collection_search():
+    """timeout 미지정 시 connect=5s, read=30s 기본값.
+
+    2026-05-08 운영 사례 — 5/3 마이그레이션으로 컬렉션 50배 (8.7K → 417,579) 확장
+    후 fallback relaxed search 가 15s 안에 응답 못 해 timeout 으로 떨어지는 케이스
+    발견 → 30s 로 buffer 확장. Vercel 60s proxy 에는 여전히 여유 (1차 30s + retry
+    backoff 0.5s + retry 30s 이론 최댓값 60.5s 이지만 1차에서 끝나는 케이스 압도적).
+    """
     client = RawQdrantClient(base_url="http://x.test", api_key="k")
     assert client._timeout.connect == 5.0
-    assert client._timeout.read == 15.0
+    assert client._timeout.read == 30.0
 
 
 # ─── query_points (단일 vector) ───────────────────────────────────────────────
