@@ -44,6 +44,7 @@ import {
   type ChatResponse,
   type FeedbackType,
 } from "@/features/chatbot/chat-api";
+import { toFriendlyError } from "@/features/chat/error-message";
 import {
   FollowupPills,
   PersonaSheet,
@@ -230,10 +231,14 @@ export default function ChatPage() {
           { role: "assistant", content: "(사용자가 응답 생성을 중단했습니다.)" },
         ]);
       } else {
-        const errMsg = e instanceof Error ? e.message : "오류가 발생했습니다";
+        const friendly = toFriendlyError(e);
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: `오류: ${errMsg}` },
+          {
+            role: "assistant",
+            content: friendly.content,
+            suggestedFollowups: friendly.suggestedFollowups ?? null,
+          },
         ]);
       }
     } finally {
