@@ -36,9 +36,12 @@ logger = logging.getLogger(__name__)
 
 FallbackType = Literal["none", "relaxed", "suggestions"]
 
-# relaxed search 단발 hiccup (Cloudflare Tunnel disconnect / 일시 timeout) 흡수용
+# relaxed search 단발 hiccup (Cloudflare Tunnel disconnect / 일시 timeout) 흡수용.
+# 2026-05-08 운영에서 raw_client _DEFAULT_TIMEOUT 을 15s → 30s 로 상향한 후, 1차 호출이
+# transient timeout 으로 실패해도 2차 retry 가 바로 다시 30s 를 사용한다. backoff 는
+# Tunnel reconnect / Qdrant page cache warmup 시간을 감안해 0.3 → 0.5s 로 약간 확장.
 _RELAXED_RETRY_COUNT = 1
-_RELAXED_RETRY_BACKOFF_S = 0.3
+_RELAXED_RETRY_BACKOFF_S = 0.5
 
 
 async def _call_qdrant_with_retry(
