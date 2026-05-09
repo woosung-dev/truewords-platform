@@ -53,8 +53,14 @@ class TestCacheCheckStage:
         assert result.cache_response.answer == "안전 답변"
         # corpus_updated_at 이 None 또는 0.0 이면 cache 가 corpus 검증 생략 (모든
         # cache valid). ChatContext 기본값 0.0 → `or None` 처리되어 None 전달.
+        # answer_mode/theological_emphasis 는 #11 fix 로 항상 cache key 에 포함된다.
+        # ChatRequest 기본값 None → service 레이어에서 ""로 정규화되어 매칭.
         cache_service.check_cache.assert_awaited_once_with(
-            [0.1] * 1536, "cid", corpus_updated_at=None
+            [0.1] * 1536,
+            "cid",
+            corpus_updated_at=None,
+            answer_mode=None,
+            theological_emphasis=None,
         )
 
     @pytest.mark.asyncio
@@ -84,6 +90,35 @@ class TestCacheCheckStage:
         result = await stage.execute(ctx)
         assert result.cache_hit is False
         assert result.cache_response is None
+
+    @pytest.mark.asyncio
+    async def test_passes_persona_keys_to_cache_lookup(self) -> None:
+        """#11 — answer_mode 와 theological_emphasis 가 cache key 로 전달되어야 한다.
+
+        다른 페르소나 설정에서 동일 질문에 동일 답변을 반환하는 결함을 막는다.
+        """
+        cache_service = MagicMock()
+        cache_service.check_cache = AsyncMock(return_value=None)
+        stage = CacheCheckStage(cache_service=cache_service)
+        ctx = ChatContext(
+            request=ChatRequest(
+                query="q",
+                chatbot_id="cid",
+                answer_mode="beginner",
+                theological_emphasis="family",
+            )
+        )
+        ctx.query_embedding = [0.1] * 1536
+
+        await stage.execute(ctx)
+
+        cache_service.check_cache.assert_awaited_once_with(
+            [0.1] * 1536,
+            "cid",
+            corpus_updated_at=None,
+            answer_mode="beginner",
+            theological_emphasis="family",
+        )
 
     @pytest.mark.asyncio
     async def test_skips_when_no_query_embedding(self) -> None:
