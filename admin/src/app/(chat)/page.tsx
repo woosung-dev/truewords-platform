@@ -227,12 +227,16 @@ export default function ChatPage() {
     // user 메시지 + assistant placeholder 를 동시에 push.
     // chunk 이벤트 도착마다 마지막 assistant 의 content 를 누적 append (#12 streaming).
     //
-    // dedupe 가드: 어떤 경로로든 (event double-fire / Strict Mode dev / batched
-    // dispatch 이슈 등) 같은 query 의 user+placeholder 가 이미 있으면 no-op.
-    // sendingRef 동기 가드 + 이 가드가 이중 방어 — 중복 placeholder 회귀 방지.
+    // 이중 가드:
+    //  (a) 같은 query 의 user+placeholder 가 이미 있으면 no-op (event double-fire 방어).
+    //  (b) 마지막이 stuck placeholder (assistant + no content + no messageId) 면
+    //      제거 후 새 pair push — 이전 응답이 chunk 못 받고 끝나거나 abort 된 상태에서
+    //      새 질문이 들어와 placeholder 두 개로 누적되는 회귀 방어.
     setMessages((prev) => {
       const last = prev[prev.length - 1];
       const secondLast = prev[prev.length - 2];
+
+      // (a) dedupe — 같은 query 의 placeholder 가 이미 있음
       if (
         last?.role === "assistant" &&
         !last.content?.trim() &&
@@ -242,8 +246,15 @@ export default function ChatPage() {
       ) {
         return prev;
       }
+
+      // (b) stuck placeholder 제거 — 이전 응답이 빈 placeholder 로 끝나면 그것을 버리고
+      //     새 pair 만 남긴다 (다른 query 라도 동일 처리).
+      let base = prev;
+      if (last?.role === "assistant" && !last.content?.trim() && !last.messageId) {
+        base = prev.slice(0, -1);
+      }
       return [
-        ...prev,
+        ...base,
         { role: "user", content: query },
         { role: "assistant", content: "" },
       ];
