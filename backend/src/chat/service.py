@@ -28,7 +28,7 @@ from src.chat.pipeline.stages.session import SessionStage
 from src.chat.pipeline.stages.suggested_followups import SuggestedFollowupsStage
 from src.chat.pipeline.state import PipelineState, force_transition_to
 from src.search.intent_classifier import generation_context_slice_for
-from src.chat.prompt import DEFAULT_SYSTEM_PROMPT
+from src.chat.prompt import DEFAULT_SYSTEM_PROMPT, parse_inline_citations
 from src.chat.repository import ChatRepository
 from src.chat.schemas import ChatRequest, ChatResponse, FeedbackRequest, Source
 from src.chat.stream_generator import generate_answer_stream
@@ -228,6 +228,12 @@ class ChatService:
         ctx = await self.search_stage.execute(ctx)
         ctx = await self.rerank_stage.execute(ctx)
         ctx = await self.generation_stage.execute(ctx)
+        # INLINE_CITATIONS 블록은 generation 직후, safety 가 disclaimer 부착하기
+        # 전에 파싱해야 정확한 답변 끝 패턴 매치 가능.
+        if ctx.answer:
+            cleaned, citations = parse_inline_citations(ctx.answer)
+            ctx.answer = cleaned
+            ctx.cited_phrases = citations
         ctx = await self.safety_output_stage.execute(ctx)
         # P0-A + P1-J: 두 stage 는 본 답변과 독립적이므로 병렬 실행.
         # 실패해도 답변 본체에 영향 없도록 return_exceptions=True.
@@ -249,8 +255,10 @@ class ChatService:
                     source=r.source,
                     chunk_id=r.chunk_id,
                     display_name=display_name_lookup.get((r.source, r.volume)),
+                    # INLINE_CITATIONS 의 [N] 번호는 1-based, ctx.results 인덱스는 0-based.
+                    cited_phrase=ctx.cited_phrases.get(i + 1),
                 )
-                for r in ctx.results[:3]
+                for i, r in enumerate(ctx.results[:3])
             ],
             session_id=ctx.session.id,
             message_id=ctx.assistant_message.id,
@@ -349,6 +357,11 @@ class ChatService:
             # 동기 process_chat 과 동일한 흐름이라 stream 응답에도 closing/suggested_followups
             # 가 포함된다 (#12 streaming UI).
             ctx.answer = "".join(full_answer)
+            # INLINE_CITATIONS 파싱 — safety 가 disclaimer 부착 전에 답변 끝 블록 매칭.
+            if ctx.answer:
+                cleaned, citations = parse_inline_citations(ctx.answer)
+                ctx.answer = cleaned
+                ctx.cited_phrases = citations
             ctx = await self.safety_output_stage.execute(ctx)
             await asyncio.gather(
                 self.suggested_followups_stage.execute(ctx),
@@ -369,8 +382,9 @@ class ChatService:
                     "source": r.source,
                     "chunk_id": r.chunk_id,
                     "display_name": display_name_lookup.get((r.source, r.volume)),
+                    "cited_phrase": ctx.cited_phrases.get(i + 1),
                 }
-                for r in ctx.results[:3]
+                for i, r in enumerate(ctx.results[:3])
             ]
             sources_payload = {
                 "sources": sources_data,

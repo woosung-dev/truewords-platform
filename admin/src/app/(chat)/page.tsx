@@ -93,6 +93,16 @@ const stripDisclaimer = (text: string): string => {
   return idx >= 0 ? text.slice(0, idx).trimEnd() : text;
 };
 
+// LLM 이 답변 끝에 emit 하는 INLINE_CITATIONS 블록 제거.
+// SSE 스트림에서 chunk 단위로 누적되는 동안 사용자에게 잠깐도 보이지 않도록
+// onChunk 시점에서 매번 strip. 동기 응답 + sources 도착 시점에도 한 번 더 적용.
+// (backend service 가 ChatResponse.answer 에 cleaned 본문을 보내지만, stream chunk
+// 는 raw 라 frontend 에서도 strip 필요)
+const stripCitationsBlock = (text: string): string => {
+  const idx = text.indexOf("INLINE_CITATIONS:");
+  return idx >= 0 ? text.slice(0, idx).trimEnd() : text;
+};
+
 const SUGGESTED_PROMPTS = [
   "하나님을 왜 '하늘부모님'이라고 부르나요?",
   "참부모님의 위상과 가치는 왜 영원한가요?",
@@ -312,15 +322,18 @@ export default function ChatPage() {
           { answer_mode: answerMode, theological_emphasis: emphasis },
           {
             onChunk: (text) => {
-              patchLastAssistant((m) => ({ ...m, content: (m.content ?? "") + text }));
+              // INLINE_CITATIONS 블록은 매 chunk 누적 후 즉시 strip (사용자에게 잠깐도
+              // 노출되지 않도록). disclaimer 는 본문 끝부분만이라 sources 시 한 번만.
+              patchLastAssistant((m) => ({
+                ...m,
+                content: stripCitationsBlock((m.content ?? "") + text),
+              }));
             },
             onSources: (data) => {
               setSessionId(data.session_id);
               patchLastAssistant((m) => ({
                 ...m,
-                // safety_output_stage 가 본문 끝에 부착했을 수 있는 면책 고지를 strip.
-                // chunk 마다 strip 하면 부분 일치 위험이 있어 sources 도착 시 한 번만 적용.
-                content: stripDisclaimer(m.content ?? ""),
+                content: stripCitationsBlock(stripDisclaimer(m.content ?? "")),
                 messageId: data.message_id,
                 sources: data.sources,
                 closing: data.closing ?? null,
@@ -345,7 +358,7 @@ export default function ChatPage() {
         setSessionId(res.session_id);
         patchLastAssistant((m) => ({
           ...m,
-          content: stripDisclaimer(res.answer),
+          content: stripCitationsBlock(stripDisclaimer(res.answer)),
           messageId: res.message_id,
           sources: res.sources,
           closing: res.closing ?? null,
@@ -682,7 +695,9 @@ export default function ChatPage() {
                               setChunkModal({
                                 open: true,
                                 chunkId: src.chunk_id ?? null,
-                                snippet: src.text,
+                                // cited_phrase 우선 — 모달이 chunk 안에서 그 phrase 만 highlight.
+                                // 누락 시 src.text 전체 fallback (이전 동작 그대로).
+                                snippet: src.cited_phrase?.trim() || src.text,
                                 displayName: src.display_name ?? null,
                               })
                             }

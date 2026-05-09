@@ -30,6 +30,9 @@ export interface Source {
   chunk_id?: string;
   // admin 인라인 편집으로 지정된 사람 친화적 표시명. null/없음 시 volume fallback.
   display_name?: string | null;
+  // 답변에서 인용한 정확한 phrase. backend INLINE_CITATIONS 블록에서 추출.
+  // 원문 모달이 chunk 전체 대신 이 phrase 만 highlight. 누락 시 src.text fallback.
+  cited_phrase?: string | null;
 }
 
 export interface ChatResponse {

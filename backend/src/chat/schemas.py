@@ -29,6 +29,10 @@ class Source(BaseModel):
     # admin 인라인 편집으로 지정된 사람 친화적 표시명. 미설정/매칭 실패 시 None →
     # chat UI 가 기존 volume/source 로 fallback.
     display_name: str | None = None
+    # 답변에서 이 출처를 인용한 정확한 phrase (LLM 이 INLINE_CITATIONS 블록으로 emit).
+    # 원문 보기 모달이 chunk 전체 대신 이 phrase 만 highlight 하여 인용 위치를 정확히 표시.
+    # 누락 시 frontend 가 chunk text 전체로 fallback.
+    cited_phrase: str | None = None
 
 
 class ChatResponse(BaseModel):
