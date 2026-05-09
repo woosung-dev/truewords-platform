@@ -26,6 +26,9 @@ class Source(BaseModel):
     source: str = ""
     # P0-B — 원문보기 모달 fetch 용 Qdrant point id.
     chunk_id: str = ""
+    # admin 인라인 편집으로 지정된 사람 친화적 표시명. 미설정/매칭 실패 시 None →
+    # chat UI 가 기존 volume/source 로 fallback.
+    display_name: str | None = None
 
 
 class ChatResponse(BaseModel):
