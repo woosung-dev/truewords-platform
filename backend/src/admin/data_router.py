@@ -22,6 +22,8 @@ from src.datasource.qdrant_service import DataSourceQdrantService
 from src.datasource.schemas import (
     CategoryDocumentStats,
     DuplicateCheckResponse,
+    IngestionJobInfo,
+    UpdateDisplayNameRequest,
     UploadResponse,
     VolumeDeleteRequest,
     VolumeDeleteResponse,
@@ -619,6 +621,59 @@ async def get_all_volumes(
 ):
     """전체 volume 목록 조회 — Transfer UI용."""
     return await qdrant_service.get_all_volumes()
+
+
+@router.get("/jobs", response_model=list[IngestionJobInfo])
+async def list_ingestion_jobs(
+    current_admin: dict = Depends(get_current_admin),
+    ingestion_service: IngestionJobService = Depends(get_ingestion_service),
+) -> list[IngestionJobInfo]:
+    """파일별 IngestionJob 목록 — admin display_name 인라인 편집 화면용.
+
+    기존 ``/status`` 는 progress 추적 dict 포맷이라 volume_key/display_name 노출이
+    어려워 별도 list 엔드포인트로 분리한다.
+    """
+    jobs = await ingestion_service.list_jobs()
+    return [
+        IngestionJobInfo(
+            volume_key=job.volume_key,
+            filename=job.filename,
+            source=job.source,
+            display_name=job.display_name,
+            status=job.status.value,
+            total_chunks=job.total_chunks,
+        )
+        for job in jobs
+    ]
+
+
+@router.patch("/display-name", response_model=IngestionJobInfo)
+async def update_display_name(
+    request: UpdateDisplayNameRequest,
+    current_admin: dict = Depends(get_current_admin),
+    ingestion_service: IngestionJobService = Depends(get_ingestion_service),
+) -> IngestionJobInfo:
+    """파일별 사용자 친화적 표시명 갱신.
+
+    chat 응답의 출처 카드/원문 모달이 display_name 을 우선 노출한다. None/빈 문자열은
+    "미설정" 으로 정규화 — chat UI 가 기존 volume/source 로 fallback.
+    """
+    job = await ingestion_service.update_display_name(
+        volume_key=request.volume_key,
+        display_name=request.display_name,
+    )
+    if job is None:
+        raise HTTPException(
+            status_code=404, detail=f"volume_key '{request.volume_key}' 를 찾을 수 없습니다"
+        )
+    return IngestionJobInfo(
+        volume_key=job.volume_key,
+        filename=job.filename,
+        source=job.source,
+        display_name=job.display_name,
+        status=job.status.value,
+        total_chunks=job.total_chunks,
+    )
 
 
 @router.put("/volume-tags", response_model=VolumeTagResponse)
