@@ -11,8 +11,10 @@ import DuplicateConfirmDialog, {
 import BulkPrecheckDialog, {
   type BulkPrecheckEntry,
 } from "@/features/data-source/components/bulk-precheck-dialog";
+import { DisplayNameEditor } from "@/features/data-source/components/display-name-editor";
 import type {
   DuplicateCheckResponse,
+  IngestionJobInfo,
   PredictedOutcome,
   UploadResponse,
 } from "@/features/data-source/types";
@@ -91,6 +93,18 @@ export default function DataSourcesPage() {
     // 처리 중 파일이 있을 때만 5초 폴링. 없으면 OFF (페이지 진입 시 1회만)
     refetchInterval: hasProcessing ? 5000 : false,
   });
+
+  // 파일별 IngestionJob 목록 — display_name 인라인 편집용. completed row 와
+  // filename 으로 lookup.
+  const { data: jobs } = useQuery({
+    queryKey: ["ingestion-jobs"],
+    queryFn: dataAPI.getJobs,
+  });
+  const jobsByFilename = useMemo(() => {
+    const map = new Map<string, IngestionJobInfo>();
+    jobs?.forEach((j) => map.set(j.filename, j));
+    return map;
+  }, [jobs]);
 
   // 처리 현황 데이터
   const completedEntries = useMemo(
@@ -767,24 +781,36 @@ export default function DataSourcesPage() {
                   </div>
                 ))}
 
-                {/* 완료 항목 */}
-                {completedEntries.slice(0, 20).map(([filename, chunks]) => (
-                  <div
-                    key={`done-${filename}`}
-                    className="flex items-center gap-3 px-4 py-3"
-                  >
-                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
-                    <span
-                      className="text-sm truncate flex-1 min-w-0"
-                      title={filename}
+                {/* 완료 항목 — chat 응답에서 보일 사용자 친화적 표시명을 인라인 편집 */}
+                {completedEntries.slice(0, 20).map(([filename, chunks]) => {
+                  const job = jobsByFilename.get(filename);
+                  return (
+                    <div
+                      key={`done-${filename}`}
+                      className="flex items-center gap-3 px-4 py-3"
                     >
-                      {filename}
-                    </span>
-                    <Badge className="bg-success-soft text-success hover:bg-success-soft border border-success-border text-xs shrink-0">
-                      {chunks}청크
-                    </Badge>
-                  </div>
-                ))}
+                      <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                      <div className="flex-1 min-w-0 flex flex-col gap-1">
+                        <span
+                          className="text-sm truncate"
+                          title={filename}
+                        >
+                          {filename}
+                        </span>
+                        {job ? (
+                          <DisplayNameEditor
+                            volumeKey={job.volume_key}
+                            initialValue={job.display_name}
+                            placeholder="채팅에서 보일 표시명 (예: 말씀선집 167권)"
+                          />
+                        ) : null}
+                      </div>
+                      <Badge className="bg-success-soft text-success hover:bg-success-soft border border-success-border text-xs shrink-0">
+                        {chunks}청크
+                      </Badge>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

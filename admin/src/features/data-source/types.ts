@@ -35,6 +35,20 @@ export interface CategoryDocumentStats {
   volume_count: number;
 }
 
+export interface IngestionJobInfo {
+  volume_key: string;
+  filename: string;
+  source: string;
+  display_name: string | null;
+  status: string;
+  total_chunks: number;
+}
+
+export interface UpdateDisplayNameRequest {
+  volume_key: string;
+  display_name: string | null;
+}
+
 export interface VolumeTagRequest {
   volume: string;
   source: string;

@@ -2,8 +2,10 @@ import { fetchAPI } from "@/lib/api";
 import type {
   DataSourceCategory,
   DuplicateCheckResponse,
+  IngestionJobInfo,
   IngestionStatus,
   CategoryDocumentStats,
+  UpdateDisplayNameRequest,
   UploadResponse,
   VolumeDeleteRequest,
   VolumeDeleteResponse,
@@ -59,6 +61,16 @@ export const dataAPI = {
   },
 
   getStatus: () => fetchAPI<IngestionStatus>("/admin/data-sources/status"),
+
+  // 파일별 IngestionJob 목록. display_name 인라인 편집 화면용.
+  getJobs: () => fetchAPI<IngestionJobInfo[]>("/admin/data-sources/jobs"),
+
+  // 파일별 사용자 친화적 표시명 갱신. chat 응답의 출처 카드/원문 모달에서 우선 노출.
+  updateDisplayName: (data: UpdateDisplayNameRequest) =>
+    fetchAPI<IngestionJobInfo>("/admin/data-sources/display-name", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 
   checkDuplicate: (filename: string) =>
     fetchAPI<DuplicateCheckResponse>(
