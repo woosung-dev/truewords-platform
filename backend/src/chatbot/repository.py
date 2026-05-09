@@ -1,9 +1,9 @@
 """챗봇 설정 Repository."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -73,3 +73,47 @@ class ChatbotRepository:
 
     async def commit(self) -> None:
         await self.session.commit()
+
+    async def get_top_queries_for_bot(
+        self,
+        chatbot_config_id: uuid.UUID,
+        days: int = 30,
+        limit: int = 10,
+    ) -> list[dict]:
+        """특정 봇에 들어온 최근 N일 질문 top-N (counts).
+
+        cron job 의 추천 질문 생성을 위해 사용. user role 메시지 기준으로 봇별 필터.
+        analytics_repository.get_top_queries 와 달리 chatbot_config_id 로 격리.
+        """
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        result = await self.session.execute(
+            text(
+                """
+                SELECT sm.content AS query_text, COUNT(*) AS count
+                FROM session_messages sm
+                JOIN research_sessions rs ON rs.id = sm.session_id
+                WHERE rs.chatbot_config_id = :bot_id
+                  AND sm.role = 'USER'
+                  AND sm.created_at >= :cutoff
+                GROUP BY sm.content
+                ORDER BY count DESC, sm.content
+                LIMIT :limit
+                """
+            ),
+            {"bot_id": chatbot_config_id, "cutoff": cutoff, "limit": limit},
+        )
+        return [
+            {"query_text": row.query_text, "count": row.count}
+            for row in result.all()
+        ]
+
+    async def update_suggested_questions(
+        self,
+        config: ChatbotConfig,
+        questions: list[str],
+    ) -> ChatbotConfig:
+        """추천 질문 + 갱신 시각 저장. cron job 전용."""
+        config.suggested_questions = questions
+        config.suggested_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        await self.session.flush()
+        return config
