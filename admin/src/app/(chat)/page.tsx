@@ -197,51 +197,78 @@ export default function ChatPage() {
     if (!query || !selectedBot || loading) return;
 
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: query }]);
+    // user 메시지 + assistant placeholder 를 동시에 push 한다.
+    // chunk 이벤트 도착마다 마지막 assistant 의 content 를 누적 append (#12 streaming).
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: query },
+      { role: "assistant", content: "" },
+    ]);
     setLoading(true);
 
     const controller = new AbortController();
     abortRef.current = controller;
 
+    // 마지막 assistant 메시지 (placeholder/누적 content) 를 patch 하는 헬퍼.
+    // setMessages(prev => …) 패턴으로 stale closure 안전.
+    const patchLastAssistant = (patch: (m: Message) => Message) => {
+      setMessages((prev) => {
+        const next = [...prev];
+        const lastIdx = next.length - 1;
+        if (lastIdx >= 0 && next[lastIdx].role === "assistant") {
+          next[lastIdx] = patch(next[lastIdx]);
+        }
+        return next;
+      });
+    };
+
     try {
-      const res = await chatAPI.sendMessage(
+      await chatAPI.streamMessage(
         query,
         selectedBot,
         sessionId,
         controller.signal,
+        { answer_mode: answerMode, theological_emphasis: emphasis },
         {
-          answer_mode: answerMode,
-          theological_emphasis: emphasis,
+          onChunk: (text) => {
+            patchLastAssistant((m) => ({ ...m, content: (m.content ?? "") + text }));
+          },
+          onSources: (data) => {
+            setSessionId(data.session_id);
+            patchLastAssistant((m) => ({
+              ...m,
+              // safety_output_stage 가 본문 끝에 부착했을 수 있는 면책 고지를 strip.
+              // chunk 마다 strip 하면 부분 일치 위험이 있어 sources 도착 시 한 번만 적용.
+              content: stripDisclaimer(m.content ?? ""),
+              messageId: data.message_id,
+              sources: data.sources,
+              closing: data.closing ?? null,
+              suggestedFollowups: data.suggested_followups ?? null,
+            }));
+          },
+          onDone: () => {
+            // disclaimer 는 입력창 하단 footer 에 고정 노출 — 본문에 추가하지 않음.
+          },
         },
       );
-      setSessionId(res.session_id);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: res.answer,
-          messageId: res.message_id,
-          sources: res.sources,
-          suggestedFollowups: res.suggested_followups,
-          closing: res.closing,
-        },
-      ]);
     } catch (e) {
-      if ((e as Error)?.name === "AbortError") {
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: "(사용자가 응답 생성을 중단했습니다.)" },
-        ]);
+      const aborted = (e as Error)?.name === "AbortError";
+      if (aborted) {
+        // 부분 보존 정책: 받은 텍스트는 유지하고 끝에 끊김 인디케이터만 추가.
+        patchLastAssistant((m) => ({
+          ...m,
+          content:
+            (m.content ?? "") +
+            (m.content ? "\n\n_(사용자가 응답 생성을 중단했습니다.)_" : "(사용자가 응답 생성을 중단했습니다.)"),
+        }));
       } else {
         const friendly = toFriendlyError(e);
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: friendly.content,
-            suggestedFollowups: friendly.suggestedFollowups ?? null,
-          },
-        ]);
+        // 부분 보존 + 에러 인디케이터. content 가 비어있으면 friendly 메시지로 대체.
+        patchLastAssistant((m) => ({
+          ...m,
+          content: m.content ? `${m.content}\n\n_— ${friendly.content}_` : friendly.content,
+          suggestedFollowups: m.suggestedFollowups ?? friendly.suggestedFollowups ?? null,
+        }));
       }
     } finally {
       setLoading(false);
