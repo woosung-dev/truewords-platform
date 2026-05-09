@@ -37,6 +37,9 @@ export function FollowupPills({
 }: FollowupPillsProps) {
   if (suggestions.length === 0) return null;
 
+  // 추천 질문은 최대 3개까지만 노출 — 시각적 무게를 줄이고 선택 피로도 완화.
+  const visibleSuggestions = suggestions.slice(0, 3);
+
   return (
     <section className={cn("space-y-3", className)} aria-label={heading}>
       <h3 className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
@@ -45,7 +48,7 @@ export function FollowupPills({
       </h3>
 
       <ul className="flex flex-col gap-2">
-        {suggestions.map((q, idx) => {
+        {visibleSuggestions.map((q, idx) => {
           const blurred = !authenticated && idx >= visibleCount;
           return (
             <li key={idx}>
