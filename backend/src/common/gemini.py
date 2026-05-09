@@ -72,10 +72,14 @@ async def generate_text_stream(
         config = types.GenerateContentConfig(
             system_instruction=system_instruction,
         )
-    async for chunk in _client.aio.models.generate_content_stream(
+    # google-genai >=0.8.0 에서 generate_content_stream 이 coroutine 으로 변경됨.
+    # 직접 async for 시 'object with __aiter__ method, got coroutine' TypeError.
+    # await 로 AsyncIterator 를 먼저 받은 뒤 async for 로 chunk 소비.
+    stream = await _client.aio.models.generate_content_stream(
         model=model,
         contents=prompt,
         config=config,
-    ):
+    )
+    async for chunk in stream:
         if chunk.text:
             yield chunk.text

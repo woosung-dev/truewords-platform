@@ -1,7 +1,7 @@
 """Gemini 스트리밍 클라이언트 테스트."""
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import AsyncMock, patch, MagicMock
 
 from src.common.gemini import generate_text_stream
 
@@ -36,7 +36,7 @@ class TestGenerateTextStream:
     @patch("src.common.gemini._client")
     async def test_yields_text_chunks(self, mock_client: MagicMock) -> None:
         chunks = [_FakeChunk("안녕"), _FakeChunk("하세요"), _FakeChunk("!")]
-        mock_client.aio.models.generate_content_stream.return_value = _FakeAsyncIter(chunks)
+        mock_client.aio.models.generate_content_stream = AsyncMock(return_value=_FakeAsyncIter(chunks))
 
         collected = []
         async for text in generate_text_stream("테스트 프롬프트"):
@@ -48,7 +48,7 @@ class TestGenerateTextStream:
     @patch("src.common.gemini._client")
     async def test_skips_none_text_chunks(self, mock_client: MagicMock) -> None:
         chunks = [_FakeChunk("참사랑"), _FakeChunk(None), _FakeChunk("입니다")]
-        mock_client.aio.models.generate_content_stream.return_value = _FakeAsyncIter(chunks)
+        mock_client.aio.models.generate_content_stream = AsyncMock(return_value=_FakeAsyncIter(chunks))
 
         collected = []
         async for text in generate_text_stream("테스트"):
@@ -59,7 +59,7 @@ class TestGenerateTextStream:
     @pytest.mark.asyncio
     @patch("src.common.gemini._client")
     async def test_empty_stream(self, mock_client: MagicMock) -> None:
-        mock_client.aio.models.generate_content_stream.return_value = _FakeAsyncIter([])
+        mock_client.aio.models.generate_content_stream = AsyncMock(return_value=_FakeAsyncIter([]))
 
         collected = []
         async for text in generate_text_stream("빈 응답"):
@@ -70,8 +70,8 @@ class TestGenerateTextStream:
     @pytest.mark.asyncio
     @patch("src.common.gemini._client")
     async def test_passes_system_instruction(self, mock_client: MagicMock) -> None:
-        mock_client.aio.models.generate_content_stream.return_value = _FakeAsyncIter(
-            [_FakeChunk("응답")]
+        mock_client.aio.models.generate_content_stream = AsyncMock(
+            return_value=_FakeAsyncIter([_FakeChunk("응답")])
         )
 
         collected = []
