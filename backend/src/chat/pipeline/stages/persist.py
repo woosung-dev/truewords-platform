@@ -85,8 +85,9 @@ class PersistStage:
                     "score": r.score,
                     "source": r.source,
                     "chunk_id": r.chunk_id,  # P0-B 원문보기 cache hit 시에도 fetch 가능
+                    "cited_phrase": ctx.cited_phrases.get(i + 1),
                 }
-                for r in ctx.results[:3]
+                for i, r in enumerate(ctx.results[:3])
             ]
             collection_name = ctx.resolved_collections.cache if ctx.resolved_collections else None
             await self.cache_service.store_cache(
