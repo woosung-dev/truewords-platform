@@ -224,13 +224,30 @@ export default function ChatPage() {
     sendingRef.current = true;
 
     if (override === undefined) setInput("");
-    // user 메시지 + assistant placeholder 를 동시에 push 한다.
+    // user 메시지 + assistant placeholder 를 동시에 push.
     // chunk 이벤트 도착마다 마지막 assistant 의 content 를 누적 append (#12 streaming).
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: query },
-      { role: "assistant", content: "" },
-    ]);
+    //
+    // dedupe 가드: 어떤 경로로든 (event double-fire / Strict Mode dev / batched
+    // dispatch 이슈 등) 같은 query 의 user+placeholder 가 이미 있으면 no-op.
+    // sendingRef 동기 가드 + 이 가드가 이중 방어 — 중복 placeholder 회귀 방지.
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      const secondLast = prev[prev.length - 2];
+      if (
+        last?.role === "assistant" &&
+        !last.content?.trim() &&
+        !last.messageId &&
+        secondLast?.role === "user" &&
+        secondLast.content === query
+      ) {
+        return prev;
+      }
+      return [
+        ...prev,
+        { role: "user", content: query },
+        { role: "assistant", content: "" },
+      ];
+    });
     setLoading(true);
 
     const controller = new AbortController();
