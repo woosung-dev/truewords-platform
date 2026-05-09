@@ -117,16 +117,13 @@ export function SourceOriginalModal({
             {fallbackLabel ?? state.detail.volume}
           </p>
           {/* 단일 연속 본문 — 백엔드가 dedup 후 보낸 한 덩어리. 청크 경계 끊김 0.
-              메인 청크 영역만 brass 좌측 border + 옅은 accent 배경으로 강조. */}
+              메인 청크는 일반 text-foreground, 인접 문맥은 muted 처리.
+              실제 인용 강조는 renderWithHighlight 의 노란 mark 만 사용. */}
           <p className="font-reading text-[15.5px] leading-[1.85] text-foreground break-keep-all whitespace-pre-line">
             {before && (
               <span className="text-muted-foreground">{before}</span>
             )}
-            {main && (
-              <span className="rounded-sm bg-accent/10 px-1 py-0.5 ring-1 ring-accent/20">
-                {renderWithHighlight(main, highlightSnippet)}
-              </span>
-            )}
+            {main && renderWithHighlight(main, highlightSnippet)}
             {after && (
               <span className="text-muted-foreground">{after}</span>
             )}
