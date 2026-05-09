@@ -213,6 +213,26 @@ export default function ChatPage() {
     [input, selectedBot, loading],
   );
 
+  // 렌더 레벨 placeholder dedupe — state 가드 (sendingRef/setMessages 가드)
+  // 가 어떤 경로 (React 18 동시성 모드 functional updater 더블 invoke,
+  // event double-fire 등) 로 통과해 placeholder 가 누적되더라도 화면엔 마지막
+  // 한 개만 노출. 답변이 도착한(content/messageId 있는) assistant 는 모두 유지.
+  const visibleMessages = useMemo(() => {
+    let lastPlaceholderIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role === "assistant" && !m.content?.trim() && !m.messageId) {
+        lastPlaceholderIdx = i;
+        break;
+      }
+    }
+    return messages.filter((m, i) => {
+      const isPlaceholder =
+        m.role === "assistant" && !m.content?.trim() && !m.messageId;
+      return !isPlaceholder || i === lastPlaceholderIdx;
+    });
+  }, [messages]);
+
   // override: 추천 카드/follow-up 클릭 시 input 채우지 않고 즉시 query 로 전송.
   // 사용자 클릭 → setInput 은 다음 렌더 후 적용이라 즉시 send 가 stale 가 될 수 있음.
   // 따라서 직접 query 를 받아 처리한다.
@@ -604,7 +624,7 @@ export default function ChatPage() {
             <div
               className="mx-auto max-w-2xl space-y-4 pb-[60vh]"
             >
-              {messages.map((msg, i) => (
+              {visibleMessages.map((msg, i) => (
                 <div
                   key={i}
                   data-msg-role={msg.role}
