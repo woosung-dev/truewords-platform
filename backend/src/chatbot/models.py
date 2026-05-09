@@ -27,6 +27,10 @@ class ChatbotConfig(SQLModel, table=True):
     # 봇별 SSE 스트리밍 응답 활성화 여부. default true.
     # admin 에서 false 로 설정하면 chat 화면이 비스트림(/chat) 단일 응답으로 분기.
     streaming_enabled: bool = Field(default=True)
+    # 입력 화면 추천 질문 칩 (봇별 동적). cron job 이 30 일 질문 로그 + RAG sample 로
+    # 매일 03:30 KST 갱신. 비어있으면 chat 페이지가 FALLBACK_PROMPTS 4 개로 fallback.
+    suggested_questions: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    suggested_at: datetime | None = None
     organization_id: uuid.UUID | None = None
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)

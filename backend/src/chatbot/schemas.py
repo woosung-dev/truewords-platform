@@ -65,6 +65,9 @@ class ChatbotConfigResponse(BaseModel):
     search_tiers: SearchTiersConfig
     is_active: bool
     streaming_enabled: bool
+    # 입력 화면 추천 질문 칩 (봇별, 비어있으면 프론트가 fallback prompts 사용)
+    suggested_questions: list[str] = Field(default_factory=list)
+    suggested_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

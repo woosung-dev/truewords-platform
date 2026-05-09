@@ -103,7 +103,8 @@ const stripCitationsBlock = (text: string): string => {
   return idx >= 0 ? text.slice(0, idx).trimEnd() : text;
 };
 
-const SUGGESTED_PROMPTS = [
+// 봇별 동적 추천이 비어있을 때만 사용하는 fallback. backend cron 갱신 전 / 신규 봇 대응.
+const FALLBACK_PROMPTS = [
   "하나님을 왜 '하늘부모님'이라고 부르나요?",
   "참부모님의 위상과 가치는 왜 영원한가요?",
   "3일 금식은 반드시 해야 하나요?",
@@ -604,21 +605,26 @@ export default function ChatPage() {
               }}
             />
 
-            {/* 추천 질문 (chip) — 정적 SUGGESTED_PROMPTS */}
-            {!botsLoading && selectedBot && (
-              <div className="flex w-full flex-wrap justify-center gap-2">
-                {SUGGESTED_PROMPTS.map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => handleSend(prompt)}
-                    className="rounded-full border bg-card px-4 py-2 text-xs text-foreground/80 transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* 추천 질문 (chip) — 봇별 동적 (backend cron 매일 갱신), 비어있으면 FALLBACK */}
+            {!botsLoading && selectedBot && (() => {
+              const currentBot = bots.find((b) => b.chatbot_id === selectedBot);
+              const dynamic = currentBot?.suggested_questions ?? [];
+              const prompts = dynamic.length > 0 ? dynamic : FALLBACK_PROMPTS;
+              return (
+                <div className="flex w-full flex-wrap justify-center gap-2">
+                  {prompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => handleSend(prompt)}
+                      className="rounded-full border bg-card px-4 py-2 text-xs text-foreground/80 transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* 맞춤 설정 영역: persona / emphasis / visibility */}
             <section

@@ -11,6 +11,11 @@ export interface ChatBot {
   description: string;
   // 봇별 SSE 스트리밍 응답 활성화. default true. false 면 chat 화면이 비스트림 분기.
   streaming_enabled?: boolean;
+  // 입력 화면 추천 질문 칩 — backend cron (매일 03:30 KST) 이 30 일 질문 + RAG sample 로
+  // 자동 생성. 빈 배열이면 page.tsx 가 FALLBACK_PROMPTS 4 개로 fallback.
+  suggested_questions?: string[];
+  // 마지막 cron 갱신 시각 (ISO). null 이면 한 번도 안 돌렸음 → fallback.
+  suggested_at?: string | null;
 }
 
 /**
