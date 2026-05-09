@@ -120,6 +120,20 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Blocked
 
+### 클라이언트 피드백 14건 중 보류 항목 (2026-05-09)
+
+> 적용 항목(8건: #1·#2·#3·#6·#7·#8·#9·#11·#13)은 별도 브랜치에서 처리 완료. 아래는 의도적으로 보류한 항목들.
+
+- [ ] **#5 Disclaimer 4줄 → 2줄 압축** — 클라이언트 컨펌 대기 [확인 필요]. 현재 4문장 footer (`DISCLAIMER_LINES` in `admin/src/app/(chat)/page.tsx`). 컨펌 후 2줄 요약본 채택.
+- [ ] **#10 Admin Reactions 대시보드** — `MessageReaction` 카운트 및 부정 피드백(reason+comment) 집계 페이지 신규 구현. backend `reactions_repository.get_aggregate()` 와 `AnswerFeedback` 라벨 활용. 별도 PR.
+- [ ] **#12 SSE 스트리밍 클라이언트** — 백엔드 `/chat/stream` (chunk/sources/done 3 이벤트) 이미 구현. 프론트만 `EventSource`/`fetch+ReadableStream` 클라이언트 + 취소/에러 UX 통째로 별도 PR.
+- [ ] **#14 답변 퀄리티 100문항 자동 검증** — sub-agent 가 카테고리별 질문 100개 생성 → API 호출 → RAGAS/Judge 평가. 별도 트랙. 골든셋 60문항 확장과 묶어 진행.
+- [ ] **#4 대표 질문 4개 답변 재검증** — `#11 cache key persona 누락 fix` 머지 후 별도 세션에서 4개 질문(`SUGGESTED_PROMPTS`) 답변 품질 수동 점검.
+- [ ] **#9 좋아요 토글 백엔드 cleanup** — 현재 helpful 토글은 프론트 로컬 state 만 reset, `AnswerFeedback` row 는 누적 보존. 분석 시 (message_id, created_at desc) 후처리. 정직한 fix 는 `DELETE /chat/feedback/{message_id}` 신규 엔드포인트.
+- [ ] **#3 출처 `.txt` → `.pdf` 표시는 임시 hack** — `displaySourceLabel()` 이 시각적으로만 치환. 실제 PDF 적재로 전환 시 헬퍼 제거.
+
+### 기존 보류 항목
+
 - [ ] **종교 용어 사전 동적 주입** — 대사전 데이터 미확보 [데이터 수급 필요]
 - [ ] **민감 인명 필터 구체화** — SENSITIVE_PATTERNS 목록 비어있음 [도메인 전문가 협의 필요]
 - [ ] **멀티테넌시** (organization_id 필터링) — 다중 조직 운영 요구사항 미확정 [확인 필요]
