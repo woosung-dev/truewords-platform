@@ -180,9 +180,6 @@ export function ClosingCallout({ closing, className }: ClosingCalloutProps) {
         className,
       )}
     >
-      <span className="mr-1.5" aria-hidden="true">
-        💬
-      </span>
       <span className="font-medium text-foreground">
         더 깊은 말씀이 필요하신가요?
       </span>{" "}

@@ -108,7 +108,6 @@ const DISCLAIMER_LINES = [
   "민감한 주제는 반드시 출처 원문과 지도자 안내를 함께 확인해 주세요.",
   "대화 내용은 품질 개선과 안전 점검 목적으로 익명 분석될 수 있습니다.",
 ];
-const MODEL_VERSION_FOOTER = "v1.0.0 · gemini-2.5-flash · 검수 사이클: 매주 1회";
 
 export default function ChatPage() {
   const [bots, setBots] = useState<ChatBot[]>([]);
@@ -297,6 +296,17 @@ export default function ChatPage() {
       toast.error("이 답변에는 피드백을 남길 수 없습니다");
       return;
     }
+    // #9 — 좋아요 토글: 이미 helpful 인 상태에서 다시 helpful 을 누르면 로컬 취소.
+    // 백엔드 AnswerFeedback row 는 라벨링/분석용 보존. 운영자가 최신 상태만 보려면
+    // (message_id, created_at desc) 기준으로 후처리 가능.
+    // 백엔드 DELETE 엔드포인트 도입은 docs/TODO 로 follow-up.
+    if (type === "helpful" && msg.feedback === "helpful") {
+      setMessages((prev) =>
+        prev.map((m, i) => (i === idx ? { ...m, feedback: undefined } : m)),
+      );
+      toast("피드백을 취소했습니다");
+      return;
+    }
     try {
       await chatAPI.submitFeedback({
         message_id: msg.messageId,
@@ -333,10 +343,16 @@ export default function ChatPage() {
     <div className="flex h-dvh flex-col bg-background">
       {/* 헤더 */}
       <header className="flex items-center justify-between border-b px-4 py-3">
-        <div className="flex items-center gap-2">
+        {/* 로고 클릭 시 홈(입력 화면)으로 복귀 — handleNewChat 재사용 */}
+        <button
+          type="button"
+          onClick={handleNewChat}
+          className="flex items-center gap-2 rounded-md px-1 py-0.5 transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          aria-label="홈으로"
+        >
           <BookOpen className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-semibold">TrueWords</h1>
-        </div>
+        </button>
         <div className="flex items-center gap-2">
           {messages.length > 0 && (
             <Button
@@ -550,7 +566,7 @@ export default function ChatPage() {
                           suggestions={msg.suggestedFollowups}
                           onSelect={(q) => setInput(q)}
                           heading="다음 질문을 추천해 드립니다"
-                          className="pl-1"
+                          className="mt-6 pl-1"
                         />
                       )}
 
@@ -580,36 +596,36 @@ export default function ChatPage() {
                             aria-hidden="true"
                           />
 
-                          {/* 긍정 — 미제출이거나 "helpful" 선택 시만 노출 */}
-                          {(!msg.feedback || msg.feedback === "helpful") && (
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              aria-label="도움이 됐어요"
-                              aria-pressed={msg.feedback === "helpful"}
-                              disabled={!!msg.feedback}
-                              onClick={() => submitFeedback(i, "helpful")}
-                              className={`h-7 w-7 ${
-                                msg.feedback === "helpful"
-                                  ? "bg-success-soft text-success hover:bg-success-soft disabled:opacity-100"
-                                  : ""
-                              }`}
-                            >
-                              <ThumbsUp className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
+                          {/* 긍정 — 항상 노출. 같은 helpful 다시 누르면 토글 취소 (#9). */}
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            aria-label={
+                              msg.feedback === "helpful"
+                                ? "피드백 취소"
+                                : "도움이 됐어요"
+                            }
+                            aria-pressed={msg.feedback === "helpful"}
+                            onClick={() => submitFeedback(i, "helpful")}
+                            className={`h-7 w-7 ${
+                              msg.feedback === "helpful"
+                                ? "bg-success-soft text-success hover:bg-success-soft"
+                                : ""
+                            }`}
+                          >
+                            <ThumbsUp className="h-3.5 w-3.5" />
+                          </Button>
 
-                          {/* 부정 — 미제출이거나 부정 선택 시만 노출 */}
-                          {(!msg.feedback || msg.feedback !== "helpful") && (
-                            <NegativeFeedbackPopover
-                              disabled={!!msg.feedback}
-                              active={!!msg.feedback}
-                              onSubmit={(reason, comment) =>
-                                submitFeedback(i, reason, comment)
-                              }
-                            />
-                          )}
+                          {/* 부정 — 항상 노출. popover 가 reason+comment 입력 단계를 거치므로
+                              실수 클릭은 popover 단계에서 차단됨. 제출 후에도 popover 재오픈으로 변경 가능. */}
+                          <NegativeFeedbackPopover
+                            disabled={false}
+                            active={!!msg.feedback && msg.feedback !== "helpful"}
+                            onSubmit={(reason, comment) =>
+                              submitFeedback(i, reason, comment)
+                            }
+                          />
                         </div>
 
                         {msg.feedback && (
@@ -708,9 +724,9 @@ export default function ChatPage() {
         </>
       )}
 
-      {/* P0-D — 면책 4문장 + 모델 버전 footer (전 화면 공통) */}
+      {/* P0-D — 면책 4문장 footer (전 화면 공통) */}
       <footer className="border-t bg-background px-4 py-3">
-        <div className="mx-auto max-w-2xl space-y-1.5">
+        <div className="mx-auto max-w-2xl">
           <ul className="space-y-0.5 text-center text-[11px] leading-relaxed text-muted-foreground">
             {DISCLAIMER_LINES.map((line) => (
               <li key={line} className="break-keep-all">
@@ -718,9 +734,6 @@ export default function ChatPage() {
               </li>
             ))}
           </ul>
-          <p className="text-center font-mono text-[10px] tabular-nums text-fg-subtle">
-            {MODEL_VERSION_FOOTER}
-          </p>
         </div>
       </footer>
 

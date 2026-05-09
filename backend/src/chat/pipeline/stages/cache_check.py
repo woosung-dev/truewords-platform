@@ -28,6 +28,10 @@ class CacheCheckStage:
             ctx.query_embedding,
             ctx.request.chatbot_id,
             corpus_updated_at=ctx.corpus_updated_at or None,
+            # #11: 맞춤 설정(페르소나)별 캐시 격리. AnswerMode/TheologicalEmphasis 는
+            # Literal[str] 이라 그대로 전달, None 은 service 레이어에서 ""로 정규화.
+            answer_mode=ctx.request.answer_mode,
+            theological_emphasis=ctx.request.theological_emphasis,
         )
         if hit is None:
             ctx.pipeline_state = PipelineState.CACHE_CHECKED

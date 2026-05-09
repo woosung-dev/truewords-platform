@@ -144,7 +144,9 @@ export function SourceOriginalModal({
         className={cn("max-h-[85vh] overflow-y-auto rounded-t-2xl px-5 pt-5 pb-safe")}
         aria-label="원문 보기"
       >
-        <SheetHeader className="px-0 pt-0 pb-3">
+        {/* 데스크톱(wide)에서 본문이 좌측에 좁게 쌓여 모달이 한쪽으로 치우친 것처럼
+            보이는 문제(#2) 해결 — 헤더·본문을 max-w + mx-auto 로 가운데 정렬. */}
+        <SheetHeader className="mx-auto w-full max-w-3xl px-0 pt-0 pb-3">
           <SheetTitle className="flex items-center gap-1.5 text-lg">
             <ArrowUpRight className="size-4 text-accent" aria-hidden="true" />
             원문 보기
@@ -153,7 +155,7 @@ export function SourceOriginalModal({
             인용된 부분은 강조 표시되고, 위·아래 인접 문맥이 옅게 함께 노출됩니다.
           </SheetDescription>
         </SheetHeader>
-        <div>{renderBody()}</div>
+        <div className="mx-auto w-full max-w-3xl">{renderBody()}</div>
       </SheetContent>
     </Sheet>
   );
