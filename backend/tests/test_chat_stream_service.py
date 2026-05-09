@@ -192,3 +192,33 @@ class TestProcessChatStream:
         assert "message_id" in sources_data
         assert "sources" in sources_data
         assert len(sources_data["sources"]) <= 3
+
+    @pytest.mark.asyncio
+    @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
+    @patch("src.chat.service.generate_answer_stream")
+    @patch("src.qdrant_client.get_async_client")
+    async def test_sources_event_includes_closing_and_followups_keys(
+        self, mock_qdrant, mock_stream, mock_search, mock_embed,
+    ) -> None:
+        """#12 streaming UI: sources 이벤트에 closing/suggested_followups 키 포함 회귀."""
+        service, _, _ = _make_chat_service()
+        mock_search.return_value = _make_search_results(3)
+
+        async def fake_gen(*args, **kwargs):
+            yield "답변"
+
+        mock_stream.return_value = fake_gen()
+
+        request = ChatRequest(query="closing 키 테스트", chatbot_id="test")
+        sources_data = None
+        async for event in service.process_chat_stream(request):
+            if event.startswith("event: sources"):
+                data_line = event.split("\n")[1]
+                sources_data = json.loads(data_line.replace("data: ", ""))
+
+        assert sources_data is not None
+        # 키는 항상 존재해야 한다 (frontend 가 dict.get 으로 안전하게 fallback).
+        # 값은 stage 비활성/실패 시 None 일 수 있다.
+        assert "closing" in sources_data
+        assert "suggested_followups" in sources_data
