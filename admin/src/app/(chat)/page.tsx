@@ -148,6 +148,10 @@ export default function ChatPage() {
   // chunk 누적 동안 자동 하단 스크롤로 문맥이 가려지는 어색함 해소.
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // setLoading 은 비동기 React state 갱신이라 빠른 더블 트리거 (Enter+button 동시,
+  // IME composition 직후 Enter 등) 시 두 호출 모두 가드를 통과해 placeholder 가
+  // 두 개 push 되는 회귀 발생. ref 는 동기 가드라 즉시 반영 → 단일 호출 보장.
+  const sendingRef = useRef(false);
 
   // 챗봇 목록 로드 + 콜드 스타트 감지
   useEffect(() => {
@@ -209,11 +213,17 @@ export default function ChatPage() {
     [input, selectedBot, loading],
   );
 
-  const handleSend = useCallback(async () => {
-    const query = input.trim();
-    if (!query || !selectedBot || loading) return;
+  // override: 추천 카드/follow-up 클릭 시 input 채우지 않고 즉시 query 로 전송.
+  // 사용자 클릭 → setInput 은 다음 렌더 후 적용이라 즉시 send 가 stale 가 될 수 있음.
+  // 따라서 직접 query 를 받아 처리한다.
+  const handleSend = useCallback(async (override?: string) => {
+    if (sendingRef.current) return;
+    const raw = override ?? input;
+    const query = raw.trim();
+    if (!query || !selectedBot) return;
+    sendingRef.current = true;
 
-    setInput("");
+    if (override === undefined) setInput("");
     // user 메시지 + assistant placeholder 를 동시에 push 한다.
     // chunk 이벤트 도착마다 마지막 assistant 의 content 를 누적 append (#12 streaming).
     setMessages((prev) => [
@@ -289,6 +299,7 @@ export default function ChatPage() {
       }
     } finally {
       setLoading(false);
+      sendingRef.current = false;
       abortRef.current = null;
       // textarea focus 복원 (응답 후 자연스러운 연속 질문)
       requestAnimationFrame(() => textareaRef.current?.focus());
@@ -513,7 +524,7 @@ export default function ChatPage() {
                   <button
                     key={prompt}
                     type="button"
-                    onClick={() => setInput(prompt)}
+                    onClick={() => handleSend(prompt)}
                     className="rounded-full border bg-card px-4 py-2 text-xs text-foreground/80 transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
                   >
                     {prompt}
@@ -547,7 +558,7 @@ export default function ChatPage() {
             <Button
               type="button"
               size="lg"
-              onClick={handleSend}
+              onClick={() => handleSend()}
               disabled={!canSend}
               className="h-12 rounded-xl text-base font-semibold"
             >
@@ -628,7 +639,7 @@ export default function ChatPage() {
                       msg.suggestedFollowups.length > 0 && (
                         <FollowupPills
                           suggestions={msg.suggestedFollowups}
-                          onSelect={(q) => setInput(q)}
+                          onSelect={(q) => handleSend(q)}
                           heading="다음 질문을 추천해 드립니다"
                           className="mt-6 pl-1"
                         />
@@ -773,7 +784,7 @@ export default function ChatPage() {
                     type="button"
                     size="icon"
                     variant="default"
-                    onClick={handleSend}
+                    onClick={() => handleSend()}
                     disabled={!canSend}
                     aria-label="메시지 전송"
                     className="absolute bottom-2 right-2 h-9 w-9 rounded-xl"
