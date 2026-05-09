@@ -492,7 +492,7 @@ export default function ChatPage() {
         <button
           type="button"
           onClick={handleNewChat}
-          className="flex items-center gap-2 rounded-md px-1 py-0.5 transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           aria-label="홈으로"
         >
           <BookOpen className="h-5 w-5 text-primary" />
