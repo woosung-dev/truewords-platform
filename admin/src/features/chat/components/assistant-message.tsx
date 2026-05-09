@@ -88,6 +88,9 @@ function SourceCardGrid({ sources, onSourceClick }: SourceCardGridProps) {
         const num = idx + 1;
         const clickable = !!src.chunk_id;
         const Tag = clickable ? "button" : "div";
+        // admin 에서 지정한 display_name 이 있으면 그것을 우선 노출.
+        // 없으면 기존 volume(권번호) 로 fallback.
+        const primaryLabel = src.display_name?.trim() || src.volume;
         return (
           <Tag
             key={`${src.chunk_id || src.volume}-${idx}`}
@@ -108,7 +111,7 @@ function SourceCardGrid({ sources, onSourceClick }: SourceCardGridProps) {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-xs font-semibold text-foreground">
-                {src.volume}
+                {primaryLabel}
               </span>
               <span className="mt-0.5 block text-[11px] text-muted-foreground">
                 {src.source ? `${src.source} · ` : ""}

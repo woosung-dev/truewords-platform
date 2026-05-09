@@ -127,6 +127,24 @@ class IngestionJobRepository:
         self.session.add(job)
         await self.session.flush()
 
+    async def update_display_name(
+        self, volume_key: str, display_name: str | None
+    ) -> IngestionJob | None:
+        """admin 인라인 편집으로 사용자 친화적 표시명 갱신.
+
+        빈 문자열은 None 으로 정규화 — chat 응답에서 fallback 동작이 일관되게 유지된다.
+        Returns: 업데이트된 IngestionJob, 또는 row 없으면 None.
+        """
+        job = await self.get_by_volume_key(volume_key)
+        if job is None:
+            return None
+        normalized = (display_name or "").strip() or None
+        job.display_name = normalized
+        job.updated_at = datetime.utcnow()
+        self.session.add(job)
+        await self.session.flush()
+        return job
+
     async def delete_by_volume_key(self, volume_key: str) -> bool:
         """volume(파일) 단위로 IngestionJob row를 영구 삭제한다.
 

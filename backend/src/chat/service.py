@@ -42,6 +42,7 @@ from src.chatbot.runtime_config import (
 )
 from src.chatbot.service import ChatbotService
 from src.pipeline.ingestion_repository import IngestionJobRepository
+from src.pipeline.metadata import derive_volume
 from src.safety.output_filter import DISCLAIMER
 
 
@@ -110,6 +111,27 @@ class ChatService:
         self.safety_output_stage = SafetyOutputStage()
         self.persist_stage = PersistStage(chat_repo, cache_service)
 
+    async def _build_display_name_lookup(self) -> dict[tuple[str, str], str]:
+        """(source_category, payload_volume) → display_name 매핑.
+
+        admin 인라인 편집으로 지정한 사람 친화적 표시명을 chat 응답 sources 에 채우기
+        위한 lookup. ingestion_repo 가 None 이거나 조회 실패 시 빈 dict —
+        display_name=None 으로 fallback (chat UI 가 기존 volume/source 노출).
+
+        chunk payload.volume = derive_volume(IngestionJob.volume_key) 로 동일 매핑.
+        """
+        if self.ingestion_repo is None:
+            return {}
+        try:
+            jobs = await self.ingestion_repo.list_all()
+        except Exception:
+            return {}
+        return {
+            (job.source, derive_volume(job.volume_key)): job.display_name
+            for job in jobs
+            if job.display_name
+        }
+
     async def _run_pre_pipeline(self, request: ChatRequest) -> ChatContext:
         """입력 검증 → 세션 → 임베딩 → 캐시 체크. 양 경로 공통.
 
@@ -165,9 +187,15 @@ class ChatService:
                 )
             )
             await self.chat_repo.commit()
+            display_name_lookup = await self._build_display_name_lookup()
+            cache_sources: list[Source] = []
+            for s in ctx.cache_response.sources:
+                src = Source(**s)
+                src.display_name = display_name_lookup.get((src.source, src.volume))
+                cache_sources.append(src)
             return ChatResponse(
                 answer=ctx.cache_response.answer,
-                sources=[Source(**s) for s in ctx.cache_response.sources],
+                sources=cache_sources,
                 session_id=ctx.session.id,
                 message_id=assistant_msg.id,
             )
@@ -210,6 +238,7 @@ class ChatService:
         )
         ctx = await self.persist_stage.execute(ctx)
 
+        display_name_lookup = await self._build_display_name_lookup()
         return ChatResponse(
             answer=ctx.answer or "",
             sources=[
@@ -219,6 +248,7 @@ class ChatService:
                     score=r.score,
                     source=r.source,
                     chunk_id=r.chunk_id,
+                    display_name=display_name_lookup.get((r.source, r.volume)),
                 )
                 for r in ctx.results[:3]
             ],
@@ -250,7 +280,11 @@ class ChatService:
             )
             await self.chat_repo.commit()
             yield f"event: chunk\ndata: {json.dumps({'text': safe_answer}, ensure_ascii=False)}\n\n"
-            sources_data = ctx.cache_response.sources[:3]
+            display_name_lookup = await self._build_display_name_lookup()
+            sources_data = []
+            for s in ctx.cache_response.sources[:3]:
+                enriched = {**s, "display_name": display_name_lookup.get((s.get("source", ""), s.get("volume", "")))}
+                sources_data.append(enriched)
             yield f"event: sources\ndata: {json.dumps({'sources': sources_data, 'session_id': str(ctx.session.id), 'message_id': str(assistant_msg.id)}, ensure_ascii=False)}\n\n"
             yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
             return
@@ -300,8 +334,15 @@ class ChatService:
             ctx = await self.persist_stage.execute(ctx)
 
             # Sources + Done 이벤트 yield
+            display_name_lookup = await self._build_display_name_lookup()
             sources_data = [
-                {"volume": r.volume, "text": r.text[:200], "score": r.score, "source": r.source}
+                {
+                    "volume": r.volume,
+                    "text": r.text[:200],
+                    "score": r.score,
+                    "source": r.source,
+                    "display_name": display_name_lookup.get((r.source, r.volume)),
+                }
                 for r in ctx.results[:3]
             ]
             yield (

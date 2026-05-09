@@ -122,11 +122,14 @@ export default function ChatPage() {
   const [sessionId, setSessionId] = useState<string | undefined>();
 
   // P0-B — 인용 카드 → 원문보기 모달 상태
+  // displayName 은 admin 인라인 편집으로 지정한 사람 친화적 표시명. 모달의
+  // fallbackLabel 로 전달되어 백엔드 chunk detail fetch 전/후 모두 우선 노출.
   const [chunkModal, setChunkModal] = useState<{
     open: boolean;
     chunkId: string | null;
     snippet: string | null;
-  }>({ open: false, chunkId: null, snippet: null });
+    displayName: string | null;
+  }>({ open: false, chunkId: null, snippet: null, displayName: null });
 
   // W2-② P0-E / P1-G / P2-D — 입력 화면 옵션 state
   const [answerMode, setAnswerMode] = useState<AnswerMode>("standard");
@@ -547,6 +550,7 @@ export default function ChatPage() {
                               open: true,
                               chunkId: src.chunk_id ?? null,
                               snippet: src.text,
+                              displayName: src.display_name ?? null,
                             })
                           }
                         />
@@ -753,7 +757,7 @@ export default function ChatPage() {
         onValueChange={setEmphasis}
       />
 
-      {/* P0-B — 인용 카드 원문보기 모달 */}
+      {/* P0-B — 인용 카드 원문보기 모달. display_name 있으면 fallbackLabel 우선 노출. */}
       <SourceOriginalModal
         open={chunkModal.open}
         onOpenChange={(open) =>
@@ -762,6 +766,7 @@ export default function ChatPage() {
         chunkId={chunkModal.chunkId}
         chatbotId={selectedBot}
         highlightSnippet={chunkModal.snippet ?? undefined}
+        fallbackLabel={chunkModal.displayName ?? undefined}
       />
 
       {/* 추천 follow-up sheet 는 FloatingActionBar 와 함께 숨김. 재활성 시 같이 복구. */}

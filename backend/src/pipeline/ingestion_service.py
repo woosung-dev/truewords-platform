@@ -15,6 +15,23 @@ class IngestionJobService:
         volume_key = unicodedata.normalize("NFC", filename)
         return await self.repo.get_by_volume_key(volume_key)
 
+    async def update_display_name(
+        self, volume_key: str, display_name: str | None
+    ) -> IngestionJob | None:
+        """파일별 사용자 친화적 표시명 업데이트 + commit."""
+        job = await self.repo.update_display_name(volume_key, display_name)
+        if job is not None:
+            await self.repo.commit()
+        return job
+
+    async def list_jobs(self) -> list[IngestionJob]:
+        """admin 화면용 IngestionJob 전체 목록.
+
+        chat 응답의 source 매핑(IngestionJob lookup) 도 동일 list 를 활용한다 —
+        호출자가 dict 빌드 후 cache 처리.
+        """
+        return await self.repo.list_all()
+
     async def build_status_response(self) -> dict:
         """/status 엔드포인트용 UI 호환 응답 조립.
 

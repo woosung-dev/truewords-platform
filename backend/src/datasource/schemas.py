@@ -83,6 +83,29 @@ class VolumeTagsBulkResponse(BaseModel):
     total_chunks_modified: int = Field(0, description="변경된 청크 총 수")
 
 
+class IngestionJobInfo(BaseModel):
+    """admin 데이터 소스 페이지용 IngestionJob 요약.
+
+    chat 응답 출처 표시명을 인라인 편집할 수 있도록 display_name 을 노출한다.
+    """
+
+    volume_key: str = Field(..., description="NFC 정규화 파일명 — display_name 갱신 키")
+    filename: str = Field(..., description="원본 업로드 파일명")
+    source: str = Field(default="", description="단일 카테고리 키 (가장 처음 매핑된 값)")
+    display_name: str | None = Field(
+        default=None, description="사람 친화적 표시명. 미설정 시 chat 응답에서 fallback."
+    )
+    status: str = Field(..., description="IngestionStatus value")
+    total_chunks: int = 0
+
+
+class UpdateDisplayNameRequest(BaseModel):
+    """display_name 인라인 편집 요청. 빈 문자열은 백엔드에서 None 으로 정규화."""
+
+    volume_key: str = Field(..., min_length=1)
+    display_name: str | None = Field(default=None, max_length=255)
+
+
 class VolumeDeleteResponse(BaseModel):
     """Volume(파일) 영구 삭제 결과."""
     deleted_volumes: list[str] = Field(default_factory=list, description="실제 삭제된 volume 이름")
