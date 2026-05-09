@@ -285,7 +285,15 @@ class ChatService:
             for s in ctx.cache_response.sources[:3]:
                 enriched = {**s, "display_name": display_name_lookup.get((s.get("source", ""), s.get("volume", "")))}
                 sources_data.append(enriched)
-            yield f"event: sources\ndata: {json.dumps({'sources': sources_data, 'session_id': str(ctx.session.id), 'message_id': str(assistant_msg.id)}, ensure_ascii=False)}\n\n"
+            # cache hit 경로는 closing/suggested_followups 가 cache 에 저장되지 않아 None.
+            cache_sources_payload = {
+                "sources": sources_data,
+                "session_id": str(ctx.session.id),
+                "message_id": str(assistant_msg.id),
+                "closing": None,
+                "suggested_followups": None,
+            }
+            yield f"event: sources\ndata: {json.dumps(cache_sources_payload, ensure_ascii=False)}\n\n"
             yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
             return
 
@@ -307,7 +315,16 @@ class ChatService:
                 )
                 await self.chat_repo.commit()
                 yield f"event: chunk\ndata: {json.dumps({'text': ctx.answer or ''}, ensure_ascii=False)}\n\n"
-                yield f"event: sources\ndata: {json.dumps({'sources': [], 'session_id': str(ctx.session.id), 'message_id': str(assistant_msg.id)}, ensure_ascii=False)}\n\n"
+                # META 응답은 검색/closing/followups 가 없어 None 으로 키만 유지 —
+                # frontend SSE 컨슈머가 어느 분기에서든 같은 schema 로 dict.get 가능.
+                meta_sources_payload = {
+                    "sources": [],
+                    "session_id": str(ctx.session.id),
+                    "message_id": str(assistant_msg.id),
+                    "closing": None,
+                    "suggested_followups": None,
+                }
+                yield f"event: sources\ndata: {json.dumps(meta_sources_payload, ensure_ascii=False)}\n\n"
                 yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
                 return
 
@@ -328,12 +345,19 @@ class ChatService:
                 full_answer.append(chunk)
                 yield f"event: chunk\ndata: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"
 
-            # Safety + Persist (Stage 체인)
+            # Safety + 후속 stage (P0-A followups, P1-J closing) 병렬 실행 + Persist.
+            # 동기 process_chat 과 동일한 흐름이라 stream 응답에도 closing/suggested_followups
+            # 가 포함된다 (#12 streaming UI).
             ctx.answer = "".join(full_answer)
             ctx = await self.safety_output_stage.execute(ctx)
+            await asyncio.gather(
+                self.suggested_followups_stage.execute(ctx),
+                self.closing_template_stage.execute(ctx),
+                return_exceptions=True,
+            )
             ctx = await self.persist_stage.execute(ctx)
 
-            # Sources + Done 이벤트 yield
+            # Sources + Done 이벤트 yield (closing / suggested_followups 포함)
             display_name_lookup = await self._build_display_name_lookup()
             sources_data = [
                 {
@@ -345,8 +369,15 @@ class ChatService:
                 }
                 for r in ctx.results[:3]
             ]
+            sources_payload = {
+                "sources": sources_data,
+                "session_id": str(ctx.session.id),
+                "message_id": str(ctx.assistant_message.id),
+                "closing": ctx.closing,
+                "suggested_followups": ctx.suggested_followups,
+            }
             yield (
-                f"event: sources\ndata: {json.dumps({'sources': sources_data, 'session_id': str(ctx.session.id), 'message_id': str(ctx.assistant_message.id)}, ensure_ascii=False)}\n\n"
+                f"event: sources\ndata: {json.dumps(sources_payload, ensure_ascii=False)}\n\n"
             )
             yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
         except (asyncio.CancelledError, GeneratorExit):
