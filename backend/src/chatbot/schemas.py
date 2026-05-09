@@ -64,6 +64,7 @@ class ChatbotConfigResponse(BaseModel):
     persona_name: str
     search_tiers: SearchTiersConfig
     is_active: bool
+    streaming_enabled: bool
     created_at: datetime
     updated_at: datetime
 
@@ -78,6 +79,7 @@ class ChatbotConfigCreate(BaseModel):
         default_factory=lambda: SearchTiersConfig(tiers=[])
     )
     is_active: bool = True
+    streaming_enabled: bool = True
 
 
 class ChatbotConfigUpdate(BaseModel):
@@ -87,3 +89,4 @@ class ChatbotConfigUpdate(BaseModel):
     persona_name: str | None = None
     search_tiers: SearchTiersConfig | None = None
     is_active: bool | None = None
+    streaming_enabled: bool | None = None

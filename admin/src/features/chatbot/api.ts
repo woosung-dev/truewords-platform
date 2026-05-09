@@ -15,6 +15,7 @@ export const chatbotAPI = {
     system_prompt?: string;
     search_tiers?: SearchTiersConfig;
     is_active?: boolean;
+    streaming_enabled?: boolean;
   }) =>
     fetchAPI<ChatbotConfig>("/admin/chatbot-configs", {
       method: "POST",
@@ -29,6 +30,7 @@ export const chatbotAPI = {
       system_prompt?: string;
       search_tiers?: SearchTiersConfig;
       is_active?: boolean;
+      streaming_enabled?: boolean;
     }
   ) =>
     fetchAPI<ChatbotConfig>(`/admin/chatbot-configs/${id}`, {

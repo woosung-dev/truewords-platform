@@ -298,34 +298,60 @@ export default function ChatPage() {
     };
 
     try {
-      await chatAPI.streamMessage(
-        query,
-        selectedBot,
-        sessionId,
-        controller.signal,
-        { answer_mode: answerMode, theological_emphasis: emphasis },
-        {
-          onChunk: (text) => {
-            patchLastAssistant((m) => ({ ...m, content: (m.content ?? "") + text }));
+      // 봇별 streaming_enabled 분기 — false 면 비스트림 단일 응답.
+      // ChatBot.streaming_enabled 가 undefined 면 default true (회귀 0).
+      const selectedBotInfo = bots.find((b) => b.chatbot_id === selectedBot);
+      const useStreaming = selectedBotInfo?.streaming_enabled !== false;
+
+      if (useStreaming) {
+        await chatAPI.streamMessage(
+          query,
+          selectedBot,
+          sessionId,
+          controller.signal,
+          { answer_mode: answerMode, theological_emphasis: emphasis },
+          {
+            onChunk: (text) => {
+              patchLastAssistant((m) => ({ ...m, content: (m.content ?? "") + text }));
+            },
+            onSources: (data) => {
+              setSessionId(data.session_id);
+              patchLastAssistant((m) => ({
+                ...m,
+                // safety_output_stage 가 본문 끝에 부착했을 수 있는 면책 고지를 strip.
+                // chunk 마다 strip 하면 부분 일치 위험이 있어 sources 도착 시 한 번만 적용.
+                content: stripDisclaimer(m.content ?? ""),
+                messageId: data.message_id,
+                sources: data.sources,
+                closing: data.closing ?? null,
+                suggestedFollowups: data.suggested_followups ?? null,
+              }));
+            },
+            onDone: () => {
+              // disclaimer 는 입력창 하단 footer 에 고정 노출 — 본문에 추가하지 않음.
+            },
           },
-          onSources: (data) => {
-            setSessionId(data.session_id);
-            patchLastAssistant((m) => ({
-              ...m,
-              // safety_output_stage 가 본문 끝에 부착했을 수 있는 면책 고지를 strip.
-              // chunk 마다 strip 하면 부분 일치 위험이 있어 sources 도착 시 한 번만 적용.
-              content: stripDisclaimer(m.content ?? ""),
-              messageId: data.message_id,
-              sources: data.sources,
-              closing: data.closing ?? null,
-              suggestedFollowups: data.suggested_followups ?? null,
-            }));
-          },
-          onDone: () => {
-            // disclaimer 는 입력창 하단 footer 에 고정 노출 — 본문에 추가하지 않음.
-          },
-        },
-      );
+        );
+      } else {
+        // 비스트림 모드 — chatAPI.sendMessage 가 single response 반환.
+        // 도착 시 placeholder 자리에 한 번에 patch (typing indicator → 본문 직접 전환).
+        const res = await chatAPI.sendMessage(
+          query,
+          selectedBot,
+          sessionId,
+          controller.signal,
+          { answer_mode: answerMode, theological_emphasis: emphasis },
+        );
+        setSessionId(res.session_id);
+        patchLastAssistant((m) => ({
+          ...m,
+          content: stripDisclaimer(res.answer),
+          messageId: res.message_id,
+          sources: res.sources,
+          closing: res.closing ?? null,
+          suggestedFollowups: res.suggested_followups ?? null,
+        }));
+      }
     } catch (e) {
       const aborted = (e as Error)?.name === "AbortError";
       if (aborted) {
@@ -352,7 +378,7 @@ export default function ChatPage() {
       // textarea focus 복원 (응답 후 자연스러운 연속 질문)
       requestAnimationFrame(() => textareaRef.current?.focus());
     }
-  }, [input, selectedBot, sessionId, loading, answerMode, emphasis]);
+  }, [input, selectedBot, sessionId, loading, answerMode, emphasis, bots]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();

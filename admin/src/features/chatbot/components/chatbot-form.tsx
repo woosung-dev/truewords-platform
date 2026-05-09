@@ -28,6 +28,8 @@ export interface ChatbotFormValues {
   persona_name: string;
   system_prompt: string;
   is_active: boolean;
+  // 봇별 SSE 스트리밍 응답 토글. default true.
+  streaming_enabled: boolean;
   search_tiers: {
     search_mode: "cascading" | "weighted";
     tiers: SearchTier[];
@@ -56,6 +58,7 @@ function buildInitial(initial?: Partial<ChatbotFormValues>): ChatbotFormValues {
     persona_name: initial?.persona_name ?? "",
     system_prompt: initial?.system_prompt ?? "",
     is_active: initial?.is_active ?? true,
+    streaming_enabled: initial?.streaming_enabled ?? true,
     search_tiers: {
       search_mode: initial?.search_tiers?.search_mode ?? "cascading",
       tiers: initial?.search_tiers?.tiers ?? [],
@@ -170,6 +173,20 @@ export function ChatbotForm({
           />
           <Label htmlFor="is-active" className="cursor-pointer">
             활성화
+          </Label>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <Checkbox
+            id="streaming-enabled"
+            checked={values.streaming_enabled}
+            onCheckedChange={(c) => patch("streaming_enabled", c === true)}
+          />
+          <Label htmlFor="streaming-enabled" className="cursor-pointer">
+            응답 스트리밍 (SSE)
+            <span className="ml-1.5 text-xs text-muted-foreground">
+              꺼두면 답변이 한 번에 도착합니다 (대기 시간 동일)
+            </span>
           </Label>
         </div>
       </div>

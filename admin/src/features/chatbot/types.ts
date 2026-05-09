@@ -28,6 +28,8 @@ export interface ChatbotConfig {
   persona_name: string;
   search_tiers: SearchTiersConfig;
   is_active: boolean;
+  // 봇별 SSE 스트리밍 응답 활성화. default true. false 면 chat 화면이 비스트림 단일 응답으로 분기.
+  streaming_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
