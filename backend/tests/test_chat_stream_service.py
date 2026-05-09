@@ -22,6 +22,7 @@ def _make_search_results(count: int = 5) -> list[SearchResult]:
             chunk_index=i,
             score=0.9 - i * 0.1,
             source="A",
+            chunk_id=f"chunk-{i:03d}",
         )
         for i in range(count)
     ]
@@ -222,3 +223,33 @@ class TestProcessChatStream:
         # 값은 stage 비활성/실패 시 None 일 수 있다.
         assert "closing" in sources_data
         assert "suggested_followups" in sources_data
+
+    @pytest.mark.asyncio
+    @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
+    @patch("src.chat.service.generate_answer_stream")
+    @patch("src.qdrant_client.get_async_client")
+    async def test_sources_event_includes_chunk_id(
+        self, mock_qdrant, mock_stream, mock_search, mock_embed,
+    ) -> None:
+        """SSE 출처 카드 클릭 → 원문보기 모달 trigger 회귀: chunk_id 가 sources 에 들어가야 한다."""
+        service, _, _ = _make_chat_service()
+        mock_search.return_value = _make_search_results(3)
+
+        async def fake_gen(*args, **kwargs):
+            yield "답변"
+
+        mock_stream.return_value = fake_gen()
+
+        request = ChatRequest(query="참사랑이란 무엇인가요?", chatbot_id="test")
+        sources_data = None
+        async for event in service.process_chat_stream(request):
+            if event.startswith("event: sources"):
+                data_line = event.split("\n")[1]
+                sources_data = json.loads(data_line.replace("data: ", ""))
+
+        assert sources_data is not None
+        assert sources_data["sources"], "sources 가 비어있어 chunk_id 검증 불가 — fixture 점검"
+        for src in sources_data["sources"]:
+            assert "chunk_id" in src, "stream sources 의 모든 항목에 chunk_id 필요 (frontend 모달 trigger)"
+            assert src["chunk_id"], "chunk_id 가 빈 문자열이면 frontend 가 비활성 처리"

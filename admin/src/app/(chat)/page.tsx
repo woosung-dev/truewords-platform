@@ -143,7 +143,9 @@ export default function ChatPage() {
   // const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => new Set());
   // const [followupOpen, setFollowupOpen] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // 새 질문 전송 시 사용자 메시지를 viewport 상단으로 scrollIntoView 하여
+  // 답변이 그 아래에서 점진 노출되는 Claude/ChatGPT 패턴을 따른다.
+  // chunk 누적 동안 자동 하단 스크롤로 문맥이 가려지는 어색함 해소.
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -169,9 +171,24 @@ export default function ChatPage() {
     return () => clearTimeout(slowTimer);
   }, []);
 
-  // 메시지 스크롤
+  // 새 user 메시지가 추가될 때만 그 element 를 viewport 상단으로 스크롤.
+  // chunk 누적 동안에는 자동 스크롤 안 함 — 사용자가 답변 첫 줄부터 자연스럽게 읽도록.
+  // (Claude/ChatGPT 패턴)
+  const userMsgCountRef = useRef(0);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const userCount = messages.filter((m) => m.role === "user").length;
+    if (userCount > userMsgCountRef.current) {
+      // 새로 추가된 user 메시지 element (DOM 의 마지막 [data-msg-role=user]) 를 상단 정렬.
+      // RAF 두 번으로 React commit + layout 완료 후 실행.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const userBubbles = document.querySelectorAll('[data-msg-role="user"]');
+          const last = userBubbles[userBubbles.length - 1] as HTMLElement | undefined;
+          last?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+    }
+    userMsgCountRef.current = userCount;
   }, [messages]);
 
   // textarea 자동 높이 조정 (modern AI chat 패턴) — 후속 질문용 컴팩트 입력바
@@ -543,13 +560,16 @@ export default function ChatPage() {
         // ── 채팅 진행 중: 메시지 + 후속 질문 입력바 ───────────────────
         <>
           <div className="flex-1 overflow-y-auto px-4 py-6">
+            {/* pb-[60vh] — 답변이 짧아도 새 user 메시지를 viewport 상단으로
+                정확히 scrollIntoView 할 수 있도록 하단 여유 공간 확보. (ChatGPT/Claude 패턴) */}
             <div
-              className="mx-auto max-w-2xl space-y-4"
+              className="mx-auto max-w-2xl space-y-4 pb-[60vh]"
             >
               {messages.map((msg, i) => (
                 <div
                   key={i}
-                  className={`group flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}
+                  data-msg-role={msg.role}
+                  className={`group flex gap-3 ${msg.role === "user" ? "justify-end scroll-mt-4" : ""}`}
                 >
                   {msg.role === "assistant" && (
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -569,23 +589,36 @@ export default function ChatPage() {
                       </Card>
                     ) : (
                       <Card className="bg-card px-4 py-3 shadow-sm">
-                        <AssistantMessage
-                          content={stripDisclaimer(msg.content)}
-                          sources={msg.sources}
-                          onSourceClick={(src) =>
-                            setChunkModal({
-                              open: true,
-                              chunkId: src.chunk_id ?? null,
-                              snippet: src.text,
-                              displayName: src.display_name ?? null,
-                            })
-                          }
-                        />
-                        {/* B1 — 본문/권유 시각 분리. closing 있으면 기도/결의문, 없으면 정적 보조 멘트. */}
-                        <ClosingCallout
-                          closing={msg.closing}
-                          className="mt-3"
-                        />
+                        {msg.content?.trim() ? (
+                          <AssistantMessage
+                            content={stripDisclaimer(msg.content)}
+                            sources={msg.sources}
+                            onSourceClick={(src) =>
+                              setChunkModal({
+                                open: true,
+                                chunkId: src.chunk_id ?? null,
+                                snippet: src.text,
+                                displayName: src.display_name ?? null,
+                              })
+                            }
+                          />
+                        ) : (
+                          // chunk 도착 전 placeholder 상태 — typing indicator 만 노출.
+                          // 본문 비어있을 때 ClosingCallout 까지 보이면 빈 답변처럼 보여 어색.
+                          <div className="flex items-center gap-1.5 py-2 text-muted-foreground" aria-label="응답 생성 중">
+                            <span className="size-1.5 rounded-full bg-current animate-pulse" />
+                            <span className="size-1.5 rounded-full bg-current animate-pulse [animation-delay:150ms]" />
+                            <span className="size-1.5 rounded-full bg-current animate-pulse [animation-delay:300ms]" />
+                          </div>
+                        )}
+                        {/* B1 — 본문/권유 시각 분리. messageId 도착(=응답 완료) 후에만 노출.
+                            chunk 진행 중엔 본문만 누적되어 자연스럽게. */}
+                        {msg.messageId && (
+                          <ClosingCallout
+                            closing={msg.closing}
+                            className="mt-3"
+                          />
+                        )}
                       </Card>
                     )}
 
@@ -692,7 +725,6 @@ export default function ChatPage() {
                 </div>
               )}
 
-              <div ref={messagesEndRef} />
             </div>
           </div>
 

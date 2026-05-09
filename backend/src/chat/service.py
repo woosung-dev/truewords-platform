@@ -357,7 +357,9 @@ class ChatService:
             )
             ctx = await self.persist_stage.execute(ctx)
 
-            # Sources + Done 이벤트 yield (closing / suggested_followups 포함)
+            # Sources + Done 이벤트 yield (closing / suggested_followups 포함).
+            # chunk_id 는 frontend 의 출처 카드 클릭 → 원문보기 모달 trigger 에 필수.
+            # 누락 시 카드가 "원문 미연결" 로 비활성. 동기 process_chat 응답과 동일 schema.
             display_name_lookup = await self._build_display_name_lookup()
             sources_data = [
                 {
@@ -365,6 +367,7 @@ class ChatService:
                     "text": r.text[:200],
                     "score": r.score,
                     "source": r.source,
+                    "chunk_id": r.chunk_id,
                     "display_name": display_name_lookup.get((r.source, r.volume)),
                 }
                 for r in ctx.results[:3]
