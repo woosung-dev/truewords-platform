@@ -42,6 +42,7 @@ export default function EditChatbotPage({
         system_prompt: values.system_prompt,
         search_tiers: values.search_tiers,
         is_active: values.is_active,
+        streaming_enabled: values.streaming_enabled,
       }),
     onSuccess: () => {
       toast.success("저장되었습니다");
@@ -125,6 +126,7 @@ export default function EditChatbotPage({
             persona_name: config.persona_name ?? "",
             system_prompt: config.system_prompt ?? "",
             is_active: config.is_active,
+            streaming_enabled: config.streaming_enabled,
             search_tiers: {
               search_mode: config.search_tiers?.search_mode ?? "cascading",
               tiers: config.search_tiers?.tiers ?? [],

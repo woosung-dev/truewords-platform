@@ -24,6 +24,9 @@ class ChatbotConfig(SQLModel, table=True):
     # JSONB: {"tiers": [...], "rerank_enabled": false, "dictionary_enabled": false}
     search_tiers: dict = Field(default_factory=dict, sa_column=Column(JSON))
     is_active: bool = Field(default=True)
+    # 봇별 SSE 스트리밍 응답 활성화 여부. default true.
+    # admin 에서 false 로 설정하면 chat 화면이 비스트림(/chat) 단일 응답으로 분기.
+    streaming_enabled: bool = Field(default=True)
     organization_id: uuid.UUID | None = None
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)

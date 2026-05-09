@@ -9,6 +9,8 @@ export interface ChatBot {
   chatbot_id: string;
   display_name: string;
   description: string;
+  // 봇별 SSE 스트리밍 응답 활성화. default true. false 면 chat 화면이 비스트림 분기.
+  streaming_enabled?: boolean;
 }
 
 /**
