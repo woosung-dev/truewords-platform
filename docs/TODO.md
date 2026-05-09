@@ -130,7 +130,6 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] **#14 답변 퀄리티 100문항 자동 검증** — sub-agent 가 카테고리별 질문 100개 생성 → API 호출 → RAGAS/Judge 평가. 별도 트랙. 골든셋 60문항 확장과 묶어 진행.
 - [ ] **#4 대표 질문 4개 답변 재검증** — `#11 cache key persona 누락 fix` 머지 후 별도 세션에서 4개 질문(`SUGGESTED_PROMPTS`) 답변 품질 수동 점검.
 - [ ] **#9 좋아요 토글 백엔드 cleanup** — 현재 helpful 토글은 프론트 로컬 state 만 reset, `AnswerFeedback` row 는 누적 보존. 분석 시 (message_id, created_at desc) 후처리. 정직한 fix 는 `DELETE /chat/feedback/{message_id}` 신규 엔드포인트.
-- [ ] **#3 출처 `.txt` → `.pdf` 표시는 임시 hack** — `displaySourceLabel()` 이 시각적으로만 치환. 실제 PDF 적재로 전환 시 헬퍼 제거.
 
 ### 기존 보류 항목
 

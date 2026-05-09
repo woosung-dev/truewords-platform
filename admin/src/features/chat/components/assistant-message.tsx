@@ -81,13 +81,6 @@ interface SourceCardGridProps {
   onSourceClick?: (source: Source) => void;
 }
 
-// 출처 표기 시 노출 확장자 정규화.
-// PoC 단계 적재 파일 다수가 .txt 인데 사용자에게 .pdf 로 보이는 게 신뢰도 측면에서 자연스럽다.
-// TODO: 실제 PDF 적재로 전환되면 이 헬퍼 제거.
-function displaySourceLabel(source: string): string {
-  return source.replace(/\.txt$/i, ".pdf");
-}
-
 function SourceCardGrid({ sources, onSourceClick }: SourceCardGridProps) {
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -95,7 +88,6 @@ function SourceCardGrid({ sources, onSourceClick }: SourceCardGridProps) {
         const num = idx + 1;
         const clickable = !!src.chunk_id;
         const Tag = clickable ? "button" : "div";
-        const label = src.source ? displaySourceLabel(src.source) : "";
         return (
           <Tag
             key={`${src.chunk_id || src.volume}-${idx}`}
@@ -119,7 +111,7 @@ function SourceCardGrid({ sources, onSourceClick }: SourceCardGridProps) {
                 {src.volume}
               </span>
               <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                {label ? `${label} · ` : ""}
+                {src.source ? `${src.source} · ` : ""}
                 {clickable ? "클릭하여 원문 보기 →" : "원문 미연결"}
               </span>
             </span>
