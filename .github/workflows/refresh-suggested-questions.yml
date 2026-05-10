@@ -1,0 +1,86 @@
+name: Refresh Suggested Questions
+
+# 활성 챗봇별 입력 화면 추천 질문 칩 3 개를 매일 자동 갱신. 30 일 사용자 질문 +
+# 봇 RAG sample 을 근거로 Gemini 호출 → chatbot_configs.suggested_questions JSONB.
+#
+# 인프라 무관성: GHA 가 외부 trigger 라 GCP/AWS 어느 환경에서도 동일 동작.
+# Cloud Run service idle (scale-to-zero) 와 무관 — runner 가 직접 스크립트 실행.
+#
+# 상세: docs/guides/cron-jobs.md, docs/dev-log/56-dynamic-suggested-questions.md
+
+on:
+  schedule:
+    # 매주 월요일 03:30 KST = 일요일 18:30 UTC.
+    # 주 1회 빈도 근거: 30 일 슬라이딩 윈도우 기준 일별 데이터 변동 ≈ 3% 라
+    # 매일 갱신은 무가치한 호출이 90%+. 주 1 회면 데이터 변동 ≈ 23% 로 의미
+    # 있는 변화 반영 + Gemini 호출 7 배 절감. 1 회 실패해도 신규 봇은
+    # FALLBACK_PROMPTS 로 노출 유지되므로 운영 중단 risk 없음.
+    - cron: "30 18 * * 0"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "실행 모드"
+        required: true
+        default: "execute"
+        type: choice
+        options:
+          - dry-run
+          - execute
+      bot_id:
+        description: "단일 봇만 처리 (비우면 모든 활성 봇)"
+        required: false
+        default: ""
+      days:
+        description: "질문 로그 분석 윈도우 (기본 30 일)"
+        required: false
+        default: ""
+
+jobs:
+  refresh:
+    name: Run refresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        # refresh 스크립트는 backend src 의 chatbot/repository, common/gemini,
+        # qdrant/raw_client 등을 import 하므로 전체 sync 필요.
+        run: uv sync --frozen
+
+      - name: Run refresh
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          QDRANT_URL: ${{ secrets.QDRANT_URL }}
+          QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          COLLECTION_NAME: ${{ vars.COLLECTION_NAME || 'malssum_poc_v5' }}
+          # admin JWT 비활성 컨텍스트 — settings 검증 통과용 placeholder.
+          ADMIN_JWT_SECRET: not-used-by-refresh-script
+        run: |
+          MODE="${{ github.event.inputs.mode || 'execute' }}"
+          BOT_ID="${{ github.event.inputs.bot_id }}"
+          DAYS="${{ github.event.inputs.days }}"
+
+          ARGS="--$MODE"
+          if [ -n "$BOT_ID" ]; then
+            ARGS="$ARGS --bot-id $BOT_ID"
+          fi
+          if [ -n "$DAYS" ]; then
+            ARGS="$ARGS --days $DAYS"
+          fi
+
+          echo "Running: scripts/refresh_suggested_questions.py $ARGS"
+          uv run python scripts/refresh_suggested_questions.py $ARGS

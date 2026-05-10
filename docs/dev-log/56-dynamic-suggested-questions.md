@@ -56,17 +56,28 @@ ALTER TABLE chatbot_configs ADD COLUMN suggested_at TIMESTAMP NULL;
    parser 가 제거.
 6. `update_suggested_questions(config, questions)` + `commit()`.
 
-## Cron 트리거
+## Cron 트리거 — GitHub Actions (provider-agnostic)
 
 `backend/scripts/refresh_suggested_questions.py` — `cleanup_semantic_cache.py` 와 같은
 인프라 무관 패턴. 활성 봇 (`is_active=True`) 모두 순회, 봇별 실패는 격리.
 
-```bash
-# Cloud Run job 또는 EC2 cron
-30 3 * * * cd /path/backend && uv run python scripts/refresh_suggested_questions.py --execute
-```
+`.github/workflows/refresh-suggested-questions.yml` (cron: `30 18 * * 0` UTC =
+**매주 월요일 03:30 KST**) 가 GHA runner 에서 직접 스크립트 실행. Cloud Run
+service 의 idle (scale-to-zero) 와 무관.
 
-`cleanup_semantic_cache` 가 03:00 KST 라 30 분 간격 두고 03:30 KST 로 배치.
+빈도 = 주 1 회 근거: 30 일 슬라이딩 윈도우 기준 일별 변동 ≈ 3% 라 매일 갱신은
+대부분 같은 답을 다시 만드는 무가치한 호출. 주 1 회면 변동 ≈ 23% 로 의미 있는
+변화 반영 + Gemini 호출 7 배 절감. 신규 봇은 첫 갱신 전엔 `FALLBACK_PROMPTS` 4 개
+노출되므로 stale 1 주 위험은 운영 중단 risk 가 아님.
+
+GHA 채택 근거:
+- **Provider 무관** — GCP / AWS 어디서든 secrets URL 만 갱신하면 끝
+- **이미 사용 중인 패턴** — `cache-cleanup.yml` 와 동일 구조라 일관성
+- **Cold start 무관** — runner 가 직접 스크립트 실행, backend service 깨울 필요 X
+- **무료 한도 충분** — 매일 1 회 × 약 4 분, GHA private repo 2000 분/월 한도 안
+
+수동 실행 (긴급 갱신 / 디버깅): GitHub Actions UI → Refresh Suggested Questions →
+Run workflow. `mode=dry-run/execute`, `bot_id`, `days` 입력 가능.
 
 ## 프론트 적용
 
@@ -94,6 +105,10 @@ const prompts = dynamic.length > 0 ? dynamic : FALLBACK_PROMPTS;
 
 ## Follow-up
 
-- Cloud Scheduler 등록 (`docs/06_devops/cloud-scheduler.md` 신규)
+- ✅ GHA workflow 등록 (`.github/workflows/refresh-suggested-questions.yml`) — 별도 PR
+  로 진행. Cloud Scheduler / EventBridge 매핑 가이드는 `cache-cleanup.yml` 운영 사례를
+  그대로 미러링.
 - 운영 1~2 주 후 옵션 E 확장 검토 (admin "지금 갱신" 버튼)
-- 봇 8 개 × 매일 1 회 = 월 240 회 Gemini 호출 → flash-lite 기준 무시 가능 비용
+- 봇 8 개 × 주 1 회 = 월 약 32 회 Gemini 호출 → flash-lite 기준 무시 가능 비용
+- GHA secrets 등록 필요: `DATABASE_URL`, `QDRANT_URL`, `QDRANT_API_KEY`,
+  `GEMINI_API_KEY` (variables: `COLLECTION_NAME`)
