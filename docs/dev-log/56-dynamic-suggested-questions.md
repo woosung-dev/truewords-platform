@@ -61,10 +61,14 @@ ALTER TABLE chatbot_configs ADD COLUMN suggested_at TIMESTAMP NULL;
 `backend/scripts/refresh_suggested_questions.py` — `cleanup_semantic_cache.py` 와 같은
 인프라 무관 패턴. 활성 봇 (`is_active=True`) 모두 순회, 봇별 실패는 격리.
 
-`.github/workflows/refresh-suggested-questions.yml` (cron: `30 18 * * *` UTC =
-03:30 KST) 가 GHA runner 에서 직접 스크립트 실행. Cloud Run service 의 idle
-(scale-to-zero) 와 무관. `cleanup_semantic_cache` (03:00 KST, `cache-cleanup.yml`)
-와 30 분 간격으로 배치.
+`.github/workflows/refresh-suggested-questions.yml` (cron: `30 18 * * 0` UTC =
+**매주 월요일 03:30 KST**) 가 GHA runner 에서 직접 스크립트 실행. Cloud Run
+service 의 idle (scale-to-zero) 와 무관.
+
+빈도 = 주 1 회 근거: 30 일 슬라이딩 윈도우 기준 일별 변동 ≈ 3% 라 매일 갱신은
+대부분 같은 답을 다시 만드는 무가치한 호출. 주 1 회면 변동 ≈ 23% 로 의미 있는
+변화 반영 + Gemini 호출 7 배 절감. 신규 봇은 첫 갱신 전엔 `FALLBACK_PROMPTS` 4 개
+노출되므로 stale 1 주 위험은 운영 중단 risk 가 아님.
 
 GHA 채택 근거:
 - **Provider 무관** — GCP / AWS 어디서든 secrets URL 만 갱신하면 끝
@@ -105,6 +109,6 @@ const prompts = dynamic.length > 0 ? dynamic : FALLBACK_PROMPTS;
   로 진행. Cloud Scheduler / EventBridge 매핑 가이드는 `cache-cleanup.yml` 운영 사례를
   그대로 미러링.
 - 운영 1~2 주 후 옵션 E 확장 검토 (admin "지금 갱신" 버튼)
-- 봇 8 개 × 매일 1 회 = 월 240 회 Gemini 호출 → flash-lite 기준 무시 가능 비용
+- 봇 8 개 × 주 1 회 = 월 약 32 회 Gemini 호출 → flash-lite 기준 무시 가능 비용
 - GHA secrets 등록 필요: `DATABASE_URL`, `QDRANT_URL`, `QDRANT_API_KEY`,
   `GEMINI_API_KEY` (variables: `COLLECTION_NAME`)

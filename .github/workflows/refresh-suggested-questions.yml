@@ -10,8 +10,12 @@ name: Refresh Suggested Questions
 
 on:
   schedule:
-    # 매일 03:30 KST = 18:30 UTC. cache-cleanup (03:00) 와 30 분 간격.
-    - cron: "30 18 * * *"
+    # 매주 월요일 03:30 KST = 일요일 18:30 UTC.
+    # 주 1회 빈도 근거: 30 일 슬라이딩 윈도우 기준 일별 데이터 변동 ≈ 3% 라
+    # 매일 갱신은 무가치한 호출이 90%+. 주 1 회면 데이터 변동 ≈ 23% 로 의미
+    # 있는 변화 반영 + Gemini 호출 7 배 절감. 1 회 실패해도 신규 봇은
+    # FALLBACK_PROMPTS 로 노출 유지되므로 운영 중단 risk 없음.
+    - cron: "30 18 * * 0"
   workflow_dispatch:
     inputs:
       mode:
