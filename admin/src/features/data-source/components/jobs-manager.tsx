@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useIngestionJobs } from "@/features/data-source/hooks";
+import { useDataSourceCategories, useIngestionJobs } from "@/features/data-source/hooks";
 import type { IngestionJobInfo } from "@/features/data-source/types";
 import { DisplayNameEditor } from "./display-name-editor";
 
@@ -56,7 +56,13 @@ function StatusBadge({ status }: { status: string }) {
   }
 }
 
-function JobTableRow({ job }: { job: IngestionJobInfo }) {
+function JobTableRow({
+  job,
+  categoryName,
+}: {
+  job: IngestionJobInfo;
+  categoryName: string;
+}) {
   return (
     <TableRow>
       <TableCell className="max-w-[200px]">
@@ -72,8 +78,8 @@ function JobTableRow({ job }: { job: IngestionJobInfo }) {
         />
       </TableCell>
       <TableCell>
-        <span className="font-mono text-xs text-muted-foreground">
-          {job.source || "—"}
+        <span className="text-xs text-muted-foreground">
+          {categoryName}
         </span>
       </TableCell>
       <TableCell className="text-right text-xs tabular-nums">
@@ -86,7 +92,13 @@ function JobTableRow({ job }: { job: IngestionJobInfo }) {
   );
 }
 
-function JobCard({ job }: { job: IngestionJobInfo }) {
+function JobCard({
+  job,
+  categoryName,
+}: {
+  job: IngestionJobInfo;
+  categoryName: string;
+}) {
   return (
     <div className="space-y-2 rounded-lg border bg-card p-3">
       <div className="flex items-start justify-between gap-2">
@@ -99,9 +111,7 @@ function JobCard({ job }: { job: IngestionJobInfo }) {
         <StatusBadge status={job.status} />
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        {job.source && (
-          <span className="font-mono">{job.source}</span>
-        )}
+        <span>{categoryName}</span>
         <span>{job.total_chunks.toLocaleString()}청크</span>
       </div>
       <DisplayNameEditor
@@ -115,8 +125,16 @@ function JobCard({ job }: { job: IngestionJobInfo }) {
 
 export function JobsManager() {
   const { data: jobs = [], isLoading } = useIngestionJobs();
+  const { data: categories = [] } = useDataSourceCategories();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
+  // source 키("A", "B") → 카테고리 이름("말씀선집") 매핑
+  const categoryNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    categories.forEach((c) => map.set(c.key, c.name));
+    return map;
+  }, [categories]);
 
   const filtered = useMemo(() => {
     // NFC 정규화: 맥OS NFD 파일명과 브라우저 NFC 입력 간 불일치 방지
@@ -199,7 +217,11 @@ export function JobsManager() {
               </TableHeader>
               <TableBody>
                 {paginated.map((job) => (
-                  <JobTableRow key={job.volume_key} job={job} />
+                  <JobTableRow
+                    key={job.volume_key}
+                    job={job}
+                    categoryName={categoryNameMap.get(job.source) ?? (job.source || "미지정")}
+                  />
                 ))}
               </TableBody>
             </Table>
@@ -208,7 +230,11 @@ export function JobsManager() {
           {/* 모바일 카드 목록 */}
           <div className="space-y-2 p-3 sm:hidden">
             {paginated.map((job) => (
-              <JobCard key={job.volume_key} job={job} />
+              <JobCard
+                key={job.volume_key}
+                job={job}
+                categoryName={categoryNameMap.get(job.source) ?? (job.source || "미지정")}
+              />
             ))}
           </div>
 
