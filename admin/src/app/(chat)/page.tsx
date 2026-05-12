@@ -562,7 +562,7 @@ export default function ChatPage() {
           <div className="mx-auto flex max-w-2xl flex-col gap-6">
             {/* 인사말 — empty state 아이콘은 현재 답변 모드에 따라 동적으로 변경된다. */}
             <div className="flex flex-col items-center gap-3 pt-6 pb-2 text-muted-foreground">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F5EDE0]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-persona-icon-bg">
                 {botsLoading ? (
                   <Loader2 className="h-7 w-7 animate-spin text-accent" />
                 ) : (() => {
@@ -682,9 +682,11 @@ export default function ChatPage() {
             <div
               className="mx-auto max-w-2xl space-y-4 pb-[60vh]"
             >
-              {visibleMessages.map((msg, i) => (
+              {visibleMessages.map((msg) => {
+                const msgIdx = messages.indexOf(msg);
+                return (
                 <div
-                  key={i}
+                  key={msgIdx}
                   data-msg-role={msg.role}
                   className={`group flex gap-3 ${msg.role === "user" ? "justify-end scroll-mt-4" : ""}`}
                 >
@@ -692,7 +694,7 @@ export default function ChatPage() {
                     // 답변 시점의 모드를 우선 — 사용자가 모드를 바꿔도 과거 답변 아바타는 고정.
                     const ModeIcon = personaForMode(msg.persona ?? answerMode).Icon;
                     return (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F5EDE0]">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-persona-icon-bg">
                         <ModeIcon size={16} />
                       </div>
                     );
@@ -794,7 +796,7 @@ export default function ChatPage() {
                                 : "도움이 됐어요"
                             }
                             aria-pressed={msg.feedback === "helpful"}
-                            onClick={() => submitFeedback(i, "helpful")}
+                            onClick={() => submitFeedback(msgIdx, "helpful")}
                             className={`h-7 w-7 ${
                               msg.feedback === "helpful"
                                 ? "bg-success-soft text-success hover:bg-success-soft"
@@ -815,12 +817,12 @@ export default function ChatPage() {
                                 : null
                             }
                             onSubmit={(reason, comment) =>
-                              submitFeedback(i, reason, comment)
+                              submitFeedback(msgIdx, reason, comment)
                             }
                             onCancel={() =>
                               setMessages((prev) =>
                                 prev.map((m, j) =>
-                                  j === i ? { ...m, feedback: undefined } : m,
+                                  j === msgIdx ? { ...m, feedback: undefined } : m,
                                 ),
                               )
                             }
@@ -843,7 +845,8 @@ export default function ChatPage() {
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
 
             </div>
           </div>
