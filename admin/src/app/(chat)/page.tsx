@@ -298,7 +298,7 @@ export default function ChatPage() {
       return [
         ...base,
         { role: "user", content: query },
-        { role: "assistant", content: "", persona: answerMode as PersonaMode },
+        { role: "assistant", content: "", persona: answerMode },
       ];
     });
     setLoading(true);
@@ -651,7 +651,7 @@ export default function ChatPage() {
               </h2>
 
               <PersonaRowTrigger
-                value={answerMode as PersonaMode}
+                value={answerMode}
                 onClick={() => setPersonaSheetOpen(true)}
               />
 
@@ -929,7 +929,7 @@ export default function ChatPage() {
       <PersonaSheet
         open={personaSheetOpen}
         onOpenChange={setPersonaSheetOpen}
-        value={answerMode as PersonaMode}
+        value={answerMode}
         onValueChange={(v) => setAnswerMode(v as AnswerMode)}
       />
 
