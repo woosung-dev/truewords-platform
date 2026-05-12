@@ -110,12 +110,7 @@ export function EmphasisSheet({
         </div>
 
         <SheetFooter className="px-5 pt-3 pb-safe">
-          <ChatButton
-            onClick={handleApply}
-            variant="brass"
-            size="xl"
-            fullWidth
-          >
+          <ChatButton onClick={handleApply} size="xl" fullWidth>
             적용하기
           </ChatButton>
         </SheetFooter>
