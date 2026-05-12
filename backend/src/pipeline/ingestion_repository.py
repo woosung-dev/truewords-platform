@@ -1,5 +1,6 @@
 """IngestionJob DB CRUD."""
 
+import os
 from datetime import datetime
 
 from sqlalchemy import func
@@ -7,6 +8,11 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.pipeline.ingestion_models import IngestionJob, IngestionStatus
+
+
+def _default_display_name(filename: str) -> str:
+    """확장자를 제거한 기본 표시명. 예: '말씀선집_167권.txt' → '말씀선집_167권'."""
+    return os.path.splitext(filename)[0][:255]
 
 
 class IngestionJobRepository:
@@ -32,6 +38,7 @@ class IngestionJobRepository:
                 status=IngestionStatus.PENDING,
                 created_at=now,
                 updated_at=now,
+                display_name=_default_display_name(filename),
             )
             self.session.add(job)
         else:
@@ -43,6 +50,9 @@ class IngestionJobRepository:
             job.error_message = None
             job.completed_at = None
             job.updated_at = now
+            # 기존 편집값 보호 — 운영자가 이미 지정한 경우 덮어쓰지 않음
+            if job.display_name is None:
+                job.display_name = _default_display_name(filename)
             self.session.add(job)
         await self.session.flush()
         return job
