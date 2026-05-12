@@ -19,6 +19,7 @@ import type {
   UploadResponse,
 } from "@/features/data-source/types";
 import { fetchAPI } from "@/lib/api";
+import { stripFileExt } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -801,7 +802,9 @@ export default function DataSourcesPage() {
                           <DisplayNameEditor
                             volumeKey={job.volume_key}
                             initialValue={job.display_name}
-                            placeholder="채팅에서 보일 표시명 (예: 말씀선집 167권)"
+                            // 미설정 시 채팅에 자동 노출되는 default 표시명을
+                            // placeholder 로 미리 보여준다 (확장자 제거된 형태).
+                            placeholder={stripFileExt(filename)}
                           />
                         ) : null}
                       </div>

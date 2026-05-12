@@ -4,7 +4,7 @@ import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ChatResponse } from "@/features/chatbot/chat-api";
-import { cn } from "@/lib/utils";
+import { cn, stripFileExt } from "@/lib/utils";
 
 type Source = NonNullable<ChatResponse["sources"]>[number];
 
@@ -88,9 +88,10 @@ function SourceCardGrid({ sources, onSourceClick }: SourceCardGridProps) {
         const num = idx + 1;
         const clickable = !!src.chunk_id;
         const Tag = clickable ? "button" : "div";
-        // admin 에서 지정한 display_name 이 있으면 그것을 우선 노출.
-        // 없으면 기존 volume(권번호) 로 fallback.
-        const primaryLabel = src.display_name?.trim() || src.volume;
+        // admin 에서 지정한 display_name 이 있으면 그것을 우선 노출. 없으면 volume 으로
+        // fallback 하되, 파일 확장자(.txt 등)는 default 로 제거 — 채팅 답변 가독성 향상.
+        const rawLabel = src.display_name?.trim() || src.volume;
+        const primaryLabel = stripFileExt(rawLabel);
         return (
           <Tag
             key={`${src.chunk_id || src.volume}-${idx}`}
