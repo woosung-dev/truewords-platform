@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useDataSourceCategories, useIngestionJobs } from "@/features/data-source/hooks";
+import { useIngestionJobs } from "@/features/data-source/hooks";
 import type { IngestionJobInfo } from "@/features/data-source/types";
 import { DisplayNameEditor } from "./display-name-editor";
 
@@ -56,13 +56,7 @@ function StatusBadge({ status }: { status: string }) {
   }
 }
 
-function JobTableRow({
-  job,
-  categoryName,
-}: {
-  job: IngestionJobInfo;
-  categoryName: string;
-}) {
+function JobTableRow({ job }: { job: IngestionJobInfo }) {
   return (
     <TableRow>
       <TableCell className="max-w-[200px]">
@@ -77,11 +71,6 @@ function JobTableRow({
           placeholder="표시명 미설정"
         />
       </TableCell>
-      <TableCell>
-        <span className="text-xs text-muted-foreground">
-          {categoryName}
-        </span>
-      </TableCell>
       <TableCell className="text-right text-xs tabular-nums">
         {job.total_chunks.toLocaleString()}
       </TableCell>
@@ -92,13 +81,7 @@ function JobTableRow({
   );
 }
 
-function JobCard({
-  job,
-  categoryName,
-}: {
-  job: IngestionJobInfo;
-  categoryName: string;
-}) {
+function JobCard({ job }: { job: IngestionJobInfo }) {
   return (
     <div className="space-y-2 rounded-lg border bg-card p-3">
       <div className="flex items-start justify-between gap-2">
@@ -111,7 +94,6 @@ function JobCard({
         <StatusBadge status={job.status} />
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>{categoryName}</span>
         <span>{job.total_chunks.toLocaleString()}청크</span>
       </div>
       <DisplayNameEditor
@@ -125,16 +107,8 @@ function JobCard({
 
 export function JobsManager() {
   const { data: jobs = [], isLoading } = useIngestionJobs();
-  const { data: categories = [] } = useDataSourceCategories();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-
-  // source 키("A", "B") → 카테고리 이름("말씀선집") 매핑
-  const categoryNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    categories.forEach((c) => map.set(c.key, c.name));
-    return map;
-  }, [categories]);
 
   const filtered = useMemo(() => {
     // NFC 정규화: 맥OS NFD 파일명과 브라우저 NFC 입력 간 불일치 방지
@@ -143,8 +117,7 @@ export function JobsManager() {
     return jobs.filter(
       (j) =>
         j.filename.normalize("NFC").toLowerCase().includes(q) ||
-        (j.display_name ?? "").normalize("NFC").toLowerCase().includes(q) ||
-        j.source.toLowerCase().includes(q),
+        (j.display_name ?? "").normalize("NFC").toLowerCase().includes(q),
     );
   }, [jobs, search]);
 
@@ -210,18 +183,13 @@ export function JobsManager() {
                 <TableRow>
                   <TableHead className="w-[200px]">파일명</TableHead>
                   <TableHead>표시명</TableHead>
-                  <TableHead className="w-[80px]">카테고리</TableHead>
                   <TableHead className="w-[80px] text-right">청크</TableHead>
                   <TableHead className="w-[80px]">상태</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginated.map((job) => (
-                  <JobTableRow
-                    key={job.volume_key}
-                    job={job}
-                    categoryName={categoryNameMap.get(job.source) ?? (job.source || "미지정")}
-                  />
+                  <JobTableRow key={job.volume_key} job={job} />
                 ))}
               </TableBody>
             </Table>
@@ -230,11 +198,7 @@ export function JobsManager() {
           {/* 모바일 카드 목록 */}
           <div className="space-y-2 p-3 sm:hidden">
             {paginated.map((job) => (
-              <JobCard
-                key={job.volume_key}
-                job={job}
-                categoryName={categoryNameMap.get(job.source) ?? (job.source || "미지정")}
-              />
+              <JobCard key={job.volume_key} job={job} />
             ))}
           </div>
 
