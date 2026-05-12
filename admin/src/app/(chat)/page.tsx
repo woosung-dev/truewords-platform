@@ -28,7 +28,6 @@ import {
 import { toast } from "sonner";
 import {
   ArrowUp,
-  Bot,
   BookOpen,
   Copy,
   Loader2,
@@ -49,6 +48,7 @@ import {
   FollowupPills,
   PersonaSheet,
   PersonaRowTrigger,
+  PERSONAS,
   SourceOriginalModal,
   type PersonaMode,
 } from "@/components/truewords";
@@ -76,7 +76,13 @@ interface Message {
   suggestedFollowups?: string[] | null;
   // P1-J — 기도문/결의문 마무리. 비활성/실패 시 null. ClosingCallout 가 정적 보조멘트로 fallback.
   closing?: string | null;
+  // 답변 시점의 답변 모드 — 메시지 옆 아바타 아이콘이 모드 변경에 따라 과거 답변까지 바뀌지 않도록 보존.
+  persona?: PersonaMode;
 }
+
+// PERSONAS 배열에서 모드 키로 정의를 찾는다. 미일치 시 첫 항목(표준) fallback.
+const personaForMode = (mode: string) =>
+  PERSONAS.find((p) => p.key === mode) ?? PERSONAS[0];
 
 const NEGATIVE_REASONS: { key: Exclude<FeedbackType, "helpful">; label: string }[] = [
   { key: "inaccurate", label: "부정확한 답변" },
@@ -287,7 +293,7 @@ export default function ChatPage() {
       return [
         ...base,
         { role: "user", content: query },
-        { role: "assistant", content: "" },
+        { role: "assistant", content: "", persona: answerMode as PersonaMode },
       ];
     });
     setLoading(true);
@@ -442,11 +448,11 @@ export default function ChatPage() {
       toast.error("이 답변에는 피드백을 남길 수 없습니다");
       return;
     }
-    // #9 — 좋아요 토글: 이미 helpful 인 상태에서 다시 helpful 을 누르면 로컬 취소.
+    // 피드백 토글: 동일 type 을 다시 보내면 로컬 취소 (긍정/부정 reason 모두).
     // 백엔드 AnswerFeedback row 는 라벨링/분석용 보존. 운영자가 최신 상태만 보려면
     // (message_id, created_at desc) 기준으로 후처리 가능.
     // 백엔드 DELETE 엔드포인트 도입은 docs/TODO 로 follow-up.
-    if (type === "helpful" && msg.feedback === "helpful") {
+    if (msg.feedback === type) {
       setMessages((prev) =>
         prev.map((m, i) => (i === idx ? { ...m, feedback: undefined } : m)),
       );
@@ -534,7 +540,13 @@ export default function ChatPage() {
               </SelectTrigger>
               <SelectContent>
                 {bots.map((bot) => (
-                  <SelectItem key={bot.chatbot_id} value={bot.chatbot_id}>
+                  <SelectItem
+                    key={bot.chatbot_id}
+                    value={bot.chatbot_id}
+                    // 봇 select 의 hover/선택 highlight 도 채팅 메인 CTA 와 동일한 navy 톤으로
+                    // 통일. base ui/select 가 focus 시 brass(accent) 를 깔던 것을 override.
+                    className="focus:bg-primary/10 focus:text-foreground not-data-[variant=destructive]:focus:**:text-foreground"
+                  >
                     {bot.display_name}
                   </SelectItem>
                 ))}
@@ -548,14 +560,15 @@ export default function ChatPage() {
         // ── ADR-46 Screen 2 — 입력 화면 ─────────────────────────────
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className="mx-auto flex max-w-2xl flex-col gap-6">
-            {/* 인사말 */}
+            {/* 인사말 — empty state 아이콘은 현재 답변 모드에 따라 동적으로 변경된다. */}
             <div className="flex flex-col items-center gap-3 pt-6 pb-2 text-muted-foreground">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
                 {botsLoading ? (
                   <Loader2 className="h-7 w-7 animate-spin text-primary" />
-                ) : (
-                  <Bot className="h-7 w-7 text-primary" />
-                )}
+                ) : (() => {
+                  const ModeIcon = personaForMode(answerMode).icon;
+                  return <ModeIcon className="h-7 w-7 text-primary" />;
+                })()}
               </div>
               {botsLoading ? (
                 <div
@@ -675,11 +688,15 @@ export default function ChatPage() {
                   data-msg-role={msg.role}
                   className={`group flex gap-3 ${msg.role === "user" ? "justify-end scroll-mt-4" : ""}`}
                 >
-                  {msg.role === "assistant" && (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <Bot className="h-4 w-4 text-primary" />
-                    </div>
-                  )}
+                  {msg.role === "assistant" && (() => {
+                    // 답변 시점의 모드를 우선 — 사용자가 모드를 바꿔도 과거 답변 아바타는 고정.
+                    const ModeIcon = personaForMode(msg.persona ?? answerMode).icon;
+                    return (
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                        <ModeIcon className="h-4 w-4 text-primary" />
+                      </div>
+                    );
+                  })()}
                   <div
                     className={`max-w-[85%] space-y-2 ${
                       msg.role === "user" ? "order-first" : ""
@@ -792,8 +809,20 @@ export default function ChatPage() {
                           <NegativeFeedbackPopover
                             disabled={false}
                             active={!!msg.feedback && msg.feedback !== "helpful"}
+                            currentReason={
+                              msg.feedback && msg.feedback !== "helpful"
+                                ? msg.feedback
+                                : null
+                            }
                             onSubmit={(reason, comment) =>
                               submitFeedback(i, reason, comment)
+                            }
+                            onCancel={() =>
+                              setMessages((prev) =>
+                                prev.map((m, j) =>
+                                  j === i ? { ...m, feedback: undefined } : m,
+                                ),
+                              )
                             }
                           />
                         </div>
@@ -924,22 +953,33 @@ export default function ChatPage() {
   );
 }
 
-/** 부정 피드백 팝오버 — 사유 선택 + (선택) 의견 입력 */
+/** 부정 피드백 팝오버 — 사유 선택 + (선택) 의견 입력 + (active 시) 취소 */
 function NegativeFeedbackPopover({
   disabled,
   active,
+  currentReason,
   onSubmit,
+  onCancel,
 }: {
   disabled: boolean;
   active: boolean;
+  /** 이미 기록된 부정 피드백 reason — 라디오 default 동기화용. 없으면 inaccurate. */
+  currentReason?: Exclude<FeedbackType, "helpful"> | null;
   onSubmit: (type: FeedbackType, comment?: string) => Promise<void> | void;
+  /** active 일 때만 노출되는 "피드백 취소" 액션. 로컬 state 만 비운다. */
+  onCancel?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<Exclude<FeedbackType, "helpful">>(
-    "inaccurate",
+    currentReason ?? "inaccurate",
   );
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // 팝오버를 다시 열 때 currentReason 동기화 — 어떤 사유가 활성인지 사용자가 즉시 인지.
+  useEffect(() => {
+    if (open) setReason(currentReason ?? "inaccurate");
+  }, [open, currentReason]);
 
   const handleSend = async () => {
     setSubmitting(true);
@@ -950,6 +990,12 @@ function NegativeFeedbackPopover({
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCancel = () => {
+    onCancel?.();
+    setOpen(false);
+    setComment("");
   };
 
   return (
@@ -1004,7 +1050,20 @@ function NegativeFeedbackPopover({
             placeholder="추가 의견이 있다면 자유롭게 적어주세요 (선택)"
             className="h-20 resize-none text-sm"
           />
-          <div className="flex justify-end gap-2">
+          <div className="flex items-center gap-2">
+            {active && onCancel && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={handleCancel}
+                disabled={submitting}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                피드백 취소
+              </Button>
+            )}
+            <div className="flex-1" />
             <Button
               type="button"
               size="sm"
@@ -1012,7 +1071,7 @@ function NegativeFeedbackPopover({
               onClick={() => setOpen(false)}
               disabled={submitting}
             >
-              취소
+              닫기
             </Button>
             <Button
               type="button"
