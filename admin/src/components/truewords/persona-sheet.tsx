@@ -167,15 +167,13 @@ export function PersonaSheet({
                     : "border-border bg-card hover:bg-accent/5"
                 )}
               >
-                {/* 아이콘 영역 — 둥근 사각형 + 따뜻한 베이지 배경 */}
                 <span
-                  className="inline-flex size-14 shrink-0 items-center justify-center rounded-2xl bg-[#F5EDE0]"
+                  className="inline-flex size-14 shrink-0 items-center justify-center rounded-2xl bg-persona-icon-bg"
                   aria-hidden="true"
                 >
                   <Icon />
                 </span>
 
-                {/* 텍스트 */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-foreground">{p.label}</span>
@@ -241,7 +239,7 @@ export function PersonaRowTrigger({
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       )}
     >
-      <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-[#F5EDE0]">
+      <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-persona-icon-bg">
         <Icon size={12} />
       </span>
       <span className="text-sm text-muted-foreground">{label}</span>
