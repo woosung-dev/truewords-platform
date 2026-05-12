@@ -32,6 +32,9 @@ class ChatContext:
 
     # Phase 2 (Embedding ~ Generation)
     query_embedding: list[float] | None = None
+    # 원본 질문 임베딩 — QueryRewriteStage 가 query_embedding 을 덮어쓴 이후에도
+    # semantic cache 저장/검색은 원본 기준으로 일치시켜야 hit 가 보장된다.
+    original_query_embedding: list[float] | None = None
     runtime_config: ChatbotRuntimeConfig | None = None
     resolved_collections: ResolvedCollections | None = None
     search_query: str | None = None

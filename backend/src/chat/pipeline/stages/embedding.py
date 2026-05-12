@@ -17,7 +17,9 @@ class EmbeddingStage:
     async def execute(self, ctx: ChatContext) -> ChatContext:
         check_precondition(self.__class__.__name__, ctx)
         try:
-            ctx.query_embedding = await embed_dense_query(ctx.request.query)
+            embedding = await embed_dense_query(ctx.request.query)
+            ctx.query_embedding = embedding
+            ctx.original_query_embedding = embedding
         except Exception as e:
             raise EmbeddingFailedError(f"임베딩 생성 실패: {e}") from e
         ctx.pipeline_state = PipelineState.EMBEDDED
