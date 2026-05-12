@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/truewords/status-badge";
+import type { StatusTone } from "@/components/truewords/status-badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -26,34 +28,16 @@ import { DisplayNameEditor } from "./display-name-editor";
 
 const PAGE_SIZE = 20;
 
-function StatusBadge({ status }: { status: string }) {
-  switch (status) {
-    case "completed":
-      return (
-        <Badge className="bg-success-soft text-success hover:bg-success-soft border border-success-border text-xs">
-          완료
-        </Badge>
-      );
-    case "failed":
-      return (
-        <Badge className="bg-danger-soft text-destructive hover:bg-danger-soft border border-danger-border text-xs">
-          실패
-        </Badge>
-      );
-    case "running":
-    case "partial":
-      return (
-        <Badge className="bg-warning-soft text-warning hover:bg-warning-soft border border-warning-border text-xs">
-          처리중
-        </Badge>
-      );
-    default:
-      return (
-        <Badge variant="outline" className="text-xs text-muted-foreground">
-          대기
-        </Badge>
-      );
-  }
+const JOB_STATUS_CONFIG: Record<string, { tone: StatusTone; label: string }> = {
+  completed: { tone: "success", label: "완료" },
+  failed: { tone: "danger", label: "실패" },
+  running: { tone: "warning", label: "처리중" },
+  partial: { tone: "warning", label: "처리중" },
+};
+
+function JobStatusBadge({ status }: { status: string }) {
+  const { tone, label } = JOB_STATUS_CONFIG[status] ?? { tone: "neutral" as StatusTone, label: "대기" };
+  return <StatusBadge tone={tone} className="text-xs">{label}</StatusBadge>;
 }
 
 function JobTableRow({ job }: { job: IngestionJobInfo }) {
@@ -75,7 +59,7 @@ function JobTableRow({ job }: { job: IngestionJobInfo }) {
         {job.total_chunks.toLocaleString()}
       </TableCell>
       <TableCell>
-        <StatusBadge status={job.status} />
+        <JobStatusBadge status={job.status} />
       </TableCell>
     </TableRow>
   );
@@ -91,7 +75,7 @@ function JobCard({ job }: { job: IngestionJobInfo }) {
         >
           {job.filename}
         </span>
-        <StatusBadge status={job.status} />
+        <JobStatusBadge status={job.status} />
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <span>{job.total_chunks.toLocaleString()}청크</span>

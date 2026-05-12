@@ -73,6 +73,7 @@
   --color-admin-bg: var(--tw-admin-bg);
   --color-admin-surface: var(--tw-admin-surface);
   --color-admin-muted: var(--tw-admin-muted);
+  --color-persona-icon-bg: var(--tw-persona-icon-bg);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -175,6 +176,8 @@
   --tw-cat-emerald: oklch(0.500 0.090 150);
   --tw-cat-amber: oklch(0.540 0.110 70);
   --tw-cat-rose: oklch(0.500 0.110 15);
+  /* 페르소나 아이콘 배경 — 따뜻한 베이지 (#F5EDE0) */
+  --tw-persona-icon-bg: oklch(0.944 0.030 78);
   /* Admin dashboard 전용 background — chat 페이지의 warm paper 와 분리 */
   /* light cool slate-50 톤. card(white) 와 미세 대비로 카드가 떠 보이게 */
   --tw-admin-bg: oklch(0.985 0.005 250);
@@ -264,6 +267,7 @@
   --tw-info: var(--tw-pastoral);
   --tw-info-soft: oklch(0.620 0.105 213 / 18%);
   --tw-info-border: oklch(0.620 0.105 213 / 30%);
+  --tw-persona-icon-bg: oklch(0.280 0.020 60);
   /* Admin dashboard 전용 background — dark 는 body 와 동일 (mahogany) */
   --tw-admin-bg: oklch(0.180 0.012 50);
   --tw-admin-surface: oklch(0.220 0.012 55);
