@@ -250,6 +250,11 @@ export default function ChatPage() {
     });
   }, [messages]);
 
+  const selectedBotInfo = useMemo(
+    () => bots.find((b) => b.chatbot_id === selectedBot),
+    [bots, selectedBot],
+  );
+
   // override: 추천 카드/follow-up 클릭 시 input 채우지 않고 즉시 query 로 전송.
   // 사용자 클릭 → setInput 은 다음 렌더 후 적용이라 즉시 send 가 stale 가 될 수 있음.
   // 따라서 직접 query 를 받아 처리한다.
@@ -317,7 +322,6 @@ export default function ChatPage() {
     try {
       // 봇별 streaming_enabled 분기 — false 면 비스트림 단일 응답.
       // ChatBot.streaming_enabled 가 undefined 면 default true (회귀 0).
-      const selectedBotInfo = bots.find((b) => b.chatbot_id === selectedBot);
       const useStreaming = selectedBotInfo?.streaming_enabled !== false;
 
       if (useStreaming) {
@@ -398,7 +402,7 @@ export default function ChatPage() {
       // textarea focus 복원 (응답 후 자연스러운 연속 질문)
       requestAnimationFrame(() => textareaRef.current?.focus());
     }
-  }, [input, selectedBot, sessionId, loading, answerMode, emphasis, bots]);
+  }, [input, selectedBot, sessionId, loading, answerMode, emphasis, selectedBotInfo]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -479,8 +483,7 @@ export default function ChatPage() {
     }
   };
 
-  const selectedBotName =
-    bots.find((b) => b.chatbot_id === selectedBot)?.display_name ?? "";
+  const selectedBotName = selectedBotInfo?.display_name ?? "";
 
   // 메시지가 없을 때는 ADR-46 Screen 2 입력 화면(QuestionInput + 맞춤 설정 + footer)을,
   // 메시지가 있으면 기존 채팅 흐름을 유지한다.
@@ -620,8 +623,7 @@ export default function ChatPage() {
 
             {/* 추천 질문 (chip) — 봇별 동적 (backend cron 매일 갱신), 비어있으면 FALLBACK */}
             {!botsLoading && selectedBot && (() => {
-              const currentBot = bots.find((b) => b.chatbot_id === selectedBot);
-              const dynamic = currentBot?.suggested_questions ?? [];
+              const dynamic = selectedBotInfo?.suggested_questions ?? [];
               const prompts = dynamic.length > 0 ? dynamic : FALLBACK_PROMPTS;
               return (
                 <div className="flex w-full flex-wrap justify-center gap-2">
