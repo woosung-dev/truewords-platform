@@ -119,12 +119,13 @@ export function JobsManager() {
   const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    // NFC 정규화: 맥OS NFD 파일명과 브라우저 NFC 입력 간 불일치 방지
+    const q = search.trim().toLowerCase().normalize("NFC");
     if (!q) return jobs;
     return jobs.filter(
       (j) =>
-        j.filename.toLowerCase().includes(q) ||
-        (j.display_name ?? "").toLowerCase().includes(q) ||
+        j.filename.normalize("NFC").toLowerCase().includes(q) ||
+        (j.display_name ?? "").normalize("NFC").toLowerCase().includes(q) ||
         j.source.toLowerCase().includes(q),
     );
   }, [jobs, search]);
