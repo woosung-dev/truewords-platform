@@ -111,18 +111,6 @@ class ChatService:
         self.safety_output_stage = SafetyOutputStage()
         self.persist_stage = PersistStage(chat_repo, cache_service)
 
-    @staticmethod
-    def _apply_inline_citations(ctx: "ChatContext") -> None:
-        """INLINE_CITATIONS 블록을 파싱해 ctx.answer 에서 제거하고 ctx.cited_phrases 에 저장.
-
-        generation 직후, safety 가 disclaimer 를 부착하기 전에 호출해야
-        답변 끝 패턴 매칭이 정확하다.
-        """
-        if ctx.answer:
-            cleaned, citations = parse_inline_citations(ctx.answer)
-            ctx.answer = cleaned
-            ctx.cited_phrases = citations
-
     async def _build_display_name_lookup(self) -> dict[tuple[str, str], str]:
         """(source_category, payload_volume) → display_name 매핑.
 
@@ -240,7 +228,12 @@ class ChatService:
         ctx = await self.search_stage.execute(ctx)
         ctx = await self.rerank_stage.execute(ctx)
         ctx = await self.generation_stage.execute(ctx)
-        self._apply_inline_citations(ctx)
+        # INLINE_CITATIONS 블록은 generation 직후, safety 가 disclaimer 부착하기
+        # 전에 파싱해야 정확한 답변 끝 패턴 매치 가능.
+        if ctx.answer:
+            cleaned, citations = parse_inline_citations(ctx.answer)
+            ctx.answer = cleaned
+            ctx.cited_phrases = citations
         ctx = await self.safety_output_stage.execute(ctx)
         # P0-A + P1-J: 두 stage 는 본 답변과 독립적이므로 병렬 실행.
         # 실패해도 답변 본체에 영향 없도록 return_exceptions=True.
@@ -364,7 +357,11 @@ class ChatService:
             # 동기 process_chat 과 동일한 흐름이라 stream 응답에도 closing/suggested_followups
             # 가 포함된다 (#12 streaming UI).
             ctx.answer = "".join(full_answer)
-            self._apply_inline_citations(ctx)
+            # INLINE_CITATIONS 파싱 — safety 가 disclaimer 부착 전에 답변 끝 블록 매칭.
+            if ctx.answer:
+                cleaned, citations = parse_inline_citations(ctx.answer)
+                ctx.answer = cleaned
+                ctx.cited_phrases = citations
             ctx = await self.safety_output_stage.execute(ctx)
             await asyncio.gather(
                 self.suggested_followups_stage.execute(ctx),
