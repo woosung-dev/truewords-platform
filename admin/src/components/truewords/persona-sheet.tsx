@@ -241,8 +241,8 @@ export function PersonaRowTrigger({
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       )}
     >
-      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#F5EDE0]">
-        <Icon />
+      <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-[#F5EDE0]">
+        <Icon size={12} />
       </span>
       <span className="text-sm text-muted-foreground">{label}</span>
       <span className="ml-auto flex items-center gap-1 text-sm font-medium text-foreground">
