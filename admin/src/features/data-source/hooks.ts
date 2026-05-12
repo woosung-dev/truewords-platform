@@ -1,10 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  dataAPI,
   dataSourceCategoryAPI,
 } from "./api";
 import type {
   DataSourceCategory,
   CategoryDocumentStats,
+  IngestionJobInfo,
   VolumeTagRequest,
   VolumeInfo,
   VolumeTagsBulkRequest,
@@ -81,5 +83,13 @@ export function useRemoveVolumeTagsBulk() {
   return useMutation({
     mutationFn: (data: VolumeTagsBulkRequest) =>
       dataSourceCategoryAPI.removeVolumeTagsBulk(data),
+  });
+}
+
+export function useIngestionJobs() {
+  return useQuery<IngestionJobInfo[]>({
+    queryKey: ["ingestion-jobs"],
+    queryFn: dataAPI.getJobs,
+    staleTime: 30_000,
   });
 }
