@@ -36,6 +36,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import CategoryTab from "./category-tab";
+import { JobsManager } from "@/features/data-source/components/jobs-manager";
 
 interface PendingFile {
   id: string;
@@ -49,7 +50,7 @@ export default function DataSourcesPage() {
   const { data: categories = [] } = useActiveCategories();
   const [dragActive, setDragActive] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
-  const [activeTab, setActiveTab] = useState<"upload" | "categories">("upload");
+  const [activeTab, setActiveTab] = useState<"upload" | "categories" | "jobs">("upload");
   // Batch API 처리 방식은 PR #95 에서 제거됨. 항상 standard 로 호출 (인자 호환).
   const mode = "standard" as const;
   // ADR-30 follow-up: 일괄 업로드 시 이미 적재된 파일은 건너뛰는 skip 모드 토글.
@@ -503,11 +504,24 @@ export default function DataSourcesPage() {
           <FolderOpen className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
           카테고리 관리
         </button>
+        <button
+          onClick={() => setActiveTab("jobs")}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "jobs"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Database className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
+          임베딩 항목
+        </button>
       </div>
 
       {/* 탭 콘텐츠 */}
       {activeTab === "categories" ? (
         <CategoryTab />
+      ) : activeTab === "jobs" ? (
+        <JobsManager />
       ) : (
         <div className="space-y-5">
           {/* 드래그 앤 드롭 영역 */}

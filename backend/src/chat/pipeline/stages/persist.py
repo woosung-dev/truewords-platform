@@ -92,7 +92,9 @@ class PersistStage:
             collection_name = ctx.resolved_collections.cache if ctx.resolved_collections else None
             await self.cache_service.store_cache(
                 query=ctx.request.query,
-                query_embedding=ctx.query_embedding or [],
+                # 원본 임베딩 사용 — query_rewrite 가 ctx.query_embedding 을 덮어써도
+                # cache 검색은 항상 원본 기준이어야 hit 가 보장된다 (semantic cache 일관성).
+                query_embedding=ctx.original_query_embedding or ctx.query_embedding or [],
                 answer=ctx.answer,
                 sources=sources_for_cache,
                 chatbot_id=ctx.request.chatbot_id,
