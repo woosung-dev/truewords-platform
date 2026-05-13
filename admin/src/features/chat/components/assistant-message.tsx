@@ -140,15 +140,20 @@ function buildSourceMap(sources?: Source[]): Map<string, Source> {
  *   1. `[출처: ...]` 라인 제거 (백엔드 prompt 미반영 대비 graceful fallback).
  *   2. `[1]` `[2]` → `[1](cite:1)` 마크다운 링크로 치환 → react-markdown 이
  *      components.a 에서 위첨자로 렌더.
+ *   3. 인라인 bullet 정규화 — `•`는 유니코드 문자라 react-markdown 이 목록으로
+ *      처리하지 않음. 줄 시작이 아닌 위치에 `•`가 오면 `\n\n`을 삽입해 단락을 분리.
+ *      Gemini 가 "항목1. • 항목2." 처럼 개행 없이 bullet 을 이어쓸 때 발생하는
+ *      인라인 렌더링 버그를 방어한다.
  *
  * 동일 토큰이 markdown link `[text](url)` 로 잘못 잡히지 않게 정규식은 뒤에
  * `(` 가 붙지 않은 경우만 매칭.
  */
-function preprocess(text: string): string {
+export function preprocess(text: string): string {
   if (!text) return "";
   return text
     .replace(/\n?\[출처:[^\]]*\](?:\s*\([^)]*\))?\s*/g, "")
     .replace(/\[(\d+)\](?!\()/g, "[$1](cite:$1)")
+    .replace(/([^\n])\n?[ \t]*•([ \t])/g, "$1\n\n•$2")
     .trim();
 }
 
