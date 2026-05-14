@@ -90,9 +90,6 @@ export function SourceOriginalModal({
       const body = merged_text || text;
       const mainStart = merged_text ? main_offset_start : 0;
       const mainEnd = merged_text ? main_offset_end : text.length;
-      const before = body.slice(0, mainStart);
-      const main = body.slice(mainStart, mainEnd);
-      const after = body.slice(mainEnd);
 
       return (
         <article className="space-y-2">
@@ -101,15 +98,10 @@ export function SourceOriginalModal({
           </p>
           {/* 단일 연속 본문 — 백엔드가 dedup 후 보낸 한 덩어리. 청크 경계 끊김 0.
               메인 청크는 일반 text-foreground, 인접 문맥은 muted 처리.
-              실제 인용 강조는 renderWithHighlight 의 노란 mark 만 사용. */}
+              인용 매칭은 body 전체 범위에서 검색 — dedup 으로 main 슬라이스가
+              snippet(전체 청크 본문) 보다 짧아도 인접 영역까지 포함해 강조 노출. */}
           <p className="font-reading text-[15.5px] leading-[1.85] text-foreground break-keep-all whitespace-pre-line">
-            {before && (
-              <span className="text-muted-foreground">{before}</span>
-            )}
-            {main && renderWithHighlight(main, highlightSnippet)}
-            {after && (
-              <span className="text-muted-foreground">{after}</span>
-            )}
+            {renderBodyWithHighlight(body, mainStart, mainEnd, highlightSnippet)}
           </p>
         </article>
       );
@@ -142,29 +134,63 @@ export function SourceOriginalModal({
 }
 
 /**
- * highlightSnippet 이 본문 내에 있으면 그 부분을 <mark className="tw-highlight"> 로 감싼다.
- * 1) 정확 substring 매칭 우선
- * 2) 실패 시 공백 시퀀스(\s+) 완화 매칭 — LLM 인용구가 원문 줄바꿈/들여쓰기와 다른 경우 대응
+ * body 전체 범위에서 snippet 매칭 + main 영역 시각 분리.
+ *
+ * mainStart/mainEnd 와 매칭 영역 [matchStart, matchEnd) 의 경계점을 모두 모아
+ * body 를 segment 로 쪼갠다. 각 segment 는:
+ *   - main 영역 안 → text-foreground, 밖 → text-muted-foreground (dim 컨텍스트)
+ *   - 매칭 영역 안 → <mark className="tw-highlight"> 추가
+ *
+ * dedup 으로 main 슬라이스 < snippet 인 경우에도 인접 영역까지 포함해 강조가
+ * 보이도록 보장. 매칭 실패 시엔 단순히 main/외부 dim 만 적용 (이전 동작 유지).
  */
-function renderWithHighlight(
-  text: string,
+export function renderBodyWithHighlight(
+  body: string,
+  mainStart: number,
+  mainEnd: number,
   snippet?: string,
 ): React.ReactNode {
-  if (!snippet) return text;
-  const range = findFlexibleMatch(text, snippet);
-  if (!range) return text;
-  const [start, end] = range;
-  return (
-    <>
-      {text.slice(0, start)}
-      <mark className="tw-highlight">{text.slice(start, end)}</mark>
-      {text.slice(end)}
-    </>
-  );
+  const range = snippet ? findFlexibleMatch(body, snippet) : null;
+  const matchStart = range ? range[0] : -1;
+  const matchEnd = range ? range[1] : -1;
+
+  const boundaries = Array.from(
+    new Set(
+      [0, body.length, mainStart, mainEnd, matchStart, matchEnd].filter(
+        (b) => b >= 0 && b <= body.length,
+      ),
+    ),
+  ).sort((a, b) => a - b);
+
+  const nodes: React.ReactNode[] = [];
+  for (let i = 0; i < boundaries.length - 1; i++) {
+    const start = boundaries[i];
+    const end = boundaries[i + 1];
+    if (start === end) continue;
+    const slice = body.slice(start, end);
+    const inMain = start >= mainStart && start < mainEnd;
+    const inMatch = range !== null && start >= matchStart && start < matchEnd;
+
+    let node: React.ReactNode = slice;
+    if (inMatch) {
+      node = <mark className="tw-highlight">{slice}</mark>;
+    }
+    if (!inMain) {
+      node = (
+        <span key={`seg-${start}`} className="text-muted-foreground">
+          {node}
+        </span>
+      );
+    } else {
+      node = <React.Fragment key={`seg-${start}`}>{node}</React.Fragment>;
+    }
+    nodes.push(node);
+  }
+  return nodes;
 }
 
 // 정확 매칭 우선, 실패 시 snippet 의 whitespace 시퀀스를 \s+ 로 치환한 정규식으로 재시도.
-function findFlexibleMatch(
+export function findFlexibleMatch(
   text: string,
   snippet: string,
 ): [number, number] | null {
