@@ -68,12 +68,6 @@ class ChatContext:
     # P1-J — 기도문/결의문 마무리 텍스트. ClosingTemplateStage 가 채움.
     closing: str | None = None
 
-    # Inline citations — LLM 이 답변 끝의 INLINE_CITATIONS 블록으로 emit 한
-    # {citation_index: phrase} 매핑. service 가 generation 직후 parse 하여 답변
-    # 본문에서 블록을 strip + 이 dict 채움. ChatResponse 의 Source.cited_phrase
-    # 로 frontend 에 전달되어 원문 모달이 chunk 전체 대신 phrase 만 highlight.
-    cited_phrases: dict[int, str] = field(default_factory=dict)
-
     # Phase 3 (Cache check — early return)
     cache_hit: bool = False
     cache_response: CacheHit | None = None  # apply_safety_layer 적용된 답변 보유
