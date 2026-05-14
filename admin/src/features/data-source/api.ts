@@ -1,4 +1,4 @@
-import { fetchAPI } from "@/lib/api";
+import { ApiError, fetchAPI, throwApiError } from "@/lib/api";
 import type {
   DataSourceCategory,
   DuplicateCheckResponse,
@@ -49,12 +49,16 @@ export const dataAPI = {
       if (typeof window !== "undefined") {
         window.location.href = "/login"
       }
-      throw new Error("인증이 필요합니다")
+      throw new ApiError(401, {
+        error_code: "UNAUTHORIZED",
+        message: "인증이 필요합니다",
+      })
     }
 
     if (!res.ok) {
-      const text = await res.text()
-      throw new Error(text || `요청 실패 (${res.status})`)
+      // multipart 응답도 일반 fetchAPI 와 동일한 ApiError 계약을 따른다 —
+      // raw text 가 toast 에 노출되어 error_code / request_id 가 손실되던 결함 fix.
+      await throwApiError(res)
     }
 
     return (await res.json()) as UploadResponse

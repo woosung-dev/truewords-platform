@@ -118,9 +118,16 @@ export function ChatbotForm({
     }));
   }
 
-  function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
-    void onSubmit(values);
+    // caller 가 `mutation.mutateAsync(values)` 를 반환할 때 void 캐스팅으로 무시하면
+    // rejection 이 unhandled 가 됨. caller 의 mutation.onError 가 toast 를 표시하므로
+    // 여기서는 swallow 만 한다.
+    try {
+      await onSubmit(values);
+    } catch {
+      // intentionally swallowed — caller-side onError 가 사용자 노티 책임.
+    }
   }
 
   return (
