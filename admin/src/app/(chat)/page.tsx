@@ -45,13 +45,14 @@ import {
   NEGATIVE_REASONS,
   stripDisclaimer,
 } from "@/features/chat/utils";
+// barrel import 대신 leaf file import — Vercel bundle-barrel-imports 권고.
+import { FollowupPills } from "@/components/truewords/followup-pills";
 import {
-  FollowupPills,
-  PersonaSheet,
-  PersonaRowTrigger,
   PERSONAS,
-  SourceOriginalModal,
-} from "@/components/truewords";
+  PersonaRowTrigger,
+  PersonaSheet,
+} from "@/components/truewords/persona-sheet";
+import { SourceOriginalModal } from "@/components/truewords/source-original-modal";
 import { QuestionInput } from "@/components/truewords/question-input";
 import {
   AssistantMessage,
