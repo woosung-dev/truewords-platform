@@ -2,6 +2,7 @@ import { fetchAPI } from "@/lib/api";
 import type {
   DashboardSummary,
   DailyCount,
+  DailyModeCount,
   SearchStats,
   TopQuery,
   FeedbackSummary,
@@ -18,6 +19,9 @@ export const analyticsAPI = {
 
   getDailyTrend: (days = 30) =>
     fetchAPI<DailyCount[]>(`/admin/analytics/search/daily-trend?days=${days}`),
+
+  getDailyModes: (days = 30) =>
+    fetchAPI<DailyModeCount[]>(`/admin/analytics/modes/daily?days=${days}`),
 
   getSearchStats: (days = 30) =>
     fetchAPI<SearchStats>(`/admin/analytics/search/stats?days=${days}`),

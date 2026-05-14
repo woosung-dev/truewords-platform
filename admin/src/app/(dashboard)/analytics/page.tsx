@@ -16,6 +16,7 @@ import type { SearchStats, DailyCount, TopQuery } from "@/features/analytics/typ
 import { Skeleton } from "@/components/ui/skeleton";
 import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
 import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
+import { ModesChart } from "@/features/analytics/components/modes-chart";
 
 // ─────────────────────────────────────────────
 // StatCard (inline, 카드 컴포넌트 미사용 패턴 유지)
@@ -201,6 +202,11 @@ export default function AnalyticsPage() {
     queryFn: () => analyticsAPI.getTopQueries(30, 10),
   });
 
+  const { data: dailyModes, isLoading: dailyModesLoading } = useQuery({
+    queryKey: ["daily-modes"],
+    queryFn: () => analyticsAPI.getDailyModes(30),
+  });
+
   // 차트용 날짜 포맷 (MM/DD)
   const chartData: DailyCount[] = (trend ?? []).map((d) => ({
     ...d,
@@ -298,6 +304,9 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         )}
       </div>
+
+      {/* BL-6 — 일별 모드 분포 차트 (4주 시범 운영 baseline) */}
+      <ModesChart rows={dailyModes} loading={dailyModesLoading} />
 
       {/* 하단 2열 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
