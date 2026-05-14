@@ -54,15 +54,32 @@ export default function VolumeTransferSheet({
   useEffect(() => {
     if (open) {
       refetch();
+    } else {
+      // close 시 미분류 카테고리 선택을 리셋. 유지하면 다음 작업에 hidden state 로
+      // 잔존해 잘못된 카테고리에 적용되는 결함 (codex 리뷰 발견).
+      setSelectedCategoryForUncategorized("");
     }
   }, [open, refetch]);
 
+  // categoryKey 변경 시에도 선택 상태 초기화 (분류 카테고리 ↔ 미분류 모드 전환).
   useEffect(() => {
-    if (open && allVolumes.length > 0 && effectiveKey) {
+    setSelectedCategoryForUncategorized("");
+  }, [categoryKey]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!effectiveKey) {
+      // 미분류 모드에서 카테고리 미선택이면 included 를 빈 Set 으로 강제 — 이전
+      // 카테고리의 잔존 데이터가 잠깐 노출되던 결함 (codex 리뷰 발견).
+      setIncludedVolumes(new Set());
+      setInitialIncluded(new Set());
+      return;
+    }
+    if (allVolumes.length > 0) {
       const included = new Set(
         allVolumes
           .filter((v) => v.sources.includes(effectiveKey))
-          .map((v) => v.volume)
+          .map((v) => v.volume),
       );
       setIncludedVolumes(included);
       setInitialIncluded(included);

@@ -283,6 +283,10 @@ export function useChat(): UseChatResult {
 
   const handleBotChange = useCallback((value: string | null) => {
     if (!value) return;
+    // 진행 중 SSE 스트림이 있으면 abort. race condition fix — 챗봇 변경 후에도
+    // 이전 스트림이 계속 patchLastAssistant 호출해 새 봇의 빈 메시지 영역에 이전 응답이
+    // 끼어들던 결함 (codex 리뷰 발견).
+    abortRef.current?.abort();
     setSelectedBot(value);
     setMessages([]);
     setSessionId(undefined);

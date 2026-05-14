@@ -29,10 +29,21 @@ export function DisplayNameEditor({
   const [savedValue, setSavedValue] = useState(initialValue ?? "");
   const [justSaved, setJustSaved] = useState(false);
 
-  // jobs query refetch 로 initialValue 가 바뀌면 동기화 (편집 중인 경우 외).
+  // jobs query refetch 로 initialValue 가 바뀌면 동기화. 단 사용자가 편집 중
+  // (dirty) 이면 외부 동기화를 보류 — 그렇지 않으면 입력 도중 덮어쓰기 발생.
+  // 동기적 dirty 비교를 위해 functional setState 사용 (state 의존 X).
   useEffect(() => {
-    setValue(initialValue ?? "");
+    setValue((current) => {
+      const next = initialValue ?? "";
+      // dirty 상태(current 와 직전 savedValue 가 다르면) 외부 변경 무시.
+      // savedValue 도 같이 갱신하지 않으면 commit 후 stale 잔존하므로 savedValue 는
+      // 항상 갱신 (mutation onSuccess 와 동일 효과).
+      return current.trim() !== savedValue.trim() ? current : next;
+    });
     setSavedValue(initialValue ?? "");
+    // savedValue 는 비교에만 사용. 의존성 추가 시 setValue 가 두 번 호출되어
+    // 깜빡임 발생 → exhaustive-deps 의도적 비활성.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValue]);
 
   const mutation = useMutation({
