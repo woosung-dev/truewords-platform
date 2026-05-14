@@ -37,21 +37,20 @@ import {
   ThumbsUp,
   User,
 } from "lucide-react";
-import { chatAPI } from "@/features/chat/api";
-import type {
-  AnswerMode,
-  ChatBot,
-  ChatResponse,
-  FeedbackType,
-} from "@/features/chat/types";
-import { toFriendlyError } from "@/features/chat/error-message";
+import type { AnswerMode, FeedbackType } from "@/features/chat/types";
+import { useChat } from "@/features/chat/hooks";
+import {
+  DISCLAIMER_LINES,
+  FALLBACK_PROMPTS,
+  NEGATIVE_REASONS,
+  stripDisclaimer,
+} from "@/features/chat/utils";
 import {
   FollowupPills,
   PersonaSheet,
   PersonaRowTrigger,
   PERSONAS,
   SourceOriginalModal,
-  type PersonaMode,
 } from "@/components/truewords";
 import { QuestionInput } from "@/components/truewords/question-input";
 import {
@@ -59,77 +58,29 @@ import {
   ClosingCallout,
 } from "@/features/chat/components/assistant-message";
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  messageId?: string;
-  sources?: ChatResponse["sources"];
-  feedback?: FeedbackType;
-  // P0-A — 답변 후속 추천 질문 3개. None/빈 배열이면 미노출.
-  suggestedFollowups?: string[] | null;
-  // P1-J — 기도문/결의문 마무리. 비활성/실패 시 null. ClosingCallout 가 정적 보조멘트로 fallback.
-  closing?: string | null;
-  // 답변 시점의 답변 모드 — 메시지 옆 아바타 아이콘이 모드 변경에 따라 과거 답변까지 바뀌지 않도록 보존.
-  persona?: PersonaMode;
-}
-
 // PERSONAS 배열에서 모드 키로 정의를 찾는다. 미일치 시 첫 항목(표준) fallback.
 const personaForMode = (mode: string) =>
   PERSONAS.find((p) => p.key === mode) ?? PERSONAS[0];
 
-const NEGATIVE_REASONS: { key: Exclude<FeedbackType, "helpful">; label: string }[] = [
-  { key: "inaccurate", label: "부정확한 답변" },
-  { key: "missing_citation", label: "출처 부족/누락" },
-  { key: "irrelevant", label: "질문과 무관함" },
-  { key: "other", label: "기타 (아래 의견 작성)" },
-];
-
-// 백엔드 safety layer가 답변 말미에 붙이는 면책 고지를 제거.
-// 동일 문구는 입력창 하단 footer에 고정으로 이미 노출된다.
-const DISCLAIMER_PREFIX = "\n\n---\n_이 답변은 AI가 생성한";
-const stripDisclaimer = (text: string): string => {
-  const idx = text.indexOf(DISCLAIMER_PREFIX);
-  return idx >= 0 ? text.slice(0, idx).trimEnd() : text;
-};
-
-// LLM 이 답변 끝에 emit 하는 INLINE_CITATIONS 블록 제거.
-// SSE 스트림에서 chunk 단위로 누적되는 동안 사용자에게 잠깐도 보이지 않도록
-// onChunk 시점에서 매번 strip. 동기 응답 + sources 도착 시점에도 한 번 더 적용.
-// (backend service 가 ChatResponse.answer 에 cleaned 본문을 보내지만, stream chunk
-// 는 raw 라 frontend 에서도 strip 필요)
-const stripCitationsBlock = (text: string): string => {
-  const idx = text.indexOf("INLINE_CITATIONS:");
-  return idx >= 0 ? text.slice(0, idx).trimEnd() : text;
-};
-
-// 봇별 동적 추천이 비어있을 때만 사용하는 fallback. backend cron 갱신 전 / 신규 봇 대응.
-const FALLBACK_PROMPTS = [
-  "하나님을 왜 '하늘부모님'이라고 부르나요?",
-  "참부모님의 위상과 가치는 왜 영원한가요?",
-  "3일 금식은 반드시 해야 하나요?",
-  "천일국 시대의 구원 조건은 무엇인가요?",
-];
-
-// P0-D — 면책 4문장 + 모델 버전 footer
-// (env 미연동, 하드코딩 OK — ADR-46 spec)
-const DISCLAIMER_LINES = [
-  "TrueWords AI 답변은 참고용이며, 신앙 지도자의 조언을 대체하지 않습니다.",
-  "AI는 종교 텍스트를 학습한 모델이며 교단의 공식 입장과 다를 수 있습니다.",
-  "민감한 주제는 반드시 출처 원문과 지도자 안내를 함께 확인해 주세요.",
-  "대화 내용은 품질 개선과 안전 점검 목적으로 익명 분석될 수 있습니다.",
-];
-
 export default function ChatPage() {
-  const [bots, setBots] = useState<ChatBot[]>([]);
-  const [selectedBot, setSelectedBot] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const {
+    bots,
+    selectedBot,
+    selectedBotInfo,
+    botsLoading,
+    warmingUp,
+    messages,
+    visibleMessages,
+    loading,
+    handleBotChange,
+    handleNewChat: chatNewChat,
+    handleSend: chatSend,
+    handleStop,
+    submitFeedback,
+    cancelFeedback,
+  } = useChat();
+
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [botsLoading, setBotsLoading] = useState(true);
-  // 2.5초 이상 로딩이 지속되면 "서버를 깨우고 있어요" 문구로 전환.
-  // Cloud Run 콜드 스타트 상황에서 사용자에게 대기 이유를 설명한다.
-  const [warmingUp, setWarmingUp] = useState(false);
-  const [sessionId, setSessionId] = useState<string | undefined>();
 
   // P0-B — 인용 카드 → 원문보기 모달 상태
   // displayName 은 admin 인라인 편집으로 지정한 사람 친화적 표시명. 모달의
@@ -147,40 +98,8 @@ export default function ChatPage() {
   // P0-G — 답변 화면 floating action bar (새 질문 / 북마크 / 공유) 전체 숨김.
   // 북마크는 백엔드 영속화 미구현이고, 새 질문/공유도 헤더 액션과 중복돼 사용자
   // 결정으로 일괄 hide. 인프라 도입 시 FloatingActionBar 와 followup sheet 동시 재활성.
-  // const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => new Set());
-  // const [followupOpen, setFollowupOpen] = useState(false);
 
-  // 새 질문 전송 시 사용자 메시지를 viewport 상단으로 scrollIntoView 하여
-  // 답변이 그 아래에서 점진 노출되는 Claude/ChatGPT 패턴을 따른다.
-  // chunk 누적 동안 자동 하단 스크롤로 문맥이 가려지는 어색함 해소.
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  // setLoading 은 비동기 React state 갱신이라 빠른 더블 트리거 (Enter+button 동시,
-  // IME composition 직후 Enter 등) 시 두 호출 모두 가드를 통과해 placeholder 가
-  // 두 개 push 되는 회귀 발생. ref 는 동기 가드라 즉시 반영 → 단일 호출 보장.
-  const sendingRef = useRef(false);
-
-  // 챗봇 목록 로드 + 콜드 스타트 감지
-  useEffect(() => {
-    const slowTimer = setTimeout(() => setWarmingUp(true), 2500);
-    chatAPI
-      .listBots()
-      .then((data) => {
-        setBots(data);
-        if (data.length > 0) {
-          // 디폴트는 "전체 검색" (chatbot_id="all"). 비활성/삭제 시 첫 항목 fallback.
-          const defaultBot = data.find((b) => b.chatbot_id === "all") ?? data[0];
-          setSelectedBot(defaultBot.chatbot_id);
-        }
-      })
-      .catch(() => setBots([]))
-      .finally(() => {
-        clearTimeout(slowTimer);
-        setBotsLoading(false);
-        setWarmingUp(false);
-      });
-    return () => clearTimeout(slowTimer);
-  }, []);
 
   // 새 user 메시지가 추가될 때만 그 element 를 viewport 상단으로 스크롤.
   // chunk 누적 동안에는 자동 스크롤 안 함 — 사용자가 답변 첫 줄부터 자연스럽게 읽도록.
@@ -215,188 +134,28 @@ export default function ChatPage() {
     autoResize();
   }, [input, autoResize]);
 
+  // 응답이 끝난 후 textarea focus 복원 (자연스러운 연속 질문)
+  useEffect(() => {
+    if (!loading) {
+      requestAnimationFrame(() => textareaRef.current?.focus());
+    }
+  }, [loading]);
+
   const canSend = useMemo(
     () => !!input.trim() && !!selectedBot && !loading,
     [input, selectedBot, loading],
   );
 
-  // 렌더 레벨 placeholder dedupe — state 가드 (sendingRef/setMessages 가드)
-  // 가 어떤 경로 (React 18 동시성 모드 functional updater 더블 invoke,
-  // event double-fire 등) 로 통과해 placeholder 가 누적되더라도 화면엔 마지막
-  // 한 개만 노출. 답변이 도착한(content/messageId 있는) assistant 는 모두 유지.
-  const visibleMessages = useMemo(() => {
-    let lastPlaceholderIdx = -1;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
-      if (m.role === "assistant" && !m.content?.trim() && !m.messageId) {
-        lastPlaceholderIdx = i;
-        break;
-      }
-    }
-    return messages.filter((m, i) => {
-      const isPlaceholder =
-        m.role === "assistant" && !m.content?.trim() && !m.messageId;
-      return !isPlaceholder || i === lastPlaceholderIdx;
-    });
-  }, [messages]);
-
-  const selectedBotInfo = useMemo(
-    () => bots.find((b) => b.chatbot_id === selectedBot),
-    [bots, selectedBot],
-  );
-
   // override: 추천 카드/follow-up 클릭 시 input 채우지 않고 즉시 query 로 전송.
-  // 사용자 클릭 → setInput 은 다음 렌더 후 적용이라 즉시 send 가 stale 가 될 수 있음.
-  // 따라서 직접 query 를 받아 처리한다.
-  const handleSend = useCallback(async (override?: string) => {
-    if (sendingRef.current) return;
-    const raw = override ?? input;
-    const query = raw.trim();
-    if (!query || !selectedBot) return;
-    sendingRef.current = true;
-
-    if (override === undefined) setInput("");
-    // user 메시지 + assistant placeholder 를 동시에 push.
-    // chunk 이벤트 도착마다 마지막 assistant 의 content 를 누적 append (#12 streaming).
-    //
-    // 이중 가드:
-    //  (a) 같은 query 의 user+placeholder 가 이미 있으면 no-op (event double-fire 방어).
-    //  (b) 마지막이 stuck placeholder (assistant + no content + no messageId) 면
-    //      제거 후 새 pair push — 이전 응답이 chunk 못 받고 끝나거나 abort 된 상태에서
-    //      새 질문이 들어와 placeholder 두 개로 누적되는 회귀 방어.
-    setMessages((prev) => {
-      const last = prev[prev.length - 1];
-      const secondLast = prev[prev.length - 2];
-
-      // (a) dedupe — 같은 query 의 placeholder 가 이미 있음
-      if (
-        last?.role === "assistant" &&
-        !last.content?.trim() &&
-        !last.messageId &&
-        secondLast?.role === "user" &&
-        secondLast.content === query
-      ) {
-        return prev;
-      }
-
-      // (b) stuck placeholder 제거 — 이전 응답이 빈 placeholder 로 끝나면 그것을 버리고
-      //     새 pair 만 남긴다 (다른 query 라도 동일 처리).
-      let base = prev;
-      if (last?.role === "assistant" && !last.content?.trim() && !last.messageId) {
-        base = prev.slice(0, -1);
-      }
-      return [
-        ...base,
-        { role: "user", content: query },
-        { role: "assistant", content: "", persona: answerMode },
-      ];
-    });
-    setLoading(true);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    // 마지막 assistant 메시지 (placeholder/누적 content) 를 patch 하는 헬퍼.
-    // setMessages(prev => …) 패턴으로 stale closure 안전.
-    const patchLastAssistant = (patch: (m: Message) => Message) => {
-      setMessages((prev) => {
-        const next = [...prev];
-        const lastIdx = next.length - 1;
-        if (lastIdx >= 0 && next[lastIdx].role === "assistant") {
-          next[lastIdx] = patch(next[lastIdx]);
-        }
-        return next;
-      });
-    };
-
-    try {
-      // 봇별 streaming_enabled 분기 — false 면 비스트림 단일 응답.
-      // ChatBot.streaming_enabled 가 undefined 면 default true (회귀 0).
-      const useStreaming = selectedBotInfo?.streaming_enabled !== false;
-
-      if (useStreaming) {
-        await chatAPI.streamMessage(
-          query,
-          selectedBot,
-          sessionId,
-          controller.signal,
-          { answer_mode: answerMode },
-          {
-            onChunk: (text) => {
-              // INLINE_CITATIONS 블록은 매 chunk 누적 후 즉시 strip (사용자에게 잠깐도
-              // 노출되지 않도록). disclaimer 는 본문 끝부분만이라 sources 시 한 번만.
-              patchLastAssistant((m) => ({
-                ...m,
-                content: stripCitationsBlock((m.content ?? "") + text),
-              }));
-            },
-            onSources: (data) => {
-              setSessionId(data.session_id);
-              patchLastAssistant((m) => ({
-                ...m,
-                content: stripCitationsBlock(stripDisclaimer(m.content ?? "")),
-                messageId: data.message_id,
-                sources: data.sources,
-                closing: data.closing ?? null,
-                suggestedFollowups: data.suggested_followups ?? null,
-              }));
-            },
-            onDone: () => {
-              // disclaimer 는 입력창 하단 footer 에 고정 노출 — 본문에 추가하지 않음.
-            },
-          },
-        );
-      } else {
-        // 비스트림 모드 — chatAPI.sendMessage 가 single response 반환.
-        // 도착 시 placeholder 자리에 한 번에 patch (typing indicator → 본문 직접 전환).
-        const res = await chatAPI.sendMessage(
-          query,
-          selectedBot,
-          sessionId,
-          controller.signal,
-          { answer_mode: answerMode },
-        );
-        setSessionId(res.session_id);
-        patchLastAssistant((m) => ({
-          ...m,
-          content: stripCitationsBlock(stripDisclaimer(res.answer)),
-          messageId: res.message_id,
-          sources: res.sources,
-          closing: res.closing ?? null,
-          suggestedFollowups: res.suggested_followups ?? null,
-        }));
-      }
-    } catch (e) {
-      const aborted = (e as Error)?.name === "AbortError";
-      if (aborted) {
-        // 부분 보존 정책: 받은 텍스트는 유지하고 끝에 끊김 인디케이터만 추가.
-        patchLastAssistant((m) => ({
-          ...m,
-          content:
-            (m.content ?? "") +
-            (m.content ? "\n\n_(사용자가 응답 생성을 중단했습니다.)_" : "(사용자가 응답 생성을 중단했습니다.)"),
-        }));
-      } else {
-        const friendly = toFriendlyError(e);
-        // 부분 보존 + 에러 인디케이터. content 가 비어있으면 friendly 메시지로 대체.
-        patchLastAssistant((m) => ({
-          ...m,
-          content: m.content ? `${m.content}\n\n_— ${friendly.content}_` : friendly.content,
-          suggestedFollowups: m.suggestedFollowups ?? friendly.suggestedFollowups ?? null,
-        }));
-      }
-    } finally {
-      setLoading(false);
-      sendingRef.current = false;
-      abortRef.current = null;
-      // textarea focus 복원 (응답 후 자연스러운 연속 질문)
-      requestAnimationFrame(() => textareaRef.current?.focus());
-    }
-  }, [input, selectedBot, sessionId, loading, answerMode, selectedBotInfo]);
-
-  const handleStop = useCallback(() => {
-    abortRef.current?.abort();
-  }, []);
+  const handleSend = useCallback(
+    async (override?: string) => {
+      const query = (override ?? input).trim();
+      if (!query) return;
+      if (override === undefined) setInput("");
+      await chatSend(query, { answerMode });
+    },
+    [input, answerMode, chatSend],
+  );
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -409,19 +168,10 @@ export default function ChatPage() {
     [handleSend],
   );
 
-  const handleBotChange = (value: string | null) => {
-    if (!value) return;
-    setSelectedBot(value);
-    setMessages([]);
-    setSessionId(undefined);
-  };
-
-  const handleNewChat = () => {
-    if (loading) handleStop();
-    setMessages([]);
-    setSessionId(undefined);
+  const handleNewChat = useCallback(() => {
+    chatNewChat();
     textareaRef.current?.focus();
-  };
+  }, [chatNewChat]);
 
   const handleCopy = async (text: string) => {
     try {
@@ -429,47 +179,6 @@ export default function ChatPage() {
       toast.success("답변이 복사되었습니다");
     } catch {
       toast.error("복사에 실패했습니다");
-    }
-  };
-
-  const submitFeedback = async (
-    idx: number,
-    type: FeedbackType,
-    comment?: string,
-  ) => {
-    const msg = messages[idx];
-    if (!msg?.messageId) {
-      toast.error("이 답변에는 피드백을 남길 수 없습니다");
-      return;
-    }
-    // 피드백 토글: 동일 type 을 다시 보내면 로컬 취소 (긍정/부정 reason 모두).
-    // 백엔드 AnswerFeedback row 는 라벨링/분석용 보존. 운영자가 최신 상태만 보려면
-    // (message_id, created_at desc) 기준으로 후처리 가능.
-    // 백엔드 DELETE 엔드포인트 도입은 docs/TODO 로 follow-up.
-    if (msg.feedback === type) {
-      setMessages((prev) =>
-        prev.map((m, i) => (i === idx ? { ...m, feedback: undefined } : m)),
-      );
-      toast("피드백을 취소했습니다");
-      return;
-    }
-    try {
-      await chatAPI.submitFeedback({
-        message_id: msg.messageId,
-        feedback_type: type,
-        comment,
-      });
-      setMessages((prev) =>
-        prev.map((m, i) => (i === idx ? { ...m, feedback: type } : m)),
-      );
-      toast.success(
-        type === "helpful"
-          ? "긍정 피드백 감사합니다"
-          : "피드백을 기록했습니다",
-      );
-    } catch (e) {
-      const errMsg = e instanceof Error ? e.message : "피드백 전송 실패";
-      toast.error(errMsg);
     }
   };
 
@@ -803,13 +512,7 @@ export default function ChatPage() {
                             onSubmit={(reason, comment) =>
                               submitFeedback(msgIdx, reason, comment)
                             }
-                            onCancel={() =>
-                              setMessages((prev) =>
-                                prev.map((m, j) =>
-                                  j === msgIdx ? { ...m, feedback: undefined } : m,
-                                ),
-                              )
-                            }
+                            onCancel={() => cancelFeedback(msgIdx)}
                           />
                         </div>
 

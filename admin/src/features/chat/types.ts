@@ -1,4 +1,6 @@
 // 챗봇 입력 화면 ↔ 백엔드 /chat 통신 도메인 타입.
+
+import type { PersonaMode } from "@/components/truewords";
 // PoC 정리 (2026-04-29): P2-D Visibility 제거. 운영 인프라 (ChatbotConfig.visibility
 // 컬럼 + 백엔드 검증) 도입 시 재추가.
 // v3 개편 (2026-05-14): P1-G TheologicalEmphasis 5종 폐기. 강조점은 모드 모듈에 흡수.
@@ -74,4 +76,19 @@ export interface FeedbackResponse {
   message_id: string;
   feedback_type: FeedbackType;
   created_at: string;
+}
+
+// 채팅 화면 메시지 도메인 모델 (UI state 용 — backend response 와 분리).
+export interface Message {
+  role: "user" | "assistant";
+  content: string;
+  messageId?: string;
+  sources?: ChatResponse["sources"];
+  feedback?: FeedbackType;
+  // P0-A — 답변 후속 추천 질문 3개. None/빈 배열이면 미노출.
+  suggestedFollowups?: string[] | null;
+  // P1-J — 기도문/결의문 마무리. 비활성/실패 시 null. ClosingCallout 가 정적 보조멘트로 fallback.
+  closing?: string | null;
+  // 답변 시점의 답변 모드 — 메시지 옆 아바타 아이콘이 모드 변경에 따라 과거 답변까지 바뀌지 않도록 보존.
+  persona?: PersonaMode;
 }
