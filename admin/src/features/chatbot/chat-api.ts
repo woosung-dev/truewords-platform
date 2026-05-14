@@ -1,9 +1,6 @@
 import { throwApiError } from "@/lib/api";
 import { parseSSEStream } from "@/lib/sse";
-import type {
-  AnswerMode,
-  TheologicalEmphasis,
-} from "@/features/chat/types";
+import type { AnswerMode } from "@/features/chat/types";
 
 export interface ChatBot {
   chatbot_id: string;
@@ -23,7 +20,6 @@ export interface ChatBot {
  */
 export interface ChatRequestOptions {
   answer_mode?: AnswerMode;
-  theological_emphasis?: TheologicalEmphasis;
 }
 
 export interface Source {
@@ -95,11 +91,7 @@ export const chatAPI = {
         query,
         chatbot_id: chatbotId,
         session_id: sessionId,
-        // 백엔드 schema 통합(W2-③) 전에는 무시되며, 머지 후 자동 검증됨.
         ...(options?.answer_mode ? { answer_mode: options.answer_mode } : {}),
-        ...(options?.theological_emphasis
-          ? { theological_emphasis: options.theological_emphasis }
-          : {}),
       }),
       signal,
     });
@@ -147,9 +139,6 @@ export const chatAPI = {
         chatbot_id: chatbotId,
         session_id: sessionId,
         ...(options?.answer_mode ? { answer_mode: options.answer_mode } : {}),
-        ...(options?.theological_emphasis
-          ? { theological_emphasis: options.theological_emphasis }
-          : {}),
       }),
       signal,
     });

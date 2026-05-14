@@ -51,11 +51,11 @@ class ChatbotService:
 
         chatbot_id is None  → None 반환 (router 측에서 시스템 기본값 분기)
         config 미존재       → HTTPException 404
-        빈 system_prompt    → DEFAULT_SYSTEM_PROMPT fallback
-        persona_name        → system_prompt 의 {persona} 치환
+        빈 system_prompt    → BASE_SYSTEM_PROMPT fallback
+        persona_name        → GenerationStage 의 compose_system_prompt 에서 {persona} 치환
         search_tiers JSON   → SearchModeConfig + RetrievalConfig 분리
         """
-        from src.chat.prompt import DEFAULT_SYSTEM_PROMPT, apply_persona
+        from src.chat.prompt import BASE_SYSTEM_PROMPT
         from src.chatbot.runtime_config import (
             ChatbotRuntimeConfig,
             GenerationConfig,
@@ -96,7 +96,7 @@ class ChatbotService:
             for ws in weighted_sources_in
         ]
 
-        base_prompt = (record.system_prompt or "").strip() or DEFAULT_SYSTEM_PROMPT
+        base_prompt = (record.system_prompt or "").strip() or BASE_SYSTEM_PROMPT
         persona = (record.persona_name or "").strip() or None
 
         return ChatbotRuntimeConfig(
@@ -109,7 +109,7 @@ class ChatbotService:
                 dictionary_enabled=raw.get("dictionary_enabled", False),
             ),
             generation=GenerationConfig(
-                system_prompt=apply_persona(base_prompt, persona),
+                system_prompt=base_prompt,
                 persona_name=persona,
             ),
             retrieval=RetrievalConfig(

@@ -32,7 +32,12 @@ def _stub_db_config(**overrides) -> MagicMock:
 
 
 @pytest.mark.asyncio
-async def test_build_runtime_config_substitutes_persona():
+async def test_build_runtime_config_preserves_persona_placeholder():
+    """v3 옵션 C — build_runtime_config 는 더 이상 {persona} 를 치환하지 않는다.
+
+    치환은 GenerationStage 의 compose_system_prompt 가 수행한다. raw base 본문
+    + persona_name 을 분리해 저장한다.
+    """
     from src.chatbot.service import ChatbotService
 
     repo = _make_repo(_stub_db_config())
@@ -41,7 +46,8 @@ async def test_build_runtime_config_substitutes_persona():
 
     assert isinstance(rc, ChatbotRuntimeConfig)
     assert rc.chatbot_id == "cb-test"
-    assert rc.generation.system_prompt == "당신은 지식이 학습 도우미입니다."
+    # raw base 본문 그대로 보존 (placeholder 미치환)
+    assert rc.generation.system_prompt == "당신은 {persona} 학습 도우미입니다."
     assert rc.generation.persona_name == "지식이"
 
 

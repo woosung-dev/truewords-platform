@@ -28,7 +28,7 @@ from src.chat.pipeline.stages.session import SessionStage
 from src.chat.pipeline.stages.suggested_followups import SuggestedFollowupsStage
 from src.chat.pipeline.state import PipelineState, force_transition_to
 from src.search.intent_classifier import generation_context_slice_for
-from src.chat.prompt import DEFAULT_SYSTEM_PROMPT
+from src.chat.prompt import BASE_SYSTEM_PROMPT
 from src.chat.repository import ChatRepository
 from src.chat.schemas import ChatRequest, ChatResponse, FeedbackRequest, Source
 from src.chat.stream_generator import generate_answer_stream
@@ -57,7 +57,7 @@ DEFAULT_RUNTIME_CONFIG = ChatbotRuntimeConfig(
             TierConfig(sources=["A", "B", "C"], min_results=3, score_threshold=0.1),
         ],
     ),
-    generation=GenerationConfig(system_prompt=DEFAULT_SYSTEM_PROMPT),
+    generation=GenerationConfig(system_prompt=BASE_SYSTEM_PROMPT),
     retrieval=RetrievalConfig(rerank_enabled=False, query_rewrite_enabled=False),
     safety=SafetyConfig(),
 )

@@ -1,9 +1,10 @@
 """ChatRequest 스키마 단위 테스트.
 
-ADR-46 P0-E (answer_mode) + P1-G (theological_emphasis) 두 신규 필드의
-기본값 / 유효값 / 잘못된 값을 검증한다.
+ADR-46 P0-E (answer_mode) 필드의 기본값 / 유효값 / 잘못된 값 검증.
 
 PoC 정리 (2026-04-29) — P2-D visibility 필드 제거.
+v3 개편 (2026-05-14) — P1-G theological_emphasis 5종 폐기. 호환을 위해 ChatRequest
+는 ``extra="ignore"`` 로 미지정 필드를 무시한다.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ import pytest
 from pydantic import ValidationError
 
 from src.chat.schemas import ChatRequest
-from src.chat.types import AnswerMode, TheologicalEmphasis
+from src.chat.types import AnswerMode
 
 
 class TestChatRequestDefaults:
@@ -24,7 +25,6 @@ class TestChatRequestDefaults:
         req = ChatRequest(query="축복이란 무엇인가?")
 
         assert req.answer_mode is None
-        assert req.theological_emphasis is None
 
     def test_existing_fields_unaffected(self) -> None:
         sid = uuid.uuid4()
@@ -33,9 +33,7 @@ class TestChatRequestDefaults:
         assert req.query == "질문"
         assert req.chatbot_id == "cb-1"
         assert req.session_id == sid
-        # 신규 필드도 정상적으로 기본값 None 유지
         assert req.answer_mode is None
-        assert req.theological_emphasis is None
 
 
 class TestAnswerModeLiteral:
@@ -55,34 +53,14 @@ class TestAnswerModeLiteral:
             ChatRequest(query="q", answer_mode=value)  # type: ignore[arg-type]
 
 
-class TestTheologicalEmphasisLiteral:
-    """P1-G theological_emphasis Literal 검증."""
+class TestExtraIgnore:
+    """v3 개편 — 폐기된 필드 (theological_emphasis 등) 가 와도 400 떨어지지 않는다."""
 
-    @pytest.mark.parametrize(
-        "value",
-        ["all", "principle", "providence", "family", "youth"],
-    )
-    def test_valid_values(self, value: TheologicalEmphasis) -> None:
-        req = ChatRequest(query="q", theological_emphasis=value)
-        assert req.theological_emphasis == value
-
-    @pytest.mark.parametrize(
-        "value", ["ALL", "Principle", "doctrine", "history", ""]
-    )
-    def test_invalid_values_raise(self, value: str) -> None:
-        with pytest.raises(ValidationError):
-            ChatRequest(query="q", theological_emphasis=value)  # type: ignore[arg-type]
-
-
-class TestCombinedFields:
-    """두 필드 동시 사용 시 정상 검증."""
-
-    def test_two_fields_together(self) -> None:
-        req = ChatRequest(
-            query="가족이란 무엇인가요?",
-            answer_mode="pastoral",
-            theological_emphasis="family",
+    def test_unknown_field_is_ignored(self) -> None:
+        # ChatRequest 는 model_config extra="ignore" 라 알 수 없는 필드를 무시.
+        req = ChatRequest.model_validate(
+            {"query": "q", "theological_emphasis": "family"}
         )
-
-        assert req.answer_mode == "pastoral"
-        assert req.theological_emphasis == "family"
+        assert req.query == "q"
+        # 필드 자체는 모델에 없으므로 model_dump 결과에도 포함되지 않는다.
+        assert "theological_emphasis" not in req.model_dump()

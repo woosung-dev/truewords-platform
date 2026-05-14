@@ -40,6 +40,9 @@ def _make_chat_service() -> tuple[ChatService, AsyncMock, AsyncMock]:
     chat_repo.create_message.return_value = msg
 
     chatbot_service.get_config_id.return_value = 1
+    # v3 옵션 C — build_runtime_config 가 None 반환 시 RuntimeConfigStage 가
+    # DEFAULT_RUNTIME_CONFIG (BASE_SYSTEM_PROMPT 보유) 로 폴백.
+    chatbot_service.build_runtime_config.return_value = None
 
     return ChatService(chat_repo=chat_repo, chatbot_service=chatbot_service), chat_repo, chatbot_service
 

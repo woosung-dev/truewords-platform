@@ -87,22 +87,50 @@ def test_runtime_config_theological_stance_accepts_text():
     assert cfg.theological_stance == "개혁주의 신학에 기반합니다."
 
 
-# --- apply_persona helper (chat/prompt.py) ---
+# --- compose_system_prompt helper (chat/prompt.py, v3 옵션 C) ---
 
-from src.chat.prompt import apply_persona  # noqa: E402
-
-
-def test_apply_persona_substitutes_placeholder():
-    assert apply_persona("안녕 {persona}, 질문에 답해.", "지식이") == "안녕 지식이, 질문에 답해."
-
-
-def test_apply_persona_strips_whitespace():
-    assert apply_persona("{persona}!", "  지식이  ") == "지식이!"
+from src.chat.prompt import (  # noqa: E402
+    MODE_MODULES,
+    compose_system_prompt,
+)
 
 
-def test_apply_persona_none_yields_empty():
-    assert apply_persona("나는 {persona}.", None) == "나는 ."
+def test_compose_substitutes_persona_placeholder():
+    result = compose_system_prompt("안녕 {persona}, 질문에 답해.", "standard", "지식이")
+    assert "안녕 지식이, 질문에 답해." in result
 
 
-def test_apply_persona_no_placeholder_returns_original():
-    assert apply_persona("placeholder 없음.", "지식이") == "placeholder 없음."
+def test_compose_strips_persona_whitespace():
+    result = compose_system_prompt("{persona}!", "standard", "  지식이  ")
+    assert "지식이!" in result
+
+
+def test_compose_none_persona_yields_empty():
+    result = compose_system_prompt("나는 {persona}.", "standard", None)
+    assert "나는 ." in result
+
+
+def test_compose_appends_mode_module_for_each_mode():
+    """모든 모드에 대해 BASE + 해당 모드 모듈이 합성되어야 한다."""
+    base = "공통 본문"
+    for mode in ("standard", "theological", "pastoral", "beginner", "kids"):
+        result = compose_system_prompt(base, mode, None)
+        assert base in result
+        # 모드 모듈의 첫 줄(섹션 헤더) 일부가 포함되어야 함
+        assert MODE_MODULES[mode].split("\n", 1)[0] in result
+
+
+def test_compose_unknown_mode_falls_back_to_standard():
+    result = compose_system_prompt("기본", "invalid_mode", None)
+    assert MODE_MODULES["standard"].split("\n", 1)[0] in result
+
+
+def test_compose_modes_yield_distinct_outputs():
+    """각 모드의 응답 본문이 서로 달라야 한다 (옵션 C 의 강력 적용 보증)."""
+    base = "공통 본문"
+    outputs = {
+        mode: compose_system_prompt(base, mode, None)
+        for mode in ("standard", "theological", "pastoral", "beginner", "kids")
+    }
+    distinct = set(outputs.values())
+    assert len(distinct) == 5
