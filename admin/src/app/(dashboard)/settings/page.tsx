@@ -8,14 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus } from "lucide-react";
-
-interface AdminUserResponse {
-  id: string;
-  email: string;
-  role: string;
-  is_active: boolean;
-  created_at: string;
-}
+import type { AdminUserResponse } from "@/features/auth/types";
 
 export default function SettingsPage() {
   const [email, setEmail] = useState("");

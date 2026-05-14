@@ -1,74 +1,16 @@
+// 챗봇 입력 화면 ↔ 백엔드 /chat 통신 (REST + SSE + 피드백) API.
+
 import { throwApiError } from "@/lib/api";
 import { parseSSEStream } from "@/lib/sse";
-import type { AnswerMode } from "@/features/chat/types";
-
-export interface ChatBot {
-  chatbot_id: string;
-  display_name: string;
-  description: string;
-  // 봇별 SSE 스트리밍 응답 활성화. default true. false 면 chat 화면이 비스트림 분기.
-  streaming_enabled?: boolean;
-  // 입력 화면 추천 질문 칩 — backend cron (매일 03:30 KST) 이 30 일 질문 + RAG sample 로
-  // 자동 생성. 빈 배열이면 page.tsx 가 FALLBACK_PROMPTS 4 개로 fallback.
-  suggested_questions?: string[];
-  // 마지막 cron 갱신 시각 (ISO). null 이면 한 번도 안 돌렸음 → fallback.
-  suggested_at?: string | null;
-}
-
-/**
- * 입력 화면에서 sendMessage 에 함께 실어보내는 옵션.
- */
-export interface ChatRequestOptions {
-  answer_mode?: AnswerMode;
-}
-
-export interface Source {
-  volume: string;
-  text: string;
-  score: number;
-  source: string;
-  // P0-B — 원문보기 모달 fetch 용 Qdrant point id.
-  chunk_id?: string;
-  // admin 인라인 편집으로 지정된 사람 친화적 표시명. null/없음 시 volume fallback.
-  display_name?: string | null;
-  // [deprecated] PR #163 에서 INLINE_CITATIONS 추출 폐기 + 종교 도메인 fit 위해
-  // highlight 자체 제거됨. 옛 cache payload 후방호환 위해 타입만 보존, 항상 null.
-  cited_phrase?: string | null;
-}
-
-export interface ChatResponse {
-  answer: string;
-  sources: Source[];
-  session_id: string;
-  message_id: string;
-  // P0-A — 자동 follow-up 추천 (생성 실패/비활성 시 null).
-  suggested_followups?: string[] | null;
-  // P1-J — 기도문/결의문 마무리 (비활성 시 null).
-  closing?: string | null;
-  // B5 — 사용자 명시 페르소나가 위기 신호로 pastoral 강제 override 됐는지.
-  // True 면 UI 가 "위기 신호로 감지되어 상담 모드로 전환됐어요" 노티 노출.
-  persona_overridden?: boolean;
-}
-
-export type FeedbackType =
-  | "helpful"
-  | "inaccurate"
-  | "missing_citation"
-  | "irrelevant"
-  | "other";
-
-export interface FeedbackRequest {
-  message_id: string;
-  feedback_type: FeedbackType;
-  comment?: string;
-}
-
-export interface FeedbackResponse {
-  id: string;
-  message_id: string;
-  feedback_type: FeedbackType;
-  created_at: string;
-}
+import type {
+  ChatBot,
+  ChatRequestOptions,
+  ChatResponse,
+  FeedbackRequest,
+  FeedbackResponse,
+  Source,
+  SourceChunkDetail,
+} from "./types";
 
 export const chatAPI = {
   listBots: async (): Promise<ChatBot[]> => {
@@ -168,6 +110,22 @@ export const chatAPI = {
         // 그 외 이벤트는 무시 (향후 확장 호환).
       }
     });
+  },
+
+  // P0-B — 인용 카드 "원문보기" 모달용 청크 fetch.
+  // ACL 검증을 위해 chatbot_id 를 함께 전송 (해당 챗봇의 검색 범위 청크만 응답).
+  getSourceChunk: async (
+    chunkId: string,
+    chatbotId: string,
+    signal?: AbortSignal,
+  ): Promise<SourceChunkDetail> => {
+    const url = `/api/sources/chunks/${encodeURIComponent(chunkId)}?chatbot_id=${encodeURIComponent(chatbotId)}`;
+    const res = await fetch(url, { signal });
+    if (res.status === 404) throw new Error("청크를 찾을 수 없어요");
+    if (res.status === 403)
+      throw new Error("이 챗봇의 검색 범위에 포함되지 않은 자료입니다");
+    if (!res.ok) throw new Error("원문을 불러오지 못했어요");
+    return (await res.json()) as SourceChunkDetail;
   },
 
   submitFeedback: async (

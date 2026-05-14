@@ -6,18 +6,25 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { ChevronUp, ChevronDown, X, Plus, GripVertical } from "lucide-react";
 import type { SearchTier } from "@/features/chatbot/types";
-import { useSearchableCategories } from "@/features/data-source/hooks";
+
+// chatbot feature 의 cross-feature 의존을 줄이기 위해 카테고리 데이터는 caller 가 주입.
+// data-source 도메인 풀 객체가 아닌 최소 인터페이스만 의존 (key + name).
+export interface CategoryOption {
+  key: string;
+  name: string;
+}
 
 interface SearchTierEditorProps {
   tiers: SearchTier[];
   onChange: (tiers: SearchTier[]) => void;
+  categories: CategoryOption[];
 }
 
 export default function SearchTierEditor({
   tiers,
   onChange,
+  categories,
 }: SearchTierEditorProps) {
-  const { data: categories = [] } = useSearchableCategories();
 
   function addTier() {
     const defaultSource = categories[0]?.key ?? "A";

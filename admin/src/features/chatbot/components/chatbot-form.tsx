@@ -17,6 +17,7 @@ import SearchModeSelector from "@/features/chatbot/components/search-mode-select
 import SearchTierEditor from "@/features/chatbot/components/search-tier-editor";
 import WeightedSourceEditor from "@/features/chatbot/components/weighted-source-editor";
 import type { SearchTier, WeightedSource } from "@/features/chatbot/types";
+import { useSearchableCategories } from "@/features/data-source/hooks";
 import { Info, Search, User } from "lucide-react";
 
 export type ChatbotFormMode = "create" | "edit";
@@ -86,6 +87,13 @@ export function ChatbotForm({
   const [initialized, setInitialized] = useState(
     mode === "create" || initialValues !== undefined,
   );
+  // chatbot feature 가 data-source 도메인에 직접 결합하는 지점을 chatbot-form 한 곳으로
+  // 응축. SearchTierEditor / WeightedSourceEditor 는 prop 으로만 받는다.
+  const { data: searchableCategories = [] } = useSearchableCategories();
+  const categoryOptions = searchableCategories.map((c) => ({
+    key: c.key,
+    name: c.name,
+  }));
 
   useEffect(() => {
     if (mode === "edit" && initialValues && !initialized) {
@@ -279,11 +287,13 @@ export function ChatbotForm({
             <SearchTierEditor
               tiers={values.search_tiers.tiers}
               onChange={(t) => patchSearch("tiers", t)}
+              categories={categoryOptions}
             />
           ) : (
             <WeightedSourceEditor
               sources={values.search_tiers.weighted_sources}
               onChange={(s) => patchSearch("weighted_sources", s)}
+              categories={categoryOptions}
             />
           )}
         </div>

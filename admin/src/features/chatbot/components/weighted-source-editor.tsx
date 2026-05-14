@@ -4,18 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, X } from "lucide-react";
 import type { WeightedSource } from "@/features/chatbot/types";
-import { useSearchableCategories } from "@/features/data-source/hooks";
+import type { CategoryOption } from "./search-tier-editor";
 
 interface WeightedSourceEditorProps {
   sources: WeightedSource[];
   onChange: (sources: WeightedSource[]) => void;
+  categories: CategoryOption[];
 }
 
 export default function WeightedSourceEditor({
   sources,
   onChange,
+  categories,
 }: WeightedSourceEditorProps) {
-  const { data: categories = [] } = useSearchableCategories();
 
   const totalWeight = sources.reduce((sum, s) => sum + s.weight, 0);
 
