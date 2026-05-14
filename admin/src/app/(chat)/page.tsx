@@ -144,9 +144,8 @@ export default function ChatPage() {
   const [chunkModal, setChunkModal] = useState<{
     open: boolean;
     chunkId: string | null;
-    snippet: string | null;
     displayName: string | null;
-  }>({ open: false, chunkId: null, snippet: null, displayName: null });
+  }>({ open: false, chunkId: null, displayName: null });
 
   // W2-② P0-E / P1-G / P2-D — 입력 화면 옵션 state
   const [answerMode, setAnswerMode] = useState<AnswerMode>("standard");
@@ -722,9 +721,6 @@ export default function ChatPage() {
                               setChunkModal({
                                 open: true,
                                 chunkId: src.chunk_id ?? null,
-                                // cited_phrase 우선 — 모달이 chunk 안에서 그 phrase 만 highlight.
-                                // 누락 시 src.text 전체 fallback (이전 동작 그대로).
-                                snippet: src.cited_phrase?.trim() || src.text,
                                 displayName: src.display_name ?? null,
                               })
                             }
@@ -949,7 +945,6 @@ export default function ChatPage() {
         }
         chunkId={chunkModal.chunkId}
         chatbotId={selectedBot}
-        highlightSnippet={chunkModal.snippet ?? undefined}
         fallbackLabel={chunkModal.displayName ?? undefined}
       />
 

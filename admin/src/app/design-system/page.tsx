@@ -71,7 +71,6 @@ export default function DesignSystemPage() {
               { name: "primary", className: "bg-primary text-primary-foreground" },
               { name: "accent (brass)", className: "bg-accent text-accent-foreground" },
               { name: "destructive", className: "bg-destructive text-white" },
-              { name: "highlight", className: "bg-highlight text-highlight-foreground" },
               { name: "pastoral", className: "bg-pastoral text-pastoral-foreground" },
               { name: "success", className: "bg-success text-success-foreground" },
             ].map((t) => (
@@ -175,7 +174,7 @@ export default function DesignSystemPage() {
             }}
             haeseol={
               <p>
-                참사랑은 <mark className="tw-highlight">위함을 위함을 본질로 하는 사랑</mark>이며,
+                참사랑은 위함을 위함을 본질로 하는 사랑이며,
                 받기보다 주는 마음에 그 절대성이 깃들어 있습니다.
               </p>
             }
