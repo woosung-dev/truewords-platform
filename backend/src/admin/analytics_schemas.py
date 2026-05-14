@@ -19,6 +19,14 @@ class DailyCount(BaseModel):
     count: int
 
 
+class DailyModeCount(BaseModel):
+    # BL-6 — 일별 × resolved_answer_mode × persona_overridden 카운트
+    date: str
+    mode: str
+    persona_overridden: bool
+    count: int
+
+
 class SearchStats(BaseModel):
     total_searches: int
     rewrite_rate: float
