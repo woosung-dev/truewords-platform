@@ -19,6 +19,15 @@ class DailyCount(BaseModel):
     count: int
 
 
+class DailyModeCount(BaseModel):
+    # BL-6 — 일별 × resolved_answer_mode × persona_overridden 카운트
+    # persona_overridden=None → 측정값 없음/legacy (codex P2 NULL 분리)
+    date: str
+    mode: str
+    persona_overridden: bool | None = None
+    count: int
+
+
 class SearchStats(BaseModel):
     total_searches: int
     rewrite_rate: float

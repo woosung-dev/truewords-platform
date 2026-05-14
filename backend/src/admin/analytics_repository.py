@@ -58,6 +58,38 @@ class AnalyticsRepository:
         )
         return [{"date": str(row.date), "count": row.count} for row in result.all()]
 
+    async def get_daily_modes(self, days: int = 30) -> list[dict]:
+        # BL-6 — 일별 × resolved_answer_mode × persona_overridden 카운트.
+        # 4주 시범 운영 baseline (R3 결정 근거).
+        # persona_overridden NULL = 측정값 없음/legacy → false 와 분리 (codex P2).
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        result = await self.session.execute(
+            text("""
+                SELECT
+                    DATE(created_at) AS date,
+                    resolved_answer_mode AS mode,
+                    persona_overridden,
+                    COUNT(*) AS count
+                FROM session_messages
+                WHERE created_at >= :cutoff
+                  AND resolved_answer_mode IS NOT NULL
+                GROUP BY DATE(created_at), resolved_answer_mode, persona_overridden
+                ORDER BY date, resolved_answer_mode
+            """),
+            {"cutoff": cutoff},
+        )
+        return [
+            {
+                "date": str(row.date),
+                "mode": row.mode,
+                "persona_overridden": (
+                    None if row.persona_overridden is None else bool(row.persona_overridden)
+                ),
+                "count": row.count,
+            }
+            for row in result.all()
+        ]
+
     async def get_search_stats(self, days: int = 30) -> dict:
         """검색 통계 집계."""
         cutoff = datetime.utcnow() - timedelta(days=days)

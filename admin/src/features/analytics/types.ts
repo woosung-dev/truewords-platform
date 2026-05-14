@@ -11,6 +11,14 @@ export interface DailyCount {
   count: number;
 }
 
+// BL-6 — 일별 resolved_answer_mode × persona_overridden 카운트
+export interface DailyModeCount {
+  date: string;
+  mode: string;
+  persona_overridden: boolean | null;
+  count: number;
+}
+
 export interface SearchStats {
   total_searches: number;
   rewrite_rate: number;

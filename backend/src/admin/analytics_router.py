@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.admin.analytics_repository import AnalyticsRepository
 from src.admin.analytics_schemas import (
     DailyCount,
+    DailyModeCount,
     DashboardSummary,
     FeedbackSummary,
     FeedbackDistribution,
@@ -63,6 +64,17 @@ async def get_daily_trend(
     """일별 질문 수 트렌드."""
     rows = await repo.get_daily_trend(days)
     return [DailyCount(**r) for r in rows]
+
+
+@router.get("/modes/daily", response_model=list[DailyModeCount])
+async def get_daily_modes(
+    days: int = Query(default=30, ge=1, le=365),
+    repo: AnalyticsRepository = Depends(_get_repo),
+    current_admin: dict = Depends(get_current_admin),
+) -> list[DailyModeCount]:
+    """일별 resolved_answer_mode 분포 (BL-6 — 4주 시범 운영 baseline)."""
+    rows = await repo.get_daily_modes(days)
+    return [DailyModeCount(**r) for r in rows]
 
 
 @router.get("/search/stats", response_model=SearchStats)
