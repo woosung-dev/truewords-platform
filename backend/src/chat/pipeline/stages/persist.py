@@ -99,9 +99,8 @@ class PersistStage:
                 chatbot_id=ctx.request.chatbot_id,
                 corpus_updated_at=ctx.corpus_updated_at or None,
                 collection_name=collection_name,
-                # #11: persona 별 격리. AnswerMode/TheologicalEmphasis 는 Literal[str].
+                # #11: persona 별 격리. AnswerMode 는 Literal[str].
                 answer_mode=ctx.request.answer_mode,
-                theological_emphasis=ctx.request.theological_emphasis,
             )
 
         # 단일 commit

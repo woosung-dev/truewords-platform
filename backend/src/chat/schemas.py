@@ -3,20 +3,22 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from src.chat.models import FeedbackType
-from src.chat.types import AnswerMode, TheologicalEmphasis
+from src.chat.types import AnswerMode
 
 
 class ChatRequest(BaseModel):
+    # v3 개편: theological_emphasis 필드 제거 (2026-05-14). 기존 클라이언트가 보낼 수
+    # 있으므로 extra="ignore" 로 호환. 백엔드는 강조점을 더 이상 처리하지 않는다.
+    model_config = ConfigDict(extra="ignore")
+
     query: str
     chatbot_id: str | None = None
     session_id: uuid.UUID | None = None
     # P0-E 답변 모드 페르소나 5종 — 위급 시 pastoral 자동 라우팅 (별도 파이프라인이 처리)
     answer_mode: AnswerMode | None = None
-    # P1-G 신학 강조점 토글 — runtime_config 의 system prompt 추가절(節) 분기
-    theological_emphasis: TheologicalEmphasis | None = None
 
 
 class Source(BaseModel):

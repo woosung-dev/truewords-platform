@@ -37,3 +37,4 @@ docs/guides/*.html
 
 # ─── 측정 임시 산출물 (root cwd 에 생성됨, 영구 보관은 ~/Downloads) ───
 tmp_match/
+tmp_eval/

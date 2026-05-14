@@ -12,11 +12,12 @@ Invalidation 메타데이터 (R-cache-hardening, 2026-05-02):
   - corpus_updated_at   : ingestion 갱신 시 자동 stale 처리 (Qdrant filter)
   - embedding_model     : 임베딩 모델 변경 시 자동 무효화 (Qdrant filter)
 
-Persona 격리 (#11 fix, 2026-05-09):
-  - answer_mode         : 답변 모드(초신자/표준/심화/...)별 캐시 분리
-  - theological_emphasis: 신학 강조점(가정 축복/효정/...)별 캐시 분리
+Persona 격리 (#11 fix, 2026-05-09 / theological_emphasis 폐기 2026-05-14):
+  - answer_mode         : 답변 모드(표준/신학자/목회상담/초신자/어린이)별 캐시 분리
   서로 다른 맞춤 설정에서 동일 답변이 반환되는 결함을 막는다. None 은 빈
   문자열 ""로 정규화해 Qdrant `match` filter 와 호환되게 한다.
+  ※ theological_emphasis 강조점 5종은 v3 개편으로 폐기. 기존 cache 엔트리는
+  payload 에 잔존하지만 filter 에서 사용하지 않으므로 자연 만료된다.
 
 corpus_updated_at 은 `IngestionJob.completed_at` 의 max 값. 호출자(ChatService)
 가 인자로 전달한다 — Cache 도메인이 ingestion 도메인 DB 에 직접 접근하지 않도록.
@@ -71,7 +72,6 @@ class SemanticCacheService:
         corpus_updated_at: float | None = None,
         collection_name: str | None = None,
         answer_mode: str | None = None,
-        theological_emphasis: str | None = None,
     ) -> CacheHit | None:
         """캐시 히트 검사. 유사도 >= threshold 이면 CacheHit 반환.
 
@@ -82,8 +82,8 @@ class SemanticCacheService:
                                cache 의 값이 이보다 작으면 stale → Qdrant filter 가
                                자동 miss 처리. None 이면 corpus 검증 생략.
             collection_name: 측정/실험용 별도 컬렉션 override (기본=settings)
-            answer_mode:     답변 모드 페르소나(초신자/표준/...). None=빈 문자열로 정규화.
-            theological_emphasis: 신학 강조점(가정 축복/효정/...). None=빈 문자열로 정규화.
+            answer_mode:     답변 모드 페르소나(표준/신학자/목회상담/초신자/어린이).
+                             None=빈 문자열로 정규화.
         """
         now = time.time()
         ttl_cutoff = now - self.ttl_seconds
@@ -95,7 +95,6 @@ class SemanticCacheService:
             {"key": "embedding_model", "match": {"value": self.embedding_model}},
             # Persona 격리(#11): None 도 ""(빈 문자열)로 정규화해 cache 끼리 매칭.
             {"key": "answer_mode", "match": {"value": answer_mode or ""}},
-            {"key": "theological_emphasis", "match": {"value": theological_emphasis or ""}},
         ]
         if chatbot_id:
             must.append({"key": "chatbot_id", "match": {"value": chatbot_id}})
@@ -181,15 +180,14 @@ class SemanticCacheService:
         corpus_updated_at: float | None = None,
         collection_name: str | None = None,
         answer_mode: str | None = None,
-        theological_emphasis: str | None = None,
     ) -> None:
         """파이프라인 완료 후 캐시 저장.
 
         corpus_updated_at 은 IngestionJob.completed_at 의 현재 max 값. None 이면
         0.0 으로 저장되어 추후 corpus 갱신 시 자동으로 stale 처리됨.
 
-        answer_mode/theological_emphasis 는 None 이면 빈 문자열로 정규화 — 조회
-        시 동일 정규화로 매칭되어 페르소나별 캐시 격리가 유지된다(#11).
+        answer_mode 는 None 이면 빈 문자열로 정규화 — 조회 시 동일 정규화로
+        매칭되어 페르소나별 캐시 격리가 유지된다(#11).
         """
         coll = collection_name or self.collection
         point = {
@@ -204,7 +202,6 @@ class SemanticCacheService:
                 "corpus_updated_at": float(corpus_updated_at or 0.0),
                 "embedding_model": self.embedding_model,
                 "answer_mode": answer_mode or "",
-                "theological_emphasis": theological_emphasis or "",
             },
         }
 

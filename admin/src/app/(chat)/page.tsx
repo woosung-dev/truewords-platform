@@ -54,17 +54,10 @@ import {
 } from "@/components/truewords";
 import { QuestionInput } from "@/components/truewords/question-input";
 import {
-  EmphasisSheet,
-  EmphasisRowTrigger,
-} from "@/features/chat/components/emphasis-sheet";
-import {
   AssistantMessage,
   ClosingCallout,
 } from "@/features/chat/components/assistant-message";
-import type {
-  AnswerMode,
-  TheologicalEmphasis,
-} from "@/features/chat/types";
+import type { AnswerMode } from "@/features/chat/types";
 
 interface Message {
   role: "user" | "assistant";
@@ -147,11 +140,9 @@ export default function ChatPage() {
     displayName: string | null;
   }>({ open: false, chunkId: null, displayName: null });
 
-  // W2-② P0-E / P1-G / P2-D — 입력 화면 옵션 state
+  // W2-② P0-E — 입력 화면 답변 모드 state (v3 개편: 강조점 폐기 2026-05-14)
   const [answerMode, setAnswerMode] = useState<AnswerMode>("standard");
-  const [emphasis, setEmphasis] = useState<TheologicalEmphasis>("all");
   const [personaSheetOpen, setPersonaSheetOpen] = useState(false);
-  const [emphasisSheetOpen, setEmphasisSheetOpen] = useState(false);
 
   // P0-G — 답변 화면 floating action bar (새 질문 / 북마크 / 공유) 전체 숨김.
   // 북마크는 백엔드 영속화 미구현이고, 새 질문/공유도 헤더 액션과 중복돼 사용자
@@ -329,7 +320,7 @@ export default function ChatPage() {
           selectedBot,
           sessionId,
           controller.signal,
-          { answer_mode: answerMode, theological_emphasis: emphasis },
+          { answer_mode: answerMode },
           {
             onChunk: (text) => {
               // INLINE_CITATIONS 블록은 매 chunk 누적 후 즉시 strip (사용자에게 잠깐도
@@ -363,7 +354,7 @@ export default function ChatPage() {
           selectedBot,
           sessionId,
           controller.signal,
-          { answer_mode: answerMode, theological_emphasis: emphasis },
+          { answer_mode: answerMode },
         );
         setSessionId(res.session_id);
         patchLastAssistant((m) => ({
@@ -401,7 +392,7 @@ export default function ChatPage() {
       // textarea focus 복원 (응답 후 자연스러운 연속 질문)
       requestAnimationFrame(() => textareaRef.current?.focus());
     }
-  }, [input, selectedBot, sessionId, loading, answerMode, emphasis, selectedBotInfo]);
+  }, [input, selectedBot, sessionId, loading, answerMode, selectedBotInfo]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -652,11 +643,6 @@ export default function ChatPage() {
               <PersonaRowTrigger
                 value={answerMode}
                 onClick={() => setPersonaSheetOpen(true)}
-              />
-
-              <EmphasisRowTrigger
-                value={emphasis}
-                onClick={() => setEmphasisSheetOpen(true)}
               />
 
             </section>
@@ -927,14 +913,6 @@ export default function ChatPage() {
         onOpenChange={setPersonaSheetOpen}
         value={answerMode}
         onValueChange={(v) => setAnswerMode(v as AnswerMode)}
-      />
-
-      {/* P1-G EmphasisSheet — 강조점 5종 */}
-      <EmphasisSheet
-        open={emphasisSheetOpen}
-        onOpenChange={setEmphasisSheetOpen}
-        value={emphasis}
-        onValueChange={setEmphasis}
       />
 
       {/* P0-B — 인용 카드 원문보기 모달. display_name 있으면 fallbackLabel 우선 노출. */}

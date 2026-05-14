@@ -42,6 +42,10 @@ def _make_chat_service() -> tuple[ChatService, AsyncMock, AsyncMock]:
     chat_repo.create_message.return_value = msg
 
     chatbot_service.get_config_id.return_value = 1
+    # build_runtime_config 기본 None → DEFAULT_RUNTIME_CONFIG fallback.
+    # v3 모드 모듈 합성(configure_generation_for_mode) 이 system_prompt.strip() 을
+    # 호출하므로 AsyncMock 자동 리턴(MagicMock)은 RuntimeWarning + 깨짐을 유발한다.
+    chatbot_service.build_runtime_config.return_value = None
 
     return ChatService(chat_repo=chat_repo, chatbot_service=chatbot_service), chat_repo, chatbot_service
 

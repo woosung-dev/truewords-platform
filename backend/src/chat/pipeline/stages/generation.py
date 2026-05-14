@@ -21,16 +21,11 @@ import unicodedata
 from src.chat.generator import generate_answer
 from src.chat.pipeline.context import ChatContext
 from src.chat.pipeline.state import PipelineState, check_precondition
+from src.chat.prompt import compose_system_prompt
 from src.chatbot.runtime_config import GenerationConfig
 from src.search.intent_classifier import Intent, generation_context_slice_for
 
 logger = logging.getLogger(__name__)
-
-# P0-E — 한국 자살예방 상담전화. pastoral 모드 system prompt 끝에 자동 동봉.
-PASTORAL_HOTLINE_NOTICE = (
-    "\n\n[안내] 자살·위기 등 즉각적인 도움이 필요한 경우, "
-    "자살예방상담전화 1393(24시간 무료) 으로 연락하세요."
-)
 
 # B4 — 답변 후처리에서 강제 append 할 본문용 안내 (system prompt 의 instruction
 # 와 분리). 답변 마지막 단락에 noticeable 박스 형태로 추가.
@@ -189,77 +184,25 @@ def resolve_answer_mode(
     return "standard", False, None
 
 
-# P0-E + P1-G — 모드/강조점별 톤 suffix (B-minimal wiring, 2026-04-29).
-# system prompt 끝에 한 문장 분기 append 로 LLM 톤 차별화. 운영자가 5x5 = 25개
-# system prompt 를 작성할 필요 없이 "강한 시그널 한 문장" 만으로도 Gemini 2.5
-# Flash 가 톤을 분명히 분기한다. 향후 도메인 전문가 검수 시 정교화 가능.
-_MODE_TONE_SUFFIX: dict[str, str] = {
-    "standard": "",  # 기본 톤 그대로
-    # pastoral 은 PASTORAL_HOTLINE_NOTICE 가 별도로 append (1393 안내).
-    "pastoral": "",
-    "theological": (
-        "\n\n[톤] 원리·교리에 깊이 있는 신학적 해설을 우선합니다. "
-        "관련 원리 용어와 출처를 분명히 제시하세요."
-    ),
-    "beginner": (
-        "\n\n[톤] 신앙의 기초부터 쉬운 말로 짧고 친절하게 설명하세요. "
-        "전문 용어는 풀어 쓰고, 답변은 핵심 위주로 간결하게."
-    ),
-    "kids": (
-        "\n\n[톤] 어린이 눈높이로 짧고 따뜻하게, 비유와 이야기로 설명하세요. "
-        "어려운 용어는 피하고 친근한 어조로 답변합니다."
-    ),
-}
-
-_EMPHASIS_SUFFIX: dict[str, str] = {
-    "all": "",  # 균형 — 추가 강조 없음
-    "principle": (
-        "\n\n[강조점] 통일원리·교리 기반의 체계적 설명을 우선합니다."
-    ),
-    "providence": (
-        "\n\n[강조점] 섭리 시대 흐름과 후천기 의미를 중심으로 답변합니다."
-    ),
-    "family": (
-        "\n\n[강조점] 참가정·축복·가정연합 관점을 중심으로 답변합니다."
-    ),
-    "youth": (
-        "\n\n[강조점] 청년 신앙 생활과 실천 적용을 중심으로 답변합니다."
-    ),
-}
-
-
 def select_system_prompt(
     *,
     generation_config: GenerationConfig,
     answer_mode: str,
-    emphasis: str | None = None,
 ) -> str:
-    """모드별 + 강조점별 system prompt 선택 (P0-E + P1-G B-minimal wiring).
+    """옵션 C — 공통 BASE + 모드별 모듈 + persona placeholder 치환.
 
-    1. ``system_prompt_by_mode`` 가 비어있으면 default ``system_prompt`` 사용.
-    2. ``_MODE_TONE_SUFFIX`` 에서 모드별 톤 가이드 한 문장 append.
-    3. ``_EMPHASIS_SUFFIX`` 에서 강조점별 한 문장 append (None / "all" 이면 skip).
-    4. pastoral 일 때만 ``PASTORAL_HOTLINE_NOTICE`` 추가 동봉 (1393 안내).
+    ``generation_config.system_prompt`` 가 BASE_SYSTEM_PROMPT 또는 운영자가
+    admin 에서 입력한 base 본문이다. compose_system_prompt 가 모드별 모듈을
+    append 하고 ``{persona}`` placeholder 를 ``persona_name`` 으로 치환한다.
+
+    강조점(theological_emphasis) 처리는 폐기됨 (v3 개편, 2026-05-14).
+    pastoral 핫라인 안내는 모드 모듈 본문에 직접 포함되어 있다.
     """
-    base: str = generation_config.system_prompt
-    by_mode = generation_config.system_prompt_by_mode or {}
-    chosen = by_mode.get(answer_mode, base)
-
-    # 모드 톤 suffix
-    mode_suffix = _MODE_TONE_SUFFIX.get(answer_mode, "")
-    if mode_suffix and mode_suffix not in chosen:
-        chosen = chosen + mode_suffix
-
-    # 강조점 suffix
-    if emphasis is not None:
-        emp_suffix = _EMPHASIS_SUFFIX.get(emphasis, "")
-        if emp_suffix and emp_suffix not in chosen:
-            chosen = chosen + emp_suffix
-
-    # pastoral 핫라인 안내 (시스템 프롬프트 끝, 답변 후처리는 ensure_hotline_in_answer)
-    if answer_mode == "pastoral" and PASTORAL_HOTLINE_NOTICE not in chosen:
-        chosen = chosen + PASTORAL_HOTLINE_NOTICE
-    return chosen
+    return compose_system_prompt(
+        base=generation_config.system_prompt,
+        mode=answer_mode,
+        persona=generation_config.persona_name,
+    )
 
 
 def ensure_hotline_in_answer(answer: str) -> str:
@@ -281,18 +224,54 @@ def ensure_hotline_in_answer(answer: str) -> str:
     return answer + PASTORAL_HOTLINE_FOOTER
 
 
+def configure_generation_for_mode(ctx: ChatContext) -> GenerationConfig | None:
+    """답변 모드 해소 + system_prompt 합성 + ctx 부수 필드 세팅.
+
+    동기 ``GenerationStage`` 와 SSE ``process_chat_stream`` 양쪽이 동일 합성
+    로직을 거치도록 추출한 헬퍼.
+
+    - ``ctx.runtime_config`` 가 ``None`` 이면 ``ctx.resolved_answer_mode=None`` 만
+      세팅하고 ``None`` 리턴 → 호출자는 ``generate_answer(generation_config=None)``
+      legacy 경로로 진행.
+    - 그 외엔 ``resolve_answer_mode`` 결과를 ``ctx`` 에 세팅한 뒤 ``select_system_prompt``
+      로 옵션 C (BASE + MODE_MODULES + persona 치환) system_prompt 가 합성된
+      ``GenerationConfig`` 사본을 리턴.
+    """
+    if ctx.runtime_config is None:
+        ctx.resolved_answer_mode = None
+        return None
+
+    gen_cfg = ctx.runtime_config.generation
+    requested_mode = getattr(ctx.request, "answer_mode", None)
+    answer_mode, persona_overridden, crisis_trigger = resolve_answer_mode(
+        requested_mode=requested_mode,
+        intent=ctx.intent,
+        query=ctx.request.query,
+    )
+    ctx.resolved_answer_mode = answer_mode
+    # B5 — UI 노티 + 영속화. ChatContext 가 정식 필드로 보유.
+    ctx.persona_overridden = persona_overridden
+    # M1 — 위기 매칭 origin 영속화 (PersistStage 가 session_messages 에 wire).
+    ctx.crisis_trigger = crisis_trigger
+
+    system_prompt = select_system_prompt(
+        generation_config=gen_cfg,
+        answer_mode=answer_mode,
+    )
+
+    # GenerationConfig 는 frozen — model_copy 로 system_prompt 만 교체한 임시 객체 사용.
+    return gen_cfg.model_copy(update={"system_prompt": system_prompt})
+
+
 class GenerationStage:
     async def execute(self, ctx: ChatContext) -> ChatContext:
         check_precondition(self.__class__.__name__, ctx)
         slice_n = generation_context_slice_for(ctx.intent)
         context_results = ctx.results[:slice_n]
 
-        # P0-E — 답변 모드 결정 + system prompt 라우팅.
-        # ChatRequest.answer_mode 는 W2-③ 영역. 아직 머지 안 됐을 수 있으므로 안전 접근.
-        requested_mode = getattr(ctx.request, "answer_mode", None)
-        gen_cfg = ctx.runtime_config.generation if ctx.runtime_config else None
+        gen_cfg_for_call = configure_generation_for_mode(ctx)
 
-        if gen_cfg is None:
+        if gen_cfg_for_call is None:
             # runtime_config 없으면 기존 동작 유지 (legacy 경로). 원본과 동일한
             # 직접 호출 — 테스트 patch("...generation.generate_answer") 가 그대로 적용됨.
             ctx.answer = await generate_answer(
@@ -300,31 +279,8 @@ class GenerationStage:
                 context_results,
                 generation_config=None,
             )
-            ctx.resolved_answer_mode = None
             ctx.pipeline_state = PipelineState.GENERATED
             return ctx
-
-        answer_mode, persona_overridden, crisis_trigger = resolve_answer_mode(
-            requested_mode=requested_mode,
-            intent=ctx.intent,
-            query=ctx.request.query,
-        )
-        ctx.resolved_answer_mode = answer_mode
-        # B5 — UI 노티 + 영속화. ChatContext 가 정식 필드로 보유.
-        ctx.persona_overridden = persona_overridden
-        # M1 — 위기 매칭 origin 영속화 (PersistStage 가 session_messages 에 wire).
-        ctx.crisis_trigger = crisis_trigger
-
-        # P1-G — 사용자 명시 강조점도 함께 전달 (None 또는 "all" 이면 추가 분기 없음).
-        emphasis = getattr(ctx.request, "theological_emphasis", None)
-        system_prompt = select_system_prompt(
-            generation_config=gen_cfg,
-            answer_mode=answer_mode,
-            emphasis=emphasis,
-        )
-
-        # GenerationConfig 는 frozen — model_copy 로 system_prompt 만 교체한 임시 객체 사용.
-        gen_cfg_for_call = gen_cfg.model_copy(update={"system_prompt": system_prompt})
 
         answer = await generate_answer(
             ctx.request.query,
@@ -333,7 +289,7 @@ class GenerationStage:
         )
 
         # B4 — pastoral 모드일 때 hotline 출력 강제 보장 (LLM omit 방어).
-        if answer_mode == "pastoral":
+        if ctx.resolved_answer_mode == "pastoral":
             answer = ensure_hotline_in_answer(answer)
 
         ctx.answer = answer
