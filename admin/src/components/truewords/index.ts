@@ -41,7 +41,6 @@ export type {
 } from "./streaming-text";
 
 export { SourceOriginalModal } from "./source-original-modal";
-export type {
-  SourceOriginalModalProps,
-  SourceChunkDetail,
-} from "./source-original-modal";
+export type { SourceOriginalModalProps } from "./source-original-modal";
+// 데이터 모델 SourceChunkDetail 은 features/chat/types 로 이동했음. 신규 코드는
+// `import type { SourceChunkDetail } from "@/features/chat/types"` 사용.

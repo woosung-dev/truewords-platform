@@ -9,6 +9,7 @@ import type {
   FeedbackRequest,
   FeedbackResponse,
   Source,
+  SourceChunkDetail,
 } from "./types";
 
 export const chatAPI = {
@@ -109,6 +110,22 @@ export const chatAPI = {
         // 그 외 이벤트는 무시 (향후 확장 호환).
       }
     });
+  },
+
+  // P0-B — 인용 카드 "원문보기" 모달용 청크 fetch.
+  // ACL 검증을 위해 chatbot_id 를 함께 전송 (해당 챗봇의 검색 범위 청크만 응답).
+  getSourceChunk: async (
+    chunkId: string,
+    chatbotId: string,
+    signal?: AbortSignal,
+  ): Promise<SourceChunkDetail> => {
+    const url = `/api/sources/chunks/${encodeURIComponent(chunkId)}?chatbot_id=${encodeURIComponent(chatbotId)}`;
+    const res = await fetch(url, { signal });
+    if (res.status === 404) throw new Error("청크를 찾을 수 없어요");
+    if (res.status === 403)
+      throw new Error("이 챗봇의 검색 범위에 포함되지 않은 자료입니다");
+    if (!res.ok) throw new Error("원문을 불러오지 못했어요");
+    return (await res.json()) as SourceChunkDetail;
   },
 
   submitFeedback: async (

@@ -4,6 +4,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { chatAPI } from "./api";
 import type {
@@ -11,9 +12,29 @@ import type {
   ChatBot,
   FeedbackType,
   Message,
+  SourceChunkDetail,
 } from "./types";
 import { toFriendlyError } from "./error-message";
 import { stripCitationsBlock, stripDisclaimer } from "./utils";
+
+/**
+ * P0-B — 인용 카드 "원문보기" 모달의 청크 fetch 훅.
+ *
+ * (chunkId, chatbotId) 캐시 키. 원문은 거의 변하지 않으므로 5분 staleTime.
+ * Provider default(30s) 를 의도적으로 override.
+ */
+export function useSourceChunk(
+  chunkId: string | null,
+  chatbotId: string,
+  enabled: boolean,
+) {
+  return useQuery<SourceChunkDetail>({
+    queryKey: ["source-chunk", chunkId, chatbotId],
+    enabled: enabled && !!chunkId && !!chatbotId,
+    staleTime: 5 * 60_000,
+    queryFn: ({ signal }) => chatAPI.getSourceChunk(chunkId!, chatbotId, signal),
+  });
+}
 
 export interface UseChatResult {
   bots: ChatBot[];

@@ -1,26 +1,24 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import SearchTierEditor from "@/features/chatbot/components/search-tier-editor";
+import SearchTierEditor, {
+  type CategoryOption,
+} from "@/features/chatbot/components/search-tier-editor";
 import type { SearchTier } from "@/features/chatbot/types";
 
-// useSearchableCategories 훅 mock
-vi.mock("@/features/data-source/hooks", () => ({
-  useSearchableCategories: () => ({
-    data: [
-      { key: "A", name: "말씀선집", color: "indigo", is_searchable: true },
-      { key: "B", name: "어머니말씀", color: "violet", is_searchable: true },
-      { key: "C", name: "원리강론", color: "blue", is_searchable: true },
-    ],
-    isLoading: false,
-  }),
-}));
+const MOCK_CATEGORIES: CategoryOption[] = [
+  { key: "A", name: "말씀선집" },
+  { key: "B", name: "어머니말씀" },
+  { key: "C", name: "원리강론" },
+];
 
 describe("SearchTierEditor", () => {
   // --- 빈 상태 ---
 
   it("빈 티어 배열일 때 빈 상태 메시지를 표시한다", () => {
     const onChange = vi.fn();
-    render(<SearchTierEditor tiers={[]} onChange={onChange} />);
+    render(
+      <SearchTierEditor tiers={[]} onChange={onChange} categories={MOCK_CATEGORIES} />,
+    );
 
     expect(screen.getByText("검색 티어가 없습니다. 티어를 추가해주세요.")).toBeInTheDocument();
     expect(screen.getByText("티어 추가")).toBeInTheDocument();
@@ -28,7 +26,9 @@ describe("SearchTierEditor", () => {
 
   it("빈 상태에서 '티어 추가' 클릭 시 기본 티어를 추가한다", () => {
     const onChange = vi.fn();
-    render(<SearchTierEditor tiers={[]} onChange={onChange} />);
+    render(
+      <SearchTierEditor tiers={[]} onChange={onChange} categories={MOCK_CATEGORIES} />,
+    );
 
     fireEvent.click(screen.getByText("티어 추가"));
 
@@ -45,7 +45,9 @@ describe("SearchTierEditor", () => {
       { sources: ["B", "C"], min_results: 2, score_threshold: 0.60 },
     ];
     const onChange = vi.fn();
-    render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
+    render(
+      <SearchTierEditor tiers={tiers} onChange={onChange} categories={MOCK_CATEGORIES} />,
+    );
 
     expect(screen.getByText("Tier 1")).toBeInTheDocument();
     expect(screen.getByText("최우선")).toBeInTheDocument();
@@ -57,7 +59,9 @@ describe("SearchTierEditor", () => {
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
     ];
     const onChange = vi.fn();
-    render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
+    render(
+      <SearchTierEditor tiers={tiers} onChange={onChange} categories={MOCK_CATEGORIES} />,
+    );
 
     // 한글 레이블로 표시
     expect(screen.getAllByText("말씀선집").length).toBeGreaterThan(0);
@@ -74,7 +78,9 @@ describe("SearchTierEditor", () => {
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
     ];
     const onChange = vi.fn();
-    render(<SearchTierEditor tiers={existing} onChange={onChange} />);
+    render(
+      <SearchTierEditor tiers={existing} onChange={onChange} categories={MOCK_CATEGORIES} />,
+    );
 
     const addButtons = screen.getAllByText("티어 추가");
     fireEvent.click(addButtons[addButtons.length - 1]);
@@ -93,7 +99,9 @@ describe("SearchTierEditor", () => {
       { sources: ["B"], min_results: 2, score_threshold: 0.60 },
     ];
     const onChange = vi.fn();
-    render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
+    render(
+      <SearchTierEditor tiers={tiers} onChange={onChange} categories={MOCK_CATEGORIES} />,
+    );
 
     const deleteButtons = screen.getAllByTitle("삭제");
     fireEvent.click(deleteButtons[0]);
@@ -111,7 +119,9 @@ describe("SearchTierEditor", () => {
       { sources: ["B"], min_results: 2, score_threshold: 0.60 },
     ];
     const onChange = vi.fn();
-    render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
+    render(
+      <SearchTierEditor tiers={tiers} onChange={onChange} categories={MOCK_CATEGORIES} />,
+    );
 
     const downButtons = screen.getAllByTitle("아래로 이동");
     fireEvent.click(downButtons[0]);
@@ -128,7 +138,9 @@ describe("SearchTierEditor", () => {
       { sources: ["B"], min_results: 2, score_threshold: 0.60 },
     ];
     const onChange = vi.fn();
-    render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
+    render(
+      <SearchTierEditor tiers={tiers} onChange={onChange} categories={MOCK_CATEGORIES} />,
+    );
 
     const upButtons = screen.getAllByTitle("위로 이동");
     expect(upButtons[0]).toBeDisabled();
@@ -140,7 +152,9 @@ describe("SearchTierEditor", () => {
       { sources: ["B"], min_results: 2, score_threshold: 0.60 },
     ];
     const onChange = vi.fn();
-    render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
+    render(
+      <SearchTierEditor tiers={tiers} onChange={onChange} categories={MOCK_CATEGORIES} />,
+    );
 
     const downButtons = screen.getAllByTitle("아래로 이동");
     expect(downButtons[1]).toBeDisabled();
@@ -153,7 +167,9 @@ describe("SearchTierEditor", () => {
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
     ];
     const onChange = vi.fn();
-    render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
+    render(
+      <SearchTierEditor tiers={tiers} onChange={onChange} categories={MOCK_CATEGORIES} />,
+    );
 
     const input = screen.getByLabelText(/최소 결과 수/);
     fireEvent.change(input, { target: { value: "5" } });
@@ -168,7 +184,9 @@ describe("SearchTierEditor", () => {
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
     ];
     const onChange = vi.fn();
-    render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
+    render(
+      <SearchTierEditor tiers={tiers} onChange={onChange} categories={MOCK_CATEGORIES} />,
+    );
 
     const input = screen.getByLabelText(/최소 결과 수/);
     fireEvent.change(input, { target: { value: "0" } });

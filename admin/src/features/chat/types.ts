@@ -78,6 +78,22 @@ export interface FeedbackResponse {
   created_at: string;
 }
 
+// P0-B — 인용 카드 "원문보기" 모달용 청크 상세.
+// /api/sources/chunks/{chunk_id} 응답 모델.
+export interface SourceChunkDetail {
+  chunk_id: string;
+  text: string;
+  volume: string;
+  sources: string[];
+  chunk_index: number;
+  /** 메인 + 인접 청크를 백엔드에서 NFC + suffix-prefix dedup 후 합친 연속 본문 */
+  merged_text: string;
+  /** merged_text 안에서 메인 청크 시작 character offset (포함) */
+  main_offset_start: number;
+  /** merged_text 안에서 메인 청크 끝 character offset (제외) */
+  main_offset_end: number;
+}
+
 // 채팅 화면 메시지 도메인 모델 (UI state 용 — backend response 와 분리).
 export interface Message {
   role: "user" | "assistant";

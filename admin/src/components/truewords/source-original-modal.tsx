@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { ArrowUpRight, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Sheet,
   SheetContent,
@@ -10,29 +9,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useSourceChunk } from "@/features/chat/hooks";
 import { cn } from "@/lib/utils";
 
 // P0-B + ADR-46 §C.3 — 인용 카드의 "원문보기" 모달.
 // CitationCard 의 onOpenOriginal prop 에 연결해서 사용한다.
 //
-// 데이터 fetch 는 GET /api/sources/chunks/{chunk_id} 호출. React Query 로
-// (chunk_id, chatbot_id) 단위 캐싱 — 같은 출처 재오픈 시 즉시 표시.
-// 종교 도메인 묵상 톤을 위해 형광 highlight 를 폐기하고 main/adjacent 색
-// 구분만으로 인용 영역을 표시한다.
-
-export interface SourceChunkDetail {
-  chunk_id: string;
-  text: string;
-  volume: string;
-  sources: string[];
-  chunk_index: number;
-  /** 메인 + 인접 청크를 백엔드에서 NFC + suffix-prefix dedup 후 합친 연속 본문 */
-  merged_text: string;
-  /** merged_text 안에서 메인 청크 시작 character offset (포함) */
-  main_offset_start: number;
-  /** merged_text 안에서 메인 청크 끝 character offset (제외) */
-  main_offset_end: number;
-}
+// 데이터 fetch 는 features/chat/hooks 의 useSourceChunk 로 분리됨
+// (이 컴포넌트는 표시 책임만). 종교 도메인 묵상 톤을 위해 형광 highlight 를
+// 폐기하고 main/adjacent 색 구분만으로 인용 영역을 표시한다.
 
 export interface SourceOriginalModalProps {
   open: boolean;
@@ -51,22 +36,7 @@ export function SourceOriginalModal({
   chatbotId,
   fallbackLabel,
 }: SourceOriginalModalProps) {
-  // React Query 캐싱 — 같은 (chunk_id, chatbot_id) 재오픈 시 staleTime 내엔 추가 fetch 없음.
-  // 원문은 거의 변하지 않으므로 5분으로 길게 잡았다 (Provider default 30s 를 override).
-  const { data, isLoading, error } = useQuery<SourceChunkDetail>({
-    queryKey: ["source-chunk", chunkId, chatbotId],
-    enabled: open && !!chunkId && !!chatbotId,
-    staleTime: 5 * 60_000,
-    queryFn: async ({ signal }) => {
-      const url = `/api/sources/chunks/${encodeURIComponent(chunkId!)}?chatbot_id=${encodeURIComponent(chatbotId)}`;
-      const res = await fetch(url, { signal });
-      if (res.status === 404) throw new Error("청크를 찾을 수 없어요");
-      if (res.status === 403)
-        throw new Error("이 챗봇의 검색 범위에 포함되지 않은 자료입니다");
-      if (!res.ok) throw new Error("원문을 불러오지 못했어요");
-      return (await res.json()) as SourceChunkDetail;
-    },
-  });
+  const { data, isLoading, error } = useSourceChunk(chunkId, chatbotId, open);
 
   const renderBody = () => {
     if (isLoading) {
