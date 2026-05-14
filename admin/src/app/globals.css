@@ -43,8 +43,6 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   /* TrueWords 확장 토큰 (Plan A.2 + Design Tokens Refactor) */
-  --color-highlight: var(--tw-highlight);
-  --color-highlight-foreground: var(--tw-highlight-fg);
   --color-pastoral: var(--tw-pastoral);
   --color-pastoral-foreground: var(--tw-pastoral-fg);
   --color-success: var(--tw-success);
@@ -139,9 +137,6 @@
   --chart-5: oklch(0.466 0.211 25);  /* destructive */
   --radius: 0.75rem;
   /* TrueWords 확장 토큰 (Plan A.2) */
-  /* Highlight: 인용 노란 하이라이트 #FEF3C7 */
-  --tw-highlight: oklch(0.965 0.067 92);
-  --tw-highlight-fg: oklch(0.180 0.012 50);
   /* Pastoral: 목회 상담 모드 톤 #0E7490 (차분 청록) */
   --tw-pastoral: oklch(0.486 0.105 213);
   --tw-pastoral-fg: oklch(1 0 0);
@@ -246,8 +241,6 @@
   --chart-4: oklch(0.620 0.105 213);
   --chart-5: oklch(0.604 0.222 25);
   /* TrueWords 확장 토큰 — Dark */
-  --tw-highlight: oklch(0.700 0.140 90 / 30%);
-  --tw-highlight-fg: oklch(0.890 0.025 78);
   --tw-pastoral: oklch(0.620 0.105 213);
   --tw-pastoral-fg: oklch(0.180 0.012 50);
   --tw-success: oklch(0.620 0.152 144);
@@ -337,13 +330,6 @@
   .font-display {
     font-family: var(--font-display), "Noto Serif KR", "Cormorant Garamond", serif;
     letter-spacing: -0.02em;
-  }
-  /* 인용 노란 하이라이트 */
-  mark.tw-highlight {
-    background-color: var(--tw-highlight);
-    color: var(--tw-highlight-fg);
-    padding: 0 4px;
-    border-radius: 2px;
   }
   /* 스트리밍 커서 */
   .tw-streaming-cursor::after {

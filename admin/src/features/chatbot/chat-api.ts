@@ -35,8 +35,8 @@ export interface Source {
   chunk_id?: string;
   // admin 인라인 편집으로 지정된 사람 친화적 표시명. null/없음 시 volume fallback.
   display_name?: string | null;
-  // 답변에서 인용한 정확한 phrase. backend INLINE_CITATIONS 블록에서 추출.
-  // 원문 모달이 chunk 전체 대신 이 phrase 만 highlight. 누락 시 src.text fallback.
+  // [deprecated] PR #163 에서 INLINE_CITATIONS 추출 폐기 + 종교 도메인 fit 위해
+  // highlight 자체 제거됨. 옛 cache payload 후방호환 위해 타입만 보존, 항상 null.
   cited_phrase?: string | null;
 }
 
