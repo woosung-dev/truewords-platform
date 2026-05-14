@@ -1,16 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+// Next 16 production build 에서 useSearchParams 를 호출하는 client 컴포넌트가 Suspense
+// 경계 없이 직접 export 되면 prerender 실패한다. 따라서 default export 는 Suspense
+// wrapper 만 담고, 실제 hook 사용 본체는 child 컴포넌트로 분리한다.
+
+import { Suspense, useEffect, useState, useTransition } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { analyticsAPI } from "@/features/analytics/api";
+import { analyticsKeys } from "@/features/analytics/keys";
 import type { QuerySortKey } from "@/features/analytics/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
 import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
+import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 
 const DAYS_OPTIONS = [7, 30, 90, 365];
 const SORT_LABEL: Record<QuerySortKey, string> = {
@@ -31,9 +37,29 @@ function formatDateTime(iso: string): string {
   }
 }
 
-export default function QueriesExplorerPage() {
+function PageFallback() {
+  return (
+    <div className="space-y-6 max-w-5xl">
+      <div>
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-7 w-40 mt-2" />
+      </div>
+      <div className="rounded-xl border bg-card p-4 space-y-3">
+        <Skeleton className="h-9 w-full" />
+      </div>
+      <div className="rounded-xl border bg-card p-5 space-y-2">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <Skeleton key={i} className="h-8 w-full" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QueriesExplorerContent() {
   const router = useRouter();
   const sp = useSearchParams();
+  const [, startTransition] = useTransition();
 
   const q = sp.get("q") ?? "";
   const days = Number(sp.get("days") ?? 30);
@@ -42,22 +68,13 @@ export default function QueriesExplorerPage() {
   const size = 50;
 
   const [searchInput, setSearchInput] = useState(q);
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
   const [selectedQuery, setSelectedQuery] = useState<string | null>(null);
 
+  // URL 의 q 가 외부 변경 (브라우저 뒤로가기 등) 시 입력창 동기화.
   useEffect(() => {
     setSearchInput(q);
   }, [q]);
-
-  // 검색어 debounce (300ms)
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (searchInput !== q) {
-        updateParams({ q: searchInput, page: 1 });
-      }
-    }, 300);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInput]);
 
   const updateParams = (changes: Record<string, string | number>) => {
     const params = new URLSearchParams(sp.toString());
@@ -68,11 +85,24 @@ export default function QueriesExplorerPage() {
         params.set(k, String(v));
       }
     }
-    router.push(`/analytics/queries?${params.toString()}`);
+    // 입력 중 URL push 가 urgent update 로 잡히면 렌더 압박이 큼.
+    // transition 으로 표시해 React 가 input 입력 응답성을 우선시하게 한다.
+    startTransition(() => {
+      router.push(`/analytics/queries?${params.toString()}`);
+    });
   };
 
+  // debounce 된 입력값이 URL 의 q 와 다르면 URL 갱신.
+  useEffect(() => {
+    if (debouncedSearch !== q) {
+      updateParams({ q: debouncedSearch, page: 1 });
+    }
+    // updateParams 는 매 렌더 새 클로저지만 debounce 값 + q 변화만이 트리거 의도.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
+
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["queries", q, days, sort, page, size],
+    queryKey: analyticsKeys.queries(q, days, sort, page, size),
     queryFn: () => analyticsAPI.getQueries({ q, days, sort, page, size }),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
@@ -283,5 +313,13 @@ export default function QueriesExplorerPage() {
         days={days}
       />
     </div>
+  );
+}
+
+export default function QueriesExplorerPage() {
+  return (
+    <Suspense fallback={<PageFallback />}>
+      <QueriesExplorerContent />
+    </Suspense>
   );
 }
