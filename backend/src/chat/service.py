@@ -15,7 +15,10 @@ from src.chat.pipeline.context import ChatContext
 from src.chat.pipeline.stages.cache_check import CacheCheckStage
 from src.chat.pipeline.stages.closing_template import ClosingTemplateStage
 from src.chat.pipeline.stages.embedding import EmbeddingStage
-from src.chat.pipeline.stages.generation import GenerationStage
+from src.chat.pipeline.stages.generation import (
+    GenerationStage,
+    configure_generation_for_mode,
+)
 from src.chat.pipeline.stages.input_validation import InputValidationStage
 from src.chat.pipeline.stages.intent_classifier import IntentClassifierStage
 from src.chat.pipeline.stages.persist import PersistStage
@@ -335,12 +338,20 @@ class ChatService:
 
             # 스트리밍 생성 (inline — async generator yield 때문에 Stage 분리 불가).
             # 동기 GenerationStage 와 동일 intent 분기 슬라이스 사용.
+            #
+            # P0-E — 모드별 system_prompt 옵션 C 합성. configure_generation_for_mode 가
+            # resolve_answer_mode + select_system_prompt 를 일괄 수행하고 ctx 의
+            # resolved_answer_mode/persona_overridden/crisis_trigger 도 세팅한다.
+            # stream 경로는 runtime_config 가 항상 존재해야 진행 가능 (위 search/rerank
+            # stage 가 이미 ctx.runtime_config 를 참조하므로 None 이면 그 전에 깨짐).
+            gen_cfg_for_call = configure_generation_for_mode(ctx)
+            assert gen_cfg_for_call is not None, "stream 경로엔 runtime_config 가 필요합니다"
             context_results = ctx.results[: generation_context_slice_for(ctx.intent)]
             full_answer: list[str] = []
             async for chunk in generate_answer_stream(
                 request.query,
                 context_results,
-                generation_config=ctx.runtime_config.generation,
+                generation_config=gen_cfg_for_call,
             ):
                 full_answer.append(chunk)
                 yield f"event: chunk\ndata: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n"

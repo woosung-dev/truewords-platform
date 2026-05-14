@@ -224,18 +224,54 @@ def ensure_hotline_in_answer(answer: str) -> str:
     return answer + PASTORAL_HOTLINE_FOOTER
 
 
+def configure_generation_for_mode(ctx: ChatContext) -> GenerationConfig | None:
+    """답변 모드 해소 + system_prompt 합성 + ctx 부수 필드 세팅.
+
+    동기 ``GenerationStage`` 와 SSE ``process_chat_stream`` 양쪽이 동일 합성
+    로직을 거치도록 추출한 헬퍼.
+
+    - ``ctx.runtime_config`` 가 ``None`` 이면 ``ctx.resolved_answer_mode=None`` 만
+      세팅하고 ``None`` 리턴 → 호출자는 ``generate_answer(generation_config=None)``
+      legacy 경로로 진행.
+    - 그 외엔 ``resolve_answer_mode`` 결과를 ``ctx`` 에 세팅한 뒤 ``select_system_prompt``
+      로 옵션 C (BASE + MODE_MODULES + persona 치환) system_prompt 가 합성된
+      ``GenerationConfig`` 사본을 리턴.
+    """
+    if ctx.runtime_config is None:
+        ctx.resolved_answer_mode = None
+        return None
+
+    gen_cfg = ctx.runtime_config.generation
+    requested_mode = getattr(ctx.request, "answer_mode", None)
+    answer_mode, persona_overridden, crisis_trigger = resolve_answer_mode(
+        requested_mode=requested_mode,
+        intent=ctx.intent,
+        query=ctx.request.query,
+    )
+    ctx.resolved_answer_mode = answer_mode
+    # B5 — UI 노티 + 영속화. ChatContext 가 정식 필드로 보유.
+    ctx.persona_overridden = persona_overridden
+    # M1 — 위기 매칭 origin 영속화 (PersistStage 가 session_messages 에 wire).
+    ctx.crisis_trigger = crisis_trigger
+
+    system_prompt = select_system_prompt(
+        generation_config=gen_cfg,
+        answer_mode=answer_mode,
+    )
+
+    # GenerationConfig 는 frozen — model_copy 로 system_prompt 만 교체한 임시 객체 사용.
+    return gen_cfg.model_copy(update={"system_prompt": system_prompt})
+
+
 class GenerationStage:
     async def execute(self, ctx: ChatContext) -> ChatContext:
         check_precondition(self.__class__.__name__, ctx)
         slice_n = generation_context_slice_for(ctx.intent)
         context_results = ctx.results[:slice_n]
 
-        # P0-E — 답변 모드 결정 + system prompt 라우팅.
-        # ChatRequest.answer_mode 는 W2-③ 영역. 아직 머지 안 됐을 수 있으므로 안전 접근.
-        requested_mode = getattr(ctx.request, "answer_mode", None)
-        gen_cfg = ctx.runtime_config.generation if ctx.runtime_config else None
+        gen_cfg_for_call = configure_generation_for_mode(ctx)
 
-        if gen_cfg is None:
+        if gen_cfg_for_call is None:
             # runtime_config 없으면 기존 동작 유지 (legacy 경로). 원본과 동일한
             # 직접 호출 — 테스트 patch("...generation.generate_answer") 가 그대로 적용됨.
             ctx.answer = await generate_answer(
@@ -243,28 +279,8 @@ class GenerationStage:
                 context_results,
                 generation_config=None,
             )
-            ctx.resolved_answer_mode = None
             ctx.pipeline_state = PipelineState.GENERATED
             return ctx
-
-        answer_mode, persona_overridden, crisis_trigger = resolve_answer_mode(
-            requested_mode=requested_mode,
-            intent=ctx.intent,
-            query=ctx.request.query,
-        )
-        ctx.resolved_answer_mode = answer_mode
-        # B5 — UI 노티 + 영속화. ChatContext 가 정식 필드로 보유.
-        ctx.persona_overridden = persona_overridden
-        # M1 — 위기 매칭 origin 영속화 (PersistStage 가 session_messages 에 wire).
-        ctx.crisis_trigger = crisis_trigger
-
-        system_prompt = select_system_prompt(
-            generation_config=gen_cfg,
-            answer_mode=answer_mode,
-        )
-
-        # GenerationConfig 는 frozen — model_copy 로 system_prompt 만 교체한 임시 객체 사용.
-        gen_cfg_for_call = gen_cfg.model_copy(update={"system_prompt": system_prompt})
 
         answer = await generate_answer(
             ctx.request.query,
@@ -273,7 +289,7 @@ class GenerationStage:
         )
 
         # B4 — pastoral 모드일 때 hotline 출력 강제 보장 (LLM omit 방어).
-        if answer_mode == "pastoral":
+        if ctx.resolved_answer_mode == "pastoral":
             answer = ensure_hotline_in_answer(answer)
 
         ctx.answer = answer
