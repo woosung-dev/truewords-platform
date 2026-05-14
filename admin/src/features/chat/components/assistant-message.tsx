@@ -32,7 +32,10 @@ export function AssistantMessage({
   onSourceClick,
   className,
 }: AssistantMessageProps) {
-  const cleaned = React.useMemo(() => preprocess(content), [content]);
+  const cleaned = React.useMemo(
+    () => preprocess(content, sources?.length ?? Infinity),
+    [content, sources],
+  );
   const sourceMap = React.useMemo(() => buildSourceMap(sources), [sources]);
 
   return (
@@ -162,11 +165,25 @@ function buildSourceMap(sources?: Source[]): Map<string, Source> {
  *      Gemini 가 "항목1. • 항목2." 처럼 개행 없이 bullet 을 이어쓸 때 발생하는
  *      인라인 렌더링 버그를 방어한다.
  *
+ * `maxSourceN` — 카드로 노출되는 sources 개수. 그보다 큰 번호 (`[4]`, `[5]`)는
+ * sourceMap miss → disabled 회색 칩으로 leak 되므로 빈 문자열로 strip.
+ * backend 가 LLM 컨텍스트에 4~8 chunk 를 넘기지만 카드는 `[:3]` 으로 자르는
+ * 비대칭 설계의 사용자측 가드. multi-id 안에서는 초과 번호만 선택적으로 strip.
+ * `Infinity` (default) 는 stream 도중 sources 미도착 케이스 — 임시로 모든 N 변환,
+ * sources 도착 후 re-render 에서 정확한 limit 적용.
+ *
  * 동일 토큰이 markdown link `[text](url)` 로 잘못 잡히지 않게 정규식은 뒤에
  * `(` 가 붙지 않은 경우만 매칭.
  */
-export function preprocess(text: string): string {
+export function preprocess(text: string, maxSourceN: number = Infinity): string {
   if (!text) return "";
+
+  const isValidN = (n: string): boolean => {
+    if (!Number.isFinite(maxSourceN)) return true;
+    const num = Number(n);
+    return num >= 1 && num <= maxSourceN;
+  };
+
   return text
     .replace(/\n?\[출처:[^\]]*\](?:\s*\([^)]*\))?\s*/g, "")
     .replace(/\n+\s*INLINE_CITATIONS\s*:[\s\S]*$/i, "")
@@ -174,13 +191,14 @@ export function preprocess(text: string): string {
     .replace(/\[(\d+(?:\s*,\s*\d+)+)\](?!\()/g, (_match, ids: string) =>
       ids
         .split(",")
-        .map((n) => {
-          const trimmed = n.trim();
-          return `[${trimmed}](cite:${trimmed})`;
-        })
+        .map((n) => n.trim())
+        .filter(isValidN)
+        .map((n) => `[${n}](cite:${n})`)
         .join(""),
     )
-    .replace(/\[(\d+)\](?!\()/g, "[$1](cite:$1)")
+    .replace(/\[(\d+)\](?!\()/g, (_match, n: string) =>
+      isValidN(n) ? `[${n}](cite:${n})` : "",
+    )
     .replace(/([^\n])\n?[ \t]*•([ \t])/g, "$1\n\n•$2")
     .trim();
 }
