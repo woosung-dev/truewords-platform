@@ -34,6 +34,34 @@ describe("preprocess - citation 치환", () => {
   });
 });
 
+describe("preprocess - maxSourceN strip (sourceMap miss 방어)", () => {
+  it("maxSourceN=3 일 때 [4] 는 빈 문자열로 strip", () => {
+    expect(preprocess("내용 [4].", 3)).toBe("내용 .");
+  });
+
+  it("maxSourceN=3 일 때 [1] 은 그대로 변환", () => {
+    expect(preprocess("내용 [1].", 3)).toBe("내용 [1](cite:1).");
+  });
+
+  it("multi-id [1, 5] 에서 maxSourceN=3 이면 [1] 만 남는다", () => {
+    expect(preprocess("내용 [1, 5].", 3)).toBe("내용 [1](cite:1).");
+  });
+
+  it("multi-id [4, 5] 전부 초과면 빈 문자열", () => {
+    expect(preprocess("내용 [4, 5].", 3)).toBe("내용 .");
+  });
+
+  it("multi-id [1, 2, 7] 에서 maxSourceN=3 이면 [1][2] 만 남는다", () => {
+    expect(preprocess("내용 [1, 2, 7].", 3)).toBe(
+      "내용 [1](cite:1)[2](cite:2).",
+    );
+  });
+
+  it("default maxSourceN=Infinity 에서는 기존 동작 유지", () => {
+    expect(preprocess("내용 [4].")).toBe("내용 [4](cite:4).");
+  });
+});
+
 describe("preprocess - INLINE_CITATIONS 잔재 strip", () => {
   it("답변 끝의 INLINE_CITATIONS 블록을 본문에서 제거한다", () => {
     const input = `본문 결론입니다 [1].\n\nINLINE_CITATIONS:\n[1] "원문 인용 phrase"`;
