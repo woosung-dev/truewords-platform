@@ -42,16 +42,27 @@ export function AssistantMessage({
           remarkPlugins={[remarkGfm]}
           components={{
             // [N](cite:N) 마크다운 링크를 클릭 가능한 위첨자로 변환.
+            // sourceMap miss 시에는 disabled button 으로 렌더 → 외부 네비게이션 차단.
             a: ({ href, children, ...rest }) => {
               if (href?.startsWith("cite:")) {
                 const num = href.slice("cite:".length);
                 const src = sourceMap.get(num);
+                const disabled = !src;
                 return (
                   <button
                     type="button"
-                    aria-label={`출처 ${num}${src ? `: ${src.volume}` : ""}`}
-                    onClick={() => src && onSourceClick?.(src)}
-                    className="mx-0.5 inline-flex h-[18px] min-w-[18px] cursor-pointer items-center justify-center rounded bg-accent/15 px-1.5 align-[2px] text-[11px] font-bold leading-none text-accent transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                    disabled={disabled}
+                    aria-label={`출처 ${num}${src ? `: ${src.volume}` : " (연결 없음)"}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (src) onSourceClick?.(src);
+                    }}
+                    className={cn(
+                      "mx-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded bg-accent/15 px-1.5 align-[2px] text-[11px] font-bold leading-none text-accent transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                      disabled
+                        ? "cursor-not-allowed opacity-60"
+                        : "cursor-pointer hover:bg-accent hover:text-accent-foreground",
+                    )}
                   >
                     {num}
                   </button>
@@ -138,9 +149,15 @@ function buildSourceMap(sources?: Source[]): Map<string, Source> {
 /**
  * 답변 본문 사전처리:
  *   1. `[출처: ...]` 라인 제거 (백엔드 prompt 미반영 대비 graceful fallback).
- *   2. `[1]` `[2]` → `[1](cite:1)` 마크다운 링크로 치환 → react-markdown 이
- *      components.a 에서 위첨자로 렌더.
- *   3. 인라인 bullet 정규화 — `•`는 유니코드 문자라 react-markdown 이 목록으로
+ *   2. 답변 끝에 잔존하는 `INLINE_CITATIONS:` 블록 + 그 아래 `[N] "..."` phrase
+ *      라인들 strip — INLINE_CITATIONS 규칙은 폐기됐지만 옛 캐시 답변이 본문 끝에
+ *      그 블록을 그대로 가지고 있을 수 있어 사용자 노출 방지용 graceful guard.
+ *      헤더가 누락된 채 phrase 라인만 leak 한 변형도 함께 잡는다.
+ *   3. multi-id 토큰 `[1, 5]` `[1,2,3]` → 각각 분해해 `[1](cite:1)[5](cite:5)`
+ *      형태로 변환. LLM 이 규칙 5 를 위반하고 multi-id 로 묶어 쓰는 변형 방어.
+ *   4. single-id `[1]` `[2]` → `[1](cite:1)` 마크다운 링크로 치환 → react-markdown
+ *      이 components.a 에서 위첨자 칩으로 렌더.
+ *   5. 인라인 bullet 정규화 — `•`는 유니코드 문자라 react-markdown 이 목록으로
  *      처리하지 않음. 줄 시작이 아닌 위치에 `•`가 오면 `\n\n`을 삽입해 단락을 분리.
  *      Gemini 가 "항목1. • 항목2." 처럼 개행 없이 bullet 을 이어쓸 때 발생하는
  *      인라인 렌더링 버그를 방어한다.
@@ -152,6 +169,17 @@ export function preprocess(text: string): string {
   if (!text) return "";
   return text
     .replace(/\n?\[출처:[^\]]*\](?:\s*\([^)]*\))?\s*/g, "")
+    .replace(/\n+\s*INLINE_CITATIONS\s*:[\s\S]*$/i, "")
+    .replace(/(?:\n+\s*\[\d+\]\s*"[^"]*"\s*)+\s*$/g, "")
+    .replace(/\[(\d+(?:\s*,\s*\d+)+)\](?!\()/g, (_match, ids: string) =>
+      ids
+        .split(",")
+        .map((n) => {
+          const trimmed = n.trim();
+          return `[${trimmed}](cite:${trimmed})`;
+        })
+        .join(""),
+    )
     .replace(/\[(\d+)\](?!\()/g, "[$1](cite:$1)")
     .replace(/([^\n])\n?[ \t]*•([ \t])/g, "$1\n\n•$2")
     .trim();

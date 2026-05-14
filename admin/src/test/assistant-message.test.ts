@@ -14,6 +14,36 @@ describe("preprocess - citation 치환", () => {
   it("[출처: ...] 라인을 제거한다", () => {
     expect(preprocess("답변 내용\n[출처: 원리강론]")).toBe("답변 내용");
   });
+
+  it("multi-id [1, 2] 를 [1](cite:1)[2](cite:2) 로 분해한다", () => {
+    expect(preprocess("내용입니다 [1, 2].")).toBe(
+      "내용입니다 [1](cite:1)[2](cite:2).",
+    );
+  });
+
+  it("공백 없는 multi-id [1,2,3] 도 분해한다", () => {
+    expect(preprocess("출처 [1,2,3]")).toBe(
+      "출처 [1](cite:1)[2](cite:2)[3](cite:3)",
+    );
+  });
+
+  it("multi-id 와 single-id 가 혼재해도 모두 변환한다", () => {
+    expect(preprocess("앞 [1] 뒤 [2, 4]")).toBe(
+      "앞 [1](cite:1) 뒤 [2](cite:2)[4](cite:4)",
+    );
+  });
+});
+
+describe("preprocess - INLINE_CITATIONS 잔재 strip", () => {
+  it("답변 끝의 INLINE_CITATIONS 블록을 본문에서 제거한다", () => {
+    const input = `본문 결론입니다 [1].\n\nINLINE_CITATIONS:\n[1] "원문 인용 phrase"`;
+    expect(preprocess(input)).toBe("본문 결론입니다 [1](cite:1).");
+  });
+
+  it("헤더가 누락된 채 phrase 라인만 끝에 leak 된 변형도 strip 한다", () => {
+    const input = `본문 마무리.\n[1] "leaked phrase 1"\n[2] "leaked phrase 2"`;
+    expect(preprocess(input)).toBe("본문 마무리.");
+  });
 });
 
 describe("preprocess - bullet 정규화", () => {
