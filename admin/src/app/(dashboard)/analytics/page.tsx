@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
 import {
   ResponsiveContainer,
   BarChart,
@@ -11,7 +10,12 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
-import { analyticsAPI } from "@/features/analytics/api";
+import {
+  useSearchStats,
+  useDailyTrend,
+  useTopQueries,
+  useDailyModes,
+} from "@/features/analytics/hooks";
 import type { SearchStats, DailyCount, TopQuery } from "@/features/analytics/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
@@ -187,25 +191,10 @@ function TopQueriesTable({
 export default function AnalyticsPage() {
   const [selectedQuery, setSelectedQuery] = useState<string | null>(null);
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["search-stats"],
-    queryFn: () => analyticsAPI.getSearchStats(30),
-  });
-
-  const { data: trend, isLoading: trendLoading } = useQuery({
-    queryKey: ["daily-trend"],
-    queryFn: () => analyticsAPI.getDailyTrend(30),
-  });
-
-  const { data: topQueries, isLoading: topQueriesLoading } = useQuery({
-    queryKey: ["top-queries"],
-    queryFn: () => analyticsAPI.getTopQueries(30, 10),
-  });
-
-  const { data: dailyModes, isLoading: dailyModesLoading } = useQuery({
-    queryKey: ["daily-modes"],
-    queryFn: () => analyticsAPI.getDailyModes(30),
-  });
+  const { data: stats, isLoading: statsLoading } = useSearchStats(30);
+  const { data: trend, isLoading: trendLoading } = useDailyTrend(30);
+  const { data: topQueries, isLoading: topQueriesLoading } = useTopQueries(30, 10);
+  const { data: dailyModes, isLoading: dailyModesLoading } = useDailyModes(30);
 
   // 차트용 날짜 포맷 (MM/DD)
   const chartData: DailyCount[] = (trend ?? []).map((d) => ({

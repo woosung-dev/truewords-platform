@@ -3,10 +3,12 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { chatbotAPI } from "@/features/chatbot/api";
+import { useChatbotDetail } from "@/features/chatbot/hooks";
+import { chatbotKeys } from "@/features/chatbot/keys";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -24,14 +26,7 @@ export default function EditChatbotPage({
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const {
-    data: config,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["chatbot", id],
-    queryFn: () => chatbotAPI.get(id),
-  });
+  const { data: config, isLoading, isError } = useChatbotDetail(id);
 
   const mutation = useMutation({
     mutationFn: (values: ChatbotFormValues) =>
@@ -46,8 +41,8 @@ export default function EditChatbotPage({
       }),
     onSuccess: () => {
       toast.success("저장되었습니다");
-      queryClient.invalidateQueries({ queryKey: ["chatbot", id] });
-      queryClient.invalidateQueries({ queryKey: ["chatbots"] });
+      queryClient.invalidateQueries({ queryKey: chatbotKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: chatbotKeys.all });
     },
     onError: (err: Error) => {
       toast.error(
