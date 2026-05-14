@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { chatbotAPI } from "@/features/chatbot/api";
+import { useChatbotsPage } from "@/features/chatbot/hooks";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,10 +22,7 @@ export default function ChatbotsPage() {
   const [page, setPage] = useState(0);
   const [showInactive, setShowInactive] = useState(false);
 
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["chatbots", page],
-    queryFn: () => chatbotAPI.list(PAGE_SIZE, page * PAGE_SIZE),
-  });
+  const { data, isLoading, isError, refetch } = useChatbotsPage(page, PAGE_SIZE);
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
 

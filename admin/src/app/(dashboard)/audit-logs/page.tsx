@@ -17,6 +17,42 @@ const ACTION_LABELS: Record<string, { label: string; variant: "default" | "secon
   logout: { label: "로그아웃", variant: "outline" },
 };
 
+// 감사 로그 변경 내용 요약 — 민감/대용량 필드는 노출하지 않고 allowlist 만 표시.
+// 이전엔 JSON.stringify(changes).slice(0, 100) 으로 password_hash, tokens 같은
+// 비밀 필드가 부분적으로 노출될 위험이 있었음 (codex 리뷰).
+const VISIBLE_AUDIT_FIELDS = new Set([
+  "display_name",
+  "description",
+  "persona_name",
+  "is_active",
+  "is_searchable",
+  "streaming_enabled",
+  "role",
+  "key",
+  "name",
+  "color",
+  "sort_order",
+  "search_mode",
+  "rerank_enabled",
+  "dictionary_enabled",
+  "query_rewrite_enabled",
+]);
+
+function summarizeAuditChanges(changes: Record<string, unknown>): string {
+  const keys = Object.keys(changes);
+  if (keys.length === 0) return "—";
+  const visible = keys.filter((k) => VISIBLE_AUDIT_FIELDS.has(k));
+  const hidden = keys.length - visible.length;
+  if (visible.length === 0) {
+    return `(${hidden}개 필드 변경 · 상세는 권한 확인 필요)`;
+  }
+  const head = visible.slice(0, 5).join(", ");
+  const suffix =
+    visible.length > 5 ? ` 외 ${visible.length - 5}건` : "";
+  const hiddenNote = hidden > 0 ? ` (+${hidden} 비표시)` : "";
+  return `${head}${suffix}${hiddenNote}`;
+}
+
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
   return d.toLocaleString("ko-KR", {
@@ -94,9 +130,7 @@ export default function AuditLogsPage() {
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <span className="text-xs text-muted-foreground truncate block max-w-xs">
-                      {Object.keys(log.changes).length > 0
-                        ? JSON.stringify(log.changes).slice(0, 100)
-                        : "—"}
+                      {summarizeAuditChanges(log.changes)}
                     </span>
                   </td>
                 </tr>

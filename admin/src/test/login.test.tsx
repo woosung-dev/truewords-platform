@@ -35,6 +35,7 @@ vi.mock("@/features/auth/api", () => ({
 
 import { authAPI } from "@/features/auth/api";
 import LoginPage from "@/app/login/page";
+import { ApiError } from "@/lib/api";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -75,7 +76,7 @@ describe("LoginPage", () => {
 
   it("로그인 실패 시 에러 메시지를 표시한다", async () => {
     vi.mocked(authAPI.login).mockRejectedValueOnce(
-      new Error("401 Unauthorized")
+      new ApiError(401, { error_code: "UNAUTHORIZED", message: "Unauthorized" }),
     );
 
     render(<LoginPage />);

@@ -9,6 +9,7 @@ import {
 } from "@/features/data-source/api";
 import type { DataSourceCategory } from "@/features/data-source/types";
 import { useDataSourceCategories, useRemoveVolumeTag } from "@/features/data-source/hooks";
+import { dataSourceKeys } from "@/features/data-source/keys";
 import { getCategoryColors } from "@/features/data-source/category-colors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,9 +133,9 @@ export default function CategoryTab() {
       toast.success(
         `${targets.length}개 파일 영구 삭제 완료 (총 ${totalChunks.toLocaleString()}개 청크${skippedSuffix})`,
       );
-      queryClient.invalidateQueries({ queryKey: ["category-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
-      queryClient.invalidateQueries({ queryKey: ["ingest-status"] });
+      queryClient.invalidateQueries({ queryKey: dataSourceKeys.categoryStats() });
+      queryClient.invalidateQueries({ queryKey: dataSourceKeys.allVolumes() });
+      queryClient.invalidateQueries({ queryKey: dataSourceKeys.ingestStatus() });
       setDeleteDialog({ open: false, targets: [], busy: false });
     } catch (err) {
       toast.error(
@@ -195,7 +196,7 @@ export default function CategoryTab() {
       }),
     onSuccess: () => {
       toast.success("카테고리가 생성되었습니다");
-      queryClient.invalidateQueries({ queryKey: ["data-source-categories"] });
+      queryClient.invalidateQueries({ queryKey: dataSourceKeys.categories() });
       closeSheet();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -206,7 +207,7 @@ export default function CategoryTab() {
       dataSourceCategoryAPI.update(id, data),
     onSuccess: () => {
       toast.success("카테고리가 수정되었습니다");
-      queryClient.invalidateQueries({ queryKey: ["data-source-categories"] });
+      queryClient.invalidateQueries({ queryKey: dataSourceKeys.categories() });
       closeSheet();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -216,7 +217,7 @@ export default function CategoryTab() {
     mutationFn: (id: string) => dataSourceCategoryAPI.delete(id),
     onSuccess: () => {
       toast.success("카테고리가 비활성화되었습니다");
-      queryClient.invalidateQueries({ queryKey: ["data-source-categories"] });
+      queryClient.invalidateQueries({ queryKey: dataSourceKeys.categories() });
     },
     onError: (err: Error) => toast.error(err.message),
   });

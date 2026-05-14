@@ -6,6 +6,7 @@ import {
   dataSourceCategoryAPI,
   type OnDuplicateMode,
 } from "./api";
+import { dataSourceKeys } from "./keys";
 import type {
   DataSourceCategory,
   CategoryDocumentStats,
@@ -22,7 +23,7 @@ import type { DuplicateDecision } from "./components/duplicate-confirm-dialog";
 
 export function useDataSourceCategories() {
   return useQuery({
-    queryKey: ["data-source-categories"],
+    queryKey: dataSourceKeys.categories(),
     queryFn: dataSourceCategoryAPI.list,
     staleTime: 5 * 60 * 1000, // 5분 캐시
   });
@@ -46,18 +47,21 @@ export function useSearchableCategories() {
 
 export function useCategoryStats() {
   return useQuery<CategoryDocumentStats[]>({
-    queryKey: ["category-stats"],
+    queryKey: dataSourceKeys.categoryStats(),
     queryFn: dataSourceCategoryAPI.getCategoryStats,
     staleTime: 60_000, // 60초 캐시
   });
 }
 
+// volume 의 분류(태그) 변경은 category-stats + all-volumes 두 캐시를 모두 무효화해야 한다.
+// 이전 구현은 category-stats 만 무효화해 all-volumes 가 stale 로 남는 버그가 있었음 (codex 리뷰).
 export function useAddVolumeTag() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: VolumeTagRequest) => dataSourceCategoryAPI.addVolumeTag(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["category-stats"] });
+      queryClient.invalidateQueries({ queryKey: dataSourceKeys.categoryStats() });
+      queryClient.invalidateQueries({ queryKey: dataSourceKeys.allVolumes() });
     },
   });
 }
@@ -67,14 +71,15 @@ export function useRemoveVolumeTag() {
   return useMutation({
     mutationFn: (data: VolumeTagRequest) => dataSourceCategoryAPI.removeVolumeTag(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["category-stats"] });
+      queryClient.invalidateQueries({ queryKey: dataSourceKeys.categoryStats() });
+      queryClient.invalidateQueries({ queryKey: dataSourceKeys.allVolumes() });
     },
   });
 }
 
 export function useAllVolumes() {
   return useQuery<VolumeInfo[]>({
-    queryKey: ["all-volumes"],
+    queryKey: dataSourceKeys.allVolumes(),
     queryFn: dataSourceCategoryAPI.getAllVolumes,
     staleTime: 60_000,
   });
@@ -96,7 +101,7 @@ export function useRemoveVolumeTagsBulk() {
 
 export function useIngestionJobs() {
   return useQuery<IngestionJobInfo[]>({
-    queryKey: ["ingestion-jobs"],
+    queryKey: dataSourceKeys.ingestionJobs(),
     queryFn: dataAPI.getJobs,
     staleTime: 30_000,
   });
@@ -210,9 +215,9 @@ export function useDocumentUploadWorkflow() {
         if (!options.silent) {
           toast.success(`${pf.file.name} 업로드 완료, 백그라운드 처리 시작`);
         }
-        queryClient.invalidateQueries({ queryKey: ["ingest-status"] });
-        queryClient.invalidateQueries({ queryKey: ["category-stats"] });
-        queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
+        queryClient.invalidateQueries({ queryKey: dataSourceKeys.ingestStatus() });
+        queryClient.invalidateQueries({ queryKey: dataSourceKeys.categoryStats() });
+        queryClient.invalidateQueries({ queryKey: dataSourceKeys.allVolumes() });
         // 10초 후 processing 상태 제거 (status 폴링이 처리 결과를 가져옴)
         setTimeout(() => {
           setPendingFiles((prev) => prev.filter((f) => f.id !== pf.id));
@@ -289,8 +294,8 @@ export function useDocumentUploadWorkflow() {
             `${pendingFile.file.name}에 "${pendingFile.source}" 태그 추가 완료`,
           );
           setPendingFiles((prev) => prev.filter((f) => f.id !== pendingFile.id));
-          queryClient.invalidateQueries({ queryKey: ["category-stats"] });
-          queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
+          queryClient.invalidateQueries({ queryKey: dataSourceKeys.categoryStats() });
+          queryClient.invalidateQueries({ queryKey: dataSourceKeys.allVolumes() });
         } catch (err) {
           toast.error(err instanceof Error ? err.message : "태그 추가 실패");
         }

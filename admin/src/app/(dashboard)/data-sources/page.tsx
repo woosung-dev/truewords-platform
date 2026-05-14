@@ -7,6 +7,7 @@ import {
   useActiveCategories,
   useDocumentUploadWorkflow,
 } from "@/features/data-source/hooks";
+import { dataSourceKeys } from "@/features/data-source/keys";
 import DuplicateConfirmDialog from "@/features/data-source/components/duplicate-confirm-dialog";
 import BulkPrecheckDialog from "@/features/data-source/components/bulk-precheck-dialog";
 import { DisplayNameEditor } from "@/features/data-source/components/display-name-editor";
@@ -71,7 +72,7 @@ export default function DataSourcesPage() {
   });
 
   const { data: status } = useQuery({
-    queryKey: ["ingest-status"],
+    queryKey: dataSourceKeys.ingestStatus(),
     queryFn: dataAPI.getStatus,
     // 처리 중 파일이 있을 때만 5초 폴링. 없으면 OFF (페이지 진입 시 1회만)
     refetchInterval: hasProcessing ? 5000 : false,
@@ -80,7 +81,7 @@ export default function DataSourcesPage() {
   // 파일별 IngestionJob 목록 — display_name 인라인 편집용. completed row 와
   // filename 으로 lookup.
   const { data: jobs } = useQuery({
-    queryKey: ["ingestion-jobs"],
+    queryKey: dataSourceKeys.ingestionJobs(),
     queryFn: dataAPI.getJobs,
   });
   const jobsByFilename = useMemo(() => {

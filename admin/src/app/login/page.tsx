@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authAPI } from "@/features/auth/api";
+import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,13 +31,15 @@ export default function LoginPage() {
       router.prefetch("/");
       router.push("/chatbots");
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message.includes("401")
-            ? "이메일 또는 비밀번호가 올바르지 않습니다"
-            : "서버에 연결할 수 없습니다"
-          : "로그인 실패"
-      );
+      // ApiError.status 기반 분기 — fetchAPI 가 보존한 status 를 활용.
+      // err.message.includes("401") 같은 문자열 매칭은 i18n / 메시지 변경에 깨짐.
+      if (err instanceof ApiError && err.status === 401) {
+        setError("이메일 또는 비밀번호가 올바르지 않습니다");
+      } else if (err instanceof Error) {
+        setError("서버에 연결할 수 없습니다");
+      } else {
+        setError("로그인 실패");
+      }
     } finally {
       setLoading(false);
     }
