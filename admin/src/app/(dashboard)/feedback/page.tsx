@@ -231,7 +231,16 @@ function FeedbackTable({
                 <tr
                   key={item.id}
                   className={`cursor-pointer hover:bg-admin-muted/30 transition-colors ${i !== 0 ? "border-t" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`세션 상세 열기: ${item.question}`}
                   onClick={() => onSelectSession(item.session_id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onSelectSession(item.session_id);
+                    }
+                  }}
                 >
                   <td className="py-2 px-3 text-xs text-muted-foreground whitespace-nowrap">
                     {formatDate(item.created_at)}
