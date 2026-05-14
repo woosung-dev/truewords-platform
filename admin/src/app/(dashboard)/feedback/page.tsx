@@ -1,32 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-} from "recharts";
 import { analyticsAPI } from "@/features/analytics/api";
 import type { NegativeFeedbackItem } from "@/features/analytics/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import SessionDetailModal from "@/features/analytics/components/session-detail-modal";
 
-// ─────────────────────────────────────────────
-// 피드백 유형 상수 (cool slate × admin amber 충돌 회피 팔레트)
-// ─────────────────────────────────────────────
-const FEEDBACK_COLORS: Record<string, string> = {
-  helpful: "#0d9488",          // teal-600 — 긍정/시원함
-  inaccurate: "#dc2626",       // red-600 — 가장 심각한 부정
-  missing_citation: "#ea580c", // orange-600 — 경고 (admin amber 와 차별)
-  irrelevant: "#64748b",       // slate-500 — 중립적 부정
-  other: "#7c3aed",            // violet-600 — 기타
-};
+// recharts 는 무거우므로 별도 island 로 lazy load.
+const FeedbackPieChart = dynamic(
+  () =>
+    import("@/features/analytics/components/feedback-distribution-chart"),
+  { ssr: false, loading: () => <Skeleton className="h-64 w-full" /> },
+);
 
+// backend ENUM 이 'HELPFUL' 등 대문자로 저장될 가능성 → 매핑 키 일관화
+function normalizeFeedbackType(t: string): string {
+  return (t || "").toLowerCase();
+}
+
+// 차트 dynamic island 내부의 라벨과 동기화 — Badge 표시에도 동일 키 매핑 사용.
 const FEEDBACK_LABELS: Record<string, string> = {
   helpful: "도움됨",
   inaccurate: "부정확",
@@ -34,11 +29,6 @@ const FEEDBACK_LABELS: Record<string, string> = {
   irrelevant: "관련 없음",
   other: "기타",
 };
-
-// backend ENUM 이 'HELPFUL' 등 대문자로 저장될 가능성 → 매핑 키 일관화
-function normalizeFeedbackType(t: string): string {
-  return (t || "").toLowerCase();
-}
 
 // ─────────────────────────────────────────────
 // 피드백 Badge 변형 매핑
@@ -78,75 +68,15 @@ function formatDate(isoString: string): string {
     .replace(/\.$/, "");
 }
 
-// ─────────────────────────────────────────────
-// 피드백 유형 분포 PieChart
-// ─────────────────────────────────────────────
-function FeedbackDistributionChart({
-  data,
-  loading,
-}: {
+// 피드백 유형 분포 — chart 본체는 dynamic island 로 분리됨 (FeedbackPieChart).
+function FeedbackDistributionChart(props: {
   data?: { feedback_type: string; count: number }[];
   loading: boolean;
 }) {
-  const chartData = (data ?? []).map((d) => {
-    const key = normalizeFeedbackType(d.feedback_type);
-    return {
-      name: FEEDBACK_LABELS[key] ?? d.feedback_type,
-      value: d.count,
-      color: FEEDBACK_COLORS[key] ?? "#94a3b8",
-    };
-  });
-
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
       <h2 className="text-sm font-semibold">피드백 유형 분포</h2>
-      {loading ? (
-        <Skeleton className="h-64 w-full" />
-      ) : chartData.length === 0 ? (
-        <div className="h-64 flex items-center justify-center">
-          <p className="text-sm text-muted-foreground">피드백이 없습니다</p>
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height={256}>
-          <PieChart>
-            <Pie
-              data={chartData}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              outerRadius={90}
-              innerRadius={48}
-              paddingAngle={2}
-            >
-              {chartData.map((entry, index) => (
-                <Cell key={index} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              cursor={{ fill: "var(--color-admin-muted)", opacity: 0.4 }}
-              wrapperStyle={{ outline: "none", zIndex: 50 }}
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 8,
-                border: "1px solid var(--color-border)",
-                background: "var(--color-card)",
-                color: "var(--color-foreground)",
-                boxShadow:
-                  "0 8px 24px oklch(0 0 0 / 0.10), 0 2px 4px oklch(0 0 0 / 0.06)",
-                padding: "8px 12px",
-              }}
-              itemStyle={{ color: "var(--color-foreground)" }}
-              labelStyle={{ color: "var(--color-foreground)", fontWeight: 600 }}
-            />
-            <Legend
-              iconType="circle"
-              iconSize={8}
-              wrapperStyle={{ fontSize: 12 }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-      )}
+      <FeedbackPieChart {...props} />
     </div>
   );
 }

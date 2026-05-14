@@ -1,10 +1,14 @@
 "use client";
 
 import * as React from "react";
-import ReactMarkdown from "react-markdown";
+import dynamic from "next/dynamic";
 import remarkGfm from "remark-gfm";
 import type { ChatResponse } from "@/features/chat/types";
 import { cn, stripFileExt } from "@/lib/utils";
+
+// react-markdown 본체는 chat 답변에서만 사용되므로 entry chunk 에서 분리한다.
+// ssr:false — 답변 본문은 SSE 후 client 렌더라서 SSR 의미 없음.
+const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false });
 
 type Source = NonNullable<ChatResponse["sources"]>[number];
 

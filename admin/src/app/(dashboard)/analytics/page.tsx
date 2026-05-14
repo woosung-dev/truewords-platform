@@ -2,14 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from "recharts";
+import dynamic from "next/dynamic";
 import {
   useSearchStats,
   useDailyTrend,
@@ -20,7 +13,20 @@ import type { SearchStats, DailyCount, TopQuery } from "@/features/analytics/typ
 import { Skeleton } from "@/components/ui/skeleton";
 import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
 import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
-import { ModesChart } from "@/features/analytics/components/modes-chart";
+
+// recharts 는 무거우므로 chart 컴포넌트를 entry chunk 에서 분리한다.
+// ssr:false — recharts 는 브라우저 전용이고 SSR 효과 없음.
+const TrendBarChart = dynamic(
+  () => import("@/features/analytics/components/trend-bar-chart"),
+  { ssr: false, loading: () => <Skeleton className="h-52 w-full" /> },
+);
+const ModesChart = dynamic(
+  () =>
+    import("@/features/analytics/components/modes-chart").then((m) => ({
+      default: m.ModesChart,
+    })),
+  { ssr: false, loading: () => <Skeleton className="h-52 w-full" /> },
+);
 
 // ─────────────────────────────────────────────
 // StatCard (inline, 카드 컴포넌트 미사용 패턴 유지)
@@ -251,47 +257,7 @@ export default function AnalyticsPage() {
       {/* 일별 트렌드 차트 */}
       <div className="rounded-xl border bg-card p-5 space-y-4">
         <h2 className="text-sm font-semibold">일별 검색량 (최근 30일)</h2>
-        {trendLoading ? (
-          <Skeleton className="h-52 w-full" />
-        ) : chartData.length === 0 ? (
-          <div className="h-52 flex items-center justify-center">
-            <p className="text-sm text-muted-foreground">데이터가 없습니다</p>
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={208}>
-            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                tick={{ fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                allowDecimals={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  border: "1px solid var(--border)",
-                  background: "var(--card)",
-                  color: "var(--foreground)",
-                }}
-                cursor={{ fill: "var(--muted)" }}
-              />
-              <Bar
-                dataKey="count"
-                name="검색 수"
-                fill="var(--primary)"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
+        <TrendBarChart data={chartData} loading={trendLoading} />
       </div>
 
       {/* BL-6 — 일별 모드 분포 차트 (4주 시범 운영 baseline) */}
