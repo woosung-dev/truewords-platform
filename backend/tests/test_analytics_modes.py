@@ -63,6 +63,8 @@ async def test_daily_modes_returns_flat_list(async_client, override_admin_auth):
         {"date": "2026-05-13", "mode": "standard", "persona_overridden": False, "count": 42},
         {"date": "2026-05-13", "mode": "pastoral", "persona_overridden": True, "count": 3},
         {"date": "2026-05-14", "mode": "kids", "persona_overridden": False, "count": 7},
+        # codex P2 — NULL 보존: 측정값 없음/legacy 와 명시적 false 분리
+        {"date": "2026-05-14", "mode": "standard", "persona_overridden": None, "count": 5},
     ]
     _override_repo(repo)
     try:
@@ -73,7 +75,7 @@ async def test_daily_modes_returns_flat_list(async_client, override_admin_auth):
 
     assert resp.status_code == 200
     body = resp.json()
-    assert len(body) == 3
+    assert len(body) == 4
     assert body[0] == {
         "date": "2026-05-13",
         "mode": "standard",
@@ -82,6 +84,7 @@ async def test_daily_modes_returns_flat_list(async_client, override_admin_auth):
     }
     assert body[1]["mode"] == "pastoral"
     assert body[1]["persona_overridden"] is True
+    assert body[3]["persona_overridden"] is None
 
 
 @pytest.mark.asyncio
