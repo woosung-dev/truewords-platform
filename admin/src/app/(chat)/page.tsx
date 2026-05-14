@@ -37,12 +37,13 @@ import {
   ThumbsUp,
   User,
 } from "lucide-react";
-import {
-  chatAPI,
-  type ChatBot,
-  type ChatResponse,
-  type FeedbackType,
-} from "@/features/chatbot/chat-api";
+import { chatAPI } from "@/features/chat/api";
+import type {
+  AnswerMode,
+  ChatBot,
+  ChatResponse,
+  FeedbackType,
+} from "@/features/chat/types";
 import { toFriendlyError } from "@/features/chat/error-message";
 import {
   FollowupPills,
@@ -57,7 +58,6 @@ import {
   AssistantMessage,
   ClosingCallout,
 } from "@/features/chat/components/assistant-message";
-import type { AnswerMode } from "@/features/chat/types";
 
 interface Message {
   role: "user" | "assistant";
