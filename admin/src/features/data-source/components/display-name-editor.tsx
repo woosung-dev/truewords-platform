@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { dataAPI } from "@/features/data-source/api";
+import { dataSourceKeys } from "@/features/data-source/keys";
 import { Input } from "@/components/ui/input";
 
 export interface DisplayNameEditorProps {
@@ -60,7 +61,7 @@ export function DisplayNameEditor({
       setTimeout(() => setJustSaved(false), 1500);
       // 목록 자체에는 영향이 없으나 다른 화면(예: chat)이 같은 데이터를 캐시 중일 수 있어
       // jobs query 만 invalidate.
-      queryClient.invalidateQueries({ queryKey: ["ingestion-jobs"] });
+      queryClient.invalidateQueries({ queryKey: dataSourceKeys.ingestionJobs() });
     },
     onError: (err: Error) => {
       toast.error(err.message || "표시명 저장 실패");

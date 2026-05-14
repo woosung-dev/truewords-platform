@@ -14,6 +14,7 @@ import {
   useAddVolumeTagsBulk,
   useRemoveVolumeTagsBulk,
 } from "@/features/data-source/hooks";
+import { dataSourceKeys } from "@/features/data-source/keys";
 import { getCategoryColors } from "@/features/data-source/category-colors";
 
 interface VolumeTransferSheetProps {
@@ -162,8 +163,8 @@ export default function VolumeTransferSheet({
         `저장 완료 (추가 ${diff.added.length}건, 제거 ${diff.removed.length}건, ${totalChunks.toLocaleString()}청크)`
       );
     }
-    queryClient.invalidateQueries({ queryKey: ["category-stats"] });
-    queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
+    queryClient.invalidateQueries({ queryKey: dataSourceKeys.categoryStats() });
+    queryClient.invalidateQueries({ queryKey: dataSourceKeys.allVolumes() });
     onOpenChange(false);
   };
 

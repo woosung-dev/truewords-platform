@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { chatbotAPI } from "@/features/chatbot/api";
 import { dataAPI } from "@/features/data-source/api";
+import { dataSourceKeys } from "@/features/data-source/keys";
 import { analyticsAPI } from "@/features/analytics/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Bot, Database, CheckCircle2, AlertCircle, ArrowRight, Search, ThumbsUp, ThumbsDown } from "lucide-react";
@@ -54,7 +55,7 @@ export default function DashboardPage() {
   });
 
   const { data: status, isLoading: statusLoading } = useQuery({
-    queryKey: ["ingest-status"],
+    queryKey: dataSourceKeys.ingestStatus(),
     queryFn: dataAPI.getStatus,
     staleTime: 30000,
   });
