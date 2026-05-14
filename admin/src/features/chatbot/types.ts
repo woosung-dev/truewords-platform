@@ -1,3 +1,5 @@
+export type { PaginatedResponse } from "@/types";
+
 export interface SearchTier {
   sources: string[];
   min_results: number;
@@ -34,9 +36,3 @@ export interface ChatbotConfig {
   updated_at: string;
 }
 
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  limit: number;
-  offset: number;
-}

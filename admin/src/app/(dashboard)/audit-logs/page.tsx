@@ -1,22 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchAPI } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
-interface AuditLog {
-  id: string;
-  admin_user_id: string;
-  action: string;
-  target_table: string;
-  target_id: string;
-  changes: Record<string, unknown>;
-  created_at: string;
-}
+import { useAuditLogs } from "@/features/audit-log/hooks";
 
 const PAGE_SIZE = 20;
 
@@ -42,13 +31,7 @@ function formatDate(dateStr: string) {
 export default function AuditLogsPage() {
   const [offset, setOffset] = useState(0);
 
-  const { data: logs = [], isLoading } = useQuery({
-    queryKey: ["audit-logs", offset],
-    queryFn: () =>
-      fetchAPI<AuditLog[]>(
-        `/admin/audit-logs?limit=${PAGE_SIZE}&offset=${offset}`
-      ),
-  });
+  const { data: logs = [], isLoading } = useAuditLogs(offset, PAGE_SIZE);
 
   const hasPrev = offset > 0;
   const hasNext = logs.length === PAGE_SIZE;
