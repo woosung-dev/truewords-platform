@@ -11,6 +11,18 @@ class RateLimiter:
     """IP 기반 슬라이딩 윈도우 Rate Limiter.
 
     단일 인스턴스 배포용. 멀티 인스턴스 시 Redis 기반으로 교체.
+
+    audit 2차 C-4 (2026-05-15): 현재 ``Dockerfile`` 가 uvicorn ``--workers=1`` 단일
+    워커로 운영. multi-worker / multi-instance 로 scale 시 본 in-memory 카운터는
+    worker 별 격리되어 rate limit 이 (worker 수) × max_requests 까지 허용. Cloud
+    Run scale-out 시점 다음 옵션 중 선택:
+
+    1. Redis cluster + INCR + EXPIRE 패턴 (권장 — strict)
+    2. Cloud Memorystore + token bucket
+    3. Cloud Armor rate limiting (infra 단)
+
+    본 클래스의 process-local 동작을 가정한 호출자 (`safety/middleware.check_rate_limit`)
+    는 그대로 유지. 교체 시 ``get_rate_limiter()`` factory 만 swap.
     """
 
     def __init__(

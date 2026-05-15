@@ -8,22 +8,32 @@ paths: ["backend/**/*", "admin/**/*"]
 
 ## 1. 종교 용어 처리
 
-### 시스템 프롬프트 내 핵심 용어 (100~200개)
+### 시스템 프롬프트 내 핵심 용어 (100~200개) — **[보류]**
 
-가장 중요한 핵심 용어는 시스템 프롬프트에 직접 삽입하여 LLM이 항상 참조하도록 한다.
+audit 2차 (2026-05-15) P1-14: `grep -rn CORE_TERMS backend/src` 결과 0건.
+`chat/prompt.py:39` 에 `[핵심 용어]` 섹션 헤더만 존재하고 100~200 개 용어
+변수 자체가 코드에 미구현 — phantom finding 확정. 도메인 전문가 자문 trigger
+시점까지 본 규칙은 **보류**. 그 시점에 도메인 전문가 + chat/prompt.py 함께
+정비. 현재 운영 상태에선 다음 단계 코드 변경 없음.
 
 ```python
-# chat/prompt.py
+# chat/prompt.py — 보류 상태 (audit 2차 P1-14 phantom 확정)
+# 현재 prompt.py 는 5모드 시스템 프롬프트 (BASE+MODE_MODULES+compose) 만 운영.
+# 핵심 용어 dict 변수는 도메인 전문가 자문 후 도입.
 CORE_TERMS = """
-다음은 핵심 종교 용어 정의입니다. 답변 시 이 정의를 기준으로 하세요:
-- 축복: 참부모님으로부터 받는 결혼 축복식...
-- 천일국: 하늘 부모님 아래 하나된 가정의 나라...
-- 효정: 하늘 부모님을 향한 자녀의 효심과 정성...
-(100~200개 핵심 용어)
+(보류 — 100~200 개 정의 미작성. 도메인 자문 trigger 대기)
 """
 ```
 
-### 동적 용어 검색 (dictionary_collection)
+### 동적 용어 검색 (dictionary_collection) — **[보류]**
+
+`project_terminology_blocked.md` 메모리 정책: dictionary_collection 데이터 미확보
+→ 동적 주입 구현 보류 (2026-04-04 결정). 현 운영 흐름은 단일 컬렉션 + source
+필터로 카테고리 구분 (`.claude/rules/rag-pipeline.md` §2). 다음 두 트리거 충족 시
+규칙 재발효:
+
+1. dictionary_collection 데이터 큐레이션 완료 (외부 자료)
+2. 종교 도메인 전문가 자문 + CORE_TERMS 핵심 용어 정의
 
 시스템 프롬프트에 포함되지 않은 용어는 질문에서 감지 시 `dictionary_collection`에서 동적 검색하여 컨텍스트에 주입한다.
 
