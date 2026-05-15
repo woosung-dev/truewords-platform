@@ -9,8 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import asyncio
 
-from src.admin.data_router import set_main_loop as set_ingest_main_loop
-from src.common.database import init_db
+from src.admin.ingest_worker import shutdown_worker as shutdown_ingest_worker
+from src.common.database import engine, init_db
+from src.common.event_loop import set_main_loop as set_ingest_main_loop  # audit 2차 B-3 — data_router re-export chain 정리
 from src.config import settings
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,19 @@ async def lifespan(app: FastAPI):
     app.state.cache_available = None
 
     yield
+
+    # audit 2차 R-3 + R-4 (2026-05-15): graceful shutdown.
+    # Cloud Run SIGTERM → lifespan 종료. R-3 in-flight ingest worker 회수 (sentinel
+    # + thread join), R-4 asyncpg connection pool 정리 (engine.dispose).
+    try:
+        shutdown_ingest_worker(timeout=30.0)
+    except Exception:
+        logger.exception("shutdown_ingest_worker 실패")
+    try:
+        await engine.dispose()
+        logger.info("AsyncEngine connection pool 정리 완료")
+    except Exception:
+        logger.exception("engine.dispose 실패")
 
 
 app = FastAPI(

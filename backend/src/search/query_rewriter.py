@@ -4,6 +4,7 @@ import asyncio
 import logging
 
 from src.common.gemini import MODEL_GENERATE, generate_text
+from src.common.log_helpers import query_fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -71,20 +72,32 @@ async def rewrite_query(query: str, *, enabled: bool = True) -> str:
         # 빈 응답이면 원본 반환
         stripped = rewritten.strip()
         if not stripped:
-            logger.warning("query_rewriter: LLM이 빈 응답 반환, 원본 쿼리 사용 | query=%r", query)
+            # audit 2차 S-5: 원문 대신 fingerprint (PII 차단).
+            logger.warning(
+                "query_rewriter: LLM이 빈 응답 반환, 원본 쿼리 사용 | query=%s",
+                query_fingerprint(query),
+            )
             return query
 
-        logger.info("query_rewriter: 재작성 성공 | original=%r rewritten=%r", query, stripped)
+        logger.info(
+            "query_rewriter: 재작성 성공 | original=%s rewritten=%s",
+            query_fingerprint(query),
+            query_fingerprint(stripped),
+        )
         return stripped
 
     except asyncio.TimeoutError:
         logger.warning(
-            "query_rewriter: 타임아웃 (%.1fs 초과), 원본 쿼리 사용 | query=%r",
+            "query_rewriter: 타임아웃 (%.1fs 초과), 원본 쿼리 사용 | query=%s",
             REWRITE_TIMEOUT_SECONDS,
-            query,
+            query_fingerprint(query),
         )
         return query
 
     except Exception as exc:
-        logger.warning("query_rewriter: LLM 호출 실패, 원본 쿼리 사용 | query=%r error=%s", query, exc)
+        logger.warning(
+            "query_rewriter: LLM 호출 실패, 원본 쿼리 사용 | query=%s error=%s",
+            query_fingerprint(query),
+            exc,
+        )
         return query

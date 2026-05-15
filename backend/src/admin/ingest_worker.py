@@ -14,34 +14,23 @@ AsyncEngine connection pool 은 단일 loop 바인딩이므로 워커 스레드�
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import queue
 import threading
 from pathlib import Path
 
+# audit 2차 B-3 (2026-05-15): main loop 참조는 ``common/event_loop`` 으로 이관.
+# 본 모듈은 back-compat re-export 만 유지. data_router 와 main.py 의 import chain
+# 호환성 보존 (set_ingest_main_loop alias 등).
+from src.common.event_loop import get_main_loop, set_main_loop  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 # 즉시 모드 업로드 워커 큐
-_INGEST_QUEUE: "queue.Queue[tuple]" = queue.Queue(maxsize=100)
+_INGEST_QUEUE: "queue.Queue[tuple | None]" = queue.Queue(maxsize=100)
 _WORKER_STARTED = threading.Event()
 _WORKER_LOCK = threading.Lock()
-
-# FastAPI 메인 event loop 참조 — 워커 스레드가 DB 호출을 메인 loop 에 위임한다.
-# AsyncEngine 의 connection pool 은 단일 loop 에 바인딩되므로 워커가 직접 새 loop
-# 로 접근하면 "attached to a different loop" 런타임 에러 발생. lifespan 에서 주입.
-_main_loop: "asyncio.AbstractEventLoop | None" = None
-
-
-def set_main_loop(loop: "asyncio.AbstractEventLoop") -> None:
-    """FastAPI lifespan 에서 호출. 메인 loop 을 워커가 쓸 수 있도록 저장."""
-    global _main_loop
-    _main_loop = loop
-
-
-def get_main_loop() -> "asyncio.AbstractEventLoop | None":
-    """ingest_service 의 process_file_standard 가 `run_coroutine_threadsafe` 에 사용."""
-    return _main_loop
+_worker_thread: "threading.Thread | None" = None
 
 
 def _ingest_worker() -> None:
@@ -54,6 +43,7 @@ def _ingest_worker() -> None:
         try:
             task = _INGEST_QUEUE.get()
             if task is None:
+                _INGEST_QUEUE.task_done()
                 break
             file_path, filename, source, on_duplicate = task
             try:
@@ -64,15 +54,57 @@ def _ingest_worker() -> None:
                 _INGEST_QUEUE.task_done()
         except Exception:
             logger.exception("[ingest-worker] 워커 루프 예외")
+    logger.info("[ingest-worker] 워커 종료")
 
 
 def _ensure_worker() -> None:
-    """워커 스레드가 없으면 시작 (멀티 요청에 안전)."""
+    """워커 스레드가 없으면 시작 (멀티 요청에 안전).
+
+    audit 2차 R-3 (2026-05-15, Codex E P1 8/10): 기존 ``daemon=True`` 는 Cloud Run
+    SIGTERM 시 in-flight 처리 강제 중단 → IngestionJob RUNNING/PENDING stuck. fix:
+    ``daemon=False`` + ``shutdown_worker()`` sentinel-based graceful shutdown.
+    """
+    global _worker_thread
     with _WORKER_LOCK:
         if not _WORKER_STARTED.is_set():
-            t = threading.Thread(target=_ingest_worker, name="ingest-worker", daemon=True)
-            t.start()
+            _worker_thread = threading.Thread(
+                target=_ingest_worker,
+                name="ingest-worker",
+                daemon=False,
+            )
+            _worker_thread.start()
             _WORKER_STARTED.set()
+
+
+def shutdown_worker(timeout: float = 30.0) -> None:
+    """audit 2차 R-3: lifespan shutdown 에서 호출 — sentinel + thread join.
+
+    Cloud Run SIGTERM → lifespan finalization 단계에서 본 함수가 호출되어 worker
+    queue 에 sentinel (None) 을 넣고 in-flight 처리 완료 + thread join 까지 대기.
+    ``timeout`` 안에 종료 안 되면 thread 강제 회수 X (daemon=False) — 그러나 main
+    process 가 곧 exit 되어 OS 가 회수 (Cloud Run grace period 10s 가정).
+
+    Args:
+        timeout: thread join 최대 대기 시간 (초). 기본 30 — 일반 ingest 1건 처리
+                 시간 ~10초 가정 + 여유.
+    """
+    global _worker_thread
+    with _WORKER_LOCK:
+        if not _WORKER_STARTED.is_set() or _worker_thread is None:
+            return
+        thread_ref = _worker_thread
+    # lock 풀고 sentinel + join — worker 가 다른 모듈에서 queue 호출 시 deadlock 방지.
+    try:
+        _INGEST_QUEUE.put_nowait(None)
+    except queue.Full:
+        # full 인 경우 in-flight + 100 wait. 첫 task 처리 완료 후 sentinel 받음.
+        logger.warning("[ingest-worker] shutdown sentinel queue full — fallback put (blocking)")
+        _INGEST_QUEUE.put(None)
+    thread_ref.join(timeout=timeout)
+    if thread_ref.is_alive():
+        logger.warning("[ingest-worker] shutdown timeout %.1fs — thread 회수 미완", timeout)
+    else:
+        logger.info("[ingest-worker] shutdown 완료")
 
 
 def enqueue_file_ingestion(

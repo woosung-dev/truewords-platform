@@ -1,5 +1,5 @@
 from pydantic import SecretStr, model_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -36,6 +36,13 @@ class Settings(BaseSettings):
     rate_limit_max_requests: int = 20
     rate_limit_window_seconds: int = 60
 
+    # Gemini hard timeout (audit 2차 S-4, 2026-05-15)
+    # 동시 요청 시 Gemini 무한 대기로 인한 Cloud Run concurrency 잠김 차단.
+    # generate_text: 단발 호출 — 일반 5~15초 latency, 30초 cutoff.
+    # generate_text_stream: 전체 stream 누적 — 일반 10~30초, 60초 cutoff.
+    gemini_generate_timeout_seconds: float = 30.0
+    gemini_stream_timeout_seconds: float = 60.0
+
     # Semantic Cache 설정
     cache_collection_name: str = "semantic_cache"
     cache_threshold: float = 0.88
@@ -51,7 +58,9 @@ class Settings(BaseSettings):
     embed_max_chars_per_batch: int | None = None
     embed_batch_sleep: float | None = None
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    # audit 2차 P-5 (2026-05-15, Agent B P1 5/10): dict literal → SettingsConfigDict
+    # pydantic_settings 권장 패턴. mypy/IDE 타입 힌트 작동 + future-proof.
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @model_validator(mode="after")
     def apply_gemini_tier_presets(self):

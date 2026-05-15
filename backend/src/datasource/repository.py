@@ -21,10 +21,14 @@ class DataSourceCategoryRepository:
         return list(result.scalars().all())
 
     async def list_active_ordered(self) -> list[DataSourceCategory]:
-        """활성 카테고리만 (sort_order ASC)."""
+        """활성 카테고리만 (sort_order ASC).
+
+        audit 2차 P-4 (2026-05-15): SQLAlchemy 2.0 권장 — ``col == True`` 대신
+        ``col.is_(True)``. mypy/lint warning 회피 + DB dialect 호환.
+        """
         result = await self.session.execute(
             select(DataSourceCategory)
-            .where(DataSourceCategory.is_active == True)
+            .where(DataSourceCategory.is_active.is_(True))
             .order_by(DataSourceCategory.sort_order)
         )
         return list(result.scalars().all())
@@ -34,8 +38,8 @@ class DataSourceCategoryRepository:
         result = await self.session.execute(
             select(DataSourceCategory)
             .where(
-                DataSourceCategory.is_active == True,
-                DataSourceCategory.is_searchable == True,
+                DataSourceCategory.is_active.is_(True),
+                DataSourceCategory.is_searchable.is_(True),
             )
             .order_by(DataSourceCategory.sort_order)
         )
@@ -61,9 +65,15 @@ class DataSourceCategoryRepository:
     async def update(
         self, category: DataSourceCategory, updates: dict
     ) -> DataSourceCategory:
+        """카테고리 부분 갱신.
+
+        audit 2차 P-3 (2026-05-15, Agent B P1 7/10): 기존 ``if value is not None``
+        필터는 호출자가 명시적 ``None`` 으로 reset 의도해도 무시 → semantics drift.
+        Service 가 ``model_dump(exclude_unset=True)`` 로 호출자가 보낸 필드만 추려
+        전달하면 충분. 본 fix 는 ``None`` 허용 — 명시 null 갱신 가능.
+        """
         for field, value in updates.items():
-            if value is not None:
-                setattr(category, field, value)
+            setattr(category, field, value)
         category.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await self.session.flush()
         return category

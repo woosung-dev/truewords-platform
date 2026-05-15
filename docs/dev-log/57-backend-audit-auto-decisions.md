@@ -25,6 +25,7 @@
 |---|------|------|------|
 | 1 | Sub-PR A · P0-9 SSE safety 재설계 | (a) chunk 단위 incremental sanitizer | streaming UX 유지 + safety 보장. plan 권장 |
 | 2 | Sub-PR D · P0-1 SENSITIVE_PATTERNS 채우기 | (b) PoC 기본 PII (전화/주민/카드/이메일/주소) 우선 | 도메인 전문가 합류 전 즉시 안전성 효과. 종교 패턴은 별도 trigger |
+| 2-정정 | (1차 머지 시점 implementation drift) | 실제 구현은 전화/주민/카드 3종 → 이메일/주소는 2차 audit S-6 에서 추가 | drift 정정 audit trail. 결정 로그 vs 실 구현 차이는 1차 머지 직후 codex round-1 P1 9/10 으로 발견. 본 audit (2026-05-15) 의 sub-PR `feat/backend-audit-2-s2-safety` (통합 브랜치 `dev/backend-audit-2`) 에서 정정. 상세 `docs/dev-log/59-second-audit-auto-decisions.md` §2 |
 | 3 | Sub-PR D · P0-2 input_validator 47 출처 | (b) 룰 §2.1 갱신 + 패턴 로드맵 | 47 출처 미확인 (blueprint copy 추정). 실측 23 인정 + 단계적 확장 명문화 |
 | 4 | Sub-PR D · P1-14 CORE_TERMS 확장 | (b) 30~50개 단기 확장 | 100~200 한 번에는 도메인 자문 필수. 단기 확장 후 별도 trigger |
 | 5 | Sub-PR E · 캐시 임계값 | (a) ADR 후 config `0.93` 정렬 | 룰 `0.93` 기준 정합. `0.88` (운영 hit-rate 우선) 결정 사유 추적 ADR 작성 |
