@@ -37,7 +37,6 @@ def test_search_mode_config_defaults():
     smc = SearchModeConfig(mode="cascading")
     assert smc.tiers == []
     assert smc.weighted_sources == []
-    assert smc.dictionary_enabled is False
 
 
 def test_generation_config_persona_optional():

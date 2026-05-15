@@ -106,7 +106,6 @@ class ChatbotService:
                 mode=mode_str,
                 tiers=tiers,
                 weighted_sources=weighted_sources,
-                dictionary_enabled=raw.get("dictionary_enabled", False),
             ),
             generation=GenerationConfig(
                 system_prompt=base_prompt,

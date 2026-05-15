@@ -44,14 +44,21 @@ class WeightedSourceConfig(BaseModel):
 
 
 class SearchModeConfig(BaseModel):
-    """검색 전략 선택 + 파라미터. R1 Strategy Registry 키 역할."""
+    """검색 전략 선택 + 파라미터. R1 Strategy Registry 키 역할.
+
+    audit P1-13 (2026-05-15): `dictionary_enabled` 필드 제거. `dictionary_collection`
+    동적 주입은 memory `project_terminology_blocked.md` 상 미구현 상태로 보류 중이고,
+    검색 코드 (search/collection_resolver 등) 어디서도 이 플래그를 사용하지 않아
+    dead config 였다. admin API schema 의 `SearchTiersConfig.dictionary_enabled` 는
+    호환성 유지 차원에서 schema 에 잔존 (DB JSONB 키는 build_runtime_config 에서
+    무시 — Pydantic V2 extra="ignore" default).
+    """
 
     model_config = ConfigDict(frozen=True)
 
     mode: Literal["cascading", "weighted"]
     tiers: list[TierConfig] = Field(default_factory=list)
     weighted_sources: list[WeightedSourceConfig] = Field(default_factory=list)
-    dictionary_enabled: bool = False
 
 
 class GenerationConfig(BaseModel):
