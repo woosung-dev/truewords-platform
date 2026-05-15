@@ -35,7 +35,7 @@ from src.datasource.schemas import (
 )
 from src.datasource.service import DataSourceCategoryService
 from src.pipeline.chunker import chunk_recursive
-from src.pipeline.dependencies import get_ingestion_service
+from src.pipeline.dependencies import get_ingestion_service, ingestion_service_session_scope
 from src.pipeline.extractor import extract_text
 from src.pipeline.ingestion_repository import IngestionJobRepository
 from src.pipeline.ingestion_service import IngestionJobService
@@ -748,17 +748,18 @@ async def _delete_volume_artifacts(
     순서: Qdrant 먼저(검색에 즉시 영향) → DB. Qdrant 실패 시 DB는 건드리지 않아
     Qdrant↔DB 불일치를 최소화한다. DB 단계 실패는 Qdrant cleanup 후이므로 다음
     재시도/재업로드로 자연 정리된다.
+
+    audit P0-5 fix (2026-05-15): DB 단계는 `ingestion_service_session_scope` factory
+    + `IngestionJobService.delete_by_volume_key` 로 이관. Router 가 session/repo
+    인스턴스화 + commit 직접 호출하던 룰 §3 위반 해소.
     """
     qdrant_result = await qdrant_service.delete_volumes([volume_key])
     chunks_deleted = qdrant_result.total_chunks_deleted
 
-    ingestion_deleted = False
-    async with async_session_factory() as session:
-        ing_repo = IngestionJobRepository(session)
-        ingestion_deleted = await ing_repo.delete_by_volume_key(
+    async with ingestion_service_session_scope() as ingestion_service:
+        ingestion_deleted = await ingestion_service.delete_by_volume_key(
             unicodedata.normalize("NFC", volume_key)
         )
-        await session.commit()
 
     return {
         "volume": volume_key,
