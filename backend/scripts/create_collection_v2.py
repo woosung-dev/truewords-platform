@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from src.qdrant_client import (
+from src.qdrant import (
     create_collection,
     create_payload_indexes,
     get_client,

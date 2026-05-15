@@ -6,7 +6,7 @@
 대상:
 - B-1: chat/dependencies + chat/service 가 pipeline.ingestion_repository 직접 import X
 - B-3: ingest_service 가 ingest_worker 의 get_main_loop import X (역의존 제거)
-- B-6: src/* 가 src.qdrant_client deprecated shim import X (src.qdrant 직접 사용)
+- B-6: src/qdrant_client.py shim 영구 제거 확인 (cleanup Sub-PR B)
 """
 
 from __future__ import annotations
@@ -59,21 +59,9 @@ def test_common_event_loop_module_exists() -> None:
     from src.common.event_loop import get_main_loop, set_main_loop  # noqa: F401
 
 
-def test_src_does_not_import_deprecated_qdrant_client_shim() -> None:
-    """audit 2차 B-6: src/* 가 src.qdrant_client deprecated shim 직접 import 0건.
-
-    shim 파일 (`src/qdrant_client.py`) 본문은 검사 제외. 신규 코드는 ``src.qdrant``
-    패키지 import 만 허용. backend/scripts + tests 는 shim 호환 허용 (운영 미영향).
-    """
-    bad_pattern = re.compile(r"^\s*from\s+src\.qdrant_client\s+import", re.MULTILINE)
-    offenders: list[str] = []
-    for py in _SRC.rglob("*.py"):
-        if py.name == "qdrant_client.py":
-            continue  # shim 자체는 검사 제외
-        text = py.read_text(encoding="utf-8")
-        if bad_pattern.search(text):
-            offenders.append(str(py.relative_to(_SRC)))
-    assert not offenders, (
-        f"audit 2차 B-6 — src/* 가 deprecated shim 사용: {offenders}. "
-        f"`from src.qdrant import get_raw_client` 으로 교체 필요."
+def test_deprecated_qdrant_client_shim_removed() -> None:
+    """cleanup Sub-PR B: src/qdrant_client.py shim 영구 제거 확인 (audit 2차 B-6 후속)."""
+    shim_path = _SRC / "qdrant_client.py"
+    assert not shim_path.exists(), (
+        "src/qdrant_client.py shim 은 제거되었다. 신규 코드는 `from src.qdrant import ...` 사용."
     )

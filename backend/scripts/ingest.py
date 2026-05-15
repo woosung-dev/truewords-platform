@@ -36,7 +36,7 @@ from src.pipeline.ingestion_repository import IngestionJobRepository
 from src.pipeline.ingestor import ingest_chunks
 from src.pipeline.metadata import classify_source, extract_metadata
 from src.pipeline.reporter import BatchReporter
-from src.qdrant_client import get_client
+from src.qdrant import get_client
 
 SUPPORTED_EXTENSIONS = {".txt", ".pdf", ".docx"}
 SKIPPED_EXTENSIONS = {".hwp", ".hwpx"}

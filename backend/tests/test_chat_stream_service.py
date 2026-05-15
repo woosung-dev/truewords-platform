@@ -57,7 +57,7 @@ class TestProcessChatStream:
     @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.service.generate_answer_stream")
-    @patch("src.qdrant_client.get_async_client")
+    @patch("src.qdrant.factory.get_async_client")
     async def test_event_sequence(self, mock_qdrant, mock_stream, mock_search, mock_embed) -> None:
         """chunk → sources → done 순서 확인."""
         service, _, _ = _make_chat_service()
@@ -92,7 +92,7 @@ class TestProcessChatStream:
     @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.service.generate_answer_stream")
-    @patch("src.qdrant_client.get_async_client")
+    @patch("src.qdrant.factory.get_async_client")
     async def test_chunk_events_contain_text(self, mock_qdrant, mock_stream, mock_search, mock_embed) -> None:
         service, _, _ = _make_chat_service()
         mock_search.return_value = _make_search_results(3)
@@ -121,7 +121,7 @@ class TestProcessChatStream:
     @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.service.generate_answer_stream")
-    @patch("src.qdrant_client.get_async_client")
+    @patch("src.qdrant.factory.get_async_client")
     async def test_done_event_contains_disclaimer(self, mock_qdrant, mock_stream, mock_search, mock_embed) -> None:
         service, _, _ = _make_chat_service()
         mock_search.return_value = _make_search_results(3)
@@ -145,7 +145,7 @@ class TestProcessChatStream:
     @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.service.generate_answer_stream")
-    @patch("src.qdrant_client.get_async_client")
+    @patch("src.qdrant.factory.get_async_client")
     async def test_db_recording_after_stream(self, mock_qdrant, mock_stream, mock_search, mock_embed) -> None:
         """DB commit은 스트림 완료 후 호출."""
         service, chat_repo, _ = _make_chat_service()
@@ -179,7 +179,7 @@ class TestProcessChatStream:
     @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.service.generate_answer_stream")
-    @patch("src.qdrant_client.get_async_client")
+    @patch("src.qdrant.factory.get_async_client")
     async def test_sources_event_has_session_and_message_ids(
         self, mock_qdrant, mock_stream, mock_search, mock_embed,
     ) -> None:
@@ -208,7 +208,7 @@ class TestProcessChatStream:
     @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.service.generate_answer_stream")
-    @patch("src.qdrant_client.get_async_client")
+    @patch("src.qdrant.factory.get_async_client")
     async def test_sources_event_includes_closing_and_followups_keys(
         self, mock_qdrant, mock_stream, mock_search, mock_embed,
     ) -> None:
@@ -238,7 +238,7 @@ class TestProcessChatStream:
     @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.service.generate_answer_stream")
-    @patch("src.qdrant_client.get_async_client")
+    @patch("src.qdrant.factory.get_async_client")
     async def test_sources_event_includes_chunk_id(
         self, mock_qdrant, mock_stream, mock_search, mock_embed,
     ) -> None:

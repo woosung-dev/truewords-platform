@@ -25,7 +25,7 @@ from src.common.database import async_session_factory
 from src.config import settings
 from src.pipeline.ingestion_models import IngestionJob, IngestionStatus
 from src.pipeline.ingestion_repository import IngestionJobRepository
-from src.qdrant_client import get_client
+from src.qdrant import get_client
 
 
 def aggregate_qdrant_volumes() -> dict[str, dict]:

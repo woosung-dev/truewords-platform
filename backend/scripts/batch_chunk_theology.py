@@ -21,7 +21,6 @@ import unicodedata
 from pathlib import Path
 
 from src.pipeline.chunker import (
-    chunk_hierarchical,
     chunk_paragraph,
     chunk_recursive,
     chunk_text,
@@ -54,9 +53,6 @@ def get_chunker(method: str):
         return chunk_paragraph
     if method == "recursive":
         return chunk_recursive
-    if method == "hierarchical":
-        # parent=1500 / child=300 (Phase 4 PoC default)
-        return chunk_hierarchical
     raise ValueError(f"Unknown method: {method}")
 
 
@@ -64,7 +60,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--matched-file", required=True, type=Path)
     parser.add_argument("--method", required=True,
-                        choices=["sentence", "paragraph", "recursive", "hierarchical"])
+                        choices=["sentence", "paragraph", "recursive"])
     parser.add_argument("--collection", required=True,
                         help="대상 Qdrant 컬렉션 (사전 생성 필요)")
     parser.add_argument("--source-tag", default="A",

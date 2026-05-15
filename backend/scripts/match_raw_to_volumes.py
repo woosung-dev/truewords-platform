@@ -27,7 +27,7 @@ import sys
 import unicodedata
 from pathlib import Path
 
-from src.qdrant_client import get_client
+from src.qdrant import get_client
 
 
 SUPPORTED_EXT = {".txt", ".pdf", ".docx"}

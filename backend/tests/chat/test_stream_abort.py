@@ -94,7 +94,7 @@ class TestStreamAbortIntegration:
                 return_value=([], "none"),
             ),
             patch(
-                "src.qdrant_client.get_async_client",
+                "src.qdrant.factory.get_async_client",
                 return_value=MagicMock(),
             ),
             caplog.at_level(logging.WARNING, logger="src.chat.pipeline.state"),

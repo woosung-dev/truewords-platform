@@ -174,7 +174,7 @@ def main():
 
     # ingest 모드 — 지연 import (test 시 무관 모듈 로드 회피)
     from src.pipeline.ingestor import ingest_chunks
-    from src.qdrant_client import get_client
+    from src.qdrant import get_client
 
     client = get_client()
     result = ingest_chunks(
