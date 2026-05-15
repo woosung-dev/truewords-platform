@@ -34,7 +34,8 @@ from src.chat.reactions_schemas import (
 from src.chat.reactions_service import MessageReactionService
 from src.config import settings
 from src.safety.exceptions import RateLimitExceededError
-from src.safety.rate_limiter import RateLimiter, get_rate_limiter
+from src.safety.middleware import extract_client_ip as _client_ip
+from src.safety.rate_limiter import RateLimiter
 
 reactions_router = APIRouter(
     prefix="/api/chat/messages",
@@ -75,14 +76,9 @@ def _get_or_issue_session_id(request: Request, response: Response) -> str:
     return new_id
 
 
-def _client_ip(request: Request) -> str:
-    """B2 — rate limit 키. proxy 헤더 우선, 없으면 socket peer."""
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    if request.client is not None:
-        return request.client.host
-    return "unknown"
+# audit 2차 C-3 (2026-05-15): 자체 _client_ip helper 제거. safety/middleware
+# .extract_client_ip 단일 진입점으로 통일. XFF 파싱 로직이 두 곳에 흩어져 있으면
+# 다음 보안 fix 때 한 곳만 갱신될 위험.
 
 
 @reactions_router.post(
