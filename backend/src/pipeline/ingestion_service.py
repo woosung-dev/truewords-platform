@@ -24,6 +24,19 @@ class IngestionJobService:
             await self.repo.commit()
         return job
 
+    async def delete_by_volume_key(self, volume_key: str) -> bool:
+        """volume(파일) 단위로 IngestionJob row 영구 삭제 + commit.
+
+        audit 2차 C-1 (2026-05-15): `_delete_volume_artifacts` 가 호출하는 service
+        진입점. 기존엔 repo 위임 메서드가 service 에 누락되어 runtime AttributeError.
+        호출처 (admin/data_router) 가 NFC 정규화 후 전달한다.
+        Returns: True 면 row 삭제, False 면 row 없어서 skip.
+        """
+        deleted = await self.repo.delete_by_volume_key(volume_key)
+        if deleted:
+            await self.repo.commit()
+        return deleted
+
     async def list_jobs(self) -> list[IngestionJob]:
         """admin 화면용 IngestionJob 전체 목록.
 

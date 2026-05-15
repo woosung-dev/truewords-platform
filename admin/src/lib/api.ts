@@ -63,7 +63,7 @@ export async function throwApiError(res: Response): Promise<never> {
 export async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...((options?.method && ["POST", "PUT", "DELETE"].includes(options.method))
+    ...((options?.method && ["POST", "PUT", "PATCH", "DELETE"].includes(options.method))
       ? { "X-Requested-With": "XMLHttpRequest" }
       : {}),
   };

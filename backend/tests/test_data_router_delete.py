@@ -17,6 +17,7 @@ from src.admin.data_router import (
 from src.datasource.qdrant_service import DataSourceQdrantService
 from src.datasource.schemas import VolumeDeleteRequest, VolumeDeleteResponse
 from src.pipeline.ingestion_repository import IngestionJobRepository
+from src.pipeline.ingestion_service import IngestionJobService
 
 
 # --- 스키마 ---
@@ -60,6 +61,20 @@ def test_qdrant_delete_volumes_handles_nfc_and_nfd():
 
 def test_ingestion_repository_has_delete_by_volume_key():
     assert hasattr(IngestionJobRepository, "delete_by_volume_key")
+
+
+def test_ingestion_service_has_delete_by_volume_key():
+    """audit 2차 C-1 (2026-05-15): Codex 가 잡은 service 누락 회귀 잠금.
+
+    `_delete_volume_artifacts` 가 `IngestionJobService.delete_by_volume_key()`
+    를 호출하지만 메서드가 실제로 service 본문에 없어서 runtime AttributeError
+    가 발생하던 결함. 테스트가 repo 만 검사해서 잡지 못했다.
+    """
+    assert hasattr(IngestionJobService, "delete_by_volume_key")
+    sig = inspect.signature(IngestionJobService.delete_by_volume_key)
+    assert "volume_key" in sig.parameters
+    # async coroutine 보장
+    assert inspect.iscoroutinefunction(IngestionJobService.delete_by_volume_key)
 
 
 # test_batch_repository_has_delete_by_volume_key 제거됨 — Batch API 기능 폐기
