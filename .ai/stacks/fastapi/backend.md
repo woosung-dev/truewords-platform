@@ -4,6 +4,9 @@ paths: ["backend/**/*"]
 
 # Backend Rules (FastAPI + SQLModel)
 
+> audit 2차 (2026-05-15) Sub-PR E 후속 보완. SENSITIVE_PATTERNS 로드맵 + cache
+> schema propagation rule 명문화. 상세 §11.
+
 ---
 
 ## 1. Tech Stack
@@ -525,3 +528,58 @@ backend/src/
 이때 sub-feature 마다 매칭되는 `*_service.py`, `*_repository.py`, `*_schemas.py`
 도 분리한다. dependencies 는 `admin/dependencies.py` / `chat/dependencies.py`
 1곳에 모아둔다.
+
+---
+
+## 11. 보안 / Safety 운영 규칙 (audit 2차 S6 신설)
+
+### 11.1 SENSITIVE_PATTERNS 로드맵
+
+`backend/src/safety/output_filter.py:SENSITIVE_PATTERNS` 는 응답 PII 차단의 단일
+정의. audit 2차 S-6 (2026-05-15) 시점 5종 + 도메인 인명 보류:
+
+| 영역 | 패턴 | 상태 | 정합화 단계 |
+|------|------|------|-------------|
+| 한국 주민등록번호 | `\d{6}-[1-4]\d{6}` | ✅ PoC | 1차 audit P0-1 |
+| 한국 휴대전화 | `01[016789][-\s]?\d{3,4}[-\s]?\d{4}` | ✅ PoC | 1차 audit P0-1 |
+| 카드번호 | `\d{4}[-\s]\d{4}[-\s]\d{4}[-\s]\d{4}` | ✅ PoC | 1차 audit P0-1 |
+| 이메일 | `[\w.+-]+@[\w-]+\.[\w.-]*[a-z]{2,}` | ✅ PoC | **2차 audit S-6** |
+| 한국 주소 | 시/도 + 시/군/구 + 동/읍/면 동시 | ✅ PoC (보수적) | **2차 audit S-6** |
+| 종교 도메인 인명/사건 | `(보류)` | ⏳ trigger | 도메인 전문가 자문 |
+| 신용/금융 식별자 (계좌·SSN) | `(보류)` | ⏳ trigger | PoC → 실 운영 전환 시점 |
+
+### 11.2 추가 시 결정 점검
+
+신규 패턴 추가 시 다음 3 가지 결정 명시:
+
+1. **false positive 위험** — 운영 본문에서 등장 빈도 측정. 0.1% 초과면 보수적
+   변형 또는 컨텍스트 조건 (이메일·주소 case 와 동일 분리).
+2. **결정 로그 갱신** — `docs/dev-log/<num>-second-audit-auto-decisions.md` 또는
+   동급 audit log row 에 추가. drift (결정 로그 vs 실 구현) 방지.
+3. **회귀 테스트** — `tests/test_output_filter.py::TestFilterSensitiveNames` 에 차단
+   case + false positive 보존 case 둘 다 추가.
+
+### 11.3 Cache schema propagation rule
+
+`chat/schemas.Source` 응답 schema 와 `PersistStage.execute` 의
+`sources_for_cache` dict 는 동기화되어야 한다 — neglection 시 cache hit 응답이
+신규 필드 누락 (PR #71 P0-B chunk_id 누락 사례).
+
+- Source 에 신규 필드 추가 시 두 선택지 중 하나 명시:
+  - cache propagation: `sources_for_cache` dict 에 동일 키 추가
+  - 화이트리스트 등록: `tests/test_cache_schema_propagation.CACHE_EXCLUDED_FIELDS`
+    에 추가 + cache 분리 의도를 docstring 코멘트로 보존
+- 회귀 guard test (`test_cache_schema_propagation.py`) 는 두 화이트리스트 정합성
+  자동 검증. drift 시 CI fail.
+
+### 11.4 Rate limiter / 멀티 worker 정책
+
+`safety/rate_limiter.RateLimiter` 는 in-memory 카운터 → 단일 워커 가정. Cloud Run
+scale-out (또는 uvicorn `--workers>1`) 시점 다음 옵션:
+
+1. **Redis cluster** (권장) — INCR + EXPIRE 패턴, strict.
+2. **Cloud Memorystore** — token bucket / leaky bucket.
+3. **Cloud Armor** — infra 단 rate limiting (HTTPS Load Balancer).
+
+본 클래스의 process-local 가정에 의존하는 호출자 (`safety/middleware
+.check_rate_limit`) 는 그대로 유지. 교체 시 `get_rate_limiter()` factory 만 swap.
