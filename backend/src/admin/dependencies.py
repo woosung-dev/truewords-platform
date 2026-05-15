@@ -5,6 +5,8 @@ import uuid
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.admin.analytics_repository import AnalyticsRepository
+from src.admin.analytics_service import AnalyticsService
 from src.admin.auth import decode_access_token
 from src.admin.repository import AdminRepository
 from src.admin.service import AdminService
@@ -23,6 +25,18 @@ async def get_admin_service(
     repo: AdminRepository = Depends(get_admin_repository),
 ) -> AdminService:
     return AdminService(repo)
+
+
+async def get_analytics_repository(
+    session: AsyncSession = Depends(get_async_session),
+) -> AnalyticsRepository:
+    return AnalyticsRepository(session)
+
+
+async def get_analytics_service(
+    repo: AnalyticsRepository = Depends(get_analytics_repository),
+) -> AnalyticsService:
+    return AnalyticsService(repo)
 
 
 async def get_current_admin(request: Request) -> dict:
