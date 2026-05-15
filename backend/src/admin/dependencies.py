@@ -57,9 +57,13 @@ async def get_current_admin(request: Request) -> dict:
 
 
 async def verify_csrf(request: Request) -> None:
-    """상태 변경 요청(POST/PUT/DELETE)에 대한 CSRF 방어.
-    SameSite=Lax + 커스텀 헤더 검증."""
-    if request.method in ("POST", "PUT", "DELETE"):
+    """상태 변경 요청(POST/PUT/PATCH/DELETE)에 대한 CSRF 방어.
+    SameSite=Lax + 커스텀 헤더 검증.
+
+    audit 2차 C-2 (2026-05-15): PATCH 누락 보강. data_router 의
+    /display-name PATCH 등 신규 도메인 변경 메서드가 통과하던 결함 fix.
+    """
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
         if request.headers.get("X-Requested-With") != "XMLHttpRequest":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

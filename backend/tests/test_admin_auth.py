@@ -148,3 +148,42 @@ async def test_verify_csrf_delete_with_header_passes():
         headers={"X-Requested-With": "XMLHttpRequest"},
     )
     await verify_csrf(request)
+
+
+@pytest.mark.asyncio
+async def test_verify_csrf_patch_without_header_fails():
+    """audit 2차 C-2 (2026-05-15): PATCH 요청도 CSRF 검증 대상.
+
+    기존 verify_csrf 는 POST/PUT/DELETE 만 검사해서 data_router 의
+    /display-name PATCH 가 무방비. 본 회귀 잠금.
+    """
+    from fastapi import HTTPException
+
+    request = _make_request(method="PATCH", headers={})
+    with pytest.raises(HTTPException) as exc_info:
+        await verify_csrf(request)
+    assert exc_info.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_verify_csrf_patch_with_header_passes():
+    """PATCH + X-Requested-With 헤더 있으면 통과."""
+    request = _make_request(
+        method="PATCH",
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    )
+    await verify_csrf(request)
+
+
+def test_data_router_applies_verify_csrf_at_router_level():
+    """data_router 의 destructive endpoint 8건이 router-level verify_csrf 의존.
+
+    audit 2차 C-2 잠금 — APIRouter dependencies 에서 verify_csrf 가 빠지면 본 test 실패.
+    """
+    from src.admin.data_router import router as data_router
+
+    dep_callables = [d.dependency for d in data_router.dependencies]
+    assert verify_csrf in dep_callables, (
+        "data_router APIRouter dependencies 에 verify_csrf 누락 — destructive POST/"
+        "PUT/PATCH/DELETE 8 routes 가 CSRF 무방비"
+    )

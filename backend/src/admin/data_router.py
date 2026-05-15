@@ -17,7 +17,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPExcepti
 
 logger = logging.getLogger(__name__)
 
-from src.admin.dependencies import get_current_admin
+from src.admin.dependencies import get_current_admin, verify_csrf
 from src.admin.ingest_service import (
     _compute_content_hash,
     _get_existing_snapshot,
@@ -54,7 +54,13 @@ from src.qdrant_client import get_raw_client
 # 재업로드 정책 (ADR-30) — merge / replace / skip
 _VALID_ON_DUPLICATE = ("merge", "replace", "skip")
 
-router = APIRouter(prefix="/admin/data-sources", tags=["data-sources"])
+# audit 2차 C-2 (2026-05-15): destructive POST/PUT/PATCH/DELETE 8 routes 에
+# verify_csrf 일괄 적용. GET endpoint 에서는 verify_csrf 내부 분기로 noop.
+router = APIRouter(
+    prefix="/admin/data-sources",
+    tags=["data-sources"],
+    dependencies=[Depends(verify_csrf)],
+)
 
 
 __all__ = [
