@@ -14,11 +14,15 @@ AsyncEngine connection pool 은 단일 loop 바인딩이므로 워커 스레드�
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import queue
 import threading
 from pathlib import Path
+
+# audit 2차 B-3 (2026-05-15): main loop 참조는 ``common/event_loop`` 으로 이관.
+# 본 모듈은 back-compat re-export 만 유지. data_router 와 main.py 의 import chain
+# 호환성 보존 (set_ingest_main_loop alias 등).
+from src.common.event_loop import get_main_loop, set_main_loop  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -27,22 +31,6 @@ _INGEST_QUEUE: "queue.Queue[tuple | None]" = queue.Queue(maxsize=100)
 _WORKER_STARTED = threading.Event()
 _WORKER_LOCK = threading.Lock()
 _worker_thread: "threading.Thread | None" = None
-
-# FastAPI 메인 event loop 참조 — 워커 스레드가 DB 호출을 메인 loop 에 위임한다.
-# AsyncEngine 의 connection pool 은 단일 loop 에 바인딩되므로 워커가 직접 새 loop
-# 로 접근하면 "attached to a different loop" 런타임 에러 발생. lifespan 에서 주입.
-_main_loop: "asyncio.AbstractEventLoop | None" = None
-
-
-def set_main_loop(loop: "asyncio.AbstractEventLoop") -> None:
-    """FastAPI lifespan 에서 호출. 메인 loop 을 워커가 쓸 수 있도록 저장."""
-    global _main_loop
-    _main_loop = loop
-
-
-def get_main_loop() -> "asyncio.AbstractEventLoop | None":
-    """ingest_service 의 process_file_standard 가 `run_coroutine_threadsafe` 에 사용."""
-    return _main_loop
 
 
 def _ingest_worker() -> None:

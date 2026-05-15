@@ -7,14 +7,34 @@ chat 응답이 필요로 하는 것은 (a) corpus 의 최신 갱신 시각 (cach
 트리거) 와 (b) volume_key → display_name lookup 두 가지 뿐. 둘만 추출한 facade
 가 chat 의 cross-domain 의존을 thin 으로 좁힌다.
 
-본 모듈 자체는 `IngestionJobRepository` 와 `derive_volume` 을 의존하지만, 그
-지식은 facade 안에 격리된다 — chat 도메인은 이 함수 두 개만 import 한다.
+audit 2차 B-1 (2026-05-15, Agent A/C P1 8/10): chat/dependencies + chat/service
+가 여전히 `pipeline.ingestion_repository.IngestionJobRepository` 를 직접 import.
+facade 가 repo type + factory 를 re-export 함으로써 chat 도메인은 `common/
+ingestion_facade` 만 보면 된다 — pipeline 내부 표현 의존 좁힘.
 """
 
 from __future__ import annotations
 
+from sqlmodel.ext.asyncio.session import AsyncSession
+
 from src.pipeline.ingestion_repository import IngestionJobRepository
 from src.pipeline.metadata import derive_volume
+
+__all__ = [
+    "IngestionJobRepository",
+    "build_display_name_lookup",
+    "get_corpus_updated_at",
+    "make_ingestion_repo",
+]
+
+
+def make_ingestion_repo(session: AsyncSession) -> IngestionJobRepository:
+    """Background / Depends 양쪽에서 사용할 IngestionJobRepository factory.
+
+    audit 2차 B-1: chat 도메인이 pipeline 내부 클래스를 직접 인스턴스화하지
+    않도록 facade 가 instantiation 책임도 흡수. session 만 받으면 됨.
+    """
+    return IngestionJobRepository(session)
 
 
 async def get_corpus_updated_at(repo: IngestionJobRepository) -> float:

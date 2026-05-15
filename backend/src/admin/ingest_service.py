@@ -18,8 +18,8 @@ import logging
 import unicodedata
 from pathlib import Path
 
-from src.admin.ingest_worker import get_main_loop
 from src.common.database import async_session_factory
+from src.common.event_loop import get_main_loop  # audit 2차 B-3 — worker 역의존 제거
 from src.config import settings
 from src.datasource.dependencies import get_qdrant_service
 from src.pipeline.chunker import chunk_recursive
