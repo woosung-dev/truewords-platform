@@ -126,9 +126,14 @@ class UploadResponse(BaseModel):
 
     predicted_outcome은 처리 *예상* 동작을 사전에 노출해 일괄 업로드 결과
     토스트에 사용된다. 실제 결과(특히 skip→merge fallback)는 polling으로 확인.
+
+    volume_key 는 NFC 정규화된 식별자로, 클라이언트가 `/admin/data-sources/jobs`
+    polling 시 동일 파일을 매칭하는 데 사용한다 (룰 §8 — 장기 작업의 task id).
+    job_id (IngestionJob.id) 노출은 worker 분리 이후 Sub-PR A 에서 추가 예정.
     """
     message: str
     filename: str
+    volume_key: str = Field(..., description="NFC 정규화된 volume 식별자 (polling 키)")
     mode: str = Field(..., description="standard (Batch API 제거됨, 항상 standard)")
     on_duplicate: str = Field(..., description="merge | replace | skip")
     predicted_outcome: str = Field(

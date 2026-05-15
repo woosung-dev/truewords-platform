@@ -43,3 +43,16 @@ class AuditLogResponse(BaseModel):
     target_id: uuid.UUID
     changes: dict
     created_at: datetime
+
+
+class MessageResponse(BaseModel):
+    """단순 메시지 응답 (로그인/로그아웃 등)."""
+    message: str
+
+
+class SettingsConfigResponse(BaseModel):
+    """관리자 UI 가 표시할 시스템 설정. Qdrant URL 은 host 만 노출 (api-key 등 민감 정보 제외)."""
+    gemini_tier: str
+    environment: str
+    collection_name: str
+    qdrant_host: str

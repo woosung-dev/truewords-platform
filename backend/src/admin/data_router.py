@@ -513,6 +513,7 @@ async def upload_document(
     return UploadResponse(
         message="파일 업로드 및 처리 예약 완료",
         filename=safe_filename,
+        volume_key=volume_key,
         mode=mode,
         on_duplicate=on_duplicate,
         predicted_outcome=predicted,
