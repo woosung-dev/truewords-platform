@@ -21,6 +21,7 @@ from typing import Any, Literal
 import httpx
 
 from src.common.gemini import generate_text, MODEL_GENERATE
+from src.common.log_helpers import query_fingerprint
 from src.config import settings
 from src.pipeline.embedder import embed_sparse_async
 from src.qdrant import RawQdrantClient
@@ -121,7 +122,8 @@ async def fallback_search(
         return original_results, "none"
 
     # 1단계: source 필터 제거 후 전체 재검색
-    logger.info("Fallback Step 1: relaxed search for query: '%s'", query)
+    # audit 2차 S-5: 원문 query 대신 fingerprint (PII 차단).
+    logger.info("Fallback Step 1: relaxed search for query: %s", query_fingerprint(query))
 
     if sparse_embedding is not None:
         sparse_indices, sparse_values = sparse_embedding
@@ -155,7 +157,8 @@ async def fallback_search(
         return relaxed_results, "relaxed"
 
     # 2단계: LLM 질문 제안
-    logger.info("Fallback Step 2: generating suggestions for query: '%s'", query)
+    # audit 2차 S-5: fingerprint (PII 차단).
+    logger.info("Fallback Step 2: generating suggestions for query: %s", query_fingerprint(query))
     await _generate_suggestions(query)
     return [], "suggestions"
 
