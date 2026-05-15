@@ -32,9 +32,11 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-async def get_background_session() -> AsyncSession:
-    """BackgroundTasks용 세션. 함수 내에서 직접 생성/종료."""
-    return async_session_factory()
+# audit 2차 R-5 (2026-05-15, opus 메타 P1 신규 finding): `get_background_session()`
+# dead code 제거. backend/src + backend/tests + backend/scripts grep 호출처 0건 —
+# `ingestion_service_session_scope` (pipeline/dependencies.py) factory 가 background
+# 컨텍스트의 유일한 진입점으로 정착. 함수 보존 시 raw session 패턴이 ad-hoc 사용으로
+# 부활할 위험 (leak / 미닫힘) — 명시적 제거.
 
 
 async def init_db() -> None:

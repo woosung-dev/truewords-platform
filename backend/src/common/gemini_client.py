@@ -37,15 +37,39 @@ def _build_restricted_http_options() -> types.HttpOptions:
     )
 
 
+def _build_chat_http_options() -> types.HttpOptions:
+    """chat 생성용: 429 포함 + 408/5xx 명시 재시도.
+
+    audit 2차 R-1 (2026-05-15, Codex E P1 9/10): 기존 ``retry_429=True`` 분기가
+    ``http_options=None`` 로 SDK 기본 동작에 전적으로 의존 → 429/408/5xx/timeout
+    보장 범위가 코드/테스트에서 검증되지 않음. 명시적으로 retry status code 를
+    선언해 SDK upgrade 시 silent regression 방지.
+    """
+    return types.HttpOptions(
+        retry_options=types.HttpRetryOptions(
+            attempts=3,
+            initial_delay=1.0,
+            max_delay=10.0,
+            # chat 은 429 포함 — rate limit 외부 제어 없음. 408/5xx 모든 transient
+            # 명시. 504 (gateway timeout) 까지 재시도해 Cloud Run / GFE 일시
+            # 흔들림 흡수.
+            http_status_codes=[408, 429, 500, 502, 503, 504],
+        )
+    )
+
+
 @lru_cache(maxsize=2)
 def get_client(*, retry_429: bool = True) -> genai.Client:
     """Gemini 클라이언트 싱글턴 팩토리.
 
     per-process 캐시 (process-wide, stateless, thread-safe). retry_429 값별로 1 인스턴스씩.
+
+    audit 2차 R-1: True 분기도 명시적 ``_build_chat_http_options()`` 사용. 기존엔
+    ``None`` → SDK 기본 의존. 본 fix 후엔 retry status code 가 코드 truth 가 됨.
     """
     http_options: Optional[types.HttpOptions]
     if retry_429:
-        http_options = None
+        http_options = _build_chat_http_options()
     else:
         http_options = _build_restricted_http_options()
 

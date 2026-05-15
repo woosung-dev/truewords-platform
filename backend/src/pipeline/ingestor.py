@@ -105,9 +105,13 @@ def _build_text_for_embedding(chunk: Chunk) -> str:
 
 
 def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[float]]:
-    """배치 dense 임베딩 + 429 지수 백오프 (90→180초, 최대 3회).
+    """배치 dense 임베딩 + 429 지수 백오프 (90→180→360초, 최대 3회).
 
     SDK 내부 retry에서 429를 제외했으므로 여기서 직접 제어한다.
+
+    audit 2차 R-2 (2026-05-15, Codex E P1 10/10): 기존 ``max_retries=2`` 가 docstring
+    + 로그의 "3회" 와 drift. 실제 시도는 2회 (0,1), 마지막은 fail 처리. fix: 3회 시도
+    (0,1,2) 로 정정해 docstring 과 일치 + 429 회복성 강화. wait pattern 90→180→360.
 
     Args:
         texts: 임베딩할 텍스트 리스트.
@@ -120,7 +124,7 @@ def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[floa
         google.genai.errors.ClientError: 429 외 API 에러 또는 3회 재시도 소진.
     """
     base_wait = getattr(settings, "retry_base_wait", 90.0)
-    max_retries = 2
+    max_retries = 3
 
     for attempt in range(max_retries):
         try:
@@ -142,13 +146,14 @@ def _embed_batch_with_retry(texts: list[str], title: str = "") -> list[list[floa
                 time.sleep(wait)
             else:
                 logger.error(
-                    "Rate limit 3회 연속 실패 — 파이프라인 중단.\n"
+                    "Rate limit %d회 연속 실패 — 파이프라인 중단.\n"
                     "  API 원본 에러: %s\n"
                     "  → 에러 메시지를 확인하여 RPM/RPD/TPM 중 어디에 걸렸는지 판단하세요.",
+                    max_retries,
                     api_message,
                 )
                 raise
-    raise RuntimeError("배치 임베딩 실패: 3회 재시도 소진")
+    raise RuntimeError(f"배치 임베딩 실패: {max_retries}회 재시도 소진")
 
 
 def ingest_chunks(
