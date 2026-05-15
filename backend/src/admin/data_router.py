@@ -145,8 +145,12 @@ async def upload_document(
             file.file.seek(0)
             shutil.copyfileobj(file.file, tmp_file)
             tmp_path = Path(tmp_file.name)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"파일 저장 실패: {str(e)}")
+    except Exception:
+        # audit 2차 P-2 (2026-05-15, Agent B P1 6/10): 기존엔 raw exception 메시지를
+        # 사용자에 그대로 노출 → 민감 경로/스택 누출 가능. logger.exception 으로 서버
+        # 측 추적 보존 + generic 메시지로 응답.
+        logger.exception("[upload_document] 파일 저장 실패")
+        raise HTTPException(status_code=500, detail="파일 저장에 실패했습니다.")
 
     file.file.close()
 
