@@ -16,7 +16,7 @@ from uuid import UUID
 
 from src.admin.analytics_repository import AnalyticsRepository
 from src.config import settings
-from src.qdrant_client import get_raw_client
+from src.qdrant import get_raw_client  # audit 2차 B-6 — src.qdrant_client deprecated shim 이관
 
 logger = logging.getLogger(__name__)
 

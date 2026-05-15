@@ -8,7 +8,7 @@ from src.config import settings
 from src.datasource.qdrant_service import DataSourceQdrantService
 from src.datasource.repository import DataSourceCategoryRepository
 from src.datasource.service import DataSourceCategoryService
-from src.qdrant_client import get_raw_client
+from src.qdrant import get_raw_client  # audit 2차 B-6 — src.qdrant_client deprecated shim 이관
 
 
 async def get_datasource_repository(

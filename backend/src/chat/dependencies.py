@@ -15,7 +15,7 @@ from src.chat.service import ChatService
 from src.chatbot.dependencies import get_chatbot_service
 from src.chatbot.service import ChatbotService
 from src.common.database import get_async_session
-from src.pipeline.ingestion_repository import IngestionJobRepository
+from src.common.ingestion_facade import IngestionJobRepository, make_ingestion_repo  # audit 2차 B-1 — pipeline.ingestion_repository 직접 import 제거
 logger = logging.getLogger(__name__)
 
 # Lazy init 동시성 가드: 첫 요청 다발 시 ensure를 1회만 실행.
@@ -46,8 +46,9 @@ async def get_ingestion_repository(
     """Cache invalidation 의 corpus_updated_at trigger 조회용.
 
     cross-domain 조회 전용 — chat 측은 max(completed_at) 만 사용한다.
+    audit 2차 B-1: facade factory 경유 — pipeline 인스턴스화 책임 격리.
     """
-    return IngestionJobRepository(session)
+    return make_ingestion_repo(session)
 
 
 async def get_cache_service(request: Request) -> SemanticCacheService | None:

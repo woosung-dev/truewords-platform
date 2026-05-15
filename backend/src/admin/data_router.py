@@ -49,7 +49,7 @@ from src.datasource.schemas import (
 from src.datasource.service import DataSourceCategoryService
 from src.pipeline.dependencies import get_ingestion_service, ingestion_service_session_scope
 from src.pipeline.ingestion_service import IngestionJobService
-from src.qdrant_client import get_raw_client
+from src.qdrant import get_raw_client  # audit 2차 B-6 — src.qdrant_client deprecated shim 이관
 
 # 재업로드 정책 (ADR-30) — merge / replace / skip
 _VALID_ON_DUPLICATE = ("merge", "replace", "skip")

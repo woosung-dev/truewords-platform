@@ -9,9 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import asyncio
 
-from src.admin.data_router import set_main_loop as set_ingest_main_loop
 from src.admin.ingest_worker import shutdown_worker as shutdown_ingest_worker
 from src.common.database import engine, init_db
+from src.common.event_loop import set_main_loop as set_ingest_main_loop  # audit 2차 B-3 — data_router re-export chain 정리
 from src.config import settings
 
 logger = logging.getLogger(__name__)
