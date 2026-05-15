@@ -44,8 +44,8 @@ from src.chatbot.runtime_config import (
     TierConfig,
 )
 from src.chatbot.service import ChatbotService
+from src.common.ingestion_facade import build_display_name_lookup, get_corpus_updated_at
 from src.pipeline.ingestion_repository import IngestionJobRepository
-from src.pipeline.metadata import derive_volume
 from src.safety.output_filter import DISCLAIMER, StreamingSanitizer
 
 
@@ -137,23 +137,13 @@ class ChatService:
     async def _build_display_name_lookup(self) -> dict[tuple[str, str], str]:
         """(source_category, payload_volume) → display_name 매핑.
 
-        admin 인라인 편집으로 지정한 사람 친화적 표시명을 chat 응답 sources 에 채우기
-        위한 lookup. ingestion_repo 가 None 이거나 조회 실패 시 빈 dict —
-        display_name=None 으로 fallback (chat UI 가 기존 volume/source 노출).
-
-        chunk payload.volume = derive_volume(IngestionJob.volume_key) 로 동일 매핑.
+        audit P1-9 (2026-05-15): cross-domain 의존을 `common/ingestion_facade` 로
+        좁힘. chat 도메인은 facade 두 함수만 의존하고 ingestion 의 내부 표현
+        (derive_volume 등) 은 facade 안에 격리.
         """
         if self.ingestion_repo is None:
             return {}
-        try:
-            jobs = await self.ingestion_repo.list_all()
-        except Exception:
-            return {}
-        return {
-            (job.source, derive_volume(job.volume_key)): job.display_name
-            for job in jobs
-            if job.display_name
-        }
+        return await build_display_name_lookup(self.ingestion_repo)
 
     async def _run_pre_pipeline(self, request: ChatRequest) -> ChatContext:
         """입력 검증 → 세션 → 임베딩 → 캐시 체크. 양 경로 공통.
@@ -168,11 +158,8 @@ class ChatService:
         """
         ctx = ChatContext(request=request)
         if self.ingestion_repo is not None:
-            try:
-                ctx.corpus_updated_at = await self.ingestion_repo.get_max_completed_at()
-            except Exception:
-                # cross-domain 조회 실패는 RAG 본 흐름을 막지 않는다.
-                ctx.corpus_updated_at = 0.0
+            # facade 로 cross-domain 조회 좁힘 (audit P1-9).
+            ctx.corpus_updated_at = await get_corpus_updated_at(self.ingestion_repo)
         ctx = await self.input_validation_stage.execute(ctx)
         ctx = await self.session_stage.execute(ctx)
         ctx = await self.embedding_stage.execute(ctx)
