@@ -8,31 +8,47 @@ paths: ["backend/src/search/**/*", "backend/src/pipeline/**/*", "backend/src/cac
 
 ## 1. 파이프라인 실행 순서
 
-모든 사용자 질문은 아래 순서를 **반드시** 따른다. 단계를 건너뛰지 않는다.
+본 문서는 **현재 운영 흐름** 과 **target (청사진 12-stage)** 을 분리해 기술한다.
+audit (2026-05-15) 갱신 — 기존엔 두 시점이 한 흐름에 섞여 모순 (예: §7-1 dictionary
+컬렉션 혼합 금지 vs §2 단일 컬렉션 인정) 이 발생.
+
+### 1-A. 현재 운영 흐름 (chat/service.py + chat/pipeline/stages/)
 
 ```
 사용자 질문
     ↓
-[1] Semantic Cache 검색 (유사도 ≥ 0.93 → 즉시 반환)
+[1] InputValidation (prompt injection 패턴 검출, 길이 제한)
+[2] Session (세션 생성/재사용, user_message DB 저장)
+[3] Embedding (Gemini RETRIEVAL_QUERY 1536-dim)
+[4] CacheCheck (semantic_cache 유사도 ≥ config.cache_threshold → 즉시 반환)
     ↓ MISS
-[2] Query Rewriting (LLM 기반 질문 확장/재작성)
-    ↓
-[3] 용어 감지 (질문 내 종교 고유 용어 식별)
-    ↓
-[4] 하이브리드 검색 (3컬렉션 병렬: malssum + dictionary + wonri)
-    ↓
-[5] RRF 병합 (Reciprocal Rank Fusion)
-    ↓
-[6] Re-ranking (Cross-encoder로 Top-50 → Top-10)
-    ↓
-[7] 생성 (시스템 프롬프트 + 용어 정의 + Top-10 + 사용자 질문 → Gemini)
-    ↓
-[8] Safety Layer (워터마킹, 민감 인명 필터, 답변 범위 검증)
-    ↓
-[9] Cache 저장 (질문+답변을 semantic_cache 컬렉션에 저장, TTL 7일)
+[5] RuntimeConfig (chatbot_id 기반 system_prompt + search_mode + tiers)
+[6] IntentClassifier (4-way intent: factoid / conceptual / reasoning / meta — 룰 §1[3]
+    "용어 감지" [보류] 의 대체. dictionary_collection 미구현이라 의미상 직교 작업)
+[7] QueryRewrite (LLM 기반 질문 확장/재작성, timeout fallback)
+[8] Search (cascading / weighted 모드 + RRF fusion 내장 hybrid_search,
+    단일 컬렉션 source 필터)
+[9] Rerank (Gemini LLM Top-50 → Top-10. cross-encoder 교체는 청사진 갭)
+[10] Generation (모드별 system_prompt + 5모드 페르소나 라우팅 + 출처 인라인 토큰)
+[11] SafetyOutput (filter_sensitive_names + append_disclaimer)
+[11′] SuggestedFollowups + ClosingTemplate (병렬, return_exceptions=True)
+[12] Persist (SessionMessage + SearchEvent + Citations + SemanticCache 저장 + commit)
     ↓
 응답 반환
 ```
+
+SSE 스트림 경로는 [10] 의 chunk 출력에 `StreamingSanitizer` (chunk-단위 PII
+패턴 차단, audit P0-9) 가 끼어 있다. cache hit / META intent early return 은
+SessionMessage 1건 + commit 만 (mini-persist helper).
+
+### 1-B. Target — 청사진 12-stage (별도 plan)
+
+`docs/04_architecture/target-architecture-blueprint-2026-05-01.html` 의 12-stage
+목표는 별도 plan 으로 점진 도입한다 (audit 결정). 본 룰 문서엔 미반영.
+
+핵심 갭: 5.0 RetrievalGate (NO_RETRIEVAL/SINGLE_STEP/MULTI_STEP), 5.5 QueryRouting
+(자동 봇 선택), 10 ValidationStage (Self-Reflective), Search 의 parallel_fusion
+모드, Cross-encoder reranker.
 
 ---
 
@@ -94,7 +110,7 @@ async def cascading_search(
 유사 질문 캐시로 비용과 응답 시간을 절감한다. (doc 08)
 
 ```python
-CACHE_THRESHOLD = 0.93  # 유사도 임계값
+CACHE_THRESHOLD = 0.88  # 유사도 임계값 — 운영 값 (PR #159/#160, 2026-05-12)
 CACHE_TTL_DAYS = 7
 
 async def check_cache(question_embedding: list[float]) -> str | None:
@@ -171,7 +187,9 @@ async def rewrite_query(question: str) -> str:
 
 ## 7. 금지 사항
 
-1. **컬렉션 혼합 금지** — dictionary 데이터를 malssum_collection에 넣지 않는다
+1. **컬렉션 혼합 금지** — (target) dictionary_collection 도입 시 데이터를 malssum_collection 에
+   넣지 않는다. 현 운영 (단일 컬렉션 + source 필터) 에서는 적용되지 않으며, dictionary
+   도입 시점에 발효된다 (`project_terminology_blocked.md` 메모리 참조).
 2. **Safety Layer 스킵 금지** — 어떤 경우에도 Step [8]을 건너뛰지 않는다
 3. **캐시 우회 금지** — Semantic Cache 체크(Step [1])를 생략하지 않는다
 4. **직접 LLM 호출 금지** — 반드시 RAG 파이프라인을 통해 생성한다 (근거 없는 답변 방지)

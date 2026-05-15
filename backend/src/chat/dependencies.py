@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.cache.service import SemanticCacheService
 from src.cache.setup import ensure_cache_collection
+from src.chat.reactions_repository import MessageReactionRepository
+from src.chat.reactions_service import MessageReactionService
 from src.chat.repository import ChatRepository
 from src.chat.service import ChatService
 from src.chatbot.dependencies import get_chatbot_service
@@ -24,6 +26,18 @@ async def get_chat_repository(
     session: AsyncSession = Depends(get_async_session),
 ) -> ChatRepository:
     return ChatRepository(session)
+
+
+async def get_reactions_repository(
+    session: AsyncSession = Depends(get_async_session),
+) -> MessageReactionRepository:
+    return MessageReactionRepository(session)
+
+
+async def get_reactions_service(
+    repo: MessageReactionRepository = Depends(get_reactions_repository),
+) -> MessageReactionService:
+    return MessageReactionService(repo)
 
 
 async def get_ingestion_repository(

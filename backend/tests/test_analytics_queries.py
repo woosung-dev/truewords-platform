@@ -11,7 +11,7 @@ with patch("main.init_db", new_callable=AsyncMock):
     from main import app
 
 from src.admin.analytics_repository import AnalyticsRepository
-from src.admin.analytics_router import _get_repo
+from src.admin.dependencies import get_analytics_repository
 from src.admin.dependencies import get_current_admin
 
 
@@ -33,11 +33,11 @@ def override_admin_auth():
 
 
 def _override_repo(repo: AsyncMock):
-    app.dependency_overrides[_get_repo] = lambda: repo
+    app.dependency_overrides[get_analytics_repository] = lambda: repo
 
 
 def _clear_repo_override():
-    app.dependency_overrides.pop(_get_repo, None)
+    app.dependency_overrides.pop(get_analytics_repository, None)
 
 
 @pytest.mark.asyncio

@@ -93,6 +93,7 @@ def test_delete_volume_artifacts_orders_qdrant_then_db():
     """
     src = inspect.getsource(_delete_volume_artifacts)
     qdrant_idx = src.find("qdrant_service.delete_volumes")
-    ingestion_idx = src.find("ing_repo.delete_by_volume_key")
+    # audit P0-5 (2026-05-15): ing_repo 인라인 호출 → IngestionJobService 위임으로 변경.
+    ingestion_idx = src.find("ingestion_service.delete_by_volume_key")
     assert qdrant_idx >= 0 and ingestion_idx >= 0
     assert qdrant_idx < ingestion_idx, "Qdrant delete가 IngestionJob delete보다 먼저여야 함"

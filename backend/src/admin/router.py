@@ -14,6 +14,8 @@ from src.admin.schemas import (
     AdminUserResponse,
     AuditLogResponse,
     CreateAdminRequest,
+    MessageResponse,
+    SettingsConfigResponse,
 )
 from src.admin.service import AdminService
 from src.config import settings
@@ -31,23 +33,23 @@ _COOKIE_OPTS = {
 }
 
 
-@router.post("/auth/login")
+@router.post("/auth/login", response_model=MessageResponse)
 async def login(
     data: AdminLoginRequest,
     response: Response,
     service: AdminService = Depends(get_admin_service),
-) -> dict:
+) -> MessageResponse:
     """로그인 → HttpOnly Cookie로 JWT 발급."""
     login_result = await service.login(data)
     response.set_cookie(value=login_result.access_token, **_COOKIE_OPTS)
-    return {"message": "로그인 성공"}
+    return MessageResponse(message="로그인 성공")
 
 
-@router.post("/auth/logout")
+@router.post("/auth/logout", response_model=MessageResponse)
 async def logout(
     response: Response,
     current_admin: dict = Depends(get_current_admin),
-) -> dict:
+) -> MessageResponse:
     """로그아웃 → Cookie 삭제."""
     response.delete_cookie(
         key=COOKIE_NAME,
@@ -56,7 +58,7 @@ async def logout(
         samesite="none" if settings.cookie_secure else "lax",
         path="/",
     )
-    return {"message": "로그아웃 완료"}
+    return MessageResponse(message="로그아웃 완료")
 
 
 @router.get("/auth/me", response_model=AdminMeResponse)
@@ -113,10 +115,10 @@ async def get_audit_logs(
     ]
 
 
-@router.get("/settings/config")
+@router.get("/settings/config", response_model=SettingsConfigResponse)
 async def get_settings_config(
     current_admin: dict = Depends(get_current_admin),
-) -> dict:
+) -> SettingsConfigResponse:
     """프론트엔드에 필요한 시스템 설정 조회.
 
     Admin UI 의 데이터 소스 페이지가 적재 대상 컬렉션을 표시할 때 사용한다
@@ -125,9 +127,9 @@ async def get_settings_config(
     Qdrant URL 은 host 만 노출 (api-key 등 민감정보 제외).
     """
     qdrant_host = settings.qdrant_url.replace("https://", "").replace("http://", "").split("/")[0]
-    return {
-        "gemini_tier": settings.gemini_tier,
-        "environment": settings.environment,
-        "collection_name": settings.collection_name,
-        "qdrant_host": qdrant_host,
-    }
+    return SettingsConfigResponse(
+        gemini_tier=settings.gemini_tier,
+        environment=settings.environment,
+        collection_name=settings.collection_name,
+        qdrant_host=qdrant_host,
+    )

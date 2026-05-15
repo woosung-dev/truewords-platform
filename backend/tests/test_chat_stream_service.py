@@ -81,8 +81,10 @@ class TestProcessChatStream:
                 event_type = e.split("\n")[0].replace("event: ", "")
                 event_types.append(event_type)
 
+        # audit P0-9 (2026-05-15): SENSITIVE_PATTERNS 채움 후 StreamingSanitizer 가
+        # 짧은 답변은 한 번에 release. chunk 이벤트 개수는 줄어도 첫 이벤트는 항상
+        # chunk, 마지막 두 개는 sources + done.
         assert event_types[0] == "chunk"
-        assert event_types[1] == "chunk"
         assert event_types[-2] == "sources"
         assert event_types[-1] == "done"
 
@@ -109,7 +111,11 @@ class TestProcessChatStream:
                 data = json.loads(data_line.replace("data: ", ""))
                 chunk_texts.append(data["text"])
 
-        assert chunk_texts == ["축복이란 ", "참부모님으로부터 받는 것입니다."]
+        # audit P0-9 (2026-05-15): SENSITIVE_PATTERNS 가 채워진 후
+        # StreamingSanitizer 가 chunk 경계 패턴 매칭을 위해 max_buffer (~200자) 만큼
+        # tail 을 버퍼링한다. 짧은 답변은 release 없이 flush 시점에 한 번에 release —
+        # SSE chunk 개수는 줄지만 합본 문자열은 동일.
+        assert "".join(chunk_texts) == "축복이란 참부모님으로부터 받는 것입니다."
 
     @pytest.mark.asyncio
     @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)

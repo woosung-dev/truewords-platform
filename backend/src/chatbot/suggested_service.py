@@ -22,7 +22,7 @@ from src.chatbot.models import ChatbotConfig
 from src.chatbot.repository import ChatbotRepository
 from src.common.gemini import generate_text
 from src.config import settings
-from src.qdrant.raw_client import RawQdrantClient
+from src.qdrant_client import get_raw_client
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ async def _fetch_rag_sample(sources: list[str]) -> list[str]:
             "must": [{"key": "source", "match": {"any": sources}}]
         }
 
-    client = RawQdrantClient()
+    client = get_raw_client()
     try:
         points, _next = await client.scroll(
             settings.collection_name,

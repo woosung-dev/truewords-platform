@@ -8,8 +8,8 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import delete
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col, select
 
 from src.chat.models import MessageReaction, MessageReactionKind
 
@@ -17,6 +17,12 @@ from src.chat.models import MessageReaction, MessageReactionKind
 class MessageReactionRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    async def commit(self) -> None:
+        await self.session.commit()
+
+    async def rollback(self) -> None:
+        await self.session.rollback()
 
     async def get_existing(
         self,
@@ -30,8 +36,8 @@ class MessageReactionRepository:
             MessageReaction.user_session_id == user_session_id,
             MessageReaction.kind == kind,
         )
-        res = await self.session.exec(stmt)
-        return res.first()
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
 
     async def toggle(
         self,
@@ -51,8 +57,8 @@ class MessageReactionRepository:
             kind=kind,
         )
         if existing is not None:
-            await self.session.exec(  # type: ignore[call-overload]
-                delete(MessageReaction).where(MessageReaction.id == existing.id)
+            await self.session.execute(
+                delete(MessageReaction).where(col(MessageReaction.id) == existing.id)
             )
             return "removed", None
 
@@ -76,11 +82,11 @@ class MessageReactionRepository:
 
         해당 (message_id, user_session_id, kind) 의 row 가 *지금* 존재하면 삭제.
         """
-        await self.session.exec(  # type: ignore[call-overload]
+        await self.session.execute(
             delete(MessageReaction).where(
-                MessageReaction.message_id == message_id,
-                MessageReaction.user_session_id == user_session_id,
-                MessageReaction.kind == kind,
+                col(MessageReaction.message_id) == message_id,
+                col(MessageReaction.user_session_id) == user_session_id,
+                col(MessageReaction.kind) == kind,
             )
         )
         return 1
@@ -92,8 +98,8 @@ class MessageReactionRepository:
         stmt = select(MessageReaction).where(
             MessageReaction.message_id == message_id
         )
-        res = await self.session.exec(stmt)
-        rows = res.all()
+        result = await self.session.execute(stmt)
+        rows = result.scalars().all()
         counts: dict[MessageReactionKind, int] = {
             MessageReactionKind.THUMBS_UP: 0,
             MessageReactionKind.THUMBS_DOWN: 0,

@@ -11,6 +11,7 @@ import time
 from src.chat.pipeline.context import ChatContext
 from src.chat.pipeline.state import PipelineState, check_precondition
 from src.chatbot.runtime_config import SearchModeConfig, TierConfig
+from src.qdrant_client import get_raw_client
 from src.search.cascading import CascadingConfig, SearchTier, cascading_search
 from src.search.collection_resolver import resolve_collections
 from src.search.fallback import fallback_search
@@ -40,8 +41,6 @@ class SearchStage:
         self.default_tiers = default_tiers
 
     async def execute(self, ctx: ChatContext) -> ChatContext:
-        from src.qdrant_client import get_raw_client
-
         check_precondition(self.__class__.__name__, ctx)
         if not ctx.runtime_config:
             return ctx

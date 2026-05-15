@@ -8,7 +8,12 @@ ADR-46 §C.3 답변 평가 영역. AnswerFeedback router 와 분리된 별도 �
 - IP 단위 **rate limit** (RATE_LIMIT_MAX_REQUESTS 의 5x 적용 — 토글 UX 가 일반
   요청보다 빈번할 수 있음).
 - toggle 은 **atomic** 처리: read→insert 경합 시 IntegrityError 를 catch 해서
-  "이미 존재 → 삭제" 로 graceful 전환 (Sonnet review #3).
+  "이미 존재 → 삭제" 로 graceful 전환 (`MessageReactionService` 내부 처리).
+
+audit P0-4 fix (2026-05-15): AsyncSession + Repository 직접 보유 + session.commit/
+rollback 호출을 모두 `MessageReactionService` 로 이관 (룰 §3 "Router DB 접근 금지"
++ "AsyncSession 은 Repository 만"). 본 파일은 HTTP 수신 + cookie 발급 + rate
+limit + 스키마 변환만 담당.
 """
 
 from __future__ import annotations
@@ -17,18 +22,16 @@ import secrets
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from sqlalchemy.exc import IntegrityError
-from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.chat.dependencies import get_reactions_service
 from src.chat.models import MessageReactionKind
-from src.chat.reactions_repository import MessageReactionRepository
 from src.chat.reactions_schemas import (
     ReactionAggregate,
     ReactionRequest,
     ReactionResponse,
     ReactionToggleResponse,
 )
-from src.common.database import get_async_session
+from src.chat.reactions_service import MessageReactionService
 from src.config import settings
 from src.safety.exceptions import RateLimitExceededError
 from src.safety.rate_limiter import RateLimiter, get_rate_limiter
@@ -91,7 +94,7 @@ async def toggle_reaction(
     payload: ReactionRequest,
     request: Request,
     response: Response,
-    session: AsyncSession = Depends(get_async_session),
+    service: MessageReactionService = Depends(get_reactions_service),
     rate_limiter: RateLimiter = Depends(get_reactions_rate_limiter),
 ) -> ReactionToggleResponse:
     """단일 반응 토글 (P1-A).
@@ -107,7 +110,7 @@ async def toggle_reaction(
     토글 시맨틱 (atomic):
         - 동일 (message_id, anon_session, kind) 가 있으면 제거.
         - 없으면 INSERT 시도 → ``IntegrityError`` 발생 시 (race) 이미 존재로
-          판단해 "removed" 반환.
+          판단해 "removed" 반환 (service 내부에서 처리).
     """
     rate_limiter.check(_client_ip(request))
 
@@ -118,25 +121,11 @@ async def toggle_reaction(
 
     user_session_id = _get_or_issue_session_id(request, response)
 
-    repo = MessageReactionRepository(session)
-    try:
-        action, reaction = await repo.toggle(
-            message_id=message_id,
-            user_session_id=user_session_id,
-            kind=kind_enum,
-        )
-        await session.commit()
-    except IntegrityError:
-        # B2 — race: 두 동시 요청이 모두 existing=None 으로 읽고 INSERT 시도 →
-        # 두 번째가 unique 위반. 사용자 의도는 "토글" 이므로 removed 로 정착.
-        await session.rollback()
-        await repo.delete_existing(
-            message_id=message_id,
-            user_session_id=user_session_id,
-            kind=kind_enum,
-        )
-        await session.commit()
-        return ReactionToggleResponse(action="removed", reaction=None)
+    action, reaction = await service.toggle(
+        message_id=message_id,
+        user_session_id=user_session_id,
+        kind=kind_enum,
+    )
 
     return ReactionToggleResponse(
         action="added" if action == "added" else "removed",
@@ -160,11 +149,10 @@ async def toggle_reaction(
 )
 async def get_aggregate(
     message_id: uuid.UUID,
-    session: AsyncSession = Depends(get_async_session),
+    service: MessageReactionService = Depends(get_reactions_service),
 ) -> ReactionAggregate:
     """단일 message_id 의 반응 카운트 (UI badge 용). 인증 불필요 (집계만)."""
-    repo = MessageReactionRepository(session)
-    counts = await repo.get_aggregate(message_id)
+    counts = await service.get_aggregate(message_id)
     return ReactionAggregate(
         message_id=message_id,
         thumbs_up=counts.get(MessageReactionKind.THUMBS_UP, 0),

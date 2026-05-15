@@ -179,12 +179,16 @@ chatbot_filters = {
 {
     "name": "말씀봇 A",
     "search_tiers": [
-        {"sources": ["A", "B"], "priority": 1, "min_results": 3, "threshold": 0.75},
-        {"sources": ["C"],      "priority": 2, "min_results": 2, "threshold": 0.65},
-        {"sources": ["D", "E"], "priority": 3, "min_results": 1, "threshold": 0.60}
+        {"sources": ["A", "B"], "priority": 1, "min_results": 3, "threshold": 0.1},
+        {"sources": ["C"],      "priority": 2, "min_results": 2, "threshold": 0.08},
+        {"sources": ["D", "E"], "priority": 3, "min_results": 1, "threshold": 0.05}
     ]
 }
 ```
+
+> **갱신 (2026-05-15):** PR #108 (Cascade cutoff 결정) 에서 RRF fusion 점수 분포
+> 측정 결과 0.75 는 dead default 였음 (운영 적용 0건). 운영 임계값은 `0.1` 기준
+> + tier 별 점진 완화. 위 예시도 갱신된 값으로 정정.
 
 구현 방식:
 
@@ -195,11 +199,11 @@ results = qdrant.search(
     query_vector=query_vec,
     query_filter={"must": [{"key": "source", "match": {"any": ["A", "B"]}}]},
     limit=10,
-    score_threshold=0.75
+    score_threshold=0.1
 )
 
 # 결과 부족 시 2차: 다음 우선순위 소스에서 추가 검색
-if len(results) < 3 or results[0].score < 0.75:
+if len(results) < 3 or results[0].score < 0.1:
     fallback = qdrant.search(
         collection="malssum",
         query_vector=query_vec,

@@ -4,8 +4,18 @@ import uuid
 
 from fastapi import HTTPException, status
 
+from src.chat.prompt import BASE_SYSTEM_PROMPT
 from src.chatbot.models import ChatbotConfig
 from src.chatbot.repository import ChatbotRepository
+from src.chatbot.runtime_config import (
+    ChatbotRuntimeConfig,
+    GenerationConfig,
+    RetrievalConfig,
+    SafetyConfig,
+    SearchModeConfig,
+    TierConfig,
+    WeightedSourceConfig,
+)
 from src.chatbot.schemas import ChatbotConfigCreate, ChatbotConfigUpdate
 
 
@@ -46,7 +56,7 @@ class ChatbotService:
 
     async def build_runtime_config(
         self, chatbot_id: str | None
-    ) -> "ChatbotRuntimeConfig | None":
+    ) -> ChatbotRuntimeConfig | None:
         """ChatbotConfig → ChatbotRuntimeConfig (불변 단일 객체) 조립.
 
         chatbot_id is None  → None 반환 (router 측에서 시스템 기본값 분기)
@@ -54,18 +64,11 @@ class ChatbotService:
         빈 system_prompt    → BASE_SYSTEM_PROMPT fallback
         persona_name        → GenerationStage 의 compose_system_prompt 에서 {persona} 치환
         search_tiers JSON   → SearchModeConfig + RetrievalConfig 분리
-        """
-        from src.chat.prompt import BASE_SYSTEM_PROMPT
-        from src.chatbot.runtime_config import (
-            ChatbotRuntimeConfig,
-            GenerationConfig,
-            RetrievalConfig,
-            SafetyConfig,
-            SearchModeConfig,
-            TierConfig,
-            WeightedSourceConfig,
-        )
 
+        audit P1-7 (2026-05-15): 함수 안 lazy import (`from src.chat.prompt`,
+        `from src.chatbot.runtime_config`) 를 module-level 로 승격. chat ↔ chatbot
+        의존 그래프 점검 결과 `chat.prompt → search.hybrid → leaf` 단방향 OK.
+        """
         if chatbot_id is None:
             return None
         record = await self.repo.get_by_chatbot_id(chatbot_id)
@@ -106,7 +109,6 @@ class ChatbotService:
                 mode=mode_str,
                 tiers=tiers,
                 weighted_sources=weighted_sources,
-                dictionary_enabled=raw.get("dictionary_enabled", False),
             ),
             generation=GenerationConfig(
                 system_prompt=base_prompt,
