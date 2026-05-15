@@ -32,7 +32,7 @@ class TestAppendDisclaimer:
 
 
 class TestFilterSensitiveNames:
-    """민감 인명 필터링 테스트."""
+    """민감 인명/PII 필터링 테스트."""
 
     def test_normal_answer_passes_through(self) -> None:
         answer = "참부모님의 축복은 가정연합의 핵심 의식입니다."
@@ -44,6 +44,30 @@ class TestFilterSensitiveNames:
         result = filter_sensitive_names(answer)
         assert "원리강론" in result
         assert "창조원리" in result
+
+    def test_blocks_resident_registration_number(self) -> None:
+        answer = "주민번호는 800101-1234567 입니다."
+        result = filter_sensitive_names(answer)
+        assert "800101" not in result
+        assert "개인정보" in result
+
+    def test_blocks_korean_mobile_phone(self) -> None:
+        answer = "연락처는 010-1234-5678 입니다."
+        result = filter_sensitive_names(answer)
+        assert "010-1234-5678" not in result
+        assert "개인정보" in result
+
+    def test_blocks_credit_card_number(self) -> None:
+        answer = "카드: 1234-5678-9012-3456 결제 완료."
+        result = filter_sensitive_names(answer)
+        assert "1234-5678-9012-3456" not in result
+        assert "개인정보" in result
+
+    def test_volume_numbers_not_false_positive(self) -> None:
+        """권 번호 (001권 ~ 615권) 같은 일반 숫자 토큰은 false positive 가 아님."""
+        answer = "말씀선집 001권, 167권, 615권을 참고하세요."
+        result = filter_sensitive_names(answer)
+        assert result == answer
 
 
 class TestApplySafetyLayer:
