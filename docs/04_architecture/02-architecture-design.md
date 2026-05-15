@@ -1,5 +1,12 @@
 # 전체 아키텍처 설계
 
+> **⚠️ Status (2026-05-15):** 본 문서는 Phase 1 초기 설계 기록물이다. 운영 구현은 다음과 같이 수렴했다.
+> - **컬렉션**: 단일 `malssum_poc_v5` (88권, 417,579 chunks) + `semantic_cache` 2개. 별도 용어사전/원리강론 컬렉션 미사용.
+> - **payload 필터**: `book_type` enum 폐기 → `source` / `book_series` / `category` (PR #94).
+> - **dictionary_collection**: 데이터 미확보로 보류 (memory `project_terminology_blocked.md`).
+>
+> 현재 아키텍처: `.ai/project/rag-pipeline.md` 및 `docs/dev-log/52-collection-main-deprecation.md`.
+
 ## 인프라 구조 (3-Layer)
 
 ```
