@@ -114,6 +114,26 @@ class ChatService:
         self.safety_output_stage = SafetyOutputStage()
         self.persist_stage = PersistStage(chat_repo, cache_service)
 
+    async def _persist_assistant_message_only(
+        self, session_id: uuid.UUID, content: str, *, pipeline_version: int = 2
+    ) -> SessionMessage:
+        """mini-persist — cache hit / META intent 경로의 SessionMessage 저장 + commit.
+
+        full ``PersistStage`` 가 SearchEvent / Citations / SemanticCache 까지 묶어
+        처리하는 데 비해, 답변 메시지 1건 + commit 만 필요한 경로 (cache hit /
+        meta intent × sync/stream) 의 inline 중복 4건을 한 helper 로 통일한다.
+        """
+        msg = await self.chat_repo.create_message(
+            SessionMessage(
+                session_id=session_id,
+                role=MessageRole.ASSISTANT,
+                content=content,
+                pipeline_version=pipeline_version,
+            )
+        )
+        await self.chat_repo.commit()
+        return msg
+
     async def _build_display_name_lookup(self) -> dict[tuple[str, str], str]:
         """(source_category, payload_volume) → display_name 매핑.
 
@@ -181,15 +201,9 @@ class ChatService:
 
         # Cache hit early return (mini-persist — full PersistStage 미실행)
         if ctx.cache_hit and ctx.cache_response and ctx.session:
-            assistant_msg = await self.chat_repo.create_message(
-                SessionMessage(
-                    session_id=ctx.session.id,
-                    role=MessageRole.ASSISTANT,
-                    content=ctx.cache_response.answer,
-                    pipeline_version=2,
-                )
+            assistant_msg = await self._persist_assistant_message_only(
+                ctx.session.id, ctx.cache_response.answer
             )
-            await self.chat_repo.commit()
             display_name_lookup = await self._build_display_name_lookup()
             cache_sources: list[Source] = []
             for s in ctx.cache_response.sources:
@@ -210,15 +224,9 @@ class ChatService:
         # Meta intent early return (Search/Rerank/Generation 스킵, Safety + mini-persist 만)
         if ctx.pipeline_state == PipelineState.META_TERMINATED and ctx.session:
             ctx = await self.safety_output_stage.execute(ctx)
-            assistant_msg = await self.chat_repo.create_message(
-                SessionMessage(
-                    session_id=ctx.session.id,
-                    role=MessageRole.ASSISTANT,
-                    content=ctx.answer or "",
-                    pipeline_version=2,
-                )
+            assistant_msg = await self._persist_assistant_message_only(
+                ctx.session.id, ctx.answer or ""
             )
-            await self.chat_repo.commit()
             return ChatResponse(
                 answer=ctx.answer or "",
                 sources=[],
@@ -273,15 +281,9 @@ class ChatService:
         # Cache hit early return (SSE — mini-persist)
         if ctx.cache_hit and ctx.cache_response and ctx.session:
             safe_answer = ctx.cache_response.answer
-            assistant_msg = await self.chat_repo.create_message(
-                SessionMessage(
-                    session_id=ctx.session.id,
-                    role=MessageRole.ASSISTANT,
-                    content=safe_answer,
-                    pipeline_version=2,
-                )
+            assistant_msg = await self._persist_assistant_message_only(
+                ctx.session.id, safe_answer
             )
-            await self.chat_repo.commit()
             yield f"event: chunk\ndata: {json.dumps({'text': safe_answer}, ensure_ascii=False)}\n\n"
             display_name_lookup = await self._build_display_name_lookup()
             sources_data = []
@@ -308,15 +310,9 @@ class ChatService:
             # Meta intent early return (SSE chunk + sources + done + mini-persist)
             if ctx.pipeline_state == PipelineState.META_TERMINATED and ctx.session:
                 ctx = await self.safety_output_stage.execute(ctx)
-                assistant_msg = await self.chat_repo.create_message(
-                    SessionMessage(
-                        session_id=ctx.session.id,
-                        role=MessageRole.ASSISTANT,
-                        content=ctx.answer or "",
-                        pipeline_version=2,
-                    )
+                assistant_msg = await self._persist_assistant_message_only(
+                    ctx.session.id, ctx.answer or ""
                 )
-                await self.chat_repo.commit()
                 yield f"event: chunk\ndata: {json.dumps({'text': ctx.answer or ''}, ensure_ascii=False)}\n\n"
                 # META 응답은 검색/closing/followups 가 없어 None 으로 키만 유지 —
                 # frontend SSE 컨슈머가 어느 분기에서든 같은 schema 로 dict.get 가능.

@@ -214,10 +214,11 @@ def _process_file(
 async def _get_existing_snapshot(volume_key: str) -> tuple[list[str], int]:
     """기존 volume의 (sources, chunk_count) 조회 — 워커가 메인 loop에 위임해 사용.
 
-    DataSourceQdrantService를 직접 인스턴스화한다 (Depends 미사용 컨텍스트).
+    audit P1-4 fix (2026-05-15): Depends 우회 컨텍스트지만 service 인스턴스화는
+    `datasource/dependencies.get_qdrant_service` factory 를 호출해 일원화한다.
     NFC/NFD 혼재 대응은 서비스 메서드 내부에서 처리한다.
     """
-    svc = DataSourceQdrantService(get_raw_client(), settings.collection_name)
+    svc = await get_qdrant_service()
     return await svc.get_volume_snapshot(volume_key)
 
 
