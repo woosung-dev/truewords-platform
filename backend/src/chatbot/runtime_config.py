@@ -26,7 +26,15 @@ class TierConfig(BaseModel):
     이전에 0.75 였으나 운영 적용 0건 (dead default) 인 데다 RRF 점수대를 초과해
     실수로 인스턴스에 적용되면 검색 결과 0건 위험. 측정 분포 (2026-05-01,
     docs/dev-log/2026-05-01-cascade-distribution-measurement.md) 기반 정정.
+
+    audit 2차 P-1 (2026-05-15, Agent B P1 9/10): 동일 파일의 다른 6개 Config 클래스
+    (WeightedSourceConfig / SearchModeConfig / GenerationConfig / RetrievalConfig /
+    SafetyConfig / ChatbotRuntimeConfig) 는 모두 ``frozen=True`` 인데 본 클래스만
+    누락. ChatbotRuntimeConfig 가 frozen 이라도 ``tiers: list[TierConfig]`` 요소가
+    mutable 이라 런타임 변형 위험 — 불변 의도 깨짐. 명시적 ``frozen=True`` 추가.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     sources: list[str]
     min_results: int = 3

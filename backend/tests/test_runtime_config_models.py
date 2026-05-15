@@ -69,6 +69,19 @@ def test_tier_config_defaults():
     assert t.score_threshold == 0.1
 
 
+def test_tier_config_is_frozen():
+    """audit 2차 P-1 (2026-05-15, Agent B P1 9/10): TierConfig 도 frozen=True.
+
+    동일 파일의 다른 6개 Config (WeightedSourceConfig / SearchModeConfig /
+    GenerationConfig / RetrievalConfig / SafetyConfig / ChatbotRuntimeConfig) 와
+    정합. ChatbotRuntimeConfig 가 frozen 이라도 tiers list 요소가 mutable 이면
+    런타임 변형 위험 — 본 test 가 회귀 차단.
+    """
+    t = TierConfig(sources=["A"])
+    with pytest.raises(ValidationError):
+        t.score_threshold = 0.5  # type: ignore[misc]
+
+
 def test_runtime_config_validation_rejects_unknown_mode():
     with pytest.raises(ValidationError):
         SearchModeConfig(mode="unknown")  # type: ignore[arg-type]

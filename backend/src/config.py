@@ -1,5 +1,5 @@
 from pydantic import SecretStr, model_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -58,7 +58,9 @@ class Settings(BaseSettings):
     embed_max_chars_per_batch: int | None = None
     embed_batch_sleep: float | None = None
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    # audit 2차 P-5 (2026-05-15, Agent B P1 5/10): dict literal → SettingsConfigDict
+    # pydantic_settings 권장 패턴. mypy/IDE 타입 힌트 작동 + future-proof.
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @model_validator(mode="after")
     def apply_gemini_tier_presets(self):
