@@ -81,7 +81,7 @@ class TestCacheHitSkipsSearch:
     @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
-    @patch("src.qdrant_client.get_async_client")
+    @patch("src.qdrant.factory.get_async_client")
     async def test_cache_miss_runs_full_pipeline(
         self, mock_qdrant, mock_generate, mock_search, mock_embed,
     ) -> None:
@@ -109,7 +109,7 @@ class TestCacheHitSkipsSearch:
     @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
-    @patch("src.qdrant_client.get_async_client")
+    @patch("src.qdrant.factory.get_async_client")
     async def test_no_cache_service_works(
         self, mock_qdrant, mock_generate, mock_search, mock_embed,
     ) -> None:

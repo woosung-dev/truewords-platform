@@ -32,7 +32,7 @@ from sqlalchemy import select, update
 from src.common.database import async_session_factory
 from src.config import settings
 from src.pipeline.ingestion_models import IngestionJob
-from src.qdrant_client import get_client
+from src.qdrant import get_client
 
 
 PATTERN = re.compile(r"\d+권")  # 번호+권 포함 여부

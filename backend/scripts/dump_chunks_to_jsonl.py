@@ -18,7 +18,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable
 
-from src.qdrant_client import get_client
+from src.qdrant import get_client
 
 
 _INVALID_FS_CHARS = '/\\:?*<>|"'

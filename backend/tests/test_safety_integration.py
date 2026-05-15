@@ -72,7 +72,7 @@ class TestSafetyOutputLayer:
     @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
-    @patch("src.qdrant_client.get_async_client")
+    @patch("src.qdrant.factory.get_async_client")
     async def test_answer_includes_disclaimer(
         self, mock_qdrant, mock_generate, mock_search, mock_embed,
     ) -> None:
@@ -90,7 +90,7 @@ class TestSafetyOutputLayer:
     @patch("src.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
     @patch("src.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
     @patch("src.chat.pipeline.stages.generation.generate_answer", new_callable=AsyncMock)
-    @patch("src.qdrant_client.get_async_client")
+    @patch("src.qdrant.factory.get_async_client")
     async def test_original_answer_preserved_with_disclaimer(
         self, mock_qdrant, mock_generate, mock_search, mock_embed,
     ) -> None:

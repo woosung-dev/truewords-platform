@@ -24,7 +24,7 @@ from scripts.chunking_poc import chunk_paragraph
 from src.pipeline.extractor import extract_text
 from src.pipeline.metadata import extract_metadata
 from src.pipeline.ingestor import ingest_chunks
-from src.qdrant_client import get_client
+from src.qdrant import get_client
 
 
 def fetch_source_for_volume(client, src_collection: str, volume: str) -> list[str] | str:

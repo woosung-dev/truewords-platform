@@ -21,7 +21,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from scripts.analyze_notebooklm_categories import _is_hit, _load_rows
-from src.qdrant_client import get_client
+from src.qdrant import get_client
 
 
 # 측정 결과 파일 6개 (v3prodSync 추가 — 동기화된 'all-paragraph' 봇 측정)

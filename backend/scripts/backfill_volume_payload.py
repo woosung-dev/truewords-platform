@@ -30,7 +30,7 @@ from collections import Counter, defaultdict
 
 from src.config import settings
 from src.pipeline.metadata import derive_volume
-from src.qdrant_client import get_raw_client
+from src.qdrant import get_raw_client
 
 
 async def backfill(

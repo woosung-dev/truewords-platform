@@ -21,7 +21,7 @@ from qdrant_client.models import (
     PointStruct,
 )
 
-from src.qdrant_client import get_client
+from src.qdrant import get_client
 
 
 def copy_with_filter(

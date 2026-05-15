@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock
-from src.qdrant_client import create_collection
+from src.qdrant import create_collection
 
 
 def test_create_collection_uses_dense_and_sparse_vectors():

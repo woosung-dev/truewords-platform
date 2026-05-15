@@ -26,7 +26,7 @@ from src.chat.prompt import DEFAULT_SYSTEM_PROMPT
 from src.chatbot.runtime_config import GenerationConfig
 from src.common.gemini import embed_dense_query
 from src.pipeline.embedder import embed_sparse_async
-from src.qdrant_client import get_raw_client
+from src.qdrant import get_raw_client
 from src.search.hybrid import SearchResult, hybrid_search
 from src.search.reranker import rerank
 

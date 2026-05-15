@@ -21,7 +21,7 @@ from pathlib import Path
 
 from src.pipeline.chunker import Chunk
 from src.pipeline.ingestor import ingest_chunks
-from src.qdrant_client import get_client
+from src.qdrant import get_client
 
 
 COLLECTION_V2 = "malssum_poc_v2"

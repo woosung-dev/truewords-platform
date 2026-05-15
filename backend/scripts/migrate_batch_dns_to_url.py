@@ -52,7 +52,7 @@ from dataclasses import dataclass
 from qdrant_client.models import PointIdsList, PointStruct, SparseVector
 
 from src.config import settings
-from src.qdrant_client import get_client
+from src.qdrant import get_client
 
 logger = logging.getLogger("migrate_batch_dns_to_url")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
