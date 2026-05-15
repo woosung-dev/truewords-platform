@@ -96,6 +96,28 @@ async def get_current_admin(request: Request) -> AdminUser:
 - **Repository** — AsyncSession 유일 보유. DB 접근만. commit()은 service 요청으로만.
 - **Dependencies** — Depends() 조립의 유일한 위치. service.py/repository.py에 Depends import 금지.
 
+### Stage 패턴 (도메인 sub-package, 선택적 5계층)
+
+복잡한 오케스트레이션 (예: chat RAG 9~13단계 파이프라인) 은 도메인 안에 Stage
+sub-package 를 둘 수 있다. 본 형식은 audit (2026-05-15) 에서 명문화됐다.
+
+```
+chat/
+├── service.py            # Stage 체인 오케스트레이터 (Stage 생성자 주입)
+├── pipeline/
+│   ├── context.py        # Stage 간 공유 mutable 컨텍스트 (dataclass)
+│   ├── state.py          # PipelineState FSM (logging-only)
+│   ├── stage.py          # Stage Protocol
+│   └── stages/
+│       ├── <name>.py     # 각 Stage 클래스 — execute(ctx) -> ctx 단일 메서드
+│       └── ...
+```
+
+- Stage 는 자체적으로 Repository / 외부 client 를 주입받을 수 있다.
+- Service 는 Stage 인스턴스 생성 + 순서 조율 + 트랜잭션 경계만 담당.
+- mini-persist 등 cache-hit early return 류 짧은 경로는 Service 의 helper 로
+  캡슐화 (Stage 분리 부담을 피하면서 inline 중복 제거).
+
 ### 필수 코드 패턴
 
 ```python
@@ -177,7 +199,11 @@ class OrderService:
 
 ## 4. Gemini API 패턴
 
-- 모든 Gemini 호출은 `common/gemini.py`에 집중 관리
+- 모든 Gemini 호출은 `common/gemini*` 모듈을 통해 일원화한다.
+  - `common/gemini.py` — high-level API (embed_dense_*, generate_text, generate_text_stream).
+  - `common/gemini_client.py` — `genai.Client` 팩토리 (`@lru_cache` 싱글톤,
+    retry policy `retry_429=True/False` 분기). pipeline/embedder 가 다른 retry
+    정책의 변형 클라이언트를 필요로 해서 분리됐다 (audit 2026-05-15 명문화).
 - 시스템 프롬프트는 `chat/prompt.py`에 정의. 인라인 작성 금지.
 
 ### 클라이언트 설정
@@ -418,22 +444,31 @@ alembic downgrade -1
 
 ## 10. 백엔드 폴더 구조
 
+audit (2026-05-15) 갱신 — 1 도메인 다중 router 패턴 (admin / chat / datasource)
+허용 명문화. `pipeline/batch_*.py` + `progress.py` 제거 (PR #95 이후 실재 없음).
+`qdrant/` 패키지로 통합 (`qdrant_client.py` 는 deprecation shim 잔존).
+
 ```
 backend/src/
 ├── admin/              # Admin 인증 (JWT+bcrypt) + 대시보드 API + 분석
 │   ├── auth.py             # JWT 생성/검증, bcrypt 해싱
-│   ├── dependencies.py     # get_current_admin, CSRF 검증
+│   ├── dependencies.py     # get_current_admin, CSRF 검증, 도메인 서비스 조립
 │   ├── models.py           # AdminUser, AdminAuditLog
 │   ├── repository.py
-│   ├── service.py
+│   ├── service.py          # 인증 + 감사 로그 비즈니스
+│   ├── analytics_repository.py / analytics_service.py / analytics_router.py
+│   │                       # /admin/analytics/* (대시보드 통계 — 다중 router 패턴)
 │   ├── router.py           # /admin/auth/*, /admin/users
-│   ├── analytics_*.py      # /admin/analytics/* (대시보드 통계)
-│   └── data_router.py      # /admin/data-sources/* (파일 업로드, 배치)
+│   ├── data_router.py      # /admin/data-sources/* HTTP endpoint
+│   ├── ingest_service.py   # 파일 처리 본체 (extract/chunk/embed/ingest)
+│   └── ingest_worker.py    # Queue + worker thread + main loop 참조
 ├── chat/               # 채팅 도메인 (RAG 파이프라인 오케스트레이션)
-│   ├── service.py          # 9단계 RAG 파이프라인 조율
+│   ├── service.py          # Stage 체인 오케스트레이터 (mini-persist helper 포함)
 │   ├── prompt.py           # 시스템 프롬프트 + 핵심 용어 정의
 │   ├── generator.py        # 동기 답변 생성
 │   ├── stream_generator.py # SSE 스트리밍 답변 생성
+│   ├── pipeline/           # Stage sub-package (context / state / stage / stages)
+│   ├── reactions_*.py      # 답변 반응 sub-feature (router/service/repo/schemas)
 │   └── router.py           # /chat, /chat/stream, /chat/feedback
 ├── chatbot/            # 챗봇 버전 관리 (A|B 조합 필터)
 ├── search/             # 검색 엔진 (하이브리드, 캐스케이딩, 리랭킹)
@@ -444,24 +479,49 @@ backend/src/
 │   └── fallback.py         # 2단계 폴백 (완화 검색 + LLM 제안)
 ├── pipeline/           # 데이터 파이프라인 (임베딩, 청킹, 적재)
 │   ├── embedder.py         # Dense/Sparse 임베딩 생성
-│   ├── chunker.py          # 문장 단위 청킹 (kss)
+│   ├── chunker.py          # Recursive 청킹 (운영) + legacy chunkers
 │   ├── extractor.py        # 텍스트 추출 (PDF/DOCX/TXT)
 │   ├── ingestor.py         # Qdrant 적재 (RPD 관리, 체크포인트)
-│   ├── batch_*.py          # Gemini Batch API 연동
-│   └── progress.py         # 증분 진행 추적 (crash-safe)
+│   ├── ingestion_*.py      # IngestionJob model/repo/service (즉시 모드 적재 작업)
+│   └── metadata.py         # extract_metadata + book_series 분류
 ├── cache/              # Semantic Cache (Qdrant 기반)
-├── datasource/         # 데이터 소스 카테고리 관리 (A/B/L/D)
+├── datasource/         # 데이터 소스 카테고리 관리 + Qdrant 직접 조작
+│   ├── router.py / chunks_router.py
+│   ├── service.py / qdrant_service.py
+│   ├── repository.py / dependencies.py / schemas.py
+│   └── chunk_merge.py
 ├── safety/             # 보안 레이어
-│   ├── input_validator.py  # 프롬프트 인젝션 탐지 (47 패턴)
+│   ├── input_validator.py  # 프롬프트 인젝션 탐지
 │   ├── rate_limiter.py     # IP 기반 슬라이딩 윈도우
-│   ├── output_filter.py    # 면책 고지 + 민감 인명 필터
+│   ├── output_filter.py    # 면책 고지 + 민감 인명 필터 + StreamingSanitizer
+│   ├── middleware.py       # check_rate_limit Depends
 │   └── exceptions.py       # InputBlockedError, RateLimitExceededError
+├── qdrant/             # Qdrant 통합 모듈 (audit P0-7 갱신)
+│   ├── factory.py          # 클라이언트 팩토리 (raw httpx + SDK 호환)
+│   ├── startup.py          # ensure_main_collection (raw httpx idempotent)
+│   ├── raw_client.py       # RawQdrantClient (HTTP/1.1 SDK 우회)
+│   └── filters.py          # Filter / Prefetch / FusionQuery dict 헬퍼
+├── qdrant_client.py    # [DEPRECATED shim] backend/scripts + tests 호환
 ├── common/
 │   ├── database.py         # PostgreSQL AsyncSession 팩토리
-│   ├── gemini.py           # Gemini 클라이언트 (임베딩, 생성, 스트리밍)
+│   ├── gemini.py           # Gemini high-level API
+│   ├── gemini_client.py    # `genai.Client` 팩토리 (retry 분기)
+│   ├── ingestion_facade.py # chat 도메인용 cross-domain ingestion thin wrapper
 │   ├── schemas.py          # ErrorResponse (통합 에러 포맷)
 │   ├── exception_handlers.py # 전역 예외 핸들러 (503, 429, 400, 500)
 │   └── middleware.py       # RequestIdMiddleware (X-Request-Id 추적)
-├── config.py           # Pydantic Settings (환경변수, GEMINI_TIER 프리셋)
-└── qdrant_client.py    # Qdrant 싱글톤 클라이언트 (async/sync)
+└── config.py           # Pydantic Settings (환경변수, GEMINI_TIER 프리셋)
 ```
+
+### 1 도메인 다중 router 패턴
+
+기본은 도메인당 `router.py` 1개. 다만 다음 두 경우엔 sub-feature 별 분리를 허용한다.
+
+1. **admin 의 운영 영역 분리** — `admin/analytics_router.py`, `admin/data_router.py`
+   등. 인증/사용자 관리와 분석/적재의 책임이 명확히 다름.
+2. **chat sub-feature** — `chat/reactions_router.py` 처럼 별도 prefix + 별도 DB
+   테이블 + hot/cold path 가 분리된 경우.
+
+이때 sub-feature 마다 매칭되는 `*_service.py`, `*_repository.py`, `*_schemas.py`
+도 분리한다. dependencies 는 `admin/dependencies.py` / `chat/dependencies.py`
+1곳에 모아둔다.
