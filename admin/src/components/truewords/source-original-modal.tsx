@@ -10,15 +10,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
+import { cn, stripFileExt } from "@/lib/utils";
 
 // P0-B + ADR-46 §C.3 — 인용 카드의 "원문보기" 모달.
 // CitationCard 의 onOpenOriginal prop 에 연결해서 사용한다.
 //
 // 데이터 fetch 는 GET /api/sources/chunks/{chunk_id} 호출. React Query 로
 // (chunk_id, chatbot_id) 단위 캐싱 — 같은 출처 재오픈 시 즉시 표시.
-// 종교 도메인 묵상 톤을 위해 형광 highlight 를 폐기하고 main/adjacent 색
-// 구분만으로 인용 영역을 표시한다.
+// 메인 청크는 부드러운 yellow 배경 + medium weight 로 강조한다 (사용자
+// 가시성 우선). 인접 문맥은 muted-foreground 로 처리해 톤 차이도 함께 유지.
 
 export interface SourceChunkDetail {
   chunk_id: string;
@@ -89,10 +89,15 @@ export function SourceOriginalModal({
       const mainStart = merged_text ? main_offset_start : 0;
       const mainEnd = merged_text ? main_offset_end : text.length;
 
+      // 라벨 정책: 1순위 fallbackLabel (caller 가 넘긴 displayName), 2순위 data.volume.
+      // 양쪽 모두 stripFileExt 로 통과시켜 raw filename(.txt 등) 노출 방지.
+      // assistant-message.tsx 의 SourceCardGrid 와 동일 패턴.
+      const sourceLabel = stripFileExt((fallbackLabel ?? data.volume).trim());
+
       return (
         <article className="space-y-2">
           <p className="font-mono text-xs text-muted-foreground tabular-nums break-keep-all">
-            {fallbackLabel ?? data.volume}
+            {sourceLabel}
           </p>
           {/* 단일 연속 본문 — 백엔드가 dedup 후 보낸 한 덩어리. 청크 경계 끊김 0.
               메인 청크는 일반 text-foreground, 인접 문맥은 muted 처리. */}
@@ -130,11 +135,13 @@ export function SourceOriginalModal({
 }
 
 /**
- * 종교 도메인 묵상 톤을 위해 형광 highlight 를 사용하지 않고, 메인 청크와
- * 인접 문맥을 색 톤 대비 (foreground vs muted-foreground) 만으로 구분한다.
+ * 메인 청크는 <mark> 시멘틱 태그 + 부드러운 yellow 배경 + medium weight 로
+ * 강조하고, 위·아래 인접 문맥은 muted-foreground 로 처리한다.
  *
- * NotebookLM 식 phrase highlight 는 학술/연구 메타포로 종교 묵상 분위기와
- * 충돌. YouVersion·천성경 등 동종 종교 앱도 동일하게 highlight 미사용.
+ * 이전 흐름(#135 좌측 border 제거 → #156 단순화 → #164 매칭 확장 → #167
+ * 형광 폐기) 의 "묵상 톤" 결정은 메인 청크가 시각적으로 식별되지 않는
+ * 문제로 인해 본 변경에서 사용자 요청으로 철회. 형광 톤은 paper/dark 양쪽
+ * 테마에서 부담스럽지 않게 낮은 채도의 yellow 로 유지.
  */
 export function renderBody3Tone(
   body: string,
@@ -153,7 +160,11 @@ export function renderBody3Tone(
       {before && (
         <span className="text-muted-foreground">{before}</span>
       )}
-      {main}
+      {main && (
+        <mark className="rounded-sm bg-yellow-200/60 px-0.5 font-medium text-foreground dark:bg-yellow-500/25">
+          {main}
+        </mark>
+      )}
       {after && (
         <span className="text-muted-foreground">{after}</span>
       )}

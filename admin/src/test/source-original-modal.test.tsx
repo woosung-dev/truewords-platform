@@ -1,6 +1,6 @@
 // 원문 모달의 본문 톤 분리 회귀 테스트.
-// 형광 highlight 는 종교 도메인 묵상 톤을 위해 폐기됨 (2026-05-14).
-// main 청크 = 기본 색, before/after = muted 색의 3톤 구분만 검증.
+// 사용자 가시성 우선 정책으로 형광 highlight 복원 (2026-05-16): main 청크는
+// <mark> + 부드러운 yellow 배경 + medium weight, before/after 는 muted-foreground.
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 import { renderBody3Tone } from "@/components/truewords/source-original-modal";
@@ -70,9 +70,21 @@ describe("renderBody3Tone — main/before/after 색 톤 분리", () => {
     expect(muted[1].textContent).toBe("BBB");
   });
 
-  it("형광 mark 요소는 0개 (highlight 폐기 회귀)", () => {
+  it("메인 청크는 <mark> 으로 강조 (yellow 배경 + medium weight)", () => {
     const body = "AAAABBBBCCCC";
     const { container } = renderToDom(renderBody3Tone(body, 4, 8));
+
+    const marks = container.querySelectorAll("mark");
+    expect(marks.length).toBe(1);
+    expect(marks[0].textContent).toBe("BBBB");
+    expect(marks[0].className).toContain("bg-yellow-200");
+    expect(marks[0].className).toContain("font-medium");
+  });
+
+  it("main 이 빈 문자열이면 <mark> 미렌더 (불필요한 빈 강조 회피)", () => {
+    const body = "AAAABBBB";
+    // safeStart=5, safeEnd=5 → main 빈 문자열.
+    const { container } = renderToDom(renderBody3Tone(body, 5, 3));
 
     expect(container.querySelectorAll("mark").length).toBe(0);
   });
