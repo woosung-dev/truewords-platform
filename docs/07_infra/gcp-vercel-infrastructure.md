@@ -1,5 +1,12 @@
 # GCP + Vercel 인프라 구성
 
+> **현재 운영 환경 (2026-05-19~)**
+> - GCP 프로젝트: `jetaime-dev` (project number `780943117571`)
+> - 계정: `jetaime.jang@gmail.com`
+> - 리전: `asia-northeast3`
+> - Cloud Run URL: `https://truewords-backend-imrsiyibaa-du.a.run.app`
+> - 마이그레이션 경위: [`docs/dev-log/61-gcp-account-migration-jetaime.md`](../dev-log/61-gcp-account-migration-jetaime.md)
+
 ## 아키텍처
 
 ```
