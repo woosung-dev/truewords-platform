@@ -1,5 +1,8 @@
 name: Deploy
 
+# GCP 계정 마이그레이션: woosung-dev → jetaime-dev (cutover 2026-05-19).
+# secrets (GCP_PROJECT_ID / GCP_WORKLOAD_IDENTITY_PROVIDER / GCP_SERVICE_ACCOUNT) 만 교체로 처리.
+
 on:
   push:
     # main → production Cloud Run 배포
