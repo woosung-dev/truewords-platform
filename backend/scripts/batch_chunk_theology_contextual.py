@@ -51,7 +51,7 @@ async def generate_prefix_for_chunks(
             )
             try:
                 raw = await generate_text(
-                    prompt, model="gemini-3.1-flash-lite-preview"
+                    prompt, model="gemini-3.1-flash-lite"
                 )
                 c["prefix_text"] = parse_prefix_response(raw)
             except Exception as exc:

@@ -316,7 +316,7 @@ def build_report_md(args, a_ragas, f_ragas, a_judge, f_judge, codex_text: str | 
     lines.append("- L분포: L1~L5 각 10건씩 균등")
     lines.append("- 측정 순서: F (paragraph) 먼저 → A (sentence) — 캐시 영향 격리")
     lines.append("- 캐시: 측정 시작 시 `ensure_cache_collection`으로 빈 컬렉션 보장")
-    lines.append("- 평가 모델: gemini-3.1-flash-lite-preview, temperature=0")
+    lines.append("- 평가 모델: gemini-3.1-flash-lite, temperature=0")
     lines.append("")
     if codex_text:
         lines.append("## Codex 독립 검토 (10건 stratified)")

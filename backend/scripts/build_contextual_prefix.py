@@ -82,7 +82,7 @@ async def generate_prefix_for_volume(
         for i, c in enumerate(chunks, 1):
             prompt = build_prompt(full_doc, str(c.get("text", "") or ""), c.get("chunk_index", 0))
             try:
-                raw = await generate_text(prompt, model="gemini-3.1-flash-lite-preview")
+                raw = await generate_text(prompt, model="gemini-3.1-flash-lite")
                 c["prefix_text"] = parse_prefix_response(raw)
             except Exception as exc:
                 c["prefix_text"] = ""
@@ -107,7 +107,7 @@ async def _generate_one(
             chunk.get("chunk_index", 0),
         )
         try:
-            raw = await generate_text(prompt, model="gemini-3.1-flash-lite-preview")
+            raw = await generate_text(prompt, model="gemini-3.1-flash-lite")
             chunk["prefix_text"] = parse_prefix_response(raw)
         except Exception as exc:
             chunk["prefix_text"] = ""

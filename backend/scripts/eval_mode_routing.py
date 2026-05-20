@@ -39,8 +39,8 @@ from src.chat.prompt import BASE_SYSTEM_PROMPT, compose_system_prompt
 from src.config import settings
 
 
-_JUDGE_MODEL = "gemini-3.1-flash-lite-preview"
-_GEN_MODEL = "gemini-3.1-flash-lite-preview"
+_JUDGE_MODEL = "gemini-3.1-flash-lite"
+_GEN_MODEL = "gemini-3.1-flash-lite"
 _CONCURRENCY = 4
 
 

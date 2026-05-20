@@ -37,7 +37,7 @@ from google.genai import types
 from src.config import settings
 
 
-EVAL_MODEL = "gemini-3.1-flash-lite-preview"
+EVAL_MODEL = "gemini-3.1-flash-lite"
 CONCURRENCY = 5
 
 JUDGE_PROMPT = """당신은 RAG 시스템 평가 전문가입니다. 다음 정보를 바탕으로 답변 품질을 평가하세요.

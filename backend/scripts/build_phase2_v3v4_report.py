@@ -419,7 +419,7 @@ def build_report_md(v3_ragas, v4_ragas, v3_judge, v4_judge, codex_text: str | No
     lines.append("- 측정 순서: v4 먼저 → v3 (cache 비우기 + ensure 사이)")
     lines.append("- v4 prefix 형식: `[volume / date]` (date 누락 시 `[volume]`)")
     lines.append("- 챗봇 토글: 'all' 봇 collection_main만 변경")
-    lines.append("- 평가 모델: gemini-3.1-flash-lite-preview, temperature=0")
+    lines.append("- 평가 모델: gemini-3.1-flash-lite, temperature=0")
     lines.append("- Codex: OpenAI gpt-5-codex (consult mode)")
     lines.append("")
     if codex_text:
