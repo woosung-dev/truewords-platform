@@ -301,7 +301,7 @@ def main() -> int:
         for col_idx in range(1, 10):
             spec.cell(row=row_idx, column=col_idx).alignment = Alignment(wrap_text=True, vertical="top")
 
-    # === 4메트릭 직접 측정 시트 (langchain 우회, gemini-3.1-flash-lite-preview, n=100) ===
+    # === 4메트릭 직접 측정 시트 (langchain 우회, gemini-3.1-flash-lite, n=100) ===
     metrics_summary = wb.create_sheet("4메트릭 직접 측정 (n=100)")
     metrics_summary.append([
         "방식", "라벨", "n",
@@ -371,7 +371,7 @@ def main() -> int:
     metrics_summary.append([])
     metrics_summary.append([
         "측정 환경",
-        "gemini-3.1-flash-lite-preview, langchain 우회 (Gemini SDK 직접), concurrency=5, 봇당 ~45초",
+        "gemini-3.1-flash-lite, langchain 우회 (Gemini SDK 직접), concurrency=5, 봇당 ~45초",
     ])
     metrics_summary.append([
         "RAGAS hang 원인",

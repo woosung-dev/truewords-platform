@@ -388,7 +388,7 @@ def build_report_md(args, a_ragas, b_ragas, f_ragas, a_judge, b_judge, f_judge, 
     lines.append("- 측정 순서: F → A → B (각 batch 사이 cache 비우기 + ensure)")
     lines.append("- 챗봇 토글: 'all' 봇 collection_main만 변경 (system_prompt/persona/search_tiers 동결)")
     lines.append("- 캐시: 측정 시작 시 `delete_collection` + `ensure_cache_collection`(빈 컬렉션)")
-    lines.append("- 평가 모델: gemini-3.1-flash-lite-preview, temperature=0")
+    lines.append("- 평가 모델: gemini-3.1-flash-lite, temperature=0")
     lines.append("- Codex: OpenAI gpt-5-codex (consult mode, model_reasoning_effort=medium)")
     lines.append("")
 

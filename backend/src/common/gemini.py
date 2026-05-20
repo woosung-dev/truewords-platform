@@ -20,7 +20,7 @@ from src.config import settings
 # 싱글턴 — retry_429=True (SDK 기본, 429 포함 재시도). chat 생성/쿼리 임베딩 전용.
 _client = get_client()
 
-MODEL_GENERATE = "gemini-3.1-flash-lite-preview"
+MODEL_GENERATE = "gemini-3.1-flash-lite"
 MODEL_EMBEDDING = "gemini-embedding-001"
 
 

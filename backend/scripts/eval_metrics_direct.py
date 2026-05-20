@@ -33,7 +33,7 @@ from google.genai import types
 from src.config import settings
 
 
-EVAL_MODEL = "gemini-3.1-flash-lite-preview"  # RPD 150K (handoff 메모리)
+EVAL_MODEL = "gemini-3.1-flash-lite"  # RPD 150K (handoff 메모리)
 CONCURRENCY = 5
 
 
