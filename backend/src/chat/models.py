@@ -29,6 +29,9 @@ class ResearchSession(SQLModel, table=True):
     chatbot_config_id: uuid.UUID | None = Field(default=None, foreign_key="chatbot_configs.id", index=True)
     client_fingerprint: str | None = None
     organization_id: uuid.UUID | None = None
+    # 레드팀 시연 — 루트 페이지 게이트에서 받는 참여자 식별 정보 (세션 귀속·추적용).
+    participant_name: str | None = Field(default=None, max_length=128, index=True)
+    participant_category: str | None = Field(default=None, max_length=128, index=True)
     started_at: datetime = Field(
         default_factory=datetime.utcnow, index=True
     )

@@ -419,7 +419,9 @@ class AnalyticsRepository:
                     rs.chatbot_config_id,
                     cc.display_name AS chatbot_name,
                     rs.started_at,
-                    rs.ended_at
+                    rs.ended_at,
+                    rs.participant_name,
+                    rs.participant_category
                 FROM research_sessions rs
                 LEFT JOIN chatbot_configs cc ON cc.id = rs.chatbot_config_id
                 WHERE rs.id = :sid
@@ -452,6 +454,8 @@ class AnalyticsRepository:
                 "chatbot_name": session_row.chatbot_name,
                 "started_at": session_row.started_at,
                 "ended_at": session_row.ended_at,
+                "participant_name": session_row.participant_name,
+                "participant_category": session_row.participant_category,
                 "messages": [],
             }
 
@@ -535,6 +539,8 @@ class AnalyticsRepository:
             "chatbot_name": session_row.chatbot_name,
             "started_at": session_row.started_at,
             "ended_at": session_row.ended_at,
+            "participant_name": session_row.participant_name,
+            "participant_category": session_row.participant_category,
             "messages": messages,
         }
 

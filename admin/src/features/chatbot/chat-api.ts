@@ -20,6 +20,9 @@ export interface ChatBot {
  */
 export interface ChatRequestOptions {
   answer_mode?: AnswerMode;
+  // 레드팀 시연 — 루트 게이트에서 입력받은 참여자 식별 정보. 모든 요청에 동봉.
+  participant_name?: string;
+  participant_category?: string;
 }
 
 export interface Source {
@@ -92,6 +95,12 @@ export const chatAPI = {
         chatbot_id: chatbotId,
         session_id: sessionId,
         ...(options?.answer_mode ? { answer_mode: options.answer_mode } : {}),
+        ...(options?.participant_name
+          ? { participant_name: options.participant_name }
+          : {}),
+        ...(options?.participant_category
+          ? { participant_category: options.participant_category }
+          : {}),
       }),
       signal,
     });
@@ -139,6 +148,12 @@ export const chatAPI = {
         chatbot_id: chatbotId,
         session_id: sessionId,
         ...(options?.answer_mode ? { answer_mode: options.answer_mode } : {}),
+        ...(options?.participant_name
+          ? { participant_name: options.participant_name }
+          : {}),
+        ...(options?.participant_category
+          ? { participant_category: options.participant_category }
+          : {}),
       }),
       signal,
     });

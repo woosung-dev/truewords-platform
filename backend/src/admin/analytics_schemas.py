@@ -142,4 +142,7 @@ class SessionDetailResponse(BaseModel):
     chatbot_name: str | None = None
     started_at: datetime
     ended_at: datetime | None = None
+    # 레드팀 시연 — 세션 귀속 참여자 (게이트 입력값). 익명 세션은 None.
+    participant_name: str | None = None
+    participant_category: str | None = None
     messages: list[SessionMessageItem] = Field(default_factory=list)

@@ -183,6 +183,15 @@ export default function SessionDetailModal({
                     )} · 메시지 ${data.messages.length}건`
                   : "불러오는 중..."}
               </Dialog.Description>
+              {/* 레드팀 시연 — 게이트로 입력된 참여자. 익명 세션은 미표시. */}
+              {data?.participant_name && (
+                <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                  참여자: {data.participant_name}
+                  {data.participant_category
+                    ? ` · ${data.participant_category}`
+                    : ""}
+                </span>
+              )}
             </div>
             <Dialog.Close className="rounded-lg p-1 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors shrink-0">
               <X className="h-4 w-4" />

@@ -34,5 +34,11 @@ class SessionStage:
                 return existing
         config_id = await self.chatbot_service.get_config_id(ctx.request.chatbot_id)
         return await self.chat_repo.create_session(
-            ResearchSession(chatbot_config_id=config_id, client_fingerprint=None)
+            ResearchSession(
+                chatbot_config_id=config_id,
+                client_fingerprint=None,
+                # 레드팀 시연 — 게이트 입력값을 세션에 귀속 (신규 세션 1회만).
+                participant_name=ctx.request.participant_name,
+                participant_category=ctx.request.participant_category,
+            )
         )

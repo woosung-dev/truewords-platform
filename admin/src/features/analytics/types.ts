@@ -77,6 +77,9 @@ export interface SessionDetail {
   chatbot_name: string | null;
   started_at: string;
   ended_at: string | null;
+  // 레드팀 시연 — 세션 귀속 참여자 (게이트 입력값). 익명 세션은 null.
+  participant_name: string | null;
+  participant_category: string | null;
   messages: SessionMessage[];
 }
 

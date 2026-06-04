@@ -37,6 +37,8 @@ function detailFixture(overrides: Partial<SessionDetail> = {}): SessionDetail {
     chatbot_name: "축복AI",
     started_at: "2026-05-03T09:00:00",
     ended_at: null,
+    participant_name: null,
+    participant_category: null,
     messages: [
       {
         id: "11111111-1111-1111-1111-111111111111",

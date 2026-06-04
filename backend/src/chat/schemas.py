@@ -19,6 +19,9 @@ class ChatRequest(BaseModel):
     session_id: uuid.UUID | None = None
     # P0-E 답변 모드 페르소나 5종 — 위급 시 pastoral 자동 라우팅 (별도 파이프라인이 처리)
     answer_mode: AnswerMode | None = None
+    # 레드팀 시연 — 루트 게이트에서 입력받는 참여자 식별 정보. 세션 생성 시 1회 기록.
+    participant_name: str | None = None
+    participant_category: str | None = None
 
 
 class Source(BaseModel):

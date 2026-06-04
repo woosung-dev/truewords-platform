@@ -89,6 +89,30 @@ class TestSessionStage:
         chat_repo.create_session.assert_awaited_once()
 
     @pytest.mark.asyncio
+    async def test_new_session_carries_participant_fields(self) -> None:
+        """레드팀 시연 — 게이트 입력 참여자 정보가 신규 세션에 귀속."""
+        chat_repo = AsyncMock()
+        chatbot_service = AsyncMock()
+        chat_repo.get_session.return_value = None
+        chat_repo.create_session.return_value = _make_session()
+        chat_repo.create_message.return_value = _make_message()
+        chatbot_service.get_config_id.return_value = None
+
+        stage = SessionStage(chat_repo, chatbot_service)
+        ctx = ChatContext(
+            request=ChatRequest(
+                query="질문",
+                participant_name="홍길동",
+                participant_category="청년부",
+            )
+        )
+        await stage.execute(ctx)
+
+        created = chat_repo.create_session.call_args[0][0]
+        assert created.participant_name == "홍길동"
+        assert created.participant_category == "청년부"
+
+    @pytest.mark.asyncio
     async def test_persists_user_message_with_role_user(self) -> None:
         chat_repo = AsyncMock()
         chatbot_service = AsyncMock()
