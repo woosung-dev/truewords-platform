@@ -7,24 +7,6 @@ from unittest.mock import AsyncMock
 import src.malssum.service as malssum
 
 
-def test_get_random_malssum_empty_returns_none(monkeypatch):
-    monkeypatch.setattr(malssum, "_items", [])
-    assert malssum.get_random_malssum() is None
-
-
-def test_get_random_malssum_returns_item_from_list(monkeypatch):
-    items = [
-        {"text": "말씀 A", "category": "O", "volume": "1권"},
-        {"text": "말씀 B", "category": "B", "volume": "2권"},
-    ]
-    monkeypatch.setattr(malssum, "_items", items)
-    picked = malssum.get_random_malssum()
-    # _normalize 가 source 키를 추가하므로 dict 동일성 대신 text 로 검증.
-    assert picked is not None
-    assert picked["text"] in {i["text"] for i in items}
-    assert set(picked.keys()) == {"text", "category", "source", "volume"}
-
-
 def test_load_filters_blank_text(monkeypatch, tmp_path):
     """text 가 비었거나 공백인 항목은 제외."""
     path = tmp_path / "featured.json"
@@ -48,7 +30,7 @@ def test_load_missing_file_returns_empty(monkeypatch, tmp_path):
 def test_chat_response_coerces_featured_malssum():
     """ChatResponse.featured_malssum 은 dict → FeaturedMalssum 으로 coerce.
 
-    process_chat 가 get_random_malssum() 의 dict 를 그대로 넘기는 경로를 검증.
+    process_chat 가 pick_malssum_for_answer() 의 dict 를 그대로 넘기는 경로를 검증.
     """
     from src.chat.schemas import ChatResponse, FeaturedMalssum
 

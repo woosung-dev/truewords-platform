@@ -2,8 +2,8 @@
 """featured_malssum.json (사람이 추린 목록) 을 1회 로드해 말씀 1개 선택.
 
 각 항목의 ``category`` 필드는 '주제(테마)' 다 (위로/교리/실천/가정/참사랑 등).
-- ``pick_malssum_for_answer`` : 답변을 LLM 으로 주제 분류 → 해당 주제 말씀 중 무작위.
-- ``get_random_malssum``      : 주제 무시 전체 무작위 (fallback / 단순용).
+``pick_malssum_for_answer`` 가 답변을 LLM 으로 주제 분류해 해당 주제 말씀 중
+무작위 1개를 고른다 (주제 미매칭/풀 작으면 전체 무작위 fallback).
 
 별도 Qdrant 컬렉션·임베딩 없이 동작한다. 목록은
 `backend/scripts/extract_malssum_candidates.py` 가 후보 추출 + AI 주제 태깅으로
@@ -54,18 +54,6 @@ def _normalize(item: dict) -> dict:
         "source": str(item.get("source", "")),
         "volume": str(item.get("volume", "")),
     }
-
-
-def get_random_malssum() -> dict | None:
-    """큐레이션 목록에서 말씀 1개를 무작위 선택. 목록 비면 None.
-
-    Returns:
-        ``{"text": ..., "category": ..., "volume": ...}`` 또는 None.
-    """
-    items = _get_items()
-    if not items:
-        return None
-    return _normalize(random.choice(items))
 
 
 # ── 답변 주제 매칭 (LLM 분류 → 해당 주제 말씀) ──────────────────────────────
