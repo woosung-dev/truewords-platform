@@ -883,10 +883,13 @@ export default function ChatPage() {
                             <p className="text-sm leading-relaxed text-foreground/90">
                               {msg.featuredMalssum.text}
                             </p>
-                            {(msg.featuredMalssum.volume ||
+                            {(msg.featuredMalssum.source ||
+                              msg.featuredMalssum.volume ||
                               msg.featuredMalssum.category) && (
                               <p className="mt-1.5 text-xs text-muted-foreground">
+                                {/* 출처(그룹·권) · 주제 */}
                                 {[
+                                  msg.featuredMalssum.source,
                                   msg.featuredMalssum.volume,
                                   msg.featuredMalssum.category,
                                 ]

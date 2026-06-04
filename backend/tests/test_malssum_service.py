@@ -19,7 +19,10 @@ def test_get_random_malssum_returns_item_from_list(monkeypatch):
     ]
     monkeypatch.setattr(malssum, "_items", items)
     picked = malssum.get_random_malssum()
-    assert picked in items
+    # _normalize 가 source 키를 추가하므로 dict 동일성 대신 text 로 검증.
+    assert picked is not None
+    assert picked["text"] in {i["text"] for i in items}
+    assert set(picked.keys()) == {"text", "category", "source", "volume"}
 
 
 def test_load_filters_blank_text(monkeypatch, tmp_path):

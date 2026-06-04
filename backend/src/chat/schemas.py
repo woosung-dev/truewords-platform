@@ -50,7 +50,9 @@ class FeaturedMalssum(BaseModel):
     """
 
     text: str
+    # category = 주제(테마), source = 출처 그룹(어머님 말씀/3대 경전/자서전 등), volume = 권 상세
     category: str = ""
+    source: str = ""
     volume: str = ""
 
 

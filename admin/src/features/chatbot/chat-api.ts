@@ -42,7 +42,9 @@ export interface Source {
 // 레드팀 시연 — 답변에 곁들이는 무작위 말씀 (의미 검색 아닌 랜덤). 목록 비면 null.
 export interface FeaturedMalssum {
   text: string;
+  // category = 주제(테마), source = 출처 그룹, volume = 권 상세
   category?: string;
+  source?: string;
   volume?: string;
 }
 

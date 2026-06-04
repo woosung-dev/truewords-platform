@@ -51,6 +51,7 @@ def _normalize(item: dict) -> dict:
     return {
         "text": str(item.get("text", "")),
         "category": str(item.get("category", "")),
+        "source": str(item.get("source", "")),
         "volume": str(item.get("volume", "")),
     }
 

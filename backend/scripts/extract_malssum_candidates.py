@@ -23,13 +23,30 @@ import argparse
 import asyncio
 import json
 import random
+import re
+import sys
 from collections import Counter
 from pathlib import Path
 
 import httpx
 
-from src.config import settings
-from src.malssum.service import MALSSUM_THEMES, _classify_theme
+# 프로젝트 루트(backend/)를 sys.path 에 추가 — `python scripts/...` 직접 실행 호환.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from src.config import settings  # noqa: E402
+from src.malssum.service import MALSSUM_THEMES  # noqa: E402
+
+
+# source 키 → 읽기 쉬운 출처 이름 (metadata.py 카테고리 매핑 기준)
+_SOURCE_LABELS = {
+    "B": "어머님 말씀",
+    "M": "3대 경전",
+    "N": "자서전",
+    "O": "말씀선집",
+    "L": "원리강론",
+    "P": "참부모론",
+    "Q": "통일사상요강",
+}
 
 
 def _headers() -> dict[str, str]:
@@ -37,6 +54,21 @@ def _headers() -> dict[str, str]:
     if settings.qdrant_api_key:
         h["api-key"] = settings.qdrant_api_key.get_secret_value()
     return h
+
+
+# 카드용 완결 본문만 — 제목/페이지 인용 조각/파일명 leak 제외, 문장 종결로 끝나야 함.
+_PAGE_REF = re.compile(r"\(\d+-\d+")
+_FILE_LEAK = re.compile(r"\.(txt|pdf|hwp)", re.IGNORECASE)
+_SENT_END = re.compile(
+    r"(다|요|까|라|죠|네|군요|십시오|하라|드립니다|아멘)[\"'’」』\)\s.!?]*$"
+)
+
+
+def _is_card_worthy(text: str) -> bool:
+    t = text.strip()
+    if _PAGE_REF.search(t) or _FILE_LEAK.search(t):
+        return False  # RAG 청크 인용 조각 / 헤더 leak
+    return bool(_SENT_END.search(t))  # 한국어 문장 종결로 끝나는 완결 본문만
 
 
 async def _scroll_category(
@@ -75,11 +107,12 @@ async def _scroll_category(
         for p in points:
             payload = p.get("payload", {})
             text = str(payload.get("text", "")).strip()
-            if min_len <= len(text) <= max_len:
+            if min_len <= len(text) <= max_len and _is_card_worthy(text):
                 collected.append(
                     {
                         "text": text,
-                        "category": category,
+                        "source": _SOURCE_LABELS.get(category, category),  # 읽기 쉬운 출처
+                        "category": category,  # 주제 — 아래 theming 이 덮어씀(--no-theme 시 source 키 유지)
                         "volume": str(payload.get("volume", "")),
                     }
                 )
@@ -88,6 +121,45 @@ async def _scroll_category(
         if offset is None:
             break
     return collected
+
+
+async def _batch_tag_themes(items: list[dict], themes: list[str], batch: int = 25) -> None:
+    """말씀들을 batch 단위로 한 번에 LLM 분류 → item['category'] 에 주제 기록.
+
+    개별 호출(1말씀=1요청) 은 free-tier 15 RPM 에 막히므로 묶어서 호출한다.
+    파싱 실패/미분류 항목은 '기타'. batch 사이에 잠깐 sleep 으로 RPM 추가 보호.
+    """
+    from src.common.gemini import generate_text  # noqa: PLC0415
+
+    for start in range(0, len(items), batch):
+        chunk = items[start : start + batch]
+        listing = "\n".join(f"{i + 1}. {it['text'][:200]}" for i, it in enumerate(chunk))
+        prompt = (
+            "다음 말씀들을 각각 가장 어울리는 '주제' 로 분류하세요. "
+            f"주제는 반드시 다음 중 하나만 사용: {', '.join(themes)}.\n"
+            "출력은 각 줄에 '번호: 주제' 형식으로만. 예: 1: 위로\n\n"
+            f"{listing}\n\n분류 결과:"
+        )
+        try:
+            raw = await generate_text(prompt) or ""
+        except Exception as exc:  # noqa: BLE001
+            print(f"  주제 분류 실패 (batch {start}~) — 기타 처리: {exc}")
+            for it in chunk:
+                it["category"] = "기타"
+            continue
+        parsed: dict[int, str] = {}
+        for line in raw.splitlines():
+            m = re.match(r"\s*(\d+)\s*[:.)]\s*(.+)", line)
+            if not m:
+                continue
+            idx = int(m.group(1)) - 1
+            theme = next((t for t in themes if t in m.group(2)), None)
+            if 0 <= idx < len(chunk) and theme:
+                parsed[idx] = theme
+        for i, it in enumerate(chunk):
+            it["category"] = parsed.get(i, "기타")
+        if start + batch < len(items):
+            await asyncio.sleep(4)  # RPM 추가 여유
 
 
 async def main() -> None:
@@ -146,18 +218,11 @@ async def main() -> None:
             out.extend(picked)
             print(f"  [{cat}] 풀 {len(pool)}개 → 후보 {len(picked)}개")
 
-    # AI 주제 태깅 — 각 말씀을 주제(테마)로 LLM 분류해 category 에 기록.
+    # AI 주제 태깅 — 말씀들을 batch 로 묶어 LLM 분류 (free-tier 15 RPM 회피).
     # 식구님 "AI 로 카테고리별 말씀 세트 생성" 구상 반영. 런타임 매칭도 이 주제를 씀.
     if not args.no_theme and out:
         print(f"\nAI 주제 태깅 중... ({len(out)}개, 테마={MALSSUM_THEMES})")
-        sem = asyncio.Semaphore(5)  # Gemini RPM 보호
-
-        async def _tag(item: dict) -> None:
-            async with sem:
-                theme = await _classify_theme(item["text"], MALSSUM_THEMES)
-                item["category"] = theme or "기타"
-
-        await asyncio.gather(*[_tag(it) for it in out])
+        await _batch_tag_themes(out, MALSSUM_THEMES)
         dist = Counter(it["category"] for it in out)
         print(f"  주제 분포: {dict(dist)}")
 
