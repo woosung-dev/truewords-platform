@@ -86,6 +86,10 @@ class GenerationConfig(BaseModel):
     # P0-A — 자동 follow-up 추천 토글. 기본 활성 (모든 답변에 노출).
     enable_suggested_followups: bool = True
 
+    # 레드팀 시연 — RAG-only 대조군 봇. True 면 BASE·모드모듈 전부 우회하고
+    # 빈 system_instruction 으로 생성 (검색 컨텍스트 + 질문만 LLM 전달).
+    raw_rag_only: bool = False
+
 
 class RetrievalConfig(BaseModel):
     model_config = ConfigDict(frozen=True)

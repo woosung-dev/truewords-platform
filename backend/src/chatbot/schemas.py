@@ -38,6 +38,9 @@ class SearchTiersConfig(BaseModel):
     rerank_enabled: bool = False
     dictionary_enabled: bool = False
     query_rewrite_enabled: bool = False
+    # 레드팀 시연 — RAG-only 대조군 봇. True 면 시스템 프롬프트(BASE·모드모듈) 전부
+    # 우회하고 빈 system_instruction 으로 생성. build_runtime_config 가 읽어 GenerationConfig 로 전달.
+    raw_rag_only: bool = False
 
 
 # --- 페이지네이션 ---

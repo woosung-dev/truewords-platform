@@ -113,6 +113,8 @@ class ChatbotService:
             generation=GenerationConfig(
                 system_prompt=base_prompt,
                 persona_name=persona,
+                # 레드팀 시연 — search_tiers JSONB 의 raw_rag_only 플래그 (마이그레이션 없이 재사용).
+                raw_rag_only=raw.get("raw_rag_only", False),
             ),
             retrieval=RetrievalConfig(
                 rerank_enabled=raw.get("rerank_enabled", True),

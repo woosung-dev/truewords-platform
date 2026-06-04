@@ -36,6 +36,8 @@ export interface ChatbotFormValues {
     weighted_sources: WeightedSource[];
     dictionary_enabled: boolean;
     query_rewrite_enabled: boolean;
+    // 레드팀 시연 — RAG-only 대조군 봇. true 면 시스템 프롬프트 전부 우회.
+    raw_rag_only: boolean;
   };
 }
 
@@ -65,6 +67,7 @@ function buildInitial(initial?: Partial<ChatbotFormValues>): ChatbotFormValues {
       weighted_sources: initial?.search_tiers?.weighted_sources ?? [],
       dictionary_enabled: initial?.search_tiers?.dictionary_enabled ?? false,
       query_rewrite_enabled: initial?.search_tiers?.query_rewrite_enabled ?? false,
+      raw_rag_only: initial?.search_tiers?.raw_rag_only ?? false,
     },
   };
 }
@@ -267,6 +270,27 @@ export function ChatbotForm({
           <span className="text-xs text-muted-foreground bg-admin-muted px-2 py-0.5 rounded-md">
             준비중
           </span>
+        </div>
+
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 p-3">
+          <Checkbox
+            id="raw-rag-only"
+            checked={values.search_tiers.raw_rag_only}
+            onCheckedChange={(c) => patchSearch("raw_rag_only", c === true)}
+            className="mt-0.5"
+          />
+          <Label
+            htmlFor="raw-rag-only"
+            className="cursor-pointer text-sm flex flex-col gap-0.5"
+          >
+            <span className="font-medium text-amber-900">
+              RAG-only 모드 (시연용 대조군)
+            </span>
+            <span className="text-xs text-amber-700 font-normal">
+              켜면 시스템 프롬프트(기본 17원칙·톤·인용형식·보안 규칙)를 전부
+              우회하고 검색 결과만으로 답변합니다. 인용 번호·가드레일이 사라집니다.
+            </span>
+          </Label>
         </div>
 
         <SearchModeSelector

@@ -197,7 +197,13 @@ def select_system_prompt(
 
     강조점(theological_emphasis) 처리는 폐기됨 (v3 개편, 2026-05-14).
     pastoral 핫라인 안내는 모드 모듈 본문에 직접 포함되어 있다.
+
+    레드팀 시연 — raw_rag_only 봇은 BASE·모드모듈 전부 우회하고 빈 문자열을
+    반환한다. generate_answer 가 빈 system_instruction 으로 호출 → 검색 컨텍스트
+    + 질문만 LLM 에 전달되는 순수 RAG 대조군.
     """
+    if generation_config.raw_rag_only:
+        return ""
     return compose_system_prompt(
         base=generation_config.system_prompt,
         mode=answer_mode,
