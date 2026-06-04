@@ -105,6 +105,9 @@ export interface QueryOccurrence {
   session_id: string;
   chatbot_id: string | null;
   chatbot_name: string | null;
+  // 레드팀 시연 — 이 질문을 보낸 참여자 (게이트 입력). 익명 세션은 null.
+  participant_name: string | null;
+  participant_category: string | null;
   asked_at: string;
   rewritten_query: string | null;
   search_tier: number;
