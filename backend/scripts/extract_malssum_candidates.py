@@ -71,6 +71,14 @@ def _is_card_worthy(text: str) -> bool:
     return bool(_SENT_END.search(t))  # 한국어 문장 종결로 끝나는 완결 본문만
 
 
+_VOL_EXT = re.compile(r"\.(txt|pdf|hwpx?|docx?|pptx?)$", re.IGNORECASE)
+
+
+def _clean_volume(volume: str) -> str:
+    """volume 끝의 파일 확장자 제거 (예: '천성경.pdf' → '천성경')."""
+    return _VOL_EXT.sub("", volume.strip())
+
+
 async def _scroll_category(
     client: httpx.AsyncClient,
     base: str,
@@ -113,7 +121,7 @@ async def _scroll_category(
                         "text": text,
                         "source": _SOURCE_LABELS.get(category, category),  # 읽기 쉬운 출처
                         "category": category,  # 주제 — 아래 theming 이 덮어씀(--no-theme 시 source 키 유지)
-                        "volume": str(payload.get("volume", "")),
+                        "volume": _clean_volume(str(payload.get("volume", ""))),
                     }
                 )
         scanned += len(points)
