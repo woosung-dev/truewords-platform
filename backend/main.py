@@ -6,8 +6,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 import asyncio
+
+import httpx
 
 from src.admin.ingest_worker import shutdown_worker as shutdown_ingest_worker
 from src.common.database import engine, init_db
@@ -31,8 +34,13 @@ from src.common.exception_handlers import (
     unhandled_exception_handler,
 )
 from src.common.middleware import RequestIdMiddleware
+from src.qdrant.raw_client import RawQdrantClient
 from src.safety.exceptions import InputBlockedError, RateLimitExceededError
 from src.search.exceptions import EmbeddingFailedError, SearchFailedError
+
+# readiness 프로브 전용 짧은 timeout — liveness 와 달리 의존성 장애 시 빠르게
+# 실패해야 uptime 모니터·Cloud Run readiness 가 즉시 감지한다.
+_READYZ_TIMEOUT = httpx.Timeout(5.0, connect=3.0)
 
 
 @asynccontextmanager
@@ -120,3 +128,34 @@ app.include_router(analytics_router)
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/readyz")
+async def readyz():
+    """운영 의존성(Qdrant) 실제 연결을 확인하는 readiness 프로브.
+
+    /health(liveness)는 프로세스 생존만 보지만, /readyz 는 Qdrant 도달 +
+    main 컬렉션 존재까지 확인한다. Qdrant 터널 장애(예: Cloudflare 530 /
+    Error 1033)를 uptime 모니터·Cloud Run readiness 가 즉시 감지하도록
+    503 을 반환한다. 내부 예외 상세는 응답에 노출하지 않고 서버 로그로만 남긴다
+    (Cloudflare 에러 HTML 등 외부 노출 방지).
+    상세: docs/dev-log/62-readiness-probe-and-cleanup-hardening.md
+    """
+    client = RawQdrantClient(timeout=_READYZ_TIMEOUT)
+    try:
+        exists = await client.collection_exists(settings.collection_name)
+    except Exception as e:
+        logger.warning("readyz: Qdrant 도달 실패 — %r", e)
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unavailable", "qdrant": "unreachable"},
+        )
+    if not exists:
+        logger.warning(
+            "readyz: Qdrant 도달했으나 컬렉션 부재 — %s", settings.collection_name
+        )
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unavailable", "qdrant": "collection_missing"},
+        )
+    return {"status": "ready"}

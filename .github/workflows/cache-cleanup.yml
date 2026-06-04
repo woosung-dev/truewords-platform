@@ -73,5 +73,19 @@ jobs:
             ARGS="$ARGS --ttl-days $TTL_OVERRIDE"
           fi
 
-          echo "Running: scripts/cleanup_semantic_cache.py $ARGS"
-          uv run python scripts/cleanup_semantic_cache.py $ARGS
+          # Qdrant 가 Cloudflare Tunnel 뒤에 있어 일시적 5xx(터널 재연결 등)가
+          # 날 수 있다. 짧은 blip 으로 daily 작업이 실패하지 않도록 3회 재시도하되,
+          # 지속 장애(예: 터널/VM 다운)는 그대로 fail 시켜 빨간 X 로 알린다.
+          ATTEMPTS=3
+          for i in $(seq 1 "$ATTEMPTS"); do
+            echo "Attempt $i/$ATTEMPTS: scripts/cleanup_semantic_cache.py $ARGS"
+            if uv run python scripts/cleanup_semantic_cache.py $ARGS; then
+              exit 0
+            fi
+            if [ "$i" -lt "$ATTEMPTS" ]; then
+              echo "::warning::cleanup 시도 $i/$ATTEMPTS 실패 (Qdrant 미응답 가능) — 30s 후 재시도"
+              sleep 30
+            fi
+          done
+          echo "::error::cleanup ${ATTEMPTS}회 모두 실패 — Qdrant 도달 불가 추정. qdrant.woosung.dev 터널/VM 점검 필요 (docs/07_infra/qdrant-self-hosting.md '문제 해결')"
+          exit 1

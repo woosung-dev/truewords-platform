@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-04-30
+> 마지막 업데이트: 2026-06-04
 
 ## Progress Overview
 
@@ -119,6 +119,13 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ---
 
 ## Blocked
+
+### 🔴 Qdrant 터널 장애 — 운영 RAG 영향 (2026-06-04) [인프라 복구 필요]
+
+- [ ] **`qdrant.woosung.dev` 530 (Cloudflare Tunnel Error 1033)** — Qdrant VM cloudflared 오프라인. Semantic Cache Cleanup CI(run #33) 실패로 감지. 운영 `/chat` 도 동일 Qdrant 의존(같은 `QDRANT_URL` secret) → RAG 검색 중단 추정.
+  - **복구(사용자):** `docs/07_infra/qdrant-self-hosting.md` "문제 해결" — VM 상태 확인(`gcloud compute instances describe qdrant-server --zone=asia-northeast3-a`) → 정지면 `start` → SSH `sudo docker compose up -d` / `restart cloudflared` → `curl https://qdrant.woosung.dev/collections` 200 확인 → cleanup CI 재실행(green) + 운영 `/chat` 검증.
+  - **가설:** ADR 61 GCP 마이그레이션(woosung-dev→jetaime-dev) "구 리소스 5/21+ 정리" 때 VM 정지 가능. ADR 61 은 Qdrant 를 "GCP 외부 영향 0" 으로 분류했으나 **실제 GCP VM** — 정정 필요.
+  - **방어(코드, 적용됨):** `/readyz` 프로브 + cleanup 워크플로우 3회 재시도. 브랜치 `fix/qdrant-readyz-cleanup-hardening`, 상세 ADR 62.
 
 ### 클라이언트 피드백 14건 중 보류 항목 (2026-05-09)
 
