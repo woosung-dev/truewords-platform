@@ -20,6 +20,9 @@ export interface ChatBot {
  */
 export interface ChatRequestOptions {
   answer_mode?: AnswerMode;
+  // 레드팀 시연 — 루트 게이트에서 입력받은 참여자 식별 정보. 모든 요청에 동봉.
+  participant_name?: string;
+  participant_category?: string;
 }
 
 export interface Source {
@@ -36,11 +39,22 @@ export interface Source {
   cited_phrase?: string | null;
 }
 
+// 레드팀 시연 — 답변에 곁들이는 무작위 말씀 (의미 검색 아닌 랜덤). 목록 비면 null.
+export interface FeaturedMalssum {
+  text: string;
+  // category = 주제(테마), source = 출처 그룹, volume = 권 상세
+  category?: string;
+  source?: string;
+  volume?: string;
+}
+
 export interface ChatResponse {
   answer: string;
   sources: Source[];
   session_id: string;
   message_id: string;
+  // 레드팀 시연 — 답변 화면 카드용 무작위 말씀.
+  featured_malssum?: FeaturedMalssum | null;
   // P0-A — 자동 follow-up 추천 (생성 실패/비활성 시 null).
   suggested_followups?: string[] | null;
   // P1-J — 기도문/결의문 마무리 (비활성 시 null).
@@ -92,6 +106,12 @@ export const chatAPI = {
         chatbot_id: chatbotId,
         session_id: sessionId,
         ...(options?.answer_mode ? { answer_mode: options.answer_mode } : {}),
+        ...(options?.participant_name
+          ? { participant_name: options.participant_name }
+          : {}),
+        ...(options?.participant_category
+          ? { participant_category: options.participant_category }
+          : {}),
       }),
       signal,
     });
@@ -127,6 +147,7 @@ export const chatAPI = {
         message_id: string;
         closing?: string | null;
         suggested_followups?: string[] | null;
+        featured_malssum?: FeaturedMalssum | null;
       }) => void;
       onDone: (data: { disclaimer: string }) => void;
     },
@@ -139,6 +160,12 @@ export const chatAPI = {
         chatbot_id: chatbotId,
         session_id: sessionId,
         ...(options?.answer_mode ? { answer_mode: options.answer_mode } : {}),
+        ...(options?.participant_name
+          ? { participant_name: options.participant_name }
+          : {}),
+        ...(options?.participant_category
+          ? { participant_category: options.participant_category }
+          : {}),
       }),
       signal,
     });

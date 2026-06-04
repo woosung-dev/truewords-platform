@@ -208,7 +208,9 @@ class AnalyticsRepository:
                     sm.content AS answer_text,
                     sm.created_at AS answered_at,
                     rs.chatbot_config_id AS chatbot_id,
-                    cc.display_name AS chatbot_name
+                    cc.display_name AS chatbot_name,
+                    rs.participant_name,
+                    rs.participant_category
                 FROM search_events se
                 JOIN session_messages sm ON sm.id = se.message_id
                 JOIN research_sessions rs ON rs.id = sm.session_id
@@ -327,6 +329,8 @@ class AnalyticsRepository:
                 "session_id": row.session_id,
                 "chatbot_id": row.chatbot_id,
                 "chatbot_name": row.chatbot_name,
+                "participant_name": row.participant_name,
+                "participant_category": row.participant_category,
                 "asked_at": asked_at,
                 "rewritten_query": row.rewritten_query,
                 "search_tier": row.search_tier,
@@ -419,7 +423,9 @@ class AnalyticsRepository:
                     rs.chatbot_config_id,
                     cc.display_name AS chatbot_name,
                     rs.started_at,
-                    rs.ended_at
+                    rs.ended_at,
+                    rs.participant_name,
+                    rs.participant_category
                 FROM research_sessions rs
                 LEFT JOIN chatbot_configs cc ON cc.id = rs.chatbot_config_id
                 WHERE rs.id = :sid
@@ -452,6 +458,8 @@ class AnalyticsRepository:
                 "chatbot_name": session_row.chatbot_name,
                 "started_at": session_row.started_at,
                 "ended_at": session_row.ended_at,
+                "participant_name": session_row.participant_name,
+                "participant_category": session_row.participant_category,
                 "messages": [],
             }
 
@@ -535,6 +543,8 @@ class AnalyticsRepository:
             "chatbot_name": session_row.chatbot_name,
             "started_at": session_row.started_at,
             "ended_at": session_row.ended_at,
+            "participant_name": session_row.participant_name,
+            "participant_category": session_row.participant_category,
             "messages": messages,
         }
 

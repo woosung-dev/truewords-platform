@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight, ThumbsUp, ThumbsDown, Minus } from "lucide-react";
+import { ChevronDown, ChevronRight, ThumbsUp, ThumbsDown, Minus, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { QueryOccurrence } from "@/features/analytics/types";
 
@@ -65,6 +65,16 @@ export default function QueryDetailOccurrence({
         <Badge variant="outline" className="shrink-0 text-xs">
           {botLabel}
         </Badge>
+        {/* 레드팀 시연 — 누가·어느 카테고리에서 질문했는지 (게이트 입력) */}
+        {occurrence.participant_name && (
+          <Badge className="shrink-0 gap-1 text-xs bg-primary/10 text-primary hover:bg-primary/10">
+            <User className="h-3 w-3" />
+            {occurrence.participant_name}
+            {occurrence.participant_category
+              ? ` · ${occurrence.participant_category}`
+              : ""}
+          </Badge>
+        )}
         <span className="text-xs text-muted-foreground shrink-0">
           {formatDateTime(occurrence.asked_at)}
         </span>

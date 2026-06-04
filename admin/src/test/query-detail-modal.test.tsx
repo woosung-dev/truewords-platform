@@ -40,6 +40,8 @@ function occurrenceFixture(
     session_id: "44444444-4444-4444-4444-444444444444",
     chatbot_id: "55555555-5555-5555-5555-555555555555",
     chatbot_name: "기본 챗봇",
+    participant_name: null,
+    participant_category: null,
     asked_at: "2026-04-21T10:00:00",
     rewritten_query: null,
     search_tier: 0,

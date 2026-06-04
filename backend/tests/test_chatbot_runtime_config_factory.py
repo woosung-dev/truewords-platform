@@ -133,3 +133,55 @@ async def test_build_runtime_config_theological_stance_propagated():
 
     assert rc is not None
     assert rc.theological_stance == "초교파 복음주의 신학에 기반합니다."
+
+
+@pytest.mark.asyncio
+async def test_build_runtime_config_raw_rag_only_default_false():
+    """레드팀 시연 — search_tiers 에 raw_rag_only 키가 없으면 False."""
+    from src.chatbot.service import ChatbotService
+
+    repo = _make_repo(_stub_db_config())
+    svc = ChatbotService(repo=repo)
+    rc = await svc.build_runtime_config("cb-test")
+
+    assert rc is not None
+    assert rc.generation.raw_rag_only is False
+
+
+@pytest.mark.asyncio
+async def test_build_runtime_config_raw_rag_only_propagated():
+    """레드팀 시연 — search_tiers.raw_rag_only 가 GenerationConfig 로 전파."""
+    from src.chatbot.service import ChatbotService
+
+    cfg = _stub_db_config()
+    cfg.search_tiers = {**cfg.search_tiers, "raw_rag_only": True}
+    repo = _make_repo(cfg)
+    svc = ChatbotService(repo=repo)
+    rc = await svc.build_runtime_config("cb-test")
+
+    assert rc is not None
+    assert rc.generation.raw_rag_only is True
+
+
+def test_select_system_prompt_raw_rag_only_returns_empty():
+    """레드팀 시연 — raw_rag_only=True 면 BASE·모드모듈 우회하고 빈 문자열 반환."""
+    from src.chat.pipeline.stages.generation import select_system_prompt
+    from src.chatbot.runtime_config import GenerationConfig
+
+    gen_cfg = GenerationConfig(
+        system_prompt="당신은 학습 도우미입니다.",
+        persona_name="지식이",
+        raw_rag_only=True,
+    )
+    assert select_system_prompt(generation_config=gen_cfg, answer_mode="standard") == ""
+
+
+def test_select_system_prompt_default_composes_when_not_raw():
+    """raw_rag_only=False (기본) 면 기존대로 BASE + 모드모듈 합성."""
+    from src.chat.pipeline.stages.generation import select_system_prompt
+    from src.chatbot.runtime_config import GenerationConfig
+
+    gen_cfg = GenerationConfig(system_prompt="당신은 학습 도우미입니다.")
+    composed = select_system_prompt(generation_config=gen_cfg, answer_mode="standard")
+    assert composed != ""
+    assert "당신은 학습 도우미입니다." in composed

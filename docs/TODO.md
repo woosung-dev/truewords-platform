@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-04-30
+> 마지막 업데이트: 2026-06-04
 
 ## Progress Overview
 
@@ -299,3 +299,26 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] VM Snapshot → Cloud Storage 자동 백업 (cron + gcloud)
 - [ ] Qdrant 클러스터링 (3노드, 데이터 ≥ 10GB 시점)
 - [ ] AWS 이관 IaC 작성 (Terraform/CDK)
+
+### 12. 레드팀 시연 세팅 (2026-06-04, 임시 — 존속 미지수)
+> 브랜치: `feat/redteam-demo` · 플랜: `~/.claude/plans/jiggly-doodling-bachman.md`
+> 프로덕트 영구 반영 미정. 시연 후 폐기 가능.
+
+#### 코드 (완료)
+- [x] 봇 3종 비교 — RAG-only 대조군 `raw_rag_only` 플래그 (search_tiers JSONB, 마이그레이션 없음). select_system_prompt 우회 + admin 폼 체크박스
+- [x] 참여자 게이트 — `ResearchSession.participant_name/category` + 마이그레이션 `d7e8f9a0b1c2` + 채팅 랜딩 필수 입력 + 세션 상세 분석 노출
+- [x] 말씀 카드 — `src/malssum/` JSON. 답변을 LLM 으로 주제 분류 → **해당 주제 말씀 무작위**(`pick_malssum_for_answer`). 6개 응답 경로 동봉(캐시 제외), main 경로는 followups/closing 과 병렬이라 추가 지연 0. 채팅 "함께 보는 말씀" 카드. (주제 미매칭/풀 작으면 전체 무작위 fallback)
+
+#### 사용자/운영 액션 필요
+- [ ] **봇1 (집필 규정 적용)**: admin → 챗봇 생성, `system_prompt`에 BASE 본문 + 24규정 직접 입력 (요청 시 BASE 블록 채팅 출력)
+- [ ] **봇2 (미적용)**: admin → `system_prompt` 비움 → BASE만 적용
+- [ ] **봇3 (RAG-only)**: admin → "RAG-only 모드" 체크박스 ON
+- [ ] **말씀 큐레이션**: `uv run python scripts/extract_malssum_candidates.py --categories O,B,M --per-category 30` 실행 → 후보 추출 + **AI 주제 태깅**(위로/교리/실천/가정/참사랑) → 후보 검토 → 선별분을 `src/malssum/featured_malssum.json`에 저장. (각 항목 `category` = 주제)
+- [ ] **참여자 카테고리** 형태(자유 입력 vs 드롭다운) + 게이트 입력 UI는 `/design-shotgun` A~C 시안으로 확정
+
+#### 시연 종료 후 정리 (차단 항목)
+- [ ] **raw_rag_only 봇 비활성화/삭제** — RAG-only 봇은 LLM 차원 범위 제한이 빠진 대조군. 익명 사용자 노출 방지 위해 시연 종료 후 `is_active=False` 처리 또는 삭제. (PII 필터·면책·rate-limit·입력 인젝션 차단은 유지되므로 인프라 가드레일은 정상.)
+- [ ] 말씀 카드 사용 안 하면 `featured_malssum.json` 빈 `[]` 유지 (자동으로 카드 미표시)
+
+#### 알려진 사항 (범위 외)
+- 채팅 요청에 `chatbot_id`가 없으면 `process_chat`의 legacy 경로가 `generate_answer(generation_config=None)`를 호출 → 런타임 AttributeError 가능. 본 작업 이전부터 존재한 latent 결함이며 이번 변경과 무관. 별도 trigger.

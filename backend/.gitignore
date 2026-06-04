@@ -34,6 +34,8 @@ build/
 # 참고: tmp_match/ 는 실행 cwd (보통 repo root) 에 생성되어 root .gitignore 에서 처리.
 progress.json
 eval_results.json
+# migrate_cloud_to_vm.py 실행 체크포인트 (생성물)
+scripts/.migration_state.json
 
 # ─── Jupyter / 데이터 분석 임시 ─────────────────────
 .ipynb_checkpoints/

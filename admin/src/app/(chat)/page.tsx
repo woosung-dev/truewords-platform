@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -41,6 +43,7 @@ import {
   chatAPI,
   type ChatBot,
   type ChatResponse,
+  type FeaturedMalssum,
   type FeedbackType,
 } from "@/features/chatbot/chat-api";
 import { toFriendlyError } from "@/features/chat/error-message";
@@ -71,6 +74,8 @@ interface Message {
   closing?: string | null;
   // 답변 시점의 답변 모드 — 메시지 옆 아바타 아이콘이 모드 변경에 따라 과거 답변까지 바뀌지 않도록 보존.
   persona?: PersonaMode;
+  // 레드팀 시연 — 답변에 곁들이는 무작위 말씀 (답변별 보존). 없으면 카드 미표시.
+  featuredMalssum?: FeaturedMalssum | null;
 }
 
 // PERSONAS 배열에서 모드 키로 정의를 찾는다. 미일치 시 첫 항목(표준) fallback.
@@ -131,6 +136,13 @@ export default function ChatPage() {
   const [warmingUp, setWarmingUp] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
 
+  // 레드팀 시연 — 참여자 식별 게이트. 이름+카테고리 입력 전 채팅 진입 차단.
+  // localStorage 로 보존해 새로고침 시 재입력을 막고, "변경" 으로 초기화한다.
+  // (입력 폼 디자인은 추후 /design-shotgun A~C 시안으로 교체 예정)
+  const [participantName, setParticipantName] = useState("");
+  const [participantCategory, setParticipantCategory] = useState("");
+  const [participantReady, setParticipantReady] = useState(false);
+
   // P0-B — 인용 카드 → 원문보기 모달 상태
   // displayName 은 admin 인라인 편집으로 지정한 사람 친화적 표시명. 모달의
   // fallbackLabel 로 전달되어 백엔드 chunk detail fetch 전/후 모두 우선 노출.
@@ -180,6 +192,52 @@ export default function ChatPage() {
         setWarmingUp(false);
       });
     return () => clearTimeout(slowTimer);
+  }, []);
+
+  // 레드팀 시연 — 참여자 게이트 localStorage 복원. 둘 다 있으면 진입 허용.
+  useEffect(() => {
+    try {
+      const n = localStorage.getItem("tw_participant_name") ?? "";
+      const c = localStorage.getItem("tw_participant_category") ?? "";
+      if (n && c) {
+        setParticipantName(n);
+        setParticipantCategory(c);
+        setParticipantReady(true);
+      }
+    } catch {
+      // localStorage 비가용 (프라이빗 모드 등) — 게이트 그대로 노출.
+    }
+  }, []);
+
+  const handleParticipantSubmit = useCallback(() => {
+    const n = participantName.trim();
+    const c = participantCategory.trim();
+    if (!n || !c) return;
+    try {
+      localStorage.setItem("tw_participant_name", n);
+      localStorage.setItem("tw_participant_category", c);
+    } catch {
+      // 저장 실패해도 이번 세션 동안은 진행.
+    }
+    setParticipantName(n);
+    setParticipantCategory(c);
+    setParticipantReady(true);
+  }, [participantName, participantCategory]);
+
+  const handleParticipantReset = useCallback(() => {
+    try {
+      localStorage.removeItem("tw_participant_name");
+      localStorage.removeItem("tw_participant_category");
+    } catch {
+      // 무시.
+    }
+    // 참여자 전환 시 대화 세션을 끊는다(handleNewChat 과 동일). 진행 중 요청은
+    // abort — 안 그러면 옛 참여자 응답의 onSources 가 sessionId 를 세팅해 새 참여자
+    // 메시지가 옛 세션(옛 participant)에 귀속된다(게이트 핵심 목적 무력화 방지).
+    abortRef.current?.abort();
+    setMessages([]);
+    setSessionId(undefined);
+    setParticipantReady(false);
   }, []);
 
   // 새 user 메시지가 추가될 때만 그 element 를 viewport 상단으로 스크롤.
@@ -320,7 +378,11 @@ export default function ChatPage() {
           selectedBot,
           sessionId,
           controller.signal,
-          { answer_mode: answerMode },
+          {
+            answer_mode: answerMode,
+            participant_name: participantName,
+            participant_category: participantCategory,
+          },
           {
             onChunk: (text) => {
               // INLINE_CITATIONS 블록은 매 chunk 누적 후 즉시 strip (사용자에게 잠깐도
@@ -339,6 +401,7 @@ export default function ChatPage() {
                 sources: data.sources,
                 closing: data.closing ?? null,
                 suggestedFollowups: data.suggested_followups ?? null,
+                featuredMalssum: data.featured_malssum ?? null,
               }));
             },
             onDone: () => {
@@ -354,7 +417,11 @@ export default function ChatPage() {
           selectedBot,
           sessionId,
           controller.signal,
-          { answer_mode: answerMode },
+          {
+            answer_mode: answerMode,
+            participant_name: participantName,
+            participant_category: participantCategory,
+          },
         );
         setSessionId(res.session_id);
         patchLastAssistant((m) => ({
@@ -364,6 +431,7 @@ export default function ChatPage() {
           sources: res.sources,
           closing: res.closing ?? null,
           suggestedFollowups: res.suggested_followups ?? null,
+          featuredMalssum: res.featured_malssum ?? null,
         }));
       }
     } catch (e) {
@@ -392,7 +460,16 @@ export default function ChatPage() {
       // textarea focus 복원 (응답 후 자연스러운 연속 질문)
       requestAnimationFrame(() => textareaRef.current?.focus());
     }
-  }, [input, selectedBot, sessionId, loading, answerMode, selectedBotInfo]);
+  }, [
+    input,
+    selectedBot,
+    sessionId,
+    loading,
+    answerMode,
+    selectedBotInfo,
+    participantName,
+    participantCategory,
+  ]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -484,6 +561,62 @@ export default function ChatPage() {
   // - handleFloatingBookmark: setBookmarkedIds (영속화 미구현)
   // - handleFloatingShare: navigator.share / clipboard fallback
 
+  // 레드팀 시연 — 참여자 게이트. 이름·카테고리 입력 전에는 채팅 화면을 막는다.
+  // (디자인은 추후 /design-shotgun A~C 시안으로 교체 예정 — 현재는 기능 동작용)
+  if (!participantReady) {
+    const canEnter = !!participantName.trim() && !!participantCategory.trim();
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-background p-6">
+        <Card className="w-full max-w-md space-y-5 p-6">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-primary" />
+            <h1 className="text-lg font-semibold">TrueWords 시연 참여</h1>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            답변 기록을 참여자별로 구분하기 위해 이름과 카테고리(소속)를 입력해
+            주세요. 입력 후 채팅이 시작됩니다.
+          </p>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="participant-name">이름</Label>
+              <Input
+                id="participant-name"
+                value={participantName}
+                onChange={(e) => setParticipantName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleParticipantSubmit();
+                }}
+                placeholder="예: 홍길동"
+                autoFocus
+                maxLength={128}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="participant-category">카테고리 / 소속</Label>
+              <Input
+                id="participant-category"
+                value={participantCategory}
+                onChange={(e) => setParticipantCategory(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleParticipantSubmit();
+                }}
+                placeholder="예: 청년부 / 레드팀 A조"
+                maxLength={128}
+              />
+            </div>
+          </div>
+          <Button
+            className="w-full"
+            onClick={handleParticipantSubmit}
+            disabled={!canEnter}
+          >
+            채팅 시작
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-dvh flex-col bg-background">
       {/* 헤더 */}
@@ -499,6 +632,18 @@ export default function ChatPage() {
           <h1 className="text-lg font-semibold">TrueWords</h1>
         </button>
         <div className="flex items-center gap-2">
+          {/* 레드팀 시연 — 현재 참여자 + 변경(게이트 재진입) */}
+          <button
+            type="button"
+            onClick={handleParticipantReset}
+            className="hidden items-center gap-1.5 rounded-full border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent/10 sm:flex"
+            title="참여자 변경"
+          >
+            <User className="h-3.5 w-3.5" />
+            <span className="font-medium text-foreground">{participantName}</span>
+            <span className="text-muted-foreground/70">· {participantCategory}</span>
+            <span className="ml-1 text-primary">변경</span>
+          </button>
           {messages.length > 0 && (
             <Button
               type="button"
@@ -727,6 +872,32 @@ export default function ChatPage() {
                             closing={msg.closing}
                             className="mt-3"
                           />
+                        )}
+                        {/* 레드팀 시연 — 답변에 곁들이는 무작위 말씀 카드. 응답 완료 후에만. */}
+                        {msg.messageId && msg.featuredMalssum?.text && (
+                          <div className="mt-3 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
+                            <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-primary">
+                              <BookOpen className="h-3.5 w-3.5" />
+                              함께 보는 말씀
+                            </div>
+                            <p className="text-sm leading-relaxed text-foreground/90">
+                              {msg.featuredMalssum.text}
+                            </p>
+                            {(msg.featuredMalssum.source ||
+                              msg.featuredMalssum.volume ||
+                              msg.featuredMalssum.category) && (
+                              <p className="mt-1.5 text-xs text-muted-foreground">
+                                {/* 출처(그룹·권) · 주제 */}
+                                {[
+                                  msg.featuredMalssum.source,
+                                  msg.featuredMalssum.volume,
+                                  msg.featuredMalssum.category,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </Card>
                     )}

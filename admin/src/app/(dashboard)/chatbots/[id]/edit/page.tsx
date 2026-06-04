@@ -135,6 +135,7 @@ export default function EditChatbotPage({
                 config.search_tiers?.dictionary_enabled ?? false,
               query_rewrite_enabled:
                 config.search_tiers?.query_rewrite_enabled ?? false,
+              raw_rag_only: config.search_tiers?.raw_rag_only ?? false,
             },
           }}
           isSubmitting={mutation.isPending}

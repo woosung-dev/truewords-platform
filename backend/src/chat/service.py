@@ -35,6 +35,7 @@ from src.chat.prompt import BASE_SYSTEM_PROMPT
 from src.chat.repository import ChatRepository
 from src.chat.schemas import ChatRequest, ChatResponse, FeedbackRequest, Source
 from src.chat.stream_generator import generate_answer_stream
+from src.malssum.service import pick_malssum_for_answer
 from src.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
@@ -197,11 +198,14 @@ class ChatService:
                 src = Source(**s)
                 src.display_name = display_name_lookup.get((src.source, src.volume))
                 cache_sources.append(src)
+            # 레드팀 시연 — 캐시 답변에도 주제 매칭 말씀 (매 응답 fresh, 캐시 미저장).
+            featured = await pick_malssum_for_answer(ctx.cache_response.answer)
             return ChatResponse(
                 answer=ctx.cache_response.answer,
                 sources=cache_sources,
                 session_id=ctx.session.id,
                 message_id=assistant_msg.id,
+                featured_malssum=featured,
             )
 
         # Stage 체인: 런타임 설정 → intent 분류
@@ -219,6 +223,8 @@ class ChatService:
                 sources=[],
                 session_id=ctx.session.id,
                 message_id=assistant_msg.id,
+                # 메타(범위 밖/거부) 응답엔 말씀 카드 미표시.
+                featured_malssum=None,
             )
 
         # 본 chain: 쿼리 재작성 → 검색 → 리랭킹 → 생성 → Safety → DB 기록
@@ -227,13 +233,16 @@ class ChatService:
         ctx = await self.rerank_stage.execute(ctx)
         ctx = await self.generation_stage.execute(ctx)
         ctx = await self.safety_output_stage.execute(ctx)
-        # P0-A + P1-J: 두 stage 는 본 답변과 독립적이므로 병렬 실행.
+        # P0-A + P1-J + 말씀 주제 매칭: 세 작업 모두 본 답변과 독립적이라 병렬 실행.
+        # 말씀 LLM 분류를 여기 끼워 main 경로 추가 지연 0 (followups/closing 과 overlap).
         # 실패해도 답변 본체에 영향 없도록 return_exceptions=True.
-        await asyncio.gather(
+        gathered = await asyncio.gather(
             self.suggested_followups_stage.execute(ctx),
             self.closing_template_stage.execute(ctx),
+            pick_malssum_for_answer(ctx.answer or ""),
             return_exceptions=True,
         )
+        featured = gathered[2] if isinstance(gathered[2], dict) else None
         ctx = await self.persist_stage.execute(ctx)
 
         display_name_lookup = await self._build_display_name_lookup()
@@ -255,6 +264,7 @@ class ChatService:
             suggested_followups=ctx.suggested_followups,
             closing=ctx.closing,
             persona_overridden=getattr(ctx, "persona_overridden", False),
+            featured_malssum=featured,
         )
 
     async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:
@@ -277,6 +287,8 @@ class ChatService:
             for s in ctx.cache_response.sources[:3]:
                 enriched = {**s, "display_name": display_name_lookup.get((s.get("source", ""), s.get("volume", "")))}
                 sources_data.append(enriched)
+            # 레드팀 시연 — 캐시 답변에도 주제 매칭 말씀 (매 응답 fresh).
+            featured = await pick_malssum_for_answer(safe_answer)
             # cache hit 경로는 closing/suggested_followups 가 cache 에 저장되지 않아 None.
             cache_sources_payload = {
                 "sources": sources_data,
@@ -284,6 +296,7 @@ class ChatService:
                 "message_id": str(assistant_msg.id),
                 "closing": None,
                 "suggested_followups": None,
+                "featured_malssum": featured,
             }
             yield f"event: sources\ndata: {json.dumps(cache_sources_payload, ensure_ascii=False)}\n\n"
             yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
@@ -309,6 +322,8 @@ class ChatService:
                     "message_id": str(assistant_msg.id),
                     "closing": None,
                     "suggested_followups": None,
+                    # 메타(범위 밖/거부) 응답엔 말씀 카드 미표시.
+                    "featured_malssum": None,
                 }
                 yield f"event: sources\ndata: {json.dumps(meta_sources_payload, ensure_ascii=False)}\n\n"
                 yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
@@ -362,11 +377,14 @@ class ChatService:
             # abort 분기: guidance 만 persist (raw partial answer 가 DB 에 남지 않도록).
             ctx.answer = abort_guidance if abort_guidance is not None else "".join(full_answer)
             ctx = await self.safety_output_stage.execute(ctx)
-            await asyncio.gather(
+            # 말씀 주제 매칭 LLM 분류를 followups/closing 과 병렬 → 추가 지연 0.
+            gathered = await asyncio.gather(
                 self.suggested_followups_stage.execute(ctx),
                 self.closing_template_stage.execute(ctx),
+                pick_malssum_for_answer(ctx.answer or ""),
                 return_exceptions=True,
             )
+            featured = gathered[2] if isinstance(gathered[2], dict) else None
             ctx = await self.persist_stage.execute(ctx)
 
             # Sources + Done 이벤트 yield (closing / suggested_followups 포함).
@@ -390,6 +408,7 @@ class ChatService:
                 "message_id": str(ctx.assistant_message.id),
                 "closing": ctx.closing,
                 "suggested_followups": ctx.suggested_followups,
+                "featured_malssum": featured,
             }
             yield (
                 f"event: sources\ndata: {json.dumps(sources_payload, ensure_ascii=False)}\n\n"

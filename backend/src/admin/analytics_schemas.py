@@ -85,6 +85,9 @@ class QueryOccurrence(BaseModel):
     session_id: uuid.UUID
     chatbot_id: uuid.UUID | None = None
     chatbot_name: str | None = None
+    # 레드팀 시연 — 이 질문을 보낸 참여자 (게이트 입력). 익명 세션은 None.
+    participant_name: str | None = None
+    participant_category: str | None = None
     asked_at: datetime
     rewritten_query: str | None = None
     search_tier: int
@@ -142,4 +145,7 @@ class SessionDetailResponse(BaseModel):
     chatbot_name: str | None = None
     started_at: datetime
     ended_at: datetime | None = None
+    # 레드팀 시연 — 세션 귀속 참여자 (게이트 입력값). 익명 세션은 None.
+    participant_name: str | None = None
+    participant_category: str | None = None
     messages: list[SessionMessageItem] = Field(default_factory=list)
