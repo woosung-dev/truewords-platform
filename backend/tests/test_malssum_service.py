@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import uuid
+from unittest.mock import AsyncMock
 
 import src.malssum.service as malssum
 
@@ -67,3 +68,55 @@ def test_chat_response_coerces_featured_malssum():
         message_id=uuid.uuid4(),
     )
     assert none_resp.featured_malssum is None
+
+
+# ── 주제 매칭 (LLM 분류) ────────────────────────────────────────────────
+
+
+async def test_pick_for_answer_empty_pool_no_llm(monkeypatch):
+    """풀 비면 None — LLM 호출조차 안 함."""
+    monkeypatch.setattr(malssum, "_items", [])
+    called = AsyncMock()
+    monkeypatch.setattr("src.common.gemini.generate_text", called)
+    assert await malssum.pick_malssum_for_answer("아무 답변") is None
+    called.assert_not_awaited()
+
+
+async def test_pick_for_answer_matches_classified_theme(monkeypatch):
+    """LLM 이 '위로' 분류 → 위로 주제 말씀만 선택."""
+    items = [
+        {"text": "위로 말씀", "category": "위로", "volume": "1권"},
+        {"text": "교리 말씀", "category": "교리", "volume": "2권"},
+    ]
+    monkeypatch.setattr(malssum, "_items", items)
+    monkeypatch.setattr(
+        "src.common.gemini.generate_text", AsyncMock(return_value="위로")
+    )
+    picked = await malssum.pick_malssum_for_answer("마음이 힘들어요")
+    assert picked is not None
+    assert picked["category"] == "위로"
+    assert picked["text"] == "위로 말씀"
+
+
+async def test_pick_for_answer_unmatched_falls_back_to_whole_pool(monkeypatch):
+    """분류 결과가 목록에 없으면(또는 실패) 전체 풀 무작위 fallback."""
+    items = [{"text": "유일 말씀", "category": "실천", "volume": "3권"}]
+    monkeypatch.setattr(malssum, "_items", items)
+    monkeypatch.setattr(
+        "src.common.gemini.generate_text", AsyncMock(return_value="존재하지않는주제")
+    )
+    picked = await malssum.pick_malssum_for_answer("어떻게 실천하나요")
+    assert picked is not None
+    assert picked["text"] == "유일 말씀"  # 전체 풀에서 fallback
+
+
+async def test_pick_for_answer_llm_failure_falls_back(monkeypatch):
+    """LLM 예외 → 분류 None → 전체 풀 fallback (카드 유지)."""
+    items = [{"text": "안전 말씀", "category": "가정", "volume": "4권"}]
+    monkeypatch.setattr(malssum, "_items", items)
+    monkeypatch.setattr(
+        "src.common.gemini.generate_text", AsyncMock(side_effect=RuntimeError("LLM down"))
+    )
+    picked = await malssum.pick_malssum_for_answer("가정의 화목")
+    assert picked is not None
+    assert picked["text"] == "안전 말씀"

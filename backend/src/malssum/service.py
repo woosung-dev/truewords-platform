@@ -1,9 +1,13 @@
-# 큐레이션된 말씀을 무작위로 1개 제공 (레드팀 시연 — 답변 화면 카드 표시용)
-"""featured_malssum.json (사람이 추린 목록) 을 1회 로드해 random 선택.
+# 큐레이션된 말씀을 답변 주제에 맞춰 1개 제공 (레드팀 시연 — 답변 화면 카드 표시용)
+"""featured_malssum.json (사람이 추린 목록) 을 1회 로드해 말씀 1개 선택.
 
-의미 검색이 아니라 단순 랜덤이므로 별도 Qdrant 컬렉션·임베딩 없이 동작한다.
-목록은 `backend/scripts/extract_malssum_candidates.py` 로 후보를 뽑아 사람이
-선별해 채운다. 비어 있으면 get_random_malssum 이 None → UI 가 카드 미표시.
+각 항목의 ``category`` 필드는 '주제(테마)' 다 (위로/교리/실천/가정/참사랑 등).
+- ``pick_malssum_for_answer`` : 답변을 LLM 으로 주제 분류 → 해당 주제 말씀 중 무작위.
+- ``get_random_malssum``      : 주제 무시 전체 무작위 (fallback / 단순용).
+
+별도 Qdrant 컬렉션·임베딩 없이 동작한다. 목록은
+`backend/scripts/extract_malssum_candidates.py` 가 후보 추출 + AI 주제 태깅으로
+만들고 사람이 선별해 채운다. 비어 있으면 None → UI 가 카드 미표시.
 """
 from __future__ import annotations
 
@@ -41,6 +45,16 @@ def _get_items() -> list[dict]:
     return _items
 
 
+def _normalize(item: dict) -> dict:
+    """키를 항상 3개로 정규화 — 손수 편집된 JSON 이 category/volume 을 빠뜨려도
+    동기(Pydantic coerce) 경로와 SSE(raw dict) 경로의 payload 키가 일치하도록."""
+    return {
+        "text": str(item.get("text", "")),
+        "category": str(item.get("category", "")),
+        "volume": str(item.get("volume", "")),
+    }
+
+
 def get_random_malssum() -> dict | None:
     """큐레이션 목록에서 말씀 1개를 무작위 선택. 목록 비면 None.
 
@@ -50,11 +64,58 @@ def get_random_malssum() -> dict | None:
     items = _get_items()
     if not items:
         return None
-    item = random.choice(items)
-    # 키를 항상 3개로 정규화 — 손수 편집된 JSON 이 category/volume 을 빠뜨려도
-    # 동기(Pydantic coerce) 경로와 SSE(raw dict) 경로의 payload 키가 일치하도록.
-    return {
-        "text": str(item.get("text", "")),
-        "category": str(item.get("category", "")),
-        "volume": str(item.get("volume", "")),
-    }
+    return _normalize(random.choice(items))
+
+
+# ── 답변 주제 매칭 (LLM 분류 → 해당 주제 말씀) ──────────────────────────────
+# `category` 필드 값이 곧 '주제(테마)'다. 큐레이션 스크립트가 AI 로 태깅하고,
+# 런타임은 답변을 같은 주제 어휘로 분류해 그 주제 풀에서 무작위 1개를 고른다.
+MALSSUM_THEMES: list[str] = ["위로", "교리", "실천", "가정", "참사랑"]
+
+
+def _available_themes() -> list[str]:
+    """현재 큐레이션 풀에 실재하는 주제(category 값) 목록."""
+    return sorted(
+        {str(i.get("category", "")).strip() for i in _get_items() if str(i.get("category", "")).strip()}
+    )
+
+
+async def _classify_theme(answer_text: str, themes: list[str]) -> str | None:
+    """답변을 themes 중 하나로 LLM 분류 (fast 모델). 실패/미매칭 시 None."""
+    if not answer_text.strip() or not themes:
+        return None
+    prompt = (
+        "다음은 종교 상담 AI 의 답변입니다. 이 답변의 핵심 정서·주제에 가장 어울리는 "
+        "'말씀 주제' 를 아래 목록에서 정확히 하나만 골라 그 단어만 출력하세요. "
+        "목록에 없는 단어는 쓰지 마세요.\n\n"
+        f"주제 목록: {', '.join(themes)}\n\n"
+        f"답변:\n{answer_text[:1500]}\n\n"
+        "가장 어울리는 주제 (목록 중 하나, 단어만):"
+    )
+    from src.common.gemini import generate_text  # 지연 import — 순환/테스트 격리
+
+    try:
+        raw = (await generate_text(prompt) or "").strip()
+    except Exception as exc:  # noqa: BLE001 — 분류 실패는 무작위 fallback 으로 흡수
+        logger.warning("말씀 주제 분류 실패 — 무작위 fallback: %s", exc)
+        return None
+    for t in themes:
+        if t in raw:
+            return t
+    return None
+
+
+async def pick_malssum_for_answer(answer_text: str) -> dict | None:
+    """답변 주제에 맞는 말씀 1개 선택.
+
+    LLM 이 답변을 주제로 분류 → 해당 주제 말씀 중 무작위. 분류 실패 / 해당 주제
+    말씀 없음 → 전체 풀 무작위 fallback. 풀 비면 None (카드 미표시).
+    """
+    items = _get_items()
+    if not items:
+        return None
+    theme = await _classify_theme(answer_text, _available_themes())
+    pool = [i for i in items if str(i.get("category", "")).strip() == theme] if theme else []
+    if not pool:
+        pool = items  # fallback: 전체 무작위
+    return _normalize(random.choice(pool))

@@ -1,11 +1,13 @@
-# 레드팀 시연 — 기존 Qdrant 컬렉션에서 짧은 말씀 후보를 카테고리별로 추출 (큐레이션 1단계)
+# 레드팀 시연 — 기존 Qdrant 컬렉션에서 짧은 말씀 후보 추출 + AI 주제 태깅 (큐레이션 1단계)
 """featured_malssum.json 을 채우기 위한 후보 추출 스크립트.
 
-기존 운영 컬렉션(malssum_poc_v5)을 raw httpx scroll 로 훑어, 카테고리(source)별로
-지정 길이 범위의 짧은 본문을 모아 후보 JSON 으로 저장한다. 사람이 이 후보를
-검토해 원하는 항목만 남겨 `src/malssum/featured_malssum.json` 으로 옮기면 된다.
+기존 운영 컬렉션(malssum_poc_v5)을 raw httpx scroll 로 훑어, source 카테고리별로
+지정 길이 범위의 짧은 본문을 모은 뒤, 각 말씀을 **LLM 으로 주제(테마)** 분류해
+``category`` 에 태깅한다(위로/교리/실천/가정/참사랑 등). 런타임의 답변-말씀 주제
+매칭이 이 ``category`` 를 사용한다. 사람이 후보를 검토해 원하는 항목만 남겨
+`src/malssum/featured_malssum.json` 으로 옮기면 된다. (--no-theme 로 태깅 생략 가능)
 
-의미 검색이 아니라 무작위 노출용 목록이므로 임베딩/별도 컬렉션은 사용하지 않는다.
+말씀 노출은 별도 임베딩/컬렉션 없이 JSON + 주제 매칭으로 동작한다.
 
 실행 예:
     uv run python scripts/extract_malssum_candidates.py \
@@ -21,11 +23,13 @@ import argparse
 import asyncio
 import json
 import random
+from collections import Counter
 from pathlib import Path
 
 import httpx
 
 from src.config import settings
+from src.malssum.service import MALSSUM_THEMES, _classify_theme
 
 
 def _headers() -> dict[str, str]:
@@ -103,6 +107,11 @@ async def main() -> None:
         help="카테고리당 최대 scroll 포인트 수 (성능 가드)",
     )
     parser.add_argument(
+        "--no-theme",
+        action="store_true",
+        help="AI 주제 태깅 생략 (category 를 source 키로 둠). 기본은 LLM 으로 주제 태깅.",
+    )
+    parser.add_argument(
         "--out",
         default="scripts/featured_malssum.candidates.json",
         help="후보 JSON 저장 경로",
@@ -136,6 +145,21 @@ async def main() -> None:
             )
             out.extend(picked)
             print(f"  [{cat}] 풀 {len(pool)}개 → 후보 {len(picked)}개")
+
+    # AI 주제 태깅 — 각 말씀을 주제(테마)로 LLM 분류해 category 에 기록.
+    # 식구님 "AI 로 카테고리별 말씀 세트 생성" 구상 반영. 런타임 매칭도 이 주제를 씀.
+    if not args.no_theme and out:
+        print(f"\nAI 주제 태깅 중... ({len(out)}개, 테마={MALSSUM_THEMES})")
+        sem = asyncio.Semaphore(5)  # Gemini RPM 보호
+
+        async def _tag(item: dict) -> None:
+            async with sem:
+                theme = await _classify_theme(item["text"], MALSSUM_THEMES)
+                item["category"] = theme or "기타"
+
+        await asyncio.gather(*[_tag(it) for it in out])
+        dist = Counter(it["category"] for it in out)
+        print(f"  주제 분포: {dict(dist)}")
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)

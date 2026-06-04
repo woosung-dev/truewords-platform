@@ -307,13 +307,13 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 #### 코드 (완료)
 - [x] 봇 3종 비교 — RAG-only 대조군 `raw_rag_only` 플래그 (search_tiers JSONB, 마이그레이션 없음). select_system_prompt 우회 + admin 폼 체크박스
 - [x] 참여자 게이트 — `ResearchSession.participant_name/category` + 마이그레이션 `d7e8f9a0b1c2` + 채팅 랜딩 필수 입력 + 세션 상세 분석 노출
-- [x] 말씀 랜덤 카드 — `src/malssum/` JSON + random.choice, 답변 6개 응답 경로 동봉(캐시 제외), 채팅 "함께 보는 말씀" 카드
+- [x] 말씀 카드 — `src/malssum/` JSON. 답변을 LLM 으로 주제 분류 → **해당 주제 말씀 무작위**(`pick_malssum_for_answer`). 6개 응답 경로 동봉(캐시 제외), main 경로는 followups/closing 과 병렬이라 추가 지연 0. 채팅 "함께 보는 말씀" 카드. (주제 미매칭/풀 작으면 전체 무작위 fallback)
 
 #### 사용자/운영 액션 필요
 - [ ] **봇1 (집필 규정 적용)**: admin → 챗봇 생성, `system_prompt`에 BASE 본문 + 24규정 직접 입력 (요청 시 BASE 블록 채팅 출력)
 - [ ] **봇2 (미적용)**: admin → `system_prompt` 비움 → BASE만 적용
 - [ ] **봇3 (RAG-only)**: admin → "RAG-only 모드" 체크박스 ON
-- [ ] **말씀 큐레이션**: `uv run python scripts/extract_malssum_candidates.py --categories O,B,M --per-category 30` 실행 → 후보 검토 → 선별분을 `src/malssum/featured_malssum.json`에 저장
+- [ ] **말씀 큐레이션**: `uv run python scripts/extract_malssum_candidates.py --categories O,B,M --per-category 30` 실행 → 후보 추출 + **AI 주제 태깅**(위로/교리/실천/가정/참사랑) → 후보 검토 → 선별분을 `src/malssum/featured_malssum.json`에 저장. (각 항목 `category` = 주제)
 - [ ] **참여자 카테고리** 형태(자유 입력 vs 드롭다운) + 게이트 입력 UI는 `/design-shotgun` A~C 시안으로 확정
 
 #### 시연 종료 후 정리 (차단 항목)
