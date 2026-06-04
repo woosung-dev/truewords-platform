@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 _MALSSUM_PATH = Path(__file__).parent / "featured_malssum.json"
 
-# None = 아직 미로드. load_featured_malssum 이 1회 채운다 (lazy, 테스트는 override).
+# None = 아직 미로드. 첫 _get_items() 호출이 1회 채운다 (lazy, 테스트는 _items override).
 _items: list[dict] | None = None
 
 
@@ -50,4 +50,11 @@ def get_random_malssum() -> dict | None:
     items = _get_items()
     if not items:
         return None
-    return random.choice(items)
+    item = random.choice(items)
+    # 키를 항상 3개로 정규화 — 손수 편집된 JSON 이 category/volume 을 빠뜨려도
+    # 동기(Pydantic coerce) 경로와 SSE(raw dict) 경로의 payload 키가 일치하도록.
+    return {
+        "text": str(item.get("text", "")),
+        "category": str(item.get("category", "")),
+        "volume": str(item.get("volume", "")),
+    }

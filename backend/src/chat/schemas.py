@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.chat.models import FeedbackType
 from src.chat.types import AnswerMode
@@ -20,8 +20,10 @@ class ChatRequest(BaseModel):
     # P0-E 답변 모드 페르소나 5종 — 위급 시 pastoral 자동 라우팅 (별도 파이프라인이 처리)
     answer_mode: AnswerMode | None = None
     # 레드팀 시연 — 루트 게이트에서 입력받는 참여자 식별 정보. 세션 생성 시 1회 기록.
-    participant_name: str | None = None
-    participant_category: str | None = None
+    # max_length=128 은 DB VARCHAR(128) 과 동기화 — 초과 시 DB DataError(500) 대신
+    # 깨끗한 422 로 거절 (클라이언트 maxLength 우회 방어).
+    participant_name: str | None = Field(default=None, max_length=128)
+    participant_category: str | None = Field(default=None, max_length=128)
 
 
 class Source(BaseModel):

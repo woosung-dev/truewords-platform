@@ -287,8 +287,9 @@ export function ChatbotForm({
               RAG-only 모드 (시연용 대조군)
             </span>
             <span className="text-xs text-amber-700 font-normal">
-              켜면 시스템 프롬프트(기본 17원칙·톤·인용형식·보안 규칙)를 전부
-              우회하고 검색 결과만으로 답변합니다. 인용 번호·가드레일이 사라집니다.
+              켜면 시스템 프롬프트(기본 17원칙·톤·인용형식·범위 제한)를 우회하고
+              검색 결과만으로 답변합니다. 인용 번호·LLM 차원 가드레일이 빠집니다.
+              (PII 필터·면책 고지·rate-limit·입력 인젝션 차단은 그대로 유지됩니다.)
             </span>
           </Label>
         </div>

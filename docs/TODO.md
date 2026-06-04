@@ -316,5 +316,9 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] **말씀 큐레이션**: `uv run python scripts/extract_malssum_candidates.py --categories O,B,M --per-category 30` 실행 → 후보 검토 → 선별분을 `src/malssum/featured_malssum.json`에 저장
 - [ ] **참여자 카테고리** 형태(자유 입력 vs 드롭다운) + 게이트 입력 UI는 `/design-shotgun` A~C 시안으로 확정
 
+#### 시연 종료 후 정리 (차단 항목)
+- [ ] **raw_rag_only 봇 비활성화/삭제** — RAG-only 봇은 LLM 차원 범위 제한이 빠진 대조군. 익명 사용자 노출 방지 위해 시연 종료 후 `is_active=False` 처리 또는 삭제. (PII 필터·면책·rate-limit·입력 인젝션 차단은 유지되므로 인프라 가드레일은 정상.)
+- [ ] 말씀 카드 사용 안 하면 `featured_malssum.json` 빈 `[]` 유지 (자동으로 카드 미표시)
+
 #### 알려진 사항 (범위 외)
 - 채팅 요청에 `chatbot_id`가 없으면 `process_chat`의 legacy 경로가 `generate_answer(generation_config=None)`를 호출 → 런타임 AttributeError 가능. 본 작업 이전부터 존재한 latent 결함이며 이번 변경과 무관. 별도 trigger.

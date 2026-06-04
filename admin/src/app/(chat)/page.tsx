@@ -231,6 +231,12 @@ export default function ChatPage() {
     } catch {
       // 무시.
     }
+    // 참여자 전환 시 대화 세션을 끊는다(handleNewChat 과 동일). 진행 중 요청은
+    // abort — 안 그러면 옛 참여자 응답의 onSources 가 sessionId 를 세팅해 새 참여자
+    // 메시지가 옛 세션(옛 participant)에 귀속된다(게이트 핵심 목적 무력화 방지).
+    abortRef.current?.abort();
+    setMessages([]);
+    setSessionId(undefined);
     setParticipantReady(false);
   }, []);
 
