@@ -29,8 +29,23 @@ ADR 61 은 GCP 계정 마이그레이션을 "코드 0줄 변경" 으로 정리�
 DB/Qdrant/Gemini/Vercel 을 "모두 GCP 외부 SaaS/리소스라 영향 0" (line 19) 으로
 분류했다. **그러나 Qdrant 는 GCP 외부가 아니라 GCP VM** (`qdrant-server`,
 e2-medium, asia-northeast3-a — `docs/07_infra/qdrant-self-hosting.md`) 이다.
-구 프로젝트 `woosung-dev` 에 위치했다면 "구 리소스 2026-05-21+ 정리" 과정에서
-의도치 않게 정지됐을 수 있다. 이 가설은 인프라 복구 시 VM 상태로 확인한다.
+구 프로젝트 `woosung-dev` 에 위치했고, "구 리소스 2026-05-21+ 정리" 과정에서
+`gcloud projects delete woosung-dev` 가 실행돼 프로젝트가 **DELETE_REQUESTED** 로
+들어가면서 그 안의 Qdrant VM 이 정지된 것이 **확정 원인**이다 (ADR 61 이 명시적으로
+금지한 명령). 같은 프로젝트의 kairos-api/v2(quantbridge) 도 동반 다운됐다.
+
+### 복구 결과 (2026-06-04)
+
+- woosung-dev `undelete` + billing 재연결로 프로젝트 복구. 단 부트 디스크가 30분+
+  RESTORING 으로 지연 → 디스크 클론 포기.
+- **로컬 fallback**: 로컬 Qdrant 의 `malssum_poc_v5` 가 운영과 동일 규모(417,579).
+  jetaime-dev 에 새 `qdrant-server` VM provision → **기존 Cloudflare 터널 토큰 재사용**
+  (`qdrant.woosung.dev` 유지, `QDRANT_URL`/`QDRANT_API_KEY` 시크릿 불변) →
+  `migrate_cloud_to_vm.py` 로 로컬 → 새 VM 이전(417,579 == 417,579 검증).
+- 운영 `/chat` 출처 3건 정상 복구. **Qdrant 운영 VM 이 jetaime-dev 로 이전됨**
+  (구 woosung-dev 아님). 상세: 메모리 `project_qdrant_vm_relocation_jetaime`.
+- 학습: ADR 61 의 "GCP 외부" 가정 오류가 프로젝트 삭제로 이어졌다. 외부 자원도 그것이
+  **무엇 위에서 도는지**(SaaS vs self-host VM) 구분해 의존성 인벤토리에 명시해야 한다.
 
 ## Decision
 
