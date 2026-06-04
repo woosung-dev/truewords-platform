@@ -43,6 +43,7 @@ import {
   chatAPI,
   type ChatBot,
   type ChatResponse,
+  type FeaturedMalssum,
   type FeedbackType,
 } from "@/features/chatbot/chat-api";
 import { toFriendlyError } from "@/features/chat/error-message";
@@ -73,6 +74,8 @@ interface Message {
   closing?: string | null;
   // 답변 시점의 답변 모드 — 메시지 옆 아바타 아이콘이 모드 변경에 따라 과거 답변까지 바뀌지 않도록 보존.
   persona?: PersonaMode;
+  // 레드팀 시연 — 답변에 곁들이는 무작위 말씀 (답변별 보존). 없으면 카드 미표시.
+  featuredMalssum?: FeaturedMalssum | null;
 }
 
 // PERSONAS 배열에서 모드 키로 정의를 찾는다. 미일치 시 첫 항목(표준) fallback.
@@ -392,6 +395,7 @@ export default function ChatPage() {
                 sources: data.sources,
                 closing: data.closing ?? null,
                 suggestedFollowups: data.suggested_followups ?? null,
+                featuredMalssum: data.featured_malssum ?? null,
               }));
             },
             onDone: () => {
@@ -421,6 +425,7 @@ export default function ChatPage() {
           sources: res.sources,
           closing: res.closing ?? null,
           suggestedFollowups: res.suggested_followups ?? null,
+          featuredMalssum: res.featured_malssum ?? null,
         }));
       }
     } catch (e) {
@@ -861,6 +866,29 @@ export default function ChatPage() {
                             closing={msg.closing}
                             className="mt-3"
                           />
+                        )}
+                        {/* 레드팀 시연 — 답변에 곁들이는 무작위 말씀 카드. 응답 완료 후에만. */}
+                        {msg.messageId && msg.featuredMalssum?.text && (
+                          <div className="mt-3 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
+                            <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-primary">
+                              <BookOpen className="h-3.5 w-3.5" />
+                              함께 보는 말씀
+                            </div>
+                            <p className="text-sm leading-relaxed text-foreground/90">
+                              {msg.featuredMalssum.text}
+                            </p>
+                            {(msg.featuredMalssum.volume ||
+                              msg.featuredMalssum.category) && (
+                              <p className="mt-1.5 text-xs text-muted-foreground">
+                                {[
+                                  msg.featuredMalssum.volume,
+                                  msg.featuredMalssum.category,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </Card>
                     )}

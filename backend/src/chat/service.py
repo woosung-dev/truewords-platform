@@ -35,6 +35,7 @@ from src.chat.prompt import BASE_SYSTEM_PROMPT
 from src.chat.repository import ChatRepository
 from src.chat.schemas import ChatRequest, ChatResponse, FeedbackRequest, Source
 from src.chat.stream_generator import generate_answer_stream
+from src.malssum.service import get_random_malssum
 from src.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
@@ -186,6 +187,9 @@ class ChatService:
         """
         ctx = await self._run_pre_pipeline(request)
 
+        # 레드팀 시연 — 무작위 말씀은 매 응답마다 fresh (캐시와 무관). dict | None.
+        featured = get_random_malssum()
+
         # Cache hit early return (mini-persist — full PersistStage 미실행)
         if ctx.cache_hit and ctx.cache_response and ctx.session:
             assistant_msg = await self._persist_assistant_message_only(
@@ -202,6 +206,7 @@ class ChatService:
                 sources=cache_sources,
                 session_id=ctx.session.id,
                 message_id=assistant_msg.id,
+                featured_malssum=featured,
             )
 
         # Stage 체인: 런타임 설정 → intent 분류
@@ -219,6 +224,7 @@ class ChatService:
                 sources=[],
                 session_id=ctx.session.id,
                 message_id=assistant_msg.id,
+                featured_malssum=featured,
             )
 
         # 본 chain: 쿼리 재작성 → 검색 → 리랭킹 → 생성 → Safety → DB 기록
@@ -255,6 +261,7 @@ class ChatService:
             suggested_followups=ctx.suggested_followups,
             closing=ctx.closing,
             persona_overridden=getattr(ctx, "persona_overridden", False),
+            featured_malssum=featured,
         )
 
     async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:
@@ -264,6 +271,9 @@ class ChatService:
         ctx.pipeline_state = STREAM_ABORTED 갱신 후 re-raise (관찰성 baseline).
         """
         ctx = await self._run_pre_pipeline(request)
+
+        # 레드팀 시연 — 무작위 말씀 (매 응답 fresh, 캐시 무관). sources 이벤트에 동봉.
+        featured = get_random_malssum()
 
         # Cache hit early return (SSE — mini-persist)
         if ctx.cache_hit and ctx.cache_response and ctx.session:
@@ -284,6 +294,7 @@ class ChatService:
                 "message_id": str(assistant_msg.id),
                 "closing": None,
                 "suggested_followups": None,
+                "featured_malssum": featured,
             }
             yield f"event: sources\ndata: {json.dumps(cache_sources_payload, ensure_ascii=False)}\n\n"
             yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
@@ -309,6 +320,7 @@ class ChatService:
                     "message_id": str(assistant_msg.id),
                     "closing": None,
                     "suggested_followups": None,
+                    "featured_malssum": featured,
                 }
                 yield f"event: sources\ndata: {json.dumps(meta_sources_payload, ensure_ascii=False)}\n\n"
                 yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
@@ -390,6 +402,7 @@ class ChatService:
                 "message_id": str(ctx.assistant_message.id),
                 "closing": ctx.closing,
                 "suggested_followups": ctx.suggested_followups,
+                "featured_malssum": featured,
             }
             yield (
                 f"event: sources\ndata: {json.dumps(sources_payload, ensure_ascii=False)}\n\n"

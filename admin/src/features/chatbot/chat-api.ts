@@ -39,11 +39,20 @@ export interface Source {
   cited_phrase?: string | null;
 }
 
+// 레드팀 시연 — 답변에 곁들이는 무작위 말씀 (의미 검색 아닌 랜덤). 목록 비면 null.
+export interface FeaturedMalssum {
+  text: string;
+  category?: string;
+  volume?: string;
+}
+
 export interface ChatResponse {
   answer: string;
   sources: Source[];
   session_id: string;
   message_id: string;
+  // 레드팀 시연 — 답변 화면 카드용 무작위 말씀.
+  featured_malssum?: FeaturedMalssum | null;
   // P0-A — 자동 follow-up 추천 (생성 실패/비활성 시 null).
   suggested_followups?: string[] | null;
   // P1-J — 기도문/결의문 마무리 (비활성 시 null).
@@ -136,6 +145,7 @@ export const chatAPI = {
         message_id: string;
         closing?: string | null;
         suggested_followups?: string[] | null;
+        featured_malssum?: FeaturedMalssum | null;
       }) => void;
       onDone: (data: { disclaimer: string }) => void;
     },

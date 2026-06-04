@@ -40,11 +40,25 @@ class Source(BaseModel):
     cited_phrase: str | None = None
 
 
+class FeaturedMalssum(BaseModel):
+    """레드팀 시연 — 답변 화면에 무작위로 곁들이는 큐레이션 말씀 1개.
+
+    의미 검색이 아니라 사람이 추린 목록에서 random 선택. 매 응답마다 새로
+    계산되며 캐시 payload 에는 포함하지 않는다 (항상 fresh).
+    """
+
+    text: str
+    category: str = ""
+    volume: str = ""
+
+
 class ChatResponse(BaseModel):
     answer: str
     sources: list[Source]
     session_id: uuid.UUID
     message_id: uuid.UUID
+    # 레드팀 시연 — 답변에 곁들이는 무작위 말씀 (목록 비었거나 비활성 시 None).
+    featured_malssum: FeaturedMalssum | None = None
     # P0-A — 자동 follow-up 추천 3개. 생성 실패/비활성 시 None.
     suggested_followups: list[str] | None = None
     # P1-J — 기도문/결의문 마무리. 비활성/생성 실패 시 None.
