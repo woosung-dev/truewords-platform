@@ -164,8 +164,8 @@ async def test_negative_feedback_includes_session_id_for_drilldown(
         assert len(items) == 1
         assert items[0]["session_id"] == str(session_id)
         assert items[0]["chatbot_name"] == "축복AI"
-        # repo 가 polarity="negative" 로 호출됐는지
-        repo.get_feedback_list.assert_called_with("negative", 20, 0)
+        # repo 가 polarity="negative", days=0(전체) 로 호출됐는지
+        repo.get_feedback_list.assert_called_with("negative", 20, 0, 0)
     finally:
         _clear_repo_override()
 
@@ -202,7 +202,43 @@ async def test_feedback_list_supports_positive_polarity(
         items = resp.json()
         assert len(items) == 1
         assert items[0]["feedback_type"] == "helpful"
-        repo.get_feedback_list.assert_called_with("positive", 10, 0)
+        repo.get_feedback_list.assert_called_with("positive", 10, 0, 0)
+    finally:
+        _clear_repo_override()
+
+
+@pytest.mark.asyncio
+async def test_feedback_list_forwards_days_and_participant(
+    async_client, override_admin_auth
+):
+    """days 파라미터가 repo 로 전달되고, 참여자 필드가 응답에 노출되는지."""
+    repo = AsyncMock(spec=AnalyticsRepository)
+    repo.get_feedback_list.return_value = [
+        {
+            "id": uuid.uuid4(),
+            "session_id": uuid.uuid4(),
+            "chatbot_name": "축복AI",
+            "participant_name": "woosung",
+            "participant_category": "청년부",
+            "question": "축복 절차?",
+            "answer_snippet": "축복 절차는...",
+            "feedback_type": "other",
+            "comment": None,
+            "created_at": datetime(2026, 5, 3, 9, 7, 0),
+        }
+    ]
+    _override_repo(repo)
+    try:
+        async with async_client as client:
+            resp = await client.get(
+                "/admin/analytics/feedback/list",
+                params={"polarity": "negative", "limit": 20, "days": 30},
+            )
+        assert resp.status_code == 200
+        items = resp.json()
+        assert items[0]["participant_name"] == "woosung"
+        assert items[0]["participant_category"] == "청년부"
+        repo.get_feedback_list.assert_called_with("negative", 20, 0, 30)
     finally:
         _clear_repo_override()
 
