@@ -47,6 +47,9 @@ export interface NegativeFeedbackItem {
   id: string;
   session_id: string;
   chatbot_name: string | null;
+  // 레드팀 시연 — 이 피드백이 달린 세션의 참여자 (게이트 입력). 익명 세션은 null.
+  participant_name: string | null;
+  participant_category: string | null;
   question: string;
   answer_snippet: string;
   feedback_type: string;

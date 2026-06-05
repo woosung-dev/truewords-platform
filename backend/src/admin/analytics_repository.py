@@ -372,6 +372,8 @@ class AnalyticsRepository:
                     sm_answer.content AS answer,
                     sm_answer.session_id AS session_id,
                     cc.display_name AS chatbot_name,
+                    rs.participant_name AS participant_name,
+                    rs.participant_category AS participant_category,
                     (
                         SELECT sm_q.content
                         FROM session_messages sm_q
@@ -396,6 +398,8 @@ class AnalyticsRepository:
                 "id": row.id,
                 "session_id": row.session_id,
                 "chatbot_name": row.chatbot_name,
+                "participant_name": row.participant_name,
+                "participant_category": row.participant_category,
                 "question": row.question or "",
                 "answer_snippet": (row.answer or "")[:200],
                 "feedback_type": row.feedback_type,

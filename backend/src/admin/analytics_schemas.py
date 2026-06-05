@@ -56,6 +56,9 @@ class NegativeFeedbackItem(BaseModel):
     id: uuid.UUID
     session_id: uuid.UUID
     chatbot_name: str | None = None
+    # 레드팀 시연 — 이 피드백이 달린 세션의 참여자 (게이트 입력). 익명 세션은 None.
+    participant_name: str | None = None
+    participant_category: str | None = None
     question: str
     answer_snippet: str
     feedback_type: str

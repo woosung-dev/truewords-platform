@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { User } from "lucide-react";
 import { analyticsAPI } from "@/features/analytics/api";
 import type { NegativeFeedbackItem } from "@/features/analytics/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -212,6 +213,9 @@ function FeedbackTable({
                 <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                   봇
                 </th>
+                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                  참여자
+                </th>
                 <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">
                   질문
                 </th>
@@ -238,6 +242,19 @@ function FeedbackTable({
                   </td>
                   <td className="py-2 px-3 text-xs whitespace-nowrap">
                     {item.chatbot_name ?? "-"}
+                  </td>
+                  <td className="py-2 px-3 whitespace-nowrap">
+                    {item.participant_name ? (
+                      <Badge className="gap-1 text-xs bg-primary/10 text-primary hover:bg-primary/10">
+                        <User className="h-3 w-3" />
+                        {item.participant_name}
+                        {item.participant_category
+                          ? ` · ${item.participant_category}`
+                          : ""}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
                   </td>
                   <td className="py-2 px-3">
                     <span
