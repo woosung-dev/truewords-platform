@@ -24,6 +24,12 @@ const FEEDBACK_LABELS: Record<string, string> = {
   other: "기타",
 };
 
+// 백엔드 enum 은 이름(대문자, "USER"/"OTHER" 등)으로 직렬화된다 → 매핑 키 일관화.
+// (page.tsx 의 normalizeFeedbackType 와 동일한 방어적 정규화)
+function normalize(v: string | null | undefined): string {
+  return (v ?? "").toLowerCase();
+}
+
 const REACTION_ICON: Record<string, typeof ThumbsUp> = {
   thumbs_up: ThumbsUp,
   thumbs_down: ThumbsDown,
@@ -45,7 +51,7 @@ function formatDateTime(iso: string): string {
 }
 
 function MessageBubble({ msg }: { msg: SessionMessage }) {
-  const isUser = msg.role === "user";
+  const isUser = normalize(msg.role) === "user";
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
@@ -86,12 +92,12 @@ function MessageBubble({ msg }: { msg: SessionMessage }) {
             <div className="flex items-center gap-1.5">
               <Badge
                 variant={
-                  msg.feedback.feedback_type === "inaccurate"
+                  normalize(msg.feedback.feedback_type) === "inaccurate"
                     ? "destructive"
                     : "secondary"
                 }
               >
-                {FEEDBACK_LABELS[msg.feedback.feedback_type] ??
+                {FEEDBACK_LABELS[normalize(msg.feedback.feedback_type)] ??
                   msg.feedback.feedback_type}
               </Badge>
               <span className="text-muted-foreground">

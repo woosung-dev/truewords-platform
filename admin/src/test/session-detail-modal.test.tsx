@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { SessionDetail } from "@/features/analytics/types";
+import type { SessionDetail, SessionMessage } from "@/features/analytics/types";
+
+// 백엔드는 enum 을 이름(대문자, "USER"/"ASSISTANT")으로 직렬화한다.
+// 타입은 논리값(소문자)을 약속하지만 런타임 실제값은 대문자 → 회귀 방지를 위해
+// fixture 도 실제값으로 둔다. role 은 좁은 union 이라 string→union 캐스팅 헬퍼 사용.
+const rawRole = (r: string): SessionMessage["role"] =>
+  r as SessionMessage["role"];
 
 const mockGetSessionDetail = vi.fn();
 vi.mock("@/features/analytics/api", () => ({
@@ -42,7 +48,7 @@ function detailFixture(overrides: Partial<SessionDetail> = {}): SessionDetail {
     messages: [
       {
         id: "11111111-1111-1111-1111-111111111111",
-        role: "user",
+        role: rawRole("USER"),
         content: "축복 절차에 대해서 알려줘",
         created_at: "2026-05-03T09:06:00",
         resolved_answer_mode: null,
@@ -53,14 +59,14 @@ function detailFixture(overrides: Partial<SessionDetail> = {}): SessionDetail {
       },
       {
         id: "22222222-2222-2222-2222-222222222222",
-        role: "assistant",
+        role: rawRole("ASSISTANT"),
         content: "축복 절차는 다음과 같습니다",
         created_at: "2026-05-03T09:06:05",
         resolved_answer_mode: "default",
         persona_overridden: false,
         reactions: [{ kind: "thumbs_down", count: 1 }],
         feedback: {
-          feedback_type: "inaccurate",
+          feedback_type: "INACCURATE",
           comment: "정확하지 않음",
           created_at: "2026-05-03T09:07:00",
         },
@@ -113,6 +119,19 @@ describe("SessionDetailModal", () => {
     renderModal();
     expect(await screen.findByText("부정확")).toBeDefined();
     expect(screen.getByText(/정확하지 않음/)).toBeDefined();
+  });
+
+  it("대문자 feedback_type(OTHER)도 한글 라벨(기타)로 정규화한다", async () => {
+    const fixture = detailFixture();
+    fixture.messages[1].feedback = {
+      feedback_type: "OTHER",
+      comment: "테스트",
+      created_at: "2026-05-03T09:07:00",
+    };
+    mockGetSessionDetail.mockResolvedValue(fixture);
+    renderModal();
+    expect(await screen.findByText("기타")).toBeDefined();
+    expect(screen.queryByText("OTHER")).toBeNull();
   });
 
   it("메시지가 없으면 안내 문구를 노출한다", async () => {

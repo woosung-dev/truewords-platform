@@ -61,6 +61,8 @@ export interface ReactionCount {
 
 export interface SessionMessage {
   id: string;
+  // 논리값은 소문자지만 백엔드는 enum 이름(대문자 "USER"/"ASSISTANT")으로 직렬화한다.
+  // 비교 시 소문자 정규화 필요 (session-detail-modal.tsx normalize 참고).
   role: "user" | "assistant";
   content: string;
   created_at: string;
