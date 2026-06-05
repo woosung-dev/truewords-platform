@@ -138,17 +138,21 @@ class AnalyticsRepository:
         return [{"query_text": row.query_text, "count": row.count} for row in result.all()]
 
     async def get_feedback_distribution(self, days: int = 30) -> list[dict]:
-        """피드백 유형 분포."""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        """피드백 유형 분포. days <= 0 이면 전체 기간(날짜 필터 없음)."""
+        where = ""
+        params: dict = {}
+        if days > 0:
+            where = "WHERE created_at >= :cutoff"
+            params["cutoff"] = datetime.utcnow() - timedelta(days=days)
         result = await self.session.execute(
-            text("""
+            text(f"""
                 SELECT feedback_type, COUNT(*) AS count
                 FROM answer_feedback
-                WHERE created_at >= :cutoff
+                {where}
                 GROUP BY feedback_type
                 ORDER BY count DESC
             """),
-            {"cutoff": cutoff},
+            params,
         )
         return [{"feedback_type": row.feedback_type, "count": row.count} for row in result.all()]
 
@@ -355,13 +359,20 @@ class AnalyticsRepository:
         polarity: str = "negative",
         limit: int = 20,
         offset: int = 0,
+        days: int = 0,
     ) -> list[dict]:
         """피드백 목록 (긍정/부정) — 질문 + 답변 + 세션/봇 추적용 메타.
 
         polarity == "positive" → feedback_type = HELPFUL
         polarity == "negative" → feedback_type != HELPFUL
+        days <= 0 → 전체 기간(날짜 필터 없음).
         """
         cmp_op = "=" if polarity == "positive" else "!="
+        date_filter = ""
+        params: dict = {"limit": limit, "offset": offset}
+        if days > 0:
+            date_filter = "AND af.created_at >= :cutoff"
+            params["cutoff"] = datetime.utcnow() - timedelta(days=days)
         result = await self.session.execute(
             text(f"""
                 SELECT
@@ -372,6 +383,8 @@ class AnalyticsRepository:
                     sm_answer.content AS answer,
                     sm_answer.session_id AS session_id,
                     cc.display_name AS chatbot_name,
+                    rs.participant_name AS participant_name,
+                    rs.participant_category AS participant_category,
                     (
                         SELECT sm_q.content
                         FROM session_messages sm_q
@@ -386,16 +399,19 @@ class AnalyticsRepository:
                 JOIN research_sessions rs ON rs.id = sm_answer.session_id
                 LEFT JOIN chatbot_configs cc ON cc.id = rs.chatbot_config_id
                 WHERE af.feedback_type {cmp_op} 'HELPFUL'
+                {date_filter}
                 ORDER BY af.created_at DESC
                 LIMIT :limit OFFSET :offset
             """),
-            {"limit": limit, "offset": offset},
+            params,
         )
         return [
             {
                 "id": row.id,
                 "session_id": row.session_id,
                 "chatbot_name": row.chatbot_name,
+                "participant_name": row.participant_name,
+                "participant_category": row.participant_category,
                 "question": row.question or "",
                 "answer_snippet": (row.answer or "")[:200],
                 "feedback_type": row.feedback_type,

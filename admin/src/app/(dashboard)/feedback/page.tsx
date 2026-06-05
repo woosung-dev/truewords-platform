@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { User } from "lucide-react";
 import { analyticsAPI } from "@/features/analytics/api";
 import type { NegativeFeedbackItem } from "@/features/analytics/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -212,6 +213,9 @@ function FeedbackTable({
                 <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                   봇
                 </th>
+                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                  참여자
+                </th>
                 <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">
                   질문
                 </th>
@@ -238,6 +242,19 @@ function FeedbackTable({
                   </td>
                   <td className="py-2 px-3 text-xs whitespace-nowrap">
                     {item.chatbot_name ?? "-"}
+                  </td>
+                  <td className="py-2 px-3 whitespace-nowrap">
+                    {item.participant_name ? (
+                      <Badge className="gap-1 text-xs bg-primary/10 text-primary hover:bg-primary/10">
+                        <User className="h-3 w-3" />
+                        {item.participant_name}
+                        {item.participant_category
+                          ? ` · ${item.participant_category}`
+                          : ""}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
                   </td>
                   <td className="py-2 px-3">
                     <span
@@ -280,19 +297,31 @@ function FeedbackTable({
 }
 
 // ─────────────────────────────────────────────
+// 기간 선택 (차트 + 테이블 공용). value 0 = 전체 기간(날짜 필터 없음)
+// ─────────────────────────────────────────────
+const DAYS_OPTIONS: { value: number; label: string }[] = [
+  { value: 0, label: "전체" },
+  { value: 7, label: "최근 7일" },
+  { value: 30, label: "최근 30일" },
+  { value: 90, label: "최근 90일" },
+];
+
+// ─────────────────────────────────────────────
 // 메인 페이지
 // ─────────────────────────────────────────────
 export default function FeedbackPage() {
+  const [days, setDays] = useState<number>(0); // 0 = 전체 (기본)
+
   const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ["feedback-summary"],
-    queryFn: () => analyticsAPI.getFeedbackSummary(30),
+    queryKey: ["feedback-summary", days],
+    queryFn: () => analyticsAPI.getFeedbackSummary(days),
   });
 
   const [polarity, setPolarity] = useState<"positive" | "negative">("negative");
 
   const { data: feedbackList, isLoading: feedbackLoading } = useQuery({
-    queryKey: ["feedback-list", polarity],
-    queryFn: () => analyticsAPI.getFeedbackList(polarity, 20, 0),
+    queryKey: ["feedback-list", polarity, days],
+    queryFn: () => analyticsAPI.getFeedbackList(polarity, 20, 0, days),
   });
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
@@ -301,12 +330,28 @@ export default function FeedbackPage() {
 
   return (
     <div className="space-y-6 max-w-5xl">
-      {/* 헤더 */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">피드백 대시보드</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          사용자 피드백을 분석합니다
-        </p>
+      {/* 헤더 + 기간 선택 */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">피드백 대시보드</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            사용자 피드백을 분석합니다
+          </p>
+        </div>
+        <label className="flex items-center gap-1.5 shrink-0 mt-1">
+          <span className="text-muted-foreground text-xs">기간</span>
+          <select
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+            className="rounded-md border bg-background px-2 py-1 text-xs"
+          >
+            {DAYS_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {/* 피드백 유형 분포 */}

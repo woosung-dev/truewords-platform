@@ -58,9 +58,9 @@ class AnalyticsService:
         return await self.repo.get_feedback_distribution(days)
 
     async def get_feedback_list(
-        self, polarity: str, limit: int, offset: int
+        self, polarity: str, limit: int, offset: int, days: int = 0
     ) -> list[dict]:
-        return await self.repo.get_feedback_list(polarity, limit, offset)
+        return await self.repo.get_feedback_list(polarity, limit, offset, days)
 
     async def get_query_details(
         self, query_text: str, days: int, limit: int

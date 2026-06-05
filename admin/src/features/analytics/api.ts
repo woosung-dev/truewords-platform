@@ -44,10 +44,11 @@ export const analyticsAPI = {
   getFeedbackList: (
     polarity: "positive" | "negative" = "negative",
     limit = 20,
-    offset = 0
+    offset = 0,
+    days = 0 // 0 = 전체 기간
   ) =>
     fetchAPI<NegativeFeedbackItem[]>(
-      `/admin/analytics/feedback/list?polarity=${polarity}&limit=${limit}&offset=${offset}`
+      `/admin/analytics/feedback/list?polarity=${polarity}&limit=${limit}&offset=${offset}&days=${days}`
     ),
 
   getQueryDetails: (queryText: string, days = 30, limit = 50) =>

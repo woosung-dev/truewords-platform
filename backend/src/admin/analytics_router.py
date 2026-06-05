@@ -83,11 +83,11 @@ async def get_top_queries(
 
 @router.get("/feedback/summary", response_model=FeedbackSummary)
 async def get_feedback_summary(
-    days: int = Query(default=30, ge=1, le=365),
+    days: int = Query(default=30, ge=0, le=365),  # 0 = 전체 기간
     service: AnalyticsService = Depends(get_analytics_service),
     current_admin: dict = Depends(get_current_admin),
 ) -> FeedbackSummary:
-    """피드백 유형 분포."""
+    """피드백 유형 분포. days=0 이면 전체 기간."""
     rows = await service.get_feedback_distribution(days)
     return FeedbackSummary(
         distribution=[FeedbackDistribution(**r) for r in rows],
@@ -111,11 +111,12 @@ async def get_feedback_list(
     polarity: str = Query(default="negative", pattern="^(positive|negative)$"),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    days: int = Query(default=0, ge=0, le=365),  # 0 = 전체 기간
     service: AnalyticsService = Depends(get_analytics_service),
     current_admin: dict = Depends(get_current_admin),
 ) -> list[NegativeFeedbackItem]:
-    """피드백 목록 (긍정/부정) — polarity 로 필터링."""
-    rows = await service.get_feedback_list(polarity, limit, offset)
+    """피드백 목록 (긍정/부정) — polarity + 기간(days) 으로 필터링."""
+    rows = await service.get_feedback_list(polarity, limit, offset, days)
     return [NegativeFeedbackItem(**r) for r in rows]
 
 
