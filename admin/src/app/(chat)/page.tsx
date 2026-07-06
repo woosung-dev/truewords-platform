@@ -33,12 +33,15 @@ import {
   BookOpen,
   Copy,
   Loader2,
+  LogOut,
   MessageSquarePlus,
   Square,
   ThumbsDown,
   ThumbsUp,
   User,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { authAPI } from "@/features/auth/api";
 import {
   chatAPI,
   type ChatBot,
@@ -125,6 +128,7 @@ const DISCLAIMER_LINES = [
 ];
 
 export default function ChatPage() {
+  const router = useRouter();
   const [bots, setBots] = useState<ChatBot[]>([]);
   const [selectedBot, setSelectedBot] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -239,6 +243,16 @@ export default function ChatPage() {
     setSessionId(undefined);
     setParticipantReady(false);
   }, []);
+
+  // 시연용 계정 전환 — 참여자 정보/세션을 함께 정리해 다음 로그인 사용자와 분리한다.
+  const handleLogout = useCallback(async () => {
+    handleParticipantReset();
+    try {
+      await authAPI.logout();
+    } finally {
+      router.push("/login");
+    }
+  }, [handleParticipantReset, router]);
 
   // 새 user 메시지가 추가될 때만 그 element 를 viewport 상단으로 스크롤.
   // chunk 누적 동안에는 자동 스크롤 안 함 — 사용자가 답변 첫 줄부터 자연스럽게 읽도록.
@@ -612,6 +626,13 @@ export default function ChatPage() {
           >
             채팅 시작
           </Button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            다른 계정으로 로그인 (로그아웃)
+          </button>
         </Card>
       </div>
     );
@@ -691,6 +712,17 @@ export default function ChatPage() {
               </SelectContent>
             </Select>
           )}
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={handleLogout}
+            className="gap-1.5"
+            aria-label="로그아웃"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs">로그아웃</span>
+          </Button>
         </div>
       </header>
 
