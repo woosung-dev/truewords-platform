@@ -26,7 +26,9 @@ class AdminService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="비활성화된 계정입니다",
             )
-        token = create_access_token({"sub": str(user.id), "role": user.role})
+        token = create_access_token(
+            {"sub": str(user.id), "role": user.role, "email": user.email}
+        )
         return AdminLoginResponse(access_token=token)
 
     async def create_admin(self, data: CreateAdminRequest) -> AdminUser:

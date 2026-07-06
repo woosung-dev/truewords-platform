@@ -121,7 +121,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <AuthGuard>
+    <AuthGuard requireAdmin>
       <div className="flex min-h-screen bg-admin-bg">
         {/* 데스크톱 사이드바 */}
         <aside className="hidden w-56 shrink-0 md:block border-r border-sidebar-border">

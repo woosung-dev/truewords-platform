@@ -34,6 +34,7 @@ vi.mock("@/features/auth/api", () => ({
 }));
 
 import { authAPI } from "@/features/auth/api";
+import { ApiError } from "@/lib/api";
 import LoginPage from "@/app/login/page";
 
 beforeEach(() => {
@@ -55,7 +56,26 @@ describe("LoginPage", () => {
     expect(screen.getByText("TrueWords Admin")).toBeInTheDocument();
   });
 
-  it("로그인 성공 시 /chatbots로 이동한다", async () => {
+  it("관리자 계정 로그인 성공 시 /chatbots로 이동한다", async () => {
+    vi.mocked(authAPI.login).mockResolvedValueOnce({ message: "ok" });
+
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText("이메일"), {
+      // 대소문자·공백 정규화 잠금
+      target: { value: " JangWooSeng97@Gmail.com " },
+    });
+    fireEvent.change(screen.getByLabelText("비밀번호"), {
+      target: { value: "password" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "로그인" }));
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/chatbots");
+    });
+  });
+
+  it("비관리자 계정 로그인 성공 시 루트(/)로 이동한다", async () => {
     vi.mocked(authAPI.login).mockResolvedValueOnce({ message: "ok" });
 
     render(<LoginPage />);
@@ -69,13 +89,13 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "로그인" }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/chatbots");
+      expect(mockPush).toHaveBeenCalledWith("/");
     });
   });
 
   it("로그인 실패 시 에러 메시지를 표시한다", async () => {
     vi.mocked(authAPI.login).mockRejectedValueOnce(
-      new Error("401 Unauthorized")
+      new ApiError(401, { message: "인증이 필요합니다" })
     );
 
     render(<LoginPage />);

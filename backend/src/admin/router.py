@@ -6,6 +6,7 @@ from src.admin.dependencies import (
     COOKIE_NAME,
     get_admin_service,
     get_current_admin,
+    require_admin_gate,
     verify_csrf,
 )
 from src.admin.schemas import (
@@ -69,6 +70,7 @@ async def get_me(
     return AdminMeResponse(
         user_id=current_admin["user_id"],
         role=current_admin["role"],
+        email=current_admin.get("email"),
     )
 
 
@@ -76,7 +78,7 @@ async def get_me(
     "/users",
     response_model=AdminUserResponse,
     status_code=201,
-    dependencies=[Depends(verify_csrf)],
+    dependencies=[Depends(verify_csrf), Depends(require_admin_gate)],
 )
 async def create_admin_user(
     data: CreateAdminRequest,
@@ -93,7 +95,11 @@ async def create_admin_user(
     )
 
 
-@router.get("/audit-logs", response_model=list[AuditLogResponse])
+@router.get(
+    "/audit-logs",
+    response_model=list[AuditLogResponse],
+    dependencies=[Depends(require_admin_gate)],
+)
 async def get_audit_logs(
     limit: int = 50,
     offset: int = 0,
@@ -115,7 +121,11 @@ async def get_audit_logs(
     ]
 
 
-@router.get("/settings/config", response_model=SettingsConfigResponse)
+@router.get(
+    "/settings/config",
+    response_model=SettingsConfigResponse,
+    dependencies=[Depends(require_admin_gate)],
+)
 async def get_settings_config(
     current_admin: dict = Depends(get_current_admin),
 ) -> SettingsConfigResponse:

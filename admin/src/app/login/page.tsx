@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authAPI } from "@/features/auth/api";
+import { ADMIN_EMAIL } from "@/features/auth/constants";
+import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,14 +30,15 @@ export default function LoginPage() {
       // 채팅 라우트도 prefetch 하여 코드/데이터 로드를 미리 시작한다.
       void fetch("/api/chatbots", { credentials: "include" }).catch(() => {});
       router.prefetch("/");
-      router.push("/chatbots");
+      // ponytail: 시연 한시 — 관리자 계정만 /chatbots, 나머지는 채팅(/)
+      const isGateAdmin = email.trim().toLowerCase() === ADMIN_EMAIL;
+      router.push(isGateAdmin ? "/chatbots" : "/");
     } catch (err) {
+      // ApiError.status 로 분기 — message 문자열엔 "401" 이 포함되지 않음
       setError(
-        err instanceof Error
-          ? err.message.includes("401")
-            ? "이메일 또는 비밀번호가 올바르지 않습니다"
-            : "서버에 연결할 수 없습니다"
-          : "로그인 실패"
+        err instanceof ApiError && err.status === 401
+          ? "이메일 또는 비밀번호가 올바르지 않습니다"
+          : "서버에 연결할 수 없습니다"
       );
     } finally {
       setLoading(false);

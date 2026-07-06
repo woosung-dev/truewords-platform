@@ -5,25 +5,32 @@ import { test, expect, type Page } from "@playwright/test";
  *
  * 사전 조건:
  *   1. PostgreSQL + Qdrant Docker 실행 중
- *   2. 테스트 계정 생성 완료:
+ *   2. 테스트 계정 생성 완료 (관리자 게이트 계정 + 비관리자 계정):
+ *      cd backend && uv run python scripts/create_admin.py jangwooseng97@gmail.com test1234
  *      cd backend && uv run python scripts/create_admin.py admin@test.com test1234
  *   3. 챗봇 seed 데이터:
  *      cd backend && uv run python scripts/seed_chatbot_configs.py
  */
 
-const TEST_EMAIL = "admin@test.com";
+// ponytail: 시연 한시 하드코딩 게이트 — 관리자 플로우는 jangwooseng97 계정만 통과
+const ADMIN_EMAIL = "jangwooseng97@gmail.com";
+const NON_ADMIN_EMAIL = "admin@test.com";
 const TEST_PASSWORD = "test1234";
 
 // --- 헬퍼 ---
 
-async function login(page: Page) {
+async function fillLogin(page: Page, email: string) {
   await page.goto("/login");
   await page.locator("#email").click();
-  await page.locator("#email").pressSequentially(TEST_EMAIL, { delay: 10 });
+  await page.locator("#email").pressSequentially(email, { delay: 10 });
   await page.locator("#password").click();
   await page.locator("#password").pressSequentially(TEST_PASSWORD, { delay: 10 });
   await page.getByRole("button", { name: "로그인" }).click();
-  // 로그인 후 챗봇 목록으로 리다이렉트 대기
+}
+
+async function login(page: Page) {
+  await fillLogin(page, ADMIN_EMAIL);
+  // 관리자 계정은 로그인 후 챗봇 목록으로 리다이렉트
   await page.waitForURL("**/chatbots", { timeout: 10_000 });
 }
 
@@ -41,7 +48,7 @@ test.describe("관리자 로그인", () => {
   test("잘못된 비밀번호로 로그인 실패", async ({ page }) => {
     await page.goto("/login");
     await page.locator("#email").click();
-    await page.locator("#email").pressSequentially(TEST_EMAIL);
+    await page.locator("#email").pressSequentially(ADMIN_EMAIL);
     await page.locator("#password").click();
     await page.locator("#password").pressSequentially("wrong_password");
     await page.getByRole("button", { name: "로그인" }).click();
@@ -233,5 +240,36 @@ test.describe("인증 가드", () => {
   }) => {
     await page.goto("/dashboard");
     await page.waitForURL("**/login", { timeout: 10_000 });
+  });
+
+  test("비로그인 상태에서 채팅 페이지(/) 접근 시 로그인으로 리다이렉트", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.waitForURL("**/login", { timeout: 10_000 });
+    await expect(page.getByText("관리자 로그인")).toBeVisible();
+  });
+
+  test("비관리자 로그인 시 루트(/)로 이동하고 참여자 게이트가 표시된다", async ({
+    page,
+  }) => {
+    await fillLogin(page, NON_ADMIN_EMAIL);
+    await page.waitForURL(/\/$/, { timeout: 10_000 });
+    await expect(page.getByText("TrueWords 시연 참여")).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+
+  test("비관리자가 대시보드 접근 시 루트(/)로 리다이렉트", async ({
+    page,
+  }) => {
+    await fillLogin(page, NON_ADMIN_EMAIL);
+    await page.waitForURL(/\/$/, { timeout: 10_000 });
+    await page.goto("/dashboard");
+    // requireAdmin 가드가 루트로 되돌림
+    await page.waitForURL(/\/$/, { timeout: 10_000 });
+    await expect(page.getByText("TrueWords 시연 참여")).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });
