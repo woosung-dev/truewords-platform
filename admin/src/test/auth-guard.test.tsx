@@ -21,6 +21,7 @@ vi.mock("@/features/auth/api", () => ({
 }));
 
 import { authAPI } from "@/features/auth/api";
+import { ApiError } from "@/lib/api";
 import AuthGuard from "@/features/auth/components/auth-guard";
 
 beforeEach(() => {
@@ -28,8 +29,10 @@ beforeEach(() => {
 });
 
 describe("AuthGuard", () => {
-  it("미인증(me 실패) 시 /login으로 리다이렉트한다", async () => {
-    vi.mocked(authAPI.me).mockRejectedValueOnce(new Error("401"));
+  it("미인증(401) 시 /login으로 리다이렉트한다", async () => {
+    vi.mocked(authAPI.me).mockRejectedValueOnce(
+      new ApiError(401, { message: "인증이 필요합니다" })
+    );
 
     render(
       <AuthGuard>
@@ -81,7 +84,8 @@ describe("AuthGuard", () => {
     expect(screen.queryByText("children")).not.toBeInTheDocument();
   });
 
-  it("requireAdmin: email 없는 구 토큰(me.email 부재)도 루트(/)로 리다이렉트한다", async () => {
+  it("requireAdmin: email 없는 구 토큰(me.email 부재)은 /login으로 리다이렉트한다", async () => {
+    // 배포 전 발급 토큰 — 재로그인으로 email claim 포함 토큰 재발급 유도
     vi.mocked(authAPI.me).mockResolvedValueOnce({
       user_id: "u1",
       role: "admin",
@@ -94,7 +98,36 @@ describe("AuthGuard", () => {
     );
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith("/");
+      expect(mockReplace).toHaveBeenCalledWith("/login");
+    });
+  });
+
+  it("일시 오류(5xx)는 /login으로 보내지 않고 재시도 UI를 렌더한다", async () => {
+    vi.mocked(authAPI.me).mockRejectedValueOnce(
+      new ApiError(502, { message: "Bad Gateway" })
+    );
+
+    render(
+      <AuthGuard>
+        <p>children</p>
+      </AuthGuard>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+    });
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    // 재시도 성공 시 children 렌더
+    vi.mocked(authAPI.me).mockResolvedValueOnce({
+      user_id: "u1",
+      role: "admin",
+      email: "admin@test.com",
+    });
+    screen.getByRole("button", { name: "다시 시도" }).click();
+
+    await waitFor(() => {
+      expect(screen.getByText("children")).toBeInTheDocument();
     });
   });
 

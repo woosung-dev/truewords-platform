@@ -75,7 +75,9 @@ export async function fetchAPI<T>(path: string, options?: RequestInit): Promise<
   });
 
   if (res.status === 401) {
-    if (typeof window !== "undefined") {
+    // 이미 /login 이면 리다이렉트 생략 — 로그인 실패(401) 시 same-URL 전체 리로드로
+    // 에러 메시지가 지워지는 문제 방지.
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
       window.location.href = "/login";
     }
     throw new ApiError(401, { error_code: "UNAUTHORIZED", message: "인증이 필요합니다" });

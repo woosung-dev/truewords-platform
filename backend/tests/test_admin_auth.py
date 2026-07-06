@@ -229,54 +229,88 @@ async def test_require_admin_gate_rejects_missing_email_403():
 
 
 def test_admin_gate_route_wiring():
-    """게이트 과차단/미차단 동시 방지 잠금.
+    """게이트 과차단/미차단 동시 방지 잠금 (전역 불변식).
 
-    - 게이트 대상: admin 관리 route + admin 전용 라우터 4종 대표 경로.
-    - 게이트 제외: /admin/auth/* (채팅 AuthGuard 가 me 사용), 공개 chat/chatbots,
-      원문보기 chunks (자체 chatbot ACL).
+    - /admin/* 모든 route 는 auth 3종(login/logout/me — 채팅 AuthGuard 가 me 사용)
+      제외하고 require_admin_gate 필수. allowlist 방식이 아니라 전수 검사라서
+      admin/router.py 에 게이트 없는 신규 route 가 추가되면 즉시 실패한다.
+    - /admin 밖 공개 경로(chat/chatbots/원문보기 chunks/health)는 게이트 금지.
     """
     with patch("main.init_db", new_callable=AsyncMock):
         from main import app
 
-    def _has_gate(route) -> bool:
-        return any(
-            d.call is require_admin_gate for d in route.dependant.dependencies
-        )
+    AUTH_OPEN = {"/admin/auth/login", "/admin/auth/logout", "/admin/auth/me"}
 
-    gated = {
-        ("/admin/users", "POST"),
-        ("/admin/audit-logs", "GET"),
-        ("/admin/settings/config", "GET"),
-        ("/admin/analytics/dashboard-summary", "GET"),
-        ("/admin/data-sources/status", "GET"),
-        ("/admin/data-source-categories", "GET"),
-        ("/admin/chatbot-configs", "GET"),
-    }
-    open_paths = {
-        ("/admin/auth/login", "POST"),
-        ("/admin/auth/logout", "POST"),
-        ("/admin/auth/me", "GET"),
-        ("/chatbots", "GET"),
-        ("/chat", "POST"),
-        ("/api/sources/chunks/{chunk_id}", "GET"),
-    }
-
-    seen: set[tuple[str, str]] = set()
+    gated_count = 0
     for route in app.routes:
         methods = getattr(route, "methods", None)
         path = getattr(route, "path", None)
-        if not methods or path is None:
+        dependant = getattr(route, "dependant", None)
+        if not methods or path is None or dependant is None:
             continue
-        for method in methods:
-            key = (path, method)
-            if key in gated:
-                seen.add(key)
-                assert _has_gate(route), f"{key} 에 require_admin_gate 누락"
-            elif key in open_paths:
-                seen.add(key)
-                assert not _has_gate(route), f"{key} 가 게이트에 과차단됨"
+        has_gate = any(
+            d.call is require_admin_gate for d in dependant.dependencies
+        )
+        if path.startswith("/admin/"):
+            if path in AUTH_OPEN:
+                assert not has_gate, f"{path} 인증 라우트가 게이트에 과차단됨"
+            else:
+                gated_count += 1
+                assert has_gate, f"{path} 에 require_admin_gate 누락"
+        else:
+            assert not has_gate, f"공개 경로 {path} 가 게이트에 차단됨"
 
-    assert seen == gated | open_paths, f"검증 대상 경로 누락: {(gated | open_paths) - seen}"
+    # 게이트 대상 라우터 5종이 실제로 순회됐는지 sanity check (2026-07 기준 34 routes)
+    assert gated_count >= 20, f"게이트 대상 route 가 {gated_count}개뿐 — app 구성 확인 필요"
+
+
+@pytest.mark.asyncio
+async def test_login_token_includes_email_claim():
+    """login 발급 JWT 에 email claim 포함 — 게이트·프론트 분기의 계약 잠금."""
+    from src.admin.schemas import AdminLoginRequest
+    from src.admin.service import AdminService
+
+    user = MagicMock()
+    user.id = uuid.uuid4()
+    user.role = "admin"
+    user.email = "admin@test.com"
+    user.is_active = True
+    user.hashed_password = hash_password("pw12345")
+
+    repo = MagicMock()
+    repo.get_user_by_email = AsyncMock(return_value=user)
+
+    result = await AdminService(repo).login(
+        AdminLoginRequest(email="admin@test.com", password="pw12345")
+    )
+    decoded = decode_access_token(result.access_token)
+
+    assert decoded is not None
+    assert decoded["email"] == "admin@test.com"
+
+
+@pytest.mark.asyncio
+async def test_me_endpoint_returns_email():
+    """/admin/auth/me 응답 body 에 email 포함 — 프론트 AuthGuard 계약 잠금."""
+    from httpx import ASGITransport, AsyncClient
+
+    with patch("main.init_db", new_callable=AsyncMock):
+        from main import app
+
+    app.dependency_overrides[get_current_admin] = lambda: {
+        "user_id": uuid.uuid4(),
+        "role": "admin",
+        "email": "admin@test.com",
+    }
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            res = await client.get("/admin/auth/me")
+    finally:
+        app.dependency_overrides.pop(get_current_admin, None)
+
+    assert res.status_code == 200
+    assert res.json()["email"] == "admin@test.com"
 
 
 def test_demo_admin_email_is_lowercase():
