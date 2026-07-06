@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 # 앱 로거가 INFO 레벨 출력하도록 기본 설정
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import asyncio
@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 from src.chat.router import router as chat_router
 from src.chat.reactions_router import reactions_router
 from src.chatbot.router import router as chatbot_router, admin_router as chatbot_admin_router
+from src.admin.dependencies import require_admin_gate
 from src.admin.router import router as admin_router
 from src.admin.analytics_router import router as analytics_router
 from src.admin.data_router import router as admin_data_router
@@ -108,13 +109,16 @@ app.include_router(chat_router)
 app.include_router(reactions_router)
 app.include_router(chatbot_router)
 
+# ponytail: 레드팀 시연 한시 게이트 — dependencies.require_admin_gate 참조. 시연 후 회수.
+_ADMIN_GATE = [Depends(require_admin_gate)]
+
 # 관리자 라우터
-app.include_router(admin_router)
-app.include_router(chatbot_admin_router)
-app.include_router(admin_data_router)
-app.include_router(datasource_router)
-app.include_router(chunks_router)
-app.include_router(analytics_router)
+app.include_router(admin_router)  # /admin/auth/* 는 모든 로그인 계정에 열림 — 게이트는 router.py 개별 route
+app.include_router(chatbot_admin_router, dependencies=_ADMIN_GATE)
+app.include_router(admin_data_router, dependencies=_ADMIN_GATE)
+app.include_router(datasource_router, dependencies=_ADMIN_GATE)
+app.include_router(chunks_router)  # 공개 유지 — 채팅 원문보기 모달 (자체 chatbot ACL)
+app.include_router(analytics_router, dependencies=_ADMIN_GATE)
 
 
 @app.get("/health")

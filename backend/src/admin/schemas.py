@@ -19,6 +19,7 @@ class AdminLoginResponse(BaseModel):
 class AdminMeResponse(BaseModel):
     user_id: uuid.UUID
     role: str
+    email: str | None = None
 
 
 class AdminUserResponse(BaseModel):

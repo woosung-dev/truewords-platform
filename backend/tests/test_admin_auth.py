@@ -11,7 +11,13 @@ from src.admin.auth import (
     create_access_token,
     decode_access_token,
 )
-from src.admin.dependencies import get_current_admin, verify_csrf, COOKIE_NAME
+from src.admin.dependencies import (
+    COOKIE_NAME,
+    DEMO_ADMIN_EMAIL,
+    get_current_admin,
+    require_admin_gate,
+    verify_csrf,
+)
 
 
 # --- 기존 유틸리티 테스트 ---
@@ -34,13 +40,14 @@ def test_verify_password_wrong():
 
 
 def test_create_and_decode_access_token():
-    data = {"sub": "user-123", "role": "admin"}
+    data = {"sub": "user-123", "role": "admin", "email": "admin@test.com"}
     token = create_access_token(data)
     decoded = decode_access_token(token)
 
     assert decoded is not None
     assert decoded["sub"] == "user-123"
     assert decoded["role"] == "admin"
+    assert decoded["email"] == "admin@test.com"
     assert "exp" in decoded
 
 
@@ -69,13 +76,27 @@ def _make_request(cookies=None, method="GET", headers=None):
 @pytest.mark.asyncio
 async def test_get_current_admin_from_cookie():
     user_id = str(uuid.uuid4())
-    token = create_access_token({"sub": user_id, "role": "admin"})
+    token = create_access_token(
+        {"sub": user_id, "role": "admin", "email": "admin@test.com"}
+    )
     request = _make_request(cookies={COOKIE_NAME: token})
 
     result = await get_current_admin(request)
 
     assert result["user_id"] == uuid.UUID(user_id)
     assert result["role"] == "admin"
+    assert result["email"] == "admin@test.com"
+
+
+@pytest.mark.asyncio
+async def test_get_current_admin_old_token_without_email_claim():
+    """email claim 없는 구 토큰 → email None (하위 호환 잠금)."""
+    token = create_access_token({"sub": str(uuid.uuid4()), "role": "admin"})
+    request = _make_request(cookies={COOKIE_NAME: token})
+
+    result = await get_current_admin(request)
+
+    assert result["email"] is None
 
 
 @pytest.mark.asyncio
@@ -173,6 +194,94 @@ async def test_verify_csrf_patch_with_header_passes():
         headers={"X-Requested-With": "XMLHttpRequest"},
     )
     await verify_csrf(request)
+
+
+# --- 시연 한시 관리자 게이트 테스트 (ponytail: 시연 종료 후 게이트와 함께 삭제) ---
+
+
+@pytest.mark.asyncio
+async def test_require_admin_gate_passes_for_demo_admin_case_insensitive():
+    """하드코딩 관리자 이메일은 대소문자 무관 통과."""
+    current = {"user_id": uuid.uuid4(), "role": "admin", "email": "JangWooSeng97@Gmail.com"}
+    result = await require_admin_gate(current)
+    assert result is current
+
+
+@pytest.mark.asyncio
+async def test_require_admin_gate_rejects_other_email_403():
+    from fastapi import HTTPException
+
+    current = {"user_id": uuid.uuid4(), "role": "admin", "email": "admin@test.com"}
+    with pytest.raises(HTTPException) as exc_info:
+        await require_admin_gate(current)
+    assert exc_info.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_require_admin_gate_rejects_missing_email_403():
+    """email claim 없는 구 토큰(None)도 403 — 재로그인 유도."""
+    from fastapi import HTTPException
+
+    current = {"user_id": uuid.uuid4(), "role": "admin", "email": None}
+    with pytest.raises(HTTPException) as exc_info:
+        await require_admin_gate(current)
+    assert exc_info.value.status_code == 403
+
+
+def test_admin_gate_route_wiring():
+    """게이트 과차단/미차단 동시 방지 잠금.
+
+    - 게이트 대상: admin 관리 route + admin 전용 라우터 4종 대표 경로.
+    - 게이트 제외: /admin/auth/* (채팅 AuthGuard 가 me 사용), 공개 chat/chatbots,
+      원문보기 chunks (자체 chatbot ACL).
+    """
+    with patch("main.init_db", new_callable=AsyncMock):
+        from main import app
+
+    def _has_gate(route) -> bool:
+        return any(
+            d.call is require_admin_gate for d in route.dependant.dependencies
+        )
+
+    gated = {
+        ("/admin/users", "POST"),
+        ("/admin/audit-logs", "GET"),
+        ("/admin/settings/config", "GET"),
+        ("/admin/analytics/dashboard-summary", "GET"),
+        ("/admin/data-sources/status", "GET"),
+        ("/admin/data-source-categories", "GET"),
+        ("/admin/chatbot-configs", "GET"),
+    }
+    open_paths = {
+        ("/admin/auth/login", "POST"),
+        ("/admin/auth/logout", "POST"),
+        ("/admin/auth/me", "GET"),
+        ("/chatbots", "GET"),
+        ("/chat", "POST"),
+        ("/api/sources/chunks/{chunk_id}", "GET"),
+    }
+
+    seen: set[tuple[str, str]] = set()
+    for route in app.routes:
+        methods = getattr(route, "methods", None)
+        path = getattr(route, "path", None)
+        if not methods or path is None:
+            continue
+        for method in methods:
+            key = (path, method)
+            if key in gated:
+                seen.add(key)
+                assert _has_gate(route), f"{key} 에 require_admin_gate 누락"
+            elif key in open_paths:
+                seen.add(key)
+                assert not _has_gate(route), f"{key} 가 게이트에 과차단됨"
+
+    assert seen == gated | open_paths, f"검증 대상 경로 누락: {(gated | open_paths) - seen}"
+
+
+def test_demo_admin_email_is_lowercase():
+    """게이트 비교는 소문자 정규화 — 상수 자체가 소문자여야 함."""
+    assert DEMO_ADMIN_EMAIL == DEMO_ADMIN_EMAIL.lower()
 
 
 def test_data_router_applies_verify_csrf_at_router_level():
