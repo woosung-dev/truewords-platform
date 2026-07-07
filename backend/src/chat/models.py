@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 
 from sqlmodel import Field, SQLModel, Column
-from sqlalchemy import JSON, Text
+from sqlalchemy import JSON, Text, UniqueConstraint
 
 
 class MessageRole(str, enum.Enum):
@@ -100,14 +100,34 @@ class AnswerCitation(SQLModel, table=True):
 
 
 class AnswerFeedback(SQLModel, table=True):
+    """답변 피드백(좋아요/싫어요) — 익명 세션별 메시지당 현재 상태 1행.
+
+    Unique (message_id, user_session_id) — 한 세션이 한 메시지에 좋아요 XOR 싫어요
+    최대 1개만 유지. 재클릭 취소는 row delete, 좋아요↔싫어요 전환은 UPDATE(교체).
+    append-only 가 아니라 upsert 로 관리한다 (MessageReaction 과 동일한 세션 쿠키 사용).
+    """
+
     __tablename__ = "answer_feedback"
+    __table_args__ = (
+        UniqueConstraint(
+            "message_id",
+            "user_session_id",
+            name="uq_answer_feedback_session_message",
+        ),
+    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     message_id: uuid.UUID = Field(foreign_key="session_messages.id", index=True)
+    # 비로그인 익명 세션 식별자 — HttpOnly 쿠키 tw_anon_session (anon_session.py 발급).
+    user_session_id: str = Field(index=True, max_length=128)
     feedback_type: FeedbackType
     comment: str | None = None
     user_id: uuid.UUID | None = None  # 미래 확장용
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs={"onupdate": datetime.utcnow},
+    )
 
 
 class MessageReactionKind(str, enum.Enum):

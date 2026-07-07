@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -83,6 +84,8 @@ class FeedbackResponse(BaseModel):
     message_id: uuid.UUID
     feedback_type: FeedbackType
     created_at: datetime
+    # upsert 결과 — 신규 생성인지 기존 피드백 교체인지 클라이언트에 통지.
+    action: Literal["created", "updated"]
 
 
 class SessionHistoryResponse(BaseModel):

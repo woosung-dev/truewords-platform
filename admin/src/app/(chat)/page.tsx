@@ -546,18 +546,23 @@ export default function ChatPage() {
       toast.error("이 답변에는 피드백을 남길 수 없습니다");
       return;
     }
-    // 피드백 토글: 동일 type 을 다시 보내면 로컬 취소 (긍정/부정 reason 모두).
-    // 백엔드 AnswerFeedback row 는 라벨링/분석용 보존. 운영자가 최신 상태만 보려면
-    // (message_id, created_at desc) 기준으로 후처리 가능.
-    // 백엔드 DELETE 엔드포인트 도입은 docs/TODO 로 follow-up.
+    // 피드백 토글: 동일 type 을 다시 보내면 취소 → 서버 DELETE 로 반영.
+    // 백엔드는 (message_id, session) 당 1행 upsert 이므로 취소는 row 삭제다.
     if (msg.feedback === type) {
-      setMessages((prev) =>
-        prev.map((m, i) => (i === idx ? { ...m, feedback: undefined } : m)),
-      );
-      toast("피드백을 취소했습니다");
+      try {
+        await chatAPI.deleteFeedback(msg.messageId);
+        setMessages((prev) =>
+          prev.map((m, i) => (i === idx ? { ...m, feedback: undefined } : m)),
+        );
+        toast("피드백을 취소했습니다");
+      } catch (e) {
+        const errMsg = e instanceof Error ? e.message : "피드백 취소 실패";
+        toast.error(errMsg);
+      }
       return;
     }
     try {
+      // 다른 type 이면 서버가 upsert 로 교체 (좋아요↔싫어요 전환 포함).
       await chatAPI.submitFeedback({
         message_id: msg.messageId,
         feedback_type: type,
@@ -573,6 +578,22 @@ export default function ChatPage() {
       );
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : "피드백 전송 실패";
+      toast.error(errMsg);
+    }
+  };
+
+  // 피드백 취소(popover "피드백 취소" 버튼) — 서버 DELETE 후 로컬 비우기.
+  const cancelFeedback = async (idx: number) => {
+    const msg = messages[idx];
+    if (!msg?.messageId || msg.feedback === undefined) return;
+    try {
+      await chatAPI.deleteFeedback(msg.messageId);
+      setMessages((prev) =>
+        prev.map((m, i) => (i === idx ? { ...m, feedback: undefined } : m)),
+      );
+      toast("피드백을 취소했습니다");
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : "피드백 취소 실패";
       toast.error(errMsg);
     }
   };
@@ -1003,13 +1024,7 @@ export default function ChatPage() {
                             onSubmit={(reason, comment) =>
                               submitFeedback(msgIdx, reason, comment)
                             }
-                            onCancel={() =>
-                              setMessages((prev) =>
-                                prev.map((m, j) =>
-                                  j === msgIdx ? { ...m, feedback: undefined } : m,
-                                ),
-                              )
-                            }
+                            onCancel={() => cancelFeedback(msgIdx)}
                           />
 
                           {/* 부정 — 항상 노출. popover 가 reason+comment 입력 단계를 거치므로
@@ -1032,13 +1047,7 @@ export default function ChatPage() {
                             onSubmit={(reason, comment) =>
                               submitFeedback(msgIdx, reason, comment)
                             }
-                            onCancel={() =>
-                              setMessages((prev) =>
-                                prev.map((m, j) =>
-                                  j === msgIdx ? { ...m, feedback: undefined } : m,
-                                ),
-                              )
-                            }
+                            onCancel={() => cancelFeedback(msgIdx)}
                           />
                         </div>
 

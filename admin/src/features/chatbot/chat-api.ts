@@ -88,6 +88,8 @@ export interface FeedbackResponse {
   message_id: string;
   feedback_type: FeedbackType;
   created_at: string;
+  // upsert 결과 — 신규 생성인지 기존 피드백 교체인지.
+  action: "created" | "updated";
 }
 
 export const chatAPI = {
@@ -209,11 +211,24 @@ export const chatAPI = {
     const res = await fetch("/api/chat/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      // 익명 세션 쿠키(tw_anon_session) 왕복 보장 — 세션별 upsert 식별에 필요.
+      credentials: "include",
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
       await throwApiError(res);
     }
     return res.json();
+  },
+
+  // 피드백 취소 — 현재 세션의 해당 메시지 피드백을 서버에서 삭제. 없어도 멱등(204).
+  deleteFeedback: async (messageId: string): Promise<void> => {
+    const res = await fetch(`/api/chat/feedback/${messageId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      await throwApiError(res);
+    }
   },
 };
