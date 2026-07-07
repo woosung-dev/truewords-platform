@@ -39,6 +39,7 @@ import {
   ThumbsDown,
   ThumbsUp,
   User,
+  type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { authAPI } from "@/features/auth/api";
@@ -85,12 +86,24 @@ interface Message {
 const personaForMode = (mode: string) =>
   PERSONAS.find((p) => p.key === mode) ?? PERSONAS[0];
 
-const NEGATIVE_REASONS: { key: Exclude<FeedbackType, "helpful">; label: string }[] = [
+const NEGATIVE_REASONS: { key: FeedbackType; label: string }[] = [
   { key: "inaccurate", label: "부정확한 답변" },
   { key: "missing_citation", label: "출처 부족/누락" },
   { key: "irrelevant", label: "질문과 무관함" },
   { key: "other", label: "기타 (아래 의견 작성)" },
 ];
+
+// 긍정 사유 — helpful 은 "그냥 좋아요/기타(의견)" 기본 버킷(사유 미선택 시 기본값).
+const POSITIVE_REASONS: { key: FeedbackType; label: string }[] = [
+  { key: "accurate", label: "정확해요" },
+  { key: "well_cited", label: "출처가 명확해요" },
+  { key: "easy_to_understand", label: "이해하기 쉬워요" },
+  { key: "comforting", label: "은혜/위로가 됐어요" },
+  { key: "helpful", label: "기타 (아래 의견 작성)" },
+];
+
+const POSITIVE_TYPES = new Set<FeedbackType>(POSITIVE_REASONS.map((r) => r.key));
+const isPositiveFeedback = (t?: FeedbackType) => !!t && POSITIVE_TYPES.has(t);
 
 // 백엔드 safety layer가 답변 말미에 붙이는 면책 고지를 제거.
 // 동일 문구는 입력창 하단 footer에 고정으로 이미 노출된다.
@@ -554,7 +567,7 @@ export default function ChatPage() {
         prev.map((m, i) => (i === idx ? { ...m, feedback: type } : m)),
       );
       toast.success(
-        type === "helpful"
+        isPositiveFeedback(type)
           ? "긍정 피드백 감사합니다"
           : "피드백을 기록했습니다",
       );
@@ -972,34 +985,47 @@ export default function ChatPage() {
                             aria-hidden="true"
                           />
 
-                          {/* 긍정 — 항상 노출. 같은 helpful 다시 누르면 토글 취소 (#9). */}
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            aria-label={
-                              msg.feedback === "helpful"
-                                ? "피드백 취소"
-                                : "도움이 됐어요"
+                          {/* 긍정 — 항상 노출. popover 로 "어떤 점이 좋았나요?" 사유 수집.
+                              사유 미선택 시 helpful(기타) 로 전송. active 사유 다시 열어 변경/취소 가능. */}
+                          <FeedbackPopover
+                            tone="positive"
+                            reasons={POSITIVE_REASONS}
+                            title="어떤 점이 좋았나요?"
+                            Icon={ThumbsUp}
+                            triggerAriaLabel="도움이 됐어요"
+                            activeClass="bg-success-soft text-success hover:bg-success-soft"
+                            defaultReason="helpful"
+                            disabled={false}
+                            active={isPositiveFeedback(msg.feedback)}
+                            currentReason={
+                              isPositiveFeedback(msg.feedback) ? msg.feedback! : null
                             }
-                            aria-pressed={msg.feedback === "helpful"}
-                            onClick={() => submitFeedback(msgIdx, "helpful")}
-                            className={`h-7 w-7 ${
-                              msg.feedback === "helpful"
-                                ? "bg-success-soft text-success hover:bg-success-soft"
-                                : ""
-                            }`}
-                          >
-                            <ThumbsUp className="h-3.5 w-3.5" />
-                          </Button>
+                            onSubmit={(reason, comment) =>
+                              submitFeedback(msgIdx, reason, comment)
+                            }
+                            onCancel={() =>
+                              setMessages((prev) =>
+                                prev.map((m, j) =>
+                                  j === msgIdx ? { ...m, feedback: undefined } : m,
+                                ),
+                              )
+                            }
+                          />
 
                           {/* 부정 — 항상 노출. popover 가 reason+comment 입력 단계를 거치므로
                               실수 클릭은 popover 단계에서 차단됨. 제출 후에도 popover 재오픈으로 변경 가능. */}
-                          <NegativeFeedbackPopover
+                          <FeedbackPopover
+                            tone="negative"
+                            reasons={NEGATIVE_REASONS}
+                            title="어떤 점이 아쉬웠나요?"
+                            Icon={ThumbsDown}
+                            triggerAriaLabel="개선이 필요해요"
+                            activeClass="bg-danger-soft text-destructive hover:bg-danger-soft disabled:opacity-100"
+                            defaultReason="inaccurate"
                             disabled={false}
-                            active={!!msg.feedback && msg.feedback !== "helpful"}
+                            active={!!msg.feedback && !isPositiveFeedback(msg.feedback)}
                             currentReason={
-                              msg.feedback && msg.feedback !== "helpful"
+                              msg.feedback && !isPositiveFeedback(msg.feedback)
                                 ? msg.feedback
                                 : null
                             }
@@ -1018,7 +1044,7 @@ export default function ChatPage() {
 
                         {msg.feedback && (
                           <span className="text-[11px] text-muted-foreground">
-                            {msg.feedback === "helpful"
+                            {isPositiveFeedback(msg.feedback)
                               ? "피드백 감사합니다"
                               : "의견이 기록됐습니다"}
                           </span>
@@ -1134,33 +1160,49 @@ export default function ChatPage() {
   );
 }
 
-/** 부정 피드백 팝오버 — 사유 선택 + (선택) 의견 입력 + (active 시) 취소 */
-function NegativeFeedbackPopover({
+/** 피드백 팝오버 (긍정/부정 공용) — 사유 선택 + (선택) 의견 입력 + (active 시) 취소 */
+function FeedbackPopover({
+  tone,
+  reasons,
+  title,
+  Icon,
+  triggerAriaLabel,
+  activeClass,
+  defaultReason,
   disabled,
   active,
   currentReason,
   onSubmit,
   onCancel,
 }: {
+  tone: "positive" | "negative";
+  reasons: { key: FeedbackType; label: string }[];
+  title: string;
+  Icon: LucideIcon;
+  triggerAriaLabel: string;
+  /** active 시 트리거 버튼 클래스 (긍정=success, 부정=danger). */
+  activeClass: string;
+  /** 사유 미선택 기본값 (긍정=helpful, 부정=inaccurate). */
+  defaultReason: FeedbackType;
   disabled: boolean;
   active: boolean;
-  /** 이미 기록된 부정 피드백 reason — 라디오 default 동기화용. 없으면 inaccurate. */
-  currentReason?: Exclude<FeedbackType, "helpful"> | null;
+  /** 이미 기록된 reason — 라디오 default 동기화용. 없으면 defaultReason. */
+  currentReason?: FeedbackType | null;
   onSubmit: (type: FeedbackType, comment?: string) => Promise<void> | void;
   /** active 일 때만 노출되는 "피드백 취소" 액션. 로컬 state 만 비운다. */
   onCancel?: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState<Exclude<FeedbackType, "helpful">>(
-    currentReason ?? "inaccurate",
+  const [reason, setReason] = useState<FeedbackType>(
+    currentReason ?? defaultReason,
   );
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // 팝오버를 다시 열 때 currentReason 동기화 — 어떤 사유가 활성인지 사용자가 즉시 인지.
   useEffect(() => {
-    if (open) setReason(currentReason ?? "inaccurate");
-  }, [open, currentReason]);
+    if (open) setReason(currentReason ?? defaultReason);
+  }, [open, currentReason, defaultReason]);
 
   const handleSend = async () => {
     setSubmitting(true);
@@ -1187,36 +1229,32 @@ function NegativeFeedbackPopover({
             type="button"
             size="icon"
             variant="ghost"
-            aria-label="개선이 필요해요"
+            aria-label={triggerAriaLabel}
             aria-pressed={active}
             disabled={disabled}
-            className={`h-7 w-7 ${
-              active
-                ? "bg-danger-soft text-destructive hover:bg-danger-soft disabled:opacity-100"
-                : ""
-            }`}
+            className={`h-7 w-7 ${active ? activeClass : ""}`}
           >
-            <ThumbsDown className="h-3.5 w-3.5" />
+            <Icon className="h-3.5 w-3.5" />
           </Button>
         }
       />
       <PopoverContent className="w-80" align="start">
         <div className="space-y-3">
           <div>
-            <p className="text-sm font-medium">어떤 점이 아쉬웠나요?</p>
+            <p className="text-sm font-medium">{title}</p>
             <p className="text-xs text-muted-foreground">
               선택한 사유는 품질 개선에 쓰입니다.
             </p>
           </div>
           <div className="flex flex-col gap-1.5">
-            {NEGATIVE_REASONS.map((r) => (
+            {reasons.map((r) => (
               <label
                 key={r.key}
                 className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60"
               >
                 <input
                   type="radio"
-                  name="neg-reason"
+                  name={`${tone}-reason`}
                   checked={reason === r.key}
                   onChange={() => setReason(r.key)}
                   className="h-4 w-4"

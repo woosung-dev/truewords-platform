@@ -7,6 +7,12 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+# 긍정 폴러리티 판별 집합 (native enum 은 대문자 name 으로 저장됨).
+# HELPFUL = 그냥 좋아요/기타 버킷, 나머지는 긍정 세분 사유. 긍정값 추가 시 여기만 수정.
+POSITIVE_FEEDBACK_SQL = (
+    "('HELPFUL','ACCURATE','WELL_CITED','EASY_TO_UNDERSTAND','COMFORTING')"
+)
+
 
 class AnalyticsRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -33,10 +39,10 @@ class AnalyticsRepository:
     async def get_feedback_counts(self) -> dict:
         """피드백 긍정/부정 수 조회."""
         result = await self.session.execute(
-            text("""
+            text(f"""
                 SELECT
-                    COUNT(*) FILTER (WHERE feedback_type = 'HELPFUL') AS helpful,
-                    COUNT(*) FILTER (WHERE feedback_type != 'HELPFUL') AS negative
+                    COUNT(*) FILTER (WHERE feedback_type IN {POSITIVE_FEEDBACK_SQL}) AS helpful,
+                    COUNT(*) FILTER (WHERE feedback_type NOT IN {POSITIVE_FEEDBACK_SQL}) AS negative
                 FROM answer_feedback
             """)
         )
@@ -363,11 +369,15 @@ class AnalyticsRepository:
     ) -> list[dict]:
         """피드백 목록 (긍정/부정) — 질문 + 답변 + 세션/봇 추적용 메타.
 
-        polarity == "positive" → feedback_type = HELPFUL
-        polarity == "negative" → feedback_type != HELPFUL
+        polarity == "positive" → feedback_type IN (긍정 집합)
+        polarity == "negative" → feedback_type NOT IN (긍정 집합)
         days <= 0 → 전체 기간(날짜 필터 없음).
         """
-        cmp_op = "=" if polarity == "positive" else "!="
+        polarity_clause = (
+            f"IN {POSITIVE_FEEDBACK_SQL}"
+            if polarity == "positive"
+            else f"NOT IN {POSITIVE_FEEDBACK_SQL}"
+        )
         date_filter = ""
         params: dict = {"limit": limit, "offset": offset}
         if days > 0:
@@ -398,7 +408,7 @@ class AnalyticsRepository:
                 JOIN session_messages sm_answer ON sm_answer.id = af.message_id
                 JOIN research_sessions rs ON rs.id = sm_answer.session_id
                 LEFT JOIN chatbot_configs cc ON cc.id = rs.chatbot_config_id
-                WHERE af.feedback_type {cmp_op} 'HELPFUL'
+                WHERE af.feedback_type {polarity_clause}
                 {date_filter}
                 ORDER BY af.created_at DESC
                 LIMIT :limit OFFSET :offset
@@ -610,7 +620,7 @@ class AnalyticsRepository:
 
         # 2) 페이지 항목 + 부정 피드백 집계
         items_result = await self.session.execute(
-            text("""
+            text(f"""
                 WITH agg AS (
                     SELECT
                         se.query_text,
@@ -629,7 +639,7 @@ class AnalyticsRepository:
                     COALESCE(
                         (SELECT COUNT(*) FROM answer_feedback af
                          WHERE af.message_id = ANY(agg.assistant_ids)
-                           AND af.feedback_type != 'HELPFUL'),
+                           AND af.feedback_type NOT IN {POSITIVE_FEEDBACK_SQL}),
                         0
                     )::int AS negative_feedback_count
                 FROM agg

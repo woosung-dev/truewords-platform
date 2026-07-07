@@ -65,7 +65,13 @@ export interface ChatResponse {
 }
 
 export type FeedbackType =
+  // 긍정 — helpful 은 "그냥 좋아요/기타" 기본 버킷, 나머지는 세분 사유
   | "helpful"
+  | "accurate"
+  | "well_cited"
+  | "easy_to_understand"
+  | "comforting"
+  // 부정
   | "inaccurate"
   | "missing_citation"
   | "irrelevant"

@@ -22,12 +22,21 @@ function formatDateTime(iso: string): string {
   }
 }
 
+// 긍정 폴러리티 판별 (backend enum 은 대문자 name 으로 직렬화될 수 있음).
+const POSITIVE_FEEDBACK = new Set([
+  "HELPFUL",
+  "ACCURATE",
+  "WELL_CITED",
+  "EASY_TO_UNDERSTAND",
+  "COMFORTING",
+]);
+
 function FeedbackIcon({ type }: { type: string | undefined }) {
   if (!type) {
     return <Minus className="h-3.5 w-3.5 text-muted-foreground" aria-label="피드백 없음" />;
   }
-  if (type.toUpperCase() === "HELPFUL") {
-    return <ThumbsUp className="h-3.5 w-3.5 text-success" aria-label="도움됨" />;
+  if (POSITIVE_FEEDBACK.has(type.toUpperCase())) {
+    return <ThumbsUp className="h-3.5 w-3.5 text-success" aria-label="긍정 피드백" />;
   }
   return <ThumbsDown className="h-3.5 w-3.5 text-destructive" aria-label="부정 피드백" />;
 }
