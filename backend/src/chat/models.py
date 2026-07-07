@@ -14,7 +14,13 @@ class MessageRole(str, enum.Enum):
 
 
 class FeedbackType(str, enum.Enum):
+    # 긍정 — HELPFUL 은 "그냥 좋아요/기타" 기본 버킷, 나머지는 세분 사유.
     HELPFUL = "helpful"
+    ACCURATE = "accurate"
+    WELL_CITED = "well_cited"
+    EASY_TO_UNDERSTAND = "easy_to_understand"
+    COMFORTING = "comforting"
+    # 부정
     INACCURATE = "inaccurate"
     MISSING_CITATION = "missing_citation"
     IRRELEVANT = "irrelevant"

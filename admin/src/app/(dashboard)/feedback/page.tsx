@@ -21,15 +21,27 @@ import SessionDetailModal from "@/features/analytics/components/session-detail-m
 // 피드백 유형 상수 (cool slate × admin amber 충돌 회피 팔레트)
 // ─────────────────────────────────────────────
 const FEEDBACK_COLORS: Record<string, string> = {
-  helpful: "#0d9488",          // teal-600 — 긍정/시원함
+  // 긍정 — teal 계열 톤
+  helpful: "#0d9488",             // teal-600 — 긍정 기타/도움됨
+  accurate: "#0891b2",            // cyan-600 — 정확
+  well_cited: "#059669",          // emerald-600 — 출처 명확
+  easy_to_understand: "#0284c7",  // sky-600 — 이해 쉬움
+  comforting: "#7c3aed",          // violet-600 — 은혜/위로
+  // 부정 — red/orange 계열
   inaccurate: "#dc2626",       // red-600 — 가장 심각한 부정
   missing_citation: "#ea580c", // orange-600 — 경고 (admin amber 와 차별)
   irrelevant: "#64748b",       // slate-500 — 중립적 부정
-  other: "#7c3aed",            // violet-600 — 기타
+  other: "#b45309",            // amber-700 — 부정 기타
 };
 
 const FEEDBACK_LABELS: Record<string, string> = {
+  // 긍정
   helpful: "도움됨",
+  accurate: "정확",
+  well_cited: "출처 명확",
+  easy_to_understand: "이해 쉬움",
+  comforting: "은혜/위로",
+  // 부정
   inaccurate: "부정확",
   missing_citation: "출처 부족",
   irrelevant: "관련 없음",
@@ -49,6 +61,10 @@ type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 function getBadgeVariant(feedbackType: string): BadgeVariant {
   switch (normalizeFeedbackType(feedbackType)) {
     case "helpful":
+    case "accurate":
+    case "well_cited":
+    case "easy_to_understand":
+    case "comforting":
       return "default";
     case "inaccurate":
       return "destructive";

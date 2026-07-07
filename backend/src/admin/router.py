@@ -96,6 +96,29 @@ async def create_admin_user(
 
 
 @router.get(
+    "/users",
+    response_model=list[AdminUserResponse],
+    dependencies=[Depends(require_admin_gate)],
+)
+async def list_admin_users(
+    service: AdminService = Depends(get_admin_service),
+    current_admin: dict = Depends(get_current_admin),
+) -> list[AdminUserResponse]:
+    """관리자 계정 목록 조회 (읽기 전용)."""
+    users = await service.list_admins()
+    return [
+        AdminUserResponse(
+            id=user.id,
+            email=user.email,
+            role=user.role,
+            is_active=user.is_active,
+            created_at=user.created_at,
+        )
+        for user in users
+    ]
+
+
+@router.get(
     "/audit-logs",
     response_model=list[AuditLogResponse],
     dependencies=[Depends(require_admin_gate)],

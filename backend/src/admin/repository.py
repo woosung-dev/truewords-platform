@@ -29,6 +29,15 @@ class AdminRepository:
         await self.session.flush()
         return user
 
+    async def list_users(self, limit: int = 100, offset: int = 0) -> list[AdminUser]:
+        result = await self.session.execute(
+            select(AdminUser)
+            .order_by(AdminUser.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return list(result.scalars().all())
+
     async def create_audit_log(self, log: AdminAuditLog) -> AdminAuditLog:
         self.session.add(log)
         await self.session.flush()

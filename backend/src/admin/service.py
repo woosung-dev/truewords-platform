@@ -47,6 +47,12 @@ class AdminService:
         await self.repo.commit()
         return saved
 
+    async def list_admins(
+        self, limit: int = 100, offset: int = 0
+    ) -> list[AdminUser]:
+        """관리자 계정 목록 조회 (읽기 전용)."""
+        return await self.repo.list_users(limit=limit, offset=offset)
+
     async def get_audit_logs(
         self, limit: int = 50, offset: int = 0
     ) -> list[AdminAuditLog]:
