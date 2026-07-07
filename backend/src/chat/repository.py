@@ -78,12 +78,38 @@ class ChatRepository:
             self.session.add(c)
         await self.session.flush()
 
-    # --- 피드백 ---
+    # --- 피드백 (익명 세션별 메시지당 현재 상태 1행, upsert) ---
+
+    async def get_feedback(
+        self, message_id: uuid.UUID, user_session_id: str
+    ) -> AnswerFeedback | None:
+        """(message_id, user_session_id) 현재 피드백 조회. 없으면 None."""
+        result = await self.session.execute(
+            select(AnswerFeedback).where(
+                AnswerFeedback.message_id == message_id,
+                AnswerFeedback.user_session_id == user_session_id,
+            )
+        )
+        return result.scalar_one_or_none()
 
     async def create_feedback(self, feedback: AnswerFeedback) -> AnswerFeedback:
         self.session.add(feedback)
         await self.session.flush()
         return feedback
+
+    async def delete_feedback(
+        self, message_id: uuid.UUID, user_session_id: str
+    ) -> bool:
+        """(message_id, user_session_id) 피드백 삭제(취소). 삭제 대상 유무 반환."""
+        existing = await self.get_feedback(message_id, user_session_id)
+        if existing is None:
+            return False
+        await self.session.delete(existing)
+        await self.session.flush()
+        return True
+
+    async def rollback(self) -> None:
+        await self.session.rollback()
 
     async def commit(self) -> None:
         await self.session.commit()

@@ -18,11 +18,11 @@ limit + 스키마 변환만 담당.
 
 from __future__ import annotations
 
-import secrets
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
+from src.chat.anon_session import get_or_issue_session_id
 from src.chat.dependencies import get_reactions_service
 from src.chat.models import MessageReactionKind
 from src.chat.reactions_schemas import (
@@ -42,10 +42,8 @@ reactions_router = APIRouter(
     tags=["chat-reactions"],
 )
 
-# B2 — HttpOnly cookie 이름. 비로그인 익명 세션 식별용.
-ANON_SESSION_COOKIE = "tw_anon_session"
-ANON_SESSION_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
 # B2 — reactions 전용 별도 RateLimiter (일반 채팅 quota 와 분리, 토글 UX 가 빈번)
+# 익명 세션 쿠키 헬퍼는 chat/anon_session.py 로 이관 (feedback 경로와 공유).
 _reactions_rate_limiter: RateLimiter | None = None
 
 
@@ -57,23 +55,6 @@ def get_reactions_rate_limiter() -> RateLimiter:
             window_seconds=settings.rate_limit_window_seconds,
         )
     return _reactions_rate_limiter
-
-
-def _get_or_issue_session_id(request: Request, response: Response) -> str:
-    """B2 — anon session id 를 cookie 에서 읽거나 새로 발급해서 Set-Cookie."""
-    existing = request.cookies.get(ANON_SESSION_COOKIE)
-    if existing and 16 <= len(existing) <= 128:
-        return existing
-    new_id = secrets.token_urlsafe(24)  # 32 chars URL-safe
-    response.set_cookie(
-        ANON_SESSION_COOKIE,
-        new_id,
-        max_age=ANON_SESSION_MAX_AGE,
-        httponly=True,
-        secure=getattr(settings, "cookie_secure", False),
-        samesite="lax",
-    )
-    return new_id
 
 
 # audit 2차 C-3 (2026-05-15): 자체 _client_ip helper 제거. safety/middleware
@@ -115,7 +96,7 @@ async def toggle_reaction(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="알 수 없는 reaction kind") from exc
 
-    user_session_id = _get_or_issue_session_id(request, response)
+    user_session_id = get_or_issue_session_id(request, response)
 
     action, reaction = await service.toggle(
         message_id=message_id,

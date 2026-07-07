@@ -9,6 +9,8 @@ import json
 import uuid
 from collections.abc import AsyncGenerator
 
+from sqlalchemy.exc import IntegrityError
+
 from src.cache.service import SemanticCacheService
 from src.chat.models import AnswerFeedback, MessageRole, SessionMessage
 from src.chat.pipeline.context import ChatContext
@@ -440,21 +442,56 @@ class ChatService:
             ],
         }
 
-    async def submit_feedback(self, request: FeedbackRequest) -> AnswerFeedback:
-        """답변 피드백(좋아요/싫어요) 제출 및 DB 저장.
+    async def upsert_feedback(
+        self, request: FeedbackRequest, user_session_id: str
+    ) -> tuple[str, AnswerFeedback]:
+        """답변 피드백 upsert — (message_id, user_session_id) 당 현재 상태 1행.
 
-        Args:
-            request: message_id, feedback_type, 선택적 comment.
+        같은 세션이 같은 메시지에 이미 피드백했으면 feedback_type/comment 를
+        교체(UPDATE), 없으면 INSERT. 좋아요↔싫어요 전환도 이 경로로 교체된다.
+
+        race: 두 동시 요청이 모두 existing=None 으로 읽고 INSERT → unique 위반.
+        IntegrityError catch 후 재조회하여 UPDATE 로 수렴 (reactions_service 패턴).
 
         Returns:
-            저장된 AnswerFeedback 모델 인스턴스.
+            ("created" | "updated", 저장된 AnswerFeedback).
         """
+        existing = await self.chat_repo.get_feedback(
+            request.message_id, user_session_id
+        )
+        if existing is not None:
+            existing.feedback_type = request.feedback_type
+            existing.comment = request.comment
+            await self.chat_repo.commit()
+            return "updated", existing
+
         feedback = AnswerFeedback(
             message_id=request.message_id,
+            user_session_id=user_session_id,
             feedback_type=request.feedback_type,
             comment=request.comment,
         )
-        saved = await self.chat_repo.create_feedback(feedback)
+        try:
+            saved = await self.chat_repo.create_feedback(feedback)
+            await self.chat_repo.commit()
+            return "created", saved
+        except IntegrityError:
+            await self.chat_repo.rollback()
+            current = await self.chat_repo.get_feedback(
+                request.message_id, user_session_id
+            )
+            if current is None:  # pragma: no cover — race 후 재조회 실패는 이례적
+                raise
+            current.feedback_type = request.feedback_type
+            current.comment = request.comment
+            await self.chat_repo.commit()
+            return "updated", current
+
+    async def delete_feedback(
+        self, message_id: uuid.UUID, user_session_id: str
+    ) -> bool:
+        """답변 피드백 취소 — (message_id, user_session_id) 행 삭제. 멱등."""
+        deleted = await self.chat_repo.delete_feedback(message_id, user_session_id)
         await self.chat_repo.commit()
-        return saved
+        return deleted
 
