@@ -154,6 +154,17 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Next Actions
 
+### 00. 멀티턴 대화 메모리 (2026-07-08)
+> 설계: `docs/04_architecture/multi-turn-memory.md` (업계 조사 + 방안 A~D 비교)
+> 통합 브랜치 `dev/multi-turn-memory`, sub-PR 2개 (Phase 1 이력 주입 / Phase 2 condense)
+
+- [x] Phase 1 — 이력 생성 프롬프트 주입 + 후속 턴 캐시 조회·저장 스킵 + token_count 기록
+- [x] Phase 2 — condense 후속질문 검색 재작성 (LLM 1회 결합, 원문 fallback) + meta 강등 완화책
+- [x] 로컬 E2E — 2턴 대화 문맥 유지, condense 재작성, 캐시 히트/스킵, SSE 경로 모두 검증
+- [ ] main 머지 + prod 배포 후 사용자 테스트 가이드 PDF의 "이전 대화 미기억" 참고사항 수정
+- [ ] (백로그) 방안 C — condensed-query 기준 캐싱으로 후속 턴 히트율 회복 (운영 데이터 관찰 후)
+- [ ] (백로그) 방안 D — 장기 세션 rolling summary (12메시지 초과 세션 빈도 관찰 후)
+
 ### 0-A. `collection_main` Phase 2 — DB 컬럼 drop (완료, stack PR)
 > 상세: `docs/dev-log/52-collection-main-deprecation.md`
 > Phase 1 (코드 사용 중단) PR #87, branch `refactor/deprecate-collection-main` (2026-04-30)
