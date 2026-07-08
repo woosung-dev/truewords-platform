@@ -33,6 +33,10 @@ class ChatContext:
     # Phase 1 (InputValidation + Session)
     session: ResearchSession | None = None
     user_message: SessionMessage | None = None
+    # 멀티턴 — SessionStage 가 현재 user_message 저장 **전** 시점의 직전 대화
+    # 이력을 채운다 (created_at 오름차순). 비어있지 않으면 후속 턴 — CacheCheck /
+    # Persist 의 캐시 스킵 판정과 Generation 의 이력 주입 기준이 된다.
+    history: list[SessionMessage] = field(default_factory=list)
 
     # Phase 2 (Embedding ~ Generation)
     query_embedding: list[float] | None = None

@@ -24,6 +24,21 @@ def _make_hit(answer: str = "원본 답변") -> CacheHit:
 
 class TestCacheCheckStage:
     @pytest.mark.asyncio
+    async def test_followup_turn_skips_cache_lookup(self) -> None:
+        """멀티턴 — 후속 턴(ctx.history 존재)은 문맥 의존 질문이라 캐시 조회 스킵."""
+        cache_service = MagicMock()
+        cache_service.check_cache = AsyncMock(return_value=_make_hit())
+        stage = CacheCheckStage(cache_service=cache_service)
+        ctx = ChatContext(request=ChatRequest(query="그럼 그건 어떻게 하나요?"))
+        ctx.query_embedding = [0.1] * 1536
+        ctx.history = [MagicMock()]
+
+        result = await stage.execute(ctx)
+
+        assert result.cache_hit is False
+        cache_service.check_cache.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_no_op_when_no_cache_service(self) -> None:
         stage = CacheCheckStage(cache_service=None)
         ctx = ChatContext(request=ChatRequest(query="q"))

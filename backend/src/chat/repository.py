@@ -124,6 +124,26 @@ class ChatRepository:
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
+    async def get_recent_messages(
+        self,
+        session_id: uuid.UUID,
+        *,
+        limit: int = 12,
+    ) -> list[SessionMessage]:
+        """멀티턴 이력용 최근 메시지 조회 — 최신 limit 건을 시간 오름차순으로 반환.
+
+        get_messages_by_session(limit 없음, 분석 API 용)과 달리 세션이 길어져도
+        O(limit) 로 고정된다.
+        """
+        stmt = (
+            select(SessionMessage)
+            .where(SessionMessage.session_id == session_id)
+            .order_by(SessionMessage.created_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(reversed(result.scalars().all()))
+
     async def get_message(self, message_id: uuid.UUID) -> SessionMessage | None:
         result = await self.session.execute(
             select(SessionMessage).where(SessionMessage.id == message_id)
