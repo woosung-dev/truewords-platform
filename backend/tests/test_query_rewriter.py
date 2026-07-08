@@ -61,3 +61,94 @@ async def test_rewrite_query_strips_whitespace():
         result = await rewrite_query(original)
 
     assert result == "훈독회의 의미와 목적에 대해"
+
+
+# ---------- condense_query (멀티턴 문맥 해소) ----------
+
+from src.search.query_rewriter import (  # noqa: E402
+    CONDENSE_SYSTEM_PROMPT,
+    CONDENSE_WITH_TERMS_SYSTEM_PROMPT,
+    condense_query,
+)
+
+_HISTORY = [("user", "효자란 무엇인가요?"), ("assistant", "참사랑 중심의 심정 교육이…")]
+
+
+@pytest.mark.asyncio
+async def test_condense_query_rewrites_followup():
+    with patch(
+        "src.search.query_rewriter.generate_text",
+        new_callable=AsyncMock,
+        return_value="효자로 기르는 참사랑 교육의 실천 방법",
+    ) as mock_gen:
+        result = await condense_query("그럼 어떻게 실천하나요?", _HISTORY)
+
+    assert result == "효자로 기르는 참사랑 교육의 실천 방법"
+    prompt = mock_gen.call_args.kwargs["prompt"]
+    assert "사용자: 효자란 무엇인가요?" in prompt
+    assert "후속 질문: 그럼 어떻게 실천하나요?" in prompt
+    assert mock_gen.call_args.kwargs["system_instruction"] == CONDENSE_SYSTEM_PROMPT
+
+
+@pytest.mark.asyncio
+async def test_condense_query_term_rewrite_uses_combined_prompt():
+    with patch(
+        "src.search.query_rewriter.generate_text",
+        new_callable=AsyncMock,
+        return_value="재작성",
+    ) as mock_gen:
+        await condense_query("그럼?", _HISTORY, term_rewrite=True)
+
+    assert (
+        mock_gen.call_args.kwargs["system_instruction"]
+        == CONDENSE_WITH_TERMS_SYSTEM_PROMPT
+    )
+
+
+@pytest.mark.asyncio
+async def test_condense_query_empty_history_returns_original():
+    with patch(
+        "src.search.query_rewriter.generate_text", new_callable=AsyncMock
+    ) as mock_gen:
+        result = await condense_query("첫 질문", [])
+
+    assert result == "첫 질문"
+    mock_gen.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_condense_query_timeout_returns_original():
+    import asyncio
+
+    with patch(
+        "src.search.query_rewriter.generate_text",
+        new_callable=AsyncMock,
+        side_effect=asyncio.TimeoutError,
+    ):
+        result = await condense_query("그럼?", _HISTORY)
+
+    assert result == "그럼?"
+
+
+@pytest.mark.asyncio
+async def test_condense_query_empty_response_returns_original():
+    with patch(
+        "src.search.query_rewriter.generate_text",
+        new_callable=AsyncMock,
+        return_value="  ",
+    ):
+        result = await condense_query("그럼?", _HISTORY)
+
+    assert result == "그럼?"
+
+
+@pytest.mark.asyncio
+async def test_condense_query_exception_returns_original():
+    with patch(
+        "src.search.query_rewriter.generate_text",
+        new_callable=AsyncMock,
+        side_effect=Exception("API Error"),
+    ):
+        result = await condense_query("그럼?", _HISTORY)
+
+    assert result == "그럼?"

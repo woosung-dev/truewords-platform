@@ -204,6 +204,28 @@ class TestIntentClassifierStage:
         assert result.pipeline_state == PipelineState.META_TERMINATED
 
     @pytest.mark.asyncio
+    async def test_meta_on_followup_turn_demotes_to_default(self) -> None:
+        """멀티턴 — 후속 턴(ctx.history 존재)의 meta 판정은 short-circuit 하지 않고
+        기본 intent 로 강등한다 (대명사 후속 질문의 meta 오분류 방어)."""
+        from unittest.mock import MagicMock
+
+        ctx = ChatContext(request=ChatRequest(query="그게 무슨 뜻이에요?"))
+        ctx.pipeline_state = PipelineState.RUNTIME_RESOLVED
+        ctx.runtime_config = _runtime_config()
+        ctx.history = [MagicMock()]
+
+        with patch(
+            "src.chat.pipeline.stages.intent_classifier.classify_intent",
+            new_callable=AsyncMock,
+            return_value="meta",
+        ):
+            result = await IntentClassifierStage().execute(ctx)
+
+        assert result.intent == DEFAULT_INTENT
+        assert result.answer is None
+        assert result.pipeline_state == PipelineState.INTENT_CLASSIFIED
+
+    @pytest.mark.asyncio
     async def test_warns_when_precondition_state_wrong(self, caplog) -> None:
         ctx = ChatContext(request=ChatRequest(query="질문"))
         # Wrong prior state (should be RUNTIME_RESOLVED) — Stage 는 logger.warning 만 발생.
