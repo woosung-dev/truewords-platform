@@ -55,6 +55,58 @@ class TestPersistStageVersion:
         assert captured[0].role == MessageRole.ASSISTANT
 
 
+class TestPersistCacheStoreMultiTurn:
+    def _make_stage_ctx(self, cache_service) -> tuple[PersistStage, ChatContext]:
+        chat_repo = MagicMock()
+        chat_repo.create_message = AsyncMock(side_effect=_set_id)
+        chat_repo.create_search_event = AsyncMock()
+        chat_repo.create_citations = AsyncMock()
+        chat_repo.commit = AsyncMock()
+        stage = PersistStage(chat_repo, cache_service=cache_service)
+        ctx = ChatContext(request=ChatRequest(query="q"))
+        ctx.session = _make_session()
+        ctx.answer = "답변"
+        ctx.results = [_make_result()]
+        ctx.original_query_embedding = [0.1] * 8
+        return stage, ctx
+
+    @pytest.mark.asyncio
+    async def test_followup_turn_skips_cache_store(self) -> None:
+        """멀티턴 — 후속 턴 답변은 대화 문맥 의존이라 캐시 저장 스킵."""
+        cache_service = MagicMock()
+        cache_service.store_cache = AsyncMock()
+        stage, ctx = self._make_stage_ctx(cache_service)
+        ctx.history = [MagicMock()]
+
+        await stage.execute(ctx)
+
+        cache_service.store_cache.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_first_turn_still_stores_cache(self) -> None:
+        cache_service = MagicMock()
+        cache_service.store_cache = AsyncMock()
+        stage, ctx = self._make_stage_ctx(cache_service)
+
+        await stage.execute(ctx)
+
+        cache_service.store_cache.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_assistant_message_records_token_count(self) -> None:
+        stage, ctx = self._make_stage_ctx(cache_service=None)
+        ctx.answer = "가나다라"
+
+        result = await stage.execute(ctx)
+
+        assert result.assistant_message.token_count == 2
+
+
+async def _set_id(msg: SessionMessage) -> SessionMessage:
+    msg.id = uuid.uuid4()
+    return msg
+
+
 class TestCacheHitPathVersion:
     @pytest.mark.asyncio
     async def test_cache_hit_path_writes_pipeline_version_2(self) -> None:

@@ -12,6 +12,7 @@ from collections.abc import AsyncGenerator
 from sqlalchemy.exc import IntegrityError
 
 from src.cache.service import SemanticCacheService
+from src.chat.history import estimate_tokens, select_history_window
 from src.chat.models import AnswerFeedback, MessageRole, SessionMessage
 from src.chat.pipeline.context import ChatContext
 from src.chat.pipeline.stages.cache_check import CacheCheckStage
@@ -131,6 +132,7 @@ class ChatService:
                 session_id=session_id,
                 role=MessageRole.ASSISTANT,
                 content=content,
+                token_count=estimate_tokens(content),
                 pipeline_version=pipeline_version,
             )
         )
@@ -357,6 +359,8 @@ class ChatService:
                 request.query,
                 context_results,
                 generation_config=gen_cfg_for_call,
+                # 멀티턴 — 동기 GenerationStage 와 동일한 윈도우 정책으로 이력 주입.
+                history=select_history_window(ctx.history) or None,
             ):
                 released = sanitizer.feed(chunk)
                 if sanitizer.aborted:

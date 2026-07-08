@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from src.cache.service import SemanticCacheService
+from src.chat.history import estimate_tokens
 from src.chat.models import (
     AnswerCitation,
     MessageRole,
@@ -35,6 +36,7 @@ class PersistStage:
                 session_id=session.id,
                 role=MessageRole.ASSISTANT,
                 content=ctx.answer,
+                token_count=estimate_tokens(ctx.answer),
                 pipeline_version=2,
                 # M1 — 측정 인프라 (Cross-review #2 W4-blocking).
                 requested_answer_mode=getattr(ctx.request, "answer_mode", None),
@@ -76,8 +78,16 @@ class PersistStage:
         if citations:
             await self.chat_repo.create_citations(citations)
 
-        # 캐시 저장 (빈 응답은 저장 X)
-        if self.cache_service and ctx.results and ctx.answer and "찾지 못했습니다" not in ctx.answer:
+        # 캐시 저장 (빈 응답은 저장 X). 멀티턴 후속 턴(ctx.history 존재)의 답변은
+        # 대화 문맥에 의존하므로 원 질문 임베딩 키 캐시에 저장하면 다른 사용자
+        # 세션을 오염시킨다 — 저장도 스킵 (CacheCheckStage 조회 스킵과 쌍).
+        if (
+            self.cache_service
+            and not ctx.history
+            and ctx.results
+            and ctx.answer
+            and "찾지 못했습니다" not in ctx.answer
+        ):
             sources_for_cache = [
                 {
                     "volume": r.volume,

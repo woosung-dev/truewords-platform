@@ -20,6 +20,13 @@ class CacheCheckStage:
     async def execute(self, ctx: ChatContext) -> ChatContext:
         check_precondition(self.__class__.__name__, ctx)
 
+        # 멀티턴 — 후속 턴(세션에 기존 메시지 존재)은 문맥 의존 질문일 수 있어
+        # 원 질문 임베딩 기준 캐시가 오답 히트 위험 (ContextCache/MeanCache 근거).
+        # PoC 정책: 조회 스킵. condensed-query 기준 캐싱은 백로그 (설계 문서 §6).
+        if ctx.history:
+            ctx.pipeline_state = PipelineState.CACHE_CHECKED
+            return ctx
+
         if not self.cache_service or ctx.query_embedding is None:
             ctx.pipeline_state = PipelineState.CACHE_CHECKED
             return ctx
