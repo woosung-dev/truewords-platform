@@ -2,10 +2,14 @@
 
 import asyncio
 import logging
+import uuid
 
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.admin.auth import decode_access_token
+# 대화 기록 목록/단건 열람은 admin JWT 인증을 재사용 (라우터가 chat.dependencies 에서 임포트).
+from src.admin.dependencies import get_current_admin  # noqa: F401
 from src.cache.service import SemanticCacheService
 from src.cache.setup import ensure_cache_collection
 from src.chat.reactions_repository import MessageReactionRepository
@@ -95,3 +99,24 @@ async def get_chat_service(
         cache_service=cache_service,
         ingestion_repo=ingestion_repo,
     )
+
+
+async def get_optional_user_id(request: Request) -> uuid.UUID | None:
+    """admin_token 쿠키가 유효하면 사용자 id, 아니면 None.
+
+    채팅은 익명 허용이므로 인증 실패해도 401 을 내지 않는다. 로그인 상태면
+    세션을 사용자에게 귀속시켜 대화 기록 목록 조회 대상으로 만든다.
+    """
+    token = request.cookies.get("admin_token")
+    if not token:
+        return None
+    payload = decode_access_token(token)
+    if payload is None:
+        return None
+    sub = payload.get("sub")
+    if not sub:
+        return None
+    try:
+        return uuid.UUID(sub)
+    except ValueError:
+        return None

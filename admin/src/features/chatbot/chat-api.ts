@@ -1,4 +1,4 @@
-import { throwApiError } from "@/lib/api";
+import { fetchAPI, throwApiError } from "@/lib/api";
 import { parseSSEStream } from "@/lib/sse";
 import type { AnswerMode } from "@/features/chat/types";
 
@@ -90,6 +90,36 @@ export interface FeedbackResponse {
   created_at: string;
   // upsert 결과 — 신규 생성인지 기존 피드백 교체인지.
   action: "created" | "updated";
+}
+
+// 대화 기록 — 로그인 사용자의 지난 세션 요약 목록 한 항목.
+export interface SessionListItem {
+  session_id: string;
+  started_at: string;
+  // 마지막 메시지 시각 (정렬·날짜 그룹핑 기준).
+  last_activity: string;
+  // 첫 사용자 질문 — 목록 제목 대용.
+  preview: string;
+  message_count: number;
+  chatbot_name?: string | null;
+}
+
+export interface SessionListResponse {
+  items: SessionListItem[];
+  total: number;
+}
+
+// 단일 세션 트랜스크립트 한 메시지. role 은 백엔드 enum → 대소문자 혼재 가능,
+// 소비 측에서 toLowerCase() 정규화 필요 (enum_serialized_by_name 함정).
+export interface SessionHistoryMessage {
+  role: string;
+  content: string;
+  created_at: string;
+}
+
+export interface SessionHistory {
+  session_id: string;
+  messages: SessionHistoryMessage[];
 }
 
 export const chatAPI = {
@@ -231,4 +261,12 @@ export const chatAPI = {
       await throwApiError(res);
     }
   },
+
+  // 대화 기록 — 로그인 사용자 본인의 지난 세션 목록 (최근 활동순). 로그인 필수.
+  listSessions: (): Promise<SessionListResponse> =>
+    fetchAPI<SessionListResponse>("/api/chat/sessions"),
+
+  // 단일 세션 트랜스크립트. 소유자만 열람 가능 (미소유/미존재 시 404).
+  getSessionHistory: (sessionId: string): Promise<SessionHistory> =>
+    fetchAPI<SessionHistory>(`/api/chat/sessions/${sessionId}`),
 };

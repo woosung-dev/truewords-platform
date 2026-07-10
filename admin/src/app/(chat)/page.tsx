@@ -32,6 +32,7 @@ import {
   ArrowUp,
   BookOpen,
   Copy,
+  History,
   Loader2,
   LogOut,
   MessageSquarePlus,
@@ -188,6 +189,34 @@ export default function ChatPage() {
   // IME composition 직후 Enter 등) 시 두 호출 모두 가드를 통과해 placeholder 가
   // 두 개 push 되는 회귀 발생. ref 는 동기 가드라 즉시 반영 → 단일 호출 보장.
   const sendingRef = useRef(false);
+  // 대화 기록에서 "이어서 대화"로 진입(?session=…) 시 1회만 하이드레이션하도록 가드.
+  const resumedRef = useRef(false);
+
+  // 대화 기록 → "이어서 대화": ?session=<id> 로 진입하면 해당 세션 트랜스크립트를
+  // 불러와 messages/sessionId 를 복원한 뒤, 이후 질문은 같은 세션에 이어진다.
+  // URL 은 복원 후 정리(replaceState) — 새로고침 시 옛 세션이 자동 재로드되어
+  // "새 대화"와 충돌하는 것을 막는다. (다시 열려면 /history 에서 진입)
+  useEffect(() => {
+    if (resumedRef.current) return;
+    const sid = new URLSearchParams(window.location.search).get("session");
+    if (!sid) return;
+    resumedRef.current = true;
+    window.history.replaceState(null, "", "/");
+    setSessionId(sid);
+    chatAPI
+      .getSessionHistory(sid)
+      .then((data) => {
+        const hydrated: Message[] = data.messages.map((m) => ({
+          role: m.role.toLowerCase() === "user" ? "user" : "assistant",
+          content: m.content,
+        }));
+        if (hydrated.length > 0) setMessages(hydrated);
+      })
+      .catch(() => {
+        toast.error("이전 대화를 불러오지 못했어요. 목록에서 다시 시도해 주세요.");
+        setSessionId(undefined);
+      });
+  }, []);
 
   // 챗봇 목록 로드 + 콜드 스타트 감지
   useEffect(() => {
@@ -746,6 +775,17 @@ export default function ChatPage() {
               </SelectContent>
             </Select>
           )}
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => router.push("/history")}
+            className="gap-1.5"
+            aria-label="대화 기록"
+          >
+            <History className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs">대화 기록</span>
+          </Button>
           <Button
             type="button"
             size="sm"

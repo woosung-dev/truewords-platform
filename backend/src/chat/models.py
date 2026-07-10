@@ -31,7 +31,8 @@ class ResearchSession(SQLModel, table=True):
     __tablename__ = "research_sessions"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    user_id: uuid.UUID | None = None  # 미래 확장용
+    # 로그인 사용자(AdminUser) 귀속 — 대화 기록 목록 조회 키. 익명 세션은 NULL.
+    user_id: uuid.UUID | None = Field(default=None, index=True)
     chatbot_config_id: uuid.UUID | None = Field(default=None, foreign_key="chatbot_configs.id", index=True)
     client_fingerprint: str | None = None
     organization_id: uuid.UUID | None = None

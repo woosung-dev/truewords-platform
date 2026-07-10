@@ -2,17 +2,22 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
 
 from src.chat.anon_session import get_or_issue_session_id
-from src.chat.dependencies import get_chat_service
+from src.chat.dependencies import (
+    get_chat_service,
+    get_current_admin,
+    get_optional_user_id,
+)
 from src.chat.schemas import (
     ChatRequest,
     ChatResponse,
     FeedbackRequest,
     FeedbackResponse,
     SessionHistoryResponse,
+    SessionListResponse,
 )
 from src.chat.service import ChatService
 from src.safety.middleware import check_rate_limit
@@ -24,19 +29,24 @@ router = APIRouter(tags=["chat"])
 async def chat(
     request: ChatRequest,
     service: ChatService = Depends(get_chat_service),
+    user_id: uuid.UUID | None = Depends(get_optional_user_id),
 ) -> ChatResponse:
-    """RAG 기반 채팅 응답. 에러는 글로벌 exception_handler가 처리."""
-    return await service.process_chat(request)
+    """RAG 기반 채팅 응답. 에러는 글로벌 exception_handler가 처리.
+
+    로그인 상태면 세션을 사용자에게 귀속(user_id) → 대화 기록 목록 조회 대상.
+    """
+    return await service.process_chat(request, user_id)
 
 
 @router.post("/chat/stream", response_model=None, dependencies=[Depends(check_rate_limit)])
 async def chat_stream(
     request: ChatRequest,
     service: ChatService = Depends(get_chat_service),
+    user_id: uuid.UUID | None = Depends(get_optional_user_id),
 ) -> StreamingResponse:
     """SSE 스트리밍 채팅. 에러는 글로벌 exception_handler가 처리."""
     return StreamingResponse(
-        service.process_chat_stream(request),
+        service.process_chat_stream(request, user_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -46,12 +56,30 @@ async def chat_stream(
     )
 
 
+@router.get("/chat/sessions", response_model=SessionListResponse)
+async def list_my_sessions(
+    limit: int = 100,
+    offset: int = 0,
+    current_admin: dict = Depends(get_current_admin),
+    service: ChatService = Depends(get_chat_service),
+) -> SessionListResponse:
+    """내 대화 세션 목록 (최근 활동순). 로그인 필수 — 본인 세션만."""
+    result = await service.list_user_sessions(
+        current_admin["user_id"], min(limit, 200), max(offset, 0)
+    )
+    return SessionListResponse(**result)
+
+
 @router.get("/chat/sessions/{session_id}", response_model=SessionHistoryResponse)
 async def get_session_history(
     session_id: uuid.UUID,
+    current_admin: dict = Depends(get_current_admin),
     service: ChatService = Depends(get_chat_service),
 ) -> SessionHistoryResponse:
-    result = await service.get_session_history(session_id)
+    """단일 세션 대화 이력. 로그인 필수 + 소유권 검증 (본인 세션만)."""
+    result = await service.get_session_history(session_id, current_admin["user_id"])
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="세션을 찾을 수 없습니다")
     return SessionHistoryResponse(**result)
 
 

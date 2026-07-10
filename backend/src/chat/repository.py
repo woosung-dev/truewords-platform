@@ -2,6 +2,7 @@
 
 import uuid
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -30,6 +31,71 @@ class ChatRepository:
             select(ResearchSession).where(ResearchSession.id == session_id)
         )
         return result.scalar_one_or_none()
+
+    async def list_sessions_by_user(
+        self, user_id: uuid.UUID, limit: int, offset: int
+    ) -> tuple[list[dict], int]:
+        """로그인 사용자의 대화 세션 목록 + 총 개수.
+
+        메시지가 1건 이상인 세션만, 마지막 활동 시각 내림차순.
+        각 항목 = 첫 사용자 질문(preview) + 메시지 수 + 봇 표시명 + 시각.
+        analytics_repository 의 text() SQL 패턴을 따른다 (role 은 native enum 대문자).
+        """
+        total_result = await self.session.execute(
+            text(
+                """
+                SELECT COUNT(*) FROM (
+                    SELECT rs.id
+                    FROM research_sessions rs
+                    JOIN session_messages sm ON sm.session_id = rs.id
+                    WHERE rs.user_id = :uid
+                    GROUP BY rs.id
+                ) t
+                """
+            ),
+            {"uid": user_id},
+        )
+        total = total_result.scalar_one() or 0
+
+        result = await self.session.execute(
+            text(
+                """
+                SELECT
+                    rs.id AS session_id,
+                    rs.started_at,
+                    cc.display_name AS chatbot_name,
+                    COUNT(sm.id)::int AS message_count,
+                    MAX(sm.created_at) AS last_activity,
+                    (
+                        SELECT sm_q.content
+                        FROM session_messages sm_q
+                        WHERE sm_q.session_id = rs.id AND sm_q.role = 'USER'
+                        ORDER BY sm_q.created_at ASC
+                        LIMIT 1
+                    ) AS preview
+                FROM research_sessions rs
+                JOIN session_messages sm ON sm.session_id = rs.id
+                LEFT JOIN chatbot_configs cc ON cc.id = rs.chatbot_config_id
+                WHERE rs.user_id = :uid
+                GROUP BY rs.id, rs.started_at, cc.display_name
+                ORDER BY MAX(sm.created_at) DESC
+                LIMIT :limit OFFSET :offset
+                """
+            ),
+            {"uid": user_id, "limit": limit, "offset": offset},
+        )
+        items = [
+            {
+                "session_id": row.session_id,
+                "started_at": row.started_at,
+                "last_activity": row.last_activity,
+                "message_count": row.message_count,
+                "chatbot_name": row.chatbot_name,
+                "preview": row.preview or "",
+            }
+            for row in result.all()
+        ]
+        return items, total
 
     # --- 메시지 ---
 
