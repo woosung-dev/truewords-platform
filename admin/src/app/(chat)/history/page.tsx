@@ -30,8 +30,14 @@ const BUCKET_LABEL: Record<Bucket, string> = {
   older: "이전",
 };
 
+// 백엔드 timestamp 는 naive UTC (datetime.utcnow()) — tz 지정자가 없으면 'Z' 를 붙여
+// UTC 로 파싱한다. 안 그러면 브라우저가 로컬시간으로 오해해 KST 기준 9시간 어긋난다.
+function parseUtc(iso: string): Date {
+  return new Date(/([zZ]|[+-]\d\d:?\d\d)$/.test(iso) ? iso : iso + "Z");
+}
+
 function bucketOf(iso: string): Bucket {
-  const d = new Date(iso);
+  const d = parseUtc(iso);
   const now = new Date();
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const dDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -44,7 +50,7 @@ function bucketOf(iso: string): Bucket {
 }
 
 function relTime(iso: string): string {
-  const d = new Date(iso);
+  const d = parseUtc(iso);
   const min = Math.floor((Date.now() - d.getTime()) / 60_000);
   if (min < 1) return "방금";
   if (min < 60) return `${min}분 전`;
