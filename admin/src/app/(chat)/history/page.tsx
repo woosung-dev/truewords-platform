@@ -7,13 +7,16 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   BookOpen,
+  Check,
   ChevronLeft,
+  Copy,
   Inbox,
   LogOut,
   MessageSquare,
   Plus,
   Search,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authAPI } from "@/features/auth/api";
@@ -370,6 +373,7 @@ export default function HistoryPage() {
                       <div className="flex flex-col gap-4">
                         {transcript.messages.map((m, i) => {
                           const isUser = m.role.toLowerCase() === "user";
+                          const body = isUser ? m.content : stripDisclaimer(m.content);
                           return (
                             <div
                               key={i}
@@ -386,9 +390,12 @@ export default function HistoryPage() {
                                   {isUser ? "나" : selected.chatbot_name || "TrueWords"}
                                 </span>
                                 {isUser ? (
-                                  m.content
+                                  body
                                 ) : (
-                                  <AssistantMessage content={stripDisclaimer(m.content)} />
+                                  <>
+                                    <AssistantMessage content={body} />
+                                    <CopyButton text={body} />
+                                  </>
                                 )}
                               </div>
                             </div>
@@ -486,6 +493,32 @@ function FilterChip({
       }`}
     >
       {children}
+    </button>
+  );
+}
+
+// ── 응답 복사 버튼 ───────────────────────────────────────────
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success("응답을 복사했어요");
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("복사에 실패했어요");
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={onCopy}
+      aria-label="응답 복사"
+      className="mt-2.5 inline-flex items-center gap-1 rounded-md border bg-card px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+    >
+      {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+      {copied ? "복사됨" : "복사"}
     </button>
   );
 }
