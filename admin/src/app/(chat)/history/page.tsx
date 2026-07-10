@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authAPI } from "@/features/auth/api";
+import { AssistantMessage } from "@/features/chat/components/assistant-message";
 import { chatAPI, type SessionListItem } from "@/features/chatbot/chat-api";
 
 // ── 날짜 그룹 / 상대시간 유틸 ───────────────────────────────────
@@ -34,6 +35,13 @@ const BUCKET_LABEL: Record<Bucket, string> = {
 // UTC 로 파싱한다. 안 그러면 브라우저가 로컬시간으로 오해해 KST 기준 9시간 어긋난다.
 function parseUtc(iso: string): Date {
   return new Date(/([zZ]|[+-]\d\d:?\d\d)$/.test(iso) ? iso : iso + "Z");
+}
+
+// 백엔드 safety layer 가 답변 끝에 붙이는 면책 고지 제거 — 하단 고정 문구와 중복 방지.
+const DISCLAIMER_PREFIX = "\n\n---\n_이 답변은 AI가 생성한";
+function stripDisclaimer(text: string): string {
+  const idx = text.indexOf(DISCLAIMER_PREFIX);
+  return idx >= 0 ? text.slice(0, idx).trimEnd() : text;
 }
 
 function bucketOf(iso: string): Bucket {
@@ -351,7 +359,7 @@ export default function HistoryPage() {
                     </Button>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 font-reading sm:px-7">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7">
                     {tLoading ? (
                       <div className="space-y-4">
                         <Skeleton className="ml-auto h-16 w-2/3 rounded-2xl" />
@@ -368,16 +376,20 @@ export default function HistoryPage() {
                               className={`flex ${isUser ? "justify-end" : "justify-start"}`}
                             >
                               <div
-                                className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-[14.5px] leading-[1.75] ${
+                                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                                   isUser
-                                    ? "rounded-br-sm bg-primary text-primary-foreground"
+                                    ? "whitespace-pre-wrap rounded-br-sm bg-primary text-[14.5px] leading-[1.75] text-primary-foreground"
                                     : "rounded-bl-sm border bg-background text-foreground"
                                 }`}
                               >
                                 <span className="mb-1 block text-[10.5px] font-bold uppercase tracking-wider opacity-60">
                                   {isUser ? "나" : selected.chatbot_name || "TrueWords"}
                                 </span>
-                                {m.content}
+                                {isUser ? (
+                                  m.content
+                                ) : (
+                                  <AssistantMessage content={stripDisclaimer(m.content)} />
+                                )}
                               </div>
                             </div>
                           );
