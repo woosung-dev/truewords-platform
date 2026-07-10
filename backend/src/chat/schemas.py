@@ -91,3 +91,21 @@ class FeedbackResponse(BaseModel):
 class SessionHistoryResponse(BaseModel):
     session_id: uuid.UUID
     messages: list[dict]
+
+
+class SessionListItem(BaseModel):
+    """대화 기록 목록의 한 항목 — 세션 요약."""
+
+    session_id: uuid.UUID
+    started_at: datetime
+    # 마지막 메시지 시각 (정렬·날짜 그룹핑 기준). 메시지 없으면 started_at.
+    last_activity: datetime
+    # 첫 사용자 질문 — 목록 제목 대용.
+    preview: str
+    message_count: int
+    chatbot_name: str | None = None
+
+
+class SessionListResponse(BaseModel):
+    items: list[SessionListItem]
+    total: int

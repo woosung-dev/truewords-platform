@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -25,6 +26,9 @@ class ChatContext:
     """
 
     request: ChatRequest
+
+    # 로그인 사용자 id — 익명이면 None. SessionStage 가 신규 ResearchSession.user_id 로 귀속.
+    user_id: uuid.UUID | None = None
 
     # Phase 1 (InputValidation + Session)
     session: ResearchSession | None = None

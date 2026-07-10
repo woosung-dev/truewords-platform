@@ -148,7 +148,9 @@ class ChatService:
             return {}
         return await build_display_name_lookup(self.ingestion_repo)
 
-    async def _run_pre_pipeline(self, request: ChatRequest) -> ChatContext:
+    async def _run_pre_pipeline(
+        self, request: ChatRequest, user_id: uuid.UUID | None = None
+    ) -> ChatContext:
         """입력 검증 → 세션 → 임베딩 → 캐시 체크. 양 경로 공통.
 
         cache_hit 분기는 호출자 책임 (동기는 ChatResponse, 스트림은 SSE yield).
@@ -159,7 +161,7 @@ class ChatService:
         valid 로 처리되며, 이는 cache invalidation 만 비활성화하고 RAG 본 흐름엔
         영향 없다.
         """
-        ctx = ChatContext(request=request)
+        ctx = ChatContext(request=request, user_id=user_id)
         if self.ingestion_repo is not None:
             # facade 로 cross-domain 조회 좁힘 (audit P1-9).
             ctx.corpus_updated_at = await get_corpus_updated_at(self.ingestion_repo)
@@ -169,7 +171,9 @@ class ChatService:
         ctx = await self.cache_check_stage.execute(ctx)
         return ctx
 
-    async def process_chat(self, request: ChatRequest) -> ChatResponse:
+    async def process_chat(
+        self, request: ChatRequest, user_id: uuid.UUID | None = None
+    ) -> ChatResponse:
         """동기 RAG 처리 — 전체 답변을 한 번에 반환.
 
         9단계 파이프라인:
@@ -187,7 +191,7 @@ class ChatService:
             EmbeddingFailedError: 임베딩 API 실패 시.
             SearchFailedError: 모든 검색 티어 실패 시.
         """
-        ctx = await self._run_pre_pipeline(request)
+        ctx = await self._run_pre_pipeline(request, user_id)
 
         # Cache hit early return (mini-persist — full PersistStage 미실행)
         if ctx.cache_hit and ctx.cache_response and ctx.session:
@@ -269,13 +273,15 @@ class ChatService:
             featured_malssum=featured,
         )
 
-    async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str, None]:
+    async def process_chat_stream(
+        self, request: ChatRequest, user_id: uuid.UUID | None = None
+    ) -> AsyncGenerator[str, None]:
         """SSE 스트리밍 RAG 처리 — chunk/sources/done 이벤트를 순차 yield.
 
         Client disconnect 또는 task cancellation 시 force_transition_to 로
         ctx.pipeline_state = STREAM_ABORTED 갱신 후 re-raise (관찰성 baseline).
         """
-        ctx = await self._run_pre_pipeline(request)
+        ctx = await self._run_pre_pipeline(request, user_id)
 
         # Cache hit early return (SSE — mini-persist)
         if ctx.cache_hit and ctx.cache_response and ctx.session:
@@ -420,19 +426,22 @@ class ChatService:
             force_transition_to(ctx, PipelineState.STREAM_ABORTED, reason="client_disconnect")
             raise
 
-    async def get_session_history(self, session_id: uuid.UUID) -> dict:
-        """세션 대화 이력 조회.
+    async def get_session_history(
+        self, session_id: uuid.UUID, user_id: uuid.UUID
+    ) -> dict | None:
+        """세션 대화 이력 조회 (소유권 검증).
 
         Args:
             session_id: 조회할 세션 UUID.
+            user_id: 요청 사용자 id — 세션 소유자와 일치해야 열람 가능.
 
         Returns:
             ``{"session_id", "messages": [{"role", "content", "created_at"}]}`` 형태 dict.
-            세션이 존재하지 않으면 빈 messages 리스트 반환.
+            세션이 없거나 요청자 소유가 아니면 None (라우터가 404 처리 — 존재 여부 노출 방지).
         """
         session = await self.chat_repo.get_session(session_id)
-        if session is None:
-            return {"session_id": session_id, "messages": []}
+        if session is None or session.user_id != user_id:
+            return None
         messages = await self.chat_repo.get_messages_by_session(session_id)
         return {
             "session_id": session_id,
@@ -441,6 +450,13 @@ class ChatService:
                 for m in messages
             ],
         }
+
+    async def list_user_sessions(
+        self, user_id: uuid.UUID, limit: int = 100, offset: int = 0
+    ) -> dict:
+        """로그인 사용자의 대화 세션 목록 (최근 활동순) + 총 개수."""
+        items, total = await self.chat_repo.list_sessions_by_user(user_id, limit, offset)
+        return {"items": items, "total": total}
 
     async def upsert_feedback(
         self, request: FeedbackRequest, user_session_id: str

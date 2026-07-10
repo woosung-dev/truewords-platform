@@ -35,6 +35,8 @@ class SessionStage:
         config_id = await self.chatbot_service.get_config_id(ctx.request.chatbot_id)
         return await self.chat_repo.create_session(
             ResearchSession(
+                # 로그인 사용자면 귀속 → 대화 기록 목록 조회 대상. 익명이면 None.
+                user_id=ctx.user_id,
                 chatbot_config_id=config_id,
                 client_fingerprint=None,
                 # 레드팀 시연 — 게이트 입력값을 세션에 귀속 (신규 세션 1회만).
