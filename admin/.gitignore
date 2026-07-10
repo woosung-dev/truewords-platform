@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# design-shotgun 시안 (로컬 비교용 재생성 가능 아티팩트 — 프로덕션 번들 제외)
+/public/design-samples/
+
 # vercel
 .vercel
 
