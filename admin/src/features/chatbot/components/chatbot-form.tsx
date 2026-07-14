@@ -36,6 +36,8 @@ export interface ChatbotFormValues {
     weighted_sources: WeightedSource[];
     dictionary_enabled: boolean;
     query_rewrite_enabled: boolean;
+    // 봇별 멀티턴(대화 이력) 토글. 기본 true.
+    multiturn_enabled: boolean;
     // 레드팀 시연 — RAG-only 대조군 봇. true 면 시스템 프롬프트 전부 우회.
     raw_rag_only: boolean;
   };
@@ -67,6 +69,8 @@ function buildInitial(initial?: Partial<ChatbotFormValues>): ChatbotFormValues {
       weighted_sources: initial?.search_tiers?.weighted_sources ?? [],
       dictionary_enabled: initial?.search_tiers?.dictionary_enabled ?? false,
       query_rewrite_enabled: initial?.search_tiers?.query_rewrite_enabled ?? false,
+      // 멀티턴은 기본 ON — 기존 봇/신규 봇 모두 미설정 시 켜짐 (하위호환).
+      multiturn_enabled: initial?.search_tiers?.multiturn_enabled ?? true,
       raw_rag_only: initial?.search_tiers?.raw_rag_only ?? false,
     },
   };
@@ -249,6 +253,25 @@ export function ChatbotForm({
           </Label>
           <span className="text-xs text-muted-foreground">
             사용자 질문을 종교 용어로 자동 재작성
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <Checkbox
+            id="multiturn-enabled"
+            checked={values.search_tiers.multiturn_enabled}
+            onCheckedChange={(c) =>
+              patchSearch("multiturn_enabled", c === true)
+            }
+          />
+          <Label
+            htmlFor="multiturn-enabled"
+            className="cursor-pointer text-sm"
+          >
+            대화 이력 기억 (멀티턴)
+          </Label>
+          <span className="text-xs text-muted-foreground">
+            이전 대화를 참고해 후속 질문(그것, 그럼 등)을 이해합니다
           </span>
         </div>
 

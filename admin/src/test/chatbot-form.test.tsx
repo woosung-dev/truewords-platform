@@ -74,6 +74,7 @@ describe("ChatbotForm", () => {
           weighted_sources: [],
           dictionary_enabled: false,
           query_rewrite_enabled: false,
+          multiturn_enabled: true,
         }),
       }),
     );
