@@ -94,7 +94,7 @@ async def test_session_stage_attributes_user_id_on_new_session():
     user_id = uuid.uuid4()
     ctx = ChatContext(request=ChatRequest(query="질문"), user_id=user_id)
 
-    created = await stage._get_or_create_session(ctx)
+    created, _reused = await stage._get_or_create_session(ctx)
 
     assert created.user_id == user_id
 
@@ -109,6 +109,6 @@ async def test_session_stage_anonymous_when_no_user():
     stage = SessionStage(chat_repo, chatbot_service)
     ctx = ChatContext(request=ChatRequest(query="질문"))  # user_id 기본 None
 
-    created = await stage._get_or_create_session(ctx)
+    created, _reused = await stage._get_or_create_session(ctx)
 
     assert created.user_id is None
