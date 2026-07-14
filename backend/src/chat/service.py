@@ -65,7 +65,9 @@ DEFAULT_RUNTIME_CONFIG = ChatbotRuntimeConfig(
         ],
     ),
     generation=GenerationConfig(system_prompt=BASE_SYSTEM_PROMPT),
-    retrieval=RetrievalConfig(rerank_enabled=False, query_rewrite_enabled=False),
+    retrieval=RetrievalConfig(
+        rerank_enabled=False, query_rewrite_enabled=False, multiturn_enabled=True
+    ),
     safety=SafetyConfig(),
 )
 
