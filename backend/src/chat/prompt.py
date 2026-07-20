@@ -252,10 +252,34 @@ def compose_system_prompt(
 DEFAULT_SYSTEM_PROMPT = BASE_SYSTEM_PROMPT
 
 
-def build_context_prompt(query: str, results: list[SearchResult]) -> str:
+# 멀티턴 이력 role 표시 라벨. Gemini 프롬프트 내 텍스트 블록 용.
+_HISTORY_ROLE_LABELS = {"user": "사용자", "assistant": "도우미"}
+
+
+def build_context_prompt(
+    query: str,
+    results: list[SearchResult],
+    *,
+    history: list[tuple[str, str]] | None = None,
+) -> str:
+    """검색 컨텍스트 + (선택) 대화 이력 + 질문으로 생성 프롬프트 조립.
+
+    history 는 (role, content) 쌍의 시간 오름차순 리스트 (select_history_window
+    산출물). None/빈 리스트면 기존 단일 턴 프롬프트와 **문자 단위 동일** 출력 —
+    기존 테스트·캐시 무회귀 보증의 핵심 계약.
+    """
     context_parts = [
         f"[출처: {r.volume}]\n{r.text}"
         for r in results
     ]
     context_text = "\n\n".join(context_parts)
-    return f"말씀 문단:\n{context_text}\n\n질문: {query}"
+    if not history:
+        return f"말씀 문단:\n{context_text}\n\n질문: {query}"
+    history_lines = "\n".join(
+        f"{_HISTORY_ROLE_LABELS.get(role, role)}: {content}" for role, content in history
+    )
+    return (
+        "이전 대화 (문맥 파악 참고용 — 답변의 근거는 반드시 아래 말씀 문단에서 취하세요):\n"
+        f"{history_lines}\n\n"
+        f"말씀 문단:\n{context_text}\n\n질문: {query}"
+    )

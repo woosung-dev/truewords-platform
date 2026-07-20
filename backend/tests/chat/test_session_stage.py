@@ -113,6 +113,68 @@ class TestSessionStage:
         assert created.participant_category == "청년부"
 
     @pytest.mark.asyncio
+    async def test_reused_session_loads_history_before_current_message(self) -> None:
+        """멀티턴 — 기존 세션 재사용 시 직전 이력을 로드하되, 이력 조회가
+        현재 user 메시지 저장보다 먼저 일어나야 자기 자신이 섞이지 않는다."""
+        chat_repo = AsyncMock()
+        chatbot_service = AsyncMock()
+        existing_session = _make_session()
+        prev_messages = [_make_message(), _make_message()]
+
+        call_order: list[str] = []
+        chat_repo.get_session.return_value = existing_session
+
+        async def _get_recent(session_id, **kwargs):
+            call_order.append("get_recent_messages")
+            return prev_messages
+
+        async def _create_message(msg):
+            call_order.append("create_message")
+            return _make_message()
+
+        chat_repo.get_recent_messages.side_effect = _get_recent
+        chat_repo.create_message.side_effect = _create_message
+
+        stage = SessionStage(chat_repo, chatbot_service)
+        ctx = ChatContext(request=ChatRequest(query="후속 질문", session_id=uuid.uuid4()))
+        result = await stage.execute(ctx)
+
+        assert result.history == prev_messages
+        assert call_order == ["get_recent_messages", "create_message"]
+
+    @pytest.mark.asyncio
+    async def test_new_session_has_empty_history(self) -> None:
+        chat_repo = AsyncMock()
+        chatbot_service = AsyncMock()
+        chat_repo.get_session.return_value = None
+        chat_repo.create_session.return_value = _make_session()
+        chat_repo.create_message.return_value = _make_message()
+        chatbot_service.get_config_id.return_value = None
+
+        stage = SessionStage(chat_repo, chatbot_service)
+        ctx = ChatContext(request=ChatRequest(query="첫 질문"))
+        result = await stage.execute(ctx)
+
+        assert result.history == []
+        chat_repo.get_recent_messages.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_user_message_records_token_count(self) -> None:
+        chat_repo = AsyncMock()
+        chatbot_service = AsyncMock()
+        chat_repo.get_session.return_value = None
+        chat_repo.create_session.return_value = _make_session()
+        chat_repo.create_message.return_value = _make_message()
+        chatbot_service.get_config_id.return_value = None
+
+        stage = SessionStage(chat_repo, chatbot_service)
+        ctx = ChatContext(request=ChatRequest(query="가나다라"))
+        await stage.execute(ctx)
+
+        created = chat_repo.create_message.call_args[0][0]
+        assert created.token_count == 2  # len("가나다라") // 2
+
+    @pytest.mark.asyncio
     async def test_persists_user_message_with_role_user(self) -> None:
         chat_repo = AsyncMock()
         chatbot_service = AsyncMock()

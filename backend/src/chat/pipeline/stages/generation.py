@@ -19,6 +19,7 @@ import re
 import unicodedata
 
 from src.chat.generator import generate_answer
+from src.chat.history import select_history_window
 from src.chat.pipeline.context import ChatContext
 from src.chat.pipeline.state import PipelineState, check_precondition
 from src.chat.prompt import compose_system_prompt
@@ -276,6 +277,8 @@ class GenerationStage:
         context_results = ctx.results[:slice_n]
 
         gen_cfg_for_call = configure_generation_for_mode(ctx)
+        # 멀티턴 — 후속 턴이면 직전 대화 윈도우를 생성 프롬프트에 주입.
+        history_window = select_history_window(ctx.history) or None
 
         if gen_cfg_for_call is None:
             # runtime_config 없으면 기존 동작 유지 (legacy 경로). 원본과 동일한
@@ -284,6 +287,7 @@ class GenerationStage:
                 ctx.request.query,
                 context_results,
                 generation_config=None,
+                history=history_window,
             )
             ctx.pipeline_state = PipelineState.GENERATED
             return ctx
@@ -292,6 +296,7 @@ class GenerationStage:
             ctx.request.query,
             context_results,
             generation_config=gen_cfg_for_call,
+            history=history_window,
         )
 
         # B4 — pastoral 모드일 때 hotline 출력 강제 보장 (LLM omit 방어).

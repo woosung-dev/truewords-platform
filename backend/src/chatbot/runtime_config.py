@@ -99,6 +99,9 @@ class RetrievalConfig(BaseModel):
     rerank_enabled: bool = True
     rerank_top_k: int = 10
     query_rewrite_enabled: bool = True
+    # 봇별 멀티턴(대화 이력) 토글. False 면 SessionStage 가 이력을 로드하지 않아
+    # condense·이력 주입·후속턴 캐시 게이트가 전부 단일턴 동작으로 복귀한다.
+    multiturn_enabled: bool = True
     fallback_enabled: bool = True
     # Phase D — IntentClassifierStage 토글. False 시 LLM 호출 없이 conceptual default 사용.
     intent_classifier_enabled: bool = True

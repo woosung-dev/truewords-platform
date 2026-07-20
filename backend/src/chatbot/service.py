@@ -119,6 +119,8 @@ class ChatbotService:
             retrieval=RetrievalConfig(
                 rerank_enabled=raw.get("rerank_enabled", True),
                 query_rewrite_enabled=raw.get("query_rewrite_enabled", True),
+                # 봇별 멀티턴 토글 (search_tiers JSONB 안에 저장, 마이그레이션 없이 재사용).
+                multiturn_enabled=raw.get("multiturn_enabled", True),
             ),
             safety=SafetyConfig(),
             # P1-F: search_tiers JSONB 안에 함께 저장된 신학 입장 텍스트 (선택).

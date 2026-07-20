@@ -21,7 +21,7 @@ class ChatbotConfig(SQLModel, table=True):
     description: str = ""
     system_prompt: str = Field(default="")
     persona_name: str = Field(default="")
-    # JSONB: {"tiers": [...], "rerank_enabled": false, "dictionary_enabled": false}
+    # JSONB: {"tiers": [...], "rerank_enabled": false, "dictionary_enabled": false, "multiturn_enabled": true}
     search_tiers: dict = Field(default_factory=dict, sa_column=Column(JSON))
     is_active: bool = Field(default=True)
     # 봇별 SSE 스트리밍 응답 활성화 여부. default true.

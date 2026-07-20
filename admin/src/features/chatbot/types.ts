@@ -17,6 +17,8 @@ export interface SearchTiersConfig {
   rerank_enabled?: boolean;
   dictionary_enabled?: boolean;
   query_rewrite_enabled?: boolean;
+  // 봇별 멀티턴(대화 이력) 토글. 기본 ON — 이전 대화를 참고해 후속 질문을 이해.
+  multiturn_enabled?: boolean;
   // 레드팀 시연 — RAG-only 대조군 봇. true 면 시스템 프롬프트(BASE·모드모듈) 전부 우회.
   raw_rag_only?: boolean;
 }

@@ -79,6 +79,114 @@ class TestQueryRewriteStage:
         result = await QueryRewriteStage().execute(ctx)
         assert result.search_query == "질문"
 
+    @pytest.mark.asyncio
+    async def test_followup_turn_uses_condense(self) -> None:
+        """멀티턴 — 후속 턴은 rewrite_query 대신 condense_query 로 문맥 해소."""
+        from unittest.mock import MagicMock
+
+        from src.chat.models import MessageRole
+
+        prev = MagicMock()
+        prev.role = MessageRole.USER
+        prev.content = "효자란 무엇인가요?"
+
+        ctx = ChatContext(request=ChatRequest(query="그럼 어떻게 실천하나요?"))
+        ctx.runtime_config = _make_runtime(query_rewrite_enabled=True)
+        ctx.query_embedding = [0.1] * 10
+        ctx.original_query_embedding = [0.1] * 10
+        ctx.history = [prev]
+
+        with (
+            patch(
+                "src.chat.pipeline.stages.query_rewrite.condense_query",
+                new_callable=AsyncMock, return_value="효자 실천 방법은 무엇인가요?",
+            ) as mock_condense,
+            patch(
+                "src.chat.pipeline.stages.query_rewrite.rewrite_query",
+                new_callable=AsyncMock,
+            ) as mock_rewrite,
+            patch(
+                "src.chat.pipeline.stages.query_rewrite.embed_dense_query",
+                new_callable=AsyncMock, return_value=[0.2] * 10,
+            ),
+        ):
+            result = await QueryRewriteStage().execute(ctx)
+
+        mock_rewrite.assert_not_awaited()
+        mock_condense.assert_awaited_once()
+        # rewrite_enabled=True → 용어 변환 결합 호출 (term_rewrite=True)
+        assert mock_condense.call_args.kwargs["term_rewrite"] is True
+        assert result.search_query == "효자 실천 방법은 무엇인가요?"
+        assert result.rewritten_query == "효자 실천 방법은 무엇인가요?"
+        assert result.query_embedding == [0.2] * 10
+        # 캐시 일관성 — 원본 임베딩은 불변
+        assert result.original_query_embedding == [0.1] * 10
+
+    @pytest.mark.asyncio
+    async def test_followup_condense_independent_of_rewrite_toggle(self) -> None:
+        """condense 게이트는 query_rewrite_enabled 토글과 독립 —
+        기본 봇(rewrite_enabled=False)에서도 멀티턴 문맥 해소가 동작해야 한다."""
+        from unittest.mock import MagicMock
+
+        from src.chat.models import MessageRole
+
+        prev = MagicMock()
+        prev.role = MessageRole.USER
+        prev.content = "효자란?"
+
+        ctx = ChatContext(request=ChatRequest(query="그럼 어떻게?"))
+        ctx.runtime_config = _make_runtime(query_rewrite_enabled=False)
+        ctx.history = [prev]
+
+        with (
+            patch(
+                "src.chat.pipeline.stages.query_rewrite.condense_query",
+                new_callable=AsyncMock, return_value="효자 실천 방법",
+            ) as mock_condense,
+            patch(
+                "src.chat.pipeline.stages.query_rewrite.embed_dense_query",
+                new_callable=AsyncMock, return_value=[0.2] * 10,
+            ),
+        ):
+            result = await QueryRewriteStage().execute(ctx)
+
+        mock_condense.assert_awaited_once()
+        assert mock_condense.call_args.kwargs["term_rewrite"] is False
+        assert result.search_query == "효자 실천 방법"
+
+    @pytest.mark.asyncio
+    async def test_followup_condense_fallback_keeps_original(self) -> None:
+        """condense 가 원문을 그대로 반환하면 (독립 질문/실패) 재임베딩 없음."""
+        from unittest.mock import MagicMock
+
+        from src.chat.models import MessageRole
+
+        prev = MagicMock()
+        prev.role = MessageRole.USER
+        prev.content = "효자란?"
+
+        ctx = ChatContext(request=ChatRequest(query="독립적인 질문입니다"))
+        ctx.runtime_config = _make_runtime(query_rewrite_enabled=False)
+        ctx.query_embedding = [0.1] * 10
+        ctx.history = [prev]
+
+        with (
+            patch(
+                "src.chat.pipeline.stages.query_rewrite.condense_query",
+                new_callable=AsyncMock, return_value="독립적인 질문입니다",
+            ),
+            patch(
+                "src.chat.pipeline.stages.query_rewrite.embed_dense_query",
+                new_callable=AsyncMock,
+            ) as mock_embed,
+        ):
+            result = await QueryRewriteStage().execute(ctx)
+
+        mock_embed.assert_not_awaited()
+        assert result.search_query == "독립적인 질문입니다"
+        assert result.rewritten_query is None
+        assert result.query_embedding == [0.1] * 10
+
 
 class TestRerankStage:
     @pytest.mark.asyncio
