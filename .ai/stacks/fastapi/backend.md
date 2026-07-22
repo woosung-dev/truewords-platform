@@ -222,7 +222,7 @@ client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
 
 ```python
 # 텍스트 생성 (답변, 스트리밍, 리랭킹, 쿼리 재작성)
-MODEL_GENERATE = "gemini-3.1-flash-lite"
+MODEL_GENERATE = "gemini-3.5-flash-lite"
 
 # 임베딩
 MODEL_EMBEDDING = "gemini-embedding-001"
