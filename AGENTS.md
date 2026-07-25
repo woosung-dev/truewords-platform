@@ -211,7 +211,7 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 ### 현재 작업
 
 - Backend 95%, Admin Dashboard 95% 구현 완료
-- 274 pytest + 25 Vitest + 12 E2E 테스트 운영 중
+- pytest 917 passed / 4 skipped / 1 xfailed + 25 Vitest + 12 E2E 테스트 운영 중
 - GCP Cloud Run + Vercel 배포 완료
 - Flutter Mobile MVP (Phase 4) 미착수
 
