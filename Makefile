@@ -4,10 +4,16 @@
 # 디렉터리: admin/ (Next.js 16 + pnpm), backend/ (FastAPI + uv)
 
 .DEFAULT_GOAL := help
+# ~/.ssh/config의 Host 별칭.
+ORACLE ?= truewords-oracle
+TAG    ?= $(shell git rev-parse --short HEAD)
+IMG    := truewords-backend:$(TAG)
+
 .PHONY: help \
         admin-dev admin-type admin-lint admin-test admin-test-watch admin-build admin-e2e admin-install \
         backend-dev backend-test backend-test-fast backend-lint backend-install backend-migrate backend-start \
         infra-up infra-down infra-logs infra-status infra-reset \
+        deploy-backend rollback-backend oracle-logs \
         verify verify-modal test-all type-check clean
 
 # ============================================================
@@ -27,6 +33,9 @@ help: ## 사용 가능한 명령 목록
 	@echo ""
 	@echo "▶ Local infra (Docker — PostgreSQL + Qdrant)"
 	@grep -E '^infra-[a-z0-9-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
+	@echo ""
+	@echo "▶ 배포 (Oracle Cloud VM)"
+	@grep -E '^(deploy-backend|rollback-backend|oracle-logs):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "▶ 통합"
 	@grep -E '^(test-all|type-check|clean):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -112,6 +121,24 @@ infra-reset: ## ⚠️ 컨테이너 + 데이터 볼륨까지 전부 삭제 (post
 	@echo "⚠️  postgres_data, qdrant_data 볼륨까지 삭제됩니다. 5초 후 진행 (Ctrl+C 로 취소)..."
 	@sleep 5
 	@cd backend && docker compose down -v
+
+# ============================================================
+# Oracle Cloud VM 배포
+# ============================================================
+deploy-backend: ## Oracle Cloud ARM VM backend 배포 (빌드·검증·전송·무중단 교체).
+	@cd backend && docker buildx build --platform linux/arm64 -t $(IMG) --load .
+	@docker run --rm --entrypoint sh $(IMG) -c "alembic --version && uvicorn --version"
+	@docker save $(IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
+	@ssh "$(ORACLE)" 'sed -i "s/^BACKEND_TAG=.*/BACKEND_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait backend'
+
+rollback-backend: ## ⚠️ 이전 backend 이미지로 롤백 (`TAG=<이전 sha>` 필수).
+	@# TAG 기본값(현재 HEAD)으로 롤백하면 방금 배포한 태그를 재기록하는 no-op 이 된다.
+	@# 배포 실패 직후 반사적으로 호출하는 경로라, 롤백된 줄 알고 장애가 이어진다. 명시 전달을 강제한다.
+	@[ "$(origin TAG)" != "file" ] || { echo "❌ 롤백은 TAG=<이전 sha> 를 명시해야 합니다 (예: make rollback-backend TAG=abc1234)"; exit 1; }
+	@ssh "$(ORACLE)" 'sed -i "s/^BACKEND_TAG=.*/BACKEND_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait backend'
+
+oracle-logs: ## Oracle Cloud VM Docker Compose 로그 follow (최근 100줄).
+	@ssh -t "$(ORACLE)" 'cd ~/truewords && sudo docker compose logs -f --tail=100'
 
 # ============================================================
 # 통합
