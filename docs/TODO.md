@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-06-04
+> 마지막 업데이트: 2026-07-25
 
 ## Progress Overview
 
@@ -8,7 +8,7 @@
 설계/문서     ████████████████████ 100%
 Backend       ███████████████████░  95%
 Admin Web     ███████████████████░  95%
-테스트        █████████████████░░░  86%  (282 + 25개)
+테스트        █████████████████░░░  86%  (pytest 917 passed / 4 skipped / 1 xfailed, Vitest 25개)
 인프라/배포    ██████████████████░░  90%
 Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 데이터        ██████████░░░░░░░░░░  50%  (L+M만 적재)
@@ -106,7 +106,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] Admin UI 토글 (new/edit 페이지에 Query Rewriting 체크박스)
 
 ### 테스트
-- [x] Backend pytest 274개 (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback, 레드팀 등)
+- [x] Backend pytest 917 passed / 4 skipped / 1 xfailed (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback, 레드팀 등)
 - [x] Admin Vitest 25개 (로그인, SearchTierEditor, API)
 - [x] Admin Playwright E2E 12개 (로그인, 챗봇 CRUD, 인증 가드)
 
@@ -301,7 +301,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 #### 운영 단계
 - [ ] `migrate_cloud_to_vm.py --dry-run` → `--execute`
 - [ ] `verify_migration.py --sample 20` 통과
-- [ ] Staging Cloud Run 환경변수 교체 → 회귀 테스트 (pytest 274 + Vitest 25 + E2E 12)
+- [ ] Staging Cloud Run 환경변수 교체 → 회귀 테스트 (pytest 917 passed / 4 skipped / 1 xfailed + Vitest 25 + E2E 12)
 - [ ] Production cutover (GitHub Secrets 갱신 → 재배포 → 30분 모니터링)
 - [ ] 1주일 후 Qdrant Cloud 클러스터 종료
 
@@ -333,3 +333,18 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 #### 알려진 사항 (범위 외)
 - 채팅 요청에 `chatbot_id`가 없으면 `process_chat`의 legacy 경로가 `generate_answer(generation_config=None)`를 호출 → 런타임 AttributeError 가능. 본 작업 이전부터 존재한 latent 결함이며 이번 변경과 무관. 별도 trigger.
+
+### 13. GCP → Oracle Cloud 이전 (2026-07-25)
+> 운영 가이드: `docs/07_infra/oracle-vm-migration.md` · ADR: `docs/dev-log/2026-07-25-gcp-to-oracle-migration.md`.
+> Oracle 소킹 48시간 동안 두 backend가 같은 Neon DB에서 `alembic upgrade head`를 실행할 수 있으므로 `backend/**`의 main 머지를 금지한다.
+
+- [ ] **XFF 하드닝** — `backend/src/safety/middleware.py:22`가 `X-Forwarded-For` 첫 토큰을 무조건 신뢰한다. Cloudflare Tunnel 뒤이므로 `cf-connecting-ip` 우선 또는 신뢰 프록시 화이트리스트로 3줄이면 닫힌다.
+- [ ] **fastembed 모델 캐시 관찰** — `/tmp/fastembed_cache`가 매번 재다운로드된다. 로컬 Docker Desktop 디스크 포화 때 `OSError: [Errno 28] No space left on device` 실제 실패를 관측했다. Oracle 부트 볼륨 100GB에서는 당장 차단하지 않되 디스크 사용량을 관찰한다.
+- [ ] **cache cooldown 테스트 격리** — `backend/src/chat/dependencies.py`의 `_cache_last_failure_monotonic`은 모듈 전역이라 테스트 간 상태가 누수될 수 있다. 현재는 무해하나 autouse fixture로 리셋한다.
+- [ ] **swap 실제 크기 확인** — `infra/oracle-vm/setup-vm.sh`는 기존 swap이 조금이라도 있으면 전체 swap 설정을 건너뛴다. Oracle 이미지가 소용량 swap을 만들었으면 4GB가 확보되지 않으므로 첫 기동 뒤 `swapon --show`로 확인한다.
+- [ ] **소킹 종료 뒤 GCP 자산 정리** — 48시간 소킹 후 `.github/workflows/deploy.yml`, `infra/qdrant-vm/`, GitHub Secrets `GCP_*` 3종을 별도 PR에서 삭제한다.
+- [x] **테스트 수 표기 갱신** — `docs/TODO.md`와 `AGENTS.md`를 실측 `917 passed / 4 skipped / 1 xfailed`로 맞췄다.
+- [ ] **Makefile pipefail 명시** — `docker save | gzip -1 | ssh`는 현재 `ssh` 종료 코드만 반영한다. 스트림이 잘리면 `docker load`가 실패해 드러나지만 `SHELL := /bin/bash`와 `.SHELLFLAGS := -o pipefail -c`를 두면 명확해진다.
+- [ ] **Compose 환경 파일 표기 통일** — `Makefile`은 cwd의 `.env` 자동 로드에 의존하고 `setup-vm.sh`와 `infra/oracle-vm/README.md`는 `--env-file .env`를 명시한다. 동작은 같지만 하나로 통일한다.
+- [ ] **Oracle README 수동 전달 스니펫 정렬** — `infra/oracle-vm/README.md`의 `docker save ... | ssh 'docker load'`에는 `gzip`과 `sudo`가 없다. `Makefile`의 `deploy-backend`에 맞추되 이번 PR에서는 TODO만 기록한다.
+- [ ] **Oracle 운영 문서 보강** — `infra/oracle-vm/README.md`와 `.env.example`에 신규 target `rollback-backend`와 `oracle-logs`를 머지 후 추가한다.
