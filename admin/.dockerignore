@@ -1,0 +1,21 @@
+# 빌드 컨텍스트 최소화. node_modules 는 deps stage 가 lockfile 로 다시 설치한다.
+node_modules
+.next
+out
+build
+
+# 테스트 산출물
+test-results
+playwright-report
+coverage
+
+# 로컬 전용
+.env*
+.vercel
+*.tsbuildinfo
+.DS_Store
+npm-debug.log*
+.pnpm-debug.log*
+
+# design-shotgun 시안 (로컬 비교용, 프로덕션 번들 제외)
+public/design-samples

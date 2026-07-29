@@ -1,7 +1,7 @@
 <!-- Oracle Cloud ARM VM 단일 노드의 구성과 일상 운영 절차를 설명하는 문서. -->
 # Oracle Cloud ARM VM 셀프 호스팅
 
-TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. backend(FastAPI), Qdrant, PostgreSQL, Cloudflare Tunnel 네 컨테이너다. 외부 의존은 Gemini API 하나뿐이다.
+TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. admin(Next.js), backend(FastAPI), Qdrant, PostgreSQL, Cloudflare Tunnel 다섯 컨테이너다. 외부 의존은 Gemini API 하나뿐이다.
 
 이전 경위와 절차는 [`docs/07_infra/oracle-vm-migration.md`](../../docs/07_infra/oracle-vm-migration.md), 결정 배경은 [ADR](../../docs/dev-log/2026-07-25-gcp-to-oracle-migration.md) 을 참조한다.
 
@@ -9,7 +9,7 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
 
 | 파일 | 역할 |
 |---|---|
-| `docker-compose.yml` | backend, qdrant, postgres, cloudflared 네 컨테이너와 공용 네트워크를 정의합니다. |
+| `docker-compose.yml` | admin, backend, qdrant, postgres, cloudflared 다섯 컨테이너와 공용 네트워크를 정의합니다. |
 | `.env.example` | VM 통합 환경 변수 템플릿입니다. VM 의 `~/truewords/.env` 로 복사해 채웁니다. |
 | `setup-vm.sh` | Docker 설치, Qdrant 디렉토리, 4GB swap, 로그 로테이션, Compose 기동을 처리합니다. |
 | `backup-db.sh` | Postgres 일일 백업 (pg_dump → 무결성 검증 → Object Storage 업로드 → 보관 기간 정리). |
@@ -30,15 +30,18 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
 ## 아키텍처
 
 ```text
-브라우저 ── Cloudflare Edge ──┬── api.<zone> → backend:8080
+브라우저 ── Cloudflare Edge ──┬── app.<zone> → admin:3000
+                              ├── api.<zone> → backend:8080
                               └── vdb.<zone> → qdrant:6333
                                    │ outbound tunnel
                                    ▼
                     ┌─────────────────────────────────────┐
                     │ Oracle ARM VM                        │
                     │  truewords_net (bridge)              │
-                    │  cloudflared ─┬─ backend  :8080      │
+                    │  cloudflared ─┬─ admin    :3000      │
+                    │               ├─ backend  :8080      │
                     │               └─ qdrant   :6333      │
+                    │      admin ──→ backend                │
                     │                  postgres :5432      │
                     │  /opt/qdrant/{data,config,snapshots}  │
                     │  /opt/postgres/data                   │
@@ -48,7 +51,9 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
                               Gemini API
 ```
 
-네 컨테이너가 같은 `truewords_net` 에 있어 서비스 DNS 이름으로 통신한다. Qdrant 6333 과 Postgres 5432 는 호스트 루프백에만 바인딩되어 덤프·복구·exact count 검증 등 로컬 작업에만 쓰인다.
+다섯 컨테이너가 같은 `truewords_net` 에 있어 서비스 DNS 이름으로 통신한다. Qdrant 6333 과 Postgres 5432 는 호스트 루프백에만 바인딩되어 덤프·복구·exact count 검증 등 로컬 작업에만 쓰인다. admin 은 호스트 publish 없이 터널에서만 닿는다.
+
+브라우저는 `app.<zone>` 하나만 호출한다. 프론트의 모든 API 호출은 상대 경로이고 Next 서버의 `rewrites` 가 `http://backend:8080` 으로 프록시하므로, API 왕복이 Cloudflare 를 다시 타지 않는다.
 
 ### 메모리 배분
 
@@ -57,9 +62,10 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
 | qdrant | 6g | dense 벡터만 2.57GB (417,579 × 1536 × 4B). sparse + HNSW 포함 |
 | backend | 3g | fastembed sparse 모델 + 요청 동시성 |
 | postgres | 1g | DB 47MB 로 작음 |
+| admin | 768m | Next standalone 서버 (Node 힙) |
 | cloudflared | 512m | 터널 프록시 |
 
-합계 10.5g / 12g. 나머지는 host·docker 오버헤드와 헤드룸이며 4GB swap 이 스파이크를 흡수한다. 실사용은 약 2.1GB 다.
+합계 11.25g / 12g. 실사용은 훨씬 낮아 문제 없지만 (이전 4컨테이너 기준 2.1GB) limit 총합은 빠듯하다. 4GB swap 이 스파이크를 흡수한다. admin 추가 후 `docker stats` 로 실측해 조정한다.
 
 ## Cloudflare Tunnel
 
@@ -67,6 +73,7 @@ Zero Trust 에서 터널 `truewords-oracle` 을 만들고 다음 Public Hostname
 
 | Public Hostname | Service |
 |---|---|
+| `app.<zone>` | `http://admin:3000` |
 | `api.<zone>` | `http://backend:8080` |
 | `vdb.<zone>` | `http://qdrant:6333` |
 
@@ -159,13 +166,21 @@ sudo docker compose --env-file .env up -d
 
 ```bash
 make deploy-backend                    # 빌드 → entrypoint 검증 → 전송 → 무중단 교체
+make deploy-admin                      # admin 도 동일 패턴
 make rollback-backend TAG=<이전 sha>   # TAG 명시 필수
+make rollback-admin   TAG=<이전 sha>
 make oracle-logs                       # compose 로그 follow (최근 100줄)
 ```
 
 `deploy-backend` 는 이미지에 `alembic` 과 `uvicorn` 바이너리가 실제로 있는지 확인한 뒤에야 전송한다. runtime stage 에 바이너리가 빠져 기동에 실패했던 사고(dev-log 41~42)의 재발 방지 게이트다. 전송은 `docker save | gzip -1 | ssh` 이고 Makefile 이 `pipefail` 을 켜므로 스트림이 잘리면 즉시 실패한다.
 
-`rollback-backend` 는 `TAG` 를 반드시 받는다. 기본값(현재 HEAD)으로 돌면 방금 배포한 태그를 재기록하는 no-op 이 되고, 롤백된 줄 알고 장애가 이어진다. 이전 이미지가 VM 에 남아 있어야 하므로 `sudo docker image ls truewords-backend` 로 확인한다.
+`rollback-backend` / `rollback-admin` 은 `TAG` 를 반드시 받는다. 기본값(현재 HEAD)으로 돌면 방금 배포한 태그를 재기록하는 no-op 이 되고, 롤백된 줄 알고 장애가 이어진다. 이전 이미지가 VM 에 남아 있어야 하므로 `sudo docker image ls truewords-backend` (또는 `truewords-admin`) 로 확인한다.
+
+### admin 빌드의 build-arg
+
+`NEXT_PUBLIC_API_URL` 은 `admin/next.config.ts` 의 `rewrites()` 에서만 쓰이고 `src/` 어디에도 없다. **Next 는 `rewrites` 를 `next build` 시점에 `routes-manifest.json` 으로 굽기 때문에 런타임 env 로는 바뀌지 않는다.** 그래서 `deploy-admin` 이 `--build-arg NEXT_PUBLIC_API_URL=http://backend:8080` 으로 넣는다. 값을 바꾸려면 재빌드가 필요하다.
+
+`truewords-platform.vercel.app` 은 Vercel 에 리다이렉트 전용으로 남아 있다. `next.config.ts` 의 `redirects()` 가 **host 조건부**라, 같은 빌드가 Oracle 에서 돌 때는 규칙이 걸리지 않는다 (조건을 빼면 자기 자신으로 무한 리다이렉트한다).
 
 ## 일상 운영
 
@@ -304,6 +319,9 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 |---|---|
 | Cloudflare 502 | `sudo docker compose logs -f cloudflared backend` 로 터널과 backend 헬스체크를 확인합니다. |
 | backend가 시작하지 않음 | `BACKEND_TAG` 와 `sudo docker image ls truewords-backend` 의 태그가 같은지 확인합니다. |
+| admin이 시작하지 않음 | `ADMIN_TAG` 와 `sudo docker image ls truewords-admin` 의 태그를 확인합니다. admin 은 backend healthy 를 기다리므로 backend 부터 봅니다. |
+| admin 에서 API 가 404/502 | 빌드 시 `NEXT_PUBLIC_API_URL` 이 `http://backend:8080` 이었는지 확인합니다. rewrites 는 빌드 타임에 구워져 재빌드해야 바뀝니다. |
+| 무한 리다이렉트 | `next.config.ts` `redirects()` 의 host 조건이 빠졌는지 확인합니다. |
 | backend 가 DB 에 못 붙음 | `sudo docker compose ps postgres` 가 healthy 인지, `.env` 의 `DATABASE_URL` 호스트가 `postgres` 인지 확인합니다. |
 | Qdrant OOM | `docker stats` 로 메모리를 확인하고 적재와 대량 검색을 분리합니다. 6GB 제한을 임의로 낮추지 않습니다. |
 | VM 디스크가 증가함 | `docker system df` 와 `/opt/qdrant`, `/opt/backups` 용량을 확인하고 오래된 이미지와 snapshot 을 정리합니다. |

@@ -86,14 +86,36 @@ services:
     networks:
       - truewords_net
 
+  # Next.js standalone 서버. 브라우저의 모든 API 호출은 상대 경로라 이 서버의
+  # rewrites 가 backend 로 프록시한다. 브라우저가 api.<zone> 을 직접 부르지 않는다.
+  # 포트를 호스트로 publish 하지 않는다 — cloudflared 가 같은 네트워크에서 붙는다.
+  admin:
+    image: truewords-admin:${ADMIN_TAG}
+    container_name: admin
+    restart: unless-stopped
+    # Node 힙 + Next 서버 워커. 실측 후 조정한다.
+    mem_limit: 768m
+    stop_grace_period: 20s
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/login',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - truewords_net
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared
     restart: unless-stopped
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     mem_limit: 512m
-    # backend 를 넣지 않는다 — `docker compose up -d qdrant cloudflared` 가 depends_on 대상까지
-    # 함께 생성하므로, backend 이미지 전달 전 최초 부트스트랩이 이미지 부재로 통째로 실패한다.
+    # backend / admin 을 넣지 않는다 — `docker compose up -d qdrant cloudflared` 가 depends_on
+    # 대상까지 함께 생성하므로, 이미지 전달 전 최초 부트스트랩이 이미지 부재로 통째로 실패한다.
     # cloudflared 는 origin 연결을 요청 시점에 재시도하므로 기동 순서 보장이 필요 없다.
     depends_on: [qdrant]
     networks:
