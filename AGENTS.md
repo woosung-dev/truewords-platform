@@ -141,7 +141,7 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 
 - 통합 브랜치는 별도 worktree (`../tw-<name>/`) 에 분리 — main 작업과 격리
 - sub-task PR 들은 `dev/**` base. CI 통과 시 `gh pr merge --auto --squash --delete-branch` 로 자동 머지
-- 통합 브랜치 → main PR 은 **항상 수동 검증** (`deploy.yml` 이 main push 시 production Cloud Run 배포)
+- 통합 브랜치 → main PR 은 **항상 수동 검증**. Oracle 이전(2026-07-29) 후 push 자동 배포가 없으므로 머지 후 `make deploy-backend` 를 명시 실행한다
 - main 머지 전 심도 테스트: 전체 backend `pytest` + admin `pnpm test` + E2E
 
 상세 가이드: `docs/guides/integration-branch-workflow.md`
@@ -211,8 +211,8 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 ### 현재 작업
 
 - Backend 95%, Admin Dashboard 95% 구현 완료
-- pytest 917 passed / 4 skipped / 1 xfailed + 25 Vitest + 12 E2E 테스트 운영 중
-- GCP Cloud Run + Vercel 배포 완료
+- pytest 922 passed / 4 skipped / 1 xfailed + 25 Vitest + 12 E2E 테스트 운영 중
+- Oracle Cloud ARM VM 단일 노드 (backend + Qdrant + Postgres + Cloudflare Tunnel) + Vercel (Admin) 배포 완료
 - Flutter Mobile MVP (Phase 4) 미착수
 
 ### 핵심 설계 문서

@@ -1,9 +1,12 @@
 # Staging 환경 분리 설계 초안 (선행 #2)
 
+> ⚠️ **폐기 (2026-07-29)** — GCP → Oracle Cloud 이전으로 더 이상 유효하지 않다. 이력 보존용 아카이브.
+> 현재 인프라는 [oracle-vm-migration](../07_infra/oracle-vm-migration.md) 과 `infra/oracle-vm/README.md` 를 참조한다.
+
 - **작성일**: 2026-04-25
 - **상태**: 설계 초안 — 사용자 의사결정 필요 (§7 체크리스트)
 - **관련**: 플랜 §19.12 #2, dev-log 25/26, `.claude/plans/sleepy-sleeping-summit.md`
-- **후속 문서**: `docs/05_env/environment-setup.md` (환경변수 테이블), `docs/06_devops/ci-cd-pipeline.md` (배포 파이프라인), `docs/07_infra/gcp-vercel-infrastructure.md` (인프라 구성)
+- **후속 문서**: `docs/05_env/environment-setup.md` (환경변수 테이블), `docs/06_devops/ci-cd-pipeline.md` (배포 파이프라인), `docs/archive/gcp-vercel-infrastructure.md` (인프라 구성)
 
 ---
 
@@ -22,13 +25,13 @@
 - `@model_validator(mode="after")` 두 개(`apply_gemini_tier_presets`, `validate_production`)만 존재. staging 전용 네임스페이싱 로직은 없음.
 
 ### 2.2 데이터
-- **Qdrant**: 단일 Qdrant Cloud 클러스터 + 컬렉션 2개(`malssum_poc`, `semantic_cache`) 공유. `docs/07_infra/gcp-vercel-infrastructure.md` L63–66.
+- **Qdrant**: 단일 Qdrant Cloud 클러스터 + 컬렉션 2개(`malssum_poc`, `semantic_cache`) 공유. `docs/archive/gcp-vercel-infrastructure.md` L63–66.
 - **PostgreSQL**: 단일 Cloud SQL 인스턴스 + 단일 DB `truewords`. 동 문서 L33–37.
 - → staging 도입 시 **즉시 격리 필수**. 안 그러면 테스트 데이터가 운영 임베딩/DB에 침투.
 
 ### 2.3 배포
 - `.github/workflows/deploy.yml` — `ENVIRONMENT=production` **하드코드**. staging job 부재.
-- Vercel은 admin 프론트엔드를 Preview URL로 자동 배포하지만, `NEXT_PUBLIC_API_URL`이 Production/Preview 동일 Cloud Run URL로 지정 (`docs/07_infra/gcp-vercel-infrastructure.md` L57–59). → preview가 production backend를 호출.
+- Vercel은 admin 프론트엔드를 Preview URL로 자동 배포하지만, `NEXT_PUBLIC_API_URL`이 Production/Preview 동일 Cloud Run URL로 지정 (`docs/archive/gcp-vercel-infrastructure.md` L57–59). → preview가 production backend를 호출.
 - Cloud Run 서비스는 `truewords-backend` 하나. staging 서비스 없음.
 
 ---

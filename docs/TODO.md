@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-07-25
+> 마지막 업데이트: 2026-07-29
 
 ## Progress Overview
 
@@ -8,8 +8,8 @@
 설계/문서     ████████████████████ 100%
 Backend       ███████████████████░  95%
 Admin Web     ███████████████████░  95%
-테스트        █████████████████░░░  86%  (pytest 917 passed / 4 skipped / 1 xfailed, Vitest 25개)
-인프라/배포    ██████████████████░░  90%
+테스트        █████████████████░░░  86%  (pytest 922 passed / 4 skipped / 1 xfailed, Vitest 25개)
+인프라/배포    ███████████████████░  95%  (Oracle 단일 VM, 백업 복구 리허설 PASS. push 자동배포 없음)
 Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 데이터        ██████████░░░░░░░░░░  50%  (L+M만 적재)
 보안 검증     ████████████████░░░░  80%  (레드팀 테스트 완료, 실데이터 품질 검증 남음)
@@ -259,7 +259,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 > 관련 dev-log: `docs/dev-log/25-sdk-survey-genai-qdrant.md`
 
 - [x] **선행 #1 SDK 실측** — google-genai 1.68 HttpRetryOptions + qdrant-client 1.17 payload_schema (커밋 `fb9feb2`, Δ 6건 정밀화)
-- [~] **선행 #2 Staging 환경 분리** — 설계+결정(PR #42) + 배포 파이프라인 초안(`deploy.yml` `deploy-staging` job, `github.ref == 'refs/heads/develop'` 가드). **다음**: 사용자 GCP 리소스 생성 — (1) Cloud SQL `truewords_staging` DB, (2) Qdrant `*_staging` 컬렉션 2종, (3) GitHub Secrets `DATABASE_URL_STAGING`/`ADMIN_JWT_SECRET_STAGING`/`ADMIN_FRONTEND_URL_STAGING`, (4) Cloud Run 초기 수동 배포, (5) Vercel Preview scope env, (6) `develop` 브랜치 + 보호 규칙. 상세: `docs/07_infra/staging-separation.md §9.1~§9.7`.
+- [~] **선행 #2 Staging 환경 분리** — **폐기.** dev-log 39 에서 결정을 되돌렸고, 2026-07-29 Oracle 이전으로 전제였던 GCP staging(Cloud SQL·Cloud Run·`deploy.yml` `deploy-staging` job) 자체가 사라졌다. 설계 문서는 `docs/archive/staging-separation.md` 로 이동.
 - [ ] **선행 #3 운영 Qdrant 1,000건 payload dry-run** — R3 Payload 통일 전 schema drift 사전 확인
 - [x] **선행 #4 Alembic advisory lock + expected-head skip PoC** — 커밋 `a15ff0a` (dev-log 26). 단위 22 + 실측 4 통과. 기본 OFF(`ALEMBIC_USE_ADVISORY_LOCK`), 실환경 활성화는 staging 후
 - [x] **선행 #4.1 Alembic batch backfill PoC** — 커밋 `d5614b3` (dev-log 29). run_batch_backfill 유틸 + 템플릿 스크립트 + 단위 6 PASS + 실측 500 row PASS
@@ -276,40 +276,15 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
   - [x] N4 `ALEMBIC_EXPECTED_HEAD` 빌드 artifact + `_is_ancestor` rollback — dev-log 27, 단위 39 PASS. Cloud Run 실배포 검증은 staging 후
   - [ ] N7 Legacy `[legacy]` 태그 + 재인용 금지 — dev-log 32 조사 결과 R2 preparatory migration(`SessionMessage.pipeline_version` 추가) 필수 의존, 단독 선구현 불가
 
-### 11. Qdrant 셀프 호스팅 (2026-04-29 착수)
-> 워크트리: `../truewords-platform-qdrant-vm`, 브랜치: `feat/qdrant-self-hosting`
-> ADR: `docs/dev-log/45-qdrant-self-hosting.md` · 운영 가이드: `docs/07_infra/qdrant-self-hosting.md`
-> 플랜: `~/.claude/plans/tingly-watching-noodle.md`
+### 11. Qdrant 셀프 호스팅 (2026-04-29 착수) — **§13 Oracle 이전으로 대체됨**
+> ADR: `docs/dev-log/45-qdrant-self-hosting.md` · 폐기된 운영 가이드: `docs/archive/qdrant-self-hosting.md`
 
-#### 코드 (완료)
-- [x] `infra/qdrant-vm/docker-compose.yml` — qdrant + cloudflared 2개 서비스
-- [x] `infra/qdrant-vm/.env.example` — API_KEY, TUNNEL_TOKEN 템플릿
-- [x] `infra/qdrant-vm/cloudflared/README.md` — 토큰 방식 운영 안내
-- [x] `infra/qdrant-vm/provision.sh` — gcloud 기반 VM/방화벽 프로비저닝
-- [x] `infra/qdrant-vm/setup-vm.sh` — VM 부트스트랩 (Docker, 디렉토리, compose up)
-- [x] `backend/scripts/migrate_cloud_to_vm.py` — 체크포인트 기반 풀 마이그레이션
-- [x] `backend/scripts/verify_migration.py` — count + 샘플 vector cosine 검증
-- [x] 문서: ADR-45, 운영 가이드, environment-setup 갱신
+Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐고, 이후 2026-07-29 Oracle 이전에서 Oracle ARM VM 으로 다시 옮겨졌다. GCP 전제 자산(`infra/qdrant-vm/`, `provision.sh`)은 정리 PR 에서 삭제했다. 현재 Qdrant 운영은 `infra/oracle-vm/README.md` 를 따른다.
 
-#### 사용자 액션 필요
-- [ ] Cloudflare 계정 + Tunnel 생성 (`qdrant-truewords`), 토큰을 GitHub Secrets `CLOUDFLARE_TUNNEL_TOKEN`로 등록
-- [ ] `infra/qdrant-vm/.env` 작성 (`QDRANT_API_KEY=$(openssl rand -base64 32)`, `CLOUDFLARE_TUNNEL_TOKEN=...`)
-- [ ] gcloud 인증 후 `./infra/qdrant-vm/provision.sh` 실행
-- [ ] VM에 `infra/qdrant-vm` 업로드 후 `setup-vm.sh` 실행
-- [ ] `create_collection_v2.py` 새 VM 대상으로 실행 (malssum_poc, semantic_cache)
+남아 있던 후속 항목 중 유효한 것:
 
-#### 운영 단계
-- [ ] `migrate_cloud_to_vm.py --dry-run` → `--execute`
-- [ ] `verify_migration.py --sample 20` 통과
-- [ ] Staging Cloud Run 환경변수 교체 → 회귀 테스트 (pytest 917 passed / 4 skipped / 1 xfailed + Vitest 25 + E2E 12)
-- [ ] Production cutover (GitHub Secrets 갱신 → 재배포 → 30분 모니터링)
-- [ ] 1주일 후 Qdrant Cloud 클러스터 종료
-
-#### 후속 (별도 ADR)
-- [ ] GCP Secret Manager 도입 (현재 GitHub Secrets 유지)
-- [ ] VM Snapshot → Cloud Storage 자동 백업 (cron + gcloud)
-- [ ] Qdrant 클러스터링 (3노드, 데이터 ≥ 10GB 시점)
-- [ ] AWS 이관 IaC 작성 (Terraform/CDK)
+- [ ] Qdrant 클러스터링 (3노드, 데이터 ≥ 10GB 시점) — 현재 417,579 points 단일 노드
+- [x] ~~VM Snapshot 자동 백업~~ — Postgres 는 일일 pg_dump + Object Storage 로 대체 (§13). Qdrant 는 수동 snapshot 유지
 
 ### 12. 레드팀 시연 세팅 (2026-06-04, 임시 — 존속 미지수)
 > 브랜치: `feat/redteam-demo` · 플랜: `~/.claude/plans/jiggly-doodling-bachman.md`
@@ -334,17 +309,30 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 #### 알려진 사항 (범위 외)
 - 채팅 요청에 `chatbot_id`가 없으면 `process_chat`의 legacy 경로가 `generate_answer(generation_config=None)`를 호출 → 런타임 AttributeError 가능. 본 작업 이전부터 존재한 latent 결함이며 이번 변경과 무관. 별도 trigger.
 
-### 13. GCP → Oracle Cloud 이전 (2026-07-25)
-> 운영 가이드: `docs/07_infra/oracle-vm-migration.md` · ADR: `docs/dev-log/2026-07-25-gcp-to-oracle-migration.md`.
-> Oracle 소킹 48시간 동안 두 backend가 같은 Neon DB에서 `alembic upgrade head`를 실행할 수 있으므로 `backend/**`의 main 머지를 금지한다.
+### 13. GCP → Oracle Cloud 이전 (2026-07-25 착수 / 2026-07-29 완료)
+> 운영 가이드: `infra/oracle-vm/README.md` · 이전 기록: `docs/07_infra/oracle-vm-migration.md`
+> ADR: `docs/dev-log/2026-07-25-gcp-to-oracle-migration.md` · `docs/dev-log/2026-07-29-postgres-vm-relocation-and-backup.md`
 
-- [ ] **XFF 하드닝** — `backend/src/safety/middleware.py:22`가 `X-Forwarded-For` 첫 토큰을 무조건 신뢰한다. Cloudflare Tunnel 뒤이므로 `cf-connecting-ip` 우선 또는 신뢰 프록시 화이트리스트로 3줄이면 닫힌다.
-- [ ] **fastembed 모델 캐시 관찰** — `/tmp/fastembed_cache`가 매번 재다운로드된다. 로컬 Docker Desktop 디스크 포화 때 `OSError: [Errno 28] No space left on device` 실제 실패를 관측했다. Oracle 부트 볼륨 100GB에서는 당장 차단하지 않되 디스크 사용량을 관찰한다.
-- [ ] **cache cooldown 테스트 격리** — `backend/src/chat/dependencies.py`의 `_cache_last_failure_monotonic`은 모듈 전역이라 테스트 간 상태가 누수될 수 있다. 현재는 무해하나 autouse fixture로 리셋한다.
-- [ ] **swap 실제 크기 확인** — `infra/oracle-vm/setup-vm.sh`는 기존 swap이 조금이라도 있으면 전체 swap 설정을 건너뛴다. Oracle 이미지가 소용량 swap을 만들었으면 4GB가 확보되지 않으므로 첫 기동 뒤 `swapon --show`로 확인한다.
-- [ ] **소킹 종료 뒤 GCP 자산 정리** — 48시간 소킹 후 `.github/workflows/deploy.yml`, `infra/qdrant-vm/`, GitHub Secrets `GCP_*` 3종을 별도 PR에서 삭제한다.
-- [x] **테스트 수 표기 갱신** — `docs/TODO.md`와 `AGENTS.md`를 실측 `917 passed / 4 skipped / 1 xfailed`로 맞췄다.
-- [ ] **Makefile pipefail 명시** — `docker save | gzip -1 | ssh`는 현재 `ssh` 종료 코드만 반영한다. 스트림이 잘리면 `docker load`가 실패해 드러나지만 `SHELL := /bin/bash`와 `.SHELLFLAGS := -o pipefail -c`를 두면 명확해진다.
-- [ ] **Compose 환경 파일 표기 통일** — `Makefile`은 cwd의 `.env` 자동 로드에 의존하고 `setup-vm.sh`와 `infra/oracle-vm/README.md`는 `--env-file .env`를 명시한다. 동작은 같지만 하나로 통일한다.
-- [ ] **Oracle README 수동 전달 스니펫 정렬** — `infra/oracle-vm/README.md`의 `docker save ... | ssh 'docker load'`에는 `gzip`과 `sudo`가 없다. `Makefile`의 `deploy-backend`에 맞추되 이번 PR에서는 TODO만 기록한다.
-- [ ] **Oracle 운영 문서 보강** — `infra/oracle-vm/README.md`와 `.env.example`에 신규 target `rollback-backend`와 `oracle-logs`를 머지 후 추가한다.
+**이전 완료.** GCP(Cloud Run + Qdrant VM) 전부 삭제. 월 $42 → $0, 채팅 응답 34초 → 23.7초. Postgres 도 Neon 에서 VM 으로 들여왔다.
+
+- [x] **XFF 하드닝** — `extract_client_ip` 우선순위를 `cf-connecting-ip` → XFF 첫 토큰 → socket peer 로 변경. Cloudflare 는 클라이언트 XFF 뒤에 실제 IP 를 append 하므로 첫 토큰만 믿으면 rate limit 우회가 가능했다. 회귀 테스트 5건.
+- [x] **fastembed 모델 캐시 관찰** — VM 실측 `/tmp/fastembed_cache` 116K, 디스크 18G/97G(19%). 부트 볼륨 100GB 에서 위험 없음으로 종결.
+- [x] **cache cooldown 테스트 격리** — `tests/conftest.py` autouse fixture 로 `_cache_last_failure_monotonic` 전역 리셋.
+- [x] **swap 실제 크기 확인** — `swapon --show` 실측 `/swapfile 4G`. 정상 확보.
+- [x] **소킹 종료 뒤 GCP 자산 정리** — `.github/workflows/deploy.yml`, `infra/qdrant-vm/`, GitHub Secrets `GCP_*` 3종 삭제. GCP 시대 문서 4종은 `docs/archive/` 로 이동 + 폐기 배너.
+- [x] **테스트 수 표기 갱신** — `docs/TODO.md`와 `AGENTS.md`를 실측 `917 passed / 4 skipped / 1 xfailed`로 맞췄다. (XFF 테스트 추가 후 922 passed)
+- [x] **Makefile pipefail 명시** — `SHELL := /bin/bash` + `.SHELLFLAGS := -o pipefail -c`.
+- [x] **Compose 환경 파일 표기 통일** — `--env-file .env` 명시로 통일 (README).
+- [x] **Oracle README 수동 전달 스니펫 정렬** — `gzip -1` + `sudo docker load` 반영.
+- [x] **Oracle 운영 문서 보강** — README 를 이전 절차서에서 운영 기준 문서로 재작성. postgres 서비스, 메모리 배분, `rollback-backend`/`oracle-logs`, 백업·복구 절 추가.
+- [x] **백업 복구 리허설** — `infra/oracle-vm/restore-drill.sh` 신규. 2026-07-29 PASS (11MB 덤프 1초 복원, 11 테이블 34,377행 차집합 0, alembic head 일치).
+- [x] **추천 질문 갱신 cron 이전** — Postgres 가 VM 로컬(127.0.0.1)로 오면서 GitHub runner 가 DB 에 닿을 수 없게 됐다. 그대로 뒀다면 구 Neon URL 로 붙어 아무 효과 없는 성공을 기록했을 것. `refresh-suggested-questions.yml` 삭제 → `infra/oracle-vm/refresh-questions.sh` + VM cron(일 18:30 UTC). 실제 1회 실행 검증 완료. `cache-cleanup.yml` 은 Qdrant HTTPS 만 쓰므로 GHA 유지.
+
+#### 남은 것 (별도 트리거)
+
+- [ ] **GitHub Actions 청구 차단 해소** [확인 필요] — 2026-07-24경부터 모든 Actions 가 `recent account payments have failed or your spending limit needs to be increased` 로 실행되지 않는다. 예약 cache-cleanup 이 그때부터 실패했고 PR CI 도 queued 에서 멈춘다. Settings → Billing & plans 에서 처리해야 한다. 그동안 CI 게이트는 로컬 `make backend-test` / `make admin-test` 뿐이다.
+
+- [ ] **Vercel 프로젝트 정리** — admin 이전 후 `truewords-platform.vercel.app` 은 신규 도메인으로 리다이렉트만 하는 상태로 남긴다. 레드팀·체험단 가이드에 박힌 링크가 전파·갱신된 뒤 삭제한다.
+- [ ] **push 자동 배포 상실** — Cloud Run 이 사라지며 `deploy.yml` 을 제거했다. main 머지가 곧 배포가 아니므로 `make deploy-backend` 를 명시 실행해야 한다. 필요해지면 GitHub Actions 빌드 → `docker save | ssh docker load` 로 복구 가능하다.
+- [ ] **GCP·Neon 계정 정리** — `jetaime-dev` 의 `kairos-api`/`nexus-core`/`kairos-docker`/`nexus-repo` 잔존 리소스 삭제, Neon 프로젝트 정리. 구 Neon 연결 문자열은 VM `.env` 의 `NEON_DATABASE_URL_BACKUP` 에 보존 중이다.
+- [ ] **RPO 24시간** — 백업이 하루 1회(03:00 KST)라 직전 장애 시 하루치 유실. 쓰기 빈도가 올라가면 빈도 상향 또는 WAL 아카이빙 재검토.
