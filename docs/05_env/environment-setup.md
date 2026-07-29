@@ -95,8 +95,8 @@ docker compose up --build
 | `ADMIN_JWT_SECRET` | 개발용 | Secret Manager `admin-jwt-secret-staging` | Secret Manager `admin-jwt-secret` |
 
 > "자동" 표기는 `ENVIRONMENT=staging` 시 `backend/src/config.py` 의 `apply_environment_suffix` validator 가 접미사를 자동으로 부여하는 동작(기본값일 때만, 명시 override 존중).
-> 전체 분리 설계(Cloud Run 서비스 분리, Vercel Preview, GitHub Actions 파이프라인, Secret Manager) 는 [Staging 환경 분리 설계](../07_infra/staging-separation.md) 참조.
-> 프로덕션 Qdrant 셀프 호스팅 운영 가이드는 [Qdrant 셀프 호스팅](../07_infra/qdrant-self-hosting.md) (ADR `docs/dev-log/45-qdrant-self-hosting.md`) 참조.
+> 전체 분리 설계(Cloud Run 서비스 분리, Vercel Preview, GitHub Actions 파이프라인, Secret Manager) 는 [Staging 환경 분리 설계](../archive/staging-separation.md) 참조.
+> 프로덕션 Qdrant 셀프 호스팅 운영 가이드는 [Qdrant 셀프 호스팅](../archive/qdrant-self-hosting.md) (ADR `docs/dev-log/45-qdrant-self-hosting.md`) 참조.
 
 ---
 

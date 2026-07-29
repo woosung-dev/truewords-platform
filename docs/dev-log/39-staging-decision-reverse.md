@@ -4,7 +4,7 @@
 - **브랜치**: `chore/revert-staging-decision` (PR #52 후보)
 - **상위**: 선행 #2 staging 환경 분리 결정 (2026-04-25 채택) reverse
 - **연관**:
-  - 이전 결정 문서: `docs/07_infra/staging-separation.md` (보존, 본 reverse 후 history 자료)
+  - 이전 결정 문서: `docs/archive/staging-separation.md` (보존, 본 reverse 후 history 자료)
   - 메인 플랜: `sleepy-sleeping-summit.md` §22 + 선행 #2
   - 본 세션 plan: `polymorphic-scribbling-bengio.md`
 
@@ -74,10 +74,10 @@ ADD COLUMN volume_raw VARCHAR(64) NULL
 
 ### C. 보존 (history 가치)
 다음은 **수정 없이 그대로 유지** — 미래 staging 재도입 결정 시 이전 분석 자료로 활용:
-- `docs/07_infra/staging-separation.md` (메인 설계 문서, §7 D1~D8 체크리스트)
+- `docs/archive/staging-separation.md` (메인 설계 문서, §7 D1~D8 체크리스트)
 - `docs/06_devops/ci-cd-pipeline.md` (staging 섹션 그대로, 본 dev-log 가 reverse 명시)
 - `docs/05_env/environment-setup.md`
-- `docs/07_infra/gcp-vercel-infrastructure.md`
+- `docs/archive/gcp-vercel-infrastructure.md`
 - `backend/scripts/qdrant_schema_drift_probe.py` (기본값 `_staging` 유지 — 호출 시 명시적 인자로 운영 컬렉션명 override)
 - 모든 dev-log (27, 31, 33, 34, 35, 36, 38)
 - 모든 specs / plans

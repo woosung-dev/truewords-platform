@@ -15,7 +15,7 @@
 | Vector DB | Qdrant |
 | AI Model | Google Gemini 2.5 |
 | Embedding | FastEmbed (qdrant-client 내장) |
-| Deploy | GCP Cloud Run (Backend) + Vercel (Admin) |
+| Deploy | Oracle Cloud ARM VM (Backend + Qdrant + PostgreSQL, Cloudflare Tunnel) + Vercel (Admin) |
 
 ---
 
@@ -153,15 +153,16 @@ uv run python scripts/ingest.py
        │                    │
        └────────┬───────────┘
                 │ REST API
-         ┌──────▼──────┐
-         │   FastAPI    │
-         │  (Cloud Run) │
-         └──┬───┬───┬──┘
+         ┌──────▼───────┐
+         │   FastAPI     │
+         │ (Oracle VM)   │
+         └──┬───┬───┬───┘
             │   │   │
     ┌───────▼┐ ┌▼────▼──────┐
     │Qdrant  │ │ PostgreSQL  │
     │(Vector)│ │ (운영 DB)    │
     └────────┘ └─────────────┘
+     ※ 셋 다 같은 Oracle ARM VM 컨테이너
          │
     ┌────▼────┐
     │ Gemini  │

@@ -2,6 +2,13 @@
 
 GCP Cloud Run 백엔드와 GCP VM Qdrant를 Oracle Cloud Always Free ARM VM 한 대로 이전하는 실행 절차를 기록한다.
 
+> ✅ **이전 완료 (2026-07-29).** GCP Cloud Run 과 Qdrant VM 은 삭제됐고 월 $42 → **$0**, 채팅 응답 34초 → 23.7초가 됐다. 본 문서는 그 실행 기록이다.
+> **일상 운영·배포·백업·복구는 [`infra/oracle-vm/README.md`](../../infra/oracle-vm/README.md) 를 본다.**
+>
+> 이전 이후 두 가지가 본문과 달라졌다.
+> 1. **PostgreSQL 도 VM 으로 들어왔다** (Neon 이탈, §1 참조). Neon us-east-1 은 도쿄 VM 에서 왕복 172ms 였고 채팅 1회에 DB 쿼리가 5~10회라 순수 대기만 1~2초였다. 근거: [Postgres VM 이전 ADR](../dev-log/2026-07-29-postgres-vm-relocation-and-backup.md)
+> 2. §10 GCP 자원 폐기는 **완료**됐다.
+>
 > 결정 근거는 [`docs/dev-log/2026-07-25-gcp-to-oracle-migration.md`](../dev-log/2026-07-25-gcp-to-oracle-migration.md)를 참고한다.
 >
 > `<zone>`은 Cloudflare에 등록한 도메인이다. 예를 들어 도메인이 `example.com`이면 `api.<zone>`은 `api.example.com`이다. 소스 Qdrant hostname은 `qdrant.<zone>`이고 Oracle 타깃 hostname은 `vdb.<zone>`과 `api.<zone>`이다.
@@ -10,11 +17,14 @@ GCP Cloud Run 백엔드와 GCP VM Qdrant를 Oracle Cloud Always Free ARM VM 한 
 
 ## 1. 목표와 범위
 
-- 이전 대상은 FastAPI backend와 Qdrant다.
-- Neon PostgreSQL과 Vercel Admin Dashboard는 유지한다.
+- 1차 이전 대상은 FastAPI backend와 Qdrant다.
+- Vercel Admin Dashboard는 유지한다.
+- **PostgreSQL 은 1차 범위에서 제외했다가 이전 직후 VM 으로 들여왔다.** 소킹 중 측정한 Neon 왕복 172ms 가 채팅 응답의 지배적 병목이었다. `postgres:17-alpine` 컨테이너 + `/opt/postgres/data` bind mount + 일일 pg_dump 백업으로 대체했다.
 - Oracle VM은 `VM.Standard.A1.Flex` 2 OCPU / 12GB RAM / 부트 볼륨 100GB를 사용한다.
 - 서비스 공개 경로는 Cloudflare Tunnel뿐이다. 애플리케이션용 공인 IP, 인바운드 방화벽, TLS 인증서는 만들지 않는다.
 - SSH 관리 경로만 Oracle Security List의 TCP 22를 사용한다.
+
+이전 완료 후 최종 구조는 다음과 같다.
 
 ```mermaid
 flowchart LR
@@ -25,12 +35,12 @@ flowchart LR
         Tunnel --> Backend[FastAPI backend<br/>:8080]
         Tunnel --> Qdrant[Qdrant<br/>:6333]
         Backend --> Qdrant
+        Backend --> Postgres[(PostgreSQL<br/>:5432)]
     end
-    Backend --> Neon[Neon PostgreSQL]
     Backend --> Gemini[Gemini API]
 ```
 
-Admin의 Next.js rewrite가 Vercel 서버에서 backend로 프록시한다. 브라우저가 `api.<zone>` 또는 `vdb.<zone>`을 직접 호출하지 않는다.
+Admin의 Next.js rewrite가 Vercel 서버에서 backend로 프록시한다. 브라우저가 `api.<zone>` 또는 `vdb.<zone>`을 직접 호출하지 않는다. 이전 완료 시점의 외부 의존은 Gemini API 하나뿐이다.
 
 ## 2. 사전 확인
 
@@ -305,7 +315,9 @@ curl -fsS -H 'api-key: <oracle-qdrant-api-key>' https://vdb.<zone>/collections
 - backend 또는 Qdrant가 반복 재시작하거나 Neon 연결 오류가 발생한다.
 - 메모리 부족, 지속 swap 증가, Qdrant 오류로 정상 검색을 제공하지 못한다.
 
-## 10. GCP 자원 폐기
+## 10. GCP 자원 폐기 — ✅ 완료 (2026-07-29)
+
+Cloud Run 서비스 `truewords-backend` 와 Qdrant VM 을 삭제했다. 레포 쪽 잔재(`.github/workflows/deploy.yml`, `infra/qdrant-vm/`, GitHub Secrets `GCP_*` 3종)도 정리 PR 에서 제거했다. 아래는 실행 당시의 절차 기록이다.
 
 48시간 소킹을 통과한 뒤 GCP Qdrant VM의 부트 디스크 snapshot을 만들고 1주일 보관한다. 그 기간에 GCP Cloud Run과 VM을 제거한다.
 

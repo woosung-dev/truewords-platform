@@ -69,7 +69,7 @@
 
 | 문서 | 설명 | 키워드 |
 |------|------|--------|
-| [ci-cd-pipeline](./06_devops/ci-cd-pipeline.md) | GitHub Actions CI/CD, Cloud Run 배포, Vercel 연동 | CI/CD, 배포, 롤백 |
+| [ci-cd-pipeline](./06_devops/ci-cd-pipeline.md) | GitHub Actions CI(테스트) + cron, `make deploy-backend` 수동 배포, 롤백 | CI/CD, 배포, 롤백 |
 
 ---
 
@@ -77,7 +77,21 @@
 
 | 문서 | 설명 | 키워드 |
 |------|------|--------|
-| [gcp-vercel-infrastructure](./07_infra/gcp-vercel-infrastructure.md) | GCP Cloud Run + Vercel 인프라, 리소스 구성, 월 비용 | 클라우드, 아키텍처, 비용 |
+| [oracle-vm-migration](./07_infra/oracle-vm-migration.md) | GCP → Oracle Cloud ARM VM 이전 절차와 실행 기록 (2026-07-29 완료) | Oracle, 이전, Cloudflare Tunnel |
+| [`infra/oracle-vm/README.md`](../infra/oracle-vm/README.md) | **일상 운영 기준 문서** — compose 구성, 배포·롤백, 백업·복구, 트러블슈팅 | 운영, 배포, 백업 |
+
+---
+
+## archive/ — 폐기 문서 (이력 보존)
+
+GCP → Oracle 이전(2026-07-29)으로 무효가 된 문서들이다. 현재 인프라를 설명하지 않으니 참고만 한다.
+
+| 문서 | 폐기 사유 |
+|------|-----------|
+| [gcp-vercel-infrastructure](./archive/gcp-vercel-infrastructure.md) | Cloud Run URL·리전·월 비용 전부 무효 |
+| [qdrant-self-hosting](./archive/qdrant-self-hosting.md) | GCP VM Qdrant 전제 |
+| [staging-separation](./archive/staging-separation.md) | GCP staging 전제, 미실행 계획 |
+| [gcloud-infra-setup](./archive/gcloud-infra-setup.md) | gcloud CLI 셋업 가이드 |
 
 ---
 
