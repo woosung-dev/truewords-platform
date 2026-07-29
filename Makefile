@@ -10,14 +10,15 @@ SHELL       := /bin/bash
 .SHELLFLAGS := -o pipefail -c
 # ~/.ssh/config의 Host 별칭.
 ORACLE ?= truewords-oracle
-TAG    ?= $(shell git rev-parse --short HEAD)
-IMG    := truewords-backend:$(TAG)
+TAG      ?= $(shell git rev-parse --short HEAD)
+IMG      := truewords-backend:$(TAG)
+ADMIN_IMG := truewords-admin:$(TAG)
 
 .PHONY: help \
         admin-dev admin-type admin-lint admin-test admin-test-watch admin-build admin-e2e admin-install \
         backend-dev backend-test backend-test-fast backend-lint backend-install backend-migrate backend-start \
         infra-up infra-down infra-logs infra-status infra-reset \
-        deploy-backend rollback-backend oracle-logs \
+        deploy-backend rollback-backend deploy-admin rollback-admin oracle-logs \
         verify verify-modal test-all type-check clean
 
 # ============================================================
@@ -39,7 +40,7 @@ help: ## 사용 가능한 명령 목록
 	@grep -E '^infra-[a-z0-9-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "▶ 배포 (Oracle Cloud VM)"
-	@grep -E '^(deploy-backend|rollback-backend|oracle-logs):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^(deploy-backend|rollback-backend|deploy-admin|rollback-admin|oracle-logs):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "▶ 통합"
 	@grep -E '^(test-all|type-check|clean):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -140,6 +141,19 @@ rollback-backend: ## ⚠️ 이전 backend 이미지로 롤백 (`TAG=<이전 sha
 	@# 배포 실패 직후 반사적으로 호출하는 경로라, 롤백된 줄 알고 장애가 이어진다. 명시 전달을 강제한다.
 	@[ "$(origin TAG)" != "file" ] || { echo "❌ 롤백은 TAG=<이전 sha> 를 명시해야 합니다 (예: make rollback-backend TAG=abc1234)"; exit 1; }
 	@ssh "$(ORACLE)" 'sed -i "s/^BACKEND_TAG=.*/BACKEND_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait backend'
+
+deploy-admin: ## Oracle Cloud ARM VM admin 배포 (빌드·전송·무중단 교체).
+	@# NEXT_PUBLIC_API_URL 은 rewrites 가 빌드 타임에 구워지므로 build-arg 로 넣는다.
+	@# 컨테이너 내부 DNS 를 쓰면 Cloudflare 왕복이 한 번 줄어든다.
+	@cd admin && docker buildx build --platform linux/arm64 \
+		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 -t $(ADMIN_IMG) --load .
+	@docker save $(ADMIN_IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
+	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait admin'
+
+rollback-admin: ## ⚠️ 이전 admin 이미지로 롤백 (`TAG=<이전 sha>` 필수).
+	@# deploy-backend 와 같은 이유로 TAG 명시를 강제한다 (기본값 롤백은 no-op).
+	@[ "$(origin TAG)" != "file" ] || { echo "❌ 롤백은 TAG=<이전 sha> 를 명시해야 합니다 (예: make rollback-admin TAG=abc1234)"; exit 1; }
+	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait admin'
 
 oracle-logs: ## Oracle Cloud VM Docker Compose 로그 follow (최근 100줄).
 	@ssh -t "$(ORACLE)" 'cd ~/truewords && sudo docker compose logs -f --tail=100'
