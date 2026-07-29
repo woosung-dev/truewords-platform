@@ -4,6 +4,10 @@
 # 디렉터리: admin/ (Next.js 16 + pnpm), backend/ (FastAPI + uv)
 
 .DEFAULT_GOAL := help
+# deploy-backend 의 `docker save | gzip -1 | ssh` 는 기본 sh 에서 마지막 ssh 의
+# 종료 코드만 반영한다. 스트림이 중간에 잘려도 성공으로 보이므로 pipefail 을 켠다.
+SHELL       := /bin/bash
+.SHELLFLAGS := -o pipefail -c
 # ~/.ssh/config의 Host 별칭.
 ORACLE ?= truewords-oracle
 TAG    ?= $(shell git rev-parse --short HEAD)
