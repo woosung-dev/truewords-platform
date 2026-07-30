@@ -348,9 +348,27 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
 - [ ] **Vercel 프로젝트 정리** — `truewords-platform.vercel.app` 을 리다이렉트 전용으로 남겨 둔 상태다. 링크 전파를 확인한 뒤 삭제한다. 순서: (1) main 머지로 Vercel 프로덕션이 리다이렉트 포함 빌드로 갱신되는지 확인, (2) `curl -I` 로 307 확인, (3) 유입 로그가 0 에 수렴하면 프로젝트 삭제, (4) 삭제 시 `admin/next.config.ts` 의 `redirects()` 블록도 함께 제거.
 - [ ] **가이드 PDF 재생성** — `redteam-test-guide.md` / `-v2.html` 의 접속 주소는 `app.woosung.dev` 로 갱신했다. 같은 폴더의 PDF 3종(`redteam-test-guide-light.pdf`, `redteam-test-guide-v2.pdf`, `truewords-user-test-guide.pdf`)은 바이너리라 구 주소가 남아 있다. 리다이렉트가 살아 있어 당장 깨지지는 않지만 Vercel 삭제 전에 재생성해야 한다.
 - [ ] **push 자동 배포 상실** — Cloud Run 이 사라지며 `deploy.yml` 을 제거했다. main 머지가 곧 배포가 아니므로 `make deploy-backend` 를 명시 실행해야 한다. 필요해지면 GitHub Actions 빌드 → `docker save | ssh docker load` 로 복구 가능하다.
-- [ ] **GCP·Neon 계정 정리** — `jetaime-dev` 의 `kairos-api`/`nexus-core`/`kairos-docker`/`nexus-repo` 잔존 리소스 삭제, Neon 프로젝트 정리. 구 Neon 연결 문자열은 VM `.env` 의 `NEON_DATABASE_URL_BACKUP` 에 보존 중이다.
+- [x] **GCP·Neon 잔존 리소스 감사** (2026-07-30) — ADR: `docs/dev-log/2026-07-30-gcp-neon-residual-audit.md`
+  - **⚠️ 운영 Gemini 키가 문서에 없는 프로젝트에 있었다.** 서비스의 유일한 외부 의존인데 `jetaime-dev` 가 아니라 **다른 계정(`jangwooseng97@gmail.com`)의 `d-project-497004` ("D-Project")** 소유다. 해시 대조로 확정(값 미노출). 지우면 챗봇 즉사. `infra/oracle-vm/.env.example` 과 `README.md` 에 명시했다. **2026-06-04 `woosung-dev` 사고와 같은 구조의 재료였다.**
+  - `jetaime-dev` 실사: TODO 에 적혀 있던 `kairos-api`/`nexus-core` 등은 **이미 없다.** 과금 비활성, Cloud Run 0 / Cloud SQL 0 / 버킷 0. Artifact Registry 는 billing 게이트로 조회 불가(과금도 안 됨). **월 $0 — 남겨 두는 비용이 없다.**
+  - Neon 실사: 호스트 DNS 해석됨 → 프로젝트 생존. 무료 티어라 비용 $0. 문제는 비용이 아니라 **2026-05-03 cutover 시점 실사용자 대화 본문·참여자 식별 정보 사본이 방치돼 있다는 것**(데이터 최소화).
+- [ ] **삭제 실행** [확인 필요] — 되돌릴 수 없어 미실행. 위 감사 결과 기준 권고:
+  - `d-project-497004` — **절대 삭제 금지**
+  - `jetaime-dev` — 삭제 선택 사항 (운영 의존 없음 확인, 남겨도 $0)
+  - Neon 프로젝트 — **삭제 권고** (실사용자 데이터 사본 정리). VM Postgres 단일 진실 공급원임은 복구 리허설로 검증됨
+- [ ] **Gemini 키 유효성 감시** — 유일한 외부 의존이고 회수되면 챗봇이 죽는데 확인 장치가 없다. `ops-check.sh` 에 하루 1회 최소 토큰 호출을 넣으면 키 회수·할당량 소진을 조용히 지나치지 않는다. 비용은 무시할 수준. 별도 판단 필요해 이번 범위 제외.
 - [ ] **RPO 24시간** — 백업이 하루 1회(03:00 KST)라 직전 장애 시 하루치 유실. 쓰기 빈도가 올라가면 빈도 상향 또는 WAL 아카이빙 재검토.
-- [ ] **예약 작업 실패 알림 없음** — 7/24 사고의 진짜 원인. `cache-cleanup` 이 5일간 매일 실패했는데 아무도 몰랐다. GHA 는 실행 이력을 Actions 탭에 남기지만 **알려주지는 않고**, VM cron 은 로그만 남긴다. **위치와 무관하게 남는 약점이라 GHA 복귀로 해결되지 않는다.** 최소안: GHA 워크플로에 `if: failure()` 알림 스텝(Slack/이메일) + VM cron 은 실패 시 마커 파일을 남기고 `make deploy-*` 가 그걸 확인.
+- [x] **예약 작업 실패 탐지** (2026-07-30) — ADR: `docs/dev-log/2026-07-30-silent-scheduled-job-failure.md`
+  - **원인 규명**: (1) GitHub 은 알림을 만들지 않았다 — `gh api notifications?all=true` 가 빈 목록. (2) 실패 run 의 job 은 `steps_count: 0` — 청구 차단은 job 을 아예 시작하지 않는다. **따라서 워크플로 안의 `if: failure()` 알림 스텝으로는 이 사고를 잡을 수 없다.** 가장 먼저 떠오르는 대응이 정확히 이 실패 모드에 눈이 먼다.
+  - **결정**: 감시자를 다른 실패 도메인(VM cron)에 두고, "job 이 돌았는가" 대신 **"결과가 기대대로인가"** 를 본다. 결과 감시는 job 미시작뿐 아니라 **성공했지만 아무 일도 안 한 경우**(구 Neon URL 로 붙어 성공 기록하던 `refresh-suggested-questions.yml` 이 실제 사례)까지 잡는다.
+  - `infra/oracle-vm/ops-check.sh` 신규 — 불변식 5건(backup 26h / cache 만료 50 / suggested_at 10일 / 컨테이너 / 디스크 80%). VM cron 매일 18:45. 결과는 `/opt/ops-status.json`. 임계값 env override 가능.
+  - `cache-cleanup.yml` 에 `if: failure()` → GitHub Issue 스텝 (새 secret 0, `GITHUB_TOKEN`). 같은 제목 열린 Issue 는 코멘트만 — 매일 실패 시 Issue 가 쌓여 신호가 묻히는 것 방지. **job 미시작은 못 잡는다는 한계를 주석에 명시.**
+  - `make ops-check` + `deploy-backend`/`deploy-admin` 배포 전 자동 실행(advisory — 배포는 막지 않는다).
+  - 검증: 정상 exit 0 / 강제 실패 시 FAIL 3건 집계 + exit 1 + 첫 실패 후에도 나머지 계속 검사(`set -e` 배제 의도 확인).
+- [ ] **예약 작업 실패 알림 — 전달 채널** [확인 필요] — 위에서 **탐지는 닫았지만 push 는 아직**이다. 위반이 로그·JSON·종료코드로만 남아, 배포하지 않는 주에 백업이 죽으면 늦게 안다. 레포에 알림 자격증명이 하나도 없다(`gh api repos/:owner/:repo/hooks` → 0, Slack/SMTP 0건). 채널이 정해지면 `ops-check.sh` 마지막에 한 줄이다.
+  - 안 1: **Slack Incoming Webhook** — URL 을 VM `.env` 에 넣고 `curl` 한 줄. 가장 짧다.
+  - 안 2: **OCI Notifications(ONS)** — VM 이 이미 Instance Principal 을 쓰므로 새 키 불필요. 토픽 OCID + IAM 정책 필요.
+- [ ] **Issue 알림 스텝 실행 검증** — GHA 청구 차단으로 워크플로를 돌릴 수 없어 YAML 파싱과 `gh` 명령 형태만 확인했다. 차단 해소 후 `workflow_dispatch` 로 일부러 실패시켜 Issue 가 실제로 생기는지 확인한다.
 
 #### 이번 작업 중 발견한 사전 결함 (Oracle 이전과 무관, 별도 트리거)
 

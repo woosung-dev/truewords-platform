@@ -40,6 +40,9 @@ jobs:
   cleanup:
     name: Run cleanup
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write   # 실패 시 Issue 로 알린다 (아래 마지막 스텝)
     defaults:
       run:
         working-directory: backend
@@ -82,3 +85,35 @@ jobs:
 
           echo "Running: scripts/cleanup_semantic_cache.py $ARGS"
           uv run python scripts/cleanup_semantic_cache.py $ARGS
+
+      # 실패를 사람이 알 수 있게 Issue 로 올린다. 예약 작업은 아무도 안 보고
+      # 있어서, 조용히 실패하면 며칠이 지나간다 (2026-07-24~29 사고).
+      #
+      # Issue 를 쓰는 이유: 새 secret 이 없다 (GITHUB_TOKEN). 그리고 Actions
+      # 실패 알림과 달리 Issue 는 알림이 확실히 만들어진다 — 그 사고 때
+      # `gh api notifications?all=true` 는 빈 목록이었다.
+      #
+      # ⚠️ 이 스텝의 한계: **job 이 시작되지 못하면 이 스텝도 돌지 않는다.**
+      # 청구 차단이 정확히 그 경우였고(실패 run 의 steps_count=0), 그래서
+      # 이것만으로는 그 사고를 못 잡는다. 그 공백은 다른 실패 도메인에 있는
+      # `infra/oracle-vm/ops-check.sh` (VM cron) 가 결과 기준으로 메운다.
+      - name: 실패 시 Issue 로 알림
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        working-directory: .
+        run: |
+          TITLE="[ops-alert] Semantic Cache Cleanup 실패"
+          BODY=$(printf '예약 작업이 실패했습니다.\n\n- run: %s\n- 시각: %s\n- trigger: %s\n\n확인: `make cron-cache-cleanup ARGS=--dry-run`\n운영 불변식 전반: `make ops-check`' \
+            "$RUN_URL" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${{ github.event_name }}")
+
+          # 같은 제목의 열린 Issue 가 있으면 코멘트만 남긴다 — 매일 실패할 때
+          # Issue 가 쌓이면 오히려 신호가 묻힌다.
+          EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY" --label ops-alert 2>/dev/null \
+              || gh issue create --title "$TITLE" --body "$BODY"
+          fi
