@@ -341,8 +341,9 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
 #### 남은 것 (별도 트리거)
 
 - [ ] **GitHub Actions 청구 차단 해소** [확인 필요] — 2026-07-24경부터 모든 Actions 가 `recent account payments have failed or your spending limit needs to be increased` 로 실행되지 않는다. Settings → Billing & plans 에서 처리해야 한다.
-  - **운영 공백은 없다.** PR 게이트는 `make ci`(ci.yml 과 동일 명령), 예약 작업은 전부 VM cron 으로 내렸다. 차단이 풀리면 `ci.yml` 이 자동으로 다시 돌고 되돌릴 작업은 없다.
-  - 되돌아온 뒤 확인할 것: `ci.yml` 이 실제로 green 인지, `make ci` 와 결과가 일치하는지.
+  - **차단 동안의 대응**: PR 게이트는 `make ci`(ci.yml 과 동일 명령)를 사람이 돌린다. 캐시 정리는 `make cron-cache-cleanup` 을 사람이 돌린다 — 안 돌아도 응답 정합성은 안 깨진다(조회가 TTL 로 필터링, `src/cache/service.py:89-94`). 백업·추천 질문은 VM cron 이라 영향 없다.
+  - 차단이 풀리면 `ci.yml` 과 `cache-cleanup.yml` 이 자동으로 다시 돈다. **되돌릴 작업은 없다.**
+  - 되돌아온 뒤 확인할 것: 두 워크플로가 실제로 green 인지, `make ci` 와 `ci.yml` 결과가 일치하는지.
 
 - [ ] **Vercel 프로젝트 정리** — `truewords-platform.vercel.app` 을 리다이렉트 전용으로 남겨 둔 상태다. 링크 전파를 확인한 뒤 삭제한다. 순서: (1) main 머지로 Vercel 프로덕션이 리다이렉트 포함 빌드로 갱신되는지 확인, (2) `curl -I` 로 307 확인, (3) 유입 로그가 0 에 수렴하면 프로젝트 삭제, (4) 삭제 시 `admin/next.config.ts` 의 `redirects()` 블록도 함께 제거.
 - [ ] **가이드 PDF 재생성** — `redteam-test-guide.md` / `-v2.html` 의 접속 주소는 `app.woosung.dev` 로 갱신했다. 같은 폴더의 PDF 3종(`redteam-test-guide-light.pdf`, `redteam-test-guide-v2.pdf`, `truewords-user-test-guide.pdf`)은 바이너리라 구 주소가 남아 있다. 리다이렉트가 살아 있어 당장 깨지지는 않지만 Vercel 삭제 전에 재생성해야 한다.
