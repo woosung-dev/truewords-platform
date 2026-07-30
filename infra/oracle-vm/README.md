@@ -15,6 +15,7 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
 | `backup-db.sh` | Postgres 일일 백업 (pg_dump → 무결성 검증 → Object Storage 업로드 → 보관 기간 정리). |
 | `restore-drill.sh` | 백업 복구 리허설. 운영 DB 는 읽기만 하고 임시 DB 로 복원해 대조합니다. |
 | `refresh-questions.sh` | 봇별 추천 질문 주간 갱신. backend 컨테이너 안에서 실행합니다. |
+| `cache-cleanup.sh` | semantic_cache TTL 만료 point 일일 정리. backend 컨테이너 안에서 실행합니다. |
 
 ## 인프라 사양
 
@@ -212,25 +213,38 @@ sudo docker stats
 
 ## 정기 작업 (cron)
 
-VM 의 `ubuntu` crontab 에 두 건이 등록돼 있다.
+**예약 작업은 전부 VM cron 이 주인이다. GitHub Actions 에는 남아 있지 않다.**
 
 ```cron
-0  18 * * *   /home/ubuntu/truewords/backup-db.sh        >> /home/ubuntu/truewords-backup.log 2>&1
+0  18 * * *   /home/ubuntu/truewords/backup-db.sh         >> /home/ubuntu/truewords-backup.log 2>&1
+15 18 * * *   /home/ubuntu/truewords/cache-cleanup.sh     >> /home/ubuntu/truewords-cron.log   2>&1
 30 18 * * 0   /home/ubuntu/truewords/refresh-questions.sh >> /home/ubuntu/truewords-cron.log   2>&1
 ```
 
-추천 질문 갱신은 원래 GitHub Actions 에서 돌았다. **Postgres 가 VM 로컬(127.0.0.1 바인딩)로 옮겨오면서 GitHub runner 가 DB 에 닿을 수 없게 돼** VM cron 으로 내렸다. 워크플로를 그대로 뒀다면 낡은 Neon 연결 문자열로 붙어 아무 효과 없는 성공을 기록했을 것이다.
+| 작업 | 주기 | 왜 VM 인가 |
+|---|---|---|
+| `backup-db.sh` | 매일 03:00 KST | Postgres 가 VM 로컬(127.0.0.1 바인딩)이라 외부에서 닿을 수 없다 |
+| `cache-cleanup.sh` | 매일 03:15 KST | Qdrant 는 HTTPS 로 어디서든 닿지만, 예약 작업을 한 곳에 모아 외부 청구·계정 상태와 무관하게 돌린다 |
+| `refresh-questions.sh` | 매주 월 03:30 KST | Postgres 필요 |
 
-수동 실행:
+두 가지 사고가 이 배치를 만들었다.
+
+1. **추천 질문 갱신** — 원래 GitHub Actions 에서 돌았다. Postgres 가 VM 로컬로 옮겨오면서 runner 가 DB 에 닿을 수 없게 됐는데, `DATABASE_URL` secret 은 낡은 Neon 값이었다. 워크플로를 그대로 뒀다면 **죽은 DB 에 붙어 "성공"을 기록**했을 것이다.
+2. **semantic_cache 정리** — GitHub Actions 가 2026-07-24 경부터 청구 문제로 실행되지 않았다. 매일 실패했지만 아무도 몰랐고 만료 point 가 134개까지 쌓였다. 외부 청구 상태가 운영 작업을 멈추게 하는 구조 자체를 없앴다.
+
+`cache-cleanup` 이 18:00 이 아니라 18:15 인 이유: `backup-db.sh` 가 18:00 에 DB 전체를 덤프한다. 2 OCPU VM 에서 두 `docker compose exec` 를 겹칠 이유가 없다.
+
+수동 실행은 로컬 Mac 의 make target 을 쓴다.
 
 ```bash
-ssh truewords-oracle 'bash ~/truewords/refresh-questions.sh'
-# 대상만 확인 (Gemini 호출 0)
-ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec -T backend \
-  python scripts/refresh_suggested_questions.py --dry-run'
+make cron-cache-cleanup ARGS=--dry-run     # 삭제 대상만 확인
+make cron-cache-cleanup                    # 실제 정리
+make cron-refresh-questions ARGS=--dry-run # 대상 봇만 확인 (Gemini 호출 0)
+make cron-refresh-questions                # 실제 갱신
+make restore-drill                         # 백업 복구 리허설
 ```
 
-semantic_cache TTL 정리(`cache-cleanup.yml`)는 Qdrant 를 `vdb.<zone>` HTTPS 로만 호출하므로 GitHub Actions 에 그대로 남아 있다.
+로그: `tail ~/truewords-cron.log`, `tail ~/truewords-backup.log`.
 
 ---
 

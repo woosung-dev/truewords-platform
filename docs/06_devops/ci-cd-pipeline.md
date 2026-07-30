@@ -9,14 +9,15 @@
 PR (main 또는 dev/**)  → CI (.github/workflows/ci.yml)
                             ├── Backend Tests: pytest
                             └── Frontend Tests: vitest + build
+                       ↳ 로컬 동등 실행: make ci   ← GHA 청구 차단 동안 유일한 게이트
 
 배포 (수동, 로컬 Mac)   → make deploy-backend   # arm64 빌드 → ssh docker load → compose 교체
                         → make deploy-admin     # 동일 패턴
 
-정기 작업
-  ├── GitHub Actions  cache-cleanup.yml       매일 18:00 UTC — semantic_cache TTL 만료 정리
-  └── VM cron         refresh-questions.sh    매주 일 18:30 UTC — 봇별 추천 질문 갱신
-                      backup-db.sh            매일 18:00 UTC — Postgres 덤프 + Object Storage
+정기 작업 (전부 VM cron — GitHub Actions 에 없음)
+  ├── backup-db.sh          매일 18:00 UTC — Postgres 덤프 + Object Storage
+  ├── cache-cleanup.sh      매일 18:15 UTC — semantic_cache TTL 만료 정리
+  └── refresh-questions.sh  매주 일 18:30 UTC — 봇별 추천 질문 갱신
 ```
 
 **push 자동 배포는 없다.** Cloud Run 이 사라지면서 `deploy.yml` 을 제거했다. main 에 머지해도 운영 반영은 일어나지 않으므로, 머지 후 명시적으로 `make deploy-backend` 를 실행해야 한다.
@@ -73,31 +74,65 @@ admin 도 같은 VM 에서 컨테이너로 돈다. `truewords-platform.vercel.ap
 
 ---
 
+## CI 를 로컬에서 — `make ci`
+
+GitHub Actions 가 청구 문제로 멈춘 동안(2026-07-24~) PR 게이트가 사라졌다. `make ci` 가 `ci.yml` 과 **같은 명령을 같은 순서로** 돌린다.
+
+```bash
+make ci
+# [1/5] backend — uv sync --frozen --all-groups
+# [2/5] backend — pytest            (ci.yml 과 동일: --ignore 없음)
+# [3/5] admin   — pnpm install --frozen-lockfile
+# [4/5] admin   — pnpm test
+# [5/5] admin   — pnpm build
+```
+
+**`ci.yml` 을 바꿀 때 이 target 도 같이 바꾼다.** 명령이 갈라지면 "로컬에서 CI 통과" 가 아무 뜻도 없어진다.
+
+`ci.yml` 은 path filter 로 변경된 쪽만 돌지만 `make ci` 는 둘 다 돌린다 — 로컬에서 필터를 재현할 이득이 없다.
+
+lint 와 E2E 는 `ci.yml` 에 없어서 `make ci` 에도 없다. 따로 돈다: `make admin-lint`, `make admin-e2e`. E2E 는 로컬 시드가 선행돼야 한다 (`docs/TODO.md` §13 참조).
+
 ## 정기 작업이 어디서 도는가
 
-DB 위치가 실행 위치를 정한다.
+**전부 VM cron 이다. GitHub Actions 에는 예약 작업이 남아 있지 않다.**
 
-| 작업 | 실행 위치 | 이유 |
+| 작업 | 주기 | VM 인 이유 |
 |---|---|---|
-| `cache-cleanup.yml` | GitHub Actions | Qdrant 를 `vdb.<zone>` HTTPS 로만 호출 — 어디서든 동작 |
-| `refresh-questions.sh` | **VM cron** | Postgres 가 필요. VM 로컬 127.0.0.1 바인딩이라 runner 가 닿을 수 없음 |
-| `backup-db.sh` | **VM cron** | 같은 이유 |
+| `backup-db.sh` | 매일 03:00 KST | Postgres 가 VM 로컬 127.0.0.1 바인딩이라 runner 가 닿을 수 없음 |
+| `cache-cleanup.sh` | 매일 03:15 KST | Qdrant 는 HTTPS 라 어디서든 되지만, 예약 작업을 한 곳에 모아 외부 청구·계정 상태와 분리 |
+| `refresh-questions.sh` | 매주 월 03:30 KST | Postgres 필요 |
 
-Postgres 이전 전까지 추천 질문 갱신은 `refresh-suggested-questions.yml` 로 GitHub runner 에서 돌았다. 이전 후 그대로 뒀다면 **낡은 Neon 연결 문자열로 붙어 아무 효과 없는 성공을 기록**했을 것이므로 워크플로를 삭제하고 VM cron 으로 내렸다. 상세는 `infra/oracle-vm/README.md` §정기 작업.
+두 사고가 이 배치를 만들었다.
+
+1. **추천 질문 갱신** — Postgres 이전 후에도 `refresh-suggested-questions.yml` 이 남아 있었고 `DATABASE_URL` secret 은 낡은 Neon 값이었다. 그대로 뒀다면 **죽은 DB 에 붙어 "성공"을 기록**했을 것이다.
+2. **semantic_cache 정리** — `cache-cleanup.yml` 이 청구 차단으로 매일 실패했지만 아무도 몰랐고 만료 point 가 134개 쌓였다. 외부 청구 상태가 운영 작업을 멈추는 구조를 없앴다.
+
+수동 실행은 로컬 make target 을 쓴다.
+
+```bash
+make cron-cache-cleanup ARGS=--dry-run
+make cron-cache-cleanup
+make cron-refresh-questions ARGS=--dry-run
+make cron-refresh-questions
+make restore-drill
+```
 
 ## GitHub Secrets 설정
 
-배포가 로컬로 내려오면서 **운영 환경변수의 원본은 VM 의 `~/truewords/.env`(chmod 600)** 다. GitHub Secrets 는 이제 `cache-cleanup.yml` 이 쓰는 값만 실제로 쓰인다.
+배포가 로컬로 내려오고 예약 작업이 VM 으로 내려가면서 **운영 환경변수의 원본은 VM 의 `~/truewords/.env`(chmod 600) 하나**다. 남은 워크플로는 `ci.yml` 뿐이고 이건 `GEMINI_API_KEY: test-key-for-ci` 를 인라인으로 쓴다.
 
-| Secret | 사용처 |
-|--------|--------|
-| `QDRANT_URL` / `QDRANT_API_KEY` | cache-cleanup |
+| Secret | 상태 |
+|--------|------|
+| `QDRANT_URL` / `QDRANT_API_KEY` | **미사용** — cache-cleanup 이 VM 으로 이전 |
 | `DATABASE_URL` | **미사용** — 값이 구 Neon URL 이라 되살려 쓰면 안 된다 |
 | `GEMINI_API_KEY` / `GEMINI_TIER` / `ADMIN_JWT_SECRET` / `ADMIN_FRONTEND_URL` | 미사용 (VM `.env` 가 원본) |
 
-GCP 배포용 3종(`GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT`)은 이전과 함께 삭제했다.
+GCP 배포용 3종(`GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT`)은 이전과 함께 삭제했다. 남은 7개는 지우지 않았다 — 되살릴 워크플로가 생기면 재등록하는 비용이 있고, 값이 유효하지 않다는 사실만 위 표에 명시했다.
 
-> ⚠️ **2026-07-29 현재 GitHub Actions 가 청구 문제로 실행되지 않는다.** 예약 작업이 `The job was not started because recent account payments have failed or your spending limit needs to be increased` 로 실패하며, PR CI 도 queued 상태로 머문다. Settings → Billing & plans 에서 해소해야 한다. 그동안은 `make backend-test` / `make admin-test` 로컬 실행이 유일한 게이트다.
+> ⚠️ **GitHub Actions 청구 차단 (2026-07-24~).** 모든 Actions 가 `The job was not started because recent account payments have failed or your spending limit needs to be increased` 로 실행되지 않는다. PR CI 도 queued 에서 멈춘다. Settings → Billing & plans 에서 해소해야 한다.
+>
+> 그동안 **PR 게이트는 `make ci`** 이고 **예약 작업은 VM cron** 이므로 운영에 공백은 없다. 차단이 풀리면 `ci.yml` 이 자동으로 다시 돈다 — 되돌릴 작업은 없다.
 
 ---
 
