@@ -387,6 +387,22 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 | 백업이 안 돎 | `tail ~/truewords-backup.log` 와 `crontab -l` 을 확인합니다. Object Storage 업로드 실패는 경고만 남고 로컬 백업은 정상입니다. |
 | 터널이 두 곳으로 연결됨 | 다른 환경이 같은 토큰을 쓰는지 확인하고 `truewords-oracle` 전용 토큰으로 교체합니다. |
 
+## ⚠️ 외부 의존 하나 — Gemini API 키의 소유 프로젝트
+
+서비스의 유일한 외부 의존이다. 그리고 있는 곳이 직관에 어긋난다.
+
+| 항목 | 값 |
+|---|---|
+| GCP 프로젝트 | **`d-project-497004`** ("D-Project") |
+| 계정 | **`jangwooseng97@gmail.com`** |
+| 키 이름 | Gemini API Key |
+
+인프라 작업에 쓰던 `jetaime-dev` / `jetaime.jang@gmail.com` 이 **아니다.** `jetaime-dev` 에도 "DEV Gemini API Key" 가 있지만 그건 운영 키가 아니다(해시 대조로 확인).
+
+**이 프로젝트를 지우거나 키를 회수하면 챗봇이 즉시 죽는다.** 이름에 TrueWords 가 없어 "안 쓰는 프로젝트" 로 보이는 것이 위험하다 — 2026-06-04 에 `woosung-dev` 를 그렇게 판단해 지웠다가 Qdrant VM 을 잃었다.
+
+확인 근거와 대조 방법: [GCP·Neon 잔존 리소스 감사](../../docs/dev-log/2026-07-30-gcp-neon-residual-audit.md)
+
 ## 보안 체크리스트
 
 - [ ] Oracle Security List는 TCP 22만 inbound 허용합니다.
