@@ -29,8 +29,17 @@ pgx createdb -U "$U" "$DRILL"
 
 sudo docker compose cp "$DUMP" postgres:/tmp/drill.dump
 START=$(date +%s)
-pgx pg_restore --no-owner --no-acl -U "$U" -d "$DRILL" /tmp/drill.dump
-RESTORE_RC=$?
+# `cmd; RC=$?` 는 set -e 아래에서 죽은 코드다 — 실패하면 그 줄에서 셸이 끝나 RC 는
+# 늘 0 이고, 확인한 척하는 로그만 남는다. if 문 안에서는 set -e 가 유보되므로
+# 실제 종료 코드를 잡을 수 있다.
+if pgx pg_restore --no-owner --no-acl -U "$U" -d "$DRILL" /tmp/drill.dump; then
+  RESTORE_RC=0
+else
+  RESTORE_RC=$?
+  pgx rm -f /tmp/drill.dump || true
+  echo "== 복원 실패 (rc=$RESTORE_RC) — 리허설 DB ${DRILL} 를 남겨두니 수동 조사하라." >&2
+  exit 1
+fi
 END=$(date +%s)
 pgx rm -f /tmp/drill.dump
 echo "== 복원 완료 (rc=$RESTORE_RC) — $((END - START))초"
