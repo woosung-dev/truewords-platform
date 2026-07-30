@@ -4,10 +4,22 @@
 # 디렉터리: admin/ (Next.js 16 + pnpm), backend/ (FastAPI + uv)
 
 .DEFAULT_GOAL := help
+# deploy-backend 의 `docker save | gzip -1 | ssh` 는 기본 sh 에서 마지막 ssh 의
+# 종료 코드만 반영한다. 스트림이 중간에 잘려도 성공으로 보이므로 pipefail 을 켠다.
+SHELL       := /bin/bash
+.SHELLFLAGS := -o pipefail -c
+# ~/.ssh/config의 Host 별칭.
+ORACLE ?= truewords-oracle
+TAG      ?= $(shell git rev-parse --short HEAD)
+IMG      := truewords-backend:$(TAG)
+ADMIN_IMG := truewords-admin:$(TAG)
+
 .PHONY: help \
         admin-dev admin-type admin-lint admin-test admin-test-watch admin-build admin-e2e admin-install \
         backend-dev backend-test backend-test-fast backend-lint backend-install backend-migrate backend-start \
         infra-up infra-down infra-logs infra-status infra-reset \
+        deploy-backend rollback-backend deploy-admin rollback-admin oracle-logs \
+        ci cron-cache-cleanup cron-refresh-questions restore-drill \
         verify verify-modal test-all type-check clean
 
 # ============================================================
@@ -27,6 +39,12 @@ help: ## 사용 가능한 명령 목록
 	@echo ""
 	@echo "▶ Local infra (Docker — PostgreSQL + Qdrant)"
 	@grep -E '^infra-[a-z0-9-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
+	@echo ""
+	@echo "▶ 배포 (Oracle Cloud VM)"
+	@grep -E '^(deploy-backend|rollback-backend|deploy-admin|rollback-admin|oracle-logs):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
+	@echo ""
+	@echo "▶ CI / 운영 작업 (GitHub Actions 대체)"
+	@grep -E '^(ci|cron-cache-cleanup|cron-refresh-questions|restore-drill):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "▶ 통합"
 	@grep -E '^(test-all|type-check|clean):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -112,6 +130,71 @@ infra-reset: ## ⚠️ 컨테이너 + 데이터 볼륨까지 전부 삭제 (post
 	@echo "⚠️  postgres_data, qdrant_data 볼륨까지 삭제됩니다. 5초 후 진행 (Ctrl+C 로 취소)..."
 	@sleep 5
 	@cd backend && docker compose down -v
+
+# ============================================================
+# Oracle Cloud VM 배포
+# ============================================================
+deploy-backend: ## Oracle Cloud ARM VM backend 배포 (빌드·검증·전송·무중단 교체).
+	@cd backend && docker buildx build --platform linux/arm64 -t $(IMG) --load .
+	@docker run --rm --entrypoint sh $(IMG) -c "alembic --version && uvicorn --version"
+	@docker save $(IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
+	@ssh "$(ORACLE)" 'sed -i "s/^BACKEND_TAG=.*/BACKEND_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait backend'
+
+rollback-backend: ## ⚠️ 이전 backend 이미지로 롤백 (`TAG=<이전 sha>` 필수).
+	@# TAG 기본값(현재 HEAD)으로 롤백하면 방금 배포한 태그를 재기록하는 no-op 이 된다.
+	@# 배포 실패 직후 반사적으로 호출하는 경로라, 롤백된 줄 알고 장애가 이어진다. 명시 전달을 강제한다.
+	@[ "$(origin TAG)" != "file" ] || { echo "❌ 롤백은 TAG=<이전 sha> 를 명시해야 합니다 (예: make rollback-backend TAG=abc1234)"; exit 1; }
+	@ssh "$(ORACLE)" 'sed -i "s/^BACKEND_TAG=.*/BACKEND_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait backend'
+
+deploy-admin: ## Oracle Cloud ARM VM admin 배포 (빌드·전송·무중단 교체).
+	@# NEXT_PUBLIC_API_URL 은 rewrites 가 빌드 타임에 구워지므로 build-arg 로 넣는다.
+	@# 컨테이너 내부 DNS 를 쓰면 Cloudflare 왕복이 한 번 줄어든다.
+	@cd admin && docker buildx build --platform linux/arm64 \
+		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 -t $(ADMIN_IMG) --load .
+	@docker save $(ADMIN_IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
+	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait admin'
+
+rollback-admin: ## ⚠️ 이전 admin 이미지로 롤백 (`TAG=<이전 sha>` 필수).
+	@# deploy-backend 와 같은 이유로 TAG 명시를 강제한다 (기본값 롤백은 no-op).
+	@[ "$(origin TAG)" != "file" ] || { echo "❌ 롤백은 TAG=<이전 sha> 를 명시해야 합니다 (예: make rollback-admin TAG=abc1234)"; exit 1; }
+	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait admin'
+
+oracle-logs: ## Oracle Cloud VM Docker Compose 로그 follow (최근 100줄).
+	@ssh -t "$(ORACLE)" 'cd ~/truewords && sudo docker compose logs -f --tail=100'
+
+# ============================================================
+# CI / 운영 작업 — GitHub Actions 대체
+#
+# GHA 가 청구 문제로 멈춘 동안(2026-07-24~) PR 게이트가 사라졌다. `make ci` 는
+# .github/workflows/ci.yml 과 **같은 명령을 같은 순서로** 돌려 "CI 통과" 가
+# 양쪽에서 같은 뜻이 되게 한다. 명령이 갈라지면 로컬 통과가 무의미해지므로
+# ci.yml 을 바꿀 때 이 target 도 같이 바꾼다.
+#
+# 예약 작업은 VM cron 이 주인이다. 아래 target 들은 수동 실행·검증용 진입점이며
+# 실제 스케줄은 VM crontab 에 있다 (infra/oracle-vm/README.md §정기 작업).
+# ============================================================
+ci: ## ci.yml 과 동일한 검사를 로컬에서 (backend pytest + admin test/build)
+	@echo "▶ [1/5] backend — uv sync --frozen --all-groups"
+	@cd backend && uv sync --frozen --all-groups
+	@echo "▶ [2/5] backend — pytest (ci.yml 과 동일: --ignore 없음)"
+	@cd backend && GEMINI_API_KEY=test-key-for-ci uv run pytest -q
+	@echo "▶ [3/5] admin — pnpm install --frozen-lockfile"
+	@cd admin && pnpm install --frozen-lockfile
+	@echo "▶ [4/5] admin — pnpm test"
+	@cd admin && pnpm test
+	@echo "▶ [5/5] admin — pnpm build"
+	@cd admin && pnpm build
+	@echo ""
+	@echo "✅ CI 동등 검사 통과. (lint/E2E 는 별도: make admin-lint / make admin-e2e)"
+
+cron-cache-cleanup: ## semantic_cache TTL 만료 정리 수동 실행 (`ARGS=--dry-run` 지원)
+	@ssh "$(ORACLE)" 'bash ~/truewords/cache-cleanup.sh $(ARGS)'
+
+cron-refresh-questions: ## 봇별 추천 질문 갱신 수동 실행 (`ARGS=--dry-run` 지원)
+	@ssh "$(ORACLE)" 'cd ~/truewords && sudo docker compose --env-file .env exec -T backend python scripts/refresh_suggested_questions.py $(if $(ARGS),$(ARGS),--execute)'
+
+restore-drill: ## Postgres 백업 복구 리허설 (운영 DB 는 읽기만, 임시 DB 로 대조)
+	@ssh "$(ORACLE)" 'bash ~/truewords/restore-drill.sh'
 
 # ============================================================
 # 통합

@@ -6,19 +6,29 @@ from src.safety.rate_limiter import get_rate_limiter
 
 
 def extract_client_ip(request: Request) -> str:
-    """Reverse proxy (Cloud Run / Vercel / Cloudflare) 환경의 원 클라이언트 IP.
+    """Reverse proxy (Cloudflare Tunnel) 환경의 원 클라이언트 IP.
 
-    audit 2차 C-3 (2026-05-15): 기존 `request.client.host` 만 사용해서 Cloud Run
-    LB 뒤에서 모든 요청이 동일 LB IP 로 집계되어 rate limit 이 사실상 무력화되던
-    결함 fix. X-Forwarded-For 첫 토큰 (원 클라이언트) 을 우선 사용한다.
+    audit 2차 C-3 (2026-05-15): 기존 `request.client.host` 만 사용해서 LB 뒤에서
+    모든 요청이 동일 LB IP 로 집계되어 rate limit 이 사실상 무력화되던 결함 fix.
 
-    Header 가 없거나 빈 값이면 socket peer (`request.client.host`) 로 fallback.
-    socket peer 도 없으면 "unknown" 반환.
+    Oracle 이전 (2026-07-29) 후속: 유일한 ingress 가 Cloudflare Tunnel 이므로
+    `CF-Connecting-IP` 를 XFF 보다 우선한다. XFF 는 클라이언트가 임의로 붙여
+    보낼 수 있고 Cloudflare 는 받은 XFF 뒤에 실제 IP 를 append 하므로, 첫 토큰만
+    믿으면 공격자가 원하는 값을 심어 rate limit (20req/min/IP) 을 우회할 수 있다.
+    반면 CF-Connecting-IP 는 edge 가 항상 덮어쓴다.
 
-    XFF 신뢰는 GCP Cloud Run / Vercel 등 신뢰할 수 있는 reverse proxy 환경 가정.
-    클라이언트가 직접 XFF 헤더를 위조해 보낼 수 있는 환경 (예: 직접 노출된
-    Uvicorn) 에서는 운영 인프라 단에서 헤더 stripping 필요.
+    우선순위: `cf-connecting-ip` → `x-forwarded-for` 첫 토큰 →
+    socket peer (`request.client.host`) → "unknown".
+
+    XFF fallback 을 남겨두는 이유는 로컬 개발과 Cloudflare 를 거치지 않는 내부
+    호출 때문이다. 이 경로는 Oracle Security List 가 22 외 인바운드를 막고 있어
+    외부에서 직접 도달할 수 없다.
     """
+    cf_ip = request.headers.get("cf-connecting-ip")
+    if cf_ip:
+        cf_ip = cf_ip.strip()
+        if cf_ip:
+            return cf_ip
     xff = request.headers.get("x-forwarded-for")
     if xff:
         first = xff.split(",", 1)[0].strip()

@@ -1,0 +1,243 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>보고서 C · 체험단 3주 통합 판정</title><style>
+ :root{--ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#1e40af;--accent-soft:#eff6ff;
+       --crit:#b91c1c;--crit-soft:#fef2f2;--ok:#15803d;--ok-soft:#f0fdf4;--warn:#b45309;
+       --warn-soft:#fffbeb;--bg:#fff;--soft:#f8fafc}
+ *{box-sizing:border-box}
+ body{margin:0;background:#eef1f5;color:var(--ink);
+      font:16px/1.75 -apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Noto Sans KR',system-ui,sans-serif}
+ .wrap{max-width:1000px;margin:0 auto;padding:48px 30px 80px;background:var(--bg)}
+ h1{font-size:31px;line-height:1.32;margin:0 0 7px;letter-spacing:-.7px}
+ .sub{color:var(--muted);font-size:14.5px;margin-bottom:9px}
+ .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);font-size:12.5px;
+      font-weight:700;padding:4px 11px;border-radius:5px;margin-bottom:26px}
+ .claim{border:1px solid var(--line);border-left:4px solid var(--ink);background:var(--soft);
+        padding:18px 22px;border-radius:0 8px 8px 0;margin:26px 0 6px;font-size:16.5px;line-height:1.7}
+ .claim>b:first-child{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:700;letter-spacing:.3px}
+ h2{font-size:21px;margin:54px 0 8px;padding-top:20px;border-top:2px solid var(--ink);letter-spacing:-.3px}
+ h3{font-size:16.5px;margin:30px 0 9px}
+ p{margin:12px 0}
+ .lead{color:var(--muted);font-size:14.5px;margin:0 0 18px}
+ .cards{display:flex;flex-wrap:wrap;gap:11px;margin:20px 0 8px}
+ .card{flex:1 1 145px;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:15px 17px}
+ .card .k{font-size:12.5px;color:var(--muted);line-height:1.45}
+ .card .v{font-size:25px;font-weight:800;letter-spacing:-1px;margin-top:3px}
+ .card.c .v{color:var(--crit)} .card.o .v{color:var(--ok)} .card.w .v{color:var(--warn)}
+ .card.c{background:var(--crit-soft);border-color:#fecaca}
+ .card.w{background:var(--warn-soft);border-color:#fde68a}
+ .box{border:1px solid var(--line);border-left:4px solid var(--accent);background:var(--soft);
+      padding:15px 20px;border-radius:0 8px 8px 0;margin:20px 0}
+ .box.crit{border-left-color:var(--crit);background:var(--crit-soft);border-color:#fecaca}
+ .box.ok{border-left-color:var(--ok);background:var(--ok-soft);border-color:#bbf7d0}
+ .box.warn{border-left-color:var(--warn);background:var(--warn-soft);border-color:#fde68a}
+ .box b.t{display:block;margin-bottom:5px;font-size:15.5px}
+ .box p{margin:7px 0;font-size:14.8px}
+ .quote{border-left:3px solid var(--line);padding:2px 0 2px 14px;margin:10px 0;color:#4b5563;
+        font-size:14.5px;font-style:normal}
+ table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.3px}
+ th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+ th{background:var(--soft);font-size:12.5px;color:var(--muted);font-weight:700;white-space:nowrap}
+ td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+ td.d{color:var(--muted);font-size:12.5px;white-space:nowrap}
+ td.s{font-size:12px;color:var(--warn);font-weight:700;white-space:nowrap}
+ tr.gap td{background:var(--warn-soft)} tr.zero td{color:#9ca3af}
+ .hb{display:flex;align-items:center;gap:11px;margin:6px 0;font-size:14.3px}
+ .hb-l{width:158px;flex:none} .hb-t{flex:1;height:14px;background:#eef1f5;border-radius:7px;overflow:hidden}
+ .hb-t i{display:block;height:100%;border-radius:7px}
+ .hb-v{width:44px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+ .hb-n{width:62px;text-align:right;color:var(--muted);font-size:12.5px}
+ .wks{display:flex;gap:11px;margin:16px 0}
+ .wk{flex:1;border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:var(--soft)}
+ .wk b{font-size:14px;color:var(--muted)} .wk .wq{font-weight:800;font-size:22px;display:block;margin-top:2px}
+ .wk .wp{color:var(--muted);font-size:13px;display:block}
+ .chart{border:1px solid var(--line);border-radius:10px;padding:14px 8px 6px;margin:14px 0;overflow-x:auto}
+ .cap{font-size:12.5px;color:var(--muted);text-align:center;padding-bottom:6px}
+ ul,ol{padding-left:20px} li{margin:6px 0}
+ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:13px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+ .verdict{display:inline-block;font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:4px;
+          white-space:nowrap}
+ .v-ok{background:#dcfce7;color:#15803d} .v-no{background:#fee2e2;color:#b91c1c}
+ .v-mid{background:#fef3c7;color:#b45309} .v-na{background:#e5e7eb;color:#4b5563}
+ .foot{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+ @media(max-width:640px){.wrap{padding:26px 15px 56px}h1{font-size:24px}.hb-l{width:96px;font-size:12.5px}
+   .cards{gap:8px}.card{flex:1 1 120px}}
+</style></head><body><div class="wrap">
+
+<h1>말씀 챗봇 체험단 · 3주 통합 보고서</h1>
+<div class="sub">DB 이용기록 518질문 × 설문 응답 164건 교차 검증 · 코드 분석 2개 모델 병렬 · 내부 의사결정용</div>
+<div class="tag">보고서 C — 로그와 목소리를 겹쳐 읽다</div>
+
+<div class="claim"><b>이 보고서의 주장</b>
+만족도 3.70점과 이탈률 23%가 동시에 참일 수 있는 이유는 하나다.
+<b>우리가 만든 피드백 채널이 미션에 성실한 사람의 목소리만 통과시켰기 때문이다.</b>
+그리고 사용자가 가장 아파한 두 가지 결함은 버그가 아니라 <b>우리가 그렇게 설계한 것</b>이었다.</div>
+
+<h2>1. 3주 결산</h2>
+<div class="cards">
+ <div class="card o"><div class="k">실이용 인원</div><div class="v">30 / 33명</div></div>
+ <div class="card"><div class="k">총 질문</div><div class="v">518건</div></div>
+ <div class="card"><div class="k">설문 응답</div><div class="v">164건</div></div>
+ <div class="card"><div class="k">만족도</div><div class="v">3.70 / 5</div></div>
+ <div class="card c"><div class="k">3주차 이탈</div><div class="v">23%</div></div>
+ <div class="card c"><div class="k">인앱 평가율</div><div class="v">5.8%</div></div>
+</div>
+
+<div class="box ok"><b class="t">얻은 것</b>
+<p><b>제품이 작동한다는 것을 확인했다.</b> 30명이 3주간 518개의 실제 질문을 던졌고, 그중 상당수는 "참부모경 1539페이지 말씀을 참부모론과 연결해서 설명해달라" 수준의 깊은 질의였다. 만족도 3.70점은 낮은 점수가 아니다.</p>
+<p><b>실사용 없이는 절대 발견할 수 없었던 결함 5종을 확보했다.</b> 그것도 코드 라인 단위로 특정된 상태다.</p>
+<p><b>기능 요구가 사용자 언어로 나왔다.</b> 북마크, 1클릭 복사, 반말 모드, 다국어, 출처 카테고리별 표시 — 전부 우리가 먼저 떠올린 것이 아니다.</p></div>
+
+<div class="box crit"><b class="t">얻지 못한 것</b>
+<p><b>일반 사용자 데이터는 여전히 없다.</b> 응답자의 98%가 선문대 신학과 학생이다. 초신자·장년층·비신학 식구가 이 제품을 어떻게 느끼는지는 3주가 지난 지금도 모른다.</p>
+<p><b>자발적 재방문 습관을 만들지 못했다.</b> 사용 곡선은 미션 마감일을 따라 움직였고, 미션이 끝난 뒤에도 쓸 것인지는 검증되지 않았다.</p>
+<p><b>품질 피드백 수집 경로를 확보하지 못했다.</b> 평가율 5.8%, 리액션 0건. 다음 코호트에서도 같은 방식이면 같은 결과가 나온다.</p></div>
+
+<h2>2. 로그 × 설문 교차 검증</h2>
+<p class="lead">같은 3주를 두 개의 눈으로 봤다. 어긋나는 지점이 진실에 가깝다.</p>
+<table><thead><tr><th style="width:22%">가설</th><th>로그가 말한 것</th><th>설문이 말한 것</th><th style="width:11%">판정</th></tr></thead><tbody>
+<tr><td><b>사용자가 만족했다</b></td>
+<td>질문량 정점 대비 −39%, 활성 인원 −23%, 1턴 세션 41%</td>
+<td>도움 정도 <b>3.70/5</b>, 4점 이상 67%</td>
+<td><span class="verdict v-no">부분 기각</span><br><span class=lead style="font-size:12.5px">만족했다고 답했으나 행동은 이탈했다</span></td></tr>
+
+<tr><td><b>피드백이 적은 건 불만이 없어서다</b></td>
+<td><code>answer_feedback</code> <b>5.8%</b>, 리액션 <b>0건</b></td>
+<td>결함 지적률 <b>36%</b></td>
+<td><span class="verdict v-no">기각</span><br><span class=lead style="font-size:12.5px">계측 실패이지 만족이 아니다. 6배 격차</span></td></tr>
+
+<tr><td><b>미션이 없어도 썼을 것이다</b></td>
+<td>7/20 <b>4건</b> → 7/21 <b>39건</b>. 마감 전후 10배 진폭</td>
+<td>자발적 궁금증 <b>56%</b>, 자발 포함 79%</td>
+<td><span class="verdict v-no">기각</span><br><span class=lead style="font-size:12.5px">과제 주도형 패턴이 지배적</span></td></tr>
+
+<tr><td><b>답변 모드 5종이 유용하다</b></td>
+<td>비표준 모드 <b>16%</b>. 어린이 8건·목회상담 13건</td>
+<td>설문 언급 <b>0건</b></td>
+<td><span class="verdict v-na">미검증</span><br><span class=lead style="font-size:12.5px">유용성 이전에 인지 여부가 불명</span></td></tr>
+
+<tr><td><b>저장 기능은 필요 없다</b></td>
+<td><code>chat_message_reactions</code> <b>0건</b></td>
+<td>저장·북마크 요청 <b>명시적으로 등장</b></td>
+<td><span class="verdict v-no">기각</span><br><span class=lead style="font-size:12.5px">만들어놓고 화면에 붙이지 않았다</span></td></tr>
+</tbody></table>
+
+<h2>3. 커버리지 갭 — 우리가 못 들은 목소리</h2>
+<div class="cards">
+ <div class="card o"><div class="k">사용 + 설문 제출</div><div class="v">24명</div></div>
+ <div class="card w"><div class="k">사용했으나 설문 미제출</div><div class="v">6명</div></div>
+ <div class="card c"><div class="k">미사용 + 미제출</div><div class="v">3명</div></div>
+</div>
+<table><thead><tr><th>이름</th><th class=n>질문</th><th class=n>세션</th><th>사용 기간</th></tr></thead><tbody><tr><td>안인지</td><td class=n>27</td><td class=n>7</td><td class=d>2026-07-08 ~ 2026-07-21</td></tr><tr><td>마츠무라 히로시</td><td class=n>9</td><td class=n>2</td><td class=d>2026-07-08 ~ 2026-07-14</td></tr><tr><td>송찬영</td><td class=n>9</td><td class=n>4</td><td class=d>2026-07-13 ~ 2026-07-25</td></tr><tr><td>이시이 키미마사</td><td class=n>9</td><td class=n>1</td><td class=d>2026-07-08 ~ 2026-07-12</td></tr><tr><td>김경수</td><td class=n>8</td><td class=n>2</td><td class=d>2026-07-14 ~ 2026-07-23</td></tr><tr><td>신기호</td><td class=n>6</td><td class=n>2</td><td class=d>2026-07-13 ~ 2026-07-16</td></tr></tbody></table>
+<div class="box crit"><b class="t">안인지는 27질문으로 전체 5위인데, 우리는 3주간 그의 목소리를 한 번도 듣지 못했다</b>
+<p>이 6명은 제품을 실제로 썼지만 설문을 내지 않았다. 미션-리워드 구조가 <b>"제품을 쓰는 사람"이 아니라 "과제를 제출하는 사람"의 의견만 수집하도록 채널을 왜곡했다.</b></p>
+<p>설문 데이터로만 의사결정을 하면 이 6명의 사용 맥락은 영원히 반영되지 않는다. 최종 설문은 이들이 반드시 답할 수 있는 구조여야 한다.</p></div>
+
+<h2>4. 확정 결함 — 코드 라인까지 특정</h2>
+<p class="lead">Opus와 Codex 두 모델에게 동일한 과제를 독립적으로 주고 레포와 운영 DB를 각자 조사하게 했다. 아래 3건은 <b>두 모델이 독립적으로 같은 결론에 도달</b>했고, 저자가 직접 쿼리로 재확인했다.</p>
+
+<div class="box crit"><b class="t">P0-1 · 개인적인 질문 거부는 가드레일이 아니라 intent 분류의 조기 종료다</b>
+<p>사용자가 가장 아파한 결함이다. 원인은 안전 장치가 아니라 <code>intent_classifier</code>의 <b>short-circuit</b>이었다.</p>
+<p>질문이 <code>meta</code>로 분류되면 검색도 생성도 하지 않고 코드에 박힌 고정 문자열을 그대로 반환한다.</p>
+<div class="quote">"해당 질문은 가정연합 말씀 학습 도우미의 답변 범위를 벗어납니다. 말씀이나 원리에 관한 질문을 해 주시면 도와드리겠습니다."<br>
+<code>backend/src/search/intent_classifier.py:54</code> · 종료 지점 <code>backend/src/chat/pipeline/stages/intent_classifier.py:64</code></div>
+<p><b>발생량 26건 / 답변 518건 = 5.0%.</b> 세 소스(Opus·Codex·저자 쿼리)가 모두 동일 수치를 냈다.</p>
+<p>실제 좌절 시퀀스가 로그에 남아 있다. 2026-07-23 17:35 세션.</p>
+<div class="quote">"피곤해" → <i>(고정 거부 문구)</i> → "그런게 어디있어 피곤한 것과 관련된 말씀을 찾아줘" → <i>(정상 답변)</i> → "왜 처음부터 그렇게 답변안했어??" → "왜 안했냐고 묻잖아"</div>
+<p>재시도하면 답이 나온다. 즉 <b>답할 수 있는 질문을 첫 턴에 거부한 것</b>이다. 오거부 사례에는 "칭찬해 주세요", "꾸준함을 기르려면 어떻게 해야 하나요?", "오늘의 말씀", 그리고 <b>영어·일본어·포르투갈어 답변 요청 4건</b>이 포함된다.</p></div>
+
+<div class="box crit"><b class="t">P0-2 · 자살예방 안내는 위기 감지 결과가 아니라 목회상담 모드 전체에 붙는 고정 문구다</b>
+<p>체험단 2명이 "질문과 무관한 자살예방 안내"를 보고했다. 조사 결과 이것은 오탐이 아니라 <b>설계된 동작</b>이었다.</p>
+<p><code>backend/src/chat/prompt.py:153,174</code> — 목회상담 모듈이 <b>모든</b> pastoral 답변에 1393 한 줄을 "반드시 포함, 누락 금지"로 지시한다.</p>
+<p><code>backend/src/chat/pipeline/stages/generation.py:170,177</code> — <code>resolve_answer_mode</code>는 사용자가 pastoral을 직접 고르면 <code>(pastoral, False, None)</code>을 반환한다. 위기 키워드 매칭이 없으므로 <code>crisis_trigger</code>는 항상 NULL이다. <code>persist.py:42</code>가 그 NULL을 그대로 저장한다.</p>
+<p>결과 — 체험단 답변 중 1393 포함 <b>15건</b>, <code>crisis_trigger</code> 기록 <b>0건</b>. 두 모델이 동일 결론에 도달했다.</p>
+<p><b>지금 스키마로는 이 오발동을 대시보드에서 영영 관측할 수 없다.</b> 목회상담 모드를 고른 사람은 마음이 힘들어서 고른 것인데, 매번 자살예방 안내를 받는다.</p></div>
+
+<div class="box crit"><b class="t">P0-3 · 👍/👎/💾 리액션 0건은 사용자 무관심이 아니라 미배선이다</b>
+<p>백엔드 API는 정상 등록돼 있다(<code>backend/main.py:108</code>, <code>reactions_router.py:65</code>). 프론트 클라이언트 함수도 존재한다(<code>admin/src/lib/reactions-api.ts</code>).</p>
+<p><b>그런데 이 파일을 import 하는 컴포넌트가 0개다.</b> 체험단이 사용한 화면(<code>admin/src/app/(chat)/page.tsx:568,1024</code>)에는 <code>FeedbackPopover</code> → <code>answer_feedback</code> 경로만 붙어 있다. 저장(💾)은 "백엔드 영속화 미구현"으로 아예 숨겨져 있다.</p>
+<p>세 소스(Opus·Codex·설계 조사)가 모두 <code>reactions-api</code> importer 0건을 독립 확인했다. <b>0%는 사용자 신호가 아니라 배포 결함이다.</b></p></div>
+
+<div class="box warn"><b class="t">P1-1 · 인용 부적합 — 설문 자유서술 최다 반복</b>
+<p>"함께 보는 말씀이 관련 있다고 볼 수 없음", "질문이 다른데 똑같은 대답이 나왔습니다", "추천해준 말씀 밑에 두가지는 내 질문과 관련 말씀이 아닌 것 같아". 인앱 피드백에서도 <code>MISSING_CITATION</code> 4건 + <code>IRRELEVANT</code> 1건으로 잡힌다.</p>
+<p>이 결함은 코드 한 줄로 특정되지 않는다. 검색·리랭킹 파이프라인 전반의 품질 문제이며 별도 평가가 필요하다.</p></div>
+
+<div class="box warn"><b class="t">P1-2 · 교단 언어 누출 — "아멘"</b>
+<p>기도 마무리가 "아멘"으로 나온다는 지적이 2명에게서 나왔다. 시스템 프롬프트의 표현 사전 문제다. 수정 비용이 가장 낮고 신뢰도 영향은 큰 항목이다.</p></div>
+
+<h2>5. 두 모델이 갈린 지점</h2>
+<p class="lead">교차 검증의 가치는 합의에만 있지 않다. 어긋난 곳이 우리가 아직 모르는 곳이다.</p>
+<table><thead><tr><th style="width:20%">항목</th><th>Opus</th><th>Codex</th><th style="width:26%">저자 판정</th></tr></thead><tbody>
+<tr><td>1393 포함 답변 수</td><td>26건</td><td>15건</td>
+<td><b>둘 다 맞다.</b> 전체 DB 기준 26건, 체험단 세션 한정 15건. 직접 재쿼리로 확인</td></tr>
+<tr><td>총 질문 수</td><td>538</td><td>538</td>
+<td><b>518이 정확하다.</b> 두 모델은 명단 외 계정(김현승·장우성·테스트 20건)을 포함했다. 저자 집계는 이를 제외하고 참여자명 표기 8종을 정규화한 값</td></tr>
+<tr><td>질문 주제 분류</td><td>교리 65.6% / 기타 23.0% / 실무 5.2% / 개인고민 2.8%</td>
+<td>교리 65.6% / 실무 17.8% / 개인고민 9.1% / 원문확인 5.4%</td>
+<td><b>교리 65.6%(353건)만 확정.</b> 나머지는 분류 기준 차이로 갈렸다. 두 모델 모두 LLM 분류가 아닌 키워드 휴리스틱을 썼으므로 세부 비율은 신뢰하지 않는다</td></tr>
+<tr><td>불만족 재시도</td><td>36건 / 항의 63건</td><td>24쌍 19세션 / 명시 항의 13메시지 8세션</td>
+<td><b>미확정.</b> "재시도"와 "구체화"의 경계가 기준에 따라 달라진다. 다만 두 모델 모두 같은 대표 사례를 지목했다</td></tr>
+</tbody></table>
+
+<div class="box warn"><b class="t">Codex 단독 발견</b>
+<p><code>backend/src/chat/service.py:123</code> — 캐시 히트와 meta 종료 경로의 mini-persist는 답변 본문과 <code>pipeline_version</code>만 저장하고 <b>모드·위기 메타데이터를 전부 누락</b>한다. 즉 거부된 26건은 어떤 모드로 요청됐는지조차 기록이 없다. 미검증 항목으로 남긴다.</p></div>
+
+<h2>6. 실패 지표 정면 기록</h2>
+<p class="lead">보고서를 좋게 쓰는 것은 다음 코호트에 같은 실패를 반복하게 만든다.</p>
+<div class="cards">
+ <div class="card c"><div class="k">미션 목표(18건) 달성률</div><div class="v">9%</div></div>
+ <div class="card c"><div class="k">3주차 활성 인원 감소</div><div class="v">−23%</div></div>
+ <div class="card c"><div class="k">인앱 평가율</div><div class="v">5.8%</div></div>
+ <div class="card c"><div class="k">리액션 사용</div><div class="v">0건</div></div>
+ <div class="card c"><div class="k">1턴 종료 세션</div><div class="v">41%</div></div>
+ <div class="card c"><div class="k">답변 거부율</div><div class="v">5.0%</div></div>
+</div>
+<ul>
+<li><b>미션 설계 실패</b> — 목표 18건 중 인당 평균 6.8건. 달성 3명(9%). 목표치가 현실과 맞지 않았다.</li>
+<li><b>안전 기능 미검증</b> — <code>crisis_trigger</code> 0건. 진짜 위기 상황에서 이 기능이 작동하는지 3주간 한 번도 확인되지 않았다.</li>
+<li><b>대화형 제품이 검색창으로 쓰임</b> — 1턴 세션 41%. 멀티턴을 만들었지만 대화가 일어나지 않았다.</li>
+</ul>
+
+<h2>7. 다음 스프린트 권고</h2>
+<table><thead><tr><th style="width:7%">순위</th><th style="width:26%">작업</th><th style="width:11%">난이도</th><th>근거</th></tr></thead><tbody>
+<tr><td><b>P0</b></td><td>meta 조기 종료 완화 — 개인 고민·일상 질문을 검색 경로로 통과</td><td>중</td>
+<td>거부 26건(5.0%). 재시도하면 답이 나오므로 답변 능력은 이미 있다. 다국어 요청 4건도 여기서 막혔다</td></tr>
+<tr><td><b>P0</b></td><td>1393 안내를 위기 감지 시에만 출력하도록 분리</td><td>하</td>
+<td>목회상담 15건 전부에 무조건 삽입 중. 프롬프트 수정만으로 해결. 동시에 <code>crisis_trigger</code>를 실제 출력 시점에 기록</td></tr>
+<tr><td><b>P0</b></td><td>👍/👎 버튼을 채팅 화면에 배선 (사유 선택 없이 1탭)</td><td>하</td>
+<td>API·클라이언트 이미 존재, import만 0건. 현재 평가율 5.8%가 3스텝 팝오버 마찰 때문인지도 함께 검증된다</td></tr>
+<tr><td>P1</td><td>"아멘" 등 교단 표현 사전 정비</td><td>하</td><td>2명 지적. 신뢰도 직결, 비용 최소</td></tr>
+<tr><td>P1</td><td>답변 길이 축소 — 결론 우선 구조</td><td>중</td>
+<td>질문 중앙값 33자 대비 답변 1042자(32배). "두루뭉술" 지적 최다</td></tr>
+<tr><td>P1</td><td>대화 기록·저장 기능의 발견성 개선</td><td>중</td>
+<td>기록 기능은 이미 있으나 사용자가 "없다"고 인식해 요청했다. 저장은 API만 있고 UI 없음</td></tr>
+<tr><td>P2</td><td>모드 선택 UI 노출 강화 또는 자동 전환</td><td>중</td><td>비표준 모드 16%. 인지 여부는 최종 설문으로 확인 후 결정</td></tr>
+<tr><td>P2</td><td>피드백 라벨 9종 재설계</td><td>하</td><td>"기타"가 1위(8건). 준비된 선택지가 실제 불만을 못 담는다</td></tr>
+</tbody></table>
+
+<h2>8. 이 보고서를 믿으면 안 되는 지점</h2>
+<ul>
+<li><b>표본 대표성 없음</b> — 응답자 98%가 선문대 신학과. 일반 신자·초신자·장년층 데이터는 0이다.</li>
+<li><b>n=33, 3주</b> — 통계적 유의성을 논할 규모가 아니다. 어린이 모드 8건, 목회상담 13건은 표본이라 부를 수 없다.</li>
+<li><b>미션 인센티브가 개입된 사용</b> — 순수 자연 사용 데이터가 아니다.</li>
+<li><b>익명 세션 제외</b> — 로그인도 이름 입력도 없는 세션은 식별 불가로 빠졌다. 518건은 하한선이다.</li>
+<li><b>주제 분류는 휴리스틱</b> — 교리 65.6% 외 세부 비율은 두 모델이 갈렸다. 확정 사실로 인용하지 말 것.</li>
+<li><b>언어 장벽 미측정</b> — 일본·브라질 유학생이 다수인데 한국어 답변만 제공됐다. 이들의 이해도는 측정되지 않았다.</li>
+</ul>
+
+<h2>9. 최종 설문으로 닫아야 할 질문</h2>
+<ol>
+<li><b>이탈 27%의 이유</b> — 바빠서인가, 답이 만족스럽지 않아서인가, 물을 것이 없어서인가. 로그로는 절대 알 수 없다.</li>
+<li><b>평가 버튼을 안 누른 이유</b> — 몰랐는가, 귀찮았는가, 3스텝이 번거로웠는가. P0 배선 작업의 설계가 여기 달렸다.</li>
+<li><b>모드 5종 인지 여부</b> — 18%가 선호의 결과인지 무지의 결과인지에 따라 처방이 정반대다.</li>
+<li><b>미션이 없었다면</b> — 자발률 79%와 마감일 10배 진폭의 모순을 해소할 유일한 문항이다.</li>
+<li><b>기능 우선순위</b> — 이번엔 받을 칸을 만들어서 묻는다.</li>
+</ol>
+
+<div class="foot">
+데이터 출처 · 운영 Neon PostgreSQL + 중간미션 응답 164건 + 계정 명단 33명. 코드 분석은 Opus·Codex 2개 모델 독립 병렬 수행 후 저자가 쿼리로 재검증.<br>
+합의 항목(P0-1·P0-2·P0-3)은 두 모델이 독립적으로 동일 결론에 도달했고 저자 쿼리로 3차 확인됨. 갈린 항목은 §5에 판정과 함께 기재.<br>
+작성 2026-07-26 · 관련 — 보고서 A(이용기록), 보고서 B(설문 응답), 최종 설문 문항 정의서
+</div>
+</div></body></html>

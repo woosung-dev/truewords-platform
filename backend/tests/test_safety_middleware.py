@@ -78,6 +78,57 @@ def test_unknown_when_no_xff_no_socket():
     assert extract_client_ip(request) == "unknown"
 
 
+# --- Oracle 이전 (2026-07-29) 후속: Cloudflare Tunnel XFF 하드닝 -------------
+# 유일한 ingress 가 Cloudflare Tunnel 이므로 edge 가 항상 덮어쓰는
+# CF-Connecting-IP 를, 클라이언트가 위조할 수 있는 XFF 보다 우선한다.
+
+
+def test_cf_connecting_ip_wins_over_forged_xff():
+    """공격자가 XFF 를 심어도 CF-Connecting-IP 가 이긴다 (rate limit 우회 차단)."""
+    request = _make_request(
+        headers={
+            "cf-connecting-ip": "203.0.113.7",
+            # 공격자가 매 요청 다른 값을 넣어 IP 버킷을 흩뿌리려는 시나리오
+            "x-forwarded-for": "1.2.3.4, 203.0.113.7",
+        },
+        client_host="172.18.0.5",
+    )
+    assert extract_client_ip(request) == "203.0.113.7"
+
+
+def test_cf_connecting_ip_strips_whitespace():
+    """CF-Connecting-IP 앞뒤 공백 정규화."""
+    request = _make_request(
+        headers={"cf-connecting-ip": "  203.0.113.8  "},
+        client_host="172.18.0.5",
+    )
+    assert extract_client_ip(request) == "203.0.113.8"
+
+
+def test_falls_back_to_xff_when_cf_header_absent():
+    """Cloudflare 를 거치지 않는 내부 호출은 기존 XFF 동작 유지 (회귀 잠금)."""
+    request = _make_request(
+        headers={"x-forwarded-for": "198.51.100.9, 10.0.0.1"},
+        client_host="10.0.0.1",
+    )
+    assert extract_client_ip(request) == "198.51.100.9"
+
+
+def test_falls_back_to_xff_when_cf_header_blank():
+    """CF-Connecting-IP 가 공백뿐이면 XFF 로 fallback."""
+    request = _make_request(
+        headers={"cf-connecting-ip": "   ", "x-forwarded-for": "198.51.100.10"},
+        client_host="10.0.0.1",
+    )
+    assert extract_client_ip(request) == "198.51.100.10"
+
+
+def test_falls_back_to_socket_peer_when_only_cf_blank():
+    """CF-Connecting-IP 가 공백이고 XFF 도 없으면 socket peer."""
+    request = _make_request(headers={"cf-connecting-ip": ""}, client_host="10.0.0.1")
+    assert extract_client_ip(request) == "10.0.0.1"
+
+
 def test_check_rate_limit_uses_xff(monkeypatch):
     """check_rate_limit dependency 가 extract_client_ip 결과를 limiter 키로 사용."""
     from src.safety import middleware as middleware_mod

@@ -1,0 +1,167 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>보고서 B · 체험단 설문 응답 분석</title><style>
+ :root{--ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#1e40af;--accent-soft:#eff6ff;
+       --crit:#b91c1c;--crit-soft:#fef2f2;--ok:#15803d;--ok-soft:#f0fdf4;--warn:#b45309;
+       --warn-soft:#fffbeb;--bg:#fff;--soft:#f8fafc}
+ *{box-sizing:border-box}
+ body{margin:0;background:#eef1f5;color:var(--ink);
+      font:16px/1.75 -apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Noto Sans KR',system-ui,sans-serif}
+ .wrap{max-width:1000px;margin:0 auto;padding:48px 30px 80px;background:var(--bg)}
+ h1{font-size:31px;line-height:1.32;margin:0 0 7px;letter-spacing:-.7px}
+ .sub{color:var(--muted);font-size:14.5px;margin-bottom:9px}
+ .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);font-size:12.5px;
+      font-weight:700;padding:4px 11px;border-radius:5px;margin-bottom:26px}
+ .claim{border:1px solid var(--line);border-left:4px solid var(--ink);background:var(--soft);
+        padding:18px 22px;border-radius:0 8px 8px 0;margin:26px 0 6px;font-size:16.5px;line-height:1.7}
+ .claim>b:first-child{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:700;letter-spacing:.3px}
+ h2{font-size:21px;margin:54px 0 8px;padding-top:20px;border-top:2px solid var(--ink);letter-spacing:-.3px}
+ h3{font-size:16.5px;margin:30px 0 9px}
+ p{margin:12px 0}
+ .lead{color:var(--muted);font-size:14.5px;margin:0 0 18px}
+ .cards{display:flex;flex-wrap:wrap;gap:11px;margin:20px 0 8px}
+ .card{flex:1 1 145px;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:15px 17px}
+ .card .k{font-size:12.5px;color:var(--muted);line-height:1.45}
+ .card .v{font-size:25px;font-weight:800;letter-spacing:-1px;margin-top:3px}
+ .card.c .v{color:var(--crit)} .card.o .v{color:var(--ok)} .card.w .v{color:var(--warn)}
+ .card.c{background:var(--crit-soft);border-color:#fecaca}
+ .card.w{background:var(--warn-soft);border-color:#fde68a}
+ .box{border:1px solid var(--line);border-left:4px solid var(--accent);background:var(--soft);
+      padding:15px 20px;border-radius:0 8px 8px 0;margin:20px 0}
+ .box.crit{border-left-color:var(--crit);background:var(--crit-soft);border-color:#fecaca}
+ .box.ok{border-left-color:var(--ok);background:var(--ok-soft);border-color:#bbf7d0}
+ .box.warn{border-left-color:var(--warn);background:var(--warn-soft);border-color:#fde68a}
+ .box b.t{display:block;margin-bottom:5px;font-size:15.5px}
+ .box p{margin:7px 0;font-size:14.8px}
+ .quote{border-left:3px solid var(--line);padding:2px 0 2px 14px;margin:10px 0;color:#4b5563;
+        font-size:14.5px;font-style:normal}
+ table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.3px}
+ th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+ th{background:var(--soft);font-size:12.5px;color:var(--muted);font-weight:700;white-space:nowrap}
+ td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+ td.d{color:var(--muted);font-size:12.5px;white-space:nowrap}
+ td.s{font-size:12px;color:var(--warn);font-weight:700;white-space:nowrap}
+ tr.gap td{background:var(--warn-soft)} tr.zero td{color:#9ca3af}
+ .hb{display:flex;align-items:center;gap:11px;margin:6px 0;font-size:14.3px}
+ .hb-l{width:158px;flex:none} .hb-t{flex:1;height:14px;background:#eef1f5;border-radius:7px;overflow:hidden}
+ .hb-t i{display:block;height:100%;border-radius:7px}
+ .hb-v{width:44px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+ .hb-n{width:62px;text-align:right;color:var(--muted);font-size:12.5px}
+ .wks{display:flex;gap:11px;margin:16px 0}
+ .wk{flex:1;border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:var(--soft)}
+ .wk b{font-size:14px;color:var(--muted)} .wk .wq{font-weight:800;font-size:22px;display:block;margin-top:2px}
+ .wk .wp{color:var(--muted);font-size:13px;display:block}
+ .chart{border:1px solid var(--line);border-radius:10px;padding:14px 8px 6px;margin:14px 0;overflow-x:auto}
+ .cap{font-size:12.5px;color:var(--muted);text-align:center;padding-bottom:6px}
+ ul,ol{padding-left:20px} li{margin:6px 0}
+ code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:13px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+ .verdict{display:inline-block;font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:4px;
+          white-space:nowrap}
+ .v-ok{background:#dcfce7;color:#15803d} .v-no{background:#fee2e2;color:#b91c1c}
+ .v-mid{background:#fef3c7;color:#b45309} .v-na{background:#e5e7eb;color:#4b5563}
+ .foot{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+ @media(max-width:640px){.wrap{padding:26px 15px 56px}h1{font-size:24px}.hb-l{width:96px;font-size:12.5px}
+   .cards{gap:8px}.card{flex:1 1 120px}}
+</style></head><body><div class="wrap">
+
+<h1>말씀 챗봇 체험단 · 설문 응답 분석</h1>
+<div class="sub">중간미션 폼 164건 (2026-07-08 ~ 07-25) · 24명 제출 · 내부 의사결정용</div>
+<div class="tag">보고서 B — 사람이 말한 것</div>
+
+<div class="claim"><b>이 보고서의 주장</b>
+응답자는 5점 만점에 <b>3.70점</b>을 줬다. 그런데 같은 응답지 안에서 <b>36%가 결함을 지적</b>했고, 서비스 안에서는 <b>5.8%만 평가 버튼을 눌렀다</b>. 우리가 받은 것은 만족이 아니라 <b>예의</b>일 가능성이 크다.</div>
+
+<p class="lead">이 보고서는 DB 로그를 사용하지 않는다. 중간미션 구글폼 164건의 응답만 분석한다. 최종 설문은 오늘 발송되므로 그 응답은 아직 포함돼 있지 않다.</p>
+
+<h2>1. 요약</h2>
+<div class="cards">
+ <div class="card"><div class="k">응답 건수</div><div class="v">164건</div></div>
+ <div class="card"><div class="k">제출 인원</div><div class="v">24 / 33명</div></div>
+ <div class="card"><div class="k">도움 정도 평균</div><div class="v">3.70 / 5</div></div>
+ <div class="card o"><div class="k">4점 이상</div><div class="v">67%</div></div>
+ <div class="card w"><div class="k">결함 지적률</div><div class="v">36%</div></div>
+ <div class="card c"><div class="k">목표(18건) 달성</div><div class="v">3명</div></div>
+</div>
+
+<h2>2. 표본의 편향 — 이 점수는 누가 준 것인가</h2>
+<div class="hb"><span class="hb-l">선문대 신학과 (학년 미표기)</span><span class="hb-t"><i style="width:100.0%;background:#b91c1c"></i></span><b class="hb-v">95</b><span class="hb-n">57%</span></div><div class="hb"><span class="hb-l">선문대 신학과 2학년</span><span class="hb-t"><i style="width:54.7%;background:#b91c1c"></i></span><b class="hb-v">52</b><span class="hb-n">31%</span></div><div class="hb"><span class="hb-l">선문대 신학과 1학년</span><span class="hb-t"><i style="width:13.7%;background:#b91c1c"></i></span><b class="hb-v">13</b><span class="hb-n">7%</span></div><div class="hb"><span class="hb-l">성화 청년 교사</span><span class="hb-t"><i style="width:3.2%;background:#1e40af"></i></span><b class="hb-v">3</b><span class="hb-n">1%</span></div><div class="hb"><span class="hb-l">기타</span><span class="hb-t"><i style="width:1.1%;background:#1e40af"></i></span><b class="hb-v">1</b><span class="hb-n">0%</span></div>
+<div class="box crit"><b class="t">응답자의 98%가 선문대학교 신학과 학생이다</b>
+<p>비신학 응답자는 성화 청년 교사 3건뿐이다. 즉 <b>3.70점은 신학 리터러시가 상위인 집단이 매긴 점수</b>다.</p>
+<p>이들은 "원리", "천성경", "참부모경 1539페이지" 같은 용어를 이미 알고 질문한다. 실제 서비스 대상인 일반 식구·초신자·장년층이 같은 답변을 받았을 때 같은 점수를 줄 것이라는 근거는 이 데이터 어디에도 없다.</p>
+<p>이 보고서의 모든 수치를 <b>일반 사용자로 일반화해서는 안 된다.</b></p></div>
+
+<h2>3. 만족도 — 4점에 몰린 분포</h2>
+<div class="chart"><svg viewBox="0 0 880 212" width="100%" role="img"><line x1="32" y1="170" x2="848" y2="170" stroke="#e5e7eb"/><rect x="58.1" y="159.2" width="111.0" height="10.8" fill="#1e40af" rx="2"/><text x="113.6" y="155.2" font-size="9.5" fill="#6b7280" text-anchor="middle">6</text><text x="113.6" y="184" font-size="9" fill="#6b7280" text-anchor="middle">1점</text><rect x="221.3" y="148.3" width="111.0" height="21.7" fill="#1e40af" rx="2"/><text x="276.8" y="144.3" font-size="9.5" fill="#6b7280" text-anchor="middle">12</text><text x="276.8" y="184" font-size="9" fill="#6b7280" text-anchor="middle">2점</text><rect x="384.5" y="105.0" width="111.0" height="65.0" fill="#1e40af" rx="2"/><text x="440.0" y="101.0" font-size="9.5" fill="#6b7280" text-anchor="middle">36</text><text x="440.0" y="184" font-size="9" fill="#6b7280" text-anchor="middle">3점</text><rect x="547.7" y="22.0" width="111.0" height="148.0" fill="#1e40af" rx="2"/><text x="603.2" y="18.0" font-size="9.5" fill="#6b7280" text-anchor="middle">82</text><text x="603.2" y="184" font-size="9" fill="#6b7280" text-anchor="middle">4점</text><rect x="710.9" y="119.5" width="111.0" height="50.5" fill="#1e40af" rx="2"/><text x="766.4" y="115.5" font-size="9.5" fill="#6b7280" text-anchor="middle">28</text><text x="766.4" y="184" font-size="9" fill="#6b7280" text-anchor="middle">5점</text></svg><div class="cap">"오늘 챗봇의 답변은 얼마나 도움이 되었나요?" · n=164</div></div>
+<p>평균 <b>3.70점</b>, 4점 이상이 110건(67%)이다. 그런데 <b>4점 한 칸에 82건(50%)이 집중</b>돼 있다.</p>
+<p>5점이 아니라 4점에 몰리는 분포는 강한 지지가 아니라 <b>무난한 호의</b>의 패턴이다. 특히 미션 수행 중 작성하는 폼에서는 관대하게 답하는 경향이 강해진다.</p>
+
+<h2>4. 결함 지적 — 64%는 "걸린 점 없음"</h2>
+<div class="hb"><span class="hb-l">두루뭉술·회피</span><span class="hb-t"><i style="width:23.1%;background:#b91c1c"></i></span><b class="hb-v">6</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">없는 용어·출처·숫자를 지어냄</span><span class="hb-t"><i style="width:19.2%;background:#b91c1c"></i></span><b class="hb-v">5</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">교리가 틀림</span><span class="hb-t"><i style="width:19.2%;background:#b91c1c"></i></span><b class="hb-v">5</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">차갑고 사무적</span><span class="hb-t"><i style="width:11.5%;background:#b91c1c"></i></span><b class="hb-v">3</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">한 답변 안에서 자기모순</span><span class="hb-t"><i style="width:11.5%;background:#b91c1c"></i></span><b class="hb-v">3</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">말씀추천이 질문과 관련없음</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">더 많은 예시가 있었을텐데 일부만 나옴</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">답변과 인용이 안 맞음</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">내 고통을 가볍게 넘김</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">아멘 →아주로 바궈 주시면 좋을 것 같고</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">참고말씀으로 들어갔을 때에 오타가 있었습니다.</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">참고 말씀과 원문 자료가 달라요.</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">내용 보다 추가서비스에 대한 제안</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">제안</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">원하는 말씀이 아니였음</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">마지막 기도문</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">"아멘"으로 해도 될까 생각이 들었다. 또</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">상관없는 참고 말씀들만 추천해줌</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">원하는 답변이 나오지 않았습니다.</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">목회 상담 모드로 같은 질문을 돌려보았는데</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">'아멘'도 '아주'로 변경되어야 할 것 같습니다.</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">기도문이 아멘으로 마무리가 됩니다.</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">이단적 해석</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">심정문화세계에 대한 설명을 좀 더 알고 싶었다.</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">나쁘지 않는데 이어서 질문을 하지 못해서 아쉬워요.</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">말씀을 추천 안해줌</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">통일사상에 그림을 요청했는데 받지 못함</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">그 답변은 제가 원하던 것과는 조금 달랐습니다.</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">좀 더 이해할 수 있도록 쉽게 설명이 있으면 좋겠다.</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">말씀 추천 모드가 따로 있으면 좋을 것 같다!</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">가져온 말씀 원문이 질문과 깊은 관련이 없는 듯함.</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">신앙 수준/지식 수준에 안 맞는 답변</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">민감한 답변</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">요청을 들어 주지 않음</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">질문에 제대로 답변하지 못함</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">제시했던 출처 속 말씀에 대한 분석이 부족했다.</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">천일국 시대라고 봇이 답변 속에서 전제하고 있는데</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">제 질문에 질 대답하지 않았습니다.</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">답변 말씀의 어색함</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">빛에 대해서는 알았지만</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">성별(聖別）에 대해 질문을 했는데</span><span class="hb-t"><i style="width:3.8%;background:#b91c1c"></i></span><b class="hb-v">1</b><span class="hb-n"></span></div><div class="hb"><span class="hb-l">기타 자유서술</span><span class="hb-t"><i style="width:100.0%;background:#9ca3af"></i></span><b class="hb-v">26</b><span class="hb-n"></span></div>
+<p>"이 답변에서 이상하다고 생각한 점"에 <b>105건(64%)이 "걸린 점 없음"</b>을 골랐다. 나머지 59건(36%)이 무언가를 지적했다.</p>
+<p>지적된 것 중에서는 <b>두루뭉술·회피</b>가 가장 많고, 이어 <b>없는 용어·출처·숫자를 지어냄</b>, <b>교리가 틀림</b>이 각 5건이다. 할루시네이션과 교리 오류가 나란히 상위에 있다는 점은 가볍게 볼 수 없다.</p>
+
+<div class="box crit"><b class="t">핵심 역설 — 설문에서는 36%가 지적, 서비스 안에서는 5.8%만 평가</b>
+<p>같은 3주, 같은 사람들이다. 설문에서는 36%가 문제를 지적했는데, 챗봇 화면의 평가 버튼은 518개 답변 중 30건(5.8%)만 눌렸다. <b>약 6배 격차다.</b></p>
+<p>이것은 "사용자가 대체로 만족했다"는 뜻이 아니다. <b>인앱 평가 경로가 실제 불만의 6분의 1만 포착하고 있다</b>는 뜻이다. 우리가 서비스 안에서 보는 만족도는 구조적으로 부풀려져 있다.</p></div>
+
+<h2>5. 사용 동기 — 자발이라고 답했다</h2>
+<div class="hb"><span class="hb-l">진짜 궁금증이 생겨서</span><span class="hb-t"><i style="width:100.0%;background:#15803d"></i></span><b class="hb-v">92</b><span class="hb-n">56%</span></div><div class="hb"><span class="hb-l">둘 다</span><span class="hb-t"><i style="width:40.2%;background:#1e40af"></i></span><b class="hb-v">37</b><span class="hb-n">22%</span></div><div class="hb"><span class="hb-l">미션·리워드 조건을 채우려고</span><span class="hb-t"><i style="width:29.3%;background:#b45309"></i></span><b class="hb-v">27</b><span class="hb-n">16%</span></div><div class="hb"><span class="hb-l">기타(자유서술)</span><span class="hb-t"><i style="width:8.7%;background:#1e40af"></i></span><b class="hb-v">8</b><span class="hb-n">4%</span></div>
+<p>"진짜 궁금증이 생겨서(자발)"가 92건(56%), "둘 다"를 포함하면 자발성이 언급된 응답이 79%다. 순수 미션 목적은 27건(16%)에 불과하다.</p>
+<div class="box warn"><b class="t">그러나 로그는 다르게 말한다</b>
+<p>보고서 A의 일자별 곡선은 7/20 4건 → 7/21 39건으로 <b>10배 급등</b>한다. 미션 마감일에 정확히 몰린다. 자기보고 자발률 79%와 이 파형은 양립하기 어렵다.</p>
+<p>가능한 해석은 두 가지다. ① 응답자가 자신의 동기를 실제보다 자발적으로 기억·보고한다. ② 자발적 관심은 있으나 <b>습관으로 전환되지 못해</b> 마감이라는 외부 자극이 있을 때만 행동으로 이어진다. 보고서 C에서 판정한다.</p></div>
+
+<h2>6. 설문 도구 자체의 결함</h2>
+<p>중간미션 폼은 답변 1건마다 17문항을 묻는 포렌식 구조였다. 문항별 실제 응답률은 다음과 같다.</p>
+<table><thead><tr><th>문항</th><th class=n>응답</th><th class=n>응답률</th><th>판정</th></tr></thead>
+<tbody><tr><td>입력한 질문</td><td class=n>128</td><td class=n>78%</td><td><span class=verdict v-mid>부분</span></td></tr><tr><td>이상한 점(객관식)</td><td class=n>164</td><td class=n>100%</td><td><span class=verdict v-ok>필수</span></td></tr><tr><td>보다 정확한 답</td><td class=n>17</td><td class=n>10%</td><td><span class=verdict v-no>붕괴</span></td></tr><tr><td>근거·출처</td><td class=n>6</td><td class=n>3%</td><td><span class=verdict v-no>붕괴</span></td></tr><tr><td>두루뭉술 원인</td><td class=n>20</td><td class=n>12%</td><td><span class=verdict v-no>붕괴</span></td></tr><tr><td>기대한 분명한 답</td><td class=n>11</td><td class=n>6%</td><td><span class=verdict v-no>붕괴</span></td></tr><tr><td>할루시네이션 유형</td><td class=n>8</td><td class=n>4%</td><td><span class=verdict v-no>붕괴</span></td></tr><tr><td>정죄·경시 개선안</td><td class=n>12</td><td class=n>7%</td><td><span class=verdict v-no>붕괴</span></td></tr><tr><td>공격 시도 결과</td><td class=n>4</td><td class=n>2%</td><td><span class=verdict v-no>붕괴</span></td></tr><tr><td>막힌 단어</td><td class=n>2</td><td class=n>1%</td><td><span class=verdict v-no>붕괴</span></td></tr><tr><td>도움 정도</td><td class=n>164</td><td class=n>100%</td><td><span class=verdict v-ok>필수</span></td></tr></tbody></table>
+<div class="box crit"><b class="t">조건부 심화 문항은 붕괴했다</b>
+<p>필수 객관식은 100% 채워졌지만, 조건이 붙은 주관식은 <b>1~16%</b>로 무너졌다. 근거·출처 3%, 공격 시도 2%, 막힌 단어 1%다. 결함을 깊이 캐려던 문항들이 정작 가장 비어 있다.</p>
+<p>이 구조가 미션 달성률에도 영향을 줬다. 목표 18건 중 인당 평균 6.8건, 달성자는 3명(9%)뿐이다.</p></div>
+
+<div class="box crit"><b class="t">요구를 받을 칸이 없어서 요구가 유실됐다</b>
+<p>한 응답자는 <b>"오늘 챗봇을 쓴 이유는?"</b> 칸에 이렇게 적었다.</p>
+<div class="quote">"둘다입니다. 그리고 개인적으로 있었으면 하는 기능이 있는데요, <b>구글폼에 요청칸이 없어서 여기에 적습니다.</b> 검색을 하고나서 저장하거나 나중에 따로 북마크 해놓고 볼 수 있게 설정하는 기능이나, 전에 질문한 사용기록을 볼 수 있도록 설정되면 더 유용하게 사용할 수 있을 것 같습니다." — 신우진</div>
+<p>기능 요구를 받는 문항이 폼에 존재하지 않았다. 다른 요구들도 엉뚱한 칸에 흩어져 있었다 — 1클릭 복사와 반말 모드(오카야스 하루키), 다국어 답변(데 올리베이라 효원 비니시우스·미우라 슈타), 출처 카테고리별 표시(홍정만). <b>모두 "정죄·경시 개선안"이나 "보다 정확한 답" 칸에서 발견됐다.</b></p></div>
+
+<h2>7. 자유서술에서 반복된 5개 테마</h2>
+<div class="box crit"><b class="t">T1 · 개인적인 질문을 거부한다 (최다 심각도)</b>
+<div class="quote">"답변을 안 해 주셨어요. 사적인 질문을 했는데, 원리에 관한 질문을 해 달라고 하시네요. 사적인 고민에 대해서도 원리 말씀을 바탕으로 해결 방안을 제시해 주시면 좋을 것 같은데요..."</div>
+<div class="quote">"답장하지 않아요..."</div></div>
+
+<div class="box crit"><b class="t">T2 · 함께 보여주는 말씀이 질문과 맞지 않는다 (최다 빈도)</b>
+<div class="quote">"제가 '왜 참부모님께서는 낚시를 하셨을까요?' 물어봤는데 참고 말씀에서 낚시에 대해 부분이지만 아직 좀 연결되지 않는 것 같습니다."</div>
+<div class="quote">"'함께 보는 말씀'이 관련이 있다고 볼 수 없음"</div>
+<div class="quote">"질문이 다른데 똑같은 대답이 나왔습니다."</div></div>
+
+<div class="box warn"><b class="t">T3 · 교단 언어가 아니다</b>
+<div class="quote">"기도 마무리가 아멘으로 되어있습니다."</div>
+<div class="quote">"아주로 끝났으면 좋겠습니다"</div>
+<p>개신교 관용구가 그대로 노출되고 있다. 신뢰도에 직결되는 문제다.</p></div>
+
+<div class="box warn"><b class="t">T4 · 말투가 딱딱하다</b>
+<div class="quote">"좀 너무 딱딱한 느낌을 들었어요."</div>
+<div class="quote">"반말로 답변할 수 있도록 개선해 주셨으면 가깝게 느낄 수 있어 대화하기 편안해질 것 같다."</div>
+<div class="quote">"문제점은 알게 되었는데 구체적인 해결책까지(일상 생활에서 실천할 수 있을 만한 조언)도 하나라도 제시해 줬으면 좋겠다."</div></div>
+
+<div class="box warn"><b class="t">T5 · 답변에 자유가 없다</b>
+<div class="quote">"좋은 대답이었는데 구체적인 대답을 받고 싶었습니다. 봇에 자유가 없는 느낌이 있습니다. 말씀 중에 있는 말씀만 사용해야 한다는 시스템 때문인 것 같습니다."</div>
+<p>가드레일의 부작용을 사용자가 정확히 진단했다.</p></div>
+
+<h2>8. 최종 설문으로 확인해야 할 것</h2>
+<ol>
+<li>3.70점이 3주 종료 시점에도 유지되는가. 낮아졌다면 후반부 경험이 악화된 것이다.</li>
+<li>평가 버튼을 누르지 않은 이유는 무엇인가. 귀찮음인가, 존재를 몰랐는가, 누른 뒤 사유 선택이 번거로웠는가.</li>
+<li>모드 5종을 바꿀 수 있다는 사실을 알고 있었는가. 18%라는 사용률이 선호의 결과인지 무지의 결과인지 갈린다.</li>
+<li>미션이 없었어도 썼을 것인가. 자발률 79%와 마감일 몰림의 모순을 해소하는 유일한 문항이다.</li>
+<li>어떤 기능이 필요한가. 이번에는 <b>받을 칸을 만들어서</b> 묻는다.</li>
+</ol>
+
+<div class="foot">
+데이터 출처 · <code>[말씀 챗봇 체험단] 중간미션 — 사용자 피드백(응답) (3).xlsx</code> 164행 17열.<br>
+이름 표기 정규화 7종 적용(하루키→오카야스 하루키, 이체원→이채원, 홍정민→홍정만 등). 소속은 표기 흔들림 보정 후 분류.<br>
+인앱 피드백 수치는 보고서 A와 동일 소스(<code>answer_feedback</code> 30건 / 답변 518건).<br>
+작성 2026-07-26 · 관련 — 보고서 A(이용기록), 보고서 C(통합 판정)
+</div>
+</div></body></html>

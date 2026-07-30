@@ -1,0 +1,126 @@
+# Oracle Cloud ARM VM에서 백엔드, Qdrant, Postgres, Cloudflare Tunnel을 함께 실행하는 Compose 구성.
+services:
+  # Neon(us-east-1) 은 도쿄 VM 에서 왕복 172ms 였다. 채팅 1회에 DB 쿼리가 5~10회
+  # 발생하므로 순수 대기만 1~2초였다. 같은 호스트로 옮겨 이 지연을 제거한다.
+  # DB 크기는 47MB 로 작아 메모리 1g 로 충분하다.
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"      # 루프백 전용 — 덤프/복구·디버깅용. 외부 노출 아님
+    volumes:
+      - /opt/postgres/data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    mem_limit: 1g
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - truewords_net
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"
+    expose:
+      - "6334"
+    volumes:
+      - /opt/qdrant/data:/qdrant/storage
+      - /opt/qdrant/config:/qdrant/config
+      - /opt/qdrant/snapshots:/qdrant/snapshots
+    environment:
+      - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+      - QDRANT__LOG_LEVEL=INFO
+    # dense 벡터만 2.57GB(417,579 points × 1536 dim × 4 bytes)이며 sparse와 HNSW까지 더해 기존 3g로는 부족.
+    # 12GB 배분은 qdrant 6g + backend 3g + cloudflared 0.5g + host/docker 약 0.8g = 10.3g. 헤드룸 1.7g와 swap 4G를 남긴다.
+    mem_limit: 6g
+    stop_grace_period: 60s
+    # RocksDB 가 segment SST 파일을 mmap 으로 열어두며 운영 시간 누적에 따라
+    # open fd 가 컨테이너 default soft limit (1024) 에 도달 → "Too many open
+    # files" panic 으로 자가 abort. docker restart 정책으로 재기동되지만 운영
+    # 503 발생. 65536 으로 올려 누적을 흡수 (Qdrant 공식 권장).
+    # 사고 RCA: docs/dev-log/2026-05-09-qdrant-ulimit-rca.md
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+    networks:
+      - truewords_net
+
+  backend:
+    image: truewords-backend:${BACKEND_TAG}
+    container_name: backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+    mem_limit: 3g
+    stop_grace_period: 40s
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    networks:
+      - truewords_net
+
+  # Next.js standalone 서버. 브라우저의 모든 API 호출은 상대 경로라 이 서버의
+  # rewrites 가 backend 로 프록시한다. 브라우저가 api.<zone> 을 직접 부르지 않는다.
+  # 포트를 호스트로 publish 하지 않는다 — cloudflared 가 같은 네트워크에서 붙는다.
+  admin:
+    image: truewords-admin:${ADMIN_TAG}
+    container_name: admin
+    restart: unless-stopped
+    # Node 힙 + Next 서버 워커. 실측 후 조정한다.
+    mem_limit: 768m
+    stop_grace_period: 20s
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/login',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - truewords_net
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    mem_limit: 512m
+    # backend / admin 을 넣지 않는다 — `docker compose up -d qdrant cloudflared` 가 depends_on
+    # 대상까지 함께 생성하므로, 이미지 전달 전 최초 부트스트랩이 이미지 부재로 통째로 실패한다.
+    # cloudflared 는 origin 연결을 요청 시점에 재시도하므로 기동 순서 보장이 필요 없다.
+    depends_on: [qdrant]
+    networks:
+      - truewords_net
+
+networks:
+  truewords_net:
+    driver: bridge

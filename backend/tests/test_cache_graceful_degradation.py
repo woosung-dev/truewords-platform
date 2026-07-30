@@ -72,6 +72,48 @@ async def test_get_cache_service_lazy_init_failure_caches_false():
 
 
 @pytest.mark.asyncio
+async def test_get_cache_service_retries_after_failure_cooldown():
+    """쿨다운이 지난 실패 상태는 lazy init을 다시 시도한다."""
+    mock_request = Mock(spec=Request)
+    mock_request.app = Mock()
+    state = _StateStub()
+    state.cache_available = False
+    mock_request.app.state = state
+
+    with (
+        patch("src.chat.dependencies._cache_last_failure_monotonic", 0.0),
+        patch("src.chat.dependencies.time.monotonic", return_value=300.0),
+        patch("src.chat.dependencies.ensure_cache_collection") as mock_ensure,
+    ):
+        result = await get_cache_service(mock_request)
+
+    assert result is not None
+    assert state.cache_available is True
+    mock_ensure.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_get_cache_service_skips_retry_before_cooldown():
+    """쿨다운 전에는 재시도하지 않고 즉시 None (Qdrant 반복 호출 방지)."""
+    mock_request = Mock(spec=Request)
+    mock_request.app = Mock()
+    state = _StateStub()
+    state.cache_available = False
+    mock_request.app.state = state
+
+    with (
+        patch("src.chat.dependencies._cache_last_failure_monotonic", 0.0),
+        patch("src.chat.dependencies.time.monotonic", return_value=299.0),
+        patch("src.chat.dependencies.ensure_cache_collection") as mock_ensure,
+    ):
+        result = await get_cache_service(mock_request)
+
+    assert result is None
+    assert state.cache_available is False
+    mock_ensure.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_get_cache_service_lazy_init_only_once_under_concurrency():
     """동시 요청 다발에서 ensure_cache_collection은 1회만 호출 (asyncio.Lock)."""
     import asyncio as _asyncio

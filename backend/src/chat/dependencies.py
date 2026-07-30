@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 import uuid
 
 from fastapi import Depends, Request
@@ -24,6 +25,8 @@ logger = logging.getLogger(__name__)
 
 # Lazy init 동시성 가드: 첫 요청 다발 시 ensure를 1회만 실행.
 _cache_init_lock = asyncio.Lock()
+_CACHE_RETRY_COOLDOWN_SEC = 300.0
+_cache_last_failure_monotonic: float | None = None
 
 
 async def get_chat_repository(
@@ -61,12 +64,20 @@ async def get_cache_service(request: Request) -> SemanticCacheService | None:
     Lazy init: app.state.cache_available 가
       - None : 아직 시도 전 → 잠금 획득 후 ensure 시도, 결과 캐싱
       - True : 가용 → SemanticCacheService 반환
-      - False: 시도했으나 실패 → None 반환 (영속, 다음 cold start까지)
+      - False: 시도 실패 → 쿨다운 후 재시도, 그전에는 None 반환.
 
     NOTE: lifespan에서 ensure_cache_collection을 호출하지 않는 이유는
     main.py 의 lifespan docstring 및 dev-log/46 참고.
     """
+    global _cache_last_failure_monotonic
     state = request.app.state
+    # 장수 프로세스에서 일시적 Qdrant 장애로 캐시가 영구 비활성화되지 않도록 쿨다운 후 재시도한다.
+    if (
+        getattr(state, "cache_available", None) is False
+        and _cache_last_failure_monotonic is not None
+        and time.monotonic() - _cache_last_failure_monotonic >= _CACHE_RETRY_COOLDOWN_SEC
+    ):
+        state.cache_available = None
     if getattr(state, "cache_available", None) is None:
         async with _cache_init_lock:
             if getattr(state, "cache_available", None) is None:
@@ -81,6 +92,7 @@ async def get_cache_service(request: Request) -> SemanticCacheService | None:
                         exc_info=True,
                     )
                     state.cache_available = False
+                    _cache_last_failure_monotonic = time.monotonic()
 
     if not state.cache_available:
         return None

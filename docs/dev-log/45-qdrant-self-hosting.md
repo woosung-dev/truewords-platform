@@ -87,6 +87,6 @@ GCP 외부 접근을 위한 4가지 옵션 비교:
 
 ## 참고
 
-- 운영 가이드: [docs/07_infra/qdrant-self-hosting.md](../07_infra/qdrant-self-hosting.md)
+- 운영 가이드: [docs/archive/qdrant-self-hosting.md](../archive/qdrant-self-hosting.md)
 - 환경 설정: [docs/05_env/environment-setup.md](../05_env/environment-setup.md)
 - 마이그레이션 스크립트: `backend/scripts/migrate_cloud_to_vm.py`, `verify_migration.py`
