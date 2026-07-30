@@ -19,6 +19,10 @@
 # 검사 대상은 "job 이 돌았는가" 가 아니라 **"결과가 기대대로인가"** 다. 후자는
 # 스케줄러가 어디 있든, 돌고도 아무 일 안 했든 똑같이 잡아낸다.
 #
+# 같은 논리로 `gemini-key`(§6) 가 붙었다. 예약 작업은 아니지만 실패 모드가
+# 동일하다 — **유일한 외부 의존이 죽으면 챗봇만 죽고 나머지는 전부 초록이다.**
+# 여기서만 유일하게 외부 네트워크를 호출하므로 상한을 세 층으로 감싼다.
+#
 # ── 실행 ────────────────────────────────────────────────────────────────────
 #   ssh truewords-oracle 'bash ~/truewords/ops-check.sh'   (또는 `make ops-check`)
 #   cron: 45 18 * * *  — 백업(18:00)·캐시정리(18:00)·추천질문(일 18:30) 뒤
@@ -40,6 +44,20 @@ BUCKET="${BUCKET:-truewords-backups}"
 EXPIRED_MAX="${EXPIRED_MAX:-50}"
 SUGGESTED_MAX_AGE_D="${SUGGESTED_MAX_AGE_D:-10}"
 DISK_MAX_PCT="${DISK_MAX_PCT:-80}"
+
+# gemini-key — 상한이 세 층이고 **이 순서를 지켜야 한다.**
+#   python 예산(50) < 컨테이너 timeout(60) < 호스트 timeout(75)
+# 각 층이 다른 고장을 잡는다. python 예산만 분류된 판정을 낼 수 있고, 컨테이너
+# timeout 이 실제로 일을 멈추며(바깥에서는 멈출 수 없다 — §6 주석), 호스트
+# timeout 은 docker daemon 자체가 먹통일 때를 위한 마지막 층이다. 뒤집으면
+# 안쪽이 판정을 낼 기회를 잃는다.
+# 실측 근거: embed 0.5s + generate 0.9s. 최악은 재시도 포함 44s.
+GEMINI_BUDGET_S="${GEMINI_BUDGET_S:-50}"
+GEMINI_EXEC_TIMEOUT_S="${GEMINI_EXEC_TIMEOUT_S:-60}"
+GEMINI_HOST_TIMEOUT_S="${GEMINI_HOST_TIMEOUT_S:-75}"
+# 리허설용 — 없는 경로를 주면 부트스트랩 분기를 재현할 수 있다.
+GEMINI_PROBE_SCRIPT="${GEMINI_PROBE_SCRIPT:-scripts/gemini_key_probe.py}"
+GEMINI_SENTINEL="GEMINI_PROBE"
 
 cd "$TW_DIR" || exit 1
 U=$(grep "^POSTGRES_USER=" .env | cut -d= -f2-)
@@ -162,6 +180,73 @@ elif [ "$DISK_PCT" -ge "$DISK_MAX_PCT" ]; then
 else
   record "disk" OK "${DISK_PCT}% 사용"
 fi
+
+# ── 6. Gemini API 키 생존 ─────────────────────────────────────────────────
+# Gemini 는 서비스의 **유일한 외부 의존**이다. 키가 회수되거나 청구가 막히면
+# 챗봇만 죽고 위 5개 검사는 전부 초록이다 (`/health` 도 200 이다). 2026-07-24
+# GHA 를 5일간 죽인 것과 같은 계정 레벨 실패가 여기서도 가능하고, `GEMINI_TIER`
+# 가 paid 라 rate limit 보다 청구 실패 확률이 높다 — 그건 429 가 아니라 403 이다.
+#
+# generateContent 하나로는 부족하다. 채팅은 semantic-cache 히트여도 매 요청
+# embed_content 를 부르므로(Embedding Stage 가 CacheCheck 앞) 임베딩만 죽어도
+# 채팅은 100% 실패한다. 그래서 probe 가 두 surface 를 다 찌르고, 어느 쪽이 살아
+# 있는지로 원인을 갈라 준다 — `backup-remote` 와 같은 원칙이라 행은 하나다.
+#
+# 판정은 컨테이너 안 probe 가 스스로 내린다. bash 는 **접두사로** 그 한 줄만
+# 집는다. "마지막 줄" 은 SDK 로그·진단 출력에 밀릴 수 있다.
+# 판정 줄이 없는 것도 정보다 — 스크립트가 이미지에 없거나(부트스트랩) 아예 돌지
+# 못한 것이고, 그건 키 실패와 다른 조치다.
+
+# /opt/ops-status.json 의 escaping 은 `"` 만 처리한다. 이 검사는 외부(Google)
+# 문자열이 detail 에 닿을 수 있는 유일한 경로라 여기서 한 번 더 막는다.
+gemini_sanitize() { printf '%s' "$1" | LC_ALL=C tr -d '\\"\000-\037'; }
+
+# containers 가 이미 backend 이상을 말했으면 두 번째 진단을 내지 않는다
+# (backup-remote 와 같은 원칙 — 같은 원인에 두 진단이면 엉뚱한 곳을 뒤진다).
+# backend ∈ BAD ⇒ containers FAIL ⇒ FAIL>0 이므로 SKIP 이 "전부 통과" 로 새지
+# 않는다. **이 검사가 §4 뒤에 있어야 $BAD 가 scope 에 있다.**
+case " ${BAD} " in
+  *" backend "*)
+    record "gemini-key" SKIP "backend 컨테이너가 비정상이라 확인하지 못했다 — containers 항목 참조"
+    ;;
+  *)
+    # `sudo timeout` 순서가 중요하다. `timeout sudo ...` 로 쓰면 timeout 이
+    # 비특권으로 돌고 자식은 root 라 kill(2) 이 EPERM → timeout 이 자기 시한을
+    # 넘겨 waitpid 에서 매달린다.
+    # 그리고 바깥 timeout 은 docker CLI 만 죽인다 — docker 에 exec 를 죽이는 API
+    # 가 없어 컨테이너 안 프로세스는 고아로 남는다. 실제로 일을 멈추는 건 안쪽
+    # `timeout` 이고, 바깥은 daemon 자체가 먹통일 때를 위한 층이다.
+    GEMINI_OUT=$(sudo timeout "$GEMINI_HOST_TIMEOUT_S" \
+                   docker compose --env-file .env exec -T backend \
+                   timeout "$GEMINI_EXEC_TIMEOUT_S" \
+                   python "$GEMINI_PROBE_SCRIPT" --budget-seconds "$GEMINI_BUDGET_S" 2>&1)
+    # 파이프를 쓰지 않으므로 PIPESTATUS 가 필요 없다 — $? 가 곧 timeout 의 코드다.
+    GEMINI_RC=$?
+    GEMINI_LINE=$(printf '%s\n' "$GEMINI_OUT" | grep -m1 "^${GEMINI_SENTINEL} " || true)
+
+    if [ -n "$GEMINI_LINE" ]; then
+      GEMINI_REST=${GEMINI_LINE#"${GEMINI_SENTINEL} verdict="}
+      GEMINI_VERDICT=${GEMINI_REST%% *}
+      GEMINI_DETAIL=$(gemini_sanitize "${GEMINI_LINE#*detail=}")
+      if [ "$GEMINI_VERDICT" = "OK" ]; then
+        record "gemini-key" OK "$GEMINI_DETAIL"
+      else
+        record "gemini-key" FAIL "$GEMINI_DETAIL"
+      fi
+    elif [ "$GEMINI_RC" -eq 124 ]; then
+      record "gemini-key" FAIL "${GEMINI_HOST_TIMEOUT_S}s 안에 판정이 나오지 않았다 — docker daemon 또는 backend 무응답 (컨테이너 안 python 이 고아로 남았을 수 있다)"
+    elif printf '%s' "$GEMINI_OUT" | grep -qE "can't open file|No such file or directory"; then
+      # 부트스트랩은 SKIP 이 아니라 FAIL 이다. "키가 살아 있음을 증명할 수 있다"
+      # 는 불변식이 실제로 깨진 상태다. SKIP 이면 Gemini 를 한 번도 안 보고
+      # exit 0 이 되는데, 그게 바로 없애려는 silent-green 이다.
+      record "gemini-key" FAIL "이미지에 ${GEMINI_PROBE_SCRIPT} 가 없다 — 이 검사보다 오래된 backend 이미지다. make deploy-backend 후 재확인 (검사 도입 직후 1회는 예상된 실패)"
+    else
+      # 원문은 길고 JSON 을 깨뜨릴 수 있어 detail 에 넣지 않는다. cron 로그로 흘린다.
+      printf '%s\n' "$GEMINI_OUT" >&2
+      record "gemini-key" FAIL "probe 가 판정을 내지 못했다 (exit ${GEMINI_RC}) — 위 stderr 원문 확인"
+    fi
+    ;;
+esac
 
 # ── 출력 ──────────────────────────────────────────────────────────────────
 echo

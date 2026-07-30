@@ -8,7 +8,7 @@
 설계/문서     ████████████████████ 100%
 Backend       ███████████████████░  95%
 Admin Web     ███████████████████░  95%
-테스트        █████████████████░░░  86%  (pytest 922 passed / 4 skipped / 1 xfailed, Vitest 106개 / 13 파일)
+테스트        █████████████████░░░  86%  (pytest 947 passed / 4 skipped / 1 xfailed, Vitest 106개 / 13 파일)
 인프라/배포    ███████████████████░  95%  (Oracle 단일 VM, 백업 복구 리허설 PASS. push 자동배포 없음)
 Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 데이터        ██████████░░░░░░░░░░  50%  (L+M만 적재)
@@ -112,7 +112,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] Admin UI 토글 (new/edit 페이지에 Query Rewriting 체크박스)
 
 ### 테스트
-- [x] Backend pytest 922 passed / 4 skipped / 1 xfailed (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback, 레드팀 등)
+- [x] Backend pytest 947 passed / 4 skipped / 1 xfailed (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback, 레드팀, Gemini 키 probe 등)
 - [x] Admin Vitest 106개 / 13 파일 (로그인, SearchTierEditor, API, 모달, 차트 등)
 - [x] Admin Playwright E2E 12개 (로그인, 챗봇 CRUD, 인증 가드)
 
@@ -363,7 +363,15 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
   - **GCP `jetaime-dev` 삭제 완료** — `DELETE_REQUESTED`, 30일 복구 창(`gcloud projects undelete jetaime-dev`). 삭제 직전 키 재대조에서 **첫 시도가 무효**였다(양쪽 개행 정규화 불일치 — 같은 키라도 절대 일치하지 않는 비교). `printf '%s'` 로 통일해 다시 확인 후 실행.
   - `d-project-497004` **손대지 않음** (운영 Gemini 키 소유).
   - 삭제 후 검증: `/health` 200 · `app` 200 · **채팅 SSE 실제 호출 정상(Gemini 키 살아 있음)** · `ops-check` 불변식 6건 OK.
-- [ ] **Gemini 키 유효성 감시** — 유일한 외부 의존이고 회수되면 챗봇이 죽는데 확인 장치가 없다. `ops-check.sh` 에 하루 1회 최소 토큰 호출을 넣으면 키 회수·할당량 소진을 조용히 지나치지 않는다. 비용은 무시할 수준. 별도 판단 필요해 이번 범위 제외.
+- [x] **Gemini 키 유효성 감시** (2026-07-30) — `ops-check.sh` 7번째 검사 `gemini-key` + `backend/scripts/gemini_key_probe.py` + `make gemini-check`. 상세: `infra/oracle-vm/README.md` §`gemini-key`
+  - **초안(generateContent 최소 토큰 1회)이 코드 추적에서 깨졌다.** 채팅은 semantic cache 히트여도 매 요청 `embed_content` 를 부른다(Embedding Stage 가 CacheCheck **앞**). 임베딩만 죽어도 채팅은 100% 실패하므로 generate 만 찌르면 **초록인데 챗봇은 죽어 있다.** → 두 surface 를 호출하고, **한쪽이 실패해도 나머지를 끝까지** 호출해 어느 쪽이 살아 있는지로 원인을 가른다(`backup-remote` 와 같은 원칙 → 검사 행은 하나).
+  - **`max_output_tokens` / `thinking_config` 를 넣지 않는다.** gemini-3.5 계열은 `thinking_budget` 대신 `thinking_level` 을 받아 400 이 될 수 있고, 그러면 검사가 **정상인 키를 "무효" 로 보고**한다. 원칙: **probe 요청은 운영이 매일 성공시키는 요청의 부분집합이어야 한다.** 실측 `think=0` 이라 애초에 불필요했다.
+  - **HTTP 성공만으로 판정하지 않는 곳이 하나 있다** — embed 차원. 200 이어도 1536 이 아니면 Qdrant 검색·적재가 전부 깨져 챗봇이 죽는다. 200 만으로는 못 잡는 유일한 silent 실패.
+  - **상한 3층 + `sudo timeout` 순서.** `python 예산(50s) < 컨테이너 timeout(60s) < 호스트 timeout(75s)`. docker 에 exec 를 죽이는 API 가 없어 바깥 timeout 은 CLI 만 죽인다(안 프로세스는 고아) → 실제로 멈추는 건 컨테이너 안 `timeout`. `timeout sudo` 로 쓰면 비특권 timeout 이 root 자식을 못 죽여 `waitpid` 에 매달린다.
+  - **비용 실측**: generate 입력 2 / 출력 9 토큰 + embed 입력 약 2 토큰 → 1회 **약 $0.0000234**. cron 1회/일 = **연 $0.0085**(1센트 미만), 배포 포함 5회/일 과다 가정에도 **연 $0.043**. 무시할 수준 확인. `retry_429=False` 라 probe 가 quota 를 되풀이 소모하지 않는다.
+  - **실측 검증 6분기**: 정상(exit 0) / 잘못된 키(`400-INVALID_ARGUMENT`, exit 1, **`key sha8` 이 정상 실행과 달라 override 가 실제로 먹었음을 증명**) / 예산 초과(`timeout-budget` + `not-run-budget`) / 네트워크(`network-connect`, SDK→classify 라이브 배선) / 부트스트랩(이미지에 스크립트 없음) / backend 다운(`SKIP`, 진단 1개). 라이브로 유도 불가한 429·404·차원·비-enum status 는 `tests/scripts/test_gemini_key_probe.py` 25건이 잠근다.
+  - 검증 중 자체 결함 1건 수정: `signal.alarm(max(2, budget))` 의 하한 2 때문에 `--budget-seconds 1` 리허설이 정상 소요(~1.2s) 안에 끝나 **예산 분기를 실측할 수 없었다** → 하한 1 로 정정(`alarm(0)` 은 타이머를 취소하므로 1 이 진짜 최소값).
+  - `GEMINI_TIER=paid` 라 현실적 사망 원인은 rate limit(429) 이 아니라 **청구 실패(403)** 다 — GHA 를 5일간 죽인 것과 같은 계정 레벨 실패. 403 힌트가 청구를 먼저 지목한다.
 - [ ] **RPO 24시간** — 백업이 하루 1회(03:00 KST)라 직전 장애 시 하루치 유실. 쓰기 빈도가 올라가면 빈도 상향 또는 WAL 아카이빙 재검토.
 - [x] **예약 작업 실패 탐지** (2026-07-30) — ADR: `docs/dev-log/2026-07-30-silent-scheduled-job-failure.md`
   - **원인 규명**: (1) GitHub 은 알림을 만들지 않았다 — `gh api notifications?all=true` 가 빈 목록. (2) 실패 run 의 job 은 `steps_count: 0` — 청구 차단은 job 을 아예 시작하지 않는다. **따라서 워크플로 안의 `if: failure()` 알림 스텝으로는 이 사고를 잡을 수 없다.** 가장 먼저 떠오르는 대응이 정확히 이 실패 모드에 눈이 먼다.
@@ -376,6 +384,7 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
   - 안 1: **Slack Incoming Webhook** — URL 을 VM `.env` 에 넣고 `curl` 한 줄. 가장 짧다.
   - 안 2: **OCI Notifications(ONS)** — VM 이 이미 Instance Principal 을 쓰므로 새 키 불필요. 토픽 OCID + IAM 정책 필요.
 - [ ] **Issue 알림 스텝 실행 검증** — GHA 청구 차단으로 워크플로를 돌릴 수 없어 YAML 파싱과 `gh` 명령 형태만 확인했다. 차단 해소 후 `workflow_dispatch` 로 일부러 실패시켜 Issue 가 실제로 생기는지 확인한다.
+  - **2026-07-30 재확인: 여전히 차단.** 최신 run `30514716013`(04:45 UTC, CI/`chore/residual-cleanup-done`) 의 job 3개가 전부 `steps_count: 0` 이고 annotation 이 `The job was not started because recent account payments have failed or your spending limit needs to be increased`. `workflow_dispatch` 자체가 job 을 시작하지 못하므로 **일부러 실패시키는 것조차 불가능**하다. `ci.yml`/`cache-cleanup.yml` green 확인도 같은 이유로 보류. 청구 해소가 유일한 선행 조건.
 
 #### 이번 작업 중 발견한 사전 결함 (Oracle 이전과 무관, 별도 트리거)
 
@@ -384,3 +393,12 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
   - `admin-flow.spec.ts:197` (Weighted Search 모드 전환 후 저장 → 재로드 시 설정 유지) 1건 — 30초 타임아웃.
 - [ ] **E2E 사전조건 자동화** — 위 실행에서 확인했듯 E2E 는 로컬 alembic + 계정 2개 + 챗봇 시드가 선행돼야 하고, 없으면 로그인 의존 테스트 16건이 통째로 죽는다. 스펙 주석에만 적혀 있어 매번 사람이 재현해야 한다. `make admin-e2e` 앞에 시드 target 을 붙이는 편이 낫다.
 - [ ] **`docs/README.md` 깨진 링크 5건 (사전 결함)** — `04_architecture/03-vector-db-comparison.md`, `04-gemini-file-search-analysis.md`, `10-vibe-coding-and-pinecone-vs-qdrant.md`, `00_project/01-project-overview.md` 안의 `05-rag-pipeline.md` / `09-security-countermeasures.md`. 실제 파일이 없다. 이번 아카이브 이동과 무관하다.
+
+#### Gemini 키 감시 작업 중 발견한 사전 결함 (2026-07-30, 별도 트리거)
+
+이번 커밋에서 **고치지 않았다.** `gemini-key` 는 자체 sanitize·SKIP 가드로 각 항목을 회피하므로 새 위험을 더하지 않는다. 넷 다 기존 코드의 잠재 결함이다.
+
+- [ ] **`ops-check.sh` `record` 의 JSON escaping 이 `"` 만 처리** (`${d//\"/\\\"}`) — detail 에 역슬래시나 개행이 섞이면 `/opt/ops-status.json` 이 깨진 JSON 이 된다. 전 검사 항목 공통. 호스트에서 `python3 -c 'import json,sys;print(json.dumps(sys.argv[1]))'` 로 전역 해결 가능.
+- [ ] **`cache-ttl` 은 backend 가 죽어도 중복 진단을 낸다** — backend 컨테이너가 내려가면 `containers` FAIL 과 별개로 "만료 개수를 읽지 못했다 — backend 또는 Qdrant 확인" 이 함께 나와 엉뚱한 곳(Qdrant)을 뒤지게 한다. `gemini-key` 에 넣은 `case " $BAD " in *" backend "*)` 가드를 그대로 적용하면 된다.
+- [ ] **운영 채팅도 transport 예외를 재시도하지 않는다** — `google-genai` 의 재시도 술어가 `isinstance(e, errors.APIError) and e.code in retriable_codes` 라(`_api_client.retry_args`) `httpx.ConnectError` / `ReadTimeout` / TLS 오류는 **어느 정책에서도 재시도되지 않는다**. VM egress·DNS 가 한 번 흔들리면 사용자에게 그대로 503 이 간다. probe 는 자체 1회 재시도로 막았지만 `src/common/gemini.py` 는 그대로다.
+- [ ] **모델 상수와 임베딩 차원이 흩어져 있다** — `MODEL_GENERATE`/`MODEL_EMBEDDING` 은 `src/common/gemini.py:23-24` 에 있지만 `src/pipeline/embedder.py` 는 `"gemini-embedding-001"` 을 3곳에 리터럴로 중복하고, `output_dimensionality=1536` 은 `gemini.py` 2곳 + probe 1곳에 있다. 부작용 없는 `src/common/gemini_models.py` (`MODEL_GENERATE`/`MODEL_EMBEDDING`/`EMBED_DIM`) 로 뽑으면 probe 의 마지막 하드코딩 상수도 사라진다.

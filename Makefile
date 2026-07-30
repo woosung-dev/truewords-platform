@@ -195,6 +195,11 @@ ci: ## ci.yml 과 동일한 검사를 로컬에서 (backend pytest + admin test/
 ops-check: ## 운영 불변식 점검 — 예약 작업이 "안 돈" 것까지 결과 기준으로 잡는다
 	@ssh "$(ORACLE)" 'bash ~/truewords/ops-check.sh'
 
+gemini-check: ## Gemini 운영 키 생존 확인 (ops-check 의 gemini-key 항목만 단독 실행)
+	@# GCP 프로젝트·키를 건드린 직후 "챗봇이 아직 살아 있나" 를 즉시 확인하는 용도.
+	@# ops-check 전체(백업·DB·컨테이너)를 돌릴 필요가 없는 순간이 실제로 있었다.
+	@ssh "$(ORACLE)" 'cd ~/truewords && sudo docker compose --env-file .env exec -T backend python scripts/gemini_key_probe.py'
+
 cron-cache-cleanup: ## semantic_cache TTL 만료 정리 수동 실행 (`ARGS=--dry-run` 지원)
 	@ssh "$(ORACLE)" 'bash ~/truewords/cache-cleanup.sh $(ARGS)'
 
