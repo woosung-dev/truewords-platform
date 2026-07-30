@@ -19,6 +19,12 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Completed
 
+### 체험단 최종 현황 리포트 (2026-07-30)
+- [x] 종료 설문·중간미션 원본과 Oracle 운영 DB를 교차 검증해 실제 이용·미션 제출 현황 HTML/PNG 생성 (`docs/dev-log/2026-07-30-beta-final-status-report.md`)
+- [x] 종료 설문 제출자 14명을 대상으로 운영 DB 질문 5건·중간미션 누적 5건의 동시 충족 여부를 PNG로 생성 (12명 충족, 2명 미션 기준 미달)
+- [x] 계정 명단·중간미션·실제 DB·종료 설문·5건 기준 미달자를 수록한 A4 가로형 최종 PDF 보고서 생성 (`docs/dev-log/2026-07-30-beta-final-comprehensive-report.pdf`)
+- [x] 계정 파일 34명과 공식 코호트 33명의 차이, 기존 7/26 리포트와 Oracle DB 스냅샷의 2질문·1세션 차이를 산출물 주석에 기록
+
 ### 인프라/DevOps
 - [x] 배포 인프라 — Oracle Cloud ARM VM 단일 노드 (admin + backend + Qdrant + PostgreSQL + Cloudflare Tunnel). 2026-07-29 GCP Cloud Run 에서 이전, 월 $42 → $0. 상세 §13
 - [x] CI/CD — GitHub Actions CI(테스트, path-based filter). **배포는 `make deploy-backend` / `make deploy-admin` 수동** (Cloud Run 이탈로 push 자동배포 없음)
@@ -352,10 +358,11 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
   - **⚠️ 운영 Gemini 키가 문서에 없는 프로젝트에 있었다.** 서비스의 유일한 외부 의존인데 `jetaime-dev` 가 아니라 **다른 계정(`jangwooseng97@gmail.com`)의 `d-project-497004` ("D-Project")** 소유다. 해시 대조로 확정(값 미노출). 지우면 챗봇 즉사. `infra/oracle-vm/.env.example` 과 `README.md` 에 명시했다. **2026-06-04 `woosung-dev` 사고와 같은 구조의 재료였다.**
   - `jetaime-dev` 실사: TODO 에 적혀 있던 `kairos-api`/`nexus-core` 등은 **이미 없다.** 과금 비활성, Cloud Run 0 / Cloud SQL 0 / 버킷 0. Artifact Registry 는 billing 게이트로 조회 불가(과금도 안 됨). **월 $0 — 남겨 두는 비용이 없다.**
   - Neon 실사: 호스트 DNS 해석됨 → 프로젝트 생존. 무료 티어라 비용 $0. 문제는 비용이 아니라 **2026-05-03 cutover 시점 실사용자 대화 본문·참여자 식별 정보 사본이 방치돼 있다는 것**(데이터 최소화).
-- [ ] **삭제 실행** [확인 필요] — 되돌릴 수 없어 미실행. 위 감사 결과 기준 권고:
-  - `d-project-497004` — **절대 삭제 금지**
-  - `jetaime-dev` — 삭제 선택 사항 (운영 의존 없음 확인, 남겨도 $0)
-  - Neon 프로젝트 — **삭제 권고** (실사용자 데이터 사본 정리). VM Postgres 단일 진실 공급원임은 복구 리허설로 검증됨
+- [x] **삭제 실행** (2026-07-30, 사용자 승인 후)
+  - **Neon `truewords` 삭제 완료** — 계정에 프로젝트가 7개 있고 여럿이 살아 있어(`ffwpu-social-db` 는 작업 몇 분 전에도 갱신) 이름만 보고 지웠으면 살아 있는 DB 를 날릴 수 있었다. VM `.env` 의 `NEON_DATABASE_URL_BACKUP` 호스트와 엔드포인트를 대조해 `rapid-mode-95348531` 하나로 확정했다. 삭제 후 6개 남음, DNS 미해석 전환 확인.
+  - **GCP `jetaime-dev` 삭제 완료** — `DELETE_REQUESTED`, 30일 복구 창(`gcloud projects undelete jetaime-dev`). 삭제 직전 키 재대조에서 **첫 시도가 무효**였다(양쪽 개행 정규화 불일치 — 같은 키라도 절대 일치하지 않는 비교). `printf '%s'` 로 통일해 다시 확인 후 실행.
+  - `d-project-497004` **손대지 않음** (운영 Gemini 키 소유).
+  - 삭제 후 검증: `/health` 200 · `app` 200 · **채팅 SSE 실제 호출 정상(Gemini 키 살아 있음)** · `ops-check` 불변식 6건 OK.
 - [ ] **Gemini 키 유효성 감시** — 유일한 외부 의존이고 회수되면 챗봇이 죽는데 확인 장치가 없다. `ops-check.sh` 에 하루 1회 최소 토큰 호출을 넣으면 키 회수·할당량 소진을 조용히 지나치지 않는다. 비용은 무시할 수준. 별도 판단 필요해 이번 범위 제외.
 - [ ] **RPO 24시간** — 백업이 하루 1회(03:00 KST)라 직전 장애 시 하루치 유실. 쓰기 빈도가 올라가면 빈도 상향 또는 WAL 아카이빙 재검토.
 - [x] **예약 작업 실패 탐지** (2026-07-30) — ADR: `docs/dev-log/2026-07-30-silent-scheduled-job-failure.md`

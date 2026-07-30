@@ -1,7 +1,7 @@
 # GCP·Neon 잔존 리소스 감사 — 그리고 발견된 숨은 운영 의존성
 
 - **작성일**: 2026-07-30
-- **성격**: 조사 기록 (읽기 전용). 삭제는 미실행 — 사용자 확인 대기
+- **성격**: 조사 기록 + 삭제 실행 결과. **사용자 승인 후 2건 삭제 완료** (§실행 결과)
 - **관련**: [Oracle 이전 ADR](2026-07-25-gcp-to-oracle-migration.md) · [GCP 계정 마이그레이션](61-gcp-account-migration-jetaime.md)
 
 ## 조사 동기
@@ -66,7 +66,43 @@ VM Postgres 가 단일 진실 공급원임은 검증됐다 — 복구 리허설�
 | `jetaime-dev` | $0 | 낮음 (운영 의존 없음 확인) | 삭제는 선택. 남겨도 비용 없음 |
 | Neon 프로젝트 | $0 | 낮음 | **삭제 권고** — 비용이 아니라 실사용자 데이터 사본 정리 |
 
-삭제는 둘 다 되돌릴 수 없어 실행하지 않았다. 사용자 확인 대기.
+## 실행 결과 (2026-07-30, 사용자 승인 후)
+
+### Neon `truewords` 삭제 — 대상 특정이 핵심이었다
+
+조사에서 Neon 계정에 **프로젝트가 7개** 있고 여럿이 살아 있음을 발견했다. `ffwpu-social-db` 는 삭제 작업 몇 분 전에도 갱신됐고 `vibe-core-services`·`familyfed` 도 최근 활동이 있었다. "Neon 프로젝트 정리" 를 이름만 보고 실행했다면 살아 있는 DB 를 지웠을 수 있다.
+
+VM `.env` 의 `NEON_DATABASE_URL_BACKUP` 호스트와 각 프로젝트의 엔드포인트를 대조해 대상을 확정했다.
+
+```
+VM 보존 호스트 : ep-dark-meadow-a4tf2vx6.us-east-1.aws.neon.tech
+truewords      : ep-dark-meadow-a4tf2vx6.us-east-1.aws.neon.tech   ✅ 일치
+```
+
+`rapid-mode-95348531` (`truewords`, 70MB, 2026-04-04 생성, 최종 갱신 2026-07-29T14:24 = 이전 검증 시점) **하나만** 삭제했다. 삭제 후 6개 남았고 나머지는 전부 그대로다. 호스트 DNS 도 미해석으로 전환됐다.
+
+### GCP `jetaime-dev` 삭제
+
+삭제 직전에 API 키 대조를 다시 했다. **첫 재확인은 무효였다** — 운영 키 쪽은 `tr -d '\r\n'`, GCP 키 쪽은 파이프로 넘겨 개행이 포함돼 정규화가 어긋났고, 같은 키라도 절대 일치하지 않는 비교였다. `printf '%s'` 로 양쪽을 통일해 다시 하니 앞선 감사와 같은 해시가 나왔다.
+
+```
+운영 키          2ece17462fabcce1
+jetaime-dev 키   d4a732cba247152a  (DEV Gemini API Key)  → 운영 키 아님
+VM .env 내 jetaime 참조 0건 · GitHub Secrets GCP_* 0건
+```
+
+`gcloud projects delete jetaime-dev` → `DELETE_REQUESTED`. **30일 복구 창**이 있어 `gcloud projects undelete jetaime-dev` 로 되돌릴 수 있다.
+
+### 삭제 후 운영 검증
+
+| 검사 | 결과 |
+|---|---|
+| `api.woosung.dev/health` | 200 |
+| `app.woosung.dev/login` · `/api/chatbots` | 200 |
+| **채팅 SSE 실제 호출** | `chunk` + `sources` + `done` — **Gemini 키 정상** |
+| `ops-check.sh` | 불변식 6건 전부 OK |
+
+`d-project-497004` 는 손대지 않았다.
 
 ## 후속 제안 — Gemini 키 유효성 감시
 
