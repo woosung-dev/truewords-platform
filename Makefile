@@ -19,7 +19,7 @@ ADMIN_IMG := truewords-admin:$(TAG)
         backend-dev backend-test backend-test-fast backend-lint backend-install backend-migrate backend-start \
         infra-up infra-down infra-logs infra-status infra-reset \
         deploy-backend rollback-backend deploy-admin rollback-admin oracle-logs \
-        ci cron-cache-cleanup cron-refresh-questions restore-drill \
+        ci ops-check cron-cache-cleanup cron-refresh-questions restore-drill \
         verify verify-modal test-all type-check clean
 
 # ============================================================
@@ -44,7 +44,7 @@ help: ## 사용 가능한 명령 목록
 	@grep -E '^(deploy-backend|rollback-backend|deploy-admin|rollback-admin|oracle-logs):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "▶ CI / 운영 작업 (GitHub Actions 대체)"
-	@grep -E '^(ci|cron-cache-cleanup|cron-refresh-questions|restore-drill):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^(ci|ops-check|cron-cache-cleanup|cron-refresh-questions|restore-drill):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "▶ 통합"
 	@grep -E '^(test-all|type-check|clean):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -135,6 +135,10 @@ infra-reset: ## ⚠️ 컨테이너 + 데이터 볼륨까지 전부 삭제 (post
 # Oracle Cloud VM 배포
 # ============================================================
 deploy-backend: ## Oracle Cloud ARM VM backend 배포 (빌드·검증·전송·무중단 교체).
+	@# 배포는 사람이 VM 을 들여다보는 몇 안 되는 순간이다. 예약 작업이 조용히
+	@# 죽어 있으면 여기서라도 눈에 들어오게 한다. 배포를 막지는 않는다 —
+	@# 백업이 낡았다고 배포를 못 하게 하는 건 인과가 뒤집힌 것이다.
+	@$(MAKE) --no-print-directory ops-check || echo "⚠️  ops-check 위반 있음 — 배포는 계속합니다. 위 DETAIL 확인."
 	@cd backend && docker buildx build --platform linux/arm64 -t $(IMG) --load .
 	@docker run --rm --entrypoint sh $(IMG) -c "alembic --version && uvicorn --version"
 	@docker save $(IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
@@ -149,6 +153,7 @@ rollback-backend: ## ⚠️ 이전 backend 이미지로 롤백 (`TAG=<이전 sha
 deploy-admin: ## Oracle Cloud ARM VM admin 배포 (빌드·전송·무중단 교체).
 	@# NEXT_PUBLIC_API_URL 은 rewrites 가 빌드 타임에 구워지므로 build-arg 로 넣는다.
 	@# 컨테이너 내부 DNS 를 쓰면 Cloudflare 왕복이 한 번 줄어든다.
+	@$(MAKE) --no-print-directory ops-check || echo "⚠️  ops-check 위반 있음 — 배포는 계속합니다. 위 DETAIL 확인."
 	@cd admin && docker buildx build --platform linux/arm64 \
 		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 -t $(ADMIN_IMG) --load .
 	@docker save $(ADMIN_IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
@@ -186,6 +191,9 @@ ci: ## ci.yml 과 동일한 검사를 로컬에서 (backend pytest + admin test/
 	@cd admin && pnpm build
 	@echo ""
 	@echo "✅ CI 동등 검사 통과. (lint/E2E 는 별도: make admin-lint / make admin-e2e)"
+
+ops-check: ## 운영 불변식 점검 — 예약 작업이 "안 돈" 것까지 결과 기준으로 잡는다
+	@ssh "$(ORACLE)" 'bash ~/truewords/ops-check.sh'
 
 cron-cache-cleanup: ## semantic_cache TTL 만료 정리 수동 실행 (`ARGS=--dry-run` 지원)
 	@ssh "$(ORACLE)" 'bash ~/truewords/cache-cleanup.sh $(ARGS)'

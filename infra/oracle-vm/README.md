@@ -12,10 +12,11 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
 | `docker-compose.yml` | admin, backend, qdrant, postgres, cloudflared 다섯 컨테이너와 공용 네트워크를 정의합니다. |
 | `.env.example` | VM 통합 환경 변수 템플릿입니다. VM 의 `~/truewords/.env` 로 복사해 채웁니다. |
 | `setup-vm.sh` | Docker 설치, Qdrant 디렉토리, 4GB swap, 로그 로테이션, Compose 기동을 처리합니다. |
-| `backup-db.sh` | Postgres 일일 백업 (pg_dump → 무결성 검증 → Object Storage 업로드 → 보관 기간 정리). |
+| `backup-db.sh` | Postgres 백업 (6시간마다 · pg_dump → 무결성 검증 → Object Storage 업로드 → 보관 기간 정리). |
 | `restore-drill.sh` | 백업 복구 리허설. 운영 DB 는 읽기만 하고 임시 DB 로 복원해 대조합니다. |
 | `refresh-questions.sh` | 봇별 추천 질문 주간 갱신. backend 컨테이너 안에서 실행합니다. |
 | `cache-cleanup.sh` | semantic_cache TTL 만료 point 정리 **수동 진입점**. 스케줄은 `cache-cleanup.yml`(GHA) 이 갖습니다 — cron 에 등록하지 않습니다. |
+| `ops-check.sh` | 운영 불변식 점검. 예약 작업이 "돌지 않은" 것까지 결과 기준으로 잡습니다. |
 
 ## 인프라 사양
 
@@ -46,7 +47,7 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
                     │                  postgres :5432      │
                     │  /opt/qdrant/{data,config,snapshots}  │
                     │  /opt/postgres/data                   │
-                    │  /opt/backups (pg_dump 14일)          │
+                    │  /opt/backups (pg_dump 6h·14일)       │
                     └──────────────┬──────────────────────┘
                                    │
                               Gemini API
@@ -62,7 +63,7 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
 |---|---|---|
 | qdrant | 6g | dense 벡터만 2.57GB (417,579 × 1536 × 4B). sparse + HNSW 포함 |
 | backend | 3g | fastembed sparse 모델 + 요청 동시성 |
-| postgres | 1g | DB 47MB 로 작음 |
+| postgres | 1g | DB 44MB 로 작음 |
 | admin | 768m | Next standalone 서버 (Node 힙) |
 | cloudflared | 512m | 터널 프록시 |
 
@@ -216,14 +217,16 @@ sudo docker stats
 **VM cron 에는 리소스가 호스트 로컬이라 다른 데서 돌 수 없는 것만 둔다.** 나머지 orchestration 은 GitHub Actions 가 주인이다 — provider 에 묶지 않는다는 정책(`docs/06_devops/ci-cd-pipeline.md`).
 
 ```cron
-0  18 * * *   /home/ubuntu/truewords/backup-db.sh         >> /home/ubuntu/truewords-backup.log 2>&1
+0 0,6,12,18 * * *  /home/ubuntu/truewords/backup-db.sh    >> /home/ubuntu/truewords-backup.log 2>&1
 30 18 * * 0   /home/ubuntu/truewords/refresh-questions.sh >> /home/ubuntu/truewords-cron.log   2>&1
+45 18 * * *   /home/ubuntu/truewords/ops-check.sh         >> /home/ubuntu/truewords-cron.log   2>&1
 ```
 
 | 작업 | 주기 | 왜 VM 이어야 하는가 |
 |---|---|---|
-| `backup-db.sh` | 매일 03:00 KST | Postgres 가 `127.0.0.1` 바인딩이라 외부에서 닿을 수 없다 |
+| `backup-db.sh` | **6시간마다** (KST 09/15/21/03시) | Postgres 가 `127.0.0.1` 바인딩이라 외부에서 닿을 수 없다 |
 | `refresh-questions.sh` | 매주 월 03:30 KST | 같은 이유 (Postgres 필요) |
+| `ops-check.sh` | 매일 03:45 KST | **감시자는 감시 대상과 다른 실패 도메인에 있어야 한다.** GHA 가 멈춘 사고에서 유일하게 정상 작동한 게 VM cron 이었다 |
 
 `cache-cleanup.sh` 는 **cron 에 등록하지 않는다.** 스케줄 주인은 `.github/workflows/cache-cleanup.yml` 이고 (Qdrant 는 HTTPS 라 어디서든 닿는다), VM 쪽 스크립트는 수동 실행 진입점으로만 남긴다. 스케줄러가 둘이면 같은 작업이 두 번 돈다.
 
@@ -232,6 +235,7 @@ sudo docker stats
 수동 실행은 로컬 Mac 의 make target 을 쓴다.
 
 ```bash
+make ops-check                             # 운영 불변식 점검 (5건)
 make cron-cache-cleanup ARGS=--dry-run     # 삭제 대상만 확인
 make cron-cache-cleanup                    # GHA 가 멈춘 동안 대신 실행
 make cron-refresh-questions ARGS=--dry-run # 대상 봇만 확인 (Gemini 호출 0)
@@ -241,13 +245,43 @@ make restore-drill                         # 백업 복구 리허설
 
 로그: `tail ~/truewords-cron.log`, `tail ~/truewords-backup.log`. GHA 쪽 실행 이력은 Actions 탭.
 
+## 운영 불변식 점검 (`ops-check.sh`)
+
+2026-07-24~29 에 `cache-cleanup.yml` 이 5일간 매일 실패했는데 아무도 몰랐다. 조사에서 두 가지가 확인됐다 — GitHub 은 알림을 **만들지 않았고**(`gh api notifications?all=true` 빈 목록), 실패한 run 의 job 은 `steps_count: 0` 이었다. **청구 차단은 job 을 아예 시작하지 않으므로 워크플로 안의 `if: failure()` 알림 스텝으로는 이 사고를 잡을 수 없다.**
+
+그래서 감시를 **다른 실패 도메인**(VM cron)에 두고, "job 이 돌았는가" 대신 **"결과가 기대대로인가"** 를 본다.
+
+| 검사 | 임계 | 잡는 것 |
+|---|---|---|
+| `backup` | 로컬 최신 덤프 < 8h | `backup-db.sh` 미실행·실패 |
+| `backup-remote` | Object Storage 사본 < 8h | 업로드가 조용히 실패 (스크립트가 의도적으로 무시하는 경로) |
+| `cache-ttl` | 만료 ≤ 50건 | `cache-cleanup.yml` 미실행 (스케줄러 위치 무관) |
+| `suggested-q` | `max(suggested_at)` < 10일 | `refresh-questions.sh` 미실행 |
+| `containers` | 4 healthy + cloudflared up | 컨테이너 이상 |
+| `disk` | < 80% | 디스크 포화 |
+
+```bash
+make ops-check
+# CHECK      VERDICT DETAIL
+# backup     OK     8h 전 · truewords-2026-07-29-1800.dump · 11M
+# cache-ttl  OK     만료 0건
+# ...
+# RESULT: OK — 불변식 6건 전부 통과
+```
+
+임계값은 env 로 덮어쓸 수 있다 (`BACKUP_MAX_AGE_H` / `REMOTE_MAX_AGE_H` / `EXPIRED_MAX` / `SUGGESTED_MAX_AGE_D` / `DISK_MAX_PCT`). 결과는 `/opt/ops-status.json` 에도 남는다. `make deploy-backend` / `deploy-admin` 이 배포 전에 자동 실행하되 **배포를 막지는 않는다** — 백업이 낡았다고 배포를 못 하게 하는 건 인과가 뒤집힌 것이다.
+
+> ⚠️ **탐지는 닫혔지만 전달은 아직이다.** 위반은 로그·JSON·종료코드로만 남는다. 배포하지 않는 주에 백업이 죽으면 여전히 늦게 안다. push 채널에는 자격증명이 필요하고 현재 레포에는 없다. 채널이 정해지면 `ops-check.sh` 마지막에 한 줄이다 — Slack Incoming Webhook URL 을 `.env` 에 넣고 `curl`, 또는 OCI Notifications 토픽(Instance Principal 재사용, 새 키 불필요). 상세: [ADR](../../docs/dev-log/2026-07-30-silent-scheduled-job-failure.md)
+
 ---
 
 ## 백업
 
 ### Postgres — 일일 자동
 
-`backup-db.sh` 가 cron 으로 **매일 03:00 KST (18:00 UTC)** 실행된다.
+`backup-db.sh` 가 cron 으로 **6시간마다 (00/06/12/18 UTC = KST 09/15/21/03시)** 실행된다.
+
+빈도 근거는 실측이다 — 하루치 유실의 실체가 채팅 메시지 약 43건(다른 출처 없는 유일본)이고, 덤프가 1초/11MB 라 4배로 늘려도 로컬 616MB·원격 4GB(무료 20GB)에 그친다. WAL 아카이빙은 채택하지 않았다: 44MB DB 에 복구 절차 복잡도를 얹는 대가가 크고, **아카이버 자체가 또 하나의 조용한 실패 지점**이 된다. 상세: [RPO 실측 ADR](../../docs/dev-log/2026-07-30-rpo-measurement.md)
 
 ```cron
 0 18 * * * /home/ubuntu/truewords/backup-db.sh >> /home/ubuntu/truewords-backup.log 2>&1
@@ -255,7 +289,8 @@ make restore-drill                         # 백업 복구 리허설
 
 | 항목 | 값 |
 |---|---|
-| 방식 | `pg_dump -Fc` (커스텀 포맷, 자체 압축). 덤프 약 11MB |
+| 방식 | `pg_dump -Fc` (커스텀 포맷, 자체 압축). 덤프 약 11MB / 1초 |
+| 주기 | **6시간마다** (00/06/12/18 UTC). RPO 6h |
 | 무결성 검증 | 덤프 직후 `pg_restore --list` 로 헤더 판독. 실패 시 스크립트 중단 |
 | VM 로컬 보관 | `/opt/backups`, 14일 (`RETAIN_DAYS`) |
 | 원격 보관 | OCI Object Storage `truewords-backups`, 90일 lifecycle 자동 삭제 |

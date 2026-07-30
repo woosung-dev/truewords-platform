@@ -5,8 +5,14 @@
 # 사라졌다. DB 는 47MB 이고 덤프는 약 10MB 라 매일 전체 덤프를 떠도 부담이 없다.
 # 증분(WAL 아카이빙)은 이 규모에 과하고 복구 절차만 복잡해진다.
 #
-# cron 등록 (매일 03:00 KST = 18:00 UTC):
-#   0 18 * * * /home/ubuntu/truewords/backup-db.sh >> /home/ubuntu/truewords-backup.log 2>&1
+# cron 등록 (6시간마다 = 00/06/12/18 UTC, KST 09/15/21/03시):
+#   0 0,6,12,18 * * * /home/ubuntu/truewords/backup-db.sh >> /home/ubuntu/truewords-backup.log 2>&1
+#
+# 원래 일 1회였다. 2026-07-30 RPO 실측에서 하루치 유실의 실체가 채팅 메시지
+# ~43건(다른 출처 없는 유일본)이고 나머지는 파생·분석·재입력 가능임을 확인했다.
+# 덤프가 1초 / 11MB 라 4배로 늘려도 로컬 616MB(디스크 97GB) · 원격 4GB(무료
+# 20GB)에 그친다. WAL 아카이빙은 이 규모에 과하고, 아카이버 자체가 또 하나의
+# 조용한 실패 지점이 된다(2026-07-24 사고와 같은 부류). 빈도 상향이 답이다.
 #
 # 로그를 /var/log 에 두지 않는다. cron 은 ubuntu 로 돌고 /var/log 는 root 전용이라
 # 리다이렉트가 열리는 단계에서 Permission denied 로 죽는다. 스크립트가 실행되지 않고
