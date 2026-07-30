@@ -327,11 +327,13 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
 - [x] **Oracle 운영 문서 보강** — README 를 이전 절차서에서 운영 기준 문서로 재작성. postgres 서비스, 메모리 배분, `rollback-backend`/`oracle-logs`, 백업·복구 절 추가.
 - [x] **백업 복구 리허설** — `infra/oracle-vm/restore-drill.sh` 신규. 2026-07-29 PASS (11MB 덤프 1초 복원, 11 테이블 34,377행 차집합 0, alembic head 일치).
 - [x] **추천 질문 갱신 cron 이전** — Postgres 가 VM 로컬(127.0.0.1)로 오면서 GitHub runner 가 DB 에 닿을 수 없게 됐다. 그대로 뒀다면 구 Neon URL 로 붙어 아무 효과 없는 성공을 기록했을 것. `refresh-suggested-questions.yml` 삭제 → `infra/oracle-vm/refresh-questions.sh` + VM cron(일 18:30 UTC). 실제 1회 실행 검증 완료.
-- [x] **CI/CD 를 GHA 없이 성립시키기** (2026-07-30) — 청구 차단으로 GHA 가 멈춘 상태에서 PR 게이트와 예약 작업이 둘 다 죽어 있었다.
-  - `make ci` 신규 — `ci.yml` 과 같은 명령·같은 순서(uv sync → pytest → pnpm install → test → build). 명령이 갈라지면 로컬 통과가 무의미해지므로 `ci.yml` 변경 시 동반 수정 필수.
-  - `cache-cleanup.yml` 삭제 → `infra/oracle-vm/cache-cleanup.sh` + VM cron(매일 18:15 UTC). 청구 차단으로 7/24부터 매일 실패했고 만료 point 134개가 쌓여 있었다(실행해 정리 완료: 172 → 38). 18:00 이 아니라 18:15 인 이유는 `backup-db.sh` 와 겹치지 않게 하려는 것.
+- [x] **CI/CD 배치 정리 + orchestration 정책 확정** (2026-07-30)
+  - `make ci` 신규 — `ci.yml` 과 같은 명령·같은 순서(uv sync → pytest → pnpm install → test → build). **GHA 대체가 아니라 푸시 전 사전 점검**이고, 청구 차단 동안에만 임시 게이트 역할을 한다. 명령이 갈라지면 로컬 통과가 무의미해지므로 `ci.yml` 변경 시 동반 수정 필수.
   - `make cron-cache-cleanup` / `cron-refresh-questions` / `restore-drill` 수동 진입점 추가 (`ARGS=--dry-run` 지원).
-  - **결과: GitHub Actions 에 예약 작업이 0건.** 남은 워크플로는 `ci.yml` 뿐이고 그건 `make ci` 로 대체 가능하다.
+  - **정책 확정: orchestration 은 GitHub Actions 에 둔다.** provider 에 묶지 않아 이전 시 secrets 만 갱신하면 된다. 예외는 리소스가 호스트 로컬일 때 하나 — Postgres 가 `127.0.0.1` 바인딩이라 `backup-db.sh`/`refresh-questions.sh` 는 VM cron 이 유일한 선택이다.
+  - 이 정책에 따라 `cache-cleanup.yml` 을 GHA 로 되돌렸다. 청구 차단을 계기로 VM cron 에 내렸었는데, **청구 문제는 GHA 를 떠날 이유가 아니라 청구를 고칠 이유였다.** VM crontab 항목 제거(스케줄러 중복 방지), 스크립트는 수동 진입점으로 존치.
+  - AWS 이전 경로 문서화 — Postgres 가 네트워크로 닿는 순간(RDS 등) VM cron 예외가 사라진다. 정기 작업 4건 중 **3건은 코드 변경 0건**, 배포만 재작성(`docs/06_devops/ci-cd-pipeline.md` §AWS 로 옮긴다면).
+  - 차단 기간 누적된 만료 point 134건은 실행해 정리(172 → 38). **응답 정합성 영향 없음** — 조회가 Qdrant filter 에서 `created_at >= now - TTL` 로 만료분을 걸러낸다(`src/cache/service.py:89-94`). 안 돌면 디스크만 찬다.
 - [x] **admin Oracle 이전 + 컷오버** (2026-07-30) — Next.js `output: "standalone"` 컨테이너로 VM 이전. 접속 주소 `https://app.woosung.dev`. `NEXT_PUBLIC_API_URL` 은 rewrites 가 빌드 타임에 구워지므로 build ARG (`http://backend:8080` — Cloudflare 왕복 1회 절감). Vercel 은 host 조건부 307 리다이렉트 전용으로 존치.
   - 컷오버 검증: 전 라우트 200, 정적 자산 200, rewrite 200/401, **SSE 실제 채팅 1회 10초** (chunk 15 + sources + done), **15MB 업로드 프록시 통과**(413 아님 → `proxyClientMaxBodySize` 적용 확인), `ADMIN_FRONTEND_URL` 교체 후 5컨테이너 healthy. admin 메모리 61.5MiB / 768MiB.
   - 가이드 문서 접속 주소 갱신: `redteam-test-guide.md`(3곳), `redteam-test-guide-v2.html`.
@@ -347,6 +349,7 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
 - [ ] **push 자동 배포 상실** — Cloud Run 이 사라지며 `deploy.yml` 을 제거했다. main 머지가 곧 배포가 아니므로 `make deploy-backend` 를 명시 실행해야 한다. 필요해지면 GitHub Actions 빌드 → `docker save | ssh docker load` 로 복구 가능하다.
 - [ ] **GCP·Neon 계정 정리** — `jetaime-dev` 의 `kairos-api`/`nexus-core`/`kairos-docker`/`nexus-repo` 잔존 리소스 삭제, Neon 프로젝트 정리. 구 Neon 연결 문자열은 VM `.env` 의 `NEON_DATABASE_URL_BACKUP` 에 보존 중이다.
 - [ ] **RPO 24시간** — 백업이 하루 1회(03:00 KST)라 직전 장애 시 하루치 유실. 쓰기 빈도가 올라가면 빈도 상향 또는 WAL 아카이빙 재검토.
+- [ ] **예약 작업 실패 알림 없음** — 7/24 사고의 진짜 원인. `cache-cleanup` 이 5일간 매일 실패했는데 아무도 몰랐다. GHA 는 실행 이력을 Actions 탭에 남기지만 **알려주지는 않고**, VM cron 은 로그만 남긴다. **위치와 무관하게 남는 약점이라 GHA 복귀로 해결되지 않는다.** 최소안: GHA 워크플로에 `if: failure()` 알림 스텝(Slack/이메일) + VM cron 은 실패 시 마커 파일을 남기고 `make deploy-*` 가 그걸 확인.
 
 #### 이번 작업 중 발견한 사전 결함 (Oracle 이전과 무관, 별도 트리거)
 

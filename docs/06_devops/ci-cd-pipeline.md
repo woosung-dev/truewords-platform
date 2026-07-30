@@ -6,18 +6,19 @@
 ## 파이프라인 개요
 
 ```
-PR (main 또는 dev/**)  → CI (.github/workflows/ci.yml)
-                            ├── Backend Tests: pytest
-                            └── Frontend Tests: vitest + build
-                       ↳ 로컬 동등 실행: make ci   ← GHA 청구 차단 동안 유일한 게이트
+GitHub Actions (provider 무관 — 이전해도 그대로)
+  ├── ci.yml             PR(main, dev/**) → pytest + vitest + build
+  └── cache-cleanup.yml  매일 18:00 UTC   → semantic_cache TTL 만료 정리
+                         ↳ 로컬 사전 점검: make ci / make cron-cache-cleanup
 
-배포 (수동, 로컬 Mac)   → make deploy-backend   # arm64 빌드 → ssh docker load → compose 교체
-                        → make deploy-admin     # 동일 패턴
+VM cron (리소스가 호스트 로컬이라 여기 있을 수밖에 없음)
+  ├── backup-db.sh          매일 18:00 UTC   → Postgres 덤프 + Object Storage
+  └── refresh-questions.sh  매주 일 18:30 UTC → 봇별 추천 질문 갱신
+                            ↳ 둘 다 Postgres 가 127.0.0.1 바인딩이라 runner 가 못 닿음
 
-정기 작업 (전부 VM cron — GitHub Actions 에 없음)
-  ├── backup-db.sh          매일 18:00 UTC — Postgres 덤프 + Object Storage
-  ├── cache-cleanup.sh      매일 18:15 UTC — semantic_cache TTL 만료 정리
-  └── refresh-questions.sh  매주 일 18:30 UTC — 봇별 추천 질문 갱신
+배포 (로컬 Mac, 수동)
+  ├── make deploy-backend   arm64 빌드 → entrypoint 검증 → ssh docker load → compose 교체
+  └── make deploy-admin     동일 패턴
 ```
 
 **push 자동 배포는 없다.** Cloud Run 이 사라지면서 `deploy.yml` 을 제거했다. main 에 머지해도 운영 반영은 일어나지 않으므로, 머지 후 명시적으로 `make deploy-backend` 를 실행해야 한다.
@@ -74,9 +75,43 @@ admin 도 같은 VM 에서 컨테이너로 돈다. `truewords-platform.vercel.ap
 
 ---
 
-## CI 를 로컬에서 — `make ci`
+## 정책 — orchestration 은 GitHub Actions 에 둔다
 
-GitHub Actions 가 청구 문제로 멈춘 동안(2026-07-24~) PR 게이트가 사라졌다. `make ci` 가 `ci.yml` 과 **같은 명령을 같은 순서로** 돌린다.
+**정기 작업과 PR 게이트의 스케줄·트리거는 provider 에 묶지 않는다.** GitHub Actions 는 외부 trigger 라 실행 환경이 GCP 든 Oracle 이든 AWS 든 같은 워크플로가 그대로 돈다. 이전할 때 바뀌는 건 secrets 값뿐이다.
+
+Oracle 이전(2026-07-29) 때 이 정책을 잠깐 어겼다. GHA 가 청구 문제로 멈춘 걸 계기로 `cache-cleanup.yml` 을 VM cron 으로 내렸는데, **청구 문제는 GHA 를 떠날 이유가 아니라 청구를 고칠 이유였다.** 2026-07-30 에 되돌렸다.
+
+### 예외는 단 하나 — 리소스가 호스트 로컬일 때
+
+| 작업 | 위치 | 이유 |
+|---|---|---|
+| `ci.yml` | **GHA** | provider 무관. 깨끗한 환경에서 도는 머지 게이트 |
+| `cache-cleanup.yml` | **GHA** | Qdrant 를 `vdb.<zone>` HTTPS 로만 호출 — 어디서든 동작 |
+| `backup-db.sh` | VM cron | **Postgres 가 `127.0.0.1` 바인딩.** runner 가 물리적으로 닿을 수 없다 |
+| `refresh-questions.sh` | VM cron | 같은 이유 (Postgres 필요) |
+| `make deploy-*` | 로컬 Mac | Mac 이 이미 arm64 라 VM 과 아키텍처 동일. 레지스트리 없이 `docker save \| ssh docker load` 가 최단 |
+
+VM cron 쪽 두 건도 **스크립트 자체는 provider 무관**하다 (`backend/scripts/*.py` 가 env 만 읽는다). VM 특정적인 건 얇은 래퍼뿐이다.
+
+### AWS 로 옮긴다면
+
+Postgres 가 네트워크로 닿는 순간(RDS 등) VM cron 예외가 사라진다.
+
+| 지금 | AWS 이후 | 바뀌는 것 |
+|---|---|---|
+| `ci.yml` | 그대로 | 없음 |
+| `cache-cleanup.yml` | 그대로 | `QDRANT_URL` / `QDRANT_API_KEY` secrets |
+| `backup-db.sh` (VM cron) | → **GHA 워크플로** | RDS 자동 백업으로 대체하거나 `DATABASE_URL` secret 만 주고 GHA 로 승격 |
+| `refresh-questions.sh` (VM cron) | → **GHA 워크플로** | `DATABASE_URL` secret 추가. 스크립트 변경 0 |
+| `make deploy-*` | → ECR push + ECS/App Runner | 이전 방식이 provider 마다 달라 여기만 재작성 |
+
+즉 **정기 작업 4건 중 3건은 AWS 이전 시 코드 변경 0건**이고, 배포만 다시 쓴다.
+
+## CI 를 로컬에서도 — `make ci`
+
+`ci.yml` 이 머지 게이트고, `make ci` 는 **푸시 전 사전 점검**이다. GHA 를 대체하는 게 아니다 — 청구 차단처럼 GHA 가 멈춘 동안에는 임시로 유일한 게이트가 되지만, 정상 상태에서는 "push 전에 미리 돌려 보는 것" 이다.
+
+`make ci` 가 `ci.yml` 과 **같은 명령을 같은 순서로** 돌린다.
 
 ```bash
 make ci
@@ -93,46 +128,53 @@ make ci
 
 lint 와 E2E 는 `ci.yml` 에 없어서 `make ci` 에도 없다. 따로 돈다: `make admin-lint`, `make admin-e2e`. E2E 는 로컬 시드가 선행돼야 한다 (`docs/TODO.md` §13 참조).
 
-## 정기 작업이 어디서 도는가
+## 이전 중 겪은 두 사고
 
-**전부 VM cron 이다. GitHub Actions 에는 예약 작업이 남아 있지 않다.**
+정기 작업 배치를 결정한 실제 근거다. 둘 다 **조용히 실패하는** 형태였다.
 
-| 작업 | 주기 | VM 인 이유 |
-|---|---|---|
-| `backup-db.sh` | 매일 03:00 KST | Postgres 가 VM 로컬 127.0.0.1 바인딩이라 runner 가 닿을 수 없음 |
-| `cache-cleanup.sh` | 매일 03:15 KST | Qdrant 는 HTTPS 라 어디서든 되지만, 예약 작업을 한 곳에 모아 외부 청구·계정 상태와 분리 |
-| `refresh-questions.sh` | 매주 월 03:30 KST | Postgres 필요 |
+1. **추천 질문 갱신 — 죽은 DB 에 "성공" 기록.** Postgres 를 Neon 에서 VM 로컬로 옮긴 뒤에도 `refresh-suggested-questions.yml` 이 GHA 에 남아 있었고 `DATABASE_URL` secret 은 낡은 Neon 값이었다. runner 는 VM 의 `127.0.0.1` Postgres 에 닿을 수 없으니, 그대로 뒀다면 구 DB 에 붙어 아무 효과 없는 성공을 기록했을 것이다. → VM cron 으로 내렸다 (닿을 수 없으니 선택이 아니다).
 
-두 사고가 이 배치를 만들었다.
+2. **semantic_cache 정리 — 매일 실패, 5일간 아무도 모름.** GHA 청구 차단으로 `cache-cleanup.yml` 이 7/24부터 매일 실패했고 만료 point 가 134개 쌓였다. 반사적으로 VM cron 으로 내렸지만, 그건 **원인(청구)을 고치는 대신 증상을 피한 것**이라 7/30 에 GHA 로 되돌렸다.
 
-1. **추천 질문 갱신** — Postgres 이전 후에도 `refresh-suggested-questions.yml` 이 남아 있었고 `DATABASE_URL` secret 은 낡은 Neon 값이었다. 그대로 뒀다면 **죽은 DB 에 붙어 "성공"을 기록**했을 것이다.
-2. **semantic_cache 정리** — `cache-cleanup.yml` 이 청구 차단으로 매일 실패했지만 아무도 몰랐고 만료 point 가 134개 쌓였다. 외부 청구 상태가 운영 작업을 멈추는 구조를 없앴다.
+두 번째 사고의 교훈은 위치가 아니라 **알림**이다. VM cron 도 실패를 알려주지 않는다. 어느 쪽에 두든 남는 약점이라 `docs/TODO.md` 에 별도 항목으로 뒀다.
 
-수동 실행은 로컬 make target 을 쓴다.
+## 수동 실행 진입점
+
+스케줄러는 위 표대로 하나씩만 두고, 사람이 돌려야 할 때는 로컬 make target 을 쓴다.
 
 ```bash
-make cron-cache-cleanup ARGS=--dry-run
-make cron-cache-cleanup
+make cron-cache-cleanup ARGS=--dry-run   # 삭제 대상만 확인
+make cron-cache-cleanup                  # GHA 가 멈춘 동안 대신 실행
 make cron-refresh-questions ARGS=--dry-run
 make cron-refresh-questions
-make restore-drill
+make restore-drill                       # 백업 복구 리허설
 ```
+
+`cron-cache-cleanup` 은 GHA 워크플로와 **같은 스크립트**(`backend/scripts/cleanup_semantic_cache.py`)를 돌린다. 경로만 다르다 — GHA 는 secrets 로, make 는 VM 컨테이너의 주입된 env 로.
 
 ## GitHub Secrets 설정
 
-배포가 로컬로 내려오고 예약 작업이 VM 으로 내려가면서 **운영 환경변수의 원본은 VM 의 `~/truewords/.env`(chmod 600) 하나**다. 남은 워크플로는 `ci.yml` 뿐이고 이건 `GEMINI_API_KEY: test-key-for-ci` 를 인라인으로 쓴다.
+배포가 로컬로 내려가면서 **운영 환경변수의 원본은 VM 의 `~/truewords/.env`(chmod 600)** 다. GitHub Secrets 는 워크플로가 쓰는 것만 유효해야 한다.
 
-| Secret | 상태 |
-|--------|------|
-| `QDRANT_URL` / `QDRANT_API_KEY` | **미사용** — cache-cleanup 이 VM 으로 이전 |
-| `DATABASE_URL` | **미사용** — 값이 구 Neon URL 이라 되살려 쓰면 안 된다 |
-| `GEMINI_API_KEY` / `GEMINI_TIER` / `ADMIN_JWT_SECRET` / `ADMIN_FRONTEND_URL` | 미사용 (VM `.env` 가 원본) |
+| Secret | 상태 | 사용처 |
+|--------|------|--------|
+| `QDRANT_URL` / `QDRANT_API_KEY` | ✅ 유효 (2026-07-29 갱신) | `cache-cleanup.yml` |
+| `DATABASE_URL` | ⚠️ **값이 구 Neon URL** | 없음. 되살려 쓰면 안 된다 — AWS 이전 시 `refresh-questions` 를 GHA 로 승격할 때 새 값으로 교체 |
+| `GEMINI_API_KEY` / `GEMINI_TIER` | 유휴 | 없음 (VM `.env` 가 원본) |
+| `ADMIN_JWT_SECRET` / `ADMIN_FRONTEND_URL` | 유휴 | 없음 (VM `.env` 가 원본) |
 
-GCP 배포용 3종(`GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT`)은 이전과 함께 삭제했다. 남은 7개는 지우지 않았다 — 되살릴 워크플로가 생기면 재등록하는 비용이 있고, 값이 유효하지 않다는 사실만 위 표에 명시했다.
+`ci.yml` 은 secret 을 쓰지 않는다 — `GEMINI_API_KEY: test-key-for-ci` 를 인라인 placeholder 로 쓴다.
 
-> ⚠️ **GitHub Actions 청구 차단 (2026-07-24~).** 모든 Actions 가 `The job was not started because recent account payments have failed or your spending limit needs to be increased` 로 실행되지 않는다. PR CI 도 queued 에서 멈춘다. Settings → Billing & plans 에서 해소해야 한다.
+GCP 배포용 3종(`GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT`)은 이전과 함께 삭제했다. 유휴 4종은 남겨 뒀다 — 워크플로가 늘면 재등록 비용이 있고, `DATABASE_URL` 만 값이 무효라는 사실을 위 표에 명시했다.
+
+> ⚠️ **GitHub Actions 청구 차단 (2026-07-24~).** 모든 Actions 가 `The job was not started because recent account payments have failed or your spending limit needs to be increased` 로 실행되지 않는다. PR CI 도 queued 에서 멈춘다. **Settings → Billing & plans 에서 해소해야 한다 — 이게 근본 조치다.**
 >
-> 그동안 **PR 게이트는 `make ci`** 이고 **예약 작업은 VM cron** 이므로 운영에 공백은 없다. 차단이 풀리면 `ci.yml` 이 자동으로 다시 돈다 — 되돌릴 작업은 없다.
+> 그동안의 대응:
+> - **PR 게이트** → `make ci` 를 사람이 돌린다
+> - **캐시 정리** → `make cron-cache-cleanup` 을 사람이 돌린다. 안 돌아도 응답 정합성은 깨지지 않는다 (조회가 TTL 로 필터링, `src/cache/service.py:89-94`) — 디스크만 찬다
+> - **백업·추천 질문** → VM cron 이라 영향 없음
+>
+> 차단이 풀리면 `ci.yml` 과 `cache-cleanup.yml` 이 자동으로 다시 돈다. **되돌릴 작업은 없다.**
 
 ---
 
