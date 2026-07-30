@@ -8,7 +8,7 @@
 설계/문서     ████████████████████ 100%
 Backend       ███████████████████░  95%
 Admin Web     ███████████████████░  95%
-테스트        █████████████████░░░  86%  (pytest 947 passed / 4 skipped / 1 xfailed, Vitest 106개 / 13 파일)
+테스트        █████████████████░░░  86%  (pytest 954 passed / 4 skipped / 1 xfailed, Vitest 106개 / 13 파일)
 인프라/배포    ███████████████████░  95%  (Oracle 단일 VM, 백업 복구 리허설 PASS. push 자동배포 없음)
 Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 데이터        ██████████░░░░░░░░░░  50%  (L+M만 적재)
@@ -112,7 +112,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] Admin UI 토글 (new/edit 페이지에 Query Rewriting 체크박스)
 
 ### 테스트
-- [x] Backend pytest 947 passed / 4 skipped / 1 xfailed (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback, 레드팀, Gemini 키 probe 등)
+- [x] Backend pytest 954 passed / 4 skipped / 1 xfailed (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback, 레드팀, Gemini 키 probe 등)
 - [x] Admin Vitest 106개 / 13 파일 (로그인, SearchTierEditor, API, 모달, 차트 등)
 - [x] Admin Playwright E2E 12개 (로그인, 챗봇 CRUD, 인증 가드)
 
