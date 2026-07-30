@@ -52,8 +52,14 @@ retriable_codes` 다 (`_api_client.retry_args`). 즉 **transport 예외
 그래서 **정책을 한 곳에 모은다** — per-request `attempts=1` 로 SDK 재시도를
 중립화하고 재시도는 `_with_retry` 에서만 한다. 그러면 최악 소요가 산수가 된다:
 
-    embed    2 × 8s  + 2s = 18s
-    generate 2 × 12s + 2s = 26s   → 합 44s < 기본 예산 50s
+    import                       ≈ 2.7s   (컨테이너 실측 — 예산에 포함된다)
+    embed    2 × 8s  + 2s        = 18s
+    generate 2 × 12s + 2s        = 26s
+                                 ─────────
+                                   46.7s  < 기본 예산 50s
+
+예산을 이보다 짧게 주면 import 단계에서 먼저 터지므로, 그 경우를 별도 분기로
+진단한다 (main() 의 import 가드). 원인이 다르면 조치도 달라야 한다.
 
 `get_client(retry_429=False)` 는 계속 쓴다. 재시도 정책 때문이 아니라
 `gemini_client.py` 가 존재하는 이유 자체가 "분산된 `genai.Client(...)` 초기화를
@@ -416,6 +422,16 @@ def main(argv: list[str] | None = None) -> int:
         from src.common.gemini import MODEL_EMBEDDING, MODEL_GENERATE
         from src.common.gemini_client import get_client
         from src.config import settings
+    except BudgetExceeded:
+        # BudgetExceeded 를 아래 핸들러가 삼키면 "컨테이너 env / 이미지 확인" 이라는
+        # **엉뚱한 조치**를 지시한다. 실측: 컨테이너 안 import 가 2.7s 라 짧은 예산은
+        # 여기서 먼저 터진다. 원인이 다르면 진단도 달라야 한다.
+        _emit(
+            "FAIL",
+            f"예산 {args.budget_seconds}s 를 import 단계에서 초과했다 "
+            f"(컨테이너 안 import 는 약 2.7s) — 예산이 너무 짧거나 컨테이너·디스크 이상",
+        )
+        return 1
     except BaseException as exc:  # noqa: BLE001
         _emit(
             "FAIL",
@@ -458,6 +474,11 @@ if __name__ == "__main__":
         sys.exit(main())
     except SystemExit:
         raise
+    except BudgetExceeded:
+        # 알람은 probe 호출 밖(지문 계산·compose 등)에서도 터질 수 있다. 그때도
+        # "내부 오류" 가 아니라 예산이라고 말해야 조치가 맞는다.
+        _emit("FAIL", "전체 예산을 초과했다 — Gemini 응답 지연 또는 예산 설정 확인")
+        sys.exit(1)
     except BaseException as exc:  # noqa: BLE001
         # 이 스크립트는 **어떤 경우에도** 판정 한 줄을 남긴다.
         _emit(
