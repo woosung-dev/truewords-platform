@@ -13,6 +13,8 @@ TW_DIR="${TW_DIR:-${HOME}/truewords}"
 QDRANT_DATA_DIR="/opt/qdrant/data"
 QDRANT_CONFIG_DIR="/opt/qdrant/config"
 QDRANT_SNAPSHOTS_DIR="/opt/qdrant/snapshots"
+POSTGRES_DATA_DIR="/opt/postgres/data"
+BACKUP_DIR="/opt/backups"
 
 if [[ ! -f "${TW_DIR}/.env" ]]; then
   echo "ERROR: ${TW_DIR}/.env 가 없습니다. .env.example 참고하여 생성 후 다시 실행하세요." >&2
@@ -45,6 +47,14 @@ fi
 # 2) 데이터 디렉토리 생성
 sudo mkdir -p "${QDRANT_DATA_DIR}" "${QDRANT_CONFIG_DIR}" "${QDRANT_SNAPSHOTS_DIR}"
 sudo chown -R "$(id -u):$(id -g)" "${QDRANT_DATA_DIR}" "${QDRANT_CONFIG_DIR}" "${QDRANT_SNAPSHOTS_DIR}"
+
+# Postgres bind mount 와 백업 디렉토리. Docker 가 없으면 자동 생성하지만 root 소유로
+# 만들어지고 부트스트랩만 읽어서는 어떤 경로가 쓰이는지 알 수 없다. 여기서 명시한다.
+#
+# 소유권은 건드리지 않는다 — postgres 이미지 entrypoint 가 root 로 시작해
+# `chown -R postgres $PGDATA` 후 gosu 로 강등하므로, 호스트 사용자로 chown 하면
+# 곧바로 되돌려진다. 실측 확인: /opt/postgres/data 는 UID 70(postgres) drwx------.
+sudo mkdir -p "${POSTGRES_DATA_DIR}" "${BACKUP_DIR}"
 
 # 3) 12GB VM의 적재·검색 동시 스파이크를 위한 4GB swapfile 생성
 if swapon --show --noheadings | grep -q .; then

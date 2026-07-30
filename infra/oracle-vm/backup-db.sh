@@ -6,7 +6,11 @@
 # 증분(WAL 아카이빙)은 이 규모에 과하고 복구 절차만 복잡해진다.
 #
 # cron 등록 (매일 03:00 KST = 18:00 UTC):
-#   0 18 * * * /home/ubuntu/truewords/backup-db.sh >> /var/log/truewords-backup.log 2>&1
+#   0 18 * * * /home/ubuntu/truewords/backup-db.sh >> /home/ubuntu/truewords-backup.log 2>&1
+#
+# 로그를 /var/log 에 두지 않는다. cron 은 ubuntu 로 돌고 /var/log 는 root 전용이라
+# 리다이렉트가 열리는 단계에서 Permission denied 로 죽는다. 스크립트가 실행되지 않고
+# 진단할 로그도 남지 않아 백업이 조용히 사라진다.
 set -euo pipefail
 
 TW_DIR="${TW_DIR:-${HOME}/truewords}"
