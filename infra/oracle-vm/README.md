@@ -15,7 +15,7 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
 | `backup-db.sh` | Postgres 일일 백업 (pg_dump → 무결성 검증 → Object Storage 업로드 → 보관 기간 정리). |
 | `restore-drill.sh` | 백업 복구 리허설. 운영 DB 는 읽기만 하고 임시 DB 로 복원해 대조합니다. |
 | `refresh-questions.sh` | 봇별 추천 질문 주간 갱신. backend 컨테이너 안에서 실행합니다. |
-| `cache-cleanup.sh` | semantic_cache TTL 만료 point 일일 정리. backend 컨테이너 안에서 실행합니다. |
+| `cache-cleanup.sh` | semantic_cache TTL 만료 point 정리 **수동 진입점**. 스케줄은 `cache-cleanup.yml`(GHA) 이 갖습니다 — cron 에 등록하지 않습니다. |
 
 ## 인프라 사양
 
@@ -213,38 +213,33 @@ sudo docker stats
 
 ## 정기 작업 (cron)
 
-**예약 작업은 전부 VM cron 이 주인이다. GitHub Actions 에는 남아 있지 않다.**
+**VM cron 에는 리소스가 호스트 로컬이라 다른 데서 돌 수 없는 것만 둔다.** 나머지 orchestration 은 GitHub Actions 가 주인이다 — provider 에 묶지 않는다는 정책(`docs/06_devops/ci-cd-pipeline.md`).
 
 ```cron
 0  18 * * *   /home/ubuntu/truewords/backup-db.sh         >> /home/ubuntu/truewords-backup.log 2>&1
-15 18 * * *   /home/ubuntu/truewords/cache-cleanup.sh     >> /home/ubuntu/truewords-cron.log   2>&1
 30 18 * * 0   /home/ubuntu/truewords/refresh-questions.sh >> /home/ubuntu/truewords-cron.log   2>&1
 ```
 
-| 작업 | 주기 | 왜 VM 인가 |
+| 작업 | 주기 | 왜 VM 이어야 하는가 |
 |---|---|---|
-| `backup-db.sh` | 매일 03:00 KST | Postgres 가 VM 로컬(127.0.0.1 바인딩)이라 외부에서 닿을 수 없다 |
-| `cache-cleanup.sh` | 매일 03:15 KST | Qdrant 는 HTTPS 로 어디서든 닿지만, 예약 작업을 한 곳에 모아 외부 청구·계정 상태와 무관하게 돌린다 |
-| `refresh-questions.sh` | 매주 월 03:30 KST | Postgres 필요 |
+| `backup-db.sh` | 매일 03:00 KST | Postgres 가 `127.0.0.1` 바인딩이라 외부에서 닿을 수 없다 |
+| `refresh-questions.sh` | 매주 월 03:30 KST | 같은 이유 (Postgres 필요) |
 
-두 가지 사고가 이 배치를 만들었다.
+`cache-cleanup.sh` 는 **cron 에 등록하지 않는다.** 스케줄 주인은 `.github/workflows/cache-cleanup.yml` 이고 (Qdrant 는 HTTPS 라 어디서든 닿는다), VM 쪽 스크립트는 수동 실행 진입점으로만 남긴다. 스케줄러가 둘이면 같은 작업이 두 번 돈다.
 
-1. **추천 질문 갱신** — 원래 GitHub Actions 에서 돌았다. Postgres 가 VM 로컬로 옮겨오면서 runner 가 DB 에 닿을 수 없게 됐는데, `DATABASE_URL` secret 은 낡은 Neon 값이었다. 워크플로를 그대로 뒀다면 **죽은 DB 에 붙어 "성공"을 기록**했을 것이다.
-2. **semantic_cache 정리** — GitHub Actions 가 2026-07-24 경부터 청구 문제로 실행되지 않았다. 매일 실패했지만 아무도 몰랐고 만료 point 가 134개까지 쌓였다. 외부 청구 상태가 운영 작업을 멈추게 하는 구조 자체를 없앴다.
-
-`cache-cleanup` 이 18:00 이 아니라 18:15 인 이유: `backup-db.sh` 가 18:00 에 DB 전체를 덤프한다. 2 OCPU VM 에서 두 `docker compose exec` 를 겹칠 이유가 없다.
+> 추천 질문 갱신은 원래 GitHub Actions 에서 돌았다. Postgres 가 VM 로컬로 옮겨오면서 runner 가 DB 에 닿을 수 없게 됐는데 `DATABASE_URL` secret 은 낡은 Neon 값이었다. 워크플로를 그대로 뒀다면 **죽은 DB 에 붙어 "성공"을 기록**했을 것이다. 옮긴 게 아니라 옮길 수밖에 없었다.
 
 수동 실행은 로컬 Mac 의 make target 을 쓴다.
 
 ```bash
 make cron-cache-cleanup ARGS=--dry-run     # 삭제 대상만 확인
-make cron-cache-cleanup                    # 실제 정리
+make cron-cache-cleanup                    # GHA 가 멈춘 동안 대신 실행
 make cron-refresh-questions ARGS=--dry-run # 대상 봇만 확인 (Gemini 호출 0)
 make cron-refresh-questions                # 실제 갱신
 make restore-drill                         # 백업 복구 리허설
 ```
 
-로그: `tail ~/truewords-cron.log`, `tail ~/truewords-backup.log`.
+로그: `tail ~/truewords-cron.log`, `tail ~/truewords-backup.log`. GHA 쪽 실행 이력은 Actions 탭.
 
 ---
 
