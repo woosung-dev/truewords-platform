@@ -340,3 +340,11 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
 - [ ] **push 자동 배포 상실** — Cloud Run 이 사라지며 `deploy.yml` 을 제거했다. main 머지가 곧 배포가 아니므로 `make deploy-backend` 를 명시 실행해야 한다. 필요해지면 GitHub Actions 빌드 → `docker save | ssh docker load` 로 복구 가능하다.
 - [ ] **GCP·Neon 계정 정리** — `jetaime-dev` 의 `kairos-api`/`nexus-core`/`kairos-docker`/`nexus-repo` 잔존 리소스 삭제, Neon 프로젝트 정리. 구 Neon 연결 문자열은 VM `.env` 의 `NEON_DATABASE_URL_BACKUP` 에 보존 중이다.
 - [ ] **RPO 24시간** — 백업이 하루 1회(03:00 KST)라 직전 장애 시 하루치 유실. 쓰기 빈도가 올라가면 빈도 상향 또는 WAL 아카이빙 재검토.
+
+#### 이번 작업 중 발견한 사전 결함 (Oracle 이전과 무관, 별도 트리거)
+
+- [ ] **E2E 5건 실패 (사전 결함 확정)** — Oracle 이전 검증 중 발견. `git merge-base` 버전의 `next.config.ts` 로 교체해 재현해도 동일 실패하므로 이번 변경과 무관하다. 로컬 사전조건(alembic + `create_admin.py` 2계정 + `seed_chatbot_configs.py` + Qdrant 417,579 pts)을 모두 갖춘 상태에서 **18 passed / 5 failed**.
+  - `data-source-delete.spec.ts` 4건 — `page.route("**/admin/data-source-categories")` mock 은 실제 호출 경로(`api.ts:94`)와 일치하는데, "카테고리 관리" 버튼 클릭 후 `getByRole("row", {name:/TEST/})` 가 렌더되지 않는다. UI 렌더 단계에서 어긋난 것으로 보이며 스펙 작성 이후의 카테고리 탭 구조 변경이 의심된다.
+  - `admin-flow.spec.ts:197` (Weighted Search 모드 전환 후 저장 → 재로드 시 설정 유지) 1건 — 30초 타임아웃.
+- [ ] **E2E 사전조건 자동화** — 위 실행에서 확인했듯 E2E 는 로컬 alembic + 계정 2개 + 챗봇 시드가 선행돼야 하고, 없으면 로그인 의존 테스트 16건이 통째로 죽는다. 스펙 주석에만 적혀 있어 매번 사람이 재현해야 한다. `make admin-e2e` 앞에 시드 target 을 붙이는 편이 낫다.
+- [ ] **`docs/README.md` 깨진 링크 5건 (사전 결함)** — `04_architecture/03-vector-db-comparison.md`, `04-gemini-file-search-analysis.md`, `10-vibe-coding-and-pinecone-vs-qdrant.md`, `00_project/01-project-overview.md` 안의 `05-rag-pipeline.md` / `09-security-countermeasures.md`. 실제 파일이 없다. 이번 아카이브 이동과 무관하다.
