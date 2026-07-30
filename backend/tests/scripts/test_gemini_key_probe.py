@@ -202,6 +202,35 @@ def test_compose_embed_only_failure_says_key_is_alive():
     assert "generate 는 성공" in detail
 
 
+@pytest.mark.parametrize(
+    ("code", "must_contain", "must_not_contain"),
+    [
+        # 원인별로 조치가 달라야 한다. 전부 "모델·요청 인자 확인" 으로 떨어지면
+        # 지연·네트워크 문제에 엉뚱한 곳을 뒤지게 한다 (VM 리허설에서 실제로 발생).
+        ("timeout-budget", "Gemini 지연", "요청 인자"),
+        ("timeout-http", "Gemini 지연", "요청 인자"),
+        ("network-connect", "egress", "요청 인자"),
+        ("429-RESOURCE_EXHAUSTED", "quota", "요청 인자"),
+        ("404-NOT_FOUND", "MODEL_* 갱신", "요청 인자"),
+        ("dim-3072", "Qdrant", "요청 인자"),
+    ],
+)
+def test_compose_one_sided_failure_hint_matches_the_cause(
+    code: str, must_contain: str, must_not_contain: str
+):
+    _, detail = compose(_ok("embed", f"{EMBED_DIM}d"), _fail("generate", code), FINGERPRINT, TIER)
+    assert "키는 살아 있다" in detail
+    assert must_contain in detail
+    assert must_not_contain not in detail
+
+
+def test_compose_not_run_budget_blames_the_preceding_surface():
+    _, detail = compose(
+        _ok("embed", f"{EMBED_DIM}d"), _fail("generate", "not-run-budget"), FINGERPRINT, TIER
+    )
+    assert "앞 surface 가 느렸다" in detail
+
+
 def test_compose_detail_never_contains_newline():
     """detail 은 ops-check.sh 의 표 한 칸과 JSON 한 필드에 들어간다."""
     for embed, gen in [

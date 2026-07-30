@@ -359,6 +359,17 @@ def _hint_one(bad: Probe) -> str:
         return f"{bad.name} 쪽 quota 만 소진됐다 (모델별 한도)"
     if bad.code == "not-run-budget":
         return "예산을 다 써서 호출조차 못 했다 — 앞 surface 가 느렸다"
+    if bad.code.startswith("timeout"):
+        # 원인이 지연인데 "모델·요청 인자 확인" 을 지시하면 엉뚱한 곳을 뒤진다.
+        return (
+            f"{bad.name} 가 시간 안에 응답하지 않았다 — Gemini 지연 또는 예산이 짧다. "
+            f"챗봇도 같은 이유로 느려진다"
+        )
+    if bad.code.startswith("network"):
+        return (
+            f"{bad.name} 호출만 네트워크 실패 — 한쪽만이면 일시적 흔들림일 수 있다. "
+            f"반복되면 VM egress·DNS 확인"
+        )
     return f"{bad.name} surface 만 실패 — 해당 모델·요청 인자 확인"
 
 
