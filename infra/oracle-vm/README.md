@@ -77,6 +77,8 @@ Zero Trust 에서 터널 `truewords-oracle` 을 만들고 다음 Public Hostname
 | `api.<zone>` | `http://backend:8080` |
 | `vdb.<zone>` | `http://qdrant:6333` |
 
+> 현행 Zero Trust UI 에서는 이 화면이 **Networks → Tunnels & Mesh → `truewords-oracle` → `Published application routes`** 다 (구 "Public Hostnames"). Service Type 은 `HTTP` 여야 한다 — 컨테이너가 평문이라 `HTTPS` 로 두면 502 다. Path 는 비운다. 값을 넣으면 그 경로만 라우팅되어 `/login` 과 정적 자산이 404 가 된다. DNS 레코드(proxied CNAME)는 저장 시 자동 생성된다.
+
 터널 하나에 두 서버의 커넥터가 동시에 붙으면 Cloudflare 가 요청을 임의 분산해 데이터와 배포 상태가 갈리는 split-brain 이 발생한다. 다른 환경의 토큰을 재사용하지 않는다.
 
 ---
@@ -180,7 +182,20 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
 
 `NEXT_PUBLIC_API_URL` 은 `admin/next.config.ts` 의 `rewrites()` 에서만 쓰이고 `src/` 어디에도 없다. **Next 는 `rewrites` 를 `next build` 시점에 `routes-manifest.json` 으로 굽기 때문에 런타임 env 로는 바뀌지 않는다.** 그래서 `deploy-admin` 이 `--build-arg NEXT_PUBLIC_API_URL=http://backend:8080` 으로 넣는다. 값을 바꾸려면 재빌드가 필요하다.
 
-`truewords-platform.vercel.app` 은 Vercel 에 리다이렉트 전용으로 남아 있다. `next.config.ts` 의 `redirects()` 가 **host 조건부**라, 같은 빌드가 Oracle 에서 돌 때는 규칙이 걸리지 않는다 (조건을 빼면 자기 자신으로 무한 리다이렉트한다).
+`truewords-platform.vercel.app` 은 Vercel 에 리다이렉트 전용으로 남아 있다. `next.config.ts` 의 `redirects()` 가 **host 조건부**라, 같은 빌드가 Oracle 에서 돌 때는 규칙이 걸리지 않는다 (조건을 빼면 자기 자신으로 무한 리다이렉트한다). 리다이렉트는 main 머지로 Vercel 프로덕션이 재빌드된 뒤 활성화되며, 그전까지는 두 도메인이 각자 정상 동작한다.
+
+### 컷오버 검증 결과 (2026-07-30)
+
+| 검사 | 결과 |
+|---|---|
+| `app.<zone>` `/login` · `/` · `/history` · `/dashboard` · `/about` | 전부 200 |
+| 정적 자산 (`_next/static/**.css`) | 200 |
+| rewrite `/api/chatbots` | 200 (실 데이터) |
+| rewrite `/admin/auth/me` | 401 (쿠키 없음 — 정상) |
+| **SSE 스트리밍** 실제 채팅 1회 | 10초, `chunk` 15 + `sources` 1 + `done` 1 |
+| **15MB 업로드** `POST /admin/data-sources/upload` | 401 (프록시 통과 — 413 이면 `proxyClientMaxBodySize` 미적용) |
+| `ADMIN_FRONTEND_URL` → `app.<zone>` 교체 후 재기동 | 5컨테이너 healthy, 양쪽 도메인 정상 |
+| admin 메모리 | 61.5MiB / 768MiB |
 
 ## 일상 운영
 

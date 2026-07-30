@@ -211,7 +211,7 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 ### 현재 작업
 
 - Backend 95%, Admin Dashboard 95% 구현 완료
-- pytest 922 passed / 4 skipped / 1 xfailed + 25 Vitest + 12 E2E 테스트 운영 중
+- pytest 922 passed / 4 skipped / 1 xfailed + 106 Vitest + 12 E2E 테스트 운영 중
 - Oracle Cloud ARM VM 단일 노드 (backend + Qdrant + Postgres + Cloudflare Tunnel) + Vercel (Admin) 배포 완료
 - Flutter Mobile MVP (Phase 4) 미착수
 

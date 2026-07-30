@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-07-29
+> 마지막 업데이트: 2026-07-30
 
 ## Progress Overview
 
@@ -8,7 +8,7 @@
 설계/문서     ████████████████████ 100%
 Backend       ███████████████████░  95%
 Admin Web     ███████████████████░  95%
-테스트        █████████████████░░░  86%  (pytest 922 passed / 4 skipped / 1 xfailed, Vitest 25개)
+테스트        █████████████████░░░  86%  (pytest 922 passed / 4 skipped / 1 xfailed, Vitest 106개 / 13 파일)
 인프라/배포    ███████████████████░  95%  (Oracle 단일 VM, 백업 복구 리허설 PASS. push 자동배포 없음)
 Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 데이터        ██████████░░░░░░░░░░  50%  (L+M만 적재)
@@ -20,8 +20,8 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ## Completed
 
 ### 인프라/DevOps
-- [x] 배포 인프라 — GCP Cloud Run (Backend) + Vercel (Admin) 실제 배포 완료
-- [x] CI/CD — GitHub Actions (테스트 + 배포 자동화, path-based filter)
+- [x] 배포 인프라 — Oracle Cloud ARM VM 단일 노드 (admin + backend + Qdrant + PostgreSQL + Cloudflare Tunnel). 2026-07-29 GCP Cloud Run 에서 이전, 월 $42 → $0. 상세 §13
+- [x] CI/CD — GitHub Actions CI(테스트, path-based filter). **배포는 `make deploy-backend` / `make deploy-admin` 수동** (Cloud Run 이탈로 push 자동배포 없음)
 - [x] Docker Compose — PostgreSQL + Qdrant + Backend
 - [x] Alembic 초기 마이그레이션 — init_db() 프로덕션 스킵
 
@@ -106,8 +106,8 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] Admin UI 토글 (new/edit 페이지에 Query Rewriting 체크박스)
 
 ### 테스트
-- [x] Backend pytest 917 passed / 4 skipped / 1 xfailed (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback, 레드팀 등)
-- [x] Admin Vitest 25개 (로그인, SearchTierEditor, API)
+- [x] Backend pytest 922 passed / 4 skipped / 1 xfailed (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback, 레드팀 등)
+- [x] Admin Vitest 106개 / 13 파일 (로그인, SearchTierEditor, API, 모달, 차트 등)
 - [x] Admin Playwright E2E 12개 (로그인, 챗봇 CRUD, 인증 가드)
 
 ### 문서/품질
@@ -148,7 +148,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ## Questions
 
 - Flutter 모바일 앱 시작 시점? — 레드팀 테스트 후 Phase 4에서 진행 예정
-- GCP 실제 배포 시점? — 인프라 설정 파일 완료, GCP 프로젝트 생성 + 수동 설정 필요
+- ~~GCP 실제 배포 시점?~~ — 해소. GCP 배포 후(2026-04~07) 2026-07-29 Oracle Cloud 로 이전 완료. §13 참조
 
 ---
 
@@ -327,12 +327,16 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
 - [x] **Oracle 운영 문서 보강** — README 를 이전 절차서에서 운영 기준 문서로 재작성. postgres 서비스, 메모리 배분, `rollback-backend`/`oracle-logs`, 백업·복구 절 추가.
 - [x] **백업 복구 리허설** — `infra/oracle-vm/restore-drill.sh` 신규. 2026-07-29 PASS (11MB 덤프 1초 복원, 11 테이블 34,377행 차집합 0, alembic head 일치).
 - [x] **추천 질문 갱신 cron 이전** — Postgres 가 VM 로컬(127.0.0.1)로 오면서 GitHub runner 가 DB 에 닿을 수 없게 됐다. 그대로 뒀다면 구 Neon URL 로 붙어 아무 효과 없는 성공을 기록했을 것. `refresh-suggested-questions.yml` 삭제 → `infra/oracle-vm/refresh-questions.sh` + VM cron(일 18:30 UTC). 실제 1회 실행 검증 완료. `cache-cleanup.yml` 은 Qdrant HTTPS 만 쓰므로 GHA 유지.
+- [x] **admin Oracle 이전 + 컷오버** (2026-07-30) — Next.js `output: "standalone"` 컨테이너로 VM 이전. 접속 주소 `https://app.woosung.dev`. `NEXT_PUBLIC_API_URL` 은 rewrites 가 빌드 타임에 구워지므로 build ARG (`http://backend:8080` — Cloudflare 왕복 1회 절감). Vercel 은 host 조건부 307 리다이렉트 전용으로 존치.
+  - 컷오버 검증: 전 라우트 200, 정적 자산 200, rewrite 200/401, **SSE 실제 채팅 1회 10초** (chunk 15 + sources + done), **15MB 업로드 프록시 통과**(413 아님 → `proxyClientMaxBodySize` 적용 확인), `ADMIN_FRONTEND_URL` 교체 후 5컨테이너 healthy. admin 메모리 61.5MiB / 768MiB.
+  - 가이드 문서 접속 주소 갱신: `redteam-test-guide.md`(3곳), `redteam-test-guide-v2.html`.
 
 #### 남은 것 (별도 트리거)
 
 - [ ] **GitHub Actions 청구 차단 해소** [확인 필요] — 2026-07-24경부터 모든 Actions 가 `recent account payments have failed or your spending limit needs to be increased` 로 실행되지 않는다. 예약 cache-cleanup 이 그때부터 실패했고 PR CI 도 queued 에서 멈춘다. Settings → Billing & plans 에서 처리해야 한다. 그동안 CI 게이트는 로컬 `make backend-test` / `make admin-test` 뿐이다.
 
-- [ ] **Vercel 프로젝트 정리** — admin 이전 후 `truewords-platform.vercel.app` 은 신규 도메인으로 리다이렉트만 하는 상태로 남긴다. 레드팀·체험단 가이드에 박힌 링크가 전파·갱신된 뒤 삭제한다.
+- [ ] **Vercel 프로젝트 정리** — `truewords-platform.vercel.app` 을 리다이렉트 전용으로 남겨 둔 상태다. 링크 전파를 확인한 뒤 삭제한다. 순서: (1) main 머지로 Vercel 프로덕션이 리다이렉트 포함 빌드로 갱신되는지 확인, (2) `curl -I` 로 307 확인, (3) 유입 로그가 0 에 수렴하면 프로젝트 삭제, (4) 삭제 시 `admin/next.config.ts` 의 `redirects()` 블록도 함께 제거.
+- [ ] **가이드 PDF 재생성** — `redteam-test-guide.md` / `-v2.html` 의 접속 주소는 `app.woosung.dev` 로 갱신했다. 같은 폴더의 PDF 3종(`redteam-test-guide-light.pdf`, `redteam-test-guide-v2.pdf`, `truewords-user-test-guide.pdf`)은 바이너리라 구 주소가 남아 있다. 리다이렉트가 살아 있어 당장 깨지지는 않지만 Vercel 삭제 전에 재생성해야 한다.
 - [ ] **push 자동 배포 상실** — Cloud Run 이 사라지며 `deploy.yml` 을 제거했다. main 머지가 곧 배포가 아니므로 `make deploy-backend` 를 명시 실행해야 한다. 필요해지면 GitHub Actions 빌드 → `docker save | ssh docker load` 로 복구 가능하다.
 - [ ] **GCP·Neon 계정 정리** — `jetaime-dev` 의 `kairos-api`/`nexus-core`/`kairos-docker`/`nexus-repo` 잔존 리소스 삭제, Neon 프로젝트 정리. 구 Neon 연결 문자열은 VM `.env` 의 `NEON_DATABASE_URL_BACKUP` 에 보존 중이다.
 - [ ] **RPO 24시간** — 백업이 하루 1회(03:00 KST)라 직전 장애 시 하루치 유실. 쓰기 빈도가 올라가면 빈도 상향 또는 WAL 아카이빙 재검토.
