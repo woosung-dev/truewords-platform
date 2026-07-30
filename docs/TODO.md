@@ -326,14 +326,21 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
 - [x] **Oracle README 수동 전달 스니펫 정렬** — `gzip -1` + `sudo docker load` 반영.
 - [x] **Oracle 운영 문서 보강** — README 를 이전 절차서에서 운영 기준 문서로 재작성. postgres 서비스, 메모리 배분, `rollback-backend`/`oracle-logs`, 백업·복구 절 추가.
 - [x] **백업 복구 리허설** — `infra/oracle-vm/restore-drill.sh` 신규. 2026-07-29 PASS (11MB 덤프 1초 복원, 11 테이블 34,377행 차집합 0, alembic head 일치).
-- [x] **추천 질문 갱신 cron 이전** — Postgres 가 VM 로컬(127.0.0.1)로 오면서 GitHub runner 가 DB 에 닿을 수 없게 됐다. 그대로 뒀다면 구 Neon URL 로 붙어 아무 효과 없는 성공을 기록했을 것. `refresh-suggested-questions.yml` 삭제 → `infra/oracle-vm/refresh-questions.sh` + VM cron(일 18:30 UTC). 실제 1회 실행 검증 완료. `cache-cleanup.yml` 은 Qdrant HTTPS 만 쓰므로 GHA 유지.
+- [x] **추천 질문 갱신 cron 이전** — Postgres 가 VM 로컬(127.0.0.1)로 오면서 GitHub runner 가 DB 에 닿을 수 없게 됐다. 그대로 뒀다면 구 Neon URL 로 붙어 아무 효과 없는 성공을 기록했을 것. `refresh-suggested-questions.yml` 삭제 → `infra/oracle-vm/refresh-questions.sh` + VM cron(일 18:30 UTC). 실제 1회 실행 검증 완료.
+- [x] **CI/CD 를 GHA 없이 성립시키기** (2026-07-30) — 청구 차단으로 GHA 가 멈춘 상태에서 PR 게이트와 예약 작업이 둘 다 죽어 있었다.
+  - `make ci` 신규 — `ci.yml` 과 같은 명령·같은 순서(uv sync → pytest → pnpm install → test → build). 명령이 갈라지면 로컬 통과가 무의미해지므로 `ci.yml` 변경 시 동반 수정 필수.
+  - `cache-cleanup.yml` 삭제 → `infra/oracle-vm/cache-cleanup.sh` + VM cron(매일 18:15 UTC). 청구 차단으로 7/24부터 매일 실패했고 만료 point 134개가 쌓여 있었다(실행해 정리 완료: 172 → 38). 18:00 이 아니라 18:15 인 이유는 `backup-db.sh` 와 겹치지 않게 하려는 것.
+  - `make cron-cache-cleanup` / `cron-refresh-questions` / `restore-drill` 수동 진입점 추가 (`ARGS=--dry-run` 지원).
+  - **결과: GitHub Actions 에 예약 작업이 0건.** 남은 워크플로는 `ci.yml` 뿐이고 그건 `make ci` 로 대체 가능하다.
 - [x] **admin Oracle 이전 + 컷오버** (2026-07-30) — Next.js `output: "standalone"` 컨테이너로 VM 이전. 접속 주소 `https://app.woosung.dev`. `NEXT_PUBLIC_API_URL` 은 rewrites 가 빌드 타임에 구워지므로 build ARG (`http://backend:8080` — Cloudflare 왕복 1회 절감). Vercel 은 host 조건부 307 리다이렉트 전용으로 존치.
   - 컷오버 검증: 전 라우트 200, 정적 자산 200, rewrite 200/401, **SSE 실제 채팅 1회 10초** (chunk 15 + sources + done), **15MB 업로드 프록시 통과**(413 아님 → `proxyClientMaxBodySize` 적용 확인), `ADMIN_FRONTEND_URL` 교체 후 5컨테이너 healthy. admin 메모리 61.5MiB / 768MiB.
   - 가이드 문서 접속 주소 갱신: `redteam-test-guide.md`(3곳), `redteam-test-guide-v2.html`.
 
 #### 남은 것 (별도 트리거)
 
-- [ ] **GitHub Actions 청구 차단 해소** [확인 필요] — 2026-07-24경부터 모든 Actions 가 `recent account payments have failed or your spending limit needs to be increased` 로 실행되지 않는다. 예약 cache-cleanup 이 그때부터 실패했고 PR CI 도 queued 에서 멈춘다. Settings → Billing & plans 에서 처리해야 한다. 그동안 CI 게이트는 로컬 `make backend-test` / `make admin-test` 뿐이다.
+- [ ] **GitHub Actions 청구 차단 해소** [확인 필요] — 2026-07-24경부터 모든 Actions 가 `recent account payments have failed or your spending limit needs to be increased` 로 실행되지 않는다. Settings → Billing & plans 에서 처리해야 한다.
+  - **운영 공백은 없다.** PR 게이트는 `make ci`(ci.yml 과 동일 명령), 예약 작업은 전부 VM cron 으로 내렸다. 차단이 풀리면 `ci.yml` 이 자동으로 다시 돌고 되돌릴 작업은 없다.
+  - 되돌아온 뒤 확인할 것: `ci.yml` 이 실제로 green 인지, `make ci` 와 결과가 일치하는지.
 
 - [ ] **Vercel 프로젝트 정리** — `truewords-platform.vercel.app` 을 리다이렉트 전용으로 남겨 둔 상태다. 링크 전파를 확인한 뒤 삭제한다. 순서: (1) main 머지로 Vercel 프로덕션이 리다이렉트 포함 빌드로 갱신되는지 확인, (2) `curl -I` 로 307 확인, (3) 유입 로그가 0 에 수렴하면 프로젝트 삭제, (4) 삭제 시 `admin/next.config.ts` 의 `redirects()` 블록도 함께 제거.
 - [ ] **가이드 PDF 재생성** — `redteam-test-guide.md` / `-v2.html` 의 접속 주소는 `app.woosung.dev` 로 갱신했다. 같은 폴더의 PDF 3종(`redteam-test-guide-light.pdf`, `redteam-test-guide-v2.pdf`, `truewords-user-test-guide.pdf`)은 바이너리라 구 주소가 남아 있다. 리다이렉트가 살아 있어 당장 깨지지는 않지만 Vercel 삭제 전에 재생성해야 한다.

@@ -19,6 +19,7 @@ ADMIN_IMG := truewords-admin:$(TAG)
         backend-dev backend-test backend-test-fast backend-lint backend-install backend-migrate backend-start \
         infra-up infra-down infra-logs infra-status infra-reset \
         deploy-backend rollback-backend deploy-admin rollback-admin oracle-logs \
+        ci cron-cache-cleanup cron-refresh-questions restore-drill \
         verify verify-modal test-all type-check clean
 
 # ============================================================
@@ -41,6 +42,9 @@ help: ## 사용 가능한 명령 목록
 	@echo ""
 	@echo "▶ 배포 (Oracle Cloud VM)"
 	@grep -E '^(deploy-backend|rollback-backend|deploy-admin|rollback-admin|oracle-logs):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
+	@echo ""
+	@echo "▶ CI / 운영 작업 (GitHub Actions 대체)"
+	@grep -E '^(ci|cron-cache-cleanup|cron-refresh-questions|restore-drill):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "▶ 통합"
 	@grep -E '^(test-all|type-check|clean):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -157,6 +161,40 @@ rollback-admin: ## ⚠️ 이전 admin 이미지로 롤백 (`TAG=<이전 sha>` �
 
 oracle-logs: ## Oracle Cloud VM Docker Compose 로그 follow (최근 100줄).
 	@ssh -t "$(ORACLE)" 'cd ~/truewords && sudo docker compose logs -f --tail=100'
+
+# ============================================================
+# CI / 운영 작업 — GitHub Actions 대체
+#
+# GHA 가 청구 문제로 멈춘 동안(2026-07-24~) PR 게이트가 사라졌다. `make ci` 는
+# .github/workflows/ci.yml 과 **같은 명령을 같은 순서로** 돌려 "CI 통과" 가
+# 양쪽에서 같은 뜻이 되게 한다. 명령이 갈라지면 로컬 통과가 무의미해지므로
+# ci.yml 을 바꿀 때 이 target 도 같이 바꾼다.
+#
+# 예약 작업은 VM cron 이 주인이다. 아래 target 들은 수동 실행·검증용 진입점이며
+# 실제 스케줄은 VM crontab 에 있다 (infra/oracle-vm/README.md §정기 작업).
+# ============================================================
+ci: ## ci.yml 과 동일한 검사를 로컬에서 (backend pytest + admin test/build)
+	@echo "▶ [1/5] backend — uv sync --frozen --all-groups"
+	@cd backend && uv sync --frozen --all-groups
+	@echo "▶ [2/5] backend — pytest (ci.yml 과 동일: --ignore 없음)"
+	@cd backend && GEMINI_API_KEY=test-key-for-ci uv run pytest -q
+	@echo "▶ [3/5] admin — pnpm install --frozen-lockfile"
+	@cd admin && pnpm install --frozen-lockfile
+	@echo "▶ [4/5] admin — pnpm test"
+	@cd admin && pnpm test
+	@echo "▶ [5/5] admin — pnpm build"
+	@cd admin && pnpm build
+	@echo ""
+	@echo "✅ CI 동등 검사 통과. (lint/E2E 는 별도: make admin-lint / make admin-e2e)"
+
+cron-cache-cleanup: ## semantic_cache TTL 만료 정리 수동 실행 (`ARGS=--dry-run` 지원)
+	@ssh "$(ORACLE)" 'bash ~/truewords/cache-cleanup.sh $(ARGS)'
+
+cron-refresh-questions: ## 봇별 추천 질문 갱신 수동 실행 (`ARGS=--dry-run` 지원)
+	@ssh "$(ORACLE)" 'cd ~/truewords && sudo docker compose --env-file .env exec -T backend python scripts/refresh_suggested_questions.py $(if $(ARGS),$(ARGS),--execute)'
+
+restore-drill: ## Postgres 백업 복구 리허설 (운영 DB 는 읽기만, 임시 DB 로 대조)
+	@ssh "$(ORACLE)" 'bash ~/truewords/restore-drill.sh'
 
 # ============================================================
 # 통합
