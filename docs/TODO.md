@@ -369,8 +369,13 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
   - **HTTP 성공만으로 판정하지 않는 곳이 하나 있다** — embed 차원. 200 이어도 1536 이 아니면 Qdrant 검색·적재가 전부 깨져 챗봇이 죽는다. 200 만으로는 못 잡는 유일한 silent 실패.
   - **상한 3층 + `sudo timeout` 순서.** `python 예산(50s) < 컨테이너 timeout(60s) < 호스트 timeout(75s)`. docker 에 exec 를 죽이는 API 가 없어 바깥 timeout 은 CLI 만 죽인다(안 프로세스는 고아) → 실제로 멈추는 건 컨테이너 안 `timeout`. `timeout sudo` 로 쓰면 비특권 timeout 이 root 자식을 못 죽여 `waitpid` 에 매달린다.
   - **비용 실측**: generate 입력 2 / 출력 9 토큰 + embed 입력 약 2 토큰 → 1회 **약 $0.0000234**. cron 1회/일 = **연 $0.0085**(1센트 미만), 배포 포함 5회/일 과다 가정에도 **연 $0.043**. 무시할 수준 확인. `retry_429=False` 라 probe 가 quota 를 되풀이 소모하지 않는다.
-  - **실측 검증 6분기**: 정상(exit 0) / 잘못된 키(`400-INVALID_ARGUMENT`, exit 1, **`key sha8` 이 정상 실행과 달라 override 가 실제로 먹었음을 증명**) / 예산 초과(`timeout-budget` + `not-run-budget`) / 네트워크(`network-connect`, SDK→classify 라이브 배선) / 부트스트랩(이미지에 스크립트 없음) / backend 다운(`SKIP`, 진단 1개). 라이브로 유도 불가한 429·404·차원·비-enum status 는 `tests/scripts/test_gemini_key_probe.py` 25건이 잠근다.
-  - 검증 중 자체 결함 1건 수정: `signal.alarm(max(2, budget))` 의 하한 2 때문에 `--budget-seconds 1` 리허설이 정상 소요(~1.2s) 안에 끝나 **예산 분기를 실측할 수 없었다** → 하한 1 로 정정(`alarm(0)` 은 타이머를 취소하므로 1 이 진짜 최소값).
+  - **실측 검증** (VM 운영 환경, 커밋 `e087a1d`→`f8ccde7`): 정상 7건 통과 exit 0 / 잘못된 키 `400-INVALID_ARGUMENT` exit 1 (**`key sha8` 이 `2ece1746`→`31e8cdf1` 로 달라져 `-e` override 가 실제로 먹었음을 증명** — 지문이 없으면 이 리허설은 반증 불가능하다) / 예산 초과 2분기(import 단계·API 호출 중) / 호스트 timeout rc 124 / 부트스트랩(이미지에 스크립트 없음) / SKIP 가드 로직(`backend`·`qdrant backend` → SKIP, `backendish` → RUN). 네트워크 분기는 로컬에서 `base_url` 을 도달 불가 host 로 물려 `network-connect` 확인(SDK→classify 라이브 배선). 라이브 유도 불가한 429·404·차원·비-enum status·힌트 대응은 `tests/scripts/test_gemini_key_probe.py` **32건**이 잠근다.
+  - **검증이 자체 결함 3건을 잡았다** (전부 "고친 줄 알았는데" 로 끝날 수 있던 것):
+    1. `signal.alarm(max(2, budget))` 의 하한 2 때문에 `--budget-seconds 1` 리허설이 정상 소요 안에 끝나 **예산 분기를 실측할 수 없었다** → 하한 1 (`alarm(0)` 은 타이머를 취소하므로 1 이 진짜 최소값).
+    2. 컨테이너 안 import 가 **2.74s** 라 짧은 예산은 API 호출 전에 터지는데, 그 `BudgetExceeded` 가 import 가드에 삼켜져 "컨테이너 env / 이미지 확인" 이라는 **엉뚱한 조치**를 지시했다 → 예산 전용 분기 추가.
+    3. `generate` 가 `timeout-budget` 으로 죽었을 때 "해당 모델·요청 인자 확인" 이 나왔다. 판정("키는 살아 있다")은 맞고 **조치가 틀렸다** → `_hint_one` 에 timeout·network 분기 추가 + 원인별 힌트를 테스트로 잠금.
+  - 최악 소요 산수: import 2.7s + embed(2×8+2) + generate(2×12+2) = **46.7s < 예산 50s**.
+  - **정직하게 — 실측하지 않은 것 2개.** (1) `SKIP` 분기는 `case` 문자열 매칭을 5치 전수 검증했지만 *"backend 가 실제로 unhealthy 일 때 `$BAD` 에 backend 가 들어가는가"* 는 운영 정지가 필요해 강제하지 않았다 (사용자 판단). 그 배선은 PR #212 부터 운영 중인 `containers` 검사가 같은 `$BAD` 로 이미 쓰고 있다. (2) 429(quota 소진)·404(모델 폐기)·차원 변경은 실키로 유도할 수 없어 단위 테스트로만 잠갔다.
   - `GEMINI_TIER=paid` 라 현실적 사망 원인은 rate limit(429) 이 아니라 **청구 실패(403)** 다 — GHA 를 5일간 죽인 것과 같은 계정 레벨 실패. 403 힌트가 청구를 먼저 지목한다.
 - [ ] **RPO 24시간** — 백업이 하루 1회(03:00 KST)라 직전 장애 시 하루치 유실. 쓰기 빈도가 올라가면 빈도 상향 또는 WAL 아카이빙 재검토.
 - [x] **예약 작업 실패 탐지** (2026-07-30) — ADR: `docs/dev-log/2026-07-30-silent-scheduled-job-failure.md`

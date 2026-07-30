@@ -292,6 +292,25 @@ make ops-check
 
 **상한이 세 층이고 순서가 중요하다.** `python 예산(50s) < 컨테이너 timeout(60s) < 호스트 timeout(75s)`. 안쪽만 분류된 판정을 낼 수 있고, 실제로 일을 멈추는 건 컨테이너 안 `timeout` 이다 — docker 에 exec 를 죽이는 API 가 없어 **바깥 timeout 은 CLI 만 죽이고 컨테이너 안 프로세스는 고아로 남는다.** 그리고 `sudo timeout` 순서여야 한다 (`timeout sudo` 면 비특권 timeout 이 root 자식을 못 죽여 `waitpid` 에 매달린다).
 
+예산 50s 의 근거는 실측 산수다 — `import 2.7s + embed(2×8+2) + generate(2×12+2) = 46.7s`. **컨테이너 안 import 가 2.7s** 이므로 그보다 짧은 예산은 API 호출 전에 터지고, 그 경우를 별도로 진단한다(원인이 다르면 조치도 달라야 한다).
+
+리허설은 env 만으로 전 분기를 재현한다.
+
+```bash
+make ops-check                                          # 정상 — 7건 통과
+make gemini-check                                       # 키만 단독 확인
+ssh truewords-oracle 'GEMINI_BUDGET_S=1 bash ~/truewords/ops-check.sh'   # 예산 초과 (import 단계)
+ssh truewords-oracle 'GEMINI_BUDGET_S=3 bash ~/truewords/ops-check.sh'   # 예산 초과 (API 호출 중)
+ssh truewords-oracle 'GEMINI_EXEC_TIMEOUT_S=1 GEMINI_HOST_TIMEOUT_S=2 bash ~/truewords/ops-check.sh'  # rc 124
+ssh truewords-oracle 'GEMINI_PROBE_SCRIPT=scripts/nope.py bash ~/truewords/ops-check.sh'              # 부트스트랩
+
+# 잘못된 키 — 실제 400. 과금·quota 소모가 없어 운영 키에 영향을 주지 않는다.
+ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec -T \
+  -e GEMINI_API_KEY=invalid-key-for-drill backend python scripts/gemini_key_probe.py'
+```
+
+> 마지막 리허설에서 출력의 `key sha8` 이 정상 실행과 **달라야** 한다. 같으면 `-e` 가 먹지 않은 것이고 **그 리허설은 아무것도 검증하지 않았다.** 지문을 찍는 이유가 이것이다.
+
 **비용 — 실측.** 한 번에 generate 입력 2 / 출력 9 토큰 + embed 입력 약 2 토큰. paid 단가(입력 $0.30, 출력 $2.50, 임베딩 $0.15 / 1M) 기준 **1회 약 $0.0000234**.
 
 | 빈도 | 연간 비용 |
