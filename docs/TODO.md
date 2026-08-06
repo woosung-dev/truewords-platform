@@ -8,7 +8,7 @@
 설계/문서     ████████████████████ 100%
 Backend       ███████████████████░  95%
 Admin Web     ███████████████████░  95%
-테스트        █████████████████░░░  86%  (pytest 922 passed / 4 skipped / 1 xfailed, Vitest 106개 / 13 파일)
+테스트        █████████████████░░░  86%  (pytest 932 passed / 4 skipped / 1 xfailed, Vitest 113개 / 14 파일)
 인프라/배포    ███████████████████░  95%  (Oracle 단일 VM, 백업 복구 리허설 PASS. push 자동배포 없음)
 Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 데이터        ██████████░░░░░░░░░░  50%  (L+M만 적재)
@@ -111,9 +111,14 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] chat/service.py 파이프라인 통합 (process_chat + process_chat_stream)
 - [x] Admin UI 토글 (new/edit 페이지에 Query Rewriting 체크박스)
 
+### 관리자 계정 비활성화 (2026-08-06)
+- [x] 체험단 계정 34개 운영 DB 비활성화 — `role=ADMIN AND created_at::date='2026-07-07'`, SUPER_ADMIN 4개 보존
+- [x] PATCH /admin/users/{id}/status — 활성/비활성 전환 (멱등, 본인 계정 비활성화 금지, 감사 로그)
+- [x] 설정 페이지 상태 전환 UI — 확인 다이얼로그(비활성화만) + 상태 필터 + 본인 행 비활성 처리
+
 ### 테스트
-- [x] Backend pytest 922 passed / 4 skipped / 1 xfailed (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback, 레드팀 등)
-- [x] Admin Vitest 106개 / 13 파일 (로그인, SearchTierEditor, API, 모달, 차트 등)
+- [x] Backend pytest 932 passed / 4 skipped / 1 xfailed (검색, 캐시, 채팅, 보안, 파이프라인, 스트리밍, query rewriter, fallback, 레드팀, 계정 상태 전환 등)
+- [x] Admin Vitest 113개 / 14 파일 (로그인, SearchTierEditor, API, 모달, 차트, 설정 페이지 등)
 - [x] Admin Playwright E2E 12개 (로그인, 챗봇 CRUD, 인증 가드)
 
 ### 문서/품질
