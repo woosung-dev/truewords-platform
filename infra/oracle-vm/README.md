@@ -16,7 +16,7 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
 | `restore-drill.sh` | 백업 복구 리허설. 운영 DB 는 읽기만 하고 임시 DB 로 복원해 대조합니다. |
 | `refresh-questions.sh` | 봇별 추천 질문 주간 갱신. backend 컨테이너 안에서 실행합니다. |
 | `cache-cleanup.sh` | semantic_cache TTL 만료 point 정리 **수동 진입점**. 스케줄은 `cache-cleanup.yml`(GHA) 이 갖습니다 — cron 에 등록하지 않습니다. |
-| `ops-check.sh` | 운영 불변식 점검. 예약 작업이 "돌지 않은" 것까지 결과 기준으로 잡습니다. |
+| `ops-check.sh` | 운영 불변식 점검. 예약 작업이 "돌지 않은" 것까지 결과 기준으로 잡습니다. Gemini 키 생존도 함께 봅니다(§`gemini-key`) — probe 본체는 backend 이미지의 `scripts/gemini_key_probe.py` 라 이 디렉토리에 없습니다. |
 
 ## 인프라 사양
 
@@ -235,7 +235,8 @@ sudo docker stats
 수동 실행은 로컬 Mac 의 make target 을 쓴다.
 
 ```bash
-make ops-check                             # 운영 불변식 점검 (5건)
+make ops-check                             # 운영 불변식 점검 (7건)
+make gemini-check                          # Gemini 키 생존만 단독 확인
 make cron-cache-cleanup ARGS=--dry-run     # 삭제 대상만 확인
 make cron-cache-cleanup                    # GHA 가 멈춘 동안 대신 실행
 make cron-refresh-questions ARGS=--dry-run # 대상 봇만 확인 (Gemini 호출 0)
@@ -259,17 +260,69 @@ make restore-drill                         # 백업 복구 리허설
 | `suggested-q` | `max(suggested_at)` < 10일 | `refresh-questions.sh` 미실행 |
 | `containers` | 4 healthy + cloudflared up | 컨테이너 이상 |
 | `disk` | < 80% | 디스크 포화 |
+| `gemini-key` | embed + generate 둘 다 HTTP 성공, embed 차원 = 1536 | **유일한 외부 의존 사망** — 키 회수·청구 중단·quota 소진·모델 폐기·차원 변경 |
 
 ```bash
 make ops-check
 # CHECK      VERDICT DETAIL
 # backup     OK     8h 전 · truewords-2026-07-29-1800.dump · 11M
 # cache-ttl  OK     만료 0건
+# gemini-key OK     embed 0.50s·1536d · generate 0.90s·tok in=2/out=9/think=0 · key sha8=… · tier=paid
 # ...
-# RESULT: OK — 불변식 6건 전부 통과
+# RESULT: OK — 불변식 7건 전부 통과
 ```
 
-임계값은 env 로 덮어쓸 수 있다 (`BACKUP_MAX_AGE_H` / `REMOTE_MAX_AGE_H` / `EXPIRED_MAX` / `SUGGESTED_MAX_AGE_D` / `DISK_MAX_PCT`). 결과는 `/opt/ops-status.json` 에도 남는다. `make deploy-backend` / `deploy-admin` 이 배포 전에 자동 실행하되 **배포를 막지는 않는다** — 백업이 낡았다고 배포를 못 하게 하는 건 인과가 뒤집힌 것이다.
+임계값은 env 로 덮어쓸 수 있다 (`BACKUP_MAX_AGE_H` / `REMOTE_MAX_AGE_H` / `EXPIRED_MAX` / `SUGGESTED_MAX_AGE_D` / `DISK_MAX_PCT` / `GEMINI_BUDGET_S` / `GEMINI_EXEC_TIMEOUT_S` / `GEMINI_HOST_TIMEOUT_S`). 결과는 `/opt/ops-status.json` 에도 남는다. `make deploy-backend` / `deploy-admin` 이 배포 전에 자동 실행하되 **배포를 막지는 않는다** — 백업이 낡았다고 배포를 못 하게 하는 건 인과가 뒤집힌 것이다.
+
+### `gemini-key` — 유일한 외부 의존 감시
+
+`backend/scripts/gemini_key_probe.py` 가 컨테이너 안에서 돌며 판정을 내고, `ops-check.sh` 는 `GEMINI_PROBE verdict=… detail=…` 한 줄을 **접두사로** 집는다 (마지막 줄이 아니다 — SDK 로그가 뒤에 붙을 수 있다).
+
+**왜 generateContent 하나로는 부족한가.** 채팅은 semantic cache 히트여도 매 요청 `embed_content` 를 부른다 (Embedding Stage 가 CacheCheck **앞**). 임베딩만 죽어도 채팅은 100% 실패하므로, generate 만 찌르면 **초록인데 챗봇은 죽어 있다.** 그래서 두 surface 를 다 호출하고, **한쪽이 실패해도 나머지를 끝까지 호출한다** — 어느 쪽이 살아 있는지가 원인을 갈라 주기 때문이다(`backup-remote` 와 같은 원칙이라 검사 행은 하나다).
+
+| embed | generate | 진단 |
+|---|---|---|
+| OK | OK | 정상 |
+| FAIL 400 | FAIL 400 | 양쪽 동일 실패 → **키 자체가 무효** (회수·삭제) |
+| FAIL 403 | FAIL 403 | 권한·API 비활성·**청구 중단**. `paid` tier 이므로 청구를 먼저 본다 |
+| OK | FAIL 404 | **키는 살아 있다.** `MODEL_GENERATE` 가 폐기됐다 |
+| FAIL `dim-3072` | OK | **키는 살아 있다.** HTTP 200 인데 차원이 바뀌었다 → Qdrant 가 전부 깨진다 |
+
+**요청에 옵션을 더하지 않는다.** `max_output_tokens` / `thinking_config` 를 넣지 않는다 — gemini-3.5 계열은 `thinking_budget` 대신 `thinking_level` 을 받아 400 이 될 수 있고, 그러면 이 검사가 **정상인 키를 "무효" 로 보고**한다. 경보를 못 믿게 만드는 게 검사가 없는 것보다 나쁘다. 원칙: **probe 요청은 운영이 매일 성공시키는 요청의 부분집합이어야 한다.** 실측 결과 `think=0` 이라 옵션이 애초에 불필요했다.
+
+**상한이 세 층이고 순서가 중요하다.** `python 예산(50s) < 컨테이너 timeout(60s) < 호스트 timeout(75s)`. 안쪽만 분류된 판정을 낼 수 있고, 실제로 일을 멈추는 건 컨테이너 안 `timeout` 이다 — docker 에 exec 를 죽이는 API 가 없어 **바깥 timeout 은 CLI 만 죽이고 컨테이너 안 프로세스는 고아로 남는다.** 그리고 `sudo timeout` 순서여야 한다 (`timeout sudo` 면 비특권 timeout 이 root 자식을 못 죽여 `waitpid` 에 매달린다).
+
+예산 50s 의 근거는 실측 산수다 — `import 2.7s + embed(2×8+2) + generate(2×12+2) = 46.7s`. **컨테이너 안 import 가 2.7s** 이므로 그보다 짧은 예산은 API 호출 전에 터지고, 그 경우를 별도로 진단한다(원인이 다르면 조치도 달라야 한다).
+
+리허설은 env 만으로 전 분기를 재현한다.
+
+```bash
+make ops-check                                          # 정상 — 7건 통과
+make gemini-check                                       # 키만 단독 확인
+ssh truewords-oracle 'GEMINI_BUDGET_S=1 bash ~/truewords/ops-check.sh'   # 예산 초과 (import 단계)
+ssh truewords-oracle 'GEMINI_BUDGET_S=3 bash ~/truewords/ops-check.sh'   # 예산 초과 (API 호출 중)
+ssh truewords-oracle 'GEMINI_EXEC_TIMEOUT_S=1 GEMINI_HOST_TIMEOUT_S=2 bash ~/truewords/ops-check.sh'  # rc 124
+ssh truewords-oracle 'GEMINI_PROBE_SCRIPT=scripts/nope.py bash ~/truewords/ops-check.sh'              # 부트스트랩
+
+# 잘못된 키 — 실제 400. 과금·quota 소모가 없어 운영 키에 영향을 주지 않는다.
+ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec -T \
+  -e GEMINI_API_KEY=invalid-key-for-drill backend python scripts/gemini_key_probe.py'
+```
+
+> 마지막 리허설에서 출력의 `key sha8` 이 정상 실행과 **달라야** 한다. 같으면 `-e` 가 먹지 않은 것이고 **그 리허설은 아무것도 검증하지 않았다.** 지문을 찍는 이유가 이것이다.
+
+**비용 — 실측.** 한 번에 generate 입력 2 / 출력 9 토큰 + embed 입력 약 2 토큰. paid 단가(입력 $0.30, 출력 $2.50, 임베딩 $0.15 / 1M) 기준 **1회 약 $0.0000234**.
+
+| 빈도 | 연간 비용 |
+|---|---|
+| cron 1회/일 (기본) | **약 $0.0085** (1센트 미만) |
+| 배포 포함 5회/일 (과다 가정) | **약 $0.043** |
+
+무시할 수준이다. 429 는 신호이므로 재시도하지 않아(`retry_429=False`) probe 가 quota 를 되풀이 소모하지 않는다.
+
+**커버하지 않는 것**: `generate_content_stream`. 운영 채팅은 스트리밍이지만 스트림만 깨지는 건 SDK 문제이지 키 실패가 아니다.
+
+backend 컨테이너가 비정상이면 이 검사는 `SKIP` 하고 `containers` 에 진단을 양보한다 — 한 원인에 두 진단을 내면 엉뚱한 곳을 뒤진다.
 
 > ⚠️ **탐지는 닫혔지만 전달은 아직이다.** 위반은 로그·JSON·종료코드로만 남는다. 배포하지 않는 주에 백업이 죽으면 여전히 늦게 안다. push 채널에는 자격증명이 필요하고 현재 레포에는 없다. 채널이 정해지면 `ops-check.sh` 마지막에 한 줄이다 — Slack Incoming Webhook URL 을 `.env` 에 넣고 `curl`, 또는 OCI Notifications 토픽(Instance Principal 재사용, 새 키 불필요). 상세: [ADR](../../docs/dev-log/2026-07-30-silent-scheduled-job-failure.md)
 
@@ -400,6 +453,8 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 인프라 작업에 쓰던 `jetaime-dev` / `jetaime.jang@gmail.com` 이 **아니다.** `jetaime-dev` 에도 "DEV Gemini API Key" 가 있지만 그건 운영 키가 아니다(해시 대조로 확인).
 
 **이 프로젝트를 지우거나 키를 회수하면 챗봇이 즉시 죽는다.** 이름에 TrueWords 가 없어 "안 쓰는 프로젝트" 로 보이는 것이 위험하다 — 2026-06-04 에 `woosung-dev` 를 그렇게 판단해 지웠다가 Qdrant VM 을 잃었다.
+
+**이제 `ops-check.sh` 의 `gemini-key` 가 매일 이 키를 실제로 찔러 본다.** 키가 죽으면 나머지 검사는 전부 초록이므로(`/health` 도 200) 그 전에는 확인 장치가 아예 없었다. 즉시 확인은 `make gemini-check`. 상세: [운영 불변식 점검 §`gemini-key`](#gemini-key--유일한-외부-의존-감시)
 
 확인 근거와 대조 방법: [GCP·Neon 잔존 리소스 감사](../../docs/dev-log/2026-07-30-gcp-neon-residual-audit.md)
 
