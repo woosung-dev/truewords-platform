@@ -1,6 +1,7 @@
 """관리자 Repository. AsyncSession 유일 보유자."""
 
 import uuid
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -25,6 +26,14 @@ class AdminRepository:
         return result.scalar_one_or_none()
 
     async def create_user(self, user: AdminUser) -> AdminUser:
+        self.session.add(user)
+        await self.session.flush()
+        return user
+
+    async def set_user_active(self, user: AdminUser, is_active: bool) -> AdminUser:
+        """계정 활성 상태 전환. 세션 보유자인 Repository 가 변경을 담당한다."""
+        user.is_active = is_active
+        user.updated_at = datetime.utcnow()
         self.session.add(user)
         await self.session.flush()
         return user
