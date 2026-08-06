@@ -1,6 +1,8 @@
 """관리자 API 라우터."""
 
-from fastapi import APIRouter, Depends, Response
+import uuid
+
+from fastapi import APIRouter, Depends, Request, Response
 
 from src.admin.dependencies import (
     COOKIE_NAME,
@@ -17,6 +19,7 @@ from src.admin.schemas import (
     CreateAdminRequest,
     MessageResponse,
     SettingsConfigResponse,
+    UpdateAdminStatusRequest,
 )
 from src.admin.service import AdminService
 from src.config import settings
@@ -116,6 +119,47 @@ async def list_admin_users(
         )
         for user in users
     ]
+
+
+@router.patch(
+    "/users/{user_id}/status",
+    response_model=AdminUserResponse,
+    dependencies=[Depends(verify_csrf), Depends(require_admin_gate)],
+)
+async def update_admin_user_status(
+    user_id: uuid.UUID,
+    data: UpdateAdminStatusRequest,
+    request: Request,
+    service: AdminService = Depends(get_admin_service),
+    current_admin: dict = Depends(get_current_admin),
+) -> AdminUserResponse:
+    """관리자 계정 활성/비활성 전환.
+
+    계정을 삭제하지 않고 로그인만 막는다(되돌릴 수 있음). 체험단 등 한시 계정의
+    접근을 종료할 때 사용한다.
+    """
+    user, changed = await service.set_admin_active(
+        user_id=user_id,
+        is_active=data.is_active,
+        actor_id=current_admin["user_id"],
+    )
+    # 실제 변경이 있었을 때만 감사 로그 — 멱등 재요청이 이력을 오염시키지 않도록.
+    if changed:
+        await service.log_audit(
+            admin_user_id=current_admin["user_id"],
+            action="admin_user.activate" if data.is_active else "admin_user.deactivate",
+            target_table="admin_users",
+            target_id=user.id,
+            changes={"email": user.email, "is_active": data.is_active},
+            ip_address=request.client.host if request.client else None,
+        )
+    return AdminUserResponse(
+        id=user.id,
+        email=user.email,
+        role=user.role,
+        is_active=user.is_active,
+        created_at=user.created_at,
+    )
 
 
 @router.get(

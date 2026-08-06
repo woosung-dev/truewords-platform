@@ -36,6 +36,11 @@ class CreateAdminRequest(BaseModel):
     role: str = "admin"
 
 
+class UpdateAdminStatusRequest(BaseModel):
+    """관리자 계정 활성/비활성 전환. 계정을 삭제하지 않고 로그인만 차단한다."""
+    is_active: bool
+
+
 class AuditLogResponse(BaseModel):
     id: uuid.UUID
     admin_user_id: uuid.UUID
