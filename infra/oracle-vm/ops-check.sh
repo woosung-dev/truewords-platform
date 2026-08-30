@@ -44,6 +44,11 @@ BUCKET="${BUCKET:-truewords-backups}"
 EXPIRED_MAX="${EXPIRED_MAX:-50}"
 SUGGESTED_MAX_AGE_D="${SUGGESTED_MAX_AGE_D:-10}"
 DISK_MAX_PCT="${DISK_MAX_PCT:-80}"
+# 70%: 2026-08-30 실측에서 한 달에 25GB(약 26%p) 늘었다. 80% 에서 처음
+# 알면 남은 시간이 3주도 안 된다. 이미지 GC 는 몇 분이면 끝나지만 디스크
+# 확장은 그렇지 않아, 먼저 알아야 선택지가 남는다. WARN 은 종료코드를
+# 바꾸지 않는다 — 배포를 막지 않고 눈에만 띄게 한다.
+DISK_WARN_PCT="${DISK_WARN_PCT:-70}"
 
 # gemini-key — 상한이 세 층이고 **이 순서를 지켜야 한다.**
 #   python 예산(50) < 컨테이너 timeout(60) < 호스트 timeout(75)
@@ -64,6 +69,7 @@ U=$(grep "^POSTGRES_USER=" .env | cut -d= -f2-)
 D=$(grep "^POSTGRES_DB=" .env | cut -d= -f2-)
 
 FAIL=0
+WARN=0
 ROWS=()
 
 # name | verdict | detail  — 표와 JSON 을 같은 데이터로 만든다.
@@ -71,6 +77,7 @@ record() {
   local name="$1" verdict="$2" detail="$3"
   ROWS+=("${name}|${verdict}|${detail}")
   [ "$verdict" = "FAIL" ] && FAIL=$((FAIL + 1))
+  [ "$verdict" = "WARN" ] && WARN=$((WARN + 1))
   return 0
 }
 
@@ -177,6 +184,8 @@ if [ -z "$DISK_PCT" ]; then
   record "disk" FAIL "사용률을 읽지 못했다"
 elif [ "$DISK_PCT" -ge "$DISK_MAX_PCT" ]; then
   record "disk" FAIL "${DISK_PCT}% 사용 (임계 ${DISK_MAX_PCT}%) — docker system df / /opt 확인"
+elif [ "$DISK_PCT" -ge "$DISK_WARN_PCT" ]; then
+  record "disk" WARN "${DISK_PCT}% 사용 (주의 ${DISK_WARN_PCT}% / 임계 ${DISK_MAX_PCT}%) — prune-images.sh 실행 검토"
 else
   record "disk" OK "${DISK_PCT}% 사용"
 fi
@@ -270,7 +279,11 @@ echo
 } | sudo tee "$STATUS_FILE" >/dev/null
 
 if [ "$FAIL" -eq 0 ]; then
-  echo "[$(date '+%F %T')] RESULT: OK — 불변식 ${#ROWS[@]}건 전부 통과"
+  if [ "$WARN" -gt 0 ]; then
+    echo "[$(date '+%F %T')] RESULT: OK — 불변식 ${#ROWS[@]}건 통과 (주의 ${WARN}건, 위 DETAIL 확인)"
+  else
+    echo "[$(date '+%F %T')] RESULT: OK — 불변식 ${#ROWS[@]}건 전부 통과"
+  fi
   exit 0
 fi
 echo "[$(date '+%F %T')] RESULT: ⚠️ FAIL ${FAIL}건 — 위 DETAIL 확인. 상태: ${STATUS_FILE}"

@@ -2,8 +2,12 @@
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-__pycache__/
-*.pyc
+
+# `__pycache__/` 는 최상위만 매칭한다 — Docker 패턴에는 암묵적 `**` 가 없어서
+# src/*/__pycache__ 25개가 그동안 빌드 컨텍스트에 들어가고 있었다.
+**/__pycache__/
+**/*.pyc
+
 tests/
 data/
 .env
@@ -11,3 +15,16 @@ data/
 .git/
 .gitignore
 docker-compose.yml
+
+# 런타임에 불필요한데 이미지에 실려 있던 것들.
+# uvicorn.log 는 7.4MB 이고 로컬에서 실행할 때마다 내용이 바뀌어, 매 빌드마다
+# 소스 레이어를 통째로 새로 만들게 한다.
+uvicorn.log
+*.log
+logs/
+tmp_eval/
+test-results/
+.DS_Store
+README.md
+Dockerfile
+.dockerignore

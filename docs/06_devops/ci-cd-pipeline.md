@@ -66,8 +66,22 @@ make oracle-logs               # VM compose 로그 follow
 2. **entrypoint 검증** — `alembic --version && uvicorn --version`. dev-log 41~42 의 `uv: not found` 사고(runtime stage 에 binary 부재로 기동 실패) 재발 방지 게이트다.
 3. `docker save | gzip -1 | ssh 'gunzip | sudo docker load'` — Makefile 이 `pipefail` 을 켜므로 스트림이 잘리면 즉시 실패한다.
 4. VM `~/truewords/.env` 의 `BACKEND_TAG` 를 새 sha 로 치환 → `docker compose up -d --wait backend`
+5. `make prune-images` — repo 당 최신 3개를 남기고 구버전 이미지를 지운다 (아래 참조)
 
 `--wait` 가 healthcheck 통과까지 블로킹하므로, 명령이 성공으로 끝나면 새 컨테이너가 실제로 살아 있는 것이다.
+
+#### 이미지 레이어 구조는 계약이다
+
+`backend/Dockerfile` 의 runtime stage 는 **venv 와 소스를 반드시 다른 레이어에 둔다.** 한 레이어로 합치면 소스 한 줄만 바뀌어도 855MB venv 가 통째로 새 레이어가 되고, VM 은 containerd image store 라 blob + snapshot 으로 이중 저장하므로 배포 1회당 실디스크 약 1.8GB 를 먹는다.
+
+2026-08-30 실측: 한 달 만에 VM 디스크가 18G → 43G 로 늘었고, 그중 미사용 backend 이미지 5개가 9GB 를 잠그고 있었다. 레이어를 분리한 뒤 같은 실험(소스 1줄 변경 후 재빌드)에서 신규 UNIQUE SIZE 가 **1.79GB → 1.16MB** 로 떨어졌다.
+
+분리가 성립하는 전제는 두 가지다. 둘 중 하나라도 깨지면 재검증해야 한다.
+
+- `uv.lock` 이 프로젝트를 `virtual` 로 잡아 venv 의 site-packages 에 설치하지 않는다 (editable `.pth` 도 없다). `pyproject.toml` 에 `[build-system]` 이 추가되면 깨진다.
+- `uvicorn main:app` 이 WORKDIR 기준으로 import 한다 — venv 가 소스를 참조하지 않는다.
+
+또한 runtime stage 의 `COPY` 는 **화이트리스트**다. `scripts/` 는 선택이 아니라 필수다 — VM cron 3개(`refresh-questions.sh`, `cache-cleanup.sh`, `ops-check.sh`)가 컨테이너 안에서 `python scripts/*.py` 를 호출한다. `backend/` 최상위에 런타임이 필요로 하는 파일이 새로 생기면 이 목록에 추가해야 한다.
 
 ### Frontend
 
@@ -189,7 +203,7 @@ make rollback-admin   TAG=<직전 배포 sha>
 
 `TAG` 기본값(현재 HEAD)으로 롤백하면 방금 배포한 태그를 다시 기록하는 no-op 이 된다. 배포 실패 직후 반사적으로 호출하는 경로라 롤백된 줄 알고 장애가 이어지므로, Makefile 이 명시 전달을 강제한다.
 
-이전 이미지는 VM 에 남아 있어야 한다. `docker image ls truewords-backend` 로 확인한다.
+이전 이미지는 VM 에 남아 있어야 한다. `docker image ls truewords-backend` 로 확인한다. `prune-images.sh` 가 repo 당 최신 3개를 보존하므로 직전 2개까지는 항상 롤백할 수 있다. **`docker image prune` 은 이 환경에서 무효다** — 구버전 이미지가 전부 커밋 sha 태그를 달고 있어 dangling 이 아니다.
 
 ### VM 자체 장애
 

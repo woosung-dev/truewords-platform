@@ -15,6 +15,7 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
 | `backup-db.sh` | Postgres 백업 (6시간마다 · pg_dump → 무결성 검증 → Object Storage 업로드 → 보관 기간 정리). |
 | `restore-drill.sh` | 백업 복구 리허설. 운영 DB 는 읽기만 하고 임시 DB 로 복원해 대조합니다. |
 | `refresh-questions.sh` | 봇별 추천 질문 주간 갱신. backend 컨테이너 안에서 실행합니다. |
+| `prune-images.sh` | truewords 이미지 GC. repo 당 최신 3개와 실행 중 이미지를 남기고 나머지를 지웁니다. 빌드 캐시도 `until=168h` 로 정리합니다. |
 | `cache-cleanup.sh` | semantic_cache TTL 만료 point 정리 **수동 진입점**. 스케줄은 `cache-cleanup.yml`(GHA) 이 갖습니다 — cron 에 등록하지 않습니다. |
 | `ops-check.sh` | 운영 불변식 점검. 예약 작업이 "돌지 않은" 것까지 결과 기준으로 잡습니다. Gemini 키 생존도 함께 봅니다(§`gemini-key`) — probe 본체는 backend 이미지의 `scripts/gemini_key_probe.py` 라 이 디렉토리에 없습니다. |
 
@@ -178,7 +179,7 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
 
 `deploy-backend` 는 이미지에 `alembic` 과 `uvicorn` 바이너리가 실제로 있는지 확인한 뒤에야 전송한다. runtime stage 에 바이너리가 빠져 기동에 실패했던 사고(dev-log 41~42)의 재발 방지 게이트다. 전송은 `docker save | gzip -1 | ssh` 이고 Makefile 이 `pipefail` 을 켜므로 스트림이 잘리면 즉시 실패한다.
 
-`rollback-backend` / `rollback-admin` 은 `TAG` 를 반드시 받는다. 기본값(현재 HEAD)으로 돌면 방금 배포한 태그를 재기록하는 no-op 이 되고, 롤백된 줄 알고 장애가 이어진다. 이전 이미지가 VM 에 남아 있어야 하므로 `sudo docker image ls truewords-backend` (또는 `truewords-admin`) 로 확인한다.
+`rollback-backend` / `rollback-admin` 은 `TAG` 를 반드시 받는다. 기본값(현재 HEAD)으로 돌면 방금 배포한 태그를 재기록하는 no-op 이 되고, 롤백된 줄 알고 장애가 이어진다. 이전 이미지가 VM 에 남아 있어야 하므로 `sudo docker image ls truewords-backend` (또는 `truewords-admin`) 로 확인한다. `prune-images.sh` 가 repo 당 최신 3개를 보존하므로 직전 2개까지는 항상 롤백할 수 있고, 롤백으로 되돌린 옛 태그는 실행 중이라 GC 대상에서 제외된다.
 
 ### admin 빌드의 build-arg
 
@@ -220,6 +221,7 @@ sudo docker stats
 0 0,6,12,18 * * *  /home/ubuntu/truewords/backup-db.sh    >> /home/ubuntu/truewords-backup.log 2>&1
 30 18 * * 0   /home/ubuntu/truewords/refresh-questions.sh >> /home/ubuntu/truewords-cron.log   2>&1
 45 18 * * *   /home/ubuntu/truewords/ops-check.sh         >> /home/ubuntu/truewords-cron.log   2>&1
+15 19 * * 0   /home/ubuntu/truewords/prune-images.sh     >> /home/ubuntu/truewords-cron.log   2>&1
 ```
 
 | 작업 | 주기 | 왜 VM 이어야 하는가 |
@@ -227,6 +229,7 @@ sudo docker stats
 | `backup-db.sh` | **6시간마다** (KST 09/15/21/03시) | Postgres 가 `127.0.0.1` 바인딩이라 외부에서 닿을 수 없다 |
 | `refresh-questions.sh` | 매주 월 03:30 KST | 같은 이유 (Postgres 필요) |
 | `ops-check.sh` | 매일 03:45 KST | **감시자는 감시 대상과 다른 실패 도메인에 있어야 한다.** GHA 가 멈춘 사고에서 유일하게 정상 작동한 게 VM cron 이었다 |
+| `prune-images.sh` | 매주 월 04:15 KST | 이미지는 VM 로컬 자원이다. 배포 때마다도 돌지만, 배포가 없는 주에도 빌드 캐시가 쌓이므로 주간 보루를 둔다 |
 
 `cache-cleanup.sh` 는 **cron 에 등록하지 않는다.** 스케줄 주인은 `.github/workflows/cache-cleanup.yml` 이고 (Qdrant 는 HTTPS 라 어디서든 닿는다), VM 쪽 스크립트는 수동 실행 진입점으로만 남긴다. 스케줄러가 둘이면 같은 작업이 두 번 돈다.
 
@@ -259,7 +262,7 @@ make restore-drill                         # 백업 복구 리허설
 | `cache-ttl` | 만료 ≤ 50건 | `cache-cleanup.yml` 미실행 (스케줄러 위치 무관) |
 | `suggested-q` | `max(suggested_at)` < 10일 | `refresh-questions.sh` 미실행 |
 | `containers` | 4 healthy + cloudflared up | 컨테이너 이상 |
-| `disk` | < 80% | 디스크 포화 |
+| `disk` | < 70% 주의 / < 80% 임계 | 디스크 포화. 한 달에 25GB 늘던 실측(2026-08-30)에서 80% 는 남은 시간이 3주도 안 됐다. WARN 은 종료코드를 바꾸지 않는다 |
 | `gemini-key` | embed + generate 둘 다 HTTP 성공, embed 차원 = 1536 | **유일한 외부 의존 사망** — 키 회수·청구 중단·quota 소진·모델 폐기·차원 변경 |
 
 ```bash
@@ -436,7 +439,7 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 | 무한 리다이렉트 | `next.config.ts` `redirects()` 의 host 조건이 빠졌는지 확인합니다. |
 | backend 가 DB 에 못 붙음 | `sudo docker compose ps postgres` 가 healthy 인지, `.env` 의 `DATABASE_URL` 호스트가 `postgres` 인지 확인합니다. |
 | Qdrant OOM | `docker stats` 로 메모리를 확인하고 적재와 대량 검색을 분리합니다. 6GB 제한을 임의로 낮추지 않습니다. |
-| VM 디스크가 증가함 | `docker system df` 와 `/opt/qdrant`, `/opt/backups` 용량을 확인하고 오래된 이미지와 snapshot 을 정리합니다. |
+| VM 디스크가 증가함 | `make prune-images` (또는 `ssh truewords-oracle 'bash ~/truewords/prune-images.sh'`) 를 돌립니다. **`docker image prune` 은 여기서 무효입니다** — 구버전 이미지가 전부 커밋 sha 태그를 달고 있어 dangling 이 아닙니다. 그래도 부족하면 `/opt/qdrant/snapshots` 와 `/opt/backups` 를 확인합니다. |
 | 백업이 안 돎 | `tail ~/truewords-backup.log` 와 `crontab -l` 을 확인합니다. Object Storage 업로드 실패는 경고만 남고 로컬 백업은 정상입니다. |
 | 터널이 두 곳으로 연결됨 | 다른 환경이 같은 토큰을 쓰는지 확인하고 `truewords-oracle` 전용 토큰으로 교체합니다. |
 
