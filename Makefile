@@ -143,6 +143,7 @@ deploy-backend: ## Oracle Cloud ARM VM backend 배포 (빌드·검증·전송·�
 	@docker run --rm --entrypoint sh $(IMG) -c "alembic --version && uvicorn --version"
 	@docker save $(IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
 	@ssh "$(ORACLE)" 'sed -i "s/^BACKEND_TAG=.*/BACKEND_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait backend'
+	@$(MAKE) --no-print-directory prune-images
 
 rollback-backend: ## ⚠️ 이전 backend 이미지로 롤백 (`TAG=<이전 sha>` 필수).
 	@# TAG 기본값(현재 HEAD)으로 롤백하면 방금 배포한 태그를 재기록하는 no-op 이 된다.
@@ -158,11 +159,18 @@ deploy-admin: ## Oracle Cloud ARM VM admin 배포 (빌드·전송·무중단 교
 		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 -t $(ADMIN_IMG) --load .
 	@docker save $(ADMIN_IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
 	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait admin'
+	@$(MAKE) --no-print-directory prune-images
 
 rollback-admin: ## ⚠️ 이전 admin 이미지로 롤백 (`TAG=<이전 sha>` 필수).
 	@# deploy-backend 와 같은 이유로 TAG 명시를 강제한다 (기본값 롤백은 no-op).
 	@[ "$(origin TAG)" != "file" ] || { echo "❌ 롤백은 TAG=<이전 sha> 를 명시해야 합니다 (예: make rollback-admin TAG=abc1234)"; exit 1; }
 	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait admin'
+
+prune-images: ## VM 의 오래된 truewords 이미지·빌드 캐시 정리 (최신 3개 + 실행 중은 보존)
+	@# `docker image prune` 은 여기서 무효다 — 구버전 이미지가 전부 커밋 sha 태그를
+	@# 달고 있어 dangling 이 아니다(실측 dangling 0개). 스크립트가 생성시각순으로
+	@# 정렬해 최신 N개만 남긴다. `KEEP=5` / `DRY_RUN=1` 로 조정할 수 있다.
+	@ssh "$(ORACLE)" '$(if $(KEEP),KEEP=$(KEEP) ,)$(if $(DRY_RUN),DRY_RUN=$(DRY_RUN) ,)bash ~/truewords/prune-images.sh'
 
 oracle-logs: ## Oracle Cloud VM Docker Compose 로그 follow (최근 100줄).
 	@ssh -t "$(ORACLE)" 'cd ~/truewords && sudo docker compose logs -f --tail=100'
