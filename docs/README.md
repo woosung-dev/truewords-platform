@@ -57,6 +57,18 @@
 
 ---
 
+## research/ — 제품·시장 조사
+
+| 문서 | 설명 | 키워드 |
+|------|------|--------|
+| [2026-08-30-chowon-ai-benchmark](./research/2026-08-30-chowon-ai-benchmark.md) | 초원AI의 현재 기능·공개 실제 화면·수익화·신뢰 리스크 교차 조사 | 초원AI, 경쟁 분석, 화면 |
+| [2026-08-30-pwa-app-direction](./research/2026-08-30-pwa-app-direction.md) | FFWPU 독립 베타의 포지셔닝·MVP·Web Push 타당성·16개 세션 로드맵과 후속 프롬프트 | PWA, 제품 전략, 알림 |
+| [2026-08-31-chowon-pwa-strategy-report](./research/2026-08-31-chowon-pwa-strategy-report.html) | 벤치마크와 제품 방향을 한 화면에서 검토하는 자체 포함 HTML 보고서 | 의사결정 보고서, 비교 차트 |
+
+> 위 PWA 방향은 세션 0에서 승인됐으며, 기존 `faith-union-app` 프로토타입 및 Flutter Phase 4 기능 명세와 별개다.
+
+---
+
 ## 05_env/ — 환경 설정
 
 | 문서 | 설명 | 키워드 |
@@ -125,5 +137,8 @@ AI 챗봇 개발   → 04_architecture/02 + 04_architecture/05 + 01_requirements
 UI/프론트엔드  → 01_requirements/16 + dev-log/17 + dev-log/13
 캐싱/비용 최적화 → 04_architecture/08 + 04_architecture/04
 전략/기획 논의 → dev-log/12 + dev-log/14 + 00_project/01
+신규 가정연합 PWA → research/2026-08-30-pwa-app-direction + research/2026-08-30-chowon-ai-benchmark
 로컬 LLM 활용  → dev-log/15
 ```
+
+> `dev-log/12~14`는 개신교·성경 앱 시장을 전제로 한 기존 벤치마크다. 신규 가정연합 PWA의 요구사항으로 상속하지 않는다.
