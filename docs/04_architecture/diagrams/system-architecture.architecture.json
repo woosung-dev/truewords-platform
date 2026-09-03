@@ -1,0 +1,529 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "TrueWords 운영 시스템 아키텍처 (배포 토폴로지)",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/woosung-dev/truewords-platform",
+      "revision": "94755c7889608f6732f842eddca08158ef97a9da"
+    },
+    "views": [
+      {
+        "id": "request-path",
+        "label": "요청 경로",
+        "focus": [
+          "browser",
+          "cf_edge",
+          "cloudflared",
+          "admin",
+          "backend",
+          "gemini"
+        ],
+        "note": "브라우저는 app.woosung.dev 하나만 호출한다. admin rewrites 가 compose DNS 로 backend 에 프록시하므로 Cloudflare 를 다시 타지 않는다."
+      },
+      {
+        "id": "data-plane",
+        "label": "데이터 평면",
+        "focus": [
+          "backend",
+          "postgres",
+          "qdrant",
+          "gemini"
+        ],
+        "note": "backend 는 postgres:5432 / qdrant:6333 을 compose 서비스 DNS 로 쓰고, 외부 의존은 Gemini API 하나뿐이다."
+      },
+      {
+        "id": "ops-path",
+        "label": "배포·예약 작업",
+        "focus": [
+          "dev_mac",
+          "gha",
+          "vm_cron",
+          "oci_backup",
+          "admin",
+          "backend",
+          "postgres",
+          "qdrant"
+        ],
+        "note": "push 자동 배포는 없다. 로컬 Mac 의 make deploy-* 가 SSH 로 이미지를 밀어넣고, GHA 와 VM cron 이 예약 작업을 나눠 갖는다."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "browser",
+      "type": "external",
+      "label": "사용자 브라우저",
+      "sublabel": "app.woosung.dev",
+      "pos": [
+        30,
+        180
+      ],
+      "size": [
+        120,
+        60
+      ]
+    },
+    {
+      "id": "cf_edge",
+      "type": "cloud",
+      "label": "Cloudflare Edge",
+      "sublabel": "TLS 종단 · Zero Trust",
+      "pos": [
+        20,
+        300
+      ],
+      "size": [
+        140,
+        60
+      ],
+      "sources": [
+        {
+          "path": "infra/oracle-vm/README.md",
+          "line": 73,
+          "end_line": 83,
+          "label": "터널 공개 호스트명 매핑"
+        },
+        {
+          "path": "admin/next.config.ts",
+          "line": 6,
+          "end_line": 8,
+          "label": "app.woosung.dev 리터럴"
+        }
+      ]
+    },
+    {
+      "id": "cloudflared",
+      "type": "cloud",
+      "label": "cloudflared",
+      "sublabel": "tunnel truewords-oracle",
+      "tag": "mem 512m",
+      "pos": [
+        250,
+        300
+      ],
+      "size": [
+        145,
+        60
+      ],
+      "sources": [
+        {
+          "path": "infra/oracle-vm/docker-compose.yml",
+          "line": 111,
+          "end_line": 122,
+          "label": "cloudflared 서비스"
+        },
+        {
+          "path": "infra/oracle-vm/README.md",
+          "line": 73,
+          "end_line": 83,
+          "label": "Cloudflare Tunnel 설정"
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "type": "frontend",
+      "label": "admin :3000",
+      "sublabel": "Next.js standalone",
+      "tag": "mem 768m",
+      "pos": [
+        485,
+        300
+      ],
+      "size": [
+        115,
+        60
+      ],
+      "sources": [
+        {
+          "path": "infra/oracle-vm/docker-compose.yml",
+          "line": 89,
+          "end_line": 109,
+          "label": "admin 서비스"
+        },
+        {
+          "path": "admin/next.config.ts",
+          "line": 36,
+          "end_line": 66,
+          "label": "rewrites → backend"
+        },
+        {
+          "path": "admin/Dockerfile",
+          "line": 25,
+          "end_line": 29,
+          "label": "NEXT_PUBLIC_API_URL build ARG"
+        }
+      ]
+    },
+    {
+      "id": "backend",
+      "type": "backend",
+      "label": "backend :8080",
+      "sublabel": "FastAPI · uvicorn",
+      "tag": "mem 3g",
+      "pos": [
+        695,
+        300
+      ],
+      "size": [
+        115,
+        60
+      ],
+      "sources": [
+        {
+          "path": "infra/oracle-vm/docker-compose.yml",
+          "line": 66,
+          "end_line": 87,
+          "label": "backend 서비스"
+        },
+        {
+          "path": "backend/main.py",
+          "line": 78,
+          "end_line": 126,
+          "label": "FastAPI app + 라우터"
+        },
+        {
+          "path": "backend/Dockerfile",
+          "line": 70,
+          "end_line": 81,
+          "label": "alembic + uvicorn :8080"
+        }
+      ]
+    },
+    {
+      "id": "qdrant",
+      "type": "database",
+      "label": "qdrant :6333",
+      "sublabel": "malssum_poc_v5 · semantic_cache",
+      "tag": "v1.12.4",
+      "pos": [
+        895,
+        180
+      ],
+      "size": [
+        190,
+        60
+      ],
+      "sources": [
+        {
+          "path": "infra/oracle-vm/docker-compose.yml",
+          "line": 29,
+          "end_line": 64,
+          "label": "qdrant 서비스"
+        },
+        {
+          "path": "backend/src/config.py",
+          "line": 13,
+          "end_line": 16,
+          "label": "COLLECTION_NAME 기본값"
+        },
+        {
+          "path": "backend/src/config.py",
+          "line": 46,
+          "end_line": 49,
+          "label": "semantic_cache 설정"
+        }
+      ]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "postgres :5432",
+      "sublabel": "PostgreSQL 17",
+      "tag": "mem 1g",
+      "pos": [
+        895,
+        420
+      ],
+      "size": [
+        130,
+        60
+      ],
+      "sources": [
+        {
+          "path": "infra/oracle-vm/docker-compose.yml",
+          "line": 6,
+          "end_line": 27,
+          "label": "postgres 서비스"
+        },
+        {
+          "path": "backend/src/config.py",
+          "line": 18,
+          "end_line": 21,
+          "label": "DATABASE_URL"
+        }
+      ]
+    },
+    {
+      "id": "gemini",
+      "type": "external",
+      "label": "Gemini API",
+      "sublabel": "gemini-3.5-flash-lite",
+      "pos": [
+        1165,
+        300
+      ],
+      "size": [
+        140,
+        60
+      ],
+      "sources": [
+        {
+          "path": "backend/src/common/gemini.py",
+          "line": 23,
+          "end_line": 24,
+          "label": "MODEL_GENERATE / MODEL_EMBEDDING"
+        }
+      ],
+      "tag": "gemini-embedding-001"
+    },
+    {
+      "id": "dev_mac",
+      "type": "external",
+      "label": "개발자 Mac",
+      "sublabel": "make deploy-backend / deploy-admin",
+      "pos": [
+        547,
+        40
+      ],
+      "size": [
+        200,
+        60
+      ],
+      "sources": [
+        {
+          "path": "Makefile",
+          "line": 137,
+          "end_line": 146,
+          "label": "deploy-backend"
+        },
+        {
+          "path": "Makefile",
+          "line": 154,
+          "end_line": 162,
+          "label": "deploy-admin"
+        }
+      ]
+    },
+    {
+      "id": "gha",
+      "type": "external",
+      "label": "GitHub Actions",
+      "sublabel": "cache-cleanup.yml · 매일 18:00 UTC",
+      "pos": [
+        890,
+        40
+      ],
+      "size": [
+        200,
+        60
+      ],
+      "sources": [
+        {
+          "path": ".github/workflows/cache-cleanup.yml",
+          "line": 19,
+          "end_line": 22,
+          "label": "schedule cron"
+        },
+        {
+          "path": ".github/workflows/cache-cleanup.yml",
+          "line": 66,
+          "end_line": 87,
+          "label": "cleanup_semantic_cache.py 실행"
+        }
+      ]
+    },
+    {
+      "id": "vm_cron",
+      "type": "backend",
+      "label": "VM cron (host)",
+      "sublabel": "backup-db.sh 6h · ops-check.sh",
+      "pos": [
+        870,
+        560
+      ],
+      "size": [
+        180,
+        60
+      ],
+      "sources": [
+        {
+          "path": "infra/oracle-vm/README.md",
+          "line": 220,
+          "end_line": 225,
+          "label": "crontab 4줄"
+        },
+        {
+          "path": "infra/oracle-vm/backup-db.sh",
+          "line": 8,
+          "end_line": 9,
+          "label": "6시간 주기"
+        }
+      ]
+    },
+    {
+      "id": "oci_backup",
+      "type": "cloud",
+      "label": "OCI Object Storage",
+      "sublabel": "truewords-backups",
+      "pos": [
+        1160,
+        560
+      ],
+      "size": [
+        160,
+        60
+      ],
+      "sources": [
+        {
+          "path": "infra/oracle-vm/backup-db.sh",
+          "line": 54,
+          "end_line": 66,
+          "label": "oci os object put"
+        }
+      ],
+      "tag": "Instance Principal"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Oracle Cloud ap-tokyo-1 · VM.Standard.A1.Flex (2 OCPU / 12GB) · inbound TCP 22 only",
+      "wraps": [
+        "cloudflared",
+        "admin",
+        "backend",
+        "qdrant",
+        "postgres",
+        "vm_cron"
+      ],
+      "pad": 36
+    },
+    {
+      "kind": "security-group",
+      "label": "truewords_net (docker bridge) · 호스트 publish 는 127.0.0.1 루프백만",
+      "wraps": [
+        "cloudflared",
+        "admin",
+        "backend",
+        "qdrant",
+        "postgres"
+      ],
+      "pad": 14
+    }
+  ],
+  "connections": [
+    {
+      "from": "browser",
+      "to": "cf_edge",
+      "label": "HTTPS",
+      "variant": "emphasis",
+      "labelDy": 24
+    },
+    {
+      "from": "cf_edge",
+      "to": "cloudflared",
+      "label": "tunnel (outbound)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "cloudflared",
+      "to": "admin",
+      "label": "app.<zone> 라우팅",
+      "variant": "emphasis"
+    },
+    {
+      "from": "admin",
+      "to": "backend",
+      "label": "Next rewrites 프록시",
+      "variant": "emphasis",
+      "labelDy": 54
+    },
+    {
+      "from": "backend",
+      "to": "qdrant",
+      "label": "raw httpx"
+    },
+    {
+      "from": "backend",
+      "to": "postgres",
+      "label": "asyncpg"
+    },
+    {
+      "from": "backend",
+      "to": "gemini",
+      "label": "HTTPS · 유일한 외부 의존",
+      "variant": "emphasis"
+    },
+    {
+      "from": "dev_mac",
+      "to": "admin",
+      "label": "SSH · docker load",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelSegment": 1
+    },
+    {
+      "from": "dev_mac",
+      "to": "backend",
+      "label": "SSH · docker load",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelSegment": 1
+    },
+    {
+      "from": "gha",
+      "to": "qdrant",
+      "label": "HTTPS vdb.<zone> · TTL 정리",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "from": "vm_cron",
+      "to": "postgres",
+      "label": "pg_dump -Fc (compose exec)",
+      "variant": "dashed"
+    },
+    {
+      "from": "vm_cron",
+      "to": "oci_backup",
+      "label": "oci os object put",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "요청 경로",
+      "items": [
+        "터널 라우팅: app→admin:3000 · api→backend:8080 · vdb→qdrant:6333",
+        "브라우저는 상대 경로만 호출 → admin rewrites 가 compose DNS 로 프록시",
+        "외부 의존은 Gemini API 하나 (embed 1536d + generate)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "배포",
+      "items": [
+        "push 자동 배포 없음 — 로컬 Mac 의 make deploy-backend / deploy-admin",
+        "buildx linux/arm64 → docker save | gzip -1 | ssh docker load",
+        ".env 태그 치환 → compose up -d --wait → prune-images (최신 3개)"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "예약 작업",
+      "items": [
+        "GHA cache-cleanup 매일 18:00 UTC → semantic_cache TTL 정리",
+        "VM cron backup-db.sh 6h → pg_dump (로컬 14일 / 원격 90일)",
+        "ops-check.sh 가 매일 7개 불변식을 결과 기준으로 점검"
+      ]
+    }
+  ]
+}

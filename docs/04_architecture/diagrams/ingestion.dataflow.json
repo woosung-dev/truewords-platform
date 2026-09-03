@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "데이터 적재 데이터플로우 — 관리자 업로드 → Qdrant 포인트",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1085,
+      780
+    ],
+    "views": [
+      {
+        "id": "upload-to-worker",
+        "label": "업로드 → 워커",
+        "focus": [
+          "admin_ui",
+          "upload_api",
+          "worker",
+          "extractor"
+        ],
+        "note": "202 즉시 반환 후 queue.Queue(100) 을 단일 ingest-worker 스레드가 순차 처리한다."
+      },
+      {
+        "id": "embed-upsert",
+        "label": "임베딩 · upsert",
+        "focus": [
+          "chunker",
+          "gemini",
+          "bm25",
+          "ingestor",
+          "qdrant"
+        ],
+        "note": "청크 텍스트가 dense 1536 + sparse 벡터로 합쳐져 50개 배치 points 로 적재된다."
+      },
+      {
+        "id": "job-state-cache",
+        "label": "상태 전이 · 캐시 무효화",
+        "focus": [
+          "chunker",
+          "ingestor",
+          "pg_jobs",
+          "cache"
+        ],
+        "note": "ingestion_jobs 체크포인트와 max(completed_at) 기반 semantic_cache 무효화."
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "업로드"
+    },
+    {
+      "label": "큐 · 워커"
+    },
+    {
+      "label": "추출 · 청킹"
+    },
+    {
+      "label": "임베딩"
+    },
+    {
+      "label": "저장"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "admin_ui",
+      "type": "frontend",
+      "label": "관리자 UI 업로드",
+      "sublabel": "데이터 소스 탭 · ≤50MB",
+      "stage": 0,
+      "row": 0,
+      "width": 128,
+      "tag": "on_duplicate"
+    },
+    {
+      "id": "upload_api",
+      "type": "backend",
+      "label": "POST /upload · 202",
+      "sublabel": "NamedTemporaryFile",
+      "stage": 0,
+      "row": 2,
+      "width": 128,
+      "tag": "BackgroundTask"
+    },
+    {
+      "id": "worker",
+      "type": "messagebus",
+      "label": "ingest-worker 스레드",
+      "sublabel": "queue.Queue(100) · 순차",
+      "stage": 1,
+      "row": 2,
+      "width": 128,
+      "tag": "single thread"
+    },
+    {
+      "id": "extractor",
+      "type": "backend",
+      "label": "extractor",
+      "sublabel": "pymupdf · docx · utf-8",
+      "stage": 2,
+      "row": 0,
+      "width": 128
+    },
+    {
+      "id": "hash_policy",
+      "type": "security",
+      "label": "hash · 메타 · ADR-30",
+      "sublabel": "SHA-256 · zfill(3) 메타",
+      "stage": 2,
+      "row": 2,
+      "width": 128,
+      "tag": "merge|replace|skip"
+    },
+    {
+      "id": "chunker",
+      "type": "backend",
+      "label": "chunk_recursive",
+      "sublabel": "Recursive 700 / 150",
+      "stage": 2,
+      "row": 4,
+      "width": 128,
+      "tag": "langchain"
+    },
+    {
+      "id": "gemini",
+      "type": "external",
+      "label": "Gemini Embedding",
+      "sublabel": "embedding-001 · 1536",
+      "stage": 3,
+      "row": 0,
+      "width": 128,
+      "tag": "RETRIEVAL_DOCUMENT"
+    },
+    {
+      "id": "ingestor",
+      "type": "backend",
+      "label": "ingest_chunks",
+      "sublabel": "uuid5(volume:chunk_index)",
+      "stage": 3,
+      "row": 2,
+      "width": 128,
+      "tag": "50개 배치"
+    },
+    {
+      "id": "bm25",
+      "type": "backend",
+      "label": "fastembed bm25",
+      "sublabel": "Qdrant/bm25 · sparse",
+      "stage": 3,
+      "row": 4,
+      "width": 128,
+      "tag": "로컬 CPU"
+    },
+    {
+      "id": "cache",
+      "type": "database",
+      "label": "semantic_cache",
+      "sublabel": "corpus_updated_at 필터",
+      "stage": 4,
+      "row": 0,
+      "width": 128,
+      "tag": "stale 처리"
+    },
+    {
+      "id": "qdrant",
+      "type": "database",
+      "label": "malssum_poc_v5",
+      "sublabel": "dense 1536 + sparse",
+      "stage": 4,
+      "row": 2,
+      "width": 128,
+      "tag": "Qdrant · payload v1",
+      "yOffset": -7
+    },
+    {
+      "id": "pg_jobs",
+      "type": "database",
+      "label": "ingestion_jobs",
+      "sublabel": "PostgreSQL · 상태 전이",
+      "stage": 4,
+      "row": 4,
+      "width": 128,
+      "tag": "processed_chunks"
+    }
+  ],
+  "flows": [
+    {
+      "id": "f_upload",
+      "from": "admin_ui",
+      "to": "upload_api",
+      "label": "multipart 파일",
+      "variant": "emphasis",
+      "labelAt": [
+        100,
+        271
+      ]
+    },
+    {
+      "id": "f_enqueue",
+      "from": "upload_api",
+      "to": "worker",
+      "label": "tmp 경로",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f_dequeue",
+      "from": "worker",
+      "to": "extractor",
+      "label": "tmp 파일",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f_text",
+      "from": "extractor",
+      "to": "hash_policy",
+      "label": "원문 텍스트",
+      "variant": "emphasis",
+      "labelAt": [
+        530,
+        271
+      ]
+    },
+    {
+      "id": "f_meta",
+      "from": "hash_policy",
+      "to": "chunker",
+      "label": "텍스트 + 메타",
+      "variant": "emphasis",
+      "labelAt": [
+        530,
+        499
+      ]
+    },
+    {
+      "id": "f_chunks",
+      "from": "chunker",
+      "to": "ingestor",
+      "label": "청크 list",
+      "variant": "emphasis",
+      "labelAt": [
+        637.5,
+        460
+      ]
+    },
+    {
+      "id": "f_dense_in",
+      "from": "ingestor",
+      "to": "gemini",
+      "label": "청크 배치 ≤100",
+      "labelDx": -48,
+      "labelDy": -103
+    },
+    {
+      "id": "f_sparse_in",
+      "from": "ingestor",
+      "to": "bm25",
+      "label": "청크 텍스트",
+      "labelDx": -48,
+      "labelDy": 105
+    },
+    {
+      "id": "f_dense_out",
+      "from": "gemini",
+      "to": "ingestor",
+      "label": "dense 1536",
+      "labelDx": 48,
+      "labelDy": 127
+    },
+    {
+      "id": "f_sparse_out",
+      "from": "bm25",
+      "to": "ingestor",
+      "label": "sparse 벡터",
+      "labelDx": 48,
+      "labelDy": -51
+    },
+    {
+      "id": "f_upsert",
+      "from": "ingestor",
+      "to": "qdrant",
+      "label": "points ×50 PUT",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f_checkpoint",
+      "from": "ingestor",
+      "to": "pg_jobs",
+      "label": "processed_chunks · 최종 상태",
+      "variant": "dashed"
+    },
+    {
+      "id": "f_running",
+      "from": "chunker",
+      "to": "pg_jobs",
+      "label": "RUNNING · content_hash",
+      "variant": "dashed",
+      "route": "bottom-channel",
+      "channelY": 690
+    },
+    {
+      "id": "f_invalidate",
+      "from": "pg_jobs",
+      "to": "cache",
+      "label": "max(completed_at)",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "right",
+      "via": [
+        [
+          1056,
+          613
+        ],
+        [
+          1056,
+          157
+        ]
+      ],
+      "labelAt": [
+        1056,
+        271
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "메인 경로",
+      "items": [
+        "POST /admin/data-sources/upload 이 202 를 즉시 반환하고, 단일 ingest-worker 스레드가 Queue(100) 을 순차 처리",
+        "Gemini gemini-embedding-001 dense 1536 + fastembed Qdrant/bm25 sparse 를 한 포인트에 동시 upsert",
+        "point id = uuid5(volume:chunk_index) → 같은 volume 재적재 시 덮어쓰기"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "ingestion_jobs 상태",
+      "items": [
+        "PENDING → RUNNING(total_chunks · content_hash) → COMPLETED / PARTIAL / FAILED",
+        "체크포인트는 upsert 성공 직후 update_progress · 재업로드 시 Qdrant 포인트 수 = start_chunk",
+        "DB 접근은 asyncio.run_coroutine_threadsafe 로 FastAPI 메인 루프에 위임"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "레이트 리밋 · 재업로드 정책",
+      "items": [
+        "GEMINI_TIER free: 배치 ≤100 텍스트 · ≤31,000자 + 60s sleep · 429 는 90→180→360s 3회 후 PARTIAL",
+        "ADR-30: merge/skip 은 기존 ∪ 신규 source 보존, replace 는 신규 source 만 · COMPLETED 재업로드는 기존 청크 삭제 후 0부터",
+        "skip + COMPLETED + hash 일치 → 임베딩 생략 (Gemini 호출 0회, complete_job 으로 복구)"
+      ]
+    }
+  ]
+}

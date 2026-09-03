@@ -1,0 +1,492 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "TrueWords 코드 모듈 구조 — admin 라우트 그룹 ↔ backend 패키지",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/woosung-dev/truewords-platform",
+      "revision": "94755c7889608f6732f842eddca08158ef97a9da"
+    },
+    "views": [
+      {
+        "id": "front-to-back",
+        "label": "프론트 → 백엔드",
+        "focus": [
+          "app_chat",
+          "app_dashboard",
+          "features",
+          "rewrites",
+          "routers"
+        ],
+        "note": "채팅 화면과 관리자 대시보드는 별도 앱이 아니라 같은 Next.js 앱의 라우트 그룹 두 개다. 브라우저는 상대 경로만 호출하고 next.config rewrites 가 backend 로 프록시한다."
+      },
+      {
+        "id": "chat-core",
+        "label": "채팅 코어",
+        "focus": [
+          "routers",
+          "stages",
+          "safety",
+          "cache",
+          "search",
+          "qdrant",
+          "postgres"
+        ],
+        "note": "ChatService 가 14개 Stage 를 순서대로 실행한다. 캐시 적중이면 검색·생성 Stage 를 건너뛰고, 미적중이면 search → rerank → generation 을 탄다."
+      },
+      {
+        "id": "ingest-core",
+        "label": "적재 코어",
+        "focus": [
+          "routers",
+          "ingest",
+          "qdrant",
+          "postgres"
+        ],
+        "note": "업로드 라우터는 202 로 즉시 반환하고 단일 워커 스레드가 추출·청킹·임베딩을 순차 처리한다. 진행률은 ingestion_jobs 에 체크포인트로 남는다."
+      }
+    ],
+    "viewBox": [
+      1330,
+      650
+    ]
+  },
+  "components": [
+    {
+      "id": "app_chat",
+      "type": "frontend",
+      "label": "app/(chat)",
+      "sublabel": "채팅 · 대화 기록",
+      "pos": [
+        50,
+        215
+      ],
+      "size": [
+        145,
+        60
+      ],
+      "sources": [
+        {
+          "path": "admin/src/app/(chat)/page.tsx",
+          "line": 1,
+          "end_line": 40,
+          "label": "채팅 화면"
+        },
+        {
+          "path": "admin/src/app/(chat)/history/page.tsx",
+          "line": 1,
+          "end_line": 30,
+          "label": "대화 기록 2-pane"
+        }
+      ]
+    },
+    {
+      "id": "app_dashboard",
+      "type": "frontend",
+      "label": "app/(dashboard)",
+      "sublabel": "관리자 메뉴 7",
+      "tag": "챗봇 · 데이터 · 분석",
+      "pos": [
+        50,
+        365
+      ],
+      "size": [
+        145,
+        60
+      ],
+      "sources": [
+        {
+          "path": "admin/src/app/(dashboard)/layout.tsx",
+          "line": 22,
+          "end_line": 31,
+          "label": "NAV_ITEMS 7개"
+        }
+      ]
+    },
+    {
+      "id": "features",
+      "type": "frontend",
+      "label": "src/features",
+      "sublabel": "api.ts · types.ts",
+      "tag": "FSD 5 도메인",
+      "pos": [
+        290,
+        215
+      ],
+      "size": [
+        145,
+        60
+      ],
+      "sources": [
+        {
+          "path": "admin/src/features/chatbot/api.ts",
+          "line": 1,
+          "end_line": 40,
+          "label": "챗봇 API 클라이언트"
+        },
+        {
+          "path": "admin/src/lib/api.ts",
+          "line": 1,
+          "end_line": 40,
+          "label": "공용 fetch 래퍼"
+        }
+      ]
+    },
+    {
+      "id": "rewrites",
+      "type": "frontend",
+      "label": "next.config rewrites",
+      "sublabel": "/api/* → backend",
+      "pos": [
+        290,
+        365
+      ],
+      "size": [
+        145,
+        60
+      ],
+      "sources": [
+        {
+          "path": "admin/next.config.ts",
+          "line": 36,
+          "end_line": 67,
+          "label": "rewrites 6개"
+        }
+      ]
+    },
+    {
+      "id": "safety",
+      "type": "security",
+      "label": "src/safety",
+      "sublabel": "레이트리밋 · 입출력",
+      "pos": [
+        530,
+        80
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "sources": [
+        {
+          "path": "backend/src/chat/router.py",
+          "line": 28,
+          "end_line": 41,
+          "label": "check_rate_limit 의존성"
+        },
+        {
+          "path": "backend/src/safety/middleware.py",
+          "line": 1,
+          "end_line": 30,
+          "label": "CF-Connecting-IP 우선"
+        }
+      ]
+    },
+    {
+      "id": "routers",
+      "type": "backend",
+      "label": "FastAPI 라우터 9",
+      "sublabel": "chat · admin · sources",
+      "pos": [
+        530,
+        230
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "sources": [
+        {
+          "path": "backend/main.py",
+          "line": 108,
+          "end_line": 121,
+          "label": "include_router 9회"
+        }
+      ]
+    },
+    {
+      "id": "ingest",
+      "type": "backend",
+      "label": "src/pipeline",
+      "sublabel": "추출 · 청킹 · 임베딩",
+      "pos": [
+        790,
+        530
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "sources": [
+        {
+          "path": "backend/src/pipeline/ingestor.py",
+          "line": 159,
+          "end_line": 170,
+          "label": "ingest_chunks"
+        },
+        {
+          "path": "backend/src/admin/ingest_worker.py",
+          "line": 1,
+          "end_line": 30,
+          "label": "단일 워커 스레드"
+        }
+      ]
+    },
+    {
+      "id": "cache",
+      "type": "backend",
+      "label": "src/cache",
+      "sublabel": "유사 질문 캐시",
+      "pos": [
+        790,
+        80
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "sources": [
+        {
+          "path": "backend/src/cache/service.py",
+          "line": 42,
+          "end_line": 60,
+          "label": "SemanticCacheService"
+        }
+      ]
+    },
+    {
+      "id": "stages",
+      "type": "backend",
+      "label": "Stage 체인 14",
+      "sublabel": "chat/pipeline/stages",
+      "pos": [
+        790,
+        230
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "sources": [
+        {
+          "path": "backend/src/chat/service.py",
+          "line": 101,
+          "end_line": 121,
+          "label": "Stage 14개 생성"
+        }
+      ]
+    },
+    {
+      "id": "search",
+      "type": "backend",
+      "label": "src/search",
+      "sublabel": "hybrid · cascading",
+      "tag": "rerank · rewrite",
+      "pos": [
+        790,
+        380
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "sources": [
+        {
+          "path": "backend/src/search/cascading.py",
+          "line": 48,
+          "end_line": 60,
+          "label": "cascading_search"
+        }
+      ]
+    },
+    {
+      "id": "qdrant",
+      "type": "database",
+      "label": "Qdrant",
+      "sublabel": "malssum_poc_v5",
+      "tag": "semantic_cache",
+      "pos": [
+        1040,
+        80
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "sources": [
+        {
+          "path": "backend/src/qdrant/raw_client.py",
+          "line": 86,
+          "end_line": 100,
+          "label": "RawQdrantClient"
+        }
+      ]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "SQLModel · asyncpg",
+      "pos": [
+        1040,
+        230
+      ],
+      "size": [
+        150,
+        60
+      ],
+      "sources": [
+        {
+          "path": "backend/src/common/database.py",
+          "line": 5,
+          "end_line": 20,
+          "label": "AsyncEngine"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "admin/ — Next.js 16 App Router · 채팅과 대시보드가 한 앱",
+      "wraps": [
+        "app_chat",
+        "app_dashboard",
+        "features",
+        "rewrites"
+      ],
+      "pad": 30
+    },
+    {
+      "kind": "region",
+      "label": "backend/src — FastAPI · Router / Service / Repository",
+      "wraps": [
+        "safety",
+        "routers",
+        "ingest",
+        "cache",
+        "stages",
+        "search"
+      ],
+      "pad": 30
+    }
+  ],
+  "connections": [
+    {
+      "from": "app_chat",
+      "to": "features",
+      "label": "chat · chatbot"
+    },
+    {
+      "from": "app_dashboard",
+      "to": "features",
+      "label": "data-source · analytics"
+    },
+    {
+      "from": "features",
+      "to": "rewrites",
+      "label": "fetch /api/*",
+      "variant": "emphasis",
+      "labelDy": 24
+    },
+    {
+      "from": "rewrites",
+      "to": "routers",
+      "label": "프록시 → :8080",
+      "variant": "emphasis"
+    },
+    {
+      "from": "routers",
+      "to": "safety",
+      "label": "레이트리밋 의존성"
+    },
+    {
+      "from": "routers",
+      "to": "stages",
+      "label": "ChatService",
+      "variant": "emphasis",
+      "labelDy": 46,
+      "labelDx": -8
+    },
+    {
+      "from": "routers",
+      "to": "ingest",
+      "label": "업로드 → 워커 큐"
+    },
+    {
+      "from": "stages",
+      "to": "safety",
+      "label": "입력 검증 · 출력 필터",
+      "variant": "dashed"
+    },
+    {
+      "from": "stages",
+      "to": "cache",
+      "label": "조회 · 기록"
+    },
+    {
+      "from": "stages",
+      "to": "search",
+      "label": "cascading · weighted",
+      "labelDy": 24
+    },
+    {
+      "from": "stages",
+      "to": "postgres",
+      "label": "세션 · 메시지 · 인용",
+      "labelDy": 54
+    },
+    {
+      "from": "cache",
+      "to": "qdrant",
+      "label": "semantic_cache"
+    },
+    {
+      "from": "search",
+      "to": "qdrant",
+      "label": "RawQdrantClient",
+      "fromSide": "right",
+      "toSide": "right",
+      "via": [
+        [
+          1230,
+          410
+        ],
+        [
+          1230,
+          110
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "admin — 단일 Next.js 앱",
+      "items": [
+        "별도 web 앱은 없다 — (chat) 과 (dashboard) 라우트 그룹이 한 빌드에 공존",
+        "브라우저는 상대 경로만 호출, rewrites 가 /api/* 를 backend 로 프록시",
+        "features/<도메인>/{api.ts, types.ts, components/} FSD 5 도메인"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "backend — Stage 체인",
+      "items": [
+        "ChatService 가 14 Stage 를 순차 실행 (검증→세션→임베딩→캐시→검색→생성→저장)",
+        "캐시 적중 시 검색·생성 Stage 를 건너뛰어 Gemini 호출이 없다",
+        "src/search 는 cascading · weighted · rerank · rewrite 로 분리"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "저장소 접근",
+      "items": [
+        "Qdrant 접근은 3갈래 — src/qdrant · cache/service · pipeline/ingestor 가 각자 raw httpx",
+        "PostgreSQL 은 SQLModel + asyncpg, AsyncSession 은 Repository 만 보유",
+        "적재의 Qdrant upsert · ingestion_jobs 기록은 ingestion 다이어그램 참조"
+      ]
+    }
+  ]
+}
