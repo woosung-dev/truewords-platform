@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "TrueWords 데이터베이스 구조 — PostgreSQL 11 테이블 + Qdrant 컬렉션 2",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1340,
+      870
+    ],
+    "views": [
+      {
+        "id": "chat-write-path",
+        "label": "채팅 1건의 쓰기 경로",
+        "focus": [
+          "research_sessions",
+          "session_messages",
+          "search_events",
+          "answer_citations",
+          "semantic_cache"
+        ],
+        "note": "세션 · 메시지(user+assistant) · search_events 1건 · answer_citations ≤5건을 단일 commit 으로 저장하고 semantic_cache 에 upsert (단일턴·결과 있음)"
+      },
+      {
+        "id": "v5-payload",
+        "label": "malssum_poc_v5 payload",
+        "focus": [
+          "ingestion_jobs",
+          "malssum_poc_v5"
+        ],
+        "note": "payload_version 1 · text · volume · chunk_index · source[] · title · date — point id = uuid5(volume:chunk_index), 50건 배치 upsert"
+      },
+      {
+        "id": "cache-payload",
+        "label": "semantic_cache payload",
+        "focus": [
+          "ingestion_jobs",
+          "semantic_cache"
+        ],
+        "note": "question · answer · sources · chatbot_id · created_at · corpus_updated_at · embedding_model · answer_mode — created_at 기준 TTL 7일"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "admin_users",
+      "type": "database",
+      "label": "admin_users",
+      "sublabel": "id · email · role · is_active",
+      "pos": [
+        40,
+        100
+      ],
+      "size": [
+        230,
+        64
+      ]
+    },
+    {
+      "id": "admin_audit_logs",
+      "type": "database",
+      "label": "admin_audit_logs",
+      "sublabel": "admin_user_id · action · target_id",
+      "pos": [
+        40,
+        250
+      ],
+      "size": [
+        230,
+        64
+      ]
+    },
+    {
+      "id": "chatbot_configs",
+      "type": "database",
+      "label": "chatbot_configs",
+      "sublabel": "chatbot_id · system_prompt · search_tiers",
+      "pos": [
+        40,
+        400
+      ],
+      "size": [
+        230,
+        64
+      ]
+    },
+    {
+      "id": "data_source_categories",
+      "type": "database",
+      "label": "data_source_categories",
+      "sublabel": "key · name · is_searchable · sort_order",
+      "pos": [
+        40,
+        580
+      ],
+      "size": [
+        230,
+        64
+      ]
+    },
+    {
+      "id": "research_sessions",
+      "type": "database",
+      "label": "research_sessions",
+      "sublabel": "user_id · chatbot_config_id · started_at",
+      "pos": [
+        390,
+        295
+      ],
+      "size": [
+        230,
+        64
+      ]
+    },
+    {
+      "id": "session_messages",
+      "type": "database",
+      "label": "session_messages",
+      "sublabel": "session_id · role · pipeline_version",
+      "pos": [
+        700,
+        295
+      ],
+      "size": [
+        230,
+        64
+      ],
+      "tag": "핵심"
+    },
+    {
+      "id": "search_events",
+      "type": "database",
+      "label": "search_events",
+      "sublabel": "message_id · query_text · latency_ms",
+      "pos": [
+        1080,
+        100
+      ],
+      "size": [
+        230,
+        64
+      ]
+    },
+    {
+      "id": "answer_citations",
+      "type": "database",
+      "label": "answer_citations",
+      "sublabel": "message_id · volume · rank_position",
+      "pos": [
+        1080,
+        230
+      ],
+      "size": [
+        230,
+        64
+      ]
+    },
+    {
+      "id": "answer_feedback",
+      "type": "database",
+      "label": "answer_feedback",
+      "sublabel": "message_id · feedback_type · comment",
+      "pos": [
+        1080,
+        360
+      ],
+      "size": [
+        230,
+        64
+      ]
+    },
+    {
+      "id": "chat_message_reactions",
+      "type": "database",
+      "label": "chat_message_reactions",
+      "sublabel": "message_id · user_session_id · kind",
+      "pos": [
+        1080,
+        490
+      ],
+      "size": [
+        230,
+        64
+      ]
+    },
+    {
+      "id": "ingestion_jobs",
+      "type": "database",
+      "label": "ingestion_jobs",
+      "sublabel": "volume_key · source · completed_at",
+      "pos": [
+        390,
+        695
+      ],
+      "size": [
+        230,
+        64
+      ]
+    },
+    {
+      "id": "malssum_poc_v5",
+      "type": "database",
+      "label": "malssum_poc_v5",
+      "sublabel": "dense 1536 Cosine + sparse BM25",
+      "pos": [
+        1080,
+        640
+      ],
+      "size": [
+        230,
+        64
+      ],
+      "tag": "Qdrant"
+    },
+    {
+      "id": "semantic_cache",
+      "type": "database",
+      "label": "semantic_cache",
+      "sublabel": "dense 1536 Cosine · payload index 4종",
+      "pos": [
+        1080,
+        750
+      ],
+      "size": [
+        230,
+        64
+      ],
+      "tag": "Qdrant"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "관리자 · 설정",
+      "wraps": [
+        "admin_users",
+        "admin_audit_logs",
+        "chatbot_configs",
+        "data_source_categories"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "채팅 도메인",
+      "wraps": [
+        "research_sessions",
+        "session_messages",
+        "search_events",
+        "answer_citations",
+        "answer_feedback",
+        "chat_message_reactions"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "적재 · 벡터",
+      "wraps": [
+        "ingestion_jobs",
+        "malssum_poc_v5",
+        "semantic_cache"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "fk_audit_admin",
+      "from": "admin_users",
+      "to": "admin_audit_logs",
+      "label": "admin_user_id",
+      "labelAt": [
+        155,
+        207
+      ]
+    },
+    {
+      "id": "ref_session_user",
+      "from": "admin_users",
+      "to": "research_sessions",
+      "label": "user_id (FK 없음)",
+      "variant": "dashed"
+    },
+    {
+      "id": "fk_session_bot",
+      "from": "chatbot_configs",
+      "to": "research_sessions",
+      "label": "chatbot_config_id"
+    },
+    {
+      "id": "fk_msg_session",
+      "from": "research_sessions",
+      "to": "session_messages",
+      "label": "session_id",
+      "variant": "emphasis"
+    },
+    {
+      "id": "fk_search_msg",
+      "from": "session_messages",
+      "to": "search_events",
+      "label": "message_id",
+      "labelSegment": 2
+    },
+    {
+      "id": "fk_citation_msg",
+      "from": "session_messages",
+      "to": "answer_citations",
+      "label": "message_id",
+      "labelSegment": 2
+    },
+    {
+      "id": "fk_feedback_msg",
+      "from": "session_messages",
+      "to": "answer_feedback",
+      "label": "message_id",
+      "labelSegment": 2
+    },
+    {
+      "id": "fk_reaction_msg",
+      "from": "session_messages",
+      "to": "chat_message_reactions",
+      "label": "message_id",
+      "labelSegment": 2
+    },
+    {
+      "id": "ref_job_category",
+      "from": "data_source_categories",
+      "to": "ingestion_jobs",
+      "label": "source = key (FK 없음)",
+      "variant": "dashed"
+    },
+    {
+      "id": "ref_job_v5",
+      "from": "ingestion_jobs",
+      "to": "malssum_poc_v5",
+      "label": "volume 적재 (upsert)",
+      "variant": "dashed"
+    },
+    {
+      "id": "ref_job_cache",
+      "from": "ingestion_jobs",
+      "to": "semantic_cache",
+      "label": "max(completed_at) → corpus_updated_at 무효화",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Alembic 마이그레이션",
+      "items": [
+        "24 migrations · 단일 선형 체인 (multi-head 없음)",
+        "head a1c9e7d0b2f3 (research_sessions.user_id index)",
+        "컨테이너 CMD: alembic upgrade head && exec uvicorn"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "PostgreSQL ENUM 5종",
+      "items": [
+        "adminrole · messagerole · ingestionstatus",
+        "feedbacktype 9값 (+4 ALTER TYPE ADD VALUE)",
+        "messagereactionkind — 소문자 라벨 (raw SQL DO 블록)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "복합 UNIQUE 제약 2종",
+      "items": [
+        "answer_feedback (message_id, user_session_id)",
+        "chat_message_reactions (message_id, user_session_id, kind)",
+        "단일 컬럼 UNIQUE: email · chatbot_id · key · volume_key"
+      ]
+    }
+  ]
+}

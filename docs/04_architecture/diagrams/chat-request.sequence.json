@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "채팅 요청 시퀀스 — POST /api/chat/stream (cache miss)",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [1080, 1600],
+    "views": [
+      {
+        "id": "request-and-cache",
+        "label": "요청·검증·캐시 조회",
+        "focus": ["browser", "next", "safety", "api", "gemini", "qdrant"],
+        "note": "rate limit·InputValidation 을 지나 임베딩 후 semantic_cache 를 먼저 조회한다. 이 다이어그램은 miss 경로다."
+      },
+      {
+        "id": "hybrid-search",
+        "label": "하이브리드 검색",
+        "focus": ["api", "gemini", "qdrant", "pg"],
+        "note": "intent 분류·쿼리 재작성 뒤 dense+sparse RRF 검색, Gemini rerank 로 top 15/12/8 을 고른다."
+      },
+      {
+        "id": "sse-streaming",
+        "label": "SSE 스트리밍·저장",
+        "focus": ["gemini", "api", "safety", "next", "browser", "pg"],
+        "note": "generate_content_stream 청크가 Sanitizer 를 거쳐 event: chunk 로 나가고, Persist 후 sources·done 으로 끝난다."
+      }
+    ]
+  },
+  "participants": [
+    { "id": "browser", "type": "external", "label": "브라우저", "sublabel": "(chat)/page.tsx" },
+    { "id": "next", "type": "frontend", "label": "Next 서버", "sublabel": "next.config rewrites" },
+    { "id": "safety", "type": "security", "label": "Safety", "sublabel": "src/safety 모듈" },
+    { "id": "api", "type": "backend", "label": "ChatService", "sublabel": "FastAPI Stage 체인" },
+    { "id": "gemini", "type": "external", "label": "Gemini API", "sublabel": "gemini-3.5-flash-lite" },
+    { "id": "qdrant", "type": "database", "label": "Qdrant", "sublabel": "malssum_poc_v5 · cache" },
+    { "id": "pg", "type": "database", "label": "PostgreSQL", "sublabel": "채팅 로그 테이블 4종" }
+  ],
+  "segments": [
+    { "from": 172, "to": 612, "label": "요청·검증" },
+    { "from": 624, "to": 968, "label": "검색" },
+    { "from": 980, "to": 1228, "label": "생성·스트리밍" },
+    { "from": 1240, "to": 1536, "label": "저장·종료" }
+  ],
+  "messages": [
+    { "id": "post-stream", "from": "browser", "to": "next", "y": 200, "label": "POST /api/chat/stream", "variant": "emphasis" },
+    { "id": "rewrite", "from": "next", "to": "api", "y": 248, "label": "rewrite → POST /chat/stream (SSE)", "variant": "emphasis" },
+    { "id": "validate", "from": "api", "to": "safety", "y": 296, "label": "rate limit · InputValidation", "variant": "security" },
+    { "id": "validate-ok", "from": "safety", "to": "api", "y": 344, "label": "통과", "variant": "return" },
+    { "id": "session", "from": "api", "to": "pg", "y": 392, "label": "SessionStage: research_sessions + session_messages(user) flush", "variant": "default" },
+    { "id": "embed", "from": "api", "to": "gemini", "y": 440, "label": "embed gemini-embedding-001", "variant": "default" },
+    { "id": "embed-ok", "from": "gemini", "to": "api", "y": 488, "label": "1536-dim RETRIEVAL_QUERY", "variant": "return" },
+    { "id": "cache-check", "from": "api", "to": "qdrant", "y": 536, "label": "CacheCheck: POST semantic_cache/points/query", "variant": "default" },
+    { "id": "cache-miss", "from": "qdrant", "to": "api", "y": 584, "label": "miss", "variant": "return" },
+
+    { "id": "runtime-config", "from": "api", "to": "pg", "y": 652, "label": "RuntimeConfig: chatbot_configs select", "variant": "default" },
+    { "id": "intent", "from": "api", "to": "gemini", "y": 700, "label": "IntentClassifier (2s)", "variant": "default" },
+    { "id": "rewrite-query", "from": "api", "to": "gemini", "y": 748, "label": "QueryRewrite (1.5s, 토글 ON 시)", "variant": "default" },
+    { "id": "search", "from": "api", "to": "qdrant", "y": 796, "label": "bm25 sparse(로컬) → POST points/query dense50+sparse50 RRF", "variant": "emphasis" },
+    { "id": "search-results", "from": "qdrant", "to": "api", "y": 844, "label": "top_k 50 (malssum_poc_v5)", "variant": "return" },
+    { "id": "rerank", "from": "api", "to": "gemini", "y": 892, "label": "Rerank (JSON 점수)", "variant": "default" },
+    { "id": "rerank-ok", "from": "gemini", "to": "api", "y": 940, "label": "top 15/12/8", "variant": "return" },
+
+    { "id": "generate", "from": "api", "to": "gemini", "y": 1008, "label": "generate_content_stream (60s)", "variant": "emphasis" },
+    { "id": "chunks", "from": "gemini", "to": "api", "y": 1056, "label": "chunk ×N", "variant": "return" },
+    { "id": "sanitize", "from": "api", "to": "safety", "y": 1104, "label": "StreamingSanitizer holdback", "variant": "security" },
+    { "id": "sse-chunk", "from": "api", "to": "next", "y": 1152, "label": "event: chunk ×N", "variant": "emphasis" },
+    { "id": "sse-chunk-browser", "from": "next", "to": "browser", "y": 1200, "label": "event: chunk ×N (프록시)", "variant": "emphasis" },
+
+    { "id": "safety-output", "from": "api", "to": "safety", "y": 1268, "label": "SafetyOutput: PII + 면책", "variant": "security" },
+    { "id": "gather", "from": "api", "to": "gemini", "y": 1316, "label": "gather: 후속질문·마무리·말씀카드", "variant": "default" },
+    { "id": "persist", "from": "api", "to": "pg", "y": 1364, "label": "Persist: session_messages(assistant) + search_events + answer_citations → commit", "variant": "emphasis" },
+    { "id": "cache-store", "from": "api", "to": "qdrant", "y": 1412, "label": "PUT semantic_cache/points (첫 턴만)", "variant": "dashed" },
+    { "id": "sse-sources-done", "from": "api", "to": "next", "y": 1460, "label": "event: sources → event: done", "variant": "return" },
+    { "id": "sse-sources-done-browser", "from": "next", "to": "browser", "y": 1508, "label": "sources · done", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "next", "from": 194, "to": 1514, "type": "frontend" },
+    { "participant": "api", "from": 242, "to": 1466, "type": "backend" },
+    { "participant": "safety", "from": 290, "to": 350, "type": "security" },
+    { "participant": "pg", "from": 386, "to": 400, "type": "database" },
+    { "participant": "gemini", "from": 434, "to": 494, "type": "external" },
+    { "participant": "qdrant", "from": 530, "to": 590, "type": "database" },
+    { "participant": "pg", "from": 646, "to": 660, "type": "database" },
+    { "participant": "gemini", "from": 694, "to": 756, "type": "external" },
+    { "participant": "qdrant", "from": 790, "to": 850, "type": "database" },
+    { "participant": "gemini", "from": 886, "to": 946, "type": "external" },
+    { "participant": "gemini", "from": 1002, "to": 1062, "type": "external" },
+    { "participant": "safety", "from": 1098, "to": 1112, "type": "security" },
+    { "participant": "safety", "from": 1262, "to": 1276, "type": "security" },
+    { "participant": "gemini", "from": 1310, "to": 1324, "type": "external" },
+    { "participant": "pg", "from": 1358, "to": 1372, "type": "database" },
+    { "participant": "qdrant", "from": 1406, "to": 1420, "type": "database" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "정상 경로 (cache miss)",
+      "items": [
+        "SSE 이벤트 3종: event: chunk ×N → sources → done (disclaimer 는 done 에만)",
+        "요청 1건당 Gemini 호출 최대 9회 (embed·intent·rewrite·재임베딩·rerank·stream·followups·closing·말씀)",
+        "PostgreSQL commit 은 PersistStage 의 단일 commit 1회"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "가드레일",
+      "items": [
+        "IP 별 인메모리 rate limit 20회/60초 → 초과 시 429",
+        "InputValidation 실패 시 400 INPUT_BLOCKED, 아무것도 저장되지 않음",
+        "StreamingSanitizer: 문장 단위 holdback, PII 매치 시 abort 후 guidance 만 persist"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "캐시·타임아웃",
+      "items": [
+        "semantic_cache: threshold 0.88 (코드 기본) · TTL 7일 · answer_mode/embedding_model 격리",
+        "캐시 저장은 첫 턴·결과 있음·답변 있음일 때만 (점선)",
+        "타임아웃: intent 2s · rewrite 1.5s · followups 3s · stream 60s 상한"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,310 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "IngestionJob 상태 라이프사이클",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "happy-path",
+        "label": "정상 적재 경로",
+        "focus": [
+          "pending",
+          "strategy",
+          "running",
+          "ingesting",
+          "completed"
+        ],
+        "note": "upsert_pending → start_run → 배치 upsert 체크포인트 → complete_job 순으로 status 가 전이된다."
+      },
+      {
+        "id": "reupload-policy",
+        "label": "재업로드 정책 (ADR-30)",
+        "focus": [
+          "completed",
+          "partial",
+          "failed",
+          "reupload",
+          "pending",
+          "strategy",
+          "reset"
+        ],
+        "note": "같은 volume_key 재업로드는 항상 PENDING 으로 재진입하고, 정책 판정이 skip 단축 · reset · 재개를 가른다."
+      },
+      {
+        "id": "exits",
+        "label": "종료 상태",
+        "focus": [
+          "pending",
+          "ingesting",
+          "partial",
+          "failed",
+          "completed"
+        ],
+        "note": "PARTIAL 은 429 백오프 3회 소진, FAILED 는 빈 텍스트 또는 예외. 둘 다 재업로드로 이어서 적재한다."
+      }
+    ],
+    "viewBox": [
+      980,
+      700
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "적재 단계"
+    },
+    {
+      "id": "resume",
+      "label": "재업로드 · 재개"
+    },
+    {
+      "id": "terminal",
+      "label": "종료 상태"
+    }
+  ],
+  "states": [
+    {
+      "id": "pending",
+      "type": "start",
+      "label": "PENDING",
+      "sublabel": "upsert_pending · 업로드 수신",
+      "lane": "main",
+      "col": 0,
+      "step": "01",
+      "tag": "status"
+    },
+    {
+      "id": "strategy",
+      "type": "decision",
+      "label": "재업로드 정책 판정",
+      "sublabel": "_resolve_upload_strategy",
+      "lane": "main",
+      "col": 1,
+      "step": "02",
+      "tag": "ADR-30"
+    },
+    {
+      "id": "running",
+      "type": "active",
+      "label": "RUNNING",
+      "sublabel": "start_run · total_chunks",
+      "lane": "main",
+      "col": 2,
+      "step": "03",
+      "tag": "status"
+    },
+    {
+      "id": "ingesting",
+      "type": "active",
+      "label": "배치 임베딩 · upsert",
+      "sublabel": "update_progress · 50 pt",
+      "lane": "main",
+      "col": 3,
+      "step": "04",
+      "tag": "loop"
+    },
+    {
+      "id": "completed",
+      "type": "success",
+      "label": "COMPLETED",
+      "sublabel": "complete_job · completed_at",
+      "lane": "main",
+      "col": 4,
+      "step": "05",
+      "tag": "status"
+    },
+    {
+      "id": "reset",
+      "type": "active",
+      "label": "reset 재적재",
+      "sublabel": "청크 삭제 · start_chunk = 0",
+      "lane": "resume",
+      "col": 0,
+      "tag": "COMPLETED 재업로드"
+    },
+    {
+      "id": "reupload",
+      "type": "external",
+      "label": "관리자 재업로드",
+      "sublabel": "/admin/data-sources/upload",
+      "lane": "resume",
+      "col": 2,
+      "tag": "POST"
+    },
+    {
+      "id": "failed",
+      "type": "failure",
+      "label": "FAILED",
+      "sublabel": "fail_job · error_message",
+      "lane": "terminal",
+      "col": 0,
+      "tag": "status"
+    },
+    {
+      "id": "partial",
+      "type": "failure",
+      "label": "PARTIAL",
+      "sublabel": "mark_partial · 429 3회 소진",
+      "lane": "terminal",
+      "col": 1,
+      "tag": "status"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "t-skip",
+      "from": "strategy",
+      "to": "completed",
+      "label": "skip · hash 일치 → 임베딩 생략",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [
+        [
+          248,
+          88
+        ],
+        [
+          710,
+          88
+        ]
+      ]
+    },
+    {
+      "id": "t-reset",
+      "from": "strategy",
+      "to": "reset",
+      "label": "COMPLETED + Qdrant 청크 > 0",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "labelSegment": 0
+    },
+    {
+      "id": "t-reset-run",
+      "from": "reset",
+      "to": "running",
+      "route": "straight",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "variant": "emphasis"
+    },
+    {
+      "id": "t-empty",
+      "from": "pending",
+      "to": "failed",
+      "label": "빈 텍스트",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "t-exception",
+      "from": "ingesting",
+      "to": "failed",
+      "label": "예외 발생",
+      "variant": "security",
+      "fromSide": "left",
+      "toSide": "right",
+      "labelDy": 48
+    },
+    {
+      "id": "t-partial",
+      "from": "ingesting",
+      "to": "partial",
+      "variant": "security",
+      "route": "straight",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "t-re-completed",
+      "from": "completed",
+      "to": "reupload",
+      "variant": "dashed",
+      "route": "straight",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "t-re-partial",
+      "from": "partial",
+      "to": "reupload",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "t-re-failed",
+      "from": "failed",
+      "to": "reupload",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          402,
+          548
+        ],
+        [
+          710,
+          548
+        ]
+      ]
+    },
+    {
+      "id": "t-reenter",
+      "from": "reupload",
+      "to": "pending",
+      "label": "카운터 리셋 · 재진입",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          800,
+          307
+        ],
+        [
+          800,
+          584
+        ],
+        [
+          14,
+          584
+        ],
+        [
+          14,
+          157
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "status 5종 (ingestionstatus)",
+      "items": [
+        "PENDING → RUNNING → COMPLETED 가 정상 경로",
+        "PARTIAL = 429 소진 · FAILED = 빈 텍스트 / 예외",
+        "content_hash 는 start_run 직후 저장 (PR #99)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "재업로드 정책 (ADR-30)",
+      "items": [
+        "skip + COMPLETED + hash 일치 → Gemini 호출 0회",
+        "COMPLETED + Qdrant 청크 > 0 → reset 후 0부터",
+        "PARTIAL / FAILED → Qdrant 포인트 수부터 재개"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "체크포인트 · 캐시 무효화",
+      "items": [
+        "upsert 성공마다 update_progress 체크포인트 (50 pt)",
+        "max(completed_at) = semantic cache corpus_updated_at",
+        "COMPLETED 시 이전 캐시 자동 stale"
+      ]
+    }
+  ]
+}

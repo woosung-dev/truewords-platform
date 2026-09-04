@@ -74,9 +74,6 @@ class GenerationConfig(BaseModel):
 
     system_prompt: str
     persona_name: str | None = None
-    model_name: Literal["gemini-2.5-flash", "gemini-2.5-pro"] = "gemini-2.5-flash"
-    temperature: float = 0.7
-    max_output_tokens: int = 4096
 
     # P1-J — 답변 마무리 템플릿 토글.
     # enable_closing=True 일 때만 closing_kind 에 따라 후속 LLM 호출.
