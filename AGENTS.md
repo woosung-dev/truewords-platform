@@ -212,7 +212,7 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 
 - Backend 95%, Admin Dashboard 95% 구현 완료
 - pytest 964 passed / 4 skipped / 1 xfailed + 113 Vitest + 12 E2E 테스트 운영 중
-- Oracle Cloud ARM VM 단일 노드 (backend + Qdrant + Postgres + Cloudflare Tunnel) + Vercel (Admin) 배포 완료
+- Oracle Cloud ARM VM 단일 노드 (admin + backend + Qdrant + Postgres + Cloudflare Tunnel 5 컨테이너) 배포 완료 — Vercel 은 리다이렉트 전용 레거시. 구조 다이어그램: `docs/04_architecture/diagrams/`
 - Flutter Mobile MVP (Phase 4) 미착수
 
 ### 핵심 설계 문서
