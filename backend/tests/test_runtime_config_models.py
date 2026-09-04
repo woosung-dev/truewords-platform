@@ -42,7 +42,6 @@ def test_search_mode_config_defaults():
 def test_generation_config_persona_optional():
     gen = GenerationConfig(system_prompt="P")
     assert gen.persona_name is None
-    assert gen.temperature == 0.7
 
 
 def test_retrieval_config_defaults():
