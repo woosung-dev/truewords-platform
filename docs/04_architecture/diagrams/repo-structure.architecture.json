@@ -162,7 +162,7 @@
       "id": "be_tools",
       "type": "backend",
       "label": "backend/scripts/ · tests/",
-      "sublabel": "스크립트 60+ · pytest 86 파일",
+      "sublabel": "스크립트 60+ · pytest 104 파일",
       "pos": [
         260,
         330
@@ -435,9 +435,9 @@
   "cards": [
     {
       "dot": "cyan",
-      "title": "배포 단위 3개",
+      "title": "배포 이미지 2개",
       "items": [
-        "backend/Dockerfile — uv venv 와 소스 레이어 분리, 배포당 이미지 증분 1.16MB",
+        "backend/Dockerfile — uv venv와 소스 레이어를 분리한 FastAPI 이미지",
         "admin/Dockerfile — next build standalone, API 주소는 build-arg 로 굽는다",
         "infra compose 가 BACKEND_TAG · ADMIN_TAG 로 두 이미지를 조립"
       ]
@@ -455,9 +455,9 @@
       "dot": "amber",
       "title": "검증 · 문서",
       "items": [
-        "CI: PR 마다 pytest 969 · vitest 113 · next build — 바뀐 쪽만 실행",
+        "CI: PR마다 pytest 969 (104 files) · vitest 113 · next build — 바뀐 쪽만 실행",
         "Playwright 23 은 로컬 시드 후 수동, make ci 가 ci.yml 을 로컬 재현",
-        "docs/README.md 색인 · dev-log ADR 87 · .ai 스택 규칙"
+        "docs/README.md 색인 · dev-log ADR · .ai 스택 규칙"
       ]
     }
   ]

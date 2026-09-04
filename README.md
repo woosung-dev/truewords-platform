@@ -2,7 +2,7 @@
 
 종교 텍스트 기반 RAG AI 챗봇 플랫폼. 사용자는 웹 채팅 화면에서 질문하고, 백엔드가 말씀 코퍼스(Qdrant 417,579 청크)를 하이브리드 검색해 Gemini 로 출처 달린 답변을 스트리밍한다. 운영 스택 전체가 Oracle Cloud ARM VM 한 대의 컨테이너 5개로 돈다.
 
-> 다이어그램 4종은 `docs/04_architecture/diagrams/` 에 있다. PNG 는 README 용 정적 이미지이고, 같은 이름의 `.html` 을 브라우저로 열면 pan/zoom · 검색 · guided view 가 되는 인터랙티브 뷰어다. 원본은 `.json` 이며 [재생성 방법](./docs/04_architecture/diagrams/README.md)을 참조한다.
+> 다이어그램 6종은 `docs/04_architecture/diagrams/` 에 있다. PNG 는 README 용 정적 이미지이고, 같은 이름의 `.html` 을 브라우저로 열면 pan/zoom · 검색 · guided view 가 되는 인터랙티브 뷰어다. 원본은 `.json` 이며 [재생성 방법](./docs/04_architecture/diagrams/README.md)을 참조한다.
 
 ---
 
@@ -55,10 +55,10 @@
 | 6 | `IntentClassifier` | factoid / conceptual / reasoning / meta 4-way. meta 는 검색 · 생성 생략 |
 | 7 | `QueryRewrite` | 구어체 → 종교 용어 재작성 (LLM, 타임아웃 시 원문 유지) |
 | 8 | `Search` | cascading / weighted 모드, dense + sparse RRF 하이브리드, top-50 |
-| 9 | `Rerank` | Gemini LLM 리랭크 → top-10 (봇 설정으로 on/off) |
+| 9 | `Rerank` | 활성화 시 intent 별 factoid 15 · conceptual 12 · reasoning 8개, 비활성화 시 검색 상위 10개 유지 |
 | 10 | `Generation` | 모드별 system_prompt 합성 · 멀티턴 이력 주입 · 출처 인라인 |
 | 11 | `SafetyOutput` | 민감 패턴 필터 + disclaimer. 스트림은 `StreamingSanitizer` 가 chunk 단위로 수행 |
-| 11′ | `SuggestedFollowups` · `ClosingTemplate` · 말씀 카드 | `asyncio.gather` 병렬, 0.5s 타임아웃, 실패 무시 |
+| 11′ | `SuggestedFollowups` · `ClosingTemplate` · 말씀 카드 | `asyncio.gather` 병렬, followups 3.0s · closing 0.5s 개별 타임아웃, 실패 무시 |
 | 12 | `Persist` | assistant 메시지 · `search_events` · `answer_citations` 커밋 + 캐시 upsert |
 
 SSE 이벤트는 `chunk` (토큰) → `sources` (출처 · session_id · message_id · closing · followups) → `done` (disclaimer) 세 종류다. 프론트는 `admin/src/lib/sse.ts` 로 파싱한다.
@@ -91,7 +91,19 @@ SSE 이벤트는 `chunk` (토큰) → `sources` (출처 · session_id · message
 | `malssum_poc_v5` | dense 1536 cosine + sparse (bm25) | `source`, `volume` | 말씀 청크 417,579 points. 카테고리 필터 · 관리자 facet |
 | `semantic_cache` | dense 1536 | `chatbot_id`, `created_at`, `corpus_updated_at`, `embedding_model` | 유사 질문 캐시. TTL 7일, 코퍼스 갱신 · 모델 변경 시 무효화 |
 
-백엔드는 qdrant-client SDK 대신 raw httpx (HTTP/1.1) 클라이언트 `backend/src/qdrant/raw_client.py` 를 쓴다 (Cloudflare Tunnel 환경의 HTTP/2 hang 회피, [`docs/dev-log/47-qdrant-sdk-http2-permanent-fix.md`](./docs/dev-log/47-qdrant-sdk-http2-permanent-fix.md)).
+Qdrant 접근은 모두 raw httpx (HTTP/1.1) 계열이다 (Cloudflare Tunnel 환경의 HTTP/2 hang 회피, [`docs/dev-log/47-qdrant-sdk-http2-permanent-fix.md`](./docs/dev-log/47-qdrant-sdk-http2-permanent-fix.md)). 검색·관리 조회는 공용 async `backend/src/qdrant/raw_client.py`, semantic cache 는 독립 async 클라이언트 `backend/src/cache/service.py`, 워커 적재는 sync 클라이언트 `backend/src/pipeline/ingestor.py` 를 쓴다. 기동·컬렉션 초기화 경로도 각각 raw HTTP/1.1 로 분리되어 있다.
+
+### 데이터 적재 흐름
+
+![데이터 적재 데이터플로우](./docs/04_architecture/diagrams/ingestion.png)
+
+관리자 업로드 API 는 최대 50MB 파일을 임시 저장하고 202 를 반환한다. Queue(100) 의 단일 워커가 추출 → SHA-256 정책 판정 → Recursive 700/150 청킹 → dense + sparse 임베딩 → Qdrant 50-point upsert 를 순차 실행한다.
+
+### 적재 작업 상태
+
+![IngestionJob 상태 라이프사이클](./docs/04_architecture/diagrams/ingestion-job.png)
+
+정상 경로는 PENDING → RUNNING → COMPLETED 다. Gemini 429 재시도 소진은 PARTIAL, 빈 텍스트·처리 예외는 FAILED 로 기록하며, 재업로드 시 완료본은 reset 하고 중단본은 Qdrant point 수부터 재개한다.
 
 ---
 
@@ -119,7 +131,7 @@ truewords-platform/
 │   │   └── alembic_support/  # 마이그레이션 advisory lock · 배치 backfill
 │   ├── alembic/              # 24 revisions
 │   ├── scripts/              # 적재 · 평가(RAGAS) · 마이그레이션 · 운영 스크립트 60+
-│   ├── tests/                # pytest 86 파일
+│   ├── tests/                # pytest 104 파일
 │   ├── Dockerfile            # venv / 소스 레이어 분리, 기동 시 alembic upgrade head
 │   └── docker-compose.yml    # 로컬 postgres + qdrant
 ├── admin/                    # Next.js 16 · React 19 · pnpm — 채팅 UI + 관리자 대시보드
@@ -130,7 +142,7 @@ truewords-platform/
 │   ├── src/components/       # ui (shadcn) · truewords (인용 카드 · 스트리밍 텍스트 · 피드백 버튼 …)
 │   ├── src/lib/              # api.ts (fetchAPI · ApiError) · sse.ts · reactions-api.ts
 │   ├── src/test/ · e2e/      # Vitest 113 · Playwright 23
-│   ├── next.config.ts        # rewrites → backend · vercel.app 리다이렉트 · 200MB 업로드
+│   ├── next.config.ts        # rewrites → backend · vercel.app 리다이렉트 · proxy body 200MB
 │   └── Dockerfile            # standalone 이미지 (NEXT_PUBLIC_API_URL 은 build-arg)
 ├── infra/oracle-vm/          # docker-compose(5 컨테이너) · setup-vm · backup-db · restore-drill · ops-check · prune-images
 ├── .github/workflows/        # ci.yml (PR 테스트) · cache-cleanup.yml (매일)
@@ -170,7 +182,7 @@ truewords-platform/
 | AI | Gemini `gemini-3.5-flash-lite` (생성 · 리랭크 · 분류) · `gemini-embedding-001` (1536-dim) · fastembed `Qdrant/bm25` (sparse) |
 | Infra | Oracle Cloud ARM VM · Docker Compose · Cloudflare Tunnel · OCI Object Storage (백업) |
 | CI | GitHub Actions (pytest · vitest · build) · `make ci` 로컬 동등 검사 |
-| Test | pytest 969 (86 파일) · Vitest 113 (14 파일) · Playwright 23 (2 spec) |
+| Test | pytest 969 (104 파일) · Vitest 113 (14 파일) · Playwright 23 (2 spec) |
 | Mobile | Flutter (Phase 4 예정) |
 
 ---
@@ -221,7 +233,7 @@ pnpm dev             # 또는 make admin-dev
 
 ### 5) 데이터 적재 (선택)
 
-관리자 대시보드 **데이터 소스 → 업로드**(TXT · PDF · DOCX, 최대 200MB) 또는 `cd backend && uv run python scripts/ingest.py`. 적재는 extractor → chunker(Recursive 700/150) → embedder(dense + sparse) → Qdrant upsert 순이며 `ingestion_jobs` 에 체크포인트가 남아 재업로드 시 이어서 진행한다.
+관리자 대시보드 **데이터 소스 → 업로드**(TXT · PDF · DOCX, API 최대 50MB) 또는 `cd backend && uv run python scripts/ingest.py`. 적재는 extractor → chunker(Recursive 700/150) → embedder(dense + sparse) → Qdrant upsert 순이며 `ingestion_jobs` 에 체크포인트가 남아 재업로드 시 이어서 진행한다.
 
 ---
 
@@ -252,7 +264,7 @@ make oracle-logs · make ops-check    # compose 로그 · 운영 불변식 7건
 | 문서 | 내용 |
 |------|------|
 | [`docs/README.md`](./docs/README.md) | 전체 설계 문서 색인 (요구사항 · 도메인 · 아키텍처 · 인프라 · ADR) |
-| [`docs/04_architecture/diagrams/`](./docs/04_architecture/diagrams/README.md) | 이 README 의 다이어그램 4종 — 원본 JSON · 인터랙티브 HTML · 재생성 절차 |
+| [`docs/04_architecture/diagrams/`](./docs/04_architecture/diagrams/README.md) | 이 README 의 다이어그램 6종 — 원본 JSON · 인터랙티브 HTML · 재생성 절차 |
 | [`infra/oracle-vm/README.md`](./infra/oracle-vm/README.md) | 운영 기준 문서 — compose · 배포 · 롤백 · 백업 · 복구 · 트러블슈팅 |
 | [`.ai/project/rag-pipeline.md`](./.ai/project/rag-pipeline.md) | RAG 파이프라인 코딩 규칙 (현재 흐름 vs 청사진) |
 | [`AGENTS.md`](./AGENTS.md) | AI 에이전트 작업 원칙 · 현재 컨텍스트 |
