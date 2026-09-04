@@ -32,6 +32,7 @@
 
 | 문서 | 설명 | 키워드 |
 |------|------|--------|
+| [diagrams/](./04_architecture/diagrams/README.md) | **현재 운영 구조 다이어그램 6종** — 시스템 · 데이터 모델 · 레포 · 채팅 시퀀스 · 적재 데이터플로우 · 적재 상태 라이프사이클 (archify) | 다이어그램, 인터랙티브 HTML |
 | [02-architecture-design](./04_architecture/02-architecture-design.md) | 전체 인프라 구조, 요청 처리 파이프라인, Qdrant 컬렉션 설계 | PostgreSQL, Qdrant, Gemini |
 | [03-vector-db-comparison](./04_architecture/03-vector-db-comparison.md) | 10종 벡터DB 다차원 평가 (Qdrant 8.75/10 선정) | DB 선정 근거 |
 | [04-gemini-file-search-analysis](./04_architecture/04-gemini-file-search-analysis.md) | Gemini File Search API 기능/한계, Context Caching, 비용 | Gemini, 비용 |
@@ -118,13 +119,13 @@ GCP → Oracle 이전(2026-07-29)으로 무효가 된 문서들이다. 현재 �
 ## 핵심 아키텍처 결정
 
 ```
-Flutter (프론트엔드) + FastAPI (백엔드) + Qdrant (검색) + PostgreSQL (운영) + Gemini 2.5 (생성)
+Next.js 16 (Web 채팅 + Admin 단일 앱) + FastAPI (백엔드) + Qdrant (검색) + PostgreSQL (운영) + Gemini 3.5 Flash Lite (생성) / gemini-embedding-001 (임베딩)
 ```
 
 - **Qdrant**: 종합 평가 8.75/10으로 선정 (10종 비교)
 - **Gemini File Search**: 단독 사용 비추 (4.85/10), 생성 모델 + Context Caching으로 활용
-- **배포**: Vercel (admin) + GCP Cloud Run (백엔드)
-- **예상 월 비용**: ~$66-210/월
+- **배포**: Oracle Cloud ARM VM 단일 노드 — admin · backend · Qdrant · PostgreSQL · Cloudflare Tunnel 5 컨테이너 (2026-07-29 GCP/Vercel 에서 이전)
+- **운영 비용**: 인프라 $0 (Oracle Always Free) + Gemini API 사용량
 
 ## 문서 간 참조 관계
 
