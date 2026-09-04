@@ -198,7 +198,7 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 
 - **이름:** TrueWords Platform (말씀 AI 챗봇)
 - **한 줄 설명:** 종교 텍스트(615권) 기반 RAG AI 챗봇 플랫폼
-- **기술 스택:** Next.js 16 (Admin) + Flutter (Mobile, Phase 4) + FastAPI + Qdrant + PostgreSQL + Gemini 2.5
+- **기술 스택:** Next.js 16 (채팅 + Admin 단일 앱) + Flutter (Mobile, Phase 4 미착수) + FastAPI + Qdrant + PostgreSQL + Gemini (`gemini-3.5-flash-lite` 생성 · `gemini-embedding-001` 임베딩)
 
 ### 핵심 도메인
 
@@ -212,7 +212,7 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 
 - Backend 95%, Admin Dashboard 95% 구현 완료
 - pytest 964 passed / 4 skipped / 1 xfailed + 113 Vitest + 12 E2E 테스트 운영 중
-- Oracle Cloud ARM VM 단일 노드 (backend + Qdrant + Postgres + Cloudflare Tunnel) + Vercel (Admin) 배포 완료
+- Oracle Cloud ARM VM 단일 노드 배포 완료 — admin + backend + Qdrant + Postgres + cloudflared 컨테이너 5개. Vercel 은 구 링크 리다이렉트 전용
 - Flutter Mobile MVP (Phase 4) 미착수
 
 ### 핵심 설계 문서

@@ -41,6 +41,7 @@
 | [09-security-countermeasures](./04_architecture/09-security-countermeasures.md) | 악의적 사용 대응 9가지, 단계적 공개 | 보안, 가드레일 |
 | [10-vibe-coding-and-pinecone-vs-qdrant](./04_architecture/10-vibe-coding-and-pinecone-vs-qdrant.md) | Pinecone과 Qdrant 상세 비교 | DB 비교 |
 | [11-data-routing-strategies](./04_architecture/11-data-routing-strategies.md) | 데이터 소스 선택/라우팅 20가지 전략 | 라우팅, 검색 전략 |
+| [diagrams/](./04_architecture/diagrams/README.md) | archify 탐색형 다이어그램 6종 — 운영 아키텍처 · 코드 모듈 · DB 구조 · 채팅 시퀀스 · 적재 데이터플로우 · IngestionJob 라이프사이클 (JSON 원본 + HTML + PNG) | 다이어그램, 배포 토폴로지, ERD |
 
 ---
 

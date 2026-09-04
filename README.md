@@ -26,7 +26,7 @@ GitHub 에서는 HTML 이 렌더되지 않으므로 클론 후 브라우저로 �
 | 레이어 | 기술 |
 |--------|------|
 | Web (채팅 + 관리자) | Next.js 16.2 App Router · React 19.2 · TypeScript · Tailwind CSS 4 · shadcn/ui |
-| Backend | FastAPI · Python 3.11+ · SQLModel · 100% async |
+| Backend | FastAPI · Python 3.12 (Docker · CI 기준, pyproject 최소 3.11) · SQLModel · 100% async |
 | Database | PostgreSQL 17 (asyncpg) |
 | Vector DB | Qdrant v1.12.4 |
 | 생성 모델 | Gemini `gemini-3.5-flash-lite` |
@@ -45,12 +45,14 @@ GitHub 에서는 HTML 이 렌더되지 않으므로 클론 후 브라우저로 �
 
 ```
 truewords-platform/
-├── admin/       # Next.js 앱 — 채팅 UI + 관리자 대시보드 (단일 빌드)
-├── backend/     # FastAPI — RAG 파이프라인, 적재, 관리자 API
-├── infra/       # Oracle VM 운영 스크립트 · docker-compose
-├── docs/        # 설계 문서 · ADR · 다이어그램
-├── Makefile     # 개발/테스트/배포 진입점 (make help)
-└── reports/     # 평가·벤치마크 산출물
+├── admin/              # Next.js 앱 — 채팅 UI + 관리자 대시보드 (단일 빌드)
+├── backend/            # FastAPI — RAG 파이프라인, 적재, 관리자 API
+├── infra/oracle-vm/    # Oracle VM 운영 스크립트 · docker-compose · cron 스크립트
+├── docs/               # 설계 문서 · ADR · 다이어그램
+├── .github/workflows/  # ci.yml (PR 테스트) · cache-cleanup.yml (일일 캐시 TTL 정리)
+├── AGENTS.md           # AI 코딩 에이전트 규칙 (.claude/CLAUDE.md 는 symlink) · 상세 규칙은 .ai/
+├── Makefile            # 개발/테스트/배포 진입점 (make help)
+└── reports/            # 평가·벤치마크 산출물 (baseline jsonl · Qdrant drift)
 ```
 
 ### `admin/` — 채팅과 대시보드가 한 앱
@@ -99,6 +101,8 @@ backend/
 │   ├── safety/             # 입력 검증 · 레이트리밋 · 출력 필터
 │   ├── qdrant/             # RawQdrantClient (raw httpx) · 필터 · 컬렉션 부트스트랩
 │   ├── common/             # DB 세션 · Gemini 클라이언트 · 미들웨어
+│   ├── malssum/            # 큐레이션 말씀 카드 — featured_malssum.json 에서 1개 선택 (답변 화면 곁들임)
+│   ├── alembic_support/    # 마이그레이션 보조 — advisory lock · 배치 backfill (기본 OFF)
 │   └── config.py           # Pydantic Settings
 ├── alembic/versions/       # 마이그레이션 24개
 ├── scripts/                # 적재·백필·평가 유틸리티
@@ -142,7 +146,8 @@ admin 컨테이너의 rewrites 가 compose 서비스 DNS 로 backend 에 프록�
 
 - 호스트 publish 는 `127.0.0.1` 루프백만, 컨테이너 간 통신은 `truewords_net` 브리지
 - 외부 의존은 Gemini API 하나뿐
-- 예약 작업: GitHub Actions `cache-cleanup.yml` (매일 18:00 UTC, semantic_cache TTL 정리) + VM cron (`backup-db.sh` 6시간, `ops-check.sh` 매일)
+- 예약 작업 (GitHub Actions): `cache-cleanup.yml` — 매일 18:00 UTC, semantic_cache TTL 정리. Qdrant 는 HTTPS 라 VM 밖에서 돈다
+- 예약 작업 (VM cron 4개): `backup-db.sh` 6시간마다 · `ops-check.sh` 매일 · `refresh-questions.sh` 매주 (봇별 추천 질문) · `prune-images.sh` 매주 (이미지 GC). Postgres·이미지가 VM 로컬 자원이라 여기서만 돈다
 
 상세: [운영 시스템 아키텍처 다이어그램](./docs/04_architecture/diagrams/system-architecture.png) · [`infra/oracle-vm/README.md`](./infra/oracle-vm/README.md)
 
@@ -235,13 +240,18 @@ cd backend && uv run python scripts/create_admin.py
 ```bash
 make backend-test      # pytest — 969 케이스
 make admin-test        # Vitest — 14 파일
-make admin-e2e         # Playwright E2E — 2 스펙
-make test-all          # 위 전부
-make verify            # 타입체크 + 린트 + 테스트
+make admin-e2e         # Playwright E2E — 2 스펙 (아래 사전 조건 필요)
+make test-all          # backend-test + admin-test (E2E 제외)
+make ci                # PR CI(ci.yml) 와 동일 — backend pytest + admin vitest + build
+make admin-type        # admin tsc --noEmit · 린트는 make admin-lint
 ```
 
-> E2E 는 로그인 의존 케이스가 있어 시드 데이터가 없으면 실패한다.
-> 사전 조건은 [`docs/guides/`](./docs/guides/) 참조.
+PR 을 열면 `.github/workflows/ci.yml` 이 backend pytest + admin Vitest·build 를 돌린다 (base 가 `main` · `dev/**` 일 때).
+E2E 와 린트는 CI 에 없다.
+
+> E2E 는 로그인 의존 케이스가 있어 사전 조건 3개가 없으면 실패한다 — Postgres·Qdrant 기동,
+> 테스트 계정 2개(`backend/scripts/create_admin.py`), 챗봇 시드(`backend/scripts/seed_chatbot_configs.py`).
+> 계정·비밀번호 값은 [`admin/e2e/admin-flow.spec.ts`](./admin/e2e/admin-flow.spec.ts) 상단 주석에 있다.
 
 ---
 
@@ -272,7 +282,7 @@ Vercel 프로젝트는 구 링크(`truewords-platform.vercel.app`)를 `app.woosu
 |---|---|
 | `docs/00_project/` ~ `07_infra/` | 개요 · 요구사항 · 도메인 · API · 아키텍처 · 환경 · DevOps · 인프라 |
 | `docs/04_architecture/diagrams/` | 탐색형 다이어그램 6종 (JSON 원본 + HTML + PNG) |
-| `docs/dev-log/` | ADR — 의사결정 기록 87건 |
+| `docs/dev-log/` | ADR — 의사결정 기록 79건 (+ 평가 결과 JSON · 보고서 HTML) |
 | `docs/guides/` | 로컬 셋업 · 배포 · 트러블슈팅 |
 | `docs/TODO.md` | 완료 / 차단 / 질문 / 다음 액션 |
 
