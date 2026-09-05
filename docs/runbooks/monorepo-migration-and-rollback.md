@@ -2,6 +2,10 @@
 
 - 대상: `PLAN-MONO-001` M1~M4의 경로·앱 분리. 기존 DB schema와 RAG 정책은 바꾸지 않는다.
 - 상태: **운영 실행 전 준비 문서**. 코드·테스트의 완료 증거는 [현재 실행 계획](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)에 기록한다.
+
+## PR에서 확인한 외부 Vercel 설정
+
+[구현 PR #221](https://github.com/woosung-dev/truewords-platform/pull/221)의 레거시 Vercel preview는 외부 Root Directory가 `admin`인 상태라 실패했다. `vercel inspect` 실제 로그에서 해당 디렉터리 미존재 오류를 확인했다. 코드의 legacy redirect fallback과 별개로 프로젝트 설정 전환이 필요하다. 새 앱 경로 설정 또는 Git preview 연동 정리는 `DEC-MONO-005` 승인 후 수행하며, 이 작업에서 외부 설정이나 운영 배포를 변경하지 않았다. 실패 상태를 무시하고 통합/main 병합하지 않는다.
 - 승인 경계: 이번 요청은 구현·PR까지다. 아래 원격 배포·터널 변경·계정 이전은 별도 승인을 받은 후 실행한다.
 
 ## 로컬 Compose 볼륨 보존

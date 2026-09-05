@@ -176,6 +176,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Questions
 
+- `[확인 필요]` `DEC-MONO-005` — PR #221 Vercel preview 실패: 실제 로그에서 외부 프로젝트 Root Directory `admin` 미존재를 확인했다. 새 앱 경로로 설정을 바꿀지 레거시 Git preview 연동을 정리할지 승인 필요. 외부 설정은 변경하지 않았으며 통합/main 병합 전 처리한다.
 - `[확인 필요]` `DEC-MONO-002` — web은 기존 app origin 유지, admin은 별도 hostname으로 이전하는 운영안 확정. 배포 전 필요하다.
 - `[확인 필요]` `DEC-MONO-003` — 일반 사용자 로그인 방식 및 기존 데모 계정·기록의 이전 여부. identity 구현 전 필요하다.
 

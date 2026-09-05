@@ -168,6 +168,7 @@ PWA/알림 (M5)
 | 프록시 스트리밍 | gzip 요청에서 done까지 버퍼링 재현 → SSE `no-cache, no-transform`으로 수정. 최종 이미지 smoke 도착 **13/264/516/768ms**, 사용자 취소 `AbortError`. 일반 페이지 압축 유지 |
 | DB·운영 설정 | 격리 tmpfs DB에서 기존 Alembic 24개 적용, head `a1c9e7d0b2f3` 유지. 새 migration 없음. 기존 로컬 Compose project `backend`·볼륨 이름 유지. 운영 Compose는 예제 env + `--no-env-resolution --quiet` 정적 검증, 실제 운영 env·볼륨 접근 없음 |
 | CI·문서·경계 | tooling **13/13**(필수 검사 실패/취소/skip, import 경계, web health, GC 보존/읽기 실패 포함), 신규 workflow actionlint, docs 링크·공백 검사 통과. CI 원격 결과는 PR checks에서 최종 확인 |
+| 원격 GitHub CI | `ef22e0e`의 [run 33951365380](https://github.com/woosung-dev/truewords-platform/actions/runs/33951365380) **8개 job 전부 success**(2026-09-05). API·양 앱·계약·E2E·저장소·변경 감지·CI Required 포함. Vercel 외부 preview는 별도 실패이며 `DEC-MONO-005`로 추적. 후속 commit 상태는 PR Checks가 기준 |
 | 독립 구현 리뷰 | 계획 완료·테스트 범위, API/보안, 프론트 성능/유지보수, red-team 검토. 확인한 캐시 입력·API 테스트 캐시·GC 보존/읽기 실패·legacy Vercel fallback은 수정 후 회귀 검증. 기존 쓰기 소유권 결함은 `SEC-MONO-001`로 분리 |
 | 운영 배포·계정/데이터 이전·PWA 실기기 푸시 | 미실행 |
 
@@ -193,3 +194,4 @@ VERDICT: VERIFIED — M1~M4 구현·로컬 검증 완료. PR 심사·main 병합
 - `DEC-MONO-002` 운영 origin과 기존 링크 전환
 - `DEC-MONO-003` 일반 사용자 로그인·기존 계정/기록 이전 정책
 - `DEC-MONO-004` Flutter 착수 시점
+- `DEC-MONO-005` [구현 PR #221](https://github.com/woosung-dev/truewords-platform/pull/221)의 Vercel 외부 Root Directory `admin` 전환. preview 실패를 확인했으며 승인 전 설정 변경·통합/main 병합을 보류한다.
