@@ -45,7 +45,7 @@ POSTGRES_PORT=55432 QDRANT_HTTP_PORT=56333 QDRANT_GRPC_PORT=56334 API_PORT=58000
 | 항목 | 기존 운영 | 분리 후 제안·상태 |
 |---|---|---|
 | 사용자 origin | `app.<zone>` → `admin:3000` | `app.<zone>` → `web:3000`, 원격 전환 미실행 |
-| 관리자 origin | 같은 `app.<zone>` | `admin.<zone>` → `admin:3000`, 최종 hostname `[확인 필요]` |
+| 관리자 origin | 같은 `app.<zone>` | `truewords-admin.<zone>` → `admin:3000`, hostname 확정(`DEC-MONO-002`, 2026-09-06), 원격 전환 미실행 |
 | API·Qdrant | `backend:8080`, `qdrant:6333` | 기존 DNS·서비스 이름 유지 |
 | Next API rewrite | build 시 API 주소 고정 | `NEXT_PUBLIC_API_URL=http://backend:8080`; 런타임 env만으로 변경 불가 |
 | 앱 간 이동·CORS | 단일 앱 origin | 빌드 `NEXT_PUBLIC_WEB_URL`/`NEXT_PUBLIC_ADMIN_URL`, API `WEB_FRONTEND_URL`/`ADMIN_FRONTEND_URL` 일치 |

@@ -312,7 +312,7 @@ Next Docker 빌드는 workspace 루트를 context로 사용하여 필요한 mani
 | ID | 항목 | 제안 / 결정 시점 |
 |---|---|---|
 | `DEC-MONO-001` | 이 문서의 단계별 구조 전환을 실행할지 | 먼저 구조 이전·웹 분리·계약을 진행하고 PWA 기능은 승인 제품 계획에 연결 |
-| `DEC-MONO-002` | web/admin 운영 hostname 및 기존 링크 전환 | app 기존 origin 유지 + 별도 admin origin, 배포 전 확정 |
+| `DEC-MONO-002` | web/admin 운영 hostname 및 기존 링크 전환 | **확정(2026-09-06)**: web 은 기존 `app.woosung.dev` 유지, admin 은 `truewords-admin.woosung.dev`(zone 공유로 프로젝트 접두어). 컷오버 실행은 별도 승인 |
 | `DEC-MONO-003` | 일반 사용자 로그인 방식·기존 데모 계정/기록 처리 | 기존 데이터 자동 이전 없음, identity 구현 전 결정 |
 | `DEC-MONO-004` | Flutter 착수 시점·SDK/인증 호환성 | 착수 전 Dart 생성/파싱·네이티브 로그인·딥링크·푸시 검증 |
 

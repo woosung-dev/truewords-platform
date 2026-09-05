@@ -177,7 +177,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ## Questions
 
 - `[종결]` `DEC-MONO-005` — 사용자 승인 후 `apps/admin` 배포별 override로 Vercel preview `dpl_7mjHQuuQA2NuFddcxmz18G7RBbVc`의 `READY`를 확인했었다. 2026-09-05 main 머지 후 Production 배포가 Root Directory `admin` 부재로 실패했고, 같은 날 **Vercel 프로젝트 즉시 삭제**를 결정해 preview·전역 Root Directory 논점이 사라졌다. [전환 runbook](runbooks/monorepo-migration-and-rollback.md#외부-vercel-설정-종결) 참조.
-- `[확인 필요]` `DEC-MONO-002` — web은 기존 app origin 유지, admin은 별도 hostname으로 이전하는 운영안 확정. 배포 전 필요하다.
+- `[종결]` `DEC-MONO-002` — **2026-09-06 확정**: web 은 기존 `app.woosung.dev` 유지, admin 은 `truewords-admin.woosung.dev`(zone 을 nexus·kairos·quantbridge 와 공유하므로 프로젝트 접두어). 컷오버 순서는 [전환 runbook §배포 승인 후 순서](runbooks/monorepo-migration-and-rollback.md#배포-승인-후-순서), 실행은 단계별 승인.
 - `[확인 필요]` `DEC-MONO-003` — 일반 사용자 로그인 방식 및 기존 데모 계정·기록의 이전 여부. identity 구현 전 필요하다.
 
 - `[확인 필요]` 독립 베타의 법적 운영 주체와 FFWPU 공식 승인 요청·검수 절차는 무엇인가?

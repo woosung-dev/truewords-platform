@@ -37,7 +37,7 @@
 
 ```text
 브라우저 ── Cloudflare Edge ──┬── app.<zone> → web:3000
-                              ├── admin.<zone> → admin:3000
+                              ├── truewords-admin.<zone> → admin:3000
                               ├── api.<zone> → backend:8080
                               └── vdb.<zone> → qdrant:6333
                                    │ outbound tunnel
@@ -61,7 +61,7 @@
 
 전환 후 여섯 컨테이너가 같은 `truewords_net` 에 있어 서비스 DNS 이름으로 통신한다. Qdrant 6333 과 Postgres 5432 는 호스트 루프백에만 바인딩되어 덤프·복구·exact count 검증 등 로컬 작업에만 쓰인다. web/admin은 호스트 publish 없이 터널에서만 닿는다.
 
-사용자 브라우저는 `app.<zone>`, 관리자는 별도 `admin.<zone>`를 사용한다. 각 앱의 API 호출은 같은 origin 프록시를 통하고 Next rewrite가 `http://backend:8080`으로 전달한다. localhost의 서로 다른 포트는 쿠키 격리 경계가 아니며, 운영의 별도 hostname에서 SSO가 자동 제공된다고 가정하지 않는다.
+사용자 브라우저는 `app.<zone>`, 관리자는 별도 `truewords-admin.<zone>`를 사용한다(`DEC-MONO-002`, 2026-09-06 확정. zone 을 다른 프로젝트와 공유하므로 프로젝트 접두어를 붙인다). 각 앱의 API 호출은 같은 origin 프록시를 통하고 Next rewrite가 `http://backend:8080`으로 전달한다. localhost의 서로 다른 포트는 쿠키 격리 경계가 아니며, 운영의 별도 hostname에서 SSO가 자동 제공된다고 가정하지 않는다.
 
 ### 메모리 배분
 
@@ -83,7 +83,7 @@
 | Public Hostname | Service |
 |---|---|
 | `app.<zone>` | `http://web:3000` (전환 전에는 `admin:3000`) |
-| `admin.<zone>` | `http://admin:3000` (신규, hostname 확정·등록 필요) |
+| `truewords-admin.<zone>` | `http://admin:3000` (신규, 2026-09-06 hostname 확정 · 컷오버 시 등록) |
 | `api.<zone>` | `http://backend:8080` |
 | `vdb.<zone>` | `http://qdrant:6333` |
 
