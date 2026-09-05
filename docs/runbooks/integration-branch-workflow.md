@@ -72,7 +72,13 @@ gh pr merge <PR#> --auto --squash --delete-branch
 - `.github/workflows/ci.yml` 의 트리거에 `dev/**` 포함 (한 번만 설정)
 - CI 통과 시 자동 squash merge → 통합 브랜치 누적 + sub-task 브랜치 자동 삭제
 
-CI 가 fail 하면 머지 안 됨. 사용자가 수정 push 하면 CI 재실행 → 통과 시 자동 머지.
+CI 가 fail 하면 머지 안 됨 — **단, `CI Required` 가 required status check 로 등록된 보호 규칙이 있을 때만이다.** 2026-09-05 점검에서 main 에 보호 규칙이 없었고(Free private 레포는 설정 불가) `--auto` 는 충돌만 없으면 즉시 머지했다. 보호 규칙(public 전환 후 ruleset)이 생기기 전까지는 사람이 결과를 보고 머지한다:
+
+```bash
+gh pr checks <PR#> --watch --fail-fast && gh pr merge <PR#> --squash --delete-branch
+```
+
+사용자가 수정 push 하면 CI 재실행 → 통과 시 (보호 규칙이 있으면) 자동 머지.
 
 ### 2.4 통합 브랜치 → main 검증
 
@@ -81,15 +87,16 @@ CI 가 fail 하면 머지 안 됨. 사용자가 수정 push 하면 CI 재실행 
 ```bash
 cd ../tw-<name>
 
-# 전체 API·web/admin·계약 검사 (루트)
+# 전체 API·web/admin·계약·저장소 검사 (루트, ci.yml 과 같은 집합)
 make ci
 
-# 두 앱의 통합 E2E (격리된 테스트 환경)
-pnpm test:e2e
+# 두 앱의 통합 E2E (격리 compose·시드까지 한 번에)
+make e2e
 
-# (선택) staging deploy + 운영 트래픽 1주 모니터링
 # (선택) 골든셋 평가
 ```
+
+staging 은 2026-04-25 결정으로 영구 폐기했다([ADR 39](../adr/39-staging-decision-reverse.md)). main 머지가 곧 운영 반영이 아니므로 머지 후 `make deploy-*` 를 별도 승인으로 실행한다.
 
 검증 통과 시 main PR 생성:
 
@@ -150,7 +157,7 @@ git push origin --delete dev/<phase>
 
 1. **`ci.yml` 트리거 확장** — `pull_request: branches: [main, "dev/**"]`
 2. **repo `allow_auto_merge` 활성** — `gh api -X PATCH repos/<owner>/<repo> -f allow_auto_merge=true`
-3. **(선택) branch protection rule** — `dev/**` 에 required check 강제. CI 실패 시 머지 차단.
+3. **branch protection / ruleset** — main 과 `dev/**` 에 `CI Required` 를 required status check 로 강제. 이것이 없으면 2.3 의 auto-merge 는 CI 를 기다리지 않는다. Free private 레포에서는 설정할 수 없어(API 403) 2026-09-05 에 public 전환을 결정했다 — [ADR](../adr/2026-09-05-cicd-audit-decisions.md).
 
 PR `chore(ci): integration-branch-auto-merge-setup` 으로 1+2 한 번에 셋업.
 

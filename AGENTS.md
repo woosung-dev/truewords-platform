@@ -138,9 +138,9 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 ```
 
 - 통합 브랜치는 별도 worktree (`../tw-<name>/`) 에 분리 — main 작업과 격리
-- sub-task PR 들은 `dev/**` base. CI 통과 시 `gh pr merge --auto --squash --delete-branch` 로 자동 머지
-- 통합 브랜치 → main PR 은 **항상 수동 검증**. Oracle 이전(2026-07-29) 후 push 자동 배포가 없으므로 머지 후 `make deploy-backend` 를 명시 실행한다
-- main 머지 전 심도 테스트: 전체 backend `pytest` + admin `pnpm test` + E2E
+- sub-task PR 들은 `dev/**` base. CI 통과 시 `gh pr merge --auto --squash --delete-branch` 로 자동 머지 (required check 보호 규칙이 있을 때만 CI 를 기다린다 — 없으면 `gh pr checks <PR#> --watch` 후 수동 머지)
+- 통합 브랜치 → main PR 은 **항상 수동 검증**. Oracle 이전(2026-07-29) 후 push 자동 배포가 없으므로 머지 후 `make deploy-backend` 를 명시 실행한다. `deploy-*` 는 `deploy-guard`(HEAD ∈ origin/main + 클린 트리)를 통과해야 한다
+- main 머지 전 심도 테스트: `make ci`(API·양 앱·계약·저장소 검사) + `make e2e`
 
 상세 가이드: `docs/runbooks/integration-branch-workflow.md`
 
@@ -218,6 +218,7 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 - 기존 운영은 Oracle ARM VM의 admin + backend + Qdrant + Postgres + Cloudflare Tunnel 5컨테이너다. 저장소의 분리 후 6컨테이너 구성은 **운영 전환 미실행**이며 별도 배포 승인이 필요하다.
 - `docs/architecture/diagrams/`의 JSON/HTML/PNG는 2026-09-04 분리 전 스냅샷이다. 현재 구조의 실행 증거로 사용하지 않는다.
 - PWA 신규 인증/서비스워커/알림(M5), Flutter Mobile은 미착수·이번 PR 비범위다.
+- CI/CD 점검(2026-09-05): 결정(public 전환·Vercel 삭제·ntfy 전달·cache-cleanup GHA 유지)과 현황은 `docs/adr/2026-09-05-cicd-audit-decisions.md`, 후속은 `docs/TODO.md` §CI/CD 점검 후속. 통합 브랜치 `dev/cicd-hardening`.
 
 ### 핵심 설계 문서
 

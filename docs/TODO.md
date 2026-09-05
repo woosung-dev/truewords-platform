@@ -206,6 +206,18 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] `DEC-MONO-005` — Vercel preview 경로 조정 승인 해소, 배포별 `apps/admin` override의 `READY` 확인.
 - [x] ~~main 전환 시 Vercel 프로젝트 전역 Root Directory를 `admin`에서 새 앱 경로로 정렬~~ — 2026-09-05 폐기. main 머지 후 Vercel Production 배포가 `The specified Root Directory "admin" does not exist` 로 실패한 것을 확인했고, 정렬 대신 **프로젝트 삭제**를 결정했다(§남은 것 "Vercel 프로젝트 삭제").
 
+### CI/CD 점검 후속 (2026-09-05 · [ADR](adr/2026-09-05-cicd-audit-decisions.md))
+
+통합 브랜치 `dev/cicd-hardening` ← sub-PR 5개(Vercel 제거 · ntfy 전달 · CI/Make 가드 · 게이트 env · 문서 정합). main 머지 후 배포 순서는 `make deploy-backend` → `make deploy-admin DEMO_ADMIN_EMAIL=…`.
+
+- [x] **레포 public 전환 (D1)** (2026-09-05 완료) — 사용자가 Settings 에서 전환. 직후 적용: ruleset `main-protection`(id 22336328 · PR 필수 · `CI Required` 필수 체크 · force-push/삭제 차단 → `protected: true`), Dependabot alerts, secret scanning + push protection, `delete_branch_on_merge: true`. 사전 점검 결과: 히스토리 grep 스캔에서 2026-03-28 초기 커밋의 `backend/.env`(Gemini 키) 1건 — 같은 날 제거됐고 **현재 무효**(models.list HTTP 400)라 회수 불필요.
+  - [ ] 남은 판단 `[확인 필요]` — 개인 이메일 메모 2곳(`infra/oracle-vm/README.md` §Gemini 키 소유 계정, `infra/oracle-vm/.env.example`) 유지/삭제, `reports/*.jsonl` 의 `answer` 발췌 공개 가능 여부, `LICENSE` 부재(기본 all rights reserved), 2026-04-29 private 복귀 이유.
+- [x] **죽은 GHA 시크릿 5개 삭제** (2026-09-05 완료) — `DATABASE_URL` · `GEMINI_API_KEY` · `GEMINI_TIER` · `ADMIN_JWT_SECRET` · `ADMIN_FRONTEND_URL` 삭제. 남은 것은 `QDRANT_URL` · `QDRANT_API_KEY`. 워크플로 미참조 시크릿이라 운영 영향 없음(운영 키 원본은 VM `.env`).
+- [ ] **DEMO_ADMIN_EMAIL 운영 반영** — 순서 고정: VM `.env` 에 `DEMO_ADMIN_EMAIL=<현재 게이트 계정>` 추가 → `make deploy-backend` → `make deploy-admin DEMO_ADMIN_EMAIL=<같은 값> WEB_URL=… ADMIN_URL=…`. 순서가 바뀌거나 값이 비면 관리자 화면 전체가 403.
+- [ ] **원격 브랜치 정리** — 118개(main 에 머지 17, squash 머지라 unmerged 로 보이는 것 다수). 삭제 목록을 제시하고 승인 후 실행. `delete_branch_on_merge` 는 위 전환 항목에서 켠다.
+- [ ] **Dependabot 알림 100건 triage** — public 전환 + alerts 활성(2026-09-05) 직후 집계: high 41 · medium 50 · low 9, 전부 `pnpm-lock.yaml` 의 npm 의존성. 상위: `hono` medium 24(전이), `next` high 12 + medium 9 + low 2, `fast-uri` high 7, `undici` high 3 + medium 6, `brace-expansion` high 6, `nanoid` high 3. 우선순위: (1) `next` 16.2.x 패치 범프 → (2) 전이 의존성은 `pnpm update --latest` 가 아니라 `pnpm.overrides` 로 최소 상향 → (3) 나머지는 dev-only 여부 확인 후 dismiss. 한 번에 올리지 말고 PR 하나에 한 계열씩, CI(E2E 포함) 통과 기준.
+- [ ] **P2 (이번 달+)** — healthchecks.io dead-man ping(`ops-check.sh`·`backup-db.sh`) · `.github/dependabot.yml`(monthly, PR 3개 제한) + `dorny/paths-filter` SHA 핀 · `qdrant/qdrant:latest` → 운영 태그 `v1.12.4`(dev·e2e compose) · 무효 `apps/{api,admin}/.dockerignore` 삭제 · `@truewords/e2e` typecheck 스크립트 · ruff 도입 · Playwright `trace: retain-on-failure` · archify 전달 파이프라인 다이어그램 1종(분리 이후 기준 묶음).
+
 ### 전환 검증에서 확인한 기존 후속 과제
 
 - [ ] `SEC-MONO-001` (P1, 전환 전부터 존재) — `apps/api/app/modules/chat/pipeline/stages/session.py`의 기존 `session_id` 재사용 경로에 쓰기 소유권 검증이 없다. 기록 조회의 소유권 검증과 별개다. 일반 사용자 공개 전에 인증/익명 세션 정책을 확정하고 타 사용자 세션 이어쓰기 거부 회귀 테스트와 함께 수정한다. 이번 폴더 이전에서 정책을 임의 변경하지 않았다.
@@ -392,7 +404,7 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
 - [x] **백업 복구 리허설** — `infra/oracle-vm/restore-drill.sh` 신규. 2026-07-29 PASS (11MB 덤프 1초 복원, 11 테이블 34,377행 차집합 0, alembic head 일치).
 - [x] **추천 질문 갱신 cron 이전** — Postgres 가 VM 로컬(127.0.0.1)로 오면서 GitHub runner 가 DB 에 닿을 수 없게 됐다. 그대로 뒀다면 구 Neon URL 로 붙어 아무 효과 없는 성공을 기록했을 것. `refresh-suggested-questions.yml` 삭제 → `infra/oracle-vm/refresh-questions.sh` + VM cron(일 18:30 UTC). 실제 1회 실행 검증 완료.
 - [x] **CI/CD 배치 정리 + orchestration 정책 확정** (2026-07-30)
-  - `make ci` 신규 — `ci.yml` 과 같은 명령·같은 순서(uv sync → pytest → pnpm install → test → build). **GHA 대체가 아니라 푸시 전 사전 점검**이고, 청구 차단 동안에만 임시 게이트 역할을 한다. 명령이 갈라지면 로컬 통과가 무의미해지므로 `ci.yml` 변경 시 동반 수정 필수.
+  - `make ci` 신규 — `ci.yml` 과 같은 명령·같은 순서(uv sync → pytest → pnpm install → test → build). **GHA 대체가 아니라 푸시 전 사전 점검**이고, 청구 차단 동안에만 임시 게이트 역할을 한다. 명령이 갈라지면 로컬 통과가 무의미해지므로 `ci.yml` 변경 시 동반 수정 필수. (2026-09-05 정정: E2E 는 포함하지 않으며 `make e2e` 가 별도로 재현한다. `bash -n infra/oracle-vm/*.sh` 를 추가해 다시 맞췄다.)
   - `make cron-cache-cleanup` / `cron-refresh-questions` / `restore-drill` 수동 진입점 추가 (`ARGS=--dry-run` 지원).
   - **정책 확정: orchestration 은 GitHub Actions 에 둔다.** provider 에 묶지 않아 이전 시 secrets 만 갱신하면 된다. 예외는 리소스가 호스트 로컬일 때 하나 — Postgres 가 `127.0.0.1` 바인딩이라 `backup-db.sh`/`refresh-questions.sh` 는 VM cron 이 유일한 선택이다.
   - 이 정책에 따라 `cache-cleanup.yml` 을 GHA 로 되돌렸다. 청구 차단을 계기로 VM cron 에 내렸었는데, **청구 문제는 GHA 를 떠날 이유가 아니라 청구를 고칠 이유였다.** VM crontab 항목 제거(스케줄러 중복 방지), 스크립트는 수동 진입점으로 존치.
@@ -404,16 +416,15 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
 
 #### 남은 것 (별도 트리거)
 
-- [ ] **GitHub Actions 청구 차단 해소** [확인 필요] — 2026-07-24경부터 모든 Actions 가 `recent account payments have failed or your spending limit needs to be increased` 로 실행되지 않는다. Settings → Billing & plans 에서 처리해야 한다.
-  - **차단 동안의 대응**: PR 게이트는 `make ci`(ci.yml 과 동일 명령)를 사람이 돌린다. 캐시 정리는 `make cron-cache-cleanup` 을 사람이 돌린다 — 안 돌아도 응답 정합성은 안 깨진다(조회가 TTL 로 필터링, `src/cache/service.py:89-94`). 백업·추천 질문은 VM cron 이라 영향 없다.
-  - 차단이 풀리면 `ci.yml` 과 `cache-cleanup.yml` 이 자동으로 다시 돈다. **되돌릴 작업은 없다.**
-  - 되돌아온 뒤 확인할 것: 두 워크플로가 실제로 green 인지, `make ci` 와 `ci.yml` 결과가 일치하는지.
+- [ ] **GitHub Actions 청구 차단 — 재발 방지** — 2026-07-24~31 에 이어 **2026-08-07~31(25일) 재발**했다(job annotation `recent account payments have failed or your spending limit needs to be increased`, `steps_count: 0`). 그동안 `cache-cleanup.yml` 미실행, 08-30 에 PR 3건(#216 포함)이 CI 가 시작조차 못 한 채 머지됐다. 09-01 에 자동 복구 → 월초 리셋과 일치해 **계정 공용 무료 분(2,000분/월, 다른 private 레포와 공유) 소진 + 지출 한도 $0** 이 원인으로 추정 `[가정]`. 2026-09-05 결정: **레포 public 전환**(public 표준 러너는 무료·한도 무관) — [ADR](adr/2026-09-05-cicd-audit-decisions.md).
+  - [ ] 전환 후 첫 스케줄 run(`cache-cleanup.yml`)과 main push run 이 green 인지 확인. `gh auth refresh -s user` 후 `gh api /users/woosung-dev/settings/billing/actions` 로 가정을 검증한다.
+  - 차단 동안의 대응(변경 없음): `make ci`·`make cron-cache-cleanup` 을 사람이 돌린다. 응답 정합성은 안 깨진다(조회가 TTL 로 필터링, `apps/api/app/modules/cache/service.py:89-94`). 백업·추천 질문은 VM cron 이라 영향 없다. 이제는 `ops-check` 의 `cache-ttl` 위반이 ntfy 로 온다.
 
-- [ ] **Vercel 프로젝트 삭제** — 2026-09-05 점검에서 확인한 사실: 프로젝트 `truewords-platform` 의 전역 Root Directory 가 `admin` 이라 모노레포 main 머지 후 Production 배포가 실패했고(`dpl_EEzpx5…`), 살아 있던 307 리다이렉트는 **분리 전 마지막 성공 배포**가 서빙하고 있었다. 기존 종료 조건 "유입 로그 0 수렴" 은 Hobby 플랜 로그 보존(약 1시간)으로는 측정할 수 없다. 사용자 결정: **즉시 삭제**.
+- [x] **Vercel 프로젝트 삭제** (2026-09-05 완료) — 점검에서 확인한 사실: 프로젝트 `truewords-platform` 의 전역 Root Directory 가 `admin` 이라 모노레포 main 머지 후 Production 배포가 실패했고(`dpl_EEzpx5…`), 살아 있던 307 리다이렉트는 **분리 전 마지막 성공 배포**가 서빙하고 있었다. 기존 종료 조건 "유입 로그 0 수렴" 은 Hobby 플랜 로그 보존(약 1시간)으로는 측정할 수 없다. 사용자 결정: **즉시 삭제**.
   - [x] 코드 정리 — `apps/web/next.config.ts`·`apps/admin/next.config.ts` 의 host 조건부 redirect 블록과 `LEGACY_WEB_ORIGIN` 상수, 각 앱 `routing.test.ts` 의 legacy host 테스트, `.gitignore`/`.dockerignore` 의 `.vercel` 항목 제거.
-  - [ ] 프로젝트 삭제 실행 — `vercel project rm truewords-platform` 후 `curl -I https://truewords-platform.vercel.app/` 가 404 인지, 이후 PR 에 `Vercel` status 가 붙지 않는지 확인.
+  - [x] 프로젝트 삭제 실행 — 2026-09-05 `vercel project rm truewords-platform` 성공. `truewords-platform.vercel.app`·`truewords-platform-woosungdevs-projects.vercel.app` 모두 404 확인. 이후 PR 커밋에 `Vercel` status 없음.
 - [x] ~~**가이드 PDF 재생성**~~ — 폐기(2026-09-05). PDF 3종은 레포에 없는 외부 산출물이고, Vercel 즉시 삭제 결정으로 "삭제 전 재생성" 조건이 성립하지 않는다. 구 주소를 받은 테스터에게는 새 주소(`https://app.woosung.dev`)를 공지로 대체한다.
-- [ ] **push 자동 배포 상실** — Cloud Run 이 사라지며 `deploy.yml` 을 제거했다. main 머지가 곧 배포가 아니므로 `make deploy-backend` 를 명시 실행해야 한다. 필요해지면 GitHub Actions 빌드 → `docker save | ssh docker load` 로 복구 가능하다.
+- [x] **push 자동 배포 상실 → 수동 배포 + 가드로 확정** (2026-09-05) — CD 워크플로는 복원하지 않는다(1인·Always Free VM 에는 로컬 배포가 맞다). 대신 `make deploy-*` 가 `deploy-guard`(HEAD ∈ origin/main + 클린 트리, 예외 `FORCE_DEPLOY=1` 은 기록에 `forced`)를 거치고 VM `~/truewords/deploy.log` 에 한 줄 남긴다. main push 마다 `ci.yml` 이 돌아 "main 은 green" 근거를 남긴다. 2026-08-06 브랜치 HEAD 배포 사고의 재발 방지.
 - [x] **GCP·Neon 잔존 리소스 감사** (2026-07-30) — ADR: `docs/archive/engineering/2026-07-30-gcp-neon-residual-audit.md`
   - **⚠️ 운영 Gemini 키가 문서에 없는 프로젝트에 있었다.** 서비스의 유일한 외부 의존인데 `jetaime-dev` 가 아니라 **다른 계정(`jangwooseng97@gmail.com`)의 `d-project-497004` ("D-Project")** 소유다. 해시 대조로 확정(값 미노출). 지우면 챗봇 즉사. `infra/oracle-vm/.env.example` 과 `README.md` 에 명시했다. **2026-06-04 `woosung-dev` 사고와 같은 구조의 재료였다.**
   - `jetaime-dev` 실사: TODO 에 적혀 있던 `kairos-api`/`nexus-core` 등은 **이미 없다.** 과금 비활성, Cloud Run 0 / Cloud SQL 0 / 버킷 0. Artifact Registry 는 billing 게이트로 조회 불가(과금도 안 됨). **월 $0 — 남겨 두는 비용이 없다.**
@@ -437,11 +448,11 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
   - 최악 소요 산수: import 2.7s + embed(2×8+2) + generate(2×12+2) = **46.7s < 예산 50s**.
   - **정직하게 — 실측하지 않은 것 2개.** (1) `SKIP` 분기는 `case` 문자열 매칭을 5치 전수 검증했지만 *"backend 가 실제로 unhealthy 일 때 `$BAD` 에 backend 가 들어가는가"* 는 운영 정지가 필요해 강제하지 않았다 (사용자 판단). 그 배선은 PR #212 부터 운영 중인 `containers` 검사가 같은 `$BAD` 로 이미 쓰고 있다. (2) 429(quota 소진)·404(모델 폐기)·차원 변경은 실키로 유도할 수 없어 단위 테스트로만 잠갔다.
   - `GEMINI_TIER=paid` 라 현실적 사망 원인은 rate limit(429) 이 아니라 **청구 실패(403)** 다 — GHA 를 5일간 죽인 것과 같은 계정 레벨 실패. 403 힌트가 청구를 먼저 지목한다.
-- [ ] **RPO 24시간** — 백업이 하루 1회(03:00 KST)라 직전 장애 시 하루치 유실. 쓰기 빈도가 올라가면 빈도 상향 또는 WAL 아카이빙 재검토.
+- [x] ~~**RPO 24시간**~~ — 2026-07-30 에 6시간마다(00/06/12/18 UTC)로 상향 완료([ADR](adr/2026-07-30-rpo-measurement.md)). 이 항목은 갱신 누락이었다(2026-09-05 정리). 쓰기 빈도가 더 오르면 WAL 아카이빙 재검토.
 - [x] **예약 작업 실패 탐지** (2026-07-30) — ADR: `docs/adr/2026-07-30-silent-scheduled-job-failure.md`
   - **원인 규명**: (1) GitHub 은 알림을 만들지 않았다 — `gh api notifications?all=true` 가 빈 목록. (2) 실패 run 의 job 은 `steps_count: 0` — 청구 차단은 job 을 아예 시작하지 않는다. **따라서 워크플로 안의 `if: failure()` 알림 스텝으로는 이 사고를 잡을 수 없다.** 가장 먼저 떠오르는 대응이 정확히 이 실패 모드에 눈이 먼다.
   - **결정**: 감시자를 다른 실패 도메인(VM cron)에 두고, "job 이 돌았는가" 대신 **"결과가 기대대로인가"** 를 본다. 결과 감시는 job 미시작뿐 아니라 **성공했지만 아무 일도 안 한 경우**(구 Neon URL 로 붙어 성공 기록하던 `refresh-suggested-questions.yml` 이 실제 사례)까지 잡는다.
-  - `infra/oracle-vm/ops-check.sh` 신규 — 불변식 5건(backup 26h / cache 만료 50 / suggested_at 10일 / 컨테이너 / 디스크 80%). VM cron 매일 18:45. 결과는 `/opt/ops-status.json`. 임계값 env override 가능.
+  - `infra/oracle-vm/ops-check.sh` 신규 — 최초 불변식 5건(backup 26h / cache 만료 50 / suggested_at 10일 / 컨테이너 / 디스크 80%). 이후 backup-remote·gemini-key 가 추가되고 backup 8h·디스크 WARN 70% 로 조정돼 **현재 7건**이다(2026-09-05 정정). VM cron 매일 18:45. 결과는 `/opt/ops-status.json`. 임계값 env override 가능.
   - `cache-cleanup.yml` 에 `if: failure()` → GitHub Issue 스텝 (새 secret 0, `GITHUB_TOKEN`). 같은 제목 열린 Issue 는 코멘트만 — 매일 실패 시 Issue 가 쌓여 신호가 묻히는 것 방지. **job 미시작은 못 잡는다는 한계를 주석에 명시.**
   - `make ops-check` + `deploy-backend`/`deploy-admin` 배포 전 자동 실행(advisory — 배포는 막지 않는다).
   - 검증: 정상 exit 0 / 강제 실패 시 FAIL 3건 집계 + exit 1 + 첫 실패 후에도 나머지 계속 검사(`set -e` 배제 의도 확인).
@@ -458,14 +469,15 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
   - [ ] dead-man ping — healthchecks.io 를 고르면 함께 해결된다. 다른 채널이면 "cron 자체가 안 돎" 은 여전히 못 잡으므로 별도 과제로 남는다.
 - [ ] **Issue 알림 스텝 실행 검증** — GHA 청구 차단으로 워크플로를 돌릴 수 없어 YAML 파싱과 `gh` 명령 형태만 확인했다. 차단 해소 후 `workflow_dispatch` 로 일부러 실패시켜 Issue 가 실제로 생기는지 확인한다.
   - **2026-07-30 재확인: 여전히 차단.** 최신 run `30514716013`(04:45 UTC, CI/`chore/residual-cleanup-done`) 의 job 3개가 전부 `steps_count: 0` 이고 annotation 이 `The job was not started because recent account payments have failed or your spending limit needs to be increased`. `workflow_dispatch` 자체가 job 을 시작하지 못하므로 **일부러 실패시키는 것조차 불가능**하다. `ci.yml`/`cache-cleanup.yml` green 확인도 같은 이유로 보류. 청구 해소가 유일한 선행 조건.
+  - **2026-09-05 재확인:** 09-01 부터 GHA 정상(`cache-cleanup.yml` 09-01~04 success, CI 09-03~05 success). 그 사이 실패가 없어 Issue 스텝은 **여전히 미검증**. public 전환 뒤 `gh workflow run cache-cleanup.yml -f mode=dry-run -f ttl_days=abc` 로 인자 오류를 유도해 Issue 가 실제로 생기는지 확인하고 닫는다.
 
 #### 이번 작업 중 발견한 사전 결함 (Oracle 이전과 무관, 별도 트리거)
 
 - [ ] **E2E 5건 실패 (사전 결함 확정)** — Oracle 이전 검증 중 발견. `git merge-base` 버전의 `next.config.ts` 로 교체해 재현해도 동일 실패하므로 이번 변경과 무관하다. 로컬 사전조건(alembic + `create_admin.py` 2계정 + `seed_chatbot_configs.py` + Qdrant 417,579 pts)을 모두 갖춘 상태에서 **18 passed / 5 failed**.
   - `data-source-delete.spec.ts` 4건 — `page.route("**/admin/data-source-categories")` mock 은 실제 호출 경로(`api.ts:94`)와 일치하는데, "카테고리 관리" 버튼 클릭 후 `getByRole("row", {name:/TEST/})` 가 렌더되지 않는다. UI 렌더 단계에서 어긋난 것으로 보이며 스펙 작성 이후의 카테고리 탭 구조 변경이 의심된다.
   - `admin-flow.spec.ts:197` (Weighted Search 모드 전환 후 저장 → 재로드 시 설정 유지) 1건 — 30초 타임아웃.
-- [ ] **E2E 사전조건 자동화** — 위 실행에서 확인했듯 E2E 는 로컬 alembic + 계정 2개 + 챗봇 시드가 선행돼야 하고, 없으면 로그인 의존 테스트 16건이 통째로 죽는다. 스펙 주석에만 적혀 있어 매번 사람이 재현해야 한다. `make admin-e2e` 앞에 시드 target 을 붙이는 편이 낫다.
-- [ ] **`docs/README.md` 깨진 링크 5건 (사전 결함)** — `04_architecture/03-vector-db-comparison.md`, `04-gemini-file-search-analysis.md`, `10-vibe-coding-and-pinecone-vs-qdrant.md`, `00_project/01-project-overview.md` 안의 `05-rag-pipeline.md` / `09-security-countermeasures.md`. 실제 파일이 없다. 이번 아카이브 이동과 무관하다.
+- [x] **E2E 사전조건 자동화** (2026-09-05) — `make e2e` 신설: 격리 compose 기동 → alembic → 계정 2개(게이트 `E2E_ADMIN_EMAIL`·비관리자) → 챗봇 시드 → `pnpm test:e2e` → compose down. `ci-e2e.yml` 과 같은 env 를 쓴다. 로컬 실행은 3000/3001/8000 포트가 비어 있어야 한다.
+- [x] ~~**`docs/README.md` 깨진 링크 5건 (사전 결함)**~~ — 문서 이전(M4)에서 해소. 2026-09-05 `node tooling/checks/docs-links.mjs` 기준 새 오류 0건(기준선 관리).
 
 #### Gemini 키 감시 작업 중 발견한 사전 결함 (2026-07-30, 별도 트리거)
 
