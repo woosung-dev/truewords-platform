@@ -30,7 +30,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# search 등 일반 호출용 timeout. cold start 흡수 + Vercel 60s proxy 대비.
+# search 등 일반 호출용 timeout. cold start 흡수 + 프론트 프록시(Next rewrite) 대기 한도 대비.
 #
 # 2026-05-08 운영 사례 — 5/3 마이그레이션으로 컬렉션이 50배 (8.7K → 417,579 청크) 커진 후,
 # 운영 9일째 누적된 segment / page cache 영향으로 fallback relaxed search 가 15s 안에
@@ -38,7 +38,8 @@ logger = logging.getLogger(__name__)
 # 이라 추가 증가 없음 → 단순 timeout 상향으로 buffer 확보가 가장 단순한 해결.
 #
 # fallback._call_qdrant_with_retry 의 1·2차 호출 모두 이 timeout 을 사용하므로 한 줄
-# 변경으로 양쪽이 함께 30s 로 늘어난다. Vercel proxy 60s 한도엔 여전히 여유.
+# 변경으로 양쪽이 함께 30s 로 늘어난다. (도입 당시 기준이던 Vercel proxy 60s 한도 안에 두었고,
+# Oracle 이전 후에도 값은 그대로 유지한다.)
 _DEFAULT_TIMEOUT = httpx.Timeout(30.0, connect=5.0)
 
 

@@ -129,9 +129,9 @@ TrueWords는 **가정연합의 615권 분량 말씀 원전**을 학습한 AI 챗
 
 ```
 [프론트엔드]                       [백엔드]                 [외부 서비스]
-Next.js 16 (Admin)        ←──→  FastAPI (Cloud Run)  ─→  Gemini 2.5 (생성·임베딩)
- - Vercel 배포                   - JWT 인증               Qdrant Cloud (벡터 검색)
- - 사용자 챗봇 페이지 공개        - RAG 파이프라인        Neon PostgreSQL (운영 데이터)
+Next.js 16 (Admin)        ←──→  FastAPI (Oracle VM)  ─→  Gemini (생성·임베딩)
+ - Oracle VM 컨테이너 배포        - JWT 인증               Qdrant (같은 VM, 벡터 검색)
+ - 사용자 챗봇 페이지 공개        - RAG 파이프라인        PostgreSQL (같은 VM, 운영 데이터)
  - 관리자 로그인 보호             - Safety Layer
 ```
 

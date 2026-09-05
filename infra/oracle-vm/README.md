@@ -202,8 +202,6 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
 
 `NEXT_PUBLIC_API_URL`은 `apps/web/next.config.ts`·`apps/admin/next.config.ts`의 API rewrite 목적지다. **Next 는 `rewrites` 를 `next build` 시점에 `routes-manifest.json` 으로 굽기 때문에 런타임 env 로는 바뀌지 않는다.** 그래서 두 앱의 `deploy-*`가 `--build-arg NEXT_PUBLIC_API_URL=http://backend:8080` 으로 넣는다. 값을 바꾸려면 재빌드가 필요하다. 앱 간 링크의 `NEXT_PUBLIC_WEB_URL`·`NEXT_PUBLIC_ADMIN_URL`도 빌드에 전달하고, API의 `WEB_FRONTEND_URL`·`ADMIN_FRONTEND_URL`은 확정 origin으로 맞춘다.
 
-`truewords-platform.vercel.app` 은 Vercel 에 리다이렉트 전용으로 남아 있다. `next.config.ts` 의 `redirects()` 가 **host 조건부**라, 같은 빌드가 Oracle 에서 돌 때는 규칙이 걸리지 않는다 (조건을 빼면 자기 자신으로 무한 리다이렉트한다). 리다이렉트는 main 머지로 Vercel 프로덕션이 재빌드된 뒤 활성화되며, 그전까지는 두 도메인이 각자 정상 동작한다.
-
 ### 모노레포 이미지와 SSE 검사 (2026-09-05)
 
 ARM web/admin/API 이미지 3개 빌드·로컬 기동과 양 웹 컨테이너 통합 smoke가 통과했다. 격리 fixture 환경이며 운영 전환은 미실행이다. 최신 실행 결과는 [전환 계획 §5](../../docs/plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 확인한다.
@@ -462,7 +460,6 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 | web이 시작하지 않음 | `WEB_TAG`·`truewords-web` 이미지, standalone entrypoint와 backend health를 확인합니다. |
 | admin이 시작하지 않음 | `ADMIN_TAG` 와 `sudo docker image ls truewords-admin` 의 태그를 확인합니다. admin 은 backend healthy 를 기다리므로 backend 부터 봅니다. |
 | web/admin 에서 API 가 404/502 | 빌드 시 `NEXT_PUBLIC_API_URL` 이 `http://backend:8080` 이었는지 확인합니다. rewrites 는 빌드 타임에 구워져 재빌드해야 바뀝니다. |
-| 무한 리다이렉트 | `next.config.ts` `redirects()` 의 host 조건이 빠졌는지 확인합니다. |
 | backend 가 DB 에 못 붙음 | `sudo docker compose ps postgres` 가 healthy 인지, `.env` 의 `DATABASE_URL` 호스트가 `postgres` 인지 확인합니다. |
 | Qdrant OOM | `docker stats` 로 메모리를 확인하고 적재와 대량 검색을 분리합니다. 6GB 제한을 임의로 낮추지 않습니다. |
 | VM 디스크가 증가함 | `make prune-images` (또는 `ssh truewords-oracle 'bash ~/truewords/prune-images.sh'`) 를 돌립니다. **`docker image prune` 은 여기서 무효입니다** — 구버전 이미지가 전부 커밋 sha 태그를 달고 있어 dangling 이 아닙니다. 그래도 부족하면 `/opt/qdrant/snapshots` 와 `/opt/backups` 를 확인합니다. |

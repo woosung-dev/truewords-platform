@@ -11,7 +11,6 @@ coverage
 
 # 로컬 전용
 .env*
-.vercel
 *.tsbuildinfo
 .DS_Store
 npm-debug.log*

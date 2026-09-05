@@ -145,7 +145,7 @@ PWA/알림 (M5)
 
 1. 이전 이미지 태그·Compose·터널 라우팅·쿠키 설정을 기록하고 새 이미지들을 별도 태그로 준비한다.
 2. web/admin을 전환 전 검증용 origin에서 점검한다. DB를 재생성하거나 기존 볼륨을 삭제하지 않는다.
-3. 기존 app origin은 web으로, 관리자 hostname은 admin으로 연결한다. 기존 관리 URL redirect와 Vercel legacy redirect를 확인한다.
+3. 기존 app origin은 web으로, 관리자 hostname은 admin으로 연결한다. 기존 관리 URL redirect를 확인한다(Vercel legacy redirect는 2026-09-05 프로젝트 삭제 결정으로 제외).
 4. 로그인·채팅 스트림·기록·업로드·알림/SW를 해당 배포 범위에 맞춰 검증한다.
 5. 실패하면 이전 라우팅·Compose·이미지를 복구한다. 이미 설치된 SW는 이전 이미지 롤백만으로 제거되지 않으므로 별도 갱신/해제 절차를 적용한다.
 
@@ -196,4 +196,4 @@ VERDICT: VERIFIED — M1~M4 구현·로컬 검증 완료. PR 심사·main 병합
 - `DEC-MONO-002` 운영 origin과 기존 링크 전환
 - `DEC-MONO-003` 일반 사용자 로그인·기존 계정/기록 이전 정책
 - `DEC-MONO-004` Flutter 착수 시점
-- `DEC-MONO-005` [구현 PR #221](https://github.com/woosung-dev/truewords-platform/pull/221)의 Vercel 외부 Root Directory `admin` 전환. preview 실패를 확인했으며 승인 전 설정 변경·통합/main 병합을 보류한다.
+- ~~`DEC-MONO-005`~~ [구현 PR #221](https://github.com/woosung-dev/truewords-platform/pull/221)의 Vercel 외부 Root Directory `admin` 전환 — 당시 preview 실패를 확인하고 보류했던 항목. 2026-09-05 main 머지 후 Production 배포 실패를 확인해 **Vercel 프로젝트 삭제**로 종결(`docs/TODO.md`).
