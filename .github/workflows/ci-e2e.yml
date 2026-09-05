@@ -15,6 +15,9 @@ jobs:
       ADMIN_FRONTEND_URL: http://localhost:3001
       WEB_FRONTEND_URL: http://127.0.0.1:3000
       EMBED_BATCH_SLEEP: "0.001"
+      # 시연 관리자 게이트 계정 (API·admin 빌드·스펙이 모두 같은 값을 본다)
+      DEMO_ADMIN_EMAIL: demo-admin@example.com
+      E2E_ADMIN_EMAIL: demo-admin@example.com
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -37,7 +40,7 @@ jobs:
         working-directory: apps/api
         run: |
           uv run alembic upgrade head
-          uv run python scripts/create_admin.py jangwooseng97@gmail.com test1234
+          uv run python scripts/create_admin.py "$DEMO_ADMIN_EMAIL" test1234
           uv run python scripts/create_admin.py admin@test.com test1234
           uv run python scripts/seed_chatbot_configs.py
       - run: pnpm test:e2e

@@ -5,7 +5,7 @@
 ## 격리 환경
 
 1. 저장소 루트의 `apps/api/docker-compose.e2e.yml`로 전용 PostgreSQL/Qdrant를 실행한다. 이 설정은 tmpfs 저장소이며 기존 개발 볼륨을 연결하지 않는다.
-2. 별도 DB 환경변수로 API migration, `apps/api/scripts/create_admin.py`(각 계정), `apps/api/scripts/seed_chatbot_configs.py`를 실행한다. 관리자 `jangwooseng97@gmail.com`, 비관리자 `admin@test.com`, 테스트 암호 `test1234`를 사용한다.
+2. 별도 DB 환경변수로 API migration, `apps/api/scripts/create_admin.py`(각 계정), `apps/api/scripts/seed_chatbot_configs.py`를 실행한다. 관리자 게이트 계정 `demo-admin@example.com`(`E2E_ADMIN_EMAIL`로 변경 가능, API의 `DEMO_ADMIN_EMAIL`과 같아야 한다), 비관리자 `admin@test.com`, 테스트 암호 `test1234`를 사용한다. 루트 `make e2e`가 1~3을 한 번에 처리한다.
 3. `pnpm --filter @truewords/e2e exec playwright install chromium`으로 브라우저를 준비하고 `pnpm test:e2e`를 실행한다.
 
 기본 자동 실행은 API `8000`, web `127.0.0.1:3000`, admin `localhost:3001`을 사용하며 이미 실행 중인 서버를 재사용하지 않는다. 쿠키는 포트로 구분되지 않으므로 두 프론트엔드는 다른 hostname을 사용한다. 두 앱의 Next.js `allowedDevOrigins`는 `127.0.0.1` 개발 리소스 요청을 허용하며 운영 CORS 설정과는 별개다.

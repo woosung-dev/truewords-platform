@@ -11,6 +11,7 @@ from app.modules.admin.auth import decode_access_token
 from app.modules.admin.repository import AdminRepository
 from app.modules.admin.service import AdminService
 from app.core.common.database import get_async_session
+from app.core.config import settings
 
 COOKIE_NAME = "admin_token"
 
@@ -60,15 +61,20 @@ async def get_current_admin(request: Request) -> dict:
     }
 
 
-# ponytail: 레드팀 시연 한시 하드코딩 게이트 — 시연 종료 후 AdminRole 기반 권한으로 교체/삭제.
-DEMO_ADMIN_EMAIL = "jangwooseng97@gmail.com"
+# ponytail: 레드팀 시연 한시 게이트 — 시연 종료 후 AdminRole 기반 권한으로 교체/삭제.
+# 계정은 env DEMO_ADMIN_EMAIL (settings.demo_admin_email). 코드에 개인 이메일을 두지 않는다.
+def demo_admin_email() -> str:
+    """게이트 이메일을 소문자·공백 정규화해 돌려준다. 미설정이면 빈 문자열."""
+    return settings.demo_admin_email.strip().lower()
 
 
 async def require_admin_gate(
     current_admin: dict = Depends(get_current_admin),
 ) -> dict:
-    """시연 기간: 하드코딩 관리자 계정만 admin API 허용. 그 외/구 토큰(email 無)은 403."""
-    if (current_admin.get("email") or "").lower() != DEMO_ADMIN_EMAIL:
+    """시연 기간: 게이트 계정만 admin API 허용. 그 외/구 토큰(email 無)/게이트 미설정은 403."""
+    gate = demo_admin_email()
+    # 빈 게이트와 빈 이메일이 "일치" 로 새지 않도록 미설정을 먼저 거른다.
+    if not gate or (current_admin.get("email") or "").lower() != gate:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="관리자 권한이 없습니다",
