@@ -5,6 +5,8 @@ const repoRoot = path.resolve(__dirname, "../..");
 const webOrigin = process.env.E2E_WEB_ORIGIN || "http://127.0.0.1:3000";
 const adminOrigin = process.env.E2E_ADMIN_ORIGIN || "http://localhost:3001";
 const apiOrigin = process.env.E2E_API_ORIGIN || "http://127.0.0.1:8000";
+// 시연 관리자 게이트 계정. API(DEMO_ADMIN_EMAIL)·admin 빌드(NEXT_PUBLIC_DEMO_ADMIN_EMAIL)·스펙이 같은 값을 본다.
+const adminEmail = process.env.E2E_ADMIN_EMAIL || "demo-admin@example.com";
 
 export default defineConfig({
   testDir: ".",
@@ -40,6 +42,8 @@ export default defineConfig({
       command: "uv run --frozen uvicorn e2e_app:app --app-dir tests --host 127.0.0.1 --port 8000",
       cwd: path.join(repoRoot, "apps/api"),
       url: `${apiOrigin}/health`,
+      // 시연 관리자 게이트 계정. 스펙의 E2E_ADMIN_EMAIL 기본값과 같아야 한다.
+      env: { DEMO_ADMIN_EMAIL: adminEmail },
       reuseExistingServer: false,
       timeout: 60_000,
     },
@@ -51,6 +55,7 @@ export default defineConfig({
         NEXT_PUBLIC_API_URL: apiOrigin,
         NEXT_PUBLIC_WEB_URL: webOrigin,
         NEXT_PUBLIC_ADMIN_URL: adminOrigin,
+        NEXT_PUBLIC_DEMO_ADMIN_EMAIL: adminEmail,
       },
       reuseExistingServer: false,
       timeout: 60_000,

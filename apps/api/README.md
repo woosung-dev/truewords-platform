@@ -58,7 +58,7 @@ SSE는 `chunk` → `sources` → `done`이다. `app/modules/chat/stream_schemas.
 
 저장소 루트에서 `docker compose -p tw-monorepo-e2e -f apps/api/docker-compose.e2e.yml up -d --wait`를 실행한다. 이 파일은 기존 named volume을 전혀 참조하지 않고 tmpfs만 사용한다. PostgreSQL은 `127.0.0.1:15432`의 `truewords_e2e` DB, Qdrant는 `127.0.0.1:16333`이다.
 
-API 실행·seed 명령에는 `DATABASE_URL=postgresql+asyncpg://truewords:truewords@127.0.0.1:15432/truewords_e2e`, `QDRANT_URL=http://127.0.0.1:16333`, `GEMINI_API_KEY=test-key-for-ci`를 명시한다. `alembic upgrade head` 후 `scripts/create_admin.py <email> test1234`로 `jangwooseng97@gmail.com`과 `admin@test.com` 두 테스트 계정을 만들고 `scripts/seed_chatbot_configs.py`를 실행한다. API를 `--port 18000`으로 실행하고 Playwright의 `E2E_API_ORIGIN=http://127.0.0.1:18000`과 Next의 `NEXT_PUBLIC_API_URL`을 일치시킨다. 기존 개발 계정·DB를 seed 대상으로 사용하지 않는다.
+API 실행·seed 명령에는 `DATABASE_URL=postgresql+asyncpg://truewords:truewords@127.0.0.1:15432/truewords_e2e`, `QDRANT_URL=http://127.0.0.1:16333`, `GEMINI_API_KEY=test-key-for-ci`를 명시한다. `alembic upgrade head` 후 `scripts/create_admin.py <email> test1234`로 게이트 계정 `demo-admin@example.com`(API의 `DEMO_ADMIN_EMAIL`과 같은 값)과 `admin@test.com` 두 테스트 계정을 만들고 `scripts/seed_chatbot_configs.py`를 실행한다. API를 `--port 18000`으로 실행하고 Playwright의 `E2E_API_ORIGIN=http://127.0.0.1:18000`과 Next의 `NEXT_PUBLIC_API_URL`을 일치시킨다. 기존 개발 계정·DB를 seed 대상으로 사용하지 않는다.
 
 이 Compose의 테스트 데이터는 컨테이너 종료 시 사라진다. 운영 배포 절차가 아니며 테스트 계정과 비밀번호는 로컬 fixture다.
 

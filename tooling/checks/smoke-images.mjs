@@ -20,7 +20,7 @@ for (const origin of origins) {
 
   const login = await fetch(`${origin}/api/backend/admin/auth/login`, {
     method: "POST", headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-    body: JSON.stringify({ email: "jangwooseng97@gmail.com", password: "test1234" }),
+    body: JSON.stringify({ email: process.env.SMOKE_ADMIN_EMAIL ?? "demo-admin@example.com", password: "test1234" }),
   });
   assert.equal(login.status, 200);
   const cookie = login.headers.get("set-cookie")?.split(";")[0];

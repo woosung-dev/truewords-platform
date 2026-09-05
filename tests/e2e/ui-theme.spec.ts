@@ -42,7 +42,7 @@ for (const app of ["web", "admin"] as const) {
       await setDarkClass(page, isDark);
       await expectColor(page.locator("body"), "background-color", isDark ? "oklch(0.18 0.012 50)" : "oklch(0.988 0.024 95)");
       await expect(email).toHaveCSS("height", "32px");
-      await email.fill(app === "admin" ? "jangwooseng97@gmail.com" : "admin@test.com");
+      await email.fill(app === "admin" ? (process.env.E2E_ADMIN_EMAIL || "demo-admin@example.com") : "admin@test.com");
       await email.press("Tab");
       await expect(password).toBeFocused();
       await password.fill("test1234");

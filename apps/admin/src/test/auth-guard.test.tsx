@@ -135,7 +135,7 @@ describe("AuthGuard", () => {
     vi.mocked(authAPI.me).mockResolvedValueOnce({
       user_id: "u1",
       role: "super_admin",
-      email: "JangWooSeng97@Gmail.com",
+      email: "Demo-Admin@Example.com",
     });
 
     render(
@@ -148,5 +148,30 @@ describe("AuthGuard", () => {
       expect(screen.getByText("children")).toBeInTheDocument();
     });
     expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("requireAdmin: 게이트 env 가 비어 있으면 관리자 이메일이라도 /access-denied 로 보낸다", async () => {
+    // 빌드 env 누락(NEXT_PUBLIC_DEMO_ADMIN_EMAIL="") 시 빈 게이트와 빈 이메일이 "일치" 로 새지 않는다 — 서버 게이트와 같은 원칙.
+    vi.stubEnv("NEXT_PUBLIC_DEMO_ADMIN_EMAIL", "");
+    try {
+      vi.mocked(authAPI.me).mockResolvedValueOnce({
+        user_id: "u1",
+        role: "super_admin",
+        email: "demo-admin@example.com",
+      });
+
+      render(
+        <AuthGuard requireAdmin>
+          <p>children</p>
+        </AuthGuard>
+      );
+
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith("/access-denied");
+      });
+      expect(screen.queryByText("children")).not.toBeInTheDocument();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

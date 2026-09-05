@@ -193,14 +193,17 @@ rollback-backend: ## ⚠️ 이전 backend 이미지로 롤백 (`TAG=<이전 sha
 	@ssh "$(ORACLE)" 'sed -i "s/^BACKEND_TAG=.*/BACKEND_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait backend'
 	@$(call DEPLOY_LOG,rollback,backend,manual)
 
-deploy-admin: ## Oracle Cloud ARM VM admin 배포 (WEB_URL·ADMIN_URL 운영 값 필수).
+deploy-admin: ## Oracle Cloud ARM VM admin 배포 (WEB_URL·ADMIN_URL·DEMO_ADMIN_EMAIL 운영 값 필수).
 	@case "$(WEB_URL) $(ADMIN_URL)" in *localhost*) echo "WEB_URL·ADMIN_URL 운영 HTTPS origin을 명시하세요"; exit 1;; esac
+	@# 시연 관리자 게이트 계정은 클라이언트 라우팅 힌트로 빌드에 구워진다. 비우면 모든 계정이 access-denied 로 간다.
+	@[ -n "$(DEMO_ADMIN_EMAIL)" ] || { echo "DEMO_ADMIN_EMAIL=<시연 관리자 이메일> 을 명시하세요 (VM .env 의 값과 같아야 합니다)"; exit 1; }
 	@$(MAKE) --no-print-directory deploy-guard
 	@# NEXT_PUBLIC_API_URL 은 rewrites 가 빌드 타임에 구워지므로 build-arg 로 넣는다.
 	@# 컨테이너 내부 DNS 를 쓰면 Cloudflare 왕복이 한 번 줄어든다.
 	@$(MAKE) --no-print-directory ops-check || echo "⚠️  ops-check 위반 있음 — 배포는 계속합니다. 위 DETAIL 확인."
 	@docker buildx build --platform linux/arm64 -f apps/admin/Dockerfile \
 		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 \
+		--build-arg NEXT_PUBLIC_DEMO_ADMIN_EMAIL=$(DEMO_ADMIN_EMAIL) \
 		--build-arg NEXT_PUBLIC_WEB_URL=$(WEB_URL) --build-arg NEXT_PUBLIC_ADMIN_URL=$(ADMIN_URL) -t $(ADMIN_IMG) --load .
 	@docker save $(ADMIN_IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
 	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait admin'
@@ -262,6 +265,7 @@ ci: ## ci.yml 과 같은 검증 (API·웹·관리자·계약·저장소 검사).
 	@for s in infra/oracle-vm/*.sh; do bash -n "$$s" || exit 1; done
 	@pnpm test && pnpm lint && pnpm build && pnpm typecheck
 
+E2E_ADMIN_EMAIL ?= demo-admin@example.com
 e2e: ## 두 앱 + API 통합 E2E — ci-e2e.yml 과 같은 격리 compose·시드·env (끝나면 compose down)
 	@# 시드 없이 돌리면 로그인 의존 테스트가 통째로 죽는다(2026-07-30 사전 결함 기록). 순서를 여기 고정한다.
 	@docker compose -f apps/api/docker-compose.e2e.yml up -d --wait
@@ -270,9 +274,10 @@ e2e: ## 두 앱 + API 통합 E2E — ci-e2e.yml 과 같은 격리 compose·시�
 	  ADMIN_JWT_SECRET=e2e-only-not-a-production-secret COOKIE_SECURE=false \
 	  DATABASE_URL=postgresql+asyncpg://truewords:truewords@127.0.0.1:15432/truewords_e2e \
 	  QDRANT_URL=http://127.0.0.1:16333 ADMIN_FRONTEND_URL=http://localhost:3001 \
-	  WEB_FRONTEND_URL=http://127.0.0.1:3000 EMBED_BATCH_SLEEP=0.001; \
+	  WEB_FRONTEND_URL=http://127.0.0.1:3000 EMBED_BATCH_SLEEP=0.001 \
+	  DEMO_ADMIN_EMAIL=$(E2E_ADMIN_EMAIL) E2E_ADMIN_EMAIL=$(E2E_ADMIN_EMAIL); \
 	(cd apps/api && uv run alembic upgrade head \
-	  && uv run python scripts/create_admin.py jangwooseng97@gmail.com test1234 \
+	  && uv run python scripts/create_admin.py $(E2E_ADMIN_EMAIL) test1234 \
 	  && uv run python scripts/create_admin.py admin@test.com test1234 \
 	  && uv run python scripts/seed_chatbot_configs.py) \
 	&& pnpm test:e2e

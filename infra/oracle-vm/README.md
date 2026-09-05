@@ -481,6 +481,7 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 | web이 시작하지 않음 | `WEB_TAG`·`truewords-web` 이미지, standalone entrypoint와 backend health를 확인합니다. |
 | admin이 시작하지 않음 | `ADMIN_TAG` 와 `sudo docker image ls truewords-admin` 의 태그를 확인합니다. admin 은 backend healthy 를 기다리므로 backend 부터 봅니다. |
 | web/admin 에서 API 가 404/502 | 빌드 시 `NEXT_PUBLIC_API_URL` 이 `http://backend:8080` 이었는지 확인합니다. rewrites 는 빌드 타임에 구워져 재빌드해야 바뀝니다. |
+| 관리자 화면 전체가 403 / access-denied | `.env` 의 `DEMO_ADMIN_EMAIL` 이 비어 있거나 로그인 계정과 다릅니다. 값을 채우고 `sudo docker compose up -d --wait backend`. admin 이미지도 같은 값으로 빌드돼야 합니다(`make deploy-admin DEMO_ADMIN_EMAIL=…`). |
 | backend 가 DB 에 못 붙음 | `sudo docker compose ps postgres` 가 healthy 인지, `.env` 의 `DATABASE_URL` 호스트가 `postgres` 인지 확인합니다. |
 | Qdrant OOM | `docker stats` 로 메모리를 확인하고 적재와 대량 검색을 분리합니다. 6GB 제한을 임의로 낮추지 않습니다. |
 | VM 디스크가 증가함 | `make prune-images` (또는 `ssh truewords-oracle 'bash ~/truewords/prune-images.sh'`) 를 돌립니다. **`docker image prune` 은 여기서 무효입니다** — 구버전 이미지가 전부 커밋 sha 태그를 달고 있어 dangling 이 아닙니다. 그래도 부족하면 `/opt/qdrant/snapshots` 와 `/opt/backups` 를 확인합니다. |

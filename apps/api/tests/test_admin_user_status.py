@@ -204,7 +204,7 @@ async def test_status_endpoint_returns_updated_state():
     app.dependency_overrides[get_current_admin] = lambda: {
         "user_id": uuid.uuid4(),
         "role": "admin",
-        "email": "jangwooseng97@gmail.com",
+        "email": "demo-admin@example.com",
     }
     app.dependency_overrides[get_admin_service] = lambda: service
     try:
@@ -253,7 +253,7 @@ async def test_no_audit_log_when_unchanged():
     app.dependency_overrides[get_current_admin] = lambda: {
         "user_id": uuid.uuid4(),
         "role": "admin",
-        "email": "jangwooseng97@gmail.com",
+        "email": "demo-admin@example.com",
     }
     app.dependency_overrides[get_admin_service] = lambda: service
     try:

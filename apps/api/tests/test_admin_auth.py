@@ -13,7 +13,7 @@ from app.modules.admin.auth import (
 )
 from app.modules.admin.dependencies import (
     COOKIE_NAME,
-    DEMO_ADMIN_EMAIL,
+    demo_admin_email,
     get_current_admin,
     require_admin_gate,
     verify_csrf,
@@ -201,8 +201,8 @@ async def test_verify_csrf_patch_with_header_passes():
 
 @pytest.mark.asyncio
 async def test_require_admin_gate_passes_for_demo_admin_case_insensitive():
-    """하드코딩 관리자 이메일은 대소문자 무관 통과."""
-    current = {"user_id": uuid.uuid4(), "role": "admin", "email": "JangWooSeng97@Gmail.com"}
+    """게이트 이메일(conftest 가 env 로 고정)은 대소문자 무관 통과."""
+    current = {"user_id": uuid.uuid4(), "role": "admin", "email": "Demo-Admin@Example.com"}
     result = await require_admin_gate(current)
     assert result is current
 
@@ -313,9 +313,26 @@ async def test_me_endpoint_returns_email():
     assert res.json()["email"] == "admin@test.com"
 
 
-def test_demo_admin_email_is_lowercase():
-    """게이트 비교는 소문자 정규화 — 상수 자체가 소문자여야 함."""
-    assert DEMO_ADMIN_EMAIL == DEMO_ADMIN_EMAIL.lower()
+def test_demo_admin_email_is_normalized_from_env(monkeypatch):
+    """게이트 비교는 소문자·공백 정규화 — env 값의 대소문자·여백과 무관해야 한다."""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "demo_admin_email", "  Demo-Admin@Example.com ")
+    assert demo_admin_email() == "demo-admin@example.com"
+
+
+@pytest.mark.asyncio
+async def test_require_admin_gate_denies_everyone_when_unset(monkeypatch):
+    """DEMO_ADMIN_EMAIL 미설정이면 아무도 통과하지 못한다 — 빈 게이트와 빈 이메일이 '일치' 로 새지 않는다."""
+    from fastapi import HTTPException
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "demo_admin_email", "")
+    for email in ("", None, "demo-admin@example.com"):
+        current = {"user_id": uuid.uuid4(), "role": "admin", "email": email}
+        with pytest.raises(HTTPException) as exc_info:
+            await require_admin_gate(current)
+        assert exc_info.value.status_code == 403, email
 
 
 def test_data_router_applies_verify_csrf_at_router_level():

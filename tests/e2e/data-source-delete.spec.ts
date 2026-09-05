@@ -4,7 +4,7 @@ import { test, expect, type Page, type Route } from "@playwright/test";
  * E2E: ADR-30 Phase 3 — volume(파일) 영구 삭제 dialog (typed-confirm) 검증
  *
  * 운영 데이터 영향을 피하기 위해 카테고리/볼륨/삭제 API는 모두 page.route로 mock.
- * 사전 조건은 admin-flow.spec.ts와 동일 (관리자 게이트 계정 jangwooseng97@gmail.com / test1234).
+ * 사전 조건은 admin-flow.spec.ts와 동일 (관리자 게이트 계정 E2E_ADMIN_EMAIL / test1234).
  *
  * 5가지 시나리오:
  *   1. typed-confirm 정확 입력 → 활성 → 클릭 → API 호출 + 토스트
@@ -14,8 +14,8 @@ import { test, expect, type Page, type Route } from "@playwright/test";
  *   5. a11y — Tab 순서 / aria-label / role="alert" / aria-describedby
  */
 
-// ponytail: 시연 한시 하드코딩 게이트 — 관리자 플로우는 jangwooseng97 계정만 통과
-const TEST_EMAIL = "jangwooseng97@gmail.com";
+// ponytail: 시연 한시 게이트 — 관리자 플로우는 게이트 계정(E2E_ADMIN_EMAIL)만 통과
+const TEST_EMAIL = process.env.E2E_ADMIN_EMAIL || "demo-admin@example.com";
 const TEST_PASSWORD = "test1234";
 
 const TEST_VOLUME = "test_volume_001.pdf";
