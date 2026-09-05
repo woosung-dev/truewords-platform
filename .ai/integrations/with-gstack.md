@@ -94,14 +94,16 @@ gstack 커맨드 실행 시 아래 프로젝트 문서를 참조하세요:
 
 | gstack 커맨드 | 참조 docs |
 |---|---|
-| `/plan-eng-review` | `docs/04_architecture/02-architecture-design.md`, `docs/04_architecture/05-rag-pipeline.md` |
-| `/plan-design-review` | `docs/dev-log/17-design-strategy.md`, `docs/01_requirements/16-app-feature-spec.md` |
-| `/plan-ceo-review` | `docs/dev-log/14-success-factors-strategy.md`, `docs/dev-log/12-market-analysis.md` |
-| `/cso` | `docs/04_architecture/09-security-countermeasures.md` |
+| `/plan-eng-review` | `docs/architecture/02-architecture-design.md`, `docs/architecture/05-rag-pipeline.md` |
+| `/plan-design-review` | `docs/research/17-design-strategy.md`, `docs/prd/16-app-feature-spec.md` |
+| `/plan-ceo-review` | `docs/research/14-success-factors-strategy.md`, `docs/research/12-market-analysis.md` |
+| `/cso` | `docs/architecture/09-security-countermeasures.md` |
 | `/review` | `.ai/stacks/fastapi/backend.md`, `.ai/project/rag-pipeline.md` |
-| `/qa` | `docs/01_requirements/16-app-feature-spec.md` (비기능 요구사항 섹션) |
+| `/qa` | `docs/prd/16-app-feature-spec.md` (비기능 요구사항 섹션) |
 
 ### 프로젝트 핵심 스택
+
+아래 목록은 분리 전 참고 기록이다. 현재 앱·모델·운영 구성과 M1~M4/M5 경계는 [루트 README](../../README.md)와 [문서 색인](../../docs/README.md)을 우선한다.
 
 - **AI:** Gemini 2.5 Flash/Pro (NOT Claude/OpenAI)
 - **벡터 DB:** Qdrant (NOT pgvector/Pinecone)

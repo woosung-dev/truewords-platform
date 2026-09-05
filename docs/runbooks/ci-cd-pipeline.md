@@ -12,7 +12,7 @@ PR은 GitHub Actions에서 검증하고, 운영 배포는 로컬 Mac에서 명�
 | `apps/api` | `ci-api.yml` 전체 pytest, 계약·양 웹 소비자 검사 |
 | `contracts`, 생성 SDK·codegen | `ci-contracts.yml` 재생성 일치·기준 계약 대비 호환성·소비자 검사 |
 | 공통 lockfile·설정·tooling·workflow | 필요한 앱·API·계약 검사까지 확대 |
-| 문서·모든 PR | Repository checks: 링크·경계·tooling 테스트·운영 shell 구문 검사 |
+| 문서·모든 PR | Repository checks: 링크·경계·tooling 테스트·`infra/oracle-vm/*.sh` 각 파일을 순회하는 `bash -n` 구문 검사 |
 
 `CI Required`가 하위 job 결과를 집계한다. 변경이 없어 정상 skip한 job만 허용하며, 변경 감지 실패·검사 실패·취소·예상하지 않은 skip은 성공으로 바꾸지 않는다. required check 설정을 바꿀 때 저장소 branch protection의 실제 이름도 확인한다. 기존 검사 이름을 제거해 보호 규칙을 우회하지 않는다.
 

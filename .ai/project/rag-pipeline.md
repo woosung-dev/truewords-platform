@@ -1,5 +1,5 @@
 ---
-paths: ["backend/src/search/**/*", "backend/src/pipeline/**/*", "backend/src/cache/**/*"]
+paths: ["apps/api/app/modules/search/**/*", "apps/api/app/modules/pipeline/**/*", "apps/api/app/modules/cache/**/*", "apps/api/app/modules/chat/pipeline/**/*"]
 ---
 
 # RAG 파이프라인 코딩 규칙
@@ -43,7 +43,7 @@ SessionMessage 1건 + commit 만 (mini-persist helper).
 
 ### 1-B. Target — 청사진 12-stage (별도 plan)
 
-`docs/04_architecture/target-architecture-blueprint-2026-05-01.html` 의 12-stage
+`docs/architecture/target-architecture-blueprint-2026-05-01.html` 의 12-stage
 목표는 별도 plan 으로 점진 도입한다 (audit 결정). 본 룰 문서엔 미반영.
 
 핵심 갭: 5.0 RetrievalGate (NO_RETRIEVAL/SINGLE_STEP/MULTI_STEP), 5.5 QueryRouting
