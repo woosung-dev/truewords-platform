@@ -334,10 +334,10 @@ TrueWords의 기존 RAG 코어를 활용해 세계평화통일가정연합(FFWPU
 - docs/README.md
 - docs/research/2026-08-30-chowon-ai-benchmark.md
 - docs/research/2026-08-30-pwa-app-direction.md
-- docs/04_architecture/05-rag-pipeline.md
-- docs/04_architecture/07-multi-chatbot-version.md
-- docs/04_architecture/09-security-countermeasures.md
-- docs/02_domain/06-terminology-dictionary-structure.md
+- docs/architecture/05-rag-pipeline.md
+- docs/architecture/07-multi-chatbot-version.md
+- docs/architecture/09-security-countermeasures.md
+- docs/specs/domain/06-terminology-dictionary-structure.md
 
 목표:
 - PRD를 docs/01_requirements/17-ffwpu-pwa-prd.md에 작성

@@ -1,0 +1,9 @@
+{
+  "name": "@truewords/eslint-config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { "./next": "./next.mjs" },
+  "dependencies": { "eslint-config-next": "16.2.2" },
+  "peerDependencies": { "eslint": "^9" }
+}

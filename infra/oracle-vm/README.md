@@ -1,21 +1,24 @@
 <!-- Oracle Cloud ARM VM 단일 노드의 구성과 일상 운영 절차를 설명하는 문서. -->
 # Oracle Cloud ARM VM 셀프 호스팅
 
-TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. admin(Next.js), backend(FastAPI), Qdrant, PostgreSQL, Cloudflare Tunnel 다섯 컨테이너다. 외부 의존은 Gemini API 하나뿐이다.
+기존 운영은 Oracle ARM VM **한 대**의 admin(사용자·관리자 통합), backend, Qdrant, PostgreSQL, Cloudflare Tunnel 5컨테이너다. 저장소는 M1~M4 이후 **web을 추가한 6컨테이너 구성**을 준비한다. 아래 새 구성·origin은 **운영 전환 미실행**이며 별도 승인이 필요하다.
 
-이전 경위와 절차는 [`docs/07_infra/oracle-vm-migration.md`](../../docs/07_infra/oracle-vm-migration.md), 결정 배경은 [ADR](../../docs/dev-log/2026-07-25-gcp-to-oracle-migration.md) 을 참조한다.
+[최초 분리 전환·복구 runbook](../../docs/runbooks/monorepo-migration-and-rollback.md)을 먼저 따른다. 최초 전환 실패 시 이전 web 이미지가 없으므로 기존 통합 admin 이미지·Compose·Cloudflare 라우팅을 함께 복구한다.
+
+이전 경위와 절차는 [`docs/runbooks/oracle-vm-migration.md`](../../docs/runbooks/oracle-vm-migration.md), 결정 배경은 [ADR](../../docs/adr/2026-07-25-gcp-to-oracle-migration.md) 을 참조한다.
 
 ## 디렉토리 구성
 
 | 파일 | 역할 |
 |---|---|
-| `docker-compose.yml` | admin, backend, qdrant, postgres, cloudflared 다섯 컨테이너와 공용 네트워크를 정의합니다. |
+| `docker-compose.yml` | web, admin, backend, qdrant, postgres, cloudflared 6컨테이너와 기존 공용 네트워크를 정의합니다. 운영 적용 전입니다. |
 | `.env.example` | VM 통합 환경 변수 템플릿입니다. VM 의 `~/truewords/.env` 로 복사해 채웁니다. |
 | `setup-vm.sh` | Docker 설치, Qdrant 디렉토리, 4GB swap, 로그 로테이션, Compose 기동을 처리합니다. |
 | `backup-db.sh` | Postgres 백업 (6시간마다 · pg_dump → 무결성 검증 → Object Storage 업로드 → 보관 기간 정리). |
 | `restore-drill.sh` | 백업 복구 리허설. 운영 DB 는 읽기만 하고 임시 DB 로 복원해 대조합니다. |
 | `refresh-questions.sh` | 봇별 추천 질문 주간 갱신. backend 컨테이너 안에서 실행합니다. |
-| `prune-images.sh` | truewords 이미지 GC. repo 당 최신 3개와 실행 중 이미지를 남기고 나머지를 지웁니다. 빌드 캐시도 `until=168h` 로 정리합니다. |
+| `prune-images.sh` | truewords 이미지 GC. web/admin/backend repo의 최신 3개·실행 중 이미지·명시적 보존 태그를 남깁니다. 최초 전환 전 admin 태그도 보존 대상으로 지정합니다. 빌드 캐시도 `until=168h` 로 정리합니다. |
+| `preserve-images.example` | VM `preserve-images.txt`의 형식 예제입니다. 실제 전환 전 통합 admin 태그를 기록하면 배포 자동 GC·주간 cron에서도 보존됩니다. |
 | `cache-cleanup.sh` | semantic_cache TTL 만료 point 정리 **수동 진입점**. 스케줄은 `cache-cleanup.yml`(GHA) 이 갖습니다 — cron 에 등록하지 않습니다. |
 | `ops-check.sh` | 운영 불변식 점검. 예약 작업이 "돌지 않은" 것까지 결과 기준으로 잡습니다. Gemini 키 생존도 함께 봅니다(§`gemini-key`) — probe 본체는 backend 이미지의 `scripts/gemini_key_probe.py` 라 이 디렉토리에 없습니다. |
 
@@ -30,10 +33,11 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
 | Oracle Security List | TCP 22만 inbound 허용 |
 | 외부 서비스 | Cloudflare Tunnel outbound 연결만 사용 |
 
-## 아키텍처
+## 분리 후 아키텍처 (운영 전환 전)
 
 ```text
-브라우저 ── Cloudflare Edge ──┬── app.<zone> → admin:3000
+브라우저 ── Cloudflare Edge ──┬── app.<zone> → web:3000
+                              ├── admin.<zone> → admin:3000
                               ├── api.<zone> → backend:8080
                               └── vdb.<zone> → qdrant:6333
                                    │ outbound tunnel
@@ -41,10 +45,11 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
                     ┌─────────────────────────────────────┐
                     │ Oracle ARM VM                        │
                     │  truewords_net (bridge)              │
-                    │  cloudflared ─┬─ admin    :3000      │
+                    │  cloudflared ─┬─ web      :3000      │
+                    │               ├─ admin    :3000      │
                     │               ├─ backend  :8080      │
                     │               └─ qdrant   :6333      │
-                    │      admin ──→ backend                │
+                    │ web / admin ─→ backend                │
                     │                  postgres :5432      │
                     │  /opt/qdrant/{data,config,snapshots}  │
                     │  /opt/postgres/data                   │
@@ -54,9 +59,9 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
                               Gemini API
 ```
 
-다섯 컨테이너가 같은 `truewords_net` 에 있어 서비스 DNS 이름으로 통신한다. Qdrant 6333 과 Postgres 5432 는 호스트 루프백에만 바인딩되어 덤프·복구·exact count 검증 등 로컬 작업에만 쓰인다. admin 은 호스트 publish 없이 터널에서만 닿는다.
+전환 후 여섯 컨테이너가 같은 `truewords_net` 에 있어 서비스 DNS 이름으로 통신한다. Qdrant 6333 과 Postgres 5432 는 호스트 루프백에만 바인딩되어 덤프·복구·exact count 검증 등 로컬 작업에만 쓰인다. web/admin은 호스트 publish 없이 터널에서만 닿는다.
 
-브라우저는 `app.<zone>` 하나만 호출한다. 프론트의 모든 API 호출은 상대 경로이고 Next 서버의 `rewrites` 가 `http://backend:8080` 으로 프록시하므로, API 왕복이 Cloudflare 를 다시 타지 않는다.
+사용자 브라우저는 `app.<zone>`, 관리자는 별도 `admin.<zone>`를 사용한다. 각 앱의 API 호출은 같은 origin 프록시를 통하고 Next rewrite가 `http://backend:8080`으로 전달한다. localhost의 서로 다른 포트는 쿠키 격리 경계가 아니며, 운영의 별도 hostname에서 SSO가 자동 제공된다고 가정하지 않는다.
 
 ### 메모리 배분
 
@@ -65,18 +70,20 @@ TrueWords 운영 스택 전체가 Oracle Cloud ARM VM **한 대**에서 돈다. 
 | qdrant | 6g | dense 벡터만 2.57GB (417,579 × 1536 × 4B). sparse + HNSW 포함 |
 | backend | 3g | fastembed sparse 모델 + 요청 동시성 |
 | postgres | 1g | DB 44MB 로 작음 |
-| admin | 768m | Next standalone 서버 (Node 힙) |
+| admin | 512m | 분리한 관리자 Next standalone, 실부하 검증 필요 |
+| web | 512m | 분리한 사용자 Next standalone, 실부하 검증 필요 |
 | cloudflared | 512m | 터널 프록시 |
 
-합계 11.25g / 12g. 실사용은 훨씬 낮아 문제 없지만 (이전 4컨테이너 기준 2.1GB) limit 총합은 빠듯하다. 4GB swap 이 스파이크를 흡수한다. admin 추가 후 `docker stats` 로 실측해 조정한다.
+합계 **11.5g / 12g**로 OS·페이지 캐시 여유가 작다. **새 구성의 대표 채팅·SSE·업로드 동시 부하와 peak 메모리 검증 전 운영 배포하지 않는다.** 과거 4/5컨테이너의 실사용 기록과 4GB swap은 새 구성의 안전성 증거가 아니다.
 
 ## Cloudflare Tunnel
 
-Zero Trust 에서 터널 `truewords-oracle` 을 만들고 다음 Public Hostname 을 등록한다. 터널은 **원격 관리형**이라 설정은 대시보드에서만 바뀐다.
+운영 전환 승인을 받은 뒤 터널 `truewords-oracle`에 아래 Public Hostname을 반영한다. 기존 운영 `app → admin:3000`과 구성을 먼저 기록하고, 최종 관리자 hostname은 사용자와 확정한다. 터널은 **원격 관리형**이라 설정은 대시보드에서만 바뀐다.
 
 | Public Hostname | Service |
 |---|---|
-| `app.<zone>` | `http://admin:3000` |
+| `app.<zone>` | `http://web:3000` (전환 전에는 `admin:3000`) |
+| `admin.<zone>` | `http://admin:3000` (신규, hostname 확정·등록 필요) |
 | `api.<zone>` | `http://backend:8080` |
 | `vdb.<zone>` | `http://qdrant:6333` |
 
@@ -170,22 +177,40 @@ sudo docker compose --env-file .env up -d
 로컬 Mac(Apple Silicon)이 VM 과 같은 arm64 라 레지스트리 없이 이미지를 직접 밀어 넣는다.
 
 ```bash
-make deploy-backend                    # 빌드 → entrypoint 검증 → 전송 → 무중단 교체
+make deploy-backend                    # 빌드 → entrypoint 검증 → 전송 → compose 교체
 make deploy-admin                      # admin 도 동일 패턴
+make deploy-web                        # 새 사용자 앱, 운영 승인 후
 make rollback-backend TAG=<이전 sha>   # TAG 명시 필수
 make rollback-admin   TAG=<이전 sha>
+make rollback-web     TAG=<이전 sha>
 make oracle-logs                       # compose 로그 follow (최근 100줄)
 ```
 
 `deploy-backend` 는 이미지에 `alembic` 과 `uvicorn` 바이너리가 실제로 있는지 확인한 뒤에야 전송한다. runtime stage 에 바이너리가 빠져 기동에 실패했던 사고(dev-log 41~42)의 재발 방지 게이트다. 전송은 `docker save | gzip -1 | ssh` 이고 Makefile 이 `pipefail` 을 켜므로 스트림이 잘리면 즉시 실패한다.
 
-`rollback-backend` / `rollback-admin` 은 `TAG` 를 반드시 받는다. 기본값(현재 HEAD)으로 돌면 방금 배포한 태그를 재기록하는 no-op 이 되고, 롤백된 줄 알고 장애가 이어진다. 이전 이미지가 VM 에 남아 있어야 하므로 `sudo docker image ls truewords-backend` (또는 `truewords-admin`) 로 확인한다. `prune-images.sh` 가 repo 당 최신 3개를 보존하므로 직전 2개까지는 항상 롤백할 수 있고, 롤백으로 되돌린 옛 태그는 실행 중이라 GC 대상에서 제외된다.
+`rollback-backend` / `rollback-admin` / `rollback-web`은 `TAG` 를 반드시 받는다. 기본값(현재 HEAD)으로 돌면 방금 배포한 태그를 재기록하는 no-op 이 되고, 롤백된 줄 알고 장애가 이어진다. 이전 이미지가 VM 에 남아 있어야 하므로 `sudo docker image ls truewords-backend` (또는 `truewords-admin`·`truewords-web`) 로 확인한다. 최신 3개 보존만으로 원하는 이전 태그가 항상 남는다고 가정하지 않는다. `prune-images.sh` dry-run에서 실행 중 이미지와 명시적 보존 태그를 확인한다. 단일 Compose 교체는 무중단을 보장하지 않는다.
 
-### admin 빌드의 build-arg
+### 전환 전 이미지의 지속 보존
 
-`NEXT_PUBLIC_API_URL` 은 `admin/next.config.ts` 의 `rewrites()` 에서만 쓰이고 `src/` 어디에도 없다. **Next 는 `rewrites` 를 `next build` 시점에 `routes-manifest.json` 으로 굽기 때문에 런타임 env 로는 바뀌지 않는다.** 그래서 `deploy-admin` 이 `--build-arg NEXT_PUBLIC_API_URL=http://backend:8080` 으로 넣는다. 값을 바꾸려면 재빌드가 필요하다.
+`prune-images.sh`는 `PRESERVE_IMAGES_FILE`에서 이미지 목록을 읽는다. 기본 경로는 `${TW_DIR:-${HOME}/truewords}/preserve-images.txt`이며, 일반 VM 구성에서는 `/home/ubuntu/truewords/preserve-images.txt`다. 별도 사용자/설치 위치로 실행할 때는 이 변수를 명시한다. 비밀 `.env`를 source하지 않는다.
+
+[예제](preserve-images.example)를 참고해 전환 직전 `truewords-admin:<실제 통합앱 태그>`를 **주석 없이 한 줄에 하나씩** 기록한다. 예제 파일은 주석뿐이므로 그대로 복사한 상태에서는 보호할 태그가 없다. 파일을 채운 뒤 실제 이미지 존재와 `DRY_RUN=1 bash ~/truewords/prune-images.sh` 결과를 확인한다. 세부 절차는 [지속 보존 runbook](../../docs/runbooks/monorepo-migration-and-rollback.md#이전-통합-admin-이미지의-지속-보존)을 따른다.
+
+배포 자동 GC와 주간 cron도 같은 지속 파일을 읽으므로 다음 실행에도 전환 전 태그가 보호된다. 일회성 `PRESERVE_IMAGES`만 설정한 뒤 주간 GC에서도 유지된다고 가정하지 않는다. rollback 기간이 끝나기 전 보존 파일의 태그를 제거하지 않는다.
+
+### web/admin 빌드의 build-arg
+
+`NEXT_PUBLIC_API_URL`은 `apps/web/next.config.ts`·`apps/admin/next.config.ts`의 API rewrite 목적지다. **Next 는 `rewrites` 를 `next build` 시점에 `routes-manifest.json` 으로 굽기 때문에 런타임 env 로는 바뀌지 않는다.** 그래서 두 앱의 `deploy-*`가 `--build-arg NEXT_PUBLIC_API_URL=http://backend:8080` 으로 넣는다. 값을 바꾸려면 재빌드가 필요하다. 앱 간 링크의 `NEXT_PUBLIC_WEB_URL`·`NEXT_PUBLIC_ADMIN_URL`도 빌드에 전달하고, API의 `WEB_FRONTEND_URL`·`ADMIN_FRONTEND_URL`은 확정 origin으로 맞춘다.
 
 `truewords-platform.vercel.app` 은 Vercel 에 리다이렉트 전용으로 남아 있다. `next.config.ts` 의 `redirects()` 가 **host 조건부**라, 같은 빌드가 Oracle 에서 돌 때는 규칙이 걸리지 않는다 (조건을 빼면 자기 자신으로 무한 리다이렉트한다). 리다이렉트는 main 머지로 Vercel 프로덕션이 재빌드된 뒤 활성화되며, 그전까지는 두 도메인이 각자 정상 동작한다.
+
+### 모노레포 이미지와 SSE 검사 (2026-09-05)
+
+ARM web/admin/API 이미지 3개 빌드·로컬 기동과 양 웹 컨테이너 통합 smoke가 통과했다. 격리 fixture 환경이며 운영 전환은 미실행이다. 최신 실행 결과는 [전환 계획 §5](../../docs/plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 확인한다.
+
+격리 fixture에서 직접 API와 Docker web의 `Accept-Encoding: identity`는 250ms 간격으로 SSE를 전달했지만, web의 gzip 요청은 784ms에 `done`까지 한꺼번에 전달했다. Next 기본 gzip 압축의 버퍼링으로 확인했고, 대응은 API SSE 응답의 `Cache-Control: no-cache, no-transform`이다. 해당 응답만 압축에서 제외하여 일반 페이지 압축을 유지한다. `X-Accel-Buffering: no`만으로는 Next 압축을 해제하지 못한다.
+
+수정 이미지의 로컬 검증은 루트 `node tooling/checks/smoke-images.mjs`로 실행한다. 이 명령은 이미 실행 중인 격리 smoke 컨테이너·fixture API를 전제로 하며 운영에 실행하지 않는다. 진단 수치·최초 계약 PR의 SSE MIME 오기 정규화 예외는 [검증 runbook](../../docs/runbooks/monorepo-migration-and-rollback.md#이미지sse-검증-기록-2026-09-05)에 기록했다. 원격 Cloudflare 전달·동시 부하 검증은 별도로 수행한다.
 
 ### 컷오버 검증 결과 (2026-07-30)
 
@@ -215,7 +240,7 @@ sudo docker stats
 
 ## 정기 작업 (cron)
 
-**VM cron 에는 리소스가 호스트 로컬이라 다른 데서 돌 수 없는 것만 둔다.** 나머지 orchestration 은 GitHub Actions 가 주인이다 — provider 에 묶지 않는다는 정책(`docs/06_devops/ci-cd-pipeline.md`).
+**VM cron 에는 리소스가 호스트 로컬이라 다른 데서 돌 수 없는 것만 둔다.** 나머지 orchestration 은 GitHub Actions 가 주인이다 — provider 에 묶지 않는다는 정책(`docs/runbooks/ci-cd-pipeline.md`).
 
 ```cron
 0 0,6,12,18 * * *  /home/ubuntu/truewords/backup-db.sh    >> /home/ubuntu/truewords-backup.log 2>&1
@@ -261,7 +286,7 @@ make restore-drill                         # 백업 복구 리허설
 | `backup-remote` | Object Storage 사본 < 8h | 업로드가 조용히 실패 (스크립트가 의도적으로 무시하는 경로) |
 | `cache-ttl` | 만료 ≤ 50건 | `cache-cleanup.yml` 미실행 (스케줄러 위치 무관) |
 | `suggested-q` | `max(suggested_at)` < 10일 | `refresh-questions.sh` 미실행 |
-| `containers` | 4 healthy + cloudflared up | 컨테이너 이상 |
+| `containers` | web/admin/backend/qdrant/postgres 5 healthy + cloudflared up | web 누락을 포함한 6서비스 이상 |
 | `disk` | < 70% 주의 / < 80% 임계 | 디스크 포화. 한 달에 25GB 늘던 실측(2026-08-30)에서 80% 는 남은 시간이 3주도 안 됐다. WARN 은 종료코드를 바꾸지 않는다 |
 | `gemini-key` | embed + generate 둘 다 HTTP 성공, embed 차원 = 1536 | **유일한 외부 의존 사망** — 키 회수·청구 중단·quota 소진·모델 폐기·차원 변경 |
 
@@ -275,11 +300,11 @@ make ops-check
 # RESULT: OK — 불변식 7건 전부 통과
 ```
 
-임계값은 env 로 덮어쓸 수 있다 (`BACKUP_MAX_AGE_H` / `REMOTE_MAX_AGE_H` / `EXPIRED_MAX` / `SUGGESTED_MAX_AGE_D` / `DISK_MAX_PCT` / `GEMINI_BUDGET_S` / `GEMINI_EXEC_TIMEOUT_S` / `GEMINI_HOST_TIMEOUT_S`). 결과는 `/opt/ops-status.json` 에도 남는다. `make deploy-backend` / `deploy-admin` 이 배포 전에 자동 실행하되 **배포를 막지는 않는다** — 백업이 낡았다고 배포를 못 하게 하는 건 인과가 뒤집힌 것이다.
+임계값은 env 로 덮어쓸 수 있다 (`BACKUP_MAX_AGE_H` / `REMOTE_MAX_AGE_H` / `EXPIRED_MAX` / `SUGGESTED_MAX_AGE_D` / `DISK_MAX_PCT` / `GEMINI_BUDGET_S` / `GEMINI_EXEC_TIMEOUT_S` / `GEMINI_HOST_TIMEOUT_S`). 결과는 `/opt/ops-status.json` 에도 남는다. `make deploy-backend` / `deploy-admin` / `deploy-web`이 배포 전에 자동 실행하되 **배포를 막지는 않는다** — 백업이 낡았다고 배포를 못 하게 하는 건 인과가 뒤집힌 것이다.
 
 ### `gemini-key` — 유일한 외부 의존 감시
 
-`backend/scripts/gemini_key_probe.py` 가 컨테이너 안에서 돌며 판정을 내고, `ops-check.sh` 는 `GEMINI_PROBE verdict=… detail=…` 한 줄을 **접두사로** 집는다 (마지막 줄이 아니다 — SDK 로그가 뒤에 붙을 수 있다).
+`apps/api/scripts/gemini_key_probe.py` 가 컨테이너 안에서 돌며 판정을 내고, `ops-check.sh` 는 `GEMINI_PROBE verdict=… detail=…` 한 줄을 **접두사로** 집는다 (마지막 줄이 아니다 — SDK 로그가 뒤에 붙을 수 있다).
 
 **왜 generateContent 하나로는 부족한가.** 채팅은 semantic cache 히트여도 매 요청 `embed_content` 를 부른다 (Embedding Stage 가 CacheCheck **앞**). 임베딩만 죽어도 채팅은 100% 실패하므로, generate 만 찌르면 **초록인데 챗봇은 죽어 있다.** 그래서 두 surface 를 다 호출하고, **한쪽이 실패해도 나머지를 끝까지 호출한다** — 어느 쪽이 살아 있는지가 원인을 갈라 주기 때문이다(`backup-remote` 와 같은 원칙이라 검사 행은 하나다).
 
@@ -327,20 +352,20 @@ ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec
 
 backend 컨테이너가 비정상이면 이 검사는 `SKIP` 하고 `containers` 에 진단을 양보한다 — 한 원인에 두 진단을 내면 엉뚱한 곳을 뒤진다.
 
-> ⚠️ **탐지는 닫혔지만 전달은 아직이다.** 위반은 로그·JSON·종료코드로만 남는다. 배포하지 않는 주에 백업이 죽으면 여전히 늦게 안다. push 채널에는 자격증명이 필요하고 현재 레포에는 없다. 채널이 정해지면 `ops-check.sh` 마지막에 한 줄이다 — Slack Incoming Webhook URL 을 `.env` 에 넣고 `curl`, 또는 OCI Notifications 토픽(Instance Principal 재사용, 새 키 불필요). 상세: [ADR](../../docs/dev-log/2026-07-30-silent-scheduled-job-failure.md)
+> ⚠️ **탐지는 닫혔지만 전달은 아직이다.** 위반은 로그·JSON·종료코드로만 남는다. 배포하지 않는 주에 백업이 죽으면 여전히 늦게 안다. push 채널에는 자격증명이 필요하고 현재 레포에는 없다. 채널이 정해지면 `ops-check.sh` 마지막에 한 줄이다 — Slack Incoming Webhook URL 을 `.env` 에 넣고 `curl`, 또는 OCI Notifications 토픽(Instance Principal 재사용, 새 키 불필요). 상세: [ADR](../../docs/adr/2026-07-30-silent-scheduled-job-failure.md)
 
 ---
 
 ## 백업
 
-### Postgres — 일일 자동
+### Postgres — 6시간마다 자동
 
 `backup-db.sh` 가 cron 으로 **6시간마다 (00/06/12/18 UTC = KST 09/15/21/03시)** 실행된다.
 
-빈도 근거는 실측이다 — 하루치 유실의 실체가 채팅 메시지 약 43건(다른 출처 없는 유일본)이고, 덤프가 1초/11MB 라 4배로 늘려도 로컬 616MB·원격 4GB(무료 20GB)에 그친다. WAL 아카이빙은 채택하지 않았다: 44MB DB 에 복구 절차 복잡도를 얹는 대가가 크고, **아카이버 자체가 또 하나의 조용한 실패 지점**이 된다. 상세: [RPO 실측 ADR](../../docs/dev-log/2026-07-30-rpo-measurement.md)
+빈도 근거는 실측이다 — 하루치 유실의 실체가 채팅 메시지 약 43건(다른 출처 없는 유일본)이고, 덤프가 1초/11MB 라 4배로 늘려도 로컬 616MB·원격 4GB(무료 20GB)에 그친다. WAL 아카이빙은 채택하지 않았다: 44MB DB 에 복구 절차 복잡도를 얹는 대가가 크고, **아카이버 자체가 또 하나의 조용한 실패 지점**이 된다. 상세: [RPO 실측 ADR](../../docs/adr/2026-07-30-rpo-measurement.md)
 
 ```cron
-0 18 * * * /home/ubuntu/truewords/backup-db.sh >> /home/ubuntu/truewords-backup.log 2>&1
+0 0,6,12,18 * * * /home/ubuntu/truewords/backup-db.sh >> /home/ubuntu/truewords-backup.log 2>&1
 ```
 
 | 항목 | 값 |
@@ -434,8 +459,9 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 |---|---|
 | Cloudflare 502 | `sudo docker compose logs -f cloudflared backend` 로 터널과 backend 헬스체크를 확인합니다. |
 | backend가 시작하지 않음 | `BACKEND_TAG` 와 `sudo docker image ls truewords-backend` 의 태그가 같은지 확인합니다. |
+| web이 시작하지 않음 | `WEB_TAG`·`truewords-web` 이미지, standalone entrypoint와 backend health를 확인합니다. |
 | admin이 시작하지 않음 | `ADMIN_TAG` 와 `sudo docker image ls truewords-admin` 의 태그를 확인합니다. admin 은 backend healthy 를 기다리므로 backend 부터 봅니다. |
-| admin 에서 API 가 404/502 | 빌드 시 `NEXT_PUBLIC_API_URL` 이 `http://backend:8080` 이었는지 확인합니다. rewrites 는 빌드 타임에 구워져 재빌드해야 바뀝니다. |
+| web/admin 에서 API 가 404/502 | 빌드 시 `NEXT_PUBLIC_API_URL` 이 `http://backend:8080` 이었는지 확인합니다. rewrites 는 빌드 타임에 구워져 재빌드해야 바뀝니다. |
 | 무한 리다이렉트 | `next.config.ts` `redirects()` 의 host 조건이 빠졌는지 확인합니다. |
 | backend 가 DB 에 못 붙음 | `sudo docker compose ps postgres` 가 healthy 인지, `.env` 의 `DATABASE_URL` 호스트가 `postgres` 인지 확인합니다. |
 | Qdrant OOM | `docker stats` 로 메모리를 확인하고 적재와 대량 검색을 분리합니다. 6GB 제한을 임의로 낮추지 않습니다. |
@@ -459,7 +485,7 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 
 **이제 `ops-check.sh` 의 `gemini-key` 가 매일 이 키를 실제로 찔러 본다.** 키가 죽으면 나머지 검사는 전부 초록이므로(`/health` 도 200) 그 전에는 확인 장치가 아예 없었다. 즉시 확인은 `make gemini-check`. 상세: [운영 불변식 점검 §`gemini-key`](#gemini-key--유일한-외부-의존-감시)
 
-확인 근거와 대조 방법: [GCP·Neon 잔존 리소스 감사](../../docs/dev-log/2026-07-30-gcp-neon-residual-audit.md)
+확인 근거와 대조 방법: [GCP·Neon 잔존 리소스 감사](../../docs/archive/engineering/2026-07-30-gcp-neon-residual-audit.md)
 
 ## 보안 체크리스트
 

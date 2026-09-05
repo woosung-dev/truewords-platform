@@ -1,0 +1,26 @@
+# 테스트 전용. 운영/개발 named volume을 연결하지 않고 재시작 시 데이터를 버린다.
+name: tw-monorepo-e2e
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    ports:
+      - "127.0.0.1:15432:5432"
+    environment:
+      POSTGRES_USER: truewords
+      POSTGRES_PASSWORD: truewords
+      POSTGRES_DB: truewords_e2e
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U truewords -d truewords_e2e"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "127.0.0.1:16333:6333"
+    tmpfs:
+      - /qdrant/storage

@@ -1,0 +1,51 @@
+name: Cross-app integration
+on:
+  workflow_call:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ENVIRONMENT: development
+      GEMINI_API_KEY: e2e-fixture-no-external-llm
+      ADMIN_JWT_SECRET: e2e-only-not-a-production-secret
+      COOKIE_SECURE: "false"
+      DATABASE_URL: postgresql+asyncpg://truewords:truewords@127.0.0.1:15432/truewords_e2e
+      QDRANT_URL: http://127.0.0.1:16333
+      ADMIN_FRONTEND_URL: http://localhost:3001
+      WEB_FRONTEND_URL: http://127.0.0.1:3000
+      EMBED_BATCH_SLEEP: "0.001"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.10.4"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --frozen --project apps/api --all-groups
+      - run: pnpm --filter @truewords/e2e exec playwright install --with-deps chromium
+      - name: Start isolated ephemeral database and vector store
+        run: docker compose -f apps/api/docker-compose.e2e.yml up -d --wait
+      - name: Migrate and seed fixture accounts
+        working-directory: apps/api
+        run: |
+          uv run alembic upgrade head
+          uv run python scripts/create_admin.py jangwooseng97@gmail.com test1234
+          uv run python scripts/create_admin.py admin@test.com test1234
+          uv run python scripts/seed_chatbot_configs.py
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-failure-evidence
+          path: tests/e2e/test-results
+      - name: Stop only this test project (no development volumes)
+        if: always()
+        run: docker compose -f apps/api/docker-compose.e2e.yml down
