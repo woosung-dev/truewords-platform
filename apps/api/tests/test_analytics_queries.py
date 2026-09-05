@@ -16,7 +16,7 @@ from app.modules.admin.dependencies import get_current_admin
 
 
 def _mock_admin():
-    return {"user_id": uuid.uuid4(), "role": "admin", "email": "jangwooseng97@gmail.com"}
+    return {"user_id": uuid.uuid4(), "role": "admin", "email": "demo-admin@example.com"}
 
 
 @pytest.fixture

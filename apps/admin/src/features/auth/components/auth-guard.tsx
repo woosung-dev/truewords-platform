@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authAPI } from "@/features/auth/api";
-import { ADMIN_EMAIL } from "@/features/auth/constants";
+import { gateAdminEmail } from "@/features/auth/constants";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
@@ -24,8 +24,10 @@ export default function AuthGuard({
     authAPI
       .me()
       .then((me) => {
-        // ponytail: 시연 한시 — 하드코딩 관리자 계정만 관리자 라우트 접근 허용
-        if (requireAdmin && (me.email ?? "").toLowerCase() !== ADMIN_EMAIL) {
+        // ponytail: 시연 한시 — 게이트 계정만 관리자 라우트 접근 허용.
+        // 게이트가 비어 있으면(빌드 env 누락) 빈 이메일과 "일치" 로 새지 않도록 아무도 통과시키지 않는다.
+        const gate = gateAdminEmail();
+        if (requireAdmin && (!gate || (me.email ?? "").toLowerCase() !== gate)) {
           // email claim 없는 구 토큰은 재로그인으로 새 토큰 발급 유도,
           // 비관리자는 루트(관리자 대시보드)로 돌려보내지 않아 반복 이동을 막는다.
           router.replace(me.email == null ? "/login" : "/access-denied");

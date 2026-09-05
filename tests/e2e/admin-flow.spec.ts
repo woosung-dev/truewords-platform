@@ -3,17 +3,18 @@ import { test, expect, type Page } from "@playwright/test";
 /**
  * E2E 테스트: 관리자 로그인 → 챗봇 목록 → 편집 → search_tiers 수정 → 저장
  *
- * 사전 조건:
- *   1. PostgreSQL + Qdrant Docker 실행 중
+ * 사전 조건 (`make e2e` 가 전부 처리한다):
+ *   1. 격리 PostgreSQL + Qdrant (apps/api/docker-compose.e2e.yml) 실행 중
  *   2. 테스트 계정 생성 완료 (관리자 게이트 계정 + 비관리자 계정):
- *      cd apps/api && uv run python scripts/create_admin.py jangwooseng97@gmail.com test1234
+ *      cd apps/api && uv run python scripts/create_admin.py demo-admin@example.com test1234
  *      cd apps/api && uv run python scripts/create_admin.py admin@test.com test1234
+ *      API 는 DEMO_ADMIN_EMAIL=demo-admin@example.com 으로 실행한다 (playwright.config 가 주입).
  *   3. 챗봇 seed 데이터:
  *      cd apps/api && uv run python scripts/seed_chatbot_configs.py
  */
 
-// ponytail: 시연 한시 하드코딩 게이트 — 관리자 플로우는 jangwooseng97 계정만 통과
-const ADMIN_EMAIL = "jangwooseng97@gmail.com";
+// ponytail: 시연 한시 게이트 — 관리자 플로우는 게이트 계정(E2E_ADMIN_EMAIL)만 통과
+const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL || "demo-admin@example.com";
 const NON_ADMIN_EMAIL = "admin@test.com";
 const TEST_PASSWORD = "test1234";
 

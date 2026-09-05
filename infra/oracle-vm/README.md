@@ -20,7 +20,7 @@
 | `prune-images.sh` | truewords 이미지 GC. web/admin/backend repo의 최신 3개·실행 중 이미지·명시적 보존 태그를 남깁니다. 최초 전환 전 admin 태그도 보존 대상으로 지정합니다. 빌드 캐시도 `until=168h` 로 정리합니다. |
 | `preserve-images.example` | VM `preserve-images.txt`의 형식 예제입니다. 실제 전환 전 통합 admin 태그를 기록하면 배포 자동 GC·주간 cron에서도 보존됩니다. |
 | `cache-cleanup.sh` | semantic_cache TTL 만료 point 정리 **수동 진입점**. 스케줄은 `cache-cleanup.yml`(GHA) 이 갖습니다 — cron 에 등록하지 않습니다. |
-| `ops-check.sh` | 운영 불변식 점검. 예약 작업이 "돌지 않은" 것까지 결과 기준으로 잡습니다. Gemini 키 생존도 함께 봅니다(§`gemini-key`) — probe 본체는 backend 이미지의 `scripts/gemini_key_probe.py` 라 이 디렉토리에 없습니다. |
+| `ops-check.sh` | 운영 불변식 점검. 예약 작업이 "돌지 않은" 것까지 결과 기준으로 잡습니다. Gemini 키 생존도 함께 봅니다(§`gemini-key`) — probe 본체는 backend 이미지의 `scripts/gemini_key_probe.py` 라 이 디렉토리에 없습니다. FAIL/WARN 이면 ntfy 푸시를 보냅니다(§전달). |
 
 ## 인프라 사양
 
@@ -186,6 +186,8 @@ make rollback-web     TAG=<이전 sha>
 make oracle-logs                       # compose 로그 follow (최근 100줄)
 ```
 
+세 `deploy-*` 는 먼저 **`deploy-guard`** 를 통과해야 한다 — HEAD 가 `origin/main` 에 포함돼 있고 작업 트리가 깨끗해야 빌드로 넘어간다. 이미지 태그가 커밋 sha 라서, 브랜치 HEAD 나 더러운 트리로 빌드하면 태그와 내용이 어긋나 "운영에 무엇이 올라가 있나" 를 되짚을 수 없다(2026-08-06 실제 사고). 예외가 필요하면 `FORCE_DEPLOY=1 make deploy-backend` 로 명시하고, 그 사실은 기록에 `forced` 로 남는다. 성공한 배포·롤백은 VM `~/truewords/deploy.log` 에 `UTC시각 deploy|rollback 서비스 태그 guarded|forced|manual` 한 줄씩 쌓인다 — `ssh truewords-oracle 'tail ~/truewords/deploy.log'` 가 최근 배포 이력이다.
+
 `deploy-backend` 는 이미지에 `alembic` 과 `uvicorn` 바이너리가 실제로 있는지 확인한 뒤에야 전송한다. runtime stage 에 바이너리가 빠져 기동에 실패했던 사고(dev-log 41~42)의 재발 방지 게이트다. 전송은 `docker save | gzip -1 | ssh` 이고 Makefile 이 `pipefail` 을 켜므로 스트림이 잘리면 즉시 실패한다.
 
 `rollback-backend` / `rollback-admin` / `rollback-web`은 `TAG` 를 반드시 받는다. 기본값(현재 HEAD)으로 돌면 방금 배포한 태그를 재기록하는 no-op 이 되고, 롤백된 줄 알고 장애가 이어진다. 이전 이미지가 VM 에 남아 있어야 하므로 `sudo docker image ls truewords-backend` (또는 `truewords-admin`·`truewords-web`) 로 확인한다. 최신 3개 보존만으로 원하는 이전 태그가 항상 남는다고 가정하지 않는다. `prune-images.sh` dry-run에서 실행 중 이미지와 명시적 보존 태그를 확인한다. 단일 Compose 교체는 무중단을 보장하지 않는다.
@@ -201,8 +203,6 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
 ### web/admin 빌드의 build-arg
 
 `NEXT_PUBLIC_API_URL`은 `apps/web/next.config.ts`·`apps/admin/next.config.ts`의 API rewrite 목적지다. **Next 는 `rewrites` 를 `next build` 시점에 `routes-manifest.json` 으로 굽기 때문에 런타임 env 로는 바뀌지 않는다.** 그래서 두 앱의 `deploy-*`가 `--build-arg NEXT_PUBLIC_API_URL=http://backend:8080` 으로 넣는다. 값을 바꾸려면 재빌드가 필요하다. 앱 간 링크의 `NEXT_PUBLIC_WEB_URL`·`NEXT_PUBLIC_ADMIN_URL`도 빌드에 전달하고, API의 `WEB_FRONTEND_URL`·`ADMIN_FRONTEND_URL`은 확정 origin으로 맞춘다.
-
-`truewords-platform.vercel.app` 은 Vercel 에 리다이렉트 전용으로 남아 있다. `next.config.ts` 의 `redirects()` 가 **host 조건부**라, 같은 빌드가 Oracle 에서 돌 때는 규칙이 걸리지 않는다 (조건을 빼면 자기 자신으로 무한 리다이렉트한다). 리다이렉트는 main 머지로 Vercel 프로덕션이 재빌드된 뒤 활성화되며, 그전까지는 두 도메인이 각자 정상 동작한다.
 
 ### 모노레포 이미지와 SSE 검사 (2026-09-05)
 
@@ -352,7 +352,26 @@ ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec
 
 backend 컨테이너가 비정상이면 이 검사는 `SKIP` 하고 `containers` 에 진단을 양보한다 — 한 원인에 두 진단을 내면 엉뚱한 곳을 뒤진다.
 
-> ⚠️ **탐지는 닫혔지만 전달은 아직이다.** 위반은 로그·JSON·종료코드로만 남는다. 배포하지 않는 주에 백업이 죽으면 여전히 늦게 안다. push 채널에는 자격증명이 필요하고 현재 레포에는 없다. 채널이 정해지면 `ops-check.sh` 마지막에 한 줄이다 — Slack Incoming Webhook URL 을 `.env` 에 넣고 `curl`, 또는 OCI Notifications 토픽(Instance Principal 재사용, 새 키 불필요). 상세: [ADR](../../docs/adr/2026-07-30-silent-scheduled-job-failure.md)
+### 전달 — ntfy 푸시 (2026-09-05)
+
+탐지(위 7건)와 별개로 **전달**이 없어 2026-08-07~31 에 `cache-cleanup.yml` 이 25일간 안 돌았는데도(GHA 청구 차단 재발) 아무도 몰랐다. `ops-check.sh` 는 매일 `cache-ttl FAIL` 을 `/opt/ops-status.json` 에 적고 있었다. 그래서 스크립트 마지막에 [ntfy.sh](https://ntfy.sh) 푸시 한 줄을 붙였다.
+
+| 항목 | 값 |
+|---|---|
+| 채널 | `https://ntfy.sh/$NTFY_TOPIC` — 계정·키 없음. 토픽 이름이 비밀이라 `truewords-$(openssl rand -hex 8)` 같은 값을 쓴다 |
+| 설정 | VM `~/truewords/.env` 에 `NTFY_TOPIC=…` 한 줄 + 수신 측 구독(폰 ntfy 앱 또는 웹 `https://ntfy.sh/<topic>`). **앱 없이 받는 방식(healthchecks.io 이메일 등)은 `docs/TODO.md` 전달 채널 항목에서 결정 대기** — `NTFY_TOPIC` 이 비어 있으면 이 블록은 아무것도 하지 않는다 |
+| 발송 조건 | FAIL ≥ 1 → priority `high`, WARN 만 있으면 `default`. **OK 는 보내지 않는다** — 매일 오는 초록 알림은 곧 안 읽게 된다 |
+| 본문 | OK 가 아닌 행만(이름·판정·DETAIL). 전문은 `/opt/ops-status.json` |
+| 실패 시 | 전송 실패는 판정을 바꾸지 않는다. stderr 에 경고만 남고 종료코드는 검사 결과 그대로 |
+
+리허설은 반증 가능하게 한다 — 정상 실행에서는 푸시가 **오지 않아야** 하고, 임계값을 강제로 깨면 **와야** 한다.
+
+```bash
+make ops-check                                                        # 정상: 푸시 없음
+ssh truewords-oracle 'BACKUP_MAX_AGE_H=0 bash ~/truewords/ops-check.sh'   # backup FAIL 강제 → 폰에 "[truewords] ops-check FAIL x1"
+```
+
+> 한계: **cron 자체가 안 돌면 이 방식으로는 모른다.** 스크립트가 실행돼야 푸시가 나간다. "안 돌았음" 까지 잡으려면 dead-man ping(healthchecks.io 류)을 `ops-check.sh`·`backup-db.sh` 끝에 한 줄 더 붙여야 한다 — 별도 과제. 배경: [ADR](../../docs/adr/2026-07-30-silent-scheduled-job-failure.md)
 
 ---
 
@@ -462,7 +481,7 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 | web이 시작하지 않음 | `WEB_TAG`·`truewords-web` 이미지, standalone entrypoint와 backend health를 확인합니다. |
 | admin이 시작하지 않음 | `ADMIN_TAG` 와 `sudo docker image ls truewords-admin` 의 태그를 확인합니다. admin 은 backend healthy 를 기다리므로 backend 부터 봅니다. |
 | web/admin 에서 API 가 404/502 | 빌드 시 `NEXT_PUBLIC_API_URL` 이 `http://backend:8080` 이었는지 확인합니다. rewrites 는 빌드 타임에 구워져 재빌드해야 바뀝니다. |
-| 무한 리다이렉트 | `next.config.ts` `redirects()` 의 host 조건이 빠졌는지 확인합니다. |
+| 관리자 화면 전체가 403 / access-denied | `.env` 의 `DEMO_ADMIN_EMAIL` 이 비어 있거나 로그인 계정과 다릅니다. 값을 채우고 `sudo docker compose up -d --wait backend`. admin 이미지도 같은 값으로 빌드돼야 합니다(`make deploy-admin DEMO_ADMIN_EMAIL=…`). |
 | backend 가 DB 에 못 붙음 | `sudo docker compose ps postgres` 가 healthy 인지, `.env` 의 `DATABASE_URL` 호스트가 `postgres` 인지 확인합니다. |
 | Qdrant OOM | `docker stats` 로 메모리를 확인하고 적재와 대량 검색을 분리합니다. 6GB 제한을 임의로 낮추지 않습니다. |
 | VM 디스크가 증가함 | `make prune-images` (또는 `ssh truewords-oracle 'bash ~/truewords/prune-images.sh'`) 를 돌립니다. **`docker image prune` 은 여기서 무효입니다** — 구버전 이미지가 전부 커밋 sha 태그를 달고 있어 dangling 이 아닙니다. 그래도 부족하면 `/opt/qdrant/snapshots` 와 `/opt/backups` 를 확인합니다. |

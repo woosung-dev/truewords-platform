@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { authAPI } from "@/features/auth/api";
-import { ADMIN_EMAIL } from "@/features/auth/constants";
+import { gateAdminEmail } from "@/features/auth/constants";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +30,8 @@ export default function LoginPage() {
       // 계정 전환 후 이전 계정의 관리자 query 결과를 재사용하지 않는다.
       queryClient.clear();
       // 기존 시연 계정 정책을 유지하되 앱 간 쿠키 공유를 전제하지 않는다.
-      const isGateAdmin = email.trim().toLowerCase() === ADMIN_EMAIL;
+      const gate = gateAdminEmail();
+      const isGateAdmin = gate !== "" && email.trim().toLowerCase() === gate;
       router.push(isGateAdmin ? "/chatbots" : "/access-denied");
     } catch (err) {
       // ApiError.status 로 분기 — message 문자열엔 "401" 이 포함되지 않음

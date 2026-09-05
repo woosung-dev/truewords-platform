@@ -21,3 +21,10 @@ test("감지 실패와 누락 output은 닫힌 상태로 실패", () => {
   needs.changes = { result: "failure", outputs: {} };
   assert.ok(checkCiStatus(needs).length);
 });
+test("규칙이 없는 새 job 은 성공만 허용 (failure·skipped 모두 차단)", () => {
+  for (const result of ["failure", "cancelled", "skipped"]) {
+    const needs = { ...fixture(), "new-job": { result } };
+    assert.ok(checkCiStatus(needs).some((f) => f.startsWith("new-job:")), result);
+  }
+  assert.deepEqual(checkCiStatus({ ...fixture(), "new-job": { result: "success" } }), []);
+});

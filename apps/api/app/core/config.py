@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     admin_jwt_algorithm: str = "HS256"
     admin_jwt_expire_minutes: int = 60 * 24  # 24시간
 
+    # ponytail: 레드팀 시연 한시 관리자 게이트 — admin API 를 허용할 단 하나의 계정 이메일.
+    # 시연 종료 후 AdminRole 기반 권한으로 교체/삭제. 코드에 개인 이메일을 두지 않으려고
+    # env(DEMO_ADMIN_EMAIL)로 받는다. 비어 있으면 아무도 게이트를 통과하지 못한다 —
+    # admin API 전부 403, 채팅은 영향 없음. 운영 VM .env 에 반드시 설정한다.
+    demo_admin_email: str = ""
+
     # 독립 web/admin origin (CORS). 쿠키의 host 범위는 포트로 분리되지 않는다.
     admin_frontend_url: str = "http://localhost:3001"
     web_frontend_url: str = "http://localhost:3000"

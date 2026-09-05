@@ -116,10 +116,12 @@ repo/
 ├── tests/e2e/
 ├── infra/
 ├── .github/workflows/
-│   ├── ci.yml                      # 항상 실행되는 변경 감지·최종 판정
+│   ├── ci.yml                      # 변경 감지·최종 판정 (PR + main push + 수동)
 │   ├── ci-web.yml                  # web/admin 검사: 앱별 job
 │   ├── ci-api.yml
-│   └── ci-contracts.yml
+│   ├── ci-contracts.yml
+│   ├── ci-e2e.yml                  # 격리 compose 위 두 앱 + API 통합 E2E
+│   └── cache-cleanup.yml           # 일일 semantic_cache TTL 정리 (운영 cron 성격)
 ├── AGENTS.md
 ├── Makefile
 ├── package.json
