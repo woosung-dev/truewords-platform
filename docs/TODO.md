@@ -215,6 +215,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] **죽은 GHA 시크릿 5개 삭제** (2026-09-05 완료) — `DATABASE_URL` · `GEMINI_API_KEY` · `GEMINI_TIER` · `ADMIN_JWT_SECRET` · `ADMIN_FRONTEND_URL` 삭제. 남은 것은 `QDRANT_URL` · `QDRANT_API_KEY`. 워크플로 미참조 시크릿이라 운영 영향 없음(운영 키 원본은 VM `.env`).
 - [ ] **DEMO_ADMIN_EMAIL 운영 반영** — 순서 고정: VM `.env` 에 `DEMO_ADMIN_EMAIL=<현재 게이트 계정>` 추가 → `make deploy-backend` → `make deploy-admin DEMO_ADMIN_EMAIL=<같은 값> WEB_URL=… ADMIN_URL=…`. 순서가 바뀌거나 값이 비면 관리자 화면 전체가 403.
 - [ ] **원격 브랜치 정리** — 118개(main 에 머지 17, squash 머지라 unmerged 로 보이는 것 다수). 삭제 목록을 제시하고 승인 후 실행. `delete_branch_on_merge` 는 위 전환 항목에서 켠다.
+- [ ] **Dependabot 알림 100건 triage** — public 전환 + alerts 활성(2026-09-05) 직후 집계: high 41 · medium 50 · low 9, 전부 `pnpm-lock.yaml` 의 npm 의존성. 상위: `hono` medium 24(전이), `next` high 12 + medium 9 + low 2, `fast-uri` high 7, `undici` high 3 + medium 6, `brace-expansion` high 6, `nanoid` high 3. 우선순위: (1) `next` 16.2.x 패치 범프 → (2) 전이 의존성은 `pnpm update --latest` 가 아니라 `pnpm.overrides` 로 최소 상향 → (3) 나머지는 dev-only 여부 확인 후 dismiss. 한 번에 올리지 말고 PR 하나에 한 계열씩, CI(E2E 포함) 통과 기준.
 - [ ] **P2 (이번 달+)** — healthchecks.io dead-man ping(`ops-check.sh`·`backup-db.sh`) · `.github/dependabot.yml`(monthly, PR 3개 제한) + `dorny/paths-filter` SHA 핀 · `qdrant/qdrant:latest` → 운영 태그 `v1.12.4`(dev·e2e compose) · 무효 `apps/{api,admin}/.dockerignore` 삭제 · `@truewords/e2e` typecheck 스크립트 · ruff 도입 · Playwright `trace: retain-on-failure` · archify 전달 파이프라인 다이어그램 1종(분리 이후 기준 묶음).
 
 ### 전환 검증에서 확인한 기존 후속 과제
