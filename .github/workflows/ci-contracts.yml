@@ -23,7 +23,8 @@ jobs:
       - run: uv sync --frozen --project apps/api
       - name: Regeneration drift and base-branch compatibility
         env:
-          CONTRACT_BASE_REF: ${{ github.event.pull_request.base.sha }}
+          # PR: base 브랜치 tip. main push: 직전 커밋. 수동 실행: 비어 있어 스크립트가 merge-base 로 폴백.
+          CONTRACT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: pnpm contracts:check
       - run: pnpm --filter @truewords/api-client-ts test
       - run: pnpm typecheck

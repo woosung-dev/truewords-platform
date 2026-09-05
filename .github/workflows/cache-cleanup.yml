@@ -7,14 +7,15 @@ name: Semantic Cache Cleanup
 # 인프라 무관성: GHA 가 외부 trigger 라 어느 환경에서도 동일 동작. 운영을 옮겨도
 # secrets 의 QDRANT_URL/API_KEY 만 갱신하면 끝이다. 이 워크플로가 여기 있는 이유가
 # 그것이고, Oracle 이전(2026-07-29) 때 잠깐 VM cron 으로 내렸다가 되돌렸다 —
-# 정기 작업 orchestration 은 provider 에 묶지 않는다는 정책 (docs/06_devops/ci-cd-pipeline.md).
+# 정기 작업 orchestration 은 provider 에 묶지 않는다는 정책 (docs/runbooks/ci-cd-pipeline.md).
 #
 # GHA 가 멈춰 있는 동안(청구 차단 등) 이 작업이 안 돌아도 응답 정합성은 깨지지 않는다.
 # 캐시 조회가 Qdrant filter 에서 `created_at >= now - TTL` 로 만료분을 걸러내므로
-# (src/cache/service.py:89-94) 만료 point 는 서빙되지 않고 디스크만 차지한다.
+# (apps/api/app/modules/cache/service.py:89-94) 만료 point 는 서빙되지 않고 디스크만 차지한다.
 # 수동 실행: `make cron-cache-cleanup` (VM 컨테이너 안에서 같은 스크립트 실행).
+# 미실행 감시는 VM 의 ops-check.sh `cache-ttl` 이 결과 기준으로 잡고 ntfy 로 알린다.
 #
-# 상세: docs/guides/semantic-cache-cleanup.md, docs/dev-log/55-semantic-cache-hardening.md
+# 상세: docs/runbooks/semantic-cache-cleanup.md, docs/adr/55-semantic-cache-hardening.md
 
 on:
   schedule:
@@ -52,7 +53,8 @@ jobs:
 
       - uses: astral-sh/setup-uv@v4
         with:
-          version: "latest"
+          # ci-*.yml 과 같은 버전으로 고정. latest 는 어느 날 uv.lock 해석이 달라져 조용히 깨진다.
+          version: "0.10.4"
 
       - uses: actions/setup-python@v5
         with:

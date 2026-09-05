@@ -4,7 +4,7 @@ PR은 GitHub Actions에서 검증하고, 운영 배포는 로컬 Mac에서 명�
 
 ## PR 검사 경로
 
-`.github/workflows/ci.yml`은 `main`과 `dev/**` 대상 모든 PR에서 시작한다. workflow 전체를 path filter로 건너뛰지 않고 job별 영향 범위를 판정한다.
+`.github/workflows/ci.yml`은 `main`과 `dev/**` 대상 모든 PR에서 시작한다. workflow 전체를 path filter로 건너뛰지 않고 job별 영향 범위를 판정한다. **`main` push와 수동 `workflow_dispatch`에서도 실행**되며, 이때는 변경 감지를 건너뛰고 전체 검사를 돌린다(필터가 "변경 없음"을 내면 전부 skip인 채 초록이 되는 함정 회피). main push 실행이 남기는 "main은 green"이 `make deploy-guard`의 "main에 포함된 커밋만 배포" 규칙의 근거다. PR run은 새 push가 이전 run을 취소하지만 main push run은 취소하지 않는다.
 
 | 변경 | 검사 |
 |---|---|
@@ -20,13 +20,13 @@ PR은 GitHub Actions에서 검증하고, 운영 배포는 로컬 Mac에서 명�
 
 | 범위 | 명령·원칙 |
 |---|---|
-| API | `cd apps/api` → `uv sync --frozen --all-groups` → `GEMINI_API_KEY=test-key-for-ci uv run pytest` |
+| API | `cd apps/api` → `uv sync --frozen`(dev 그룹만, `eval` 그룹은 평가 스크립트 전용) → `GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run pytest` |
 | JS/TS | 루트 `pnpm install --frozen-lockfile`; 앱·패키지별 test/typecheck/build |
-| 계약 | `pnpm contracts:generate` 후 생성 산출물 diff·`pnpm contracts:check` |
-| 저장소 | `pnpm docs:check`, `pnpm boundaries:check`, `pnpm tooling:test` |
-| 통합 | `pnpm test:e2e`; web/admin/API와 격리된 테스트 데이터, 실제 실행 범위는 테스트 설정 참조 |
+| 계약 | `pnpm contracts:generate` 후 생성 산출물 diff·`pnpm contracts:check`. 전제: 사전 `uv sync`, **Docker 데몬**(oasdiff 컨테이너), 기준 커밋을 포함한 git 이력. 비교 기준은 PR=base 브랜치 tip, main push=직전 커밋, 로컬·수동 실행=`merge-base HEAD origin/main` |
+| 저장소 | `pnpm docs:check`, `pnpm boundaries:check`, `pnpm tooling:test`, `bash -n infra/oracle-vm/*.sh` |
+| 통합 | `pnpm test:e2e`; web/admin/API와 격리된 테스트 데이터, 실제 실행 범위는 테스트 설정 참조. 로컬은 `make e2e`가 격리 compose 기동→migration→시드→실행→정리를 묶는다 |
 
-루트 `make ci`는 전체 로컬 사전 점검이다. CI를 바꾸면 이 명령과 설명을 함께 맞춘다. `make backend-test`에 테스트 제외 옵션이 남아 있으면 전체 회귀의 대체 명령으로 사용하지 않는다. Judge LLM/RAGAS 유료 평가는 CI에 추가하지 않는다.
+루트 `make ci`는 ci.yml의 검사 집합(E2E 제외)을 로컬에서 재현하고, `make e2e`가 `ci-e2e.yml`과 같은 격리 compose·시드·env로 E2E를 돌린다. CI를 바꾸면 두 target과 이 문서를 함께 맞춘다. `make backend-test`는 CI와 같은 env·범위로 전체 회귀를 실행한다(과거의 테스트 제외 옵션은 제거했다). Judge LLM/RAGAS 유료 평가는 CI에 추가하지 않는다.
 
 실제 실행 횟수·통과/실패·외부 의존으로 실행하지 못한 항목은 해당 실행 계획에 남긴다. [최초 M1~M4 완료 증거](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)와 [후속 앱별 UI 분리 검증](../plans/active/2026-09-05-app-owned-ui.md)을 구분한다. 과거 청구 차단 기록을 현재 Actions 장애로 단정하지 않는다.
 
@@ -56,7 +56,7 @@ Docker context는 저장소 루트다. API의 venv·소스 레이어 분리, Ale
 
 `NEXT_PUBLIC_API_URL`과 앱 간 origin은 build 시 고정된다. 운영에서는 API rewrite를 `http://backend:8080`으로 빌드하고 확정 사용자/admin origin을 전달한다. 런타임 env만 수정한 뒤 목적지가 바뀌었다고 판정하지 않는다.
 
-로컬 arm64 빌드 → entrypoint/smoke 확인 → SSH image load → 태그 갱신 → compose healthy 확인 순이다. 단일 VM의 Compose 교체는 무중단을 보장하지 않는다. 이미지 배포 권한은 PR 생성 권한과 구분한다.
+`make deploy-*`는 먼저 `deploy-guard`로 **HEAD가 `origin/main`에 포함되고 작업 트리가 깨끗한지** 확인한다(2026-08-06 브랜치 HEAD 배포 사고의 재발 방지). 예외는 `FORCE_DEPLOY=1`뿐이며 기록에 `forced`로 남는다. 이어서 ops-check(advisory) → 로컬 arm64 빌드 → entrypoint/smoke 확인 → SSH image load → 태그 갱신 → compose healthy 확인 → VM `~/truewords/deploy.log`에 `시각 동작 서비스 태그 경로` 한 줄 기록 순이다. 롤백도 같은 로그에 `rollback … manual`로 남는다. 단일 VM의 Compose 교체는 무중단을 보장하지 않는다. 이미지 배포 권한은 PR 생성 권한과 구분한다.
 
 ## 최초 분리 전환·rollback
 

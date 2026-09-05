@@ -186,6 +186,8 @@ make rollback-web     TAG=<이전 sha>
 make oracle-logs                       # compose 로그 follow (최근 100줄)
 ```
 
+세 `deploy-*` 는 먼저 **`deploy-guard`** 를 통과해야 한다 — HEAD 가 `origin/main` 에 포함돼 있고 작업 트리가 깨끗해야 빌드로 넘어간다. 이미지 태그가 커밋 sha 라서, 브랜치 HEAD 나 더러운 트리로 빌드하면 태그와 내용이 어긋나 "운영에 무엇이 올라가 있나" 를 되짚을 수 없다(2026-08-06 실제 사고). 예외가 필요하면 `FORCE_DEPLOY=1 make deploy-backend` 로 명시하고, 그 사실은 기록에 `forced` 로 남는다. 성공한 배포·롤백은 VM `~/truewords/deploy.log` 에 `UTC시각 deploy|rollback 서비스 태그 guarded|forced|manual` 한 줄씩 쌓인다 — `ssh truewords-oracle 'tail ~/truewords/deploy.log'` 가 최근 배포 이력이다.
+
 `deploy-backend` 는 이미지에 `alembic` 과 `uvicorn` 바이너리가 실제로 있는지 확인한 뒤에야 전송한다. runtime stage 에 바이너리가 빠져 기동에 실패했던 사고(dev-log 41~42)의 재발 방지 게이트다. 전송은 `docker save | gzip -1 | ssh` 이고 Makefile 이 `pipefail` 을 켜므로 스트림이 잘리면 즉시 실패한다.
 
 `rollback-backend` / `rollback-admin` / `rollback-web`은 `TAG` 를 반드시 받는다. 기본값(현재 HEAD)으로 돌면 방금 배포한 태그를 재기록하는 no-op 이 되고, 롤백된 줄 알고 장애가 이어진다. 이전 이미지가 VM 에 남아 있어야 하므로 `sudo docker image ls truewords-backend` (또는 `truewords-admin`·`truewords-web`) 로 확인한다. 최신 3개 보존만으로 원하는 이전 태그가 항상 남는다고 가정하지 않는다. `prune-images.sh` dry-run에서 실행 중 이미지와 명시적 보존 태그를 확인한다. 단일 Compose 교체는 무중단을 보장하지 않는다.
