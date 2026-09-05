@@ -1,9 +1,18 @@
 import { pathToFileURL } from "node:url";
 
+// 이 파일이 규칙을 아는 job. ci.yml 의 required.needs 에 job 을 추가하면 여기에도 규칙을 적어야 한다.
+const KNOWN_JOBS = new Set(["changes", "repository", "backend-test", "frontend-test", "web-test", "contracts", "e2e"]);
+
 export function checkCiStatus(needs) {
   const failures = [];
   for (const name of ["changes", "repository"]) {
     if (needs[name]?.result !== "success") failures.push(`${name} must succeed`);
+  }
+  // 규칙이 없는 job 은 성공만 허용한다. 목록 갱신을 잊은 채 새 job 의 실패·skip 이 조용히 통과하는 것을 막는다.
+  for (const [job, info] of Object.entries(needs)) {
+    if (!KNOWN_JOBS.has(job) && info?.result !== "success") {
+      failures.push(`${job}: ${info?.result} (ci-status.mjs 에 규칙이 없는 job — 성공만 허용)`);
+    }
   }
   const flags = needs.changes?.outputs ?? {};
   for (const [job, flag] of Object.entries({

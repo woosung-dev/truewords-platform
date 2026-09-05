@@ -3,13 +3,20 @@ name: CI
 on:
   pull_request:
     branches: [main, "dev/**"]
+  # main push: 머지 결과 자체의 green 증거를 남긴다. 08-30 처럼 CI 가 시작조차 못 한 채
+  # 머지된 경우와 rebase 없이 머지된 조합을 사후에라도 잡고, make deploy-guard 의
+  # "main 에 있는 커밋만 배포" 규칙에 근거를 준다.
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  # PR 은 새 push 가 이전 run 을 대체한다. main push 는 각 커밋의 결과를 남겨야 하므로 취소하지 않는다.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   changes:
@@ -18,14 +25,17 @@ jobs:
     permissions:
       pull-requests: read
       contents: read
+    # PR 이 아닐 때(main push·수동 실행)는 변경 감지를 건너뛰고 전부 실행한다.
+    # 필터가 "변경 없음" 을 내면 모든 검사가 skip 인 채 CI Required 가 초록이 되는 함정을 피한다.
     outputs:
-      api: ${{ steps.filter.outputs.api }}
-      web: ${{ steps.filter.outputs.web }}
-      admin: ${{ steps.filter.outputs.admin }}
-      contracts: ${{ steps.filter.outputs.contracts }}
+      api: ${{ github.event_name != 'pull_request' && 'true' || steps.filter.outputs.api }}
+      web: ${{ github.event_name != 'pull_request' && 'true' || steps.filter.outputs.web }}
+      admin: ${{ github.event_name != 'pull_request' && 'true' || steps.filter.outputs.admin }}
+      contracts: ${{ github.event_name != 'pull_request' && 'true' || steps.filter.outputs.contracts }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
+        if: github.event_name == 'pull_request'
         id: filter
         with:
           filters: |

@@ -29,7 +29,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pnpm install --frozen-lockfile
-      - run: uv sync --frozen --project apps/api --all-groups
+      - run: uv sync --frozen --project apps/api
       - run: pnpm --filter @truewords/e2e exec playwright install --with-deps chromium
       - name: Start isolated ephemeral database and vector store
         run: docker compose -f apps/api/docker-compose.e2e.yml up -d --wait
