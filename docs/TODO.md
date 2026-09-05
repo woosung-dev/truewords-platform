@@ -176,7 +176,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Questions
 
-- `[승인 해소]` `DEC-MONO-005` — 사용자 승인 후 `apps/admin` 배포별 override로 Vercel preview `dpl_7mjHQuuQA2NuFddcxmz18G7RBbVc`의 `READY`를 확인했다. 프로젝트 전역 Root Directory는 기존 `admin`을 유지한다. main 전환 시 새 경로 설정이 필요하며 후속 UI 변경의 preview는 별도 재검증한다. [전환 runbook](runbooks/monorepo-migration-and-rollback.md#pr에서-확인한-외부-vercel-설정) 참조.
+- `[종결]` `DEC-MONO-005` — 사용자 승인 후 `apps/admin` 배포별 override로 Vercel preview `dpl_7mjHQuuQA2NuFddcxmz18G7RBbVc`의 `READY`를 확인했었다. 2026-09-05 main 머지 후 Production 배포가 Root Directory `admin` 부재로 실패했고, 같은 날 **Vercel 프로젝트 즉시 삭제**를 결정해 preview·전역 Root Directory 논점이 사라졌다. [전환 runbook](runbooks/monorepo-migration-and-rollback.md#외부-vercel-설정-종결) 참조.
 - `[확인 필요]` `DEC-MONO-002` — web은 기존 app origin 유지, admin은 별도 hostname으로 이전하는 운영안 확정. 배포 전 필요하다.
 - `[확인 필요]` `DEC-MONO-003` — 일반 사용자 로그인 방식 및 기존 데모 계정·기록의 이전 여부. identity 구현 전 필요하다.
 
@@ -204,7 +204,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] `APP-UI-001` 커밋·푸시 승인 — 2026-09-05 사용자 명시 승인. PR #221의 기존 기능 브랜치에 반영하며 main 병합·운영 배포는 포함하지 않는다.
 - [ ] `APP-UI-001` 새 revision 원격 검증 — 새 HEAD의 CI·preview 결과를 확인한다. 이전 `896a7ae`의 성공을 이번 변경의 원격 검증으로 취급하지 않는다. 배포 결과 모니터링은 Git 안전 규칙의 별도 승인 단계를 따른다.
 - [x] `DEC-MONO-005` — Vercel preview 경로 조정 승인 해소, 배포별 `apps/admin` override의 `READY` 확인.
-- [ ] main 전환 시 Vercel 프로젝트 전역 Root Directory를 `admin`에서 새 앱 경로로 정렬하고 Git 연동 배포를 확인한다. preview override 성공을 전역 설정 전환 완료로 취급하지 않는다.
+- [x] ~~main 전환 시 Vercel 프로젝트 전역 Root Directory를 `admin`에서 새 앱 경로로 정렬~~ — 2026-09-05 폐기. main 머지 후 Vercel Production 배포가 `The specified Root Directory "admin" does not exist` 로 실패한 것을 확인했고, 정렬 대신 **프로젝트 삭제**를 결정했다(§남은 것 "Vercel 프로젝트 삭제").
 
 ### 전환 검증에서 확인한 기존 후속 과제
 
@@ -398,7 +398,7 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
   - 이 정책에 따라 `cache-cleanup.yml` 을 GHA 로 되돌렸다. 청구 차단을 계기로 VM cron 에 내렸었는데, **청구 문제는 GHA 를 떠날 이유가 아니라 청구를 고칠 이유였다.** VM crontab 항목 제거(스케줄러 중복 방지), 스크립트는 수동 진입점으로 존치.
   - AWS 이전 경로 문서화 — Postgres 가 네트워크로 닿는 순간(RDS 등) VM cron 예외가 사라진다. 정기 작업 4건 중 **3건은 코드 변경 0건**, 배포만 재작성(`docs/runbooks/ci-cd-pipeline.md` §AWS 로 옮긴다면).
   - 차단 기간 누적된 만료 point 134건은 실행해 정리(172 → 38). **응답 정합성 영향 없음** — 조회가 Qdrant filter 에서 `created_at >= now - TTL` 로 만료분을 걸러낸다(`src/cache/service.py:89-94`). 안 돌면 디스크만 찬다.
-- [x] **admin Oracle 이전 + 컷오버** (2026-07-30) — Next.js `output: "standalone"` 컨테이너로 VM 이전. 접속 주소 `https://app.woosung.dev`. `NEXT_PUBLIC_API_URL` 은 rewrites 가 빌드 타임에 구워지므로 build ARG (`http://backend:8080` — Cloudflare 왕복 1회 절감). Vercel 은 host 조건부 307 리다이렉트 전용으로 존치.
+- [x] **admin Oracle 이전 + 컷오버** (2026-07-30) — Next.js `output: "standalone"` 컨테이너로 VM 이전. 접속 주소 `https://app.woosung.dev`. `NEXT_PUBLIC_API_URL` 은 rewrites 가 빌드 타임에 구워지므로 build ARG (`http://backend:8080` — Cloudflare 왕복 1회 절감). Vercel 은 host 조건부 307 리다이렉트 전용으로 존치했다가 2026-09-05 프로젝트 삭제로 종료.
   - 컷오버 검증: 전 라우트 200, 정적 자산 200, rewrite 200/401, **SSE 실제 채팅 1회 10초** (chunk 15 + sources + done), **15MB 업로드 프록시 통과**(413 아님 → `proxyClientMaxBodySize` 적용 확인), `ADMIN_FRONTEND_URL` 교체 후 5컨테이너 healthy. admin 메모리 61.5MiB / 768MiB.
   - 가이드 문서 접속 주소 갱신: `redteam-test-guide.md`(3곳), `redteam-test-guide-v2.html`.
 
@@ -409,8 +409,10 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
   - 차단이 풀리면 `ci.yml` 과 `cache-cleanup.yml` 이 자동으로 다시 돈다. **되돌릴 작업은 없다.**
   - 되돌아온 뒤 확인할 것: 두 워크플로가 실제로 green 인지, `make ci` 와 `ci.yml` 결과가 일치하는지.
 
-- [ ] **Vercel 프로젝트 정리** — `truewords-platform.vercel.app` 을 리다이렉트 전용으로 남겨 둔 상태다. 링크 전파를 확인한 뒤 삭제한다. 순서: (1) main 머지로 Vercel 프로덕션이 리다이렉트 포함 빌드로 갱신되는지 확인, (2) `curl -I` 로 307 확인, (3) 유입 로그가 0 에 수렴하면 프로젝트 삭제, (4) 삭제 시 `admin/next.config.ts` 의 `redirects()` 블록도 함께 제거.
-- [ ] **가이드 PDF 재생성** — `redteam-test-guide.md` / `-v2.html` 의 접속 주소는 `app.woosung.dev` 로 갱신했다. 같은 폴더의 PDF 3종(`redteam-test-guide-light.pdf`, `redteam-test-guide-v2.pdf`, `truewords-user-test-guide.pdf`)은 바이너리라 구 주소가 남아 있다. 리다이렉트가 살아 있어 당장 깨지지는 않지만 Vercel 삭제 전에 재생성해야 한다.
+- [ ] **Vercel 프로젝트 삭제** — 2026-09-05 점검에서 확인한 사실: 프로젝트 `truewords-platform` 의 전역 Root Directory 가 `admin` 이라 모노레포 main 머지 후 Production 배포가 실패했고(`dpl_EEzpx5…`), 살아 있던 307 리다이렉트는 **분리 전 마지막 성공 배포**가 서빙하고 있었다. 기존 종료 조건 "유입 로그 0 수렴" 은 Hobby 플랜 로그 보존(약 1시간)으로는 측정할 수 없다. 사용자 결정: **즉시 삭제**.
+  - [x] 코드 정리 — `apps/web/next.config.ts`·`apps/admin/next.config.ts` 의 host 조건부 redirect 블록과 `LEGACY_WEB_ORIGIN` 상수, 각 앱 `routing.test.ts` 의 legacy host 테스트, `.gitignore`/`.dockerignore` 의 `.vercel` 항목 제거.
+  - [ ] 프로젝트 삭제 실행 — `vercel project rm truewords-platform` 후 `curl -I https://truewords-platform.vercel.app/` 가 404 인지, 이후 PR 에 `Vercel` status 가 붙지 않는지 확인.
+- [x] ~~**가이드 PDF 재생성**~~ — 폐기(2026-09-05). PDF 3종은 레포에 없는 외부 산출물이고, Vercel 즉시 삭제 결정으로 "삭제 전 재생성" 조건이 성립하지 않는다. 구 주소를 받은 테스터에게는 새 주소(`https://app.woosung.dev`)를 공지로 대체한다.
 - [ ] **push 자동 배포 상실** — Cloud Run 이 사라지며 `deploy.yml` 을 제거했다. main 머지가 곧 배포가 아니므로 `make deploy-backend` 를 명시 실행해야 한다. 필요해지면 GitHub Actions 빌드 → `docker save | ssh docker load` 로 복구 가능하다.
 - [x] **GCP·Neon 잔존 리소스 감사** (2026-07-30) — ADR: `docs/archive/engineering/2026-07-30-gcp-neon-residual-audit.md`
   - **⚠️ 운영 Gemini 키가 문서에 없는 프로젝트에 있었다.** 서비스의 유일한 외부 의존인데 `jetaime-dev` 가 아니라 **다른 계정(`jangwooseng97@gmail.com`)의 `d-project-497004` ("D-Project")** 소유다. 해시 대조로 확정(값 미노출). 지우면 챗봇 즉사. `infra/oracle-vm/.env.example` 과 `README.md` 에 명시했다. **2026-06-04 `woosung-dev` 사고와 같은 구조의 재료였다.**

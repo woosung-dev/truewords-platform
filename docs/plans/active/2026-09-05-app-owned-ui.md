@@ -26,7 +26,7 @@
 - 기존 로그인·채팅·관리자 화면, light/dark·모바일 뷰포트·Portal 색상·키보드 조작을 확인한다.
 - 이전 이미지/소스와 비교해 UI 값·동작을 보존하고, Tailwind 스캔 경로 변경에 따른 CSS 누락을 검사한다.
 - 앱 간 import 및 CSS 외부 참조를 막는 회귀 테스트를 추가한다. API/생성 계약은 변경이 없는지 확인한다.
-- PR 반영과 Vercel preview 검증은 운영 배포·main 병합을 포함하지 않는다. 전역 Vercel root는 아직 `admin`이며 preview에는 `apps/admin` override가 필요하다.
+- PR 반영은 운영 배포·main 병합을 포함하지 않는다. Vercel preview는 2026-09-05 프로젝트 삭제 결정으로 더 이상 검증 대상이 아니다(과거 기록의 `apps/admin` override는 당시 상태다).
 
 ## 완료 증거
 

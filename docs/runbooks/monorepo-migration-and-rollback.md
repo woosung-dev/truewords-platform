@@ -4,11 +4,9 @@
 - 상태: **운영 실행 전 준비 문서**. 코드·테스트의 완료 증거는 [현재 실행 계획](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)에 기록한다.
 - 후속 [APP-UI-001](../plans/active/2026-09-05-app-owned-ui.md)은 UI·테마를 각 앱으로 옮기고 API SDK·ESLint·TypeScript 설정 3개 패키지만 유지한다. 앱별 CSS·UI를 이미지에 포함해 재검증하며 아래 최초 전환의 이미지 성공을 후속 변경 성공으로 재사용하지 않는다. 운영 라우팅·쿠키·DB 정책은 이 UI 이동으로 바꾸지 않는다.
 
-## PR에서 확인한 외부 Vercel 설정
+## 외부 Vercel 설정 (종결)
 
-[구현 PR #221](https://github.com/woosung-dev/truewords-platform/pull/221)의 최초 레거시 Vercel preview는 Root Directory `admin` 미존재로 실패했다. 이후 **`DEC-MONO-005` 사용자 승인을 받아 배포별 Root Directory를 `apps/admin`으로 override**했으며 preview `dpl_7mjHQuuQA2NuFddcxmz18G7RBbVc`의 `READY`를 확인했다. 이 승인 대기는 해소됐으며 최초 실패와 후속 성공을 구분한다.
-
-프로젝트 **전역 Root Directory는 기존 `admin`을 유지**한다. preview override는 전역 설정 변경이나 main의 Git 연동 배포 성공을 의미하지 않는다. main 전환 시 새 앱 경로로 설정을 정렬하고 후속 배포를 확인한다. APP-UI-001 코드 반영 뒤에는 해당 revision의 preview를 다시 검사한다.
+[구현 PR #221](https://github.com/woosung-dev/truewords-platform/pull/221)의 최초 레거시 Vercel preview는 Root Directory `admin` 미존재로 실패했고, `DEC-MONO-005` 승인으로 배포별 override(`apps/admin`)의 preview `READY`만 확인했었다. 2026-09-05 main 머지 후 Production 배포가 같은 이유로 실패한 것을 확인했고, 그동안 살아 있던 host 조건부 307 리다이렉트는 분리 전 마지막 성공 배포가 서빙하고 있었다. 같은 날 **Vercel 프로젝트 삭제**를 결정해 양 앱의 `next.config.ts` redirect 블록과 테스트를 제거했다. 이후 Vercel preview는 검증 항목이 아니다. 기록: [`docs/TODO.md` §남은 것](../TODO.md).
 
 - 승인 경계: 이번 요청은 구현·PR까지다. 아래 원격 배포·터널 변경·계정 이전은 별도 승인을 받은 후 실행한다.
 
@@ -36,7 +34,7 @@ POSTGRES_PORT=55432 QDRANT_HTTP_PORT=56333 QDRANT_GRPC_PORT=56334 API_PORT=58000
 |---|---|
 | 이미지 | 실행 중 backend/admin 태그·이미지 ID, 보존할 rollback 태그, 새 web 태그 |
 | 구성 | VM의 기존 Compose 파일, `.env`의 변수 이름과 백업 위치. 비밀 값은 PR·로그에 남기지 않음 |
-| 라우팅 | 기존 Cloudflare Published application routes·Access 정책, Vercel legacy redirect |
+| 라우팅 | 기존 Cloudflare Published application routes·Access 정책 |
 | 인증·데이터 | 기존 cookie host/SameSite/Secure, 본인 기록 접근, schema head·읽기 전용 기준값 |
 | 자원 | 메모리·CPU·디스크 현재값, 대표 채팅/업로드 동시 부하에서 peak |
 
@@ -89,7 +87,7 @@ node tooling/checks/smoke-images.mjs
 1. 새 web/admin/API 이미지를 다른 태그로 준비하고 격리 환경에서 헬스·정적 파일·로그인·SSE·기록·업로드를 검증한다. 이전 이미지는 보존한다.
 2. 검증용 hostname에서 두 앱의 로그인·권한 거부·로그아웃·관리자 링크를 확인한다. 서로 다른 hostname에서 쿠키가 자동 공유된다고 가정하지 않는다.
 3. VM Compose와 `.env`에 `WEB_TAG`, 기존 `ADMIN_TAG`/`BACKEND_TAG`, 확정 origin을 반영한다. **메모리 부하 검증 전 운영 배포하지 않는다.**
-4. 승인한 Cloudflare 라우팅을 전환한 뒤 기존 링크·Vercel redirect와 app/admin origin을 모두 확인한다. 변경 시간과 전후 설정을 기록한다.
+4. 승인한 Cloudflare 라우팅을 전환한 뒤 기존 링크와 app/admin origin을 모두 확인한다. 변경 시간과 전후 설정을 기록한다.
 5. `ops-check.sh`의 web 포함 6서비스 상태를 확인하고 대표 사용자 시나리오를 재실행한다. 아래 실패 기준에 해당하면 복구한다.
 
 분리 후 메모리 limit 합계는 11.5GiB(qdrant 6 + backend 3 + postgres 1 + admin 0.5 + web 0.5 + cloudflared 0.5)다. 12GiB VM에 OS·페이지 캐시 여유가 작으므로 limit 합계만으로 안전을 입증하지 않는다. 과거 단일 admin의 실사용값을 분리 후 부하 검증으로 재사용하지 않는다.

@@ -4,7 +4,6 @@ import type { NextConfig } from "next";
 // rewrites/redirects는 빌드 시 고정된다. 운영 이미지는 각 origin을 build ARG로 받는다.
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const WEB_ORIGIN = process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000";
-const LEGACY_WEB_ORIGIN = process.env.NEXT_PUBLIC_WEB_URL || "https://app.woosung.dev";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
@@ -14,12 +13,6 @@ const nextConfig: NextConfig = {
   experimental: { proxyClientMaxBodySize: "200mb" },
   async redirects() {
     return [
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "truewords-platform.vercel.app" }],
-        destination: `${LEGACY_WEB_ORIGIN}/:path*`,
-        permanent: false,
-      },
       ...["history", "about", "design-system"].map((route) => ({
         source: `/${route}/:path*`,
         destination: `${WEB_ORIGIN}/${route}/:path*`,

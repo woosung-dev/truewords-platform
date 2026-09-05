@@ -223,7 +223,7 @@
 | 영역 | 기술 선택 | 근거 |
 |------|---------|------|
 | **모바일 앱** | **Flutter** (확정) | 크로스플랫폼, 네이티브 성능, Riverpod + go_router |
-| **관리자 대시보드** | Next.js 16 (React) | 웹 기반 관리자 UI, Vercel 배포 |
+| **관리자 대시보드** | Next.js 16 (React) | 웹 기반 관리자 UI, Oracle VM 컨테이너 배포 (2026-07-30 Vercel 에서 이전) |
 | **AI 엔진** | Gemini 2.5 Pro | Phase 1 결정 유지 |
 | **벡터 DB** | Qdrant | Phase 1 결정 유지 (8.75/10) |
 | **운영 DB** | PostgreSQL | Phase 1 결정 유지 |
