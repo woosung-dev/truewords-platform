@@ -14,7 +14,7 @@ PR은 GitHub Actions에서 검증하고, 운영 배포는 로컬 Mac에서 명�
 | 공통 lockfile·설정·tooling·workflow | 필요한 앱·API·계약 검사까지 확대 |
 | 문서·모든 PR | Repository checks: 링크·경계·tooling 테스트·`infra/oracle-vm/*.sh` 각 파일을 순회하는 `bash -n` 구문 검사 |
 
-`CI Required`가 하위 job 결과를 집계한다. 변경이 없어 정상 skip한 job만 허용하며, 변경 감지 실패·검사 실패·취소·예상하지 않은 skip은 성공으로 바꾸지 않는다. required check 설정을 바꿀 때 저장소 branch protection의 실제 이름도 확인한다. 기존 검사 이름을 제거해 보호 규칙을 우회하지 않는다.
+`CI Required`가 하위 job 결과를 집계한다. 변경이 없어 정상 skip한 job만 허용하며, 변경 감지 실패·검사 실패·취소·예상하지 않은 skip은 성공으로 바꾸지 않는다. required check 설정을 바꿀 때 저장소 branch protection의 실제 이름도 확인한다. 기존 검사 이름을 제거해 보호 규칙을 우회하지 않는다. **2026-09-05 기준 main 에는 보호 규칙이 없었다**(`protected: false`, Free private 레포는 설정 불가). public 전환 후 ruleset 으로 `CI Required` 를 필수 체크로 등록하기 전까지 `CI Required` 는 표시용이며 `gh pr merge --auto` 도 CI 를 기다리지 않는다([ADR](../adr/2026-09-05-cicd-audit-decisions.md)).
 
 ## 언어별 실행
 
