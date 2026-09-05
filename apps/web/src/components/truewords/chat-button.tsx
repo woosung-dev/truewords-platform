@@ -2,7 +2,7 @@
 
 import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@truewords/ui-web/utils";
+import { cn } from "@/lib/utils";
 
 // Plan B.1 — 모바일 우선 버튼 (44 / 48 / 56h)
 const chatButtonVariants = cva(

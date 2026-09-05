@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { authAPI } from "@/features/auth/api";
 import { ADMIN_EMAIL } from "@/features/auth/constants";
 import { ApiError } from "@/lib/api";
-import { Button } from "@truewords/ui-web/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 export default function AuthGuard({
   children,

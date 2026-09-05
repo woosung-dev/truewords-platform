@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronRight, ThumbsUp, ThumbsDown, Minus, User } from "lucide-react";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import type { QueryOccurrence } from "@/features/analytics/types";
 
 interface Props {

@@ -2,7 +2,7 @@
 
 > 마지막 업데이트: 2026-09-05
 
-> **현재 우선 작업:** M1~M4 모노레포 구조 전환의 구현·로컬 검증을 완료했고 PR 심사를 진행한다. 아래 기존 퍼센트·테스트 수치는 과거 제품 상태이며 이번 전환의 실행 증거가 아니다. 최신 결과는 [전환 계획 §5](plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)에 기록한다. M5·Flutter·운영 배포는 비범위다.
+> **현재 우선 작업:** 2안 UI 분리의 구현·로컬 검증 완료, 2026-09-05 커밋·푸시 승인. PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과를 재사용하지 않는다. 최신 로컬 증거는 [APP-UI-001](plans/active/2026-09-05-app-owned-ui.md), 최초 M1~M4 기록은 [전환 계획 §5](plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 따른다. 아래 과거 퍼센트·테스트 수치를 새 완료 증거로 사용하지 않는다. 신규 디자인·M5·Flutter·운영 배포는 비범위다.
 
 ## Progress Overview
 
@@ -176,7 +176,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Questions
 
-- `[확인 필요]` `DEC-MONO-005` — PR #221 Vercel preview 실패: 실제 로그에서 외부 프로젝트 Root Directory `admin` 미존재를 확인했다. 새 앱 경로로 설정을 바꿀지 레거시 Git preview 연동을 정리할지 승인 필요. 외부 설정은 변경하지 않았으며 통합/main 병합 전 처리한다.
+- `[승인 해소]` `DEC-MONO-005` — 사용자 승인 후 `apps/admin` 배포별 override로 Vercel preview `dpl_7mjHQuuQA2NuFddcxmz18G7RBbVc`의 `READY`를 확인했다. 프로젝트 전역 Root Directory는 기존 `admin`을 유지한다. main 전환 시 새 경로 설정이 필요하며 후속 UI 변경의 preview는 별도 재검증한다. [전환 runbook](runbooks/monorepo-migration-and-rollback.md#pr에서-확인한-외부-vercel-설정) 참조.
 - `[확인 필요]` `DEC-MONO-002` — web은 기존 app origin 유지, admin은 별도 hostname으로 이전하는 운영안 확정. 배포 전 필요하다.
 - `[확인 필요]` `DEC-MONO-003` — 일반 사용자 로그인 방식 및 기존 데모 계정·기록의 이전 여부. identity 구현 전 필요하다.
 
@@ -193,10 +193,18 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ### 모노레포 전환 (2026-09-05)
 
 - [x] M1 — 기준선 검증 후 pnpm/Turbo와 `apps/admin`, `apps/api`로 이전
-- [x] M2 — `apps/web` 추출, 공통 UI와 앱별 인증 UX·이미지 분리
+- [x] M2 — `apps/web` 추출, 최초 공통 UI와 앱별 인증 UX·이미지 분리. UI 선택은 후속 APP-UI-001로 대체한다.
 - [x] M3 — OpenAPI→TS SDK·SSE 계약, API 내부 `app/core/modules` 이전
 - [x] M4 — docs 재분류·링크, CI 영향 범위, web 배포·롤백 준비
 - [ ] M5 — 승인 제품 계획에 따라 일반 사용자 인증·PWA·알림 구현 및 실기기 검증
+
+### 앱별 UI 소유권 분리 (2026-09-05 · 2안 승인)
+
+- [x] `APP-UI-001` 구현·로컬 검증 — UI·테마·표시 유틸을 web/admin 앱별로 분리하고 API SDK·ESLint·TypeScript 설정 3개 패키지를 유지했다. 실제 검증 증거는 [실행 계획](plans/active/2026-09-05-app-owned-ui.md)을 따른다. 현재 UI/UX 명세는 기존 화면·소유권 기준이며 신규 디자인·리디자인·Flutter 구현은 포함하지 않는다.
+- [x] `APP-UI-001` 커밋·푸시 승인 — 2026-09-05 사용자 명시 승인. PR #221의 기존 기능 브랜치에 반영하며 main 병합·운영 배포는 포함하지 않는다.
+- [ ] `APP-UI-001` 새 revision 원격 검증 — 새 HEAD의 CI·preview 결과를 확인한다. 이전 `896a7ae`의 성공을 이번 변경의 원격 검증으로 취급하지 않는다. 배포 결과 모니터링은 Git 안전 규칙의 별도 승인 단계를 따른다.
+- [x] `DEC-MONO-005` — Vercel preview 경로 조정 승인 해소, 배포별 `apps/admin` override의 `READY` 확인.
+- [ ] main 전환 시 Vercel 프로젝트 전역 Root Directory를 `admin`에서 새 앱 경로로 정렬하고 Git 연동 배포를 확인한다. preview override 성공을 전역 설정 전환 완료로 취급하지 않는다.
 
 ### 전환 검증에서 확인한 기존 후속 과제
 

@@ -2,8 +2,8 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { AlertTriangle, X } from "lucide-react";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { DuplicateCheckResponse } from "@/features/data-source/types";
 
 // ADR-30: 재업로드 시 사용자 의사결정.

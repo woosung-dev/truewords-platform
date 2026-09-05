@@ -7,8 +7,8 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { analyticsAPI } from "@/features/analytics/api";
 import type { QuerySortKey } from "@/features/analytics/types";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
-import { Button } from "@truewords/ui-web/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
 import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
 

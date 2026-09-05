@@ -8,12 +8,12 @@ import {
   Database,
   Search,
 } from "lucide-react";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { StatusBadge } from "@truewords/ui-web/components/status-badge";
-import type { StatusTone } from "@truewords/ui-web/components/status-badge";
-import { Input } from "@truewords/ui-web/components/ui/input";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/status-badge";
+import type { StatusTone } from "@/components/status-badge";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@truewords/ui-web/components/ui/table";
+} from "@/components/ui/table";
 import { useIngestionJobs } from "@/features/data-source/hooks";
 import type { IngestionJobInfo } from "@/features/data-source/types";
 import { DisplayNameEditor } from "./display-name-editor";

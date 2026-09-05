@@ -2,11 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { Search, ArrowRight, ArrowLeft, X } from "lucide-react";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Input } from "@truewords/ui-web/components/ui/input";
-import { Checkbox } from "@truewords/ui-web/components/ui/checkbox";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
-import { cn } from "@truewords/ui-web/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { getCategoryColors } from "@/features/data-source/category-colors";
 import type { VolumeInfo } from "@/features/data-source/types";
 

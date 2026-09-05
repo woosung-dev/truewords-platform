@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Plus, Bookmark, Share2 } from "lucide-react";
-import { cn } from "@truewords/ui-web/utils";
+import { cn } from "@/lib/utils";
 
 // Plan B.5 + P0-G ★ — 답변 페이지 하단 floating action bar
 export interface FloatingActionBarProps {

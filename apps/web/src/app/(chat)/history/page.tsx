@@ -17,8 +17,8 @@ import {
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { authAPI } from "@/features/auth/api";
 import { AssistantMessage } from "@/features/chat/components/assistant-message";
 import { chatAPI, type SessionListItem } from "@/features/chatbot/chat-api";

@@ -4,7 +4,7 @@ import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ChatResponse } from "@/features/chatbot/chat-api";
-import { cn, stripFileExt } from "@truewords/ui-web/utils";
+import { cn, stripFileExt } from "@/lib/utils";
 
 type Source = NonNullable<ChatResponse["sources"]>[number];
 

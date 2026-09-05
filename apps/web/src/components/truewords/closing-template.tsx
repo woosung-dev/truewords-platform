@@ -1,5 +1,5 @@
 import { Sparkles } from "lucide-react";
-import { cn } from "@truewords/ui-web/utils";
+import { cn } from "@/lib/utils";
 
 // P1-J — 답변 끝 상황 맞춤 기도문 / 결의문
 export type ClosingTemplateKind = "prayer" | "resolution" | "off";

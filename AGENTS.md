@@ -157,7 +157,8 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 - shadcn/ui v4 + Tailwind CSS v4
 - Custom JWT + HttpOnly Cookie 인증 (Clerk 미사용)
 - FSD 구조: `features/[domain]/api.ts`, `types.ts`, `components/`
-- 배포 앱은 `apps/web`, `apps/admin`. React 공유 UI만 `packages/ui-web`에 둔다.
+- 배포 앱은 `apps/web`, `apps/admin`. UI primitive·테마·표시 유틸은 각 앱의 `src/components/ui`, `src/app/globals.css`, `src/lib/utils.ts`가 소유한다. 앱 간 UI import와 공통 UI·토큰 패키지의 선행 생성을 금지한다.
+- UI/UX 기준은 `docs/specs/web/ui-ux.md`, `docs/specs/admin/ui-ux.md`로 분리한다. 현재 값의 일치는 공통 디자인 승인이나 양 앱 동시 수정 의무가 아니다.
 - 생성 SDK·DTO는 직접 편집하지 않고 FastAPI 모델 → OpenAPI → 생성 경로를 따른다.
 - 앱별 AuthGuard/라우팅·로그인 복귀는 앱이 소유한다. 플랫폼 공통 SDK가 `window.location`으로 이동하지 않는다.
 
@@ -212,6 +213,7 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 ### 현재 작업
 
 - M1~M4 구조 전환 승인: 앱·계약·문서·CI·배포 준비까지 구현하고 PR로 검증한다. 최신 완료 증거는 `docs/plans/completed/2026-09-05-monorepo-migration.md`를 따른다.
+- 후속 **2안 승인**: UI·테마를 앱별로 소유하고 API SDK·ESLint·TypeScript 설정 3개 패키지만 유지한다. 구현·재검증은 `docs/plans/active/2026-09-05-app-owned-ui.md`에 기록한다. 신규 디자인·리디자인 승인이 아니다.
 - 이전 기준선은 pytest 964 passed / 4 skipped / 1 xfailed, Vitest 113, Playwright 23으로 기록됐으며, 현재 검증 결과로 복사하지 않는다.
 - 기존 운영은 Oracle ARM VM의 admin + backend + Qdrant + Postgres + Cloudflare Tunnel 5컨테이너다. 저장소의 분리 후 6컨테이너 구성은 **운영 전환 미실행**이며 별도 배포 승인이 필요하다.
 - `docs/architecture/diagrams/`의 JSON/HTML/PNG는 2026-09-04 분리 전 스냅샷이다. 현재 구조의 실행 증거로 사용하지 않는다.
@@ -225,9 +227,9 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 
 - **승인된 구조:** `apps/web` (Next.js, PWA 기능은 M5), `apps/admin` (Next.js), `apps/api` (FastAPI). 업무 규칙·최종 권한 검증·계정/알림 정책은 FastAPI에 둔다.
 - **API 레이어:** `app/main.py`, 공통 기반 `app/core`, 기존 업무 모듈 `app/modules`. 폴더 이동을 근거로 API URL·DB schema·기존 RAG 정책을 바꾸지 않는다.
-- **공유:** React UI는 `packages/ui-web`, API 원본은 FastAPI 라우트·Pydantic이다. `contracts/openapi.json`과 생성 SDK는 직접 수정하지 않는다. SSE 이벤트는 REST와 함께 별도 계약·소비자 검증을 갖춘다.
+- **공유:** `packages/api-client-ts`, `packages/eslint-config`, `packages/typescript-config`만 유지한다. UI·테마·화면 UX는 앱별 소유다. API 원본은 FastAPI 라우트·Pydantic이며 `contracts/openapi.json`과 생성 SDK는 직접 수정하지 않는다. SSE 이벤트는 REST와 함께 별도 계약·소비자 검증을 갖춘다.
 - **Flutter:** 도입 확정 전 `apps/mobile`·Dart SDK·Pub workspace·모바일 CI를 생성하지 않는다. 기존 데모 관리자 계정을 일반 사용자 모델로 자동 전환하지 않는다.
-- **전환 기준:** `docs/architecture/2026-09-05-pwa-flutter-monorepo.md`와 `docs/plans/completed/2026-09-05-monorepo-migration.md`의 사용자 승인 범위 M1~M4를 따른다. 배포·계정 이전·M5/Flutter 착수는 자동 승인으로 해석하지 않는다.
+- **전환 기준:** `docs/architecture/2026-09-05-pwa-flutter-monorepo.md`와 승인된 실행 계획을 따른다. 최초 M1~M4의 공통 UI 선택은 후속 `APP-UI-001`의 앱별 소유권으로 대체한다. 배포·계정 이전·M5/Flutter 착수는 자동 승인으로 해석하지 않는다.
 - **검증:** 루트 `pnpm install --frozen-lockfile`, `make ci`, `node tooling/checks/docs-links.mjs`. 앱별 명령은 각 앱의 `AGENTS.md`를 따른다. 웹 개발에 uv/Flutter 설치를 강제하지 않는다.
 - **로컬 데이터:** 폴더 이동 전 Compose project와 실제 볼륨 이름을 확인한다. 다른 worktree는 project·포트를 격리하고, 기존 DB/Qdrant 볼륨을 삭제하거나 재초기화하지 않는다.
 

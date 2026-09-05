@@ -4,9 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { chatbotAPI } from "@/features/chatbot/api";
-import { Button, buttonVariants } from "@truewords/ui-web/components/ui/button";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@truewords/ui-web/components/ui/table";
+} from "@/components/ui/table";
 import { Plus, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 
 const PAGE_SIZE = 20;

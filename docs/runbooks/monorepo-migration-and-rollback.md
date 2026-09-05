@@ -2,10 +2,14 @@
 
 - 대상: `PLAN-MONO-001` M1~M4의 경로·앱 분리. 기존 DB schema와 RAG 정책은 바꾸지 않는다.
 - 상태: **운영 실행 전 준비 문서**. 코드·테스트의 완료 증거는 [현재 실행 계획](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)에 기록한다.
+- 후속 [APP-UI-001](../plans/active/2026-09-05-app-owned-ui.md)은 UI·테마를 각 앱으로 옮기고 API SDK·ESLint·TypeScript 설정 3개 패키지만 유지한다. 앱별 CSS·UI를 이미지에 포함해 재검증하며 아래 최초 전환의 이미지 성공을 후속 변경 성공으로 재사용하지 않는다. 운영 라우팅·쿠키·DB 정책은 이 UI 이동으로 바꾸지 않는다.
 
 ## PR에서 확인한 외부 Vercel 설정
 
-[구현 PR #221](https://github.com/woosung-dev/truewords-platform/pull/221)의 레거시 Vercel preview는 외부 Root Directory가 `admin`인 상태라 실패했다. `vercel inspect` 실제 로그에서 해당 디렉터리 미존재 오류를 확인했다. 코드의 legacy redirect fallback과 별개로 프로젝트 설정 전환이 필요하다. 새 앱 경로 설정 또는 Git preview 연동 정리는 `DEC-MONO-005` 승인 후 수행하며, 이 작업에서 외부 설정이나 운영 배포를 변경하지 않았다. 실패 상태를 무시하고 통합/main 병합하지 않는다.
+[구현 PR #221](https://github.com/woosung-dev/truewords-platform/pull/221)의 최초 레거시 Vercel preview는 Root Directory `admin` 미존재로 실패했다. 이후 **`DEC-MONO-005` 사용자 승인을 받아 배포별 Root Directory를 `apps/admin`으로 override**했으며 preview `dpl_7mjHQuuQA2NuFddcxmz18G7RBbVc`의 `READY`를 확인했다. 이 승인 대기는 해소됐으며 최초 실패와 후속 성공을 구분한다.
+
+프로젝트 **전역 Root Directory는 기존 `admin`을 유지**한다. preview override는 전역 설정 변경이나 main의 Git 연동 배포 성공을 의미하지 않는다. main 전환 시 새 앱 경로로 설정을 정렬하고 후속 배포를 확인한다. APP-UI-001 코드 반영 뒤에는 해당 revision의 preview를 다시 검사한다.
+
 - 승인 경계: 이번 요청은 구현·PR까지다. 아래 원격 배포·터널 변경·계정 이전은 별도 승인을 받은 후 실행한다.
 
 ## 로컬 Compose 볼륨 보존

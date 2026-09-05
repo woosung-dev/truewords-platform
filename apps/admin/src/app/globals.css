@@ -1,4 +1,324 @@
-@import "@truewords/ui-web/styles";
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-/* Portal을 포함한 공통 컴포넌트의 utility class를 각 앱 CSS에 포함한다. */
-@source "../../../../packages/ui-web/src";
+/* 이 앱의 src만 스캔해 다른 앱의 UI 변경과 분리한다. */
+@source "../";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* shadcn 표준 토큰 */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --font-reading: var(--font-reading);
+  --font-display: var(--font-display);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  /* TrueWords 확장 토큰 (Plan A.2 + Design Tokens Refactor) */
+  --color-pastoral: var(--tw-pastoral);
+  --color-pastoral-foreground: var(--tw-pastoral-fg);
+  --color-success: var(--tw-success);
+  --color-success-foreground: var(--tw-success-fg);
+  --color-success-soft: var(--tw-success-soft);
+  --color-success-border: var(--tw-success-border);
+  --color-warning: var(--tw-warning);
+  --color-warning-foreground: var(--tw-warning-fg);
+  --color-warning-soft: var(--tw-warning-soft);
+  --color-warning-border: var(--tw-warning-border);
+  --color-danger-soft: var(--tw-danger-soft);
+  --color-danger-border: var(--tw-danger-border);
+  --color-info: var(--tw-info);
+  --color-info-soft: var(--tw-info-soft);
+  --color-info-border: var(--tw-info-border);
+  --color-fg-subtle: var(--tw-fg-subtle);
+  --color-border-strong: var(--tw-border-strong);
+  --color-surface-muted: var(--tw-surface-muted);
+  --color-cat-indigo: var(--tw-cat-indigo);
+  --color-cat-violet: var(--tw-cat-violet);
+  --color-cat-blue: var(--tw-cat-blue);
+  --color-cat-slate: var(--tw-cat-slate);
+  --color-cat-emerald: var(--tw-cat-emerald);
+  --color-cat-amber: var(--tw-cat-amber);
+  --color-cat-rose: var(--tw-cat-rose);
+  --color-admin-bg: var(--tw-admin-bg);
+  --color-admin-surface: var(--tw-admin-surface);
+  --color-admin-muted: var(--tw-admin-muted);
+  --color-persona-icon-bg: var(--tw-persona-icon-bg);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+
+:root {
+  /* TrueWords Light Mode (Plan A.2) — Paper × Scholar × AI */
+  /* Background: warm paper #FFFBEB */
+  --background: oklch(0.988 0.024 95);
+  /* Foreground: deep ink #1C1714 */
+  --foreground: oklch(0.180 0.012 50);
+  /* Card: pure white surface */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.180 0.012 50);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.180 0.012 50);
+  /* Primary: scholarly navy #1E3A8A */
+  --primary: oklch(0.319 0.155 264);
+  --primary-foreground: oklch(1 0 0);
+  /* Secondary: warm muted paper #FAF5EE */
+  --secondary: oklch(0.969 0.014 87);
+  --secondary-foreground: oklch(0.180 0.012 50);
+  /* Muted: same as secondary for shadcn compatibility */
+  --muted: oklch(0.969 0.014 87);
+  /* Muted foreground: warm gray #6B5D4F */
+  --muted-foreground: oklch(0.451 0.024 70);
+  /* Accent: brass / warm gold #B45309 (인용 강조, CTA) */
+  --accent: oklch(0.539 0.166 47);
+  --accent-foreground: oklch(1 0 0);
+  /* Destructive: warm red #B91C1C */
+  --destructive: oklch(0.466 0.211 25);
+  /* Border: warm border #E8DFD0 */
+  --border: oklch(0.890 0.025 78);
+  --input: oklch(0.890 0.025 78);
+  /* Ring: navy primary for focus */
+  --ring: oklch(0.319 0.155 264);
+  --chart-1: oklch(0.319 0.155 264); /* navy */
+  --chart-2: oklch(0.539 0.166 47);  /* brass */
+  --chart-3: oklch(0.501 0.152 144); /* success green */
+  --chart-4: oklch(0.486 0.105 213); /* pastoral teal */
+  --chart-5: oklch(0.466 0.211 25);  /* destructive */
+  --radius: 0.75rem;
+  /* TrueWords 확장 토큰 (Plan A.2) */
+  /* Pastoral: 목회 상담 모드 톤 #0E7490 (차분 청록) */
+  --tw-pastoral: oklch(0.486 0.105 213);
+  --tw-pastoral-fg: oklch(1 0 0);
+  /* Success: 검수 적합 #15803D (forest green) */
+  --tw-success: oklch(0.501 0.152 144);
+  --tw-success-fg: oklch(1 0 0);
+  /* Subtle: placeholder fg #A89C8A */
+  --tw-fg-subtle: oklch(0.677 0.022 75);
+  /* Border strong: 인용 brass border #D4C4A8 */
+  --tw-border-strong: oklch(0.808 0.045 75);
+  /* Surface muted: 인용 카드 배경 (= secondary) */
+  --tw-surface-muted: oklch(0.969 0.014 87);
+  /* === Design Tokens Refactor (PR feat/design-tokens-refactor) === */
+  /* Warning: brass 계 amber (paper bg 위 명확 대비) */
+  --tw-warning: oklch(0.580 0.155 70);
+  --tw-warning-fg: oklch(1 0 0);
+  --tw-warning-soft: oklch(0.965 0.045 85);
+  --tw-warning-border: oklch(0.808 0.080 78);
+  /* Success/Danger/Info soft fill + border (배지/알림 박스용) */
+  --tw-success-soft: oklch(0.955 0.040 145);
+  --tw-success-border: oklch(0.808 0.060 144);
+  --tw-danger-soft: oklch(0.955 0.030 25);
+  --tw-danger-border: oklch(0.808 0.080 25);
+  --tw-info: var(--tw-pastoral);
+  --tw-info-soft: oklch(0.955 0.030 213);
+  --tw-info-border: oklch(0.808 0.060 213);
+  /* 카테고리 7색 (옵션 A: hue 유지, saturation 톤다운, paper 친화) */
+  --tw-cat-indigo: oklch(0.500 0.090 264);
+  --tw-cat-violet: oklch(0.500 0.090 295);
+  --tw-cat-blue: oklch(0.500 0.090 230);
+  --tw-cat-slate: oklch(0.500 0.020 250);
+  --tw-cat-emerald: oklch(0.500 0.090 150);
+  --tw-cat-amber: oklch(0.540 0.110 70);
+  --tw-cat-rose: oklch(0.500 0.110 15);
+  /* 페르소나 아이콘 배경 — 따뜻한 베이지 (#F5EDE0) */
+  --tw-persona-icon-bg: oklch(0.944 0.030 78);
+  /* Admin dashboard 전용 background — chat 페이지의 warm paper 와 분리 */
+  /* light cool slate-50 톤. card(white) 와 미세 대비로 카드가 떠 보이게 */
+  --tw-admin-bg: oklch(0.985 0.005 250);
+  --tw-admin-surface: oklch(1 0 0);
+  /* admin 카드 내부 보조 영역 — cool slate-100 톤 (warm muted paper 대체) */
+  --tw-admin-muted: oklch(0.965 0.005 250);
+  /* Motion 토큰 */
+  --tw-duration-fast: 150ms;
+  --tw-duration-normal: 250ms;
+  --tw-duration-slow: 350ms;
+  --tw-duration-streaming: 35ms;
+  --tw-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --tw-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --tw-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Shadow 토큰 */
+  --tw-shadow-card: 0 1px 3px oklch(0.180 0.012 50 / 6%), 0 1px 2px oklch(0.180 0.012 50 / 4%);
+  --tw-shadow-card-hover: 0 4px 12px oklch(0.180 0.012 50 / 8%), 0 2px 4px oklch(0.180 0.012 50 / 4%);
+  --tw-shadow-float: 0 -4px 16px oklch(0.180 0.012 50 / 8%), 0 -1px 2px oklch(0.180 0.012 50 / 4%);
+  --tw-shadow-modal: 0 20px 48px oklch(0.180 0.012 50 / 16%), 0 4px 12px oklch(0.180 0.012 50 / 6%);
+  /* 사이드바: 항상 다크 (라이트/다크 모드 무관) */
+  /* slate-950 */
+  --sidebar: oklch(0.129 0.042 265);
+  /* slate-100 */
+  --sidebar-foreground: oklch(0.968 0.007 248);
+  /* navy primary - 어두운 배경에서 잘 보이도록 brass 사용 */
+  --sidebar-primary: oklch(0.539 0.166 47);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  /* slate-900 */
+  --sidebar-accent: oklch(0.208 0.042 266);
+  /* slate-100 */
+  --sidebar-accent-foreground: oklch(0.968 0.007 248);
+  /* slate-800 */
+  --sidebar-border: oklch(0.279 0.041 260);
+  /* brass for accent ring */
+  --sidebar-ring: oklch(0.539 0.166 47);
+}
+
+.dark {
+  /* TrueWords Dark Mode (Plan A.2) — Mahogany × Parchment */
+  /* Background: mahogany ink #1C1714 */
+  --background: oklch(0.180 0.012 50);
+  /* Foreground: parchment #E8DFD4 */
+  --foreground: oklch(0.890 0.025 78);
+  /* Card: oak #251E19 */
+  --card: oklch(0.220 0.012 55);
+  --card-foreground: oklch(0.890 0.025 78);
+  --popover: oklch(0.220 0.012 55);
+  --popover-foreground: oklch(0.890 0.025 78);
+  /* Primary: lighter blue for dark contrast */
+  --primary: oklch(0.770 0.140 264);
+  --primary-foreground: oklch(0.180 0.012 50);
+  --secondary: oklch(0.260 0.014 55);
+  --secondary-foreground: oklch(0.890 0.025 78);
+  --muted: oklch(0.260 0.014 55);
+  --muted-foreground: oklch(0.677 0.022 75);
+  /* Accent: brighter brass for dark */
+  --accent: oklch(0.700 0.166 60);
+  --accent-foreground: oklch(0.180 0.012 50);
+  --destructive: oklch(0.604 0.222 25);
+  --border: oklch(0.330 0.018 60);
+  --input: oklch(0.330 0.018 60);
+  --ring: oklch(0.770 0.140 264);
+  --chart-1: oklch(0.770 0.140 264);
+  --chart-2: oklch(0.700 0.166 60);
+  --chart-3: oklch(0.620 0.152 144);
+  --chart-4: oklch(0.620 0.105 213);
+  --chart-5: oklch(0.604 0.222 25);
+  /* TrueWords 확장 토큰 — Dark */
+  --tw-pastoral: oklch(0.620 0.105 213);
+  --tw-pastoral-fg: oklch(0.180 0.012 50);
+  --tw-success: oklch(0.620 0.152 144);
+  --tw-success-fg: oklch(0.180 0.012 50);
+  --tw-fg-subtle: oklch(0.500 0.020 70);
+  --tw-border-strong: oklch(0.500 0.040 75);
+  --tw-surface-muted: oklch(0.260 0.014 55);
+  /* === Design Tokens Refactor — Dark === */
+  --tw-warning: oklch(0.770 0.150 75);
+  --tw-warning-fg: oklch(0.180 0.012 50);
+  --tw-warning-soft: oklch(0.580 0.155 70 / 18%);
+  --tw-warning-border: oklch(0.580 0.155 70 / 30%);
+  --tw-success-soft: oklch(0.620 0.152 144 / 18%);
+  --tw-success-border: oklch(0.620 0.152 144 / 30%);
+  --tw-danger-soft: oklch(0.604 0.222 25 / 18%);
+  --tw-danger-border: oklch(0.604 0.222 25 / 30%);
+  --tw-info: var(--tw-pastoral);
+  --tw-info-soft: oklch(0.620 0.105 213 / 18%);
+  --tw-info-border: oklch(0.620 0.105 213 / 30%);
+  --tw-persona-icon-bg: oklch(0.280 0.020 60);
+  /* Admin dashboard 전용 background — dark 는 body 와 동일 (mahogany) */
+  --tw-admin-bg: oklch(0.180 0.012 50);
+  --tw-admin-surface: oklch(0.220 0.012 55);
+  --tw-admin-muted: oklch(0.260 0.012 55);
+  /* 카테고리 다크: 채도 유지, 밝기 한 단계↑ */
+  --tw-cat-indigo: oklch(0.700 0.110 264);
+  --tw-cat-violet: oklch(0.700 0.110 295);
+  --tw-cat-blue: oklch(0.700 0.110 230);
+  --tw-cat-slate: oklch(0.700 0.025 250);
+  --tw-cat-emerald: oklch(0.700 0.110 150);
+  --tw-cat-amber: oklch(0.740 0.130 70);
+  --tw-cat-rose: oklch(0.700 0.130 15);
+  /* Shadow 토큰 — Dark (검정에 가까운 잉크 그림자 더 진하게) */
+  --tw-shadow-card: 0 1px 3px oklch(0 0 0 / 30%), 0 1px 2px oklch(0 0 0 / 20%);
+  --tw-shadow-card-hover: 0 4px 12px oklch(0 0 0 / 40%), 0 2px 4px oklch(0 0 0 / 20%);
+  --tw-shadow-float: 0 -4px 16px oklch(0 0 0 / 40%), 0 -1px 2px oklch(0 0 0 / 20%);
+  --tw-shadow-modal: 0 20px 48px oklch(0 0 0 / 60%), 0 4px 12px oklch(0 0 0 / 30%);
+  /* 사이드바: 다크모드 본문 대비 강화 (Design Tokens Refactor) */
+  /* L 0.129 → 0.110 (한 단계↓), border 0.279 → 0.330 (한 단계↑) */
+  --sidebar: oklch(0.110 0.045 265);
+  --sidebar-foreground: oklch(0.968 0.007 248);
+  --sidebar-primary: oklch(0.700 0.166 60);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.208 0.042 266);
+  --sidebar-accent-foreground: oklch(0.968 0.007 248);
+  --sidebar-border: oklch(0.330 0.041 260);
+  --sidebar-ring: oklch(0.700 0.166 60);
+}
+
+/* admin 컨텍스트 — chat 의 paper × warm 토큰을 cool slate 로 차단.
+   (dashboard)/layout 이 mount 되면 body 에 admin-scope 클래스 적용. portal
+   (Sheet/Dialog) 도 body 자손이라 자동 inherit. chat 영역은 admin-scope
+   없으므로 paper 토큰 그대로 사용. */
+.admin-scope {
+  --background: var(--tw-admin-bg);
+  --secondary: var(--tw-admin-muted);
+  --muted: var(--tw-admin-muted);
+  --border: oklch(0.910 0.005 250);
+  --input: oklch(0.910 0.005 250);
+}
+
+.dark .admin-scope {
+  --background: var(--tw-admin-bg);
+  --secondary: var(--tw-admin-muted);
+  --muted: var(--tw-admin-muted);
+  --border: oklch(0.330 0.010 250);
+  --input: oklch(0.330 0.010 250);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  /* 한국어 줄바꿈 */
+  .break-keep-all {
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  /* prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

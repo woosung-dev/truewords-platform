@@ -2,7 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { AlertTriangle, Loader2, UserX, X } from "lucide-react";
-import { Button } from "@truewords/ui-web/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 // UI/UX 가이드 적용 (ui-ux-pro-max):
 //   §1 a11y    — aria-describedby / focus trap(base-ui) / color-not-only(icon+text+color)

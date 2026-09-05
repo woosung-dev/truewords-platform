@@ -8,7 +8,7 @@ PR은 GitHub Actions에서 검증하고, 운영 배포는 로컬 Mac에서 명�
 
 | 변경 | 검사 |
 |---|---|
-| `apps/web` / `apps/admin` | 해당 앱의 reusable `ci-web.yml`, 공유 UI/SDK 소비자 검사 |
+| `apps/web` / `apps/admin` | 해당 앱의 reusable `ci-web.yml`, 앱 로컬 UI·테마·SDK 소비자 검사 |
 | `apps/api` | `ci-api.yml` 전체 pytest, 계약·양 웹 소비자 검사 |
 | `contracts`, 생성 SDK·codegen | `ci-contracts.yml` 재생성 일치·기준 계약 대비 호환성·소비자 검사 |
 | 공통 lockfile·설정·tooling·workflow | 필요한 앱·API·계약 검사까지 확대 |
@@ -28,7 +28,9 @@ PR은 GitHub Actions에서 검증하고, 운영 배포는 로컬 Mac에서 명�
 
 루트 `make ci`는 전체 로컬 사전 점검이다. CI를 바꾸면 이 명령과 설명을 함께 맞춘다. `make backend-test`에 테스트 제외 옵션이 남아 있으면 전체 회귀의 대체 명령으로 사용하지 않는다. Judge LLM/RAGAS 유료 평가는 CI에 추가하지 않는다.
 
-실제 실행 횟수·통과/실패·외부 의존으로 실행하지 못한 항목은 [완료 증거](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)에 남긴다. 과거 청구 차단 기록을 현재 Actions 장애로 단정하지 않는다.
+실제 실행 횟수·통과/실패·외부 의존으로 실행하지 못한 항목은 해당 실행 계획에 남긴다. [최초 M1~M4 완료 증거](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)와 [후속 앱별 UI 분리 검증](../plans/active/2026-09-05-app-owned-ui.md)을 구분한다. 과거 청구 차단 기록을 현재 Actions 장애로 단정하지 않는다.
+
+UI·CSS는 앱별 소유이므로 다른 앱의 소스·스타일에 의존하지 않는지 경계 검사를 유지한다. API SDK·ESLint·TypeScript 설정은 공유 패키지로 유지하며 변경 시 양 앱 소비자를 검사한다. Docker 빌드는 각 앱 로컬 UI·테마와 필요한 공유 패키지를 포함한다.
 
 ## 계약 생성·호환성
 

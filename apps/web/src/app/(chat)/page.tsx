@@ -9,24 +9,24 @@ import {
   useRef,
   useState,
 } from "react";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Textarea } from "@truewords/ui-web/components/ui/textarea";
-import { Card } from "@truewords/ui-web/components/ui/card";
-import { Input } from "@truewords/ui-web/components/ui/input";
-import { Label } from "@truewords/ui-web/components/ui/label";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@truewords/ui-web/components/ui/select";
+} from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@truewords/ui-web/components/ui/popover";
+} from "@/components/ui/popover";
 import { toast } from "sonner";
 import {
   ArrowUp,

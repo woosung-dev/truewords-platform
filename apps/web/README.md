@@ -22,7 +22,11 @@ pnpm --filter @truewords/web build
 pnpm test:e2e
 ```
 
-`@truewords/api-client-ts`의 DTO/transport와 `@truewords/ui-web`의 React primitive·테마를 사용한다. SSE 이벤트는 같은 OpenAPI 모델과 `contracts/fixtures/chat-stream.json`으로 검증하며, `done` 없는 단절과 사용자 취소는 정상 완료로 처리하지 않는다. 상세 실행은 [통합 테스트 안내](../../tests/e2e/README.md)를 참고한다.
+공통 DTO/transport는 `@truewords/api-client-ts`, 검사 설정은 `@truewords/eslint-config`·`@truewords/typescript-config`를 사용한다. React primitive는 `src/components/ui`, 테마는 `src/app/globals.css`, 표시 유틸은 `src/lib/utils.ts`가 소유한다. 관리자 앱의 UI·CSS를 가져오지 않으며 같은 모양이라는 이유로 공용 UI 패키지를 만들지 않는다.
+
+[사용자 웹 UI/UX 명세](../../docs/specs/web/ui-ux.md)는 현재 화면·소유권·미승인 리디자인의 경계를 기록한다. `/design-system`은 기존 사용자 웹 컴포넌트 전시이며 관리자나 신규 PWA의 공통 디자인 승인 기준이 아니다.
+
+SSE 이벤트는 같은 OpenAPI 모델과 `contracts/fixtures/chat-stream.json`으로 검증하며, `done` 없는 단절과 사용자 취소는 정상 완료로 처리하지 않는다. 상세 실행은 [통합 테스트 안내](../../tests/e2e/README.md)를 참고한다.
 
 ## 컨테이너
 

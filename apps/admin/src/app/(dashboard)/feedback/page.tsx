@@ -13,8 +13,8 @@ import {
 import { User } from "lucide-react";
 import { analyticsAPI } from "@/features/analytics/api";
 import type { NegativeFeedbackItem } from "@/features/analytics/types";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import SessionDetailModal from "@/features/analytics/components/session-detail-modal";
 
 // ─────────────────────────────────────────────

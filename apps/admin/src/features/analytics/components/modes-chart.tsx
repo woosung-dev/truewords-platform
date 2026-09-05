@@ -10,7 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { DailyModeCount } from "@/features/analytics/types";
 
 const MODES = ["standard", "theological", "pastoral", "beginner", "kids"] as const;

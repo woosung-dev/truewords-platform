@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { chatbotAPI } from "@/features/chatbot/api";
 import { dataAPI } from "@/features/data-source/api";
 import { analyticsAPI } from "@/features/analytics/api";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Bot, Database, CheckCircle2, AlertCircle, ArrowRight, Search, ThumbsUp, ThumbsDown } from "lucide-react";
 
 function StatCard({

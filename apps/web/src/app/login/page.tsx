@@ -5,9 +5,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { authAPI } from "@/features/auth/api";
 import { ApiError } from "@/lib/api";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Input } from "@truewords/ui-web/components/ui/input";
-import { Label } from "@truewords/ui-web/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {

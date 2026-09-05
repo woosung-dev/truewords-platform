@@ -8,9 +8,9 @@ import {
   SheetTitle,
   SheetDescription,
   SheetFooter,
-} from "@truewords/ui-web/components/ui/sheet";
+} from "@/components/ui/sheet";
 import { ChatButton } from "./chat-button";
-import { cn } from "@truewords/ui-web/utils";
+import { cn } from "@/lib/utils";
 
 // Plan B.4 + P0-E ★★ — 답변 모드 페르소나 5종
 export type PersonaMode =

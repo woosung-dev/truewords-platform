@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { AlertTriangle, CheckCircle2, FileText, Info, RefreshCw, X, XCircle } from "lucide-react";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { OnDuplicateMode } from "@/features/data-source/api";
 import type { DuplicateCheckResponse } from "@/features/data-source/types";
 

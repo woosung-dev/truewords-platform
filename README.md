@@ -2,7 +2,7 @@
 
 종교 텍스트 기반 RAG AI 챗봇. 사용자 웹과 관리자 웹은 독립 Next.js 앱이며, 같은 FastAPI의 계정·업무 규칙·검색·대화 기록을 사용한다.
 
-**이번 변경은 M1~M4 구조 전환이다.** 운영 배포는 별도 승인 후 수행한다. `apps/web`의 PWA 설치·푸시·일반 사용자 인증(M5)과 Flutter 앱은 이번 PR에서 구현하지 않는다.
+**앱별 UI 소유권 분리(사용자 승인 2안)의 구현·로컬 검증을 완료했고, 2026-09-05 커밋·푸시 승인을 받았다.** PR #221의 새 HEAD 원격 검증은 별도이며, 이전 `896a7ae`의 CI 결과를 이번 변경의 검증 결과로 사용하지 않는다. UI·테마는 각 앱이 소유하고 API SDK·검사 설정만 공유한다. 현재 UI/UX 명세는 신규 디자인 승인이 아니다. 운영 배포는 별도 승인 후 수행하며, PWA 설치·푸시·일반 사용자 인증(M5)과 Flutter 앱은 이번 범위에서 구현하지 않는다.
 
 ## 1. 저장소 경계
 
@@ -17,7 +17,6 @@ truewords-platform/
 │           ├── core/        # 설정·DB·예외·공통 기반
 │           └── modules/     # chat/search/cache/pipeline/admin 등 기존 도메인
 ├── packages/
-│   ├── ui-web/              # 양 웹에서 쓰는 React UI
 │   ├── api-client-ts/       # 생성 DTO/SDK + 플랫폼 중립 transport
 │   ├── eslint-config/
 │   └── typescript-config/
@@ -37,7 +36,8 @@ truewords-platform/
 | 웹 로그인 복귀·화면 상태·라우팅 | 각 Next.js 앱 |
 | 공통 API 모델 | FastAPI Pydantic → `contracts/openapi.json` → TS SDK |
 | SSE | 실제 서버 이벤트와 fixture·소비자 테스트. OpenAPI 생성만으로 검증하지 않음 |
-| React UI | `packages/ui-web`. Flutter의 위젯과 공통 코드로 간주하지 않음 |
+| React UI·테마·화면 UX | 각 앱의 `src/components/ui`, `src/app/globals.css`, 앱별 UI/UX 명세 |
+| 공통 개발 설정 | `packages/eslint-config`, `packages/typescript-config` |
 
 `pnpm-lock.yaml`은 JS/TS, `apps/api/uv.lock`은 Python 의존성을 고정한다. Turbo는 작업 실행·캐시를 조율하며 Python/Dart import를 자동 분석하는 도구로 취급하지 않는다.
 
@@ -92,7 +92,7 @@ make ci
 node tooling/checks/docs-links.mjs
 ```
 
-전체 회귀와 E2E·계약 검사는 [실행 계획의 완료 증거](docs/plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 확인한다. 이전 문서의 테스트 개수를 이번 실행 결과로 취급하지 않는다.
+M1~M4의 전체 회귀와 E2E·계약 검사는 [이전 실행 계획의 완료 증거](docs/plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거), 후속 UI 분리 검증은 [앱별 UI 실행 계획](docs/plans/active/2026-09-05-app-owned-ui.md)을 확인한다. 이전 문서의 테스트 개수를 이번 실행 결과로 취급하지 않는다.
 
 **push 자동 배포는 없다.** 기존 Oracle 운영은 통합 Next.js를 포함한 5컨테이너이며, 저장소에는 분리 후 web/admin/API를 포함한 6컨테이너 구성을 준비한다. Cloudflare의 원격 Public Hostname은 Compose 편집으로 바뀌지 않는다.
 
@@ -104,6 +104,7 @@ node tooling/checks/docs-links.mjs
 |---|---|
 | [문서 색인](docs/README.md) | 요구사항·spec·ADR·운영 가이드 |
 | [모노레포 설계](docs/architecture/2026-09-05-pwa-flutter-monorepo.md) | 현재/추후 범위와 공유 경계 |
+| [사용자 웹 UI/UX](docs/specs/web/ui-ux.md), [관리자 UI/UX](docs/specs/admin/ui-ux.md) | 앱별 현재 구현·소유권. 신규 디자인 승인 문서가 아님 |
 | [전환·복구 runbook](docs/runbooks/monorepo-migration-and-rollback.md) | 볼륨·라우팅·쿠키·이미지 보존과 복구 |
 | [Oracle 운영](infra/oracle-vm/README.md) | VM·백업·예약 작업·독립 배포 |
 | [분리 전 다이어그램](docs/architecture/diagrams/README.md) | 2026-09-04 JSON/HTML/PNG 스냅샷 6종, **현재 분리 구조 아님** |

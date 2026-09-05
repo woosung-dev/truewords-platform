@@ -16,7 +16,9 @@ pnpm --filter @truewords/admin dev
 
 ## 경계와 검증
 
-관리자 업무 화면은 `src/app/(dashboard)`, 기능별 API 연결·UI는 `src/features`, 앱 인증 UX는 `src/features/auth`가 소유한다. 공통 DTO/transport는 `packages/api-client-ts`, React primitive·테마는 `packages/ui-web`에서 가져온다. 서버 업무 규칙은 FastAPI에 둔다.
+관리자 업무 화면은 `src/app/(dashboard)`, 기능별 API 연결·UI는 `src/features`, 앱 인증 UX는 `src/features/auth`가 소유한다. React primitive는 `src/components/ui`, 테마는 `src/app/globals.css`, 표시 유틸은 `src/lib/utils.ts`에 둔다. 사용자 웹의 UI·CSS를 가져오지 않는다.
+
+공통 DTO/transport는 `packages/api-client-ts`, 검사 설정은 `packages/eslint-config`·`packages/typescript-config`를 유지한다. 서버 업무 규칙은 FastAPI에 둔다. [관리자 UI/UX 명세](../../docs/specs/admin/ui-ux.md)는 현재 구현과 앱별 소유권만 기록하며, 사용자 웹과 동일한 디자인이나 신규 리디자인을 승인하지 않는다.
 
 ```bash
 pnpm --filter @truewords/admin test

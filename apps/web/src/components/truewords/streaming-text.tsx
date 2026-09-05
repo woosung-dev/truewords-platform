@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@truewords/ui-web/utils";
+import { cn } from "@/lib/utils";
 
 // Plan B.8 — 스트리밍 답변 + skeleton + cursor
 export interface StreamingTextProps {

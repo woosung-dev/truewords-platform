@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, X } from "lucide-react";
 import { Dialog } from "@base-ui/react/dialog";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import VolumeTransfer from "@/features/data-source/components/volume-transfer";
 import {
   useAllVolumes,

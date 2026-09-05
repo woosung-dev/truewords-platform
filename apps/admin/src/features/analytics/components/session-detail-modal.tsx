@@ -4,9 +4,9 @@ import { useEffect, useRef } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { X, ThumbsDown, ThumbsUp, Bookmark } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { analyticsAPI } from "@/features/analytics/api";
 import type { SessionMessage } from "@/features/analytics/types";
 

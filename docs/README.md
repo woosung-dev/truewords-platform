@@ -1,11 +1,12 @@
 # TrueWords 기술 문서
 
-현재 작업은 **M1~M4 모노레포 구조 전환**이다. 사용자 승인 범위는 구현·검증·PR까지이며, 운영 배포·PWA 신규 인증/푸시·Flutter 개발은 포함하지 않는다.
+현재 작업은 M1~M4 이후 **앱별 UI 소유권 분리(사용자 승인 2안)**다. API SDK·ESLint·TypeScript 설정 3개 패키지는 유지한다. 사용자 승인 범위는 구현·검증·PR까지이며, 운영 배포·신규 디자인·PWA 신규 인증/푸시·Flutter 개발은 포함하지 않는다.
 
 | 먼저 읽을 문서 | 용도 |
 |---|---|
 | [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md) | web/admin/API 경계, 공통 API·인증·SSE·알림 정책 |
 | [전환 실행 계획](plans/completed/2026-09-05-monorepo-migration.md) | M1~M4 범위와 실제 검증 증거, M5 제외 범위 |
+| [앱별 UI 실행 계획](plans/active/2026-09-05-app-owned-ui.md) | 후속 2안 승인 범위와 재검증 증거 |
 | [로컬 환경 설정](runbooks/environment-setup.md) | 앱별 실행과 환경변수 |
 | [전환·복구 runbook](runbooks/monorepo-migration-and-rollback.md) | 로컬 볼륨 보존, 운영 origin·이미지·라우팅 전환 |
 | [TODO](TODO.md) | 승인 대기 결정과 후속 작업 |
@@ -17,7 +18,9 @@ docs/
 ├── prd/                 # 제품 배경·요구사항
 ├── specs/               # 공통 업무 동작 + 플랫폼별 인수 조건
 │   ├── domain/          # 데이터 모델·도메인 정의
-│   └── api/             # API 동작 명세 (생성 계약은 루트 contracts/)
+│   ├── api/             # API 동작 명세 (생성 계약은 루트 contracts/)
+│   ├── web/             # 사용자 웹의 UI/UX 소유권·구현 기준
+│   └── admin/           # 관리자 UI/UX 소유권·구현 기준
 ├── adr/                 # 장기 의사결정·보류 결정의 근거
 ├── architecture/        # 시스템 설계·문서 이전 manifest
 ├── plans/
@@ -30,12 +33,15 @@ docs/
 
 문서 ID와 파일명은 보존한다. PRD를 웹/모바일별로 복제하지 않고, 한 기능 spec에서 공통 규칙과 플랫폼별 동작을 구분한다. 과거 문서의 `backend/`, `admin/`, `src.*`와 실행 결과는 **당시 기록**이며 현재 명령의 근거로 사용하지 않는다.
 
+web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업무 규칙을 복제하지 않으며, 현재 구현 기준을 기록했다는 이유로 새 디자인이 승인된 것으로 취급하지 않는다.
+
 ## 제품·기능 명세
 
 | 문서 | 내용 |
 |---|---|
 | [01-project-overview](prd/01-project-overview.md) | 기존 제품 배경·데이터 범위 |
 | [16-app-feature-spec](prd/16-app-feature-spec.md) | 이전 MVP/Flutter 구상. 신규 PWA 요구사항으로 자동 상속하지 않음 |
+| [사용자 웹 UI/UX](specs/web/ui-ux.md), [관리자 UI/UX](specs/admin/ui-ux.md) | 현재 구현·소유권과 미승인 리디자인의 경계 |
 | [17-chatbot-system-prompt-spec](specs/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 |
 | [18-category-document-stats](specs/18-category-document-stats.md), [19-category-tag-management-ui](specs/19-category-tag-management-ui.md) | 문서 통계·카테고리 UI |
 | [도메인 사전](specs/domain/06-terminology-dictionary-structure.md), [중복 업로드 API](specs/api/check_duplicate.md) | 용어 데이터 구조·업로드 동작 |
@@ -70,6 +76,7 @@ docs/
 |---|---|
 | 현재 PWA 제품 조사 | [초원AI 벤치마크](research/2026-08-30-chowon-ai-benchmark.md), [가정연합 PWA 방향](research/2026-08-30-pwa-app-direction.md), [검토 보고서](research/2026-08-31-chowon-pwa-strategy-report.html) |
 | 기존 시장 전략 | [12](research/12-market-analysis.md), [13](research/13-competitor-deep-dive.md), [14](research/14-success-factors-strategy.md): 개신교/성경 앱 전제이며 FFWPU PRD로 자동 상속하지 않음 |
+| 기존 디자인 조사 | [17-design-strategy](research/17-design-strategy.md): 과거 디자인 전략. 신규 PWA·관리자의 공통 디자인 승인 기준이 아님 |
 | 기술·코드 조사 | [청킹/임베딩](research/19-rag-chunking-embedding-research.md), [로컬 LLM](research/15-local-llm-benchmark.md), [외부 코드 분석](research/insights/README.md) |
 | 과거 계획·운영 기록 | [archive 설명](archive/README.md). 완료 여부를 이번 이전에서 새로 판정하지 않음 |
 | 이전 감사 | [문서 이전 manifest](architecture/2026-09-05-document-migration-manifest.json): 모든 기존 문서/매체의 이전 전 SHA-256·새 위치·분류 이유 |

@@ -10,22 +10,22 @@ import {
 import type { DataSourceCategory } from "@/features/data-source/types";
 import { useDataSourceCategories, useRemoveVolumeTag } from "@/features/data-source/hooks";
 import { getCategoryColors } from "@/features/data-source/category-colors";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Input } from "@truewords/ui-web/components/ui/input";
-import { Label } from "@truewords/ui-web/components/ui/label";
-import { Checkbox } from "@truewords/ui-web/components/ui/checkbox";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@truewords/ui-web/components/ui/sheet";
+} from "@/components/ui/sheet";
 import { Plus, Pencil, Power, ChevronRight, ChevronDown, Tag, Trash2, X, FolderOpen } from "lucide-react";
 import DeleteConfirmDialog, {
   type DeleteTarget,
 } from "@/features/data-source/components/delete-confirm-dialog";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import VolumeTransferSheet from "@/features/data-source/components/volume-transfer-sheet";
 import { useCategoryStats, useAllVolumes } from "@/features/data-source/hooks";
 import type { CategoryDocumentStats } from "@/features/data-source/types";

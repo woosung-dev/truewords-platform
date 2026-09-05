@@ -9,8 +9,8 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@truewords/ui-web/components/ui/sheet";
-import { cn, stripFileExt } from "@truewords/ui-web/utils";
+} from "@/components/ui/sheet";
+import { cn, stripFileExt } from "@/lib/utils";
 
 // P0-B + ADR-46 §C.3 — 인용 카드의 "원문보기" 모달.
 // CitationCard 의 onOpenOriginal prop 에 연결해서 사용한다.

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@truewords/ui-web/utils";
+import { cn } from "@/lib/utils";
 
 // Plan B.2 + P0-C — 두 줄 placeholder + char counter
 export interface QuestionInputProps

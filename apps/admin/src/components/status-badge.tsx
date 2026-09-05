@@ -1,7 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { Badge } from "@truewords/ui-web/components/ui/badge"
-import { cn } from "@truewords/ui-web/utils"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 const statusBadgeVariants = cva("border", {
   variants: {

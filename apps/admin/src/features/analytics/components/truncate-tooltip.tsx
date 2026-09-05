@@ -6,7 +6,7 @@ import {
   TooltipContent,
   TooltipTrigger,
   TooltipProvider,
-} from "@truewords/ui-web/components/ui/tooltip";
+} from "@/components/ui/tooltip";
 
 interface Props {
   text: string;

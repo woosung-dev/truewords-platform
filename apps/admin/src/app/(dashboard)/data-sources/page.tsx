@@ -20,9 +20,9 @@ import type {
   UploadResponse,
 } from "@/features/data-source/types";
 import { fetchAPI } from "@/lib/api";
-import { stripFileExt } from "@truewords/ui-web/utils";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
-import { Button } from "@truewords/ui-web/components/ui/button";
+import { stripFileExt } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Upload,
   FileText,

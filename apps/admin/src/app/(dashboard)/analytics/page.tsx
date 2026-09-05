@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { analyticsAPI } from "@/features/analytics/api";
 import type { SearchStats, DailyCount, TopQuery } from "@/features/analytics/types";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
 import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
 import { ModesChart } from "@/features/analytics/components/modes-chart";

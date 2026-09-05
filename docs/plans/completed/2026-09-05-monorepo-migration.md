@@ -6,6 +6,8 @@
 - 설계: [ARCH-MONO-001](../../architecture/2026-09-05-pwa-flutter-monorepo.md)
 - 사용자 방향: web/PWA·admin·FastAPI 분리, Flutter는 추후 독립 추가
 
+> 후속 결정: 2026-09-05 사용자 2안 승인으로 아래 M2의 `ui-web` 선택은 [APP-UI-001 앱별 UI 소유권](../active/2026-09-05-app-owned-ui.md)으로 대체한다. 본문의 단계·검증 결과는 최초 M1~M4 실행 기록으로 보존하며 후속 변경의 검증 성공을 의미하지 않는다.
+
 ## 1. 진행 순서와 완료 기준
 
 | 단계 | 변경 결과 | 통과해야 하는 검증 |

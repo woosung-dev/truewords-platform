@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Input } from "@truewords/ui-web/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Plus, X } from "lucide-react";
 import type { WeightedSource } from "@/features/chatbot/types";
 import { useSearchableCategories } from "@/features/data-source/hooks";

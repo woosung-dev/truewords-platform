@@ -7,8 +7,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { chatbotAPI } from "@/features/chatbot/api";
-import { buttonVariants } from "@truewords/ui-web/components/ui/button";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
+import { buttonVariants } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChatbotForm,
   type ChatbotFormValues,

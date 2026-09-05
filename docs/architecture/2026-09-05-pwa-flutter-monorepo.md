@@ -2,13 +2,14 @@
 
 - 문서 ID: `ARCH-MONO-001`
 - 작성일: 2026-09-05
-- 상태: **사용자 승인 — M1~M4 구현·검증·PR 진행** (2026-09-05)
+- 상태: **2안 UI 분리 구현·로컬 검증 완료 — 커밋·푸시 승인** (2026-09-05). PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과와 이번 변경의 검증 증거를 구분한다.
 - 분석 기준: `main`의 `59e3a59`. 운영 서버 접속·배포·실기기 검증은 수행하지 않았다.
 - 실행 계획: [단계별 이전·검증 계획](../plans/completed/2026-09-05-monorepo-migration.md)
+- 후속 결정: [APP-UI-001](../plans/active/2026-09-05-app-owned-ui.md). 최초 `ui-web` 선택을 대체하고 API SDK·ESLint·TypeScript 설정 3개 패키지만 유지한다. 기존 검증 결과는 당시 기록이며 후속 변경의 검증 증거로 재사용하지 않는다.
 
 ## 1. 결정한 방향과 이번 문서의 범위
 
-사용자 요청의 방향은 **Next.js 사용자 웹/PWA와 admin을 독립 앱으로 분리하고, FastAPI의 제품 API를 함께 사용하는 것**이다. Flutter는 도입을 결정한 뒤 세 번째 클라이언트로 추가한다. 재사용 대상은 업무 규칙·API 계약·계정 및 권한 정책·알림 정책이며 React UI는 웹 전용이다.
+사용자 요청의 방향은 **Next.js 사용자 웹/PWA와 admin을 독립 앱으로 분리하고, FastAPI의 제품 API를 함께 사용하는 것**이다. Flutter는 도입을 결정한 뒤 세 번째 클라이언트로 추가한다. 재사용 대상은 업무 규칙·API 계약·계정 및 권한 정책·알림 정책이다. React UI·테마·화면 UX는 web/admin이 각각 소유하며 동일한 디자인을 강제하지 않는다.
 
 `apps`는 배포 단위, `packages`는 실제 공유 코드, `contracts`는 언어 간 계약이다. 기본 도구는 Turborepo + pnpm + uv이며 Flutter 착수 후 Pub workspace를 추가한다. Turbo는 각 언어의 명령을 실행하고 작업 순서·캐시를 관리한다. Python/Dart 의존성 해석은 uv/Pub가 맡는다. [공식 Turborepo 안내](https://turborepo.dev/docs/guides/multi-language)
 
@@ -19,6 +20,8 @@
 [S0 제품 방향](../research/2026-08-30-pwa-app-direction.md)은 main에 있다. S1 PRD는 별도 `docs/ffwpu-pwa-session-1` 브랜치의 `3123cfe`에서 확인했으며 상태가 **사용자 검토 대기**다. 이 브랜치의 `docs/01_requirements/17-ffwpu-pwa-prd.md`와 14세션 로드맵을 main에 병합된 문서로 취급하지 않는다.
 
 이 요청은 플랫폼 구조의 방향을 갱신한다. S1의 제품 기능·화면·일정·사용자 동의 및 기존 기록 이전 정책까지 승인한 것으로 해석하지 않는다. S1 후속 문서 작성 시 이 설계를 참조하고, 구현 시점에는 병합된 최신 PRD를 다시 확인한다.
+
+S0는 제품 방향 승인과 디자인 시스템 승인을 구분한다. 신규 PWA 디자인은 채택 프로토타입·승인 PRD·사용자 선택 이후의 후속 작업이다. 현재 [웹 UI/UX](../specs/web/ui-ux.md)와 [관리자 UI/UX](../specs/admin/ui-ux.md)는 구현 기준·소유권만 기록한다. 과거 디자인 조사와 기존 `/design-system` 화면을 양 앱 공통 디자인 승인으로 간주하지 않는다.
 
 ### NOT in scope
 
@@ -59,12 +62,16 @@ repo/
 ├── apps/
 │   ├── web/                         # 사용자 Next.js, PWA 기능은 M5
 │   │   ├── src/app/manifest.ts      # [M5] 이번 구조 이전에서 생성하지 않음
+│   │   ├── src/app/globals.css     # 사용자 웹 전용 테마
+│   │   ├── src/components/ui/      # 사용자 웹 소유 primitive
 │   │   ├── src/features/
 │   │   ├── src/lib/{api,auth,push}/
 │   │   ├── public/sw.js            # [M5] 이번 구조 이전에서 생성하지 않음
 │   │   └── AGENTS.md
 │   ├── admin/                       # 관리자 Next.js
 │   │   ├── src/{app,features,lib}/
+│   │   ├── src/components/ui/      # 관리자 소유 primitive
+│   │   ├── src/app/globals.css     # 관리자 전용 테마
 │   │   └── AGENTS.md
 │   ├── api/                         # 공통 제품 API
 │   │   ├── app/
@@ -86,11 +93,9 @@ repo/
 │   │   └── AGENTS.md
 │   └── mobile/                      # [추후] Flutter, 상세 구조는 착수 때 확정
 ├── packages/
-│   ├── ui-web/
 │   ├── api-client-ts/
 │   │   └── src/{generated,transport}/
 │   ├── api-client-dart/             # [추후]
-│   ├── design-tokens/               # [선택]
 │   ├── eslint-config/
 │   └── typescript-config/
 ├── contracts/
@@ -99,7 +104,7 @@ repo/
 ├── docs/
 │   ├── README.md
 │   ├── prd/
-│   ├── specs/{domain,api}/
+│   ├── specs/{domain,api,web,admin}/
 │   ├── architecture/
 │   ├── adr/
 │   ├── plans/{active,completed}/
@@ -133,8 +138,8 @@ Flutter 착수 시 루트 `pubspec.yaml`·`pubspec.lock`, `apps/mobile`, `packag
 flowchart LR
     WEB[apps/web · Next.js PWA] --> TS[api-client-ts]
     ADMIN[apps/admin · Next.js] --> TS
-    WEB --> UI[ui-web · React 공통 UI]
-    ADMIN --> UI
+    WEB --> WEBUI[web 소유 UI · 테마 · UX]
+    ADMIN --> ADMINUI[admin 소유 UI · 테마 · UX]
     TS --> PROXY[각 앱의 /api/backend 프록시]
     PROXY --> API[apps/api · FastAPI]
     MOBILE[apps/mobile · 추후 Flutter] -.-> DART[api-client-dart · 추후]
@@ -147,11 +152,13 @@ flowchart LR
     CONTRACT -.-> DART
 ```
 
-### 웹 공유 코드
+### 앱별 UI와 공유 API·설정
 
-`ui-web`에는 양쪽에서 실제 사용하는 Button·Input·Dialog 등 기본 UI와 관련 스타일만 둔다. 채팅 화면·관리자 데이터 관리·AuthGuard·React Query provider는 앱이 소유한다. 양쪽이 사용하지 않는 기능을 공용 패키지로 옮기지 않는다.
+**승인된 2안은 UI를 앱별로 소유하는 것이다.** 각 앱의 `src/components/ui`, `src/app/globals.css`, `src/lib/utils.ts`에 primitive·테마·표시 유틸을 둔다. 양쪽에서 쓰던 버튼·입력 등도 앱별로 보존하며 값·코드가 현재 같다는 이유로 공통 UI·토큰 패키지를 미리 만들지 않는다. 채팅 화면·관리자 데이터 관리·AuthGuard·React Query provider 역시 앱이 소유한다. 이번 이동은 기존 모양·동작을 보존하며 리디자인은 별도 승인한다.
 
-`ui-web` → 앱 import, web → admin 내부 import, admin → web 내부 import를 금지한다. 공유 패키지는 공개 export로만 참조한다. Tailwind v4에서 공유 소스 스캔, CSS 토큰·폰트, portal 테마, React 중복 설치를 검증한다. React/Next 버전 업그레이드는 구조 이전과 별도 변경으로 둔다.
+web → admin 내부 import, admin → web 내부 import와 다른 앱 CSS 참조를 금지한다. Tailwind v4는 앱 로컬 소스를 기준으로 검사하며 CSS 토큰·폰트·Portal 테마·키보드 동작을 앱별로 검증한다. React/Next 버전 업그레이드는 구조 이전과 별도 변경으로 둔다.
+
+공유 패키지는 `api-client-ts`, `eslint-config`, `typescript-config` 3개를 유지하고 공개 export로만 참조한다. SDK는 실제 양 앱 소비자를 같은 계약에 연결하며 설정 패키지는 공통 검사 기준을 제공한다. UI 소유권 분리를 이유로 DTO·HTTP 처리·생성 검사나 TypeScript/ESLint 기준을 앱별로 복제하지 않는다. 공유 패키지는 앱을 import하지 않는다.
 
 `api-client-ts/src/generated`는 생성기 전용이다. `transport`에는 HTTP·오류 변환·스트림 처리만 둔다. 현재 `lib/api.ts`의 `window.location.href = "/login"` 같은 화면 이동은 앱의 인증 계층으로 옮긴다. 오류의 HTTP status·request_id를 보존하고 204·비JSON·네트워크 실패를 별도로 처리한다.
 
@@ -263,12 +270,12 @@ FCM 도입은 Flutter 단계의 선택이다. iOS FCM에도 APNs와 플랫폼 ca
 | web/admin | 해당 앱 타입·lint·단위·빌드, 라우팅·권한 E2E |
 | API | pytest, OpenAPI export·계약 차이, 관련 소비자 검증 |
 | SDK/계약 | 재생성 일치, 파괴적 변경 검사, web/admin 소비자 테스트, 추후 Dart 파싱 |
-| 공통 UI·설정·lockfile·tooling·CI | 의존 앱과 공유 태스크까지 검증 확대 |
+| 공통 설정·lockfile·tooling·CI | 의존 앱과 공유 태스크까지 검증 확대 |
 | Flutter `[추후]` | analyze·단위/위젯/통합, 대상 플랫폼 빌드·서명·출시 검증 |
 
 현재 `ci.yml`은 워크플로 전체를 경로로 스킵하지 않고 job별로 조건을 적용한다. 이 원칙을 유지해 required check이 pending에 남지 않도록 항상 실행되는 최종 집계 job을 둔다. 개별 CI 파일은 재사용 workflow로 분리할 수 있다. 실패·취소된 필수 job이 집계에서 성공으로 바뀌지 않도록 검증한다.
 
-새 코드와 검사 연결은 같은 단계에서 추가한다. M1은 workspace/lockfile, M2는 web/ui-web, M3는 contracts/SDK를 즉시 CI에 연결한다. M4는 최종 분류·집계 정리이며 신규 코드의 CI 도입을 그때까지 미루지 않는다.
+새 코드와 검사 연결은 같은 단계에서 추가한다. 최초 M1~M4의 단계별 검사 기록은 이전 실행 계획에 보존한다. 후속 APP-UI-001은 앱 로컬 UI·CSS·설정·이미지·경계 검사를 같은 변경에서 갱신하고, 양 앱을 재검증한다. UI 변경은 소유 앱에서 검증하며 공통 SDK/설정 변경은 양쪽 소비자로 검증을 확대한다.
 
 Turbo에 export → codegen → 소비자 검사 순서를 명시한다. 입력에는 API 모델·스키마·생성기 설정과 버전·각 lockfile·공유 소스·빌드 환경변수를 넣는다. `.next/cache`·비밀정보는 공유 산출물에서 제외한다. DB 통합 테스트·배포·서명·마이그레이션은 결과 캐시를 사용하지 않는다. 기존 schema 파일만 hash하여 API 변경이 codegen 캐시를 재사용하는 실수를 막는다.
 
@@ -296,7 +303,7 @@ Next Docker 빌드는 workspace 루트를 context로 사용하여 필요한 mani
 
 문서 이동은 독립 단계로 수행한다. 파일별 이전 manifest를 만들고 이름 충돌·참조 링크·앵커·상태를 검사한다. 이전 문서가 과거 실행을 설명할 때 그 당시 코드 경로를 무조건 현재 경로로 치환하지 않는다. 외부에서 인용되는 진입 문서는 필요 시 짧은 이전 안내를 남긴다.
 
-현재 설계 초안은 기존 문서 체계에 저장했다. 전체 문서 이전 시 이 문서는 `docs/architecture/`로 이동한다. 루트와 앱별 AGENTS에는 현재 경로·검증 명령·생성 코드 수정 금지·플랫폼 범위를 함께 갱신한다. ignored 상태의 개인 `.ai` 규칙만을 팀 공통 지침의 유일한 원본으로 삼지 않는다.
+최초 설계 초안은 기존 문서 체계에 작성했고, M4에서 이 문서를 `docs/architecture/`로 이전했다. 루트와 앱별 AGENTS의 경로·검증 명령·생성 코드 수정 금지·플랫폼 범위도 갱신했다. 이후 변경에서도 함께 유지하며 ignored 상태의 개인 `.ai` 규칙만을 팀 공통 지침의 유일한 원본으로 삼지 않는다.
 
 ## 10. 구현 전 결정할 항목
 
@@ -307,4 +314,4 @@ Next Docker 빌드는 workspace 루트를 context로 사용하여 필요한 mani
 | `DEC-MONO-003` | 일반 사용자 로그인 방식·기존 데모 계정/기록 처리 | 기존 데이터 자동 이전 없음, identity 구현 전 결정 |
 | `DEC-MONO-004` | Flutter 착수 시점·SDK/인증 호환성 | 착수 전 Dart 생성/파싱·네이티브 로그인·딥링크·푸시 검증 |
 
-이번 세션의 완료 기준은 확인된 현재 상태와 목표 상태, 단계별 작업·검증·롤백 및 미결 결정을 검토 가능한 문서로 제공하는 것이다. 코드·폴더 이전 완료와 PWA 실기기 성공은 후속 구현의 별도 완료 기준이다.
+최초 설계 단계의 완료 기준은 현재/목표 상태·단계별 작업·검증·롤백·미결 결정을 문서로 제공하는 것이었다. 이후 M1~M4와 후속 2안 UI 분리의 구현·로컬 검증을 완료했다. 새 로컬 변경은 커밋·푸시 승인 및 PR 반영을 기다리며 원격 HEAD `896a7ae`의 CI와 별도로 검증해야 한다. 앱별 UI/UX 명세는 신규 디자인 승인이 아니며 PWA 실기기 검증·Flutter·운영 배포는 이번 완료 범위에 포함하지 않는다.

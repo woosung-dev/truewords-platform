@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authAPI } from "@/features/auth/api";
 import { ApiError } from "@/lib/api";
-import { Button } from "@truewords/ui-web/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 export default function AuthGuard({
   children,

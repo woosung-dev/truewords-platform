@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAPI } from "@/lib/api";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { AuditLogResponse as AuditLog } from "@truewords/api-client-ts/types";

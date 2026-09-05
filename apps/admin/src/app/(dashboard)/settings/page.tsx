@@ -5,11 +5,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ApiError, fetchAPI } from "@/lib/api";
 import { authAPI } from "@/features/auth/api";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Input } from "@truewords/ui-web/components/ui/input";
-import { Label } from "@truewords/ui-web/components/ui/label";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -17,7 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@truewords/ui-web/components/ui/table";
+} from "@/components/ui/table";
 import {
   Ban,
   CheckCircle2,

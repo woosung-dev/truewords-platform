@@ -9,10 +9,10 @@
 
 import { useEffect, useState } from "react";
 
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Checkbox } from "@truewords/ui-web/components/ui/checkbox";
-import { Input } from "@truewords/ui-web/components/ui/input";
-import { Label } from "@truewords/ui-web/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import SearchModeSelector from "@/features/chatbot/components/search-mode-selector";
 import SearchTierEditor from "@/features/chatbot/components/search-tier-editor";
 import WeightedSourceEditor from "@/features/chatbot/components/weighted-source-editor";

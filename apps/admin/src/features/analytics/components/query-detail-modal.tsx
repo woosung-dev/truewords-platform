@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { Skeleton } from "@truewords/ui-web/components/ui/skeleton";
-import { Button } from "@truewords/ui-web/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { analyticsAPI } from "@/features/analytics/api";
 import QueryDetailOccurrence from "./query-detail-occurrence";
 

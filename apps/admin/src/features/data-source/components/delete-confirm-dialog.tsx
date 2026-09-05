@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { AlertTriangle, FileText, Loader2, Trash2, X } from "lucide-react";
-import { Button } from "@truewords/ui-web/components/ui/button";
-import { Badge } from "@truewords/ui-web/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 // UI/UX 가이드 적용 (ui-ux-pro-max):
 //   §1 a11y    — aria-label / aria-describedby / focus management / color-not-only

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ThumbsUp, ThumbsDown, Bookmark } from "lucide-react";
-import { cn } from "@truewords/ui-web/utils";
+import { cn } from "@/lib/utils";
 
 // P1-A — 답변 평가 (👍 👎 💾)
 export type FeedbackKind = "thumbs_up" | "thumbs_down" | "save";

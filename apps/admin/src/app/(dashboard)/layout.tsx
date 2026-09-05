@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { authAPI } from "@/features/auth/api";
-import { buttonVariants } from "@truewords/ui-web/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@truewords/ui-web/components/ui/sheet";
+import { buttonVariants } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import AuthGuard from "@/features/auth/components/auth-guard";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";

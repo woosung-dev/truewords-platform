@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   output: "standalone",
   outputFileTracingRoot: path.join(__dirname, "../.."),
-  transpilePackages: ["@truewords/ui-web", "@truewords/api-client-ts"],
+  transpilePackages: ["@truewords/api-client-ts"],
   experimental: { proxyClientMaxBodySize: "200mb" },
   async redirects() {
     return [

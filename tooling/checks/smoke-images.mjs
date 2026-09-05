@@ -14,7 +14,7 @@ for (const origin of origins) {
   assert.ok(css, "standalone에 CSS 링크가 있어야 합니다");
   const asset = await fetch(new URL(css, origin));
   assert.equal(asset.status, 200);
-  assert.ok((await asset.text()).length > 1000, "공유 UI/Tailwind CSS가 누락됐습니다");
+  assert.ok((await asset.text()).length > 1000, "앱 UI/Tailwind CSS가 누락됐습니다");
   assert.equal((await fetch(`${origin}/api/backend/health`)).status, 200);
   assert.deepEqual(await (await fetch(`${origin}/api/chatbots`)).json(), await (await fetch(`${origin}/api/backend/chatbots`)).json());
 

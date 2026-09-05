@@ -28,6 +28,11 @@ export default defineConfig({
       testMatch: "split-apps.spec.ts",
       use: { browserName: "chromium", baseURL: webOrigin },
     },
+    {
+      name: "ui-theme-chromium",
+      testMatch: "ui-theme.spec.ts",
+      use: { browserName: "chromium", baseURL: webOrigin },
+    },
   ],
   // 기존 운영 DB를 사용하지 않는다. 별도 Compose 프로젝트/seed는 README 참조.
   webServer: process.env.E2E_EXTERNAL_SERVERS === "1" ? undefined : [

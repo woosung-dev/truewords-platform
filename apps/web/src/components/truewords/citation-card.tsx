@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ArrowUpRight, BookOpen, ScrollText, PenLine } from "lucide-react";
-import { cn } from "@truewords/ui-web/utils";
+import { cn } from "@/lib/utils";
 
 // Plan B.3 + P1-B(4중 메타) + P1-H(3-탭) + P0-B(원문 모달)
 export type CitationTab = "haeseol" | "bonmun" | "note";

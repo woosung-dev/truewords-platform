@@ -1,7 +1,7 @@
 "use client";
 
 import { Lightbulb, Lock, MessageCircle } from "lucide-react";
-import { cn } from "@truewords/ui-web/utils";
+import { cn } from "@/lib/utils";
 import { ChatButton } from "./chat-button";
 
 // Plan B.6 + P0-A 자동 follow-up.

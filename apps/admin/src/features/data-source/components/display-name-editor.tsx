@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { dataAPI } from "@/features/data-source/api";
-import { Input } from "@truewords/ui-web/components/ui/input";
+import { Input } from "@/components/ui/input";
 
 export interface DisplayNameEditorProps {
   volumeKey: string;

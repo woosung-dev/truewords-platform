@@ -23,3 +23,11 @@ pnpm test:e2e
 ```
 
 `admin-flow`는 기존 관리자 편집·권한 시나리오, `data-source-delete`는 삭제 확인 UI(데이터 API mock), `web-flow`는 모바일 채팅/SSE·출처·기록·로그아웃, `split-apps`는 origin 이동·호스트별 쿠키·alias·CSRF·계정 간 대화 기록 격리를 검증한다. SSE는 최종 답변뿐 아니라 첫 chunk의 중간 표시, 사용자 취소 후 부분 답변 보존, `done` 없이 연결이 끝났을 때의 오류 안내도 검사한다. 원문 모달은 실제 Qdrant 문서가 필요하지 않도록 한 응답만 mock한다. API의 원문 ACL은 별도 pytest에서 검증한다.
+
+## 앱별 UI·테마 회귀
+
+`ui-theme`의 4개 시나리오는 web/admin × light/dark 조합에서 로그인 키보드 이동·입력/버튼 크기, 390px 화면, 실제 제품 Sheet의 Portal 색상·토큰 상속·Escape 닫기를 확인한다. 웹의 비활성 전송 버튼과 모바일 적용 버튼 크기도 검사한다. 신규 다크모드 전환 기능을 가정하지 않고 기존 `.dark` 클래스를 직접 적용한다.
+
+production CSS 최적화는 OKLCH를 Lab으로 표현할 수 있어 색상 문자열 대신 브라우저가 그린 RGBA 채널을 비교한다(채널당 허용 오차 1). 각 Portal 스크린샷은 테스트 첨부 파일로 저장한다. 이 검사는 전체 화면 픽셀 스냅샷이나 모든 접근성 검사를 대체하지 않는다.
+
+부분 실행: `pnpm --filter @truewords/e2e exec playwright test --project=ui-theme-chromium`. 전체 실행에는 기존 34개와 새 UI 회귀 4개, 총 38개가 포함된다.
