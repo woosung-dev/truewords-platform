@@ -283,10 +283,10 @@ make restore-drill                         # 백업 복구 리허설
 | 검사 | 임계 | 잡는 것 |
 |---|---|---|
 | `backup` | 로컬 최신 덤프 < 8h | `backup-db.sh` 미실행·실패 |
-| `backup-remote` | Object Storage 사본 < 8h | 업로드가 조용히 실패 (스크립트가 의도적으로 무시하는 경로) |
+| `backup-remote` | Object Storage 사본 < 8h (`truewords-` prefix 전체 조회) | 업로드가 조용히 실패 (스크립트가 의도적으로 무시하는 경로). 버킷은 다른 프로젝트와 공유하고 `object list` 는 이름순 100개만 돌려주므로 prefix 없이 보면 오탐(2026-08-27~09-05 "209h 전" 사례) |
 | `cache-ttl` | 만료 ≤ 50건 | `cache-cleanup.yml` 미실행 (스케줄러 위치 무관) |
 | `suggested-q` | `max(suggested_at)` < 10일 | `refresh-questions.sh` 미실행 |
-| `containers` | web/admin/backend/qdrant/postgres 5 healthy + cloudflared up | web 누락을 포함한 6서비스 이상 |
+| `containers` | 이 VM 의 compose 에 정의된 서비스 전부 — cloudflared 는 up, 나머지 healthy | 분리 전(5개)·분리 후(web 포함 6개) 구성을 같은 스크립트로. compose 에 없는 web 은 오탐이 아니고, 정의됐는데 죽으면 FAIL |
 | `disk` | < 70% 주의 / < 80% 임계 | 디스크 포화. 한 달에 25GB 늘던 실측(2026-08-30)에서 80% 는 남은 시간이 3주도 안 됐다. WARN 은 종료코드를 바꾸지 않는다 |
 | `gemini-key` | embed + generate 둘 다 HTTP 성공, embed 차원 = 1536 | **유일한 외부 의존 사망** — 키 회수·청구 중단·quota 소진·모델 폐기·차원 변경 |
 

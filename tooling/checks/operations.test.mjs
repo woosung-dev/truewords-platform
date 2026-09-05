@@ -6,17 +6,28 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 const ops = readFileSync(new URL("../../infra/oracle-vm/ops-check.sh", import.meta.url), "utf8");
-const containersCheck = ops.slice(ops.indexOf("PS=$(sudo docker compose"), ops.indexOf("# ── 5."));
-function checkContainers(hasWeb) {
+const containersCheck = ops.slice(ops.indexOf("SERVICES=$(sudo docker compose"), ops.indexOf("# ── 5."));
+// composeHasWeb: 이 VM 의 compose 가 web 을 정의하는가. webStatus: ps 가 보고하는 web 상태(null 이면 컨테이너 없음).
+function checkContainers(composeHasWeb, webStatus) {
+  const services = ["postgres", "qdrant", "backend", "admin", ...(composeHasWeb ? ["web"] : []), "cloudflared"];
+  const ps = ["postgres Up 1 hour (healthy)", "qdrant Up 1 hour (healthy)", "backend Up 1 hour (healthy)", "admin Up 1 hour (healthy)", "cloudflared Up 1 hour", ...(webStatus ? [`web ${webStatus}`] : [])];
   return execFileSync("bash", ["-c", `
-    sudo() { printf '%s\\n' 'postgres Up 1 hour (healthy)' 'qdrant Up 1 hour (healthy)' 'backend Up 1 hour (healthy)' 'admin Up 1 hour (healthy)' 'cloudflared Up 1 hour' ${hasWeb ? "'web Up 1 hour (healthy)'" : "'web Exited (1)'"}; }
+    sudo() {
+      case "$*" in
+        *"config --services"*) printf '%s\\n' ${services.map((s) => `'${s}'`).join(" ")};;
+        *) printf '%s\\n' ${ps.map((l) => `'${l}'`).join(" ")};;
+      esac
+    }
     record() { printf '%s %s %s\\n' "$1" "$2" "$3"; }
     ${containersCheck}
   `], { encoding: "utf8" });
 }
-test("운영 점검은 web 포함 6개 정상일 때만 성공", () => {
-  assert.match(checkContainers(true), /containers OK 6개 정상/);
-  assert.match(checkContainers(false), /containers FAIL 비정상: web/);
+test("운영 점검은 compose 에 정의된 서비스 전부가 정상일 때만 성공 (분리 전 5개 · 분리 후 6개)", () => {
+  assert.match(checkContainers(true, "Up 1 hour (healthy)"), /containers OK 6개 정상 \(5 healthy \+ cloudflared up\)/);
+  assert.match(checkContainers(true, "Exited (1)"), /containers FAIL 비정상: web/);
+  assert.match(checkContainers(true, null), /containers FAIL 비정상: web/);
+  // 분리 전 VM: compose 에 web 이 없으면 web 부재는 오탐이 아니다.
+  assert.match(checkContainers(false, null), /containers OK 5개 정상 \(4 healthy \+ cloudflared up\)/);
 });
 
 test("이미지 GC dry-run은 web 및 실행중/명시롤백 태그를 보존", () => {

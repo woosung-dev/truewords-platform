@@ -107,8 +107,15 @@ fi
 # 백업까지 실패시키면 안 되니까. 그 관용이 곧 사각지대다. 로컬은 멀쩡한데
 # 원격만 며칠째 비어 있어도 스크립트는 매번 성공으로 끝난다.
 # VM 유실(인스턴스·디스크 소실) 시 유일한 복구 지점이라 별도로 확인한다.
+#
+# 버킷은 다른 프로젝트(quantbridge/…)와 공유하고, `object list` 는 **이름순 첫 100개**만 돌려준다.
+# prefix 없이 max() 를 구하면 첫 페이지가 다른 프로젝트 객체로 차서 우리 최신 사본이 빠진다 —
+# 2026-08-27~09-05 에 실제로 "209h 전" 오탐이 났다(로컬 백업·업로드는 매 6h 정상). 우리 prefix 로
+# 전체(--all)를 본다. 이름은 backup-db.sh 가 `truewords-<날짜>.dump` 로 올린다.
+BACKUP_PREFIX="${BACKUP_PREFIX:-truewords-}"
 REMOTE_T=$(/usr/local/bin/oci os object list --auth instance_principal \
-             --bucket-name "$BUCKET" --query 'max(data[]."time-created")' --raw-output 2>/dev/null | tr -d '"')
+             --bucket-name "$BUCKET" --prefix "$BACKUP_PREFIX" --all \
+             --query 'max(data[]."time-created")' --raw-output 2>/dev/null | tr -d '"')
 if [ -z "$REMOTE_T" ] || [ "$REMOTE_T" = "null" ]; then
   record "backup-remote" FAIL "Object Storage 사본을 확인하지 못했다 — 버킷 ${BUCKET} / Instance Principal 정책 확인"
 else
@@ -165,17 +172,29 @@ else
 fi
 
 # ── 4. 컨테이너 상태 ──────────────────────────────────────────────────────
-# cloudflared 는 healthcheck 가 없어 running 만 본다. 나머지 5개는 healthy 여야 한다.
+# 기대 서비스 목록은 **이 VM 의 compose 정의**에서 가져온다. 분리 전(5개)·분리 후(web 포함 6개)
+# 구성을 같은 스크립트로 점검하기 위해서다 — 목록을 하드코딩하면 web 컷오버 전에는 매일 오탐이다.
+# cloudflared 는 healthcheck 가 없어 running 만 본다. 나머지는 healthy 여야 한다.
+# (container_name 이 서비스명과 같아 ps 의 Name 과 그대로 대조한다.)
+SERVICES=$(sudo docker compose --env-file .env config --services 2>/dev/null | tr '\n' ' ')
 PS=$(sudo docker compose --env-file .env ps --format '{{.Name}} {{.Status}}' 2>/dev/null)
 BAD=""
-for SVC in postgres qdrant backend admin web; do
-  echo "$PS" | grep -q "^${SVC} Up.*healthy" || BAD="${BAD}${SVC} "
+HEALTHY_N=0
+for SVC in $SERVICES; do
+  if [ "$SVC" = cloudflared ]; then
+    echo "$PS" | grep -q "^cloudflared Up" || BAD="${BAD}cloudflared "
+  elif echo "$PS" | grep -q "^${SVC} Up.*healthy"; then
+    HEALTHY_N=$((HEALTHY_N + 1))
+  else
+    BAD="${BAD}${SVC} "
+  fi
 done
-echo "$PS" | grep -q "^cloudflared Up" || BAD="${BAD}cloudflared "
-if [ -n "$BAD" ]; then
+if [ -z "$SERVICES" ]; then
+  record "containers" FAIL "compose 서비스 목록을 읽지 못했다 — docker compose config 확인"
+elif [ -n "$BAD" ]; then
   record "containers" FAIL "비정상: ${BAD}"
 else
-  record "containers" OK "6개 정상 (5 healthy + cloudflared up)"
+  record "containers" OK "$(echo "$SERVICES" | wc -w | tr -d ' ')개 정상 (${HEALTHY_N} healthy + cloudflared up)"
 fi
 
 # ── 5. 디스크 여유 ────────────────────────────────────────────────────────
