@@ -1,11 +1,13 @@
 ---
-paths: ["backend/**/*"]
+paths: ["apps/api/**/*"]
 ---
 
 # Backend Rules (FastAPI + SQLModel)
 
 > audit 2차 (2026-05-15) Sub-PR E 후속 보완. SENSITIVE_PATTERNS 로드맵 + cache
 > schema propagation rule 명문화. 상세 §11.
+
+모노레포의 현재 실행·배포·폴더 구조는 [API README](../../../apps/api/README.md)를 따른다. 아래 스택 표와 §10 트리는 이전 참고 기록이다. 기존 업무 모듈은 `apps/api/app/modules`, 설정·공통 기반은 `apps/api/app/core`로 이동했으며 `src.*` import를 새 코드에 사용하지 않는다.
 
 ---
 
@@ -213,7 +215,7 @@ class OrderService:
 
 ```python
 from google import genai
-from src.config import settings
+from app.core.config import settings
 
 client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
 ```
@@ -301,9 +303,9 @@ async def process_chat_stream(self, request: ChatRequest) -> AsyncGenerator[str,
 ### 클라이언트 설정
 
 ```python
-# src/qdrant_client.py — 싱글톤 클라이언트 (src/ 루트에 위치)
+# 분리 전 싱글톤 예시. 현재 팩토리는 apps/api/app/modules/qdrant/factory.py를 따른다.
 from qdrant_client import AsyncQdrantClient
-from src.config import settings
+from app.core.config import settings
 
 _async_client: AsyncQdrantClient | None = None
 
@@ -535,7 +537,7 @@ backend/src/
 
 ### 11.1 SENSITIVE_PATTERNS 로드맵
 
-`backend/src/safety/output_filter.py:SENSITIVE_PATTERNS` 는 응답 PII 차단의 단일
+`apps/api/app/modules/safety/output_filter.py:SENSITIVE_PATTERNS` 는 응답 PII 차단의 단일
 정의. audit 2차 S-6 (2026-05-15) 시점 5종 + 도메인 인명 보류:
 
 | 영역 | 패턴 | 상태 | 정합화 단계 |
@@ -554,7 +556,7 @@ backend/src/
 
 1. **false positive 위험** — 운영 본문에서 등장 빈도 측정. 0.1% 초과면 보수적
    변형 또는 컨텍스트 조건 (이메일·주소 case 와 동일 분리).
-2. **결정 로그 갱신** — `docs/dev-log/<num>-second-audit-auto-decisions.md` 또는
+2. **결정 로그 갱신** — `docs/adr/<num>-second-audit-auto-decisions.md` 또는
    동급 audit log row 에 추가. drift (결정 로그 vs 실 구현) 방지.
 3. **회귀 테스트** — `tests/test_output_filter.py::TestFilterSensitiveNames` 에 차단
    case + false positive 보존 case 둘 다 추가.

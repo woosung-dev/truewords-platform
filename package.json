@@ -1,0 +1,30 @@
+{
+  "name": "truewords-platform",
+  "private": true,
+  "packageManager": "pnpm@8.15.9",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "turbo run dev --filter=@truewords/web --filter=@truewords/admin",
+    "dev:web": "pnpm --filter @truewords/web dev",
+    "dev:admin": "pnpm --filter @truewords/admin dev",
+    "dev:api": "pnpm --filter @truewords/api dev",
+    "build": "turbo run build --filter=@truewords/web --filter=@truewords/admin",
+    "test": "turbo run test --filter=!@truewords/api --filter=!@truewords/e2e",
+    "typecheck": "turbo run typecheck --filter=!@truewords/api",
+    "lint": "turbo run lint --filter=!@truewords/api",
+    "test:e2e": "pnpm --filter @truewords/e2e test",
+    "contracts:export": "pnpm --filter @truewords/api contracts:export",
+    "contracts:generate": "pnpm contracts:export && pnpm sdk:generate",
+    "sdk:generate": "openapi-ts -f tooling/codegen/openapi-ts.config.mjs",
+    "contracts:check": "node tooling/checks/contracts.mjs",
+    "docs:check": "node tooling/checks/docs-links.mjs",
+    "boundaries:check": "node tooling/checks/boundaries.mjs",
+    "tooling:test": "node --test tooling/checks/*.test.mjs"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
+    "turbo": "2.10.12",
+    "typescript": "5.9.3",
+    "vitest": "4.1.2"
+  }
+}

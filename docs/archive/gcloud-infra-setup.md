@@ -1,7 +1,7 @@
 # GCP 인프라 셋업 가이드 (gcloud CLI)
 
 > ⚠️ **폐기 (2026-07-29)** — GCP → Oracle Cloud 이전으로 더 이상 유효하지 않다. 이력 보존용 아카이브.
-> 현재 인프라는 [oracle-vm-migration](../07_infra/oracle-vm-migration.md) 과 `infra/oracle-vm/README.md` 를 참조한다.
+> 현재 인프라는 [oracle-vm-migration](../runbooks/oracle-vm-migration.md) 과 `infra/oracle-vm/README.md` 를 참조한다.
 
 > TrueWords 프로젝트를 예시로 한 GCP 인프라 구성 가이드.
 > Cloud SQL, Secret Manager, Qdrant Cloud 연동까지의 전체 흐름을 다룬다.

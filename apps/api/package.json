@@ -1,0 +1,11 @@
+{
+  "name": "@truewords/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "uv run uvicorn app.main:app --reload --port 8000",
+    "test": "GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run --frozen --all-groups pytest -q",
+    "contracts:export": "uv run --frozen python scripts/export_openapi.py",
+    "contracts:check": "uv run --frozen python scripts/export_openapi.py --check"
+  }
+}

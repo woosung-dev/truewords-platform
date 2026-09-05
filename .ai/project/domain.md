@@ -1,5 +1,5 @@
 ---
-paths: ["backend/**/*", "admin/**/*"]
+paths: ["apps/api/**/*", "apps/web/**/*", "apps/admin/**/*"]
 ---
 
 # 도메인 규칙 (종교 텍스트 AI 챗봇)
@@ -29,7 +29,7 @@ CORE_TERMS = """
 
 `project_terminology_blocked.md` 메모리 정책: dictionary_collection 데이터 미확보
 → 동적 주입 구현 보류 (2026-04-04 결정). 현 운영 흐름은 단일 컬렉션 + source
-필터로 카테고리 구분 (`.claude/rules/rag-pipeline.md` §2). 다음 두 트리거 충족 시
+필터로 카테고리 구분 (`.ai/project/rag-pipeline.md` §2). 다음 두 트리거 충족 시
 규칙 재발효:
 
 1. dictionary_collection 데이터 큐레이션 완료 (외부 자료)

@@ -1,0 +1,119 @@
+"""PersistStage — DB 기록 (답변 메시지 + 검색 이벤트 + 인용 + 캐시 저장 + commit)."""
+
+from __future__ import annotations
+
+from app.modules.cache.service import SemanticCacheService
+from app.modules.chat.history import estimate_tokens
+from app.modules.chat.models import (
+    AnswerCitation,
+    MessageRole,
+    SearchEvent,
+    SessionMessage,
+)
+from app.modules.chat.pipeline.context import ChatContext
+from app.modules.chat.pipeline.state import PipelineState, check_precondition
+from app.modules.chat.repository import ChatRepository
+
+
+class PersistStage:
+    def __init__(
+        self,
+        chat_repo: ChatRepository,
+        cache_service: SemanticCacheService | None = None,
+    ) -> None:
+        self.chat_repo = chat_repo
+        self.cache_service = cache_service
+
+    async def execute(self, ctx: ChatContext) -> ChatContext:
+        check_precondition(self.__class__.__name__, ctx)
+        session = ctx.session
+        if not session or not ctx.answer:
+            return ctx
+
+        # 답변 메시지 저장 (N7: 신규 파이프라인 = v2 + M1 측정 컬럼 4종)
+        ctx.assistant_message = await self.chat_repo.create_message(
+            SessionMessage(
+                session_id=session.id,
+                role=MessageRole.ASSISTANT,
+                content=ctx.answer,
+                token_count=estimate_tokens(ctx.answer),
+                pipeline_version=2,
+                # M1 — 측정 인프라 (Cross-review #2 W4-blocking).
+                requested_answer_mode=getattr(ctx.request, "answer_mode", None),
+                resolved_answer_mode=ctx.resolved_answer_mode,
+                persona_overridden=ctx.persona_overridden,
+                crisis_trigger=ctx.crisis_trigger,
+            )
+        )
+
+        # 검색 이벤트 기록
+        event = SearchEvent(
+            message_id=ctx.assistant_message.id,
+            query_text=ctx.request.query,
+            rewritten_query=ctx.rewritten_query,
+            applied_filters={
+                "chatbot_id": ctx.request.chatbot_id,
+                "reranked": ctx.reranked,
+                "rerank_latency_ms": ctx.rerank_latency_ms,
+                "fallback_type": ctx.fallback_type,
+            },
+            total_results=len(ctx.results),
+            latency_ms=ctx.search_latency_ms + ctx.rerank_latency_ms,
+        )
+        await self.chat_repo.create_search_event(event)
+
+        # 인용 기록 (상위 5건)
+        citations = [
+            AnswerCitation(
+                message_id=ctx.assistant_message.id,
+                source=r.source,
+                volume=int(r.volume) if r.volume.isdigit() else 0,
+                volume_raw=r.volume,
+                text_snippet=r.text[:500],
+                relevance_score=r.score,
+                rank_position=i,
+            )
+            for i, r in enumerate(ctx.results[:5])
+        ]
+        if citations:
+            await self.chat_repo.create_citations(citations)
+
+        # 캐시 저장 (빈 응답은 저장 X). 멀티턴 후속 턴(ctx.history 존재)의 답변은
+        # 대화 문맥에 의존하므로 원 질문 임베딩 키 캐시에 저장하면 다른 사용자
+        # 세션을 오염시킨다 — 저장도 스킵 (CacheCheckStage 조회 스킵과 쌍).
+        if (
+            self.cache_service
+            and not ctx.history
+            and ctx.results
+            and ctx.answer
+            and "찾지 못했습니다" not in ctx.answer
+        ):
+            sources_for_cache = [
+                {
+                    "volume": r.volume,
+                    "text": r.text,
+                    "score": r.score,
+                    "source": r.source,
+                    "chunk_id": r.chunk_id,  # P0-B 원문보기 cache hit 시에도 fetch 가능
+                }
+                for r in ctx.results[:3]
+            ]
+            collection_name = ctx.resolved_collections.cache if ctx.resolved_collections else None
+            await self.cache_service.store_cache(
+                query=ctx.request.query,
+                # 원본 임베딩 사용 — query_rewrite 가 ctx.query_embedding 을 덮어써도
+                # cache 검색은 항상 원본 기준이어야 hit 가 보장된다 (semantic cache 일관성).
+                query_embedding=ctx.original_query_embedding or ctx.query_embedding or [],
+                answer=ctx.answer,
+                sources=sources_for_cache,
+                chatbot_id=ctx.request.chatbot_id,
+                corpus_updated_at=ctx.corpus_updated_at or None,
+                collection_name=collection_name,
+                # #11: persona 별 격리. AnswerMode 는 Literal[str].
+                answer_mode=ctx.request.answer_mode,
+            )
+
+        # 단일 commit
+        await self.chat_repo.commit()
+        ctx.pipeline_state = PipelineState.PERSISTED
+        return ctx

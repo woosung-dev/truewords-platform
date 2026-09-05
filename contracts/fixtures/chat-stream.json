@@ -1,0 +1,36 @@
+{
+  "normal": [
+    { "event": "chunk", "data": { "text": "참사랑은 " } },
+    { "event": "chunk", "data": { "text": "함께 실천하는 사랑입니다.\n" } },
+    {
+      "event": "sources",
+      "data": {
+        "sources": [{ "volume": "말씀선집 001권", "text": "출처 예시", "score": 0.9, "source": "A", "chunk_id": "fixture-chunk", "display_name": null }],
+        "session_id": "00000000-0000-4000-8000-000000000001",
+        "message_id": "00000000-0000-4000-8000-000000000002",
+        "closing": null,
+        "suggested_followups": ["어떻게 실천할 수 있나요?"],
+        "featured_malssum": null
+      }
+    },
+    { "event": "done", "data": { "disclaimer": "테스트용 면책 안내" } }
+  ],
+  "meta": [
+    { "event": "chunk", "data": { "text": "질문 범위를 확인해 주세요." } },
+    {
+      "event": "sources",
+      "data": {
+        "sources": [],
+        "session_id": "00000000-0000-4000-8000-000000000003",
+        "message_id": "00000000-0000-4000-8000-000000000004",
+        "closing": null,
+        "suggested_followups": null,
+        "featured_malssum": null
+      }
+    },
+    { "event": "done", "data": { "disclaimer": "테스트용 면책 안내" } }
+  ],
+  "interrupted": [
+    { "event": "chunk", "data": { "text": "아직 완료되지 않은 답변" } }
+  ]
+}

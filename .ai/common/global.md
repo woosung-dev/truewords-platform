@@ -17,16 +17,16 @@
 
 | 번호 | 성격 | 위치 | 시점 |
 |:----:|------|------|------|
-| 00 | 프로젝트 개요 | `docs/00_project/` | 프로젝트 시작 시 |
-| 01 | 기능 명세 (WHAT) | `docs/01_requirements/` | Phase 시작 시 |
-| 02 | 도메인 모델 | `docs/02_domain/` | 설계 시 |
-| 03 | API 명세 | `docs/03_api/` | 구현 전 |
-| 04 | 아키텍처 설계 (HOW) | `docs/04_architecture/` | Phase 시작 또는 종료 시 |
-| 05 | 환경 설정 | `docs/05_env/` | 프로젝트 시작 시 |
-| 06 | DevOps / CI/CD | `docs/06_devops/` | 파이프라인 구성 시 |
-| 07 | 인프라 | `docs/07_infra/` | 배포 설계 시 |
-| — | 의사결정 기록 (WHY) | `docs/dev-log/` | 결정 후 |
-| — | 가이드 | `docs/guides/` | 필요 시 |
+| 00 | 프로젝트 개요 | `docs/prd/` | 프로젝트 시작 시 |
+| 01 | 기능 명세 (WHAT) | `docs/specs/` | Phase 시작 시 |
+| 02 | 도메인 모델 | `docs/specs/domain/` | 설계 시 |
+| 03 | API 명세 | `docs/specs/api/` | 구현 전 |
+| 04 | 아키텍처 설계 (HOW) | `docs/architecture/` | Phase 시작 또는 종료 시 |
+| 05 | 환경 설정 | `docs/runbooks/` | 프로젝트 시작 시 |
+| 06 | DevOps / CI/CD | `docs/runbooks/` | 파이프라인 구성 시 |
+| 07 | 인프라 | `docs/runbooks/` | 배포 설계 시 |
+| — | 의사결정 기록 (WHY) | `docs/adr/` | 결정 후 |
+| — | 가이드 | `docs/runbooks/` | 필요 시 |
 
 > **"문서가 없으면 기능도 없다."**
 
@@ -90,13 +90,13 @@ test: 테스트 추가/수정
 
 ## 4. 환경 변수 관리
 
-- 모든 환경 변수는 `.env.local` (로컬) 또는 배포 플랫폼 대시보드에서 관리한다.
+- 웹 환경 변수는 앱별 `.env.local`, API는 `apps/api/.env`, 운영은 VM의 보호된 `.env`에서 관리한다.
 - 코드에 하드코딩 절대 금지
 - 민감 값은 반드시 `SecretStr` 타입으로 선언 (backend rules 참조)
 - `.env.example` 파일을 항상 최신 상태로 유지한다
 
 ```bash
-# 환경 변수 목록 (실제 사용 기준)
+# 이전 환경 변수 예시. 현재 기본값은 apps/api/app/core/config.py와 앱별 .env.example을 따른다.
 
 # 환경 구분
 ENVIRONMENT=development          # development | staging | production
@@ -118,8 +118,9 @@ ADMIN_JWT_SECRET=                # SecretStr (프로덕션 필수 변경)
 ADMIN_JWT_ALGORITHM=HS256
 ADMIN_JWT_EXPIRE_MINUTES=1440    # 24시간
 
-# Admin Frontend (CORS)
-ADMIN_FRONTEND_URL=http://localhost:3000
+# Web / Admin Frontend (CORS)
+WEB_FRONTEND_URL=http://localhost:3000
+ADMIN_FRONTEND_URL=http://localhost:3001
 COOKIE_SECURE=false              # 프로덕션 True 필수
 
 # Safety

@@ -1,14 +1,18 @@
 # Root .gitignore — Hybrid 패턴 (cross-cutting 전용)
 #
 # 각 워크스페이스는 자기 toolchain 산출물을 직접 관리:
-#   - backend/.gitignore  → Python (uv, pytest, ruff, mypy, alembic 등)
-#   - admin/.gitignore    → Next.js (create-next-app 자동 관리: .next, node_modules, .vercel 등)
+#   - apps/api/.gitignore → Python (uv, pytest, ruff, mypy, alembic 등)
+#   - apps/{web,admin}/.gitignore → Next.js
 #
 # 이 root 파일은 워크스페이스 경계를 넘는 패턴만 담는다.
 
 # ─── Editor / OS ────────────────────────────────────
 .DS_Store
 Thumbs.db
+node_modules/
+.turbo/
+*.tsbuildinfo
+**/playwright-report/
 
 # ─── Claude / AI 도구 산출물 ────────────────────────
 .ai/

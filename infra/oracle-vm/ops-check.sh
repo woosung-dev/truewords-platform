@@ -164,17 +164,17 @@ else
 fi
 
 # ── 4. 컨테이너 상태 ──────────────────────────────────────────────────────
-# cloudflared 는 healthcheck 가 없어 running 만 본다. 나머지 4개는 healthy 여야 한다.
+# cloudflared 는 healthcheck 가 없어 running 만 본다. 나머지 5개는 healthy 여야 한다.
 PS=$(sudo docker compose --env-file .env ps --format '{{.Name}} {{.Status}}' 2>/dev/null)
 BAD=""
-for SVC in postgres qdrant backend admin; do
+for SVC in postgres qdrant backend admin web; do
   echo "$PS" | grep -q "^${SVC} Up.*healthy" || BAD="${BAD}${SVC} "
 done
 echo "$PS" | grep -q "^cloudflared Up" || BAD="${BAD}cloudflared "
 if [ -n "$BAD" ]; then
   record "containers" FAIL "비정상: ${BAD}"
 else
-  record "containers" OK "5개 정상 (4 healthy + cloudflared up)"
+  record "containers" OK "6개 정상 (5 healthy + cloudflared up)"
 fi
 
 # ── 5. 디스크 여유 ────────────────────────────────────────────────────────

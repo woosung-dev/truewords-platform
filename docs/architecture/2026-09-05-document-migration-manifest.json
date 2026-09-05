@@ -1,0 +1,1503 @@
+{
+  "version": 1,
+  "baselineCommit": "73f0b7911cadd8853417ad8b2a53d67c1e172968",
+  "productBaselineCommit": "59e3a594b2d4a1a63fe9d6afb385a2e704e339c2",
+  "description": "문서별 원본·새 경로와 이전 전 SHA-256. historical 원문 코드 경로는 당시 실행 기록으로 보존한다.",
+  "missingIndexSources": [
+    {
+      "source": "docs/04_architecture/03-vector-db-comparison.md",
+      "status": "missing-before-migration",
+      "resolution": "원본이 기준 commit에 없어 새 색인의 링크에서 제외. 문서를 새로 만들지 않음."
+    },
+    {
+      "source": "docs/04_architecture/04-gemini-file-search-analysis.md",
+      "status": "missing-before-migration",
+      "resolution": "원본이 기준 commit에 없어 새 색인의 링크에서 제외. 문서를 새로 만들지 않음."
+    },
+    {
+      "source": "docs/04_architecture/10-vibe-coding-and-pinecone-vs-qdrant.md",
+      "status": "missing-before-migration",
+      "resolution": "원본이 기준 commit에 없어 새 색인의 링크에서 제외. 문서를 새로 만들지 않음."
+    }
+  ],
+  "linkRepairs": [
+    {
+      "source": "docs/prd/01-project-overview.md",
+      "previousTargets": ["../00_project/05-rag-pipeline.md", "../00_project/09-security-countermeasures.md"],
+      "resolution": "기존 경로부터 잘못 연결되어 있던 두 링크를 실제 원본이 있는 architecture 디렉터리로 수정"
+    }
+  ],
+  "mediaPolicy": "63개 비Markdown 파일을 보존한다. 47-adr46-integration-pr.html은 재분류된 상대 문서 링크만 갱신하며, 구조 다이어그램 JSON/HTML/PNG 18개는 이전 전 SHA-256과 동일하다. annotate_screenshots.py는 새 실행 경로 안내만 갱신한다.",
+  "entries": [
+    {
+      "source": "docs/00_project/01-project-overview.md",
+      "target": "docs/prd/01-project-overview.md",
+      "action": "move",
+      "reason": "제품 배경·범위",
+      "sha256": "35296b517119e373ed6cb5fad16f2c763b50a10e9d29f5be2f2c1f369b66727d"
+    },
+    {
+      "source": "docs/01_requirements/16-app-feature-spec.md",
+      "target": "docs/prd/16-app-feature-spec.md",
+      "action": "move",
+      "reason": "기존 MVP 제품 요구사항, 새 PWA PRD와 구분",
+      "sha256": "6c8a946c6a3561fd2460dcd5d0f092e3380c9a6c7988f1f04fef96cfb6abd16a"
+    },
+    {
+      "source": "docs/01_requirements/17-chatbot-system-prompt-spec.md",
+      "target": "docs/specs/17-chatbot-system-prompt-spec.md",
+      "action": "move",
+      "reason": "기능 동작·인수 조건",
+      "sha256": "b4fff9dc836b42d6f81e669645b498b6319d81a99cac77dde137b5f873d254ad"
+    },
+    {
+      "source": "docs/01_requirements/18-category-document-stats.md",
+      "target": "docs/specs/18-category-document-stats.md",
+      "action": "move",
+      "reason": "기능 동작·인수 조건",
+      "sha256": "c4039e71e18c6131c8e63be8b84fe615dbfaebb1ed9dad3faf38336f877e745b"
+    },
+    {
+      "source": "docs/01_requirements/19-category-tag-management-ui.md",
+      "target": "docs/specs/19-category-tag-management-ui.md",
+      "action": "move",
+      "reason": "기능 동작·인수 조건",
+      "sha256": "2c512c136444dba8278f474a48cceb1d69cc7dcfdecf132dfc714d33968a898a"
+    },
+    {
+      "source": "docs/02_domain/06-terminology-dictionary-structure.md",
+      "target": "docs/specs/domain/06-terminology-dictionary-structure.md",
+      "action": "move",
+      "reason": "도메인 데이터 정의",
+      "sha256": "2e4f26d9260b30d44541b245ce6d3954ed6b014a582fb42e410175a9be3d5b7c"
+    },
+    {
+      "source": "docs/03_api/check_duplicate.md",
+      "target": "docs/specs/api/check_duplicate.md",
+      "action": "move",
+      "reason": "API 동작 명세",
+      "sha256": "bd2788882b4ec0ce70161b73186ac83a8144b95b202478396a55d6f679a0d9f3"
+    },
+    {
+      "source": "docs/04_architecture/02-architecture-design.md",
+      "target": "docs/architecture/02-architecture-design.md",
+      "action": "move",
+      "reason": "시스템 설계·시점 고정 청사진",
+      "sha256": "9b2b3c1b43806f149dd966e97ff1bea4cc88ccd3dfc83f0d23f0efe19bc8c6aa"
+    },
+    {
+      "source": "docs/04_architecture/05-rag-pipeline.md",
+      "target": "docs/architecture/05-rag-pipeline.md",
+      "action": "move",
+      "reason": "시스템 설계·시점 고정 청사진",
+      "sha256": "0ed548a77e57d6f7bd6376698622ec179f77775f505aab3b829d3121fdc5a09c"
+    },
+    {
+      "source": "docs/04_architecture/07-multi-chatbot-version.md",
+      "target": "docs/architecture/07-multi-chatbot-version.md",
+      "action": "move",
+      "reason": "시스템 설계·시점 고정 청사진",
+      "sha256": "7d5cc7de33fc40043445e1755d37afbe78bc9f406093b6d292a0644129105513"
+    },
+    {
+      "source": "docs/04_architecture/08-semantic-cache.md",
+      "target": "docs/architecture/08-semantic-cache.md",
+      "action": "move",
+      "reason": "시스템 설계·시점 고정 청사진",
+      "sha256": "6bc0b96e0431095a3a7fcb29b4104b5185d21516d74e184a8df91ccd4a0429be"
+    },
+    {
+      "source": "docs/04_architecture/09-security-countermeasures.md",
+      "target": "docs/architecture/09-security-countermeasures.md",
+      "action": "move",
+      "reason": "시스템 설계·시점 고정 청사진",
+      "sha256": "41b8a86d599b0b4319b0ea3165faa7976084e69547e9c4bd2da7163e022c6175"
+    },
+    {
+      "source": "docs/04_architecture/11-data-routing-strategies.md",
+      "target": "docs/architecture/11-data-routing-strategies.md",
+      "action": "move",
+      "reason": "시스템 설계·시점 고정 청사진",
+      "sha256": "c4a5a541720c1e0f5aa2524a238f8bb541bfb526d2b32fc0c89d523e627ca4d7"
+    },
+    {
+      "source": "docs/04_architecture/2026-09-05-pwa-flutter-monorepo.md",
+      "target": "docs/architecture/2026-09-05-pwa-flutter-monorepo.md",
+      "action": "move",
+      "reason": "시스템 설계·시점 고정 청사진",
+      "sha256": "e360cd90dbbf9f6ae42fbf54a47d6cc38c1523716f2273076cf4d9fd812c99b7"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/README.md",
+      "target": "docs/architecture/diagrams/README.md",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "4fcfcbbe9254dc85d54bbf7ad4022cae7d6fae3bb4840e0ffee0a22c6d142088"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/chat-request.html",
+      "target": "docs/architecture/diagrams/chat-request.html",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "852c951688db740186d65a45cea8772cbf2d920847ba880d19d57e3ee8ba58d5"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/chat-request.png",
+      "target": "docs/architecture/diagrams/chat-request.png",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "c0b5c09870de8d6263e02346994b75fc6601b12af8368d96ae19d4707a0b8b15"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/chat-request.sequence.json",
+      "target": "docs/architecture/diagrams/chat-request.sequence.json",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "24b722de690edbdcdc0bf7b9058c4f58715d5743a8c4baeffb701911565200c0"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/database-schema.architecture.json",
+      "target": "docs/architecture/diagrams/database-schema.architecture.json",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "757c568774d93d0a94549751fa2cfac75bec9db5593b12c768ce9808416ad66e"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/database-schema.html",
+      "target": "docs/architecture/diagrams/database-schema.html",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "82b89dee830e30aa27f716d710ca8b747ace93fc17296b97c9479054ae703c1c"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/database-schema.png",
+      "target": "docs/architecture/diagrams/database-schema.png",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "ea953b9b3df68acd2a1a6464e75667a7d6fad014024b19ebbe109e7ae2be34a4"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/ingestion-job.html",
+      "target": "docs/architecture/diagrams/ingestion-job.html",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "89e057501594c1523442b536f70ee510a3bcf98e36fb86a10e6cfa687199c094"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/ingestion-job.lifecycle.json",
+      "target": "docs/architecture/diagrams/ingestion-job.lifecycle.json",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "fe2c01e0999cba4b138eb5f147bae3a73ff32ac14b8bdaeb488930e83159e4db"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/ingestion-job.png",
+      "target": "docs/architecture/diagrams/ingestion-job.png",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "3877899f01e0248eac7797a5417238f0a4f7e4ff606db49801e3422c072e9069"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/ingestion.dataflow.json",
+      "target": "docs/architecture/diagrams/ingestion.dataflow.json",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "b927fefc416a977c98ad3bfb28269e4d65356ccdf52af15037acc2e0edd187a9"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/ingestion.html",
+      "target": "docs/architecture/diagrams/ingestion.html",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "a495200df04886549171a465aa984b9b44919ab84e29867007bbeaa3e705a280"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/ingestion.png",
+      "target": "docs/architecture/diagrams/ingestion.png",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "6bf467ce9d6312c6a778773d92a852a8e956d805d774ba14507c061b4f794356"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/repo-structure.architecture.json",
+      "target": "docs/architecture/diagrams/repo-structure.architecture.json",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "36b5e7ce81e104fa05f70cbc54bf2c94b30b07d0472d0a5948fd6332ba0c0616"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/repo-structure.html",
+      "target": "docs/architecture/diagrams/repo-structure.html",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "cd98b298ef257b34c03578e42beee4182896278660807a896d99cab05345f17f"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/repo-structure.png",
+      "target": "docs/architecture/diagrams/repo-structure.png",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "deb4045c31ad4be6f8a4efe266116991444d6231a2d2092761b82fc3a05027e4"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/system-architecture.architecture.json",
+      "target": "docs/architecture/diagrams/system-architecture.architecture.json",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "0ca8e74bbbfa322de5114da836fc1ed1ae97dd21352a5871ae12a46f1f22126b"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/system-architecture.html",
+      "target": "docs/architecture/diagrams/system-architecture.html",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "226964837232f3e7e0f4c0ae4838359914c71db4f2c026271e7424de5b0afc74"
+    },
+    {
+      "source": "docs/04_architecture/diagrams/system-architecture.png",
+      "target": "docs/architecture/diagrams/system-architecture.png",
+      "action": "move",
+      "reason": "2026-09-04 분리 이전 구조 스냅샷·원본·매체 묶음 보존",
+      "sha256": "342fbf37536f73ad4a9e4cf2c1e402ff34c2aa23280bafa647fdef42085f1c2f"
+    },
+    {
+      "source": "docs/04_architecture/multi-turn-memory.md",
+      "target": "docs/architecture/multi-turn-memory.md",
+      "action": "move",
+      "reason": "시스템 설계·시점 고정 청사진",
+      "sha256": "f614e7dd80f833f974c4521144f657872c033292a4265bc2c19678893624978b"
+    },
+    {
+      "source": "docs/04_architecture/redteam-test-plan.md",
+      "target": "docs/architecture/redteam-test-plan.md",
+      "action": "move",
+      "reason": "시스템 설계·시점 고정 청사진",
+      "sha256": "ca6550d00e1016e31475ce53e65941b3a175bbe6f31dfe730168fd30e66faac2"
+    },
+    {
+      "source": "docs/04_architecture/target-architecture-blueprint-2026-05-01.html",
+      "target": "docs/architecture/target-architecture-blueprint-2026-05-01.html",
+      "action": "move",
+      "reason": "시스템 설계·시점 고정 청사진",
+      "sha256": "e934fc6bedc96ba5f88b854f51bc784cb26f1aa5cd77854cbb954bdae64bd4e1"
+    },
+    {
+      "source": "docs/05_env/environment-setup.md",
+      "target": "docs/runbooks/environment-setup.md",
+      "action": "move",
+      "reason": "현재 실행 환경·CI 운영 절차",
+      "sha256": "73c3422446bc14be13e6852f7d3e9b924a68f7012262b350f422836c7ce44c1e"
+    },
+    {
+      "source": "docs/06_devops/ci-cd-pipeline.md",
+      "target": "docs/runbooks/ci-cd-pipeline.md",
+      "action": "move",
+      "reason": "현재 실행 환경·CI 운영 절차",
+      "sha256": "8cc8aec27edd65ca3baf395284fcfdec000a6d75918bfe03bf82cb45972ac31a"
+    },
+    {
+      "source": "docs/07_infra/oracle-vm-migration.md",
+      "target": "docs/runbooks/oracle-vm-migration.md",
+      "action": "move",
+      "reason": "Oracle 이전 이력·복구 절차",
+      "sha256": "124eaa4e44c225231b374cc3470893f968df4c308af8612d412ec8b030794ab2"
+    },
+    {
+      "source": "docs/README.md",
+      "target": "docs/README.md",
+      "action": "preserve",
+      "reason": "현재 분류 유지",
+      "sha256": "5f292128f758e35cab25d5f022102005ee42073f23c6f4a225abc14d4adea4c2"
+    },
+    {
+      "source": "docs/TODO.md",
+      "target": "docs/TODO.md",
+      "action": "preserve",
+      "reason": "현재 분류 유지",
+      "sha256": "4bc8b46d5d8f85e2d3f32cc8f7602a48e8c3604028a67dc89dad4e7ed013ca29"
+    },
+    {
+      "source": "docs/archive/gcloud-infra-setup.md",
+      "target": "docs/archive/gcloud-infra-setup.md",
+      "action": "preserve",
+      "reason": "현재 분류 유지",
+      "sha256": "b58d77d7f2262b28664d0c03fe5844aff0f0c1684b265993aa2098afd3517a2d"
+    },
+    {
+      "source": "docs/archive/gcp-vercel-infrastructure.md",
+      "target": "docs/archive/gcp-vercel-infrastructure.md",
+      "action": "preserve",
+      "reason": "현재 분류 유지",
+      "sha256": "62995e41649d7958c515dfffeeca6f455c1b8ac827908209b18095e2919949d3"
+    },
+    {
+      "source": "docs/archive/qdrant-self-hosting.md",
+      "target": "docs/archive/qdrant-self-hosting.md",
+      "action": "preserve",
+      "reason": "현재 분류 유지",
+      "sha256": "b11a05970e6c217379836c3e005b882fdb20ba72605281135bf1d8075c4da590"
+    },
+    {
+      "source": "docs/archive/staging-separation.md",
+      "target": "docs/archive/staging-separation.md",
+      "action": "preserve",
+      "reason": "현재 분류 유지",
+      "sha256": "32c907216506cfd321bad67a8ca80d024fe8f82c9b26865fabf7831982364000"
+    },
+    {
+      "source": "docs/dev-log/12-market-analysis.md",
+      "target": "docs/research/12-market-analysis.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "609818b4a3969f407a1bc64bc0218b9200791582792418880814e7af268aaea1"
+    },
+    {
+      "source": "docs/dev-log/13-competitor-deep-dive.md",
+      "target": "docs/research/13-competitor-deep-dive.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "ceb584b44d63254e2349655dd3573d3b5af7fa9fdb7caadca846b5b5e7ca58bb"
+    },
+    {
+      "source": "docs/dev-log/14-success-factors-strategy.md",
+      "target": "docs/research/14-success-factors-strategy.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "13db6c469632d38e3b6043f6a31ab73f37a02376f0f7267988c0b7bf336bfd3f"
+    },
+    {
+      "source": "docs/dev-log/15-local-llm-benchmark.md",
+      "target": "docs/research/15-local-llm-benchmark.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "dc2913fe8bd0586894e89528130829569aecebf3cb84178c4fa5266387e269dc"
+    },
+    {
+      "source": "docs/dev-log/17-design-strategy.md",
+      "target": "docs/research/17-design-strategy.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "7830485ba6740f28b813fdfa2b1b1c091d8cb745e0cac40daa46dd6c1d92d202"
+    },
+    {
+      "source": "docs/dev-log/18-ai-rules-update-plan.md",
+      "target": "docs/archive/plans/18-ai-rules-update-plan.md",
+      "action": "move",
+      "reason": "과거 계획, 현재 완료나 승인 상태로 승격하지 않음",
+      "sha256": "7112550d3c7c3eafdee920f6b57764e6c87cda06dc935f1559b056608508fd4d"
+    },
+    {
+      "source": "docs/dev-log/19-rag-chunking-embedding-research.md",
+      "target": "docs/research/19-rag-chunking-embedding-research.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "123bbb0c1a77ad1b1e3983ef32101e3d9488c5b07d294906ded392e9f6efe2ad"
+    },
+    {
+      "source": "docs/dev-log/20-background-worker-strategy.md",
+      "target": "docs/architecture/20-background-worker-strategy.md",
+      "action": "move",
+      "reason": "필요 시 도입하는 설계 후보, 구현 완료 의미 없음",
+      "sha256": "216e87e704459f0bffe1ff0af5e425862adc2ac52d9ced40ca2dfa4e25b9dd3e"
+    },
+    {
+      "source": "docs/dev-log/2026-04-28-phase-1-eval-report.md",
+      "target": "docs/research/2026-04-28-phase-1-eval-report.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "fa5e8aa9ea46deaefe161ba51f750984a007fdfc091a5c62643720fd9e476d7e"
+    },
+    {
+      "source": "docs/dev-log/2026-04-28-phase-2-plan.md",
+      "target": "docs/archive/plans/2026-04-28-phase-2-plan.md",
+      "action": "move",
+      "reason": "과거 계획, 현재 완료나 승인 상태로 승격하지 않음",
+      "sha256": "70b7d3cc534fa445c35447535634884c2ebeda42565f0fad2a10d8955f364531"
+    },
+    {
+      "source": "docs/dev-log/2026-04-28-prefix-dryrun.md",
+      "target": "docs/research/2026-04-28-prefix-dryrun.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "9040e4a7bfbb5ba1f1219e7f58e038d46c5da337958510ae5318b0180c3256b8"
+    },
+    {
+      "source": "docs/dev-log/2026-04-28-source-ablation.md",
+      "target": "docs/research/2026-04-28-source-ablation.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "99a444e815bdf78fe54f11f334000cb9bc5b37e6bb17f4e6ff0b0998d86d44e3"
+    },
+    {
+      "source": "docs/dev-log/2026-04-29-chunking-poc.md",
+      "target": "docs/research/2026-04-29-chunking-poc.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "c9f778674dff2383bd94402fbba1a8c7f281e37f8dc249d088ba466383bfcbc6"
+    },
+    {
+      "source": "docs/dev-log/2026-04-30-paragraph-prod-ab.md",
+      "target": "docs/research/2026-04-30-paragraph-prod-ab.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "de74494426bafaf8df902dd7032c0f0b5894b91157db294f2fd10fb5d4bfd012"
+    },
+    {
+      "source": "docs/dev-log/2026-05-01-cascade-distribution-measurement.md",
+      "target": "docs/adr/2026-05-01-cascade-distribution-measurement.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "84e0f68c7df339e830878bd01492c91438e227624d375e73374ed32e9f078576"
+    },
+    {
+      "source": "docs/dev-log/2026-05-01-cascade-threshold-paths.md",
+      "target": "docs/adr/2026-05-01-cascade-threshold-paths.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "89b2716404e2e8067bffbfd72e238f05df42546cf5200a5f733d7d1b14ef2d6e"
+    },
+    {
+      "source": "docs/dev-log/2026-05-01-reranker-ab-results-round2.json",
+      "target": "docs/research/2026-05-01-reranker-ab-results-round2.json",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "e0d179a904527c9050dc682a7e55da0d93ef9dc6ccf61a2cd41c72ae535a96d6"
+    },
+    {
+      "source": "docs/dev-log/2026-05-01-reranker-ab-results-round2.md",
+      "target": "docs/research/2026-05-01-reranker-ab-results-round2.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "de3a4b53c5554ad57f4c4c701f42bed38001599a745ffb3ca86535f8dd6948e4"
+    },
+    {
+      "source": "docs/dev-log/2026-05-01-reranker-ab-results.json",
+      "target": "docs/research/2026-05-01-reranker-ab-results.json",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "d73447d6c6277126ced94829d67857b6dde265d90abb4329c4a281a347ed10ba"
+    },
+    {
+      "source": "docs/dev-log/2026-05-01-reranker-ab-results.md",
+      "target": "docs/research/2026-05-01-reranker-ab-results.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "99605cc6e169be6cd22ef5ce8d7cf4afbaf87036907fdf9a140330dfba079559"
+    },
+    {
+      "source": "docs/dev-log/2026-05-01-reranker-cross-encoder-ab-decision.md",
+      "target": "docs/adr/2026-05-01-reranker-cross-encoder-ab-decision.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "5bd31ef9acd272d8cd98471161093c0c9d92dd73ddce0572dd268bbd207c7951"
+    },
+    {
+      "source": "docs/dev-log/2026-05-01-target-architecture-gap.md",
+      "target": "docs/adr/2026-05-01-target-architecture-gap.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "120128e18977ccbc60a0c51a0a936800b224e0b6a402ae4fd520e7520dbaee94"
+    },
+    {
+      "source": "docs/dev-log/2026-05-09-qdrant-ulimit-rca.md",
+      "target": "docs/archive/engineering/2026-05-09-qdrant-ulimit-rca.md",
+      "action": "move",
+      "reason": "시점 고정 조사·작업 결과·사고 기록",
+      "sha256": "5397c4d2815b2e23775cb1022ea164386108511feb69d1e632ed1f32b793c057"
+    },
+    {
+      "source": "docs/dev-log/2026-05-12-display-name-backfill.md",
+      "target": "docs/adr/2026-05-12-display-name-backfill.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "ff4e606d9f76b22dc989dff126aa3a9733673a138891a9b7ef771d6ae6396caa"
+    },
+    {
+      "source": "docs/dev-log/2026-05-15-claude-md-alignment-cleanup.md",
+      "target": "docs/adr/2026-05-15-claude-md-alignment-cleanup.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "7f73dc276bd7f7e945a0b94fd0ca12d6cee8581187cb00292150c4b6cf3c17b5"
+    },
+    {
+      "source": "docs/dev-log/2026-07-25-gcp-to-oracle-migration.md",
+      "target": "docs/adr/2026-07-25-gcp-to-oracle-migration.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "0e86ee45bdd909ef87a3b81df571645b4bbb2724d6f03a4427f96a9e4c9db386"
+    },
+    {
+      "source": "docs/dev-log/2026-07-26-beta-final-survey-ab.md",
+      "target": "docs/archive/beta-2026/2026-07-26-beta-final-survey-ab.md",
+      "action": "move",
+      "reason": "종료된 체험단 설문·보고서 묶음 보존",
+      "sha256": "0f47de6be8a5cccad3ee367e1deddc1d61bdc465e69a083da72330a68944fd8e"
+    },
+    {
+      "source": "docs/dev-log/2026-07-26-beta-program-final-survey.md",
+      "target": "docs/archive/beta-2026/2026-07-26-beta-program-final-survey.md",
+      "action": "move",
+      "reason": "종료된 체험단 설문·보고서 묶음 보존",
+      "sha256": "907cce5e90a8e0bfdc45856de76a4b17efe64f04dc823efecd657df27efc6d67"
+    },
+    {
+      "source": "docs/dev-log/2026-07-26-beta-report-integrated.html",
+      "target": "docs/archive/beta-2026/2026-07-26-beta-report-integrated.html",
+      "action": "move",
+      "reason": "종료된 체험단 설문·보고서 묶음 보존",
+      "sha256": "8259488fd268d53f433ababde64d5992db3119b55620d439fdbcd21f1ef26725"
+    },
+    {
+      "source": "docs/dev-log/2026-07-26-beta-report-survey.html",
+      "target": "docs/archive/beta-2026/2026-07-26-beta-report-survey.html",
+      "action": "move",
+      "reason": "종료된 체험단 설문·보고서 묶음 보존",
+      "sha256": "a0de4c0c008561011ec56ee324b4ceace9d3597b8c37e3b6d50586cfbfd65859"
+    },
+    {
+      "source": "docs/dev-log/2026-07-26-beta-report-usage.html",
+      "target": "docs/archive/beta-2026/2026-07-26-beta-report-usage.html",
+      "action": "move",
+      "reason": "종료된 체험단 설문·보고서 묶음 보존",
+      "sha256": "b43cb5700b86227f15d5bdde64fa33880383c7498fc50a1e9c798192c3398c7f"
+    },
+    {
+      "source": "docs/dev-log/2026-07-29-postgres-vm-relocation-and-backup.md",
+      "target": "docs/adr/2026-07-29-postgres-vm-relocation-and-backup.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "34fbf05106b466b3aac7887096a1469e4c430b95ef54d10774e6097ad0c77ecd"
+    },
+    {
+      "source": "docs/dev-log/2026-07-30-gcp-neon-residual-audit.md",
+      "target": "docs/archive/engineering/2026-07-30-gcp-neon-residual-audit.md",
+      "action": "move",
+      "reason": "시점 고정 조사·작업 결과·사고 기록",
+      "sha256": "dc2a522a9c69766166cef766f8614294138505b33f677d19cd3cde452689496c"
+    },
+    {
+      "source": "docs/dev-log/2026-07-30-rpo-measurement.md",
+      "target": "docs/adr/2026-07-30-rpo-measurement.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "da4ea9df330d09dcc61ef84f8f82c27d663952239dd7f06e32f61bf2981759ff"
+    },
+    {
+      "source": "docs/dev-log/2026-07-30-silent-scheduled-job-failure.md",
+      "target": "docs/adr/2026-07-30-silent-scheduled-job-failure.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "4cf2b2d46613c61da957ef69f01fdf350500f7cccb9bbb6125627ea5d9464982"
+    },
+    {
+      "source": "docs/dev-log/21-recovery-doctor-analysis.md",
+      "target": "docs/research/21-recovery-doctor-analysis.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "4882ab15f84f847721e17e9054ec1bff61a61a7b40427042a17670fb1749ff18"
+    },
+    {
+      "source": "docs/dev-log/22-nexus-core-analysis.md",
+      "target": "docs/research/22-nexus-core-analysis.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "d37ec2c7164495725d3dd79fa346cd1953e62cace8399944c600c933ffe4ea90"
+    },
+    {
+      "source": "docs/dev-log/23-development-process-analysis.md",
+      "target": "docs/adr/23-development-process-analysis.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "2b6d242559bf34b099aa1cf7a35f648b97e15e92a3fbffde20593530e261363f"
+    },
+    {
+      "source": "docs/dev-log/24-rrf-score-threshold-fix.md",
+      "target": "docs/adr/24-rrf-score-threshold-fix.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "b447ffa9f55001a750700d8bb4c98f2722fea63451c83850fa832a1f57c262eb"
+    },
+    {
+      "source": "docs/dev-log/25-parallel-execution-patterns.md",
+      "target": "docs/adr/25-parallel-execution-patterns.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "8c41761fb45607595a82597890a98a249f97bdbbe8c31016b7db762a0f079053"
+    },
+    {
+      "source": "docs/dev-log/25-sdk-survey-genai-qdrant.md",
+      "target": "docs/research/25-sdk-survey-genai-qdrant.md",
+      "action": "move",
+      "reason": "조사·실측·분석 자료, 결정 ADR와 분리",
+      "sha256": "b339d81d2e99a4c87482a67fe2e0788c0bae612d5c9ec855497a6ef9283993fa"
+    },
+    {
+      "source": "docs/dev-log/26-alembic-advisory-lock-poc.md",
+      "target": "docs/adr/26-alembic-advisory-lock-poc.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "c031b62af62d1e29c4f034da6240ccf10d1c95e680ac340ec9b3bbf0ed19b3f3"
+    },
+    {
+      "source": "docs/dev-log/26-source-label-decision.md",
+      "target": "docs/adr/26-source-label-decision.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "2df181850eb82af42938ad84aaade2cf618ee8d29ffe96efff7806f6f455bf5b"
+    },
+    {
+      "source": "docs/dev-log/27-alembic-expected-head-artifact.md",
+      "target": "docs/adr/27-alembic-expected-head-artifact.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "1e0fee473b15e831a8cb5b35ad28b9907552520df3e1cadd7e9f7454b960bd00"
+    },
+    {
+      "source": "docs/dev-log/27-allow-last-tag-removal.md",
+      "target": "docs/adr/27-allow-last-tag-removal.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "f02cdafb32701e7baa3582a2c1142ecef55abe298e7d72254befd7d04b8f17a1"
+    },
+    {
+      "source": "docs/dev-log/28-alembic-drop-table-removal.md",
+      "target": "docs/adr/28-alembic-drop-table-removal.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "38760ad8273a2a7c5a14f3f43683287ef144283c3d57795ce8813c5c680456a1"
+    },
+    {
+      "source": "docs/dev-log/29-alembic-batch-backfill-poc.md",
+      "target": "docs/adr/29-alembic-batch-backfill-poc.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "a34240da5a5838897da8d682c5bd2ea67ef1563e2bb57260e16e9a9d80158e26"
+    },
+    {
+      "source": "docs/dev-log/30-gemini-client-factory.md",
+      "target": "docs/adr/30-gemini-client-factory.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "a2816d64f357af46131161f13d4742cf0e90f395b062f31244dfaef14c72681e"
+    },
+    {
+      "source": "docs/dev-log/30-upload-on-duplicate-mode.md",
+      "target": "docs/adr/30-upload-on-duplicate-mode.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "22f0b222ac640f449999a344eead83d5317455e6332321c4a776ad80f0572495"
+    },
+    {
+      "source": "docs/dev-log/31-chatbot-form-dedupe.md",
+      "target": "docs/adr/31-chatbot-form-dedupe.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "ad2aaabdfb264ce88ad192c6874c4aaaff47b4fbe1ff3a3eec6de040294aeacd"
+    },
+    {
+      "source": "docs/dev-log/32-v41-residual-patches-investigation.md",
+      "target": "docs/archive/engineering/32-v41-residual-patches-investigation.md",
+      "action": "move",
+      "reason": "시점 고정 조사·작업 결과·사고 기록",
+      "sha256": "9564de24d3cbe4bbfbf914e3f4d11cbe43f1ed56dfa38813915b26578ed55e4b"
+    },
+    {
+      "source": "docs/dev-log/33-qdrant-schema-drift-probe-skeleton.md",
+      "target": "docs/archive/engineering/33-qdrant-schema-drift-probe-skeleton.md",
+      "action": "move",
+      "reason": "시점 고정 조사·작업 결과·사고 기록",
+      "sha256": "1909f9ae6d107277ef8c93e4c41c7f530f8be66b475c8d88c91cbc2e364c7c0f"
+    },
+    {
+      "source": "docs/dev-log/34-quality-baseline-collect-skeleton.md",
+      "target": "docs/archive/engineering/34-quality-baseline-collect-skeleton.md",
+      "action": "move",
+      "reason": "시점 고정 조사·작업 결과·사고 기록",
+      "sha256": "2637de4ecac064c7975939ac580132e9a3115a6e4aff5d98d72645364686d552"
+    },
+    {
+      "source": "docs/dev-log/35-r2-vertical-slice-system-prompt.md",
+      "target": "docs/adr/35-r2-vertical-slice-system-prompt.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "d8bbb847aa2453bb770370bbea0bac2cca98e61185948fd2777f959ad4de718a"
+    },
+    {
+      "source": "docs/dev-log/36-r2-runtime-config-promotion.md",
+      "target": "docs/adr/36-r2-runtime-config-promotion.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "ce380047d16563172e08e7e501aa5deb41a095d4893d2ca473adcca9aeadf035"
+    },
+    {
+      "source": "docs/dev-log/37-r2-cleanup.md",
+      "target": "docs/adr/37-r2-cleanup.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "9350bd789a231d548c3349294646a9d4f698e9bf30d5d5652f458e68230564bb"
+    },
+    {
+      "source": "docs/dev-log/38-r3-payload-poc.md",
+      "target": "docs/adr/38-r3-payload-poc.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "718f0a13ce6c6e72820d4e79acc0578489a0124946e40040fa7473b3520974d3"
+    },
+    {
+      "source": "docs/dev-log/39-staging-decision-reverse.md",
+      "target": "docs/adr/39-staging-decision-reverse.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "8c4df2afc106257b3d7da6a05c5154689a8a8654bc6d947263f425cd2bdde30d"
+    },
+    {
+      "source": "docs/dev-log/40-qdrant-drift-result.md",
+      "target": "docs/archive/engineering/40-qdrant-drift-result.md",
+      "action": "move",
+      "reason": "시점 고정 조사·작업 결과·사고 기록",
+      "sha256": "7188214f717184a3564fc2ff64fdc68c4a51bd7fa42b2ee3ea4d7c2754597487"
+    },
+    {
+      "source": "docs/dev-log/41-prod-incident-recovery-and-baseline.md",
+      "target": "docs/archive/engineering/41-prod-incident-recovery-and-baseline.md",
+      "action": "move",
+      "reason": "시점 고정 조사·작업 결과·사고 기록",
+      "sha256": "a05fbcbb83d41179153a02b875841e36cb55d188cedd722995e6f898e4596cff"
+    },
+    {
+      "source": "docs/dev-log/42-deploy-pipeline-recovery-and-verification.md",
+      "target": "docs/archive/engineering/42-deploy-pipeline-recovery-and-verification.md",
+      "action": "move",
+      "reason": "시점 고정 조사·작업 결과·사고 기록",
+      "sha256": "78572e6575951e850ce217938896fd98582cb53ff520cbd56e6761840e169dbd"
+    },
+    {
+      "source": "docs/dev-log/43-r1-phase3-completion.md",
+      "target": "docs/archive/engineering/43-r1-phase3-completion.md",
+      "action": "move",
+      "reason": "시점 고정 조사·작업 결과·사고 기록",
+      "sha256": "517639637cdb55c1244b151c81e713580d21e3ec0b5a0e5c36385a831f56f27c"
+    },
+    {
+      "source": "docs/dev-log/44-rag-intent-routing-and-eval.md",
+      "target": "docs/adr/44-rag-intent-routing-and-eval.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "2a42d0967c48fa41b56167d645f0dbcf7998546c173c8540bd63fedda77e20ec"
+    },
+    {
+      "source": "docs/dev-log/45-paragraph-chunking-50q-revalidation.md",
+      "target": "docs/adr/45-paragraph-chunking-50q-revalidation.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "de5b1a0c75bfbd40da99d6bd8c400b9ed46fa418d91728689987263b1914baf5"
+    },
+    {
+      "source": "docs/dev-log/45-qdrant-self-hosting.md",
+      "target": "docs/adr/45-qdrant-self-hosting.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "222bc8157d07997c92bf37ed70f158637af7e5bcc2f5bb4631cb00157bd76a70"
+    },
+    {
+      "source": "docs/dev-log/46-paragraph-l2-citation-strengthening.md",
+      "target": "docs/archive/plans/46-paragraph-l2-citation-strengthening.md",
+      "action": "move",
+      "reason": "과거 계획, 현재 완료나 승인 상태로 승격하지 않음",
+      "sha256": "ead938950df44844335e0818c8b6878b593bdd78056d9b8831d72098db868f78"
+    },
+    {
+      "source": "docs/dev-log/46-qdrant-cache-cold-start-debug.md",
+      "target": "docs/adr/46-qdrant-cache-cold-start-debug.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "10b2bc4670424c8d48f1c132ceb6dcd594298e1700c52967f35f2fb37b9d9e89"
+    },
+    {
+      "source": "docs/dev-log/47-adr46-integration-pr.html",
+      "target": "docs/archive/engineering/47-adr46-integration-pr.html",
+      "action": "move",
+      "reason": "시점 고정 조사·작업 결과·사고 기록",
+      "sha256": "080d00d8787119c03b0ac8aa65fa83f5845a03530a43e07c0a3f921e891ee214"
+    },
+    {
+      "source": "docs/dev-log/47-adr46-integration-pr.md",
+      "target": "docs/archive/engineering/47-adr46-integration-pr.md",
+      "action": "move",
+      "reason": "시점 고정 조사·작업 결과·사고 기록",
+      "sha256": "d9a0c8a86720447f9a9f48adfa6b16efd2d1af101b4e17efe910682086126d33"
+    },
+    {
+      "source": "docs/dev-log/47-paragraph-3way-revalidation-with-B.md",
+      "target": "docs/adr/47-paragraph-3way-revalidation-with-B.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "8dc9ccde6f42ad45145a539c09aaf8af2964dc534b63098a09a3f889399cf565"
+    },
+    {
+      "source": "docs/dev-log/47-qdrant-sdk-http2-permanent-fix.md",
+      "target": "docs/adr/47-qdrant-sdk-http2-permanent-fix.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "a0645bae794e41fa795e7ea2cecfcc88a646c28c4e746928c6f1cd46065e0d77"
+    },
+    {
+      "source": "docs/dev-log/48-paragraph-v4-metadata-prefix-poc.md",
+      "target": "docs/adr/48-paragraph-v4-metadata-prefix-poc.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "82c2f766cb43f28dffc77c233cf2af9d4b684e5de89dc38008d52839dc439021"
+    },
+    {
+      "source": "docs/dev-log/49-ingest-pipeline-v3-paragraph-unification.md",
+      "target": "docs/adr/49-ingest-pipeline-v3-paragraph-unification.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "09d8c669a387508df0788da116926b465e371b8edd263f59f4cbcf18d9db7af9"
+    },
+    {
+      "source": "docs/dev-log/50-theology-recursive-poc.md",
+      "target": "docs/adr/50-theology-recursive-poc.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "41d994eb461569ce112914035d80ded6f08d51d226cbe54b4382a95d28a9a14b"
+    },
+    {
+      "source": "docs/dev-log/51-recursive-v5-88vol-promotion.md",
+      "target": "docs/adr/51-recursive-v5-88vol-promotion.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "9929aeb566e6df9d52e429452bbb796af6f952050f7337fc29991179ceae8fb1"
+    },
+    {
+      "source": "docs/dev-log/52-collection-main-deprecation.md",
+      "target": "docs/adr/52-collection-main-deprecation.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "fc2464a1bd1b9b0e0cdf918e152b831bd7518499e0e5da315c440815628d6c87"
+    },
+    {
+      "source": "docs/dev-log/53-metadata-filter-poc.md",
+      "target": "docs/adr/53-metadata-filter-poc.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "56898ac77827ce20396bd228b655414f60f798edfc56ad61d595ba452dc2e635"
+    },
+    {
+      "source": "docs/dev-log/54-chunking-hierarchical-contextual-poc.md",
+      "target": "docs/adr/54-chunking-hierarchical-contextual-poc.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "3379afadf78fe387d179604d46f1922960e0f51b52faf4c24bb9505e5ecf23a2"
+    },
+    {
+      "source": "docs/dev-log/55-semantic-cache-hardening.md",
+      "target": "docs/adr/55-semantic-cache-hardening.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "8e72306d87c377bef79f7063c7a70634ee6e5ce72863df25d554f692b55c3b45"
+    },
+    {
+      "source": "docs/dev-log/56-dynamic-suggested-questions.md",
+      "target": "docs/adr/56-dynamic-suggested-questions.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "8bc3dd34c1960aab4f52566d4f43be9762edea3f89431a4bde2f2e96a950e2a3"
+    },
+    {
+      "source": "docs/dev-log/57-backend-audit-auto-decisions.md",
+      "target": "docs/adr/57-backend-audit-auto-decisions.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "039b1969a45cc80640d43ca29dcad791db45740ef1c37346680b5b0b620e3bd6"
+    },
+    {
+      "source": "docs/dev-log/58-cache-threshold-decision.md",
+      "target": "docs/adr/58-cache-threshold-decision.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "b4659a8b3a8f27581dbd92d431a876eed6d0b563155fd2c9796d50ef8c9e8be8"
+    },
+    {
+      "source": "docs/dev-log/59-second-audit-auto-decisions.md",
+      "target": "docs/adr/59-second-audit-auto-decisions.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "0051b1a5fae7994c4c902046e8e0a93b5a070b718b503739aa9c3ee7a68c3c78"
+    },
+    {
+      "source": "docs/dev-log/60-p1-2-dual-commit-adr.md",
+      "target": "docs/adr/60-p1-2-dual-commit-adr.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "0976d4c406fb5b1e45e32ce31f123f852ea44fd14af76f8cc9a11c459a26fe79"
+    },
+    {
+      "source": "docs/dev-log/61-gcp-account-migration-jetaime.md",
+      "target": "docs/adr/61-gcp-account-migration-jetaime.md",
+      "action": "move",
+      "reason": "결정·변경 근거와 기존 ADR 번호 보존",
+      "sha256": "2fb3b6d468fac60649447194f75f41fe86d91376e591922b413b817b3e4eb803"
+    },
+    {
+      "source": "docs/dev-log/_archive/2026-04-28-contextual-retrieval-ab.md",
+      "target": "docs/archive/dev-log/2026-04-28-contextual-retrieval-ab.md",
+      "action": "move",
+      "reason": "기존 폐기·인계 기록 보존",
+      "sha256": "900fd9ab98771b302bb86013682045ce0257a1cd824db547a7f0a0cc547ea483"
+    },
+    {
+      "source": "docs/dev-log/_archive/2026-04-28-session-handoff.md",
+      "target": "docs/archive/dev-log/2026-04-28-session-handoff.md",
+      "action": "move",
+      "reason": "기존 폐기·인계 기록 보존",
+      "sha256": "b3c0eeca62f670b5f9b26fbdc3cf3b4ce85e3bee69b9499ba4e42b7be5aec979"
+    },
+    {
+      "source": "docs/dev-log/_archive/2026-04-29-session-handoff.md",
+      "target": "docs/archive/dev-log/2026-04-29-session-handoff.md",
+      "action": "move",
+      "reason": "기존 폐기·인계 기록 보존",
+      "sha256": "c49174541c2921eaabbe99af55d2593eb71fc220540945f57fcbd82a9654f59f"
+    },
+    {
+      "source": "docs/guides/annotate_screenshots.py",
+      "target": "docs/runbooks/annotate_screenshots.py",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "99e7e41d00e80fe263c6537f5e639a98a0722dcf97e5aba3badc5f08c92c4db0"
+    },
+    {
+      "source": "docs/guides/development-workflow.md",
+      "target": "docs/runbooks/development-workflow.md",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "4aa01e531eff5bfa64292cedbb5d1564225c1606da3f01c630c0fb6009d5f2c8"
+    },
+    {
+      "source": "docs/guides/integration-branch-workflow.md",
+      "target": "docs/runbooks/integration-branch-workflow.md",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "bd086b15f421dc8d99dea442f63ed1fd82e35eff8e14ce806d0addd593c6a0e3"
+    },
+    {
+      "source": "docs/guides/redteam-assets/01-client-chat-initial-annotated.png",
+      "target": "docs/runbooks/redteam-assets/01-client-chat-initial-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "aea8163e369fd9c2eab58f6e95fdd1c77142125f4e784beaab4615d18ce39101"
+    },
+    {
+      "source": "docs/guides/redteam-assets/01-client-chat-initial.png",
+      "target": "docs/runbooks/redteam-assets/01-client-chat-initial.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "46a33477a70dc255c8976e4da34b04e190d5e709933149d664a7d139433f6c32"
+    },
+    {
+      "source": "docs/guides/redteam-assets/02-client-chatbot-selector.png",
+      "target": "docs/runbooks/redteam-assets/02-client-chatbot-selector.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "f2049193ebd15cfb9169972a39b3a0d6be215a519adaa1ee4817c9fef1408a57"
+    },
+    {
+      "source": "docs/guides/redteam-assets/03-login-page-annotated.png",
+      "target": "docs/runbooks/redteam-assets/03-login-page-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "a618ffdfe359491d028de3a12de10f6201cadc16c436caa2e2e1143fd92af35a"
+    },
+    {
+      "source": "docs/guides/redteam-assets/03-login-page.png",
+      "target": "docs/runbooks/redteam-assets/03-login-page.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "c88fd2c3b8906c97e28ed4f69bbc272e187a7c3caa14d40c027ec4b03758bfd8"
+    },
+    {
+      "source": "docs/guides/redteam-assets/04-admin-dashboard-annotated.png",
+      "target": "docs/runbooks/redteam-assets/04-admin-dashboard-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "e1af8bb657297489a7f9db641cafa95affc67b1941dbdc80277dd3611244c9b9"
+    },
+    {
+      "source": "docs/guides/redteam-assets/04-admin-dashboard.png",
+      "target": "docs/runbooks/redteam-assets/04-admin-dashboard.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "9b4af714ee65d17db50369bb328708e4c7b6212f84580faedad31a3eab86a8a1"
+    },
+    {
+      "source": "docs/guides/redteam-assets/05-admin-chatbots-list-annotated.png",
+      "target": "docs/runbooks/redteam-assets/05-admin-chatbots-list-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "dae706120cc23528973d7d3ec483457e59e3fb5a8047acf864b44c931947aa58"
+    },
+    {
+      "source": "docs/guides/redteam-assets/05-admin-chatbots-list.png",
+      "target": "docs/runbooks/redteam-assets/05-admin-chatbots-list.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "963545f51b7686fa7df86ee6cc82b81a549ee25c38efe3e5ce7b5b5963021346"
+    },
+    {
+      "source": "docs/guides/redteam-assets/06-admin-chatbot-edit-annotated.png",
+      "target": "docs/runbooks/redteam-assets/06-admin-chatbot-edit-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "d9ec1bcc71661aeea3a34bd159d1bfc24f0a353b11d0a76c16e19c93d7949e20"
+    },
+    {
+      "source": "docs/guides/redteam-assets/06-admin-chatbot-edit.png",
+      "target": "docs/runbooks/redteam-assets/06-admin-chatbot-edit.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "f45bd25be13dba35570fe40374d12b004a181fe64dbc87315a1e91a6f8d66c10"
+    },
+    {
+      "source": "docs/guides/redteam-assets/07-admin-data-sources-upload-annotated.png",
+      "target": "docs/runbooks/redteam-assets/07-admin-data-sources-upload-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "10d19daead14fb0ce7efca20942f5273ab6e097db63299180284ad825ff57078"
+    },
+    {
+      "source": "docs/guides/redteam-assets/07-admin-data-sources-upload.png",
+      "target": "docs/runbooks/redteam-assets/07-admin-data-sources-upload.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "05a19d85c68a95da6f071df65bce9862db2616f4f5c588b242a23a329bf1d71e"
+    },
+    {
+      "source": "docs/guides/redteam-assets/08-admin-data-sources-category-annotated.png",
+      "target": "docs/runbooks/redteam-assets/08-admin-data-sources-category-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "7dcc633d4364a67472b664619993d4ad5a3ce0368dc7800e77632826fb531d44"
+    },
+    {
+      "source": "docs/guides/redteam-assets/08-admin-data-sources-category.png",
+      "target": "docs/runbooks/redteam-assets/08-admin-data-sources-category.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "fad59dbeb282d1e4d471451a724dc744c71364b2575fc8fb46ee22ecad89cf0c"
+    },
+    {
+      "source": "docs/guides/redteam-assets/09-admin-analytics-annotated.png",
+      "target": "docs/runbooks/redteam-assets/09-admin-analytics-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "973bb5104bf56c8892fd54f168bc67365362875343b12cd64ae15eb09196b4f8"
+    },
+    {
+      "source": "docs/guides/redteam-assets/09-admin-analytics.png",
+      "target": "docs/runbooks/redteam-assets/09-admin-analytics.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "9cd805ac73d2e212397d827b492279e10504a97fd1ecf76cc78f6cd76a3e4ac0"
+    },
+    {
+      "source": "docs/guides/redteam-assets/10-admin-feedback-annotated.png",
+      "target": "docs/runbooks/redteam-assets/10-admin-feedback-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "57bb198e54ad351a6dd55f5c69c511cb5d80f4fcd2a6913a88d90f86ae4f57e0"
+    },
+    {
+      "source": "docs/guides/redteam-assets/10-admin-feedback.png",
+      "target": "docs/runbooks/redteam-assets/10-admin-feedback.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "4658476dc20e23261b9ffbf56923d20f8fa0f695d9001fb2d33b479c3339f6e3"
+    },
+    {
+      "source": "docs/guides/redteam-assets/11-admin-audit-logs-annotated.png",
+      "target": "docs/runbooks/redteam-assets/11-admin-audit-logs-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "04741c2a4408a0b29824e463f2cf282ae42f497baf16bc17ffc48b3c444555b3"
+    },
+    {
+      "source": "docs/guides/redteam-assets/11-admin-audit-logs.png",
+      "target": "docs/runbooks/redteam-assets/11-admin-audit-logs.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "d921e739c5519efed3cf769f788d5d8ff342232a6a8dbff1adec29c810b0d598"
+    },
+    {
+      "source": "docs/guides/redteam-assets/12-admin-settings-annotated.png",
+      "target": "docs/runbooks/redteam-assets/12-admin-settings-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "f154e4bb69f8eb8d124e7d8743bd8681d7c8e3c502891bf56d33e5b8f0d8e619"
+    },
+    {
+      "source": "docs/guides/redteam-assets/12-admin-settings.png",
+      "target": "docs/runbooks/redteam-assets/12-admin-settings.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "3133fd9da4ef57152758344e8a3561d658fdceee6ecfafeb9803512219988f26"
+    },
+    {
+      "source": "docs/guides/redteam-assets/13-client-chatbot-dropdown-open.png",
+      "target": "docs/runbooks/redteam-assets/13-client-chatbot-dropdown-open.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "7b46aca27f94fbabd765e0a7ea4f2959840fbc5f8337037767aa9c944a6487ed"
+    },
+    {
+      "source": "docs/guides/redteam-assets/14-client-chat-answer-annotated.png",
+      "target": "docs/runbooks/redteam-assets/14-client-chat-answer-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "9f6118f139900eccd9760e6dfc17ea31ae92425fc38c66e36da275e05fcbcea6"
+    },
+    {
+      "source": "docs/guides/redteam-assets/14-client-chat-answer.png",
+      "target": "docs/runbooks/redteam-assets/14-client-chat-answer.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "d33ad44389ee790e00691d74923fbccb16b1d627eb28fae590da4aa357aa3537"
+    },
+    {
+      "source": "docs/guides/redteam-assets/15-admin-chatbot-new-annotated.png",
+      "target": "docs/runbooks/redteam-assets/15-admin-chatbot-new-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "51f240710780e81f0dd29e75791fbfc9af0ef1bbdc59d9d7a2b652d0746916f7"
+    },
+    {
+      "source": "docs/guides/redteam-assets/15-admin-chatbot-new.png",
+      "target": "docs/runbooks/redteam-assets/15-admin-chatbot-new.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "ae0f9b2b995816fc9bc3772118555f5cf73937c19353c84aad9573e658e4694f"
+    },
+    {
+      "source": "docs/guides/redteam-assets/16-admin-chatbot-edit-weighted-annotated.png",
+      "target": "docs/runbooks/redteam-assets/16-admin-chatbot-edit-weighted-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "892b56a632c7bd59da39eeddf33d6967ada350f8dc4f385bc9256e5c2a973d1c"
+    },
+    {
+      "source": "docs/guides/redteam-assets/16-admin-chatbot-edit-weighted.png",
+      "target": "docs/runbooks/redteam-assets/16-admin-chatbot-edit-weighted.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "1d27417f70ced60cf4d156a9ba36a5c25452ec62f8bc50541996d037348a4257"
+    },
+    {
+      "source": "docs/guides/redteam-assets/17-admin-chatbot-new-weighted-annotated.png",
+      "target": "docs/runbooks/redteam-assets/17-admin-chatbot-new-weighted-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "08953aa21748c1c14bb0152ddba949a33646b13213ca09be4bf0e2078036d786"
+    },
+    {
+      "source": "docs/guides/redteam-assets/17-admin-chatbot-new-weighted.png",
+      "target": "docs/runbooks/redteam-assets/17-admin-chatbot-new-weighted.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "2406e8cad71812618eead097c0ca72a4051d1976c430c66aa9c86a860cc91d42"
+    },
+    {
+      "source": "docs/guides/redteam-assets/18-admin-chatbot-edit-weighted-table.png",
+      "target": "docs/runbooks/redteam-assets/18-admin-chatbot-edit-weighted-table.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "1d27417f70ced60cf4d156a9ba36a5c25452ec62f8bc50541996d037348a4257"
+    },
+    {
+      "source": "docs/guides/redteam-assets/18-weighted-table-viewport-annotated.png",
+      "target": "docs/runbooks/redteam-assets/18-weighted-table-viewport-annotated.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "e0a3c330b03bda1b18f194a298ffbaaf7a94d20486c63649ecba1b1c995de0fd"
+    },
+    {
+      "source": "docs/guides/redteam-assets/18-weighted-table-viewport.png",
+      "target": "docs/runbooks/redteam-assets/18-weighted-table-viewport.png",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "b1fd0aa1303406fed13a4d1d6484948fb2a2bb24714eb240e04426f354aca65a"
+    },
+    {
+      "source": "docs/guides/redteam-test-guide.md",
+      "target": "docs/runbooks/redteam-test-guide.md",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "110c42056ca77818f0a8ac9747a906c4c0a130edf1d1ebc6db8df99d55dfcdc1"
+    },
+    {
+      "source": "docs/guides/semantic-cache-cleanup.md",
+      "target": "docs/runbooks/semantic-cache-cleanup.md",
+      "action": "move",
+      "reason": "실행 가이드·스크린샷·생성 스크립트 동반 이전",
+      "sha256": "af444813a84c7a4f4fc1f2281a09ae782b49d53785015118cc6d8a90649b9fb4"
+    },
+    {
+      "source": "docs/insights/01-recovery-doctor-analysis.md",
+      "target": "docs/research/insights/01-recovery-doctor-analysis.md",
+      "action": "move",
+      "reason": "외부 코드 분석, 기존 dev-log 사본과 합치지 않고 원본 보존",
+      "sha256": "4882ab15f84f847721e17e9054ec1bff61a61a7b40427042a17670fb1749ff18"
+    },
+    {
+      "source": "docs/insights/02-nexus-core-analysis.md",
+      "target": "docs/research/insights/02-nexus-core-analysis.md",
+      "action": "move",
+      "reason": "외부 코드 분석, 기존 dev-log 사본과 합치지 않고 원본 보존",
+      "sha256": "d37ec2c7164495725d3dd79fa346cd1953e62cace8399944c600c933ffe4ea90"
+    },
+    {
+      "source": "docs/insights/README.md",
+      "target": "docs/research/insights/README.md",
+      "action": "move",
+      "reason": "외부 코드 분석, 기존 dev-log 사본과 합치지 않고 원본 보존",
+      "sha256": "fa1b7fc602751be33970c03d73914a2102f3e1b2d06ebadb3367fa5b9b8c780b"
+    },
+    {
+      "source": "docs/plans/active/2026-09-05-monorepo-migration.md",
+      "target": "docs/plans/completed/2026-09-05-monorepo-migration.md",
+      "action": "move",
+      "reason": "승인 범위 M1~M4 구현·로컬 검증 완료 증거와 함께 completed로 이동",
+      "sha256": "0aa567c0a61355653da3d755a773a4b2332d4a7911a1e81a28debe4f087b3afa"
+    },
+    {
+      "source": "docs/research/2026-08-30-chowon-ai-benchmark.md",
+      "target": "docs/research/2026-08-30-chowon-ai-benchmark.md",
+      "action": "preserve",
+      "reason": "현재 분류 유지",
+      "sha256": "3ce24e6992dc05ad75ccebf945fa5425d6561a3e6c9cff1b50e1bc2ae8fddfd1"
+    },
+    {
+      "source": "docs/research/2026-08-30-pwa-app-direction.md",
+      "target": "docs/research/2026-08-30-pwa-app-direction.md",
+      "action": "preserve",
+      "reason": "현재 분류 유지",
+      "sha256": "869ed860dd89cd0692ce602c4084adf37343abeb35ffb81410187ea0f43407f5"
+    },
+    {
+      "source": "docs/research/2026-08-31-chowon-pwa-strategy-artifact.json",
+      "target": "docs/research/2026-08-31-chowon-pwa-strategy-artifact.json",
+      "action": "preserve",
+      "reason": "현재 분류 유지",
+      "sha256": "477d9021f02f16ea9fc29667118553ef988fd95523b1ec6daa3c1f9f9faf4631"
+    },
+    {
+      "source": "docs/research/2026-08-31-chowon-pwa-strategy-report.html",
+      "target": "docs/research/2026-08-31-chowon-pwa-strategy-report.html",
+      "action": "preserve",
+      "reason": "현재 분류 유지",
+      "sha256": "ccc9bbb8cfaa07859097e4c71c674b1160d35db91a3ee510a939b6bab91f3956"
+    },
+    {
+      "source": "docs/superpowers/_archive/2026-03-28-phase1-rag-poc.md",
+      "target": "docs/archive/superpowers/2026-03-28-phase1-rag-poc.md",
+      "action": "move",
+      "reason": "기존 보관 계획·설계 원본",
+      "sha256": "3470d7e02306afb904e39164626ab15414260d434172e10fc8145200219a7c1b"
+    },
+    {
+      "source": "docs/superpowers/_archive/2026-04-02-phase2b-search-enhancement.md",
+      "target": "docs/archive/superpowers/2026-04-02-phase2b-search-enhancement.md",
+      "action": "move",
+      "reason": "기존 보관 계획·설계 원본",
+      "sha256": "7b5d5e4209f8859bab24c4ea7dda4904edfcc9ba413afbe12061702fc80ee87d"
+    },
+    {
+      "source": "docs/superpowers/_archive/2026-04-10-task-1-1-error-handling-infrastructure-design.md",
+      "target": "docs/archive/superpowers/2026-04-10-task-1-1-error-handling-infrastructure-design.md",
+      "action": "move",
+      "reason": "기존 보관 계획·설계 원본",
+      "sha256": "32c1c1376f5f24035d9b5e9390ca3b9cb977e801bbc783291ec0bb5f02f84822"
+    },
+    {
+      "source": "docs/superpowers/_archive/2026-04-13-weighted-search-design.md",
+      "target": "docs/archive/superpowers/2026-04-13-weighted-search-design.md",
+      "action": "move",
+      "reason": "기존 보관 계획·설계 원본",
+      "sha256": "51ae61c2d60897738375b2ca619ee7ad70dfb22f864dcd6d05762bb2c139ecf3"
+    },
+    {
+      "source": "docs/superpowers/_archive/2026-04-21-all-queries-explorer.md",
+      "target": "docs/archive/superpowers/2026-04-21-all-queries-explorer.md",
+      "action": "move",
+      "reason": "기존 보관 계획·설계 원본",
+      "sha256": "10349ff12d78734d4937c6761092ea1ed3ec83ec56f9e14dd218a7758a6ec698"
+    },
+    {
+      "source": "docs/superpowers/_archive/2026-04-28-option-b-and-g.md",
+      "target": "docs/archive/superpowers/2026-04-28-option-b-and-g.md",
+      "action": "move",
+      "reason": "기존 보관 계획·설계 원본",
+      "sha256": "dfb9ee340b8aa0fcdadbb9d254c6c49c39bb41dd802448d27625d4125441e7db"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-03-28-phase2-web-chat-ui.md",
+      "target": "docs/archive/plans/2026-03-28-phase2-web-chat-ui.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "0c9b49db70a3e0611f9ddf2f2d5e9c5c8acc0ed135867ad02a752dd180bdbf71"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-03-28-phase3-data-pipeline.md",
+      "target": "docs/archive/plans/2026-03-28-phase3-data-pipeline.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "5550bd9aa35d5cef9951ef6d38675dcb491a1c473c8200351125d78f858e7983"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-03-28-phase4-production-infra.md",
+      "target": "docs/archive/plans/2026-03-28-phase4-production-infra.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "bc00261938290a5615f71119b585c69bf613393b91de5bac46814579f94144a1"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-04-02-restructured-roadmap.md",
+      "target": "docs/archive/plans/2026-04-02-restructured-roadmap.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "9f3dfde8ae06654b70bb741173c8f4f0999cf75e72a793401862713bead62925"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-04-03-phase2a-data-pipeline-scale.md",
+      "target": "docs/archive/plans/2026-04-03-phase2a-data-pipeline-scale.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "bc1fc096a609e2b20208ea0b55af577531b28977bf6898c52aeafda987e0093b"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-04-09-category-document-stats.md",
+      "target": "docs/archive/plans/2026-04-09-category-document-stats.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "60e73a0b224ca20d785d759e8715e92bfbb542eba90ee2c59c1d074d3a42db78"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-04-09-category-tag-transfer-ui.md",
+      "target": "docs/archive/plans/2026-04-09-category-tag-transfer-ui.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "38e258ffb12c604913226e8aa102a196dfdbeb43498b70492ffd456a4f6f1926"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-04-10-task-1-1-error-handling-infrastructure.md",
+      "target": "docs/archive/plans/2026-04-10-task-1-1-error-handling-infrastructure.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "c5ed16bd890f5a4f320c46eed1bb0b8084a5504e3a9de179c994ac9cfd34866b"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-04-11-embedding-batch-api.md",
+      "target": "docs/archive/plans/2026-04-11-embedding-batch-api.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "a761783bce32992b77f23b4566421d0c35519e898c159e37186fd4304d4d5799"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-04-11-query-rewriting-fallback.md",
+      "target": "docs/archive/plans/2026-04-11-query-rewriting-fallback.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "e8524360f1706b13b725aebe87fa1f8cc5e94f743f584d35e91ed11cf759bfdb"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-04-13-weighted-search.md",
+      "target": "docs/archive/plans/2026-04-13-weighted-search.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "4440f732b1588240c93d9743d0ffe4f1f004cb4902445d52c6067dec7babec02"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-04-21-popular-query-detail-modal.md",
+      "target": "docs/archive/plans/2026-04-21-popular-query-detail-modal.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "d70339fc2983e5106b4515721c8c667c3e5e16806aafb529f0a73080fcee39b4"
+    },
+    {
+      "source": "docs/superpowers/plans/2026-04-27-on-duplicate-followup.md",
+      "target": "docs/archive/plans/2026-04-27-on-duplicate-followup.md",
+      "action": "move",
+      "reason": "과거 구현 계획, 체크박스만으로 완료를 추정하지 않음",
+      "sha256": "3baa8e19fbe458156e2366a6f704ddafae02758305a45e12196f35bd24eb2bfe"
+    },
+    {
+      "source": "docs/superpowers/specs/2026-03-28-phase1-rag-poc-design.md",
+      "target": "docs/specs/2026-03-28-phase1-rag-poc-design.md",
+      "action": "move",
+      "reason": "기존 기능 설계, 작성 시점 상태·원문 보존",
+      "sha256": "d567d868e70922be4a7c7011db5fb25005fb758b35f874092da6ccdbf2dd20ec"
+    },
+    {
+      "source": "docs/superpowers/specs/2026-03-28-phase2-web-chat-ui-design.md",
+      "target": "docs/archive/specs/2026-03-28-phase2-web-chat-ui-design.md",
+      "action": "move",
+      "reason": "폐기된 Flutter 우선·과거 인프라 설계, 재승인 전 구현 금지",
+      "sha256": "69a291445e0104c9240b651d3ed2dade707c4e4127f5e0edf40e14803621d131"
+    },
+    {
+      "source": "docs/superpowers/specs/2026-03-28-phase3-data-pipeline-design.md",
+      "target": "docs/specs/2026-03-28-phase3-data-pipeline-design.md",
+      "action": "move",
+      "reason": "기존 기능 설계, 작성 시점 상태·원문 보존",
+      "sha256": "29c00ceed79e883135608ed377e74face2118f3a785e8847a3f7dfa64c3ef0b5"
+    },
+    {
+      "source": "docs/superpowers/specs/2026-03-28-phase4-production-infra-design.md",
+      "target": "docs/archive/specs/2026-03-28-phase4-production-infra-design.md",
+      "action": "move",
+      "reason": "폐기된 Flutter 우선·과거 인프라 설계, 재승인 전 구현 금지",
+      "sha256": "59e65133119b0e6d6c4b097a00a1ff732b179a2609f7d18e03fbbbe4b8a8875b"
+    },
+    {
+      "source": "docs/superpowers/specs/2026-04-06-data-source-page-redesign.md",
+      "target": "docs/specs/2026-04-06-data-source-page-redesign.md",
+      "action": "move",
+      "reason": "기존 기능 설계, 작성 시점 상태·원문 보존",
+      "sha256": "b7f2473ab0f57d1691edb46d51820642ad58d5730748b816eff841c6565abfd8"
+    },
+    {
+      "source": "docs/superpowers/specs/2026-04-09-category-document-stats-design.md",
+      "target": "docs/specs/2026-04-09-category-document-stats-design.md",
+      "action": "move",
+      "reason": "기존 기능 설계, 작성 시점 상태·원문 보존",
+      "sha256": "21e0c1149a552c37e6f4dae6aa83a7dc6e07fab4eb248d670e9e6fcdc9ab0525"
+    },
+    {
+      "source": "docs/superpowers/specs/2026-04-09-category-tag-transfer-ui-design.md",
+      "target": "docs/specs/2026-04-09-category-tag-transfer-ui-design.md",
+      "action": "move",
+      "reason": "기존 기능 설계, 작성 시점 상태·원문 보존",
+      "sha256": "35112fe6c2fcec0ee83c1930adc5ec877bc13f5ad0c6471542243d5e16f0ecb2"
+    },
+    {
+      "source": "docs/superpowers/specs/2026-04-11-embedding-batch-api-design.md",
+      "target": "docs/specs/2026-04-11-embedding-batch-api-design.md",
+      "action": "move",
+      "reason": "기존 기능 설계, 작성 시점 상태·원문 보존",
+      "sha256": "43a775e92df6f6efa2ab2cf89c16f0659b9cac1681dcfd9c5aaa9f71c389ac0b"
+    },
+    {
+      "source": "docs/superpowers/specs/2026-04-21-all-queries-explorer-design.md",
+      "target": "docs/specs/2026-04-21-all-queries-explorer-design.md",
+      "action": "move",
+      "reason": "기존 기능 설계, 작성 시점 상태·원문 보존",
+      "sha256": "716b6f4ae6e96db02c183fed33aa3d82ffe0fb01ddbbb4e22a2e9defe617fae1"
+    },
+    {
+      "source": "docs/superpowers/specs/2026-04-21-popular-query-detail-modal-design.md",
+      "target": "docs/specs/2026-04-21-popular-query-detail-modal-design.md",
+      "action": "move",
+      "reason": "기존 기능 설계, 작성 시점 상태·원문 보존",
+      "sha256": "ec91db801e92fd7f2165277eeb3555af9e57f6ec8d80b38287e985b4ab96c2f8"
+    }
+  ]
+}

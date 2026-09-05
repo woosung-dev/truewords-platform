@@ -1,0 +1,86 @@
+"""SearchStage — 하이브리드 검색 (cascading / weighted) + fallback.
+
+raw httpx (HTTP/1.1) 클라이언트 사용 — qdrant-client SDK HTTP/2 hang 회피.
+(PR #78 진단, docs/dev-log/47 참조)
+"""
+
+from __future__ import annotations
+
+import time
+
+from app.modules.chat.pipeline.context import ChatContext
+from app.modules.chat.pipeline.state import PipelineState, check_precondition
+from app.modules.chatbot.runtime_config import SearchModeConfig, TierConfig
+from app.modules.qdrant import get_raw_client  # audit 2차 B-6 — src.qdrant_client deprecated shim 이관
+from app.modules.search.cascading import CascadingConfig, SearchTier, cascading_search
+from app.modules.search.collection_resolver import resolve_collections
+from app.modules.search.fallback import fallback_search
+from app.modules.search.metadata_extractor import extract_query_metadata
+from app.modules.search.weighted import WeightedConfig, WeightedSource, weighted_search
+
+
+def _to_search_config(smc: SearchModeConfig, default_tiers: list[TierConfig]) -> CascadingConfig | WeightedConfig:
+    if smc.mode == "weighted":
+        return WeightedConfig(
+            sources=[
+                WeightedSource(source=ws.source, weight=ws.weight, score_threshold=ws.score_threshold)
+                for ws in smc.weighted_sources
+            ]
+        )
+    tiers = smc.tiers or default_tiers
+    return CascadingConfig(
+        tiers=[
+            SearchTier(sources=t.sources, min_results=t.min_results, score_threshold=t.score_threshold)
+            for t in tiers
+        ]
+    )
+
+
+class SearchStage:
+    def __init__(self, default_tiers: list[TierConfig]) -> None:
+        self.default_tiers = default_tiers
+
+    async def execute(self, ctx: ChatContext) -> ChatContext:
+        check_precondition(self.__class__.__name__, ctx)
+        if not ctx.runtime_config:
+            return ctx
+
+        qdrant = get_raw_client()
+        search_config = _to_search_config(ctx.runtime_config.search, self.default_tiers)
+        resolved = resolve_collections()
+        ctx.resolved_collections = resolved
+
+        query = ctx.search_query or ctx.request.query
+        # Phase 3: 원문 질문(rewrite 전) 에서 권/날짜 메타데이터 추출.
+        # rewritten 본문은 LLM 이 재구성하면서 권번호 표현이 사라질 수 있어
+        # 사용자가 명시적으로 지정한 신호 보전을 위해 ctx.request.query 사용.
+        ctx.query_metadata = extract_query_metadata(ctx.request.query)
+
+        start = time.monotonic()
+        if isinstance(search_config, WeightedConfig):
+            ctx.results = await weighted_search(
+                qdrant, query, search_config, top_k=50,
+                dense_embedding=ctx.query_embedding,
+                collection_name=resolved.main,
+                query_metadata=ctx.query_metadata,
+            )
+        else:
+            ctx.results = await cascading_search(
+                qdrant, query, search_config, top_k=50,
+                dense_embedding=ctx.query_embedding,
+                collection_name=resolved.main,
+                query_metadata=ctx.query_metadata,
+            )
+        ctx.search_latency_ms = int((time.monotonic() - start) * 1000)
+
+        if not ctx.results:
+            ctx.results, ctx.fallback_type = await fallback_search(
+                client=qdrant,
+                query=query,
+                original_results=ctx.results,
+                dense_embedding=ctx.query_embedding or [],
+                collection_name=resolved.main,
+            )
+
+        ctx.pipeline_state = PipelineState.SEARCHED
+        return ctx

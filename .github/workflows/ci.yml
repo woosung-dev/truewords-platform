@@ -2,15 +2,16 @@ name: CI
 
 on:
   pull_request:
-    # main 직행 PR + 통합 브랜치 (dev/**) 로 가는 sub-task PR 모두 CI 실행.
-    # 통합 브랜치 패턴: docs/guides/integration-branch-workflow.md 참조.
     branches: [main, "dev/**"]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
-  # 변경 경로 감지: backend/admin이 실제로 바뀌었는지 판정한다.
-  # 워크플로 자체를 paths 필터로 스킵하지 않는 이유:
-  # required check으로 지정된 경우 트리거조차 되지 않으면 PR이 pending에 걸리기 때문.
-  # 대신 잡 레벨에서 if로 게이트하고, 스킵된 잡도 required check을 만족시키도록 한다.
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
@@ -18,79 +19,108 @@ jobs:
       pull-requests: read
       contents: read
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+      admin: ${{ steps.filter.outputs.admin }}
+      contracts: ${{ steps.filter.outputs.contracts }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
-            backend:
-              - 'backend/**'
-              - '.github/workflows/ci.yml'
-            frontend:
-              - 'admin/**'
-              - '.github/workflows/ci.yml'
+            shared: &shared
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'turbo.json'
+              - 'tooling/**'
+              - '.github/workflows/**'
+              - 'Makefile'
+              - '.dockerignore'
+            api:
+              - *shared
+              - 'apps/api/**'
+              - 'contracts/**'
+              - 'infra/**'
+            web:
+              - *shared
+              - 'apps/web/**'
+              - 'packages/**'
+              - 'contracts/**'
+              - 'apps/api/**'
+              - 'tests/e2e/**'
+            admin:
+              - *shared
+              - 'apps/admin/**'
+              - 'packages/**'
+              - 'contracts/**'
+              - 'apps/api/**'
+              - 'tests/e2e/**'
+            contracts:
+              - *shared
+              - 'apps/api/**'
+              - 'contracts/**'
+              - 'packages/api-client-ts/**'
 
   backend-test:
     name: Backend Tests
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: astral-sh/setup-uv@v4
-        with:
-          version: "latest"
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        # eval group: openpyxl/ragas 등 평가 스크립트 의존성. tests/scripts/test_analyze_*
-        # 및 test_eval_* 가 import하므로 CI에서도 설치 필요.
-        run: uv sync --frozen --all-groups
-
-      - name: Run pytest
-        env:
-          GEMINI_API_KEY: test-key-for-ci
-        run: uv run pytest -v
+    if: needs.changes.outputs.api == 'true'
+    uses: ./.github/workflows/ci-api.yml
 
   frontend-test:
     name: Frontend Tests
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: admin
+    if: needs.changes.outputs.admin == 'true'
+    uses: ./.github/workflows/ci-web.yml
+    with:
+      app: admin
 
+  web-test:
+    name: Web Tests
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    uses: ./.github/workflows/ci-web.yml
+    with:
+      app: web
+
+  contracts:
+    name: API contracts
+    needs: changes
+    if: needs.changes.outputs.contracts == 'true'
+    uses: ./.github/workflows/ci-contracts.yml
+
+  repository:
+    name: Repository checks
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 8
-
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "pnpm"
-          cache-dependency-path: admin/pnpm-lock.yaml
+      - run: node tooling/checks/docs-links.mjs
+      - run: node tooling/checks/boundaries.mjs
+      - run: node --test tooling/checks/*.test.mjs
+      - run: for script in infra/oracle-vm/*.sh; do bash -n "$script" || exit; done
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+  e2e:
+    name: Cross-app E2E
+    needs: changes
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.admin == 'true'
+    uses: ./.github/workflows/ci-e2e.yml
 
-      - name: Run vitest
-        run: pnpm test
-
-      - name: Build check
-        run: pnpm build
+  required:
+    name: CI Required
+    needs: [changes, backend-test, frontend-test, web-test, contracts, repository, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Reject failures, cancellation, or unexpected skips
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: node tooling/checks/ci-status.mjs

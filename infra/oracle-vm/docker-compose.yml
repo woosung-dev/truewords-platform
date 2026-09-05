@@ -94,7 +94,26 @@ services:
     container_name: admin
     restart: unless-stopped
     # Node 힙 + Next 서버 워커. 실측 후 조정한다.
-    mem_limit: 768m
+    mem_limit: 512m
+    stop_grace_period: 20s
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/login',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - truewords_net
+
+  web:
+    image: truewords-web:${WEB_TAG}
+    container_name: web
+    restart: unless-stopped
+    # web/admin 각각 512m. 총 제한 11.5g, 운영 전 peak RSS 부하 검증 필요.
+    mem_limit: 512m
     stop_grace_period: 20s
     depends_on:
       backend:

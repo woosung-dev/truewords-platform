@@ -1,8 +1,12 @@
 ---
-paths: ["admin/**/*"]
+paths: ["apps/web/**/*", "apps/admin/**/*"]
 ---
 
-# Frontend Rules (Next.js 16 — Admin Dashboard)
+# Frontend Rules (Next.js 16 — 사용자 웹 / 관리자)
+
+모노레포의 현재 실행·구조·생성 SDK·앱별 인증 UX는 [사용자 웹](../../apps/web/README.md)·[관리자 앱](../../apps/admin/README.md)을 따른다. 아래 fetch wrapper·프록시·폴더 트리와 Vercel 배포 표기는 분리 전 참고 예시이며 현재 구현으로 복사하지 않는다. 공유 SDK의 로그인 이동은 각 앱의 `onUnauthorized`가 소유한다.
+
+UI primitive·테마·표시 유틸은 각 앱의 `src/components/ui`, `src/app/globals.css`, `src/lib/utils.ts`가 소유한다. 앱 간 UI·CSS import와 공통 UI/토큰 패키지의 선행 생성을 금지한다. API SDK·ESLint·TypeScript 설정 3개 패키지는 유지한다. 현재 화면·컴포넌트 동작을 보존하며 앱별 [웹 UI/UX](../../docs/specs/web/ui-ux.md)·[관리자 UI/UX](../../docs/specs/admin/ui-ux.md)를 따른다. 앱별 소유권 승인은 신규 PWA 디자인이나 리디자인 승인이 아니다.
 
 ---
 
