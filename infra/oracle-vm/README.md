@@ -495,10 +495,10 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 | 항목 | 값 |
 |---|---|
 | GCP 프로젝트 | **`d-project-497004`** ("D-Project") |
-| 계정 | **`jangwooseng97@gmail.com`** |
+| 계정 | 운영자 개인 Google 계정 — `jetaime-dev` 소유 계정과 **다름**. 주소는 public 문서에 두지 않는다(VM `.env` 관리자가 안다) |
 | 키 이름 | Gemini API Key |
 
-인프라 작업에 쓰던 `jetaime-dev` / `jetaime.jang@gmail.com` 이 **아니다.** `jetaime-dev` 에도 "DEV Gemini API Key" 가 있지만 그건 운영 키가 아니다(해시 대조로 확인).
+인프라 작업에 쓰던 `jetaime-dev` 프로젝트(별도 계정)가 **아니다.** `jetaime-dev` 에도 "DEV Gemini API Key" 가 있지만 그건 운영 키가 아니다(해시 대조로 확인).
 
 **이 프로젝트를 지우거나 키를 회수하면 챗봇이 즉시 죽는다.** 이름에 TrueWords 가 없어 "안 쓰는 프로젝트" 로 보이는 것이 위험하다 — 2026-06-04 에 `woosung-dev` 를 그렇게 판단해 지웠다가 Qdrant VM 을 잃었다.
 

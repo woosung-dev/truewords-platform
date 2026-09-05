@@ -290,8 +290,8 @@ RRF 병합 — weight 반영해 Top-50 선정 → Re-ranking → Top-10
 
 | 이메일 | 비밀번호 | 역할 |
 |---|---|---|
-| `admin01@gmail.com` | `admin1234` | SUPER_ADMIN |
-| `admin@truewords.com` | `admin1234` | SUPER_ADMIN |
+| `<레드팀 관리자 계정 1 — 별도 전달>` | `<별도 전달>` | SUPER_ADMIN |
+| `<레드팀 관리자 계정 2 — 별도 전달>` | `<별도 전달>` | SUPER_ADMIN |
 | `admin@test.com` | (기존 유지) | SUPER_ADMIN |
 
 ### 3.3 일반 사용자 접근
