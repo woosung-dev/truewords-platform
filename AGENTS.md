@@ -219,6 +219,14 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 
 - `docs/README.md` — 전체 문서 색인 및 개발 참조 가이드
 
+### 모노레포 전환 방향 (2026-09-05)
+
+- **현재 구현:** `admin/`에 사용자 채팅과 관리자 화면이 공존하고, `backend/`가 공통 FastAPI를 제공한다. 아래 목표가 구현 완료됐다고 기술하지 않는다.
+- **목표:** `apps/web` (Next.js PWA), `apps/admin` (Next.js), `apps/api` (FastAPI). Turborepo + pnpm + uv를 사용하고, 업무 규칙·권한·계정/알림 정책은 FastAPI에 둔다.
+- **공유:** React UI는 `packages/ui-web`, API 원본은 FastAPI 라우트·Pydantic이다. `contracts/openapi.json`과 생성 SDK는 직접 수정하지 않는다. SSE 이벤트는 REST와 함께 별도 계약·소비자 검증을 갖춘다.
+- **Flutter:** 도입 확정 전 `apps/mobile`·Dart SDK·Pub workspace·모바일 CI를 생성하지 않는다. 기존 데모 관리자 계정을 일반 사용자 모델로 자동 전환하지 않는다.
+- **전환 기준:** `docs/04_architecture/2026-09-05-pwa-flutter-monorepo.md`와 `docs/plans/active/2026-09-05-monorepo-migration.md`의 검토용 계획을 따른다. 실제 이전 단계에서 앱별 지침·검증 명령·문서 링크를 함께 갱신한다.
+
 ---
 
 ## 스택 규칙 참조

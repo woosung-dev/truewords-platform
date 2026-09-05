@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-08-31
+> 마지막 업데이트: 2026-09-05
 
 ## Progress Overview
 
@@ -18,6 +18,12 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ---
 
 ## Completed
+
+### PWA·Flutter 모노레포 전환 설계 (2026-09-05)
+
+- [x] `ARCH-MONO-001` — 현재 admin/backend·인증·SSE·CI·Oracle 구성을 기준으로 목표 구조와 경계 작성 (`docs/04_architecture/2026-09-05-pwa-flutter-monorepo.md`)
+- [x] `PLAN-MONO-001` — M1~M5 이전 순서·검증·운영 복구·문서 대응 계획 작성 (`docs/plans/active/2026-09-05-monorepo-migration.md`)
+- [x] Flutter 즉시 구현과 기존 데모 계정/기록 자동 이전을 범위에서 제외하고, 별도 S1 PRD의 검토 대기 상태 확인
 
 ### 가정연합 신규 PWA 사전 조사 (2026-08-31)
 - [x] 초원AI 공식 홈페이지·블로그·App Store·Google Play·공개 화면·보조 리뷰 교차 조사 (`docs/research/2026-08-30-chowon-ai-benchmark.md`)
@@ -166,15 +172,27 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Questions
 
+- `[확인 필요]` `DEC-MONO-001` — 모노레포 구조 전환 M1~M4 실행 범위 검토. M5 제품 인증·알림은 승인 PRD와 연결한다.
+- `[확인 필요]` `DEC-MONO-002` — web은 기존 app origin 유지, admin은 별도 hostname으로 이전하는 운영안 확정. 배포 전 필요하다.
+- `[확인 필요]` `DEC-MONO-003` — 일반 사용자 로그인 방식 및 기존 데모 계정·기록의 이전 여부. identity 구현 전 필요하다.
+
 - `[확인 필요]` 독립 베타의 법적 운영 주체와 FFWPU 공식 승인 요청·검수 절차는 무엇인가?
 - `[확인 필요]` 초기 소규모 정본의 정확한 목록과 본문 전재·검색·임베딩·AI 요약·오프라인·푸시 인용별 권리 범위는 어디까지인가?
 - `[확인 필요]` 콘텐츠 공식성·검수·철회 최종 책임자는 누구인가?
-- Flutter 모바일 앱 시작 시점? — 레드팀 테스트 후 Phase 4에서 진행 예정
+- `[확인 필요]` `DEC-MONO-004` — Flutter 착수 시점은 미정. PWA 우선 후 도입 확정 시 앱·Dart SDK·Pub workspace·모바일 CI를 함께 추가한다.
 - ~~GCP 실제 배포 시점?~~ — 해소. GCP 배포 후(2026-04~07) 2026-07-29 Oracle Cloud 로 이전 완료. §13 참조
 
 ---
 
 ## Next Actions
+
+### 모노레포 전환 (2026-09-05)
+
+- [ ] M1 — 기준선 검증 후 pnpm/Turbo와 `apps/admin`, `apps/api`로 이전
+- [ ] M2 — `apps/web` 추출, 공통 UI와 앱별 인증 UX·이미지 분리
+- [ ] M3 — OpenAPI→TS SDK·SSE 계약, API 내부 `app/core/modules` 이전
+- [ ] M4 — docs 재분류·링크, CI 영향 범위, web 배포·롤백 준비
+- [ ] M5 — 승인 제품 계획에 따라 일반 사용자 인증·PWA·알림 구현 및 실기기 검증
 
 ### 가정연합 신규 PWA 기획 (2026-08-31)
 - [ ] 세션 1 — `docs/research/2026-08-30-pwa-app-direction.md` §7 프롬프트로 PRD 작성·리뷰
