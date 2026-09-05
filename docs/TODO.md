@@ -445,9 +445,17 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
   - `cache-cleanup.yml` 에 `if: failure()` → GitHub Issue 스텝 (새 secret 0, `GITHUB_TOKEN`). 같은 제목 열린 Issue 는 코멘트만 — 매일 실패 시 Issue 가 쌓여 신호가 묻히는 것 방지. **job 미시작은 못 잡는다는 한계를 주석에 명시.**
   - `make ops-check` + `deploy-backend`/`deploy-admin` 배포 전 자동 실행(advisory — 배포는 막지 않는다).
   - 검증: 정상 exit 0 / 강제 실패 시 FAIL 3건 집계 + exit 1 + 첫 실패 후에도 나머지 계속 검사(`set -e` 배제 의도 확인).
-- [ ] **예약 작업 실패 알림 — 전달 채널** [확인 필요] — 위에서 **탐지는 닫았지만 push 는 아직**이다. 위반이 로그·JSON·종료코드로만 남아, 배포하지 않는 주에 백업이 죽으면 늦게 안다. 레포에 알림 자격증명이 하나도 없다(`gh api repos/:owner/:repo/hooks` → 0, Slack/SMTP 0건). 채널이 정해지면 `ops-check.sh` 마지막에 한 줄이다.
-  - 안 1: **Slack Incoming Webhook** — URL 을 VM `.env` 에 넣고 `curl` 한 줄. 가장 짧다.
-  - 안 2: **OCI Notifications(ONS)** — VM 이 이미 Instance Principal 을 쓰므로 새 키 불필요. 토픽 OCID + IAM 정책 필요.
+- [x] **예약 작업 실패 알림 — 전달 채널** (2026-09-05 결정: **ntfy.sh**) — 탐지만 있고 전달이 없어 2026-08-07~31 재발(25일)을 놓친 뒤 닫았다. `ops-check.sh` 마지막에 FAIL/WARN 일 때만 `https://ntfy.sh/$NTFY_TOPIC` 으로 푸시 1건. 계정·IAM 없음, VM `.env` 의 `NTFY_TOPIC` 한 줄. 상세: `infra/oracle-vm/README.md` §전달, ADR 후속 절.
+  - [ ] **수신 방식 결정 `[확인 필요]`** — 사용자는 폰에 ntfy 앱을 설치하지 않기로 했다(2026-09-05). 코드의 ntfy 블록은 `NTFY_TOPIC` 미설정이면 아무것도 하지 않으므로 그대로 두고, 아래 중 하나를 고른 뒤 커밋 하나로 붙인다.
+    | 후보 | ★ | 직접 할 일 | 비고 |
+    |---|---|---|---|
+    | **healthchecks.io** | ★5 | 이메일 가입 + 체크 1개 생성, ping URL 전달 | 이메일 알림 기본. **cron 자체가 안 돈 것**까지 잡음(dead-man). 무료 20개 체크·로그 100건. `ops-check.sh` 끝에 성공 `curl $HC_PING_URL`, 실패 `…/fail` + 본문 |
+    | ntfy.sh 이메일 전달 | ★4 | ntfy.sh 웹 계정 + 이메일 인증 | 같은 curl 에 `Email:` 헤더 한 줄. 익명 이메일 전송은 남용으로 막혀 있고 무료 하루 5통. dead-man 못 잡음 |
+    | Discord/Telegram 웹훅 | ★3 | 이미 쓰는 메신저의 웹훅 URL | 새 앱은 아니지만 계정 필요 |
+    | OCI Notifications 이메일 | ★3 | OCI 콘솔에서 토픽·이메일 구독·IAM 정책(dynamic group → ons) | 계정 추가 없음(Instance Principal), 설정이 가장 김 |
+  - [ ] VM 반영 — 채널 확정 후: `scp infra/oracle-vm/ops-check.sh truewords-oracle:~/truewords/`, `.env` 에 채널 변수 추가.
+  - [ ] 반증 리허설 — `make ops-check`(알림 없음) → `ssh truewords-oracle 'BACKUP_MAX_AGE_H=0 bash ~/truewords/ops-check.sh'`(알림 도착, 본문 `backup FAIL`).
+  - [ ] dead-man ping — healthchecks.io 를 고르면 함께 해결된다. 다른 채널이면 "cron 자체가 안 돎" 은 여전히 못 잡으므로 별도 과제로 남는다.
 - [ ] **Issue 알림 스텝 실행 검증** — GHA 청구 차단으로 워크플로를 돌릴 수 없어 YAML 파싱과 `gh` 명령 형태만 확인했다. 차단 해소 후 `workflow_dispatch` 로 일부러 실패시켜 Issue 가 실제로 생기는지 확인한다.
   - **2026-07-30 재확인: 여전히 차단.** 최신 run `30514716013`(04:45 UTC, CI/`chore/residual-cleanup-done`) 의 job 3개가 전부 `steps_count: 0` 이고 annotation 이 `The job was not started because recent account payments have failed or your spending limit needs to be increased`. `workflow_dispatch` 자체가 job 을 시작하지 못하므로 **일부러 실패시키는 것조차 불가능**하다. `ci.yml`/`cache-cleanup.yml` green 확인도 같은 이유로 보류. 청구 해소가 유일한 선행 조건.
 
