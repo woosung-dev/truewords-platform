@@ -90,6 +90,8 @@ node tooling/checks/smoke-images.mjs
 4. 승인한 Cloudflare 라우팅을 전환한 뒤 기존 링크와 app/admin origin을 모두 확인한다. 변경 시간과 전후 설정을 기록한다.
 5. `ops-check.sh`의 web 포함 6서비스 상태를 확인하고 대표 사용자 시나리오를 재실행한다. 아래 실패 기준에 해당하면 복구한다.
 
+`make deploy-web`/`deploy-admin`(과 rollback)은 `docker compose up -d --no-deps --wait <svc>`로 대상 컨테이너만 바꾼다. backend가 `env_file: .env`를 읽어 `WEB_TAG`/`ADMIN_TAG` sed만으로 설정 해시가 바뀌므로, `--no-deps`가 없으면 프론트 배포가 backend를 재생성해 진행 중 SSE가 끊긴다(2026-09-06 최초 deploy-web에서 실측). 반대로 `.env`의 backend 값(origin·게이트 이메일 등)을 바꿨을 때는 `make deploy-backend` 또는 `docker compose up -d --wait backend`를 명시 실행해야 반영된다.
+
 분리 후 메모리 limit 합계는 11.5GiB(qdrant 6 + backend 3 + postgres 1 + admin 0.5 + web 0.5 + cloudflared 0.5)다. 12GiB VM에 OS·페이지 캐시 여유가 작으므로 limit 합계만으로 안전을 입증하지 않는다. 과거 단일 admin의 실사용값을 분리 후 부하 검증으로 재사용하지 않는다.
 
 ## 실패 기준과 복구
