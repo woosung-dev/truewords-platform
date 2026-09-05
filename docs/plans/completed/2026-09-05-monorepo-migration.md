@@ -193,7 +193,7 @@ M1~M4의 T-MONO-001~013 구현·로컬 검증을 완료했다. PR 생성·CI·�
 VERDICT: VERIFIED — M1~M4 구현·로컬 검증 완료. PR 심사·main 병합·운영 전환은 별도 상태.
 
 **UNRESOLVED DECISIONS:**
-- `DEC-MONO-002` 운영 origin과 기존 링크 전환
+- ~~`DEC-MONO-002` 운영 origin과 기존 링크 전환~~ — 2026-09-06 확정: admin `truewords-admin.woosung.dev`, web 기존 `app.woosung.dev`. 컷오버 실행·기록은 [전환 runbook](../../runbooks/monorepo-migration-and-rollback.md) 별도
 - `DEC-MONO-003` 일반 사용자 로그인·기존 계정/기록 이전 정책
 - `DEC-MONO-004` Flutter 착수 시점
 - ~~`DEC-MONO-005`~~ [구현 PR #221](https://github.com/woosung-dev/truewords-platform/pull/221)의 Vercel 외부 Root Directory `admin` 전환 — 당시 preview 실패를 확인하고 보류했던 항목. 2026-09-05 main 머지 후 Production 배포 실패를 확인해 **Vercel 프로젝트 삭제**로 종결(`docs/TODO.md`).

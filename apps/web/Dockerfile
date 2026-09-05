@@ -12,7 +12,7 @@ COPY apps/web ./apps/web
 
 ARG NEXT_PUBLIC_API_URL=http://backend:8080
 ARG NEXT_PUBLIC_WEB_URL=https://app.woosung.dev
-ARG NEXT_PUBLIC_ADMIN_URL=https://admin.woosung.dev
+ARG NEXT_PUBLIC_ADMIN_URL=https://truewords-admin.woosung.dev
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
     NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL \
