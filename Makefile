@@ -206,14 +206,15 @@ deploy-admin: ## Oracle Cloud ARM VM admin 배포 (WEB_URL·ADMIN_URL·DEMO_ADMI
 		--build-arg NEXT_PUBLIC_DEMO_ADMIN_EMAIL=$(DEMO_ADMIN_EMAIL) \
 		--build-arg NEXT_PUBLIC_WEB_URL=$(WEB_URL) --build-arg NEXT_PUBLIC_ADMIN_URL=$(ADMIN_URL) -t $(ADMIN_IMG) --load .
 	@docker save $(ADMIN_IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
-	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait admin'
+	@# --no-deps: backend 는 env_file .env 를 읽어 태그 sed 만으로 설정 해시가 바뀐다. 없으면 프론트 배포가 backend 를 재생성해 진행 중 SSE 가 끊긴다(2026-09-06 deploy-web 에서 확인).
+	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait admin'
 	@$(call DEPLOY_LOG,deploy,admin,$(GUARD_MODE))
 	@$(MAKE) --no-print-directory prune-images
 
 rollback-admin: ## ⚠️ 이전 admin 이미지로 롤백 (`TAG=<이전 sha>` 필수).
 	@# deploy-backend 와 같은 이유로 TAG 명시를 강제한다 (기본값 롤백은 no-op).
 	@[ "$(origin TAG)" != "file" ] || { echo "❌ 롤백은 TAG=<이전 sha> 를 명시해야 합니다 (예: make rollback-admin TAG=abc1234)"; exit 1; }
-	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait admin'
+	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait admin'
 	@$(call DEPLOY_LOG,rollback,admin,manual)
 
 deploy-web: ## Oracle Cloud ARM VM 사용자 웹 배포 (운영 전환 runbook 선행).
@@ -224,13 +225,13 @@ deploy-web: ## Oracle Cloud ARM VM 사용자 웹 배포 (운영 전환 runbook �
 		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 \
 		--build-arg NEXT_PUBLIC_WEB_URL=$(WEB_URL) --build-arg NEXT_PUBLIC_ADMIN_URL=$(ADMIN_URL) -t $(WEB_IMG) --load .
 	@docker save $(WEB_IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
-	@ssh "$(ORACLE)" 'grep -q "^WEB_TAG=" ~/truewords/.env || { echo "runbook에 따라 WEB_TAG와 Compose를 먼저 준비하세요"; exit 1; }; sed -i "s/^WEB_TAG=.*/WEB_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait web'
+	@ssh "$(ORACLE)" 'grep -q "^WEB_TAG=" ~/truewords/.env || { echo "runbook에 따라 WEB_TAG와 Compose를 먼저 준비하세요"; exit 1; }; sed -i "s/^WEB_TAG=.*/WEB_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait web'
 	@$(call DEPLOY_LOG,deploy,web,$(GUARD_MODE))
 	@$(MAKE) --no-print-directory prune-images
 
 rollback-web: ## 이전 사용자 웹 이미지로 롤백 (`TAG=<이전 sha>` 필수).
 	@[ "$(origin TAG)" != "file" ] || { echo "TAG=<이전 sha>를 명시하세요"; exit 1; }
-	@ssh "$(ORACLE)" 'sed -i "s/^WEB_TAG=.*/WEB_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait web'
+	@ssh "$(ORACLE)" 'sed -i "s/^WEB_TAG=.*/WEB_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait web'
 	@$(call DEPLOY_LOG,rollback,web,manual)
 
 prune-images: ## VM 의 오래된 truewords 이미지·빌드 캐시 정리 (최신 3개 + 실행 중은 보존)
