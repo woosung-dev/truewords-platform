@@ -106,9 +106,9 @@ Issue 를 택한 이유는 두 가지다. 새 secret 이 필요 없고(`GITHUB_T
 
 같은 사고가 **더 길게 재발했다.** GHA 청구 차단이 2026-08-07~31 로 25일간 이어져 `cache-cleanup.yml` 이 그동안 한 번도 돌지 않았고, 08-30 에는 PR 3건이 CI 가 시작조차 못 한 채 머지됐다. `ops-check.sh` 는 매일 `cache-ttl FAIL` 을 `/opt/ops-status.json` 에 기록했다 — 탐지는 정확히 동작했고, 읽는 사람이 없었다.
 
-채널은 **ntfy.sh** 로 정했다(사용자 결정). 위 두 안과 비교해 자격증명·IAM·워크스페이스가 전혀 없고, VM `.env` 의 `NTFY_TOPIC` 하나로 끝난다. 토픽 이름이 곧 비밀이므로 무작위 값을 쓴다. `ops-check.sh` 마지막에 FAIL/WARN 일 때만 `curl` 한 건을 보내고, 전송 실패는 판정을 바꾸지 않는다. 정상(OK)은 보내지 않는다 — 매일 오는 초록은 곧 무시되고 빨강도 같이 묻힌다.
+1차 구현은 **ntfy.sh 토픽 푸시**다. 위 두 안과 비교해 자격증명·IAM·워크스페이스가 전혀 없고, VM `.env` 의 `NTFY_TOPIC` 하나로 끝난다. 토픽 이름이 곧 비밀이므로 무작위 값을 쓴다. `ops-check.sh` 마지막에 FAIL/WARN 일 때만 `curl` 한 건을 보내고, 전송 실패는 판정을 바꾸지 않는다. 정상(OK)은 보내지 않는다 — 매일 오는 초록은 곧 무시되고 빨강도 같이 묻힌다.
 
-남은 공백 하나는 그대로다: **cron 자체가 안 돌면** 이 방식으로는 알 수 없다. dead-man ping(healthchecks.io 류)은 별도 과제로 남긴다. 절차·리허설: [`infra/oracle-vm/README.md` §전달](../../infra/oracle-vm/README.md#전달--ntfy-푸시-2026-09-05).
+**수신 방식은 아직 열려 있다.** 사용자가 폰에 ntfy 앱을 설치하지 않기로 해서(2026-09-05), 앱 없이 받는 후보(healthchecks.io 이메일 + dead-man ★5, ntfy 이메일 전달, 메신저 웹훅, OCI Notifications)를 `docs/TODO.md` 의 전달 채널 항목에 비교표로 남겼다. 채널이 정해지면 같은 자리에 curl 한 줄이 더 붙는다. healthchecks.io 를 고르면 남은 공백 하나 — **cron 자체가 안 돌면 모른다** — 도 함께 닫힌다. 절차·리허설: [`infra/oracle-vm/README.md` §전달](../../infra/oracle-vm/README.md#전달--ntfy-푸시-2026-09-05).
 
 ## 검증
 

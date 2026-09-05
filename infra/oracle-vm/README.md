@@ -359,7 +359,7 @@ backend 컨테이너가 비정상이면 이 검사는 `SKIP` 하고 `containers`
 | 항목 | 값 |
 |---|---|
 | 채널 | `https://ntfy.sh/$NTFY_TOPIC` — 계정·키 없음. 토픽 이름이 비밀이라 `truewords-$(openssl rand -hex 8)` 같은 값을 쓴다 |
-| 설정 | VM `~/truewords/.env` 에 `NTFY_TOPIC=…` 한 줄 + 폰 ntfy 앱에서 같은 토픽 구독 |
+| 설정 | VM `~/truewords/.env` 에 `NTFY_TOPIC=…` 한 줄 + 수신 측 구독(폰 ntfy 앱 또는 웹 `https://ntfy.sh/<topic>`). **앱 없이 받는 방식(healthchecks.io 이메일 등)은 `docs/TODO.md` 전달 채널 항목에서 결정 대기** — `NTFY_TOPIC` 이 비어 있으면 이 블록은 아무것도 하지 않는다 |
 | 발송 조건 | FAIL ≥ 1 → priority `high`, WARN 만 있으면 `default`. **OK 는 보내지 않는다** — 매일 오는 초록 알림은 곧 안 읽게 된다 |
 | 본문 | OK 가 아닌 행만(이름·판정·DETAIL). 전문은 `/opt/ops-status.json` |
 | 실패 시 | 전송 실패는 판정을 바꾸지 않는다. stderr 에 경고만 남고 종료코드는 검사 결과 그대로 |
