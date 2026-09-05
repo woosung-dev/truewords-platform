@@ -28,6 +28,7 @@
 #   cron: 45 18 * * *  — 백업(18:00)·캐시정리(18:00)·추천질문(일 18:30) 뒤
 #
 # 종료 코드 0 = 전부 정상, 1 = 위반 있음. 결과는 /opt/ops-status.json 에도 쓴다.
+# FAIL/WARN 이 있으면 마지막에 ntfy 푸시 한 건을 보낸다 (.env 의 NTFY_TOPIC, §전달).
 
 # set -e 를 쓰지 않는다. 한 항목이 실패해도 나머지를 끝까지 검사해야 한다.
 # (restore-drill.sh 에서 고친 것과 같은 부류의 함정)
@@ -277,6 +278,39 @@ echo
   done
   printf ']}\n'
 } | sudo tee "$STATUS_FILE" >/dev/null
+
+# ── 전달 (ntfy 푸시) ──────────────────────────────────────────────────────
+# 탐지만 있고 전달이 없으면 조용한 실패가 되풀이된다. 2026-08-07~31 에 GHA 청구
+# 차단이 재발해 cache-cleanup.yml 이 25일간 안 돌았고, 이 스크립트는 매일
+# cache-ttl FAIL 을 JSON 에 적었지만 아무도 읽지 않았다. 감시자는 이미 다른
+# 실패 도메인(VM cron)에 있었다 — 빠진 것은 사람에게 닿는 마지막 한 줄이었다.
+#
+# 채널은 ntfy.sh 다. 계정·자격증명이 없고 VM .env 의 NTFY_TOPIC 하나면 된다.
+# 토픽 이름이 곧 비밀이므로 추측 불가능한 값을 쓴다(.env.example 참조).
+# FAIL/WARN 일 때만 보낸다 — 매일 오는 초록 알림은 곧 안 읽게 되고, 그러면
+# 빨간 알림도 같이 묻힌다. 전송 실패는 판정을 바꾸지 않는다(로그·JSON·종료코드는
+# 그대로). cron 자체가 안 도는 경우는 이 방식으로 못 잡는다 — dead-man ping 은 별도.
+NTFY_TOPIC="${NTFY_TOPIC:-$(grep -s '^NTFY_TOPIC=' .env | cut -d= -f2-)}"
+if [ -n "$NTFY_TOPIC" ] && { [ "$FAIL" -gt 0 ] || [ "$WARN" -gt 0 ]; }; then
+  # Title 헤더는 ASCII 만 안전하다(HTTP 헤더). 한국어 상세는 본문(-d)으로 보낸다.
+  if [ "$FAIL" -gt 0 ]; then
+    NTFY_TITLE="[truewords] ops-check FAIL x${FAIL}"; NTFY_PRIO="high"; NTFY_TAGS="rotating_light"
+  else
+    NTFY_TITLE="[truewords] ops-check WARN x${WARN}"; NTFY_PRIO="default"; NTFY_TAGS="warning"
+  fi
+  # 본문은 OK 가 아닌 행만. 전문은 ${STATUS_FILE} 과 cron 로그에 있다.
+  NTFY_BODY=$(for R in "${ROWS[@]}"; do
+    IFS='|' read -r n v d <<< "$R"
+    [ "$v" = "OK" ] || printf '%s %s — %s\n' "$n" "$v" "$d"
+  done)
+  if curl -fsS -m 10 -o /dev/null \
+       -H "Title: ${NTFY_TITLE}" -H "Priority: ${NTFY_PRIO}" -H "Tags: ${NTFY_TAGS}" \
+       -d "${NTFY_BODY}" "https://ntfy.sh/${NTFY_TOPIC}"; then
+    echo "ntfy 전송: ${NTFY_TITLE}"
+  else
+    echo "⚠️  ntfy 전송 실패 — 토픽·네트워크 확인. 판정은 위 표와 ${STATUS_FILE} 기준" >&2
+  fi
+fi
 
 if [ "$FAIL" -eq 0 ]; then
   if [ "$WARN" -gt 0 ]; then

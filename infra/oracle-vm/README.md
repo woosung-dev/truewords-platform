@@ -20,7 +20,7 @@
 | `prune-images.sh` | truewords 이미지 GC. web/admin/backend repo의 최신 3개·실행 중 이미지·명시적 보존 태그를 남깁니다. 최초 전환 전 admin 태그도 보존 대상으로 지정합니다. 빌드 캐시도 `until=168h` 로 정리합니다. |
 | `preserve-images.example` | VM `preserve-images.txt`의 형식 예제입니다. 실제 전환 전 통합 admin 태그를 기록하면 배포 자동 GC·주간 cron에서도 보존됩니다. |
 | `cache-cleanup.sh` | semantic_cache TTL 만료 point 정리 **수동 진입점**. 스케줄은 `cache-cleanup.yml`(GHA) 이 갖습니다 — cron 에 등록하지 않습니다. |
-| `ops-check.sh` | 운영 불변식 점검. 예약 작업이 "돌지 않은" 것까지 결과 기준으로 잡습니다. Gemini 키 생존도 함께 봅니다(§`gemini-key`) — probe 본체는 backend 이미지의 `scripts/gemini_key_probe.py` 라 이 디렉토리에 없습니다. |
+| `ops-check.sh` | 운영 불변식 점검. 예약 작업이 "돌지 않은" 것까지 결과 기준으로 잡습니다. Gemini 키 생존도 함께 봅니다(§`gemini-key`) — probe 본체는 backend 이미지의 `scripts/gemini_key_probe.py` 라 이 디렉토리에 없습니다. FAIL/WARN 이면 ntfy 푸시를 보냅니다(§전달). |
 
 ## 인프라 사양
 
@@ -352,7 +352,26 @@ ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec
 
 backend 컨테이너가 비정상이면 이 검사는 `SKIP` 하고 `containers` 에 진단을 양보한다 — 한 원인에 두 진단을 내면 엉뚱한 곳을 뒤진다.
 
-> ⚠️ **탐지는 닫혔지만 전달은 아직이다.** 위반은 로그·JSON·종료코드로만 남는다. 배포하지 않는 주에 백업이 죽으면 여전히 늦게 안다. push 채널에는 자격증명이 필요하고 현재 레포에는 없다. 채널이 정해지면 `ops-check.sh` 마지막에 한 줄이다 — Slack Incoming Webhook URL 을 `.env` 에 넣고 `curl`, 또는 OCI Notifications 토픽(Instance Principal 재사용, 새 키 불필요). 상세: [ADR](../../docs/adr/2026-07-30-silent-scheduled-job-failure.md)
+### 전달 — ntfy 푸시 (2026-09-05)
+
+탐지(위 7건)와 별개로 **전달**이 없어 2026-08-07~31 에 `cache-cleanup.yml` 이 25일간 안 돌았는데도(GHA 청구 차단 재발) 아무도 몰랐다. `ops-check.sh` 는 매일 `cache-ttl FAIL` 을 `/opt/ops-status.json` 에 적고 있었다. 그래서 스크립트 마지막에 [ntfy.sh](https://ntfy.sh) 푸시 한 줄을 붙였다.
+
+| 항목 | 값 |
+|---|---|
+| 채널 | `https://ntfy.sh/$NTFY_TOPIC` — 계정·키 없음. 토픽 이름이 비밀이라 `truewords-$(openssl rand -hex 8)` 같은 값을 쓴다 |
+| 설정 | VM `~/truewords/.env` 에 `NTFY_TOPIC=…` 한 줄 + 폰 ntfy 앱에서 같은 토픽 구독 |
+| 발송 조건 | FAIL ≥ 1 → priority `high`, WARN 만 있으면 `default`. **OK 는 보내지 않는다** — 매일 오는 초록 알림은 곧 안 읽게 된다 |
+| 본문 | OK 가 아닌 행만(이름·판정·DETAIL). 전문은 `/opt/ops-status.json` |
+| 실패 시 | 전송 실패는 판정을 바꾸지 않는다. stderr 에 경고만 남고 종료코드는 검사 결과 그대로 |
+
+리허설은 반증 가능하게 한다 — 정상 실행에서는 푸시가 **오지 않아야** 하고, 임계값을 강제로 깨면 **와야** 한다.
+
+```bash
+make ops-check                                                        # 정상: 푸시 없음
+ssh truewords-oracle 'BACKUP_MAX_AGE_H=0 bash ~/truewords/ops-check.sh'   # backup FAIL 강제 → 폰에 "[truewords] ops-check FAIL x1"
+```
+
+> 한계: **cron 자체가 안 돌면 이 방식으로는 모른다.** 스크립트가 실행돼야 푸시가 나간다. "안 돌았음" 까지 잡으려면 dead-man ping(healthchecks.io 류)을 `ops-check.sh`·`backup-db.sh` 끝에 한 줄 더 붙여야 한다 — 별도 과제. 배경: [ADR](../../docs/adr/2026-07-30-silent-scheduled-job-failure.md)
 
 ---
 
