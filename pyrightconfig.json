@@ -1,21 +1,21 @@
 {
   "include": [
-    "backend/src",
-    "backend/tests",
-    "backend/main.py"
+    "apps/api/app",
+    "apps/api/tests"
   ],
   "exclude": [
-    "admin",
+    "apps/admin",
+    "apps/web",
     "**/node_modules",
     "**/__pycache__",
     "**/.venv",
     "**/dist",
     "**/build"
   ],
-  "venvPath": "backend",
+  "venvPath": "apps/api",
   "venv": ".venv",
   "pythonVersion": "3.12",
-  "extraPaths": ["backend"],
+  "extraPaths": ["apps/api"],
   "reportMissingImports": "warning",
   "reportMissingTypeStubs": "none"
 }

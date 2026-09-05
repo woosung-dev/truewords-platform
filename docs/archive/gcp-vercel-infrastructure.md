@@ -1,14 +1,14 @@
 # GCP + Vercel 인프라 구성
 
 > ⚠️ **폐기 (2026-07-29)** — GCP → Oracle Cloud 이전으로 더 이상 유효하지 않다. 이력 보존용 아카이브.
-> 현재 인프라는 [oracle-vm-migration](../07_infra/oracle-vm-migration.md) 과 `infra/oracle-vm/README.md` 를 참조한다.
+> 현재 인프라는 [oracle-vm-migration](../runbooks/oracle-vm-migration.md) 과 `infra/oracle-vm/README.md` 를 참조한다.
 
 > **현재 운영 환경 (2026-05-19~)**
 > - GCP 프로젝트: `jetaime-dev` (project number `780943117571`)
 > - 계정: `jetaime.jang@gmail.com`
 > - 리전: `asia-northeast3`
 > - Cloud Run URL: `https://truewords-backend-imrsiyibaa-du.a.run.app`
-> - 마이그레이션 경위: [`docs/dev-log/61-gcp-account-migration-jetaime.md`](../dev-log/61-gcp-account-migration-jetaime.md)
+> - 마이그레이션 경위: [`docs/adr/61-gcp-account-migration-jetaime.md`](../adr/61-gcp-account-migration-jetaime.md)
 
 ## 아키텍처
 

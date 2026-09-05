@@ -1,0 +1,83 @@
+"""스트리밍 생성기 테스트."""
+
+import pytest
+from unittest.mock import AsyncMock, patch
+
+from app.modules.chat.prompt import DEFAULT_SYSTEM_PROMPT
+from app.modules.chat.stream_generator import generate_answer_stream
+from app.modules.chatbot.runtime_config import GenerationConfig
+from app.modules.search.hybrid import SearchResult
+
+
+def _make_results(count: int = 3) -> list[SearchResult]:
+    return [
+        SearchResult(
+            text=f"말씀 텍스트 {i}",
+            volume=f"vol_{i:03d}",
+            chunk_index=i,
+            score=0.9 - i * 0.1,
+            source="A",
+        )
+        for i in range(count)
+    ]
+
+
+def _gen_cfg(prompt: str = DEFAULT_SYSTEM_PROMPT) -> GenerationConfig:
+    return GenerationConfig(system_prompt=prompt)
+
+
+class TestGenerateAnswerStream:
+    """generate_answer_stream 테스트."""
+
+    @pytest.mark.asyncio
+    @patch("app.modules.chat.stream_generator.generate_text_stream")
+    async def test_yields_chunks(self, mock_stream: AsyncMock) -> None:
+        async def fake_gen(*args, **kwargs):
+            yield "참사랑은 "
+            yield "자기희생적 "
+            yield "사랑입니다."
+
+        mock_stream.return_value = fake_gen()
+
+        results = _make_results()
+        collected = []
+        async for chunk in generate_answer_stream(
+            "참사랑이란?", results, generation_config=_gen_cfg()
+        ):
+            collected.append(chunk)
+
+        assert collected == ["참사랑은 ", "자기희생적 ", "사랑입니다."]
+
+    @pytest.mark.asyncio
+    @patch("app.modules.chat.stream_generator.generate_text_stream")
+    async def test_empty_results_still_works(self, mock_stream: AsyncMock) -> None:
+        async def fake_gen(*args, **kwargs):
+            yield "관련 말씀을 찾지 못했습니다."
+
+        mock_stream.return_value = fake_gen()
+
+        collected = []
+        async for chunk in generate_answer_stream(
+            "알 수 없는 질문", [], generation_config=_gen_cfg()
+        ):
+            collected.append(chunk)
+
+        assert len(collected) == 1
+
+    @pytest.mark.asyncio
+    @patch("app.modules.chat.stream_generator.generate_text_stream")
+    async def test_passes_system_prompt(self, mock_stream: AsyncMock) -> None:
+        async def fake_gen(*args, **kwargs):
+            yield "답변"
+
+        mock_stream.return_value = fake_gen()
+
+        results = _make_results(1)
+        async for _ in generate_answer_stream(
+            "질문", results, generation_config=_gen_cfg()
+        ):
+            pass
+
+        call_kwargs = mock_stream.call_args
+        assert "system_instruction" in call_kwargs.kwargs
+        assert call_kwargs.kwargs["system_instruction"] == DEFAULT_SYSTEM_PROMPT

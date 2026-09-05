@@ -1,0 +1,4 @@
+@import "@truewords/ui-web/styles";
+
+/* Portal을 포함한 공통 컴포넌트의 utility class를 각 앱 CSS에 포함한다. */
+@source "../../../../packages/ui-web/src";

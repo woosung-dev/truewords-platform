@@ -1,156 +1,79 @@
-# TrueWords Platform - 기술 설계 문서
+# TrueWords 기술 문서
 
-말씀 AI 챗봇 프로젝트의 아키텍처 설계, 기술 결정, 시장 조사 및 프로덕트 설계 문서입니다.
+현재 작업은 **M1~M4 모노레포 구조 전환**이다. 사용자 승인 범위는 구현·검증·PR까지이며, 운영 배포·PWA 신규 인증/푸시·Flutter 개발은 포함하지 않는다.
 
-## 모노레포 전환 방향 (2026-09-05)
-
-목표는 **사용자 Next.js PWA·관리자 Next.js·FastAPI를 독립 앱으로 분리**하고, Flutter는 추후 같은 제품 API의 클라이언트로 추가하는 것입니다. 현재 구현은 아직 `admin/` + `backend/`입니다.
-
-| 문서 | 상태·내용 |
+| 먼저 읽을 문서 | 용도 |
 |---|---|
-| [PWA·Flutter 모노레포 설계](./04_architecture/2026-09-05-pwa-flutter-monorepo.md) | 검토용 초안: 목표 폴더, 공유 경계, 인증·SSE·알림·독립 배포 |
-| [단계별 전환 계획](./plans/active/2026-09-05-monorepo-migration.md) | 미실행: 폴더 이동→웹 분리→계약→문서/배포→PWA 제품 기능 |
+| [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md) | web/admin/API 경계, 공통 API·인증·SSE·알림 정책 |
+| [전환 실행 계획](plans/completed/2026-09-05-monorepo-migration.md) | M1~M4 범위와 실제 검증 증거, M5 제외 범위 |
+| [로컬 환경 설정](runbooks/environment-setup.md) | 앱별 실행과 환경변수 |
+| [전환·복구 runbook](runbooks/monorepo-migration-and-rollback.md) | 로컬 볼륨 보존, 운영 origin·이미지·라우팅 전환 |
+| [TODO](TODO.md) | 승인 대기 결정과 후속 작업 |
 
-설계의 목표 구조와 아래 현재 운영 구조를 구분합니다. 전체 docs 재분류도 실행 계획에 포함되어 있으며, 이 문서 작성 시점에는 기존 링크를 유지합니다.
+## 문서 책임
 
----
-
-## 00_project/ — 프로젝트 개요
-
-| 문서 | 설명 | 키워드 |
-|------|------|--------|
-| [01-project-overview](./00_project/01-project-overview.md) | 프로젝트 배경, 팀 구성, 액션 아이템, 핵심 논의 | 요구사항, 데이터 범위 |
-
----
-
-## 01_requirements/ — 기능 명세
-
-| 문서 | 설명 | 키워드 |
-|------|------|--------|
-| [16-app-feature-spec](./01_requirements/16-app-feature-spec.md) | MVP 기능 목록, 모듈별 스펙, 릴리스 계획 | 기능 스펙, 화면 목록 |
-
----
-
-## 02_domain/ — 도메인 모델
-
-| 문서 | 설명 | 키워드 |
-|------|------|--------|
-| [06-terminology-dictionary-structure](./02_domain/06-terminology-dictionary-structure.md) | 대사전 데이터 구조 5가지 방안 비교, 추천 조합 | 용어사전, 컬렉션 설계 |
-
----
-
-## 04_architecture/ — 시스템 설계
-
-| 문서 | 설명 | 키워드 |
-|------|------|--------|
-| [diagrams/](./04_architecture/diagrams/README.md) | **현재 운영 구조 다이어그램 6종** — 시스템 · 데이터 모델 · 레포 · 채팅 시퀀스 · 적재 데이터플로우 · 적재 상태 라이프사이클 (archify) | 다이어그램, 인터랙티브 HTML |
-| [02-architecture-design](./04_architecture/02-architecture-design.md) | 전체 인프라 구조, 요청 처리 파이프라인, Qdrant 컬렉션 설계 | PostgreSQL, Qdrant, Gemini |
-| [03-vector-db-comparison](./04_architecture/03-vector-db-comparison.md) | 10종 벡터DB 다차원 평가 (Qdrant 8.75/10 선정) | DB 선정 근거 |
-| [04-gemini-file-search-analysis](./04_architecture/04-gemini-file-search-analysis.md) | Gemini File Search API 기능/한계, Context Caching, 비용 | Gemini, 비용 |
-| [05-rag-pipeline](./04_architecture/05-rag-pipeline.md) | RAG 구조, 고도화 5방향, 말씀 시간 기준 정책 | RAG, 하이브리드 검색 |
-| [07-multi-chatbot-version](./04_architecture/07-multi-chatbot-version.md) | A\|B 조합 구현, 우선순위 검색 (Cascading Search) | 챗봇 버전, 필터링 |
-| [08-semantic-cache](./04_architecture/08-semantic-cache.md) | 시맨틱 캐시 전략, 비용/속도 분석 | 캐시, 비용 절감 |
-| [09-security-countermeasures](./04_architecture/09-security-countermeasures.md) | 악의적 사용 대응 9가지, 단계적 공개 | 보안, 가드레일 |
-| [10-vibe-coding-and-pinecone-vs-qdrant](./04_architecture/10-vibe-coding-and-pinecone-vs-qdrant.md) | Pinecone과 Qdrant 상세 비교 | DB 비교 |
-| [11-data-routing-strategies](./04_architecture/11-data-routing-strategies.md) | 데이터 소스 선택/라우팅 20가지 전략 | 라우팅, 검색 전략 |
-
----
-
-## dev-log/ — 조사 및 의사결정 기록
-
-| 문서 | 설명 | 키워드 |
-|------|------|--------|
-| [12-market-analysis](./dev-log/12-market-analysis.md) | 글로벌 종교 AI 플랫폼 시장 조사 | 경쟁 현황, 시장 기회 |
-| [13-competitor-deep-dive](./dev-log/13-competitor-deep-dive.md) | Hallow·초원 기능 스펙, 비즈니스 모델 비교 | Hallow, 초원 |
-| [14-success-factors-strategy](./dev-log/14-success-factors-strategy.md) | 4대 성공 요인, 차별화 포지셔닝 | 전략, MVP 로드맵 |
-| [15-local-llm-benchmark](./dev-log/15-local-llm-benchmark.md) | 13개 로컬 LLM 성능/품질 비교 | LLM, Spec Decoding |
-| [17-design-strategy](./dev-log/17-design-strategy.md) | UI/UX 디자인 전략 (초안, 고도화 필요) | 디자인, 컬러, 화면 |
-| [18-ai-rules-update-plan](./dev-log/18-ai-rules-update-plan.md) | .ai/rules 수정 계획 | 규칙 업데이트 |
-
----
-
-## research/ — 제품·시장 조사
-
-| 문서 | 설명 | 키워드 |
-|------|------|--------|
-| [2026-08-30-chowon-ai-benchmark](./research/2026-08-30-chowon-ai-benchmark.md) | 초원AI의 현재 기능·공개 실제 화면·수익화·신뢰 리스크 교차 조사 | 초원AI, 경쟁 분석, 화면 |
-| [2026-08-30-pwa-app-direction](./research/2026-08-30-pwa-app-direction.md) | FFWPU 독립 베타의 포지셔닝·MVP·Web Push 타당성·16개 세션 로드맵과 후속 프롬프트 | PWA, 제품 전략, 알림 |
-| [2026-08-31-chowon-pwa-strategy-report](./research/2026-08-31-chowon-pwa-strategy-report.html) | 벤치마크와 제품 방향을 한 화면에서 검토하는 자체 포함 HTML 보고서 | 의사결정 보고서, 비교 차트 |
-
-> 위 PWA 방향은 세션 0에서 승인됐으며, 기존 `faith-union-app` 프로토타입 및 Flutter Phase 4 기능 명세와 별개다.
-
----
-
-## 05_env/ — 환경 설정
-
-| 문서 | 설명 | 키워드 |
-|------|------|--------|
-| [environment-setup](./05_env/environment-setup.md) | 로컬/스테이징/프로덕션 환경 설정, 환경변수 레퍼런스 | 개발환경, Docker Compose |
-
----
-
-## 06_devops/ — CI/CD 파이프라인
-
-| 문서 | 설명 | 키워드 |
-|------|------|--------|
-| [ci-cd-pipeline](./06_devops/ci-cd-pipeline.md) | GitHub Actions CI(테스트) + cron, `make deploy-backend` 수동 배포, 롤백 | CI/CD, 배포, 롤백 |
-
----
-
-## 07_infra/ — 인프라 구성
-
-| 문서 | 설명 | 키워드 |
-|------|------|--------|
-| [oracle-vm-migration](./07_infra/oracle-vm-migration.md) | GCP → Oracle Cloud ARM VM 이전 절차와 실행 기록 (2026-07-29 완료) | Oracle, 이전, Cloudflare Tunnel |
-| [`infra/oracle-vm/README.md`](../infra/oracle-vm/README.md) | **일상 운영 기준 문서** — compose 구성, 배포·롤백, 백업·복구, 트러블슈팅 | 운영, 배포, 백업 |
-
----
-
-## archive/ — 폐기 문서 (이력 보존)
-
-GCP → Oracle 이전(2026-07-29)으로 무효가 된 문서들이다. 현재 인프라를 설명하지 않으니 참고만 한다.
-
-| 문서 | 폐기 사유 |
-|------|-----------|
-| [gcp-vercel-infrastructure](./archive/gcp-vercel-infrastructure.md) | Cloud Run URL·리전·월 비용 전부 무효 |
-| [qdrant-self-hosting](./archive/qdrant-self-hosting.md) | GCP VM Qdrant 전제 |
-| [staging-separation](./archive/staging-separation.md) | GCP staging 전제, 미실행 계획 |
-| [gcloud-infra-setup](./archive/gcloud-infra-setup.md) | gcloud CLI 셋업 가이드 |
-
----
-
-## guides/ — 개발 가이드
-
-| 문서 | 설명 | 키워드 |
-|------|------|--------|
-| [development-workflow](./guides/development-workflow.md) | 개발 워크플로우 (gstack + superpowers + ai-rules), 작업 유형별 프로세스, 현재 진행 상태 | 워크플로우, 방법론, 다음 작업 |
-
----
-
-## 핵심 아키텍처 결정
-
-```
-Next.js 16 (Web 채팅 + Admin 단일 앱) + FastAPI (백엔드) + Qdrant (검색) + PostgreSQL (운영) + Gemini 3.5 Flash Lite (생성) / gemini-embedding-001 (임베딩)
+```text
+docs/
+├── prd/                 # 제품 배경·요구사항
+├── specs/               # 공통 업무 동작 + 플랫폼별 인수 조건
+│   ├── domain/          # 데이터 모델·도메인 정의
+│   └── api/             # API 동작 명세 (생성 계약은 루트 contracts/)
+├── adr/                 # 장기 의사결정·보류 결정의 근거
+├── architecture/        # 시스템 설계·문서 이전 manifest
+├── plans/
+│   ├── active/          # 현재 승인되어 실행하는 계획
+│   └── completed/       # 실제 완료 증거를 첨부한 계획만 이동
+├── runbooks/            # 개발·CI·운영·배포·복구
+├── research/            # 시장/기술 조사, 실측, 외부 코드 분석
+└── archive/             # 과거 계획·사고·종료된 체험단·폐기 설계
 ```
 
-- **Qdrant**: 종합 평가 8.75/10으로 선정 (10종 비교)
-- **Gemini File Search**: 단독 사용 비추 (4.85/10), 생성 모델 + Context Caching으로 활용
-- **배포**: Oracle Cloud ARM VM 단일 노드 — admin · backend · Qdrant · PostgreSQL · Cloudflare Tunnel 5 컨테이너 (2026-07-29 GCP/Vercel 에서 이전)
-- **운영 비용**: 인프라 $0 (Oracle Always Free) + Gemini API 사용량
+문서 ID와 파일명은 보존한다. PRD를 웹/모바일별로 복제하지 않고, 한 기능 spec에서 공통 규칙과 플랫폼별 동작을 구분한다. 과거 문서의 `backend/`, `admin/`, `src.*`와 실행 결과는 **당시 기록**이며 현재 명령의 근거로 사용하지 않는다.
 
-## 문서 간 참조 관계
+## 제품·기능 명세
 
-```
-개발 지시 시 참조 가이드:
+| 문서 | 내용 |
+|---|---|
+| [01-project-overview](prd/01-project-overview.md) | 기존 제품 배경·데이터 범위 |
+| [16-app-feature-spec](prd/16-app-feature-spec.md) | 이전 MVP/Flutter 구상. 신규 PWA 요구사항으로 자동 상속하지 않음 |
+| [17-chatbot-system-prompt-spec](specs/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 |
+| [18-category-document-stats](specs/18-category-document-stats.md), [19-category-tag-management-ui](specs/19-category-tag-management-ui.md) | 문서 통계·카테고리 UI |
+| [도메인 사전](specs/domain/06-terminology-dictionary-structure.md), [중복 업로드 API](specs/api/check_duplicate.md) | 용어 데이터 구조·업로드 동작 |
 
-AI 챗봇 개발   → 04_architecture/02 + 04_architecture/05 + 01_requirements/16
-검색 기능 개발 → 04_architecture/05 + 04_architecture/11 + 04_architecture/07
-보안/가드레일  → 04_architecture/09 + dev-log/12
-UI/프론트엔드  → 01_requirements/16 + dev-log/17 + dev-log/13
-캐싱/비용 최적화 → 04_architecture/08 + 04_architecture/04
-전략/기획 논의 → dev-log/12 + dev-log/14 + 00_project/01
-신규 가정연합 PWA → research/2026-08-30-pwa-app-direction + research/2026-08-30-chowon-ai-benchmark
-로컬 LLM 활용  → dev-log/15
-```
+2026-03/04 날짜가 있는 `specs/`의 개별 설계는 당시 승인 상태를 유지한다. 과거 계획의 체크박스를 현재 완료 증거로 바꾸지 않는다. 미착수 Flutter/과거 Cloud Run 스펙은 `archive/specs/`에 분리했다.
 
-> `dev-log/12~14`는 개신교·성경 앱 시장을 전제로 한 기존 벤치마크다. 신규 가정연합 PWA의 요구사항으로 상속하지 않는다.
+## 아키텍처·결정
+
+| 문서 | 내용 |
+|---|---|
+| [02-architecture-design](architecture/02-architecture-design.md), [05-rag-pipeline](architecture/05-rag-pipeline.md) | 기반 설계와 RAG 정책 |
+| [07-multi-chatbot-version](architecture/07-multi-chatbot-version.md), [11-data-routing-strategies](architecture/11-data-routing-strategies.md) | 챗봇 조합·라우팅 |
+| [08-semantic-cache](architecture/08-semantic-cache.md), [09-security-countermeasures](architecture/09-security-countermeasures.md) | 캐시·가드레일 설계 |
+| [구조 다이어그램 6종](architecture/diagrams/README.md) | **2026-09-04 분리 전 스냅샷**. JSON/HTML/PNG 원본 보존, 분리 후 구조로 오인 금지 |
+| [ADR 목록](adr/) | 기존 ADR 번호 유지. [Oracle 이전](adr/2026-07-25-gcp-to-oracle-migration.md), [HTTP/2 회피](adr/47-qdrant-sdk-http2-permanent-fix.md) 등 |
+
+현재 앱의 위치와 실행 명령은 [루트 README](../README.md), 현재 설계는 [ARCH-MONO-001](architecture/2026-09-05-pwa-flutter-monorepo.md)을 우선한다. 과거 아키텍처 문서의 청사진·성능 수치는 이번 이전에서 재측정한 결과가 아니다.
+
+## 개발·운영
+
+| 문서 | 내용 |
+|---|---|
+| [environment-setup](runbooks/environment-setup.md) | pnpm/uv, 앱별 환경, 쿠키·볼륨 주의점 |
+| [ci-cd-pipeline](runbooks/ci-cd-pipeline.md) | 변경 범위별 검증·독립 배포·필수 CI 집계 |
+| [development-workflow](runbooks/development-workflow.md), [integration-branch-workflow](runbooks/integration-branch-workflow.md) | 작업·통합 브랜치 규칙 |
+| [oracle-vm-migration](runbooks/oracle-vm-migration.md), [VM 운영 기준](../infra/oracle-vm/README.md) | 기존 Oracle 이전 이력·일상 운영 |
+| [redteam-test-guide](runbooks/redteam-test-guide.md), [semantic-cache-cleanup](runbooks/semantic-cache-cleanup.md) | 과거 화면 기반 레드팀 가이드·캐시 운영 |
+
+## 조사·이력
+
+| 분류 | 읽을 자료 |
+|---|---|
+| 현재 PWA 제품 조사 | [초원AI 벤치마크](research/2026-08-30-chowon-ai-benchmark.md), [가정연합 PWA 방향](research/2026-08-30-pwa-app-direction.md), [검토 보고서](research/2026-08-31-chowon-pwa-strategy-report.html) |
+| 기존 시장 전략 | [12](research/12-market-analysis.md), [13](research/13-competitor-deep-dive.md), [14](research/14-success-factors-strategy.md): 개신교/성경 앱 전제이며 FFWPU PRD로 자동 상속하지 않음 |
+| 기술·코드 조사 | [청킹/임베딩](research/19-rag-chunking-embedding-research.md), [로컬 LLM](research/15-local-llm-benchmark.md), [외부 코드 분석](research/insights/README.md) |
+| 과거 계획·운영 기록 | [archive 설명](archive/README.md). 완료 여부를 이번 이전에서 새로 판정하지 않음 |
+| 이전 감사 | [문서 이전 manifest](architecture/2026-09-05-document-migration-manifest.json): 모든 기존 문서/매체의 이전 전 SHA-256·새 위치·분류 이유 |
+
+기존 색인에만 있고 기준 commit `59e3a59`에 원본이 없는 문서 3개(`03-vector-db-comparison`, `04-gemini-file-search-analysis`, `10-vibe-coding-and-pinecone-vs-qdrant`)는 새 색인의 링크에서 제외했다. 원본 복구 전 내용을 만들거나 다른 문서로 가장하지 않는다. 상세는 manifest의 `missingIndexSources`를 참조한다.
+
+검증: 저장소 루트에서 `node tooling/checks/docs-links.mjs`. 로컬 Markdown/HTML 링크·앵커·매체 경로를 검사하며, 외부 사이트 접근이나 과거 명령의 실행 성공을 보증하지 않는다.

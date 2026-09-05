@@ -1,0 +1,22 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "globalDependencies": ["pnpm-lock.yaml", "pnpm-workspace.yaml", "contracts/fixtures/**"],
+  "tasks": {
+    "dev": { "cache": false, "persistent": true },
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "env": ["NEXT_PUBLIC_API_URL", "NEXT_PUBLIC_WEB_URL", "NEXT_PUBLIC_ADMIN_URL"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "typecheck": { "dependsOn": ["^typecheck"], "outputs": [] },
+    "lint": { "dependsOn": ["^lint"], "outputs": [] },
+    "test": { "dependsOn": ["^typecheck"], "outputs": [] },
+    "@truewords/api#test": { "cache": false },
+    "contracts:export": {
+      "cache": false,
+      "inputs": ["app/**", "scripts/export_openapi.py", "pyproject.toml", "uv.lock"],
+      "outputs": ["../../contracts/openapi.json"]
+    }
+  }
+}

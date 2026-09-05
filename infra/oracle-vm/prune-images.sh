@@ -39,7 +39,19 @@
 set -uo pipefail
 
 KEEP="${KEEP:-3}"
-REPOS="${REPOS:-truewords-backend truewords-admin}"
+REPOS="${REPOS:-truewords-backend truewords-admin truewords-web}"
+# 최신 N개 밖의 지정 롤백 태그도 보존한다(공백으로 구분한 repo:tag 목록).
+PRESERVE_IMAGES="${PRESERVE_IMAGES:-}"
+# 배포 자동 GC와 cron에서도 같은 롤백 목록을 읽는다. 비밀 .env는 source하지 않는다.
+PRESERVE_IMAGES_FILE="${PRESERVE_IMAGES_FILE:-${TW_DIR:-${HOME}/truewords}/preserve-images.txt}"
+if [ -f "$PRESERVE_IMAGES_FILE" ]; then
+  # 보존 목록을 읽지 못한 상태에서는 어떤 이미지도 삭제하지 않는다.
+  if ! PRESERVED_FROM_FILE=$(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "$PRESERVE_IMAGES_FILE"); then
+    echo "롤백 이미지 보존 목록 읽기 실패: $PRESERVE_IMAGES_FILE — GC 중단" >&2
+    exit 1
+  fi
+  PRESERVE_IMAGES="$PRESERVE_IMAGES $PRESERVED_FROM_FILE"
+fi
 CACHE_KEEP="${CACHE_KEEP:-168h}"
 DRY_RUN="${DRY_RUN:-0}"
 
@@ -62,8 +74,8 @@ for repo in $REPOS; do
   fi
 
   for img in $CANDIDATES; do
-    if grep -qxF "$img" <<< "$IN_USE"; then
-      log "  ${img}: 실행 중이라 보존"
+    if grep -qxF "$img" <<< "$IN_USE" || tr ' ' '\n' <<< "$PRESERVE_IMAGES" | grep -qxF "$img"; then
+      log "  ${img}: 참조 중 또는 지정 롤백 이미지라 보존"
       continue
     fi
     if [ "$DRY_RUN" = "1" ]; then

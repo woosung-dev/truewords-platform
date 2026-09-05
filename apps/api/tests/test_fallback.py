@@ -1,0 +1,229 @@
+"""fallback_search 비동기 테스트.
+
+raw httpx 전환 (PR-B) 이후 ``RawQdrantClient.query_points`` 가 ``list[QdrantPoint]``
+를 직접 반환하므로 mock 반환값도 리스트.
+"""
+
+import json
+import pytest
+from unittest.mock import AsyncMock, patch
+
+import httpx
+
+from app.modules.qdrant.raw_client import QdrantPoint
+from app.modules.search.exceptions import SearchFailedError
+from app.modules.search.fallback import fallback_search
+from app.modules.search.hybrid import SearchResult
+
+# 패치 경로 상수
+_SPARSE_PATCH = "app.modules.search.fallback.embed_sparse_async"
+_GENERATE_TEXT_PATCH = "app.modules.search.fallback.generate_text"
+
+
+def _make_result(text: str = "말씀", score: float = 0.3, source: str = "A") -> SearchResult:
+    """테스트용 SearchResult 생성 헬퍼."""
+    return SearchResult(
+        text=text,
+        volume="vol_001",
+        chunk_index=0,
+        score=score,
+        source=source,
+    )
+
+
+def _make_point(text: str = "말씀", score: float = 0.3, source: str = "A") -> QdrantPoint:
+    """테스트용 QdrantPoint 생성 헬퍼."""
+    return QdrantPoint(
+        id="vol_001-0",
+        score=score,
+        payload={"text": text, "volume": "vol_001", "chunk_index": 0, "source": source},
+    )
+
+
+@pytest.mark.asyncio
+async def test_fallback_returns_none_when_results_exist():
+    """원본 결과가 있으면 fallback을 수행하지 않고 fallback_type='none'을 반환한다."""
+    client = AsyncMock()
+    original = [_make_result("말씀 1", score=0.8)]
+
+    results, fallback_type = await fallback_search(
+        client=client,
+        query="참부모님",
+        original_results=original,
+        dense_embedding=[0.1] * 10,
+    )
+
+    # client.query_points 호출 없음
+    client.query_points.assert_not_called()
+    assert results == original
+    assert fallback_type == "none"
+
+
+@pytest.mark.asyncio
+async def test_fallback_relaxed_search_removes_source_filter():
+    """원본 결과가 0건이면 source 필터 없이 전체 컬렉션을 재검색하고 fallback_type='relaxed'를 반환한다."""
+    client = AsyncMock()
+    point = _make_point("말씀 B", score=0.2, source="B")
+    client.query_points.return_value = [point]
+
+    with patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1, 2], [0.5, 0.3])):
+        results, fallback_type = await fallback_search(
+            client=client,
+            query="원죄",
+            original_results=[],
+            dense_embedding=[0.1] * 10,
+        )
+
+    # query_points 한 번 호출, query_filter=None 으로 전달되었는지 확인
+    client.query_points.assert_called_once()
+    call_kwargs = client.query_points.call_args.kwargs
+    assert call_kwargs.get("query_filter") is None
+
+    assert fallback_type == "relaxed"
+    assert len(results) == 1
+    assert results[0].text == "말씀 B"
+    assert results[0].source == "B"
+
+
+@pytest.mark.asyncio
+async def test_fallback_suggestions_when_relaxed_also_empty():
+    """relaxed 검색도 0건이면 LLM 질문 제안을 시도하고 fallback_type='suggestions'를 반환한다."""
+    client = AsyncMock()
+    # relaxed 검색 결과도 빈 포인트 목록
+    client.query_points.return_value = []
+
+    with (
+        patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])),
+        patch(_GENERATE_TEXT_PATCH, new_callable=AsyncMock, return_value='["질문1", "질문2", "질문3"]'),
+    ):
+        results, fallback_type = await fallback_search(
+            client=client,
+            query="존재하지않는주제",
+            original_results=[],
+            dense_embedding=[0.1] * 10,
+        )
+
+    assert fallback_type == "suggestions"
+    assert results == []
+
+
+@pytest.mark.asyncio
+async def test_fallback_suggestions_returns_parsed_list():
+    """_generate_suggestions가 LLM 응답을 JSON 배열로 파싱하여 리스트를 반환한다."""
+    from app.modules.search.fallback import _generate_suggestions
+
+    expected = ["질문1", "질문2", "질문3"]
+    with patch(
+        _GENERATE_TEXT_PATCH,
+        new_callable=AsyncMock,
+        return_value=json.dumps(expected),
+    ):
+        result = await _generate_suggestions("참부모님은 누구인가요?")
+
+    assert result == expected
+
+
+@pytest.mark.asyncio
+async def test_fallback_suggestions_graceful_on_llm_failure():
+    """LLM 호출이 실패하면 예외를 전파하지 않고 빈 리스트를 반환한다."""
+    from app.modules.search.fallback import _generate_suggestions
+
+    with patch(_GENERATE_TEXT_PATCH, new_callable=AsyncMock, side_effect=Exception("API 오류")):
+        result = await _generate_suggestions("아무 질문")
+
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_fallback_relaxed_converts_httpx_timeout_to_search_failed():
+    """relaxed Qdrant 호출이 httpx.ReadTimeout 으로 실패하면 SearchFailedError 로 변환된다.
+
+    회귀 방지: 운영 fallback 경로의 httpx 예외가 unhandled 로 ASGI 까지 전파돼
+    500 INTERNAL_ERROR 가 사용자에게 노출되던 결함 (2026-05-08).
+    """
+    client = AsyncMock()
+    client.query_points.side_effect = httpx.ReadTimeout("read timeout")
+
+    with patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1, 2], [0.5, 0.3])):
+        with pytest.raises(SearchFailedError) as exc_info:
+            await fallback_search(
+                client=client,
+                query="원죄",
+                original_results=[],
+                dense_embedding=[0.1] * 10,
+            )
+
+    # retry 1회 포함 총 2번 호출 시도
+    assert client.query_points.call_count == 2
+    # 메시지에 예외 타입 포함 (운영 디버깅용)
+    assert "ReadTimeout" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_fallback_relaxed_converts_httpx_connect_error_to_search_failed():
+    """Cloudflare Tunnel disconnect 등 ConnectError 도 SearchFailedError 로 변환된다."""
+    client = AsyncMock()
+    client.query_points.side_effect = httpx.ConnectError("connect failed")
+
+    with patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])):
+        with pytest.raises(SearchFailedError) as exc_info:
+            await fallback_search(
+                client=client,
+                query="아무 질문",
+                original_results=[],
+                dense_embedding=[0.1] * 10,
+            )
+
+    assert client.query_points.call_count == 2
+    assert "ConnectError" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_fallback_relaxed_retries_once_and_succeeds():
+    """첫 호출이 일시 실패 후 두 번째에 성공하면 정상 결과를 반환한다.
+
+    Cloudflare Tunnel 단발 hiccup 흡수용 retry 1회 동작 검증.
+    """
+    client = AsyncMock()
+    point = _make_point("말씀 B", score=0.2, source="B")
+    client.query_points.side_effect = [
+        httpx.ReadTimeout("transient timeout"),
+        [point],  # 두 번째 호출 성공
+    ]
+
+    with patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])):
+        results, fallback_type = await fallback_search(
+            client=client,
+            query="원죄",
+            original_results=[],
+            dense_embedding=[0.1] * 10,
+        )
+
+    assert client.query_points.call_count == 2
+    assert fallback_type == "relaxed"
+    assert len(results) == 1
+    assert results[0].text == "말씀 B"
+
+
+@pytest.mark.asyncio
+async def test_fallback_score_threshold_filters_low_scores():
+    """score_threshold 미만인 포인트는 relaxed 결과에서 제외된다."""
+    client = AsyncMock()
+    # score 0.15 (threshold 이상), 0.03 (threshold 미만) 두 포인트
+    high_point = _make_point("좋은 말씀", score=0.15)
+    low_point = _make_point("낮은 점수 말씀", score=0.03)
+    client.query_points.return_value = [high_point, low_point]
+
+    with patch(_SPARSE_PATCH, new_callable=AsyncMock, return_value=([1], [0.5])):
+        results, fallback_type = await fallback_search(
+            client=client,
+            query="필터 테스트",
+            original_results=[],
+            dense_embedding=[0.1] * 10,
+            score_threshold=0.05,
+        )
+
+    assert fallback_type == "relaxed"
+    assert len(results) == 1
+    assert results[0].text == "좋은 말씀"
+    assert results[0].score == 0.15

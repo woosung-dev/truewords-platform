@@ -1,0 +1,47 @@
+# 폴더 이동 전 Compose project/볼륨을 보존한다. 테스트 worktree는 -p로 격리한다.
+name: backend
+
+services:
+  backend:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "${API_PORT:-8000}:8080"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://truewords:truewords@postgres:5432/truewords
+      QDRANT_URL: http://qdrant:6333
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "${QDRANT_HTTP_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  postgres:
+    image: postgres:17-alpine
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: truewords
+      POSTGRES_PASSWORD: truewords
+      POSTGRES_DB: truewords
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U truewords"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  qdrant_data:
+  postgres_data:

@@ -45,7 +45,7 @@ jobs:
       issues: write   # 실패 시 Issue 로 알린다 (아래 마지막 스텝)
     defaults:
       run:
-        working-directory: backend
+        working-directory: apps/api
 
     steps:
       - uses: actions/checkout@v4

@@ -1,0 +1,4 @@
+@import "@truewords/ui-web/styles";
+
+/* Tailwind v4는 workspace 패키지의 컴포넌트를 자동 스캔하지 않는다. */
+@source "../../../../packages/ui-web/src";

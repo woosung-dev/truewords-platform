@@ -1,12 +1,12 @@
 # Staging 환경 분리 설계 초안 (선행 #2)
 
 > ⚠️ **폐기 (2026-07-29)** — GCP → Oracle Cloud 이전으로 더 이상 유효하지 않다. 이력 보존용 아카이브.
-> 현재 인프라는 [oracle-vm-migration](../07_infra/oracle-vm-migration.md) 과 `infra/oracle-vm/README.md` 를 참조한다.
+> 현재 인프라는 [oracle-vm-migration](../runbooks/oracle-vm-migration.md) 과 `infra/oracle-vm/README.md` 를 참조한다.
 
 - **작성일**: 2026-04-25
 - **상태**: 설계 초안 — 사용자 의사결정 필요 (§7 체크리스트)
 - **관련**: 플랜 §19.12 #2, dev-log 25/26, `.claude/plans/sleepy-sleeping-summit.md`
-- **후속 문서**: `docs/05_env/environment-setup.md` (환경변수 테이블), `docs/06_devops/ci-cd-pipeline.md` (배포 파이프라인), `docs/archive/gcp-vercel-infrastructure.md` (인프라 구성)
+- **후속 문서**: `docs/runbooks/environment-setup.md` (환경변수 테이블), `docs/runbooks/ci-cd-pipeline.md` (배포 파이프라인), `docs/archive/gcp-vercel-infrastructure.md` (인프라 구성)
 
 ---
 
