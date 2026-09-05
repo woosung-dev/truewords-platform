@@ -67,7 +67,7 @@ describe("LoginPage", () => {
 
     fireEvent.change(screen.getByLabelText("이메일"), {
       // 대소문자·공백 정규화 잠금
-      target: { value: " JangWooSeng97@Gmail.com " },
+      target: { value: " Demo-Admin@Example.com " },
     });
     fireEvent.change(screen.getByLabelText("비밀번호"), {
       target: { value: "password" },
