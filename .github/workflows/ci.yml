@@ -102,7 +102,7 @@ jobs:
       - run: node tooling/checks/docs-links.mjs
       - run: node tooling/checks/boundaries.mjs
       - run: node --test tooling/checks/*.test.mjs
-      - run: bash -n infra/oracle-vm/*.sh
+      - run: for script in infra/oracle-vm/*.sh; do bash -n "$script" || exit; done
 
   e2e:
     name: Cross-app E2E
