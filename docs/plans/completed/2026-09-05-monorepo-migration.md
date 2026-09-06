@@ -172,7 +172,8 @@ PWA/알림 (M5)
 | CI·문서·경계 | tooling **13/13**(필수 검사 실패/취소/skip, import 경계, web health, GC 보존/읽기 실패 포함), 신규 workflow actionlint, docs 링크·공백 검사 통과. CI 원격 결과는 PR checks에서 최종 확인 |
 | 원격 GitHub CI | `ef22e0e`의 [run 33951365380](https://github.com/woosung-dev/truewords-platform/actions/runs/33951365380) **8개 job 전부 success**(2026-09-05). API·양 앱·계약·E2E·저장소·변경 감지·CI Required 포함. Vercel 외부 preview는 별도 실패이며 `DEC-MONO-005`로 추적. 후속 commit 상태는 PR Checks가 기준 |
 | 독립 구현 리뷰 | 계획 완료·테스트 범위, API/보안, 프론트 성능/유지보수, red-team 검토. 확인한 캐시 입력·API 테스트 캐시·GC 보존/읽기 실패·legacy Vercel fallback은 수정 후 회귀 검증. 기존 쓰기 소유권 결함은 `SEC-MONO-001`로 분리 |
-| 운영 배포·계정/데이터 이전·PWA 실기기 푸시 | 미실행 |
+| 운영 배포 | **2026-09-06 완료** — backend `e833ce9` · web `dfb6916` · admin `41a9ef2`, Cloudflare `app → web:3000`·`truewords-admin → admin:3000`, `ops-check` 7건 OK. 기록: [runbook §실행 기록](../../runbooks/monorepo-migration-and-rollback.md#실행-기록-2026-09-06) |
+| 계정/데이터 이전·PWA 실기기 푸시 | 미실행 |
 
 M1~M4의 T-MONO-001~013 구현·로컬 검증을 완료했다. PR 생성·CI·최종 main 리뷰는 GitHub에서 추적하며 main merge와 운영 배포는 하지 않는다. 문서 이전은 [manifest](../../architecture/2026-09-05-document-migration-manifest.json), 운영 준비는 [runbook](../../runbooks/monorepo-migration-and-rollback.md)으로 추적한다. 실기기·운영 성공으로 확대 해석하지 않는다.
 
