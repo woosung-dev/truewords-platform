@@ -3900,7 +3900,7 @@ requires-dist = [
     { name = "python-docx", specifier = ">=1.2.0" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3.0" },
     { name = "python-multipart", specifier = ">=0.0.22" },
-    { name = "qdrant-client", extras = ["fastembed"], specifier = ">=1.12.0" },
+    { name = "qdrant-client", extras = ["fastembed"], specifier = ">=1.19.0" },
     { name = "sqlmodel", specifier = ">=0.0.22" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0" },
 ]
