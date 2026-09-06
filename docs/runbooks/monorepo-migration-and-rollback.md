@@ -44,7 +44,7 @@ POSTGRES_PORT=55432 QDRANT_HTTP_PORT=56333 QDRANT_GRPC_PORT=56334 API_PORT=58000
 
 | 항목 | 기존 운영 | 분리 후 제안·상태 |
 |---|---|---|
-| 사용자 origin | `app.<zone>` → `admin:3000` | `truewords.<zone>` → `web:3000` (canonical), `app.<zone>` 은 301 → `truewords.<zone>`. 2026-09-06 컷오버는 `app → web:3000` 으로 먼저 전환한 뒤 같은 날 canonical 을 바꿨다 |
+| 사용자 origin | `app.<zone>` → `admin:3000` | `truewords.<zone>` → `web:3000` (canonical). 2026-09-06 컷오버는 `app → web:3000` 으로 먼저 전환한 뒤 같은 날 canonical 을 바꾸고 `app.<zone>` route·DNS 를 삭제했다(실사용자 없음, 301 생략) |
 | 관리자 origin | 같은 `app.<zone>` | `truewords-admin.<zone>` → `admin:3000`, 2026-09-06 등록·분리 admin `41a9ef2` 배포 완료 |
 | API·Qdrant | `backend:8080`, `qdrant:6333` | 기존 DNS·서비스 이름 유지 |
 | Next API rewrite | build 시 API 주소 고정 | `NEXT_PUBLIC_API_URL=http://backend:8080`; 런타임 env만으로 변경 불가 |
@@ -108,6 +108,11 @@ node tooling/checks/smoke-images.mjs
 | 00:27 | Cloudflare 전환 | `app.woosung.dev` Service `admin:3000 → web:3000`. 즉시 `/`·`/login`·`/history`·`/about` 200, `/dashboard` 307 → truewords-admin, `/api/backend/health` 200, SSE chunk 14·sources·done. 10분 관찰 10/10 OK. 컨테이너 재시작 없음 |
 | 00:38 | `make deploy-admin` **41a9ef2** | guarded, `--no-deps`: admin 만 Recreate(backend·web `Created` 불변). `truewords-admin.woosung.dev` `/login`·`/dashboard`·`/access-denied` 200, `/` 307 → `/dashboard`, `/history` 307 → app, `/admin/auth/me` 401(미인증) |
 | 00:39 | `ops-check` | **7건 OK — containers 6개 정상(5 healthy + cloudflared up)**. `deploy.log` 3줄(backend·web·admin guarded) |
+| 00:5x | canonical 전환 시작 | Cloudflare `truewords.woosung.dev → web:3000` 추가(사용자가 `app` 행을 편집해 잠시 `app` DNS 가 사라짐 → `app` 재추가로 복구). [#241](https://github.com/woosung-dev/truewords-platform/pull/241) 머지 |
+| 00:58 | `.env` + backend | `WEB_FRONTEND_URL=https://truewords.woosung.dev`, `docker compose up -d --wait backend` 24초 |
+| 01:00 | `make deploy-web` **8980e0c** | `WEB_URL=https://truewords.woosung.dev`, guarded |
+| 02:12 | `make deploy-admin` **8980e0c** | 첫 시도는 `docker save \| ssh` 전송이 ssh 끊김으로 55분 정지 → 파이프 종료 후 재실행 성공. admin `/history`·`/about` → 307 `truewords.woosung.dev` |
+| 03:4x | `app.woosung.dev` 삭제 | 사용자 결정(실사용자 없음): Redirect Rule 대신 route·DNS 삭제. 남은 route 4개(api·vdb·truewords-admin·truewords). ops-check 7건 OK |
 
 롤백 자산: `truewords-admin:30ca81f`(통합 admin, `preserve-images.txt`), `truewords-backend:446a4bf`, VM `*.pre-split-20260906` 백업, Cloudflare 3행을 `admin:3000` 으로 되돌리기. 최소 2주 보존. 관리자는 새 hostname 에서 재로그인(host 별 쿠키, `domain=` 없음).
 

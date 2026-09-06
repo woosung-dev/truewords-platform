@@ -215,7 +215,7 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 - M1~M4 구조 전환 승인: 앱·계약·문서·CI·배포 준비까지 구현하고 PR로 검증한다. 최신 완료 증거는 `docs/plans/completed/2026-09-05-monorepo-migration.md`를 따른다.
 - 후속 **2안 승인**: UI·테마를 앱별로 소유하고 API SDK·ESLint·TypeScript 설정 3개 패키지만 유지한다. 구현·재검증은 `docs/plans/active/2026-09-05-app-owned-ui.md`에 기록한다. 신규 디자인·리디자인 승인이 아니다.
 - 이전 기준선은 pytest 964 passed / 4 skipped / 1 xfailed, Vitest 113, Playwright 23으로 기록됐으며, 현재 검증 결과로 복사하지 않는다.
-- 운영은 Oracle ARM VM 6컨테이너(web·admin·backend·Qdrant·Postgres·Cloudflare Tunnel)다. **2026-09-06 web/admin 분리 컷오버 완료**: `truewords.woosung.dev` → web(`app.woosung.dev` 는 301), `truewords-admin.woosung.dev` → admin. 배포는 `make deploy-*`(deploy-guard, 프론트는 `--no-deps`)로만 하며 단계별 승인이 필요하다.
+- 운영은 Oracle ARM VM 6컨테이너(web·admin·backend·Qdrant·Postgres·Cloudflare Tunnel)다. **2026-09-06 web/admin 분리 컷오버 완료**: `truewords.woosung.dev` → web(구 `app.woosung.dev` 는 폐지), `truewords-admin.woosung.dev` → admin. 배포는 `make deploy-*`(deploy-guard, 프론트는 `--no-deps`)로만 하며 단계별 승인이 필요하다.
 - `docs/architecture/diagrams/`의 JSON/HTML/PNG 7종(배포 워크플로 포함)은 2026-09-06 현재 구조(main `8980e0c`)로 재생성했다. 코드 경로·수치는 해당 commit 기준이며 운영 배포 증거는 runbook 을 따른다. 분리 전 JSON 은 `docs/archive/diagrams-2026-09-04/`.
 - PWA 신규 인증/서비스워커/알림(M5), Flutter Mobile은 미착수·이번 PR 비범위다.
 - CI/CD 점검(2026-09-05): 결정(public 전환·Vercel 삭제·ntfy 전달·cache-cleanup GHA 유지)과 현황은 `docs/adr/2026-09-05-cicd-audit-decisions.md`, 후속은 `docs/TODO.md` §CI/CD 점검 후속. 통합 브랜치 `dev/cicd-hardening`.
