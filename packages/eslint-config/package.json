@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "exports": { "./next": "./next.mjs" },
-  "dependencies": { "eslint-config-next": "16.2.12" },
+  "dependencies": { "eslint-config-next": "16.3.4" },
   "peerDependencies": { "eslint": "^9" }
 }
