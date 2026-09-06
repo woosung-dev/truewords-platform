@@ -3,40 +3,28 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "TrueWords 운영 아키텍처",
-    "output": "docs/architecture/diagrams/system-architecture.html",
+    "output": "docs/04_architecture/diagrams/system-architecture.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/woosung-dev/truewords-platform",
-      "revision": "8980e0c143eefa3a21b30dbde1345285d43f62bb"
+      "revision": "94755c7889608f6732f842eddca08158ef97a9da"
     },
     "viewBox": [
       1380,
-      700
+      660
     ],
     "views": [
       {
-        "id": "user-path",
-        "label": "사용자 요청",
+        "id": "request-path",
+        "label": "요청 경로",
         "focus": [
           "browser",
-          "cf_edge",
-          "cloudflared",
-          "web",
-          "backend"
-        ],
-        "note": "사용자는 truewords.<zone> 하나만 호출하고 web 앱의 Next rewrites 가 backend 로 프록시한다."
-      },
-      {
-        "id": "admin-path",
-        "label": "관리자 요청",
-        "focus": [
-          "admin_browser",
           "cf_edge",
           "cloudflared",
           "admin",
           "backend"
         ],
-        "note": "관리자는 별도 origin truewords-admin.<zone> 으로 admin 앱에 들어가고, 같은 backend 의 /admin/* 게이트를 거친다."
+        "note": "브라우저는 app.<zone> 하나만 호출하고 Next 서버의 rewrites 가 backend 로 프록시한다."
       },
       {
         "id": "data-boundary",
@@ -65,6 +53,55 @@
   },
   "components": [
     {
+      "id": "mac",
+      "type": "external",
+      "label": "개발자 Mac (arm64)",
+      "sublabel": "make deploy-*",
+      "pos": [
+        40,
+        500
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "Makefile",
+          "line": 137,
+          "label": "deploy-backend"
+        }
+      ]
+    },
+    {
+      "id": "browser",
+      "type": "external",
+      "label": "사용자 브라우저",
+      "sublabel": "app.woosung.dev",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        140,
+        62
+      ]
+    },
+    {
+      "id": "cf_edge",
+      "type": "cloud",
+      "label": "Cloudflare Edge",
+      "sublabel": "DNS · TLS 종단",
+      "pos": [
+        235,
+        300
+      ],
+      "size": [
+        150,
+        62
+      ]
+    },
+    {
       "id": "gha",
       "type": "external",
       "label": "GitHub Actions",
@@ -86,57 +123,13 @@
           "path": ".github/workflows/cache-cleanup.yml",
           "label": "cache cleanup"
         }
-      ],
-      "tag": "워크플로 6개"
-    },
-    {
-      "id": "browser",
-      "type": "external",
-      "label": "사용자 브라우저",
-      "sublabel": "truewords.<zone>",
-      "pos": [
-        40,
-        300
-      ],
-      "size": [
-        150,
-        62
       ]
-    },
-    {
-      "id": "admin_browser",
-      "type": "external",
-      "label": "관리자 브라우저",
-      "sublabel": "truewords-admin.<zone>",
-      "pos": [
-        40,
-        420
-      ],
-      "size": [
-        150,
-        62
-      ]
-    },
-    {
-      "id": "cf_edge",
-      "type": "cloud",
-      "label": "Cloudflare Edge",
-      "sublabel": "DNS · TLS 종단",
-      "pos": [
-        235,
-        300
-      ],
-      "size": [
-        150,
-        62
-      ],
-      "tag": "구 app.<zone> 폐지"
     },
     {
       "id": "cloudflared",
       "type": "security",
       "label": "cloudflared",
-      "sublabel": "outbound 터널 · 4 hostname",
+      "sublabel": "outbound 터널 전용",
       "tag": "컨테이너",
       "pos": [
         455,
@@ -149,17 +142,17 @@
       "sources": [
         {
           "path": "infra/oracle-vm/docker-compose.yml",
-          "line": 130,
+          "line": 116,
           "label": "compose"
         }
       ]
     },
     {
-      "id": "web",
+      "id": "admin",
       "type": "frontend",
-      "label": "web",
+      "label": "admin",
       "sublabel": "Next.js 16 · :3000",
-      "tag": "채팅 · 기록 · 소개",
+      "tag": "채팅 UI + 대시보드",
       "pos": [
         655,
         300
@@ -170,38 +163,12 @@
       ],
       "sources": [
         {
-          "path": "apps/web/next.config.ts",
-          "line": 27,
+          "path": "admin/next.config.ts",
+          "line": 42,
           "label": "rewrites"
         },
         {
-          "path": "apps/web/Dockerfile",
-          "label": "Dockerfile"
-        }
-      ]
-    },
-    {
-      "id": "admin",
-      "type": "frontend",
-      "label": "admin",
-      "sublabel": "Next.js 16 · :3000",
-      "tag": "대시보드 · 적재 · 분석",
-      "pos": [
-        655,
-        440
-      ],
-      "size": [
-        150,
-        62
-      ],
-      "sources": [
-        {
-          "path": "apps/admin/next.config.ts",
-          "line": 25,
-          "label": "rewrites"
-        },
-        {
-          "path": "apps/admin/Dockerfile",
+          "path": "admin/Dockerfile",
           "label": "Dockerfile"
         }
       ]
@@ -211,7 +178,7 @@
       "type": "backend",
       "label": "backend",
       "sublabel": "FastAPI · :8080",
-      "tag": "RAG 파이프라인 · 라우터 9",
+      "tag": "RAG 파이프라인",
       "pos": [
         865,
         300
@@ -222,12 +189,12 @@
       ],
       "sources": [
         {
-          "path": "apps/api/app/main.py",
-          "line": 111,
+          "path": "backend/main.py",
+          "line": 108,
           "label": "routers"
         },
         {
-          "path": "apps/api/app/modules/chat/service.py",
+          "path": "backend/src/chat/service.py",
           "label": "ChatService"
         }
       ]
@@ -248,7 +215,7 @@
       ],
       "sources": [
         {
-          "path": "apps/api/app/modules/qdrant/raw_client.py",
+          "path": "backend/src/qdrant/raw_client.py",
           "label": "raw httpx"
         }
       ]
@@ -269,7 +236,7 @@
       ],
       "sources": [
         {
-          "path": "apps/api/app/core/common/database.py",
+          "path": "backend/src/common/database.py",
           "label": "AsyncEngine"
         }
       ]
@@ -279,7 +246,6 @@
       "type": "external",
       "label": "Gemini API",
       "sublabel": "3.5-flash-lite",
-      "tag": "embedding-001",
       "pos": [
         1245,
         300
@@ -290,11 +256,12 @@
       ],
       "sources": [
         {
-          "path": "apps/api/app/core/common/gemini.py",
+          "path": "backend/src/common/gemini.py",
           "line": 23,
           "label": "models"
         }
-      ]
+      ],
+      "tag": "embedding-001"
     },
     {
       "id": "host",
@@ -303,7 +270,7 @@
       "sublabel": "compose 교체 · cron 4개",
       "pos": [
         455,
-        560
+        500
       ],
       "size": [
         170,
@@ -325,40 +292,13 @@
       ]
     },
     {
-      "id": "mac",
-      "type": "external",
-      "label": "개발자 Mac (arm64)",
-      "sublabel": "make deploy-*",
-      "pos": [
-        40,
-        560
-      ],
-      "size": [
-        150,
-        62
-      ],
-      "sources": [
-        {
-          "path": "Makefile",
-          "line": 176,
-          "label": "deploy-backend"
-        },
-        {
-          "path": "Makefile",
-          "line": 220,
-          "label": "deploy-web"
-        }
-      ],
-      "tag": "web · admin · backend"
-    },
-    {
       "id": "objstore",
       "type": "cloud",
       "label": "OCI Object Storage",
       "sublabel": "백업 버킷 · 90일",
       "pos": [
         1245,
-        560
+        500
       ],
       "size": [
         125,
@@ -369,10 +309,9 @@
   "boundaries": [
     {
       "kind": "region",
-      "label": "Oracle Cloud A1 VM (ap-tokyo-1) · docker network truewords_net · 컨테이너 6개",
+      "label": "Oracle Cloud A1 VM (ap-tokyo-1) · docker network truewords_net",
       "wraps": [
         "cloudflared",
-        "web",
         "admin",
         "backend",
         "qdrant",
@@ -386,48 +325,30 @@
     {
       "from": "browser",
       "to": "cf_edge",
-      "label": "HTTPS truewords.<zone>",
+      "label": "HTTPS app.<zone>",
       "variant": "emphasis",
       "labelDy": -25
     },
     {
-      "from": "admin_browser",
-      "to": "cf_edge",
-      "label": "HTTPS truewords-admin.<zone>",
-      "variant": "emphasis"
-    },
-    {
       "from": "cf_edge",
       "to": "cloudflared",
-      "label": "터널 · truewords / admin / api / vdb",
+      "label": "터널 · app / api / vdb 호스트명",
       "variant": "security",
       "labelDy": -25
     },
     {
       "from": "cloudflared",
-      "to": "web",
-      "label": "http://web:3000",
-      "variant": "emphasis",
-      "labelDy": -32
-    },
-    {
-      "from": "cloudflared",
       "to": "admin",
       "label": "http://admin:3000",
-      "variant": "emphasis"
-    },
-    {
-      "from": "web",
-      "to": "backend",
-      "label": "rewrites /api/backend/* → :8080 (SSE)",
       "variant": "emphasis",
       "labelDy": -32
     },
     {
       "from": "admin",
       "to": "backend",
-      "label": "rewrites /api/backend/* → :8080",
-      "variant": "emphasis"
+      "label": "rewrites → :8080 (SSE)",
+      "variant": "emphasis",
+      "labelDy": -32
     },
     {
       "from": "backend",
@@ -454,32 +375,29 @@
     {
       "from": "mac",
       "to": "host",
-      "label": "deploy-*: guard → rsync tgz → compose up",
+      "label": "deploy-*: docker save | ssh → compose up",
       "variant": "dashed"
     },
     {
       "from": "host",
       "to": "postgres",
       "label": "pg_dump 6h → /opt/backups",
-      "variant": "dashed",
-      "toSide": "bottom",
-      "labelSegment": 1
+      "variant": "dashed"
     },
     {
       "from": "host",
       "to": "objstore",
       "label": "oci os object put",
-      "variant": "dashed",
-      "labelDy": 24
+      "variant": "dashed"
     }
   ],
   "cards": [
     {
       "dot": "cyan",
-      "title": "요청 경로 — origin 2개",
+      "title": "요청 경로",
       "items": [
-        "truewords.<zone> → web, truewords-admin.<zone> → admin. 구 app.<zone> 은 폐지(route·DNS 삭제)",
-        "각 Next 앱의 rewrites 가 /api/backend/* 을 backend:8080 으로 프록시 (SSE 포함)",
+        "브라우저는 app.<zone> 하나만 호출 — 채팅 UI 와 대시보드가 같은 Next.js 앱",
+        "Next rewrites 가 /api/* · /admin/* 을 backend:8080 으로 프록시 (SSE 포함)",
         "VM inbound 는 TCP 22 만. 트래픽은 cloudflared outbound 터널로만 진입"
       ]
     },
@@ -496,9 +414,9 @@
       "dot": "amber",
       "title": "배포 · 운영",
       "items": [
-        "레지스트리 없음 — deploy-guard(main 포함 · 클린 트리) 뒤 arm64 이미지를 tgz 로 rsync 전달, 프론트는 --no-deps",
-        "VM cron 4: 백업 6h → Object Storage · ops-check 7 불변식 → ntfy · 주간 추천 질문 · 이미지 GC",
-        "GitHub Actions: PR · main push CI (api · web · admin · contracts · e2e) · 매일 semantic_cache 만료 정리"
+        "레지스트리 없음 — Mac 이 arm64 이미지를 ssh 로 밀어 넣고 compose 가 태그로 교체",
+        "VM cron: 백업 6h → Object Storage · ops-check 7 불변식 · 주간 추천 질문 · GC",
+        "GitHub Actions: PR CI (pytest · vitest · build) · 매일 semantic_cache 만료 정리"
       ]
     }
   ]

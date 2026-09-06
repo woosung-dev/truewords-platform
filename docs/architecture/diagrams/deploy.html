@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.17.0-dev.1">
-  <title>채팅 요청 시퀀스 (SSE) Diagram</title>
+  <title>운영 배포 워크플로 (make deploy-*) Diagram</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -4955,11 +4955,11 @@
            data-preset-badge-blueprint="BLUEPRINT / REV 01"
            data-preset-badge-editorial="EDITORIAL / FIELD NOTE">
         <div class="pulse-dot"></div>
-        <h1>채팅 요청 시퀀스 (SSE)</h1>
+        <h1>운영 배포 워크플로 (make deploy-*)</h1>
       </div>
     </div>
 
-    <script id="archify-guided-views-data" type="application/json">[{"id":"request","label":"요청 · 검증","focus":["web","next","api","safety"],"note":"브라우저는 같은 origin 의 /api/backend/chat/stream 을 부르고 web 앱의 Next 서버가 backend 로 프록시한다. rate limit 과 입력 검증이 먼저 돈다."},{"id":"cache","label":"임베딩 · 캐시","focus":["api","gemini","qdrant","pg"],"note":"캐시 히트면 검색·생성 없이 즉시 반환한다. 이 그림은 miss 경로를 따른다."},{"id":"search-generate","label":"검색 · 생성","focus":["api","safety","gemini","qdrant","next","web"],"note":"하이브리드 검색·intent별 리랭크 뒤 생성 chunk를 검사하고 Next를 거쳐 UI로 스트리밍한다."},{"id":"persist","label":"후처리 · 종료","focus":["api","gemini","pg","qdrant","next","web"],"note":"독립 후처리를 병렬 실행하고 영속화·캐시 저장 뒤 sources와 done을 Next 경유로 보낸다."}]</script>
+    <script id="archify-guided-views-data" type="application/json">[{"id":"happy-path","label":"정상 배포","focus":["pr_merge","ci_main","make_deploy","guard","ops_check","build","load","compose_up","finish"],"note":"main 에 머지된 커밋만 Mac 에서 arm64 이미지로 빌드해 tgz 로 rsync 한 뒤 VM 에서 load 하고, .env 태그 한 줄로 compose 가 컨테이너를 교체한다."},{"id":"guard","label":"가드 · 중단","focus":["ci_main","guard","guard_fail","ops_check"],"note":"deploy-guard 가 HEAD ∈ origin/main 과 클린 트리를 요구한다. ops-check 는 예약 작업 상태를 보여주지만 배포를 막지 않는다."},{"id":"rollback","label":"롤백","focus":["compose_up","unhealthy","rollback","finish"],"note":"--wait 가 healthcheck 를 못 넘기면 rollback-\u003csvc\u003e TAG=\u003c이전 sha\u003e 로 같은 compose up 을 이전 이미지로 다시 돈다. prune-images 는 최신 3개와 보존 목록을 남긴다."}]</script>
 
     <script id="archify-i18n-data" type="application/json">{"locale":"en","messages":{"viewer.kind.frontend":"Frontend","viewer.kind.backend":"Backend","viewer.kind.database":"Database","viewer.kind.cloud":"Cloud","viewer.kind.security":"Security","viewer.kind.messagebus":"Message bus","viewer.kind.external":"External","viewer.kind.neutral":"Neutral","viewer.kind.node":"Node","viewer.kind.start":"Start","viewer.kind.active":"Active","viewer.kind.waiting":"Waiting","viewer.kind.decision":"Decision","viewer.kind.success":"Success","viewer.kind.failure":"Failure","viewer.toolbar.actions":"Diagram actions","viewer.theme.toggle.title":"Toggle theme (T)","viewer.theme.toggle":"Toggle color theme","viewer.theme.dark":"Dark","viewer.theme.light":"Light","viewer.preset.choose.title":"Choose visual style (S cycles)","viewer.preset.choose":"Choose visual style","viewer.preset.style":"Style","viewer.preset.menu":"Visual style","viewer.preset.identity":"Visual identity","viewer.preset.cycles":"S cycles","viewer.preset.classic":"Classic","viewer.preset.classic.short":"Classic","viewer.preset.classic.hint":"Stable technical default","viewer.preset.flow":"Signal Flow","viewer.preset.flow.short":"Flow","viewer.preset.flow.hint":"Motion-forward presentation","viewer.preset.blueprint":"Blueprint","viewer.preset.blueprint.hint":"Engineering review","viewer.preset.editorial":"Editorial","viewer.preset.editorial.hint":"Publication and launch notes","viewer.preset.badge.signalFlow":"SIGNAL FLOW","viewer.preset.badge.blueprint":"BLUEPRINT / REV 01","viewer.preset.badge.editorial":"EDITORIAL / FIELD NOTE","viewer.preset.badge.editorialPlate":"ARCHIFY / PLATE 04","viewer.preset.current":"Visual style: {style}. Choose visual style","viewer.motion.live":"Live","viewer.motion.still":"Still","viewer.motion.pause":"Pause motion","viewer.motion.resume":"Resume motion","viewer.motion.reduced":"Motion paused by reduced-motion preference","viewer.motion.hidden":"Motion paused while this page is hidden","viewer.motion.yielding":"Pause motion; currently yielding to {owner}","viewer.motion.yielding.title":"Live preview enabled · yielding to {owner}","viewer.owner.story":"the guided story","viewer.owner.chapter":"the active chapter","viewer.owner.chapterPreview":"the chapter delta preview","viewer.owner.handoff":"the chapter handoff","viewer.owner.route":"Route Probe","viewer.owner.lens":"Semantic Lens","viewer.owner.relationship":"Relationship Preview","viewer.owner.intent":"Intent Trace","viewer.owner.focus":"semantic focus","viewer.owner.legend":"legend preview","viewer.owner.reader":"reader interaction","viewer.present.enter":"Enter presentation stage","viewer.present.enter.title":"Presentation stage (F)","viewer.present.exit":"Exit presentation stage","viewer.present.exit.title":"Exit presentation stage (F or Escape)","viewer.present.present":"Present","viewer.present.exit.label":"Exit","viewer.export.button":"Export","viewer.export.button.title":"Export diagram (E)","viewer.export.diagram":"Export diagram","viewer.export.menu":"Export","viewer.export.subtitle":"Portable, clean outputs","viewer.export.share":"Share","viewer.export.shareCard":"Share Card","viewer.export.routeShareCard":"Route Share Card","viewer.export.reachShareCard":"Reach Share Card","viewer.export.copyShareCard":"Copy Share Card","viewer.export.copyDiagram":"Copy diagram","viewer.export.clipboardPng":"PNG to clipboard","viewer.export.raster":"Raster images","viewer.export.image":"Image","viewer.export.lossless":"Lossless image","viewer.export.compact":"Compact image","viewer.export.modern":"Modern image","viewer.export.vectorMotion":"Vector and motion","viewer.export.vectorMotion.heading":"Vector \u0026 motion","viewer.export.editable":"Editable vector","viewer.export.motion6s":"6s motion","viewer.export.unsupported":"Not supported by this browser","viewer.export.clipboardUnsupported":"Clipboard image write not supported by this browser","viewer.export.clipboardUnsupported.period":"Clipboard image write not supported by this browser.","viewer.export.clipboardUnsupported.short":"Clipboard image write not supported in this browser.","viewer.export.motionUnavailable":"Motion capture unavailable in this browser","viewer.export.webmUnavailable":"WebM unavailable in this browser","viewer.export.failed":"Export failed: {message}","viewer.export.unknownVariant":"Unknown Share Card variant: {variant}","viewer.export.routeRequired":"Trace a route before exporting a Route Share Card","viewer.export.reachRequired":"Trace authored reach before exporting a Reach Share Card","viewer.export.unknown":"unknown","viewer.export.routeFailed":"Route Share Card export failed: {message}","viewer.export.reachFailed":"Reach Share Card export failed: {message}","viewer.export.copyFailed":"Copy failed: {message}","viewer.export.copiedPng":"Copied PNG to clipboard","viewer.export.copiedShare":"Copied Share Card","viewer.export.downloadedShare":"Downloaded Share Card","viewer.export.downloadedRoute":"Downloaded Route Share Card","viewer.export.downloadedReach":"Downloaded Reach Share Card","viewer.export.downloadedWebm":"Downloaded WebM","viewer.export.recording":"Recording 6 seconds of motion…","viewer.export.card.routeSummary.one":"Route: {source} → {target} · {count} directed hop","viewer.export.card.routeSummary.other":"Route: {source} → {target} · {count} directed hops","viewer.export.card.reachSummary":"Authored {direction} from {origin} · {nodes} · {links} · max {hops}","viewer.export.card.node.one":"{count} node","viewer.export.card.node.other":"{count} nodes","viewer.export.card.link.one":"{count} link","viewer.export.card.link.other":"{count} links","viewer.export.card.hop.one":"{count} hop","viewer.export.card.hop.other":"{count} hops","viewer.export.card.routeBadge":"ARCHIFY · ROUTE · {hops}","viewer.export.card.reachBadge":"ARCHIFY · {direction} REACH","viewer.export.card.defaultBadge":"ARCHIFY · {preset} · {theme}","viewer.export.direction.upstream":"Upstream","viewer.export.direction.downstream":"Downstream","viewer.export.error.canvasUnavailable":"Canvas unavailable for {label}","viewer.export.error.contextUnavailable":"2D canvas context unavailable for {label}","viewer.export.error.toBlobUnavailable":"canvas.toBlob unavailable for {label}","viewer.export.error.toBlobNull":"canvas.toBlob returned no data for {label}","viewer.export.error.variantsCombined":"Share Card variants cannot be combined","viewer.export.error.viewerState":"Share Card export could not remove temporary viewer state","viewer.export.error.routeState":"Route Card export could not preserve the resolved route safely","viewer.export.error.reachState":"Reach Card export could not preserve authored reach safely","viewer.export.error.webmRequirements":"WebM motion export requires a trace animation and browser MediaRecorder support","viewer.export.error.mediaRecorder":"MediaRecorder failed","viewer.export.error.emptyWebm":"MediaRecorder produced an empty WebM","viewer.export.error.webmBackground":"SVG background could not be loaded for WebM export","viewer.guided.region":"Guided diagram views","viewer.guided.previous":"Previous guided view","viewer.guided.previous.title":"Previous guided view ([)","viewer.guided.next":"Next guided view","viewer.guided.next.title":"Next guided view (])","viewer.guided.views":"Guided views","viewer.guided.explore":"Explore this system","viewer.guided.intro":"Step through curated paths without changing the source diagram.","viewer.guided.trail":"Story trail","viewer.guided.beat":"Beat","viewer.guided.nextBeat":"Next","viewer.guided.play":"Play guided story","viewer.guided.play.title":"Play guided story (P)","viewer.guided.pause":"Pause guided story","viewer.guided.pause.title":"Pause guided story (P)","viewer.guided.replay":"Replay guided story","viewer.guided.replay.title":"Replay guided story (P)","viewer.guided.playStory":"Play story","viewer.guided.pauseStory":"Pause","viewer.guided.replayStory":"Replay story","viewer.guided.motionUnavailable":"Story playback unavailable while motion is Still","viewer.guided.enableMotion":"Switch motion to Live to play the guided story","viewer.guided.selectBeatLink":"Select a Story Beat to copy its exact link","viewer.guided.copyMoment":"Copy moment","viewer.guided.momentCopied":"Moment link copied","viewer.guided.momentCopyFailed":"Could not copy story moment link","viewer.guided.copied":"Copied","viewer.guided.copyFailed":"Copy failed","viewer.guided.showAll":"Show all","viewer.guided.showAll.aria":"Show entire diagram","viewer.guided.chapters":"Story chapters","viewer.guided.storyTrail":"Story trail for {label}: {count} beats","viewer.guided.chapter.open":"Open chapter {index} of {total}: {label}, {count} stops","viewer.guided.chapter.current":"Current chapter {index} of {total}: {label}, {count} stops","viewer.guided.chapter.selectedNodes":"{count} selected nodes","viewer.guided.chapter.stops":"{count} stops","viewer.guided.chapter.stop.one":"{count} stop","viewer.guided.chapter.stop.other":"{count} stops","viewer.guided.chapter.current.title":"{label} — current chapter, {count} stops","viewer.guided.chapter.delta.expanded":"{stay} stay, {enter} enter, {leave} leave","viewer.guided.chapter.delta.aria":"Open chapter {index} of {total}: {label}. Chapter focus delta: {delta}","viewer.guided.chapter.delta.title":"{label} — {delta} chapter focus","viewer.guided.handoff":"{from} → {to} · via {label}","viewer.guided.share.chapter":"Chapter {index} / {total}","viewer.guided.share.initial":"Chapter 01 / 01","viewer.guided.share.default":"Guided chapter","viewer.guided.state.ready":"Ready","viewer.guided.state.playing":"Playing","viewer.guided.state.settled":"Settled","viewer.guided.state.paused":"Paused","viewer.guided.state.pinned":"Pinned","viewer.guided.state.still":"Still","viewer.guided.share.step":"Step {index} / {total} · {label}","viewer.guided.share.staticMoment":"{step} · Static moment","viewer.guided.share.complete":"{count} steps complete · {note}","viewer.guided.share.settled":"Path settled for reading.","viewer.guided.share.staticPath":"{count} steps · Static path","viewer.guided.share.ready":"{count} steps · Ready","viewer.guided.share.aria":"{state} chapter {index} of {total}: {label}. {beat}. {route}","viewer.guided.beat.start":"Beat {index} / {total} · {label} · starting point","viewer.guided.beat.forward":"Beat {index} / {total} · {from} → {to}","viewer.guided.beat.reverse":"Beat {index} / {total} · {from} → {to} · reverse authored link","viewer.guided.beat.multiple":"Beat {index} / {total} · {from} ⇄ {to} · {count} authored links","viewer.guided.beat.group":"Beat {index} / {total} · {from} · {to} · grouped · no direct link","viewer.guided.beat.aria.prefix":"Story beat {index} of {total}: {label}. ","viewer.guided.beat.aria.start":"Starting point.","viewer.guided.beat.aria.forward":"From {from} through one authored forward relationship.","viewer.guided.beat.aria.reverse":"From {from}; the authored relationship points from {to} to {from}.","viewer.guided.beat.aria.multiple":"From {from} through {count} authored relationships; shown without arbitrary motion.","viewer.guided.beat.aria.group":"Grouped from {from} with no direct authored relationship.","viewer.guided.caption.start":"Starting point","viewer.guided.caption.grouped":"Grouped transition · no direct authored link","viewer.guided.caption.more":" +{count} more","viewer.guided.caption.reverse":"Reverse authored relationship","viewer.guided.caption.relationships":"{count} authored relationships","viewer.guided.caption.relationship":"Authored relationship","viewer.guided.caption.direction":"authored direction: {from} → {to}","viewer.guided.caption.starting":"Authored starting point","viewer.guided.beatLink":"Copy link to current story moment: Beat {index} of {total}: {label}","viewer.guided.noStory":"This diagram has no authored guided story.","viewer.guide.eyebrow":"Diagram guide","viewer.guide.close":"Close diagram guide","viewer.guide.inspecting":"Inspecting compiled semantics","viewer.guide.actions":"Diagram exploration actions","viewer.guide.find":"Find any node","viewer.guide.find.hint":"Search labels, responsibilities, kinds, and stable IDs.","viewer.guide.route":"Trace a route","viewer.guide.route.aria":"Trace a directed route","viewer.guide.route.hint":"Ask how two semantic nodes connect in authored direction.","viewer.guide.map":"See the whole system","viewer.guide.map.hint":"Open Semantic Radar with a live viewport and stable nodes.","viewer.guide.lens":"Compare semantic kinds","viewer.guide.lens.hint":"Count roles, reveal their traffic, and compare direct authored links.","viewer.guide.story":"Play the guided story","viewer.guide.story.hint":"Walk the authored chapters and real relationships.","viewer.guide.present":"Enter Presentation Stage","viewer.guide.present.hint":"Give the live diagram the viewport without changing export.","viewer.guide.shortcuts":"Additional keyboard shortcuts","viewer.guide.shortcut.export":"Export","viewer.guide.shortcut.theme":"Theme","viewer.guide.shortcut.style":"Style","viewer.guide.shortcut.reset":"Reset","viewer.guide.shortcut.zoomIn":"Zoom in","viewer.guide.shortcut.zoomOut":"Zoom out","viewer.guide.shortcut.close":"Close","viewer.guide.facts":"{nodes} · {relationships} · {views}","viewer.guide.fact.node.one":"{count} semantic node","viewer.guide.fact.node.other":"{count} semantic nodes","viewer.guide.fact.relationship.one":"{count} relationship","viewer.guide.fact.relationship.other":"{count} relationships","viewer.guide.fact.view.one":"{count} guided view","viewer.guide.fact.view.other":"{count} guided views","viewer.guide.story.available.one":"Walk {count} authored chapter and its real relationships.","viewer.guide.story.available.other":"Walk {count} authored chapters and their real relationships.","viewer.guide.story.unavailable":"No authored guided story in this diagram.","viewer.guide.open":"Open diagram guide","viewer.guide.noStory":"This diagram has no authored guided story.","viewer.finder.title":"Find a node","viewer.finder.close":"Close node finder","viewer.finder.placeholder":"Search labels or IDs","viewer.finder.search":"Search diagram nodes","viewer.finder.results":"Diagram nodes","viewer.finder.empty":"No matching nodes","viewer.finder.result.focus":"Focus {label}","viewer.finder.result.routeStart":"Choose {label} as route start","viewer.finder.result.routeTarget":"Choose {label} as route destination, {links}","viewer.finder.status.empty":"No matching nodes","viewer.finder.status.count.one":"{count} matching node","viewer.finder.status.count.other":"{count} matching nodes","viewer.finder.noun.nodes":"nodes","viewer.finder.link.one":"{count} link","viewer.finder.link.other":"{count} links","viewer.finder.result.focus.one":"Focus {label}, {count} related connection","viewer.finder.result.focus.other":"Focus {label}, {count} related connections","viewer.finder.status.filtered":"{visible} of {available} {noun}","viewer.finder.status.all":"{available} {noun}","viewer.passport.eyebrow":"Semantic passport","viewer.passport.metadata":"Node metadata","viewer.passport.evidence":"Verified source evidence","viewer.passport.verified":"Verified source","viewer.passport.reach":"Authored reach","viewer.passport.reach.trace":"Trace authored reachability","viewer.passport.upstream":"Upstream","viewer.passport.downstream":"Downstream","viewer.passport.upstream.trace":"Trace upstream authored reachability","viewer.passport.downstream.trace":"Trace downstream authored reachability","viewer.passport.close":"Close semantic passport","viewer.passport.copy":"Copy link","viewer.passport.copy.focus":"Copy link to focused node","viewer.passport.relations":"Relations","viewer.passport.relations.show":"Show connected relationships","viewer.passport.relations.hide":"Hide connected relationships","viewer.passport.relations.list":"Connected relationships","viewer.passport.copyRelation":"Copy relation","viewer.passport.copyNode":"Copy node","viewer.passport.copyPinned":"Copy link to pinned relationship","viewer.passport.copySource":"Copy link to source node","viewer.passport.copy.focused.success":"Focused node link copied","viewer.passport.copy.pinned.success":"Pinned relationship link copied","viewer.passport.copy.focused.failed":"Could not copy focused node link","viewer.passport.copy.pinned.failed":"Could not copy pinned relationship link","viewer.passport.relationship.none":"No connected relationships","viewer.passport.relationship.count.one":"{count} relation","viewer.passport.relationship.count.other":"{count} relations","viewer.passport.relationship.show.one":"Show {count} connected relationship","viewer.passport.relationship.show.other":"Show {count} connected relationships","viewer.passport.relationship.summary":"{out} outgoing · {in} incoming{loops}","viewer.passport.relationship.loops":" · {count} loop","viewer.passport.relationship.explorer":"Direct relationship explorer","viewer.passport.relationship.help":"Use arrow keys to explore relationships. Press Enter or Space to pin details; Escape clears.","viewer.passport.relationship.loopsBack":"loops back","viewer.passport.relationship.connectsTo":"connects to","viewer.passport.relationship.connectsFrom":"connects from","viewer.passport.relationship.pinned":"Pinned relationship · {from} → {to} · {label}","viewer.passport.relationship.inspect":"Inspect relationship {index} of {total}: {from} to {to}, {label}. Press Enter for details.","viewer.passport.relationship.group.out":"Outgoing","viewer.passport.relationship.group.in":"Incoming","viewer.passport.relationship.group.loop":"Self loops","viewer.passport.relationship.row":"{group}: {relationship}, {neighbor}","viewer.passport.relationship.direction.out":"OUT →","viewer.passport.relationship.direction.in":"← IN","viewer.passport.relationship.direction.loop":"LOOP","viewer.passport.sourceCount.one":"{count} verified source reference","viewer.passport.sourceCount.other":"{count} verified source references","viewer.passport.sourceMarker":"SRC","viewer.passport.beacon.one":"{count} verified source; focus this node to inspect","viewer.passport.beacon.other":"{count} verified sources; focus this node to inspect","viewer.passport.repository.open":"Open verified repository revision {revision}","viewer.passport.source.open":"Open verified source {path} at revision {revision}","viewer.passport.source.openLink":"Open ↗","viewer.passport.reach.upstream.one":"Trace {count} upstream authored node","viewer.passport.reach.upstream.other":"Trace {count} upstream authored nodes","viewer.passport.reach.downstream.one":"Trace {count} downstream authored node","viewer.passport.reach.downstream.other":"Trace {count} downstream authored nodes","viewer.passport.reach.noUpstream":"No upstream authored nodes","viewer.passport.reach.noDownstream":"No downstream authored nodes","viewer.passport.reach.status":"{direction} · {nodes} nodes · {links} links · max {hops} hops","viewer.route.eyebrow":"Route probe","viewer.route.start":"Choose a start node","viewer.route.start.find":"Find start","viewer.route.start.find.aria":"Find a route start","viewer.route.copy":"Copy link","viewer.route.copy.aria":"Copy link to traced route","viewer.route.clear":"Clear","viewer.route.clear.aria":"Clear route probe","viewer.route.traced":"Traced route","viewer.route.pickTwo":"Pick two semantic nodes on the diagram","viewer.route.pickOne":"Pick a semantic node on the diagram","viewer.route.controls":"Route journey controls","viewer.route.previous":"Previous route position","viewer.route.play":"Play route journey","viewer.route.pause":"Pause route journey","viewer.route.replay":"Replay route journey","viewer.route.next":"Next route position","viewer.route.journey":"Journey","viewer.route.pause.label":"Pause","viewer.route.replay.label":"Replay","viewer.route.overview":"Overview","viewer.route.overview.aria":"Show complete route overview","viewer.route.instructions":"Choose the source, then the destination. Direction matters.","viewer.route.destination":"Choose a destination from {label}","viewer.route.destination.find":"Find target","viewer.route.destination.find.aria":"Find a reachable route destination","viewer.route.differentDestination":"Choose a different destination","viewer.route.distinct":"A route needs two distinct semantic nodes.","viewer.route.unreachable":"No directed route to {label}","viewer.route.unreachable.detail":"{target} is not reachable from {source}. Pick a highlighted destination.","viewer.route.start.instructions":"Select the source. The next step will reveal only directed destinations.","viewer.route.copy.success":"Traced route link copied","viewer.route.copy.failed":"Could not copy traced route link","viewer.route.position":"Route position {index} of {total}: {label}","viewer.route.step":"Step {index} of {total} · {phase} · {label}","viewer.route.motionRequired":"Automatic journey requires Live motion","viewer.route.trigger.clear":"Clear traced route","viewer.route.overview.status":"{nodes} · {hops} · shortest authored route","viewer.route.overview.node.one":"{count} node","viewer.route.overview.node.other":"{count} nodes","viewer.route.overview.hop.one":"{count} directed hop","viewer.route.overview.hop.other":"{count} directed hops","viewer.route.phase.playing":"Playing","viewer.route.phase.complete":"Complete","viewer.route.phase.inspecting":"Inspecting","viewer.route.destination.count.one":"{count} directed destination available. Pick a highlighted node.","viewer.route.destination.count.other":"{count} directed destinations available. Pick a highlighted node.","viewer.route.noOutgoing":"No outgoing route starts here. Clear and choose another source.","viewer.route.result.title":"{source} to {target}","viewer.route.finder.source.title":"Choose route start","viewer.route.finder.source.placeholder":"Search route sources","viewer.route.finder.source.empty":"No matching route sources","viewer.route.finder.source.results":"Nodes that can start a route","viewer.route.finder.source.noun":"route sources","viewer.route.finder.source.badge":"start","viewer.route.finder.target.title":"Destination from {label}","viewer.route.finder.target.placeholder":"Search reachable destinations","viewer.route.finder.target.empty":"No matching reachable destinations","viewer.route.finder.target.results":"Reachable route destinations","viewer.route.finder.target.noun":"reachable destinations","viewer.route.hop.one":"{count} hop","viewer.route.hop.other":"{count} hops","viewer.lens.eyebrow":"Semantic lens","viewer.lens.title":"Compare system roles","viewer.lens.close":"Close semantic lens","viewer.lens.instruction":"Choose up to two semantic kinds. One reveals its real traffic; two compare only direct authored relationships.","viewer.lens.kinds":"Semantic kinds","viewer.lens.choose":"Choose a kind to inspect its nodes and touching relationships.","viewer.lens.copy":"Copy link to semantic lens","viewer.lens.clear":"Clear semantic lens","viewer.lens.open":"Open semantic lens","viewer.lens.openActive":"Open active semantic lens","viewer.lens.legend":"Semantic legend","viewer.lens.legend.inspect.one":"Inspect {label}, {count} node","viewer.lens.legend.inspect.other":"Inspect {label}, {count} nodes","viewer.lens.kind.count.one":"{label}, {count} node","viewer.lens.kind.count.other":"{label}, {count} nodes","viewer.lens.compare.one":"{first} → {second}: {forward} · {second} → {first}: {reverse} · {count} direct relationship","viewer.lens.compare.other":"{first} → {second}: {forward} · {second} → {first}: {reverse} · {count} direct relationships","viewer.lens.single":"{nodes} · {relationships} · connected peers remain visible","viewer.lens.node.one":"{count} {label} node","viewer.lens.node.other":"{count} {label} nodes","viewer.lens.relationship.one":"{count} touching relationship","viewer.lens.relationship.other":"{count} touching relationships","viewer.radar.title":"Semantic radar","viewer.radar.building":"Building overview","viewer.radar.openFull":"Open full semantic radar","viewer.radar.open":"Open radar","viewer.radar.close":"Close semantic radar","viewer.radar.surface":"Diagram overview. Click a node to focus it, or use arrow keys to pan.","viewer.radar.click":"Click node","viewer.radar.drag":"Drag to pan","viewer.radar.space":"Semantic radar needs more MAP space.","viewer.radar.nodes":"Semantic diagram radar nodes","viewer.radar.focus":"Focus {label} from Semantic Radar","viewer.radar.status":"{count} nodes · {viewport}","viewer.radar.fullMap":"{count} nodes · full map","viewer.radar.compacted":"Radar compacted to avoid covering the Semantic Passport or MAP controls.","viewer.radar.cancelWaiting":"Cancel semantic radar waiting for more MAP space","viewer.radar.needsSpace":"Semantic radar needs more visible MAP space","viewer.radar.viewport.full":"full map","viewer.radar.viewport.width":"{percent}% width","viewer.radar.viewport.scale":"{percent}% viewport","viewer.nav.controls":"Diagram view controls","viewer.nav.route":"Trace a directed route","viewer.nav.route.title":"Trace route (R)","viewer.nav.route.short":"PATH","viewer.nav.radar":"Open semantic radar","viewer.nav.radar.title":"Semantic radar (M)","viewer.nav.radar.short":"MAP","viewer.nav.lens":"Open semantic lens","viewer.nav.lens.title":"Semantic lens (L)","viewer.nav.lens.short":"LENS","viewer.nav.find":"Find a node","viewer.nav.find.title":"Find a node (/)","viewer.nav.guide":"Open diagram guide","viewer.nav.guide.title":"Diagram guide (?)","viewer.nav.zoomOut":"Zoom out","viewer.nav.zoomOut.title":"Zoom out (-)","viewer.nav.reset":"Reset diagram view","viewer.nav.reset.title":"Reset view (0)","viewer.nav.read":"READ","viewer.nav.zoomIn":"Zoom in","viewer.nav.zoomIn.title":"Zoom in (+)","viewer.nav.camera":"{hint}. Reset diagram view","viewer.nav.camera.title":"{semantic}{hint} · reset view (0)","viewer.nav.camera.semantic":"Semantic camera active · ","viewer.nav.level.map":"MAP","viewer.nav.level.read":"READ","viewer.nav.level.full":"FULL","viewer.nav.level.auto":"AUTO","viewer.nav.detail.map":"Zoom in to reveal relationship labels and node context","viewer.nav.detail.read":"Zoom in again to reveal tags and annotations","viewer.nav.detail.full":"Full diagram detail","viewer.intent.summary":"{label}. {out} outgoing, {in} incoming{loops}. {total} connections. Press Enter for details.","viewer.intent.loops":", {count} self loop","viewer.common.copied":"Copied","viewer.common.copyFailed":"Copy failed","viewer.common.copyLink":"Copy link","viewer.common.clear":"Clear","viewer.common.close":"Close"}}</script>
     <div class="guided-views no-print" id="guided-views" hidden aria-label="Guided diagram views">
@@ -5004,9 +5004,9 @@
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / PLATE 04">
-      <svg viewBox="0 0 1085 640" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
-        <title id="archify-diagram-title">채팅 요청 시퀀스 (SSE)</title>
-        <desc id="archify-diagram-description">A sequence diagram generated by Archify.</desc>
+      <svg viewBox="0 0 1222 660" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+        <title id="archify-diagram-title">운영 배포 워크플로 (make deploy-*)</title>
+        <desc id="archify-diagram-description">A workflow diagram generated by Archify.</desc>
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -5029,255 +5029,263 @@
         <!-- Background Grid -->
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        <!-- Time Segments -->
+        <!-- Swimlanes -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-0" x="40" y="52" width="1166" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="74" class="t-dim" font-size="10" font-weight="600">01 / GitHub · main</text>
 
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-1" x="40" y="178" width="1166" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="200" class="t-dim" font-size="10" font-weight="600">02 / 개발자 Mac (make)</text>
 
-        <!-- Lifelines -->
-        <path d="M 118.5 142 L 118.5 575" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 263.5 142 L 263.5 575" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 408.5 142 L 408.5 575" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 553.5 142 L 553.5 575" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 698.5 142 L 698.5 575" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 843.5 142 L 843.5 575" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 988.5 142 L 988.5 575" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-2" x="40" y="304" width="1166" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <text x="54" y="326" class="t-dim" font-size="10" font-weight="600">03 / Oracle VM (ssh · docker)</text>
 
-        <!-- Activations -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="lane" data-composition-frame-id="lane-3" x="40" y="430" width="1166" height="106" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="exception-lane" data-composition-frame-id="lane-3-exception" x="46" y="436" width="1154" height="94" rx="8" class="c-security-group" stroke-width="1"/>
+        <text x="54" y="452" class="t-security" font-size="10" font-weight="600">EX / 중단 · 롤백</text>
 
+        <!-- Phase headers -->
+        <line x1="77" y1="35" x2="385.2" y2="35" class="a-default" stroke-width="1.1"/>
+        <rect x="77" y="27" width="308.2" height="16" rx="4" class="c-mask"/>
+        <text x="231.1" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">검증된 main</text>
+        <line x1="486.20000000000005" y1="35" x2="578.2" y2="35" class="a-security" stroke-width="1.1"/>
+        <rect x="486.20000000000005" y="27" width="92" height="16" rx="4" class="c-mask"/>
+        <text x="532.2" y="39" class="t-security" font-size="8" font-weight="600" text-anchor="middle">가드</text>
+        <line x1="667.2" y1="35" x2="879.2" y2="35" class="a-emphasis" stroke-width="1.1"/>
+        <rect x="667.2" y="27" width="212" height="16" rx="4" class="c-mask"/>
+        <text x="773.2" y="39" class="t-backend" font-size="8" font-weight="600" text-anchor="middle">빌드 · 전송</text>
+        <line x1="1059.4" y1="35" x2="1151.4" y2="35" class="a-default" stroke-width="1.1"/>
+        <rect x="1059.4" y="27" width="92" height="16" rx="4" class="c-mask"/>
+        <text x="1105.4" y="39" class="t-muted" font-size="8" font-weight="600" text-anchor="middle">교체 · 기록</text>
 
-        <!-- Messages -->
-        <g data-edge-from="web" data-edge-to="next" data-edge-label="POST /api/backend/chat/stream" data-edge-key="0" data-edge-id="post-stream">
-          <path data-composition-edge-from="web" data-composition-edge-to="next" data-composition-edge-id="post-stream" data-composition-points="125.5,160;256.5,160" d="M 125.5 160 L 256.5 160" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <g data-detail="context">
-          <rect x="109.6" y="140" width="162.8" height="16" rx="3" class="c-mask"/>
-          <text x="191" y="150" class="t-backend" font-size="9" text-anchor="middle">POST /api/backend/chat/stream</text>
-        </g>
-        </g>
+        <!-- Workflow groups -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="group" data-composition-frame-id="group-0" x="754.2" y="468" width="443.20000000000005" height="64" rx="9" class="c-security-group" stroke-width="1"/>
+        <text x="764.2" y="466" class="t-security" font-size="7" font-weight="600">rollback-&lt;svc&gt; 경로</text>
 
-        <g data-edge-from="next" data-edge-to="api" data-edge-label="→ backend:8080/chat/stream" data-edge-key="1" data-edge-id="proxy">
-          <path data-composition-edge-from="next" data-composition-edge-to="api" data-composition-edge-id="proxy" data-composition-points="270.5,188;401.5,188" d="M 270.5 188 L 401.5 188" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <g data-detail="context">
-          <rect x="262.4" y="168" width="147.20000000000002" height="16" rx="3" class="c-mask"/>
-          <text x="336" y="178" class="t-backend" font-size="9" text-anchor="middle">→ backend:8080/chat/stream</text>
-        </g>
-        </g>
+        <!-- Edge paths -->
+        <path data-edge-from="guard" data-edge-to="guard_fail" data-edge-label="가드 실패" data-edge-key="0" data-edge-id="guard-fail" data-composition-points="447.20000000000005,253;431.20000000000005,253;431.20000000000005,552;532.2,552;532.2,524" d="M 447.20000000000005 253 L 431.20000000000005 253 L 431.20000000000005 552 L 532.2 552 L 532.2 524" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path data-edge-from="compose_up" data-edge-to="finish" data-edge-label="healthy" data-edge-key="1" data-edge-id="healthy" data-composition-points="1105.4,338;1105.4,280" d="M 1105.4 338 L 1105.4 280" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="ci_main" data-edge-to="make_deploy" data-edge-label="green 확인 후 사람이 실행" data-edge-key="2" data-edge-id="human-run" data-composition-points="339.2,146;339.2,168;435.2,168;435.2,246;419.2,246" d="M 339.2 146 L 339.2 168 L 435.2 168 L 435.2 246 L 419.2 246" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="ops_check" data-edge-to="build" data-edge-label="경고만 · 계속" data-edge-key="3" data-edge-id="ops-continue" data-composition-points="612.2,372;706.2,372;706.2,280" d="M 612.2 372 L 706.2 372 L 706.2 280" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="pr_merge" data-edge-to="ci_main" data-edge-label="push main" data-edge-key="4" data-edge-id="push-main" data-composition-points="198,120;259.2,120" d="M 198 120 L 259.2 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="rollback" data-edge-to="compose_up" data-edge-label="이전 태그로 up --wait" data-edge-key="5" data-edge-id="rollback-up" data-composition-points="1105.4,472;1105.4,406" d="M 1105.4 472 L 1105.4 406" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="load" data-edge-to="compose_up" data-edge-label="sed .env → up" data-edge-key="6" data-edge-id="switch" data-composition-points="833.2,406;833.2,422;1105.4,422;1105.4,406" d="M 833.2 406 L 833.2 422 L 1105.4 422 L 1105.4 406" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="make_deploy" data-edge-to="guard" data-edge-key="7" data-edge-id="to-guard" data-composition-points="339.2,280;339.2,296;532.2,296;532.2,280" d="M 339.2 280 L 339.2 296 L 532.2 296 L 532.2 280" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="guard" data-edge-to="ops_check" data-edge-label="ssh" data-edge-key="8" data-edge-id="to-ops-check" data-composition-points="447.20000000000005,246;431.20000000000005,246;431.20000000000005,426;532.2,426;532.2,406" d="M 447.20000000000005 246 L 431.20000000000005 246 L 431.20000000000005 426 L 532.2 426 L 532.2 406" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="unhealthy" data-edge-to="rollback" data-edge-label="TAG=&lt;이전 sha&gt; 명시" data-edge-key="9" data-edge-id="to-rollback" data-composition-points="833.2,524;833.2,552;1105.4,552;1105.4,524" d="M 833.2 524 L 833.2 552 L 1105.4 552 L 1105.4 524" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="build" data-edge-to="load" data-edge-label="save → tgz → rsync --partial" data-edge-key="10" data-edge-id="transfer" data-composition-points="713.2,212;713.2,162;833.2,162;833.2,338" d="M 713.2 212 L 713.2 162 L 833.2 162 L 833.2 338" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="compose_up" data-edge-to="unhealthy" data-edge-label="timeout · unhealthy" data-edge-key="11" data-edge-id="wait-fail" data-composition-points="1017.4000000000001,379;1001.4000000000001,379;1001.4000000000001,288;924.2,288;924.2,491;908.2,491" d="M 1017.4000000000001 379 L 1001.4000000000001 379 L 1001.4000000000001 288 L 924.2 288 L 924.2 491 L 908.2 491" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
 
-        <g data-edge-from="api" data-edge-to="safety" data-edge-label="rate limit 20/60s · injection 검사" data-edge-key="2" data-edge-id="guard">
-          <path data-composition-edge-from="api" data-composition-edge-to="safety" data-composition-edge-id="guard" data-composition-points="415.5,216;546.5,216" d="M 415.5 216 L 546.5 216" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <g data-detail="context">
-          <rect x="386.6" y="196" width="188.8" height="16" rx="3" class="c-mask"/>
-          <text x="481" y="206" class="t-security" font-size="9" text-anchor="middle">rate limit 20/60s · injection 검사</text>
-        </g>
-        </g>
-
-        <g data-edge-from="api" data-edge-to="pg" data-edge-label="세션 조회/생성 · user 메시지 INSERT" data-edge-key="3" data-edge-id="session">
-          <path data-composition-edge-from="api" data-composition-edge-to="pg" data-composition-edge-id="session" data-composition-points="415.5,244;981.5,244" d="M 415.5 244 L 981.5 244" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="601.5" y="224" width="194" height="16" rx="3" class="c-mask"/>
-          <text x="698.5" y="234" class="t-backend" font-size="9" text-anchor="middle">세션 조회/생성 · user 메시지 INSERT</text>
-        </g>
-        </g>
-
-        <g data-edge-from="api" data-edge-to="gemini" data-edge-label="embed_content · RETRIEVAL_QUERY · 1536-dim" data-edge-key="4" data-edge-id="embed">
-          <path data-composition-edge-from="api" data-composition-edge-to="gemini" data-composition-edge-id="embed" data-composition-points="415.5,272;691.5,272" d="M 415.5 272 L 691.5 272" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="438.3" y="252" width="230.4" height="16" rx="3" class="c-mask"/>
-          <text x="553.5" y="262" class="t-backend" font-size="9" text-anchor="middle">embed_content · RETRIEVAL_QUERY · 1536-dim</text>
-        </g>
-        </g>
-
-        <g data-edge-from="api" data-edge-to="qdrant" data-edge-label="semantic_cache 조회 (≥ 0.88) → miss" data-edge-key="5" data-edge-id="cache-check">
-          <path data-composition-edge-from="api" data-composition-edge-to="qdrant" data-composition-edge-id="cache-check" data-composition-points="415.5,300;836.5,300" d="M 415.5 300 L 836.5 300" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="529" y="280" width="194" height="16" rx="3" class="c-mask"/>
-          <text x="626" y="290" class="t-backend" font-size="9" text-anchor="middle">semantic_cache 조회 (≥ 0.88) → miss</text>
-        </g>
-        </g>
-
-        <g data-edge-from="api" data-edge-to="gemini" data-edge-label="intent 분류 · query rewrite" data-edge-key="6" data-edge-id="intent-rewrite">
-          <path data-composition-edge-from="api" data-composition-edge-to="gemini" data-composition-edge-id="intent-rewrite" data-composition-points="415.5,328;691.5,328" d="M 415.5 328 L 691.5 328" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <g data-detail="context">
-          <rect x="477.3" y="308" width="152.4" height="16" rx="3" class="c-mask"/>
-          <text x="553.5" y="318" class="t-messagebus" font-size="9" text-anchor="middle">intent 분류 · query rewrite</text>
-        </g>
-        </g>
-
-        <g data-edge-from="api" data-edge-to="qdrant" data-edge-label="hybrid search · dense+sparse RRF · top-50" data-edge-key="7" data-edge-id="hybrid-search">
-          <path data-composition-edge-from="api" data-composition-edge-to="qdrant" data-composition-edge-id="hybrid-search" data-composition-points="415.5,356;836.5,356" d="M 415.5 356 L 836.5 356" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <g data-detail="context">
-          <rect x="513.4" y="336" width="225.20000000000002" height="16" rx="3" class="c-mask"/>
-          <text x="626" y="346" class="t-backend" font-size="9" text-anchor="middle">hybrid search · dense+sparse RRF · top-50</text>
-        </g>
-        </g>
-
-        <g data-edge-from="api" data-edge-to="gemini" data-edge-label="LLM rerank → factoid 15 · conceptual 12 · reasoning 8" data-edge-key="8" data-edge-id="rerank">
-          <path data-composition-edge-from="api" data-composition-edge-to="gemini" data-composition-edge-id="rerank" data-composition-points="415.5,384;691.5,384" d="M 415.5 384 L 691.5 384" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-        <g data-detail="context">
-          <rect x="409.7" y="364" width="287.6" height="16" rx="3" class="c-mask"/>
-          <text x="553.5" y="374" class="t-messagebus" font-size="9" text-anchor="middle">LLM rerank → factoid 15 · conceptual 12 · reasoning 8</text>
-        </g>
-        </g>
-
-        <g data-edge-from="api" data-edge-to="gemini" data-edge-label="generate_content_stream · hard timeout 60s" data-edge-key="9" data-edge-id="generate">
-          <path data-composition-edge-from="api" data-composition-edge-to="gemini" data-composition-edge-id="generate" data-composition-points="415.5,412;691.5,412" d="M 415.5 412 L 691.5 412" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <g data-detail="context">
-          <rect x="438.3" y="392" width="230.4" height="16" rx="3" class="c-mask"/>
-          <text x="553.5" y="402" class="t-backend" font-size="9" text-anchor="middle">generate_content_stream · hard timeout 60s</text>
-        </g>
-        </g>
-
-        <g data-edge-from="api" data-edge-to="next" data-edge-label="SSE sanitized chunk × N" data-edge-key="10" data-edge-id="sse-chunk-proxy">
-          <path data-composition-edge-from="api" data-composition-edge-to="next" data-composition-edge-id="sse-chunk-proxy" data-composition-points="401.5,440;270.5,440" d="M 401.5 440 L 270.5 440" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="270.2" y="420" width="131.60000000000002" height="16" rx="3" class="c-mask"/>
-          <text x="336" y="430" class="t-muted" font-size="9" text-anchor="middle">SSE sanitized chunk × N</text>
-        </g>
-        </g>
-
-        <g data-edge-from="next" data-edge-to="web" data-edge-label="SSE chunk × N" data-edge-key="11" data-edge-id="sse-chunk-ui">
-          <path data-composition-edge-from="next" data-composition-edge-to="web" data-composition-edge-id="sse-chunk-ui" data-composition-points="256.5,464;125.5,464" d="M 256.5 464 L 125.5 464" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="151.2" y="444" width="79.60000000000001" height="16" rx="3" class="c-mask"/>
-          <text x="191" y="454" class="t-muted" font-size="9" text-anchor="middle">SSE chunk × N</text>
-        </g>
-        </g>
-
-        <g data-edge-from="api" data-edge-to="pg" data-edge-label="assistant · search_event · citations COMMIT" data-edge-key="12" data-edge-id="persist">
-          <path data-composition-edge-from="api" data-composition-edge-to="pg" data-composition-edge-id="persist" data-composition-points="415.5,492;981.5,492" d="M 415.5 492 L 981.5 492" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="580.7" y="472" width="235.6" height="16" rx="3" class="c-mask"/>
-          <text x="698.5" y="482" class="t-backend" font-size="9" text-anchor="middle">assistant · search_event · citations COMMIT</text>
-        </g>
-        </g>
-
-        <g data-edge-from="api" data-edge-to="next" data-edge-label="SSE sources · done" data-edge-key="13" data-edge-id="sse-done-proxy">
-          <path data-composition-edge-from="api" data-composition-edge-to="next" data-composition-edge-id="sse-done-proxy" data-composition-points="401.5,520;270.5,520" d="M 401.5 520 L 270.5 520" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="283.2" y="500" width="105.60000000000001" height="16" rx="3" class="c-mask"/>
-          <text x="336" y="510" class="t-muted" font-size="9" text-anchor="middle">SSE sources · done</text>
-        </g>
-        </g>
-
-        <g data-edge-from="next" data-edge-to="web" data-edge-label="SSE sources · done" data-edge-key="14" data-edge-id="sse-done-ui">
-          <path data-composition-edge-from="next" data-composition-edge-to="web" data-composition-edge-id="sse-done-ui" data-composition-points="256.5,544;125.5,544" d="M 256.5 544 L 125.5 544" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
-        <g data-detail="context">
-          <rect x="138.2" y="524" width="105.60000000000001" height="16" rx="3" class="c-mask"/>
-          <text x="191" y="534" class="t-muted" font-size="9" text-anchor="middle">SSE sources · done</text>
-        </g>
-        </g>
-
-        <!-- Segment Labels -->
-
-
-        <!-- Participants -->
-        <g id="node-web" data-node-id="web" data-node-label="채팅 UI" tabindex="0" role="button" aria-label="Focus 채팅 UI, apps/web (chat) 라우트, Sequence participant" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="apps/web (chat) 라우트" data-node-context="Sequence participant">
-          <title>채팅 UI · apps/web (chat) 라우트 · Sequence participant</title>
-          <rect x="62" y="72" width="113" height="54" rx="6" class="c-mask"/>
-          <rect x="62" y="72" width="113" height="54" rx="6" class="c-frontend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(68 78) scale(0.6875)">
-            <rect x="2" y="3" width="12" height="10" rx="2"/>
-            <path d="M2 6.5h12"/>
-            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
-            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="118.5" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">채팅 UI</text>
-          <text data-detail="context" x="118.5" y="111" class="t-muted" font-size="7" text-anchor="middle">apps/web (chat) 라우트</text>
-        </g>
-
-        <g id="node-next" data-node-id="next" data-node-label="web Next 서버" tabindex="0" role="button" aria-label="Focus web Next 서버, /api/backend rewrites, Sequence participant" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="/api/backend rewrites" data-node-context="Sequence participant">
-          <title>web Next 서버 · /api/backend rewrites · Sequence participant</title>
-          <rect x="207" y="72" width="113" height="54" rx="6" class="c-mask"/>
-          <rect x="207" y="72" width="113" height="54" rx="6" class="c-frontend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(213 78) scale(0.6875)">
-            <rect x="2" y="3" width="12" height="10" rx="2"/>
-            <path d="M2 6.5h12"/>
-            <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
-            <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="263.5" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">web Next 서버</text>
-          <text data-detail="context" x="263.5" y="111" class="t-muted" font-size="7" text-anchor="middle">/api/backend rewrites</text>
-        </g>
-
-        <g id="node-api" data-node-id="api" data-node-label="FastAPI" tabindex="0" role="button" aria-label="Focus FastAPI, /chat/stream, Sequence participant" aria-pressed="false" data-node-kind="backend" data-node-sublabel="/chat/stream" data-node-context="Sequence participant">
-          <title>FastAPI · /chat/stream · Sequence participant</title>
-          <rect x="352" y="72" width="113" height="54" rx="6" class="c-mask"/>
-          <rect x="352" y="72" width="113" height="54" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(358 78) scale(0.6875)">
-            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="408.5" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">FastAPI</text>
-          <text data-detail="context" x="408.5" y="111" class="t-muted" font-size="7" text-anchor="middle">/chat/stream</text>
-        </g>
-
-        <g id="node-safety" data-node-id="safety" data-node-label="Safety" tabindex="0" role="button" aria-label="Focus Safety, 입력 · 출력 검사, Sequence participant" aria-pressed="false" data-node-kind="security" data-node-sublabel="입력 · 출력 검사" data-node-context="Sequence participant">
-          <title>Safety · 입력 · 출력 검사 · Sequence participant</title>
-          <rect x="497" y="72" width="113" height="54" rx="6" class="c-mask"/>
-          <rect x="497" y="72" width="113" height="54" rx="6" class="c-security" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(503 78) scale(0.6875)">
-            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
-            <path d="m5.8 8 1.5 1.5 3-3"/>
-          </g>
-          <text data-node-label="" data-detail-anchor="" x="553.5" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Safety</text>
-          <text data-detail="context" x="553.5" y="111" class="t-muted" font-size="7" text-anchor="middle">입력 · 출력 검사</text>
-        </g>
-
-        <g id="node-gemini" data-node-id="gemini" data-node-label="Gemini" tabindex="0" role="button" aria-label="Focus Gemini, 3.5-flash-lite, Sequence participant" aria-pressed="false" data-node-kind="external" data-node-sublabel="3.5-flash-lite" data-node-context="Sequence participant">
-          <title>Gemini · 3.5-flash-lite · Sequence participant</title>
-          <rect x="642" y="72" width="113" height="54" rx="6" class="c-mask"/>
-          <rect x="642" y="72" width="113" height="54" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(648 78) scale(0.6875)">
+        <!-- Nodes -->
+        <g id="node-pr_merge" data-node-id="pr_merge" data-node-label="PR 머지 → main" tabindex="0" role="button" aria-label="Focus PR 머지 → main, sub-PR · 수동 검토, GitHub · main › 검증된 main" aria-pressed="false" data-node-kind="external" data-node-sublabel="sub-PR · 수동 검토" data-node-context="GitHub · main › 검증된 main">
+          <title>PR 머지 → main · sub-PR · 수동 검토 · GitHub · main › 검증된 main</title>
+          <rect x="48" y="94" width="150" height="52" rx="6" class="c-mask"/>
+          <rect x="48" y="94" width="150" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(54 100) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="698.5" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Gemini</text>
-          <text data-detail="context" x="698.5" y="111" class="t-muted" font-size="7" text-anchor="middle">3.5-flash-lite</text>
+          <text data-node-label="" data-detail-anchor="" x="123" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PR 머지 → main</text>
+          <text data-detail="context" x="123" y="132" class="t-muted" font-size="8" text-anchor="middle">sub-PR · 수동 검토</text>
         </g>
 
-        <g id="node-qdrant" data-node-id="qdrant" data-node-label="Qdrant" tabindex="0" role="button" aria-label="Focus Qdrant, raw HTTP/1.1, Sequence participant" aria-pressed="false" data-node-kind="database" data-node-sublabel="raw HTTP/1.1" data-node-context="Sequence participant">
-          <title>Qdrant · raw HTTP/1.1 · Sequence participant</title>
-          <rect x="787" y="72" width="113" height="54" rx="6" class="c-mask"/>
-          <rect x="787" y="72" width="113" height="54" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(793 78) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+        <g id="node-ci_main" data-node-id="ci_main" data-node-label="main push CI" tabindex="0" role="button" aria-label="Focus main push CI, ci.yml 전체 검사 · green, GitHub · main › 검증된 main" aria-pressed="false" data-node-kind="external" data-node-sublabel="ci.yml 전체 검사 · green" data-node-context="GitHub · main › 검증된 main">
+          <title>main push CI · ci.yml 전체 검사 · green · GitHub · main › 검증된 main</title>
+          <rect x="259.2" y="94" width="160" height="52" rx="6" class="c-mask"/>
+          <rect x="259.2" y="94" width="160" height="52" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(265.2 100) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="843.5" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Qdrant</text>
-          <text data-detail="context" x="843.5" y="111" class="t-muted" font-size="7" text-anchor="middle">raw HTTP/1.1</text>
+          <text data-node-label="" data-detail-anchor="" x="339.2" y="115" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">main push CI</text>
+          <text data-detail="context" x="339.2" y="132" class="t-muted" font-size="8" text-anchor="middle">ci.yml 전체 검사 · green</text>
         </g>
 
-        <g id="node-pg" data-node-id="pg" data-node-label="PostgreSQL" tabindex="0" role="button" aria-label="Focus PostgreSQL, asyncpg, Sequence participant" aria-pressed="false" data-node-kind="database" data-node-sublabel="asyncpg" data-node-context="Sequence participant">
-          <title>PostgreSQL · asyncpg · Sequence participant</title>
-          <rect x="932" y="72" width="113" height="54" rx="6" class="c-mask"/>
-          <rect x="932" y="72" width="113" height="54" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(938 78) scale(0.6875)">
-            <ellipse cx="8" cy="4" rx="5" ry="2"/>
-            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+        <g id="node-make_deploy" data-node-id="make_deploy" data-node-label="make deploy-&lt;svc&gt;" tabindex="0" role="button" aria-label="Focus make deploy-&lt;svc&gt;, backend · web · admin, 개발자 Mac (make) › 검증된 main" aria-pressed="false" data-node-kind="backend" data-node-sublabel="backend · web · admin" data-node-tag="TAG = git short sha" data-node-context="개발자 Mac (make) › 검증된 main">
+          <title>make deploy-&lt;svc&gt; · backend · web · admin · 개발자 Mac (make) › 검증된 main · TAG = git short sha</title>
+          <rect x="259.2" y="212" width="160" height="68" rx="6" class="c-mask"/>
+          <rect x="259.2" y="212" width="160" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(265.2 218) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="988.5" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PostgreSQL</text>
-          <text data-detail="context" x="988.5" y="111" class="t-muted" font-size="7" text-anchor="middle">asyncpg</text>
+          <text data-node-label="" data-detail-anchor="" x="339.2" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">make deploy-&lt;svc&gt;</text>
+          <text data-detail="context" x="339.2" y="250" class="t-muted" font-size="8" text-anchor="middle">backend · web · admin</text>
+        <text data-detail="fine" x="339.2" y="268" class="t-backend" font-size="7" text-anchor="middle">TAG = git short sha</text>
+        </g>
+
+        <g id="node-guard" data-node-id="guard" data-node-label="deploy-guard" tabindex="0" role="button" aria-label="Focus deploy-guard, HEAD ∈ origin/main · 클린 트리, 개발자 Mac (make) › 가드" aria-pressed="false" data-node-kind="security" data-node-sublabel="HEAD ∈ origin/main · 클린 트리" data-node-tag="FORCE_DEPLOY=1 → forced" data-node-context="개발자 Mac (make) › 가드">
+          <title>deploy-guard · HEAD ∈ origin/main · 클린 트리 · 개발자 Mac (make) › 가드 · FORCE_DEPLOY=1 → forced</title>
+          <rect x="447.20000000000005" y="212" width="170" height="68" rx="6" class="c-mask"/>
+          <rect x="447.20000000000005" y="212" width="170" height="68" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(453.20000000000005 218) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="532.2" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">deploy-guard</text>
+          <text data-detail="context" x="532.2" y="250" class="t-muted" font-size="8" text-anchor="middle">HEAD ∈ origin/main · 클린 트리</text>
+        <text data-detail="fine" x="532.2" y="268" class="t-security" font-size="7" text-anchor="middle">FORCE_DEPLOY=1 → forced</text>
+        </g>
+
+        <g id="node-build" data-node-id="build" data-node-label="docker buildx arm64" tabindex="0" role="button" aria-label="Focus docker buildx arm64, apps/&lt;svc&gt;/Dockerfile · build-arg, 개발자 Mac (make) › 빌드 · 전송" aria-pressed="false" data-node-kind="backend" data-node-sublabel="apps/&lt;svc&gt;/Dockerfile · build-arg" data-node-tag="backend: alembic · uvicorn 스모크" data-node-context="개발자 Mac (make) › 빌드 · 전송">
+          <title>docker buildx arm64 · apps/&lt;svc&gt;/Dockerfile · build-arg · 개발자 Mac (make) › 빌드 · 전송 · backend: alembic · uvicorn 스모크</title>
+          <rect x="625.2" y="212" width="176" height="68" rx="6" class="c-mask"/>
+          <rect x="625.2" y="212" width="176" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(631.2 218) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="713.2" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">docker buildx arm64</text>
+          <text data-detail="context" x="713.2" y="250" class="t-muted" font-size="8" text-anchor="middle">apps/&lt;svc&gt;/Dockerfile · build-arg</text>
+        <text data-detail="fine" x="713.2" y="268" class="t-backend" font-size="7" text-anchor="middle">backend: alembic · uvicorn 스모크</text>
+        </g>
+
+        <g id="node-finish" data-node-id="finish" data-node-label="deploy.log · prune-images" tabindex="0" role="button" aria-label="Focus deploy.log · prune-images, guarded|forced · 최신 3개 보존, 개발자 Mac (make) › 교체 · 기록" aria-pressed="false" data-node-kind="backend" data-node-sublabel="guarded|forced · 최신 3개 보존" data-node-tag="배포 후 health · SSE 스모크" data-node-context="개발자 Mac (make) › 교체 · 기록">
+          <title>deploy.log · prune-images · guarded|forced · 최신 3개 보존 · 개발자 Mac (make) › 교체 · 기록 · 배포 후 health · SSE 스모크</title>
+          <rect x="1017.4000000000001" y="212" width="176" height="68" rx="6" class="c-mask"/>
+          <rect x="1017.4000000000001" y="212" width="176" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(1023.4000000000001 218) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="1105.4" y="233" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">deploy.log · prune-images</text>
+          <text data-detail="context" x="1105.4" y="250" class="t-muted" font-size="8" text-anchor="middle">guarded|forced · 최신 3개 보존</text>
+        <text data-detail="fine" x="1105.4" y="268" class="t-backend" font-size="7" text-anchor="middle">배포 후 health · SSE 스모크</text>
+        </g>
+
+        <g id="node-ops_check" data-node-id="ops_check" data-node-label="ops-check.sh" tabindex="0" role="button" aria-label="Focus ops-check.sh, 7 불변식 · FAIL 도 계속, Oracle VM (ssh · docker) › 가드" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="7 불변식 · FAIL 도 계속" data-node-tag="FAIL/WARN → ntfy" data-node-context="Oracle VM (ssh · docker) › 가드">
+          <title>ops-check.sh · 7 불변식 · FAIL 도 계속 · Oracle VM (ssh · docker) › 가드 · FAIL/WARN → ntfy</title>
+          <rect x="452.20000000000005" y="338" width="160" height="68" rx="6" class="c-mask"/>
+          <rect x="452.20000000000005" y="338" width="160" height="68" rx="6" class="c-cloud" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(458.20000000000005 344) scale(0.6875)">
+            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="532.2" y="359" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">ops-check.sh</text>
+          <text data-detail="context" x="532.2" y="376" class="t-muted" font-size="8" text-anchor="middle">7 불변식 · FAIL 도 계속</text>
+        <text data-detail="fine" x="532.2" y="394" class="t-cloud" font-size="7" text-anchor="middle">FAIL/WARN → ntfy</text>
+        </g>
+
+        <g id="node-load" data-node-id="load" data-node-label="docker load (VM)" tabindex="0" role="button" aria-label="Focus docker load (VM), truewords-&lt;svc&gt;:&lt;sha&gt;, Oracle VM (ssh · docker) › 빌드 · 전송" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="truewords-&lt;svc&gt;:&lt;sha&gt;" data-node-tag="tmp/&lt;svc&gt;-&lt;sha&gt;.tgz → 삭제" data-node-context="Oracle VM (ssh · docker) › 빌드 · 전송">
+          <title>docker load (VM) · truewords-&lt;svc&gt;:&lt;sha&gt; · Oracle VM (ssh · docker) › 빌드 · 전송 · tmp/&lt;svc&gt;-&lt;sha&gt;.tgz → 삭제</title>
+          <rect x="758.2" y="338" width="150" height="68" rx="6" class="c-mask"/>
+          <rect x="758.2" y="338" width="150" height="68" rx="6" class="c-cloud" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(764.2 344) scale(0.6875)">
+            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="833.2" y="359" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">docker load (VM)</text>
+          <text data-detail="context" x="833.2" y="376" class="t-muted" font-size="8" text-anchor="middle">truewords-&lt;svc&gt;:&lt;sha&gt;</text>
+        <text data-detail="fine" x="833.2" y="394" class="t-cloud" font-size="7" text-anchor="middle">tmp/&lt;svc&gt;-&lt;sha&gt;.tgz → 삭제</text>
+        </g>
+
+        <g id="node-compose_up" data-node-id="compose_up" data-node-label="compose up -d --wait" tabindex="0" role="button" aria-label="Focus compose up -d --wait, .env &lt;SVC&gt;_TAG · 프론트 --no-deps, Oracle VM (ssh · docker) › 교체 · 기록" aria-pressed="false" data-node-kind="cloud" data-node-sublabel=".env &lt;SVC&gt;_TAG · 프론트 --no-deps" data-node-tag="healthcheck 통과까지 대기" data-node-context="Oracle VM (ssh · docker) › 교체 · 기록">
+          <title>compose up -d --wait · .env &lt;SVC&gt;_TAG · 프론트 --no-deps · Oracle VM (ssh · docker) › 교체 · 기록 · healthcheck 통과까지 대기</title>
+          <rect x="1017.4000000000001" y="338" width="176" height="68" rx="6" class="c-mask"/>
+          <rect x="1017.4000000000001" y="338" width="176" height="68" rx="6" class="c-cloud" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(1023.4000000000001 344) scale(0.6875)">
+            <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="1105.4" y="359" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">compose up -d --wait</text>
+          <text data-detail="context" x="1105.4" y="376" class="t-muted" font-size="8" text-anchor="middle">.env &lt;SVC&gt;_TAG · 프론트 --no-deps</text>
+        <text data-detail="fine" x="1105.4" y="394" class="t-cloud" font-size="7" text-anchor="middle">healthcheck 통과까지 대기</text>
+        </g>
+
+        <g id="node-guard_fail" data-node-id="guard_fail" data-node-label="배포 중단 (exit 1)" tabindex="0" role="button" aria-label="Focus 배포 중단 (exit 1), main 미포함 · 더티 트리, 중단 · 롤백 › 가드" aria-pressed="false" data-node-kind="security" data-node-sublabel="main 미포함 · 더티 트리" data-node-context="중단 · 롤백 › 가드">
+          <title>배포 중단 (exit 1) · main 미포함 · 더티 트리 · 중단 · 롤백 › 가드</title>
+          <rect x="452.20000000000005" y="472" width="160" height="52" rx="6" class="c-mask"/>
+          <rect x="452.20000000000005" y="472" width="160" height="52" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(458.20000000000005 478) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="532.2" y="493" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">배포 중단 (exit 1)</text>
+          <text data-detail="context" x="532.2" y="510" class="t-muted" font-size="8" text-anchor="middle">main 미포함 · 더티 트리</text>
+        </g>
+
+        <g id="node-unhealthy" data-node-id="unhealthy" data-node-label="--wait 실패" tabindex="0" role="button" aria-label="Focus --wait 실패, unhealthy · 재기동 반복, 중단 · 롤백 › rollback-&lt;svc&gt; 경로 › 빌드 · 전송" aria-pressed="false" data-node-kind="security" data-node-sublabel="unhealthy · 재기동 반복" data-node-context="중단 · 롤백 › rollback-&lt;svc&gt; 경로 › 빌드 · 전송">
+          <title>--wait 실패 · unhealthy · 재기동 반복 · 중단 · 롤백 › rollback-&lt;svc&gt; 경로 › 빌드 · 전송</title>
+          <rect x="758.2" y="472" width="150" height="52" rx="6" class="c-mask"/>
+          <rect x="758.2" y="472" width="150" height="52" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(764.2 478) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="833.2" y="493" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">--wait 실패</text>
+          <text data-detail="context" x="833.2" y="510" class="t-muted" font-size="8" text-anchor="middle">unhealthy · 재기동 반복</text>
+        </g>
+
+        <g id="node-rollback" data-node-id="rollback" data-node-label="rollback-&lt;svc&gt; TAG=&lt;sha&gt;" tabindex="0" role="button" aria-label="Focus rollback-&lt;svc&gt; TAG=&lt;sha&gt;, 이전 이미지 · deploy.log rollback, 중단 · 롤백 › rollback-&lt;svc&gt; 경로 › 교체 · 기록" aria-pressed="false" data-node-kind="security" data-node-sublabel="이전 이미지 · deploy.log rollback" data-node-context="중단 · 롤백 › rollback-&lt;svc&gt; 경로 › 교체 · 기록">
+          <title>rollback-&lt;svc&gt; TAG=&lt;sha&gt; · 이전 이미지 · deploy.log rollback · 중단 · 롤백 › rollback-&lt;svc&gt; 경로 › 교체 · 기록</title>
+          <rect x="1017.4000000000001" y="472" width="176" height="52" rx="6" class="c-mask"/>
+          <rect x="1017.4000000000001" y="472" width="176" height="52" rx="6" class="c-security" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(1023.4000000000001 478) scale(0.6875)">
+            <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
+            <path d="m5.8 8 1.5 1.5 3-3"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="1105.4" y="493" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">rollback-&lt;svc&gt; TAG=&lt;sha&gt;</text>
+          <text data-detail="context" x="1105.4" y="510" class="t-muted" font-size="8" text-anchor="middle">이전 이미지 · deploy.log rollback</text>
+        </g>
+
+        <!-- Edge labels -->
+        <g data-detail="context" data-edge-from="guard" data-edge-to="guard_fail" data-edge-label="가드 실패" data-edge-key="0" data-edge-id="guard-fail">
+          <rect x="455.1" y="532" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
+          <text x="481.70000000000005" y="542" class="t-security" font-size="8" text-anchor="middle">가드 실패</text>
+        </g>
+        <g data-detail="context" data-edge-from="compose_up" data-edge-to="finish" data-edge-label="healthy" data-edge-key="1" data-edge-id="healthy">
+          <rect x="1083.6000000000001" y="318" width="43.6" height="14" rx="3" class="c-mask"/>
+          <text x="1105.4" y="328" class="t-muted" font-size="8" text-anchor="middle">healthy</text>
+        </g>
+        <g data-detail="context" data-edge-from="ci_main" data-edge-to="make_deploy" data-edge-label="green 확인 후 사람이 실행" data-edge-key="2" data-edge-id="human-run">
+          <rect x="322.2" y="148" width="130" height="14" rx="3" class="c-mask"/>
+          <text x="387.2" y="158" class="t-backend" font-size="8" text-anchor="middle">green 확인 후 사람이 실행</text>
+        </g>
+        <g data-detail="context" data-edge-from="ops_check" data-edge-to="build" data-edge-label="경고만 · 계속" data-edge-key="3" data-edge-id="ops-continue">
+          <rect x="623" y="352" width="72.4" height="14" rx="3" class="c-mask"/>
+          <text x="659.2" y="362" class="t-muted" font-size="8" text-anchor="middle">경고만 · 계속</text>
+        </g>
+        <g data-detail="context" data-edge-from="pr_merge" data-edge-to="ci_main" data-edge-label="push main" data-edge-key="4" data-edge-id="push-main">
+          <rect x="202" y="100" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
+          <text x="228.6" y="110" class="t-muted" font-size="8" text-anchor="middle">push main</text>
+        </g>
+        <g data-detail="context" data-edge-from="rollback" data-edge-to="compose_up" data-edge-label="이전 태그로 up --wait" data-edge-key="5" data-edge-id="rollback-up">
+          <rect x="1050" y="452" width="110.8" height="14" rx="3" class="c-mask"/>
+          <text x="1105.4" y="462" class="t-database" font-size="8" text-anchor="middle">이전 태그로 up --wait</text>
+        </g>
+        <g data-detail="context" data-edge-from="load" data-edge-to="compose_up" data-edge-label="sed .env → up" data-edge-key="6" data-edge-id="switch">
+          <rect x="933.1" y="402" width="72.4" height="14" rx="3" class="c-mask"/>
+          <text x="969.3000000000001" y="412" class="t-backend" font-size="8" text-anchor="middle">sed .env → up</text>
+        </g>
+
+        <g data-detail="context" data-edge-from="guard" data-edge-to="ops_check" data-edge-label="ssh" data-edge-key="8" data-edge-id="to-ops-check">
+          <rect x="466.70000000000005" y="406" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="481.70000000000005" y="416" class="t-muted" font-size="8" text-anchor="middle">ssh</text>
+        </g>
+        <g data-detail="context" data-edge-from="unhealthy" data-edge-to="rollback" data-edge-label="TAG=&lt;이전 sha&gt; 명시" data-edge-key="9" data-edge-id="to-rollback">
+          <rect x="918.7" y="532" width="101.2" height="14" rx="3" class="c-mask"/>
+          <text x="969.3000000000001" y="542" class="t-database" font-size="8" text-anchor="middle">TAG=&lt;이전 sha&gt; 명시</text>
+        </g>
+        <g data-detail="context" data-edge-from="build" data-edge-to="load" data-edge-label="save → tgz → rsync --partial" data-edge-key="10" data-edge-id="transfer">
+          <rect x="701" y="142" width="144.4" height="14" rx="3" class="c-mask"/>
+          <text x="773.2" y="152" class="t-backend" font-size="8" text-anchor="middle">save → tgz → rsync --partial</text>
+        </g>
+        <g data-detail="context" data-edge-from="compose_up" data-edge-to="unhealthy" data-edge-label="timeout · unhealthy" data-edge-key="11" data-edge-id="wait-fail">
+          <rect x="912.2" y="268" width="101.2" height="14" rx="3" class="c-mask"/>
+          <text x="962.8000000000001" y="278" class="t-security" font-size="8" text-anchor="middle">timeout · unhealthy</text>
         </g>
 
         <!-- Legend -->
-        <g data-legend="">
-          <text x="40" y="566" class="t-primary" font-size="12" font-weight="650">Legend</text>
-          <g data-legend-semantic-kind="emphasis" data-legend-x="40" data-legend-baseline="586" data-legend-width="78">
-            <path d="M 40 583 L 74 583" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-            <text x="83" y="586" class="t-muted" font-size="10" font-weight="500">request</text>
+        <g data-legend="" data-legend-bridge="">
+          <text x="20" y="560" class="t-primary" font-size="12" font-weight="650">Legend</text>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="make 단계 (Mac)" data-legend-x="20" data-legend-baseline="580" data-legend-width="109">
+            <rect x="20" y="572" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
+            <text x="42" y="580" class="t-muted" font-size="7.5" font-weight="500">make 단계 (Mac)</text>
           </g>
-          <g data-legend-semantic-kind="return" data-legend-x="140" data-legend-baseline="586" data-legend-width="73">
-            <path d="M 140 583 L 174 583" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
-            <text x="183" y="586" class="t-muted" font-size="10" font-weight="500">return</text>
+          <g data-legend-semantic-kind="security" data-legend-kind="security" data-legend-label="가드 · 중단 · 롤백" data-legend-x="136" data-legend-baseline="580" data-legend-width="122">
+            <rect x="136" y="572" width="14" height="9" rx="2" class="c-security" stroke-width="1"/>
+            <text x="158" y="580" class="t-muted" font-size="7.5" font-weight="500">가드 · 중단 · 롤백</text>
           </g>
-          <g data-legend-semantic-kind="security" data-legend-x="235" data-legend-baseline="586" data-legend-width="83">
-            <path d="M 235 583 L 269 583" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-            <text x="278" y="586" class="t-muted" font-size="10" font-weight="500">security</text>
+          <g data-legend-semantic-kind="cloud" data-legend-kind="cloud" data-legend-label="VM 작업 (ssh)" data-legend-x="265" data-legend-baseline="580" data-legend-width="100">
+            <rect x="265" y="572" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
+            <text x="287" y="580" class="t-muted" font-size="7.5" font-weight="500">VM 작업 (ssh)</text>
           </g>
-          <g data-legend-semantic-kind="dashed" data-legend-x="340" data-legend-baseline="586" data-legend-width="98">
-            <path d="M 340 583 L 374 583" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
-            <text x="383" y="586" class="t-muted" font-size="10" font-weight="500">async trace</text>
-          </g>
-          <g data-legend-semantic-kind="default" data-legend-x="460" data-legend-baseline="586" data-legend-width="118">
-            <path d="M 460 583 L 494 583" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-            <text x="503" y="586" class="t-muted" font-size="10" font-weight="500">default message</text>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="GitHub" data-legend-x="372" data-legend-baseline="580" data-legend-width="70">
+            <rect x="372" y="572" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
+            <text x="394" y="580" class="t-muted" font-size="7.5" font-weight="500">GitHub</text>
           </g>
         </g>
       </svg>
@@ -5468,34 +5476,34 @@
     <div class="cards">
       <div class="card">
         <div class="card-header">
-          <div class="card-dot cyan"></div>
-          <h3>실제 네트워크 경로</h3>
-        </div>
-        <ul>
-          <li>&bull; 요청·SSE: 채팅 UI ↔ web 앱 Next rewrites (/api/backend/*) ↔ FastAPI</li>
-          <li>&bull; 관리자 대시보드는 별도 admin 앱·origin. 같은 backend 를 같은 방식으로 프록시</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
           <div class="card-dot rose"></div>
-          <h3>조기 종료</h3>
+          <h3>가드 규칙</h3>
         </div>
         <ul>
-          <li>&bull; 캐시 hit(≥ 0.88): 검색·생성 없이 반환, assistant 메시지만 저장</li>
-          <li>&bull; meta intent: 검색·리랭크·생성 없이 SafetyOutput 뒤 안내 답변 저장</li>
+          <li>&bull; HEAD ∈ origin/main + 클린 트리 아니면 exit 1 · FORCE_DEPLOY=1 은 forced 로 기록</li>
+          <li>&bull; ops-check 7건은 경고만 — 배포를 막지 않는다</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
-          <div class="card-dot orange"></div>
-          <h3>튜닝 · 후처리</h3>
+          <div class="card-dot cyan"></div>
+          <h3>전송 · 교체</h3>
         </div>
         <ul>
-          <li>&bull; rerank off 10개 · on intent별 15/12/8개; intent 2.0s · rewrite 1.5s</li>
-          <li>&bull; chunk sanitizer · SafetyOutput → followups 3.0s/closing 0.5s 병렬 → Persist → cache upsert</li>
+          <li>&bull; 레지스트리 없음: docker save → 로컬 tgz → rsync --partial --inplace → VM docker load(단계별 재실행 가능)</li>
+          <li>&bull; .env &lt;SVC&gt;_TAG 만 sed → compose up -d --wait, 프론트는 --no-deps</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot amber"></div>
+          <h3>기록 · 복구</h3>
+        </div>
+        <ul>
+          <li>&bull; deploy.log: UTC · deploy|rollback · svc · TAG · guarded|forced|manual</li>
+          <li>&bull; prune-images 최신 3개·보존 목록 유지 · rollback-&lt;svc&gt; 는 TAG=&lt;이전 sha&gt; 필수</li>
         </ul>
       </div>
     </div>

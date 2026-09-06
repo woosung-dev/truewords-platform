@@ -3,69 +3,42 @@
   "diagram_type": "dataflow",
   "meta": {
     "title": "데이터 적재 데이터플로우",
-    "output": "docs/architecture/diagrams/ingestion.html",
+    "output": "docs/04_architecture/diagrams/ingestion.html",
     "quality_profile": "showcase",
-    "viewBox": [
-      1080,
-      620
-    ],
+    "viewBox": [1080, 620],
     "views": [
       {
         "id": "upload-worker",
         "label": "업로드 · 워커",
-        "focus": [
-          "admin_ui",
-          "upload_api",
-          "worker"
-        ],
-        "note": "admin 앱의 data-sources 화면이 업로드하면 API가 202를 반환한 뒤 Queue(100)의 단일 ingest-worker가 파일을 순차 처리한다."
+        "focus": ["admin_ui", "upload_api", "worker"],
+        "note": "API가 202를 반환한 뒤 Queue(100)의 단일 ingest-worker가 파일을 순차 처리한다."
       },
       {
         "id": "vectorization",
         "label": "청킹 · 벡터화",
-        "focus": [
-          "prepare",
-          "ingestor",
-          "gemini",
-          "bm25"
-        ],
+        "focus": ["prepare", "ingestor", "gemini", "bm25"],
         "note": "Recursive 700/150 청크를 Gemini dense 1536과 로컬 BM25 sparse 벡터로 만든다."
       },
       {
         "id": "storage-recovery",
         "label": "저장 · 복구",
-        "focus": [
-          "ingestor",
-          "corpus",
-          "jobs",
-          "semantic_cache"
-        ],
+        "focus": ["ingestor", "corpus", "jobs", "semantic_cache"],
         "note": "50-point upsert 성공 뒤 진행률을 저장하고 완료 시각으로 이전 semantic cache를 stale 처리한다."
       }
     ]
   },
   "stages": [
-    {
-      "label": "업로드"
-    },
-    {
-      "label": "큐 · 워커"
-    },
-    {
-      "label": "추출 · 청킹"
-    },
-    {
-      "label": "벡터화"
-    },
-    {
-      "label": "저장"
-    }
+    {"label": "업로드"},
+    {"label": "큐 · 워커"},
+    {"label": "추출 · 청킹"},
+    {"label": "벡터화"},
+    {"label": "저장"}
   ],
   "nodes": [
     {
       "id": "admin_ui",
       "type": "frontend",
-      "label": "관리자 UI (admin 앱)",
+      "label": "관리자 UI",
       "sublabel": "TXT · PDF · DOCX",
       "stage": 0,
       "row": 0,
@@ -166,127 +139,17 @@
     }
   ],
   "flows": [
-    {
-      "id": "upload",
-      "from": "admin_ui",
-      "to": "upload_api",
-      "label": "multipart 파일 · on_duplicate",
-      "variant": "emphasis",
-      "route": "straight",
-      "labelAt": [
-        100,
-        250
-      ]
-    },
-    {
-      "id": "enqueue",
-      "from": "upload_api",
-      "to": "worker",
-      "label": "임시 경로 · 202 즉시 반환",
-      "variant": "emphasis",
-      "labelAt": [
-        206,
-        440
-      ]
-    },
-    {
-      "id": "dequeue",
-      "from": "worker",
-      "to": "prepare",
-      "label": "파일 1건",
-      "variant": "emphasis"
-    },
-    {
-      "id": "chunks",
-      "from": "prepare",
-      "to": "ingestor",
-      "label": "청크 · 메타 · content hash",
-      "variant": "emphasis",
-      "labelAt": [
-        590,
-        330
-      ]
-    },
-    {
-      "id": "dense-request",
-      "from": "ingestor",
-      "to": "gemini",
-      "label": "청크 text batch",
-      "labelAt": [
-        590,
-        270
-      ]
-    },
-    {
-      "id": "dense-result",
-      "from": "gemini",
-      "to": "ingestor",
-      "label": "dense 1536",
-      "variant": "dashed",
-      "labelAt": [
-        805,
-        230
-      ]
-    },
-    {
-      "id": "sparse-request",
-      "from": "ingestor",
-      "to": "bm25",
-      "label": "청크 text batch",
-      "labelAt": [
-        590,
-        455
-      ]
-    },
-    {
-      "id": "sparse-result",
-      "from": "bm25",
-      "to": "ingestor",
-      "label": "sparse indices · values",
-      "variant": "dashed",
-      "labelAt": [
-        835,
-        455
-      ]
-    },
-    {
-      "id": "upsert",
-      "from": "ingestor",
-      "to": "corpus",
-      "label": "UUID5 points × 50 PUT",
-      "variant": "emphasis",
-      "route": "straight",
-      "labelAt": [
-        930,
-        330
-      ]
-    },
-    {
-      "id": "checkpoint",
-      "from": "ingestor",
-      "to": "jobs",
-      "label": "upsert 성공 후 진행률",
-      "variant": "dashed",
-      "labelAt": [
-        900,
-        270
-      ]
-    },
-    {
-      "id": "invalidate",
-      "from": "jobs",
-      "to": "semantic_cache",
-      "label": "max(completed_at)보다 이전이면 stale",
-      "variant": "dashed",
-      "route": "vertical-channel",
-      "fromSide": "right",
-      "toSide": "right",
-      "channelX": 1060,
-      "labelAt": [
-        965,
-        300
-      ]
-    }
+    {"id": "upload", "from": "admin_ui", "to": "upload_api", "label": "multipart 파일 · on_duplicate", "variant": "emphasis", "route": "straight", "labelAt": [100, 250]},
+    {"id": "enqueue", "from": "upload_api", "to": "worker", "label": "임시 경로 · 202 즉시 반환", "variant": "emphasis", "labelAt": [206, 440]},
+    {"id": "dequeue", "from": "worker", "to": "prepare", "label": "파일 1건", "variant": "emphasis"},
+    {"id": "chunks", "from": "prepare", "to": "ingestor", "label": "청크 · 메타 · content hash", "variant": "emphasis", "labelAt": [590, 330]},
+    {"id": "dense-request", "from": "ingestor", "to": "gemini", "label": "청크 text batch", "labelAt": [590, 270]},
+    {"id": "dense-result", "from": "gemini", "to": "ingestor", "label": "dense 1536", "variant": "dashed", "labelAt": [805, 230]},
+    {"id": "sparse-request", "from": "ingestor", "to": "bm25", "label": "청크 text batch", "labelAt": [590, 455]},
+    {"id": "sparse-result", "from": "bm25", "to": "ingestor", "label": "sparse indices · values", "variant": "dashed", "labelAt": [835, 455]},
+    {"id": "upsert", "from": "ingestor", "to": "corpus", "label": "UUID5 points × 50 PUT", "variant": "emphasis", "route": "straight", "labelAt": [930, 330]},
+    {"id": "checkpoint", "from": "ingestor", "to": "jobs", "label": "upsert 성공 후 진행률", "variant": "dashed", "labelAt": [900, 270]},
+    {"id": "invalidate", "from": "jobs", "to": "semantic_cache", "label": "max(completed_at)보다 이전이면 stale", "variant": "dashed", "route": "vertical-channel", "fromSide": "right", "toSide": "right", "channelX": 1060, "labelAt": [965, 300]}
   ],
   "cards": [
     {

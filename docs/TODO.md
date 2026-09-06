@@ -144,6 +144,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] Git 브랜치 전략 문서화 (2026-04-11)
 - [x] 아키텍처 설계 문서 9개 완료
 - [x] Superpowers plans/specs 8+8개
+- [x] archify 다이어그램 6종을 현재 모노레포·6컨테이너 구조로 재생성 + 배포 워크플로(`deploy.workflow.json`, make deploy-*·guard·rollback) 신규 (main `8980e0c`, 2026-09-06). deliver showcase 7/7 · visual-check 7/7, 분리 전 JSON 은 `docs/archive/diagrams-2026-09-04/` 로 이동 — [기록](architecture/diagrams/README.md#검증-기록-2026-09-06-main-8980e0c)
 
 ---
 
@@ -183,6 +184,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - `[확인 필요]` 독립 베타의 법적 운영 주체와 FFWPU 공식 승인 요청·검수 절차는 무엇인가?
 - `[확인 필요]` 초기 소규모 정본의 정확한 목록과 본문 전재·검색·임베딩·AI 요약·오프라인·푸시 인용별 권리 범위는 어디까지인가?
 - `[확인 필요]` 콘텐츠 공식성·검수·철회 최종 책임자는 누구인가?
+- `[확인 필요]` 분리 전 다이어그램 JSON 6종(`docs/archive/diagrams-2026-09-04/`, 약 45KB)을 계속 보존할지, git 이력만 믿고 지울지. HTML/PNG 는 이미 이력에만 남겼다.
 - `[확인 필요]` `DEC-MONO-004` — Flutter 착수 시점은 미정. PWA 우선 후 도입 확정 시 앱·Dart SDK·Pub workspace·모바일 CI를 함께 추가한다.
 - ~~GCP 실제 배포 시점?~~ — 해소. GCP 배포 후(2026-04~07) 2026-07-29 Oracle Cloud 로 이전 완료. §13 참조
 
@@ -223,7 +225,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] **원격 브랜치 정리** (2026-09-06 완료) — 118개 중 **116개 삭제**(main 조상 17 · squash 머지 PR 91 · CLOSED PR 6 · PR 없는 정리 브랜치 2). 유지: `chore/multi-project-port-offset`(#188 OPEN) · `docs/ffwpu-pwa-session-1`(#218 CLOSED, 로컬 worktree 사용 중). `docs/doc-index-cache-threshold` 의 미반영 2커밋(NotebookLM 평가 스크립트·문서 색인)은 로컬 `backup/doc-index-cache-threshold` 에 보존(`volume_raw 255` 수정은 main 에 이미 있음). 이후 정리는 `delete_branch_on_merge` 가 맡는다.
 - [x] **Dependabot 알림 221건 triage** (2026-09-06 완료 · **open 0**) — 실제 분포는 npm 147(`pnpm-lock.yaml` 101 + `apps/{web,admin}/package.json` 각 23 — `next` 23 advisory 의 manifest 별 중복 집계) / **pip 74**(`apps/api/uv.lock`, 첫 페이지 표본에 없었음). 한 PR 한 계열, 전부 `CI Required`(E2E 포함) green: #230 `next` 16.2.12(-69) · #231 `shadcn` → devDependencies + hono·qs·postcss 계열 `pnpm.overrides`(-40) · #234 fast-uri·brace-expansion·undici·vite overrides(-35) · #233 pip 패치 9종(-20) · #235 cryptography 50.0.1·starlette 1.3.1 메이저(-10, 사용자 승인) · #237 fastembed 0.8.0(qdrant-client 1.19.0 동반)+pillow 12.3.0+pytest·pygments(-20) · **dismiss 26 `not_used`**(eval 그룹 전용 24 — aiohttp·langchain*·langgraph*·langsmith·ragas·diskcache, `uv export --no-dev` prod 세트 미포함 / ecdsa — JWT HS256 만 사용·패치 없음 / sharp — 양 앱 `next/image` 미사용, next 16.2 가 ^0.34.5 고정 → 16.3 상향 때 재확인). lockfile 은 `pnpm update` 가 아닌 specifier 편집 + `pnpm install`·`uv lock --upgrade-package` 로 대상만 재해석했다. 운영 반영은 web/admin 컷오버 때 새 main 이미지로 — 배포 후 sparse 검색(fastembed 0.8) 실동작 1회 확인.
 - [ ] **Dependabot 버전 업데이트 PR 보류 (2026-09-06)** — `.github/dependabot.yml` 추가 직후 열린 PR 중 하한만 올리는 #250(qdrant-client≥1.19)·#251(python-jose≥3.5) 은 머지, actions 메이저 #244~#246 도 CI green 으로 머지. **보류**: #249 pip minor/patch 9종(fastapi 0.135→0.141 등 런타임 프레임워크) · #252 npm minor/patch 19종(next 16.2→16.3, shadcn 4.20, tailwind 4.3 — UI 변화 가능) · **메이저** #253 typescript 5.9→7.0 · #254 @types/node 20→26. 화면 확인이 있는 세션에서 단독 검증 후 결정(typescript 7 은 컴파일러 교체급이라 별도 ADR 감). Dependabot 이 매달 같은 PR 을 갱신하므로 방치 비용 없음.
-- [ ] **P2 (이번 달+)** — healthchecks.io dead-man ping(`ops-check.sh`·`backup-db.sh`) · ~~`.github/dependabot.yml`(monthly, PR 3개 제한)~~(2026-09-06 추가: npm·uv·github-actions, minor/patch 그룹) + `dorny/paths-filter` SHA 핀 · `qdrant/qdrant:latest` → 운영 태그 `v1.12.4`(dev·e2e compose) · 무효 `apps/{api,admin}/.dockerignore` 삭제 · `@truewords/e2e` typecheck 스크립트 · ruff 도입 · Playwright `trace: retain-on-failure` · archify 전달 파이프라인 다이어그램 1종(분리 이후 기준 묶음) · `cloudflare/cloudflared:latest` → 태그 고정(nexus·kairos 는 `2026.8.0` 고정, 2026-09-06 확인) · VM `~/truewords/cache-cleanup.sh` 사본이 main 과 다름(crontab 미등록·수동 진입점, 다음 scp 때 갱신) · 로컬 브랜치 51개 정리(원격 116개는 2026-09-06 삭제).
+- [ ] **P2 (이번 달+)** — healthchecks.io dead-man ping(`ops-check.sh`·`backup-db.sh`) · ~~`.github/dependabot.yml`(monthly, PR 3개 제한)~~(2026-09-06 추가: npm·uv·github-actions, minor/patch 그룹) + `dorny/paths-filter` SHA 핀 · `qdrant/qdrant:latest` → 운영 태그 `v1.12.4`(dev·e2e compose) · 무효 `apps/{api,admin}/.dockerignore` 삭제 · `@truewords/e2e` typecheck 스크립트 · ruff 도입 · Playwright `trace: retain-on-failure` · `cloudflare/cloudflared:latest` → 태그 고정(nexus·kairos 는 `2026.8.0` 고정, 2026-09-06 확인) · VM `~/truewords/cache-cleanup.sh` 사본이 main 과 다름(crontab 미등록·수동 진입점, 다음 scp 때 갱신) · 로컬 브랜치 51개 정리(원격 116개는 2026-09-06 삭제).
 
 ### 전환 검증에서 확인한 기존 후속 과제
 

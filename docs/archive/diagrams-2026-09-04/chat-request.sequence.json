@@ -3,7 +3,7 @@
   "diagram_type": "sequence",
   "meta": {
     "title": "채팅 요청 시퀀스 (SSE)",
-    "output": "docs/architecture/diagrams/chat-request.html",
+    "output": "docs/04_architecture/diagrams/chat-request.html",
     "quality_profile": "showcase",
     "viewBox": [1085, 640],
     "views": [
@@ -11,7 +11,7 @@
         "id": "request",
         "label": "요청 · 검증",
         "focus": ["web", "next", "api", "safety"],
-        "note": "브라우저는 같은 origin 의 /api/backend/chat/stream 을 부르고 web 앱의 Next 서버가 backend 로 프록시한다. rate limit 과 입력 검증이 먼저 돈다."
+        "note": "브라우저의 상대 경로 호출을 Next 서버가 backend로 프록시하고, rate limit과 입력 검증이 먼저 돈다."
       },
       {
         "id": "cache",
@@ -35,8 +35,8 @@
     "column_fit": "spread"
   },
   "participants": [
-    {"id": "web", "type": "frontend", "label": "채팅 UI", "sublabel": "apps/web (chat) 라우트"},
-    {"id": "next", "type": "frontend", "label": "web Next 서버", "sublabel": "/api/backend rewrites"},
+    {"id": "web", "type": "frontend", "label": "채팅 UI", "sublabel": "admin (chat) 라우트"},
+    {"id": "next", "type": "frontend", "label": "Next 서버", "sublabel": "rewrites 프록시"},
     {"id": "api", "type": "backend", "label": "FastAPI", "sublabel": "/chat/stream"},
     {"id": "safety", "type": "security", "label": "Safety", "sublabel": "입력 · 출력 검사"},
     {"id": "gemini", "type": "external", "label": "Gemini", "sublabel": "3.5-flash-lite"},
@@ -44,7 +44,7 @@
     {"id": "pg", "type": "database", "label": "PostgreSQL", "sublabel": "asyncpg"}
   ],
   "messages": [
-    {"id": "post-stream", "from": "web", "to": "next", "y": 160, "label": "POST /api/backend/chat/stream", "variant": "emphasis"},
+    {"id": "post-stream", "from": "web", "to": "next", "y": 160, "label": "POST /api/chat/stream", "variant": "emphasis"},
     {"id": "proxy", "from": "next", "to": "api", "y": 188, "label": "→ backend:8080/chat/stream", "variant": "emphasis"},
     {"id": "guard", "from": "api", "to": "safety", "y": 216, "label": "rate limit 20/60s · injection 검사", "variant": "security"},
     {"id": "session", "from": "api", "to": "pg", "y": 244, "label": "세션 조회/생성 · user 메시지 INSERT"},
@@ -65,8 +65,8 @@
       "dot": "cyan",
       "title": "실제 네트워크 경로",
       "items": [
-        "요청·SSE: 채팅 UI ↔ web 앱 Next rewrites (/api/backend/*) ↔ FastAPI",
-        "관리자 대시보드는 별도 admin 앱·origin. 같은 backend 를 같은 방식으로 프록시"
+        "요청·SSE: 채팅 UI ↔ Next rewrites ↔ FastAPI",
+        "채팅 UI와 대시보드는 같은 Next.js 앱의 라우트 그룹"
       ]
     },
     {
