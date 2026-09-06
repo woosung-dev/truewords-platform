@@ -21,9 +21,9 @@ architecture 3종은 `meta.repository`(revision `8980e0c`) + 컴포넌트별 `so
 
 | 영역 | 2026-09-04 | 2026-09-06 |
 |---|---|---|
-| 프론트 | 통합 `admin` 앱 1개가 채팅 UI + 대시보드, `app.<zone>` 한 origin | `apps/web`(채팅 · 기록 · 소개) + `apps/admin`(대시보드 · 적재 · 분석). `truewords.<zone>` → web, `truewords-admin.<zone>` → admin, `app.<zone>` 은 301 |
+| 프론트 | 통합 `admin` 앱 1개가 채팅 UI + 대시보드, `app.<zone>` 한 origin | `apps/web`(채팅 · 기록 · 소개) + `apps/admin`(대시보드 · 적재 · 분석). `truewords.<zone>` → web, `truewords-admin.<zone>` → admin. 구 `app.<zone>` 은 폐지(#242 `288c87a`, route·DNS 삭제) |
 | 브라우저 → API | `/api/chat*` · `/admin/*` rewrites | 두 앱 모두 `/api/backend/:path*` → `backend:8080/:path*` (구 경로는 호환 alias) |
-| 컨테이너 | 5개 (admin · backend · qdrant · postgres · cloudflared) | 6개 (+ web). Cloudflare Published routes 5 hostname |
+| 컨테이너 | 5개 (admin · backend · qdrant · postgres · cloudflared) | 6개 (+ web). Cloudflare Published routes 4 hostname |
 | 백엔드 경로 | `backend/main.py`, `backend/src/<domain>` | `apps/api/app/main.py`, `app/core`(설정 · DB · 예외), `app/modules/<10 도메인>`. URL · 테이블 · Alembic head(`a1c9e7d0b2f3`) 는 그대로 |
 | 공유 · 계약 | 없음 (admin 수기 DTO) | `contracts/openapi.json` + `contracts/fixtures/chat-stream.json` → `packages/api-client-ts`(generated + transport). `eslint-config` · `typescript-config` |
 | CI | `ci.yml`(PR) + `cache-cleanup.yml` | `ci.yml`(PR · main push · dispatch, 변경 감지) → reusable `ci-api` · `ci-web` · `ci-contracts` · `ci-e2e` + `cache-cleanup.yml`. Vercel 제거 |
@@ -66,7 +66,7 @@ done
 
 | 다이어그램 | deliver (showcase) | 수령증 (sha256 앞 12자리) | visual-check |
 |-----------|--------------------|---------------------------|--------------|
-| system-architecture | pass — 9 checks, errors 0 / warnings 0 | spec `7018598b4c82` · html `91f4b5e27117` (733,258 B) | pass — 4 캡처 무스크롤, 최소 텍스트 6.07px @1440 |
+| system-architecture | pass — 9 checks, errors 0 / warnings 0 | spec `6997aea6cbec` · html `aac464100b48` (733,289 B) | pass — 4 캡처 무스크롤, 최소 텍스트 6.07px @1440 |
 | repo-structure | pass — 9 checks, errors 0 / warnings 0 | spec `f5814275213f` · html `7fc031faa121` (733,980 B) | pass — 4 캡처 무스크롤, 최소 텍스트 7.27px @1440 |
 | database-schema | pass — 9 checks, errors 0 / warnings 0 | spec `82bbe132fedc` · html `613f43b7951a` (727,946 B) | pass — 4 캡처 무스크롤, 최소 텍스트 6.15px @1440 |
 | chat-request | pass — 9 checks, errors 0 / warnings 0 | spec `167612c97fa0` · html `4c9ae3fc00ce` (717,199 B) | pass — 4 캡처 무스크롤, 최소 텍스트 6.00px @1440 |

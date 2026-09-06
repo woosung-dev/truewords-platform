@@ -5086,8 +5086,8 @@
         <text data-detail="context" x="115" y="465" class="t-muted" font-size="9" text-anchor="middle">truewords-admin.&lt;zone&gt;</text>
         </g>
 
-        <g id="node-cf_edge" data-node-id="cf_edge" data-node-label="Cloudflare Edge" tabindex="0" role="button" aria-label="Focus Cloudflare Edge, DNS · TLS 종단, Architecture component" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="DNS · TLS 종단" data-node-tag="app.&lt;zone&gt; → 301" data-node-context="Architecture component">
-          <title>Cloudflare Edge · DNS · TLS 종단 · Architecture component · app.&lt;zone&gt; → 301</title>
+        <g id="node-cf_edge" data-node-id="cf_edge" data-node-label="Cloudflare Edge" tabindex="0" role="button" aria-label="Focus Cloudflare Edge, DNS · TLS 종단, Architecture component" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="DNS · TLS 종단" data-node-tag="구 app.&lt;zone&gt; 폐지" data-node-context="Architecture component">
+          <title>Cloudflare Edge · DNS · TLS 종단 · Architecture component · 구 app.&lt;zone&gt; 폐지</title>
           <rect x="235" y="300" width="150" height="62" rx="6" class="c-mask"/>
           <rect x="235" y="300" width="150" height="62" rx="6" class="c-cloud" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(241 306) scale(0.6875)">
@@ -5095,11 +5095,11 @@
           </g>
           <text data-node-label="" data-detail-anchor="" x="310" y="329" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Cloudflare Edge</text>
         <text data-detail="context" x="310" y="345" class="t-muted" font-size="9" text-anchor="middle">DNS · TLS 종단</text>
-        <text data-detail="fine" x="310" y="354" class="t-cloud" font-size="7" text-anchor="middle">app.&lt;zone&gt; → 301</text>
+        <text data-detail="fine" x="310" y="354" class="t-cloud" font-size="7" text-anchor="middle">구 app.&lt;zone&gt; 폐지</text>
         </g>
 
-        <g id="node-cloudflared" data-node-id="cloudflared" data-node-label="cloudflared" tabindex="0" role="button" aria-label="Focus cloudflared, outbound 터널 · 5 hostname, Oracle Cloud A1 VM (ap-tokyo-1) · docker network truewords_net · 컨테이너 6개" aria-pressed="false" data-node-kind="security" data-node-sublabel="outbound 터널 · 5 hostname" data-node-tag="컨테이너" data-node-context="Oracle Cloud A1 VM (ap-tokyo-1) · docker network truewords_net · 컨테이너 6개">
-          <title>cloudflared · outbound 터널 · 5 hostname · Oracle Cloud A1 VM (ap-tokyo-1) · docker network truewords_net · 컨테이너 6개 · 컨테이너</title>
+        <g id="node-cloudflared" data-node-id="cloudflared" data-node-label="cloudflared" tabindex="0" role="button" aria-label="Focus cloudflared, outbound 터널 · 4 hostname, Oracle Cloud A1 VM (ap-tokyo-1) · docker network truewords_net · 컨테이너 6개" aria-pressed="false" data-node-kind="security" data-node-sublabel="outbound 터널 · 4 hostname" data-node-tag="컨테이너" data-node-context="Oracle Cloud A1 VM (ap-tokyo-1) · docker network truewords_net · 컨테이너 6개">
+          <title>cloudflared · outbound 터널 · 4 hostname · Oracle Cloud A1 VM (ap-tokyo-1) · docker network truewords_net · 컨테이너 6개 · 컨테이너</title>
           <rect x="455" y="300" width="150" height="62" rx="6" class="c-mask"/>
           <rect x="455" y="300" width="150" height="62" rx="6" class="c-security" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(461 306) scale(0.6875)">
@@ -5107,7 +5107,7 @@
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="530" y="329" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">cloudflared</text>
-        <text data-detail="context" x="530" y="345" class="t-muted" font-size="9" text-anchor="middle">outbound 터널 · 5 hostname</text>
+        <text data-detail="context" x="530" y="345" class="t-muted" font-size="9" text-anchor="middle">outbound 터널 · 4 hostname</text>
         <text data-detail="fine" x="530" y="354" class="t-security" font-size="7" text-anchor="middle">컨테이너</text>
         </g>
 
@@ -5511,7 +5511,7 @@
           <h3>요청 경로 — origin 2개</h3>
         </div>
         <ul>
-          <li>&bull; truewords.&lt;zone&gt; → web, truewords-admin.&lt;zone&gt; → admin. 구 app.&lt;zone&gt; 은 301</li>
+          <li>&bull; truewords.&lt;zone&gt; → web, truewords-admin.&lt;zone&gt; → admin. 구 app.&lt;zone&gt; 은 폐지(route·DNS 삭제)</li>
           <li>&bull; 각 Next 앱의 rewrites 가 /api/backend/* 을 backend:8080 으로 프록시 (SSE 포함)</li>
           <li>&bull; VM inbound 는 TCP 22 만. 트래픽은 cloudflared outbound 터널로만 진입</li>
         </ul>

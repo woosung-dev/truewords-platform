@@ -130,13 +130,13 @@
         150,
         62
       ],
-      "tag": "app.<zone> → 301"
+      "tag": "구 app.<zone> 폐지"
     },
     {
       "id": "cloudflared",
       "type": "security",
       "label": "cloudflared",
-      "sublabel": "outbound 터널 · 5 hostname",
+      "sublabel": "outbound 터널 · 4 hostname",
       "tag": "컨테이너",
       "pos": [
         455,
@@ -478,7 +478,7 @@
       "dot": "cyan",
       "title": "요청 경로 — origin 2개",
       "items": [
-        "truewords.<zone> → web, truewords-admin.<zone> → admin. 구 app.<zone> 은 301",
+        "truewords.<zone> → web, truewords-admin.<zone> → admin. 구 app.<zone> 은 폐지(route·DNS 삭제)",
         "각 Next 앱의 rewrites 가 /api/backend/* 을 backend:8080 으로 프록시 (SSE 포함)",
         "VM inbound 는 TCP 22 만. 트래픽은 cloudflared outbound 터널로만 진입"
       ]
