@@ -24,7 +24,7 @@
   "devDependencies": {
     "@hey-api/openapi-ts": "0.99.0",
     "turbo": "2.10.12",
-    "typescript": "5.9.3",
+    "typescript": "7.0.2",
     "vitest": "4.1.2"
   },
   "pnpm": {
