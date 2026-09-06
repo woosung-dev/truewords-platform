@@ -256,7 +256,8 @@ test.describe("인증 가드", () => {
   }) => {
     await fillLogin(page, NON_ADMIN_EMAIL);
     await page.waitForURL("**/access-denied", { timeout: 10_000 });
-    await expect(page.getByText("관리자 권한이 필요합니다")).toBeVisible({
+    // Next 16.3 부터 __next-route-announcer__(aria-live) 가 h1 텍스트를 복제해 getByText 가 2요소를 잡는다 → heading 으로 한정
+    await expect(page.getByRole("heading", { name: "관리자 권한이 필요합니다" })).toBeVisible({
       timeout: 10_000,
     });
   });
@@ -269,7 +270,8 @@ test.describe("인증 가드", () => {
     await page.goto("/dashboard");
     // 루트는 관리자 페이지이므로 권한 안내에서 멈춰야 한다.
     await page.waitForURL("**/access-denied", { timeout: 10_000 });
-    await expect(page.getByText("관리자 권한이 필요합니다")).toBeVisible({
+    // Next 16.3 부터 __next-route-announcer__(aria-live) 가 h1 텍스트를 복제해 getByText 가 2요소를 잡는다 → heading 으로 한정
+    await expect(page.getByRole("heading", { name: "관리자 권한이 필요합니다" })).toBeVisible({
       timeout: 10_000,
     });
   });
