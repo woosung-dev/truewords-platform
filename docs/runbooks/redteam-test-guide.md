@@ -282,7 +282,7 @@ RRF 병합 — weight 반영해 Top-50 선정 → Re-ranking → Top-10
 
 | 환경 | 주소 |
 |---|---|
-| 프로덕션 (레드팀 테스트 환경) | https://truewords.woosung.dev/ (구 `app.woosung.dev` 는 301 리다이렉트) |
+| 프로덕션 (레드팀 테스트 환경) | https://truewords.woosung.dev/ (구 `app.woosung.dev` 는 2026-09-06 폐지) |
 
 ### 3.2 관리자 계정
 
