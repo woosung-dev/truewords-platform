@@ -1,0 +1,28 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": [
+      "**",
+      "!apps/api",
+      "!packages/api-client-ts/src/generated",
+      "!contracts",
+      "!docs",
+      "!reports",
+      "!pyrightconfig.json",
+      "!**/.next"
+    ]
+  },
+  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
+  "javascript": { "formatter": { "quoteStyle": "double", "semicolons": "always" } },
+  "css": { "parser": { "tailwindDirectives": true } },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    "domains": { "react": "recommended", "next": "recommended" },
+    "rules": {
+      "preset": "recommended",
+      "nursery": { "useReactCompiler": "warn", "useSortedClasses": "off" }
+    }
+  }
+}
