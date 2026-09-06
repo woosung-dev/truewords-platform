@@ -44,7 +44,7 @@ POSTGRES_PORT=55432 QDRANT_HTTP_PORT=56333 QDRANT_GRPC_PORT=56334 API_PORT=58000
 
 | 항목 | 기존 운영 | 분리 후 제안·상태 |
 |---|---|---|
-| 사용자 origin | `app.<zone>` → `admin:3000` | `app.<zone>` → `web:3000`, **2026-09-06 00:27 UTC 전환 완료** |
+| 사용자 origin | `app.<zone>` → `admin:3000` | `truewords.<zone>` → `web:3000` (canonical), `app.<zone>` 은 301 → `truewords.<zone>`. 2026-09-06 컷오버는 `app → web:3000` 으로 먼저 전환한 뒤 같은 날 canonical 을 바꿨다 |
 | 관리자 origin | 같은 `app.<zone>` | `truewords-admin.<zone>` → `admin:3000`, 2026-09-06 등록·분리 admin `41a9ef2` 배포 완료 |
 | API·Qdrant | `backend:8080`, `qdrant:6333` | 기존 DNS·서비스 이름 유지 |
 | Next API rewrite | build 시 API 주소 고정 | `NEXT_PUBLIC_API_URL=http://backend:8080`; 런타임 env만으로 변경 불가 |

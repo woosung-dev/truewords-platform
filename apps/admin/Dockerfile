@@ -11,7 +11,7 @@ RUN pnpm install --frozen-lockfile --filter @truewords/admin...
 COPY apps/admin ./apps/admin
 
 ARG NEXT_PUBLIC_API_URL=http://backend:8080
-ARG NEXT_PUBLIC_WEB_URL=https://app.woosung.dev
+ARG NEXT_PUBLIC_WEB_URL=https://truewords.woosung.dev
 ARG NEXT_PUBLIC_ADMIN_URL=https://truewords-admin.woosung.dev
 # 시연 관리자 게이트 계정(클라이언트 라우팅 힌트). 기본값 없음 — make deploy-admin 이 DEMO_ADMIN_EMAIL 을 강제한다.
 ARG NEXT_PUBLIC_DEMO_ADMIN_EMAIL=
