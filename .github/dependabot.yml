@@ -1,0 +1,40 @@
+# Dependabot 버전 업데이트. 보안 알림 triage 는 2026-09-06 에 221 → 0 으로 끝냈고
+# (docs/TODO.md §CI/CD 점검 후속), 이후 누적을 월 1회 PR 로 받는다.
+# ADR 2026-09-05 D-"하지 않기로 한 것": 무제한 PR 금지 → open PR 3개 제한.
+version: 2
+updates:
+  # pnpm 워크스페이스 (루트 pnpm-lock.yaml 하나가 apps/*·packages/*·tests/e2e 를 덮는다)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+    labels: [dependencies]
+    commit-message:
+      prefix: "chore(deps)"
+
+  # FastAPI (uv.lock)
+  - package-ecosystem: uv
+    directory: /apps/api
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      pip-minor-patch:
+        update-types: [minor, patch]
+    labels: [dependencies]
+    commit-message:
+      prefix: "chore(deps)"
+
+  # GitHub Actions (major 태그 유지 — SHA 핀은 dorny/paths-filter 만 P2)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    labels: [dependencies]
+    commit-message:
+      prefix: "chore(ci)"
