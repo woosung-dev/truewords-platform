@@ -84,8 +84,7 @@
 
 | Public Hostname | Service |
 |---|---|
-| `truewords.<zone>` | `http://web:3000` (canonical, 2026-09-06 추가) |
-| `app.<zone>` | `http://web:3000` (구 사용자 origin. Redirect Rule 로 `truewords.<zone>` 301 — 터널 route 는 유예 기간 유지) |
+| `truewords.<zone>` | `http://web:3000` (canonical, 2026-09-06 추가. 구 `app.<zone>` route·DNS 는 같은 날 **삭제** — 실사용자 없어 301 생략) |
 | `truewords-admin.<zone>` | `http://admin:3000` (2026-09-06 등록) |
 | `api.<zone>` | `http://backend:8080` |
 | `vdb.<zone>` | `http://qdrant:6333` |
