@@ -144,6 +144,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] Git 브랜치 전략 문서화 (2026-04-11)
 - [x] 아키텍처 설계 문서 9개 완료
 - [x] Superpowers plans/specs 8+8개
+- [x] archify 다이어그램 6종을 현재 모노레포·6컨테이너 구조로 재생성 (main `8980e0c`, 2026-09-06). deliver showcase 6/6 · visual-check 6/6, 분리 전 JSON 은 `docs/archive/diagrams-2026-09-04/` 로 이동 — [기록](architecture/diagrams/README.md#검증-기록-2026-09-06-main-8980e0c)
 
 ---
 
@@ -183,6 +184,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - `[확인 필요]` 독립 베타의 법적 운영 주체와 FFWPU 공식 승인 요청·검수 절차는 무엇인가?
 - `[확인 필요]` 초기 소규모 정본의 정확한 목록과 본문 전재·검색·임베딩·AI 요약·오프라인·푸시 인용별 권리 범위는 어디까지인가?
 - `[확인 필요]` 콘텐츠 공식성·검수·철회 최종 책임자는 누구인가?
+- `[확인 필요]` 분리 전 다이어그램 JSON 6종(`docs/archive/diagrams-2026-09-04/`, 약 45KB)을 계속 보존할지, git 이력만 믿고 지울지. HTML/PNG 는 이미 이력에만 남겼다.
 - `[확인 필요]` `DEC-MONO-004` — Flutter 착수 시점은 미정. PWA 우선 후 도입 확정 시 앱·Dart SDK·Pub workspace·모바일 CI를 함께 추가한다.
 - ~~GCP 실제 배포 시점?~~ — 해소. GCP 배포 후(2026-04~07) 2026-07-29 Oracle Cloud 로 이전 완료. §13 참조
 

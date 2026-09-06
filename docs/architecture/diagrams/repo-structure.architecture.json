@@ -2,27 +2,30 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "TrueWords 레포 구조",
-    "output": "docs/04_architecture/diagrams/repo-structure.html",
+    "title": "TrueWords 모노레포 구조",
+    "output": "docs/architecture/diagrams/repo-structure.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/woosung-dev/truewords-platform",
-      "revision": "94755c7889608f6732f842eddca08158ef97a9da"
+      "revision": "8980e0c143eefa3a21b30dbde1345285d43f62bb"
     },
     "viewBox": [
-      1230,
+      1395,
       640
     ],
     "legend": {
       "entries": {
         "frontend": {
-          "label": "admin (Next.js)"
+          "label": "Next.js 앱 · SDK · E2E"
         },
         "backend": {
-          "label": "backend (FastAPI) · 빌드 도구"
+          "label": "FastAPI · 루트 도구"
         },
         "database": {
-          "label": "스키마 · 마이그레이션"
+          "label": "마이그레이션"
+        },
+        "messagebus": {
+          "label": "계약 · 생성 도구"
         },
         "cloud": {
           "label": "인프라"
@@ -34,243 +37,329 @@
     },
     "views": [
       {
-        "id": "backend-layers",
-        "label": "backend",
+        "id": "api-layers",
+        "label": "apps/api",
         "focus": [
-          "be_main",
-          "be_src",
-          "be_alembic",
-          "be_tools"
+          "api_main",
+          "api_modules",
+          "api_alembic",
+          "api_tests"
         ],
-        "note": "main.py 가 라우터를 모으고 src/ 도메인 패키지가 Router · Service · Repository 로 나뉜다."
+        "note": "app/main.py 가 라우터 9개를 모으고 app/modules 10개 도메인이 Router · Service · Repository 로 나뉜다. 공통 기반은 app/core."
       },
       {
-        "id": "admin-layers",
-        "label": "admin",
+        "id": "contract-chain",
+        "label": "계약 → SDK → 앱",
         "focus": [
-          "ad_app",
-          "ad_features",
-          "ad_shared",
-          "ad_tests"
+          "api_main",
+          "contracts",
+          "packages",
+          "web",
+          "admin"
         ],
-        "note": "app/ 라우트가 features/ 를 조합하고 features 는 components · lib 만 쓴다 (FSD)."
+        "note": "FastAPI Pydantic 이 원본이다. export_openapi.py → contracts/openapi.json → openapi-ts → api-client-ts → web/admin. 생성물은 직접 고치지 않는다."
       },
       {
-        "id": "ops-and-docs",
-        "label": "운영 · 문서",
+        "id": "ops-and-ci",
+        "label": "운영 · 검증",
         "focus": [
-          "makefile",
+          "root",
           "infra",
           "gha",
+          "e2e",
           "docs"
         ],
-        "note": "Makefile 이 로컬 개발·배포 진입점, compose 와 워크플로가 운영 정의, docs 가 설계 기록."
+        "note": "Makefile 이 로컬 개발·배포 진입점, compose 와 워크플로가 운영·검증 정의, docs 가 설계 기록."
       }
     ]
   },
   "components": [
     {
-      "id": "makefile",
+      "id": "root",
       "type": "backend",
-      "label": "Makefile",
-      "sublabel": "backend-* · admin-* · deploy-*",
+      "label": "루트 — Makefile · turbo",
+      "sublabel": "pnpm workspace · deploy-*",
       "pos": [
         40,
         200
       ],
       "size": [
-        190,
+        180,
         62
       ],
       "sources": [
         {
           "path": "Makefile",
           "label": "targets"
+        },
+        {
+          "path": "turbo.json",
+          "label": "turbo"
+        },
+        {
+          "path": "pnpm-workspace.yaml",
+          "label": "workspace"
         }
       ]
     },
     {
-      "id": "be_main",
+      "id": "api_main",
       "type": "backend",
-      "label": "backend/main.py",
-      "sublabel": "FastAPI 앱 · 라우터 9개 · lifespan",
+      "label": "apps/api/app/main.py · core/",
+      "sublabel": "FastAPI 조립 · 설정 · DB",
       "pos": [
-        260,
+        250,
         70
       ],
       "size": [
-        190,
+        180,
         62
       ],
       "sources": [
         {
-          "path": "backend/main.py",
-          "line": 108,
+          "path": "apps/api/app/main.py",
+          "line": 111,
           "label": "include_router"
+        },
+        {
+          "path": "apps/api/app/core/config.py",
+          "label": "settings"
         }
       ]
     },
     {
-      "id": "be_src",
+      "id": "api_modules",
       "type": "backend",
-      "label": "backend/src/",
-      "sublabel": "11 도메인 패키지 · 3 레이어",
+      "label": "app/modules/ (10 도메인)",
+      "sublabel": "chat · search · pipeline …",
       "pos": [
-        260,
+        250,
         200
       ],
       "size": [
-        190,
+        180,
         62
       ],
       "sources": [
         {
-          "path": "backend/src/chat/service.py",
+          "path": "apps/api/app/modules/chat/service.py",
           "label": "chat"
         },
         {
-          "path": "backend/src/search/hybrid.py",
+          "path": "apps/api/app/modules/search/hybrid.py",
           "label": "search"
         },
         {
-          "path": "backend/src/pipeline/ingestor.py",
+          "path": "apps/api/app/modules/pipeline/ingestor.py",
           "label": "pipeline"
         }
       ]
     },
     {
-      "id": "be_alembic",
+      "id": "api_alembic",
       "type": "database",
-      "label": "backend/alembic/",
+      "label": "apps/api/alembic/",
       "sublabel": "24 revisions · head a1c9e7d0",
       "pos": [
-        500,
+        480,
         200
       ],
       "size": [
-        190,
+        180,
         62
       ],
       "sources": [
         {
-          "path": "backend/alembic/versions/a1c9e7d0b2f3_add_user_id_index_to_research_sessions.py",
+          "path": "apps/api/alembic/versions/a1c9e7d0b2f3_add_user_id_index_to_research_sessions.py",
           "label": "head"
         }
       ]
     },
     {
-      "id": "be_tools",
+      "id": "api_tests",
       "type": "backend",
-      "label": "backend/scripts/ · tests/",
-      "sublabel": "스크립트 60+ · pytest 104 파일",
+      "label": "apps/api/tests/ · scripts/",
+      "sublabel": "pytest 105 파일 · 스크립트 63",
       "pos": [
-        260,
+        250,
         330
       ],
       "size": [
-        190,
+        180,
         62
       ],
       "sources": [
         {
-          "path": "backend/scripts/ingest.py",
-          "label": "ingest"
+          "path": "apps/api/tests/conftest.py",
+          "label": "conftest"
         },
         {
-          "path": "backend/scripts/cleanup_semantic_cache.py",
-          "label": "cache cleanup"
+          "path": "apps/api/scripts/export_openapi.py",
+          "label": "export_openapi"
+        },
+        {
+          "path": "apps/api/scripts/ingest.py",
+          "label": "ingest"
         }
       ]
     },
     {
-      "id": "ad_app",
-      "type": "frontend",
-      "label": "admin/src/app/",
-      "sublabel": "(chat) · (dashboard) · login",
+      "id": "contracts",
+      "type": "messagebus",
+      "label": "contracts/ · tooling/",
+      "sublabel": "openapi.json · SSE fixture",
       "pos": [
-        760,
+        730,
         70
       ],
       "size": [
-        190,
+        180,
         62
       ],
       "sources": [
         {
-          "path": "admin/src/app/(chat)/page.tsx",
+          "path": "contracts/openapi.json",
+          "label": "openapi"
+        },
+        {
+          "path": "contracts/fixtures/chat-stream.json",
+          "label": "SSE fixture"
+        },
+        {
+          "path": "tooling/checks/contracts.mjs",
+          "label": "contracts check"
+        }
+      ]
+    },
+    {
+      "id": "packages",
+      "type": "frontend",
+      "label": "packages/ (3)",
+      "sublabel": "api-client-ts · eslint · ts",
+      "pos": [
+        960,
+        70
+      ],
+      "size": [
+        180,
+        62
+      ],
+      "sources": [
+        {
+          "path": "packages/api-client-ts/src/index.ts",
+          "label": "transport"
+        },
+        {
+          "path": "packages/api-client-ts/src/generated/sdk.gen.ts",
+          "label": "generated"
+        },
+        {
+          "path": "packages/eslint-config/next.mjs",
+          "label": "eslint"
+        }
+      ]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "apps/web/",
+      "sublabel": "(chat) · history · about",
+      "pos": [
+        960,
+        200
+      ],
+      "size": [
+        180,
+        62
+      ],
+      "sources": [
+        {
+          "path": "apps/web/src/app/(chat)/page.tsx",
           "label": "채팅"
         },
         {
-          "path": "admin/src/app/(dashboard)/layout.tsx",
-          "label": "대시보드"
-        }
-      ]
-    },
-    {
-      "id": "ad_features",
-      "type": "frontend",
-      "label": "admin/src/features/",
-      "sublabel": "5 feature 도메인 (FSD)",
-      "pos": [
-        760,
-        200
-      ],
-      "size": [
-        190,
-        62
-      ],
-      "sources": [
-        {
-          "path": "admin/src/features/chatbot/chat-api.ts",
+          "path": "apps/web/src/features/chatbot/chat-api.ts",
           "label": "chat-api"
-        }
-      ]
-    },
-    {
-      "id": "ad_shared",
-      "type": "frontend",
-      "label": "components/ · lib/",
-      "sublabel": "shadcn/ui · 위젯 · api · sse",
-      "pos": [
-        1000,
-        200
-      ],
-      "size": [
-        190,
-        62
-      ],
-      "sources": [
-        {
-          "path": "admin/src/lib/api.ts",
-          "label": "fetchAPI"
         },
         {
-          "path": "admin/src/lib/sse.ts",
-          "label": "SSE parser"
+          "path": "apps/web/next.config.ts",
+          "label": "rewrites"
         }
       ]
     },
     {
-      "id": "ad_tests",
+      "id": "admin",
       "type": "frontend",
-      "label": "src/test/ · e2e/",
-      "sublabel": "Vitest 113 · Playwright 23",
+      "label": "apps/admin/",
+      "sublabel": "(dashboard) 7 라우트 · login",
       "pos": [
-        760,
+        1180,
+        200
+      ],
+      "size": [
+        180,
+        62
+      ],
+      "sources": [
+        {
+          "path": "apps/admin/src/app/(dashboard)/layout.tsx",
+          "label": "대시보드"
+        },
+        {
+          "path": "apps/admin/src/features/data-source/api.ts",
+          "label": "data-source"
+        },
+        {
+          "path": "apps/admin/next.config.ts",
+          "label": "rewrites"
+        }
+      ]
+    },
+    {
+      "id": "gha",
+      "type": "external",
+      "label": ".github/workflows/ (6)",
+      "sublabel": "ci.yml → api · web · e2e …",
+      "pos": [
+        730,
         330
       ],
       "size": [
-        190,
+        180,
         62
       ],
       "sources": [
         {
-          "path": "admin/vitest.config.ts",
-          "label": "vitest"
+          "path": ".github/workflows/ci.yml",
+          "label": "CI"
         },
         {
-          "path": "admin/playwright.config.ts",
-          "label": "playwright"
+          "path": ".github/workflows/ci-e2e.yml",
+          "label": "ci-e2e"
+        }
+      ]
+    },
+    {
+      "id": "e2e",
+      "type": "frontend",
+      "label": "tests/e2e/",
+      "sublabel": "Playwright 5 spec · 4 project",
+      "pos": [
+        960,
+        330
+      ],
+      "size": [
+        180,
+        62
+      ],
+      "sources": [
+        {
+          "path": "tests/e2e/playwright.config.ts",
+          "label": "config"
+        },
+        {
+          "path": "tests/e2e/split-apps.spec.ts",
+          "label": "split-apps"
         }
       ]
     },
@@ -278,59 +367,47 @@
       "id": "infra",
       "type": "cloud",
       "label": "infra/oracle-vm/",
-      "sublabel": "compose 5 서비스 · 운영 스크립트",
+      "sublabel": "compose 6 서비스 · 스크립트 7",
       "pos": [
-        260,
+        250,
         500
       ],
       "size": [
-        190,
+        180,
         62
       ],
       "sources": [
         {
           "path": "infra/oracle-vm/docker-compose.yml",
           "label": "compose"
-        }
-      ]
-    },
-    {
-      "id": "gha",
-      "type": "external",
-      "label": ".github/workflows/",
-      "sublabel": "ci.yml · cache-cleanup.yml",
-      "pos": [
-        510,
-        500
-      ],
-      "size": [
-        190,
-        62
-      ],
-      "sources": [
+        },
         {
-          "path": ".github/workflows/ci.yml",
-          "label": "CI"
+          "path": "infra/oracle-vm/ops-check.sh",
+          "label": "ops-check"
         }
       ]
     },
     {
       "id": "docs",
       "type": "external",
-      "label": "docs/ · .ai/ · AGENTS.md",
-      "sublabel": "00~07 설계 · dev-log 87 · 스택 규칙",
+      "label": "docs/ · AGENTS.md · .ai/",
+      "sublabel": "prd · specs · adr · runbooks",
       "pos": [
-        760,
+        480,
         500
       ],
       "size": [
-        190,
+        180,
         62
       ],
       "sources": [
         {
           "path": "docs/README.md",
           "label": "문서 색인"
+        },
+        {
+          "path": "AGENTS.md",
+          "label": "에이전트 지침"
         },
         {
           "path": ".ai/project/rag-pipeline.md",
@@ -342,122 +419,143 @@
   "boundaries": [
     {
       "kind": "region",
-      "label": "backend/ — FastAPI · Python 3.12 · uv",
+      "label": "apps/api — FastAPI · Python 3.12 · uv",
       "wraps": [
-        "be_main",
-        "be_src",
-        "be_alembic",
-        "be_tools"
+        "api_main",
+        "api_modules",
+        "api_alembic",
+        "api_tests"
       ],
       "pad": 20
     },
     {
       "kind": "region",
-      "label": "admin/ — Next.js 16 · React 19 · pnpm",
+      "label": "공유 코드 · 계약 (생성물 직접 편집 금지)",
       "wraps": [
-        "ad_app",
-        "ad_features",
-        "ad_shared",
-        "ad_tests"
+        "contracts",
+        "packages"
+      ],
+      "pad": 20
+    },
+    {
+      "kind": "region",
+      "label": "apps/web · apps/admin — Next.js 16 · React 19 · UI 앱별 소유",
+      "wraps": [
+        "web",
+        "admin"
       ],
       "pad": 20
     }
   ],
   "connections": [
     {
-      "from": "makefile",
-      "to": "be_main",
+      "from": "root",
+      "to": "api_main",
       "label": "backend-dev · backend-test",
       "variant": "dashed"
     },
     {
-      "from": "makefile",
+      "from": "root",
       "to": "infra",
       "label": "deploy-* → ssh docker load",
       "variant": "emphasis",
       "fromSide": "bottom"
     },
     {
-      "from": "be_main",
-      "to": "be_src",
-      "label": "include_router",
+      "from": "api_main",
+      "to": "api_modules",
+      "label": "include_router 9개",
       "labelDy": 24
     },
     {
-      "from": "be_src",
-      "to": "be_alembic",
-      "label": "SQLModel 모델 → 마이그레이션",
+      "from": "api_modules",
+      "to": "api_alembic",
+      "label": "SQLModel → 마이그레이션",
       "labelDy": -25
     },
     {
-      "from": "be_tools",
-      "to": "be_src",
-      "label": "import src.*",
+      "from": "api_tests",
+      "to": "api_modules",
+      "label": "import app.*",
       "variant": "dashed"
     },
     {
-      "from": "ad_app",
-      "to": "ad_features",
-      "label": "페이지 = feature 조합",
-      "labelDy": 24
-    },
-    {
-      "from": "ad_features",
-      "to": "ad_shared",
-      "label": "ui · fetchAPI · parseSSEStream",
-      "labelDy": -25
-    },
-    {
-      "from": "ad_tests",
-      "to": "ad_features",
-      "label": "컴포넌트 · 플로우 테스트",
-      "variant": "dashed"
-    },
-    {
-      "from": "ad_app",
-      "to": "be_main",
-      "label": "next.config rewrites /api/* · /admin/* → backend:8080",
+      "from": "api_main",
+      "to": "contracts",
+      "label": "export_openapi.py → openapi.json",
       "variant": "emphasis"
     },
     {
+      "from": "contracts",
+      "to": "packages",
+      "label": "openapi-ts → src/generated",
+      "variant": "emphasis",
+      "labelDy": 55
+    },
+    {
+      "from": "packages",
+      "to": "web",
+      "label": "@truewords/api-client-ts",
+      "labelDy": 48
+    },
+    {
+      "from": "packages",
+      "to": "admin",
+      "label": "같은 SDK · transport",
+      "fromSide": "bottom"
+    },
+    {
       "from": "gha",
-      "to": "be_tools",
-      "label": "pytest",
+      "to": "api_tests",
+      "label": "ci-api: pytest · alembic",
       "variant": "dashed"
     },
     {
       "from": "gha",
-      "to": "ad_tests",
-      "label": "vitest · next build",
+      "to": "contracts",
+      "label": "ci-contracts: 재생성 diff · oasdiff",
+      "variant": "dashed"
+    },
+    {
+      "from": "gha",
+      "to": "e2e",
+      "label": "ci-e2e",
+      "variant": "dashed",
+      "labelDy": -25
+    },
+    {
+      "from": "e2e",
+      "to": "web",
+      "label": "Playwright: web · admin · API",
       "variant": "dashed"
     }
   ],
   "cards": [
     {
       "dot": "cyan",
-      "title": "배포 이미지 2개",
+      "title": "배포 이미지 3개",
       "items": [
-        "backend/Dockerfile — uv venv와 소스 레이어를 분리한 FastAPI 이미지",
-        "admin/Dockerfile — next build standalone, API 주소는 build-arg 로 굽는다",
-        "infra compose 가 BACKEND_TAG · ADMIN_TAG 로 두 이미지를 조립"
+        "apps/api/Dockerfile — uv venv 와 소스 레이어 분리, 기동 시 alembic upgrade head",
+        "apps/web · apps/admin Dockerfile — next standalone, origin·API 주소는 build-arg",
+        "infra compose 가 BACKEND_TAG · WEB_TAG · ADMIN_TAG 로 6 서비스를 조립"
       ]
     },
     {
       "dot": "violet",
-      "title": "레이어 규칙",
+      "title": "경계 규칙",
       "items": [
-        "backend: Router → Service → Repository, AsyncSession 은 Repository 만",
-        "chat/pipeline/stages 14개 Stage 가 ChatContext 를 순차 변환",
-        "admin: features/[domain]/{api,types,components} FSD + React Query"
+        "api: Router → Service → Repository, AsyncSession 은 Repository 만",
+        "web/admin: UI · 테마 · AuthGuard 는 앱 소유, 앱 간 import 금지 (boundaries.mjs)",
+        "SDK generated 는 생성기 전용, transport 는 쿠키 · CSRF 헤더 · 오류 변환만"
       ]
     },
     {
       "dot": "amber",
-      "title": "검증 · 문서",
+      "title": "검증",
       "items": [
-        "CI: PR마다 pytest 969 (104 files) · vitest 113 · next build — 바뀐 쪽만 실행",
-        "Playwright 23 은 로컬 시드 후 수동, make ci 가 ci.yml 을 로컬 재현",
-        "docs/README.md 색인 · dev-log ADR · .ai 스택 규칙"
+        "ci.yml 이 변경 감지 뒤 api · web · admin · contracts · e2e job 을 고르고 main push 는 전체 실행",
+        "ci-web: 앱별 vitest · typecheck · lint · build. make ci 가 로컬 재현",
+        "Playwright 는 격리 compose 위 web · admin · API 를 함께 띄운다"
       ]
     }
   ]
