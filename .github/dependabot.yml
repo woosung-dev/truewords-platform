@@ -12,6 +12,13 @@ updates:
     groups:
       npm-minor-patch:
         update-types: [minor, patch]
+    # 메이저는 사람이 ADR 로 결정한다 — TS 7 은 typescript-eslint·openapi-ts·Next 가 아직 미지원(ADR 2026-09-06),
+    # @types/node 는 런타임 Node 22(Dockerfile·CI) 에 맞춰 수동으로 올린다.
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies]
     commit-message:
       prefix: "chore(deps)"

@@ -43,7 +43,7 @@ truewords-platform/
 
 ## 2. 로컬 시작
 
-사전 도구: Node.js 22, pnpm 8.15.9. API 작업에는 Python 3.12·uv, DB/Qdrant에는 Docker가 추가로 필요하다. 웹 작업만 할 때 uv/Flutter 설치는 필수가 아니다.
+사전 도구: Node.js 22, pnpm 12.3.4(`corepack enable` 이면 `packageManager` 필드로 자동 선택). API 작업에는 Python 3.12·uv, DB/Qdrant에는 Docker가 추가로 필요하다. 웹 작업만 할 때 uv/Flutter 설치는 필수가 아니다.
 
 1. 루트에서 `pnpm install --frozen-lockfile`을 실행한다.
 2. `apps/web/.env.example`과 `apps/admin/.env.example`을 각각 앱의 `.env.local`로 복사하고 로컬 주소를 확인한다.
