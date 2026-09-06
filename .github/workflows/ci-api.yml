@@ -12,7 +12,7 @@ jobs:
       - uses: astral-sh/setup-uv@v4
         with:
           version: "0.10.4"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       # dev 그룹만. eval 그룹(ragas·langchain·pandas)은 평가 스크립트 전용이고 CI 에 넣지 않는다.
