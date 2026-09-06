@@ -6,6 +6,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/admin/package.json apps/admin/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages ./packages
+# next build 의 타입 검사가 src/test/*.test.ts 까지 포함하고, 테스트가 contracts/fixtures 를 import 한다 (Next 16.3 · TS 6 에서 실측).
+COPY contracts ./contracts
 # uv/Flutter 설치는 프론트엔드 이미지 빌드에 필요하지 않다.
 RUN pnpm install --frozen-lockfile --filter @truewords/admin...
 COPY apps/admin ./apps/admin
