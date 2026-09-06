@@ -454,7 +454,7 @@
     {
       "from": "mac",
       "to": "host",
-      "label": "deploy-*: guard → docker save | ssh → compose up",
+      "label": "deploy-*: guard → rsync tgz → compose up",
       "variant": "dashed"
     },
     {
@@ -496,7 +496,7 @@
       "dot": "amber",
       "title": "배포 · 운영",
       "items": [
-        "레지스트리 없음 — deploy-guard(main 포함 · 클린 트리) 뒤 arm64 이미지를 ssh 로 전달, 프론트는 --no-deps",
+        "레지스트리 없음 — deploy-guard(main 포함 · 클린 트리) 뒤 arm64 이미지를 tgz 로 rsync 전달, 프론트는 --no-deps",
         "VM cron 4: 백업 6h → Object Storage · ops-check 7 불변식 → ntfy · 주간 추천 질문 · 이미지 GC",
         "GitHub Actions: PR · main push CI (api · web · admin · contracts · e2e) · 매일 semantic_cache 만료 정리"
       ]

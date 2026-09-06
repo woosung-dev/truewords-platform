@@ -5038,7 +5038,7 @@
 
         <!-- Connection paths (before components for correct z-order) -->
         <path data-edge-from="root" data-edge-to="api_main" data-edge-label="backend-dev · backend-test" data-edge-key="0" data-composition-points="220,231;235,231;235,101;250,101" d="M 220 231 L 227.5 231 Q 235 231 235 223.5 L 235 108.5 Q 235 101 242.5 101 L 250 101" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="root" data-edge-to="infra" data-edge-label="deploy-* → ssh docker load" data-edge-key="1" data-composition-points="130,262;130,286;226,286;226,531;250,531" d="M 130 262 L 130 278 Q 130 286 138 286 L 218 286 Q 226 286 226 294 L 226 523 Q 226 531 234 531 L 250 531" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="root" data-edge-to="infra" data-edge-label="deploy-* → rsync tgz · docker load" data-edge-key="1" data-composition-points="130,262;130,286;226,286;226,531;250,531" d="M 130 262 L 130 278 Q 130 286 138 286 L 218 286 Q 226 286 226 294 L 226 523 Q 226 531 234 531 L 250 531" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="api_main" data-edge-to="api_modules" data-edge-label="include_router 9개" data-edge-key="2" data-composition-points="340,132;340,200" d="M 340 132 L 340 200" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="api_modules" data-edge-to="api_alembic" data-edge-label="SQLModel → 마이그레이션" data-edge-key="3" data-composition-points="430,231;480,231" d="M 430 231 L 480 231" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="api_tests" data-edge-to="api_modules" data-edge-label="import app.*" data-edge-key="4" data-composition-points="340,330;340,262" d="M 340 330 L 340 262" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
@@ -5218,9 +5218,9 @@
           <rect x="167.6" y="146" width="134.8" height="14" rx="3" class="c-mask"/>
           <text x="235" y="156" class="t-messagebus" font-size="8" text-anchor="middle">backend-dev · backend-test</text>
         </g>
-        <g data-detail="context" data-edge-from="root" data-edge-to="infra" data-edge-label="deploy-* → ssh docker load" data-edge-key="1">
-          <rect x="110.6" y="266" width="134.8" height="14" rx="3" class="c-mask"/>
-          <text x="178" y="276" class="t-backend" font-size="8" text-anchor="middle">deploy-* → ssh docker load</text>
+        <g data-detail="context" data-edge-from="root" data-edge-to="infra" data-edge-label="deploy-* → rsync tgz · docker load" data-edge-key="1">
+          <rect x="91.4" y="266" width="173.2" height="14" rx="3" class="c-mask"/>
+          <text x="178" y="276" class="t-backend" font-size="8" text-anchor="middle">deploy-* → rsync tgz · docker load</text>
         </g>
         <g data-detail="context" data-edge-from="api_main" data-edge-to="api_modules" data-edge-label="include_router 9개" data-edge-key="2">
           <rect x="291.8" y="136" width="96.39999999999999" height="14" rx="3" class="c-mask"/>

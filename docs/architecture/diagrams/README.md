@@ -15,7 +15,7 @@
 | 적재 작업 상태 | lifecycle | `ingestion-job.lifecycle.json` | `ingestion-job.html` · `.png` | `apps/api/app/modules/admin/ingest_service.py`, `apps/api/app/modules/pipeline/{ingestion_models,ingestion_repository}.py` |
 | 운영 배포 워크플로 | workflow (schema v2) | `deploy.workflow.json` | `deploy.html` · `.png` | `Makefile`(`deploy-guard` · `deploy-*` · `rollback-*` · `prune-images` · `DEPLOY_LOG`), `infra/oracle-vm/{ops-check,prune-images}.sh`, `infra/oracle-vm/docker-compose.yml`(healthcheck), `.github/workflows/ci.yml`(main push), `docs/runbooks/{ci-cd-pipeline,monorepo-migration-and-rollback}.md` |
 
-architecture 3종은 `meta.repository`(revision `8980e0c`) + 컴포넌트별 `sources`(≤3개)로 코드 경로를 갖고, `--repo-root .` 로 경로 존재를 검증한다. sequence · dataflow · lifecycle · workflow 는 `sources` 필드가 없어 위 표가 근거 목록이다. 배포 워크플로는 Makefile 의 실제 레시피 순서(guard → ops-check → buildx → save|ssh load → .env sed + compose up --wait → deploy.log → prune) 를 그대로 옮겼고, 배포 후 확인 절차는 runbook 의 것이다.
+architecture 3종은 `meta.repository`(revision `8980e0c`) + 컴포넌트별 `sources`(≤3개)로 코드 경로를 갖고, `--repo-root .` 로 경로 존재를 검증한다. sequence · dataflow · lifecycle · workflow 는 `sources` 필드가 없어 위 표가 근거 목록이다. 배포 워크플로는 Makefile 의 실제 레시피 순서(guard → ops-check → buildx → `TRANSFER_IMAGE`(save → tgz → rsync --partial → VM docker load, #247) → .env sed + compose up --wait → deploy.log → prune) 를 그대로 옮겼고, 배포 후 확인 절차는 runbook 의 것이다.
 
 ## 2026-09-04 스냅샷에서 바뀐 것
 
@@ -27,7 +27,7 @@ architecture 3종은 `meta.repository`(revision `8980e0c`) + 컴포넌트별 `so
 | 백엔드 경로 | `backend/main.py`, `backend/src/<domain>` | `apps/api/app/main.py`, `app/core`(설정 · DB · 예외), `app/modules/<10 도메인>`. URL · 테이블 · Alembic head(`a1c9e7d0b2f3`) 는 그대로 |
 | 공유 · 계약 | 없음 (admin 수기 DTO) | `contracts/openapi.json` + `contracts/fixtures/chat-stream.json` → `packages/api-client-ts`(generated + transport). `eslint-config` · `typescript-config` |
 | CI | `ci.yml`(PR) + `cache-cleanup.yml` | `ci.yml`(PR · main push · dispatch, 변경 감지) → reusable `ci-api` · `ci-web` · `ci-contracts` · `ci-e2e` + `cache-cleanup.yml`. Vercel 제거 |
-| 배포 | `make deploy-backend` · `deploy-admin` | `deploy-web` 추가, 3종 모두 `deploy-guard`(HEAD ∈ origin/main + 클린 트리) 선행, 프론트 `compose up --no-deps` |
+| 배포 | `make deploy-backend` · `deploy-admin`, `docker save \| gzip \| ssh docker load` 한 줄 파이프 | `deploy-web` 추가, 3종 모두 `deploy-guard`(HEAD ∈ origin/main + 클린 트리) 선행, 이미지 전송은 tgz + `rsync --partial` + VM `docker load` 3단계(#247 `34d70cf`), 프론트 `compose up --no-deps` |
 | 감시 | ops-check 7건 탐지만 | ops-check FAIL/WARN → ntfy.sh 푸시 |
 | 다이어그램 종수 | 6종 | 7종 — 배포 워크플로(`deploy.workflow.json`) 신규. TODO P2 의 "전달 파이프라인 다이어그램" 항목 해소 |
 | 채팅 · 적재 로직 | — | 변경 없음 (rate limit 20/60s · cache 0.88 · top-50 · rerank 15/12/8 · 700/150 청크 · Queue(100) · 50-point upsert 재확인) |
@@ -66,13 +66,13 @@ done
 
 | 다이어그램 | deliver (showcase) | 수령증 (sha256 앞 12자리) | visual-check |
 |-----------|--------------------|---------------------------|--------------|
-| system-architecture | pass — 9 checks, errors 0 / warnings 0 | spec `6997aea6cbec` · html `aac464100b48` (733,289 B) | pass — 4 캡처 무스크롤, 최소 텍스트 6.07px @1440 |
-| repo-structure | pass — 9 checks, errors 0 / warnings 0 | spec `f5814275213f` · html `7fc031faa121` (733,980 B) | pass — 4 캡처 무스크롤, 최소 텍스트 7.27px @1440 |
+| system-architecture | pass — 9 checks, errors 0 / warnings 0 | spec `8fa873f9416c` · html `f24b5d1d4aa8` (733,256 B) | pass — 4 캡처 무스크롤, 최소 텍스트 6.07px @1440 |
+| repo-structure | pass — 9 checks, errors 0 / warnings 0 | spec `a3e30d6bb77b` · html `1464859c16e3` (734,006 B) | pass — 4 캡처 무스크롤, 최소 텍스트 7.27px @1440 |
 | database-schema | pass — 9 checks, errors 0 / warnings 0 | spec `82bbe132fedc` · html `613f43b7951a` (727,946 B) | pass — 4 캡처 무스크롤, 최소 텍스트 6.15px @1440 |
 | chat-request | pass — 9 checks, errors 0 / warnings 0 | spec `167612c97fa0` · html `4c9ae3fc00ce` (717,199 B) | pass — 4 캡처 무스크롤, 최소 텍스트 6.00px @1440 |
 | ingestion | pass — 9 checks, errors 0 / warnings 0 | spec `c6ce4d6db421` · html `c07b5aaff0f5` (719,881 B) | pass — 4 캡처 무스크롤, 최소 텍스트 6.27px @1440 |
 | ingestion-job | pass — 9 checks, errors 0 / warnings 0 | spec `690d5652ecf5` · html `89e057501594` (712,253 B) | pass — 4 캡처 무스크롤, 최소 텍스트 6.86px @1440 |
-| deploy | pass — 9 checks, errors 0 / warnings 0 | spec `36656e33dee6` · html `ae5a565ed1e7` (726,320 B) | pass — 4 캡처 무스크롤, 최소 텍스트 6.73px @1440 |
+| deploy | pass — 9 checks, errors 0 / warnings 0 | spec `5a705482acf9` · html `d78e06b86b7c` (726,636 B) | pass — 4 캡처 무스크롤, 최소 텍스트 6.53px @1440 |
 
 자동 검사는 기하와 수납만 증명한다. 7장의 2048×1320 light 캡처는 작성 세션에서 이미지로 열어 라벨 겹침 · 경로 · 카드 줄바꿈을 눈으로 확인했다(사람의 재검토를 대체하지 않는다).
 

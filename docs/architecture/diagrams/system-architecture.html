@@ -5044,7 +5044,7 @@
         <path data-edge-from="backend" data-edge-to="postgres" data-edge-label="asyncpg · SQLModel" data-edge-key="8" data-composition-points="1015,345;1027.5,345;1027.5,451;1040,451" d="M 1015 345 L 1021.25 345 Q 1027.5 345 1027.5 351.25 L 1027.5 444.75 Q 1027.5 451 1033.75 451 L 1040 451" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="backend" data-edge-to="gemini" data-edge-label="google-genai · 생성 · 임베딩 · 리랭크" data-edge-key="9" data-composition-points="1015,331;1245,331" d="M 1015 331 L 1245 331" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="gha" data-edge-to="cf_edge" data-edge-label="vdb.&lt;zone&gt; 경유 semantic_cache TTL 정리" data-edge-key="10" data-composition-points="310,182;310,300" d="M 310 182 L 310 300" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="mac" data-edge-to="host" data-edge-label="deploy-*: guard → docker save | ssh → compose up" data-edge-key="11" data-composition-points="190,591;455,591" d="M 190 591 L 455 591" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="mac" data-edge-to="host" data-edge-label="deploy-*: guard → rsync tgz → compose up" data-edge-key="11" data-composition-points="190,591;455,591" d="M 190 591 L 455 591" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
         <path data-edge-from="host" data-edge-to="postgres" data-edge-label="pg_dump 6h → /opt/backups" data-edge-key="12" data-composition-points="625,584;1120,584;1120,482" d="M 625 584 L 1112 584 Q 1120 584 1120 576 L 1120 482" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
         <path data-edge-from="host" data-edge-to="objstore" data-edge-label="oci os object put" data-edge-key="13" data-composition-points="625,598;1245,598" d="M 625 598 L 1245 598" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
 
@@ -5272,9 +5272,9 @@
           <rect x="211.4" y="234" width="197.2" height="14" rx="3" class="c-mask"/>
           <text x="310" y="244" class="t-messagebus" font-size="8" text-anchor="middle">vdb.&lt;zone&gt; 경유 semantic_cache TTL 정리</text>
         </g>
-        <g data-detail="context" data-edge-from="mac" data-edge-to="host" data-edge-label="deploy-*: guard → docker save | ssh → compose up" data-edge-key="11">
-          <rect x="202.3" y="571" width="240.39999999999998" height="14" rx="3" class="c-mask"/>
-          <text x="322.5" y="581" class="t-messagebus" font-size="8" text-anchor="middle">deploy-*: guard → docker save | ssh → compose up</text>
+        <g data-detail="context" data-edge-from="mac" data-edge-to="host" data-edge-label="deploy-*: guard → rsync tgz → compose up" data-edge-key="11">
+          <rect x="221.5" y="571" width="202" height="14" rx="3" class="c-mask"/>
+          <text x="322.5" y="581" class="t-messagebus" font-size="8" text-anchor="middle">deploy-*: guard → rsync tgz → compose up</text>
         </g>
         <g data-detail="context" data-edge-from="host" data-edge-to="postgres" data-edge-label="pg_dump 6h → /opt/backups" data-edge-key="12">
           <rect x="1055" y="513" width="130" height="14" rx="3" class="c-mask"/>
@@ -5535,7 +5535,7 @@
           <h3>배포 · 운영</h3>
         </div>
         <ul>
-          <li>&bull; 레지스트리 없음 — deploy-guard(main 포함 · 클린 트리) 뒤 arm64 이미지를 ssh 로 전달, 프론트는 --no-deps</li>
+          <li>&bull; 레지스트리 없음 — deploy-guard(main 포함 · 클린 트리) 뒤 arm64 이미지를 tgz 로 rsync 전달, 프론트는 --no-deps</li>
           <li>&bull; VM cron 4: 백업 6h → Object Storage · ops-check 7 불변식 → ntfy · 주간 추천 질문 · 이미지 GC</li>
           <li>&bull; GitHub Actions: PR · main push CI (api · web · admin · contracts · e2e) · 매일 semantic_cache 만료 정리</li>
         </ul>

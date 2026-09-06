@@ -20,7 +20,7 @@
           "compose_up",
           "finish"
         ],
-        "note": "main 에 머지된 커밋만 Mac 에서 arm64 이미지로 빌드해 ssh 로 VM 에 넣고, .env 태그 한 줄로 compose 가 컨테이너를 교체한다. push 자동 배포는 없다."
+        "note": "main 에 머지된 커밋만 Mac 에서 arm64 이미지로 빌드해 tgz 로 rsync 한 뒤 VM 에서 load 하고, .env 태그 한 줄로 compose 가 컨테이너를 교체한다."
       },
       {
         "id": "guard",
@@ -213,9 +213,10 @@
       "lane": "vm",
       "col": 4,
       "type": "cloud",
-      "label": "docker load",
+      "label": "docker load (VM)",
       "sublabel": "truewords-<svc>:<sha>",
-      "width": 150
+      "width": 150,
+      "tag": "tmp/<svc>-<sha>.tgz → 삭제"
     },
     {
       "id": "compose_up",
@@ -296,7 +297,7 @@
       "id": "transfer",
       "from": "build",
       "to": "load",
-      "label": "docker save | gzip -1 | ssh",
+      "label": "save → tgz → rsync --partial",
       "role": "main",
       "variant": "emphasis"
     },
@@ -361,7 +362,7 @@
       "dot": "cyan",
       "title": "전송 · 교체",
       "items": [
-        "레지스트리 없음: Mac arm64 빌드 → docker save | gzip | ssh docker load",
+        "레지스트리 없음: docker save → 로컬 tgz → rsync --partial --inplace → VM docker load(단계별 재실행 가능)",
         ".env <SVC>_TAG 만 sed → compose up -d --wait, 프론트는 --no-deps"
       ]
     },

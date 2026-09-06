@@ -457,7 +457,7 @@
     {
       "from": "root",
       "to": "infra",
-      "label": "deploy-* → ssh docker load",
+      "label": "deploy-* → rsync tgz · docker load",
       "variant": "emphasis",
       "fromSide": "bottom"
     },
