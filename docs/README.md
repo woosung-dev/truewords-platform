@@ -41,6 +41,8 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 |---|---|
 | [01-project-overview](prd/01-project-overview.md) | 기존 제품 배경·데이터 범위 |
 | [16-app-feature-spec](prd/16-app-feature-spec.md) | 이전 MVP/Flutter 구상. 신규 PWA 요구사항으로 자동 상속하지 않음 |
+| [17-ffwpu-pwa-prd](prd/17-ffwpu-pwa-prd.md) | 가정연합 사용자용 PWA PRD (S1). 가치제안·JTBD·화면 목록·REQ/AC·권리 원장·KPI·G0~G5. **사용자 검토 대기** |
+| [S2 디자인 방향 3안](prd/2026-09-07-ffwpu-pwa-design-directions.md), [프로토타입 HTML](prd/prototypes/2026-09-07-ffwpu-pwa-directions.html) | A 오늘 루틴 · B 출처 서고 · C 가족 실천 비교와 추천(B+A 결합). 모든 콘텐츠는 예시. **방향 선택 대기** |
 | [사용자 웹 UI/UX](specs/web/ui-ux.md), [관리자 UI/UX](specs/admin/ui-ux.md) | 현재 구현·소유권과 미승인 리디자인의 경계 |
 | [17-chatbot-system-prompt-spec](specs/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 |
 | [18-category-document-stats](specs/18-category-document-stats.md), [19-category-tag-management-ui](specs/19-category-tag-management-ui.md) | 문서 통계·카테고리 UI |

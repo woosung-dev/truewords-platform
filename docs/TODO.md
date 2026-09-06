@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-09-05
+> 마지막 업데이트: 2026-09-07
 
 > **현재 우선 작업:** 2안 UI 분리의 구현·로컬 검증 완료, 2026-09-05 커밋·푸시 승인. PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과를 재사용하지 않는다. 최신 로컬 증거는 [APP-UI-001](plans/active/2026-09-05-app-owned-ui.md), 최초 M1~M4 기록은 [전환 계획 §5](plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 따른다. 아래 과거 퍼센트·테스트 수치를 새 완료 증거로 사용하지 않는다. 신규 디자인·M5·Flutter·운영 배포는 비범위다.
 
@@ -36,6 +36,8 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] 출처·기능 범위 비교 차트를 포함한 자체 포함 HTML 의사결정 보고서 생성·데스크톱 1440px/모바일 390px 검증 (`docs/research/2026-08-31-chowon-pwa-strategy-report.html`)
 - [x] 세션 0 승인 — FFWPU 대상, 공식 승인 전 독립 운영·비공식 제한 베타, 현 구성원·가정 우선
 - [x] 세션 0 승인 — 권리 승인 소규모 정본만 사용, 잠금 화면 중립형 알림 기본
+- [x] 세션 1 PRD 재작성 (2026-09-07) — PR #218 초안(미머지)을 `docs/prd/17-ffwpu-pwa-prd.md`로 옮기고 화면 목록 `SCR-PWA-001~009`·초원 대비 정보구조·S2 방향 요약을 추가. 사용자 검토 대기
+- [x] 세션 2 방향 3안 프로토타입 (2026-09-07) — A 오늘 루틴 · B 출처 서고 · C 가족 실천을 한 HTML에서 비교(`docs/prd/prototypes/2026-09-07-ffwpu-pwa-directions.html`), 비교·추천은 `docs/prd/2026-09-07-ffwpu-pwa-design-directions.md`(★ B 골격 + A 오늘 카드 결합 추천). 1440px 3열·390px 1열 렌더링 확인
 
 ### 체험단 최종 현황 리포트 (2026-07-30)
 - [x] 종료 설문·중간미션 원본과 Oracle 운영 DB를 교차 검증해 실제 이용·미션 제출 현황 HTML/PNG 생성 (`docs/dev-log/2026-07-30-beta-final-status-report.md`)
@@ -181,9 +183,11 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - `[종결]` `DEC-MONO-002` — **2026-09-06 확정**: web 은 기존 `app.woosung.dev` 유지, admin 은 `truewords-admin.woosung.dev`(zone 을 nexus·kairos·quantbridge 와 공유하므로 프로젝트 접두어). 컷오버 순서는 [전환 runbook §배포 승인 후 순서](runbooks/monorepo-migration-and-rollback.md#배포-승인-후-순서), 실행은 단계별 승인.
 - `[확인 필요]` `DEC-MONO-003` — 일반 사용자 로그인 방식 및 기존 데모 계정·기록의 이전 여부. identity 구현 전 필요하다.
 
-- `[확인 필요]` 독립 베타의 법적 운영 주체와 FFWPU 공식 승인 요청·검수 절차는 무엇인가?
-- `[확인 필요]` 초기 소규모 정본의 정확한 목록과 본문 전재·검색·임베딩·AI 요약·오프라인·푸시 인용별 권리 범위는 어디까지인가?
-- `[확인 필요]` 콘텐츠 공식성·검수·철회 최종 책임자는 누구인가?
+- `[확인 필요]` `DEC-PWA-013` S2 방향 선택 — A 오늘 루틴 / B 출처 서고 / C 가족 실천 / B+A 결합(추천 ★5). 선택 뒤 S3 디자인 시스템 진입. [DES-PWA-001 §4](prd/2026-09-07-ffwpu-pwa-design-directions.md#4-추천-제안)
+- `[확인 필요]` `DEC-PWA-011` 세션 로드맵 16개(S0~S15, main 기준) 유지 vs 14개(S0~S13, PR #218 초안 기록) 조정. PRD·게이트는 현재 16개 번호를 쓴다.
+- `[확인 필요]` `DEC-PWA-001` 독립 베타의 법적 운영 주체와 FFWPU 공식 승인 요청·검수 절차는 무엇인가? (PRD §5.5)
+- `[확인 필요]` `DEC-PWA-002` 초기 소규모 정본의 정확한 목록과 본문 전재·검색·임베딩·AI 요약·오프라인·푸시 인용별 권리 범위는 어디까지인가? (PRD §5.5)
+- `[확인 필요]` `DEC-PWA-003` 콘텐츠 공식성·검수·철회 최종 책임자는 누구인가? (PRD §5.5)
 - `[확인 필요]` 분리 전 다이어그램 JSON 6종(`docs/archive/diagrams-2026-09-04/`, 약 45KB)을 계속 보존할지, git 이력만 믿고 지울지. HTML/PNG 는 이미 이력에만 남겼다.
 - `[확인 필요]` `DEC-MONO-004` — Flutter 착수 시점은 미정. PWA 우선 후 도입 확정 시 앱·Dart SDK·Pub workspace·모바일 CI를 함께 추가한다.
 - ~~GCP 실제 배포 시점?~~ — 해소. GCP 배포 후(2026-04~07) 2026-07-29 Oracle Cloud 로 이전 완료. §13 참조
@@ -235,8 +239,9 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] `QUALITY-MONO-001` — `apps/web/src/app/(chat)/page.tsx`의 기존 `react-hooks/exhaustive-deps` 경고 1개를 별도 정리한다. 이번 검사 결과는 오류 0개이며 경고를 숨기지 않았다.
 
 ### 가정연합 신규 PWA 기획 (2026-08-31)
-- [ ] 세션 1 — `docs/research/2026-08-30-pwa-app-direction.md` §7 프롬프트로 PRD 작성·리뷰
-- [ ] 세션 2 — 승인 PRD 기반 A/B/C 비교형 프로토타입 작성·방향 선택
+- [x] 세션 1 — PRD 작성 (`docs/prd/17-ffwpu-pwa-prd.md`, 2026-09-07 재작성)
+- [x] 세션 2 — A/B/C 비교형 프로토타입 작성 (`docs/prd/prototypes/2026-09-07-ffwpu-pwa-directions.html`)
+- [ ] 세션 1·2 승인 — PRD 제품 정의·MVP/비범위·`[제안]` KPI·G0~G5 검토 + 방향 선택(`DEC-PWA-013`). 승인 전에는 S3·`apps/web` 변경 없음
 - [ ] 세션 3 — 채택안 디자인 시스템·접근성 상태 작성·승인
 - [ ] 세션 4 — 구현 설계·작업 분해·제한 베타 계획과 S5~S15 실행 runbook 작성
 - [ ] 세션 5~15 — 승인 runbook 순서로 구현·검증·독립 베타·결과 판정
