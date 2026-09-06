@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 /**
  * E2E 테스트: 관리자 로그인 → 챗봇 목록 → 편집 → search_tiers 수정 → 저장
@@ -79,9 +79,7 @@ test.describe("챗봇 목록", () => {
   });
 
   test("새 챗봇 만들기 링크가 존재한다", async ({ page }) => {
-    await expect(
-      page.getByRole("link", { name: /새 챗봇/ })
-    ).toBeVisible();
+    await expect(page.getByRole("link", { name: /새 챗봇/ })).toBeVisible();
   });
 
   test("편집 링크를 클릭하면 편집 페이지로 이동한다", async ({ page }) => {
@@ -105,9 +103,7 @@ test.describe("챗봇 편집 + search_tiers 수정", () => {
 
   test("편집 페이지가 정상 렌더링된다", async ({ page }) => {
     await expect(page.locator("#display-name")).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "저장" })
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "저장" })).toBeVisible();
   });
 
   test("표시 이름을 수정하고 저장할 수 있다", async ({ page }) => {
@@ -144,9 +140,7 @@ test.describe("챗봇 편집 + search_tiers 수정", () => {
     }
   });
 
-  test("전체 플로우: 편집 → 티어 수정 → 저장 → 목록 복귀", async ({
-    page,
-  }) => {
+  test("전체 플로우: 편집 → 티어 수정 → 저장 → 목록 복귀", async ({ page }) => {
     // 1. 편집 페이지 확인
     await expect(page.locator("#display-name")).toBeVisible();
 
@@ -155,9 +149,7 @@ test.describe("챗봇 편집 + search_tiers 수정", () => {
     await page.waitForTimeout(1_500);
 
     // 3. 목록으로 돌아가기
-    const backButton = page.getByRole("link", { name: "목록으로" }).or(
-      page.getByRole("button", { name: "목록으로" })
-    );
+    const backButton = page.getByRole("link", { name: "목록으로" }).or(page.getByRole("button", { name: "목록으로" }));
     if (await backButton.isVisible()) {
       await backButton.click();
       await page.waitForURL("**/chatbots", { timeout: 5_000 });
@@ -180,9 +172,7 @@ test.describe("검색 모드 선택 (Weighted Search)", () => {
     await expect(page.getByText("비중 검색 (Weighted)")).toBeVisible();
   });
 
-  test("비중 검색 모드로 전환하면 WeightedSourceEditor가 표시된다", async ({
-    page,
-  }) => {
+  test("비중 검색 모드로 전환하면 WeightedSourceEditor가 표시된다", async ({ page }) => {
     // 검색 설정 섹션으로 스크롤
     const weightedRadio = page.locator('input[value="weighted"]');
     await weightedRadio.scrollIntoViewIfNeeded();
@@ -227,33 +217,25 @@ test.describe("검색 모드 선택 (Weighted Search)", () => {
 });
 
 test.describe("인증 가드", () => {
-  test("비로그인 상태에서 챗봇 페이지 접근 시 로그인으로 리다이렉트", async ({
-    page,
-  }) => {
+  test("비로그인 상태에서 챗봇 페이지 접근 시 로그인으로 리다이렉트", async ({ page }) => {
     await page.goto("/chatbots");
     // AuthGuard가 로그인 페이지로 리다이렉트
     await page.waitForURL("**/login", { timeout: 10_000 });
     await expect(page.getByText("관리자 로그인")).toBeVisible();
   });
 
-  test("비로그인 상태에서 대시보드 접근 시 로그인으로 리다이렉트", async ({
-    page,
-  }) => {
+  test("비로그인 상태에서 대시보드 접근 시 로그인으로 리다이렉트", async ({ page }) => {
     await page.goto("/dashboard");
     await page.waitForURL("**/login", { timeout: 10_000 });
   });
 
-  test("비로그인 상태에서 관리자 루트(/) 접근 시 로그인으로 리다이렉트", async ({
-    page,
-  }) => {
+  test("비로그인 상태에서 관리자 루트(/) 접근 시 로그인으로 리다이렉트", async ({ page }) => {
     await page.goto("/");
     await page.waitForURL("**/login", { timeout: 10_000 });
     await expect(page.getByText("관리자 로그인")).toBeVisible();
   });
 
-  test("비관리자 로그인 시 관리자 권한 안내에서 멈춘다", async ({
-    page,
-  }) => {
+  test("비관리자 로그인 시 관리자 권한 안내에서 멈춘다", async ({ page }) => {
     await fillLogin(page, NON_ADMIN_EMAIL);
     await page.waitForURL("**/access-denied", { timeout: 10_000 });
     // Next 16.3 부터 __next-route-announcer__(aria-live) 가 h1 텍스트를 복제해 getByText 가 2요소를 잡는다 → heading 으로 한정
@@ -262,9 +244,7 @@ test.describe("인증 가드", () => {
     });
   });
 
-  test("비관리자가 대시보드에 직접 접근해도 권한 안내로 이동한다", async ({
-    page,
-  }) => {
+  test("비관리자가 대시보드에 직접 접근해도 권한 안내로 이동한다", async ({ page }) => {
     await fillLogin(page, NON_ADMIN_EMAIL);
     await page.waitForURL("**/access-denied", { timeout: 10_000 });
     await page.goto("/dashboard");

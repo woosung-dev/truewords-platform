@@ -23,13 +23,10 @@ const chatButtonVariants = cva(
         // Brass CTA — 답변 페이지 핵심 액션 (P0-G floating bar 등)
         brass:
           "bg-accent text-accent-foreground shadow-(--tw-shadow-card) hover:bg-accent/90 hover:shadow-(--tw-shadow-card-hover)",
-        ghost:
-          "bg-transparent text-foreground hover:bg-secondary hover:text-foreground",
-        outline:
-          "border border-border bg-card text-foreground hover:bg-secondary",
+        ghost: "bg-transparent text-foreground hover:bg-secondary hover:text-foreground",
+        outline: "border border-border bg-card text-foreground hover:bg-secondary",
         // Pastoral mode — 목회 상담 톤
-        pastoral:
-          "bg-pastoral text-pastoral-foreground hover:bg-pastoral/90 shadow-(--tw-shadow-card)",
+        pastoral: "bg-pastoral text-pastoral-foreground hover:bg-pastoral/90 shadow-(--tw-shadow-card)",
         // Kakao login CTA — brand: KakaoTalk official color, 디자인 토큰 적용 예외
         kakao: "bg-[#FEE500] text-[#000000] hover:bg-[#FEE500]/90",
       },
@@ -49,7 +46,7 @@ const chatButtonVariants = cva(
       variant: "primary",
       size: "md",
     },
-  }
+  },
 );
 
 export type ChatButtonProps = ButtonPrimitive.Props &

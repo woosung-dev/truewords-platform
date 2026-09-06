@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchAPI } from "@/lib/api";
+import type { AuditLogResponse as AuditLog } from "@truewords/api-client-ts/types";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-
-import type { AuditLogResponse as AuditLog } from "@truewords/api-client-ts/types";
+import { fetchAPI } from "@/lib/api";
 
 const PAGE_SIZE = 20;
 
@@ -36,10 +35,7 @@ export default function AuditLogsPage() {
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ["audit-logs", offset],
-    queryFn: () =>
-      fetchAPI<AuditLog[]>(
-        `/admin/audit-logs?limit=${PAGE_SIZE}&offset=${offset}`
-      ),
+    queryFn: () => fetchAPI<AuditLog[]>(`/admin/audit-logs?limit=${PAGE_SIZE}&offset=${offset}`),
   });
 
   const hasPrev = offset > 0;
@@ -49,9 +45,7 @@ export default function AuditLogsPage() {
     <div className="max-w-4xl space-y-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">감사 로그</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          관리자 작업 이력을 확인합니다
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">관리자 작업 이력을 확인합니다</p>
       </div>
 
       <div className="rounded-xl border bg-card overflow-hidden">
@@ -61,19 +55,25 @@ export default function AuditLogsPage() {
               <th className="text-left font-medium px-4 py-2.5">시간</th>
               <th className="text-left font-medium px-4 py-2.5">액션</th>
               <th className="text-left font-medium px-4 py-2.5">대상 테이블</th>
-              <th className="text-left font-medium px-4 py-2.5 hidden md:table-cell">
-                변경 내용
-              </th>
+              <th className="text-left font-medium px-4 py-2.5 hidden md:table-cell">변경 내용</th>
             </tr>
           </thead>
           <tbody>
             {isLoading &&
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b">
-                  <td className="px-4 py-3"><Skeleton className="h-4 w-32" /></td>
-                  <td className="px-4 py-3"><Skeleton className="h-5 w-12" /></td>
-                  <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
-                  <td className="px-4 py-3 hidden md:table-cell"><Skeleton className="h-4 w-48" /></td>
+                  <td className="px-4 py-3">
+                    <Skeleton className="h-4 w-32" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Skeleton className="h-5 w-12" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Skeleton className="h-4 w-28" />
+                  </td>
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    <Skeleton className="h-4 w-48" />
+                  </td>
                 </tr>
               ))}
             {!isLoading && logs.length === 0 && (
@@ -90,22 +90,16 @@ export default function AuditLogsPage() {
               };
               return (
                 <tr key={log.id} className="border-b last:border-0 hover:bg-primary/5">
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                    {formatDate(log.created_at)}
-                  </td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(log.created_at)}</td>
                   <td className="px-4 py-3">
                     <Badge variant={actionInfo.variant}>{actionInfo.label}</Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <code className="text-xs bg-admin-muted px-1.5 py-0.5 rounded">
-                      {log.target_table}
-                    </code>
+                    <code className="text-xs bg-admin-muted px-1.5 py-0.5 rounded">{log.target_table}</code>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <span className="text-xs text-muted-foreground truncate block max-w-xs">
-                      {Object.keys(log.changes).length > 0
-                        ? JSON.stringify(log.changes).slice(0, 100)
-                        : "—"}
+                      {Object.keys(log.changes).length > 0 ? JSON.stringify(log.changes).slice(0, 100) : "—"}
                     </span>
                   </td>
                 </tr>
@@ -130,12 +124,7 @@ export default function AuditLogsPage() {
             <ChevronLeft className="w-4 h-4 mr-1" />
             이전
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!hasNext}
-            onClick={() => setOffset((o) => o + PAGE_SIZE)}
-          >
+          <Button size="sm" variant="outline" disabled={!hasNext} onClick={() => setOffset((o) => o + PAGE_SIZE)}>
             다음
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>

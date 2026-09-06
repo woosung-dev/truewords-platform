@@ -37,28 +37,31 @@ export default defineConfig({
     },
   ],
   // 기존 운영 DB를 사용하지 않는다. 별도 Compose 프로젝트/seed는 README 참조.
-  webServer: process.env.E2E_EXTERNAL_SERVERS === "1" ? undefined : [
-    {
-      command: "uv run --frozen uvicorn e2e_app:app --app-dir tests --host 127.0.0.1 --port 8000",
-      cwd: path.join(repoRoot, "apps/api"),
-      url: `${apiOrigin}/health`,
-      // 시연 관리자 게이트 계정. 스펙의 E2E_ADMIN_EMAIL 기본값과 같아야 한다.
-      env: { DEMO_ADMIN_EMAIL: adminEmail },
-      reuseExistingServer: false,
-      timeout: 60_000,
-    },
-    ...(["web", "admin"] as const).map((app) => ({
-      command: `pnpm --filter @truewords/${app} dev`,
-      cwd: repoRoot,
-      url: `${app === "web" ? webOrigin : adminOrigin}/login`,
-      env: {
-        NEXT_PUBLIC_API_URL: apiOrigin,
-        NEXT_PUBLIC_WEB_URL: webOrigin,
-        NEXT_PUBLIC_ADMIN_URL: adminOrigin,
-        NEXT_PUBLIC_DEMO_ADMIN_EMAIL: adminEmail,
-      },
-      reuseExistingServer: false,
-      timeout: 60_000,
-    })),
-  ],
+  webServer:
+    process.env.E2E_EXTERNAL_SERVERS === "1"
+      ? undefined
+      : [
+          {
+            command: "uv run --frozen uvicorn e2e_app:app --app-dir tests --host 127.0.0.1 --port 8000",
+            cwd: path.join(repoRoot, "apps/api"),
+            url: `${apiOrigin}/health`,
+            // 시연 관리자 게이트 계정. 스펙의 E2E_ADMIN_EMAIL 기본값과 같아야 한다.
+            env: { DEMO_ADMIN_EMAIL: adminEmail },
+            reuseExistingServer: false,
+            timeout: 60_000,
+          },
+          ...(["web", "admin"] as const).map((app) => ({
+            command: `pnpm --filter @truewords/${app} dev`,
+            cwd: repoRoot,
+            url: `${app === "web" ? webOrigin : adminOrigin}/login`,
+            env: {
+              NEXT_PUBLIC_API_URL: apiOrigin,
+              NEXT_PUBLIC_WEB_URL: webOrigin,
+              NEXT_PUBLIC_ADMIN_URL: adminOrigin,
+              NEXT_PUBLIC_DEMO_ADMIN_EMAIL: adminEmail,
+            },
+            reuseExistingServer: false,
+            timeout: 60_000,
+          })),
+        ],
 });

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,18 +9,31 @@ import { normalizeLegacyStreamContract } from "./legacy-contract.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const temporary = mkdtempSync(path.join(tmpdir(), "truewords-contracts-"));
-const run = (command, args, options = {}) => execFileSync(command, args, { cwd: root, stdio: "pipe", maxBuffer: 32 * 1024 * 1024, ...options });
+const run = (command, args, options = {}) =>
+  execFileSync(command, args, { cwd: root, stdio: "pipe", maxBuffer: 32 * 1024 * 1024, ...options });
 function files(directory, prefix = "") {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const name = path.join(prefix, entry.name);
-    return entry.isDirectory() ? files(path.join(directory, entry.name), name) : [name];
-  }).sort();
+  return readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry) => {
+      const name = path.join(prefix, entry.name);
+      return entry.isDirectory() ? files(path.join(directory, entry.name), name) : [name];
+    })
+    .sort();
 }
 
 try {
   const current = path.join(temporary, "current.json");
-  run("uv", ["run", "--project", "apps/api", "--no-sync", "python", "apps/api/scripts/export_openapi.py", "--output", current]);
-  if (!readFileSync(current).equals(readFileSync(config.input))) throw new Error("OpenAPI drift: pnpm contracts:generate를 실행하세요");
+  run("uv", [
+    "run",
+    "--project",
+    "apps/api",
+    "--no-sync",
+    "python",
+    "apps/api/scripts/export_openapi.py",
+    "--output",
+    current,
+  ]);
+  if (!readFileSync(current).equals(readFileSync(config.input)))
+    throw new Error("OpenAPI drift: pnpm contracts:generate를 실행하세요");
   const generated = path.join(temporary, "sdk");
   await createClient({ ...config, output: generated });
   const expected = files(config.output);
@@ -35,7 +48,9 @@ try {
 
   const baseRef = process.env.CONTRACT_BASE_REF || run("git", ["merge-base", "HEAD", "origin/main"]).toString().trim();
   // 임의 ref를 옵션으로 해석하지 않도록 SHA로 먼저 확정한다.
-  const sha = run("git", ["rev-parse", "--verify", "--end-of-options", `${baseRef}^{commit}`]).toString().trim();
+  const sha = run("git", ["rev-parse", "--verify", "--end-of-options", `${baseRef}^{commit}`])
+    .toString()
+    .trim();
   const base = path.join(temporary, "base.json");
   try {
     writeFileSync(base, run("git", ["show", `${sha}:contracts/openapi.json`]));
@@ -57,7 +72,24 @@ try {
     writeFileSync(base, JSON.stringify(normalizeLegacyStreamContract(JSON.parse(readFileSync(base, "utf8")))));
     console.log("최초 기준의 알려진 SSE MIME 오기만 교정: application/json → text/event-stream");
   }
-  run("docker", ["run", "--rm", "--network=none", "-v", `${temporary}:/specs:ro`, "tufin/oasdiff:v1.30.0@sha256:c1200e64fa9b2229b7aee39fe389bd5b49c7cb955923f8a6b20791a6dcf1deed", "breaking", "--fail-on", "WARN", "--", "/specs/base.json", "/specs/current.json"], { stdio: "inherit" });
+  run(
+    "docker",
+    [
+      "run",
+      "--rm",
+      "--network=none",
+      "-v",
+      `${temporary}:/specs:ro`,
+      "tufin/oasdiff:v1.30.0@sha256:c1200e64fa9b2229b7aee39fe389bd5b49c7cb955923f8a6b20791a6dcf1deed",
+      "breaking",
+      "--fail-on",
+      "WARN",
+      "--",
+      "/specs/base.json",
+      "/specs/current.json",
+    ],
+    { stdio: "inherit" },
+  );
   console.log(`API 하위 호환성 통과: ${sha.slice(0, 8)}`);
 } catch (error) {
   console.error(error.stderr?.toString() || error.message);

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 async function login(page: Page) {
   await page.goto("/login");
@@ -34,12 +34,20 @@ test("로그인 → 시연 게이트 → 내 기록 → 로그아웃", async ({ 
 
 test("모바일 뷰에서 SSE 답변·출처 원문을 표시한다", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route("**/api/backend/api/sources/chunks/fixture-chunk?*", (route) => route.fulfill({
-    json: {
-      chunk_id: "fixture-chunk", text: "인용 원문 검증", volume: "말씀선집 001권",
-      sources: ["A"], chunk_index: 0, merged_text: "인용 원문 검증", main_offset_start: 0, main_offset_end: 8,
-    },
-  }));
+  await page.route("**/api/backend/api/sources/chunks/fixture-chunk?*", (route) =>
+    route.fulfill({
+      json: {
+        chunk_id: "fixture-chunk",
+        text: "인용 원문 검증",
+        volume: "말씀선집 001권",
+        sources: ["A"],
+        chunk_index: 0,
+        merged_text: "인용 원문 검증",
+        main_offset_start: 0,
+        main_offset_end: 8,
+      },
+    }),
+  );
   await enterChat(page);
   const input = page.getByRole("textbox", { name: "질문 입력" });
   await input.fill("참사랑을 알려주세요");
@@ -54,10 +62,12 @@ test("모바일 뷰에서 SSE 답변·출처 원문을 표시한다", async ({ p
 });
 
 test("스트림 HTTP 오류는 오류 코드 원문 대신 사용자 안내로 표시한다", async ({ page }) => {
-  await page.route("**/api/backend/chat/stream", (route) => route.fulfill({
-    status: 503,
-    json: { error_code: "SEARCH_FAILED", message: "내부 검색 오류", request_id: "fixture-error" },
-  }));
+  await page.route("**/api/backend/chat/stream", (route) =>
+    route.fulfill({
+      status: 503,
+      json: { error_code: "SEARCH_FAILED", message: "내부 검색 오류", request_id: "fixture-error" },
+    }),
+  );
   await enterChat(page);
   const input = page.getByRole("textbox", { name: "질문 입력" });
   await input.fill("검색 오류 검증");
@@ -79,10 +89,12 @@ test("사용자 중단은 이미 받은 부분 답변을 남긴다", async ({ pa
 });
 
 test("done 없이 종료된 연결은 부분 답변과 오류 안내를 남긴다", async ({ page }) => {
-  await page.route("**/api/backend/chat/stream", (route) => route.fulfill({
-    contentType: "text/event-stream",
-    body: 'event: chunk\ndata: {"text":"부분 답변 보존"}\n\n',
-  }));
+  await page.route("**/api/backend/chat/stream", (route) =>
+    route.fulfill({
+      contentType: "text/event-stream",
+      body: 'event: chunk\ndata: {"text":"부분 답변 보존"}\n\n',
+    }),
+  );
   await enterChat(page);
   const input = page.getByRole("textbox", { name: "질문 입력" });
   await input.fill("연결 종료 검증");

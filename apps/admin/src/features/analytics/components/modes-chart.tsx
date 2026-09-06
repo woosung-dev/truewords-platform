@@ -1,15 +1,7 @@
 // 일별 resolved_answer_mode 분포 차트 (BL-6 — 4주 시범 운영 baseline)
 "use client";
 
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-} from "recharts";
+import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { DailyModeCount } from "@/features/analytics/types";
 
@@ -65,26 +57,15 @@ function computeOverrideRate(rows: DailyModeCount[]): {
   return { pastoralOverride, totalPastoral };
 }
 
-export function ModesChart({
-  rows,
-  loading,
-}: {
-  rows?: DailyModeCount[];
-  loading: boolean;
-}) {
+export function ModesChart({ rows, loading }: { rows?: DailyModeCount[]; loading: boolean }) {
   const chartData = pivotToDate(rows ?? []);
   const { pastoralOverride, totalPastoral } = computeOverrideRate(rows ?? []);
-  const overrideRate =
-    totalPastoral > 0
-      ? Math.round((pastoralOverride / totalPastoral) * 100)
-      : 0;
+  const overrideRate = totalPastoral > 0 ? Math.round((pastoralOverride / totalPastoral) * 100) : 0;
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">
-          일별 모드 분포 (최근 30일, UTC 기준)
-        </h2>
+        <h2 className="text-sm font-semibold">일별 모드 분포 (최근 30일, UTC 기준)</h2>
         {totalPastoral > 0 && (
           <span className="text-xs text-muted-foreground">
             pastoral 위기 override {pastoralOverride}/{totalPastoral} ({overrideRate}%)
@@ -99,10 +80,7 @@ export function ModesChart({
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart
-            data={chartData}
-            margin={{ top: 4, right: 4, left: -16, bottom: 0 }}
-          >
+          <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
             <XAxis
               dataKey="date"
               tick={{ fontSize: 11 }}
@@ -110,12 +88,7 @@ export function ModesChart({
               axisLine={false}
               interval="preserveStartEnd"
             />
-            <YAxis
-              tick={{ fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-              allowDecimals={false}
-            />
+            <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
             <Tooltip
               contentStyle={{
                 fontSize: 12,
@@ -128,13 +101,7 @@ export function ModesChart({
             />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             {MODES.map((mode) => (
-              <Bar
-                key={mode}
-                dataKey={mode}
-                name={MODE_LABEL[mode]}
-                stackId="modes"
-                fill={MODE_COLOR[mode]}
-              />
+              <Bar key={mode} dataKey={mode} name={MODE_LABEL[mode]} stackId="modes" fill={MODE_COLOR[mode]} />
             ))}
           </BarChart>
         </ResponsiveContainer>

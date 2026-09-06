@@ -64,10 +64,8 @@ export function FollowupPills({
                   "transition-all duration-150 ease-out",
                   "active:scale-[0.98]",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  !blurred &&
-                    "hover:border-primary hover:bg-secondary cursor-pointer",
-                  blurred &&
-                    "select-none pointer-events-none [filter:blur(6px)] opacity-60"
+                  !blurred && "hover:border-primary hover:bg-secondary cursor-pointer",
+                  blurred && "select-none pointer-events-none [filter:blur(6px)] opacity-60",
                 )}
               >
                 {q}
@@ -83,13 +81,7 @@ export function FollowupPills({
             <Lock className="size-3.5" aria-hidden="true" />
             로그인하면 더 많은 추천 질문을 볼 수 있어요
           </p>
-          <ChatButton
-            onClick={onLoginClick}
-            variant="kakao"
-            size="md"
-            fullWidth
-            className="mt-3"
-          >
+          <ChatButton onClick={onLoginClick} variant="kakao" size="md" fullWidth className="mt-3">
             <MessageCircle className="size-4" aria-hidden="true" />
             카카오 로그인
           </ChatButton>

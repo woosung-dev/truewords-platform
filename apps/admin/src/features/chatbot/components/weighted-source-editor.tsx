@@ -1,8 +1,8 @@
 "use client";
 
+import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, X } from "lucide-react";
 import type { WeightedSource } from "@/features/chatbot/types";
 import { useSearchableCategories } from "@/features/data-source/hooks";
 
@@ -11,10 +11,7 @@ interface WeightedSourceEditorProps {
   onChange: (sources: WeightedSource[]) => void;
 }
 
-export default function WeightedSourceEditor({
-  sources,
-  onChange,
-}: WeightedSourceEditorProps) {
+export default function WeightedSourceEditor({ sources, onChange }: WeightedSourceEditorProps) {
   const { data: categories = [] } = useSearchableCategories();
 
   const totalWeight = sources.reduce((sum, s) => sum + (s.weight ?? 1), 0);
@@ -23,10 +20,7 @@ export default function WeightedSourceEditor({
     const usedSources = new Set(sources.map((s) => s.source));
     const available = categories.find((c) => !usedSources.has(c.key));
     if (!available) return;
-    onChange([
-      ...sources,
-      { source: available.key, weight: 1, score_threshold: 0.1 },
-    ]);
+    onChange([...sources, { source: available.key, weight: 1, score_threshold: 0.1 }]);
   }
 
   function removeSource(index: number) {
@@ -35,9 +29,7 @@ export default function WeightedSourceEditor({
   }
 
   function updateSource(index: number, updates: Partial<WeightedSource>) {
-    onChange(
-      sources.map((s, i) => (i === index ? { ...s, ...updates } : s))
-    );
+    onChange(sources.map((s, i) => (i === index ? { ...s, ...updates } : s)));
   }
 
   const usedSources = new Set(sources.map((s) => s.source));
@@ -46,9 +38,7 @@ export default function WeightedSourceEditor({
   return (
     <div className="space-y-3">
       {sources.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">
-          소스를 추가하세요
-        </p>
+        <p className="text-sm text-muted-foreground py-4 text-center">소스를 추가하세요</p>
       ) : (
         <>
           <div className="grid grid-cols-[1fr_80px_100px_40px_60px] gap-2 px-1 text-xs font-medium text-muted-foreground">
@@ -60,17 +50,10 @@ export default function WeightedSourceEditor({
           </div>
 
           {sources.map((s, i) => {
-            const pct =
-              totalWeight > 0
-                ? (((s.weight ?? 1) / totalWeight) * 100).toFixed(1)
-                : "0.0";
-            const catName =
-              categories.find((c) => c.key === s.source)?.name ?? s.source;
+            const pct = totalWeight > 0 ? (((s.weight ?? 1) / totalWeight) * 100).toFixed(1) : "0.0";
+            const catName = categories.find((c) => c.key === s.source)?.name ?? s.source;
             return (
-              <div
-                key={`${s.source}-${i}`}
-                className="grid grid-cols-[1fr_80px_100px_40px_60px] gap-2 items-center"
-              >
+              <div key={`${s.source}-${i}`} className="grid grid-cols-[1fr_80px_100px_40px_60px] gap-2 items-center">
                 <select
                   value={s.source}
                   onChange={(e) => updateSource(i, { source: e.target.value })}
@@ -80,16 +63,14 @@ export default function WeightedSourceEditor({
                     {catName} ({s.source})
                   </option>
                   {categories
-                    .filter(
-                      (c) => !usedSources.has(c.key) || c.key === s.source
-                    )
+                    .filter((c) => !usedSources.has(c.key) || c.key === s.source)
                     .map(
                       (c) =>
                         c.key !== s.source && (
                           <option key={c.key} value={c.key}>
                             {c.name} ({c.key})
                           </option>
-                        )
+                        ),
                     )}
                 </select>
 
@@ -101,8 +82,7 @@ export default function WeightedSourceEditor({
                   value={s.weight}
                   onChange={(e) => {
                     const val = parseFloat(e.target.value);
-                    if (!isNaN(val) && val >= 0.1)
-                      updateSource(i, { weight: val });
+                    if (!isNaN(val) && val >= 0.1) updateSource(i, { weight: val });
                   }}
                   className="h-8 text-sm text-center"
                 />
@@ -117,8 +97,7 @@ export default function WeightedSourceEditor({
                     const val = parseFloat(e.target.value);
                     if (!isNaN(val)) {
                       updateSource(i, {
-                        score_threshold:
-                          Math.round(Math.max(0, Math.min(1, val)) * 100) / 100,
+                        score_threshold: Math.round(Math.max(0, Math.min(1, val)) * 100) / 100,
                       });
                     }
                   }}
@@ -135,36 +114,26 @@ export default function WeightedSourceEditor({
                   <X className="w-3.5 h-3.5" />
                 </Button>
 
-                <span className="text-sm text-right tabular-nums text-muted-foreground">
-                  {pct}%
-                </span>
+                <span className="text-sm text-right tabular-nums text-muted-foreground">{pct}%</span>
               </div>
             );
           })}
 
           <div className="flex justify-between items-center pt-2 border-t text-sm">
             <span className="text-muted-foreground">합계: {totalWeight}</span>
-            <span className="tabular-nums font-medium">
-              {totalWeight > 0 ? "100.0%" : "0%"}
-            </span>
+            <span className="tabular-nums font-medium">{totalWeight > 0 ? "100.0%" : "0%"}</span>
           </div>
         </>
       )}
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={addSource}
-        disabled={!hasAvailable}
-        className="w-full"
-      >
+      <Button variant="outline" size="sm" onClick={addSource} disabled={!hasAvailable} className="w-full">
         <Plus className="w-3.5 h-3.5 mr-1.5" />
         소스 추가
       </Button>
 
       <p className="text-xs text-muted-foreground">
-        비중은 비율로 자동 계산됩니다. 예: 5:3:2 → 50%, 30%, 20%. 점수 임계값은
-        RRF fusion 기준 0.05~0.3 범위를 권장합니다.
+        비중은 비율로 자동 계산됩니다. 예: 5:3:2 → 50%, 30%, 20%. 점수 임계값은 RRF fusion 기준 0.05~0.3 범위를
+        권장합니다.
       </p>
     </div>
   );

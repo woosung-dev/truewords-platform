@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { authAPI } from "@/features/auth/api";
-import { gateAdminEmail } from "@/features/auth/constants";
-import { ApiError } from "@/lib/api";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { authAPI } from "@/features/auth/api";
+import { gateAdminEmail } from "@/features/auth/constants";
+import { ApiError } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,7 +38,7 @@ export default function LoginPage() {
       setError(
         err instanceof ApiError && err.status === 401
           ? "이메일 또는 비밀번호가 올바르지 않습니다"
-          : "서버에 연결할 수 없습니다"
+          : "서버에 연결할 수 없습니다",
       );
     } finally {
       setLoading(false);
@@ -58,7 +58,9 @@ export default function LoginPage() {
 
         <div className="space-y-6">
           <blockquote className="text-2xl font-light text-primary-foreground/90 leading-relaxed">
-            &quot;말씀 데이터 기반<br />AI 챗봇 관리 시스템&quot;
+            &quot;말씀 데이터 기반
+            <br />
+            AI 챗봇 관리 시스템&quot;
           </blockquote>
           <div className="space-y-2 text-sm text-primary-foreground/70">
             <div className="flex items-center gap-2">
@@ -92,9 +94,7 @@ export default function LoginPage() {
 
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">관리자 로그인</h1>
-            <p className="text-sm text-muted-foreground">
-              관리자 계정으로 로그인하세요
-            </p>
+            <p className="text-sm text-muted-foreground">관리자 계정으로 로그인하세요</p>
           </div>
 
           {/* 에러 메시지 */}
@@ -139,11 +139,7 @@ export default function LoginPage() {
                   tabIndex={-1}
                   aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 표시"}
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>

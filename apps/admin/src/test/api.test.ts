@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // fetchAPI는 모듈 내부 함수이므로 fetch를 mock하여 간접 테스트
 const mockFetch = vi.fn();
@@ -37,7 +37,7 @@ describe("authAPI", () => {
       expect.objectContaining({
         method: "POST",
         credentials: "include",
-      })
+      }),
     );
   });
 
@@ -51,9 +51,7 @@ describe("authAPI", () => {
   });
 
   it("me는 GET 요청이다", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ user_id: "abc", role: "admin" })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ user_id: "abc", role: "admin" }));
 
     const result = await authAPI.me();
 
@@ -78,36 +76,27 @@ describe("authAPI", () => {
 
 describe("chatbotAPI", () => {
   it("list는 pagination 파라미터를 포함한다", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ items: [], total: 0, limit: 20, offset: 0 })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ items: [], total: 0, limit: 20, offset: 0 }));
 
     await chatbotAPI.list(10, 20);
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/admin/chatbot-configs?limit=10&offset=20"),
-      expect.anything()
+      expect.anything(),
     );
   });
 
   it("get은 단건 조회한다", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "abc", chatbot_id: "test" })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ id: "abc", chatbot_id: "test" }));
 
     const result = await chatbotAPI.get("abc");
 
     expect(result.id).toBe("abc");
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/admin/chatbot-configs/abc"),
-      expect.anything()
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/admin/chatbot-configs/abc"), expect.anything());
   });
 
   it("create는 POST + CSRF 헤더로 호출한다", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "new-id", chatbot_id: "new" })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ id: "new-id", chatbot_id: "new" }));
 
     await chatbotAPI.create({
       chatbot_id: "new",
@@ -120,9 +109,7 @@ describe("chatbotAPI", () => {
   });
 
   it("update는 PUT + CSRF 헤더로 호출한다", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "abc", display_name: "Updated" })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ id: "abc", display_name: "Updated" }));
 
     await chatbotAPI.update("abc", { display_name: "Updated" });
 
@@ -140,9 +127,9 @@ describe("chatbotAPI", () => {
       text: () => Promise.resolve("chatbot_id 이미 존재합니다"),
     });
 
-    await expect(
-      chatbotAPI.create({ chatbot_id: "dup", display_name: "Dup" })
-    ).rejects.toThrow("chatbot_id 이미 존재합니다");
+    await expect(chatbotAPI.create({ chatbot_id: "dup", display_name: "Dup" })).rejects.toThrow(
+      "chatbot_id 이미 존재합니다",
+    );
   });
 });
 

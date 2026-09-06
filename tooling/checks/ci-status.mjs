@@ -16,7 +16,10 @@ export function checkCiStatus(needs) {
   }
   const flags = needs.changes?.outputs ?? {};
   for (const [job, flag] of Object.entries({
-    "backend-test": "api", "frontend-test": "admin", "web-test": "web", contracts: "contracts",
+    "backend-test": "api",
+    "frontend-test": "admin",
+    "web-test": "web",
+    contracts: "contracts",
   })) {
     if (!["true", "false"].includes(flags[flag])) failures.push(`missing ${flag} output`);
     const expected = flags[flag] === "true" ? ["success"] : ["success", "skipped"];

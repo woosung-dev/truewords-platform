@@ -1,8 +1,9 @@
 // 원문 모달의 본문 톤 분리 회귀 테스트.
 // 사용자 가시성 우선 정책으로 형광 highlight 복원 (2026-05-16): main 청크는
 // <mark> + 부드러운 yellow 배경 + medium weight, before/after 는 muted-foreground.
-import { describe, it, expect } from "vitest";
+
 import { render } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { renderBody3Tone } from "@/components/truewords/source-original-modal";
 
 function renderToDom(node: React.ReactNode) {
@@ -24,9 +25,7 @@ describe("renderBody3Tone — main/before/after 색 톤 분리", () => {
 
   it("merged_text 가 비어있는 단일 청크 fallback — muted 0개 (전체가 main)", () => {
     const body = "전체본문이메인";
-    const { container, muted } = renderToDom(
-      renderBody3Tone(body, 0, body.length),
-    );
+    const { container, muted } = renderToDom(renderBody3Tone(body, 0, body.length));
 
     expect(container.textContent).toBe(body);
     expect(muted.length).toBe(0);

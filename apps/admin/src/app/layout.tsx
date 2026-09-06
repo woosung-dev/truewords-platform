@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Serif_KR, Cormorant_Garamond } from "next/font/google";
+import { Cormorant_Garamond, Inter, Noto_Serif_KR } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/providers";
 
@@ -35,10 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="ko"
-      className={`${inter.variable} ${notoSerifKR.variable} ${cormorant.variable} h-full antialiased`}
-    >
+    <html lang="ko" className={`${inter.variable} ${notoSerifKR.variable} ${cormorant.variable} h-full antialiased`}>
       <head>
         <link
           rel="stylesheet"

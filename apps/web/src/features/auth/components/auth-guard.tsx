@@ -1,16 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { authAPI } from "@/features/auth/api";
 import { ApiError } from "@/lib/api";
-import { Button } from "@/components/ui/button";
 
-export default function AuthGuard({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [isAuth, setIsAuth] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -32,7 +28,7 @@ export default function AuthGuard({
         }
       })
       .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- attempt(재시도) 시에만 재실행
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- attempt(재시도) 시에만 재실행
   }, [attempt]);
 
   if (loading) {

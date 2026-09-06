@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockFetchAPI = vi.fn();
 vi.mock("@/lib/api", async () => {
@@ -30,8 +30,8 @@ vi.mock("sonner", () => ({
   },
 }));
 
-import { ApiError } from "@/lib/api";
 import SettingsPage from "@/app/(dashboard)/settings/page";
+import { ApiError } from "@/lib/api";
 
 const SELF_ID = "11111111-1111-1111-1111-111111111111";
 const TRIAL_ID = "22222222-2222-2222-2222-222222222222";
@@ -68,7 +68,7 @@ function renderPage() {
   return render(
     <QueryClientProvider client={client}>
       <SettingsPage />
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -115,15 +115,10 @@ describe("설정 — 관리자 계정 목록", () => {
     renderPage();
     await screen.findByText("trial@example.com");
 
-    await user.click(
-      within(rowFor("trial@example.com")).getByRole("button", { name: /비활성화/ })
-    );
+    await user.click(within(rowFor("trial@example.com")).getByRole("button", { name: /비활성화/ }));
 
     // 확인 없이 곧바로 요청하지 않는다 (confirmation-dialogs)
-    expect(mockFetchAPI).not.toHaveBeenCalledWith(
-      expect.stringContaining("/status"),
-      expect.anything()
-    );
+    expect(mockFetchAPI).not.toHaveBeenCalledWith(expect.stringContaining("/status"), expect.anything());
 
     const dialog = await screen.findByRole("dialog");
     // 기존 세션이 즉시 끊기지 않는다는 한계를 다이얼로그가 알린다
@@ -137,7 +132,7 @@ describe("설정 — 관리자 계정 목록", () => {
         expect.objectContaining({
           method: "PATCH",
           body: JSON.stringify({ is_active: false }),
-        })
+        }),
       );
     });
     expect(mockToastSuccess).toHaveBeenCalled();
@@ -148,17 +143,12 @@ describe("설정 — 관리자 계정 목록", () => {
     renderPage();
     await screen.findByText("trial@example.com");
 
-    await user.click(
-      within(rowFor("trial@example.com")).getByRole("button", { name: /비활성화/ })
-    );
+    await user.click(within(rowFor("trial@example.com")).getByRole("button", { name: /비활성화/ }));
     const dialog = await screen.findByRole("dialog");
     await user.click(within(dialog).getByRole("button", { name: "취소" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(mockFetchAPI).not.toHaveBeenCalledWith(
-      expect.stringContaining("/status"),
-      expect.anything()
-    );
+    expect(mockFetchAPI).not.toHaveBeenCalledWith(expect.stringContaining("/status"), expect.anything());
   });
 
   it("활성화는 되돌리기 경로라 확인 없이 즉시 실행된다", async () => {
@@ -166,9 +156,7 @@ describe("설정 — 관리자 계정 목록", () => {
     renderPage();
     await screen.findByText("ended@example.com");
 
-    await user.click(
-      within(rowFor("ended@example.com")).getByRole("button", { name: /활성화/ })
-    );
+    await user.click(within(rowFor("ended@example.com")).getByRole("button", { name: /활성화/ }));
 
     await waitFor(() => {
       expect(mockFetchAPI).toHaveBeenCalledWith(
@@ -176,7 +164,7 @@ describe("설정 — 관리자 계정 목록", () => {
         expect.objectContaining({
           method: "PATCH",
           body: JSON.stringify({ is_active: true }),
-        })
+        }),
       );
     });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -205,16 +193,12 @@ describe("설정 — 관리자 계정 목록", () => {
     renderPage();
     await screen.findByText("trial@example.com");
 
-    await user.click(
-      within(rowFor("trial@example.com")).getByRole("button", { name: /비활성화/ })
-    );
+    await user.click(within(rowFor("trial@example.com")).getByRole("button", { name: /비활성화/ }));
     const dialog = await screen.findByRole("dialog");
     await user.click(within(dialog).getByRole("button", { name: /^비활성화$/ }));
 
     await waitFor(() => {
-      expect(mockToastError).toHaveBeenCalledWith(
-        expect.stringContaining("본인 계정은 비활성화할 수 없습니다")
-      );
+      expect(mockToastError).toHaveBeenCalledWith(expect.stringContaining("본인 계정은 비활성화할 수 없습니다"));
     });
   });
 });

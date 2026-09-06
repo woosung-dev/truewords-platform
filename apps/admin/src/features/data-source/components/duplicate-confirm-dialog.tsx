@@ -2,8 +2,8 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { AlertTriangle, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { DuplicateCheckResponse } from "@/features/data-source/types";
 
 // ADR-30: 재업로드 시 사용자 의사결정.
@@ -17,7 +17,7 @@ interface DuplicateConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   filename: string;
-  targetSource: string;       // 사용자가 이번 업로드에 선택한 카테고리 key (빈 문자열 = 미분류)
+  targetSource: string; // 사용자가 이번 업로드에 선택한 카테고리 key (빈 문자열 = 미분류)
   duplicate: DuplicateCheckResponse | null;
   onDecision: (decision: DuplicateDecision) => void;
 }
@@ -37,12 +37,9 @@ export default function DuplicateConfirmDialog({
   // 2) 기존 문서에 해당 태그가 아직 없고
   // 3) Qdrant에 청크가 실제로 존재할 때 (실제 포인트가 있어야 태그 추가 가능)
   const canAddTag =
-    targetSource !== "" &&
-    !(duplicate.sources ?? []).includes(targetSource) &&
-    (duplicate.chunk_count ?? 0) > 0;
+    targetSource !== "" && !(duplicate.sources ?? []).includes(targetSource) && (duplicate.chunk_count ?? 0) > 0;
 
-  const existingSourcesLabel =
-    (duplicate.sources ?? []).length > 0 ? (duplicate.sources ?? []).join(", ") : "미분류";
+  const existingSourcesLabel = (duplicate.sources ?? []).length > 0 ? (duplicate.sources ?? []).join(", ") : "미분류";
 
   const targetLabel = targetSource ? targetSource : "미분류";
 
@@ -99,10 +96,7 @@ export default function DuplicateConfirmDialog({
                       </Badge>
                     ))
                   ) : (
-                    <Badge
-                      variant="outline"
-                      className="text-xs bg-warning-soft text-warning border-warning-border"
-                    >
+                    <Badge variant="outline" className="text-xs bg-warning-soft text-warning border-warning-border">
                       미분류
                     </Badge>
                   )}
@@ -121,17 +115,15 @@ export default function DuplicateConfirmDialog({
               {duplicate.content_hash && (
                 <div className="flex gap-2">
                   <span className="text-muted-foreground shrink-0 w-20">파일 식별자</span>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {duplicate.content_hash}
-                  </span>
+                  <span className="font-mono text-xs text-muted-foreground">{duplicate.content_hash}</span>
                 </div>
               )}
             </div>
 
             <div className="text-sm text-muted-foreground leading-relaxed">
-              아래 옵션을 선택하세요. 기본은 <span className="font-medium text-foreground">내용 갱신 (분류 유지)</span>로,
-              기존 분류(<span className="font-medium text-foreground">{existingSourcesLabel}</span>)에 이번 업로드 분류
-              (<span className="font-medium text-foreground">{targetLabel}</span>)를 합쳐{" "}
+              아래 옵션을 선택하세요. 기본은 <span className="font-medium text-foreground">내용 갱신 (분류 유지)</span>
+              로, 기존 분류(<span className="font-medium text-foreground">{existingSourcesLabel}</span>)에 이번 업로드
+              분류 (<span className="font-medium text-foreground">{targetLabel}</span>)를 합쳐{" "}
               <span className="font-medium text-foreground">{mergedPreview}</span>로 적재됩니다.
             </div>
           </div>
@@ -166,11 +158,7 @@ export default function DuplicateConfirmDialog({
             <span id="replace-warning-text" className="sr-only">
               위험: 기존 분류가 사라지고 신규 분류로 통째 교체됩니다.
             </span>
-            <Button
-              variant="ghost"
-              className="w-full justify-center"
-              onClick={() => decide("cancel")}
-            >
+            <Button variant="ghost" className="w-full justify-center" onClick={() => decide("cancel")}>
               취소
             </Button>
           </div>

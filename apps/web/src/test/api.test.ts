@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // fetchAPI는 모듈 내부 함수이므로 fetch를 mock하여 간접 테스트
 const mockFetch = vi.fn();
@@ -34,7 +34,7 @@ describe("authAPI", () => {
       expect.objectContaining({
         method: "POST",
         credentials: "include",
-      })
+      }),
     );
   });
 
@@ -48,9 +48,7 @@ describe("authAPI", () => {
   });
 
   it("me는 GET 요청이다", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ user_id: "abc", role: "admin" })
-    );
+    mockFetch.mockResolvedValueOnce(jsonResponse({ user_id: "abc", role: "admin" }));
 
     const result = await authAPI.me();
 
@@ -72,7 +70,6 @@ describe("authAPI", () => {
     await expect(authAPI.me()).rejects.toThrow("Unauthorized");
   });
 });
-
 
 /**
  * 회귀 방지 — 2026-05-08 운영 INPUT_BLOCKED / SEARCH_FAILED 가 raw JSON 으로

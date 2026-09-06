@@ -1,5 +1,5 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import { checkImport, checkSource } from "./boundaries.mjs";
 
 test("공유 패키지의 앱 의존을 alias/relative 모두 차단", () => {

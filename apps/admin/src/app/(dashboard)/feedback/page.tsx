@@ -1,37 +1,30 @@
 "use client";
 
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-} from "recharts";
 import { User } from "lucide-react";
-import { analyticsAPI } from "@/features/analytics/api";
-import type { NegativeFeedbackItem } from "@/features/analytics/types";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { analyticsAPI } from "@/features/analytics/api";
 import SessionDetailModal from "@/features/analytics/components/session-detail-modal";
+import type { NegativeFeedbackItem } from "@/features/analytics/types";
 
 // ─────────────────────────────────────────────
 // 피드백 유형 상수 (cool slate × admin amber 충돌 회피 팔레트)
 // ─────────────────────────────────────────────
 const FEEDBACK_COLORS: Record<string, string> = {
   // 긍정 — teal 계열 톤
-  helpful: "#0d9488",             // teal-600 — 긍정 기타/도움됨
-  accurate: "#0891b2",            // cyan-600 — 정확
-  well_cited: "#059669",          // emerald-600 — 출처 명확
-  easy_to_understand: "#0284c7",  // sky-600 — 이해 쉬움
-  comforting: "#7c3aed",          // violet-600 — 은혜/위로
+  helpful: "#0d9488", // teal-600 — 긍정 기타/도움됨
+  accurate: "#0891b2", // cyan-600 — 정확
+  well_cited: "#059669", // emerald-600 — 출처 명확
+  easy_to_understand: "#0284c7", // sky-600 — 이해 쉬움
+  comforting: "#7c3aed", // violet-600 — 은혜/위로
   // 부정 — red/orange 계열
-  inaccurate: "#dc2626",       // red-600 — 가장 심각한 부정
+  inaccurate: "#dc2626", // red-600 — 가장 심각한 부정
   missing_citation: "#ea580c", // orange-600 — 경고 (admin amber 와 차별)
-  irrelevant: "#64748b",       // slate-500 — 중립적 부정
-  other: "#b45309",            // amber-700 — 부정 기타
+  irrelevant: "#64748b", // slate-500 — 중립적 부정
+  other: "#b45309", // amber-700 — 부정 기타
 };
 
 const FEEDBACK_LABELS: Record<string, string> = {
@@ -149,18 +142,13 @@ function FeedbackDistributionChart({
                 border: "1px solid var(--color-border)",
                 background: "var(--color-card)",
                 color: "var(--color-foreground)",
-                boxShadow:
-                  "0 8px 24px oklch(0 0 0 / 0.10), 0 2px 4px oklch(0 0 0 / 0.06)",
+                boxShadow: "0 8px 24px oklch(0 0 0 / 0.10), 0 2px 4px oklch(0 0 0 / 0.06)",
                 padding: "8px 12px",
               }}
               itemStyle={{ color: "var(--color-foreground)" }}
               labelStyle={{ color: "var(--color-foreground)", fontWeight: 600 }}
             />
-            <Legend
-              iconType="circle"
-              iconSize={8}
-              wrapperStyle={{ fontSize: 12 }}
-            />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
           </PieChart>
         </ResponsiveContainer>
       )}
@@ -205,9 +193,7 @@ function FeedbackTable({
           ))}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground -mt-2">
-        행을 클릭하면 해당 세션의 전체 대화를 볼 수 있습니다
-      </p>
+      <p className="text-xs text-muted-foreground -mt-2">행을 클릭하면 해당 세션의 전체 대화를 볼 수 있습니다</p>
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -215,9 +201,7 @@ function FeedbackTable({
           ))}
         </div>
       ) : !items || items.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">
-          {polarityLabel} 피드백이 없습니다
-        </p>
+        <p className="text-sm text-muted-foreground py-4 text-center">{polarityLabel} 피드백이 없습니다</p>
       ) : (
         <div className="overflow-x-auto overflow-hidden rounded-lg border">
           <table className="w-full text-sm">
@@ -226,24 +210,16 @@ function FeedbackTable({
                 <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                   시간
                 </th>
-                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                  봇
-                </th>
+                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">봇</th>
                 <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                   참여자
                 </th>
-                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">
-                  질문
-                </th>
-                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">
-                  답변
-                </th>
+                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">질문</th>
+                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">답변</th>
                 <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                   유형
                 </th>
-                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">
-                  코멘트
-                </th>
+                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">코멘트</th>
               </tr>
             </thead>
             <tbody>
@@ -256,27 +232,20 @@ function FeedbackTable({
                   <td className="py-2 px-3 text-xs text-muted-foreground whitespace-nowrap">
                     {formatDate(item.created_at)}
                   </td>
-                  <td className="py-2 px-3 text-xs whitespace-nowrap">
-                    {item.chatbot_name ?? "-"}
-                  </td>
+                  <td className="py-2 px-3 text-xs whitespace-nowrap">{item.chatbot_name ?? "-"}</td>
                   <td className="py-2 px-3 whitespace-nowrap">
                     {item.participant_name ? (
                       <Badge className="gap-1 text-xs bg-primary/10 text-primary hover:bg-primary/10">
                         <User className="h-3 w-3" />
                         {item.participant_name}
-                        {item.participant_category
-                          ? ` · ${item.participant_category}`
-                          : ""}
+                        {item.participant_category ? ` · ${item.participant_category}` : ""}
                       </Badge>
                     ) : (
                       <span className="text-xs text-muted-foreground">-</span>
                     )}
                   </td>
                   <td className="py-2 px-3">
-                    <span
-                      className="block truncate max-w-[200px] text-xs"
-                      title={item.question}
-                    >
+                    <span className="block truncate max-w-[200px] text-xs" title={item.question}>
                       {item.question}
                     </span>
                   </td>
@@ -290,8 +259,7 @@ function FeedbackTable({
                   </td>
                   <td className="py-2 px-3 whitespace-nowrap">
                     <Badge variant={getBadgeVariant(item.feedback_type)}>
-                      {FEEDBACK_LABELS[normalizeFeedbackType(item.feedback_type)] ??
-                        item.feedback_type}
+                      {FEEDBACK_LABELS[normalizeFeedbackType(item.feedback_type)] ?? item.feedback_type}
                     </Badge>
                   </td>
                   <td className="py-2 px-3">
@@ -340,9 +308,7 @@ export default function FeedbackPage() {
     queryFn: () => analyticsAPI.getFeedbackList(polarity, 20, 0, days),
   });
 
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
-    null
-  );
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -350,9 +316,7 @@ export default function FeedbackPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">피드백 대시보드</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            사용자 피드백을 분석합니다
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">사용자 피드백을 분석합니다</p>
         </div>
         <label className="flex items-center gap-1.5 shrink-0 mt-1">
           <span className="text-muted-foreground text-xs">기간</span>
@@ -371,10 +335,7 @@ export default function FeedbackPage() {
       </div>
 
       {/* 피드백 유형 분포 */}
-      <FeedbackDistributionChart
-        data={summary?.distribution}
-        loading={summaryLoading}
-      />
+      <FeedbackDistributionChart data={summary?.distribution} loading={summaryLoading} />
 
       {/* 피드백 목록 (긍정/부정 토글) */}
       <FeedbackTable

@@ -56,7 +56,12 @@ function anchors(filename) {
     const counts = new Map();
     const noFences = text.replace(/^\s*(`{3,}|~{3,})[^\n]*\n[\s\S]*?^\s*\1\s*$/gm, "");
     for (const match of noFences.matchAll(/^ {0,3}#{1,6}\s+(.+?)\s*#*$/gm)) {
-      const slug = match[1].replace(/<[^>]+>/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").toLowerCase().replace(/[^\p{L}\p{M}\p{N}_\-\s]/gu, "").replace(/\s/g, "-");
+      const slug = match[1]
+        .replace(/<[^>]+>/g, "")
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        .toLowerCase()
+        .replace(/[^\p{L}\p{M}\p{N}_\-\s]/gu, "")
+        .replace(/\s/g, "-");
       const count = counts.get(slug) ?? 0;
       counts.set(slug, count + 1);
       result.add(count === 0 ? slug : `${slug}-${count}`);
@@ -84,14 +89,22 @@ for (const filename of documents) {
     if (target.includes("${") || target.startsWith("~") || target.startsWith("/Users/")) continue;
     const [resource, fragment] = target.split("#", 2);
     let decoded;
-    try { decoded = decodeURIComponent(resource.split("?", 1)[0]); } catch { decoded = resource; }
+    try {
+      decoded = decodeURIComponent(resource.split("?", 1)[0]);
+    } catch {
+      decoded = resource;
+    }
     const resolved = decoded ? path.resolve(path.dirname(filename), decoded) : filename;
     checked++;
     let problem;
     if (!fs.existsSync(resolved)) problem = "missing-file";
     else if (fragment && fs.statSync(resolved).isFile() && /\.(md|html)$/.test(resolved)) {
       let anchor;
-      try { anchor = decodeURIComponent(fragment); } catch { anchor = fragment; }
+      try {
+        anchor = decodeURIComponent(fragment);
+      } catch {
+        anchor = fragment;
+      }
       if (!anchors(resolved).has(anchor)) problem = "missing-anchor";
     }
     if (problem) failures.push({ source: path.relative(root, filename), target, problem });
@@ -109,6 +122,8 @@ if (process.argv.includes("--report")) {
   const stale = baseline.filter((entry) => !current.has(key(entry)));
   for (const entry of introduced) console.error(`${entry.source}: ${entry.target} (${entry.problem})`);
   for (const entry of stale) console.error(`해결된 기준선 항목을 삭제하세요: ${entry.source}: ${entry.target}`);
-  console.log(`문서 ${documents.length}개, 로컬 링크 ${checked}개 검사; 기존 누락 ${failures.length - introduced.length}개, 새 오류 ${introduced.length}개, 기준선 정리 ${stale.length}개`);
+  console.log(
+    `문서 ${documents.length}개, 로컬 링크 ${checked}개 검사; 기존 누락 ${failures.length - introduced.length}개, 새 오류 ${introduced.length}개, 기준선 정리 ${stale.length}개`,
+  );
   if (introduced.length || stale.length) process.exitCode = 1;
 }
