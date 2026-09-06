@@ -6,6 +6,8 @@
 import uuid
 
 import pytest
+
+from route_helpers import dependency_callables, iter_api_routes
 from fastapi import HTTPException
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -163,15 +165,13 @@ def test_status_route_requires_csrf_and_admin_gate():
     with patch("app.main.init_db", new_callable=AsyncMock):
         from app.main import app
 
-    target = next(
-        r
-        for r in app.routes
-        if getattr(r, "path", None) == "/admin/users/{user_id}/status"
-        and "PATCH" in (getattr(r, "methods", None) or set())
+    target, inherited = next(
+        (route, inherited)
+        for route, inherited in iter_api_routes(app)
+        if getattr(route, "path", None) == "/admin/users/{user_id}/status"
+        and "PATCH" in (getattr(route, "methods", None) or set())
     )
-    dependant = getattr(target, "dependant", None)
-    assert dependant is not None, "PATCH status route 의 dependant 를 찾을 수 없음"
-    dep_callables = [d.call for d in dependant.dependencies]
+    dep_callables = dependency_callables(target, inherited)
 
     assert verify_csrf in dep_callables, "상태 변경 route 에 verify_csrf 누락"
     assert require_admin_gate in dep_callables, "상태 변경 route 에 require_admin_gate 누락"

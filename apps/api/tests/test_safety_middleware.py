@@ -147,7 +147,8 @@ def test_check_rate_limit_uses_xff(monkeypatch):
     )
     import asyncio
 
-    asyncio.get_event_loop().run_until_complete(middleware_mod.check_rate_limit(request))
+    # pytest-asyncio 1.4 는 async 테스트 뒤 현재 이벤트 루프를 비우므로 get_event_loop() 가 RuntimeError.
+    asyncio.run(middleware_mod.check_rate_limit(request))
     assert captured["ip"] == "203.0.113.99"
 
 
