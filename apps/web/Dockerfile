@@ -1,7 +1,7 @@
 # 저장소 루트에서 docker build -f apps/web/Dockerfile . 로 실행한다.
 FROM node:22-alpine AS builder
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@8.15.9 --activate
+RUN corepack enable && corepack prepare pnpm@12.3.4 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/admin/package.json apps/admin/package.json
 COPY apps/web/package.json apps/web/package.json
