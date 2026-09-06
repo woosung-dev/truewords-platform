@@ -4,7 +4,7 @@
 # 디렉터리: apps/web·admin (Next.js 16 + pnpm), apps/api (FastAPI + uv)
 
 .DEFAULT_GOAL := help
-# deploy-backend 의 `docker save | gzip -1 | ssh` 는 기본 sh 에서 마지막 ssh 의
+# 배포의 `docker save | gzip -1 > 파일` 등 파이프는 기본 sh 에서 마지막 명령의
 # 종료 코드만 반영한다. 스트림이 중간에 잘려도 성공으로 보이므로 pipefail 을 켠다.
 SHELL       := /bin/bash
 .SHELLFLAGS := -o pipefail -c
@@ -163,6 +163,18 @@ ssh "$(ORACLE)" 'printf "%s $(1) $(2) $(TAG) $(3)\n" "$$(date -u +%FT%TZ)" >> ~/
 endef
 GUARD_MODE = $(if $(FORCE_DEPLOY),forced,guarded)
 
+# 이미지 전송 — 로컬 tgz 파일 → rsync --partial → VM 에서 docker load.
+# 예전 `docker save | gzip | ssh 'gunzip | docker load'` 한 줄 파이프는 ssh 가 끊기면 조용히 멈추고
+# 재개할 수 없었다(2026-09-06 deploy-admin 55분 정지). 파일로 나누면 각 단계를 다시 실행할 수 있다.
+# $(1)=이미지(repo:tag), $(2)=VM 임시 파일 이름. 로컬 임시 파일은 종료 시 지운다.
+define TRANSFER_IMAGE
+tmp=$$(mktemp -t twimg); trap 'rm -f "$$tmp"' EXIT; \
+docker save $(1) | gzip -1 > "$$tmp" && \
+ssh "$(ORACLE)" 'mkdir -p ~/truewords/tmp' && \
+rsync --partial --inplace "$$tmp" "$(ORACLE):~/truewords/tmp/$(2).tgz" && \
+ssh "$(ORACLE)" 'gunzip -c ~/truewords/tmp/$(2).tgz | sudo docker load && rm -f ~/truewords/tmp/$(2).tgz'
+endef
+
 deploy-guard: ## 배포 전 가드 — HEAD 가 origin/main 에 포함 + 작업 트리 클린 (예외: FORCE_DEPLOY=1)
 	@# 트리가 더럽거나 main 밖이면 태그($(TAG))와 이미지 내용이 어긋나 롤백·추적 근거가 사라진다.
 	@# main push 마다 ci.yml 이 돌아 "main 은 green" 을 남기므로, 이 규칙이 곧 "검증된 것만 배포" 다.
@@ -181,7 +193,7 @@ deploy-backend: ## Oracle Cloud ARM VM backend 배포 (중단 가능, 별도 승
 	@$(MAKE) --no-print-directory ops-check || echo "⚠️  ops-check 위반 있음 — 배포는 계속합니다. 위 DETAIL 확인."
 	@docker buildx build --platform linux/arm64 -f apps/api/Dockerfile -t $(IMG) --load .
 	@docker run --rm --entrypoint sh $(IMG) -c "alembic --version && uvicorn --version"
-	@docker save $(IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
+	@$(call TRANSFER_IMAGE,$(IMG),backend-$(TAG))
 	@ssh "$(ORACLE)" 'sed -i "s/^BACKEND_TAG=.*/BACKEND_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait backend'
 	@$(call DEPLOY_LOG,deploy,backend,$(GUARD_MODE))
 	@$(MAKE) --no-print-directory prune-images
@@ -205,7 +217,7 @@ deploy-admin: ## Oracle Cloud ARM VM admin 배포 (WEB_URL·ADMIN_URL·DEMO_ADMI
 		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 \
 		--build-arg NEXT_PUBLIC_DEMO_ADMIN_EMAIL=$(DEMO_ADMIN_EMAIL) \
 		--build-arg NEXT_PUBLIC_WEB_URL=$(WEB_URL) --build-arg NEXT_PUBLIC_ADMIN_URL=$(ADMIN_URL) -t $(ADMIN_IMG) --load .
-	@docker save $(ADMIN_IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
+	@$(call TRANSFER_IMAGE,$(ADMIN_IMG),admin-$(TAG))
 	@# --no-deps: backend 는 env_file .env 를 읽어 태그 sed 만으로 설정 해시가 바뀐다. 없으면 프론트 배포가 backend 를 재생성해 진행 중 SSE 가 끊긴다(2026-09-06 deploy-web 에서 확인).
 	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait admin'
 	@$(call DEPLOY_LOG,deploy,admin,$(GUARD_MODE))
@@ -224,7 +236,7 @@ deploy-web: ## Oracle Cloud ARM VM 사용자 웹 배포 (운영 전환 runbook �
 	@docker buildx build --platform linux/arm64 -f apps/web/Dockerfile \
 		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 \
 		--build-arg NEXT_PUBLIC_WEB_URL=$(WEB_URL) --build-arg NEXT_PUBLIC_ADMIN_URL=$(ADMIN_URL) -t $(WEB_IMG) --load .
-	@docker save $(WEB_IMG) | gzip -1 | ssh "$(ORACLE)" 'gunzip | sudo docker load'
+	@$(call TRANSFER_IMAGE,$(WEB_IMG),web-$(TAG))
 	@ssh "$(ORACLE)" 'grep -q "^WEB_TAG=" ~/truewords/.env || { echo "runbook에 따라 WEB_TAG와 Compose를 먼저 준비하세요"; exit 1; }; sed -i "s/^WEB_TAG=.*/WEB_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait web'
 	@$(call DEPLOY_LOG,deploy,web,$(GUARD_MODE))
 	@$(MAKE) --no-print-directory prune-images
