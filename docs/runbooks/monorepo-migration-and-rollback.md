@@ -1,7 +1,7 @@
 # 모노레포 전환·복구 runbook
 
 - 대상: `PLAN-MONO-001` M1~M4의 경로·앱 분리. 기존 DB schema와 RAG 정책은 바꾸지 않는다.
-- 상태: **운영 실행 전 준비 문서**. 코드·테스트의 완료 증거는 [현재 실행 계획](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)에 기록한다.
+- 상태: **2026-09-06 운영 전환 실행 완료** — 실측은 [§실행 기록](#실행-기록-2026-09-06). 이후 재배포·롤백 절차 문서로 유지한다. 코드·테스트의 완료 증거는 [현재 실행 계획](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)에 기록한다.
 - 후속 [APP-UI-001](../plans/active/2026-09-05-app-owned-ui.md)은 UI·테마를 각 앱으로 옮기고 API SDK·ESLint·TypeScript 설정 3개 패키지만 유지한다. 앱별 CSS·UI를 이미지에 포함해 재검증하며 아래 최초 전환의 이미지 성공을 후속 변경 성공으로 재사용하지 않는다. 운영 라우팅·쿠키·DB 정책은 이 UI 이동으로 바꾸지 않는다.
 
 ## 외부 Vercel 설정 (종결)
@@ -44,8 +44,8 @@ POSTGRES_PORT=55432 QDRANT_HTTP_PORT=56333 QDRANT_GRPC_PORT=56334 API_PORT=58000
 
 | 항목 | 기존 운영 | 분리 후 제안·상태 |
 |---|---|---|
-| 사용자 origin | `app.<zone>` → `admin:3000` | `app.<zone>` → `web:3000`, 원격 전환 미실행 |
-| 관리자 origin | 같은 `app.<zone>` | `truewords-admin.<zone>` → `admin:3000`, hostname 확정(`DEC-MONO-002`, 2026-09-06), 원격 전환 미실행 |
+| 사용자 origin | `app.<zone>` → `admin:3000` | `app.<zone>` → `web:3000`, **2026-09-06 00:27 UTC 전환 완료** |
+| 관리자 origin | 같은 `app.<zone>` | `truewords-admin.<zone>` → `admin:3000`, 2026-09-06 등록·분리 admin `41a9ef2` 배포 완료 |
 | API·Qdrant | `backend:8080`, `qdrant:6333` | 기존 DNS·서비스 이름 유지 |
 | Next API rewrite | build 시 API 주소 고정 | `NEXT_PUBLIC_API_URL=http://backend:8080`; 런타임 env만으로 변경 불가 |
 | 앱 간 이동·CORS | 단일 앱 origin | 빌드 `NEXT_PUBLIC_WEB_URL`/`NEXT_PUBLIC_ADMIN_URL`, API `WEB_FRONTEND_URL`/`ADMIN_FRONTEND_URL` 일치 |
@@ -93,6 +93,23 @@ node tooling/checks/smoke-images.mjs
 `make deploy-web`/`deploy-admin`(과 rollback)은 `docker compose up -d --no-deps --wait <svc>`로 대상 컨테이너만 바꾼다. backend가 `env_file: .env`를 읽어 `WEB_TAG`/`ADMIN_TAG` sed만으로 설정 해시가 바뀌므로, `--no-deps`가 없으면 프론트 배포가 backend를 재생성해 진행 중 SSE가 끊긴다(2026-09-06 최초 deploy-web에서 실측). 반대로 `.env`의 backend 값(origin·게이트 이메일 등)을 바꿨을 때는 `make deploy-backend` 또는 `docker compose up -d --wait backend`를 명시 실행해야 반영된다.
 
 분리 후 메모리 limit 합계는 11.5GiB(qdrant 6 + backend 3 + postgres 1 + admin 0.5 + web 0.5 + cloudflared 0.5)다. 12GiB VM에 OS·페이지 캐시 여유가 작으므로 limit 합계만으로 안전을 입증하지 않는다. 과거 단일 admin의 실사용값을 분리 후 부하 검증으로 재사용하지 않는다.
+
+실측(2026-09-06, 다른 프로젝트 3개와 VM 공유): 전환 전 host available 6.8GB, truewords 합계 ≈1.8GiB. web 기동 후 idle 35MiB, web 경유 동시 SSE 5건(전부 200·done)에서 **web 피크 72MiB / 512MiB**, backend 피크 500MiB / 3GiB, 컷오버 후 available 7.2GB. limit 절반(256MiB) 기준을 크게 밑돈다.
+
+## 실행 기록 (2026-09-06)
+
+| 시각(UTC) | 단계 | 결과 |
+|---|---|---|
+| 23:2x | VM 기록·백업 | `.env` `BACKEND_TAG=446a4bf`·`ADMIN_TAG=30ca81f`, 5컨테이너 healthy, available 6.8GB. `docker-compose.yml.pre-split-20260906`·`.env.pre-split-20260906` 백업 |
+| 23:3x | 롤백 보존·env·compose | `preserve-images.txt` = `truewords-admin:30ca81f`, `truewords-backend:446a4bf`(prune dry-run 미포함 확인). `.env` 에 `WEB_TAG=`·`WEB_FRONTEND_URL=https://app.woosung.dev`·`ADMIN_FRONTEND_URL=https://truewords-admin.woosung.dev`. 6서비스 compose 전달, `docker compose config` OK. `prune-images.sh` 를 main 버전으로 갱신 |
+| 23:41 | `make deploy-backend` **e833ce9** | guarded. `/health` 200, SSE chunk·sources·done, 컨테이너 env origin 반영, fastembed 0.8.0·pillow 12.3.0·cryptography 50.0.1·starlette 1.3.1 |
+| 23:46 | `make deploy-web` **dfb6916** | guarded, web healthy. 컨테이너 내부 `/login` 200·CSS 200·`/api/backend/chat/stream` 200 `no-cache, no-transform` 첫 chunk 387ms. **backend 가 함께 Recreate 됨**(env_file 해시) → [#239](https://github.com/woosung-dev/truewords-platform/pull/239) `--no-deps` |
+| 00:0x | Cloudflare 등록 | `truewords-admin.woosung.dev → HTTP admin:3000`(Path 비움). DNS 자동 생성, `/login` 200(옛 통합 admin) |
+| 00:27 | Cloudflare 전환 | `app.woosung.dev` Service `admin:3000 → web:3000`. 즉시 `/`·`/login`·`/history`·`/about` 200, `/dashboard` 307 → truewords-admin, `/api/backend/health` 200, SSE chunk 14·sources·done. 10분 관찰 10/10 OK. 컨테이너 재시작 없음 |
+| 00:38 | `make deploy-admin` **41a9ef2** | guarded, `--no-deps`: admin 만 Recreate(backend·web `Created` 불변). `truewords-admin.woosung.dev` `/login`·`/dashboard`·`/access-denied` 200, `/` 307 → `/dashboard`, `/history` 307 → app, `/admin/auth/me` 401(미인증) |
+| 00:39 | `ops-check` | **7건 OK — containers 6개 정상(5 healthy + cloudflared up)**. `deploy.log` 3줄(backend·web·admin guarded) |
+
+롤백 자산: `truewords-admin:30ca81f`(통합 admin, `preserve-images.txt`), `truewords-backend:446a4bf`, VM `*.pre-split-20260906` 백업, Cloudflare 3행을 `admin:3000` 으로 되돌리기. 최소 2주 보존. 관리자는 새 hostname 에서 재로그인(host 별 쿠키, `domain=` 없음).
 
 ## 실패 기준과 복구
 

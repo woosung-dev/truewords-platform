@@ -1,9 +1,9 @@
 <!-- Oracle Cloud ARM VM 단일 노드의 구성과 일상 운영 절차를 설명하는 문서. -->
 # Oracle Cloud ARM VM 셀프 호스팅
 
-기존 운영은 Oracle ARM VM **한 대**의 admin(사용자·관리자 통합), backend, Qdrant, PostgreSQL, Cloudflare Tunnel 5컨테이너다. 저장소는 M1~M4 이후 **web을 추가한 6컨테이너 구성**을 준비한다. 아래 새 구성·origin은 **운영 전환 미실행**이며 별도 승인이 필요하다.
+운영은 Oracle ARM VM **한 대**의 web(사용자)·admin(관리자)·backend·Qdrant·PostgreSQL·Cloudflare Tunnel **6컨테이너**다. 2026-09-06 web/admin 분리 컷오버를 완료했고, 이전 통합 admin 이미지 `truewords-admin:30ca81f` 는 `preserve-images.txt` 로 보존한다(전환 기록: [runbook §실행 기록](../../docs/runbooks/monorepo-migration-and-rollback.md#실행-기록-2026-09-06)).
 
-[최초 분리 전환·복구 runbook](../../docs/runbooks/monorepo-migration-and-rollback.md)을 먼저 따른다. 최초 전환 실패 시 이전 web 이미지가 없으므로 기존 통합 admin 이미지·Compose·Cloudflare 라우팅을 함께 복구한다.
+재배포·롤백은 [분리 전환·복구 runbook](../../docs/runbooks/monorepo-migration-and-rollback.md)을 따른다. 분리 이후 웹 롤백은 `make rollback-web/admin TAG=…`, 통합 구성으로의 복귀는 `truewords-admin:30ca81f` + Cloudflare `app → admin:3000` 을 함께 되돌린다.
 
 이전 경위와 절차는 [`docs/runbooks/oracle-vm-migration.md`](../../docs/runbooks/oracle-vm-migration.md), 결정 배경은 [ADR](../../docs/adr/2026-07-25-gcp-to-oracle-migration.md) 을 참조한다.
 
@@ -33,7 +33,7 @@
 | Oracle Security List | TCP 22만 inbound 허용 |
 | 외부 서비스 | Cloudflare Tunnel outbound 연결만 사용 |
 
-## 분리 후 아키텍처 (운영 전환 전)
+## 아키텍처 (2026-09-06 분리 컷오버 이후)
 
 ```text
 브라우저 ── Cloudflare Edge ──┬── app.<zone> → web:3000
@@ -76,20 +76,26 @@
 
 합계 **11.5g / 12g**로 OS·페이지 캐시 여유가 작다. **새 구성의 대표 채팅·SSE·업로드 동시 부하와 peak 메모리 검증 전 운영 배포하지 않는다.** 과거 4/5컨테이너의 실사용 기록과 4GB swap은 새 구성의 안전성 증거가 아니다.
 
+실측(2026-09-06 컷오버): VM 은 nexus·kairos·quantbridge 와 공유(22+ 컨테이너). web idle 35~42MiB, 동시 SSE 5건 피크 72MiB; admin 38MiB; backend 500MiB; qdrant 1.0GiB. host available 7.2GB.
+
 ## Cloudflare Tunnel
 
-운영 전환 승인을 받은 뒤 터널 `truewords-oracle`에 아래 Public Hostname을 반영한다. 기존 운영 `app → admin:3000`과 구성을 먼저 기록하고, 최종 관리자 hostname은 사용자와 확정한다. 터널은 **원격 관리형**이라 설정은 대시보드에서만 바뀐다.
+터널 `truewords-oracle` 의 Published application routes 는 아래 표다(2026-09-06 컷오버에서 `app` 을 `web:3000` 으로 전환, `truewords-admin` 신규 등록). 터널은 **원격 관리형**이라 설정은 대시보드에서만 바뀐다.
 
 | Public Hostname | Service |
 |---|---|
-| `app.<zone>` | `http://web:3000` (전환 전에는 `admin:3000`) |
-| `truewords-admin.<zone>` | `http://admin:3000` (신규, 2026-09-06 hostname 확정 · 컷오버 시 등록) |
+| `app.<zone>` | `http://web:3000` (2026-09-06 00:27 UTC 전환, 이전 `admin:3000`) |
+| `truewords-admin.<zone>` | `http://admin:3000` (2026-09-06 등록) |
 | `api.<zone>` | `http://backend:8080` |
 | `vdb.<zone>` | `http://qdrant:6333` |
 
 > 현행 Zero Trust UI 에서는 이 화면이 **Networks → Tunnels & Mesh → `truewords-oracle` → `Published application routes`** 다 (구 "Public Hostnames"). Service Type 은 `HTTP` 여야 한다 — 컨테이너가 평문이라 `HTTPS` 로 두면 502 다. Path 는 비운다. 값을 넣으면 그 경로만 라우팅되어 `/login` 과 정적 자산이 404 가 된다. DNS 레코드(proxied CNAME)는 저장 시 자동 생성된다.
 
 터널 하나에 두 서버의 커넥터가 동시에 붙으면 Cloudflare 가 요청을 임의 분산해 데이터와 배포 상태가 갈리는 split-brain 이 발생한다. 다른 환경의 토큰을 재사용하지 않는다.
+
+### 터널 배치 방식 (2026-09-06 결정: 현행 유지)
+
+이 VM 에는 프로젝트별 cloudflared 컨테이너 4개(터널 4개)가 있다. truewords 의 cloudflared 는 `truewords_net` 에 붙어 **서비스명**(`web:3000`·`admin:3000`·`backend:8080`)으로 라우팅하고 web/admin/backend 는 호스트 포트를 열지 않는다. nexus·kairos·quantbridge 의 cloudflared 는 `network_mode: host` 로 `localhost:<프로젝트별 포트>` 를 가리킨다. Cloudflare 문서는 터널 하나에 hostname 여러 개를 싣는 것을 기본으로 하되 호스트당/앱당 터널 수를 규정하지 않으며, 컨테이너 환경에서는 같은 사용자 정의 네트워크 + 서비스명(zero-port)이 권장 패턴이다. 비교: ① 현행(프로젝트별 터널·격리) ★4 ② 다른 프로젝트도 서비스명 방식으로 ★3(해당 레포를 손볼 때) ③ VM 단일 cloudflared 로 통합 ★2(재시작·오설정이 4프로젝트 동시 장애, 서비스명 충돌) ④ truewords 를 host 모드·localhost 포트로 ★1(포트 공개, 보안 후퇴). 컨테이너 모드에서 `localhost` 는 cloudflared 자신을 가리켜 502 다.
 
 ---
 
