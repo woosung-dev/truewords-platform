@@ -1,43 +1,41 @@
 "use client";
 
-import { useCallback, useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertCircle,
+  ArrowUpFromLine,
+  CheckCircle2,
+  Clock,
+  Database,
+  FileText,
+  FolderOpen,
+  Loader2,
+  RotateCcw,
+  Upload,
+  X,
+} from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { dataAPI, dataSourceCategoryAPI, type OnDuplicateMode } from "@/features/data-source/api";
-import { isPredictedOutcome } from "@/features/data-source/types";
-import { useActiveCategories } from "@/features/data-source/hooks";
+import BulkPrecheckDialog, { type BulkPrecheckEntry } from "@/features/data-source/components/bulk-precheck-dialog";
+import { DisplayNameEditor } from "@/features/data-source/components/display-name-editor";
 import DuplicateConfirmDialog, {
   type DuplicateDecision,
 } from "@/features/data-source/components/duplicate-confirm-dialog";
-import BulkPrecheckDialog, {
-  type BulkPrecheckEntry,
-} from "@/features/data-source/components/bulk-precheck-dialog";
-import { DisplayNameEditor } from "@/features/data-source/components/display-name-editor";
+import { JobsManager } from "@/features/data-source/components/jobs-manager";
+import { useActiveCategories } from "@/features/data-source/hooks";
 import type {
   DuplicateCheckResponse,
   IngestionJobInfo,
   PredictedOutcome,
   UploadResponse,
 } from "@/features/data-source/types";
+import { isPredictedOutcome } from "@/features/data-source/types";
 import { fetchAPI } from "@/lib/api";
 import { stripFileExt } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Upload,
-  FileText,
-  Database,
-  AlertCircle,
-  CheckCircle2,
-  X,
-  Loader2,
-  FolderOpen,
-  Clock,
-  ArrowUpFromLine,
-  RotateCcw,
-} from "lucide-react";
 import CategoryTab from "./category-tab";
-import { JobsManager } from "@/features/data-source/components/jobs-manager";
 
 interface PendingFile {
   id: string;
@@ -79,12 +77,13 @@ export default function DataSourcesPage() {
   // 사용자가 "어떤 컬렉션에 데이터가 들어가는지" 인지하여 운영 사고 방지.
   const { data: configData } = useQuery({
     queryKey: ["admin-config"],
-    queryFn: () => fetchAPI<{
-      gemini_tier: string;
-      environment: string;
-      collection_name: string;
-      qdrant_host: string;
-    }>("/admin/settings/config"),
+    queryFn: () =>
+      fetchAPI<{
+        gemini_tier: string;
+        environment: string;
+        collection_name: string;
+        qdrant_host: string;
+      }>("/admin/settings/config"),
   });
 
   const defaultSource = "";
@@ -110,18 +109,9 @@ export default function DataSourcesPage() {
   }, [jobs]);
 
   // 처리 현황 데이터
-  const completedEntries = useMemo(
-    () => Object.entries(status?.completed ?? {}).reverse(),
-    [status?.completed]
-  );
-  const failedEntries = useMemo(
-    () => Object.entries(status?.failed ?? {}),
-    [status?.failed]
-  );
-  const inProgressEntries = useMemo(
-    () => Object.entries(status?.in_progress ?? {}),
-    [status?.in_progress]
-  );
+  const completedEntries = useMemo(() => Object.entries(status?.completed ?? {}).reverse(), [status?.completed]);
+  const failedEntries = useMemo(() => Object.entries(status?.failed ?? {}), [status?.failed]);
+  const inProgressEntries = useMemo(() => Object.entries(status?.in_progress ?? {}), [status?.in_progress]);
 
   const processingFiles = pendingFiles.filter((f) => f.status === "processing");
 
@@ -154,7 +144,7 @@ export default function DataSourcesPage() {
         setPendingFiles((prev) => [...prev, ...newPending]);
       }
     },
-    [defaultSource]
+    [defaultSource],
   );
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -176,7 +166,7 @@ export default function DataSourcesPage() {
         addFiles(e.dataTransfer.files);
       }
     },
-    [addFiles]
+    [addFiles],
   );
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -187,9 +177,7 @@ export default function DataSourcesPage() {
   };
 
   const updateSource = (id: string, source: string) => {
-    setPendingFiles((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, source } : f))
-    );
+    setPendingFiles((prev) => prev.map((f) => (f.id === id ? { ...f, source } : f)));
   };
 
   const removePending = (id: string) => {
@@ -201,17 +189,11 @@ export default function DataSourcesPage() {
     onDuplicate: OnDuplicateMode = "merge",
     options: { silent?: boolean } = {},
   ): Promise<UploadResponse | null> => {
-    setPendingFiles((prev) =>
-      prev.map((f) => (f.id === pf.id ? { ...f, status: "uploading" as const } : f))
-    );
+    setPendingFiles((prev) => prev.map((f) => (f.id === pf.id ? { ...f, status: "uploading" as const } : f)));
     try {
       const res = await dataAPI.uploadFile(pf.file, pf.source, mode, onDuplicate);
       // 업로드 성공 → "처리 중" 상태로 변경
-      setPendingFiles((prev) =>
-        prev.map((f) =>
-          f.id === pf.id ? { ...f, status: "processing" as const } : f
-        )
-      );
+      setPendingFiles((prev) => prev.map((f) => (f.id === pf.id ? { ...f, status: "processing" as const } : f)));
       // ADR-30 follow-up: 일괄 업로드는 끝에 통계 토스트 1회만 표시 (BUG-C 픽스).
       if (!options.silent) {
         toast.success(`${pf.file.name} 업로드 완료, 백그라운드 처리 시작`);
@@ -225,20 +207,13 @@ export default function DataSourcesPage() {
       }, 10000);
       return res;
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : `${pf.file.name} 업로드 실패`
-      );
-      setPendingFiles((prev) =>
-        prev.map((f) => (f.id === pf.id ? { ...f, status: "pending" as const } : f))
-      );
+      toast.error(err instanceof Error ? err.message : `${pf.file.name} 업로드 실패`);
+      setPendingFiles((prev) => prev.map((f) => (f.id === pf.id ? { ...f, status: "pending" as const } : f)));
       return null;
     }
   };
 
-  const uploadOne = async (
-    pf: PendingFile,
-    onDuplicate: OnDuplicateMode = "merge",
-  ): Promise<UploadResponse | null> => {
+  const uploadOne = async (pf: PendingFile, onDuplicate: OnDuplicateMode = "merge"): Promise<UploadResponse | null> => {
     // 1. 업로드 전 중복 검사
     try {
       const dup = await dataAPI.checkDuplicate(pf.file.name);
@@ -283,9 +258,7 @@ export default function DataSourcesPage() {
           volume: duplicate.volume_key,
           source: pendingFile.source,
         });
-        toast.success(
-          `${pendingFile.file.name}에 "${pendingFile.source}" 태그 추가 완료`
-        );
+        toast.success(`${pendingFile.file.name}에 "${pendingFile.source}" 태그 추가 완료`);
         setPendingFiles((prev) => prev.filter((f) => f.id !== pendingFile.id));
         queryClient.invalidateQueries({ queryKey: ["category-stats"] });
         queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
@@ -297,10 +270,7 @@ export default function DataSourcesPage() {
 
   // ADR-30 follow-up — 일괄 업로드 실제 실행 (사전 검사 후 호출).
   // 단건 dialog 우회 + silent 토스트 + 끝에 1회만 통계 토스트.
-  const runBulkUpload = async (
-    files: PendingFile[],
-    policy: OnDuplicateMode,
-  ) => {
+  const runBulkUpload = async (files: PendingFile[], policy: OnDuplicateMode) => {
     const stats: Record<PredictedOutcome, number> = {
       new: 0,
       merge: 0,
@@ -382,9 +352,7 @@ export default function DataSourcesPage() {
       {/* 중복 업로드 확인 다이얼로그 (단건) */}
       <DuplicateConfirmDialog
         open={duplicateDialog.open}
-        onOpenChange={(open) =>
-          setDuplicateDialog((prev) => ({ ...prev, open }))
-        }
+        onOpenChange={(open) => setDuplicateDialog((prev) => ({ ...prev, open }))}
         filename={duplicateDialog.pendingFile?.file.name ?? ""}
         targetSource={duplicateDialog.pendingFile?.source ?? ""}
         duplicate={duplicateDialog.duplicate}
@@ -394,9 +362,7 @@ export default function DataSourcesPage() {
       {/* ADR-30 follow-up — 일괄 업로드 사전 검사 다이얼로그 */}
       <BulkPrecheckDialog
         open={bulkPrecheckDialog.open}
-        onOpenChange={(open) =>
-          setBulkPrecheckDialog((prev) => ({ ...prev, open }))
-        }
+        onOpenChange={(open) => setBulkPrecheckDialog((prev) => ({ ...prev, open }))}
         newCount={bulkPrecheckDialog.newCount}
         duplicates={bulkPrecheckDialog.duplicates}
         defaultPolicy={bulkSkipMode ? "skip" : "merge"}
@@ -425,13 +391,8 @@ export default function DataSourcesPage() {
               {configData.environment.toUpperCase()}
             </Badge>
             <span className="text-muted-foreground">
-              적재 대상:{" "}
-              <span className="font-mono font-medium text-foreground">
-                {configData.collection_name}
-              </span>
-              <span className="text-muted-foreground/70 ml-1">
-                @ {configData.qdrant_host}
-              </span>
+              적재 대상: <span className="font-mono font-medium text-foreground">{configData.collection_name}</span>
+              <span className="text-muted-foreground/70 ml-1">@ {configData.qdrant_host}</span>
             </span>
           </div>
         )}
@@ -451,29 +412,21 @@ export default function DataSourcesPage() {
             <span className="text-xs text-muted-foreground">생성 청크</span>
             <Database className="w-3.5 h-3.5 text-primary" />
           </div>
-          <p className="text-2xl font-bold mt-1 text-primary">
-            {totalChunks.toLocaleString()}
-          </p>
+          <p className="text-2xl font-bold mt-1 text-primary">{totalChunks.toLocaleString()}</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">처리 완료</span>
             <CheckCircle2 className="w-3.5 h-3.5 text-success" />
           </div>
-          <p className="text-2xl font-bold mt-1 text-success">
-            {completedCount}
-          </p>
+          <p className="text-2xl font-bold mt-1 text-success">{completedCount}</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">실패</span>
-            <AlertCircle
-              className={`w-3.5 h-3.5 ${failedCount > 0 ? "text-destructive" : "text-muted-foreground"}`}
-            />
+            <AlertCircle className={`w-3.5 h-3.5 ${failedCount > 0 ? "text-destructive" : "text-muted-foreground"}`} />
           </div>
-          <p
-            className={`text-2xl font-bold mt-1 ${failedCount > 0 ? "text-destructive" : "text-muted-foreground"}`}
-          >
+          <p className={`text-2xl font-bold mt-1 ${failedCount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
             {failedCount}
           </p>
         </div>
@@ -545,16 +498,10 @@ export default function DataSourcesPage() {
                 dragActive ? "bg-primary/10" : "bg-admin-muted"
               }`}
             >
-              <ArrowUpFromLine
-                className={`w-5 h-5 ${dragActive ? "text-primary" : "text-muted-foreground"}`}
-              />
+              <ArrowUpFromLine className={`w-5 h-5 ${dragActive ? "text-primary" : "text-muted-foreground"}`} />
             </div>
-            <p className="text-sm font-medium">
-              파일을 드래그하거나 클릭하여 추가
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              TXT, PDF, DOCX · 최대 50MB
-            </p>
+            <p className="text-sm font-medium">파일을 드래그하거나 클릭하여 추가</p>
+            <p className="text-xs text-muted-foreground mt-1">TXT, PDF, DOCX · 최대 50MB</p>
             <input
               type="file"
               multiple
@@ -578,10 +525,7 @@ export default function DataSourcesPage() {
               />
               <span className="text-sm">
                 일괄 업로드 default를 <strong>skip</strong>으로 설정
-                <span
-                  id="bulk-skip-mode-hint"
-                  className="block text-xs text-muted-foreground"
-                >
+                <span id="bulk-skip-mode-hint" className="block text-xs text-muted-foreground">
                   사전 검사 모달에서 권장 옵션이 skip으로 미리 선택됩니다 — 콘텐츠 동일 시 Gemini 호출 0회로 비용 절감.
                   단건 업로드는 별도 모달이 사용자 의사를 확인합니다.
                 </span>
@@ -594,9 +538,7 @@ export default function DataSourcesPage() {
             <div className="rounded-xl border bg-card overflow-hidden">
               <div className="px-4 py-3 border-b bg-admin-muted/30 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium">
-                    파일 목록
-                  </span>
+                  <span className="text-xs font-medium">파일 목록</span>
                   {pendingCount > 0 && (
                     <Badge variant="outline" className="text-xs">
                       대기 {pendingCount}
@@ -610,12 +552,7 @@ export default function DataSourcesPage() {
                   )}
                 </div>
                 {pendingCount >= 2 && (
-                  <Button
-                    size="sm"
-                    className="h-7 text-xs"
-                    disabled={hasAnyUploading}
-                    onClick={uploadAll}
-                  >
+                  <Button size="sm" className="h-7 text-xs" disabled={hasAnyUploading} onClick={uploadAll}>
                     {hasAnyUploading ? (
                       <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                     ) : (
@@ -647,10 +584,7 @@ export default function DataSourcesPage() {
                     )}
 
                     {/* 파일명 */}
-                    <span
-                      className="text-sm truncate flex-1 min-w-0"
-                      title={pf.file.name}
-                    >
+                    <span className="text-sm truncate flex-1 min-w-0" title={pf.file.name}>
                       {pf.file.name}
                     </span>
 
@@ -718,7 +652,9 @@ export default function DataSourcesPage() {
               <div className="px-4 py-3 border-b border-warning-border bg-warning-soft/60 flex items-center gap-2">
                 <RotateCcw className="w-3.5 h-3.5 text-warning" />
                 <span className="text-xs font-medium text-warning">중단된 파일 — 재개 가능</span>
-                <span className="text-xs text-warning/70">같은 파일을 다시 업로드하면 중단 지점부터 이어서 처리합니다</span>
+                <span className="text-xs text-warning/70">
+                  같은 파일을 다시 업로드하면 중단 지점부터 이어서 처리합니다
+                </span>
               </div>
               <div className="divide-y divide-warning-border/50">
                 {inProgressEntries.map(([filename, entry]) => {
@@ -727,7 +663,9 @@ export default function DataSourcesPage() {
                     <div key={`inprogress-${filename}`} className="flex items-center gap-3 px-4 py-3">
                       <Clock className="w-4 h-4 text-warning shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm truncate" title={filename}>{filename}</p>
+                        <p className="text-sm truncate" title={filename}>
+                          {filename}
+                        </p>
                         <div className="flex items-center gap-2 mt-1">
                           <div className="flex-1 h-1.5 bg-warning-soft rounded-full overflow-hidden border border-warning-border">
                             <div
@@ -774,17 +712,12 @@ export default function DataSourcesPage() {
             <div className="rounded-xl border bg-card overflow-hidden">
               <div className="px-4 py-3 border-b bg-admin-muted/30">
                 <span className="text-xs font-medium">처리 이력</span>
-                <span className="text-xs text-muted-foreground ml-2">
-                  자동 갱신
-                </span>
+                <span className="text-xs text-muted-foreground ml-2">자동 갱신</span>
               </div>
               <div className="divide-y max-h-72 overflow-y-auto">
                 {/* 실패 항목 (상단 표시) */}
                 {failedEntries.map(([filename, error]) => (
-                  <div
-                    key={`fail-${filename}`}
-                    className="flex items-center gap-3 px-4 py-3 bg-danger-soft/60"
-                  >
+                  <div key={`fail-${filename}`} className="flex items-center gap-3 px-4 py-3 bg-danger-soft/60">
                     <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm truncate" title={filename}>
@@ -804,16 +737,10 @@ export default function DataSourcesPage() {
                 {completedEntries.slice(0, 20).map(([filename, chunks]) => {
                   const job = jobsByFilename.get(filename);
                   return (
-                    <div
-                      key={`done-${filename}`}
-                      className="flex items-center gap-3 px-4 py-3"
-                    >
+                    <div key={`done-${filename}`} className="flex items-center gap-3 px-4 py-3">
                       <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
                       <div className="flex-1 min-w-0 flex flex-col gap-1">
-                        <span
-                          className="text-sm truncate"
-                          title={filename}
-                        >
+                        <span className="text-sm truncate" title={filename}>
                           {filename}
                         </span>
                         {job ? (
@@ -837,19 +764,15 @@ export default function DataSourcesPage() {
           )}
 
           {/* 빈 상태 */}
-          {pendingFiles.length === 0 &&
-            completedEntries.length === 0 &&
-            failedEntries.length === 0 && (
-              <div className="rounded-xl border bg-card flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-12 h-12 rounded-full bg-admin-muted flex items-center justify-center mb-4">
-                  <Upload className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <p className="text-sm font-medium">아직 업로드된 문서가 없습니다</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  위 영역에 파일을 드래그하거나 클릭하여 시작하세요
-                </p>
+          {pendingFiles.length === 0 && completedEntries.length === 0 && failedEntries.length === 0 && (
+            <div className="rounded-xl border bg-card flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-12 h-12 rounded-full bg-admin-muted flex items-center justify-center mb-4">
+                <Upload className="w-6 h-6 text-muted-foreground" />
               </div>
-            )}
+              <p className="text-sm font-medium">아직 업로드된 문서가 없습니다</p>
+              <p className="text-xs text-muted-foreground mt-1">위 영역에 파일을 드래그하거나 클릭하여 시작하세요</p>
+            </div>
+          )}
         </div>
       )}
     </div>

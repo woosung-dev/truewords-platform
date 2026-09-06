@@ -3,7 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { "./next": "./next.mjs" },
-  "dependencies": { "eslint-config-next": "16.3.4" },
-  "peerDependencies": { "eslint": "^9" }
+  "exports": {
+    "./next": "./next.mjs"
+  },
+  "dependencies": {
+    "eslint-config-next": "16.3.4"
+  },
+  "peerDependencies": {
+    "eslint": "^9"
+  }
 }

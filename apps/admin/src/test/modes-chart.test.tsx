@@ -1,6 +1,7 @@
 // BL-6 — ModesChart 컴포넌트 단위 테스트
-import { describe, it, expect, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { ModesChart } from "@/features/analytics/components/modes-chart";
 import type { DailyModeCount } from "@/features/analytics/types";
 
@@ -28,18 +29,12 @@ describe("ModesChart", () => {
     ];
     render(<ModesChart rows={rows} loading={false} />);
     // pastoral 합계 12 (3+7+2), override 3 → 25%
-    expect(
-      screen.getByText("pastoral 위기 override 3/12 (25%)")
-    ).toBeInTheDocument();
+    expect(screen.getByText("pastoral 위기 override 3/12 (25%)")).toBeInTheDocument();
   });
 
   it("pastoral 데이터 없으면 override 라벨 미노출", () => {
-    const rows: DailyModeCount[] = [
-      { date: "2026-05-13", mode: "standard", persona_overridden: false, count: 5 },
-    ];
+    const rows: DailyModeCount[] = [{ date: "2026-05-13", mode: "standard", persona_overridden: false, count: 5 }];
     render(<ModesChart rows={rows} loading={false} />);
-    expect(
-      screen.queryByText(/pastoral 위기 override/)
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/pastoral 위기 override/)).not.toBeInTheDocument();
   });
 });

@@ -1,14 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { ChatbotForm } from "@/features/chatbot/components/chatbot-form";
 
 // SearchTierEditor 가 의존하는 hook mock (기존 test 패턴)
 vi.mock("@/features/data-source/hooks", () => ({
   useSearchableCategories: () => ({
-    data: [
-      { key: "A", name: "말씀선집", color: "indigo", is_searchable: true },
-    ],
+    data: [{ key: "A", name: "말씀선집", color: "indigo", is_searchable: true }],
     isLoading: false,
   }),
 }));
@@ -34,22 +32,14 @@ describe("ChatbotForm", () => {
   });
 
   it("edit 모드에서 initialValues 의 display_name 이 반영된다", () => {
-    render(
-      <ChatbotForm
-        mode="edit"
-        initialValues={{ display_name: "기존챗봇" }}
-        {...baseProps}
-      />,
-    );
+    render(<ChatbotForm mode="edit" initialValues={{ display_name: "기존챗봇" }} {...baseProps} />);
     const input = screen.getByLabelText(/표시 이름/) as HTMLInputElement;
     expect(input.value).toBe("기존챗봇");
   });
 
   it("create 모드 submit 시 onSubmit 이 입력값과 함께 호출된다", () => {
     const onSubmit = vi.fn();
-    const { container } = render(
-      <ChatbotForm mode="create" {...baseProps} onSubmit={onSubmit} />,
-    );
+    const { container } = render(<ChatbotForm mode="create" {...baseProps} onSubmit={onSubmit} />);
 
     fireEvent.change(screen.getByLabelText(/Chatbot ID/), {
       target: { value: "test_bot" },

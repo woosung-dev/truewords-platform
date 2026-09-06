@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { QueryDetail } from "@/features/analytics/types";
 
 const mockGetQueryDetails = vi.fn();
@@ -19,19 +19,13 @@ function renderModal(props: Partial<React.ComponentProps<typeof QueryDetailModal
   });
   return render(
     <QueryClientProvider client={client}>
-      <QueryDetailModal
-        open={true}
-        onOpenChange={() => {}}
-        queryText="천일국"
-        days={30}
-        {...props}
-      />
-    </QueryClientProvider>
+      <QueryDetailModal open={true} onOpenChange={() => {}} queryText="천일국" days={30} {...props} />
+    </QueryClientProvider>,
   );
 }
 
 function occurrenceFixture(
-  overrides: Partial<QueryDetail["occurrences"][number]> = {}
+  overrides: Partial<QueryDetail["occurrences"][number]> = {},
 ): QueryDetail["occurrences"][number] {
   return {
     search_event_id: "11111111-1111-1111-1111-111111111111",
@@ -150,7 +144,7 @@ describe("QueryDetailModal", () => {
       occurrences: Array.from({ length: 50 }, (_, i) =>
         occurrenceFixture({
           search_event_id: `event-${i}`,
-        })
+        }),
       ),
     } satisfies QueryDetail);
 

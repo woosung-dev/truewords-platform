@@ -1,83 +1,60 @@
 import { fetchAPI } from "@/lib/api";
 import type {
-  DashboardSummary,
   DailyCount,
   DailyModeCount,
-  SearchStats,
-  TopQuery,
+  DashboardSummary,
   FeedbackSummary,
   NegativeFeedbackItem,
   QueryDetail,
   QueryListResponse,
   QuerySortKey,
+  SearchStats,
   SessionDetail,
+  TopQuery,
 } from "./types";
 
 export const analyticsAPI = {
-  getDashboardSummary: () =>
-    fetchAPI<DashboardSummary>("/admin/analytics/dashboard-summary"),
+  getDashboardSummary: () => fetchAPI<DashboardSummary>("/admin/analytics/dashboard-summary"),
 
-  getDailyTrend: (days = 30) =>
-    fetchAPI<DailyCount[]>(`/admin/analytics/search/daily-trend?days=${days}`),
+  getDailyTrend: (days = 30) => fetchAPI<DailyCount[]>(`/admin/analytics/search/daily-trend?days=${days}`),
 
-  getDailyModes: (days = 30) =>
-    fetchAPI<DailyModeCount[]>(`/admin/analytics/modes/daily?days=${days}`),
+  getDailyModes: (days = 30) => fetchAPI<DailyModeCount[]>(`/admin/analytics/modes/daily?days=${days}`),
 
-  getSearchStats: (days = 30) =>
-    fetchAPI<SearchStats>(`/admin/analytics/search/stats?days=${days}`),
+  getSearchStats: (days = 30) => fetchAPI<SearchStats>(`/admin/analytics/search/stats?days=${days}`),
 
   getTopQueries: (days = 30, limit = 10) =>
-    fetchAPI<TopQuery[]>(
-      `/admin/analytics/search/top-queries?days=${days}&limit=${limit}`
-    ),
+    fetchAPI<TopQuery[]>(`/admin/analytics/search/top-queries?days=${days}&limit=${limit}`),
 
-  getFeedbackSummary: (days = 30) =>
-    fetchAPI<FeedbackSummary>(
-      `/admin/analytics/feedback/summary?days=${days}`
-    ),
+  getFeedbackSummary: (days = 30) => fetchAPI<FeedbackSummary>(`/admin/analytics/feedback/summary?days=${days}`),
 
   getNegativeFeedback: (limit = 20, offset = 0) =>
-    fetchAPI<NegativeFeedbackItem[]>(
-      `/admin/analytics/feedback/negative?limit=${limit}&offset=${offset}`
-    ),
+    fetchAPI<NegativeFeedbackItem[]>(`/admin/analytics/feedback/negative?limit=${limit}&offset=${offset}`),
 
   getFeedbackList: (
     polarity: "positive" | "negative" = "negative",
     limit = 20,
     offset = 0,
-    days = 0 // 0 = 전체 기간
+    days = 0, // 0 = 전체 기간
   ) =>
     fetchAPI<NegativeFeedbackItem[]>(
-      `/admin/analytics/feedback/list?polarity=${polarity}&limit=${limit}&offset=${offset}&days=${days}`
+      `/admin/analytics/feedback/list?polarity=${polarity}&limit=${limit}&offset=${offset}&days=${days}`,
     ),
 
   getQueryDetails: (queryText: string, days = 30, limit = 50) =>
     fetchAPI<QueryDetail>(
-      `/admin/analytics/search/query-details?query_text=${encodeURIComponent(
-        queryText
-      )}&days=${days}&limit=${limit}`
+      `/admin/analytics/search/query-details?query_text=${encodeURIComponent(queryText)}&days=${days}&limit=${limit}`,
     ),
 
   getSessionDetail: (sessionId: string) =>
-    fetchAPI<SessionDetail>(
-      `/admin/analytics/sessions/${encodeURIComponent(sessionId)}`
-    ),
+    fetchAPI<SessionDetail>(`/admin/analytics/sessions/${encodeURIComponent(sessionId)}`),
 
-  getQueries: (params: {
-    q?: string;
-    days?: number;
-    sort?: QuerySortKey;
-    page?: number;
-    size?: number;
-  } = {}) => {
+  getQueries: (params: { q?: string; days?: number; sort?: QuerySortKey; page?: number; size?: number } = {}) => {
     const qs = new URLSearchParams();
     if (params.q) qs.set("q", params.q);
     qs.set("days", String(params.days ?? 30));
     qs.set("sort", params.sort ?? "count_desc");
     qs.set("page", String(params.page ?? 1));
     qs.set("size", String(params.size ?? 50));
-    return fetchAPI<QueryListResponse>(
-      `/admin/analytics/search/queries?${qs.toString()}`
-    );
+    return fetchAPI<QueryListResponse>(`/admin/analytics/search/queries?${qs.toString()}`);
   },
 };

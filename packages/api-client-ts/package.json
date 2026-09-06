@@ -8,6 +8,12 @@
     "./types": "./src/generated/types.gen.ts",
     "./sdk": "./src/generated/sdk.gen.ts"
   },
-  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
-  "devDependencies": { "typescript": "5.9.3", "vitest": "4.1.2" }
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "4.1.2"
+  }
 }

@@ -1,25 +1,25 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { authAPI } from "@/features/auth/api";
-import { buttonVariants } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import AuthGuard from "@/features/auth/components/auth-guard";
-import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { WEB_ORIGIN } from "@/lib/origins";
 import {
-  LayoutDashboard,
+  BarChart3,
   Bot,
   Database,
-  ScrollText,
-  BarChart3,
-  MessageSquare,
-  Settings,
-  Menu,
+  LayoutDashboard,
   LogOut,
+  Menu,
+  MessageSquare,
+  ScrollText,
+  Settings,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { buttonVariants } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { authAPI } from "@/features/auth/api";
+import AuthGuard from "@/features/auth/components/auth-guard";
+import { WEB_ORIGIN } from "@/lib/origins";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
@@ -31,13 +31,7 @@ const NAV_ITEMS = [
   { href: "/settings", label: "설정", icon: Settings },
 ];
 
-function SidebarContent({
-  onNavigate,
-  onLogout,
-}: {
-  onNavigate?: () => void;
-  onLogout: () => void;
-}) {
+function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onLogout: () => void }) {
   const pathname = usePathname();
 
   return (
@@ -47,9 +41,7 @@ function SidebarContent({
         <div className="w-7 h-7 rounded-md bg-sidebar-primary flex items-center justify-center shrink-0">
           <span className="text-xs font-bold text-white">TW</span>
         </div>
-        <span className="font-semibold text-sidebar-foreground text-sm tracking-tight">
-          TrueWords Admin
-        </span>
+        <span className="font-semibold text-sidebar-foreground text-sm tracking-tight">TrueWords Admin</span>
       </div>
 
       {/* 네비게이션 */}
@@ -99,18 +91,10 @@ function SidebarContent({
 function PageTitle() {
   const pathname = usePathname();
   const found = NAV_ITEMS.find((item) => pathname.startsWith(item.href));
-  return (
-    <span className="text-sm font-medium text-foreground">
-      {found?.label ?? ""}
-    </span>
-  );
+  return <span className="text-sm font-medium text-foreground">{found?.label ?? ""}</span>;
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -156,10 +140,7 @@ export default function DashboardLayout({
                 <Menu className="w-5 h-5" />
               </SheetTrigger>
               <SheetContent side="left" className="w-56 p-0 border-r border-sidebar-border">
-                <SidebarContent
-                  onNavigate={() => setMobileOpen(false)}
-                  onLogout={handleLogout}
-                />
+                <SidebarContent onNavigate={() => setMobileOpen(false)} onLogout={handleLogout} />
               </SheetContent>
             </Sheet>
 

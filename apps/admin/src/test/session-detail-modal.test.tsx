@@ -1,13 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionDetail, SessionMessage } from "@/features/analytics/types";
 
 // 백엔드는 enum 을 이름(대문자, "USER"/"ASSISTANT")으로 직렬화한다.
 // 타입은 논리값(소문자)을 약속하지만 런타임 실제값은 대문자 → 회귀 방지를 위해
 // fixture 도 실제값으로 둔다. role 은 좁은 union 이라 string→union 캐스팅 헬퍼 사용.
-const rawRole = (r: string): SessionMessage["role"] =>
-  r as SessionMessage["role"];
+const rawRole = (r: string): SessionMessage["role"] => r as SessionMessage["role"];
 
 const mockGetSessionDetail = vi.fn();
 vi.mock("@/features/analytics/api", () => ({
@@ -18,9 +17,7 @@ vi.mock("@/features/analytics/api", () => ({
 
 import SessionDetailModal from "@/features/analytics/components/session-detail-modal";
 
-function renderModal(
-  props: Partial<React.ComponentProps<typeof SessionDetailModal>> = {}
-) {
+function renderModal(props: Partial<React.ComponentProps<typeof SessionDetailModal>> = {}) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -32,7 +29,7 @@ function renderModal(
         sessionId="44444444-4444-4444-4444-444444444444"
         {...props}
       />
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -98,11 +95,7 @@ describe("SessionDetailModal", () => {
   it("로딩 중엔 스켈레톤을 렌더한다", () => {
     mockGetSessionDetail.mockReturnValue(new Promise(() => {}));
     renderModal();
-    expect(
-      document.body.querySelectorAll(
-        '[data-slot="skeleton"], .animate-pulse'
-      ).length
-    ).toBeGreaterThan(0);
+    expect(document.body.querySelectorAll('[data-slot="skeleton"], .animate-pulse').length).toBeGreaterThan(0);
   });
 
   it("user 메시지와 assistant 메시지를 시간순으로 렌더한다", async () => {
@@ -136,9 +129,7 @@ describe("SessionDetailModal", () => {
   });
 
   it("메시지가 없으면 안내 문구를 노출한다", async () => {
-    mockGetSessionDetail.mockResolvedValue(
-      detailFixture({ messages: [] })
-    );
+    mockGetSessionDetail.mockResolvedValue(detailFixture({ messages: [] }));
     renderModal();
     expect(await screen.findByText(/메시지가 없습니다/)).toBeDefined();
   });
@@ -151,9 +142,7 @@ describe("SessionDetailModal", () => {
   });
 
   it("feedback 가 있는 메시지로 자동 스크롤한다", async () => {
-    const scrollSpy = vi
-      .spyOn(Element.prototype, "scrollIntoView")
-      .mockImplementation(() => {});
+    const scrollSpy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
     mockGetSessionDetail.mockResolvedValue(detailFixture());
     renderModal();
     await screen.findByText("축복 절차는 다음과 같습니다");

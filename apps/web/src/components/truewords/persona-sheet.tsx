@@ -1,65 +1,56 @@
 "use client";
 
 import * as React from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-} from "@/components/ui/sheet";
-import { ChatButton } from "./chat-button";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { ChatButton } from "./chat-button";
 
 // Plan B.4 + P0-E ★★ — 답변 모드 페르소나 5종
-export type PersonaMode =
-  | "standard"
-  | "theological"
-  | "pastoral"
-  | "beginner"
-  | "kids";
+export type PersonaMode = "standard" | "theological" | "pastoral" | "beginner" | "kids";
 
 // 커스텀 SVG 아이콘 — 따뜻한 갈색 톤 (48×48 viewport)
 export type PersonaIconProps = { size?: number };
 
 const PersonaIconStandard = ({ size = 32 }: PersonaIconProps) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-    <path d="M9 42c0-9 6-14 15-14s15 5 15 14z" fill="#D4B58A"/>
-    <circle cx="24" cy="17" r="8" fill="#7A4A1D"/>
+    <path d="M9 42c0-9 6-14 15-14s15 5 15 14z" fill="#D4B58A" />
+    <circle cx="24" cy="17" r="8" fill="#7A4A1D" />
   </svg>
 );
 
 const PersonaIconTheological = ({ size = 32 }: PersonaIconProps) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-    <path d="M14 23v9c0 3 4 5 10 5s10-2 10-5v-9z" fill="#D4B58A"/>
-    <path d="M4 19l20-8 20 8-20 8z" fill="#7A4A1D"/>
-    <path d="M40 19v11" stroke="#7A4A1D" strokeWidth="1.8" strokeLinecap="round"/>
-    <circle cx="40" cy="32" r="1.6" fill="#7A4A1D"/>
+    <path d="M14 23v9c0 3 4 5 10 5s10-2 10-5v-9z" fill="#D4B58A" />
+    <path d="M4 19l20-8 20 8-20 8z" fill="#7A4A1D" />
+    <path d="M40 19v11" stroke="#7A4A1D" strokeWidth="1.8" strokeLinecap="round" />
+    <circle cx="40" cy="32" r="1.6" fill="#7A4A1D" />
   </svg>
 );
 
 const PersonaIconPastoral = ({ size = 32 }: PersonaIconProps) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-    <path d="M9 27c0 9 7 14 15 14s15-5 15-14c-2 5-8 8-15 8s-13-3-15-8z" fill="#D4B58A"/>
-    <path d="M24 28c-2-1-9-6-9-13 0-3 2-5 5-5 1.5 0 3 .8 4 2 1-1.2 2.5-2 4-2 3 0 5 2 5 5 0 7-7 12-9 13z" fill="#A04E2E"/>
+    <path d="M9 27c0 9 7 14 15 14s15-5 15-14c-2 5-8 8-15 8s-13-3-15-8z" fill="#D4B58A" />
+    <path
+      d="M24 28c-2-1-9-6-9-13 0-3 2-5 5-5 1.5 0 3 .8 4 2 1-1.2 2.5-2 4-2 3 0 5 2 5 5 0 7-7 12-9 13z"
+      fill="#A04E2E"
+    />
   </svg>
 );
 
 const PersonaIconBeginner = ({ size = 32 }: PersonaIconProps) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-    <path d="M22 42v-16" stroke="#5D3A14" strokeWidth="2.6" strokeLinecap="round"/>
-    <path d="M22 28c-7 0-11-4-11-10 7 0 11 4 11 10z" fill="#D4B58A"/>
-    <path d="M22 28c7 0 11-4 11-10-7 0-11 4-11 10z" fill="#7A4A1D"/>
+    <path d="M22 42v-16" stroke="#5D3A14" strokeWidth="2.6" strokeLinecap="round" />
+    <path d="M22 28c-7 0-11-4-11-10 7 0 11 4 11 10z" fill="#D4B58A" />
+    <path d="M22 28c7 0 11-4 11-10-7 0-11 4-11 10z" fill="#7A4A1D" />
   </svg>
 );
 
 const PersonaIconKids = ({ size = 32 }: PersonaIconProps) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-    <circle cx="24" cy="24" r="16" fill="#D4B58A"/>
-    <circle cx="18.5" cy="22" r="1.8" fill="#7A4A1D"/>
-    <circle cx="29.5" cy="22" r="1.8" fill="#7A4A1D"/>
-    <path d="M17 28c2 3.5 4.5 5 7 5s5-1.5 7-5" stroke="#7A4A1D" strokeWidth="2" fill="none" strokeLinecap="round"/>
+    <circle cx="24" cy="24" r="16" fill="#D4B58A" />
+    <circle cx="18.5" cy="22" r="1.8" fill="#7A4A1D" />
+    <circle cx="29.5" cy="22" r="1.8" fill="#7A4A1D" />
+    <path d="M17 28c2 3.5 4.5 5 7 5s5-1.5 7-5" stroke="#7A4A1D" strokeWidth="2" fill="none" strokeLinecap="round" />
   </svg>
 );
 
@@ -113,12 +104,7 @@ export interface PersonaSheetProps {
   onValueChange: (value: PersonaMode) => void;
 }
 
-export function PersonaSheet({
-  open,
-  onOpenChange,
-  value,
-  onValueChange,
-}: PersonaSheetProps) {
+export function PersonaSheet({ open, onOpenChange, value, onValueChange }: PersonaSheetProps) {
   const [draft, setDraft] = React.useState<PersonaMode>(value);
 
   // sheet 열릴 때 draft를 현재 value 로 동기화
@@ -133,21 +119,13 @@ export function PersonaSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="max-h-[85vh] rounded-t-2xl"
-        aria-label="답변 모드 선택"
-      >
+      <SheetContent side="bottom" className="max-h-[85vh] rounded-t-2xl" aria-label="답변 모드 선택">
         <SheetHeader className="px-5 pt-5 pb-3">
           <SheetTitle className="text-lg">답변 모드</SheetTitle>
           <SheetDescription>누가 답해주면 좋을까요?</SheetDescription>
         </SheetHeader>
 
-        <div
-          role="radiogroup"
-          aria-label="답변 모드 5종"
-          className="flex flex-col gap-2 px-4 overflow-y-auto"
-        >
+        <div role="radiogroup" aria-label="답변 모드 5종" className="flex flex-col gap-2 px-4 overflow-y-auto">
           {PERSONAS.map((p) => {
             const active = draft === p.key;
             const { Icon } = p;
@@ -162,9 +140,7 @@ export function PersonaSheet({
                   "group flex items-center gap-4 rounded-2xl border px-4 py-3.5 text-left",
                   "transition-all duration-200 active:scale-[0.99]",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  active
-                    ? "border-accent bg-accent/5"
-                    : "border-border bg-card hover:bg-accent/5"
+                  active ? "border-accent bg-accent/5" : "border-border bg-card hover:bg-accent/5",
                 )}
               >
                 <span
@@ -183,9 +159,7 @@ export function PersonaSheet({
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-0.5 text-sm text-muted-foreground break-keep-all">
-                    {p.description}
-                  </p>
+                  <p className="mt-0.5 text-sm text-muted-foreground break-keep-all">{p.description}</p>
                 </div>
 
                 {/* radio dot */}
@@ -193,12 +167,10 @@ export function PersonaSheet({
                   aria-hidden="true"
                   className={cn(
                     "inline-flex size-5 shrink-0 items-center justify-center rounded-full border-2",
-                    active ? "border-accent" : "border-border"
+                    active ? "border-accent" : "border-border",
                   )}
                 >
-                  {active ? (
-                    <span className="size-2.5 rounded-full bg-accent" />
-                  ) : null}
+                  {active ? <span className="size-2.5 rounded-full bg-accent" /> : null}
                 </span>
               </button>
             );
@@ -222,11 +194,7 @@ export interface PersonaRowTriggerProps {
 }
 
 /** 입력 화면에서 "답변 모드 — 표준 (추천) >" 행 */
-export function PersonaRowTrigger({
-  value,
-  onClick,
-  label = "답변 모드",
-}: PersonaRowTriggerProps) {
+export function PersonaRowTrigger({ value, onClick, label = "답변 모드" }: PersonaRowTriggerProps) {
   const persona = PERSONAS.find((p) => p.key === value) ?? PERSONAS[0];
   const { Icon } = persona;
   return (
@@ -236,7 +204,7 @@ export function PersonaRowTrigger({
       className={cn(
         "flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3",
         "hover:bg-accent/5 transition-colors",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
       )}
     >
       <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-persona-icon-bg">
@@ -245,9 +213,7 @@ export function PersonaRowTrigger({
       <span className="text-sm text-muted-foreground">{label}</span>
       <span className="ml-auto flex items-center gap-1 text-sm font-medium text-foreground">
         {persona.label}
-        {persona.badge ? (
-          <span className="text-xs text-muted-foreground">({persona.badge})</span>
-        ) : null}
+        {persona.badge ? <span className="text-xs text-muted-foreground">({persona.badge})</span> : null}
         <span aria-hidden="true" className="text-fg-subtle">
           ›
         </span>

@@ -14,6 +14,8 @@
     "test": "turbo run test --filter=!@truewords/api --filter=!@truewords/e2e",
     "typecheck": "turbo run typecheck --filter=!@truewords/api",
     "lint": "turbo run lint --filter=!@truewords/api",
+    "format": "biome check --linter-enabled=false --write .",
+    "format:check": "biome check --linter-enabled=false .",
     "test:e2e": "pnpm --filter @truewords/e2e test",
     "contracts:export": "pnpm --filter @truewords/api contracts:export",
     "contracts:generate": "pnpm contracts:export && pnpm sdk:generate",
@@ -24,6 +26,7 @@
     "tooling:test": "node --test tooling/checks/*.test.mjs"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.12",
     "@hey-api/openapi-ts": "0.99.0",
     "turbo": "2.10.12",
     "typescript": "6.0.3",

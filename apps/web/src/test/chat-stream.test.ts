@@ -10,13 +10,16 @@ function callbacks() {
 
 function response(text: string) {
   const bytes = new TextEncoder().encode(text);
-  return new Response(new ReadableStream<Uint8Array>({
-    start(controller) {
-      // UTF-8 코드포인트와 CRLF가 네트워크 경계에서 나뉘는 경우를 검증한다.
-      for (let i = 0; i < bytes.length; i += 2) controller.enqueue(bytes.slice(i, i + 2));
-      controller.close();
-    },
-  }), { headers: { "Content-Type": "text/event-stream" } });
+  return new Response(
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        // UTF-8 코드포인트와 CRLF가 네트워크 경계에서 나뉘는 경우를 검증한다.
+        for (let i = 0; i < bytes.length; i += 2) controller.enqueue(bytes.slice(i, i + 2));
+        controller.close();
+      },
+    }),
+    { headers: { "Content-Type": "text/event-stream" } },
+  );
 }
 
 describe("chatAPI SSE 계약", () => {
@@ -34,7 +37,9 @@ describe("chatAPI SSE 계약", () => {
   it("done 없이 끊긴 응답은 부분 chunk를 보존하고 완료로 처리하지 않는다", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response('event: chunk\ndata: {"text":"일부 답변"}\n\n')));
     const cb = callbacks();
-    await expect(chatAPI.streamMessage("질문", "test", undefined, undefined, undefined, cb)).rejects.toThrow("응답 연결이 종료");
+    await expect(chatAPI.streamMessage("질문", "test", undefined, undefined, undefined, cb)).rejects.toThrow(
+      "응답 연결이 종료",
+    );
     expect(cb.onChunk).toHaveBeenCalledWith("일부 답변");
     expect(cb.onDone).not.toHaveBeenCalled();
   });
@@ -44,7 +49,9 @@ describe("chatAPI SSE 계약", () => {
     controller.abort();
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new DOMException("취소", "AbortError")));
     const cb = callbacks();
-    await expect(chatAPI.streamMessage("질문", "test", undefined, controller.signal, undefined, cb)).rejects.toMatchObject({ name: "AbortError" });
+    await expect(
+      chatAPI.streamMessage("질문", "test", undefined, controller.signal, undefined, cb),
+    ).rejects.toMatchObject({ name: "AbortError" });
     expect(cb.onDone).not.toHaveBeenCalled();
   });
 });

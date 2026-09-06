@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Props {
   text: string;
@@ -14,11 +9,7 @@ interface Props {
   maxWidth?: string;
 }
 
-export function TruncateTooltip({
-  text,
-  className = "",
-  maxWidth = "max-w-md",
-}: Props) {
+export function TruncateTooltip({ text, className = "", maxWidth = "max-w-md" }: Props) {
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -29,10 +20,7 @@ export function TruncateTooltip({
 
   return (
     <TooltipProvider delay={200}>
-      <Tooltip
-        open={isTouchDevice ? open : undefined}
-        onOpenChange={(nextOpen) => setOpen(nextOpen)}
-      >
+      <Tooltip open={isTouchDevice ? open : undefined} onOpenChange={(nextOpen) => setOpen(nextOpen)}>
         <TooltipTrigger
           render={
             <span
@@ -48,9 +36,7 @@ export function TruncateTooltip({
         >
           {text}
         </TooltipTrigger>
-        <TooltipContent
-          className={`${maxWidth} whitespace-pre-wrap break-words text-xs leading-relaxed`}
-        >
+        <TooltipContent className={`${maxWidth} whitespace-pre-wrap break-words text-xs leading-relaxed`}>
           {text}
         </TooltipContent>
       </Tooltip>

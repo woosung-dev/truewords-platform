@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { toast } from "sonner";
+import { Dialog } from "@base-ui/react/dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, X } from "lucide-react";
-import { Dialog } from "@base-ui/react/dialog";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { getCategoryColors } from "@/features/data-source/category-colors";
 import VolumeTransfer from "@/features/data-source/components/volume-transfer";
 import {
-  useAllVolumes,
   useActiveCategories,
   useAddVolumeTagsBulk,
+  useAllVolumes,
   useRemoveVolumeTagsBulk,
 } from "@/features/data-source/hooks";
-import { getCategoryColors } from "@/features/data-source/category-colors";
 
 interface VolumeTransferSheetProps {
   open: boolean;
@@ -43,11 +43,10 @@ export default function VolumeTransferSheet({
 
   const categoryMap = useMemo(
     () => new Map(activeCategories.map((c) => [c.key, { name: c.name, color: c.color }])),
-    [activeCategories]
+    [activeCategories],
   );
 
-  const [selectedCategoryForUncategorized, setSelectedCategoryForUncategorized] =
-    useState<string>("");
+  const [selectedCategoryForUncategorized, setSelectedCategoryForUncategorized] = useState<string>("");
 
   const effectiveKey = categoryKey ?? selectedCategoryForUncategorized;
 
@@ -59,39 +58,28 @@ export default function VolumeTransferSheet({
 
   useEffect(() => {
     if (open && allVolumes.length > 0 && effectiveKey) {
-      const included = new Set(
-        allVolumes
-          .filter((v) => (v.sources ?? []).includes(effectiveKey))
-          .map((v) => v.volume)
-      );
+      const included = new Set(allVolumes.filter((v) => (v.sources ?? []).includes(effectiveKey)).map((v) => v.volume));
       // eslint-disable-next-line react-hooks/set-state-in-effect -- 전환 중 시트 열기에 따른 기존 선택 집합 초기화를 보존한다.
       setIncludedVolumes(included);
       setInitialIncluded(included);
     }
   }, [open, allVolumes, effectiveKey]);
 
-  const handleMove = useCallback(
-    (volumes: string[], direction: "add" | "remove") => {
-      setIncludedVolumes((prev) => {
-        const next = new Set(prev);
-        if (direction === "add") {
-          volumes.forEach((v) => next.add(v));
-        } else {
-          volumes.forEach((v) => next.delete(v));
-        }
-        return next;
-      });
-    },
-    []
-  );
+  const handleMove = useCallback((volumes: string[], direction: "add" | "remove") => {
+    setIncludedVolumes((prev) => {
+      const next = new Set(prev);
+      if (direction === "add") {
+        volumes.forEach((v) => next.add(v));
+      } else {
+        volumes.forEach((v) => next.delete(v));
+      }
+      return next;
+    });
+  }, []);
 
   const diff = useMemo(() => {
-    const added = Array.from(includedVolumes).filter(
-      (v) => !initialIncluded.has(v)
-    );
-    const removed = Array.from(initialIncluded).filter(
-      (v) => !includedVolumes.has(v)
-    );
+    const added = Array.from(includedVolumes).filter((v) => !initialIncluded.has(v));
+    const removed = Array.from(initialIncluded).filter((v) => !includedVolumes.has(v));
     return { added, removed };
   }, [includedVolumes, initialIncluded]);
 
@@ -111,20 +99,16 @@ export default function VolumeTransferSheet({
           volumes: diff.added,
           source: effectiveKey,
         });
-        totalChunks += (res.total_chunks_modified ?? 0);
-        (res.skipped_volumes ?? []).forEach((s) =>
-          skippedMessages.push(`${s.volume}: ${s.reason}`)
-        );
+        totalChunks += res.total_chunks_modified ?? 0;
+        (res.skipped_volumes ?? []).forEach((s) => skippedMessages.push(`${s.volume}: ${s.reason}`));
       }
       if (diff.removed.length > 0) {
         const res = await bulkRemoveMutation.mutateAsync({
           volumes: diff.removed,
           source: effectiveKey,
         });
-        totalChunks += (res.total_chunks_modified ?? 0);
-        (res.skipped_volumes ?? []).forEach((s) =>
-          skippedMessages.push(`${s.volume}: ${s.reason}`)
-        );
+        totalChunks += res.total_chunks_modified ?? 0;
+        (res.skipped_volumes ?? []).forEach((s) => skippedMessages.push(`${s.volume}: ${s.reason}`));
       }
     } catch (e) {
       errors.push(e instanceof Error ? e.message : "요청 실패");
@@ -143,7 +127,7 @@ export default function VolumeTransferSheet({
       });
     } else {
       toast.success(
-        `저장 완료 (추가 ${diff.added.length}건, 제거 ${diff.removed.length}건, ${totalChunks.toLocaleString()}청크)`
+        `저장 완료 (추가 ${diff.added.length}건, 제거 ${diff.removed.length}건, ${totalChunks.toLocaleString()}청크)`,
       );
     }
     queryClient.invalidateQueries({ queryKey: ["category-stats"] });
@@ -168,10 +152,7 @@ export default function VolumeTransferSheet({
             <Dialog.Title className="flex items-center gap-2.5 text-base font-semibold">
               {categoryKey ? (
                 <>
-                  <Badge
-                    variant="outline"
-                    className={`font-mono text-xs ${colors?.text ?? ""} ${colors?.bg ?? ""}`}
-                  >
+                  <Badge variant="outline" className={`font-mono text-xs ${colors?.text ?? ""} ${colors?.bg ?? ""}`}>
                     {categoryKey}
                   </Badge>
                   {categoryName}
@@ -179,13 +160,9 @@ export default function VolumeTransferSheet({
               ) : (
                 <span className="text-warning">미분류 문서 분류</span>
               )}
-              <span className="text-muted-foreground font-normal text-sm">
-                — 문서 관리
-              </span>
+              <span className="text-muted-foreground font-normal text-sm">— 문서 관리</span>
             </Dialog.Title>
-            <Dialog.Close
-              className="rounded-lg p-2 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors"
-            >
+            <Dialog.Close className="rounded-lg p-2 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors">
               <X className="h-5 w-5" />
             </Dialog.Close>
           </div>
@@ -193,9 +170,7 @@ export default function VolumeTransferSheet({
           {/* 미분류 모드: 카테고리 선택 */}
           {!categoryKey && (
             <div className="px-6 pt-4 shrink-0">
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                분류할 카테고리 선택
-              </label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">분류할 카테고리 선택</label>
               <select
                 value={selectedCategoryForUncategorized}
                 onChange={(e) => setSelectedCategoryForUncategorized(e.target.value)}
@@ -227,12 +202,8 @@ export default function VolumeTransferSheet({
             {hasChanges && (
               <div className="mb-3 px-4 py-2.5 bg-warning-soft border border-warning-border rounded-lg text-sm text-warning">
                 변경 예정:
-                {diff.added.length > 0 && (
-                  <span className="font-medium"> +{diff.added.length}건 추가</span>
-                )}
-                {diff.removed.length > 0 && (
-                  <span className="font-medium"> -{diff.removed.length}건 제거</span>
-                )}
+                {diff.added.length > 0 && <span className="font-medium"> +{diff.added.length}건 추가</span>}
+                {diff.removed.length > 0 && <span className="font-medium"> -{diff.removed.length}건 제거</span>}
               </div>
             )}
 

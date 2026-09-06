@@ -1,27 +1,15 @@
 // 임베딩 항목 전체 목록과 표시명 인라인 편집을 제공하는 관리 컴포넌트.
 "use client";
 
-import { useState, useMemo } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Database,
-  Search,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Database, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import type { StatusTone } from "@/components/status-badge";
+import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/status-badge";
-import type { StatusTone } from "@/components/status-badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useIngestionJobs } from "@/features/data-source/hooks";
 import type { IngestionJobInfo } from "@/features/data-source/types";
 import { DisplayNameEditor } from "./display-name-editor";
@@ -37,7 +25,11 @@ const JOB_STATUS_CONFIG: Record<string, { tone: StatusTone; label: string }> = {
 
 function JobStatusBadge({ status }: { status: string }) {
   const { tone, label } = JOB_STATUS_CONFIG[status] ?? { tone: "neutral" as StatusTone, label: "대기" };
-  return <StatusBadge tone={tone} className="text-xs">{label}</StatusBadge>;
+  return (
+    <StatusBadge tone={tone} className="text-xs">
+      {label}
+    </StatusBadge>
+  );
 }
 
 function JobTableRow({ job }: { job: IngestionJobInfo }) {
@@ -55,9 +47,7 @@ function JobTableRow({ job }: { job: IngestionJobInfo }) {
           placeholder="표시명 미설정"
         />
       </TableCell>
-      <TableCell className="text-right text-xs tabular-nums">
-        {(job.total_chunks ?? 0).toLocaleString()}
-      </TableCell>
+      <TableCell className="text-right text-xs tabular-nums">{(job.total_chunks ?? 0).toLocaleString()}</TableCell>
       <TableCell>
         <JobStatusBadge status={job.status} />
       </TableCell>
@@ -69,10 +59,7 @@ function JobCard({ job }: { job: IngestionJobInfo }) {
   return (
     <div className="space-y-2 rounded-lg border bg-card p-3">
       <div className="flex items-start justify-between gap-2">
-        <span
-          className="flex-1 truncate font-mono text-xs"
-          title={job.filename}
-        >
+        <span className="flex-1 truncate font-mono text-xs" title={job.filename}>
           {job.filename}
         </span>
         <JobStatusBadge status={job.status} />
@@ -151,9 +138,7 @@ export function JobsManager() {
       {!isLoading && filtered.length === 0 && (
         <div className="py-12 text-center">
           <p className="text-sm text-muted-foreground">
-            {search
-              ? `"${search}" 검색 결과 없음`
-              : "적재된 항목이 없습니다"}
+            {search ? `"${search}" 검색 결과 없음` : "적재된 항목이 없습니다"}
           </p>
         </div>
       )}
@@ -190,9 +175,7 @@ export function JobsManager() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-2.5 text-xs text-muted-foreground">
               <span>
-                {(page - 1) * PAGE_SIZE + 1}–
-                {Math.min(page * PAGE_SIZE, filtered.length)} /{" "}
-                {filtered.length}
+                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} / {filtered.length}
               </span>
               <div className="flex items-center gap-1">
                 <Button
@@ -212,9 +195,7 @@ export function JobsManager() {
                   variant="outline"
                   size="sm"
                   className="h-6 w-6 p-0"
-                  onClick={() =>
-                    setPage((p) => Math.min(totalPages, p + 1))
-                  }
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                   aria-label="다음 페이지"
                 >

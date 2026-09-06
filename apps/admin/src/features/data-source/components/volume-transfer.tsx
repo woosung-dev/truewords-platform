@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, ArrowRight, ArrowLeft, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, ArrowRight, Search, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { getCategoryColors } from "@/features/data-source/category-colors";
 import type { VolumeInfo } from "@/features/data-source/types";
+import { cn } from "@/lib/utils";
 
 interface VolumeTransferProps {
   allVolumes: VolumeInfo[];
@@ -42,9 +42,7 @@ function TransferPanel({
 }) {
   const filteredVolumes = useMemo(() => {
     const query = searchQuery.normalize("NFC").toLowerCase().trim();
-    const filtered = volumes.filter(
-      (v) => !query || v.volume.normalize("NFC").toLowerCase().includes(query)
-    );
+    const filtered = volumes.filter((v) => !query || v.volume.normalize("NFC").toLowerCase().includes(query));
     if (!disabledVolumes || disabledVolumes.size === 0) return filtered;
     return filtered.sort((a, b) => {
       const aDisabled = disabledVolumes.has(a.volume) ? 1 : 0;
@@ -54,20 +52,14 @@ function TransferPanel({
   }, [volumes, searchQuery, disabledVolumes]);
 
   const selectableVolumes = useMemo(
-    () =>
-      disabledVolumes
-        ? filteredVolumes.filter((v) => !disabledVolumes.has(v.volume))
-        : filteredVolumes,
-    [filteredVolumes, disabledVolumes]
+    () => (disabledVolumes ? filteredVolumes.filter((v) => !disabledVolumes.has(v.volume)) : filteredVolumes),
+    [filteredVolumes, disabledVolumes],
   );
 
   const allFilteredSelected =
-    selectableVolumes.length > 0 &&
-    selectableVolumes.every((v) => selectedVolumes.has(v.volume));
+    selectableVolumes.length > 0 && selectableVolumes.every((v) => selectedVolumes.has(v.volume));
 
-  const selectedCount = selectableVolumes.filter((v) =>
-    selectedVolumes.has(v.volume)
-  ).length;
+  const selectedCount = selectableVolumes.filter((v) => selectedVolumes.has(v.volume)).length;
 
   const isSource = variant === "source";
 
@@ -77,14 +69,11 @@ function TransferPanel({
       <div
         className={cn(
           "px-4 py-3 flex items-center justify-between border-b",
-          isSource ? "bg-secondary" : "bg-primary/8 border-b-primary/20"
+          isSource ? "bg-secondary" : "bg-primary/8 border-b-primary/20",
         )}
       >
         <label className="flex items-center gap-2.5 cursor-pointer">
-          <Checkbox
-            checked={allFilteredSelected}
-            onCheckedChange={onToggleSelectAll}
-          />
+          <Checkbox checked={allFilteredSelected} onCheckedChange={onToggleSelectAll} />
           <span className="text-sm font-semibold text-foreground">{title}</span>
         </label>
         <span className="text-xs text-muted-foreground tabular-nums">
@@ -124,9 +113,7 @@ function TransferPanel({
         {filteredVolumes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <Search className="w-8 h-8 mb-2 opacity-30" />
-            <span className="text-sm">
-              {searchQuery ? "검색 결과 없음" : "문서 없음"}
-            </span>
+            <span className="text-sm">{searchQuery ? "검색 결과 없음" : "문서 없음"}</span>
           </div>
         ) : (
           <div className="py-1">
@@ -138,10 +125,8 @@ function TransferPanel({
                   key={v.volume}
                   className={cn(
                     "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
-                    isDisabled
-                      ? "opacity-35 cursor-not-allowed"
-                      : "cursor-pointer hover:bg-accent/40",
-                    !isDisabled && isSelected && "bg-primary/5"
+                    isDisabled ? "opacity-35 cursor-not-allowed" : "cursor-pointer hover:bg-accent/40",
+                    !isDisabled && isSelected && "bg-primary/5",
                   )}
                 >
                   <Checkbox
@@ -157,18 +142,12 @@ function TransferPanel({
                     <span className="flex gap-1 shrink-0">
                       {(v.sources ?? []).map((src) => {
                         const cat = categoryMap.get(src);
-                        const colors = cat
-                          ? getCategoryColors(cat.color)
-                          : getCategoryColors("slate");
+                        const colors = cat ? getCategoryColors(cat.color) : getCategoryColors("slate");
                         return (
                           <Badge
                             key={src}
                             variant="outline"
-                            className={cn(
-                              "h-5 px-1.5 text-[10px] font-mono leading-none",
-                              colors.text,
-                              colors.bg
-                            )}
+                            className={cn("h-5 px-1.5 text-[10px] font-mono leading-none", colors.text, colors.bg)}
                           >
                             {src}
                           </Badge>
@@ -189,12 +168,7 @@ function TransferPanel({
   );
 }
 
-export default function VolumeTransfer({
-  allVolumes,
-  includedVolumes,
-  onMove,
-  categoryMap,
-}: VolumeTransferProps) {
+export default function VolumeTransfer({ allVolumes, includedVolumes, onMove, categoryMap }: VolumeTransferProps) {
   const [leftSearch, setLeftSearch] = useState("");
   const [rightSearch, setRightSearch] = useState("");
   const [leftSelected, setLeftSelected] = useState<Set<string>>(new Set());
@@ -202,18 +176,13 @@ export default function VolumeTransfer({
   const [mobileTab, setMobileTab] = useState<"all" | "included">("all");
 
   const disabledVolumes = useMemo(
-    () =>
-      new Set(
-        allVolumes
-          .filter((v) => includedVolumes.has(v.volume))
-          .map((v) => v.volume)
-      ),
-    [allVolumes, includedVolumes]
+    () => new Set(allVolumes.filter((v) => includedVolumes.has(v.volume)).map((v) => v.volume)),
+    [allVolumes, includedVolumes],
   );
 
   const includedVolumeList = useMemo(
     () => allVolumes.filter((v) => includedVolumes.has(v.volume)),
-    [allVolumes, includedVolumes]
+    [allVolumes, includedVolumes],
   );
 
   const toggleSelectAll = (
@@ -221,12 +190,10 @@ export default function VolumeTransfer({
     searchQuery: string,
     selected: Set<string>,
     setSelected: (s: Set<string>) => void,
-    disabled?: Set<string>
+    disabled?: Set<string>,
   ) => {
     const filtered = volumes
-      .filter((v) =>
-        v.volume.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      .filter((v) => v.volume.toLowerCase().includes(searchQuery.toLowerCase()))
       .filter((v) => !disabled?.has(v.volume));
     const allSelected = filtered.every((v) => selected.has(v.volume));
     if (allSelected) {
@@ -240,11 +207,7 @@ export default function VolumeTransfer({
     }
   };
 
-  const toggleSelect = (
-    volume: string,
-    selected: Set<string>,
-    setSelected: (s: Set<string>) => void
-  ) => {
+  const toggleSelect = (volume: string, selected: Set<string>, setSelected: (s: Set<string>) => void) => {
     const next = new Set(selected);
     if (next.has(volume)) next.delete(volume);
     else next.add(volume);
@@ -276,13 +239,7 @@ export default function VolumeTransfer({
           selectedVolumes={leftSelected}
           onToggleSelect={(v) => toggleSelect(v, leftSelected, setLeftSelected)}
           onToggleSelectAll={() =>
-            toggleSelectAll(
-              allVolumes,
-              leftSearch,
-              leftSelected,
-              setLeftSelected,
-              disabledVolumes
-            )
+            toggleSelectAll(allVolumes, leftSearch, leftSelected, setLeftSelected, disabledVolumes)
           }
           disabledVolumes={disabledVolumes}
           categoryMap={categoryMap}
@@ -318,17 +275,8 @@ export default function VolumeTransfer({
           searchQuery={rightSearch}
           onSearchChange={setRightSearch}
           selectedVolumes={rightSelected}
-          onToggleSelect={(v) =>
-            toggleSelect(v, rightSelected, setRightSelected)
-          }
-          onToggleSelectAll={() =>
-            toggleSelectAll(
-              includedVolumeList,
-              rightSearch,
-              rightSelected,
-              setRightSelected
-            )
-          }
+          onToggleSelect={(v) => toggleSelect(v, rightSelected, setRightSelected)}
+          onToggleSelectAll={() => toggleSelectAll(includedVolumeList, rightSearch, rightSelected, setRightSelected)}
         />
       </div>
 
@@ -339,9 +287,7 @@ export default function VolumeTransfer({
             onClick={() => setMobileTab("all")}
             className={cn(
               "py-2.5 text-sm font-semibold transition-colors",
-              mobileTab === "all"
-                ? "bg-primary text-primary-foreground"
-                : "bg-admin-muted/30 text-muted-foreground"
+              mobileTab === "all" ? "bg-primary text-primary-foreground" : "bg-admin-muted/30 text-muted-foreground",
             )}
           >
             전체 ({allVolumes.length})
@@ -352,7 +298,7 @@ export default function VolumeTransfer({
               "py-2.5 text-sm font-semibold transition-colors",
               mobileTab === "included"
                 ? "bg-primary text-primary-foreground"
-                : "bg-admin-muted/30 text-muted-foreground"
+                : "bg-admin-muted/30 text-muted-foreground",
             )}
           >
             포함 ({includedVolumeList.length})
@@ -370,27 +316,15 @@ export default function VolumeTransfer({
                   searchQuery={leftSearch}
                   onSearchChange={setLeftSearch}
                   selectedVolumes={leftSelected}
-                  onToggleSelect={(v) =>
-                    toggleSelect(v, leftSelected, setLeftSelected)
-                  }
+                  onToggleSelect={(v) => toggleSelect(v, leftSelected, setLeftSelected)}
                   onToggleSelectAll={() =>
-                    toggleSelectAll(
-                      allVolumes,
-                      leftSearch,
-                      leftSelected,
-                      setLeftSelected,
-                      disabledVolumes
-                    )
+                    toggleSelectAll(allVolumes, leftSearch, leftSelected, setLeftSelected, disabledVolumes)
                   }
                   disabledVolumes={disabledVolumes}
                   categoryMap={categoryMap}
                 />
               </div>
-              <Button
-                className="w-full shrink-0"
-                onClick={handleMoveRight}
-                disabled={leftSelected.size === 0}
-              >
+              <Button className="w-full shrink-0" onClick={handleMoveRight} disabled={leftSelected.size === 0}>
                 선택 항목 추가 ({leftSelected.size}건)
                 <ArrowRight className="w-4 h-4 ml-1.5" />
               </Button>
@@ -405,16 +339,9 @@ export default function VolumeTransfer({
                   searchQuery={rightSearch}
                   onSearchChange={setRightSearch}
                   selectedVolumes={rightSelected}
-                  onToggleSelect={(v) =>
-                    toggleSelect(v, rightSelected, setRightSelected)
-                  }
+                  onToggleSelect={(v) => toggleSelect(v, rightSelected, setRightSelected)}
                   onToggleSelectAll={() =>
-                    toggleSelectAll(
-                      includedVolumeList,
-                      rightSearch,
-                      rightSelected,
-                      setRightSelected
-                    )
+                    toggleSelectAll(includedVolumeList, rightSearch, rightSelected, setRightSelected)
                   }
                 />
               </div>

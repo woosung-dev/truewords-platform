@@ -1,24 +1,37 @@
+import type {
+  ChatbotConfigResponse,
+  ChatChunkEvent,
+  ChatDoneEvent,
+  ChatRequest,
+  ChatResponse,
+  ChatSourcesEvent,
+  FeedbackRequest,
+  FeedbackResponse,
+  SessionHistoryResponse,
+  SessionListResponse,
+} from "@truewords/api-client-ts/types";
 import { fetchAPI, throwApiError } from "@/lib/api";
 import { parseSSEStream } from "@/lib/sse";
-import type {
-  ChatRequest, ChatbotConfigResponse, ChatResponse, ChatSourcesEvent, ChatDoneEvent,
-  ChatChunkEvent, FeedbackRequest, FeedbackResponse, SessionListResponse,
-  SessionHistoryResponse,
-} from "@truewords/api-client-ts/types";
 
 export type {
-  ChatResponse, Source, FeaturedMalssum, FeedbackType, FeedbackRequest, FeedbackResponse,
-  SessionListItem, SessionListResponse, SessionHistoryMessage,
+  ChatResponse,
+  FeaturedMalssum,
+  FeedbackRequest,
+  FeedbackResponse,
+  FeedbackType,
+  SessionHistoryMessage,
   SessionHistoryResponse as SessionHistory,
+  SessionListItem,
+  SessionListResponse,
+  Source,
 } from "@truewords/api-client-ts/types";
 
 // 화면에 필요한 봇 정보만 노출하는 projection이며 별도 API DTO가 아니다.
-export type ChatBot = Pick<ChatbotConfigResponse,
+export type ChatBot = Pick<
+  ChatbotConfigResponse,
   "chatbot_id" | "display_name" | "description" | "streaming_enabled" | "suggested_questions" | "suggested_at"
 >;
-export type ChatRequestOptions = Pick<ChatRequest,
-  "answer_mode" | "participant_name" | "participant_category"
->;
+export type ChatRequestOptions = Pick<ChatRequest, "answer_mode" | "participant_name" | "participant_category">;
 
 export const chatAPI = {
   listBots: (): Promise<ChatBot[]> => fetchAPI<ChatBot[]>("/chatbots"),
@@ -39,12 +52,8 @@ export const chatAPI = {
         chatbot_id: chatbotId,
         session_id: sessionId,
         ...(options?.answer_mode ? { answer_mode: options.answer_mode } : {}),
-        ...(options?.participant_name
-          ? { participant_name: options.participant_name }
-          : {}),
-        ...(options?.participant_category
-          ? { participant_category: options.participant_category }
-          : {}),
+        ...(options?.participant_name ? { participant_name: options.participant_name } : {}),
+        ...(options?.participant_category ? { participant_category: options.participant_category } : {}),
       }),
       signal,
     });
@@ -83,12 +92,8 @@ export const chatAPI = {
         chatbot_id: chatbotId,
         session_id: sessionId,
         ...(options?.answer_mode ? { answer_mode: options.answer_mode } : {}),
-        ...(options?.participant_name
-          ? { participant_name: options.participant_name }
-          : {}),
-        ...(options?.participant_category
-          ? { participant_category: options.participant_category }
-          : {}),
+        ...(options?.participant_name ? { participant_name: options.participant_name } : {}),
+        ...(options?.participant_category ? { participant_category: options.participant_category } : {}),
       }),
       signal,
     });
@@ -123,9 +128,7 @@ export const chatAPI = {
     if (!hasDone) throw new Error("응답 연결이 종료되었어요. 다시 시도해주세요.");
   },
 
-  submitFeedback: async (
-    payload: FeedbackRequest,
-  ): Promise<FeedbackResponse> => {
+  submitFeedback: async (payload: FeedbackRequest): Promise<FeedbackResponse> => {
     return fetchAPI<FeedbackResponse>("/chat/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
@@ -144,8 +147,7 @@ export const chatAPI = {
   },
 
   // 대화 기록 — 로그인 사용자 본인의 지난 세션 목록 (최근 활동순). 로그인 필수.
-  listSessions: (): Promise<SessionListResponse> =>
-    fetchAPI<SessionListResponse>("/chat/sessions"),
+  listSessions: (): Promise<SessionListResponse> => fetchAPI<SessionListResponse>("/chat/sessions"),
 
   // 단일 세션 트랜스크립트. 소유자만 열람 가능 (미소유/미존재 시 404).
   getSessionHistory: (sessionId: string): Promise<SessionHistoryResponse> =>

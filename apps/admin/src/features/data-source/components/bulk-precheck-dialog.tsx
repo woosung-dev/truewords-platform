@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { AlertTriangle, CheckCircle2, FileText, Info, RefreshCw, X, XCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { OnDuplicateMode } from "@/features/data-source/api";
 import type { DuplicateCheckResponse } from "@/features/data-source/types";
 
 // Status 별 시각 메타 — completed/partial/failed/running
 function statusMeta(status: string | null) {
-  if (status === "completed") return null;  // 일반 (badge 미표시)
+  if (status === "completed") return null; // 일반 (badge 미표시)
   if (status === "partial")
     return {
       icon: RefreshCw,
@@ -131,19 +131,12 @@ export default function BulkPrecheckDialog({
                 amber/red 강조하여 사용자가 부분 적재된 파일 즉시 식별. */}
             {dupCount > 0 && (
               <div className="rounded-lg border bg-admin-muted/30 p-3">
-                <div className="text-xs font-medium text-muted-foreground mb-2">
-                  중복 파일 목록
-                </div>
+                <div className="text-xs font-medium text-muted-foreground mb-2">중복 파일 목록</div>
                 <ul className="space-y-1.5 text-sm">
                   {duplicates.map((d) => {
                     const meta = statusMeta(d.duplicate.status ?? null);
-                    const pct = progressPct(
-                      d.duplicate.processed_chunks ?? 0,
-                      d.duplicate.total_chunks ?? 0,
-                    );
-                    const isPartial =
-                      d.duplicate.status === "partial" ||
-                      d.duplicate.status === "failed";
+                    const pct = progressPct(d.duplicate.processed_chunks ?? 0, d.duplicate.total_chunks ?? 0);
+                    const isPartial = d.duplicate.status === "partial" || d.duplicate.status === "failed";
                     const StatusIcon = meta?.icon;
                     return (
                       <li
@@ -189,33 +182,25 @@ export default function BulkPrecheckDialog({
                 </ul>
 
                 {/* PARTIAL/FAILED 가 1개 이상이면 안내문 */}
-                {duplicates.some(
-                  (d) =>
-                    d.duplicate.status === "partial" ||
-                    d.duplicate.status === "failed",
-                ) && (
+                {duplicates.some((d) => d.duplicate.status === "partial" || d.duplicate.status === "failed") && (
                   <div className="mt-3 rounded-md border border-warning-border bg-warning-soft/60 p-2 text-xs leading-relaxed text-warning flex gap-1.5 items-start">
                     <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <span>
-                      <strong>재개 필요</strong> / <strong>실패</strong> 표시 파일은 skip 옵션을
-                      선택해도 <strong>자동으로 재개·재청킹</strong>됩니다 (데이터 손실 방지).
-                      정상 완료된 파일만 skip 단축이 적용되어 Gemini 호출 0회로 절감됩니다.
+                      <strong>재개 필요</strong> / <strong>실패</strong> 표시 파일은 skip 옵션을 선택해도{" "}
+                      <strong>자동으로 재개·재청킹</strong>됩니다 (데이터 손실 방지). 정상 완료된 파일만 skip 단축이
+                      적용되어 Gemini 호출 0회로 절감됩니다.
                     </span>
                   </div>
                 )}
 
                 {/* 모든 PARTIAL/FAILED 가 0이고 다 COMPLETED 면 정상 안내 */}
-                {!duplicates.some(
-                  (d) =>
-                    d.duplicate.status === "partial" ||
-                    d.duplicate.status === "failed",
-                ) &&
+                {!duplicates.some((d) => d.duplicate.status === "partial" || d.duplicate.status === "failed") &&
                   duplicates.length > 0 && (
                     <div className="mt-3 rounded-md border border-success-border bg-success-soft/60 p-2 text-xs leading-relaxed text-success flex gap-1.5 items-start">
                       <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                       <span>
-                        모두 <strong>정상 완료</strong> 상태 — skip 옵션 선택 시 콘텐츠 동일
-                        파일은 임베딩 호출 0회로 비용 절감됩니다.
+                        모두 <strong>정상 완료</strong> 상태 — skip 옵션 선택 시 콘텐츠 동일 파일은 임베딩 호출 0회로
+                        비용 절감됩니다.
                       </span>
                     </div>
                   )}
@@ -231,9 +216,7 @@ export default function BulkPrecheckDialog({
                     <label
                       key={opt.value}
                       className={`flex items-start gap-2 rounded-lg border p-3 cursor-pointer transition-colors ${
-                        policy === opt.value
-                          ? "border-primary bg-primary/5"
-                          : "hover:bg-accent/30"
+                        policy === opt.value ? "border-primary bg-primary/5" : "hover:bg-accent/30"
                       }`}
                     >
                       <input
@@ -246,9 +229,7 @@ export default function BulkPrecheckDialog({
                       />
                       <div className="text-sm">
                         <div className="font-medium">{opt.label}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {opt.hint}
-                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{opt.hint}</div>
                       </div>
                     </label>
                   ))}
@@ -259,19 +240,10 @@ export default function BulkPrecheckDialog({
 
           {/* 액션 */}
           <div className="flex gap-2 border-t px-6 py-4">
-            <Button
-              variant="ghost"
-              className="flex-1 justify-center"
-              onClick={handleCancel}
-            >
+            <Button variant="ghost" className="flex-1 justify-center" onClick={handleCancel}>
               취소
             </Button>
-            <Button
-              variant="default"
-              className="flex-1 justify-center"
-              autoFocus
-              onClick={handleConfirm}
-            >
+            <Button variant="default" className="flex-1 justify-center" autoFocus onClick={handleConfirm}>
               {totalCount}개 모두 업로드
             </Button>
           </div>
