@@ -5,7 +5,7 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
-    "qdrant-client[fastembed]>=1.12.0",
+    "qdrant-client[fastembed]>=1.19.0",
     "google-genai>=0.8.0",
     "pydantic-settings>=2.6.0",
     "httpx>=0.27.0",
@@ -15,7 +15,7 @@ dependencies = [
     "alembic>=1.14.0",
     "greenlet>=3.0.0",
     # Auth
-    "python-jose[cryptography]>=3.3.0",
+    "python-jose[cryptography]>=3.5.0",
     "passlib[bcrypt]>=1.7.4",
     "pymupdf>=1.27.2.2",
     "python-docx>=1.2.0",

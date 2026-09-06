@@ -56,7 +56,7 @@ jobs:
           # ci-*.yml 과 같은 버전으로 고정. latest 는 어느 날 uv.lock 해석이 달라져 조용히 깨진다.
           version: "0.10.4"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
