@@ -282,7 +282,7 @@ RRF 병합 — weight 반영해 Top-50 선정 → Re-ranking → Top-10
 
 | 환경 | 주소 |
 |---|---|
-| 프로덕션 (레드팀 테스트 환경) | https://app.woosung.dev/ |
+| 프로덕션 (레드팀 테스트 환경) | https://truewords.woosung.dev/ (구 `app.woosung.dev` 는 301 리다이렉트) |
 
 ### 3.2 관리자 계정
 
@@ -378,7 +378,7 @@ URL 접속 시 아래와 같은 화면이 나타납니다.
 **준비물**: 브라우저 1개 (Chrome/Safari/Edge 무관)
 
 **순서:**
-1. **`https://app.woosung.dev/`** 에 접속하여 첫 번째 탭을 연다
+1. **`https://truewords.woosung.dev/`** 에 접속하여 첫 번째 탭을 연다
 2. **Cmd+T** (macOS) 또는 **Ctrl+T** (Windows) 로 **새 탭 3~6개** 추가로 열고 같은 URL 붙여넣기
 3. **각 탭에서 서로 다른 챗봇 선택** — 예:
    - Tab 1: 전체 검색 (`all`) — **기준선**
@@ -439,7 +439,7 @@ URL 접속 시 아래와 같은 화면이 나타납니다.
 
 ### 5.1 로그인
 
-`https://app.woosung.dev/login` 에 접속하거나, 메인 URL에서 관리자 페이지로 진입하면 로그인 화면이 보입니다.
+`https://truewords-admin.woosung.dev/login` 에 접속하면 관리자 로그인 화면이 보입니다(2026-09-06 web/admin 분리 이후 관리자 화면은 별도 hostname).
 
 ![로그인 화면](redteam-assets/03-login-page-annotated.png)
 
