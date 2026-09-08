@@ -105,7 +105,8 @@ export default function HoondokPwaDemo() {
           <CardDescription>
             {swState === "registered" && "등록됨 · 앱 셸과 아이콘만 캐시해요. 질문·메모·API 응답은 캐시하지 않아요."}
             {swState === "disabled" && "꺼짐 · NEXT_PUBLIC_PWA_ENABLED=1 로 실행하면 등록해요."}
-            {swState === "unsupported" && "이 브라우저는 서비스워커를 지원하지 않아요. 읽기 기능은 그대로 쓸 수 있어요."}
+            {swState === "unsupported" &&
+              "이 브라우저는 서비스워커를 지원하지 않아요. 읽기 기능은 그대로 쓸 수 있어요."}
             {swState === "idle" && "확인 중…"}
           </CardDescription>
         </CardHeader>

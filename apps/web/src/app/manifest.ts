@@ -5,7 +5,8 @@ import type { MetadataRoute } from "next";
 export const HOONDOK_MANIFEST: MetadataRoute.Manifest = {
   name: "훈독 — 가정연합 말씀 (독립 운영 베타)",
   short_name: "훈독",
-  description: "새벽 한 문단으로 여는 하루. 출처가 있는 말씀, 함께 하는 기도. 독립 운영 베타이며 FFWPU 공식 앱이 아닙니다.",
+  description:
+    "새벽 한 문단으로 여는 하루. 출처가 있는 말씀, 함께 하는 기도. 독립 운영 베타이며 FFWPU 공식 앱이 아닙니다.",
   id: "/hoondok",
   start_url: "/hoondok",
   scope: "/",
