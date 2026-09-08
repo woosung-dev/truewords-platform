@@ -41,6 +41,8 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 |---|---|
 | [01-project-overview](prd/01-project-overview.md) | 기존 제품 배경·데이터 범위 |
 | [16-app-feature-spec](prd/16-app-feature-spec.md) | 이전 MVP/Flutter 구상. 신규 PWA 요구사항으로 자동 상속하지 않음 |
+| [17-ffwpu-pwa-prd](prd/17-ffwpu-pwa-prd.md) | 가정연합 말씀 PWA "훈독"(가안) PRD v2. 초원식 5탭 + 루틴·챌린지, 출처·권리·무기억 원칙 승계. 사용자 검토 대기 |
+| [훈독 디자인 2안](prd/2026-09-09-hundok-design-directions.md), [프로토타입 HTML](prd/prototypes/2026-09-09-hundok-directions.html) | A 새벽 / B 등불 비교, 3렌즈 리뷰 기록, 스크린샷 12장. 방향 선택 `DEC-PWA-015` 대기 |
 | [사용자 웹 UI/UX](specs/web/ui-ux.md), [관리자 UI/UX](specs/admin/ui-ux.md) | 현재 구현·소유권과 미승인 리디자인의 경계 |
 | [17-chatbot-system-prompt-spec](specs/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 |
 | [18-category-document-stats](specs/18-category-document-stats.md), [19-category-tag-management-ui](specs/19-category-tag-management-ui.md) | 문서 통계·카테고리 UI |
