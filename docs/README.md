@@ -41,6 +41,8 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 |---|---|
 | [01-project-overview](prd/01-project-overview.md) | 기존 제품 배경·데이터 범위 |
 | [16-app-feature-spec](prd/16-app-feature-spec.md) | 이전 MVP/Flutter 구상. 신규 PWA 요구사항으로 자동 상속하지 않음 |
+| [17-ffwpu-pwa-prd (v2)](prd/17-ffwpu-pwa-prd.md) | 훈독(가안) PWA PRD v2 (2026-09-09). 가정연합 현지화 원칙·초원 대응표·5탭·`REQ-PWA-016~022`·앱명 후보. **사용자 검토 대기**, v1(PR #261)은 close |
+| [디자인 2안 `DES-PWA-002`](prd/2026-09-09-hoondok-design-directions.md), 프로토타입 [A 아침 햇살](prd/prototypes/2026-09-09-hoondok-a.html) · [B 한지와 먹](prd/prototypes/2026-09-09-hoondok-b.html) | 같은 5탭 6화면을 iPhone 393×852 기준 시각 2안으로 비교. [스크린샷 14장](prd/prototypes/screenshots/2026-09-09/), [캡처 스크립트](prd/prototypes/capture-screens.mjs). 방향 선택 `DEC-PWA-019` 대기 |
 | [사용자 웹 UI/UX](specs/web/ui-ux.md), [관리자 UI/UX](specs/admin/ui-ux.md) | 현재 구현·소유권과 미승인 리디자인의 경계 |
 | [17-chatbot-system-prompt-spec](specs/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 |
 | [18-category-document-stats](specs/18-category-document-stats.md), [19-category-tag-management-ui](specs/19-category-tag-management-ui.md) | 문서 통계·카테고리 UI |
