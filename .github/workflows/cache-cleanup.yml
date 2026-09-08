@@ -51,7 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
         with:
           # ci-*.yml 과 같은 버전으로 고정. latest 는 어느 날 uv.lock 해석이 달라져 조용히 깨진다.
           version: "0.10.4"
