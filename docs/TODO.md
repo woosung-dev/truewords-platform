@@ -198,7 +198,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] M2 — `apps/web` 추출, 최초 공통 UI와 앱별 인증 UX·이미지 분리. UI 선택은 후속 APP-UI-001로 대체한다.
 - [x] M3 — OpenAPI→TS SDK·SSE 계약, API 내부 `app/core/modules` 이전
 - [x] M4 — docs 재분류·링크, CI 영향 범위, web 배포·롤백 준비
-- [ ] M5 — 승인 제품 계획에 따라 일반 사용자 인증·PWA·알림 구현 및 실기기 검증
+- [ ] M5 — 승인 제품 계획에 따라 일반 사용자 인증·PWA·알림 구현 및 실기기 검증. 2026-09-09 PWA 셸(manifest·SW·설치·권한 데모)만 플래그 게이트로 선행 착수, 인증·서버 발송·알림함은 미착수
 
 ### 앱별 UI 소유권 분리 (2026-09-05 · 2안 승인)
 
@@ -234,10 +234,13 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] `SEC-MONO-001` (P1, 전환 전부터 존재) — `apps/api/app/modules/chat/pipeline/stages/session.py`의 기존 `session_id` 재사용 경로에 쓰기 소유권 검증이 없다. 기록 조회의 소유권 검증과 별개다. 일반 사용자 공개 전에 인증/익명 세션 정책을 확정하고 타 사용자 세션 이어쓰기 거부 회귀 테스트와 함께 수정한다. 이번 폴더 이전에서 정책을 임의 변경하지 않았다.
 - [ ] `QUALITY-MONO-001` — `apps/web/src/app/(chat)/page.tsx`의 기존 `react-hooks/exhaustive-deps` 경고 1개를 별도 정리한다. 이번 검사 결과는 오류 0개이며 경고를 숨기지 않았다.
 
-### 가정연합 신규 PWA 기획 (2026-08-31)
-- [ ] 세션 1 — `docs/research/2026-08-30-pwa-app-direction.md` §7 프롬프트로 PRD 작성·리뷰
-- [ ] 세션 2 — 승인 PRD 기반 A/B/C 비교형 프로토타입 작성·방향 선택
-- [ ] 세션 3 — 채택안 디자인 시스템·접근성 상태 작성·승인
+### 가정연합 신규 PWA 기획 (2026-08-31 · 작업명 훈독 2026-09-09)
+- [x] 세션 1 — PRD 작성. v1 #218(미머지) → v2 #261(2026-09-08 디자인 완성도 사유 close) → **v3 `docs/prd/17-hoondok-pwa-prd.md`** (커뮤니티·감정 진입·말씀 카드·캘린더 REQ-016~021, DEC-PWA-014~017). 사용자 승인 대기
+- [x] 세션 2 — 프로토타입. v3 는 시각 방향 3안(새벽·바람·서고) → 새벽 채택 → 14화면 클릭형 3루프 (`docs/prd/2026-09-09-hoondok-design-loops.md`, `docs/prd/prototypes/2026-09-09-hoondok-prototype.html`). 벤치마크 12종은 `docs/research/2026-09-09-faith-ai-app-benchmark.md`
+- [ ] `[확인 필요]` `DEC-PWA-017` — 시각 방향 새벽 채택안 사용자 확인 (대안: 바람·서고·혼합). 병렬 세션 PR #262(초원식 5탭·루틴·챌린지 v2)와 정보구조·DEC 번호가 다르므로 하나를 고르거나 병합 지시 필요
+- [ ] 세션 3 — 채택안 디자인 시스템·접근성 상태 승인. 초안 `docs/specs/web/hoondok-design-system.md`(UI-HOONDOK-001) 작성됨, WCAG 2.2 AA 실측·고대비 팔레트 결정 남음
+- [ ] `[확인 필요]` 커뮤니티 게이트 — 미성년 보호·신고·차단·리더 권한 회수·그룹 삭제 데이터 처리(REQ-PWA-017 AC-06), 위기 키워드 안내 문구·연락처(REQ-PWA-016 AC-04), 천력·절기 데이터 출처·권리(REQ-PWA-019 AC-01)
+- [ ] M5 PWA 셸 후속 — `apps/web` 에 manifest·`public/sw.js`·`/hoondok` 데모가 `NEXT_PUBLIC_PWA_ENABLED=1` 게이트로 들어갔다(로컬 Chromium: SW 등록·셸 캐시·중립 문구 로컬 알림·오프라인 폴백 통과). 남은 것: iOS 실기기 설치·푸시, VAPID 발송·구독 API·알림함(backend), Serwist 전환 여부 ADR
 - [ ] 세션 4 — 구현 설계·작업 분해·제한 베타 계획과 S5~S15 실행 runbook 작성
 - [ ] 세션 5~15 — 승인 runbook 순서로 구현·검증·독립 베타·결과 판정
 

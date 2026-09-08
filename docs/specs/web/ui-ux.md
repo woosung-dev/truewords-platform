@@ -9,7 +9,7 @@
 - `apps/web`은 `/`, `/history`, `/about`, `/login`, `/design-system`을 소유한다. 채팅·출처/원문 보기·피드백·기록·스트림 취소와 기존 시연 계정 로그인 흐름을 보존한다.
 - 화면·기능 UI는 `src/app`, `src/features`, `src/components/truewords`, primitive는 `src/components/ui`가 소유한다. 표시 유틸은 `src/lib/utils.ts`, 테마·전역 스타일은 `src/app/globals.css`, 폰트 연결은 `src/app/layout.tsx`에 둔다.
 - 기존 paper 계열 화면·폰트·컴포넌트 크기·모션을 이번 소유권 이동에서 재설계하지 않는다. `/design-system`은 기존 사용자 웹의 컴포넌트 전시이며 관리자나 신규 PWA의 공통 디자인 기준이 아니다.
-- 새 일반 사용자 인증·PWA 설치·서비스워커·알림은 미구현이다. 기존 시연 화면이 신규 제품 기능의 승인·완료 증거가 되지 않는다.
+- 새 일반 사용자 인증·서버 푸시·알림함은 미구현이다. PWA 셸(manifest·`public/sw.js`·`/hoondok` 설치·권한 데모)은 2026-09-09 부터 `NEXT_PUBLIC_PWA_ENABLED=1` 플래그 뒤에 있으며 기존 화면·테마를 바꾸지 않는다. 신규 훈독 화면의 토큰은 [UI-HOONDOK-001](hoondok-design-system.md) 초안이 따로 관리하며 이 문서의 paper 토큰을 덮어쓰지 않는다. 기존 시연 화면이 신규 제품 기능의 승인·완료 증거가 되지 않는다.
 
 ## 변경 경계와 검증
 

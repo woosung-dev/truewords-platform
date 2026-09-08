@@ -61,12 +61,12 @@ S0는 제품 방향 승인과 디자인 시스템 승인을 구분한다. 신규
 repo/
 ├── apps/
 │   ├── web/                         # 사용자 Next.js, PWA 기능은 M5
-│   │   ├── src/app/manifest.ts      # [M5] 이번 구조 이전에서 생성하지 않음
+│   │   ├── src/app/manifest.ts      # [M5 선행] 2026-09-09 훈독 PWA 셸로 생성 (플래그 게이트)
 │   │   ├── src/app/globals.css     # 사용자 웹 전용 테마
 │   │   ├── src/components/ui/      # 사용자 웹 소유 primitive
 │   │   ├── src/features/
 │   │   ├── src/lib/{api,auth,push}/
-│   │   ├── public/sw.js            # [M5] 이번 구조 이전에서 생성하지 않음
+│   │   ├── public/sw.js            # [M5 선행] 2026-09-09 최소 SW (셸·아이콘 캐시, push·notificationclick)
 │   │   └── AGENTS.md
 │   ├── admin/                       # 관리자 Next.js
 │   │   ├── src/{app,features,lib}/
