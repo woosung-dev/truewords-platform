@@ -42,6 +42,8 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 | [01-project-overview](prd/01-project-overview.md) | 기존 제품 배경·데이터 범위 |
 | [16-app-feature-spec](prd/16-app-feature-spec.md) | 이전 MVP/Flutter 구상. 신규 PWA 요구사항으로 자동 상속하지 않음 |
 | [사용자 웹 UI/UX](specs/web/ui-ux.md), [관리자 UI/UX](specs/admin/ui-ux.md) | 현재 구현·소유권과 미승인 리디자인의 경계 |
+| [17-hoondok-pwa-prd](prd/17-hoondok-pwa-prd.md) | **훈독** 가정연합 말씀 PWA PRD v3 (2026-09-09, 승인 대기). 커뮤니티·감정 진입·말씀 카드·캘린더 포함 |
+| [훈독 디자인 3루프](prd/2026-09-09-hoondok-design-loops.md), [최종 프로토타입](prd/prototypes/2026-09-09-hoondok-prototype.html), [디자인 시스템 초안](specs/web/hoondok-design-system.md) | 시각 방향 3안 → 새벽 채택 → 14화면 클릭형 프로토타입과 토큰. 사용자 방향 확인 전 참고용 |
 | [17-chatbot-system-prompt-spec](specs/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 |
 | [18-category-document-stats](specs/18-category-document-stats.md), [19-category-tag-management-ui](specs/19-category-tag-management-ui.md) | 문서 통계·카테고리 UI |
 | [도메인 사전](specs/domain/06-terminology-dictionary-structure.md), [중복 업로드 API](specs/api/check_duplicate.md) | 용어 데이터 구조·업로드 동작 |
@@ -74,7 +76,7 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 
 | 분류 | 읽을 자료 |
 |---|---|
-| 현재 PWA 제품 조사 | [초원AI 벤치마크](research/2026-08-30-chowon-ai-benchmark.md), [가정연합 PWA 방향](research/2026-08-30-pwa-app-direction.md), [검토 보고서](research/2026-08-31-chowon-pwa-strategy-report.html) |
+| 현재 PWA 제품 조사 | [초원AI 벤치마크](research/2026-08-30-chowon-ai-benchmark.md), [종교 AI 앱 12종 벤치마크](research/2026-09-09-faith-ai-app-benchmark.md), [가정연합 PWA 방향](research/2026-08-30-pwa-app-direction.md), [검토 보고서](research/2026-08-31-chowon-pwa-strategy-report.html) |
 | 기존 시장 전략 | [12](research/12-market-analysis.md), [13](research/13-competitor-deep-dive.md), [14](research/14-success-factors-strategy.md): 개신교/성경 앱 전제이며 FFWPU PRD로 자동 상속하지 않음 |
 | 기존 디자인 조사 | [17-design-strategy](research/17-design-strategy.md): 과거 디자인 전략. 신규 PWA·관리자의 공통 디자인 승인 기준이 아님 |
 | 기술·코드 조사 | [청킹/임베딩](research/19-rag-chunking-embedding-research.md), [로컬 LLM](research/15-local-llm-benchmark.md), [외부 코드 분석](research/insights/README.md) |

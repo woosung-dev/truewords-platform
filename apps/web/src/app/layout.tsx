@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter, Noto_Serif_KR } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/providers";
+import PwaRegister from "@/components/pwa/pwa-register";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,6 +28,15 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: "TrueWords",
   description: "말씀 데이터 기반 AI 챗봇",
+  // 훈독 PWA 셸 (플래그 게이트). manifest 는 src/app/manifest.ts, 서비스워커는 public/sw.js.
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "훈독", statusBarStyle: "default" },
+  icons: { apple: "/icons/hoondok-192.png" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2E2A5A",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -46,6 +56,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-[Pretendard,var(--font-inter),sans-serif]">
         <Providers>{children}</Providers>
+        <PwaRegister />
       </body>
     </html>
   );
