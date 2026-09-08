@@ -249,7 +249,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] `QUALITY-MONO-001` — `apps/web/src/app/(chat)/page.tsx`의 기존 `react-hooks/exhaustive-deps` 경고 1개를 별도 정리한다. 이번 검사 결과는 오류 0개이며 경고를 숨기지 않았다.
 
 ### 가정연합 신규 PWA 기획 (2026-08-31 · v2 2026-09-09)
-- [x] 세션 1 — PRD v1 작성 (PR #261, 2026-09-09 디자인 완성도 사유로 close) → **PRD v2 재작성** (`docs/prd/17-ffwpu-pwa-prd.md`, PR_PWA3): 가정연합 현지화 원칙 §2, 초원 대응표, 5탭, `REQ-PWA-016~022`, `DEC-PWA-014~019`
+- [x] 세션 1 — PRD v1 작성 (PR #261, 2026-09-09 디자인 완성도 사유로 close) → **PRD v2 재작성** (`docs/prd/17-ffwpu-pwa-prd.md`, PR #264): 가정연합 현지화 원칙 §2, 초원 대응표, 5탭, `REQ-PWA-016~022`, `DEC-PWA-014~019`
 - [ ] 세션 1 — PRD v2 사용자 승인 (`DEC-PWA-018`)
 - [x] 세션 2 — 디자인 2안 프로토타입 (`docs/prd/2026-09-09-hoondok-design-directions.md`, `prototypes/2026-09-09-hoondok-{a,b}.html`, 스크린샷 14장). v1 3안(A 오늘·B 출처 서고·C 가족 실천)은 폐기
 - [ ] 세션 2 — 방향 선택 `DEC-PWA-019` (A 아침 햇살 / B 한지와 먹 / B+A, 추천 B+A) · 앱명 `DEC-PWA-017`
