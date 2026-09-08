@@ -87,6 +87,8 @@ for (const filename of documents) {
     if (!target || /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(target)) continue;
     // HTML 데모의 JS 템플릿과 로컬 머신 개인 자료는 저장소 링크가 아니다.
     if (target.includes("${") || target.startsWith("~") || target.startsWith("/Users/")) continue;
+    // 프로토타입 HTML의 `#/route` 해시 라우트는 클라이언트 라우팅이며 문서 앵커가 아니다.
+    if (target.startsWith("#/")) continue;
     const [resource, fragment] = target.split("#", 2);
     let decoded;
     try {
