@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>훈독(가안) · 안 A 아침 햇살</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css">
+<style>
+  /*
+    안 A "아침 햇살" - 프로토타입용 정적 화면 6개.
+    모든 말씀 인용은 저장소 featured_malssum.json 큐레이션이며, 읽기 화면 본문은 예시 요약이다.
+    이름·교회·정성 일수·날짜는 예시. 강조색은 감(persimmon) 1색.
+  */
+  :root {
+    --bg: #FFFBF6;
+    --card: #FFFFFF;
+    --ink: #23262F;
+    --muted: #6E7280;
+    --accent: #C2452B;
+    --accent-soft: #FBEAE4;
+    --line: #EFE7DF;
+    --tint: #FFF1E8;
+    --peach: #FFE9DA;
+    --shadow: 0 6px 20px rgba(120, 80, 50, 0.08);
+    --r-card: 20px;
+    --r-input: 12px;
+    --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+    --serif: "Noto Serif KR", "Apple Myungjo", "Nanum Myeongjo", serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: #F1EDE7; color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+
+  /* ---------- 보드 ---------- */
+  .board-head { max-width: 1360px; margin: 0 auto; padding: 44px 40px 8px; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+  .board-head h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.4px; margin: 0 0 6px; }
+  .board-head p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; max-width: 62ch; }
+  .swatches { display: flex; gap: 8px; align-items: center; }
+  .sw { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06); }
+  .sw-label { font-size: 12px; color: var(--muted); margin-left: 4px; }
+  .board { max-width: 1360px; margin: 0 auto; padding: 24px 40px 72px; display: grid; grid-template-columns: repeat(3, 393px); justify-content: space-between; row-gap: 56px; }
+  @media (max-width: 1320px) { .board { grid-template-columns: repeat(2, 393px); justify-content: center; column-gap: 48px; } }
+  @media (max-width: 920px) { .board { grid-template-columns: 393px; } .board-head { grid-template-columns: 1fr; } }
+  figure.shot { margin: 0; }
+  figcaption { margin: 22px 0 0 6px; font-size: 14px; font-weight: 600; }
+  figcaption span { font-weight: 400; color: var(--muted); margin-left: 8px; font-size: 12px; }
+
+  /* ---------- 기기 ---------- */
+  .device { position: relative; width: 393px; height: 852px; border-radius: 54px; background: var(--bg); overflow: hidden;
+    box-shadow: 0 0 0 11px #1a1a1c, 0 0 0 13px #2c2c2e, 0 28px 60px rgba(60, 40, 20, 0.28); }
+  .island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 126px; height: 37px; border-radius: 20px; background: #0b0b0c; z-index: 7; }
+  .status { position: absolute; top: 0; left: 0; right: 0; height: 54px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 28px 10px 34px; font-weight: 600; font-size: 16px; z-index: 6; }
+  .status .r { display: flex; gap: 5px; font-size: 17px; }
+  .home { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: var(--ink); z-index: 8; }
+  .tabbar { position: absolute; left: 0; right: 0; bottom: 0; height: 83px; padding: 7px 6px 0; display: grid; grid-template-columns: repeat(5, 1fr);
+    background: rgba(255, 251, 246, 0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--line); z-index: 6; }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; font-weight: 500; color: var(--muted); }
+  .tab i { font-size: 25px; line-height: 1; }
+  .tab.on { color: var(--accent); }
+  .tab.center i { font-size: 27px; }
+  .content { position: absolute; top: 54px; left: 0; right: 0; bottom: 83px; overflow: hidden; padding: 4px 20px 0; }
+
+  /* ---------- 공통 컴포넌트 ---------- */
+  .lt { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; margin: 6px 0 14px; }
+  .nav { display: flex; align-items: center; justify-content: space-between; height: 44px; margin: 0 -4px; }
+  .nav .b { width: 40px; height: 40px; display: grid; place-items: center; font-size: 22px; color: var(--accent); }
+  .nav .t { font-size: 17px; font-weight: 600; text-align: center; }
+  .nav .t small { display: block; font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 1px; }
+  .card { background: var(--card); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 14px 16px; margin-bottom: 10px; }
+  .label { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+  .label .meta { margin-left: auto; font-weight: 500; }
+  .tag { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--tint); color: var(--accent); }
+  .tag.ai { background: transparent; color: var(--muted); border: 1px dashed #C9C2B8; }
+  .tag.o3 { background: #EEF0F4; color: #4B5563; }
+  .verse { font-family: var(--serif); font-size: 16px; line-height: 1.8; margin: 0; letter-spacing: -0.1px; }
+  .src { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: var(--muted); font-weight: 500; }
+  .src b { color: var(--ink); font-weight: 600; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 12px; border-radius: 999px; background: var(--card); box-shadow: var(--shadow); font-size: 13px; font-weight: 600; }
+  .pill.accent { background: var(--accent); color: #fff; box-shadow: none; }
+  .pill i { font-size: 16px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 46px; padding: 0 20px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 600; }
+  .btn.ghost { background: var(--tint); color: var(--accent); }
+  .row { display: flex; align-items: center; gap: 14px; }
+  .row .ic { width: 44px; height: 44px; border-radius: 14px; background: var(--tint); display: grid; place-items: center; font-size: 22px; color: var(--accent); flex: none; }
+  .row .tx { flex: 1; min-width: 0; }
+  .row .tx b { display: block; font-size: 15px; font-weight: 600; }
+  .row .tx span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .row .chk { font-size: 26px; color: #D9D2CA; }
+  .row.done .chk { color: var(--accent); }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); background: #EFEAE3; border-radius: 12px; padding: 3px; margin: 6px 0 14px; }
+  .seg span { text-align: center; font-size: 13px; font-weight: 600; color: var(--muted); height: 30px; line-height: 30px; border-radius: 9px; }
+  .seg span.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .avs { display: flex; }
+  .av { width: 32px; height: 32px; border-radius: 50%; background: var(--tint); color: var(--accent); font-size: 12px; font-weight: 700; display: grid; place-items: center; border: 2px solid var(--card); margin-left: -8px; }
+  .av:first-child { margin-left: 0; }
+  .bar { height: 6px; border-radius: 3px; background: #F0E9E1; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 30%; background: var(--accent); border-radius: 3px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 12px; border-radius: 999px; background: var(--card); box-shadow: var(--shadow); font-size: 13px; font-weight: 500; white-space: nowrap; }
+  .chip i { color: var(--accent); font-size: 15px; }
+  .beta { font-size: 11px; color: var(--muted); text-align: center; padding: 6px 0 2px; font-weight: 500; }
+
+  /* ---------- 화면 1 오늘 ---------- */
+  .hero { position: relative; margin: 0 -20px; padding: 8px 20px 12px; background: radial-gradient(120% 90% at 18% 0%, var(--peach) 0%, rgba(255, 233, 218, 0) 70%); }
+  .hero .date { font-size: 13px; font-weight: 600; color: var(--accent); }
+  .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 0 12px; }
+  .quick div { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; color: var(--ink); }
+  .quick i { width: 50px; height: 50px; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); display: grid; place-items: center; font-size: 24px; color: var(--accent); }
+  .note { display: flex; align-items: center; gap: 10px; height: 44px; border-radius: var(--r-input); border: 1px solid var(--line); padding: 0 14px; font-size: 14px; color: var(--muted); background: var(--bg); }
+  .note i { color: var(--accent); font-size: 18px; }
+
+  /* ---------- 화면 2 읽기 ---------- */
+  .reader { font-family: var(--serif); font-size: 17.5px; line-height: 1.9; }
+  .reader p { margin: 0 0 14px; }
+  .reader .n { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--accent); margin-right: 6px; vertical-align: 4px; }
+  .reader .hl { background: linear-gradient(transparent 62%, #FFD9C7 62%); }
+  .term { display: inline; border-bottom: 1.5px dotted var(--accent); color: var(--ink); }
+  .exnote { font-size: 11px; color: var(--muted); font-family: var(--sans); margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
+  .sheet { position: absolute; left: 12px; right: 12px; bottom: 96px; background: var(--card); border-radius: var(--r-card); box-shadow: 0 -8px 30px rgba(60, 40, 20, 0.16); padding: 14px 18px 16px; z-index: 5; }
+  .sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: #E2DAD0; margin: 0 auto 10px; }
+  .sheet h4 { margin: 0 0 6px; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  .sheet p { margin: 0; font-size: 13.5px; line-height: 1.6; color: #3F4350; }
+  .sheet .acts { display: flex; gap: 8px; margin-top: 12px; }
+  .sheet .acts span { flex: 1; height: 38px; border-radius: 999px; display: grid; place-items: center; font-size: 13px; font-weight: 600; background: var(--tint); color: var(--accent); }
+  .sheet .acts span.dim { background: #F3F1EE; color: var(--muted); }
+  .tools { position: absolute; left: 0; right: 0; bottom: 83px; height: 52px; border-top: 1px solid var(--line); background: rgba(255,251,246,0.9); display: grid; grid-template-columns: repeat(4, 1fr); align-items: center; z-index: 4; }
+  .tools div { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--muted); font-weight: 500; }
+  .tools i { font-size: 21px; color: var(--ink); }
+
+  /* ---------- 화면 3 질문 ---------- */
+  .tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--line); margin: 4px 0 12px; }
+  .tabs span { font-size: 17px; font-weight: 600; color: var(--muted); padding: 4px 2px 10px; }
+  .tabs span.on { color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+  .tabs .sp { margin-left: auto; font-size: 22px; color: var(--ink); padding-top: 2px; }
+  .q { align-self: flex-end; max-width: 86%; margin-left: auto; background: var(--accent); color: #fff; border-radius: 18px 18px 4px 18px; padding: 11px 14px; font-size: 15px; line-height: 1.5; margin-bottom: 12px; }
+  .ai { border-radius: var(--r-card); padding: 12px 14px 14px; background: repeating-linear-gradient(135deg, #FFF7F1 0 6px, #FFFBF6 6px 12px); border: 1px dashed #E3D6C9; margin-bottom: 10px; }
+  .ai p { margin: 6px 0 0; font-size: 14.5px; line-height: 1.65; }
+  .ai p a { color: var(--accent); font-weight: 600; text-decoration: none; font-size: 12px; vertical-align: 2px; }
+  .cite { background: var(--card); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 12px 14px 12px 16px; border-left: 4px solid var(--ink); margin-bottom: 10px; }
+  .cite .verse { font-size: 14.5px; line-height: 1.75; }
+  .rel { background: var(--card); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 2px 14px; margin: 0 0 12px; }
+  .rel .r { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .rel .r:last-child { border-bottom: 0; }
+  .rel .r .verse { font-size: 13px; line-height: 1.5; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rel .r b { flex: none; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .fade { position: absolute; left: 0; right: 0; bottom: 83px; height: 76px; background: linear-gradient(rgba(255,251,246,0), var(--bg) 55%); z-index: 4; }
+  .fu { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ask { position: absolute; left: 12px; right: 12px; bottom: 92px; height: 50px; border-radius: 999px; background: var(--card); box-shadow: var(--shadow); display: flex; align-items: center; padding: 0 8px 0 18px; font-size: 14px; color: var(--muted); z-index: 5; }
+  .ask i { margin-left: auto; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 18px; }
+
+  /* ---------- 화면 4 서고 ---------- */
+  .search { display: flex; align-items: center; gap: 10px; height: 46px; border-radius: var(--r-input); background: var(--card); box-shadow: var(--shadow); padding: 0 14px; font-size: 15px; color: var(--muted); margin-bottom: 10px; }
+  .search i { font-size: 20px; color: var(--accent); }
+  .chips { display: flex; gap: 8px; overflow: hidden; margin-bottom: 14px; }
+  .h2 { font-size: 15px; font-weight: 700; margin: 4px 0 10px; display: flex; align-items: center; }
+  .h2 span { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--accent); }
+  .lib { background: var(--card); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 4px 16px; margin-bottom: 12px; }
+  .lib .row { padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .lib .row:last-child { border-bottom: 0; }
+  .lib .ic { border-radius: 12px; font-family: var(--serif); font-size: 16px; font-weight: 700; }
+  .lib .ic.m { background: #FDECE6; }
+  .lib .ic.o { background: #FFF3DF; color: #9A5B12; }
+  .lib .ic.b { background: #F6EAF2; color: #8A3B6B; }
+  .lib .ic.n { background: #EAF1F7; color: #2F5A8C; }
+  .lib .ic.q { background: #EEF1EA; color: #4E6B3A; }
+  .lib .row .go { color: #C9C2B8; font-size: 18px; }
+
+  /* ---------- 화면 5 가정 ---------- */
+  .week { display: flex; justify-content: space-between; margin: 10px 0 12px; }
+  .week div { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--muted); background: #F5F0EA; }
+  .week div.d { background: var(--tint); color: var(--accent); }
+  .week div.t { background: var(--accent); color: #fff; }
+  .item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .item:last-child { border-bottom: 0; }
+  .item i { color: var(--accent); font-size: 20px; }
+  .item .st { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 500; }
+  .sermon { display: flex; gap: 10px; overflow: hidden; }
+  .sermon .card { flex: 0 0 236px; margin: 0; padding: 14px 16px; }
+  .sermon .who { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .sermon .who .av { width: 36px; height: 36px; margin: 0; font-size: 14px; }
+  .sermon .who b { display: block; font-size: 14px; }
+  .sermon .who span { font-size: 12px; color: var(--muted); }
+  .sermon .ttl { font-size: 15px; font-weight: 600; line-height: 1.4; margin: 0 0 8px; }
+  .sermon .mt { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .sermon .mt i { color: var(--accent); font-size: 16px; }
+
+  /* ---------- 화면 6 나 ---------- */
+  .prof { display: flex; align-items: center; gap: 14px; margin: 4px 0 14px; }
+  .prof .av { width: 56px; height: 56px; font-size: 20px; margin: 0; border: 0; }
+  .prof div b { display: block; font-size: 18px; }
+  .prof div span { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+  .stats b { display: block; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+  .stats b em { font-style: normal; font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 1px; }
+  .stats span { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 8px; text-align: center; font-size: 12px; }
+  .cal .h { color: var(--muted); font-weight: 600; font-size: 11px; }
+  .cal .d { display: grid; place-items: center; }
+  .cal .d i { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 500; border: 1.5px solid #EAE3DA; color: var(--ink); }
+  .cal .d.on i { background: var(--tint); border-color: var(--tint); color: var(--accent); font-weight: 700; }
+  .cal .d.skip i { border-style: dashed; color: var(--muted); }
+  .cal .d.today i { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  .cal .d.f i { border-color: transparent; color: #C9C2B8; }
+  .sw-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .sw-row:last-child { border-bottom: 0; }
+  .sw-row b { display: block; font-weight: 600; }
+  .sw-row span { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .sw-row .tg { margin-left: auto; width: 46px; height: 28px; border-radius: 14px; background: var(--accent); position: relative; flex: none; }
+  .sw-row .tg::after { content: ""; position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; }
+  .sw-row .tg.off { background: #DDD6CD; }
+  .sw-row .tg.off::after { right: auto; left: 3px; }
+</style>
+</head>
+<body>
+
+<header class="board-head">
+  <div>
+    <h1>훈독(가안) · 안 A 아침 햇살</h1>
+    <p>아침 훈독회의 밝은 창가. 초원 사용자가 바로 알아보는 카드 루틴을 iOS 문법으로 옮겼다. 강조색은 감(persimmon) 한 가지, 말씀 본문만 명조. 화면 속 이름·교회·일수는 예시이고 말씀 인용은 저장소 큐레이션 카드다.</p>
+  </div>
+  <div class="swatches">
+    <span class="sw" style="background:#FFFBF6"></span>
+    <span class="sw" style="background:#FFE9DA"></span>
+    <span class="sw" style="background:#C2452B"></span>
+    <span class="sw" style="background:#23262F"></span>
+    <span class="sw-label">Pretendard + Noto Serif KR</span>
+  </div>
+</header>
+
+<main class="board">
+
+<!-- ================= 1 오늘 ================= -->
+<figure class="shot" id="s1">
+<div class="device">
+  <div class="island"></div>
+  <div class="status"><span>9:41</span><span class="r"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+  <div class="content">
+    <div class="beta">독립 운영 베타, 가정연합 공식 앱이 아닙니다</div>
+    <div class="hero">
+      <div class="date">9월 9일 수요일</div>
+      <h1 class="lt">좋은 아침이에요,<br>민준 식구님</h1>
+      <div style="display:flex;gap:8px">
+        <span class="pill accent"><i class="ph-fill ph-check-circle"></i>정성 12일째</span>
+        <span class="pill"><i class="ph ph-users-three"></i>우리 가정 3명 훈독</span>
+      </div>
+    </div>
+    <div class="quick">
+      <div><i class="ph ph-magnifying-glass"></i>말씀 검색</div>
+      <div><i class="ph ph-calendar-check"></i>정성 기간</div>
+      <div><i class="ph ph-scroll"></i>가정맹세</div>
+      <div><i class="ph ph-book-bookmark"></i>용어 사전</div>
+    </div>
+
+    <section class="card">
+      <div class="label"><span class="tag">원문</span>오늘의 말씀<span class="meta">읽기 1분</span></div>
+      <p class="verse">참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다. 91도도 89도도 직단이 아닙니다. 오로지 최단거리는 90각도밖에 없습니다. 수직은 90각도를 통해야 됩니다.</p>
+      <div class="src"><b>천성경</b><span>3대 경전</span><i class="ph ph-caret-right" style="margin-left:auto;font-size:16px"></i></div>
+    </section>
+
+    <section class="card row done">
+      <div class="ic"><i class="ph ph-book-open"></i></div>
+      <div class="tx"><b>말씀 읽기</b><span>오늘의 말씀을 읽었어요</span></div>
+      <i class="ph-fill ph-check-circle chk"></i>
+    </section>
+    <section class="card row">
+      <div class="ic"><i class="ph ph-hands-praying"></i></div>
+      <div class="tx"><b>보고기도</b><span>저녁 9시에 알려 드릴게요</span></div>
+      <i class="ph ph-circle chk"></i>
+    </section>
+    <section class="card row">
+      <div class="ic"><i class="ph ph-pencil-simple-line"></i></div>
+      <div class="tx"><b>묵상 한 줄</b><span>나만 볼 수 있어요</span></div>
+      <i class="ph ph-circle chk"></i>
+    </section>
+
+    <section class="card">
+      <div class="label">40일 훈독 정성<span class="meta">12일째</span></div>
+      <div class="bar"><i></i></div>
+      <div class="src" style="margin-top:8px">우리 가정 4명이 함께해요<span style="margin-left:auto">28일 남음</span></div>
+    </section>
+  </div>
+  <nav class="tabbar">
+    <div class="tab on"><i class="ph-fill ph-sun-horizon"></i>오늘</div>
+    <div class="tab"><i class="ph ph-chat-circle-dots"></i>질문</div>
+    <div class="tab center"><i class="ph ph-book-open"></i>말씀</div>
+    <div class="tab"><i class="ph ph-users-three"></i>가정</div>
+    <div class="tab"><i class="ph ph-user-circle"></i>나</div>
+  </nav>
+  <div class="home"></div>
+</div>
+<figcaption>1 · 오늘 <span>SCR-PWA-001</span></figcaption>
+</figure>
+
+<!-- ================= 2 말씀 읽기 ================= -->
+<figure class="shot" id="s2">
+<div class="device">
+  <div class="island"></div>
+  <div class="status"><span>9:41</span><span class="r"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+  <div class="content">
+    <div class="nav">
+      <span class="b"><i class="ph ph-caret-left"></i></span>
+      <div class="t">원리강론<small>전편 제1장 창조원리, 제3절 창조목적</small></div>
+      <span class="b"><i class="ph ph-text-aa"></i></span>
+    </div>
+    <div class="seg"><span class="on">원문</span><span>AI 설명</span><span>내 메모</span></div>
+    <div class="exnote"><i class="ph ph-info"></i>아래 본문은 프로토타입용 예시 요약이며 정본 전재가 아닙니다</div>
+    <div class="reader">
+      <p><span class="n">1</span>하늘부모님은 기쁨을 얻기 위해 피조세계를 창조하셨다. 기쁨은 혼자서가 아니라 자신을 닮은 대상을 통해 온다.</p>
+      <p><span class="n">2</span><span class="hl">인간에게 주신 창조목적은 <span class="term">3대 축복</span>으로 요약된다. 개성을 완성하고, 참가정을 이루며, 만물을 주관하는 것이다.</span></p>
+      <p><span class="n">3</span>이 세 축복이 <span class="term">사위기대</span>를 이루어 완성될 때 하늘부모님의 기쁨과 인간의 기쁨이 하나 되는 세계가 열린다.</p>
+      <p><span class="n">4</span>따라서 창조목적을 이룬 인간은 하늘부모님과 <span class="term">심정</span>으로 통하는 존재이며, 만물은 그런 인간을 통해 기쁨의 대상이 된다.</p>
+    </div>
+
+    <div class="sheet">
+      <div class="grab"></div>
+      <h4>사위기대 <span class="tag o3">공식 해설</span></h4>
+      <p>하늘부모님을 중심으로 부부와 자녀가 이루는 네 위치의 기대. 창조목적이 완성되는 기본 단위로 설명된다.</p>
+      <div class="acts"><span><i class="ph ph-book-open" style="margin-right:4px"></i>관련 원문 3</span><span class="dim">AI 설명 보기</span></div>
+    </div>
+  </div>
+  <div class="tools">
+    <div><i class="ph ph-highlighter"></i>밑줄</div>
+    <div><i class="ph ph-note-pencil"></i>메모</div>
+    <div><i class="ph ph-bookmark-simple"></i>저장</div>
+    <div><i class="ph ph-list-bullets"></i>목차</div>
+  </div>
+  <nav class="tabbar">
+    <div class="tab"><i class="ph ph-sun-horizon"></i>오늘</div>
+    <div class="tab"><i class="ph ph-chat-circle-dots"></i>질문</div>
+    <div class="tab center on"><i class="ph-fill ph-book-open"></i>말씀</div>
+    <div class="tab"><i class="ph ph-users-three"></i>가정</div>
+    <div class="tab"><i class="ph ph-user-circle"></i>나</div>
+  </nav>
+  <div class="home"></div>
+</div>
+<figcaption>2 · 말씀 읽기 <span>SCR-PWA-005 · 006</span></figcaption>
+</figure>
+
+<!-- ================= 3 질문 ================= -->
+<figure class="shot" id="s3">
+<div class="device">
+  <div class="island"></div>
+  <div class="status"><span>9:41</span><span class="r"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+  <div class="content">
+    <div class="tabs"><span class="on">추천</span><span>북마크</span><span>내 질문</span><i class="ph ph-magnifying-glass sp"></i></div>
+
+    <div class="q">정성을 드린다는 건 구체적으로 무엇을 하는 건가요?</div>
+
+    <div class="ai">
+      <div class="label" style="margin:0"><span class="tag ai">AI 설명</span>공식 해설이 아닙니다</div>
+      <p>말씀에서 정성은 기간을 정해 기도와 훈독, 실천을 꾸준히 쌓는 일로 나타납니다. 참어머님은 성화 2주기를 앞두고 "남은 40여 일 동안 기도와 정성을 들이며" 준비하자고 하셨습니다. <a>원문 1</a></p>
+    </div>
+
+    <div class="cite">
+      <div class="label" style="margin-bottom:6px"><span class="tag">원문</span>참어머님 말씀 모음(최종본 2012년~)</div>
+      <p class="verse">모두가 그러한 마음가짐으로 남은 40여 일 동안 기도와 정성을 들이며 성화 2주기를 맞이하고 성화 3주기를 향해 출발해야 합니다. 하늘 앞에 약속해야 됩니다.</p>
+    </div>
+
+    <div class="h2">이어지는 질문</div>
+    <div class="fu">
+      <span class="chip"><i class="ph ph-arrow-bend-down-right"></i>40일 정성은 어떻게 시작하나요?</span>
+      <span class="chip"><i class="ph ph-arrow-bend-down-right"></i>정성과 조건은 어떻게 다른가요?</span>
+    </div>
+
+    <div class="h2">연관 말씀</div>
+    <div class="rel">
+      <div class="r"><span class="tag">원문</span><span class="verse">지상천국은 축복가정들의 손으로 만들 수 있나요, 없나요?</span><b>참어머님 말씀</b></div>
+      <div class="r"><span class="tag">원문</span><span class="verse">참사랑은 직단거리를 갑니다. 종적인 사랑은</span><b>천성경</b></div>
+    </div>
+
+    <div class="fade"></div>
+    <div class="ask">말씀에 대해 물어보세요<i class="ph ph-arrow-up"></i></div>
+  </div>
+  <nav class="tabbar">
+    <div class="tab"><i class="ph ph-sun-horizon"></i>오늘</div>
+    <div class="tab on"><i class="ph-fill ph-chat-circle-dots"></i>질문</div>
+    <div class="tab center"><i class="ph ph-book-open"></i>말씀</div>
+    <div class="tab"><i class="ph ph-users-three"></i>가정</div>
+    <div class="tab"><i class="ph ph-user-circle"></i>나</div>
+  </nav>
+  <div class="home"></div>
+</div>
+<figcaption>3 · 질문 <span>SCR-PWA-004</span></figcaption>
+</figure>
+
+<!-- ================= 4 말씀 서고 ================= -->
+<figure class="shot" id="s4">
+<div class="device">
+  <div class="island"></div>
+  <div class="status"><span>9:41</span><span class="r"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+  <div class="content">
+    <h1 class="lt" style="margin-top:8px">말씀</h1>
+    <div class="search"><i class="ph ph-magnifying-glass"></i>단어, 구절, 주제, 목차로 찾기</div>
+    <div class="chips">
+      <span class="chip"><i class="ph ph-tag"></i>심정</span>
+      <span class="chip"><i class="ph ph-quotes"></i>참사랑은 직단거리를</span>
+      <span class="chip"><i class="ph ph-sparkle"></i>정성의 의미</span>
+      <span class="chip"><i class="ph ph-list-bullets"></i>창조원리 3절</span>
+    </div>
+
+    <section class="card row">
+      <div class="ic"><i class="ph ph-bookmark-simple"></i></div>
+      <div class="tx"><b>이어서 읽기</b><span>원리강론, 창조원리 제3절 창조목적</span></div>
+      <i class="ph ph-caret-right" style="color:#C9C2B8;font-size:18px"></i>
+    </section>
+
+    <div class="h2">경전</div>
+    <div class="lib">
+      <div class="row"><div class="ic m">원</div><div class="tx"><b>원리강론</b><span>편, 장, 절로 읽기</span></div><i class="ph ph-caret-right go"></i></div>
+      <div class="row"><div class="ic m">천</div><div class="tx"><b>천성경</b><span>3대 경전</span></div><i class="ph ph-caret-right go"></i></div>
+      <div class="row"><div class="ic m">평</div><div class="tx"><b>평화경</b><span>3대 경전</span></div><i class="ph ph-caret-right go"></i></div>
+      <div class="row"><div class="ic m">참</div><div class="tx"><b>참부모경</b><span>3대 경전</span></div><i class="ph ph-caret-right go"></i></div>
+    </div>
+
+    <div class="h2">말씀 모음<span>전체 보기</span></div>
+    <div class="lib">
+      <div class="row"><div class="ic o">선</div><div class="tx"><b>문선명선생 말씀선집</b><span>615권, 날짜와 장소로 찾기</span></div><i class="ph ph-caret-right go"></i></div>
+      <div class="row"><div class="ic b">어</div><div class="tx"><b>참어머님 말씀</b><span>말씀정선집</span></div><i class="ph ph-caret-right go"></i></div>
+      <div class="row"><div class="ic n">자</div><div class="tx"><b>평화를 사랑하는 세계인으로</b><span>자서전</span></div><i class="ph ph-caret-right go"></i></div>
+      <div class="row"><div class="ic q">통</div><div class="tx"><b>통일사상요강</b><span>참부모론 총론과 함께</span></div><i class="ph ph-caret-right go"></i></div>
+    </div>
+  </div>
+  <nav class="tabbar">
+    <div class="tab"><i class="ph ph-sun-horizon"></i>오늘</div>
+    <div class="tab"><i class="ph ph-chat-circle-dots"></i>질문</div>
+    <div class="tab center on"><i class="ph-fill ph-book-open"></i>말씀</div>
+    <div class="tab"><i class="ph ph-users-three"></i>가정</div>
+    <div class="tab"><i class="ph ph-user-circle"></i>나</div>
+  </nav>
+  <div class="home"></div>
+</div>
+<figcaption>4 · 말씀 서고 <span>SCR-PWA-002</span></figcaption>
+</figure>
+
+<!-- ================= 5 가정 ================= -->
+<figure class="shot" id="s5">
+<div class="device">
+  <div class="island"></div>
+  <div class="status"><span>9:41</span><span class="r"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+  <div class="content">
+    <h1 class="lt" style="margin-top:8px">가정</h1>
+
+    <section class="card">
+      <div class="label">우리 가정<span class="meta">4명</span></div>
+      <div class="row" style="gap:12px">
+        <div class="avs"><span class="av">아</span><span class="av">엄</span><span class="av">민</span><span class="av">서</span></div>
+        <div class="tx"><b>오늘 3명이 훈독했어요</b><span>함께 읽는 말씀: 천성경 참사랑</span></div>
+      </div>
+      <div class="week">
+        <div class="d">월</div><div class="d">화</div><div class="t">수</div><div>목</div><div>금</div><div>토</div><div>일</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <span class="btn ghost" style="flex:1;height:40px;font-size:14px"><i class="ph ph-user-plus"></i>가족 초대</span>
+        <span class="btn ghost" style="flex:1;height:40px;font-size:14px"><i class="ph ph-calendar-check"></i>정성 함께 세우기</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="label">가정예배 챌린지<span class="meta">4주 중 2주째</span></div>
+      <div class="item"><i class="ph ph-book-open"></i>함께 훈독<span class="st">수요일 저녁</span></div>
+      <div class="item"><i class="ph ph-hands-praying"></i>보고기도<span class="st">돌아가며 한 명</span></div>
+      <div class="item"><i class="ph ph-chat-teardrop-text"></i>나눔 한 마디<span class="st">자료 준비 중</span></div>
+    </section>
+
+    <div class="h2">5분 말씀<span>전체 설교</span></div>
+    <div class="sermon">
+      <div class="card">
+        <div class="who"><span class="av">이</span><div><b>이현우 교회장</b><span>천안교회</span></div></div>
+        <p class="ttl">위하는 삶이 먼저입니다</p>
+        <div class="mt"><i class="ph-fill ph-play-circle"></i>5:02<span style="margin-left:auto">천성경 참사랑</span></div>
+      </div>
+      <div class="card">
+        <div class="who"><span class="av">정</span><div><b>정수연 교회장</b><span>부산교회</span></div></div>
+        <p class="ttl">정성은 하늘과 맺는 약속</p>
+        <div class="mt"><i class="ph-fill ph-play-circle"></i>4:48<span style="margin-left:auto">참어머님 말씀</span></div>
+      </div>
+    </div>
+    <div class="src" style="margin-top:12px;justify-content:center">교회장이신가요? <b style="color:var(--accent)">5분 말씀 신청</b></div>
+  </div>
+  <nav class="tabbar">
+    <div class="tab"><i class="ph ph-sun-horizon"></i>오늘</div>
+    <div class="tab"><i class="ph ph-chat-circle-dots"></i>질문</div>
+    <div class="tab center"><i class="ph ph-book-open"></i>말씀</div>
+    <div class="tab on"><i class="ph-fill ph-users-three"></i>가정</div>
+    <div class="tab"><i class="ph ph-user-circle"></i>나</div>
+  </nav>
+  <div class="home"></div>
+</div>
+<figcaption>5 · 가정 <span>SCR-PWA-010 · 012</span></figcaption>
+</figure>
+
+<!-- ================= 6 나의 훈독 ================= -->
+<figure class="shot" id="s6">
+<div class="device">
+  <div class="island"></div>
+  <div class="status"><span>9:41</span><span class="r"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-full"></i></span></div>
+  <div class="content">
+    <div class="nav" style="justify-content:flex-end"><span class="b"><i class="ph ph-gear"></i></span></div>
+    <div class="prof">
+      <span class="av">민</span>
+      <div><b>민준 식구님</b><span>대표 말씀: 참사랑은 직단거리를 갑니다 (천성경)</span></div>
+    </div>
+
+    <section class="card">
+      <div class="label">나의 정성<span class="meta">나만 볼 수 있어요</span></div>
+      <div class="stats">
+        <div><b>12<em>일</em></b><span>지금 정성</span></div>
+        <div><b>21<em>일</em></b><span>가장 길게</span></div>
+        <div><b>47<em>일</em></b><span>모두 합쳐</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="label">2026년 9월<span class="meta">건너뛴 날은 점선</span></div>
+      <div class="cal">
+        <div class="h">월</div><div class="h">화</div><div class="h">수</div><div class="h">목</div><div class="h">금</div><div class="h">토</div><div class="h">일</div>
+        <div class="d f"><i>31</i></div>
+        <div class="d on"><i>1</i></div><div class="d on"><i>2</i></div><div class="d on"><i>3</i></div><div class="d on"><i>4</i></div><div class="d skip"><i>5</i></div><div class="d on"><i>6</i></div>
+        <div class="d on"><i>7</i></div><div class="d on"><i>8</i></div><div class="d today"><i>9</i></div><div class="d"><i>10</i></div><div class="d"><i>11</i></div><div class="d"><i>12</i></div><div class="d"><i>13</i></div>
+        <div class="d"><i>14</i></div><div class="d"><i>15</i></div><div class="d"><i>16</i></div><div class="d"><i>17</i></div><div class="d"><i>18</i></div><div class="d"><i>19</i></div><div class="d"><i>20</i></div>
+      </div>
+    </section>
+
+    <section class="card" style="padding-top:8px;padding-bottom:8px">
+      <div class="sw-row"><i class="ph ph-sun-horizon" style="color:var(--accent);font-size:22px"></i><div><b>아침 훈독</b><span>오전 7:00, 잠금 화면에는 중립 문구만</span></div><span class="tg"></span></div>
+      <div class="sw-row"><i class="ph ph-moon" style="color:var(--accent);font-size:22px"></i><div><b>저녁 보고기도</b><span>오후 9:00</span></div><span class="tg"></span></div>
+      <div class="sw-row"><i class="ph ph-chat-circle-dots" style="color:var(--accent);font-size:22px"></i><div><b>추천 질문</b><span>일주일에 한 번</span></div><span class="tg off"></span></div>
+    </section>
+
+    <section class="card" style="padding-top:8px;padding-bottom:8px">
+      <div class="sw-row"><i class="ph ph-books" style="color:var(--accent);font-size:22px"></i><div><b>내 서재</b><span>저장한 말씀 14, 메모 6, 질문 3</span></div><i class="ph ph-caret-right" style="margin-left:auto;color:#C9C2B8"></i></div>
+      <div class="sw-row"><i class="ph ph-download-simple" style="color:var(--accent);font-size:22px"></i><div><b>내 데이터 내려받기</b></div><i class="ph ph-caret-right" style="margin-left:auto;color:#C9C2B8"></i></div>
+    </section>
+  </div>
+  <nav class="tabbar">
+    <div class="tab"><i class="ph ph-sun-horizon"></i>오늘</div>
+    <div class="tab"><i class="ph ph-chat-circle-dots"></i>질문</div>
+    <div class="tab center"><i class="ph ph-book-open"></i>말씀</div>
+    <div class="tab"><i class="ph ph-users-three"></i>가정</div>
+    <div class="tab on"><i class="ph-fill ph-user-circle"></i>나</div>
+  </nav>
+  <div class="home"></div>
+</div>
+<figcaption>6 · 나의 훈독 <span>SCR-PWA-013 · 008</span></figcaption>
+</figure>
+
+</main>
+</body>
+</html>
