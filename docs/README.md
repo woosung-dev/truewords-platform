@@ -7,6 +7,7 @@
 | [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md) | web/admin/API 경계, 공통 API·인증·SSE·알림 정책 |
 | [전환 실행 계획](plans/completed/2026-09-05-monorepo-migration.md) | M1~M4 범위와 실제 검증 증거, M5 제외 범위 |
 | [앱별 UI 실행 계획](plans/active/2026-09-05-app-owned-ui.md) | 후속 2안 승인 범위와 재검증 증거 |
+| [모바일/PC 뷰 전략 실행 계획](plans/active/2026-09-14-next-sessions.md) | `DEC-VIEW-001` D→A 순차의 세션 4개 계획과 시작 프롬프트 |
 | [로컬 환경 설정](runbooks/environment-setup.md) | 앱별 실행과 환경변수 |
 | [전환·복구 runbook](runbooks/monorepo-migration-and-rollback.md) | 로컬 볼륨 보존, 운영 origin·이미지·라우팅 전환 |
 | [TODO](TODO.md) | 승인 대기 결정과 후속 작업 |
@@ -56,7 +57,7 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 | [07-multi-chatbot-version](architecture/07-multi-chatbot-version.md), [11-data-routing-strategies](architecture/11-data-routing-strategies.md) | 챗봇 조합·라우팅 |
 | [08-semantic-cache](architecture/08-semantic-cache.md), [09-security-countermeasures](architecture/09-security-countermeasures.md) | 캐시·가드레일 설계 |
 | [구조 다이어그램 7종](architecture/diagrams/README.md) | 현재 구조 (main `8980e0c`, 2026-09-06 재생성). 운영·레포·데이터·채팅·적재 2종·배포 워크플로. JSON 원본·HTML 뷰어·PNG. 분리 전 JSON 은 [archive](archive/diagrams-2026-09-04/) |
-| [ADR 목록](adr/) | 기존 ADR 번호 유지. [Oracle 이전](adr/2026-07-25-gcp-to-oracle-migration.md), [HTTP/2 회피](adr/47-qdrant-sdk-http2-permanent-fix.md), [CI/CD 점검 결정](adr/2026-09-05-cicd-audit-decisions.md), [툴체인 최신화(pnpm 12·TS 6·Next 16.3)](adr/2026-09-06-toolchain-latest-decisions.md), [Biome 전환 결정(2026-09-06 확정 · P3 ①·② 완료)](adr/2026-09-06-biome-migration-proposal.md) 등 |
+| [ADR 목록](adr/) | 기존 ADR 번호 유지. [Oracle 이전](adr/2026-07-25-gcp-to-oracle-migration.md), [HTTP/2 회피](adr/47-qdrant-sdk-http2-permanent-fix.md), [CI/CD 점검 결정](adr/2026-09-05-cicd-audit-decisions.md), [툴체인 최신화(pnpm 12·TS 6·Next 16.3)](adr/2026-09-06-toolchain-latest-decisions.md), [Biome 전환 결정(2026-09-06 확정 · P3 ①·② 완료)](adr/2026-09-06-biome-migration-proposal.md), [모바일/PC 뷰 전략(D→A 순차·PC 시안 폐기)](adr/2026-09-14-mobile-pc-view-strategy.md) 등 |
 
 현재 앱의 위치와 실행 명령은 [루트 README](../README.md), 현재 설계는 [ARCH-MONO-001](architecture/2026-09-05-pwa-flutter-monorepo.md)을 우선한다. 과거 아키텍처 문서의 청사진·성능 수치는 이번 이전에서 재측정한 결과가 아니다.
 

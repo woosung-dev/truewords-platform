@@ -21,6 +21,13 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Completed
 
+### 모바일/PC 뷰 전략 결정 (2026-09-14 · [ADR](adr/2026-09-14-mobile-pc-view-strategy.md))
+
+- [x] PC 데스크톱 시안 4안 제작 후 전략 5안 설계 + 3렌즈 비교 판정 (조사: [RSH-VIEW-001](research/2026-09-14-mobile-pc-view-strategy.md))
+- [x] `DEC-VIEW-001` D→A 순차 채택 — 계측 우선, 데이터 확인 후 반응형 단일 뷰로 확장. B(뷰 2벌)·C(라우트 분리) 기각
+- [x] `DEC-VIEW-002` PC 전용 시안 폐기 — HTML 9개 삭제, 구조 요약만 [archive](archive/design-2026-09-pc-chat/README.md) 보존
+- [x] 다음 세션 4개 실행 계획 + 시작 프롬프트 작성 ([PLAN-NEXT-001](plans/active/2026-09-14-next-sessions.md))
+
 ### PWA·Flutter 모노레포 전환 설계 (2026-09-05)
 
 - [x] `ARCH-MONO-001` — 현재 admin/backend·인증·SSE·CI·Oracle 구성을 기준으로 목표 구조와 경계 작성 (`docs/architecture/2026-09-05-pwa-flutter-monorepo.md`)
@@ -177,6 +184,9 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Questions
 
+- `[확인 필요]` `device_class` 보존 기간. 훈독 PRD `AC-PWA-015-02` 가 이벤트 사전에 보존 기간 기록을 요구하는데 레포에 동의 수집 지점이 0건이다. 파생 3값이라 실질 위험은 낮으나 그 판단 근거를 이벤트 사전(`EVT-001`)에 명시해야 조항을 충족한다
+- `[확인 필요]` `device_class` 는 **신규 세션 생성 시에만** 기록된다(`session.py::_get_or_create_session` 이 기존 세션을 그대로 반환). `/history` 에서 "이어서 대화"로 진입한 세션은 기기가 바뀌어도 최초 기기로 귀속된다 — 집계 해석 시 이 한계를 감안할 것
+- `[확인 필요]` `/history`(515줄) 존치 여부. 단계 4에서 세션 레일을 만들면 `/history` 는 "검색·필터가 되는 레일" 이상이 아니게 된다. 단계 4 착수 전 결정 필요
 - `[종결]` `DEC-MONO-005` — 사용자 승인 후 `apps/admin` 배포별 override로 Vercel preview `dpl_7mjHQuuQA2NuFddcxmz18G7RBbVc`의 `READY`를 확인했었다. 2026-09-05 main 머지 후 Production 배포가 Root Directory `admin` 부재로 실패했고, 같은 날 **Vercel 프로젝트 즉시 삭제**를 결정해 preview·전역 Root Directory 논점이 사라졌다. [전환 runbook](runbooks/monorepo-migration-and-rollback.md#외부-vercel-설정-종결) 참조.
 - `[종결]` `DEC-MONO-002` — **2026-09-06 확정**: web 은 기존 `app.woosung.dev` 유지, admin 은 `truewords-admin.woosung.dev`(zone 을 nexus·kairos·quantbridge 와 공유하므로 프로젝트 접두어). 컷오버 순서는 [전환 runbook §배포 승인 후 순서](runbooks/monorepo-migration-and-rollback.md#배포-승인-후-순서), 실행은 단계별 승인.
 - `[확인 필요]` `DEC-MONO-003` — 일반 사용자 로그인 방식 및 기존 데모 계정·기록의 이전 여부. identity 구현 전 필요하다.
@@ -191,6 +201,20 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ---
 
 ## Next Actions
+
+### 모바일/PC 뷰 전략 실행 (2026-09-14 · [PLAN-NEXT-001](plans/active/2026-09-14-next-sessions.md))
+
+착수 순서: **S1 (병렬 가능, 우선)** / 웹 트랙 **S2 → S4 → S3**. 금지 조합: `S3 ∥ S4`, `S2 ∥ S4`.
+
+- [ ] **0단계** — `make e2e` 1회로 공통 E2E 기준선을 확정해 이 파일에 고정 (현재 S2 "18 passed/5 failed" vs S4 "admin 결함 5건"으로 기준선이 엇갈린다)
+- [ ] **S1 기기 계측** — `research_sessions.device_class` 컬럼 + 집계 + admin 분포 카드. `feat/device-class-instrumentation`. **지연 비용이 실재하는 유일한 세션이라 가장 먼저 착수한다** (붙인 날부터 4~8주 대기 시작)
+- [ ] **S1 후속** — 계측 재판단의 **목표 날짜 2개(4주차 중간 점검 / 8주차 판정)·최소 표본 기준·판정 쿼리**를 이 파일에 고정. 분모는 `measured_sessions`(unknown 제외). 이것이 없으면 계측을 붙인 이유가 무효가 된다
+- [ ] **S2 안전망** — `(chat)/page.tsx` 렌더 테스트 4경로(스트리밍 누적·abort·placeholder dedupe·세션 하이드레이션) + `tests/e2e/playwright.config.ts` viewport 명시(**S2 단독 소유**)
+- [ ] **S2 추가** — 스트리밍 중 입력 보존 케이스를 테스트로 고정. 현행은 `sendingRef` 가드(`page.tsx:341`)가 `setInput("")`(347)보다 앞서 return 해서 입력이 보존되는데, S3 계획서의 뷰 코드가 이 순서를 뒤집어 질문을 삼킨다
+- [ ] **S4 데스크톱 하한** — `AC-PWA-014-01` 충족. `max-w-2xl` 4곳(**739·830·997·1054**) 조정, `max-w-3xl`(768px) 상한. `UI-WEB-001` 에 "넓은 화면" 절 신설. 정보구조 불변
+- [ ] **S4 후속** — `make deploy-web` (S4 는 4개 중 유일하게 사용자 화면을 바꾸는데 배포 항목이 없으면 main 에만 남는다)
+- [ ] **S3 부채 정리** — `useChatSession()` 추출, `stripDisclaimer` 중복 제거(`page.tsx:91` + `history/page.tsx:45`), dead code(`lib/reactions-api.ts` 참조 0건). 안전망 확보 후 마지막
+- [ ] **S3 후속** — `apps/web/AGENTS.md`·`.ai/rules/frontend.md` 에 `features/chat/hooks.ts` 신설 반영. react-hooks v7 규칙 항목의 `page.tsx:1256` 은 이미 stale(파일 1217줄)이므로 재확인
 
 ### 모노레포 전환 (2026-09-05)
 
