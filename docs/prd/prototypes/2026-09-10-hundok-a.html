@@ -1,0 +1,1419 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>훈독 프로토타입 A 아침 햇살</title>
+<meta name="description" content="가정연합 식구를 위한 훈독 앱 클릭형 프로토타입 A. 모든 콘텐츠는 프로토타입용 예시." />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+<style>
+/* =============================================================
+   훈독 프로토타입 A 「아침 햇살」
+   라이트 고정 · 웜 뉴트럴 + 액센트 1색(감귤) · Pretendard 단일 서체
+   모서리 16px lock (버튼·카드·입력 동일) · Phosphor 아이콘 단일 패밀리
+   모든 말씀·인물·교회·수치는 프로토타입용 예시.
+   ============================================================= */
+:root {
+  --bg: #f4f2ee;            /* 스테이지 배경 */
+  --paper: #fbfaf8;         /* 앱 바탕 (웜 오프화이트, 크림/베이지 아님) */
+  --surface: #ffffff;
+  --surface-2: #f1efea;
+  --ink: #23211f;
+  --ink-2: #5a5652;
+  --ink-3: #6f6a65;
+  --line: #e5e1da;
+  --accent: #c24721;        /* 감귤. 페이지 유일 액센트 (흰 글자 대비 4.98:1) */
+  --accent-ink: #ffffff;
+  --accent-soft: #fbe9e1;
+  --ok: #2f7a4f;            /* 완료 체크 전용 시맨틱(액센트 아님) */
+  --ok-soft: #e4f1e8;
+  --r: 16px;
+  --shadow: 0 10px 30px rgba(87, 62, 40, 0.10);
+  --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  font-size: 15px;
+  line-height: 1.5;
+}
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+img { display: block; max-width: 100%; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ---------- 스테이지 (데스크톱: 인덱스 + 폰 프레임) ---------- */
+.stage {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 32px;
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.index {
+  position: sticky; top: 32px; align-self: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 20px;
+  max-height: calc(100dvh - 64px);
+  overflow: auto;
+}
+.index h1 { font-size: 18px; margin: 0 0 4px; letter-spacing: -0.01em; }
+.index .sub { color: var(--ink-3); font-size: 13px; margin: 0 0 14px; }
+.index .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.index .chip { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line); }
+.index ol { list-style: none; margin: 0; padding: 0; }
+.index li a {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 8px; border-radius: 10px; font-size: 13.5px; color: var(--ink-2);
+}
+.index li a:hover { background: var(--surface-2); }
+.index li a.is-current { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.index li a .n { width: 20px; font-variant-numeric: tabular-nums; color: var(--ink-3); font-size: 12px; }
+.index .group { font-size: 11px; color: var(--ink-3); margin: 12px 0 4px; padding-left: 8px; }
+.index .note { font-size: 12px; color: var(--ink-3); border-top: 1px solid var(--line); margin-top: 14px; padding-top: 12px; line-height: 1.5; }
+
+/* ---------- iPhone 프레임 ---------- */
+.phone-wrap { display: flex; justify-content: center; align-items: flex-start; }
+.phone {
+  width: 430px; height: 932px;
+  background: #0d0d0e;
+  border-radius: 58px;
+  padding: 12px;
+  box-shadow: 0 30px 80px rgba(40, 30, 20, 0.25), inset 0 0 0 2px #2a2a2c;
+  position: relative;
+}
+.screen {
+  position: relative;
+  width: 100%; height: 100%;
+  background: var(--paper);
+  border-radius: 46px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.island {
+  position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+  width: 126px; height: 36px; background: #0d0d0e; border-radius: 20px; z-index: 40;
+}
+.status {
+  height: 54px; flex: none; display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 0 34px 8px; font-size: 15px; font-weight: 600;
+}
+.status .right { display: flex; gap: 6px; align-items: center; font-size: 14px; }
+.view { flex: 1; overflow: auto; position: relative; scrollbar-width: none; }
+.view::-webkit-scrollbar { display: none; }
+.tabbar {
+  flex: none; height: 84px;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  padding: 8px 6px 0; position: relative;
+}
+.tabbar a {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  font-size: 11px; color: var(--ink-3); padding-top: 4px;
+}
+.tabbar a i { font-size: 24px; line-height: 1; }
+.tabbar a.is-active { color: var(--accent); font-weight: 600; }
+.tabbar a.center { margin-top: -26px; }
+.tabbar a.center .bubble {
+  width: 62px; height: 62px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink);
+  display: grid; place-items: center; box-shadow: var(--shadow);
+}
+.tabbar a.center .bubble i { font-size: 28px; }
+.tabbar a.center.is-active { color: var(--accent); }
+.home-ind {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  width: 134px; height: 5px; border-radius: 3px; background: var(--ink);
+  opacity: 0.85;
+}
+
+/* ---------- 라우트 ---------- */
+.route { display: none; min-height: 100%; }
+.route.is-active { display: block; }
+.pad { padding: 8px 20px 24px; }
+.appbar {
+  display: flex; align-items: center; gap: 10px; padding: 6px 12px 8px;
+  position: sticky; top: 0; background: var(--paper); z-index: 5;
+}
+.appbar h2 { font-size: 18px; margin: 0; flex: 1; letter-spacing: -0.01em; }
+.appbar .icon-btn, .icon-btn {
+  width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 22px;
+}
+.icon-btn:active { transform: scale(0.96); }
+
+/* ---------- 텍스트 ---------- */
+h3 { font-size: 17px; margin: 0; letter-spacing: -0.01em; }
+.muted { color: var(--ink-3); }
+.small { font-size: 12.5px; }
+.eyebrow { font-size: 12px; color: var(--ink-3); }
+.title-lg { font-size: 26px; font-weight: 700; line-height: 1.3; letter-spacing: -0.02em; margin: 0; }
+.serif-quote { font-size: 20px; line-height: 1.55; font-weight: 500; letter-spacing: -0.01em; }
+
+/* ---------- 카드 ---------- */
+.card { display: block;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 16px; box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+}
+.card + .card { margin-top: 12px; }
+.card.plain { background: transparent; border: 0; padding: 0; box-shadow: none; }
+.row { display: flex; align-items: center; gap: 12px; }
+.row.between { justify-content: space-between; }
+.stack > * + * { margin-top: 12px; }
+.sect { margin-top: 22px; }
+.sect-h { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+.sect-h h3 { font-size: 16px; }
+.sect-h a { font-size: 13px; color: var(--ink-3); }
+
+/* ---------- 버튼 ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 50px; padding: 0 20px; border-radius: var(--r);
+  font-weight: 600; font-size: 15px; width: 100%;
+  transition: transform 0.12s ease;
+}
+.btn:active { transform: scale(0.985); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: var(--surface-2); color: var(--ink); }
+.btn.line { border: 1px solid var(--line); background: var(--surface); }
+.btn.sm { height: 38px; font-size: 13.5px; padding: 0 14px; width: auto; }
+.btn.dark { background: var(--ink); color: #fff; }
+.fab {
+  position: absolute; right: 18px; bottom: 18px;
+  height: 52px; padding: 0 20px; border-radius: 26px;
+  background: var(--accent); color: var(--accent-ink);
+  display: inline-flex; align-items: center; gap: 8px; font-weight: 600;
+  box-shadow: var(--shadow);
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 8px;
+  background: var(--surface-2); color: var(--ink-2);
+}
+.badge.accent { background: var(--accent-soft); color: var(--accent); }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.outline { background: transparent; border: 1px solid var(--line); }
+
+/* ---------- 홈: 인사·요일·미션 ---------- */
+.hero-photo {
+  position: relative; height: 210px; border-radius: var(--r); overflow: hidden;
+  background: var(--surface-2);
+}
+.hero-photo img { width: 100%; height: 100%; object-fit: cover; }
+.hero-photo .veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(35,33,31,0) 30%, rgba(35,33,31,0.78) 100%);
+}
+.hero-photo .text { position: absolute; left: 18px; right: 18px; bottom: 16px; color: #fff; }
+.hero-photo .text .greet { font-size: 21px; font-weight: 700; line-height: 1.35; letter-spacing: -0.02em; }
+.hero-photo .text .sub { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+.week { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; }
+.week .days { display: flex; gap: 6px; }
+.week .day {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 12.5px; color: var(--ink-3); border: 1px solid var(--line); background: var(--surface);
+}
+.week .day.done { background: var(--ok-soft); color: var(--ok); border-color: transparent; font-weight: 600; }
+.week .day.today { border: 2px solid var(--accent); color: var(--accent); font-weight: 700; }
+.week .streak { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.week .streak b { color: var(--accent); font-size: 16px; }
+.mission {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+}
+.mission .ico {
+  width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center;
+  background: var(--surface-2); font-size: 24px; color: var(--ink-2); flex: none;
+}
+.mission .body { flex: 1; min-width: 0; }
+.mission .body .k { font-size: 12px; color: var(--ink-3); }
+.mission .body .t { font-size: 16px; font-weight: 600; margin-top: 1px; }
+.mission .body .m { font-size: 12.5px; color: var(--ink-3); margin-top: 3px; display: flex; gap: 8px; align-items: center; }
+.check {
+  width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line);
+  display: grid; place-items: center; color: transparent; flex: none;
+  transition: all 0.15s ease;
+}
+.check.is-on { background: var(--ok); border-color: var(--ok); color: #fff; }
+.mission.is-done .ico { background: var(--ok-soft); color: var(--ok); }
+.progress { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.progress > i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.avatars { display: flex; }
+.avatars img, .avatar {
+  width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 2px solid var(--surface);
+  background: var(--surface-2);
+}
+.avatars > * + * { margin-left: -8px; }
+.avatar.lg { width: 56px; height: 56px; }
+.avatar.xl { width: 72px; height: 72px; }
+
+/* ---------- 말씀 카드 (권위 층) ---------- */
+.src-line { font-size: 12px; color: var(--ink-3); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.src-line .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--line); }
+.quote-official {
+  border-left: 4px solid var(--ink); padding: 4px 0 4px 14px; margin: 12px 0;
+  font-size: 16.5px; line-height: 1.7;
+}
+.ai-box {
+  background-image: radial-gradient(var(--line) 1px, transparent 1px);
+  background-size: 8px 8px; background-color: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px;
+}
+.ai-box .lab { font-size: 11.5px; font-weight: 600; color: var(--ink-2); display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.note-box { border: 1.5px dashed var(--line); border-radius: var(--r); padding: 12px 14px; }
+.term {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 8px;
+  background: var(--accent-soft); color: var(--accent); font-size: 12.5px; font-weight: 600;
+}
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip-btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 12px;
+  padding: 9px 12px; font-size: 13.5px; text-align: left; line-height: 1.35;
+}
+.chip-btn:active { background: var(--surface-2); }
+.list { display: flex; flex-direction: column; }
+.list .item {
+  display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line);
+}
+.list .item:last-child { border-bottom: 0; }
+.list .item .t { font-size: 15px; font-weight: 500; line-height: 1.4; }
+.list .item .m { font-size: 12.5px; color: var(--ink-3); margin-top: 3px; }
+.seg { display: flex; gap: 18px; border-bottom: 1px solid var(--line); padding: 0 20px; }
+.seg button { padding: 10px 2px 12px; font-size: 16px; color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.seg button.is-on { color: var(--ink); font-weight: 700; border-color: var(--accent); }
+.tabpane { display: none; }
+.tabpane.is-on { display: block; }
+.pill-seg { display: inline-flex; background: var(--surface-2); border-radius: 12px; padding: 3px; }
+.pill-seg button { padding: 7px 12px; border-radius: 10px; font-size: 13.5px; color: var(--ink-3); }
+.pill-seg button.is-on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+/* ---------- 폼 ---------- */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.field input, .field textarea, .field select {
+  font: inherit; font-size: 15px; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--surface);
+}
+.field input:focus, .field textarea:focus, .field select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.field .help { font-size: 12px; color: var(--ink-3); }
+.field textarea { min-height: 88px; resize: none; }
+.opt-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.opt {
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 8px; text-align: center; background: var(--surface);
+}
+.opt b { display: block; font-size: 18px; }
+.opt span { font-size: 12px; color: var(--ink-3); }
+.opt.is-on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.opt.is-on span { color: var(--accent); }
+.toggle { width: 46px; height: 28px; border-radius: 14px; background: var(--line); position: relative; flex: none; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: left 0.15s; }
+.toggle.is-on { background: var(--accent); }
+.toggle.is-on::after { left: 21px; }
+
+/* ---------- 하이라이트 ---------- */
+.hl-1 { background: #fff0c9; }
+.hl-2 { background: #dcefe3; }
+.hl-3 { background: #ffe0d6; }
+.verse { display: flex; gap: 10px; margin: 0 0 14px; font-size: 17px; line-height: 1.75; }
+.verse .n { color: var(--ink-3); font-size: 12px; padding-top: 6px; width: 16px; flex: none; }
+.reader-bar {
+  position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(5, 1fr); padding: 8px 6px 10px;
+}
+.reader-bar a { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--ink-2); }
+.reader-bar a i { font-size: 22px; }
+.audio {
+  display: flex; align-items: center; gap: 12px; background: var(--ink); color: #fff;
+  border-radius: var(--r); padding: 10px 14px; margin: 14px 20px 0;
+}
+.audio .play { width: 40px; height: 40px; border-radius: 50%; background: #fff; color: var(--ink); display: grid; place-items: center; font-size: 20px; }
+.audio .bar { flex: 1; height: 4px; background: rgba(255,255,255,0.25); border-radius: 2px; overflow: hidden; }
+.audio .bar i { display: block; width: 38%; height: 100%; background: var(--accent); }
+.audio .t { font-size: 12px; opacity: 0.8; font-variant-numeric: tabular-nums; }
+
+/* ---------- 달력 ---------- */
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px 0; text-align: center; }
+.cal .h { font-size: 11px; color: var(--ink-3); padding-bottom: 4px; }
+.cal .d { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; color: var(--ink-2); padding: 2px 0; }
+.cal .d i { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font-size: 14px; color: transparent; }
+.cal .d.done i { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.cal .d.today { color: var(--accent); font-weight: 700; }
+.cal .d.today i { border-color: var(--accent); }
+.cal .d.rest i { background: var(--surface-2); border-color: transparent; color: var(--ink-3); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+.stats b { display: block; font-size: 24px; letter-spacing: -0.02em; }
+.stats span { font-size: 12px; color: var(--ink-3); }
+.stats b.accent { color: var(--accent); }
+
+/* ---------- 시트 ---------- */
+.sheet-veil {
+  position: absolute; inset: 0; background: rgba(35,33,31,0.45); z-index: 30;
+  display: none; align-items: flex-end;
+}
+.sheet-veil.is-open { display: flex; }
+.sheet {
+  width: 100%; background: var(--paper); border-radius: 28px 28px 0 0;
+  padding: 10px 20px 28px; max-height: 88%; overflow: auto;
+  animation: up 0.22s ease;
+}
+@keyframes up { from { transform: translateY(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+.sheet .grip { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 14px; }
+.sheet h3 { font-size: 19px; margin-bottom: 4px; }
+.toast {
+  position: absolute; left: 50%; bottom: 104px; transform: translateX(-50%);
+  background: var(--ink); color: #fff; border-radius: 12px; padding: 10px 14px; font-size: 13.5px;
+  display: none; z-index: 35; white-space: nowrap;
+}
+.toast.is-on { display: block; }
+
+/* ---------- 베타 고지 띠 ---------- */
+.beta { font-size: 11.5px; color: var(--ink-3); text-align: center; padding: 8px 20px 0; }
+
+/* ---------- 온보딩 ---------- */
+.route.onb.is-active { display: flex; flex-direction: column; min-height: 100%; }
+.onb .art { height: 300px; position: relative; overflow: hidden; }
+.onb .art img { width: 100%; height: 100%; object-fit: cover; }
+.onb .art .veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(251,250,248,0) 55%, var(--paper) 100%); }
+.onb .body { padding: 8px 24px 24px; flex: 1; display: flex; flex-direction: column; }
+.church-list .item { cursor: pointer; }
+.church-list .item.is-on .t { color: var(--accent); font-weight: 700; }
+.radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); flex: none; display: grid; place-items: center; }
+.item.is-on .radio { border-color: var(--accent); }
+.item.is-on .radio::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+
+/* ---------- 설교 ---------- */
+.pastors { display: flex; gap: 14px; overflow: auto; padding-bottom: 4px; scrollbar-width: none; }
+.pastors::-webkit-scrollbar { display: none; }
+.pastor { flex: none; width: 76px; text-align: center; font-size: 12px; color: var(--ink-2); }
+.pastor img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin: 0 auto 6px; }
+.pastor .c { font-size: 11px; color: var(--ink-3); }
+.sermon { display: flex; gap: 12px; align-items: flex-start; }
+.sermon .thumb { width: 124px; height: 84px; border-radius: 12px; object-fit: cover; flex: none; position: relative; }
+.sermon .thumb-wrap { position: relative; flex: none; }
+.sermon .dur { position: absolute; right: 6px; bottom: 6px; background: rgba(0,0,0,0.7); color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 6px; }
+.sermon .t { font-size: 15px; font-weight: 600; line-height: 1.4; }
+.sermon .m { font-size: 12.5px; color: var(--ink-3); margin-top: 4px; }
+.sermon-hero { border-radius: var(--r); overflow: hidden; position: relative; height: 200px; }
+.sermon-hero img { width: 100%; height: 100%; object-fit: cover; }
+.sermon-hero .veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 20%, rgba(0,0,0,0.75) 100%); }
+.sermon-hero .text { position: absolute; left: 16px; right: 16px; bottom: 14px; color: #fff; }
+.sermon-hero .text .t { font-size: 19px; font-weight: 700; line-height: 1.35; }
+.sermon-hero .text .m { font-size: 12.5px; opacity: 0.85; margin-top: 4px; }
+
+/* ---------- 순서지 ---------- */
+.order { list-style: none; margin: 0; padding: 0; }
+.order li { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.order li:last-child { border-bottom: 0; }
+.order .no { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); color: var(--ink-2); font-size: 12px; font-weight: 700; display: grid; place-items: center; flex: none; }
+.order .k { font-size: 12px; color: var(--ink-3); }
+.order .t { font-size: 15px; font-weight: 600; }
+.order .d { font-size: 13.5px; color: var(--ink-2); margin-top: 3px; line-height: 1.5; }
+
+/* ---------- 반응형 ---------- */
+@media (max-width: 1023px) {
+  .stage { grid-template-columns: 1fr; padding: 16px; gap: 16px; }
+  .index { position: static; max-height: none; }
+}
+@media (max-width: 480px) {
+  .stage { padding: 0; }
+  .index { display: none; }
+  .phone { width: 100%; height: 100dvh; border-radius: 0; padding: 0; box-shadow: none; background: var(--paper); }
+  .screen { border-radius: 0; }
+  .island { display: none; }
+  .status { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet { animation: none; }
+  .btn, .check, .toggle::after { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ===================== 화면 인덱스 (데스크톱) ===================== -->
+  <aside class="index" aria-label="화면 인덱스">
+    <h1>훈독 · A 아침 햇살</h1>
+    <p class="sub">라이트 · 웜 뉴트럴 + 감귤 1색 · Pretendard · 모서리 16px</p>
+    <div class="chips" aria-label="팔레트">
+      <span class="chip" style="background:#fbfaf8" title="#fbfaf8 바탕"></span>
+      <span class="chip" style="background:#f1efea" title="#f1efea 표면 2"></span>
+      <span class="chip" style="background:#23211f" title="#23211f 잉크"></span>
+      <span class="chip" style="background:#c24721" title="#c24721 액센트"></span>
+      <span class="chip" style="background:#2f7a4f" title="#2f7a4f 완료"></span>
+    </div>
+    <ol id="index-list">
+      <li class="group">진입</li>
+      <li><a href="#/onboarding"><span class="n">01</span>온보딩 · 베타 고지 · 교회 선택</a></li>
+      <li class="group">오늘 훈독</li>
+      <li><a href="#/today"><span class="n">02</span>오늘 훈독 (홈)</a></li>
+      <li><a href="#/today/read"><span class="n">03</span>훈독하기 (미션 실행)</a></li>
+      <li><a href="#/today/jeongseong"><span class="n">04</span>정성 기간 만들기 (시트)</a></li>
+      <li class="group">AI 질문</li>
+      <li><a href="#/ask"><span class="n">05</span>AI 질문 목록</a></li>
+      <li><a href="#/ask/1"><span class="n">06</span>질문·답변 상세</a></li>
+      <li class="group">말씀</li>
+      <li><a href="#/words"><span class="n">07</span>말씀 서고</a></li>
+      <li><a href="#/words/search"><span class="n">08</span>말씀 검색</a></li>
+      <li><a href="#/words/read"><span class="n">09</span>원문 뷰</a></li>
+      <li class="group">가정예배</li>
+      <li><a href="#/worship"><span class="n">10</span>가정예배 홈 · 순서지 · 챌린지</a></li>
+      <li><a href="#/worship/challenge"><span class="n">11</span>챌린지 상세</a></li>
+      <li><a href="#/worship/sermons"><span class="n">12</span>5분 설교 · 전체 설교</a></li>
+      <li><a href="#/worship/request"><span class="n">13</span>설교 섭외·신청</a></li>
+      <li class="group">나의 뜰</li>
+      <li><a href="#/me"><span class="n">14</span>나의 뜰</a></li>
+      <li><a href="#/me/notifications"><span class="n">15</span>알림·설치 설정</a></li>
+      <li><a href="#/me/family"><span class="n">16</span>가족·친구</a></li>
+    </ol>
+    <p class="note">모든 말씀·인물·교회·수치는 프로토타입용 예시입니다. 말씀 발췌는 저장소의 featured_malssum.json 20건 범위입니다. 사진은 picsum.photos 예시 이미지입니다.</p>
+  </aside>
+
+  <!-- ===================== iPhone 프레임 ===================== -->
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="screen">
+        <div class="island" aria-hidden="true"></div>
+        <div class="status" aria-hidden="true">
+          <span>9:41</span>
+          <span class="right"><i class="ph-fill ph-cell-signal-full"></i><i class="ph-fill ph-wifi-high"></i><i class="ph-fill ph-battery-high"></i></span>
+        </div>
+
+        <div class="view" id="view">
+
+          <!-- ============ 01 온보딩 ============ -->
+          <section class="route onb" data-route="/onboarding">
+            <div class="art">
+              <img src="https://picsum.photos/id/65/860/720" alt="아침 햇살 속 들판에 선 사람" />
+              <div class="veil"></div>
+            </div>
+            <div class="body">
+              <p class="eyebrow">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
+              <p class="title-lg" style="margin-top:6px">아침 3분 훈독으로<br />오늘을 시작해요</p>
+              <p class="muted" style="margin:10px 0 18px">매일 말씀을 읽고, 궁금한 건 출처 있는 말씀으로 확인하고, 주말엔 가족과 가정예배까지 이어집니다.</p>
+
+              <div class="stack">
+                <div class="row between">
+                  <h3 style="font-size:15px">소속 교회를 골라 주세요</h3>
+                  <span class="small muted">나중에 바꿀 수 있어요</span>
+                </div>
+                <div class="list church-list card" style="padding:4px 16px">
+                  <div class="item is-on" data-pick><span class="radio"></span><div><div class="t">성남 분당교회</div><div class="m">경기 성남시 · 식구 214명 참여 중</div></div></div>
+                  <div class="item" data-pick><span class="radio"></span><div><div class="t">수원 영통교회</div><div class="m">경기 수원시 · 식구 96명 참여 중</div></div></div>
+                  <div class="item" data-pick><span class="radio"></span><div><div class="t">아직 정하지 않음</div><div class="m">혼자 훈독부터 시작</div></div></div>
+                </div>
+                <a class="btn primary" href="#/today">시작하기</a>
+                <a class="btn ghost" href="#/today">둘러보기 (로그인 없이)</a>
+              </div>
+              <p class="beta" style="margin-top:auto">AI 설명은 공식 원문이나 공식 해설이 아닙니다. 각 답변의 출처와 검수 상태를 확인해 주세요.</p>
+            </div>
+          </section>
+
+          <!-- ============ 02 오늘 훈독 (홈) ============ -->
+          <section class="route" data-route="/today" data-tab="today">
+            <div class="appbar">
+              <h2>오늘 훈독</h2>
+              <a class="icon-btn" href="#/me/notifications" aria-label="알림"><i class="ph ph-bell"></i></a>
+            </div>
+            <div class="pad">
+              <div class="hero-photo">
+                <img src="https://picsum.photos/id/65/860/520" alt="아침 햇살" />
+                <div class="veil"></div>
+                <div class="text">
+                  <div class="greet">밤이 깊을수록 새벽은 가까워요.<br />효진님, 오늘도 함께 읽어요.</div>
+                  <div class="sub">9월 10일 수요일 · 분당교회 식구 38명이 벌써 훈독했어요</div>
+                </div>
+              </div>
+
+              <div class="week" aria-label="이번 주">
+                <div class="days">
+                  <span class="day done">월</span><span class="day done">화</span><span class="day today">수</span>
+                  <span class="day">목</span><span class="day">금</span><span class="day">토</span><span class="day">일</span>
+                </div>
+                <div class="streak"><i class="ph-fill ph-flame" style="color:var(--accent)"></i>연속 <b>12</b>일</div>
+              </div>
+
+              <div class="stack" style="margin-top:14px">
+                <a class="card mission" href="#/today/read" data-mission="read">
+                  <div class="ico"><i class="ph ph-book-open-text"></i></div>
+                  <div class="body">
+                    <div class="k">훈독하기 · 3분</div>
+                    <div class="t">참사랑은 직단거리를 갑니다</div>
+                    <div class="m"><span>천성경 · 참아버님</span><span class="sep"></span><span><i class="ph ph-users"></i> 38명 함께</span></div>
+                  </div>
+                  <span class="check" aria-label="완료 표시"><i class="ph-bold ph-check"></i></span>
+                </a>
+                <div class="card mission" data-mission="pray">
+                  <div class="ico"><i class="ph ph-hands-praying"></i></div>
+                  <div class="body">
+                    <div class="k">기도하기 · 1분</div>
+                    <div class="t">오늘의 기도 제목: 자녀의 새 학기</div>
+                    <div class="m">가족 기도 제목 2개 · 우리 교회 기도 제목 1개</div>
+                  </div>
+                  <button class="check" data-toggle-check aria-label="기도하기 완료"><i class="ph-bold ph-check"></i></button>
+                </div>
+                <a class="card mission" href="#/words/read" data-mission="words">
+                  <div class="ico"><i class="ph ph-books"></i></div>
+                  <div class="body">
+                    <div class="k">말씀 읽기 · 이어 읽기</div>
+                    <div class="t">천성경 제1편 3장</div>
+                    <div class="m">지난번 12단락까지 읽었어요</div>
+                  </div>
+                  <span class="check" aria-label="완료 표시"><i class="ph-bold ph-check"></i></span>
+                </a>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>정성 기간</h3><a href="#/me">기록 보기</a></div>
+                <div class="card">
+                  <div class="row between">
+                    <div>
+                      <div class="eyebrow">21일 새벽 정성 · 가정의 화목</div>
+                      <div style="font-size:18px;font-weight:700;margin-top:2px">D-14 <span class="muted" style="font-size:13px;font-weight:500">7일째</span></div>
+                    </div>
+                    <span class="badge accent">오늘 말씀 준비됨</span>
+                  </div>
+                  <div class="progress" style="margin:12px 0 8px"><i style="width:33%"></i></div>
+                  <div class="row between small muted"><span>7 / 21일</span><span>매일 오전 5:30 알림</span></div>
+                </div>
+                <button class="btn line" style="margin-top:10px" data-open-sheet="jeongseong"><i class="ph ph-plus"></i>새 정성 시작하기</button>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>함께 읽는 사람들</h3><a href="#/worship">챌린지</a></div>
+                <div class="card row between">
+                  <div class="row">
+                    <div class="avatars">
+                      <img src="https://picsum.photos/id/129/80/80" alt="" /><img src="https://picsum.photos/id/447/80/80" alt="" /><img src="https://picsum.photos/id/338/80/80" alt="" />
+                    </div>
+                    <div>
+                      <div style="font-weight:600">우리 가족 4명 중 2명 완료</div>
+                      <div class="small muted">재민, 하늘이 아직이에요</div>
+                    </div>
+                  </div>
+                  <i class="ph ph-caret-right muted"></i>
+                </div>
+              </div>
+              <p class="beta">독립 운영 베타 · 가정연합 공식 앱이 아닙니다 · 모든 콘텐츠는 예시</p>
+            </div>
+          </section>
+
+          <!-- ============ 03 훈독하기 ============ -->
+          <section class="route" data-route="/today/read" data-tab="today">
+            <div class="appbar">
+              <a class="icon-btn" href="#/today" aria-label="뒤로"><i class="ph ph-arrow-left"></i></a>
+              <h2>훈독하기</h2>
+              <span class="badge">3분</span>
+              <button class="icon-btn" aria-label="글자 크기"><i class="ph ph-text-aa"></i></button>
+            </div>
+            <div class="pad">
+              <div class="src-line">
+                <span>참아버님</span><span class="sep"></span><span>천성경</span><span class="sep"></span><span>제1편 3장</span><span class="sep"></span><span>2013 한국어판</span><span class="sep"></span><span class="badge ok" style="padding:1px 6px">O1 공식 원문</span>
+              </div>
+              <p class="title-lg" style="margin-top:12px">참사랑은 직단거리를 갑니다</p>
+              <div class="quote-official">
+                참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다. 91도도 89도도 직단이 아닙니다. 오로지 최단거리는 90각도밖에 없습니다. 수직은 90각도를 통해야 됩니다.
+              </div>
+              <div class="chips" style="margin-top:6px">
+                <button class="term" data-open-sheet="term"><i class="ph ph-book-bookmark"></i>참사랑</button>
+                <button class="term" data-open-sheet="term"><i class="ph ph-book-bookmark"></i>종적 사랑</button>
+                <button class="term" data-open-sheet="term"><i class="ph ph-book-bookmark"></i>직단거리</button>
+              </div>
+
+              <div class="sect">
+                <div class="ai-box">
+                  <div class="lab"><i class="ph ph-sparkle"></i>AI 설명 · 공식 해설 아님</div>
+                  <p style="margin:0;font-size:14.5px;line-height:1.65">이 말씀은 사랑이 하늘부모님과 나 사이의 가장 곧은 길, 즉 90도의 수직 관계를 통해서만 온전히 이어진다고 설명합니다. 조금이라도 비껴가면 최단거리가 아니라는 표현은 사랑에 조건이나 우회가 없어야 함을 강조합니다. <a href="#/words/read" style="color:var(--accent);font-weight:600">앞뒤 문단 보기</a></p>
+                </div>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>오늘의 한 줄</h3><span class="small muted">나만 봄</span></div>
+                <div class="note-box">
+                  <div class="field"><textarea placeholder="오늘 이 말씀을 어디에서 실천해 볼까요? (선택)"></textarea></div>
+                </div>
+              </div>
+
+              <div class="sect stack">
+                <button class="btn primary" data-complete-read><i class="ph ph-check"></i>훈독 완료</button>
+                <div class="row between small muted"><span>완료하면 연속 13일이 돼요</span><a href="#/ask/1" style="color:var(--accent);font-weight:600">이 말씀에 질문하기</a></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ 05 AI 질문 목록 ============ -->
+          <section class="route" data-route="/ask" data-tab="ask">
+            <div class="appbar">
+              <h2>AI 질문</h2>
+              <a class="icon-btn" href="#/words/search" aria-label="검색"><i class="ph ph-magnifying-glass"></i></a>
+            </div>
+            <div class="seg" data-tabs="ask">
+              <button class="is-on" data-tab-btn="rec">추천</button>
+              <button data-tab-btn="bm">북마크</button>
+              <button data-tab-btn="mine">내 질문</button>
+            </div>
+            <div class="pad">
+              <div class="tabpane is-on" data-tab-pane="rec">
+                <div class="list">
+                  <a class="item" href="#/ask/1"><div style="flex:1"><div class="t">정성을 드린다는 게 정확히 뭘 하는 건가요?</div><div class="m">이번 주 312명이 봤어요</div></div><i class="ph-fill ph-bookmark-simple" style="color:var(--accent);font-size:20px"></i></a>
+                  <a class="item" href="#/ask/1"><div style="flex:1"><div class="t">축복가정으로서 자녀에게 말씀을 어떻게 가르치나요?</div><div class="m">가정 · 자녀</div></div><i class="ph ph-bookmark-simple muted" style="font-size:20px"></i></a>
+                  <a class="item" href="#/ask/1"><div style="flex:1"><div class="t">탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</div><div class="m">용어 · 원리</div></div><i class="ph ph-bookmark-simple muted" style="font-size:20px"></i></a>
+                  <a class="item" href="#/ask/1"><div style="flex:1"><div class="t">직장에서 신앙을 말하기가 어려워요</div><div class="m">생활 · 청년</div></div><i class="ph ph-bookmark-simple muted" style="font-size:20px"></i></a>
+                  <a class="item" href="#/ask/1"><div style="flex:1"><div class="t">부모님과 신앙 문제로 자주 다퉈요. 어떻게 대화하죠?</div><div class="m">가정 · 2세</div></div><i class="ph ph-bookmark-simple muted" style="font-size:20px"></i></a>
+                  <a class="item" href="#/ask/1"><div style="flex:1"><div class="t">참사랑이 직단거리로 간다는 말씀의 의미가 궁금해요</div><div class="m">오늘 훈독에서 나온 질문</div></div><i class="ph ph-bookmark-simple muted" style="font-size:20px"></i></a>
+                </div>
+              </div>
+              <div class="tabpane" data-tab-pane="bm">
+                <div class="list">
+                  <a class="item" href="#/ask/1"><div style="flex:1"><div class="t">정성을 드린다는 게 정확히 뭘 하는 건가요?</div><div class="m">9월 8일 저장</div></div><i class="ph-fill ph-bookmark-simple" style="color:var(--accent);font-size:20px"></i></a>
+                  <a class="item" href="#/ask/1"><div style="flex:1"><div class="t">아이가 훈독을 지루해해요. 함께 읽는 방법이 있을까요?</div><div class="m">8월 30일 저장</div></div><i class="ph-fill ph-bookmark-simple" style="color:var(--accent);font-size:20px"></i></a>
+                </div>
+              </div>
+              <div class="tabpane" data-tab-pane="mine">
+                <div class="list">
+                  <a class="item" href="#/ask/1"><div style="flex:1"><div class="t">정성 기간 중 하루를 놓치면 처음부터 다시 해야 하나요?</div><div class="m">2026.09.09 22:14 · 비공개</div></div><i class="ph ph-trash muted" style="font-size:20px"></i></a>
+                  <a class="item" href="#/ask/1"><div style="flex:1"><div class="t">아이가 훈독을 지루해해요. 함께 읽는 방법이 있을까요?</div><div class="m">2026.08.30 07:52 · 비공개</div></div><i class="ph ph-trash muted" style="font-size:20px"></i></a>
+                  <a class="item" href="#/ask/1"><div style="flex:1"><div class="t">함박눈이 하늘의 축복이라는 말씀은 언제 하신 건가요?</div><div class="m">2026.08.21 21:03 · 무기억으로 물음</div></div><i class="ph ph-trash muted" style="font-size:20px"></i></a>
+                </div>
+                <div class="card" style="margin-top:14px;text-align:center;padding:22px">
+                  <i class="ph ph-lock-key" style="font-size:26px;color:var(--ink-3)"></i>
+                  <div style="font-weight:600;margin-top:6px">내 질문은 나만 볼 수 있어요</div>
+                  <div class="small muted" style="margin-top:4px">무기억으로 물은 질문은 제목만 남고 내용은 저장되지 않아요</div>
+                </div>
+              </div>
+            </div>
+            <a class="fab" href="#/ask/1"><i class="ph ph-plus"></i>질문하기</a>
+          </section>
+
+          <!-- ============ 06 질문·답변 상세 ============ -->
+          <section class="route" data-route="/ask/1" data-tab="ask">
+            <div class="appbar">
+              <a class="icon-btn" href="#/ask" aria-label="뒤로"><i class="ph ph-arrow-left"></i></a>
+              <h2>질문</h2>
+              <button class="icon-btn" aria-label="북마크"><i class="ph-fill ph-bookmark-simple" style="color:var(--accent)"></i></button>
+              <button class="icon-btn" aria-label="공유"><i class="ph ph-share-network"></i></button>
+            </div>
+            <div class="pad">
+              <p class="title-lg" style="font-size:22px">정성을 드린다는 게 정확히 뭘 하는 건가요?</p>
+              <div class="row" style="margin-top:8px;gap:8px">
+                <span class="badge">저장됨</span><span class="badge outline">근거 2 · 연관 2</span>
+              </div>
+
+              <div class="sect ai-box">
+                <div class="lab"><i class="ph ph-sparkle"></i>AI 설명 · 공식 해설 아님</div>
+                <p style="margin:0 0 10px;font-size:14.5px;line-height:1.65">근거 말씀에서 정성은 특정 기간을 정해 기도와 마음을 모아 하늘 앞에 약속을 세우는 실천으로 나타납니다. 40일이라는 기간과 "내가 있을 때 해야 한다"는 표현이 함께 쓰입니다.<sup style="color:var(--accent)">1</sup></p>
+                <p style="margin:0;font-size:14.5px;line-height:1.65">정성의 방향에 대해서는 사랑이 최단거리, 곧 수직으로 하늘과 이어져야 한다는 말씀이 함께 읽힙니다.<sup style="color:var(--accent)">2</sup> 구체적인 방법(시간·장소·횟수)은 근거 말씀에 명시되어 있지 않아 교회장께 확인을 권합니다.</p>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>근거 말씀</h3><span class="small muted">탭하면 원문으로</span></div>
+                <a class="card" href="#/words/read">
+                  <div class="src-line"><b style="color:var(--ink)">1</b><span class="sep"></span><span>참어머님</span><span class="sep"></span><span>참어머님 말씀 모음 (최종본 2012년~)</span><span class="sep"></span><span class="badge ok" style="padding:1px 6px">O1</span></div>
+                  <div class="quote-official" style="font-size:15px;margin:10px 0 0">모두가 그러한 마음가짐으로 남은 40여 일 동안 기도와 정성을 들이며 성화 2주기를 맞이하고 성화 3주기를 향해 출발해야 합니다. 하늘 앞에 약속해야 됩니다.</div>
+                </a>
+                <a class="card" href="#/words/read">
+                  <div class="src-line"><b style="color:var(--ink)">2</b><span class="sep"></span><span>참아버님</span><span class="sep"></span><span>천성경</span><span class="sep"></span><span>2013 한국어판</span><span class="sep"></span><span class="badge ok" style="padding:1px 6px">O1</span></div>
+                  <div class="quote-official" style="font-size:15px;margin:10px 0 0">참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다. 91도도 89도도 직단이 아닙니다.</div>
+                </a>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>연관 말씀</h3><a href="#/words/search">더 찾기</a></div>
+                <div class="list card" style="padding:2px 16px">
+                  <a class="item" href="#/words/read"><i class="ph ph-quotes muted" style="font-size:22px"></i><div style="flex:1"><div class="t">지상천국은 축복가정들의 손으로 만들 수 있나요, 없나요?</div><div class="m">참어머님 · 말씀모음(2018~2019) · O1</div></div><i class="ph ph-caret-right muted"></i></a>
+                  <a class="item" href="#/words/read"><i class="ph ph-quotes muted" style="font-size:22px"></i><div style="flex:1"><div class="t">여러분의 꿈은 하늘부모님의 꿈과 일치되어야 합니다</div><div class="m">참어머님 · 말씀(2016년) · O1</div></div><i class="ph ph-caret-right muted"></i></a>
+                </div>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>이어서 물어보기</h3></div>
+                <div class="chips" style="flex-direction:column">
+                  <button class="chip-btn" data-toast="이어지는 질문을 보냈어요 (예시)"><i class="ph ph-arrow-bend-down-right muted"></i> 정성 기간 중 하루를 놓치면 어떻게 하나요?</button>
+                  <button class="chip-btn" data-toast="이어지는 질문을 보냈어요 (예시)"><i class="ph ph-arrow-bend-down-right muted"></i> 가족과 함께 드리는 정성은 어떻게 시작하나요?</button>
+                  <button class="chip-btn" data-toast="이어지는 질문을 보냈어요 (예시)"><i class="ph ph-arrow-bend-down-right muted"></i> 40일 정성과 21일 정성은 무엇이 다른가요?</button>
+                </div>
+              </div>
+
+              <div class="sect card row between" style="padding:12px 16px">
+                <div><div style="font-weight:600;font-size:14px">이 질문 저장</div><div class="small muted">끄면 내용은 저장되지 않아요</div></div>
+                <button class="toggle is-on" data-toggle aria-label="질문 저장"></button>
+              </div>
+              <div class="sect">
+                <button class="btn line" data-open-sheet="jeongseong"><i class="ph ph-sun-horizon"></i>이 주제로 정성 시작하기</button>
+              </div>
+              <p class="beta">AI 설명은 참고용이며 교회장의 지도를 대체하지 않습니다.</p>
+            </div>
+          </section>
+
+          <!-- ============ 07 말씀 서고 ============ -->
+          <section class="route" data-route="/words" data-tab="words">
+            <div class="appbar">
+              <h2>말씀</h2>
+              <a class="icon-btn" href="#/words/search" aria-label="검색"><i class="ph ph-magnifying-glass"></i></a>
+            </div>
+            <div class="pad">
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+                <a class="card" href="#/words/search" style="text-align:center;padding:12px 4px"><i class="ph ph-book-bookmark" style="font-size:24px"></i><div class="small" style="margin-top:4px">용어 사전</div></a>
+                <a class="card" href="#/words/read" style="text-align:center;padding:12px 4px"><i class="ph ph-headphones" style="font-size:24px"></i><div class="small" style="margin-top:4px">오디오</div></a>
+                <a class="card" href="#/today" style="text-align:center;padding:12px 4px"><i class="ph ph-sun-horizon" style="font-size:24px"></i><div class="small" style="margin-top:4px">정성</div></a>
+                <a class="card" href="#/words/search" style="text-align:center;padding:12px 4px"><i class="ph ph-magnifying-glass" style="font-size:24px"></i><div class="small" style="margin-top:4px">검색</div></a>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>이어 읽기</h3></div>
+                <a class="card row" href="#/words/read" style="padding:12px">
+                  <img src="https://picsum.photos/id/24/160/200" alt="" style="width:64px;height:80px;border-radius:10px;object-fit:cover" />
+                  <div style="flex:1">
+                    <div class="eyebrow">천성경 · 제1편 3장</div>
+                    <div style="font-weight:700;font-size:16px;margin-top:2px">참사랑의 근본</div>
+                    <div class="progress" style="margin:8px 0 6px"><i style="width:58%"></i></div>
+                    <div class="small muted">12 / 21단락 · 어제 저녁</div>
+                  </div>
+                </a>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>서고</h3><span class="small muted">권리 확인된 정본만</span></div>
+                <div class="list card" style="padding:2px 16px">
+                  <a class="item" href="#/words/read"><div class="avatar" style="border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;width:40px;height:40px">천</div><div style="flex:1"><div class="t">천성경</div><div class="m">참부모님 · 2013 한국어판 · 16편</div></div><span class="badge ok">O1</span></a>
+                  <a class="item" href="#/words/read"><div class="avatar" style="border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;width:40px;height:40px">선</div><div style="flex:1"><div class="t">말씀선집</div><div class="m">참아버님 · 권별 열람 · 일부 권 권리 확인 중</div></div><span class="badge">일부</span></a>
+                  <a class="item" href="#/words/read"><div class="avatar" style="border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;width:40px;height:40px">어</div><div style="flex:1"><div class="t">참어머님 말씀 모음</div><div class="m">2012년~ · 최종본 · 2015 · 2016 · 2018~2019</div></div><span class="badge ok">O1</span></a>
+                  <a class="item" href="#/words/read"><div class="avatar" style="border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;width:40px;height:40px">평</div><div style="flex:1"><div class="t">평화경</div><div class="m">참부모님 · 2013 한국어판</div></div><span class="badge">확인 중</span></a>
+                  <a class="item" href="#/words/read"><div class="avatar" style="border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;width:40px;height:40px">자</div><div style="flex:1"><div class="t">평화를 사랑하는 세계인으로</div><div class="m">참아버님 자서전 · 2009</div></div><span class="badge ok">O2</span></a>
+                </div>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>최근 북마크</h3><a href="#/words/read">모두 보기</a></div>
+                <div class="card">
+                  <div class="src-line"><span>참어머님</span><span class="sep"></span><span>말씀 모음(최종본 2012년~)</span></div>
+                  <div class="quote-official" style="font-size:15px;margin:8px 0 0">우리가 뜻을 다 이루게 되면 우리는 매일 잔치다. 실감합니까?</div>
+                </div>
+              </div>
+              <p class="beta">권리 확인 중인 저작물은 검색·AI 근거·오프라인에 사용되지 않습니다.</p>
+            </div>
+          </section>
+
+          <!-- ============ 08 말씀 검색 ============ -->
+          <section class="route" data-route="/words/search" data-tab="words">
+            <div class="appbar">
+              <a class="icon-btn" href="#/words" aria-label="뒤로"><i class="ph ph-arrow-left"></i></a>
+              <div class="field" style="flex:1"><label class="sr" for="q">검색</label><input id="q" value="정성" placeholder="단어, 구절, 상황을 입력해 주세요" /></div>
+            </div>
+            <div class="pad">
+              <div class="row between" style="margin-bottom:8px">
+                <span class="small muted">"정성" 결과 3건 · 권리 확인 정본 안에서</span>
+                <span class="pill-seg"><button class="is-on">정확도</button><button>연도</button></span>
+              </div>
+              <div class="stack">
+                <a class="card" href="#/words/read">
+                  <div class="src-line"><span>참어머님</span><span class="sep"></span><span>말씀 모음(최종본 2012년~)</span><span class="sep"></span><span class="badge ok" style="padding:1px 6px">O1</span></div>
+                  <p style="margin:8px 0 0;font-size:14.5px;line-height:1.6">모두가 그러한 마음가짐으로 남은 40여 일 동안 기도와 <mark class="hl-1">정성</mark>을 들이며 성화 2주기를 맞이하고…</p>
+                </a>
+                <a class="card" href="#/words/read">
+                  <div class="src-line"><span>참어머님</span><span class="sep"></span><span>말씀(2016년)</span><span class="sep"></span><span class="badge ok" style="padding:1px 6px">O1</span></div>
+                  <p style="margin:8px 0 0;font-size:14.5px;line-height:1.6">참부모님과 동시대권을 살아가고 있는 여러분의 꿈은 하늘부모님의 꿈과 일치되어야 합니다. 새 시대와 새 역사 천일국의 참된 자녀요…</p>
+                </a>
+                <a class="card" href="#/words/read">
+                  <div class="src-line"><span>참어머님</span><span class="sep"></span><span>말씀모음(2018~2019)</span><span class="sep"></span><span class="badge ok" style="padding:1px 6px">O1</span></div>
+                  <p style="margin:8px 0 0;font-size:14.5px;line-height:1.6">지상천국은 축복가정들의 손으로 만들 수 있나요, 없나요? 「있습니다!」…</p>
+                </a>
+              </div>
+
+              <div class="sect card" style="background:var(--surface-2);border:0">
+                <h3 style="font-size:15px;margin-bottom:10px">이렇게도 찾을 수 있어요</h3>
+                <div class="eyebrow" style="margin-bottom:6px">키워드로</div>
+                <div class="chips"><button class="chip-btn">탕감복귀</button><button class="chip-btn">축복</button><button class="chip-btn">효정</button></div>
+                <div class="eyebrow" style="margin:12px 0 6px">구절로</div>
+                <div class="chips"><button class="chip-btn">참사랑은 직단거리를 갑니다</button><button class="chip-btn">매일 잔치</button></div>
+                <div class="eyebrow" style="margin:12px 0 6px">상황으로</div>
+                <div class="chips"><button class="chip-btn">함박눈 오신 날 말씀</button><button class="chip-btn">서대문형무소 시절</button></div>
+                <div class="eyebrow" style="margin:12px 0 6px">목차로</div>
+                <div class="chips"><button class="chip-btn">천성경 1편</button><button class="chip-btn">자서전 3장</button></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ 09 원문 뷰 ============ -->
+          <section class="route" data-route="/words/read" data-tab="words">
+            <div class="appbar">
+              <a class="icon-btn" href="#/words" aria-label="뒤로"><i class="ph ph-arrow-left"></i></a>
+              <h2>천성경 1편 3장 <i class="ph ph-caret-down" style="font-size:14px;color:var(--ink-3)"></i></h2>
+              <span class="badge">2013 한국어판</span>
+              <a class="icon-btn" href="#/words/search" aria-label="검색"><i class="ph ph-magnifying-glass"></i></a>
+            </div>
+            <div style="padding:0 20px"><div class="pill-seg" style="display:flex" data-tabs="reader">
+              <button class="is-on" style="flex:1" data-tab-btn="body">본문</button>
+              <button style="flex:1" data-tab-btn="ai">AI 설명</button>
+              <button style="flex:1" data-tab-btn="notes">노트 3</button>
+            </div></div>
+            <div class="audio" data-open-sheet="none">
+              <button class="play" aria-label="재생"><i class="ph-fill ph-pause"></i></button>
+              <div style="flex:1"><div class="small" style="font-weight:600">참사랑의 근본 · TTS 예시</div><div class="bar"><i></i></div></div>
+              <span class="t">2:14 / 5:48</span>
+            </div>
+            <div class="pad">
+              <div class="tabpane is-on" data-tab-pane="body">
+                <p class="verse"><span class="n">10</span><span>역사는 남성과 여성을 접촉시켜 나왔습니다. 남자와 여자는 하나의 기점에서 연결되어야 합니다. 그 연결은 <mark class="hl-2">참부모라는 내용을 중심삼고</mark> 되어야 하며, 그 참부모는 역사의 기원으로 출발되어야 합니다.</span></p>
+                <p class="verse"><span class="n">11</span><span><mark class="hl-1">참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다.</mark> 91도도 89도도 직단이 아닙니다. 오로지 최단거리는 90각도밖에 없습니다. 수직은 90각도를 통해야 됩니다.</span></p>
+                <p class="verse"><span class="n">12</span><span>아들 낳기를 고대하던 부부는 아들을 낳았다고 하더라도 그 아들 낳은 것만 좋아해서는 안 됩니다. 그 아들이 좋은 만큼 <mark class="hl-3">어떻게 가치 있는 아들로 키우느냐</mark> 하는 문제를 놓고 걱정을 해야 합니다.</span></p>
+                <p class="verse"><span class="n">13</span><span>여러분들 즐거웠어요? 맛있었어요? 아버님 많이 생각했죠? 우리가 뜻을 다 이루게 되면 우리는 매일 잔치다. 실감합니까? 누가 책임을 완수해서 축하해주기 위한 잔치, 누가 하늘 앞에 승리했기 때문에 잔치, 매일 잔치만 할 수 있는 때를 우리가 만들어야 되겠죠?</span></p>
+                <div class="card" style="background:var(--surface-2);border:0;margin-top:6px">
+                  <div class="row between"><div style="font-weight:600;font-size:14px">판본 나란히 보기</div><button class="toggle" data-toggle aria-label="판본 나란히"></button></div>
+                  <div class="small muted" style="margin-top:4px">2013 한국어판과 2006 초판 문장을 같은 단락에서 비교해요. 다른 문장은 자동으로 고르지 않아요.</div>
+                </div>
+                <p class="small muted" style="margin-top:14px">단락 12·13은 예시로 이어 붙인 발췌입니다. 실제 판본의 단락 순서가 아닙니다.</p>
+              </div>
+              <div class="tabpane" data-tab-pane="ai">
+                <div class="ai-box">
+                  <div class="lab"><i class="ph ph-sparkle"></i>AI 설명 · 공식 해설 아님</div>
+                  <p style="margin:0;font-size:14.5px;line-height:1.65">이 장은 참부모를 역사의 기점으로 두고, 사랑이 하늘과 사람 사이에서 곧게 이어져야 함을 말합니다. 자녀를 낳는 것보다 가치 있게 기르는 책임을 강조하는 문단이 뒤따릅니다. 각 문장은 본문 단락 10~12를 근거로 합니다.</p>
+                </div>
+                <div class="sect">
+                  <div class="sect-h"><h3>이 장의 용어</h3></div>
+                  <div class="chips"><button class="term" data-open-sheet="term">참부모</button><button class="term" data-open-sheet="term">종적 사랑</button><button class="term" data-open-sheet="term">직단거리</button><button class="term" data-open-sheet="term">기점</button></div>
+                </div>
+              </div>
+              <div class="tabpane" data-tab-pane="notes">
+                <div class="pill-seg" style="margin-bottom:12px"><button class="is-on">전체</button><button>노트</button><button>형광펜</button></div>
+                <div class="stack">
+                  <div class="note-box"><div class="row between small muted"><span>효진 · 9월 8일</span><span>나만 봄</span></div><div style="margin-top:6px"><span class="badge" style="background:#fff0c9">단락 11</span> 참사랑은 직단거리를 갑니다…</div><p style="margin:8px 0 0;font-size:14px">아이한테 "곧게 사랑한다"는 걸 어떻게 설명하지? 이번 주 가정예배 나눔 질문으로.</p></div>
+                  <div class="note-box"><div class="row between small muted"><span>효진 · 9월 2일</span><span>나만 봄</span></div><div style="margin-top:6px"><span class="badge" style="background:#dcefe3">단락 10</span> 참부모라는 내용을 중심삼고</div></div>
+                  <div class="note-box"><div class="row between small muted"><span>효진 · 8월 27일</span><span>나만 봄</span></div><div style="margin-top:6px"><span class="badge" style="background:#ffe0d6">단락 12</span> 어떻게 가치 있는 아들로 키우느냐</div><p style="margin:8px 0 0;font-size:14px">하늘이 새 학기. 이 문장으로 기도.</p></div>
+                </div>
+              </div>
+            </div>
+            <div class="reader-bar">
+              <a href="#/words/read"><i class="ph ph-highlighter"></i>형광펜</a>
+              <a href="#/words/read"><i class="ph ph-note-pencil"></i>노트</a>
+              <a href="#/words/read"><i class="ph ph-bookmark-simple"></i>북마크</a>
+              <a href="#/words/read"><i class="ph ph-list-bullets"></i>목차</a>
+              <a href="#/words/read"><i class="ph ph-gear"></i>설정</a>
+            </div>
+          </section>
+
+          <!-- ============ 10 가정예배 홈 ============ -->
+          <section class="route" data-route="/worship" data-tab="worship">
+            <div class="appbar">
+              <h2>가정예배</h2>
+              <a class="icon-btn" href="#/worship/request" aria-label="설교 신청"><i class="ph ph-microphone"></i></a>
+            </div>
+            <div class="pad">
+              <div class="hero-photo" style="height:180px">
+                <img src="https://picsum.photos/id/129/860/520" alt="벤치에 나란히 앉은 가족" />
+                <div class="veil"></div>
+                <div class="text">
+                  <div class="eyebrow" style="color:rgba(255,255,255,0.8)">이번 주 가정예배 · 9월 13일 일요일 저녁</div>
+                  <div class="greet" style="font-size:19px">우리 집 순서지가 준비됐어요</div>
+                </div>
+              </div>
+
+              <div class="card" style="margin-top:12px">
+                <ol class="order">
+                  <li><span class="no">1</span><div><div class="k">경배</div><div class="t">하늘부모님과 참부모님께 경배</div></div></li>
+                  <li><span class="no">2</span><div><div class="k">찬양</div><div class="t">성가 1곡 · 가족이 고른 곡</div><div class="d">지난주엔 하늘이가 골랐어요. 이번 주는 재민 차례.</div></div></li>
+                  <li><span class="no">3</span><div><div class="k">말씀 · 천성경 1편 3장</div><div class="t">참사랑은 직단거리를 갑니다</div><div class="d">돌아가며 한 단락씩 읽어요. 약 4분.</div></div></li>
+                  <li><span class="no">4</span><div><div class="k">나눔 질문</div><div class="t">이번 주 우리 집에서 "곧게 사랑한" 순간은?</div><div class="d">아이에게는: 누구를 제일 먼저 도와주고 싶었어?</div></div></li>
+                  <li><span class="no">5</span><div><div class="k">기도</div><div class="t">하늘이 새 학기 · 할머니 건강 · 분당교회 40일 정성</div></div></li>
+                  <li><span class="no">6</span><div><div class="k">마무리</div><div class="t">축도와 저녁 식사</div></div></li>
+                </ol>
+                <div class="row" style="gap:8px;margin-top:12px">
+                  <button class="btn primary" data-toast="가족 4명에게 순서지를 보냈어요 (예시)" style="flex:1"><i class="ph ph-paper-plane-tilt"></i>가족에게 보내기</button>
+                  <button class="btn line sm" style="height:50px;width:auto"><i class="ph ph-pencil-simple"></i>편집</button>
+                </div>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>챌린지</h3><a href="#/worship/challenge">모두 보기</a></div>
+                <div class="stack">
+                  <a class="card" href="#/worship/challenge">
+                    <div class="row between"><div style="font-weight:700">우리 가족 21일 훈독</div><span class="badge accent">D-9</span></div>
+                    <div class="progress" style="margin:10px 0 6px"><i style="width:62%"></i></div>
+                    <div class="row between small muted"><span>13 / 21일 · 62%</span><span class="row" style="gap:4px"><i class="ph ph-users"></i>4명</span></div>
+                  </a>
+                  <a class="card" href="#/worship/challenge">
+                    <div class="row between"><div style="font-weight:700">분당교회 40일 정성</div><span class="badge">D-23</span></div>
+                    <div class="progress" style="margin:10px 0 6px"><i style="width:42%"></i></div>
+                    <div class="row between small muted"><span>17 / 40일 · 오늘 71명 완료</span><span class="row" style="gap:4px"><i class="ph ph-users"></i>87명</span></div>
+                  </a>
+                  <a class="card" href="#/worship/challenge">
+                    <div class="row between"><div style="font-weight:700">청년부 천성경 1편 함께 읽기</div><span class="badge">모집 중</span></div>
+                    <div class="small muted" style="margin-top:6px">9월 15일 시작 · 12명 참여 예정 · 이나래 청년부장</div>
+                  </a>
+                </div>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>5분 설교</h3><a href="#/worship/sermons">전체 설교</a></div>
+                <a class="sermon-hero" href="#/worship/sermons" style="display:block">
+                  <img src="https://picsum.photos/id/289/860/520" alt="" />
+                  <div class="veil"></div>
+                  <div class="text"><span class="badge accent" style="margin-bottom:6px">NEW</span><div class="t">"내가 구한 것, 그 너머의 선물"</div><div class="m">김효정 교회장 · 분당교회 · 4:52 · 9월 7일</div></div>
+                </a>
+                <button class="btn line" style="margin-top:10px" data-open-sheet="none" onclick="location.hash='#/worship/request'"><i class="ph ph-microphone"></i>교회장께 설교 요청하기</button>
+              </div>
+              <p class="beta">챌린지 진행률과 인원만 표시되며 개인 순위는 없습니다.</p>
+            </div>
+          </section>
+
+          <!-- ============ 11 챌린지 상세 ============ -->
+          <section class="route" data-route="/worship/challenge" data-tab="worship">
+            <div class="appbar">
+              <a class="icon-btn" href="#/worship" aria-label="뒤로"><i class="ph ph-arrow-left"></i></a>
+              <h2>챌린지</h2>
+              <button class="icon-btn" aria-label="더보기"><i class="ph ph-dots-three"></i></button>
+            </div>
+            <div class="pad">
+              <div class="hero-photo" style="height:160px">
+                <img src="https://picsum.photos/id/112/860/480" alt="황금빛 들판" />
+                <div class="veil"></div>
+                <div class="text"><div class="greet" style="font-size:20px">우리 가족 21일 훈독</div><div class="sub">9월 1일 ~ 9월 21일 · 매일 훈독하기 1회</div></div>
+              </div>
+              <div class="card" style="margin-top:12px">
+                <div class="stats">
+                  <div><b class="accent">62%</b><span>가족 진행률</span></div>
+                  <div><b>13</b><span>완료한 날</span></div>
+                  <div><b>D-9</b><span>남은 날</span></div>
+                </div>
+                <div class="progress" style="margin-top:14px"><i style="width:62%"></i></div>
+              </div>
+              <div class="sect">
+                <div class="sect-h"><h3>오늘</h3><span class="small muted">9월 10일</span></div>
+                <div class="list card" style="padding:2px 16px">
+                  <div class="item"><img class="avatar" src="https://picsum.photos/id/65/80/80" alt="" /><div style="flex:1"><div class="t">효진 (나)</div><div class="m">오전 6:12 완료</div></div><span class="badge ok"><i class="ph-bold ph-check"></i> 완료</span></div>
+                  <div class="item"><img class="avatar" src="https://picsum.photos/id/447/80/80" alt="" /><div style="flex:1"><div class="t">재민</div><div class="m">아직이에요</div></div><button class="btn line sm" data-toast="재민에게 응원을 보냈어요">응원</button></div>
+                  <div class="item"><img class="avatar" src="https://picsum.photos/id/338/80/80" alt="" /><div style="flex:1"><div class="t">하늘 (12)</div><div class="m">오전 7:40 완료 · 보호자 연결</div></div><span class="badge ok"><i class="ph-bold ph-check"></i> 완료</span></div>
+                  <div class="item"><img class="avatar" src="https://picsum.photos/id/129/80/80" alt="" /><div style="flex:1"><div class="t">어머니</div><div class="m">아직이에요 · 저녁에 읽으세요</div></div><button class="btn line sm" data-toast="어머니께 응원을 보냈어요">응원</button></div>
+                </div>
+              </div>
+              <div class="sect">
+                <div class="sect-h"><h3>응원 한마디</h3><span class="small muted">정해진 문구만</span></div>
+                <div class="chips"><button class="chip-btn" data-toast="응원을 보냈어요">오늘도 함께 읽어요</button><button class="chip-btn" data-toast="응원을 보냈어요">천천히 해도 괜찮아요</button><button class="chip-btn" data-toast="응원을 보냈어요">저녁 예배 때 나눠요</button></div>
+              </div>
+              <div class="sect">
+                <div class="sect-h"><h3>지난 13일</h3></div>
+                <div class="card cal">
+                  <span class="h">월</span><span class="h">화</span><span class="h">수</span><span class="h">목</span><span class="h">금</span><span class="h">토</span><span class="h">일</span>
+                  <span></span><span class="d done"><i class="ph-bold ph-check"></i>1</span><span class="d done"><i class="ph-bold ph-check"></i>2</span><span class="d done"><i class="ph-bold ph-check"></i>3</span><span class="d done"><i class="ph-bold ph-check"></i>4</span><span class="d rest"><i>쉼</i>5</span><span class="d done"><i class="ph-bold ph-check"></i>6</span>
+                  <span class="d done"><i class="ph-bold ph-check"></i>7</span><span class="d done"><i class="ph-bold ph-check"></i>8</span><span class="d done"><i class="ph-bold ph-check"></i>9</span><span class="d today"><i class="ph-bold ph-check"></i>10</span><span class="d"><i></i>11</span><span class="d"><i></i>12</span><span class="d"><i></i>13</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ 12 5분 설교 ============ -->
+          <section class="route" data-route="/worship/sermons" data-tab="worship">
+            <div class="appbar">
+              <a class="icon-btn" href="#/worship" aria-label="뒤로"><i class="ph ph-arrow-left"></i></a>
+              <h2>설교</h2>
+              <span class="pill-seg"><button class="is-on">5분</button><button>전체</button></span>
+            </div>
+            <div class="pad">
+              <div class="pastors">
+                <a class="pastor" href="#/worship/request"><img src="https://picsum.photos/id/447/120/120" alt="" /><div>김효정 교회장</div><div class="c">분당교회</div></a>
+                <a class="pastor" href="#/worship/request"><img src="https://picsum.photos/id/550/120/120" alt="" /><div>박성호 교회장</div><div class="c">영통교회</div></a>
+                <a class="pastor" href="#/worship/request"><img src="https://picsum.photos/id/65/120/120" alt="" /><div>이나래 부장</div><div class="c">청년부</div></a>
+                <a class="pastor" href="#/worship/request"><img src="https://picsum.photos/id/338/120/120" alt="" /><div>최동현 교회장</div><div class="c">용인교회</div></a>
+                <a class="pastor" href="#/worship/request"><img src="https://picsum.photos/id/129/120/120" alt="" /><div>정수빈 교회장</div><div class="c">광주교회</div></a>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>이번 주</h3></div>
+                <a class="sermon-hero" href="#/worship/sermons" style="display:block">
+                  <img src="https://picsum.photos/id/289/860/520" alt="" />
+                  <div class="veil"></div>
+                  <div class="text"><span class="badge accent" style="margin-bottom:6px">NEW</span><div class="t">"내가 구한 것, 그 너머의 선물"</div><div class="m">김효정 교회장 · 분당교회 · 4:52 · 천성경 1편 3장</div></div>
+                </a>
+                <div class="card" style="margin-top:10px">
+                  <div class="quote-official" style="margin:0;font-size:15.5px">"하늘부모님은 우리가 구한 것보다 더 큰 것을 준비해 두셨습니다."</div>
+                  <div class="small muted" style="margin-top:8px">설교 요약 · 교회 게시 · O5 지역 콘텐츠</div>
+                </div>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>많이 본 설교</h3></div>
+                <div class="stack">
+                  <a class="sermon" href="#/worship/sermons"><div class="thumb-wrap"><img class="thumb" src="https://picsum.photos/id/569/360/240" alt="" /><span class="dur">4:05</span></div><div><div class="t">"땅이 부족한 것이 아니라 믿음이 부족했던 것입니다"</div><div class="m">박성호 교회장 · 영통교회 · 1.1천 명</div></div></a>
+                  <a class="sermon" href="#/worship/sermons"><div class="thumb-wrap"><img class="thumb" src="https://picsum.photos/id/543/360/240" alt="" /><span class="dur">5:31</span></div><div><div class="t">"참사랑은 우회하지 않습니다"</div><div class="m">최동현 교회장 · 용인교회 · 862명</div></div></a>
+                  <a class="sermon" href="#/worship/sermons"><div class="thumb-wrap"><img class="thumb" src="https://picsum.photos/id/511/360/240" alt="" /><span class="dur">4:29</span></div><div><div class="t">"함박눈은 하늘의 축복"</div><div class="m">정수빈 교회장 · 광주교회 · 704명</div></div></a>
+                </div>
+              </div>
+              <div class="sect">
+                <a class="btn primary" href="#/worship/request"><i class="ph ph-microphone"></i>교회장께 설교 요청하기</a>
+              </div>
+              <p class="beta">설교는 각 교회가 게시한 지역 콘텐츠(O5)이며 외부 링크로 재생됩니다.</p>
+            </div>
+          </section>
+
+          <!-- ============ 13 설교 섭외·신청 ============ -->
+          <section class="route" data-route="/worship/request" data-tab="worship">
+            <div class="appbar">
+              <a class="icon-btn" href="#/worship/sermons" aria-label="뒤로"><i class="ph ph-arrow-left"></i></a>
+              <h2>설교 요청</h2>
+            </div>
+            <div class="pad stack">
+              <p class="muted" style="margin:0">교회장께 5분 설교 또는 전체 설교를 요청해요. 요청은 교회장과 운영자에게만 보이고, 응답은 알림함으로 와요.</p>
+              <div class="field">
+                <label>누구에게</label>
+                <div class="list card church-list" style="padding:2px 16px">
+                  <div class="item is-on" data-pick><span class="radio"></span><img class="avatar" src="https://picsum.photos/id/447/80/80" alt="" /><div style="flex:1"><div class="t">김효정 교회장</div><div class="m">분당교회 · 우리 교회</div></div></div>
+                  <div class="item" data-pick><span class="radio"></span><img class="avatar" src="https://picsum.photos/id/65/80/80" alt="" /><div style="flex:1"><div class="t">이나래 청년부장</div><div class="m">분당교회 청년부</div></div></div>
+                </div>
+              </div>
+              <div class="field">
+                <label>형식</label>
+                <div class="opt-grid" style="grid-template-columns:1fr 1fr" data-opts>
+                  <button class="opt is-on"><b style="font-size:15px">5분 설교</b><span>짧은 영상·음성</span></button>
+                  <button class="opt"><b style="font-size:15px">전체 설교</b><span>주일 예배 설교</span></button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="topic">주제</label>
+                <input id="topic" value="자녀와 함께 읽는 참사랑" />
+                <span class="help">최근 훈독·질문에서 가져왔어요. 바꿔도 돼요.</span>
+              </div>
+              <div class="field">
+                <label for="when">희망 시기</label>
+                <select id="when"><option>9월 셋째 주</option><option>9월 넷째 주</option><option>10월 중</option><option>상관없음</option></select>
+              </div>
+              <div class="field">
+                <label for="memo">교회장께 한마디 (선택)</label>
+                <textarea id="memo" placeholder="예: 초등학생 자녀와 함께 들을 수 있는 내용이면 좋겠어요"></textarea>
+              </div>
+              <div class="card" style="background:var(--surface-2);border:0">
+                <div class="row" style="gap:10px"><i class="ph ph-info" style="font-size:20px;color:var(--ink-3)"></i><div class="small muted">교회장께서 거절하거나 응답하지 않으실 수 있어요. 응답 기한은 없어요.</div></div>
+              </div>
+              <button class="btn primary" data-toast="요청을 보냈어요. 응답은 알림함으로 와요 (예시)"><i class="ph ph-paper-plane-tilt"></i>요청 보내기</button>
+            </div>
+          </section>
+
+          <!-- ============ 14 나의 뜰 ============ -->
+          <section class="route" data-route="/me" data-tab="me">
+            <div class="appbar">
+              <h2>나의 뜰</h2>
+              <a class="icon-btn" href="#/me/family" aria-label="가족·친구"><i class="ph ph-users-three"></i></a>
+              <a class="icon-btn" href="#/me/notifications" aria-label="설정"><i class="ph ph-gear"></i></a>
+            </div>
+            <div class="pad">
+              <div class="row" style="gap:14px">
+                <img class="avatar xl" src="https://picsum.photos/id/65/160/160" alt="" />
+                <div style="flex:1">
+                  <div style="font-size:20px;font-weight:700">효진 <i class="ph ph-caret-right muted" style="font-size:14px"></i></div>
+                  <div class="small muted">분당교회 · 2019 축복가정</div>
+                  <div class="badge outline" style="margin-top:6px"><i class="ph ph-quotes"></i> 대표 말씀: 참사랑은 직단거리를 갑니다</div>
+                </div>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>말씀과 함께한 시간</h3></div>
+                <div class="card stats">
+                  <div><b class="accent"><i class="ph-fill ph-flame" style="font-size:18px"></i> 12</b><span>현재 연속일</span></div>
+                  <div><b>27</b><span>최대 연속일</span></div>
+                  <div><b>143</b><span>누적일</span></div>
+                </div>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>2026년 9월</h3><span class="small muted">훈독 완료한 날</span></div>
+                <div class="card cal">
+                  <span class="h">월</span><span class="h">화</span><span class="h">수</span><span class="h">목</span><span class="h">금</span><span class="h">토</span><span class="h">일</span>
+                  <span></span><span class="d done"><i class="ph-bold ph-check"></i>1</span><span class="d done"><i class="ph-bold ph-check"></i>2</span><span class="d done"><i class="ph-bold ph-check"></i>3</span><span class="d done"><i class="ph-bold ph-check"></i>4</span><span class="d rest"><i>쉼</i>5</span><span class="d done"><i class="ph-bold ph-check"></i>6</span>
+                  <span class="d done"><i class="ph-bold ph-check"></i>7</span><span class="d done"><i class="ph-bold ph-check"></i>8</span><span class="d done"><i class="ph-bold ph-check"></i>9</span><span class="d today"><i class="ph-bold ph-check"></i>10</span><span class="d"><i></i>11</span><span class="d"><i></i>12</span><span class="d"><i></i>13</span>
+                  <span class="d"><i></i>14</span><span class="d"><i></i>15</span><span class="d"><i></i>16</span><span class="d"><i></i>17</span><span class="d"><i></i>18</span><span class="d"><i></i>19</span><span class="d"><i></i>20</span>
+                  <span class="d"><i></i>21</span><span class="d"><i></i>22</span><span class="d"><i></i>23</span><span class="d"><i></i>24</span><span class="d"><i></i>25</span><span class="d"><i></i>26</span><span class="d"><i></i>27</span>
+                  <span class="d"><i></i>28</span><span class="d"><i></i>29</span><span class="d"><i></i>30</span>
+                </div>
+                <div class="small muted" style="margin-top:8px">"쉼"은 주 1회 쓸 수 있는 쉬어가기예요. 연속일이 끊기지 않아요.</div>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>진행 중인 정성</h3><button class="small" style="color:var(--accent);font-weight:600" data-open-sheet="jeongseong">새로 시작</button></div>
+                <div class="card">
+                  <div class="row between"><div style="font-weight:700">21일 새벽 정성 · 가정의 화목</div><span class="badge accent">D-14</span></div>
+                  <div class="progress" style="margin:10px 0 6px"><i style="width:33%"></i></div>
+                  <div class="small muted">7 / 21일 · 밀린 날 0</div>
+                </div>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>가족</h3><a href="#/me/family">관리</a></div>
+                <div class="list card" style="padding:2px 16px">
+                  <a class="item" href="#/me/family"><img class="avatar" src="https://picsum.photos/id/447/80/80" alt="" /><div style="flex:1"><div class="t">재민</div><div class="m">배우자 · 오늘 아직</div></div><span class="check" style="width:24px;height:24px"></span></a>
+                  <a class="item" href="#/me/family"><img class="avatar" src="https://picsum.photos/id/338/80/80" alt="" /><div style="flex:1"><div class="t">하늘</div><div class="m">자녀 · 보호자 연결 · 오늘 완료</div></div><span class="check is-on" style="width:24px;height:24px"><i class="ph-bold ph-check"></i></span></a>
+                  <a class="item" href="#/me/family"><img class="avatar" src="https://picsum.photos/id/129/80/80" alt="" /><div style="flex:1"><div class="t">어머니</div><div class="m">부모 · 오늘 아직</div></div><span class="check" style="width:24px;height:24px"></span></a>
+                </div>
+              </div>
+
+              <div class="sect">
+                <div class="sect-h"><h3>친구</h3><a href="#/me/family">4명</a></div>
+                <div class="row">
+                  <div class="avatars"><img src="https://picsum.photos/id/550/80/80" alt="" /><img src="https://picsum.photos/id/505/80/80" alt="" /><img src="https://picsum.photos/id/225/80/80" alt="" /><img src="https://picsum.photos/id/305/80/80" alt="" /></div>
+                  <span class="small muted">수아, 민재, 지훈, 예린</span>
+                </div>
+              </div>
+              <p class="beta">기록은 나만 봅니다. 가족에게는 동의한 범위(오늘 완료 여부)만 보여요.</p>
+            </div>
+          </section>
+
+          <!-- ============ 15 알림·설치 설정 ============ -->
+          <section class="route" data-route="/me/notifications" data-tab="me">
+            <div class="appbar">
+              <a class="icon-btn" href="#/me" aria-label="뒤로"><i class="ph ph-arrow-left"></i></a>
+              <h2>알림과 설치</h2>
+            </div>
+            <div class="pad stack">
+              <div class="card" style="background:var(--surface-2);border:0">
+                <div class="row" style="gap:12px">
+                  <i class="ph ph-device-mobile" style="font-size:28px"></i>
+                  <div style="flex:1"><div style="font-weight:700">홈 화면에 추가하면 알림을 받을 수 있어요</div><div class="small muted" style="margin-top:2px">iPhone은 공유 → 홈 화면에 추가. 추가 후에만 알림 권한을 물어요.</div></div>
+                </div>
+                <button class="btn dark sm" style="margin-top:10px">설치 방법 보기</button>
+              </div>
+
+              <div class="card">
+                <div class="row between"><div><div style="font-weight:700">훈독하기</div><div class="small muted">아침 훈독을 알려드려요</div></div><button class="toggle is-on" data-toggle aria-label="훈독 알림"></button></div>
+                <div class="row between" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"><span class="small">시간</span><span class="small" style="font-weight:600">오전 6:00 <i class="ph ph-caret-right muted"></i></span></div>
+              </div>
+              <div class="card">
+                <div class="row between"><div><div style="font-weight:700">기도하기</div><div class="small muted">하루를 기도로 마무리해요</div></div><button class="toggle is-on" data-toggle aria-label="기도 알림"></button></div>
+                <div class="row between" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"><span class="small">시간</span><span class="small" style="font-weight:600">오후 9:30 <i class="ph ph-caret-right muted"></i></span></div>
+              </div>
+              <div class="card">
+                <div class="row between"><div><div style="font-weight:700">가정예배</div><div class="small muted">순서지가 준비되면 알려드려요</div></div><button class="toggle is-on" data-toggle aria-label="가정예배 알림"></button></div>
+                <div class="row between" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"><span class="small">시간</span><span class="small" style="font-weight:600">토요일 오후 6:00 <i class="ph ph-caret-right muted"></i></span></div>
+              </div>
+              <div class="card row between">
+                <div><div style="font-weight:700">공지</div><div class="small muted">우리 교회·앱 소식</div></div><button class="toggle" data-toggle aria-label="공지 알림"></button>
+              </div>
+
+              <div class="card">
+                <div style="font-weight:700">잠금 화면 문구</div>
+                <div class="small muted" style="margin:2px 0 10px">기본은 내용이 드러나지 않는 문구예요</div>
+                <div class="list church-list">
+                  <div class="item is-on" data-pick><span class="radio"></span><div><div class="t">오늘의 읽을거리가 준비됐어요</div><div class="m">중립형 · 기본</div></div></div>
+                  <div class="item" data-pick><span class="radio"></span><div><div class="t">오늘의 말씀이 준비됐어요</div><div class="m">신앙 맥락 노출형 · 내가 선택</div></div></div>
+                </div>
+              </div>
+              <div class="card row between">
+                <div><div style="font-weight:700">조용한 시간</div><div class="small muted">오후 10시 ~ 오전 5시</div></div><i class="ph ph-caret-right muted"></i>
+              </div>
+              <div class="card row between" style="color:var(--ink-3)">
+                <div><div style="font-weight:700;color:var(--ink)">내 데이터 삭제</div><div class="small">질문·노트·기록을 모두 지워요</div></div><i class="ph ph-caret-right"></i>
+              </div>
+              <p class="beta">알림은 늦거나 누락될 수 있어요. 같은 내용은 앱 안 알림함에서 언제나 볼 수 있어요.</p>
+            </div>
+          </section>
+
+          <!-- ============ 16 가족·친구 ============ -->
+          <section class="route" data-route="/me/family" data-tab="me">
+            <div class="appbar">
+              <a class="icon-btn" href="#/me" aria-label="뒤로"><i class="ph ph-arrow-left"></i></a>
+              <h2>가족과 친구</h2>
+              <button class="icon-btn" aria-label="초대"><i class="ph ph-user-plus"></i></button>
+            </div>
+            <div class="pad">
+              <div class="sect" style="margin-top:4px">
+                <div class="sect-h"><h3>우리 가족</h3><span class="small muted">양쪽이 동의해야 연결돼요</span></div>
+                <div class="list card" style="padding:2px 16px">
+                  <div class="item"><img class="avatar lg" src="https://picsum.photos/id/447/120/120" alt="" /><div style="flex:1"><div class="t">재민</div><div class="m">배우자 · 보여주기: 오늘 완료 여부</div></div><i class="ph ph-caret-right muted"></i></div>
+                  <div class="item"><img class="avatar lg" src="https://picsum.photos/id/338/120/120" alt="" /><div style="flex:1"><div class="t">하늘 (12)</div><div class="m">자녀 · 보호자 연결 · 보여주기: 완료 여부 + 정성</div></div><i class="ph ph-caret-right muted"></i></div>
+                  <div class="item"><img class="avatar lg" src="https://picsum.photos/id/129/120/120" alt="" /><div style="flex:1"><div class="t">어머니</div><div class="m">부모 · 보여주기: 오늘 완료 여부</div></div><i class="ph ph-caret-right muted"></i></div>
+                  <div class="item"><span class="avatar lg" style="display:grid;place-items:center;color:var(--ink-3)"><i class="ph ph-plus" style="font-size:22px"></i></span><div style="flex:1"><div class="t">가족 초대하기</div><div class="m">초대 링크 또는 코드 · 보상 없음</div></div></div>
+                </div>
+              </div>
+              <div class="sect">
+                <div class="sect-h"><h3>친구 4명</h3></div>
+                <div class="list card" style="padding:2px 16px">
+                  <div class="item"><img class="avatar" src="https://picsum.photos/id/550/80/80" alt="" /><div style="flex:1"><div class="t">수아</div><div class="m">분당교회 · 21일 정성 함께 중</div></div><span class="badge ok">오늘 완료</span></div>
+                  <div class="item"><img class="avatar" src="https://picsum.photos/id/505/80/80" alt="" /><div style="flex:1"><div class="t">민재</div><div class="m">영통교회</div></div><span class="badge">아직</span></div>
+                  <div class="item"><img class="avatar" src="https://picsum.photos/id/225/80/80" alt="" /><div style="flex:1"><div class="t">지훈</div><div class="m">분당교회 청년부</div></div><span class="badge ok">오늘 완료</span></div>
+                  <div class="item"><img class="avatar" src="https://picsum.photos/id/305/80/80" alt="" /><div style="flex:1"><div class="t">예린</div><div class="m">용인교회</div></div><span class="badge ok">오늘 완료</span></div>
+                </div>
+              </div>
+              <div class="sect card" style="background:var(--surface-2);border:0">
+                <div style="font-weight:700">내가 보여주는 범위</div>
+                <div class="small muted" style="margin:2px 0 10px">가족·친구에게 어디까지 보일지 정해요</div>
+                <div class="row between" style="padding:8px 0;border-top:1px solid var(--line)"><span class="small">오늘 완료 여부</span><button class="toggle is-on" data-toggle aria-label="완료 여부 공개"></button></div>
+                <div class="row between" style="padding:8px 0;border-top:1px solid var(--line)"><span class="small">진행 중인 정성 이름</span><button class="toggle" data-toggle aria-label="정성 공개"></button></div>
+                <div class="row between" style="padding:8px 0;border-top:1px solid var(--line)"><span class="small">노트·질문</span><span class="small muted">항상 비공개</span></div>
+              </div>
+            </div>
+          </section>
+
+        </div><!-- /view -->
+
+        <!-- 하단 탭 -->
+        <nav class="tabbar" id="tabbar" aria-label="주 메뉴">
+          <a href="#/today" data-tab-link="today"><i class="ph ph-sun-horizon"></i>오늘 훈독</a>
+          <a href="#/ask" data-tab-link="ask"><i class="ph ph-chat-teardrop-text"></i>AI 질문</a>
+          <a href="#/words" class="center" data-tab-link="words"><span class="bubble"><i class="ph-fill ph-book-open-text"></i></span>말씀</a>
+          <a href="#/worship" data-tab-link="worship"><i class="ph ph-house-line"></i>가정예배</a>
+          <a href="#/me" data-tab-link="me"><i class="ph ph-plant"></i>나의 뜰</a>
+          <span class="home-ind" aria-hidden="true"></span>
+        </nav>
+
+        <!-- 시트: 정성 만들기 -->
+        <div class="sheet-veil" data-sheet="jeongseong">
+          <div class="sheet" role="dialog" aria-label="정성 기간 만들기">
+            <div class="grip"></div>
+            <h3>정성 기간 만들기</h3>
+            <p class="small muted" style="margin:0 0 16px">기간 동안 매일 주제에 맞는 말씀을 골라 드려요. 말씀은 권리가 확인된 정본 안에서만 고르고, AI가 만들지 않아요.</p>
+            <div class="stack">
+              <div class="field"><label>기간</label>
+                <div class="opt-grid" data-opts>
+                  <button class="opt"><b>7</b><span>일 · 한 주</span></button>
+                  <button class="opt is-on"><b>21</b><span>일 · 세 주</span></button>
+                  <button class="opt"><b>40</b><span>일 · 정성</span></button>
+                </div>
+              </div>
+              <div class="field"><label>주제</label>
+                <div class="chips" data-opts>
+                  <button class="opt is-on" style="padding:8px 12px"><span style="color:inherit;font-size:14px">가정의 화목</span></button>
+                  <button class="opt" style="padding:8px 12px"><span style="font-size:14px">자녀</span></button>
+                  <button class="opt" style="padding:8px 12px"><span style="font-size:14px">감사</span></button>
+                  <button class="opt" style="padding:8px 12px"><span style="font-size:14px">건강</span></button>
+                  <button class="opt" style="padding:8px 12px"><span style="font-size:14px">뜻길</span></button>
+                  <button class="opt" style="padding:8px 12px"><span style="font-size:14px">직접 입력</span></button>
+                </div>
+              </div>
+              <div class="field"><label for="js-start">시작일과 알림</label>
+                <div class="row" style="gap:8px"><input id="js-start" value="9월 11일 (목)" style="flex:1" /><input value="오전 5:30" style="width:120px" aria-label="알림 시각" /></div>
+                <span class="help">하루를 놓쳐도 정성은 끊기지 않고 "밀린 날"로 표시돼요.</span>
+              </div>
+              <div class="row between card" style="padding:12px 16px"><div><div style="font-weight:600;font-size:14px">가족 챌린지로 함께하기</div><div class="small muted">가족에게 초대를 보내요</div></div><button class="toggle" data-toggle aria-label="가족 챌린지"></button></div>
+              <button class="btn primary" data-close-sheet data-toast="21일 정성을 시작했어요. 내일 새벽에 첫 말씀을 보내드려요 (예시)">정성 시작하기</button>
+              <button class="btn ghost" data-close-sheet>닫기</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 시트: 용어 -->
+        <div class="sheet-veil" data-sheet="term">
+          <div class="sheet" role="dialog" aria-label="용어">
+            <div class="grip"></div>
+            <div class="row between"><h3>참사랑</h3><span class="badge">용어 사전 · O3</span></div>
+            <p class="small muted" style="margin:0 0 12px">정의는 말씀 본문과 분리된 사전 근거예요. 정의가 여럿이면 나란히 보여드려요.</p>
+            <div class="stack">
+              <div class="card"><div class="eyebrow">정의 1 · 공식 교육 자료 (예시)</div><p style="margin:6px 0 0;font-size:14.5px;line-height:1.6">조건 없이 위하여 사는 사랑. 하늘부모님의 사랑을 본체로 하며, 부모·부부·자녀 사이에서 실체화된다.</p></div>
+              <div class="card"><div class="eyebrow">정의 2 · 용어 해설 (예시)</div><p style="margin:6px 0 0;font-size:14.5px;line-height:1.6">주고 또 주고도 준 것을 잊어버리는 사랑. 자기중심을 넘어선 사랑의 본질을 가리킨다.</p></div>
+              <div class="sect-h"><h3 style="font-size:15px">관련 원문</h3></div>
+              <a class="list card" href="#/words/read" style="padding:2px 16px" data-close-sheet>
+                <div class="item"><i class="ph ph-quotes muted" style="font-size:20px"></i><div style="flex:1"><div class="t">참사랑은 직단거리를 갑니다</div><div class="m">천성경 · O1</div></div><i class="ph ph-caret-right muted"></i></div>
+                <div class="item"><i class="ph ph-quotes muted" style="font-size:20px"></i><div style="flex:1"><div class="t">종교와 인종을 한데 어우르는 평화세계</div><div class="m">평화를 사랑하는 세계인으로 · O2</div></div><i class="ph ph-caret-right muted"></i></div>
+              </a>
+              <button class="btn ghost" data-close-sheet>닫기</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="toast" id="toast" role="status"></div>
+      </div><!-- /screen -->
+    </div><!-- /phone -->
+  </div>
+</div>
+
+<script>
+(function () {
+  const routes = Array.from(document.querySelectorAll('.route'));
+  const view = document.getElementById('view');
+  const tabbar = document.getElementById('tabbar');
+  const indexLinks = Array.from(document.querySelectorAll('#index-list a'));
+  const sheets = Array.from(document.querySelectorAll('.sheet-veil'));
+  const toast = document.getElementById('toast');
+  let toastTimer = null;
+
+  function openSheet(name) {
+    sheets.forEach(s => s.classList.toggle('is-open', s.dataset.sheet === name));
+  }
+  function closeSheets() { sheets.forEach(s => s.classList.remove('is-open')); }
+  function showToast(msg) {
+    toast.textContent = msg; toast.classList.add('is-on');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('is-on'), 2200);
+  }
+
+  function render() {
+    let path = location.hash.replace(/^#/, '') || '/onboarding';
+    // 시트 라우트: /today/jeongseong 은 홈 + 시트
+    let sheet = null;
+    if (path === '/today/jeongseong') { path = '/today'; sheet = 'jeongseong'; }
+    let match = routes.find(r => r.dataset.route === path);
+    if (!match) { match = routes.find(r => r.dataset.route === '/today'); path = '/today'; }
+    routes.forEach(r => r.classList.toggle('is-active', r === match));
+    const tab = match.dataset.tab || '';
+    tabbar.style.display = match.dataset.route === '/onboarding' ? 'none' : '';
+    Array.from(tabbar.querySelectorAll('[data-tab-link]')).forEach(a => a.classList.toggle('is-active', a.dataset.tabLink === tab));
+    indexLinks.forEach(a => a.classList.toggle('is-current', a.getAttribute('href') === '#' + (sheet ? '/today/jeongseong' : path)));
+    view.scrollTop = 0;
+    closeSheets();
+    if (sheet) openSheet(sheet);
+    document.title = '훈독 A · ' + (match.querySelector('h2, .title-lg') ? match.querySelector('h2, .title-lg').textContent.trim().slice(0, 24) : path);
+  }
+  window.addEventListener('hashchange', render);
+  render();
+
+  // 세그먼트 탭
+  document.querySelectorAll('[data-tabs]').forEach(group => {
+    const name = group.dataset.tabs;
+    const scope = group.closest('.route');
+    group.querySelectorAll('[data-tab-btn]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('[data-tab-btn]').forEach(b => b.classList.toggle('is-on', b === btn));
+        scope.querySelectorAll('[data-tab-pane]').forEach(p => p.classList.toggle('is-on', p.dataset.tabPane === btn.dataset.tabBtn));
+      });
+    });
+  });
+  // pill 세그먼트 (데이터 없이 시각만)
+  document.querySelectorAll('.pill-seg:not([data-tabs]) button').forEach(b => b.addEventListener('click', () => {
+    b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('is-on', x === b));
+  }));
+  // 옵션 그리드
+  document.querySelectorAll('[data-opts]').forEach(g => g.querySelectorAll('.opt').forEach(o => o.addEventListener('click', () => {
+    g.querySelectorAll('.opt').forEach(x => x.classList.toggle('is-on', x === o));
+  })));
+  // 라디오 리스트
+  document.querySelectorAll('.church-list').forEach(g => g.querySelectorAll('[data-pick]').forEach(o => o.addEventListener('click', () => {
+    g.querySelectorAll('[data-pick]').forEach(x => x.classList.toggle('is-on', x === o));
+  })));
+  // 토글
+  document.querySelectorAll('[data-toggle]').forEach(t => t.addEventListener('click', e => { e.preventDefault(); t.classList.toggle('is-on'); }));
+  // 미션 체크 (기도하기)
+  document.querySelectorAll('[data-toggle-check]').forEach(c => c.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    c.classList.toggle('is-on');
+    c.closest('.mission').classList.toggle('is-done', c.classList.contains('is-on'));
+    if (c.classList.contains('is-on')) showToast('기도하기 완료 · 오늘 2/3');
+  }));
+  // 훈독 완료
+  document.querySelectorAll('[data-complete-read]').forEach(b => b.addEventListener('click', () => {
+    const m = document.querySelector('[data-mission="read"]');
+    m.classList.add('is-done'); m.querySelector('.check').classList.add('is-on');
+    document.querySelector('.week .streak b').textContent = '13';
+    showToast('훈독 완료 · 연속 13일');
+    setTimeout(() => { location.hash = '#/today'; }, 700);
+  }));
+  // 시트
+  document.querySelectorAll('[data-open-sheet]').forEach(b => b.addEventListener('click', e => {
+    const n = b.dataset.openSheet; if (n === 'none') return;
+    e.preventDefault(); openSheet(n);
+  }));
+  document.querySelectorAll('[data-close-sheet]').forEach(b => b.addEventListener('click', () => {
+    closeSheets();
+    if (location.hash === '#/today/jeongseong') history.replaceState(null, '', '#/today');
+  }));
+  sheets.forEach(s => s.addEventListener('click', e => { if (e.target === s) { closeSheets(); if (location.hash === '#/today/jeongseong') history.replaceState(null, '', '#/today'); } }));
+  // 토스트
+  document.querySelectorAll('[data-toast]').forEach(b => b.addEventListener('click', () => showToast(b.dataset.toast)));
+})();
+</script>
+</body>
+</html>
