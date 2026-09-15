@@ -43,6 +43,7 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 | [16-app-feature-spec](prd/16-app-feature-spec.md) | 이전 MVP/Flutter 구상. 신규 PWA 요구사항으로 자동 상속하지 않음 |
 | [17-ffwpu-pwa-prd](prd/17-ffwpu-pwa-prd.md) | 훈독 앱 PRD v2. 식구의 문제 5개 → 초원AI 벤치마크 현지화 매핑 → 5탭 · 기능 7종 · 보상 정책 · KPI · 9월 일정 · Decision Log. **S2' 방향 확정** (2026-09-14, A 아침 햇살) |
 | [디자인 2안 비교](prd/2026-09-10-hundok-design-directions.md), 프로토타입 [A](prd/prototypes/2026-09-10-hundok-a.html) · [B](prd/prototypes/2026-09-10-hundok-b.html) | A 아침 햇살(라이트) · B 저녁 등불(다크) 클릭형 단일 PWA 목업 16화면, 스크린샷 38장. 모든 콘텐츠는 예시. **A 채택 확정** (2026-09-14, B 미채택) |
+| [훈독 데스크톱 시안 4안 비교](prd/2026-09-16-hoondok-desktop-directions.md) | `DES-PWA-004`. 같은 제품을 네 가지 시각 언어로 그린 1280px 클릭형 시안 4벌 + 캡처 40장 + 독립 블라인드 심사 3명(D 89.3 · C 80.0 · A 74.3 · B 73.3). **어떤 안으로 갈지 결정 대기** |
 | [훈독 디자인 시스템](specs/web/hoondok-design-system.md) | `DES-PWA-003`. 채택안 A 아침 햇살의 토큰·컴포넌트 10종·권위 층 배지·WCAG 2.2 AA 대비 실측값·데스크톱 브레이크포인트 3단계·16화면 반응형 대응표. **라이트 단일 테마**이며 다크 팔레트는 정의하지 않는다 (S3, 승인 대기) |
 | [사용자 웹 UI/UX](specs/web/ui-ux.md), [관리자 UI/UX](specs/admin/ui-ux.md) | 현재 구현·소유권과 미승인 리디자인의 경계 |
 | [17-chatbot-system-prompt-spec](specs/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 |

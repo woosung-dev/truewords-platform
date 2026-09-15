@@ -1,0 +1,1305 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>훈독 데스크톱 시안 D · 새벽 서재</title>
+<meta name="description" content="훈독 앱 데스크톱(1280px) 디자인 시안 D — 상단 제호 + 비대칭 지면, 명조/고딕으로 권위를 가르는 편집형 시각 언어. 모든 콘텐츠는 프로토타입용 예시." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&display=swap" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+<style>
+/* ==================================================================
+   훈독 데스크톱 시안 D — "새벽 서재"
+   안 A(규칙 준수안)와 같은 제품·같은 8라우트·같은 예시 콘텐츠를
+   다른 시각 언어로 제안한다.
+
+   시각 언어의 뼈대
+     1. 권위를 서체로 가른다 — 말씀은 명조, UI·AI 설명은 고딕
+     2. 내비게이션은 좌측 레일이 아니라 상단 제호(masthead)
+     3. 한 줄 컬럼이 아니라 비대칭 지면(본문 704 + 곁단 312)
+     4. 사진 히어로가 아니라 말씀이 먼저 온다
+     5. 그림자 없는 인쇄면 — 5px 모서리, 실선 괘와 바탕 색조로만 층을 만든다
+
+   고정 제약(제품 결정): 라이트 테마 고정 · 5탭 · 이모지 0 ·
+   개인 랭킹/점수/보상 배지 없음 · 출처 메타 우선 · AI 분리 표시 ·
+   WCAG 2.2 AA · 1280px 가로 스크롤 0
+
+   모든 말씀·인물·교회·수치는 프로토타입용 예시다.
+   ================================================================== */
+
+:root{
+  /* 바탕 — 아침 상아빛 */
+  --ground:#f4f1e8;
+  --surface:#fffdf7;
+  --surface-2:#ebe7db;
+  --line:#dcd5c4;          /* 장식 괘 (비의미) */
+  --rule:#c7bfa9;          /* 굵은 구획 괘 */
+
+  /* 먹 — 초록빛이 도는 검정 */
+  --ink:#1e231d;           /* 14.2:1 on ground */
+  --ink-2:#4b5147;         /* 7.2:1  */
+  --ink-3:#61675c;         /* 5.2:1  — 컨트롤 경계선 겸용 */
+
+  /* 솔빛 — 주 액센트 */
+  --accent:#2f6048;        /* 6.4:1 on ground · 흰 글자 7.3:1 */
+  --accent-strong:#224936; /* 9.0:1 on ground · 흰 글자 10.1:1 */
+  --accent-soft:#e0ebe3;
+
+  /* 볕 — 시간·연속 신호 */
+  --gold:#7d5a0d;          /* 5.6:1 on ground */
+  --gold-soft:#f5e9cf;
+
+  /* 형광 */
+  --hl-1:#fbecc4; --hl-2:#dfeadd; --hl-3:#f3e3d5;
+
+  --r:5px; --r-lg:8px;
+
+  --sans:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",system-ui,sans-serif;
+  --serif:"Noto Serif KR",AppleMyungjo,"Nanum Myeongjo",Batang,serif;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--sans);
+  background:var(--ground);
+  color:var(--ink);
+  font-size:14.5px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a,button,summary,[role="tab"]{cursor:pointer}
+img{display:block;max-width:100%}
+ol,ul{margin:0;padding:0;list-style:none}
+p{margin:0}
+h1,h2,h3{margin:0;font-weight:inherit}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:2px solid var(--accent-strong);outline-offset:3px;border-radius:2px}
+
+/* ============================== 제호 (상단 내비) ==============================
+   좌측 레일 대신 상단 제호를 쓴다. 이 앱의 본체는 읽을거리이고,
+   레일은 240px 을 상시 점유해 읽는 면을 화면 중앙에서 밀어낸다.
+   제호는 읽는 면을 화면 한가운데 두고, 5탭을 책의 차례처럼 읽히게 한다. */
+.masthead{
+  position:sticky;top:0;z-index:40;
+  background:var(--ground);
+  border-bottom:1px solid var(--rule);
+}
+.mast-in{
+  max-width:1136px;margin:0 auto;padding:0 32px;
+  display:flex;align-items:stretch;gap:32px;height:68px;
+}
+.wordmark{display:flex;align-items:center;gap:9px;flex:none;padding-right:4px}
+.wordmark .n{font-family:var(--serif);font-size:25px;font-weight:700;letter-spacing:.06em;line-height:1}
+.wordmark .b{
+  font-size:10.5px;letter-spacing:.04em;color:var(--ink-3);
+  border:1px solid var(--line);border-radius:2px;padding:2px 5px;line-height:1.2;
+  align-self:center;margin-top:2px;
+}
+.mainnav{display:flex;align-items:stretch;gap:2px;flex:1;min-width:0}
+.mainnav a{
+  position:relative;display:flex;align-items:center;gap:7px;
+  padding:0 14px;font-size:14.5px;color:var(--ink-2);
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:color .14s ease,background-color .14s ease;
+}
+.mainnav a i{font-size:19px;line-height:1}
+.mainnav a::after{
+  content:"";position:absolute;left:14px;right:14px;bottom:-1px;height:2px;
+  background:transparent;
+}
+/* 활성 표시는 세 가지가 겹친다: 글자 굵기 · 먹색 · 밑줄 괘. 색 하나에 기대지 않는다 */
+.mainnav a.is-active{color:var(--ink);font-weight:700}
+.mainnav a.is-active::after{background:var(--accent)}
+.mainnav a.is-active i{color:var(--accent)}
+.mast-act{display:flex;align-items:center;gap:2px;flex:none}
+.icon-btn{
+  width:38px;height:38px;border-radius:var(--r);display:grid;place-items:center;
+  font-size:20px;color:var(--ink-2);flex:none;transition:background-color .14s ease;
+}
+@media (hover:hover){
+  .mainnav a:hover{background:var(--surface-2);color:var(--ink)}
+  .mainnav a.is-active:hover{background:transparent}
+  .icon-btn:hover{background:var(--surface-2)}
+}
+
+/* ============================== 지면 골격 ============================== */
+.shell{max-width:1136px;margin:0 auto;padding:0 32px}
+
+/* 면 머리 — 인쇄물의 섹션 프런트. 눈썹줄 · 표제(명조) · 동작 · 굵은 괘 */
+.pagehead{padding:34px 0 0}
+.pagehead .in{display:flex;align-items:flex-end;gap:20px;padding-bottom:14px}
+.pagehead.narrow .in{max-width:720px}
+.pagehead .txt{flex:1;min-width:0}
+.pagehead .eyebrow{
+  font-size:11.5px;letter-spacing:.09em;color:var(--ink-3);
+  display:flex;align-items:center;gap:8px;margin-bottom:5px;
+}
+.pagehead h1{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.01em;line-height:1.3}
+.pagehead .acts{display:flex;align-items:center;gap:6px;flex:none;padding-bottom:3px}
+.rule-heavy{height:2px;background:var(--ink);border:0;margin:0}
+.rule-heavy.narrow{max-width:720px}
+
+.spread{display:grid;grid-template-columns:minmax(0,1fr) 312px;gap:56px;padding:28px 0 72px;align-items:start}
+.single{padding:28px 0 72px}
+.single.narrow{max-width:720px}
+.measure{max-width:664px}   /* 산문 읽기 폭 */
+
+/* 섹션 머리 — 작은 자간 넓은 라벨 + 오른쪽으로 뻗는 실선 괘 */
+.sh{display:flex;align-items:center;gap:14px;margin:0 0 14px}
+.sh h2{
+  font-size:11.5px;font-weight:700;letter-spacing:.12em;color:var(--ink-2);
+  flex:none;white-space:nowrap;
+}
+.sh .bar{flex:1;height:1px;background:var(--line)}
+.sh .more{font-size:12.5px;color:var(--ink-3);flex:none}
+@media (hover:hover){.sh .more:hover{color:var(--accent-strong)}}
+.sect{margin-top:36px}
+.sect:first-child{margin-top:0}
+
+/* ============================== 인쇄면 ============================== */
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.sheet.flat{background:transparent;border:0;padding:0}
+a.sheet,button.sheet{display:block;width:100%;text-align:left;transition:border-color .14s ease,background-color .14s ease}
+@media (hover:hover){a.sheet:hover,button.sheet:hover{border-color:var(--ink-3);background:var(--surface)}}
+
+.row{display:flex;align-items:center;gap:12px}
+.row.between{justify-content:space-between}
+.row.top{align-items:flex-start}
+.muted{color:var(--ink-3)}
+.small{font-size:12.5px}
+.micro{font-size:11.5px}
+.nums{font-variant-numeric:tabular-nums}
+
+/* 단추 */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:44px;padding:0 18px;border-radius:var(--r);
+  font-weight:600;font-size:14.5px;
+  transition:background-color .14s ease,border-color .14s ease,color .14s ease;
+}
+.btn i{font-size:18px}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.line{border:1px solid var(--ink-3);color:var(--ink)}
+.btn.quiet{background:var(--surface-2);color:var(--ink)}
+.btn.block{width:100%}
+.btn.sm{min-height:36px;font-size:13px;padding:0 13px;border-radius:var(--r)}
+@media (hover:hover){
+  .btn.primary:hover{background:var(--accent-strong)}
+  .btn.line:hover{background:var(--surface-2)}
+  .btn.quiet:hover{background:var(--line)}
+}
+
+/* 표지 — 등급·상태. 색이 아니라 라벨 글자와 형태가 뜻을 진다 */
+.tag{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:700;letter-spacing:.02em;
+  min-height:22px;padding:2px 7px;border-radius:2px;white-space:nowrap;
+}
+.tag.official{background:var(--ink);color:var(--surface)}          /* O1·O2 정본 = 먹 채움 */
+.tag.neutral{background:var(--surface-2);color:var(--ink-2)}       /* O3 해설 */
+.tag.pending{border:1px dashed var(--ink-3);color:var(--ink-3)}    /* 권리 확인 중·일부 */
+.tag.mark{background:var(--gold-soft);color:var(--gold)}           /* 기간·시간 */
+.tag.leaf{background:var(--accent-soft);color:var(--accent-strong)}
+.sep{width:2px;height:2px;border-radius:50%;background:var(--ink-3);flex:none;opacity:.55}
+.src-line{
+  display:flex;flex-wrap:wrap;align-items:center;gap:7px;
+  font-size:12px;color:var(--ink-3);line-height:1.5;
+}
+.src-line b{color:var(--ink);font-weight:600}
+
+/* ============================== 권위 층의 네 가지 형태 ==============================
+   1) 공식 원문  — 명조 + 굵은 먹 세로 괘
+   2) 공식 해설  — 명조 + 솔빛 세로 괘
+   3) AI 설명    — 고딕 + 점선 테두리 + 색조 바탕 + 라벨
+   4) 내 메모    — 고딕 + 점선 테두리 (색조 없음)
+   서체가 이미 1·2 와 3·4 를 가른다. 색은 보조일 뿐이다. */
+.quote{
+  font-family:var(--serif);font-size:17px;line-height:1.85;font-weight:400;
+  border-left:3px solid var(--ink);padding:2px 0 2px 16px;color:var(--ink);
+}
+.quote.lg{font-size:19px;line-height:1.8}
+.ai{
+  border:1px dashed var(--ink-3);border-radius:var(--r);
+  background:var(--surface-2);padding:18px 20px;
+}
+.ai .lab{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--ink);
+  background:var(--surface);border:1px solid var(--ink-3);border-radius:2px;
+  padding:3px 8px;margin-bottom:12px;
+}
+.ai p{font-size:14.5px;line-height:1.75;color:var(--ink)}
+.ai p+p{margin-top:10px}
+.ai sup{font-family:var(--serif);font-weight:700;color:var(--accent-strong);font-size:11px;padding-left:1px}
+.memo{border:1px dashed var(--ink-3);border-radius:var(--r);padding:12px 14px;background:transparent}
+
+/* ============================== /today ==============================
+   사진 히어로를 걷어내고 말씀을 먼저 놓는다. 이 제품의 값은 말씀이지
+   스톡 사진이 아니다. 사진은 아래 얇은 띠로 물러난다. */
+.today-word{border-top:2px solid var(--ink);padding-top:22px}
+.today-word .display{
+  font-family:var(--serif);font-size:31px;font-weight:600;line-height:1.55;
+  letter-spacing:-.015em;margin:14px 0 0;text-wrap:balance;
+}
+.today-word .greet{
+  font-size:15px;line-height:1.7;color:var(--ink-2);margin-top:16px;max-width:560px;
+}
+.band{
+  position:relative;margin-top:20px;height:104px;border-radius:var(--r);overflow:hidden;
+  background:var(--surface-2);
+}
+.band img{width:100%;height:100%;object-fit:cover;object-position:center 62%}
+.band .cap{
+  position:absolute;left:0;right:0;bottom:0;padding:9px 14px;
+  background:linear-gradient(0deg,rgba(30,35,29,.88),rgba(30,35,29,0));
+  color:#fff;font-size:12.5px;display:flex;align-items:center;gap:8px;
+}
+.band .cap i{font-size:16px}
+
+/* 오늘의 실천 — 그림자 카드 3장이 아니라 번호가 매겨진 차례표.
+   순서가 뜻이라는 점을 카드보다 분명히 말한다. */
+.practice{border-top:1px solid var(--line)}
+.practice li{border-bottom:1px solid var(--line)}
+.practice .it{
+  display:flex;align-items:center;gap:18px;padding:17px 4px;width:100%;text-align:left;
+  transition:background-color .14s ease;
+}
+.practice .no{
+  font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink-3);
+  width:22px;flex:none;padding-top:1px;
+}
+.practice .bd{flex:1;min-width:0}
+.practice .k{font-size:11.5px;letter-spacing:.06em;color:var(--ink-3);display:flex;align-items:center;gap:7px}
+.practice .k i{font-size:15px}
+.practice .t{font-family:var(--serif);font-size:17px;font-weight:600;line-height:1.5;margin-top:3px}
+.practice .m{font-size:12.5px;color:var(--ink-3);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.practice .m i{font-size:14px}
+@media (hover:hover){.practice .it:hover{background:var(--surface)}}
+.check{
+  width:30px;height:30px;border-radius:50%;border:1.5px solid var(--ink-3);
+  display:grid;place-items:center;color:transparent;flex:none;background:var(--surface);
+  font-size:15px;transition:background-color .14s,border-color .14s,color .14s;
+}
+.check.is-on{background:var(--accent);border-color:var(--accent);color:#fff}
+.check.sm{width:22px;height:22px;font-size:12px}
+.practice .it.is-done .t{color:var(--ink-2)}
+
+/* 정성 — 실린 막대 대신 21칸 눈금. 며칠째인지가 한눈에 세어진다 */
+.ticks{display:flex;gap:3px;align-items:flex-end;height:22px;margin:14px 0 10px}
+.ticks i{flex:1;height:9px;background:var(--surface-2);border-radius:1px;display:block}
+.ticks i.on{height:18px;background:var(--accent)}
+.ticks i.now{height:22px;background:var(--gold)}
+
+/* 곁단 */
+.aside{position:sticky;top:96px}
+.aside .blk+.blk{margin-top:30px}
+.week{display:flex;gap:5px;justify-content:space-between}
+.week .day{
+  flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px;
+  font-size:11px;color:var(--ink-3);
+}
+.week .day .dot{
+  width:30px;height:30px;border-radius:50%;border:1px solid var(--line);
+  display:grid;place-items:center;font-size:12px;color:transparent;background:var(--surface);
+}
+.week .day.done .dot{background:var(--accent);border-color:var(--accent);color:#fff}
+.week .day.done{color:var(--ink-2)}
+.week .day.today .dot{border:2px solid var(--gold);background:var(--gold-soft)}
+.week .day.today{color:var(--gold);font-weight:700}
+.streak{
+  display:flex;align-items:baseline;gap:8px;margin-top:16px;
+  padding-top:14px;border-top:1px solid var(--line);
+}
+.streak b{font-family:var(--serif);font-size:27px;font-weight:700;color:var(--gold);line-height:1}
+.streak span{font-size:12.5px;color:var(--ink-2)}
+.streak i{font-size:17px;color:var(--gold);align-self:center}
+.avatars{display:flex}
+.avatars img{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--ground);background:var(--surface-2)}
+.avatars>*+*{margin-left:-9px}
+.avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;background:var(--surface-2);flex:none}
+.avatar.xl{width:74px;height:74px;border-radius:var(--r-lg)}
+
+/* ============================== /ask ============================== */
+.seg{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.seg button{
+  padding:9px 1px 11px;font-size:14.5px;color:var(--ink-3);
+  border-bottom:2px solid transparent;margin-bottom:-1px;min-height:40px;
+}
+.seg button.is-on{color:var(--ink);font-weight:700;border-color:var(--accent)}
+@media (hover:hover){.seg button:hover{color:var(--ink)}}
+.qlist li{border-bottom:1px solid var(--line)}
+.qlist .it{display:flex;align-items:center;gap:16px;padding:18px 4px;transition:background-color .14s ease}
+.qlist .q{flex:1;min-width:0}
+.qlist .q .t{font-family:var(--serif);font-size:16.5px;font-weight:500;line-height:1.55}
+.qlist .q .m{font-size:12px;color:var(--ink-3);margin-top:5px;letter-spacing:.02em}
+.qlist .mk{font-size:19px;color:var(--ink-3);flex:none;width:24px;text-align:center}
+.qlist .mk.on{color:var(--accent)}
+@media (hover:hover){.qlist .it:hover{background:var(--surface)}}
+
+/* 이어서 물어보기 */
+.follow{display:flex;flex-direction:column;gap:8px}
+.follow button{
+  display:flex;align-items:flex-start;gap:9px;text-align:left;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--surface);
+  padding:11px 13px;font-size:13.5px;line-height:1.5;color:var(--ink-2);
+  transition:border-color .14s ease,color .14s ease;
+}
+.follow button i{font-size:16px;color:var(--ink-3);flex:none;padding-top:1px}
+@media (hover:hover){.follow button:hover{border-color:var(--ink-3);color:var(--ink)}}
+.toggle{
+  width:44px;height:26px;border-radius:13px;background:var(--surface-2);
+  border:1.5px solid var(--ink-3);position:relative;flex:none;transition:background-color .14s,border-color .14s;
+}
+.toggle::after{
+  content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--ink-3);transition:left .16s ease;
+}
+.toggle.is-on{background:var(--accent);border-color:var(--accent)}
+.toggle.is-on::after{left:20px;border-color:transparent;background:#fff}
+
+/* ============================== /words ============================== */
+.shortcuts{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.shortcuts a{
+  display:flex;align-items:center;justify-content:center;gap:9px;padding:16px 8px;
+  font-size:13.5px;border-right:1px solid var(--line);transition:background-color .14s ease;
+}
+.shortcuts a:last-child{border-right:0}
+.shortcuts a i{font-size:21px;color:var(--accent)}
+@media (hover:hover){.shortcuts a:hover{background:var(--surface-2)}}
+
+.resume{display:flex;gap:20px;align-items:center;padding:18px 20px}
+.resume img{width:72px;height:94px;border-radius:var(--r);object-fit:cover;flex:none}
+.bar{height:5px;border-radius:3px;background:var(--surface-2);overflow:hidden;display:block}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:3px}
+
+.works{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.work{display:flex;flex-direction:column;gap:12px;padding:18px}
+.work .top{display:flex;align-items:flex-start;gap:12px}
+.work .glyph{
+  width:42px;height:52px;border-radius:2px;flex:none;
+  background:var(--ink);color:var(--surface);
+  font-family:var(--serif);font-size:20px;font-weight:600;
+  display:grid;place-items:center;
+}
+.work .glyph.pend{background:transparent;border:1px dashed var(--ink-3);color:var(--ink-3)}
+.work .nm{font-family:var(--serif);font-size:16.5px;font-weight:600;line-height:1.4}
+.work .mt{font-size:12px;color:var(--ink-3);margin-top:5px;line-height:1.5}
+.work .ft{margin-top:auto;padding-top:2px}
+
+/* ============================== /words/read — 3단 지면 ==============================
+   목차(208) · 본문(616) · 방주(184).
+   오른쪽 방주는 인쇄된 책의 여백 주석 자리다. 용어와 내 노트는
+   본문의 흐름을 끊지 않고 옆에 선다 — 모바일에서 아래로 접히던 것과 같은 내용. */
+.reader{display:grid;grid-template-columns:208px minmax(0,616px) 184px;gap:32px;padding:26px 0 72px;align-items:start}
+.toc{position:sticky;top:96px;max-height:calc(100dvh - 128px);overflow:auto;padding-right:4px}
+.toc .g{
+  font-size:10.5px;letter-spacing:.11em;color:var(--ink-3);font-weight:700;
+  padding:14px 0 7px;border-bottom:1px solid var(--line);margin-bottom:5px;
+}
+.toc .g:first-child{padding-top:0}
+.toc a{display:block;padding:7px 9px;border-radius:var(--r);font-size:13px;color:var(--ink-2);line-height:1.45;transition:background-color .14s ease}
+.toc a.is-on{background:var(--accent-soft);color:var(--accent-strong);font-weight:700}
+@media (hover:hover){.toc a:hover{background:var(--surface-2)}.toc a.is-on:hover{background:var(--accent-soft)}}
+
+.readbar{display:flex;gap:2px;align-items:center;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.readbar button{
+  display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 10px;
+  border-radius:var(--r);font-size:12.5px;color:var(--ink-2);transition:background-color .14s ease;
+}
+.readbar button i{font-size:17px}
+@media (hover:hover){.readbar button:hover{background:var(--surface-2)}}
+.audio{
+  display:flex;align-items:center;gap:13px;background:var(--ink);color:var(--surface);
+  border-radius:var(--r);padding:10px 14px;margin:14px 0 20px;
+}
+.audio .play{width:36px;height:36px;border-radius:50%;background:var(--surface);color:var(--ink);display:grid;place-items:center;font-size:17px;flex:none}
+.audio .tr{height:3px;background:rgba(255,253,247,.25);border-radius:2px;overflow:hidden;margin-top:6px}
+.audio .tr i{display:block;width:38%;height:100%;background:var(--gold-soft)}
+.verse{display:flex;gap:14px;margin-bottom:20px}
+.verse .n{
+  font-family:var(--serif);color:var(--ink-3);font-size:12px;padding-top:9px;
+  width:20px;flex:none;text-align:right;font-variant-numeric:tabular-nums;
+}
+.verse p{font-family:var(--serif);font-size:17.5px;line-height:1.95;font-weight:400}
+mark{padding:1px 0;border-radius:1px;color:var(--ink)}
+.hl-1{background:var(--hl-1)}.hl-2{background:var(--hl-2)}.hl-3{background:var(--hl-3)}
+.pills{display:inline-flex;background:var(--surface-2);border-radius:var(--r);padding:3px;margin-bottom:16px;width:100%}
+.pills button{flex:1;min-height:34px;padding:0 10px;border-radius:3px;font-size:13px;color:var(--ink-2);transition:background-color .14s}
+.pills button.is-on{background:var(--surface);color:var(--ink);font-weight:700;box-shadow:0 0 0 1px var(--line)}
+
+.margin-col{position:sticky;top:96px}
+.margin-col .mh{
+  font-size:10.5px;letter-spacing:.11em;font-weight:700;color:var(--ink-3);
+  padding-bottom:7px;border-bottom:1px solid var(--line);margin-bottom:10px;
+}
+.terms{display:flex;flex-direction:column;gap:6px}
+.term{
+  display:flex;align-items:center;gap:6px;min-height:28px;padding:4px 9px;
+  border-radius:var(--r);background:var(--accent-soft);color:var(--accent-strong);
+  font-size:12.5px;font-weight:600;text-align:left;transition:background-color .14s ease;
+}
+.term i{font-size:14px}
+@media (hover:hover){.term:hover{background:#d2e2d7}}
+.mnote{font-size:12px;line-height:1.6;color:var(--ink-2)}
+.mnote+.mnote{margin-top:8px}
+
+/* ============================== /worship ============================== */
+.order li{display:flex;gap:16px;padding:15px 0;border-bottom:1px solid var(--line)}
+.order li:last-child{border-bottom:0}
+.order .no{
+  font-family:var(--serif);font-size:13px;font-weight:700;color:var(--surface);
+  background:var(--ink);width:24px;height:24px;border-radius:50%;
+  display:grid;place-items:center;flex:none;margin-top:2px;
+}
+.order .k{font-size:11.5px;letter-spacing:.06em;color:var(--ink-3)}
+.order .t{font-family:var(--serif);font-size:16.5px;font-weight:600;margin-top:3px;line-height:1.5}
+.order .d{font-size:13px;color:var(--ink-2);margin-top:5px;line-height:1.6}
+.chal .top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.chal .nm{font-family:var(--serif);font-size:15.5px;font-weight:700}
+
+/* ============================== /me ============================== */
+.stats{display:flex;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stats div{flex:1;padding:16px 4px;text-align:center;border-right:1px solid var(--line)}
+.stats div:last-child{border-right:0}
+.stats b{font-family:var(--serif);display:block;font-size:27px;font-weight:700;line-height:1.2}
+.stats b.gold{color:var(--gold)}
+.stats span{font-size:11.5px;color:var(--ink-3);letter-spacing:.04em}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:7px 4px}
+.cal .h{font-size:10.5px;letter-spacing:.06em;color:var(--ink-3);text-align:center;padding-bottom:5px}
+.cal .d{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--ink-3);padding:1px 0}
+.cal .d .m{
+  width:30px;height:30px;border-radius:50%;border:1px solid var(--line);
+  display:grid;place-items:center;font-size:13px;color:transparent;background:var(--surface);
+  font-style:normal;
+}
+.cal .d.done .m{background:var(--accent);border-color:var(--accent);color:#fff}
+.cal .d.done{color:var(--ink-2)}
+.cal .d.rest .m{background:var(--surface-2);border-color:var(--line);color:var(--ink-3);font-size:10.5px}
+.cal .d.today .m{border:2px solid var(--gold);background:var(--gold-soft)}
+.cal .d.today{color:var(--gold);font-weight:700}
+.fam li{border-bottom:1px solid var(--line)}
+.fam li:last-child{border-bottom:0}
+.fam .it{display:flex;align-items:center;gap:12px;padding:13px 2px;transition:background-color .14s ease}
+.fam .t{font-size:14px;font-weight:600}
+.fam .m{font-size:12px;color:var(--ink-3);margin-top:2px}
+@media (hover:hover){.fam .it:hover{background:var(--surface)}}
+
+/* ============================== 모달 ============================== */
+.veil{position:fixed;inset:0;background:rgba(30,35,29,.52);display:none;place-items:center;z-index:60;padding:24px}
+.veil.is-open{display:grid}
+.modal{
+  width:560px;max-width:100%;max-height:88vh;overflow:auto;
+  background:var(--ground);border:1px solid var(--rule);border-radius:var(--r-lg);padding:28px;
+}
+.modal h2{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:-.01em}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-size:11.5px;font-weight:700;letter-spacing:.09em;color:var(--ink-2)}
+.field input{
+  font:inherit;font-size:14.5px;color:var(--ink);min-height:44px;
+  border:1px solid var(--ink-3);border-radius:var(--r);padding:0 13px;background:var(--surface);
+}
+.field .help{font-size:12px;color:var(--ink-3);line-height:1.55}
+.opt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.opt{
+  border:1px solid var(--ink-3);border-radius:var(--r);background:var(--surface);
+  min-height:44px;padding:9px 8px;text-align:center;transition:border-color .14s,background-color .14s,color .14s;
+}
+.opt b{font-family:var(--serif);display:block;font-size:19px;font-weight:700;line-height:1.2}
+.opt span{font-size:11.5px;color:var(--ink-3)}
+.opt.is-on{border-color:var(--accent);border-width:2px;background:var(--accent-soft);color:var(--accent-strong);padding:8px 7px}
+.opt.is-on span{color:var(--accent-strong)}
+.opt.chip{padding:0 14px;min-height:40px;display:inline-flex;align-items:center;font-size:13.5px}
+.opt.chip.is-on{padding:0 13px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+
+/* ============================== 알림·주석 ============================== */
+.foot-note{
+  font-size:12px;color:var(--ink-3);line-height:1.7;
+  border-left:2px solid var(--line);padding:2px 0 2px 14px;margin-top:34px;
+}
+.foot-note b{color:var(--ink-2)}
+.beta{
+  font-size:11.5px;color:var(--ink-3);text-align:center;letter-spacing:.03em;
+  padding:26px 0 0;border-top:1px solid var(--line);margin-top:22px;
+}
+
+/* ============================== 라우팅·모션 ============================== */
+.route{display:none}
+.route.is-active{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.route.is-active .pagehead{animation:rise .3s ease-out both}
+.route.is-active .spread,.route.is-active .single,.route.is-active .reader{animation:rise .36s ease-out .04s both}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ===================== 제호 ===================== -->
+<header class="masthead">
+  <div class="mast-in">
+    <a class="wordmark" href="#/today" aria-label="훈독 홈">
+      <span class="n">훈독</span><span class="b">독립 운영 베타</span>
+    </a>
+    <nav class="mainnav" aria-label="주 메뉴">
+      <a href="#/today"   data-nav="today"><i class="ph-light ph-sun-horizon"></i>오늘 훈독</a>
+      <a href="#/ask"     data-nav="ask"><i class="ph-light ph-chat-teardrop-text"></i>AI 질문</a>
+      <a href="#/words"   data-nav="words"><i class="ph-light ph-book-open-text"></i>말씀</a>
+      <a href="#/worship" data-nav="worship"><i class="ph-light ph-house-line"></i>가정예배</a>
+      <a href="#/me"      data-nav="me"><i class="ph-light ph-plant"></i>나의 정원</a>
+    </nav>
+    <div class="mast-act">
+      <a class="icon-btn" href="#/words" aria-label="말씀 검색"><i class="ph-light ph-magnifying-glass"></i></a>
+      <a class="icon-btn" href="#/me" aria-label="알림"><i class="ph-light ph-bell"></i></a>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ===================== 02 오늘 훈독 ===================== -->
+<section class="route" data-route="/today" data-tab="today" aria-labelledby="h-today">
+  <div class="shell">
+    <div class="pagehead">
+      <div class="in">
+        <div class="txt">
+          <div class="eyebrow"><span>2026년 9월 16일 화요일</span><span class="sep"></span><span>분당교회</span></div>
+          <h1 id="h-today">오늘 훈독</h1>
+        </div>
+        <div class="acts"><a class="btn line sm" href="#/words/read"><i class="ph-light ph-book-open-text"></i>바로 훈독하기</a></div>
+      </div>
+      <hr class="rule-heavy" />
+    </div>
+
+    <div class="spread">
+      <div>
+        <!-- 말씀이 먼저 온다 -->
+        <section class="today-word">
+          <div class="src-line">
+            <b>참아버님</b><span class="sep"></span><span>천성경</span><span class="sep"></span><span>2013 한국어판</span>
+            <span class="tag official"><i class="ph-fill ph-seal-check"></i>O1 공식 원문</span>
+          </div>
+          <p class="display">참사랑은 직단거리를 갑니다.</p>
+          <p class="greet">밤이 깊을수록 새벽은 가까워요. 효진님, 오늘도 함께 읽어요.</p>
+          <div class="band">
+            <img src="https://picsum.photos/id/65/1400/300" alt="아침 햇살이 드는 들판" />
+            <div class="cap"><i class="ph-light ph-users"></i>분당교회 식구 38명이 벌써 훈독했어요</div>
+          </div>
+        </section>
+
+        <section class="sect">
+          <div class="sh"><h2>오늘의 실천</h2><div class="bar"></div><span class="more">3가지 · 약 5분</span></div>
+          <ol class="practice">
+            <li><a class="it" href="#/words/read">
+              <span class="no">01</span>
+              <span class="bd">
+                <span class="k"><i class="ph-light ph-book-open-text"></i>훈독하기 · 3분</span>
+                <span class="t">참사랑은 직단거리를 갑니다</span>
+                <span class="m"><span>천성경 · 참아버님</span><span class="sep"></span><span><i class="ph-light ph-users"></i> 38명 함께</span></span>
+              </span>
+              <span class="check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+            </a></li>
+            <li><div class="it">
+              <span class="no">02</span>
+              <span class="bd">
+                <span class="k"><i class="ph-light ph-hands-praying"></i>기도하기 · 1분</span>
+                <span class="t">오늘의 기도 제목: 자녀의 새 학기</span>
+                <span class="m"><span>가족 기도 제목 2개 · 우리 교회 기도 제목 1개</span></span>
+              </span>
+              <button class="check" data-check aria-pressed="false" aria-label="기도하기 완료로 표시"><i class="ph-bold ph-check"></i></button>
+            </div></li>
+            <li><a class="it" href="#/words/read">
+              <span class="no">03</span>
+              <span class="bd">
+                <span class="k"><i class="ph-light ph-books"></i>말씀 읽기 · 이어 읽기</span>
+                <span class="t">천성경 제1편 3장</span>
+                <span class="m"><span>지난번 12단락까지 읽었어요</span></span>
+              </span>
+              <span class="check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+            </a></li>
+          </ol>
+        </section>
+
+        <section class="sect">
+          <div class="sh"><h2>정성 기간</h2><div class="bar"></div><a class="more" href="#/me">기록 보기</a></div>
+          <div class="sheet">
+            <div class="row between top">
+              <div>
+                <div class="micro muted" style="letter-spacing:.06em">21일 새벽 정성 · 가정의 화목</div>
+                <div style="font-family:var(--serif);font-size:21px;font-weight:700;margin-top:4px">D-14 <span class="muted" style="font-size:13px;font-weight:400;font-family:var(--sans)">7일째</span></div>
+              </div>
+              <span class="tag leaf"><i class="ph-light ph-sun-horizon"></i>오늘 말씀 준비됨</span>
+            </div>
+            <div class="ticks" aria-hidden="true">
+              <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+              <i class="now"></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <div class="row between small muted nums"><span>7 / 21일</span><span>매일 오전 5:30 알림</span></div>
+          </div>
+          <button class="btn line block" style="margin-top:12px" data-modal><i class="ph-light ph-plus"></i>새 정성 시작하기</button>
+        </section>
+
+        <p class="foot-note"><b>안 A와 달라진 점.</b> 사진 히어로(260px · 어두운 베일 · 그 위 인사말)를 걷어내고 말씀을 지면 맨 위에 명조로 놓았다. 사진은 104px 띠로 물러나 "함께 읽는 사람 수"를 싣는 자리만 맡는다. 실천 3가지는 그림자 카드가 아니라 번호가 매겨진 차례표다 — 순서가 뜻이라는 것을 카드보다 분명히 말한다.</p>
+        <p class="beta">독립 운영 베타 · 가정연합 공식 앱이 아닙니다 · 모든 콘텐츠는 예시</p>
+      </div>
+
+      <aside class="aside">
+        <div class="blk">
+          <div class="sh"><h2>이번 주</h2><div class="bar"></div></div>
+          <div class="week">
+            <span class="day done"><span class="dot"><i class="ph-bold ph-check"></i></span>월</span>
+            <span class="day today"><span class="dot"></span>화</span>
+            <span class="day"><span class="dot"></span>수</span>
+            <span class="day"><span class="dot"></span>목</span>
+            <span class="day"><span class="dot"></span>금</span>
+            <span class="day"><span class="dot"></span>토</span>
+            <span class="day"><span class="dot"></span>일</span>
+          </div>
+          <div class="streak">
+            <i class="ph-fill ph-flame"></i><b class="nums">12</b><span>일 연속으로 읽었어요</span>
+          </div>
+        </div>
+
+        <div class="blk">
+          <div class="sh"><h2>함께 읽는 사람들</h2><div class="bar"></div></div>
+          <a class="sheet" href="#/worship">
+            <span class="row"><span class="avatars">
+              <img src="https://picsum.photos/id/129/80/80" alt="" />
+              <img src="https://picsum.photos/id/447/80/80" alt="" />
+              <img src="https://picsum.photos/id/338/80/80" alt="" />
+            </span></span>
+            <span style="display:block;font-family:var(--serif);font-size:15px;font-weight:600;margin-top:12px">우리 가족 4명 중 2명 완료</span>
+            <span class="small muted" style="display:block;margin-top:3px">재민, 하늘이 아직이에요</span>
+            <span class="row" style="margin-top:12px;gap:6px;color:var(--accent-strong);font-size:12.5px;font-weight:600">챌린지 보기 <i class="ph-light ph-caret-right"></i></span>
+          </a>
+        </div>
+
+        <div class="blk">
+          <div class="sh"><h2>이번 주 가정예배</h2><div class="bar"></div></div>
+          <a class="sheet" href="#/worship">
+            <span class="micro muted" style="display:block;letter-spacing:.05em">9월 21일 일요일 저녁</span>
+            <span style="display:block;font-family:var(--serif);font-size:15px;font-weight:600;margin-top:5px">우리 집 순서지가 준비됐어요</span>
+          </a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 05 AI 질문 목록 ===================== -->
+<section class="route" data-route="/ask" data-tab="ask" aria-labelledby="h-ask">
+  <div class="shell">
+    <div class="pagehead narrow">
+      <div class="in">
+        <div class="txt"><h1 id="h-ask">AI 질문</h1></div>
+        <div class="acts"><a class="btn primary sm" href="#/ask/1"><i class="ph-light ph-plus"></i>질문하기</a></div>
+      </div>
+      <hr class="rule-heavy narrow" />
+    </div>
+
+    <div class="single narrow">
+      <div class="seg" role="tablist" aria-label="질문 보기 기준">
+        <button role="tab" aria-selected="true" class="is-on">추천</button>
+        <button role="tab" aria-selected="false">북마크</button>
+        <button role="tab" aria-selected="false">내 질문</button>
+      </div>
+      <ul class="qlist">
+        <li><a class="it" href="#/ask/1"><span class="q"><span class="t" style="display:block">정성을 드린다는 게 정확히 뭘 하는 건가요?</span><span class="m" style="display:block">이번 주 312명이 봤어요</span></span><span class="mk on" aria-label="북마크됨"><i class="ph-fill ph-bookmark-simple"></i></span></a></li>
+        <li><a class="it" href="#/ask/1"><span class="q"><span class="t" style="display:block">축복가정으로서 자녀에게 말씀을 어떻게 가르치나요?</span><span class="m" style="display:block">가정 · 자녀</span></span><span class="mk"><i class="ph-light ph-bookmark-simple"></i></span></a></li>
+        <li><a class="it" href="#/ask/1"><span class="q"><span class="t" style="display:block">탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</span><span class="m" style="display:block">용어 · 원리</span></span><span class="mk"><i class="ph-light ph-bookmark-simple"></i></span></a></li>
+        <li><a class="it" href="#/ask/1"><span class="q"><span class="t" style="display:block">직장에서 신앙을 말하기가 어려워요</span><span class="m" style="display:block">생활 · 청년</span></span><span class="mk"><i class="ph-light ph-bookmark-simple"></i></span></a></li>
+        <li><a class="it" href="#/ask/1"><span class="q"><span class="t" style="display:block">부모님과 신앙 문제로 자주 다퉈요. 어떻게 대화하죠?</span><span class="m" style="display:block">가정 · 2세</span></span><span class="mk"><i class="ph-light ph-bookmark-simple"></i></span></a></li>
+        <li><a class="it" href="#/ask/1"><span class="q"><span class="t" style="display:block">참사랑이 직단거리로 간다는 말씀의 의미가 궁금해요</span><span class="m" style="display:block">오늘 훈독에서 나온 질문</span></span><span class="mk"><i class="ph-light ph-bookmark-simple"></i></span></a></li>
+      </ul>
+
+      <p class="foot-note"><b>안 A와 달라진 점.</b> 떠 있는 FAB 을 없애고 "질문하기"를 면 머리의 주 동작으로 올렸다. FAB 은 엄지 도달을 위한 형태이고, 포인터 환경에서는 목록의 제목 줄에 붙은 단추가 더 찾기 쉽다. 목록은 추천 순위가 곧 순서라 720px 한 단을 지킨다.</p>
+      <p class="beta">AI 설명은 참고용이며 교회장의 지도를 대체하지 않습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 06 질문·답변 상세 ===================== -->
+<section class="route" data-route="/ask/1" data-tab="ask" aria-labelledby="h-ask1">
+  <div class="shell">
+    <div class="pagehead">
+      <div class="in">
+        <div class="txt">
+          <div class="eyebrow"><a href="#/ask" style="display:inline-flex;align-items:center;gap:5px"><i class="ph-light ph-arrow-left"></i>AI 질문</a><span class="sep"></span><span>근거 2 · 연관 2</span></div>
+          <h1 id="h-ask1">정성을 드린다는 게 정확히 뭘 하는 건가요?</h1>
+        </div>
+        <div class="acts">
+          <button class="icon-btn" aria-label="북마크 해제" style="color:var(--accent)"><i class="ph-fill ph-bookmark-simple"></i></button>
+          <button class="icon-btn" aria-label="공유"><i class="ph-light ph-share-network"></i></button>
+        </div>
+      </div>
+      <hr class="rule-heavy" />
+    </div>
+
+    <div class="spread">
+      <div class="measure">
+        <div class="ai">
+          <span class="lab"><i class="ph-light ph-sparkle"></i>AI 설명 · 공식 해설 아님</span>
+          <p>근거 말씀에서 정성은 특정 기간을 정해 기도와 마음을 모아 하늘 앞에 약속을 세우는 실천으로 나타납니다. 40일이라는 기간과 "내가 있을 때 해야 한다"는 표현이 함께 쓰입니다.<sup>1</sup></p>
+          <p>정성의 방향에 대해서는 사랑이 최단거리, 곧 수직으로 하늘과 이어져야 한다는 말씀이 함께 읽힙니다.<sup>2</sup> 구체적인 방법(시간·장소·횟수)은 근거 말씀에 명시되어 있지 않아 교회장께 확인을 권합니다.</p>
+        </div>
+
+        <section class="sect">
+          <div class="sh"><h2>근거 말씀</h2><div class="bar"></div><span class="more">누르면 원문으로</span></div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <a class="sheet" href="#/words/read" aria-label="근거 1, 참어머님 말씀 모음 원문 열기">
+              <span class="src-line">
+                <b style="font-family:var(--serif)">1</b><span class="sep"></span><span>참어머님</span><span class="sep"></span>
+                <span>참어머님 말씀 모음 (최종본 2012년~)</span>
+                <span class="tag official"><i class="ph-fill ph-seal-check"></i>O1 공식 원문</span>
+              </span>
+              <span class="quote" style="display:block;margin-top:14px">모두가 그러한 마음가짐으로 남은 40여 일 동안 기도와 정성을 들이며 성화 2주기를 맞이하고 성화 3주기를 향해 출발해야 합니다. 하늘 앞에 약속해야 됩니다.</span>
+            </a>
+            <a class="sheet" href="#/words/read" aria-label="근거 2, 천성경 원문 열기">
+              <span class="src-line">
+                <b style="font-family:var(--serif)">2</b><span class="sep"></span><span>참아버님</span><span class="sep"></span>
+                <span>천성경</span><span class="sep"></span><span>2013 한국어판</span>
+                <span class="tag official"><i class="ph-fill ph-seal-check"></i>O1 공식 원문</span>
+              </span>
+              <span class="quote" style="display:block;margin-top:14px">참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다. 91도도 89도도 직단이 아닙니다.</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="sect">
+          <div class="sh"><h2>연관 말씀</h2><div class="bar"></div><a class="more" href="#/words">더 찾기</a></div>
+          <ul class="qlist" style="border-top:1px solid var(--line)">
+            <li><a class="it" href="#/words/read">
+              <span class="mk"><i class="ph-light ph-quotes"></i></span>
+              <span class="q"><span class="t" style="display:block;font-size:15.5px">지상천국은 축복가정들의 손으로 만들 수 있나요, 없나요?</span><span class="m" style="display:block">참어머님 · 말씀모음(2018~2019) · O1 공식 원문</span></span>
+              <span class="mk"><i class="ph-light ph-caret-right"></i></span>
+            </a></li>
+            <li><a class="it" href="#/words/read">
+              <span class="mk"><i class="ph-light ph-quotes"></i></span>
+              <span class="q"><span class="t" style="display:block;font-size:15.5px">여러분의 꿈은 하늘부모님의 꿈과 일치되어야 합니다</span><span class="m" style="display:block">참어머님 · 말씀(2016년) · O1 공식 원문</span></span>
+              <span class="mk"><i class="ph-light ph-caret-right"></i></span>
+            </a></li>
+          </ul>
+        </section>
+
+        <p class="foot-note"><b>안 A와 달라진 점.</b> 번호 인용(근거 말씀)은 A 와 같이 본문 흐름에 남겼다 — 1·2 라는 번호가 위 문단을 가리키므로 옆 단으로 빼면 참조가 끊긴다. 대신 <b>읽을거리가 아닌 것</b>(이어지는 질문, 저장 스위치)만 곁단으로 옮겼다. 공식 원문은 명조, AI 설명은 고딕이라 서체만으로도 둘이 갈린다.</p>
+        <p class="beta">AI 설명은 참고용이며 교회장의 지도를 대체하지 않습니다.</p>
+      </div>
+
+      <aside class="aside">
+        <div class="blk">
+          <div class="sh"><h2>이어서 물어보기</h2><div class="bar"></div></div>
+          <div class="follow">
+            <button><i class="ph-light ph-arrow-bend-down-right"></i>정성 기간 중 하루를 놓치면 어떻게 하나요?</button>
+            <button><i class="ph-light ph-arrow-bend-down-right"></i>가족과 함께 드리는 정성은 어떻게 시작하나요?</button>
+            <button><i class="ph-light ph-arrow-bend-down-right"></i>40일 정성과 21일 정성은 무엇이 다른가요?</button>
+          </div>
+        </div>
+        <div class="blk">
+          <div class="sh"><h2>보관</h2><div class="bar"></div></div>
+          <div class="sheet">
+            <div class="row between">
+              <div><div style="font-weight:600;font-size:13.5px">이 질문 저장</div><div class="micro muted" style="margin-top:2px">끄면 내용은 저장되지 않아요</div></div>
+              <button class="toggle is-on" data-toggle aria-label="이 질문 저장" aria-pressed="true"></button>
+            </div>
+          </div>
+          <div class="memo" style="margin-top:12px">
+            <div class="micro" style="font-weight:700;letter-spacing:.06em;color:var(--ink-2);margin-bottom:5px">내 메모 · 나만 봄</div>
+            <div class="small muted">아직 메모가 없어요.</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 07 말씀 서고 ===================== -->
+<section class="route" data-route="/words" data-tab="words" aria-labelledby="h-words">
+  <div class="shell">
+    <div class="pagehead">
+      <div class="in">
+        <div class="txt">
+          <div class="eyebrow"><span>권리 확인된 정본만</span></div>
+          <h1 id="h-words">말씀</h1>
+        </div>
+        <div class="acts"><a class="btn line sm" href="#/words"><i class="ph-light ph-magnifying-glass"></i>말씀 검색</a></div>
+      </div>
+      <hr class="rule-heavy" />
+    </div>
+
+    <div class="single">
+      <div class="shortcuts">
+        <a href="#/words"><i class="ph-light ph-book-bookmark"></i>용어 사전</a>
+        <a href="#/words/read"><i class="ph-light ph-headphones"></i>오디오</a>
+        <a href="#/today"><i class="ph-light ph-sun-horizon"></i>정성</a>
+        <a href="#/words"><i class="ph-light ph-magnifying-glass"></i>검색</a>
+      </div>
+
+      <section class="sect">
+        <div class="sh"><h2>이어 읽기</h2><div class="bar"></div></div>
+        <a class="sheet resume" href="#/words/read">
+          <img src="https://picsum.photos/id/24/240/320" alt="" />
+          <span style="flex:1;min-width:0">
+            <span class="micro muted" style="display:block;letter-spacing:.06em">천성경 · 제1편 3장</span>
+            <span style="display:block;font-family:var(--serif);font-size:19px;font-weight:700;margin-top:4px">참사랑의 근본</span>
+            <span class="bar" style="margin:14px 0 8px;max-width:420px"><i style="width:58%"></i></span>
+            <span class="small muted nums">12 / 21단락 · 어제 저녁</span>
+          </span>
+          <span class="tag official" style="align-self:flex-start"><i class="ph-fill ph-seal-check"></i>O1</span>
+        </a>
+      </section>
+
+      <section class="sect">
+        <div class="sh"><h2>서고</h2><div class="bar"></div><span class="more">6종</span></div>
+        <div class="works">
+          <a class="sheet work" href="#/words/read">
+            <span class="top"><span class="glyph">천</span><span><span class="nm" style="display:block">천성경</span><span class="mt" style="display:block">참부모님 · 2013 한국어판 · 16편</span></span></span>
+            <span class="ft"><span class="tag official"><i class="ph-fill ph-seal-check"></i>O1 공식 원문</span></span>
+          </a>
+          <a class="sheet work" href="#/words/read">
+            <span class="top"><span class="glyph pend">선</span><span><span class="nm" style="display:block">말씀선집</span><span class="mt" style="display:block">참아버님 · 권별 열람</span></span></span>
+            <span class="ft"><span class="tag pending">권리 일부 확인</span></span>
+          </a>
+          <a class="sheet work" href="#/words/read">
+            <span class="top"><span class="glyph">어</span><span><span class="nm" style="display:block">참어머님 말씀 모음</span><span class="mt" style="display:block">2012년~ · 최종본 · 2015 · 2016</span></span></span>
+            <span class="ft"><span class="tag official"><i class="ph-fill ph-seal-check"></i>O1 공식 원문</span></span>
+          </a>
+          <a class="sheet work" href="#/words/read">
+            <span class="top"><span class="glyph pend">평</span><span><span class="nm" style="display:block">평화경</span><span class="mt" style="display:block">참부모님 · 2013 한국어판</span></span></span>
+            <span class="ft"><span class="tag pending">권리 확인 중</span></span>
+          </a>
+          <a class="sheet work" href="#/words/read">
+            <span class="top"><span class="glyph">자</span><span><span class="nm" style="display:block">평화를 사랑하는 세계인으로</span><span class="mt" style="display:block">참아버님 자서전 · 2009</span></span></span>
+            <span class="ft"><span class="tag official"><i class="ph-fill ph-seal-check"></i>O2 공식 게시</span></span>
+          </a>
+          <a class="sheet work" href="#/words/read">
+            <span class="top"><span class="glyph" style="background:var(--surface-2);color:var(--ink-2)">해</span><span><span class="nm" style="display:block">원리 해설 자료</span><span class="mt" style="display:block">공식 교육 자료 · 연도별</span></span></span>
+            <span class="ft"><span class="tag neutral">O3 공식 해설</span></span>
+          </a>
+        </div>
+      </section>
+
+      <p class="foot-note"><b>안 A와 달라진 점.</b> 서고는 한 단(720px) 안의 2열이 아니라 지면 전체 폭의 <b>3열 서가</b>다. 저작물은 순서 없는 병렬 항목이라 폭을 넓게 쓸수록 훑기 쉽다. 권위 표시는 초록 배지 대신 <b>먹 채움 + 한국어 라벨</b>이고, 권리 확인 전인 것은 <b>점선</b>과 흐린 표제 글자로 형태가 다르다 — 등급 숫자나 색 하나에 기대지 않는다.</p>
+      <p class="beta">권리 확인 중인 저작물은 검색·AI 근거·오프라인에 사용되지 않습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 09 원문 뷰 (3단 지면) ===================== -->
+<section class="route" data-route="/words/read" data-tab="words" aria-labelledby="h-read">
+  <div class="shell">
+    <div class="pagehead">
+      <div class="in">
+        <div class="txt">
+          <div class="eyebrow"><a href="#/words" style="display:inline-flex;align-items:center;gap:5px"><i class="ph-light ph-arrow-left"></i>말씀</a><span class="sep"></span><span>참아버님</span><span class="sep"></span><span>2013 한국어판</span></div>
+          <h1 id="h-read">천성경 제1편 3장 · 참사랑의 근본</h1>
+        </div>
+        <div class="acts"><span class="tag official"><i class="ph-fill ph-seal-check"></i>O1 공식 원문</span></div>
+      </div>
+      <hr class="rule-heavy" />
+    </div>
+
+    <div class="reader">
+      <nav class="toc" aria-label="목차">
+        <div class="g">천성경 · 제1편</div>
+        <a href="#/words/read">1장 하늘부모님</a>
+        <a href="#/words/read">2장 참부모</a>
+        <a href="#/words/read" class="is-on" aria-current="true">3장 참사랑의 근본</a>
+        <a href="#/words/read">4장 창조 원리</a>
+        <a href="#/words/read">5장 축복가정</a>
+        <div class="g">천성경 · 제2편</div>
+        <a href="#/words/read">1장 인간의 책임</a>
+        <a href="#/words/read">2장 탕감복귀</a>
+        <a href="#/words/read">3장 심정의 세계</a>
+        <div class="g">천성경 · 제3편</div>
+        <a href="#/words/read">1장 가정의 길</a>
+        <a href="#/words/read">2장 자녀 교육</a>
+      </nav>
+
+      <div>
+        <div class="pills" role="tablist" aria-label="보기 방식">
+          <button role="tab" aria-selected="true" class="is-on">본문</button>
+          <button role="tab" aria-selected="false">AI 설명</button>
+          <button role="tab" aria-selected="false">노트 3</button>
+        </div>
+
+        <div class="readbar" aria-label="읽기 도구">
+          <button><i class="ph-light ph-highlighter"></i>형광펜</button>
+          <button><i class="ph-light ph-note-pencil"></i>노트</button>
+          <button><i class="ph-light ph-bookmark-simple"></i>북마크</button>
+          <button><i class="ph-light ph-text-aa"></i>글자 크기</button>
+          <button><i class="ph-light ph-columns"></i>판본 나란히</button>
+        </div>
+
+        <div class="audio">
+          <button class="play" aria-label="일시정지"><i class="ph-fill ph-pause"></i></button>
+          <div style="flex:1;min-width:0">
+            <div class="small" style="font-weight:600">참사랑의 근본 · TTS 예시</div>
+            <div class="tr"><i></i></div>
+          </div>
+          <span class="small nums" style="opacity:.8">2:14 / 5:48</span>
+        </div>
+
+        <article>
+          <div class="verse"><span class="n">10</span><p>역사는 남성과 여성을 접촉시켜 나왔습니다. 남자와 여자는 하나의 기점에서 연결되어야 합니다. 그 연결은 <mark class="hl-2">참부모라는 내용을 중심삼고</mark> 되어야 하며, 그 참부모는 역사의 기원으로 출발되어야 합니다.</p></div>
+          <div class="verse"><span class="n">11</span><p><mark class="hl-1">참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다.</mark> 91도도 89도도 직단이 아닙니다. 오로지 최단거리는 90각도밖에 없습니다. 수직은 90각도를 통해야 됩니다.</p></div>
+          <div class="verse"><span class="n">12</span><p>아들 낳기를 고대하던 부부는 아들을 낳았다고 하더라도 그 아들 낳은 것만 좋아해서는 안 됩니다. 그 아들이 좋은 만큼 <mark class="hl-3">어떻게 가치 있는 아들로 키우느냐</mark> 하는 문제를 놓고 걱정을 해야 합니다.</p></div>
+          <div class="verse"><span class="n">13</span><p>여러분들 즐거웠어요? 맛있었어요? 아버님 많이 생각했죠? 우리가 뜻을 다 이루게 되면 우리는 매일 잔치다. 실감합니까? 누가 책임을 완수해서 축하해주기 위한 잔치, 누가 하늘 앞에 승리했기 때문에 잔치, 매일 잔치만 할 수 있는 때를 우리가 만들어야 되겠죠?</p></div>
+        </article>
+
+        <p class="small muted" style="padding-top:8px;border-top:1px solid var(--line)">단락 12·13은 예시로 이어 붙인 발췌입니다. 실제 판본의 단락 순서가 아닙니다.</p>
+
+        <p class="foot-note"><b>안 A와 달라진 점.</b> A 는 목차 280 + 본문 640 의 2단이다. 여기는 <b>목차 208 · 본문 616 · 방주 184</b> 의 3단이다. 오른쪽 방주는 인쇄된 책의 여백 주석 자리로, 모바일에서 본문 아래로 접히던 용어 칩과 내 노트가 그대로 옆에 선다 — 새 계층이 아니라 같은 내용의 자리바꿈이다. 하단 리더 바는 본문 위 가로 툴바로 올라왔고, 목차 항목은 왼쪽 단이 대신하므로 뺐다.</p>
+        <p class="beta">형광펜·노트·북마크는 기본 비공개입니다.</p>
+      </div>
+
+      <aside class="margin-col">
+        <div class="mh">이 장의 용어</div>
+        <div class="terms">
+          <button class="term"><i class="ph-light ph-book-bookmark"></i>참사랑</button>
+          <button class="term"><i class="ph-light ph-book-bookmark"></i>종적 사랑</button>
+          <button class="term"><i class="ph-light ph-book-bookmark"></i>직단거리</button>
+          <button class="term"><i class="ph-light ph-book-bookmark"></i>기점</button>
+        </div>
+        <div class="mh" style="margin-top:28px">내 노트 · 나만 봄</div>
+        <div class="memo">
+          <div class="mnote nums"><b>11단락</b> — 90각도라는 말이 각도가 아니라 방향에 대한 말씀 같다.</div>
+          <div class="mnote nums"><b>12단락</b> — 아이들과 나눔 질문으로 쓰기.</div>
+          <div class="mnote nums"><b>13단락</b> — 잔치라는 말이 마음에 남는다.</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 10 가정예배 ===================== -->
+<section class="route" data-route="/worship" data-tab="worship" aria-labelledby="h-worship">
+  <div class="shell">
+    <div class="pagehead">
+      <div class="in">
+        <div class="txt">
+          <div class="eyebrow"><span>이번 주 가정예배</span><span class="sep"></span><span>9월 21일 일요일 저녁</span></div>
+          <h1 id="h-worship">우리 집 순서지가 준비됐어요</h1>
+        </div>
+        <div class="acts"><a class="btn line sm" href="#/worship"><i class="ph-light ph-microphone"></i>설교 신청</a></div>
+      </div>
+      <hr class="rule-heavy" />
+    </div>
+
+    <div class="spread">
+      <div>
+        <div class="sheet" style="padding:8px 24px 22px">
+          <ol class="order">
+            <li><span class="no">1</span><div><div class="k">경배</div><div class="t">하늘부모님과 참부모님께 경배</div></div></li>
+            <li><span class="no">2</span><div><div class="k">찬양</div><div class="t">성가 1곡 · 가족이 고른 곡</div><div class="d">지난주엔 하늘이가 골랐어요. 이번 주는 재민 차례.</div></div></li>
+            <li><span class="no">3</span><div><div class="k">말씀 · 천성경 1편 3장</div><div class="t">참사랑은 직단거리를 갑니다</div><div class="d">돌아가며 한 단락씩 읽어요. 약 4분.</div></div></li>
+            <li><span class="no">4</span><div><div class="k">나눔 질문</div><div class="t">이번 주 우리 집에서 "곧게 사랑한" 순간은?</div><div class="d">아이에게는: 누구를 제일 먼저 도와주고 싶었어?</div></div></li>
+            <li><span class="no">5</span><div><div class="k">기도</div><div class="t">하늘이 새 학기 · 할머니 건강 · 분당교회 40일 정성</div></div></li>
+            <li><span class="no">6</span><div><div class="k">마무리</div><div class="t">축도와 저녁 식사</div></div></li>
+          </ol>
+        </div>
+        <div class="row" style="gap:10px;margin-top:14px">
+          <button class="btn primary" style="flex:1"><i class="ph-light ph-paper-plane-tilt"></i>가족에게 보내기</button>
+          <button class="btn line"><i class="ph-light ph-pencil-simple"></i>편집</button>
+        </div>
+
+        <p class="foot-note"><b>안 A와 달라진 점.</b> 순서지는 인쇄된 예배 순서지처럼 한 장의 면 위에 괘로만 나뉜다. 6단계는 순서가 곧 뜻이라 데스크톱에서도 세로를 지킨다. 챌린지는 읽는 흐름 밖의 곁 정보라 오른쪽 단으로 옮겼다 — 진행률과 참여 인원만 있고 개인 순위는 없다.</p>
+        <p class="beta">챌린지 진행률과 인원만 표시되며 개인 순위는 없습니다.</p>
+      </div>
+
+      <aside class="aside">
+        <div class="blk">
+          <div class="band" style="height:150px;margin-top:0">
+            <img src="https://picsum.photos/id/129/700/460" alt="벤치에 나란히 앉은 가족" />
+          </div>
+        </div>
+        <div class="blk">
+          <div class="sh"><h2>챌린지</h2><div class="bar"></div><a class="more" href="#/worship">모두 보기</a></div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <a class="sheet chal" href="#/worship">
+              <span class="top"><span class="nm">우리 가족 21일 훈독</span><span class="tag mark">D-9</span></span>
+              <span class="bar" style="margin:12px 0 8px"><i style="width:62%"></i></span>
+              <span class="row between small muted nums"><span>13 / 21일 · 62%</span><span class="row" style="gap:4px"><i class="ph-light ph-users"></i>4명</span></span>
+            </a>
+            <a class="sheet chal" href="#/worship">
+              <span class="top"><span class="nm">분당교회 40일 정성</span><span class="tag mark">D-23</span></span>
+              <span class="bar" style="margin:12px 0 8px"><i style="width:42%"></i></span>
+              <span class="row between small muted nums"><span>17 / 40일 · 오늘 71명 완료</span><span class="row" style="gap:4px"><i class="ph-light ph-users"></i>87명</span></span>
+            </a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 14 나의 정원 ===================== -->
+<section class="route" data-route="/me" data-tab="me" aria-labelledby="h-me">
+  <div class="shell">
+    <div class="pagehead">
+      <div class="in">
+        <div class="txt">
+          <div class="eyebrow"><span>분당교회</span><span class="sep"></span><span>2019 축복가정</span></div>
+          <h1 id="h-me">나의 정원</h1>
+        </div>
+        <div class="acts">
+          <a class="icon-btn" href="#/me" aria-label="가족·친구"><i class="ph-light ph-users-three"></i></a>
+          <a class="icon-btn" href="#/me" aria-label="설정"><i class="ph-light ph-gear"></i></a>
+        </div>
+      </div>
+      <hr class="rule-heavy" />
+    </div>
+
+    <div class="spread">
+      <div>
+        <div class="row top" style="gap:18px">
+          <img class="avatar xl" src="https://picsum.photos/id/289/220/220" alt="" />
+          <div style="flex:1;min-width:0;padding-top:2px">
+            <div style="font-family:var(--serif);font-size:24px;font-weight:700">효진</div>
+            <div class="small muted" style="margin-top:3px">분당교회 · 2019 축복가정</div>
+            <div class="src-line" style="margin-top:10px">
+              <i class="ph-light ph-quotes" style="font-size:15px"></i>
+              <span>대표 말씀</span><span class="sep"></span>
+              <span style="font-family:var(--serif);color:var(--ink);font-size:13.5px">참사랑은 직단거리를 갑니다</span>
+            </div>
+          </div>
+        </div>
+
+        <section class="sect">
+          <div class="sh"><h2>말씀과 함께한 시간</h2><div class="bar"></div></div>
+          <div class="stats">
+            <div><b class="gold nums">12</b><span>현재 연속일</span></div>
+            <div><b class="nums">27</b><span>최대 연속일</span></div>
+            <div><b class="nums">143</b><span>누적일</span></div>
+          </div>
+        </section>
+
+        <section class="sect">
+          <div class="sh"><h2>2026년 9월</h2><div class="bar"></div><span class="more">훈독 완료한 날</span></div>
+          <div class="cal">
+            <span class="h">월</span><span class="h">화</span><span class="h">수</span><span class="h">목</span><span class="h">금</span><span class="h">토</span><span class="h">일</span>
+            <span></span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>1</span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>2</span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>3</span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>4</span>
+            <span class="d rest"><span class="m">쉼</span>5</span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>6</span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>7</span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>8</span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>9</span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>10</span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>11</span>
+            <span class="d rest"><span class="m">쉼</span>12</span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>13</span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>14</span>
+            <span class="d done"><span class="m"><i class="ph-bold ph-check"></i></span>15</span>
+            <span class="d today"><span class="m"></span>16</span>
+            <span class="d"><span class="m"></span>17</span>
+            <span class="d"><span class="m"></span>18</span>
+            <span class="d"><span class="m"></span>19</span>
+            <span class="d"><span class="m"></span>20</span>
+            <span class="d"><span class="m"></span>21</span>
+            <span class="d"><span class="m"></span>22</span>
+            <span class="d"><span class="m"></span>23</span>
+            <span class="d"><span class="m"></span>24</span>
+            <span class="d"><span class="m"></span>25</span>
+            <span class="d"><span class="m"></span>26</span>
+            <span class="d"><span class="m"></span>27</span>
+            <span class="d"><span class="m"></span>28</span>
+            <span class="d"><span class="m"></span>29</span>
+            <span class="d"><span class="m"></span>30</span>
+          </div>
+          <p class="small muted" style="margin-top:12px">"쉼"은 주 1회 쓸 수 있는 쉬어가기예요. 연속일이 끊기지 않아요.</p>
+        </section>
+
+        <p class="foot-note"><b>안 A와 달라진 점.</b> 통계 3칸은 카드가 아니라 위아래 괘 사이의 <b>표</b>다 — 숫자는 명조 고정폭으로 세워 자릿수가 흔들리지 않는다. 완료 신호는 <b>솔빛 채움 + 체크 글리프</b>, 쉼은 <b>"쉼" 글자</b>, 오늘은 <b>볕빛 두 겹 테두리</b>다. 세 상태가 색·형태·글자로 각각 달라 색만으로 구분하지 않는다.</p>
+        <p class="beta">기록은 나만 봅니다. 가족에게는 동의한 범위(오늘 완료 여부)만 보여요.</p>
+      </div>
+
+      <aside class="aside">
+        <div class="blk">
+          <div class="sh"><h2>가족</h2><div class="bar"></div><a class="more" href="#/me">관리</a></div>
+          <ul class="fam">
+            <li><a class="it" href="#/me">
+              <img class="avatar" src="https://picsum.photos/id/447/80/80" alt="" />
+              <span style="flex:1;min-width:0"><span class="t" style="display:block">재민</span><span class="m" style="display:block">배우자 · 오늘 아직</span></span>
+              <span class="check sm" aria-hidden="true"></span>
+            </a></li>
+            <li><a class="it" href="#/me">
+              <img class="avatar" src="https://picsum.photos/id/338/80/80" alt="" />
+              <span style="flex:1;min-width:0"><span class="t" style="display:block">하늘</span><span class="m" style="display:block">자녀 · 보호자 연결 · 오늘 완료</span></span>
+              <span class="check sm is-on" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+            </a></li>
+            <li><a class="it" href="#/me">
+              <img class="avatar" src="https://picsum.photos/id/129/80/80" alt="" />
+              <span style="flex:1;min-width:0"><span class="t" style="display:block">어머니</span><span class="m" style="display:block">부모 · 오늘 아직</span></span>
+              <span class="check sm" aria-hidden="true"></span>
+            </a></li>
+          </ul>
+        </div>
+
+        <div class="blk">
+          <div class="sh"><h2>올해의 들</h2><div class="bar"></div></div>
+          <div class="band" style="height:130px;margin-top:0">
+            <img src="https://picsum.photos/id/112/700/400" alt="해질 무렵 황금빛 들판" />
+          </div>
+          <p class="small muted" style="margin-top:10px">누적 143일. 읽은 날마다 한 뼘씩 자라요.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ===================== 04 정성 만들기 (모달) ===================== -->
+<div class="veil" id="veil">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle" tabindex="-1">
+    <h2 id="mtitle">정성 기간 만들기</h2>
+    <p class="small muted" style="margin:8px 0 22px;line-height:1.7">기간 동안 매일 주제에 맞는 말씀을 골라 드려요. 말씀은 권리가 확인된 정본 안에서만 고르고, AI 가 만들지 않아요.</p>
+
+    <div style="display:flex;flex-direction:column;gap:22px">
+      <div class="field">
+        <label>기간</label>
+        <div class="opt-grid" data-opts>
+          <button class="opt"><b>7</b><span>일 · 한 주</span></button>
+          <button class="opt is-on"><b>21</b><span>일 · 세 주</span></button>
+          <button class="opt"><b>40</b><span>일 · 정성</span></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>주제</label>
+        <div class="chips" data-opts>
+          <button class="opt chip is-on">가정의 화목</button>
+          <button class="opt chip">자녀</button>
+          <button class="opt chip">감사</button>
+          <button class="opt chip">건강</button>
+          <button class="opt chip">뜻길</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="js-start">시작일과 알림</label>
+        <div class="row" style="gap:10px">
+          <input id="js-start" value="9월 17일 (목)" style="flex:1" />
+          <input value="오전 5:30" style="width:140px" aria-label="알림 시각" />
+        </div>
+        <span class="help">하루를 놓쳐도 정성은 끊기지 않고 "밀린 날"로 표시돼요.</span>
+      </div>
+      <div class="sheet row between">
+        <div><div style="font-weight:600;font-size:13.5px">가족 챌린지로 함께하기</div><div class="micro muted" style="margin-top:2px">가족에게 초대를 보내요</div></div>
+        <button class="toggle" data-toggle aria-label="가족 챌린지로 함께하기" aria-pressed="false"></button>
+      </div>
+      <div class="row" style="gap:10px">
+        <button class="btn primary" style="flex:1" data-close>정성 시작하기</button>
+        <button class="btn quiet" data-close>닫기</button>
+      </div>
+      <p class="micro muted" style="text-align:center;line-height:1.7">하단 시트는 엄지 도달을 위한 형태라 포인터 환경에서는 근거가 사라진다. 폭 560px 중앙 모달.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var routes = Array.prototype.slice.call(document.querySelectorAll('.route'));
+  var navs   = Array.prototype.slice.call(document.querySelectorAll('[data-nav]'));
+  var veil   = document.getElementById('veil');
+  var lastFocus = null;
+
+  function openModal(){
+    if (veil.classList.contains('is-open')) return;
+    lastFocus = document.activeElement;
+    veil.classList.add('is-open');
+    veil.querySelector('.modal').focus();
+  }
+  function closeModal(){
+    if (!veil.classList.contains('is-open')) return;
+    veil.classList.remove('is-open');
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  function render(){
+    var path = location.hash.replace(/^#/, '') || '/today';
+    var wantModal = false;
+    if (path === '/today/jeongseong'){ path = '/today'; wantModal = true; }
+
+    var match = null;
+    for (var i = 0; i < routes.length; i++){
+      if (routes[i].dataset.route === path){ match = routes[i]; break; }
+    }
+    if (!match){ match = routes[0]; }
+
+    routes.forEach(function(r){ r.classList.toggle('is-active', r === match); });
+
+    var tab = match.dataset.tab || '';
+    navs.forEach(function(a){
+      var on = a.dataset.nav === tab;
+      a.classList.toggle('is-active', on);
+      if (on) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current');
+    });
+
+    window.scrollTo(0,0);
+    closeModal();
+    if (wantModal) openModal();
+
+    var h = match.querySelector('h1');
+    document.title = '훈독 · ' + (h ? h.textContent.trim() : path);
+  }
+
+  window.addEventListener('hashchange', render);
+  render();
+
+  document.querySelectorAll('[data-modal]').forEach(function(b){
+    b.addEventListener('click', function(e){ e.preventDefault(); openModal(); });
+  });
+  veil.querySelectorAll('[data-close]').forEach(function(b){
+    b.addEventListener('click', closeModal);
+  });
+  veil.addEventListener('click', function(e){ if (e.target === veil) closeModal(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
+
+  document.querySelectorAll('[data-toggle]').forEach(function(t){
+    t.addEventListener('click', function(){
+      var on = t.classList.toggle('is-on');
+      t.setAttribute('aria-pressed', String(on));
+    });
+  });
+  document.querySelectorAll('[data-check]').forEach(function(c){
+    c.addEventListener('click', function(){
+      var on = c.classList.toggle('is-on');
+      c.setAttribute('aria-pressed', String(on));
+      var row = c.closest('.it');
+      if (row) row.classList.toggle('is-done', on);
+    });
+  });
+  document.querySelectorAll('[data-opts]').forEach(function(g){
+    g.querySelectorAll('.opt').forEach(function(o){
+      o.addEventListener('click', function(){
+        g.querySelectorAll('.opt').forEach(function(x){ x.classList.toggle('is-on', x === o); });
+      });
+    });
+  });
+  document.querySelectorAll('[role="tablist"]').forEach(function(g){
+    g.querySelectorAll('[role="tab"]').forEach(function(b){
+      b.addEventListener('click', function(){
+        g.querySelectorAll('[role="tab"]').forEach(function(x){
+          var on = x === b;
+          x.classList.toggle('is-on', on);
+          x.setAttribute('aria-selected', String(on));
+        });
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
