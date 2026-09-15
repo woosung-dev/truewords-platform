@@ -33,7 +33,7 @@ docs/
 
 문서 ID와 파일명은 보존한다. PRD를 웹/모바일별로 복제하지 않고, 한 기능 spec에서 공통 규칙과 플랫폼별 동작을 구분한다. 과거 문서의 `backend/`, `admin/`, `src.*`와 실행 결과는 **당시 기록**이며 현재 명령의 근거로 사용하지 않는다.
 
-web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업무 규칙을 복제하지 않으며, 현재 구현 기준을 기록했다는 이유로 새 디자인이 승인된 것으로 취급하지 않는다.
+web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업무 규칙을 복제하지 않으며, 현재 구현 기준을 기록했다는 이유로 새 디자인이 승인된 것으로 취급하지 않는다. 훈독 앱은 `apps/web` 안에 들어가지만 화면 규칙을 `DES-PWA-003`이 따로 소유하며, 기존 시연 웹의 보존 기준(`UI-WEB-001`)과 섞지 않는다.
 
 ## 제품·기능 명세
 
@@ -43,6 +43,7 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 | [16-app-feature-spec](prd/16-app-feature-spec.md) | 이전 MVP/Flutter 구상. 신규 PWA 요구사항으로 자동 상속하지 않음 |
 | [17-ffwpu-pwa-prd](prd/17-ffwpu-pwa-prd.md) | 훈독 앱 PRD v2. 식구의 문제 5개 → 초원AI 벤치마크 현지화 매핑 → 5탭 · 기능 7종 · 보상 정책 · KPI · 9월 일정 · Decision Log. **S2' 방향 확정** (2026-09-14, A 아침 햇살) |
 | [디자인 2안 비교](prd/2026-09-10-hundok-design-directions.md), 프로토타입 [A](prd/prototypes/2026-09-10-hundok-a.html) · [B](prd/prototypes/2026-09-10-hundok-b.html) | A 아침 햇살(라이트) · B 저녁 등불(다크) 클릭형 단일 PWA 목업 16화면, 스크린샷 38장. 모든 콘텐츠는 예시. **A 채택 확정** (2026-09-14, B 미채택) |
+| [훈독 디자인 시스템](specs/web/hoondok-design-system.md) | `DES-PWA-003`. 채택안 A 아침 햇살의 토큰·컴포넌트 10종·권위 층 배지·WCAG 2.2 AA 대비 실측값·데스크톱 브레이크포인트 3단계·16화면 반응형 대응표. **라이트 단일 테마**이며 다크 팔레트는 정의하지 않는다 (S3, 승인 대기) |
 | [사용자 웹 UI/UX](specs/web/ui-ux.md), [관리자 UI/UX](specs/admin/ui-ux.md) | 현재 구현·소유권과 미승인 리디자인의 경계 |
 | [17-chatbot-system-prompt-spec](specs/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 |
 | [18-category-document-stats](specs/18-category-document-stats.md), [19-category-tag-management-ui](specs/19-category-tag-management-ui.md) | 문서 통계·카테고리 UI |
