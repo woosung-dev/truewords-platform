@@ -23,6 +23,7 @@
     "contracts:check": "node tooling/checks/contracts.mjs",
     "docs:check": "node tooling/checks/docs-links.mjs",
     "boundaries:check": "node tooling/checks/boundaries.mjs",
+    "hoondok:check": "node tooling/checks/hoondok-css.mjs",
     "tooling:test": "node --test tooling/checks/*.test.mjs"
   },
   "devDependencies": {
