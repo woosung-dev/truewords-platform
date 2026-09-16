@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>훈독 앱 · 단일 마크업</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600&display=swap" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+<link rel="stylesheet" href="hoondok.css" />
+<link rel="stylesheet" href="theme-card.css" />
+<link rel="stylesheet" href="theme-rule.css" />
+<link rel="stylesheet" href="theme-editorial.css" />
+<link rel="stylesheet" href="theme-scripture.css" />
+</head>
+<body data-theme="card">
+<!-- 마크업은 한 벌이다. 테마도 화면 폭도 이 문서를 복제하지 않는다.
+     ?theme=card|rule|editorial|scripture   ?screen=today|read|words   ?serif=1 -->
+<div class="app">
+
+  <main class="app__main">
+    <header class="appbar" id="appbar">
+      <div class="appbar__in">
+        <a class="icon-btn" href="#" aria-label="뒤로" data-only="read words"><i class="ph ph-arrow-left"></i></a>
+        <h1 class="appbar__title" id="apptitle">오늘 훈독</h1>
+        <a class="icon-btn" href="#" aria-label="알림"><i class="ph ph-bell"></i></a>
+      </div>
+    </header>
+
+    <!-- ===== 오늘 훈독 ===== -->
+    <section class="col" data-screen="today">
+      <div class="masthead"><span class="masthead__nm">훈독</span><span class="masthead__dt">2026. 9. 17. 수</span></div>
+
+      <p class="lede">참사랑은 직단거리를 갑니다.</p>
+      <div class="src lede-src">
+        <span>참아버님</span><span class="src__dot"></span><span>천성경 제1편 3장</span>
+        <span class="badge badge--rank">O1 공식 원문</span>
+      </div>
+      <div class="lede-rule"></div>
+
+      <div class="shot" style="margin-top:14px">
+        <img src="https://picsum.photos/seed/hoondok-morning-field/820/440" alt="아침 햇살이 드는 들판" />
+        <div class="shot__tx">
+          <div class="shot__greet">밤이 깊을수록 새벽은 가까워요.<br>효진님, 오늘도 함께 읽어요.</div>
+          <div class="shot__sub">분당교회 식구 38명이 벌써 훈독했어요</div>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="sect__head">
+          <h2 class="sect__title">오늘의 실천</h2><span class="sect__rule"></span>
+          <span class="sect__meta">3가지 · 약 5분</span>
+        </div>
+        <div class="missions">
+          <div class="mission">
+            <span class="mission__no">01</span>
+            <span class="mission__ic"><i class="ph ph-book-open-text"></i></span>
+            <span class="mission__bd">
+              <span class="mission__kind">훈독하기 · 3분</span>
+              <span class="mission__title">참사랑은 직단거리를 갑니다</span>
+              <span class="mission__meta">천성경 · 참아버님</span>
+            </span>
+            <button class="check" aria-pressed="false" aria-label="훈독하기 완료"><i class="ph-bold ph-check"></i></button>
+          </div>
+          <div class="mission">
+            <span class="mission__no">02</span>
+            <span class="mission__ic"><i class="ph ph-hands-praying"></i></span>
+            <span class="mission__bd">
+              <span class="mission__kind">기도하기 · 1분</span>
+              <span class="mission__title">오늘의 기도 제목: 자녀의 새 학기</span>
+              <span class="mission__meta">가족 기도 제목 2개 · 우리 교회 1개</span>
+            </span>
+            <button class="check" aria-pressed="false" aria-label="기도하기 완료"><i class="ph-bold ph-check"></i></button>
+          </div>
+          <div class="mission">
+            <span class="mission__no">03</span>
+            <span class="mission__ic"><i class="ph ph-books"></i></span>
+            <span class="mission__bd">
+              <span class="mission__kind">말씀 읽기 · 이어 읽기</span>
+              <span class="mission__title">천성경 제1편 3장</span>
+              <span class="mission__meta">지난번 12단락까지 읽었어요</span>
+            </span>
+            <button class="check" aria-pressed="false" aria-label="말씀 읽기 완료"><i class="ph-bold ph-check"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="sect__head">
+          <h2 class="sect__title">이번 주</h2><span class="sect__rule"></span>
+          <span class="sect__meta">연속 12일</span>
+        </div>
+        <div class="week">
+          <div class="week__days">
+            <span class="week__day" data-done>월</span><span class="week__day" data-done>화</span>
+            <span class="week__day" data-today>수</span><span class="week__day">목</span>
+            <span class="week__day">금</span><span class="week__day">토</span><span class="week__day">일</span>
+          </div>
+          <span class="week__streak"><i class="ph-fill ph-flame" style="color:var(--accent)"></i>연속 <b>12</b>일</span>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="sect__head">
+          <h2 class="sect__title">정성 기간</h2><span class="sect__rule"></span>
+          <span class="sect__meta">기록 보기</span>
+        </div>
+        <div class="card">
+          <div style="font-size:16.5px;font-weight:600">21일 새벽 정성 · 가정의 화목</div>
+          <div class="stats" style="margin-top:14px">
+            <div><b class="stats__n stats__n--accent">D-14</b><span class="stats__lab">남은 날</span></div>
+            <div><b class="stats__n">7</b><span class="stats__lab">진행한 날</span></div>
+            <div><b class="stats__n">0</b><span class="stats__lab">밀린 날</span></div>
+          </div>
+          <div class="progress" style="margin-top:14px"><i class="progress__fill" style="width:33%"></i></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);margin-top:8px">
+            <span>7 / 21일</span><span>매일 오전 5:30</span>
+          </div>
+        </div>
+      </div>
+      <p class="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
+    </section>
+
+    <!-- ===== 훈독하기 ===== -->
+    <section class="col col--read" data-screen="read" hidden>
+      <div class="masthead"><span class="masthead__nm">천성경 제1편 3장</span><span class="masthead__dt">2013 한국어판</span></div>
+      <div class="src lede-src">
+        <span>참아버님</span><span class="src__dot"></span><span>천성경</span><span class="src__dot"></span>
+        <span>2013 한국어판</span><span class="badge badge--rank">O1 공식 원문</span>
+      </div>
+      <p class="lede">참사랑은 직단거리를 갑니다</p>
+      <div class="lede-rule"></div>
+
+      <p class="scripture">참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다. 91도도 89도도 직단이 아닙니다. 오로지 최단거리는 90각도밖에 없습니다.</p>
+
+      <div class="chips" style="margin-top:16px">
+        <button class="term"><i class="ph ph-book-bookmark"></i>참사랑</button>
+        <button class="term"><i class="ph ph-book-bookmark"></i>종적 사랑</button>
+        <button class="term"><i class="ph ph-book-bookmark"></i>직단거리</button>
+      </div>
+
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">AI 설명</h2><span class="sect__rule"></span>
+          <span class="sect__meta">공식 해설 아님</span></div>
+        <div class="ai-note">
+          <div class="ai-note__lab"><i class="ph ph-sparkle"></i>AI 설명 · 공식 해설 아님</div>
+          <p class="ai-note__body">이 말씀은 사랑이 하늘부모님과 나 사이의 가장 곧은 길, 즉 90도의 수직 관계를 통해서만 온전히 이어진다고 설명합니다. 조금이라도 비껴가면 최단거리가 아니라는 표현은 사랑에 우회가 없어야 함을 강조합니다.</p>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">오늘의 한 줄</h2><span class="sect__rule"></span>
+          <span class="sect__meta">나만 봄</span></div>
+        <div class="my-note">오늘 이 말씀을 어디에서 실천해 볼까요? (선택)</div>
+      </div>
+
+      <div class="sect">
+        <button class="btn btn-primary"><i class="ph ph-check"></i>훈독 완료</button>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);margin-top:12px">
+          <span>완료하면 연속 13일이 돼요</span>
+          <a href="#" style="color:var(--accent-strong);font-weight:600">이 말씀에 질문하기</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 원문 뷰 ===== -->
+    <section class="col col--read" data-screen="words" hidden>
+      <div class="masthead"><span class="masthead__nm">천성경 제1편 3장</span><span class="masthead__dt">21단락</span></div>
+      <div class="src lede-src">
+        <span>참아버님</span><span class="src__dot"></span><span>2013 한국어판</span>
+        <span class="badge badge--rank">O1 공식 원문</span>
+      </div>
+      <div class="lede-rule"></div>
+
+      <div style="margin-top:20px">
+        <p class="verse"><span class="verse__n">10</span><span>역사는 남성과 여성을 접촉시켜 나왔습니다. 남자와 여자는 하나의 기점에서 연결되어야 합니다. 그 연결은 <mark class="hl-2">참부모라는 내용을 중심삼고</mark> 되어야 합니다.</span></p>
+        <p class="verse"><span class="verse__n">11</span><span><mark class="hl-1">참사랑은 직단거리를 갑니다.</mark> 종적인 사랑은 90각도 한 점밖에 없습니다. 91도도 89도도 직단이 아닙니다. 오로지 최단거리는 90각도밖에 없습니다.</span></p>
+        <p class="verse"><span class="verse__n">12</span><span>아들 낳기를 고대하던 부부는 아들을 낳았다고 하더라도 그 아들 낳은 것만 좋아해서는 안 됩니다. <mark class="hl-3">어떻게 가치 있는 아들로 키우느냐</mark> 하는 문제를 놓고 걱정을 해야 합니다.</span></p>
+      </div>
+
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">이 장의 용어</h2><span class="sect__rule"></span>
+          <span class="sect__meta">4개</span></div>
+        <div class="chips">
+          <button class="term"><i class="ph ph-book-bookmark"></i>참사랑</button>
+          <button class="term"><i class="ph ph-book-bookmark"></i>참부모</button>
+          <button class="term"><i class="ph ph-book-bookmark"></i>기점</button>
+        </div>
+      </div>
+      <p class="notice">단락 12는 예시로 이어 붙인 발췌입니다</p>
+    </section>
+  </main>
+
+  <nav class="nav" aria-label="주 메뉴">
+    <a class="nav__item" href="?screen=today" aria-current="page"><span class="nav__ic"><i class="ph-fill ph-sun-horizon"></i></span>오늘 훈독</a>
+    <a class="nav__item" href="#"><span class="nav__ic"><i class="ph ph-chat-teardrop-text"></i></span>AI 질문</a>
+    <a class="nav__item nav__item--mid" href="?screen=words"><span class="nav__ic"><i class="ph-fill ph-book-open-text"></i></span>말씀</a>
+    <a class="nav__item" href="#"><span class="nav__ic"><i class="ph ph-house-line"></i></span>가정예배</a>
+    <a class="nav__item" href="#"><span class="nav__ic"><i class="ph ph-plant"></i></span>나의 정원</a>
+  </nav>
+</div>
+
+<script>
+(function(){
+  const q = new URLSearchParams(location.search);
+  const theme  = q.get('theme')  || 'card';
+  const screen = q.get('screen') || 'today';
+  const serif  = q.get('serif') === '1';
+
+  document.body.dataset.theme = theme;
+  if (serif) document.documentElement.style.setProperty('--font-scripture','var(--serif)');
+
+  document.querySelectorAll('[data-screen]').forEach(s => s.hidden = s.dataset.screen !== screen);
+  document.getElementById('apptitle').textContent =
+    ({today:'오늘 훈독', read:'훈독하기', words:'천성경 1편 3장'})[screen];
+  document.querySelectorAll('[data-only]').forEach(el => {
+    el.style.display = el.dataset.only.split(' ').includes(screen) ? '' : 'none';
+  });
+  document.querySelectorAll('.nav__item').forEach(a => {
+    const on = (a.getAttribute('href')||'').includes(screen);
+    if (on) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current');
+  });
+  // 마스트헤드는 editorial 테마만 쓴다
+  if (theme !== 'editorial') document.querySelectorAll('.masthead').forEach(m => m.style.display='none');
+
+  document.querySelectorAll('.check').forEach(c => c.addEventListener('click', () => {
+    const on = c.getAttribute('aria-pressed') !== 'true';
+    c.setAttribute('aria-pressed', String(on));
+    c.closest('.mission').toggleAttribute('data-done', on);
+  }));
+})();
+</script>
+</body>
+</html>

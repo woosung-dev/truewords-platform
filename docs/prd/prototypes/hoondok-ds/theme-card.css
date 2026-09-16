@@ -1,0 +1,8 @@
+/* 안 1 "카드" - 현행 A 언어. hoondok.css 의 기본값을 그대로 쓴다.
+   기준군이므로 덮어쓰는 것이 거의 없다. 이것이 정상이다. */
+[data-theme="card"]{ --r:16px; --r-sm:12px; --r-xs:8px; }
+[data-theme="card"] .missions{gap:12px}
+[data-theme="card"] .mission{background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow-hairline)}
+[data-theme="card"] .lede{display:none}          /* 홈 첫 요소는 사진 */
+[data-theme="card"] .lede-src{display:none}

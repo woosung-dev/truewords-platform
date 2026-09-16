@@ -1,0 +1,271 @@
+/* =============================================================================
+   hoondok.css - 훈독 앱 단일 소스 컴포넌트 (mobile-first)
+   -----------------------------------------------------------------------------
+   base  = 390px. 미디어쿼리 없이 쓰는 규칙이 전부 모바일 규칙이다.
+   md    = 768px 이상에서만 얹는다.
+   lg    = 1024px 이상에서만 얹는다.
+
+   이 파일이 폰과 PC 의 유일한 소스다. 화면 폭별로 파일을 나누지 않는다.
+   조판 변주는 theme-*.css 가 이 파일 위에 얹는다. 이 파일을 복제하지 않는다.
+
+   DES-PWA-003 대비 수정 4건을 여기서 한 번만 적용한다:
+     1) --accent-strong / --ok-strong  (연한 배경 위 텍스트 AA 미달 해소)
+     2) 컨트롤 경계선 --line -> --ink-3 (비텍스트 3:1)
+     3) 용어 칩 최소 높이 24px        (WCAG 2.2 SC 2.5.8)
+     4) 사진 veil 정지점 3개           (텍스트 구간 전체에서 알파 0.80 이상)
+   ============================================================================= */
+
+/* ---------- 1. 토큰 ---------- */
+:root{
+  --paper:#fbfaf8; --surface:#ffffff; --surface-2:#f1efea;
+  --ink:#23211f; --ink-2:#5a5652; --ink-3:#6f6a65; --line:#e5e1da;
+  --accent:#c24721; --accent-ink:#ffffff; --accent-soft:#fbe9e1; --accent-strong:#a03a1a;
+  --ok:#2f7a4f; --ok-soft:#e4f1e8; --ok-strong:#26633f;
+  --hl-1:#fff0c9; --hl-2:#dcefe3; --hl-3:#ffe0d6;
+
+  /* 모서리: 테마가 덮어쓰는 유일한 형태 토큰 */
+  --r:16px; --r-sm:12px; --r-xs:8px; --r-sheet:28px;
+
+  --shadow-hairline:0 1px 0 rgba(0,0,0,.02);
+  --shadow-1:0 1px 2px rgba(0,0,0,.06);
+  --shadow-2:0 10px 30px rgba(87,62,40,.10);
+
+  --sans:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;
+  --serif:"Noto Serif KR","Apple SD Gothic Neo",serif;
+  --font-scripture:var(--sans);   /* 세리프 실험은 이 토큰 하나만 바꾼다 */
+
+  --gutter:20px;
+  --measure-read:640px;   /* lg 에서 산문 폭 */
+  --measure-app:720px;    /* lg 에서 카드/리스트 폭 */
+  --rail-w:240px;
+}
+
+/* ---------- 2. 리셋 ---------- */
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+img{display:block;max-width:100%}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn-primary:focus-visible,.fab:focus-visible{outline-color:var(--ink)}
+
+/* ---------- 3. 앱 셸 : 하단 5탭 -> 좌측 레일 ---------- */
+.app{display:flex;flex-direction:column;min-height:100dvh}
+.app__main{flex:1;min-width:0;display:flex;flex-direction:column}
+
+.appbar{position:sticky;top:0;z-index:20;background:var(--paper)}
+.appbar__in{display:flex;align-items:center;gap:10px;min-height:52px;padding:10px var(--gutter) 8px}
+.appbar__title{font-size:18px;margin:0;flex:1;font-weight:600;letter-spacing:-.01em}
+
+.icon-btn{width:40px;height:40px;border-radius:var(--r-sm);display:grid;place-items:center;
+  font-size:22px;color:var(--ink-2);flex:none}
+
+.col{width:100%;padding:4px var(--gutter) 28px}
+.col--read .prose{max-width:none}
+
+/* 하단 탭 : base 의 기본 내비 */
+.nav{flex:none;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px 0;min-height:76px}
+.nav__item{display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:11px;color:var(--ink-3);padding-top:4px}
+.nav__ic{display:grid;place-items:center;font-size:24px;line-height:1}
+.nav__item[aria-current]{color:var(--accent);font-weight:600}
+/* 가운데 "말씀" 은 돌출 버블 (모바일에서만 성립하는 형태) */
+.nav__item--mid{margin-top:-24px}
+.nav__item--mid .nav__ic{width:58px;height:58px;border-radius:50%;
+  background:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow-2);font-size:27px}
+
+/* ---------- 4. 미션 목록 ---------- */
+.missions{display:flex;flex-direction:column}
+.mission{display:flex;align-items:center;gap:14px}
+.mission__ic{width:48px;height:48px;border-radius:var(--r-sm);display:grid;place-items:center;
+  background:var(--surface-2);font-size:24px;color:var(--ink-2);flex:none}
+.mission__no{display:none}
+.mission__bd{flex:1;min-width:0}
+.mission__kind{font-size:12px;color:var(--ink-3);display:block}
+.mission__title{font-size:16px;font-weight:600;margin-top:1px;display:block;line-height:1.35}
+.mission__meta{font-size:12.5px;color:var(--ink-3);margin-top:3px;display:block}
+.mission[data-done] .mission__ic{background:var(--ok-soft);color:var(--ok-strong)}
+
+/* 체크 : 경계선은 --ink-3 (수정 2) */
+.check{width:30px;height:30px;border-radius:50%;border:2px solid var(--ink-3);
+  display:grid;place-items:center;color:transparent;flex:none;background:var(--surface);
+  transition:background .15s ease,border-color .15s ease}
+.check[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.check--sm{width:24px;height:24px}
+
+/* ---------- 5. 말씀 ---------- */
+.src{font-size:12.5px;color:var(--ink-2);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.src__dot{width:3px;height:3px;border-radius:50%;background:var(--line);flex:none}
+
+.scripture{font-family:var(--font-scripture);font-size:16.5px;line-height:1.75;
+  border-left:4px solid var(--ink);padding:4px 0 4px 14px;margin:14px 0}
+.verse{display:flex;gap:11px;margin:0 0 16px;font-family:var(--font-scripture);
+  font-size:17px;line-height:1.85}
+.verse__n{color:var(--ink-3);font-size:12px;padding-top:6px;width:16px;flex:none;
+  font-variant-numeric:tabular-nums}
+mark.hl-1{background:var(--hl-1)} mark.hl-2{background:var(--hl-2)} mark.hl-3{background:var(--hl-3)}
+
+/* 권위 배지 : O1/O2 초록 유지, 글자만 --ok-strong (수정 1) */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;
+  padding:3px 8px;border-radius:var(--r-xs);background:var(--surface-2);color:var(--ink-2);min-height:20px}
+.badge--rank{background:var(--ok-soft);color:var(--ok-strong)}
+.badge--accent{background:var(--accent-soft);color:var(--accent-strong)}
+.badge--line{background:transparent;border:1px solid var(--ink-3);color:var(--ink-2)}
+.badge--dashed{background:transparent;border:1.5px dashed var(--ink-3);color:var(--ink-2)}
+
+/* 용어 칩 : 최소 높이 24px (수정 3) */
+.term{display:inline-flex;align-items:center;gap:4px;min-height:24px;padding:3px 9px;
+  border-radius:var(--r-xs);background:var(--accent-soft);color:var(--accent-strong);
+  font-size:12.5px;font-weight:600}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+
+/* 권위 층 컨테이너 : 형태로 구분한다 */
+.ai-note{background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:8px 8px;
+  background-color:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.ai-note__lab{font-size:11.5px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;
+  gap:6px;margin-bottom:8px}
+.ai-note__body{margin:0;font-size:14.5px;line-height:1.7;color:var(--ink-2)}
+.my-note{border:1.5px dashed var(--line);border-radius:var(--r);padding:13px 15px;
+  color:var(--ink-3);font-size:14px}
+
+/* ---------- 6. 카드 / 섹션 ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;box-shadow:var(--shadow-hairline)}
+.sect{margin-top:24px}
+.sect__head{display:flex;align-items:baseline;justify-content:space-between;
+  gap:12px;margin-bottom:12px}
+.sect__title{font-size:16px;margin:0;font-weight:600}
+.sect__rule{display:none}
+.sect__meta{font-size:12.5px;color:var(--ink-2);flex:none}
+
+/* ---------- 7. 진행 표시 ---------- */
+.progress{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.progress__fill{display:block;height:100%;background:var(--accent);border-radius:inherit}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats__n{display:block;font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stats__n--accent{color:var(--accent)}
+.stats__lab{font-size:12.5px;color:var(--ink-2)}
+
+/* 요일 스트립 */
+.week{display:flex;align-items:center;justify-content:space-between;gap:12px}
+/* 7칸을 고정 34px 로 두면 390px 에서 2px 넘친다. 1fr 그리드로 눌러 담는다 */
+.week__days{flex:1;min-width:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:6px;justify-items:center}
+.week__day{width:100%;max-width:34px;aspect-ratio:1;height:auto;border-radius:50%;
+  display:grid;place-items:center;
+  font-size:12.5px;color:var(--ink-3);border:1px solid var(--ink-3);background:var(--surface)}
+.week__day[data-done]{background:var(--ok-soft);color:var(--ok-strong);border-color:transparent;font-weight:600}
+.week__day[data-today]{border:2px solid var(--accent);color:var(--accent);font-weight:700}
+.week__streak{font-size:13px;color:var(--ink-2);display:flex;align-items:center;gap:6px;flex:none}
+.week__streak b{color:var(--accent);font-size:16px;font-variant-numeric:tabular-nums}
+
+/* ---------- 8. 사진 : veil 정지점 3개 (수정 4) ---------- */
+.shot{position:relative;border-radius:var(--r);overflow:hidden;background:var(--ink);height:210px}
+.shot img{width:100%;height:100%;object-fit:cover}
+.shot::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(35,33,31,0) 18%,rgba(35,33,31,.80) 55%,rgba(35,33,31,.92) 100%)}
+.shot__tx{position:absolute;left:18px;right:18px;bottom:16px;color:#fff;z-index:1}
+.shot__greet{font-size:21px;font-weight:700;line-height:1.35;letter-spacing:-.02em;text-wrap:balance}
+.shot__sub{font-size:13px;opacity:.92;margin-top:4px}
+.shot--band{height:96px}
+.shot--band .shot__tx{bottom:10px;font-size:12.5px}
+
+/* ---------- 9. 버튼 ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:50px;
+  padding:0 20px;border-radius:var(--r);font-weight:600;font-size:15px;width:100%;
+  transition:background .12s ease,transform .12s ease}
+.btn:active{transform:scale(.985)}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-ghost{background:var(--surface-2);color:var(--ink)}
+.btn-line{border:1px solid var(--line);background:var(--surface)}
+.btn[disabled]{background:var(--surface-2);color:var(--ink-3);cursor:not-allowed}
+.btn--sm{height:38px;font-size:13.5px;padding:0 14px;width:auto}
+.fab{position:fixed;right:18px;bottom:94px;z-index:15;height:52px;padding:0 20px;border-radius:26px;
+  background:var(--accent);color:var(--accent-ink);display:inline-flex;align-items:center;gap:8px;
+  font-weight:600;box-shadow:var(--shadow-2);width:auto}
+
+/* ---------- 10. 입력 : 경계선 --ink-3 (수정 2) ---------- */
+.field{display:flex;flex-direction:column;gap:6px}
+.field__label{font-size:13px;font-weight:600;color:var(--ink-2)}
+.field input,.field textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--surface);
+  border:1.5px solid var(--ink-3);border-radius:var(--r-sm);padding:12px 14px}
+.field__help{font-size:12.5px;color:var(--ink-2)}
+.toggle{width:46px;height:28px;border-radius:14px;background:var(--surface-2);
+  border:1.5px solid var(--ink-3);position:relative;flex:none}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:21px;height:21px;border-radius:50%;
+  background:#fff;border:1px solid var(--ink-3);transition:left .15s}
+.toggle[aria-pressed="true"]{background:var(--accent);border-color:var(--accent)}
+.toggle[aria-pressed="true"]::after{left:21px;border-color:transparent}
+
+/* ---------- 11. 상태 ---------- */
+.skeleton{background:var(--surface-2);border-radius:var(--r);min-height:64px}
+.empty{text-align:center;padding:36px 20px}
+.empty__ic{font-size:26px;color:var(--ink-3)}
+.empty__title{font-size:16px;font-weight:600;margin-top:8px}
+.empty__body{font-size:12.5px;color:var(--ink-2);margin-top:4px}
+.error{background:var(--surface-2);border-radius:var(--r);padding:14px 16px;font-size:14px;color:var(--ink-2)}
+.notice{font-size:11.5px;color:var(--ink-2);text-align:center;padding:22px 0 0}
+
+/* ---------- 12. 시트 : base 는 하단 시트 ---------- */
+.sheet{position:fixed;inset:0;z-index:60;background:rgba(35,33,31,.45);
+  display:none;align-items:flex-end}
+.sheet[open]{display:flex}
+.sheet__panel{width:100%;background:var(--paper);border-radius:var(--r-sheet) var(--r-sheet) 0 0;
+  padding:10px var(--gutter) 28px;max-height:88dvh;overflow:auto}
+.sheet__grip{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+
+/* =============================================================================
+   md : 768px 이상.  단일 컬럼 중앙 정렬. 하단 탭은 그대로 둔다.
+   ============================================================================= */
+@media (min-width:768px){
+  .col{max-width:var(--measure-app);margin:0 auto}
+  .col--read{max-width:var(--measure-read)}
+  .appbar__in{max-width:var(--measure-app);margin:0 auto}
+  .col--read ~ .appbar__in,.appbar--read .appbar__in{max-width:var(--measure-read)}
+  .shot{height:260px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .fab{position:sticky;bottom:24px;margin-left:auto;display:flex;width:max-content}
+}
+
+/* =============================================================================
+   lg : 1024px 이상.  하단 탭 -> 좌측 레일.  240 + 720 + 여백 64 = 1024
+   ============================================================================= */
+@media (min-width:1024px){
+  .app{flex-direction:row}
+  .nav{position:sticky;top:0;height:100dvh;width:var(--rail-w);flex:none;
+    display:flex;flex-direction:column;gap:4px;
+    grid-template-columns:none;border-top:0;border-right:1px solid var(--line);
+    padding:20px 12px;min-height:0}
+  .nav__item{flex-direction:row;justify-content:flex-start;gap:12px;min-height:48px;
+    padding:8px 12px;border-radius:var(--r-sm);font-size:15px;color:var(--ink-2)}
+  .nav__ic{width:40px;height:40px;border-radius:10px;flex:none}
+  .nav__item[aria-current]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600}
+  /* 버블은 사라지고 아이콘 칩만 남는다. 배경 채움은 활성 상태가 쓴다 */
+  .nav__item--mid{margin-top:0}
+  .nav__item--mid .nav__ic{width:40px;height:40px;border-radius:10px;font-size:24px;
+    box-shadow:none;background:var(--accent);color:var(--accent-ink)}
+  .shot{height:300px}
+  .fab{position:sticky;bottom:24px}
+  @media (hover:hover){
+    .nav__item:hover{background:var(--surface-2)}
+    .nav__item[aria-current]:hover{background:var(--accent-soft)}
+    .nav__item--mid:hover .nav__ic{background:var(--accent-strong)}
+    .btn-primary:hover{background:var(--accent-strong)}
+    .btn-ghost:hover,.btn-line:hover,.term:hover,.icon-btn:hover{background:var(--surface-2)}
+    .card:hover{box-shadow:var(--shadow-1)}
+    .fab:hover{background:var(--accent-strong)}
+  }
+  /* 하단 시트 -> 중앙 모달. 엄지 도달 근거가 사라지는 지점 */
+  .sheet{align-items:center;justify-content:center;padding:24px}
+  .sheet__panel{width:520px;max-width:100%;border-radius:var(--r);max-height:88dvh;
+    padding:24px;box-shadow:var(--shadow-2)}
+  .sheet__grip{display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
