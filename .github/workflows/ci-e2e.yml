@@ -43,6 +43,7 @@ jobs:
           uv run python scripts/create_admin.py "$DEMO_ADMIN_EMAIL" test1234
           uv run python scripts/create_admin.py admin@test.com test1234
           uv run python scripts/seed_chatbot_configs.py
+          uv run python scripts/seed_daily_readings.py
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
