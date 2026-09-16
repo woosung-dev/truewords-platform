@@ -1,0 +1,343 @@
+<!-- =============================================================================
+     group-c.html · 나의 정원 그룹 3화면 (SCR-PWA-014 / 015 / 016)
+     app.html 의 </main> 앞에 그대로 붙인다. app.html·hoondok.css 는 수정하지 않는다.
+     스타일은 group-c.css 가 담당한다. 기존 컴포넌트 클래스를 우선 재사용했고,
+     새 클래스만 gd- (정원) · st- (설정) · fm- (관계) 접두를 쓴다.
+     DEC-PWA-019: 개인 랭킹·점수·달란트·보상 배지 없음. 진행률과 참여 인원만 쓴다.
+     ============================================================================= -->
+
+<!-- ===== 나의 정원 (SCR-PWA-014) ===== -->
+<section class="col" data-screen="garden" hidden>
+
+  <!-- 프로필 : 이름·소속·대표 말씀. 점수나 등급 표시를 두지 않는다 -->
+  <div class="gd-profile">
+    <img class="gd-profile__av" src="https://picsum.photos/id/65/160/160" alt="" />
+    <div class="gd-profile__bd">
+      <a class="gd-profile__name" href="#">효진 <i class="ph ph-caret-right"></i></a>
+      <span class="gd-profile__meta">분당교회 · 2019 축복가정</span>
+      <span class="badge badge--line gd-profile__verse"><i class="ph ph-quotes"></i>대표 말씀: 참사랑은 직단거리를 갑니다</span>
+    </div>
+  </div>
+
+  <!-- 누적 기록 : 연속일·누적일. 다른 사람과 비교하는 수치를 넣지 않는다 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">말씀과 함께한 시간</h2><span class="sect__rule"></span>
+      <span class="sect__meta">나만 봄</span>
+    </div>
+    <div class="card">
+      <div class="stats">
+        <div><b class="stats__n stats__n--accent"><i class="ph-fill ph-flame gd-flame"></i>12</b><span class="stats__lab">현재 연속일</span></div>
+        <div><b class="stats__n">27</b><span class="stats__lab">최대 연속일</span></div>
+        <div><b class="stats__n">143</b><span class="stats__lab">누적일</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 월 달력 (DS §2.6) : 완료는 색이 아니라 체크 아이콘이, 쉼은 "쉼" 글자가 1차 신호다.
+       비상호작용이므로 목록으로 노출하고 칸마다 전체 문장 레이블을 준다 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">2026년 9월</h2><span class="sect__rule"></span>
+      <span class="sect__meta">훈독 완료한 날</span>
+    </div>
+    <div class="card">
+      <div class="gd-cal">
+        <div class="gd-cal__head" aria-hidden="true">
+          <span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span>
+        </div>
+        <div class="gd-cal__grid" role="list">
+          <span class="gd-cal__pad" aria-hidden="true"></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 1일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>1</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 2일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>2</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 3일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>3</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 4일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>4</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 5일 쉼"><i class="gd-cal__dot gd-cal__dot--rest">쉼</i><b>5</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 6일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>6</b></span>
+
+          <span class="gd-cal__day" role="listitem" aria-label="9월 7일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>7</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 8일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>8</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 9일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>9</b></span>
+          <span class="gd-cal__day gd-cal__day--today" role="listitem" aria-label="9월 10일 오늘 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>10</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 11일 아직"><i class="gd-cal__dot"></i><b>11</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 12일 아직"><i class="gd-cal__dot"></i><b>12</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 13일 아직"><i class="gd-cal__dot"></i><b>13</b></span>
+
+          <span class="gd-cal__day" role="listitem" aria-label="9월 14일 아직"><i class="gd-cal__dot"></i><b>14</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 15일 아직"><i class="gd-cal__dot"></i><b>15</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 16일 아직"><i class="gd-cal__dot"></i><b>16</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 17일 아직"><i class="gd-cal__dot"></i><b>17</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 18일 아직"><i class="gd-cal__dot"></i><b>18</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 19일 아직"><i class="gd-cal__dot"></i><b>19</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 20일 아직"><i class="gd-cal__dot"></i><b>20</b></span>
+
+          <span class="gd-cal__day" role="listitem" aria-label="9월 21일 아직"><i class="gd-cal__dot"></i><b>21</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 22일 아직"><i class="gd-cal__dot"></i><b>22</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 23일 아직"><i class="gd-cal__dot"></i><b>23</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 24일 아직"><i class="gd-cal__dot"></i><b>24</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 25일 아직"><i class="gd-cal__dot"></i><b>25</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 26일 아직"><i class="gd-cal__dot"></i><b>26</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 27일 아직"><i class="gd-cal__dot"></i><b>27</b></span>
+
+          <span class="gd-cal__day" role="listitem" aria-label="9월 28일 아직"><i class="gd-cal__dot"></i><b>28</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 29일 아직"><i class="gd-cal__dot"></i><b>29</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 30일 아직"><i class="gd-cal__dot"></i><b>30</b></span>
+        </div>
+      </div>
+      <div class="gd-cal__legend">
+        <span><i class="gd-cal__dot gd-cal__dot--done gd-cal__dot--tiny"><i class="ph-bold ph-check"></i></i>완료</span>
+        <span><i class="gd-cal__dot gd-cal__dot--rest gd-cal__dot--tiny">쉼</i>쉬어가기</span>
+        <span><i class="gd-cal__dot gd-cal__dot--tiny"></i>아직</span>
+      </div>
+    </div>
+    <p class="gd-hint">"쉼"은 주 1회 쓸 수 있는 쉬어가기예요. 연속일이 끊기지 않아요.</p>
+  </div>
+
+  <!-- 진행 중인 정성 : 진행률만 쓴다 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">진행 중인 정성</h2><span class="sect__rule"></span>
+      <a class="sect__meta gd-link" href="#">새로 시작</a>
+    </div>
+    <div class="card">
+      <div class="gd-row">
+        <b class="gd-row__t">21일 새벽 정성 · 가정의 화목</b>
+        <span class="badge badge--accent">D-14</span>
+      </div>
+      <div class="progress" style="margin-top:12px"><i class="progress__fill" style="width:33%"></i></div>
+      <div class="gd-row gd-row--meta"><span>7 / 21일</span><span>밀린 날 0</span></div>
+    </div>
+  </div>
+
+  <!-- 가족 : 동의한 범위(오늘 완료 여부)만. 완료는 체크 아이콘 + "오늘 완료" 글자 두 신호를 함께 쓴다 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">가족</h2><span class="sect__rule"></span>
+      <a class="sect__meta gd-link" href="?screen=family">관리</a>
+    </div>
+    <div class="fm-list">
+      <a class="fm-item" href="?screen=family">
+        <img class="fm-item__av" src="https://picsum.photos/id/447/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">재민</b><span class="fm-item__m">배우자 · 오늘 아직</span></span>
+        <span class="fm-check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+      </a>
+      <a class="fm-item" href="?screen=family">
+        <img class="fm-item__av" src="https://picsum.photos/id/338/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">하늘</b><span class="fm-item__m">자녀 · 보호자 연결 · 오늘 완료</span></span>
+        <span class="fm-check fm-check--done" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+      </a>
+      <a class="fm-item" href="?screen=family">
+        <img class="fm-item__av" src="https://picsum.photos/id/129/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">어머니</b><span class="fm-item__m">부모 · 오늘 아직</span></span>
+        <span class="fm-check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 친구 : 인원만 보여 주고 순위를 매기지 않는다 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">친구</h2><span class="sect__rule"></span>
+      <a class="sect__meta gd-link" href="?screen=family">4명</a>
+    </div>
+    <a class="card together" href="?screen=family">
+      <span class="avatars">
+        <img src="https://picsum.photos/id/550/80/80" alt="" />
+        <img src="https://picsum.photos/id/505/80/80" alt="" />
+        <img src="https://picsum.photos/id/225/80/80" alt="" />
+        <img src="https://picsum.photos/id/305/80/80" alt="" />
+      </span>
+      <span class="together__bd"><b>친구 4명과 함께 읽어요</b><span>수아, 민재, 지훈, 예린</span></span>
+      <i class="ph ph-caret-right"></i>
+    </a>
+  </div>
+
+  <p class="notice">기록은 나만 봅니다. 가족에게는 동의한 범위(오늘 완료 여부)만 보여요.</p>
+</section>
+
+<!-- ===== 알림·설치 설정 (SCR-PWA-015) ===== -->
+<section class="col col--form" data-screen="settings" hidden>
+
+  <!-- 설치 안내 : 알림 권한은 홈 화면 추가 뒤에만 묻는다 (F7) -->
+  <div class="st-install">
+    <div class="st-install__hd">
+      <i class="ph ph-device-mobile st-install__ic"></i>
+      <span class="st-install__bd">
+        <b>홈 화면에 추가하면 알림을 받을 수 있어요</b>
+        <span>iPhone은 공유 버튼을 누른 뒤 홈 화면에 추가를 고르세요. 추가한 뒤에만 알림 권한을 물어요.</span>
+      </span>
+    </div>
+    <button class="btn btn-line btn--sm st-install__btn" type="button"><i class="ph ph-info"></i>설치 방법 보기</button>
+  </div>
+
+  <!-- 알림 4종. 각 카드는 켜기 토글 + 시간 행 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">알림</h2><span class="sect__rule"></span>
+      <span class="sect__meta">4종</span>
+    </div>
+    <div class="st-stack">
+      <div class="card">
+        <div class="st-row">
+          <span class="st-row__bd"><b class="st-row__t">훈독하기</b><span class="st-row__d">아침 훈독을 알려드려요</span></span>
+          <button class="toggle" type="button" aria-pressed="true" aria-label="훈독하기 알림"></button>
+        </div>
+        <a class="st-sub" href="#"><span class="st-sub__k">시간</span><span class="st-sub__v">오전 6:00 <i class="ph ph-caret-right"></i></span></a>
+      </div>
+      <div class="card">
+        <div class="st-row">
+          <span class="st-row__bd"><b class="st-row__t">기도하기</b><span class="st-row__d">하루를 기도로 마무리해요</span></span>
+          <button class="toggle" type="button" aria-pressed="true" aria-label="기도하기 알림"></button>
+        </div>
+        <a class="st-sub" href="#"><span class="st-sub__k">시간</span><span class="st-sub__v">오후 9:30 <i class="ph ph-caret-right"></i></span></a>
+      </div>
+      <div class="card">
+        <div class="st-row">
+          <span class="st-row__bd"><b class="st-row__t">가정예배</b><span class="st-row__d">순서지가 준비되면 알려드려요</span></span>
+          <button class="toggle" type="button" aria-pressed="true" aria-label="가정예배 알림"></button>
+        </div>
+        <a class="st-sub" href="#"><span class="st-sub__k">시간</span><span class="st-sub__v">토요일 오후 6:00 <i class="ph ph-caret-right"></i></span></a>
+      </div>
+      <div class="card">
+        <div class="st-row">
+          <span class="st-row__bd"><b class="st-row__t">공지</b><span class="st-row__d">우리 교회와 앱 소식</span></span>
+          <button class="toggle" type="button" aria-pressed="false" aria-label="공지 알림"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 잠금 화면 문구 : 기본은 신앙 맥락이 드러나지 않는 중립형 (F7) -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">잠금 화면 문구</h2><span class="sect__rule"></span>
+      <span class="sect__meta">기본 중립형</span>
+    </div>
+    <div class="card">
+      <p class="st-lead">잠금 화면에 보일 문구예요. 기본은 내용이 드러나지 않습니다.</p>
+      <div class="st-picks" role="radiogroup" aria-label="잠금 화면 문구 수준">
+        <button class="st-pick" type="button" role="radio" aria-checked="true">
+          <span class="st-radio"></span>
+          <span class="st-pick__bd"><b>오늘의 읽을거리가 준비됐어요</b><span>중립형 · 기본</span></span>
+        </button>
+        <button class="st-pick" type="button" role="radio" aria-checked="false">
+          <span class="st-radio"></span>
+          <span class="st-pick__bd"><b>오늘의 말씀이 준비됐어요</b><span>신앙 맥락이 드러나요 · 내가 선택</span></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 조용한 시간 · 데이터 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">그 밖의 설정</h2><span class="sect__rule"></span>
+    </div>
+    <div class="st-stack">
+      <a class="card st-row st-row--link" href="#">
+        <span class="st-row__bd"><b class="st-row__t">조용한 시간</b><span class="st-row__d">오후 10시부터 오전 5시까지 알리지 않아요</span></span>
+        <i class="ph ph-caret-right st-go"></i>
+      </a>
+      <a class="card st-row st-row--link" href="#">
+        <span class="st-row__bd"><b class="st-row__t">알림함</b><span class="st-row__d">보낸 알림은 앱 안에서 언제나 볼 수 있어요</span></span>
+        <i class="ph ph-caret-right st-go"></i>
+      </a>
+      <a class="card st-row st-row--link" href="#">
+        <span class="st-row__bd"><b class="st-row__t">내 데이터 삭제</b><span class="st-row__d">질문과 노트, 기록을 모두 지워요</span></span>
+        <i class="ph ph-caret-right st-go"></i>
+      </a>
+    </div>
+  </div>
+
+  <p class="notice">알림은 늦거나 누락될 수 있어요. 같은 내용은 앱 안 알림함에서 언제나 볼 수 있어요.</p>
+</section>
+
+<!-- ===== 가족·친구 관계 (SCR-PWA-016) ===== -->
+<section class="col" data-screen="family" hidden>
+
+  <!-- 우리 가족 : 양쪽 동의 기반 연결. 공개 범위를 행마다 글자로 밝힌다 -->
+  <div class="sect" style="margin-top:8px">
+    <div class="sect__head">
+      <h2 class="sect__title">우리 가족</h2><span class="sect__rule"></span>
+      <span class="sect__meta">양쪽이 동의해야 연결돼요</span>
+    </div>
+    <div class="fm-list">
+      <a class="fm-item" href="#">
+        <img class="fm-item__av fm-item__av--lg" src="https://picsum.photos/id/447/120/120" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">재민</b><span class="fm-item__m">배우자 · 보여주기: 오늘 완료 여부</span></span>
+        <i class="ph ph-caret-right fm-go"></i>
+      </a>
+      <a class="fm-item" href="#">
+        <img class="fm-item__av fm-item__av--lg" src="https://picsum.photos/id/338/120/120" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">하늘 (12)</b><span class="fm-item__m">자녀 · 보호자 연결 · 보여주기: 완료 여부와 정성</span></span>
+        <i class="ph ph-caret-right fm-go"></i>
+      </a>
+      <a class="fm-item" href="#">
+        <img class="fm-item__av fm-item__av--lg" src="https://picsum.photos/id/129/120/120" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">어머니</b><span class="fm-item__m">부모 · 보여주기: 오늘 완료 여부</span></span>
+        <i class="ph ph-caret-right fm-go"></i>
+      </a>
+      <a class="fm-item" href="#">
+        <span class="fm-item__av fm-item__av--lg fm-add" aria-hidden="true"><i class="ph ph-plus"></i></span>
+        <span class="fm-item__bd"><b class="fm-item__t">가족 초대하기</b><span class="fm-item__m">초대 링크 또는 코드 · 보상 없음</span></span>
+        <i class="ph ph-caret-right fm-go"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- 친구 : 완료 여부만. 순위를 매기지 않는다 (DEC-PWA-019) -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">친구</h2><span class="sect__rule"></span>
+      <span class="sect__meta">4명</span>
+    </div>
+    <div class="fm-list">
+      <a class="fm-item" href="#">
+        <img class="fm-item__av" src="https://picsum.photos/id/550/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">수아</b><span class="fm-item__m">분당교회 · 21일 정성 함께 중</span></span>
+        <span class="badge badge--rank"><i class="ph-bold ph-check"></i>오늘 완료</span>
+      </a>
+      <a class="fm-item" href="#">
+        <img class="fm-item__av" src="https://picsum.photos/id/505/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">민재</b><span class="fm-item__m">영통교회</span></span>
+        <span class="badge badge--line">아직</span>
+      </a>
+      <a class="fm-item" href="#">
+        <img class="fm-item__av" src="https://picsum.photos/id/225/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">지훈</b><span class="fm-item__m">분당교회 청년부</span></span>
+        <span class="badge badge--rank"><i class="ph-bold ph-check"></i>오늘 완료</span>
+      </a>
+      <a class="fm-item" href="#">
+        <img class="fm-item__av" src="https://picsum.photos/id/305/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">예린</b><span class="fm-item__m">용인교회</span></span>
+        <span class="badge badge--rank"><i class="ph-bold ph-check"></i>오늘 완료</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 공개 범위 : 노트와 질문은 항상 비공개 (REQ-PWA-015) -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">내가 보여주는 범위</h2><span class="sect__rule"></span>
+    </div>
+    <div class="card">
+      <p class="st-lead">가족과 친구에게 어디까지 보일지 정해요.</p>
+      <div class="fm-scope">
+        <div class="fm-scope__row">
+          <span class="fm-scope__k">오늘 완료 여부</span>
+          <button class="toggle" type="button" aria-pressed="true" aria-label="오늘 완료 여부 공개"></button>
+        </div>
+        <div class="fm-scope__row">
+          <span class="fm-scope__k">진행 중인 정성 이름</span>
+          <button class="toggle" type="button" aria-pressed="false" aria-label="진행 중인 정성 이름 공개"></button>
+        </div>
+        <div class="fm-scope__row">
+          <span class="fm-scope__k">노트와 질문</span>
+          <span class="fm-scope__fixed">항상 비공개</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="notice">연결은 양쪽이 동의할 때만 만들어지고, 언제든 끊을 수 있어요.</p>
+</section>

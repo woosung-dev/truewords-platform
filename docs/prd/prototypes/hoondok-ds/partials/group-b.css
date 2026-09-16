@@ -1,0 +1,236 @@
+/* =============================================================================
+   group-b.css - 가정예배 탭 4화면 (SCR-PWA-010 ~ 013) 전용 추가 클래스
+   -----------------------------------------------------------------------------
+   hoondok.css 뒤에 링크한다. hoondok.css 를 수정하지 않고 없는 것만 얹는다.
+   mobile-first. base = 390px / md = 768px / lg = 1024px.
+
+   접두 규칙
+     ws-  가정예배 홈        ch-  챌린지 상세
+     sm-  설교 (홈의 설교 히어로도 같은 컴포넌트라 sm- 를 공유한다)
+     rq-  설교 요청 폼        gb-  group-b 4화면이 함께 쓰는 것
+
+   대비는 베이스 토큰 조합이면 주석을 생략한다
+   (--ink/--surface 16.05:1, --ink-2/--surface 7.27:1, --ink-3/--surface 5.35:1,
+    --ink-3/--surface-2 4.66:1, --accent/--surface 4.98:1,
+    --accent-strong/--accent-soft 5.73:1, --ok-strong/--ok-soft 6.14:1).
+   ============================================================================= */
+
+/* ---------- 0. group-b 공용 ---------- */
+.gb-avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none;
+  background:var(--surface-2)}
+
+/* =============================================================================
+   1. 가정예배 홈 (SCR-PWA-010)
+   ============================================================================= */
+
+/* 히어로 180px (§5 010). 텍스트 블록 상단이 높이의 60% 아래라 베이스 veil 로 충분하다 */
+.shot.ws-hero{height:180px}
+.ws-hero .shot__greet{font-size:19px}
+.ws-eyebrow{font-size:12px;font-weight:600;line-height:1.4;margin-bottom:4px;
+  color:rgba(255,255,255,.92)}   /* veil 알파 .80 이상 구간 위 흰 글자 (§3.2) */
+
+/* --- 순서지 : 순서가 의미 → 어느 폭에서도 1열 (§2.4 · §4.4-3) --- */
+.ws-order__src{margin-bottom:2px}
+.ws-order{list-style:none;margin:12px 0 0;padding:0}
+.ws-order__it{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.ws-order__it:last-child{border-bottom:0;padding-bottom:2px}
+.ws-order__no{width:26px;height:26px;border-radius:50%;flex:none;margin-top:2px;
+  display:grid;place-items:center;font-size:12px;font-weight:700;
+  font-variant-numeric:tabular-nums;
+  background:var(--surface-2);color:var(--ink-2)}   /* 6.33:1 */
+.ws-order__bd{display:flex;flex-direction:column;min-width:0}
+.ws-order__k{font-size:12px;line-height:1.4;color:var(--ink-3)}
+.ws-order__t{font-size:16px;font-weight:600;line-height:1.35;margin-top:1px}
+.ws-order__d{font-size:13.5px;line-height:1.5;color:var(--ink-2);margin-top:3px}
+
+.ws-actions{display:flex;gap:8px;margin-top:14px}
+.ws-actions__send{flex:1;min-width:0}
+.ws-actions__edit{width:auto;flex:none;padding:0 18px}
+.ws-actions__help{margin:8px 0 0;font-size:12.5px;color:var(--ink-2)}
+
+/* --- 챌린지 요약 카드 : 진행률 + 참여 인원만 (§2.5) --- */
+.ws-chal{display:flex;flex-direction:column;gap:12px}
+.ws-chal__card{display:flex;flex-direction:column}
+.ws-chal__top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ws-chal__name{font-size:16px;font-weight:600;line-height:1.35;min-width:0}
+.ws-chal__bar{display:block;margin:12px 0 8px}
+.ws-chal__foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-size:12.5px;color:var(--ink-2)}
+.ws-chal__foot--solo{display:block;margin-top:8px}
+.ws-people{display:inline-flex;align-items:center;gap:4px;flex:none}
+.ws-people i{font-size:14px}
+
+/* =============================================================================
+   2. 설교 히어로 · 목록 (SCR-PWA-012, 홈의 5분 설교 블록과 공유)
+   ============================================================================= */
+
+/* 히어로 안 텍스트가 3줄(태그·제목 2줄·메타)이라 텍스트 상단이 높이의 33% 지점까지
+   올라온다. 베이스 veil 은 55% 에서야 알파 .80 이므로 이 히어로만 정지점을 당긴다 */
+.shot.sm-hero{display:block;height:168px;margin-bottom:10px}
+.shot.sm-hero::after{background:linear-gradient(180deg,
+  rgba(35,33,31,0) 0%,rgba(35,33,31,.80) 26%,rgba(35,33,31,.94) 100%)}
+.sm-hero .shot__tx{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.sm-hero__tag{flex:none}
+.sm-hero__t{font-size:19px;font-weight:700;line-height:1.35;letter-spacing:-.01em;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sm-hero__m{font-size:12.5px;color:rgba(255,255,255,.92)}   /* veil .80 이상 구간 (§3.2) */
+.sm-request{margin-top:10px}
+
+/* --- pill 세그먼트 (§2.10). 탭 대상 44px --- */
+.sm-seg{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:8px;padding:3px;
+  border-radius:var(--r-sm);background:var(--surface-2)}
+.sm-seg button{min-height:44px;padding:0 12px;border-radius:10px;
+  font-size:14.5px;font-weight:500;color:var(--ink-3)}   /* 4.66:1 */
+.sm-seg button[aria-selected="true"]{background:var(--surface);color:var(--ink);
+  font-weight:600;box-shadow:var(--shadow-1)}
+
+/* --- 교회장 행 : 390 가로 스크롤, 768 이상 줄바꿈 (§5 012) --- */
+.sm-pastors{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;
+  scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.sm-pastor{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;
+  gap:6px;text-align:center;padding:8px 4px;border-radius:var(--r-sm);min-height:44px}
+.sm-pastor img{width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--surface-2)}
+.sm-pastor__n{font-size:12.5px;font-weight:600;line-height:1.3}
+.sm-pastor__c{font-size:12px;color:var(--ink-3)}
+
+/* --- 이번 주 요약 인용 : 말씀 인용(.scripture)과 형태를 구분한다 (설교는 O5) --- */
+.sm-quote-card{margin-top:0}
+.sm-quote{margin:0 0 10px;font-size:16.5px;line-height:1.7}
+
+/* --- 설교 목록 : 병렬 항목이라 768 이상 2열 (§4.4-3) --- */
+.sm-list{display:flex;flex-direction:column;gap:12px}
+.sm-item{display:flex;gap:12px;align-items:flex-start;min-height:44px}
+.sm-thumb{position:relative;width:120px;flex:none;border-radius:var(--r-sm);overflow:hidden;
+  background:var(--surface-2);display:block}
+.sm-thumb img{width:120px;height:80px;object-fit:cover}
+.sm-dur{position:absolute;right:6px;bottom:6px;padding:1px 6px;border-radius:var(--r-xs);
+  font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;
+  background:rgba(35,33,31,.88);color:#fff}   /* 흰 글자 / #23211f 88% = 14.1:1 */
+.sm-item__bd{display:flex;flex-direction:column;gap:4px;min-width:0}
+.sm-item__t{font-size:15px;font-weight:600;line-height:1.4}
+.sm-item__m{font-size:12.5px;color:var(--ink-2)}
+
+/* =============================================================================
+   3. 챌린지 상세 (SCR-PWA-011)
+   ============================================================================= */
+.shot.ch-hero{height:160px}
+.ch-sum{margin-top:12px}
+.ch-bar{margin-top:14px}
+.ch-bar__foot{display:flex;justify-content:space-between;gap:10px;margin-top:8px;
+  font-size:12.5px;color:var(--ink-2)}
+.ch-join{margin-top:14px}
+
+/* --- 오늘 목록 : 미완료를 경고색으로 칠하지 않는다 (RSK-PWA-009) --- */
+.ch-list{list-style:none;margin:0;padding:2px 16px}
+.ch-item{display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 0;
+  border-bottom:1px solid var(--line)}
+.ch-item:last-child{border-bottom:0}
+.ch-item__bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ch-item__t{font-size:15px;font-weight:600}
+.ch-item__m{font-size:12.5px;color:var(--ink-2)}
+.ch-item__act{flex:none;height:44px}
+.ch-ok{flex:none}
+.ch-ok i{font-size:13px}
+
+/* --- 응원 : 사전 정의 문구 칩만 (AC-020-03) --- */
+.ch-chip{display:inline-flex;align-items:center;min-height:44px;padding:9px 12px;
+  border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);font-size:13.5px;line-height:1.35;text-align:left}
+.ch-chip__help{margin:10px 0 0;font-size:12.5px;color:var(--ink-2)}
+
+/* --- 달력 (§2.6). 완료는 체크 아이콘, 쉼은 "쉼" 글자가 1차 신호다 --- */
+.ch-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px 4px;
+  justify-items:center}
+.ch-cal__h{font-size:11px;color:var(--ink-3)}
+.ch-cal__d{display:flex;flex-direction:column;align-items:center;gap:2px}
+.ch-cal__mark{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  border:1.5px solid var(--ink-3);font-size:14px;color:transparent}
+.ch-cal__n{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.ch-cal__d[data-state="done"] .ch-cal__mark{background:var(--ok-soft);border-color:transparent;
+  color:var(--ok-strong)}
+.ch-cal__d[data-state="today"] .ch-cal__mark{background:var(--ok-soft);
+  border:2px solid var(--accent);color:var(--ok-strong)}
+.ch-cal__d[data-state="today"] .ch-cal__n{color:var(--accent);font-weight:700}
+.ch-cal__d[data-state="rest"] .ch-cal__mark{background:var(--surface-2);border-color:transparent;
+  color:var(--ink-3);font-size:11px;font-weight:600}   /* 4.66:1 */
+
+/* =============================================================================
+   4. 설교 섭외·신청 폼 (SCR-PWA-013)
+   ============================================================================= */
+.rq-lede{margin:8px 0 0;font-size:15px;line-height:1.6;color:var(--ink-2)}
+.rq-field{margin-top:18px}
+.rq-form input,.rq-form textarea,.rq-select{font-size:16px}   /* 모바일 자동 확대 방지 */
+.rq-form textarea{min-height:88px;resize:vertical;line-height:1.6}
+.rq-select{font-family:inherit;color:var(--ink);background:var(--surface);
+  border:1.5px solid var(--ink-3);border-radius:var(--r-sm);padding:12px 14px;min-height:48px}
+
+/* --- 교회장 선택 : 실제 탭 대상은 행 전체 (§2.11 라디오) --- */
+.rq-pick{list-style:none;margin:0;padding:2px 16px}
+.rq-pick__it{display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 0;
+  border-bottom:1px solid var(--line);cursor:pointer}
+.rq-pick__it:last-child{border-bottom:0}
+.rq-radio{width:22px;height:22px;border-radius:50%;border:2px solid var(--ink-3);flex:none}
+.rq-pick__it[aria-checked="true"] .rq-radio{border-color:var(--accent);
+  box-shadow:inset 0 0 0 4px var(--surface),inset 0 0 0 10px var(--accent)}
+
+/* --- 형식 세그먼트 : 5분 / 전체 --- */
+.rq-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rq-opt{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:64px;
+  padding:12px 14px;border-radius:var(--r-sm);border:1.5px solid var(--ink-3);
+  background:var(--surface);text-align:left}
+.rq-opt b{font-size:15px;font-weight:600}
+.rq-opt span{font-size:12.5px;color:var(--ink-2)}
+.rq-opt[aria-checked="true"]{background:var(--accent-soft);border-color:var(--accent);
+  color:var(--accent-strong)}
+.rq-opt[aria-checked="true"] span{color:var(--accent-strong)}
+
+.rq-note{display:flex;gap:10px;align-items:flex-start;margin-top:18px;padding:14px 16px;
+  border-radius:var(--r);background:var(--surface-2)}
+.rq-note i{font-size:20px;color:var(--ink-3);flex:none}   /* 비텍스트 4.66:1 */
+.rq-note span{font-size:13.5px;line-height:1.5;color:var(--ink-2)}   /* 5.73:1 */
+.rq-submit{margin-top:18px}
+
+/* =============================================================================
+   md : 768px 이상. 교회장 행 줄바꿈 · 설교 2열 · 폼 560px (§5 012 · 013)
+   ============================================================================= */
+@media (min-width:768px){
+  .shot.ws-hero{height:220px}
+  .shot.ch-hero{height:200px}
+  .shot.sm-hero{height:200px}
+
+  .sm-pastors{flex-wrap:wrap;overflow-x:visible;gap:14px 10px;padding-bottom:0}
+  .sm-list{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px}
+  .sm-item{align-items:flex-start}
+  .sm-thumb,.sm-thumb img{width:112px}
+
+  .ch-cal{gap:12px 6px}
+  .ch-cal__mark{width:30px;height:30px}
+
+  /* 720px 폼은 라벨과 입력의 거리가 멀어진다 (§5 013).
+     앱바 폭도 그 화면의 콘텐츠 폭을 따른다 (§4.2 · §4.6-3) */
+  .col[data-screen="sermon-request"]{max-width:560px}
+  .app__main:has([data-screen="sermon-request"]:not([hidden])) .appbar__in{max-width:560px}
+}
+
+/* =============================================================================
+   lg : 1024px 이상. 레일은 hoondok.css 가 처리한다. 여기서는 히어로 높이만 올린다
+   (히어로 상한 340px, §5 전 화면 공통)
+   ============================================================================= */
+@media (min-width:1024px){
+  .shot.ws-hero{height:240px}
+  .shot.ch-hero{height:220px}
+  .shot.sm-hero{height:220px}
+}
+
+/* =============================================================================
+   hover : 포인터 환경에서만 (§4.5). 색 변화 외 이동·확대 없음
+   ============================================================================= */
+@media (hover:hover){
+  .ws-chal__card:hover,.sm-item:hover,.ch-chip:hover,.sm-pastor:hover,
+  .rq-pick__it:hover{background:var(--surface-2)}
+  .ws-chal__card:hover{box-shadow:var(--shadow-1);background:var(--surface)}
+  .sm-seg button:hover{color:var(--ink)}
+  .sm-seg button[aria-selected="true"]:hover{background:var(--surface)}
+  .rq-opt:hover{background:var(--surface-2)}
+  .rq-opt[aria-checked="true"]:hover{background:var(--accent-soft)}
+}

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>훈독 16화면 폰·PC</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+:root{--bg:#161513;--panel:#221f1d;--line:#3a3734;--txt:#f0ede8;--txt2:#a8a29a;--hi:#c24721}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:"Pretendard Variable",Pretendard,-apple-system,sans-serif}
+header{position:sticky;top:0;z-index:30;background:var(--panel);border-bottom:1px solid var(--line);padding:13px 20px}
+h1{font-size:17px;margin:0;font-weight:700;letter-spacing:-.02em}
+.sub{font-size:12.5px;color:var(--txt2);margin-top:4px;line-height:1.6}
+.ctl{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px;align-items:center}
+.ctl button{font:inherit;font-size:12.5px;padding:5px 10px;border-radius:8px;border:1px solid var(--line);color:var(--txt2);background:transparent;cursor:pointer}
+.ctl button.on{background:var(--hi);border-color:var(--hi);color:#fff;font-weight:600}
+.ctl .tag{border:0;background:none;padding:0 2px;color:#6f6a65;font-size:12px;cursor:default}
+.ctl .gap{width:10px;border:0;background:none;padding:0;cursor:default}
+.rack{display:flex;gap:18px;padding:18px 20px 40px;align-items:flex-start;overflow-x:auto}
+.slot{flex:none}
+.cap .t{font-size:13.5px;font-weight:700}
+.cap .d{font-size:11.5px;color:var(--txt2);margin:3px 0 8px;line-height:1.5}
+.frame{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fbfaf8;box-shadow:0 12px 34px rgba(0,0,0,.36)}
+iframe{border:0;display:block;transform-origin:top left}
+footer{padding:0 20px 44px;font-size:12.5px;color:var(--txt2);line-height:1.85;max-width:1180px}
+footer b{color:var(--txt)} code{background:#2f2c29;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>훈독 16화면 · 폰 390 + PC 1280 (A 기준 · 헤더 4)</h1>
+  <p class="sub">같은 <code>app.html</code> 한 벌. 화면 버튼을 누르면 폰과 PC 를 나란히 보여 줍니다. 폰 화면은 눌러서 이동할 수 있습니다.</p>
+  <div class="ctl" id="ctl"><span class="tag">화면</span></div>
+  <div class="ctl" id="ctl2">
+    <span class="tag">PC 폭</span><button data-w="1024">1024</button><button data-w="1280" class="on">1280</button><button data-w="1440">1440</button>
+    <span class="gap"></span><span class="tag">보기</span><button data-z="fit" class="on">한 화면에 맞춤</button><button data-z="full">실제 크기</button>
+  </div>
+</header>
+<div class="rack" id="rack"></div>
+<footer>
+  <b>화면 번호는 PRD `SCR-PWA-0NN`</b>. 004 정성 기간은 시트라 `?screen=today&sheet=jeongseong` 로 홈 위에 열립니다. 001 온보딩은 탭 진입 전이라 내비가 없습니다.<br>
+  모든 말씀·인물·교회·수치는 프로토타입용 예시입니다.
+</footer>
+<script>
+const S=[
+  ['001 온보딩','screen=onboarding'],['002 오늘 훈독','screen=today'],['003 훈독하기','screen=read'],['004 정성 기간','screen=today&sheet=jeongseong'],
+  ['005 AI 질문','screen=ask'],['006 질문 상세','screen=ask-detail'],['007 말씀 서고','screen=library'],['008 말씀 검색','screen=search'],
+  ['009 원문 뷰','screen=words'],['010 가정예배','screen=worship'],['011 챌린지','screen=challenge'],['012 5분 설교','screen=sermons'],
+  ['013 설교 섭외','screen=sermon-request'],['014 나의 정원','screen=garden'],['015 알림·설치','screen=settings'],['016 가족·친구','screen=family'],
+];
+let cur=1, w=1280, z='fit';
+const ctl=document.getElementById('ctl'), rack=document.getElementById('rack');
+S.forEach((x,i)=>{const b=document.createElement('button');b.textContent=x[0];b.dataset.i=i;if(i===cur)b.classList.add('on');ctl.appendChild(b);});
+function render(){
+  const cols=[{w:390,h:844,q:S[cur][1],t:'폰 390'},{w:w,h:900,q:S[cur][1]+'&nav=top&header=4',t:'PC '+w}];
+  const avail=document.documentElement.clientWidth-40-18; const total=cols.reduce((a,c)=>a+c.w,0);
+  const k=z==='full'?1:Math.min(1,avail/total);
+  rack.innerHTML=cols.map(c=>`<div class="slot" style="width:${Math.round(c.w*k)}px">
+    <div class="cap"><div class="t">${S[cur][0]} · ${c.t}</div><div class="d">app.html?theme=card&${c.q}</div></div>
+    <div class="frame" style="width:${Math.round(c.w*k)}px;height:${Math.round(c.h*k)}px">
+      <iframe src="app.html?theme=card&${c.q}" width="${c.w}" height="${c.h}" style="transform:scale(${k})" title="${S[cur][0]}"></iframe>
+    </div></div>`).join('');
+}
+ctl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=+b.dataset.i;[...ctl.querySelectorAll('button')].forEach(x=>x.classList.toggle('on',x===b));render();});
+document.getElementById('ctl2').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  const pick=a=>[...document.querySelectorAll(`#ctl2 button[data-${a}]`)].forEach(x=>x.classList.toggle('on',x===b));
+  if(b.dataset.w){w=+b.dataset.w;pick('w')} if(b.dataset.z){z=b.dataset.z;pick('z')} render();});
+addEventListener('resize',()=>{clearTimeout(window.__t);window.__t=setTimeout(render,160)});
+render();
+</script>
+</body>
+</html>
