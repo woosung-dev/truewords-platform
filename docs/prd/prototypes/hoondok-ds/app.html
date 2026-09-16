@@ -1,0 +1,1331 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>훈독 앱 · 단일 마크업</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600&display=swap" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+<link rel="stylesheet" href="hoondok.css" />
+</head>
+<body>
+<!-- ============================================================================
+     화면 목차 (PRD SCR-PWA 번호순). 각 화면은 <section data-screen="..."> 한 블록이다.
+     찾기: data-screen="이름"   열기: app.html?screen=이름
+     001  onboarding      온보딩·베타 고지·교회 선택
+     002  today           오늘 훈독 (홈)
+     003  read            훈독하기
+     005  ask             AI 질문 (묻기 홈)
+     005  ask-log         질문 기록
+     006  ask-detail      질문·답변 상세
+     007  library         말씀 서고
+     008  search          말씀 검색
+     009  words           원문 뷰 (1224px 이상 2-pane)
+     010  worship         가정예배 홈
+     011  challenge       챌린지 상세
+     012  sermons         5분 설교·전체 설교
+     013  sermon-request  설교 섭외·신청
+     014  garden          나의 정원
+     015  settings        알림·설치 설정
+     016  family          가족·친구
+     004  (sheet)          정성 기간 만들기 = <div class="sheet" id="sheet-jeongseong">, ?sheet=jeongseong 로 홈 위에 연다
+     ============================================================================ -->
+<!-- 마크업은 한 벌이다. 화면 폭이 달라도 이 문서를 복제하지 않는다.
+     ?screen=today|read|words|library|search|onboarding|ask|ask-log|ask-detail|worship|challenge|sermons|sermon-request|garden|settings|family
+     ?sheet=jeongseong   ?nav=top&header=4 (PC 기본 = 상단 헤더 4. rail 은 DES-PWA-003 §4.1 대조용)   ?serif=1 -->
+<div class="app">
+
+  <main class="app__main">
+    <header class="appbar" id="appbar">
+      <div class="appbar__in">
+        <a class="icon-btn" href="#" aria-label="뒤로" data-only="read words search ask-log ask-detail challenge sermons sermon-request settings family"><i class="ph ph-arrow-left"></i></a>
+        <h1 class="appbar__title" id="apptitle">오늘 훈독</h1>
+        <label class="appbar__search" data-only="search"><i class="ph ph-magnifying-glass"></i><input type="search" value="" placeholder="단어, 구절, 상황을 입력해 주세요" aria-label="말씀 검색" autofocus></label>
+        <a class="icon-btn" href="?screen=ask-log" aria-label="질문 기록" data-only="ask"><i class="ph ph-clock-counter-clockwise"></i></a>
+        <a class="icon-btn icon-btn--search" href="?screen=search" aria-label="말씀 검색" data-only="today read words library ask ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-magnifying-glass"></i></a>
+        <a class="icon-btn" href="#" aria-label="알림" data-only="today read words library ask ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-bell"></i></a>
+      </div>
+    </header>
+
+    <!-- ===== 오늘 훈독 ===== -->
+    <section class="col" data-screen="today">
+      <div class="masthead"><span class="masthead__nm">훈독</span><span class="masthead__dt">2026. 9. 17. 수</span></div>
+
+      <p class="lede">참사랑은 직단거리를 갑니다.</p>
+      <div class="src lede-src">
+        <span>참아버님</span><span class="src__dot"></span><span>천성경 제1편 3장</span>
+        <span class="badge badge--rank">O1 공식 원문</span>
+      </div>
+      <div class="lede-rule"></div>
+
+      <div class="shot" style="margin-top:14px">
+        <img src="https://picsum.photos/seed/hoondok-morning-field/820/440" alt="아침 햇살이 드는 들판" />
+        <div class="shot__tx">
+          <div class="shot__greet">밤이 깊을수록 새벽은 가까워요.<br>효진님, 오늘도 함께 읽어요.</div>
+          <div class="shot__sub">분당교회 식구 38명이 벌써 훈독했어요</div>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="sect__head">
+          <h2 class="sect__title">오늘의 실천</h2><span class="sect__rule"></span>
+          <span class="sect__meta">3가지 · 약 5분</span>
+        </div>
+        <div class="missions">
+          <div class="mission">
+            <span class="mission__no">01</span>
+            <span class="mission__ic"><i class="ph ph-book-open-text"></i></span>
+            <span class="mission__bd">
+              <span class="mission__kind">훈독하기 · 3분</span>
+              <span class="mission__title">참사랑은 직단거리를 갑니다</span>
+              <span class="mission__meta">천성경 · 참아버님</span>
+            </span>
+            <button class="check" aria-pressed="false" aria-label="훈독하기 완료"><i class="ph-bold ph-check"></i></button>
+          </div>
+          <div class="mission">
+            <span class="mission__no">02</span>
+            <span class="mission__ic"><i class="ph ph-hands-praying"></i></span>
+            <span class="mission__bd">
+              <span class="mission__kind">기도하기 · 1분</span>
+              <span class="mission__title">오늘의 기도 제목: 자녀의 새 학기</span>
+              <span class="mission__meta">가족 기도 제목 2개 · 우리 교회 1개</span>
+            </span>
+            <button class="check" aria-pressed="false" aria-label="기도하기 완료"><i class="ph-bold ph-check"></i></button>
+          </div>
+          <div class="mission">
+            <span class="mission__no">03</span>
+            <span class="mission__ic"><i class="ph ph-books"></i></span>
+            <span class="mission__bd">
+              <span class="mission__kind">말씀 읽기 · 이어 읽기</span>
+              <span class="mission__title">천성경 제1편 3장</span>
+              <span class="mission__meta">지난번 12단락까지 읽었어요</span>
+            </span>
+            <button class="check" aria-pressed="false" aria-label="말씀 읽기 완료"><i class="ph-bold ph-check"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="sect__head">
+          <h2 class="sect__title">이번 주</h2><span class="sect__rule"></span>
+          <span class="sect__meta">연속 12일</span>
+        </div>
+        <div class="week">
+          <div class="week__days">
+            <span class="week__day" data-done>월</span><span class="week__day" data-done>화</span>
+            <span class="week__day" data-today>수</span><span class="week__day">목</span>
+            <span class="week__day">금</span><span class="week__day">토</span><span class="week__day">일</span>
+          </div>
+          <span class="week__streak"><i class="ph-fill ph-flame" style="color:var(--accent)"></i>연속 <b>12</b>일</span>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="sect__head">
+          <h2 class="sect__title">정성 기간</h2><span class="sect__rule"></span>
+          <span class="sect__meta">기록 보기</span>
+        </div>
+        <div class="card">
+          <div style="font-size:16.5px;font-weight:600">21일 새벽 정성 · 가정의 화목</div>
+          <div class="stats" style="margin-top:14px">
+            <div><b class="stats__n stats__n--accent">D-14</b><span class="stats__lab">남은 날</span></div>
+            <div><b class="stats__n">7</b><span class="stats__lab">진행한 날</span></div>
+            <div><b class="stats__n">0</b><span class="stats__lab">밀린 날</span></div>
+          </div>
+          <div class="progress" style="margin-top:14px"><i class="progress__fill" style="width:33%"></i></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);margin-top:8px">
+            <span>7 / 21일</span><span>매일 오전 5:30</span>
+          </div>
+        </div>
+      </div>
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">함께 읽는 사람들</h2><span class="sect__rule"></span><a class="sect__meta" href="?screen=worship">챌린지</a></div>
+        <a class="card together" href="?screen=family">
+          <span class="avatars"><img src="https://picsum.photos/id/129/80/80" alt=""><img src="https://picsum.photos/id/447/80/80" alt=""><img src="https://picsum.photos/id/338/80/80" alt=""></span>
+          <span class="together__bd"><b>우리 가족 4명 중 2명 완료</b><span>재민, 하늘이 아직이에요</span></span>
+          <i class="ph ph-caret-right"></i>
+        </a>
+      </div>
+      <p class="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
+    </section>
+
+    <!-- ===== 훈독하기 ===== -->
+    <section class="col col--read" data-screen="read" hidden>
+      <div class="masthead"><span class="masthead__nm">천성경 제1편 3장</span><span class="masthead__dt">2013 한국어판</span></div>
+      <div class="src lede-src">
+        <span>참아버님</span><span class="src__dot"></span><span>천성경</span><span class="src__dot"></span>
+        <span>2013 한국어판</span><span class="badge badge--rank">O1 공식 원문</span>
+      </div>
+      <p class="lede">참사랑은 직단거리를 갑니다</p>
+      <div class="lede-rule"></div>
+
+      <p class="scripture">참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다. 91도도 89도도 직단이 아닙니다. 오로지 최단거리는 90각도밖에 없습니다.</p>
+
+      <div class="chips" style="margin-top:16px">
+        <button class="term"><i class="ph ph-book-bookmark"></i>참사랑</button>
+        <button class="term"><i class="ph ph-book-bookmark"></i>종적 사랑</button>
+        <button class="term"><i class="ph ph-book-bookmark"></i>직단거리</button>
+      </div>
+
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">AI 설명</h2><span class="sect__rule"></span>
+          <span class="sect__meta">공식 해설 아님</span></div>
+        <div class="ai-note">
+          <div class="ai-note__lab"><i class="ph ph-sparkle"></i>AI 설명 · 공식 해설 아님</div>
+          <p class="ai-note__body">이 말씀은 사랑이 하늘부모님과 나 사이의 가장 곧은 길, 즉 90도의 수직 관계를 통해서만 온전히 이어진다고 설명합니다. 조금이라도 비껴가면 최단거리가 아니라는 표현은 사랑에 우회가 없어야 함을 강조합니다.</p>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">오늘의 한 줄</h2><span class="sect__rule"></span>
+          <span class="sect__meta">나만 봄</span></div>
+        <div class="my-note">오늘 이 말씀을 어디에서 실천해 볼까요? (선택)</div>
+      </div>
+
+      <div class="sect">
+        <button class="btn btn-primary"><i class="ph ph-check"></i>훈독 완료</button>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);margin-top:12px">
+          <span>완료하면 연속 13일이 돼요</span>
+          <!-- 탭 대상 44px : 음수 마진으로 줄 높이는 그대로 둔다 -->
+          <a href="#" style="color:var(--accent-strong);font-weight:600;display:inline-flex;align-items:center;min-height:44px;margin:-12px 0">이 말씀에 질문하기</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 원문 뷰 ===== -->
+    <section class="col col--read words" data-screen="words" hidden>
+      <!-- 목차 레일 : 폰에서는 리더 바 "목차"가 여는 오버레이(프로토타입은 생략), 1224px 이상에서 상시 노출 (DES-PWA-003 §4.3) -->
+      <aside class="toc" aria-label="목차">
+        <div class="toc__title">천성경 제1편</div>
+        <a class="toc__item" href="#">1장 참사랑의 근본</a>
+        <a class="toc__item" href="#">2장 참사랑의 속성</a>
+        <a class="toc__item" href="#" aria-current="true">3장 참사랑은 직단거리를 갑니다</a>
+        <a class="toc__item" href="#">4장 참사랑과 참생명</a>
+        <a class="toc__item" href="#">5장 참사랑의 완성</a>
+        <div class="toc__title" style="margin-top:18px">제2편</div>
+        <a class="toc__item" href="#">1장 참부모의 길</a>
+        <a class="toc__item" href="#">2장 가정의 완성</a>
+      </aside>
+      <div class="words__main">
+      <div class="masthead"><span class="masthead__nm">천성경 제1편 3장</span><span class="masthead__dt">21단락</span></div>
+      <div class="src lede-src">
+        <span>참아버님</span><span class="src__dot"></span><span>2013 한국어판</span>
+        <span class="badge badge--rank">O1 공식 원문</span>
+      </div>
+      <div class="lede-rule"></div>
+
+      <!-- 1024px 이상에서 리더 바가 이 자리로 올라온다 -->
+      <div class="reader reader--top" aria-label="읽기 도구">
+        <a href="#"><i class="ph ph-highlighter"></i>형광펜</a><a href="#"><i class="ph ph-note-pencil"></i>노트</a>
+        <a href="#"><i class="ph ph-bookmark-simple"></i>북마크</a><a href="#" class="reader__toc"><i class="ph ph-list-bullets"></i>목차</a><a href="#"><i class="ph ph-gear"></i>설정</a>
+      </div>
+
+      <div class="pill-seg" role="tablist" style="margin-top:14px">
+        <button class="is-on" role="tab" aria-selected="true">본문</button><button role="tab">AI 설명</button><button role="tab">노트 3</button>
+      </div>
+      <div class="audio">
+        <button class="audio__play" aria-label="일시정지"><i class="ph-fill ph-pause"></i></button>
+        <span class="audio__bd"><b>참사랑의 근본 · TTS 예시</b><span class="progress"><i class="progress__fill" style="width:38%"></i></span></span>
+        <span class="audio__t">2:14 / 5:48</span>
+      </div>
+
+      <div style="margin-top:20px">
+        <p class="verse"><span class="verse__n">10</span><span>역사는 남성과 여성을 접촉시켜 나왔습니다. 남자와 여자는 하나의 기점에서 연결되어야 합니다. 그 연결은 <mark class="hl-2">참부모라는 내용을 중심삼고</mark> 되어야 합니다.</span></p>
+        <p class="verse"><span class="verse__n">11</span><span><mark class="hl-1">참사랑은 직단거리를 갑니다.</mark> 종적인 사랑은 90각도 한 점밖에 없습니다. 91도도 89도도 직단이 아닙니다. 오로지 최단거리는 90각도밖에 없습니다.</span></p>
+        <p class="verse"><span class="verse__n">12</span><span>아들 낳기를 고대하던 부부는 아들을 낳았다고 하더라도 그 아들 낳은 것만 좋아해서는 안 됩니다. <mark class="hl-3">어떻게 가치 있는 아들로 키우느냐</mark> 하는 문제를 놓고 걱정을 해야 합니다.</span></p>
+      </div>
+
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">이 장의 용어</h2><span class="sect__rule"></span>
+          <span class="sect__meta">4개</span></div>
+        <div class="chips">
+          <button class="term"><i class="ph ph-book-bookmark"></i>참사랑</button>
+          <button class="term"><i class="ph ph-book-bookmark"></i>참부모</button>
+          <button class="term"><i class="ph ph-book-bookmark"></i>기점</button>
+        </div>
+      </div>
+      <div class="sect">
+        <div class="card compare">
+          <span class="compare__bd"><b>판본 나란히 보기</b><span>2013 한국어판과 2006 초판 문장을 같은 단락에서 비교해요. 다른 문장은 자동으로 고르지 않아요.</span></span>
+          <button class="toggle" aria-pressed="false" aria-label="판본 나란히 보기"></button>
+        </div>
+      </div>
+      <p class="notice">단락 12는 예시로 이어 붙인 발췌입니다</p>
+      </div><!-- /.words__main -->
+      <!-- 폰 하단 리더 바 (1024px 이상에서 숨김, 위의 reader--top 이 대신) -->
+      <div class="reader reader--bottom" aria-label="읽기 도구">
+        <a href="#"><i class="ph ph-highlighter"></i>형광펜</a><a href="#"><i class="ph ph-note-pencil"></i>노트</a>
+        <a href="#"><i class="ph ph-bookmark-simple"></i>북마크</a><a href="#"><i class="ph ph-list-bullets"></i>목차</a><a href="#"><i class="ph ph-gear"></i>설정</a>
+      </div>
+    </section>
+
+    <!-- ===== 말씀 서고 (SCR-PWA-007) : 검색 필드 상설 ===== -->
+    <section class="col" data-screen="library" hidden>
+      <a class="search-field" href="?screen=search" role="search"><i class="ph ph-magnifying-glass"></i><span>단어, 구절, 상황을 입력해 주세요</span></a>
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">이어 읽기</h2><span class="sect__rule"></span><span class="sect__meta">어제</span></div>
+        <a class="card resume" href="?screen=words">
+          <span class="resume__bd"><b>천성경 제1편 3장</b><span class="resume__meta">12단락까지 읽었어요 · 참아버님 · 2013 한국어판</span></span>
+          <span class="badge badge--rank">O1 공식 원문</span>
+        </a>
+      </div>
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">저작물</h2><span class="sect__rule"></span><span class="sect__meta">권리 확인된 정본만</span></div>
+        <div class="shelf">
+          <a class="shelf__item" href="#"><b>천성경</b><span>16편 · 2013 한국어판</span><span class="badge badge--rank">O1 공식 원문</span></a>
+          <a class="shelf__item" href="#"><b>말씀선집</b><span>615권</span><span class="badge badge--rank">O1 공식 원문</span></a>
+          <a class="shelf__item" href="#"><b>참어머님 말씀 모음</b><span>3권</span><span class="badge badge--rank">O1 공식 원문</span></a>
+          <a class="shelf__item" href="#"><b>평화경</b><span>2013 한국어판</span><span class="badge badge--dashed">권리 확인 중</span></a>
+          <a class="shelf__item" href="#"><b>평화를 사랑하는 세계인으로</b><span>자서전</span><span class="badge badge--dashed">권리 확인 중</span></a>
+        </div>
+      </div>
+      <p class="notice">권리 확인 중인 저작물은 검색·AI 근거에 쓰이지 않습니다</p>
+    </section>
+
+    <!-- ===== 말씀 검색 진입 (SCR-PWA-008, 입력 전 상태) ===== -->
+    <section class="col" data-screen="search" hidden>
+      <div class="sect" style="margin-top:8px">
+        <div class="sect__head"><h2 class="sect__title">최근 검색</h2><span class="sect__rule"></span><a class="sect__meta" href="#">지우기</a></div>
+        <ul class="recent">
+          <li><a href="#"><i class="ph ph-clock-counter-clockwise"></i>정성</a></li>
+          <li><a href="#"><i class="ph ph-clock-counter-clockwise"></i>참사랑은 직단거리</a></li>
+          <li><a href="#"><i class="ph ph-clock-counter-clockwise"></i>천일국 시대</a></li>
+        </ul>
+      </div>
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">이렇게도 찾을 수 있어요</h2><span class="sect__rule"></span></div>
+        <div class="howto">
+          <div class="howto__row"><span class="howto__k">단어</span><div class="chips"><a class="term" href="#">탕감복귀</a><a class="term" href="#">정성</a><a class="term" href="#">축복</a></div></div>
+          <div class="howto__row"><span class="howto__k">구절</span><div class="chips"><a class="term" href="#">"참사랑은 직단거리를 갑니다"</a></div></div>
+          <div class="howto__row"><span class="howto__k">상황</span><div class="chips"><a class="term" href="#">자녀와 갈등이 있을 때</a><a class="term" href="#">새벽에 일어나기 힘들 때</a></div></div>
+          <div class="howto__row"><span class="howto__k">목차</span><div class="chips"><a class="term" href="#">천성경 1편</a><a class="term" href="#">말씀선집 200권</a></div></div>
+        </div>
+      </div>
+      <div class="sect">
+        <a class="ask-hint" href="#"><i class="ph ph-chat-teardrop-text"></i><span><b>궁금한 것이 질문이라면</b><span>"왜 정성을 드려야 하나요" 같은 질문은 AI 질문에서 근거 말씀과 함께 답해요</span></span><i class="ph ph-caret-right"></i></a>
+      </div>
+    </section>
+
+    <!-- ===== partials/group-a.html ===== -->
+<!-- =============================================================================
+     group-a.html - 훈독 앱 화면 4개 (app.html 의 </main> 앞에 그대로 붙인다)
+     - onboarding   SCR-PWA-001
+     - ask          SCR-PWA-005
+     - ask-detail   SCR-PWA-006
+     - 정성 기간 만들기 시트  SCR-PWA-004 (section 이 아니라 .sheet)
+     문구·인물·수치는 prototypes/2026-09-10-hundok-a.html 에서 가져왔다.
+     짝이 되는 스타일은 partials/group-a.css 에 있다.
+     ============================================================================= -->
+
+<!-- ===== 온보딩·베타 고지·소속 교회 선택 (SCR-PWA-001) ===== -->
+<!-- 이 화면에서만 앱바와 하단 탭(=lg 레일)을 숨긴다. 숨김 규칙은 group-a.css 에 있다 -->
+<section class="col onb" data-screen="onboarding" hidden>
+  <div class="shot onb-hero">
+    <img src="https://picsum.photos/id/65/860/720" alt="아침 햇살 속 들판에 선 사람" />
+  </div>
+
+  <p class="onb-eyebrow">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
+  <h2 class="onb-title">아침 3분 훈독으로<br />오늘을 시작해요</h2>
+  <p class="onb-lede">매일 말씀을 읽고, 궁금한 건 출처 있는 말씀으로 확인하고, 주말엔 가족과 가정예배까지 이어집니다.</p>
+
+  <div class="sect">
+    <div class="sect__head">
+      <h3 class="sect__title">소속 교회를 골라 주세요</h3><span class="sect__rule"></span>
+      <span class="sect__meta">나중에 바꿀 수 있어요</span>
+    </div>
+    <!-- 라디오 그룹: 행 전체가 탭 대상(최소 56px), 선택 표시는 점 + 굵기 + 배경 3가지가 함께 바뀐다 -->
+    <div class="onb-list" role="radiogroup" aria-label="소속 교회">
+      <button class="onb-pick" type="button" role="radio" aria-checked="true">
+        <span class="onb-radio" aria-hidden="true"></span>
+        <span class="onb-pick__bd"><b>성남 분당교회</b><span>경기 성남시 · 식구 214명 참여 중</span></span>
+      </button>
+      <button class="onb-pick" type="button" role="radio" aria-checked="false">
+        <span class="onb-radio" aria-hidden="true"></span>
+        <span class="onb-pick__bd"><b>수원 영통교회</b><span>경기 수원시 · 식구 96명 참여 중</span></span>
+      </button>
+      <button class="onb-pick" type="button" role="radio" aria-checked="false">
+        <span class="onb-radio" aria-hidden="true"></span>
+        <span class="onb-pick__bd"><b>아직 정하지 않음</b><span>혼자 훈독부터 시작</span></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="onb-cta">
+    <a class="btn btn-primary" href="?screen=today">시작하기</a>
+    <a class="btn btn-ghost" href="?screen=today">둘러보기 (로그인 없이)</a>
+  </div>
+
+  <p class="notice">AI 설명은 공식 원문이나 공식 해설이 아닙니다. 각 답변의 출처와 검수 상태를 확인해 주세요.</p>
+</section>
+
+<!-- ===== AI 질문 목록 (SCR-PWA-005) ===== -->
+
+<!-- ===== 질문·답변 상세 (SCR-PWA-006) ===== -->
+<!-- 읽기 화면이므로 컬럼 전체가 640px (col--read). 근거 카드를 옆 컬럼으로 빼지 않는다 (§5) -->
+<section class="col col--read" data-screen="ask-detail" hidden>
+  <h2 class="ask-q">정성을 드린다는 게 정확히 뭘 하는 건가요?</h2>
+  <div class="chips ask-q__meta">
+    <span class="badge">저장됨</span>
+    <span class="badge badge--line">근거 2 · 연관 2</span>
+  </div>
+
+  <div class="sect">
+    <div class="sect__head"><h3 class="sect__title">AI 설명</h3><span class="sect__rule"></span>
+      <span class="sect__meta">공식 해설 아님</span></div>
+    <div class="ai-note">
+      <div class="ai-note__lab"><i class="ph ph-sparkle" aria-hidden="true"></i>AI 설명 · 공식 해설 아님</div>
+      <p class="ai-note__body">근거 말씀에서 정성은 특정 기간을 정해 기도와 마음을 모아 하늘 앞에 약속을 세우는 실천으로 나타납니다. 40일이라는 기간과 "내가 있을 때 해야 한다"는 표현이 함께 쓰입니다.<sup class="ask-ref">1</sup></p>
+      <p class="ai-note__body">정성의 방향에 대해서는 사랑이 최단거리, 곧 수직으로 하늘과 이어져야 한다는 말씀이 함께 읽힙니다.<sup class="ask-ref">2</sup> 구체적인 방법(시간·장소·횟수)은 근거 말씀에 명시되어 있지 않아 교회장께 확인을 권합니다.</p>
+    </div>
+  </div>
+
+  <div class="sect">
+    <div class="sect__head"><h3 class="sect__title">근거 말씀</h3><span class="sect__rule"></span>
+      <span class="sect__meta">탭하면 원문으로</span></div>
+    <a class="card ask-ev" href="?screen=words" aria-label="근거 1, 참어머님 말씀 모음 원문 열기">
+      <div class="src">
+        <b class="ask-ev__no">1</b><span class="src__dot"></span>
+        <span>참어머님</span><span class="src__dot"></span>
+        <span>참어머님 말씀 모음</span><span class="src__dot"></span>
+        <span>최종본 2012년~</span>
+        <span class="badge badge--rank">O1 공식 원문</span>
+      </div>
+      <p class="scripture">모두가 그러한 마음가짐으로 남은 40여 일 동안 기도와 정성을 들이며 성화 2주기를 맞이하고 성화 3주기를 향해 출발해야 합니다. 하늘 앞에 약속해야 됩니다.</p>
+    </a>
+    <a class="card ask-ev" href="?screen=words" aria-label="근거 2, 천성경 원문 열기">
+      <div class="src">
+        <b class="ask-ev__no">2</b><span class="src__dot"></span>
+        <span>참아버님</span><span class="src__dot"></span>
+        <span>천성경</span><span class="src__dot"></span>
+        <span>2013 한국어판</span>
+        <span class="badge badge--rank">O1 공식 원문</span>
+      </div>
+      <p class="scripture">참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다. 91도도 89도도 직단이 아닙니다.</p>
+    </a>
+  </div>
+
+  <div class="sect">
+    <div class="sect__head"><h3 class="sect__title">연관 말씀</h3><span class="sect__rule"></span>
+      <a class="sect__meta" href="?screen=search">더 찾기</a></div>
+    <div class="ask-rel">
+      <a class="ask-rel__item" href="?screen=words">
+        <i class="ph ph-quotes" aria-hidden="true"></i>
+        <span class="ask-rel__bd"><b>지상천국은 축복가정들의 손으로 만들 수 있나요, 없나요?</b><span>참어머님 · 말씀모음 2018~2019 · O1 공식 원문</span></span>
+        <i class="ph ph-caret-right" aria-hidden="true"></i>
+      </a>
+      <a class="ask-rel__item" href="?screen=words">
+        <i class="ph ph-quotes" aria-hidden="true"></i>
+        <span class="ask-rel__bd"><b>여러분의 꿈은 하늘부모님의 꿈과 일치되어야 합니다</b><span>참어머님 · 말씀 2016년 · O1 공식 원문</span></span>
+        <i class="ph ph-caret-right" aria-hidden="true"></i>
+      </a>
+    </div>
+  </div>
+
+  <div class="sect">
+    <div class="sect__head"><h3 class="sect__title">이어서 물어보기</h3><span class="sect__rule"></span>
+      <span class="sect__meta">탭해야 보냅니다</span></div>
+    <div class="ask-chips">
+      <button class="ask-chip" type="button"><i class="ph ph-arrow-bend-down-right" aria-hidden="true"></i>정성 기간 중 하루를 놓치면 어떻게 하나요?</button>
+      <button class="ask-chip" type="button"><i class="ph ph-arrow-bend-down-right" aria-hidden="true"></i>가족과 함께 드리는 정성은 어떻게 시작하나요?</button>
+      <button class="ask-chip" type="button"><i class="ph ph-arrow-bend-down-right" aria-hidden="true"></i>40일 정성과 21일 정성은 무엇이 다른가요?</button>
+    </div>
+  </div>
+
+  <div class="sect">
+    <div class="card ask-row">
+      <span class="ask-row__bd"><b>이 질문 저장</b><span>끄면 내용은 저장되지 않아요 (무기억)</span></span>
+      <button class="toggle" type="button" aria-pressed="true" aria-label="이 질문 저장"></button>
+    </div>
+    <div class="ask-acts">
+      <button class="btn btn-line btn--sm ask-acts__btn" type="button" aria-pressed="true"><i class="ph-fill ph-bookmark-simple ask-acts__on" aria-hidden="true"></i>북마크됨</button>
+      <button class="btn btn-line btn--sm ask-acts__btn" type="button"><i class="ph ph-share-network" aria-hidden="true"></i>공유</button>
+      <button class="btn btn-line btn--sm ask-acts__btn" type="button" data-open-sheet="jeongseong"><i class="ph ph-sun-horizon" aria-hidden="true"></i>이 주제로 정성 시작</button>
+    </div>
+  </div>
+
+  <p class="notice">AI 설명은 참고용이며 교회장의 지도를 대체하지 않습니다</p>
+</section>
+
+<!-- ===== 정성 기간 만들기 (SCR-PWA-004) : 폰 하단 시트 → 1024px 이상 중앙 모달 ===== -->
+<!-- 여는/닫는 JS 는 별도. .sheet 는 [open] 일 때만 보인다 (hoondok.css §12) -->
+
+    <!-- ===== partials/group-b.html ===== -->
+<!-- =============================================================================
+     group-b : 가정예배 탭 4화면 (SCR-PWA-010 ~ 013)
+     app.html 의 </main> 앞에 그대로 붙인다.
+     스타일은 partials/group-b.css 를 hoondok.css 뒤에 링크한다 (theme-*.css 앞뒤 무관).
+     앱바 제목(TITLES)과 뒤로가기 data-only 는 app.html 이 이미 네 화면을 알고 있다.
+     ============================================================================= -->
+
+<!-- ===== 가정예배 홈 (SCR-PWA-010) ===== -->
+<section class="col" data-screen="worship" hidden>
+
+  <div class="shot ws-hero">
+    <img src="https://picsum.photos/id/129/860/520" alt="벤치에 나란히 앉은 가족" />
+    <div class="shot__tx">
+      <div class="ws-eyebrow">이번 주 가정예배 · 9월 13일 일요일 저녁</div>
+      <div class="shot__greet">우리 집 순서지가 준비됐어요</div>
+    </div>
+  </div>
+
+  <!-- 순서지 : 순서가 의미라 어느 폭에서도 세로 1열 (DES-PWA-003 §2.4 · §4.4-3) -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">이번 주 순서지</h2><span class="sect__rule"></span>
+      <span class="sect__meta">6단계 · 약 20분</span>
+    </div>
+    <div class="card">
+      <div class="src ws-order__src">
+        <span>참아버님</span><span class="src__dot"></span><span>천성경 제1편 3장</span>
+        <span class="badge badge--rank">O1 공식 원문</span>
+      </div>
+      <ol class="ws-order" role="list">
+        <li class="ws-order__it">
+          <span class="ws-order__no" aria-hidden="true">1</span>
+          <span class="ws-order__bd">
+            <span class="ws-order__k">경배</span>
+            <span class="ws-order__t">하늘부모님과 참부모님께 경배</span>
+          </span>
+        </li>
+        <li class="ws-order__it">
+          <span class="ws-order__no" aria-hidden="true">2</span>
+          <span class="ws-order__bd">
+            <span class="ws-order__k">찬양</span>
+            <span class="ws-order__t">성가 1곡 · 가족이 고른 곡</span>
+            <span class="ws-order__d">지난주엔 하늘이가 골랐어요. 이번 주는 재민 차례.</span>
+          </span>
+        </li>
+        <li class="ws-order__it">
+          <span class="ws-order__no" aria-hidden="true">3</span>
+          <span class="ws-order__bd">
+            <span class="ws-order__k">말씀 · 천성경 1편 3장</span>
+            <span class="ws-order__t">참사랑은 직단거리를 갑니다</span>
+            <span class="ws-order__d">돌아가며 한 단락씩 읽어요. 약 4분.</span>
+          </span>
+        </li>
+        <li class="ws-order__it">
+          <span class="ws-order__no" aria-hidden="true">4</span>
+          <span class="ws-order__bd">
+            <span class="ws-order__k">나눔 질문</span>
+            <span class="ws-order__t">이번 주 우리 집에서 "곧게 사랑한" 순간은?</span>
+            <span class="ws-order__d">아이에게는: 누구를 제일 먼저 도와주고 싶었어?</span>
+          </span>
+        </li>
+        <li class="ws-order__it">
+          <span class="ws-order__no" aria-hidden="true">5</span>
+          <span class="ws-order__bd">
+            <span class="ws-order__k">기도</span>
+            <span class="ws-order__t">하늘이 새 학기 · 할머니 건강 · 분당교회 40일 정성</span>
+          </span>
+        </li>
+        <li class="ws-order__it">
+          <span class="ws-order__no" aria-hidden="true">6</span>
+          <span class="ws-order__bd">
+            <span class="ws-order__k">마무리</span>
+            <span class="ws-order__t">축도와 저녁 식사</span>
+          </span>
+        </li>
+      </ol>
+      <!-- 공유는 가족 그룹 안으로 한정 (AC-019-02) -->
+      <div class="ws-actions">
+        <button class="btn btn-primary ws-actions__send"><i class="ph ph-paper-plane-tilt"></i>가족에게 보내기</button>
+        <button class="btn btn-line ws-actions__edit"><i class="ph ph-pencil-simple"></i>편집</button>
+      </div>
+      <p class="ws-actions__help">가족 4명에게만 보내요. 외부 링크는 만들지 않아요.</p>
+    </div>
+  </div>
+
+  <!-- 챌린지 : 진행률과 참여 인원만. 순위·점수·보상 배지 없음 (AC-020-02 · DEC-PWA-019) -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">챌린지</h2><span class="sect__rule"></span>
+      <a class="sect__meta" href="?screen=challenge">모두 보기</a>
+    </div>
+    <div class="ws-chal">
+      <a class="card ws-chal__card" href="?screen=challenge">
+        <span class="ws-chal__top"><b class="ws-chal__name">우리 가족 21일 훈독</b><span class="badge badge--accent">D-9</span></span>
+        <span class="progress ws-chal__bar" role="progressbar" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100" aria-label="우리 가족 21일 훈독 진행률 62퍼센트"><i class="progress__fill" style="width:62%"></i></span>
+        <span class="ws-chal__foot"><span>13 / 21일 · 62%</span><span class="ws-people"><i class="ph ph-users" aria-hidden="true"></i>4명 참여</span></span>
+      </a>
+      <a class="card ws-chal__card" href="?screen=challenge">
+        <span class="ws-chal__top"><b class="ws-chal__name">분당교회 40일 정성</b><span class="badge">D-23</span></span>
+        <span class="progress ws-chal__bar" role="progressbar" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100" aria-label="분당교회 40일 정성 진행률 42퍼센트"><i class="progress__fill" style="width:42%"></i></span>
+        <span class="ws-chal__foot"><span>17 / 40일 · 42% · 오늘 71명 완료</span><span class="ws-people"><i class="ph ph-users" aria-hidden="true"></i>87명 참여</span></span>
+      </a>
+      <a class="card ws-chal__card" href="?screen=challenge">
+        <span class="ws-chal__top"><b class="ws-chal__name">청년부 천성경 1편 함께 읽기</b><span class="badge badge--line">모집 중</span></span>
+        <span class="ws-chal__foot ws-chal__foot--solo">9월 15일 시작 · 12명 참여 예정 · 이나래 청년부장</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">5분 설교</h2><span class="sect__rule"></span>
+      <a class="sect__meta" href="?screen=sermons">전체 설교</a>
+    </div>
+    <a class="shot sm-hero" href="?screen=sermons">
+      <img src="https://picsum.photos/id/289/860/520" alt="" />
+      <div class="shot__tx">
+        <span class="badge badge--accent sm-hero__tag">새 설교</span>
+        <span class="sm-hero__t">"내가 구한 것, 그 너머의 선물"</span>
+        <span class="sm-hero__m">김효정 교회장 · 분당교회 · 4:52 · O5 지역 콘텐츠</span>
+      </div>
+    </a>
+    <a class="btn btn-line sm-request" href="?screen=sermon-request"><i class="ph ph-microphone"></i>교회장께 설교 요청하기</a>
+  </div>
+
+  <p class="notice">챌린지는 진행률과 참여 인원만 보여 줍니다. 개인 순위는 없습니다</p>
+</section>
+
+
+<!-- ===== 챌린지 상세 (SCR-PWA-011) ===== -->
+<section class="col" data-screen="challenge" hidden>
+
+  <div class="shot ch-hero">
+    <img src="https://picsum.photos/id/112/860/480" alt="황금빛 들판" />
+    <div class="shot__tx">
+      <div class="shot__greet">우리 가족 21일 훈독</div>
+      <div class="shot__sub">9월 1일 ~ 9월 21일 · 매일 훈독하기 1회 · 가족 챌린지</div>
+    </div>
+  </div>
+
+  <div class="sect ch-sum">
+    <div class="card">
+      <div class="stats">
+        <div><b class="stats__n stats__n--accent">62%</b><span class="stats__lab">가족 진행률</span></div>
+        <div><b class="stats__n">13</b><span class="stats__lab">완료한 날</span></div>
+        <div><b class="stats__n">D-9</b><span class="stats__lab">남은 날</span></div>
+      </div>
+      <div class="progress ch-bar" role="progressbar" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100" aria-label="우리 가족 21일 훈독 진행률 62퍼센트"><i class="progress__fill" style="width:62%"></i></div>
+      <div class="ch-bar__foot"><span>13 / 21일</span><span>개설 김효진 · 가족 4명</span></div>
+      <button class="btn btn-primary ch-join"><i class="ph ph-hand-heart"></i>오늘 훈독 완료로 표시하기</button>
+    </div>
+  </div>
+
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">오늘</h2><span class="sect__rule"></span>
+      <span class="sect__meta">9월 10일</span>
+    </div>
+    <ul class="card ch-list" role="list">
+      <li class="ch-item">
+        <img class="gb-avatar" src="https://picsum.photos/id/65/80/80" alt="" />
+        <span class="ch-item__bd"><span class="ch-item__t">효진 (나)</span><span class="ch-item__m">오전 6:12 완료</span></span>
+        <span class="badge badge--rank ch-ok"><i class="ph-bold ph-check" aria-hidden="true"></i>완료</span>
+      </li>
+      <li class="ch-item">
+        <img class="gb-avatar" src="https://picsum.photos/id/447/80/80" alt="" />
+        <span class="ch-item__bd"><span class="ch-item__t">재민</span><span class="ch-item__m">아직이에요</span></span>
+        <button class="btn btn-line btn--sm ch-item__act">응원</button>
+      </li>
+      <li class="ch-item">
+        <img class="gb-avatar" src="https://picsum.photos/id/338/80/80" alt="" />
+        <span class="ch-item__bd"><span class="ch-item__t">하늘 (12)</span><span class="ch-item__m">오전 7:40 완료 · 보호자 연결</span></span>
+        <span class="badge badge--rank ch-ok"><i class="ph-bold ph-check" aria-hidden="true"></i>완료</span>
+      </li>
+      <li class="ch-item">
+        <img class="gb-avatar" src="https://picsum.photos/id/129/80/80" alt="" />
+        <span class="ch-item__bd"><span class="ch-item__t">어머니</span><span class="ch-item__m">아직이에요 · 저녁에 읽으세요</span></span>
+        <button class="btn btn-line btn--sm ch-item__act">응원</button>
+      </li>
+    </ul>
+  </div>
+
+  <!-- 응원은 사전 정의 문구만. 자유 입력창을 두지 않는다 (AC-020-03) -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">응원 한마디</h2><span class="sect__rule"></span>
+      <span class="sect__meta">정해진 문구만</span>
+    </div>
+    <div class="chips">
+      <button class="ch-chip">오늘도 함께 읽어요</button>
+      <button class="ch-chip">천천히 해도 괜찮아요</button>
+      <button class="ch-chip">저녁 예배 때 나눠요</button>
+    </div>
+    <p class="ch-chip__help" role="status">응원을 보내면 상대에게만 알림이 갑니다</p>
+  </div>
+
+  <!-- 달력 : 완료는 체크 아이콘, 쉼은 "쉼" 글자가 1차 신호 (DES-PWA-003 §2.6) -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">지난 13일</h2><span class="sect__rule"></span>
+      <span class="sect__meta">9월</span>
+    </div>
+    <div class="card ch-cal">
+      <span class="ch-cal__h" aria-hidden="true">월</span><span class="ch-cal__h" aria-hidden="true">화</span>
+      <span class="ch-cal__h" aria-hidden="true">수</span><span class="ch-cal__h" aria-hidden="true">목</span>
+      <span class="ch-cal__h" aria-hidden="true">금</span><span class="ch-cal__h" aria-hidden="true">토</span>
+      <span class="ch-cal__h" aria-hidden="true">일</span>
+
+      <span class="ch-cal__d" aria-hidden="true"></span>
+      <span class="ch-cal__d" data-state="done" aria-label="9월 1일 완료"><span class="ch-cal__mark"><i class="ph-bold ph-check" aria-hidden="true"></i></span><span class="ch-cal__n">1</span></span>
+      <span class="ch-cal__d" data-state="done" aria-label="9월 2일 완료"><span class="ch-cal__mark"><i class="ph-bold ph-check" aria-hidden="true"></i></span><span class="ch-cal__n">2</span></span>
+      <span class="ch-cal__d" data-state="done" aria-label="9월 3일 완료"><span class="ch-cal__mark"><i class="ph-bold ph-check" aria-hidden="true"></i></span><span class="ch-cal__n">3</span></span>
+      <span class="ch-cal__d" data-state="done" aria-label="9월 4일 완료"><span class="ch-cal__mark"><i class="ph-bold ph-check" aria-hidden="true"></i></span><span class="ch-cal__n">4</span></span>
+      <span class="ch-cal__d" data-state="rest" aria-label="9월 5일 쉼"><span class="ch-cal__mark">쉼</span><span class="ch-cal__n">5</span></span>
+      <span class="ch-cal__d" data-state="done" aria-label="9월 6일 완료"><span class="ch-cal__mark"><i class="ph-bold ph-check" aria-hidden="true"></i></span><span class="ch-cal__n">6</span></span>
+
+      <span class="ch-cal__d" data-state="done" aria-label="9월 7일 완료"><span class="ch-cal__mark"><i class="ph-bold ph-check" aria-hidden="true"></i></span><span class="ch-cal__n">7</span></span>
+      <span class="ch-cal__d" data-state="done" aria-label="9월 8일 완료"><span class="ch-cal__mark"><i class="ph-bold ph-check" aria-hidden="true"></i></span><span class="ch-cal__n">8</span></span>
+      <span class="ch-cal__d" data-state="done" aria-label="9월 9일 완료"><span class="ch-cal__mark"><i class="ph-bold ph-check" aria-hidden="true"></i></span><span class="ch-cal__n">9</span></span>
+      <span class="ch-cal__d" data-state="today" aria-label="9월 10일 오늘 완료"><span class="ch-cal__mark"><i class="ph-bold ph-check" aria-hidden="true"></i></span><span class="ch-cal__n">10</span></span>
+      <span class="ch-cal__d" aria-label="9월 11일 아직"><span class="ch-cal__mark"></span><span class="ch-cal__n">11</span></span>
+      <span class="ch-cal__d" aria-label="9월 12일 아직"><span class="ch-cal__mark"></span><span class="ch-cal__n">12</span></span>
+      <span class="ch-cal__d" aria-label="9월 13일 아직"><span class="ch-cal__mark"></span><span class="ch-cal__n">13</span></span>
+    </div>
+  </div>
+
+  <p class="notice">가족끼리만 보이는 기록입니다. 순위도 점수도 매기지 않습니다</p>
+</section>
+
+
+<!-- ===== 5분 설교 · 전체 설교 (SCR-PWA-012) ===== -->
+<section class="col" data-screen="sermons" hidden>
+
+  <div class="sm-seg" role="tablist" aria-label="설교 길이">
+    <button role="tab" aria-selected="true">5분 설교</button>
+    <button role="tab" aria-selected="false">전체 설교</button>
+  </div>
+
+  <!-- 교회장 행 : 390 가로 스크롤, 768 이상 줄바꿈 (DES-PWA-003 §4.4-3 · §5 012) -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">우리 지역 교회장</h2><span class="sect__rule"></span>
+      <span class="sect__meta">5명</span>
+    </div>
+    <div class="sm-pastors">
+      <a class="sm-pastor" href="?screen=sermon-request"><img src="https://picsum.photos/id/447/120/120" alt="" /><span class="sm-pastor__n">김효정 교회장</span><span class="sm-pastor__c">분당교회</span></a>
+      <a class="sm-pastor" href="?screen=sermon-request"><img src="https://picsum.photos/id/550/120/120" alt="" /><span class="sm-pastor__n">박성호 교회장</span><span class="sm-pastor__c">영통교회</span></a>
+      <a class="sm-pastor" href="?screen=sermon-request"><img src="https://picsum.photos/id/65/120/120" alt="" /><span class="sm-pastor__n">이나래 부장</span><span class="sm-pastor__c">청년부</span></a>
+      <a class="sm-pastor" href="?screen=sermon-request"><img src="https://picsum.photos/id/338/120/120" alt="" /><span class="sm-pastor__n">최동현 교회장</span><span class="sm-pastor__c">용인교회</span></a>
+      <a class="sm-pastor" href="?screen=sermon-request"><img src="https://picsum.photos/id/129/120/120" alt="" /><span class="sm-pastor__n">정수빈 교회장</span><span class="sm-pastor__c">광주교회</span></a>
+    </div>
+  </div>
+
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">이번 주</h2><span class="sect__rule"></span>
+      <span class="sect__meta">9월 7일 게시</span>
+    </div>
+    <a class="shot sm-hero" href="#">
+      <img src="https://picsum.photos/id/289/860/520" alt="" />
+      <div class="shot__tx">
+        <span class="badge badge--accent sm-hero__tag">새 설교</span>
+        <span class="sm-hero__t">"내가 구한 것, 그 너머의 선물"</span>
+        <span class="sm-hero__m">김효정 교회장 · 분당교회 · 4:52 · 천성경 1편 3장</span>
+      </div>
+    </a>
+    <div class="card sm-quote-card">
+      <p class="sm-quote">"하늘부모님은 우리가 구한 것보다 더 큰 것을 준비해 두셨습니다."</p>
+      <div class="src"><span>설교 요약</span><span class="src__dot"></span><span>분당교회 게시</span><span class="badge badge--line">O5 지역 콘텐츠</span></div>
+    </div>
+  </div>
+
+  <!-- 설교 목록 : 병렬 항목이라 768 이상 2열 허용 (DES-PWA-003 §4.4-3) -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">많이 본 설교</h2><span class="sect__rule"></span>
+      <span class="sect__meta">최근 30일</span>
+    </div>
+    <div class="sm-list">
+      <a class="sm-item" href="#">
+        <span class="sm-thumb"><img src="https://picsum.photos/id/569/360/240" alt="" /><span class="sm-dur">4:05</span></span>
+        <span class="sm-item__bd">
+          <span class="sm-item__t">"땅이 부족한 것이 아니라 믿음이 부족했던 것입니다"</span>
+          <span class="sm-item__m">박성호 교회장 · 영통교회 · 1.1천 명 시청</span>
+        </span>
+      </a>
+      <a class="sm-item" href="#">
+        <span class="sm-thumb"><img src="https://picsum.photos/id/543/360/240" alt="" /><span class="sm-dur">5:31</span></span>
+        <span class="sm-item__bd">
+          <span class="sm-item__t">"참사랑은 우회하지 않습니다"</span>
+          <span class="sm-item__m">최동현 교회장 · 용인교회 · 862명 시청</span>
+        </span>
+      </a>
+      <a class="sm-item" href="#">
+        <span class="sm-thumb"><img src="https://picsum.photos/id/511/360/240" alt="" /><span class="sm-dur">4:29</span></span>
+        <span class="sm-item__bd">
+          <span class="sm-item__t">"함박눈은 하늘의 축복"</span>
+          <span class="sm-item__m">정수빈 교회장 · 광주교회 · 704명 시청</span>
+        </span>
+      </a>
+      <a class="sm-item" href="#">
+        <span class="sm-thumb"><img src="https://picsum.photos/id/1039/360/240" alt="" /><span class="sm-dur">21:14</span></span>
+        <span class="sm-item__bd">
+          <span class="sm-item__t">"가정은 하늘이 지으신 첫 학교입니다"</span>
+          <span class="sm-item__m">이나래 부장 · 분당교회 청년부 · 512명 시청</span>
+        </span>
+      </a>
+    </div>
+  </div>
+
+  <div class="sect">
+    <a class="btn btn-primary" href="?screen=sermon-request"><i class="ph ph-microphone"></i>교회장께 설교 요청하기</a>
+  </div>
+
+  <p class="notice">설교는 각 교회가 게시한 지역 콘텐츠(O5)이며 외부 링크로 재생됩니다</p>
+</section>
+
+
+<!-- ===== 설교 섭외·신청 폼 (SCR-PWA-013) ===== -->
+<section class="col rq-form" data-screen="sermon-request" hidden>
+
+  <p class="rq-lede">교회장께 5분 설교 또는 전체 설교를 요청해요. 요청은 교회장과 운영자에게만 보이고, 응답은 알림함으로 와요.</p>
+
+  <div class="field rq-field">
+    <span class="field__label" id="rq-who">누구에게</span>
+    <ul class="card rq-pick" role="radiogroup" aria-labelledby="rq-who">
+      <li class="rq-pick__it" role="radio" aria-checked="true" tabindex="0">
+        <span class="rq-radio" aria-hidden="true"></span>
+        <img class="gb-avatar" src="https://picsum.photos/id/447/80/80" alt="" />
+        <span class="ch-item__bd"><span class="ch-item__t">김효정 교회장</span><span class="ch-item__m">분당교회 · 우리 교회</span></span>
+      </li>
+      <li class="rq-pick__it" role="radio" aria-checked="false" tabindex="-1">
+        <span class="rq-radio" aria-hidden="true"></span>
+        <img class="gb-avatar" src="https://picsum.photos/id/65/80/80" alt="" />
+        <span class="ch-item__bd"><span class="ch-item__t">이나래 청년부장</span><span class="ch-item__m">분당교회 청년부</span></span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="field rq-field">
+    <span class="field__label" id="rq-kind">형식</span>
+    <div class="rq-opts" role="radiogroup" aria-labelledby="rq-kind">
+      <button class="rq-opt" role="radio" aria-checked="true"><b>5분 설교</b><span>짧은 영상 또는 음성</span></button>
+      <button class="rq-opt" role="radio" aria-checked="false"><b>전체 설교</b><span>주일 예배 설교</span></button>
+    </div>
+  </div>
+
+  <div class="field rq-field">
+    <label class="field__label" for="rq-topic">주제</label>
+    <input id="rq-topic" type="text" value="자녀와 함께 읽는 참사랑" />
+    <span class="field__help">최근 훈독·질문에서 가져왔어요. 바꿔도 돼요.</span>
+  </div>
+
+  <div class="field rq-field">
+    <label class="field__label" for="rq-when">희망 시기</label>
+    <select id="rq-when" class="rq-select">
+      <option>9월 셋째 주</option>
+      <option>9월 넷째 주</option>
+      <option>10월 중</option>
+      <option>상관없음</option>
+    </select>
+  </div>
+
+  <div class="field rq-field">
+    <label class="field__label" for="rq-memo">교회장께 한마디 (선택)</label>
+    <textarea id="rq-memo" placeholder="예: 초등학생 자녀와 함께 들을 수 있는 내용이면 좋겠어요"></textarea>
+  </div>
+
+  <div class="rq-note">
+    <i class="ph ph-info" aria-hidden="true"></i>
+    <span>교회장께서 거절하거나 응답하지 않으실 수 있어요. 응답 기한은 없어요. 접수·확정·거절 상태는 알림함으로 알려 드려요.</span>
+  </div>
+
+  <button class="btn btn-primary rq-submit"><i class="ph ph-paper-plane-tilt"></i>요청 보내기</button>
+
+  <p class="notice">요청 내용은 신청자·교회장·운영자에게만 보입니다</p>
+</section>
+
+    <!-- ===== partials/group-c.html ===== -->
+<!-- =============================================================================
+     group-c.html · 나의 정원 그룹 3화면 (SCR-PWA-014 / 015 / 016)
+     app.html 의 </main> 앞에 그대로 붙인다. app.html·hoondok.css 는 수정하지 않는다.
+     스타일은 group-c.css 가 담당한다. 기존 컴포넌트 클래스를 우선 재사용했고,
+     새 클래스만 gd- (정원) · st- (설정) · fm- (관계) 접두를 쓴다.
+     DEC-PWA-019: 개인 랭킹·점수·달란트·보상 배지 없음. 진행률과 참여 인원만 쓴다.
+     ============================================================================= -->
+
+<!-- ===== 나의 정원 (SCR-PWA-014) ===== -->
+<section class="col" data-screen="garden" hidden>
+
+  <!-- 프로필 : 이름·소속·대표 말씀. 점수나 등급 표시를 두지 않는다 -->
+  <div class="gd-profile">
+    <img class="gd-profile__av" src="https://picsum.photos/id/65/160/160" alt="" />
+    <div class="gd-profile__bd">
+      <a class="gd-profile__name" href="#">효진 <i class="ph ph-caret-right"></i></a>
+      <span class="gd-profile__meta">분당교회 · 2019 축복가정</span>
+      <span class="badge badge--line gd-profile__verse"><i class="ph ph-quotes"></i>대표 말씀: 참사랑은 직단거리를 갑니다</span>
+    </div>
+  </div>
+
+  <!-- 누적 기록 : 연속일·누적일. 다른 사람과 비교하는 수치를 넣지 않는다 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">말씀과 함께한 시간</h2><span class="sect__rule"></span>
+      <span class="sect__meta">나만 봄</span>
+    </div>
+    <div class="card">
+      <div class="stats">
+        <div><b class="stats__n stats__n--accent"><i class="ph-fill ph-flame gd-flame"></i>12</b><span class="stats__lab">현재 연속일</span></div>
+        <div><b class="stats__n">27</b><span class="stats__lab">최대 연속일</span></div>
+        <div><b class="stats__n">143</b><span class="stats__lab">누적일</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 월 달력 (DS §2.6) : 완료는 색이 아니라 체크 아이콘이, 쉼은 "쉼" 글자가 1차 신호다.
+       비상호작용이므로 목록으로 노출하고 칸마다 전체 문장 레이블을 준다 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">2026년 9월</h2><span class="sect__rule"></span>
+      <span class="sect__meta">훈독 완료한 날</span>
+    </div>
+    <div class="card">
+      <div class="gd-cal">
+        <div class="gd-cal__head" aria-hidden="true">
+          <span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span>
+        </div>
+        <div class="gd-cal__grid" role="list">
+          <span class="gd-cal__pad" aria-hidden="true"></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 1일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>1</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 2일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>2</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 3일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>3</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 4일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>4</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 5일 쉼"><i class="gd-cal__dot gd-cal__dot--rest">쉼</i><b>5</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 6일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>6</b></span>
+
+          <span class="gd-cal__day" role="listitem" aria-label="9월 7일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>7</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 8일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>8</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 9일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>9</b></span>
+          <span class="gd-cal__day gd-cal__day--today" role="listitem" aria-label="9월 10일 오늘 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>10</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 11일 아직"><i class="gd-cal__dot"></i><b>11</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 12일 아직"><i class="gd-cal__dot"></i><b>12</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 13일 아직"><i class="gd-cal__dot"></i><b>13</b></span>
+
+          <span class="gd-cal__day" role="listitem" aria-label="9월 14일 아직"><i class="gd-cal__dot"></i><b>14</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 15일 아직"><i class="gd-cal__dot"></i><b>15</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 16일 아직"><i class="gd-cal__dot"></i><b>16</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 17일 아직"><i class="gd-cal__dot"></i><b>17</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 18일 아직"><i class="gd-cal__dot"></i><b>18</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 19일 아직"><i class="gd-cal__dot"></i><b>19</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 20일 아직"><i class="gd-cal__dot"></i><b>20</b></span>
+
+          <span class="gd-cal__day" role="listitem" aria-label="9월 21일 아직"><i class="gd-cal__dot"></i><b>21</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 22일 아직"><i class="gd-cal__dot"></i><b>22</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 23일 아직"><i class="gd-cal__dot"></i><b>23</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 24일 아직"><i class="gd-cal__dot"></i><b>24</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 25일 아직"><i class="gd-cal__dot"></i><b>25</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 26일 아직"><i class="gd-cal__dot"></i><b>26</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 27일 아직"><i class="gd-cal__dot"></i><b>27</b></span>
+
+          <span class="gd-cal__day" role="listitem" aria-label="9월 28일 아직"><i class="gd-cal__dot"></i><b>28</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 29일 아직"><i class="gd-cal__dot"></i><b>29</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 30일 아직"><i class="gd-cal__dot"></i><b>30</b></span>
+        </div>
+      </div>
+      <div class="gd-cal__legend">
+        <span><i class="gd-cal__dot gd-cal__dot--done gd-cal__dot--tiny"><i class="ph-bold ph-check"></i></i>완료</span>
+        <span><i class="gd-cal__dot gd-cal__dot--rest gd-cal__dot--tiny">쉼</i>쉬어가기</span>
+        <span><i class="gd-cal__dot gd-cal__dot--tiny"></i>아직</span>
+      </div>
+    </div>
+    <p class="gd-hint">"쉼"은 주 1회 쓸 수 있는 쉬어가기예요. 연속일이 끊기지 않아요.</p>
+  </div>
+
+  <!-- 진행 중인 정성 : 진행률만 쓴다 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">진행 중인 정성</h2><span class="sect__rule"></span>
+      <a class="sect__meta gd-link" href="#">새로 시작</a>
+    </div>
+    <div class="card">
+      <div class="gd-row">
+        <b class="gd-row__t">21일 새벽 정성 · 가정의 화목</b>
+        <span class="badge badge--accent">D-14</span>
+      </div>
+      <div class="progress" style="margin-top:12px"><i class="progress__fill" style="width:33%"></i></div>
+      <div class="gd-row gd-row--meta"><span>7 / 21일</span><span>밀린 날 0</span></div>
+    </div>
+  </div>
+
+  <!-- 가족 : 동의한 범위(오늘 완료 여부)만. 완료는 체크 아이콘 + "오늘 완료" 글자 두 신호를 함께 쓴다 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">가족</h2><span class="sect__rule"></span>
+      <a class="sect__meta gd-link" href="?screen=family">관리</a>
+    </div>
+    <div class="fm-list">
+      <a class="fm-item" href="?screen=family">
+        <img class="fm-item__av" src="https://picsum.photos/id/447/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">재민</b><span class="fm-item__m">배우자 · 오늘 아직</span></span>
+        <span class="fm-check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+      </a>
+      <a class="fm-item" href="?screen=family">
+        <img class="fm-item__av" src="https://picsum.photos/id/338/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">하늘</b><span class="fm-item__m">자녀 · 보호자 연결 · 오늘 완료</span></span>
+        <span class="fm-check fm-check--done" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+      </a>
+      <a class="fm-item" href="?screen=family">
+        <img class="fm-item__av" src="https://picsum.photos/id/129/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">어머니</b><span class="fm-item__m">부모 · 오늘 아직</span></span>
+        <span class="fm-check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 친구 : 인원만 보여 주고 순위를 매기지 않는다 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">친구</h2><span class="sect__rule"></span>
+      <a class="sect__meta gd-link" href="?screen=family">4명</a>
+    </div>
+    <a class="card together" href="?screen=family">
+      <span class="avatars">
+        <img src="https://picsum.photos/id/550/80/80" alt="" />
+        <img src="https://picsum.photos/id/505/80/80" alt="" />
+        <img src="https://picsum.photos/id/225/80/80" alt="" />
+        <img src="https://picsum.photos/id/305/80/80" alt="" />
+      </span>
+      <span class="together__bd"><b>친구 4명과 함께 읽어요</b><span>수아, 민재, 지훈, 예린</span></span>
+      <i class="ph ph-caret-right"></i>
+    </a>
+  </div>
+
+  <p class="notice">기록은 나만 봅니다. 가족에게는 동의한 범위(오늘 완료 여부)만 보여요.</p>
+</section>
+
+<!-- ===== 알림·설치 설정 (SCR-PWA-015) ===== -->
+<section class="col col--form" data-screen="settings" hidden>
+
+  <!-- 설치 안내 : 알림 권한은 홈 화면 추가 뒤에만 묻는다 (F7) -->
+  <div class="st-install">
+    <div class="st-install__hd">
+      <i class="ph ph-device-mobile st-install__ic"></i>
+      <span class="st-install__bd">
+        <b>홈 화면에 추가하면 알림을 받을 수 있어요</b>
+        <span>iPhone은 공유 버튼을 누른 뒤 홈 화면에 추가를 고르세요. 추가한 뒤에만 알림 권한을 물어요.</span>
+      </span>
+    </div>
+    <button class="btn btn-line btn--sm st-install__btn" type="button"><i class="ph ph-info"></i>설치 방법 보기</button>
+  </div>
+
+  <!-- 알림 4종. 각 카드는 켜기 토글 + 시간 행 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">알림</h2><span class="sect__rule"></span>
+      <span class="sect__meta">4종</span>
+    </div>
+    <div class="st-stack">
+      <div class="card">
+        <div class="st-row">
+          <span class="st-row__bd"><b class="st-row__t">훈독하기</b><span class="st-row__d">아침 훈독을 알려드려요</span></span>
+          <button class="toggle" type="button" aria-pressed="true" aria-label="훈독하기 알림"></button>
+        </div>
+        <a class="st-sub" href="#"><span class="st-sub__k">시간</span><span class="st-sub__v">오전 6:00 <i class="ph ph-caret-right"></i></span></a>
+      </div>
+      <div class="card">
+        <div class="st-row">
+          <span class="st-row__bd"><b class="st-row__t">기도하기</b><span class="st-row__d">하루를 기도로 마무리해요</span></span>
+          <button class="toggle" type="button" aria-pressed="true" aria-label="기도하기 알림"></button>
+        </div>
+        <a class="st-sub" href="#"><span class="st-sub__k">시간</span><span class="st-sub__v">오후 9:30 <i class="ph ph-caret-right"></i></span></a>
+      </div>
+      <div class="card">
+        <div class="st-row">
+          <span class="st-row__bd"><b class="st-row__t">가정예배</b><span class="st-row__d">순서지가 준비되면 알려드려요</span></span>
+          <button class="toggle" type="button" aria-pressed="true" aria-label="가정예배 알림"></button>
+        </div>
+        <a class="st-sub" href="#"><span class="st-sub__k">시간</span><span class="st-sub__v">토요일 오후 6:00 <i class="ph ph-caret-right"></i></span></a>
+      </div>
+      <div class="card">
+        <div class="st-row">
+          <span class="st-row__bd"><b class="st-row__t">공지</b><span class="st-row__d">우리 교회와 앱 소식</span></span>
+          <button class="toggle" type="button" aria-pressed="false" aria-label="공지 알림"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 잠금 화면 문구 : 기본은 신앙 맥락이 드러나지 않는 중립형 (F7) -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">잠금 화면 문구</h2><span class="sect__rule"></span>
+      <span class="sect__meta">기본 중립형</span>
+    </div>
+    <div class="card">
+      <p class="st-lead">잠금 화면에 보일 문구예요. 기본은 내용이 드러나지 않습니다.</p>
+      <div class="st-picks" role="radiogroup" aria-label="잠금 화면 문구 수준">
+        <button class="st-pick" type="button" role="radio" aria-checked="true">
+          <span class="st-radio"></span>
+          <span class="st-pick__bd"><b>오늘의 읽을거리가 준비됐어요</b><span>중립형 · 기본</span></span>
+        </button>
+        <button class="st-pick" type="button" role="radio" aria-checked="false">
+          <span class="st-radio"></span>
+          <span class="st-pick__bd"><b>오늘의 말씀이 준비됐어요</b><span>신앙 맥락이 드러나요 · 내가 선택</span></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 조용한 시간 · 데이터 -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">그 밖의 설정</h2><span class="sect__rule"></span>
+    </div>
+    <div class="st-group">
+      <a class="st-row st-row--link" href="#">
+        <span class="st-row__bd"><b class="st-row__t">조용한 시간</b><span class="st-row__d">오후 10시부터 오전 5시까지 알리지 않아요</span></span>
+        <i class="ph ph-caret-right st-go"></i>
+      </a>
+      <a class="st-row st-row--link" href="#">
+        <span class="st-row__bd"><b class="st-row__t">알림함</b><span class="st-row__d">보낸 알림은 앱 안에서 언제나 볼 수 있어요</span></span>
+        <i class="ph ph-caret-right st-go"></i>
+      </a>
+      <a class="st-row st-row--link" href="#">
+        <span class="st-row__bd"><b class="st-row__t">내 데이터 삭제</b><span class="st-row__d">질문과 노트, 기록을 모두 지워요</span></span>
+        <i class="ph ph-caret-right st-go"></i>
+      </a>
+    </div>
+  </div>
+
+  <p class="notice">알림은 늦거나 누락될 수 있어요. 같은 내용은 앱 안 알림함에서 언제나 볼 수 있어요.</p>
+</section>
+
+<!-- ===== 가족·친구 관계 (SCR-PWA-016) ===== -->
+<section class="col" data-screen="family" hidden>
+
+  <!-- 우리 가족 : 양쪽 동의 기반 연결. 공개 범위를 행마다 글자로 밝힌다 -->
+  <div class="sect" style="margin-top:8px">
+    <div class="sect__head">
+      <h2 class="sect__title">우리 가족</h2><span class="sect__rule"></span>
+      <span class="sect__meta">양쪽이 동의해야 연결돼요</span>
+    </div>
+    <div class="fm-list">
+      <a class="fm-item" href="#">
+        <img class="fm-item__av fm-item__av--lg" src="https://picsum.photos/id/447/120/120" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">재민</b><span class="fm-item__m">배우자 · 보여주기: 오늘 완료 여부</span></span>
+        <i class="ph ph-caret-right fm-go"></i>
+      </a>
+      <a class="fm-item" href="#">
+        <img class="fm-item__av fm-item__av--lg" src="https://picsum.photos/id/338/120/120" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">하늘 (12)</b><span class="fm-item__m">자녀 · 보호자 연결 · 보여주기: 완료 여부와 정성</span></span>
+        <i class="ph ph-caret-right fm-go"></i>
+      </a>
+      <a class="fm-item" href="#">
+        <img class="fm-item__av fm-item__av--lg" src="https://picsum.photos/id/129/120/120" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">어머니</b><span class="fm-item__m">부모 · 보여주기: 오늘 완료 여부</span></span>
+        <i class="ph ph-caret-right fm-go"></i>
+      </a>
+      <a class="fm-item" href="#">
+        <span class="fm-item__av fm-item__av--lg fm-add" aria-hidden="true"><i class="ph ph-plus"></i></span>
+        <span class="fm-item__bd"><b class="fm-item__t">가족 초대하기</b><span class="fm-item__m">초대 링크 또는 코드 · 보상 없음</span></span>
+        <i class="ph ph-caret-right fm-go"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- 친구 : 완료 여부만. 순위를 매기지 않는다 (DEC-PWA-019) -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">친구</h2><span class="sect__rule"></span>
+      <span class="sect__meta">4명</span>
+    </div>
+    <div class="fm-list">
+      <a class="fm-item" href="#">
+        <img class="fm-item__av" src="https://picsum.photos/id/550/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">수아</b><span class="fm-item__m">분당교회 · 21일 정성 함께 중</span></span>
+        <span class="badge badge--rank"><i class="ph-bold ph-check"></i>오늘 완료</span>
+      </a>
+      <a class="fm-item" href="#">
+        <img class="fm-item__av" src="https://picsum.photos/id/505/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">민재</b><span class="fm-item__m">영통교회</span></span>
+        <span class="badge badge--line">아직</span>
+      </a>
+      <a class="fm-item" href="#">
+        <img class="fm-item__av" src="https://picsum.photos/id/225/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">지훈</b><span class="fm-item__m">분당교회 청년부</span></span>
+        <span class="badge badge--rank"><i class="ph-bold ph-check"></i>오늘 완료</span>
+      </a>
+      <a class="fm-item" href="#">
+        <img class="fm-item__av" src="https://picsum.photos/id/305/80/80" alt="" />
+        <span class="fm-item__bd"><b class="fm-item__t">예린</b><span class="fm-item__m">용인교회</span></span>
+        <span class="badge badge--rank"><i class="ph-bold ph-check"></i>오늘 완료</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 공개 범위 : 노트와 질문은 항상 비공개 (REQ-PWA-015) -->
+  <div class="sect">
+    <div class="sect__head">
+      <h2 class="sect__title">내가 보여주는 범위</h2><span class="sect__rule"></span>
+    </div>
+    <div class="card">
+      <p class="st-lead">가족과 친구에게 어디까지 보일지 정해요.</p>
+      <div class="fm-scope">
+        <div class="fm-scope__row">
+          <span class="fm-scope__k">오늘 완료 여부</span>
+          <button class="toggle" type="button" aria-pressed="true" aria-label="오늘 완료 여부 공개"></button>
+        </div>
+        <div class="fm-scope__row">
+          <span class="fm-scope__k">진행 중인 정성 이름</span>
+          <button class="toggle" type="button" aria-pressed="false" aria-label="진행 중인 정성 이름 공개"></button>
+        </div>
+        <div class="fm-scope__row">
+          <span class="fm-scope__k">노트와 질문</span>
+          <span class="fm-scope__fixed">항상 비공개</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="notice">연결은 양쪽이 동의할 때만 만들어지고, 언제든 끊을 수 있어요.</p>
+</section>
+
+
+    <!-- ===== AI 질문 (SCR-PWA-005, 2026-09-16 채택안 "물음 한 장") : 탭 홈 = 묻기 한 가지. 시작 문장은 입력창을 채운다. 둘러보기는 ask-log ===== -->
+    <section class="col col--read" data-screen="ask" hidden>
+      <p class="qs-today"><span class="qs-today__k">오늘 읽은 말씀</span><span class="qs-today__v">참사랑은 직단거리를 갑니다</span><span class="qs-today__src">천성경 제1편 3장</span></p>
+      <form class="qs-form" onsubmit="return false">
+        <label class="qs-label" for="qs-input">무엇이 궁금하세요?</label>
+        <textarea id="qs-input" class="qs-input" rows="4" placeholder="말씀이나 신앙 생활에 대해 편하게 적어 주세요"></textarea>
+        <p class="qs-help">근거 말씀을 인용해서 답해요. 근거가 없으면 확인할 수 없다고 말해요.</p>
+        <button type="submit" class="btn btn-primary qs-submit">물어보기</button>
+      </form>
+      <div class="qs-starters">
+        <p class="qs-starters__k">이렇게 물어볼 수 있어요</p>
+        <button type="button" class="qs-starter" data-fill="#qs-input">참사랑이 직단거리로 간다는 말씀은 무슨 뜻인가요?</button>
+        <button type="button" class="qs-starter" data-fill="#qs-input">정성을 드린다는 게 정확히 뭘 하는 건가요?</button>
+        <button type="button" class="qs-starter" data-fill="#qs-input">자녀에게 말씀을 어떻게 가르치면 좋을까요?</button>
+      </div>
+      <a class="qs-log" href="?screen=ask-log">내 질문 12개와 저장한 답 3개 보기</a>
+    </section>
+
+
+    <!-- ===== AI 질문 · 기록 : 라이브러리는 여기서만 ===== -->
+    <section class="col col--read" data-screen="ask-log" hidden>
+      <div class="pill-seg" role="tablist" style="margin-top:8px"><button class="is-on" role="tab" aria-selected="true">내 질문 12</button><button role="tab">저장한 답 3</button><button role="tab">식구들 질문</button></div>
+      <ol class="ql-list">
+        <li><a href="?screen=ask-detail"><span class="ql-q">참사랑이 직단거리로 간다는 말씀은 무슨 뜻인가요?</span><span class="ql-m">오늘 · 근거 말씀 2건</span></a></li>
+        <li><a href="?screen=ask-detail"><span class="ql-q">21일 정성 중에 하루를 빠뜨리면 처음부터 다시 해야 하나요?</span><span class="ql-m">9월 14일 · 근거 말씀 1건</span></a></li>
+        <li><a href="?screen=ask-detail"><span class="ql-q">가정예배는 꼭 아침에 드려야 하나요?</span><span class="ql-m">9월 12일 · 확인할 수 없음</span></a></li>
+        <li><a href="?screen=ask-detail"><span class="ql-q">자녀가 교회에 가기 싫어할 때 어떻게 말해야 할까요?</span><span class="ql-m">9월 9일 · 근거 말씀 3건</span></a></li>
+        <li><a href="?screen=ask-detail"><span class="ql-q">축복 40일 정성의 의미가 궁금해요</span><span class="ql-m">9월 3일 · 근거 말씀 2건</span></a></li>
+      </ol>
+      <p class="notice">질문과 답은 기기에만 저장돼요. 무기억 모드에서는 남지 않아요</p>
+    </section>
+  </main>
+
+  <div class="sheet" id="sheet-jeongseong" role="dialog" aria-modal="true" aria-labelledby="js-title">
+  <div class="sheet__panel">
+    <div class="sheet__grip" aria-hidden="true"></div>
+    <h2 class="js-title" id="js-title">정성 기간 만들기</h2>
+    <p class="js-lede">기간 동안 매일 주제에 맞는 말씀을 골라 드려요. 말씀은 권리가 확인된 정본 안에서만 고르고, AI가 만들지 않아요.</p>
+
+    <div class="field js-field">
+      <span class="field__label" id="js-term-label">기간</span>
+      <div class="js-opts" role="radiogroup" aria-labelledby="js-term-label">
+        <button class="js-opt" type="button" role="radio" aria-checked="false"><b>7</b><span>일 · 한 주</span></button>
+        <button class="js-opt" type="button" role="radio" aria-checked="true"><b>21</b><span>일 · 세 주</span></button>
+        <button class="js-opt" type="button" role="radio" aria-checked="false"><b>40</b><span>일 · 정성</span></button>
+      </div>
+    </div>
+
+    <div class="field js-field">
+      <span class="field__label" id="js-topic-label">주제</span>
+      <div class="chips" role="radiogroup" aria-labelledby="js-topic-label">
+        <button class="js-topic" type="button" role="radio" aria-checked="true">가정의 화목</button>
+        <button class="js-topic" type="button" role="radio" aria-checked="false">자녀</button>
+        <button class="js-topic" type="button" role="radio" aria-checked="false">감사</button>
+        <button class="js-topic" type="button" role="radio" aria-checked="false">건강</button>
+        <button class="js-topic" type="button" role="radio" aria-checked="false">뜻길</button>
+        <button class="js-topic" type="button" role="radio" aria-checked="false">직접 입력</button>
+      </div>
+    </div>
+
+    <div class="field js-field">
+      <label class="field__label" for="js-start">시작일과 알림</label>
+      <div class="js-when">
+        <input id="js-start" value="9월 11일 (목)" />
+        <input id="js-time" value="오전 5:30" aria-label="알림 시각" />
+      </div>
+      <span class="field__help">하루를 놓쳐도 정성은 끊기지 않고 "밀린 날"로 표시돼요.</span>
+    </div>
+
+    <div class="card ask-row js-field">
+      <span class="ask-row__bd"><b>가족 챌린지로 함께하기</b><span>가족에게 초대를 보내요</span></span>
+      <button class="toggle" type="button" aria-pressed="false" aria-label="가족 챌린지로 함께하기"></button>
+    </div>
+
+    <div class="js-cta">
+      <button class="btn btn-primary" type="button">정성 시작하기</button>
+      <button class="btn btn-ghost" type="button" data-close-sheet>닫기</button>
+    </div>
+  </div>
+</div>
+
+
+  <nav class="nav" aria-label="주 메뉴">
+    <!-- 워드마크·검색·계정은 데스크톱 헤더 4~6 에서만 켠다. 기본은 숨김 (폰 하단 탭·레일 영향 없음) -->
+    <a class="nav__brand" href="?screen=today">훈독</a>
+    <a class="nav__item" href="?screen=today" aria-current="page"><span class="nav__ic"><i class="ph-fill ph-sun-horizon"></i></span>오늘 훈독</a>
+    <a class="nav__item" href="?screen=ask"><span class="nav__ic"><i class="ph ph-chat-teardrop-text"></i></span>AI 질문</a>
+    <a class="nav__item nav__item--mid" href="?screen=library"><span class="nav__ic"><i class="ph-fill ph-book-open-text"></i></span>말씀</a>
+    <a class="nav__item" href="?screen=worship"><span class="nav__ic"><i class="ph ph-house-line"></i></span>가정예배</a>
+    <a class="nav__item" href="?screen=garden"><span class="nav__ic"><i class="ph ph-plant"></i></span>나의 정원</a>
+    <form class="nav__search" role="search" onsubmit="return false"><i class="ph ph-magnifying-glass"></i><input type="search" placeholder="말씀 검색" aria-label="말씀 검색"></form>
+    <span class="nav__user" aria-label="효진">효</span>
+  </nav>
+</div>
+
+<script>
+(function(){
+  const q = new URLSearchParams(location.search);
+  const screen = q.get('screen') || 'today';
+  const serif  = q.get('serif') === '1';
+  const nav    = q.get('nav') || 'top';    // top(기본) | rail. 1024px 이상에서만 갈린다
+  const header = q.get('header') || (nav === 'top' ? '4' : null);   // 상단 헤더 변형. 기본 4 = 검색 중심
+
+  document.body.dataset.nav = nav;
+  if (header) document.body.dataset.header = header;
+  if (serif) document.documentElement.style.setProperty('--font-scripture','var(--serif)');
+
+  document.querySelectorAll('[data-screen]').forEach(s => s.hidden = s.dataset.screen !== screen);
+  const TITLES = {today:'오늘 훈독', read:'훈독하기', words:'천성경 1편 3장', library:'말씀', search:'',
+    onboarding:'', ask:'AI 질문', 'ask-log':'질문 기록', 'ask-detail':'질문', worship:'가정예배', challenge:'챌린지', sermons:'5분 설교',
+    'sermon-request':'설교 섭외', garden:'나의 정원', settings:'알림·설치', family:'가족·친구'};
+  document.getElementById('apptitle').textContent = TITLES[screen] ?? screen;
+  // 탭 귀속 : 하위 화면은 상위 탭을 활성으로
+  const TAB_OF = {today:'today', read:'today', words:'library', library:'library', search:'library',
+    ask:'ask', 'ask-log':'ask', 'ask-detail':'ask', worship:'worship', challenge:'worship', sermons:'worship', 'sermon-request':'worship',
+    garden:'garden', settings:'garden', family:'garden'};
+  // 정성 기간 시트 : ?sheet=jeongseong
+  const sheet = q.get('sheet');
+  if (sheet) { const el = document.getElementById('sheet-' + sheet); if (el) el.setAttribute('open',''); }
+  document.querySelectorAll('.sheet').forEach(sh => sh.addEventListener('click', e => {
+    if (e.target === sh || e.target.closest('[data-close-sheet]')) sh.removeAttribute('open');
+  }));
+  // pill 세그먼트 : 눌린 것만 활성 (프로토타입, 패널 전환은 하지 않는다)
+  document.querySelectorAll('.pill-seg').forEach(seg => seg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    seg.querySelectorAll('button').forEach(x => { x.classList.toggle('is-on', x === b); x.setAttribute('aria-selected', String(x === b)); });
+  }));
+  // 시작 문장 : 누르면 입력창을 채우고 포커스 (이동하지 않는다)
+  document.querySelectorAll('[data-fill]').forEach(b => b.addEventListener('click', () => {
+    const el = document.querySelector(b.dataset.fill); if (!el) return;
+    el.value = b.textContent.trim(); el.focus();
+  }));
+  document.querySelectorAll('.toggle').forEach(t => t.addEventListener('click', () => {
+    t.setAttribute('aria-pressed', String(t.getAttribute('aria-pressed') !== 'true'));
+  }));
+  document.querySelectorAll('[data-only]').forEach(el => {
+    el.style.display = el.dataset.only.split(' ').includes(screen) ? '' : 'none';
+  });
+  document.querySelectorAll('.nav__item').forEach(a => {
+    const href = a.getAttribute('href')||'';
+    const on = href.includes('screen=' + (TAB_OF[screen] || screen));
+    if (on) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current');
+  });
+  document.querySelectorAll('.check').forEach(c => c.addEventListener('click', () => {
+    const on = c.getAttribute('aria-pressed') !== 'true';
+    c.setAttribute('aria-pressed', String(on));
+    c.closest('.mission').toggleAttribute('data-done', on);
+  }));
+})();
+</script>
+</body>
+</html>
