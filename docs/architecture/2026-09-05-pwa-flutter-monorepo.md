@@ -17,11 +17,13 @@
 
 ### 기존 PWA 기획과의 관계
 
-[S0 제품 방향](../research/2026-08-30-pwa-app-direction.md)은 main에 있다. S1 PRD는 별도 `docs/ffwpu-pwa-session-1` 브랜치의 `3123cfe`에서 확인했으며 상태가 **사용자 검토 대기**다. 이 브랜치의 `docs/01_requirements/17-ffwpu-pwa-prd.md`와 14세션 로드맵을 main에 병합된 문서로 취급하지 않는다.
+> **2026-09-16 정정.** 아래 두 단락의 "별도 브랜치·검토 대기" 서술은 2026-09-05 시점 기록이다. 현재 PRD v2 [`PRD-FFWPU-PWA-001`](../prd/17-ffwpu-pwa-prd.md)와 디자인 시스템 [`DES-PWA-003`](../specs/web/hoondok-design-system.md)은 main 에 병합·승인됐고, 구현은 [PLAN-HD-001](../plans/active/2026-09-17-hoondok-mvp.md)을 따른다. 훈독은 `apps/web` 안의 `/hoondok/*` 라우트(`[data-app="hoondok"]` 스코프, 기능 플래그 `NEXT_PUBLIC_HOONDOK_ENABLED`)로 들어가며 시연 챗 `/`·`/login` 은 바꾸지 않는다.
+
+[S0 제품 방향](../research/2026-08-30-pwa-app-direction.md)은 main에 있다. S1 PRD는 별도 `docs/ffwpu-pwa-session-1` 브랜치의 `3123cfe`에서 확인했으며 당시 상태가 **사용자 검토 대기**였다(2026-09-05 기준). 이 브랜치의 `docs/01_requirements/17-ffwpu-pwa-prd.md`와 14세션 로드맵을 main에 병합된 문서로 취급하지 않았다.
 
 이 요청은 플랫폼 구조의 방향을 갱신한다. S1의 제품 기능·화면·일정·사용자 동의 및 기존 기록 이전 정책까지 승인한 것으로 해석하지 않는다. S1 후속 문서 작성 시 이 설계를 참조하고, 구현 시점에는 병합된 최신 PRD를 다시 확인한다.
 
-S0는 제품 방향 승인과 디자인 시스템 승인을 구분한다. 신규 PWA 디자인은 채택 프로토타입·승인 PRD·사용자 선택 이후의 후속 작업이다. 현재 [웹 UI/UX](../specs/web/ui-ux.md)와 [관리자 UI/UX](../specs/admin/ui-ux.md)는 구현 기준·소유권만 기록한다. 과거 디자인 조사와 기존 `/design-system` 화면을 양 앱 공통 디자인 승인으로 간주하지 않는다.
+S0는 제품 방향 승인과 디자인 시스템 승인을 구분한다. 신규 PWA 디자인은 채택 프로토타입·승인 PRD·사용자 선택 이후의 후속 작업이었고, 2026-09-16 에 `DES-PWA-003` 으로 승인됐다. 현재 [웹 UI/UX](../specs/web/ui-ux.md)와 [관리자 UI/UX](../specs/admin/ui-ux.md)는 구현 기준·소유권만 기록한다. 과거 디자인 조사와 기존 `/design-system` 화면을 양 앱 공통 디자인 승인으로 간주하지 않는다.
 
 ### NOT in scope
 
