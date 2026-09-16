@@ -23,7 +23,7 @@
 </head>
 <body data-theme="card">
 <!-- 마크업은 한 벌이다. 테마도 화면 폭도 이 문서를 복제하지 않는다.
-     ?theme=card|rule|editorial|scripture|apple|notion|wired|starbucks|claude|airbnb   ?screen=today|read|words|library|search|onboarding|ask|ask-detail|worship|challenge|sermons|sermon-request|garden|settings|family   ?sheet=jeongseong   ?serif=1   ?nav=rail|top   ?header=1|2|3|4|5|6 -->
+     ?theme=card|rule|editorial|scripture|apple|notion|wired|starbucks|claude|airbnb   ?screen=today|read|words|library|search|onboarding|ask|ask-log|ask-detail|worship|challenge|sermons|sermon-request|garden|settings|family   ?sheet=jeongseong   ?serif=1   ?nav=rail|top   ?header=1|2|3|4|5|6 -->
 <div class="app">
 
   <main class="app__main">
@@ -32,9 +32,9 @@
         <a class="icon-btn" href="#" aria-label="뒤로" data-only="read words search ask-log ask-detail challenge sermons sermon-request settings family"><i class="ph ph-arrow-left"></i></a>
         <h1 class="appbar__title" id="apptitle">오늘 훈독</h1>
         <label class="appbar__search" data-only="search"><i class="ph ph-magnifying-glass"></i><input type="search" value="" placeholder="단어, 구절, 상황을 입력해 주세요" aria-label="말씀 검색" autofocus></label>
-        <a class="icon-btn" href="?screen=ask-log" aria-label="질문 기록" data-only="ask-sheet ask-answer"><i class="ph ph-clock-counter-clockwise"></i></a>
-        <a class="icon-btn icon-btn--search" href="?screen=search" aria-label="말씀 검색" data-only="today read words library ask ask-sheet ask-answer ask-v2 ask-v3 ask-v4 ask-v5 ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-magnifying-glass"></i></a>
-        <a class="icon-btn" href="#" aria-label="알림" data-only="today read words library ask ask-sheet ask-answer ask-v2 ask-v3 ask-v4 ask-v5 ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-bell"></i></a>
+        <a class="icon-btn" href="?screen=ask-log" aria-label="질문 기록" data-only="ask"><i class="ph ph-clock-counter-clockwise"></i></a>
+        <a class="icon-btn icon-btn--search" href="?screen=search" aria-label="말씀 검색" data-only="today read words library ask ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-magnifying-glass"></i></a>
+        <a class="icon-btn" href="#" aria-label="알림" data-only="today read words library ask ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-bell"></i></a>
       </div>
     </header>
 
@@ -263,9 +263,9 @@
       <div class="sect">
         <div class="sect__head"><h2 class="sect__title">저작물</h2><span class="sect__rule"></span><span class="sect__meta">권리 확인된 정본만</span></div>
         <div class="shelf">
-          <a class="shelf__item" href="#"><b>천성경</b><span>16편 · 2013 한국어판</span><span class="badge badge--rank">O1</span></a>
-          <a class="shelf__item" href="#"><b>말씀선집</b><span>615권</span><span class="badge badge--rank">O1</span></a>
-          <a class="shelf__item" href="#"><b>참어머님 말씀 모음</b><span>3권</span><span class="badge badge--rank">O1</span></a>
+          <a class="shelf__item" href="#"><b>천성경</b><span>16편 · 2013 한국어판</span><span class="badge badge--rank">O1 공식 원문</span></a>
+          <a class="shelf__item" href="#"><b>말씀선집</b><span>615권</span><span class="badge badge--rank">O1 공식 원문</span></a>
+          <a class="shelf__item" href="#"><b>참어머님 말씀 모음</b><span>3권</span><span class="badge badge--rank">O1 공식 원문</span></a>
           <a class="shelf__item" href="#"><b>평화경</b><span>2013 한국어판</span><span class="badge badge--dashed">권리 확인 중</span></a>
           <a class="shelf__item" href="#"><b>평화를 사랑하는 세계인으로</b><span>자서전</span><span class="badge badge--dashed">권리 확인 중</span></a>
         </div>
@@ -350,83 +350,6 @@
 </section>
 
 <!-- ===== AI 질문 목록 (SCR-PWA-005) ===== -->
-<!-- 세그먼트는 DES-PWA-003 §2.10 에 따라 밑줄형이다. pill 형은 같은 문서 안 뷰 전환 전용 -->
-<section class="col" data-screen="ask" hidden>
-  <!-- 검색 진입점은 앱바 돋보기다(app.html 의 data-only 에 ask 가 들어 있다). 화면 안에 필드를 또 두지 않는다 -->
-  <div class="ask-seg" role="tablist" aria-label="질문 모음">
-    <button class="ask-seg__btn" type="button" role="tab" id="ask-tab-rec" aria-controls="ask-pane-rec" aria-selected="true">추천</button>
-    <button class="ask-seg__btn" type="button" role="tab" id="ask-tab-bm" aria-controls="ask-pane-bm" aria-selected="false">북마크</button>
-    <button class="ask-seg__btn" type="button" role="tab" id="ask-tab-mine" aria-controls="ask-pane-mine" aria-selected="false">내 질문</button>
-  </div>
-
-  <div class="ask-pane" id="ask-pane-rec" role="tabpanel" aria-labelledby="ask-tab-rec">
-    <ul class="ask-list">
-      <li><a class="ask-item" href="?screen=ask-detail">
-        <span class="ask-item__bd"><b>정성을 드린다는 게 정확히 뭘 하는 건가요?</b><span class="ask-item__meta">이번 주 312명이 봤어요</span></span>
-        <i class="ph-fill ph-bookmark-simple ask-item__mark ask-item__mark--on" aria-hidden="true"></i><span class="sr">북마크됨</span>
-      </a></li>
-      <li><a class="ask-item" href="?screen=ask-detail">
-        <span class="ask-item__bd"><b>축복가정으로서 자녀에게 말씀을 어떻게 가르치나요?</b><span class="ask-item__meta">가정 · 자녀</span></span>
-        <i class="ph ph-bookmark-simple ask-item__mark" aria-hidden="true"></i>
-      </a></li>
-      <li><a class="ask-item" href="?screen=ask-detail">
-        <span class="ask-item__bd"><b>탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</b><span class="ask-item__meta">용어 · 원리</span></span>
-        <i class="ph ph-bookmark-simple ask-item__mark" aria-hidden="true"></i>
-      </a></li>
-      <li><a class="ask-item" href="?screen=ask-detail">
-        <span class="ask-item__bd"><b>직장에서 신앙을 말하기가 어려워요</b><span class="ask-item__meta">생활 · 청년</span></span>
-        <i class="ph ph-bookmark-simple ask-item__mark" aria-hidden="true"></i>
-      </a></li>
-      <li><a class="ask-item" href="?screen=ask-detail">
-        <span class="ask-item__bd"><b>부모님과 신앙 문제로 자주 다퉈요. 어떻게 대화하죠?</b><span class="ask-item__meta">가정 · 2세</span></span>
-        <i class="ph ph-bookmark-simple ask-item__mark" aria-hidden="true"></i>
-      </a></li>
-      <li><a class="ask-item" href="?screen=ask-detail">
-        <span class="ask-item__bd"><b>참사랑이 직단거리로 간다는 말씀의 의미가 궁금해요</b><span class="ask-item__meta">오늘 훈독에서 나온 질문</span></span>
-        <i class="ph ph-bookmark-simple ask-item__mark" aria-hidden="true"></i>
-      </a></li>
-    </ul>
-  </div>
-
-  <div class="ask-pane" id="ask-pane-bm" role="tabpanel" aria-labelledby="ask-tab-bm" hidden>
-    <ul class="ask-list">
-      <li><a class="ask-item" href="?screen=ask-detail">
-        <span class="ask-item__bd"><b>정성을 드린다는 게 정확히 뭘 하는 건가요?</b><span class="ask-item__meta">9월 8일 저장</span></span>
-        <i class="ph-fill ph-bookmark-simple ask-item__mark ask-item__mark--on" aria-hidden="true"></i><span class="sr">북마크됨</span>
-      </a></li>
-      <li><a class="ask-item" href="?screen=ask-detail">
-        <span class="ask-item__bd"><b>아이가 훈독을 지루해해요. 함께 읽는 방법이 있을까요?</b><span class="ask-item__meta">8월 30일 저장</span></span>
-        <i class="ph-fill ph-bookmark-simple ask-item__mark ask-item__mark--on" aria-hidden="true"></i><span class="sr">북마크됨</span>
-      </a></li>
-    </ul>
-  </div>
-
-  <div class="ask-pane" id="ask-pane-mine" role="tabpanel" aria-labelledby="ask-tab-mine" hidden>
-    <ul class="ask-list">
-      <li><a class="ask-item" href="?screen=ask-detail">
-        <span class="ask-item__bd"><b>정성 기간 중 하루를 놓치면 처음부터 다시 해야 하나요?</b><span class="ask-item__meta">2026.09.09 22:14 · 비공개</span></span>
-        <i class="ph ph-trash ask-item__mark" aria-hidden="true"></i>
-      </a></li>
-      <li><a class="ask-item" href="?screen=ask-detail">
-        <span class="ask-item__bd"><b>아이가 훈독을 지루해해요. 함께 읽는 방법이 있을까요?</b><span class="ask-item__meta">2026.08.30 07:52 · 비공개</span></span>
-        <i class="ph ph-trash ask-item__mark" aria-hidden="true"></i>
-      </a></li>
-      <li><a class="ask-item" href="?screen=ask-detail">
-        <span class="ask-item__bd"><b>함박눈이 하늘의 축복이라는 말씀은 언제 하신 건가요?</b><span class="ask-item__meta">2026.08.21 21:03 · 무기억으로 물음</span></span>
-        <i class="ph ph-trash ask-item__mark" aria-hidden="true"></i>
-      </a></li>
-    </ul>
-    <div class="card empty ask-empty">
-      <i class="ph ph-lock-key empty__ic" aria-hidden="true"></i>
-      <div class="empty__title">내 질문은 나만 볼 수 있어요</div>
-      <div class="empty__body">무기억으로 물은 질문은 제목만 남고 내용은 저장되지 않아요</div>
-    </div>
-  </div>
-
-  <p class="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
-
-  <a class="fab" href="?screen=ask-detail"><i class="ph ph-plus" aria-hidden="true"></i>질문하기</a>
-</section>
 
 <!-- ===== 질문·답변 상세 (SCR-PWA-006) ===== -->
 <!-- 읽기 화면이므로 컬럼 전체가 640px (col--read). 근거 카드를 옆 컬럼으로 빼지 않는다 (§5) -->
@@ -635,7 +558,7 @@
     <a class="shot sm-hero" href="?screen=sermons">
       <img src="https://picsum.photos/id/289/860/520" alt="" />
       <div class="shot__tx">
-        <span class="badge badge--accent sm-hero__tag">NEW</span>
+        <span class="badge badge--accent sm-hero__tag">새 설교</span>
         <span class="sm-hero__t">"내가 구한 것, 그 너머의 선물"</span>
         <span class="sm-hero__m">김효정 교회장 · 분당교회 · 4:52 · O5 지역 콘텐츠</span>
       </div>
@@ -779,7 +702,7 @@
     <a class="shot sm-hero" href="#">
       <img src="https://picsum.photos/id/289/860/520" alt="" />
       <div class="shot__tx">
-        <span class="badge badge--accent sm-hero__tag">NEW</span>
+        <span class="badge badge--accent sm-hero__tag">새 설교</span>
         <span class="sm-hero__t">"내가 구한 것, 그 너머의 선물"</span>
         <span class="sm-hero__m">김효정 교회장 · 분당교회 · 4:52 · 천성경 1편 3장</span>
       </div>
@@ -1132,16 +1055,16 @@
     <div class="sect__head">
       <h2 class="sect__title">그 밖의 설정</h2><span class="sect__rule"></span>
     </div>
-    <div class="st-stack">
-      <a class="card st-row st-row--link" href="#">
+    <div class="st-group">
+      <a class="st-row st-row--link" href="#">
         <span class="st-row__bd"><b class="st-row__t">조용한 시간</b><span class="st-row__d">오후 10시부터 오전 5시까지 알리지 않아요</span></span>
         <i class="ph ph-caret-right st-go"></i>
       </a>
-      <a class="card st-row st-row--link" href="#">
+      <a class="st-row st-row--link" href="#">
         <span class="st-row__bd"><b class="st-row__t">알림함</b><span class="st-row__d">보낸 알림은 앱 안에서 언제나 볼 수 있어요</span></span>
         <i class="ph ph-caret-right st-go"></i>
       </a>
-      <a class="card st-row st-row--link" href="#">
+      <a class="st-row st-row--link" href="#">
         <span class="st-row__bd"><b class="st-row__t">내 데이터 삭제</b><span class="st-row__d">질문과 노트, 기록을 모두 지워요</span></span>
         <i class="ph ph-caret-right st-go"></i>
       </a>
@@ -1240,138 +1163,10 @@
 
   <p class="notice">연결은 양쪽이 동의할 때만 만들어지고, 언제든 끊을 수 있어요.</p>
 </section>
-    <!-- ===== AI 질문 목록 v2 (SCR-PWA-005 개선안) : ui-ux-pro-max 지적 6건 → taste-skill 반영 ===== -->
-    <section class="col" data-screen="ask-v2" hidden>
-      <!-- 1) 상단 질문 입력 = 화면의 주 행동. FAB 은 없앤다 (같은 의도의 CTA 2개 금지) -->
-      <form class="qa-compose" role="search" onsubmit="return false" aria-label="AI에게 질문">
-        <i class="ph ph-sparkle qa-compose__ic"></i>
-        <input type="text" placeholder="궁금한 것을 물어보세요" aria-label="질문 입력">
-        <button type="submit" class="qa-compose__go" aria-label="질문 보내기"><i class="ph-bold ph-arrow-up"></i></button>
-      </form>
-      <p class="qa-trust"><i class="ph ph-quotes"></i>답변은 근거 말씀을 인용해요. 근거가 없으면 "확인할 수 없음"으로 멈춰요.</p>
 
-      <div class="ask-seg qa-seg" role="tablist" aria-label="질문 모음">
-        <button class="ask-seg__btn ask-seg__btn--on" type="button" role="tab" aria-selected="true">추천</button>
-        <button class="ask-seg__btn" type="button" role="tab" aria-selected="false">북마크</button>
-        <button class="ask-seg__btn" type="button" role="tab" aria-selected="false">내 질문</button>
-      </div>
 
-      <!-- 2) 오늘 훈독과 이어지는 질문을 맨 위에. 위계 1 -->
-      <div class="sect">
-        <div class="sect__head"><h2 class="sect__title">오늘 훈독에서 나온 질문</h2><span class="sect__rule"></span><a class="sect__meta" href="?screen=read">오늘 말씀</a></div>
-        <a class="qa-feature" href="?screen=ask-detail">
-          <span class="src"><span>참아버님</span><span class="src__dot"></span><span>천성경 제1편 3장</span><span class="badge badge--rank">O1 공식 원문</span></span>
-          <b>참사랑이 직단거리로 간다는 말씀의 의미가 궁금해요</b>
-          <span class="qa-feature__ft"><span class="badge badge--line"><i class="ph ph-book-open-text"></i>근거 말씀 2건</span><span class="qa-feature__n">오늘 41명이 물었어요</span><i class="ph ph-caret-right"></i></span>
-        </a>
-      </div>
-
-      <!-- 3) 많이 본 질문 : 주제 태그 + 근거 수 + 44px 북마크 버튼 -->
-      <div class="sect">
-        <div class="sect__head"><h2 class="sect__title">이번 주 많이 본 질문</h2><span class="sect__rule"></span><span class="sect__meta">익명 집계</span></div>
-        <ul class="qa-list">
-          <li class="qa-row"><a class="qa-row__bd" href="?screen=ask-detail"><span class="qa-row__tag">정성</span><b>정성을 드린다는 게 정확히 뭘 하는 건가요?</b><span class="qa-row__meta">312명 · 근거 3건</span></a><button class="qa-mark" aria-pressed="true" aria-label="북마크 해제"><i class="ph-fill ph-bookmark-simple"></i></button></li>
-          <li class="qa-row"><a class="qa-row__bd" href="?screen=ask-detail"><span class="qa-row__tag">가정 · 자녀</span><b>축복가정으로서 자녀에게 말씀을 어떻게 가르치나요?</b><span class="qa-row__meta">204명 · 근거 2건</span></a><button class="qa-mark" aria-pressed="false" aria-label="북마크"><i class="ph ph-bookmark-simple"></i></button></li>
-          <li class="qa-row"><a class="qa-row__bd" href="?screen=ask-detail"><span class="qa-row__tag">용어 · 원리</span><b>탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</b><span class="qa-row__meta">177명 · 근거 4건</span></a><button class="qa-mark" aria-pressed="false" aria-label="북마크"><i class="ph ph-bookmark-simple"></i></button></li>
-          <li class="qa-row"><a class="qa-row__bd" href="?screen=ask-detail"><span class="qa-row__tag">생활 · 청년</span><b>직장에서 신앙을 말하기가 어려워요</b><span class="qa-row__meta">96명 · 근거 1건</span></a><button class="qa-mark" aria-pressed="false" aria-label="북마크"><i class="ph ph-bookmark-simple"></i></button></li>
-          <li class="qa-row"><a class="qa-row__bd" href="?screen=ask-detail"><span class="qa-row__tag">가정 · 2세</span><b>부모님과 신앙 문제로 자주 다퉈요. 어떻게 대화하죠?</b><span class="qa-row__meta">88명 · 근거 2건</span></a><button class="qa-mark" aria-pressed="false" aria-label="북마크"><i class="ph ph-bookmark-simple"></i></button></li>
-        </ul>
-      </div>
-
-      <!-- 4) 주제로 찾기 : 빈 공간을 탐색 진입점으로 -->
-      <div class="sect">
-        <div class="sect__head"><h2 class="sect__title">주제로 찾기</h2><span class="sect__rule"></span></div>
-        <div class="chips qa-topics">
-          <a class="term" href="#"><i class="ph ph-house-line"></i>가정 · 자녀</a>
-          <a class="term" href="#"><i class="ph ph-book-bookmark"></i>용어 · 원리</a>
-          <a class="term" href="#"><i class="ph ph-briefcase"></i>생활 · 직장</a>
-          <a class="term" href="#"><i class="ph ph-users-three"></i>2세 · 청년</a>
-          <a class="term" href="#"><i class="ph ph-hands-praying"></i>정성 · 기도</a>
-        </div>
-      </div>
-      <p class="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
-    </section>
-    <!-- ===== AI 질문 v3 · 질문 한 줄 (편집형) : 아이콘 0, 카드 0, 큰 활자와 여백만 ===== -->
-    <section class="col" data-screen="ask-v3" hidden>
-      <form class="q3-ask" onsubmit="return false">
-        <label for="q3-input" class="q3-ask__label">무엇이 궁금하세요?</label>
-        <textarea id="q3-input" rows="2" placeholder="예: 정성을 드린다는 게 정확히 뭘 하는 건가요?"></textarea>
-        <div class="q3-ask__row"><span class="q3-ask__help">답은 근거 말씀을 인용해요. 근거가 없으면 확인할 수 없다고 말해요.</span><button type="submit" class="btn btn-primary btn--sm">물어보기</button></div>
-      </form>
-      <div class="ask-seg qa-seg" role="tablist"><button class="ask-seg__btn ask-seg__btn--on" role="tab" aria-selected="true">추천</button><button class="ask-seg__btn" role="tab" aria-selected="false">북마크</button><button class="ask-seg__btn" role="tab" aria-selected="false">내 질문</button></div>
-      <h2 class="q3-h">오늘 말씀과 이어지는 질문</h2>
-      <ol class="q3-list">
-        <li><a href="?screen=ask-detail"><span class="q3-q">참사랑이 직단거리로 간다는 말씀의 의미가 궁금해요</span><span class="q3-src">천성경 제1편 3장</span></a><a class="q3-save" href="#" aria-pressed="false">저장</a></li>
-      </ol>
-      <h2 class="q3-h">이번 주 많이 본 질문</h2>
-      <ol class="q3-list">
-        <li><a href="?screen=ask-detail"><span class="q3-q">정성을 드린다는 게 정확히 뭘 하는 건가요?</span></a><a class="q3-save q3-save--on" href="#" aria-pressed="true">저장됨</a></li>
-        <li><a href="?screen=ask-detail"><span class="q3-q">축복가정으로서 자녀에게 말씀을 어떻게 가르치나요?</span></a><a class="q3-save" href="#" aria-pressed="false">저장</a></li>
-        <li><a href="?screen=ask-detail"><span class="q3-q">탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</span></a><a class="q3-save" href="#" aria-pressed="false">저장</a></li>
-        <li><a href="?screen=ask-detail"><span class="q3-q">직장에서 신앙을 말하기가 어려워요</span></a><a class="q3-save" href="#" aria-pressed="false">저장</a></li>
-        <li><a href="?screen=ask-detail"><span class="q3-q">부모님과 신앙 문제로 자주 다퉈요. 어떻게 대화하죠?</span></a><a class="q3-save" href="#" aria-pressed="false">저장</a></li>
-      </ol>
-      <p class="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
-    </section>
-
-    <!-- ===== AI 질문 v4 · 근거 먼저 (발췌형) : 질문 아래 근거 말씀 한 줄. 주제별 묶음, 카운트 없음 ===== -->
-    <section class="col" data-screen="ask-v4" hidden>
-      <form class="q4-ask" role="search" onsubmit="return false">
-        <input type="text" placeholder="궁금한 것을 물어보세요" aria-label="질문 입력">
-        <button type="submit" class="q4-ask__go" aria-label="보내기"><i class="ph-bold ph-arrow-right"></i></button>
-      </form>
-      <div class="ask-seg qa-seg" role="tablist"><button class="ask-seg__btn ask-seg__btn--on" role="tab" aria-selected="true">추천</button><button class="ask-seg__btn" role="tab" aria-selected="false">북마크</button><button class="ask-seg__btn" role="tab" aria-selected="false">내 질문</button></div>
-
-      <div class="q4-group">
-        <h2 class="q4-h">오늘 말씀에서</h2>
-        <a class="q4-item" href="?screen=ask-detail"><b>참사랑이 직단거리로 간다는 말씀의 의미가 궁금해요</b><q>참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다.</q><span class="q4-src">천성경 제1편 3장 <em>O1 공식 원문</em></span></a>
-      </div>
-      <div class="q4-group">
-        <h2 class="q4-h">가정</h2>
-        <a class="q4-item" href="?screen=ask-detail"><b>축복가정으로서 자녀에게 말씀을 어떻게 가르치나요?</b><q>아들이 좋은 만큼 어떻게 가치 있는 아들로 키우느냐 하는 문제를 놓고 걱정을 해야 합니다.</q><span class="q4-src">천성경 제1편 3장 <em>O1 공식 원문</em></span></a>
-        <a class="q4-item" href="?screen=ask-detail"><b>부모님과 신앙 문제로 자주 다퉈요. 어떻게 대화하죠?</b><q>역사는 남성과 여성을 접촉시켜 나왔습니다. 남자와 여자는 하나의 기점에서 연결되어야 합니다.</q><span class="q4-src">천성경 제1편 3장 <em>O1 공식 원문</em></span></a>
-      </div>
-      <div class="q4-group">
-        <h2 class="q4-h">원리와 용어</h2>
-        <a class="q4-item" href="?screen=ask-detail"><b>정성을 드린다는 게 정확히 뭘 하는 건가요?</b><q>40여 일 정성을 들이면서 기도한 것이 내 신앙의 기초가 되었습니다.</q><span class="q4-src">참어머님 말씀 모음 <em>O1 공식 원문</em></span></a>
-        <a class="q4-item" href="?screen=ask-detail"><b>탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</b><q>탕감은 벌이 아니라 잃어버린 본래의 자리로 돌아가기 위한 조건입니다.</q><span class="q4-src">천성경 제2편 1장 <em>O1 공식 원문</em></span></a>
-      </div>
-      <div class="q4-group">
-        <h2 class="q4-h">생활</h2>
-        <a class="q4-item" href="?screen=ask-detail"><b>직장에서 신앙을 말하기가 어려워요</b><q>우리가 뜻을 다 이루게 되면 우리는 매일 잔치다.</q><span class="q4-src">천성경 제1편 3장 <em>O1 공식 원문</em></span></a>
-      </div>
-      <p class="notice">발췌는 프로토타입용 예시입니다</p>
-    </section>
-
-    <!-- ===== AI 질문 v5 · 대화형 (메신저형) : 30~60대에게 익숙한 채팅 문법. 추천 질문은 눌러 보내는 말풍선 ===== -->
-    <section class="col q5" data-screen="ask-v5" hidden>
-      <div class="q5-thread">
-        <div class="q5-msg q5-msg--bot">
-          <span class="q5-who">훈독</span>
-          <p>안녕하세요, 효진님. 궁금한 것을 편하게 물어보세요. 답은 근거 말씀을 인용해서 드리고, 근거가 없으면 확인할 수 없다고 말씀드려요.</p>
-        </div>
-        <div class="q5-msg q5-msg--bot">
-          <span class="q5-who">훈독</span>
-          <p>오늘 읽으신 말씀에서 이런 질문이 많았어요.</p>
-          <a class="q5-sug" href="?screen=ask-detail">참사랑이 직단거리로 간다는 말씀의 의미가 궁금해요<span>천성경 제1편 3장</span></a>
-        </div>
-        <div class="q5-msg q5-msg--bot">
-          <span class="q5-who">훈독</span>
-          <p>이번 주 식구들이 많이 물어본 질문이에요. 눌러서 바로 물어볼 수 있어요.</p>
-          <a class="q5-sug" href="?screen=ask-detail">정성을 드린다는 게 정확히 뭘 하는 건가요?</a>
-          <a class="q5-sug" href="?screen=ask-detail">축복가정으로서 자녀에게 말씀을 어떻게 가르치나요?</a>
-          <a class="q5-sug" href="?screen=ask-detail">탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</a>
-          <a class="q5-sug" href="?screen=ask-detail">직장에서 신앙을 말하기가 어려워요</a>
-        </div>
-        <div class="q5-links"><a href="#">북마크한 질문</a><a href="#">내 질문 기록</a></div>
-      </div>
-      <form class="q5-bar" onsubmit="return false">
-        <input type="text" placeholder="메시지를 입력하세요" aria-label="질문 입력">
-        <button type="submit" class="q5-send">보내기</button>
-      </form>
-    </section>
-    <!-- ===== AI 질문 · 안 가 "물음 한 장" : 탭 홈 = 묻기 한 가지. 시작 문장은 입력창을 채운다 ===== -->
-    <section class="col col--read" data-screen="ask-sheet" hidden>
+    <!-- ===== AI 질문 (SCR-PWA-005, 2026-09-16 채택안 "물음 한 장") : 탭 홈 = 묻기 한 가지. 시작 문장은 입력창을 채운다. 둘러보기는 ask-log ===== -->
+    <section class="col col--read" data-screen="ask" hidden>
       <p class="qs-today"><span class="qs-today__k">오늘 읽은 말씀</span><span class="qs-today__v">참사랑은 직단거리를 갑니다</span><span class="qs-today__src">천성경 제1편 3장</span></p>
       <form class="qs-form" onsubmit="return false">
         <label class="qs-label" for="qs-input">무엇이 궁금하세요?</label>
@@ -1388,35 +1183,6 @@
       <a class="qs-log" href="?screen=ask-log">내 질문 12개와 저장한 답 3개 보기</a>
     </section>
 
-    <!-- ===== AI 질문 · 안 나 "답이 먼저" : 답의 형태(AI 설명 + 근거 + 출처)를 먼저 보여 주고 묻는다 ===== -->
-    <section class="col col--read" data-screen="ask-answer" hidden>
-      <form class="qn-form" onsubmit="return false">
-        <label class="qs-label" for="qn-input">질문</label>
-        <div class="qn-row"><input id="qn-input" type="text" placeholder="궁금한 것을 적어 주세요"><button type="submit" class="btn btn-primary btn--sm">물어보기</button></div>
-      </form>
-
-      <article class="qn-sample">
-        <h2 class="qn-sample__k">오늘의 답</h2>
-        <p class="qn-q">참사랑이 직단거리로 간다는 말씀은 무슨 뜻인가요?</p>
-        <div class="ai-note">
-          <div class="ai-note__lab"><i class="ph ph-sparkle"></i>AI 설명 · 공식 해설 아님</div>
-          <p class="ai-note__body">사랑이 하늘부모님과 나 사이에서 가장 곧은 길, 곧 90도의 수직 관계로만 온전히 이어진다는 뜻입니다. 조금이라도 비껴가면 최단거리가 아니라는 표현은 사랑에 우회가 없어야 함을 강조합니다.</p>
-        </div>
-        <blockquote class="qn-ev">
-          <p>참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다.</p>
-          <footer><span>참아버님</span><span class="src__dot"></span><span>천성경 제1편 3장</span><span class="badge badge--rank">O1 공식 원문</span></footer>
-        </blockquote>
-        <a class="qn-more" href="?screen=ask-detail">전체 답과 연관 말씀 보기</a>
-      </article>
-
-      <div class="qn-others">
-        <h2 class="qn-sample__k">식구들이 물어본 질문</h2>
-        <button type="button" class="qs-starter" data-fill="#qn-input">정성을 드린다는 게 정확히 뭘 하는 건가요?</button>
-        <button type="button" class="qs-starter" data-fill="#qn-input">탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</button>
-        <button type="button" class="qs-starter" data-fill="#qn-input">직장에서 신앙을 말하기가 어려워요</button>
-        <a class="qs-log" href="?screen=ask-log">내 질문과 저장한 답 보기</a>
-      </div>
-    </section>
 
     <!-- ===== AI 질문 · 기록 : 라이브러리는 여기서만 ===== -->
     <section class="col col--read" data-screen="ask-log" hidden>
@@ -1510,12 +1276,12 @@
 
   document.querySelectorAll('[data-screen]').forEach(s => s.hidden = s.dataset.screen !== screen);
   const TITLES = {today:'오늘 훈독', read:'훈독하기', words:'천성경 1편 3장', library:'말씀', search:'',
-    onboarding:'', ask:'AI 질문', 'ask-v2':'AI 질문', 'ask-sheet':'AI 질문', 'ask-answer':'AI 질문', 'ask-log':'질문 기록', 'ask-v3':'AI 질문', 'ask-v4':'AI 질문', 'ask-v5':'AI 질문', 'ask-detail':'질문', worship:'가정예배', challenge:'챌린지', sermons:'5분 설교',
+    onboarding:'', ask:'AI 질문', 'ask-log':'질문 기록', 'ask-detail':'질문', worship:'가정예배', challenge:'챌린지', sermons:'5분 설교',
     'sermon-request':'설교 섭외', garden:'나의 정원', settings:'알림·설치', family:'가족·친구'};
   document.getElementById('apptitle').textContent = TITLES[screen] ?? screen;
   // 탭 귀속 : 하위 화면은 상위 탭을 활성으로
   const TAB_OF = {today:'today', read:'today', words:'library', library:'library', search:'library',
-    ask:'ask', 'ask-v2':'ask', 'ask-sheet':'ask', 'ask-answer':'ask', 'ask-log':'ask', 'ask-v3':'ask', 'ask-v4':'ask', 'ask-v5':'ask', 'ask-detail':'ask', worship:'worship', challenge:'worship', sermons:'worship', 'sermon-request':'worship',
+    ask:'ask', 'ask-log':'ask', 'ask-detail':'ask', worship:'worship', challenge:'worship', sermons:'worship', 'sermon-request':'worship',
     garden:'garden', settings:'garden', family:'garden'};
   // 정성 기간 시트 : ?sheet=jeongseong
   const sheet = q.get('sheet');
@@ -1524,9 +1290,9 @@
     if (e.target === sh || e.target.closest('[data-close-sheet]')) sh.removeAttribute('open');
   }));
   // pill 세그먼트 : 눌린 것만 활성 (프로토타입, 패널 전환은 하지 않는다)
-  document.querySelectorAll('.pill-seg, .ask-seg').forEach(seg => seg.addEventListener('click', e => {
+  document.querySelectorAll('.pill-seg').forEach(seg => seg.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    seg.querySelectorAll('button').forEach(x => { x.classList.toggle('is-on', x === b); x.classList.toggle('ask-seg__btn--on', x === b); x.setAttribute('aria-selected', String(x === b)); });
+    seg.querySelectorAll('button').forEach(x => { x.classList.toggle('is-on', x === b); x.setAttribute('aria-selected', String(x === b)); });
   }));
   // 시작 문장 : 누르면 입력창을 채우고 포커스 (이동하지 않는다)
   document.querySelectorAll('[data-fill]').forEach(b => b.addEventListener('click', () => {

@@ -24,7 +24,7 @@
   --hl-1:#fff0c9; --hl-2:#dcefe3; --hl-3:#ffe0d6;
 
   /* 모서리: 테마가 덮어쓰는 유일한 형태 토큰 */
-  --r:16px; --r-sm:12px; --r-xs:8px; --r-sheet:28px;
+  --r:16px; --r-sm:12px; --r-xs:8px; --r-sheet:28px; --r-full:999px;
 
   --shadow-hairline:0 1px 0 rgba(0,0,0,.02);
   --shadow-1:0 1px 2px rgba(0,0,0,.06);
@@ -151,7 +151,10 @@ mark.hl-1{background:var(--hl-1)} mark.hl-2{background:var(--hl-2)} mark.hl-3{ba
 .recent i{font-size:20px;color:var(--ink-3)}
 .howto__row{display:flex;gap:12px;align-items:flex-start;padding:10px 0}
 .howto__k{flex:none;width:36px;font-size:13px;font-weight:600;color:var(--ink-2);padding-top:6px}
-.howto .term{min-height:34px;padding:5px 12px;font-size:14px}
+/* 검색 제안은 용어도 선택된 옵션도 아니다. --accent-soft 를 8개에 쓰면 한 화면의
+   액센트 목적이 늘어나므로(DS §1.1) 칩 버튼 중립 표면으로 되돌린다 */
+.howto .term{min-height:34px;padding:5px 12px;font-size:14px;
+  background:var(--surface);border:1px solid var(--line);color:var(--ink);font-weight:500}
 .ask-hint{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--r);
   background:var(--surface);border:1px solid var(--line)}
 .ask-hint > i:first-child{font-size:24px;color:var(--accent);flex:none}
@@ -182,8 +185,8 @@ mark.hl-1{background:var(--hl-1)} mark.hl-2{background:var(--hl-2)} mark.hl-3{ba
 .avatars > * + *{margin-left:-8px}
 
 /* pill 세그먼트 (DES-PWA-003 §2.10) : 같은 문서 안 뷰 전환 */
-.pill-seg{display:flex;background:var(--surface-2);border-radius:12px;padding:3px}
-.pill-seg button{flex:1;min-height:44px;padding:0 12px;border-radius:10px;font-size:14px;color:var(--ink-2)}
+.pill-seg{display:flex;background:var(--surface-2);border-radius:var(--r-sm);padding:3px}
+.pill-seg button{flex:1;min-height:44px;padding:0 12px;border-radius:var(--r-xs);font-size:14px;color:var(--ink-2)}
 .pill-seg button.is-on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow-1)}
 
 /* 오디오 바 */
@@ -229,7 +232,7 @@ a.sect__meta{position:relative}
 a.sect__meta::after{content:"";position:absolute;inset:-13px -14px}
 
 /* ---------- 7. 진행 표시 ---------- */
-.progress{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.progress{height:8px;border-radius:var(--r-full);background:var(--surface-2);overflow:hidden}
 .progress__fill{display:block;height:100%;background:var(--accent);border-radius:inherit}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .stats__n{display:block;font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
@@ -265,12 +268,20 @@ a.sect__meta::after{content:"";position:absolute;inset:-13px -14px}
   padding:0 20px;border-radius:var(--r);font-weight:600;font-size:15px;width:100%;
   transition:background .12s ease,transform .12s ease}
 .btn:active{transform:scale(.985)}
+/* 눌림 피드백 : DS §1.5 는 버튼 .985 · 아이콘 버튼 .96 을 상호작용 요소 전반에 요구하는데
+   이 파일에는 .btn 한 곳밖에 없었다. 아이콘 버튼·칩은 축소, 전폭 행은 축소가 흔들려 보여 바탕만 누른다.
+   :active 는 아무 요소에나 걸리므로 링크·버튼인 것만 고른다 (정보용 .card 는 제외) */
+.icon-btn:active,.check:active,.term:active,.fab:active{transform:scale(.96)}
+a.card:active,button.card:active,.shelf__item:active,.fm-item:active,
+.st-pick:active,.st-row--link:active,.onb-pick:active,.qs-starter:active,.ql-list a:active,
+.recent a:active,.nav__item:not(.nav__item--mid):active{background:var(--surface-2)}
+.nav__item--mid:active .nav__ic{transform:scale(.96)}
 .btn-primary{background:var(--accent);color:var(--accent-ink)}
 .btn-ghost{background:var(--surface-2);color:var(--ink)}
 .btn-line{border:1px solid var(--line);background:var(--surface)}
 .btn[disabled]{background:var(--surface-2);color:var(--ink-3);cursor:not-allowed}
 .btn--sm{height:38px;font-size:13.5px;padding:0 14px;width:auto}
-.fab{position:fixed;right:18px;bottom:94px;z-index:15;height:52px;padding:0 20px;border-radius:26px;
+.fab{position:fixed;right:18px;bottom:94px;z-index:15;height:52px;padding:0 20px;border-radius:var(--r-full);
   background:var(--accent);color:var(--accent-ink);display:inline-flex;align-items:center;gap:8px;
   font-weight:600;box-shadow:var(--shadow-2);width:auto}
 
@@ -280,7 +291,7 @@ a.sect__meta::after{content:"";position:absolute;inset:-13px -14px}
 .field input,.field textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--surface);
   border:1.5px solid var(--ink-3);border-radius:var(--r-sm);padding:12px 14px}
 .field__help{font-size:12.5px;color:var(--ink-2)}
-.toggle{width:46px;height:28px;border-radius:14px;background:var(--surface-2);
+.toggle{width:46px;height:28px;border-radius:var(--r-full);background:var(--surface-2);
   border:1.5px solid var(--ink-3);position:relative;flex:none}
 .toggle::after{content:"";position:absolute;top:2px;left:2px;width:21px;height:21px;border-radius:50%;
   background:#fff;border:1px solid var(--ink-3);transition:left .15s}
@@ -302,7 +313,7 @@ a.sect__meta::after{content:"";position:absolute;inset:-13px -14px}
 .sheet[open]{display:flex}
 .sheet__panel{width:100%;background:var(--paper);border-radius:var(--r-sheet) var(--r-sheet) 0 0;
   padding:10px var(--gutter) 28px;max-height:88dvh;overflow:auto}
-.sheet__grip{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+.sheet__grip{width:40px;height:5px;border-radius:var(--r-full);background:var(--line);margin:0 auto 14px}
 
 /* =============================================================================
    md : 768px 이상.  단일 컬럼 중앙 정렬. 하단 탭은 그대로 둔다.
@@ -329,11 +340,11 @@ a.sect__meta::after{content:"";position:absolute;inset:-13px -14px}
     padding:20px 12px;min-height:0}
   .nav__item{flex-direction:row;justify-content:flex-start;gap:12px;min-height:48px;
     padding:8px 12px;border-radius:var(--r-sm);font-size:15px;color:var(--ink-2)}
-  .nav__ic{width:40px;height:40px;border-radius:10px;flex:none}
+  .nav__ic{width:40px;height:40px;border-radius:var(--r-sm);flex:none}
   .nav__item[aria-current]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600}
   /* 버블은 사라지고 아이콘 칩만 남는다. 배경 채움은 활성 상태가 쓴다 */
   .nav__item--mid{margin-top:0}
-  .nav__item--mid .nav__ic{width:40px;height:40px;border-radius:10px;font-size:24px;
+  .nav__item--mid .nav__ic{width:40px;height:40px;border-radius:var(--r-sm);font-size:24px;
     box-shadow:none;background:var(--accent);color:var(--accent-ink)}
   .shot{height:300px}
   .fab{position:sticky;bottom:24px}
@@ -393,7 +404,7 @@ a.sect__meta::after{content:"";position:absolute;inset:-13px -14px}
   [data-nav="top"] .nav::after{content:"";margin-left:auto;width:120px}
   [data-nav="top"] .nav__item{min-height:44px;padding:6px 14px;font-size:15px;gap:8px;border-radius:var(--r-sm)}
   [data-nav="top"] .nav__ic,[data-nav="top"] .nav__item--mid .nav__ic{width:28px;height:28px;font-size:22px;
-    border-radius:8px}
+    border-radius:var(--r-xs)}
   [data-nav="top"] .appbar{top:64px}
 }
 
@@ -430,7 +441,7 @@ a.sect__meta::after{content:"";position:absolute;inset:-13px -14px}
   [data-nav="top"][data-header="2"] .nav{height:64px;gap:4px;background:var(--surface);
     justify-content:center}
   [data-nav="top"][data-header="2"] .nav__item{height:40px;min-height:40px;padding:0 16px 0 12px;
-    border-radius:9999px;font-size:14.5px;font-weight:500;color:var(--ink-2);gap:7px}
+    border-radius:var(--r-full);font-size:14.5px;font-weight:500;color:var(--ink-2);gap:7px}
   [data-nav="top"][data-header="2"] .nav__ic{width:20px;height:20px;font-size:19px;border-radius:0}
   [data-nav="top"][data-header="2"] .nav__item[aria-current]{background:var(--accent-soft);
     color:var(--accent-strong);font-weight:600}
@@ -444,7 +455,7 @@ a.sect__meta::after{content:"";position:absolute;inset:-13px -14px}
   [data-nav="top"][data-header="3"] .nav::after{background:var(--surface);color:var(--accent-strong);
     box-shadow:var(--shadow-1)}
   [data-nav="top"][data-header="3"] .nav__item{height:38px;min-height:38px;padding:0 14px 0 11px;
-    border-radius:9999px;font-size:14.5px;font-weight:500;color:var(--ink);gap:7px}
+    border-radius:var(--r-full);font-size:14.5px;font-weight:500;color:var(--ink);gap:7px}
   [data-nav="top"][data-header="3"] .nav__ic{width:20px;height:20px;font-size:19px;border-radius:0;color:var(--accent-strong)}
   [data-nav="top"][data-header="3"] .nav__item[aria-current]{background:var(--surface);
     color:var(--accent-strong);font-weight:600;box-shadow:var(--shadow-1)}
@@ -486,7 +497,7 @@ a.sect__meta::after{content:"";position:absolute;inset:-13px -14px}
   [data-nav="top"][data-header="4"] .nav__item[aria-current]{color:var(--ink);font-weight:600;background:var(--surface-2)}
   [data-nav="top"][data-header="4"] .nav__item:hover{background:var(--surface-2)}
   [data-nav="top"][data-header="4"] .nav__search{flex:1;max-width:360px;margin-left:auto;margin-right:12px;
-    border-radius:9999px;background:var(--surface-2)}
+    border-radius:var(--r-full);background:var(--surface-2)}
   [data-nav="top"][data-header="4"] .appbar{top:72px}
   [data-nav="top"][data-header="4"] .icon-btn--search,
   [data-nav="top"][data-header="4"] .search-field{display:none}   /* 헤더 검색바가 앱바 돋보기·서고 필드를 대신한다 */
@@ -494,12 +505,12 @@ a.sect__meta::after{content:"";position:absolute;inset:-13px -14px}
   /* --- 헤더 5 : 플로팅 필 (Abide·gpt-tasteskill 형). 페이지 위에 떠 있는 반투명 알약 한 개 --- */
   [data-nav="top"][data-header="5"] .nav{position:sticky;top:12px;height:56px;
     width:min(980px,calc(100% - 48px));margin:12px auto 0;padding:0 8px 0 22px;gap:2px;justify-content:center;
-    border-radius:9999px;border:1px solid var(--line);background:rgba(255,255,255,.82);
+    border-radius:var(--r-full);border:1px solid var(--line);background:rgba(255,255,255,.82);
     -webkit-backdrop-filter:blur(16px) saturate(160%);backdrop-filter:blur(16px) saturate(160%);
     box-shadow:var(--shadow-2)}
   [data-nav="top"][data-header="5"] .nav__brand{margin-right:auto}
   [data-nav="top"][data-header="5"] .nav__user{margin-left:auto}
-  [data-nav="top"][data-header="5"] .nav__item{height:40px;min-height:40px;padding:0 14px 0 11px;border-radius:9999px;
+  [data-nav="top"][data-header="5"] .nav__item{height:40px;min-height:40px;padding:0 14px 0 11px;border-radius:var(--r-full);
     font-size:14.5px;font-weight:500;color:var(--ink-2);gap:7px}
   [data-nav="top"][data-header="5"] .nav__ic{width:20px;height:20px;font-size:19px;border-radius:0}
   [data-nav="top"][data-header="5"] .nav__item[aria-current]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600}
@@ -580,26 +591,15 @@ body:has([data-screen="onboarding"]:not([hidden])) .appbar{display:none}
 
 /* ---------- AI 질문 목록 (SCR-PWA-005) ---------- */
 /* 밑줄형 세그먼트: 화면 단위 컬렉션 전환 (DES-PWA-003 §2.10) */
-.ask-seg{display:flex;gap:18px;margin-top:12px;border-bottom:1px solid var(--line)}
 /* 고정 FAB 이 마지막 줄(베타 고지)을 덮지 않도록 폰에서만 하단 여백을 둔다 */
 @media (max-width:767px){[data-screen="ask"]{padding-bottom:96px}}
-.ask-seg__btn{padding:10px 2px 12px;min-height:44px;min-width:44px;font-size:15px;color:var(--ink-3)}  /* 5.13:1 */
-.ask-seg__btn[aria-selected="true"]{color:var(--ink);font-weight:700;
-  box-shadow:inset 0 -2px 0 var(--accent)}                              /* 밑줄 4.77:1, 비텍스트 3:1 통과 */
+  /* 5.13:1 */
+                              /* 밑줄 4.77:1, 비텍스트 3:1 통과 */
 
 /* FAB 이 마지막 항목을 가리지 않도록 base 에서만 여백을 준다 (md 부터 FAB 은 흐름에 들어간다) */
-.ask-pane{padding-bottom:64px}
-.ask-list{list-style:none;margin:12px 0 0;padding:0;background:var(--surface);
-  border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
-.ask-item{display:flex;align-items:center;gap:12px;min-height:64px;padding:14px 16px;
-  border-bottom:1px solid var(--line)}
-.ask-list li:last-child .ask-item{border-bottom:0}
-.ask-item__bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.ask-item__bd b{font-size:16px;font-weight:600;line-height:1.4}
-.ask-item__meta{font-size:12.5px;color:var(--ink-2)}                    /* 7.27:1 */
-.ask-item__mark{font-size:20px;color:var(--ink-3);flex:none}            /* 5.35:1 */
-.ask-item__mark--on{color:var(--accent)}                                /* 4.98:1, 아이콘 형태(채움)도 함께 바뀐다 */
-.ask-empty{margin-top:14px}
+                    /* 7.27:1 */
+            /* 5.35:1 */
+                                /* 4.98:1, 아이콘 형태(채움)도 함께 바뀐다 */
 
 /* ---------- 질문·답변 상세 (SCR-PWA-006) ---------- */
 .ask-q{font-size:22px;line-height:1.4;letter-spacing:-.02em;font-weight:700;margin:14px 0 0;
@@ -674,7 +674,7 @@ body:has([data-screen="onboarding"]:not([hidden])) .appbar{display:none}
 @media (min-width:768px){
   .onb-hero{height:340px}          /* 히어로 상한 340px (§5) */
   .onb-title{font-size:30px}
-  .ask-pane{padding-bottom:0}      /* FAB 이 sticky 로 흐름에 들어간다 */
+      /* FAB 이 sticky 로 흐름에 들어간다 */
   .ask-q{font-size:26px}
   .ask-acts__btn{flex:none}
 }
@@ -694,7 +694,6 @@ body:has([data-screen="onboarding"]:not([hidden])) .appbar{display:none}
     .onb-pick[aria-checked="true"]:hover,
     .js-opt[aria-checked="true"]:hover,
     .js-topic[aria-checked="true"]:hover{background:var(--accent-soft)}
-    .ask-seg__btn:hover{color:var(--ink)}
     .ask-ev:hover{box-shadow:var(--shadow-1)}
   }
 }
@@ -783,7 +782,7 @@ body:has([data-screen="onboarding"]:not([hidden])) .appbar{display:none}
 /* --- pill 세그먼트 (§2.10). 탭 대상 44px --- */
 .sm-seg{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:8px;padding:3px;
   border-radius:var(--r-sm);background:var(--surface-2)}
-.sm-seg button{min-height:44px;padding:0 12px;border-radius:10px;
+.sm-seg button{min-height:44px;padding:0 12px;border-radius:var(--r-xs);
   font-size:14.5px;font-weight:500;color:var(--ink-3)}   /* 4.66:1 */
 .sm-seg button[aria-selected="true"]{background:var(--surface);color:var(--ink);
   font-weight:600;box-shadow:var(--shadow-1)}
@@ -1053,6 +1052,12 @@ body:has([data-screen="onboarding"]:not([hidden])) .appbar{display:none}
    3. 알림·설치 설정 (SCR-PWA-015)
    ============================================================================= */
 .st-stack{display:flex;flex-direction:column;gap:12px}
+/* 위계 없는 한 줄 항목을 카드 3장으로 띄우면 카드가 의미를 잃는다.
+   서고(.shelf)·가족(.fm-list)과 같은 헤어라인 묶음으로 내린다 */
+.st-group{display:flex;flex-direction:column;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.st-group > .st-row{padding:12px 16px;border-top:1px solid var(--line)}
+.st-group > .st-row:first-child{border-top:0}
 
 /* 설치 안내 : 카드가 아니라 바탕 블록이다. 알림 권한 순서를 먼저 설명한다 */
 .st-install{background:var(--surface-2);border-radius:var(--r);padding:16px;margin-top:8px}
@@ -1127,7 +1132,8 @@ body:has([data-screen="onboarding"]:not([hidden])) .appbar{display:none}
 @media (min-width:1024px){
   @media (hover:hover){
     .fm-item:hover,.st-pick:hover,.st-sub:hover{background:var(--surface-2)}
-    .st-row--link:hover{box-shadow:var(--shadow-1)}
+    /* 카드가 아니라 묶음 안의 행이 됐으므로 그림자 대신 바탕으로 hover 한다 */
+    .st-row--link:hover{background:var(--surface-2)}
     .gd-link:hover{text-decoration:underline}
     /* 선택된 라디오 행은 hover 로 흔들지 않는다 (§4.5) */
     .st-pick[aria-checked="true"]:hover{background:transparent}
@@ -1135,127 +1141,12 @@ body:has([data-screen="onboarding"]:not([hidden])) .appbar{display:none}
 }
 
 
-/* ============================================================================
-   partials/ask-v2.css (AI 질문 목록 개선안) 병합
-   ============================================================================ */
-/* ---------- AI 질문 목록 v2 (SCR-PWA-005 개선안) ---------- */
-/* 입력 = 주 행동. 카드형 필드 56px, 보내기 버튼 44px */
-.qa-compose{display:flex;align-items:center;gap:10px;min-height:56px;margin-top:8px;padding:6px 6px 6px 16px;
-  border-radius:var(--r);background:var(--surface);border:1.5px solid var(--ink-3)}          /* 경계 5.35:1 */
-.qa-compose__ic{font-size:22px;color:var(--accent);flex:none}
-.qa-compose input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);outline:none}
-.qa-compose input::placeholder{color:var(--ink-3)}                                              /* 5.35:1 */
-.qa-compose:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.qa-compose__go{width:44px;height:44px;border-radius:var(--r-sm);background:var(--accent);color:var(--accent-ink);
-  display:grid;place-items:center;font-size:18px;flex:none}                                     /* 4.98:1 */
-.qa-trust{display:flex;align-items:flex-start;gap:6px;margin:10px 4px 0;font-size:13px;line-height:1.5;color:var(--ink-2)}
-.qa-trust i{font-size:16px;color:var(--ink-3);flex:none;margin-top:1px}
-.qa-seg{margin-top:18px}
-.qa-seg .ask-seg__btn{min-width:64px;padding:0 14px}                                            /* 탭 폭 ≥ 44 */
-
-/* 오늘 훈독 연결 카드 : 화면에서 유일한 강조 카드 */
-.qa-feature{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:var(--r);
-  background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent)}
-.qa-feature b{font-size:17px;line-height:1.45;letter-spacing:-.01em}
-.qa-feature__ft{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.qa-feature__ft .badge{gap:5px}
-.qa-feature__n{font-size:12.5px;color:var(--ink-2)}
-.qa-feature__ft > i{margin-left:auto;font-size:18px;color:var(--ink-3)}
-
-/* 많이 본 질문 : 행 + 44px 북마크 버튼 */
-.qa-list{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
-.qa-row{display:flex;align-items:center;gap:6px;padding:0 6px 0 16px;border-bottom:1px solid var(--line)}
-.qa-row:last-child{border-bottom:0}
-.qa-row__bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;padding:14px 0}
-.qa-row__tag{font-size:12px;font-weight:600;color:var(--ink-2)}
-.qa-row__bd b{font-size:16px;font-weight:600;line-height:1.4}
-.qa-row__meta{font-size:12.5px;color:var(--ink-2)}
-.qa-mark{width:44px;height:44px;border-radius:var(--r-xs);display:grid;place-items:center;font-size:22px;color:var(--ink-3);flex:none}
-.qa-mark[aria-pressed="true"]{color:var(--accent)}
-.qa-topics .term{min-height:40px;padding:0 14px;font-size:14px}
-
-@media (min-width:768px){
-  .qa-compose{min-height:60px;padding-left:20px}
-  .qa-feature{padding:20px}
-  .qa-row__bd{padding:16px 0}
-}
-@media (hover:hover){
-  .qa-row__bd:hover b{color:var(--accent-strong)}
-  .qa-mark:hover{background:var(--surface-2)}
-  .qa-compose__go:hover{background:var(--accent-strong)}
-}
 
 
 /* ============================================================================
-   partials/ask-v345.css (AI 질문 v3·v4·v5) 병합
+   partials/ask-new.css (AI 질문 채택안 + 기록) 병합
    ============================================================================ */
-/* ---------- AI 질문 v3 · 질문 한 줄 (편집형) ---------- */
-.q3-ask{display:flex;flex-direction:column;gap:10px;margin-top:8px}
-.q3-ask__label{font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.3}
-.q3-ask textarea{font:inherit;font-size:16px;line-height:1.55;color:var(--ink);background:var(--surface);
-  border:1.5px solid var(--ink-3);border-radius:var(--r-sm);padding:12px 14px;resize:none;width:100%}
-.q3-ask textarea::placeholder{color:var(--ink-3)}
-.q3-ask textarea:focus{outline:2px solid var(--accent);outline-offset:2px;border-color:var(--accent)}
-.q3-ask__row{display:flex;align-items:center;gap:12px}
-.q3-ask__help{flex:1;font-size:13px;line-height:1.5;color:var(--ink-2)}
-.q3-ask .btn--sm{height:44px;flex:none}
-.q3-h{font-size:14px;font-weight:600;color:var(--ink-2);margin:28px 0 6px}
-.q3-list{list-style:none;margin:0;padding:0}
-.q3-list li{display:flex;align-items:flex-start;gap:8px;padding:14px 0;border-top:1px solid var(--line)}
-.q3-list li > a:first-child{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;min-height:44px;justify-content:center}
-.q3-q{font-size:17px;font-weight:500;line-height:1.5;letter-spacing:-.01em}
-.q3-src{font-size:13px;color:var(--ink-2)}
-.q3-save{flex:none;min-height:44px;display:inline-flex;align-items:center;padding:0 8px;font-size:14px;color:var(--ink-2);border-radius:var(--r-xs)}
-.q3-save--on{color:var(--accent-strong);font-weight:600}
-
-/* ---------- AI 질문 v4 · 근거 먼저 (발췌형) ---------- */
-.q4-ask{display:flex;align-items:center;gap:8px;margin-top:8px;padding:4px 4px 4px 16px;min-height:52px;
-  border-radius:var(--r-sm);background:var(--surface);border:1.5px solid var(--ink-3)}
-.q4-ask input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);outline:none}
-.q4-ask input::placeholder{color:var(--ink-3)}
-.q4-ask:focus-within{border-color:var(--accent)}
-.q4-ask__go{width:44px;height:44px;border-radius:var(--r-xs);background:var(--ink);color:#fff;display:grid;place-items:center;font-size:18px;flex:none}
-.q4-group{margin-top:26px}
-.q4-h{font-size:14px;font-weight:600;color:var(--ink-2);margin:0 0 4px;padding-bottom:8px;border-bottom:1px solid var(--line)}
-.q4-item{display:flex;flex-direction:column;gap:6px;padding:14px 0;min-height:44px}
-.q4-item + .q4-item{border-top:1px solid var(--line)}
-.q4-item b{font-size:16.5px;font-weight:600;line-height:1.45}
-.q4-item q{font-size:14.5px;line-height:1.6;color:var(--ink-2);quotes:"\201C" "\201D";
-  border-left:3px solid var(--ink);padding-left:10px}
-.q4-src{font-size:12.5px;color:var(--ink-2)}
-.q4-src em{font-style:normal;font-weight:600;color:var(--ok-strong);margin-left:6px}
-
-/* ---------- AI 질문 v5 · 대화형 (메신저형) ---------- */
-.q5:not([hidden]){padding-bottom:0;display:flex;flex-direction:column;min-height:calc(100dvh - 52px - 76px)}
-.q5-thread{flex:1;display:flex;flex-direction:column;gap:14px;padding-top:8px}
-.q5-msg{display:flex;flex-direction:column;gap:6px;max-width:92%}
-.q5-who{font-size:12.5px;color:var(--ink-2);padding-left:4px}
-.q5-msg p{margin:0;padding:12px 14px;font-size:16px;line-height:1.55;background:var(--surface);
-  border:1px solid var(--line);border-radius:4px 16px 16px 16px}
-.q5-sug{display:flex;flex-direction:column;gap:2px;padding:12px 14px;min-height:48px;justify-content:center;
-  background:var(--accent-soft);color:var(--accent-strong);font-size:15.5px;font-weight:600;line-height:1.4;
-  border-radius:16px 16px 16px 4px;margin-left:12px}                          /* 6.4:1 */
-.q5-sug span{font-size:12.5px;font-weight:400;color:var(--ink-2)}
-.q5-links{display:flex;gap:16px;padding:8px 4px 16px;font-size:14px}
-.q5-links a{color:var(--ink-2);text-decoration:underline;text-underline-offset:3px;min-height:44px;display:inline-flex;align-items:center}
-.q5-bar{position:sticky;bottom:0;display:flex;gap:8px;padding:10px 0 12px;margin:0 calc(var(--gutter) * -1);
-  padding-inline:var(--gutter);background:var(--paper);border-top:1px solid var(--line)}
-.q5-bar input{flex:1;min-width:0;height:48px;padding:0 16px;border-radius:24px;font:inherit;font-size:16px;
-  background:var(--surface);border:1.5px solid var(--ink-3);color:var(--ink)}
-.q5-bar input::placeholder{color:var(--ink-3)}
-.q5-bar input:focus{outline:2px solid var(--accent);outline-offset:2px}
-.q5-send{height:48px;padding:0 18px;border-radius:24px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:15px;flex:none}
-
-@media (min-width:1024px){
-  .q5{min-height:calc(100dvh - 72px - 52px)}
-  .q5-msg{max-width:80%}
-}
-
-
-/* ============================================================================
-   partials/ask-new.css (AI 질문 안 가·나 + 기록) 병합
-   ============================================================================ */
-/* ---------- AI 질문 안 가 · 물음 한 장 ---------- */
+/* ---------- AI 질문 (SCR-PWA-005 채택안 "물음 한 장") ---------- */
 .qs-today{display:flex;flex-direction:column;gap:2px;margin:12px 0 0}
 .qs-today__k{font-size:12.5px;color:var(--ink-2)}
 .qs-today__v{font-size:17px;font-weight:600;line-height:1.45}
@@ -1273,24 +1164,6 @@ body:has([data-screen="onboarding"]:not([hidden])) .appbar{display:none}
 .qs-starter{display:block;width:100%;text-align:left;min-height:48px;padding:10px 0;font-size:16px;line-height:1.45;color:var(--ink)}
 .qs-starter + .qs-starter{border-top:1px solid var(--line)}
 .qs-log{display:inline-flex;align-items:center;min-height:44px;margin-top:20px;font-size:15px;color:var(--accent-strong);font-weight:600}
-
-/* ---------- AI 질문 안 나 · 답이 먼저 ---------- */
-.qn-form{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-.qn-row{display:flex;gap:8px}
-.qn-row input{flex:1;min-width:0;height:48px;padding:0 14px;font:inherit;font-size:16px;color:var(--ink);
-  background:var(--surface);border:1.5px solid var(--ink-3);border-radius:var(--r-sm)}
-.qn-row input::placeholder{color:var(--ink-3)}
-.qn-row input:focus{outline:2px solid var(--accent);outline-offset:2px;border-color:var(--accent)}
-.qn-row .btn--sm{height:48px;flex:none}
-.qn-sample{margin-top:32px}
-.qn-sample__k{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--ink-2)}
-.qn-q{margin:0 0 12px;font-size:18px;font-weight:600;line-height:1.45;letter-spacing:-.01em}
-.qn-ev{margin:14px 0 0;padding:0 0 0 14px;border-left:4px solid var(--ink)}
-.qn-ev p{margin:0;font-size:16px;line-height:1.7}
-.qn-ev footer{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--ink-2)}
-.qn-more{display:inline-flex;align-items:center;min-height:44px;margin-top:10px;font-size:15px;font-weight:600;color:var(--accent-strong)}
-.qn-others{margin-top:32px;padding-top:16px;border-top:1px solid var(--line)}
-.qn-others .qs-log{margin-top:12px}
 
 /* ---------- AI 질문 · 기록 ---------- */
 .ql-list{list-style:none;margin:16px 0 0;padding:0}
@@ -1331,3 +1204,27 @@ body:has([data-screen="onboarding"]:not([hidden])) .appbar{display:none}
       경계는 구분선이 전달한다. */
 /* 7. 세그먼트 탭 사이 간격 0~3px (.pill-seg · .sm-seg) -> 한 컨트롤 내부의 분절이라
       항목 사이를 띄우면 컨트롤이 버튼 여러 개로 읽힌다. */
+
+/* =============================================================================
+   taste-skill 패스 2 (16화면) 기각
+   — 슬롭 체크리스트에는 걸리지만 DES-PWA-003 이 명시적으로 정한 값이라 고치지 않는다.
+   ============================================================================= */
+/* 1. AI 설명 박스의 점 패턴 (radial-gradient, .ai-note)
+      -> "장식 그라데이션" 으로 읽히지만 §2 컴포넌트 표가 "--surface 바탕 + 8px 간격
+      점 패턴(--line 1px radial)" 으로 지정한 값이다. 인용(4px 실선)·메모(dashed)와 함께
+      권위 층을 형태로 가르는 장치라 지우면 층 구분이 색·라벨만 남는다. */
+/* 2. 용어 칩의 책갈피 아이콘이 한 행에 3개 (.term > i, 훈독하기·천성경 화면)
+      -> "아이콘 남발" 에 걸리지만 §2 가 "용어 칩 = --accent-soft + --accent-strong +
+      책갈피 아이콘" 으로 아이콘을 스펙에 넣었다. 칩이 용어임을 알리는 유일한 형태 신호다. */
+/* 3. 출처 줄의 3px 원형 구분자 (.src__dot) 가 한 줄에 2~3개
+      -> "의미 없는 색 점" 이 아니다. §2.2 가 출처 줄 구분자로 지정했고 색도 무채색
+      --line 이며, 화자·저작물·위치·판본을 가르는 기능을 한다. */
+/* 4. 사진 히어로의 linear-gradient veil 2곳 (.shot::after · .shot.sm-hero::after)
+      -> §1.1 이 "그라데이션은 사진 위 veil 한 곳뿐" 으로 허용한 예외이고,
+      §3.2 의 텍스트 대비(알파 .80 이상)가 이 veil 에 달려 있다. */
+/* 5. 초록(--ok-soft)이 완료 체크와 O1·O2 배지 두 뜻으로 쓰임
+      -> 2026-09-16 DES-PWA-003-Q1 확정. 완료는 체크 아이콘, 등급은 숫자+한국어 라벨로
+      형태가 갈린다. */
+/* 6. inset box-shadow 3곳 (.pill-seg 밑줄 · .sm-seg 밑줄 · 오늘 달력 칸 링)
+      -> --shadow-1/2 밖의 값이지만 blur 0 이라 그림자가 아니라 레이아웃을 밀지 않는
+      테두리 대용이다. §1.4 의 "세그먼트 활성 밑줄 2px --accent" 를 그대로 그린 것. */
