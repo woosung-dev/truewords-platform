@@ -1,0 +1,79 @@
+    <!-- ===== AI 질문 v3 · 질문 한 줄 (편집형) : 아이콘 0, 카드 0, 큰 활자와 여백만 ===== -->
+    <section class="col" data-screen="ask-v3" hidden>
+      <form class="q3-ask" onsubmit="return false">
+        <label for="q3-input" class="q3-ask__label">무엇이 궁금하세요?</label>
+        <textarea id="q3-input" rows="2" placeholder="예: 정성을 드린다는 게 정확히 뭘 하는 건가요?"></textarea>
+        <div class="q3-ask__row"><span class="q3-ask__help">답은 근거 말씀을 인용해요. 근거가 없으면 확인할 수 없다고 말해요.</span><button type="submit" class="btn btn-primary btn--sm">물어보기</button></div>
+      </form>
+      <div class="ask-seg qa-seg" role="tablist"><button class="ask-seg__btn ask-seg__btn--on" role="tab" aria-selected="true">추천</button><button class="ask-seg__btn" role="tab" aria-selected="false">북마크</button><button class="ask-seg__btn" role="tab" aria-selected="false">내 질문</button></div>
+      <h2 class="q3-h">오늘 말씀과 이어지는 질문</h2>
+      <ol class="q3-list">
+        <li><a href="?screen=ask-detail"><span class="q3-q">참사랑이 직단거리로 간다는 말씀의 의미가 궁금해요</span><span class="q3-src">천성경 제1편 3장</span></a><a class="q3-save" href="#" aria-pressed="false">저장</a></li>
+      </ol>
+      <h2 class="q3-h">이번 주 많이 본 질문</h2>
+      <ol class="q3-list">
+        <li><a href="?screen=ask-detail"><span class="q3-q">정성을 드린다는 게 정확히 뭘 하는 건가요?</span></a><a class="q3-save q3-save--on" href="#" aria-pressed="true">저장됨</a></li>
+        <li><a href="?screen=ask-detail"><span class="q3-q">축복가정으로서 자녀에게 말씀을 어떻게 가르치나요?</span></a><a class="q3-save" href="#" aria-pressed="false">저장</a></li>
+        <li><a href="?screen=ask-detail"><span class="q3-q">탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</span></a><a class="q3-save" href="#" aria-pressed="false">저장</a></li>
+        <li><a href="?screen=ask-detail"><span class="q3-q">직장에서 신앙을 말하기가 어려워요</span></a><a class="q3-save" href="#" aria-pressed="false">저장</a></li>
+        <li><a href="?screen=ask-detail"><span class="q3-q">부모님과 신앙 문제로 자주 다퉈요. 어떻게 대화하죠?</span></a><a class="q3-save" href="#" aria-pressed="false">저장</a></li>
+      </ol>
+      <p class="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
+    </section>
+
+    <!-- ===== AI 질문 v4 · 근거 먼저 (발췌형) : 질문 아래 근거 말씀 한 줄. 주제별 묶음, 카운트 없음 ===== -->
+    <section class="col" data-screen="ask-v4" hidden>
+      <form class="q4-ask" role="search" onsubmit="return false">
+        <input type="text" placeholder="궁금한 것을 물어보세요" aria-label="질문 입력">
+        <button type="submit" class="q4-ask__go" aria-label="보내기"><i class="ph-bold ph-arrow-right"></i></button>
+      </form>
+      <div class="ask-seg qa-seg" role="tablist"><button class="ask-seg__btn ask-seg__btn--on" role="tab" aria-selected="true">추천</button><button class="ask-seg__btn" role="tab" aria-selected="false">북마크</button><button class="ask-seg__btn" role="tab" aria-selected="false">내 질문</button></div>
+
+      <div class="q4-group">
+        <h2 class="q4-h">오늘 말씀에서</h2>
+        <a class="q4-item" href="?screen=ask-detail"><b>참사랑이 직단거리로 간다는 말씀의 의미가 궁금해요</b><q>참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다.</q><span class="q4-src">천성경 제1편 3장 <em>O1 공식 원문</em></span></a>
+      </div>
+      <div class="q4-group">
+        <h2 class="q4-h">가정</h2>
+        <a class="q4-item" href="?screen=ask-detail"><b>축복가정으로서 자녀에게 말씀을 어떻게 가르치나요?</b><q>아들이 좋은 만큼 어떻게 가치 있는 아들로 키우느냐 하는 문제를 놓고 걱정을 해야 합니다.</q><span class="q4-src">천성경 제1편 3장 <em>O1 공식 원문</em></span></a>
+        <a class="q4-item" href="?screen=ask-detail"><b>부모님과 신앙 문제로 자주 다퉈요. 어떻게 대화하죠?</b><q>역사는 남성과 여성을 접촉시켜 나왔습니다. 남자와 여자는 하나의 기점에서 연결되어야 합니다.</q><span class="q4-src">천성경 제1편 3장 <em>O1 공식 원문</em></span></a>
+      </div>
+      <div class="q4-group">
+        <h2 class="q4-h">원리와 용어</h2>
+        <a class="q4-item" href="?screen=ask-detail"><b>정성을 드린다는 게 정확히 뭘 하는 건가요?</b><q>40여 일 정성을 들이면서 기도한 것이 내 신앙의 기초가 되었습니다.</q><span class="q4-src">참어머님 말씀 모음 <em>O1 공식 원문</em></span></a>
+        <a class="q4-item" href="?screen=ask-detail"><b>탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</b><q>탕감은 벌이 아니라 잃어버린 본래의 자리로 돌아가기 위한 조건입니다.</q><span class="q4-src">천성경 제2편 1장 <em>O1 공식 원문</em></span></a>
+      </div>
+      <div class="q4-group">
+        <h2 class="q4-h">생활</h2>
+        <a class="q4-item" href="?screen=ask-detail"><b>직장에서 신앙을 말하기가 어려워요</b><q>우리가 뜻을 다 이루게 되면 우리는 매일 잔치다.</q><span class="q4-src">천성경 제1편 3장 <em>O1 공식 원문</em></span></a>
+      </div>
+      <p class="notice">발췌는 프로토타입용 예시입니다</p>
+    </section>
+
+    <!-- ===== AI 질문 v5 · 대화형 (메신저형) : 30~60대에게 익숙한 채팅 문법. 추천 질문은 눌러 보내는 말풍선 ===== -->
+    <section class="col q5" data-screen="ask-v5" hidden>
+      <div class="q5-thread">
+        <div class="q5-msg q5-msg--bot">
+          <span class="q5-who">훈독</span>
+          <p>안녕하세요, 효진님. 궁금한 것을 편하게 물어보세요. 답은 근거 말씀을 인용해서 드리고, 근거가 없으면 확인할 수 없다고 말씀드려요.</p>
+        </div>
+        <div class="q5-msg q5-msg--bot">
+          <span class="q5-who">훈독</span>
+          <p>오늘 읽으신 말씀에서 이런 질문이 많았어요.</p>
+          <a class="q5-sug" href="?screen=ask-detail">참사랑이 직단거리로 간다는 말씀의 의미가 궁금해요<span>천성경 제1편 3장</span></a>
+        </div>
+        <div class="q5-msg q5-msg--bot">
+          <span class="q5-who">훈독</span>
+          <p>이번 주 식구들이 많이 물어본 질문이에요. 눌러서 바로 물어볼 수 있어요.</p>
+          <a class="q5-sug" href="?screen=ask-detail">정성을 드린다는 게 정확히 뭘 하는 건가요?</a>
+          <a class="q5-sug" href="?screen=ask-detail">축복가정으로서 자녀에게 말씀을 어떻게 가르치나요?</a>
+          <a class="q5-sug" href="?screen=ask-detail">탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</a>
+          <a class="q5-sug" href="?screen=ask-detail">직장에서 신앙을 말하기가 어려워요</a>
+        </div>
+        <div class="q5-links"><a href="#">북마크한 질문</a><a href="#">내 질문 기록</a></div>
+      </div>
+      <form class="q5-bar" onsubmit="return false">
+        <input type="text" placeholder="메시지를 입력하세요" aria-label="질문 입력">
+        <button type="submit" class="q5-send">보내기</button>
+      </form>
+    </section>

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AI 질문 목록 개선 비교</title>
+<title>AI 질문 목록 5안 비교</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
 <style>
 :root{--bg:#161513;--panel:#221f1d;--line:#3a3734;--txt:#f0ede8;--txt2:#a8a29a;--hi:#c24721}
@@ -26,26 +26,35 @@ footer b{color:var(--txt)} code{background:#2f2c29;padding:1px 5px;border-radius
 </head>
 <body>
 <header>
-  <h1>SCR-PWA-005 AI 질문 목록 · 기존 vs 개선</h1>
+  <h1>SCR-PWA-005 AI 질문 목록 · 기존 · v2 · 슬롭 제거 3안</h1>
   <p class="sub">기존(왼쪽 2개)과 개선판(오른쪽 2개)을 폰 390 · PC 1280 으로 나란히. 같은 <code>app.html</code>, 화면 id 만 <code>ask</code> / <code>ask-v2</code>.</p>
-  <div class="ctl" id="ctl"><button data-z="fit" class="on">한 화면에 맞춤</button><button data-z="full">실제 크기</button></div>
+  <div class="ctl" id="ctl"><button data-w="390" class="on">폰 390</button><button data-w="1280">PC 1280</button><span style="width:10px"></span><button data-z="fit" class="on">한 화면에 맞춤</button><button data-z="full">실제 크기</button></div>
 </header>
 <div class="rack" id="rack"></div>
 <footer>
   <b>ui-ux-pro-max 지적 6건</b> 북마크가 20px 아이콘(버튼 아님) · 세그먼트 탭 폭 30~47px · 유일한 행동이 우하단 FAB · 6행 동일 위계, 오늘 훈독 질문이 맨 아래 · 하단 빈 공간(폰 150 / PC 400px) · "출처 있는 답변" 신뢰 신호 부재.<br>
   <b>taste-skill 반영</b> 상단 질문 입력(56px, 주 행동 1개, FAB 제거) + 신뢰 한 줄 · 오늘 훈독 연결 카드를 위계 1 로 · 많이 본 질문에 주제 태그 + 근거 수 + 44px 북마크 버튼 · 주제 칩으로 빈 공간을 탐색 진입점으로 · 카드는 강조 1곳만, 나머지는 리스트.<br>
-  개선판은 PRD 의 "FAB 우하단 질문하기" 를 상단 입력으로 바꾼 제안입니다. 채택 시 PRD·DES-PWA-003 §2.9 갱신 필요.
+  <b>v2 의 AI 슬롭 7건</b> 반짝이 아이콘 · 입력 아래 마이크로 메타 문장 · 좌측 바+알약+카운트+캐럿 스택 · 가운뎃점 남발 · 아이콘 칩 행 · 섹션마다 우측 메타 · 카드 두 가족 혼용.<br>
+  <b>v3 질문 한 줄</b> 라벨 위 textarea + 채움 버튼 1개. 목록은 17px 활자와 헤어라인만. 저장은 아이콘 대신 "저장/저장됨" 글자(44px).<br>
+  <b>v4 근거 먼저</b> 질문마다 근거 말씀 발췌 한 줄(잉크 좌측 룰) + 출처 + O1. 카운트·태그 없음. 가정/원리와 용어/생활로 묶음.<br>
+  <b>v5 대화형</b> 카톡 문법. 훈독이 먼저 말을 걸고, 추천 질문은 연감귤 말풍선(누르면 전송). 입력은 하단 고정. 북마크·내 질문은 밑줄 링크.<br>
+  v2~v5 모두 PRD 의 "FAB 우하단 질문하기" 를 바꾼 제안입니다. 채택 시 PRD·DES-PWA-003 §2.9 갱신 필요.
 </footer>
 <script>
-const T=[
-  {w:390,h:844,q:'screen=ask',t:'기존 · 폰'},{w:1280,h:900,q:'screen=ask&nav=top&header=4',t:'기존 · PC'},
-  {w:390,h:844,q:'screen=ask-v2',t:'개선 · 폰'},{w:1280,h:900,q:'screen=ask-v2&nav=top&header=4',t:'개선 · PC'},
+const V=[
+  {s:'ask',t:'기존',d:'FAB + 동일 위계 6행'},
+  {s:'ask-v2',t:'v2',d:'상단 입력 + 카드 + 태그·근거 수 + 칩 (슬롭 지적 7건)'},
+  {s:'ask-v3',t:'v3 · 질문 한 줄',d:'편집형. 아이콘 0, 카드 0. 라벨 있는 입력, 큰 활자 목록, 저장은 글자'},
+  {s:'ask-v4',t:'v4 · 근거 먼저',d:'발췌형. 질문 아래 근거 말씀 한 줄 + 출처. 주제별 묶음, 카운트 없음'},
+  {s:'ask-v5',t:'v5 · 대화형',d:'메신저형. 안내 말풍선 + 눌러 보내는 추천 질문 + 하단 입력 바'},
 ];
-let z='fit'; const rack=document.getElementById('rack');
-function render(){const avail=document.documentElement.clientWidth-40-18*3;const total=T.reduce((a,x)=>a+x.w,0);const k=z==='full'?1:Math.min(1,avail/total);
-  rack.innerHTML=T.map(x=>`<div class="slot" style="width:${Math.round(x.w*k)}px"><div class="cap"><div class="t">${x.t}</div><div class="d">app.html?theme=card&${x.q}</div></div>
-  <div class="frame" style="width:${Math.round(x.w*k)}px;height:${Math.round(x.h*k)}px"><iframe src="app.html?theme=card&${x.q}" width="${x.w}" height="${x.h}" style="transform:scale(${k})" title="${x.t}"></iframe></div></div>`).join('');}
-document.getElementById('ctl').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;z=b.dataset.z;[...document.querySelectorAll('#ctl button')].forEach(x=>x.classList.toggle('on',x===b));render();});
+let z='fit', w=390; const rack=document.getElementById('rack');
+function render(){const n=V.length;const avail=document.documentElement.clientWidth-40-18*(n-1);const k=z==='full'?1:Math.min(1,avail/(n*w));const h=w===390?844:900;const extra=w===390?'':'&nav=top&header=4';
+  rack.innerHTML=V.map(x=>`<div class="slot" style="width:${Math.round(w*k)}px"><div class="cap"><div class="t">${x.t}</div><div class="d">${x.d}</div></div>
+  <div class="frame" style="width:${Math.round(w*k)}px;height:${Math.round(h*k)}px"><iframe src="app.html?theme=card&screen=${x.s}${extra}" width="${w}" height="${h}" style="transform:scale(${k})" title="${x.t}"></iframe></div></div>`).join('');}
+document.getElementById('ctl').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  const pick=a=>[...document.querySelectorAll(`#ctl button[data-${a}]`)].forEach(x=>x.classList.toggle('on',x===b));
+  if(b.dataset.w){w=+b.dataset.w;pick('w')} if(b.dataset.z){z=b.dataset.z;pick('z')} render();});
 addEventListener('resize',()=>{clearTimeout(window.__t);window.__t=setTimeout(render,160)});render();
 </script>
 </body>
