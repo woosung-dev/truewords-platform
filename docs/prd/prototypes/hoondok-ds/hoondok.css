@@ -238,7 +238,8 @@ mark.hl-1{background:var(--hl-1)} mark.hl-2{background:var(--hl-2)} mark.hl-3{ba
    ============================================================================= */
 @media (min-width:1024px){
   .app{flex-direction:row}
-  .nav{position:sticky;top:0;height:100dvh;width:var(--rail-w);flex:none;
+  /* 마크업은 하단 탭용으로 main 다음에 nav 가 온다. 좌측 레일(DES-PWA-003 §4.1)은 order 로 앞당긴다 */
+  .nav{position:sticky;top:0;height:100dvh;width:var(--rail-w);flex:none;order:-1;
     display:flex;flex-direction:column;gap:4px;
     grid-template-columns:none;border-top:0;border-right:1px solid var(--line);
     padding:20px 12px;min-height:0}
