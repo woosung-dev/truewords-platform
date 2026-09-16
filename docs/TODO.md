@@ -1,8 +1,10 @@
 # TODO
 
-> 마지막 업데이트: 2026-09-16
+> 마지막 업데이트: 2026-09-16 (훈독 MVP 계획 승인)
 
-> **현재 우선 작업:** 2안 UI 분리의 구현·로컬 검증 완료, 2026-09-05 커밋·푸시 승인. PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과를 재사용하지 않는다. 최신 로컬 증거는 [APP-UI-001](plans/active/2026-09-05-app-owned-ui.md), 최초 M1~M4 기록은 [전환 계획 §5](plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 따른다. 아래 과거 퍼센트·테스트 수치를 새 완료 증거로 사용하지 않는다. 신규 디자인·M5·Flutter·운영 배포는 비범위다.
+> **현재 우선 작업 (2026-09-16~):** 훈독 MVP Phase 1 — [PLAN-HD-001](plans/active/2026-09-17-hoondok-mvp.md). 통합 브랜치 `dev/hoondok-mvp` 에 sub-PR 3개(web 골격·SEC-MONO-001·daily_readings API).
+>
+> **이전 우선 작업:** 2안 UI 분리의 구현·로컬 검증 완료, 2026-09-05 커밋·푸시 승인. PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과를 재사용하지 않는다. 최신 로컬 증거는 [APP-UI-001](plans/active/2026-09-05-app-owned-ui.md), 최초 M1~M4 기록은 [전환 계획 §5](plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 따른다. 아래 과거 퍼센트·테스트 수치를 새 완료 증거로 사용하지 않는다. 신규 디자인·M5·Flutter·운영 배포는 비범위다.
 
 ## Progress Overview
 
@@ -203,7 +205,10 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 - `[종결]` `DEC-MONO-005` — 사용자 승인 후 `apps/admin` 배포별 override로 Vercel preview `dpl_7mjHQuuQA2NuFddcxmz18G7RBbVc`의 `READY`를 확인했었다. 2026-09-05 main 머지 후 Production 배포가 Root Directory `admin` 부재로 실패했고, 같은 날 **Vercel 프로젝트 즉시 삭제**를 결정해 preview·전역 Root Directory 논점이 사라졌다. [전환 runbook](runbooks/monorepo-migration-and-rollback.md#외부-vercel-설정-종결) 참조.
 - `[종결]` `DEC-MONO-002` — **2026-09-06 확정**: web 은 기존 `app.woosung.dev` 유지, admin 은 `truewords-admin.woosung.dev`(zone 을 nexus·kairos·quantbridge 와 공유하므로 프로젝트 접두어). 컷오버 순서는 [전환 runbook §배포 승인 후 순서](runbooks/monorepo-migration-and-rollback.md#배포-승인-후-순서), 실행은 단계별 승인.
-- `[확인 필요]` `DEC-MONO-003` — 일반 사용자 로그인 방식 및 기존 데모 계정·기록의 이전 여부. identity 구현 전 필요하다.
+- `[종결]` `DEC-MONO-003` — **2026-09-16 확정**: 이메일+비밀번호, 별도 `users` 테이블·쿠키 `hoondok_token`. 기존 데모 관리자 계정·기록은 이전하지 않는다. 비밀번호 재설정은 베타 기간 운영자 수동. [PLAN-HD-001 §1-4](plans/active/2026-09-17-hoondok-mvp.md)
+- `[확인 필요]` **훈독 메일 제공자** — 재설정·인증 메일 인프라 0건. Phase 2 전까지 무료 제공자 선택 또는 메일 없는 방식 유지 결정
+- `[확인 필요]` **훈독 이용약관·개인정보처리방침 문구와 법적 주체** (`DEC-PWA-001`) — Phase 2 계정 수집 전 필수. 리드타임 최장이라 먼저 착수 권장
+- `[확인 필요]` **훈독 편성자가 비개발자인지** — 그렇다면 Phase 3 에 `apps/admin` 편성 화면 1개 추가
 
 - `[종결]` `DEC-PWA-017` 디자인 방향 — **2026-09-14 A 아침 햇살 단독 채택**. B 저녁 등불 미채택, A+B 흡수 3항목(시간대별 홈·세리프 인용·다크 팔레트) 모두 미도입. 베타는 라이트 고정이며 다크 모드는 출시 후 재검토.
 - `[종결]` `DEC-PWA-015` 5탭 명칭 — **2026-09-14 확정**: 오늘 훈독 · AI 질문 · 말씀 · 가정예배 · **나의 정원**. 시안 HTML·스크린샷의 "나의 뜰" 표기는 09-10 산출물이며 재생성하지 않는다
@@ -212,7 +217,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - `[종결]` `DES-PWA-003-Q1` 권위 층 배지 — **2026-09-16 "시안 그대로" 확정**. O1·O2 는 초록(`--ok-soft`) 유지. `--ok` 는 완료와 정본 등급 두 의미를 가지며, 혼동은 형태로 막는다(완료 = 체크 아이콘, 등급 = 등급 숫자 + 한국어 라벨). 글자색만 대비 미달(4.49:1)로 `--ok-strong`(6.14:1) 교체. [DES-PWA-003 §2.3](specs/web/hoondok-design-system.md)
 - `[종결]` 데스크톱 시안 4안·DESIGN.md 7안·내비 7안 비교 — **2026-09-16 A 기준 유지 + 상단 헤더 4 확정.** 비교 산출물은 PR #269 이전 커밋에만 남긴다. 구현 단계 검토 후보: E 반전 원문 블록, C AI 설명 이중 라벨, D 형태 전용 요일 칩, 체크 원·용어 칩 44px
 - `[확인 필요]` **세리프 말씀 인용 재검토** — `DEC-PWA-017` 이 2026-09-14 기각했으나 비교 시안 도구·브랜드 번역 안 대부분이 세리프 원문을 재제안했다. 기각 근거였던 "장년층 가독성 확인"은 아직 수행하지 않았다. 프로토타입 `?serif=1` 로 바로 비교할 수 있다
-- `[확인 필요]` `DES-PWA-003-Q2` 히어로 사진 큐레이션 주체와 권리 확인 절차. 시안의 `picsum.photos` 예시를 대체할 소스가 없으면 홈 히어로를 텍스트 카드로 바꿔야 한다 (`RSK-PWA-008` 연결)
+- `[종결]` `DES-PWA-003-Q2` 히어로 사진 — **2026-09-16 베타는 텍스트 카드로 확정.** 사진 소스·권리 절차는 `RSK-PWA-008` 과 함께 후속
 - `[확인 필요]` `DEC-PWA-020` "가행국 가정예배"의 정식 명칭·주관 부서와 순서지 편성 주체
 - `[확인 필요]` `DEC-PWA-021` 설교 섭외·신청의 운영 주체와 교회장 동의 절차
 - `[확인 필요]` `DEC-PWA-001` 독립 베타의 법적 운영 주체와 FFWPU 공식 승인 요청·검수 절차는 무엇인가?
@@ -271,10 +276,11 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ### 가정연합 신규 PWA 기획 (2026-08-31)
 - [x] 세션 1' — PRD v2 작성 (`docs/prd/17-ffwpu-pwa-prd.md`, 2026-09-10 전면 재작성. v1 PR #261 close)
 - [x] 세션 2' — 디자인 2안 클릭형 목업 작성 (2026-09-16 정리로 제거, 정본은 `prototypes/hoondok-ds/`)
-- [ ] 세션 1'·2' 승인 — PRD v2 §1 문제·§3 5탭·§5 기능·§6 보상 정책·§9 KPI 검토 + 방향 선택(`DEC-PWA-017`) + `DEC-PWA-015·016·019·020·021` 답변. 목표 2026-09-14
-- [x] 세션 3 — 채택안 디자인 시스템·접근성 상태 작성 (`docs/specs/web/hoondok-design-system.md`, `DES-PWA-003`, 2026-09-15). `DES-PWA-003-Q1` 권위 배지는 2026-09-16 "시안 그대로" 확정. **문서 전체 승인 대기**
-- [ ] 세션 4 — 구현 설계(미션·정성·챌린지·관계·설교 도메인 포함)·작업 분해·제한 베타 계획과 S5~S15 실행 runbook 작성. 입력은 `DES-PWA-003` §7 인계 항목. 목표 2026-09-28
-- [ ] 세션 5~15 — 승인 runbook 순서로 구현·검증·독립 베타·결과 판정
+- [x] 세션 1'·2' 승인 — 2026-09-14 방향(`DEC-PWA-015·016·017·019`) + 2026-09-16 PRD v2 전체 승인(`DEC-PWA-022`). `DEC-PWA-020·021` 은 외부 확인 대기
+- [x] 세션 3 — 채택안 디자인 시스템·접근성 상태 작성 (`docs/specs/web/hoondok-design-system.md`, `DES-PWA-003`, 2026-09-15). 2026-09-16 문서 전체 승인, 레일·FAB 모순은 정정 주석
+- [x] 세션 4 — 구현 계획 [PLAN-HD-001](plans/active/2026-09-17-hoondok-mvp.md) (2026-09-16). 범위 축소: 3테이블 [ENT-HD-001~003](specs/domain/hoondok-entities.md) · 5 API [API-HD-001~005](specs/api/hoondok-api.md) · 화면 4 · Phase 1~4. 정성·챌린지·관계·설교 도메인은 비범위
+- [ ] Phase 1 (~9/30) — 통합 브랜치 `dev/hoondok-mvp`. sub-PR 1 web 골격·`[data-app="hoondok"]` 토큰·컴포넌트 6종·`hoondok-css.mjs`·Playwright 스모크 / sub-PR 2 `SEC-MONO-001` 403 거부 / sub-PR 3 `daily_readings`·`GET /hoondok/today`·SDK 재생성·web 결합
+- [ ] Phase 2~4 — identity·mission_logs → PWA 셸·운영 배포·제한 베타 → 훈독 알림 1종(조건부). 계획 §5~§7
 
 ### 00. 멀티턴 대화 메모리 (2026-07-08)
 > 설계: `docs/architecture/multi-turn-memory.md` (업계 조사 + 방안 A~D 비교)

@@ -17,6 +17,8 @@ def _make_session(session_id=None, config_id=None):
     s = MagicMock(spec=ResearchSession)
     s.id = session_id or uuid.uuid4()
     s.chatbot_config_id = config_id
+    # 익명 세션 — SEC-MONO-001 소유권 비교(ctx.user_id=None)와 일치해야 재사용된다.
+    s.user_id = None
     return s
 
 
