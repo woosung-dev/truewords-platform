@@ -269,6 +269,25 @@ mark.hl-1{background:var(--hl-1)} mark.hl-2{background:var(--hl-2)} mark.hl-3{ba
   .sheet__grip{display:none}
 }
 
+/* =============================================================================
+   lg 내비 변형 B : 상단 헤더 (웹사이트형). body[data-nav="top"] 일 때만.
+   1024px 미만에서는 두 변형 모두 하단 탭이므로 여기서만 갈린다.
+   ============================================================================= */
+@media (min-width:1024px){
+  [data-nav="top"] .app{flex-direction:column}   /* 레일의 row 를 되돌린다. main 은 base 의 flex:1 로 남은 높이를 채운다 */
+  [data-nav="top"] .nav{order:-1;position:sticky;top:0;z-index:25;height:64px;width:100%;
+    flex-direction:row;align-items:center;gap:4px;padding:0 32px;
+    border-right:0;border-bottom:1px solid var(--line)}
+  /* 좌측 워드마크 + 가운데 정렬 5탭. 워드마크는 프로토타입용 (마크업에 브랜드 요소가 없다) */
+  [data-nav="top"] .nav::before{content:"훈독";font-size:18px;font-weight:700;letter-spacing:-.02em;
+    color:var(--ink);margin-right:auto;width:120px}
+  [data-nav="top"] .nav::after{content:"";margin-left:auto;width:120px}
+  [data-nav="top"] .nav__item{min-height:44px;padding:6px 14px;font-size:15px;gap:8px;border-radius:var(--r-sm)}
+  [data-nav="top"] .nav__ic,[data-nav="top"] .nav__item--mid .nav__ic{width:28px;height:28px;font-size:22px;
+    border-radius:8px}
+  [data-nav="top"] .appbar{top:64px}
+}
+
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important;animation:none!important}
 }

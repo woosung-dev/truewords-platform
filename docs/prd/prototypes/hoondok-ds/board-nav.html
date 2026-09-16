@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>훈독 데스크톱 내비 2안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+:root{--bg:#161513;--panel:#221f1d;--line:#3a3734;--txt:#f0ede8;--txt2:#a8a29a;--hi:#c24721}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:"Pretendard Variable",Pretendard,-apple-system,sans-serif}
+header{position:sticky;top:0;z-index:30;background:var(--panel);border-bottom:1px solid var(--line);padding:13px 20px}
+h1{font-size:17px;margin:0;font-weight:700;letter-spacing:-.02em}
+.sub{font-size:12.5px;color:var(--txt2);margin-top:4px;line-height:1.6}
+.ctl{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;align-items:center}
+.ctl button{font:inherit;font-size:13px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);color:var(--txt2);background:transparent;cursor:pointer}
+.ctl button:hover{background:#2f2c29;color:var(--txt)}
+.ctl button.on{background:var(--hi);border-color:var(--hi);color:#fff;font-weight:600}
+.ctl .tag{border:0;background:none;padding:0 2px;color:#6f6a65;font-size:12px;cursor:default}
+.ctl .gap{width:10px;border:0;background:none;padding:0;cursor:default}
+.rack{display:flex;gap:18px;padding:18px 20px 40px;align-items:flex-start;overflow-x:auto}
+.slot{flex:none}
+.cap .t{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.cap .t i{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
+.cap .d{font-size:11.5px;color:var(--txt2);margin:3px 0 8px;line-height:1.5}
+.frame{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fbfaf8;box-shadow:0 12px 34px rgba(0,0,0,.36)}
+iframe{border:0;display:block;transform-origin:top left}
+footer{padding:0 20px 44px;font-size:12.5px;color:var(--txt2);line-height:1.85;max-width:1180px}
+footer b{color:var(--txt)} code{background:#2f2c29;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>훈독 데스크톱 내비 2안 · A 기준 테마 고정</h1>
+  <p class="sub">같은 <code>app.html</code> · 같은 <code>hoondok.css</code>. 다른 건 <code>?nav=rail|top</code> 하나뿐입니다. 1024px 미만에서는 둘 다 하단 5탭이라 차이가 없습니다.</p>
+  <div class="ctl" id="ctl">
+    <span class="tag">폭</span>
+    <button data-w="1024">1024</button>
+    <button data-w="1280" class="on">1280</button>
+    <button data-w="1440">1440</button>
+    <span class="gap"></span>
+    <span class="tag">화면</span>
+    <button data-s="today" class="on">오늘 훈독</button>
+    <button data-s="read">훈독하기</button>
+    <button data-s="words">원문 뷰</button>
+    <span class="gap"></span>
+    <span class="tag">보기</span>
+    <button data-z="fit" class="on">한 화면에 맞춤</button>
+    <button data-z="full">실제 크기</button>
+  </div>
+</header>
+<div class="rack" id="rack"></div>
+<footer>
+  <b>내비 A · 좌측 레일</b> <code>DES-PWA-003</code> §4.1 그대로. 레일 240px + 본문 720px. 앱처럼 읽힌다.<br>
+  <b>내비 B · 상단 헤더</b> 워드마크 + 가운데 5탭 + 64px 높이. 웹사이트처럼 읽히고 본문이 화면 가운데에 온다. <code>DES-PWA-004</code>에서 도구 3종이 모두 택했던 형태.<br><br>
+  모든 말씀·인물·교회·수치는 프로토타입용 예시입니다.
+</footer>
+<script>
+const T=[
+  {k:'rail', t:'내비 A · 좌측 레일', c:'#c24721', d:'현행. 레일 240px 고정, 본문 720px 중앙.'},
+  {k:'top',  t:'내비 B · 상단 헤더', c:'#2f6048', d:'워드마크 + 가운데 5탭, 64px. 본문이 화면 중앙.'},
+];
+let w=1280, s='today', z='fit'; const rack=document.getElementById('rack');
+function scaleFor(){ if(z==='full') return 1; const avail=document.documentElement.clientWidth-40-18; return Math.min(1, avail/(2*w)); }
+function render(){
+  const h=900, k=scaleFor();
+  rack.innerHTML=T.map(x=>`<div class="slot" style="width:${Math.round(w*k)}px">
+    <div class="cap"><div class="t"><i style="background:${x.c}"></i>${x.t}</div><div class="d">${x.d}</div></div>
+    <div class="frame" style="width:${Math.round(w*k)}px;height:${Math.round(h*k)}px">
+      <iframe src="app.html?theme=card&screen=${s}&nav=${x.k}" width="${w}" height="${h}" style="transform:scale(${k})" title="${x.t}"></iframe>
+    </div></div>`).join('');
+}
+document.getElementById('ctl').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  const pick=a=>[...document.querySelectorAll(`#ctl button[data-${a}]`)].forEach(x=>x.classList.toggle('on',x===b));
+  if(b.dataset.w){w=+b.dataset.w;pick('w')} if(b.dataset.s){s=b.dataset.s;pick('s')} if(b.dataset.z){z=b.dataset.z;pick('z')} render();});
+addEventListener('resize',()=>{clearTimeout(window.__t);window.__t=setTimeout(render,160)});
+render();
+</script>
+</body>
+</html>

@@ -23,7 +23,7 @@
 </head>
 <body data-theme="card">
 <!-- 마크업은 한 벌이다. 테마도 화면 폭도 이 문서를 복제하지 않는다.
-     ?theme=card|rule|editorial|scripture|apple|notion|wired|starbucks|claude|airbnb   ?screen=today|read|words   ?serif=1 -->
+     ?theme=card|rule|editorial|scripture|apple|notion|wired|starbucks|claude|airbnb   ?screen=today|read|words   ?serif=1   ?nav=rail|top -->
 <div class="app">
 
   <main class="app__main">
@@ -214,8 +214,10 @@
   const theme  = q.get('theme')  || 'card';
   const screen = q.get('screen') || 'today';
   const serif  = q.get('serif') === '1';
+  const nav    = q.get('nav') || 'rail';   // rail | top (1024px 이상에서만 갈린다)
 
   document.body.dataset.theme = theme;
+  document.body.dataset.nav = nav;
   if (serif) document.documentElement.style.setProperty('--font-scripture','var(--serif)');
 
   document.querySelectorAll('[data-screen]').forEach(s => s.hidden = s.dataset.screen !== screen);
