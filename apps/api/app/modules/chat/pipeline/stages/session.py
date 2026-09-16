@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.modules.chat.exceptions import SessionOwnershipError
 from app.modules.chat.history import estimate_tokens
 from app.modules.chat.models import MessageRole, ResearchSession, SessionMessage
 from app.modules.chat.pipeline.context import ChatContext
@@ -48,10 +49,17 @@ class SessionStage:
         return config.retrieval.multiturn_enabled if config else True
 
     async def _get_or_create_session(self, ctx: ChatContext) -> tuple[ResearchSession, bool]:
-        """(세션, 기존 세션 재사용 여부) 반환."""
+        """(세션, 기존 세션 재사용 여부) 반환.
+
+        SEC-MONO-001 — 기존 세션은 소유자만 이어쓸 수 있다. 익명 세션(user_id=None)은
+        익명 요청만 재사용하고, 로그인 사용자가 익명 세션 id 를 보내도 거부한다.
+        존재하지 않는 id 는 기존대로 새 세션을 만든다.
+        """
         if ctx.request.session_id:
             existing = await self.chat_repo.get_session(ctx.request.session_id)
             if existing:
+                if existing.user_id != ctx.user_id:
+                    raise SessionOwnershipError(ctx.request.session_id)
                 return existing, True
         config_id = await self.chatbot_service.get_config_id(ctx.request.chatbot_id)
         created = await self.chat_repo.create_session(

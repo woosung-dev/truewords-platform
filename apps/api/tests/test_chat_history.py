@@ -5,6 +5,7 @@ import uuid
 import pytest
 from unittest.mock import AsyncMock
 
+from app.modules.chat.exceptions import SessionOwnershipError
 from app.modules.chat.models import MessageRole, ResearchSession, SessionMessage
 from app.modules.chat.pipeline.context import ChatContext
 from app.modules.chat.pipeline.stages.session import SessionStage
@@ -112,3 +113,83 @@ async def test_session_stage_anonymous_when_no_user():
     created, _reused = await stage._get_or_create_session(ctx)
 
     assert created.user_id is None
+
+
+# --- SEC-MONO-001: 기존 세션 이어쓰기 소유권 검증 -----------------------------
+
+
+def _make_stage() -> tuple[SessionStage, AsyncMock]:
+    chat_repo = AsyncMock()
+    chatbot_service = AsyncMock()
+    chatbot_service.get_config_id.return_value = None
+    chat_repo.create_session.side_effect = lambda s: s
+    return SessionStage(chat_repo, chatbot_service), chat_repo
+
+
+@pytest.mark.asyncio
+async def test_session_stage_rejects_foreign_user_session():
+    """다른 사용자의 세션 id → 403 예외, 새 세션도 만들지 않는다."""
+    stage, chat_repo = _make_stage()
+    sid = uuid.uuid4()
+    chat_repo.get_session.return_value = ResearchSession(id=sid, user_id=uuid.uuid4())
+    ctx = ChatContext(request=ChatRequest(query="질문", session_id=sid), user_id=uuid.uuid4())
+
+    with pytest.raises(SessionOwnershipError) as exc_info:
+        await stage._get_or_create_session(ctx)
+
+    assert exc_info.value.session_id == sid
+    chat_repo.create_session.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_session_stage_rejects_logged_in_user_on_anonymous_session():
+    """로그인 사용자가 익명 세션 id 를 보내도 거부한다."""
+    stage, chat_repo = _make_stage()
+    sid = uuid.uuid4()
+    chat_repo.get_session.return_value = ResearchSession(id=sid, user_id=None)
+    ctx = ChatContext(request=ChatRequest(query="질문", session_id=sid), user_id=uuid.uuid4())
+
+    with pytest.raises(SessionOwnershipError):
+        await stage._get_or_create_session(ctx)
+
+
+@pytest.mark.asyncio
+async def test_session_stage_rejects_anonymous_on_owned_session():
+    """익명 요청이 로그인 사용자의 세션 id 를 보내면 거부한다."""
+    stage, chat_repo = _make_stage()
+    sid = uuid.uuid4()
+    chat_repo.get_session.return_value = ResearchSession(id=sid, user_id=uuid.uuid4())
+    ctx = ChatContext(request=ChatRequest(query="질문", session_id=sid))
+
+    with pytest.raises(SessionOwnershipError):
+        await stage._get_or_create_session(ctx)
+
+
+@pytest.mark.asyncio
+async def test_session_stage_allows_anonymous_resume_of_anonymous_session():
+    """익명 ↔ 익명 재사용은 허용 (비로그인 멀티턴 유지)."""
+    stage, chat_repo = _make_stage()
+    sid = uuid.uuid4()
+    existing = ResearchSession(id=sid, user_id=None)
+    chat_repo.get_session.return_value = existing
+    ctx = ChatContext(request=ChatRequest(query="질문", session_id=sid))
+
+    session, reused = await stage._get_or_create_session(ctx)
+
+    assert session is existing
+    assert reused is True
+
+
+@pytest.mark.asyncio
+async def test_session_stage_allows_owner_resume():
+    stage, chat_repo = _make_stage()
+    owner = uuid.uuid4()
+    sid = uuid.uuid4()
+    existing = ResearchSession(id=sid, user_id=owner)
+    chat_repo.get_session.return_value = existing
+    ctx = ChatContext(request=ChatRequest(query="질문", session_id=sid), user_id=owner)
+
+    session, reused = await stage._get_or_create_session(ctx)
+
+    assert session is existing
+    assert reused is True

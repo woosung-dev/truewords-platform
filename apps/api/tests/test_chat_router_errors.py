@@ -89,3 +89,30 @@ def test_chat_stream_with_prompt_injection_returns_error_response_format(
     body = response.json()
     assert body["error_code"] == "INPUT_BLOCKED"
     assert "request_id" in body
+
+
+def test_chat_with_foreign_session_returns_403(client: TestClient):
+    """SEC-MONO-001 — 타 사용자 세션 이어쓰기 시도는 403 + ErrorResponse 포맷."""
+    import uuid
+    from unittest.mock import AsyncMock
+
+    from app.modules.chat.dependencies import get_chat_service
+    from app.modules.chat.exceptions import SessionOwnershipError
+
+    sid = uuid.uuid4()
+    service = AsyncMock()
+    service.process_chat.side_effect = SessionOwnershipError(sid)
+    app.dependency_overrides[get_chat_service] = lambda: service
+    try:
+        response = client.post(
+            "/chat",
+            json={"query": "이어서 질문", "chatbot_id": "all", "session_id": str(sid)},
+        )
+    finally:
+        app.dependency_overrides.pop(get_chat_service, None)
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["error_code"] == "SESSION_FORBIDDEN"
+    assert "request_id" in body
+    assert str(sid) not in body["message"]
