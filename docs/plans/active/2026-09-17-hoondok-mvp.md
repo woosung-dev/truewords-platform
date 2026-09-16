@@ -140,7 +140,7 @@ make e2e
 
 Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 passed / 4 skipped / 1 xfailed, Vitest 113, Playwright 23)은 참고값이며 현재 결과로 복사하지 않는다.
 
-아래 Phase 1 결과는 2026-09-16 로컬 worktree `../tw-hoondok-mvp/`(`dev/hoondok-mvp`, sub-PR 3개 커밋 상태, **main 미머지**)에서 실행했다. PR 머지·CI 결과는 별도로 기록한다.
+아래 Phase 1 결과는 2026-09-16 로컬 worktree `../tw-hoondok-mvp/`(`dev/hoondok-mvp`)에서 실행했고, 같은 날 sub-PR #272(SEC)·#273(web)·#274(API)가 각각 GitHub CI(API·web·admin·contracts·E2E·repository) 전부 통과 후 dev 에 squash 머지됐다. docs PR 은 #271.
 
 | Phase | 검증 | 결과 | 날짜 |
 |---|---|---|---|
