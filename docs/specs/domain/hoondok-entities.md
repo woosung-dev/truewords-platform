@@ -26,11 +26,12 @@
 | `display_name` | varchar(64) | not null | 홈 인사에 쓰는 이름. 실명 강제 없음 |
 | `timezone` | varchar(64) | not null, default `Asia/Seoul` | **예약 컬럼.** 베타는 KST 고정이며 읽지 않는다 |
 | `consented_at` | datetime | null | 약관·처리방침 동의 시각. 문구 확정 전(`DEC-PWA-001` `[확인 필요]`)에는 NULL |
-| `consent_version` | varchar(32) | null | 동의한 문구 버전 `[가정]` |
+| `consent_version` | varchar(32) | null | 동의한 문구 버전. 예약 컬럼 — 문구 확정 전에는 API 가 받지 않는다 |
 | `created_at` | datetime | not null | |
-| `deleted_at` | datetime | null | 소프트 삭제. 삭제 요청 시 즉시 로그인 불가, 30일 후 물리 삭제 `[가정]` |
+| `deleted_at` | datetime | null | 소프트 삭제 예약 컬럼. 값이 있으면 로그인·`me` 모두 401. 삭제 API·물리 삭제 주기는 Phase 2 비범위 `[가정: 30일]` |
 
-- 인증: 별도 HttpOnly 쿠키 `hoondok_token`, JWT `aud="hoondok"`. `admin_token` 을 읽지 않는다.
+- 인증: 별도 HttpOnly 쿠키 `hoondok_token`, JWT `aud="hoondok"`, 만료 7일(`HOONDOK_JWT_EXPIRE_MINUTES`). `admin_token` 을 읽지 않는다.
+- 이메일은 `strip().lower()` 후 저장·조회한다. 비밀번호는 bcrypt(`admin/auth.py hash_password`).
 - 비밀번호 재설정은 베타 기간 운영자 수동(결정 4). 메일 인프라는 없다.
 
 ---
@@ -84,3 +85,4 @@
 | 2026-09-16 | 3테이블로 축소. 정성·챌린지·관계·설교 도메인은 비범위 | 확정 · 계획 §1-8 |
 | 2026-09-16 | KST 고정, `users.timezone` 예약만 | 확정 · 계획 §1-9 |
 | 2026-09-16 | `chunk_id` 는 FK 아님, 상태값은 varchar | 확정 · 계획 §3 |
+| 2026-09-16 | `users` 확정(alembic `i1e2f3a4b5c6`). `consent_version`·`deleted_at` 은 예약 컬럼 | 확정 · Phase 2 sub-PR A |

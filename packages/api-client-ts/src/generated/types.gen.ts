@@ -951,6 +951,20 @@ export type IngestionStatusSummary = {
 };
 
 /**
+ * LoginRequest
+ */
+export type LoginRequest = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
  * MessageResponse
  *
  * 단순 메시지 응답 (로그인/로그아웃 등).
@@ -1545,6 +1559,26 @@ export type SettingsConfigResponse = {
 };
 
 /**
+ * SignupRequest
+ *
+ * 약관 문구 확정 전(DEC-PWA-001)이라 consent_version 을 받지 않는다.
+ */
+export type SignupRequest = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
  * SkippedVolume
  */
 export type SkippedVolume = {
@@ -1765,6 +1799,31 @@ export type UploadResponse = {
      * NFC 정규화된 volume 식별자 (polling 키)
      */
     volume_key: string;
+};
+
+/**
+ * UserEnvelope
+ */
+export type UserEnvelope = {
+    user: UserPublic;
+};
+
+/**
+ * UserPublic
+ */
+export type UserPublic = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Id
+     */
+    id: string;
 };
 
 /**
@@ -3337,6 +3396,88 @@ export type HealthHealthGetResponses = {
      */
     200: unknown;
 };
+
+export type LoginHoondokAuthLoginPostData = {
+    body: LoginRequest;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/login';
+};
+
+export type LoginHoondokAuthLoginPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type LoginHoondokAuthLoginPostError = LoginHoondokAuthLoginPostErrors[keyof LoginHoondokAuthLoginPostErrors];
+
+export type LoginHoondokAuthLoginPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserEnvelope;
+};
+
+export type LoginHoondokAuthLoginPostResponse = LoginHoondokAuthLoginPostResponses[keyof LoginHoondokAuthLoginPostResponses];
+
+export type LogoutHoondokAuthLogoutPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/logout';
+};
+
+export type LogoutHoondokAuthLogoutPostResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type LogoutHoondokAuthLogoutPostResponse = LogoutHoondokAuthLogoutPostResponses[keyof LogoutHoondokAuthLogoutPostResponses];
+
+export type MeHoondokAuthMeGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/me';
+};
+
+export type MeHoondokAuthMeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserEnvelope;
+};
+
+export type MeHoondokAuthMeGetResponse = MeHoondokAuthMeGetResponses[keyof MeHoondokAuthMeGetResponses];
+
+export type SignupHoondokAuthSignupPostData = {
+    body: SignupRequest;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/signup';
+};
+
+export type SignupHoondokAuthSignupPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SignupHoondokAuthSignupPostError = SignupHoondokAuthSignupPostErrors[keyof SignupHoondokAuthSignupPostErrors];
+
+export type SignupHoondokAuthSignupPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: UserEnvelope;
+};
+
+export type SignupHoondokAuthSignupPostResponse = SignupHoondokAuthSignupPostResponses[keyof SignupHoondokAuthSignupPostResponses];
 
 export type GetTodayHoondokTodayGetData = {
     body?: never;

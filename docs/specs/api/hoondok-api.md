@@ -22,7 +22,7 @@
 - 인증 쿠키는 `hoondok_token`(HttpOnly, `COOKIE_SECURE` 준수). `admin_token` 은 어떤 훈독 엔드포인트에서도 읽지 않는다.
 - 날짜(`date`)는 `YYYY-MM-DD`, 서버가 KST 로 계산한다. 클라이언트가 날짜를 보내는 파라미터는 없다.
 - 오류 본문은 기존 FastAPI 규약(`{"detail": ...}`)을 따른다.
-- Phase 2 항목의 필드 표는 `[가정]`이며 구현 PR 에서 확정한다.
+- Phase 2 인증 항목(API-HD-002·003)은 2026-09-16 sub-PR A 에서 확정했다. API-HD-004·005 는 sub-PR B 에서 확정한다.
 
 ---
 
@@ -79,15 +79,18 @@ GET /hoondok/today
 
 ---
 
-## API-HD-002 `POST /hoondok/auth/signup` (Phase 2) `[가정]`
+## API-HD-002 `POST /hoondok/auth/signup` (Phase 2)
 
-요청 `{ email, password, display_name, consent_version }` → 201 `{ user: { id, email, display_name } }` + `Set-Cookie: hoondok_token`. 409 이메일 중복, 422 검증 실패. 약관 문구(`DEC-PWA-001` `[확인 필요]`) 확정 전에는 `consent_version` 을 받지 않는다.
+요청 `{ email, password, display_name }` → 201 `{ user: { id, email, display_name } }` + `Set-Cookie: hoondok_token`(HttpOnly, `Path=/`, `Max-Age` = `HOONDOK_JWT_EXPIRE_MINUTES`×60, 기본 7일). 409 이메일 중복(대소문자 무시, 동시 가입 경쟁도 409), 422 검증 실패(이메일 형태 `로컬@도메인.tld`·비밀번호 8~128자·이름 1~64자). 약관 문구(`DEC-PWA-001` `[확인 필요]`) 확정 전이라 `consent_version` 은 받지 않으며 `users.consented_at` 은 NULL 로 남는다.
 
-## API-HD-003 `POST /hoondok/auth/login` · `logout` · `GET /hoondok/auth/me` (Phase 2) `[가정]`
+상태 변경 요청(signup·login·logout)은 `X-Requested-With: XMLHttpRequest` 헤더가 없으면 403(CSRF). 생성 SDK 가 POST 에 자동 부착한다.
 
-- login: `{ email, password }` → 200 `{ user }` + 쿠키. 401 자격 불일치(이메일 존재 여부를 구분하지 않는다).
-- logout: 204 + 쿠키 만료.
-- me: 200 `{ user }`, 401 미인증. 웹 `features/identity/` 게이트가 401 을 받으면 `/hoondok/onboarding?returnTo=` 로 보낸다.
+## API-HD-003 `POST /hoondok/auth/login` · `logout` · `GET /hoondok/auth/me` (Phase 2)
+
+- login: `{ email, password }` → 200 `{ user }` + 쿠키. 401 자격 불일치(이메일 존재 여부·소프트 삭제 여부를 구분하지 않는다).
+- logout: 204 + 쿠키 만료. 만료·무효 토큰으로도 로그아웃할 수 있게 인증을 요구하지 않는다.
+- me: 200 `{ user }`, 401 미인증(쿠키 없음·무효·`aud≠hoondok`·미존재·삭제 계정). 웹 `features/identity/` 게이트가 401 을 받으면 `/hoondok/onboarding?returnTo=` 로 보낸다.
+- 토큰: JWT `aud="hoondok"`, 서명 키는 `ADMIN_JWT_SECRET` 공유. `admin_token`(aud 없음)은 훈독 디코더가 aud 를 명시 검사해 거부하고, 훈독 토큰은 admin 디코더가 `Invalid audience` 로 거부한다.
 
 ## API-HD-004 `GET /hoondok/me/summary` (Phase 2) `[가정]`
 
@@ -105,3 +108,4 @@ GET /hoondok/today
 |---|---|---|
 | 2026-09-16 | 5 API 로 축소. `today` 는 항상 200 + `status` 로 부재를 표현 | 확정 · 계획 §1-8 |
 | 2026-09-16 | 훈독 인증 쿠키 `hoondok_token`, `aud="hoondok"`. `admin_token` 미사용 | 확정 · 계획 §1-4 |
+| 2026-09-16 | API-HD-002·003 확정: `consent_version` 미수집, 만료 7일, CSRF 헤더, logout 무인증, 401 문구 단일 | 확정 · Phase 2 sub-PR A |
