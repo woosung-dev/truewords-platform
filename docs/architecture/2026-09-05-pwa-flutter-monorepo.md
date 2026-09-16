@@ -291,7 +291,7 @@ Turbo에 export → codegen → 소비자 검사 순서를 명시한다. 입력�
 
 Next Docker 빌드는 workspace 루트를 context로 사용하여 필요한 manifest·lockfile·공유 패키지를 포함한다. 루트 `.dockerignore`로 비밀파일·venv·node_modules·비관련 대형 자료를 제외한다. `outputFileTracingRoot`와 standalone 내부 `apps/<name>/server.js`·정적 자산의 실제 위치를 확인한다. 기존 `/app/server.js` 가정을 그대로 복사하지 않는다. [Next.js output 문서](https://nextjs.org/docs/app/api-reference/config/next-config-js/output)
 
-`[제안]` 운영 web은 기존 `app.woosung.dev`를 유지하고 admin은 별도 hostname으로 옮긴다. 기존 `/dashboard` 등 관리자 링크는 새 admin origin으로 임시 redirect한다. web/admin 각각 자기 origin의 프록시를 사용하고, 운영 hostname·쿠키 범위·로그인 복귀 URL은 전환 전에 확정한다. Cloudflare 원격 관리형 라우팅은 저장소 Compose 수정만으로 바뀌지 않는다.
+~~`[제안]` 운영 web은 기존 `app.woosung.dev`를 유지하고 admin은 별도 hostname으로 옮긴다.~~ **2026-09-16 정정:** `DEC-MONO-002`(§10) 대로 2026-09-06 컷오버 완료 — web `truewords.woosung.dev`, admin `truewords-admin.woosung.dev`, `app.woosung.dev` 폐지. 기존 `/dashboard` 등 관리자 링크는 새 admin origin으로 redirect한다. web/admin 각각 자기 origin의 프록시를 사용하고, 운영 hostname·쿠키 범위·로그인 복귀 URL은 전환 전에 확정한다. Cloudflare 원격 관리형 라우팅은 저장소 Compose 수정만으로 바뀌지 않는다.
 
 기존 5개 컨테이너 memory limit 합은 문서상 11.25GiB/12GiB다. web 프로세스와 추후 발송 실행기를 추가할 때 실제 상주 메모리와 동시 요청을 측정하여 여유를 다시 계산한다. 독립 배포는 독립 장애 도메인을 의미하지 않으며 Oracle 단일 VM의 장애 지점은 남는다. 서버 수·인프라 요금 절감을 이번 구조만으로 보장하지 않는다.
 
