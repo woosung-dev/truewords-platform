@@ -10,6 +10,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from app.core.common.schemas import ErrorResponse
+from app.modules.chat.exceptions import SessionOwnershipError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
 from app.modules.search.exceptions import EmbeddingFailedError, SearchFailedError
 
@@ -47,6 +48,25 @@ async def rate_limit_handler(
             request_id=_get_request_id(request),
         ).model_dump(),
         headers={"Retry-After": str(exc.retry_after)},
+    )
+
+
+async def session_ownership_handler(
+    request: Request, exc: SessionOwnershipError
+) -> JSONResponse:
+    """타 사용자 세션 이어쓰기 시도 (403, SEC-MONO-001). 세션 id 는 로그에만."""
+    rid = _get_request_id(request)
+    logger.warning(
+        "SessionOwnershipError",
+        extra={"request_id": rid, "session_id": str(exc.session_id)},
+    )
+    return JSONResponse(
+        status_code=403,
+        content=ErrorResponse(
+            error_code="SESSION_FORBIDDEN",
+            message=str(exc),
+            request_id=rid,
+        ).model_dump(),
     )
 
 

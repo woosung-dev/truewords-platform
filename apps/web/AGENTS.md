@@ -1,6 +1,7 @@
 # 사용자 웹 — Next.js
 
-- `/`, `/history`, `/about`, `/design-system`, `/login`을 소유한다. 관리자 화면은 `apps/admin`이다.
+- `/`, `/history`, `/about`, `/design-system`, `/login`, `/hoondok/*`을 소유한다. 관리자 화면은 `apps/admin`이다.
+- `/hoondok/*`(훈독)은 `NEXT_PUBLIC_HOONDOK_ENABLED=1` 일 때만 존재하고 AuthGuard 를 쓰지 않는다. 토큰·컴포넌트는 `src/app/hoondok.css`(`[data-app="hoondok"]` 스코프)·`src/components/hoondok`·`src/features/hoondok` 이 소유하며 `globals.css`·`:root`·`/design-system` 을 바꾸지 않는다. 검사는 `pnpm hoondok:check`, 계획은 [PLAN-HD-001](../../docs/plans/active/2026-09-17-hoondok-mvp.md).
 - 현재는 기존 시연 계정 인증이다. 신규 일반 사용자 인증·PWA 서비스워커·알림은 M5 승인 후 별도 구현한다.
 - 앱 간 이동은 `NEXT_PUBLIC_ADMIN_URL`, API는 같은 origin의 `/api/backend` 프록시를 사용한다. 계정 쿠키를 다른 hostname으로 복사하지 않는다.
 - 제품 업무·권한은 FastAPI에 둔다. 생성 DTO/SDK는 `@truewords/api-client-ts`, 공통 검사 설정은 `@truewords/eslint-config`·`@truewords/typescript-config`를 사용한다.

@@ -770,6 +770,99 @@
         "title": "DailyModeCount",
         "type": "object"
       },
+      "DailyReadingPublic": {
+        "description": "공개 필드만. source_note·chunk_id·타임스탬프는 내지 않는다.",
+        "properties": {
+          "authority_grade": {
+            "enum": [
+              "O1",
+              "O2",
+              "O3",
+              "O4",
+              "O5",
+              "R"
+            ],
+            "title": "Authority Grade",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "edition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edition"
+          },
+          "estimated_minutes": {
+            "title": "Estimated Minutes",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reading_date": {
+            "format": "date",
+            "title": "Reading Date",
+            "type": "string"
+          },
+          "review_status": {
+            "enum": [
+              "reviewed",
+              "unverified",
+              "withdrawn"
+            ],
+            "title": "Review Status",
+            "type": "string"
+          },
+          "speaker": {
+            "title": "Speaker",
+            "type": "string"
+          },
+          "spoken_on": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spoken On"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reading_date",
+          "title",
+          "body",
+          "speaker",
+          "spoken_on",
+          "work_title",
+          "edition",
+          "authority_grade",
+          "review_status",
+          "estimated_minutes"
+        ],
+        "title": "DailyReadingPublic",
+        "type": "object"
+      },
       "DashboardSummary": {
         "properties": {
           "feedback_helpful": {
@@ -2480,6 +2573,41 @@
           "chunk_id"
         ],
         "title": "SourceChunkDetail",
+        "type": "object"
+      },
+      "TodayReadingResponse": {
+        "description": "항상 200. 편성이 없거나 철회됐으면 status 로만 알린다 (AC-016-04).",
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyReadingPublic"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "available",
+              "none",
+              "withdrawn"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "status"
+        ],
+        "title": "TodayReadingResponse",
         "type": "object"
       },
       "TopQuery": {
@@ -5033,6 +5161,28 @@
           }
         },
         "summary": "Health"
+      }
+    },
+    "/hoondok/today": {
+      "get": {
+        "description": "API-HD-001 오늘(KST) 말씀. 없으면 status=none, 철회면 withdrawn — 항상 200.",
+        "operationId": "get_today_hoondok_today_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayReadingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Today",
+        "tags": [
+          "hoondok"
+        ]
       }
     }
   }
