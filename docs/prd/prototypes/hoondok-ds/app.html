@@ -12,6 +12,27 @@
 <link rel="stylesheet" href="hoondok.css" />
 </head>
 <body>
+<!-- ============================================================================
+     화면 목차 (PRD SCR-PWA 번호순). 각 화면은 <section data-screen="..."> 한 블록이다.
+     찾기: data-screen="이름"   열기: app.html?screen=이름
+     001  onboarding      온보딩·베타 고지·교회 선택
+     002  today           오늘 훈독 (홈)
+     003  read            훈독하기
+     005  ask             AI 질문 (묻기 홈)
+     005  ask-log         질문 기록
+     006  ask-detail      질문·답변 상세
+     007  library         말씀 서고
+     008  search          말씀 검색
+     009  words           원문 뷰 (1224px 이상 2-pane)
+     010  worship         가정예배 홈
+     011  challenge       챌린지 상세
+     012  sermons         5분 설교·전체 설교
+     013  sermon-request  설교 섭외·신청
+     014  garden          나의 정원
+     015  settings        알림·설치 설정
+     016  family          가족·친구
+     004  (sheet)          정성 기간 만들기 = <div class="sheet" id="sheet-jeongseong">, ?sheet=jeongseong 로 홈 위에 연다
+     ============================================================================ -->
 <!-- 마크업은 한 벌이다. 화면 폭이 달라도 이 문서를 복제하지 않는다.
      ?screen=today|read|words|library|search|onboarding|ask|ask-log|ask-detail|worship|challenge|sermons|sermon-request|garden|settings|family
      ?sheet=jeongseong   ?nav=top&header=4 (PC 기본 = 상단 헤더 4. rail 은 DES-PWA-003 §4.1 대조용)   ?serif=1 -->
