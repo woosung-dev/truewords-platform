@@ -175,7 +175,7 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 2 | `next build` (플래그 ON) | `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 동적(ƒ), 나머지 라우트 불변 | 2026-09-16 |
 | 2 | `make e2e` (격리 compose + 시드 + `seed_hoondok_user`) | **45 passed** = 기존 38 + `hoondok-chromium` 7 (스모크 5 + "비로그인 완료 → 가입 → 당일 소급 → 연속 1일 → 재요청 409" + "시드 사용자 로그인 → 완료 1회 → 로그아웃 → 완료·요약 API 401") | 2026-09-16 |
 | 2 | additive-only 리허설 (§3-4): `j3f4a5b6c7d8` 적용 DB 위에 main `9940b82` 백엔드 기동 | `/health` 200 · `/chatbots` 200 · `/hoondok/today` 200 · `/hoondok/auth/me` 404(구 이미지, 예상) · traceback 0 | 2026-09-16 |
-| 2 | `make ci` (통합 브랜치, 모든 sub-PR 머지 후) | 미수행 — sub-PR 머지 승인 뒤 main PR 전 실행 | — |
+| 2 | `make ci` + `make e2e` (통합 브랜치 `f8bcf11`, sub-PR 5개 머지 후) | `make ci` exit 0 (pytest 1005 passed / 4 skipped / 1 xfailed · contracts · tooling · docs · boundaries · hoondok:check · web/admin test·lint·build·typecheck) · `make e2e` 45 passed | 2026-09-16 |
 
 ## 10. 결정 기록
 
