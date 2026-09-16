@@ -29,11 +29,12 @@
   <main class="app__main">
     <header class="appbar" id="appbar">
       <div class="appbar__in">
-        <a class="icon-btn" href="#" aria-label="뒤로" data-only="read words search ask-detail challenge sermons sermon-request settings family"><i class="ph ph-arrow-left"></i></a>
+        <a class="icon-btn" href="#" aria-label="뒤로" data-only="read words search ask-log ask-detail challenge sermons sermon-request settings family"><i class="ph ph-arrow-left"></i></a>
         <h1 class="appbar__title" id="apptitle">오늘 훈독</h1>
         <label class="appbar__search" data-only="search"><i class="ph ph-magnifying-glass"></i><input type="search" value="" placeholder="단어, 구절, 상황을 입력해 주세요" aria-label="말씀 검색" autofocus></label>
-        <a class="icon-btn icon-btn--search" href="?screen=search" aria-label="말씀 검색" data-only="today read words library ask ask-v2 ask-v3 ask-v4 ask-v5 ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-magnifying-glass"></i></a>
-        <a class="icon-btn" href="#" aria-label="알림" data-only="today read words library ask ask-v2 ask-v3 ask-v4 ask-v5 ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-bell"></i></a>
+        <a class="icon-btn" href="?screen=ask-log" aria-label="질문 기록" data-only="ask-sheet ask-answer"><i class="ph ph-clock-counter-clockwise"></i></a>
+        <a class="icon-btn icon-btn--search" href="?screen=search" aria-label="말씀 검색" data-only="today read words library ask ask-sheet ask-answer ask-v2 ask-v3 ask-v4 ask-v5 ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-magnifying-glass"></i></a>
+        <a class="icon-btn" href="#" aria-label="알림" data-only="today read words library ask ask-sheet ask-answer ask-v2 ask-v3 ask-v4 ask-v5 ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-bell"></i></a>
       </div>
     </header>
 
@@ -1369,6 +1370,66 @@
         <button type="submit" class="q5-send">보내기</button>
       </form>
     </section>
+    <!-- ===== AI 질문 · 안 가 "물음 한 장" : 탭 홈 = 묻기 한 가지. 시작 문장은 입력창을 채운다 ===== -->
+    <section class="col col--read" data-screen="ask-sheet" hidden>
+      <p class="qs-today"><span class="qs-today__k">오늘 읽은 말씀</span><span class="qs-today__v">참사랑은 직단거리를 갑니다</span><span class="qs-today__src">천성경 제1편 3장</span></p>
+      <form class="qs-form" onsubmit="return false">
+        <label class="qs-label" for="qs-input">무엇이 궁금하세요?</label>
+        <textarea id="qs-input" class="qs-input" rows="4" placeholder="말씀이나 신앙 생활에 대해 편하게 적어 주세요"></textarea>
+        <p class="qs-help">근거 말씀을 인용해서 답해요. 근거가 없으면 확인할 수 없다고 말해요.</p>
+        <button type="submit" class="btn btn-primary qs-submit">물어보기</button>
+      </form>
+      <div class="qs-starters">
+        <p class="qs-starters__k">이렇게 물어볼 수 있어요</p>
+        <button type="button" class="qs-starter" data-fill="#qs-input">참사랑이 직단거리로 간다는 말씀은 무슨 뜻인가요?</button>
+        <button type="button" class="qs-starter" data-fill="#qs-input">정성을 드린다는 게 정확히 뭘 하는 건가요?</button>
+        <button type="button" class="qs-starter" data-fill="#qs-input">자녀에게 말씀을 어떻게 가르치면 좋을까요?</button>
+      </div>
+      <a class="qs-log" href="?screen=ask-log">내 질문 12개와 저장한 답 3개 보기</a>
+    </section>
+
+    <!-- ===== AI 질문 · 안 나 "답이 먼저" : 답의 형태(AI 설명 + 근거 + 출처)를 먼저 보여 주고 묻는다 ===== -->
+    <section class="col col--read" data-screen="ask-answer" hidden>
+      <form class="qn-form" onsubmit="return false">
+        <label class="qs-label" for="qn-input">질문</label>
+        <div class="qn-row"><input id="qn-input" type="text" placeholder="궁금한 것을 적어 주세요"><button type="submit" class="btn btn-primary btn--sm">물어보기</button></div>
+      </form>
+
+      <article class="qn-sample">
+        <h2 class="qn-sample__k">오늘의 답</h2>
+        <p class="qn-q">참사랑이 직단거리로 간다는 말씀은 무슨 뜻인가요?</p>
+        <div class="ai-note">
+          <div class="ai-note__lab"><i class="ph ph-sparkle"></i>AI 설명 · 공식 해설 아님</div>
+          <p class="ai-note__body">사랑이 하늘부모님과 나 사이에서 가장 곧은 길, 곧 90도의 수직 관계로만 온전히 이어진다는 뜻입니다. 조금이라도 비껴가면 최단거리가 아니라는 표현은 사랑에 우회가 없어야 함을 강조합니다.</p>
+        </div>
+        <blockquote class="qn-ev">
+          <p>참사랑은 직단거리를 갑니다. 종적인 사랑은 90각도 한 점밖에 없습니다.</p>
+          <footer><span>참아버님</span><span class="src__dot"></span><span>천성경 제1편 3장</span><span class="badge badge--rank">O1 공식 원문</span></footer>
+        </blockquote>
+        <a class="qn-more" href="?screen=ask-detail">전체 답과 연관 말씀 보기</a>
+      </article>
+
+      <div class="qn-others">
+        <h2 class="qn-sample__k">식구들이 물어본 질문</h2>
+        <button type="button" class="qs-starter" data-fill="#qn-input">정성을 드린다는 게 정확히 뭘 하는 건가요?</button>
+        <button type="button" class="qs-starter" data-fill="#qn-input">탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</button>
+        <button type="button" class="qs-starter" data-fill="#qn-input">직장에서 신앙을 말하기가 어려워요</button>
+        <a class="qs-log" href="?screen=ask-log">내 질문과 저장한 답 보기</a>
+      </div>
+    </section>
+
+    <!-- ===== AI 질문 · 기록 : 라이브러리는 여기서만 ===== -->
+    <section class="col col--read" data-screen="ask-log" hidden>
+      <div class="pill-seg" role="tablist" style="margin-top:8px"><button class="is-on" role="tab" aria-selected="true">내 질문 12</button><button role="tab">저장한 답 3</button><button role="tab">식구들 질문</button></div>
+      <ol class="ql-list">
+        <li><a href="?screen=ask-detail"><span class="ql-q">참사랑이 직단거리로 간다는 말씀은 무슨 뜻인가요?</span><span class="ql-m">오늘 · 근거 말씀 2건</span></a></li>
+        <li><a href="?screen=ask-detail"><span class="ql-q">21일 정성 중에 하루를 빠뜨리면 처음부터 다시 해야 하나요?</span><span class="ql-m">9월 14일 · 근거 말씀 1건</span></a></li>
+        <li><a href="?screen=ask-detail"><span class="ql-q">가정예배는 꼭 아침에 드려야 하나요?</span><span class="ql-m">9월 12일 · 확인할 수 없음</span></a></li>
+        <li><a href="?screen=ask-detail"><span class="ql-q">자녀가 교회에 가기 싫어할 때 어떻게 말해야 할까요?</span><span class="ql-m">9월 9일 · 근거 말씀 3건</span></a></li>
+        <li><a href="?screen=ask-detail"><span class="ql-q">축복 40일 정성의 의미가 궁금해요</span><span class="ql-m">9월 3일 · 근거 말씀 2건</span></a></li>
+      </ol>
+      <p class="notice">질문과 답은 기기에만 저장돼요. 무기억 모드에서는 남지 않아요</p>
+    </section>
   </main>
 
   <div class="sheet" id="sheet-jeongseong" role="dialog" aria-modal="true" aria-labelledby="js-title">
@@ -1449,12 +1510,12 @@
 
   document.querySelectorAll('[data-screen]').forEach(s => s.hidden = s.dataset.screen !== screen);
   const TITLES = {today:'오늘 훈독', read:'훈독하기', words:'천성경 1편 3장', library:'말씀', search:'',
-    onboarding:'', ask:'AI 질문', 'ask-v2':'AI 질문', 'ask-v3':'AI 질문', 'ask-v4':'AI 질문', 'ask-v5':'AI 질문', 'ask-detail':'질문', worship:'가정예배', challenge:'챌린지', sermons:'5분 설교',
+    onboarding:'', ask:'AI 질문', 'ask-v2':'AI 질문', 'ask-sheet':'AI 질문', 'ask-answer':'AI 질문', 'ask-log':'질문 기록', 'ask-v3':'AI 질문', 'ask-v4':'AI 질문', 'ask-v5':'AI 질문', 'ask-detail':'질문', worship:'가정예배', challenge:'챌린지', sermons:'5분 설교',
     'sermon-request':'설교 섭외', garden:'나의 정원', settings:'알림·설치', family:'가족·친구'};
   document.getElementById('apptitle').textContent = TITLES[screen] ?? screen;
   // 탭 귀속 : 하위 화면은 상위 탭을 활성으로
   const TAB_OF = {today:'today', read:'today', words:'library', library:'library', search:'library',
-    ask:'ask', 'ask-v2':'ask', 'ask-v3':'ask', 'ask-v4':'ask', 'ask-v5':'ask', 'ask-detail':'ask', worship:'worship', challenge:'worship', sermons:'worship', 'sermon-request':'worship',
+    ask:'ask', 'ask-v2':'ask', 'ask-sheet':'ask', 'ask-answer':'ask', 'ask-log':'ask', 'ask-v3':'ask', 'ask-v4':'ask', 'ask-v5':'ask', 'ask-detail':'ask', worship:'worship', challenge:'worship', sermons:'worship', 'sermon-request':'worship',
     garden:'garden', settings:'garden', family:'garden'};
   // 정성 기간 시트 : ?sheet=jeongseong
   const sheet = q.get('sheet');
@@ -1466,6 +1527,11 @@
   document.querySelectorAll('.pill-seg, .ask-seg').forEach(seg => seg.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     seg.querySelectorAll('button').forEach(x => { x.classList.toggle('is-on', x === b); x.classList.toggle('ask-seg__btn--on', x === b); x.setAttribute('aria-selected', String(x === b)); });
+  }));
+  // 시작 문장 : 누르면 입력창을 채우고 포커스 (이동하지 않는다)
+  document.querySelectorAll('[data-fill]').forEach(b => b.addEventListener('click', () => {
+    const el = document.querySelector(b.dataset.fill); if (!el) return;
+    el.value = b.textContent.trim(); el.focus();
   }));
   document.querySelectorAll('.toggle').forEach(t => t.addEventListener('click', () => {
     t.setAttribute('aria-pressed', String(t.getAttribute('aria-pressed') !== 'true'));

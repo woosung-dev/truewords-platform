@@ -1251,6 +1251,61 @@ body:has([data-screen="onboarding"]:not([hidden])) .appbar{display:none}
   .q5-msg{max-width:80%}
 }
 
+
+/* ============================================================================
+   partials/ask-new.css (AI 질문 안 가·나 + 기록) 병합
+   ============================================================================ */
+/* ---------- AI 질문 안 가 · 물음 한 장 ---------- */
+.qs-today{display:flex;flex-direction:column;gap:2px;margin:12px 0 0}
+.qs-today__k{font-size:12.5px;color:var(--ink-2)}
+.qs-today__v{font-size:17px;font-weight:600;line-height:1.45}
+.qs-today__src{font-size:12.5px;color:var(--ink-2)}
+.qs-form{display:flex;flex-direction:column;gap:10px;margin-top:28px}
+.qs-label{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.3}
+.qs-input{width:100%;font:inherit;font-size:16px;line-height:1.6;color:var(--ink);background:var(--surface);
+  border:1.5px solid var(--ink-3);border-radius:var(--r-sm);padding:14px 16px;resize:none}
+.qs-input::placeholder{color:var(--ink-3)}                                              /* 5.35:1 */
+.qs-input:focus{outline:2px solid var(--accent);outline-offset:2px;border-color:var(--accent)}
+.qs-help{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+.qs-submit{margin-top:4px}
+.qs-starters{margin-top:32px;padding-top:16px;border-top:1px solid var(--line)}
+.qs-starters__k{margin:0 0 4px;font-size:13px;font-weight:600;color:var(--ink-2)}
+.qs-starter{display:block;width:100%;text-align:left;min-height:48px;padding:10px 0;font-size:16px;line-height:1.45;color:var(--ink)}
+.qs-starter + .qs-starter{border-top:1px solid var(--line)}
+.qs-log{display:inline-flex;align-items:center;min-height:44px;margin-top:20px;font-size:15px;color:var(--accent-strong);font-weight:600}
+
+/* ---------- AI 질문 안 나 · 답이 먼저 ---------- */
+.qn-form{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.qn-row{display:flex;gap:8px}
+.qn-row input{flex:1;min-width:0;height:48px;padding:0 14px;font:inherit;font-size:16px;color:var(--ink);
+  background:var(--surface);border:1.5px solid var(--ink-3);border-radius:var(--r-sm)}
+.qn-row input::placeholder{color:var(--ink-3)}
+.qn-row input:focus{outline:2px solid var(--accent);outline-offset:2px;border-color:var(--accent)}
+.qn-row .btn--sm{height:48px;flex:none}
+.qn-sample{margin-top:32px}
+.qn-sample__k{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--ink-2)}
+.qn-q{margin:0 0 12px;font-size:18px;font-weight:600;line-height:1.45;letter-spacing:-.01em}
+.qn-ev{margin:14px 0 0;padding:0 0 0 14px;border-left:4px solid var(--ink)}
+.qn-ev p{margin:0;font-size:16px;line-height:1.7}
+.qn-ev footer{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--ink-2)}
+.qn-more{display:inline-flex;align-items:center;min-height:44px;margin-top:10px;font-size:15px;font-weight:600;color:var(--accent-strong)}
+.qn-others{margin-top:32px;padding-top:16px;border-top:1px solid var(--line)}
+.qn-others .qs-log{margin-top:12px}
+
+/* ---------- AI 질문 · 기록 ---------- */
+.ql-list{list-style:none;margin:16px 0 0;padding:0}
+.ql-list a{display:flex;flex-direction:column;gap:4px;padding:14px 0;min-height:48px;border-top:1px solid var(--line)}
+.ql-q{font-size:16px;font-weight:500;line-height:1.45}
+.ql-m{font-size:12.5px;color:var(--ink-2)}
+
+@media (min-width:768px){
+  .qs-label{font-size:22px}
+  .qs-input{padding:16px 18px}
+}
+@media (hover:hover){
+  .qs-starter:hover,.ql-list a:hover .ql-q{color:var(--accent-strong)}
+}
+
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important;animation:none!important}
 }
