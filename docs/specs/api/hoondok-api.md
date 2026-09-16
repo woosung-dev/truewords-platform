@@ -22,7 +22,7 @@
 - 인증 쿠키는 `hoondok_token`(HttpOnly, `COOKIE_SECURE` 준수). `admin_token` 은 어떤 훈독 엔드포인트에서도 읽지 않는다.
 - 날짜(`date`)는 `YYYY-MM-DD`, 서버가 KST 로 계산한다. 클라이언트가 날짜를 보내는 파라미터는 없다.
 - 오류 본문은 기존 FastAPI 규약(`{"detail": ...}`)을 따른다.
-- Phase 2 인증 항목(API-HD-002·003)은 2026-09-16 sub-PR A 에서 확정했다. API-HD-004·005 는 sub-PR B 에서 확정한다.
+- Phase 2 항목은 2026-09-16 sub-PR A(002·003)·B(004·005)에서 확정했다.
 
 ---
 
@@ -92,13 +92,19 @@ GET /hoondok/today
 - me: 200 `{ user }`, 401 미인증(쿠키 없음·무효·`aud≠hoondok`·미존재·삭제 계정). 웹 `features/identity/` 게이트가 401 을 받으면 `/hoondok/onboarding?returnTo=` 로 보낸다.
 - 토큰: JWT `aud="hoondok"`, 서명 키는 `ADMIN_JWT_SECRET` 공유. `admin_token`(aud 없음)은 훈독 디코더가 aud 를 명시 검사해 거부하고, 훈독 토큰은 admin 디코더가 `Invalid audience` 로 거부한다.
 
-## API-HD-004 `GET /hoondok/me/summary` (Phase 2) `[가정]`
+## API-HD-004 `GET /hoondok/me/summary` (Phase 2)
 
-200 `{ today: { read: bool, pray: bool, study: bool }, streak_days, best_streak_days, total_days, week: [{ date, done }] × 7 }`. 연속일은 `mission_logs` 에서 KST 자정 기준으로 계산하며 저장하지 않는다. 401 미인증.
+200 `{ today: { read, pray, study }, streak_days, best_streak_days, total_days, week: [{ date, done }] × 7 }`. 401 미인증.
 
-## API-HD-005 `POST /hoondok/missions/{kind}/complete` (Phase 2) `[가정]`
+- `today.*` 는 오늘(KST) 종류별 완료 여부. `streak_days`·`best_streak_days`·`total_days`·`week[].done` 은 **`read`(훈독하기) 완료 기준**(계획 §10, 2026-09-16)이며 `mission_logs` 에서 매번 계산하고 저장하지 않는다(`hoondok/streak.py`).
+- `streak_days`: 오늘 완료면 오늘부터, 아니면 어제부터 거슬러 센다(오늘 아직 안 읽었다고 연속이 끊기지 않는다). 어제도 비었으면 0.
+- `week`: 월요일 시작 7칸, 홈 요일 스트립과 같은 순서.
 
-`kind ∈ {read, pray, study}`. 201 `{ mission_date, kind, completed_at }`. 409 같은 날 같은 kind 재요청(unique 제약). 401 미인증(`admin_token` 만 있는 브라우저도 401). 422 알 수 없는 kind.
+## API-HD-005 `POST /hoondok/missions/{kind}/complete` (Phase 2)
+
+`kind ∈ {read, pray, study}`(경로 파라미터 Literal). 201 `{ mission_date, kind, completed_at }`. 409 같은 날 같은 kind 재요청(unique 제약, 본문 `"오늘은 이미 완료했어요"`). 401 미인증(`admin_token` 만 있는 브라우저도 401, 회귀 테스트). 422 알 수 없는 kind. 403 `X-Requested-With` 헤더 없음.
+
+날짜 파라미터가 없고 서버가 `today_kst()` 로 `mission_date` 를 정하므로, 비로그인 체크의 소급 기록(AC-016-02)은 구조상 **당일만** 가능하다.
 
 ---
 
@@ -109,3 +115,4 @@ GET /hoondok/today
 | 2026-09-16 | 5 API 로 축소. `today` 는 항상 200 + `status` 로 부재를 표현 | 확정 · 계획 §1-8 |
 | 2026-09-16 | 훈독 인증 쿠키 `hoondok_token`, `aud="hoondok"`. `admin_token` 미사용 | 확정 · 계획 §1-4 |
 | 2026-09-16 | API-HD-002·003 확정: `consent_version` 미수집, 만료 7일, CSRF 헤더, logout 무인증, 401 문구 단일 | 확정 · Phase 2 sub-PR A |
+| 2026-09-16 | API-HD-004·005 확정: 연속일·week 는 `read` 기준, 오늘 미완료 시 어제부터 집계, 소급은 당일만 | 확정 · Phase 2 sub-PR B |

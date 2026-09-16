@@ -73,8 +73,9 @@
 | `completed_at` | datetime | not null | 실제 완료 시각(UTC) |
 | — | — | unique(`user_id`, `mission_date`, `kind`) | 하루 1회 (AC-016-02) |
 
-- 연속일·최대 연속일·누적일은 저장하지 않고 `mission_logs` 에서 계산한다(API-HD-004). 계산 기준은 KST 자정, "쉬어가기" 면제는 비범위.
-- 비로그인 상태의 체크는 클라이언트에만 두고, 로그인 후 같은 날짜로 소급 기록한다(AC-016-02) `[가정: 소급은 당일에 한함]`.
+- 연속일·최대 연속일·누적일은 저장하지 않고 `mission_logs` 의 `read` 완료일에서 계산한다(API-HD-004, `hoondok/streak.py`). 계산 기준은 KST 자정, "쉬어가기" 면제는 비범위.
+- 비로그인 상태의 체크는 클라이언트(localStorage, KST 날짜 키)에만 두고, 로그인 후 소급 기록한다(AC-016-02). API 가 날짜를 받지 않으므로 소급은 **당일만** 가능하다.
+- `user_id` 는 같은 Phase 에서 만든 `users.id` FK 다(기존 테이블과의 FK 금지 규칙과 충돌하지 않는다).
 
 ---
 
@@ -86,3 +87,4 @@
 | 2026-09-16 | KST 고정, `users.timezone` 예약만 | 확정 · 계획 §1-9 |
 | 2026-09-16 | `chunk_id` 는 FK 아님, 상태값은 varchar | 확정 · 계획 §3 |
 | 2026-09-16 | `users` 확정(alembic `i1e2f3a4b5c6`). `consent_version`·`deleted_at` 은 예약 컬럼 | 확정 · Phase 2 sub-PR A |
+| 2026-09-16 | `mission_logs` 확정(alembic `j3f4a5b6c7d8`). 연속일은 `read` 기준 계산, 소급은 당일만 | 확정 · Phase 2 sub-PR B |

@@ -977,6 +977,26 @@ export type MessageResponse = {
 };
 
 /**
+ * MissionCompleteResponse
+ *
+ * API-HD-005 201. mission_date 는 서버가 KST 로 정한 날짜다.
+ */
+export type MissionCompleteResponse = {
+    /**
+     * Completed At
+     */
+    completed_at: string;
+    /**
+     * Kind
+     */
+    kind: 'read' | 'pray' | 'study';
+    /**
+     * Mission Date
+     */
+    mission_date: string;
+};
+
+/**
  * NegativeFeedbackItem
  */
 export type NegativeFeedbackItem = {
@@ -1696,6 +1716,49 @@ export type SourceChunkDetail = {
 };
 
 /**
+ * SummaryResponse
+ *
+ * API-HD-004. 연속일·최대·누적은 read 기준이며 저장하지 않는다. week 는 월요일 시작 7칸.
+ */
+export type SummaryResponse = {
+    /**
+     * Best Streak Days
+     */
+    best_streak_days: number;
+    /**
+     * Streak Days
+     */
+    streak_days: number;
+    today: TodayFlags;
+    /**
+     * Total Days
+     */
+    total_days: number;
+    /**
+     * Week
+     */
+    week: Array<WeekDay>;
+};
+
+/**
+ * TodayFlags
+ */
+export type TodayFlags = {
+    /**
+     * Pray
+     */
+    pray?: boolean;
+    /**
+     * Read
+     */
+    read?: boolean;
+    /**
+     * Study
+     */
+    study?: boolean;
+};
+
+/**
  * TodayReadingResponse
  *
  * 항상 200. 편성이 없거나 철회됐으면 status 로만 알린다 (AC-016-04).
@@ -2000,6 +2063,20 @@ export type VolumeTagsBulkResponse = {
      * 실제로 변경된 volume 리스트
      */
     updated_volumes?: Array<string>;
+};
+
+/**
+ * WeekDay
+ */
+export type WeekDay = {
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Done
+     */
+    done: boolean;
 };
 
 /**
@@ -3478,6 +3555,52 @@ export type SignupHoondokAuthSignupPostResponses = {
 };
 
 export type SignupHoondokAuthSignupPostResponse = SignupHoondokAuthSignupPostResponses[keyof SignupHoondokAuthSignupPostResponses];
+
+export type GetSummaryHoondokMeSummaryGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/summary';
+};
+
+export type GetSummaryHoondokMeSummaryGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummaryResponse;
+};
+
+export type GetSummaryHoondokMeSummaryGetResponse = GetSummaryHoondokMeSummaryGetResponses[keyof GetSummaryHoondokMeSummaryGetResponses];
+
+export type CompleteMissionHoondokMissionsKindCompletePostData = {
+    body?: never;
+    path: {
+        /**
+         * Kind
+         */
+        kind: 'read' | 'pray' | 'study';
+    };
+    query?: never;
+    url: '/hoondok/missions/{kind}/complete';
+};
+
+export type CompleteMissionHoondokMissionsKindCompletePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CompleteMissionHoondokMissionsKindCompletePostError = CompleteMissionHoondokMissionsKindCompletePostErrors[keyof CompleteMissionHoondokMissionsKindCompletePostErrors];
+
+export type CompleteMissionHoondokMissionsKindCompletePostResponses = {
+    /**
+     * Successful Response
+     */
+    201: MissionCompleteResponse;
+};
+
+export type CompleteMissionHoondokMissionsKindCompletePostResponse = CompleteMissionHoondokMissionsKindCompletePostResponses[keyof CompleteMissionHoondokMissionsKindCompletePostResponses];
 
 export type GetTodayHoondokTodayGetData = {
     body?: never;

@@ -1,9 +1,9 @@
-"""훈독 DB 모델 — ENT-HD-002 daily_readings (docs/specs/domain/hoondok-entities.md)."""
+"""훈독 DB 모델 — ENT-HD-002 daily_readings · ENT-HD-003 mission_logs (docs/specs/domain/hoondok-entities.md)."""
 
 import uuid
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Column, Text
+from sqlalchemy import Column, Text, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
@@ -15,6 +15,7 @@ def _utcnow() -> datetime:
 # 상태값은 Postgres ENUM 이 아니라 varchar + 앱 검증 (additive-only 규칙, 계획 §3-3).
 AUTHORITY_GRADES = ("O1", "O2", "O3", "O4", "O5", "R")
 REVIEW_STATUSES = ("reviewed", "unverified", "withdrawn")
+MISSION_KINDS = ("read", "pray", "study")  # 훈독하기 · 기도하기 · 말씀 읽기
 
 
 class DailyReading(SQLModel, table=True):
@@ -38,3 +39,18 @@ class DailyReading(SQLModel, table=True):
     estimated_minutes: int = Field(default=3)
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class MissionLog(SQLModel, table=True):
+    """미션 완료 기록. 하루 1회(user·date·kind unique, AC-016-02). 연속일은 저장하지 않고 계산한다."""
+
+    __tablename__ = "mission_logs"
+    __table_args__ = (
+        UniqueConstraint("user_id", "mission_date", "kind", name="uq_mission_logs_user_date_kind"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    mission_date: date  # 완료 판정일(KST). 서버가 today_kst() 로 정한다
+    kind: str = Field(max_length=16)  # MISSION_KINDS
+    completed_at: datetime = Field(default_factory=_utcnow)  # 실제 완료 시각(UTC)
