@@ -296,7 +296,8 @@ e2e: ## 두 앱 + API 통합 E2E — ci-e2e.yml 과 같은 격리 compose·시�
 	(cd apps/api && uv run alembic upgrade head \
 	  && uv run python scripts/create_admin.py $(E2E_ADMIN_EMAIL) test1234 \
 	  && uv run python scripts/create_admin.py admin@test.com test1234 \
-	  && uv run python scripts/seed_chatbot_configs.py) \
+	  && uv run python scripts/seed_chatbot_configs.py \
+	  && uv run python scripts/seed_daily_readings.py) \
 	&& pnpm test:e2e
 
 contracts-check: ## 계약 재생성·drift 및 하위 호환성 검사

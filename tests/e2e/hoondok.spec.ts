@@ -59,9 +59,18 @@ test("홈 → 훈독하기 → 완료 (로컬 상태) → 뒤로", async ({ page
   // 데스크톱 홈은 앱바 h1 을 sr-only 로 접으므로 존재만 확인하고, 보이는 제목은 섹션 h2 로 본다.
   await expect(page.getByRole("heading", { name: "오늘 훈독" })).toBeAttached();
   await expect(page.getByRole("heading", { name: "오늘 말씀" })).toBeVisible();
-  await expect(page.getByRole("status")).toContainText("오늘 말씀이 아직 없어요");
+  // make e2e 시드(scripts/seed_daily_readings.py)가 오늘 날짜를 채운다. 시드 데이터는 권리 확인 중(R)·미검수다.
+  const card = page.getByRole("article").first();
+  await expect(card).toBeVisible();
+  await expect(card.getByText("권리 확인 중")).toBeVisible();
+  await expect(card.getByText("확인되지 않음")).toBeVisible();
   await page.getByRole("link", { name: /훈독하기/ }).click();
   await expect(page).toHaveURL(/\/hoondok\/read$/);
+  // 훈독하기: 출처 줄(화자·저작물) + 전문 + 완료 버튼 → 로컬 완료 상태
+  await expect(page.locator(".src").first()).toContainText("참");
+  await expect(page.locator(".scripture")).toBeVisible();
+  await page.getByRole("button", { name: "훈독 완료" }).click();
+  await expect(page.getByRole("status")).toContainText("오늘 훈독을 마쳤어요");
   await page.getByRole("link", { name: "뒤로" }).click();
   await expect(page).toHaveURL(/\/hoondok$/);
 });

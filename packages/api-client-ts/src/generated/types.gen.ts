@@ -468,6 +468,58 @@ export type DailyModeCount = {
 };
 
 /**
+ * DailyReadingPublic
+ *
+ * 공개 필드만. source_note·chunk_id·타임스탬프는 내지 않는다.
+ */
+export type DailyReadingPublic = {
+    /**
+     * Authority Grade
+     */
+    authority_grade: 'O1' | 'O2' | 'O3' | 'O4' | 'O5' | 'R';
+    /**
+     * Body
+     */
+    body: string;
+    /**
+     * Edition
+     */
+    edition: string | null;
+    /**
+     * Estimated Minutes
+     */
+    estimated_minutes: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Reading Date
+     */
+    reading_date: string;
+    /**
+     * Review Status
+     */
+    review_status: 'reviewed' | 'unverified' | 'withdrawn';
+    /**
+     * Speaker
+     */
+    speaker: string;
+    /**
+     * Spoken On
+     */
+    spoken_on: string | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
  * DashboardSummary
  */
 export type DashboardSummary = {
@@ -1607,6 +1659,23 @@ export type SourceChunkDetail = {
      * 원본 volume (파일명 또는 권명)
      */
     volume?: string;
+};
+
+/**
+ * TodayReadingResponse
+ *
+ * 항상 200. 편성이 없거나 철회됐으면 status 로만 알린다 (AC-016-04).
+ */
+export type TodayReadingResponse = {
+    /**
+     * Date
+     */
+    date: string;
+    reading?: DailyReadingPublic | null;
+    /**
+     * Status
+     */
+    status: 'available' | 'none' | 'withdrawn';
 };
 
 /**
@@ -3268,3 +3337,19 @@ export type HealthHealthGetResponses = {
      */
     200: unknown;
 };
+
+export type GetTodayHoondokTodayGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/today';
+};
+
+export type GetTodayHoondokTodayGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: TodayReadingResponse;
+};
+
+export type GetTodayHoondokTodayGetResponse = GetTodayHoondokTodayGetResponses[keyof GetTodayHoondokTodayGetResponses];
