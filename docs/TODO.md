@@ -270,7 +270,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ### 전환 검증에서 확인한 기존 후속 과제
 
-- [ ] `SEC-MONO-001` (P1, 전환 전부터 존재) — `apps/api/app/modules/chat/pipeline/stages/session.py`의 기존 `session_id` 재사용 경로에 쓰기 소유권 검증이 없다. 기록 조회의 소유권 검증과 별개다. 일반 사용자 공개 전에 인증/익명 세션 정책을 확정하고 타 사용자 세션 이어쓰기 거부 회귀 테스트와 함께 수정한다. 이번 폴더 이전에서 정책을 임의 변경하지 않았다.
+- [x] `SEC-MONO-001` — **2026-09-16 수정 (PR #272, `dev/hoondok-mvp`)**: `session.py` 재사용 경로에서 `existing.user_id != ctx.user_id` 면 403 `SESSION_FORBIDDEN`. 익명↔익명 재사용 허용, 미존재 id 는 새 세션. 회귀 6건. 스트림 경로의 HTTP 상태 매핑은 기존 SSE mid-error xfail 범위로 남는다.
 - [ ] `QUALITY-MONO-001` — `apps/web/src/app/(chat)/page.tsx`의 기존 `react-hooks/exhaustive-deps` 경고 1개를 별도 정리한다. 이번 검사 결과는 오류 0개이며 경고를 숨기지 않았다.
 
 ### 가정연합 신규 PWA 기획 (2026-08-31)
@@ -279,7 +279,8 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] 세션 1'·2' 승인 — 2026-09-14 방향(`DEC-PWA-015·016·017·019`) + 2026-09-16 PRD v2 전체 승인(`DEC-PWA-022`). `DEC-PWA-020·021` 은 외부 확인 대기
 - [x] 세션 3 — 채택안 디자인 시스템·접근성 상태 작성 (`docs/specs/web/hoondok-design-system.md`, `DES-PWA-003`, 2026-09-15). 2026-09-16 문서 전체 승인, 레일·FAB 모순은 정정 주석
 - [x] 세션 4 — 구현 계획 [PLAN-HD-001](plans/active/2026-09-17-hoondok-mvp.md) (2026-09-16). 범위 축소: 3테이블 [ENT-HD-001~003](specs/domain/hoondok-entities.md) · 5 API [API-HD-001~005](specs/api/hoondok-api.md) · 화면 4 · Phase 1~4. 정성·챌린지·관계·설교 도메인은 비범위
-- [ ] Phase 1 (~9/30) — 통합 브랜치 `dev/hoondok-mvp`. sub-PR 1 web 골격·`[data-app="hoondok"]` 토큰·컴포넌트 6종·`hoondok-css.mjs`·Playwright 스모크 / sub-PR 2 `SEC-MONO-001` 403 거부 / sub-PR 3 `daily_readings`·`GET /hoondok/today`·SDK 재생성·web 결합
+- [x] Phase 1 코드 (2026-09-16) — 통합 브랜치 `dev/hoondok-mvp`: sub-PR #272 `SEC-MONO-001` 403 / #273 web 골격·`[data-app="hoondok"]` 토큰·컴포넌트 6종·`hoondok-css.mjs`·Playwright 스모크 / #274 `daily_readings`·`GET /hoondok/today`·SDK 재생성·web 결합. 증거는 계획 §9
+- [ ] Phase 1 잔여 — 60대 사용자 3명 200% 확대 실사용 확인(섭외 필요), 운영 이미지 플래그 OFF 404 수동 확인(첫 deploy-web 때)
 - [ ] Phase 2~4 — identity·mission_logs → PWA 셸·운영 배포·제한 베타 → 훈독 알림 1종(조건부). 계획 §5~§7
 
 ### 00. 멀티턴 대화 메모리 (2026-07-08)
