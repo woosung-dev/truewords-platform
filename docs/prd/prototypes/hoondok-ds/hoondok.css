@@ -1226,7 +1226,7 @@ body:has([data-screen="onboarding"]:not([hidden])) .appbar{display:none}
 .q4-src em{font-style:normal;font-weight:600;color:var(--ok-strong);margin-left:6px}
 
 /* ---------- AI 질문 v5 · 대화형 (메신저형) ---------- */
-.q5{padding-bottom:0;display:flex;flex-direction:column;min-height:calc(100dvh - 52px - 76px)}
+.q5:not([hidden]){padding-bottom:0;display:flex;flex-direction:column;min-height:calc(100dvh - 52px - 76px)}
 .q5-thread{flex:1;display:flex;flex-direction:column;gap:14px;padding-top:8px}
 .q5-msg{display:flex;flex-direction:column;gap:6px;max-width:92%}
 .q5-who{font-size:12.5px;color:var(--ink-2);padding-left:4px}
