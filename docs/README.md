@@ -1,9 +1,10 @@
 # TrueWords 기술 문서
 
-현재 작업은 M1~M4 이후 **앱별 UI 소유권 분리(사용자 승인 2안)**다. API SDK·ESLint·TypeScript 설정 3개 패키지는 유지한다. 사용자 승인 범위는 구현·검증·PR까지이며, 운영 배포·신규 디자인·PWA 신규 인증/푸시·Flutter 개발은 포함하지 않는다.
+현재 작업은 **훈독 MVP Phase 1**([PLAN-HD-001](plans/active/2026-09-17-hoondok-mvp.md), 2026-09-16 승인)이다. `apps/web` 의 `/hoondok/*` 라우트와 `apps/api` 의 `daily_readings`·`GET /hoondok/today` 를 통합 브랜치 `dev/hoondok-mvp` 에서 sub-PR 로 만든다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, 운영 배포·알림·Flutter 는 Phase 3 이후 별도 승인이다.
 
 | 먼저 읽을 문서 | 용도 |
 |---|---|
+| [훈독 MVP 실행 계획](plans/active/2026-09-17-hoondok-mvp.md) | 확정값 12개, 3테이블·5 API·화면 4, additive-only 규칙, Phase 1~4 완료 기준 |
 | [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md) | web/admin/API 경계, 공통 API·인증·SSE·알림 정책 |
 | [전환 실행 계획](plans/completed/2026-09-05-monorepo-migration.md) | M1~M4 범위와 실제 검증 증거, M5 제외 범위 |
 | [앱별 UI 실행 계획](plans/active/2026-09-05-app-owned-ui.md) | 후속 2안 승인 범위와 재검증 증거 |
@@ -41,9 +42,10 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 |---|---|
 | [01-project-overview](prd/01-project-overview.md) | 기존 제품 배경·데이터 범위 |
 | [16-app-feature-spec](prd/16-app-feature-spec.md) | 이전 MVP/Flutter 구상. 신규 PWA 요구사항으로 자동 상속하지 않음 |
-| [17-ffwpu-pwa-prd](prd/17-ffwpu-pwa-prd.md) | 훈독 앱 PRD v2. 식구의 문제 5개 → 초원AI 벤치마크 현지화 매핑 → 5탭 · 기능 7종 · 보상 정책 · KPI · 9월 일정 · Decision Log. **S2' 방향 확정** (2026-09-14, A 아침 햇살) |
+| [17-ffwpu-pwa-prd](prd/17-ffwpu-pwa-prd.md) | 훈독 앱 PRD v2. 식구의 문제 5개 → 초원AI 벤치마크 현지화 매핑 → 5탭 · 기능 7종 · 보상 정책 · KPI · 9월 일정 · Decision Log. **2026-09-16 승인** (`DEC-PWA-022`) |
+| [훈독 도메인](specs/domain/hoondok-entities.md), [훈독 API](specs/api/hoondok-api.md) | `ENT-HD-001~003`(users · daily_readings · mission_logs), `API-HD-001~005`(`/hoondok/*`). KST 고정, additive-only |
 | [훈독 프로토타입](prd/prototypes/hoondok-ds/README.md) | `app.html` + `hoondok.css` 단일 소스, 16화면, 폰 390 · PC 1280. `index.html` 로 나란히 본다. 값의 원본이며 디자인 시스템 문서가 근거를 설명한다 |
-| [훈독 디자인 시스템](specs/web/hoondok-design-system.md) | `DES-PWA-003`. 채택안 A 아침 햇살의 토큰·컴포넌트 10종·권위 층 배지·WCAG 2.2 AA 대비 실측값·데스크톱 브레이크포인트 3단계·16화면 반응형 대응표. **라이트 단일 테마**이며 다크 팔레트는 정의하지 않는다 (S3, 승인 대기) |
+| [훈독 디자인 시스템](specs/web/hoondok-design-system.md) | `DES-PWA-003`. 채택안 A 아침 햇살의 토큰·컴포넌트 10종·권위 층 배지·WCAG 2.2 AA 대비 실측값·데스크톱 브레이크포인트 3단계·16화면 반응형 대응표. **라이트 단일 테마**이며 다크 팔레트는 정의하지 않는다 (2026-09-16 승인, 데스크톱 내비는 상단 헤더 4) |
 | [사용자 웹 UI/UX](specs/web/ui-ux.md), [관리자 UI/UX](specs/admin/ui-ux.md) | 현재 구현·소유권과 미승인 리디자인의 경계 |
 | [17-chatbot-system-prompt-spec](specs/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 |
 | [18-category-document-stats](specs/18-category-document-stats.md), [19-category-tag-management-ui](specs/19-category-tag-management-ui.md) | 문서 통계·카테고리 UI |
