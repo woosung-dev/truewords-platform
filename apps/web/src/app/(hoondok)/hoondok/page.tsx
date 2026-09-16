@@ -1,7 +1,7 @@
-// SCR-PWA-002 오늘 훈독 (홈). Phase 1: 비로그인 읽기. 히어로는 텍스트 카드(결정 12).
-import { BookOpenText, HandHeart, Library } from "lucide-react";
-import { MalssumCard, MissionCard, WeekStrip } from "@/components/hoondok";
+// SCR-PWA-002 오늘 훈독 (홈). 비로그인 읽기 + 로그인 시 완료·연속일(Phase 2). 히어로는 텍스트 카드(결정 12).
+import { MalssumCard } from "@/components/hoondok";
 import { loadToday } from "@/features/hoondok/api";
+import { HomeMissions } from "@/features/hoondok/components/home-missions";
 import { formatKstDate } from "@/features/hoondok/today";
 
 export default async function HoondokHomePage() {
@@ -37,43 +37,7 @@ export default async function HoondokHomePage() {
         )}
       </div>
 
-      <div className="sect">
-        <div className="sect__head">
-          <h2 className="sect__title">오늘의 실천</h2>
-          <span className="sect__meta">3가지 · 약 5분</span>
-        </div>
-        <div className="missions">
-          <MissionCard
-            kind={`훈독하기 · ${reading?.estimated_minutes ?? 3}분`}
-            title={reading?.title ?? "오늘 말씀을 기다리고 있어요"}
-            meta={reading ? `${reading.work_title} · ${reading.speaker}` : "편성되면 여기서 바로 읽어요"}
-            icon={BookOpenText}
-            href="/hoondok/read"
-          />
-          <MissionCard
-            kind="기도하기 · 1분"
-            title="오늘의 기도 제목"
-            meta="가족·교회 기도 제목은 다음 단계에서"
-            icon={HandHeart}
-            isDisabled
-          />
-          <MissionCard
-            kind="말씀 읽기 · 이어 읽기"
-            title="말씀 서고"
-            meta="서고·이어 읽기는 다음 단계에서"
-            icon={Library}
-            isDisabled
-          />
-        </div>
-      </div>
-
-      <div className="sect">
-        <div className="sect__head">
-          <h2 className="sect__title">이번 주</h2>
-          <span className="sect__meta">로그인 후 기록돼요</span>
-        </div>
-        <WeekStrip todayWeekday={weekday} />
-      </div>
+      <HomeMissions reading={reading ?? null} todayWeekday={weekday} />
 
       <p className="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
     </section>
