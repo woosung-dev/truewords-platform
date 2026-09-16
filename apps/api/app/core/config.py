@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     admin_jwt_algorithm: str = "HS256"
     admin_jwt_expire_minutes: int = 60 * 24  # 24시간
 
+    # 훈독 일반 사용자 JWT (쿠키 hoondok_token, aud="hoondok"). 서명 키는 admin 과 공유하고 aud 로 분리한다.
+    hoondok_jwt_expire_minutes: int = 60 * 24 * 7  # 7일 (PLAN-HD-001 §10, 2026-09-16)
+
     # ponytail: 레드팀 시연 한시 관리자 게이트 — admin API 를 허용할 단 하나의 계정 이메일.
     # 시연 종료 후 AdminRole 기반 권한으로 교체/삭제. 코드에 개인 이메일을 두지 않으려고
     # env(DEMO_ADMIN_EMAIL)로 받는다. 비어 있으면 아무도 게이트를 통과하지 못한다 —

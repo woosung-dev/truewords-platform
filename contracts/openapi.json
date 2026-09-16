@@ -1487,6 +1487,27 @@
         "title": "IngestionStatusSummary",
         "type": "object"
       },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "maxLength": 255,
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest",
+        "type": "object"
+      },
       "MessageResponse": {
         "description": "단순 메시지 응답 (로그인/로그아웃 등).",
         "properties": {
@@ -2443,6 +2464,35 @@
         "title": "SettingsConfigResponse",
         "type": "object"
       },
+      "SignupRequest": {
+        "description": "약관 문구 확정 전(DEC-PWA-001)이라 consent_version 을 받지 않는다.",
+        "properties": {
+          "display_name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 255,
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "display_name"
+        ],
+        "title": "SignupRequest",
+        "type": "object"
+      },
       "SkippedVolume": {
         "properties": {
           "reason": {
@@ -2710,6 +2760,42 @@
           "predicted_outcome"
         ],
         "title": "UploadResponse",
+        "type": "object"
+      },
+      "UserEnvelope": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserPublic"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "title": "UserEnvelope",
+        "type": "object"
+      },
+      "UserPublic": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "display_name"
+        ],
+        "title": "UserPublic",
         "type": "object"
       },
       "ValidationError": {
@@ -5161,6 +5247,127 @@
           }
         },
         "summary": "Health"
+      }
+    },
+    "/hoondok/auth/login": {
+      "post": {
+        "description": "API-HD-003 로그인 → 200 + 쿠키. 401 은 이메일 존재 여부를 구분하지 않는다.",
+        "operationId": "login_hoondok_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Login",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/auth/logout": {
+      "post": {
+        "description": "204 + 쿠키 만료. 만료·무효 토큰으로도 로그아웃할 수 있게 인증을 요구하지 않는다.",
+        "operationId": "logout_hoondok_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Logout",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/auth/me": {
+      "get": {
+        "description": "API-HD-003 현재 사용자. 401 미인증 — web features/identity 게이트가 온보딩으로 보낸다.",
+        "operationId": "me_hoondok_auth_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Me",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/auth/signup": {
+      "post": {
+        "description": "API-HD-002 가입 → 201 + hoondok_token 쿠키. 409 이메일 중복.",
+        "operationId": "signup_hoondok_auth_signup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Signup",
+        "tags": [
+          "hoondok"
+        ]
       }
     },
     "/hoondok/today": {
