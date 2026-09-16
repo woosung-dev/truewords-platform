@@ -90,7 +90,7 @@
 |---|---|---|
 | 1 `feat/hoondok-web-skeleton` | `src/app/(hoondok)/hoondok/{layout,page,read/page}.tsx`(AuthGuard 미적용, 플래그 OFF 404, noindex 메타 + `X-Robots-Tag`), `src/app/hoondok.css` 토큰을 `[data-app="hoondok"]` 스코프로 이식(`.dark` 아래서도 라이트 재선언), 컴포넌트 6종, 플래그 배선 5곳, `apps/web/AGENTS.md` 라우트 추가 | `tooling/checks/hoondok-css.mjs`(`:root` 0 · 브레이크포인트 ⊆ {768,1024,1224} · `#d4562e` 0 · 하드코딩 hex 0) 통과, Playwright `hoondok-chromium`(390/1280 가로 넘침 0 · 콘솔 오류 0 · `/design-system` `--accent` 불변 · noindex) 통과, 기존 `web-chromium` 유지 |
 | 2 `fix/chat-session-ownership` | `SEC-MONO-001`: `session.py` 재사용 경로에서 `existing.user_id != ctx.user_id` 면 **403 거부**. 익명↔익명 재사용 허용, 미존재 id 는 기존대로 새 세션 | 회귀 테스트 4건(타 사용자·로그인→익명·익명→익명 허용·소유자 허용) + 라우터 403 1건, pytest 기준선 유지 |
-| 3 `feat/hoondok-today-api` | `apps/api/app/modules/hoondok/`(`daily_readings` 모델·alembic·`GET /hoondok/today`), `core/common/clock.py today_kst()`, 시드 스크립트(`make e2e` 시드 단계), `pnpm contracts:generate` 산출물, web `features/hoondok/api.ts` + 홈·훈독하기 결합 | 시드 후 `/hoondok/read` 에 출처 줄(메타 6항목)·권위 배지 표시, 없으면 AC-016-04 상태. pytest(repository·KST 경계·라우터 3상태), Vitest 3상태, E2E 1건 |
+| 3 `feat/hoondok-today-api` (sub-PR 1 tip 에서 스택) | `apps/api/app/modules/hoondok/`(`daily_readings` 모델·alembic·`GET /hoondok/today`), `core/common/clock.py today_kst()`, 시드 스크립트(`make e2e` 시드 단계), `pnpm contracts:generate` 산출물, web `features/hoondok/api.ts` + 홈·훈독하기 결합 | 시드 후 `/hoondok/read` 에 출처 줄(메타 6항목)·권위 배지 표시, 없으면 AC-016-04 상태. pytest(repository·KST 경계·라우터 3상태), Vitest 3상태, E2E 1건 |
 
 Phase 1 완료 기준: `/hoondok`·`/hoondok/read` 가 오늘 말씀을 표시하고 없으면 AC-016-04 상태. `make ci` 통과, 기존 E2E 와 `/`→`/login` 단언 유지, 플래그 OFF 시 404. 60대 사용자 3명 200% 확대 실사용 확인(`DES-PWA-003` §7.3)은 결과를 §7 에 기록한다 `[가정: 섭외는 사용자 담당]`.
 
@@ -140,9 +140,20 @@ make e2e
 
 Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 passed / 4 skipped / 1 xfailed, Vitest 113, Playwright 23)은 참고값이며 현재 결과로 복사하지 않는다.
 
+아래 Phase 1 결과는 2026-09-16 로컬 worktree `../tw-hoondok-mvp/`(`dev/hoondok-mvp`, sub-PR 3개 커밋 상태, **main 미머지**)에서 실행했다. PR 머지·CI 결과는 별도로 기록한다.
+
 | Phase | 검증 | 결과 | 날짜 |
 |---|---|---|---|
-| 1 | docs-links | (docs PR 에서 기록) | — |
+| 1 | `node tooling/checks/docs-links.mjs` (docs 브랜치, 깨끗한 체크아웃) | 문서 186 · 링크 290 · 새 오류 0 | 2026-09-16 |
+| 1 | API pytest (`sub-PR 2 + 3` 누적) | 979 passed / 4 skipped / 1 xfailed (기준선 972 + SEC 6 + 훈독 7) | 2026-09-16 |
+| 1 | `pnpm contracts:generate` + `contracts:check` (oasdiff, base `1c41e0f`) | 드리프트 0 · 하위 호환 통과 (`/hoondok/today` 추가만) | 2026-09-16 |
+| 1 | web Vitest · typecheck · lint · Biome | 72 passed (기존 62 + 훈독 10) · 오류 0 · lint 경고 10건은 전부 기존 파일 | 2026-09-16 |
+| 1 | `node tooling/checks/hoondok-css.mjs` + `node --test tooling/checks` | 통과 · 21 pass | 2026-09-16 |
+| 1 | `next build` (플래그 ON) | `/hoondok`·`/hoondok/read` 동적(ƒ), 나머지 라우트 불변 | 2026-09-16 |
+| 1 | Playwright 전체 (격리 compose + 시드 + `seed_daily_readings`) | **44 passed** = 기존 38 + `hoondok-chromium` 6 (390/1280 넘침 0·콘솔 0·noindex·`:root --accent` 불변·홈→읽기→완료) | 2026-09-16 |
+| 1 | additive-only 리허설 (§3-4): `h0d01a2b3c4d` 적용 DB 위에 main `1c41e0f` 백엔드 기동 | `/health` 200 · `/chatbots` 200 · traceback 0 · `/hoondok/today` 404(예상) | 2026-09-16 |
+| 1 | 플래그 OFF 404 | Vitest(`notFound` 호출) 로 확인. 운영 이미지 빌드 시 수동 재확인 예정 | 2026-09-16 |
+| 1 | 60대 사용자 3명 200% 확대 확인 | 미수행 `[가정: 사용자 섭외 후]` | — |
 
 ## 10. 결정 기록
 
