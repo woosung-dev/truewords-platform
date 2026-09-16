@@ -63,6 +63,8 @@ img{display:block;max-width:100%}
 .icon-btn{width:40px;height:40px;border-radius:var(--r-sm);display:grid;place-items:center;
   font-size:22px;color:var(--ink-2);flex:none}
 
+/* 제호는 기본 숨김. 쓰는 테마가 CSS 로 켠다 (JS 가 관여하지 않는다) */
+.masthead{display:none}
 .col{width:100%;padding:4px var(--gutter) 28px}
 .col--read .prose{max-width:none}
 

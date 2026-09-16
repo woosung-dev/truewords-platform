@@ -1,0 +1,295 @@
+/* =============================================================================
+   theme-wired.css - 안 "와이어드" (WIRED 디자인 언어를 훈독 도메인으로 번역)
+   -----------------------------------------------------------------------------
+   출처: awesome-design-md / wired  (docs/research/design-md/wired.md)
+
+   번역 결정 5줄
+   1) 세리프는 오직 말씀에만 준다. WIRED 의 "서사는 세리프, 구조는 산세리프" 규칙을
+      권위 3층 분리에 그대로 쓴다. 원문=세리프 맨살, AI=산세리프 회색 상자,
+      내 메모=산세리프 파선. 색이 아니라 서체·바탕·테두리 세 축으로 갈라진다.
+   2) 색은 먹 하나로 줄인다. WIRED 의 유채색은 본문 인라인 링크 블루 단 하나뿐이다.
+      기존 주황 --accent 와 초록 --ok 를 모두 먹으로 접고, 블루는 "이 말씀에 질문하기"
+      인라인 링크 한 곳에만 남긴다. 강조는 색이 아니라 반전(먹 면 + 흰 글자)이 한다.
+   3) 모서리 0, 그림자 0. 모서리 토큰과 그림자 토큰만 바꿔 앱 전체를 각지게 만든다.
+      유일하게 남는 원형은 하단 "말씀" 버블 = WIRED 의 button-icon-circular 대응.
+   4) 제호 밴드(masthead)를 켠다. WIRED 가 스스로 "유일한 장식적 동작"이라 부르는 것이고,
+      read/words 화면에서는 읽는 책 이름이 그 자리에 들어와 출처 도장 역할을 겸한다.
+   5) 자간은 조이지 않는다. WIRED 의 실제 디스플레이 자간은 64px 에 -0.5px, 곧 -0.008em
+      으로 아주 약하다. 한글 디스플레이에 -0.01em 만 주고 본문은 0 으로 둔다.
+      (직전 편집 안이 탈락한 이유가 한글 자간 남용이었다. 여기서는 반복하지 않는다.)
+
+   대비는 사용 조합마다 아래 주석에 실측값을 남긴다. 주 사용자 30~60대 기준으로
+   AA 4.5:1 을 최저선으로 잡고, WIRED 원본 링크 블루 #057dbc(흰 위 4.50:1, 경계선상)는
+   같은 색상각의 #0b6ea6(5.53:1)로 내려 통과 여유를 만든다.
+   ============================================================================= */
+
+/* ---------- 1. 토큰 : 먹과 종이, 그리고 링크 블루 하나 ---------- */
+[data-theme="wired"]{
+  /* 종이 = 순백 캔버스. WIRED 는 바탕을 인쇄면으로 취급한다 */
+  --paper:#ffffff; --surface:#ffffff; --surface-2:#f2f2f2;
+
+  /* 먹. 순흑 #000 대신 #101010 을 쓴다. 19.03:1 로 AAA 를 크게 넘고,
+     Noto Serif KR 17px 를 3분 읽을 때 순흑이 만드는 눈부심(halation)을 줄인다 */
+  --ink:#101010;      /* on #ffffff = 19.03:1  (본문 AA 4.5 통과) */
+  --ink-2:#4a4a4a;    /* on #ffffff =  8.86:1 / on #f2f2f2 = 7.92:1 */
+  --ink-3:#6b6b6b;    /* on #ffffff =  5.33:1 (12px 캡션도 AA) · 경계선 3:1 통과 */
+  --line:#cfcfcf;     /* 순수 장식 구분선. 대비 요건 대상 아님 */
+
+  /* 먹이 곧 강조색이다. WIRED: "Ink Black - the brand's only accent" */
+  --accent:#101010; --accent-ink:#ffffff; --accent-soft:#f2f2f2;
+  /* 유일한 유채색. 본문 인라인 링크 전용 (하단 "이 말씀에 질문하기") */
+  --accent-strong:#0b6ea6;   /* on #ffffff = 5.53:1  (WIRED 원본 #057dbc 는 4.50:1) */
+
+  /* 의미색 폐기. WIRED 는 성공/경고 팔레트를 두지 않고 먹+회색 위계로 처리한다.
+     --ok-soft 를 "면", --ok-strong 을 "글자"로 쓰는 기존 쌍의 극성을 뒤집어
+     badge--rank / week__day[data-done] / mission[data-done] 세 곳을 한 번에 반전시킨다 */
+  --ok:#101010; --ok-soft:#101010; --ok-strong:#ffffff;  /* 흰 글자 / 먹 면 = 19.03:1 */
+
+  /* 하이라이트도 무채색. 색 대신 밑줄 두께로 등급을 매긴다 (아래 mark 규칙) */
+  --hl-1:#ebebeb; --hl-2:#ebebeb; --hl-3:#ebebeb;        /* 먹 글자 = 15.96:1 */
+
+  /* 각진 기하. WIRED 의 rounded.none 이 버튼·입력·카드 전부에 적용된다 */
+  --r:0px; --r-sm:0px; --r-xs:0px;
+
+  /* 그림자 없음. 높이는 오직 헤어라인과 면 대비가 만든다 */
+  --shadow-hairline:none; --shadow-1:none; --shadow-2:none;
+
+  /* 세리프 스택. 한글 글리프는 반드시 Noto Serif KR 이 받는다.
+     Georgia / Times 는 Noto 미로딩 시의 라틴 폴백일 뿐 앞에 두지 않는다 */
+  --measure-read:760px;   /* ui-ux-pro-max: 1280 에서 원문 31.6자 -> 37.9자 (한글 35~45자) */
+  --serif:"Noto Serif KR",Georgia,"Times New Roman",serif;
+  --font-scripture:var(--serif);   /* 말씀 본문 서체는 이 토큰 하나로만 제어한다 */
+}
+
+/* ---------- 2. 제호 밴드 : WIRED 의 유일한 장식 ---------- */
+/* col 의 좌우 거터만큼 음수 마진을 줘 화면 폭에 정확히 맞춘다.
+   390px 기준 밴드 폭 = 350(내용) + 20 + 20 = 390. 넘침 0px */
+[data-theme="wired"] .masthead{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:var(--ink);color:#ffffff;
+  padding:13px 16px 14px;
+  margin-top:-4px;
+  margin-left:calc(var(--gutter) * -1);
+  margin-right:calc(var(--gutter) * -1);
+}
+[data-theme="wired"] .masthead__nm{
+  font-family:var(--serif);font-size:21px;font-weight:600;line-height:1.3;
+  letter-spacing:-.01em;text-align:center;
+}                                                     /* #ffffff on #101010 = 19.03:1 */
+[data-theme="wired"] .masthead__dt{
+  font-size:12px;color:#d6d6d6;letter-spacing:.06em;        /* 12px 하한 */
+  font-variant-numeric:tabular-nums;
+}                                                     /* #d6d6d6 on #101010 = 13.09:1 */
+
+/* ---------- 3. 상단 바 : WIRED nav-bar (캔버스 + 먹 + 굵은 산세리프) ---------- */
+[data-theme="wired"] .appbar{border-bottom:1px solid var(--line)}
+[data-theme="wired"] .appbar__title{font-size:15px;font-weight:700;letter-spacing:.01em}
+
+/* ---------- 4. 커버 : 표제 · 바이라인 · 겹줄 · 전면 사진 ---------- */
+/* display-hero 번역. weight 400 유지가 원칙이지만 Noto Serif KR 400 은 획이 너무 얇아
+   30~60대 가독에 불리하므로 500 까지만 올린다. 700 은 쓰지 않는다 */
+[data-theme="wired"] .lede{
+  font-family:var(--serif);font-size:34px;font-weight:500;line-height:1.28;
+  letter-spacing:-.01em;margin:16px 0 0;color:var(--ink);
+  /* 한글 표제는 어절 단위로 끊는다. keep-all 없이는 "직단거리" 같은 낱말이 행 사이에서 쪼개진다 */
+  word-break:keep-all;text-wrap:balance;
+}                                                     /* #101010 on #ffffff = 19.03:1 */
+
+/* byline-row 번역. WIRED 바이라인의 서명은 "행간 2.2 의 세로 숨"이다.
+   서체는 세리프를 주지 않는다 (세리프는 말씀 전용) */
+[data-theme="wired"] .src{font-size:12.5px;line-height:2;color:var(--ink-2);gap:8px}
+[data-theme="wired"] .lede-src{margin-top:8px}
+/* 가운뎃점 대신 얇은 세로 룰. 잡지 메타데이터 구분자 */
+[data-theme="wired"] .src__dot{width:1px;height:11px;border-radius:0;background:var(--ink-3)}
+
+/* 기사 시작을 여는 겹줄(thick-thin 대신 thin-thin). 인쇄물의 고전 장치 */
+[data-theme="wired"] .lede-rule{
+  border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+  height:3px;margin-top:16px;
+}
+
+/* 표지 사진 : full-bleed 16:9. WIRED 는 커버 이미지를 화면 끝까지 흘린다 */
+[data-theme="wired"] .shot{
+  margin-left:calc(var(--gutter) * -1);
+  margin-right:calc(var(--gutter) * -1);
+}
+/* veil 을 중성 먹으로 맞춘다 (기본값은 따뜻한 회갈색이라 이 팔레트와 어긋난다).
+   알파 .80 구간 최악치(순백 사진 위) 흰 글자 4.13:1 - .shot__greet 는 21px bold =
+   WCAG 대형 텍스트 3:1 통과. 알파 .92 구간의 .shot__sub(13px)는 7.79:1 */
+[data-theme="wired"] .shot::after{
+  background:linear-gradient(180deg,
+    rgba(16,16,16,0) 18%, rgba(16,16,16,.80) 55%, rgba(16,16,16,.92) 100%);
+}
+
+/* ---------- 5. 섹션 머리 : category-eyebrow ---------- */
+/* WIRED 의 eyebrow 는 Apercu 14/700 에 자간 +0.4px(+0.029em). 한글에도 양수 자간은 안전하다 */
+[data-theme="wired"] .sect{margin-top:28px}
+[data-theme="wired"] .sect__head{
+  border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:0;align-items:baseline;
+}
+[data-theme="wired"] .sect__title{font-size:12.5px;font-weight:700;color:var(--ink);letter-spacing:.04em}
+[data-theme="wired"] .sect__meta{font-size:12.5px;color:var(--ink-2)}
+                                                      /* #4a4a4a on #ffffff = 8.86:1 */
+
+/* ---------- 6. 미션 : story-row (헤어라인 구분선만) ---------- */
+[data-theme="wired"] .missions{gap:0}
+[data-theme="wired"] .mission{padding:15px 0;border-bottom:1px solid var(--line)}
+[data-theme="wired"] .missions .mission:last-child{border-bottom:0}
+/* 썸네일 틀. 회색 칩 대신 헤어라인 액자 */
+[data-theme="wired"] .mission__ic{
+  width:44px;height:44px;background:var(--surface);
+  border:1px solid var(--ink-3);color:var(--ink);font-size:22px;
+}                                                     /* 테두리 5.33:1 (비텍스트 3:1 통과) */
+[data-theme="wired"] .mission[data-done] .mission__ic{border-color:var(--ink)}
+                                                      /* 먹 면 + 흰 아이콘 = 19.03:1 */
+[data-theme="wired"] .mission__kind{
+  font-size:12px;font-weight:700;color:var(--ink);letter-spacing:.04em;   /* 12px 하한 */
+}
+[data-theme="wired"] .mission__title{font-size:16.5px;font-weight:700;letter-spacing:-.005em}
+[data-theme="wired"] .mission__meta{font-size:12.5px;color:var(--ink-3)}
+                                                      /* #6b6b6b on #ffffff = 5.33:1 */
+/* 체크는 각지게. 네모 = 체크박스라는 관습이 원보다 강하다 */
+[data-theme="wired"] .check{border-radius:0;border-width:1.5px}
+
+/* =============================================================================
+   7. 권위 3층 - 이 테마의 본론
+      (1) 공식 원문 : 세리프 맨살. 상자도 테두리도 없다. 잡지의 "본문"
+      (2) AI 설명   : 산세리프 + 회색 면. 잡지의 "사이드바"
+      (3) 내 메모   : 산세리프 + 파선, 면 없음, 가장 옅은 먹. 잡지의 "캡션"
+      서체 / 바탕 / 테두리 세 축이 동시에 달라 색 없이도 갈라진다
+   ============================================================================= */
+
+/* (1) 공식 원문 */
+[data-theme="wired"] .scripture{
+  border-left:0;padding:0;margin:20px 0 0;
+  font-size:18px;line-height:1.95;letter-spacing:0;color:var(--ink);
+}                                                     /* 19.03:1 */
+[data-theme="wired"] .verse{font-size:17.5px;line-height:1.95;letter-spacing:0;margin-bottom:20px}
+/* 단락 번호는 "구조"이므로 산세리프 캡션으로 되돌린다 */
+[data-theme="wired"] .verse__n{
+  font-family:var(--sans);font-size:12px;font-weight:700;color:var(--ink-3);
+  padding-top:7px;letter-spacing:.02em;
+}                                                     /* 5.33:1 */
+/* 하이라이트 : 무채색 면 하나 + 밑줄 두께로 등급. 색을 쓰지 않고도 3단이 구분된다 */
+[data-theme="wired"] mark.hl-1{box-shadow:inset 0 -2px 0 var(--ink)}
+[data-theme="wired"] mark.hl-2{box-shadow:inset 0 -1px 0 var(--ink-3)}
+[data-theme="wired"] mark.hl-3{background:transparent;box-shadow:inset 0 -1px 0 var(--line)}
+                                                      /* 글자는 셋 다 먹: 15.96:1 / 19.03:1 */
+
+/* (2) AI 설명 : 점무늬를 걷고 회색 면으로. WIRED 에 장식 패턴은 없다 */
+[data-theme="wired"] .ai-note{
+  background-image:none;background-color:var(--surface-2);
+  border:0;border-radius:0;padding:14px 16px 16px;
+}
+[data-theme="wired"] .ai-note__lab{
+  font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--ink-2);  /* 12px 하한 */
+  border-bottom:1px solid var(--ink-3);padding-bottom:8px;margin-bottom:10px;
+}                                                     /* #4a4a4a on #f2f2f2 = 7.92:1 */
+[data-theme="wired"] .ai-note__body{font-size:16px;line-height:1.75;color:var(--ink-2)}  /* 폰 본문 16px 하한 */
+
+/* (3) 내 메모 : 면 없이 파선만. 가장 옅은 층 */
+[data-theme="wired"] .my-note{
+  border:1px dashed var(--ink-3);border-radius:0;padding:14px 16px;
+  font-size:14px;color:var(--ink-3);
+}                                                     /* 5.33:1 · 테두리 5.33:1 */
+
+/* ---------- 8. 권위 도장 : 배지와 용어 칩 ---------- */
+/* O1 공식 원문 = 화면에서 가장 짙은 먹 덩어리. 반전이 권위를 표시한다 */
+[data-theme="wired"] .badge{border-radius:0;font-size:12px;letter-spacing:.02em;min-height:22px}  /* 12px 하한 */
+/* .badge--rank 는 --ok-soft/--ok-strong 극성 반전으로 이미 먹 면 + 흰 글자다 */
+
+/* 용어 칩 = WIRED button-outline (캔버스 + 먹 글자 + 1px 먹 테두리 + 각진 모서리) */
+[data-theme="wired"] .term{
+  background:var(--surface);color:var(--ink);border:1px solid var(--ink);
+  border-radius:0;font-weight:700;min-height:30px;padding:4px 10px;
+}                                                     /* 글자·테두리 19.03:1 */
+
+/* ---------- 9. 카드 · 진행 · 주간 ---------- */
+/* 카드는 테두리가 아니라 면으로 구분한다 (WIRED ex-pricing-tier = canvas-soft) */
+[data-theme="wired"] .card{
+  background:var(--surface-2);border:0;border-radius:0;padding:16px;
+}
+/* 숫자 3칸 사이 헤어라인. 잡지의 데이터 스트립 */
+[data-theme="wired"] .stats > div + div{border-left:1px solid var(--line);padding-left:10px}
+[data-theme="wired"] .stats__n{font-weight:700}
+
+/* 진행 막대는 회색 카드 위에 놓이므로 트랙을 흰 면 + 테두리로 바꾼다
+   (기본값은 트랙도 --surface-2 라 카드 배경에 묻힌다) */
+[data-theme="wired"] .progress{
+  background:var(--surface);border:1px solid var(--ink-3);border-radius:0;height:10px;
+}                                                     /* 테두리 5.33:1 · 먹 채움 19.03:1 */
+
+/* 요일 칸 : 원 -> 네모. 먹 면(완료) / 2px 먹 테두리(오늘) / 1px 회색(미완) 세 형태 */
+[data-theme="wired"] .week__day{border-radius:0;max-width:36px;font-weight:600}
+                                                      /* 미완 테두리 5.33:1 · 완료 19.03:1 */
+[data-theme="wired"] .week__streak{font-size:12.5px;color:var(--ink-2)}
+
+/* ---------- 10. 버튼 · 내비 ---------- */
+/* button-primary : 먹 면, 흰 글자, 각진 모서리, 굵은 산세리프 + 양수 자간 */
+[data-theme="wired"] .btn{
+  border-radius:0;height:52px;font-weight:700;font-size:16px;letter-spacing:.02em;
+}                                                     /* #ffffff on #101010 = 19.03:1 */
+/* 먹 버튼 위의 먹 포커스 링은 흰 종이 간격이 넓어야 보인다 */
+[data-theme="wired"] .btn-primary:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+[data-theme="wired"] .icon-btn{border-radius:0}
+[data-theme="wired"] .nav{border-top:1px solid var(--ink)}
+[data-theme="wired"] .nav__item{font-weight:600;font-size:12px}   /* 12px 하한 (베이스 11px) */
+[data-theme="wired"] .nav__item[aria-current]{color:var(--ink);font-weight:700}
+/* 하단 "말씀" 버블만 원형으로 남는다 = WIRED 의 button-icon-circular */
+[data-theme="wired"] .nav__item--mid .nav__ic{background:var(--ink)}
+
+/* 눌림 피드백 : 베이스는 .btn 에만 있다. 각진 테마라 가라앉는 폭을 작게 준다 */
+[data-theme="wired"] .term:active,[data-theme="wired"] .check:active,
+[data-theme="wired"] .icon-btn:active,
+[data-theme="wired"] .nav__item--mid:active .nav__ic{transform:scale(.98)}
+
+/* 호버 시 링크 블루로 바뀌는 기본 규칙을 되돌린다. 블루는 UI 에 쓰지 않는다 */
+@media (hover:hover){
+  [data-theme="wired"] .btn-primary:hover{background:var(--ink-2)}
+  [data-theme="wired"] .nav__item--mid:hover .nav__ic{background:var(--ink-2)}
+}
+
+/* 꼬리말 고지 : 왼쪽 정렬 + 헤어라인. 잡지 판권면의 주석 자리 */
+[data-theme="wired"] .notice{
+  text-align:left;font-size:12.5px;color:var(--ink-2);
+  border-top:1px solid var(--line);margin-top:30px;padding-top:12px;
+}                                                     /* 8.86:1 */
+
+/* =============================================================================
+   md : 768px 이상. 잡지 표제 스케일만 올린다. 다단 조판은 하지 않는다.
+        col--read 폭이 640px 이라 한글 2단은 한 단이 300px 이하로 떨어져 가독이 깨진다.
+   ============================================================================= */
+@media (min-width:768px){
+  [data-theme="wired"] .lede{font-size:44px;line-height:1.25}
+  [data-theme="wired"] .masthead__nm{font-size:25px}
+  [data-theme="wired"] .scripture{font-size:19px}
+}
+
+/* =============================================================================
+   lg : 1024px 이상. 좌측 레일에서 유채색이 새는 지점을 막는다.
+   ============================================================================= */
+@media (min-width:1024px){
+  [data-theme="wired"] .lede{font-size:52px;letter-spacing:-.015em}
+  [data-theme="wired"] .masthead__nm{font-size:28px}
+
+  /* 레일 활성 행 = 회색 면 + 왼쪽 먹 막대 (WIRED ex-app-shell-row 의 activeIndicator).
+     기본값은 --accent-soft 면에 --accent-strong(링크 블루) 글자라 UI 에 유채색이 들어간다 */
+  [data-theme="wired"] .nav__item{border-radius:0}
+  [data-theme="wired"] .nav__item[aria-current]{
+    background:var(--surface-2);color:var(--ink);
+    box-shadow:inset 3px 0 0 var(--ink);
+  }                                                   /* 17.00:1 · 표시자 17.00:1 */
+  [data-theme="wired"] .nav__ic{border-radius:0}
+  [data-theme="wired"] .nav__item--mid .nav__ic{border-radius:0;background:var(--ink)}
+}
+
+/* =============================================================================
+   taste-skill 패스에서 기각한 지적
+   1) "섹션 제목이 12.5px 눈썹 라벨이라 미션 제목(16.5px)보다 작다 - 위계 역전."
+      번역 결정 4 와 §5 가 WIRED 의 category-eyebrow 를 이 자리의 규칙으로 못박았다.
+      잡지에서 키커는 제목보다 작은 것이 정상이고, 여기서 눈썹은 섹션마다 덧붙인
+      장식 라벨이 아니라 섹션 제목 그 자체다(섹션당 1개, 중복 라벨 0개).
+   2) "mission__kind 12px/700/+.04em 도 눈썹이라 화면에 눈썹이 다섯 개다."
+      같은 이유로 남겨 둔다. story-row 의 키커는 행마다 하나씩 붙는 것이 원본 문법이고,
+      키커를 지우면 "훈독하기 · 3분" 같은 종류·소요시간 정보가 갈 자리가 없어진다.
+   ============================================================================= */

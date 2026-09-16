@@ -14,10 +14,16 @@
 <link rel="stylesheet" href="theme-rule.css" />
 <link rel="stylesheet" href="theme-editorial.css" />
 <link rel="stylesheet" href="theme-scripture.css" />
+<link rel="stylesheet" href="theme-apple.css" />
+<link rel="stylesheet" href="theme-notion.css" />
+<link rel="stylesheet" href="theme-wired.css" />
+<link rel="stylesheet" href="theme-starbucks.css" />
+<link rel="stylesheet" href="theme-claude.css" />
+<link rel="stylesheet" href="theme-airbnb.css" />
 </head>
 <body data-theme="card">
 <!-- 마크업은 한 벌이다. 테마도 화면 폭도 이 문서를 복제하지 않는다.
-     ?theme=card|rule|editorial|scripture   ?screen=today|read|words   ?serif=1 -->
+     ?theme=card|rule|editorial|scripture|apple|notion|wired|starbucks|claude|airbnb   ?screen=today|read|words   ?serif=1 -->
 <div class="app">
 
   <main class="app__main">
@@ -222,9 +228,6 @@
     const on = (a.getAttribute('href')||'').includes(screen);
     if (on) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current');
   });
-  // 마스트헤드는 editorial 테마만 쓴다
-  if (theme !== 'editorial') document.querySelectorAll('.masthead').forEach(m => m.style.display='none');
-
   document.querySelectorAll('.check').forEach(c => c.addEventListener('click', () => {
     const on = c.getAttribute('aria-pressed') !== 'true';
     c.setAttribute('aria-pressed', String(on));

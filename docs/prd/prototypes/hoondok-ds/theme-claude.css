@@ -1,0 +1,325 @@
+/* =============================================================================
+   theme-claude.css - 훈독 앱 "Claude" 테마
+   -----------------------------------------------------------------------------
+   출처: awesome-design-md / claude (docs/research/design-md/claude.md)
+        크림 캔버스 · 테라코타 CTA · 세리프 디스플레이 · 색블록 우선(그림자 희박).
+        브랜드 로고·스파이크 마크·이름은 가져오지 않는다. 규칙만 가져온다.
+
+   번역 결정 5줄
+   1) 크림 캔버스(#faf9f5)를 그대로 받았다. Claude 의 "순백은 다른 AI 도구처럼
+      읽힌다" 는 규범이 아침 훈독 화면과 방향이 같다. 차가운 흰 화면 대신
+      종이 체온이 있는 바닥 위에 말씀을 올린다.
+   2) 테라코타 CTA 는 원색 #cc785c 를 못 쓴다. 흰 글자 대비 3.28:1 로 AA(4.5:1)
+      미달이다. Claude 자신의 press 색 primary-active #a9583e 로 교체했다
+      (흰 글자 5.06:1). 원색은 이 파일 어디에도 채움으로 등장하지 않는다.
+   3) Copernicus 세리프 디스플레이를 Noto Serif KR 로 번역하고, 쓰는 자리를
+      Claude 보다 좁혔다. Claude 는 모든 헤드라인이 세리프지만 여기서는
+      제호·리드·말씀 원문만 세리프다. 세리프 = 공식 원문이라는 신호를 UI 크롬과
+      나눠 쓰면 신호가 죽는다.
+   4) 권위 3층을 "면 / 룰 / 테두리" 세 형태로 갈랐다. 공식 원문 = 면 없음 +
+      4px 잉크 좌측 룰 + 세리프, AI 설명 = 크림 카드 면 채움 + 테두리 없음 +
+      산세리프, 내 메모 = 면 없음 + 1.5px 점선 사각. 흑백 인쇄해도 세 층이 갈린다.
+   5) Claude 의 트리니티 규칙(크림·코랄·다크 외 네 번째 면 색 금지)을 지키느라
+      완료 초록을 버렸다. 체크·요일 완료는 초록이 아니라 잉크 채움 + 체크 글리프로
+      말한다. 색맹 사용자에게도 형태가 먼저 도달한다.
+
+   의도적으로 버린 Claude 규칙
+   - 다크 네이비 제품 surface(#181715) 밴드와 "크림 -> 다크" 페이싱 리듬:
+     아침 3분 앱에 다크 밴드를 번갈아 까는 건 눈에 부담이고 라이트 고정 제약과
+     충돌한다. 다크는 사진 베일 한 곳(.shot::after)에만 남겨 두고, 카드·CTA·
+     꼬리말 어디에도 다크 면을 쓰지 않는다.
+   - 96px 섹션 리듬과 32px 카드 패딩: 마케팅 페이지 호흡이다. 390px 폰에서
+     한 화면에 미션 3개가 안 들어온다. 섹션 28px / 카드 20px 로 압축했다.
+   - "hover 를 문서화하지 마라": 베이스가 lg 전용 hover 를 이미 갖고 있고
+     PC 레일에서 되돌리면 어포던스가 사라진다. 베이스 hover 를 그대로 둔다.
+
+   대비 (WCAG 2.2 AA) - 모든 수치는 실측이다. 각 규칙 옆 주석 참조.
+   본문 최저 4.97:1 = --accent 수치 글자 대 카드 면 #fffdf8 (기준 4.5:1).
+   비텍스트 최저 4.19:1 = 진행바 테라코타 채움 대 트랙 크림 (기준 3:1).
+
+   mobile-first. 미디어쿼리 없는 규칙이 390px 규칙이다.
+   ============================================================================= */
+
+/* ---------- 1. 토큰 ---------- */
+[data-theme="claude"]{
+  /* 면 3단 : 캔버스 / 옅은 크림 / 진한 크림. 전부 따뜻한 쪽으로 기울어 있다 */
+  --paper:#faf9f5;            /* claude canvas */
+  --surface:#fffdf8;          /* 캔버스보다 한 단계 밝은 카드 면 (순백은 쓰지 않는다) */
+  --surface-2:#efe9de;        /* claude surface-card : 칩·트랙·아이콘 타일 */
+  --surface-soft:#f5f0e8;     /* claude surface-soft : 섹션 밴드 */
+  --line:#e6dfd8;             /* claude hairline. 1.25:1 장식 전용, 권위 구분에 쓰지 않는다 */
+
+  /* 잉크 : 따뜻한 차콜. muted #6c6a64 는 크림 위 5.13:1 이지만 진한 크림 카드
+     위에서 4.48:1 로 떨어져서 한 단계 어둡게 잡았다 */
+  --ink:#141413;              /* 17.50:1 on #faf9f5 */
+  --ink-2:#3d3d3a;            /* 10.34:1 on #faf9f5, 9.02:1 on #efe9de */
+  --ink-3:#5c5a55;            /*  6.54:1 on #faf9f5, 5.70:1 on #efe9de (컨트롤 경계 겸용) */
+
+  /* 강조 : 테라코타. 원색 #cc785c 는 흰 글자 3.28:1 이라 채움으로 못 쓴다 */
+  --accent:#a9583e;           /* 흰 글자 5.06:1 / 크림 위 글자 4.80:1 */
+  --accent-ink:#ffffff;
+  --accent-soft:#f5e7df;      /* 코랄 틴트. 두 번째 브랜드 색이 아니다 */
+  --accent-strong:#8f4830;    /* 6.35:1 on #faf9f5, 5.54:1 on #f5e7df */
+
+  /* 완료 : 초록을 버리고 잉크로 흡수한다 (트리니티 규칙) */
+  --ok:#141413; --ok-strong:#141413; --ok-soft:#efe9de;   /* 잉크 글자 15.26:1 on 크림 카드 */
+
+  /* 하이라이트 : Claude 의 amber / teal / coral 액센트를 틴트로 낮춘 3종 */
+  --hl-1:#f7e4b0;             /* accent-amber 계열, 잉크 14.64:1 */
+  --hl-2:#d6e8db;             /* accent-teal  계열, 잉크 14.42:1 */
+  --hl-3:#f7d9cb;             /* coral        계열, 잉크 13.82:1 */
+
+  /* 모서리 : Claude 위계 그대로. 8 버튼·입력 / 12 콘텐츠 카드 / 16 마키 */
+  --r:12px; --r-sm:8px; --r-xs:8px; --r-sheet:16px;
+
+  /* 깊이 : 색블록 우선, 그림자 희박. Claude 의 유일한 그림자 값을 그대로 쓴다 */
+  --shadow-hairline:none;
+  --shadow-1:0 1px 3px rgba(20,20,19,.08);
+  --shadow-2:0 1px 3px rgba(20,20,19,.08);
+
+  /* 서체 : Copernicus -> Noto Serif KR. 한글 글리프를 세리프가 먼저 받게 둔다 */
+  --serif:"Noto Serif KR","Tiempos Headline",Georgia,"Apple SD Gothic Neo",serif;
+  --font-scripture:var(--serif);
+
+  --gutter:20px;
+  --measure-read:800px;       /* ui-ux-pro-max: 1280 에서 원문 29.2자 -> 37.4자 (한글 35~45자) */
+
+  /* 30~60대 기준. Claude 본문 16px 을 한글 비율로 올린다 */
+  font-size:16.5px;
+  line-height:1.6;
+}
+
+/* ---------- 2. 페이지 골격 ---------- */
+/* Claude top-nav 는 크림 위에 얹혀 경계선이 없다. 면 전환만으로 구분한다 */
+[data-theme="claude"] .appbar{background:var(--paper);border-bottom:0}
+[data-theme="claude"] .appbar__title{font-size:15px;font-weight:500;
+  color:var(--ink-2);letter-spacing:0}                                   /* 10.34:1 */
+[data-theme="claude"] .icon-btn{color:var(--ink-2);border-radius:var(--r-sm)}
+[data-theme="claude"] .col{padding:0 var(--gutter) 40px}
+
+/* 제호 : Claude 워드마크 자리. 브랜드 마크 대신 세리프 제호 한 줄만 켠다 */
+[data-theme="claude"] .masthead{display:flex;justify-content:space-between;
+  align-items:baseline;gap:10px;padding:16px 0 0;
+  border-bottom:1px solid var(--line)}
+[data-theme="claude"] .masthead__nm{font-family:var(--serif);font-size:17px;
+  font-weight:500;letter-spacing:-.02em;color:var(--ink);padding-bottom:10px}  /* 17.50:1 */
+[data-theme="claude"] .masthead__dt{font-size:13px;color:var(--ink-3);         /*  6.54:1 */
+  font-variant-numeric:tabular-nums;padding-bottom:10px}
+
+/* 섹션 리듬 : Claude 96px 을 폰 기준 28px 로 압축 */
+[data-theme="claude"] .sect{margin-top:28px}
+[data-theme="claude"] .sect__head{margin-bottom:12px;align-items:baseline}
+[data-theme="claude"] .sect__title{font-size:17px;font-weight:500;
+  color:var(--ink);letter-spacing:-.01em}                                /* 17.50:1 */
+[data-theme="claude"] .sect__meta{font-size:13px;color:var(--ink-2)}     /* 10.34:1 */
+
+/* ---------- 3. 리드 : display-sm 을 세리프 400 + 음수 자간으로 ---------- */
+/* Claude 규범 : 디스플레이는 굵게가 아니라 크게. weight 400 을 지킨다 */
+[data-theme="claude"] .lede{font-family:var(--serif);font-size:27px;
+  font-weight:400;line-height:1.45;letter-spacing:-.03em;color:var(--ink);
+  margin:18px 0 0;text-wrap:balance}                                     /* 17.50:1 */
+[data-theme="claude"] .lede-src{margin-top:14px;font-size:13px;gap:8px}
+[data-theme="claude"] .src{color:var(--ink-2)}                           /* 10.34:1 */
+[data-theme="claude"] .src__dot{background:var(--ink-3)}
+[data-theme="claude"] .lede-rule{border-top:1px solid var(--line);margin-top:18px}
+
+/* ---------- 4. 권위 3층 : 색이 아니라 형태로 가른다 ---------- */
+/* ① 공식 원문 = 면 없음 + 4px 잉크 룰 + 세리프.
+      Claude 가 히어로 headline 에 주는 대우(가장 큰 세리프 · 상자 없음)를
+      말씀에 옮겼다. 받침대는 여백과 세리프가 만든다 */
+[data-theme="claude"] .scripture{font-family:var(--font-scripture);
+  background:none;border-left:4px solid var(--ink);                      /* 룰 17.50:1 */
+  padding:2px 0 2px 18px;margin:22px 0 0;
+  font-size:18.5px;font-weight:400;line-height:1.95;letter-spacing:-.01em;
+  color:var(--ink)}                                                      /* 17.50:1 */
+[data-theme="claude"] .verse{font-family:var(--font-scripture);
+  font-size:18px;font-weight:400;line-height:1.95;letter-spacing:-.01em;
+  color:var(--ink);gap:12px;margin:0 0 20px}                             /* 17.50:1 */
+[data-theme="claude"] .verse__n{color:var(--ink-3);font-size:12.5px;     /*  6.54:1 */
+  font-weight:500;width:18px;padding-top:9px;font-family:var(--sans)}
+/* 하이라이트는 납작하게. Claude 는 장식 곡률을 남발하지 않는다 */
+[data-theme="claude"] mark.hl-1,
+[data-theme="claude"] mark.hl-2,
+[data-theme="claude"] mark.hl-3{border-radius:2px;padding:1px 2px}
+
+/* ② AI 설명 = 크림 카드 면 채움 + 테두리 없음 + 산세리프.
+      Claude feature-card 문법이다. 원문과 달리 "면 위에 얹힌 것" 이라
+      본문 흐름이 아닌 곁다리로 읽힌다. 세리프가 여기로 새지 않게 못박는다 */
+[data-theme="claude"] .ai-note{background-image:none;                    /* 베이스 점무늬 제거 */
+  background-color:var(--surface-2);border:0;
+  border-radius:var(--r);padding:18px 20px;box-shadow:none}
+[data-theme="claude"] .ai-note__lab{font-family:var(--sans);font-size:12px;
+  font-weight:500;letter-spacing:.09em;text-transform:none;
+  color:var(--accent-strong);gap:7px;margin-bottom:10px}                 /* 5.54:1 on #efe9de */
+[data-theme="claude"] .ai-note__lab i{font-size:16px}
+[data-theme="claude"] .ai-note__body{font-family:var(--sans);
+  color:var(--ink-2);font-size:16px;line-height:1.75}                    /* 9.02:1 on #efe9de · 폰 본문 16px 하한 */
+
+/* ③ 내 메모 = 면 없음 + 점선 사각. 아직 채우지 않은 칸으로 읽힌다.
+      원문(면X 룰O)과도, AI 설명(면O 테두리X)과도 형태가 겹치지 않는다 */
+[data-theme="claude"] .my-note{font-family:var(--sans);background:none;
+  border:1.5px dashed var(--ink-3);                                      /* 경계 6.54:1 */
+  border-radius:var(--r-sm);padding:18px;min-height:86px;
+  color:var(--ink-3);font-size:15px;line-height:1.7}                     /* 6.54:1 */
+
+/* ---------- 5. 블록 : 미션 · 카드 · 사진 ---------- */
+/* Claude 카드는 그림자가 없다. 면 색 하나로 선다 */
+[data-theme="claude"] .card{background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:20px;box-shadow:none}
+
+/* 미션 3개는 카드가 아니라 헤어라인 행이다. 미션 행과 "정성 기간" 카드가 같은
+   흰 면·같은 테두리·같은 모서리를 쓰면 둘의 위계 차이가 사라진다.
+   카드 형태는 진짜 컨테이너(정성 기간·AI 설명)에만 남긴다 */
+[data-theme="claude"] .missions{gap:0}
+[data-theme="claude"] .mission{background:none;border:0;border-radius:0;
+  border-bottom:1px solid var(--line);padding:14px 2px;gap:13px}
+[data-theme="claude"] .missions .mission:last-child{border-bottom:0}
+[data-theme="claude"] .mission__ic{width:40px;height:40px;font-size:20px;
+  border-radius:var(--r-sm);background:var(--surface-2);color:var(--ink-2)}  /* 9.02:1 */
+[data-theme="claude"] .mission__kind{font-size:12.5px;color:var(--ink-3)}    /* 6.54:1 */
+[data-theme="claude"] .mission__title{font-size:16px;font-weight:500;
+  color:var(--ink);margin-top:2px;letter-spacing:-.01em}                     /* 17.50:1 */
+[data-theme="claude"] .mission__meta{font-size:12.5px;color:var(--ink-3)}    /* 6.54:1 */
+/* 완료는 초록이 아니다. 아이콘 타일이 잉크로 채워지고 제목에 취소선이 붙는다 */
+[data-theme="claude"] .mission[data-done] .mission__ic{background:var(--ink);color:var(--paper)}
+[data-theme="claude"] .mission[data-done] .mission__title{color:var(--ink-3);
+  text-decoration:line-through}                                              /* 5.70:1 on 크림 카드 */
+
+/* 체크 : 눌리면 잉크로 채워진다. 색이 아니라 채움 유무가 상태다 */
+[data-theme="claude"] .check{border-radius:50%;border-width:1.5px;
+  border-color:var(--ink-3);background:var(--surface)}                       /* 경계 6.78:1 */
+[data-theme="claude"] .check[aria-pressed="true"]{background:var(--ink);
+  border-color:var(--ink);color:var(--paper)}                                /* 글리프 17.50:1 */
+
+[data-theme="claude"] .stats__n{font-family:var(--serif);font-size:27px;
+  font-weight:400;letter-spacing:-.03em;color:var(--ink)}                    /* 18.13:1 */
+[data-theme="claude"] .stats__n--accent{color:var(--accent)}                 /* 4.97:1 on #fffdf8 */
+[data-theme="claude"] .stats__lab{font-size:12.5px;color:var(--ink-3)}       /* 6.78:1 */
+[data-theme="claude"] .progress{background:var(--surface-2);height:8px}
+[data-theme="claude"] .progress__fill{background:var(--accent)}              /* 채움 4.19:1 vs 트랙 */
+
+/* 주간 스트릭 : Claude 는 알약을 배지에만 쓴다. 요일 칸은 8px 사각 타일 */
+[data-theme="claude"] .week{gap:14px}
+[data-theme="claude"] .week__day{border-radius:var(--r-sm);max-width:36px;
+  font-size:13px;color:var(--ink-2);border:1px solid var(--ink-3);
+  background:var(--surface)}                                                 /* 글자 10.72 / 경계 6.78 */
+[data-theme="claude"] .week__day[data-done]{background:var(--ink);
+  color:var(--paper);border-color:var(--ink);font-weight:500}                /* 17.50:1 */
+[data-theme="claude"] .week__day[data-today]{background:var(--surface);
+  border:2px solid var(--accent);color:var(--accent-strong);font-weight:600} /* 글자 6.35 / 경계 4.80 */
+[data-theme="claude"] .week__streak{font-size:13px;color:var(--ink-2)}       /* 10.34:1 */
+[data-theme="claude"] .week__streak b{font-family:var(--serif);font-size:18px;
+  font-weight:400;color:var(--accent-strong)}                                /* 6.35:1 */
+
+/* 사진 : 다크 네이비를 남긴 유일한 자리. Claude surface-dark 톤으로 베일을 깐다 */
+[data-theme="claude"] .shot{height:190px;border-radius:var(--r)}
+[data-theme="claude"] .shot::after{background:linear-gradient(180deg,
+  rgba(24,23,21,0) 14%,rgba(24,23,21,.80) 46%,rgba(24,23,21,.94) 100%)}
+/* 사진이 최악(순백)이어도 텍스트 구간 베일 위 흰 글자 6.89:1 */
+[data-theme="claude"] .shot__tx{left:18px;right:18px;bottom:15px}
+[data-theme="claude"] .shot__greet{font-family:var(--serif);font-size:19px;
+  font-weight:400;line-height:1.5;letter-spacing:-.02em}
+[data-theme="claude"] .shot__sub{font-size:13px;opacity:.94;margin-top:5px}
+
+/* ---------- 6. 컨트롤 ---------- */
+/* Claude 버튼은 8px 사각이다. 알약은 배지 전용 */
+[data-theme="claude"] .btn{height:50px;border-radius:var(--r-sm);
+  font-size:16px;font-weight:500;letter-spacing:-.01em}
+[data-theme="claude"] .btn-primary{background:var(--accent);
+  color:var(--accent-ink)}                                                   /* 흰 글자 5.06:1 */
+[data-theme="claude"] .btn-line{background:var(--surface);
+  border:1px solid var(--ink-3);color:var(--ink)}                            /* 경계 6.78:1 */
+
+/* 용어 칩 : Claude 인라인 text-link 의 코랄을 칩으로 옮겼다.
+   CTA 와 같은 색축이지만 채움 대신 틴트 + 테두리라 역할이 갈린다 */
+[data-theme="claude"] .term{background:var(--accent-soft);
+  color:var(--accent-strong);border:1px solid var(--accent-strong);
+  border-radius:var(--r-sm);min-height:30px;padding:4px 12px;
+  font-size:13px;font-weight:500}                          /* 글자 5.54:1 / 경계 6.35:1 */
+                          /* 알약이 아니라 8px 사각이다. 이 파일은 §6 과 "주간 스트릭"
+                             두 곳에서 "알약은 배지 전용" 이라고 못박았고 .term 은 버튼이다 */
+[data-theme="claude"] .term i{font-size:15px}
+
+/* 눌림 피드백 : 베이스는 .btn 에만 있다. 나머지 탭 대상도 눌릴 때 가라앉게 한다 */
+[data-theme="claude"] .term:active,[data-theme="claude"] .check:active,
+[data-theme="claude"] .icon-btn:active,
+[data-theme="claude"] .nav__item--mid:active .nav__ic{transform:scale(.97)}
+
+/* 배지 : Claude badge-pill. 크림 채움 + 잉크 글자, 테두리 없음 */
+[data-theme="claude"] .badge{border-radius:9999px;font-size:12px;font-weight:500;
+  padding:4px 12px;min-height:24px;letter-spacing:0;
+  background:var(--surface-2);color:var(--ink);border:0}                     /* 15.26:1 */
+[data-theme="claude"] .badge--rank{background:var(--surface-2);color:var(--ink)}
+[data-theme="claude"] .badge--accent{background:var(--accent);
+  color:var(--accent-ink);letter-spacing:.09em}                              /* 5.06:1 */
+/* 입력 : 포커스에서 테두리가 코랄로 바뀌고 15% 링이 붙는다 (Claude text-input-focused) */
+[data-theme="claude"] .field input,
+[data-theme="claude"] .field textarea{border:1px solid var(--ink-3);
+  border-radius:var(--r-sm);background:var(--surface);font-size:16px}
+[data-theme="claude"] .field input:focus-visible,
+[data-theme="claude"] .field textarea:focus-visible{outline:0;
+  border-color:var(--accent);box-shadow:0 0 0 3px rgba(169,88,62,.15)}
+/* 꼬리말 : 다크 footer 를 쓰지 않는다. 헤어라인 한 줄로 조용히 닫는다 */
+[data-theme="claude"] .notice{text-align:left;margin-top:36px;padding:18px 0 0;
+  border-top:1px solid var(--line);font-size:13px;color:var(--ink-3)}        /* 6.54:1 */
+
+/* ---------- 7. 내비게이션 ---------- */
+[data-theme="claude"] .nav{background:var(--paper);border-top:1px solid var(--line)}
+[data-theme="claude"] .nav__item{font-size:12px;color:var(--ink-3)}          /* 6.54:1 · 12px 하한 */
+[data-theme="claude"] .nav__item[aria-current]{color:var(--accent-strong);
+  font-weight:600}                                                           /* 6.35:1 */
+[data-theme="claude"] .nav__ic{font-size:23px}
+/* 가운데 "말씀" : 돌출과 크기는 유지하고 기하만 Claude 사각으로. 그림자는 최소치 */
+[data-theme="claude"] .nav__item--mid .nav__ic{border-radius:16px;
+  background:var(--accent);color:var(--accent-ink);
+  box-shadow:var(--shadow-1)}                                                /* 흰 글리프 5.06:1 */
+
+/* =============================================================================
+   md : 768px 이상.  Claude 의 디스플레이 램프(28 -> 36 -> 48)를 한글 기준으로
+        27 -> 33 까지만 올린다. 레이아웃 폭은 hoondok.css 가 이미 잡았다
+   ============================================================================= */
+@media (min-width:768px){
+  [data-theme="claude"]{--gutter:24px}
+  [data-theme="claude"] .lede{font-size:33px;margin-top:22px}
+  [data-theme="claude"] .scripture{font-size:19.5px;padding-left:22px}
+  [data-theme="claude"] .verse{font-size:19px}
+  [data-theme="claude"] .mission{padding:16px 2px}
+  [data-theme="claude"] .card{padding:24px}
+  [data-theme="claude"] .ai-note{padding:22px 24px}
+  [data-theme="claude"] .my-note{padding:22px}
+  [data-theme="claude"] .shot{height:250px}
+  [data-theme="claude"] .sect{margin-top:40px}
+}
+
+/* =============================================================================
+   lg : 1024px 이상.  좌측 레일은 Claude top-nav 를 세운 것으로 읽힌다.
+        활성 표시는 코랄 채움이 아니라 크림 면 + 짙은 코랄 글자다
+        (Claude: 코랄은 CTA 와 풀블리드 콜아웃에만 넉넉히 쓴다)
+   ============================================================================= */
+@media (min-width:1024px){
+  [data-theme="claude"] .lede{font-size:38px}
+  [data-theme="claude"] .shot{height:300px}
+  [data-theme="claude"] .nav{background:var(--paper);
+    border-right:1px solid var(--line)}
+  [data-theme="claude"] .nav__item{font-size:15px;font-weight:500;
+    border-radius:var(--r-sm);color:var(--ink-2)}                            /* 10.34:1 */
+  [data-theme="claude"] .nav__item[aria-current]{background:var(--surface-2);
+    color:var(--accent-strong)}                                              /* 5.54:1 on #efe9de */
+  [data-theme="claude"] .nav__ic{font-size:22px}
+  [data-theme="claude"] .nav__item--mid .nav__ic{border-radius:var(--r-sm);
+    box-shadow:none}
+}
+
+/* =============================================================================
+   taste-skill 패스에서 기각한 지적
+   1) ".lede / .stats__n 자간 -.03em 이 한글 자간 상한(-.02em)을 넘는다."
+      상한은 본문 규칙이다. 둘 다 디스플레이(27~38px 세리프 한 줄)와 수치이고,
+      번역 결정 3 의 "디스플레이는 굵게가 아니라 크게" 를 자간이 받치고 있다.
+      본문(.scripture·.verse·.mission__title·.btn)은 전부 -.01em 이라 상한 안이다.
+   2) ".ai-note__lab 의 +.09em 자간이 눈썹 라벨이다."
+      화면에 이 라벨은 하나뿐이고(섹션마다 붙는 미세 라벨이 아니다) "AI 설명 ·
+      공식 해설 아님" 은 이 제품의 필수 고지다. 장식이 아니라 기능 라벨이라 남긴다.
+   3) "하이라이트 3색이 트리니티(크림·코랄·잉크) 규칙을 깬다."
+      번역 결정 5 는 UI 크롬의 네 번째 면 색을 금지한 것이고, mark 3종은 사용자가
+      남긴 분류 데이터다. 잉크 대비는 셋 다 13:1 이상이다.
+   ============================================================================= */

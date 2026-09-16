@@ -1,0 +1,292 @@
+/* =============================================================================
+   theme-notion.css - 훈독 앱 "노션 문서" 테마
+   -----------------------------------------------------------------------------
+   출처: awesome-design-md / notion (docs/research/design-md/notion.md)
+        토큰·타이포·간격·컴포넌트 규범은 해당 캡처 문서를 근거로 한다.
+
+   번역 결정 5줄
+   1) 노션의 "블록" 언어를 권위 3층에 그대로 배정했다.
+      공식 원문 = 인용 블록(상자 없음 + 3px 좌측 룰), AI 설명 = 콜아웃 블록(틴트
+      채움 + 실선 테두리), 내 메모 = 빈 입력 블록(흰 바탕 + 점선). 채움 유무와
+      테두리 종류가 달라서 흑백으로 봐도 세 층이 갈린다.
+   2) 서체가 네 번째 구분축이다. 노션 제품의 Serif 페이지 폰트(Lyon Text)를
+      Noto Serif KR 로 번역해 공식 원문에만 쓴다. 앱 UI 와 AI 설명, 내 메모는
+      Pretendard 산세리프 고정. 세리프 = 원문이라는 규칙을 이 테마가 독점한다.
+   3) 팔레트는 노션 뼈대 + 훈독 체온이다. 웜 뉴트럴(charcoal #37352f / hairline
+      #e5e3df)과 파스텔 틴트 6종은 그대로 가져오고, 시그니처 CTA 색만 보라
+      #5645d4 대신 아침 햇살 러스트 #a8420b 로 바꿨다. 노션 brand-orange
+      #dd5b00 은 흰 배경 대비 3.77:1 이라 본문·라벨에 못 쓴다.
+   4) 노션의 "역할 분리" 규칙을 지켰다. 러스트는 CTA·현재 위치 전용, 용어 칩은
+      링크 블루 계열(별도 역할), AI 설명은 라벤더. 색 하나가 두 뜻을 겸하지 않는다.
+   5) 노션의 사각 기하(버튼 8px, 카드 12px, 알약 금지)를 적용했다. 하단 가운데
+      "말씀" 버블도 원에서 둥근 사각 타일로 바꿨다. 돌출과 크기는 그대로 둬서
+      탭 어포던스는 잃지 않는다.
+
+   의도적으로 버린 노션 규칙
+   - 네이비 히어로 밴드 + 스티커 도트 장식: 아침 3분 루틴 화면에 마케팅용 풀블리드
+     밴드를 넣을 자리가 없다. 사진 블록이 그 역할을 대신한다.
+   - 대형 그림자(level 3): 노션도 히어로 목업 1곳에만 쓴다. 이 앱에는 목업이 없어
+     레벨 0(그림자 없음 + 헤어라인)을 기본값으로 둔다.
+
+   대비 (WCAG 2.2 AA) - 모든 수치는 실측이다. 각 규칙 옆 주석 참조.
+   최저값 3.26:1 = AI 콜아웃 테두리 대 캔버스 (비텍스트 경계, 기준 3:1).
+   본문 최저값 5.10:1 = ink-3 대 surface-2 (기준 4.5:1).
+
+   mobile-first. 미디어쿼리 없는 규칙이 390px 규칙이다.
+   ============================================================================= */
+
+/* ---------- 1. 토큰 ---------- */
+[data-theme="notion"]{
+  /* 캔버스·표면 : 노션은 canvas 가 순백, surface 가 웜 그레이다 */
+  --paper:#ffffff;            /* notion canvas */
+  --surface:#ffffff;          /* notion canvas - 카드도 같은 흰색, 헤어라인으로만 구분 */
+  --surface-2:#f6f5f4;        /* notion surface */
+  --line:#e5e3df;             /* notion hairline (1.28:1 장식 경계. 권위 구분에는 쓰지 않는다) */
+  --line-soft:#efece7;        /* notion hairline-soft : 표 행 구분 */
+
+  /* 잉크 : 노션 웜 차콜 계열. steel #787671 은 흰 배경 4.54:1 로 아슬해서 한 단계 어둡게 */
+  --ink:#37352f;              /* 12.26:1 on #ffffff */
+  --ink-2:#5d5b54;            /*  6.80:1 on #ffffff */
+  --ink-3:#6b6862;            /*  5.55:1 on #ffffff, 5.10:1 on #f6f5f4 */
+
+  /* 강조 : 아침 햇살 러스트. 채움과 텍스트 양방향으로 쓰이므로 흰 배경 4.5:1 을 넘겨야 한다 */
+  --accent:#a8420b;           /*  6.09:1 on #ffffff, 5.63:1 on nav tint, 백색 글자도 6.09:1 */
+  --accent-ink:#ffffff;
+  --accent-soft:#ffe8d4;      /* notion card-tint-peach */
+  --accent-strong:#793400;    /* notion brand-orange-deep, 9.11:1 on #ffffff */
+
+  /* 완료 : 베이스 --ok / --ok-strong 는 이미 AA 를 넘겨서 그대로 두고 틴트만 노션 민트로 */
+  --ok-soft:#d9f3e1;          /* notion card-tint-mint */
+
+  /* 하이라이트 : 노션 파스텔 틴트 3종 */
+  --hl-1:#fef7d6;             /* tint-yellow,  ink 11.38:1 */
+  --hl-2:#d9f3e1;             /* tint-mint,    ink 10.43:1 */
+  --hl-3:#ffe8d4;             /* tint-peach,   ink 10.36:1 */
+
+  /* 테마 전용 : 권위 2층(AI)과 용어 칩은 역할이 달라 별도 색축을 쓴다 */
+  --ai-tint:#e6e0f5;          /* notion card-tint-lavender */
+  --ai-line:#9b82cb;          /*  3.26:1 vs #ffffff - 콜아웃 경계 */
+  --ai-ink:#391c57;           /* notion brand-purple-800, 11.06:1 on lavender */
+  --term-tint:#dcecfa;        /* notion card-tint-sky */
+  --term-line:#5c92cc;        /*  3.26:1 vs #ffffff - 버튼 경계 (SC 1.4.11) */
+  --term-ink:#005bab;         /* notion link-blue-pressed, 5.65:1 on sky */
+  --nav-tint:#f7f6f3;         /* 노션 사이드바 톤 */
+
+  /* 모서리 : 노션 기하. 버튼 8px, 카드 12px, 칩 6px. 알약 없음 */
+  --r:12px; --r-sm:8px; --r-xs:6px;
+
+  /* 깊이 : 레벨 0 이 기본 */
+  --shadow-hairline:none;
+  --shadow-1:0 1px 2px rgba(15,15,15,.04);
+  --shadow-2:0 4px 12px rgba(15,15,15,.08);
+
+  /* 서체 : 한글 글리프는 반드시 Noto Serif KR 이 먼저 받는다.
+     Lyon/Georgia 는 웹폰트 로딩 실패 시 라틴 폴백일 뿐이다 */
+  --serif:"Noto Serif KR","Lyon Text",Georgia,"Apple SD Gothic Neo",serif;
+  --font-scripture:var(--serif);
+
+  --gutter:16px;              /* notion spacing.md */
+  --measure-read:780px;       /* ui-ux-pro-max: 1280 에서 원문 30.2자 -> 37.6자 (한글 35~45자) */
+
+  /* 30~60대 기준으로 베이스 15px 에서 한 단계 올린다 */
+  font-size:15.5px;
+  line-height:1.6;
+}
+
+/* ---------- 2. 페이지 골격 ---------- */
+/* 노션 상단 바는 얇고 조용하다. 큰 제목은 크롬이 아니라 문서 본문이 갖는다 */
+[data-theme="notion"] .appbar{border-bottom:1px solid var(--line)}
+[data-theme="notion"] .appbar__title{font-size:14.5px;font-weight:500;
+  color:var(--ink-2);letter-spacing:0}          /* 6.80:1 */
+[data-theme="notion"] .icon-btn{color:var(--ink-3);border-radius:var(--r-sm)}
+
+[data-theme="notion"] .col{padding:0 var(--gutter) 40px}
+
+/* 브레드크럼 : 노션은 모든 페이지 머리에 출처 경로를 얇게 깐다 */
+[data-theme="notion"] .masthead{display:flex;justify-content:space-between;
+  align-items:baseline;gap:10px;padding:14px 0 0;font-size:13px}
+[data-theme="notion"] .masthead__nm{color:var(--ink-2);font-weight:500}   /* 6.80:1 */
+[data-theme="notion"] .masthead__dt{color:var(--ink-3);                   /* 5.55:1 */
+  font-variant-numeric:tabular-nums}
+
+/* 블록 리듬 : 노션 spacing.xxl(32px) */
+[data-theme="notion"] .sect{margin-top:32px}
+[data-theme="notion"] .sect__head{margin-bottom:10px;align-items:baseline}
+[data-theme="notion"] .sect__title{font-size:17px;font-weight:600;
+  color:var(--ink);letter-spacing:-.01em}       /* 12.26:1 */
+[data-theme="notion"] .sect__meta{font-size:13px;color:var(--ink-2)}      /* 6.80:1 */
+
+/* ---------- 3. 페이지 제목 + 속성 줄 ---------- */
+/* 노션 페이지 = 제목 / 속성(properties) / 헤어라인 / 본문 순서.
+   마크업 DOM 순서를 그대로 살리려고 두 화면의 제목-속성 순서 차이는 건드리지 않는다 */
+[data-theme="notion"] .lede{font-family:var(--font-scripture);
+  font-size:26px;font-weight:600;line-height:1.5;letter-spacing:-.02em;
+  color:var(--ink);margin:16px 0 0;text-wrap:balance}                     /* 12.26:1 */
+[data-theme="notion"] .lede-src{margin-top:12px;font-size:13px;gap:8px}
+[data-theme="notion"] .src{color:var(--ink-2)}                            /* 6.80:1 */
+[data-theme="notion"] .src__dot{background:var(--ink-3)}
+[data-theme="notion"] .lede-rule{border-top:1px solid var(--line);margin-top:18px}
+
+/* ---------- 4. 권위 3층 : 노션 블록 언어 ---------- */
+/* ① 공식 원문 = 인용 블록. 상자가 없다. 세리프와 3px 좌측 룰만으로 선다.
+      "가둘 필요가 없는 것" 이 최상위 권위라는 형태 논리 */
+[data-theme="notion"] .scripture{font-family:var(--font-scripture);
+  border-left:3px solid var(--ink);                                       /* 12.26:1 */
+  padding:2px 0 2px 16px;margin:22px 0 0;
+  font-size:18px;font-weight:400;line-height:1.95;color:var(--ink)}
+[data-theme="notion"] .verse{font-family:var(--font-scripture);
+  font-size:17.5px;line-height:1.95;color:var(--ink);gap:12px;margin:0 0 20px}
+[data-theme="notion"] .verse__n{color:var(--ink-3);font-size:12.5px;      /* 5.55:1 */
+  font-weight:500;width:18px;padding-top:9px}
+/* 노션 하이라이트는 납작하다. 둥근 모서리나 그림자를 주지 않는다 */
+[data-theme="notion"] mark.hl-1,
+[data-theme="notion"] mark.hl-2,
+[data-theme="notion"] mark.hl-3{border-radius:2px;padding:1px 1px}
+
+/* ② AI 설명 = 콜아웃 블록. 틴트로 채우고 실선으로 가둔다.
+      "가둬 놓은 것" 은 문서 본문이 아니라 곁다리라는 뜻이다 */
+[data-theme="notion"] .ai-note{background-image:none;                     /* 베이스 점무늬 제거 */
+  background-color:var(--ai-tint);
+  border:1px solid var(--ai-line);                                        /* 3.26:1 vs canvas */
+  border-radius:var(--r);padding:16px 18px}
+[data-theme="notion"] .ai-note__lab{color:var(--ai-ink);font-size:12.5px; /* 11.06:1 on lavender */
+  font-weight:600;letter-spacing:0;gap:7px;margin-bottom:8px}
+[data-theme="notion"] .ai-note__lab i{font-size:16px}
+[data-theme="notion"] .ai-note__body{font-family:var(--sans);             /* 세리프 유출 차단 */
+  color:var(--ink-2);font-size:16px;line-height:1.75}                     /* 5.29:1 on lavender · 폰 본문 16px 하한 */
+
+/* ③ 내 메모 = 빈 입력 블록. 채움도 실선도 없다. 아직 안 쓴 칸으로 읽힌다 */
+[data-theme="notion"] .my-note{font-family:var(--sans);
+  background:var(--surface);
+  border:1px dashed var(--ink-3);                                         /* 5.55:1 vs canvas */
+  border-radius:var(--r-sm);padding:16px;min-height:84px;
+  color:var(--ink-3);font-size:14.5px;line-height:1.7}                    /* 5.55:1 */
+
+/* ---------- 5. 블록 : 표 · 카드 · 사진 ---------- */
+/* 미션 3개 = 노션 데이터베이스 표 블록. 카드 3장이 아니라 테두리 한 겹 안의 세 행 */
+[data-theme="notion"] .missions{background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+[data-theme="notion"] .mission{padding:14px 16px;gap:12px;
+  border-bottom:1px solid var(--line-soft)}
+[data-theme="notion"] .missions .mission:last-child{border-bottom:0}
+[data-theme="notion"] .mission__ic{width:36px;height:36px;font-size:19px;
+  border-radius:var(--r-xs);background:var(--surface-2);color:var(--ink-2)}  /* 6.24:1 */
+[data-theme="notion"] .mission__kind{font-size:12.5px;color:var(--ink-2)}    /* 6.80:1 */
+[data-theme="notion"] .mission__title{font-size:16px;font-weight:500;
+  color:var(--ink);margin-top:2px}                                           /* 12.26:1 */
+[data-theme="notion"] .mission__meta{font-size:12.5px;color:var(--ink-3)}    /* 5.55:1 */
+/* 노션 to-do 완료 = 취소선 + 회색. 색 하나에 의존하지 않는다 */
+[data-theme="notion"] .mission[data-done] .mission__title{color:var(--ink-3);
+  text-decoration:line-through}
+
+/* 체크박스 = 노션 체크박스. 원이 아니라 사각이다 */
+[data-theme="notion"] .check{border-radius:var(--r-xs);border-width:1.5px}  /* 경계 5.55:1 */
+
+/* 카드 = card-base. 레벨 0, 헤어라인만 */
+[data-theme="notion"] .card{border-radius:var(--r);padding:18px;box-shadow:none}
+[data-theme="notion"] .stats__n{font-size:25px;font-weight:600;color:var(--ink)}
+[data-theme="notion"] .stats__n--accent{color:var(--accent)}                 /* 6.09:1 */
+[data-theme="notion"] .stats__lab{font-size:12.5px}
+[data-theme="notion"] .progress{background:var(--surface-2)}                 /* 채움 5.59:1 */
+
+/* 주간 스트릭 = 노션 날짜 셀. 동그라미가 아니라 둥근 사각 */
+[data-theme="notion"] .week{gap:14px}
+[data-theme="notion"] .week__day{border-radius:var(--r-xs);max-width:36px;
+  font-size:13px;color:var(--ink-2);border-color:var(--ink-3)}              /* 6.80 / 경계 5.55 */
+[data-theme="notion"] .week__day[data-done]{color:var(--ok-strong)}          /* 6.08:1 on mint */
+[data-theme="notion"] .week__day[data-today]{background:var(--accent-soft);
+  color:var(--accent)}                                                       /* 5.14:1 on peach */
+[data-theme="notion"] .week__streak{font-size:13px}
+
+/* 사진 = 노션 이미지 블록. 여백 안에 들어가고 모서리가 둥글다.
+   제목은 .lede 하나뿐이므로 사진 위 인사말은 캡션 크기로 낮춘다 */
+[data-theme="notion"] .shot{height:170px;border-radius:var(--r);
+  border:1px solid var(--line)}
+[data-theme="notion"] .shot::after{background:linear-gradient(180deg,
+  rgba(26,26,26,0) 12%,rgba(26,26,26,.78) 42%,rgba(26,26,26,.94) 100%)}
+/* 최악(사진이 순백)일 때도 베일 위 흰 글자 8.59:1 */
+[data-theme="notion"] .shot__tx{left:16px;right:16px;bottom:13px}
+[data-theme="notion"] .shot__greet{font-size:15px;font-weight:500;
+  line-height:1.5;letter-spacing:-.01em}
+[data-theme="notion"] .shot__sub{font-size:12.5px;opacity:.92;margin-top:3px}
+
+/* ---------- 6. 컨트롤 ---------- */
+/* 노션 버튼은 8px 사각이다. 알약이 아니다 */
+[data-theme="notion"] .btn{height:48px;border-radius:var(--r-sm);
+  font-size:15.5px;font-weight:600;letter-spacing:-.01em}                    /* 흰 글자 6.09:1 */
+
+/* 용어 칩 = 노션 링크. CTA 러스트와 역할이 다르므로 색축도 분리한다 */
+[data-theme="notion"] .term{background:var(--term-tint);color:var(--term-ink);
+  border:1px solid var(--term-line);border-radius:var(--r-xs);
+  min-height:30px;padding:4px 10px;font-size:13px;font-weight:500}
+/* 글자 5.65:1, 경계 3.26:1 (SC 1.4.11 컨트롤 경계) */
+[data-theme="notion"] .term i{font-size:15px}
+
+/* 눌림 피드백 : 베이스는 .btn 에만 있다. 노션 컨트롤 전체가 눌릴 때 가라앉게 한다 */
+[data-theme="notion"] .term:active,[data-theme="notion"] .check:active,
+[data-theme="notion"] .icon-btn:active,
+[data-theme="notion"] .nav__item--mid:active .nav__ic{transform:scale(.97)}
+
+/* 배지 = 노션 badge-tag. 틴트 채움 + 짙은 글자, 테두리 없음 */
+[data-theme="notion"] .badge{border-radius:var(--r-xs);font-size:12px;
+  font-weight:600;padding:3px 8px;min-height:22px;letter-spacing:0}
+[data-theme="notion"] .badge--rank{background:var(--ok-soft);
+  color:var(--ok-strong)}                                                    /* 6.08:1 */
+
+/* 꼬리말 = 노션 footer-region. 위 헤어라인 한 줄로 문서를 닫는다 */
+[data-theme="notion"] .notice{text-align:left;margin-top:36px;padding:18px 0 0;
+  border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3)}      /* 5.55:1 */
+
+/* ---------- 7. 내비게이션 ---------- */
+[data-theme="notion"] .nav{background:var(--nav-tint);border-top:1px solid var(--line)}
+[data-theme="notion"] .nav__item{font-size:12px;color:var(--ink-3)}          /* 5.14:1 · 12px 하한 */
+[data-theme="notion"] .nav__item[aria-current]{color:var(--accent)}          /* 5.63:1 */
+[data-theme="notion"] .nav__ic{font-size:23px}
+/* 가운데 "말씀" : 돌출과 크기는 유지하고 기하만 노션 사각 타일로 */
+[data-theme="notion"] .nav__item--mid .nav__ic{border-radius:var(--r);
+  box-shadow:var(--shadow-2)}                                               /* 흰 글리프 6.09:1 */
+
+/* =============================================================================
+   md : 768px 이상.  노션의 반응형 타이포 램프(36 -> 48 -> 56 -> 80)를
+        한글 기준으로 26 -> 32 로 올린다. 레이아웃은 hoondok.css 가 이미 잡았다
+   ============================================================================= */
+@media (min-width:768px){
+  [data-theme="notion"]{--gutter:24px}
+  [data-theme="notion"] .lede{font-size:32px;margin-top:20px}
+  [data-theme="notion"] .scripture{font-size:19px;padding-left:18px}
+  [data-theme="notion"] .verse{font-size:18.5px}
+  [data-theme="notion"] .mission{padding:16px 20px}
+  [data-theme="notion"] .card{padding:24px}
+  [data-theme="notion"] .ai-note{padding:20px 22px}
+  [data-theme="notion"] .my-note{padding:20px}
+  [data-theme="notion"] .shot{height:240px}
+  [data-theme="notion"] .sect{margin-top:40px}
+}
+
+/* =============================================================================
+   lg : 1024px 이상.  좌측 레일은 노션 사이드바로 읽힌다
+   ============================================================================= */
+@media (min-width:1024px){
+  [data-theme="notion"] .lede{font-size:36px}
+  [data-theme="notion"] .shot{height:280px}
+  [data-theme="notion"] .nav{background:var(--nav-tint);
+    border-right:1px solid var(--line)}
+  [data-theme="notion"] .nav__item{font-size:14.5px;font-weight:500;
+    border-radius:var(--r-xs);color:var(--ink-2)}                            /* 6.29:1 */
+  [data-theme="notion"] .nav__item[aria-current]{background:var(--accent-soft);
+    color:var(--accent-strong)}                                              /* 7.70:1 */
+  [data-theme="notion"] .nav__ic{font-size:22px}
+  [data-theme="notion"] .nav__item--mid .nav__ic{border-radius:var(--r-xs);
+    box-shadow:none}
+}
+
+/* =============================================================================
+   taste-skill 패스에서 기각한 지적
+   1) "유채색이 러스트·라벤더·스카이·민트 4축이라 액센트가 하나가 아니다."
+      번역 결정 4 가 색축 분리를 역할과 함께 못박았다(러스트=CTA·현재 위치,
+      스카이=용어 링크, 라벤더=AI 층, 민트=완료). 색 하나가 두 뜻을 겸하지 않으므로
+      이 테마에서는 축 4개가 규칙이지 남발이 아니다.
+   2) "섹션 제목 17px 보다 미션 제목 16px 이 가까워 위계가 약하다."
+      노션의 문서 위계는 크기 점프가 아니라 굵기(600 vs 500)와 블록 경계로 선다.
+      크기를 벌리면 노션 번역이 아니라 일반 앱 헤더가 된다.
+   ============================================================================= */

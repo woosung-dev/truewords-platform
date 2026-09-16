@@ -1,0 +1,285 @@
+/* =============================================================================
+   theme-apple.css - 훈독 앱 "Apple" 테마
+   출처: awesome-design-md / apple (docs/research/design-md/apple.md)
+   -----------------------------------------------------------------------------
+   번역 결정 5줄
+   1) Apple 은 액션 색이 하나다. Action Blue #0066cc 가 탭 가능한 모든 것을 맡고,
+      hoondok 의 초록(--ok)을 파랑으로 흡수했다. 브랜드 색은 이 하나뿐이다.
+   2) Apple 이 "제품"에 주는 대우(가장 큰 글자·가장 넓은 공기·장식 0)를 말씀 원문에 줬다.
+      원문은 면도 테두리도 없이 캔버스 위에 그대로 놓인다. 받침대는 여백이 만든다.
+   3) 권위 3층을 면·테두리 조합으로 갈랐다. 원문=면X 테두리X, AI 설명=흰 면 + hairline,
+      내 메모=면X 테두리O + 작은 모서리. 색이 아니라 형태가 먼저 말한다.
+   4) Apple 의 "본문은 16 이 아니라 17px" 규범이 30~60대 주 사용자와 맞아떨어져
+      base 를 15px 에서 17px 로 올렸다. 브랜드 규칙과 도메인 요구가 같은 방향이었다.
+   5) 그림자를 전부 0 으로 만들었다. Apple 의 유일한 그림자는 제품 사진용인데
+      훈독의 히어로 사진은 full-bleed 라 그림자가 놓일 자리 자체가 없다.
+
+   의도적으로 버린 Apple 규칙 2가지는 파일 하단 주석에 기록했다.
+   ============================================================================= */
+
+/* ---------- 1. 토큰 : Apple 팔레트로 전면 교체 ---------- */
+[data-theme="apple"]{
+  /* 캔버스는 파치먼트, 면은 순백. Apple store 문법 그대로다.
+     면 전환 자체가 구분선이므로 테두리와 그림자를 쓰지 않아도 층이 선다. */
+  --paper:#f5f5f7;      /* canvas-parchment */
+  --surface:#ffffff;    /* canvas */
+  --surface-2:#f5f5f7;  /* 칩·트랙용 중성 면 */
+
+  --ink:#1d1d1f;        /* #1d1d1f on #f5f5f7 = 15.5:1 / on #ffffff = 16.8:1 */
+  --ink-2:#333333;      /* #333333 on #ffffff = 12.6:1 / on #f5f5f7 = 11.6:1 */
+  --ink-3:#6e6e73;      /* #6e6e73 on #ffffff = 5.1:1 / on #f5f5f7 = 4.7:1  (본문 AA) */
+  --line:#e0e0e0;       /* hairline. 장식 전용이며 컨트롤 경계로 쓰지 않는다 */
+
+  /* 단 하나의 액션 색 */
+  --accent:#0066cc;         /* #0066cc on #ffffff = 5.6:1 / on #f5f5f7 = 5.1:1 */
+  --accent-ink:#ffffff;     /* #ffffff on #0066cc = 5.6:1 */
+  --accent-strong:#0055b3;  /* #0055b3 on #f5f5f7 = 6.5:1 / on #ffffff = 7.1:1 */
+  --accent-soft:#eaf2fc;    /* Action Blue 의 옅은 tint. 두 번째 색이 아니다 */
+
+  /* 초록을 액션 파랑으로 흡수한다 (Apple: 두 번째 액센트 금지) */
+  --ok:#0066cc; --ok-soft:#eaf2fc; --ok-strong:#0055b3;   /* #0055b3 on #eaf2fc = 6.3:1 */
+
+  /* 하이라이트만 예외. 사용자 분류 데이터라 색 1개로는 3종을 못 가른다.
+     채도를 Apple 수준까지 낮췄고 본문 잉크 대비는 전부 13:1 이상이다. */
+  --hl-1:#ffefb0;   /* #1d1d1f on #ffefb0 = 14.6:1 */
+  --hl-2:#d6e9ff;   /* #1d1d1f on #d6e9ff = 13.6:1 */
+  --hl-3:#ffe0d4;   /* #1d1d1f on #ffe0d4 = 13.5:1 */
+
+  /* 모서리 문법 분리 : lg 18 = 카드 / sm 8 = 유틸 / md 11 = 입력. 중간값을 섞지 않는다 */
+  --r:18px; --r-sm:8px; --r-xs:8px; --r-sheet:18px;
+
+  /* 그림자 0. 이 테마에는 그림자가 한 개도 없다 */
+  --shadow-hairline:none; --shadow-1:none; --shadow-2:none;
+
+  /* SF Pro 는 Apple 시스템 폰트다. -apple-system 으로 근사하되
+     한글이 깨지지 않게 Pretendard 를 반드시 뒤에 남긴다 */
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Pretendard Variable",Pretendard,
+         "Apple SD Gothic Neo",sans-serif;
+  --font-scripture:var(--sans);   /* Apple 은 세리프를 쓰지 않는다. 말씀도 산세리프다 */
+
+  --gutter:24px;
+  --measure-read:700px;   /* ui-ux-pro-max: 1280 에서 .verse 34.8자 -> 38.4자 (한글 35~45자) */
+  --measure-app:720px;
+}
+
+/* ---------- 2. 타이포 : Apple 사다리 12/14/17/21/28 ---------- */
+/* 사다리는 300/400/600/700 이다. 500 은 쓰지 않는다.
+   data-theme 속성이 body 자신에게 붙으므로 본문 규칙은 자손 셀렉터가 아니라
+   테마 블록에 직접 얹는다. `[data-theme] body` 로 쓰면 영원히 매칭되지 않는다. */
+[data-theme="apple"]{font-size:17px;line-height:1.5;letter-spacing:-.02em}   /* 행간 1.5 하한 */
+[data-theme="apple"] .col{padding:8px var(--gutter) 48px}
+
+[data-theme="apple"] .appbar__title{font-size:17px;font-weight:600;letter-spacing:-.02em}
+[data-theme="apple"] .icon-btn{color:var(--ink-2)}   /* #333333 아이콘 = 12.6:1 */
+
+/* 오늘의 말씀 한 문장 = Apple 의 hero headline. 폰에서는 28px 로 내려온다 */
+[data-theme="apple"] .lede{font-family:var(--font-scripture);font-size:28px;font-weight:600;
+  line-height:1.3;letter-spacing:-.025em;margin:18px 0 0;text-wrap:balance;color:var(--ink)}
+[data-theme="apple"] .lede-src{margin-top:14px;font-size:14px;color:var(--ink-3)}
+[data-theme="apple"] .lede-rule{display:none}   /* 선 대신 여백이 나눈다 */
+/* 출처 줄은 이 제품의 필수 정보다. 옅은 회색(4.7:1) 대신 --ink-2 로 올린다 */
+[data-theme="apple"] .src{font-size:14px;color:var(--ink-2);gap:8px}   /* #333333 on #f5f5f7 = 11.6:1 */
+[data-theme="apple"] .src__dot{background:var(--ink-3);width:3px;height:3px}
+
+/* 섹션 제목 = Apple sub-nav 의 category name (21/600) */
+[data-theme="apple"] .sect{margin-top:40px}
+[data-theme="apple"] .sect__head{margin-bottom:14px;align-items:baseline}
+[data-theme="apple"] .sect__title{font-size:21px;font-weight:600;letter-spacing:-.012em;color:var(--ink)}
+[data-theme="apple"] .sect__meta{font-size:14px;color:var(--ink-3)}
+[data-theme="apple"] .notice{font-size:12px;color:var(--ink-3);padding-top:40px}
+                                            /* 12px #6e6e73 on #f5f5f7 = 4.7:1 */
+
+/* ---------- 3. 앱 셸 : frosted 바 ---------- */
+/* Apple 의 sub-nav / floating sticky bar 문법. blur 는 장식이 아니라
+   "콘텐츠 위에 떠 있다" 는 기능 신호다. */
+[data-theme="apple"] .appbar{background:rgba(245,245,247,.82);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
+[data-theme="apple"] .appbar__in{min-height:48px}
+
+/* 하단 탭 : 파치먼트 캔버스 위에 뜨는 흰 frosted 바 */
+[data-theme="apple"] .nav{background:rgba(255,255,255,.86);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-top:1px solid var(--line)}
+[data-theme="apple"] .nav__item{font-size:12px;color:var(--ink-3);letter-spacing:-.01em}
+                                            /* #6e6e73 on 흰 frosted(#fefefe) = 5.0:1 */
+[data-theme="apple"] .nav__item[aria-current]{color:var(--accent-strong);font-weight:600}
+                                            /* #0055b3 on #fefefe = 7.1:1 */
+/* 가운데 돌출 버블 : 그림자를 빼고 순수한 파랑 원만 남긴다 */
+[data-theme="apple"] .nav__item--mid .nav__ic{background:var(--accent);color:var(--accent-ink)}
+
+/* ---------- 4. 권위 3층 : 색이 아니라 형태로 가른다 ---------- */
+/* (1) 공식 원문 - 면도 테두리도 없다. 캔버스 위에 직접 놓인 "제품" 이다.
+       가장 큰 글자와 가장 넓은 여백이 곧 권위 표시다. */
+[data-theme="apple"] .scripture{border-left:0;padding:0;margin:28px 0;
+  font-size:21px;line-height:1.7;letter-spacing:-.014em;color:var(--ink)}
+                                            /* #1d1d1f on #f5f5f7 = 15.5:1 */
+[data-theme="apple"] .verse{font-size:17px;line-height:1.85;letter-spacing:-.018em;
+  color:var(--ink);gap:14px;margin-bottom:26px}
+[data-theme="apple"] .verse__n{font-size:14px;color:var(--ink-3);width:20px;padding-top:6px}
+                                            /* #6e6e73 on #f5f5f7 = 4.7:1 */
+
+/* 권위 배지 : Apple 의 dark utility 버튼 문법. 파랑을 아껴 잉크 블록으로 찍는다 */
+[data-theme="apple"] .badge{font-size:12px;font-weight:600;letter-spacing:-.01em;
+  padding:4px 9px;min-height:22px;border-radius:var(--r-sm)}
+[data-theme="apple"] .badge--rank{background:var(--ink);color:#ffffff}
+                                            /* #ffffff on #1d1d1f = 16.8:1 */
+
+/* (2) AI 설명 - 흰 면 + hairline + 큰 모서리. 면이 있다는 것이 "원문이 아님" 의 신호다 */
+[data-theme="apple"] .ai-note{background-image:none;background-color:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r);padding:20px}
+[data-theme="apple"] .ai-note__lab{font-size:14px;font-weight:600;color:var(--ink-3);
+  letter-spacing:-.016em;margin-bottom:10px}   /* #6e6e73 on #ffffff = 5.1:1 */
+[data-theme="apple"] .ai-note__body{font-size:17px;line-height:1.7;letter-spacing:-.02em;
+  color:var(--ink-2)}                          /* #333333 on #ffffff = 12.6:1 */
+
+/* (3) 내 메모 - 면이 없고 테두리만 있다. 모서리도 11px 로 작다.
+       Apple 의 입력 문법(흰 배경 대신 캔버스 비침 + 얇은 링)을 훈독의 메모 자리에 옮겼다 */
+[data-theme="apple"] .my-note{background:transparent;border:1px solid var(--ink-3);
+  border-style:solid;border-width:1px;border-radius:11px;padding:16px 18px;
+  font-size:17px;line-height:1.5;letter-spacing:-.02em;color:var(--ink-3)}
+                              /* 테두리 #6e6e73 on #f5f5f7 = 4.7:1 (비텍스트 3:1 통과) */
+
+/* ---------- 5. 면과 카드 : Apple store-utility-card ---------- */
+[data-theme="apple"] .card{background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:20px}
+
+/* 미션 3개 = iOS inset grouped list. 카드 3장이 아니라 면 하나에 hairline 으로 나눈다 */
+[data-theme="apple"] .missions{background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden}
+[data-theme="apple"] .mission{padding:16px 18px;border-bottom:1px solid var(--line);gap:16px}
+[data-theme="apple"] .missions .mission:last-child{border-bottom:0}
+[data-theme="apple"] .mission__ic{width:44px;height:44px;border-radius:var(--r-sm);
+  background:var(--surface-2);color:var(--ink-2);font-size:22px}
+                                            /* 아이콘 #333333 on #f5f5f7 = 11.6:1 */
+[data-theme="apple"] .mission__kind{font-size:14px;color:var(--ink-3);letter-spacing:-.016em}
+[data-theme="apple"] .mission__title{font-size:17px;font-weight:600;line-height:1.35;
+  letter-spacing:-.02em;margin-top:2px}
+[data-theme="apple"] .mission__meta{font-size:14px;color:var(--ink-3);letter-spacing:-.016em;margin-top:3px}
+[data-theme="apple"] .mission[data-done] .mission__ic{background:var(--ok-soft);color:var(--ok-strong)}
+
+/* ---------- 6. 사진 : Apple hero tile = full-bleed, 모서리 0, 그림자 0 ---------- */
+/* 좌우 거터만큼 음수 마진을 줘서 정확히 뷰포트 폭이 된다. 고정 px 폭을 쓰지 않으므로
+   390px 에서 가로 넘침은 0 이다. */
+[data-theme="apple"] .shot{margin-inline:calc(var(--gutter) * -1);border-radius:0;height:252px}
+/* 사진 위 veil 은 Apple 의 photographic overlay 규칙대로 순수 검정으로 간다.
+   텍스트 구간 알파 0.88 기준, 순백 사진 최악값에서도 #ffffff 대비 16.5:1 */
+[data-theme="apple"] .shot::after{background:linear-gradient(180deg,
+  rgba(0,0,0,0) 18%,rgba(0,0,0,.80) 55%,rgba(0,0,0,.92) 100%)}
+[data-theme="apple"] .shot__tx{left:var(--gutter);right:var(--gutter);bottom:20px}
+[data-theme="apple"] .shot__greet{font-size:21px;font-weight:600;line-height:1.35;letter-spacing:-.018em}
+[data-theme="apple"] .shot__sub{font-size:14px;opacity:1;color:#d2d2d7;margin-top:6px}
+                              /* #d2d2d7 on rgba(0,0,0,.92) 구간 = 12:1 이상 */
+
+/* ---------- 7. 액션 : pill 하나가 Apple 의 서명이다 ---------- */
+[data-theme="apple"] .btn{border-radius:9999px;height:52px;font-size:17px;font-weight:400;
+  letter-spacing:-.02em}
+[data-theme="apple"] .btn-primary{background:var(--accent);color:var(--accent-ink)}
+
+/* 용어 칩 = Apple 의 ghost pill. 배경 없이 파랑 링과 파랑 글자만 남는다 */
+[data-theme="apple"] .term{background:transparent;border:1px solid var(--accent-strong);
+  color:var(--accent-strong);border-radius:9999px;font-size:14px;font-weight:400;
+  letter-spacing:-.016em;min-height:34px;padding:0 14px}
+                              /* 글자·테두리 #0055b3 on #f5f5f7 = 6.5:1 */
+[data-theme="apple"] .chips{gap:10px}
+
+/* 체크 : 미완료는 회색 링, 완료는 파랑 채움. 색만이 아니라 채움 여부로도 갈린다 */
+[data-theme="apple"] .check{width:32px;height:32px;border:1.5px solid var(--ink-3)}
+                              /* 링 #6e6e73 on #ffffff = 5.1:1 (비텍스트 3:1 통과) */
+[data-theme="apple"] .check[aria-pressed="true"]{background:var(--accent);border-color:var(--accent)}
+
+/* Apple 의 시스템 공통 press 는 scale(0.95) 하나뿐이다 */
+[data-theme="apple"] .btn:active,
+[data-theme="apple"] .term:active,
+[data-theme="apple"] .check:active,
+[data-theme="apple"] .icon-btn:active{transform:scale(.95)}
+[data-theme="apple"] :focus-visible{outline:2px solid #0071e3;outline-offset:2px}
+                              /* focus blue #0071e3 on #ffffff = 4.7:1 */
+
+/* ---------- 8. 진행 표시 ---------- */
+/* 트랙을 #d2d2d7 까지 올려야 파랑 fill 과 3:1 이 선다 (#0066cc vs #d2d2d7 = 3.7:1) */
+[data-theme="apple"] .progress{height:8px;border-radius:9999px;background:#d2d2d7}
+[data-theme="apple"] .stats__n{font-size:28px;font-weight:600;letter-spacing:-.02em}
+[data-theme="apple"] .stats__lab{font-size:14px;color:var(--ink-3)}
+
+/* 주간 스트릭 : 폰에서는 7칸을 전폭으로 펴고 연속 일수를 아래로 내린다.
+   가로 한 줄에 우겨넣으면 원이 24px 이하로 쪼그라들어 30~60대에게 읽히지 않는다 */
+[data-theme="apple"] .week{display:block;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r);padding:18px}
+[data-theme="apple"] .week__days{gap:6px}
+[data-theme="apple"] .week__day{font-size:13px;border:1px solid var(--ink-3);
+  background:var(--surface);color:var(--ink-3)}
+/* 세 상태를 형태로 가른다 : 채움(완료) / 링(오늘) / 민 원(미완료) */
+[data-theme="apple"] .week__day[data-done]{background:var(--accent);color:#ffffff;
+  border-color:var(--accent);font-weight:600}   /* #ffffff on #0066cc = 5.6:1 */
+[data-theme="apple"] .week__day[data-today]{background:var(--surface);
+  border:2px solid var(--accent);color:var(--accent-strong);font-weight:600}
+[data-theme="apple"] .week__streak{justify-content:center;margin-top:16px;
+  font-size:14px;color:var(--ink-2)}
+[data-theme="apple"] .week__streak b{color:var(--accent);font-size:17px}
+
+/* =============================================================================
+   md : 768px 이상. Apple 의 섹션 리듬이 벌어지고 hero 가 40px 로 올라간다.
+   ============================================================================= */
+@media (min-width:768px){
+  [data-theme="apple"] .lede{font-size:40px;line-height:1.1;letter-spacing:-.02em}
+  [data-theme="apple"] .sect{margin-top:56px}
+  [data-theme="apple"] .scripture{font-size:24px;line-height:1.7;margin:36px 0}
+  [data-theme="apple"] .shot{height:320px}
+  [data-theme="apple"] .col{padding-bottom:64px}
+}
+
+/* =============================================================================
+   lg : 1024px 이상. 하단 탭이 좌측 레일이 되는 지점.
+   레일은 콘텐츠 위에 떠 있지 않으므로 frosted 를 걷고 불투명 흰 면으로 되돌린다.
+   ============================================================================= */
+@media (min-width:1024px){
+  [data-theme="apple"] .lede{font-size:56px;line-height:1.07;letter-spacing:-.018em}
+  [data-theme="apple"] .sect{margin-top:80px}   /* Apple spacing.section */
+  [data-theme="apple"] .shot{height:380px}
+
+  [data-theme="apple"] .nav{background:var(--surface);-webkit-backdrop-filter:none;
+    backdrop-filter:none;border-right:1px solid var(--line)}
+  [data-theme="apple"] .nav__item{font-size:17px;letter-spacing:-.02em;border-radius:var(--r-sm)}
+  [data-theme="apple"] .nav__item[aria-current]{background:var(--accent-soft);
+    color:var(--accent-strong)}               /* #0055b3 on #eaf2fc = 6.3:1 */
+  [data-theme="apple"] .nav__item--mid .nav__ic{border-radius:var(--r-sm);background:var(--accent)}
+}
+
+/* =============================================================================
+   의도적으로 버린 Apple 규칙 2가지
+
+   1) light <-> dark 풀블리드 타일 교대.
+      Apple 은 섹션 구분을 흰 타일과 근블랙 타일(#272729)의 교대로 만든다.
+      아침 3분 루틴 앱에서 다크 밴드는 밝기 점프가 되어 읽기 흐름을 끊고,
+      30~60대 눈에는 특히 부담이다. 어두운 면은 사진 히어로 한 곳으로 제한하고
+      나머지는 파치먼트 <-> 순백 2단으로만 리듬을 만들었다.
+
+   2) "두 번째 액센트 색 금지" 를 하이라이트에서만 완화.
+      mark 3종은 UI chrome 이 아니라 사용자가 남긴 분류 데이터다.
+      파랑 하나로는 3종을 구분할 수 없어 호박·하늘·살구 tint 를 남겼다.
+      대신 셋 다 채도를 Apple 수준까지 낮췄고, 위에 얹히는 잉크 대비는 13:1 이상이다.
+   ============================================================================= */
+
+/* =============================================================================
+   ui-ux-pro-max 패스에서 기각한 지적
+   1) .scripture 1280px 줄당 27.2자 (목표 35~45자).
+      번역 결정 2 가 원문에 "가장 큰 글자" 를 주기로 못박았다. 24px 을 유지하면서
+      35자를 채우려면 --measure-read 를 888px 까지 벌려야 하는데, 그러면 같은 폭을
+      쓰는 .verse 가 49자로 반대쪽 한계를 넘는다. 두 규칙을 동시에 만족하는 폭이
+      없어 원문 디스플레이 대우를 남기고 .verse / .ai-note__body 만 구간 안으로
+      넣었다 (--measure-read 640 -> 700).
+   2) "이 말씀에 질문하기" 인라인 링크 높이 19.5px (목표 44px).
+      app.html 의 인라인 style 을 가진 마크업 소관이고 6테마 공통이다.
+      테마 CSS 에서 고치면 같은 한 줄을 6곳에 복제하게 되어 남겨 둔다.
+   ============================================================================= */
+
+/* =============================================================================
+   taste-skill 패스에서 기각한 지적
+   1) "하이라이트 3색(호박·하늘·살구)이 단일 액센트 규칙을 깬다."
+      번역 결정 1 과 파일 하단 "의도적으로 버린 Apple 규칙 2" 가 이미 이 예외를
+      역할과 함께 문서화했다. mark 는 UI 크롬이 아니라 사용자 분류 데이터다.
+   2) ".lede 자간 -.025em 이 한글 자간 상한(-.02em)을 넘는다."
+      -.02em 상한은 본문 규칙이다. .lede 는 28~56px 디스플레이 한 줄이고
+      Apple 사다리에서 큰 글자일수록 자간을 조이는 것이 규범이라 그대로 둔다.
+      본문 사다리(루트 17px·미션 제목·버튼·탭)는 이번 패스에서 -.02em 으로 내렸다.
+   ============================================================================= */

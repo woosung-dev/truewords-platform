@@ -1,0 +1,347 @@
+/* =============================================================================
+   theme-airbnb.css - 훈독 앱 "Airbnb" 테마
+   -----------------------------------------------------------------------------
+   출처: awesome-design-md / airbnb (docs/research/design-md/airbnb.md)
+        토큰·타이포·간격·컴포넌트 규범은 해당 캡처 문서를 근거로 한다.
+        브랜드 마크·워드마크·여행 기호(하트/별점/호스트)는 가져오지 않는다.
+        가져온 것은 규칙(여백·타이포 위계·색 역할·형태)뿐이다.
+
+   번역 결정 5줄
+   1) 액센트는 하나다. Airbnb 는 페이지의 90%가 순백 + 잉크이고 Rausch 는 한두
+      곳에서만 터진다. 그런데 Rausch #ff385c 는 흰 글자 대비 3.52:1 로 AA 미달이라
+      채움색으로 못 쓴다. 색을 새로 발명하는 대신 Airbnb 자기 팔레트의 press 값
+      #e00b41(primary-active, 흰 글자 4.89:1)을 기본값으로 승격했다.
+      #ff385c 는 이 테마에 단 한 번도 등장하지 않는다.
+   2) 권위 3층을 "면의 유무"로 갈랐다. 공식 원문 = 면 없음 + 상하 헤어라인 룰
+      (Airbnb amenity 섹션 문법), AI 설명 = property-card 그대로(둥근 20px 면 +
+      헤어라인 + 시스템 유일 그림자 + 떠 있는 라벨 배지), 내 메모 = text-input
+      빈 칸(8px 작은 모서리 + 테두리만). 카드로 감싼 것은 "고르는 물건"이지
+      원문이 아니다 — 마켓플레이스 문법을 권위 표시로 뒤집어 썼다.
+   3) 원문 서체는 산세리프를 유지한다. Airbnb 시스템에는 세리프가 아예 없어서
+      세리프를 넣으면 그건 Airbnb 번역이 아니다. 대신 Airbnb 가 평점 숫자에만
+      허락한 "타입 하나로 위계를 세우는" 자리를 원문에 옮겨 22 -> 26 -> 30px
+      램프와 1.9 행간, 상하 32px 여백으로 원문만 크게 세웠다.
+   4) 초록(--ok)을 없앴다. Airbnb 의 선택 상태는 date-picker-day-selected,
+      즉 잉크 채움 + 흰 글자다(별점조차 노랑이 아니라 잉크). 완료는 잉크 채움,
+      오늘은 Rausch 링. 단일 액센트 규칙을 지키면서 색맹에게도 채움 여부로 갈린다.
+   5) 모서리는 Airbnb 계단을 그대로 밟는다. CTA·입력 8px(rounded.sm),
+      카드·사진 20px(rounded.lg), 칩·배지·가운데 탭 알약(rounded.full).
+      알약을 CTA 에 쓰지 않는 것이 Airbnb 규칙이다 — 알약은 칩과 검색 오브 전용.
+
+   의도적으로 버린 Airbnb 규칙
+   - 3제품 상단 탭 + "NEW" 배지 + 알약 검색바: 전부 탐색·비교·예약 문법이다.
+     훈독은 아침 3분 루틴 앱이라 고를 목록도 검색 입력도 없다. 상단 크롬은
+     Airbnb 의 얇은 헤어라인 바 하나로만 남겼다.
+   - 64px 평점 디스플레이(rating-display): 시스템에서 가장 큰 타입인데,
+     이 제품은 랭킹·점수·보상 배지를 금지한다. 그 타이포 볼륨은 폐기하지 않고
+     말씀 원문으로 이전했다(번역 결정 3).
+   - 8px "NEW" 대문자 태그: 한글에 대문자가 없고 8px 는 30~60대 본문 금지선
+     한참 아래다. 라벨 최소치를 12px 로 올렸다.
+
+   대비 (WCAG 2.2 AA) - 모든 수치는 실측이다. 각 규칙 옆 주석 참조.
+   본문 최저값 4.57:1 = --accent #e00b41 대 --surface-2 #f7f7f7 (기준 4.5:1).
+   비텍스트 최저값 4.37:1 = 진행바 채움 #e00b41 대 트랙 #f2f2f2 (기준 3:1).
+   컨트롤 경계는 헤어라인 #dddddd(1.36:1)를 절대 쓰지 않고 --ink-3(5.41:1)로 간다.
+   헤어라인은 장식 경계로만 남는다 - AI 카드의 경계는 헤어라인 단독이 아니라
+   그림자 + 20px 모서리 + 떠 있는 배지 3중으로 서므로 SC 1.4.11 대상이 아니다.
+
+   mobile-first. 미디어쿼리 없는 규칙이 390px 규칙이다.
+   ============================================================================= */
+
+/* ---------- 1. 토큰 : Airbnb 팔레트 전면 교체 ---------- */
+[data-theme="airbnb"]{
+  /* 캔버스는 순백이다. Airbnb 는 공개 웹에 다크 모드가 없고 크림 틴트도 없다 */
+  --paper:#ffffff;            /* canvas */
+  --surface:#ffffff;          /* surface-card - 카드도 같은 흰색, 헤어라인과 모서리로만 분리 */
+  --surface-2:#f7f7f7;        /* surface-soft */
+  --surface-3:#f2f2f2;        /* surface-strong - 원형 아이콘 버튼·트랙 */
+  --line:#dddddd;             /* hairline (1.36:1 장식 전용. 컨트롤 경계로 쓰지 않는다) */
+  --line-soft:#ebebeb;        /* hairline-soft - 같은 밴드 안 행 구분 */
+
+  /* 잉크 : Airbnb 는 순흑을 쓰지 않는다 */
+  --ink:#222222;              /* 15.91:1 on #ffffff */
+  --ink-2:#3f3f3f;            /* 10.53:1 on #ffffff, 9.83:1 on #f7f7f7 */
+  --ink-3:#6a6a6a;            /*  5.41:1 on #ffffff, 5.05:1 on #f7f7f7 - 컨트롤 경계 겸용 */
+
+  /* 단 하나의 브랜드 전압 (번역 결정 1) */
+  --accent:#e00b41;           /*  4.89:1 on #ffffff, 4.57:1 on #f7f7f7, 흰 글자 4.89:1 */
+  --accent-ink:#ffffff;
+  --accent-soft:#ffd1da;      /* primary-disabled 틴트를 배경 전용으로 재배치 */
+  --accent-strong:#b8143d;    /*  6.55:1 on #ffffff, 4.80:1 on #ffd1da, 흰 글자 6.55:1 */
+
+  /* 완료 = 잉크 채움. 초록을 삭제한다 (번역 결정 4) */
+  --ok:#222222; --ok-soft:#f2f2f2; --ok-strong:#222222;   /* 14.21:1 on #f2f2f2 */
+
+  /* 하이라이트만 예외. 사용자 분류 데이터라 단일 액센트로는 3종을 못 가른다.
+     채도를 Airbnb 수준으로 낮췄고 위에 얹는 잉크는 전부 12:1 이상이다 */
+  --hl-1:#ffefc2;             /* #222222 on #ffefc2 = 13.92:1 */
+  --hl-2:#dbeee4;             /* #222222 on #dbeee4 = 13.15:1 */
+  --hl-3:#ffe0d6;             /* #222222 on #ffe0d6 = 12.79:1 */
+
+  /* 모서리 계단 : 8 / 20 / 알약 (번역 결정 5) */
+  --r:20px;                   /* rounded.lg - 카드·사진 */
+  --r-sm:8px;                 /* rounded.sm - CTA·입력 */
+  --r-xs:8px;
+  --r-sheet:20px;
+
+  /* 깊이 : 시스템 전체에 그림자 정의가 딱 하나다. 그 하나를 --shadow-1 에 둔다 */
+  --shadow-hairline:none;
+  --shadow-1:rgba(0,0,0,.02) 0 0 0 1px, rgba(0,0,0,.04) 0 2px 6px 0, rgba(0,0,0,.1) 0 4px 8px 0;
+  --shadow-2:var(--shadow-1);
+
+  /* Cereal VF 는 Airbnb 라이선스 폰트다. 한글은 Pretendard 가 받고
+     라틴 폴백만 Circular 계열로 근사한다. 세리프는 이 테마에 없다 */
+  --sans:"Pretendard Variable",Pretendard,Circular,-apple-system,system-ui,Roboto,
+         "Apple SD Gothic Neo","Helvetica Neue",sans-serif;
+  --font-scripture:var(--sans);   /* 번역 결정 3 : 원문도 산세리프다 */
+
+  --gutter:20px;
+  --measure-read:800px;       /* ui-ux-pro-max: 1280 에서 .verse 29.6자 -> 35.9자 (한글 35~45자) */
+  --measure-app:720px;
+
+  /* Airbnb 본문은 16/1.5. 30~60대 기준으로 반 단계만 올린다 */
+  font-size:16.5px;
+  line-height:1.5;
+}
+
+/* ---------- 2. 앱 셸 : 얇은 헤어라인 바 ---------- */
+/* top-nav 는 흰 면 + 아래 헤어라인 1px 이 전부다. 그림자를 깔지 않는다 */
+[data-theme="airbnb"] .appbar{background:var(--paper);border-bottom:1px solid var(--line)}
+[data-theme="airbnb"] .appbar__in{min-height:56px}
+[data-theme="airbnb"] .appbar__title{font-size:16px;font-weight:600;
+  letter-spacing:0;color:var(--ink)}                     /* 15.91:1 */
+[data-theme="airbnb"] .icon-btn{color:var(--ink);background:var(--surface-3);
+  border-radius:9999px;width:36px;height:36px;font-size:19px}
+                                          /* icon-button-circle : 면이 곧 타깃 경계 */
+[data-theme="airbnb"] .col{padding:0 var(--gutter) 40px}
+
+/* 출처 경로는 항상 보인다. Airbnb 의 listing 브레드크럼 톤(body-sm) */
+[data-theme="airbnb"] .masthead{display:flex;justify-content:space-between;align-items:baseline;
+  gap:10px;padding:16px 0 0;font-size:14px}
+[data-theme="airbnb"] .masthead__nm{color:var(--ink);font-weight:600}      /* 15.91:1 */
+[data-theme="airbnb"] .masthead__dt{color:var(--ink-3);                    /*  5.41:1 */
+  font-variant-numeric:tabular-nums}
+
+/* 밴드 리듬 : Airbnb 는 섹션 64px, 카드 격자는 16px 로 붙인다 */
+[data-theme="airbnb"] .sect{margin-top:36px}
+[data-theme="airbnb"] .sect__head{margin-bottom:14px;align-items:baseline}
+[data-theme="airbnb"] .sect__title{font-size:21px;font-weight:700;line-height:1.3;
+  color:var(--ink)}                                      /* display-md, 15.91:1 */
+[data-theme="airbnb"] .sect__meta{font-size:14px;color:var(--ink-3)}       /*  5.41:1 */
+[data-theme="airbnb"] .notice{text-align:left;padding-top:32px;margin-top:32px;
+  border-top:1px solid var(--line);font-size:13px;color:var(--ink-3)}      /*  5.41:1 */
+
+/* ---------- 3. 페이지 머리 ---------- */
+/* 홈 h1 은 28/700 로 "작게" 간다. 시각적 무게는 아래 사진이 진다 */
+[data-theme="airbnb"] .lede{font-family:var(--font-scripture);font-size:24px;
+  font-weight:700;line-height:1.35;letter-spacing:0;margin:14px 0 0;
+  color:var(--ink);text-wrap:balance}                    /* 15.91:1 */
+[data-theme="airbnb"] .lede-src{margin-top:12px;font-size:14px;gap:8px}
+/* 출처 줄은 이 제품의 필수 정보다. 가장 옅은 층(--ink-3) 대신 --ink-2 로 올린다 */
+[data-theme="airbnb"] .src{color:var(--ink-2);font-size:14px}              /* 10.53:1 */
+[data-theme="airbnb"] .src__dot{background:var(--ink-3);width:3px;height:3px}
+[data-theme="airbnb"] .lede-rule{display:none}          /* 룰은 원문 밴드가 독점한다 */
+
+/* ---------- 4. 권위 3층 : 면의 유무로 가른다 (번역 결정 2) ---------- */
+/* ① 공식 원문 = amenity 섹션 문법. 면도 카드도 없고 상하 헤어라인만으로 닫는다.
+      시스템에서 가장 큰 본문 타입과 가장 넓은 상하 여백이 권위 표시다 */
+[data-theme="airbnb"] .scripture{border-left:0;border-radius:0;background:none;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  padding:28px 0;margin:32px 0 0;font-size:22px;font-weight:400;line-height:1.9;
+  color:var(--ink)}                                      /* 15.91:1 on #ffffff */
+[data-theme="airbnb"] .verse{font-size:19px;line-height:1.9;color:var(--ink);
+  gap:14px;margin:0 0 24px}                              /* 15.91:1 */
+[data-theme="airbnb"] .verse__n{color:var(--ink-3);font-size:13px;font-weight:600;
+  width:20px;padding-top:8px}                            /*  5.41:1 */
+[data-theme="airbnb"] mark.hl-1,
+[data-theme="airbnb"] mark.hl-2,
+[data-theme="airbnb"] mark.hl-3{border-radius:4px;padding:1px 3px}   /* rounded.xs */
+
+/* ② AI 설명 = property-card 그대로. 둥근 20px 면 + 헤어라인 + 시스템 유일 그림자.
+      카드에 담긴 것은 "고르는 물건" 이라는 마켓플레이스 신호이고,
+      그래서 공식 해설이 아니라는 뜻이 형태로 먼저 읽힌다 */
+[data-theme="airbnb"] .ai-note{background-image:none;background-color:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r);padding:20px;
+  box-shadow:var(--shadow-1)}
+/* 라벨은 "Guest favorite" 떠 있는 배지 문법. 흰 알약 + 잉크 글자 + 같은 그림자 */
+[data-theme="airbnb"] .ai-note__lab{display:inline-flex;gap:6px;font-size:12.5px;font-weight:600;
+  color:var(--ink);background:var(--surface);border-radius:9999px;padding:5px 12px;
+  box-shadow:var(--shadow-1);margin:0 0 14px}            /* 15.91:1 */
+[data-theme="airbnb"] .ai-note__body{font-size:16px;line-height:1.6;
+  color:var(--ink-2)}                                    /* 10.53:1 on #ffffff */
+
+/* ③ 내 메모 = text-input 빈 칸. 카드 모서리(20)가 아니라 입력 모서리(8)를 쓴다.
+      그림자도 채움도 없다. 아직 쓰지 않은 칸으로 읽힌다 */
+[data-theme="airbnb"] .my-note{background:var(--surface);border:1px solid var(--ink-3);
+  border-radius:var(--r-sm);min-height:88px;padding:16px 14px;font-size:16px;
+  line-height:1.5;color:var(--ink-3)}  /* 글자·테두리 5.41:1 (비텍스트 3:1 통과) */
+
+/* 권위 배지 = guest-favorite-badge. 흰 알약 + 잉크 글자 + 유일한 그림자 */
+[data-theme="airbnb"] .badge{border-radius:9999px;font-size:12px;font-weight:600;
+  padding:4px 10px;min-height:24px;letter-spacing:0}
+[data-theme="airbnb"] .badge--rank{background:var(--surface);color:var(--ink);
+  box-shadow:var(--shadow-1)}                            /* 15.91:1 */
+[data-theme="airbnb"] .badge--accent{background:var(--accent-soft);
+  color:var(--accent-strong)}                            /*  4.80:1 on #ffd1da */
+
+/* ---------- 5. 카드 · 목록 ---------- */
+[data-theme="airbnb"] .card{background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:20px;box-shadow:none}   /* 기본은 평평하다 */
+
+/* 미션 3개 = amenity-row. 카드 3장이 아니라 헤어라인으로 닫힌 한 덩어리 목록 */
+[data-theme="airbnb"] .missions{border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line)}
+[data-theme="airbnb"] .mission{padding:14px 0;gap:14px;
+  border-bottom:1px solid var(--line-soft)}
+[data-theme="airbnb"] .missions .mission:last-child{border-bottom:0}
+[data-theme="airbnb"] .mission__ic{width:48px;height:48px;border-radius:var(--r-sm);font-size:23px;
+  background:var(--surface-2);color:var(--ink)}          /* 14.85:1 · 계단 밖 14px 폐기 */
+[data-theme="airbnb"] .mission__kind{font-size:14px;color:var(--ink-3)}    /*  5.41:1 */
+[data-theme="airbnb"] .mission__title{font-size:16.5px;font-weight:600;line-height:1.3;
+  color:var(--ink);margin-top:2px}                       /* 15.91:1 */
+[data-theme="airbnb"] .mission__meta{font-size:14px;color:var(--ink-3);margin-top:3px}
+[data-theme="airbnb"] .mission[data-done] .mission__ic{background:var(--ink);
+  color:#ffffff}                                         /* 15.91:1 - 채움으로 완료 표시 */
+[data-theme="airbnb"] .mission[data-done] .mission__title{color:var(--ink-3)}
+
+/* 체크 : 미완료는 회색 링, 완료는 잉크 채움. 색이 아니라 채움 여부가 신호다 */
+[data-theme="airbnb"] .check{width:32px;height:32px;border:1.5px solid var(--ink-3)}
+                                          /* 링 5.41:1 (비텍스트 3:1 통과) */
+[data-theme="airbnb"] .check[aria-pressed="true"]{background:var(--ink);
+  border-color:var(--ink);color:#ffffff}                 /* 15.91:1 */
+
+/* ---------- 6. 사진 : 이 시스템의 위계는 사진이 진다 ---------- */
+/* property-card-photo : 20px 모서리 클리핑, 그림자 없음, 사진 자체가 깊이다 */
+[data-theme="airbnb"] .shot{height:240px;border-radius:var(--r)}
+/* veil 은 순수 검정. 텍스트 구간 알파 0.80 이상 -> 순백 사진 최악값에서도
+   흰 글자 12.63:1, 하단 0.92 구간은 18.42:1 */
+[data-theme="airbnb"] .shot::after{background:linear-gradient(180deg,
+  rgba(0,0,0,0) 20%,rgba(0,0,0,.80) 56%,rgba(0,0,0,.92) 100%)}
+[data-theme="airbnb"] .shot__tx{left:20px;right:20px;bottom:18px}
+[data-theme="airbnb"] .shot__greet{font-size:20px;font-weight:600;
+  line-height:1.35;letter-spacing:0}                     /* display-sm */
+[data-theme="airbnb"] .shot__sub{font-size:14px;opacity:1;color:#ebebeb;margin-top:6px}
+                                          /* #ebebeb on rgba(0,0,0,.92) = 15.45:1 */
+
+/* ---------- 7. 컨트롤 ---------- */
+/* button-primary : 8px 사각, 48px 이상, weight 500. 알약이 아니다 */
+[data-theme="airbnb"] .btn{height:52px;border-radius:var(--r-sm);
+  font-size:16px;font-weight:600;letter-spacing:0}
+[data-theme="airbnb"] .btn-primary{background:var(--accent);color:var(--accent-ink)}
+                                          /* 흰 글자 4.89:1 */
+[data-theme="airbnb"] .btn-line{border:1px solid var(--ink);background:var(--surface);
+  color:var(--ink)}                       /* button-secondary : 잉크 1px 외곽선 */
+
+/* 용어 칩 = category-strip 의 알약 버튼. 흰 면 + 경계 + 잉크 글자.
+   Rausch 를 칩에 쓰면 액센트가 두 뜻을 겸하게 되므로 쓰지 않는다 */
+[data-theme="airbnb"] .term{background:var(--surface);border:1px solid var(--ink-3);
+  color:var(--ink);border-radius:9999px;min-height:40px;padding:0 16px;font-size:14px;
+  font-weight:500}                        /* 글자 15.91:1 · 경계 5.41:1 */
+[data-theme="airbnb"] .term i{font-size:16px;color:var(--ink-3)}
+[data-theme="airbnb"] .chips{gap:10px}
+
+/* 눌림 피드백 : 베이스는 .btn 에만 있다. 나머지 탭 대상도 눌릴 때 가라앉게 한다 */
+[data-theme="airbnb"] .term:active,[data-theme="airbnb"] .check:active,
+[data-theme="airbnb"] .icon-btn:active,
+[data-theme="airbnb"] .nav__item--mid:active .nav__ic{transform:scale(.97)}
+
+/* 포커스는 잉크 2px. Airbnb 입력 포커스가 글로우 없이 테두리만 두꺼워지는 규칙 */
+[data-theme="airbnb"] :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* ---------- 8. 진행 표시 ---------- */
+/* 트랙은 surface-strong. 채움 #e00b41 대 트랙 #f2f2f2 = 4.37:1 (비텍스트 3:1) */
+[data-theme="airbnb"] .progress{height:8px;border-radius:9999px;background:var(--surface-3)}
+[data-theme="airbnb"] .stats__n{font-size:26px;font-weight:700;color:var(--ink)} /* 15.91:1 */
+[data-theme="airbnb"] .stats__n--accent{color:var(--accent-strong)}        /*  6.55:1 */
+[data-theme="airbnb"] .stats__lab{font-size:14px;color:var(--ink-3)}       /*  5.41:1 */
+
+/* 주간 스트릭 = date-picker 문법. 40px 원 셀, 선택은 잉크 채움, 오늘은 Rausch 링.
+   7칸은 베이스의 1fr 그리드를 그대로 써서 390px 에서 가로 넘침이 0 이다 */
+[data-theme="airbnb"] .week{gap:14px}
+[data-theme="airbnb"] .week__day{max-width:40px;font-size:14px;
+  color:var(--ink-2);border:1px solid var(--ink-3)}  /* 글자 10.53:1 · 경계 5.41:1 */
+[data-theme="airbnb"] .week__day[data-done]{background:var(--ink);color:#ffffff;
+  border-color:var(--ink);font-weight:600}               /* 15.91:1 */
+[data-theme="airbnb"] .week__day[data-today]{background:var(--surface);
+  border:2px solid var(--accent);color:var(--accent-strong);font-weight:700}
+                                          /* 글자 6.55:1 · 링 4.89:1 */
+[data-theme="airbnb"] .week__streak{font-size:14px;color:var(--ink-2)}     /* 10.53:1 */
+[data-theme="airbnb"] .week__streak b{color:var(--accent-strong);font-size:17px}
+
+/* ---------- 9. 내비게이션 ---------- */
+[data-theme="airbnb"] .nav{background:var(--paper);border-top:1px solid var(--line)}
+[data-theme="airbnb"] .nav__item{font-size:12px;color:var(--ink-3)}        /*  5.41:1 */
+[data-theme="airbnb"] .nav__item[aria-current]{color:var(--accent);font-weight:600}
+                                                                          /*  4.89:1 */
+[data-theme="airbnb"] .nav__ic{font-size:24px}
+/* 가운데 "말씀" = search-orb. Rausch 원 하나가 화면에서 가장 뜨거운 지점이다 */
+[data-theme="airbnb"] .nav__item--mid .nav__ic{background:var(--accent);
+  color:var(--accent-ink);box-shadow:var(--shadow-1)}    /* 흰 글리프 4.89:1 */
+
+/* =============================================================================
+   md : 768px 이상. Airbnb 의 밴드 간격이 64px 로 벌어지고 사진이 커진다.
+   ============================================================================= */
+@media (min-width:768px){
+  [data-theme="airbnb"]{--gutter:24px}
+  [data-theme="airbnb"] .lede{font-size:28px}            /* display-xl */
+  [data-theme="airbnb"] .scripture{font-size:24px;padding:36px 0;margin-top:40px}
+  [data-theme="airbnb"] .verse{font-size:20px}
+  [data-theme="airbnb"] .sect{margin-top:48px}
+  [data-theme="airbnb"] .card{padding:24px}              /* spacing.lg */
+  [data-theme="airbnb"] .ai-note{padding:24px}
+  [data-theme="airbnb"] .shot{height:300px}
+}
+
+/* =============================================================================
+   lg : 1024px 이상. 하단 탭이 좌측 레일이 되는 지점.
+   Airbnb 의 hover 는 "그림자 한 티어가 뜨는 것" 하나뿐이다. 색을 바꾸지 않는다.
+   ============================================================================= */
+@media (min-width:1024px){
+  [data-theme="airbnb"] .lede{font-size:32px}
+  [data-theme="airbnb"] .scripture{font-size:26px;padding:40px 0}
+  [data-theme="airbnb"] .sect{margin-top:64px}           /* spacing.section */
+  [data-theme="airbnb"] .shot{height:360px}
+
+  [data-theme="airbnb"] .nav{background:var(--paper);border-right:1px solid var(--line)}
+  [data-theme="airbnb"] .nav__item{font-size:16px;font-weight:600;color:var(--ink-2);
+    border-radius:var(--r-sm)}                           /* 10.53:1 */
+  [data-theme="airbnb"] .nav__item[aria-current]{background:var(--surface-2);
+    color:var(--ink)}                                    /* 14.85:1 on #f7f7f7 */
+  [data-theme="airbnb"] .nav__ic{font-size:22px}
+  [data-theme="airbnb"] .nav__item--mid .nav__ic{border-radius:9999px;
+    background:var(--accent);color:var(--accent-ink)}    /*  4.89:1 */
+
+  @media (hover:hover){
+    [data-theme="airbnb"] .card:hover,
+    [data-theme="airbnb"] .ai-note:hover{box-shadow:var(--shadow-1)}
+    [data-theme="airbnb"] .btn-primary:hover{background:var(--accent-strong)}
+                                                         /* 흰 글자 6.55:1 */
+    [data-theme="airbnb"] .term:hover{background:var(--surface-2);border-color:var(--ink)}
+    [data-theme="airbnb"] .nav__item:hover{background:var(--surface-2)}
+    [data-theme="airbnb"] .nav__item--mid:hover .nav__ic{background:var(--accent-strong)}
+  }
+}
+
+/* =============================================================================
+   ui-ux-pro-max 패스에서 기각한 지적
+   1) .scripture 1280px 줄당 28.9자 (목표 35~45자).
+      번역 결정 3 이 원문에 22 -> 26 -> 30px 램프를 명시했다. 26px 로 35자를
+      채우려면 --measure-read 가 958px 이어야 하고, 같은 폭에서 .verse(20px)는
+      46자를 넘겨 반대쪽으로 실패한다. 원문 타입 볼륨을 남기고 .verse 와
+      .ai-note__body 만 구간 안으로 넣었다 (--measure-read 640 -> 800).
+   2) "이 말씀에 질문하기" 인라인 링크 높이 19.5px (목표 44px).
+      app.html 의 인라인 style 을 가진 마크업 소관이고 6테마 공통이라 남겨 둔다.
+   ============================================================================= */
+
+/* =============================================================================
+   taste-skill 패스에서 기각한 지적
+   1) "--paper 가 순백(#ffffff)이라 과다한 흰 화면이다."
+      번역 결정 1 과 토큰 주석이 "Airbnb 는 공개 웹에 크림 틴트가 없다" 를 명시했다.
+      크림을 깔면 Airbnb 번역이 아니라 Claude 테마가 된다. 잉크는 #000 이 아닌 #222 다.
+   2) "AI 카드 그림자가 순검정 3겹이라 임의 값이다."
+      3겹은 Airbnb 시스템의 단일 그림자 정의 하나를 그대로 옮긴 것이고(--shadow-1
+      == --shadow-2, 스케일 1단계) 캔버스가 순백이라 검정 색조가 곧 배경 색조다.
+   3) "하이라이트 3색이 단일 액센트 규칙을 깬다."
+      번역 결정 1 은 UI 액센트 규칙이고 mark 3종은 사용자 분류 데이터다.
+      토큰 주석에 예외 사유와 잉크 대비(12:1 이상)를 이미 남겼다.
+   ============================================================================= */
