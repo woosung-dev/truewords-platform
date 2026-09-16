@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>훈독 16화면 폰·PC</title>
+<title>훈독 프로토타입</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
 <style>
 :root{--bg:#161513;--panel:#221f1d;--line:#3a3734;--txt:#f0ede8;--txt2:#a8a29a;--hi:#c24721}
@@ -28,8 +28,8 @@ footer b{color:var(--txt)} code{background:#2f2c29;padding:1px 5px;border-radius
 </head>
 <body>
 <header>
-  <h1>훈독 16화면 · 폰 390 + PC 1280 (A 기준 · 헤더 4)</h1>
-  <p class="sub">같은 <code>app.html</code> 한 벌. 화면 버튼을 누르면 폰과 PC 를 나란히 보여 줍니다. 폰 화면은 눌러서 이동할 수 있습니다.</p>
+  <h1>훈독 프로토타입 · 16화면 · 폰 390 + PC 1280</h1>
+  <p class="sub"><code>app.html</code> 한 벌 + <code>hoondok.css</code>. 화면 버튼을 누르면 폰과 PC 를 나란히 보여 줍니다. 화면 안을 눌러 이동할 수 있습니다. 값·규칙의 원본은 이 두 파일이며 <code>docs/specs/web/hoondok-design-system.md</code> 가 근거를 설명합니다.</p>
   <div class="ctl" id="ctl"><span class="tag">화면</span></div>
   <div class="ctl" id="ctl2">
     <span class="tag">PC 폭</span><button data-w="1024">1024</button><button data-w="1280" class="on">1280</button><button data-w="1440">1440</button>
@@ -52,13 +52,13 @@ let cur=1, w=1280, z='fit';
 const ctl=document.getElementById('ctl'), rack=document.getElementById('rack');
 S.forEach((x,i)=>{const b=document.createElement('button');b.textContent=x[0];b.dataset.i=i;if(i===cur)b.classList.add('on');ctl.appendChild(b);});
 function render(){
-  const cols=[{w:390,h:844,q:S[cur][1],t:'폰 390'},{w:w,h:900,q:S[cur][1]+'&nav=top&header=4',t:'PC '+w}];
+  const cols=[{w:390,h:844,q:S[cur][1],t:'폰 390'},{w:w,h:900,q:S[cur][1]+'',t:'PC '+w}];
   const avail=document.documentElement.clientWidth-40-18; const total=cols.reduce((a,c)=>a+c.w,0);
   const k=z==='full'?1:Math.min(1,avail/total);
   rack.innerHTML=cols.map(c=>`<div class="slot" style="width:${Math.round(c.w*k)}px">
-    <div class="cap"><div class="t">${S[cur][0]} · ${c.t}</div><div class="d">app.html?theme=card&${c.q}</div></div>
+    <div class="cap"><div class="t">${S[cur][0]} · ${c.t}</div><div class="d">app.html?${c.q}</div></div>
     <div class="frame" style="width:${Math.round(c.w*k)}px;height:${Math.round(c.h*k)}px">
-      <iframe src="app.html?theme=card&${c.q}" width="${c.w}" height="${c.h}" style="transform:scale(${k})" title="${S[cur][0]}"></iframe>
+      <iframe src="app.html?${c.q}" width="${c.w}" height="${c.h}" style="transform:scale(${k})" title="${S[cur][0]}"></iframe>
     </div></div>`).join('');
 }
 ctl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=+b.dataset.i;[...ctl.querySelectorAll('button')].forEach(x=>x.classList.toggle('on',x===b));render();});

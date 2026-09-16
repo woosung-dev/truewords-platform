@@ -10,20 +10,11 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css" />
 <link rel="stylesheet" href="hoondok.css" />
-<link rel="stylesheet" href="theme-card.css" />
-<link rel="stylesheet" href="theme-rule.css" />
-<link rel="stylesheet" href="theme-editorial.css" />
-<link rel="stylesheet" href="theme-scripture.css" />
-<link rel="stylesheet" href="theme-apple.css" />
-<link rel="stylesheet" href="theme-notion.css" />
-<link rel="stylesheet" href="theme-wired.css" />
-<link rel="stylesheet" href="theme-starbucks.css" />
-<link rel="stylesheet" href="theme-claude.css" />
-<link rel="stylesheet" href="theme-airbnb.css" />
 </head>
-<body data-theme="card">
-<!-- 마크업은 한 벌이다. 테마도 화면 폭도 이 문서를 복제하지 않는다.
-     ?theme=card|rule|editorial|scripture|apple|notion|wired|starbucks|claude|airbnb   ?screen=today|read|words|library|search|onboarding|ask|ask-log|ask-detail|worship|challenge|sermons|sermon-request|garden|settings|family   ?sheet=jeongseong   ?serif=1   ?nav=rail|top   ?header=1|2|3|4|5|6 -->
+<body>
+<!-- 마크업은 한 벌이다. 화면 폭이 달라도 이 문서를 복제하지 않는다.
+     ?screen=today|read|words|library|search|onboarding|ask|ask-log|ask-detail|worship|challenge|sermons|sermon-request|garden|settings|family
+     ?sheet=jeongseong   ?nav=top&header=4 (PC 기본 = 상단 헤더 4. rail 은 DES-PWA-003 §4.1 대조용)   ?serif=1 -->
 <div class="app">
 
   <main class="app__main">
@@ -1263,13 +1254,11 @@
 <script>
 (function(){
   const q = new URLSearchParams(location.search);
-  const theme  = q.get('theme')  || 'card';
   const screen = q.get('screen') || 'today';
   const serif  = q.get('serif') === '1';
-  const nav    = q.get('nav') || 'rail';   // rail | top (1024px 이상에서만 갈린다)
-  const header = q.get('header');          // top 일 때 1 | 2 | 3 (헤더 변형)
+  const nav    = q.get('nav') || 'top';    // top(기본) | rail. 1024px 이상에서만 갈린다
+  const header = q.get('header') || (nav === 'top' ? '4' : null);   // 상단 헤더 변형. 기본 4 = 검색 중심
 
-  document.body.dataset.theme = theme;
   document.body.dataset.nav = nav;
   if (header) document.body.dataset.header = header;
   if (serif) document.documentElement.style.setProperty('--font-scripture','var(--serif)');

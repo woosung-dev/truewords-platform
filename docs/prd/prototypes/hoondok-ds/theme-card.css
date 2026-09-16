@@ -1,9 +1,0 @@
-/* 안 1 "카드" - 현행 A 언어. hoondok.css 의 기본값을 그대로 쓴다.
-   기준군이므로 덮어쓰는 것이 거의 없다. 이것이 정상이다. */
-[data-theme="card"]{ --r:16px; --r-sm:12px; --r-xs:8px; }
-[data-theme="card"] .missions{gap:12px}
-[data-theme="card"] .mission{background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow-hairline)}
-/* 홈 첫 요소는 사진. 훈독하기·원문 화면의 출처 라인은 숨기지 않는다 (2026-09-16 심사에서 발견한 결함 수정) */
-[data-theme="card"] [data-screen="today"] .lede{display:none}
-[data-theme="card"] [data-screen="today"] .lede-src{display:none}
