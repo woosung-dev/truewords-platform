@@ -163,6 +163,20 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 1 | 플래그 OFF 404 | Vitest(`notFound` 호출) 로 확인. 운영 이미지 빌드 시 수동 재확인 예정 | 2026-09-16 |
 | 1 | 60대 사용자 3명 200% 확대 확인 | 미수행 `[가정: 사용자 섭외 후]` | — |
 
+아래 Phase 2 결과는 2026-09-16 로컬 worktree `../tw-hoondok-phase2/`(`dev/hoondok-phase2`, main `9940b82` 분기)에서 sub-PR A→B→C→D 스택 tip 에 대해 실행했다. sub-PR: #277 docs · #278 identity · #279 mission_logs · #280 web · D E2E.
+
+| Phase | 검증 | 결과 | 날짜 |
+|---|---|---|---|
+| 2 | API pytest (`sub-PR A + B` 누적) | 1005 passed / 4 skipped / 1 xfailed (Phase 1 기준 979 + identity 14 + missions 10 + admin 회귀 2) | 2026-09-16 |
+| 2 | `pnpm contracts:generate` + `contracts:check` (base `9940b82`) | 드리프트 0 · 하위 호환 통과 (`/hoondok/auth/*`·`/hoondok/missions/{kind}/complete`·`/hoondok/me/summary` 추가만) | 2026-09-16 |
+| 2 | `alembic heads` | `j3f4a5b6c7d8` 단일 head (`h0d01a2b3c4d` → `i1e2f3a4b5c6` users → `j3f4a5b6c7d8` mission_logs) | 2026-09-16 |
+| 2 | web Vitest · typecheck · lint · Biome | 87 passed (Phase 1 72 + identity·missions 15) · 오류 0 · lint 경고 10건 전부 기존 파일 · Biome 신규 파일 포맷 적용(남은 1건은 Phase 1 `malssum-card` 기존) | 2026-09-16 |
+| 2 | `pnpm hoondok:check` + `node tooling/checks/docs-links.mjs` | 통과 · 문서 186 · 링크 291 · 새 오류 0 | 2026-09-16 |
+| 2 | `next build` (플래그 ON) | `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 동적(ƒ), 나머지 라우트 불변 | 2026-09-16 |
+| 2 | `make e2e` (격리 compose + 시드 + `seed_hoondok_user`) | **45 passed** = 기존 38 + `hoondok-chromium` 7 (스모크 5 + "비로그인 완료 → 가입 → 당일 소급 → 연속 1일 → 재요청 409" + "시드 사용자 로그인 → 완료 1회 → 로그아웃 → 완료·요약 API 401") | 2026-09-16 |
+| 2 | additive-only 리허설 (§3-4): `j3f4a5b6c7d8` 적용 DB 위에 main `9940b82` 백엔드 기동 | `/health` 200 · `/chatbots` 200 · `/hoondok/today` 200 · `/hoondok/auth/me` 404(구 이미지, 예상) · traceback 0 | 2026-09-16 |
+| 2 | `make ci` (통합 브랜치, 모든 sub-PR 머지 후) | 미수행 — sub-PR 머지 승인 뒤 main PR 전 실행 | — |
+
 ## 10. 결정 기록
 
 | 날짜 | 결정 | 상태 |
@@ -176,3 +190,4 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 2026-09-16 | `[확인 필요]` 3건(메일·약관·편성자) 미정 → 운영자 수동·베타 고지만·시드 로 진행. TODO Questions 유지 | 확정 · §5 |
 | 2026-09-16 | `hoondok_token` JWT 만료 7일(`HOONDOK_JWT_EXPIRE_MINUTES`). admin 24h 와 분리 | 확정 · Phase 2 A |
 | 2026-09-16 | 연속일·이번 주 `done` 은 `read`(훈독하기) 완료 기준. 기도·읽기 규칙은 Phase 3+ 재검토 | 확정 · Phase 2 B |
+| 2026-09-16 | Phase 2 코드 완료(sub-PR A~D). 계정 삭제·비밀번호 재설정 API 는 비범위 유지, `deleted_at` 예약만 | 확정 · §5 |

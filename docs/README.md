@@ -1,6 +1,6 @@
 # TrueWords 기술 문서
 
-현재 작업은 **훈독 MVP Phase 1**([PLAN-HD-001](plans/active/2026-09-17-hoondok-mvp.md), 2026-09-16 승인)이다. `apps/web` 의 `/hoondok/*` 라우트와 `apps/api` 의 `daily_readings`·`GET /hoondok/today` 를 통합 브랜치 `dev/hoondok-mvp` 에서 sub-PR 로 만든다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, 운영 배포·알림·Flutter 는 Phase 3 이후 별도 승인이다.
+현재 작업은 **훈독 MVP Phase 2**([PLAN-HD-001 §5](plans/active/2026-09-17-hoondok-mvp.md), 2026-09-16 착수)이다. Phase 1(`/hoondok` 골격·`daily_readings`·`GET /hoondok/today`)은 PR #276 으로 main 에 있고, Phase 2 는 `apps/api` 의 `identity`(`users`·`/hoondok/auth/*`)·`mission_logs`(완료·연속일)와 `apps/web` 의 `features/identity`·`/hoondok/onboarding` 을 통합 브랜치 `dev/hoondok-phase2` 에서 sub-PR 로 만든다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, 운영 배포·알림·Flutter 는 Phase 3 이후 별도 승인이다.
 
 | 먼저 읽을 문서 | 용도 |
 |---|---|
