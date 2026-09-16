@@ -23,15 +23,17 @@
 </head>
 <body data-theme="card">
 <!-- 마크업은 한 벌이다. 테마도 화면 폭도 이 문서를 복제하지 않는다.
-     ?theme=card|rule|editorial|scripture|apple|notion|wired|starbucks|claude|airbnb   ?screen=today|read|words   ?serif=1   ?nav=rail|top   ?header=1|2|3|4|5|6 -->
+     ?theme=card|rule|editorial|scripture|apple|notion|wired|starbucks|claude|airbnb   ?screen=today|read|words|library|search   ?serif=1   ?nav=rail|top   ?header=1|2|3|4|5|6 -->
 <div class="app">
 
   <main class="app__main">
     <header class="appbar" id="appbar">
       <div class="appbar__in">
-        <a class="icon-btn" href="#" aria-label="뒤로" data-only="read words"><i class="ph ph-arrow-left"></i></a>
+        <a class="icon-btn" href="#" aria-label="뒤로" data-only="read words search"><i class="ph ph-arrow-left"></i></a>
         <h1 class="appbar__title" id="apptitle">오늘 훈독</h1>
-        <a class="icon-btn" href="#" aria-label="알림"><i class="ph ph-bell"></i></a>
+        <label class="appbar__search" data-only="search"><i class="ph ph-magnifying-glass"></i><input type="search" value="" placeholder="단어, 구절, 상황을 입력해 주세요" aria-label="말씀 검색" autofocus></label>
+        <a class="icon-btn icon-btn--search" href="?screen=search" aria-label="말씀 검색" data-only="today read words library"><i class="ph ph-magnifying-glass"></i></a>
+        <a class="icon-btn" href="#" aria-label="알림" data-only="today read words library"><i class="ph ph-bell"></i></a>
       </div>
     </header>
 
@@ -197,6 +199,53 @@
       </div>
       <p class="notice">단락 12는 예시로 이어 붙인 발췌입니다</p>
     </section>
+
+    <!-- ===== 말씀 서고 (SCR-PWA-007) : 검색 필드 상설 ===== -->
+    <section class="col" data-screen="library" hidden>
+      <a class="search-field" href="?screen=search" role="search"><i class="ph ph-magnifying-glass"></i><span>단어, 구절, 상황을 입력해 주세요</span></a>
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">이어 읽기</h2><span class="sect__rule"></span><span class="sect__meta">어제</span></div>
+        <a class="card resume" href="?screen=words">
+          <span class="resume__bd"><b>천성경 제1편 3장</b><span class="resume__meta">12단락까지 읽었어요 · 참아버님 · 2013 한국어판</span></span>
+          <span class="badge badge--rank">O1 공식 원문</span>
+        </a>
+      </div>
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">저작물</h2><span class="sect__rule"></span><span class="sect__meta">권리 확인된 정본만</span></div>
+        <div class="shelf">
+          <a class="shelf__item" href="#"><b>천성경</b><span>16편 · 2013 한국어판</span><span class="badge badge--rank">O1</span></a>
+          <a class="shelf__item" href="#"><b>말씀선집</b><span>615권</span><span class="badge badge--rank">O1</span></a>
+          <a class="shelf__item" href="#"><b>참어머님 말씀 모음</b><span>3권</span><span class="badge badge--rank">O1</span></a>
+          <a class="shelf__item" href="#"><b>평화경</b><span>2013 한국어판</span><span class="badge badge--dashed">권리 확인 중</span></a>
+          <a class="shelf__item" href="#"><b>평화를 사랑하는 세계인으로</b><span>자서전</span><span class="badge badge--dashed">권리 확인 중</span></a>
+        </div>
+      </div>
+      <p class="notice">권리 확인 중인 저작물은 검색·AI 근거에 쓰이지 않습니다</p>
+    </section>
+
+    <!-- ===== 말씀 검색 진입 (SCR-PWA-008, 입력 전 상태) ===== -->
+    <section class="col" data-screen="search" hidden>
+      <div class="sect" style="margin-top:8px">
+        <div class="sect__head"><h2 class="sect__title">최근 검색</h2><span class="sect__rule"></span><a class="sect__meta" href="#">지우기</a></div>
+        <ul class="recent">
+          <li><a href="#"><i class="ph ph-clock-counter-clockwise"></i>정성</a></li>
+          <li><a href="#"><i class="ph ph-clock-counter-clockwise"></i>참사랑은 직단거리</a></li>
+          <li><a href="#"><i class="ph ph-clock-counter-clockwise"></i>천일국 시대</a></li>
+        </ul>
+      </div>
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">이렇게도 찾을 수 있어요</h2><span class="sect__rule"></span></div>
+        <div class="howto">
+          <div class="howto__row"><span class="howto__k">단어</span><div class="chips"><a class="term" href="#">탕감복귀</a><a class="term" href="#">정성</a><a class="term" href="#">축복</a></div></div>
+          <div class="howto__row"><span class="howto__k">구절</span><div class="chips"><a class="term" href="#">"참사랑은 직단거리를 갑니다"</a></div></div>
+          <div class="howto__row"><span class="howto__k">상황</span><div class="chips"><a class="term" href="#">자녀와 갈등이 있을 때</a><a class="term" href="#">새벽에 일어나기 힘들 때</a></div></div>
+          <div class="howto__row"><span class="howto__k">목차</span><div class="chips"><a class="term" href="#">천성경 1편</a><a class="term" href="#">말씀선집 200권</a></div></div>
+        </div>
+      </div>
+      <div class="sect">
+        <a class="ask-hint" href="#"><i class="ph ph-chat-teardrop-text"></i><span><b>궁금한 것이 질문이라면</b><span>"왜 정성을 드려야 하나요" 같은 질문은 AI 질문에서 근거 말씀과 함께 답해요</span></span><i class="ph ph-caret-right"></i></a>
+      </div>
+    </section>
   </main>
 
   <nav class="nav" aria-label="주 메뉴">
@@ -204,7 +253,7 @@
     <a class="nav__brand" href="?screen=today">훈독</a>
     <a class="nav__item" href="?screen=today" aria-current="page"><span class="nav__ic"><i class="ph-fill ph-sun-horizon"></i></span>오늘 훈독</a>
     <a class="nav__item" href="#"><span class="nav__ic"><i class="ph ph-chat-teardrop-text"></i></span>AI 질문</a>
-    <a class="nav__item nav__item--mid" href="?screen=words"><span class="nav__ic"><i class="ph-fill ph-book-open-text"></i></span>말씀</a>
+    <a class="nav__item nav__item--mid" href="?screen=library"><span class="nav__ic"><i class="ph-fill ph-book-open-text"></i></span>말씀</a>
     <a class="nav__item" href="#"><span class="nav__ic"><i class="ph ph-house-line"></i></span>가정예배</a>
     <a class="nav__item" href="#"><span class="nav__ic"><i class="ph ph-plant"></i></span>나의 정원</a>
     <form class="nav__search" role="search" onsubmit="return false"><i class="ph ph-magnifying-glass"></i><input type="search" placeholder="말씀 검색" aria-label="말씀 검색"></form>
@@ -228,12 +277,13 @@
 
   document.querySelectorAll('[data-screen]').forEach(s => s.hidden = s.dataset.screen !== screen);
   document.getElementById('apptitle').textContent =
-    ({today:'오늘 훈독', read:'훈독하기', words:'천성경 1편 3장'})[screen];
+    ({today:'오늘 훈독', read:'훈독하기', words:'천성경 1편 3장', library:'말씀', search:''})[screen];
   document.querySelectorAll('[data-only]').forEach(el => {
     el.style.display = el.dataset.only.split(' ').includes(screen) ? '' : 'none';
   });
   document.querySelectorAll('.nav__item').forEach(a => {
-    const on = (a.getAttribute('href')||'').includes(screen);
+    const href = a.getAttribute('href')||'';
+    const on = href.includes(screen) || (href.includes('library') && (screen==='words' || screen==='search'));
     if (on) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current');
   });
   document.querySelectorAll('.check').forEach(c => c.addEventListener('click', () => {

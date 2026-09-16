@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>훈독 검색 진입점 비교</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+:root{--bg:#161513;--panel:#221f1d;--line:#3a3734;--txt:#f0ede8;--txt2:#a8a29a;--hi:#c24721}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:"Pretendard Variable",Pretendard,-apple-system,sans-serif}
+header{position:sticky;top:0;z-index:30;background:var(--panel);border-bottom:1px solid var(--line);padding:13px 20px}
+h1{font-size:17px;margin:0;font-weight:700;letter-spacing:-.02em}
+.sub{font-size:12.5px;color:var(--txt2);margin-top:4px;line-height:1.6}
+.ctl{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;align-items:center}
+.ctl button{font:inherit;font-size:13px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);color:var(--txt2);background:transparent;cursor:pointer}
+.ctl button.on{background:var(--hi);border-color:var(--hi);color:#fff;font-weight:600}
+.rack{display:flex;gap:18px;padding:18px 20px 40px;align-items:flex-start;overflow-x:auto}
+.slot{flex:none}
+.cap .t{font-size:13.5px;font-weight:700}
+.cap .d{font-size:11.5px;color:var(--txt2);margin:3px 0 8px;line-height:1.5;max-width:100%}
+.frame{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fbfaf8;box-shadow:0 12px 34px rgba(0,0,0,.36)}
+iframe{border:0;display:block;transform-origin:top left}
+footer{padding:0 20px 44px;font-size:12.5px;color:var(--txt2);line-height:1.85;max-width:1180px}
+footer b{color:var(--txt)} code{background:#2f2c29;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>훈독 검색 진입점 · 폰 3화면 + PC 헤더 4</h1>
+  <p class="sub">목적지는 모두 <code>SCR-PWA-008</code> 말씀 검색 한 화면. 진입점만 폭과 화면 목적에 맞게 다릅니다. 폰 화면의 돋보기·검색 필드·칩을 눌러 보세요.</p>
+  <div class="ctl" id="ctl">
+    <button data-z="fit" class="on">한 화면에 맞춤</button>
+    <button data-z="full">실제 크기</button>
+  </div>
+</header>
+<div class="rack" id="rack"></div>
+<footer>
+  <b>1 오늘 훈독 (폰)</b> 아침 3분 루틴 화면. 검색은 부차적이라 앱바 우측 돋보기 아이콘만. 자리는 [검색][알림] 순으로 5탭 어디서나 같다.<br>
+  <b>2 말씀 서고 (폰)</b> 찾고 읽으러 온 화면. 검색 필드를 상단에 상설. 탭하면 검색 화면으로.<br>
+  <b>3 말씀 검색 진입 (폰)</b> 입력 전 상태. 최근 검색 + "이렇게도 찾을 수 있어요" 4분류 칩 + 질문이면 AI 질문으로 안내하는 한 줄.<br>
+  <b>4 PC 헤더 4</b> 폭이 넓어 아이콘과 필드를 하나로 합친 형태. 앱바 돋보기는 헤더 검색바가 대신하므로 숨긴다.<br><br>
+  모든 말씀·인물·수치는 프로토타입용 예시입니다.
+</footer>
+<script>
+const T=[
+  {w:390,h:844, q:'screen=today',   t:'1 · 오늘 훈독 (폰)',     d:'앱바 우측 돋보기. 루틴 화면을 검색이 차지하지 않는다.'},
+  {w:390,h:844, q:'screen=library', t:'2 · 말씀 서고 (폰)',     d:'상단 검색 필드 상설 + 앱바 돋보기.'},
+  {w:390,h:844, q:'screen=search',  t:'3 · 말씀 검색 진입 (폰)', d:'앱바 안 입력 + 최근 검색 + 4분류 예시 칩 + AI 질문 안내.'},
+  {w:1280,h:900,q:'screen=library&nav=top&header=4', t:'4 · PC 헤더 4 · 말씀 서고', d:'헤더 검색바가 폰의 아이콘 + 필드를 대신한다.'},
+];
+let z='fit'; const rack=document.getElementById('rack');
+function render(){
+  const avail=document.documentElement.clientWidth-40-18*3;
+  const total=T.reduce((a,x)=>a+x.w,0);
+  const k = z==='full' ? 1 : Math.min(1, avail/total);
+  rack.innerHTML=T.map(x=>`<div class="slot" style="width:${Math.round(x.w*k)}px">
+    <div class="cap"><div class="t">${x.t}</div><div class="d">${x.d}</div></div>
+    <div class="frame" style="width:${Math.round(x.w*k)}px;height:${Math.round(x.h*k)}px">
+      <iframe src="app.html?theme=card&${x.q}" width="${x.w}" height="${x.h}" style="transform:scale(${k})" title="${x.t}"></iframe>
+    </div></div>`).join('');
+}
+document.getElementById('ctl').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;z=b.dataset.z;
+  [...document.querySelectorAll('#ctl button')].forEach(x=>x.classList.toggle('on',x===b));render();});
+addEventListener('resize',()=>{clearTimeout(window.__t);window.__t=setTimeout(render,160)});
+render();
+</script>
+</body>
+</html>

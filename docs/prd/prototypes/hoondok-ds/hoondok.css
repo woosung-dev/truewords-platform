@@ -136,6 +136,41 @@ mark.hl-1{background:var(--hl-1)} mark.hl-2{background:var(--hl-2)} mark.hl-3{ba
 .my-note{border:1.5px dashed var(--line);border-radius:var(--r);padding:13px 15px;
   color:var(--ink-3);font-size:14px}
 
+/* ---------- 5b. 검색 진입점 : 앱바 아이콘(모든 탭) · 서고 상단 필드(말씀 탭) · 검색 화면 앱바 입력 ---------- */
+.search-field{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 16px;margin-top:8px;
+  border-radius:var(--r-sm);background:var(--surface-2);color:var(--ink-3);font-size:15px}
+.search-field i{font-size:20px;color:var(--ink-2)}
+.appbar__search{flex:1;display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;
+  border-radius:var(--r-sm);background:var(--surface);border:1.5px solid var(--ink-3);color:var(--ink-3)}
+.appbar__search i{font-size:20px;color:var(--ink-2)}
+.appbar__search input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);outline:none}
+.appbar__search:focus-within{border-color:var(--accent)}
+.recent{list-style:none;margin:0;padding:0}
+.recent a{display:flex;align-items:center;gap:10px;min-height:48px;font-size:16px;color:var(--ink);border-bottom:1px solid var(--line)}
+.recent li:last-child a{border-bottom:0}
+.recent i{font-size:20px;color:var(--ink-3)}
+.howto__row{display:flex;gap:12px;align-items:flex-start;padding:10px 0}
+.howto__k{flex:none;width:36px;font-size:13px;font-weight:600;color:var(--ink-2);padding-top:6px}
+.howto .term{min-height:34px;padding:5px 12px;font-size:14px}
+.ask-hint{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--r);
+  background:var(--surface);border:1px solid var(--line)}
+.ask-hint > i:first-child{font-size:24px;color:var(--accent);flex:none}
+.ask-hint > i:last-child{font-size:18px;color:var(--ink-3);flex:none}
+.ask-hint > span{flex:1;display:flex;flex-direction:column;gap:3px}
+.ask-hint b{font-size:15px}
+.ask-hint span span{font-size:13px;color:var(--ink-2);line-height:1.5}
+.resume{display:flex;align-items:center;gap:12px}
+.resume__bd{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.resume__bd b{font-size:16px}
+.resume__meta{font-size:12.5px;color:var(--ink-2)}
+.shelf{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.shelf__item{display:grid;grid-template-columns:1fr auto;grid-template-areas:"t b" "m b";column-gap:12px;
+  padding:14px 16px;border-bottom:1px solid var(--line);align-items:center;min-height:56px}
+.shelf__item:last-child{border-bottom:0}
+.shelf__item b{grid-area:t;font-size:16px;font-weight:600}
+.shelf__item > span:first-of-type{grid-area:m;font-size:12.5px;color:var(--ink-2);margin-top:2px}
+.shelf__item .badge{grid-area:b}
+
 /* ---------- 6. 카드 / 섹션 ---------- */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
   padding:16px;box-shadow:var(--shadow-hairline)}
@@ -381,6 +416,8 @@ mark.hl-1{background:var(--hl-1)} mark.hl-2{background:var(--hl-2)} mark.hl-3{ba
   [data-nav="top"][data-header="4"] .nav__search{flex:1;max-width:360px;margin-left:auto;margin-right:12px;
     border-radius:9999px;background:var(--surface-2)}
   [data-nav="top"][data-header="4"] .appbar{top:72px}
+  [data-nav="top"][data-header="4"] .icon-btn--search,
+  [data-nav="top"][data-header="4"] .search-field{display:none}   /* 헤더 검색바가 앱바 돋보기·서고 필드를 대신한다 */
 
   /* --- 헤더 5 : 플로팅 필 (Abide·gpt-tasteskill 형). 페이지 위에 떠 있는 반투명 알약 한 개 --- */
   [data-nav="top"][data-header="5"] .nav{position:sticky;top:12px;height:56px;
