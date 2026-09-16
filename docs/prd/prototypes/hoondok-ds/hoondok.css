@@ -65,6 +65,8 @@ img{display:block;max-width:100%}
 
 /* 제호는 기본 숨김. 쓰는 테마가 CSS 로 켠다 (JS 가 관여하지 않는다) */
 .masthead{display:none}
+/* 헤더용 워드마크·검색·계정도 기본 숨김. 데스크톱 헤더 4~6 이 켠다 */
+.nav__brand,.nav__search,.nav__user{display:none}
 .col{width:100%;padding:4px var(--gutter) 28px}
 .col--read .prose{max-width:none}
 
@@ -342,6 +344,77 @@ mark.hl-1{background:var(--hl-1)} mark.hl-2{background:var(--hl-2)} mark.hl-3{ba
   [data-nav="top"][data-header="3"] .nav__item:hover{background:rgba(255,255,255,.55)}
   [data-nav="top"][data-header="3"] .nav__item[aria-current]:hover{background:var(--surface)}
   [data-nav="top"][data-header="3"] .appbar{top:60px}
+}
+
+/* =============================================================================
+   상단 헤더 4~6 : 벤치마크(Bible.com·Hallow·Headspace·Linear·Medium·Abide·성서공회) 반영.
+   공통 발견 : 우측 클러스터(보조 액션 + 계정), 검색의 상설화, 떠 있는 필 / 분할 내비.
+   4~6 은 ::before/::after 대신 실제 마크업(.nav__brand / .nav__search / .nav__user)을 켠다.
+   ============================================================================= */
+@media (min-width:1024px){
+  [data-nav="top"][data-header="4"] .nav::before,[data-nav="top"][data-header="4"] .nav::after,
+  [data-nav="top"][data-header="5"] .nav::before,[data-nav="top"][data-header="5"] .nav::after,
+  [data-nav="top"][data-header="6"] .nav::before,[data-nav="top"][data-header="6"] .nav::after{content:none}
+  [data-nav="top"][data-header="4"] .nav__brand,[data-nav="top"][data-header="5"] .nav__brand,
+  [data-nav="top"][data-header="6"] .nav__brand{display:flex;align-items:center;font-size:19px;
+    font-weight:700;letter-spacing:-.02em;color:var(--ink);flex:none}
+  [data-nav="top"][data-header="4"] .nav__user,[data-nav="top"][data-header="5"] .nav__user,
+  [data-nav="top"][data-header="6"] .nav__user{display:grid;place-items:center;width:36px;height:36px;
+    border-radius:50%;background:var(--accent-soft);color:var(--accent-strong);font-size:14px;font-weight:600;flex:none}
+  [data-nav="top"][data-header="4"] .nav__search,[data-nav="top"][data-header="6"] .nav__search{
+    display:flex;align-items:center;gap:8px;height:42px;padding:0 14px;color:var(--ink-3);font-size:18px}
+  [data-nav="top"][data-header="4"] .nav__search input,[data-nav="top"][data-header="6"] .nav__search input{
+    border:0;background:transparent;font:inherit;font-size:14.5px;color:var(--ink);width:100%;outline:none;min-width:0}
+  [data-nav="top"][data-header="4"] .nav__search input::placeholder,
+  [data-nav="top"][data-header="6"] .nav__search input::placeholder{color:var(--ink-3)}   /* 4.9:1 */
+  [data-nav="top"][data-header="4"] .nav__search:focus-within,
+  [data-nav="top"][data-header="6"] .nav__search:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* --- 헤더 4 : 검색 중심 (Bible.com 형). 워드마크 + 텍스트 내비 좌 / 검색바 + 계정 우 --- */
+  [data-nav="top"][data-header="4"] .nav{height:72px;gap:4px;background:var(--surface);justify-content:flex-start}
+  [data-nav="top"][data-header="4"] .nav__brand{margin-right:20px}
+  [data-nav="top"][data-header="4"] .nav__ic{display:none}
+  [data-nav="top"][data-header="4"] .nav__item{height:40px;min-height:40px;padding:0 12px;border-radius:var(--r-xs);
+    font-size:15px;font-weight:500;color:var(--ink-2)}
+  [data-nav="top"][data-header="4"] .nav__item[aria-current]{color:var(--ink);font-weight:600;background:var(--surface-2)}
+  [data-nav="top"][data-header="4"] .nav__item:hover{background:var(--surface-2)}
+  [data-nav="top"][data-header="4"] .nav__search{flex:1;max-width:360px;margin-left:auto;margin-right:12px;
+    border-radius:9999px;background:var(--surface-2)}
+  [data-nav="top"][data-header="4"] .appbar{top:72px}
+
+  /* --- 헤더 5 : 플로팅 필 (Abide·gpt-tasteskill 형). 페이지 위에 떠 있는 반투명 알약 한 개 --- */
+  [data-nav="top"][data-header="5"] .nav{position:sticky;top:12px;height:56px;
+    width:min(980px,calc(100% - 48px));margin:12px auto 0;padding:0 8px 0 22px;gap:2px;justify-content:center;
+    border-radius:9999px;border:1px solid var(--line);background:rgba(255,255,255,.82);
+    -webkit-backdrop-filter:blur(16px) saturate(160%);backdrop-filter:blur(16px) saturate(160%);
+    box-shadow:var(--shadow-2)}
+  [data-nav="top"][data-header="5"] .nav__brand{margin-right:auto}
+  [data-nav="top"][data-header="5"] .nav__user{margin-left:auto}
+  [data-nav="top"][data-header="5"] .nav__item{height:40px;min-height:40px;padding:0 14px 0 11px;border-radius:9999px;
+    font-size:14.5px;font-weight:500;color:var(--ink-2);gap:7px}
+  [data-nav="top"][data-header="5"] .nav__ic{width:20px;height:20px;font-size:19px;border-radius:0}
+  [data-nav="top"][data-header="5"] .nav__item[aria-current]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600}
+  [data-nav="top"][data-header="5"] .nav__item:hover{background:var(--surface-2)}
+  [data-nav="top"][data-header="5"] .nav__item[aria-current]:hover{background:var(--accent-soft)}
+  [data-nav="top"][data-header="5"] .appbar{top:80px}
+  [data-nav="top"][data-header="5"] .app__main:has([data-screen="today"]:not([hidden])) .col{padding-top:36px}
+  @media (prefers-reduced-transparency:reduce){
+    [data-nav="top"][data-header="5"] .nav{background:#ffffff;-webkit-backdrop-filter:none;backdrop-filter:none}
+  }
+
+  /* --- 헤더 6 : 분할 내비 (Linear·Medium 형). 좌 그룹 텍스트 / 세로 구분선 / 우 그룹 검색 + 계정. 바탕은 페이지와 같다 --- */
+  [data-nav="top"][data-header="6"] .nav{height:72px;gap:2px;background:var(--paper);justify-content:flex-start}
+  [data-nav="top"][data-header="6"] .nav__brand{margin-right:24px}
+  [data-nav="top"][data-header="6"] .nav__ic{display:none}
+  [data-nav="top"][data-header="6"] .nav__item{height:40px;min-height:40px;padding:0 11px;border-radius:var(--r-xs);
+    font-size:15px;font-weight:500;color:var(--ink-2)}
+  [data-nav="top"][data-header="6"] .nav__item[aria-current]{color:var(--ink);font-weight:700}
+  [data-nav="top"][data-header="6"] .nav__item:hover{background:var(--surface-2)}
+  [data-nav="top"][data-header="6"] .nav__search{margin-left:auto;width:224px;height:40px;border-radius:var(--r-xs);
+    border:1px solid var(--line);background:var(--surface);position:relative;margin-right:14px}
+  [data-nav="top"][data-header="6"] .nav__search::before{content:"";position:absolute;left:-15px;top:8px;
+    width:1px;height:24px;background:var(--line)}
+  [data-nav="top"][data-header="6"] .appbar{top:72px}
 }
 
 @media (prefers-reduced-motion:reduce){

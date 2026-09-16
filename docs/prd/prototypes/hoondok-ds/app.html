@@ -23,7 +23,7 @@
 </head>
 <body data-theme="card">
 <!-- 마크업은 한 벌이다. 테마도 화면 폭도 이 문서를 복제하지 않는다.
-     ?theme=card|rule|editorial|scripture|apple|notion|wired|starbucks|claude|airbnb   ?screen=today|read|words   ?serif=1   ?nav=rail|top   ?header=1|2|3 -->
+     ?theme=card|rule|editorial|scripture|apple|notion|wired|starbucks|claude|airbnb   ?screen=today|read|words   ?serif=1   ?nav=rail|top   ?header=1|2|3|4|5|6 -->
 <div class="app">
 
   <main class="app__main">
@@ -200,11 +200,15 @@
   </main>
 
   <nav class="nav" aria-label="주 메뉴">
+    <!-- 워드마크·검색·계정은 데스크톱 헤더 4~6 에서만 켠다. 기본은 숨김 (폰 하단 탭·레일 영향 없음) -->
+    <a class="nav__brand" href="?screen=today">훈독</a>
     <a class="nav__item" href="?screen=today" aria-current="page"><span class="nav__ic"><i class="ph-fill ph-sun-horizon"></i></span>오늘 훈독</a>
     <a class="nav__item" href="#"><span class="nav__ic"><i class="ph ph-chat-teardrop-text"></i></span>AI 질문</a>
     <a class="nav__item nav__item--mid" href="?screen=words"><span class="nav__ic"><i class="ph-fill ph-book-open-text"></i></span>말씀</a>
     <a class="nav__item" href="#"><span class="nav__ic"><i class="ph ph-house-line"></i></span>가정예배</a>
     <a class="nav__item" href="#"><span class="nav__ic"><i class="ph ph-plant"></i></span>나의 정원</a>
+    <form class="nav__search" role="search" onsubmit="return false"><i class="ph ph-magnifying-glass"></i><input type="search" placeholder="말씀 검색" aria-label="말씀 검색"></form>
+    <span class="nav__user" aria-label="효진">효</span>
   </nav>
 </div>
 
