@@ -5,7 +5,7 @@
 - 상태: **작성 완료 · 디자인·접근성 승인 대기** (`DES-PWA-003-Q1` 권위 배지는 2026-09-16 확정)
 - 정본 프로토타입: [`prototypes/hoondok-ds/`](../../prd/prototypes/hoondok-ds/README.md) (`app.html` + `hoondok.css`, 16화면, 폰·PC 단일 소스). **값의 원본은 그 CSS 이며 이 문서는 근거를 설명한다.** 최초 값은 2026-09-10 시안 A 에서 추출했다
 - 데스크톱: 같은 프로토타입의 1024px 이상 규칙(상단 헤더 4). §4 규칙을 실제로 그려 검증했고 그 결과로 §4·§3.2를 고쳤다 (§4.6)
-- 입력: [PRD v2 `PRD-FFWPU-PWA-001`](../../prd/17-ffwpu-pwa-prd.md) (`SCR-PWA-001~016`, `REQ-PWA-012`·`014`), [디자인 2안 비교 `DES-PWA-002`](../../prd/2026-09-10-hundok-design-directions.md), 스크린샷 19장 [`screenshots/2026-09-10/a-*.jpg`](../../prd/prototypes/screenshots/2026-09-10/)
+- 입력: [PRD v2 `PRD-FFWPU-PWA-001`](../../prd/17-ffwpu-pwa-prd.md) (`SCR-PWA-001~016`, `REQ-PWA-012`·`014`)
 - 근거 결정: `DEC-PWA-015` 5탭 명칭 · `DEC-PWA-016` 앱 이름 "훈독" · `DEC-PWA-017` A 단독 채택·라이트 고정 · `DEC-PWA-019` 랭킹·보상 제외 (모두 2026-09-14 확정)
 - 표기: 라벨 없는 문장은 시안·PRD에서 확인한 사실이다. `[가정]`은 검증이 필요한 추론, `[확인 필요]`는 사용자 결정이 필요한 항목이다
 
