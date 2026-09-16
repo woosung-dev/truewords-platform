@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI 질문 목록 개선 비교</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+:root{--bg:#161513;--panel:#221f1d;--line:#3a3734;--txt:#f0ede8;--txt2:#a8a29a;--hi:#c24721}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:"Pretendard Variable",Pretendard,-apple-system,sans-serif}
+header{position:sticky;top:0;z-index:30;background:var(--panel);border-bottom:1px solid var(--line);padding:13px 20px}
+h1{font-size:17px;margin:0;font-weight:700;letter-spacing:-.02em}
+.sub{font-size:12.5px;color:var(--txt2);margin-top:4px;line-height:1.6}
+.ctl{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;align-items:center}
+.ctl button{font:inherit;font-size:13px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);color:var(--txt2);background:transparent;cursor:pointer}
+.ctl button.on{background:var(--hi);border-color:var(--hi);color:#fff;font-weight:600}
+.rack{display:flex;gap:18px;padding:18px 20px 40px;align-items:flex-start;overflow-x:auto}
+.slot{flex:none}
+.cap .t{font-size:13.5px;font-weight:700}
+.cap .d{font-size:11.5px;color:var(--txt2);margin:3px 0 8px;line-height:1.5}
+.frame{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fbfaf8;box-shadow:0 12px 34px rgba(0,0,0,.36)}
+iframe{border:0;display:block;transform-origin:top left}
+footer{padding:0 20px 44px;font-size:12.5px;color:var(--txt2);line-height:1.85;max-width:1180px}
+footer b{color:var(--txt)} code{background:#2f2c29;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>SCR-PWA-005 AI 질문 목록 · 기존 vs 개선</h1>
+  <p class="sub">기존(왼쪽 2개)과 개선판(오른쪽 2개)을 폰 390 · PC 1280 으로 나란히. 같은 <code>app.html</code>, 화면 id 만 <code>ask</code> / <code>ask-v2</code>.</p>
+  <div class="ctl" id="ctl"><button data-z="fit" class="on">한 화면에 맞춤</button><button data-z="full">실제 크기</button></div>
+</header>
+<div class="rack" id="rack"></div>
+<footer>
+  <b>ui-ux-pro-max 지적 6건</b> 북마크가 20px 아이콘(버튼 아님) · 세그먼트 탭 폭 30~47px · 유일한 행동이 우하단 FAB · 6행 동일 위계, 오늘 훈독 질문이 맨 아래 · 하단 빈 공간(폰 150 / PC 400px) · "출처 있는 답변" 신뢰 신호 부재.<br>
+  <b>taste-skill 반영</b> 상단 질문 입력(56px, 주 행동 1개, FAB 제거) + 신뢰 한 줄 · 오늘 훈독 연결 카드를 위계 1 로 · 많이 본 질문에 주제 태그 + 근거 수 + 44px 북마크 버튼 · 주제 칩으로 빈 공간을 탐색 진입점으로 · 카드는 강조 1곳만, 나머지는 리스트.<br>
+  개선판은 PRD 의 "FAB 우하단 질문하기" 를 상단 입력으로 바꾼 제안입니다. 채택 시 PRD·DES-PWA-003 §2.9 갱신 필요.
+</footer>
+<script>
+const T=[
+  {w:390,h:844,q:'screen=ask',t:'기존 · 폰'},{w:1280,h:900,q:'screen=ask&nav=top&header=4',t:'기존 · PC'},
+  {w:390,h:844,q:'screen=ask-v2',t:'개선 · 폰'},{w:1280,h:900,q:'screen=ask-v2&nav=top&header=4',t:'개선 · PC'},
+];
+let z='fit'; const rack=document.getElementById('rack');
+function render(){const avail=document.documentElement.clientWidth-40-18*3;const total=T.reduce((a,x)=>a+x.w,0);const k=z==='full'?1:Math.min(1,avail/total);
+  rack.innerHTML=T.map(x=>`<div class="slot" style="width:${Math.round(x.w*k)}px"><div class="cap"><div class="t">${x.t}</div><div class="d">app.html?theme=card&${x.q}</div></div>
+  <div class="frame" style="width:${Math.round(x.w*k)}px;height:${Math.round(x.h*k)}px"><iframe src="app.html?theme=card&${x.q}" width="${x.w}" height="${x.h}" style="transform:scale(${k})" title="${x.t}"></iframe></div></div>`).join('');}
+document.getElementById('ctl').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;z=b.dataset.z;[...document.querySelectorAll('#ctl button')].forEach(x=>x.classList.toggle('on',x===b));render();});
+addEventListener('resize',()=>{clearTimeout(window.__t);window.__t=setTimeout(render,160)});render();
+</script>
+</body>
+</html>

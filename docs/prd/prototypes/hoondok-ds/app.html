@@ -32,8 +32,8 @@
         <a class="icon-btn" href="#" aria-label="뒤로" data-only="read words search ask-detail challenge sermons sermon-request settings family"><i class="ph ph-arrow-left"></i></a>
         <h1 class="appbar__title" id="apptitle">오늘 훈독</h1>
         <label class="appbar__search" data-only="search"><i class="ph ph-magnifying-glass"></i><input type="search" value="" placeholder="단어, 구절, 상황을 입력해 주세요" aria-label="말씀 검색" autofocus></label>
-        <a class="icon-btn icon-btn--search" href="?screen=search" aria-label="말씀 검색" data-only="today read words library ask ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-magnifying-glass"></i></a>
-        <a class="icon-btn" href="#" aria-label="알림" data-only="today read words library ask ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-bell"></i></a>
+        <a class="icon-btn icon-btn--search" href="?screen=search" aria-label="말씀 검색" data-only="today read words library ask ask-v2 ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-magnifying-glass"></i></a>
+        <a class="icon-btn" href="#" aria-label="알림" data-only="today read words library ask ask-v2 ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-bell"></i></a>
       </div>
     </header>
 
@@ -176,7 +176,8 @@
         <button class="btn btn-primary"><i class="ph ph-check"></i>훈독 완료</button>
         <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);margin-top:12px">
           <span>완료하면 연속 13일이 돼요</span>
-          <a href="#" style="color:var(--accent-strong);font-weight:600">이 말씀에 질문하기</a>
+          <!-- 탭 대상 44px : 음수 마진으로 줄 높이는 그대로 둔다 -->
+          <a href="#" style="color:var(--accent-strong);font-weight:600;display:inline-flex;align-items:center;min-height:44px;margin:-12px 0">이 말씀에 질문하기</a>
         </div>
       </div>
     </section>
@@ -1238,6 +1239,57 @@
 
   <p class="notice">연결은 양쪽이 동의할 때만 만들어지고, 언제든 끊을 수 있어요.</p>
 </section>
+    <!-- ===== AI 질문 목록 v2 (SCR-PWA-005 개선안) : ui-ux-pro-max 지적 6건 → taste-skill 반영 ===== -->
+    <section class="col" data-screen="ask-v2" hidden>
+      <!-- 1) 상단 질문 입력 = 화면의 주 행동. FAB 은 없앤다 (같은 의도의 CTA 2개 금지) -->
+      <form class="qa-compose" role="search" onsubmit="return false" aria-label="AI에게 질문">
+        <i class="ph ph-sparkle qa-compose__ic"></i>
+        <input type="text" placeholder="궁금한 것을 물어보세요" aria-label="질문 입력">
+        <button type="submit" class="qa-compose__go" aria-label="질문 보내기"><i class="ph-bold ph-arrow-up"></i></button>
+      </form>
+      <p class="qa-trust"><i class="ph ph-quotes"></i>답변은 근거 말씀을 인용해요. 근거가 없으면 "확인할 수 없음"으로 멈춰요.</p>
+
+      <div class="ask-seg qa-seg" role="tablist" aria-label="질문 모음">
+        <button class="ask-seg__btn ask-seg__btn--on" type="button" role="tab" aria-selected="true">추천</button>
+        <button class="ask-seg__btn" type="button" role="tab" aria-selected="false">북마크</button>
+        <button class="ask-seg__btn" type="button" role="tab" aria-selected="false">내 질문</button>
+      </div>
+
+      <!-- 2) 오늘 훈독과 이어지는 질문을 맨 위에. 위계 1 -->
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">오늘 훈독에서 나온 질문</h2><span class="sect__rule"></span><a class="sect__meta" href="?screen=read">오늘 말씀</a></div>
+        <a class="qa-feature" href="?screen=ask-detail">
+          <span class="src"><span>참아버님</span><span class="src__dot"></span><span>천성경 제1편 3장</span><span class="badge badge--rank">O1 공식 원문</span></span>
+          <b>참사랑이 직단거리로 간다는 말씀의 의미가 궁금해요</b>
+          <span class="qa-feature__ft"><span class="badge badge--line"><i class="ph ph-book-open-text"></i>근거 말씀 2건</span><span class="qa-feature__n">오늘 41명이 물었어요</span><i class="ph ph-caret-right"></i></span>
+        </a>
+      </div>
+
+      <!-- 3) 많이 본 질문 : 주제 태그 + 근거 수 + 44px 북마크 버튼 -->
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">이번 주 많이 본 질문</h2><span class="sect__rule"></span><span class="sect__meta">익명 집계</span></div>
+        <ul class="qa-list">
+          <li class="qa-row"><a class="qa-row__bd" href="?screen=ask-detail"><span class="qa-row__tag">정성</span><b>정성을 드린다는 게 정확히 뭘 하는 건가요?</b><span class="qa-row__meta">312명 · 근거 3건</span></a><button class="qa-mark" aria-pressed="true" aria-label="북마크 해제"><i class="ph-fill ph-bookmark-simple"></i></button></li>
+          <li class="qa-row"><a class="qa-row__bd" href="?screen=ask-detail"><span class="qa-row__tag">가정 · 자녀</span><b>축복가정으로서 자녀에게 말씀을 어떻게 가르치나요?</b><span class="qa-row__meta">204명 · 근거 2건</span></a><button class="qa-mark" aria-pressed="false" aria-label="북마크"><i class="ph ph-bookmark-simple"></i></button></li>
+          <li class="qa-row"><a class="qa-row__bd" href="?screen=ask-detail"><span class="qa-row__tag">용어 · 원리</span><b>탕감복귀가 무슨 뜻이에요? 벌 받는다는 뜻인가요?</b><span class="qa-row__meta">177명 · 근거 4건</span></a><button class="qa-mark" aria-pressed="false" aria-label="북마크"><i class="ph ph-bookmark-simple"></i></button></li>
+          <li class="qa-row"><a class="qa-row__bd" href="?screen=ask-detail"><span class="qa-row__tag">생활 · 청년</span><b>직장에서 신앙을 말하기가 어려워요</b><span class="qa-row__meta">96명 · 근거 1건</span></a><button class="qa-mark" aria-pressed="false" aria-label="북마크"><i class="ph ph-bookmark-simple"></i></button></li>
+          <li class="qa-row"><a class="qa-row__bd" href="?screen=ask-detail"><span class="qa-row__tag">가정 · 2세</span><b>부모님과 신앙 문제로 자주 다퉈요. 어떻게 대화하죠?</b><span class="qa-row__meta">88명 · 근거 2건</span></a><button class="qa-mark" aria-pressed="false" aria-label="북마크"><i class="ph ph-bookmark-simple"></i></button></li>
+        </ul>
+      </div>
+
+      <!-- 4) 주제로 찾기 : 빈 공간을 탐색 진입점으로 -->
+      <div class="sect">
+        <div class="sect__head"><h2 class="sect__title">주제로 찾기</h2><span class="sect__rule"></span></div>
+        <div class="chips qa-topics">
+          <a class="term" href="#"><i class="ph ph-house-line"></i>가정 · 자녀</a>
+          <a class="term" href="#"><i class="ph ph-book-bookmark"></i>용어 · 원리</a>
+          <a class="term" href="#"><i class="ph ph-briefcase"></i>생활 · 직장</a>
+          <a class="term" href="#"><i class="ph ph-users-three"></i>2세 · 청년</a>
+          <a class="term" href="#"><i class="ph ph-hands-praying"></i>정성 · 기도</a>
+        </div>
+      </div>
+      <p class="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
+    </section>
   </main>
 
   <div class="sheet" id="sheet-jeongseong" role="dialog" aria-modal="true" aria-labelledby="js-title">
@@ -1318,12 +1370,12 @@
 
   document.querySelectorAll('[data-screen]').forEach(s => s.hidden = s.dataset.screen !== screen);
   const TITLES = {today:'오늘 훈독', read:'훈독하기', words:'천성경 1편 3장', library:'말씀', search:'',
-    onboarding:'', ask:'AI 질문', 'ask-detail':'질문', worship:'가정예배', challenge:'챌린지', sermons:'5분 설교',
+    onboarding:'', ask:'AI 질문', 'ask-v2':'AI 질문', 'ask-detail':'질문', worship:'가정예배', challenge:'챌린지', sermons:'5분 설교',
     'sermon-request':'설교 섭외', garden:'나의 정원', settings:'알림·설치', family:'가족·친구'};
   document.getElementById('apptitle').textContent = TITLES[screen] ?? screen;
   // 탭 귀속 : 하위 화면은 상위 탭을 활성으로
   const TAB_OF = {today:'today', read:'today', words:'library', library:'library', search:'library',
-    ask:'ask', 'ask-detail':'ask', worship:'worship', challenge:'worship', sermons:'worship', 'sermon-request':'worship',
+    ask:'ask', 'ask-v2':'ask', 'ask-detail':'ask', worship:'worship', challenge:'worship', sermons:'worship', 'sermon-request':'worship',
     garden:'garden', settings:'garden', family:'garden'};
   // 정성 기간 시트 : ?sheet=jeongseong
   const sheet = q.get('sheet');
