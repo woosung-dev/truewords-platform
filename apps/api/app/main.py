@@ -28,6 +28,7 @@ from app.modules.admin.data_router import router as admin_data_router
 from app.modules.datasource.router import router as datasource_router
 from app.modules.datasource.chunks_router import chunks_router
 from app.modules.hoondok.router import router as hoondok_router
+from app.modules.hoondok.admin_router import admin_router as hoondok_admin_router
 from app.modules.identity.router import router as identity_router
 from app.core.common.exception_handlers import (
     embedding_failed_handler,
@@ -129,6 +130,7 @@ app.include_router(admin_data_router, dependencies=_ADMIN_GATE)
 app.include_router(datasource_router, dependencies=_ADMIN_GATE)
 app.include_router(chunks_router)  # 공개 유지 — 채팅 원문보기 모달 (자체 chatbot ACL)
 app.include_router(analytics_router, dependencies=_ADMIN_GATE)
+app.include_router(hoondok_admin_router, dependencies=_ADMIN_GATE)  # 훈독 편성 /admin/hoondok/daily-readings (Phase 3 A)
 
 
 @app.get("/health")
