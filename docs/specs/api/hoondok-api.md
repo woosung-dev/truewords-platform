@@ -1,4 +1,4 @@
-# 훈독 API 명세 — `/hoondok/*`
+# 훈독 API 명세 — `/hoondok/*` · 편성 admin `/admin/hoondok/*`
 
 > 추가일: 2026-09-16 (S4, [PLAN-HD-001](../../plans/active/2026-09-17-hoondok-mvp.md) §2)
 > 관련 도메인: [훈독 도메인 명세](../domain/hoondok-entities.md)
@@ -15,6 +15,9 @@
 | `API-HD-003` | POST | `/hoondok/auth/login` · POST `/hoondok/auth/logout` · GET `/hoondok/auth/me` | login 없음 / logout·me 는 `hoondok_token` | 2 |
 | `API-HD-004` | GET | `/hoondok/me/summary` | `hoondok_token` | 2 |
 | `API-HD-005` | POST | `/hoondok/missions/{kind}/complete` | `hoondok_token` | 2 |
+| `API-HD-006` | GET | `/admin/hoondok/daily-readings` · GET `/admin/hoondok/daily-readings/{id}` | `admin_token` + `require_admin_gate` | 3 |
+| `API-HD-007` | POST | `/admin/hoondok/daily-readings` | `admin_token` + 게이트 + `X-Requested-With` | 3 |
+| `API-HD-008` | PUT | `/admin/hoondok/daily-readings/{id}` | `admin_token` + 게이트 + `X-Requested-With` | 3 |
 
 공통 규칙:
 
@@ -23,6 +26,7 @@
 - 날짜(`date`)는 `YYYY-MM-DD`, 서버가 KST 로 계산한다. 클라이언트가 날짜를 보내는 파라미터는 없다.
 - 오류 본문은 기존 FastAPI 규약(`{"detail": ...}`)을 따른다.
 - Phase 2 항목은 2026-09-16 sub-PR A(002·003)·B(004·005)에서 확정했다.
+- `API-HD-006~008` 만 예외로 **관리자 블록**이다: prefix `/admin/hoondok/daily-readings`, tag `admin-hoondok`, `main.py` 에 `_ADMIN_GATE` 로 등록, 라우터 레벨 `verify_csrf`. 훈독 사용자 쿠키(`hoondok_token`)로는 호출할 수 없다. 2026-09-19 Phase 3 sub-PR A 에서 확정.
 
 ---
 
@@ -108,6 +112,31 @@ GET /hoondok/today
 
 ---
 
+## API-HD-006 `GET /admin/hoondok/daily-readings` · `GET /admin/hoondok/daily-readings/{id}` (Phase 3)
+
+편성 목록·단건. 비개발자 편성자가 `apps/admin` 편성 화면(sub-PR B)에서 쓴다(결정 2026-09-19).
+
+```
+GET /admin/hoondok/daily-readings?from=2026-09-19&to=2026-10-03
+```
+
+| 파라미터 | 기본 | 규칙 |
+|---|---|---|
+| `from` | 서버 KST 오늘 | 시작일(포함) |
+| `to` | `from` + 14일 | 종료일(포함). `to < from` 또는 366일 초과 → 422 |
+
+응답 200: `DailyReadingAdminResponse[]` 날짜 오름차순. 편성 없는 날은 행이 없다(빈 날 표시는 화면이 한다). 관리자 응답은 공개 스키마와 달리 `source_note`·`chunk_id`·`created_at`·`updated_at` 을 포함한다. 단건은 404 `"편성을 찾을 수 없습니다"`.
+
+## API-HD-007 `POST /admin/hoondok/daily-readings` (Phase 3)
+
+본문 `DailyReadingAdminCreate` = `ENT-HD-002` 전 컬럼(id·타임스탬프 제외). `title`·`body`·`speaker`·`work_title` 은 1자 이상, `authority_grade ∈ {O1..O5, R}`, `review_status ∈ {reviewed, unverified, withdrawn}`(기본 `unverified`), `estimated_minutes` 1~60(기본 3). 201 `DailyReadingAdminResponse`. 409 같은 `reading_date`(`"그 날짜에는 이미 편성이 있어요"`) · 422 검증 · 401 쿠키 없음 · 403 게이트 계정 아님 또는 `X-Requested-With` 없음. 감사 로그 `daily_reading.create`.
+
+## API-HD-008 `PUT /admin/hoondok/daily-readings/{id}` (Phase 3)
+
+본문 `DailyReadingAdminUpdate` — 모든 필드 선택, **보낸 필드만** 바꾼다(`exclude_unset`). `updated_at` 은 서버가 갱신한다. **DELETE 는 없다**: 철회는 `review_status=withdrawn` 이며 그날 `GET /hoondok/today` 는 `status=withdrawn`(본문 미노출)이 된다. 404 없음 · 409 `reading_date` 변경이 다른 편성과 충돌 · 422 · 401 · 403(게이트·CSRF). 감사 로그 `daily_reading.update`(변경 필드만).
+
+---
+
 ## 결정 기록
 
 | 날짜 | 결정 | 상태 |
@@ -116,3 +145,4 @@ GET /hoondok/today
 | 2026-09-16 | 훈독 인증 쿠키 `hoondok_token`, `aud="hoondok"`. `admin_token` 미사용 | 확정 · 계획 §1-4 |
 | 2026-09-16 | API-HD-002·003 확정: `consent_version` 미수집, 만료 7일, CSRF 헤더, logout 무인증, 401 문구 단일 | 확정 · Phase 2 sub-PR A |
 | 2026-09-16 | API-HD-004·005 확정: 연속일·week 는 `read` 기준, 오늘 미완료 시 어제부터 집계, 소급은 당일만 | 확정 · Phase 2 sub-PR B |
+| 2026-09-19 | API-HD-006~008 신설(편성 admin). 관리자 블록·CSRF, DELETE 없음(철회 = `withdrawn`), 기본 범위 오늘~+14일, `seed_daily_readings.py` 는 로컬·E2E 한정 | 확정 · Phase 3 sub-PR A |

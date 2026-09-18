@@ -19,9 +19,33 @@ class DailyReadingRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_id(self, reading_id: uuid.UUID) -> DailyReading | None:
+        return await self.session.get(DailyReading, reading_id)
+
+    async def list_range(self, start: date, end: date) -> list[DailyReading]:
+        """[start, end] 양끝 포함, 날짜 오름차순. 편성 없는 날은 행이 없다 — 빈 날 표시는 화면이 한다."""
+        result = await self.session.execute(
+            select(DailyReading)
+            .where(DailyReading.reading_date >= start, DailyReading.reading_date <= end)
+            .order_by(DailyReading.reading_date)
+        )
+        return list(result.scalars().all())
+
     async def create(self, reading: DailyReading) -> DailyReading:
+        """unique(reading_date) 위반은 IntegrityError 그대로 — 호출자가 409 로 바꾼다. 실패한 세션은 롤백해 재사용 가능하게 둔다."""
+        return await self._save(reading)
+
+    async def save(self, reading: DailyReading) -> DailyReading:
+        """수정 저장. 날짜 변경으로 unique 를 어기면 IntegrityError."""
+        return await self._save(reading)
+
+    async def _save(self, reading: DailyReading) -> DailyReading:
         self.session.add(reading)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
         await self.session.refresh(reading)
         return reading
 
