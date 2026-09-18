@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-09-19 (훈독 MVP Phase 3 편성 트랙 A API·B admin 화면)
+> 마지막 업데이트: 2026-09-19 (훈독 MVP Phase 3 편성 트랙 A·B main 머지·backend/admin 운영 배포)
 
 > **현재 우선 작업 (2026-09-18~):** 훈독 MVP Phase 3 — [PLAN-HD-001 §6](plans/active/2026-09-17-hoondok-mvp.md) PWA 셸·편성 운영 수단·제한 베타. Phase 1(#276)·Phase 2(#282 → main `b70b6c8`)는 2026-09-18 운영 배포 완료(backend·web `b70b6c8`, `HOONDOK_ENABLED=0` 이라 `/hoondok/*` 404). 편성자는 2026-09-19 비개발자로 확정(A API #285 → B admin 화면). 남은 `[확인 필요]`: 약관 문구와 법적 주체.
 >
@@ -283,7 +283,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] Phase 1 잔여 — 60대 사용자 3명 200% 확대 실사용 확인(섭외 필요), 운영 이미지 플래그 OFF 404 는 2026-09-18 `b70b6c8` deploy-web 에서 확인 완료(계획 §9)
 - [x] Phase 2 코드 (2026-09-16) — 통합 브랜치 `dev/hoondok-phase2`: #277 계획 §5 분해표 / #278 `identity`(`users`·`/hoondok/auth/*`·쿠키 `hoondok_token`·JWT `aud=hoondok` 7일·python-jose aud 함정 명시 검사) / #279 `mission_logs`·`POST /hoondok/missions/{kind}/complete`·`GET /hoondok/me/summary`(연속일 `read` 기준) / #280 web `features/identity`·`/hoondok/onboarding` 최소형·완료·연속일 결합·비로그인 소급 / E2E 시드·시나리오·additive-only 리허설. 증거는 계획 §9 · **2026-09-18 PR #282 main 머지(`b70b6c8`) + 운영 배포 backend·web(플래그 OFF)**, 증거 §9 마지막 3행
 - [ ] Phase 2 잔여 — 계정 삭제 API(`deleted_at` 예약만)·비밀번호 재설정은 베타 전 필요 여부 결정. `[확인 필요]` 3건(메일·약관·편성자)은 Questions 유지
-- [ ] Phase 3~4 — PWA 셸·편성 운영 수단·플래그 ON 배포·제한 베타 → 훈독 알림 1종(조건부). 계획 §6~§7. **편성 트랙 진행(2026-09-19)**: 통합 브랜치 `dev/hoondok-phase3`(main `b30aebd` 위), #284 분해표 · A #285 편성 API 머지 · B admin 편성 화면(`/hoondok` 오늘~+14일 표·등록·수정, 철회는 `review_status`) PR. 운영 배포는 B 머지 후 `deploy-backend → deploy-admin` 단계별 승인
+- [ ] Phase 3~4 — PWA 셸·편성 운영 수단·플래그 ON 배포·제한 베타 → 훈독 알림 1종(조건부). 계획 §6~§7. **편성 트랙 진행(2026-09-19)**: 통합 브랜치 `dev/hoondok-phase3`(main `b30aebd` 위), #284 분해표 · A #285 편성 API 머지 · B admin 편성 화면(`/hoondok` 오늘~+14일 표·등록·수정, 철회는 `review_status`) #286 머지 · **dev→main #287 `87db69a` 머지 + `deploy-backend`·`deploy-admin` 완료(2026-09-19, 계획 §9)**. web 은 `b70b6c8`·플래그 OFF 유지. 다음 = 편성자 운영 입력 확인 → PWA 트랙 C
 
 ### 00. 멀티턴 대화 메모리 (2026-07-08)
 > 설계: `docs/architecture/multi-turn-memory.md` (업계 조사 + 방안 A~D 비교)
