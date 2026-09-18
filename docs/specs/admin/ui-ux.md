@@ -6,7 +6,7 @@
 
 ## 현재 구현 기준
 
-- `apps/admin`은 대시보드·챗봇·데이터 소스·검색 분석·피드백·감사 로그·설정과 관리자 로그인/접근 거부 화면을 소유한다. `/`는 `/dashboard`로 이동하며 사용자 채팅은 `apps/web`으로 연결한다.
+- `apps/admin`은 대시보드·챗봇·훈독 편성(`/hoondok`, 2026-09-19 Phase 3 B)·데이터 소스·검색 분석·피드백·감사 로그·설정과 관리자 로그인/접근 거부 화면을 소유한다. `/`는 `/dashboard`로 이동하며 사용자 채팅은 `apps/web`으로 연결한다.
 - 업무 화면은 `src/app/(dashboard)`, 기능 UI는 `src/features`, primitive는 `src/components/ui`가 소유한다. 표시 유틸은 `src/lib/utils.ts`, 테마·전역 스타일은 `src/app/globals.css`, 폰트 연결은 `src/app/layout.tsx`에 둔다.
 - 기존 사이드바·좁은 화면의 Sheet 탐색·테이블·폼·상태 표시를 보존한다. 기존 관리자 cool slate 맥락과 Portal 테마 적용을 유지하며 소유권 이동을 이유로 색상·크기·동작을 재설계하지 않는다.
 - 기존 관리자 gate, 비관리자의 `/access-denied` 정지, 로그인·로그아웃 시 계정별 캐시 분리를 유지한다. UI 접근 제어는 FastAPI의 최종 권한 검사를 대신하지 않는다.

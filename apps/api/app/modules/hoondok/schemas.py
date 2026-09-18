@@ -1,10 +1,10 @@
-"""훈독 Pydantic 스키마 — API-HD-001·004·005 (docs/specs/api/hoondok-api.md)."""
+"""훈독 Pydantic 스키마 — API-HD-001·004·005 + 편성 admin API-HD-006~008 (docs/specs/api/hoondok-api.md)."""
 
 import uuid
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 AuthorityGrade = Literal["O1", "O2", "O3", "O4", "O5", "R"]
 ReviewStatus = Literal["reviewed", "unverified", "withdrawn"]
@@ -63,3 +63,61 @@ class SummaryResponse(BaseModel):
     best_streak_days: int
     total_days: int
     week: list[WeekDay]
+
+
+# --- 편성 admin (API-HD-006~008, Phase 3 A) ---------------------------------
+# 상태값은 Literal 로만 검증한다 — DB 는 varchar (additive-only, 계획 §3-3).
+
+
+class DailyReadingAdminCreate(BaseModel):
+    """POST 본문. ENT-HD-002 전 컬럼(id·타임스탬프 제외). 하루 1건은 unique 가 지킨다(409)."""
+
+    reading_date: date
+    title: str = Field(min_length=1, max_length=200)
+    body: str = Field(min_length=1)
+    speaker: str = Field(min_length=1, max_length=64)
+    spoken_on: str | None = Field(default=None, max_length=32)
+    work_title: str = Field(min_length=1, max_length=200)
+    edition: str | None = Field(default=None, max_length=120)
+    authority_grade: AuthorityGrade
+    review_status: ReviewStatus = "unverified"
+    source_note: str | None = Field(default=None, max_length=500)
+    chunk_id: str | None = Field(default=None, max_length=128)
+    estimated_minutes: int = Field(default=3, ge=1, le=60)
+
+
+class DailyReadingAdminUpdate(BaseModel):
+    """PUT 본문. 보낸 필드만 바꾼다(exclude_unset). `review_status=withdrawn` 이 철회 수단이며 DELETE 는 없다."""
+
+    reading_date: date | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    body: str | None = Field(default=None, min_length=1)
+    speaker: str | None = Field(default=None, min_length=1, max_length=64)
+    spoken_on: str | None = Field(default=None, max_length=32)
+    work_title: str | None = Field(default=None, min_length=1, max_length=200)
+    edition: str | None = Field(default=None, max_length=120)
+    authority_grade: AuthorityGrade | None = None
+    review_status: ReviewStatus | None = None
+    source_note: str | None = Field(default=None, max_length=500)
+    chunk_id: str | None = Field(default=None, max_length=128)
+    estimated_minutes: int | None = Field(default=None, ge=1, le=60)
+
+
+class DailyReadingAdminResponse(BaseModel):
+    """관리자 응답 — 공개 스키마와 달리 source_note·chunk_id·타임스탬프를 포함한다."""
+
+    id: uuid.UUID
+    reading_date: date
+    title: str
+    body: str
+    speaker: str
+    spoken_on: str | None
+    work_title: str
+    edition: str | None
+    authority_grade: AuthorityGrade
+    review_status: ReviewStatus
+    source_note: str | None
+    chunk_id: str | None
+    estimated_minutes: int
+    created_at: datetime
+    updated_at: datetime
