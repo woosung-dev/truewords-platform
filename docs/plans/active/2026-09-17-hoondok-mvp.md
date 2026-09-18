@@ -192,6 +192,15 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 2 | `make deploy-backend` `b70b6c8` (guarded · 사전 ops-check 7건 OK · 백업 2시간 전 dump) | 기동 시 alembic `a1c9e7d0b2f3 → h0d01a2b3c4d → i1e2f3a4b5c6 → j3f4a5b6c7d8` 3단계 적용 · `daily_readings`·`users`·`mission_logs` 생성 · traceback 0 · `/api/backend/hoondok/auth/me` 404 → 401 · `/hoondok/today` 200 `status=none` · `/chat/stream` SSE chunk → done 정상 · web/admin 재생성 없음 | 2026-09-18 |
 | 2 | `make deploy-web` `b70b6c8` `HOONDOK_ENABLED=0` (guarded · `--no-deps`) | web 만 Recreate · `/`·`/login`·`/about` 200 · `/hoondok*` 3라우트 404 + noindex · admin `/login` 200 · 사후 ops-check 7건 OK(containers 6개 정상) | 2026-09-18 |
 
+아래 Phase 3 결과는 2026-09-19 로컬 worktree `../tw-hoondok-phase3/`(`dev/hoondok-phase3`, main `b30aebd` 위로 rebase, #284 docs · #285 A 머지 후)에서 sub-PR B `feat/hoondok-curation-admin` tip 에 대해 실행했다. 편성 트랙(A·B)만의 결과이며 PWA 트랙(C~F)·G·H 는 미착수다.
+
+| Phase | 검증 | 결과 | 날짜 |
+|---|---|---|---|
+| 3 B | admin Vitest | **104 passed / 17 files** (기존 76 + 신규 28: `hoondok-dates` 5 · `hoondok-form` 8 · `hoondok-api` 5 · `daily-reading-form` 8 · `hoondok-page` 2) | 2026-09-19 |
+| 3 B | `pnpm --filter @truewords/admin typecheck` · `lint` · `build` | typecheck 통과 · lint 경고 3건 전부 기존 파일(`analytics/queries`·`lib/api`) · `next build` 라우트 `/hoondok` ○ · `/hoondok/new` ○ · `/hoondok/[id]/edit` ƒ, 나머지 불변, Suspense 경계 오류 0 | 2026-09-19 |
+| 3 B | `pnpm format:check` · `boundaries.mjs` · `docs-links.mjs` | Biome 220 files 통과(신규 파일 lint 경고 4건은 `chatbot-form` 과 같은 패턴 — `noConfusingVoidType` 1·테스트 `noNonNullAssertion` 3) · 앱 간 import 경계 통과 · 문서 186 · 링크 291 · 새 오류 0 | 2026-09-19 |
+| 3 B | `make e2e` (격리 compose + 시드) | **48 passed** = 기존 45 + `hoondok-curation` 3 (사이드바→15행·시드 R/미검수 배지 / 오늘 제목 수정→web `/hoondok` `article.malssum h2` 노출→원복 / `?date` 프리필·필수 미입력 인라인 오류·POST 0건), 1.5m | 2026-09-19 |
+
 ## 10. 결정 기록
 
 | 날짜 | 결정 | 상태 |
