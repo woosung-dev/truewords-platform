@@ -211,3 +211,4 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 2026-09-19 | 약관·법적 주체 미정 유지 → 베타 고지만, 초대 `[가정]` 10~20명. 제한 수단은 초대 코드 게이트(F) `[확인 필요]` | 확정(기본값) · Phase 3 F |
 | 2026-09-19 | manifest·SW·폰트는 `/hoondok/` 스코프 한정(`public/hoondok/`, hoondok layout `metadata`, `hoondok.css @font-face`). 초안의 `src/app/manifest.ts` 는 루트 layout·시연 챗에 붙고 noindex 헤더 범위 밖이라 폐기 | 확정 · Phase 3 C·D |
 | 2026-09-19 | 오류 이벤트 수집(H)은 조건부·마지막. 알림 설정 UI 는 Phase 4. 계정 삭제·비밀번호 재설정은 계속 비범위 | 확정 · §6 |
+| 2026-09-19 | 편성 화면(B)은 오늘~+14일 고정 표(빈 날 "미편성" + `편성하기 ?date=`), 기간 이동·삭제 없음. 철회는 `review_status` select. PUT 은 폼 전체 필드 전송(감사 로그 `changes` 에 전 필드 기록). admin 플래그 게이트 없음 — backend A 배포 전엔 목록이 오류 카드 | 확정 · Phase 3 B |
