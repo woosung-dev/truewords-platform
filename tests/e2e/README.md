@@ -22,7 +22,7 @@ E2E_API_ORIGIN=http://127.0.0.1:18000 \
 pnpm test:e2e
 ```
 
-`admin-flow`는 기존 관리자 편집·권한 시나리오, `data-source-delete`는 삭제 확인 UI(데이터 API mock), `web-flow`는 모바일 채팅/SSE·출처·기록·로그아웃, `split-apps`는 origin 이동·호스트별 쿠키·alias·CSRF·계정 간 대화 기록 격리를 검증한다. SSE는 최종 답변뿐 아니라 첫 chunk의 중간 표시, 사용자 취소 후 부분 답변 보존, `done` 없이 연결이 끝났을 때의 오류 안내도 검사한다. 원문 모달은 실제 Qdrant 문서가 필요하지 않도록 한 응답만 mock한다. API의 원문 ACL은 별도 pytest에서 검증한다.
+`admin-flow`는 기존 관리자 편집·권한 시나리오, `data-source-delete`는 삭제 확인 UI(데이터 API mock), `hoondok-curation`은 훈독 편성 화면(admin 에서 오늘 편성 제목 수정 → web `/hoondok` 홈 노출 → 원복, 시드 `seed_daily_readings.py`의 오늘 행이 전제), `web-flow`는 모바일 채팅/SSE·출처·기록·로그아웃, `split-apps`는 origin 이동·호스트별 쿠키·alias·CSRF·계정 간 대화 기록 격리를 검증한다. SSE는 최종 답변뿐 아니라 첫 chunk의 중간 표시, 사용자 취소 후 부분 답변 보존, `done` 없이 연결이 끝났을 때의 오류 안내도 검사한다. 원문 모달은 실제 Qdrant 문서가 필요하지 않도록 한 응답만 mock한다. API의 원문 ACL은 별도 pytest에서 검증한다.
 
 ## 앱별 UI·테마 회귀
 
