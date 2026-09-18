@@ -160,10 +160,10 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 1 | `next build` (플래그 ON) | `/hoondok`·`/hoondok/read` 동적(ƒ), 나머지 라우트 불변 | 2026-09-16 |
 | 1 | Playwright 전체 (격리 compose + 시드 + `seed_daily_readings`) | **44 passed** = 기존 38 + `hoondok-chromium` 6 (390/1280 넘침 0·콘솔 0·noindex·`:root --accent` 불변·홈→읽기→완료) | 2026-09-16 |
 | 1 | additive-only 리허설 (§3-4): `h0d01a2b3c4d` 적용 DB 위에 main `1c41e0f` 백엔드 기동 | `/health` 200 · `/chatbots` 200 · traceback 0 · `/hoondok/today` 404(예상) | 2026-09-16 |
-| 1 | 플래그 OFF 404 | Vitest(`notFound` 호출) 로 확인. 운영 이미지 빌드 시 수동 재확인 예정 | 2026-09-16 |
+| 1 | 플래그 OFF 404 | Vitest(`notFound` 호출) 로 확인. 운영 `b70b6c8`(`HOONDOK_ENABLED=0`)에서 `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 404 + `x-robots-tag: noindex, nofollow` 실측 | 2026-09-16 · 2026-09-18 |
 | 1 | 60대 사용자 3명 200% 확대 확인 | 미수행 `[가정: 사용자 섭외 후]` | — |
 
-아래 Phase 2 결과는 2026-09-16 로컬 worktree `../tw-hoondok-phase2/`(`dev/hoondok-phase2`, main `9940b82` 분기)에서 sub-PR A→B→C→D 스택 tip 에 대해 실행했다. sub-PR: #277 docs · #278 identity · #279 mission_logs · #280 web · D E2E.
+아래 Phase 2 결과는 2026-09-16 로컬 worktree `../tw-hoondok-phase2/`(`dev/hoondok-phase2`, main `9940b82` 분기)에서 sub-PR A→B→C→D 스택 tip 에 대해 실행했다. sub-PR: #277 docs · #278 identity · #279 mission_logs · #280 web · D E2E. main 머지는 2026-09-18 PR #282(`b70b6c8`), 운영 배포는 같은 날 **플래그 OFF** 로 backend → web 순 실행했다(표 마지막 3행). 플래그 ON 배포는 Phase 3(§6)에서 한다.
 
 | Phase | 검증 | 결과 | 날짜 |
 |---|---|---|---|
@@ -176,6 +176,9 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 2 | `make e2e` (격리 compose + 시드 + `seed_hoondok_user`) | **45 passed** = 기존 38 + `hoondok-chromium` 7 (스모크 5 + "비로그인 완료 → 가입 → 당일 소급 → 연속 1일 → 재요청 409" + "시드 사용자 로그인 → 완료 1회 → 로그아웃 → 완료·요약 API 401") | 2026-09-16 |
 | 2 | additive-only 리허설 (§3-4): `j3f4a5b6c7d8` 적용 DB 위에 main `9940b82` 백엔드 기동 | `/health` 200 · `/chatbots` 200 · `/hoondok/today` 200 · `/hoondok/auth/me` 404(구 이미지, 예상) · traceback 0 | 2026-09-16 |
 | 2 | `make ci` + `make e2e` (통합 브랜치 `f8bcf11`, sub-PR 5개 머지 후) | `make ci` exit 0 (pytest 1005 passed / 4 skipped / 1 xfailed · contracts · tooling · docs · boundaries · hoondok:check · web/admin test·lint·build·typecheck) · `make e2e` 45 passed | 2026-09-16 |
+| 2 | main 머지 PR #282 (squash, 사용자 수동) | main `b70b6c8` · CI Required 8/8 · 머지 후 `dev/hoondok-phase2` worktree·브랜치 정리 | 2026-09-18 |
+| 2 | `make deploy-backend` `b70b6c8` (guarded · 사전 ops-check 7건 OK · 백업 2시간 전 dump) | 기동 시 alembic `a1c9e7d0b2f3 → h0d01a2b3c4d → i1e2f3a4b5c6 → j3f4a5b6c7d8` 3단계 적용 · `daily_readings`·`users`·`mission_logs` 생성 · traceback 0 · `/api/backend/hoondok/auth/me` 404 → 401 · `/hoondok/today` 200 `status=none` · `/chat/stream` SSE chunk → done 정상 · web/admin 재생성 없음 | 2026-09-18 |
+| 2 | `make deploy-web` `b70b6c8` `HOONDOK_ENABLED=0` (guarded · `--no-deps`) | web 만 Recreate · `/`·`/login`·`/about` 200 · `/hoondok*` 3라우트 404 + noindex · admin `/login` 200 · 사후 ops-check 7건 OK(containers 6개 정상) | 2026-09-18 |
 
 ## 10. 결정 기록
 
