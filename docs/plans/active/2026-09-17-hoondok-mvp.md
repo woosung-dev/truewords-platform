@@ -96,11 +96,19 @@ Phase 1 완료 기준: `/hoondok`·`/hoondok/read` 가 오늘 말씀을 표시�
 
 ## 5. Phase 2 — identity + 완료 기록·연속일 (10/1~10/14)
 
-- `apps/api/app/modules/identity/`: `users`(ENT-HD-001), signup/login/logout/me/삭제, 쿠키 `hoondok_token`, JWT `aud="hoondok"`, `get_current_user`/`get_optional_user`. `admin/auth.py` 의 bcrypt·JWT 유틸만 재사용하고 `chat/dependencies.py` 는 재사용하지 않는다.
-- 약관·처리방침 문구(결정 11 `[확인 필요]`) 반영한 SCR-PWA-001 최소형 + `features/identity/` 게이트, 401 → `/hoondok/onboarding?returnTo=`.
-- `mission_logs`(ENT-HD-003) + API-HD-004·005. 비로그인 체크는 로그인 후 소급 기록(AC-016-02).
-- E2E 시드(사용자 1·오늘 말씀 1) + "가입→훈독→완료→연속일 1" 시나리오. additive-only 리허설(§3-4).
-- 완료 기준: `make e2e` 로 루프 재현. `admin_token` 만 가진 브라우저는 완료 API 에서 401. pytest 기준선 + 신규 green.
+통합 브랜치 `dev/hoondok-phase2`(worktree `../tw-hoondok-phase2/`, main `9940b82` 에서 분기). Phase 1 의 `dev/hoondok-mvp` 는 PR #276 으로 main 에 머지됐고 재사용하지 않는다. sub-PR 은 A→B→C→D 순으로 **스택**한다(B 는 A 의 `get_current_user`, C 는 B 의 생성 SDK 타입에 의존). 선행 PR 이 squash 머지되면 다음 브랜치를 `git rebase --onto dev/hoondok-phase2 <선행 tip>` 으로 옮긴 뒤 ready 로 전환해 3-way 충돌을 피한다. 열린 sub-PR 은 항상 1개다.
+
+`[확인 필요]` 3건(메일 제공자·약관 문구와 법적 주체·편성자)은 착수 시점에 미정이라 기본값으로 진행한다: 비밀번호 재설정은 베타 기간 운영자 수동, 약관·동의는 수집하지 않고 베타 고지만 표시(`consented_at`·`consent_version` 은 NULL 예약), 편성은 시드·CSV. 세 항목은 `docs/TODO.md` Questions 에 그대로 남긴다.
+
+| sub-PR | 내용 | 완료 기준 |
+|---|---|---|
+| 0 `docs/hoondok-phase2-plan` | 이 §5 표 + §10 결정 4건 | docs-only, `node tooling/checks/docs-links.mjs` |
+| A `feat/hoondok-identity` | `apps/api/app/modules/identity/`(`users` ENT-HD-001 alembic additive-only, `POST /hoondok/auth/signup`·`login`·`logout`·`GET me`, 쿠키 `hoondok_token`, JWT `aud="hoondok"` 7일, `get_current_user`/`get_optional_user`, 자체 `verify_csrf`). `admin/auth.py` 의 bcrypt·JWT 유틸에 `expires_minutes`·`audience` 선택 인자만 추가(기본값 불변). `chat/dependencies.py`·`admin_token` 미사용. `pnpm contracts:generate` 산출물, API-HD-002/003·ENT-HD-001 `[가정]` 확정 | pytest: 소문자 정규화·중복 409·불일치/삭제 계정 401·`aud` 없는(admin 형식) 토큰 → 401·훈독 토큰 → `get_current_admin` 401·signup→me→logout→me 쿠키 흐름·CSRF 403. `contracts:check` 하위 호환 |
+| B `feat/hoondok-missions` (A 스택) | `mission_logs` ENT-HD-003(unique user·date·kind) + `POST /hoondok/missions/{kind}/complete`(201/409/422/401) + `GET /hoondok/me/summary`(오늘 3종·연속일·최대·누적·이번 주 7칸, `today_kst` 기준, 저장 안 함). 연속일·`week.done` 은 `read` 완료 기준. 서버가 날짜를 정하므로 소급은 당일만. API-HD-004/005·ENT-HD-003 확정 | pytest: 연속일 순수 함수(빈·오늘만·어제까지·끊김·최대·주 경계)·unique·쿠키 없음 401·**`admin_token` 만 가진 요청 401**·중복 409·kind 422·연속일 1 |
+| C `feat/hoondok-web-identity` (B 스택) | `features/identity/`(별도 API client — `lib/api.ts` 의 `/login` 이동 미사용, `useCurrentUser`, 게이트 401 → `/hoondok/onboarding?returnTo=`(`/hoondok/` 접두만 허용)), SCR-PWA-001 최소형 `/hoondok/onboarding`(베타 고지·가입·로그인·로그아웃, 교회 선택·동의 체크 없음), 홈 미션·요일 스트립에 summary 결합, 훈독하기 완료 → API 기록, 비로그인 체크는 localStorage 에 KST 날짜 키로 두고 로그인 후 당일분만 소급 POST. `hoondok.css` 에 입력·온보딩 클래스 이식(토큰만) | Vitest: 하루 1회(409 → 완료)·자정(어제 키 폐기)·오류/빈/오프라인·401 → returnTo·외부 returnTo 거부·me 401 → null / 5xx → error. `pnpm hoondok:check`·typecheck·lint·build |
+| D `feat/hoondok-phase2-e2e` (C 스택) | `scripts/seed_hoondok_user.py` + `make e2e`·`ci-e2e.yml` 시드 배선, `tests/e2e/hoondok.spec.ts` "비로그인 완료 → 가입 → 소급 → 연속 1일" + "시드 사용자 로그인 → 완료 1회 → 로그아웃 → 완료 API 401", additive-only 리허설(§3-4), §9·§10·TODO·README 정합 | `make ci` + `make e2e` 통과, 리허설 결과 §9 기록 |
+
+Phase 2 완료 기준: `make e2e` 로 루프 재현. `admin_token` 만 가진 브라우저는 완료 API 에서 401. pytest 기준선 + 신규 green. 계정 삭제·비밀번호 재설정 API 는 비범위(`deleted_at` 컬럼만 예약).
 
 ## 6. Phase 3 — 설치 가능한 PWA 셸 + 운영 배포 + 제한 베타 (10/15~10/28)
 
@@ -155,6 +163,20 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 1 | 플래그 OFF 404 | Vitest(`notFound` 호출) 로 확인. 운영 이미지 빌드 시 수동 재확인 예정 | 2026-09-16 |
 | 1 | 60대 사용자 3명 200% 확대 확인 | 미수행 `[가정: 사용자 섭외 후]` | — |
 
+아래 Phase 2 결과는 2026-09-16 로컬 worktree `../tw-hoondok-phase2/`(`dev/hoondok-phase2`, main `9940b82` 분기)에서 sub-PR A→B→C→D 스택 tip 에 대해 실행했다. sub-PR: #277 docs · #278 identity · #279 mission_logs · #280 web · D E2E.
+
+| Phase | 검증 | 결과 | 날짜 |
+|---|---|---|---|
+| 2 | API pytest (`sub-PR A + B` 누적) | 1005 passed / 4 skipped / 1 xfailed (Phase 1 기준 979 + identity 14 + missions 10 + admin 회귀 2) | 2026-09-16 |
+| 2 | `pnpm contracts:generate` + `contracts:check` (base `9940b82`) | 드리프트 0 · 하위 호환 통과 (`/hoondok/auth/*`·`/hoondok/missions/{kind}/complete`·`/hoondok/me/summary` 추가만) | 2026-09-16 |
+| 2 | `alembic heads` | `j3f4a5b6c7d8` 단일 head (`h0d01a2b3c4d` → `i1e2f3a4b5c6` users → `j3f4a5b6c7d8` mission_logs) | 2026-09-16 |
+| 2 | web Vitest · typecheck · lint · Biome | 87 passed (Phase 1 72 + identity·missions 15) · 오류 0 · lint 경고 10건 전부 기존 파일 · Biome 신규 파일 포맷 적용(남은 1건은 Phase 1 `malssum-card` 기존) | 2026-09-16 |
+| 2 | `pnpm hoondok:check` + `node tooling/checks/docs-links.mjs` | 통과 · 문서 186 · 링크 291 · 새 오류 0 | 2026-09-16 |
+| 2 | `next build` (플래그 ON) | `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 동적(ƒ), 나머지 라우트 불변 | 2026-09-16 |
+| 2 | `make e2e` (격리 compose + 시드 + `seed_hoondok_user`) | **45 passed** = 기존 38 + `hoondok-chromium` 7 (스모크 5 + "비로그인 완료 → 가입 → 당일 소급 → 연속 1일 → 재요청 409" + "시드 사용자 로그인 → 완료 1회 → 로그아웃 → 완료·요약 API 401") | 2026-09-16 |
+| 2 | additive-only 리허설 (§3-4): `j3f4a5b6c7d8` 적용 DB 위에 main `9940b82` 백엔드 기동 | `/health` 200 · `/chatbots` 200 · `/hoondok/today` 200 · `/hoondok/auth/me` 404(구 이미지, 예상) · traceback 0 | 2026-09-16 |
+| 2 | `make ci` + `make e2e` (통합 브랜치 `f8bcf11`, sub-PR 5개 머지 후) | `make ci` exit 0 (pytest 1005 passed / 4 skipped / 1 xfailed · contracts · tooling · docs · boundaries · hoondok:check · web/admin test·lint·build·typecheck) · `make e2e` 45 passed | 2026-09-16 |
+
 ## 10. 결정 기록
 
 | 날짜 | 결정 | 상태 |
@@ -164,3 +186,8 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 2026-09-16 | 계획·스펙·모순 정정은 docs-only PR 로 main 직행. 코드 sub-PR 은 `dev/hoondok-mvp` 통합 브랜치 | 확정 |
 | 2026-09-16 | 홈 미션 3장 렌더, 기도·읽기는 "준비 중" 비활성 | 확정 · Phase 1 |
 | 2026-09-16 | `daily_readings.chunk_id` 는 Qdrant point id 문자열이며 DB FK 가 아니다. `review_status` 는 varchar | 확정 · §3 |
+| 2026-09-16 | Phase 2 통합 브랜치는 `dev/hoondok-phase2`. sub-PR A→B→C→D 스택, 선행 머지 후 `rebase --onto` | 확정 · §5 |
+| 2026-09-16 | `[확인 필요]` 3건(메일·약관·편성자) 미정 → 운영자 수동·베타 고지만·시드 로 진행. TODO Questions 유지 | 확정 · §5 |
+| 2026-09-16 | `hoondok_token` JWT 만료 7일(`HOONDOK_JWT_EXPIRE_MINUTES`). admin 24h 와 분리 | 확정 · Phase 2 A |
+| 2026-09-16 | 연속일·이번 주 `done` 은 `read`(훈독하기) 완료 기준. 기도·읽기 규칙은 Phase 3+ 재검토 | 확정 · Phase 2 B |
+| 2026-09-16 | Phase 2 코드 완료(sub-PR A~D). 계정 삭제·비밀번호 재설정 API 는 비범위 유지, `deleted_at` 예약만 | 확정 · §5 |

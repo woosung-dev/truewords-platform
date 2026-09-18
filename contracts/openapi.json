@@ -1487,6 +1487,27 @@
         "title": "IngestionStatusSummary",
         "type": "object"
       },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "maxLength": 255,
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest",
+        "type": "object"
+      },
       "MessageResponse": {
         "description": "단순 메시지 응답 (로그인/로그아웃 등).",
         "properties": {
@@ -1499,6 +1520,37 @@
           "message"
         ],
         "title": "MessageResponse",
+        "type": "object"
+      },
+      "MissionCompleteResponse": {
+        "description": "API-HD-005 201. mission_date 는 서버가 KST 로 정한 날짜다.",
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "title": "Completed At",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "read",
+              "pray",
+              "study"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "mission_date": {
+            "format": "date",
+            "title": "Mission Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mission_date",
+          "kind",
+          "completed_at"
+        ],
+        "title": "MissionCompleteResponse",
         "type": "object"
       },
       "NegativeFeedbackItem": {
@@ -2443,6 +2495,35 @@
         "title": "SettingsConfigResponse",
         "type": "object"
       },
+      "SignupRequest": {
+        "description": "약관 문구 확정 전(DEC-PWA-001)이라 consent_version 을 받지 않는다.",
+        "properties": {
+          "display_name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 255,
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "display_name"
+        ],
+        "title": "SignupRequest",
+        "type": "object"
+      },
       "SkippedVolume": {
         "properties": {
           "reason": {
@@ -2573,6 +2654,63 @@
           "chunk_id"
         ],
         "title": "SourceChunkDetail",
+        "type": "object"
+      },
+      "SummaryResponse": {
+        "description": "API-HD-004. 연속일·최대·누적은 read 기준이며 저장하지 않는다. week 는 월요일 시작 7칸.",
+        "properties": {
+          "best_streak_days": {
+            "title": "Best Streak Days",
+            "type": "integer"
+          },
+          "streak_days": {
+            "title": "Streak Days",
+            "type": "integer"
+          },
+          "today": {
+            "$ref": "#/components/schemas/TodayFlags"
+          },
+          "total_days": {
+            "title": "Total Days",
+            "type": "integer"
+          },
+          "week": {
+            "items": {
+              "$ref": "#/components/schemas/WeekDay"
+            },
+            "title": "Week",
+            "type": "array"
+          }
+        },
+        "required": [
+          "today",
+          "streak_days",
+          "best_streak_days",
+          "total_days",
+          "week"
+        ],
+        "title": "SummaryResponse",
+        "type": "object"
+      },
+      "TodayFlags": {
+        "properties": {
+          "pray": {
+            "default": false,
+            "title": "Pray",
+            "type": "boolean"
+          },
+          "read": {
+            "default": false,
+            "title": "Read",
+            "type": "boolean"
+          },
+          "study": {
+            "default": false,
+            "title": "Study",
+            "type": "boolean"
+          }
+        },
+        "title": "TodayFlags",
         "type": "object"
       },
       "TodayReadingResponse": {
@@ -2710,6 +2848,42 @@
           "predicted_outcome"
         ],
         "title": "UploadResponse",
+        "type": "object"
+      },
+      "UserEnvelope": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserPublic"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "title": "UserEnvelope",
+        "type": "object"
+      },
+      "UserPublic": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "display_name"
+        ],
+        "title": "UserPublic",
         "type": "object"
       },
       "ValidationError": {
@@ -2928,6 +3102,25 @@
           }
         },
         "title": "VolumeTagsBulkResponse",
+        "type": "object"
+      },
+      "WeekDay": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "done": {
+            "title": "Done",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "date",
+          "done"
+        ],
+        "title": "WeekDay",
         "type": "object"
       },
       "WeightedSourceSchema": {
@@ -5161,6 +5354,197 @@
           }
         },
         "summary": "Health"
+      }
+    },
+    "/hoondok/auth/login": {
+      "post": {
+        "description": "API-HD-003 로그인 → 200 + 쿠키. 401 은 이메일 존재 여부를 구분하지 않는다.",
+        "operationId": "login_hoondok_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Login",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/auth/logout": {
+      "post": {
+        "description": "204 + 쿠키 만료. 만료·무효 토큰으로도 로그아웃할 수 있게 인증을 요구하지 않는다.",
+        "operationId": "logout_hoondok_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Logout",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/auth/me": {
+      "get": {
+        "description": "API-HD-003 현재 사용자. 401 미인증 — web features/identity 게이트가 온보딩으로 보낸다.",
+        "operationId": "me_hoondok_auth_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Me",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/auth/signup": {
+      "post": {
+        "description": "API-HD-002 가입 → 201 + hoondok_token 쿠키. 409 이메일 중복.",
+        "operationId": "signup_hoondok_auth_signup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Signup",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/summary": {
+      "get": {
+        "description": "API-HD-004 오늘 3종 · 연속일 · 최대 · 누적 · 이번 주(read 기준). 401 미인증.",
+        "operationId": "get_summary_hoondok_me_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Summary",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/missions/{kind}/complete": {
+      "post": {
+        "description": "API-HD-005 오늘(KST) 미션 완료 기록. 409 같은 날 재요청, 422 알 수 없는 kind, 401 미인증.",
+        "operationId": "complete_mission_hoondok_missions__kind__complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "read",
+                "pray",
+                "study"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MissionCompleteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Complete Mission",
+        "tags": [
+          "hoondok"
+        ]
       }
     },
     "/hoondok/today": {

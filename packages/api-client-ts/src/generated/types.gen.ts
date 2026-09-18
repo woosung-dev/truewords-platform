@@ -951,6 +951,20 @@ export type IngestionStatusSummary = {
 };
 
 /**
+ * LoginRequest
+ */
+export type LoginRequest = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
  * MessageResponse
  *
  * 단순 메시지 응답 (로그인/로그아웃 등).
@@ -960,6 +974,26 @@ export type MessageResponse = {
      * Message
      */
     message: string;
+};
+
+/**
+ * MissionCompleteResponse
+ *
+ * API-HD-005 201. mission_date 는 서버가 KST 로 정한 날짜다.
+ */
+export type MissionCompleteResponse = {
+    /**
+     * Completed At
+     */
+    completed_at: string;
+    /**
+     * Kind
+     */
+    kind: 'read' | 'pray' | 'study';
+    /**
+     * Mission Date
+     */
+    mission_date: string;
 };
 
 /**
@@ -1545,6 +1579,26 @@ export type SettingsConfigResponse = {
 };
 
 /**
+ * SignupRequest
+ *
+ * 약관 문구 확정 전(DEC-PWA-001)이라 consent_version 을 받지 않는다.
+ */
+export type SignupRequest = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
  * SkippedVolume
  */
 export type SkippedVolume = {
@@ -1662,6 +1716,49 @@ export type SourceChunkDetail = {
 };
 
 /**
+ * SummaryResponse
+ *
+ * API-HD-004. 연속일·최대·누적은 read 기준이며 저장하지 않는다. week 는 월요일 시작 7칸.
+ */
+export type SummaryResponse = {
+    /**
+     * Best Streak Days
+     */
+    best_streak_days: number;
+    /**
+     * Streak Days
+     */
+    streak_days: number;
+    today: TodayFlags;
+    /**
+     * Total Days
+     */
+    total_days: number;
+    /**
+     * Week
+     */
+    week: Array<WeekDay>;
+};
+
+/**
+ * TodayFlags
+ */
+export type TodayFlags = {
+    /**
+     * Pray
+     */
+    pray?: boolean;
+    /**
+     * Read
+     */
+    read?: boolean;
+    /**
+     * Study
+     */
+    study?: boolean;
+};
+
+/**
  * TodayReadingResponse
  *
  * 항상 200. 편성이 없거나 철회됐으면 status 로만 알린다 (AC-016-04).
@@ -1765,6 +1862,31 @@ export type UploadResponse = {
      * NFC 정규화된 volume 식별자 (polling 키)
      */
     volume_key: string;
+};
+
+/**
+ * UserEnvelope
+ */
+export type UserEnvelope = {
+    user: UserPublic;
+};
+
+/**
+ * UserPublic
+ */
+export type UserPublic = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Id
+     */
+    id: string;
 };
 
 /**
@@ -1941,6 +2063,20 @@ export type VolumeTagsBulkResponse = {
      * 실제로 변경된 volume 리스트
      */
     updated_volumes?: Array<string>;
+};
+
+/**
+ * WeekDay
+ */
+export type WeekDay = {
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Done
+     */
+    done: boolean;
 };
 
 /**
@@ -3337,6 +3473,134 @@ export type HealthHealthGetResponses = {
      */
     200: unknown;
 };
+
+export type LoginHoondokAuthLoginPostData = {
+    body: LoginRequest;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/login';
+};
+
+export type LoginHoondokAuthLoginPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type LoginHoondokAuthLoginPostError = LoginHoondokAuthLoginPostErrors[keyof LoginHoondokAuthLoginPostErrors];
+
+export type LoginHoondokAuthLoginPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserEnvelope;
+};
+
+export type LoginHoondokAuthLoginPostResponse = LoginHoondokAuthLoginPostResponses[keyof LoginHoondokAuthLoginPostResponses];
+
+export type LogoutHoondokAuthLogoutPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/logout';
+};
+
+export type LogoutHoondokAuthLogoutPostResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type LogoutHoondokAuthLogoutPostResponse = LogoutHoondokAuthLogoutPostResponses[keyof LogoutHoondokAuthLogoutPostResponses];
+
+export type MeHoondokAuthMeGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/me';
+};
+
+export type MeHoondokAuthMeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserEnvelope;
+};
+
+export type MeHoondokAuthMeGetResponse = MeHoondokAuthMeGetResponses[keyof MeHoondokAuthMeGetResponses];
+
+export type SignupHoondokAuthSignupPostData = {
+    body: SignupRequest;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/signup';
+};
+
+export type SignupHoondokAuthSignupPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SignupHoondokAuthSignupPostError = SignupHoondokAuthSignupPostErrors[keyof SignupHoondokAuthSignupPostErrors];
+
+export type SignupHoondokAuthSignupPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: UserEnvelope;
+};
+
+export type SignupHoondokAuthSignupPostResponse = SignupHoondokAuthSignupPostResponses[keyof SignupHoondokAuthSignupPostResponses];
+
+export type GetSummaryHoondokMeSummaryGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/summary';
+};
+
+export type GetSummaryHoondokMeSummaryGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummaryResponse;
+};
+
+export type GetSummaryHoondokMeSummaryGetResponse = GetSummaryHoondokMeSummaryGetResponses[keyof GetSummaryHoondokMeSummaryGetResponses];
+
+export type CompleteMissionHoondokMissionsKindCompletePostData = {
+    body?: never;
+    path: {
+        /**
+         * Kind
+         */
+        kind: 'read' | 'pray' | 'study';
+    };
+    query?: never;
+    url: '/hoondok/missions/{kind}/complete';
+};
+
+export type CompleteMissionHoondokMissionsKindCompletePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CompleteMissionHoondokMissionsKindCompletePostError = CompleteMissionHoondokMissionsKindCompletePostErrors[keyof CompleteMissionHoondokMissionsKindCompletePostErrors];
+
+export type CompleteMissionHoondokMissionsKindCompletePostResponses = {
+    /**
+     * Successful Response
+     */
+    201: MissionCompleteResponse;
+};
+
+export type CompleteMissionHoondokMissionsKindCompletePostResponse = CompleteMissionHoondokMissionsKindCompletePostResponses[keyof CompleteMissionHoondokMissionsKindCompletePostResponses];
 
 export type GetTodayHoondokTodayGetData = {
     body?: never;

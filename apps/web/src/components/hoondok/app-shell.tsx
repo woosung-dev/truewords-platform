@@ -12,7 +12,7 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isHome = pathname === "/hoondok";
   const activeId = activeTabId(pathname);
-  const title = isHome ? "오늘 훈독" : "훈독하기";
+  const title = isHome ? "오늘 훈독" : pathname.startsWith("/hoondok/onboarding") ? "시작하기" : "훈독하기";
 
   return (
     <>
