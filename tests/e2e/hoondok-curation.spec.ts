@@ -64,9 +64,10 @@ test.describe("훈독 편성", () => {
     // 헤더 h1 은 재조회 후 새 제목으로 바뀐다.
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(next);
 
-    // 편성 → 노출: web 홈(다른 origin, 공개 라우트)
+    // 편성 → 노출: web 홈(다른 origin, 공개 라우트).
+    // 홈에는 말씀 전문이 없고(SCR-PWA-002) 편성 제목은 훈독하기 미션 카드로 드러난다.
     await page.goto(`${WEB_ORIGIN}/hoondok`);
-    await expect(page.locator("article.malssum h2")).toHaveText(next);
+    await expect(page.locator(".mission__title").first()).toHaveText(next);
 
     // 원복 — 다른 훈독 스펙은 제목을 단언하지 않지만 시드 상태를 남긴다.
     await page.goto(editUrl);
