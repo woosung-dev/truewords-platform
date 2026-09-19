@@ -44,7 +44,7 @@ def check_invite_code(provided: str | None) -> None:
 class UserDataPurger(Protocol):
     """계정 삭제 시 함께 지울 사용자 데이터 저장소(hoondok 의 mission_logs·jeongseong_periods 리포).
 
-    identity 는 hoondok 을 import 하지 않는다 — 구체 리포는 identity/dependencies.py 의 DI 가 주입한다.
+    identity service 는 hoondok 을 import 하지 않는다 — 구체 리포는 identity/dependencies.py 의 get_user_data_purgers 한 곳이 주입한다.
     구현은 커밋하지 않고, 같은 세션의 UserRepository.save 커밋에 묶인다.
     """
 
