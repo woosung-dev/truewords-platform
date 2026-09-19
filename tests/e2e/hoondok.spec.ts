@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 // 훈독 Phase 1 스모크 (PLAN-HD-001 §4 sub-PR 1). 플래그 ON 은 playwright.config webServer env 가 준다.
-const PATHS = ["/hoondok", "/hoondok/read"] as const;
+const PATHS = ["/hoondok", "/hoondok/read", "/hoondok/garden", "/hoondok/settings"] as const;
 const VIEWPORTS = [
   { name: "phone", width: 390, height: 844 },
   { name: "desktop", width: 1280, height: 900 },
