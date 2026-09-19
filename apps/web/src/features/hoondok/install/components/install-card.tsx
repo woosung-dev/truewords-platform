@@ -13,8 +13,13 @@ const BODY: Record<Exclude<InstallVariant, "hidden">, string> = {
   manual: "Chrome 이나 Safari 에서 이 주소를 열고, 브라우저 메뉴의 '홈 화면에 추가'(또는 '앱 설치')를 고르세요.",
 };
 
-export function InstallCard() {
-  const { variant, promptInstall, dismiss } = useInstallCard();
+/**
+ * isAlwaysVisible = 설정 화면(SCR-PWA-015, PLAN-HD-002 W1-S). 자격·숨김·설치 기록과 무관하게 안내를 보여주고
+ * "나중에"(30일 숨김)는 감춘다 — 상시 노출 자리에서는 숨길 대상이 없다. standalone 이면 여전히 null 이라
+ * 호출자가 "이미 홈 화면에서 열었어요" 한 줄로 대체한다.
+ */
+export function InstallCard({ isAlwaysVisible = false }: { isAlwaysVisible?: boolean }) {
+  const { variant, promptInstall, dismiss } = useInstallCard({ isAlwaysVisible });
   if (variant === "hidden") return null;
 
   return (
@@ -36,9 +41,11 @@ export function InstallCard() {
             지금 추가
           </HoondokButton>
         )}
-        <HoondokButton variant="line" isSmall onClick={dismiss}>
-          나중에
-        </HoondokButton>
+        {!isAlwaysVisible && (
+          <HoondokButton variant="line" isSmall onClick={dismiss}>
+            나중에
+          </HoondokButton>
+        )}
       </div>
     </section>
   );
