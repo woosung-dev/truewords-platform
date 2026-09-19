@@ -30,13 +30,19 @@ describe("훈독 기능 플래그", () => {
     expect(screen.getByRole("navigation", { name: "주 메뉴" })).toBeInTheDocument();
   });
 
-  it("noindex 헤더를 /hoondok 경로에만 건다", async () => {
+  it("noindex 헤더를 /hoondok 경로에만 걸고, self-host 폰트만 immutable 캐시다", async () => {
     const { default: config } = await import("../../next.config");
     const headers = await config.headers?.();
     const sources = headers?.map((h) => h.source);
-    expect(sources).toEqual(expect.arrayContaining(["/hoondok", "/hoondok/:path*"]));
+    expect(sources).toEqual(expect.arrayContaining(["/hoondok", "/hoondok/:path*", "/hoondok/fonts/:path*"]));
     expect(sources?.some((s) => s === "/" || s === "/:path*")).toBe(false);
-    for (const h of headers ?? []) expect(h.headers).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
+    for (const h of headers ?? []) {
+      if (h.source === "/hoondok/fonts/:path*") {
+        expect(h.headers).toEqual([{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }]);
+      } else {
+        expect(h.headers).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
+      }
+    }
   });
 });
 

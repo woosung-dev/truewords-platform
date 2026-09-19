@@ -137,3 +137,55 @@ test("시드 사용자 로그인 → 훈독 완료 → 로그아웃 → 완료 A
   await page.goto("/hoondok");
   await expect(page.getByRole("heading", { name: "오늘 말씀" })).toBeVisible();
 });
+
+// Phase 3 C — PWA 설치 메타·정적 자산 (PLAN-HD-001 §6 C). 실기기 설치·standalone 증거는 운영 플래그 ON 뒤 G 단계다.
+test("PWA 정적 자산: manifest·아이콘 4개·self-host 폰트 200, 스코프 /hoondok, 폰트 immutable", async ({ page }) => {
+  const manifest = await page.request.get("/hoondok/manifest.webmanifest");
+  expect(manifest.status()).toBe(200);
+  expect(manifest.headers()["content-type"]).toContain("manifest+json");
+  const body = await manifest.json();
+  expect(body.scope).toBe("/hoondok");
+  expect(body.start_url).toBe("/hoondok");
+  expect(body.display).toBe("standalone");
+
+  const iconPaths: string[] = [
+    ...body.icons.map((icon: { src: string }) => icon.src),
+    "/hoondok/icons/apple-touch-icon-180.png",
+  ];
+  for (const src of iconPaths) {
+    const icon = await page.request.get(src);
+    expect(icon.status(), src).toBe(200);
+    expect(icon.headers()["content-type"], src).toContain("image/png");
+  }
+
+  const font = await page.request.get("/hoondok/fonts/PretendardVariable-1.3.9.woff2");
+  expect(font.status()).toBe(200);
+  expect(font.headers()["content-type"]).toContain("font/woff2");
+  expect(font.headers()["cache-control"]).toContain("immutable");
+});
+
+test("설치 메타는 /hoondok 에만 붙고 self-host 폰트가 실제로 로드된다 · 시연 챗 /·/login 에는 없다", async ({
+  page,
+}) => {
+  await page.goto("/hoondok");
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/hoondok/manifest.webmanifest");
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(1);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#fbfaf8");
+  await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute("content", "훈독");
+
+  // fonts.check() 는 매칭 face 가 없어도 true 라 쓰지 않는다. face 목록에서 loaded 를 직접 찾는다.
+  const fontLoaded = await page.evaluate(async () => {
+    await document.fonts.ready;
+    return Array.from(document.fonts).some(
+      (face) => face.family.includes("Pretendard Hoondok") && face.status === "loaded",
+    );
+  });
+  expect(fontLoaded).toBe(true);
+
+  for (const path of ["/", "/login"]) {
+    await page.goto(path);
+    await expect(page.locator('link[rel="manifest"]')).toHaveCount(0);
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="theme-color"]')).toHaveCount(0);
+  }
+});
