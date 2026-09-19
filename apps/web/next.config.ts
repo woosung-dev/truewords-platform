@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
       // 훈독 베타는 권리 미확정 정본을 싣는다. layout metadata.robots 와 함께 색인을 막는다.
       { source: "/hoondok/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       { source: "/hoondok", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      // 훈독 self-host 폰트는 파일명에 버전을 고정해 1년 immutable 로 둔다 (PLAN-HD-001 Phase 3 C). public 기본은 max-age=0 이다.
+      {
+        source: "/hoondok/fonts/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
     ];
   },
   async redirects() {

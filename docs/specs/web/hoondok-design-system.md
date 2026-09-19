@@ -70,11 +70,11 @@
 서체는 **Pretendard 단일**이다. 굵기만으로 위계를 만들며 세리프를 섞지 않는다(`DEC-PWA-017`이 B의 세리프 인용을 미채택). 시안 CSS에 `.serif-quote` 규칙이 남아 있으나 A의 마크업에서 한 번도 쓰이지 않는 죽은 선언이므로 옮기지 않는다.
 
 ```
-font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
              "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
 ```
 
-운영에서는 self-host 한다(시안은 jsdelivr CDN). 가변 폰트 동적 서브셋을 쓰되 사용 굵기는 400·500·600·700 네 단계다.
+운영에서는 self-host 한다(시안은 jsdelivr CDN). **2026-09-19 확정(PLAN-HD-001 Phase 3 C)**: 가변 폰트 1종 `PretendardVariable-1.3.9.woff2`(1.96MB) 를 `apps/web/public/hoondok/fonts/` 에 두고 `hoondok.css` 의 `@font-face` 로 패밀리명 **`"Pretendard Hoondok"`**(루트 layout CDN 의 `Pretendard Variable` 과 분리해 로드 순서와 무관) · `font-weight: 45 920` · `font-display: swap` 으로 연결한다. 동적 서브셋(92청크 + 생성 CSS)은 유지비로, 정적 4종(2.98MB)은 예산 2MB 초과로 미채택. SIL OFL 1.1 `OFL.txt` 를 같은 폴더에 동봉한다. 사용 굵기는 400·500·600·700 네 단계다.
 
 | 이름 | 크기 | 행간 | 자간 | 굵기 | 쓰는 곳 |
 |---|---|---|---|---|---|
@@ -195,6 +195,21 @@ font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFon
 - **아이콘**: Phosphor 단일 패밀리. `regular`(기본) · `fill`(활성 탭·체크 완료·북마크 켬) · `bold`(체크 마크). 이모지 0개. 운영에서는 필요한 아이콘만 골라 self-host 한다.
 - **이미지**: 시안의 `picsum.photos`는 예시다. 운영은 권리 확인된 사진으로 교체하며, 사진 위 텍스트는 반드시 veil과 함께 쓴다(§3.2). `alt`는 장식 사진이면 빈 문자열, 내용이 있으면 설명을 적는다.
 - **모션**: 시트 등장 220ms, 체크 전환 150ms, 버튼 누름 120ms, 토글 150ms. 이 네 가지가 전부다. `prefers-reduced-motion: reduce`에서 시트 애니메이션과 전환을 모두 끈다(시안이 이미 구현).
+
+### 1.7 앱 아이콘·설치 메타 (2026-09-19, PLAN-HD-001 Phase 3 C)
+
+앱 아이콘은 **"훈" 한 글자(Pretendard Bold 외곽선, OFL) 의 단색 도형**이다. 로고·상징·소속 표기는 넣지 않는다(`REQ-PWA-001` 독립 베타 정체성 — 공식 로고·제휴 표현 금지). 원본은 `apps/web/public/hoondok/icons/` 의 SVG 2종이고 PNG 4장은 거기서 생성한 산출물이다. 아이콘 파일이 곧 시안이며 PR 에서 승인한다.
+
+| 파일 | 원본 | 용도 | 규격 |
+|---|---|---|---|
+| `icon-192.png` · `icon-512.png` | `hoondok-icon.svg` | manifest `purpose: any`(데스크톱·브라우저 UI) | 모서리 22% 라운드·투명 코너, 글자 높이 59% |
+| `icon-maskable-512.png` | `hoondok-icon-maskable.svg` | manifest `purpose: maskable`(Android 런처 마스크) | 풀블리드 정사각, 글자 높이 49% — 중앙 80% 안전영역 안(글자 대각 반지름 170px ≤ 205px) |
+| `apple-touch-icon-180.png` | `hoondok-icon-maskable.svg` | `<link rel="apple-touch-icon">`(iOS 가 22% 라운딩) | 풀블리드 180 |
+
+- 색은 토큰 두 개만 쓴다. **감귤 배경 `--accent #c24721` + 종이색 글자 `--paper #fbfaf8`**(2026-09-19 확정 — 종이색 배경·감귤 글자 B 안은 밝은 홈 화면에서 묻혀 미채택, 비교 시트는 git 히스토리 밖 세션 산출물). 어두운 홈·밝은 홈·iOS 라운딩·Android 원형 마스크 모두에서 글자가 읽힌다.
+- 재생성: `rsvg-convert -w <N> -h <N> <원본.svg> -o <출력.png>` (192·512·512·180). 글자 외곽선은 `Pretendard-Bold.otf` 에서 fontTools `SVGPathPen` 으로 1회 추출해 SVG 에 path 로 박았으므로 폰트 설치가 필요 없다.
+- 설치 메타는 hoondok layout 의 `generateMetadata`·`generateViewport` 에만 붙인다: `manifest` `/hoondok/manifest.webmanifest` · `appleWebApp`(capable, title "훈독", statusBarStyle default) · `icons`(icon 192, apple 180) · `viewport.themeColor` = `--paper`. 플래그 OFF 면 붙이지 않는다. 루트 layout·시연 챗은 무변경.
+- manifest 값: `id`·`start_url`·`scope` = **`/hoondok`(슬래시 없음 — Next `trailingSlash` 기본 false 로 `/hoondok/` 은 308 이고 scope 는 경로 접두 비교라 `/hoondok/` 이면 홈이 범위 밖)**, `display: standalone`, `lang: ko`, `background_color`·`theme_color` = `--paper #fbfaf8`, `description` 에 "FFWPU 공식 앱이 아닙니다" 고지. `theme_color` 는 토큰을 참조할 수 없어 값으로 적고 Vitest(`apps/web/src/test/hoondok-pwa.test.ts`)가 `hoondok.css --paper`·`viewport` 와 일치를 단언한다.
 
 ---
 
@@ -683,7 +698,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | ID | 항목 | 상태 |
 |---|---|---|
 | `DES-PWA-003-Q2` | 사진 큐레이션 주체와 권리 확인 절차. `picsum.photos` 예시를 대체할 소스가 없으면 홈 히어로를 텍스트 카드로 바꿔야 한다 | **2026-09-16 확정: 베타는 텍스트 카드.** 사진 소스는 `RSK-PWA-008` 과 함께 후속 |
-| `DES-PWA-003-Q3` | Pretendard·Phosphor self-host 시 서브셋 범위(동적 서브셋 vs 정적) | **2026-09-16 확정: Phosphor → lucide-react 치환**, Pretendard self-host 는 Phase 3 SW 전(서브셋 범위는 그때 결정) |
+| `DES-PWA-003-Q3` | Pretendard·Phosphor self-host 시 서브셋 범위(동적 서브셋 vs 정적) | **2026-09-16 확정: Phosphor → lucide-react 치환** · **2026-09-19 확정: Pretendard 가변 1종 self-host, 서브셋 없음(§1.2)** |
 | — | 60대 사용자 3명 대상 200% 확대 실사용 확인 | `[가정]` 단계. S5 베타 전 수행 |
 
 ---
@@ -705,3 +720,5 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | 2026-09-16 | 데스크톱 내비 = **상단 헤더 4(검색 중심)**. §4.1 의 좌측 레일은 프로토타입에 `?nav=rail` 로 남기되 기본값이 아니다. 앱바 [검색][알림] 순서, 검색 필드는 말씀 서고 상단 상설, PC 는 헤더 검색바가 둘을 대신 | 확정 · 프로토타입 `?nav=top` |
 | 2026-09-16 | `SCR-PWA-005` AI 질문 = 묻기 홈("물음 한 장") + 기록 화면 분리. FAB·3탭 세그먼트 제거 | 확정 · §2.9 |
 | 2026-09-16 | 16화면 단일 소스 프로토타입 완성 (`prd/prototypes/hoondok-ds/`). 이 문서의 §4·§5 규칙은 그 프로토타입으로 검증됐다. 테마 비교(DESIGN.md 6종 번역, 독립 심사 C·E 동률 1위)와 내비 7안 비교는 참고로만 쓰고 **A 기준 유지**를 택했다. 비교 산출물은 git 히스토리(PR #269 이전 커밋)에만 남긴다 | 확정 |
+| 2026-09-19 | Pretendard self-host = 가변 1종(1.96MB) · 패밀리명 `"Pretendard Hoondok"` · `font-display: swap` · OFL 동봉. 동적 서브셋·정적 4종 미채택 | 확정 · §1.2 · PLAN-HD-001 Phase 3 C |
+| 2026-09-19 | 앱 아이콘 = "훈" 글자 단색 도형 4종(any 192/512 · maskable 512 · apple 180), **감귤 배경 + 종이색 글자 확정**(종이색 배경 B 안 미채택). manifest `id`·`start_url`·`scope` 는 `/hoondok`(슬래시 없음) | 확정 · §1.7 |

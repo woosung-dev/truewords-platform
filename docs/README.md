@@ -1,6 +1,6 @@
 # TrueWords 기술 문서
 
-현재 작업은 **훈독 MVP Phase 2**([PLAN-HD-001 §5](plans/active/2026-09-17-hoondok-mvp.md), 2026-09-16 착수)이다. Phase 1(`/hoondok` 골격·`daily_readings`·`GET /hoondok/today`)은 PR #276 으로 main 에 있고, Phase 2 는 `apps/api` 의 `identity`(`users`·`/hoondok/auth/*`)·`mission_logs`(완료·연속일)와 `apps/web` 의 `features/identity`·`/hoondok/onboarding` 을 통합 브랜치 `dev/hoondok-phase2` 에서 sub-PR 로 만든다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, 운영 배포·알림·Flutter 는 Phase 3 이후 별도 승인이다.
+현재 작업은 **훈독 MVP Phase 3**([PLAN-HD-001 §6](plans/active/2026-09-17-hoondok-mvp.md), 2026-09-19 착수)이다. Phase 1(#276)·Phase 2(#282, main `b70b6c8`)는 운영에 플래그 OFF 로 배포돼 있다. Phase 3 은 편성 트랙(A 편성 API #285 · B admin 편성 화면 #286 → main #287, backend·admin 배포 완료)과 PWA 트랙(C manifest·아이콘·Pretendard self-host → D 서비스워커 → E 설치 안내 → F 초대 코드)을 통합 브랜치 `dev/hoondok-phase3` 에서 sub-PR 로 만든다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, 플래그 ON 배포·알림·Flutter 는 별도 승인이다.
 
 | 먼저 읽을 문서 | 용도 |
 |---|---|
@@ -45,7 +45,7 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 | [17-ffwpu-pwa-prd](prd/17-ffwpu-pwa-prd.md) | 훈독 앱 PRD v2. 식구의 문제 5개 → 초원AI 벤치마크 현지화 매핑 → 5탭 · 기능 7종 · 보상 정책 · KPI · 9월 일정 · Decision Log. **2026-09-16 승인** (`DEC-PWA-022`) |
 | [훈독 도메인](specs/domain/hoondok-entities.md), [훈독 API](specs/api/hoondok-api.md) | `ENT-HD-001~003`(users · daily_readings · mission_logs), `API-HD-001~005`(`/hoondok/*`). KST 고정, additive-only |
 | [훈독 프로토타입](prd/prototypes/hoondok-ds/README.md) | `app.html` + `hoondok.css` 단일 소스, 16화면, 폰 390 · PC 1280. `index.html` 로 나란히 본다. 값의 원본이며 디자인 시스템 문서가 근거를 설명한다 |
-| [훈독 디자인 시스템](specs/web/hoondok-design-system.md) | `DES-PWA-003`. 채택안 A 아침 햇살의 토큰·컴포넌트 10종·권위 층 배지·WCAG 2.2 AA 대비 실측값·데스크톱 브레이크포인트 3단계·16화면 반응형 대응표. **라이트 단일 테마**이며 다크 팔레트는 정의하지 않는다 (2026-09-16 승인, 데스크톱 내비는 상단 헤더 4) |
+| [훈독 디자인 시스템](specs/web/hoondok-design-system.md) | `DES-PWA-003`. 채택안 A 아침 햇살의 토큰·컴포넌트 10종·권위 층 배지·WCAG 2.2 AA 대비 실측값·데스크톱 브레이크포인트 3단계·16화면 반응형 대응표. **라이트 단일 테마**이며 다크 팔레트는 정의하지 않는다 (2026-09-16 승인, 데스크톱 내비는 상단 헤더 4). §1.7 앱 아이콘·설치 메타·Pretendard self-host(2026-09-19) |
 | [사용자 웹 UI/UX](specs/web/ui-ux.md), [관리자 UI/UX](specs/admin/ui-ux.md) | 현재 구현·소유권과 미승인 리디자인의 경계 |
 | [17-chatbot-system-prompt-spec](specs/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 |
 | [18-category-document-stats](specs/18-category-document-stats.md), [19-category-tag-management-ui](specs/19-category-tag-management-ui.md) | 문서 통계·카테고리 UI |

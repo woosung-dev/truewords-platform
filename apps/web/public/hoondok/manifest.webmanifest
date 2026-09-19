@@ -1,0 +1,18 @@
+{
+  "id": "/hoondok",
+  "name": "훈독",
+  "short_name": "훈독",
+  "description": "아침 3분 훈독 — 독립 운영 베타. FFWPU 공식 앱이 아닙니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/hoondok",
+  "scope": "/hoondok",
+  "display": "standalone",
+  "background_color": "#fbfaf8",
+  "theme_color": "#fbfaf8",
+  "icons": [
+    { "src": "/hoondok/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/hoondok/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/hoondok/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
