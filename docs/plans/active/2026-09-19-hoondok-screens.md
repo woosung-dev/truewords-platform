@@ -176,7 +176,7 @@ make e2e
 - [x] W1-D 데이터 계층 — 2026-09-20 머지 `1ba5a26`, Vitest 137 (jeongseong/history/kst/use-delete-me)
 - [x] W1-G 014 나의 정원 — 2026-09-20 머지 (MonthCalendar·통계 3·진행 중인 정성; `.stats/.progress` 는 garden.css 에 위치 → W4 공통 승격 검토)
 - [x] W1-S 015 알림·설치 설정 + 내 데이터 삭제 — 2026-09-20 머지 (InstallCard isAlwaysVisible·알림 4종 disabled·삭제 2단계; 560px 중앙은 앱 셸 720 유지 `[가정]`)
-- [ ] W1-J 004 정성 시트 + 002 홈 정성 카드
+- [x] W1-J 004 정성 시트 + 002 홈 정성 카드 — 2026-09-20 머지 (dialog `?sheet=jeongseong`, ≥1024 모달 520px 실측, 비로그인은 안내+로그인 링크)
 - [x] W1-N 003 오늘의 한 줄 — 2026-09-20 머지, Vitest 143 (note storage·TodayNote)
 - [ ] W1 웨이브 끝 `make ci`·`make e2e`·시각 대조
 - [ ] W2 AI 질문 3화면 + `read` 질문 버튼 + `TAB_STAGE.ask: live`
