@@ -1,5 +1,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import { render } from "@testing-library/react";
+import { createElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // 훈독 PWA 설치 메타 (PLAN-HD-001 Phase 3 C). manifest·아이콘·폰트는 public 정적 파일이라 파일 자체를 단언한다.
@@ -102,5 +104,40 @@ describe("훈독 PWA 설치 메타", () => {
       /@font-face\s*\{[^}]*font-family:\s*"Pretendard Hoondok"[^}]*\/hoondok\/fonts\/PretendardVariable-1\.3\.9\.woff2[^}]*\}/,
     );
     expect(HOONDOK_CSS).toMatch(/--sans:\s*"Pretendard Hoondok",/);
+  });
+});
+
+describe("훈독 서비스워커 등록 컴포넌트 (Phase 3 D)", () => {
+  it("플래그 ON 이면 /hoondok/sw.js 를 scope /hoondok 으로 등록하고, serviceWorker 미지원이면 no-op", async () => {
+    vi.stubEnv("NEXT_PUBLIC_HOONDOK_ENABLED", "1");
+    vi.resetModules();
+    const { HoondokServiceWorker } = await import("../features/hoondok/service-worker");
+
+    // jsdom 은 navigator.serviceWorker 를 구현하지 않는다 → 미지원 분기
+    expect("serviceWorker" in navigator).toBe(false);
+    expect(render(createElement(HoondokServiceWorker)).container.innerHTML).toBe("");
+
+    const register = vi.fn(() => Promise.resolve({}));
+    Object.defineProperty(navigator, "serviceWorker", { value: { register }, configurable: true });
+    try {
+      render(createElement(HoondokServiceWorker));
+      expect(register).toHaveBeenCalledWith("/hoondok/sw.js", { scope: "/hoondok" });
+    } finally {
+      Reflect.deleteProperty(navigator, "serviceWorker");
+    }
+  });
+
+  it("플래그 OFF 면 등록하지 않는다", async () => {
+    vi.stubEnv("NEXT_PUBLIC_HOONDOK_ENABLED", "");
+    vi.resetModules();
+    const { HoondokServiceWorker } = await import("../features/hoondok/service-worker");
+    const register = vi.fn(() => Promise.resolve({}));
+    Object.defineProperty(navigator, "serviceWorker", { value: { register }, configurable: true });
+    try {
+      render(createElement(HoondokServiceWorker));
+      expect(register).not.toHaveBeenCalled();
+    } finally {
+      Reflect.deleteProperty(navigator, "serviceWorker");
+    }
   });
 });

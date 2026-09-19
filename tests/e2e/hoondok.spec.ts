@@ -189,3 +189,56 @@ test("설치 메타는 /hoondok 에만 붙고 self-host 폰트가 실제로 로�
     await expect(page.locator('meta[name="theme-color"]')).toHaveCount(0);
   }
 });
+
+// Phase 3 D — 서비스워커 (PLAN-HD-001 §6 D). 오프라인 안내 폴백만, API·인증 응답 캐시 금지, 시연 챗 미제어.
+test("SW: scope /hoondok 등록 · sw.js no-cache + Service-Worker-Allowed · manifest no-cache · /login 은 미제어", async ({
+  page,
+}) => {
+  await page.goto("/hoondok");
+  const scope = await page.evaluate(() => navigator.serviceWorker.ready.then((r) => new URL(r.scope).pathname));
+  expect(scope).toBe("/hoondok");
+
+  const sw = await page.request.get("/hoondok/sw.js");
+  expect(sw.status()).toBe(200);
+  expect(sw.headers()["cache-control"]).toContain("no-cache");
+  expect(sw.headers()["service-worker-allowed"]).toBe("/hoondok");
+  expect((await page.request.get("/hoondok/manifest.webmanifest")).headers()["cache-control"]).toContain("no-cache");
+
+  // getRegistrations() 는 origin 전체를 돌려주므로 시연 챗은 "제어되지 않음" 으로 본다
+  await page.goto("/login");
+  const controlled = await page.evaluate(() => navigator.serviceWorker.controller !== null);
+  expect(controlled).toBe(false);
+});
+
+test("오프라인: /hoondok/read 이동 시 /hoondok/offline 로 폴백 렌더(hydration 오류 0) · API·온보딩 응답은 CacheStorage 에 없음", async ({
+  page,
+  context,
+}) => {
+  const errors = await collectConsoleErrors(page);
+  await page.goto("/hoondok");
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+  await page.waitForFunction(async () => (await caches.match("/hoondok/offline")) !== undefined);
+
+  await context.setOffline(true);
+  await page.goto("/hoondok/read");
+  // 안내 HTML 을 /hoondok/read URL 에 그대로 내면 앱 셸(usePathname) 이 hydration 불일치를 내므로 SW 가 자기 URL 로 보낸다
+  await expect(page).toHaveURL(/\/hoondok\/offline$/);
+  await expect(page.getByRole("heading", { name: "지금은 오프라인이에요" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "다시 시도" })).toBeVisible();
+  await context.setOffline(false);
+  expect(errors.filter((message) => /hydrat/i.test(message))).toEqual([]);
+
+  const cache = await page.evaluate(async () => {
+    const keys = await caches.keys();
+    const hits: string[] = [];
+    for (const key of keys) {
+      const bucket = await caches.open(key);
+      for (const path of ["/api/backend/hoondok/today", "/api/backend/hoondok/auth/me", "/hoondok/onboarding"]) {
+        if (await bucket.match(path)) hits.push(`${key}:${path}`);
+      }
+    }
+    return { keys, hits };
+  });
+  expect(cache.keys.filter((k) => k.startsWith("hoondok-"))).toHaveLength(1);
+  expect(cache.hits).toEqual([]);
+});

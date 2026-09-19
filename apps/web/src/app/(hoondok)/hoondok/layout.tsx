@@ -1,6 +1,7 @@
 // 훈독 루트 레이아웃 — /hoondok/* 전체. 시연 챗 AuthGuard 를 쓰지 않는다 (비로그인 읽기, PLAN-HD-001 §4).
 // React Query Provider 는 루트 layout 을 공유한다. 토큰·컴포넌트 CSS 와 Pretendard self-host(@font-face) 는
-// [data-app="hoondok"] 스코프·/hoondok/fonts 로 격리하고, PWA manifest·아이콘·theme-color 도 이 레이아웃에만 붙인다 (Phase 3 C).
+// [data-app="hoondok"] 스코프·/hoondok/fonts 로 격리하고, PWA manifest·아이콘·theme-color(Phase 3 C)와 서비스워커 등록(Phase 3 D)도
+// 이 레이아웃에만 붙인다.
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -13,6 +14,7 @@ import {
   HOONDOK_MANIFEST_PATH,
   HOONDOK_THEME_COLOR,
 } from "@/features/hoondok/pwa";
+import { HoondokServiceWorker } from "@/features/hoondok/service-worker";
 
 // 베타 기간 검색 색인 금지 (권리 미확정 정본). next.config headers() 의 X-Robots-Tag 와 짝이다.
 const BASE_METADATA: Metadata = {
@@ -47,6 +49,7 @@ export default function HoondokLayout({ children }: { children: ReactNode }) {
   return (
     <div data-app="hoondok">
       <HoondokAppShell>{children}</HoondokAppShell>
+      <HoondokServiceWorker />
     </div>
   );
 }

@@ -30,19 +30,22 @@ describe("훈독 기능 플래그", () => {
     expect(screen.getByRole("navigation", { name: "주 메뉴" })).toBeInTheDocument();
   });
 
-  it("noindex 헤더를 /hoondok 경로에만 걸고, self-host 폰트만 immutable 캐시다", async () => {
+  it("훈독 경로 헤더: noindex 전체 · 폰트 immutable · sw.js·manifest no-cache · sw.js Service-Worker-Allowed", async () => {
     const { default: config } = await import("../../next.config");
-    const headers = await config.headers?.();
-    const sources = headers?.map((h) => h.source);
-    expect(sources).toEqual(expect.arrayContaining(["/hoondok", "/hoondok/:path*", "/hoondok/fonts/:path*"]));
-    expect(sources?.some((s) => s === "/" || s === "/:path*")).toBe(false);
-    for (const h of headers ?? []) {
-      if (h.source === "/hoondok/fonts/:path*") {
-        expect(h.headers).toEqual([{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }]);
-      } else {
-        expect(h.headers).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
-      }
-    }
+    const headers = (await config.headers?.()) ?? [];
+    const bySource = new Map(
+      headers.map((h) => [h.source, Object.fromEntries(h.headers.map((x) => [x.key, x.value]))] as const),
+    );
+    // 시연 챗 경로(/, /login …)에는 어떤 헤더 규칙도 없다
+    for (const source of bySource.keys()) expect(source.startsWith("/hoondok")).toBe(true);
+    expect(bySource.get("/hoondok")).toEqual({ "X-Robots-Tag": "noindex, nofollow" });
+    expect(bySource.get("/hoondok/:path*")).toEqual({ "X-Robots-Tag": "noindex, nofollow" });
+    expect(bySource.get("/hoondok/fonts/:path*")).toEqual({ "Cache-Control": "public, max-age=31536000, immutable" });
+    expect(bySource.get("/hoondok/sw.js")).toEqual({
+      "Cache-Control": "no-cache, must-revalidate",
+      "Service-Worker-Allowed": "/hoondok",
+    });
+    expect(bySource.get("/hoondok/manifest.webmanifest")).toEqual({ "Cache-Control": "no-cache, must-revalidate" });
   });
 });
 
