@@ -1,13 +1,14 @@
 // 훈독 루트 레이아웃 — /hoondok/* 전체. 시연 챗 AuthGuard 를 쓰지 않는다 (비로그인 읽기, PLAN-HD-001 §4).
 // React Query Provider 는 루트 layout 을 공유한다. 토큰·컴포넌트 CSS 와 Pretendard self-host(@font-face) 는
 // [data-app="hoondok"] 스코프·/hoondok/fonts 로 격리하고, PWA manifest·아이콘·theme-color(Phase 3 C)와 서비스워커 등록(Phase 3 D)도
-// 이 레이아웃에만 붙인다.
+// 이 레이아웃에만 붙인다. beforeinstallprompt 리스너(Phase 3 E)도 같다 — 카드는 홈에만 있지만 이벤트는 어느 경로에서든 발사된다.
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import "@/app/hoondok.css";
 import { HoondokAppShell } from "@/components/hoondok";
 import { isHoondokEnabled } from "@/features/hoondok/flag";
+import { HoondokInstallPromptListener } from "@/features/hoondok/install/components/install-prompt-listener";
 import {
   HOONDOK_APPLE_TOUCH_ICON,
   HOONDOK_ICON_192,
@@ -50,6 +51,7 @@ export default function HoondokLayout({ children }: { children: ReactNode }) {
     <div data-app="hoondok">
       <HoondokAppShell>{children}</HoondokAppShell>
       <HoondokServiceWorker />
+      <HoondokInstallPromptListener />
     </div>
   );
 }

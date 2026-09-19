@@ -1,7 +1,9 @@
 // SCR-PWA-002 오늘 훈독 (홈). 비로그인 읽기 + 로그인 시 완료·연속일(Phase 2). 히어로는 텍스트 카드(결정 12).
+// 설치 안내 카드(Phase 3 E)는 직접 완료가 처음 기록된 뒤에만 보이며 자기 조건을 스스로 판정한다.
 import { MalssumCard } from "@/components/hoondok";
 import { loadToday } from "@/features/hoondok/api";
 import { HomeMissions } from "@/features/hoondok/components/home-missions";
+import { InstallCard } from "@/features/hoondok/install/components/install-card";
 import { formatKstDate } from "@/features/hoondok/today";
 
 export default async function HoondokHomePage() {
@@ -38,6 +40,8 @@ export default async function HoondokHomePage() {
       </div>
 
       <HomeMissions reading={reading ?? null} todayWeekday={weekday} />
+
+      <InstallCard />
 
       <p className="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
     </section>
