@@ -37,7 +37,7 @@ export default defineConfig({
     },
     {
       name: "hoondok-chromium",
-      testMatch: "hoondok.spec.ts",
+      testMatch: ["hoondok.spec.ts", "hoondok-garden.spec.ts", "hoondok-settings.spec.ts", "hoondok-jeongseong.spec.ts"],
       use: { browserName: "chromium", baseURL: webOrigin },
     },
   ],

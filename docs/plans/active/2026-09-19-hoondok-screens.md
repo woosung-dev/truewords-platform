@@ -173,7 +173,7 @@ make e2e
 - [x] W0-D 계획 문서(이 문서·README·TODO) — 2026-09-19, 이 PR
 - [x] W0-W 웹 셸 — 2026-09-19 머지 `1f51339`, Vitest 120·tooling 24·hoondok:check 9파일 (`flag.ts`·`screens.ts`·`TAB_STAGE`·`app-shell` 레지스트리·`_hoondok/*.css` 8개·`--scrim`·자리표시 2·`query-keys.ts`·`hoondok-css.mjs`·프리뷰 플래그 배선 3곳)
 - [x] W0-B 백엔드 — 2026-09-19 머지 `2e08806`, pytest 1037/4/1 · alembic head `k5a6b7c8d9e0` · oasdiff breaking 0 · additive-only 리허설은 W1 끝에 (`ENT-HD-004`·`k5a6b7c8d9e0`·`API-HD-009/010/011`·SDK 재생성·additive-only 리허설)
-- [ ] W1-D 데이터 계층
+- [x] W1-D 데이터 계층 — 2026-09-20 머지 `1ba5a26`, Vitest 137 (jeongseong/history/kst/use-delete-me)
 - [ ] W1-G 014 나의 정원
 - [ ] W1-S 015 알림·설치 설정 + 내 데이터 삭제
 - [ ] W1-J 004 정성 시트 + 002 홈 정성 카드
