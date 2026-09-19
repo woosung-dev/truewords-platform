@@ -2,6 +2,7 @@
 import { MalssumCard } from "@/components/hoondok";
 import { loadToday } from "@/features/hoondok/api";
 import { ReadCompleteButton } from "@/features/hoondok/components/read-complete-button";
+import { TodayNote } from "@/features/hoondok/note/components/today-note";
 
 export default async function HoondokReadPage() {
   const today = await loadToday();
@@ -12,6 +13,7 @@ export default async function HoondokReadPage() {
       {reading ? (
         <>
           <MalssumCard status="available" reading={reading} isFull />
+          <TodayNote readingDate={reading.reading_date} />
           <div className="sect">
             <ReadCompleteButton />
           </div>
