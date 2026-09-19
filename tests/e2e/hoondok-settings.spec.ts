@@ -50,7 +50,8 @@ test("설정: 알림 준비 중 · 설치 안내 상시 · 내 데이터 삭제 
     await expect(toggle).toBeDisabled();
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
   }
-  await expect(page.getByText("준비 중")).toHaveCount(6);
+  // 탭 내비의 "말씀 검색 (준비 중)" 은 프리뷰 플래그에 따라 달라지므로 본문(main) 안만 센다
+  await expect(page.locator("main").getByText("준비 중")).toHaveCount(6);
   await expect(page.getByRole("radio")).toHaveCount(2);
   await expect(page.getByRole("radio").first()).toBeDisabled();
 
