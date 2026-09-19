@@ -22,6 +22,19 @@ const nextConfig: NextConfig = {
         source: "/hoondok/fonts/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
+      // 서비스워커·manifest 는 매 방문 재검증한다 (Phase 3 D). Cloudflare 엣지는 origin no-cache 를 따른다.
+      // Service-Worker-Allowed: 스크립트가 /hoondok/ 아래 있어도 슬래시 없는 /hoondok scope 로 등록되게 한다 (C-3).
+      {
+        source: "/hoondok/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/hoondok" },
+        ],
+      },
+      {
+        source: "/hoondok/manifest.webmanifest",
+        headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }],
+      },
     ];
   },
   async redirects() {
