@@ -2,10 +2,19 @@
 // React Query Provider 는 루트 layout 을 공유한다. 토큰·컴포넌트 CSS 와 Pretendard self-host(@font-face) 는
 // [data-app="hoondok"] 스코프·/hoondok/fonts 로 격리하고, PWA manifest·아이콘·theme-color(Phase 3 C)와 서비스워커 등록(Phase 3 D)도
 // 이 레이아웃에만 붙인다. beforeinstallprompt 리스너(Phase 3 E)도 같다 — 카드는 홈에만 있지만 이벤트는 어느 경로에서든 발사된다.
+// 화면 그룹 CSS(_hoondok/*.css, W0-W) 는 hoondok.css 뒤에 고정 순서로 import 한다 — 토큰은 hoondok.css 한 곳에만 있다.
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import "@/app/hoondok.css";
+import "@/app/_hoondok/garden.css";
+import "@/app/_hoondok/settings.css";
+import "@/app/_hoondok/sheet.css";
+import "@/app/_hoondok/note.css";
+import "@/app/_hoondok/ask.css";
+import "@/app/_hoondok/library.css";
+import "@/app/_hoondok/worship.css";
+import "@/app/_hoondok/family.css";
 import { HoondokAppShell } from "@/components/hoondok";
 import { isHoondokEnabled } from "@/features/hoondok/flag";
 import { HoondokInstallPromptListener } from "@/features/hoondok/install/components/install-prompt-listener";

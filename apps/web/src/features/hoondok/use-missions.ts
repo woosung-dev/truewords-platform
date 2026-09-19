@@ -8,8 +8,10 @@ import type { HoondokUser } from "@/features/identity/types";
 import { markInstallEligible } from "./install/storage";
 import { type MissionKind, missionsAPI } from "./missions-api";
 import { clearPending, readPending, subscribePending, writePending } from "./pending";
+import { PROGRESS_KEYS, SUMMARY_KEY } from "./query-keys";
 
-export const SUMMARY_KEY = ["hoondok", "summary"] as const;
+// 기존 import 경로 유지 (onboarding 등). 새 코드는 ./query-keys 에서 직접 가져간다.
+export { SUMMARY_KEY };
 
 export function useSummary(isEnabled: boolean) {
   return useQuery({ queryKey: SUMMARY_KEY, queryFn: missionsAPI.summary, enabled: isEnabled, retry: 1 });
@@ -21,7 +23,7 @@ export type CompleteSource = "user" | "sync";
 
 /**
  * 미션 완료 한 번의 결과 규칙:
- * - 201 → recorded, 409(하루 1회) → already: 둘 다 완료로 보고 summary 를 다시 읽는다
+ * - 201 → recorded, 409(하루 1회) → already: 둘 다 완료로 보고 진행 상태 캐시(PROGRESS_KEYS: 요약·정성·기록)를 다시 읽는다
  * - 401 → unauthorized: 호출자가 온보딩으로 보낸다 (returnTo = 현재 경로)
  * - 그 외(오프라인·5xx) → pending-local: 로컬 완료 표시를 유지하고 다음 로그인/방문 때 소급한다
  * - recorded 이면서 출처가 user 인 첫 완료 뒤에만 설치 안내 카드가 자격을 얻는다 (Phase 3 E, 소급 제외)
@@ -46,7 +48,8 @@ export function useCompleteMission(kind: MissionKind) {
       }
     },
     onSuccess: (result, source) => {
-      if (result === "recorded" || result === "already") void queryClient.invalidateQueries({ queryKey: SUMMARY_KEY });
+      if (result === "recorded" || result === "already")
+        for (const queryKey of PROGRESS_KEYS) void queryClient.invalidateQueries({ queryKey });
       if (result === "unauthorized") redirectToOnboarding();
       if (result === "recorded" && source === "user") markInstallEligible();
     },
