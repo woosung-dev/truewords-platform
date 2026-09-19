@@ -195,6 +195,15 @@ make e2e
 | Phase | 검증 | 결과 | 날짜 |
 |---|---|---|---|
 | W0-D | `node tooling/checks/docs-links.mjs` (격리 worktree, `40c8563` 위) | 문서 188 · 링크 305 · 새 오류 0 | 2026-09-19 |
+| W0-W | web Vitest · typecheck · `pnpm hoondok:check` · `pnpm tooling:test` (머지 `1f51339`) | 120 passed(+6) · 통과 · 9파일 통과 · 24 pass. `next build` 라우트 ON/OFF 동일(런타임 `notFound` 게이트) | 2026-09-19 |
+| W0-B | pytest 전체 · `alembic heads` · `pnpm contracts:check` (머지 `2e08806`) | 1037 passed / 4 skipped / 1 xfailed(+19) · `k5a6b7c8d9e0` 단일 · oasdiff breaking 0(path 5·스키마 5 추가만) | 2026-09-19 |
+| W0-B 리뷰 | 읽기 전용 코드 리뷰(Fable) → P2 5건 보강(opus, 머지 `774140d`) | P0·P1 없음. 신규 pytest 2건(409 폴백·삭제 원자성 — 변이 테스트로 반증 가능성 실증) → 1039 passed | 2026-09-20 |
+| W1-D | web Vitest (머지 `1ba5a26`) | 137 passed(+17): jeongseong/history API·훅, `kstMonthKey`·`monthGrid`, `useDeleteMe` | 2026-09-20 |
+| W1-N·S·G·J | web Vitest · typecheck · lint · `hoondok:check` · `format:check` (4 머지 누적) | **168 passed**(+31) · 통과 · 경고 10건 전부 기존 파일 · 9파일 통과 · 273 files 통과 | 2026-09-20 |
+| W1 CSS 정리 | `.stats·.progress` 공통 승격 + 검사기 `@media` 한정 (머지 `9b70751`) | Vitest 168 유지 · tooling 26 pass · 정원 `.stats` 여백이 sheet 값(14)에 덮이던 캐스케이드 해소 | 2026-09-20 |
+| W1 E2E | `hoondok-chromium` 외부 서버 모드(dev 서버 + 격리 DB 시드) → `make e2e` 전체 | 외부 모드 17+3 passed(셀렉터 충돌 2건 수정: `role=status` 중복·"알림" 헤딩 exact). `make e2e` **60 passed / 1 failed** — 실패 1건은 설정 spec 의 "준비 중" 카운트가 프리뷰 플래그 OFF 의 탭 내비 문구까지 센 취약 단언 → `main` 스코프로 정정(`f1eeb8c`), 재실행은 W2 웨이브 끝에 함께 | 2026-09-20 |
+| W1 시각 대조 | 프로토타입 :4173 ↔ dev :3000, 390·1280 | 홈·훈독하기(오늘의 한 줄)·설정·정원·정성 시트(390 하단 시트 / 1280 중앙 모달 520px 실측) 구조·문구·순서 일치. 프로토타입 정본에 달력·시트 라디오 CSS 가 없어(`.gd-*`·`.st-*` 0건) 구현은 DES-PWA-003 §2.6·§2.7 값으로 보완 — 스크린샷은 미커밋 | 2026-09-20 |
+| W1 `make ci` 1차 | 전체 | admin `next build` 가 Google Fonts(`noto_serif_kr`) fetch 실패로 중단 — 네트워크 일시 오류(단독 재빌드 통과). 2차 실행 결과는 아래 행 | 2026-09-20 |
 
 ## 9. 결정 기록
 
