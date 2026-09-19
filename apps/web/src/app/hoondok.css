@@ -424,7 +424,43 @@
     margin-top: 12px;
   }
 
-  /* ---------- 7. 요일 스트립 ---------- */
+  /* ---------- 7. 진행 표시 (프로토타입 hoondok.css §7) ---------- */
+  /* 바깥 여백은 쓰는 화면마다 달라 여기 두지 않는다 — 프로토타입도 쓰는 쪽에서 margin-top 을 붙인다. */
+  .progress {
+    height: 8px;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .progress__fill {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: inherit;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .stats__n {
+    display: block;
+    font-size: 24px;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stats__n--accent {
+    color: var(--accent);
+  }
+  /* 라벨은 숫자 아래 줄에 둔다 (프로토타입 인라인 span 을 W1-G 가 블록으로 다듬은 값) */
+  .stats__lab {
+    display: block;
+    margin-top: 2px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+
+  /* ---------- 8. 요일 스트립 ---------- */
   .week {
     display: flex;
     align-items: center;
@@ -480,7 +516,7 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* ---------- 8. 버튼 (DES §1.5) ---------- */
+  /* ---------- 9. 버튼 (DES §1.5) ---------- */
   .btn {
     display: inline-flex;
     align-items: center;

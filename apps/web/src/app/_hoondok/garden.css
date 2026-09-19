@@ -1,5 +1,6 @@
 /* SCR-PWA-014 나의 정원 (PLAN-HD-002 W1-G). 값의 원본은 프로토타입 hoondok.css 의
-   .stats · .progress · .card · .sect 와 DES-PWA-003 §2.6 달력 치수다. 토큰만 쓰고 hex 는 두지 않는다. */
+   .card · .sect 와 DES-PWA-003 §2.6 달력 치수다. 토큰만 쓰고 hex 는 두지 않는다.
+   .stats · .progress 본체는 hoondok.css §7 공용이며 여기엔 정원 화면 여백만 둔다. */
 [data-app="hoondok"] {
   /* ---------- 프로필 : 이니셜 아바타 + 이름. 점수·등급을 두지 않는다 ---------- */
   .gd-profile {
@@ -24,46 +25,6 @@
     font-size: 17px;
     font-weight: 600;
     letter-spacing: -0.01em;
-  }
-
-  /* ---------- 누적 기록 3등분 (프로토타입 .stats) ---------- */
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-  .stats__n {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 24px;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
-  }
-  .stats__n--accent {
-    color: var(--accent);
-  }
-  .stats__lab {
-    display: block;
-    margin-top: 2px;
-    font-size: 12.5px;
-    color: var(--ink-2);
-  }
-
-  /* ---------- 진행 바 (프로토타입 .progress) : 길이와 함께 숫자도 병기한다 ---------- */
-  .progress {
-    height: 8px;
-    margin-top: 12px;
-    border-radius: var(--r-full);
-    background: var(--surface-2);
-    overflow: hidden;
-  }
-  .progress__fill {
-    display: block;
-    height: 100%;
-    background: var(--accent);
-    border-radius: inherit;
   }
 
   /* ---------- 월 달력 (DES §2.6) : 상태 원 26 × 26 + 날짜 숫자 세로 배치 ---------- */
@@ -154,6 +115,10 @@
   .gd-row__t {
     font-size: 15px;
     font-weight: 600;
+  }
+  /* 진행 바 본체는 hoondok.css §7. 제목 줄과의 간격만 정원 값(12px)으로 둔다 */
+  .gd-row + .progress {
+    margin-top: 12px;
   }
   .gd-row--meta {
     margin-top: 10px;

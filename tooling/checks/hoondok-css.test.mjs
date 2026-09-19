@@ -23,6 +23,13 @@ test("허용 밖 브레이크포인트와 폐기값을 거부한다", () => {
   assert.ok(checkSource(ok.replace("768px", "1440px")).some((f) => f.includes("1440px")));
   assert.ok(checkSource(ok.replace("#c24721", "#d4562e")).some((f) => f.includes("#d4562e")));
 });
+test("@media 안의 허용 밖 브레이크포인트는 여전히 거부한다", () => {
+  const css = `${ok}\n[data-app="hoondok"] { @media (min-width: 900px) { .t { gap: 8px; } } }`;
+  assert.ok(checkSource(css).some((f) => f.includes("900px")));
+});
+test("@media 밖 min-width 선언은 브레이크포인트로 보지 않는다", () => {
+  assert.deepEqual(checkSource(`${ok}\n[data-app="hoondok"] { .t { min-width: 24px; } }`), []);
+});
 test("실제 hoondok.css 가 통과한다", () => {
   assert.deepEqual(checkSource(readFileSync(path.join(root, HOONDOK_CSS), "utf8")), []);
 });

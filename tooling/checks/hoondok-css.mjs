@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // 훈독 CSS 스코프 검사 (PLAN-HD-001 Phase 1 sub-PR 1, DES-PWA-003 §7 · PLAN-HD-002 W0-W 화면 그룹 CSS).
-// 1) :root 선언 0  2) 첫 토큰 블록 밖 hex 색 0  3) min-width 브레이크포인트 ⊆ {768,1024,1224}  4) 폐기값 #d4562e 0
+// 1) :root 선언 0  2) 첫 토큰 블록 밖 hex 색 0  3) `@media` 의 min-width 브레이크포인트 ⊆ {768,1024,1224}  4) 폐기값 #d4562e 0
 // 메인 hoondok.css 만 토큰 블록(hex 허용 구역)을 가진다. _hoondok/*.css 는 토큰이 없어 hex 를 전부 거부하고 --accent 를 묻지 않는다.
 const root = fileURLToPath(new URL("../../", import.meta.url));
 export const HOONDOK_CSS = "apps/web/src/app/hoondok.css";
@@ -55,9 +55,12 @@ export function checkSource(source, { hasTokens = true } = {}) {
     failures.push(`폐기값 ${RETIRED_HEX} 이 있습니다 — --accent(#c24721) 로 고치세요`);
   for (const match of rest.matchAll(/#[0-9a-f]{3,8}\b/gi))
     failures.push(`토큰 블록 밖 hex 색: ${match[0]} — var() 를 쓰세요`);
-  for (const match of css.matchAll(/min-width\s*:\s*(\d+)px/g)) {
-    const px = Number(match[1]);
-    if (!ALLOWED_BREAKPOINTS.has(px)) failures.push(`허용되지 않은 브레이크포인트 ${px}px (허용: 768·1024·1224)`);
+  // 브레이크포인트는 @media 프렐류드(@media … {)만 본다. 일반 선언의 min-width(터치 타깃 등)는 대상이 아니다.
+  for (const query of css.matchAll(/@media([^{]*)\{/g)) {
+    for (const match of query[1].matchAll(/min-width\s*:\s*(\d+)px/g)) {
+      const px = Number(match[1]);
+      if (!ALLOWED_BREAKPOINTS.has(px)) failures.push(`허용되지 않은 브레이크포인트 ${px}px (허용: 768·1024·1224)`);
+    }
   }
   if (hasTokens && hasScope && !/--accent\s*:\s*#c24721/i.test(tokens))
     failures.push("--accent 는 #c24721 이어야 합니다 (DES-PWA-003 §1.1)");
