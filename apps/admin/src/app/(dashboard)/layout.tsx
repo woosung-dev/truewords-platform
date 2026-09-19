@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
   Bot,
+  CalendarDays,
   Database,
   LayoutDashboard,
   LogOut,
@@ -24,6 +25,7 @@ import { WEB_ORIGIN } from "@/lib/origins";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
   { href: "/chatbots", label: "챗봇", icon: Bot },
+  { href: "/hoondok", label: "훈독 편성", icon: CalendarDays },
   { href: "/data-sources", label: "데이터 소스", icon: Database },
   { href: "/analytics", label: "검색 분석", icon: BarChart3 },
   { href: "/feedback", label: "피드백", icon: MessageSquare },

@@ -770,6 +770,421 @@
         "title": "DailyModeCount",
         "type": "object"
       },
+      "DailyReadingAdminCreate": {
+        "description": "POST 본문. ENT-HD-002 전 컬럼(id·타임스탬프 제외). 하루 1건은 unique 가 지킨다(409).",
+        "properties": {
+          "authority_grade": {
+            "enum": [
+              "O1",
+              "O2",
+              "O3",
+              "O4",
+              "O5",
+              "R"
+            ],
+            "title": "Authority Grade",
+            "type": "string"
+          },
+          "body": {
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "chunk_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Id"
+          },
+          "edition": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edition"
+          },
+          "estimated_minutes": {
+            "default": 3,
+            "maximum": 60.0,
+            "minimum": 1.0,
+            "title": "Estimated Minutes",
+            "type": "integer"
+          },
+          "reading_date": {
+            "format": "date",
+            "title": "Reading Date",
+            "type": "string"
+          },
+          "review_status": {
+            "default": "unverified",
+            "enum": [
+              "reviewed",
+              "unverified",
+              "withdrawn"
+            ],
+            "title": "Review Status",
+            "type": "string"
+          },
+          "source_note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Note"
+          },
+          "speaker": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Speaker",
+            "type": "string"
+          },
+          "spoken_on": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spoken On"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "work_title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reading_date",
+          "title",
+          "body",
+          "speaker",
+          "work_title",
+          "authority_grade"
+        ],
+        "title": "DailyReadingAdminCreate",
+        "type": "object"
+      },
+      "DailyReadingAdminResponse": {
+        "description": "관리자 응답 — 공개 스키마와 달리 source_note·chunk_id·타임스탬프를 포함한다.",
+        "properties": {
+          "authority_grade": {
+            "enum": [
+              "O1",
+              "O2",
+              "O3",
+              "O4",
+              "O5",
+              "R"
+            ],
+            "title": "Authority Grade",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "chunk_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "edition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edition"
+          },
+          "estimated_minutes": {
+            "title": "Estimated Minutes",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reading_date": {
+            "format": "date",
+            "title": "Reading Date",
+            "type": "string"
+          },
+          "review_status": {
+            "enum": [
+              "reviewed",
+              "unverified",
+              "withdrawn"
+            ],
+            "title": "Review Status",
+            "type": "string"
+          },
+          "source_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Note"
+          },
+          "speaker": {
+            "title": "Speaker",
+            "type": "string"
+          },
+          "spoken_on": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spoken On"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reading_date",
+          "title",
+          "body",
+          "speaker",
+          "spoken_on",
+          "work_title",
+          "edition",
+          "authority_grade",
+          "review_status",
+          "source_note",
+          "chunk_id",
+          "estimated_minutes",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "DailyReadingAdminResponse",
+        "type": "object"
+      },
+      "DailyReadingAdminUpdate": {
+        "description": "PUT 본문. 보낸 필드만 바꾼다(exclude_unset). `review_status=withdrawn` 이 철회 수단이며 DELETE 는 없다.",
+        "properties": {
+          "authority_grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "O1",
+                  "O2",
+                  "O3",
+                  "O4",
+                  "O5",
+                  "R"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Grade"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "chunk_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Id"
+          },
+          "edition": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edition"
+          },
+          "estimated_minutes": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Minutes"
+          },
+          "reading_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reading Date"
+          },
+          "review_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "reviewed",
+                  "unverified",
+                  "withdrawn"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Status"
+          },
+          "source_note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Note"
+          },
+          "speaker": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker"
+          },
+          "spoken_on": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spoken On"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "work_title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Title"
+          }
+        },
+        "title": "DailyReadingAdminUpdate",
+        "type": "object"
+      },
       "DailyReadingPublic": {
         "description": "공개 필드만. source_note·chunk_id·타임스탬프는 내지 않는다.",
         "properties": {
@@ -4748,6 +5163,218 @@
         "summary": "단일 volume 영구 삭제",
         "tags": [
           "data-sources"
+        ]
+      }
+    },
+    "/admin/hoondok/daily-readings": {
+      "get": {
+        "description": "API-HD-006 편성 목록. 날짜 오름차순, 편성 없는 날은 행이 없다. 422 종료일 < 시작일 또는 366일 초과.",
+        "operationId": "list_daily_readings_admin_hoondok_daily_readings_get",
+        "parameters": [
+          {
+            "description": "시작일(KST). 기본 오늘",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "시작일(KST). 기본 오늘",
+              "title": "From"
+            }
+          },
+          {
+            "description": "종료일(포함). 기본 시작일 +14일",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "종료일(포함). 기본 시작일 +14일",
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DailyReadingAdminResponse"
+                  },
+                  "title": "Response List Daily Readings Admin Hoondok Daily Readings Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Daily Readings",
+        "tags": [
+          "admin-hoondok"
+        ]
+      },
+      "post": {
+        "description": "API-HD-007 편성 등록. 201 · 409 같은 날짜 · 422 검증.",
+        "operationId": "create_daily_reading_admin_hoondok_daily_readings_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DailyReadingAdminCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyReadingAdminResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Daily Reading",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/daily-readings/{reading_id}": {
+      "get": {
+        "description": "API-HD-006 편성 단건. 404 없음.",
+        "operationId": "get_daily_reading_admin_hoondok_daily_readings__reading_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reading_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Reading Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyReadingAdminResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Daily Reading",
+        "tags": [
+          "admin-hoondok"
+        ]
+      },
+      "put": {
+        "description": "API-HD-008 편성 수정(보낸 필드만). `review_status=withdrawn` 이 철회. 404 없음 · 409 날짜 충돌.",
+        "operationId": "update_daily_reading_admin_hoondok_daily_readings__reading_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reading_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Reading Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DailyReadingAdminUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyReadingAdminResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Daily Reading",
+        "tags": [
+          "admin-hoondok"
         ]
       }
     },

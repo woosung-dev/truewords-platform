@@ -56,7 +56,7 @@
 | `created_at` | datetime | not null | |
 | `updated_at` | datetime | not null | |
 
-- 편성 주체는 운영자 1명, N일분 수기 입력(결정 5). Phase 1 은 시드 스크립트로만 채운다. Phase 3 에서 운영 입력 수단(`POST /admin/hoondok/daily-readings` 또는 CSV)을 정한다.
+- 편성 주체는 운영자 1명, N일분 수기 입력(결정 5). Phase 1 은 시드 스크립트로만 채운다. **2026-09-19 확정(Phase 3 A):** 편성자가 비개발자라 운영 입력 수단은 `apps/admin` 편성 화면 + [API-HD-006~008](../api/hoondok-api.md)(`/admin/hoondok/daily-readings`)이다. CSV 안은 폐기, 시드는 로컬·E2E 한정. 삭제 대신 `review_status=withdrawn` 으로 철회한다.
 - `featured_malssum.json` 20건은 로컬·E2E 시드에만 쓰고 `review_status=unverified`, `source_note` 에 시드 출처를 남긴다(결정 6).
 - 화면 표시: `speaker · work_title · edition · authority_grade` 가 출처 줄, `review_status` 는 `unverified` 일 때 "확인되지 않음" 배지(`badge--dashed`).
 

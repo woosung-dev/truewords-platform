@@ -1,8 +1,8 @@
 # TODO
 
-> 마지막 업데이트: 2026-09-16 (훈독 MVP Phase 2 코드)
+> 마지막 업데이트: 2026-09-19 (훈독 MVP Phase 3 편성 트랙 A·B main 머지·backend/admin 운영 배포)
 
-> **현재 우선 작업 (2026-09-16~):** 훈독 MVP Phase 2 — [PLAN-HD-001 §5](plans/active/2026-09-17-hoondok-mvp.md). 통합 브랜치 `dev/hoondok-phase2` 에 sub-PR 5개(#277 docs · #278 identity · #279 mission_logs · #280 web · E2E). Phase 1 은 #276 으로 main 머지, 운영 미배포·플래그 OFF.
+> **현재 우선 작업 (2026-09-18~):** 훈독 MVP Phase 3 — [PLAN-HD-001 §6](plans/active/2026-09-17-hoondok-mvp.md) PWA 셸·편성 운영 수단·제한 베타. Phase 1(#276)·Phase 2(#282 → main `b70b6c8`)는 2026-09-18 운영 배포 완료(backend·web `b70b6c8`, `HOONDOK_ENABLED=0` 이라 `/hoondok/*` 404). 편성자는 2026-09-19 비개발자로 확정(A API #285 → B admin 화면). 남은 `[확인 필요]`: 약관 문구와 법적 주체.
 >
 > **이전 우선 작업:** 2안 UI 분리의 구현·로컬 검증 완료, 2026-09-05 커밋·푸시 승인. PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과를 재사용하지 않는다. 최신 로컬 증거는 [APP-UI-001](plans/active/2026-09-05-app-owned-ui.md), 최초 M1~M4 기록은 [전환 계획 §5](plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 따른다. 아래 과거 퍼센트·테스트 수치를 새 완료 증거로 사용하지 않는다. 신규 디자인·M5·Flutter·운영 배포는 비범위다.
 
@@ -208,7 +208,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - `[종결]` `DEC-MONO-003` — **2026-09-16 확정**: 이메일+비밀번호, 별도 `users` 테이블·쿠키 `hoondok_token`. 기존 데모 관리자 계정·기록은 이전하지 않는다. 비밀번호 재설정은 베타 기간 운영자 수동. [PLAN-HD-001 §1-4](plans/active/2026-09-17-hoondok-mvp.md)
 - `[확인 필요]` **훈독 메일 제공자** — 재설정·인증 메일 인프라 0건. Phase 2 는 미정 상태로 착수해 **재설정은 운영자 수동**(온보딩 도움말에 명시)으로 진행 중. 베타 전 무료 제공자 선택 또는 메일 없는 방식 유지 결정
 - `[확인 필요]` **훈독 이용약관·개인정보처리방침 문구와 법적 주체** (`DEC-PWA-001`) — Phase 2 는 **동의를 수집하지 않고 베타 고지만** 표시하며 `users.consented_at`·`consent_version` 은 NULL 예약. 운영 배포(Phase 3)·실사용자 가입 전 필수. 리드타임 최장이라 먼저 착수 권장
-- `[확인 필요]` **훈독 편성자가 비개발자인지** — Phase 2 까지는 시드(`seed_daily_readings.py`)만. 그렇다면 Phase 3 에 `apps/admin` 편성 화면 1개 추가
+- `[종결]` **훈독 편성자가 비개발자인지** — **2026-09-19 비개발자 확정**: 운영 입력 수단은 `apps/admin` 편성 화면 `/hoondok`(Phase 3 sub-PR B) + `/admin/hoondok/daily-readings` API(A #285). CSV 안 폐기, `seed_daily_readings.py` 는 로컬·E2E 한정. [PLAN-HD-001 §6·§10](plans/active/2026-09-17-hoondok-mvp.md)
 
 - `[종결]` `DEC-PWA-017` 디자인 방향 — **2026-09-14 A 아침 햇살 단독 채택**. B 저녁 등불 미채택, A+B 흡수 3항목(시간대별 홈·세리프 인용·다크 팔레트) 모두 미도입. 베타는 라이트 고정이며 다크 모드는 출시 후 재검토.
 - `[종결]` `DEC-PWA-015` 5탭 명칭 — **2026-09-14 확정**: 오늘 훈독 · AI 질문 · 말씀 · 가정예배 · **나의 정원**. 시안 HTML·스크린샷의 "나의 뜰" 표기는 09-10 산출물이며 재생성하지 않는다
@@ -280,10 +280,10 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] 세션 3 — 채택안 디자인 시스템·접근성 상태 작성 (`docs/specs/web/hoondok-design-system.md`, `DES-PWA-003`, 2026-09-15). 2026-09-16 문서 전체 승인, 레일·FAB 모순은 정정 주석
 - [x] 세션 4 — 구현 계획 [PLAN-HD-001](plans/active/2026-09-17-hoondok-mvp.md) (2026-09-16). 범위 축소: 3테이블 [ENT-HD-001~003](specs/domain/hoondok-entities.md) · 5 API [API-HD-001~005](specs/api/hoondok-api.md) · 화면 4 · Phase 1~4. 정성·챌린지·관계·설교 도메인은 비범위
 - [x] Phase 1 코드 (2026-09-16) — 통합 브랜치 `dev/hoondok-mvp`: sub-PR #272 `SEC-MONO-001` 403 / #273 web 골격·`[data-app="hoondok"]` 토큰·컴포넌트 6종·`hoondok-css.mjs`·Playwright 스모크 / #274 `daily_readings`·`GET /hoondok/today`·SDK 재생성·web 결합. 증거는 계획 §9
-- [ ] Phase 1 잔여 — 60대 사용자 3명 200% 확대 실사용 확인(섭외 필요), 운영 이미지 플래그 OFF 404 수동 확인(첫 deploy-web 때)
-- [x] Phase 2 코드 (2026-09-16) — 통합 브랜치 `dev/hoondok-phase2`: #277 계획 §5 분해표 / #278 `identity`(`users`·`/hoondok/auth/*`·쿠키 `hoondok_token`·JWT `aud=hoondok` 7일·python-jose aud 함정 명시 검사) / #279 `mission_logs`·`POST /hoondok/missions/{kind}/complete`·`GET /hoondok/me/summary`(연속일 `read` 기준) / #280 web `features/identity`·`/hoondok/onboarding` 최소형·완료·연속일 결합·비로그인 소급 / E2E 시드·시나리오·additive-only 리허설. 증거는 계획 §9
+- [ ] Phase 1 잔여 — 60대 사용자 3명 200% 확대 실사용 확인(섭외 필요), 운영 이미지 플래그 OFF 404 는 2026-09-18 `b70b6c8` deploy-web 에서 확인 완료(계획 §9)
+- [x] Phase 2 코드 (2026-09-16) — 통합 브랜치 `dev/hoondok-phase2`: #277 계획 §5 분해표 / #278 `identity`(`users`·`/hoondok/auth/*`·쿠키 `hoondok_token`·JWT `aud=hoondok` 7일·python-jose aud 함정 명시 검사) / #279 `mission_logs`·`POST /hoondok/missions/{kind}/complete`·`GET /hoondok/me/summary`(연속일 `read` 기준) / #280 web `features/identity`·`/hoondok/onboarding` 최소형·완료·연속일 결합·비로그인 소급 / E2E 시드·시나리오·additive-only 리허설. 증거는 계획 §9 · **2026-09-18 PR #282 main 머지(`b70b6c8`) + 운영 배포 backend·web(플래그 OFF)**, 증거 §9 마지막 3행
 - [ ] Phase 2 잔여 — 계정 삭제 API(`deleted_at` 예약만)·비밀번호 재설정은 베타 전 필요 여부 결정. `[확인 필요]` 3건(메일·약관·편성자)은 Questions 유지
-- [ ] Phase 3~4 — PWA 셸·운영 배포·제한 베타 → 훈독 알림 1종(조건부). 계획 §6~§7
+- [ ] Phase 3~4 — PWA 셸·편성 운영 수단·플래그 ON 배포·제한 베타 → 훈독 알림 1종(조건부). 계획 §6~§7. **편성 트랙 진행(2026-09-19)**: 통합 브랜치 `dev/hoondok-phase3`(main `b30aebd` 위), #284 분해표 · A #285 편성 API 머지 · B admin 편성 화면(`/hoondok` 오늘~+14일 표·등록·수정, 철회는 `review_status`) #286 머지 · **dev→main #287 `87db69a` 머지 + `deploy-backend`·`deploy-admin` 완료(2026-09-19, 계획 §9)**. web 은 `b70b6c8`·플래그 OFF 유지. 다음 = 편성자 운영 입력 확인 → PWA 트랙 C
 
 ### 00. 멀티턴 대화 메모리 (2026-07-08)
 > 설계: `docs/architecture/multi-turn-memory.md` (업계 조사 + 방안 A~D 비교)
