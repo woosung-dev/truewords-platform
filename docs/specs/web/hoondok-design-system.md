@@ -379,6 +379,14 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 
 ---
 
+### 2.12 설치 안내 카드 (`SCR-PWA-015` 설치 부분, 2026-09-19 PLAN-HD-001 Phase 3 E)
+
+프로토타입 015 의 `.st-install` 은 마크업만 있고 CSS·플랫폼 분기·닫기가 없어 구현이 정본이다(`apps/web/src/app/hoondok.css` `.install__*`, `apps/web/src/features/hoondok/install/`).
+
+- 구조: `.card` 안에 아이콘 박스 48px(`--accent-soft` 배경 · `--accent-strong` 글자 · `--r-sm`) + 제목 15/600 + 본문 12.5 `--ink-2` + 우측 정렬 액션 `.btn--sm`("지금 추가" primary · "나중에" line). 미션 카드(§2.1)와 같은 치수라 홈 열에서 한 장처럼 읽힌다.
+- 변형은 본문만 다르다: iOS(공유 버튼 → '홈 화면에 추가') · prompt(`beforeinstallprompt` 캡처 시 "지금 추가" 버튼) · manual(Chrome·Safari 에서 열고 브라우저 메뉴). 알림 문구는 Phase 4 라 쓰지 않는다.
+- 노출: 사용자가 직접 완료해 처음 기록된 뒤, standalone 이 아닐 때. "나중에" 는 30일 숨김, 설치 완료(`appinstalled`·prompt 수락) 뒤에는 그 브라우저에서 다시 보이지 않는다.
+
 ## 3. 접근성
 
 기준은 `REQ-PWA-014`: **390px~데스크톱, 200% 확대, WCAG 2.2 레벨 AA, 색만으로 구분 금지**.
