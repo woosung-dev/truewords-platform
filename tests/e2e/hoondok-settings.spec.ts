@@ -42,7 +42,7 @@ test("설정: 알림 준비 중 · 설치 안내 상시 · 내 데이터 삭제 
   await signUp(page, email);
 
   await page.goto("/hoondok/settings");
-  await expect(page.getByRole("heading", { name: "알림" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "알림", exact: true })).toBeVisible();
 
   // 알림 4종 · 시간 · 잠금 화면 문구는 Phase 4 전까지 전부 비활성이다
   for (const label of ["훈독하기 알림", "기도하기 알림", "가정예배 알림", "공지 알림"]) {

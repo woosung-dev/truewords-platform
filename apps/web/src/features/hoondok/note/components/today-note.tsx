@@ -63,7 +63,7 @@ export function TodayNote({ readingDate }: { readingDate: string }) {
       />
       {/* 저장 안내와 카운터는 늘 같은 줄에 있다 — "저장됨" 이 나타나고 사라져도 줄이 움직이지 않는다. */}
       <div className="hint">
-        <span role="status">{savedTick > 0 ? "저장됨" : ""}</span>
+        <span aria-live="polite">{savedTick > 0 ? "저장됨" : ""}</span>
         <span className="my-note__count">{`${text.length} / ${NOTE_MAX}`}</span>
       </div>
     </div>
