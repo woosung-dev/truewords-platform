@@ -204,6 +204,7 @@ make e2e
 | W1 E2E | `hoondok-chromium` 외부 서버 모드(dev 서버 + 격리 DB 시드) → `make e2e` 전체 | 외부 모드 17+3 passed(셀렉터 충돌 2건 수정: `role=status` 중복·"알림" 헤딩 exact). `make e2e` **60 passed / 1 failed** — 실패 1건은 설정 spec 의 "준비 중" 카운트가 프리뷰 플래그 OFF 의 탭 내비 문구까지 센 취약 단언 → `main` 스코프로 정정(`f1eeb8c`), 재실행은 W2 웨이브 끝에 함께 | 2026-09-20 |
 | W1 시각 대조 | 프로토타입 :4173 ↔ dev :3000, 390·1280 | 홈·훈독하기(오늘의 한 줄)·설정·정원·정성 시트(390 하단 시트 / 1280 중앙 모달 520px 실측) 구조·문구·순서 일치. 프로토타입 정본에 달력·시트 라디오 CSS 가 없어(`.gd-*`·`.st-*` 0건) 구현은 DES-PWA-003 §2.6·§2.7 값으로 보완 — 스크린샷은 미커밋 | 2026-09-20 |
 | W1 `make ci` 1차 | 전체 | admin `next build` 가 Google Fonts(`noto_serif_kr`) fetch 실패로 중단 — 네트워크 일시 오류(단독 재빌드 통과). 2차 실행 결과는 아래 행 | 2026-09-20 |
+| W1 `make ci` 2차 | 전체 (HEAD `f1eeb8c`) | **통과** — pytest 1039/4/1 · contracts 하위 호환 · tooling 26 · docs-links · boundaries · hoondok:check 9파일 · web Vitest 168 · admin 104 · lint 경고 web 10·admin 3 전부 기존 파일 · web·admin `next build` 성공 · typecheck | 2026-09-20 |
 
 ## 9. 결정 기록
 
