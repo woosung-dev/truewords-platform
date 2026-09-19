@@ -241,7 +241,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ### 훈독 화면 확장 PLAN-HD-002 (2026-09-19)
 - [x] W0-D 계획 문서 — [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) + README 색인 + 이 섹션. 웨이브형·로컬 통합·디자인 스킬 확정, 플래그 2개 운영 노출 0
 - [x] W0-W 웹 셸 — 2026-09-19 로컬 머지 `1f51339`. `isHoondokPreviewEnabled`·`screens.ts`·`TAB_STAGE`·앱 셸 레지스트리·`_hoondok/*.css` 8개·`--scrim`·`garden`/`settings` 자리표시·`query-keys.ts`·`hoondok-css.mjs` 확장·프리뷰 플래그 배선 3곳 ([§4 W0](plans/active/2026-09-19-hoondok-screens.md))
-- [ ] W0-B 백엔드 — `ENT-HD-004 jeongseong_periods`(alembic `k5a6b7c8d9e0`)·`API-HD-009/010/011`(정성·월 기록·계정 삭제)·SDK 재생성·additive-only 리허설 ([§4 W0](plans/active/2026-09-19-hoondok-screens.md))
+- [x] W0-B 백엔드 — 2026-09-19 로컬 머지 `2e08806`(pytest 1037/4/1). `ENT-HD-004 jeongseong_periods`(alembic `k5a6b7c8d9e0`)·`API-HD-009/010/011`(정성·월 기록·계정 삭제)·SDK 재생성·additive-only 리허설 ([§4 W0](plans/active/2026-09-19-hoondok-screens.md))
 - [ ] W1 실데이터 4화면 — 데이터 계층 → 014 나의 정원·015 설정(알림 disabled·데이터 삭제 2단계)·004 정성 시트 + 홈 카드·003 오늘의 한 줄. 웨이브 끝 `make ci`·`make e2e`·시각 대조 ([§4 W1](plans/active/2026-09-19-hoondok-screens.md))
 - [ ] W2 AI 질문 — `/hoondok/ask`·`/ask/log`·`/ask/[id]` + `read` 질문 버튼, 기존 `/chat/stream` 무기억·근거 게이트·localStorage, `TAB_STAGE.ask: live` ([§4 W2](plans/active/2026-09-19-hoondok-screens.md))
 - [ ] W3 프리뷰 셸 — `NEXT_PUBLIC_HOONDOK_PREVIEW=1` 뒤 007~009 말씀·010~013 가정예배·016 가족 fixture 셸, `hoondok-preview.spec.ts` 라우트 9개 ([§4 W3](plans/active/2026-09-19-hoondok-screens.md))
