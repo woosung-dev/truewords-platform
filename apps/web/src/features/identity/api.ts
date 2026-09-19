@@ -12,4 +12,8 @@ export const identityAPI = {
     request<UserEnvelope>("/hoondok/auth/login", { method: "POST", body: JSON.stringify(body) }),
   logout: () => request<Record<string, never>>("/hoondok/auth/logout", { method: "POST" }),
   me: () => request<UserEnvelope>("/hoondok/auth/me"),
+  /** 내 데이터 삭제 (API-HD-011) — 204 + 쿠키 삭제. 캐시·로컬 정리는 use-delete-me.ts 가 한다. */
+  deleteMe: async (): Promise<void> => {
+    await request<Record<string, never>>("/hoondok/auth/me", { method: "DELETE" });
+  },
 };
