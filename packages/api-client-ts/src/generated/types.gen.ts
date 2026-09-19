@@ -1762,6 +1762,8 @@ export type SettingsConfigResponse = {
  * SignupRequest
  *
  * 약관 문구 확정 전(DEC-PWA-001)이라 consent_version 을 받지 않는다.
+ *
+ * invite_code 는 제한 베타 게이트(Phase 3 F) 용 선택 필드 — HOONDOK_INVITE_CODE 미설정이면 무시된다.
  */
 export type SignupRequest = {
     /**
@@ -1772,6 +1774,10 @@ export type SignupRequest = {
      * Email
      */
     email: string;
+    /**
+     * Invite Code
+     */
+    invite_code?: string | null;
     /**
      * Password
      */

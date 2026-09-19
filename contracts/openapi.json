@@ -2911,7 +2911,7 @@
         "type": "object"
       },
       "SignupRequest": {
-        "description": "약관 문구 확정 전(DEC-PWA-001)이라 consent_version 을 받지 않는다.",
+        "description": "약관 문구 확정 전(DEC-PWA-001)이라 consent_version 을 받지 않는다.\n\ninvite_code 는 제한 베타 게이트(Phase 3 F) 용 선택 필드 — HOONDOK_INVITE_CODE 미설정이면 무시된다.",
         "properties": {
           "display_name": {
             "maxLength": 64,
@@ -2923,6 +2923,18 @@
             "maxLength": 255,
             "title": "Email",
             "type": "string"
+          },
+          "invite_code": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Code"
           },
           "password": {
             "maxLength": 128,

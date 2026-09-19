@@ -17,11 +17,15 @@ def _validate_email(value: str) -> str:
 
 
 class SignupRequest(BaseModel):
-    """약관 문구 확정 전(DEC-PWA-001)이라 consent_version 을 받지 않는다."""
+    """약관 문구 확정 전(DEC-PWA-001)이라 consent_version 을 받지 않는다.
+
+    invite_code 는 제한 베타 게이트(Phase 3 F) 용 선택 필드 — HOONDOK_INVITE_CODE 미설정이면 무시된다.
+    """
 
     email: str = Field(max_length=255)
     password: str = Field(min_length=8, max_length=128)
     display_name: str = Field(min_length=1, max_length=64)
+    invite_code: str | None = Field(default=None, max_length=64)
 
     _email = field_validator("email")(_validate_email)
 

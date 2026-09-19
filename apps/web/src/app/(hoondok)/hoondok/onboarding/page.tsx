@@ -1,6 +1,7 @@
 "use client";
 
 // SCR-PWA-001 온보딩 최소형 — 베타 고지 · 가입 · 로그인. 교회 선택·약관 동의 체크는 비범위(DEC-PWA-001 확정 전).
+// 초대 코드 1칸(Phase 3 F)은 선택 입력 — 서버 HOONDOK_INVITE_CODE 가 설정된 환경에서만 403 INVITE_REQUIRED 로 요구된다.
 import { useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
 import Link from "next/link";
@@ -16,6 +17,8 @@ type Mode = "signup" | "login";
 
 function messageFor(error: unknown, mode: Mode): string {
   if (error instanceof ApiError) {
+    // 403 은 CSRF 와 겹치므로 상태가 아니라 error_code 로 구분한다
+    if (error.errorCode === "INVITE_REQUIRED") return "초대 코드가 필요해요. 초대받은 코드를 확인해 주세요";
     if (error.status === 401) return "이메일 또는 비밀번호가 올바르지 않습니다";
     if (error.status === 409) return "이미 가입된 이메일이에요. 로그인해 주세요";
     if (error.status === 422)
@@ -33,6 +36,7 @@ function OnboardingForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -43,7 +47,13 @@ function OnboardingForm() {
     try {
       const { user: signedIn } =
         mode === "signup"
-          ? await identityAPI.signup({ email, password, display_name: displayName })
+          ? await identityAPI.signup({
+              email,
+              password,
+              display_name: displayName,
+              // 비워 두면 보내지 않는다 — 게이트 OFF 환경의 페이로드는 그대로다
+              ...(inviteCode.trim() ? { invite_code: inviteCode.trim() } : {}),
+            })
           : await identityAPI.login({ email, password });
       // 계정이 바뀌었으므로 이전 계정의 요약을 재사용하지 않는다. 소급 POST 는 돌아간 화면의 훅이 한다.
       queryClient.setQueryData(CURRENT_USER_KEY, signedIn);
@@ -123,6 +133,20 @@ function OnboardingForm() {
         />
         {mode === "signup" && <span className="field__help">8자 이상. 재설정은 베타 기간 운영자에게 요청해요</span>}
       </label>
+      {mode === "signup" && (
+        <label className="field">
+          <span className="field__label">초대 코드</span>
+          <input
+            name="invite_code"
+            autoComplete="off"
+            autoCapitalize="off"
+            maxLength={64}
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value)}
+          />
+          <span className="field__help">베타 초대를 받았다면 입력해요. 없으면 비워 두세요</span>
+        </label>
+      )}
       {message && (
         <p className="form__msg" role="alert">
           {message}

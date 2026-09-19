@@ -7,10 +7,20 @@ const VIEWPORTS = [
   { name: "desktop", width: 1280, height: 900 },
 ] as const;
 
+// 비로그인 방문의 `GET /hoondok/auth/me` 401 은 계약이다(API-HD-003). 쿠키가 HttpOnly 라
+// 클라이언트는 물어보기 전에 로그인 여부를 알 수 없고, 브라우저는 그 401 을 콘솔 오류로 찍는다.
+// 이 한 건만 제외하고 나머지는 그대로 0건을 단언한다 — URL 까지 맞을 때만 빼므로 다른 401 은 잡힌다.
+const EXPECTED_401 = /status of 401/;
+function isAnonymousAuthProbe(text: string, url: string) {
+  return EXPECTED_401.test(text) && url.includes("/hoondok/auth/me");
+}
+
 async function collectConsoleErrors(page: Page) {
   const errors: string[] = [];
   page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text());
+    if (message.type() !== "error") return;
+    if (isAnonymousAuthProbe(message.text(), message.location().url)) return;
+    errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
   return errors;
@@ -58,18 +68,20 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   await page.goto("/hoondok");
   // 데스크톱 홈은 앱바 h1 을 sr-only 로 접으므로 존재만 확인하고, 보이는 제목은 섹션 h2 로 본다.
   await expect(page.getByRole("heading", { name: "오늘 훈독" })).toBeAttached();
-  await expect(page.getByRole("heading", { name: "오늘 말씀" })).toBeVisible();
-  // make e2e 시드(scripts/seed_daily_readings.py)가 오늘 날짜를 채운다. 시드 데이터는 권리 확인 중(R)·미검수다.
-  const card = page.getByRole("article").first();
-  await expect(card).toBeVisible();
-  await expect(card.getByText("권리 확인 중")).toBeVisible();
-  await expect(card.getByText("확인되지 않음")).toBeVisible();
+  // 홈에는 말씀 본문이 없다 — 정본이 today 에서 `.lede` 를 숨기고 PRD SCR-PWA-002 도 미션 3종만 둔다.
+  // 오늘 말씀은 미션 카드의 제목으로만 드러나고 전문은 /hoondok/read 가 갖는다.
+  await expect(page.getByRole("heading", { name: "오늘의 실천" })).toBeVisible();
+  await expect(page.locator(".scripture")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /로그인 후 기록돼요/ })).toBeVisible();
   await page.getByRole("link", { name: /훈독하기/ }).click();
   await expect(page).toHaveURL(/\/hoondok\/read$/);
   // 훈독하기: 출처 줄(화자·저작물) + 전문 + 완료 버튼 → 비로그인이라 로컬 완료 + 로그인 링크
   await expect(page.locator(".src").first()).toContainText("참");
   await expect(page.locator(".scripture")).toBeVisible();
+  // make e2e 시드(scripts/seed_daily_readings.py)가 오늘 날짜를 채운다. 시드 데이터는 권리 확인 중(R)·미검수다.
+  const card = page.getByRole("article").first();
+  await expect(card.getByText("권리 확인 중")).toBeVisible();
+  await expect(card.getByText("확인되지 않음")).toBeVisible();
   await page.getByRole("button", { name: "훈독 완료" }).click();
   await expect(page.getByRole("status")).toContainText("오늘 훈독을 마쳤어요");
   await page.getByRole("link", { name: /로그인하면 오늘 기록이 남아요/ }).click();
@@ -94,12 +106,53 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   await expect(page.locator(".week__streak")).toContainText("연속 1일");
   await expect(page.locator(".week__day[data-today][data-done]")).toHaveCount(1);
   await expect(page.getByRole("button", { name: /훈독하기.*완료/ })).toHaveAttribute("aria-pressed", "true");
+  // 소급 동기화(sync)로 기록된 완료는 설치 안내 자격이 아니다 (Phase 3 E)
+  await expect(page.getByRole("heading", { name: /홈 화면에 추가하면/ })).toHaveCount(0);
 
   // 같은 날 재요청은 409 — 화면은 완료 유지, 요약은 그대로 1회
   const again = await page.request.post("/api/backend/hoondok/missions/read/complete", {
     headers: { "X-Requested-With": "XMLHttpRequest" },
   });
   expect(again.status()).toBe(409);
+});
+
+// Phase 3 E — 설치 안내 카드 (PLAN-HD-001 §6 E). 헤드리스 Chromium 은 beforeinstallprompt 를 발사하지 않으므로 일반 안내(manual)
+// 변형과 자격·숨김 규칙만 본다. prompt()·iOS 공유 분기는 실기기 증거(G 뒤)로 대체한다. 시드 사용자는 재실행 시 이미 완료(체크 disabled)라
+// 새 계정으로 직접 완료(user → 201 recorded)를 만든다.
+test("설치 안내: 직접 완료 뒤 홈 카드 노출 · reload 유지 · 나중에 30일 숨김", async ({ page }) => {
+  const errors = await collectConsoleErrors(page);
+  await page.goto("/hoondok/onboarding");
+  await page.getByLabel(/이름/).fill("설치");
+  await page.getByLabel(/이메일/).fill(`e2e-install-${Date.now()}@example.com`);
+  await page.getByLabel(/비밀번호/).fill("password1");
+  await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page.getByText("설치님")).toBeVisible();
+  const title = page.getByRole("heading", { name: /홈 화면에 추가하면/ });
+  await expect(title).toHaveCount(0);
+
+  // 홈 미션 카드 체크 = 직접 완료(user) → 201 recorded → 자격. 헤드리스라 prompt 미캡처 → 일반 안내(manual) 변형
+  const check = page.getByRole("button", { name: /훈독하기.*완료/ });
+  await check.click();
+  await expect(check).toHaveAttribute("aria-pressed", "true");
+  await expect(title).toBeVisible();
+  await expect(page.getByText(/브라우저 메뉴의 '홈 화면에 추가'/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "지금 추가" })).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem("hoondok:install:eligible"))).toBe("1");
+
+  await page.reload();
+  await expect(title).toBeVisible();
+
+  await page.getByRole("button", { name: "나중에" }).click();
+  await expect(title).toHaveCount(0);
+  const hiddenUntil = await page.evaluate(() => localStorage.getItem("hoondok:install:hidden-until"));
+  const hiddenDays = (Date.parse(hiddenUntil ?? "") - Date.now()) / 86_400_000;
+  expect(hiddenDays).toBeGreaterThan(29.9);
+  expect(hiddenDays).toBeLessThanOrEqual(30);
+  await page.reload();
+  await expect(title).toHaveCount(0);
+  // 비로그인 온보딩 첫 로드의 /auth/me 401 은 정상 리소스 로그다. 카드 자체의 오류(getSnapshot 캐시 경고 등)만 0 이어야 한다.
+  expect(errors.filter((message) => !/status of 401/.test(message))).toEqual([]);
 });
 
 test("시드 사용자 로그인 → 훈독 완료 → 로그아웃 → 완료 API 401", async ({ page }) => {
@@ -135,5 +188,110 @@ test("시드 사용자 로그인 → 훈독 완료 → 로그아웃 → 완료 A
     ).status(),
   ).toBe(401);
   await page.goto("/hoondok");
-  await expect(page.getByRole("heading", { name: "오늘 말씀" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "오늘의 실천" })).toBeVisible();
+});
+
+// Phase 3 C — PWA 설치 메타·정적 자산 (PLAN-HD-001 §6 C). 실기기 설치·standalone 증거는 운영 플래그 ON 뒤 G 단계다.
+test("PWA 정적 자산: manifest·아이콘 4개·self-host 폰트 200, 스코프 /hoondok, 폰트 immutable", async ({ page }) => {
+  const manifest = await page.request.get("/hoondok/manifest.webmanifest");
+  expect(manifest.status()).toBe(200);
+  expect(manifest.headers()["content-type"]).toContain("manifest+json");
+  const body = await manifest.json();
+  expect(body.scope).toBe("/hoondok");
+  expect(body.start_url).toBe("/hoondok");
+  expect(body.display).toBe("standalone");
+
+  const iconPaths: string[] = [
+    ...body.icons.map((icon: { src: string }) => icon.src),
+    "/hoondok/icons/apple-touch-icon-180.png",
+  ];
+  for (const src of iconPaths) {
+    const icon = await page.request.get(src);
+    expect(icon.status(), src).toBe(200);
+    expect(icon.headers()["content-type"], src).toContain("image/png");
+  }
+
+  const font = await page.request.get("/hoondok/fonts/PretendardVariable-1.3.9.woff2");
+  expect(font.status()).toBe(200);
+  expect(font.headers()["content-type"]).toContain("font/woff2");
+  expect(font.headers()["cache-control"]).toContain("immutable");
+});
+
+test("설치 메타는 /hoondok 에만 붙고 self-host 폰트가 실제로 로드된다 · 시연 챗 /·/login 에는 없다", async ({
+  page,
+}) => {
+  await page.goto("/hoondok");
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/hoondok/manifest.webmanifest");
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(1);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#fbfaf8");
+  await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute("content", "훈독");
+
+  // fonts.check() 는 매칭 face 가 없어도 true 라 쓰지 않는다. face 목록에서 loaded 를 직접 찾는다.
+  const fontLoaded = await page.evaluate(async () => {
+    await document.fonts.ready;
+    return Array.from(document.fonts).some(
+      (face) => face.family.includes("Pretendard Hoondok") && face.status === "loaded",
+    );
+  });
+  expect(fontLoaded).toBe(true);
+
+  for (const path of ["/", "/login"]) {
+    await page.goto(path);
+    await expect(page.locator('link[rel="manifest"]')).toHaveCount(0);
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="theme-color"]')).toHaveCount(0);
+  }
+});
+
+// Phase 3 D — 서비스워커 (PLAN-HD-001 §6 D). 오프라인 안내 폴백만, API·인증 응답 캐시 금지, 시연 챗 미제어.
+test("SW: scope /hoondok 등록 · sw.js no-cache + Service-Worker-Allowed · manifest no-cache · /login 은 미제어", async ({
+  page,
+}) => {
+  await page.goto("/hoondok");
+  const scope = await page.evaluate(() => navigator.serviceWorker.ready.then((r) => new URL(r.scope).pathname));
+  expect(scope).toBe("/hoondok");
+
+  const sw = await page.request.get("/hoondok/sw.js");
+  expect(sw.status()).toBe(200);
+  expect(sw.headers()["cache-control"]).toContain("no-cache");
+  expect(sw.headers()["service-worker-allowed"]).toBe("/hoondok");
+  expect((await page.request.get("/hoondok/manifest.webmanifest")).headers()["cache-control"]).toContain("no-cache");
+
+  // getRegistrations() 는 origin 전체를 돌려주므로 시연 챗은 "제어되지 않음" 으로 본다
+  await page.goto("/login");
+  const controlled = await page.evaluate(() => navigator.serviceWorker.controller !== null);
+  expect(controlled).toBe(false);
+});
+
+test("오프라인: /hoondok/read 이동 시 /hoondok/offline 로 폴백 렌더(hydration 오류 0) · API·온보딩 응답은 CacheStorage 에 없음", async ({
+  page,
+  context,
+}) => {
+  const errors = await collectConsoleErrors(page);
+  await page.goto("/hoondok");
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+  await page.waitForFunction(async () => (await caches.match("/hoondok/offline")) !== undefined);
+
+  await context.setOffline(true);
+  await page.goto("/hoondok/read");
+  // 안내 HTML 을 /hoondok/read URL 에 그대로 내면 앱 셸(usePathname) 이 hydration 불일치를 내므로 SW 가 자기 URL 로 보낸다
+  await expect(page).toHaveURL(/\/hoondok\/offline$/);
+  await expect(page.getByRole("heading", { name: "지금은 오프라인이에요" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "다시 시도" })).toBeVisible();
+  await context.setOffline(false);
+  expect(errors.filter((message) => /hydrat/i.test(message))).toEqual([]);
+
+  const cache = await page.evaluate(async () => {
+    const keys = await caches.keys();
+    const hits: string[] = [];
+    for (const key of keys) {
+      const bucket = await caches.open(key);
+      for (const path of ["/api/backend/hoondok/today", "/api/backend/hoondok/auth/me", "/hoondok/onboarding"]) {
+        if (await bucket.match(path)) hits.push(`${key}:${path}`);
+      }
+    }
+    return { keys, hits };
+  });
+  expect(cache.keys.filter((k) => k.startsWith("hoondok-"))).toHaveLength(1);
+  expect(cache.hits).toEqual([]);
 });

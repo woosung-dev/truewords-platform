@@ -5,6 +5,7 @@ import { ApiError } from "@truewords/api-client-ts";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { useIdentityGate } from "@/features/identity/gate";
 import type { HoondokUser } from "@/features/identity/types";
+import { markInstallEligible } from "./install/storage";
 import { type MissionKind, missionsAPI } from "./missions-api";
 import { clearPending, readPending, subscribePending, writePending } from "./pending";
 
@@ -15,17 +16,20 @@ export function useSummary(isEnabled: boolean) {
 }
 
 export type CompleteResult = "recorded" | "already" | "pending-local" | "unauthorized";
+/** 호출 출처 — 사용자가 직접 누른 완료(user)와 로그인 뒤 로컬 키 소급(sync). 설치 안내는 user 만 본다. */
+export type CompleteSource = "user" | "sync";
 
 /**
  * 미션 완료 한 번의 결과 규칙:
  * - 201 → recorded, 409(하루 1회) → already: 둘 다 완료로 보고 summary 를 다시 읽는다
  * - 401 → unauthorized: 호출자가 온보딩으로 보낸다 (returnTo = 현재 경로)
  * - 그 외(오프라인·5xx) → pending-local: 로컬 완료 표시를 유지하고 다음 로그인/방문 때 소급한다
+ * - recorded 이면서 출처가 user 인 첫 완료 뒤에만 설치 안내 카드가 자격을 얻는다 (Phase 3 E, 소급 제외)
  */
 export function useCompleteMission(kind: MissionKind) {
   const queryClient = useQueryClient();
   const { redirectToOnboarding } = useIdentityGate();
-  return useMutation<CompleteResult, never, void>({
+  return useMutation<CompleteResult, never, CompleteSource>({
     mutationFn: async () => {
       try {
         await missionsAPI.complete(kind);
@@ -41,9 +45,10 @@ export function useCompleteMission(kind: MissionKind) {
         return "pending-local";
       }
     },
-    onSuccess: (result) => {
+    onSuccess: (result, source) => {
       if (result === "recorded" || result === "already") void queryClient.invalidateQueries({ queryKey: SUMMARY_KEY });
       if (result === "unauthorized") redirectToOnboarding();
+      if (result === "recorded" && source === "user") markInstallEligible();
     },
   });
 }
@@ -66,7 +71,7 @@ export function useMissionCompletion(kind: MissionKind, user: HoondokUser | null
   useEffect(() => {
     if (isUserLoading || !user || hasSynced.current || !readPending(kind)) return;
     hasSynced.current = true;
-    complete.mutate();
+    complete.mutate("sync");
   }, [isUserLoading, user, kind, complete]);
 
   const markDone = () => {
@@ -74,7 +79,7 @@ export function useMissionCompletion(kind: MissionKind, user: HoondokUser | null
       writePending(kind);
       return;
     }
-    complete.mutate();
+    complete.mutate("user");
   };
 
   const result = complete.data;

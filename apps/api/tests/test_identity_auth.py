@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 import pytest
 from fastapi import HTTPException
+from pydantic import SecretStr
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
@@ -224,3 +225,56 @@ def test_mutations_require_xhr_header_and_validate_body(client: TestClient):
     assert client.post("/hoondok/auth/logout").status_code == 403
     assert client.post("/hoondok/auth/signup", json={**body, "password": "short"}, headers=XHR).status_code == 422
     assert client.post("/hoondok/auth/signup", json={**body, "email": "not-an-email"}, headers=XHR).status_code == 422
+
+
+# --- Phase 3 F: 제한 베타 초대 코드 게이트 (HOONDOK_INVITE_CODE) ---
+
+
+def test_signup_invite_gate_when_configured(client: TestClient, monkeypatch):
+    """설정 시: 누락·불일치 403 INVITE_REQUIRED(ErrorResponse 형식), 일치 201 + 쿠키. 게이트는 중복 409 보다 먼저.
+    로그인·로그아웃은 코드와 무관하다. 앞뒤 공백은 양쪽 모두 무시하고, 한글 코드도 비교한다."""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "hoondok_invite_code", SecretStr(" 새벽-2026 "))
+    body = {"email": "Gate@Example.com", "password": "password1", "display_name": "게이트"}
+
+    missing = client.post("/hoondok/auth/signup", json=body, headers=XHR)
+    assert missing.status_code == 403, missing.text
+    assert missing.json()["error_code"] == "INVITE_REQUIRED"
+    assert "초대 코드" in missing.json()["message"]
+    assert "request_id" in missing.json()
+    assert "set-cookie" not in missing.headers
+
+    wrong = client.post("/hoondok/auth/signup", json={**body, "invite_code": "틀린코드"}, headers=XHR)
+    assert wrong.status_code == 403 and wrong.json()["error_code"] == "INVITE_REQUIRED"
+    assert client.post("/hoondok/auth/signup", json={**body, "invite_code": "   "}, headers=XHR).status_code == 403
+
+    ok = client.post("/hoondok/auth/signup", json={**body, "invite_code": " 새벽-2026"}, headers=XHR)
+    assert ok.status_code == 201, ok.text
+    assert ok.headers["set-cookie"].startswith(f"{COOKIE_NAME}=")
+
+    # 기존 이메일 + 틀린 코드 → 403 (409 가 아니어야 이메일 존재 여부가 새지 않는다), 맞는 코드 → 409
+    assert client.post("/hoondok/auth/signup", json={**body, "invite_code": "x"}, headers=XHR).status_code == 403
+    assert client.post("/hoondok/auth/signup", json={**body, "invite_code": "새벽-2026"}, headers=XHR).status_code == 409
+
+    assert client.post("/hoondok/auth/logout", headers=XHR).status_code == 204
+    login = client.post(
+        "/hoondok/auth/login", json={"email": "gate@example.com", "password": "password1"}, headers=XHR
+    )
+    assert login.status_code == 200 and client.get("/hoondok/auth/me").status_code == 200
+
+
+@pytest.mark.parametrize("configured", [None, SecretStr(""), SecretStr("   ")], ids=["unset", "empty", "blank"])
+def test_signup_ignores_invite_code_when_gate_off(client: TestClient, monkeypatch, configured):
+    """미설정·빈 값(`HOONDOK_INVITE_CODE=` 는 SecretStr("") 로 들어온다)이면 invite_code 는 무시된다 — 로컬·E2E 기존 동작.
+    필드 자체는 스키마에 있으므로 64자 초과만 422."""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "hoondok_invite_code", configured)
+    body = {"email": "open@example.com", "password": "password1", "display_name": "열림"}
+    assert client.post("/hoondok/auth/signup", json={**body, "invite_code": "아무거나"}, headers=XHR).status_code == 201
+    assert client.post("/hoondok/auth/signup", json={**body, "email": "open2@example.com"}, headers=XHR).status_code == 201
+    too_long = client.post(
+        "/hoondok/auth/signup", json={**body, "email": "open3@example.com", "invite_code": "x" * 65}, headers=XHR
+    )
+    assert too_long.status_code == 422

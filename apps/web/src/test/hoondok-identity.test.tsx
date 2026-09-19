@@ -114,6 +114,38 @@ describe("온보딩 (SCR-PWA-001 최소형)", () => {
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
+  it("초대 코드는 가입 모드에만 있고, 입력하면 공백을 다듬어 invite_code 로 보낸다", async () => {
+    vi.mocked(identityAPI.signup).mockResolvedValueOnce({ user: USER });
+    render(wrap(<OnboardingPage />));
+    await screen.findByRole("form", { name: "가입" });
+    fireEvent.click(screen.getByRole("button", { name: "로그인" }));
+    expect(screen.queryByLabelText(/초대 코드/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
+    fireEvent.change(screen.getByLabelText(/이름/), { target: { value: "새벽" } });
+    fireEvent.change(screen.getByLabelText(/이메일/), { target: { value: "new@example.com" } });
+    fireEvent.change(screen.getByLabelText(/비밀번호/), { target: { value: "password1" } });
+    fireEvent.change(screen.getByLabelText(/초대 코드/), { target: { value: "  새벽-2026 " } });
+    fireEvent.submit(screen.getByRole("form"));
+    await waitFor(() =>
+      expect(identityAPI.signup).toHaveBeenCalledWith({
+        email: "new@example.com",
+        password: "password1",
+        display_name: "새벽",
+        invite_code: "새벽-2026",
+      }),
+    );
+  });
+
+  it("403 INVITE_REQUIRED 는 error_code 로 구분해 초대 코드 안내를 보인다", async () => {
+    vi.mocked(identityAPI.signup).mockRejectedValueOnce(
+      new ApiError(403, { error_code: "INVITE_REQUIRED", message: "초대 코드가 필요해요" }),
+    );
+    render(wrap(<OnboardingPage />));
+    await fillAndSubmit("signup");
+    expect(await screen.findByRole("alert")).toHaveTextContent("초대 코드가 필요해요. 초대받은 코드를 확인해 주세요");
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
   it("이미 로그인이면 폼 대신 계속하기·로그아웃을 보인다", async () => {
     vi.mocked(identityAPI.me).mockResolvedValue({ user: USER });
     vi.mocked(identityAPI.logout).mockResolvedValue({});
