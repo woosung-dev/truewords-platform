@@ -1,8 +1,8 @@
-# 훈독 도메인 명세 — `users` · `daily_readings` · `mission_logs`
+# 훈독 도메인 명세 — `users` · `daily_readings` · `mission_logs` · `jeongseong_periods`
 
 > 추가일: 2026-09-16 (S4, [PLAN-HD-001](../../plans/active/2026-09-17-hoondok-mvp.md) §2)
 > 관련 API: [훈독 API 명세](../api/hoondok-api.md)
-> 소유: `apps/api/app/modules/hoondok/`(daily_readings·mission_logs), `apps/api/app/modules/identity/`(users). PostgreSQL, alembic additive-only(계획 §3)
+> 소유: `apps/api/app/modules/hoondok/`(daily_readings·mission_logs·jeongseong_periods), `apps/api/app/modules/identity/`(users). PostgreSQL, alembic additive-only(계획 §3)
 
 ---
 
@@ -28,7 +28,7 @@
 | `consented_at` | datetime | null | 약관·처리방침 동의 시각. 문구 확정 전(`DEC-PWA-001` `[확인 필요]`)에는 NULL |
 | `consent_version` | varchar(32) | null | 동의한 문구 버전. 예약 컬럼 — 문구 확정 전에는 API 가 받지 않는다 |
 | `created_at` | datetime | not null | |
-| `deleted_at` | datetime | null | 소프트 삭제 예약 컬럼. 값이 있으면 로그인·`me` 모두 401. 삭제 API·물리 삭제 주기는 Phase 2 비범위 `[가정: 30일]` |
+| `deleted_at` | datetime | null | 소프트 삭제. 값이 있으면 로그인·`me` 모두 401. [API-HD-011](../api/hoondok-api.md) `DELETE /hoondok/auth/me` 가 기록하며 `email` 을 `deleted:{id}` 로 익명화해 같은 주소로 재가입할 수 있다(2026-09-19 W0-B). 물리 삭제 주기는 비범위 `[가정: 30일]` |
 
 - 인증: 별도 HttpOnly 쿠키 `hoondok_token`, JWT `aud="hoondok"`, 만료 7일(`HOONDOK_JWT_EXPIRE_MINUTES`). `admin_token` 을 읽지 않는다.
 - 이메일은 `strip().lower()` 후 저장·조회한다. 비밀번호는 bcrypt(`admin/auth.py hash_password`).
@@ -76,6 +76,30 @@
 - 연속일·최대 연속일·누적일은 저장하지 않고 `mission_logs` 의 `read` 완료일에서 계산한다(API-HD-004, `hoondok/streak.py`). 계산 기준은 KST 자정, "쉬어가기" 면제는 비범위.
 - 비로그인 상태의 체크는 클라이언트(localStorage, KST 날짜 키)에만 두고, 로그인 후 소급 기록한다(AC-016-02). API 가 날짜를 받지 않으므로 소급은 **당일만** 가능하다.
 - `user_id` 는 같은 Phase 에서 만든 `users.id` FK 다(기존 테이블과의 FK 금지 규칙과 충돌하지 않는다).
+- 계정 삭제([API-HD-011](../api/hoondok-api.md))는 본인 행을 하드 삭제한다.
+
+---
+
+## ENT-HD-004 `jeongseong_periods` — 정성 기간 (W0-B)
+
+| 필드 | 타입 | 제약 | 설명 |
+|---|---|---|---|
+| `id` | uuid | PK | |
+| `user_id` | uuid | FK `users.id`, not null, index `ix_jeongseong_periods_user_id` | |
+| `topic` | varchar(40) | not null | 정성 주제. 앞뒤 공백 제거 후 1~40자 |
+| `duration_days` | int | not null | `7` · `21` · `40`. 앱 검증(`Literal`)만, DB CHECK 없음 |
+| `started_on` | date | not null | 시작일(KST). 생성 시 오늘 ~ 오늘+30 |
+| `reminder_time` | time | null | 표시용 리마인더 시각. 푸시는 Phase 4 |
+| `status` | varchar(16) | not null, server_default `active` | `active` · `completed` · `abandoned`. PG ENUM 아님 |
+| `ended_at` | datetime | null | `completed`·`abandoned` 로 바뀐 시각(UTC) |
+| `created_at` | datetime | not null | |
+| `updated_at` | datetime | not null | 상태 전이 때 갱신 |
+| — | — | **부분 unique** `uq_jeongseong_periods_user_active` on (`user_id`) `WHERE status = 'active'` | 사용자당 진행 중 1건. `completed`·`abandoned` 행은 여러 건 남는다 |
+
+- **진행률은 저장하지 않는다.** `end_on = started_on + (duration_days - 1)`, `done_days`·`missed_days`·`remaining_days`·`percent`·`state(upcoming·active·completed)` 는 `mission_logs` 의 `read` 완료일에서 매번 계산한다(`hoondok/jeongseong.py`). `missed_days` 는 어제까지만 센다 — 오늘은 밀린 날이 아니다.
+- 상태 전이: `active → completed` 는 `end_on < today` 인 상태로 `GET/POST/DELETE /hoondok/me/jeongseong` 이 읽는 시점에 기록한다(배치 없음). `active → abandoned` 는 DELETE. 두 전이 모두 `ended_at`·`updated_at` 을 채운다. 되돌리기는 없다.
+- 부분 unique 는 SQLModel `__table_args__` 의 `Index(..., unique=True, postgresql_where=..., sqlite_where=...)` 로 선언해 aiosqlite 테스트에서도 같은 제약을 재현한다. 동시 생성 경쟁은 IntegrityError → 409.
+- 계정 삭제([API-HD-011](../api/hoondok-api.md))는 본인 행을 하드 삭제한다.
 
 ---
 
@@ -88,3 +112,4 @@
 | 2026-09-16 | `chunk_id` 는 FK 아님, 상태값은 varchar | 확정 · 계획 §3 |
 | 2026-09-16 | `users` 확정(alembic `i1e2f3a4b5c6`). `consent_version`·`deleted_at` 은 예약 컬럼 | 확정 · Phase 2 sub-PR A |
 | 2026-09-16 | `mission_logs` 확정(alembic `j3f4a5b6c7d8`). 연속일은 `read` 기준 계산, 소급은 당일만 | 확정 · Phase 2 sub-PR B |
+| 2026-09-19 | `jeongseong_periods` 확정(alembic `k5a6b7c8d9e0`). 사용자당 active 1건은 부분 unique, 상태 varchar, 진행률 미저장. `users.deleted_at` 은 API-HD-011 이 기록하고 이메일을 `deleted:{id}` 로 익명화 | 확정 · PLAN-HD-002 W0-B |
