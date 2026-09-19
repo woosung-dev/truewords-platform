@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-09-19 (훈독 MVP Phase 3 PWA 트랙 E 설치 안내 머지 #291 → F 초대 코드 sub-PR)
+> 마지막 업데이트: 2026-09-19 (훈독 Phase 3 PWA 트랙 C~G main 머지 #298 → 화면 확장 PLAN-HD-002 착수)
 
 > **현재 우선 작업 (2026-09-18~):** 훈독 MVP Phase 3 — [PLAN-HD-001 §6](plans/active/2026-09-17-hoondok-mvp.md) PWA 셸·편성 운영 수단·제한 베타. Phase 1(#276)·Phase 2(#282 → main `b70b6c8`)는 2026-09-18 운영 배포 완료(backend·web `b70b6c8`, `HOONDOK_ENABLED=0` 이라 `/hoondok/*` 404). 편성자는 2026-09-19 비개발자로 확정(A API #285 → B admin 화면). 남은 `[확인 필요]`: 약관 문구와 법적 주체.
 >
@@ -210,6 +210,8 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - `[확인 필요]` **훈독 이용약관·개인정보처리방침 문구와 법적 주체** (`DEC-PWA-001`) — Phase 2 는 **동의를 수집하지 않고 베타 고지만** 표시하며 `users.consented_at`·`consent_version` 은 NULL 예약. 운영 배포(Phase 3)·실사용자 가입 전 필수. 리드타임 최장이라 먼저 착수 권장
 - `[확인 필요]` **훈독 설치 안내 노출 조건**(Phase 3 E) — 소급 동기화 경로를 제외했으므로 첫날 가장 흔한 경로(비로그인 클릭 → 가입 → 소급)에서는 카드가 뜨지 않고 2일차 직접 완료 때 처음 뜬다. 의도면 유지, 아니면 `use-missions.ts` `onSuccess` 의 `source === "user"` 조건 1줄 제거. [PLAN-HD-001 §10](plans/active/2026-09-17-hoondok-mvp.md)
 - `[종결]` **훈독 편성자가 비개발자인지** — **2026-09-19 비개발자 확정**: 운영 입력 수단은 `apps/admin` 편성 화면 `/hoondok`(Phase 3 sub-PR B) + `/admin/hoondok/daily-readings` API(A #285). CSV 안 폐기, `seed_daily_readings.py` 는 로컬·E2E 한정. [PLAN-HD-001 §6·§10](plans/active/2026-09-17-hoondok-mvp.md)
+- `[확인 필요]` **훈독 AI 질문 전용 봇·시스템 프롬프트**(PLAN-HD-002 W2) — 기본값은 기존 기본 봇 재사용(무기억·근거 게이트·`/chat/stream` 스키마 무변경). 훈독 전용 봇·프롬프트가 필요하면 W2 착수 전 결정. [PLAN-HD-002 §9](plans/active/2026-09-19-hoondok-screens.md)
+- `[확인 필요]` **훈독 계정 삭제의 의미**(PLAN-HD-002 W0-B) — 기본값 = `users.deleted_at` 기록 + 이메일 `deleted:{id}` 익명화(재가입 허용) + 본인 `mission_logs`·`jeongseong_periods` 삭제. `users` 행 물리 삭제·보존 기간 등 다른 정책이면 W0-B 착수 전 결정. [PLAN-HD-002 §9](plans/active/2026-09-19-hoondok-screens.md)
 
 - `[종결]` `DEC-PWA-017` 디자인 방향 — **2026-09-14 A 아침 햇살 단독 채택**. B 저녁 등불 미채택, A+B 흡수 3항목(시간대별 홈·세리프 인용·다크 팔레트) 모두 미도입. 베타는 라이트 고정이며 다크 모드는 출시 후 재검토.
 - `[종결]` `DEC-PWA-015` 5탭 명칭 — **2026-09-14 확정**: 오늘 훈독 · AI 질문 · 말씀 · 가정예배 · **나의 정원**. 시안 HTML·스크린샷의 "나의 뜰" 표기는 09-10 산출물이며 재생성하지 않는다
@@ -234,7 +236,16 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ### 훈독 Phase 3 배포 준비 (2026-09-19)
 - [ ] **VM `.env` 에 `HOONDOK_INVITE_CODE=<초대 코드>` 추가 → `make deploy-backend`** — F(초대 코드 게이트) 머지 뒤 배포 세션. 비워 두면 게이트 OFF(누구나 가입). 코드 값은 초대 메시지와 함께 운영자가 정한다 [확인 필요]
-- [ ] G smoke·runbook → dev→main PR → `make deploy-web HOONDOK_ENABLED=1` → 실기기 증거(설치 prompt·iOS 공유 분기) — [PLAN-HD-001 §6](plans/active/2026-09-17-hoondok-mvp.md)
+- [ ] G smoke·runbook → dev→main PR → `make deploy-web HOONDOK_ENABLED=1` → 실기기 증거(설치 prompt·iOS 공유 분기) — [PLAN-HD-001 §6](plans/active/2026-09-17-hoondok-mvp.md) (C~G 는 #298 로 main 머지됨 — 남은 것은 배포·실기기 증거)
+
+### 훈독 화면 확장 PLAN-HD-002 (2026-09-19)
+- [x] W0-D 계획 문서 — [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) + README 색인 + 이 섹션. 웨이브형·로컬 통합·디자인 스킬 확정, 플래그 2개 운영 노출 0
+- [ ] W0-W 웹 셸 — `isHoondokPreviewEnabled`·`screens.ts`·`TAB_STAGE`·앱 셸 레지스트리·`_hoondok/*.css` 8개·`--scrim`·`garden`/`settings` 자리표시·`query-keys.ts`·`hoondok-css.mjs` 확장·프리뷰 플래그 배선 3곳 ([§4 W0](plans/active/2026-09-19-hoondok-screens.md))
+- [ ] W0-B 백엔드 — `ENT-HD-004 jeongseong_periods`(alembic `k5a6b7c8d9e0`)·`API-HD-009/010/011`(정성·월 기록·계정 삭제)·SDK 재생성·additive-only 리허설 ([§4 W0](plans/active/2026-09-19-hoondok-screens.md))
+- [ ] W1 실데이터 4화면 — 데이터 계층 → 014 나의 정원·015 설정(알림 disabled·데이터 삭제 2단계)·004 정성 시트 + 홈 카드·003 오늘의 한 줄. 웨이브 끝 `make ci`·`make e2e`·시각 대조 ([§4 W1](plans/active/2026-09-19-hoondok-screens.md))
+- [ ] W2 AI 질문 — `/hoondok/ask`·`/ask/log`·`/ask/[id]` + `read` 질문 버튼, 기존 `/chat/stream` 무기억·근거 게이트·localStorage, `TAB_STAGE.ask: live` ([§4 W2](plans/active/2026-09-19-hoondok-screens.md))
+- [ ] W3 프리뷰 셸 — `NEXT_PUBLIC_HOONDOK_PREVIEW=1` 뒤 007~009 말씀·010~013 가정예배·016 가족 fixture 셸, `hoondok-preview.spec.ts` 라우트 9개 ([§4 W3](plans/active/2026-09-19-hoondok-screens.md))
+- [ ] W4 마무리·PR — `index.ts` export·DES §8·`apps/web/AGENTS.md`·§8 완료 증거 → 사용자 승인 후 push·main PR 1개 ([§4 W4](plans/active/2026-09-19-hoondok-screens.md))
 
 ### 모노레포 전환 (2026-09-05)
 
@@ -288,7 +299,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] Phase 1 잔여 — 60대 사용자 3명 200% 확대 실사용 확인(섭외 필요), 운영 이미지 플래그 OFF 404 는 2026-09-18 `b70b6c8` deploy-web 에서 확인 완료(계획 §9)
 - [x] Phase 2 코드 (2026-09-16) — 통합 브랜치 `dev/hoondok-phase2`: #277 계획 §5 분해표 / #278 `identity`(`users`·`/hoondok/auth/*`·쿠키 `hoondok_token`·JWT `aud=hoondok` 7일·python-jose aud 함정 명시 검사) / #279 `mission_logs`·`POST /hoondok/missions/{kind}/complete`·`GET /hoondok/me/summary`(연속일 `read` 기준) / #280 web `features/identity`·`/hoondok/onboarding` 최소형·완료·연속일 결합·비로그인 소급 / E2E 시드·시나리오·additive-only 리허설. 증거는 계획 §9 · **2026-09-18 PR #282 main 머지(`b70b6c8`) + 운영 배포 backend·web(플래그 OFF)**, 증거 §9 마지막 3행
 - [ ] Phase 2 잔여 — 계정 삭제 API(`deleted_at` 예약만)·비밀번호 재설정은 베타 전 필요 여부 결정. `[확인 필요]` 3건(메일·약관·편성자)은 Questions 유지
-- [ ] Phase 3~4 — PWA 셸·편성 운영 수단·플래그 ON 배포·제한 베타 → 훈독 알림 1종(조건부). 계획 §6~§7. **편성 트랙 진행(2026-09-19)**: 통합 브랜치 `dev/hoondok-phase3`(main `b30aebd` 위), #284 분해표 · A #285 편성 API 머지 · B admin 편성 화면(`/hoondok` 오늘~+14일 표·등록·수정, 철회는 `review_status`) #286 머지 · **dev→main #287 `87db69a` 머지 + `deploy-backend`·`deploy-admin` 완료(2026-09-19, 계획 §9)**. web 은 `b70b6c8`·플래그 OFF 유지. **PWA 트랙 C 머지(2026-09-19, #289 → dev `d167494`)**: manifest(`/hoondok` 스코프, 슬래시 없음 정정)·아이콘(감귤 배경 확정)·Pretendard 가변 1종 self-host(1.96MB, `"Pretendard Hoondok"`)·설치 메타는 hoondok layout 한정·폰트 immutable 캐시. **D 머지(2026-09-19, #290 → dev `5058168`)**: `public/hoondok/sw.js`(scope `/hoondok`·`Service-Worker-Allowed`, 오프라인 안내 `/hoondok/offline` 302 폴백 + 참조 청크 precache, API·온보딩·인증 미관여, `SW_KILL` 킬스위치)·등록 컴포넌트·`sw.js`/manifest no-cache. **E 머지(2026-09-19, #291 → dev `1f4e83e`, CI Required 8/8)**: `feat/hoondok-install-guide` — `features/hoondok/install/`(`beforeinstallprompt` 캡처·iOS 공유 분기·manual 일반 안내·standalone 숨김·localStorage 3키·나중에 30일) + 홈 카드 조건 렌더(직접 완료 `recorded` 첫 발생, 소급 제외), Vitest 112·E2E 53. **F 구현 완료(E 스택, sub-PR 대기)**: `feat/hoondok-beta-gate` — `HOONDOK_INVITE_CODE` 설정 시 가입 403 `INVITE_REQUIRED`(409 보다 먼저), 온보딩 초대 코드 1칸, 계약 선택 필드 추가. 다음 = E 머지 → F rebase·머지 → G
+- [ ] Phase 3~4 — PWA 셸·편성 운영 수단·플래그 ON 배포·제한 베타 → 훈독 알림 1종(조건부). 계획 §6~§7. **편성 트랙 진행(2026-09-19)**: 통합 브랜치 `dev/hoondok-phase3`(main `b30aebd` 위), #284 분해표 · A #285 편성 API 머지 · B admin 편성 화면(`/hoondok` 오늘~+14일 표·등록·수정, 철회는 `review_status`) #286 머지 · **dev→main #287 `87db69a` 머지 + `deploy-backend`·`deploy-admin` 완료(2026-09-19, 계획 §9)**. web 은 `b70b6c8`·플래그 OFF 유지. **PWA 트랙 C 머지(2026-09-19, #289 → dev `d167494`)**: manifest(`/hoondok` 스코프, 슬래시 없음 정정)·아이콘(감귤 배경 확정)·Pretendard 가변 1종 self-host(1.96MB, `"Pretendard Hoondok"`)·설치 메타는 hoondok layout 한정·폰트 immutable 캐시. **D 머지(2026-09-19, #290 → dev `5058168`)**: `public/hoondok/sw.js`(scope `/hoondok`·`Service-Worker-Allowed`, 오프라인 안내 `/hoondok/offline` 302 폴백 + 참조 청크 precache, API·온보딩·인증 미관여, `SW_KILL` 킬스위치)·등록 컴포넌트·`sw.js`/manifest no-cache. **E 머지(2026-09-19, #291 → dev `1f4e83e`, CI Required 8/8)**: `feat/hoondok-install-guide` — `features/hoondok/install/`(`beforeinstallprompt` 캡처·iOS 공유 분기·manual 일반 안내·standalone 숨김·localStorage 3키·나중에 30일) + 홈 카드 조건 렌더(직접 완료 `recorded` 첫 발생, 소급 제외), Vitest 112·E2E 53. **F 머지**: `feat/hoondok-beta-gate` — `HOONDOK_INVITE_CODE` 설정 시 가입 403 `INVITE_REQUIRED`(409 보다 먼저), 온보딩 초대 코드 1칸, 계약 선택 필드 추가. **G 머지(#295 → dev)**: `infra/oracle-vm/smoke.sh`·`make smoke-web`·ops-check `hoondok-today`·[롤아웃 runbook](runbooks/hoondok-pwa-rollout.md). **C~G 전부 dev→main #298 `aba5240` 머지(2026-09-19)**, 후속 fix #299(SW 킬스위치 `updateViaCache`·smoke 기준). 다음 = 배포(위 "훈독 Phase 3 배포 준비": VM `.env` 초대 코드 → `deploy-backend` → `deploy-web HOONDOK_ENABLED=1` → 실기기 증거). 화면 확장은 [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md)
 
 ### 00. 멀티턴 대화 메모리 (2026-07-08)
 > 설계: `docs/architecture/multi-turn-memory.md` (업계 조사 + 방안 A~D 비교)
