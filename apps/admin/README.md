@@ -1,6 +1,6 @@
 # TrueWords 관리자 웹
 
-Next.js 16.2.2·React 19.2.4 관리자 앱이다. 사용자 채팅은 `apps/web`에서 독립 실행한다.
+Next.js 16.3.4·React 19.2.4 관리자 앱이다. 사용자 채팅은 `apps/web`에서 독립 실행한다.
 
 ## 실행
 

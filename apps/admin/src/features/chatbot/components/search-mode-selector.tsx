@@ -5,15 +5,10 @@ interface SearchModeSelectorProps {
   onChange: (mode: "cascading" | "weighted") => void;
 }
 
-export default function SearchModeSelector({
-  mode,
-  onChange,
-}: SearchModeSelectorProps) {
+export default function SearchModeSelector({ mode, onChange }: SearchModeSelectorProps) {
   return (
     <fieldset className="space-y-3">
-      <legend className="text-sm font-medium text-foreground mb-2">
-        검색 전략
-      </legend>
+      <legend className="text-sm font-medium text-foreground mb-2">검색 전략</legend>
       <label className="flex items-start gap-3 cursor-pointer rounded-lg border p-3 transition-colors hover:bg-accent/30 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
         <input
           type="radio"

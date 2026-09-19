@@ -60,9 +60,8 @@ export default function DeactivateConfirmDialog({
 
             <div id="deactivate-effect-text" className="space-y-2 text-sm">
               <p className="text-muted-foreground">
-                이 계정은 <b className="text-foreground">로그인할 수 없게</b> 됩니다.
-                계정과 대화 기록은 삭제되지 않으며, 목록에서{" "}
-                <b className="text-foreground">활성화</b>를 누르면 즉시 되돌릴 수 있습니다.
+                이 계정은 <b className="text-foreground">로그인할 수 없게</b> 됩니다. 계정과 대화 기록은 삭제되지
+                않으며, 목록에서 <b className="text-foreground">활성화</b>를 누르면 즉시 되돌릴 수 있습니다.
               </p>
             </div>
 
@@ -74,13 +73,10 @@ export default function DeactivateConfirmDialog({
               role="note"
               className="flex gap-2 rounded-lg border border-warning-border bg-warning-soft p-3 text-xs text-foreground"
             >
-              <AlertTriangle
-                className="h-4 w-4 shrink-0 mt-0.5 text-warning"
-                aria-hidden="true"
-              />
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-warning" aria-hidden="true" />
               <span>
-                이미 로그인된 세션은 즉시 끊기지 않고 최대 24시간 뒤 쿠키가 만료될 때
-                차단됩니다. 새 로그인은 지금부터 막힙니다.
+                이미 로그인된 세션은 즉시 끊기지 않고 최대 24시간 뒤 쿠키가 만료될 때 차단됩니다. 새 로그인은 지금부터
+                막힙니다.
               </span>
             </div>
           </div>

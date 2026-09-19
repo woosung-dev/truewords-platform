@@ -17,19 +17,14 @@ const HEADING_BY_KIND: Record<Exclude<ClosingTemplateKind, "off">, string> = {
   resolution: "오늘의 결의",
 };
 
-export function ClosingTemplate({
-  kind,
-  body,
-  signature,
-  className,
-}: ClosingTemplateProps) {
+export function ClosingTemplate({ kind, body, signature, className }: ClosingTemplateProps) {
   return (
     <aside
       aria-label={HEADING_BY_KIND[kind]}
       className={cn(
         "rounded-xl border-l-[3px] border-l-border-strong border border-border",
         "bg-surface-muted px-5 py-4",
-        className
+        className,
       )}
     >
       <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-accent">
@@ -40,9 +35,7 @@ export function ClosingTemplate({
         {body}
       </p>
       {signature ? (
-        <p className="mt-2 text-right text-sm text-muted-foreground italic break-keep-all">
-          — {signature}
-        </p>
+        <p className="mt-2 text-right text-sm text-muted-foreground italic break-keep-all">— {signature}</p>
       ) : null}
     </aside>
   );

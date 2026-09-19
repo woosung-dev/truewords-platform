@@ -1,8 +1,5 @@
 "use client";
 
-// 대화 기록 페이지 — 로그인 사용자의 지난 대화를 2-pane(목록 + 리딩)으로 열람하고 이어서 대화
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -16,6 +13,9 @@ import {
   Plus,
   Search,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+// 대화 기록 페이지 — 로그인 사용자의 지난 대화를 2-pane(목록 + 리딩)으로 열람하고 이어서 대화
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -91,11 +91,7 @@ export default function HistoryPage() {
   const [period, setPeriod] = useState<Period>("all");
   const [showReader, setShowReader] = useState(false); // 모바일 pane 전환
 
-  const {
-    data,
-    isLoading,
-    isError,
-  } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["chat-sessions"],
     queryFn: () => chatAPI.listSessions(),
   });
@@ -247,11 +243,7 @@ export default function HistoryPage() {
                       전체
                     </FilterChip>
                     {botOptions.map((name) => (
-                      <FilterChip
-                        key={name}
-                        active={botFilter === name}
-                        onClick={() => setBotFilter(name)}
-                      >
+                      <FilterChip key={name} active={botFilter === name} onClick={() => setBotFilter(name)}>
                         {name}
                       </FilterChip>
                     ))}
@@ -267,11 +259,7 @@ export default function HistoryPage() {
                       ["month", "이번 달"],
                     ] as [Period, string][]
                   ).map(([value, label]) => (
-                    <FilterChip
-                      key={value}
-                      active={period === value}
-                      onClick={() => setPeriod(value)}
-                    >
+                    <FilterChip key={value} active={period === value} onClick={() => setPeriod(value)}>
                       {label}
                     </FilterChip>
                   ))}
@@ -321,9 +309,7 @@ export default function HistoryPage() {
 
             {/* ── 리딩 pane ── */}
             <section
-              className={`min-w-0 flex-1 flex-col bg-card ${
-                showReader ? "flex" : "hidden sm:flex"
-              }`}
+              className={`min-w-0 flex-1 flex-col bg-card ${showReader ? "flex" : "hidden sm:flex"}`}
               aria-label="대화 내용"
             >
               {selected ? (
@@ -377,10 +363,7 @@ export default function HistoryPage() {
                           const isUser = m.role.toLowerCase() === "user";
                           const body = isUser ? m.content : stripDisclaimer(m.content);
                           return (
-                            <div
-                              key={i}
-                              className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-                            >
+                            <div key={i} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
                               <div
                                 className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                                   isUser
@@ -429,15 +412,7 @@ export default function HistoryPage() {
 }
 
 // ── 목록 항목 ───────────────────────────────────────────────
-function ThreadRow({
-  item,
-  active,
-  onSelect,
-}: {
-  item: SessionListItem;
-  active: boolean;
-  onSelect: () => void;
-}) {
+function ThreadRow({ item, active, onSelect }: { item: SessionListItem; active: boolean; onSelect: () => void }) {
   return (
     <li>
       <button
@@ -445,9 +420,7 @@ function ThreadRow({
         onClick={onSelect}
         aria-current={active ? "true" : undefined}
         className={`flex min-h-[44px] w-full flex-col items-start gap-1 rounded-lg border-l-2 px-3 py-2.5 text-left transition-colors ${
-          active
-            ? "border-accent bg-accent/10"
-            : "border-transparent hover:bg-secondary"
+          active ? "border-accent bg-accent/10" : "border-transparent hover:bg-secondary"
         }`}
       >
         <span
@@ -532,9 +505,7 @@ function EmptyAll({ onStart }: { onStart: () => void }) {
       <div className="max-w-sm rounded-xl border border-dashed bg-card p-8 text-center">
         <Inbox className="mx-auto mb-3 h-8 w-8 text-muted-foreground/60" />
         <p className="text-base font-semibold">아직 나눈 대화가 없어요</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          첫 질문을 건네보세요. 대화는 여기에 자동으로 쌓여요.
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">첫 질문을 건네보세요. 대화는 여기에 자동으로 쌓여요.</p>
         <Button onClick={onStart} className="mt-4 gap-1.5">
           <Plus className="h-4 w-4" />새 대화 시작하기
         </Button>

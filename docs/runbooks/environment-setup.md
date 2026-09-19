@@ -4,7 +4,7 @@
 
 ## 웹만 개발하기
 
-Node.js 22와 pnpm 8.15.9를 사용한다. API용 uv나 Flutter SDK는 이 경로의 필수 조건이 아니다.
+Node.js 22와 pnpm 12.3.4를 사용한다(`corepack enable` 이면 루트 `packageManager` 필드가 버전을 고른다. pnpm 10+ 는 `package.json` 의 `pnpm.*` 설정을 읽지 않으므로 overrides·allowBuilds 는 `pnpm-workspace.yaml` 에 있다). API용 uv나 Flutter SDK는 이 경로의 필수 조건이 아니다.
 
 ```bash
 # 저장소 루트

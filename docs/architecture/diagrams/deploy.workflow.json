@@ -1,0 +1,378 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "운영 배포 워크플로 (make deploy-*)",
+    "output": "docs/architecture/diagrams/deploy.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "happy-path",
+        "label": "정상 배포",
+        "focus": [
+          "pr_merge",
+          "ci_main",
+          "make_deploy",
+          "guard",
+          "ops_check",
+          "build",
+          "load",
+          "compose_up",
+          "finish"
+        ],
+        "note": "main 에 머지된 커밋만 Mac 에서 arm64 이미지로 빌드해 tgz 로 rsync 한 뒤 VM 에서 load 하고, .env 태그 한 줄로 compose 가 컨테이너를 교체한다."
+      },
+      {
+        "id": "guard",
+        "label": "가드 · 중단",
+        "focus": [
+          "ci_main",
+          "guard",
+          "guard_fail",
+          "ops_check"
+        ],
+        "note": "deploy-guard 가 HEAD ∈ origin/main 과 클린 트리를 요구한다. ops-check 는 예약 작업 상태를 보여주지만 배포를 막지 않는다."
+      },
+      {
+        "id": "rollback",
+        "label": "롤백",
+        "focus": [
+          "compose_up",
+          "unhealthy",
+          "rollback",
+          "finish"
+        ],
+        "note": "--wait 가 healthcheck 를 못 넘기면 rollback-<svc> TAG=<이전 sha> 로 같은 compose up 을 이전 이미지로 다시 돈다. prune-images 는 최신 3개와 보존 목록을 남긴다."
+      }
+    ],
+    "legend": {
+      "entries": {
+        "backend": {
+          "label": "make 단계 (Mac)"
+        },
+        "security": {
+          "label": "가드 · 중단 · 롤백"
+        },
+        "cloud": {
+          "label": "VM 작업 (ssh)"
+        },
+        "external": {
+          "label": "GitHub"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "github",
+      "label": "GitHub · main"
+    },
+    {
+      "id": "mac",
+      "label": "개발자 Mac (make)"
+    },
+    {
+      "id": "vm",
+      "label": "Oracle VM (ssh · docker)"
+    },
+    {
+      "id": "recovery",
+      "label": "중단 · 롤백",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "verified-main",
+      "label": "검증된 main",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "guard",
+      "label": "가드",
+      "fromCol": 2,
+      "toCol": 2,
+      "variant": "security"
+    },
+    {
+      "id": "build-transfer",
+      "label": "빌드 · 전송",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "switch-record",
+      "label": "교체 · 기록",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "groups": [
+    {
+      "id": "rollback_path",
+      "label": "rollback-<svc> 경로",
+      "lane": "recovery",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "security"
+    }
+  ],
+  "mainPath": [
+    "pr_merge",
+    "ci_main",
+    "make_deploy",
+    "guard",
+    "ops_check",
+    "build",
+    "load",
+    "compose_up",
+    "finish"
+  ],
+  "semanticChecks": {
+    "allowedRoots": [
+      "pr_merge"
+    ],
+    "allowedTerminals": [
+      "finish",
+      "guard_fail"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "pr_merge",
+      "lane": "github",
+      "col": 0,
+      "type": "external",
+      "label": "PR 머지 → main",
+      "sublabel": "sub-PR · 수동 검토",
+      "width": 150
+    },
+    {
+      "id": "ci_main",
+      "lane": "github",
+      "col": 1,
+      "type": "external",
+      "label": "main push CI",
+      "sublabel": "ci.yml 전체 검사 · green",
+      "width": 160
+    },
+    {
+      "id": "make_deploy",
+      "lane": "mac",
+      "col": 1,
+      "type": "backend",
+      "label": "make deploy-<svc>",
+      "sublabel": "backend · web · admin",
+      "tag": "TAG = git short sha",
+      "width": 160
+    },
+    {
+      "id": "guard",
+      "lane": "mac",
+      "col": 2,
+      "type": "security",
+      "label": "deploy-guard",
+      "sublabel": "HEAD ∈ origin/main · 클린 트리",
+      "tag": "FORCE_DEPLOY=1 → forced",
+      "width": 170
+    },
+    {
+      "id": "build",
+      "lane": "mac",
+      "col": 3,
+      "type": "backend",
+      "label": "docker buildx arm64",
+      "sublabel": "apps/<svc>/Dockerfile · build-arg",
+      "tag": "backend: alembic · uvicorn 스모크",
+      "width": 176
+    },
+    {
+      "id": "finish",
+      "lane": "mac",
+      "col": 5,
+      "type": "backend",
+      "label": "deploy.log · prune-images",
+      "sublabel": "guarded|forced · 최신 3개 보존",
+      "width": 176,
+      "tag": "배포 후 health · SSE 스모크"
+    },
+    {
+      "id": "ops_check",
+      "lane": "vm",
+      "col": 2,
+      "type": "cloud",
+      "label": "ops-check.sh",
+      "sublabel": "7 불변식 · FAIL 도 계속",
+      "tag": "FAIL/WARN → ntfy",
+      "width": 160
+    },
+    {
+      "id": "load",
+      "lane": "vm",
+      "col": 4,
+      "type": "cloud",
+      "label": "docker load (VM)",
+      "sublabel": "truewords-<svc>:<sha>",
+      "width": 150,
+      "tag": "tmp/<svc>-<sha>.tgz → 삭제"
+    },
+    {
+      "id": "compose_up",
+      "lane": "vm",
+      "col": 5,
+      "type": "cloud",
+      "label": "compose up -d --wait",
+      "sublabel": ".env <SVC>_TAG · 프론트 --no-deps",
+      "tag": "healthcheck 통과까지 대기",
+      "width": 176
+    },
+    {
+      "id": "guard_fail",
+      "lane": "recovery",
+      "col": 2,
+      "type": "security",
+      "label": "배포 중단 (exit 1)",
+      "sublabel": "main 미포함 · 더티 트리",
+      "width": 160
+    },
+    {
+      "id": "unhealthy",
+      "lane": "recovery",
+      "col": 4,
+      "type": "security",
+      "label": "--wait 실패",
+      "sublabel": "unhealthy · 재기동 반복",
+      "width": 150
+    },
+    {
+      "id": "rollback",
+      "lane": "recovery",
+      "col": 5,
+      "type": "security",
+      "label": "rollback-<svc> TAG=<sha>",
+      "sublabel": "이전 이미지 · deploy.log rollback",
+      "width": 176
+    }
+  ],
+  "edges": [
+    {
+      "id": "push-main",
+      "from": "pr_merge",
+      "to": "ci_main",
+      "label": "push main",
+      "role": "main"
+    },
+    {
+      "id": "human-run",
+      "from": "ci_main",
+      "to": "make_deploy",
+      "label": "green 확인 후 사람이 실행",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "id": "to-guard",
+      "from": "make_deploy",
+      "to": "guard",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "id": "to-ops-check",
+      "from": "guard",
+      "to": "ops_check",
+      "label": "ssh",
+      "role": "main"
+    },
+    {
+      "id": "ops-continue",
+      "from": "ops_check",
+      "to": "build",
+      "label": "경고만 · 계속",
+      "role": "main"
+    },
+    {
+      "id": "transfer",
+      "from": "build",
+      "to": "load",
+      "label": "save → tgz → rsync --partial",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "id": "switch",
+      "from": "load",
+      "to": "compose_up",
+      "label": "sed .env → up",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "id": "healthy",
+      "from": "compose_up",
+      "to": "finish",
+      "label": "healthy",
+      "role": "return"
+    },
+    {
+      "id": "guard-fail",
+      "from": "guard",
+      "to": "guard_fail",
+      "label": "가드 실패",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "id": "wait-fail",
+      "from": "compose_up",
+      "to": "unhealthy",
+      "label": "timeout · unhealthy",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "id": "to-rollback",
+      "from": "unhealthy",
+      "to": "rollback",
+      "label": "TAG=<이전 sha> 명시",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "id": "rollback-up",
+      "from": "rollback",
+      "to": "compose_up",
+      "label": "이전 태그로 up --wait",
+      "role": "return",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "가드 규칙",
+      "items": [
+        "HEAD ∈ origin/main + 클린 트리 아니면 exit 1 · FORCE_DEPLOY=1 은 forced 로 기록",
+        "ops-check 7건은 경고만 — 배포를 막지 않는다"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "전송 · 교체",
+      "items": [
+        "레지스트리 없음: docker save → 로컬 tgz → rsync --partial --inplace → VM docker load(단계별 재실행 가능)",
+        ".env <SVC>_TAG 만 sed → compose up -d --wait, 프론트는 --no-deps"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "기록 · 복구",
+      "items": [
+        "deploy.log: UTC · deploy|rollback · svc · TAG · guarded|forced|manual",
+        "prune-images 최신 3개·보존 목록 유지 · rollback-<svc> 는 TAG=<이전 sha> 필수"
+      ]
+    }
+  ]
+}

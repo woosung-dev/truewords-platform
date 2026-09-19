@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "채팅 요청 시퀀스 (SSE)",
+    "output": "docs/04_architecture/diagrams/chat-request.html",
+    "quality_profile": "showcase",
+    "viewBox": [1085, 640],
+    "views": [
+      {
+        "id": "request",
+        "label": "요청 · 검증",
+        "focus": ["web", "next", "api", "safety"],
+        "note": "브라우저의 상대 경로 호출을 Next 서버가 backend로 프록시하고, rate limit과 입력 검증이 먼저 돈다."
+      },
+      {
+        "id": "cache",
+        "label": "임베딩 · 캐시",
+        "focus": ["api", "gemini", "qdrant", "pg"],
+        "note": "캐시 히트면 검색·생성 없이 즉시 반환한다. 이 그림은 miss 경로를 따른다."
+      },
+      {
+        "id": "search-generate",
+        "label": "검색 · 생성",
+        "focus": ["api", "safety", "gemini", "qdrant", "next", "web"],
+        "note": "하이브리드 검색·intent별 리랭크 뒤 생성 chunk를 검사하고 Next를 거쳐 UI로 스트리밍한다."
+      },
+      {
+        "id": "persist",
+        "label": "후처리 · 종료",
+        "focus": ["api", "gemini", "pg", "qdrant", "next", "web"],
+        "note": "독립 후처리를 병렬 실행하고 영속화·캐시 저장 뒤 sources와 done을 Next 경유로 보낸다."
+      }
+    ],
+    "column_fit": "spread"
+  },
+  "participants": [
+    {"id": "web", "type": "frontend", "label": "채팅 UI", "sublabel": "admin (chat) 라우트"},
+    {"id": "next", "type": "frontend", "label": "Next 서버", "sublabel": "rewrites 프록시"},
+    {"id": "api", "type": "backend", "label": "FastAPI", "sublabel": "/chat/stream"},
+    {"id": "safety", "type": "security", "label": "Safety", "sublabel": "입력 · 출력 검사"},
+    {"id": "gemini", "type": "external", "label": "Gemini", "sublabel": "3.5-flash-lite"},
+    {"id": "qdrant", "type": "database", "label": "Qdrant", "sublabel": "raw HTTP/1.1"},
+    {"id": "pg", "type": "database", "label": "PostgreSQL", "sublabel": "asyncpg"}
+  ],
+  "messages": [
+    {"id": "post-stream", "from": "web", "to": "next", "y": 160, "label": "POST /api/chat/stream", "variant": "emphasis"},
+    {"id": "proxy", "from": "next", "to": "api", "y": 188, "label": "→ backend:8080/chat/stream", "variant": "emphasis"},
+    {"id": "guard", "from": "api", "to": "safety", "y": 216, "label": "rate limit 20/60s · injection 검사", "variant": "security"},
+    {"id": "session", "from": "api", "to": "pg", "y": 244, "label": "세션 조회/생성 · user 메시지 INSERT"},
+    {"id": "embed", "from": "api", "to": "gemini", "y": 272, "label": "embed_content · RETRIEVAL_QUERY · 1536-dim"},
+    {"id": "cache-check", "from": "api", "to": "qdrant", "y": 300, "label": "semantic_cache 조회 (≥ 0.88) → miss"},
+    {"id": "intent-rewrite", "from": "api", "to": "gemini", "y": 328, "label": "intent 분류 · query rewrite", "variant": "dashed"},
+    {"id": "hybrid-search", "from": "api", "to": "qdrant", "y": 356, "label": "hybrid search · dense+sparse RRF · top-50", "variant": "emphasis"},
+    {"id": "rerank", "from": "api", "to": "gemini", "y": 384, "label": "LLM rerank → factoid 15 · conceptual 12 · reasoning 8", "variant": "dashed"},
+    {"id": "generate", "from": "api", "to": "gemini", "y": 412, "label": "generate_content_stream · hard timeout 60s", "variant": "emphasis"},
+    {"id": "sse-chunk-proxy", "from": "api", "to": "next", "y": 440, "label": "SSE sanitized chunk × N", "variant": "return"},
+    {"id": "sse-chunk-ui", "from": "next", "to": "web", "y": 464, "label": "SSE chunk × N", "variant": "return"},
+    {"id": "persist", "from": "api", "to": "pg", "y": 492, "label": "assistant · search_event · citations COMMIT"},
+    {"id": "sse-done-proxy", "from": "api", "to": "next", "y": 520, "label": "SSE sources · done", "variant": "return"},
+    {"id": "sse-done-ui", "from": "next", "to": "web", "y": 544, "label": "SSE sources · done", "variant": "return"}
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "실제 네트워크 경로",
+      "items": [
+        "요청·SSE: 채팅 UI ↔ Next rewrites ↔ FastAPI",
+        "채팅 UI와 대시보드는 같은 Next.js 앱의 라우트 그룹"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "조기 종료",
+      "items": [
+        "캐시 hit(≥ 0.88): 검색·생성 없이 반환, assistant 메시지만 저장",
+        "meta intent: 검색·리랭크·생성 없이 SafetyOutput 뒤 안내 답변 저장"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "튜닝 · 후처리",
+      "items": [
+        "rerank off 10개 · on intent별 15/12/8개; intent 2.0s · rewrite 1.5s",
+        "chunk sanitizer · SafetyOutput → followups 3.0s/closing 0.5s 병렬 → Persist → cache upsert"
+      ]
+    }
+  ]
+}

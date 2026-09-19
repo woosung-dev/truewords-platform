@@ -1,14 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  dataAPI,
-  dataSourceCategoryAPI,
-} from "./api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { dataAPI, dataSourceCategoryAPI } from "./api";
 import type {
-  DataSourceCategory,
   CategoryDocumentStats,
+  DataSourceCategory,
   IngestionJobInfo,
-  VolumeTagRequest,
   VolumeInfo,
+  VolumeTagRequest,
   VolumeTagsBulkRequest,
 } from "./types";
 
@@ -74,15 +71,13 @@ export function useAllVolumes() {
 
 export function useAddVolumeTagsBulk() {
   return useMutation({
-    mutationFn: (data: VolumeTagsBulkRequest) =>
-      dataSourceCategoryAPI.addVolumeTagsBulk(data),
+    mutationFn: (data: VolumeTagsBulkRequest) => dataSourceCategoryAPI.addVolumeTagsBulk(data),
   });
 }
 
 export function useRemoveVolumeTagsBulk() {
   return useMutation({
-    mutationFn: (data: VolumeTagsBulkRequest) =>
-      dataSourceCategoryAPI.removeVolumeTagsBulk(data),
+    mutationFn: (data: VolumeTagsBulkRequest) => dataSourceCategoryAPI.removeVolumeTagsBulk(data),
   });
 }
 

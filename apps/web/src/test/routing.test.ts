@@ -11,10 +11,12 @@ describe("독립 앱 라우팅", () => {
     vi.resetModules();
     const { default: config } = await import("../../next.config");
     const rewrites = await config.rewrites?.();
-    expect(rewrites).toEqual(expect.arrayContaining([
-      { source: "/api/backend/:path*", destination: "http://fixture-api:8000/:path*" },
-      { source: "/api/chat/messages/:path*", destination: "http://fixture-api:8000/api/chat/messages/:path*" },
-      { source: "/api/chat/:path*", destination: "http://fixture-api:8000/chat/:path*" },
-    ]));
+    expect(rewrites).toEqual(
+      expect.arrayContaining([
+        { source: "/api/backend/:path*", destination: "http://fixture-api:8000/:path*" },
+        { source: "/api/chat/messages/:path*", destination: "http://fixture-api:8000/api/chat/messages/:path*" },
+        { source: "/api/chat/:path*", destination: "http://fixture-api:8000/chat/:path*" },
+      ]),
+    );
   });
 });

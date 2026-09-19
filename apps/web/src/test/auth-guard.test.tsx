@@ -1,6 +1,7 @@
 // AuthGuard 인증/관리자 게이트 동작 테스트 (시연 한시 requireAdmin 모드 포함)
-import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // next/navigation mock
 const mockReplace = vi.fn();
@@ -21,8 +22,8 @@ vi.mock("@/features/auth/api", () => ({
 }));
 
 import { authAPI } from "@/features/auth/api";
-import { ApiError } from "@/lib/api";
 import AuthGuard from "@/features/auth/components/auth-guard";
+import { ApiError } from "@/lib/api";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -30,14 +31,12 @@ beforeEach(() => {
 
 describe("AuthGuard", () => {
   it("미인증(401) 시 /login으로 리다이렉트한다", async () => {
-    vi.mocked(authAPI.me).mockRejectedValueOnce(
-      new ApiError(401, { message: "인증이 필요합니다" })
-    );
+    vi.mocked(authAPI.me).mockRejectedValueOnce(new ApiError(401, { message: "인증이 필요합니다" }));
 
     render(
       <AuthGuard>
         <p>children</p>
-      </AuthGuard>
+      </AuthGuard>,
     );
 
     await waitFor(() => {
@@ -56,7 +55,7 @@ describe("AuthGuard", () => {
     render(
       <AuthGuard>
         <p>children</p>
-      </AuthGuard>
+      </AuthGuard>,
     );
 
     await waitFor(() => {
@@ -65,17 +64,13 @@ describe("AuthGuard", () => {
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
-
-
   it("일시 오류(5xx)는 /login으로 보내지 않고 재시도 UI를 렌더한다", async () => {
-    vi.mocked(authAPI.me).mockRejectedValueOnce(
-      new ApiError(502, { message: "Bad Gateway" })
-    );
+    vi.mocked(authAPI.me).mockRejectedValueOnce(new ApiError(502, { message: "Bad Gateway" }));
 
     render(
       <AuthGuard>
         <p>children</p>
-      </AuthGuard>
+      </AuthGuard>,
     );
 
     await waitFor(() => {
@@ -95,5 +90,4 @@ describe("AuthGuard", () => {
       expect(screen.getByText("children")).toBeInTheDocument();
     });
   });
-
 });

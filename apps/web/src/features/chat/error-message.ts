@@ -34,21 +34,18 @@ export function toFriendlyError(e: unknown): FriendlyError {
         };
       case "SEARCH_FAILED":
         return {
-          content:
-            "검색 서비스에 일시적 장애가 발생했어요. 잠시 후 다시 시도해주세요.",
+          content: "검색 서비스에 일시적 장애가 발생했어요. 잠시 후 다시 시도해주세요.",
         };
       case "EMBEDDING_FAILED":
         return {
-          content:
-            "검색 준비 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
+          content: "검색 준비 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
         };
       case "UNAUTHORIZED":
         return { content: "다시 로그인이 필요해요." };
       case "INTERNAL_ERROR":
       default:
         return {
-          content:
-            "일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
+          content: "일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
         };
     }
   }

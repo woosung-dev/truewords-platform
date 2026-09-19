@@ -9,5 +9,6 @@
 | `engineering/` | 사고·정적 조사·PR 결과처럼 시점에 종속되는 기록 |
 | `beta-2026/` | 종료된 체험단의 설문·HTML 보고서, 상호 참조 묶음 유지 |
 | `superpowers/`, `dev-log/`, 루트의 GCP 관련 파일 | 이미 보관/폐기했던 원본과 옛 환경 가이드 |
+| `diagrams-2026-09-04/` | 분리 전(통합 admin/backend, main `94755c7`) archify 다이어그램 6종의 JSON 원본. 당시 HTML/PNG 는 git 이력(`5cb30b5` 이전 `docs/architecture/diagrams/`)에 있고, 현재 구조 그림은 [architecture/diagrams](../architecture/diagrams/README.md) |
 
 `plans/completed/`로 옮기지 않은 것은 실패 판정이 아니라 **현재 완료 증거를 다시 확인하지 않았기 때문**이다. 기존 문서 번호와 파일별 이전 위치는 [manifest](../architecture/2026-09-05-document-migration-manifest.json)에 기록했다.

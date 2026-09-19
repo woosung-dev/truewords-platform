@@ -3,50 +3,230 @@
   "diagram_type": "lifecycle",
   "meta": {
     "title": "IngestionJob 상태 라이프사이클",
-    "output": "docs/04_architecture/diagrams/ingestion-job.html",
+    "output": "docs/architecture/diagrams/ingestion-job.html",
     "quality_profile": "showcase",
-    "viewBox": [980, 566],
+    "viewBox": [
+      980,
+      566
+    ],
     "views": [
       {
         "id": "happy-path",
         "label": "정상 적재",
-        "focus": ["pending", "strategy", "running", "ingesting", "completed"],
+        "focus": [
+          "pending",
+          "strategy",
+          "running",
+          "ingesting",
+          "completed"
+        ],
         "note": "PENDING에서 정책을 결정하고 RUNNING 체크포인트를 거쳐 COMPLETED로 끝난다."
       },
       {
         "id": "duplicate-policy",
         "label": "재업로드 정책",
-        "focus": ["strategy", "completed", "partial", "failed", "pending", "running"],
+        "focus": [
+          "strategy",
+          "completed",
+          "partial",
+          "failed",
+          "pending",
+          "running"
+        ],
         "note": "hash가 같으면 skip하고, 완료본은 reset하며, 중단본은 저장된 Qdrant point 수부터 재개한다."
       },
       {
         "id": "failure-recovery",
         "label": "실패 · 복구",
-        "focus": ["ingesting", "partial", "failed", "pending"],
+        "focus": [
+          "ingesting",
+          "partial",
+          "failed",
+          "pending"
+        ],
         "note": "PARTIAL과 FAILED는 종료 상태지만 관리자 재업로드가 실제 복구 전이를 만든다."
       }
     ]
   },
   "lanes": [
-    {"id": "main", "label": "적재 단계"},
-    {"id": "terminal", "label": "중단 · 복구"}
+    {
+      "id": "main",
+      "label": "적재 단계"
+    },
+    {
+      "id": "terminal",
+      "label": "중단 · 복구"
+    }
   ],
   "states": [
-    {"id": "pending", "type": "start", "label": "PENDING", "sublabel": "upsert_pending", "lane": "main", "col": 0, "step": "01", "tag": "status"},
-    {"id": "strategy", "type": "decision", "label": "재업로드 정책", "sublabel": "duplicate policy", "lane": "main", "col": 1, "step": "02", "tag": "ADR-30"},
-    {"id": "running", "type": "active", "label": "RUNNING", "sublabel": "start_run · hash", "lane": "main", "col": 2, "step": "03", "tag": "status"},
-    {"id": "ingesting", "type": "active", "label": "배치 embed · upsert", "sublabel": "update_progress · 50 pt", "lane": "main", "col": 3, "step": "04", "tag": "checkpoint"},
-    {"id": "completed", "type": "success", "label": "COMPLETED", "sublabel": "complete_job", "lane": "main", "col": 4, "step": "05", "tag": "status"},
-    {"id": "failed", "type": "failure", "label": "FAILED", "sublabel": "empty · exception", "lane": "terminal", "col": 0, "yOffset": -66, "tag": "retry"},
-    {"id": "partial", "type": "failure", "label": "PARTIAL", "sublabel": "429 · 3 retries", "lane": "terminal", "col": 1, "yOffset": -66, "tag": "resume"}
+    {
+      "id": "pending",
+      "type": "start",
+      "label": "PENDING",
+      "sublabel": "upsert_pending",
+      "lane": "main",
+      "col": 0,
+      "step": "01",
+      "tag": "status"
+    },
+    {
+      "id": "strategy",
+      "type": "decision",
+      "label": "재업로드 정책",
+      "sublabel": "duplicate policy",
+      "lane": "main",
+      "col": 1,
+      "step": "02",
+      "tag": "ADR-30"
+    },
+    {
+      "id": "running",
+      "type": "active",
+      "label": "RUNNING",
+      "sublabel": "start_run · hash",
+      "lane": "main",
+      "col": 2,
+      "step": "03",
+      "tag": "status"
+    },
+    {
+      "id": "ingesting",
+      "type": "active",
+      "label": "배치 embed · upsert",
+      "sublabel": "update_progress · 50 pt",
+      "lane": "main",
+      "col": 3,
+      "step": "04",
+      "tag": "checkpoint"
+    },
+    {
+      "id": "completed",
+      "type": "success",
+      "label": "COMPLETED",
+      "sublabel": "complete_job",
+      "lane": "main",
+      "col": 4,
+      "step": "05",
+      "tag": "status"
+    },
+    {
+      "id": "failed",
+      "type": "failure",
+      "label": "FAILED",
+      "sublabel": "empty · exception",
+      "lane": "terminal",
+      "col": 0,
+      "yOffset": -66,
+      "tag": "retry"
+    },
+    {
+      "id": "partial",
+      "type": "failure",
+      "label": "PARTIAL",
+      "sublabel": "429 · 3 retries",
+      "lane": "terminal",
+      "col": 1,
+      "yOffset": -66,
+      "tag": "resume"
+    }
   ],
   "transitions": [
-    {"id": "skip", "from": "strategy", "to": "completed", "label": "skip · COMPLETED · hash 일치", "variant": "dashed", "route": "top-channel"},
-    {"id": "empty-failed", "from": "pending", "to": "failed", "label": "빈 텍스트", "variant": "security", "fromSide": "bottom", "toSide": "top", "via": [[94, 350], [402, 350]], "labelAt": [245, 335]},
-    {"id": "to-failed", "from": "ingesting", "to": "failed", "label": "처리 예외", "variant": "security", "fromSide": "left", "toSide": "right", "via": [[479, 157], [479, 413]], "labelAt": [435, 270]},
-    {"id": "to-partial", "from": "ingesting", "to": "partial", "label": "429 retry 소진", "variant": "security", "route": "straight", "labelAt": [556, 210]},
-    {"id": "failed-reupload", "from": "failed", "to": "pending", "label": "관리자 재업로드 · 재시작", "variant": "emphasis", "route": "left-channel", "fromSide": "left", "toSide": "left", "channelX": 18, "labelAt": [170, 385]},
-    {"id": "partial-resume", "from": "partial", "to": "ingesting", "label": "재업로드 · Qdrant point 수부터", "variant": "emphasis", "route": "right-channel", "fromSide": "right", "toSide": "right", "channelX": 632, "labelAt": [740, 335]}
+    {
+      "id": "skip",
+      "from": "strategy",
+      "to": "completed",
+      "label": "skip · COMPLETED · hash 일치",
+      "variant": "dashed",
+      "route": "top-channel"
+    },
+    {
+      "id": "empty-failed",
+      "from": "pending",
+      "to": "failed",
+      "label": "빈 텍스트",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          94,
+          350
+        ],
+        [
+          402,
+          350
+        ]
+      ],
+      "labelAt": [
+        245,
+        335
+      ]
+    },
+    {
+      "id": "to-failed",
+      "from": "ingesting",
+      "to": "failed",
+      "label": "처리 예외",
+      "variant": "security",
+      "fromSide": "left",
+      "toSide": "right",
+      "via": [
+        [
+          479,
+          157
+        ],
+        [
+          479,
+          413
+        ]
+      ],
+      "labelAt": [
+        435,
+        270
+      ]
+    },
+    {
+      "id": "to-partial",
+      "from": "ingesting",
+      "to": "partial",
+      "label": "429 retry 소진",
+      "variant": "security",
+      "route": "straight",
+      "labelAt": [
+        556,
+        210
+      ]
+    },
+    {
+      "id": "failed-reupload",
+      "from": "failed",
+      "to": "pending",
+      "label": "관리자 재업로드 · 재시작",
+      "variant": "emphasis",
+      "route": "left-channel",
+      "fromSide": "left",
+      "toSide": "left",
+      "channelX": 18,
+      "labelAt": [
+        170,
+        385
+      ]
+    },
+    {
+      "id": "partial-resume",
+      "from": "partial",
+      "to": "ingesting",
+      "label": "재업로드 · Qdrant point 수부터",
+      "variant": "emphasis",
+      "route": "right-channel",
+      "fromSide": "right",
+      "toSide": "right",
+      "channelX": 632,
+      "labelAt": [
+        740,
+        335
+      ]
+    }
   ],
   "cards": [
     {

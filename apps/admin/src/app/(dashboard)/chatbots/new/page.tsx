@@ -1,15 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
-
-import { chatbotAPI } from "@/features/chatbot/api";
-import {
-  ChatbotForm,
-  type ChatbotFormValues,
-} from "@/features/chatbot/components/chatbot-form";
 import { ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { chatbotAPI } from "@/features/chatbot/api";
+import { ChatbotForm, type ChatbotFormValues } from "@/features/chatbot/components/chatbot-form";
 
 export default function NewChatbotPage() {
   const router = useRouter();
@@ -41,9 +37,7 @@ export default function NewChatbotPage() {
       </button>
 
       <h1 className="text-2xl font-bold tracking-tight">새 챗봇 만들기</h1>
-      <p className="text-sm text-muted-foreground pb-4">
-        새로운 AI 챗봇의 기본 설정을 구성합니다
-      </p>
+      <p className="text-sm text-muted-foreground pb-4">새로운 AI 챗봇의 기본 설정을 구성합니다</p>
 
       <ChatbotForm
         mode="create"

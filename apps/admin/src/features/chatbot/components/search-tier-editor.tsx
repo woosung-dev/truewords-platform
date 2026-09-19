@@ -1,10 +1,10 @@
 "use client";
 
+import { ChevronDown, ChevronUp, GripVertical, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { ChevronUp, ChevronDown, X, Plus, GripVertical } from "lucide-react";
 import type { SearchTier } from "@/features/chatbot/types";
 import { useSearchableCategories } from "@/features/data-source/hooks";
 
@@ -13,18 +13,12 @@ interface SearchTierEditorProps {
   onChange: (tiers: SearchTier[]) => void;
 }
 
-export default function SearchTierEditor({
-  tiers,
-  onChange,
-}: SearchTierEditorProps) {
+export default function SearchTierEditor({ tiers, onChange }: SearchTierEditorProps) {
   const { data: categories = [] } = useSearchableCategories();
 
   function addTier() {
     const defaultSource = categories[0]?.key ?? "A";
-    onChange([
-      ...tiers,
-      { sources: [defaultSource], min_results: 3, score_threshold: 0.1 },
-    ]);
+    onChange([...tiers, { sources: [defaultSource], min_results: 3, score_threshold: 0.1 }]);
   }
 
   function removeTier(index: number) {
@@ -64,9 +58,7 @@ export default function SearchTierEditor({
   if (tiers.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-6 text-center space-y-3">
-        <p className="text-sm text-muted-foreground">
-          검색 티어가 없습니다. 티어를 추가해주세요.
-        </p>
+        <p className="text-sm text-muted-foreground">검색 티어가 없습니다. 티어를 추가해주세요.</p>
         <Button variant="outline" size="sm" onClick={addTier}>
           <Plus className="w-3.5 h-3.5 mr-1.5" />
           티어 추가
@@ -78,19 +70,14 @@ export default function SearchTierEditor({
   return (
     <div className="space-y-3">
       {tiers.map((tier, index) => (
-        <div
-          key={index}
-          className="rounded-xl border bg-admin-muted/20 overflow-hidden"
-        >
+        <div key={index} className="rounded-xl border bg-admin-muted/20 overflow-hidden">
           {/* 티어 헤더 */}
           <div className="flex items-center justify-between px-4 py-2.5 bg-admin-muted/40 border-b">
             <div className="flex items-center gap-2">
               <GripVertical className="w-4 h-4 text-muted-foreground/50" />
               <span className="text-sm font-medium">Tier {index + 1}</span>
               {index === 0 && (
-                <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                  최우선
-                </span>
+                <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">최우선</span>
               )}
             </div>
             <div className="flex items-center gap-0.5">
@@ -129,9 +116,7 @@ export default function SearchTierEditor({
           <div className="px-4 py-4 space-y-4">
             {/* 데이터 소스 토글 */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">
-                데이터 소스
-              </Label>
+              <Label className="text-xs text-muted-foreground">데이터 소스</Label>
               <div className="flex gap-1.5">
                 {categories.map((cat) => {
                   const isSelected = tier.sources.includes(cat.key);
@@ -154,19 +139,14 @@ export default function SearchTierEditor({
               <p className="text-xs text-muted-foreground">
                 선택된 소스:{" "}
                 <span className="font-medium">
-                  {tier.sources
-                    .map((s) => categories.find((c) => c.key === s)?.name ?? s)
-                    .join(", ")}
+                  {tier.sources.map((s) => categories.find((c) => c.key === s)?.name ?? s).join(", ")}
                 </span>
               </p>
             </div>
 
             {/* 최소 결과 수 */}
             <div className="space-y-1.5">
-              <Label
-                htmlFor={`min-results-${index}`}
-                className="text-xs text-muted-foreground"
-              >
+              <Label htmlFor={`min-results-${index}`} className="text-xs text-muted-foreground">
                 최소 결과 수
                 <span className="ml-1 text-[10px] text-muted-foreground/70">
                   (이 티어에서 최소 몇 개가 나와야 통과)
@@ -180,10 +160,7 @@ export default function SearchTierEditor({
                 value={tier.min_results}
                 onChange={(e) =>
                   updateTier(index, {
-                    min_results: Math.max(
-                      1,
-                      Math.min(20, Number(e.target.value) || 1)
-                    ),
+                    min_results: Math.max(1, Math.min(20, Number(e.target.value) || 1)),
                   })
                 }
                 className="w-24 h-8 text-sm"

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { ApiError, createApiClient } from "./index";
 import { getMeAdminAuthMeGet, loginAdminAuthLoginPost } from "./generated/sdk.gen";
+import { ApiError, createApiClient } from "./index";
 
 function setup(response: Response) {
   const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(response);
@@ -31,15 +31,23 @@ describe("공유 REST transport", () => {
   for (const status of [401, 403, 422, 500]) {
     it(`${status}의 상태·오류 코드·추적 ID를 보존한다`, async () => {
       const onUnauthorized = vi.fn();
-      const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(Response.json({ error_code: "TEST", message: "실패", request_id: "req-1" }, { status }));
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValue(Response.json({ error_code: "TEST", message: "실패", request_id: "req-1" }, { status }));
       const api = createApiClient({ fetch, onUnauthorized });
       await expect(api.request("/test")).rejects.toMatchObject({ status, errorCode: "TEST", requestId: "req-1" });
       expect(onUnauthorized).toHaveBeenCalledTimes(status === 401 ? 1 : 0);
     });
   }
   it("비JSON 오류·빈 오류에서도 HTTP 상태와 헤더 추적 ID를 보존한다", async () => {
-    const { api } = setup(new Response("upstream unavailable", { status: 502, headers: { "x-request-id": "proxy-1" } }));
-    await expect(api.request("/test")).rejects.toMatchObject({ status: 502, message: "upstream unavailable", requestId: "proxy-1" });
+    const { api } = setup(
+      new Response("upstream unavailable", { status: 502, headers: { "x-request-id": "proxy-1" } }),
+    );
+    await expect(api.request("/test")).rejects.toMatchObject({
+      status: 502,
+      message: "upstream unavailable",
+      requestId: "proxy-1",
+    });
   });
   it("잘못된 JSON 응답과 비JSON 성공을 정상 DTO로 위장하지 않는다", async () => {
     const { api } = setup(new Response("<html>gateway</html>", { headers: { "content-type": "text/html" } }));
@@ -59,8 +67,16 @@ describe("공유 REST transport", () => {
     expect(fetch.mock.calls[0][1]?.credentials).toBe("include");
   });
   it("SDK mutation도 CSRF 헤더와 구조화된 ApiError를 보존한다", async () => {
-    const { api, fetch } = setup(Response.json({ message: "로그인 실패", error_code: "UNAUTHORIZED" }, { status: 401 }));
-    await expect(loginAdminAuthLoginPost({ client: api.client, body: { email: "user@example.test", password: "invalid" }, throwOnError: true })).rejects.toBeInstanceOf(ApiError);
+    const { api, fetch } = setup(
+      Response.json({ message: "로그인 실패", error_code: "UNAUTHORIZED" }, { status: 401 }),
+    );
+    await expect(
+      loginAdminAuthLoginPost({
+        client: api.client,
+        body: { email: "user@example.test", password: "invalid" },
+        throwOnError: true,
+      }),
+    ).rejects.toBeInstanceOf(ApiError);
     expect(new Headers(fetch.mock.calls[0][1]?.headers).get("X-Requested-With")).toBe("XMLHttpRequest");
   });
   it("호출 경로가 API origin을 우회할 수 없다", async () => {

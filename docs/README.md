@@ -1,9 +1,10 @@
 # TrueWords 기술 문서
 
-현재 작업은 M1~M4 이후 **앱별 UI 소유권 분리(사용자 승인 2안)**다. API SDK·ESLint·TypeScript 설정 3개 패키지는 유지한다. 사용자 승인 범위는 구현·검증·PR까지이며, 운영 배포·신규 디자인·PWA 신규 인증/푸시·Flutter 개발은 포함하지 않는다.
+현재 작업은 **훈독 MVP Phase 2**([PLAN-HD-001 §5](plans/active/2026-09-17-hoondok-mvp.md), 2026-09-16 착수)이다. Phase 1(`/hoondok` 골격·`daily_readings`·`GET /hoondok/today`)은 PR #276 으로 main 에 있고, Phase 2 는 `apps/api` 의 `identity`(`users`·`/hoondok/auth/*`)·`mission_logs`(완료·연속일)와 `apps/web` 의 `features/identity`·`/hoondok/onboarding` 을 통합 브랜치 `dev/hoondok-phase2` 에서 sub-PR 로 만든다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, 운영 배포·알림·Flutter 는 Phase 3 이후 별도 승인이다.
 
 | 먼저 읽을 문서 | 용도 |
 |---|---|
+| [훈독 MVP 실행 계획](plans/active/2026-09-17-hoondok-mvp.md) | 확정값 12개, 3테이블·5 API·화면 4, additive-only 규칙, Phase 1~4 완료 기준 |
 | [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md) | web/admin/API 경계, 공통 API·인증·SSE·알림 정책 |
 | [전환 실행 계획](plans/completed/2026-09-05-monorepo-migration.md) | M1~M4 범위와 실제 검증 증거, M5 제외 범위 |
 | [앱별 UI 실행 계획](plans/active/2026-09-05-app-owned-ui.md) | 후속 2안 승인 범위와 재검증 증거 |
@@ -33,7 +34,7 @@ docs/
 
 문서 ID와 파일명은 보존한다. PRD를 웹/모바일별로 복제하지 않고, 한 기능 spec에서 공통 규칙과 플랫폼별 동작을 구분한다. 과거 문서의 `backend/`, `admin/`, `src.*`와 실행 결과는 **당시 기록**이며 현재 명령의 근거로 사용하지 않는다.
 
-web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업무 규칙을 복제하지 않으며, 현재 구현 기준을 기록했다는 이유로 새 디자인이 승인된 것으로 취급하지 않는다.
+web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업무 규칙을 복제하지 않으며, 현재 구현 기준을 기록했다는 이유로 새 디자인이 승인된 것으로 취급하지 않는다. 훈독 앱은 `apps/web` 안에 들어가지만 화면 규칙을 `DES-PWA-003`이 따로 소유하며, 기존 시연 웹의 보존 기준(`UI-WEB-001`)과 섞지 않는다.
 
 ## 제품·기능 명세
 
@@ -41,6 +42,10 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 |---|---|
 | [01-project-overview](prd/01-project-overview.md) | 기존 제품 배경·데이터 범위 |
 | [16-app-feature-spec](prd/16-app-feature-spec.md) | 이전 MVP/Flutter 구상. 신규 PWA 요구사항으로 자동 상속하지 않음 |
+| [17-ffwpu-pwa-prd](prd/17-ffwpu-pwa-prd.md) | 훈독 앱 PRD v2. 식구의 문제 5개 → 초원AI 벤치마크 현지화 매핑 → 5탭 · 기능 7종 · 보상 정책 · KPI · 9월 일정 · Decision Log. **2026-09-16 승인** (`DEC-PWA-022`) |
+| [훈독 도메인](specs/domain/hoondok-entities.md), [훈독 API](specs/api/hoondok-api.md) | `ENT-HD-001~003`(users · daily_readings · mission_logs), `API-HD-001~005`(`/hoondok/*`). KST 고정, additive-only |
+| [훈독 프로토타입](prd/prototypes/hoondok-ds/README.md) | `app.html` + `hoondok.css` 단일 소스, 16화면, 폰 390 · PC 1280. `index.html` 로 나란히 본다. 값의 원본이며 디자인 시스템 문서가 근거를 설명한다 |
+| [훈독 디자인 시스템](specs/web/hoondok-design-system.md) | `DES-PWA-003`. 채택안 A 아침 햇살의 토큰·컴포넌트 10종·권위 층 배지·WCAG 2.2 AA 대비 실측값·데스크톱 브레이크포인트 3단계·16화면 반응형 대응표. **라이트 단일 테마**이며 다크 팔레트는 정의하지 않는다 (2026-09-16 승인, 데스크톱 내비는 상단 헤더 4) |
 | [사용자 웹 UI/UX](specs/web/ui-ux.md), [관리자 UI/UX](specs/admin/ui-ux.md) | 현재 구현·소유권과 미승인 리디자인의 경계 |
 | [17-chatbot-system-prompt-spec](specs/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 |
 | [18-category-document-stats](specs/18-category-document-stats.md), [19-category-tag-management-ui](specs/19-category-tag-management-ui.md) | 문서 통계·카테고리 UI |
@@ -55,8 +60,8 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 | [02-architecture-design](architecture/02-architecture-design.md), [05-rag-pipeline](architecture/05-rag-pipeline.md) | 기반 설계와 RAG 정책 |
 | [07-multi-chatbot-version](architecture/07-multi-chatbot-version.md), [11-data-routing-strategies](architecture/11-data-routing-strategies.md) | 챗봇 조합·라우팅 |
 | [08-semantic-cache](architecture/08-semantic-cache.md), [09-security-countermeasures](architecture/09-security-countermeasures.md) | 캐시·가드레일 설계 |
-| [구조 다이어그램 6종](architecture/diagrams/README.md) | **2026-09-04 분리 전 스냅샷**. JSON/HTML/PNG 원본 보존, 분리 후 구조로 오인 금지 |
-| [ADR 목록](adr/) | 기존 ADR 번호 유지. [Oracle 이전](adr/2026-07-25-gcp-to-oracle-migration.md), [HTTP/2 회피](adr/47-qdrant-sdk-http2-permanent-fix.md), [CI/CD 점검 결정](adr/2026-09-05-cicd-audit-decisions.md) 등 |
+| [구조 다이어그램 7종](architecture/diagrams/README.md) | 현재 구조 (main `8980e0c`, 2026-09-06 재생성). 운영·레포·데이터·채팅·적재 2종·배포 워크플로. JSON 원본·HTML 뷰어·PNG. 분리 전 JSON 은 [archive](archive/diagrams-2026-09-04/) |
+| [ADR 목록](adr/) | 기존 ADR 번호 유지. [Oracle 이전](adr/2026-07-25-gcp-to-oracle-migration.md), [HTTP/2 회피](adr/47-qdrant-sdk-http2-permanent-fix.md), [CI/CD 점검 결정](adr/2026-09-05-cicd-audit-decisions.md), [툴체인 최신화(pnpm 12·TS 6·Next 16.3)](adr/2026-09-06-toolchain-latest-decisions.md), [Biome 전환 결정(2026-09-06 확정 · P3 ①·② 완료)](adr/2026-09-06-biome-migration-proposal.md) 등 |
 
 현재 앱의 위치와 실행 명령은 [루트 README](../README.md), 현재 설계는 [ARCH-MONO-001](architecture/2026-09-05-pwa-flutter-monorepo.md)을 우선한다. 과거 아키텍처 문서의 청사진·성능 수치는 이번 이전에서 재측정한 결과가 아니다.
 

@@ -1,15 +1,9 @@
 "use client";
 
-import * as React from "react";
-import { ArrowUpRight, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { ArrowUpRight, Loader2 } from "lucide-react";
+import * as React from "react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn, stripFileExt } from "@/lib/utils";
 
 // P0-B + ADR-46 §C.3 — 인용 카드의 "원문보기" 모달.
@@ -21,6 +15,7 @@ import { cn, stripFileExt } from "@/lib/utils";
 // 가시성 우선). 인접 문맥은 muted-foreground 로 처리해 톤 차이도 함께 유지.
 
 import type { SourceChunkDetail } from "@truewords/api-client-ts/types";
+
 export type { SourceChunkDetail } from "@truewords/api-client-ts/types";
 
 export interface SourceOriginalModalProps {
@@ -50,8 +45,7 @@ export function SourceOriginalModal({
       const url = `/api/backend/api/sources/chunks/${encodeURIComponent(chunkId!)}?chatbot_id=${encodeURIComponent(chatbotId)}`;
       const res = await fetch(url, { signal });
       if (res.status === 404) throw new Error("청크를 찾을 수 없어요");
-      if (res.status === 403)
-        throw new Error("이 챗봇의 검색 범위에 포함되지 않은 자료입니다");
+      if (res.status === 403) throw new Error("이 챗봇의 검색 범위에 포함되지 않은 자료입니다");
       if (!res.ok) throw new Error("원문을 불러오지 못했어요");
       return (await res.json()) as SourceChunkDetail;
     },
@@ -67,9 +61,7 @@ export function SourceOriginalModal({
       );
     }
     if (error) {
-      return (
-        <p className="py-8 text-sm text-destructive">{(error as Error).message}</p>
-      );
+      return <p className="py-8 text-sm text-destructive">{(error as Error).message}</p>;
     }
     if (data) {
       const { merged_text = "", main_offset_start = 0, main_offset_end = 0, text = "" } = data;
@@ -85,9 +77,7 @@ export function SourceOriginalModal({
 
       return (
         <article className="space-y-2">
-          <p className="font-mono text-xs text-muted-foreground tabular-nums break-keep-all">
-            {sourceLabel}
-          </p>
+          <p className="font-mono text-xs text-muted-foreground tabular-nums break-keep-all">{sourceLabel}</p>
           {/* 단일 연속 본문 — 백엔드가 dedup 후 보낸 한 덩어리. 청크 경계 끊김 0.
               메인 청크는 일반 text-foreground, 인접 문맥은 muted 처리. */}
           <p className="font-reading text-[15.5px] leading-[1.85] text-foreground break-keep-all whitespace-pre-line">
@@ -113,9 +103,7 @@ export function SourceOriginalModal({
             <ArrowUpRight className="size-4 text-accent" aria-hidden="true" />
             원문 보기
           </SheetTitle>
-          <SheetDescription>
-            인용된 메인 청크와 위·아래 인접 문맥을 함께 보여드립니다.
-          </SheetDescription>
+          <SheetDescription>인용된 메인 청크와 위·아래 인접 문맥을 함께 보여드립니다.</SheetDescription>
         </SheetHeader>
         <div className="mx-auto w-full max-w-3xl">{renderBody()}</div>
       </SheetContent>
@@ -132,11 +120,7 @@ export function SourceOriginalModal({
  * 문제로 인해 본 변경에서 사용자 요청으로 철회. 형광 톤은 paper/dark 양쪽
  * 테마에서 부담스럽지 않게 낮은 채도의 yellow 로 유지.
  */
-export function renderBody3Tone(
-  body: string,
-  mainStart: number,
-  mainEnd: number,
-): React.ReactNode {
+export function renderBody3Tone(body: string, mainStart: number, mainEnd: number): React.ReactNode {
   const safeStart = Math.max(0, Math.min(mainStart, body.length));
   const safeEnd = Math.max(safeStart, Math.min(mainEnd, body.length));
 
@@ -146,17 +130,13 @@ export function renderBody3Tone(
 
   return (
     <>
-      {before && (
-        <span className="text-muted-foreground">{before}</span>
-      )}
+      {before && <span className="text-muted-foreground">{before}</span>}
       {main && (
         <mark className="rounded-sm bg-yellow-200/60 px-0.5 font-medium text-foreground dark:bg-yellow-500/25">
           {main}
         </mark>
       )}
-      {after && (
-        <span className="text-muted-foreground">{after}</span>
-      )}
+      {after && <span className="text-muted-foreground">{after}</span>}
     </>
   );
 }

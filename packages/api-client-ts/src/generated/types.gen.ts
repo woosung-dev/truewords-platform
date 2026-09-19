@@ -468,6 +468,238 @@ export type DailyModeCount = {
 };
 
 /**
+ * DailyReadingAdminCreate
+ *
+ * POST 본문. ENT-HD-002 전 컬럼(id·타임스탬프 제외). 하루 1건은 unique 가 지킨다(409).
+ */
+export type DailyReadingAdminCreate = {
+    /**
+     * Authority Grade
+     */
+    authority_grade: 'O1' | 'O2' | 'O3' | 'O4' | 'O5' | 'R';
+    /**
+     * Body
+     */
+    body: string;
+    /**
+     * Chunk Id
+     */
+    chunk_id?: string | null;
+    /**
+     * Edition
+     */
+    edition?: string | null;
+    /**
+     * Estimated Minutes
+     */
+    estimated_minutes?: number;
+    /**
+     * Reading Date
+     */
+    reading_date: string;
+    /**
+     * Review Status
+     */
+    review_status?: 'reviewed' | 'unverified' | 'withdrawn';
+    /**
+     * Source Note
+     */
+    source_note?: string | null;
+    /**
+     * Speaker
+     */
+    speaker: string;
+    /**
+     * Spoken On
+     */
+    spoken_on?: string | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * DailyReadingAdminResponse
+ *
+ * 관리자 응답 — 공개 스키마와 달리 source_note·chunk_id·타임스탬프를 포함한다.
+ */
+export type DailyReadingAdminResponse = {
+    /**
+     * Authority Grade
+     */
+    authority_grade: 'O1' | 'O2' | 'O3' | 'O4' | 'O5' | 'R';
+    /**
+     * Body
+     */
+    body: string;
+    /**
+     * Chunk Id
+     */
+    chunk_id: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Edition
+     */
+    edition: string | null;
+    /**
+     * Estimated Minutes
+     */
+    estimated_minutes: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Reading Date
+     */
+    reading_date: string;
+    /**
+     * Review Status
+     */
+    review_status: 'reviewed' | 'unverified' | 'withdrawn';
+    /**
+     * Source Note
+     */
+    source_note: string | null;
+    /**
+     * Speaker
+     */
+    speaker: string;
+    /**
+     * Spoken On
+     */
+    spoken_on: string | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * DailyReadingAdminUpdate
+ *
+ * PUT 본문. 보낸 필드만 바꾼다(exclude_unset). `review_status=withdrawn` 이 철회 수단이며 DELETE 는 없다.
+ */
+export type DailyReadingAdminUpdate = {
+    /**
+     * Authority Grade
+     */
+    authority_grade?: 'O1' | 'O2' | 'O3' | 'O4' | 'O5' | 'R' | null;
+    /**
+     * Body
+     */
+    body?: string | null;
+    /**
+     * Chunk Id
+     */
+    chunk_id?: string | null;
+    /**
+     * Edition
+     */
+    edition?: string | null;
+    /**
+     * Estimated Minutes
+     */
+    estimated_minutes?: number | null;
+    /**
+     * Reading Date
+     */
+    reading_date?: string | null;
+    /**
+     * Review Status
+     */
+    review_status?: 'reviewed' | 'unverified' | 'withdrawn' | null;
+    /**
+     * Source Note
+     */
+    source_note?: string | null;
+    /**
+     * Speaker
+     */
+    speaker?: string | null;
+    /**
+     * Spoken On
+     */
+    spoken_on?: string | null;
+    /**
+     * Title
+     */
+    title?: string | null;
+    /**
+     * Work Title
+     */
+    work_title?: string | null;
+};
+
+/**
+ * DailyReadingPublic
+ *
+ * 공개 필드만. source_note·chunk_id·타임스탬프는 내지 않는다.
+ */
+export type DailyReadingPublic = {
+    /**
+     * Authority Grade
+     */
+    authority_grade: 'O1' | 'O2' | 'O3' | 'O4' | 'O5' | 'R';
+    /**
+     * Body
+     */
+    body: string;
+    /**
+     * Edition
+     */
+    edition: string | null;
+    /**
+     * Estimated Minutes
+     */
+    estimated_minutes: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Reading Date
+     */
+    reading_date: string;
+    /**
+     * Review Status
+     */
+    review_status: 'reviewed' | 'unverified' | 'withdrawn';
+    /**
+     * Speaker
+     */
+    speaker: string;
+    /**
+     * Spoken On
+     */
+    spoken_on: string | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
  * DashboardSummary
  */
 export type DashboardSummary = {
@@ -899,6 +1131,20 @@ export type IngestionStatusSummary = {
 };
 
 /**
+ * LoginRequest
+ */
+export type LoginRequest = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
  * MessageResponse
  *
  * 단순 메시지 응답 (로그인/로그아웃 등).
@@ -908,6 +1154,26 @@ export type MessageResponse = {
      * Message
      */
     message: string;
+};
+
+/**
+ * MissionCompleteResponse
+ *
+ * API-HD-005 201. mission_date 는 서버가 KST 로 정한 날짜다.
+ */
+export type MissionCompleteResponse = {
+    /**
+     * Completed At
+     */
+    completed_at: string;
+    /**
+     * Kind
+     */
+    kind: 'read' | 'pray' | 'study';
+    /**
+     * Mission Date
+     */
+    mission_date: string;
 };
 
 /**
@@ -1493,6 +1759,26 @@ export type SettingsConfigResponse = {
 };
 
 /**
+ * SignupRequest
+ *
+ * 약관 문구 확정 전(DEC-PWA-001)이라 consent_version 을 받지 않는다.
+ */
+export type SignupRequest = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
  * SkippedVolume
  */
 export type SkippedVolume = {
@@ -1610,6 +1896,66 @@ export type SourceChunkDetail = {
 };
 
 /**
+ * SummaryResponse
+ *
+ * API-HD-004. 연속일·최대·누적은 read 기준이며 저장하지 않는다. week 는 월요일 시작 7칸.
+ */
+export type SummaryResponse = {
+    /**
+     * Best Streak Days
+     */
+    best_streak_days: number;
+    /**
+     * Streak Days
+     */
+    streak_days: number;
+    today: TodayFlags;
+    /**
+     * Total Days
+     */
+    total_days: number;
+    /**
+     * Week
+     */
+    week: Array<WeekDay>;
+};
+
+/**
+ * TodayFlags
+ */
+export type TodayFlags = {
+    /**
+     * Pray
+     */
+    pray?: boolean;
+    /**
+     * Read
+     */
+    read?: boolean;
+    /**
+     * Study
+     */
+    study?: boolean;
+};
+
+/**
+ * TodayReadingResponse
+ *
+ * 항상 200. 편성이 없거나 철회됐으면 status 로만 알린다 (AC-016-04).
+ */
+export type TodayReadingResponse = {
+    /**
+     * Date
+     */
+    date: string;
+    reading?: DailyReadingPublic | null;
+    /**
+     * Status
+     */
+    status: 'available' | 'none' | 'withdrawn';
+};
+
+/**
  * TopQuery
  */
 export type TopQuery = {
@@ -1696,6 +2042,31 @@ export type UploadResponse = {
      * NFC 정규화된 volume 식별자 (polling 키)
      */
     volume_key: string;
+};
+
+/**
+ * UserEnvelope
+ */
+export type UserEnvelope = {
+    user: UserPublic;
+};
+
+/**
+ * UserPublic
+ */
+export type UserPublic = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Id
+     */
+    id: string;
 };
 
 /**
@@ -1872,6 +2243,20 @@ export type VolumeTagsBulkResponse = {
      * 실제로 변경된 volume 리스트
      */
     updated_volumes?: Array<string>;
+};
+
+/**
+ * WeekDay
+ */
+export type WeekDay = {
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Done
+     */
+    done: boolean;
 };
 
 /**
@@ -2884,6 +3269,131 @@ export type DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses = {
 
 export type DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponse = DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses[keyof DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses];
 
+export type ListDailyReadingsAdminHoondokDailyReadingsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * From
+         *
+         * 시작일(KST). 기본 오늘
+         */
+        from?: string | null;
+        /**
+         * To
+         *
+         * 종료일(포함). 기본 시작일 +14일
+         */
+        to?: string | null;
+    };
+    url: '/admin/hoondok/daily-readings';
+};
+
+export type ListDailyReadingsAdminHoondokDailyReadingsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListDailyReadingsAdminHoondokDailyReadingsGetError = ListDailyReadingsAdminHoondokDailyReadingsGetErrors[keyof ListDailyReadingsAdminHoondokDailyReadingsGetErrors];
+
+export type ListDailyReadingsAdminHoondokDailyReadingsGetResponses = {
+    /**
+     * Response List Daily Readings Admin Hoondok Daily Readings Get
+     *
+     * Successful Response
+     */
+    200: Array<DailyReadingAdminResponse>;
+};
+
+export type ListDailyReadingsAdminHoondokDailyReadingsGetResponse = ListDailyReadingsAdminHoondokDailyReadingsGetResponses[keyof ListDailyReadingsAdminHoondokDailyReadingsGetResponses];
+
+export type CreateDailyReadingAdminHoondokDailyReadingsPostData = {
+    body: DailyReadingAdminCreate;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/daily-readings';
+};
+
+export type CreateDailyReadingAdminHoondokDailyReadingsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateDailyReadingAdminHoondokDailyReadingsPostError = CreateDailyReadingAdminHoondokDailyReadingsPostErrors[keyof CreateDailyReadingAdminHoondokDailyReadingsPostErrors];
+
+export type CreateDailyReadingAdminHoondokDailyReadingsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: DailyReadingAdminResponse;
+};
+
+export type CreateDailyReadingAdminHoondokDailyReadingsPostResponse = CreateDailyReadingAdminHoondokDailyReadingsPostResponses[keyof CreateDailyReadingAdminHoondokDailyReadingsPostResponses];
+
+export type GetDailyReadingAdminHoondokDailyReadingsReadingIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Reading Id
+         */
+        reading_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/daily-readings/{reading_id}';
+};
+
+export type GetDailyReadingAdminHoondokDailyReadingsReadingIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetDailyReadingAdminHoondokDailyReadingsReadingIdGetError = GetDailyReadingAdminHoondokDailyReadingsReadingIdGetErrors[keyof GetDailyReadingAdminHoondokDailyReadingsReadingIdGetErrors];
+
+export type GetDailyReadingAdminHoondokDailyReadingsReadingIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DailyReadingAdminResponse;
+};
+
+export type GetDailyReadingAdminHoondokDailyReadingsReadingIdGetResponse = GetDailyReadingAdminHoondokDailyReadingsReadingIdGetResponses[keyof GetDailyReadingAdminHoondokDailyReadingsReadingIdGetResponses];
+
+export type UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutData = {
+    body: DailyReadingAdminUpdate;
+    path: {
+        /**
+         * Reading Id
+         */
+        reading_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/daily-readings/{reading_id}';
+};
+
+export type UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutError = UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutErrors[keyof UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutErrors];
+
+export type UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: DailyReadingAdminResponse;
+};
+
+export type UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponse = UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponses[keyof UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponses];
+
 export type GetSettingsConfigAdminSettingsConfigGetData = {
     body?: never;
     path?: never;
@@ -3268,3 +3778,147 @@ export type HealthHealthGetResponses = {
      */
     200: unknown;
 };
+
+export type LoginHoondokAuthLoginPostData = {
+    body: LoginRequest;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/login';
+};
+
+export type LoginHoondokAuthLoginPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type LoginHoondokAuthLoginPostError = LoginHoondokAuthLoginPostErrors[keyof LoginHoondokAuthLoginPostErrors];
+
+export type LoginHoondokAuthLoginPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserEnvelope;
+};
+
+export type LoginHoondokAuthLoginPostResponse = LoginHoondokAuthLoginPostResponses[keyof LoginHoondokAuthLoginPostResponses];
+
+export type LogoutHoondokAuthLogoutPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/logout';
+};
+
+export type LogoutHoondokAuthLogoutPostResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type LogoutHoondokAuthLogoutPostResponse = LogoutHoondokAuthLogoutPostResponses[keyof LogoutHoondokAuthLogoutPostResponses];
+
+export type MeHoondokAuthMeGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/me';
+};
+
+export type MeHoondokAuthMeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserEnvelope;
+};
+
+export type MeHoondokAuthMeGetResponse = MeHoondokAuthMeGetResponses[keyof MeHoondokAuthMeGetResponses];
+
+export type SignupHoondokAuthSignupPostData = {
+    body: SignupRequest;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/signup';
+};
+
+export type SignupHoondokAuthSignupPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SignupHoondokAuthSignupPostError = SignupHoondokAuthSignupPostErrors[keyof SignupHoondokAuthSignupPostErrors];
+
+export type SignupHoondokAuthSignupPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: UserEnvelope;
+};
+
+export type SignupHoondokAuthSignupPostResponse = SignupHoondokAuthSignupPostResponses[keyof SignupHoondokAuthSignupPostResponses];
+
+export type GetSummaryHoondokMeSummaryGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/summary';
+};
+
+export type GetSummaryHoondokMeSummaryGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummaryResponse;
+};
+
+export type GetSummaryHoondokMeSummaryGetResponse = GetSummaryHoondokMeSummaryGetResponses[keyof GetSummaryHoondokMeSummaryGetResponses];
+
+export type CompleteMissionHoondokMissionsKindCompletePostData = {
+    body?: never;
+    path: {
+        /**
+         * Kind
+         */
+        kind: 'read' | 'pray' | 'study';
+    };
+    query?: never;
+    url: '/hoondok/missions/{kind}/complete';
+};
+
+export type CompleteMissionHoondokMissionsKindCompletePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CompleteMissionHoondokMissionsKindCompletePostError = CompleteMissionHoondokMissionsKindCompletePostErrors[keyof CompleteMissionHoondokMissionsKindCompletePostErrors];
+
+export type CompleteMissionHoondokMissionsKindCompletePostResponses = {
+    /**
+     * Successful Response
+     */
+    201: MissionCompleteResponse;
+};
+
+export type CompleteMissionHoondokMissionsKindCompletePostResponse = CompleteMissionHoondokMissionsKindCompletePostResponses[keyof CompleteMissionHoondokMissionsKindCompletePostResponses];
+
+export type GetTodayHoondokTodayGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/today';
+};
+
+export type GetTodayHoondokTodayGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: TodayReadingResponse;
+};
+
+export type GetTodayHoondokTodayGetResponse = GetTodayHoondokTodayGetResponses[keyof GetTodayHoondokTodayGetResponses];

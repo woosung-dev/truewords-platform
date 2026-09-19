@@ -4,8 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 // Plan B.2 + P0-C — 두 줄 placeholder + char counter
-export interface QuestionInputProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+export interface QuestionInputProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   placeholderLine1?: string;
   placeholderLine2?: string;
   maxLength?: number;
@@ -27,9 +26,7 @@ export function QuestionInput({
   onChange,
   ...props
 }: QuestionInputProps) {
-  const [internalValue, setInternalValue] = React.useState(
-    (defaultValue as string) ?? ""
-  );
+  const [internalValue, setInternalValue] = React.useState((defaultValue as string) ?? "");
   const isControlled = value !== undefined;
   const currentValue = (isControlled ? (value as string) : internalValue) ?? "";
 
@@ -48,19 +45,14 @@ export function QuestionInput({
       className={cn(
         "group relative rounded-xl border bg-card px-4 py-3 transition-colors",
         "focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20",
-        errorText
-          ? "border-destructive ring-2 ring-destructive/20"
-          : "border-border",
-        className
+        errorText ? "border-destructive ring-2 ring-destructive/20" : "border-border",
+        className,
       )}
       data-slot="question-input"
     >
       {/* Placeholder — 입력 없을 때만 노출, 두 줄 가이드 (P0-C) */}
       {empty ? (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-4 top-3 select-none"
-        >
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-4 top-3 select-none">
           <p className="text-base text-muted-foreground">{placeholderLine1}</p>
           <p className="mt-1 text-sm text-fg-subtle group-focus-within:opacity-60 transition-opacity">
             {placeholderLine2}
@@ -78,27 +70,19 @@ export function QuestionInput({
         aria-label={props["aria-label"] ?? "질문 입력"}
         aria-invalid={errorText ? true : undefined}
         aria-describedby={
-          errorText
-            ? "question-input-error"
-            : helperText
-              ? "question-input-helper"
-              : "question-input-counter"
+          errorText ? "question-input-error" : helperText ? "question-input-helper" : "question-input-counter"
         }
         className={cn(
           "block w-full resize-none bg-transparent text-base leading-relaxed",
           "text-foreground placeholder:text-transparent outline-none",
-          "min-h-24 break-keep-all"
+          "min-h-24 break-keep-all",
         )}
       />
 
       <div className="mt-2 flex items-center justify-between gap-3 text-xs">
         <div className="flex-1">
           {errorText ? (
-            <p
-              id="question-input-error"
-              role="alert"
-              className="text-destructive"
-            >
+            <p id="question-input-error" role="alert" className="text-destructive">
               {errorText}
             </p>
           ) : helperText ? (
@@ -111,11 +95,7 @@ export function QuestionInput({
           id="question-input-counter"
           className={cn(
             "font-mono tabular-nums",
-            danger
-              ? "text-destructive"
-              : warn
-                ? "text-muted-foreground"
-                : "text-fg-subtle"
+            danger ? "text-destructive" : warn ? "text-muted-foreground" : "text-fg-subtle",
           )}
         >
           {length} / {maxLength}

@@ -1,12 +1,12 @@
 // 데이터 소스 파일별 사용자 친화적 표시명을 인라인 편집하는 컴포넌트.
 "use client";
 
-import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { dataAPI } from "@/features/data-source/api";
 import { Input } from "@/components/ui/input";
+import { dataAPI } from "@/features/data-source/api";
 
 export interface DisplayNameEditorProps {
   volumeKey: string;
@@ -19,11 +19,7 @@ export interface DisplayNameEditorProps {
  * blur 또는 Enter 시 변경된 값만 자동 저장. 빈 문자열은 백엔드에서 NULL 로 정규화 →
  * chat 응답이 기존 volume/source 로 fallback.
  */
-export function DisplayNameEditor({
-  volumeKey,
-  initialValue,
-  placeholder,
-}: DisplayNameEditorProps) {
+export function DisplayNameEditor({ volumeKey, initialValue, placeholder }: DisplayNameEditorProps) {
   const queryClient = useQueryClient();
   const [value, setValue] = useState(initialValue ?? "");
   const [savedValue, setSavedValue] = useState(initialValue ?? "");
@@ -82,12 +78,8 @@ export function DisplayNameEditor({
         aria-label="파일 표시명"
         disabled={mutation.isPending}
       />
-      {mutation.isPending && (
-        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-hidden="true" />
-      )}
-      {justSaved && !mutation.isPending && (
-        <Check className="h-3.5 w-3.5 text-success" aria-label="저장됨" />
-      )}
+      {mutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-hidden="true" />}
+      {justSaved && !mutation.isPending && <Check className="h-3.5 w-3.5 text-success" aria-label="저장됨" />}
     </div>
   );
 }

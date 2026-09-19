@@ -5,7 +5,7 @@
 ## 격리 환경
 
 1. 저장소 루트의 `apps/api/docker-compose.e2e.yml`로 전용 PostgreSQL/Qdrant를 실행한다. 이 설정은 tmpfs 저장소이며 기존 개발 볼륨을 연결하지 않는다.
-2. 별도 DB 환경변수로 API migration, `apps/api/scripts/create_admin.py`(각 계정), `apps/api/scripts/seed_chatbot_configs.py`를 실행한다. 관리자 게이트 계정 `demo-admin@example.com`(`E2E_ADMIN_EMAIL`로 변경 가능, API의 `DEMO_ADMIN_EMAIL`과 같아야 한다), 비관리자 `admin@test.com`, 테스트 암호 `test1234`를 사용한다. 루트 `make e2e`가 1~3을 한 번에 처리한다.
+2. 별도 DB 환경변수로 API migration, `apps/api/scripts/create_admin.py`(각 계정), `apps/api/scripts/seed_chatbot_configs.py`, `seed_daily_readings.py`(오늘 말씀), `seed_hoondok_user.py hoondok@example.com test1234`(훈독 계정)를 실행한다. 관리자 게이트 계정 `demo-admin@example.com`(`E2E_ADMIN_EMAIL`로 변경 가능, API의 `DEMO_ADMIN_EMAIL`과 같아야 한다), 비관리자 `admin@test.com`, 테스트 암호 `test1234`를 사용한다. 루트 `make e2e`가 1~3을 한 번에 처리한다.
 3. `pnpm --filter @truewords/e2e exec playwright install chromium`으로 브라우저를 준비하고 `pnpm test:e2e`를 실행한다.
 
 기본 자동 실행은 API `8000`, web `127.0.0.1:3000`, admin `localhost:3001`을 사용하며 이미 실행 중인 서버를 재사용하지 않는다. 쿠키는 포트로 구분되지 않으므로 두 프론트엔드는 다른 hostname을 사용한다. 두 앱의 Next.js `allowedDevOrigins`는 `127.0.0.1` 개발 리소스 요청을 허용하며 운영 CORS 설정과는 별개다.
@@ -22,7 +22,7 @@ E2E_API_ORIGIN=http://127.0.0.1:18000 \
 pnpm test:e2e
 ```
 
-`admin-flow`는 기존 관리자 편집·권한 시나리오, `data-source-delete`는 삭제 확인 UI(데이터 API mock), `web-flow`는 모바일 채팅/SSE·출처·기록·로그아웃, `split-apps`는 origin 이동·호스트별 쿠키·alias·CSRF·계정 간 대화 기록 격리를 검증한다. SSE는 최종 답변뿐 아니라 첫 chunk의 중간 표시, 사용자 취소 후 부분 답변 보존, `done` 없이 연결이 끝났을 때의 오류 안내도 검사한다. 원문 모달은 실제 Qdrant 문서가 필요하지 않도록 한 응답만 mock한다. API의 원문 ACL은 별도 pytest에서 검증한다.
+`admin-flow`는 기존 관리자 편집·권한 시나리오, `data-source-delete`는 삭제 확인 UI(데이터 API mock), `hoondok-curation`은 훈독 편성 화면(admin 에서 오늘 편성 제목 수정 → web `/hoondok` 홈 노출 → 원복, 시드 `seed_daily_readings.py`의 오늘 행이 전제), `web-flow`는 모바일 채팅/SSE·출처·기록·로그아웃, `split-apps`는 origin 이동·호스트별 쿠키·alias·CSRF·계정 간 대화 기록 격리를 검증한다. SSE는 최종 답변뿐 아니라 첫 chunk의 중간 표시, 사용자 취소 후 부분 답변 보존, `done` 없이 연결이 끝났을 때의 오류 안내도 검사한다. 원문 모달은 실제 Qdrant 문서가 필요하지 않도록 한 응답만 mock한다. API의 원문 ACL은 별도 pytest에서 검증한다.
 
 ## 앱별 UI·테마 회귀
 

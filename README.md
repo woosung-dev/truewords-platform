@@ -43,7 +43,7 @@ truewords-platform/
 
 ## 2. 로컬 시작
 
-사전 도구: Node.js 22, pnpm 8.15.9. API 작업에는 Python 3.12·uv, DB/Qdrant에는 Docker가 추가로 필요하다. 웹 작업만 할 때 uv/Flutter 설치는 필수가 아니다.
+사전 도구: Node.js 22, pnpm 12.3.4(`corepack enable` 이면 `packageManager` 필드로 자동 선택). API 작업에는 Python 3.12·uv, DB/Qdrant에는 Docker가 추가로 필요하다. 웹 작업만 할 때 uv/Flutter 설치는 필수가 아니다.
 
 1. 루트에서 `pnpm install --frozen-lockfile`을 실행한다.
 2. `apps/web/.env.example`과 `apps/admin/.env.example`을 각각 앱의 `.env.local`로 복사하고 로컬 주소를 확인한다.
@@ -107,6 +107,6 @@ M1~M4의 전체 회귀와 E2E·계약 검사는 [이전 실행 계획의 완료 
 | [사용자 웹 UI/UX](docs/specs/web/ui-ux.md), [관리자 UI/UX](docs/specs/admin/ui-ux.md) | 앱별 현재 구현·소유권. 신규 디자인 승인 문서가 아님 |
 | [전환·복구 runbook](docs/runbooks/monorepo-migration-and-rollback.md) | 볼륨·라우팅·쿠키·이미지 보존과 복구 |
 | [Oracle 운영](infra/oracle-vm/README.md) | VM·백업·예약 작업·독립 배포 |
-| [분리 전 다이어그램](docs/architecture/diagrams/README.md) | 2026-09-04 JSON/HTML/PNG 스냅샷 6종, **현재 분리 구조 아님** |
+| [구조 다이어그램 7종](docs/architecture/diagrams/README.md) | 현재 모노레포·6컨테이너 구조 (main `8980e0c`, 2026-09-06 재생성). 운영 아키텍처·모노레포·데이터 모델·채팅 시퀀스·적재 2종·배포 워크플로 |
 
 main 직접 push 금지. 큰 작업은 통합 브랜치의 sub-task PR을 거쳐 사람이 최종 main PR을 검토한다. [브랜치 가이드](docs/runbooks/integration-branch-workflow.md), [에이전트 지침](AGENTS.md).

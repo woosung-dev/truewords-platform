@@ -1,0 +1,468 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "TrueWords 데이터 모델",
+    "output": "docs/04_architecture/diagrams/database-schema.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/woosung-dev/truewords-platform",
+      "revision": "94755c7889608f6732f842eddca08158ef97a9da"
+    },
+    "viewBox": [
+      1270,
+      700
+    ],
+    "legend": {
+      "entries": {
+        "database": {
+          "label": "테이블 / 컬렉션"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "chat-domain",
+        "label": "채팅 도메인",
+        "focus": [
+          "research_sessions",
+          "session_messages",
+          "search_events",
+          "answer_citations",
+          "answer_feedback",
+          "chat_message_reactions"
+        ],
+        "note": "세션 1 : N 메시지 1 : N (검색 이벤트 · 인용 · 피드백 · 반응)."
+      },
+      {
+        "id": "config-domain",
+        "label": "설정·계정",
+        "focus": [
+          "admin_users",
+          "admin_audit_logs",
+          "chatbot_configs",
+          "research_sessions"
+        ],
+        "note": "봇 설정과 관리자 계정. 세션의 user_id 는 FK 제약 없는 논리 참조."
+      },
+      {
+        "id": "vector-side",
+        "label": "Qdrant 연결",
+        "focus": [
+          "data_source_categories",
+          "ingestion_jobs",
+          "qd_main",
+          "qd_cache"
+        ],
+        "note": "PostgreSQL 의 카테고리 key 와 적재 volume_key 가 Qdrant payload 와 값으로 이어진다."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "admin_users",
+      "type": "database",
+      "label": "admin_users",
+      "sublabel": "email · role · is_active",
+      "tag": "admin",
+      "pos": [
+        40,
+        90
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/admin/models.py",
+          "line": 18,
+          "label": "AdminUser"
+        }
+      ]
+    },
+    {
+      "id": "admin_audit_logs",
+      "type": "database",
+      "label": "admin_audit_logs",
+      "sublabel": "action · target · changes",
+      "tag": "admin",
+      "pos": [
+        40,
+        250
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/admin/models.py",
+          "line": 31,
+          "label": "AdminAuditLog"
+        }
+      ]
+    },
+    {
+      "id": "chatbot_configs",
+      "type": "database",
+      "label": "chatbot_configs",
+      "sublabel": "chatbot_id · search_tiers",
+      "tag": "chatbot",
+      "pos": [
+        270,
+        90
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/chatbot/models.py",
+          "line": 16,
+          "label": "ChatbotConfig"
+        }
+      ]
+    },
+    {
+      "id": "research_sessions",
+      "type": "database",
+      "label": "research_sessions",
+      "sublabel": "user_id · chatbot_config_id",
+      "tag": "chat",
+      "pos": [
+        270,
+        250
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/chat/models.py",
+          "line": 30,
+          "label": "ResearchSession"
+        }
+      ]
+    },
+    {
+      "id": "session_messages",
+      "type": "database",
+      "label": "session_messages",
+      "sublabel": "role · content · answer_mode",
+      "tag": "chat",
+      "pos": [
+        270,
+        440
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/chat/models.py",
+          "line": 50,
+          "label": "SessionMessage"
+        }
+      ]
+    },
+    {
+      "id": "data_source_categories",
+      "type": "database",
+      "label": "data_source_categories",
+      "sublabel": "key (uq) · is_searchable",
+      "tag": "datasource",
+      "pos": [
+        590,
+        90
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/datasource/models.py",
+          "line": 14,
+          "label": "DataSourceCategory"
+        }
+      ]
+    },
+    {
+      "id": "ingestion_jobs",
+      "type": "database",
+      "label": "ingestion_jobs",
+      "sublabel": "volume_key · status · hash",
+      "tag": "pipeline",
+      "pos": [
+        590,
+        190
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/pipeline/ingestion_models.py",
+          "line": 19,
+          "label": "IngestionJob"
+        }
+      ]
+    },
+    {
+      "id": "search_events",
+      "type": "database",
+      "label": "search_events",
+      "sublabel": "rewritten_query · latency",
+      "tag": "chat",
+      "pos": [
+        590,
+        300
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/chat/models.py",
+          "line": 75,
+          "label": "SearchEvent"
+        }
+      ]
+    },
+    {
+      "id": "answer_citations",
+      "type": "database",
+      "label": "answer_citations",
+      "sublabel": "source · volume · snippet",
+      "tag": "chat",
+      "pos": [
+        590,
+        384
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/chat/models.py",
+          "line": 90,
+          "label": "AnswerCitation"
+        }
+      ]
+    },
+    {
+      "id": "answer_feedback",
+      "type": "database",
+      "label": "answer_feedback",
+      "sublabel": "user_session_id · type",
+      "tag": "chat",
+      "pos": [
+        590,
+        468
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/chat/models.py",
+          "line": 107,
+          "label": "AnswerFeedback"
+        }
+      ]
+    },
+    {
+      "id": "chat_message_reactions",
+      "type": "database",
+      "label": "chat_message_reactions",
+      "sublabel": "user_session_id · kind",
+      "tag": "chat",
+      "pos": [
+        590,
+        552
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/chat/models.py",
+          "line": 154,
+          "label": "MessageReaction"
+        }
+      ]
+    },
+    {
+      "id": "qd_main",
+      "type": "database",
+      "label": "malssum_poc_v5",
+      "sublabel": "417,579 pts · dense + sparse",
+      "tag": "Qdrant",
+      "pos": [
+        1050,
+        140
+      ],
+      "size": [
+        180,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/pipeline/chunk_payload.py",
+          "label": "payload"
+        }
+      ]
+    },
+    {
+      "id": "qd_cache",
+      "type": "database",
+      "label": "semantic_cache",
+      "sublabel": "dense 1536 · TTL 7일",
+      "tag": "Qdrant",
+      "pos": [
+        1050,
+        300
+      ],
+      "size": [
+        180,
+        62
+      ],
+      "sources": [
+        {
+          "path": "backend/src/cache/setup.py",
+          "line": 30,
+          "label": "payload index"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "PostgreSQL 17 · 11 테이블 · Alembic head a1c9e7d0b2f3",
+      "wraps": [
+        "admin_users",
+        "admin_audit_logs",
+        "chatbot_configs",
+        "research_sessions",
+        "session_messages",
+        "data_source_categories",
+        "ingestion_jobs",
+        "search_events",
+        "answer_citations",
+        "answer_feedback",
+        "chat_message_reactions"
+      ],
+      "pad": 20
+    },
+    {
+      "kind": "region",
+      "label": "Qdrant v1.12.4 · 2 컬렉션",
+      "wraps": [
+        "qd_main",
+        "qd_cache"
+      ],
+      "pad": 20
+    }
+  ],
+  "connections": [
+    {
+      "from": "admin_audit_logs",
+      "to": "admin_users",
+      "label": "admin_user_id"
+    },
+    {
+      "from": "research_sessions",
+      "to": "admin_users",
+      "label": "user_id (FK 제약 없음)",
+      "variant": "dashed"
+    },
+    {
+      "from": "research_sessions",
+      "to": "chatbot_configs",
+      "label": "chatbot_config_id"
+    },
+    {
+      "from": "session_messages",
+      "to": "research_sessions",
+      "label": "session_id",
+      "variant": "emphasis"
+    },
+    {
+      "from": "search_events",
+      "to": "session_messages",
+      "label": "message_id",
+      "labelSegment": 0
+    },
+    {
+      "from": "answer_citations",
+      "to": "session_messages",
+      "label": "message_id",
+      "labelSegment": 0
+    },
+    {
+      "from": "answer_feedback",
+      "to": "session_messages",
+      "label": "message_id",
+      "labelSegment": 0
+    },
+    {
+      "from": "chat_message_reactions",
+      "to": "session_messages",
+      "label": "message_id",
+      "labelSegment": 0
+    },
+    {
+      "from": "data_source_categories",
+      "to": "qd_main",
+      "label": "key → source",
+      "variant": "dashed",
+      "labelSegment": 0
+    },
+    {
+      "from": "ingestion_jobs",
+      "to": "qd_main",
+      "label": "volume_key → volume",
+      "variant": "dashed",
+      "labelSegment": 0
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "채팅 도메인",
+      "items": [
+        "research_sessions 1 : N session_messages — user_id 로 로그인 사용자에 귀속",
+        "assistant 메시지마다 search_events (검색 지표) · answer_citations (출처 3건)",
+        "피드백 · 반응은 tw_anon_session 쿠키의 user_session_id 로 메시지당 1행 upsert"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "설정 · 적재",
+      "items": [
+        "chatbot_configs.search_tiers JSON 이 봇별 검색 티어 · rerank · multiturn 토글",
+        "data_source_categories.key 는 Qdrant payload source 와 1 : 1, 생성 후 불변",
+        "ingestion_jobs 는 적재 체크포인트 — content_hash 일치 시 임베딩 skip"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "두 저장소의 역할",
+      "items": [
+        "PostgreSQL 은 운영 데이터 전용 — Alembic 24 revision, 기동 시 upgrade head",
+        "Qdrant 는 검색 전용 — payload index source · volume 으로 필터 · facet",
+        "semantic_cache 는 TTL · corpus_updated_at · embedding_model 로 무효화"
+      ]
+    }
+  ]
+}

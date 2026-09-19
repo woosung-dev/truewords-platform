@@ -1,25 +1,17 @@
 "use client";
 
-import { use } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { use } from "react";
 import { toast } from "sonner";
-
-import { chatbotAPI } from "@/features/chatbot/api";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  ChatbotForm,
-  type ChatbotFormValues,
-} from "@/features/chatbot/components/chatbot-form";
-import { ChevronRight } from "lucide-react";
+import { chatbotAPI } from "@/features/chatbot/api";
+import { ChatbotForm, type ChatbotFormValues } from "@/features/chatbot/components/chatbot-form";
 
-export default function EditChatbotPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function EditChatbotPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -50,11 +42,7 @@ export default function EditChatbotPage({
       queryClient.invalidateQueries({ queryKey: ["chatbots"] });
     },
     onError: (err: Error) => {
-      toast.error(
-        err.message.includes("연결")
-          ? "서버에 연결할 수 없습니다"
-          : "저장에 실패했습니다",
-      );
+      toast.error(err.message.includes("연결") ? "서버에 연결할 수 없습니다" : "저장에 실패했습니다");
     },
   });
 
@@ -80,13 +68,8 @@ export default function EditChatbotPage({
   if (isError || !config) {
     return (
       <div className="rounded-xl border border-dashed p-10 text-center space-y-3">
-        <p className="text-muted-foreground text-sm">
-          설정을 불러올 수 없습니다.
-        </p>
-        <Link
-          href="/chatbots"
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
+        <p className="text-muted-foreground text-sm">설정을 불러올 수 없습니다.</p>
+        <Link href="/chatbots" className={buttonVariants({ variant: "outline", size: "sm" })}>
           목록으로 돌아가기
         </Link>
       </div>
@@ -96,25 +79,16 @@ export default function EditChatbotPage({
   return (
     <div className="max-w-2xl space-y-1">
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground mb-4">
-        <Link
-          href="/chatbots"
-          className="hover:text-foreground transition-colors"
-        >
+        <Link href="/chatbots" className="hover:text-foreground transition-colors">
           챗봇
         </Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-foreground font-medium">
-          {config.display_name}
-        </span>
+        <span className="text-foreground font-medium">{config.display_name}</span>
       </nav>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {config.display_name}
-        </h1>
-        <p className="text-sm text-muted-foreground font-mono mt-0.5">
-          {config.chatbot_id}
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{config.display_name}</h1>
+        <p className="text-sm text-muted-foreground font-mono mt-0.5">{config.chatbot_id}</p>
       </div>
 
       <div className="pt-4">
@@ -131,12 +105,9 @@ export default function EditChatbotPage({
               search_mode: config.search_tiers?.search_mode ?? "cascading",
               tiers: config.search_tiers?.tiers ?? [],
               weighted_sources: config.search_tiers?.weighted_sources ?? [],
-              dictionary_enabled:
-                config.search_tiers?.dictionary_enabled ?? false,
-              query_rewrite_enabled:
-                config.search_tiers?.query_rewrite_enabled ?? false,
-              multiturn_enabled:
-                config.search_tiers?.multiturn_enabled ?? true,
+              dictionary_enabled: config.search_tiers?.dictionary_enabled ?? false,
+              query_rewrite_enabled: config.search_tiers?.query_rewrite_enabled ?? false,
+              multiturn_enabled: config.search_tiers?.multiturn_enabled ?? true,
               raw_rag_only: config.search_tiers?.raw_rag_only ?? false,
             },
           }}

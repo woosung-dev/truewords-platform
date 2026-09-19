@@ -27,14 +27,19 @@ from app.modules.admin.analytics_router import router as analytics_router
 from app.modules.admin.data_router import router as admin_data_router
 from app.modules.datasource.router import router as datasource_router
 from app.modules.datasource.chunks_router import chunks_router
+from app.modules.hoondok.router import router as hoondok_router
+from app.modules.hoondok.admin_router import admin_router as hoondok_admin_router
+from app.modules.identity.router import router as identity_router
 from app.core.common.exception_handlers import (
     embedding_failed_handler,
     input_blocked_handler,
     rate_limit_handler,
     search_failed_handler,
+    session_ownership_handler,
     unhandled_exception_handler,
 )
 from app.core.common.middleware import RequestIdMiddleware
+from app.modules.chat.exceptions import SessionOwnershipError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
 from app.modules.search.exceptions import EmbeddingFailedError, SearchFailedError
 
@@ -103,6 +108,7 @@ app.add_exception_handler(InputBlockedError, input_blocked_handler)  # type: ign
 app.add_exception_handler(RateLimitExceededError, rate_limit_handler)  # type: ignore[arg-type]
 app.add_exception_handler(SearchFailedError, search_failed_handler)  # type: ignore[arg-type]
 app.add_exception_handler(EmbeddingFailedError, embedding_failed_handler)  # type: ignore[arg-type]
+app.add_exception_handler(SessionOwnershipError, session_ownership_handler)  # type: ignore[arg-type]
 
 # Catch-all — 반드시 마지막에 등록 (구체 예외 핸들러가 먼저 매칭되도록)
 app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignore[arg-type]
@@ -111,6 +117,8 @@ app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignor
 app.include_router(chat_router)
 app.include_router(reactions_router)
 app.include_router(chatbot_router)
+app.include_router(hoondok_router)  # 훈독 공개 읽기 — 비로그인 (PLAN-HD-001 Phase 1)
+app.include_router(identity_router)  # 훈독 계정 /hoondok/auth/* — 쿠키 hoondok_token (Phase 2)
 
 # ponytail: 레드팀 시연 한시 게이트 — dependencies.require_admin_gate 참조. 시연 후 회수.
 _ADMIN_GATE = [Depends(require_admin_gate)]
@@ -122,6 +130,7 @@ app.include_router(admin_data_router, dependencies=_ADMIN_GATE)
 app.include_router(datasource_router, dependencies=_ADMIN_GATE)
 app.include_router(chunks_router)  # 공개 유지 — 채팅 원문보기 모달 (자체 chatbot ACL)
 app.include_router(analytics_router, dependencies=_ADMIN_GATE)
+app.include_router(hoondok_admin_router, dependencies=_ADMIN_GATE)  # 훈독 편성 /admin/hoondok/daily-readings (Phase 3 A)
 
 
 @app.get("/health")

@@ -8,10 +8,7 @@
 
 const ACTIVE_RING = "ring-2 ring-accent border-accent";
 
-const COLOR_MAP: Record<
-  string,
-  { text: string; bg: string; border: string; activeRing: string }
-> = {
+const COLOR_MAP: Record<string, { text: string; bg: string; border: string; activeRing: string }> = {
   indigo: {
     text: "text-cat-indigo",
     bg: "bg-cat-indigo/10",

@@ -1,5 +1,5 @@
 // preprocess() 함수 회귀 테스트 — bullet 정규화 및 citation 치환 검증.
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { preprocess } from "@/features/chat/components/assistant-message";
 
 describe("preprocess - citation 치환", () => {
@@ -16,21 +16,15 @@ describe("preprocess - citation 치환", () => {
   });
 
   it("multi-id [1, 2] 를 [1](cite:1)[2](cite:2) 로 분해한다", () => {
-    expect(preprocess("내용입니다 [1, 2].")).toBe(
-      "내용입니다 [1](cite:1)[2](cite:2).",
-    );
+    expect(preprocess("내용입니다 [1, 2].")).toBe("내용입니다 [1](cite:1)[2](cite:2).");
   });
 
   it("공백 없는 multi-id [1,2,3] 도 분해한다", () => {
-    expect(preprocess("출처 [1,2,3]")).toBe(
-      "출처 [1](cite:1)[2](cite:2)[3](cite:3)",
-    );
+    expect(preprocess("출처 [1,2,3]")).toBe("출처 [1](cite:1)[2](cite:2)[3](cite:3)");
   });
 
   it("multi-id 와 single-id 가 혼재해도 모두 변환한다", () => {
-    expect(preprocess("앞 [1] 뒤 [2, 4]")).toBe(
-      "앞 [1](cite:1) 뒤 [2](cite:2)[4](cite:4)",
-    );
+    expect(preprocess("앞 [1] 뒤 [2, 4]")).toBe("앞 [1](cite:1) 뒤 [2](cite:2)[4](cite:4)");
   });
 });
 
@@ -52,9 +46,7 @@ describe("preprocess - maxSourceN strip (sourceMap miss 방어)", () => {
   });
 
   it("multi-id [1, 2, 7] 에서 maxSourceN=3 이면 [1][2] 만 남는다", () => {
-    expect(preprocess("내용 [1, 2, 7].", 3)).toBe(
-      "내용 [1](cite:1)[2](cite:2).",
-    );
+    expect(preprocess("내용 [1, 2, 7].", 3)).toBe("내용 [1](cite:1)[2](cite:2).");
   });
 
   it("default maxSourceN=Infinity 에서는 기존 동작 유지", () => {
@@ -76,8 +68,7 @@ describe("preprocess - INLINE_CITATIONS 잔재 strip", () => {
 
 describe("preprocess - bullet 정규화", () => {
   it("인라인 bullet을 단락 구분으로 분리한다", () => {
-    const input =
-      "이유는 다음과 같습니다.\n\n• 항목1: 내용입니다. • 항목2: 내용입니다. • 항목3: 내용입니다.";
+    const input = "이유는 다음과 같습니다.\n\n• 항목1: 내용입니다. • 항목2: 내용입니다. • 항목3: 내용입니다.";
     const result = preprocess(input);
     expect(result).toContain("항목1: 내용입니다.\n\n• 항목2");
     expect(result).toContain("항목2: 내용입니다.\n\n• 항목3");

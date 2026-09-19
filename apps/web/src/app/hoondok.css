@@ -1,0 +1,725 @@
+/* =============================================================================
+   hoondok.css — 훈독(/hoondok/*) 전용 토큰·컴포넌트. 값의 원본은
+   docs/prd/prototypes/hoondok-ds/hoondok.css (DES-PWA-003) 이며 이 파일은 그 중
+   Phase 1 루프(홈·훈독하기)에 필요한 규칙만 [data-app="hoondok"] 아래로 옮긴 것이다.
+
+   규칙 (tooling/checks/hoondok-css.mjs 가 검사):
+   - :root 선언 금지. 토큰은 아래 첫 블록에만 두고 시연 챗의 globals.css 와 섞지 않는다.
+   - 색 hex 는 첫 토큰 블록 밖에서 쓰지 않는다 (전부 var()).
+   - 브레이크포인트는 768 · 1024 · 1224 만.
+   - 폐기값 #d4562e 는 어디에도 두지 않는다 (--accent 가 정본).
+   - 라이트 고정(DEC-PWA-017). .dark 팔레트를 정의하지 않는다.
+   ============================================================================= */
+
+/* ---------- 1. 토큰 (첫 블록 = 유일한 hex 허용 구역) ---------- */
+[data-app="hoondok"] {
+  --paper: #fbfaf8;
+  --surface: #ffffff;
+  --surface-2: #f1efea;
+  --ink: #23211f;
+  --ink-2: #5a5652;
+  --ink-3: #6f6a65;
+  --line: #e5e1da;
+  --accent: #c24721;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbe9e1;
+  --accent-strong: #a03a1a;
+  --ok: #2f7a4f;
+  --ok-soft: #e4f1e8;
+  --ok-strong: #26633f;
+  --hl-1: #fff0c9;
+  --hl-2: #dcefe3;
+  --hl-3: #ffe0d6;
+
+  --r: 16px;
+  --r-sm: 12px;
+  --r-xs: 8px;
+  --r-sheet: 28px;
+  --r-full: 999px;
+
+  --shadow-hairline: 0 1px 0 rgba(0, 0, 0, 0.02);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-2: 0 10px 30px rgba(87, 62, 40, 0.1);
+
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+  --serif: "Noto Serif KR", "Apple SD Gothic Neo", serif;
+  --font-scripture: var(--sans);
+
+  --gutter: 20px;
+  --measure-read: 640px;
+  --measure-app: 720px;
+
+  /* 시연 챗(shadcn) 동명 토큰을 이 스코프 안에서만 덮는다. globals.css 의 :root 는 그대로다. */
+  --background: var(--paper);
+  --foreground: var(--ink);
+}
+
+/* ---------- 2. 스코프 리셋 · 앱 셸 ---------- */
+[data-app="hoondok"] {
+  color-scheme: light;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .btn-primary:focus-visible {
+    outline-color: var(--ink);
+  }
+
+  .app__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .appbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--paper);
+  }
+  .appbar__in {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 10px var(--gutter) 8px;
+  }
+  .appbar__title {
+    font-size: 18px;
+    margin: 0;
+    flex: 1;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--r-sm);
+    display: grid;
+    place-items: center;
+    color: var(--ink-2);
+    flex: none;
+  }
+  .icon-btn:active,
+  .check:active {
+    transform: scale(0.96);
+  }
+  .masthead {
+    display: none;
+  }
+  .col {
+    width: 100%;
+    padding: 4px var(--gutter) 28px;
+  }
+
+  /* 하단 5탭 (base·md). 탭 정의는 features/hoondok/tabs.ts 한 곳이다. */
+  .nav {
+    flex: none;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: 8px 6px 0;
+    min-height: 76px;
+  }
+  .nav__brand,
+  .nav__search {
+    display: none;
+  }
+  .nav__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    color: var(--ink-3);
+    padding-top: 4px;
+  }
+  .nav__ic {
+    display: grid;
+    place-items: center;
+    line-height: 1;
+  }
+  .nav__item[aria-current] {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .nav__item[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: default;
+  }
+  .nav__item:not(.nav__item--mid):active {
+    background: var(--surface-2);
+  }
+  .nav__item--mid {
+    margin-top: -24px;
+  }
+  .nav__item--mid .nav__ic {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-ink);
+    box-shadow: var(--shadow-2);
+  }
+  .nav__item--mid:active .nav__ic {
+    transform: scale(0.96);
+  }
+
+  /* ---------- 3. 미션 카드 (DES §2.1) ---------- */
+  .missions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .mission {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-hairline);
+  }
+  .mission__link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+  }
+  .mission__ic {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--r-sm);
+    display: grid;
+    place-items: center;
+    background: var(--surface-2);
+    color: var(--ink-2);
+    flex: none;
+  }
+  .mission__bd {
+    flex: 1;
+    min-width: 0;
+  }
+  .mission__kind {
+    font-size: 12px;
+    color: var(--ink-3);
+    display: block;
+  }
+  .mission__title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 1px;
+    display: block;
+    line-height: 1.35;
+  }
+  .mission__meta {
+    font-size: 12.5px;
+    color: var(--ink-3);
+    margin-top: 3px;
+    display: block;
+  }
+  .mission[data-done] .mission__ic {
+    background: var(--ok-soft);
+    color: var(--ok-strong);
+  }
+  .mission[data-disabled] {
+    opacity: 0.6;
+  }
+  .check {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid var(--ink-3);
+    display: grid;
+    place-items: center;
+    color: transparent;
+    flex: none;
+    background: var(--surface);
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .check[aria-pressed="true"] {
+    background: var(--ok);
+    border-color: var(--ok);
+    color: var(--accent-ink);
+  }
+  .check[disabled] {
+    cursor: not-allowed;
+    border-color: var(--line);
+  }
+
+  /* ---------- 4. 말씀 카드 · 출처 줄 (DES §2.2) ---------- */
+  .src {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .src__dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--line);
+    flex: none;
+  }
+  .lede {
+    font-size: 21px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    margin: 12px 0 8px;
+    text-wrap: balance;
+  }
+  .lede-rule {
+    height: 1px;
+    background: var(--line);
+    margin: 14px 0 0;
+  }
+  .scripture {
+    font-family: var(--font-scripture);
+    font-size: 16.5px;
+    line-height: 1.75;
+    border-left: 4px solid var(--ink);
+    padding: 4px 0 4px 14px;
+    margin: 14px 0;
+    white-space: pre-line;
+  }
+  .malssum {
+    display: block;
+  }
+  .malssum .scripture {
+    margin: 10px 0 0;
+  }
+
+  /* ---------- 5. 권위 층 배지 (DES §2.3) ---------- */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: var(--r-xs);
+    background: var(--surface-2);
+    color: var(--ink-2);
+    min-height: 20px;
+  }
+  .badge--rank {
+    background: var(--ok-soft);
+    color: var(--ok-strong);
+  }
+  .badge--accent {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+  }
+  .badge--dashed {
+    background: transparent;
+    border: 1.5px dashed var(--ink-3);
+    color: var(--ink-2);
+  }
+
+  /* ---------- 6. 카드 · 섹션 · 상태 ---------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 16px;
+    box-shadow: var(--shadow-hairline);
+  }
+  .greet {
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0;
+  }
+  .greet__sub {
+    font-size: 13px;
+    color: var(--ink-2);
+    margin: 6px 0 0;
+  }
+  .sect {
+    margin-top: 24px;
+  }
+  .sect__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .sect__title {
+    font-size: 16px;
+    margin: 0;
+    font-weight: 600;
+  }
+  .sect__meta {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    flex: none;
+  }
+  .empty {
+    text-align: center;
+    padding: 36px 20px;
+  }
+  .empty__ic {
+    color: var(--ink-3);
+    display: grid;
+    place-items: center;
+  }
+  .empty__title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 8px 0 0;
+  }
+  .empty__body {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    margin: 4px 0 0;
+  }
+  .notice {
+    font-size: 11.5px;
+    color: var(--ink-2);
+    text-align: center;
+    padding: 22px 0 0;
+    margin: 0;
+  }
+  .hint {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--ink-2);
+    margin-top: 12px;
+  }
+
+  /* ---------- 7. 요일 스트립 ---------- */
+  .week {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .week__days {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+    justify-items: center;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .week__day {
+    width: 100%;
+    max-width: 34px;
+    aspect-ratio: 1;
+    height: auto;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 12.5px;
+    color: var(--ink-3);
+    border: 1px solid var(--ink-3);
+    background: var(--surface);
+  }
+  .week__day[data-done] {
+    background: var(--ok-soft);
+    color: var(--ok-strong);
+    border-color: transparent;
+    font-weight: 600;
+  }
+  .week__day[data-today] {
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .week__streak {
+    font-size: 13px;
+    color: var(--ink-2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+  }
+  .week__streak b {
+    color: var(--accent);
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- 8. 버튼 (DES §1.5) ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 50px;
+    padding: 0 20px;
+    border-radius: var(--r);
+    font-weight: 600;
+    font-size: 15px;
+    width: 100%;
+    transition:
+      background 0.12s ease,
+      transform 0.12s ease;
+  }
+  .btn:active {
+    transform: scale(0.985);
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .btn-ghost {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+  .btn-line {
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .btn[disabled] {
+    background: var(--surface-2);
+    color: var(--ink-3);
+    cursor: not-allowed;
+  }
+  .btn--sm {
+    height: 38px;
+    font-size: 13.5px;
+    padding: 0 14px;
+    width: auto;
+  }
+
+  /* ---------- md: 768px 이상. 단일 컬럼 중앙 정렬, 하단 탭 유지 ---------- */
+  @media (min-width: 768px) {
+    .col {
+      max-width: var(--measure-app);
+      margin: 0 auto;
+    }
+    .col--read {
+      max-width: var(--measure-read);
+    }
+    .appbar__in {
+      max-width: var(--measure-app);
+      margin: 0 auto;
+    }
+    .app__main--read .appbar__in {
+      max-width: var(--measure-read);
+    }
+  }
+
+  /* ---------- lg: 1024px 이상. 하단 탭 → 상단 헤더 4 (DES §8 2026-09-16) ---------- */
+  @media (min-width: 1024px) {
+    .nav {
+      order: -1;
+      position: sticky;
+      top: 0;
+      z-index: 25;
+      height: 72px;
+      width: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 4px;
+      padding: 0 max(32px, calc((100% - 1120px) / 2));
+      border-top: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__brand {
+      display: flex;
+      align-items: center;
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      flex: none;
+      margin-right: 20px;
+    }
+    .nav__ic {
+      display: none;
+    }
+    .nav__item,
+    .nav__item--mid {
+      margin-top: 0;
+      flex-direction: row;
+      height: 40px;
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: var(--r-xs);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--ink-2);
+    }
+    .nav__item[aria-current] {
+      color: var(--ink);
+      font-weight: 600;
+      background: var(--surface-2);
+    }
+    .nav__search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 42px;
+      padding: 0 14px;
+      color: var(--ink-3);
+      flex: 1;
+      max-width: 360px;
+      margin-left: auto;
+      border-radius: var(--r-full);
+      background: var(--surface-2);
+      font-size: 14.5px;
+    }
+    .appbar {
+      top: 72px;
+    }
+    /* 홈에서는 헤더 활성 탭이 곧 제목이라 앱바를 시각적으로만 접는다 (h1 은 보조기기용으로 남긴다) */
+    .app__main--home .appbar {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+    .app__main--home .col {
+      padding-top: 24px;
+    }
+    .icon-btn--search {
+      display: none;
+    }
+    @media (hover: hover) {
+      .nav__item:hover {
+        background: var(--surface-2);
+      }
+      .btn-primary:hover {
+        background: var(--accent-strong);
+      }
+      .btn-ghost:hover,
+      .btn-line:hover,
+      .icon-btn:hover {
+        background: var(--surface-2);
+      }
+      .card:hover {
+        box-shadow: var(--shadow-1);
+      }
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+}
+
+/* ---------- Phase 2. 입력 · 온보딩 (SCR-PWA-001 최소형). 값은 프로토타입 .field 규칙 ---------- */
+[data-app="hoondok"] {
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .field input {
+    font: inherit;
+    font-size: 16px; /* iOS 확대 방지 */
+    color: var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-sm);
+    padding: 12px 14px;
+    width: 100%;
+  }
+  .field input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .field__help {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .form__msg {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-strong);
+    margin: 0;
+  }
+  .form__switch {
+    font-size: 13px;
+    color: var(--ink-2);
+    text-align: center;
+    margin: 0;
+  }
+  .form__switch button {
+    color: var(--accent-strong);
+    font-weight: 600;
+    text-decoration: underline;
+    min-height: 44px;
+  }
+  .onb-eyebrow {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent-strong);
+    margin: 8px 0 0;
+  }
+  .onb-title {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    margin: 8px 0 0;
+    text-wrap: balance;
+  }
+  .onb-lede {
+    font-size: 15px;
+    color: var(--ink-2);
+    margin: 10px 0 0;
+  }
+  .onb-cta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+  }
+}

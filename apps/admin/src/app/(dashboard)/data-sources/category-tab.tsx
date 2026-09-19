@@ -1,34 +1,27 @@
 "use client";
 
-import { Fragment, useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChevronDown, ChevronRight, FolderOpen, Pencil, Plus, Power, Tag, Trash2, X } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  dataAPI,
-  dataSourceCategoryAPI,
-} from "@/features/data-source/api";
-import type { DataSourceCategory } from "@/features/data-source/types";
-import { useDataSourceCategories, useRemoveVolumeTag } from "@/features/data-source/hooks";
-import { getCategoryColors } from "@/features/data-source/category-colors";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Plus, Pencil, Power, ChevronRight, ChevronDown, Tag, Trash2, X, FolderOpen } from "lucide-react";
-import DeleteConfirmDialog, {
-  type DeleteTarget,
-} from "@/features/data-source/components/delete-confirm-dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { dataAPI, dataSourceCategoryAPI } from "@/features/data-source/api";
+import { getCategoryColors } from "@/features/data-source/category-colors";
+import DeleteConfirmDialog, { type DeleteTarget } from "@/features/data-source/components/delete-confirm-dialog";
 import VolumeTransferSheet from "@/features/data-source/components/volume-transfer-sheet";
-import { useCategoryStats, useAllVolumes } from "@/features/data-source/hooks";
-import type { CategoryDocumentStats } from "@/features/data-source/types";
+import {
+  useAllVolumes,
+  useCategoryStats,
+  useDataSourceCategories,
+  useRemoveVolumeTag,
+} from "@/features/data-source/hooks";
+import type { CategoryDocumentStats, DataSourceCategory } from "@/features/data-source/types";
 
 const COLOR_OPTIONS = [
   { key: "indigo", label: "인디고" },
@@ -92,7 +85,7 @@ export default function CategoryTab() {
 
   const volumeSourcesLookup = useMemo(() => {
     const map = new Map<string, string[]>();
-    for (const v of allVolumes) map.set(v.volume, (v.sources ?? []));
+    for (const v of allVolumes) map.set(v.volume, v.sources ?? []);
     return map;
   }, [allVolumes]);
 
@@ -119,13 +112,13 @@ export default function CategoryTab() {
       let totalSkipped = 0;
       if (targets.length === 1) {
         const res = await dataAPI.deleteVolume(targets[0].volume);
-        totalChunks = (res.total_chunks_deleted ?? 0);
+        totalChunks = res.total_chunks_deleted ?? 0;
         totalSkipped = (res.skipped ?? []).length;
       } else {
         const res = await dataAPI.deleteVolumesBulk({
           volumes: targets.map((t) => t.volume),
         });
-        totalChunks = (res.total_chunks_deleted ?? 0);
+        totalChunks = res.total_chunks_deleted ?? 0;
         totalSkipped = (res.skipped ?? []).length;
       }
       const skippedSuffix = totalSkipped > 0 ? ` · 스킵 ${totalSkipped}` : "";
@@ -137,25 +130,18 @@ export default function CategoryTab() {
       queryClient.invalidateQueries({ queryKey: ["ingest-status"] });
       setDeleteDialog({ open: false, targets: [], busy: false });
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "삭제 실패 — 다시 시도해주세요",
-      );
+      toast.error(err instanceof Error ? err.message : "삭제 실패 — 다시 시도해주세요");
       setDeleteDialog((prev) => ({ ...prev, busy: false }));
     }
   };
 
-  const uncategorizedVolumes = useMemo(
-    () => allVolumes.filter((v) => (v.sources ?? []).length === 0),
-    [allVolumes]
-  );
+  const uncategorizedVolumes = useMemo(() => allVolumes.filter((v) => (v.sources ?? []).length === 0), [allVolumes]);
 
   // Qdrant에는 있지만 카테고리 테이블에 없는 source 감지 (ADR-26)
   const unregisteredSources = useMemo(() => {
     if (!categoryStats) return [];
     const registeredKeys = new Set(categories.map((c) => c.key));
-    return categoryStats
-      .filter((s) => !registeredKeys.has(s.source))
-      .map((s) => s.source);
+    return categoryStats.filter((s) => !registeredKeys.has(s.source)).map((s) => s.source);
   }, [categoryStats, categories]);
 
   const openTransfer = (key: string | null, name: string, color?: string) => {
@@ -202,8 +188,7 @@ export default function CategoryTab() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<FormState> }) =>
-      dataSourceCategoryAPI.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<FormState> }) => dataSourceCategoryAPI.update(id, data),
     onSuccess: () => {
       toast.success("카테고리가 수정되었습니다");
       queryClient.invalidateQueries({ queryKey: ["data-source-categories"] });
@@ -278,9 +263,7 @@ export default function CategoryTab() {
 
   const isPending = createMutation.isPending || updateMutation.isPending;
   const [showInactive, setShowInactive] = useState(false);
-  const visibleCategories = showInactive
-    ? categories
-    : categories.filter((c) => c.is_active);
+  const visibleCategories = showInactive ? categories : categories.filter((c) => c.is_active);
   const inactiveCount = categories.filter((c) => !c.is_active).length;
 
   if (isLoading) {
@@ -296,9 +279,7 @@ export default function CategoryTab() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-sm">카테고리 관리</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            데이터 소스 분류를 추가하거나 수정합니다
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">데이터 소스 분류를 추가하거나 수정합니다</p>
         </div>
         <div className="flex items-center gap-2">
           {inactiveCount > 0 && (
@@ -310,8 +291,7 @@ export default function CategoryTab() {
             </button>
           )}
           <Button size="sm" onClick={openCreate}>
-            <Plus className="w-3.5 h-3.5 mr-1.5" />
-            새 카테고리
+            <Plus className="w-3.5 h-3.5 mr-1.5" />새 카테고리
           </Button>
         </div>
       </div>
@@ -324,9 +304,7 @@ export default function CategoryTab() {
             <p className="text-sm font-medium text-warning">
               Qdrant에 등록되지 않은 소스가 {unregisteredSources.length}개 있습니다
             </p>
-            <p className="text-xs text-warning/80 mt-0.5">
-              검색 티어에서 사용하려면 카테고리로 등록하세요
-            </p>
+            <p className="text-xs text-warning/80 mt-0.5">검색 티어에서 사용하려면 카테고리로 등록하세요</p>
             <div className="flex flex-wrap gap-1.5 mt-2">
               {unregisteredSources.map((source) => (
                 <Button
@@ -416,10 +394,7 @@ export default function CategoryTab() {
                       )}
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <div
-                        className={`w-5 h-5 rounded-full ${colors.bg} border ${colors.border}`}
-                        title={cat.color}
-                      />
+                      <div className={`w-5 h-5 rounded-full ${colors.bg} border ${colors.border}`} title={cat.color} />
                     </td>
                     <td className="px-4 py-3 text-center">
                       <Badge
@@ -481,9 +456,7 @@ export default function CategoryTab() {
                     <tr className="bg-admin-muted/20">
                       <td />
                       <td colSpan={6} className="px-4 pb-3 pt-1">
-                        <div
-                          className={`border-l-[3px] pl-3 ml-2 ${colors.border}`}
-                        >
+                        <div className={`border-l-[3px] pl-3 ml-2 ${colors.border}`}>
                           <p className="text-xs text-muted-foreground mb-2">포함된 문서</p>
                           <div className="space-y-2">
                             {stat.volumes.map((vol) => (
@@ -503,7 +476,7 @@ export default function CategoryTab() {
                                     if (confirm(`"${vol}"을(를) ${cat.name} 카테고리에서 제거하시겠습니까?`)) {
                                       removeTagMutation.mutate(
                                         { volume: vol, source: cat.key },
-                                        { onError: (err: Error) => toast.error(err.message) }
+                                        { onError: (err: Error) => toast.error(err.message) },
                                       );
                                     }
                                   }}
@@ -563,10 +536,7 @@ export default function CategoryTab() {
             )}
             {visibleCategories.length === 0 && (
               <tr>
-                <td
-                  colSpan={7}
-                  className="px-4 py-12 text-center text-muted-foreground"
-                >
+                <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
                   카테고리가 없습니다. 새 카테고리를 추가하세요.
                 </td>
               </tr>
@@ -580,9 +550,7 @@ export default function CategoryTab() {
         <SheetContent className="flex flex-col p-0 gap-0">
           {/* 헤더 — Key Badge 제거 (시스템 내부 식별자, 사용자에게 노출 안 함) */}
           <SheetHeader className="px-6 pt-6 pb-4 border-b">
-            <SheetTitle className="text-base">
-              {editing ? "카테고리 수정" : "새 카테고리 추가"}
-            </SheetTitle>
+            <SheetTitle className="text-base">{editing ? "카테고리 수정" : "새 카테고리 추가"}</SheetTitle>
           </SheetHeader>
 
           {/* 폼 본문 */}
@@ -678,17 +646,11 @@ export default function CategoryTab() {
       {/* ADR-30 Phase 3 — 영구 삭제 확인 다이얼로그 */}
       <DeleteConfirmDialog
         open={deleteDialog.open}
-        onOpenChange={(open) =>
-          setDeleteDialog((prev) =>
-            open ? prev : { open: false, targets: [], busy: false },
-          )
-        }
+        onOpenChange={(open) => setDeleteDialog((prev) => (open ? prev : { open: false, targets: [], busy: false }))}
         targets={deleteDialog.targets}
         busy={deleteDialog.busy}
         onConfirm={handleDeleteConfirm}
-        onCancel={() =>
-          setDeleteDialog({ open: false, targets: [], busy: false })
-        }
+        onCancel={() => setDeleteDialog({ open: false, targets: [], busy: false })}
       />
     </div>
   );
