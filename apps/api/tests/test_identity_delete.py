@@ -94,6 +94,31 @@ async def test_delete_account_purges_hoondok_rows_in_same_commit(session: AsyncS
     assert again.id != me.id and again.email == "me@example.com"
 
 
+@pytest.mark.asyncio
+async def test_delete_account_partial_failure_leaves_nothing_deleted(session: AsyncSession):
+    """purger 중간 실패 — 예외가 전파되고 users.save 커밋에 닿지 못하므로 앞선 DELETE 도 남지 않는다."""
+
+    class _FailingPurger:
+        async def delete_for_user(self, user_id: uuid.UUID) -> None:
+            raise RuntimeError("purge 실패")
+
+    users, missions, periods = UserRepository(session), MissionLogRepository(session), JeongseongRepository(session)
+    service = IdentityService(users)
+    me = await service.signup(_signup("boom@example.com"))
+    await missions.create(MissionLog(user_id=me.id, mission_date=TODAY, kind="read"))
+    await periods.create(JeongseongPeriod(user_id=me.id, topic="감사", duration_days=7, started_on=TODAY))
+
+    with pytest.raises(RuntimeError):
+        await service.delete_account(me, purgers=[missions, _FailingPurger(), periods])
+
+    # 커밋 없이 끝난 트랜잭션은 close 에서 롤백된다 — 같은 연결(StaticPool)로 다시 읽어 실제 DB 상태를 본다
+    await session.close()
+    refetched = await users.get_by_id(me.id)
+    assert refetched is not None and refetched.deleted_at is None and refetched.email == "boom@example.com"
+    assert await missions.list_dates(me.id, "read") == [TODAY]
+    assert await periods.get_active(me.id) is not None  # 실패 뒤 purger 는 아예 실행되지 않았다
+
+
 # --- router (인메모리 fake) -------------------------------------------------------
 
 
@@ -189,6 +214,8 @@ def test_delete_me_204_clears_cookie_then_me_401(client: TestClient):
     assert deleted.status_code == 204, deleted.text
     cookie = deleted.headers["set-cookie"]
     assert cookie.startswith(f"{COOKIE_NAME}=") and "Max-Age=0" in cookie
+    # 발급 때와 같은 Path·HttpOnly 여야 브라우저가 같은 쿠키로 인식해 실제로 지운다
+    assert "Path=/" in cookie and "HttpOnly" in cookie
     assert client.get(ME).status_code == 401
 
     # 삭제 전 발급된 토큰을 다시 넣어도 deleted_at 으로 거른다 — 소프트 삭제가 세션 차단을 겸한다

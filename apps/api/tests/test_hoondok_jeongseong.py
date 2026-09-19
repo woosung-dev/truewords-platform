@@ -220,6 +220,16 @@ class _Periods:
         return period
 
 
+class _RacingPeriods(_Periods):
+    """동시 생성 경쟁 — 선조회는 비어 있는데 INSERT 순간 부분 unique 가 잡는다."""
+
+    async def get_active(self, user_id):
+        return None
+
+    async def create(self, period: JeongseongPeriod) -> JeongseongPeriod:
+        raise IntegrityError("dup", None, Exception("uq_jeongseong_periods_user_active"))
+
+
 @pytest.fixture
 def client():
     user = User(email="a@b.c", password_hash="x", display_name="효진")
@@ -266,6 +276,20 @@ def test_router_401_403_422_201_409_and_get_null(client: TestClient):
     assert client.post(PATH, json=body, headers=XHR).status_code == 409
     current = client.get(PATH)
     assert current.status_code == 200 and current.json()["period"]["id"] == period["id"]
+
+
+def test_router_create_race_integrity_error_falls_back_to_409(client: TestClient):
+    """선조회를 통과한 뒤 부분 unique 가 잡아도 선조회 409 와 같은 응답을 준다 — 클라이언트는 경쟁을 구분할 필요가 없다."""
+    client.cookies.set(COOKIE_NAME, IdentityService.issue_token(client.hoondok_user))
+    body = {"topic": "감사", "duration_days": 7}
+    assert client.post(PATH, json=body, headers=XHR).status_code == 201
+    precheck = client.post(PATH, json=body, headers=XHR)  # 선조회 409 — 비교 기준
+    assert precheck.status_code == 409
+
+    app.dependency_overrides[get_jeongseong_repository] = lambda: _RacingPeriods()
+    raced = client.post(PATH, json=body, headers=XHR)
+    assert raced.status_code == 409, raced.text
+    assert raced.json() == precheck.json() == {"detail": "이미 진행 중인 정성 기간이 있어요"}
 
 
 def test_router_delete_abandons_204_then_404(client: TestClient):
