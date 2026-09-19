@@ -6,6 +6,8 @@
 import { loadToday } from "@/features/hoondok/api";
 import { HomeMissions } from "@/features/hoondok/components/home-missions";
 import { InstallCard } from "@/features/hoondok/install/components/install-card";
+import { JeongseongCard } from "@/features/hoondok/jeongseong/components/jeongseong-card";
+import { JeongseongSheet } from "@/features/hoondok/jeongseong/components/jeongseong-sheet";
 import { formatKstDate } from "@/features/hoondok/today";
 
 export default async function HoondokHomePage() {
@@ -31,9 +33,12 @@ export default async function HoondokHomePage() {
 
       <HomeMissions reading={reading ?? null} todayWeekday={weekday} />
 
+      <JeongseongCard />
+
       <InstallCard />
 
       <p className="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
+      <JeongseongSheet />
     </section>
   );
 }
