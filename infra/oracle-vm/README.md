@@ -20,7 +20,8 @@
 | `prune-images.sh` | truewords 이미지 GC. web/admin/backend repo의 최신 3개·실행 중 이미지·명시적 보존 태그를 남깁니다. 최초 전환 전 admin 태그도 보존 대상으로 지정합니다. 빌드 캐시도 `until=168h` 로 정리합니다. |
 | `preserve-images.example` | VM `preserve-images.txt`의 형식 예제입니다. 실제 전환 전 통합 admin 태그를 기록하면 배포 자동 GC·주간 cron에서도 보존됩니다. |
 | `cache-cleanup.sh` | semantic_cache TTL 만료 point 정리 **수동 진입점**. 스케줄은 `cache-cleanup.yml`(GHA) 이 갖습니다 — cron 에 등록하지 않습니다. |
-| `ops-check.sh` | 운영 불변식 점검. 예약 작업이 "돌지 않은" 것까지 결과 기준으로 잡습니다. Gemini 키 생존도 함께 봅니다(§`gemini-key`) — probe 본체는 backend 이미지의 `scripts/gemini_key_probe.py` 라 이 디렉토리에 없습니다. FAIL/WARN 이면 ntfy 푸시를 보냅니다(§전달). |
+| `ops-check.sh` | 운영 불변식 점검. 예약 작업이 "돌지 않은" 것까지 결과 기준으로 잡습니다. Gemini 키 생존도 함께 봅니다(§`gemini-key`) — probe 본체는 backend 이미지의 `scripts/gemini_key_probe.py` 라 이 디렉토리에 없습니다. 훈독 편성 재고는 §`hoondok-today` 가 WARN 으로 봅니다. FAIL/WARN 이면 ntfy 푸시를 보냅니다(§전달). |
+| `smoke.sh` | 배포 직후 **공개 URL** 스모크. 이 디렉토리에서 유일하게 VM 이 아니라 **로컬에서** 실행합니다(`make smoke-web`) — 검사 대상이 Cloudflare 엣지·터널·Next 라우팅을 통과하는 공개 경로 그 자체라 ssh 를 쓰지 않습니다. 절차는 [훈독 PWA 롤아웃 runbook](../../docs/runbooks/hoondok-pwa-rollout.md). |
 
 ## 인프라 사양
 

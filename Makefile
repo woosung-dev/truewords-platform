@@ -24,7 +24,7 @@ FORCE_DEPLOY ?=
         backend-dev backend-test backend-test-fast backend-lint backend-install backend-migrate backend-start \
         infra-up infra-down infra-logs infra-status infra-reset \
         deploy-guard deploy-backend rollback-backend deploy-admin rollback-admin oracle-logs \
-        ci e2e ops-check cron-cache-cleanup cron-refresh-questions restore-drill \
+        ci e2e ops-check smoke-web cron-cache-cleanup cron-refresh-questions restore-drill \
         verify verify-modal test-all type-check clean web-dev web-build web-test web-type \
         deploy-web rollback-web contracts-check
 
@@ -50,7 +50,7 @@ help: ## 사용 가능한 명령 목록
 	@grep -E '^(deploy-guard|deploy-backend|rollback-backend|deploy-admin|rollback-admin|deploy-web|rollback-web|oracle-logs):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "▶ CI / 운영 작업 (로컬 사전 점검 · GitHub Actions 대체)"
-	@grep -E '^(ci|e2e|ops-check|cron-cache-cleanup|cron-refresh-questions|restore-drill):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^(ci|e2e|ops-check|smoke-web|cron-cache-cleanup|cron-refresh-questions|restore-drill):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "▶ 통합"
 	@grep -E '^(test-all|type-check|clean):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -306,6 +306,13 @@ contracts-check: ## 계약 재생성·drift 및 하위 호환성 검사
 
 ops-check: ## 운영 불변식 점검 — 예약 작업이 "안 돈" 것까지 결과 기준으로 잡는다
 	@ssh "$(ORACLE)" 'bash ~/truewords/ops-check.sh'
+
+smoke-web: ## 배포 직후 공개 URL 스모크 (WEB_URL 필수 · HOONDOK_ENABLED 는 배포 때 넘긴 값)
+	@# ops-check 는 VM 안을 본다. 컨테이너가 전부 healthy 인데 사용자에게는 404 인
+	@# 고장(터널이 구 컨테이너를 가리킴, 빌드 ARG 누락, 헤더 누락)은 바깥에서 HTTP 로만 보인다.
+	@# ssh 를 쓰지 않는다 — 검사 대상이 공개 경로 그 자체다.
+	@case "$(WEB_URL)" in *localhost*) echo "WEB_URL 에 검사할 origin 을 명시하세요 (예: WEB_URL=https://truewords.woosung.dev)"; exit 1;; esac
+	@bash infra/oracle-vm/smoke.sh --url $(WEB_URL) --hoondok $(HOONDOK_ENABLED)
 
 gemini-check: ## Gemini 운영 키 생존 확인 (ops-check 의 gemini-key 항목만 단독 실행)
 	@# GCP 프로젝트·키를 건드린 직후 "챗봇이 아직 살아 있나" 를 즉시 확인하는 용도.
