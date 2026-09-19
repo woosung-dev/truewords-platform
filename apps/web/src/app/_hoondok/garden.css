@@ -1,3 +1,172 @@
-/* W?-? 가 채운다. 값은 프로토타입 hoondok.css, 토큰만 사용(hex 금지) */
+/* SCR-PWA-014 나의 정원 (PLAN-HD-002 W1-G). 값의 원본은 프로토타입 hoondok.css 의
+   .stats · .progress · .card · .sect 와 DES-PWA-003 §2.6 달력 치수다. 토큰만 쓰고 hex 는 두지 않는다. */
 [data-app="hoondok"] {
+  /* ---------- 프로필 : 이니셜 아바타 + 이름. 점수·등급을 두지 않는다 ---------- */
+  .gd-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0 4px;
+  }
+  .gd-profile__av {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    min-height: 36px;
+    flex: none;
+    border-radius: var(--r-full);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .gd-profile__name {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* ---------- 누적 기록 3등분 (프로토타입 .stats) ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .stats__n {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 24px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stats__n--accent {
+    color: var(--accent);
+  }
+  .stats__lab {
+    display: block;
+    margin-top: 2px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+
+  /* ---------- 진행 바 (프로토타입 .progress) : 길이와 함께 숫자도 병기한다 ---------- */
+  .progress {
+    height: 8px;
+    margin-top: 12px;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .progress__fill {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: inherit;
+  }
+
+  /* ---------- 월 달력 (DES §2.6) : 상태 원 26 × 26 + 날짜 숫자 세로 배치 ---------- */
+  .gd-cal__head,
+  .gd-cal__grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+    justify-items: center;
+  }
+  .gd-cal__head {
+    margin-bottom: 8px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+  .gd-cal__grid {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .gd-cal__day {
+    display: grid;
+    justify-items: center;
+    gap: 3px;
+    padding: 3px 0;
+  }
+  .gd-cal__dot {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    min-height: 26px;
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-full);
+    background: var(--surface);
+    color: var(--ink-3);
+  }
+  .gd-cal__dot--done {
+    border-color: transparent;
+    background: var(--ok-soft);
+    color: var(--ok-strong);
+  }
+  /* 범례용 축소판 */
+  .gd-cal__dot--tiny {
+    width: 20px;
+    min-height: 20px;
+  }
+  .gd-cal__day b {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  /* 오늘 : 테두리 + 날짜 숫자 700 두 신호를 함께 쓴다 (DES §3.3) */
+  .gd-cal__day[data-today] .gd-cal__dot {
+    border: 2px solid var(--accent);
+  }
+  .gd-cal__day[data-today] b {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  /* 아직 오지 않은 날 : 대비를 유지한 채 무게만 낮춘다 */
+  .gd-cal__day[data-future] b {
+    font-weight: 400;
+    color: var(--ink-3);
+  }
+  .gd-cal__legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 16px;
+    margin: 14px 0 0;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .gd-cal__legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ---------- 진행 중인 정성 · 상태 카드 ---------- */
+  .gd-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .gd-row__t {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .gd-row--meta {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .gd-empty {
+    padding: 24px 16px;
+  }
+  .gd-cta {
+    display: flex;
+    justify-content: center;
+    margin: 14px 0 0;
+  }
 }
