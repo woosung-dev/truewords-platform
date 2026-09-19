@@ -15,6 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
+from route_helpers import dependency_callables, iter_api_routes
+
 from app.modules.admin.dependencies import get_admin_service, get_current_admin, require_admin_gate, verify_csrf
 from app.modules.hoondok.dependencies import get_daily_reading_admin_service, get_hoondok_service
 from app.modules.hoondok.models import DailyReading
@@ -164,12 +166,16 @@ async def test_service_create_conflict_and_update_paths(repo: DailyReadingReposi
 def test_all_curation_routes_have_csrf_and_admin_gate():
     """관리자 블록(_ADMIN_GATE) + 라우터 레벨 verify_csrf 가 4개 route 전부에 걸려 있다."""
     app = _app()
-    routes = [r for r in app.routes if getattr(r, "path", "").startswith(BASE)]
-    assert {(r.path, m) for r in routes for m in r.methods} == {
+    routes = [
+        (route, inherited)
+        for route, inherited in iter_api_routes(app)
+        if getattr(route, "path", "").startswith(BASE)
+    ]
+    assert {(route.path, m) for route, _ in routes for m in route.methods} == {
         (BASE, "GET"), (BASE, "POST"), (f"{BASE}/{{reading_id}}", "GET"), (f"{BASE}/{{reading_id}}", "PUT"),
     }
-    for route in routes:
-        dep_callables = [d.call for d in route.dependant.dependencies]
+    for route, inherited in routes:
+        dep_callables = dependency_callables(route, inherited)
         assert verify_csrf in dep_callables, f"{route.path} {route.methods} 에 verify_csrf 누락"
         assert require_admin_gate in dep_callables, f"{route.path} {route.methods} 에 require_admin_gate 누락"
 

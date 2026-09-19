@@ -3,6 +3,8 @@
 import uuid
 
 import pytest
+
+from route_helpers import dependency_callables, iter_api_routes
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.modules.admin.auth import (
@@ -242,15 +244,12 @@ def test_admin_gate_route_wiring():
     AUTH_OPEN = {"/admin/auth/login", "/admin/auth/logout", "/admin/auth/me"}
 
     gated_count = 0
-    for route in app.routes:
+    for route, inherited in iter_api_routes(app):
         methods = getattr(route, "methods", None)
         path = getattr(route, "path", None)
-        dependant = getattr(route, "dependant", None)
-        if not methods or path is None or dependant is None:
+        if not methods or path is None:
             continue
-        has_gate = any(
-            d.call is require_admin_gate for d in dependant.dependencies
-        )
+        has_gate = require_admin_gate in dependency_callables(route, inherited)
         if path.startswith("/admin/"):
             if path in AUTH_OPEN:
                 assert not has_gate, f"{path} 인증 라우트가 게이트에 과차단됨"
