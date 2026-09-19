@@ -59,18 +59,18 @@ describe("TodayNote", () => {
       vi.advanceTimersByTime(SAVE_DEBOUNCE_MS - 1);
     });
     expect(localStorage.getItem(KEY)).toBeNull();
-    expect(screen.getByRole("status").textContent).toBe("");
+    expect(screen.getByTestId("note-saved").textContent).toBe("");
 
     act(() => {
       vi.advanceTimersByTime(1);
     });
     expect(readNote(DATE)).toBe("오늘은 감사");
-    expect(screen.getByRole("status").textContent).toBe("저장됨");
+    expect(screen.getByTestId("note-saved").textContent).toBe("저장됨");
 
     act(() => {
       vi.advanceTimersByTime(SAVED_VISIBLE_MS);
     });
-    expect(screen.getByRole("status").textContent).toBe("");
+    expect(screen.getByTestId("note-saved").textContent).toBe("");
   });
 
   it("언마운트 뒤 다시 마운트하면 저장된 값과 카운터가 복원된다", () => {
