@@ -1,3 +1,393 @@
-/* W?-? 가 채운다. 값은 프로토타입 hoondok.css, 토큰만 사용(hex 금지) */
+/* SCR-PWA-005 묻기 홈 · 005b 질문 기록 · 006 질문·답변 상세 (PLAN-HD-002 W2).
+   프로토타입 app.html 의 `.qs-*`·`.ql-*`·`.ask-*` 마크업에는 hoondok.css 규칙이 없어(설치 카드 §2.12 와 같은 사정)
+   여기서 처음 정의한다. 값은 프로토타입 hoondok.css 의 이웃 규칙과 DES-PWA-003 §2.2·§2.10·§2.11 에서 가져왔고
+   색·반경·그림자는 토큰만 쓴다(hex 금지, pnpm hoondok:check). 라이트 단일 테마.
+
+   모션은 4종만 — 토글 150ms · 프레스 120ms. 스트리밍 답에는 타이핑 애니메이션을 두지 않는다.
+   `prefers-reduced-motion` 은 hoondok.css 의 스코프 전역 규칙이 이미 끈다.
+
+   W4 검토: `.pill-seg`·`.badge--line`·`.ai-note` 는 DES 가 정의한 공용 컴포넌트인데 hoondok.css 에 아직 없어
+   이 파일에 두었다. 다른 화면이 쓰기 시작하면 hoondok.css 로 승격한다. */
 [data-app="hoondok"] {
+  /* ---------- 공용 보강 (DES §2.3 · §2.10 · §2.11) ---------- */
+  .badge--line {
+    background: transparent;
+    border: 1px solid var(--ink-3);
+    color: var(--ink-2);
+  }
+  .pill-seg {
+    display: flex;
+    gap: 2px;
+    margin-top: 8px;
+    padding: 3px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+  }
+  .pill-seg button {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 10px;
+    border-radius: var(--r-xs);
+    font-size: 14px;
+    color: var(--ink-2);
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+  /* 활성은 색·굵기·썸 배경 셋이 함께 바뀐다 (§2.10 색만으로 구분 금지) */
+  .pill-seg button.is-on {
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 600;
+    box-shadow: var(--shadow-1);
+  }
+  .pill-seg button[disabled] {
+    cursor: default;
+    color: var(--ink-3);
+  }
+  /* 왜 꺼져 있는지는 색이 아니라 글자가 말한다 (§3.3) — 세그먼트 바로 아래 한 줄 */
+  .pill-seg__soon {
+    margin: 8px 0 0;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    text-align: right;
+  }
+  .ai-note {
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background-color: var(--surface);
+    background-image: radial-gradient(var(--line) 1px, transparent 1px);
+    background-size: 8px 8px;
+  }
+  .ai-note__lab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .ai-note__body {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  .ai-note__body + .ai-note__body {
+    margin-top: 10px;
+  }
+  /* done 이벤트의 고지 — 본문보다 한 단계 작은 소문 */
+  .ai-note__micro {
+    margin: 12px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--ink-3);
+  }
+
+  /* ---------- 005 묻기 홈 : 물음 한 장 ---------- */
+  .qs-today {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 8px 0 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .qs-today__k {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-3);
+  }
+  .qs-today__v {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .qs-today__src {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+
+  .qs-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .qs-label {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  /* 입력 경계선은 --line 이 아니라 --ink-3 (DES §6-3 비텍스트 대비 3:1) */
+  .qs-input {
+    display: block;
+    width: 100%;
+    min-height: 88px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 16px; /* iOS 자동 확대 방지 — .field input 과 같은 이유 */
+    line-height: 1.6;
+    resize: vertical;
+  }
+  .qs-input::placeholder {
+    color: var(--ink-3);
+  }
+  .qs-help {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+
+  .qs-starters {
+    margin-top: 24px;
+  }
+  .qs-starters__k {
+    margin: 0 0 8px;
+    font-size: 12.5px;
+    color: var(--ink-3);
+  }
+  /* 칩 버튼 (DES §2.11) — 시작 문장은 길어서 여러 줄로 흐른다 */
+  .qs-starter {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    font-size: 13.5px;
+    line-height: 1.35;
+    text-align: left;
+    transition: transform 0.12s ease;
+  }
+  .qs-starter + .qs-starter {
+    margin-top: 8px;
+  }
+  .qs-starter:active {
+    transform: scale(0.985);
+  }
+  .qs-log {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    margin-top: 20px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--accent-strong);
+  }
+
+  /* ---------- 005b 질문 기록 ---------- */
+  .ql-list {
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ql-list li + li {
+    border-top: 1px solid var(--line);
+  }
+  .ql-list a {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-height: 60px;
+    padding: 14px 0;
+    justify-content: center;
+  }
+  .ql-list a:active {
+    background: var(--surface-2);
+  }
+  .ql-q {
+    font-size: 15px;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ql-m {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .ql-saved {
+    font-size: 11px;
+  }
+  /* 버튼은 폭 100% 가 기본이라 빈 상태에서만 가운데로 좁힌다 */
+  .ql-empty__cta {
+    width: auto;
+    margin: 16px auto 0;
+  }
+
+  /* ---------- 006 질문·답변 상세 ---------- */
+  .ask-q {
+    margin: 10px 0 0;
+    font-size: 21px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .ask-q__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .ask-wait {
+    margin: 20px 0 0;
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: var(--surface);
+    font-size: 13.5px;
+    color: var(--ink-2);
+    text-align: center;
+  }
+  .ask-fail {
+    margin-top: 20px;
+    text-align: center;
+  }
+  .ask-fail__msg {
+    margin: 0 0 12px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  .ask-fail .btn {
+    width: auto;
+  }
+
+  /* 근거 번호 : 숫자가 뜻을 담으므로 색만으로 구분하지 않는다 (DES §2.2) */
+  .ask-ref {
+    margin-left: 2px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .ask-ev + .ask-ev {
+    margin-top: 12px;
+  }
+  .ask-ev__no {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-size: 11.5px;
+    font-weight: 700;
+    flex: none;
+  }
+  /* 근거 카드의 인용은 본문보다 한 단계 작다 (DES §2.2) */
+  .ask-ev .scripture {
+    margin: 10px 0 0;
+    font-size: 15px;
+  }
+
+  .ask-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ask-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 11px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    font-size: 13.5px;
+    line-height: 1.35;
+    transition: transform 0.12s ease;
+  }
+  .ask-chip > svg {
+    color: var(--ink-3);
+    flex: none;
+  }
+  .ask-chip:active {
+    transform: scale(0.985);
+  }
+
+  .ask-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ask-row__bd {
+    flex: 1;
+    min-width: 0;
+  }
+  .ask-row__bd b {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .ask-row__bd span {
+    display: block;
+    margin-top: 3px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  /* 토글 46×28 (DES §2.11). off 테두리는 --ink-3 라 3:1 을 넘는다 */
+  .ask-toggle {
+    position: relative;
+    width: 46px;
+    height: 28px;
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    flex: none;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .ask-toggle::after {
+    content: "";
+    position: absolute;
+    inset-block-start: 1.5px;
+    inset-inline-start: 1.5px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+    transition: transform 0.15s ease;
+  }
+  .ask-toggle[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .ask-toggle[aria-pressed="true"]::after {
+    transform: translateX(18px);
+  }
+  .ask-acts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  /* ---------- 003 훈독하기의 질문 진입 (PLAN-HD-002 W2) ---------- */
+  .read-ask {
+    margin-top: 10px;
+  }
 }
