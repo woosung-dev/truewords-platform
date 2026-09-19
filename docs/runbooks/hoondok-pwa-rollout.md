@@ -58,7 +58,8 @@ ops-check 는 VM **안**을 본다. 컨테이너가 전부 healthy 인데 사용
 | `route-home`·`route-read`·`route-onboard` | 200 | 404 |
 | `noindex` | `x-robots-tag: noindex` | (검사 안 함) |
 | `manifest` | 200 · `scope=/hoondok` · `no-cache` | INFO |
-| `sw` | 200 · `no-cache` · `Service-Worker-Allowed: /hoondok` | INFO |
+| `sw` | 200 · `SW_VERSION` 이 레포와 일치 · `Service-Worker-Allowed: /hoondok` | INFO |
+| `sw-cache` | (헤더가 오염됐을 때만 WARN — 아래 §Cloudflare 캐시) | — |
 | `icons` 4종 | 전부 200 | INFO |
 | `font` | 200 · `immutable` | INFO |
 
@@ -104,17 +105,38 @@ make rollback-web TAG=<배포 전에 적어 둔 sha>
 
 **전파는 즉시가 아니다.** 사용자가 앱을 열어야 실행된다. 열지 않는 사람에게는 영원히 도달하지 않는다 — 베타 10~20명 규모라 개별 연락이 현실적인 최후 수단이다.
 
-킬스위치가 도달하려면 `sw.js` 가 `no-cache` 여야 한다. 그래서 smoke 가 이 헤더를 FAIL 대상으로 단언한다 — 헤더가 빠지면 되돌릴 수단 자체를 잃는다.
+킬스위치가 도달하려면 두 가지만 참이면 된다 — **엣지가 최신 `sw.js` 를 내고**, **브라우저가 그 최신본을 가져오는 것**. smoke 의 `sw` 검사가 그 둘을 건다(서빙된 `SW_VERSION` vs 레포 값). 브라우저 쪽은 `register()` 의 `updateViaCache: "none"` 이 보장한다 — 아래 절이 그 이유다.
 
-### Cloudflare 캐시 확인
+### Cloudflare 캐시 — `sw.js` 의 `no-cache` 는 브라우저에 도달하지 않는다
 
-엣지는 origin 의 `Cache-Control` 을 따른다. `sw.js`·`manifest.webmanifest` 는 `no-cache, must-revalidate` 라 엣지가 붙들지 않는다. 배포 후 응답이 갱신되지 않으면 origin 헤더부터 확인한다:
+**엣지는 origin 의 `Cache-Control` 을 그대로 통과시키지 않는다.** Cloudflare 의 Browser Cache TTL 기본값이 4시간이고, origin 값이 그보다 작거나 `max-age` 가 아예 없으면 `max-age=14400` 으로 덮어쓴다. 2026-09-19 운영에서 같은 서버의 세 응답이 서로 다르게 변형된 것을 실측했다:
+
+| 파일 | origin | 엣지 | 왜 |
+|---|---|---|---|
+| `sw.js` | `no-cache, must-revalidate` | `max-age=14400, must-revalidate` | `max-age` 가 없어서 채워 넣음 |
+| `icons/*.png` | `public, max-age=0` | `public, max-age=14400` | 4시간보다 작아서 덮어씀 |
+| `_next/static/*.woff2` | `max-age=31536000, immutable` | 그대로 | 4시간보다 커서 존중 |
+
+`.webmanifest` 는 Cloudflare 의 기본 캐시 확장자 목록에 없어(`cf-cache-status: DYNAMIC`) origin 헤더가 그대로 통과한다. **manifest 는 통과인데 `sw.js` 만 오염되는 이유가 이것이다.**
+
+**그런데 이건 사고가 아니다.** 브라우저는 최상위 SW 스크립트에 한해 HTTP 캐시를 보지 않는다(Chrome 68+ / Safari 11.1+). `register()` 가 `updateViaCache: "none"` 을 넘기므로 import 까지 우회한다. 엣지도 stale 이 아니다 — `cf-cache-status: REVALIDATED` 로 매 요청 origin 과 대조하며, 본문 해시가 레포 파일과 일치함을 확인했다.
+
+그래서 smoke 는 이 헤더를 **FAIL 이 아니라 `sw-cache` WARN** 으로 남긴다. FAIL 로 두면 배포마다 빨간불이 떠서 경보를 무시하는 습관만 생긴다.
+
+WARN 을 없애려면 Cloudflare 에 Cache Rule 하나를 건다 (Page Rules 는 폐기 중이므로 **Cache Rules** 로):
+
+- Match: `/hoondok/sw.js`
+- Browser TTL: **Respect origin** — `Bypass cache` 도 되지만 엣지 캐시까지 꺼서 VM 부하가 는다. 우리가 원하는 건 브라우저 헤더만 원본대로 보내는 것이다.
+
+**이 규칙은 레포 밖(대시보드)에 산다.** 안전은 규칙이 아니라 코드(`updateViaCache: "none"`)가 책임지고, 규칙이 조용히 지워지면 `sw-cache` WARN 이 다시 나타난다 — 그 WARN 이 이 설정을 감시하는 유일한 눈이다.
+
+배포 후 응답이 갱신되지 않을 때 확인:
 
 ```bash
 curl -sI https://truewords.woosung.dev/hoondok/sw.js | grep -i 'cache-control\|cf-cache-status\|service-worker-allowed'
 ```
 
-`cf-cache-status: HIT` 이 뜨면 엣지가 잡고 있는 것이므로 Cloudflare 대시보드에서 해당 경로를 purge 한다. `smoke-web` 이 `sw` FAIL 을 내면 여기부터 본다.
+`cf-cache-status: HIT` 이고 `age` 가 크면 엣지가 붙들고 있는 것이므로 대시보드에서 해당 경로를 purge 한다. `smoke-web` 이 `sw` **FAIL**(SW_VERSION 불일치)을 내면 여기부터 본다.
 
 ## 배포 후 확인
 
