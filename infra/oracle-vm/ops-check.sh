@@ -277,6 +277,44 @@ case " ${BAD} " in
     ;;
 esac
 
+# ── 7. 훈독 편성 재고 ─────────────────────────────────────────────────────
+# 편성은 운영자 1명이 수기로 넣는다(PLAN-HD-001 결정 5). 대체 생성이 없으므로
+# 입력이 끊기면 그날 홈은 "오늘 말씀 없음" 이 된다 — 앱은 200 이고 컨테이너는
+# healthy 라 위 여섯 검사는 전부 초록이다. 사람이 해야 하는 일이 안 된 것을
+# 시스템이 알려 줄 수 있는 지점은 여기뿐이다.
+#
+# 내일까지 보는 이유: 오늘 것만 확인하면 "오늘 아침에야 오늘 게 없다" 를 알게
+# 된다. 그때는 이미 늦다. 하루 앞을 보면 저녁 cron 이 알려 주고 아침 전에 채울
+# 수 있다.
+#
+# WARN 이다(FAIL 아님). 배포·백업이 깨진 것과 같은 급으로 다루면 빨간 판정이
+# 흔해져 진짜 FAIL 이 묻힌다. 종료 코드를 바꾸지 않고 눈에만 띄게 한다.
+# withdrawn 은 철회된 편성이라 재고로 세지 않는다.
+HD_COUNTS=$(sudo docker compose --env-file .env exec -T postgres \
+              psql -U "$U" -d "$D" -t -A -F'|' -c \
+              "with d as (select (now() at time zone 'Asia/Seoul')::date as today)
+               select
+                 (select count(*) from daily_readings, d where reading_date = d.today       and review_status <> 'withdrawn'),
+                 (select count(*) from daily_readings, d where reading_date = d.today + 1   and review_status <> 'withdrawn'),
+                 (select count(*) from daily_readings, d where reading_date >= d.today      and review_status <> 'withdrawn');" \
+              2>/dev/null | tr -d ' \r')
+if [ -z "$HD_COUNTS" ]; then
+  # 테이블이 없으면(마이그레이션 이전 이미지) 판정할 것이 없다. 훈독을 안 쓰는
+  # 구성에서 매일 WARN 을 띄우지 않도록 SKIP 으로 둔다.
+  record "hoondok-today" SKIP "daily_readings 를 읽지 못했다 — 마이그레이션 이전이거나 postgres 확인"
+else
+  IFS='|' read -r HD_TODAY HD_TOMORROW HD_AHEAD <<< "$HD_COUNTS"
+  if [ "${HD_TODAY:-0}" -eq 0 ] && [ "${HD_TOMORROW:-0}" -eq 0 ]; then
+    record "hoondok-today" WARN "오늘·내일 편성 없음 (앞으로 ${HD_AHEAD}일분) — admin 훈독 편성에서 입력"
+  elif [ "${HD_TODAY:-0}" -eq 0 ]; then
+    record "hoondok-today" WARN "오늘 편성 없음 (내일은 있음 · 앞으로 ${HD_AHEAD}일분) — 홈이 '오늘 말씀 없음' 으로 뜬다"
+  elif [ "${HD_TOMORROW:-0}" -eq 0 ]; then
+    record "hoondok-today" WARN "내일 편성 없음 (앞으로 ${HD_AHEAD}일분) — 오늘 안에 채우면 된다"
+  else
+    record "hoondok-today" OK "오늘·내일 편성 있음 · 앞으로 ${HD_AHEAD}일분"
+  fi
+fi
+
 # ── 출력 ──────────────────────────────────────────────────────────────────
 echo
 printf '%-20s %-6s %s\n' CHECK VERDICT DETAIL

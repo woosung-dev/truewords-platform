@@ -265,6 +265,24 @@ manifest와 SW는 Next.js 웹 앱에 추가한다. 초기 오프라인 범위는
 
 FCM 도입은 Flutter 단계의 선택이다. iOS FCM에도 APNs와 플랫폼 capability 설정이 필요하다. [Firebase 공식 문서](https://firebase.google.com/docs/cloud-messaging/flutter/get-started)
 
+### 구현 경로 (2026-09-19 · PLAN-HD-001 Phase 3)
+
+위 경계를 실제로 구현한 위치다. 이 절의 설계는 바뀌지 않았고 훈독 MVP 가 첫 소비자다. 알림(Web Push·VAPID·구독)은 **아직 구현되지 않았다** — Phase 4 조건부다.
+
+| 경계 | 구현 |
+|---|---|
+| manifest·아이콘·폰트 | `apps/web/public/hoondok/` · `id`·`start_url`·`scope` 모두 `/hoondok`(슬래시 없음) |
+| 설치 메타 | hoondok layout 의 `generateMetadata`·`generateViewport` — 루트 layout 은 건드리지 않는다(시연 챗과 공유) |
+| SW | `apps/web/public/hoondok/sw.js` · scope `/hoondok` (`Service-Worker-Allowed` 헤더 + `register(..., {scope})`) |
+| 캐시 경계 | 런타임 `cache.put` 이 없다 → 인증·API 응답은 **구조적으로** 캐시 불가. `/api/backend/*`·`/hoondok/onboarding`·`/hoondok/auth*` 는 fetch 미관여 |
+| 오프라인 범위 | `/hoondok/offline` 안내 1장 + 그 HTML 이 참조하는 `/_next/static` 청크. 개인 기록·질문·답변은 넣지 않는다 |
+| SW 제거 | `sw.js` 의 `SW_KILL` 분기 (캐시 전삭제 + `unregister`) |
+| 설치 안내 | `apps/web/src/features/hoondok/install/` · 변형 `hidden`·`ios`·`prompt`·`manual` |
+| 헤더 | `apps/web/next.config.ts` `headers()` — `sw.js`·manifest `no-cache`, 폰트 1년 `immutable`, `/hoondok*` `noindex` |
+| 배포·검증 | `make deploy-web HOONDOK_ENABLED=1` → `make smoke-web` · 절차와 되돌리기는 [훈독 PWA 롤아웃 runbook](../runbooks/hoondok-pwa-rollout.md) |
+
+`apps/admin` 에 SW 를 등록하지 않는다는 원칙은 그대로다. 정적 자산이 기능 플래그를 따르지 않는다는 사실(`apps/web` 에 미들웨어가 없다)은 runbook 에 기록했다.
+
 ## 8. CI·배포·성능
 
 ### CI 범위와 캐시
