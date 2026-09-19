@@ -1,5 +1,6 @@
 /* 정성 기간 시트(SCR-PWA-004) + 홈 정성 카드(SCR-PWA-002).
-   값은 프로토타입 hoondok-ds/hoondok.css 의 `.sheet*`·`.chips`·`.field`·`.progress`·`.stats` 이며
+   값은 프로토타입 hoondok-ds/hoondok.css 의 `.sheet*`·`.chips`·`.field` 이며
+   (`.progress`·`.stats` 본체는 hoondok.css §7 공용, 여기엔 카드 여백만 둔다)
    토큰만 쓴다(hex 금지). 프로토타입이 비워 둔 `.js-*` 는 DES-PWA-003 §2.7·§2.11 규격으로 채웠다.
    하단 시트 → 중앙 모달 전환은 DES-PWA-003 §2.7·§5(004 행)를 따라 1024px 이다
    (프로토타입 CSS 는 768px 이지만 §5 표가 768 = "동일" 로 하단 시트를 유지한다). */
@@ -217,37 +218,12 @@ body:has([data-app="hoondok"] .sheet[open]) {
   }
 
   /* ---------- 3. 홈 정성 카드 ---------- */
-  .progress {
-    height: 8px;
-    border-radius: var(--r-full);
-    background: var(--surface-2);
-    overflow: hidden;
+  /* 누적 기록·진행 바 본체는 hoondok.css §7. 카드 안 세로 간격(14px)만 여기서 준다 */
+  .js-card__title + .stats {
     margin-top: 14px;
   }
-  .progress__fill {
-    display: block;
-    height: 100%;
-    background: var(--accent);
-    border-radius: inherit;
-  }
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+  .stats + .progress {
     margin-top: 14px;
-  }
-  .stats__n {
-    display: block;
-    font-size: 24px;
-    letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
-  }
-  .stats__n--accent {
-    color: var(--accent);
-  }
-  .stats__lab {
-    font-size: 12.5px;
-    color: var(--ink-2);
   }
   .js-card__title {
     font-size: 16.5px;
