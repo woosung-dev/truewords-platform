@@ -171,7 +171,7 @@ make e2e
 ## 7. 진행표
 
 - [x] W0-D 계획 문서(이 문서·README·TODO) — 2026-09-19, 이 PR
-- [ ] W0-W 웹 셸(`flag.ts`·`screens.ts`·`TAB_STAGE`·`app-shell` 레지스트리·`_hoondok/*.css` 8개·`--scrim`·자리표시 2·`query-keys.ts`·`hoondok-css.mjs`·프리뷰 플래그 배선 3곳)
+- [x] W0-W 웹 셸 — 2026-09-19 머지 `1f51339`, Vitest 120·tooling 24·hoondok:check 9파일 (`flag.ts`·`screens.ts`·`TAB_STAGE`·`app-shell` 레지스트리·`_hoondok/*.css` 8개·`--scrim`·자리표시 2·`query-keys.ts`·`hoondok-css.mjs`·프리뷰 플래그 배선 3곳)
 - [ ] W0-B 백엔드(`ENT-HD-004`·`k5a6b7c8d9e0`·`API-HD-009/010/011`·SDK 재생성·additive-only 리허설)
 - [ ] W1-D 데이터 계층
 - [ ] W1-G 014 나의 정원
