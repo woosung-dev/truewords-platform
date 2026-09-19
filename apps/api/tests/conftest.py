@@ -25,6 +25,16 @@ def _demo_admin_gate(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _hoondok_invite_gate_off(monkeypatch):
+    """훈독 제한 베타 게이트(env HOONDOK_INVITE_CODE)를 테스트 기본 OFF 로 고정한다 — 개발자 로컬 apps/api/.env 의
+    값이 가입 테스트에 새지 않게(settings 는 env_file=.env 를 읽는다). 게이트 동작을 검증하는 테스트는
+    각자 monkeypatch 로 덮어쓴다(우선)."""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "hoondok_invite_code", None)
+
+
+@pytest.fixture(autouse=True)
 def _reset_cache_cooldown():
     """`app.modules.chat.dependencies._cache_last_failure_monotonic` 은 모듈 전역이라
     캐시 lazy init 실패를 유발한 테스트의 타임스탬프가 다음 테스트로 새어나간다.
