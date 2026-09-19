@@ -7,11 +7,12 @@ from app.modules.identity.dependencies import (
     cookie_opts,
     get_current_user,
     get_identity_service,
+    get_user_data_purgers,
     verify_csrf,
 )
 from app.modules.identity.models import User
 from app.modules.identity.schemas import LoginRequest, SignupRequest, UserEnvelope
-from app.modules.identity.service import IdentityService
+from app.modules.identity.service import IdentityService, UserDataPurger
 
 router = APIRouter(prefix="/hoondok/auth", tags=["hoondok"])
 
@@ -59,3 +60,15 @@ async def logout(response: Response) -> None:
 async def me(user: User = Depends(get_current_user)) -> UserEnvelope:
     """API-HD-003 현재 사용자. 401 미인증 — web features/identity 게이트가 온보딩으로 보낸다."""
     return UserEnvelope(user=IdentityService.to_public(user))
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(verify_csrf)])
+async def delete_me(
+    response: Response,
+    user: User = Depends(get_current_user),
+    service: IdentityService = Depends(get_identity_service),
+    purgers: list[UserDataPurger] = Depends(get_user_data_purgers),
+) -> None:
+    """API-HD-011 내 데이터 삭제 → 204 + 쿠키 삭제. 훈독 기록 하드 삭제, 계정 소프트 삭제 + 이메일 익명화. 이후 me 는 401."""
+    await service.delete_account(user, purgers)
+    response.delete_cookie(**cookie_opts())

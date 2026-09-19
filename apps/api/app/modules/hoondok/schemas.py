@@ -1,15 +1,18 @@
-"""훈독 Pydantic 스키마 — API-HD-001·004·005 + 편성 admin API-HD-006~008 (docs/specs/api/hoondok-api.md)."""
+"""훈독 Pydantic 스키마 — API-HD-001·004·005·009·010 + 편성 admin API-HD-006~008 (docs/specs/api/hoondok-api.md)."""
 
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 AuthorityGrade = Literal["O1", "O2", "O3", "O4", "O5", "R"]
 ReviewStatus = Literal["reviewed", "unverified", "withdrawn"]
 TodayStatus = Literal["available", "none", "withdrawn"]
 MissionKind = Literal["read", "pray", "study"]  # 경로 파라미터 검증 → 알 수 없는 kind 는 422
+JeongseongDuration = Literal[7, 21, 40]
+JeongseongStatus = Literal["active", "completed", "abandoned"]  # DB 저장 상태
+JeongseongState = Literal["upcoming", "active", "completed"]  # 오늘 기준 계산 상태(저장 안 함)
 
 
 class DailyReadingPublic(BaseModel):
@@ -63,6 +66,58 @@ class SummaryResponse(BaseModel):
     best_streak_days: int
     total_days: int
     week: list[WeekDay]
+
+
+class MonthHistoryResponse(BaseModel):
+    """API-HD-010. 해당 월의 날 수만큼 WeekDay(read 완료 기준). 미래 날은 항상 false."""
+
+    month: str  # YYYY-MM
+    days: list[WeekDay]
+
+
+# --- 정성 기간 (API-HD-009) ---------------------------------------------------
+
+
+class JeongseongCreate(BaseModel):
+    """POST 본문. started_on 생략 시 오늘(KST), 허용 범위 오늘~오늘+30 은 service 가 422 로 검사한다."""
+
+    topic: str = Field(min_length=1, max_length=40)
+    duration_days: JeongseongDuration
+    started_on: date | None = None
+    reminder_time: time | None = None  # 표시용. 푸시는 Phase 4
+
+    @field_validator("topic", mode="before")
+    @classmethod
+    def _strip_topic(cls, value: object) -> object:
+        # 앞뒤 공백을 지운 뒤 min_length=1 이 적용되게 한다 — "   " 는 422.
+        return value.strip() if isinstance(value, str) else value
+
+
+class JeongseongProgress(BaseModel):
+    """저장하지 않는 계산값(hoondok/jeongseong.py). missed 는 어제까지만 센다."""
+
+    end_on: date
+    done_days: int
+    missed_days: int
+    remaining_days: int
+    percent: int
+    state: JeongseongState
+
+
+class JeongseongPeriodResponse(BaseModel):
+    id: uuid.UUID
+    topic: str
+    duration_days: int
+    started_on: date
+    reminder_time: time | None
+    status: JeongseongStatus
+    progress: JeongseongProgress
+
+
+class JeongseongCurrentResponse(BaseModel):
+    """GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null."""
+
+    period: JeongseongPeriodResponse | None = None
 
 
 # --- 편성 admin (API-HD-006~008, Phase 3 A) ---------------------------------

@@ -1131,6 +1131,102 @@ export type IngestionStatusSummary = {
 };
 
 /**
+ * JeongseongCreate
+ *
+ * POST 본문. started_on 생략 시 오늘(KST), 허용 범위 오늘~오늘+30 은 service 가 422 로 검사한다.
+ */
+export type JeongseongCreate = {
+    /**
+     * Duration Days
+     */
+    duration_days: 7 | 21 | 40;
+    /**
+     * Reminder Time
+     */
+    reminder_time?: string | null;
+    /**
+     * Started On
+     */
+    started_on?: string | null;
+    /**
+     * Topic
+     */
+    topic: string;
+};
+
+/**
+ * JeongseongCurrentResponse
+ *
+ * GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null.
+ */
+export type JeongseongCurrentResponse = {
+    period?: JeongseongPeriodResponse | null;
+};
+
+/**
+ * JeongseongPeriodResponse
+ */
+export type JeongseongPeriodResponse = {
+    /**
+     * Duration Days
+     */
+    duration_days: number;
+    /**
+     * Id
+     */
+    id: string;
+    progress: JeongseongProgress;
+    /**
+     * Reminder Time
+     */
+    reminder_time: string | null;
+    /**
+     * Started On
+     */
+    started_on: string;
+    /**
+     * Status
+     */
+    status: 'active' | 'completed' | 'abandoned';
+    /**
+     * Topic
+     */
+    topic: string;
+};
+
+/**
+ * JeongseongProgress
+ *
+ * 저장하지 않는 계산값(hoondok/jeongseong.py). missed 는 어제까지만 센다.
+ */
+export type JeongseongProgress = {
+    /**
+     * Done Days
+     */
+    done_days: number;
+    /**
+     * End On
+     */
+    end_on: string;
+    /**
+     * Missed Days
+     */
+    missed_days: number;
+    /**
+     * Percent
+     */
+    percent: number;
+    /**
+     * Remaining Days
+     */
+    remaining_days: number;
+    /**
+     * State
+     */
+    state: 'upcoming' | 'active' | 'completed';
+};
+
+/**
  * LoginRequest
  */
 export type LoginRequest = {
@@ -1174,6 +1270,22 @@ export type MissionCompleteResponse = {
      * Mission Date
      */
     mission_date: string;
+};
+
+/**
+ * MonthHistoryResponse
+ *
+ * API-HD-010. 해당 월의 날 수만큼 WeekDay(read 완료 기준). 미래 날은 항상 false.
+ */
+export type MonthHistoryResponse = {
+    /**
+     * Days
+     */
+    days: Array<WeekDay>;
+    /**
+     * Month
+     */
+    month: string;
 };
 
 /**
@@ -3826,6 +3938,22 @@ export type LogoutHoondokAuthLogoutPostResponses = {
 
 export type LogoutHoondokAuthLogoutPostResponse = LogoutHoondokAuthLogoutPostResponses[keyof LogoutHoondokAuthLogoutPostResponses];
 
+export type DeleteMeHoondokAuthMeDeleteData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/auth/me';
+};
+
+export type DeleteMeHoondokAuthMeDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteMeHoondokAuthMeDeleteResponse = DeleteMeHoondokAuthMeDeleteResponses[keyof DeleteMeHoondokAuthMeDeleteResponses];
+
 export type MeHoondokAuthMeGetData = {
     body?: never;
     path?: never;
@@ -3866,6 +3994,95 @@ export type SignupHoondokAuthSignupPostResponses = {
 };
 
 export type SignupHoondokAuthSignupPostResponse = SignupHoondokAuthSignupPostResponses[keyof SignupHoondokAuthSignupPostResponses];
+
+export type GetHistoryHoondokMeHistoryGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Month
+         *
+         * YYYY-MM. 생략 시 오늘(KST)의 월
+         */
+        month?: string | null;
+    };
+    url: '/hoondok/me/history';
+};
+
+export type GetHistoryHoondokMeHistoryGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetHistoryHoondokMeHistoryGetError = GetHistoryHoondokMeHistoryGetErrors[keyof GetHistoryHoondokMeHistoryGetErrors];
+
+export type GetHistoryHoondokMeHistoryGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MonthHistoryResponse;
+};
+
+export type GetHistoryHoondokMeHistoryGetResponse = GetHistoryHoondokMeHistoryGetResponses[keyof GetHistoryHoondokMeHistoryGetResponses];
+
+export type AbandonJeongseongHoondokMeJeongseongDeleteData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/jeongseong';
+};
+
+export type AbandonJeongseongHoondokMeJeongseongDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type AbandonJeongseongHoondokMeJeongseongDeleteResponse = AbandonJeongseongHoondokMeJeongseongDeleteResponses[keyof AbandonJeongseongHoondokMeJeongseongDeleteResponses];
+
+export type GetJeongseongHoondokMeJeongseongGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/jeongseong';
+};
+
+export type GetJeongseongHoondokMeJeongseongGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: JeongseongCurrentResponse;
+};
+
+export type GetJeongseongHoondokMeJeongseongGetResponse = GetJeongseongHoondokMeJeongseongGetResponses[keyof GetJeongseongHoondokMeJeongseongGetResponses];
+
+export type CreateJeongseongHoondokMeJeongseongPostData = {
+    body: JeongseongCreate;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/jeongseong';
+};
+
+export type CreateJeongseongHoondokMeJeongseongPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateJeongseongHoondokMeJeongseongPostError = CreateJeongseongHoondokMeJeongseongPostErrors[keyof CreateJeongseongHoondokMeJeongseongPostErrors];
+
+export type CreateJeongseongHoondokMeJeongseongPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: JeongseongPeriodResponse;
+};
+
+export type CreateJeongseongHoondokMeJeongseongPostResponse = CreateJeongseongHoondokMeJeongseongPostResponses[keyof CreateJeongseongHoondokMeJeongseongPostResponses];
 
 export type GetSummaryHoondokMeSummaryGetData = {
     body?: never;
