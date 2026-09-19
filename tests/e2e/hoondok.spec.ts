@@ -58,18 +58,20 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   await page.goto("/hoondok");
   // 데스크톱 홈은 앱바 h1 을 sr-only 로 접으므로 존재만 확인하고, 보이는 제목은 섹션 h2 로 본다.
   await expect(page.getByRole("heading", { name: "오늘 훈독" })).toBeAttached();
-  await expect(page.getByRole("heading", { name: "오늘 말씀" })).toBeVisible();
-  // make e2e 시드(scripts/seed_daily_readings.py)가 오늘 날짜를 채운다. 시드 데이터는 권리 확인 중(R)·미검수다.
-  const card = page.getByRole("article").first();
-  await expect(card).toBeVisible();
-  await expect(card.getByText("권리 확인 중")).toBeVisible();
-  await expect(card.getByText("확인되지 않음")).toBeVisible();
+  // 홈에는 말씀 본문이 없다 — 정본이 today 에서 `.lede` 를 숨기고 PRD SCR-PWA-002 도 미션 3종만 둔다.
+  // 오늘 말씀은 미션 카드의 제목으로만 드러나고 전문은 /hoondok/read 가 갖는다.
+  await expect(page.getByRole("heading", { name: "오늘의 실천" })).toBeVisible();
+  await expect(page.locator(".scripture")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /로그인 후 기록돼요/ })).toBeVisible();
   await page.getByRole("link", { name: /훈독하기/ }).click();
   await expect(page).toHaveURL(/\/hoondok\/read$/);
   // 훈독하기: 출처 줄(화자·저작물) + 전문 + 완료 버튼 → 비로그인이라 로컬 완료 + 로그인 링크
   await expect(page.locator(".src").first()).toContainText("참");
   await expect(page.locator(".scripture")).toBeVisible();
+  // make e2e 시드(scripts/seed_daily_readings.py)가 오늘 날짜를 채운다. 시드 데이터는 권리 확인 중(R)·미검수다.
+  const card = page.getByRole("article").first();
+  await expect(card.getByText("권리 확인 중")).toBeVisible();
+  await expect(card.getByText("확인되지 않음")).toBeVisible();
   await page.getByRole("button", { name: "훈독 완료" }).click();
   await expect(page.getByRole("status")).toContainText("오늘 훈독을 마쳤어요");
   await page.getByRole("link", { name: /로그인하면 오늘 기록이 남아요/ }).click();
@@ -176,7 +178,7 @@ test("시드 사용자 로그인 → 훈독 완료 → 로그아웃 → 완료 A
     ).status(),
   ).toBe(401);
   await page.goto("/hoondok");
-  await expect(page.getByRole("heading", { name: "오늘 말씀" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "오늘의 실천" })).toBeVisible();
 });
 
 // Phase 3 C — PWA 설치 메타·정적 자산 (PLAN-HD-001 §6 C). 실기기 설치·standalone 증거는 운영 플래그 ON 뒤 G 단계다.
