@@ -209,7 +209,7 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | Phase | 검증 | 결과 | 날짜 |
 |---|---|---|---|
 | 3 C | Pretendard 용량 실측(jsdelivr npm `pretendard@1.3.9` 파일 목록) | 정적 4종 합계 2,98MB(초과) · **variable 1종 2,057,688 B = 1.96MB(채택)** · 동적 서브셋 92청크 2.82MB(미채택). `OFL.txt` 4,419 B 동봉 | 2026-09-19 |
-| 3 C | 아이콘 생성 | Pretendard-Bold.otf → fontTools `SVGPathPen` 로 "훈" path 추출 → SVG 2종 → `rsvg-convert` PNG 4장 × A/B 2세트. IHDR 폭·높이 = 192/512/512/180 확인, maskable 글자 대각 반지름 170px ≤ 205px | 2026-09-19 |
+| 3 C | 아이콘 생성 | Pretendard-Bold.otf → fontTools `SVGPathPen` 로 "훈" path 추출 → SVG 2종 → `rsvg-convert` PNG 4장 × A/B 2세트 → 비교 시트(iOS 라운딩·Android 원형·any, 밝은/어두운 홈)로 **A 감귤 배경 확정**, B 삭제. IHDR 폭·높이 = 192/512/512/180 확인, maskable 글자 대각 반지름 170px ≤ 205px | 2026-09-19 |
 | 3 C | `pnpm hoondok:check` + `pnpm tooling:test` | 통과(`:root` 0 · 토큰 밖 hex 0 — `@font-face` 는 hex 없음) · 21 pass | 2026-09-19 |
 | 3 C | web Vitest · typecheck · lint · Biome | **91 passed / 14 files**(Phase 2 87 + `hoondok-pwa` 4) · typecheck 통과 · lint 경고 10건 전부 기존 파일 · `pnpm format:check` 227 files 통과 | 2026-09-19 |
 | 3 C | `next build` 플래그 ON / OFF | 두 빌드 모두 라우트 목록 Phase 2 와 동일(`/hoondok`·`/hoondok/read`·`/hoondok/onboarding` ƒ, 나머지 ○) — manifest·아이콘·폰트는 라우트가 아닌 public 자산 | 2026-09-19 |
@@ -239,4 +239,4 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 2026-09-19 | 편성 화면(B)은 오늘~+14일 고정 표(빈 날 "미편성" + `편성하기 ?date=`), 기간 이동·삭제 없음. 철회는 `review_status` select. PUT 은 폼 전체 필드 전송(감사 로그 `changes` 에 전 필드 기록). admin 플래그 게이트 없음 — backend A 배포 전엔 목록이 오류 카드 | 확정 · Phase 3 B |
 | 2026-09-19 | manifest `id`·`start_url`·`scope` = **`/hoondok`(슬래시 없음)**. 결정 2·`DEC-PWA-022` 의 `/hoondok/` 정정 — Next `trailingSlash` 기본 false 로 `/hoondok/`→308→`/hoondok` 이고 manifest scope 는 경로 접두 비교라 `/hoondok/` 이면 홈이 범위 밖(standalone 에서 브라우저 UI 노출). D 의 SW 도 `Service-Worker-Allowed: /hoondok` + scope `/hoondok` 으로 등록 | 확정 · Phase 3 C |
 | 2026-09-19 | Pretendard self-host = 가변 1종 `PretendardVariable-1.3.9.woff2` 1.96MB(≤2MB) + `OFL.txt`. 정적 4종 2.98MB·동적 서브셋 92청크 미채택. 패밀리명 `"Pretendard Hoondok"` 으로 루트 CDN `Pretendard Variable` 과 분리(로드 순서 무관). `/hoondok/fonts/*` 는 `Cache-Control: public, max-age=31536000, immutable`(파일명 버전 고정, public 기본 `max-age=0` 대체) | 확정 · Phase 3 C |
-| 2026-09-19 | 앱 아이콘 = "훈" 글자(Pretendard Bold 외곽선) 단색 도형 4종. A 감귤 배경 / B 종이색 배경 두 세트를 PR 에서 택일 — manifest 는 A 배선, 낙선 세트(`icons/candidate-b/`) 삭제는 택일 후 커밋. 설치 메타(`manifest`·`appleWebApp`·`icons`·`themeColor`)는 hoondok layout `generateMetadata`·`generateViewport` 에만, 플래그 OFF 면 미부착 | 확정(A/B 택일 `[확인 필요]`) · Phase 3 C · DES-PWA-003 §1.7 |
+| 2026-09-19 | 앱 아이콘 = "훈" 글자(Pretendard Bold 외곽선) 단색 도형 4종, **감귤 배경 + 종이색 글자 확정**(A/B 비교 시트로 같은 날 택일, 종이색 배경 B 안 삭제). 설치 메타(`manifest`·`appleWebApp`·`icons`·`themeColor`)는 hoondok layout `generateMetadata`·`generateViewport` 에만, 플래그 OFF 면 미부착 | 확정 · Phase 3 C · DES-PWA-003 §1.7 |

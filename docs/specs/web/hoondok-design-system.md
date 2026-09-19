@@ -206,7 +206,7 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 | `icon-maskable-512.png` | `hoondok-icon-maskable.svg` | manifest `purpose: maskable`(Android 런처 마스크) | 풀블리드 정사각, 글자 높이 49% — 중앙 80% 안전영역 안(글자 대각 반지름 170px ≤ 205px) |
 | `apple-touch-icon-180.png` | `hoondok-icon-maskable.svg` | `<link rel="apple-touch-icon">`(iOS 가 22% 라운딩) | 풀블리드 180 |
 
-- 색은 토큰 두 개만 쓴다. **A 감귤 배경 `--accent` + 종이색 글자 `--paper`** 와 **B 종이색 배경 + 감귤 글자** 두 세트를 만들어 PR 에서 택일한다 `[확인 필요]`. manifest 는 A 로 배선돼 있고 B 는 `icons/candidate-b/` 에 있다. 택일 후 이 행을 확정값으로 갱신하고 낙선 세트를 삭제한다.
+- 색은 토큰 두 개만 쓴다. **감귤 배경 `--accent #c24721` + 종이색 글자 `--paper #fbfaf8`**(2026-09-19 확정 — 종이색 배경·감귤 글자 B 안은 밝은 홈 화면에서 묻혀 미채택, 비교 시트는 git 히스토리 밖 세션 산출물). 어두운 홈·밝은 홈·iOS 라운딩·Android 원형 마스크 모두에서 글자가 읽힌다.
 - 재생성: `rsvg-convert -w <N> -h <N> <원본.svg> -o <출력.png>` (192·512·512·180). 글자 외곽선은 `Pretendard-Bold.otf` 에서 fontTools `SVGPathPen` 으로 1회 추출해 SVG 에 path 로 박았으므로 폰트 설치가 필요 없다.
 - 설치 메타는 hoondok layout 의 `generateMetadata`·`generateViewport` 에만 붙인다: `manifest` `/hoondok/manifest.webmanifest` · `appleWebApp`(capable, title "훈독", statusBarStyle default) · `icons`(icon 192, apple 180) · `viewport.themeColor` = `--paper`. 플래그 OFF 면 붙이지 않는다. 루트 layout·시연 챗은 무변경.
 - manifest 값: `id`·`start_url`·`scope` = **`/hoondok`(슬래시 없음 — Next `trailingSlash` 기본 false 로 `/hoondok/` 은 308 이고 scope 는 경로 접두 비교라 `/hoondok/` 이면 홈이 범위 밖)**, `display: standalone`, `lang: ko`, `background_color`·`theme_color` = `--paper #fbfaf8`, `description` 에 "FFWPU 공식 앱이 아닙니다" 고지. `theme_color` 는 토큰을 참조할 수 없어 값으로 적고 Vitest(`apps/web/src/test/hoondok-pwa.test.ts`)가 `hoondok.css --paper`·`viewport` 와 일치를 단언한다.
@@ -721,4 +721,4 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | 2026-09-16 | `SCR-PWA-005` AI 질문 = 묻기 홈("물음 한 장") + 기록 화면 분리. FAB·3탭 세그먼트 제거 | 확정 · §2.9 |
 | 2026-09-16 | 16화면 단일 소스 프로토타입 완성 (`prd/prototypes/hoondok-ds/`). 이 문서의 §4·§5 규칙은 그 프로토타입으로 검증됐다. 테마 비교(DESIGN.md 6종 번역, 독립 심사 C·E 동률 1위)와 내비 7안 비교는 참고로만 쓰고 **A 기준 유지**를 택했다. 비교 산출물은 git 히스토리(PR #269 이전 커밋)에만 남긴다 | 확정 |
 | 2026-09-19 | Pretendard self-host = 가변 1종(1.96MB) · 패밀리명 `"Pretendard Hoondok"` · `font-display: swap` · OFL 동봉. 동적 서브셋·정적 4종 미채택 | 확정 · §1.2 · PLAN-HD-001 Phase 3 C |
-| 2026-09-19 | 앱 아이콘 = "훈" 글자 단색 도형 4종(any 192/512 · maskable 512 · apple 180). 색 A(감귤 배경)/B(종이색 배경) 두 세트 중 PR 택일. manifest `id`·`start_url`·`scope` 는 `/hoondok`(슬래시 없음) | §1.7 · 색 택일 `[확인 필요]` |
+| 2026-09-19 | 앱 아이콘 = "훈" 글자 단색 도형 4종(any 192/512 · maskable 512 · apple 180), **감귤 배경 + 종이색 글자 확정**(종이색 배경 B 안 미채택). manifest `id`·`start_url`·`scope` 는 `/hoondok`(슬래시 없음) | 확정 · §1.7 |
