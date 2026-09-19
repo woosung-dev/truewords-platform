@@ -121,7 +121,12 @@ describe("훈독 서비스워커 등록 컴포넌트 (Phase 3 D)", () => {
     Object.defineProperty(navigator, "serviceWorker", { value: { register }, configurable: true });
     try {
       render(createElement(HoondokServiceWorker));
-      expect(register).toHaveBeenCalledWith("/hoondok/sw.js", { scope: "/hoondok" });
+      // updateViaCache:"none" 을 함께 단언한다. Cloudflare 가 sw.js 의 오리진 no-cache 를
+      // 4시간으로 덮어쓰므로, 이 옵션이 빠지면 SW_KILL 배포가 그만큼 지연된다.
+      expect(register).toHaveBeenCalledWith("/hoondok/sw.js", {
+        scope: "/hoondok",
+        updateViaCache: "none",
+      });
     } finally {
       Reflect.deleteProperty(navigator, "serviceWorker");
     }

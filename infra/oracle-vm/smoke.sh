@@ -160,20 +160,42 @@ if [ "$HOONDOK" = "1" ]; then
     record "manifest" OK "200 · scope=/hoondok · ${MF_CACHE}"
   fi
 
-  # sw.js: 헤더 두 개가 핵심이다. Service-Worker-Allowed 가 없으면 슬래시 없는
-  # /hoondok scope 등록이 거부되고, no-cache 가 없으면 킬스위치를 배포해도
-  # 엣지·브라우저가 구 스크립트를 계속 내준다(= 되돌릴 수단을 잃는다).
+  # sw.js. 킬스위치가 사용자에게 도달하려면 두 가지뿐이다 — 엣지가 최신본을 내고,
+  # 브라우저가 그 최신본을 가져오는 것. 그래서 FAIL 은 그 둘만 건다.
+  #
+  # Cache-Control 은 여기서 FAIL 이 아니다. Cloudflare 가 오리진의 `no-cache` 를
+  # Browser Cache TTL 기본값 4시간으로 덮어쓰기 때문이다(2026-09-19 실측: 오리진
+  # `no-cache` → 엣지 `max-age=14400`. 같은 규칙으로 아이콘 `max-age=0` 도 14400 이
+  # 되고, 폰트 `max-age=31536000` 은 더 크니 그대로 통과한다). 그런데 브라우저는
+  # 최상위 SW 스크립트에 한해 이 헤더를 보지 않는다 — register() 가 updateViaCache
+  # "none" 을 넘기므로 HTTP 캐시를 항상 우회한다. 즉 오염된 헤더는 사고가 아니다.
+  # 그래서 WARN 으로만 남긴다: Cloudflare 에 Cache Rule(Browser TTL: Respect origin)을
+  # 걸어 두면 사라지고, 그 규칙이 조용히 지워지면 다시 나타난다. 레포 밖에 사는
+  # 그 설정을 감시하는 유일한 눈이 이 줄이다.
+  # 엣지 stale 판정은 레포의 sw.js 와 SW_VERSION 을 대조해서 한다. 배포는
+  # deploy-guard(HEAD ∈ origin/main + 클린 트리)를 통과한 트리에서만 나가므로,
+  # `make smoke-web` 시점의 레포 값이 곧 방금 배포한 값이다.
+  sw_version() { grep -o 'SW_VERSION *= *"[^"]*"' "$1" | head -1 | sed 's/.*"\(.*\)"/\1/'; }
+  REPO_SW="$(dirname "$0")/../../apps/web/public/hoondok/sw.js"
+
   CODE=$(fetch "$SW")
   SW_CACHE=$(header_value "cache-control")
   SW_ALLOWED=$(header_value "service-worker-allowed")
+  SERVED_VER=$(sw_version "$BODY_FILE")
+  REPO_VER=$([ -f "$REPO_SW" ] && sw_version "$REPO_SW")
   if [ "$CODE" != "200" ]; then
     record "sw" FAIL "${SW} → ${CODE} (기대 200)"
-  elif ! echo "$SW_CACHE" | grep -qi "no-cache"; then
-    record "sw" FAIL "Cache-Control 에 no-cache 가 없다 (받은 값: '${SW_CACHE:-없음}') — 킬스위치가 전파되지 않는다"
   elif [ "$SW_ALLOWED" != "/hoondok" ]; then
     record "sw" FAIL "Service-Worker-Allowed 가 '/hoondok' 이 아니다 (받은 값: '${SW_ALLOWED:-없음}') — scope 등록 실패"
+  elif [ -z "$SERVED_VER" ]; then
+    record "sw" FAIL "본문에 SW_VERSION 이 없다 — 엣지가 sw.js 가 아닌 것을 내고 있다"
+  elif [ -n "$REPO_VER" ] && [ "$SERVED_VER" != "$REPO_VER" ]; then
+    record "sw" FAIL "엣지가 구 스크립트를 서빙 중 (엣지 ${SERVED_VER} ≠ 레포 ${REPO_VER}) — 킬스위치가 도달하지 못한다"
   else
-    record "sw" OK "200 · ${SW_CACHE} · Service-Worker-Allowed: ${SW_ALLOWED}"
+    record "sw" OK "200 · SW_VERSION ${SERVED_VER} · Service-Worker-Allowed: ${SW_ALLOWED}"
+  fi
+  if [ "$CODE" = "200" ] && ! echo "$SW_CACHE" | grep -qi "no-cache"; then
+    record "sw-cache" WARN "엣지가 Cache-Control 을 '${SW_CACHE:-없음}' 로 덮어썼다 (오리진은 no-cache) — updateViaCache:none 이 막고 있어 무해하다. 없애려면 Cloudflare Cache Rule: ${SW} → Browser TTL 'Respect origin'"
   fi
 
   # 아이콘 4종. 하나라도 빠지면 설치 배너가 뜨지 않거나 홈 화면이 빈 칸이 된다.
