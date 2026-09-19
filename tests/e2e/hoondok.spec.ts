@@ -7,10 +7,20 @@ const VIEWPORTS = [
   { name: "desktop", width: 1280, height: 900 },
 ] as const;
 
+// 비로그인 방문의 `GET /hoondok/auth/me` 401 은 계약이다(API-HD-003). 쿠키가 HttpOnly 라
+// 클라이언트는 물어보기 전에 로그인 여부를 알 수 없고, 브라우저는 그 401 을 콘솔 오류로 찍는다.
+// 이 한 건만 제외하고 나머지는 그대로 0건을 단언한다 — URL 까지 맞을 때만 빼므로 다른 401 은 잡힌다.
+const EXPECTED_401 = /status of 401/;
+function isAnonymousAuthProbe(text: string, url: string) {
+  return EXPECTED_401.test(text) && url.includes("/hoondok/auth/me");
+}
+
 async function collectConsoleErrors(page: Page) {
   const errors: string[] = [];
   page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text());
+    if (message.type() !== "error") return;
+    if (isAnonymousAuthProbe(message.text(), message.location().url)) return;
+    errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
   return errors;
