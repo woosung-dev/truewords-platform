@@ -1,3 +1,220 @@
-/* W?-? 가 채운다. 값은 프로토타입 hoondok.css, 토큰만 사용(hex 금지) */
+/* SCR-PWA-015 알림·설치 설정 (PLAN-HD-002 W1-S).
+   프로토타입 app.html 의 .st-* 마크업에는 CSS 가 없어(DES-PWA-003 §2.12 와 같은 사정) 여기서 처음 정의한다.
+   값은 프로토타입 hoondok.css 의 이웃 규칙에서 가져왔다 — 행 제목 15/600 · 설명 12.5 --ink-2 · 구분선 1px --line ·
+   반지름·색·그림자는 토큰만 쓴다(hex 금지, pnpm hoondok:check). 라이트 단일 테마. */
 [data-app="hoondok"] {
+  /* ---------- 설치 : standalone 이면 카드 대신 한 줄 ---------- */
+  .st-installed {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--ink-2);
+    margin: 0;
+  }
+  .st-installed__ic {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r-xs);
+    background: var(--ok-soft);
+    color: var(--ok-strong);
+    flex: none;
+  }
+
+  /* ---------- 알림 : 카드 한 장 = 토글 행 + 시간 행 ---------- */
+  .st-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .st-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 48px;
+    text-align: left;
+  }
+  .st-row__bd {
+    flex: 1;
+    min-width: 0;
+  }
+  .st-row__t {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .st-row__d {
+    display: block;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin-top: 3px;
+  }
+  .st-row__side {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: none;
+  }
+  /* 왜 꺼져 있는지는 색이 아니라 글자가 말한다 (DES-PWA-003 §3.3 색만으로 구분 금지) */
+  .st-row__soon {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-3);
+    flex: none;
+    margin: 0;
+  }
+  .st-picks + .st-row__soon {
+    margin-top: 12px;
+  }
+
+  /* 시간 행 — 같은 카드 안에서 구분선으로 갈린다 */
+  .st-sub {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    min-height: 40px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .st-sub__k {
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .st-sub__v {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+
+  /* 준비 중 컨트롤 — 형태는 그대로 두고 컨트롤만 흐리게. 설명 글자는 대비를 유지한다 */
+  .toggle[disabled],
+  .st-sub[disabled],
+  .st-pick[disabled] {
+    cursor: default;
+  }
+  .toggle[disabled],
+  .st-pick[disabled] .st-radio {
+    opacity: 0.55;
+  }
+
+  /* ---------- 잠금 화면 문구 ---------- */
+  .st-lead {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin: 0 0 12px;
+  }
+  .st-picks {
+    display: flex;
+    flex-direction: column;
+  }
+  .st-pick {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 0;
+    text-align: left;
+  }
+  .st-pick + .st-pick {
+    border-top: 1px solid var(--line);
+  }
+  .st-pick__bd b {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .st-pick__bd span {
+    display: block;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    margin-top: 2px;
+  }
+  .st-radio {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--ink-3);
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  .st-pick[aria-checked="true"] .st-radio {
+    border-color: var(--accent);
+  }
+  .st-pick[aria-checked="true"] .st-radio::after {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* ---------- 그 밖의 설정 : 행 묶음 ---------- */
+  .st-group {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    box-shadow: var(--shadow-hairline);
+    overflow: hidden;
+  }
+  .st-group .st-row {
+    padding: 14px 16px;
+  }
+  .st-group .st-row + .st-row {
+    border-top: 1px solid var(--line);
+  }
+  /* 되돌릴 수 없는 행은 나머지 설정과 붙여 두지 않는다 */
+  .st-group--danger,
+  .st-danger {
+    margin-top: 12px;
+  }
+  .st-go {
+    display: grid;
+    place-items: center;
+    color: var(--ink-3);
+    flex: none;
+  }
+
+  /* ---------- 내 데이터 삭제 2단계 확인 ---------- */
+  .st-danger {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .st-danger__lead {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    line-height: 1.55;
+    margin: 0;
+  }
+  .st-danger__ic {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r-xs);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    flex: none;
+  }
+  .st-danger__cta {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
 }
