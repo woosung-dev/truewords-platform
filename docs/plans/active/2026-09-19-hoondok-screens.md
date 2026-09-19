@@ -177,7 +177,7 @@ make e2e
 - [ ] W1-G 014 나의 정원
 - [ ] W1-S 015 알림·설치 설정 + 내 데이터 삭제
 - [ ] W1-J 004 정성 시트 + 002 홈 정성 카드
-- [ ] W1-N 003 오늘의 한 줄
+- [x] W1-N 003 오늘의 한 줄 — 2026-09-20 머지, Vitest 143 (note storage·TodayNote)
 - [ ] W1 웨이브 끝 `make ci`·`make e2e`·시각 대조
 - [ ] W2 AI 질문 3화면 + `read` 질문 버튼 + `TAB_STAGE.ask: live`
 - [ ] W2 웨이브 끝 `make ci`·`make e2e`·시각 대조
