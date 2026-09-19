@@ -21,7 +21,7 @@ export type HoondokTab = {
  */
 export const TAB_STAGE: Record<HoondokTab["id"], "live" | "soon" | "preview"> = {
   today: "live",
-  ask: "soon",
+  ask: "live",
   library: "preview",
   worship: "preview",
   garden: "live",

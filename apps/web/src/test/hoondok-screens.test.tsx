@@ -48,21 +48,22 @@ describe("훈독 화면 레지스트리", () => {
 });
 
 describe("훈독 탭 단계 · 프리뷰 플래그", () => {
-  it("OFF(기본): 오늘 훈독·나의 정원만 이동한다", async () => {
+  it("OFF(기본): 오늘 훈독·AI 질문·나의 정원만 이동한다", async () => {
     const { HOONDOK_TABS, TAB_STAGE } = await loadTabsWithPreview("");
-    expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual(["today", "garden"]);
-    expect(TAB_STAGE).toEqual({ today: "live", garden: "live", ask: "soon", library: "preview", worship: "preview" });
+    expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual(["today", "ask", "garden"]);
+    expect(TAB_STAGE).toEqual({ today: "live", garden: "live", ask: "live", library: "preview", worship: "preview" });
   });
 
-  it("ON: 말씀·가정예배가 켜지고 AI 질문은 그대로 준비 중이다", async () => {
+  it("ON: 말씀·가정예배가 켜져 5탭이 모두 이동한다", async () => {
     const { HOONDOK_TABS, isTabEnabled } = await loadTabsWithPreview("1");
     expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual([
       "today",
+      "ask",
       "library",
       "worship",
       "garden",
     ]);
-    expect(isTabEnabled("ask")).toBe(false);
+    expect(isTabEnabled("ask")).toBe(true);
   });
 });
 
