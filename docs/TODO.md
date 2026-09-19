@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-09-19 (훈독 MVP Phase 3 PWA 트랙 D 머지 #290 → E 설치 안내 착수)
+> 마지막 업데이트: 2026-09-19 (훈독 MVP Phase 3 PWA 트랙 E 설치 안내 머지 #291 → F 초대 코드 sub-PR)
 
 > **현재 우선 작업 (2026-09-18~):** 훈독 MVP Phase 3 — [PLAN-HD-001 §6](plans/active/2026-09-17-hoondok-mvp.md) PWA 셸·편성 운영 수단·제한 베타. Phase 1(#276)·Phase 2(#282 → main `b70b6c8`)는 2026-09-18 운영 배포 완료(backend·web `b70b6c8`, `HOONDOK_ENABLED=0` 이라 `/hoondok/*` 404). 편성자는 2026-09-19 비개발자로 확정(A API #285 → B admin 화면). 남은 `[확인 필요]`: 약관 문구와 법적 주체.
 >
@@ -232,6 +232,10 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Next Actions
 
+### 훈독 Phase 3 배포 준비 (2026-09-19)
+- [ ] **VM `.env` 에 `HOONDOK_INVITE_CODE=<초대 코드>` 추가 → `make deploy-backend`** — F(초대 코드 게이트) 머지 뒤 배포 세션. 비워 두면 게이트 OFF(누구나 가입). 코드 값은 초대 메시지와 함께 운영자가 정한다 [확인 필요]
+- [ ] G smoke·runbook → dev→main PR → `make deploy-web HOONDOK_ENABLED=1` → 실기기 증거(설치 prompt·iOS 공유 분기) — [PLAN-HD-001 §6](plans/active/2026-09-17-hoondok-mvp.md)
+
 ### 모노레포 전환 (2026-09-05)
 
 - [x] M1 — 기준선 검증 후 pnpm/Turbo와 `apps/admin`, `apps/api`로 이전
@@ -284,7 +288,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [ ] Phase 1 잔여 — 60대 사용자 3명 200% 확대 실사용 확인(섭외 필요), 운영 이미지 플래그 OFF 404 는 2026-09-18 `b70b6c8` deploy-web 에서 확인 완료(계획 §9)
 - [x] Phase 2 코드 (2026-09-16) — 통합 브랜치 `dev/hoondok-phase2`: #277 계획 §5 분해표 / #278 `identity`(`users`·`/hoondok/auth/*`·쿠키 `hoondok_token`·JWT `aud=hoondok` 7일·python-jose aud 함정 명시 검사) / #279 `mission_logs`·`POST /hoondok/missions/{kind}/complete`·`GET /hoondok/me/summary`(연속일 `read` 기준) / #280 web `features/identity`·`/hoondok/onboarding` 최소형·완료·연속일 결합·비로그인 소급 / E2E 시드·시나리오·additive-only 리허설. 증거는 계획 §9 · **2026-09-18 PR #282 main 머지(`b70b6c8`) + 운영 배포 backend·web(플래그 OFF)**, 증거 §9 마지막 3행
 - [ ] Phase 2 잔여 — 계정 삭제 API(`deleted_at` 예약만)·비밀번호 재설정은 베타 전 필요 여부 결정. `[확인 필요]` 3건(메일·약관·편성자)은 Questions 유지
-- [ ] Phase 3~4 — PWA 셸·편성 운영 수단·플래그 ON 배포·제한 베타 → 훈독 알림 1종(조건부). 계획 §6~§7. **편성 트랙 진행(2026-09-19)**: 통합 브랜치 `dev/hoondok-phase3`(main `b30aebd` 위), #284 분해표 · A #285 편성 API 머지 · B admin 편성 화면(`/hoondok` 오늘~+14일 표·등록·수정, 철회는 `review_status`) #286 머지 · **dev→main #287 `87db69a` 머지 + `deploy-backend`·`deploy-admin` 완료(2026-09-19, 계획 §9)**. web 은 `b70b6c8`·플래그 OFF 유지. **PWA 트랙 C 머지(2026-09-19, #289 → dev `d167494`)**: manifest(`/hoondok` 스코프, 슬래시 없음 정정)·아이콘(감귤 배경 확정)·Pretendard 가변 1종 self-host(1.96MB, `"Pretendard Hoondok"`)·설치 메타는 hoondok layout 한정·폰트 immutable 캐시. **D 머지(2026-09-19, #290 → dev `5058168`)**: `public/hoondok/sw.js`(scope `/hoondok`·`Service-Worker-Allowed`, 오프라인 안내 `/hoondok/offline` 302 폴백 + 참조 청크 precache, API·온보딩·인증 미관여, `SW_KILL` 킬스위치)·등록 컴포넌트·`sw.js`/manifest no-cache. **E 진행**: `feat/hoondok-install-guide` — `features/hoondok/install/`(`beforeinstallprompt` 캡처·iOS 공유 분기·manual 일반 안내·standalone 숨김·localStorage 3키·나중에 30일) + 홈 카드 조건 렌더(직접 완료 `recorded` 첫 발생, 소급 제외). 다음 = E 머지 → F 초대 코드
+- [ ] Phase 3~4 — PWA 셸·편성 운영 수단·플래그 ON 배포·제한 베타 → 훈독 알림 1종(조건부). 계획 §6~§7. **편성 트랙 진행(2026-09-19)**: 통합 브랜치 `dev/hoondok-phase3`(main `b30aebd` 위), #284 분해표 · A #285 편성 API 머지 · B admin 편성 화면(`/hoondok` 오늘~+14일 표·등록·수정, 철회는 `review_status`) #286 머지 · **dev→main #287 `87db69a` 머지 + `deploy-backend`·`deploy-admin` 완료(2026-09-19, 계획 §9)**. web 은 `b70b6c8`·플래그 OFF 유지. **PWA 트랙 C 머지(2026-09-19, #289 → dev `d167494`)**: manifest(`/hoondok` 스코프, 슬래시 없음 정정)·아이콘(감귤 배경 확정)·Pretendard 가변 1종 self-host(1.96MB, `"Pretendard Hoondok"`)·설치 메타는 hoondok layout 한정·폰트 immutable 캐시. **D 머지(2026-09-19, #290 → dev `5058168`)**: `public/hoondok/sw.js`(scope `/hoondok`·`Service-Worker-Allowed`, 오프라인 안내 `/hoondok/offline` 302 폴백 + 참조 청크 precache, API·온보딩·인증 미관여, `SW_KILL` 킬스위치)·등록 컴포넌트·`sw.js`/manifest no-cache. **E 머지(2026-09-19, #291 → dev `1f4e83e`, CI Required 8/8)**: `feat/hoondok-install-guide` — `features/hoondok/install/`(`beforeinstallprompt` 캡처·iOS 공유 분기·manual 일반 안내·standalone 숨김·localStorage 3키·나중에 30일) + 홈 카드 조건 렌더(직접 완료 `recorded` 첫 발생, 소급 제외), Vitest 112·E2E 53. **F 구현 완료(E 스택, sub-PR 대기)**: `feat/hoondok-beta-gate` — `HOONDOK_INVITE_CODE` 설정 시 가입 403 `INVITE_REQUIRED`(409 보다 먼저), 온보딩 초대 코드 1칸, 계약 선택 필드 추가. 다음 = E 머지 → F rebase·머지 → G
 
 ### 00. 멀티턴 대화 메모리 (2026-07-08)
 > 설계: `docs/architecture/multi-turn-memory.md` (업계 조사 + 방안 A~D 비교)

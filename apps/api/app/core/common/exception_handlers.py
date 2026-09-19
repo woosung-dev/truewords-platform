@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.common.schemas import ErrorResponse
 from app.modules.chat.exceptions import SessionOwnershipError
+from app.modules.identity.exceptions import InviteRequiredError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
 from app.modules.search.exceptions import EmbeddingFailedError, SearchFailedError
 
@@ -64,6 +65,22 @@ async def session_ownership_handler(
         status_code=403,
         content=ErrorResponse(
             error_code="SESSION_FORBIDDEN",
+            message=str(exc),
+            request_id=rid,
+        ).model_dump(),
+    )
+
+
+async def invite_required_handler(
+    request: Request, exc: InviteRequiredError
+) -> JSONResponse:
+    """제한 베타 초대 코드 누락·불일치 (403, PLAN-HD-001 Phase 3 F). 제출된 코드 원문은 로그에 남기지 않는다."""
+    rid = _get_request_id(request)
+    logger.warning("InviteRequiredError", extra={"request_id": rid})
+    return JSONResponse(
+        status_code=403,
+        content=ErrorResponse(
+            error_code="INVITE_REQUIRED",
             message=str(exc),
             request_id=rid,
         ).model_dump(),

@@ -24,7 +24,7 @@
 - 라우터 prefix `/hoondok`, tag `hoondok`. `apps/api/app/main.py` 의 **공개 라우터 블록**에 등록한다(`require_admin_gate` 미적용).
 - 인증 쿠키는 `hoondok_token`(HttpOnly, `COOKIE_SECURE` 준수). `admin_token` 은 어떤 훈독 엔드포인트에서도 읽지 않는다.
 - 날짜(`date`)는 `YYYY-MM-DD`, 서버가 KST 로 계산한다. 클라이언트가 날짜를 보내는 파라미터는 없다.
-- 오류 본문은 기존 FastAPI 규약(`{"detail": ...}`)을 따른다.
+- 오류 본문은 기존 FastAPI 규약(`{"detail": ...}`)을 따른다. 예외: API-HD-002 의 403 `INVITE_REQUIRED` 는 중앙 핸들러의 `ErrorResponse{ error_code, message, request_id }` 형식이다(SEC-MONO-001 의 `SESSION_FORBIDDEN` 과 같다) — 웹이 CSRF 403 과 `error_code` 로 구분한다.
 - Phase 2 항목은 2026-09-16 sub-PR A(002·003)·B(004·005)에서 확정했다.
 - `API-HD-006~008` 만 예외로 **관리자 블록**이다: prefix `/admin/hoondok/daily-readings`, tag `admin-hoondok`, `main.py` 에 `_ADMIN_GATE` 로 등록, 라우터 레벨 `verify_csrf`. 훈독 사용자 쿠키(`hoondok_token`)로는 호출할 수 없다. 2026-09-19 Phase 3 sub-PR A 에서 확정.
 
@@ -85,9 +85,11 @@ GET /hoondok/today
 
 ## API-HD-002 `POST /hoondok/auth/signup` (Phase 2)
 
-요청 `{ email, password, display_name }` → 201 `{ user: { id, email, display_name } }` + `Set-Cookie: hoondok_token`(HttpOnly, `Path=/`, `Max-Age` = `HOONDOK_JWT_EXPIRE_MINUTES`×60, 기본 7일). 409 이메일 중복(대소문자 무시, 동시 가입 경쟁도 409), 422 검증 실패(이메일 형태 `로컬@도메인.tld`·비밀번호 8~128자·이름 1~64자). 약관 문구(`DEC-PWA-001` `[확인 필요]`) 확정 전이라 `consent_version` 은 받지 않으며 `users.consented_at` 은 NULL 로 남는다.
+요청 `{ email, password, display_name, invite_code? }` → 201 `{ user: { id, email, display_name } }` + `Set-Cookie: hoondok_token`(HttpOnly, `Path=/`, `Max-Age` = `HOONDOK_JWT_EXPIRE_MINUTES`×60, 기본 7일). 409 이메일 중복(대소문자 무시, 동시 가입 경쟁도 409), 422 검증 실패(이메일 형태 `로컬@도메인.tld`·비밀번호 8~128자·이름 1~64자). 약관 문구(`DEC-PWA-001` `[확인 필요]`) 확정 전이라 `consent_version` 은 받지 않으며 `users.consented_at` 은 NULL 로 남는다.
 
 상태 변경 요청(signup·login·logout)은 `X-Requested-With: XMLHttpRequest` 헤더가 없으면 403(CSRF). 생성 SDK 가 POST 에 자동 부착한다.
+
+**제한 베타 게이트 (Phase 3 F, 2026-09-19):** 서버 env `HOONDOK_INVITE_CODE`(SecretStr) 가 설정돼 있으면 `invite_code`(선택 필드, 1~64자, 앞뒤 공백 무시) 가 그 값과 일치해야 한다. 누락·불일치는 **403** `{ error_code: "INVITE_REQUIRED", message, request_id }` 이며 **중복 이메일 검사(409)보다 먼저** 판정해 초대받지 않은 요청에 이메일 존재 여부를 알리지 않는다. 비교는 바이트 상수 시간(`secrets.compare_digest`). 미설정·빈 값(`HOONDOK_INVITE_CODE=`)이면 `invite_code` 는 무시되고 기존 동작이다(로컬·E2E·pytest 는 autouse 픽스처로 OFF 고정). 로그인·로그아웃·me·기존 계정은 무관하다. 운영 값은 VM `.env` 에만 두고 `deploy-backend` 전에 넣는다.
 
 ## API-HD-003 `POST /hoondok/auth/login` · `logout` · `GET /hoondok/auth/me` (Phase 2)
 
@@ -146,3 +148,4 @@ GET /admin/hoondok/daily-readings?from=2026-09-19&to=2026-10-03
 | 2026-09-16 | API-HD-002·003 확정: `consent_version` 미수집, 만료 7일, CSRF 헤더, logout 무인증, 401 문구 단일 | 확정 · Phase 2 sub-PR A |
 | 2026-09-16 | API-HD-004·005 확정: 연속일·week 는 `read` 기준, 오늘 미완료 시 어제부터 집계, 소급은 당일만 | 확정 · Phase 2 sub-PR B |
 | 2026-09-19 | API-HD-006~008 신설(편성 admin). 관리자 블록·CSRF, DELETE 없음(철회 = `withdrawn`), 기본 범위 오늘~+14일, `seed_daily_readings.py` 는 로컬·E2E 한정 | 확정 · Phase 3 sub-PR A |
+| 2026-09-19 | API-HD-002 제한 베타 게이트: `invite_code` 선택 필드 + `HOONDOK_INVITE_CODE` 설정 시 403 `INVITE_REQUIRED`(ErrorResponse, 409 보다 먼저), 미설정이면 무시. 계약은 선택 필드 추가만(하위 호환) | 확정 · Phase 3 sub-PR F |

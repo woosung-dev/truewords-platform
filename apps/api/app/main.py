@@ -33,6 +33,7 @@ from app.modules.identity.router import router as identity_router
 from app.core.common.exception_handlers import (
     embedding_failed_handler,
     input_blocked_handler,
+    invite_required_handler,
     rate_limit_handler,
     search_failed_handler,
     session_ownership_handler,
@@ -40,6 +41,7 @@ from app.core.common.exception_handlers import (
 )
 from app.core.common.middleware import RequestIdMiddleware
 from app.modules.chat.exceptions import SessionOwnershipError
+from app.modules.identity.exceptions import InviteRequiredError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
 from app.modules.search.exceptions import EmbeddingFailedError, SearchFailedError
 
@@ -109,6 +111,7 @@ app.add_exception_handler(RateLimitExceededError, rate_limit_handler)  # type: i
 app.add_exception_handler(SearchFailedError, search_failed_handler)  # type: ignore[arg-type]
 app.add_exception_handler(EmbeddingFailedError, embedding_failed_handler)  # type: ignore[arg-type]
 app.add_exception_handler(SessionOwnershipError, session_ownership_handler)  # type: ignore[arg-type]
+app.add_exception_handler(InviteRequiredError, invite_required_handler)  # type: ignore[arg-type]
 
 # Catch-all — 반드시 마지막에 등록 (구체 예외 핸들러가 먼저 매칭되도록)
 app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignore[arg-type]
