@@ -175,7 +175,7 @@ make e2e
 - [x] W0-B 백엔드 — 2026-09-19 머지 `2e08806`, pytest 1037/4/1 · alembic head `k5a6b7c8d9e0` · oasdiff breaking 0 · additive-only 리허설은 W1 끝에 (`ENT-HD-004`·`k5a6b7c8d9e0`·`API-HD-009/010/011`·SDK 재생성·additive-only 리허설)
 - [x] W1-D 데이터 계층 — 2026-09-20 머지 `1ba5a26`, Vitest 137 (jeongseong/history/kst/use-delete-me)
 - [ ] W1-G 014 나의 정원
-- [ ] W1-S 015 알림·설치 설정 + 내 데이터 삭제
+- [x] W1-S 015 알림·설치 설정 + 내 데이터 삭제 — 2026-09-20 머지 (InstallCard isAlwaysVisible·알림 4종 disabled·삭제 2단계; 560px 중앙은 앱 셸 720 유지 `[가정]`)
 - [ ] W1-J 004 정성 시트 + 002 홈 정성 카드
 - [x] W1-N 003 오늘의 한 줄 — 2026-09-20 머지, Vitest 143 (note storage·TodayNote)
 - [ ] W1 웨이브 끝 `make ci`·`make e2e`·시각 대조
