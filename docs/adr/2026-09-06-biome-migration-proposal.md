@@ -1,7 +1,7 @@
 # Biome 전환 제안 ADR — ESLint(eslint-config-next) → Biome 2.x, 포맷터 첫 도입
 
 - **작성일**: 2026-09-06
-- **상태**: **제안 — 사용자 승인 대기.** 승인 전에는 `packages/eslint-config` 와 ESLint 를 그대로 둔다
+- **상태**: **결정 확정 (2026-09-06 사용자 승인).** P3 ①·② 는 브랜치 `chore/biome-format-baseline` 에서 실행 완료(아래 실행 기록), ③·④ 는 후속 PR. ④ 전까지 `packages/eslint-config` 와 ESLint 는 그대로 둔다
 - **관련**: [툴체인 최신화 ADR](2026-09-06-toolchain-latest-decisions.md) · [모노레포 설계 ARCH-MONO-001](../architecture/2026-09-05-pwa-flutter-monorepo.md) · [프론트엔드 규칙](../../.ai/rules/frontend.md)
 
 ## 배경
@@ -35,7 +35,11 @@
 - 위험: 포맷 1커밋 뒤 열린 PR(#252 등)은 전부 충돌한다 → Dependabot PR 은 재생성되므로 무시, 사람 PR 이 없는 시점에 실행한다. `git blame` 은 `.git-blame-ignore-revs` 에 포맷 커밋을 등록해 보존한다.
 - 되돌리기: ESLint 제거는 마지막 단계(④)라 그 전까지는 `pnpm lint` 가 그대로 동작한다.
 
-## 승인 시 다음 액션
+## 실행 기록 (2026-09-06, P3 ①·②)
 
-1. 이 ADR 상태를 "결정 확정" 으로 바꾸고 `docs/TODO.md` 에 P3 ①~④ 를 등록
-2. 열린 사람 PR 이 0 인 시점에 ②(포맷 1커밋) 실행
+- **①** 루트 `biome.json` 1개만 둔다(앱별 `extends: "//"` 는 앱별 override 가 생길 때). P2 값 그대로. `files.includes` 로 `apps/api`(Python) · 생성 SDK · `contracts` · `docs` · **`reports`(측정 산출물) · `pyrightconfig.json`(Python 툴 설정)** 을 제외 — 뒤 둘은 실측에서 포맷 대상에 잡혀 추가했다. `.gitignore` 는 `vcs.useIgnoreFile` 로 따른다. Biome 2.5 차이 2개: `linter.rules.recommended` 는 deprecated → `rules.preset: "recommended"`, 폴더 제외는 `/**` 없이(`useBiomeIgnoreFolder`). 루트 스크립트 `pnpm format`(`biome check --linter-enabled=false --write .`) · `pnpm format:check` 추가.
+- **②** `biome check --linter-enabled=false --write .` — formatter + `organizeImports` 만 적용하고 **lint 자동 수정(safe fix)은 넣지 않았다**(`useImportType` · `useTemplate` 등은 ③ 로). 결과 **140 파일**(포맷 134 ∪ import 정렬 100; tsx 89 · ts 34 · mjs 10 · json 5 · css 2), +2,271 / −3,800. side-effect import(`./globals.css`) 위치는 유지된다. CSS 는 `oklch(0.180 …)` → `0.18` 같은 숫자 정규화만.
+- **검증(로컬, pnpm 12.3.4)**: typecheck 3/3 · ESLint 경고 13(툴체인 ADR D4 와 동일, 오류 0) · vitest 22 파일 · tooling 16 · `contracts:check` · `boundaries:check` · `docs:check` · `next build` web + admin 전부 통과.
+- **남은 진단(③ 범위, ② 적용 후 실측)**: **error 57 / warning 43 / info 7** — error: `useButtonType` 17 · `noArrayIndexKey` 16 · `useExhaustiveDependencies` 8 · `useIterableCallbackReturn` 6 · `noLabelWithoutControl` 4 · `useSemanticElements` 4 · `noStaticElementInteractions` 1 · `noAssignInExpressions` 1 / warning: `useImportType` 13 · `useReactCompiler` 7 · `noImportantStyles` 6 · `noUndeclaredEnvVars` 5 · `noNonNullAssertion` 5 · `noGlobalIsNan` 3 · `noExplicitAny` 2 · `noConfusingVoidType` 1 · `noDescendingSpecificity` 1. 위 실측 표의 "307 errors" 와 예상 "~200건" 은 포맷 134 + organizeImports 진단을 lint 와 합산한 수치였다 — 수동 정리 대상은 100건이며 ③ 은 2~3 PR 로 줄어든다.
+- **브랜치 배치**: 작업 시점의 유일한 열린 사람 PR #256(이 ADR 을 담은 툴체인 PR) 위에 스택해 실행했고, #256 이 main 에 squash 머지(`b281ee5`)된 직후 main 으로 rebase 했다(트리 동일, 충돌 0). 열린 사람 PR 이 0 인 상태에서 main 으로 PR 을 낸다 — ADR 의 실행 조건 충족.
+- **`.git-blame-ignore-revs` 는 머지 후 등록**: squash · rebase 머지가 SHA 를 바꾸므로 브랜치 SHA 를 지금 넣으면 무효가 된다. 머지된 포맷 커밋 SHA 로 ③ 첫 PR 에서 추가한다.

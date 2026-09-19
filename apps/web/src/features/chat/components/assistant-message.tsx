@@ -26,16 +26,8 @@ export interface AssistantMessageProps {
  * - 본문 [출처: ...] 잔류 텍스트는 정규식으로 strip.
  * - sources 는 번호 매겨진 카드 그리드로 하단 노출.
  */
-export function AssistantMessage({
-  content,
-  sources,
-  onSourceClick,
-  className,
-}: AssistantMessageProps) {
-  const cleaned = React.useMemo(
-    () => preprocess(content, sources?.length ?? Infinity),
-    [content, sources],
-  );
+export function AssistantMessage({ content, sources, onSourceClick, className }: AssistantMessageProps) {
+  const cleaned = React.useMemo(() => preprocess(content, sources?.length ?? Infinity), [content, sources]);
   const sourceMap = React.useMemo(() => buildSourceMap(sources), [sources]);
 
   return (
@@ -83,9 +75,7 @@ export function AssistantMessage({
         </ReactMarkdown>
       </div>
 
-      {sources && sources.length > 0 && (
-        <SourceCardGrid sources={sources} onSourceClick={onSourceClick} />
-      )}
+      {sources && sources.length > 0 && <SourceCardGrid sources={sources} onSourceClick={onSourceClick} />}
     </div>
   );
 }
@@ -125,9 +115,7 @@ function SourceCardGrid({ sources, onSourceClick }: SourceCardGridProps) {
               {num}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-xs font-semibold text-foreground">
-                {primaryLabel}
-              </span>
+              <span className="block truncate text-xs font-semibold text-foreground">{primaryLabel}</span>
               <span className="mt-0.5 block text-[11px] text-muted-foreground">
                 {src.source ? `${src.source} · ` : ""}
                 {clickable ? "클릭하여 원문 보기 →" : "원문 미연결"}
@@ -196,9 +184,7 @@ export function preprocess(text: string, maxSourceN: number = Infinity): string 
         .map((n) => `[${n}](cite:${n})`)
         .join(""),
     )
-    .replace(/\[(\d+)\](?!\()/g, (_match, n: string) =>
-      isValidN(n) ? `[${n}](cite:${n})` : "",
-    )
+    .replace(/\[(\d+)\](?!\()/g, (_match, n: string) => (isValidN(n) ? `[${n}](cite:${n})` : ""))
     .replace(/([^\n])\n?[ \t]*•([ \t])/g, "$1\n\n•$2")
     .trim();
 }
@@ -235,10 +221,8 @@ export function ClosingCallout({ closing, className }: ClosingCalloutProps) {
         className,
       )}
     >
-      <span className="font-medium text-foreground">
-        더 깊은 말씀이 필요하신가요?
-      </span>{" "}
-      소속 교회나 담당 목회자님께 상담을 요청하시길 권해드립니다.
+      <span className="font-medium text-foreground">더 깊은 말씀이 필요하신가요?</span> 소속 교회나 담당 목회자님께
+      상담을 요청하시길 권해드립니다.
     </div>
   );
 }

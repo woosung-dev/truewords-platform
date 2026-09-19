@@ -1,21 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { chatbotAPI } from "@/features/chatbot/api";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Pencil, Plus } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Plus, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { chatbotAPI } from "@/features/chatbot/api";
 
 const PAGE_SIZE = 20;
 
@@ -33,9 +26,7 @@ export default function ChatbotsPage() {
   // 비활성 숨김 (기본) — 데이터 소스 카테고리 페이지와 동일 패턴
   const allItems = data?.items ?? [];
   const inactiveCount = allItems.filter((c) => !c.is_active).length;
-  const visibleItems = showInactive
-    ? allItems
-    : allItems.filter((c) => c.is_active);
+  const visibleItems = showInactive ? allItems : allItems.filter((c) => c.is_active);
 
   return (
     <div className="space-y-5 max-w-5xl">
@@ -46,9 +37,7 @@ export default function ChatbotsPage() {
             <p className="text-sm text-muted-foreground mt-1">
               총 {data.total}개
               {!showInactive && inactiveCount > 0 && (
-                <span className="text-xs ml-1">
-                  · 활성 {data.total - inactiveCount}개 표시
-                </span>
+                <span className="text-xs ml-1">· 활성 {data.total - inactiveCount}개 표시</span>
               )}
             </p>
           )}
@@ -59,14 +48,11 @@ export default function ChatbotsPage() {
               onClick={() => setShowInactive((v) => !v)}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              {showInactive
-                ? "비활성 숨기기"
-                : `비활성 ${inactiveCount}개 보기`}
+              {showInactive ? "비활성 숨기기" : `비활성 ${inactiveCount}개 보기`}
             </button>
           )}
           <Link href="/chatbots/new" className={buttonVariants({ size: "sm" })}>
-            <Plus className="w-4 h-4 mr-1.5" />
-            새 챗봇
+            <Plus className="w-4 h-4 mr-1.5" />새 챗봇
           </Link>
         </div>
       </div>
@@ -88,28 +74,16 @@ export default function ChatbotsPage() {
         </div>
       ) : data && data.items.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center space-y-3">
-          <p className="text-muted-foreground text-sm">
-            등록된 챗봇이 없습니다. 첫 챗봇을 만들어보세요.
-          </p>
-          <Link
-            href="/chatbots/new"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            <Plus className="w-4 h-4 mr-1.5" />
-            새 챗봇 만들기
+          <p className="text-muted-foreground text-sm">등록된 챗봇이 없습니다. 첫 챗봇을 만들어보세요.</p>
+          <Link href="/chatbots/new" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Plus className="w-4 h-4 mr-1.5" />새 챗봇 만들기
           </Link>
         </div>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center space-y-3">
-          <p className="text-muted-foreground text-sm">
-            활성 챗봇이 없습니다.
-          </p>
+          <p className="text-muted-foreground text-sm">활성 챗봇이 없습니다.</p>
           {inactiveCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowInactive(true)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowInactive(true)}>
               비활성 {inactiveCount}개 보기
             </Button>
           )}
@@ -130,10 +104,7 @@ export default function ChatbotsPage() {
               </TableHeader>
               <TableBody>
                 {visibleItems.map((config) => (
-                  <TableRow
-                    key={config.id}
-                    className="hover:bg-admin-muted/30 transition-colors"
-                  >
+                  <TableRow key={config.id} className="hover:bg-admin-muted/30 transition-colors">
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <div
@@ -144,9 +115,7 @@ export default function ChatbotsPage() {
                         {config.display_name}
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {config.chatbot_id}
-                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{config.chatbot_id}</TableCell>
                     <TableCell>
                       {config.is_active ? (
                         <Badge className="bg-success-soft text-success hover:bg-success-soft border border-success-border">
@@ -186,12 +155,7 @@ export default function ChatbotsPage() {
           {/* 페이지네이션 */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 0}
-                onClick={() => setPage((p) => p - 1)}
-              >
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <span className="text-sm text-muted-foreground px-2">

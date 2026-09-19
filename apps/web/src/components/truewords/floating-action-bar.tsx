@@ -1,7 +1,7 @@
 "use client";
 
+import { Bookmark, Plus, Share2 } from "lucide-react";
 import * as React from "react";
-import { Plus, Bookmark, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Plan B.5 + P0-G ★ — 답변 페이지 하단 floating action bar
@@ -30,18 +30,12 @@ export function FloatingActionBar({
         "shadow-(--tw-shadow-float)",
         "px-3 py-2",
         "pb-safe-offset",
-        className
+        className,
       )}
       style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 0.5rem, 0.5rem)" }}
     >
       <div className="flex items-center justify-around gap-1">
-        {onNewQuestion && (
-          <FloatingButton
-            icon={Plus}
-            label="새 질문"
-            onClick={onNewQuestion}
-          />
-        )}
+        {onNewQuestion && <FloatingButton icon={Plus} label="새 질문" onClick={onNewQuestion} />}
         {/* 북마크는 백엔드 영속화 미구현 (클라이언트 메모리만) — onBookmark 전달 시에만 노출. */}
         {onBookmark && (
           <>
@@ -57,11 +51,7 @@ export function FloatingActionBar({
         {onShare && (
           <>
             <span className="h-6 w-px bg-border" aria-hidden="true" />
-            <FloatingButton
-              icon={Share2}
-              label="공유"
-              onClick={onShare}
-            />
+            <FloatingButton icon={Share2} label="공유" onClick={onShare} />
           </>
         )}
       </div>
@@ -76,12 +66,7 @@ interface FloatingButtonProps {
   active?: boolean;
 }
 
-function FloatingButton({
-  icon: Icon,
-  label,
-  onClick,
-  active,
-}: FloatingButtonProps) {
+function FloatingButton({ icon: Icon, label, onClick, active }: FloatingButtonProps) {
   return (
     <button
       type="button"
@@ -95,16 +80,10 @@ function FloatingButton({
         "transition-all duration-150 ease-out",
         "active:scale-[0.95] active:duration-75",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-        active
-          ? "text-accent"
-          : "text-foreground hover:bg-secondary"
+        active ? "text-accent" : "text-foreground hover:bg-secondary",
       )}
     >
-      <Icon
-        className="size-5"
-        fill={active ? "currentColor" : "none"}
-        aria-hidden="true"
-      />
+      <Icon className="size-5" fill={active ? "currentColor" : "none"} aria-hidden="true" />
       {label}
     </button>
   );

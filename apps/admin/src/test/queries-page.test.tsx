@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { QueryListResponse } from "@/features/analytics/types";
 
 // jsdom에는 window.matchMedia가 없으므로 stub 처리 (TruncateTooltip 사용)
@@ -49,13 +49,11 @@ function renderPage() {
   return render(
     <QueryClientProvider client={client}>
       <QueriesExplorerPage />
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
 }
 
-function fixture(
-  overrides: Partial<QueryListResponse> = {}
-): QueryListResponse {
+function fixture(overrides: Partial<QueryListResponse> = {}): QueryListResponse {
   return {
     items: [],
     total: 0,
@@ -100,7 +98,7 @@ describe("QueriesExplorerPage", () => {
             negative_feedback_count: 0,
           },
         ],
-      })
+      }),
     );
     renderPage();
     expect(await screen.findAllByText("36가정 축복")).toBeDefined();
@@ -120,7 +118,7 @@ describe("QueriesExplorerPage", () => {
             negative_feedback_count: 0,
           },
         ],
-      })
+      }),
     );
     renderPage();
     const rowButton = await screen.findByRole("button", { name: /천일국/ });
@@ -143,7 +141,7 @@ describe("QueriesExplorerPage", () => {
             negative_feedback_count: 0,
           },
         ],
-      })
+      }),
     );
     renderPage();
     await screen.findByText("안녕");
@@ -162,7 +160,7 @@ describe("QueriesExplorerPage", () => {
             negative_feedback_count: 2,
           },
         ],
-      })
+      }),
     );
     renderPage();
     // count 열과 negative_feedback_count 열 모두 "2"를 표시하므로 getAllByText 사용

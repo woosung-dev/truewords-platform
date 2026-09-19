@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import SearchTierEditor from "@/features/chatbot/components/search-tier-editor";
 import type { SearchTier } from "@/features/chatbot/types";
 
@@ -32,9 +32,7 @@ describe("SearchTierEditor", () => {
 
     fireEvent.click(screen.getByText("티어 추가"));
 
-    expect(onChange).toHaveBeenCalledWith([
-      { sources: ["A"], min_results: 3, score_threshold: 0.1 },
-    ]);
+    expect(onChange).toHaveBeenCalledWith([{ sources: ["A"], min_results: 3, score_threshold: 0.1 }]);
   });
 
   // --- 티어 렌더링 ---
@@ -42,7 +40,7 @@ describe("SearchTierEditor", () => {
   it("티어 목록을 렌더링한다", () => {
     const tiers: SearchTier[] = [
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
-      { sources: ["B", "C"], min_results: 2, score_threshold: 0.60 },
+      { sources: ["B", "C"], min_results: 2, score_threshold: 0.6 },
     ];
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
@@ -53,9 +51,7 @@ describe("SearchTierEditor", () => {
   });
 
   it("데이터 소스 버튼을 한글 이름으로 표시한다", () => {
-    const tiers: SearchTier[] = [
-      { sources: ["A"], min_results: 3, score_threshold: 0.75 },
-    ];
+    const tiers: SearchTier[] = [{ sources: ["A"], min_results: 3, score_threshold: 0.75 }];
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
 
@@ -70,9 +66,7 @@ describe("SearchTierEditor", () => {
   // --- 티어 추가 ---
 
   it("기존 티어가 있을 때 '티어 추가'로 티어를 추가한다", () => {
-    const existing: SearchTier[] = [
-      { sources: ["A"], min_results: 3, score_threshold: 0.75 },
-    ];
+    const existing: SearchTier[] = [{ sources: ["A"], min_results: 3, score_threshold: 0.75 }];
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={existing} onChange={onChange} />);
 
@@ -90,7 +84,7 @@ describe("SearchTierEditor", () => {
   it("삭제 버튼 클릭 시 해당 티어를 제거한다", () => {
     const tiers: SearchTier[] = [
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
-      { sources: ["B"], min_results: 2, score_threshold: 0.60 },
+      { sources: ["B"], min_results: 2, score_threshold: 0.6 },
     ];
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
@@ -98,9 +92,7 @@ describe("SearchTierEditor", () => {
     const deleteButtons = screen.getAllByTitle("삭제");
     fireEvent.click(deleteButtons[0]);
 
-    expect(onChange).toHaveBeenCalledWith([
-      { sources: ["B"], min_results: 2, score_threshold: 0.60 },
-    ]);
+    expect(onChange).toHaveBeenCalledWith([{ sources: ["B"], min_results: 2, score_threshold: 0.6 }]);
   });
 
   // --- 티어 순서 변경 ---
@@ -108,7 +100,7 @@ describe("SearchTierEditor", () => {
   it("아래로 이동 버튼 클릭 시 순서를 변경한다", () => {
     const tiers: SearchTier[] = [
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
-      { sources: ["B"], min_results: 2, score_threshold: 0.60 },
+      { sources: ["B"], min_results: 2, score_threshold: 0.6 },
     ];
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
@@ -117,7 +109,7 @@ describe("SearchTierEditor", () => {
     fireEvent.click(downButtons[0]);
 
     expect(onChange).toHaveBeenCalledWith([
-      { sources: ["B"], min_results: 2, score_threshold: 0.60 },
+      { sources: ["B"], min_results: 2, score_threshold: 0.6 },
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
     ]);
   });
@@ -125,7 +117,7 @@ describe("SearchTierEditor", () => {
   it("첫 번째 티어의 위로 이동 버튼은 비활성화이다", () => {
     const tiers: SearchTier[] = [
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
-      { sources: ["B"], min_results: 2, score_threshold: 0.60 },
+      { sources: ["B"], min_results: 2, score_threshold: 0.6 },
     ];
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
@@ -137,7 +129,7 @@ describe("SearchTierEditor", () => {
   it("마지막 티어의 아래로 이동 버튼은 비활성화이다", () => {
     const tiers: SearchTier[] = [
       { sources: ["A"], min_results: 3, score_threshold: 0.75 },
-      { sources: ["B"], min_results: 2, score_threshold: 0.60 },
+      { sources: ["B"], min_results: 2, score_threshold: 0.6 },
     ];
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
@@ -149,32 +141,24 @@ describe("SearchTierEditor", () => {
   // --- min_results 입력 ---
 
   it("min_results 값을 변경한다", () => {
-    const tiers: SearchTier[] = [
-      { sources: ["A"], min_results: 3, score_threshold: 0.75 },
-    ];
+    const tiers: SearchTier[] = [{ sources: ["A"], min_results: 3, score_threshold: 0.75 }];
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
 
     const input = screen.getByLabelText(/최소 결과 수/);
     fireEvent.change(input, { target: { value: "5" } });
 
-    expect(onChange).toHaveBeenCalledWith([
-      { sources: ["A"], min_results: 5, score_threshold: 0.75 },
-    ]);
+    expect(onChange).toHaveBeenCalledWith([{ sources: ["A"], min_results: 5, score_threshold: 0.75 }]);
   });
 
   it("min_results가 1 미만이면 1로 클램프한다", () => {
-    const tiers: SearchTier[] = [
-      { sources: ["A"], min_results: 3, score_threshold: 0.75 },
-    ];
+    const tiers: SearchTier[] = [{ sources: ["A"], min_results: 3, score_threshold: 0.75 }];
     const onChange = vi.fn();
     render(<SearchTierEditor tiers={tiers} onChange={onChange} />);
 
     const input = screen.getByLabelText(/최소 결과 수/);
     fireEvent.change(input, { target: { value: "0" } });
 
-    expect(onChange).toHaveBeenCalledWith([
-      { sources: ["A"], min_results: 1, score_threshold: 0.75 },
-    ]);
+    expect(onChange).toHaveBeenCalledWith([{ sources: ["A"], min_results: 1, score_threshold: 0.75 }]);
   });
 });

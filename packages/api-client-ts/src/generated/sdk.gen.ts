@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type ServerSentEventsResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddVolumeTagAdminDataSourcesVolumeTagsPutData, AddVolumeTagAdminDataSourcesVolumeTagsPutErrors, AddVolumeTagAdminDataSourcesVolumeTagsPutResponses, AddVolumeTagsBulkAdminDataSourcesVolumeTagsBulkPutData, AddVolumeTagsBulkAdminDataSourcesVolumeTagsBulkPutErrors, AddVolumeTagsBulkAdminDataSourcesVolumeTagsBulkPutResponses, ChatChatPostData, ChatChatPostErrors, ChatChatPostResponses, ChatStreamChatStreamPostData, ChatStreamChatStreamPostErrors, ChatStreamChatStreamPostResponse, ChatStreamChatStreamPostResponses, CheckDuplicateAdminDataSourcesCheckDuplicateGetData, CheckDuplicateAdminDataSourcesCheckDuplicateGetErrors, CheckDuplicateAdminDataSourcesCheckDuplicateGetResponses, CreateAdminUserAdminUsersPostData, CreateAdminUserAdminUsersPostErrors, CreateAdminUserAdminUsersPostResponses, CreateCategoryAdminDataSourceCategoriesPostData, CreateCategoryAdminDataSourceCategoriesPostErrors, CreateCategoryAdminDataSourceCategoriesPostResponses, CreateConfigAdminChatbotConfigsPostData, CreateConfigAdminChatbotConfigsPostErrors, CreateConfigAdminChatbotConfigsPostResponses, DeleteCategoryAdminDataSourceCategoriesCategoryIdDeleteData, DeleteCategoryAdminDataSourceCategoriesCategoryIdDeleteErrors, DeleteCategoryAdminDataSourceCategoriesCategoryIdDeleteResponses, DeleteFeedbackChatFeedbackMessageIdDeleteData, DeleteFeedbackChatFeedbackMessageIdDeleteErrors, DeleteFeedbackChatFeedbackMessageIdDeleteResponses, DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteData, DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteErrors, DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses, DeleteVolumesBulkAdminDataSourcesVolumesDeleteBulkPostData, DeleteVolumesBulkAdminDataSourcesVolumesDeleteBulkPostErrors, DeleteVolumesBulkAdminDataSourcesVolumesDeleteBulkPostResponses, GetAggregateApiChatMessagesMessageIdReactionsGetData, GetAggregateApiChatMessagesMessageIdReactionsGetErrors, GetAggregateApiChatMessagesMessageIdReactionsGetResponses, GetAllVolumesAdminDataSourcesVolumesGetData, GetAllVolumesAdminDataSourcesVolumesGetResponses, GetAuditLogsAdminAuditLogsGetData, GetAuditLogsAdminAuditLogsGetErrors, GetAuditLogsAdminAuditLogsGetResponses, GetCategoryStatsAdminDataSourcesCategoryStatsGetData, GetCategoryStatsAdminDataSourcesCategoryStatsGetResponses, GetChunkApiSourcesChunksChunkIdGetData, GetChunkApiSourcesChunksChunkIdGetErrors, GetChunkApiSourcesChunksChunkIdGetResponses, GetConfigAdminChatbotConfigsConfigIdGetData, GetConfigAdminChatbotConfigsConfigIdGetErrors, GetConfigAdminChatbotConfigsConfigIdGetResponses, GetDailyModesAdminAnalyticsModesDailyGetData, GetDailyModesAdminAnalyticsModesDailyGetErrors, GetDailyModesAdminAnalyticsModesDailyGetResponses, GetDailyTrendAdminAnalyticsSearchDailyTrendGetData, GetDailyTrendAdminAnalyticsSearchDailyTrendGetErrors, GetDailyTrendAdminAnalyticsSearchDailyTrendGetResponses, GetDashboardSummaryAdminAnalyticsDashboardSummaryGetData, GetDashboardSummaryAdminAnalyticsDashboardSummaryGetResponses, GetFeedbackListAdminAnalyticsFeedbackListGetData, GetFeedbackListAdminAnalyticsFeedbackListGetErrors, GetFeedbackListAdminAnalyticsFeedbackListGetResponses, GetFeedbackSummaryAdminAnalyticsFeedbackSummaryGetData, GetFeedbackSummaryAdminAnalyticsFeedbackSummaryGetErrors, GetFeedbackSummaryAdminAnalyticsFeedbackSummaryGetResponses, GetIngestStatusAdminDataSourcesStatusGetData, GetIngestStatusAdminDataSourcesStatusGetResponses, GetMeAdminAuthMeGetData, GetMeAdminAuthMeGetResponses, GetNegativeFeedbackAdminAnalyticsFeedbackNegativeGetData, GetNegativeFeedbackAdminAnalyticsFeedbackNegativeGetErrors, GetNegativeFeedbackAdminAnalyticsFeedbackNegativeGetResponses, GetQueriesAdminAnalyticsSearchQueriesGetData, GetQueriesAdminAnalyticsSearchQueriesGetErrors, GetQueriesAdminAnalyticsSearchQueriesGetResponses, GetQueryDetailsAdminAnalyticsSearchQueryDetailsGetData, GetQueryDetailsAdminAnalyticsSearchQueryDetailsGetErrors, GetQueryDetailsAdminAnalyticsSearchQueryDetailsGetResponses, GetSearchStatsAdminAnalyticsSearchStatsGetData, GetSearchStatsAdminAnalyticsSearchStatsGetErrors, GetSearchStatsAdminAnalyticsSearchStatsGetResponses, GetSessionDetailAdminAnalyticsSessionsSessionIdGetData, GetSessionDetailAdminAnalyticsSessionsSessionIdGetErrors, GetSessionDetailAdminAnalyticsSessionsSessionIdGetResponses, GetSessionHistoryChatSessionsSessionIdGetData, GetSessionHistoryChatSessionsSessionIdGetErrors, GetSessionHistoryChatSessionsSessionIdGetResponses, GetSettingsConfigAdminSettingsConfigGetData, GetSettingsConfigAdminSettingsConfigGetResponses, GetTopQueriesAdminAnalyticsSearchTopQueriesGetData, GetTopQueriesAdminAnalyticsSearchTopQueriesGetErrors, GetTopQueriesAdminAnalyticsSearchTopQueriesGetResponses, HealthHealthGetData, HealthHealthGetResponses, ListAdminUsersAdminUsersGetData, ListAdminUsersAdminUsersGetResponses, ListAllConfigsAdminChatbotConfigsGetData, ListAllConfigsAdminChatbotConfigsGetErrors, ListAllConfigsAdminChatbotConfigsGetResponses, ListCategoriesAdminDataSourceCategoriesGetData, ListCategoriesAdminDataSourceCategoriesGetResponses, ListChatbotsChatbotsGetData, ListChatbotsChatbotsGetResponses, ListIngestionJobsAdminDataSourcesJobsGetData, ListIngestionJobsAdminDataSourcesJobsGetResponses, ListMySessionsChatSessionsGetData, ListMySessionsChatSessionsGetErrors, ListMySessionsChatSessionsGetResponses, LoginAdminAuthLoginPostData, LoginAdminAuthLoginPostErrors, LoginAdminAuthLoginPostResponses, LogoutAdminAuthLogoutPostData, LogoutAdminAuthLogoutPostResponses, RemoveVolumeTagAdminDataSourcesVolumeTagsDeleteData, RemoveVolumeTagAdminDataSourcesVolumeTagsDeleteErrors, RemoveVolumeTagAdminDataSourcesVolumeTagsDeleteResponses, RemoveVolumeTagsBulkAdminDataSourcesVolumeTagsBulkRemovePostData, RemoveVolumeTagsBulkAdminDataSourcesVolumeTagsBulkRemovePostErrors, RemoveVolumeTagsBulkAdminDataSourcesVolumeTagsBulkRemovePostResponses, SubmitFeedbackChatFeedbackPostData, SubmitFeedbackChatFeedbackPostErrors, SubmitFeedbackChatFeedbackPostResponses, ToggleReactionApiChatMessagesMessageIdReactionPostData, ToggleReactionApiChatMessagesMessageIdReactionPostErrors, ToggleReactionApiChatMessagesMessageIdReactionPostResponses, UpdateAdminUserStatusAdminUsersUserIdStatusPatchData, UpdateAdminUserStatusAdminUsersUserIdStatusPatchErrors, UpdateAdminUserStatusAdminUsersUserIdStatusPatchResponses, UpdateCategoryAdminDataSourceCategoriesCategoryIdPutData, UpdateCategoryAdminDataSourceCategoriesCategoryIdPutErrors, UpdateCategoryAdminDataSourceCategoriesCategoryIdPutResponses, UpdateConfigAdminChatbotConfigsConfigIdPutData, UpdateConfigAdminChatbotConfigsConfigIdPutErrors, UpdateConfigAdminChatbotConfigsConfigIdPutResponses, UpdateDisplayNameAdminDataSourcesDisplayNamePatchData, UpdateDisplayNameAdminDataSourcesDisplayNamePatchErrors, UpdateDisplayNameAdminDataSourcesDisplayNamePatchResponses, UploadDocumentAdminDataSourcesUploadPostData, UploadDocumentAdminDataSourcesUploadPostErrors, UploadDocumentAdminDataSourcesUploadPostResponses } from './types.gen';
+import type { AddVolumeTagAdminDataSourcesVolumeTagsPutData, AddVolumeTagAdminDataSourcesVolumeTagsPutErrors, AddVolumeTagAdminDataSourcesVolumeTagsPutResponses, AddVolumeTagsBulkAdminDataSourcesVolumeTagsBulkPutData, AddVolumeTagsBulkAdminDataSourcesVolumeTagsBulkPutErrors, AddVolumeTagsBulkAdminDataSourcesVolumeTagsBulkPutResponses, ChatChatPostData, ChatChatPostErrors, ChatChatPostResponses, ChatStreamChatStreamPostData, ChatStreamChatStreamPostErrors, ChatStreamChatStreamPostResponse, ChatStreamChatStreamPostResponses, CheckDuplicateAdminDataSourcesCheckDuplicateGetData, CheckDuplicateAdminDataSourcesCheckDuplicateGetErrors, CheckDuplicateAdminDataSourcesCheckDuplicateGetResponses, CompleteMissionHoondokMissionsKindCompletePostData, CompleteMissionHoondokMissionsKindCompletePostErrors, CompleteMissionHoondokMissionsKindCompletePostResponses, CreateAdminUserAdminUsersPostData, CreateAdminUserAdminUsersPostErrors, CreateAdminUserAdminUsersPostResponses, CreateCategoryAdminDataSourceCategoriesPostData, CreateCategoryAdminDataSourceCategoriesPostErrors, CreateCategoryAdminDataSourceCategoriesPostResponses, CreateConfigAdminChatbotConfigsPostData, CreateConfigAdminChatbotConfigsPostErrors, CreateConfigAdminChatbotConfigsPostResponses, CreateDailyReadingAdminHoondokDailyReadingsPostData, CreateDailyReadingAdminHoondokDailyReadingsPostErrors, CreateDailyReadingAdminHoondokDailyReadingsPostResponses, DeleteCategoryAdminDataSourceCategoriesCategoryIdDeleteData, DeleteCategoryAdminDataSourceCategoriesCategoryIdDeleteErrors, DeleteCategoryAdminDataSourceCategoriesCategoryIdDeleteResponses, DeleteFeedbackChatFeedbackMessageIdDeleteData, DeleteFeedbackChatFeedbackMessageIdDeleteErrors, DeleteFeedbackChatFeedbackMessageIdDeleteResponses, DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteData, DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteErrors, DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses, DeleteVolumesBulkAdminDataSourcesVolumesDeleteBulkPostData, DeleteVolumesBulkAdminDataSourcesVolumesDeleteBulkPostErrors, DeleteVolumesBulkAdminDataSourcesVolumesDeleteBulkPostResponses, GetAggregateApiChatMessagesMessageIdReactionsGetData, GetAggregateApiChatMessagesMessageIdReactionsGetErrors, GetAggregateApiChatMessagesMessageIdReactionsGetResponses, GetAllVolumesAdminDataSourcesVolumesGetData, GetAllVolumesAdminDataSourcesVolumesGetResponses, GetAuditLogsAdminAuditLogsGetData, GetAuditLogsAdminAuditLogsGetErrors, GetAuditLogsAdminAuditLogsGetResponses, GetCategoryStatsAdminDataSourcesCategoryStatsGetData, GetCategoryStatsAdminDataSourcesCategoryStatsGetResponses, GetChunkApiSourcesChunksChunkIdGetData, GetChunkApiSourcesChunksChunkIdGetErrors, GetChunkApiSourcesChunksChunkIdGetResponses, GetConfigAdminChatbotConfigsConfigIdGetData, GetConfigAdminChatbotConfigsConfigIdGetErrors, GetConfigAdminChatbotConfigsConfigIdGetResponses, GetDailyModesAdminAnalyticsModesDailyGetData, GetDailyModesAdminAnalyticsModesDailyGetErrors, GetDailyModesAdminAnalyticsModesDailyGetResponses, GetDailyReadingAdminHoondokDailyReadingsReadingIdGetData, GetDailyReadingAdminHoondokDailyReadingsReadingIdGetErrors, GetDailyReadingAdminHoondokDailyReadingsReadingIdGetResponses, GetDailyTrendAdminAnalyticsSearchDailyTrendGetData, GetDailyTrendAdminAnalyticsSearchDailyTrendGetErrors, GetDailyTrendAdminAnalyticsSearchDailyTrendGetResponses, GetDashboardSummaryAdminAnalyticsDashboardSummaryGetData, GetDashboardSummaryAdminAnalyticsDashboardSummaryGetResponses, GetFeedbackListAdminAnalyticsFeedbackListGetData, GetFeedbackListAdminAnalyticsFeedbackListGetErrors, GetFeedbackListAdminAnalyticsFeedbackListGetResponses, GetFeedbackSummaryAdminAnalyticsFeedbackSummaryGetData, GetFeedbackSummaryAdminAnalyticsFeedbackSummaryGetErrors, GetFeedbackSummaryAdminAnalyticsFeedbackSummaryGetResponses, GetIngestStatusAdminDataSourcesStatusGetData, GetIngestStatusAdminDataSourcesStatusGetResponses, GetMeAdminAuthMeGetData, GetMeAdminAuthMeGetResponses, GetNegativeFeedbackAdminAnalyticsFeedbackNegativeGetData, GetNegativeFeedbackAdminAnalyticsFeedbackNegativeGetErrors, GetNegativeFeedbackAdminAnalyticsFeedbackNegativeGetResponses, GetQueriesAdminAnalyticsSearchQueriesGetData, GetQueriesAdminAnalyticsSearchQueriesGetErrors, GetQueriesAdminAnalyticsSearchQueriesGetResponses, GetQueryDetailsAdminAnalyticsSearchQueryDetailsGetData, GetQueryDetailsAdminAnalyticsSearchQueryDetailsGetErrors, GetQueryDetailsAdminAnalyticsSearchQueryDetailsGetResponses, GetSearchStatsAdminAnalyticsSearchStatsGetData, GetSearchStatsAdminAnalyticsSearchStatsGetErrors, GetSearchStatsAdminAnalyticsSearchStatsGetResponses, GetSessionDetailAdminAnalyticsSessionsSessionIdGetData, GetSessionDetailAdminAnalyticsSessionsSessionIdGetErrors, GetSessionDetailAdminAnalyticsSessionsSessionIdGetResponses, GetSessionHistoryChatSessionsSessionIdGetData, GetSessionHistoryChatSessionsSessionIdGetErrors, GetSessionHistoryChatSessionsSessionIdGetResponses, GetSettingsConfigAdminSettingsConfigGetData, GetSettingsConfigAdminSettingsConfigGetResponses, GetSummaryHoondokMeSummaryGetData, GetSummaryHoondokMeSummaryGetResponses, GetTodayHoondokTodayGetData, GetTodayHoondokTodayGetResponses, GetTopQueriesAdminAnalyticsSearchTopQueriesGetData, GetTopQueriesAdminAnalyticsSearchTopQueriesGetErrors, GetTopQueriesAdminAnalyticsSearchTopQueriesGetResponses, HealthHealthGetData, HealthHealthGetResponses, ListAdminUsersAdminUsersGetData, ListAdminUsersAdminUsersGetResponses, ListAllConfigsAdminChatbotConfigsGetData, ListAllConfigsAdminChatbotConfigsGetErrors, ListAllConfigsAdminChatbotConfigsGetResponses, ListCategoriesAdminDataSourceCategoriesGetData, ListCategoriesAdminDataSourceCategoriesGetResponses, ListChatbotsChatbotsGetData, ListChatbotsChatbotsGetResponses, ListDailyReadingsAdminHoondokDailyReadingsGetData, ListDailyReadingsAdminHoondokDailyReadingsGetErrors, ListDailyReadingsAdminHoondokDailyReadingsGetResponses, ListIngestionJobsAdminDataSourcesJobsGetData, ListIngestionJobsAdminDataSourcesJobsGetResponses, ListMySessionsChatSessionsGetData, ListMySessionsChatSessionsGetErrors, ListMySessionsChatSessionsGetResponses, LoginAdminAuthLoginPostData, LoginAdminAuthLoginPostErrors, LoginAdminAuthLoginPostResponses, LoginHoondokAuthLoginPostData, LoginHoondokAuthLoginPostErrors, LoginHoondokAuthLoginPostResponses, LogoutAdminAuthLogoutPostData, LogoutAdminAuthLogoutPostResponses, LogoutHoondokAuthLogoutPostData, LogoutHoondokAuthLogoutPostResponses, MeHoondokAuthMeGetData, MeHoondokAuthMeGetResponses, RemoveVolumeTagAdminDataSourcesVolumeTagsDeleteData, RemoveVolumeTagAdminDataSourcesVolumeTagsDeleteErrors, RemoveVolumeTagAdminDataSourcesVolumeTagsDeleteResponses, RemoveVolumeTagsBulkAdminDataSourcesVolumeTagsBulkRemovePostData, RemoveVolumeTagsBulkAdminDataSourcesVolumeTagsBulkRemovePostErrors, RemoveVolumeTagsBulkAdminDataSourcesVolumeTagsBulkRemovePostResponses, SignupHoondokAuthSignupPostData, SignupHoondokAuthSignupPostErrors, SignupHoondokAuthSignupPostResponses, SubmitFeedbackChatFeedbackPostData, SubmitFeedbackChatFeedbackPostErrors, SubmitFeedbackChatFeedbackPostResponses, ToggleReactionApiChatMessagesMessageIdReactionPostData, ToggleReactionApiChatMessagesMessageIdReactionPostErrors, ToggleReactionApiChatMessagesMessageIdReactionPostResponses, UpdateAdminUserStatusAdminUsersUserIdStatusPatchData, UpdateAdminUserStatusAdminUsersUserIdStatusPatchErrors, UpdateAdminUserStatusAdminUsersUserIdStatusPatchResponses, UpdateCategoryAdminDataSourceCategoriesCategoryIdPutData, UpdateCategoryAdminDataSourceCategoriesCategoryIdPutErrors, UpdateCategoryAdminDataSourceCategoriesCategoryIdPutResponses, UpdateConfigAdminChatbotConfigsConfigIdPutData, UpdateConfigAdminChatbotConfigsConfigIdPutErrors, UpdateConfigAdminChatbotConfigsConfigIdPutResponses, UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutData, UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutErrors, UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponses, UpdateDisplayNameAdminDataSourcesDisplayNamePatchData, UpdateDisplayNameAdminDataSourcesDisplayNamePatchErrors, UpdateDisplayNameAdminDataSourcesDisplayNamePatchResponses, UploadDocumentAdminDataSourcesUploadPostData, UploadDocumentAdminDataSourcesUploadPostErrors, UploadDocumentAdminDataSourcesUploadPostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -385,6 +385,48 @@ export const deleteVolumesBulkAdminDataSourcesVolumesDeleteBulkPost = <ThrowOnEr
 export const deleteVolumeAdminDataSourcesVolumesVolumeKeyDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteData, ThrowOnError>): RequestResult<DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses, DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteErrors, ThrowOnError> => (options.client ?? client).delete<DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses, DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteErrors, ThrowOnError>({ url: '/admin/data-sources/volumes/{volume_key}', ...options });
 
 /**
+ * List Daily Readings
+ *
+ * API-HD-006 편성 목록. 날짜 오름차순, 편성 없는 날은 행이 없다. 422 종료일 < 시작일 또는 366일 초과.
+ */
+export const listDailyReadingsAdminHoondokDailyReadingsGet = <ThrowOnError extends boolean = false>(options?: Options<ListDailyReadingsAdminHoondokDailyReadingsGetData, ThrowOnError>): RequestResult<ListDailyReadingsAdminHoondokDailyReadingsGetResponses, ListDailyReadingsAdminHoondokDailyReadingsGetErrors, ThrowOnError> => (options?.client ?? client).get<ListDailyReadingsAdminHoondokDailyReadingsGetResponses, ListDailyReadingsAdminHoondokDailyReadingsGetErrors, ThrowOnError>({ url: '/admin/hoondok/daily-readings', ...options });
+
+/**
+ * Create Daily Reading
+ *
+ * API-HD-007 편성 등록. 201 · 409 같은 날짜 · 422 검증.
+ */
+export const createDailyReadingAdminHoondokDailyReadingsPost = <ThrowOnError extends boolean = false>(options: Options<CreateDailyReadingAdminHoondokDailyReadingsPostData, ThrowOnError>): RequestResult<CreateDailyReadingAdminHoondokDailyReadingsPostResponses, CreateDailyReadingAdminHoondokDailyReadingsPostErrors, ThrowOnError> => (options.client ?? client).post<CreateDailyReadingAdminHoondokDailyReadingsPostResponses, CreateDailyReadingAdminHoondokDailyReadingsPostErrors, ThrowOnError>({
+    url: '/admin/hoondok/daily-readings',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Daily Reading
+ *
+ * API-HD-006 편성 단건. 404 없음.
+ */
+export const getDailyReadingAdminHoondokDailyReadingsReadingIdGet = <ThrowOnError extends boolean = false>(options: Options<GetDailyReadingAdminHoondokDailyReadingsReadingIdGetData, ThrowOnError>): RequestResult<GetDailyReadingAdminHoondokDailyReadingsReadingIdGetResponses, GetDailyReadingAdminHoondokDailyReadingsReadingIdGetErrors, ThrowOnError> => (options.client ?? client).get<GetDailyReadingAdminHoondokDailyReadingsReadingIdGetResponses, GetDailyReadingAdminHoondokDailyReadingsReadingIdGetErrors, ThrowOnError>({ url: '/admin/hoondok/daily-readings/{reading_id}', ...options });
+
+/**
+ * Update Daily Reading
+ *
+ * API-HD-008 편성 수정(보낸 필드만). `review_status=withdrawn` 이 철회. 404 없음 · 409 날짜 충돌.
+ */
+export const updateDailyReadingAdminHoondokDailyReadingsReadingIdPut = <ThrowOnError extends boolean = false>(options: Options<UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutData, ThrowOnError>): RequestResult<UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponses, UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutErrors, ThrowOnError> => (options.client ?? client).put<UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponses, UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutErrors, ThrowOnError>({
+    url: '/admin/hoondok/daily-readings/{reading_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Get Settings Config
  *
  * 프론트엔드에 필요한 시스템 설정 조회.
@@ -563,3 +605,66 @@ export const listChatbotsChatbotsGet = <ThrowOnError extends boolean = false>(op
  * Health
  */
 export const healthHealthGet = <ThrowOnError extends boolean = false>(options?: Options<HealthHealthGetData, ThrowOnError>): RequestResult<HealthHealthGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<HealthHealthGetResponses, unknown, ThrowOnError>({ url: '/health', ...options });
+
+/**
+ * Login
+ *
+ * API-HD-003 로그인 → 200 + 쿠키. 401 은 이메일 존재 여부를 구분하지 않는다.
+ */
+export const loginHoondokAuthLoginPost = <ThrowOnError extends boolean = false>(options: Options<LoginHoondokAuthLoginPostData, ThrowOnError>): RequestResult<LoginHoondokAuthLoginPostResponses, LoginHoondokAuthLoginPostErrors, ThrowOnError> => (options.client ?? client).post<LoginHoondokAuthLoginPostResponses, LoginHoondokAuthLoginPostErrors, ThrowOnError>({
+    url: '/hoondok/auth/login',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Logout
+ *
+ * 204 + 쿠키 만료. 만료·무효 토큰으로도 로그아웃할 수 있게 인증을 요구하지 않는다.
+ */
+export const logoutHoondokAuthLogoutPost = <ThrowOnError extends boolean = false>(options?: Options<LogoutHoondokAuthLogoutPostData, ThrowOnError>): RequestResult<LogoutHoondokAuthLogoutPostResponses, unknown, ThrowOnError> => (options?.client ?? client).post<LogoutHoondokAuthLogoutPostResponses, unknown, ThrowOnError>({ url: '/hoondok/auth/logout', ...options });
+
+/**
+ * Me
+ *
+ * API-HD-003 현재 사용자. 401 미인증 — web features/identity 게이트가 온보딩으로 보낸다.
+ */
+export const meHoondokAuthMeGet = <ThrowOnError extends boolean = false>(options?: Options<MeHoondokAuthMeGetData, ThrowOnError>): RequestResult<MeHoondokAuthMeGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<MeHoondokAuthMeGetResponses, unknown, ThrowOnError>({ url: '/hoondok/auth/me', ...options });
+
+/**
+ * Signup
+ *
+ * API-HD-002 가입 → 201 + hoondok_token 쿠키. 409 이메일 중복.
+ */
+export const signupHoondokAuthSignupPost = <ThrowOnError extends boolean = false>(options: Options<SignupHoondokAuthSignupPostData, ThrowOnError>): RequestResult<SignupHoondokAuthSignupPostResponses, SignupHoondokAuthSignupPostErrors, ThrowOnError> => (options.client ?? client).post<SignupHoondokAuthSignupPostResponses, SignupHoondokAuthSignupPostErrors, ThrowOnError>({
+    url: '/hoondok/auth/signup',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Summary
+ *
+ * API-HD-004 오늘 3종 · 연속일 · 최대 · 누적 · 이번 주(read 기준). 401 미인증.
+ */
+export const getSummaryHoondokMeSummaryGet = <ThrowOnError extends boolean = false>(options?: Options<GetSummaryHoondokMeSummaryGetData, ThrowOnError>): RequestResult<GetSummaryHoondokMeSummaryGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetSummaryHoondokMeSummaryGetResponses, unknown, ThrowOnError>({ url: '/hoondok/me/summary', ...options });
+
+/**
+ * Complete Mission
+ *
+ * API-HD-005 오늘(KST) 미션 완료 기록. 409 같은 날 재요청, 422 알 수 없는 kind, 401 미인증.
+ */
+export const completeMissionHoondokMissionsKindCompletePost = <ThrowOnError extends boolean = false>(options: Options<CompleteMissionHoondokMissionsKindCompletePostData, ThrowOnError>): RequestResult<CompleteMissionHoondokMissionsKindCompletePostResponses, CompleteMissionHoondokMissionsKindCompletePostErrors, ThrowOnError> => (options.client ?? client).post<CompleteMissionHoondokMissionsKindCompletePostResponses, CompleteMissionHoondokMissionsKindCompletePostErrors, ThrowOnError>({ url: '/hoondok/missions/{kind}/complete', ...options });
+
+/**
+ * Get Today
+ *
+ * API-HD-001 오늘(KST) 말씀. 없으면 status=none, 철회면 withdrawn — 항상 200.
+ */
+export const getTodayHoondokTodayGet = <ThrowOnError extends boolean = false>(options?: Options<GetTodayHoondokTodayGetData, ThrowOnError>): RequestResult<GetTodayHoondokTodayGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetTodayHoondokTodayGetResponses, unknown, ThrowOnError>({ url: '/hoondok/today', ...options });

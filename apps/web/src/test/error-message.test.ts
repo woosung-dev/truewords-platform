@@ -1,7 +1,6 @@
-import { describe, it, expect } from "vitest";
-
-import { ApiError } from "@/lib/api";
+import { describe, expect, it } from "vitest";
 import { toFriendlyError } from "@/features/chat/error-message";
+import { ApiError } from "@/lib/api";
 
 /**
  * 회귀 방지: 2026-05-08 운영에서 chat 페이지가 ``오류: {raw JSON ErrorResponse}``

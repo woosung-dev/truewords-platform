@@ -15,12 +15,7 @@ export interface StreamingTextProps {
   /** prefers-reduced-motion 사용자에겐 즉시 전체 노출 */
 }
 
-export function StreamingText({
-  text,
-  streaming = false,
-  intervalMs = 35,
-  className,
-}: StreamingTextProps) {
+export function StreamingText({ text, streaming = false, intervalMs = 35, className }: StreamingTextProps) {
   const [shown, setShown] = React.useState(streaming ? "" : text);
   const reducedMotion = useReducedMotion();
 
@@ -52,7 +47,7 @@ export function StreamingText({
       className={cn(
         "whitespace-pre-wrap break-keep-all",
         streaming && shown !== text && "tw-streaming-cursor",
-        className
+        className,
       )}
       aria-live={streaming ? "polite" : undefined}
       aria-busy={streaming && shown !== text ? "true" : undefined}
@@ -81,18 +76,11 @@ export interface AnswerSkeletonProps {
 
 export function AnswerSkeleton({ lines = 3, className }: AnswerSkeletonProps) {
   return (
-    <div
-      role="status"
-      aria-label="답변을 준비하고 있어요"
-      className={cn("flex flex-col gap-3", className)}
-    >
+    <div role="status" aria-label="답변을 준비하고 있어요" className={cn("flex flex-col gap-3", className)}>
       {Array.from({ length: lines }).map((_, idx) => (
         <div
           key={idx}
-          className={cn(
-            "h-3 overflow-hidden rounded-full bg-secondary",
-            "relative isolate"
-          )}
+          className={cn("h-3 overflow-hidden rounded-full bg-secondary", "relative isolate")}
           style={{ width: `${100 - idx * 12}%` }}
         >
           <span

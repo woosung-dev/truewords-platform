@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { analyticsAPI } from "@/features/analytics/api";
-import type { QuerySortKey } from "@/features/analytics/types";
-import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
+import { analyticsAPI } from "@/features/analytics/api";
 import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
+import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
+import type { QuerySortKey } from "@/features/analytics/types";
 
 const DAYS_OPTIONS = [7, 30, 90, 365];
 const SORT_LABEL: Record<QuerySortKey, string> = {
@@ -85,10 +85,7 @@ export default function QueriesExplorerPage() {
       {/* 헤더 */}
       <div>
         <nav className="flex items-center gap-1 text-xs">
-          <Link
-            href="/analytics"
-            className="inline-flex items-center gap-1 text-primary hover:underline"
-          >
+          <Link href="/analytics" className="inline-flex items-center gap-1 text-primary hover:underline">
             <ChevronLeft className="h-3.5 w-3.5" />
             검색 분석
           </Link>
@@ -96,9 +93,7 @@ export default function QueriesExplorerPage() {
           <span className="text-muted-foreground">질문 탐색</span>
         </nav>
         <h1 className="text-2xl font-bold tracking-tight mt-2">질문 탐색</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          전체 질문을 검색·정렬하고 각 질문의 상세를 확인합니다
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">전체 질문을 검색·정렬하고 각 질문의 상세를 확인합니다</p>
       </div>
 
       {/* 필터 바 */}
@@ -118,9 +113,7 @@ export default function QueriesExplorerPage() {
             <span className="text-muted-foreground text-xs">기간</span>
             <select
               value={days}
-              onChange={(e) =>
-                updateParams({ days: Number(e.target.value), page: 1 })
-              }
+              onChange={(e) => updateParams({ days: Number(e.target.value), page: 1 })}
               className="rounded-md border bg-background px-2 py-1 text-xs"
             >
               {DAYS_OPTIONS.map((d) => (
@@ -134,9 +127,7 @@ export default function QueriesExplorerPage() {
             <span className="text-muted-foreground text-xs">정렬</span>
             <select
               value={sort}
-              onChange={(e) =>
-                updateParams({ sort: e.target.value, page: 1 })
-              }
+              onChange={(e) => updateParams({ sort: e.target.value, page: 1 })}
               className="rounded-md border bg-background px-2 py-1 text-xs"
             >
               {(Object.keys(SORT_LABEL) as QuerySortKey[]).map((k) => (
@@ -159,37 +150,23 @@ export default function QueriesExplorerPage() {
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center gap-3 py-10">
-            <p className="text-sm text-muted-foreground">
-              데이터를 불러오지 못했습니다
-            </p>
+            <p className="text-sm text-muted-foreground">데이터를 불러오지 못했습니다</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}>
               다시 시도
             </Button>
           </div>
         ) : !data || data.items.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-10 text-center">
-            조건에 맞는 질문이 없습니다
-          </p>
+          <p className="text-sm text-muted-foreground py-10 text-center">조건에 맞는 질문이 없습니다</p>
         ) : (
           <div className="overflow-hidden rounded-lg border">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-admin-muted/50 border-b">
-                  <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground w-10">
-                    순위
-                  </th>
-                  <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">
-                    질문
-                  </th>
-                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-16">
-                    횟수
-                  </th>
-                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-14">
-                    👎
-                  </th>
-                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-36">
-                    최근 발생
-                  </th>
+                  <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground w-10">순위</th>
+                  <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">질문</th>
+                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-16">횟수</th>
+                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-14">👎</th>
+                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-36">최근 발생</th>
                 </tr>
               </thead>
               <tbody>
@@ -199,8 +176,7 @@ export default function QueriesExplorerPage() {
                     <tr
                       key={`${item.query_text}-${i}`}
                       className={
-                        (i !== 0 ? "border-t " : "") +
-                        "cursor-pointer hover:bg-admin-muted/40 transition-colors"
+                        (i !== 0 ? "border-t " : "") + "cursor-pointer hover:bg-admin-muted/40 transition-colors"
                       }
                       onClick={() => setSelectedQuery(item.query_text)}
                       role="button"
@@ -213,20 +189,14 @@ export default function QueriesExplorerPage() {
                       }}
                       title="클릭하면 상세 정보를 확인할 수 있습니다"
                     >
-                      <td className="py-2 px-3 text-muted-foreground font-mono text-xs">
-                        {rank}
-                      </td>
+                      <td className="py-2 px-3 text-muted-foreground font-mono text-xs">{rank}</td>
                       <td className="py-2 px-3 max-w-0 w-full">
                         <TruncateTooltip text={item.query_text} />
                       </td>
-                      <td className="py-2 px-3 text-right font-medium">
-                        {item.count.toLocaleString()}
-                      </td>
+                      <td className="py-2 px-3 text-right font-medium">{item.count.toLocaleString()}</td>
                       <td className="py-2 px-3 text-right">
                         {item.negative_feedback_count > 0 ? (
-                          <span className="text-destructive font-medium">
-                            {item.negative_feedback_count}
-                          </span>
+                          <span className="text-destructive font-medium">{item.negative_feedback_count}</span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -249,12 +219,7 @@ export default function QueriesExplorerPage() {
               총 {data.total.toLocaleString()}건 · {size}개/페이지
             </span>
             <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => updateParams({ page: page - 1 })}
-              >
+              <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => updateParams({ page: page - 1 })}>
                 <ChevronLeft className="h-3.5 w-3.5" />
               </Button>
               <span className="px-2 font-mono">

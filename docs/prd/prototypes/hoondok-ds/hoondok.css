@@ -1,0 +1,499 @@
+/* =============================================================================
+   hoondok.css - 훈독 앱 단일 소스 컴포넌트 (mobile-first)
+   -----------------------------------------------------------------------------
+   base  = 390px. 미디어쿼리 없이 쓰는 규칙이 전부 모바일 규칙이다.
+   md    = 768px 이상에서만 얹는다.
+   lg    = 1024px 이상에서만 얹는다.
+
+   이 파일이 폰과 PC 의 유일한 소스다. 화면 폭별로 파일을 나누지 않는다.
+   조판 변주는 theme-*.css 가 이 파일 위에 얹는다. 이 파일을 복제하지 않는다.
+
+   DES-PWA-003 대비 수정 4건을 여기서 한 번만 적용한다:
+     1) --accent-strong / --ok-strong  (연한 배경 위 텍스트 AA 미달 해소)
+     2) 컨트롤 경계선 --line -> --ink-3 (비텍스트 3:1)
+     3) 용어 칩 최소 높이 24px        (WCAG 2.2 SC 2.5.8)
+     4) 사진 veil 정지점 3개           (텍스트 구간 전체에서 알파 0.80 이상)
+   ============================================================================= */
+
+/* ---------- 1. 토큰 ---------- */
+:root{
+  --paper:#fbfaf8; --surface:#ffffff; --surface-2:#f1efea;
+  --ink:#23211f; --ink-2:#5a5652; --ink-3:#6f6a65; --line:#e5e1da;
+  --accent:#c24721; --accent-ink:#ffffff; --accent-soft:#fbe9e1; --accent-strong:#a03a1a;
+  --ok:#2f7a4f; --ok-soft:#e4f1e8; --ok-strong:#26633f;
+  --hl-1:#fff0c9; --hl-2:#dcefe3; --hl-3:#ffe0d6;
+
+  /* 모서리: 테마가 덮어쓰는 유일한 형태 토큰 */
+  --r:16px; --r-sm:12px; --r-xs:8px; --r-sheet:28px; --r-full:999px;
+
+  --shadow-hairline:0 1px 0 rgba(0,0,0,.02);
+  --shadow-1:0 1px 2px rgba(0,0,0,.06);
+  --shadow-2:0 10px 30px rgba(87,62,40,.10);
+
+  --sans:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;
+  --serif:"Noto Serif KR","Apple SD Gothic Neo",serif;
+  --font-scripture:var(--sans);   /* 세리프 실험은 이 토큰 하나만 바꾼다 */
+
+  --gutter:20px;
+  --measure-read:640px;   /* lg 에서 산문 폭 */
+  --measure-app:720px;    /* lg 에서 카드/리스트 폭 */
+  --rail-w:240px;
+}
+
+/* ---------- 2. 리셋 ---------- */
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+img{display:block;max-width:100%}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn-primary:focus-visible,.fab:focus-visible{outline-color:var(--ink)}
+
+/* ---------- 3. 앱 셸 : 하단 5탭 -> 좌측 레일 ---------- */
+.app{display:flex;flex-direction:column;min-height:100dvh}
+.app__main{flex:1;min-width:0;display:flex;flex-direction:column}
+
+.appbar{position:sticky;top:0;z-index:20;background:var(--paper)}
+.appbar__in{display:flex;align-items:center;gap:10px;min-height:52px;padding:10px var(--gutter) 8px}
+.appbar__title{font-size:18px;margin:0;flex:1;font-weight:600;letter-spacing:-.01em}
+
+.icon-btn{width:40px;height:40px;border-radius:var(--r-sm);display:grid;place-items:center;
+  font-size:22px;color:var(--ink-2);flex:none}
+
+/* 제호는 기본 숨김. 쓰는 테마가 CSS 로 켠다 (JS 가 관여하지 않는다) */
+.masthead{display:none}
+/* 헤더용 워드마크·검색·계정도 기본 숨김. 데스크톱 헤더 4~6 이 켠다 */
+.nav__brand,.nav__search,.nav__user{display:none}
+.col{width:100%;padding:4px var(--gutter) 28px}
+.col--read .prose{max-width:none}
+
+/* 하단 탭 : base 의 기본 내비 */
+.nav{flex:none;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px 0;min-height:76px}
+.nav__item{display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:11px;color:var(--ink-3);padding-top:4px}
+.nav__ic{display:grid;place-items:center;font-size:24px;line-height:1}
+.nav__item[aria-current]{color:var(--accent);font-weight:600}
+/* 가운데 "말씀" 은 돌출 버블 (모바일에서만 성립하는 형태) */
+.nav__item--mid{margin-top:-24px}
+.nav__item--mid .nav__ic{width:58px;height:58px;border-radius:50%;
+  background:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow-2);font-size:27px}
+
+/* ---------- 4. 미션 목록 ---------- */
+.missions{display:flex;flex-direction:column}
+.mission{display:flex;align-items:center;gap:14px}
+.mission__ic{width:48px;height:48px;border-radius:var(--r-sm);display:grid;place-items:center;
+  background:var(--surface-2);font-size:24px;color:var(--ink-2);flex:none}
+.mission__no{display:none}
+.mission__bd{flex:1;min-width:0}
+.mission__kind{font-size:12px;color:var(--ink-3);display:block}
+.mission__title{font-size:16px;font-weight:600;margin-top:1px;display:block;line-height:1.35}
+.mission__meta{font-size:12.5px;color:var(--ink-3);margin-top:3px;display:block}
+.mission[data-done] .mission__ic{background:var(--ok-soft);color:var(--ok-strong)}
+
+/* 체크 : 경계선은 --ink-3 (수정 2) */
+.check{width:30px;height:30px;border-radius:50%;border:2px solid var(--ink-3);
+  display:grid;place-items:center;color:transparent;flex:none;background:var(--surface);
+  transition:background .15s ease,border-color .15s ease}
+.check[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.check--sm{width:24px;height:24px}
+
+/* ---------- 5. 말씀 ---------- */
+.src{font-size:12.5px;color:var(--ink-2);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.src__dot{width:3px;height:3px;border-radius:50%;background:var(--line);flex:none}
+
+.scripture{font-family:var(--font-scripture);font-size:16.5px;line-height:1.75;
+  border-left:4px solid var(--ink);padding:4px 0 4px 14px;margin:14px 0}
+.verse{display:flex;gap:11px;margin:0 0 16px;font-family:var(--font-scripture);
+  font-size:17px;line-height:1.85}
+.verse__n{color:var(--ink-3);font-size:12px;padding-top:6px;width:16px;flex:none;
+  font-variant-numeric:tabular-nums}
+mark.hl-1{background:var(--hl-1)} mark.hl-2{background:var(--hl-2)} mark.hl-3{background:var(--hl-3)}
+
+/* 권위 배지 : O1/O2 초록 유지, 글자만 --ok-strong (수정 1) */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;
+  padding:3px 8px;border-radius:var(--r-xs);background:var(--surface-2);color:var(--ink-2);min-height:20px}
+.badge--rank{background:var(--ok-soft);color:var(--ok-strong)}
+.badge--accent{background:var(--accent-soft);color:var(--accent-strong)}
+.badge--line{background:transparent;border:1px solid var(--ink-3);color:var(--ink-2)}
+.badge--dashed{background:transparent;border:1.5px dashed var(--ink-3);color:var(--ink-2)}
+
+/* 용어 칩 : 최소 높이 24px (수정 3) */
+.term{display:inline-flex;align-items:center;gap:4px;min-height:24px;padding:3px 9px;
+  border-radius:var(--r-xs);background:var(--accent-soft);color:var(--accent-strong);
+  font-size:12.5px;font-weight:600}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+
+/* 권위 층 컨테이너 : 형태로 구분한다 */
+.ai-note{background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:8px 8px;
+  background-color:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.ai-note__lab{font-size:11.5px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;
+  gap:6px;margin-bottom:8px}
+.ai-note__body{margin:0;font-size:14.5px;line-height:1.7;color:var(--ink-2)}
+.my-note{border:1.5px dashed var(--line);border-radius:var(--r);padding:13px 15px;
+  color:var(--ink-3);font-size:14px}
+
+/* ---------- 5b. 검색 진입점 : 앱바 아이콘(모든 탭) · 서고 상단 필드(말씀 탭) · 검색 화면 앱바 입력 ---------- */
+.search-field{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 16px;margin-top:8px;
+  border-radius:var(--r-sm);background:var(--surface-2);color:var(--ink-3);font-size:15px}
+.search-field i{font-size:20px;color:var(--ink-2)}
+.appbar__search{flex:1;display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;
+  border-radius:var(--r-sm);background:var(--surface);border:1.5px solid var(--ink-3);color:var(--ink-3)}
+.appbar__search i{font-size:20px;color:var(--ink-2)}
+.appbar__search input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);outline:none}
+.appbar__search:focus-within{border-color:var(--accent);outline:2px solid var(--accent);outline-offset:2px}
+.recent{list-style:none;margin:0;padding:0}
+.recent a{display:flex;align-items:center;gap:10px;min-height:48px;font-size:16px;color:var(--ink);border-bottom:1px solid var(--line)}
+.recent li:last-child a{border-bottom:0}
+.recent i{font-size:20px;color:var(--ink-3)}
+.howto__row{display:flex;gap:12px;align-items:flex-start;padding:10px 0}
+.howto__k{flex:none;width:36px;font-size:13px;font-weight:600;color:var(--ink-2);padding-top:6px}
+/* 검색 제안은 용어도 선택된 옵션도 아니다. --accent-soft 를 8개에 쓰면 한 화면의
+   액센트 목적이 늘어나므로(DS §1.1) 칩 버튼 중립 표면으로 되돌린다 */
+.howto .term{min-height:34px;padding:5px 12px;font-size:14px;
+  background:var(--surface);border:1px solid var(--line);color:var(--ink);font-weight:500}
+.ask-hint{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--r);
+  background:var(--surface);border:1px solid var(--line)}
+.ask-hint > i:first-child{font-size:24px;color:var(--accent);flex:none}
+.ask-hint > i:last-child{font-size:18px;color:var(--ink-3);flex:none}
+.ask-hint > span{flex:1;display:flex;flex-direction:column;gap:3px}
+.ask-hint b{font-size:15px}
+.ask-hint span span{font-size:13px;color:var(--ink-2);line-height:1.5}
+.resume{display:flex;align-items:center;gap:12px}
+.resume__bd{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.resume__bd b{font-size:16px}
+.resume__meta{font-size:12.5px;color:var(--ink-2)}
+.shelf{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.shelf__item{display:grid;grid-template-columns:1fr auto;grid-template-areas:"t b" "m b";column-gap:12px;
+  padding:14px 16px;border-bottom:1px solid var(--line);align-items:center;min-height:56px}
+.shelf__item:last-child{border-bottom:0}
+.shelf__item b{grid-area:t;font-size:16px;font-weight:600}
+.shelf__item > span:first-of-type{grid-area:m;font-size:12.5px;color:var(--ink-2);margin-top:2px}
+.shelf__item .badge{grid-area:b}
+
+/* ---------- 5c. 홈 "함께 읽는 사람들" · 원문 뷰 도구 (pill 세그먼트 · 오디오 · 리더 바 · 목차 레일 · 판본 비교) ---------- */
+.together{display:flex;align-items:center;gap:12px}
+.together__bd{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.together__bd b{font-size:15.5px}
+.together__bd span{font-size:12.5px;color:var(--ink-2)}
+.together > i{font-size:18px;color:var(--ink-3)}
+.avatars{display:flex;flex:none}
+.avatars img{width:36px;height:36px;border-radius:50%;border:2px solid var(--surface);object-fit:cover}
+.avatars > * + *{margin-left:-8px}
+
+/* pill 세그먼트 (DES-PWA-003 §2.10) : 같은 문서 안 뷰 전환 */
+.pill-seg{display:flex;background:var(--surface-2);border-radius:var(--r-sm);padding:3px}
+.pill-seg button{flex:1;min-height:44px;padding:0 12px;border-radius:var(--r-xs);font-size:14px;color:var(--ink-2)}
+.pill-seg button.is-on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow-1)}
+
+/* 오디오 바 */
+.audio{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 12px;border-radius:var(--r-sm);
+  background:var(--surface);border:1px solid var(--line)}
+.audio__play{width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
+  display:grid;place-items:center;font-size:18px;flex:none}
+.audio__bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.audio__bd b{font-size:13px;font-weight:600}
+.audio__bd .progress{height:4px}
+.audio__t{font-size:12.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;flex:none}
+
+/* 리더 바 : 폰은 하단 고정, 1024px 이상은 본문 상단 가로 툴바 (§4.3) */
+.reader{display:grid;grid-template-columns:repeat(5,1fr)}
+.reader a{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:48px;justify-content:center;
+  font-size:11.5px;color:var(--ink-2)}
+.reader a i{font-size:22px}
+.reader--top{display:none}
+.reader--bottom{position:sticky;bottom:0;margin:20px calc(var(--gutter) * -1) -28px;padding:4px 6px 6px;
+  background:var(--surface);border-top:1px solid var(--line)}
+.words{padding-bottom:0}
+
+/* 목차 레일 : 폰·1024~1223 에서는 숨김 (리더 바 "목차"가 오버레이로 대신) */
+.toc{display:none}
+
+/* 판본 나란히 */
+.compare{display:flex;align-items:center;gap:12px;background:var(--surface-2);border:0}
+.compare__bd{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.compare__bd b{font-size:14.5px}
+.compare__bd span{font-size:12.5px;color:var(--ink-2);line-height:1.5}
+
+/* ---------- 5d. 홈 미션 = 카드 3장, 홈 첫 요소 = 사진 (구 theme-card.css 편입) ---------- */
+.missions{gap:12px}
+.mission{background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow-hairline)}
+[data-screen="today"] .lede{display:none}
+[data-screen="today"] .lede-src{display:none}
+
+/* ---------- 6. 카드 / 섹션 ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;box-shadow:var(--shadow-hairline)}
+.sect{margin-top:24px}
+.sect__head{display:flex;align-items:baseline;justify-content:space-between;
+  gap:12px;margin-bottom:12px}
+.sect__title{font-size:16px;margin:0;font-weight:600}
+.sect__rule{display:none}
+.sect__meta{font-size:12.5px;color:var(--ink-2);flex:none}
+/* 링크로 쓰는 섹션 메타는 글자가 작아 탭 대상이 19~24px 였다. 레이아웃을 흔들지 않고 히트 영역만 넓힌다 */
+a.sect__meta{position:relative}
+a.sect__meta::after{content:"";position:absolute;inset:-13px -14px}
+
+/* ---------- 7. 진행 표시 ---------- */
+.progress{height:8px;border-radius:var(--r-full);background:var(--surface-2);overflow:hidden}
+.progress__fill{display:block;height:100%;background:var(--accent);border-radius:inherit}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats__n{display:block;font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stats__n--accent{color:var(--accent)}
+.stats__lab{font-size:12.5px;color:var(--ink-2)}
+
+/* 요일 스트립 */
+.week{display:flex;align-items:center;justify-content:space-between;gap:12px}
+/* 7칸을 고정 34px 로 두면 390px 에서 2px 넘친다. 1fr 그리드로 눌러 담는다 */
+.week__days{flex:1;min-width:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:6px;justify-items:center}
+.week__day{width:100%;max-width:34px;aspect-ratio:1;height:auto;border-radius:50%;
+  display:grid;place-items:center;
+  font-size:12.5px;color:var(--ink-3);border:1px solid var(--ink-3);background:var(--surface)}
+.week__day[data-done]{background:var(--ok-soft);color:var(--ok-strong);border-color:transparent;font-weight:600}
+.week__day[data-today]{border:2px solid var(--accent);color:var(--accent);font-weight:700}
+.week__streak{font-size:13px;color:var(--ink-2);display:flex;align-items:center;gap:6px;flex:none}
+.week__streak b{color:var(--accent);font-size:16px;font-variant-numeric:tabular-nums}
+
+/* ---------- 8. 사진 : veil 정지점 3개 (수정 4) ---------- */
+.shot{position:relative;border-radius:var(--r);overflow:hidden;background:var(--ink);height:210px}
+.shot img{width:100%;height:100%;object-fit:cover}
+.shot::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(35,33,31,0) 18%,rgba(35,33,31,.80) 55%,rgba(35,33,31,.92) 100%)}
+.shot__tx{position:absolute;left:18px;right:18px;bottom:16px;color:#fff;z-index:1}
+.shot__greet{font-size:21px;font-weight:700;line-height:1.35;letter-spacing:-.02em;text-wrap:balance}
+.shot__sub{font-size:13px;opacity:.92;margin-top:4px}
+.shot--band{height:96px}
+.shot--band .shot__tx{bottom:10px;font-size:12.5px}
+
+/* ---------- 9. 버튼 ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:50px;
+  padding:0 20px;border-radius:var(--r);font-weight:600;font-size:15px;width:100%;
+  transition:background .12s ease,transform .12s ease}
+.btn:active{transform:scale(.985)}
+/* 눌림 피드백 : DS §1.5 는 버튼 .985 · 아이콘 버튼 .96 을 상호작용 요소 전반에 요구하는데
+   이 파일에는 .btn 한 곳밖에 없었다. 아이콘 버튼·칩은 축소, 전폭 행은 축소가 흔들려 보여 바탕만 누른다.
+   :active 는 아무 요소에나 걸리므로 링크·버튼인 것만 고른다 (정보용 .card 는 제외) */
+.icon-btn:active,.check:active,.term:active,.fab:active{transform:scale(.96)}
+a.card:active,button.card:active,.shelf__item:active,.fm-item:active,
+.st-pick:active,.st-row--link:active,.onb-pick:active,.qs-starter:active,.ql-list a:active,
+.recent a:active,.nav__item:not(.nav__item--mid):active{background:var(--surface-2)}
+.nav__item--mid:active .nav__ic{transform:scale(.96)}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-ghost{background:var(--surface-2);color:var(--ink)}
+.btn-line{border:1px solid var(--line);background:var(--surface)}
+.btn[disabled]{background:var(--surface-2);color:var(--ink-3);cursor:not-allowed}
+.btn--sm{height:38px;font-size:13.5px;padding:0 14px;width:auto}
+.fab{position:fixed;right:18px;bottom:94px;z-index:15;height:52px;padding:0 20px;border-radius:var(--r-full);
+  background:var(--accent);color:var(--accent-ink);display:inline-flex;align-items:center;gap:8px;
+  font-weight:600;box-shadow:var(--shadow-2);width:auto}
+
+/* ---------- 10. 입력 : 경계선 --ink-3 (수정 2) ---------- */
+.field{display:flex;flex-direction:column;gap:6px}
+.field__label{font-size:13px;font-weight:600;color:var(--ink-2)}
+.field input,.field textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--surface);
+  border:1.5px solid var(--ink-3);border-radius:var(--r-sm);padding:12px 14px}
+.field__help{font-size:12.5px;color:var(--ink-2)}
+.toggle{width:46px;height:28px;border-radius:var(--r-full);background:var(--surface-2);
+  border:1.5px solid var(--ink-3);position:relative;flex:none}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:21px;height:21px;border-radius:50%;
+  background:#fff;border:1px solid var(--ink-3);transition:left .15s}
+.toggle[aria-pressed="true"]{background:var(--accent);border-color:var(--accent)}
+.toggle[aria-pressed="true"]::after{left:21px;border-color:transparent}
+
+/* ---------- 11. 상태 ---------- */
+.skeleton{background:var(--surface-2);border-radius:var(--r);min-height:64px}
+.empty{text-align:center;padding:36px 20px}
+.empty__ic{font-size:26px;color:var(--ink-3)}
+.empty__title{font-size:16px;font-weight:600;margin-top:8px}
+.empty__body{font-size:12.5px;color:var(--ink-2);margin-top:4px}
+.error{background:var(--surface-2);border-radius:var(--r);padding:14px 16px;font-size:14px;color:var(--ink-2)}
+.notice{font-size:11.5px;color:var(--ink-2);text-align:center;padding:22px 0 0}
+
+/* ---------- 12. 시트 : base 는 하단 시트 ---------- */
+.sheet{position:fixed;inset:0;z-index:60;background:rgba(35,33,31,.45);
+  display:none;align-items:flex-end}
+.sheet[open]{display:flex}
+.sheet__panel{width:100%;background:var(--paper);border-radius:var(--r-sheet) var(--r-sheet) 0 0;
+  padding:10px var(--gutter) 28px;max-height:88dvh;overflow:auto}
+.sheet__grip{width:40px;height:5px;border-radius:var(--r-full);background:var(--line);margin:0 auto 14px}
+
+/* =============================================================================
+   md : 768px 이상.  단일 컬럼 중앙 정렬. 하단 탭은 그대로 둔다.
+   ============================================================================= */
+@media (min-width:768px){
+  .col{max-width:var(--measure-app);margin:0 auto}
+  .col--read{max-width:var(--measure-read)}
+  .appbar__in{max-width:var(--measure-app);margin:0 auto}
+  .app__main:has(.col--read:not([hidden])) .appbar__in{max-width:var(--measure-read)}
+  .shot{height:260px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .fab{position:sticky;bottom:24px;margin-left:auto;display:flex;width:max-content}
+}
+
+/* =============================================================================
+   lg : 1024px 이상.  하단 탭 -> 좌측 레일.  240 + 720 + 여백 64 = 1024
+   ============================================================================= */
+@media (min-width:1024px){
+  .app{flex-direction:row}
+  /* 마크업은 하단 탭용으로 main 다음에 nav 가 온다. 좌측 레일(DES-PWA-003 §4.1)은 order 로 앞당긴다 */
+  .nav{position:sticky;top:0;height:100dvh;width:var(--rail-w);flex:none;order:-1;
+    display:flex;flex-direction:column;gap:4px;
+    grid-template-columns:none;border-top:0;border-right:1px solid var(--line);
+    padding:20px 12px;min-height:0}
+  .nav__item{flex-direction:row;justify-content:flex-start;gap:12px;min-height:48px;
+    padding:8px 12px;border-radius:var(--r-sm);font-size:15px;color:var(--ink-2)}
+  .nav__ic{width:40px;height:40px;border-radius:var(--r-sm);flex:none}
+  .nav__item[aria-current]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600}
+  /* 버블은 사라지고 아이콘 칩만 남는다. 배경 채움은 활성 상태가 쓴다 */
+  .nav__item--mid{margin-top:0}
+  .nav__item--mid .nav__ic{width:40px;height:40px;border-radius:var(--r-sm);font-size:24px;
+    box-shadow:none;background:var(--accent);color:var(--accent-ink)}
+  .shot{height:300px}
+  .fab{position:sticky;bottom:24px}
+  /* 원문 뷰 : 리더 바가 본문 상단 툴바로 올라온다 */
+  .reader--bottom{display:none}
+  .reader--top{display:flex;gap:4px;margin-top:14px;padding:4px;border-radius:var(--r-sm);background:var(--surface);border:1px solid var(--line)}
+  .reader--top a{flex-direction:row;gap:6px;min-height:40px;padding:0 12px;border-radius:var(--r-xs);font-size:13.5px}
+  .reader--top a i{font-size:18px}
+  .words{padding-bottom:28px}
+  @media (hover:hover){
+    .nav__item:hover{background:var(--surface-2)}
+    .nav__item[aria-current]:hover{background:var(--accent-soft)}
+    .nav__item--mid:hover .nav__ic{background:var(--accent-strong)}
+    .btn-primary:hover{background:var(--accent-strong)}
+    .btn-ghost:hover,.btn-line:hover,.term:hover,.icon-btn:hover{background:var(--surface-2)}
+    .card:hover{box-shadow:var(--shadow-1)}
+    .fab:hover{background:var(--accent-strong)}
+  }
+  /* 하단 시트 -> 중앙 모달. 엄지 도달 근거가 사라지는 지점 */
+  .sheet{align-items:center;justify-content:center;padding:24px}
+  .sheet__panel{width:520px;max-width:100%;border-radius:var(--r);max-height:88dvh;
+    padding:24px;box-shadow:var(--shadow-2)}
+  .sheet__grip{display:none}
+}
+
+/* =============================================================================
+   원문 뷰 2-pane : 1224px 이상에서만 (§4.3). 레일 240 + 목차 280 + 본문 640 + 여백 64.
+   상단 헤더(nav=top)에서는 레일이 없어 더 여유롭지만 같은 기준을 쓴다.
+   ============================================================================= */
+@media (min-width:1224px){
+  .words:not([hidden]){display:grid;grid-template-columns:280px var(--measure-read);column-gap:32px;
+    max-width:calc(280px + 32px + var(--measure-read));justify-content:center}
+  .words .toc{display:block;position:sticky;top:76px;align-self:start;max-height:calc(100dvh - 92px);overflow:auto;
+    padding:4px 0}
+  .toc__title{font-size:12.5px;font-weight:600;color:var(--ink-3);padding:6px 12px}
+  .toc__item{display:block;padding:9px 12px;border-radius:var(--r-xs);font-size:14.5px;color:var(--ink-2);line-height:1.4}
+  .toc__item[aria-current]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600}
+  .reader--top .reader__toc{display:none}   /* 레일이 보이므로 목차 버튼 제외 */
+  .words__main{min-width:0}
+  /* 앱바 폭 = 그 화면의 콘텐츠 폭 (§4.2). 2-pane 에서는 952px */
+  .app__main:has(.words:not([hidden])) .appbar__in{max-width:calc(280px + 32px + var(--measure-read))}
+  @media (hover:hover){ .toc__item:hover{background:var(--surface-2)} .toc__item[aria-current]:hover{background:var(--accent-soft)} }
+}
+
+/* =============================================================================
+   lg 내비 변형 B : 상단 헤더 (웹사이트형). body[data-nav="top"] 일 때만.
+   1024px 미만에서는 두 변형 모두 하단 탭이므로 여기서만 갈린다.
+   ============================================================================= */
+@media (min-width:1024px){
+  [data-nav="top"] .app{flex-direction:column}   /* 레일의 row 를 되돌린다. main 은 base 의 flex:1 로 남은 높이를 채운다 */
+  [data-nav="top"] .nav{order:-1;position:sticky;top:0;z-index:25;height:64px;width:100%;
+    flex-direction:row;align-items:center;gap:4px;padding:0 32px;
+    border-right:0;border-bottom:1px solid var(--line)}
+  [data-nav="top"] .nav__item{min-height:44px;padding:6px 14px;font-size:15px;gap:8px;border-radius:var(--r-sm)}
+  [data-nav="top"] .nav__ic,[data-nav="top"] .nav__item--mid .nav__ic{width:28px;height:28px;font-size:22px;
+    border-radius:var(--r-xs)}
+  [data-nav="top"] .appbar{top:64px}
+}
+
+/* =============================================================================
+   상단 헤더 (PC 기본, body[data-nav="top"][data-header="4"]) : 1024px 이상에서만.
+   벤치마크(Bible.com·성서공회 등)에서 가져온 구조 : 워드마크 + 텍스트 내비 좌 / 말씀 검색바 + 계정 우.
+   헤더 검색바가 폰의 앱바 돋보기 + 서고 필드를 대신한다 (목적지는 SCR-PWA-008 하나).
+   워드마크·계정은 마크업(.nav__brand / .nav__user)에 있으나 브랜드·계정 요소가 아직 없어 프로토타입용이다.
+   ============================================================================= */
+@media (min-width:1024px){
+  [data-nav="top"][data-header] .nav{padding-inline:max(32px,calc((100% - 1120px)/2))}
+  [data-nav="top"][data-header] .nav__item--mid .nav__ic{background:transparent;color:inherit}
+  /* 홈에서는 헤더의 활성 탭이 곧 제목이다. 앱바 제목 중복을 없앤다 (뒤로가기가 있는 화면은 유지) */
+  [data-nav="top"][data-header] .app__main:has([data-screen="today"]:not([hidden])) .appbar{display:none}
+  [data-nav="top"][data-header] .app__main:has([data-screen="today"]:not([hidden])) .col{padding-top:24px}
+
+  [data-nav="top"][data-header="4"] .nav::before,[data-nav="top"][data-header="4"] .nav::after{content:none}
+  [data-nav="top"][data-header="4"] .nav__brand{display:flex;align-items:center;font-size:19px;
+    font-weight:700;letter-spacing:-.02em;color:var(--ink);flex:none;margin-right:20px}
+  [data-nav="top"][data-header="4"] .nav__user{display:grid;place-items:center;width:36px;height:36px;
+    border-radius:50%;background:var(--accent-soft);color:var(--accent-strong);font-size:14px;font-weight:600;flex:none}
+                                                                                   /* #a03a1a on #fbe9e1 = 6.4:1 */
+  [data-nav="top"][data-header="4"] .nav{height:72px;gap:4px;background:var(--surface);justify-content:flex-start}
+  [data-nav="top"][data-header="4"] .nav__ic{display:none}
+  [data-nav="top"][data-header="4"] .nav__item{height:40px;min-height:40px;padding:0 12px;border-radius:var(--r-xs);
+    font-size:15px;font-weight:500;color:var(--ink-2)}
+  [data-nav="top"][data-header="4"] .nav__item[aria-current]{color:var(--ink);font-weight:600;background:var(--surface-2)}
+  [data-nav="top"][data-header="4"] .nav__item:hover{background:var(--surface-2)}
+  [data-nav="top"][data-header="4"] .nav__search{display:flex;align-items:center;gap:8px;height:42px;padding:0 14px;
+    color:var(--ink-3);font-size:18px;flex:1;max-width:360px;margin-left:auto;margin-right:12px;
+    border-radius:var(--r-full);background:var(--surface-2)}
+  [data-nav="top"][data-header="4"] .nav__search input{border:0;background:transparent;font:inherit;font-size:14.5px;
+    color:var(--ink);width:100%;outline:none;min-width:0}
+  [data-nav="top"][data-header="4"] .nav__search input::placeholder{color:var(--ink-3)}   /* 4.9:1 */
+  [data-nav="top"][data-header="4"] .nav__search:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+  [data-nav="top"][data-header="4"] .appbar{top:72px}
+  [data-nav="top"][data-header="4"] .icon-btn--search,
+  [data-nav="top"][data-header="4"] .search-field{display:none}   /* 헤더 검색바가 앱바 돋보기·서고 필드를 대신한다 */
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* =============================================================================
+   ui-ux-pro-max 패스 2 (16화면) 기각
+   — 아래는 체크리스트에는 걸리지만 DES-PWA-003 이 명시적으로 정한 값이라 고치지 않는다.
+   ============================================================================= */
+/* 1. 11px · 11.5px 텍스트 (탭 라벨, 리더 바 라벨, 배지, 달력 요일 머리, 근거 번호, 베타 고지)
+      -> §1.2 스케일의 `nano` 11px · `micro-sm` 11.5px 가 바로 이 용도로 정의돼 있다.
+      "12px 미만 0" 을 적용하면 토큰 두 단계를 폐기해야 하므로 범위를 벗어난다. */
+/* 2. 폰 본문 15px (기본 본문 · 버튼 · 입력 · 리스트 항목)
+      -> §1.2 `body` 15px. "본문 16px" 은 스케일 전체를 밀어 올리는 재설계다. */
+/* 3. 탭 대상 44px 미만 : 체크 30×30 · 아이콘 버튼 40×40 · 토글 46×28 · 요일 칩 34×34 ·
+      오디오 재생 40×40 · 용어 칩 높이 25
+      -> §3.5 가 WCAG 2.2 SC 2.5.8(24×24) 기준으로 "통과"라고 값까지 열거한 목록이다.
+      44 로 올리면 미션 카드·리더 바·오디오 바의 치수(§2)가 함께 바뀐다. */
+/* 4. 히어로 인사 문장 행간 1.35 -> §1.2 `title-2` 의 행간이 1.35 다. */
+/* 5. 폼 라벨(label[for]) 높이 20 -> 주 타겟은 바로 아래 입력(50px)이고,
+      라벨 높이를 44 로 올리면 §1.3 의 라벨-입력 간격 6px(`s-6`)이 무너진다. */
+/* 6. 인접 리스트 행 간격 0 (.ask-item · .shelf__item · .fm-item · .st-pick · .onb-pick)
+      -> 각 행이 44px 이상 전폭 타겟이다. SC 2.5.8 의 간격 조항은 미달 타겟에만 적용되고,
+      경계는 구분선이 전달한다. */
+/* 7. 세그먼트 탭 사이 간격 0~3px (.pill-seg · .sm-seg) -> 한 컨트롤 내부의 분절이라
+      항목 사이를 띄우면 컨트롤이 버튼 여러 개로 읽힌다. */
+
+/* =============================================================================
+   taste-skill 패스 2 (16화면) 기각
+   — 슬롭 체크리스트에는 걸리지만 DES-PWA-003 이 명시적으로 정한 값이라 고치지 않는다.
+   ============================================================================= */
+/* 1. AI 설명 박스의 점 패턴 (radial-gradient, .ai-note)
+      -> "장식 그라데이션" 으로 읽히지만 §2 컴포넌트 표가 "--surface 바탕 + 8px 간격
+      점 패턴(--line 1px radial)" 으로 지정한 값이다. 인용(4px 실선)·메모(dashed)와 함께
+      권위 층을 형태로 가르는 장치라 지우면 층 구분이 색·라벨만 남는다. */
+/* 2. 용어 칩의 책갈피 아이콘이 한 행에 3개 (.term > i, 훈독하기·천성경 화면)
+      -> "아이콘 남발" 에 걸리지만 §2 가 "용어 칩 = --accent-soft + --accent-strong +
+      책갈피 아이콘" 으로 아이콘을 스펙에 넣었다. 칩이 용어임을 알리는 유일한 형태 신호다. */
+/* 3. 출처 줄의 3px 원형 구분자 (.src__dot) 가 한 줄에 2~3개
+      -> "의미 없는 색 점" 이 아니다. §2.2 가 출처 줄 구분자로 지정했고 색도 무채색
+      --line 이며, 화자·저작물·위치·판본을 가르는 기능을 한다. */
+/* 4. 사진 히어로의 linear-gradient veil 2곳 (.shot::after · .shot.sm-hero::after)
+      -> §1.1 이 "그라데이션은 사진 위 veil 한 곳뿐" 으로 허용한 예외이고,
+      §3.2 의 텍스트 대비(알파 .80 이상)가 이 veil 에 달려 있다. */
+/* 5. 초록(--ok-soft)이 완료 체크와 O1·O2 배지 두 뜻으로 쓰임
+      -> 2026-09-16 DES-PWA-003-Q1 확정. 완료는 체크 아이콘, 등급은 숫자+한국어 라벨로
+      형태가 갈린다. */
+/* 6. inset box-shadow 3곳 (.pill-seg 밑줄 · .sm-seg 밑줄 · 오늘 달력 칸 링)
+      -> --shadow-1/2 밖의 값이지만 blur 0 이라 그림자가 아니라 레이아웃을 밀지 않는
+      테두리 대용이다. §1.4 의 "세그먼트 활성 밑줄 2px --accent" 를 그대로 그린 것. */

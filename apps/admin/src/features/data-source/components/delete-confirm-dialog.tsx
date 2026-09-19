@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { AlertTriangle, FileText, Loader2, Trash2, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 // UI/UX 가이드 적용 (ui-ux-pro-max):
 //   §1 a11y    — aria-label / aria-describedby / focus management / color-not-only
@@ -13,8 +13,8 @@ import { Badge } from "@/components/ui/badge";
 //   §7 motion  — modal-motion (scale+fade), reduced-motion 호환 (CSS transition만 사용)
 //   §8 forms   — confirmation-dialogs + typed-confirm + input-labels + error-clarity
 export interface DeleteTarget {
-  volume: string;          // 타이핑 confirm 대상 (NFC 정규화된 volume_key)
-  sources: string[];       // 분류 태그
+  volume: string; // 타이핑 confirm 대상 (NFC 정규화된 volume_key)
+  sources: string[]; // 분류 태그
   chunkCount: number;
 }
 
@@ -22,7 +22,7 @@ interface DeleteConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   targets: DeleteTarget[];
-  busy?: boolean;          // 외부에서 삭제 진행 중 표시
+  busy?: boolean; // 외부에서 삭제 진행 중 표시
   onConfirm: () => void | Promise<void>;
   onCancel?: () => void;
 }
@@ -117,10 +117,7 @@ export default function DeleteConfirmDialog({
                         </Badge>
                       ))
                     ) : (
-                      <Badge
-                        variant="outline"
-                        className="text-xs bg-warning-soft text-warning border-warning-border"
-                      >
+                      <Badge variant="outline" className="text-xs bg-warning-soft text-warning border-warning-border">
                         미분류
                       </Badge>
                     )}
@@ -128,9 +125,7 @@ export default function DeleteConfirmDialog({
                 </div>
                 <div className="flex gap-2">
                   <span className="text-muted-foreground shrink-0 w-20">청크 수</span>
-                  <span className="tabular-nums">
-                    {(targets[0]?.chunkCount ?? 0).toLocaleString()}
-                  </span>
+                  <span className="tabular-nums">{(targets[0]?.chunkCount ?? 0).toLocaleString()}</span>
                 </div>
               </div>
             ) : (
@@ -143,15 +138,9 @@ export default function DeleteConfirmDialog({
                 </div>
                 <ul className="space-y-1.5 max-h-44 overflow-y-auto">
                   {targets.slice(0, VISIBLE_BULK_LIST_LIMIT).map((t) => (
-                    <li
-                      key={t.volume}
-                      className="flex items-center gap-2 min-w-0"
-                    >
+                    <li key={t.volume} className="flex items-center gap-2 min-w-0">
                       <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <span
-                        className="truncate min-w-0 flex-1"
-                        title={t.volume}
-                      >
+                      <span className="truncate min-w-0 flex-1" title={t.volume}>
                         {t.volume}
                       </span>
                       <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
@@ -179,18 +168,15 @@ export default function DeleteConfirmDialog({
               <div className="space-y-1">
                 <div className="font-medium">되돌릴 수 없는 작업입니다.</div>
                 <div className="text-xs text-destructive/80">
-                  Qdrant의 모든 청크와 적재 이력(IngestionJob)이 영구 삭제됩니다.
-                  취소하려면 같은 파일을 다시 업로드해야 합니다.
+                  Qdrant의 모든 청크와 적재 이력(IngestionJob)이 영구 삭제됩니다. 취소하려면 같은 파일을 다시 업로드해야
+                  합니다.
                 </div>
               </div>
             </div>
 
             {/* typed-confirm — input-labels + helper-text + autoFocus */}
             <div className="space-y-2">
-              <label
-                htmlFor="delete-typed-confirm"
-                className="block text-sm font-medium"
-              >
+              <label htmlFor="delete-typed-confirm" className="block text-sm font-medium">
                 확인을 위해{" "}
                 <code className="px-1.5 py-0.5 rounded bg-admin-muted text-xs font-mono break-all">
                   {expectedConfirm}
@@ -217,10 +203,7 @@ export default function DeleteConfirmDialog({
                 placeholder={expectedConfirm}
                 disabled={busy}
               />
-              <p
-                id="delete-typed-helper"
-                className="text-xs text-muted-foreground"
-              >
+              <p id="delete-typed-helper" className="text-xs text-muted-foreground">
                 {matched
                   ? "✓ 일치합니다. 아래 영구 삭제를 누르면 즉시 실행됩니다."
                   : "정확히 일치하지 않으면 영구 삭제 버튼이 활성되지 않습니다."}
@@ -230,12 +213,7 @@ export default function DeleteConfirmDialog({
 
           {/* 액션 — primary-action(취소가 안전한 default) + destructive 분리 */}
           <div className="flex gap-2 border-t px-6 py-4">
-            <Button
-              variant="outline"
-              className="flex-1 justify-center"
-              onClick={handleCancel}
-              disabled={busy}
-            >
+            <Button variant="outline" className="flex-1 justify-center" onClick={handleCancel} disabled={busy}>
               취소
             </Button>
             <Button

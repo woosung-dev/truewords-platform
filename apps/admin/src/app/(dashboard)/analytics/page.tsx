@@ -1,43 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from "recharts";
-import { analyticsAPI } from "@/features/analytics/api";
-import type { SearchStats, DailyCount, TopQuery } from "@/features/analytics/types";
+import Link from "next/link";
+import { useState } from "react";
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
-import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
+import { analyticsAPI } from "@/features/analytics/api";
 import { ModesChart } from "@/features/analytics/components/modes-chart";
+import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
+import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
+import type { DailyCount, SearchStats, TopQuery } from "@/features/analytics/types";
 
 // ─────────────────────────────────────────────
 // StatCard (inline, 카드 컴포넌트 미사용 패턴 유지)
 // ─────────────────────────────────────────────
-function StatCard({
-  label,
-  value,
-  loading,
-}: {
-  label: string;
-  value: string | number;
-  loading?: boolean;
-}) {
+function StatCard({ label, value, loading }: { label: string; value: string | number; loading?: boolean }) {
   return (
     <div className="rounded-xl border bg-card p-5 space-y-3">
       <span className="text-sm text-muted-foreground">{label}</span>
-      {loading ? (
-        <Skeleton className="h-8 w-20" />
-      ) : (
-        <p className="text-3xl font-bold tracking-tight">{value}</p>
-      )}
+      {loading ? <Skeleton className="h-8 w-20" /> : <p className="text-3xl font-bold tracking-tight">{value}</p>}
     </div>
   );
 }
@@ -46,11 +27,12 @@ function StatCard({
 // Fallback 분포 — CSS 수평 바
 // ─────────────────────────────────────────────
 function FallbackDistribution({ stats, loading }: { stats?: SearchStats; loading: boolean }) {
-  const total = stats
-    ? stats.fallback_none + stats.fallback_relaxed + stats.fallback_suggestions
-    : 0;
+  const total = stats ? stats.fallback_none + stats.fallback_relaxed + stats.fallback_suggestions : 0;
 
-  const rows: { label: string; key: keyof Pick<SearchStats, "fallback_none" | "fallback_relaxed" | "fallback_suggestions"> }[] = [
+  const rows: {
+    label: string;
+    key: keyof Pick<SearchStats, "fallback_none" | "fallback_relaxed" | "fallback_suggestions">;
+  }[] = [
     { label: "정상", key: "fallback_none" },
     { label: "완화 검색", key: "fallback_relaxed" },
     { label: "질문 제안", key: "fallback_suggestions" },
@@ -80,10 +62,7 @@ function FallbackDistribution({ stats, loading }: { stats?: SearchStats; loading
                   </span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-admin-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all"
-                    style={{ width: `${pct}%` }}
-                  />
+                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                 </div>
               </div>
             );
@@ -110,10 +89,7 @@ function TopQueriesTable({
     <div className="rounded-xl border bg-card p-5 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">인기 질문 Top 10</h2>
-        <Link
-          href="/analytics/queries"
-          className="text-xs text-primary hover:underline"
-        >
+        <Link href="/analytics/queries" className="text-xs text-primary hover:underline">
           모두 보기 →
         </Link>
       </div>
@@ -124,33 +100,22 @@ function TopQueriesTable({
           ))}
         </div>
       ) : !queries || queries.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">
-          인기 질문이 없습니다
-        </p>
+        <p className="text-sm text-muted-foreground py-4 text-center">인기 질문이 없습니다</p>
       ) : (
         <div className="overflow-hidden rounded-lg border">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-admin-muted/50 border-b">
-                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground w-10">
-                  순위
-                </th>
-                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">
-                  질문
-                </th>
-                <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-16">
-                  횟수
-                </th>
+                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground w-10">순위</th>
+                <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">질문</th>
+                <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-16">횟수</th>
               </tr>
             </thead>
             <tbody>
               {queries.map((q, i) => (
                 <tr
                   key={i}
-                  className={
-                    (i !== 0 ? "border-t " : "") +
-                    "cursor-pointer hover:bg-admin-muted/40 transition-colors"
-                  }
+                  className={(i !== 0 ? "border-t " : "") + "cursor-pointer hover:bg-admin-muted/40 transition-colors"}
                   onClick={() => onSelect(q.query_text)}
                   role="button"
                   tabIndex={0}
@@ -162,15 +127,11 @@ function TopQueriesTable({
                   }}
                   title="클릭하면 상세 정보를 확인할 수 있습니다"
                 >
-                  <td className="py-2 px-3 text-muted-foreground font-mono text-xs">
-                    {i + 1}
-                  </td>
+                  <td className="py-2 px-3 text-muted-foreground font-mono text-xs">{i + 1}</td>
                   <td className="py-2 px-3 max-w-0 w-full">
                     <TruncateTooltip text={q.query_text} />
                   </td>
-                  <td className="py-2 px-3 text-right font-medium">
-                    {q.count.toLocaleString()}
-                  </td>
+                  <td className="py-2 px-3 text-right font-medium">{q.count.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -218,43 +179,25 @@ export default function AnalyticsPage() {
       {/* 헤더 */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">검색 분석</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          검색 파이프라인 성능을 분석합니다
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">검색 파이프라인 성능을 분석합니다</p>
       </div>
 
       {/* 통계 카드 4개 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="총 검색 수"
-          value={(stats?.total_searches ?? 0).toLocaleString()}
-          loading={statsLoading}
-        />
+        <StatCard label="총 검색 수" value={(stats?.total_searches ?? 0).toLocaleString()} loading={statsLoading} />
         <StatCard
           label="쿼리 재작성률"
-          value={
-            stats
-              ? `${(stats.rewrite_rate * 100).toFixed(1)}%`
-              : "0%"
-          }
+          value={stats ? `${(stats.rewrite_rate * 100).toFixed(1)}%` : "0%"}
           loading={statsLoading}
         />
         <StatCard
           label="결과 없음 비율"
-          value={
-            stats
-              ? `${(stats.zero_result_rate * 100).toFixed(1)}%`
-              : "0%"
-          }
+          value={stats ? `${(stats.zero_result_rate * 100).toFixed(1)}%` : "0%"}
           loading={statsLoading}
         />
         <StatCard
           label="평균 지연 시간"
-          value={
-            stats
-              ? `${Math.round(stats.avg_latency_ms).toLocaleString()} ms`
-              : "0 ms"
-          }
+          value={stats ? `${Math.round(stats.avg_latency_ms).toLocaleString()} ms` : "0 ms"}
           loading={statsLoading}
         />
       </div>
@@ -278,12 +221,7 @@ export default function AnalyticsPage() {
                 axisLine={false}
                 interval="preserveStartEnd"
               />
-              <YAxis
-                tick={{ fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                allowDecimals={false}
-              />
+              <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
               <Tooltip
                 contentStyle={{
                   fontSize: 12,
@@ -294,12 +232,7 @@ export default function AnalyticsPage() {
                 }}
                 cursor={{ fill: "var(--muted)" }}
               />
-              <Bar
-                dataKey="count"
-                name="검색 수"
-                fill="var(--primary)"
-                radius={[4, 4, 0, 0]}
-              />
+              <Bar dataKey="count" name="검색 수" fill="var(--primary)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -311,11 +244,7 @@ export default function AnalyticsPage() {
       {/* 하단 2열 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FallbackDistribution stats={stats} loading={statsLoading} />
-        <TopQueriesTable
-          queries={topQueries}
-          loading={topQueriesLoading}
-          onSelect={(q) => setSelectedQuery(q)}
-        />
+        <TopQueriesTable queries={topQueries} loading={topQueriesLoading} onSelect={(q) => setSelectedQuery(q)} />
       </div>
 
       <QueryDetailModal

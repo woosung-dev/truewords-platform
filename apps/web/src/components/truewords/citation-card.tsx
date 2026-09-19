@@ -1,7 +1,7 @@
 "use client";
 
+import { ArrowUpRight, BookOpen, PenLine, ScrollText } from "lucide-react";
 import * as React from "react";
-import { ArrowUpRight, BookOpen, ScrollText, PenLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Plan B.3 + P1-B(4중 메타) + P1-H(3-탭) + P0-B(원문 모달)
@@ -39,12 +39,7 @@ export interface CitationCardProps {
 }
 
 function formatMeta(meta: CitationMeta): string {
-  const parts = [
-    `${meta.volumeNo}권`,
-    meta.deliveredAt,
-    meta.deliveredPlace,
-    meta.chapterTitle,
-  ].filter(Boolean);
+  const parts = [`${meta.volumeNo}권`, meta.deliveredAt, meta.deliveredPlace, meta.chapterTitle].filter(Boolean);
   return parts.join(" · ");
 }
 
@@ -97,7 +92,7 @@ export function CitationCard({
         "relative overflow-hidden rounded-xl border bg-surface-muted",
         "border-l-[3px] border-l-border-strong border-border",
         "shadow-(--tw-shadow-card)",
-        className
+        className,
       )}
     >
       {/* Header — 인용 메타 4중 (P1-B) */}
@@ -128,7 +123,7 @@ export function CitationCard({
             "min-h-12 leading-relaxed text-foreground",
             tab === "haeseol" && "font-reading text-[15px] leading-[1.75]",
             tab === "bonmun" && "font-reading text-[15px] leading-[1.85]",
-            tab === "note" && "text-sm"
+            tab === "note" && "text-sm",
           )}
         >
           {tab === "haeseol" && haeseol}
@@ -150,11 +145,7 @@ export function CitationCard({
       </div>
 
       {/* Tabs — 카드 단위 3-탭 (P1-H) */}
-      <div
-        role="tablist"
-        aria-label="인용 카드 탭"
-        className="flex border-t border-border bg-card"
-      >
+      <div role="tablist" aria-label="인용 카드 탭" className="flex border-t border-border bg-card">
         {tabs.map(({ key, icon: Icon, label, locked }) => {
           const active = tab === key && !locked;
           return (
@@ -171,10 +162,8 @@ export function CitationCard({
                 "flex flex-1 items-center justify-center gap-1.5 py-2.5",
                 "text-xs font-medium tracking-tight transition-colors",
                 "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
-                active
-                  ? "border-t-2 border-t-primary text-primary -mt-px"
-                  : "text-muted-foreground hover:bg-secondary",
-                locked && "text-fg-subtle"
+                active ? "border-t-2 border-t-primary text-primary -mt-px" : "text-muted-foreground hover:bg-secondary",
+                locked && "text-fg-subtle",
               )}
             >
               <Icon className="size-3.5" aria-hidden="true" />

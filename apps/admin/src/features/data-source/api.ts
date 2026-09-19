@@ -1,18 +1,18 @@
-import { fetchAPI } from "@/lib/api";
 import type { DataSourceCategoryCreate, DataSourceCategoryUpdate } from "@truewords/api-client-ts/types";
+import { fetchAPI } from "@/lib/api";
 import type {
+  CategoryDocumentStats,
   DataSourceCategory,
   DuplicateCheckResponse,
   IngestionJobInfo,
   IngestionStatus,
-  CategoryDocumentStats,
   UpdateDisplayNameRequest,
   UploadResponse,
   VolumeDeleteRequest,
   VolumeDeleteResponse,
+  VolumeInfo,
   VolumeTagRequest,
   VolumeTagResponse,
-  VolumeInfo,
   VolumeTagsBulkRequest,
   VolumeTagsBulkResponse,
 } from "./types";
@@ -28,17 +28,17 @@ export const dataAPI = {
     mode: "standard" = "standard",
     onDuplicate: OnDuplicateMode = "merge",
   ): Promise<UploadResponse> => {
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("source", source)
-    formData.append("mode", mode)
-    formData.append("on_duplicate", onDuplicate)
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("source", source);
+    formData.append("mode", mode);
+    formData.append("on_duplicate", onDuplicate);
 
     // 공통 transport가 CSRF/쿠키를 보존하고 multipart boundary는 fetch에 맡긴다.
     return fetchAPI<UploadResponse>("/admin/data-sources/upload", {
       method: "POST",
       body: formData,
-    })
+    });
   },
 
   getStatus: () => fetchAPI<IngestionStatus>("/admin/data-sources/status"),
@@ -54,15 +54,10 @@ export const dataAPI = {
     }),
 
   checkDuplicate: (filename: string) =>
-    fetchAPI<DuplicateCheckResponse>(
-      `/admin/data-sources/check-duplicate?filename=${encodeURIComponent(filename)}`
-    ),
+    fetchAPI<DuplicateCheckResponse>(`/admin/data-sources/check-duplicate?filename=${encodeURIComponent(filename)}`),
   // ADR-30 Phase 3 — volume(파일) 영구 삭제 (Qdrant + IngestionJob)
   deleteVolume: (volume: string) =>
-    fetchAPI<VolumeDeleteResponse>(
-      `/admin/data-sources/volumes/${encodeURIComponent(volume)}`,
-      { method: "DELETE" },
-    ),
+    fetchAPI<VolumeDeleteResponse>(`/admin/data-sources/volumes/${encodeURIComponent(volume)}`, { method: "DELETE" }),
   deleteVolumesBulk: (data: VolumeDeleteRequest) =>
     fetchAPI<VolumeDeleteResponse>("/admin/data-sources/volumes/delete-bulk", {
       method: "POST",
@@ -71,8 +66,7 @@ export const dataAPI = {
 };
 
 export const dataSourceCategoryAPI = {
-  list: () =>
-    fetchAPI<DataSourceCategory[]>("/admin/data-source-categories"),
+  list: () => fetchAPI<DataSourceCategory[]>("/admin/data-source-categories"),
   create: (data: DataSourceCategoryCreate) =>
     fetchAPI<DataSourceCategory>("/admin/data-source-categories", {
       method: "POST",
@@ -87,8 +81,7 @@ export const dataSourceCategoryAPI = {
     fetchAPI<void>(`/admin/data-source-categories/${id}`, {
       method: "DELETE",
     }),
-  getCategoryStats: () =>
-    fetchAPI<CategoryDocumentStats[]>("/admin/data-sources/category-stats"),
+  getCategoryStats: () => fetchAPI<CategoryDocumentStats[]>("/admin/data-sources/category-stats"),
   addVolumeTag: (data: VolumeTagRequest) =>
     fetchAPI<VolumeTagResponse>("/admin/data-sources/volume-tags", {
       method: "PUT",
@@ -99,8 +92,7 @@ export const dataSourceCategoryAPI = {
       method: "DELETE",
       body: JSON.stringify(data),
     }),
-  getAllVolumes: () =>
-    fetchAPI<VolumeInfo[]>("/admin/data-sources/volumes"),
+  getAllVolumes: () => fetchAPI<VolumeInfo[]>("/admin/data-sources/volumes"),
   addVolumeTagsBulk: (data: VolumeTagsBulkRequest) =>
     fetchAPI<VolumeTagsBulkResponse>("/admin/data-sources/volume-tags/bulk", {
       method: "PUT",

@@ -20,6 +20,8 @@ from app.modules.chat.models import (  # noqa: F401
 )
 from app.modules.chatbot.models import ChatbotConfig  # noqa: F401
 from app.modules.datasource.models import DataSourceCategory  # noqa: F401
+from app.modules.hoondok.models import DailyReading, MissionLog  # noqa: F401
+from app.modules.identity.models import User  # noqa: F401
 from app.modules.pipeline.ingestion_models import IngestionJob  # noqa: F401
 
 config = context.config

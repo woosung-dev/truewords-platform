@@ -2,19 +2,19 @@
 
 import * as React from "react";
 import {
+  AnswerSkeleton,
   ChatButton,
-  QuestionInput,
   CitationCard,
-  PersonaSheet,
-  PersonaRowTrigger,
+  ClosingTemplate,
+  FeedbackButtons,
+  type FeedbackKind,
   FloatingActionBar,
   FollowupPills,
-  FeedbackButtons,
-  ClosingTemplate,
-  StreamingText,
-  AnswerSkeleton,
   type PersonaMode,
-  type FeedbackKind,
+  PersonaRowTrigger,
+  PersonaSheet,
+  QuestionInput,
+  StreamingText,
 } from "@/components/truewords";
 
 const SAMPLE_ANSWER = `참사랑은 위함을 위하는 사랑이며, 받기보다는 주는 데에서 완성되는 사랑입니다.
@@ -52,12 +52,8 @@ export default function DesignSystemPage() {
     <div className="min-h-screen bg-background pb-32">
       <header className="sticky top-0 z-10 border-b border-border bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <h1 className="font-display text-xl font-semibold text-foreground">
-            TrueWords Design System
-          </h1>
-          <span className="font-mono text-[11px] text-muted-foreground">
-            v1.0.0 · foundation
-          </span>
+          <h1 className="font-display text-xl font-semibold text-foreground">TrueWords Design System</h1>
+          <span className="font-mono text-[11px] text-muted-foreground">v1.0.0 · foundation</span>
         </div>
       </header>
 
@@ -86,20 +82,16 @@ export default function DesignSystemPage() {
 
         <Section title="Typography" desc="Plan A.3 — Pretendard / Noto Serif KR / Cormorant Garamond">
           <div className="space-y-3">
-            <p className="font-display text-3xl font-semibold">
-              말씀의 깊이를 AI와 함께 — Display
-            </p>
+            <p className="font-display text-3xl font-semibold">말씀의 깊이를 AI와 함께 — Display</p>
             <p className="text-2xl font-semibold">H1 헤딩 (Pretendard)</p>
             <p className="text-lg font-medium">H2 / 섹션 타이틀</p>
-            <p className="text-base">
-              본문 기본 — body 16px, line-height 1.625. 한국어 가독성 검증 문장입니다.
-            </p>
+            <p className="text-base">본문 기본 — body 16px, line-height 1.625. 한국어 가독성 검증 문장입니다.</p>
             <p className="font-reading text-[18px] leading-[1.85] break-keep-all">
-              본문 페이지(prose-reading) — Noto Serif KR 으로 렌더되는 묵상용 가독 텍스트입니다.
-              참사랑은 위함을 위하는 사랑이며, 영원성·절대성·불변성의 본질을 가집니다.
+              본문 페이지(prose-reading) — Noto Serif KR 으로 렌더되는 묵상용 가독 텍스트입니다. 참사랑은 위함을 위하는
+              사랑이며, 영원성·절대성·불변성의 본질을 가집니다.
             </p>
             <p className="font-mono text-xs text-muted-foreground">
-              [347권 · 2001.07.03 · 청평수련소 · 참사랑의 길]  ← caption mono
+              [347권 · 2001.07.03 · 청평수련소 · 참사랑의 길] ← caption mono
             </p>
           </div>
         </Section>
@@ -148,20 +140,12 @@ export default function DesignSystemPage() {
 
         <Section title="PersonaSheet (P0-E ★★)" desc="답변 모드 5종 페르소나 — 위급 시 목회 상담자 자동">
           <div className="space-y-3">
-            <PersonaRowTrigger
-              value={persona}
-              onClick={() => setPersonaOpen(true)}
-            />
+            <PersonaRowTrigger value={persona} onClick={() => setPersonaOpen(true)} />
             <p className="text-xs text-muted-foreground">
               현재: <code className="font-mono">{persona}</code> · 행을 탭하면 sheet 가 올라옵니다.
             </p>
           </div>
-          <PersonaSheet
-            open={personaOpen}
-            onOpenChange={setPersonaOpen}
-            value={persona}
-            onValueChange={setPersona}
-          />
+          <PersonaSheet open={personaOpen} onOpenChange={setPersonaOpen} value={persona} onValueChange={setPersona} />
         </Section>
 
         <Section title="CitationCard (P1-B + P1-H + P0-B + P1-L)" desc="3-탭 + 4중 메타 + 본문 jump">
@@ -173,15 +157,12 @@ export default function DesignSystemPage() {
               chapterTitle: "하나님은 우리의 참된 왕이자 참 부모",
             }}
             haeseol={
-              <p>
-                참사랑은 위함을 위함을 본질로 하는 사랑이며,
-                받기보다 주는 마음에 그 절대성이 깃들어 있습니다.
-              </p>
+              <p>참사랑은 위함을 위함을 본질로 하는 사랑이며, 받기보다 주는 마음에 그 절대성이 깃들어 있습니다.</p>
             }
             bonmun={
               <p>
-                (원문) 사람의 진정한 가치는 위함을 위함의 사랑 가운데서 발견되는 것입니다.
-                위함을 위함의 사랑이라는 것은 받는 데서 시작하는 것이 아닙니다.
+                (원문) 사람의 진정한 가치는 위함을 위함의 사랑 가운데서 발견되는 것입니다. 위함을 위함의 사랑이라는 것은
+                받는 데서 시작하는 것이 아닙니다.
               </p>
             }
             note={
@@ -194,9 +175,7 @@ export default function DesignSystemPage() {
             onOpenOriginal={() => alert("P0-B 원문 모달 (placeholder)")}
             onJumpToSource={() => alert("P1-L 본문 페이지 jump (placeholder)")}
           />
-          <p className="mt-3 text-xs text-muted-foreground">
-            잠금 변형(P2-J freemium):
-          </p>
+          <p className="mt-3 text-xs text-muted-foreground">잠금 변형(P2-J freemium):</p>
           <CitationCard
             className="mt-2"
             meta={{
@@ -206,9 +185,7 @@ export default function DesignSystemPage() {
               chapterTitle: "진정한 사랑",
             }}
             haeseol={<p>비로그인/공유 페이지 — 본문·노트 탭이 잠겨 있습니다.</p>}
-            onLockedTabClick={(tab) =>
-              alert(`P2-J 모달 trigger: ${tab} 탭은 앱 전용`)
-            }
+            onLockedTabClick={(tab) => alert(`P2-J 모달 trigger: ${tab} 탭은 앱 전용`)}
           />
         </Section>
 
@@ -262,11 +239,7 @@ export default function DesignSystemPage() {
               >
                 스트리밍 재생
               </ChatButton>
-              <ChatButton
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowSkeleton((v) => !v)}
-              >
+              <ChatButton size="sm" variant="ghost" onClick={() => setShowSkeleton((v) => !v)}>
                 스켈레톤 토글
               </ChatButton>
             </div>
@@ -274,20 +247,14 @@ export default function DesignSystemPage() {
               <AnswerSkeleton lines={3} />
             ) : (
               <p className="font-reading text-[15px] leading-[1.75]">
-                <StreamingText
-                  key={streamingKey}
-                  text={SAMPLE_ANSWER}
-                  streaming
-                />
+                <StreamingText key={streamingKey} text={SAMPLE_ANSWER} streaming />
               </p>
             )}
           </div>
         </Section>
 
         <Section title="FloatingActionBar (P0-G)" desc="고정 하단 — 새질문 / 북마크 / 공유">
-          <p className="text-sm text-muted-foreground">
-            화면 하단에 floating bar 가 항상 떠있습니다 ↓
-          </p>
+          <p className="text-sm text-muted-foreground">화면 하단에 floating bar 가 항상 떠있습니다 ↓</p>
         </Section>
       </main>
 
@@ -301,22 +268,12 @@ export default function DesignSystemPage() {
   );
 }
 
-function Section({
-  title,
-  desc,
-  children,
-}: {
-  title: string;
-  desc?: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3">
       <header className="border-b border-border pb-2">
         <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-        {desc ? (
-          <p className="mt-0.5 text-sm text-muted-foreground">{desc}</p>
-        ) : null}
+        {desc ? <p className="mt-0.5 text-sm text-muted-foreground">{desc}</p> : null}
       </header>
       <div>{children}</div>
     </section>

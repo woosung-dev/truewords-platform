@@ -1,4 +1,4 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 const origins = {
   web: process.env.E2E_WEB_ORIGIN || "http://127.0.0.1:3000",
@@ -12,21 +12,28 @@ async function setDarkClass(page: Page, isDark: boolean) {
 
 async function expectColor(locator: Locator, property: string, expected: string) {
   // production의 CSS 최적화는 OKLCH를 Lab으로 바꿀 수 있어 문자열 대신 실제 색을 비교한다.
-  await expect.poll(() => locator.evaluate((element, values) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = 1;
-    const context = canvas.getContext("2d")!;
-    const channels = (color: string) => {
-      if (!CSS.supports("color", color)) throw new Error(`유효하지 않은 CSS 색상: ${color}`);
-      context.clearRect(0, 0, 1, 1);
-      context.fillStyle = color;
-      context.fillRect(0, 0, 1, 1);
-      return Array.from(context.getImageData(0, 0, 1, 1).data);
-    };
-    const actual = channels(getComputedStyle(element).getPropertyValue(values.property));
-    const reference = channels(values.expected);
-    return Math.max(...actual.map((channel, index) => Math.abs(channel - reference[index])));
-  }, { property, expected })).toBeLessThanOrEqual(1);
+  await expect
+    .poll(() =>
+      locator.evaluate(
+        (element, values) => {
+          const canvas = document.createElement("canvas");
+          canvas.width = canvas.height = 1;
+          const context = canvas.getContext("2d")!;
+          const channels = (color: string) => {
+            if (!CSS.supports("color", color)) throw new Error(`유효하지 않은 CSS 색상: ${color}`);
+            context.clearRect(0, 0, 1, 1);
+            context.fillStyle = color;
+            context.fillRect(0, 0, 1, 1);
+            return Array.from(context.getImageData(0, 0, 1, 1).data);
+          };
+          const actual = channels(getComputedStyle(element).getPropertyValue(values.property));
+          const reference = channels(values.expected);
+          return Math.max(...actual.map((channel, index) => Math.abs(channel - reference[index])));
+        },
+        { property, expected },
+      ),
+    )
+    .toBeLessThanOrEqual(1);
 }
 
 for (const app of ["web", "admin"] as const) {
@@ -40,9 +47,13 @@ for (const app of ["web", "admin"] as const) {
       const password = page.getByLabel("비밀번호", { exact: true });
       await expect(email).toBeVisible();
       await setDarkClass(page, isDark);
-      await expectColor(page.locator("body"), "background-color", isDark ? "oklch(0.18 0.012 50)" : "oklch(0.988 0.024 95)");
+      await expectColor(
+        page.locator("body"),
+        "background-color",
+        isDark ? "oklch(0.18 0.012 50)" : "oklch(0.988 0.024 95)",
+      );
       await expect(email).toHaveCSS("height", "32px");
-      await email.fill(app === "admin" ? (process.env.E2E_ADMIN_EMAIL || "demo-admin@example.com") : "admin@test.com");
+      await email.fill(app === "admin" ? process.env.E2E_ADMIN_EMAIL || "demo-admin@example.com" : "admin@test.com");
       await email.press("Tab");
       await expect(password).toBeFocused();
       await password.fill("test1234");
@@ -57,7 +68,11 @@ for (const app of ["web", "admin"] as const) {
         await expect(page.getByRole("table")).toBeVisible();
         await expect(page.locator("body")).toHaveClass(/admin-scope/);
         await setDarkClass(page, isDark);
-        await expectColor(page.locator("body"), "background-color", isDark ? "oklch(0.18 0.012 50)" : "oklch(0.985 0.005 250)");
+        await expectColor(
+          page.locator("body"),
+          "background-color",
+          isDark ? "oklch(0.18 0.012 50)" : "oklch(0.985 0.005 250)",
+        );
         await page.locator('[data-slot="sheet-trigger"]').click();
       } else {
         await page.getByLabel("이름", { exact: true }).fill("UI 회귀 검증");
@@ -75,9 +90,14 @@ for (const app of ["web", "admin"] as const) {
       await expect(dialog).toBeVisible();
       await expectColor(dialog, "background-color", isDark ? "oklch(0.22 0.012 55)" : "oklch(1 0 0)");
       // Portal은 앱 body의 토큰을 상속해야 하며 다른 앱 CSS를 가져오지 않는다.
-      const expectedBorder = app === "admin"
-        ? (isDark ? "oklch(0.33 0.01 250)" : "oklch(0.91 0.005 250)")
-        : (isDark ? "oklch(0.33 0.018 60)" : "oklch(0.89 0.025 78)");
+      const expectedBorder =
+        app === "admin"
+          ? isDark
+            ? "oklch(0.33 0.01 250)"
+            : "oklch(0.91 0.005 250)"
+          : isDark
+            ? "oklch(0.33 0.018 60)"
+            : "oklch(0.89 0.025 78)";
       await expectColor(dialog, "--border", expectedBorder);
       if (app === "web") {
         await expect(dialog.getByRole("button", { name: "적용하기" })).toHaveCSS("height", "56px");

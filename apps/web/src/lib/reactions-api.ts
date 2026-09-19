@@ -5,15 +5,12 @@
 // 서버가 HttpOnly cookie `tw_anon_session` 으로 발급/유지한다. 따라서 이
 // 모듈은 fetch 시 `credentials: "include"` 를 명시해 cookie 전송을 보장한다.
 
-import type { ReactionRequest, ReactionToggleResponse, ReactionAggregate } from "@truewords/api-client-ts/types";
+import type { ReactionAggregate, ReactionRequest, ReactionToggleResponse } from "@truewords/api-client-ts/types";
 export type ReactionKind = ReactionRequest["kind"];
 export type ReactionToggleResult = ReactionToggleResponse;
 export type { ReactionAggregate } from "@truewords/api-client-ts/types";
 
-export async function toggleReaction(
-  messageId: string,
-  kind: ReactionKind,
-): Promise<ReactionToggleResult> {
+export async function toggleReaction(messageId: string, kind: ReactionKind): Promise<ReactionToggleResult> {
   const res = await fetch(`/api/backend/api/chat/messages/${encodeURIComponent(messageId)}/reaction`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
@@ -29,9 +26,7 @@ export async function toggleReaction(
   return (await res.json()) as ReactionToggleResult;
 }
 
-export async function getReactionAggregate(
-  messageId: string,
-): Promise<ReactionAggregate> {
+export async function getReactionAggregate(messageId: string): Promise<ReactionAggregate> {
   const res = await fetch(`/api/backend/api/chat/messages/${encodeURIComponent(messageId)}/reactions`, {
     credentials: "include",
   });

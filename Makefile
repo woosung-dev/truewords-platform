@@ -229,13 +229,16 @@ rollback-admin: ## ⚠️ 이전 admin 이미지로 롤백 (`TAG=<이전 sha>` �
 	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait admin'
 	@$(call DEPLOY_LOG,rollback,admin,manual)
 
-deploy-web: ## Oracle Cloud ARM VM 사용자 웹 배포 (운영 전환 runbook 선행).
+# 훈독 플래그 (PLAN-HD-001 결정 10). 기본 OFF. 켤 때만 `make deploy-web HOONDOK_ENABLED=1`.
+HOONDOK_ENABLED ?= 0
+deploy-web: ## Oracle Cloud ARM VM 사용자 웹 배포 (운영 전환 runbook 선행). 훈독은 HOONDOK_ENABLED=1 로만 켠다.
 	@case "$(WEB_URL) $(ADMIN_URL)" in *localhost*) echo "WEB_URL·ADMIN_URL 운영 HTTPS origin을 명시하세요"; exit 1;; esac
 	@$(MAKE) --no-print-directory deploy-guard
 	@$(MAKE) --no-print-directory ops-check || echo "⚠️  ops-check 위반 있음 — 배포는 계속합니다. 위 DETAIL 확인."
 	@docker buildx build --platform linux/arm64 -f apps/web/Dockerfile \
 		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 \
-		--build-arg NEXT_PUBLIC_WEB_URL=$(WEB_URL) --build-arg NEXT_PUBLIC_ADMIN_URL=$(ADMIN_URL) -t $(WEB_IMG) --load .
+		--build-arg NEXT_PUBLIC_WEB_URL=$(WEB_URL) --build-arg NEXT_PUBLIC_ADMIN_URL=$(ADMIN_URL) \
+		--build-arg NEXT_PUBLIC_HOONDOK_ENABLED=$(HOONDOK_ENABLED) -t $(WEB_IMG) --load .
 	@$(call TRANSFER_IMAGE,$(WEB_IMG),web-$(TAG))
 	@ssh "$(ORACLE)" 'grep -q "^WEB_TAG=" ~/truewords/.env || { echo "runbook에 따라 WEB_TAG와 Compose를 먼저 준비하세요"; exit 1; }; sed -i "s/^WEB_TAG=.*/WEB_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait web'
 	@$(call DEPLOY_LOG,deploy,web,$(GUARD_MODE))
@@ -275,6 +278,7 @@ ci: ## ci.yml 과 같은 검증 (API·웹·관리자·계약·저장소 검사).
 	@pnpm tooling:test
 	@pnpm docs:check
 	@pnpm boundaries:check
+	@pnpm hoondok:check
 	@for s in infra/oracle-vm/*.sh; do bash -n "$$s" || exit 1; done
 	@pnpm test && pnpm lint && pnpm build && pnpm typecheck
 
@@ -292,7 +296,9 @@ e2e: ## 두 앱 + API 통합 E2E — ci-e2e.yml 과 같은 격리 compose·시�
 	(cd apps/api && uv run alembic upgrade head \
 	  && uv run python scripts/create_admin.py $(E2E_ADMIN_EMAIL) test1234 \
 	  && uv run python scripts/create_admin.py admin@test.com test1234 \
-	  && uv run python scripts/seed_chatbot_configs.py) \
+	  && uv run python scripts/seed_chatbot_configs.py \
+	  && uv run python scripts/seed_daily_readings.py \
+	  && uv run python scripts/seed_hoondok_user.py hoondok@example.com test1234 --name 시드식구) \
 	&& pnpm test:e2e
 
 contracts-check: ## 계약 재생성·drift 및 하위 호환성 검사

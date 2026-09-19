@@ -1,35 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AdminUserResponse } from "@truewords/api-client-ts/types";
+import { Ban, CheckCircle2, Loader2, UserCheck, UserPlus, Users, UserX } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ApiError, fetchAPI } from "@/lib/api";
-import { authAPI } from "@/features/auth/api";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Ban,
-  CheckCircle2,
-  Loader2,
-  UserCheck,
-  UserPlus,
-  Users,
-  UserX,
-} from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { authAPI } from "@/features/auth/api";
+import { ApiError, fetchAPI } from "@/lib/api";
 import DeactivateConfirmDialog from "./deactivate-confirm-dialog";
-
-import type { AdminUserResponse } from "@truewords/api-client-ts/types";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -143,9 +127,7 @@ export default function SettingsPage() {
     <div className="max-w-4xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">설정</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          관리자 계정을 관리합니다
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">관리자 계정을 관리합니다</p>
       </div>
 
       {/* 관리자 계정 생성 */}
@@ -209,9 +191,7 @@ export default function SettingsPage() {
         <div className="flex flex-wrap items-center gap-x-2 gap-y-3 border-b pb-3">
           <Users className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">관리자 계정 목록</h3>
-          {admins && (
-            <span className="text-xs text-muted-foreground">({counts.all})</span>
-          )}
+          {admins && <span className="text-xs text-muted-foreground">({counts.all})</span>}
 
           {/* 상태 필터 — 비활성 계정이 다수일 때 활성 계정을 바로 찾기 위함 */}
           {admins && admins.length > 0 && (
@@ -235,9 +215,7 @@ export default function SettingsPage() {
                     }`}
                   >
                     {f.label}
-                    <span className="ml-1 tabular-nums opacity-70">
-                      {counts[f.key]}
-                    </span>
+                    <span className="ml-1 tabular-nums opacity-70">{counts[f.key]}</span>
                   </button>
                 );
               })}
@@ -252,15 +230,11 @@ export default function SettingsPage() {
             ))}
           </div>
         ) : !admins || admins.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            등록된 관리자가 없습니다
-          </p>
+          <p className="py-6 text-center text-sm text-muted-foreground">등록된 관리자가 없습니다</p>
         ) : visibleAdmins.length === 0 ? (
           // empty-states — 필터 때문에 비었음을 알리고 되돌릴 행동을 제공
           <div className="py-6 text-center text-sm text-muted-foreground space-y-2">
-            <p>
-              {statusFilter === "active" ? "활성" : "비활성"} 상태인 계정이 없습니다
-            </p>
+            <p>{statusFilter === "active" ? "활성" : "비활성"} 상태인 계정이 없습니다</p>
             <Button variant="outline" size="sm" onClick={() => setStatusFilter("all")}>
               전체 보기
             </Button>
@@ -269,35 +243,20 @@ export default function SettingsPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-admin-muted/40 hover:bg-admin-muted/40">
-                <TableHead className="font-semibold text-foreground">
-                  이메일
-                </TableHead>
-                <TableHead className="font-semibold text-foreground">
-                  역할
-                </TableHead>
-                <TableHead className="font-semibold text-foreground">
-                  상태
-                </TableHead>
-                <TableHead className="font-semibold text-foreground">
-                  생성일
-                </TableHead>
-                <TableHead className="font-semibold text-foreground text-right">
-                  액션
-                </TableHead>
+                <TableHead className="font-semibold text-foreground">이메일</TableHead>
+                <TableHead className="font-semibold text-foreground">역할</TableHead>
+                <TableHead className="font-semibold text-foreground">상태</TableHead>
+                <TableHead className="font-semibold text-foreground">생성일</TableHead>
+                <TableHead className="font-semibold text-foreground text-right">액션</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {visibleAdmins.map((admin) => {
                 const isSelf = me?.user_id === admin.id;
-                const isBusy =
-                  statusMutation.isPending &&
-                  statusMutation.variables?.id === admin.id;
+                const isBusy = statusMutation.isPending && statusMutation.variables?.id === admin.id;
 
                 return (
-                  <TableRow
-                    key={admin.id}
-                    className="hover:bg-admin-muted/30 transition-colors"
-                  >
+                  <TableRow key={admin.id} className="hover:bg-admin-muted/30 transition-colors">
                     <TableCell className="font-medium">
                       <span className="break-all">{admin.email}</span>
                       {isSelf && (
@@ -336,23 +295,12 @@ export default function SettingsPage() {
                           className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={isSelf || isBusy}
                           aria-disabled={isSelf || isBusy}
-                          title={
-                            isSelf
-                              ? "본인 계정은 비활성화할 수 없습니다"
-                              : `${admin.email} 비활성화`
-                          }
-                          aria-label={
-                            isSelf
-                              ? "본인 계정은 비활성화할 수 없습니다"
-                              : `${admin.email} 비활성화`
-                          }
+                          title={isSelf ? "본인 계정은 비활성화할 수 없습니다" : `${admin.email} 비활성화`}
+                          aria-label={isSelf ? "본인 계정은 비활성화할 수 없습니다" : `${admin.email} 비활성화`}
                           onClick={() => setPendingTarget(admin)}
                         >
                           {isBusy ? (
-                            <Loader2
-                              className="w-3.5 h-3.5 animate-spin"
-                              aria-hidden="true"
-                            />
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                           ) : (
                             <UserX className="w-3.5 h-3.5" aria-hidden="true" />
                           )}
@@ -375,10 +323,7 @@ export default function SettingsPage() {
                           }
                         >
                           {isBusy ? (
-                            <Loader2
-                              className="w-3.5 h-3.5 animate-spin"
-                              aria-hidden="true"
-                            />
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                           ) : (
                             <UserCheck className="w-3.5 h-3.5" aria-hidden="true" />
                           )}

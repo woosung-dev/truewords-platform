@@ -1,8 +1,10 @@
 # TODO
 
-> 마지막 업데이트: 2026-09-05
+> 마지막 업데이트: 2026-09-19 (훈독 MVP Phase 3 편성 트랙 A·B main 머지·backend/admin 운영 배포)
 
-> **현재 우선 작업:** 2안 UI 분리의 구현·로컬 검증 완료, 2026-09-05 커밋·푸시 승인. PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과를 재사용하지 않는다. 최신 로컬 증거는 [APP-UI-001](plans/active/2026-09-05-app-owned-ui.md), 최초 M1~M4 기록은 [전환 계획 §5](plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 따른다. 아래 과거 퍼센트·테스트 수치를 새 완료 증거로 사용하지 않는다. 신규 디자인·M5·Flutter·운영 배포는 비범위다.
+> **현재 우선 작업 (2026-09-18~):** 훈독 MVP Phase 3 — [PLAN-HD-001 §6](plans/active/2026-09-17-hoondok-mvp.md) PWA 셸·편성 운영 수단·제한 베타. Phase 1(#276)·Phase 2(#282 → main `b70b6c8`)는 2026-09-18 운영 배포 완료(backend·web `b70b6c8`, `HOONDOK_ENABLED=0` 이라 `/hoondok/*` 404). 편성자는 2026-09-19 비개발자로 확정(A API #285 → B admin 화면). 남은 `[확인 필요]`: 약관 문구와 법적 주체.
+>
+> **이전 우선 작업:** 2안 UI 분리의 구현·로컬 검증 완료, 2026-09-05 커밋·푸시 승인. PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과를 재사용하지 않는다. 최신 로컬 증거는 [APP-UI-001](plans/active/2026-09-05-app-owned-ui.md), 최초 M1~M4 기록은 [전환 계획 §5](plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 따른다. 아래 과거 퍼센트·테스트 수치를 새 완료 증거로 사용하지 않는다. 신규 디자인·M5·Flutter·운영 배포는 비범위다.
 
 ## Progress Overview
 
@@ -36,6 +38,30 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] 출처·기능 범위 비교 차트를 포함한 자체 포함 HTML 의사결정 보고서 생성·데스크톱 1440px/모바일 390px 검증 (`docs/research/2026-08-31-chowon-pwa-strategy-report.html`)
 - [x] 세션 0 승인 — FFWPU 대상, 공식 승인 전 독립 운영·비공식 제한 베타, 현 구성원·가정 우선
 - [x] 세션 0 승인 — 권리 승인 소규모 정본만 사용, 잠금 화면 중립형 알림 기본
+
+### 훈독 앱 PRD v2 + 디자인 2안 클릭형 프로토타입 (2026-09-10) · 방향 확정 (2026-09-14)
+- [x] PR #261(v1 PRD + 3안 보드)을 2026-09-09 사용자 판단으로 close. 부족점: 실제 앱 같지 않음·콘텐츠 부실·디자인 불만족
+- [x] 사용자 결정 반영 — 초원식 전면 + 가정연합 현지화(5탭·데일리 미션·연속일·정성·가족/교회 챌린지·5분 설교·설교 섭외·가족/친구). S0 게이미피케이션·공동체 금지를 `DEC-PWA-014`로 부분 해제
+- [x] PRD v2 전면 재작성 (`docs/prd/17-ffwpu-pwa-prd.md`) — 식구의 문제 5개 → 해결 기능, 초원 5탭·서브 화면 12종 현지화 매핑, `SCR-PWA-001~016`, 기능 F1~F7 AC, 보상 정책, KPI, 9월 일정, `DEC-PWA-014~021`
+- [x] 디자인 2안 클릭형 단일 PWA 목업 — A 아침 햇살(라이트·감귤·Pretendard·16px), B 저녁 등불(다크·금·Noto Serif KR 디스플레이·12px+pill). 각 16화면, iPhone 프레임, 해시 라우팅·시트·토글 동작. `featured_malssum.json` 발췌로 실재감 있는 예시 콘텐츠
+- [x] Playwright 캡처 16화면 × 2안 + 데스크톱·모바일 뷰포트·몽타주 = 38장 (캡처·비교 문서는 2026-09-16 정리로 제거, git 히스토리 참고)
+- [x] 경쟁 병렬 시안 정리 — #262(pwa1)·#264(pwa3)·#265(pwa4)를 2026-09-14 close 하고 #263 채택. `apps/web` PWA 셸은 구현 단계에서 새로 작성한다
+- [x] **2026-09-14 S2' 방향 확정** — `DEC-PWA-017` A 아침 햇살 단독(B 미채택, 흡수 요소 없음, 베타 라이트 고정), `DEC-PWA-015` 5번째 탭 "나의 정원", `DEC-PWA-016` 앱 이름 "훈독" 가안 해제, `DEC-PWA-019` 개인 랭킹·달란트형 보상 모두 제외
+
+### 훈독 앱 디자인 시스템 S3 (2026-09-15)
+- [x] `DES-PWA-003` 작성 (`docs/specs/web/hoondok-design-system.md`) — 채택안 A 아침 햇살의 토큰(색 17종·타이포 18단계·간격 12단계·모서리 5종·그림자 3종·상태 11종), 컴포넌트 10종 + 부속 13종, 접근성, 데스크톱 브레이크포인트, 16화면 × 3폭 대응표
+- [x] 토큰·치수는 2026-09-10 시안 A CSS에서 추출(시안 파일은 2026-09-16 정리로 제거, 정본은 `prototypes/hoondok-ds/`). 스테이지 배경 `--bg #f4f2ee`는 앱 토큰이 아니므로 제외, 미사용 `.serif-quote` 선언도 제외
+- [x] WCAG 2.2 AA 대비를 컴포넌트별로 계산해 숫자로 기록. 미달 조합 4개 적발 — `--accent`/`--accent-soft` 4.23:1, `--ok`/`--ok-soft` 4.49:1, `--line` 컨트롤 경계 1.30:1, 용어 칩 탭 대상 23px
+- [x] 미달 해소: `--accent-strong #a03a1a`(5.73:1)·`--ok-strong #26633f`(6.14:1) 2개 추가, 컨트롤 경계선을 `--ink-3`(5.35:1)로, 용어 칩 최소 높이 24px (SC 2.5.8)
+- [x] 사진 히어로 veil을 최악(순백 사진) 기준으로 계산 — 흰 글자 7.81:1 / 85% 흰 글자 6.20:1 통과. veil 알파 0.78 하한과 사진 로드 실패 시 `--ink` 기본 배경 명시
+- [x] 데스크톱: 하단 5탭 → 좌측 레일 전환점 **1024px**(레일 240 + 본문 720 + 여백 64 기하 근거), 읽기 폭 640px / 앱 콘텐츠 폭 720px, 브레이크포인트 3개로 고정
+- [x] 2-pane 은 `SCR-PWA-009` 원문 뷰 하나만. `007` 서고·`008` 검색은 단일 컬럼(모바일에 없는 계층을 만들지 않음). 예외 3건은 시트→모달·FAB 기준·병렬 목록 2열
+- [x] 시안과 달라지는 4건을 근거와 함께 명시 — 탭 명칭 "나의 정원", 대비 토큰 2개 추가, 컨트롤 경계선, 용어 칩 높이. 권위 배지 초록은 2026-09-16 사용자 결정으로 시안 그대로 유지
+
+### 훈독 디자인 결정 + 16화면 프로토타입 (2026-09-16)
+- [x] 결정 3건: **A 아침 햇살 유지**(DESIGN.md 6종 번역 7안 독립 심사는 참고), 데스크톱 **상단 헤더 4(검색 중심)**, AI 질문 탭 **"물음 한 장"**(묻기 홈 + 기록 분리, FAB 제거). `DES-PWA-003` §2.9·§8, PRD `SCR-PWA-005`
+- [x] `prd/prototypes/hoondok-ds/` 단일 소스 16화면(폰·PC). 폴리시 패스 4회(ui-ux-pro-max ×2, taste-skill ×2), 베이스 결함 4건 수정
+- [x] 비교 시안·심사 원문·스크린샷·DESIGN.md 사본은 코드베이스에서 제거. git 히스토리(PR #269 이전 커밋)로만 남긴다
 
 ### 체험단 최종 현황 리포트 (2026-07-30)
 - [x] 종료 설문·중간미션 원본과 Oracle 운영 DB를 교차 검증해 실제 이용·미션 제출 현황 HTML/PNG 생성 (`docs/dev-log/2026-07-30-beta-final-status-report.md`)
@@ -179,11 +205,24 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 - `[종결]` `DEC-MONO-005` — 사용자 승인 후 `apps/admin` 배포별 override로 Vercel preview `dpl_7mjHQuuQA2NuFddcxmz18G7RBbVc`의 `READY`를 확인했었다. 2026-09-05 main 머지 후 Production 배포가 Root Directory `admin` 부재로 실패했고, 같은 날 **Vercel 프로젝트 즉시 삭제**를 결정해 preview·전역 Root Directory 논점이 사라졌다. [전환 runbook](runbooks/monorepo-migration-and-rollback.md#외부-vercel-설정-종결) 참조.
 - `[종결]` `DEC-MONO-002` — **2026-09-06 확정**: web 은 기존 `app.woosung.dev` 유지, admin 은 `truewords-admin.woosung.dev`(zone 을 nexus·kairos·quantbridge 와 공유하므로 프로젝트 접두어). 컷오버 순서는 [전환 runbook §배포 승인 후 순서](runbooks/monorepo-migration-and-rollback.md#배포-승인-후-순서), 실행은 단계별 승인.
-- `[확인 필요]` `DEC-MONO-003` — 일반 사용자 로그인 방식 및 기존 데모 계정·기록의 이전 여부. identity 구현 전 필요하다.
+- `[종결]` `DEC-MONO-003` — **2026-09-16 확정**: 이메일+비밀번호, 별도 `users` 테이블·쿠키 `hoondok_token`. 기존 데모 관리자 계정·기록은 이전하지 않는다. 비밀번호 재설정은 베타 기간 운영자 수동. [PLAN-HD-001 §1-4](plans/active/2026-09-17-hoondok-mvp.md)
+- `[확인 필요]` **훈독 메일 제공자** — 재설정·인증 메일 인프라 0건. Phase 2 는 미정 상태로 착수해 **재설정은 운영자 수동**(온보딩 도움말에 명시)으로 진행 중. 베타 전 무료 제공자 선택 또는 메일 없는 방식 유지 결정
+- `[확인 필요]` **훈독 이용약관·개인정보처리방침 문구와 법적 주체** (`DEC-PWA-001`) — Phase 2 는 **동의를 수집하지 않고 베타 고지만** 표시하며 `users.consented_at`·`consent_version` 은 NULL 예약. 운영 배포(Phase 3)·실사용자 가입 전 필수. 리드타임 최장이라 먼저 착수 권장
+- `[종결]` **훈독 편성자가 비개발자인지** — **2026-09-19 비개발자 확정**: 운영 입력 수단은 `apps/admin` 편성 화면 `/hoondok`(Phase 3 sub-PR B) + `/admin/hoondok/daily-readings` API(A #285). CSV 안 폐기, `seed_daily_readings.py` 는 로컬·E2E 한정. [PLAN-HD-001 §6·§10](plans/active/2026-09-17-hoondok-mvp.md)
 
-- `[확인 필요]` 독립 베타의 법적 운영 주체와 FFWPU 공식 승인 요청·검수 절차는 무엇인가?
-- `[확인 필요]` 초기 소규모 정본의 정확한 목록과 본문 전재·검색·임베딩·AI 요약·오프라인·푸시 인용별 권리 범위는 어디까지인가?
-- `[확인 필요]` 콘텐츠 공식성·검수·철회 최종 책임자는 누구인가?
+- `[종결]` `DEC-PWA-017` 디자인 방향 — **2026-09-14 A 아침 햇살 단독 채택**. B 저녁 등불 미채택, A+B 흡수 3항목(시간대별 홈·세리프 인용·다크 팔레트) 모두 미도입. 베타는 라이트 고정이며 다크 모드는 출시 후 재검토.
+- `[종결]` `DEC-PWA-015` 5탭 명칭 — **2026-09-14 확정**: 오늘 훈독 · AI 질문 · 말씀 · 가정예배 · **나의 정원**. 시안 HTML·스크린샷의 "나의 뜰" 표기는 09-10 산출물이며 재생성하지 않는다
+- `[종결]` `DEC-PWA-016` 앱 이름 — **2026-09-14 "훈독"으로 확정**, 가안 표기 해제. FFWPU 공식 승인 절차는 `DEC-PWA-001` 외부 게이트로 남는다
+- `[종결]` `DEC-PWA-019` 개인 랭킹·달란트형 화폐 — **2026-09-14 둘 다 제외 확정**. 진행률·참여 인원만 표시
+- `[종결]` `DES-PWA-003-Q1` 권위 층 배지 — **2026-09-16 "시안 그대로" 확정**. O1·O2 는 초록(`--ok-soft`) 유지. `--ok` 는 완료와 정본 등급 두 의미를 가지며, 혼동은 형태로 막는다(완료 = 체크 아이콘, 등급 = 등급 숫자 + 한국어 라벨). 글자색만 대비 미달(4.49:1)로 `--ok-strong`(6.14:1) 교체. [DES-PWA-003 §2.3](specs/web/hoondok-design-system.md)
+- `[종결]` 데스크톱 시안 4안·DESIGN.md 7안·내비 7안 비교 — **2026-09-16 A 기준 유지 + 상단 헤더 4 확정.** 비교 산출물은 PR #269 이전 커밋에만 남긴다. 구현 단계 검토 후보: E 반전 원문 블록, C AI 설명 이중 라벨, D 형태 전용 요일 칩, 체크 원·용어 칩 44px
+- `[확인 필요]` **세리프 말씀 인용 재검토** — `DEC-PWA-017` 이 2026-09-14 기각했으나 비교 시안 도구·브랜드 번역 안 대부분이 세리프 원문을 재제안했다. 기각 근거였던 "장년층 가독성 확인"은 아직 수행하지 않았다. 프로토타입 `?serif=1` 로 바로 비교할 수 있다
+- `[종결]` `DES-PWA-003-Q2` 히어로 사진 — **2026-09-16 베타는 텍스트 카드로 확정.** 사진 소스·권리 절차는 `RSK-PWA-008` 과 함께 후속
+- `[확인 필요]` `DEC-PWA-020` "가행국 가정예배"의 정식 명칭·주관 부서와 순서지 편성 주체
+- `[확인 필요]` `DEC-PWA-021` 설교 섭외·신청의 운영 주체와 교회장 동의 절차
+- `[확인 필요]` `DEC-PWA-001` 독립 베타의 법적 운영 주체와 FFWPU 공식 승인 요청·검수 절차는 무엇인가?
+- `[확인 필요]` `DEC-PWA-002` 초기 소규모 정본의 정확한 목록과 본문 전재·검색·임베딩·AI 요약·오프라인·푸시 인용별 권리 범위는 어디까지인가?
+- `[확인 필요]` `DEC-PWA-003` 콘텐츠 공식성·검수·철회 최종 책임자는 누구인가?
 - `[확인 필요]` 분리 전 다이어그램 JSON 6종(`docs/archive/diagrams-2026-09-04/`, 약 45KB)을 계속 보존할지, git 이력만 믿고 지울지. HTML/PNG 는 이미 이력에만 남겼다.
 - `[확인 필요]` `DEC-MONO-004` — Flutter 착수 시점은 미정. PWA 우선 후 도입 확정 시 앱·Dart SDK·Pub workspace·모바일 CI를 함께 추가한다.
 - ~~GCP 실제 배포 시점?~~ — 해소. GCP 배포 후(2026-04~07) 2026-07-29 Oracle Cloud 로 이전 완료. §13 참조
@@ -225,20 +264,26 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] **원격 브랜치 정리** (2026-09-06 완료) — 118개 중 **116개 삭제**(main 조상 17 · squash 머지 PR 91 · CLOSED PR 6 · PR 없는 정리 브랜치 2). 유지: `chore/multi-project-port-offset`(#188 OPEN) · `docs/ffwpu-pwa-session-1`(#218 CLOSED, 로컬 worktree 사용 중). `docs/doc-index-cache-threshold` 의 미반영 2커밋(NotebookLM 평가 스크립트·문서 색인)은 로컬 `backup/doc-index-cache-threshold` 에 보존(`volume_raw 255` 수정은 main 에 이미 있음). 이후 정리는 `delete_branch_on_merge` 가 맡는다.
 - [x] **Dependabot 알림 221건 triage** (2026-09-06 완료 · **open 0**) — 실제 분포는 npm 147(`pnpm-lock.yaml` 101 + `apps/{web,admin}/package.json` 각 23 — `next` 23 advisory 의 manifest 별 중복 집계) / **pip 74**(`apps/api/uv.lock`, 첫 페이지 표본에 없었음). 한 PR 한 계열, 전부 `CI Required`(E2E 포함) green: #230 `next` 16.2.12(-69) · #231 `shadcn` → devDependencies + hono·qs·postcss 계열 `pnpm.overrides`(-40) · #234 fast-uri·brace-expansion·undici·vite overrides(-35) · #233 pip 패치 9종(-20) · #235 cryptography 50.0.1·starlette 1.3.1 메이저(-10, 사용자 승인) · #237 fastembed 0.8.0(qdrant-client 1.19.0 동반)+pillow 12.3.0+pytest·pygments(-20) · **dismiss 26 `not_used`**(eval 그룹 전용 24 — aiohttp·langchain*·langgraph*·langsmith·ragas·diskcache, `uv export --no-dev` prod 세트 미포함 / ecdsa — JWT HS256 만 사용·패치 없음 / sharp — 양 앱 `next/image` 미사용, next 16.2 가 ^0.34.5 고정 → 16.3 상향 때 재확인). lockfile 은 `pnpm update` 가 아닌 specifier 편집 + `pnpm install`·`uv lock --upgrade-package` 로 대상만 재해석했다. 운영 반영은 web/admin 컷오버 때 새 main 이미지로 — 배포 후 sparse 검색(fastembed 0.8) 실동작 1회 확인.
 - [ ] **Dependabot 버전 업데이트 PR 처리 (2026-09-06)** — `.github/dependabot.yml` 추가 직후 열린 PR 중 하한만 올리는 #250(qdrant-client≥1.19)·#251(python-jose≥3.5) 은 머지, actions 메이저 #244~#246 도 CI green 으로 머지. **보류**: #249 pip minor/patch 9종(fastapi 0.135→0.141 등 런타임 프레임워크) · #252 npm minor/patch 19종(next 16.2→16.3, shadcn 4.20, tailwind 4.3 — UI 변화 가능) · **메이저** #253 typescript 5.9→7.0 · #254 @types/node 20→26. 화면 확인이 있는 세션에서 단독 검증 후 결정(typescript 7 은 컴파일러 교체급이라 별도 ADR 감). Dependabot 이 매달 같은 PR 을 갱신하므로 방치 비용 없음. **후속(같은 날 심층 점검)**: #249 는 FastAPI 0.140+ `_IncludedRouter` 로 테스트만 깨짐 → 테스트 적응 커밋을 브랜치에 push(`tests/route_helpers.py`), CI 후 머지. #253 TS 7 · #254 @types/node 26 은 close 하고 `dependabot.yml` 에 major ignore, `@types/node` 는 `^22` 로 수동 정렬(툴체인 PR). #252 는 next/eslint-config-next 16.3.4 를 툴체인 PR 이 흡수 — 남은 minor/patch(+`@base-ui/react` 1.7)는 Dependabot 이 다시 묶어 오면 화면 확인 후 머지. E2E 중복 텍스트 원인은 Next 16.3 route announcer(툴체인 PR 에서 heading 로케이터로 수정).
-- [ ] **react-hooks v7 컴파일러 규칙 13건 수정 (2026-09-06 warn 단계 도입)** — eslint-config-next 16.3 가 error 로 켠 `set-state-in-effect` 9 · `refs` 1 · `immutability` 1 · warn 2 를 `packages/eslint-config/next.mjs` 에서 warn 으로 낮췄다. 대상: web `(chat)/page.tsx` 207·251·878·1256, `(chat)/history/page.tsx` 135, `persona-sheet.tsx` 126, `streaming-text.tsx` 29·69, `lib/api.ts` 10 · admin `analytics/queries/page.tsx` 48·55, `lib/api.ts` 10. UI 동작이 바뀌는 수정이라 **화면 확인 세션에서** 고친 뒤 규칙을 error 로 되돌린다. Biome 전환(ADR 제안)이 확정되면 이 항목은 Biome `useReactCompiler` 로 대체.
+- [ ] **react-hooks v7 컴파일러 규칙 13건 수정 (2026-09-06 warn 단계 도입)** — eslint-config-next 16.3 가 error 로 켠 `set-state-in-effect` 9 · `refs` 1 · `immutability` 1 · warn 2 를 `packages/eslint-config/next.mjs` 에서 warn 으로 낮췄다. 대상: web `(chat)/page.tsx` 207·251·878·1256, `(chat)/history/page.tsx` 135, `persona-sheet.tsx` 126, `streaming-text.tsx` 29·69, `lib/api.ts` 10 · admin `analytics/queries/page.tsx` 48·55, `lib/api.ts` 10. UI 동작이 바뀌는 수정이라 **화면 확인 세션에서** 고친 뒤 규칙을 error 로 되돌린다. Biome 전환(ADR 제안)이 확정되면 이 항목은 Biome `useReactCompiler` 로 대체. → **2026-09-06 Biome 확정**: ④ 에서 ESLint 를 제거할 때 Biome `useReactCompiler`(warn, ② 후 실측 7건) 로 이어받는다.
+- [ ] **Biome 전환 P3 ①~④ (2026-09-06 [ADR 확정](adr/2026-09-06-biome-migration-proposal.md))** — 브랜치 `chore/biome-format-baseline`(#256 위에서 실행 → #256 머지 직후 main 으로 rebase, 충돌 0). [x] ① 루트 `biome.json`(2-space · double quote · lineWidth 120 · react/next 도메인 · `useReactCompiler` warn · `useSortedClasses` off · `apps/api`·생성 SDK·`contracts`·`docs`·`reports`·`pyrightconfig.json` 제외) + 루트 `pnpm format`/`format:check` · [x] ② 포맷·organizeImports **1커밋 140 파일**(lint 자동 수정 미적용, 로직 변경 0 — typecheck·ESLint 경고 13 동일·vitest 22·tooling 16·contracts·boundaries·docs·build 통과) · [ ] ②-후속 머지된 포맷 커밋 SHA 를 `.git-blame-ignore-revs` 에 등록(③ 첫 PR) · [ ] ③ 수동 정리 **error 57 / warn 43**(`useButtonType` 17 · `noArrayIndexKey` 16 · `useExhaustiveDependencies` 8 · `useIterableCallbackReturn` 6 · a11y 9 · `useImportType` warn 13 …) — a11y → hooks → `noArrayIndexKey`(화면 확인 필요) 순 파일군별 소커밋 · [ ] ④ CI `pnpm lint` → `biome ci .`, `packages/eslint-config` 삭제, `.ai/rules/frontend.md`·`AGENTS.md`·`docs/README.md`·환경 runbook 갱신(ARCH-MONO-001 의 "공유 3패키지" 문구도 2개로).
 - [ ] **P2 (이번 달+)** — healthchecks.io dead-man ping(`ops-check.sh`·`backup-db.sh`) · ~~`.github/dependabot.yml`(monthly, PR 3개 제한)~~(2026-09-06 추가: npm·uv·github-actions, minor/patch 그룹) + `dorny/paths-filter` SHA 핀 · `qdrant/qdrant:latest` → 운영 태그 `v1.12.4`(dev·e2e compose) · 무효 `apps/{api,admin}/.dockerignore` 삭제 · `@truewords/e2e` typecheck 스크립트 · ruff 도입 · Playwright `trace: retain-on-failure` · `cloudflare/cloudflared:latest` → 태그 고정(nexus·kairos 는 `2026.8.0` 고정, 2026-09-06 확인) · VM `~/truewords/cache-cleanup.sh` 사본이 main 과 다름(crontab 미등록·수동 진입점, 다음 scp 때 갱신) · 로컬 브랜치 51개 정리(원격 116개는 2026-09-06 삭제).
 
 ### 전환 검증에서 확인한 기존 후속 과제
 
-- [ ] `SEC-MONO-001` (P1, 전환 전부터 존재) — `apps/api/app/modules/chat/pipeline/stages/session.py`의 기존 `session_id` 재사용 경로에 쓰기 소유권 검증이 없다. 기록 조회의 소유권 검증과 별개다. 일반 사용자 공개 전에 인증/익명 세션 정책을 확정하고 타 사용자 세션 이어쓰기 거부 회귀 테스트와 함께 수정한다. 이번 폴더 이전에서 정책을 임의 변경하지 않았다.
+- [x] `SEC-MONO-001` — **2026-09-16 수정 (PR #272, `dev/hoondok-mvp`)**: `session.py` 재사용 경로에서 `existing.user_id != ctx.user_id` 면 403 `SESSION_FORBIDDEN`. 익명↔익명 재사용 허용, 미존재 id 는 새 세션. 회귀 6건. 스트림 경로의 HTTP 상태 매핑은 기존 SSE mid-error xfail 범위로 남는다.
 - [ ] `QUALITY-MONO-001` — `apps/web/src/app/(chat)/page.tsx`의 기존 `react-hooks/exhaustive-deps` 경고 1개를 별도 정리한다. 이번 검사 결과는 오류 0개이며 경고를 숨기지 않았다.
 
 ### 가정연합 신규 PWA 기획 (2026-08-31)
-- [ ] 세션 1 — `docs/research/2026-08-30-pwa-app-direction.md` §7 프롬프트로 PRD 작성·리뷰
-- [ ] 세션 2 — 승인 PRD 기반 A/B/C 비교형 프로토타입 작성·방향 선택
-- [ ] 세션 3 — 채택안 디자인 시스템·접근성 상태 작성·승인
-- [ ] 세션 4 — 구현 설계·작업 분해·제한 베타 계획과 S5~S15 실행 runbook 작성
-- [ ] 세션 5~15 — 승인 runbook 순서로 구현·검증·독립 베타·결과 판정
+- [x] 세션 1' — PRD v2 작성 (`docs/prd/17-ffwpu-pwa-prd.md`, 2026-09-10 전면 재작성. v1 PR #261 close)
+- [x] 세션 2' — 디자인 2안 클릭형 목업 작성 (2026-09-16 정리로 제거, 정본은 `prototypes/hoondok-ds/`)
+- [x] 세션 1'·2' 승인 — 2026-09-14 방향(`DEC-PWA-015·016·017·019`) + 2026-09-16 PRD v2 전체 승인(`DEC-PWA-022`). `DEC-PWA-020·021` 은 외부 확인 대기
+- [x] 세션 3 — 채택안 디자인 시스템·접근성 상태 작성 (`docs/specs/web/hoondok-design-system.md`, `DES-PWA-003`, 2026-09-15). 2026-09-16 문서 전체 승인, 레일·FAB 모순은 정정 주석
+- [x] 세션 4 — 구현 계획 [PLAN-HD-001](plans/active/2026-09-17-hoondok-mvp.md) (2026-09-16). 범위 축소: 3테이블 [ENT-HD-001~003](specs/domain/hoondok-entities.md) · 5 API [API-HD-001~005](specs/api/hoondok-api.md) · 화면 4 · Phase 1~4. 정성·챌린지·관계·설교 도메인은 비범위
+- [x] Phase 1 코드 (2026-09-16) — 통합 브랜치 `dev/hoondok-mvp`: sub-PR #272 `SEC-MONO-001` 403 / #273 web 골격·`[data-app="hoondok"]` 토큰·컴포넌트 6종·`hoondok-css.mjs`·Playwright 스모크 / #274 `daily_readings`·`GET /hoondok/today`·SDK 재생성·web 결합. 증거는 계획 §9
+- [ ] Phase 1 잔여 — 60대 사용자 3명 200% 확대 실사용 확인(섭외 필요), 운영 이미지 플래그 OFF 404 는 2026-09-18 `b70b6c8` deploy-web 에서 확인 완료(계획 §9)
+- [x] Phase 2 코드 (2026-09-16) — 통합 브랜치 `dev/hoondok-phase2`: #277 계획 §5 분해표 / #278 `identity`(`users`·`/hoondok/auth/*`·쿠키 `hoondok_token`·JWT `aud=hoondok` 7일·python-jose aud 함정 명시 검사) / #279 `mission_logs`·`POST /hoondok/missions/{kind}/complete`·`GET /hoondok/me/summary`(연속일 `read` 기준) / #280 web `features/identity`·`/hoondok/onboarding` 최소형·완료·연속일 결합·비로그인 소급 / E2E 시드·시나리오·additive-only 리허설. 증거는 계획 §9 · **2026-09-18 PR #282 main 머지(`b70b6c8`) + 운영 배포 backend·web(플래그 OFF)**, 증거 §9 마지막 3행
+- [ ] Phase 2 잔여 — 계정 삭제 API(`deleted_at` 예약만)·비밀번호 재설정은 베타 전 필요 여부 결정. `[확인 필요]` 3건(메일·약관·편성자)은 Questions 유지
+- [ ] Phase 3~4 — PWA 셸·편성 운영 수단·플래그 ON 배포·제한 베타 → 훈독 알림 1종(조건부). 계획 §6~§7. **편성 트랙 진행(2026-09-19)**: 통합 브랜치 `dev/hoondok-phase3`(main `b30aebd` 위), #284 분해표 · A #285 편성 API 머지 · B admin 편성 화면(`/hoondok` 오늘~+14일 표·등록·수정, 철회는 `review_status`) #286 머지 · **dev→main #287 `87db69a` 머지 + `deploy-backend`·`deploy-admin` 완료(2026-09-19, 계획 §9)**. web 은 `b70b6c8`·플래그 OFF 유지. 다음 = 편성자 운영 입력 확인 → PWA 트랙 C
 
 ### 00. 멀티턴 대화 메모리 (2026-07-08)
 > 설계: `docs/architecture/multi-turn-memory.md` (업계 조사 + 방안 A~D 비교)

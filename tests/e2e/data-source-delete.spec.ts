@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
 
 /**
  * E2E: ADR-30 Phase 3 — volume(파일) 영구 삭제 dialog (typed-confirm) 검증
@@ -77,9 +77,7 @@ async function setupMockData(page: Page, options: { deleteHandler?: (route: Rout
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify([
-        { volume: TEST_VOLUME, sources: [TEST_CATEGORY], chunk_count: TEST_CHUNKS },
-      ]),
+      body: JSON.stringify([{ volume: TEST_VOLUME, sources: [TEST_CATEGORY], chunk_count: TEST_CHUNKS }]),
     });
   });
 
@@ -151,7 +149,10 @@ test.describe("ADR-30 Phase 3 — volume 영구 삭제 다이얼로그", () => {
     // 잘못된 값 입력 → destructive 버튼 비활성
     const confirmInput = page.getByLabel(/확인을 위해/);
     await confirmInput.fill("wrong_input");
-    const deleteBtn = page.getByRole("dialog").getByRole("button").filter({ hasText: /영구 삭제|삭제 중/ });
+    const deleteBtn = page
+      .getByRole("dialog")
+      .getByRole("button")
+      .filter({ hasText: /영구 삭제|삭제 중/ });
     await expect(deleteBtn).toBeDisabled();
 
     // helper text — 일치 안내가 사라지고 정확 일치 안내 유지
@@ -167,13 +168,17 @@ test.describe("ADR-30 Phase 3 — volume 영구 삭제 다이얼로그", () => {
 
     // 정확 일치 시 ✓ 안내 + 버튼 활성
     await expect(page.getByText(/일치합니다/)).toBeVisible();
-    const deleteBtn = page.getByRole("dialog").getByRole("button").filter({ hasText: /영구 삭제|삭제 중/ });
+    const deleteBtn = page
+      .getByRole("dialog")
+      .getByRole("button")
+      .filter({ hasText: /영구 삭제|삭제 중/ });
     await expect(deleteBtn).toBeEnabled();
 
     // DELETE 요청을 캡처할 수 있도록 클릭 직전 listener 등록
-    const deletePromise = page.waitForRequest((req) =>
-      req.url().includes(`/admin/data-sources/volumes/${encodeURIComponent(TEST_VOLUME)}`) &&
-      req.method() === "DELETE",
+    const deletePromise = page.waitForRequest(
+      (req) =>
+        req.url().includes(`/admin/data-sources/volumes/${encodeURIComponent(TEST_VOLUME)}`) &&
+        req.method() === "DELETE",
     );
 
     await deleteBtn.click();
@@ -206,7 +211,10 @@ test.describe("ADR-30 Phase 3 — volume 영구 삭제 다이얼로그", () => {
     await openCategoryAndExpand(page);
     await page.getByRole("button", { name: `${TEST_VOLUME} 영구 삭제` }).click();
     await page.getByLabel(/확인을 위해/).fill(TEST_VOLUME);
-    const deleteBtn = page.getByRole("dialog").getByRole("button").filter({ hasText: /영구 삭제|삭제 중/ });
+    const deleteBtn = page
+      .getByRole("dialog")
+      .getByRole("button")
+      .filter({ hasText: /영구 삭제|삭제 중/ });
     await deleteBtn.click();
 
     // 클릭 직후 — "삭제 중..." 텍스트 + spinner + 버튼 disable
@@ -239,7 +247,11 @@ test.describe("ADR-30 Phase 3 — volume 영구 삭제 다이얼로그", () => {
     await openCategoryAndExpand(page);
     await page.getByRole("button", { name: `${TEST_VOLUME} 영구 삭제` }).click();
     await page.getByLabel(/확인을 위해/).fill(TEST_VOLUME);
-    await page.getByRole("dialog").getByRole("button").filter({ hasText: /영구 삭제|삭제 중/ }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button")
+      .filter({ hasText: /영구 삭제|삭제 중/ })
+      .click();
 
     // 토스트 — 스킵 카운트 표시
     await expect(page.getByText(/스킵 1/)).toBeVisible({ timeout: 5_000 });
@@ -274,7 +286,10 @@ test.describe("ADR-30 Phase 3 — volume 영구 삭제 다이얼로그", () => {
     await expect(page.getByRole("button", { name: "취소" })).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(
-      page.getByRole("dialog").getByRole("button").filter({ hasText: /영구 삭제|삭제 중/ }),
+      page
+        .getByRole("dialog")
+        .getByRole("button")
+        .filter({ hasText: /영구 삭제|삭제 중/ }),
     ).toBeFocused();
   });
 });

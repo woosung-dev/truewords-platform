@@ -1,47 +1,39 @@
 // TrueWords component library — barrel export
-export { ChatButton, chatButtonVariants } from "./chat-button";
+
 export type { ChatButtonProps } from "./chat-button";
-
-export { QuestionInput } from "./question-input";
-export type { QuestionInputProps } from "./question-input";
-
-export { CitationCard } from "./citation-card";
+export { ChatButton, chatButtonVariants } from "./chat-button";
 export type {
   CitationCardProps,
   CitationMeta,
   CitationTab,
 } from "./citation-card";
-
-export { PersonaSheet, PersonaRowTrigger, PERSONAS } from "./persona-sheet";
+export { CitationCard } from "./citation-card";
+export type {
+  ClosingTemplateKind,
+  ClosingTemplateProps,
+} from "./closing-template";
+export { ClosingTemplate } from "./closing-template";
+export type { FeedbackButtonsProps, FeedbackKind } from "./feedback-buttons";
+export { FeedbackButtons } from "./feedback-buttons";
+export type { FloatingActionBarProps } from "./floating-action-bar";
+export { FloatingActionBar } from "./floating-action-bar";
+export type { FollowupPillsProps } from "./followup-pills";
+export { FollowupPills } from "./followup-pills";
 export type {
   PersonaMode,
-  PersonaSheetProps,
   PersonaRowTriggerProps,
+  PersonaSheetProps,
 } from "./persona-sheet";
-
-export { FloatingActionBar } from "./floating-action-bar";
-export type { FloatingActionBarProps } from "./floating-action-bar";
-
-export { FollowupPills } from "./followup-pills";
-export type { FollowupPillsProps } from "./followup-pills";
-
-export { FeedbackButtons } from "./feedback-buttons";
-export type { FeedbackButtonsProps, FeedbackKind } from "./feedback-buttons";
-
-export { ClosingTemplate } from "./closing-template";
+export { PERSONAS, PersonaRowTrigger, PersonaSheet } from "./persona-sheet";
+export type { QuestionInputProps } from "./question-input";
+export { QuestionInput } from "./question-input";
 export type {
-  ClosingTemplateProps,
-  ClosingTemplateKind,
-} from "./closing-template";
-
-export { StreamingText, AnswerSkeleton } from "./streaming-text";
-export type {
-  StreamingTextProps,
-  AnswerSkeletonProps,
-} from "./streaming-text";
-
+  SourceChunkDetail,
+  SourceOriginalModalProps,
+} from "./source-original-modal";
 export { SourceOriginalModal } from "./source-original-modal";
 export type {
-  SourceOriginalModalProps,
-  SourceChunkDetail,
-} from "./source-original-modal";
+  AnswerSkeletonProps,
+  StreamingTextProps,
+} from "./streaming-text";
+export { AnswerSkeleton, StreamingText } from "./streaming-text";

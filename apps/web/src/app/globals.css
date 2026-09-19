@@ -89,18 +89,18 @@
   /* Background: warm paper #FFFBEB */
   --background: oklch(0.988 0.024 95);
   /* Foreground: deep ink #1C1714 */
-  --foreground: oklch(0.180 0.012 50);
+  --foreground: oklch(0.18 0.012 50);
   /* Card: pure white surface */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.180 0.012 50);
+  --card-foreground: oklch(0.18 0.012 50);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.180 0.012 50);
+  --popover-foreground: oklch(0.18 0.012 50);
   /* Primary: scholarly navy #1E3A8A */
   --primary: oklch(0.319 0.155 264);
   --primary-foreground: oklch(1 0 0);
   /* Secondary: warm muted paper #FAF5EE */
   --secondary: oklch(0.969 0.014 87);
-  --secondary-foreground: oklch(0.180 0.012 50);
+  --secondary-foreground: oklch(0.18 0.012 50);
   /* Muted: same as secondary for shadcn compatibility */
   --muted: oklch(0.969 0.014 87);
   /* Muted foreground: warm gray #6B5D4F */
@@ -111,15 +111,15 @@
   /* Destructive: warm red #B91C1C */
   --destructive: oklch(0.466 0.211 25);
   /* Border: warm border #E8DFD0 */
-  --border: oklch(0.890 0.025 78);
-  --input: oklch(0.890 0.025 78);
+  --border: oklch(0.89 0.025 78);
+  --input: oklch(0.89 0.025 78);
   /* Ring: navy primary for focus */
   --ring: oklch(0.319 0.155 264);
   --chart-1: oklch(0.319 0.155 264); /* navy */
-  --chart-2: oklch(0.539 0.166 47);  /* brass */
+  --chart-2: oklch(0.539 0.166 47); /* brass */
   --chart-3: oklch(0.501 0.152 144); /* success green */
   --chart-4: oklch(0.486 0.105 213); /* pastoral teal */
-  --chart-5: oklch(0.466 0.211 25);  /* destructive */
+  --chart-5: oklch(0.466 0.211 25); /* destructive */
   --radius: 0.75rem;
   /* TrueWords 확장 토큰 (Plan A.2) */
   /* Pastoral: 목회 상담 모드 톤 #0E7490 (차분 청록) */
@@ -136,20 +136,20 @@
   --tw-surface-muted: oklch(0.969 0.014 87);
   /* === Design Tokens Refactor (PR feat/design-tokens-refactor) === */
   /* Warning: brass 계 amber (paper bg 위 명확 대비) */
-  --tw-warning: oklch(0.580 0.155 70);
+  --tw-warning: oklch(0.58 0.155 70);
   --tw-warning-fg: oklch(1 0 0);
   --tw-warning-soft: oklch(0.965 0.045 85);
-  --tw-warning-border: oklch(0.808 0.080 78);
+  --tw-warning-border: oklch(0.808 0.08 78);
   /* Success/Danger/Info soft fill + border (배지/알림 박스용) */
-  --tw-success-soft: oklch(0.955 0.040 145);
-  --tw-success-border: oklch(0.808 0.060 144);
-  --tw-danger-soft: oklch(0.955 0.030 25);
-  --tw-danger-border: oklch(0.808 0.080 25);
+  --tw-success-soft: oklch(0.955 0.04 145);
+  --tw-success-border: oklch(0.808 0.06 144);
+  --tw-danger-soft: oklch(0.955 0.03 25);
+  --tw-danger-border: oklch(0.808 0.08 25);
   --tw-info: var(--tw-pastoral);
-  --tw-info-soft: oklch(0.955 0.030 213);
-  --tw-info-border: oklch(0.808 0.060 213);
+  --tw-info-soft: oklch(0.955 0.03 213);
+  --tw-info-border: oklch(0.808 0.06 213);
   /* 페르소나 아이콘 배경 — 따뜻한 베이지 (#F5EDE0) */
-  --tw-persona-icon-bg: oklch(0.944 0.030 78);
+  --tw-persona-icon-bg: oklch(0.944 0.03 78);
   /* Motion 토큰 */
   --tw-duration-fast: 150ms;
   --tw-duration-normal: 250ms;
@@ -159,70 +159,69 @@
   --tw-ease-in: cubic-bezier(0.4, 0, 1, 1);
   --tw-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   /* Shadow 토큰 */
-  --tw-shadow-card: 0 1px 3px oklch(0.180 0.012 50 / 6%), 0 1px 2px oklch(0.180 0.012 50 / 4%);
-  --tw-shadow-card-hover: 0 4px 12px oklch(0.180 0.012 50 / 8%), 0 2px 4px oklch(0.180 0.012 50 / 4%);
-  --tw-shadow-float: 0 -4px 16px oklch(0.180 0.012 50 / 8%), 0 -1px 2px oklch(0.180 0.012 50 / 4%);
-  --tw-shadow-modal: 0 20px 48px oklch(0.180 0.012 50 / 16%), 0 4px 12px oklch(0.180 0.012 50 / 6%);
+  --tw-shadow-card: 0 1px 3px oklch(0.18 0.012 50 / 6%), 0 1px 2px oklch(0.18 0.012 50 / 4%);
+  --tw-shadow-card-hover: 0 4px 12px oklch(0.18 0.012 50 / 8%), 0 2px 4px oklch(0.18 0.012 50 / 4%);
+  --tw-shadow-float: 0 -4px 16px oklch(0.18 0.012 50 / 8%), 0 -1px 2px oklch(0.18 0.012 50 / 4%);
+  --tw-shadow-modal: 0 20px 48px oklch(0.18 0.012 50 / 16%), 0 4px 12px oklch(0.18 0.012 50 / 6%);
 }
 
 .dark {
   /* TrueWords Dark Mode (Plan A.2) — Mahogany × Parchment */
   /* Background: mahogany ink #1C1714 */
-  --background: oklch(0.180 0.012 50);
+  --background: oklch(0.18 0.012 50);
   /* Foreground: parchment #E8DFD4 */
-  --foreground: oklch(0.890 0.025 78);
+  --foreground: oklch(0.89 0.025 78);
   /* Card: oak #251E19 */
-  --card: oklch(0.220 0.012 55);
-  --card-foreground: oklch(0.890 0.025 78);
-  --popover: oklch(0.220 0.012 55);
-  --popover-foreground: oklch(0.890 0.025 78);
+  --card: oklch(0.22 0.012 55);
+  --card-foreground: oklch(0.89 0.025 78);
+  --popover: oklch(0.22 0.012 55);
+  --popover-foreground: oklch(0.89 0.025 78);
   /* Primary: lighter blue for dark contrast */
-  --primary: oklch(0.770 0.140 264);
-  --primary-foreground: oklch(0.180 0.012 50);
-  --secondary: oklch(0.260 0.014 55);
-  --secondary-foreground: oklch(0.890 0.025 78);
-  --muted: oklch(0.260 0.014 55);
+  --primary: oklch(0.77 0.14 264);
+  --primary-foreground: oklch(0.18 0.012 50);
+  --secondary: oklch(0.26 0.014 55);
+  --secondary-foreground: oklch(0.89 0.025 78);
+  --muted: oklch(0.26 0.014 55);
   --muted-foreground: oklch(0.677 0.022 75);
   /* Accent: brighter brass for dark */
-  --accent: oklch(0.700 0.166 60);
-  --accent-foreground: oklch(0.180 0.012 50);
+  --accent: oklch(0.7 0.166 60);
+  --accent-foreground: oklch(0.18 0.012 50);
   --destructive: oklch(0.604 0.222 25);
-  --border: oklch(0.330 0.018 60);
-  --input: oklch(0.330 0.018 60);
-  --ring: oklch(0.770 0.140 264);
-  --chart-1: oklch(0.770 0.140 264);
-  --chart-2: oklch(0.700 0.166 60);
-  --chart-3: oklch(0.620 0.152 144);
-  --chart-4: oklch(0.620 0.105 213);
+  --border: oklch(0.33 0.018 60);
+  --input: oklch(0.33 0.018 60);
+  --ring: oklch(0.77 0.14 264);
+  --chart-1: oklch(0.77 0.14 264);
+  --chart-2: oklch(0.7 0.166 60);
+  --chart-3: oklch(0.62 0.152 144);
+  --chart-4: oklch(0.62 0.105 213);
   --chart-5: oklch(0.604 0.222 25);
   /* TrueWords 확장 토큰 — Dark */
-  --tw-pastoral: oklch(0.620 0.105 213);
-  --tw-pastoral-fg: oklch(0.180 0.012 50);
-  --tw-success: oklch(0.620 0.152 144);
-  --tw-success-fg: oklch(0.180 0.012 50);
-  --tw-fg-subtle: oklch(0.500 0.020 70);
-  --tw-border-strong: oklch(0.500 0.040 75);
-  --tw-surface-muted: oklch(0.260 0.014 55);
+  --tw-pastoral: oklch(0.62 0.105 213);
+  --tw-pastoral-fg: oklch(0.18 0.012 50);
+  --tw-success: oklch(0.62 0.152 144);
+  --tw-success-fg: oklch(0.18 0.012 50);
+  --tw-fg-subtle: oklch(0.5 0.02 70);
+  --tw-border-strong: oklch(0.5 0.04 75);
+  --tw-surface-muted: oklch(0.26 0.014 55);
   /* === Design Tokens Refactor — Dark === */
-  --tw-warning: oklch(0.770 0.150 75);
-  --tw-warning-fg: oklch(0.180 0.012 50);
-  --tw-warning-soft: oklch(0.580 0.155 70 / 18%);
-  --tw-warning-border: oklch(0.580 0.155 70 / 30%);
-  --tw-success-soft: oklch(0.620 0.152 144 / 18%);
-  --tw-success-border: oklch(0.620 0.152 144 / 30%);
+  --tw-warning: oklch(0.77 0.15 75);
+  --tw-warning-fg: oklch(0.18 0.012 50);
+  --tw-warning-soft: oklch(0.58 0.155 70 / 18%);
+  --tw-warning-border: oklch(0.58 0.155 70 / 30%);
+  --tw-success-soft: oklch(0.62 0.152 144 / 18%);
+  --tw-success-border: oklch(0.62 0.152 144 / 30%);
   --tw-danger-soft: oklch(0.604 0.222 25 / 18%);
   --tw-danger-border: oklch(0.604 0.222 25 / 30%);
   --tw-info: var(--tw-pastoral);
-  --tw-info-soft: oklch(0.620 0.105 213 / 18%);
-  --tw-info-border: oklch(0.620 0.105 213 / 30%);
-  --tw-persona-icon-bg: oklch(0.280 0.020 60);
+  --tw-info-soft: oklch(0.62 0.105 213 / 18%);
+  --tw-info-border: oklch(0.62 0.105 213 / 30%);
+  --tw-persona-icon-bg: oklch(0.28 0.02 60);
   /* Shadow 토큰 — Dark (검정에 가까운 잉크 그림자 더 진하게) */
   --tw-shadow-card: 0 1px 3px oklch(0 0 0 / 30%), 0 1px 2px oklch(0 0 0 / 20%);
   --tw-shadow-card-hover: 0 4px 12px oklch(0 0 0 / 40%), 0 2px 4px oklch(0 0 0 / 20%);
   --tw-shadow-float: 0 -4px 16px oklch(0 0 0 / 40%), 0 -1px 2px oklch(0 0 0 / 20%);
   --tw-shadow-modal: 0 20px 48px oklch(0 0 0 / 60%), 0 4px 12px oklch(0 0 0 / 30%);
 }
-
 
 @layer base {
   * {
@@ -267,8 +266,12 @@
     word-break: keep-all;
     overflow-wrap: break-word;
   }
-  .prose-chat > :first-child { margin-top: 0; }
-  .prose-chat > :last-child { margin-bottom: 0; }
+  .prose-chat > :first-child {
+    margin-top: 0;
+  }
+  .prose-chat > :last-child {
+    margin-bottom: 0;
+  }
   .prose-chat p {
     margin: 0 0 0.7em;
   }
@@ -281,8 +284,12 @@
     margin: 0 0 0.7em;
     padding-left: 1.4em;
   }
-  .prose-chat li { margin-bottom: 0.35em; }
-  .prose-chat li > p { margin: 0; }
+  .prose-chat li {
+    margin-bottom: 0.35em;
+  }
+  .prose-chat li > p {
+    margin: 0;
+  }
   .prose-chat h1,
   .prose-chat h2,
   .prose-chat h3 {
@@ -291,9 +298,15 @@
     margin: 1em 0 0.5em;
     color: var(--foreground);
   }
-  .prose-chat h1 { font-size: 1.15em; }
-  .prose-chat h2 { font-size: 1.08em; }
-  .prose-chat h3 { font-size: 1em; }
+  .prose-chat h1 {
+    font-size: 1.15em;
+  }
+  .prose-chat h2 {
+    font-size: 1.08em;
+  }
+  .prose-chat h3 {
+    font-size: 1em;
+  }
   .prose-chat blockquote {
     margin: 0.7em 0;
     padding: 0.4em 0.9em;

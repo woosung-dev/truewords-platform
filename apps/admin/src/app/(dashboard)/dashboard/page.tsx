@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { AlertCircle, ArrowRight, Bot, CheckCircle2, Database, Search, ThumbsDown, ThumbsUp } from "lucide-react";
+import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
+import { analyticsAPI } from "@/features/analytics/api";
 import { chatbotAPI } from "@/features/chatbot/api";
 import { dataAPI } from "@/features/data-source/api";
-import { analyticsAPI } from "@/features/analytics/api";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Database, CheckCircle2, AlertCircle, ArrowRight, Search, ThumbsUp, ThumbsDown } from "lucide-react";
 
 function StatCard({
   label,
@@ -39,9 +39,7 @@ function StatCard({
       {loading ? (
         <Skeleton className="h-8 w-16" />
       ) : (
-        <p className={`text-3xl font-bold tracking-tight ${colorMap[color]}`}>
-          {value.toLocaleString()}
-        </p>
+        <p className={`text-3xl font-bold tracking-tight ${colorMap[color]}`}>{value.toLocaleString()}</p>
       )}
     </div>
   );
@@ -78,19 +76,12 @@ export default function DashboardPage() {
     <div className="space-y-6 max-w-5xl">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">대시보드</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          시스템 현황을 한눈에 확인합니다
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">시스템 현황을 한눈에 확인합니다</p>
       </div>
 
       {/* KPI 카드 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="전체 챗봇"
-          value={totalChatbots}
-          icon={Bot}
-          loading={chatbotsLoading}
-        />
+        <StatCard label="전체 챗봇" value={totalChatbots} icon={Bot} loading={chatbotsLoading} />
         <StatCard
           label="활성 챗봇"
           value={activeChatbots}
@@ -98,13 +89,7 @@ export default function DashboardPage() {
           color="green"
           loading={chatbotsLoading}
         />
-        <StatCard
-          label="총 청크 수"
-          value={totalChunks}
-          icon={Database}
-          color="blue"
-          loading={statusLoading}
-        />
+        <StatCard label="총 청크 수" value={totalChunks} icon={Database} color="blue" loading={statusLoading} />
         <StatCard
           label="처리 실패"
           value={failedFiles}
@@ -116,26 +101,9 @@ export default function DashboardPage() {
 
       {/* 검색 & 피드백 메트릭 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="오늘 질문"
-          value={todayQuestions}
-          icon={Search}
-          loading={summaryLoading}
-        />
-        <StatCard
-          label="이번 주 질문"
-          value={weekQuestions}
-          icon={Search}
-          color="blue"
-          loading={summaryLoading}
-        />
-        <StatCard
-          label="긍정 피드백"
-          value={helpfulCount}
-          icon={ThumbsUp}
-          color="green"
-          loading={summaryLoading}
-        />
+        <StatCard label="오늘 질문" value={todayQuestions} icon={Search} loading={summaryLoading} />
+        <StatCard label="이번 주 질문" value={weekQuestions} icon={Search} color="blue" loading={summaryLoading} />
+        <StatCard label="긍정 피드백" value={helpfulCount} icon={ThumbsUp} color="green" loading={summaryLoading} />
         <StatCard
           label="부정 피드백"
           value={negativeCount}
@@ -147,9 +115,7 @@ export default function DashboardPage() {
 
       {/* 빠른 이동 */}
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
-          빠른 이동
-        </h2>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">빠른 이동</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link
             href="/chatbots"
@@ -161,9 +127,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="font-medium text-sm">챗봇 관리</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  챗봇 설정 및 검색 티어 구성
-                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">챗봇 설정 및 검색 티어 구성</p>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -179,9 +143,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="font-medium text-sm">데이터 소스</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  RAG 지식 베이스 문서 업로드
-                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">RAG 지식 베이스 문서 업로드</p>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -193,13 +155,8 @@ export default function DashboardPage() {
       {!chatbotsLoading && chatbots && chatbots.items.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              최근 챗봇
-            </h2>
-            <Link
-              href="/chatbots"
-              className="text-xs text-primary hover:underline flex items-center gap-1"
-            >
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">최근 챗봇</h2>
+            <Link href="/chatbots" className="text-xs text-primary hover:underline flex items-center gap-1">
               전체 보기 <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -218,12 +175,8 @@ export default function DashboardPage() {
                       config.is_active ? "bg-success" : "bg-admin-muted-foreground/40"
                     }`}
                   />
-                  <span className="font-medium text-sm truncate">
-                    {config.display_name}
-                  </span>
-                  <span className="text-xs text-muted-foreground font-mono hidden sm:inline">
-                    {config.chatbot_id}
-                  </span>
+                  <span className="font-medium text-sm truncate">{config.display_name}</span>
+                  <span className="text-xs text-muted-foreground font-mono hidden sm:inline">{config.chatbot_id}</span>
                 </div>
                 <span className="text-xs text-muted-foreground shrink-0">
                   티어 {config.search_tiers?.tiers?.length ?? 0}개

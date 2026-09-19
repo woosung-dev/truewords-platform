@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../.."),
   transpilePackages: ["@truewords/api-client-ts"],
   experimental: { proxyClientMaxBodySize: "200mb" },
+  async headers() {
+    return [
+      // 훈독 베타는 권리 미확정 정본을 싣는다. layout metadata.robots 와 함께 색인을 막는다.
+      { source: "/hoondok/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      { source: "/hoondok", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+    ];
+  },
   async redirects() {
     return [
       // 기존 사용자 origin에 남은 관리 URL을 독립 관리자 앱으로 연결한다.

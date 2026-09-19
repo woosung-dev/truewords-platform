@@ -1,7 +1,7 @@
 "use client";
 
+import { Bookmark, ThumbsDown, ThumbsUp } from "lucide-react";
 import * as React from "react";
-import { ThumbsUp, ThumbsDown, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // P1-A — 답변 평가 (👍 👎 💾)
@@ -18,19 +18,10 @@ export interface FeedbackButtonsProps {
   className?: string;
 }
 
-export function FeedbackButtons({
-  state = {},
-  onFeedback,
-  className,
-}: FeedbackButtonsProps) {
+export function FeedbackButtons({ state = {}, onFeedback, className }: FeedbackButtonsProps) {
   return (
-    <section
-      aria-label="답변 평가"
-      className={cn("space-y-2", className)}
-    >
-      <p className="text-sm text-muted-foreground">
-        이 답변이 도움이 되었나요?
-      </p>
+    <section aria-label="답변 평가" className={cn("space-y-2", className)}>
+      <p className="text-sm text-muted-foreground">이 답변이 도움이 되었나요?</p>
       <div className="flex flex-wrap gap-2">
         <FeedbackButton
           icon={ThumbsUp}
@@ -64,13 +55,7 @@ interface FeedbackButtonProps {
   onClick?: () => void;
 }
 
-function FeedbackButton({
-  icon: Icon,
-  label,
-  active,
-  fillWhenActive,
-  onClick,
-}: FeedbackButtonProps) {
+function FeedbackButton({ icon: Icon, label, active, fillWhenActive, onClick }: FeedbackButtonProps) {
   return (
     <button
       type="button"
@@ -83,14 +68,10 @@ function FeedbackButton({
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         active
           ? "border-primary bg-primary/10 text-primary"
-          : "border-border bg-card text-foreground hover:bg-secondary"
+          : "border-border bg-card text-foreground hover:bg-secondary",
       )}
     >
-      <Icon
-        className="size-4"
-        fill={active && fillWhenActive ? "currentColor" : "none"}
-        aria-hidden="true"
-      />
+      <Icon className="size-4" fill={active && fillWhenActive ? "currentColor" : "none"} aria-hidden="true" />
       {label}
     </button>
   );

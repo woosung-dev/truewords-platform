@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // next/navigation mock
 const mockPush = vi.fn();
@@ -37,9 +37,9 @@ vi.mock("@/features/auth/api", () => ({
   },
 }));
 
+import LoginPage from "@/app/login/page";
 import { authAPI } from "@/features/auth/api";
 import { ApiError } from "@/lib/api";
-import LoginPage from "@/app/login/page";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -99,9 +99,7 @@ describe("LoginPage", () => {
   });
 
   it("로그인 실패 시 에러 메시지를 표시한다", async () => {
-    vi.mocked(authAPI.login).mockRejectedValueOnce(
-      new ApiError(401, { message: "인증이 필요합니다" })
-    );
+    vi.mocked(authAPI.login).mockRejectedValueOnce(new ApiError(401, { message: "인증이 필요합니다" }));
 
     render(<LoginPage />);
 
@@ -114,17 +112,13 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "로그인" }));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("이메일 또는 비밀번호가 올바르지 않습니다")
-      ).toBeInTheDocument();
+      expect(screen.getByText("이메일 또는 비밀번호가 올바르지 않습니다")).toBeInTheDocument();
     });
   });
 
   it("로딩 중 버튼이 비활성화된다", async () => {
     // 응답을 지연시킴
-    vi.mocked(authAPI.login).mockImplementationOnce(
-      () => new Promise(() => {})
-    );
+    vi.mocked(authAPI.login).mockImplementationOnce(() => new Promise(() => {}));
 
     render(<LoginPage />);
 

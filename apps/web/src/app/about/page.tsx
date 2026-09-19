@@ -1,16 +1,10 @@
+import { BookOpenCheck, CalendarClock, ScrollText, ShieldAlert } from "lucide-react";
 import type { Metadata } from "next";
 import { ADMIN_ORIGIN } from "@/lib/origins";
-import {
-  BookOpenCheck,
-  CalendarClock,
-  ScrollText,
-  ShieldAlert,
-} from "lucide-react";
 
 export const metadata: Metadata = {
   title: "TrueWords — 신학 입장 & 운영 투명성",
-  description:
-    "TrueWords AI 챗봇의 운영 원칙, 신학적 입장, 검수 사이클, 한계와 면책을 공개합니다.",
+  description: "TrueWords AI 챗봇의 운영 원칙, 신학적 입장, 검수 사이클, 한계와 면책을 공개합니다.",
 };
 
 // ADR-46 Screen 6 — P1-F 신학 입장 / 운영 투명성 페이지.
@@ -76,17 +70,14 @@ export default function AboutPage() {
       {/* Hero */}
       <section className="border-b border-border bg-secondary/50">
         <div className="mx-auto max-w-3xl px-6 py-20 md:py-28 break-keep-all">
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            TrueWords · About
-          </p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">TrueWords · About</p>
           <h1 className="font-display mt-4 text-4xl md:text-5xl font-semibold leading-[1.15] tracking-tight text-foreground">
             우리는 어떤 원칙으로
             <br />이 챗봇을 운영합니까
           </h1>
           <p className="prose-reading mt-6 max-w-2xl text-base md:text-lg text-muted-foreground">
-            TrueWords 는 615권의 학습 텍스트를 근거로 답변하는 AI 챗봇입니다.
-            모든 답변은 출처와 함께 제공되며, 신학 자문진의 정기 검수를 거칩니다.
-            아래는 우리가 지키려는 네 가지 원칙입니다.
+            TrueWords 는 615권의 학습 텍스트를 근거로 답변하는 AI 챗봇입니다. 모든 답변은 출처와 함께 제공되며, 신학
+            자문진의 정기 검수를 거칩니다. 아래는 우리가 지키려는 네 가지 원칙입니다.
           </p>
         </div>
       </section>
@@ -112,9 +103,7 @@ export default function AboutPage() {
                 <h2 className="mt-4 text-lg md:text-xl font-semibold leading-snug text-foreground break-keep-all">
                   {p.title}
                 </h2>
-                <p className="prose-reading mt-3 text-[15px] text-muted-foreground break-keep-all">
-                  {p.body}
-                </p>
+                <p className="prose-reading mt-3 text-[15px] text-muted-foreground break-keep-all">{p.body}</p>
               </article>
             );
           })}
@@ -128,10 +117,7 @@ export default function AboutPage() {
             TrueWords v1.0.0 · gemini-2.5-flash · 615권 학습
           </p>
           <div className="flex items-center gap-5 font-mono text-[12px] text-muted-foreground">
-            <a
-              href={`${ADMIN_ORIGIN}/dashboard`}
-              className="underline-offset-4 hover:text-foreground hover:underline"
-            >
+            <a href={`${ADMIN_ORIGIN}/dashboard`} className="underline-offset-4 hover:text-foreground hover:underline">
               대시보드
             </a>
             <span aria-hidden className="text-border">

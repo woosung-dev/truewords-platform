@@ -111,6 +111,7 @@ jobs:
           node-version: "22"
       - run: node tooling/checks/docs-links.mjs
       - run: node tooling/checks/boundaries.mjs
+      - run: node tooling/checks/hoondok-css.mjs
       - run: node --test tooling/checks/*.test.mjs
       - run: for script in infra/oracle-vm/*.sh; do bash -n "$script" || exit; done
 

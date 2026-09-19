@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight, ThumbsUp, ThumbsDown, Minus, User } from "lucide-react";
+import { ChevronDown, ChevronRight, Minus, ThumbsDown, ThumbsUp, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { QueryOccurrence } from "@/features/analytics/types";
 
@@ -23,13 +23,7 @@ function formatDateTime(iso: string): string {
 }
 
 // 긍정 폴러리티 판별 (backend enum 은 대문자 name 으로 직렬화될 수 있음).
-const POSITIVE_FEEDBACK = new Set([
-  "HELPFUL",
-  "ACCURATE",
-  "WELL_CITED",
-  "EASY_TO_UNDERSTAND",
-  "COMFORTING",
-]);
+const POSITIVE_FEEDBACK = new Set(["HELPFUL", "ACCURATE", "WELL_CITED", "EASY_TO_UNDERSTAND", "COMFORTING"]);
 
 function FeedbackIcon({ type }: { type: string | undefined }) {
   if (!type) {
@@ -41,12 +35,7 @@ function FeedbackIcon({ type }: { type: string | undefined }) {
   return <ThumbsDown className="h-3.5 w-3.5 text-destructive" aria-label="부정 피드백" />;
 }
 
-export default function QueryDetailOccurrence({
-  index,
-  occurrence,
-  expanded,
-  onToggle,
-}: Props) {
+export default function QueryDetailOccurrence({ index, occurrence, expanded, onToggle }: Props) {
   const botLabel = occurrence.chatbot_name ?? "(삭제된 봇)";
   const feedbackType = occurrence.feedback?.feedback_type;
 
@@ -68,9 +57,7 @@ export default function QueryDetailOccurrence({
         ) : (
           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         )}
-        <span className="font-mono text-xs text-muted-foreground w-6 shrink-0">
-          #{index + 1}
-        </span>
+        <span className="font-mono text-xs text-muted-foreground w-6 shrink-0">#{index + 1}</span>
         <Badge variant="outline" className="shrink-0 text-xs">
           {botLabel}
         </Badge>
@@ -79,26 +66,17 @@ export default function QueryDetailOccurrence({
           <Badge className="shrink-0 gap-1 text-xs bg-primary/10 text-primary hover:bg-primary/10">
             <User className="h-3 w-3" />
             {occurrence.participant_name}
-            {occurrence.participant_category
-              ? ` · ${occurrence.participant_category}`
-              : ""}
+            {occurrence.participant_category ? ` · ${occurrence.participant_category}` : ""}
           </Badge>
         )}
-        <span className="text-xs text-muted-foreground shrink-0">
-          {formatDateTime(occurrence.asked_at)}
-        </span>
+        <span className="text-xs text-muted-foreground shrink-0">{formatDateTime(occurrence.asked_at)}</span>
         <span className="ml-auto flex items-center gap-1">
           <FeedbackIcon type={feedbackType} />
         </span>
       </button>
 
       {expanded && (
-        <div
-          id={panelId}
-          role="region"
-          aria-labelledby={headerId}
-          className="border-t px-4 py-4 space-y-4 text-sm"
-        >
+        <div id={panelId} role="region" aria-labelledby={headerId} className="border-t px-4 py-4 space-y-4 text-sm">
           {/* 검색 메타 */}
           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
             <span>tier {occurrence.search_tier}</span>
@@ -110,10 +88,7 @@ export default function QueryDetailOccurrence({
               <>
                 <span>·</span>
                 <span>
-                  재작성:{" "}
-                  <span className="text-foreground">
-                    &ldquo;{occurrence.rewritten_query}&rdquo;
-                  </span>
+                  재작성: <span className="text-foreground">&ldquo;{occurrence.rewritten_query}&rdquo;</span>
                 </span>
               </>
             )}
@@ -123,13 +98,9 @@ export default function QueryDetailOccurrence({
           <div className="space-y-1">
             <h3 className="text-xs font-semibold text-muted-foreground">답변</h3>
             {occurrence.answer_text ? (
-              <p className="whitespace-pre-wrap leading-relaxed">
-                {occurrence.answer_text}
-              </p>
+              <p className="whitespace-pre-wrap leading-relaxed">{occurrence.answer_text}</p>
             ) : (
-              <p className="text-xs text-muted-foreground italic">
-                답변이 저장되지 않았습니다
-              </p>
+              <p className="text-xs text-muted-foreground italic">답변이 저장되지 않았습니다</p>
             )}
           </div>
 
@@ -139,9 +110,7 @@ export default function QueryDetailOccurrence({
               매칭 출처 ({(occurrence.citations ?? []).length}건)
             </h3>
             {(occurrence.citations ?? []).length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">
-                매칭된 출처가 없습니다
-              </p>
+              <p className="text-xs text-muted-foreground italic">매칭된 출처가 없습니다</p>
             ) : (
               <ol className="space-y-2">
                 {(occurrence.citations ?? []).map((c, i) => (
@@ -156,13 +125,9 @@ export default function QueryDetailOccurrence({
                       </Badge>
                       <span>권 {c.volume}</span>
                       {c.chapter && <span>· {c.chapter}</span>}
-                      <span className="ml-auto font-mono">
-                        score {c.relevance_score.toFixed(3)}
-                      </span>
+                      <span className="ml-auto font-mono">score {c.relevance_score.toFixed(3)}</span>
                     </div>
-                    <p className="whitespace-pre-wrap text-xs leading-relaxed">
-                      {c.text_snippet}
-                    </p>
+                    <p className="whitespace-pre-wrap text-xs leading-relaxed">{c.text_snippet}</p>
                   </li>
                 ))}
               </ol>
@@ -178,14 +143,10 @@ export default function QueryDetailOccurrence({
                   <Badge variant="outline" className="text-xs">
                     {occurrence.feedback.feedback_type}
                   </Badge>
-                  <span className="text-muted-foreground">
-                    {formatDateTime(occurrence.feedback.created_at)}
-                  </span>
+                  <span className="text-muted-foreground">{formatDateTime(occurrence.feedback.created_at)}</span>
                 </div>
                 {occurrence.feedback.comment && (
-                  <p className="whitespace-pre-wrap leading-relaxed">
-                    {occurrence.feedback.comment}
-                  </p>
+                  <p className="whitespace-pre-wrap leading-relaxed">{occurrence.feedback.comment}</p>
                 )}
               </div>
             </div>

@@ -14,7 +14,9 @@ export class ApiError extends Error {
   readonly details?: unknown;
 
   constructor(status: number, payload: ApiErrorPayload | string) {
-    super(typeof payload === "string" ? payload || `요청 실패 (${status})` : payload.message || `요청 실패 (${status})`);
+    super(
+      typeof payload === "string" ? payload || `요청 실패 (${status})` : payload.message || `요청 실패 (${status})`,
+    );
     this.name = "ApiError";
     this.status = status;
     if (typeof payload !== "string") {
@@ -38,7 +40,12 @@ export async function throwApiError(response: Response): Promise<never> {
       const value = data as Record<string, unknown>;
       payload = {
         error_code: typeof value.error_code === "string" ? value.error_code : undefined,
-        message: typeof value.message === "string" ? value.message : typeof value.detail === "string" ? value.detail : undefined,
+        message:
+          typeof value.message === "string"
+            ? value.message
+            : typeof value.detail === "string"
+              ? value.detail
+              : undefined,
         request_id: typeof value.request_id === "string" ? value.request_id : undefined,
         details: value.details ?? value.detail,
       };
@@ -86,7 +93,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
     if (!isJson(response)) {
       throw new ApiError(response.status, { error_code: "INVALID_RESPONSE", message: "JSON 응답이 필요합니다" });
     }
-    return await response.json() as T;
+    return (await response.json()) as T;
   }
 
   return { request, client };
