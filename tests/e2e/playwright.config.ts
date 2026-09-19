@@ -42,6 +42,7 @@ export default defineConfig({
         "hoondok-garden.spec.ts",
         "hoondok-settings.spec.ts",
         "hoondok-jeongseong.spec.ts",
+        "hoondok-ask.spec.ts",
       ],
       use: { browserName: "chromium", baseURL: webOrigin },
     },
