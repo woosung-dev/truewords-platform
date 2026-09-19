@@ -5,6 +5,7 @@
 | 먼저 읽을 문서 | 용도 |
 |---|---|
 | [훈독 MVP 실행 계획](plans/active/2026-09-17-hoondok-mvp.md) | 확정값 12개, 3테이블·5 API·화면 4, additive-only 규칙, Phase 1~4 완료 기준 |
+| [훈독 화면 확장 계획](plans/active/2026-09-19-hoondok-screens.md) | `PLAN-HD-002`. 남은 화면 13종을 웨이브 4개(실데이터 → AI 질문 → 프리뷰 셸 → 마무리)로, 플래그 2개(운영 노출 0)·파일 소유·서브에이전트 오케스트레이션 규약 |
 | [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md) | web/admin/API 경계, 공통 API·인증·SSE·알림 정책 |
 | [전환 실행 계획](plans/completed/2026-09-05-monorepo-migration.md) | M1~M4 범위와 실제 검증 증거, M5 제외 범위 |
 | [앱별 UI 실행 계획](plans/active/2026-09-05-app-owned-ui.md) | 후속 2안 승인 범위와 재검증 증거 |
