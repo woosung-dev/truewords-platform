@@ -226,11 +226,36 @@ ssh truewords-oracle 'grep -c "^HOONDOK_INVITE_CODE=" ~/truewords/.env'
 
 게이트를 켰는지 확인하는 읽기 전용 한 줄이다. 켠 뒤에는 잘못된 코드로 `POST /hoondok/auth/signup` 이 403 `INVITE_REQUIRED` 를 내는지로 검증한다.
 
+### 2026-09-20 — backend·admin 배포 (PR #301 머지)
+
+PR [#301](https://github.com/woosung-dev/truewords-platform/pull/301) 을 main `c066b02` 로 squash 머지한 뒤 두 단계를 배포했다. **web 은 건드리지 않았다** — `WEB_TAG` 는 `aba5240` 그대로다.
+
+| 항목 | 값 |
+|---|---|
+| 배포 전 태그(롤백 대상) | backend `aba5240` · admin `87db69a` · web `aba5240` |
+| 배포 후 태그 | backend **`c066b02`** · admin **`c066b02`** · web `aba5240`(무변경) |
+| alembic | `k5a6b7c8d9e0 (head)` — PR #300 의 `jeongseong_periods` 가 이 배포에서 적용됐다 |
+| 컨테이너 | 6개 정상. admin 배포 시 backend 미재생성 확인(`--no-deps`, 배포 후 backend `Up 3 minutes`) |
+| 이미지 GC | backend 3MB · admin 126MB 회수, 디스크 37% |
+| `make ops-check` | 8건 OK · `hoondok-today` WARN(편성 0일분) |
+| `make smoke-web HOONDOK_ENABLED=1` | **12건 OK** · `sw-cache` WARN 1(위 §Cloudflare 캐시의 알려진 WARN) |
+
+배포로 들어간 것: 편성 후보 찾기([API-HD-012](../specs/api/hoondok-api.md), [PLAN-HD-003](../plans/active/2026-09-20-hoondok-curation-assist.md)) + PR #300 의 backend API(정성 기간·월 기록·계정 삭제).
+
+검증 실측:
+
+| 확인 | 결과 |
+|---|---|
+| `/api/backend/health` · `/hoondok/today` | 200 |
+| `/api/backend/admin/hoondok/daily-readings/candidates?q=참사랑` (비인증) | **401** — 게이트 정상. 422 가 아니므로 `/candidates` 가 `/{reading_id}` 보다 먼저 매칭된다는 것이 운영에서도 확인됐다 |
+| admin `/hoondok`·`/hoondok/new`·`/dashboard`·`/login` | 200 |
+| web `/hoondok` · `/hoondok/garden` | 200 · 404(web 미배포라 PLAN-HD-002 13화면은 여전히 없다) |
+
 ### 2026-09-20 — 편성 재고: 아직 0일분 (미해결)
 
 `ops-check` 의 `hoondok-today` WARN 은 **이 날 해소되지 않았다.** 운영 DB 쓰기는 별도 승인이고, 편성 입력은 편성자가 admin 화면에서 한다(`PLAN-HD-001` 결정 5).
 
-같은 날 편성 입력을 돕는 [`PLAN-HD-003`](../plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, [API-HD-012](../specs/api/hoondok-api.md))를 구현했다. 코퍼스 원문을 검색해 폼을 채우며 생성 AI 가 본문을 만들지 않는다. **운영에는 미반영** — 쓰려면 `deploy-backend`(PR #300 의 alembic `k5a6b7c8d9e0` 마이그레이션 동반) · `deploy-admin` 이 필요하고 각각 별도 승인이다.
+같은 날 편성 입력을 돕는 [`PLAN-HD-003`](../plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, [API-HD-012](../specs/api/hoondok-api.md))를 구현했다. 코퍼스 원문을 검색해 폼을 채우며 생성 AI 가 본문을 만들지 않는다. **같은 날 backend·admin 배포를 마쳐 운영 admin 편성 화면에서 쓸 수 있다**(위 절). 편성 입력 자체는 admin 로그인이 필요하므로 편성자가 한다.
 
 임시로 7일분 후보를 운영 Qdrant 읽기 전용 조회로 뽑아 편성자에게 전달했다(원문 그대로, 등급 `R`·검수 `unverified`). 입력이 끝나면 `make ops-check` 로 `hoondok-today` 가 OK 로 바뀌는지 확인하고 이 절에 결과를 적는다.
 
