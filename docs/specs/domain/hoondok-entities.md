@@ -52,7 +52,7 @@
 | `authority_grade` | varchar(8) | not null | 공식성 등급 `O1`~`O5`, `R`(권리 확인 중) (AC-016-01 ⑤, `DES-PWA-003` §2.3) |
 | `review_status` | varchar(16) | not null, default `unverified` | 검수 상태 `reviewed` · `unverified` · `withdrawn` (AC-016-01 ⑥). `withdrawn` 은 화면에 본문을 내지 않는다(AC-016-04) |
 | `source_note` | varchar(500) | null | 운영자 수기 출처 메모(페이지·출전 등) |
-| `chunk_id` | varchar(128) | null | Qdrant point id. **DB FK 아님.** 원문 열기 연결용이며 Phase 1 화면은 쓰지 않는다 |
+| `chunk_id` | varchar(128) | null | Qdrant point id. **DB FK 아님.** 원문 열기 연결용. Phase 1 화면은 쓰지 않고, 편성 후보 검색([API-HD-012](../api/hoondok-api.md))으로 채운 편성은 여기에 출처 청크를 남긴다 |
 | `estimated_minutes` | smallint | not null, default 3 | 예상 읽기 시간 (AC-016-01) |
 | `created_at` | datetime | not null | |
 | `updated_at` | datetime | not null | |
@@ -111,6 +111,7 @@
 | 2026-09-16 | 3테이블로 축소. 정성·챌린지·관계·설교 도메인은 비범위 | 확정 · 계획 §1-8 |
 | 2026-09-16 | KST 고정, `users.timezone` 예약만 | 확정 · 계획 §1-9 |
 | 2026-09-16 | `chunk_id` 는 FK 아님, 상태값은 varchar | 확정 · 계획 §3 |
+| 2026-09-20 | `chunk_id` 가 실제로 쓰이기 시작한다 — 편성 후보 검색(API-HD-012)으로 채운 편성이 출처 청크 id 를 남긴다. 컬럼 변경 없음 | 확정 · PLAN-HD-003 |
 | 2026-09-16 | `users` 확정(alembic `i1e2f3a4b5c6`). `consent_version`·`deleted_at` 은 예약 컬럼 | 확정 · Phase 2 sub-PR A |
 | 2026-09-16 | `mission_logs` 확정(alembic `j3f4a5b6c7d8`). 연속일은 `read` 기준 계산, 소급은 당일만 | 확정 · Phase 2 sub-PR B |
 | 2026-09-19 | `jeongseong_periods` 확정(alembic `k5a6b7c8d9e0`). 사용자당 active 1건은 부분 unique, 상태 varchar, 진행률 미저장. `users.deleted_at` 은 API-HD-011 이 기록하고 이메일을 `deleted:{id}` 로 익명화 | 확정 · PLAN-HD-002 W0-B |

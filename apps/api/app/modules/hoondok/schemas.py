@@ -176,3 +176,29 @@ class DailyReadingAdminResponse(BaseModel):
     estimated_minutes: int
     created_at: datetime
     updated_at: datetime
+
+
+# --- 편성 후보 추출 (API-HD-012, PLAN-HD-003) --------------------------------
+# 추출형이다: 아래 필드 중 본문(`text`)은 Qdrant 원문 그대로이고, `suggested_*` 는
+# 기존 스크립트와 같은 규칙으로 만든 **제안값**이다. 생성 LLM 이 개입하지 않는다.
+
+
+class DailyReadingCandidate(BaseModel):
+    """편성 후보 1건. 편성자가 고르면 폼이 이 값으로 채워진다."""
+
+    chunk_id: str
+    text: str
+    char_count: int
+    source: str  # 코퍼스 카테고리 키 (L/M/N/O/B/P/Q 등)
+    source_label: str  # 읽기 쉬운 출처 이름
+    work_title: str
+    suggested_title: str
+    suggested_speaker: str
+    score: float
+
+
+class DailyReadingCandidateResponse(BaseModel):
+    """API-HD-012 응답. 조건에 맞는 후보가 없으면 `candidates` 가 빈 배열이다(200)."""
+
+    query: str
+    candidates: list[DailyReadingCandidate]

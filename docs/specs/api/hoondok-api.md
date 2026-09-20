@@ -21,6 +21,7 @@
 | `API-HD-009` | GET · POST · DELETE | `/hoondok/me/jeongseong` | `hoondok_token` (POST·DELETE 는 `X-Requested-With`) | W0-B |
 | `API-HD-010` | GET | `/hoondok/me/history?month=YYYY-MM` | `hoondok_token` | W0-B |
 | `API-HD-011` | DELETE | `/hoondok/auth/me` | `hoondok_token` + `X-Requested-With` | W0-B |
+| `API-HD-012` | GET | `/admin/hoondok/daily-readings/candidates` | `admin_token` + `require_admin_gate` | HD-003 |
 
 공통 규칙:
 
@@ -140,6 +141,40 @@ GET /admin/hoondok/daily-readings?from=2026-09-19&to=2026-10-03
 ## API-HD-008 `PUT /admin/hoondok/daily-readings/{id}` (Phase 3)
 
 본문 `DailyReadingAdminUpdate` — 모든 필드 선택, **보낸 필드만** 바꾼다(`exclude_unset`). `updated_at` 은 서버가 갱신한다. **DELETE 는 없다**: 철회는 `review_status=withdrawn` 이며 그날 `GET /hoondok/today` 는 `status=withdrawn`(본문 미노출)이 된다. 404 없음 · 409 `reading_date` 변경이 다른 편성과 충돌 · 422 · 401 · 403(게이트·CSRF). 감사 로그 `daily_reading.update`(변경 필드만).
+
+## API-HD-012 `GET /admin/hoondok/daily-readings/candidates` (PLAN-HD-003)
+
+편성 후보 검색. **추출형(extractive)** 이다 — 말씀 코퍼스에서 원문 청크를 찾아 그대로 돌려주며 **생성 LLM 을 부르지 않는다.** 편성자가 417,579 청크를 훑는 대신 10~20건만 보고 고르게 하는 것이 이 API 의 전부이고, 무엇을 편성할지는 사람이 정한다(결정 5 "대체 생성 없음" 유지).
+
+```
+GET /admin/hoondok/daily-readings/candidates?q=참사랑&sources=B&sources=O&limit=12
+```
+
+| 파라미터 | 기본 | 규칙 |
+|---|---|---|
+| `q` | (필수) | 주제·키워드 1~200자. 공백만이면 422 |
+| `sources` | 전체 | 코퍼스 카테고리 키 반복 지정(`L`·`M`·`N`·`O`·`B`·`P`·`Q`) |
+| `min_len`·`max_len` | 50·300 | 본문 글자 수 범위(1~2000). `min > max` → 422 |
+| `limit` | 12 | 1~30 |
+
+응답 200 `DailyReadingCandidateResponse` — `query` + `candidates[]`. 후보가 없어도 200·빈 배열이다(검색 실패와 구분된다).
+
+| 후보 필드 | 내용 |
+|---|---|
+| `chunk_id` | Qdrant point id. `ENT-HD-002` 의 `chunk_id` 에 그대로 들어가 원문 역추적을 잇는다 |
+| `text` | **코퍼스 원문 그대로.** 서버가 다듬지 않는다 |
+| `char_count`·`score` | 길이와 RRF 점수(편성자 판단용) |
+| `source`·`source_label` | 카테고리 키와 읽기 쉬운 이름 |
+| `work_title` | 권 이름(파일 확장자 제거) |
+| `suggested_title`·`suggested_speaker` | **제안값.** 첫 문장 60자 · 출처 라벨 기반이며 편성자가 폼에서 고친다 |
+
+검색은 기존 `hybrid_search`(dense+sparse RRF)를 재사용한다. 돌아온 결과에서 길이 범위를 벗어나거나, 문장이 끊겼거나(한국어 종결어미 없음), 페이지 인용 조각·파일명이 섞였거나, `chunk_id` 가 없는 것을 버린다 — 판정은 `hoondok/candidates.py`.
+
+화면이 후보를 고르면 등급은 `R`(권리 확인 중)·검수는 `unverified` 로 채워진다. 코퍼스에서 뽑았다는 사실이 출처·권리 확인을 뜻하지 않기 때문이며, web 카드는 이 상태를 "확인되지 않음" 배지로 보여 준다.
+
+오류: 422 검색어 없음·길이 역전 · 401 쿠키 없음 · 403 게이트 계정 아님 · **502 검색 실패**(Qdrant·임베딩 장애를 500 대신 이유 있는 응답으로 낸다). 조회이므로 감사 로그를 남기지 않는다(API-HD-006 과 같다).
+
+> **라우트 순서**: `/candidates` 는 `/{reading_id}` 보다 **먼저** 등록해야 한다. FastAPI 는 등록 순서로 매칭하므로 뒤에 두면 "candidates" 가 UUID 로 파싱돼 422 가 난다. `tests/test_hoondok_candidates.py` 가 고정한다.
 
 ---
 
@@ -265,3 +300,4 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 | 2026-09-19 | API-HD-009~011 신설: 정성 기간(사용자당 active 1건·진행률 계산·끝난 기간은 읽는 시점에 completed·DELETE 는 abandoned), 월 기록(`month` 패턴·2020~올해+1), 계정 삭제(훈독 기록 하드 삭제 + `deleted_at` + 이메일 익명화·재가입 허용). `percent` 는 half-up 반올림 | 확정 · PLAN-HD-002 W0-B |
 | 2026-09-19 | 훈독 AI 질문은 **신규 엔드포인트 없이** `POST /chat/stream` 재사용. 백엔드·스키마 무변경이며 무기억(`session_id` 미전송)과 근거 게이트만 클라이언트에 둔다 | 확정 · PLAN-HD-002 W2 |
 | 2026-09-19 | 질문 봇은 슬러그 `all` 고정(`HOONDOK_ASK_CHATBOT_ID`). 전용 봇·프롬프트 미정이라 상수 1줄로 교체 가능한 형태로 둔다 | `[확인 필요]` · PLAN-HD-002 W2 |
+| 2026-09-20 | API-HD-012 신설(편성 후보 검색). **추출형 채택 · 생성형 초안 기각** — 병목은 본문 생산이 아니라 코퍼스에서 고르는 일이고, 생성형은 결정 5(대체 생성 없음)를 뒤집는 데다 교리 recall 이 42~56%로 낮다. 본문 원문 유지·`chunk_id` 기록·등급 `R` 기본 | 확정 · PLAN-HD-003 |

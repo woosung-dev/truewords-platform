@@ -1185,6 +1185,82 @@
         "title": "DailyReadingAdminUpdate",
         "type": "object"
       },
+      "DailyReadingCandidate": {
+        "description": "편성 후보 1건. 편성자가 고르면 폼이 이 값으로 채워진다.",
+        "properties": {
+          "char_count": {
+            "title": "Char Count",
+            "type": "integer"
+          },
+          "chunk_id": {
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "source_label": {
+            "title": "Source Label",
+            "type": "string"
+          },
+          "suggested_speaker": {
+            "title": "Suggested Speaker",
+            "type": "string"
+          },
+          "suggested_title": {
+            "title": "Suggested Title",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chunk_id",
+          "text",
+          "char_count",
+          "source",
+          "source_label",
+          "work_title",
+          "suggested_title",
+          "suggested_speaker",
+          "score"
+        ],
+        "title": "DailyReadingCandidate",
+        "type": "object"
+      },
+      "DailyReadingCandidateResponse": {
+        "description": "API-HD-012 응답. 조건에 맞는 후보가 없으면 `candidates` 가 빈 배열이다(200).",
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/DailyReadingCandidate"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "candidates"
+        ],
+        "title": "DailyReadingCandidateResponse",
+        "type": "object"
+      },
       "DailyReadingPublic": {
         "description": "공개 필드만. source_note·chunk_id·타임스탬프는 내지 않는다.",
         "properties": {
@@ -5480,6 +5556,114 @@
           }
         },
         "summary": "Create Daily Reading",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/daily-readings/candidates": {
+      "get": {
+        "description": "API-HD-012 편성 후보 검색(추출형).\n\n말씀 코퍼스에서 **원문 그대로** 후보를 찾아 준다. 생성 LLM 을 부르지 않으므로\n돌아오는 본문은 편집되지 않은 청크이고 `chunk_id` 로 원문까지 역추적된다.\n조건에 맞는 후보가 없어도 200 · 빈 배열이다. 422 검색어 없음·길이 역전 · 502 검색 실패.",
+        "operationId": "search_daily_reading_candidates_admin_hoondok_daily_readings_candidates_get",
+        "parameters": [
+          {
+            "description": "주제·키워드",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "description": "주제·키워드",
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "description": "코퍼스 카테고리 키(L/M/N/O/B/P/Q). 생략 시 전체",
+            "in": "query",
+            "name": "sources",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "코퍼스 카테고리 키(L/M/N/O/B/P/Q). 생략 시 전체",
+              "title": "Sources"
+            }
+          },
+          {
+            "description": "본문 최소 글자 수",
+            "in": "query",
+            "name": "min_len",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "본문 최소 글자 수",
+              "maximum": 2000,
+              "minimum": 1,
+              "title": "Min Len",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "본문 최대 글자 수",
+            "in": "query",
+            "name": "max_len",
+            "required": false,
+            "schema": {
+              "default": 300,
+              "description": "본문 최대 글자 수",
+              "maximum": 2000,
+              "minimum": 1,
+              "title": "Max Len",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 30,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyReadingCandidateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search Daily Reading Candidates",
         "tags": [
           "admin-hoondok"
         ]

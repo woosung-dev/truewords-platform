@@ -1,6 +1,12 @@
 import { isIsoDate } from "./dates";
 import { GRADE_LABEL, REVIEW_LABEL } from "./labels";
-import type { AuthorityGrade, DailyReading, DailyReadingAdminCreate, ReviewStatus } from "./types";
+import type {
+  AuthorityGrade,
+  DailyReading,
+  DailyReadingAdminCreate,
+  DailyReadingCandidate,
+  ReviewStatus,
+} from "./types";
 
 // 편성 폼의 순수 로직 — 값·검증·페이로드. React 없이 테스트한다.
 // 폼 상태는 전부 문자열이다(input 값 그대로). 숫자·null 변환은 toPayload 에서만 한다.
@@ -68,6 +74,27 @@ export function fromReading(reading: DailyReading): DailyReadingFormValues {
     source_note: reading.source_note ?? "",
     chunk_id: reading.chunk_id ?? "",
     estimated_minutes: String(reading.estimated_minutes),
+  };
+}
+
+/** 후보 → 폼 값 (API-HD-012). 편성일은 화면이 이미 잡고 있던 값을 유지한다.
+ *
+ * 본문은 후보의 원문을 **그대로** 넣는다. 제목·화자는 서버가 준 제안값이고 편성자가 고칠 수 있다.
+ * 등급은 R(권리 확인 중)·검수는 unverified 로 둔다 — 코퍼스에서 뽑았다는 사실이 출처 확인을
+ * 뜻하지 않기 때문이며, web 카드는 이 상태를 "확인되지 않음" 배지로 보여 준다.
+ */
+export function fromCandidate(
+  candidate: DailyReadingCandidate,
+  reading_date: string,
+): DailyReadingFormValues {
+  return {
+    ...emptyValues(reading_date),
+    title: candidate.suggested_title,
+    body: candidate.text,
+    speaker: candidate.suggested_speaker,
+    work_title: candidate.work_title,
+    source_note: `말씀 검색 후보 — ${candidate.source_label}`,
+    chunk_id: candidate.chunk_id,
   };
 }
 
