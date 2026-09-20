@@ -244,11 +244,17 @@ html:has([data-app="hoondok"]),
     color: var(--ink-3);
     display: block;
   }
+  /* 제목 규격은 `_hoondok/ask.css` 의 `.ql-q`(목록 행 제목 16/600) 와 같고, 자르는 방식도 같게 둔다 —
+     실데이터 제목은 한 줄로 자르면 무슨 미션인지 사라지고, 제한이 없으면 긴 제목 하나가 카드 높이를
+     혼자 키워 카드 리듬이 깨진다. 두 줄까지 보여 준 뒤 자른다. */
   .mission__title {
     font-size: 16px;
     font-weight: 600;
     margin-top: 1px;
-    display: block;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
     line-height: 1.35;
   }
   .mission__meta {
