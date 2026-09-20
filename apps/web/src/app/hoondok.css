@@ -721,7 +721,7 @@
     font-size: 12.5px;
     color: var(--ink-2);
   }
-  /* 토글 46×28 (DES-PWA-003 §2.11, 프로토타입 .toggle 그대로). 설정 알림 4종·AI 질문 저장이 쓴다. 모션 150ms */
+  /* 토글 46×28 (DES-PWA-003 §2.11, 프로토타입 .toggle 그대로). 설정 알림 4종·AI 질문 저장·가족 공개 범위 3곳이 쓴다. 모션 150ms */
   .toggle {
     position: relative;
     width: 46px;
