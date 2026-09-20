@@ -91,13 +91,14 @@ test("검색 제출: 네트워크 0 · 준비 중 안내 · 최근 검색이 기
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/hoondok/search");
 
-  await page.getByRole("textbox").first().fill("참사랑");
-  await page.getByRole("button", { name: /찾기|검색/ }).click();
+  // 입력은 type="search" 라 역할이 searchbox 다. 앱 셸의 "말씀 검색" 링크와 겹치지 않는 셀렉터를 쓴다.
+  await page.getByRole("searchbox").fill("참사랑");
+  await page.getByRole("button", { name: "찾기" }).click();
   await expect(page.getByRole("status")).toContainText("준비 중");
   expect(apiRequests).toEqual([]);
 
   await page.reload();
-  await expect(page.getByText("참사랑").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /참사랑/ })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
