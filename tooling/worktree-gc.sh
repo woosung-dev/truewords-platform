@@ -85,6 +85,17 @@ if ! git rev-parse --verify -q "$BASE_REF" >/dev/null; then
   log "❌ 기준 ref 를 찾을 수 없습니다: $BASE_REF"; exit 1
 fi
 
+# ── squash 머지 판정에 gh 를 쓸 수 있는가 ───────────────────────────────────
+# 한 번만 확인하고 worktree 마다 재확인하지 않는다. 없으면 조상 판정만 쓰며,
+# 그 경우 squash 로 머지된 브랜치는 "미머지" 로 보존된다(덜 지우는 쪽으로 틀린다).
+USE_GH=0
+if [ "${NO_GH:-0}" != "1" ] && command -v gh >/dev/null 2>&1 \
+   && gh auth status >/dev/null 2>&1; then
+  USE_GH=1
+else
+  log "ℹ️  gh 판정 불가 — 조상 판정만 씁니다 (squash 머지 브랜치는 보존됩니다)"
+fi
+
 [ "$DRY_RUN" = "0" ] || log "🔍 예행(DRY_RUN=1) — 실제로 지우려면 DRY_RUN=0"
 log ""
 printf '%-38s %6s  %s\n' "WORKTREE" "크기" "판정"
@@ -133,9 +144,32 @@ process_record() {
     kept_kb=$((kept_kb + size_kb)); return 0
   fi
 
-  # 3) 미머지 — 커밋 수를 함께 보여 주고 절대 지우지 않는다.
-  if [ "$short" != "(detached)" ] && \
-     ! git merge-base --is-ancestor "$short" "$BASE_REF" 2>/dev/null; then
+  # 3) 머지 판정 — 두 경로가 있다.
+  #  (a) 조상: 일반 머지. git 만으로 판정된다.
+  #  (b) GitHub 기록: squash 머지. PR #300 이 73커밋을 새 커밋 1개로 합쳤고 원본
+  #      73개는 main 의 조상이 아니라 (a) 는 영원히 거짓을 낸다. 2026-09-21 에 대안
+  #      2개를 실측으로 기각했다 — `git cherry` 는 patch-id 가 N:1 이라 57커밋을
+  #      여전히 미검출로 냈고, `git merge-tree` 는 브랜치에 남은 옛 문구 때문에
+  #      트리가 "다름" 으로 나왔다. 로컬 git 에 그 연결이 남지 않는 것이 squash 의
+  #      본질이므로, 따로 기록해 둔 GitHub 에 묻는 것이 유일하게 맞는 방법이다.
+  #      headRefOid 까지 대조하는 이유: PR 머지 뒤 그 브랜치에 커밋을 더 했다면
+  #      gh 는 여전히 "머지됨" 이라 답하지만 tip 에는 미머지 작업이 남아 있다.
+  merged_reason=""
+  if [ "$short" != "(detached)" ]; then
+    if git merge-base --is-ancestor "$short" "$BASE_REF" 2>/dev/null; then
+      merged_reason="조상"
+    elif [ "$USE_GH" = "1" ]; then
+      pr=$(gh pr list --state merged --head "$short" --json number,headRefOid \
+             --jq '.[] | "\(.number) \(.headRefOid)"' 2>/dev/null | head -1)
+      # gh 실패(네트워크·미인증·PR 없음)는 빈 문자열이 되어 "모름 → 보존" 으로
+      # 떨어진다. 실패를 "머지됨" 으로 읽지 않는 것이 이 분기의 안전 규칙이다.
+      # --state merged 만 본다 — 열린 PR(리뷰 중)은 지우면 안 된다.
+      if [ -n "$pr" ] && [ "${pr##* }" = "$(git rev-parse "$short" 2>/dev/null)" ]; then
+        merged_reason="PR #${pr%% *}"
+      fi
+    fi
+  fi
+  if [ -z "$merged_reason" ]; then
     ahead=$(git rev-list --count "$BASE_REF".."$short" 2>/dev/null || echo "?")
     printf '%-38s %6s  ⚠️  미머지 %s커밋 (%s)\n' "$rel" "$size_h" "$ahead" "$short"
     kept_kb=$((kept_kb + size_kb)); return 0
@@ -144,12 +178,12 @@ process_record() {
   # 4) 범위 밖 — 사용자가 직접 만든 worktree 는 보고만 한다.
   case "$current" in
     "$REPO_ROOT/$SCOPE"/*) ;;
-    *) printf '%-38s %6s  ↩︎ 머지됨·범위 밖 보존 (%s)\n' "$rel" "$size_h" "$short"
+    *) printf '%-38s %6s  ↩︎ %s·범위 밖 보존 (%s)\n' "$rel" "$size_h" "$merged_reason" "$short"
        kept_kb=$((kept_kb + size_kb)); return 0 ;;
   esac
 
   # 5) 제거 대상
-  printf '%-38s %6s  ✅ 머지됨 — 제거 대상 (%s)\n' "$rel" "$size_h" "$short"
+  printf '%-38s %6s  ✅ %s — 제거 대상 (%s)\n' "$rel" "$size_h" "$merged_reason" "$short"
   removable="${removable}${current}"$'\n'
   reclaim_kb=$((reclaim_kb + size_kb))
 }
