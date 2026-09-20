@@ -180,11 +180,11 @@ make e2e
 - [x] W1-N 003 오늘의 한 줄 — 2026-09-20 머지, Vitest 143 (note storage·TodayNote)
 - [x] W1 웨이브 끝 `make ci`·`make e2e`·시각 대조 — `make ci` 2차 통과(`f1eeb8c`) · `make e2e` 64 passed(`1cb2157`, W2 포함 재실행) · 시각 대조 §8
 - [x] W2 AI 질문 3화면 + `read` 질문 버튼 + `TAB_STAGE.ask: live` — 2026-09-20 머지 `b2772d4`, Vitest 183 (어댑터 `ask/ask-stream.ts` 무기억·근거 게이트 · 저장 `hoondok:ask:items` 단일 배열 50건 · 프리필은 `?q=` — §4 표의 `?ref`·키별 저장에서 정정 · 챗봇 슬러그 `all` §9 · `.toggle` 공용 승격 `3438a32`)
-- [ ] W2 웨이브 끝 `make ci`·`make e2e`·시각 대조
-- [ ] W3-L 007·008·009 말씀 프리뷰
-- [ ] W3-W 010~013 가정예배 프리뷰
-- [ ] W3-F 016 가족·친구 프리뷰
-- [ ] W3 `hoondok-preview.spec.ts` 라우트 9개 + 웨이브 끝 `make ci`·`make e2e`·시각 대조
+- [x] W2 웨이브 끝 — `make e2e` 64 passed(`1cb2157`) · 시각 대조 §8 완료. `make ci` 는 W3 머지 뒤 한 번에 돌린다(웹 단독 변경이라 백엔드·계약 재검증이 중복)
+- [x] W3-L 007·008·009 말씀 프리뷰 — 2026-09-20 머지, 라우트 `/hoondok/library`·`/search`·`/words/[id]`. 원문은 `PREVIEW_WORD_ID = "cheonseonggyeong-1-3"` 한 편만(`screens.ts` 제목 고정 때문 — §7 아래 미결 참고). 검색 입력은 앱바가 아니라 본문 첫 줄 `[가정]`
+- [x] W3-W 010~013 가정예배 프리뷰 — 2026-09-20 머지, 라우트 `/hoondok/worship`·`/challenge/[id]`·`/sermons`·`/request`. 챌린지 fixture `family-21`·`church-40`·`youth-reading`. 프로토타입 011 에 순위 요소가 원래 없어 DEC-PWA-019 는 삭제 0건(회귀 단언만 추가). 외부 사진(picsum) 은 글자 카드·이니셜로 대체 `[가정]`
+- [x] W3-F 016 가족·친구 프리뷰 — 2026-09-20 머지, 라우트 `/hoondok/family` + 정원 진입 섹션(프리뷰 ON·로그인 시만). **공개 범위는 라디오 4가 아니라 토글 2 + 고정 1** — 프로토타입 `.fm-scope` 가 그렇고 4단계 문구는 어느 문서에도 없다 `[확인 필요]`
+- [ ] W3 `hoondok-preview.spec.ts` **라우트 8개**(§4 의 9개에서 정정 — library·search·words·worship·challenge·sermons·request·family) + CSS 공통 승격 정리 + 웨이브 끝 `make ci`·`make e2e`·시각 대조
 - [ ] W4 `index.ts`·DES §8·AGENTS.md·TODO·§8 완료 증거
 - [ ] 사용자 승인 → push → main PR 1개
 
