@@ -30,12 +30,21 @@ export function DeleteAccountCard() {
   // 로그인 여부를 아는 순간까지는 아무것도 약속하지 않는다 (안내 → 행으로 튀는 깜빡임 방지).
   if (isLoading) return null;
 
+  // 비로그인 안내도 설정 행이다 — 카드 밖 맨바닥에 두면 위 묶음의 캡션처럼 읽히고,
+  // 문장 안 작은 링크는 탭 대상 24x24 (WCAG 2.2 SC 2.5.8) 를 세로로 못 넘긴다.
   if (!user) {
     return (
-      <p className="hint">
-        <span>로그인하면 내 데이터를 관리할 수 있어요</span>
-        <Link href={onboardingHref(SETTINGS_PATH)}>로그인 →</Link>
-      </p>
+      <div className="st-group">
+        <Link className="st-row st-row--link" href={onboardingHref(SETTINGS_PATH)}>
+          <span className="st-row__bd">
+            <b className="st-row__t">내 데이터 관리</b>
+            <span className="st-row__d">로그인하면 내 데이터를 관리할 수 있어요</span>
+          </span>
+          <span className="st-go" aria-hidden="true">
+            <ChevronRight size={20} />
+          </span>
+        </Link>
+      </div>
     );
   }
 
