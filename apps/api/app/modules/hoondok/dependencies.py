@@ -5,7 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.common.database import get_async_session
 from app.modules.hoondok.repository import DailyReadingRepository, JeongseongRepository, MissionLogRepository
-from app.modules.hoondok.service import DailyReadingAdminService, HoondokService, JeongseongService, MissionService
+from app.modules.hoondok.service import (
+    DailyReadingAdminService,
+    DailyReadingCandidateService,
+    HoondokService,
+    JeongseongService,
+    MissionService,
+)
+from app.modules.qdrant import get_raw_client  # raw httpx — SDK HTTP/2 hang 회피 (docs/dev-log/47)
 
 
 async def get_hoondok_repository(
@@ -24,6 +31,11 @@ async def get_daily_reading_admin_service(
     repo: DailyReadingRepository = Depends(get_hoondok_repository),
 ) -> DailyReadingAdminService:
     return DailyReadingAdminService(repo)
+
+
+async def get_daily_reading_candidate_service() -> DailyReadingCandidateService:
+    """후보 검색은 Qdrant 만 쓴다 — DB 세션이 필요 없어 리포지토리를 받지 않는다."""
+    return DailyReadingCandidateService(get_raw_client())
 
 
 async def get_mission_repository(

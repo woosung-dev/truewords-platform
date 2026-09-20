@@ -5,6 +5,8 @@ export type {
   DailyReadingAdminCreate,
   DailyReadingAdminResponse as DailyReading,
   DailyReadingAdminUpdate,
+  DailyReadingCandidate,
+  DailyReadingCandidateResponse,
 } from "@truewords/api-client-ts/types";
 
 export type AuthorityGrade = DailyReadingAdminResponse["authority_grade"];

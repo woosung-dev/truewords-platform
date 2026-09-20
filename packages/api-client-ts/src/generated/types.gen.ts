@@ -648,6 +648,66 @@ export type DailyReadingAdminUpdate = {
 };
 
 /**
+ * DailyReadingCandidate
+ *
+ * 편성 후보 1건. 편성자가 고르면 폼이 이 값으로 채워진다.
+ */
+export type DailyReadingCandidate = {
+    /**
+     * Char Count
+     */
+    char_count: number;
+    /**
+     * Chunk Id
+     */
+    chunk_id: string;
+    /**
+     * Score
+     */
+    score: number;
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Source Label
+     */
+    source_label: string;
+    /**
+     * Suggested Speaker
+     */
+    suggested_speaker: string;
+    /**
+     * Suggested Title
+     */
+    suggested_title: string;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * DailyReadingCandidateResponse
+ *
+ * API-HD-012 응답. 조건에 맞는 후보가 없으면 `candidates` 가 빈 배열이다(200).
+ */
+export type DailyReadingCandidateResponse = {
+    /**
+     * Candidates
+     */
+    candidates: Array<DailyReadingCandidate>;
+    /**
+     * Query
+     */
+    query: string;
+};
+
+/**
  * DailyReadingPublic
  *
  * 공개 필드만. source_note·chunk_id·타임스탬프는 내지 않는다.
@@ -3451,6 +3511,60 @@ export type CreateDailyReadingAdminHoondokDailyReadingsPostResponses = {
 };
 
 export type CreateDailyReadingAdminHoondokDailyReadingsPostResponse = CreateDailyReadingAdminHoondokDailyReadingsPostResponses[keyof CreateDailyReadingAdminHoondokDailyReadingsPostResponses];
+
+export type SearchDailyReadingCandidatesAdminHoondokDailyReadingsCandidatesGetData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Q
+         *
+         * 주제·키워드
+         */
+        q: string;
+        /**
+         * Sources
+         *
+         * 코퍼스 카테고리 키(L/M/N/O/B/P/Q). 생략 시 전체
+         */
+        sources?: Array<string> | null;
+        /**
+         * Min Len
+         *
+         * 본문 최소 글자 수
+         */
+        min_len?: number;
+        /**
+         * Max Len
+         *
+         * 본문 최대 글자 수
+         */
+        max_len?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/admin/hoondok/daily-readings/candidates';
+};
+
+export type SearchDailyReadingCandidatesAdminHoondokDailyReadingsCandidatesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SearchDailyReadingCandidatesAdminHoondokDailyReadingsCandidatesGetError = SearchDailyReadingCandidatesAdminHoondokDailyReadingsCandidatesGetErrors[keyof SearchDailyReadingCandidatesAdminHoondokDailyReadingsCandidatesGetErrors];
+
+export type SearchDailyReadingCandidatesAdminHoondokDailyReadingsCandidatesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DailyReadingCandidateResponse;
+};
+
+export type SearchDailyReadingCandidatesAdminHoondokDailyReadingsCandidatesGetResponse = SearchDailyReadingCandidatesAdminHoondokDailyReadingsCandidatesGetResponses[keyof SearchDailyReadingCandidatesAdminHoondokDailyReadingsCandidatesGetResponses];
 
 export type GetDailyReadingAdminHoondokDailyReadingsReadingIdGetData = {
     body?: never;

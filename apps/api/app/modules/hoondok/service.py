@@ -5,16 +5,20 @@ import uuid
 from collections.abc import Callable
 from datetime import date, datetime, timedelta, timezone
 
+import httpx
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
 from app.core.common.clock import today_kst
+from app.modules.hoondok.candidates import filter_results
 from app.modules.hoondok.jeongseong import compute_progress
 from app.modules.hoondok.models import DailyReading, JeongseongPeriod, MissionLog
 from app.modules.hoondok.repository import DailyReadingRepository, JeongseongRepository, MissionLogRepository
 from app.modules.hoondok.schemas import (
     DailyReadingAdminCreate,
     DailyReadingAdminUpdate,
+    DailyReadingCandidate,
+    DailyReadingCandidateResponse,
     DailyReadingPublic,
     JeongseongCreate,
     JeongseongCurrentResponse,
@@ -28,6 +32,8 @@ from app.modules.hoondok.schemas import (
     WeekDay,
 )
 from app.modules.hoondok.streak import compute_summary
+from app.modules.qdrant.raw_client import RawQdrantClient
+from app.modules.search.hybrid import hybrid_search
 
 HISTORY_MIN_YEAR = 2020  # 월 기록 조회 하한. 상한은 올해 + 1
 JEONGSEONG_START_WINDOW_DAYS = 30  # 시작일 허용 범위: 오늘 ~ 오늘 + 30
@@ -241,3 +247,64 @@ class DailyReadingAdminService:
             return await self.repo.save(reading)
         except IntegrityError:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="그 날짜에는 이미 편성이 있어요")
+
+
+# --- 편성 후보 추출 (API-HD-012, PLAN-HD-003) --------------------------------
+# 길이 기본값은 `scripts/extract_malssum_candidates.py` 와 같다(50~300자) — 같은 코퍼스에서
+# "카드에 올릴 만한 짧은 본문" 을 고르는 같은 작업이라 기준을 갈라 둘 이유가 없다.
+DEFAULT_CANDIDATE_MIN_LEN = 50
+DEFAULT_CANDIDATE_MAX_LEN = 300
+DEFAULT_CANDIDATE_LIMIT = 12
+MAX_CANDIDATE_LIMIT = 30
+# 길이·카드 적합성 통과율이 낮아(2026-09-20 실측 1~2%) 넉넉히 받아 거른다. limit 을 못 채우면
+# 빈 배열이 아니라 "찾은 만큼" 을 주고, 화면이 키워드를 바꾸라고 안내한다.
+_CANDIDATE_OVERFETCH = 12
+_MAX_CANDIDATE_FETCH = 300
+
+
+class DailyReadingCandidateService:
+    """편성 후보 검색(API-HD-012). **추출형** — 생성 LLM 을 부르지 않는다.
+
+    기존 `hybrid_search`(dense+sparse RRF) 를 그대로 재사용하고, 돌아온 원문 청크를
+    길이·카드 적합성으로 거른다. 편성자가 보는 본문은 언제나 코퍼스 원문이며
+    `chunk_id` 로 원문까지 역추적된다(ENT-HD-002).
+    """
+
+    def __init__(self, client: RawQdrantClient, search_fn: Callable = hybrid_search) -> None:
+        self.client = client
+        self.search_fn = search_fn
+
+    async def search(
+        self,
+        query: str,
+        *,
+        sources: list[str] | None = None,
+        min_len: int = DEFAULT_CANDIDATE_MIN_LEN,
+        max_len: int = DEFAULT_CANDIDATE_MAX_LEN,
+        limit: int = DEFAULT_CANDIDATE_LIMIT,
+    ) -> DailyReadingCandidateResponse:
+        text = query.strip()
+        if not text:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="검색어를 입력해 주세요")
+        if min_len > max_len:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="최소 길이가 최대 길이보다 큽니다"
+            )
+        limit = min(limit, MAX_CANDIDATE_LIMIT)
+        top_k = min(limit * _CANDIDATE_OVERFETCH, _MAX_CANDIDATE_FETCH)
+
+        try:
+            results = await self.search_fn(
+                self.client, text, top_k=top_k, source_filter=sources or None
+            )
+        except httpx.HTTPError as exc:
+            # 검색·임베딩은 외부 의존(Qdrant·Gemini)이다. 편성 화면이 500 대신 이유를 받게 한다.
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY, detail="말씀 검색에 실패했어요. 잠시 후 다시 시도해 주세요"
+            ) from exc
+
+        candidates = filter_results(results, min_len=min_len, max_len=max_len, limit=limit)
+        return DailyReadingCandidateResponse(
+            query=text,
+            candidates=[DailyReadingCandidate(**c) for c in candidates],
+        )

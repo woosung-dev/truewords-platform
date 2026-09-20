@@ -17,3 +17,17 @@ export const REVIEW_LABEL: Record<ReviewStatus, string> = {
   unverified: "확인되지 않음",
   withdrawn: "철회",
 };
+
+// 후보 검색 필터용 코퍼스 출처(API-HD-012 `sources`). backend candidates.py 의 SOURCE_LABELS 와 같은 값이며
+// 앱 간 import 금지 관례상 admin 이 따로 둔다. 서버가 키를 늘리면 여기도 늘린다.
+export const SOURCE_LABEL: Record<string, string> = {
+  L: "원리강론",
+  M: "3대 경전",
+  N: "자서전",
+  O: "말씀선집",
+  B: "어머님 말씀",
+  P: "참부모론",
+  Q: "통일사상요강",
+};
+
+export const SOURCE_KEYS = Object.keys(SOURCE_LABEL);

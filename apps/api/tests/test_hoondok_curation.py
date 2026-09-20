@@ -173,6 +173,7 @@ def test_all_curation_routes_have_csrf_and_admin_gate():
     ]
     assert {(route.path, m) for route, _ in routes for m in route.methods} == {
         (BASE, "GET"), (BASE, "POST"), (f"{BASE}/{{reading_id}}", "GET"), (f"{BASE}/{{reading_id}}", "PUT"),
+        (f"{BASE}/candidates", "GET"),  # API-HD-012 후보 검색 (PLAN-HD-003)
     }
     for route, inherited in routes:
         dep_callables = dependency_callables(route, inherited)

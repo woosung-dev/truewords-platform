@@ -7,9 +7,17 @@ import { Suspense, useState } from "react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hoondokAPI, saveErrorMessage } from "@/features/hoondok/api";
+import { CandidatePanel } from "@/features/hoondok/components/candidate-panel";
 import { DailyReadingForm } from "@/features/hoondok/components/daily-reading-form";
 import { isIsoDate } from "@/features/hoondok/dates";
-import { type DailyReadingFormValues, emptyValues, type FormErrors, toPayload } from "@/features/hoondok/form";
+import {
+  type DailyReadingFormValues,
+  emptyValues,
+  type FormErrors,
+  fromCandidate,
+  toPayload,
+} from "@/features/hoondok/form";
+import type { DailyReadingCandidate } from "@/features/hoondok/types";
 import { ApiError } from "@/lib/api";
 
 // useSearchParams 는 프리렌더 시 Suspense 경계가 필요하다 (next docs use-search-params).
@@ -26,7 +34,20 @@ function NewDailyReading() {
   const queryClient = useQueryClient();
   // 목록의 "편성하기" 가 ?date= 로 빈 날을 넘긴다. 형식이 틀리면 무시한다.
   const requestedDate = useSearchParams().get("date") ?? "";
+  const initialDate = isIsoDate(requestedDate) ? requestedDate : "";
   const [serverErrors, setServerErrors] = useState<FormErrors>();
+  // 폼은 initialValues 로 자기 state 를 초기화한다(uncontrolled). 후보를 고르면 값을 갈아끼워야 하므로
+  // key 를 올려 폼을 다시 마운트한다. 그때 편성일을 잃지 않도록 날짜만 따로 추적한다.
+  const [formValues, setFormValues] = useState<DailyReadingFormValues>(() => emptyValues(initialDate));
+  const [formKey, setFormKey] = useState(0);
+  const [pickedDate, setPickedDate] = useState(initialDate);
+
+  function handlePick(candidate: DailyReadingCandidate) {
+    setFormValues(fromCandidate(candidate, pickedDate));
+    setFormKey((k) => k + 1);
+    setServerErrors(undefined);
+    toast.success("후보를 폼에 채웠어요. 내용을 확인하고 등록해 주세요");
+  }
 
   const mutation = useMutation({
     mutationFn: (values: DailyReadingFormValues) => hoondokAPI.create(toPayload(values)),
@@ -56,9 +77,13 @@ function NewDailyReading() {
       <h1 className="text-2xl font-bold tracking-tight">새 편성</h1>
       <p className="text-sm text-muted-foreground pb-4">하루 한 건이에요. 같은 날짜에 편성이 있으면 저장되지 않아요.</p>
 
+      <CandidatePanel onPick={handlePick} />
+
       <DailyReadingForm
+        key={formKey}
         mode="create"
-        initialValues={emptyValues(isIsoDate(requestedDate) ? requestedDate : "")}
+        initialValues={formValues}
+        onDateChange={setPickedDate}
         serverErrors={serverErrors}
         isSubmitting={mutation.isPending}
         submitLabel="등록"

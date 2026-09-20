@@ -28,6 +28,8 @@ export interface DailyReadingFormProps {
   submitPendingLabel: string;
   onCancel: () => void;
   cancelLabel: string;
+  /** 편성일이 바뀔 때 알린다. 후보 패널이 폼을 다시 그릴 때 편성자가 고른 날짜를 잃지 않기 위해서다. */
+  onDateChange?: (value: string) => void;
 }
 
 const FIELD_ID: Record<keyof DailyReadingFormValues, string> = {
@@ -69,6 +71,7 @@ export function DailyReadingForm({
   submitPendingLabel,
   onCancel,
   cancelLabel,
+  onDateChange,
 }: DailyReadingFormProps) {
   const [values, setValues] = useState<DailyReadingFormValues>(() => initialValues ?? emptyValues());
   const [localErrors, setLocalErrors] = useState<FormErrors>({});
@@ -115,7 +118,10 @@ export function DailyReadingForm({
               id={FIELD_ID.reading_date}
               type="date"
               value={values.reading_date}
-              onChange={(e) => patch("reading_date", e.target.value)}
+              onChange={(e) => {
+                patch("reading_date", e.target.value);
+                onDateChange?.(e.target.value);
+              }}
               required
               {...aria("reading_date")}
             />

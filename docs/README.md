@@ -1,10 +1,11 @@
 # TrueWords 기술 문서
 
-현재 작업은 **훈독 화면 확장**([PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md), 2026-09-19 착수)이다. 훈독 MVP 는 Phase 1(#276)·Phase 2(#282, main `b70b6c8`)·Phase 3 편성 트랙(#287)·PWA 트랙(#298, SW 킬스위치 후속 #299)까지 main 에 머지됐고 운영에는 **플래그 OFF** 로 배포돼 있다 — `HOONDOK_ENABLED=1` 배포와 실기기 증거는 [TODO](TODO.md) 의 남은 액션이다. PLAN-HD-002 는 남은 화면 13종을 웨이브로 나눠 W0 준비 → W1 실데이터 → W2 AI 질문 → W3 프리뷰 셸까지 구현 브랜치에 머지했고 지금은 W4 마무리(문서·정리) 단계이며 main 에는 아직 반영되지 않았다. 프리뷰 플래그는 운영에 배선하지 않는다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, 플래그 ON 배포·알림·Flutter 는 별도 승인이다.
+현재 작업은 **훈독 운영 공백 복구**다. 훈독 MVP 는 Phase 1(#276)·Phase 2(#282)·Phase 3 편성 트랙(#287)·PWA 트랙(#298, SW 킬스위치 후속 #299)·화면 확장 [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md)(#300, main `4e15f8c`)까지 main 에 머지됐고, 운영 web `aba5240` 은 **`HOONDOK_ENABLED=1` 로 이미 배포돼 있다**(2026-09-20 실측 — `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 200, `x-robots-tag: noindex, nofollow`, `smoke-web` 12건 OK). 운영 web 태그는 main 보다 2커밋 뒤라 PLAN-HD-002 의 13화면은 아직 노출되지 않는다(`/hoondok/garden` 404). 남은 운영 공백은 편성 재고(투입 전 0일분)이며, 초대 코드 게이트는 끈 채로 유지하기로 결정했다 — 실측값·결정·위험은 [훈독 PWA 롤아웃 runbook](runbooks/hoondok-pwa-rollout.md) 의 실행 기록이 소유한다. 편성 재고를 지속적으로 채우기 위해 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형)를 구현했다 — 코퍼스 원문을 검색해 폼을 채우며 생성 AI 가 본문을 만들지 않는다. 운영 반영은 backend·admin 배포가 필요하고 별도 승인이다. 프리뷰 플래그는 운영에 배선하지 않는다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, web 태그 승격·알림·Flutter 는 별도 승인이다.
 
 | 먼저 읽을 문서 | 용도 |
 |---|---|
 | [훈독 MVP 실행 계획](plans/active/2026-09-17-hoondok-mvp.md) | 확정값 12개, 3테이블·5 API·화면 4, additive-only 규칙, Phase 1~4 완료 기준 |
+| [편성 후보 찾기](plans/active/2026-09-20-hoondok-curation-assist.md) | `PLAN-HD-003`. 추출형 후보 검색(API-HD-012)으로 편성 입력을 돕는다. 생성형 초안을 기각한 이유와 되돌리기 비용 |
 | [훈독 화면 확장 계획](plans/active/2026-09-19-hoondok-screens.md) | `PLAN-HD-002`. 남은 화면 13종을 웨이브 4개(실데이터 → AI 질문 → 프리뷰 셸 → 마무리)로, 플래그 2개(운영 노출 0)·파일 소유·서브에이전트 오케스트레이션 규약 |
 | [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md) | web/admin/API 경계, 공통 API·인증·SSE·알림 정책 |
 | [전환 실행 계획](plans/completed/2026-09-05-monorepo-migration.md) | M1~M4 범위와 실제 검증 증거, M5 제외 범위 |
