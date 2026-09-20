@@ -1,12 +1,13 @@
 # TrueWords 기술 문서
 
-현재 작업은 **훈독 운영 공백 복구**다. 훈독 MVP 는 Phase 1(#276)·Phase 2(#282)·Phase 3 편성 트랙(#287)·PWA 트랙(#298, SW 킬스위치 후속 #299)·화면 확장 [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md)(#300, main `4e15f8c`)까지 main 에 머지됐고, 운영은 **`HOONDOK_ENABLED=1`** 이고 2026-09-20 web 을 `aba5240` → **`a93a6c7`** 로 배포해 PLAN-HD-002 의 실데이터 9라우트가 200, 프리뷰 8라우트는 404 다(`x-robots-tag: noindex, nofollow`, `smoke-web` 12건 OK). 편성 재고는 2026-09-20 에 **8일분**이 투입돼 `PLAN-HD-001` §6 완료 기준(7일분 이상)을 넘겼고, 초대 코드 게이트는 끈 채로 유지하기로 결정했다 — 실측값·결정·위험은 [훈독 PWA 롤아웃 runbook](runbooks/hoondok-pwa-rollout.md) 의 실행 기록이 소유한다. 편성 재고를 지속적으로 채우기 위해 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형)를 구현했다 — 코퍼스 원문을 검색해 폼을 채우며 생성 AI 가 본문을 만들지 않는다. 2026-09-20 backend·admin 을 `c066b02` 로 배포해 운영 편성 화면에서 쓸 수 있다. Phase 3 완료 기준 중 남은 것은 **실기기 증거**와 **배포 트리 기준 `make e2e` 재실행** 2건이다(판정은 [`PLAN-HD-001` §6](plans/active/2026-09-17-hoondok-mvp.md) 완료 기준표). 프리뷰 플래그는 운영에 배선하지 않는다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, web 태그 승격·알림·Flutter 는 별도 승인이다.
+현재 작업은 **훈독 운영 공백 복구**다. 훈독 MVP 는 Phase 1(#276)·Phase 2(#282)·Phase 3 편성 트랙(#287)·PWA 트랙(#298, SW 킬스위치 후속 #299)·화면 확장 [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md)(#300, main `4e15f8c`)까지 main 에 머지됐고, 운영은 **`HOONDOK_ENABLED=1`** 이고 2026-09-20 web 을 `aba5240` → **`a93a6c7`** 로 배포해 PLAN-HD-002 의 실데이터 9라우트가 200, 프리뷰 8라우트는 404 다(`x-robots-tag: noindex, nofollow`, `smoke-web` 12건 OK). 편성 재고는 2026-09-20 에 **8일분**이 투입돼 `PLAN-HD-001` §6 완료 기준(7일분 이상)을 넘겼고, 초대 코드 게이트는 끈 채로 유지하기로 결정했다 — 실측값·결정·위험은 [훈독 PWA 롤아웃 runbook](runbooks/hoondok-pwa-rollout.md) 의 실행 기록이 소유한다. 편성 재고를 지속적으로 채우기 위해 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형)를 구현했다 — 코퍼스 원문을 검색해 폼을 채우며 생성 AI 가 본문을 만들지 않는다. 2026-09-20 backend·admin 을 `c066b02` 로 배포해 운영 편성 화면에서 쓸 수 있다. Phase 3 완료 기준 중 남은 것은 **실기기 증거** 1건이다 — 함께 열려 있던 "배포 트리 기준 `make e2e` 재실행" 은 2026-09-21 [PLAN-HD-004](plans/active/2026-09-20-hoondok-followup-3tracks.md) 최종 게이트(85 passed, 운영 태그 두 개를 조상으로 포함하는 트리)로 닫혔다(판정은 [`PLAN-HD-001` §6](plans/active/2026-09-17-hoondok-mvp.md) 완료 기준표). 프리뷰 플래그는 운영에 배선하지 않는다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, web 태그 승격·알림·Flutter 는 별도 승인이다.
 
 | 먼저 읽을 문서 | 용도 |
 |---|---|
 | [훈독 MVP 실행 계획](plans/active/2026-09-17-hoondok-mvp.md) | 확정값 12개, 3테이블·5 API·화면 4, additive-only 규칙, Phase 1~4 완료 기준 |
 | [편성 후보 찾기](plans/active/2026-09-20-hoondok-curation-assist.md) | `PLAN-HD-003`. 추출형 후보 검색(API-HD-012)으로 편성 입력을 돕는다. 생성형 초안을 기각한 이유와 되돌리기 비용 |
 | [훈독 화면 확장 계획](plans/active/2026-09-19-hoondok-screens.md) | `PLAN-HD-002`. 남은 화면 13종을 웨이브 4개(실데이터 → AI 질문 → 프리뷰 셸 → 마무리)로, 플래그 2개(운영 노출 0)·파일 소유·서브에이전트 오케스트레이션 규약 |
+| [훈독 후속 3트랙](plans/active/2026-09-20-hoondok-followup-3tracks.md) | `PLAN-HD-004`. 배포·CI 안전망(docs-links 가 gitignore 존중 · `deploy-guard` 후퇴 배포 차단) · 훈독 9화면 디자인 품질 · Phase 3 종결 문서 |
 | [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md) | web/admin/API 경계, 공통 API·인증·SSE·알림 정책 |
 | [전환 실행 계획](plans/completed/2026-09-05-monorepo-migration.md) | M1~M4 범위와 실제 검증 증거, M5 제외 범위 |
 | [앱별 UI 실행 계획](plans/active/2026-09-05-app-owned-ui.md) | 후속 2안 승인 범위와 재검증 증거 |
@@ -90,4 +91,4 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 
 기존 색인에만 있고 기준 commit `59e3a59`에 원본이 없는 문서 3개(`03-vector-db-comparison`, `04-gemini-file-search-analysis`, `10-vibe-coding-and-pinecone-vs-qdrant`)는 새 색인의 링크에서 제외했다. 원본 복구 전 내용을 만들거나 다른 문서로 가장하지 않는다. 상세는 manifest의 `missingIndexSources`를 참조한다.
 
-검증: 저장소 루트에서 `node tooling/checks/docs-links.mjs`. 로컬 Markdown/HTML 링크·앵커·매체 경로를 검사하며, 외부 사이트 접근이나 과거 명령의 실행 성공을 보증하지 않는다.
+검증: 저장소 루트에서 `node tooling/checks/docs-links.mjs`. 로컬 Markdown/HTML 링크·앵커·매체 경로를 검사하며, 외부 사이트 접근이나 과거 명령의 실행 성공을 보증하지 않는다. `.gitignore` 대상은 `git ls-files` 판정으로 건너뛴다 — 로컬에만 있는 파일이 원격 CI 에 없어 생기던 오탐을 막는다(2026-09-21, `PLAN-HD-004` 트랙 A).

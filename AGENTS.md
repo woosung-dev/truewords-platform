@@ -139,7 +139,7 @@ dev/<phase 또는 작업명>  (통합 브랜치)
 
 - 통합 브랜치는 별도 worktree (`../tw-<name>/`) 에 분리 — main 작업과 격리
 - sub-task PR 들은 `dev/**` base. CI 통과 시 `gh pr merge --auto --squash --delete-branch` 로 자동 머지 (required check 보호 규칙이 있을 때만 CI 를 기다린다 — 없으면 `gh pr checks <PR#> --watch` 후 수동 머지)
-- 통합 브랜치 → main PR 은 **항상 수동 검증**. Oracle 이전(2026-07-29) 후 push 자동 배포가 없으므로 머지 후 `make deploy-backend` 를 명시 실행한다. `deploy-*` 는 `deploy-guard`(HEAD ∈ origin/main + 클린 트리)를 통과해야 한다
+- 통합 브랜치 → main PR 은 **항상 수동 검증**. Oracle 이전(2026-07-29) 후 push 자동 배포가 없으므로 머지 후 `make deploy-backend` 를 명시 실행한다. `deploy-*` 는 `deploy-guard`(HEAD ∈ origin/main + 클린 트리 + 운영 태그가 HEAD 의 조상)를 통과해야 한다
 - main 머지 전 심도 테스트: `make ci`(API·양 앱·계약·저장소 검사) + `make e2e`
 
 상세 가이드: `docs/runbooks/integration-branch-workflow.md`

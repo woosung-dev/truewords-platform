@@ -307,7 +307,9 @@ PR [#301](https://github.com/woosung-dev/truewords-platform/pull/301) 을 main `
 | `make ops-check` | **8건 전부 OK** — `hoondok-today` OK "오늘·내일 편성 있음 · 앞으로 8일분" |
 | `make smoke-web HOONDOK_ENABLED=1` | **12건 OK** · `sw-cache` WARN 1(§Cloudflare 캐시의 알려진 WARN) |
 
-**backend 는 배포하지 않았다.** 세션 시작 시 브리핑은 `BACKEND_TAG=aba5240` 이었으나 실측은 `c066b02` 였다 — 새 API 3종(API-HD-009/010/011)과 alembic `k5a6b7c8d9e0` 은 같은 날 PR #301 배포에서 이미 운영에 들어가 있었다(위 절). 브리핑이 지정한 `4e15f8c` 로 backend 를 배포했다면 API-HD-012(편성 후보 찾기)를 운영에서 제거하는 **후퇴 배포**가 됐다. `deploy-guard` 는 이것을 막지 못한다 — `4e15f8c` 도 `origin/main` 의 조상이라 가드를 통과한다. **가드는 "main 밖"만 막지 배포 태그가 현재 운영보다 앞선지는 보지 않는다.**
+**backend 는 배포하지 않았다.** 세션 시작 시 브리핑은 `BACKEND_TAG=aba5240` 이었으나 실측은 `c066b02` 였다 — 새 API 3종(API-HD-009/010/011)과 alembic `k5a6b7c8d9e0` 은 같은 날 PR #301 배포에서 이미 운영에 들어가 있었다(위 절). 브리핑이 지정한 `4e15f8c` 로 backend 를 배포했다면 API-HD-012(편성 후보 찾기)를 운영에서 제거하는 **후퇴 배포**가 됐다. 당시 `deploy-guard` 는 이것을 막지 못했다 — `4e15f8c` 도 `origin/main` 의 조상이라 가드를 통과했다. **그때의 가드는 "main 밖"만 막지 배포 태그가 현재 운영보다 앞선지는 보지 않았다.**
+
+> **해소(2026-09-21, `PLAN-HD-004` 트랙 A)** — `deploy-guard` 가 VM `~/truewords/.env` 의 `<DEPLOY_SERVICE>_TAG` 를 읽어 **운영 태그가 배포할 HEAD 의 조상인지** 확인하고, 아니면 사라지는 커밋을 출력하고 중단한다(`Makefile` `deploy-guard`, 커밋 `e89b638`). 위 시나리오는 이제 차단된다 — `git merge-base --is-ancestor 4e15f8c c066b02` 가 참이므로 `4e15f8c` 배포는 후퇴로 판정된다. `.env` 를 못 읽으면 "첫 배포" 로 보지 않고 중단한다(`fcf9496`). `FORCE_DEPLOY=1` 은 그대로 예외다.
 
 #### 라우트 전수 실측
 
@@ -363,6 +365,6 @@ make rollback-web TAG=aba5240
 
 #### 남은 것
 
-- **실기기 증거**(§실기기 증거) — 헤드리스로 대체 불가. `PLAN-HD-001` §6 완료 기준표에서 아직 닫히지 않은 두 항목 중 하나다(다른 하나는 배포 트리 기준 `make e2e` 재실행).
+- **실기기 증거**(§실기기 증거) — 헤드리스로 대체 불가. `PLAN-HD-001` §6 완료 기준표에서 **아직 닫히지 않은 마지막 항목**이다. 함께 열려 있던 "배포 트리 기준 `make e2e` 재실행" 은 `PLAN-HD-004` 최종 게이트가 닫았다 — 운영 태그 `a93a6c7`(web)·`c066b02`(backend·admin)가 둘 다 그 트리의 조상이라 배포된 코드를 포함한다.
 - **`make ci` 의 `docs:check` 로컬 오탐**: `tooling/checks/docs-links.mjs:10` 의 `walk()` 가 `fs.readdirSync` 로 트리를 걸으며 `.gitignore` 를 보지 않아, gitignore 대상인 `docs/guides/*.html`(`.gitignore:40`)을 검사해 missing-anchor 11건을 낸다. GHA 체크아웃에는 그 파일이 없어 원격 CI 는 통과한다. `make ci` 가 여기서 멈춰 뒤의 `pnpm test`·`lint`·`build`·`typecheck` 에 **도달하지 못하므로** 이 배포에서는 따로 실행했다(전부 green, pytest 1069 passed). 배포와 무관한 별도 건.
-  - **처리 중**: `PLAN-HD-004` 트랙 A 가 `walk()` 의 `.gitignore` 존중과 `deploy-guard` 후퇴 배포 차단을 함께 다룬다. **아직 결과를 단정하지 않는다** — 머지 뒤 `make ci` 가 끝까지 도는지는 오케스트레이터가 실측해 이 줄을 갱신한다.
+  - **해소(2026-09-21, `PLAN-HD-004` 트랙 A `54dc8ea`)**: `walk()` 가 `git ls-files --cached --others --exclude-standard` 를 gitignore 판정의 정본으로 써서 대상 파일을 건너뛴다(목록을 못 얻으면 경고 후 전부 검사한다 — 조용히 건너뛰지 않는다). 실측으로 `make ci` 가 **exit 0 으로 끝까지 돈다** — docs:check 문서 190 · 링크 324 · 새 오류 0, 이어서 `test`·`lint`·`build`·`typecheck` 까지 도달한다.

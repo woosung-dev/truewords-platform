@@ -256,7 +256,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] `[종결]` **초대 코드 게이트 — OFF 유지 결정**(2026-09-20). VM `.env` 는 건드리지 않았다. 게이트 코드는 backend 에 이미 배포돼 있어 `HOONDOK_INVITE_CODE` 한 줄 + backend 재생성만으로 즉시 켤 수 있다(다른 컨테이너 파급 없음). 가입 규모가 `[가정]` 10~20명을 넘거나 링크가 의도 밖으로 퍼지면 뒤집는다. 근거는 [runbook §실행 기록](runbooks/hoondok-pwa-rollout.md#실행-기록)
 - [x] `[종결]` **`make deploy-web HOONDOK_ENABLED=1`** — 2026-09-20 web `a93a6c7` 배포. `smoke-web` 12건 OK, 실데이터 9라우트 200 · 프리뷰 8라우트 404
 - [ ] **실기기 증거** — Android·iOS 16.4+ 에서 설치 → 가입 → 훈독 → 완료. 설치 prompt(Android `beforeinstallprompt`)·iOS 공유 시트 분기는 헤드리스가 재현하지 못한다. 양식은 [runbook §실기기 증거](runbooks/hoondok-pwa-rollout.md#실기기-증거). **사용자 수집 대기**(Blocked §훈독)
-- [ ] **배포 트리 기준 `make e2e` 재실행** — 마지막 전체 E2E 는 85 passed(PR #300 트리 `c0b0547`)이고 그 위에 #301(`c066b02`, 편성 후보 찾기 backend·admin)이 얹혔다. `make ci` 는 E2E 를 돌리지 않으므로 이 공백이 남는다. `PLAN-HD-004` 마무리의 `make ci`·`make e2e` 로 메우고 결과를 [`PLAN-HD-001` §6·§9](plans/active/2026-09-17-hoondok-mvp.md) 에 기록한다
+- [x] `[종결]` **배포 트리 기준 `make e2e` 재실행** — 2026-09-21 `PLAN-HD-004` 최종 게이트가 트리 `edb2545` 에서 **85 passed** 를 냈다. 그 트리는 운영 태그 `a93a6c7`(web)·`c066b02`(backend·admin)를 둘 다 조상으로 포함해 배포된 코드가 실행에 들어 있다. [`PLAN-HD-001` §6·§9](plans/active/2026-09-17-hoondok-mvp.md) 에 기록
 - [ ] **편성 보충 (2026-09-27 경)** — 2026-09-20 투입분이 **8일분**이라 그 무렵 오늘·내일 편성이 끊기고 `ops-check` `hoondok-today` 가 다시 WARN 이 된다. 편성자가 운영 admin 편성 화면에서 채운다([PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 후보 찾기 사용 가능)
 
 ### 훈독 화면 확장 PLAN-HD-002 (2026-09-19)
@@ -516,7 +516,7 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
   - [x] 코드 정리 — `apps/web/next.config.ts`·`apps/admin/next.config.ts` 의 host 조건부 redirect 블록과 `LEGACY_WEB_ORIGIN` 상수, 각 앱 `routing.test.ts` 의 legacy host 테스트, `.gitignore`/`.dockerignore` 의 `.vercel` 항목 제거.
   - [x] 프로젝트 삭제 실행 — 2026-09-05 `vercel project rm truewords-platform` 성공. `truewords-platform.vercel.app`·`truewords-platform-woosungdevs-projects.vercel.app` 모두 404 확인. 이후 PR 커밋에 `Vercel` status 없음.
 - [x] ~~**가이드 PDF 재생성**~~ — 폐기(2026-09-05). PDF 3종은 레포에 없는 외부 산출물이고, Vercel 즉시 삭제 결정으로 "삭제 전 재생성" 조건이 성립하지 않는다. 구 주소를 받은 테스터에게는 새 주소(`https://truewords.woosung.dev`, 2026-09-06 canonical)를 공지로 대체한다.
-- [x] **push 자동 배포 상실 → 수동 배포 + 가드로 확정** (2026-09-05) — CD 워크플로는 복원하지 않는다(1인·Always Free VM 에는 로컬 배포가 맞다). 대신 `make deploy-*` 가 `deploy-guard`(HEAD ∈ origin/main + 클린 트리, 예외 `FORCE_DEPLOY=1` 은 기록에 `forced`)를 거치고 VM `~/truewords/deploy.log` 에 한 줄 남긴다. main push 마다 `ci.yml` 이 돌아 "main 은 green" 근거를 남긴다. 2026-08-06 브랜치 HEAD 배포 사고의 재발 방지.
+- [x] **push 자동 배포 상실 → 수동 배포 + 가드로 확정** (2026-09-05) — CD 워크플로는 복원하지 않는다(1인·Always Free VM 에는 로컬 배포가 맞다). 대신 `make deploy-*` 가 `deploy-guard`(HEAD ∈ origin/main + 클린 트리 + 운영 태그가 HEAD 의 조상, 예외 `FORCE_DEPLOY=1` 은 기록에 `forced`)를 거치고 VM `~/truewords/deploy.log` 에 한 줄 남긴다. main push 마다 `ci.yml` 이 돌아 "main 은 green" 근거를 남긴다. 2026-08-06 브랜치 HEAD 배포 사고의 재발 방지.
 - [x] **GCP·Neon 잔존 리소스 감사** (2026-07-30) — ADR: `docs/archive/engineering/2026-07-30-gcp-neon-residual-audit.md`
   - **⚠️ 운영 Gemini 키가 문서에 없는 프로젝트에 있었다.** 서비스의 유일한 외부 의존인데 `jetaime-dev` 가 아니라 **다른 계정(운영자 개인 Google 계정)의 `d-project-497004` ("D-Project")** 소유다. 해시 대조로 확정(값 미노출). 지우면 챗봇 즉사. `infra/oracle-vm/.env.example` 과 `README.md` 에 명시했다. **2026-06-04 `woosung-dev` 사고와 같은 구조의 재료였다.**
   - `jetaime-dev` 실사: TODO 에 적혀 있던 `kairos-api`/`nexus-core` 등은 **이미 없다.** 과금 비활성, Cloud Run 0 / Cloud SQL 0 / 버킷 0. Artifact Registry 는 billing 게이트로 조회 불가(과금도 안 됨). **월 $0 — 남겨 두는 비용이 없다.**

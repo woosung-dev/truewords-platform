@@ -56,7 +56,7 @@ Docker context는 저장소 루트다. API의 venv·소스 레이어 분리, Ale
 
 `NEXT_PUBLIC_API_URL`과 앱 간 origin은 build 시 고정된다. 운영에서는 API rewrite를 `http://backend:8080`으로 빌드하고 확정 사용자/admin origin을 전달한다. 런타임 env만 수정한 뒤 목적지가 바뀌었다고 판정하지 않는다.
 
-`make deploy-*`는 먼저 `deploy-guard`로 **HEAD가 `origin/main`에 포함되고 작업 트리가 깨끗한지** 확인한다(2026-08-06 브랜치 HEAD 배포 사고의 재발 방지). 예외는 `FORCE_DEPLOY=1`뿐이며 기록에 `forced`로 남는다. 이어서 ops-check(advisory) → 로컬 arm64 빌드 → entrypoint/smoke 확인 → SSH image load → 태그 갱신 → compose healthy 확인 → VM `~/truewords/deploy.log`에 `시각 동작 서비스 태그 경로` 한 줄 기록 순이다. 롤백도 같은 로그에 `rollback … manual`로 남는다. 단일 VM의 Compose 교체는 무중단을 보장하지 않는다. 이미지 배포 권한은 PR 생성 권한과 구분한다.
+`make deploy-*`는 먼저 `deploy-guard`로 **HEAD가 `origin/main`에 포함되고, 작업 트리가 깨끗하고, 현재 운영 태그가 배포할 HEAD의 조상인지** 확인한다(앞의 둘은 2026-08-06 브랜치 HEAD 배포 사고, 셋째는 2026-09-20 후퇴 배포 미수의 재발 방지 — [훈독 PWA 롤아웃 runbook](hoondok-pwa-rollout.md)). 셋째 조건은 호출부가 넘긴 `DEPLOY_SERVICE`로 VM `~/truewords/.env`의 `<SVC>_TAG`를 읽어 판정하며, **읽지 못하면 "첫 배포"로 보지 않고 중단한다**(ssh 실패 255와 `.env` 읽기 실패를 메시지로 구분한다). 예외는 `FORCE_DEPLOY=1`뿐이며 기록에 `forced`로 남는다. 이어서 ops-check(advisory) → 로컬 arm64 빌드 → entrypoint/smoke 확인 → SSH image load → 태그 갱신 → compose healthy 확인 → VM `~/truewords/deploy.log`에 `시각 동작 서비스 태그 경로` 한 줄 기록 순이다. 롤백도 같은 로그에 `rollback … manual`로 남는다. 단일 VM의 Compose 교체는 무중단을 보장하지 않는다. 이미지 배포 권한은 PR 생성 권한과 구분한다.
 
 ## 최초 분리 전환·rollback
 

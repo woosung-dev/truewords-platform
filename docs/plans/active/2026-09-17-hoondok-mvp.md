@@ -139,7 +139,7 @@ Phase 3 완료 기준: 운영 `truewords.woosung.dev/hoondok` 을 Android·iOS 1
 | 편성자가 admin 에서 7일분 이상 입력 | ✅ 충족 | `ops-check` 불변식 8건 전부 통과 · `hoondok-today` OK "앞으로 8일분"(편성 투입 절, 같은 날 web 배포 뒤 재확인). 8일분이라 **2026-09-27 경** 다시 WARN 이 된다 |
 | `smoke-web HOONDOK_ENABLED=1` green | ✅ 충족 | web `a93a6c7` 배포 직후 **12건 OK** · `sw-cache` WARN 1 — §Cloudflare 캐시에 근거가 적힌 알려진 WARN 이고 FAIL 이 아니다 |
 | 배포 순서 `deploy-backend` → `deploy-admin` → `deploy-web HOONDOK_ENABLED=1` → `smoke-web` | ✅ 충족 | 2026-09-20 그 순서로 실행 — backend·admin `c066b02`(PR #301) → web `a93a6c7`(`HOONDOK_ENABLED=1`, `--no-deps`) → `smoke-web` 12건 OK. 다만 플래그를 **처음** 켠 배포(`aba5240`)는 날짜·주체가 미기록이다(runbook 사후 실측 절) |
-| 시연 챗·admin E2E | ⚠️ 부분 충족 | 마지막 전체 `make e2e` 는 **85 passed / 0 failed**([PLAN-HD-002 §8](2026-09-19-hoondok-screens.md), HEAD `c0b0547` = PR #300 트리, 2026-09-20). 운영에 올라간 트리는 그 위에 #301(`c066b02`, 편성 후보 찾기 backend·admin)이 더 얹혔고 **그 뒤 `make e2e` 재실행 기록이 없다**. 배포 직전 실행한 것은 `make ci` 계열(`pnpm test`·`lint`·`build`·`typecheck`, pytest 1069)인데 `Makefile` 의 `ci:` 는 E2E 를 돌리지 않는다(E2E 는 `e2e:` 타깃) — 이전 ✅ 의 증거 칸이 E2E 를 가리키지 않아 강등했다 |
+| 시연 챗·admin E2E | ✅ | **85 passed / 0 failed** — `PLAN-HD-004` 최종 게이트 `make e2e`(2026-09-21, 트리 `edb2545`). 이 트리는 운영 태그 `a93a6c7`(web)·`c066b02`(backend·admin)를 **둘 다 조상으로 포함**하므로(`git merge-base --is-ancestor` 실측) 배포된 코드가 이 실행에 들어 있다. 2026-09-20 에 ⚠️ 로 강등했던 사유(`make ci` 의 `ci:` 타깃은 E2E 를 돌리지 않는데 증거 칸이 그것을 가리켰다)는 이 실행으로 해소됐다 |
 | 실기기 설치 → 가입 → 훈독 → 완료 (Android·iOS 16.4+) | ⬜ **미충족** | *(사용자가 채운다 — 양식은 [runbook §실기기 증거](../../runbooks/hoondok-pwa-rollout.md#실기기-증거). 헤드리스로 대체하지 않는다)* |
 | `mission_logs` 7일 적재 시작 | ⬜ 미충족 | 실기기 증거 이후 실사용자 유입부터. 현재 적재 건수는 측정하지 않았다 |
 
@@ -272,7 +272,8 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 3 | `make deploy-backend` · `make deploy-admin` (PR #301 → main `c066b02`) | backend·admin `c066b02` · alembic `k5a6b7c8d9e0 (head)` · 컨테이너 6개 정상 · admin 배포 시 backend 미재생성(`--no-deps`) · web `aba5240` 무변경 · `smoke-web` 12건 OK | 2026-09-20 |
 | 3 | 편성 입력 (편성자가 운영 admin 편성 화면에서 수기 입력) | `ops-check` 불변식 **8건 전부 OK** — `hoondok-today` OK "앞으로 8일분" · `GET /hoondok/today` `status="available"`(참어머님 말씀모음, `authority_grade=R`). §6 완료 기준 "7일분 이상" 충족 | 2026-09-20 |
 | 3 | `make deploy-web HOONDOK_ENABLED=1` (`a93a6c7`, `--no-deps`) | web `a93a6c7` · 실데이터 9라우트 200 · 프리뷰 8라우트 404(`NEXT_PUBLIC_HOONDOK_PREVIEW` 미배선) · `ops-check` 8건 OK · `smoke-web` 12건 OK(`sw-cache` WARN 1) · web 메모리 **53.1 MiB / 512 MiB**(2026-09-19 OFF 기준 57.1 에서 증가 없음 — runbook §메모리 의 `[가정]` 확인) · `sw.js` 무변경이라 킬스위치 위험 불변 | 2026-09-20 |
-| 3 | 마지막 전체 `make e2e` | **85 passed / 0 failed** ([PLAN-HD-002 §8](2026-09-19-hoondok-screens.md), HEAD `c0b0547`). 배포 트리(`c066b02`)는 그 위에 #301 이 더 얹혔고 이후 `make e2e` 재실행 기록이 없다 — §6 표의 "시연 챗·admin E2E" 를 ⚠️ 로 둔 근거 | 2026-09-20 |
+| 3 | 마지막 전체 `make e2e` | **85 passed / 0 failed** (`PLAN-HD-004` 최종 게이트, 트리 `edb2545`). 운영 태그 `a93a6c7`·`c066b02` 가 둘 다 이 트리의 조상이라 배포된 코드를 포함한다 — §6 표의 "시연 챗·admin E2E" 를 ✅ 로 올린 근거 | 2026-09-21 |
+| 3-a | 직전 기록(참고) | `85 passed` ([PLAN-HD-002 §8](2026-09-19-hoondok-screens.md), HEAD `c0b0547` = PR #300 트리). 그 위 #301(`c066b02`)이 실행되지 않아 2026-09-20 에 ⚠️ 로 강등했던 근거 | 2026-09-20 |
 
 ## 10. 결정 기록
 
@@ -304,3 +305,4 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 2026-09-19 | 시연 챗 미제어 단언은 `/login` 에서 `serviceWorker.controller === null`. `getRegistrations()` 는 origin 전체라 계획 초안의 "0건" 은 성립하지 않는다 | 확정(정정) · Phase 3 D |
 | 2026-09-19 | 홈(`SCR-PWA-002`)에 말씀 본문을 싣지 않는다 — 정본 프로토타입이 `[data-screen="today"]` 에서 `.lede`·`.lede-src` 를 숨기고, PRD `SCR-PWA-002` 는 "인사·요일·연속일·미션 3종·정성 카드·우리 교회 참여"만 열거하며, `DES-PWA-003` §2.2 말씀 카드는 `SCR-PWA-003`·`006`·`008` 컴포넌트다. Phase 1 구현의 홈 "오늘 말씀" 섹션은 미션 카드 제목과 같은 문장을 두 번 렌더했다. 편성 없음(AC-016-04)은 미션 카드가 "오늘 말씀을 기다리고 있어요"로 이미 처리한다. 전문은 `/hoondok/read` 가 갖는다 | 확정(정정) · Phase 3 정본 대조 |
 | 2026-09-20 | §6 완료 기준표를 runbook §실행 기록과 1:1 대조해 확정. "시연 챗·admin E2E" 는 ⚠️ 부분 충족으로 **강등** — 인용됐던 `make ci` 는 E2E 를 돌리지 않고, 배포 트리(`c066b02`) 기준 `make e2e` 재실행 기록이 없다. 실기기·`mission_logs` 2행은 ⬜ 유지하고 실기기 증거 칸은 사용자가 채운다 | 확정(정정) · §6 |
+| 2026-09-21 | "시연 챗·admin E2E" 를 **✅ 로 복원** — `PLAN-HD-004` 최종 게이트가 트리 `edb2545` 에서 `make e2e` 85 passed 를 냈고, 그 트리가 운영 태그 `a93a6c7`·`c066b02` 를 둘 다 조상으로 포함해 전날 강등 사유(배포된 코드가 실행에 없음)가 사라졌다. 실기기·`mission_logs` 2행은 ⬜ 유지 | 확정(해소) · §6·§9 |
