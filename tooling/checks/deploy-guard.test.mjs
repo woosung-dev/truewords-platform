@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -49,11 +49,20 @@ function repoFixture() {
   return { dir, git, older, newer };
 }
 
-/** liveTag: 운영 .env 가 보고할 태그. null 이면 _TAG 줄 자체가 없다. sshFails 면 ssh 가 죽는다. */
-function runGuard(dir, { liveTag = null, sshFails = false, vars = {} } = {}) {
-  const stub = sshFails
-    ? "ssh() { echo 'ssh: connect to host truewords-oracle port 22: Operation timed out' >&2; return 255; }"
-    : `ssh() { printf '%s\\n' '${liveTag === null ? "" : `BACKEND_TAG=${liveTag}`}'; return 0; }`;
+/**
+ * liveTag: 운영 .env 가 보고할 태그. null 이면 _TAG 줄 자체가 없다. sshFails 면 ssh 가 죽는다.
+ * remote: runRemoteProbe 가 실제로 얻은 {status, stdout} 을 그대로 ssh 의 응답으로 돌려준다 —
+ * 원격 종료 코드가 가드까지 어떻게 도착하는지를 지어내지 않고 잇는다.
+ */
+function runGuard(dir, { liveTag = null, sshFails = false, remote = null, vars = {} } = {}) {
+  let stub;
+  if (sshFails) {
+    stub = "ssh() { echo 'ssh: connect to host truewords-oracle port 22: Operation timed out' >&2; return 255; }";
+  } else if (remote) {
+    stub = `ssh() { printf '%s' '${remote.stdout.replaceAll("'", `'\\''`)}'; return ${remote.status}; }`;
+  } else {
+    stub = `ssh() { printf '%s\\n' '${liveTag === null ? "" : `BACKEND_TAG=${liveTag}`}'; return 0; }`;
+  }
   const script = guardScript({
     TAG: "deadbee",
     ORACLE: "truewords-oracle",
@@ -123,6 +132,62 @@ test("ssh 실패는 통과가 아니라 중단이다", () => {
     const result = runGuard(dir, { sshFails: true });
     assert.equal(result.status, 1);
     assert.match(result.stdout, /운영 태그를 읽지 못했습니다/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/** Makefile 의 ssh 원격 명령(작은따옴표 안)을 그대로 떼어낸다. 스텁이 아닌 진짜 grep 으로 돌려 본다. */
+const remoteProbe = guardRecipe.match(/live_line=\$\$\(ssh "\$\(ORACLE\)" '([^']*)'\)/)?.[1];
+
+/** envContents 가 null 이면 .env 자체를 두지 않는다. 원격의 `~` 는 HOME 이라 fixture 로 갈아끼운다. */
+function runRemoteProbe(envContents) {
+  const home = mkdtempSync(path.join(tmpdir(), "truewords-live-env-"));
+  mkdirSync(path.join(home, "truewords"));
+  if (envContents !== null) writeFileSync(path.join(home, "truewords", ".env"), envContents);
+  const command = remoteProbe.replaceAll("$(DEPLOY_SERVICE)", "BACKEND").replaceAll("$$", "$");
+  const result = spawnSync("bash", ["-c", command], { env: { ...process.env, HOME: home }, encoding: "utf8" });
+  rmSync(home, { recursive: true, force: true });
+  return result;
+}
+
+test("원격 명령은 미일치(1)만 삼키고 그 밖의 종료 코드는 ssh 로 올려보낸다", () => {
+  assert.ok(remoteProbe, "deploy-guard 의 ssh 원격 명령을 Makefile 에서 찾지 못했다");
+  // `|| true` 가 원격 셸 안에 있으면 미일치(1)와 읽기 실패(2)가 한 덩어리로 뭉개진다.
+  assert.doesNotMatch(remoteProbe, /\|\|\s*true/);
+
+  const found = runRemoteProbe("WEB_TAG=zzz\nBACKEND_TAG=abc1234\n");
+  assert.equal(found.status, 0);
+  assert.match(found.stdout, /^BACKEND_TAG=abc1234$/m);
+
+  const unset = runRemoteProbe("WEB_TAG=zzz\n"); // 태그 미설정 = grep 1
+  assert.equal(unset.status, 0);
+  assert.equal(unset.stdout.trim(), "");
+
+  const unreadable = runRemoteProbe(null); // .env 없음 = grep 2
+  assert.equal(unreadable.status, 2);
+});
+
+test("원격이 .env 를 못 읽으면(종료 2) 첫 배포로 넘기지 않고 중단한다", () => {
+  const { dir } = repoFixture();
+  try {
+    const result = runGuard(dir, { remote: runRemoteProbe(null) });
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /운영 태그를 읽지 못했습니다/);
+    assert.match(result.stdout, /\.env 를 읽을 수 없습니다/); // 원인이 ssh 가 아니라 파일임을 말한다
+    assert.match(result.stdout, /원격 grep 종료 2/);
+    assert.doesNotMatch(result.stdout, /첫 배포/); // 확인하지 못한 채 통과시키지 않는다
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("태그 미설정(원격 종료 1)은 기존대로 첫 배포로 통과한다", () => {
+  const { dir } = repoFixture();
+  try {
+    const result = runGuard(dir, { remote: runRemoteProbe("WEB_TAG=zzz\n") });
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /BACKEND_TAG 가 없습니다 — 첫 배포/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
