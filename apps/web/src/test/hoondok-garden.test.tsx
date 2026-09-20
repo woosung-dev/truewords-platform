@@ -149,6 +149,19 @@ describe("GardenScreen 로그인", () => {
     expect(container.querySelectorAll(".gd-cal__day[data-today][data-done]")).toHaveLength(1);
   });
 
+  it("불러오는 동안 실제 카드 높이의 자리 지킴을 둔다 — 글자 한 줄이 아니다", async () => {
+    loggedIn();
+    const { container } = renderGarden();
+
+    const loading = screen.getByRole("status", { name: "기록을 불러오는 중" });
+    expect(loading).toHaveAttribute("aria-busy", "true");
+    // 통계 · 월 달력 · 정성 세 카드 자리 (DES §1.5 loading)
+    expect(container.querySelectorAll(".skeleton")).toHaveLength(3);
+
+    await screen.findByText("현재 연속일");
+    expect(screen.queryByRole("status", { name: "기록을 불러오는 중" })).toBeNull();
+  });
+
   it("진행 중인 정성이 없으면 '새로 시작' 링크가 홈 시트로 간다", async () => {
     loggedIn(null);
     renderGarden();

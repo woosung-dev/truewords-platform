@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Smartphone } from "lucide-react";
+import { Smartphone } from "lucide-react";
 import { InstallCard } from "@/features/hoondok/install/components/install-card";
 import { useInstallCard } from "@/features/hoondok/install/use-install-card";
 import { DeleteAccountCard } from "./delete-account-card";
@@ -72,13 +72,11 @@ export function SettingsScreen() {
                   />
                 </span>
               </div>
+              {/* 꺼진 행에는 caret 을 두지 않는다 — 있으면 탭하면 시간 선택으로 들어갈 행으로 읽힌다 (§3.3) */}
               {item.time && (
                 <button className="st-sub" type="button" disabled aria-disabled="true">
                   <span className="st-sub__k">시간</span>
-                  <span className="st-sub__v">
-                    {item.time}
-                    <ChevronRight size={20} aria-hidden="true" />
-                  </span>
+                  <span className="st-sub__v">{item.time}</span>
                 </button>
               )}
             </div>
