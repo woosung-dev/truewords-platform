@@ -18,6 +18,9 @@
 | `API-HD-006` | GET | `/admin/hoondok/daily-readings` · GET `/admin/hoondok/daily-readings/{id}` | `admin_token` + `require_admin_gate` | 3 |
 | `API-HD-007` | POST | `/admin/hoondok/daily-readings` | `admin_token` + 게이트 + `X-Requested-With` | 3 |
 | `API-HD-008` | PUT | `/admin/hoondok/daily-readings/{id}` | `admin_token` + 게이트 + `X-Requested-With` | 3 |
+| `API-HD-009` | GET · POST · DELETE | `/hoondok/me/jeongseong` | `hoondok_token` (POST·DELETE 는 `X-Requested-With`) | W0-B |
+| `API-HD-010` | GET | `/hoondok/me/history?month=YYYY-MM` | `hoondok_token` | W0-B |
+| `API-HD-011` | DELETE | `/hoondok/auth/me` | `hoondok_token` + `X-Requested-With` | W0-B |
 
 공통 규칙:
 
@@ -27,6 +30,7 @@
 - 오류 본문은 기존 FastAPI 규약(`{"detail": ...}`)을 따른다. 예외: API-HD-002 의 403 `INVITE_REQUIRED` 는 중앙 핸들러의 `ErrorResponse{ error_code, message, request_id }` 형식이다(SEC-MONO-001 의 `SESSION_FORBIDDEN` 과 같다) — 웹이 CSRF 403 과 `error_code` 로 구분한다.
 - Phase 2 항목은 2026-09-16 sub-PR A(002·003)·B(004·005)에서 확정했다.
 - `API-HD-006~008` 만 예외로 **관리자 블록**이다: prefix `/admin/hoondok/daily-readings`, tag `admin-hoondok`, `main.py` 에 `_ADMIN_GATE` 로 등록, 라우터 레벨 `verify_csrf`. 훈독 사용자 쿠키(`hoondok_token`)로는 호출할 수 없다. 2026-09-19 Phase 3 sub-PR A 에서 확정.
+- `API-HD-009~011` 은 2026-09-19 PLAN-HD-002 W0-B 에서 확정했다(정성 기간·월 기록·계정 삭제). 모두 `hoondok_token` 이며 상태 변경(POST·DELETE)은 `X-Requested-With` 가 없으면 403.
 
 ---
 
@@ -139,6 +143,115 @@ GET /admin/hoondok/daily-readings?from=2026-09-19&to=2026-10-03
 
 ---
 
+## API-HD-009 `GET · POST · DELETE /hoondok/me/jeongseong` (W0-B)
+
+정성 기간(7·21·40일) — 사용자당 진행 중(`active`) 1건. 진행률은 저장하지 않고 `mission_logs` 의 `read` 완료일에서 매번 계산한다(`hoondok/jeongseong.py`, [ENT-HD-004](../domain/hoondok-entities.md)). 인증 `hoondok_token`, POST·DELETE 는 `X-Requested-With: XMLHttpRequest` 없으면 403.
+
+### GET — 진행 중인 기간 + 진행률
+
+```
+GET /hoondok/me/jeongseong
+```
+
+응답 200 `{ period: JeongseongPeriodResponse | null }`.
+
+```json
+{
+  "period": {
+    "id": "6f1c…",
+    "topic": "감사",
+    "duration_days": 21,
+    "started_on": "2026-09-19",
+    "reminder_time": "06:00:00",
+    "status": "active",
+    "progress": {
+      "end_on": "2026-10-09",
+      "done_days": 1,
+      "missed_days": 0,
+      "remaining_days": 20,
+      "percent": 5,
+      "state": "active"
+    }
+  }
+}
+```
+
+| 필드 | 설명 |
+|---|---|
+| `status` | DB 저장 상태 `active` (응답에 나오는 기간은 항상 active) |
+| `progress.end_on` | `started_on + (duration_days - 1)`, 양끝 포함 |
+| `progress.state` | 오늘(KST) 기준 `upcoming`(시작 전) · `active` · `completed`(계산값, 저장 안 함) |
+| `progress.done_days` | `[started_on, min(today, end_on)]` 중 `read` 완료일 수 |
+| `progress.missed_days` | `[started_on, min(today-1, end_on)]` 중 미완료일 수 — **오늘은 밀린 날이 아니다** |
+| `progress.remaining_days` | `max(end_on - today, 0)` |
+| `progress.percent` | `done_days / duration_days × 100` 정수 반올림(half-up) |
+
+`active` 인데 `end_on < today` 면 이 요청이 `status=completed` · `ended_at` 을 기록하고 `period: null` 을 돌려준다(별도 배치 없음). 진행 중인 기간이 없으면 `period: null`. 401 미인증.
+
+### POST — 시작
+
+본문 `JeongseongCreate`:
+
+| 필드 | 규칙 |
+|---|---|
+| `topic` | 1~40자, 앞뒤 공백 제거 후 검사 |
+| `duration_days` | `7` \| `21` \| `40` |
+| `started_on` | 선택. 생략 시 오늘(KST). **오늘 ~ 오늘+30** 밖이면 422 |
+| `reminder_time` | 선택 `HH:MM[:SS]`. 표시용 — 푸시는 Phase 4 |
+
+201 `JeongseongPeriodResponse`(위 `period` 와 같은 형태). 409 이미 진행 중(`"이미 진행 중인 정성 기간이 있어요"`, 선조회 + 부분 unique IntegrityError 폴백) · 422 검증 · 403 CSRF · 401 미인증. 끝난 기간이 남아 있으면 GET 과 같이 `completed` 로 정리한 뒤 새로 만든다.
+
+### DELETE — 그만두기
+
+204, 진행 중인 기간을 `status=abandoned` · `ended_at` 으로 바꾼다(행은 남는다). 404 진행 중인 기간 없음(끝난 기간은 `completed` 로 정리되므로 404) · 403 CSRF · 401 미인증.
+
+## API-HD-010 `GET /hoondok/me/history?month=YYYY-MM` (W0-B)
+
+한 달의 날마다 `read` 완료 여부. 나의 정원 월 캘린더용.
+
+```
+GET /hoondok/me/history?month=2026-09
+```
+
+| 파라미터 | 기본 | 규칙 |
+|---|---|---|
+| `month` | 오늘(KST)의 월 | `^\d{4}-(0[1-9]\|1[0-2])$`. 형식 위반 422, 연도 `2020` ~ 올해+1 밖 422 |
+
+응답 200 `{ month: "2026-09", days: [{ date, done }] × 그 달의 일수 }`(`calendar.monthrange`, 윤년 반영). `done` 은 `mission_logs.kind = read` 기준이며 미래 날은 항상 `false`. `days[].date`·`done` 은 API-HD-004 `week[]` 와 같은 `WeekDay` 스키마다. 401 미인증.
+
+## API-HD-011 `DELETE /hoondok/auth/me` (W0-B)
+
+"내 데이터 삭제 — 기록을 모두 지워요". 인증 `hoondok_token` + `X-Requested-With`.
+
+```
+DELETE /hoondok/auth/me
+```
+
+204 + `Set-Cookie: hoondok_token=; Max-Age=0`. 서버는 한 트랜잭션으로:
+
+1. 본인 `mission_logs` · `jeongseong_periods` **하드 삭제**
+2. `users.deleted_at = now`, `users.email = "deleted:{id}"` 로 익명화 — 같은 주소로 다시 가입할 수 있다(unique 인덱스 충돌 없음). `password_hash`·`display_name` 은 그대로 둔다
+
+이후 `GET /hoondok/auth/me` 는 401(`get_optional_user` 가 `deleted_at` 사용자를 거른다), 이미 발급된 토큰도 같은 이유로 무효다. 로그인은 익명화된 이메일로 찾을 수 없어 401. 401 미인증 · 403 CSRF. 물리 삭제 주기(`[가정: 30일]`)는 비범위.
+
+레이어: identity **service** 는 hoondok 을 import 하지 않는다(의존 주입은 `identity/dependencies.py` 의 `get_user_data_purgers` 한 곳). `IdentityService.delete_account(user, purgers)` 가 `UserDataPurger` Protocol(`delete_for_user`) 목록을 받고, `identity/dependencies.py get_user_data_purgers` 가 `MissionLogRepository`·`JeongseongRepository` 를 같은 세션으로 주입한다. purger 는 커밋하지 않고 `UserRepository.save` 의 커밋에 묶인다.
+
+---
+
+## 훈독 AI 질문 — 신규 엔드포인트 없이 `POST /chat/stream` 재사용 (W2)
+
+AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만들지 않는다. 시연 챗과 **같은** `POST /chat/stream` SSE 를 그대로 호출하며 요청·응답 스키마, 프롬프트, RAG 정책, 서버 기록 모두 시연 챗과 같다. 백엔드는 이 웨이브에서 한 줄도 바뀌지 않았다.
+
+- 호출부는 `apps/web/src/features/hoondok/ask/ask-stream.ts` 하나다. 경로(같은 origin 프록시 `/api/backend/chat/stream`)·`X-Requested-With: XMLHttpRequest`·쿠키 동봉은 시연 챗(`features/chatbot/chat-api.ts`)과 동일하다.
+- 본문은 `{ query, chatbot_id }` 뿐이다. `chatbot_id` 는 UUID 가 아니라 슬러그이며 `HOONDOK_ASK_CHATBOT_ID = "all"` 상수 하나가 정한다. `[확인 필요]` 훈독 전용 봇이 정해지면 이 상수만 바꾼다.
+- **시연 챗과 다른 점은 둘뿐이고 둘 다 클라이언트 쪽이다.**
+  1. **무기억** — `session_id`(과 `answer_mode`)를 보내지 않는다. `session_id` 는 원래 선택 필드라 서버는 매 질문마다 새 세션을 만든다(`chat/pipeline/stages/session.py`). 이어 묻기도 새 요청이다.
+  2. **근거 게이트** — `chunk` 텍스트를 화면에 바로 흘리지 않고 모아 두었다가 `sources` 이벤트가 **1건 이상일 때만** 답을 보인다(AC-017-01·04). 0건은 오류가 아니라 성공 경로이며 "확인할 수 없음" 으로 끝난다. 서버는 이 게이트를 알지 못한다.
+- 질문·답·근거는 **서버에 따로 저장하지 않는다.** 브라우저 `localStorage` 한 키 `hoondok:ask:items`(JSON 배열, 최대 50건)에만 둔다(`ask/storage.ts`, `REQ-PWA-015`). 서버에는 시연 챗과 똑같은 `/chat/stream` 요청 기록이 남는다.
+- `sources` 항목은 표시명(`display_name`)·권(`volume`)·본문만 주고 화자·판본·권위 등급은 주지 않는다. 화면은 없는 항목을 지어내지 않는다(AC-017-02).
+
+---
+
 ## 결정 기록
 
 | 날짜 | 결정 | 상태 |
@@ -149,3 +262,6 @@ GET /admin/hoondok/daily-readings?from=2026-09-19&to=2026-10-03
 | 2026-09-16 | API-HD-004·005 확정: 연속일·week 는 `read` 기준, 오늘 미완료 시 어제부터 집계, 소급은 당일만 | 확정 · Phase 2 sub-PR B |
 | 2026-09-19 | API-HD-006~008 신설(편성 admin). 관리자 블록·CSRF, DELETE 없음(철회 = `withdrawn`), 기본 범위 오늘~+14일, `seed_daily_readings.py` 는 로컬·E2E 한정 | 확정 · Phase 3 sub-PR A |
 | 2026-09-19 | API-HD-002 제한 베타 게이트: `invite_code` 선택 필드 + `HOONDOK_INVITE_CODE` 설정 시 403 `INVITE_REQUIRED`(ErrorResponse, 409 보다 먼저), 미설정이면 무시. 계약은 선택 필드 추가만(하위 호환) | 확정 · Phase 3 sub-PR F |
+| 2026-09-19 | API-HD-009~011 신설: 정성 기간(사용자당 active 1건·진행률 계산·끝난 기간은 읽는 시점에 completed·DELETE 는 abandoned), 월 기록(`month` 패턴·2020~올해+1), 계정 삭제(훈독 기록 하드 삭제 + `deleted_at` + 이메일 익명화·재가입 허용). `percent` 는 half-up 반올림 | 확정 · PLAN-HD-002 W0-B |
+| 2026-09-19 | 훈독 AI 질문은 **신규 엔드포인트 없이** `POST /chat/stream` 재사용. 백엔드·스키마 무변경이며 무기억(`session_id` 미전송)과 근거 게이트만 클라이언트에 둔다 | 확정 · PLAN-HD-002 W2 |
+| 2026-09-19 | 질문 봇은 슬러그 `all` 고정(`HOONDOK_ASK_CHATBOT_ID`). 전용 봇·프롬프트 미정이라 상수 1줄로 교체 가능한 형태로 둔다 | `[확인 필요]` · PLAN-HD-002 W2 |

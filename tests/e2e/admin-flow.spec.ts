@@ -153,7 +153,7 @@ test.describe("챗봇 편집 + search_tiers 수정", () => {
     if (await backButton.isVisible()) {
       await backButton.click();
       await page.waitForURL("**/chatbots", { timeout: 5_000 });
-      await expect(page.getByText("챗봇 관리")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "챗봇 관리" })).toBeVisible();
     }
   });
 });

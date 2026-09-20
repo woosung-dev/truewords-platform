@@ -1,6 +1,10 @@
-"""훈독 identity Service — 가입·로그인·토큰 발급 · 제한 베타 초대 코드 게이트."""
+"""훈독 identity Service — 가입·로그인·토큰 발급 · 제한 베타 초대 코드 게이트 · 계정 삭제(API-HD-011)."""
 
 import secrets
+import uuid
+from collections.abc import Sequence
+from datetime import datetime, timezone
+from typing import Protocol
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -37,6 +41,16 @@ def check_invite_code(provided: str | None) -> None:
         raise InviteRequiredError()
 
 
+class UserDataPurger(Protocol):
+    """계정 삭제 시 함께 지울 사용자 데이터 저장소(hoondok 의 mission_logs·jeongseong_periods 리포).
+
+    identity service 는 hoondok 을 import 하지 않는다 — 구체 리포는 identity/dependencies.py 의 get_user_data_purgers 한 곳이 주입한다.
+    구현은 커밋하지 않고, 같은 세션의 UserRepository.save 커밋에 묶인다.
+    """
+
+    async def delete_for_user(self, user_id: uuid.UUID) -> None: ...
+
+
 class IdentityService:
     def __init__(self, repo: UserRepository) -> None:
         self.repo = repo
@@ -63,6 +77,18 @@ class IdentityService:
         if user is None or user.deleted_at is not None or not verify_password(data.password, user.password_hash):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=_INVALID_CREDENTIALS)
         return user
+
+    async def delete_account(self, user: User, purgers: Sequence[UserDataPurger]) -> None:
+        """API-HD-011 "내 데이터 삭제 — 기록을 모두 지워요".
+
+        훈독 기록은 하드 삭제, 계정은 deleted_at 소프트 삭제 + 이메일을 `deleted:{id}` 로 익명화해 같은 주소로
+        다시 가입할 수 있게 한다(unique 인덱스 충돌 없음). 발급된 쿠키는 get_optional_user 가 deleted_at 으로 거른다.
+        """
+        for purger in purgers:
+            await purger.delete_for_user(user.id)
+        user.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        user.email = f"deleted:{user.id}"
+        await self.repo.save(user)  # 한 번의 커밋 — purger 의 DELETE 도 같은 세션에서 함께 반영된다
 
     @staticmethod
     def issue_token(user: User) -> str:

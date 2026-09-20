@@ -3,10 +3,11 @@
 import uuid
 from datetime import date
 
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.modules.hoondok.models import DailyReading, MissionLog
+from app.modules.hoondok.models import DailyReading, JeongseongPeriod, MissionLog
 
 
 class DailyReadingRepository:
@@ -79,3 +80,41 @@ class MissionLogRepository:
             select(MissionLog.kind).where(MissionLog.user_id == user_id, MissionLog.mission_date == mission_date)
         )
         return set(result.scalars().all())
+
+    async def delete_for_user(self, user_id: uuid.UUID) -> None:
+        """계정 삭제(API-HD-011)의 일부 — 커밋하지 않는다. 같은 세션을 쓰는 호출자가 사용자 저장과 함께 한 번에 커밋한다."""
+        await self.session.execute(delete(MissionLog).where(MissionLog.user_id == user_id))
+
+
+class JeongseongRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def get_active(self, user_id: uuid.UUID) -> JeongseongPeriod | None:
+        """진행 중(active) 기간. 부분 unique 가 사용자당 1건을 보장한다."""
+        result = await self.session.execute(
+            select(JeongseongPeriod).where(JeongseongPeriod.user_id == user_id, JeongseongPeriod.status == "active")
+        )
+        return result.scalar_one_or_none()
+
+    async def create(self, period: JeongseongPeriod) -> JeongseongPeriod:
+        """부분 unique(user·active) 위반은 IntegrityError 그대로 — service 가 409 로 바꾼다."""
+        return await self._save(period)
+
+    async def save(self, period: JeongseongPeriod) -> JeongseongPeriod:
+        """상태 전이(completed·abandoned) 저장."""
+        return await self._save(period)
+
+    async def _save(self, period: JeongseongPeriod) -> JeongseongPeriod:
+        self.session.add(period)
+        try:
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
+        await self.session.refresh(period)
+        return period
+
+    async def delete_for_user(self, user_id: uuid.UUID) -> None:
+        """계정 삭제(API-HD-011)의 일부 — 커밋하지 않는다. MissionLogRepository.delete_for_user 와 같은 규약."""
+        await self.session.execute(delete(JeongseongPeriod).where(JeongseongPeriod.user_id == user_id))

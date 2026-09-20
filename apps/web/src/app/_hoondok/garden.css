@@ -1,0 +1,82 @@
+/* SCR-PWA-014 나의 정원 (PLAN-HD-002 W1-G). 값의 원본은 프로토타입 hoondok.css 의
+   .card · .sect 와 DES-PWA-003 §2.6 달력 치수다. 토큰만 쓰고 hex 는 두지 않는다.
+   .stats · .progress 본체는 hoondok.css §7 공용이고, 달력 골격(.gd-cal__head·__grid·__day·__dot)도
+   가정예배 챌린지(W3-W)가 함께 쓰게 돼 PLAN-HD-002 W3 CSS 정리에서 hoondok.css 로 올렸다.
+   여기엔 정원만 쓰는 범례와 이 화면의 여백만 둔다. */
+[data-app="hoondok"] {
+  /* ---------- 프로필 : 이니셜 아바타 + 이름. 점수·등급을 두지 않는다 ---------- */
+  .gd-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0 4px;
+  }
+  .gd-profile__av {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    min-height: 36px;
+    flex: none;
+    border-radius: var(--r-full);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .gd-profile__name {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* ---------- 월 달력 범례 (DES §2.6) : 골격은 hoondok.css 공용이고 범례는 정원만 쓴다 ---------- */
+  /* 범례용 축소판 */
+  .gd-cal__dot--tiny {
+    width: 20px;
+    min-height: 20px;
+  }
+  .gd-cal__legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 16px;
+    margin: 14px 0 0;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .gd-cal__legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ---------- 진행 중인 정성 · 상태 카드 ---------- */
+  .gd-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .gd-row__t {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  /* 진행 바 본체는 hoondok.css §7. 제목 줄과의 간격만 정원 값(12px)으로 둔다 */
+  .gd-row + .progress {
+    margin-top: 12px;
+  }
+  .gd-row--meta {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .gd-empty {
+    padding: 24px 16px;
+  }
+  .gd-cta {
+    display: flex;
+    justify-content: center;
+    margin: 14px 0 0;
+  }
+}

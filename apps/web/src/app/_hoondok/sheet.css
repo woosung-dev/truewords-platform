@@ -1,0 +1,246 @@
+/* 정성 기간 시트(SCR-PWA-004) + 홈 정성 카드(SCR-PWA-002).
+   값은 프로토타입 hoondok-ds/hoondok.css 의 `.sheet*`·`.chips`·`.field` 이며
+   (`.progress`·`.stats` 본체와 `.chips`·`.chip-btn` 은 hoondok.css 공용, 여기엔 카드 여백만 둔다)
+   토큰만 쓴다(hex 금지). 프로토타입이 비워 둔 `.js-*` 는 DES-PWA-003 §2.7·§2.11 규격으로 채웠다.
+   하단 시트 → 중앙 모달 전환은 DES-PWA-003 §2.7·§5(004 행)를 따라 1024px 이다
+   (프로토타입 CSS 는 768px 이지만 §5 표가 768 = "동일" 로 하단 시트를 유지한다). */
+
+/* 시트 등장 220ms — transform·opacity 만. @keyframes 는 중첩할 수 없어 파일 최상위에 둔다. */
+@keyframes hoondok-sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 시트가 열린 동안 뒤 배경은 스크롤하지 않는다 (DES-PWA-003 §2.7) */
+body:has([data-app="hoondok"] .sheet[open]) {
+  overflow: hidden;
+}
+
+[data-app="hoondok"] {
+  /* ---------- 1. 시트 : base 는 하단 시트 ---------- */
+  .sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    overflow: hidden;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .sheet[open] {
+    display: flex;
+  }
+  .sheet::backdrop {
+    background: var(--scrim);
+  }
+  .sheet__panel {
+    width: 100%;
+    background: var(--paper);
+    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+    padding: 10px var(--gutter) 28px;
+    max-height: 88dvh;
+    overflow: auto;
+    animation: hoondok-sheet-up 0.22s ease-out;
+  }
+  .sheet__grip {
+    width: 40px;
+    height: 5px;
+    border-radius: var(--r-full);
+    background: var(--line);
+    margin: 0 auto 14px;
+  }
+
+  /* ---------- 2. 시트 본문 ---------- */
+  .js-title {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .js-lede {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    margin: 6px 0 0;
+  }
+  .js-gate {
+    font-size: 14px;
+    color: var(--ink-2);
+    margin: 0;
+  }
+  .js-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  /* 기간 : 라디오 3칸. 네이티브 input 은 가리고 라벨 전체가 탭 대상(48px 이상, DES §2.11) */
+  .js-opts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .js-opt {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 64px;
+    padding: 10px 6px;
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    text-align: center;
+    transition: transform 0.12s ease;
+  }
+  .js-opt input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    margin: 0;
+    pointer-events: none;
+  }
+  .js-opt b {
+    font-size: 20px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .js-opt span {
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  /* 선택 = 테두리 + 배경 + 글자색 세 가지가 함께 바뀐다 (색만으로 구분 금지, §3.3) */
+  .js-opt[data-on] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .js-opt[data-on] b {
+    color: var(--accent-strong);
+  }
+  .js-opt:has(input:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .js-opt:active {
+    transform: scale(0.985);
+  }
+
+  /* 시작일·알림 2칸 */
+  .js-when {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .js-when__it {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .js-when__lab {
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .js-when input {
+    font: inherit;
+    font-size: 16px; /* iOS 확대 방지 */
+    color: var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-sm);
+    padding: 12px 14px;
+    width: 100%;
+    min-height: 48px;
+  }
+  .js-when input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* 오류 안내 : 아이콘 + 글자. 색만으로 알리지 않는다 (§3.3) */
+  .hint--alert {
+    justify-content: flex-start;
+    align-items: center;
+    gap: 6px;
+    color: var(--accent-strong);
+    font-weight: 600;
+  }
+
+  .js-cta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* ---------- 3. 홈 정성 카드 ---------- */
+  /* 누적 기록·진행 바 본체는 hoondok.css §7. 카드 안 세로 간격(14px)만 여기서 준다 */
+  .js-card__title + .stats {
+    margin-top: 14px;
+  }
+  .stats + .progress {
+    margin-top: 14px;
+  }
+  .js-card__title {
+    font-size: 16.5px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .js-card__cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .js-card__ask {
+    font-size: 13px;
+    color: var(--ink-2);
+    flex: 1 1 100%;
+  }
+  .js-invite__title {
+    font-size: 16.5px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .js-invite__body {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    margin: 4px 0 14px;
+  }
+
+  /* ---------- 4. lg : 하단 시트 → 중앙 모달 (DES-PWA-003 §2.7) ---------- */
+  @media (min-width: 1024px) {
+    .sheet {
+      align-items: center;
+      padding: 24px;
+    }
+    .sheet__panel {
+      width: 520px;
+      max-width: 100%;
+      border-radius: var(--r);
+      padding: 24px;
+      box-shadow: var(--shadow-2);
+    }
+    .sheet__grip {
+      display: none;
+    }
+  }
+}

@@ -40,6 +40,7 @@
   --shadow-hairline: 0 1px 0 rgba(0, 0, 0, 0.02);
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-2: 0 10px 30px rgba(87, 62, 40, 0.1);
+  --scrim: rgba(35, 33, 31, 0.45);
 
   --sans:
     "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
@@ -423,7 +424,43 @@
     margin-top: 12px;
   }
 
-  /* ---------- 7. 요일 스트립 ---------- */
+  /* ---------- 7. 진행 표시 (프로토타입 hoondok.css §7) ---------- */
+  /* 바깥 여백은 쓰는 화면마다 달라 여기 두지 않는다 — 프로토타입도 쓰는 쪽에서 margin-top 을 붙인다. */
+  .progress {
+    height: 8px;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .progress__fill {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: inherit;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .stats__n {
+    display: block;
+    font-size: 24px;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stats__n--accent {
+    color: var(--accent);
+  }
+  /* 라벨은 숫자 아래 줄에 둔다 (프로토타입 인라인 span 을 W1-G 가 블록으로 다듬은 값) */
+  .stats__lab {
+    display: block;
+    margin-top: 2px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+
+  /* ---------- 8. 요일 스트립 ---------- */
   .week {
     display: flex;
     align-items: center;
@@ -479,7 +516,7 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* ---------- 8. 버튼 (DES §1.5) ---------- */
+  /* ---------- 9. 버튼 (DES §1.5) ---------- */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -537,6 +574,9 @@
     }
     .app__main--read .appbar__in {
       max-width: var(--measure-read);
+    }
+    .app__main--app .appbar__in {
+      max-width: var(--measure-app);
     }
   }
 
@@ -681,6 +721,36 @@
     font-size: 12.5px;
     color: var(--ink-2);
   }
+  /* 토글 46×28 (DES-PWA-003 §2.11, 프로토타입 .toggle 그대로). 설정 알림 4종·AI 질문 저장·가족 공개 범위 3곳이 쓴다. 모션 150ms */
+  .toggle {
+    position: relative;
+    width: 46px;
+    height: 28px;
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    flex: none;
+  }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--ink-3);
+    transition: left 0.15s;
+  }
+  .toggle[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .toggle[aria-pressed="true"]::after {
+    left: 21px;
+    border-color: transparent;
+  }
   .form__msg {
     font-size: 13px;
     font-weight: 600;
@@ -768,6 +838,210 @@
     display: flex;
     justify-content: flex-end;
     gap: 8px;
+  }
+}
+
+/* ---------- W3. 화면 파일에서 승격한 공용 컴포넌트 (PLAN-HD-002 W3 CSS 정리) ----------
+   두 화면 그룹 이상이 쓰는 규칙만 여기로 올렸다. 값은 원래 파일(_hoondok/ask.css · sheet.css ·
+   library.css · garden.css · settings.css · worship.css)에서 한 글자도 바꾸지 않고 옮겼고, 순서도
+   원래 캐스케이드 그대로다. 한 화면만 쓰는 변형(.gd-cal__dot--tiny · .gd-cal__legend ·
+   .gd-cal__dot[data-rest] · .st-picks + .st-row__soon · .notice--lead)은 그 화면 파일에 그대로 둔다. */
+[data-app="hoondok"] {
+  /* ---------- 배지 테두리형 (DES §2.3) : ask · worship · family. 원래 _hoondok/ask.css ---------- */
+  .badge--line {
+    background: transparent;
+    border: 1px solid var(--ink-3);
+    color: var(--ink-2);
+  }
+
+  /* ---------- 세그먼트 (DES §2.10) : ask · library · worship. 원래 _hoondok/ask.css ---------- */
+  .pill-seg {
+    display: flex;
+    gap: 2px;
+    margin-top: 8px;
+    padding: 3px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+  }
+  .pill-seg button {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 10px;
+    border-radius: var(--r-xs);
+    font-size: 14px;
+    color: var(--ink-2);
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+  /* 활성은 색·굵기·썸 배경 셋이 함께 바뀐다 (§2.10 색만으로 구분 금지) */
+  .pill-seg button.is-on {
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 600;
+    box-shadow: var(--shadow-1);
+  }
+  .pill-seg button[disabled] {
+    cursor: default;
+    color: var(--ink-3);
+  }
+  /* 왜 꺼져 있는지는 색이 아니라 글자가 말한다 (§3.3) — 세그먼트 바로 아래 한 줄 */
+  .pill-seg__soon {
+    margin: 8px 0 0;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    text-align: right;
+  }
+
+  /* ---------- AI 설명 패널 (DES §2.9) : ask · library. 원래 _hoondok/ask.css ---------- */
+  .ai-note {
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background-color: var(--surface);
+    background-image: radial-gradient(var(--line) 1px, transparent 1px);
+    background-size: 8px 8px;
+  }
+  .ai-note__lab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .ai-note__body {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  .ai-note__body + .ai-note__body {
+    margin-top: 10px;
+  }
+  /* done 이벤트의 고지 — 본문보다 한 단계 작은 소문 */
+  .ai-note__micro {
+    margin: 12px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--ink-3);
+  }
+
+  /* ---------- 칩 줄 · 칩 버튼 (DES §2.11) : jeongseong · library · worship.
+     `.chips` 는 _hoondok/sheet.css 와 library.css 가 같은 내용으로 두 번 정의하고 있었다.
+     꺼진 모양 `[disabled]` 는 _hoondok/worship.css 에 있었고 여기서도 눌림·선택 뒤에 둔다 ---------- */
+  .chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .chip-btn {
+    min-height: 44px;
+    padding: 9px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    font-size: 13.5px;
+    line-height: 1.35;
+    text-align: left;
+    transition: transform 0.12s ease;
+  }
+  .chip-btn[aria-pressed="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 600;
+  }
+  .chip-btn:active {
+    transform: scale(0.985);
+  }
+  .chip-btn[disabled] {
+    background: var(--surface-2);
+    color: var(--ink-3);
+    cursor: not-allowed;
+  }
+
+  /* ---------- 월 달력 골격 (DES §2.6) : 정원(components/hoondok/month-calendar.tsx) · 가정예배 챌린지.
+     원래 _hoondok/garden.css. 범례(`.gd-cal__legend`·`.gd-cal__dot--tiny`)는 정원만 쓰므로 거기 남았다 ---------- */
+  .gd-cal__head,
+  .gd-cal__grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+    justify-items: center;
+  }
+  .gd-cal__head {
+    margin-bottom: 8px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+  .gd-cal__grid {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .gd-cal__day {
+    display: grid;
+    justify-items: center;
+    gap: 3px;
+    padding: 3px 0;
+  }
+  .gd-cal__dot {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    min-height: 26px;
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-full);
+    background: var(--surface);
+    color: var(--ink-3);
+  }
+  .gd-cal__dot--done {
+    border-color: transparent;
+    background: var(--ok-soft);
+    color: var(--ok-strong);
+  }
+  .gd-cal__day b {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  /* 오늘 : 테두리 + 날짜 숫자 700 두 신호를 함께 쓴다 (DES §3.3) */
+  .gd-cal__day[data-today] .gd-cal__dot {
+    border: 2px solid var(--accent);
+  }
+  .gd-cal__day[data-today] b {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  /* 아직 오지 않은 날 : 대비를 유지한 채 무게만 낮춘다 */
+  .gd-cal__day[data-future] b {
+    font-weight: 400;
+    color: var(--ink-3);
+  }
+
+  /* ---------- 안내 머리말 · 준비 중 표시 : settings · family. 원래 _hoondok/settings.css ---------- */
+  .st-lead {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin: 0 0 12px;
+  }
+  /* 왜 꺼져 있는지는 색이 아니라 글자가 말한다 (DES-PWA-003 §3.3 색만으로 구분 금지) */
+  .st-row__soon {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-3);
+    flex: none;
+    margin: 0;
   }
 }
 

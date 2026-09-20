@@ -1,0 +1,556 @@
+/* SCR-PWA-010 가정예배 홈 · 011 챌린지 상세 · 012 5분 설교 · 013 설교 섭외 폼 (PLAN-HD-002 W3-W 프리뷰 셸).
+   프로토타입 app.html 의 `.ws-*`·`.ch-*`·`.sm-*`·`.rq-*` 마크업에는 정본 hoondok.css 규칙이 없다(정원 `.gd-*` 와 같은 사정)
+   — 값은 DES-PWA-003 §2.4 순서지 · §2.5 챌린지 카드 · §2.6 달력 · §5 010~013 레이아웃 표에서 가져왔고
+   색·반경·그림자는 hoondok.css 토큰만 쓴다(hex 금지, pnpm hoondok:check). 라이트 단일 테마.
+
+   모션은 프레스 120ms 하나만 쓴다. `prefers-reduced-motion` 은 hoondok.css 의 스코프 전역 규칙이 이미 끈다.
+   `DEC-PWA-019` — 순위·점수·보상 배지용 규칙을 만들지 않는다.
+
+   빌려 쓰는 공용 클래스(`.badge--line` · `.pill-seg` · `.pill-seg__soon` · `.chips` · `.chip-btn`(꺼진 모양 포함) ·
+   `.gd-cal__head` · `.gd-cal__grid` · `.gd-cal__day` · `.gd-cal__dot` · `.gd-cal__dot--done`)는
+   PLAN-HD-002 W3 CSS 정리에서 모두 hoondok.css 로 올라갔고, 이 파일은 달력의 "쉼" 칸 한 가지만 덧붙인다
+   (`.gd-cal__pad` 는 빈 칸이라 CSS 규칙이 없다).
+   `.notice--lead` 는 아직 이 파일의 4화면만 쓰므로 여기 남긴다. */
+[data-app="hoondok"] {
+  /* ---------- 프리뷰 공통 : 본문 맨 위 머리말 ---------- */
+  /* `.notice` 는 화면 맨 아래용이라 위 여백만 갖는다. 머리말로 쓸 때는 아래로 뒤집는다 */
+  .notice--lead {
+    padding: 0 0 4px;
+  }
+
+  /* 아직 붙지 않은 동작의 인라인 응답. 자리를 늘 비워 둬 눌러도 아래 내용이 밀리지 않는다 */
+  .ws-soon {
+    min-height: 20px;
+    margin: 10px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-strong);
+  }
+
+  /* ---------- 010 히어로 : 사진 대신 글자 카드 (홈 SCR-PWA-002 선례) ---------- */
+  .ws-eyebrow {
+    margin: 0 0 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent-strong);
+  }
+
+  /* ---------- 010 순서지 (DES §2.4) ---------- */
+  .ws-order__src {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  /* 순서가 의미라 <ol> 을 쓴다. 번호 원은 aria-hidden 이고 목록 구조가 순서를 전달한다 */
+  .ws-order {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ws-order__it {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+  }
+  .ws-order__it + .ws-order__it {
+    border-top: 1px solid var(--line);
+  }
+  .ws-order__no {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    flex: none;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    color: var(--ink-2);
+    font-size: 11.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .ws-order__bd {
+    flex: 1;
+    min-width: 0;
+  }
+  .ws-order__k {
+    display: block;
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+  .ws-order__t {
+    display: block;
+    margin-top: 2px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .ws-order__d {
+    display: block;
+    margin-top: 4px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  /* 390 에서 두 버튼을 나란히 두면 라벨이 두 줄로 접힌다 — 좁을 때는 세로로 쌓는다 */
+  .ws-actions {
+    display: grid;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .ws-actions__help {
+    margin: 10px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+
+  /* ---------- 010 챌린지 카드 (DES §2.5) ---------- */
+  .ws-chal {
+    display: grid;
+    gap: 10px;
+  }
+  .ws-chal__card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: transform 0.12s ease;
+  }
+  .ws-chal__card:active {
+    transform: scale(0.99);
+  }
+  .ws-chal__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .ws-chal__name {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  /* 퍼센트는 아래 줄에 숫자로 병기한다 — 바 길이만으로 값을 전달하지 않는다 */
+  .ws-chal__foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 10px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .ws-chal__foot--solo {
+    justify-content: flex-start;
+  }
+  .ws-people {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+  }
+
+  /* ---------- 010 · 012 설교 히어로 : 사진 대신 글자 카드 ---------- */
+  .sm-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: transform 0.12s ease;
+  }
+  .sm-hero:active {
+    transform: scale(0.99);
+  }
+  .sm-hero__tag {
+    align-self: flex-start;
+  }
+  .sm-hero__t {
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .sm-hero__m {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  /* 재생은 아직 없다 — 컨트롤은 disabled 이고 옆 글자가 이유를 말한다 (§3.3) */
+  .sm-hero--full {
+    gap: 8px;
+  }
+  .sm-play {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .sm-play__soon {
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+  .sm-request {
+    margin-top: 10px;
+  }
+
+  /* ---------- 011 챌린지 상세 ---------- */
+  .ch-hero__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .ch-bar {
+    margin-top: 14px;
+  }
+  .ch-bar__foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 10px;
+    margin: 10px 0 0;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .ch-join {
+    margin-top: 14px;
+  }
+  .ch-recruit__t {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .ch-recruit__d {
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  /* 오늘 목록 : 등수 없이 "완료 / 아직이에요" 두 상태뿐이다 */
+  .ch-list {
+    margin: 0;
+    padding: 2px 16px;
+    list-style: none;
+  }
+  .ch-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+  }
+  .ch-item + .ch-item {
+    border-top: 1px solid var(--line);
+  }
+  .ch-item__bd {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .ch-item__t {
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+  .ch-item__m {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .ch-item__side {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: none;
+  }
+  .ch-item__soon,
+  .sm-item__soon {
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+  .ch-chip__help {
+    margin: 10px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  /* 달력 "쉼" 칸 : 완료 체크와 형태가 다르다 (글자 vs 아이콘, DES §2.6) */
+  .gd-cal__dot[data-rest] {
+    border-color: transparent;
+    background: var(--surface-2);
+    color: var(--ink-2);
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+
+  /* ---------- 012 교회장 행 · 설교 목록 ---------- */
+  .pv-avatar {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    min-height: 36px;
+    flex: none;
+    border-radius: var(--r-full);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .pv-avatar--lg {
+    width: 52px;
+    min-height: 52px;
+    font-size: 18px;
+  }
+  /* 390 은 가로 스크롤, 768 이상은 줄바꿈 (DES §4.4-3) */
+  .sm-pastors {
+    display: flex;
+    gap: 10px;
+    margin: 0;
+    padding: 0 0 4px;
+    list-style: none;
+    overflow-x: auto;
+  }
+  .sm-pastors > li {
+    flex: none;
+  }
+  .sm-pastor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 88px;
+    padding: 4px 0;
+    text-align: center;
+    transition: transform 0.12s ease;
+  }
+  .sm-pastor:active {
+    transform: scale(0.98);
+  }
+  .sm-pastor__n {
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .sm-pastor__c {
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+  .sm-quote-card {
+    margin-top: 10px;
+  }
+  .sm-quote {
+    margin: 0 0 10px;
+    font-size: 16px;
+    line-height: 1.65;
+  }
+  .sm-quote__part {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sm-list {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sm-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .sm-thumb {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 96px;
+    height: 64px;
+    flex: none;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    color: var(--ink-2);
+  }
+  .sm-dur {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    padding: 1px 6px;
+    border-radius: var(--r-xs);
+    background: var(--ink);
+    color: var(--accent-ink);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .sm-item__bd {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+  .sm-item__t {
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .sm-item__m {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+
+  /* ---------- 013 설교 섭외 폼 ---------- */
+  .rq-lede {
+    margin: 8px 0 18px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  .rq-field {
+    gap: 8px;
+  }
+  /* 받는 사람 고르기 : 네이티브 라디오를 라벨로 감싸고 모양만 입힌다 */
+  .rq-pick {
+    margin: 0;
+    padding: 2px 16px;
+    list-style: none;
+  }
+  .rq-pick__it {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 12px 0;
+    cursor: pointer;
+  }
+  .rq-pick > li + li .rq-pick__it {
+    border-top: 1px solid var(--line);
+  }
+  .rq-pick__it input,
+  .rq-opt input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .rq-radio {
+    width: 20px;
+    height: 20px;
+    flex: none;
+    border: 1.5px solid var(--ink-3);
+    border-radius: 50%;
+  }
+  /* 선택 = 원 채움 + 이름 굵기 + 글자색 세 가지가 함께 바뀐다 (색만으로 구분 금지, §3.3) */
+  .rq-pick__it:has(input:checked) .rq-radio {
+    border: 6px solid var(--accent);
+  }
+  .rq-pick__it:has(input:checked) .ch-item__t {
+    font-weight: 700;
+    color: var(--accent-strong);
+  }
+  .rq-pick__it:has(input:focus-visible),
+  .rq-opt:has(input:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .rq-opts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .rq-opt {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 64px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .rq-opt:active {
+    transform: scale(0.985);
+  }
+  .rq-opt b {
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+  .rq-opt span {
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .rq-opt:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .rq-opt:has(input:checked) b {
+    color: var(--accent-strong);
+  }
+  /* 네이티브 select 를 그대로 쓴다 — 목록 UI 는 플랫폼이 더 잘한다. 테두리·여백만 맞춘다 */
+  .rq-select,
+  .rq-memo {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 16px; /* iOS 확대 방지 — .field input 과 같은 이유 */
+  }
+  .rq-select {
+    min-height: 48px;
+  }
+  .rq-memo {
+    display: block;
+    min-height: 88px;
+    line-height: 1.6;
+    resize: vertical;
+  }
+  .rq-memo::placeholder {
+    color: var(--ink-3);
+  }
+  .rq-select:focus-visible,
+  .rq-memo:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .rq-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 4px 0 0;
+    padding: 14px;
+    border-radius: var(--r);
+    background: var(--surface-2);
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  .rq-note svg {
+    flex: none;
+    color: var(--ink-3);
+  }
+  .rq-submit {
+    margin-top: 4px;
+  }
+
+  /* ---------- md: 768px 이상 ---------- */
+  @media (min-width: 768px) {
+    /* 순서지 6단계는 순서가 의미이므로 2열로 펼치지 않는다 (DES §4.4-3 허용 목록 밖) */
+    .ws-actions {
+      grid-template-columns: 1fr auto;
+    }
+    .sm-pastors {
+      flex-wrap: wrap;
+      overflow-x: visible;
+    }
+    /* 병렬 항목이라 2열을 허용한다 (DES §4.4-3) */
+    .sm-list {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+}

@@ -1,0 +1,458 @@
+/* SCR-PWA-007·008·009 말씀 서고 · 검색 · 원문 뷰 (PLAN-HD-002 W3-L).
+   값의 원본은 프로토타입 hoondok.css §5b·§5c 와 2-pane 규칙(§4.3, min-width:1224px)이다.
+   토큰만 쓰고 hex 는 두지 않는다. 아이콘은 lucide(SVG)라 프로토타입의 `i{font-size}` 는
+   `svg{width/height}` 로 옮겼다.
+
+   빌려 쓰는 공용 클래스는 PLAN-HD-002 W3 CSS 정리 뒤 모두 hoondok.css 에 있다 — .col · .card · .sect · .src ·
+   .lede · .lede-rule · .badge · .empty · .notice · .btn · .field__label 과 .pill-seg (원문/AI 설명/노트 세그먼트) ·
+   .ai-note (AI 설명 패널) · .chips (칩 줄. 이 파일과 sheet.css 가 같은 내용으로 두 번 정의하고 있었다).
+   이 파일이 새로 정의하는 것은 .term (프로토타입 §5 용어 칩) 하나뿐이고 이 화면군만 쓴다. */
+[data-app="hoondok"] {
+  /* ---------- 용어·제안 칩 (프로토타입 .term) ---------- */
+  .term {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 24px;
+    padding: 3px 9px;
+    border-radius: var(--r-xs);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .term:active {
+    transform: scale(0.96);
+  }
+  /* 섹션 헤더의 조작 링크(예: 최근 검색 지우기)는 글자가 작아 보이지 않는 여유 타점을 덧댄다 */
+  button.sect__meta {
+    position: relative;
+  }
+  button.sect__meta::after {
+    content: "";
+    position: absolute;
+    inset: -13px -14px;
+  }
+
+  /* ---------- 007 서고 : 검색 진입 필드 · 이어 읽기 · 저작물 선반 ---------- */
+  .search-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 16px;
+    margin-top: 8px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    color: var(--ink-3);
+    font-size: 15px;
+  }
+  .search-field svg {
+    color: var(--ink-2);
+    flex: none;
+  }
+  .resume {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .resume__bd {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .resume__bd b {
+    font-size: 16px;
+  }
+  .resume__meta {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .shelf {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    overflow: hidden;
+  }
+  .shelf__item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "t b"
+      "m b";
+    column-gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    align-items: center;
+    min-height: 56px;
+  }
+  .shelf__item:last-child {
+    border-bottom: 0;
+  }
+  .shelf__item b {
+    grid-area: t;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .shelf__item > span:first-of-type {
+    grid-area: m;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    margin-top: 2px;
+  }
+  .shelf__item .badge {
+    grid-area: b;
+  }
+  a.resume:active,
+  a.shelf__item:active {
+    background: var(--surface-2);
+  }
+
+  /* ---------- 008 검색 : 입력 줄 · 준비 중 상태 · 예시 결과 ---------- */
+  /* 프로토타입은 앱바에 입력을 두지만 앱 셸(app-shell.tsx)은 W0-W 소유라 본문 첫 줄에 같은 형태로 둔다 */
+  .sf-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .sf-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 56px;
+    padding: 0 6px 0 14px;
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    border: 1.5px solid var(--ink-3);
+    color: var(--ink-3);
+  }
+  .sf-field:focus-within {
+    border-color: var(--accent);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .sf-field > svg {
+    color: var(--ink-2);
+    flex: none;
+  }
+  .sf-input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 16px; /* iOS 확대 방지 */
+    color: var(--ink);
+    outline: none;
+  }
+  .sf-input::placeholder {
+    color: var(--ink-3);
+  }
+  .sf-submit {
+    width: auto;
+    flex: none;
+    height: 44px;
+    padding: 0 16px;
+    font-size: 14px;
+    border-radius: var(--r-sm);
+  }
+  .sf-status {
+    font-size: 13px;
+    color: var(--ink-2);
+    margin: 0 0 12px;
+  }
+  .sr-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .sr-list li + li {
+    margin-top: 8px;
+  }
+  .sr-list a {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: var(--r);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-hairline);
+  }
+  .sr-hd {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sr-hd b {
+    font-size: 15.5px;
+  }
+  .sr-snippet {
+    font-size: 14.5px;
+    line-height: 1.6;
+  }
+  .sr-src {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .sr-list a:active {
+    background: var(--surface-2);
+  }
+
+  /* 최근 검색 : 프로토타입은 <a>, 앱은 다시 찾아 주는 버튼이다 */
+  .recent {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .recent button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 48px;
+    font-size: 16px;
+    text-align: left;
+    color: var(--ink);
+    border-bottom: 1px solid var(--line);
+  }
+  .recent li:last-child button {
+    border-bottom: 0;
+  }
+  .recent svg {
+    color: var(--ink-3);
+    flex: none;
+  }
+  .recent button:active {
+    background: var(--surface-2);
+  }
+
+  .howto__row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 10px 0;
+  }
+  .howto__k {
+    flex: none;
+    width: 36px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-2);
+    padding-top: 6px;
+  }
+  /* 검색 제안은 용어도 선택된 옵션도 아니다 — 액센트 대신 중립 표면으로 되돌린다 (프로토타입 주석) */
+  .howto .term {
+    min-height: 34px;
+    padding: 5px 12px;
+    font-size: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .ask-hint {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--r);
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .ask-hint > svg:first-child {
+    color: var(--accent);
+    flex: none;
+  }
+  .ask-hint > svg:last-child {
+    color: var(--ink-3);
+    flex: none;
+  }
+  .ask-hint > span {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .ask-hint b {
+    font-size: 15px;
+  }
+  .ask-hint span span {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .ask-hint:active {
+    background: var(--surface-2);
+  }
+
+  /* ---------- 009 원문 뷰 : 단락 · 형광펜 예시 · 리더 바 · 목차 레일 ---------- */
+  .words {
+    padding-bottom: 0;
+  }
+  .words__main {
+    min-width: 0;
+  }
+  .wd-panel {
+    margin-top: 20px;
+  }
+  .verse {
+    display: flex;
+    gap: 11px;
+    margin: 0 0 16px;
+    font-family: var(--font-scripture);
+    font-size: 17px;
+    line-height: 1.85;
+  }
+  .verse__n {
+    color: var(--ink-3);
+    font-size: 12px;
+    padding-top: 6px;
+    width: 16px;
+    flex: none;
+    font-variant-numeric: tabular-nums;
+  }
+  mark.hl-1 {
+    background: var(--hl-1);
+  }
+  mark.hl-2 {
+    background: var(--hl-2);
+  }
+  mark.hl-3 {
+    background: var(--hl-3);
+  }
+
+  /* 리더 바 : 폰은 하단 고정 5칸, ≥1024px 은 본문 상단 가로 툴바 (§4.3). 표시만 하고 누를 수 없다 */
+  .reader {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .reader > span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 48px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+  }
+  .reader--top {
+    display: none;
+  }
+  .reader--bottom {
+    position: sticky;
+    bottom: 0;
+    margin: 20px calc(var(--gutter) * -1) 0;
+    padding: 4px 6px 6px;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+
+  /* 목차 레일 : 폰·1024~1223 에서는 숨김 (프로토타입도 폰 오버레이는 생략) */
+  .toc {
+    display: none;
+  }
+  .toc__title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-3);
+    padding: 6px 12px;
+    margin: 0;
+  }
+  .toc__item {
+    display: block;
+    padding: 9px 12px;
+    border-radius: var(--r-xs);
+    font-size: 14.5px;
+    color: var(--ink-2);
+    line-height: 1.4;
+  }
+  .toc__item[aria-current] {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 600;
+  }
+
+  /* ---------- lg: 1024px 이상 — 리더 바가 본문 상단 툴바로 올라온다 ---------- */
+  @media (min-width: 1024px) {
+    .reader--bottom {
+      display: none;
+    }
+    .reader--top {
+      display: flex;
+      gap: 4px;
+      margin-top: 14px;
+      padding: 4px;
+      border-radius: var(--r-sm);
+      background: var(--surface);
+      border: 1px solid var(--line);
+    }
+    .reader--top > span {
+      flex-direction: row;
+      gap: 6px;
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: var(--r-xs);
+      font-size: 13.5px;
+    }
+    .reader--top svg {
+      width: 20px;
+      height: 20px;
+    }
+    .words {
+      padding-bottom: 28px;
+    }
+    @media (hover: hover) {
+      .term:hover,
+      .ask-hint:hover,
+      a.shelf__item:hover,
+      .recent button:hover,
+      .toc__item:hover {
+        background: var(--surface-2);
+      }
+      .toc__item[aria-current]:hover {
+        background: var(--accent-soft);
+      }
+      .sr-list a:hover,
+      a.resume:hover {
+        box-shadow: var(--shadow-1);
+      }
+    }
+  }
+
+  /* ---------- 원문 뷰 2-pane : 1224px 이상 (DES-PWA-003 §4.3). 목차 280 + 본문 640 + 간격 32 ---------- */
+  @media (min-width: 1224px) {
+    .words {
+      display: grid;
+      grid-template-columns: 280px var(--measure-read);
+      column-gap: 32px;
+      max-width: calc(280px + 32px + var(--measure-read));
+      justify-content: center;
+    }
+    /* 상단 헤더 72 + 앱바 52 아래에 붙인다 (프로토타입의 좌측 레일 기준 76px 을 앱 셸 값으로 옮긴 것) */
+    .words .toc {
+      display: block;
+      position: sticky;
+      top: 132px;
+      align-self: start;
+      max-height: calc(100dvh - 148px);
+      overflow: auto;
+      padding: 4px 0;
+    }
+    /* 레일이 보이므로 툴바의 목차 항목은 뺀다 */
+    .reader--top .reader__toc {
+      display: none;
+    }
+    /* 앱바 폭 = 그 화면의 콘텐츠 폭 (§4.2). 2-pane 에서는 952px */
+    .app__main--read:has(.words) .appbar__in {
+      max-width: calc(280px + 32px + var(--measure-read));
+    }
+  }
+}

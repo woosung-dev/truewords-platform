@@ -1902,6 +1902,175 @@
         "title": "IngestionStatusSummary",
         "type": "object"
       },
+      "JeongseongCreate": {
+        "description": "POST 본문. started_on 생략 시 오늘(KST), 허용 범위 오늘~오늘+30 은 service 가 422 로 검사한다.",
+        "properties": {
+          "duration_days": {
+            "enum": [
+              7,
+              21,
+              40
+            ],
+            "title": "Duration Days",
+            "type": "integer"
+          },
+          "reminder_time": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Time"
+          },
+          "started_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started On"
+          },
+          "topic": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic",
+          "duration_days"
+        ],
+        "title": "JeongseongCreate",
+        "type": "object"
+      },
+      "JeongseongCurrentResponse": {
+        "description": "GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null.",
+        "properties": {
+          "period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JeongseongPeriodResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "JeongseongCurrentResponse",
+        "type": "object"
+      },
+      "JeongseongPeriodResponse": {
+        "properties": {
+          "duration_days": {
+            "title": "Duration Days",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/JeongseongProgress"
+          },
+          "reminder_time": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Time"
+          },
+          "started_on": {
+            "format": "date",
+            "title": "Started On",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "completed",
+              "abandoned"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "topic",
+          "duration_days",
+          "started_on",
+          "reminder_time",
+          "status",
+          "progress"
+        ],
+        "title": "JeongseongPeriodResponse",
+        "type": "object"
+      },
+      "JeongseongProgress": {
+        "description": "저장하지 않는 계산값(hoondok/jeongseong.py). missed 는 어제까지만 센다.",
+        "properties": {
+          "done_days": {
+            "title": "Done Days",
+            "type": "integer"
+          },
+          "end_on": {
+            "format": "date",
+            "title": "End On",
+            "type": "string"
+          },
+          "missed_days": {
+            "title": "Missed Days",
+            "type": "integer"
+          },
+          "percent": {
+            "title": "Percent",
+            "type": "integer"
+          },
+          "remaining_days": {
+            "title": "Remaining Days",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "upcoming",
+              "active",
+              "completed"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "end_on",
+          "done_days",
+          "missed_days",
+          "remaining_days",
+          "percent",
+          "state"
+        ],
+        "title": "JeongseongProgress",
+        "type": "object"
+      },
       "LoginRequest": {
         "properties": {
           "email": {
@@ -1966,6 +2135,28 @@
           "completed_at"
         ],
         "title": "MissionCompleteResponse",
+        "type": "object"
+      },
+      "MonthHistoryResponse": {
+        "description": "API-HD-010. 해당 월의 날 수만큼 WeekDay(read 완료 기준). 미래 날은 항상 false.",
+        "properties": {
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/WeekDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          }
+        },
+        "required": [
+          "month",
+          "days"
+        ],
+        "title": "MonthHistoryResponse",
         "type": "object"
       },
       "NegativeFeedbackItem": {
@@ -6053,6 +6244,19 @@
       }
     },
     "/hoondok/auth/me": {
+      "delete": {
+        "description": "API-HD-011 내 데이터 삭제 → 204 + 쿠키 삭제. 훈독 기록 하드 삭제, 계정 소프트 삭제 + 이메일 익명화. 이후 me 는 401.",
+        "operationId": "delete_me_hoondok_auth_me_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Delete Me",
+        "tags": [
+          "hoondok"
+        ]
+      },
       "get": {
         "description": "API-HD-003 현재 사용자. 401 미인증 — web features/identity 게이트가 온보딩으로 보낸다.",
         "operationId": "me_hoondok_auth_me_get",
@@ -6111,6 +6315,134 @@
           }
         },
         "summary": "Signup",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/history": {
+      "get": {
+        "description": "API-HD-010 한 달의 날마다 read 완료 여부. 422 형식·연도 범위 위반, 401 미인증.",
+        "operationId": "get_history_hoondok_me_history_get",
+        "parameters": [
+          {
+            "description": "YYYY-MM. 생략 시 오늘(KST)의 월",
+            "in": "query",
+            "name": "month",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "YYYY-MM. 생략 시 오늘(KST)의 월",
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get History",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/jeongseong": {
+      "delete": {
+        "description": "API-HD-009 진행 중인 정성 기간을 그만두기(abandoned). 404 없음, 403 CSRF, 401 미인증.",
+        "operationId": "abandon_jeongseong_hoondok_me_jeongseong_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Abandon Jeongseong",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "get": {
+        "description": "API-HD-009 진행 중인 정성 기간 + 진행률. 없거나 끝났으면(completed 로 정리) period=null. 401 미인증.",
+        "operationId": "get_jeongseong_hoondok_me_jeongseong_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JeongseongCurrentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Jeongseong",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "post": {
+        "description": "API-HD-009 정성 기간 시작. 409 이미 진행 중, 422 검증(주제·기간·시작일 범위), 403 CSRF, 401 미인증.",
+        "operationId": "create_jeongseong_hoondok_me_jeongseong_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JeongseongCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JeongseongPeriodResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Jeongseong",
         "tags": [
           "hoondok"
         ]

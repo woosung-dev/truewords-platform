@@ -1,0 +1,29 @@
+/* W1-N 오늘의 한 줄 (SCR-PWA-003). 값은 프로토타입 hoondok.css, 토큰만 사용(hex 금지).
+   프로토타입의 .my-note 는 빈 입력을 흉내 낸 점선 상자다. 실제 textarea 로 옮기면서
+   프로토타입 §10 "입력 : 경계선 --ink-3" 규칙을 따라 테두리 색만 --line → --ink-3 으로 올렸다.
+   섹션 머리·저장 안내 줄은 hoondok.css 의 .sect__* · .hint 를 그대로 쓴다. */
+[data-app="hoondok"] {
+  .my-note {
+    display: block;
+    width: 100%;
+    font: inherit;
+    font-size: 16px; /* iOS 확대 방지 — .field input 과 같은 이유 */
+    color: var(--ink);
+    background: transparent;
+    border: 1.5px dashed var(--ink-3);
+    border-radius: var(--r);
+    padding: 13px 15px;
+    resize: vertical;
+  }
+  .my-note::placeholder {
+    color: var(--ink-3);
+  }
+  .my-note:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* 글자 수가 늘어도 카운터 폭이 흔들리지 않게 */
+  .my-note__count {
+    font-variant-numeric: tabular-nums;
+  }
+}
