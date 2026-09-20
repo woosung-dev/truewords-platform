@@ -98,9 +98,6 @@
   .st-pick[disabled] {
     cursor: not-allowed;
   }
-  .st-sub[disabled] .st-sub__v {
-    color: var(--ink-3);
-  }
   /* 고른 상태는 점으로 남기되 액센트는 걷는다 — 꺼진 컨트롤이 살아 있는 것처럼 보이지 않게 */
   .st-pick[disabled][aria-checked="true"] .st-radio {
     border-color: var(--ink-3);
