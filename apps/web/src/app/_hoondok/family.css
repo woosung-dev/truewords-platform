@@ -1,3 +1,143 @@
-/* W?-? 가 채운다. 값은 프로토타입 hoondok.css, 토큰만 사용(hex 금지) */
+/* SCR-PWA-016 가족·친구 (PLAN-HD-002 W3-F) + 정원의 진입 섹션.
+   프로토타입 app.html 의 `.fm-*` 마크업에는 hoondok.css 규칙이 없어(설치 카드 §2.12·AI 질문 §2.9 와 같은 사정)
+   여기서 처음 정의한다. 값은 프로토타입 hoondok.css 의 이웃 규칙(`.ql-list` 목록·`.together` 행·`.gd-profile__av` 아바타)과
+   DES-PWA-003 §2.3 배지·§3.5 탭 대상에서 가져왔고 색·반경·그림자는 토큰만 쓴다(hex 금지, pnpm hoondok:check).
+   라이트 단일 테마. 모션은 프레스 120ms 하나뿐이고 `prefers-reduced-motion` 은 hoondok.css 가 이미 끈다.
+
+   빌려 쓴 클래스(W4 승격 검토): `.badge--line` 은 ask.css, `.st-lead`·`.st-row__soon` 은 settings.css 에 있다.
+   여기서 다시 정의하지 않고 그대로 쓰며, 이 화면의 바깥 여백만 `.fm-soon` 으로 보탠다. */
 [data-app="hoondok"] {
+  /* ---------- 사람 목록 : 한 행 = 아바타 + 이름/관계 + 오늘 상태 ---------- */
+  .fm-list {
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .fm-list > li + li {
+    border-top: 1px solid var(--line);
+  }
+  .fm-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 56px;
+    padding: 10px 0;
+    text-align: left;
+  }
+  /* 누를 수 있는 행만 눌림 피드백을 준다 — 표시용 행은 li 라 :active 를 붙이지 않는다 */
+  .fm-item--action:active {
+    background: var(--surface-2);
+  }
+  .fm-item__av {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    min-height: 36px;
+    flex: none;
+    border-radius: var(--r-full);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .fm-item__av--lg {
+    width: 44px;
+    min-height: 44px;
+    font-size: 16px;
+  }
+  /* 초대·추가 행의 + 자리는 사람이 아니므로 강조색을 쓰지 않는다 */
+  .fm-add {
+    background: var(--surface-2);
+    color: var(--ink-2);
+  }
+  .fm-item__bd {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .fm-item__t {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .fm-item__m {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  /* 배지는 줄바꿈 없이 오른쪽에 고정하고, 좁은 폭에서는 설명이 먼저 줄바꿈된다 */
+  .fm-item > .badge {
+    flex: none;
+  }
+
+  /* ---------- 공개 범위 : fieldset 한 장. legend 가 묶음 이름이다 ---------- */
+  .fm-scope {
+    min-width: 0;
+    margin: 0;
+  }
+  /* legend 를 그대로 두면 카드 테두리를 파고들어 프로토타입의 안내 문장(.st-lead)과 달라진다.
+     float 로 기본 렌더링을 벗겨 카드 안 첫 줄로 되돌리고, 다음 행이 그 아래로 내려오도록 clear 한다. */
+  .fm-scope > legend {
+    float: left;
+    width: 100%;
+    padding: 0;
+  }
+  .fm-scope > legend + * {
+    clear: left;
+  }
+  .fm-scope__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+    padding: 6px 0;
+  }
+  .fm-scope__row + .fm-scope__row {
+    border-top: 1px solid var(--line);
+  }
+  .fm-scope__k {
+    font-size: 14px;
+  }
+  /* 바꿀 수 없는 행은 컨트롤 대신 글자로 이유를 말한다 (REQ-PWA-015) */
+  .fm-scope__fixed {
+    font-size: 12.5px;
+    color: var(--ink-3);
+    flex: none;
+  }
+
+  /* ---------- 준비 중 안내 : settings.css 의 .st-row__soon 에 이 화면의 여백만 보탠다 ---------- */
+  .fm-soon {
+    margin-top: 10px;
+  }
+
+  /* ---------- 정원(014)의 진입 섹션 : 카드 한 장으로 016 을 연다 ---------- */
+  .fm-entry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .fm-entry__bd {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .fm-entry__bd b {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .fm-entry__bd span {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .fm-entry > svg {
+    flex: none;
+    color: var(--ink-3);
+  }
 }
