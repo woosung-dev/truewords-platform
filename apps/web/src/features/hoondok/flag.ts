@@ -4,7 +4,8 @@ export function isHoondokEnabled(): boolean {
   return process.env.NEXT_PUBLIC_HOONDOK_ENABLED === "1";
 }
 
-// 훈독 프리뷰 플래그 (PLAN-HD-002 W0-W). 준비 중 탭(말씀·가정예배)과 말씀 검색 진입만 켠다.
+// 훈독 프리뷰 플래그 (PLAN-HD-002 W0-W·W3). 프리뷰 셸 8라우트(말씀 3·가정예배 4·가족 1)와 그 진입(탭 2·말씀 검색·정원의 가족 섹션)을 켠다.
+// OFF 면 각 프리뷰 page 가 notFound() 로 404 를 낸다 — 라우트 목록은 ON/OFF 가 같고 게이트는 런타임이다.
 // 운영 미노출 — Dockerfile·Makefile 에 배선하지 않는다. 로컬·Playwright(W3) 에서만 1 로 둔다.
 export function isHoondokPreviewEnabled(): boolean {
   return process.env.NEXT_PUBLIC_HOONDOK_PREVIEW === "1";
