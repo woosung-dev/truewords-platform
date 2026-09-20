@@ -175,11 +175,14 @@ body:has([data-app="hoondok"] .sheet[open]) {
     outline-offset: 2px;
   }
 
-  /* 오류 안내 : 아이콘 + 글자. 색만으로 알리지 않는다 (§3.3) */
+  /* 오류 안내 : 아이콘 + 글자. 색만으로 알리지 않는다 (§3.3).
+     폼 안에서는 `.form`·`.js-form` 의 gap 이 이미 간격을 주므로 `.hint` 의 margin-top 을 되돌린다 —
+     그대로 두면 오류 줄 위만 26~30px 로 벌어져 필드 묶음에서 떨어져 보인다. */
   .hint--alert {
     justify-content: flex-start;
     align-items: center;
     gap: 6px;
+    margin-top: 0;
     color: var(--accent-strong);
     font-weight: 600;
   }

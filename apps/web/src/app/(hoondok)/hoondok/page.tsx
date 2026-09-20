@@ -4,7 +4,7 @@
 // PRD SCR-PWA-002 는 미션 3종만 열거하며, DES §2.2 말씀 카드는 SCR-PWA-003·006·008 컴포넌트다.
 // 홈은 "오늘 무엇을 할지", 읽기는 `/hoondok/read` 로 분리해야 미션 카드 → 훈독 루프가 산다.
 import { loadToday } from "@/features/hoondok/api";
-import { HomeMissions } from "@/features/hoondok/components/home-missions";
+import { HomeGreeting, HomeMissions } from "@/features/hoondok/components/home-missions";
 import { InstallCard } from "@/features/hoondok/install/components/install-card";
 import { JeongseongCard } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import { JeongseongSheet } from "@/features/hoondok/jeongseong/components/jeongseong-sheet";
@@ -17,19 +17,7 @@ export default async function HoondokHomePage() {
 
   return (
     <section className="col">
-      <div className="masthead">
-        <span className="masthead__nm">훈독</span>
-        <span className="masthead__dt">{label}</span>
-      </div>
-
-      <div className="card">
-        <p className="greet">
-          밤이 깊을수록 새벽은 가까워요.
-          <br />
-          오늘도 함께 읽어요.
-        </p>
-        <p className="greet__sub">{label}</p>
-      </div>
+      <HomeGreeting dateLabel={label} />
 
       <HomeMissions reading={reading ?? null} todayWeekday={weekday} />
 

@@ -103,6 +103,8 @@ describe("온보딩 (SCR-PWA-001 최소형)", () => {
     render(wrap(<OnboardingPage />));
     await fillAndSubmit("signup");
     expect(await screen.findByRole("alert")).toHaveTextContent("이미 가입된 이메일");
+    // 색만으로 오류를 알리지 않는다 (DES §3.3) — 아이콘이 함께 있다
+    expect(screen.getByRole("alert").querySelector("svg")).not.toBeNull();
 
     vi.mocked(identityAPI.login).mockRejectedValueOnce(new ApiError(401, { message: "x" }));
     await fillAndSubmit("login");
@@ -144,6 +146,22 @@ describe("온보딩 (SCR-PWA-001 최소형)", () => {
     await fillAndSubmit("signup");
     expect(await screen.findByRole("alert")).toHaveTextContent("초대 코드가 필요해요. 초대받은 코드를 확인해 주세요");
     expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("제출 중에는 라벨을 유지한 채 잠그고 aria-busy 로 진행을 알린다", async () => {
+    let settle: (value: { user: typeof USER }) => void = () => {};
+    vi.mocked(identityAPI.signup).mockReturnValueOnce(
+      new Promise((resolve) => {
+        settle = resolve;
+      }),
+    );
+    render(wrap(<OnboardingPage />));
+    await fillAndSubmit("signup");
+    const submit = screen.getByRole("button", { name: "가입하고 시작하기" });
+    await waitFor(() => expect(submit).toHaveAttribute("aria-busy", "true"));
+    expect(submit).toBeDisabled();
+    settle({ user: USER });
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/hoondok/read"));
   });
 
   it("이미 로그인이면 폼 대신 계속하기·로그아웃을 보인다", async () => {
