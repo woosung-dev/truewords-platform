@@ -11,6 +11,14 @@
    - 라이트 고정(DEC-PWA-017). .dark 팔레트를 정의하지 않는다.
    ============================================================================= */
 
+/* 스피너 회전 1종 — 1.2s 등속 (DES-PWA-003 §1.5). 이름은 전역이라 스코프 블록 밖 최상위에 둔다.
+   `.btn__spinner`(여러 화면 그룹)와 `_hoondok/ask.css` 의 `.ask-spinner` 가 함께 쓴다. */
+@keyframes hoondok-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
 /* ---------- 1. 토큰 (첫 블록 = 유일한 hex 허용 구역) ---------- */
 [data-app="hoondok"] {
   --paper: #fbfaf8;
@@ -555,6 +563,18 @@
     padding: 0 14px;
     width: auto;
   }
+  /* 저장 중 좌측 스피너 (DES §1.5 loading). 라벨은 그대로 두고 `.btn` 의 gap 8px 만큼만 민다.
+     `flex: none` 이라 자리가 줄지 않는다 — 전폭 `.btn` 은 바깥 레이아웃이 그대로고 `.btn--sm`(width:auto) 만 늘어난다.
+     궤도를 `--line` 으로 둔 것은 진행 중 버튼이 `.btn[disabled]` 의 `--surface-2` 배경이라 같은 색이면 안 보이기 때문이다. */
+  .btn__spinner {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    border: 2px solid var(--line);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: hoondok-spin 1.2s linear infinite;
+  }
 
   /* ---------- md: 768px 이상. 단일 컬럼 중앙 정렬, 하단 탭 유지 ---------- */
   @media (min-width: 768px) {
@@ -679,6 +699,11 @@
     * {
       transition: none !important;
       animation: none !important;
+    }
+    /* 스피너 회전만 되살린다 — 진행 중임을 알리는 필수 정보라 DES §1.5 가 유지를 요구한다.
+       멈춰 있으면 "저장 중" 과 "멈춤" 을 구별할 수 없다. 펄스·바운스·shimmer 는 그대로 꺼 둔다. */
+    .btn__spinner {
+      animation: hoondok-spin 1.2s linear infinite !important;
     }
   }
 }

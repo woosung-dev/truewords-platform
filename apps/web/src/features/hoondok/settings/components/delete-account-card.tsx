@@ -84,7 +84,7 @@ export function DeleteAccountCard() {
         <span>{CONFIRM_TEXT}</span>
       </p>
       <div className="st-danger__cta">
-        <HoondokButton isSmall onClick={handleDelete} disabled={deleteMe.isPending}>
+        <HoondokButton isSmall onClick={handleDelete} isLoading={deleteMe.isPending}>
           {deleteMe.isPending ? "지우는 중…" : "지우기"}
         </HoondokButton>
         <HoondokButton
