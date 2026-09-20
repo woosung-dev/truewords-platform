@@ -272,3 +272,77 @@ PR [#301](https://github.com/woosung-dev/truewords-platform/pull/301) 을 main `
 
 **다음 WARN 시점**: 8일분이므로 2026-09-27 경 오늘·내일 편성이 끊긴다. 그 전에 채운다.
 
+
+### 2026-09-20 — web 배포: PLAN-HD-002 실데이터 화면 노출 (`a93a6c7`)
+
+`WEB_TAG` 랙(`aba5240`)을 해소했다. backend·admin 은 같은 날 이미 `c066b02` 였고 **이 배포에서 건드리지 않았다**(`--no-deps`, 배포 후 backend `Up 2 hours`).
+
+| 항목 | 값 |
+|---|---|
+| 배포 전 태그(롤백 대상) | web **`aba5240`** · backend `c066b02` · admin `c066b02` |
+| 배포 후 태그 | web **`a93a6c7`** · backend `c066b02`(무변경) · admin `c066b02`(무변경) |
+| 명령 | `make deploy-web WEB_URL=https://truewords.woosung.dev ADMIN_URL=https://truewords-admin.woosung.dev HOONDOK_ENABLED=1` |
+| alembic | `k5a6b7c8d9e0 (head)` — 2026-09-20 backend 배포에서 이미 적용. 이 배포는 DB 무변경 |
+| 컨테이너 | 6개 정상. web `Healthy`(46초), 나머지 재생성 없음 |
+| 이미지 GC | `truewords-web:8980e0c` 삭제, 122MB 회수, 디스크 37% |
+| `make ops-check` | **8건 전부 OK** — `hoondok-today` OK "오늘·내일 편성 있음 · 앞으로 8일분" |
+| `make smoke-web HOONDOK_ENABLED=1` | **12건 OK** · `sw-cache` WARN 1(§Cloudflare 캐시의 알려진 WARN) |
+
+**backend 는 배포하지 않았다.** 세션 시작 시 브리핑은 `BACKEND_TAG=aba5240` 이었으나 실측은 `c066b02` 였다 — 새 API 3종(API-HD-009/010/011)과 alembic `k5a6b7c8d9e0` 은 같은 날 PR #301 배포에서 이미 운영에 들어가 있었다(위 절). 브리핑이 지정한 `4e15f8c` 로 backend 를 배포했다면 API-HD-012(편성 후보 찾기)를 운영에서 제거하는 **후퇴 배포**가 됐다. `deploy-guard` 는 이것을 막지 못한다 — `4e15f8c` 도 `origin/main` 의 조상이라 가드를 통과한다. **가드는 "main 밖"만 막지 배포 태그가 현재 운영보다 앞선지는 보지 않는다.**
+
+#### 라우트 전수 실측
+
+실데이터 9개 전부 200:
+
+| 경로 | 결과 |
+|---|---|
+| `/hoondok` · `/read` · `/onboarding` · `/offline` | 200 (기존) |
+| `/hoondok/garden` · `/settings` · `/ask` · `/ask/[id]` · `/ask/log` | **200 (신규)** |
+
+프리뷰 셸 8개 전부 404 — `NEXT_PUBLIC_HOONDOK_PREVIEW` 누출 없음:
+
+| 경로 | 결과 |
+|---|---|
+| `/hoondok/library` · `/search` · `/words/[id]` | 404 |
+| `/hoondok/worship` · `/sermons` · `/request` · `/challenge/[id]` | 404 |
+| `/hoondok/family` | 404 |
+
+누출이 구조적으로 불가능한 이유: `apps/web/Dockerfile` 에는 `NEXT_PUBLIC_HOONDOK_ENABLED` ARG 하나뿐이고 `NEXT_PUBLIC_HOONDOK_PREVIEW` 는 Dockerfile·Makefile 어디에도 없다. 넘길 경로 자체가 없다.
+
+`/hoondok/search` 는 실데이터가 아니라 **프리뷰 8라우트 중 하나**다(말씀 3 = `library`·`search`·`words/[id]`). 404 가 정상이다.
+
+#### 브라우저 확인 (375×812)
+
+| 화면 | 결과 |
+|---|---|
+| `/hoondok` | 오늘 편성 렌더 — 2026-09-20, "예수님께서는 다시 와서는 어린양 잔치를…"(참어머님 말씀모음 2018~2019) |
+| `/hoondok/ask` | 오늘 읽은 말씀 + 예시 질문 3개 + 입력 폼 |
+| `/hoondok/garden` | 로딩 → 비로그인 안내("로그인하면 훈독 기록과 정성을 볼 수 있어요") 정상 전환 |
+| `/hoondok/settings` | 알림 4종(전부 "준비 중") + 잠금 화면 문구 + 설치 안내 |
+| 하단 탭 | 링크는 `오늘 훈독`·`AI 질문`·`나의 정원` **3개뿐**. 말씀·가정예배는 `isDisabled` 라 404 로 가는 죽은 링크가 없다(`tabs.ts` `TAB_STAGE` preview) |
+| 콘솔 | 기능 오류 0건. `auth/me` 401(비로그인 기대 동작) + Next 폰트 preload 경고만 |
+
+#### 메모리 (플래그 ON · 실데이터 화면 노출 후)
+
+§메모리 의 2026-09-19 OFF 기준 재측정이다.
+
+| 컨테이너 | 2026-09-19 (OFF) | 2026-09-20 (ON·13화면) | 한도 |
+|---|---|---|---|
+| web | 57.1 MiB | **53.1 MiB** | 512 MiB (10.4%) |
+| admin | 51.9 MiB | 47.1 MiB | 512 MiB (9.2%) |
+| backend | 577.9 MiB | 540.8 MiB | 3 GiB (17.6%) |
+
+**늘지 않았다.** 라우트가 4개 → 9개로 늘었지만 Next standalone 서버의 상주 메모리는 변하지 않는다. §메모리 의 `[가정]`("큰 변화는 예상하지 않는다")이 실측으로 확인됐다.
+
+#### 되돌리기
+
+```bash
+make rollback-web TAG=aba5240
+```
+
+이 배포는 `sw.js` 를 바꾸지 않았다 — `aba5240`·`a93a6c7` 의 파일이 같고, 서빙된 `SW_VERSION 2026-09-19.1` 이 레포 값과 일치한다. 층 2(킬스위치) 위험은 이 배포로 늘지 않았다.
+
+#### 남은 것
+
+- **실기기 증거**(§실기기 증거) — 헤드리스로 대체 불가. Phase 3 완료 기준의 마지막 항목이다.
+- **`make ci` 의 `docs:check` 로컬 오탐**: `tooling/checks/docs-links.mjs:10` 의 `walk()` 가 `fs.readdirSync` 로 트리를 걸으며 `.gitignore` 를 보지 않아, gitignore 대상인 `docs/guides/*.html`(`.gitignore:40`)을 검사해 missing-anchor 11건을 낸다. GHA 체크아웃에는 그 파일이 없어 원격 CI 는 통과한다. `make ci` 가 여기서 멈춰 뒤의 `pnpm test`·`lint`·`build`·`typecheck` 에 **도달하지 못하므로** 이 배포에서는 따로 실행했다(전부 green, pytest 1069 passed). 배포와 무관한 별도 건.

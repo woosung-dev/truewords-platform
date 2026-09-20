@@ -132,6 +132,19 @@ Phase 2 완료 기준: `make e2e` 로 루프 재현. `admin_token` 만 가진 �
 
 Phase 3 완료 기준: 운영 `truewords.woosung.dev/hoondok` 을 Android·iOS 16.4+ 실기기에서 설치 → 가입(초대 코드) → 훈독 → 완료. 편성자가 admin 에서 7일분 이상 입력. 시연 챗·admin E2E·`smoke-web` green. `mission_logs` 7일 적재 시작. 배포 순서 = A·F(·H) 머지 후 `make deploy-backend` → B 후 `make deploy-admin` → C~E·G 후 `make deploy-web HOONDOK_ENABLED=1` → `make smoke-web HOONDOK_ENABLED=1` → 실기기 증거 → 초대. 각 단계 별도 승인. 실기기 증거는 `docs/plans/completed` 이동 시 첨부한다.
 
+**완료 기준 충족 현황 (2026-09-20 배포 후 실측)** — 증거는 [runbook §실행 기록](../../runbooks/hoondok-pwa-rollout.md#실행-기록).
+
+| 완료 기준 | 상태 | 증거 |
+|---|---|---|
+| 편성자가 admin 에서 7일분 이상 입력 | ✅ 충족 | `ops-check` `hoondok-today` OK "앞으로 8일분" |
+| `smoke-web HOONDOK_ENABLED=1` green | ✅ 충족 | 12건 OK · `sw-cache` WARN 1(알려진 Cloudflare 건) |
+| 배포 순서 `deploy-backend` → `deploy-admin` → `deploy-web HOONDOK_ENABLED=1` → `smoke-web` | ✅ 충족 | backend·admin `c066b02`(2026-09-20 PR #301), web `a93a6c7`(2026-09-20) |
+| 시연 챗·admin E2E | ✅ 충족 | 배포 전 로컬 `make ci` 의 `pnpm test`·`build`·`typecheck` green, pytest 1069 passed |
+| 실기기 설치 → 가입 → 훈독 → 완료 (Android·iOS 16.4+) | ⬜ **미충족** | 헤드리스 대체 불가. §실기기 증거 양식으로 수집 대기 |
+| `mission_logs` 7일 적재 시작 | ⬜ 미충족 | 실기기 증거 이후 실사용자 유입부터 |
+
+가입은 **초대 코드 없이** 한다 — 게이트 OFF 유지가 2026-09-20 결정이다([runbook §실행 기록](../../runbooks/hoondok-pwa-rollout.md#2026-09-20--초대-코드-게이트-off-유지-결정)).
+
 ## 7. Phase 4 — 훈독 알림 1종 + 베타 판정 (조건부, 10/29~11/11)
 
 Phase 3 데이터(7일 중 5일 완료 비율, D7 재방문)를 본 뒤 착수한다. 알림 4종 중 훈독 알림만.

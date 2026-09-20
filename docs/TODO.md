@@ -1,8 +1,8 @@
 # TODO
 
-> 마지막 업데이트: 2026-09-20 (훈독 운영 상태 정정 + 편성 후보 찾기 PLAN-HD-003 구현·배포 + 편성 8일분 투입)
+> 마지막 업데이트: 2026-09-20 (훈독 운영 상태 정정 + 편성 후보 찾기 PLAN-HD-003 구현·배포 + 편성 8일분 투입 + **web `a93a6c7` 배포로 PLAN-HD-002 실데이터 화면 노출**)
 
-> **현재 우선 작업 (2026-09-20~):** 훈독 운영 공백 복구. 2026-09-20 실측으로 운영이 **이미 `HOONDOK_ENABLED=1`** 임을 확인했다 — web `aba5240`, `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 200, `noindex, nofollow`, `smoke-web HOONDOK_ENABLED=1` 12건 OK. 남은 액션 3건: ① `[종결]` 편성 재고 — 2026-09-20 에 **8일분 투입 완료**(`ops-check` 불변식 8건 전부 통과, `hoondok-today` OK "앞으로 8일분"). `PLAN-HD-001` §6 완료 기준 7일분 충족. 다음 보충 시점은 2026-09-27 경 — 입력을 돕는 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, API-HD-012)를 구현·배포했다(PR #301 → main `c066b02`, backend·admin 배포 완료, alembic `k5a6b7c8d9e0` 적용). 운영 admin 편성 화면에서 쓸 수 있다, ② 초대 코드 게이트는 **OFF 유지 결정**(위험은 [runbook 실행 기록](runbooks/hoondok-pwa-rollout.md) 에 기록), ③ 운영 web 태그 랙 `aba5240` → main `c066b02` 승격 여부(=[PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) 13화면 노출, `/hoondok/garden` 현재 404) — 배포이므로 별도 승인. 실기기 설치 증거는 Phase 3 완료 기준으로 남아 있다. 남은 `[확인 필요]`: 약관 문구와 법적 주체.
+> **현재 우선 작업 (2026-09-20~):** 훈독 운영 공백 복구. 2026-09-20 실측으로 운영이 **이미 `HOONDOK_ENABLED=1`** 임을 확인했다 — web `aba5240`, `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 200, `noindex, nofollow`, `smoke-web HOONDOK_ENABLED=1` 12건 OK. 남은 액션 3건: ① `[종결]` 편성 재고 — 2026-09-20 에 **8일분 투입 완료**(`ops-check` 불변식 8건 전부 통과, `hoondok-today` OK "앞으로 8일분"). `PLAN-HD-001` §6 완료 기준 7일분 충족. 다음 보충 시점은 2026-09-27 경 — 입력을 돕는 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, API-HD-012)를 구현·배포했다(PR #301 → main `c066b02`, backend·admin 배포 완료, alembic `k5a6b7c8d9e0` 적용). 운영 admin 편성 화면에서 쓸 수 있다, ② 초대 코드 게이트는 **OFF 유지 결정**(위험은 [runbook 실행 기록](runbooks/hoondok-pwa-rollout.md) 에 기록), ③ `[종결]` 운영 web 태그 랙 — 2026-09-20 승인 후 **web `aba5240` → `a93a6c7` 배포 완료**. [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) 실데이터 화면이 운영에 노출됐다(`/hoondok/garden`·`/settings`·`/ask`·`/ask/[id]`·`/ask/log` 200), 프리뷰 셸 8라우트는 404 유지(`NEXT_PUBLIC_HOONDOK_PREVIEW` 미배선). `smoke-web` 12건 OK, `ops-check` 8건 OK, web 메모리 53.1 MiB(OFF 기준 57.1 에서 증가 없음). backend·admin 은 `c066b02` 무변경(`--no-deps`). 증거는 [runbook §실행 기록](runbooks/hoondok-pwa-rollout.md#실행-기록). **남은 Phase 3 완료 기준은 실기기 설치 증거 하나**(Android·iOS 16.4+ 설치 → 가입 → 훈독 → 완료, 헤드리스 대체 불가). 남은 `[확인 필요]`: 약관 문구와 법적 주체.
 >
 > **이전 우선 작업:** 2안 UI 분리의 구현·로컬 검증 완료, 2026-09-05 커밋·푸시 승인. PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과를 재사용하지 않는다. 최신 로컬 증거는 [APP-UI-001](plans/active/2026-09-05-app-owned-ui.md), 최초 M1~M4 기록은 [전환 계획 §5](plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 따른다. 아래 과거 퍼센트·테스트 수치를 새 완료 증거로 사용하지 않는다. 신규 디자인·M5·Flutter·운영 배포는 비범위다.
 
@@ -235,18 +235,19 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Next Actions
 
-### 훈독 Phase 3 배포 준비 (2026-09-19)
-- [ ] **VM `.env` 에 `HOONDOK_INVITE_CODE=<초대 코드>` 추가 → `make deploy-backend`** — F(초대 코드 게이트) 머지 뒤 배포 세션. 비워 두면 게이트 OFF(누구나 가입). 코드 값은 초대 메시지와 함께 운영자가 정한다 [확인 필요]
-- [ ] G smoke·runbook → dev→main PR → `make deploy-web HOONDOK_ENABLED=1` → 실기기 증거(설치 prompt·iOS 공유 분기) — [PLAN-HD-001 §6](plans/active/2026-09-17-hoondok-mvp.md) (C~G 는 #298 로 main 머지됨 — 남은 것은 배포·실기기 증거)
+### 훈독 Phase 3 배포 준비 (2026-09-19 → 2026-09-20 배포 완료)
+- [x] `[종결]` **초대 코드 게이트 — OFF 유지 결정**(2026-09-20). VM `.env` 는 건드리지 않았다. 게이트 코드는 backend 에 이미 배포돼 있어 `HOONDOK_INVITE_CODE` 한 줄 + backend 재생성만으로 즉시 켤 수 있다(다른 컨테이너 파급 없음). 가입 규모가 `[가정]` 10~20명을 넘거나 링크가 의도 밖으로 퍼지면 뒤집는다. 근거는 [runbook §실행 기록](runbooks/hoondok-pwa-rollout.md#실행-기록)
+- [x] `[종결]` **`make deploy-web HOONDOK_ENABLED=1`** — 2026-09-20 web `a93a6c7` 배포. `smoke-web` 12건 OK, 실데이터 9라우트 200 · 프리뷰 8라우트 404
+- [ ] **실기기 증거** — Android·iOS 16.4+ 에서 설치 → 가입 → 훈독 → 완료. 설치 prompt(Android `beforeinstallprompt`)·iOS 공유 시트 분기는 헤드리스가 재현하지 못한다. 양식은 [runbook §실기기 증거](runbooks/hoondok-pwa-rollout.md#실기기-증거). **Phase 3 완료 기준 중 유일하게 남은 항목**
 
 ### 훈독 화면 확장 PLAN-HD-002 (2026-09-19)
 - [x] W0-D 계획 문서 — [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) + README 색인 + 이 섹션. 웨이브형·로컬 통합·디자인 스킬 확정, 플래그 2개 운영 노출 0
 - [x] W0-W 웹 셸 — 2026-09-19 로컬 머지 `1f51339`. `isHoondokPreviewEnabled`·`screens.ts`·`TAB_STAGE`·앱 셸 레지스트리·`_hoondok/*.css` 8개·`--scrim`·`garden`/`settings` 자리표시·`query-keys.ts`·`hoondok-css.mjs` 확장·프리뷰 플래그 배선 3곳 ([§4 W0](plans/active/2026-09-19-hoondok-screens.md))
 - [x] W0-B 백엔드 — 2026-09-19 로컬 머지 `2e08806`(pytest 1037/4/1). `ENT-HD-004 jeongseong_periods`(alembic `k5a6b7c8d9e0`)·`API-HD-009/010/011`(정성·월 기록·계정 삭제)·SDK 재생성·additive-only 리허설 ([§4 W0](plans/active/2026-09-19-hoondok-screens.md))
-- [ ] W1 실데이터 4화면 — 데이터 계층 → 014 나의 정원·015 설정(알림 disabled·데이터 삭제 2단계)·004 정성 시트 + 홈 카드·003 오늘의 한 줄. 웨이브 끝 `make ci`·`make e2e`·시각 대조 ([§4 W1](plans/active/2026-09-19-hoondok-screens.md))
-- [ ] W2 AI 질문 — `/hoondok/ask`·`/ask/log`·`/ask/[id]` + `read` 질문 버튼, 기존 `/chat/stream` 무기억·근거 게이트·localStorage, `TAB_STAGE.ask: live` ([§4 W2](plans/active/2026-09-19-hoondok-screens.md))
-- [ ] W3 프리뷰 셸 — `NEXT_PUBLIC_HOONDOK_PREVIEW=1` 뒤 007~009 말씀·010~013 가정예배·016 가족 fixture 셸, `hoondok-preview.spec.ts` 라우트 9개 ([§4 W3](plans/active/2026-09-19-hoondok-screens.md))
-- [ ] W4 마무리·PR — `index.ts` export·DES §8·`apps/web/AGENTS.md`·§8 완료 증거 → 사용자 승인 후 push·main PR 1개 ([§4 W4](plans/active/2026-09-19-hoondok-screens.md))
+- [x] W1 실데이터 4화면 — PR #300 머지(main `4e15f8c`), **2026-09-20 web `a93a6c7` 로 운영 노출**. — 데이터 계층 → 014 나의 정원·015 설정(알림 disabled·데이터 삭제 2단계)·004 정성 시트 + 홈 카드·003 오늘의 한 줄. 웨이브 끝 `make ci`·`make e2e`·시각 대조 ([§4 W1](plans/active/2026-09-19-hoondok-screens.md))
+- [x] W2 AI 질문 — PR #300 머지, **2026-09-20 운영 노출**(`/hoondok/ask`·`/ask/log`·`/ask/[id]` 200). — `/hoondok/ask`·`/ask/log`·`/ask/[id]` + `read` 질문 버튼, 기존 `/chat/stream` 무기억·근거 게이트·localStorage, `TAB_STAGE.ask: live` ([§4 W2](plans/active/2026-09-19-hoondok-screens.md))
+- [x] W3 프리뷰 셸 — PR #300 머지. **운영은 플래그 미배선이라 8라우트 전부 404**(의도대로). — `NEXT_PUBLIC_HOONDOK_PREVIEW=1` 뒤 007~009 말씀·010~013 가정예배·016 가족 fixture 셸, `hoondok-preview.spec.ts` 라우트 9개 ([§4 W3](plans/active/2026-09-19-hoondok-screens.md))
+- [x] W4 마무리·PR — PR #300 main 머지. — `index.ts` export·DES §8·`apps/web/AGENTS.md`·§8 완료 증거 → 사용자 승인 후 push·main PR 1개 ([§4 W4](plans/active/2026-09-19-hoondok-screens.md))
 
 ### 모노레포 전환 (2026-09-05)
 
