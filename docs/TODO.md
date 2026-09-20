@@ -1,8 +1,8 @@
 # TODO
 
-> 마지막 업데이트: 2026-09-20 (훈독 운영 상태 정정 + 편성 후보 찾기 PLAN-HD-003 구현·배포 + 편성 8일분 투입 + **web `a93a6c7` 배포로 PLAN-HD-002 실데이터 화면 노출**)
+> 마지막 업데이트: 2026-09-20 (훈독 운영 상태 정정 + 편성 후보 찾기 PLAN-HD-003 구현·배포 + 편성 8일분 투입 + web `a93a6c7` 배포로 PLAN-HD-002 실데이터 화면 노출 + **`PLAN-HD-001` §6 완료 기준표 증거 재대조**)
 
-> **현재 우선 작업 (2026-09-20~):** 훈독 운영 공백 복구. 2026-09-20 실측으로 운영이 **이미 `HOONDOK_ENABLED=1`** 임을 확인했다 — web `aba5240`, `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 200, `noindex, nofollow`, `smoke-web HOONDOK_ENABLED=1` 12건 OK. 남은 액션 3건: ① `[종결]` 편성 재고 — 2026-09-20 에 **8일분 투입 완료**(`ops-check` 불변식 8건 전부 통과, `hoondok-today` OK "앞으로 8일분"). `PLAN-HD-001` §6 완료 기준 7일분 충족. 다음 보충 시점은 2026-09-27 경 — 입력을 돕는 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, API-HD-012)를 구현·배포했다(PR #301 → main `c066b02`, backend·admin 배포 완료, alembic `k5a6b7c8d9e0` 적용). 운영 admin 편성 화면에서 쓸 수 있다, ② 초대 코드 게이트는 **OFF 유지 결정**(위험은 [runbook 실행 기록](runbooks/hoondok-pwa-rollout.md) 에 기록), ③ `[종결]` 운영 web 태그 랙 — 2026-09-20 승인 후 **web `aba5240` → `a93a6c7` 배포 완료**. [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) 실데이터 화면이 운영에 노출됐다(`/hoondok/garden`·`/settings`·`/ask`·`/ask/[id]`·`/ask/log` 200), 프리뷰 셸 8라우트는 404 유지(`NEXT_PUBLIC_HOONDOK_PREVIEW` 미배선). `smoke-web` 12건 OK, `ops-check` 8건 OK, web 메모리 53.1 MiB(OFF 기준 57.1 에서 증가 없음). backend·admin 은 `c066b02` 무변경(`--no-deps`). 증거는 [runbook §실행 기록](runbooks/hoondok-pwa-rollout.md#실행-기록). **남은 Phase 3 완료 기준은 실기기 설치 증거 하나**(Android·iOS 16.4+ 설치 → 가입 → 훈독 → 완료, 헤드리스 대체 불가). 남은 `[확인 필요]`: 약관 문구와 법적 주체.
+> **현재 우선 작업 (2026-09-20~):** 훈독 운영 공백 복구. 2026-09-20 실측으로 운영이 **이미 `HOONDOK_ENABLED=1`** 임을 확인했다 — web `aba5240`, `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 200, `noindex, nofollow`, `smoke-web HOONDOK_ENABLED=1` 12건 OK. 남은 액션 3건: ① `[종결]` 편성 재고 — 2026-09-20 에 **8일분 투입 완료**(`ops-check` 불변식 8건 전부 통과, `hoondok-today` OK "앞으로 8일분"). `PLAN-HD-001` §6 완료 기준 7일분 충족. 다음 보충 시점은 2026-09-27 경 — 입력을 돕는 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, API-HD-012)를 구현·배포했다(PR #301 → main `c066b02`, backend·admin 배포 완료, alembic `k5a6b7c8d9e0` 적용). 운영 admin 편성 화면에서 쓸 수 있다, ② 초대 코드 게이트는 **OFF 유지 결정**(위험은 [runbook 실행 기록](runbooks/hoondok-pwa-rollout.md) 에 기록), ③ `[종결]` 운영 web 태그 랙 — 2026-09-20 승인 후 **web `aba5240` → `a93a6c7` 배포 완료**. [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) 실데이터 화면이 운영에 노출됐다(`/hoondok/garden`·`/settings`·`/ask`·`/ask/[id]`·`/ask/log` 200), 프리뷰 셸 8라우트는 404 유지(`NEXT_PUBLIC_HOONDOK_PREVIEW` 미배선). `smoke-web` 12건 OK, `ops-check` 8건 OK, web 메모리 53.1 MiB(OFF 기준 57.1 에서 증가 없음). backend·admin 은 `c066b02` 무변경(`--no-deps`). 증거는 [runbook §실행 기록](runbooks/hoondok-pwa-rollout.md#실행-기록). **남은 Phase 3 완료 기준은 2건**이다 — ① 실기기 설치 증거(Android·iOS 16.4+ 설치 → 가입 → 훈독 → 완료, 헤드리스 대체 불가), ② 시연 챗·admin E2E 를 배포 트리 기준으로 재실행(마지막 전체 `make e2e` 85 passed 는 PR #300 트리 `c0b0547` 기준이고 그 위에 #301 이 얹혔다. `make ci` 는 E2E 를 포함하지 않는다). 판정 근거는 [`PLAN-HD-001` §6 완료 기준표](plans/active/2026-09-17-hoondok-mvp.md). 남은 `[확인 필요]`: 약관 문구와 법적 주체.
 >
 > **이전 우선 작업:** 2안 UI 분리의 구현·로컬 검증 완료, 2026-09-05 커밋·푸시 승인. PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과를 재사용하지 않는다. 최신 로컬 증거는 [APP-UI-001](plans/active/2026-09-05-app-owned-ui.md), 최초 M1~M4 기록은 [전환 계획 §5](plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 따른다. 아래 과거 퍼센트·테스트 수치를 새 완료 증거로 사용하지 않는다. 신규 디자인·M5·Flutter·운영 배포는 비범위다.
 
@@ -176,6 +176,15 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Blocked
 
+### 훈독 — Phase 3 종결을 막는 것 (2026-09-20)
+
+각 항목에 **차단 근거**와 **풀리는 조건**을 함께 적는다. 근거 없이 미뤄 둔 것은 Blocked 가 아니라 Next Actions 에 둔다.
+
+- [ ] **실기기 증거** — Android·iOS 16.4+ 에서 설치 → 가입 → 훈독 → 완료. **차단 근거: 사용자 수집 대기.** 헤드리스 E2E 는 `beforeinstallprompt` 를 발사하지 않고 iOS 공유 시트를 재현하지 못해 대체가 불가능하다. 필요한 조치: 사용자가 기기 2대로 [runbook §실기기 증거](runbooks/hoondok-pwa-rollout.md#실기기-증거) 의 빈 양식을 채우면 [`PLAN-HD-001` §6](plans/active/2026-09-17-hoondok-mvp.md) 의 해당 ⬜ 행이 닫힌다
+- [ ] **Phase 4 훈독 알림** — **차단 근거: [`PLAN-HD-001` §7](plans/active/2026-09-17-hoondok-mvp.md) 이 "Phase 3 데이터(7일 중 5일 완료 비율·D7 재방문)를 본 뒤 착수한다" 로 막는다.** `mission_logs` 7일 적재가 아직 시작되지 않아 판정할 데이터가 없다. 필요한 조치: 실기기 증거 → 초대 → 7일 적재 → 두 수치 산출 후 착수 판단
+- [ ] **프리뷰 셸 8라우트 실데이터화** — **차단 근거: `DEC-PWA-020`(가정예배 정식 명칭·주관 부서·순서지 편성 주체)·`DEC-PWA-021`(설교 섭외 운영 주체·교회장 동의 절차) 외부 결정 대기.** 운영에는 프리뷰 플래그를 배선하지 않아 8라우트가 404 이고 로컬에서도 fixture 만 읽는다(2026-09-20 실측). 필요한 조치: 두 결정이 내려온 뒤 실데이터·저장 경로를 설계한다
+- [ ] **이용약관·개인정보처리방침 (`DEC-PWA-001`)** — **차단 근거: 문구와 법적 주체가 미정이고 문서가 0건, 별도 세션 소관.** 현재는 동의를 수집하지 않고 베타 고지만 표시하며 `users.consented_at`·`consent_version` 은 NULL 예약이다. 필요한 조치: 법적 주체 확정 → 문구 작성 → 가입 폼 동의 + 기존 계정 소급 동의 경로. **리드타임이 가장 길어 먼저 착수할수록 좋다**
+
 ### 클라이언트 피드백 14건 중 보류 항목 (2026-05-09)
 
 > 적용 항목(8건: #1·#2·#3·#6·#7·#8·#9·#11·#13)은 별도 브랜치에서 처리 완료. 아래는 의도적으로 보류한 항목들.
@@ -238,7 +247,9 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ### 훈독 Phase 3 배포 준비 (2026-09-19 → 2026-09-20 배포 완료)
 - [x] `[종결]` **초대 코드 게이트 — OFF 유지 결정**(2026-09-20). VM `.env` 는 건드리지 않았다. 게이트 코드는 backend 에 이미 배포돼 있어 `HOONDOK_INVITE_CODE` 한 줄 + backend 재생성만으로 즉시 켤 수 있다(다른 컨테이너 파급 없음). 가입 규모가 `[가정]` 10~20명을 넘거나 링크가 의도 밖으로 퍼지면 뒤집는다. 근거는 [runbook §실행 기록](runbooks/hoondok-pwa-rollout.md#실행-기록)
 - [x] `[종결]` **`make deploy-web HOONDOK_ENABLED=1`** — 2026-09-20 web `a93a6c7` 배포. `smoke-web` 12건 OK, 실데이터 9라우트 200 · 프리뷰 8라우트 404
-- [ ] **실기기 증거** — Android·iOS 16.4+ 에서 설치 → 가입 → 훈독 → 완료. 설치 prompt(Android `beforeinstallprompt`)·iOS 공유 시트 분기는 헤드리스가 재현하지 못한다. 양식은 [runbook §실기기 증거](runbooks/hoondok-pwa-rollout.md#실기기-증거). **Phase 3 완료 기준 중 유일하게 남은 항목**
+- [ ] **실기기 증거** — Android·iOS 16.4+ 에서 설치 → 가입 → 훈독 → 완료. 설치 prompt(Android `beforeinstallprompt`)·iOS 공유 시트 분기는 헤드리스가 재현하지 못한다. 양식은 [runbook §실기기 증거](runbooks/hoondok-pwa-rollout.md#실기기-증거). **사용자 수집 대기**(Blocked §훈독)
+- [ ] **배포 트리 기준 `make e2e` 재실행** — 마지막 전체 E2E 는 85 passed(PR #300 트리 `c0b0547`)이고 그 위에 #301(`c066b02`, 편성 후보 찾기 backend·admin)이 얹혔다. `make ci` 는 E2E 를 돌리지 않으므로 이 공백이 남는다. `PLAN-HD-004` 마무리의 `make ci`·`make e2e` 로 메우고 결과를 [`PLAN-HD-001` §6·§9](plans/active/2026-09-17-hoondok-mvp.md) 에 기록한다
+- [ ] **편성 보충 (2026-09-27 경)** — 2026-09-20 투입분이 **8일분**이라 그 무렵 오늘·내일 편성이 끊기고 `ops-check` `hoondok-today` 가 다시 WARN 이 된다. 편성자가 운영 admin 편성 화면에서 채운다([PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 후보 찾기 사용 가능)
 
 ### 훈독 화면 확장 PLAN-HD-002 (2026-09-19)
 - [x] W0-D 계획 문서 — [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) + README 색인 + 이 섹션. 웨이브형·로컬 통합·디자인 스킬 확정, 플래그 2개 운영 노출 0
