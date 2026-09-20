@@ -6,92 +6,9 @@
    모션은 4종만 — 토글 150ms · 프레스 120ms. 스트리밍 답에는 타이핑 애니메이션을 두지 않는다.
    `prefers-reduced-motion` 은 hoondok.css 의 스코프 전역 규칙이 이미 끈다.
 
-   W4 검토: `.pill-seg`·`.badge--line`·`.ai-note` 는 DES 가 정의한 공용 컴포넌트인데 hoondok.css 에 아직 없어
-   이 파일에 두었다. 다른 화면이 쓰기 시작하면 hoondok.css 로 승격한다. */
+   `.badge--line`·`.pill-seg`·`.ai-note` 는 여기서 처음 정의했지만 library·worship·family 도 쓰게 돼
+   PLAN-HD-002 W3 CSS 정리에서 hoondok.css 공용 블록으로 옮겼다. 이 파일에는 005·005b·006 전용 규칙만 남는다. */
 [data-app="hoondok"] {
-  /* ---------- 공용 보강 (DES §2.3 · §2.10 · §2.11) ---------- */
-  .badge--line {
-    background: transparent;
-    border: 1px solid var(--ink-3);
-    color: var(--ink-2);
-  }
-  .pill-seg {
-    display: flex;
-    gap: 2px;
-    margin-top: 8px;
-    padding: 3px;
-    border-radius: var(--r-sm);
-    background: var(--surface-2);
-  }
-  .pill-seg button {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-height: 44px;
-    padding: 0 10px;
-    border-radius: var(--r-xs);
-    font-size: 14px;
-    color: var(--ink-2);
-    transition:
-      background 0.15s ease,
-      color 0.15s ease;
-  }
-  /* 활성은 색·굵기·썸 배경 셋이 함께 바뀐다 (§2.10 색만으로 구분 금지) */
-  .pill-seg button.is-on {
-    background: var(--surface);
-    color: var(--ink);
-    font-weight: 600;
-    box-shadow: var(--shadow-1);
-  }
-  .pill-seg button[disabled] {
-    cursor: default;
-    color: var(--ink-3);
-  }
-  /* 왜 꺼져 있는지는 색이 아니라 글자가 말한다 (§3.3) — 세그먼트 바로 아래 한 줄 */
-  .pill-seg__soon {
-    margin: 8px 0 0;
-    font-size: 11.5px;
-    color: var(--ink-3);
-    text-align: right;
-  }
-  .ai-note {
-    padding: 16px;
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    background-color: var(--surface);
-    background-image: radial-gradient(var(--line) 1px, transparent 1px);
-    background-size: 8px 8px;
-  }
-  .ai-note__lab {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 8px;
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--ink-2);
-  }
-  .ai-note__body {
-    margin: 0;
-    font-size: 14.5px;
-    line-height: 1.7;
-    color: var(--ink-2);
-  }
-  .ai-note__body + .ai-note__body {
-    margin-top: 10px;
-  }
-  /* done 이벤트의 고지 — 본문보다 한 단계 작은 소문 */
-  .ai-note__micro {
-    margin: 12px 0 0;
-    padding-top: 10px;
-    border-top: 1px solid var(--line);
-    font-size: 11.5px;
-    line-height: 1.5;
-    color: var(--ink-3);
-  }
-
   /* ---------- 005 묻기 홈 : 물음 한 장 ---------- */
   .qs-today {
     display: flex;

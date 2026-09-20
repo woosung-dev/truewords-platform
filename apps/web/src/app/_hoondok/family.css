@@ -4,7 +4,7 @@
    DES-PWA-003 §2.3 배지·§3.5 탭 대상에서 가져왔고 색·반경·그림자는 토큰만 쓴다(hex 금지, pnpm hoondok:check).
    라이트 단일 테마. 모션은 프레스 120ms 하나뿐이고 `prefers-reduced-motion` 은 hoondok.css 가 이미 끈다.
 
-   빌려 쓴 클래스(W4 승격 검토): `.badge--line` 은 ask.css, `.st-lead`·`.st-row__soon` 은 settings.css 에 있다.
+   빌려 쓰는 `.badge--line`·`.st-lead`·`.st-row__soon` 은 PLAN-HD-002 W3 CSS 정리에서 hoondok.css 공용으로 올라갔다.
    여기서 다시 정의하지 않고 그대로 쓰며, 이 화면의 바깥 여백만 `.fm-soon` 으로 보탠다. */
 [data-app="hoondok"] {
   /* ---------- 사람 목록 : 한 행 = 아바타 + 이름/관계 + 오늘 상태 ---------- */
@@ -109,7 +109,7 @@
     flex: none;
   }
 
-  /* ---------- 준비 중 안내 : settings.css 의 .st-row__soon 에 이 화면의 여백만 보탠다 ---------- */
+  /* ---------- 준비 중 안내 : hoondok.css 의 .st-row__soon 에 이 화면의 여백만 보탠다 ---------- */
   .fm-soon {
     margin-top: 10px;
   }

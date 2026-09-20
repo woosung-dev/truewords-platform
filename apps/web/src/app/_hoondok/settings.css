@@ -1,7 +1,8 @@
 /* SCR-PWA-015 알림·설치 설정 (PLAN-HD-002 W1-S).
    프로토타입 app.html 의 .st-* 마크업에는 CSS 가 없어(DES-PWA-003 §2.12 와 같은 사정) 여기서 처음 정의한다.
    값은 프로토타입 hoondok.css 의 이웃 규칙에서 가져왔다 — 행 제목 15/600 · 설명 12.5 --ink-2 · 구분선 1px --line ·
-   반지름·색·그림자는 토큰만 쓴다(hex 금지, pnpm hoondok:check). 라이트 단일 테마. */
+   반지름·색·그림자는 토큰만 쓴다(hex 금지, pnpm hoondok:check). 라이트 단일 테마.
+   `.st-lead`·`.st-row__soon` 은 가족·친구 화면도 쓰게 돼 PLAN-HD-002 W3 CSS 정리에서 hoondok.css 로 올렸다. */
 [data-app="hoondok"] {
   /* ---------- 설치 : standalone 이면 카드 대신 한 줄 ---------- */
   .st-installed {
@@ -60,14 +61,7 @@
     gap: 10px;
     flex: none;
   }
-  /* 왜 꺼져 있는지는 색이 아니라 글자가 말한다 (DES-PWA-003 §3.3 색만으로 구분 금지) */
-  .st-row__soon {
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--ink-3);
-    flex: none;
-    margin: 0;
-  }
+  /* `.st-row__soon` 본체는 hoondok.css 공용. 여기엔 잠금 화면 문구 아래 여백만 둔다 */
   .st-picks + .st-row__soon {
     margin-top: 12px;
   }
@@ -107,13 +101,7 @@
     opacity: 0.55;
   }
 
-  /* ---------- 잠금 화면 문구 ---------- */
-  .st-lead {
-    font-size: 13px;
-    color: var(--ink-2);
-    line-height: 1.5;
-    margin: 0 0 12px;
-  }
+  /* ---------- 잠금 화면 문구 (머리말 `.st-lead` 는 hoondok.css 공용) ---------- */
   .st-picks {
     display: flex;
     flex-direction: column;

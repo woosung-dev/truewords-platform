@@ -6,12 +6,11 @@
    모션은 프레스 120ms 하나만 쓴다. `prefers-reduced-motion` 은 hoondok.css 의 스코프 전역 규칙이 이미 끈다.
    `DEC-PWA-019` — 순위·점수·보상 배지용 규칙을 만들지 않는다.
 
-   다른 화면 파일에서 빌려 쓰는 클래스 (W4 공통 승격 검토):
-   - `.badge--line` · `.pill-seg` · `.pill-seg__soon` ← `_hoondok/ask.css`
-   - `.chips` · `.chip-btn` ← `_hoondok/sheet.css` (꺼진 모양 `[disabled]` 만 이 파일이 덧붙인다)
-   - `.gd-cal__head` · `.gd-cal__grid` · `.gd-cal__day` · `.gd-cal__dot` · `.gd-cal__dot--done` · `.gd-cal__pad`
-     ← `_hoondok/garden.css` (달력 골격은 정원과 같고 이 파일은 "쉼" 칸 한 가지만 덧붙인다)
-   - `.notice--lead` 는 여기서 처음 정의한다 — 프리뷰 3화면군(W3-L·W3-W·W3-F)이 함께 쓰는 머리말 줄이다. */
+   빌려 쓰는 공용 클래스(`.badge--line` · `.pill-seg` · `.pill-seg__soon` · `.chips` · `.chip-btn`(꺼진 모양 포함) ·
+   `.gd-cal__head` · `.gd-cal__grid` · `.gd-cal__day` · `.gd-cal__dot` · `.gd-cal__dot--done`)는
+   PLAN-HD-002 W3 CSS 정리에서 모두 hoondok.css 로 올라갔고, 이 파일은 달력의 "쉼" 칸 한 가지만 덧붙인다
+   (`.gd-cal__pad` 는 빈 칸이라 CSS 규칙이 없다).
+   `.notice--lead` 는 아직 이 파일의 4화면만 쓰므로 여기 남긴다. */
 [data-app="hoondok"] {
   /* ---------- 프리뷰 공통 : 본문 맨 위 머리말 ---------- */
   /* `.notice` 는 화면 맨 아래용이라 위 여백만 갖는다. 머리말로 쓸 때는 아래로 뒤집는다 */
@@ -266,12 +265,6 @@
   .sm-item__soon {
     font-size: 11.5px;
     color: var(--ink-3);
-  }
-  /* 빌려 쓴 `.chip-btn`(sheet.css)에는 꺼진 모양이 없다 — 응원 칩은 아직 못 누르므로 상태만 덧붙인다 */
-  .chip-btn[disabled] {
-    background: var(--surface-2);
-    color: var(--ink-3);
-    cursor: not-allowed;
   }
   .ch-chip__help {
     margin: 10px 0 0;

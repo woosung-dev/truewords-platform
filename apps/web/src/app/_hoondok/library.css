@@ -3,17 +3,12 @@
    토큰만 쓰고 hex 는 두지 않는다. 아이콘은 lucide(SVG)라 프로토타입의 `i{font-size}` 는
    `svg{width/height}` 로 옮겼다.
 
-   다른 파일에서 빌려 쓰는 클래스 (W4 공통 승격 검토):
-   - hoondok.css : .col · .card · .sect · .src · .lede · .lede-rule · .badge · .empty · .notice · .btn · .field__label
-   - _hoondok/ask.css : .pill-seg (원문/AI 설명/노트 세그먼트) · .ai-note (AI 설명 패널)
-   이 파일이 새로 정의하는 공용 후보 : .term · .chips (프로토타입 §5 용어 칩. 앱에는 아직 없었다) */
+   빌려 쓰는 공용 클래스는 PLAN-HD-002 W3 CSS 정리 뒤 모두 hoondok.css 에 있다 — .col · .card · .sect · .src ·
+   .lede · .lede-rule · .badge · .empty · .notice · .btn · .field__label 과 .pill-seg (원문/AI 설명/노트 세그먼트) ·
+   .ai-note (AI 설명 패널) · .chips (칩 줄. 이 파일과 sheet.css 가 같은 내용으로 두 번 정의하고 있었다).
+   이 파일이 새로 정의하는 것은 .term (프로토타입 §5 용어 칩) 하나뿐이고 이 화면군만 쓴다. */
 [data-app="hoondok"] {
-  /* ---------- 공용 보강 : 용어·제안 칩 (프로토타입 .term · .chips) ---------- */
-  .chips {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+  /* ---------- 용어·제안 칩 (프로토타입 .term) ---------- */
   .term {
     display: inline-flex;
     align-items: center;
