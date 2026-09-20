@@ -66,6 +66,18 @@
 
 > 사용자가 "커밋하고 푸쉬해줘"처럼 명시적으로 묶어 요청한 경우에만 해당 단계를 한 번에 진행할 수 있다.
 
+### 오케스트레이터 모드 (큰 구현 작업)
+
+- main 세션은 **지시·리뷰·머지만** 한다. 구현·테스트·커밋은 worktree 서브에이전트가 한다.
+- 서브에이전트는 격리된 컨텍스트라 메인 대화를 보지 못한다 — 브리프는 자립형이어야 하고,
+  **파일 소유 목록**을 명시해 병렬 충돌을 막는다. 공유 파일(앱 셸·토큰 CSS·layout·탭 정의)은
+  기반 태스크가 한 번에 정리하고 이후 에이전트는 자기 라우트·자기 CSS 만 편집한다.
+- 태스크가 끝날 때마다 계획 문서 진행표를 **먼저** 갱신한다. compact 후 복원 지점이다.
+- 서브에이전트 결과는 요약만 받는다 — 파일 덤프를 오케스트레이터로 끌어오지 않는다.
+- worktree 는 **병렬이거나 에이전트가 커밋할 때만** 쓴다. 읽기 전용 조사·단일 순차 작업에는
+  설치 비용(이 레포는 pnpm install + Docker)이 작업보다 크다. 끝난 worktree 는
+  `make worktree-gc` 로 정리한다.
+
 ### Communication
 
 - 사용자에게 빈번하게 질문하여 작업 흐름을 끊지 않는다
@@ -126,23 +138,11 @@ test: 테스트 추가/수정
 
 ### 통합 브랜치 (Phase / Sprint / 멀티 sub-task)
 
-여러 sub-task 가 묶이는 큰 작업은 3-tier PR 흐름으로 진행한다:
+여러 sub-task 가 묶이는 큰 작업은 `main ← dev/<작업명> ← sub-task PR` 3-tier 로 진행한다.
+통합 브랜치 → main PR 은 **항상 수동 검증**(`make ci` + `make e2e`)이며, 머지 후 배포는
+`make deploy-*` 를 명시 실행한다.
 
-```
-main (항상 안정, 직접 push 금지)
-  ↑ (sub-task 모두 머지 + 종합 검증 후 1개 PR, 수동 머지)
-dev/<phase 또는 작업명>  (통합 브랜치)
-  ↑ sub-task PR 1 (base=통합 브랜치, CI 통과 시 auto-merge)
-  ↑ sub-task PR 2
-  ↑ sub-task PR N
-```
-
-- 통합 브랜치는 별도 worktree (`../tw-<name>/`) 에 분리 — main 작업과 격리
-- sub-task PR 들은 `dev/**` base. CI 통과 시 `gh pr merge --auto --squash --delete-branch` 로 자동 머지 (required check 보호 규칙이 있을 때만 CI 를 기다린다 — 없으면 `gh pr checks <PR#> --watch` 후 수동 머지)
-- 통합 브랜치 → main PR 은 **항상 수동 검증**. Oracle 이전(2026-07-29) 후 push 자동 배포가 없으므로 머지 후 `make deploy-backend` 를 명시 실행한다. `deploy-*` 는 `deploy-guard`(HEAD ∈ origin/main + 클린 트리 + 운영 태그가 HEAD 의 조상)를 통과해야 한다
-- main 머지 전 심도 테스트: `make ci`(API·양 앱·계약·저장소 검사) + `make e2e`
-
-상세 가이드: `docs/runbooks/integration-branch-workflow.md`
+절차 전문은 `docs/runbooks/integration-branch-workflow.md` 가 갖는다.
 
 ---
 
@@ -266,3 +266,20 @@ Key routing rules:
 - Design system, brand → invoke design-consultation
 - Visual audit, design polish → invoke design-review
 - Architecture review → invoke plan-eng-review
+
+---
+
+# Compact instructions
+
+컨텍스트 압축(compact) 시 **반드시 보존**한다:
+
+- 진행 중인 계획의 트랙별 완료/미완료와 각 인수 조건
+- 서브에이전트별 파일 소유 목록 (병렬 충돌 방지의 근거)
+- 운영 태그·배포 전후 값 등 롤백에 필요한 숫자
+- 사용자가 내린 결정과 그 이유 (재논의 방지)
+
+버려도 되는 것: 도구 원본 출력, 파일 전문, 탐색 과정.
+
+큰 작업(대량 파일 읽기·리팩터링·트랙 하나)이 끝나면 다음으로 넘어가기 전에 사용자에게
+`/compact` 를 **제안한다** — 실행은 사용자가 한다(모델은 슬래시 명령을 실행할 수 없다).
+무관한 작업으로 넘어갈 때는 `/clear` 를 제안한다. 자동 compact 는 백스톱이다.
