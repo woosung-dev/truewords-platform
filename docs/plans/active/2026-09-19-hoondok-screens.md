@@ -179,7 +179,7 @@ make e2e
 - [x] W1-J 004 정성 시트 + 002 홈 정성 카드 — 2026-09-20 머지 (dialog `?sheet=jeongseong`, ≥1024 모달 520px 실측, 비로그인은 안내+로그인 링크)
 - [x] W1-N 003 오늘의 한 줄 — 2026-09-20 머지, Vitest 143 (note storage·TodayNote)
 - [ ] W1 웨이브 끝 `make ci`·`make e2e`·시각 대조
-- [ ] W2 AI 질문 3화면 + `read` 질문 버튼 + `TAB_STAGE.ask: live`
+- [x] W2 AI 질문 3화면 + `read` 질문 버튼 + `TAB_STAGE.ask: live` — 2026-09-20 머지 `b2772d4`, Vitest 183 (어댑터 `ask/ask-stream.ts` 무기억·근거 게이트 · 저장 `hoondok:ask:items` 단일 배열 50건 · 프리필은 `?q=` — §4 표의 `?ref`·키별 저장에서 정정 · 챗봇 슬러그 `all` §9 · `.toggle` 공용 승격 `3438a32`)
 - [ ] W2 웨이브 끝 `make ci`·`make e2e`·시각 대조
 - [ ] W3-L 007·008·009 말씀 프리뷰
 - [ ] W3-W 010~013 가정예배 프리뷰
@@ -217,7 +217,7 @@ make e2e
 | 2026-09-19 | **정성** = 사용자당 active 1건(부분 unique). 진행은 기간 내 `read` 완료 일수로 조회 시 계산·미저장(`mission_logs` 가 원본). **오늘은 밀린 날이 아니다**(자정 전까지 완료 가능). 종료일 경과 시 조회 때 `completed` 자동 전환. 그만하기는 `abandoned`(행은 남김). `percent` 는 half-up 정수 반올림, 끝난 active 는 GET·POST·DELETE 어느 경로든 읽는 시점에 `completed` 로 정리 | `[가정]` · W0-B |
 | 2026-09-19 | **오늘의 한 줄** = 기기 전용 localStorage `hoondok:note:<KST>` 200자, 서버 미전송. 계정 간 동기화는 비범위 | `[가정]` · W1-N |
 | 2026-09-19 | **알림 4종 disabled** "준비 중" — 발송·구독은 PLAN-HD-001 §7 Phase 4. 015 는 설치 카드·데이터 삭제·로그아웃만 동작 | 확정 · W1-S |
-| 2026-09-19 | **AI 질문 봇** — 훈독 전용 봇·시스템 프롬프트 여부 미정. 기본값 = 기존 기본 봇 재사용, 무기억(`session_id` 미전송), 근거 게이트(`sources` 0건 → 답 미표시), 기록은 localStorage | `[확인 필요]` · W2 · TODO Questions |
+| 2026-09-19 | **AI 질문 봇** — 훈독 전용 봇·시스템 프롬프트 여부 미정. 기본값 = 기존 기본 봇 재사용 — 구현값 `HOONDOK_ASK_CHATBOT_ID = "all"`(시연 챗 운영 기본값. 시드 `malssum_priority` 는 티어 임계 0.75 가 RRF 점수 범위 0~0.5 위라 근거 0건 상시화 위험), 무기억(`session_id` 미전송), 근거 게이트(`sources` 0건 → 답 미표시), 기록은 localStorage | `[확인 필요]` · W2 · TODO Questions |
 | 2026-09-19 | **가정예배·설교는 셸만**(`DEC-PWA-020/021` 미결). 007~009 도 권리 원장·백필 전이라 셸만. 전부 `NEXT_PUBLIC_HOONDOK_PREVIEW` 뒤, 운영 이미지 미배선 | `[확인 필요]` · W3 |
 | 2026-09-19 | **CSS 배치** = `hoondok.css`(토큰·셸·공용 컴포넌트) + `apps/web/src/app/_hoondok/<name>.css`(화면별, 언더스코어 private 폴더 — `app/hoondok/` 은 라우트 세그먼트와 충돌하므로 불가). 8개 파일은 W0 가 만들고 hoondok layout 이 import, 검사는 `hoondok-css.mjs` 가 같은 규칙으로 | 확정 · W0-W |
 | 2026-09-19 | **공유 파일 소유** — `tabs.ts`·`app-shell.tsx`·`hoondok.css`·`layout.tsx`·`use-missions.ts`·`index.ts`·`hoondok.spec.ts` 는 W0/W4 만. 예외는 오케스트레이터 1줄 커밋 2건(W2 `ask: live`, W4 export) | 확정 · §3.1 |
