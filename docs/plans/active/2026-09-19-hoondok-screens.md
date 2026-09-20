@@ -178,7 +178,7 @@ make e2e
 - [x] W1-S 015 알림·설치 설정 + 내 데이터 삭제 — 2026-09-20 머지 (InstallCard isAlwaysVisible·알림 4종 disabled·삭제 2단계; 560px 중앙은 앱 셸 720 유지 `[가정]`)
 - [x] W1-J 004 정성 시트 + 002 홈 정성 카드 — 2026-09-20 머지 (dialog `?sheet=jeongseong`, ≥1024 모달 520px 실측, 비로그인은 안내+로그인 링크)
 - [x] W1-N 003 오늘의 한 줄 — 2026-09-20 머지, Vitest 143 (note storage·TodayNote)
-- [ ] W1 웨이브 끝 `make ci`·`make e2e`·시각 대조
+- [x] W1 웨이브 끝 `make ci`·`make e2e`·시각 대조 — `make ci` 2차 통과(`f1eeb8c`) · `make e2e` 64 passed(`1cb2157`, W2 포함 재실행) · 시각 대조 §8
 - [x] W2 AI 질문 3화면 + `read` 질문 버튼 + `TAB_STAGE.ask: live` — 2026-09-20 머지 `b2772d4`, Vitest 183 (어댑터 `ask/ask-stream.ts` 무기억·근거 게이트 · 저장 `hoondok:ask:items` 단일 배열 50건 · 프리필은 `?q=` — §4 표의 `?ref`·키별 저장에서 정정 · 챗봇 슬러그 `all` §9 · `.toggle` 공용 승격 `3438a32`)
 - [ ] W2 웨이브 끝 `make ci`·`make e2e`·시각 대조
 - [ ] W3-L 007·008·009 말씀 프리뷰
@@ -205,6 +205,7 @@ make e2e
 | W1 시각 대조 | 프로토타입 :4173 ↔ dev :3000, 390·1280 | 홈·훈독하기(오늘의 한 줄)·설정·정원·정성 시트(390 하단 시트 / 1280 중앙 모달 520px 실측) 구조·문구·순서 일치. 프로토타입 정본에 달력·시트 라디오 CSS 가 없어(`.gd-*`·`.st-*` 0건) 구현은 DES-PWA-003 §2.6·§2.7 값으로 보완 — 스크린샷은 미커밋 | 2026-09-20 |
 | W1 `make ci` 1차 | 전체 | admin `next build` 가 Google Fonts(`noto_serif_kr`) fetch 실패로 중단 — 네트워크 일시 오류(단독 재빌드 통과). 2차 실행 결과는 아래 행 | 2026-09-20 |
 | W1 `make ci` 2차 | 전체 (HEAD `f1eeb8c`) | **통과** — pytest 1039/4/1 · contracts 하위 호환 · tooling 26 · docs-links · boundaries · hoondok:check 9파일 · web Vitest 168 · admin 104 · lint 경고 web 10·admin 3 전부 기존 파일 · web·admin `next build` 성공 · typecheck | 2026-09-20 |
+| W2 E2E | `make e2e` 전체 (머지 `b2772d4` + `.toggle` 승격 `3438a32`) | 1차 **62 passed / 2 failed** — 둘 다 spec 취약 단언: ① `hoondok-ask` 요청 건수 1 단언이 dev StrictMode 이중 마운트(첫 요청 abort)로 2 → 모든 요청의 무기억(`session_id` 없음)·`chatbot_id: all` 로 정정 ② `admin-flow` 목록 제목 `getByText` 가 Next route announcer 와 중복 매치 → heading 역할. 정정 `1cb2157` → 2차 **64 passed**(1.7m) | 2026-09-20 |
 
 ## 9. 결정 기록
 
