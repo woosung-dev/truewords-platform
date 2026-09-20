@@ -54,6 +54,21 @@
 | 브라우저 검토 | 프리미티브 42종 computed style 대조 | **실질 불일치 0.** 남은 차이는 (a) 변형 클래스 표본 차이(`.btn` 을 구현 쪽에서 `--sm` 이 먼저 잡히는 등), (b) 아이콘 폰트(프로토타입 Phosphor) ↔ SVG(lucide) 로 `font-size` 가 무의미한 경우, (c) `.my-note` 의 의도된 이탈(16px = iOS 확대 방지 · 테두리 `--ink-3` = DES §10) 뿐이다 |
 | 브라우저 검토 | 라우트·네트워크·콘솔 | 9 라우트 전부 200, 훈독 API(`auth/me`·`me/summary`·`me/history`·`me/jeongseong`) 전부 200. 앱 레벨 콘솔 오류 0(나머지는 dev HMR 소음). 브레이크포인트 768 · 1024 · 1224 가 정본과 일치 |
 | 브라우저 검토 | 상태 화면 | `/hoondok/ask/log` 빈 상태·`/hoondok/ask/<없는 id>` 없음 상태·`/hoondok/offline` 폴백 모두 제목+본문+행동 3단으로 규격대로. 설정의 알림 토글은 "준비 중" disabled (Phase 4 차단과 일치) |
-| 브라우저 검토 | 결함 2건 수정 → 머지 `0f0c9bb` | ① `.mission__title` 2줄 제한(`.ql-q` 와 같은 규격) — 375px 미션 카드 `[176,92,92]` → `[133,92,92]`, 정본은 `[92,114,92]`. ② 캔버스 배경 수정은 **되돌렸다**(아래) |
+| 브라우저 검토 | 결함 2건 수정 → 머지 `4f49484` · 롤백 `edb2545` | ① `.mission__title` 2줄 제한(`.ql-q` 와 같은 규격) — 375px 미션 카드 `[176,92,92]` → `[133,92,92]`, 정본은 `[92,114,92]`. ② 캔버스 배경 수정은 **되돌렸다**(아래) |
 | 브라우저 검토 | **캔버스 배경 수정 롤백** | 토큰 블록 선택자를 `html:has([data-app="hoondok"])` 까지 넓히자 `make e2e` 가 `tests/e2e/hoondok.spec.ts:57` 에서 실패했다 — 훈독 팔레트가 `:root` 로 새지 않는지 지키는 **명시적 경계 계약**이다. 계약을 우회해 통과시키지 않고 되돌렸고, 세 안(계약 좁히기 · `overscroll-behavior-y: none` · 유지)을 `docs/TODO.md` Questions 에 남겼다. 노출은 `min-height:100dvh` 덕에 **고무줄 오버스크롤 순간뿐**이다 |
 | 게이트 | 최종 `make ci` · `make e2e` | 아래 "최종 검증" 절 |
+
+## 5. 최종 검증 (`edb2545`)
+
+| 게이트 | 결과 |
+|---|---|
+| `make ci` | **exit 0** — pytest 1069 passed / 4 skipped / 1 xfailed · `tooling:test` **42 pass / 0 fail** · docs:check 문서 190 · 링크 324 · **새 오류 0** · hoondok:check 9파일 · web Vitest **222 / 26 files** · admin 116 · api-client 13 · lint **0 errors**(warning 10+3 은 전부 이 PR 밖) · build 23 라우트 · typecheck |
+| `make e2e` | **85 passed (1.8m)** — `docs/TODO.md` 의 "배포 트리 기준 `make e2e` 재실행" 공백을 이 실행으로 메운다 |
+
+### 라이브 브라우저 검토 범위
+
+- 실데이터 9라우트 × 375 · 768 · 1280 = 대조 27회, 프리뷰 셸 8라우트 × 375
+- 프리미티브 42종 computed style 을 정본과 1:1 대조 — 실질 불일치 0
+- 대비 10쌍 전부 WCAG AA 통과 (최저 `--ink-3` on `--surface-2` 4.66:1)
+- `prefers-reduced-motion: reduce` 를 Playwright 로 실측 — 스피너 2종만 `hoondok-spin 1.2s infinite` 유지, 장식 모션은 `animation-name: none`
+- 상태: 빈(`/ask/log`) · 없음(`/ask/<없는 id>`) · 오프라인 · 스켈레톤(`/garden`) 라이브 확인. **오류 상태는 코드로만 확인** — React Query 가 이전 데이터를 유지해 라이브 재현이 안 됐고, 그것이 올바른 동작이다
