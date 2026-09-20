@@ -1,6 +1,6 @@
 /* 정성 기간 시트(SCR-PWA-004) + 홈 정성 카드(SCR-PWA-002).
    값은 프로토타입 hoondok-ds/hoondok.css 의 `.sheet*`·`.chips`·`.field` 이며
-   (`.progress`·`.stats` 본체는 hoondok.css §7 공용, 여기엔 카드 여백만 둔다)
+   (`.progress`·`.stats` 본체와 `.chips`·`.chip-btn` 은 hoondok.css 공용, 여기엔 카드 여백만 둔다)
    토큰만 쓴다(hex 금지). 프로토타입이 비워 둔 `.js-*` 는 DES-PWA-003 §2.7·§2.11 규격으로 채웠다.
    하단 시트 → 중앙 모달 전환은 DES-PWA-003 §2.7·§5(004 행)를 따라 1024px 이다
    (프로토타입 CSS 는 768px 이지만 §5 표가 768 = "동일" 로 하단 시트를 유지한다). */
@@ -140,33 +140,6 @@ body:has([data-app="hoondok"] .sheet[open]) {
     outline-offset: 2px;
   }
   .js-opt:active {
-    transform: scale(0.985);
-  }
-
-  /* 주제 칩 : 프로토타입 .chips + DES §2.11 칩 버튼. 최소 탭 높이 44px */
-  .chips {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .chip-btn {
-    min-height: 44px;
-    padding: 9px 14px;
-    border: 1px solid var(--line);
-    border-radius: var(--r-sm);
-    background: var(--surface);
-    font-size: 13.5px;
-    line-height: 1.35;
-    text-align: left;
-    transition: transform 0.12s ease;
-  }
-  .chip-btn[aria-pressed="true"] {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-    color: var(--accent-strong);
-    font-weight: 600;
-  }
-  .chip-btn:active {
     transform: scale(0.985);
   }
 
