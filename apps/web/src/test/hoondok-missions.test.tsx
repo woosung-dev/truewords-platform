@@ -25,6 +25,7 @@ import { identityAPI } from "@/features/identity/api";
 const USER = { id: "u1", email: "a@b.c", display_name: "효진" };
 const TODAY = formatKstDate().iso;
 const KEY = "hoondok:pending:read";
+const ASK_HREF = "/hoondok/ask?q=%EB%A7%90%EC%94%80";
 const EMPTY_SUMMARY = {
   today: { read: false, pray: false, study: false },
   streak_days: 0,
@@ -78,7 +79,7 @@ describe("pending (비로그인 완료 체크, KST 날짜 키)", () => {
 describe("ReadCompleteButton", () => {
   it("비로그인: 로컬 완료 + 오늘 키 저장 + 로그인 링크, API 호출 없음", async () => {
     loggedOut();
-    render(wrap(<ReadCompleteButton />));
+    render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
     expect(await screen.findByText("완료 기록은 로그인 후 남아요")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /훈독 완료/ }));
     expect(screen.getByRole("status")).toHaveTextContent("오늘 훈독을 마쳤어요");
@@ -93,7 +94,7 @@ describe("ReadCompleteButton", () => {
   it("로그인 + 409(하루 1회): 완료로 보고 오류를 내지 않는다", async () => {
     loggedIn();
     vi.mocked(missionsAPI.complete).mockRejectedValueOnce(new ApiError(409, { message: "오늘은 이미 완료했어요" }));
-    render(wrap(<ReadCompleteButton />));
+    render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
     const button = await screen.findByRole("button", { name: /훈독 완료/ });
     await waitFor(() => expect(button).toBeEnabled());
     fireEvent.click(button);
@@ -106,7 +107,7 @@ describe("ReadCompleteButton", () => {
   it("로그인 + 오프라인: 로컬 완료 유지 + 안내 + 소급 키 보존", async () => {
     loggedIn();
     vi.mocked(missionsAPI.complete).mockRejectedValueOnce(new TypeError("fetch failed"));
-    render(wrap(<ReadCompleteButton />));
+    render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
     fireEvent.click(await screen.findByRole("button", { name: /훈독 완료/ }));
     expect(await screen.findByRole("status")).toHaveTextContent("오늘 훈독을 마쳤어요");
     expect(screen.getByText(/아직 저장하지 못했어요/)).toBeInTheDocument();
@@ -116,7 +117,7 @@ describe("ReadCompleteButton", () => {
   it("로그인 + 401(쿠키 만료): 온보딩(returnTo=현재 경로)으로 보낸다", async () => {
     loggedIn();
     vi.mocked(missionsAPI.complete).mockRejectedValueOnce(new ApiError(401, { message: "x" }));
-    render(wrap(<ReadCompleteButton />));
+    render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
     fireEvent.click(await screen.findByRole("button", { name: /훈독 완료/ }));
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/hoondok/onboarding?returnTo=%2Fhoondok%2Fread"));
   });
@@ -125,7 +126,7 @@ describe("ReadCompleteButton", () => {
     loggedIn();
     writePending("read", TODAY);
     vi.mocked(missionsAPI.complete).mockResolvedValueOnce({ mission_date: TODAY, kind: "read", completed_at: "x" });
-    render(wrap(<ReadCompleteButton />));
+    render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
     await waitFor(() => expect(missionsAPI.complete).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole("status")).toHaveTextContent("오늘 훈독을 마쳤어요");
     await waitFor(() => expect(localStorage.getItem(KEY)).toBeNull());
@@ -134,10 +135,31 @@ describe("ReadCompleteButton", () => {
   it("자정 경계: 어제 키는 소급하지 않고 버린다", async () => {
     loggedIn();
     localStorage.setItem(KEY, "2000-01-01");
-    render(wrap(<ReadCompleteButton />));
+    render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
     await screen.findByRole("button", { name: /훈독 완료/ });
     await waitFor(() => expect(localStorage.getItem(KEY)).toBeNull());
     expect(missionsAPI.complete).not.toHaveBeenCalled();
+  });
+
+  it("보조 동선(질문하기)은 주 CTA 와 경쟁하지 않는 글자 링크다", async () => {
+    loggedOut();
+    render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
+    const link = await screen.findByRole("link", { name: "이 말씀에 질문하기" });
+    expect(link).toHaveAttribute("href", ASK_HREF);
+    expect(link).toHaveClass("read-ask-link");
+    // 전폭 .btn 두 개가 쌓이면 화면의 시선 종착점이 둘로 갈린다 (DES §3.1 · §5)
+    expect(link.className.split(/\s+/)).not.toContain("btn");
+    // 완료해도 같은 줄에 남는다
+    fireEvent.click(screen.getByRole("button", { name: /훈독 완료/ }));
+    expect(screen.getByRole("link", { name: "이 말씀에 질문하기" })).toBeInTheDocument();
+  });
+
+  it("연속일은 요약이 온 뒤에만 적는다 (도착 전 0 을 보이지 않는다)", async () => {
+    loggedIn();
+    vi.mocked(missionsAPI.summary).mockResolvedValue({ ...EMPTY_SUMMARY, streak_days: 12 });
+    render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
+    expect(screen.queryByText(/연속/)).toBeNull();
+    expect(await screen.findByText("완료하면 연속 13일이 돼요")).toBeInTheDocument();
   });
 
   it("summary 가 오늘 완료라면 처음부터 완료 상태다", async () => {
@@ -146,7 +168,7 @@ describe("ReadCompleteButton", () => {
       ...EMPTY_SUMMARY,
       today: { read: true, pray: false, study: false },
     });
-    render(wrap(<ReadCompleteButton />));
+    render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
     expect(await screen.findByRole("status")).toHaveTextContent("오늘 훈독을 마쳤어요");
   });
 });

@@ -295,7 +295,7 @@ describe("완료 출처 (use-missions → 설치 자격)", () => {
     loggedIn();
     writePending("read", TODAY);
     vi.mocked(missionsAPI.complete).mockResolvedValueOnce({ mission_date: TODAY, kind: "read", completed_at: "x" });
-    render(wrap(<ReadCompleteButton />));
+    render(wrap(<ReadCompleteButton askHref="/hoondok/ask" />));
     await waitFor(() => expect(missionsAPI.complete).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole("status")).toHaveTextContent("오늘 훈독을 마쳤어요");
     await waitFor(() => expect(localStorage.getItem("hoondok:pending:read")).toBeNull());
@@ -305,7 +305,7 @@ describe("완료 출처 (use-missions → 설치 자격)", () => {
   it("직접 완료(user) 201 → 자격", async () => {
     loggedIn();
     vi.mocked(missionsAPI.complete).mockResolvedValueOnce({ mission_date: TODAY, kind: "read", completed_at: "x" });
-    render(wrap(<ReadCompleteButton />));
+    render(wrap(<ReadCompleteButton askHref="/hoondok/ask" />));
     const button = await screen.findByRole("button", { name: /훈독 완료/ });
     await waitFor(() => expect(button).toBeEnabled());
     fireEvent.click(button);
@@ -316,7 +316,7 @@ describe("완료 출처 (use-missions → 설치 자격)", () => {
   it("직접 완료가 409(already)면 recorded 가 아니라 자격을 주지 않는다", async () => {
     loggedIn();
     vi.mocked(missionsAPI.complete).mockRejectedValueOnce(new ApiError(409, { message: "오늘은 이미 완료했어요" }));
-    render(wrap(<ReadCompleteButton />));
+    render(wrap(<ReadCompleteButton askHref="/hoondok/ask" />));
     const button = await screen.findByRole("button", { name: /훈독 완료/ });
     await waitFor(() => expect(button).toBeEnabled());
     fireEvent.click(button);

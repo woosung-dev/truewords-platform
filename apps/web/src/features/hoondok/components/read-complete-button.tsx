@@ -7,44 +7,64 @@ import { useMissionCompletion, useSummary } from "@/features/hoondok/use-mission
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 
-// "훈독 완료" — 로그인 상태면 POST /hoondok/missions/read/complete, 아니면 로컬(KST 날짜 키)에 두고 로그인 후 소급한다.
-export function ReadCompleteButton() {
+/**
+ * "훈독 완료" — 로그인 상태면 POST /hoondok/missions/read/complete, 아니면 로컬(KST 날짜 키)에 두고 로그인 후 소급한다.
+ *
+ * 버튼 아래 보조 줄(`.hint`)은 정본 프로토타입 read 하단과 같은 구조다: 좌 13px 안내 · 우 질문 링크.
+ * 질문 링크를 전폭 `.btn` 으로 두면 주 CTA 와 크기가 같아져 화면의 시선 종착점이 둘로 갈린다(DES §3.1 · §5).
+ * 링크는 줄 높이를 흔들지 않고 히트 영역만 44px 로 넓힌다(`.read-ask-link`).
+ */
+export function ReadCompleteButton({ askHref }: { askHref: string }) {
   const { user, isLoading } = useCurrentUser();
   const { data: summary } = useSummary(Boolean(user));
   const completion = useMissionCompletion("read", user, isLoading);
   const isDone = completion.isDone || Boolean(summary?.today.read);
 
+  // 연속일은 요약이 도착한 뒤에만 적는다 — 오기 전에 0 을 보여 주면 거짓 정보다.
+  const streak = summary?.streak_days;
+  let note: string;
+  if (streak === undefined) note = !user && !isLoading ? "완료 기록은 로그인 후 남아요" : "";
+  else if (isDone) note = `연속 ${streak}일째 이어가고 있어요`;
+  else note = `완료하면 연속 ${streak + 1}일이 돼요`;
+
+  const footer = (
+    <p className="hint">
+      <span>{note}</span>
+      <Link className="read-ask-link" href={askHref}>
+        이 말씀에 질문하기
+      </Link>
+    </p>
+  );
+
   if (isDone) {
     return (
-      <div className="card" role="status" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <DoneBadge />
-          <span>오늘 훈독을 마쳤어요.</span>
-        </span>
-        {completion.isUnsynced && (
-          <Link className="hint" href={onboardingHref("/hoondok/read")}>
-            <span>로그인하면 오늘 기록이 남아요 →</span>
-          </Link>
-        )}
-        {completion.hasSaveFailed && (
-          <span className="hint">
-            <span>기록을 아직 저장하지 못했어요. 연결되면 다시 시도해요.</span>
+      <>
+        <div className="card read-done" role="status">
+          <span className="read-done__hd">
+            <DoneBadge />
+            <span>오늘 훈독을 마쳤어요.</span>
           </span>
-        )}
-      </div>
+          {completion.isUnsynced && (
+            <Link className="read-done__note" href={onboardingHref("/hoondok/read")}>
+              로그인하면 오늘 기록이 남아요 →
+            </Link>
+          )}
+          {completion.hasSaveFailed && (
+            <span className="read-done__note">기록을 아직 저장하지 못했어요. 연결되면 다시 시도해요.</span>
+          )}
+        </div>
+        {footer}
+      </>
     );
   }
   return (
     <>
-      <HoondokButton onClick={completion.markDone} disabled={completion.isSaving}>
-        <Check size={18} />
+      {/* 저장 중에는 라벨을 그대로 두고 중복 제출만 막는다 (DES §1.5 loading). 좌측 스피너는 공용 규칙이 없어 보류. */}
+      <HoondokButton onClick={completion.markDone} disabled={completion.isSaving} aria-busy={completion.isSaving}>
+        <Check size={20} />
         훈독 완료
       </HoondokButton>
-      {!user && !isLoading && (
-        <div className="hint">
-          <span>완료 기록은 로그인 후 남아요</span>
-        </div>
-      )}
+      {footer}
     </>
   );
 }
