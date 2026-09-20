@@ -30,6 +30,20 @@ function GardenNotice() {
   return <p className="notice">{BETA_NOTICE}</p>;
 }
 
+/**
+ * 불러오는 동안의 자리 지킴. 글자 한 줄이면 데이터가 올 때 통계·달력·정성이 한꺼번에 들어와 화면이 크게 튄다.
+ * 높이는 실제 카드(통계 96 · 달력 300 · 정성 120)에 맞춰 잡는다 (DES §1.5 loading).
+ */
+function GardenSkeleton() {
+  return (
+    <div className="gd-loading" role="status" aria-busy="true" aria-label="기록을 불러오는 중">
+      <span className="skeleton gd-skeleton--stats" />
+      <span className="skeleton gd-skeleton--cal" />
+      <span className="skeleton gd-skeleton--row" />
+    </div>
+  );
+}
+
 /** 진행 중인 정성 카드. 퍼센트는 바 길이와 함께 숫자로도 적는다(DES §3.3). */
 function JeongseongSection({ period }: { period: JeongseongPeriodResponse | null }) {
   return (
@@ -111,9 +125,7 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
   if (isUserLoading)
     return (
       <section className="col">
-        <p className="hint" role="status">
-          불러오는 중…
-        </p>
+        <GardenSkeleton />
         <GardenNotice />
       </section>
     );
@@ -128,8 +140,9 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
             </span>
             <h2 className="empty__title">로그인하면 훈독 기록과 정성을 볼 수 있어요</h2>
             <p className="empty__body">연속일 · 월 달력 · 진행 중인 정성이 여기에 모여요.</p>
+            {/* 이 화면의 유일한 행동이라 주 버튼이다 (DES §4 한 화면에 primary 하나) */}
             <p className="gd-cta">
-              <Link className="btn btn-line" href={onboardingHref("/hoondok/garden")}>
+              <Link className="btn btn-primary" href={onboardingHref("/hoondok/garden")}>
                 시작하기
               </Link>
             </p>
@@ -170,9 +183,7 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
           </div>
         </div>
       ) : isLoadingData ? (
-        <p className="hint" role="status">
-          불러오는 중…
-        </p>
+        <GardenSkeleton />
       ) : (
         <>
           <div className="sect">
