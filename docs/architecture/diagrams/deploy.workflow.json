@@ -31,7 +31,7 @@
           "guard_fail",
           "ops_check"
         ],
-        "note": "deploy-guard 가 HEAD ∈ origin/main 과 클린 트리를 요구한다. ops-check 는 예약 작업 상태를 보여주지만 배포를 막지 않는다."
+        "note": "deploy-guard 는 HEAD ∈ origin/main · 클린 트리 · 운영 태그가 HEAD 의 조상(후퇴 배포 차단) 세 가지를 요구한다. ops-check 는 예약 작업 상태를 보여주지만 배포를 막지 않는다."
       },
       {
         "id": "rollback",
@@ -174,7 +174,7 @@
       "col": 2,
       "type": "security",
       "label": "deploy-guard",
-      "sublabel": "HEAD ∈ origin/main · 클린 트리",
+      "sublabel": "origin/main · 클린 · 태그 조상",
       "tag": "FORCE_DEPLOY=1 → forced",
       "width": 170
     },
@@ -354,7 +354,7 @@
       "dot": "rose",
       "title": "가드 규칙",
       "items": [
-        "HEAD ∈ origin/main + 클린 트리 아니면 exit 1 · FORCE_DEPLOY=1 은 forced 로 기록",
+        "HEAD ∈ origin/main + 클린 트리 + 운영 태그가 HEAD 의 조상 아니면 exit 1 · FORCE_DEPLOY=1 은 forced 로 기록",
         "ops-check 7건은 경고만 — 배포를 막지 않는다"
       ]
     },
