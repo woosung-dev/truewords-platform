@@ -13,6 +13,7 @@
 - 상태값은 Postgres ENUM 이 아니라 `varchar` + 애플리케이션 검증이다.
 - 기존 테이블(`admin_users`, `research_sessions` 등)과 FK 를 맺지 않는다. 훈독 계정은 `AdminUser` 와 완전히 분리한다(`REQ-PWA-008`).
 - `[가정]` 라벨이 있는 필드는 Phase 2 구현 시 확정한다.
+- **프리뷰 셸 화면(`SCR-PWA-007`~`013`·`016`)에는 대응하는 엔티티가 없다.** 말씀 서고·검색·원문·가정예배·설교·가족·친구는 `apps/web/src/features/hoondok/preview/fixtures/` 의 표시용 fixture 뿐이며 테이블·API·네트워크 요청이 하나도 없다(PLAN-HD-002 W3). 실데이터 도입은 권리 원장·Qdrant payload 확장·`DEC-PWA-020`·`DEC-PWA-021` 이 정해진 뒤다.
 
 ---
 

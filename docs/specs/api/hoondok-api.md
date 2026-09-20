@@ -238,6 +238,20 @@ DELETE /hoondok/auth/me
 
 ---
 
+## 훈독 AI 질문 — 신규 엔드포인트 없이 `POST /chat/stream` 재사용 (W2)
+
+AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만들지 않는다. 시연 챗과 **같은** `POST /chat/stream` SSE 를 그대로 호출하며 요청·응답 스키마, 프롬프트, RAG 정책, 서버 기록 모두 시연 챗과 같다. 백엔드는 이 웨이브에서 한 줄도 바뀌지 않았다.
+
+- 호출부는 `apps/web/src/features/hoondok/ask/ask-stream.ts` 하나다. 경로(같은 origin 프록시 `/api/backend/chat/stream`)·`X-Requested-With: XMLHttpRequest`·쿠키 동봉은 시연 챗(`features/chatbot/chat-api.ts`)과 동일하다.
+- 본문은 `{ query, chatbot_id }` 뿐이다. `chatbot_id` 는 UUID 가 아니라 슬러그이며 `HOONDOK_ASK_CHATBOT_ID = "all"` 상수 하나가 정한다. `[확인 필요]` 훈독 전용 봇이 정해지면 이 상수만 바꾼다.
+- **시연 챗과 다른 점은 둘뿐이고 둘 다 클라이언트 쪽이다.**
+  1. **무기억** — `session_id`(과 `answer_mode`)를 보내지 않는다. `session_id` 는 원래 선택 필드라 서버는 매 질문마다 새 세션을 만든다(`chat/pipeline/stages/session.py`). 이어 묻기도 새 요청이다.
+  2. **근거 게이트** — `chunk` 텍스트를 화면에 바로 흘리지 않고 모아 두었다가 `sources` 이벤트가 **1건 이상일 때만** 답을 보인다(AC-017-01·04). 0건은 오류가 아니라 성공 경로이며 "확인할 수 없음" 으로 끝난다. 서버는 이 게이트를 알지 못한다.
+- 질문·답·근거는 **서버에 따로 저장하지 않는다.** 브라우저 `localStorage` 한 키 `hoondok:ask:items`(JSON 배열, 최대 50건)에만 둔다(`ask/storage.ts`, `REQ-PWA-015`). 서버에는 시연 챗과 똑같은 `/chat/stream` 요청 기록이 남는다.
+- `sources` 항목은 표시명(`display_name`)·권(`volume`)·본문만 주고 화자·판본·권위 등급은 주지 않는다. 화면은 없는 항목을 지어내지 않는다(AC-017-02).
+
+---
+
 ## 결정 기록
 
 | 날짜 | 결정 | 상태 |
@@ -249,3 +263,5 @@ DELETE /hoondok/auth/me
 | 2026-09-19 | API-HD-006~008 신설(편성 admin). 관리자 블록·CSRF, DELETE 없음(철회 = `withdrawn`), 기본 범위 오늘~+14일, `seed_daily_readings.py` 는 로컬·E2E 한정 | 확정 · Phase 3 sub-PR A |
 | 2026-09-19 | API-HD-002 제한 베타 게이트: `invite_code` 선택 필드 + `HOONDOK_INVITE_CODE` 설정 시 403 `INVITE_REQUIRED`(ErrorResponse, 409 보다 먼저), 미설정이면 무시. 계약은 선택 필드 추가만(하위 호환) | 확정 · Phase 3 sub-PR F |
 | 2026-09-19 | API-HD-009~011 신설: 정성 기간(사용자당 active 1건·진행률 계산·끝난 기간은 읽는 시점에 completed·DELETE 는 abandoned), 월 기록(`month` 패턴·2020~올해+1), 계정 삭제(훈독 기록 하드 삭제 + `deleted_at` + 이메일 익명화·재가입 허용). `percent` 는 half-up 반올림 | 확정 · PLAN-HD-002 W0-B |
+| 2026-09-19 | 훈독 AI 질문은 **신규 엔드포인트 없이** `POST /chat/stream` 재사용. 백엔드·스키마 무변경이며 무기억(`session_id` 미전송)과 근거 게이트만 클라이언트에 둔다 | 확정 · PLAN-HD-002 W2 |
+| 2026-09-19 | 질문 봇은 슬러그 `all` 고정(`HOONDOK_ASK_CHATBOT_ID`). 전용 봇·프롬프트 미정이라 상수 1줄로 교체 가능한 형태로 둔다 | `[확인 필요]` · PLAN-HD-002 W2 |
