@@ -1,8 +1,8 @@
 # TODO
 
-> 마지막 업데이트: 2026-09-20 (훈독 운영 상태 정정 + 편성 후보 찾기 PLAN-HD-003 구현)
+> 마지막 업데이트: 2026-09-20 (훈독 운영 상태 정정 + 편성 후보 찾기 PLAN-HD-003 구현·배포)
 
-> **현재 우선 작업 (2026-09-20~):** 훈독 운영 공백 복구. 2026-09-20 실측으로 운영이 **이미 `HOONDOK_ENABLED=1`** 임을 확인했다 — web `aba5240`, `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 200, `noindex, nofollow`, `smoke-web HOONDOK_ENABLED=1` 12건 OK. 남은 액션 3건: ① 편성 재고 14일분 입력(투입 전 0일분 → `ops-check` `hoondok-today` WARN) — 입력을 돕는 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, API-HD-012)를 구현했고 쓰려면 backend·admin 배포가 필요하다(별도 승인), ② 초대 코드 게이트는 **OFF 유지 결정**(위험은 [runbook 실행 기록](runbooks/hoondok-pwa-rollout.md) 에 기록), ③ 운영 web 태그 랙 `aba5240` → main `4e15f8c` 승격 여부(=[PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) 13화면 노출, `/hoondok/garden` 현재 404) — 배포이므로 별도 승인. 실기기 설치 증거는 Phase 3 완료 기준으로 남아 있다. 남은 `[확인 필요]`: 약관 문구와 법적 주체.
+> **현재 우선 작업 (2026-09-20~):** 훈독 운영 공백 복구. 2026-09-20 실측으로 운영이 **이미 `HOONDOK_ENABLED=1`** 임을 확인했다 — web `aba5240`, `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 200, `noindex, nofollow`, `smoke-web HOONDOK_ENABLED=1` 12건 OK. 남은 액션 3건: ① 편성 재고 — 2026-09-20 에 **2일분 투입 완료**(`ops-check` 불변식 8건 전부 통과, `hoondok-today` OK). 완료 기준 7일분까지 5일분 남았고 9/22 에 다시 WARN 이 뜬다 — 입력을 돕는 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, API-HD-012)를 구현·배포했다(PR #301 → main `c066b02`, backend·admin 배포 완료, alembic `k5a6b7c8d9e0` 적용). 운영 admin 편성 화면에서 쓸 수 있다, ② 초대 코드 게이트는 **OFF 유지 결정**(위험은 [runbook 실행 기록](runbooks/hoondok-pwa-rollout.md) 에 기록), ③ 운영 web 태그 랙 `aba5240` → main `c066b02` 승격 여부(=[PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) 13화면 노출, `/hoondok/garden` 현재 404) — 배포이므로 별도 승인. 실기기 설치 증거는 Phase 3 완료 기준으로 남아 있다. 남은 `[확인 필요]`: 약관 문구와 법적 주체.
 >
 > **이전 우선 작업:** 2안 UI 분리의 구현·로컬 검증 완료, 2026-09-05 커밋·푸시 승인. PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과를 재사용하지 않는다. 최신 로컬 증거는 [APP-UI-001](plans/active/2026-09-05-app-owned-ui.md), 최초 M1~M4 기록은 [전환 계획 §5](plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 따른다. 아래 과거 퍼센트·테스트 수치를 새 완료 증거로 사용하지 않는다. 신규 디자인·M5·Flutter·운영 배포는 비범위다.
 

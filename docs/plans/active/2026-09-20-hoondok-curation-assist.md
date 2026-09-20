@@ -76,4 +76,4 @@
 
 - `[확인 필요]` 권리(저작권). [PRD `DEC-PWA-004~010`](../../prd/17-ffwpu-pwa-prd.md)이 "권리 승인 정본"을 전제하고 "권리 확인 전 615권 전체 공개"는 비범위다. `PLAN-HD-001` 결정 6 의 "LICENSE 미결"이 `featured_malssum.json` 20건 고유 문제인지 코퍼스 전체 문제인지 아직 답이 없다. **사용자 판단(2026-09-20): 문제가 되면 기능을 지운다.** 그때까지 후보는 `R`·`unverified` 로만 들어간다.
 - 실제 편성 품질 측정: `chunk_id` 유무로 "후보에서 고른 편성" 과 "직접 찾은 편성" 의 완료율을 나중에 비교할 수 있다. 지금은 표본이 없다.
-- 운영 반영: 이 기능을 쓰려면 backend·admin 배포가 필요하다. 각 단계 별도 승인.
+- 운영 반영 **완료**(2026-09-20): PR #301 → main `c066b02`, `deploy-backend`·`deploy-admin` 실행. alembic `k5a6b7c8d9e0` 적용, smoke 12건 OK. 증거는 [롤아웃 runbook 실행 기록](../../runbooks/hoondok-pwa-rollout.md#실행-기록). web 은 `aba5240` 유지라 PLAN-HD-002 13화면은 아직 미노출이다.
