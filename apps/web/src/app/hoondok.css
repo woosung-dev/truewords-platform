@@ -695,15 +695,34 @@
     }
   }
 
+  /* 장식 모션을 끈다. 이 포괄 규칙은 레이어 밖이어도 의도대로 동작한다 — 끄는 쪽이
+     animation-name·transition-property 를 잡는데 globals.css 는 그 둘을 건드리지 않는다.
+     되살림(스피너)은 사정이 달라 아래 `@layer base` 블록에 따로 둔다. */
   @media (prefers-reduced-motion: reduce) {
     * {
       transition: none !important;
       animation: none !important;
     }
-    /* 스피너 회전만 되살린다 — 진행 중임을 알리는 필수 정보라 DES §1.5 가 유지를 요구한다.
-       멈춰 있으면 "저장 중" 과 "멈춤" 을 구별할 수 없다. 펄스·바운스·shimmer 는 그대로 꺼 둔다. */
-    .btn__spinner {
-      animation: hoondok-spin 1.2s linear infinite !important;
+  }
+}
+
+/* ---------- reduced-motion 에서 스피너만 되살린다 (DES-PWA-003 §1.5) ----------
+   스피너는 회전 1종(1.2s 등속)만 쓰고 prefers-reduced-motion 에서도 유지한다 — 진행 중임을
+   알리는 필수 정보라, 멈춰 있으면 "저장 중" 과 "멈춤" 을 구별할 수 없다. 펄스·바운스·shimmer 는
+   위에서 그대로 꺼 둔다.
+
+   이 규칙만 `@layer base` 안에 있는 이유: globals.css 의 `@layer base` 안에
+   `* { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important }` 가 있고,
+   캐스케이드 레이어에서 !important 는 우선순위가 뒤집혀 **레이어 안이 레이어 밖을 이긴다**.
+   레이어 밖에 두면 import 순서와 무관하게 0.01ms × 1회 로 사실상 정지한다. 같은 base 레이어
+   안으로 들여오면 특이도가 결정하므로 (0,2,0) 이 `*`(0,0,0) 을 이긴다.
+   `_hoondok/ask.css` 의 `.ask-spinner` 도 같은 이유로 같은 모양을 쓴다. */
+@layer base {
+  [data-app="hoondok"] {
+    @media (prefers-reduced-motion: reduce) {
+      .btn__spinner {
+        animation: hoondok-spin 1.2s linear infinite !important;
+      }
     }
   }
 }

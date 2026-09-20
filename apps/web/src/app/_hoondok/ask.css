@@ -299,12 +299,19 @@
     justify-content: flex-start;
     gap: 4px;
   }
+}
 
-  /* hoondok.css 의 `* { animation: none !important }` 를 스피너에서만 되돌린다.
-     멈춰 있으면 "답을 찾는 중" 과 "멈춤" 을 구별할 수 없다 (DES §1.5). 펄스·shimmer 는 그대로 꺼 둔다 */
-  @media (prefers-reduced-motion: reduce) {
-    .ask-spinner {
-      animation: hoondok-spin 1.2s linear infinite !important;
+/* ---------- reduced-motion 에서 답 대기 스피너만 되살린다 (DES-PWA-003 §1.5) ----------
+   멈춰 있으면 "답을 찾는 중" 과 "멈춤" 을 구별할 수 없다. 펄스·shimmer 는 hoondok.css 가 끈 그대로 둔다.
+   `@layer base` 안에 두는 이유는 hoondok.css 의 `.btn__spinner` 되살림과 같다 — globals.css 의
+   레이어 안 `* { animation-duration: 0.01ms !important }` 는 레이어 밖 !important 를 이기므로,
+   같은 레이어로 들어와 특이도로 이겨야 한다. */
+@layer base {
+  [data-app="hoondok"] {
+    @media (prefers-reduced-motion: reduce) {
+      .ask-spinner {
+        animation: hoondok-spin 1.2s linear infinite !important;
+      }
     }
   }
 }

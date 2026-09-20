@@ -186,6 +186,10 @@ deploy-guard: ## 배포 전 가드 — HEAD ∈ origin/main + 클린 트리 + �
 	@# 세 번째 조건은 후퇴 배포 차단이다. "main 안" 만 보면 운영보다 뒤인 커밋도 통과한다 —
 	@# 2026-09-20 에 운영 backend 가 c066b02 인데 브리핑의 4e15f8c 로 배포할 뻔했고, 그대로 갔으면
 	@# API-HD-012 가 운영에서 사라졌다 (docs/runbooks/hoondok-pwa-rollout.md §실행 기록).
+	@# 운영 태그 조회는 원격 grep 의 exit 0(찾음)·1(미설정) 만 삼키고 그 밖의 코드는 ssh 로 그대로 올려보낸다.
+	@# `|| true` 를 원격 셸 안에 두면 미일치(1)와 ".env 를 못 읽음"(2)이 한데 뭉개져, 파일이 없거나 권한이
+	@# 없을 때도 빈 문자열 → "첫 배포" 로 통과한다 — "확인하지 못한 채 배포하지 않는다" 는 이 가드의
+	@# 존재 이유가 정확히 그 방식으로 무너진다. ssh 자체 실패(255)와 .env 실패(그 외)는 메시지로 구분한다.
 	@if [ -n "$(FORCE_DEPLOY)" ]; then echo "⚠️  FORCE_DEPLOY=1 — 가드 생략 (deploy.log 에 forced 로 남습니다)"; exit 0; fi; \
 	git fetch -q origin main; \
 	git merge-base --is-ancestor HEAD origin/main \
@@ -195,8 +199,12 @@ deploy-guard: ## 배포 전 가드 — HEAD ∈ origin/main + 클린 트리 + �
 	if [ -z "$(DEPLOY_SERVICE)" ]; then \
 	  echo "⚠️  DEPLOY_SERVICE 가 없어 후퇴 배포 검사를 건너뜁니다 (호출부에서 DEPLOY_SERVICE=BACKEND|ADMIN|WEB 를 넘기세요)"; exit 0; \
 	fi; \
-	if ! live_line=$$(ssh "$(ORACLE)" 'grep "^$(DEPLOY_SERVICE)_TAG=" ~/truewords/.env || true'); then \
-	  echo "❌ 운영 태그를 읽지 못했습니다 (ssh $(ORACLE)). 확인하지 못한 채 배포하면 이 가드가 무의미하므로 중단합니다."; exit 1; \
+	live_line=$$(ssh "$(ORACLE)" 'grep "^$(DEPLOY_SERVICE)_TAG=" ~/truewords/.env; rc=$$?; [ $$rc -le 1 ] || exit $$rc'); \
+	read_status=$$?; \
+	if [ $$read_status -eq 255 ]; then \
+	  echo "❌ 운영 태그를 읽지 못했습니다 — ssh $(ORACLE) 연결 실패(255). 확인하지 못한 채 배포하면 이 가드가 무의미하므로 중단합니다."; exit 1; \
+	elif [ $$read_status -ne 0 ]; then \
+	  echo "❌ 운영 태그를 읽지 못했습니다 — VM 의 ~/truewords/.env 를 읽을 수 없습니다 (원격 grep 종료 $$read_status — 파일 없음·권한). 확인하지 못한 채 배포하면 이 가드가 무의미하므로 중단합니다."; exit 1; \
 	fi; \
 	live=$${live_line#*=}; live=$${live%%[[:space:]]*}; \
 	if [ -z "$$live" ]; then \
