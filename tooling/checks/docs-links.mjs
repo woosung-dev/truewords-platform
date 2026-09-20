@@ -1,16 +1,41 @@
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const baselinePath = path.join(root, "docs/architecture/docs-link-baseline.json");
+const EXCLUDED_DIRS = ["node_modules", ".next", ".venv", ".git"];
 
-function walk(directory) {
+/**
+ * git 이 보는 파일 목록(추적 중 + 무시되지 않은 미추적). gitignore 판정의 정본은 git 이다 —
+ * 중첩 .gitignore·부정 패턴(!)·core.excludesFile 을 여기서 재구현하면 반드시 어긋난다.
+ * 얻지 못하면 null 을 돌려주고 호출부는 전부 검사한다. 조용히 건너뛰면 링크 오류를 놓친다.
+ */
+export function listGitVisibleFiles(rootDir) {
+  try {
+    const output = execFileSync(
+      "git",
+      ["-C", rootDir, "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+      { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] },
+    );
+    return new Set(output.split("\0").filter(Boolean));
+  } catch (error) {
+    console.error(`⚠️  git 파일 목록을 얻지 못해 gitignore 필터 없이 전부 검사합니다 (${rootDir}): ${error.message}`);
+    return null;
+  }
+}
+
+/** directory 아래의 .md/.html. visible 이 Set 이면 git 이 무시하는 파일은 검사 대상에서 뺀다. */
+export function walk(directory, { rootDir = root, visible = null } = {}) {
   if (!fs.existsSync(directory)) return [];
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const filename = path.join(directory, entry.name);
-    if (["node_modules", ".next", ".venv", ".git"].includes(entry.name)) return [];
-    return entry.isDirectory() ? walk(filename) : /\.(md|html)$/.test(entry.name) ? [filename] : [];
+    if (EXCLUDED_DIRS.includes(entry.name)) return [];
+    if (entry.isDirectory()) return walk(filename, { rootDir, visible });
+    if (!/\.(md|html)$/.test(entry.name)) return [];
+    if (visible && !visible.has(path.relative(rootDir, filename).split(path.sep).join("/"))) return [];
+    return [filename];
   });
 }
 
@@ -71,51 +96,54 @@ function anchors(filename) {
   return result;
 }
 
-const documents = ["README.md", "AGENTS.md"].map((name) => path.join(root, name));
-documents.push(...walk(path.join(root, "docs")), ...walk(path.join(root, "infra")));
-for (const app of ["api", "admin", "web"]) {
-  for (const name of ["README.md", "AGENTS.md", "CLAUDE.md"]) {
-    const filename = path.join(root, "apps", app, name);
-    if (fs.existsSync(filename)) documents.push(filename);
-  }
-}
-const failures = [];
-let checked = 0;
-for (const filename of documents) {
-  if (!fs.existsSync(filename)) continue;
-  for (const target of links(fs.readFileSync(filename, "utf8"), filename.endsWith(".md"))) {
-    if (!target || /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(target)) continue;
-    // HTML 데모의 JS 템플릿과 로컬 머신 개인 자료는 저장소 링크가 아니다.
-    if (target.includes("${") || target.startsWith("~") || target.startsWith("/Users/")) continue;
-    // 프로토타입 HTML의 `#/route` 해시 라우트는 클라이언트 라우팅이며 문서 앵커가 아니다.
-    if (target.startsWith("#/")) continue;
-    const [resource, fragment] = target.split("#", 2);
-    let decoded;
-    try {
-      decoded = decodeURIComponent(resource.split("?", 1)[0]);
-    } catch {
-      decoded = resource;
+function main() {
+  const visible = listGitVisibleFiles(root);
+  const documents = ["README.md", "AGENTS.md"].map((name) => path.join(root, name));
+  documents.push(...walk(path.join(root, "docs"), { visible }), ...walk(path.join(root, "infra"), { visible }));
+  for (const app of ["api", "admin", "web"]) {
+    for (const name of ["README.md", "AGENTS.md", "CLAUDE.md"]) {
+      const filename = path.join(root, "apps", app, name);
+      if (fs.existsSync(filename)) documents.push(filename);
     }
-    const resolved = decoded ? path.resolve(path.dirname(filename), decoded) : filename;
-    checked++;
-    let problem;
-    if (!fs.existsSync(resolved)) problem = "missing-file";
-    else if (fragment && fs.statSync(resolved).isFile() && /\.(md|html)$/.test(resolved)) {
-      let anchor;
+  }
+  const failures = [];
+  let checked = 0;
+  for (const filename of documents) {
+    if (!fs.existsSync(filename)) continue;
+    for (const target of links(fs.readFileSync(filename, "utf8"), filename.endsWith(".md"))) {
+      if (!target || /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(target)) continue;
+      // HTML 데모의 JS 템플릿과 로컬 머신 개인 자료는 저장소 링크가 아니다.
+      if (target.includes("${") || target.startsWith("~") || target.startsWith("/Users/")) continue;
+      // 프로토타입 HTML의 `#/route` 해시 라우트는 클라이언트 라우팅이며 문서 앵커가 아니다.
+      if (target.startsWith("#/")) continue;
+      const [resource, fragment] = target.split("#", 2);
+      let decoded;
       try {
-        anchor = decodeURIComponent(fragment);
+        decoded = decodeURIComponent(resource.split("?", 1)[0]);
       } catch {
-        anchor = fragment;
+        decoded = resource;
       }
-      if (!anchors(resolved).has(anchor)) problem = "missing-anchor";
+      const resolved = decoded ? path.resolve(path.dirname(filename), decoded) : filename;
+      checked++;
+      let problem;
+      if (!fs.existsSync(resolved)) problem = "missing-file";
+      else if (fragment && fs.statSync(resolved).isFile() && /\.(md|html)$/.test(resolved)) {
+        let anchor;
+        try {
+          anchor = decodeURIComponent(fragment);
+        } catch {
+          anchor = fragment;
+        }
+        if (!anchors(resolved).has(anchor)) problem = "missing-anchor";
+      }
+      if (problem) failures.push({ source: path.relative(root, filename), target, problem });
     }
-    if (problem) failures.push({ source: path.relative(root, filename), target, problem });
   }
-}
-failures.sort((a, b) => `${a.source}:${a.target}`.localeCompare(`${b.source}:${b.target}`));
-if (process.argv.includes("--report")) {
-  console.log(JSON.stringify(failures, null, 2));
-} else {
+  failures.sort((a, b) => `${a.source}:${a.target}`.localeCompare(`${b.source}:${b.target}`));
+  if (process.argv.includes("--report")) {
+    console.log(JSON.stringify(failures, null, 2));
+    return;
+  }
   const baseline = fs.existsSync(baselinePath) ? JSON.parse(fs.readFileSync(baselinePath, "utf8")) : [];
   const key = (entry) => `${entry.source}\n${entry.target}\n${entry.problem}`;
   const known = new Set(baseline.map(key));
@@ -129,3 +157,5 @@ if (process.argv.includes("--report")) {
   );
   if (introduced.length || stale.length) process.exitCode = 1;
 }
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) main();

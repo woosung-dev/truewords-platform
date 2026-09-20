@@ -16,8 +16,11 @@ ADMIN_IMG := truewords-admin:$(TAG)
 WEB_IMG := truewords-web:$(TAG)
 WEB_URL ?= http://localhost:3000
 ADMIN_URL ?= http://localhost:3001
-# 배포 가드 예외. 비워 두면 deploy-guard 가 "HEAD ∈ origin/main + 클린 트리" 를 강제한다.
+# 배포 가드 예외. 비워 두면 deploy-guard 가 "HEAD ∈ origin/main + 클린 트리 + 운영 태그가 HEAD 의 조상" 을 강제한다.
 FORCE_DEPLOY ?=
+# 후퇴 배포 검사가 읽을 VM .env 태그 변수 이름(BACKEND|ADMIN|WEB). deploy-* 호출부가 넘긴다.
+# 비어 있으면 어느 서비스의 운영 태그와 비교할지 알 수 없어 그 검사만 건너뛴다.
+DEPLOY_SERVICE ?=
 
 .PHONY: help \
         admin-dev admin-type admin-lint admin-test admin-test-watch admin-build admin-e2e admin-install \
@@ -154,6 +157,8 @@ infra-reset: ## ⚠️ 컨테이너 + 데이터 볼륨까지 전부 삭제 (post
 # 순서: deploy-guard → ops-check(advisory) → arm64 빌드 → 전송 → compose 교체 → deploy.log → GC.
 # 이미지 태그는 커밋 sha($(TAG))다. 태그가 곧 "운영에 무엇이 올라가 있나" 의 근거이므로
 # 가드가 HEAD ∈ origin/main + 클린 트리를 강제한다 (2026-08-06 브랜치 HEAD 배포 사고).
+# 여기에 더해 가드는 현재 운영 태그가 HEAD 의 조상인지 본다 — main 안이면서 운영보다
+# 뒤인 커밋으로 배포하면 이미 나간 기능이 조용히 사라지기 때문이다 (2026-09-20 미수 사고).
 # ============================================================
 
 # 배포·롤백 기록 — VM ~/truewords/deploy.log 에 한 줄 (UTC 시각 · 동작 · 서비스 · 태그 · 경로).
@@ -175,18 +180,38 @@ rsync --partial --inplace "$$tmp" "$(ORACLE):~/truewords/tmp/$(2).tgz" && \
 ssh "$(ORACLE)" 'gunzip -c ~/truewords/tmp/$(2).tgz | sudo docker load && rm -f ~/truewords/tmp/$(2).tgz'
 endef
 
-deploy-guard: ## 배포 전 가드 — HEAD 가 origin/main 에 포함 + 작업 트리 클린 (예외: FORCE_DEPLOY=1)
+deploy-guard: ## 배포 전 가드 — HEAD ∈ origin/main + 클린 트리 + 운영 태그가 HEAD 의 조상 (예외: FORCE_DEPLOY=1)
 	@# 트리가 더럽거나 main 밖이면 태그($(TAG))와 이미지 내용이 어긋나 롤백·추적 근거가 사라진다.
 	@# main push 마다 ci.yml 이 돌아 "main 은 green" 을 남기므로, 이 규칙이 곧 "검증된 것만 배포" 다.
+	@# 세 번째 조건은 후퇴 배포 차단이다. "main 안" 만 보면 운영보다 뒤인 커밋도 통과한다 —
+	@# 2026-09-20 에 운영 backend 가 c066b02 인데 브리핑의 4e15f8c 로 배포할 뻔했고, 그대로 갔으면
+	@# API-HD-012 가 운영에서 사라졌다 (docs/runbooks/hoondok-pwa-rollout.md §실행 기록).
 	@if [ -n "$(FORCE_DEPLOY)" ]; then echo "⚠️  FORCE_DEPLOY=1 — 가드 생략 (deploy.log 에 forced 로 남습니다)"; exit 0; fi; \
 	git fetch -q origin main; \
 	git merge-base --is-ancestor HEAD origin/main \
 	  || { echo "❌ HEAD($(TAG)) 가 origin/main 에 없습니다. 머지 후 배포하거나 FORCE_DEPLOY=1 로 명시 예외 처리하세요."; exit 1; }; \
 	[ -z "$$(git status --porcelain)" ] \
-	  || { echo "❌ 작업 트리가 깨끗하지 않습니다 — 커밋되지 않은 변경이 $(TAG) 이미지에 섞입니다."; exit 1; }
+	  || { echo "❌ 작업 트리가 깨끗하지 않습니다 — 커밋되지 않은 변경이 $(TAG) 이미지에 섞입니다."; exit 1; }; \
+	if [ -z "$(DEPLOY_SERVICE)" ]; then \
+	  echo "⚠️  DEPLOY_SERVICE 가 없어 후퇴 배포 검사를 건너뜁니다 (호출부에서 DEPLOY_SERVICE=BACKEND|ADMIN|WEB 를 넘기세요)"; exit 0; \
+	fi; \
+	if ! live_line=$$(ssh "$(ORACLE)" 'grep "^$(DEPLOY_SERVICE)_TAG=" ~/truewords/.env || true'); then \
+	  echo "❌ 운영 태그를 읽지 못했습니다 (ssh $(ORACLE)). 확인하지 못한 채 배포하면 이 가드가 무의미하므로 중단합니다."; exit 1; \
+	fi; \
+	live=$${live_line#*=}; live=$${live%%[[:space:]]*}; \
+	if [ -z "$$live" ]; then \
+	  echo "ℹ️  VM .env 에 $(DEPLOY_SERVICE)_TAG 가 없습니다 — 첫 배포로 보고 후퇴 검사를 건너뜁니다."; exit 0; \
+	fi; \
+	git cat-file -e "$$live^{commit}" 2>/dev/null \
+	  || { echo "❌ 운영 태그 $$live 를 로컬 git 에서 찾을 수 없어 비교할 수 없습니다. git fetch --all 후 다시 시도하거나 FORCE_DEPLOY=1 로 명시 예외 처리하세요."; exit 1; }; \
+	git merge-base --is-ancestor "$$live" HEAD && exit 0; \
+	echo "❌ 후퇴 배포입니다 — 운영($$live) 에 있고 배포할 HEAD($(TAG)) 에 없는 커밋:"; \
+	git log --oneline "HEAD..$$live"; \
+	echo "   의도한 되돌리기면 rollback 타깃(make rollback-backend|admin|web TAG=<이전 sha>)을, 그래도 강행하려면 FORCE_DEPLOY=1 을 쓰세요."; \
+	exit 1
 
 deploy-backend: ## Oracle Cloud ARM VM backend 배포 (중단 가능, 별도 승인 필요).
-	@$(MAKE) --no-print-directory deploy-guard
+	@$(MAKE) --no-print-directory deploy-guard DEPLOY_SERVICE=BACKEND
 	@# 배포는 사람이 VM 을 들여다보는 몇 안 되는 순간이다. 예약 작업이 조용히
 	@# 죽어 있으면 여기서라도 눈에 들어오게 한다. 배포를 막지는 않는다 —
 	@# 백업이 낡았다고 배포를 못 하게 하는 건 인과가 뒤집힌 것이다.
@@ -209,7 +234,7 @@ deploy-admin: ## Oracle Cloud ARM VM admin 배포 (WEB_URL·ADMIN_URL·DEMO_ADMI
 	@case "$(WEB_URL) $(ADMIN_URL)" in *localhost*) echo "WEB_URL·ADMIN_URL 운영 HTTPS origin을 명시하세요"; exit 1;; esac
 	@# 시연 관리자 게이트 계정은 클라이언트 라우팅 힌트로 빌드에 구워진다. 비우면 모든 계정이 access-denied 로 간다.
 	@[ -n "$(DEMO_ADMIN_EMAIL)" ] || { echo "DEMO_ADMIN_EMAIL=<시연 관리자 이메일> 을 명시하세요 (VM .env 의 값과 같아야 합니다)"; exit 1; }
-	@$(MAKE) --no-print-directory deploy-guard
+	@$(MAKE) --no-print-directory deploy-guard DEPLOY_SERVICE=ADMIN
 	@# NEXT_PUBLIC_API_URL 은 rewrites 가 빌드 타임에 구워지므로 build-arg 로 넣는다.
 	@# 컨테이너 내부 DNS 를 쓰면 Cloudflare 왕복이 한 번 줄어든다.
 	@$(MAKE) --no-print-directory ops-check || echo "⚠️  ops-check 위반 있음 — 배포는 계속합니다. 위 DETAIL 확인."
@@ -233,7 +258,7 @@ rollback-admin: ## ⚠️ 이전 admin 이미지로 롤백 (`TAG=<이전 sha>` �
 HOONDOK_ENABLED ?= 0
 deploy-web: ## Oracle Cloud ARM VM 사용자 웹 배포 (운영 전환 runbook 선행). 훈독은 HOONDOK_ENABLED=1 로만 켠다.
 	@case "$(WEB_URL) $(ADMIN_URL)" in *localhost*) echo "WEB_URL·ADMIN_URL 운영 HTTPS origin을 명시하세요"; exit 1;; esac
-	@$(MAKE) --no-print-directory deploy-guard
+	@$(MAKE) --no-print-directory deploy-guard DEPLOY_SERVICE=WEB
 	@$(MAKE) --no-print-directory ops-check || echo "⚠️  ops-check 위반 있음 — 배포는 계속합니다. 위 DETAIL 확인."
 	@docker buildx build --platform linux/arm64 -f apps/web/Dockerfile \
 		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 \
