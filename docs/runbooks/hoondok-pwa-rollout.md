@@ -1,7 +1,7 @@
 # 훈독 PWA 롤아웃·롤백 runbook
 
 - 대상: `/hoondok` 을 운영에서 켜는 배포(`HOONDOK_ENABLED=1`)와 그 되돌리기. 근거 계획은 [`PLAN-HD-001` §6](../plans/active/2026-09-17-hoondok-mvp.md).
-- 상태: **작성 시점(2026-09-19) 운영은 플래그 OFF** 다. web `b70b6c8` 에는 PWA 자산이 아예 없다(`/hoondok/*` 전부 404, 실측). 아래 절차는 아직 실행되지 않았다 — 실행 기록은 [§실행 기록](#실행-기록)에 추가한다.
+- 상태: **2026-09-20 실측 기준 운영은 플래그 ON** 이다. web `aba5240` 이 `HOONDOK_ENABLED=1` 로 배포돼 `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 이 200 이다. **그 배포를 언제 누가 실행했는지는 기록이 없다** — 이 문서에 실행 기록을 남기지 않은 채 배포됐고, 아래 값은 전부 사후 실측이다. 작성 시점(2026-09-19)의 상태는 플래그 OFF(web `b70b6c8`, `/hoondok/*` 전부 404)였다. 측정값과 결정은 [§실행 기록](#실행-기록)에 있다.
 - 이 문서가 다루는 범위는 배포 순서·검증·되돌리기다. 기능 사양은 계획서와 스펙이 소유한다.
 
 ## 이 문서가 존재하는 이유
@@ -192,4 +192,37 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 
 ## 실행 기록
 
-아직 없다. 플래그 ON 배포를 실행하면 날짜·태그·smoke 결과·메모리 실측을 이 절에 추가한다.
+### 2026-09-20 — 플래그 ON 상태 사후 실측
+
+플래그 ON 배포 자체는 이 절에 기록되지 않은 채 실행됐다. **실행 날짜와 주체는 미기록이며 추정하지 않는다.**
+아래는 2026-09-20 에 읽기 전용으로 측정한 값이다.
+
+| 항목 | 값 |
+|---|---|
+| `BACKEND_TAG` | `aba5240` |
+| `WEB_TAG` | `aba5240` — main `4e15f8c` 보다 2커밋 뒤(#299·#300 미배포) |
+| `ADMIN_TAG` | `87db69a` |
+| `make smoke-web WEB_URL=https://truewords.woosung.dev HOONDOK_ENABLED=1` | **12건 OK** · `sw-cache` WARN 1건 |
+| `make ops-check` | 8건 OK · `hoondok-today` **WARN** (앞으로 0일분) |
+| `/api/backend/hoondok/today` | `{"date":"2026-09-20","status":"none","reading":null}` |
+| `x-robots-tag` (`/hoondok`) | `noindex, nofollow` |
+| `HOONDOK_INVITE_CODE` (VM `.env`) | 미설정 — 게이트 OFF |
+
+`sw-cache` WARN 은 §Cloudflare 캐시에 적힌 그 WARN 이다(엣지가 `max-age=14400` 으로 덮어씀, `updateViaCache: "none"` 이 막고 있어 무해). 서빙된 `SW_VERSION 2026-09-19.1` 은 레포 값과 일치한다.
+
+**`WEB_TAG` 랙의 실제 영향.** 운영 web 에 있는 훈독 라우트는 `/hoondok`·`/read`·`/onboarding`·`/offline` 4개다. PLAN-HD-002(#300)의 화면 13종은 배포되지 않았고 `/hoondok/garden` 은 404 다. smoke 는 `route-home`·`route-read`·`route-onboard` 3개만 보므로 **이 랙을 잡지 못한다** — 태그 승격은 배포이므로 별도 승인 건이다.
+
+**미확인으로 남은 것:** 플래그를 켠 날짜·주체, 실기기 설치 증거(§실기기 증거 양식), 플래그 ON 상태의 web 512m 메모리 재측정(§메모리 는 OFF 기준 값이다).
+
+### 2026-09-20 — 초대 코드 게이트: OFF 유지 (결정)
+
+`PLAN-HD-001` §6 F 의 `[확인 필요]`("불필요하면 F 를 생략하고 noindex·비링크 상태로 연다")에 대해 **끄고 운영한다**고 결정했다. VM `.env` 는 건드리지 않았다.
+
+`noindex, nofollow` 는 검색 크롤러만 막는다. 링크 전달은 막지 못하므로 제한 베타의 실제 경계는 "링크를 아는 사람 전원" 이고, `[가정]` 10~20명 규모를 넘어서는 것을 기술적으로 막을 수단이 지금은 없다. 약관 문구와 법적 주체가 미정인 상태에서 불특정 계정이 쌓이면 나중에 소급 동의를 받아야 하며, 그 비용은 계정 수에 비례한다. 반대로 지금 게이트를 켜는 비용은 낮다 — 게이트 코드는 backend `aba5240` 에 **이미 배포돼 있어** 재배포·이미지 빌드 없이 VM `~/truewords/.env` 에 `HOONDOK_INVITE_CODE` 한 줄을 넣고 backend 컨테이너만 재생성하면 된다. `env_file: .env` 를 쓰는 서비스는 backend 단 하나라 다른 컨테이너 파급도 없다. 따라서 이 결정은 되돌리기 쉬우며, 가입 규모가 `[가정]` 을 넘거나 링크가 의도 밖으로 퍼진 정황이 보이면 즉시 뒤집는다.
+
+```bash
+ssh truewords-oracle 'grep -c "^HOONDOK_INVITE_CODE=" ~/truewords/.env'
+```
+
+게이트를 켰는지 확인하는 읽기 전용 한 줄이다. 켠 뒤에는 잘못된 코드로 `POST /hoondok/auth/signup` 이 403 `INVITE_REQUIRED` 를 내는지로 검증한다.
+

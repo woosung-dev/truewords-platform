@@ -1,6 +1,6 @@
 # TrueWords 기술 문서
 
-현재 작업은 **훈독 화면 확장**([PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md), 2026-09-19 착수)이다. 훈독 MVP 는 Phase 1(#276)·Phase 2(#282, main `b70b6c8`)·Phase 3 편성 트랙(#287)·PWA 트랙(#298, SW 킬스위치 후속 #299)까지 main 에 머지됐고 운영에는 **플래그 OFF** 로 배포돼 있다 — `HOONDOK_ENABLED=1` 배포와 실기기 증거는 [TODO](TODO.md) 의 남은 액션이다. PLAN-HD-002 는 남은 화면 13종을 웨이브로 나눠 W0 준비 → W1 실데이터 → W2 AI 질문 → W3 프리뷰 셸까지 구현 브랜치에 머지했고 지금은 W4 마무리(문서·정리) 단계이며 main 에는 아직 반영되지 않았다. 프리뷰 플래그는 운영에 배선하지 않는다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, 플래그 ON 배포·알림·Flutter 는 별도 승인이다.
+현재 작업은 **훈독 운영 공백 복구**다. 훈독 MVP 는 Phase 1(#276)·Phase 2(#282)·Phase 3 편성 트랙(#287)·PWA 트랙(#298, SW 킬스위치 후속 #299)·화면 확장 [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md)(#300, main `4e15f8c`)까지 main 에 머지됐고, 운영 web `aba5240` 은 **`HOONDOK_ENABLED=1` 로 이미 배포돼 있다**(2026-09-20 실측 — `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 200, `x-robots-tag: noindex, nofollow`, `smoke-web` 12건 OK). 운영 web 태그는 main 보다 2커밋 뒤라 PLAN-HD-002 의 13화면은 아직 노출되지 않는다(`/hoondok/garden` 404). 남은 운영 공백은 편성 재고(투입 전 0일분)이며, 초대 코드 게이트는 끈 채로 유지하기로 결정했다 — 실측값·결정·위험은 [훈독 PWA 롤아웃 runbook](runbooks/hoondok-pwa-rollout.md) 의 실행 기록이 소유한다. 프리뷰 플래그는 운영에 배선하지 않는다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, web 태그 승격·알림·Flutter 는 별도 승인이다.
 
 | 먼저 읽을 문서 | 용도 |
 |---|---|
