@@ -8,10 +8,10 @@
 
 | 트랙 | 범위 | 소유 파일 | 상태 |
 |---|---|---|---|
-| A 배포·CI 안전망 | `docs-links.mjs` 가 `.gitignore` 존중 · `deploy-guard` 후퇴 배포 차단 + 테스트 | `tooling/checks/*`, `Makefile` | ⬜ 착수 |
-| B1 디자인 (훈독 루프) | `/hoondok`·`/read`·`/onboarding`·`/offline` | 해당 `page.tsx`, `features/hoondok/{components,note,jeongseong,install}/`, `_hoondok/{note,sheet}.css` | ⬜ 착수 |
-| B2 디자인 (기록·질문) | `/garden`·`/settings`·`/ask`·`/ask/[id]`·`/ask/log` | 해당 `page.tsx`, `features/hoondok/{garden,settings,ask}/`, `_hoondok/{garden,settings,ask}.css` | ⬜ 착수 |
-| C Phase 3 종결 문서 | `PLAN-HD-001` §6 현황표 확정 · TODO | `docs/plans/active/2026-09-17-hoondok-mvp.md`, `docs/TODO.md`, runbook | ⬜ 착수 |
+| A 배포·CI 안전망 | `docs-links.mjs` 가 `.gitignore` 존중 · `deploy-guard` 후퇴 배포 차단 + 테스트 | `tooling/checks/*`, `Makefile` | ✅ 머지 `71599f6` · 검증 GREEN |
+| B1 디자인 (훈독 루프) | `/hoondok`·`/read`·`/onboarding`·`/offline` | 해당 `page.tsx`, `features/hoondok/{components,note,jeongseong,install}/`, `_hoondok/{note,sheet}.css` | ✅ 머지 `515bdee` · 검증 GREEN (P2 3) |
+| B2 디자인 (기록·질문) | `/garden`·`/settings`·`/ask`·`/ask/[id]`·`/ask/log` | 해당 `page.tsx`, `features/hoondok/{garden,settings,ask}/`, `_hoondok/{garden,settings,ask}.css` | ✅ 머지 `880a51f` · 검증 GREEN (P2 4) |
+| C Phase 3 종결 문서 | `PLAN-HD-001` §6 현황표 확정 · TODO | `docs/plans/active/2026-09-17-hoondok-mvp.md`, `docs/TODO.md`, runbook | ✅ 머지 `2043b0c` · 검증 GREEN |
 
 **공유 파일(B 트랙 편집 금지)**: `apps/web/src/app/hoondok.css`(토큰), `app/(hoondok)/hoondok/layout.tsx`, `features/hoondok/{tabs,screens,flag}.ts`, `components/hoondok/*`.
 필요 시 보고만 하고 오케스트레이터가 한 번에 처리한다.
@@ -38,3 +38,6 @@
 | 시각 | 사건 | 결과 |
 |---|---|---|
 | 착수 | 컨텍스트 확인 완료 | docs:check 새 오류 11건(전부 `docs/guides/redteam-test-guide-v2.html`, gitignore 대상) 재현 확인 |
+| 워크플로 | 10 에이전트 (Recon 1 · 구현 4 worktree · 감사 2 · 검증 3) | 오류 0. 검증 3건 전부 **GREEN**, 지적은 전부 P2 |
+| 통합 | 4 브랜치 `--no-ff` 머지 → `880a51f` | 34파일 +958/−212. 충돌 0 |
+| 통합 | 범위 밖 브랜치 분리 | `chore/worktree-gc`(`7dd4ad9`, worktree GC 스크립트 195줄)가 이 세션과 무관하게 레포 HEAD 에 있었다. 이 PR 비범위로 분리하고 해당 브랜치에 남겼다 |
