@@ -1,7 +1,7 @@
 # 훈독 PWA 롤아웃·롤백 runbook
 
 - 대상: `/hoondok` 을 운영에서 켜는 배포(`HOONDOK_ENABLED=1`)와 그 되돌리기. 근거 계획은 [`PLAN-HD-001` §6](../plans/active/2026-09-17-hoondok-mvp.md).
-- 상태: **2026-09-20 실측 기준 운영은 플래그 ON** 이다. web `aba5240` 이 `HOONDOK_ENABLED=1` 로 배포돼 `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 이 200 이다. **그 배포를 언제 누가 실행했는지는 기록이 없다** — 이 문서에 실행 기록을 남기지 않은 채 배포됐고, 아래 값은 전부 사후 실측이다. 작성 시점(2026-09-19)의 상태는 플래그 OFF(web `b70b6c8`, `/hoondok/*` 전부 404)였다. 측정값과 결정은 [§실행 기록](#실행-기록)에 있다.
+- 상태: **2026-09-20 기준 운영은 플래그 ON** 이다. 현재 태그는 web **`a93a6c7`** · backend·admin `c066b02` 이고 실데이터 9라우트가 200, 프리뷰 8라우트가 404 다. 같은 날 사후 실측으로 확인했을 때는 web `aba5240` 이 이미 `HOONDOK_ENABLED=1` 로 떠 있었는데 **그 최초 ON 배포를 언제 누가 실행했는지는 기록이 없다** — 이 문서에 실행 기록을 남기지 않은 채 배포됐다. 작성 시점(2026-09-19)의 상태는 플래그 OFF(web `b70b6c8`, `/hoondok/*` 전부 404)였다. 측정값과 결정은 [§실행 기록](#실행-기록)에 있다.
 - 이 문서가 다루는 범위는 배포 순서·검증·되돌리기다. 기능 사양은 계획서와 스펙이 소유한다.
 
 ## 이 문서가 존재하는 이유
@@ -177,7 +177,7 @@ make ops-check
 
 Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstallprompt` 를 발사하지 않고 iOS 공유 시트를 재현하지 못한다 — 이 두 경로는 실기기로만 확인된다.
 
-기기마다 아래를 기록한다. `docs/plans/completed/` 로 옮길 때 첨부한다.
+기기마다 아래를 기록한다. **Android 1대 + iOS 16.4 이상 1대**가 필요하다 — `PLAN-HD-001` §6 완료 기준이 두 플랫폼을 함께 요구한다.
 
 | 항목 | 기록할 것 |
 |---|---|
@@ -185,10 +185,29 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 | 브라우저 | Safari 17.4 · Chrome 126 |
 | 설치 경로 | 설치 카드 변형(`ios`·`prompt`·`manual`) 과 실제로 설치됐는지 |
 | standalone 확인 | 홈 화면 아이콘에서 열었을 때 브라우저 주소창이 없는지 (scope 검증) |
-| 가입 | 초대 코드 입력 → 201, 틀린 코드 → 403 안내 |
+| 가입 | 초대 코드 입력 → 201, 틀린 코드 → 403 안내. **게이트 OFF 기간에는 코드 없이 201** 만 확인한다(아래 [§실행 기록](#실행-기록)의 2026-09-20 결정) |
 | 훈독 | 홈 → 훈독하기 → 완료 → 연속일 1 |
 | 오프라인 | 기내 모드에서 앱 실행 → `/hoondok/offline` 안내 |
 | 아이콘 | 홈 화면 아이콘이 감귤 배경 "훈" 으로 보이는지 |
+
+**어디에 적나.** 아래 [§실행 기록](#실행-기록)에 `### <날짜> — 실기기 증거 (<기기>)` 절을 하나 만들어 채운다. `PLAN-HD-001` §6 표의 실기기 행은 그 절을 가리키게 되고, `docs/plans/completed/` 로 옮길 때 함께 첨부한다. 빈 양식:
+
+```markdown
+### 2026-__-__ — 실기기 증거 (Android / iOS)
+
+| 항목 | Android | iOS |
+|---|---|---|
+| 기기·OS |  |  |
+| 브라우저 |  |  |
+| 설치 경로(카드 변형) |  |  |
+| standalone(주소창 없음) |  |  |
+| 가입 |  |  |
+| 훈독 완료 → 연속일 1 |  |  |
+| 오프라인 안내 |  |  |
+| 아이콘 |  |  |
+```
+
+한쪽 기기만 끝났으면 그 열만 채우고 나머지는 비워 둔다 — **채워지지 않은 칸을 추정으로 메우지 않는다.**
 
 ## 실행 기록
 
@@ -288,7 +307,9 @@ PR [#301](https://github.com/woosung-dev/truewords-platform/pull/301) 을 main `
 | `make ops-check` | **8건 전부 OK** — `hoondok-today` OK "오늘·내일 편성 있음 · 앞으로 8일분" |
 | `make smoke-web HOONDOK_ENABLED=1` | **12건 OK** · `sw-cache` WARN 1(§Cloudflare 캐시의 알려진 WARN) |
 
-**backend 는 배포하지 않았다.** 세션 시작 시 브리핑은 `BACKEND_TAG=aba5240` 이었으나 실측은 `c066b02` 였다 — 새 API 3종(API-HD-009/010/011)과 alembic `k5a6b7c8d9e0` 은 같은 날 PR #301 배포에서 이미 운영에 들어가 있었다(위 절). 브리핑이 지정한 `4e15f8c` 로 backend 를 배포했다면 API-HD-012(편성 후보 찾기)를 운영에서 제거하는 **후퇴 배포**가 됐다. `deploy-guard` 는 이것을 막지 못한다 — `4e15f8c` 도 `origin/main` 의 조상이라 가드를 통과한다. **가드는 "main 밖"만 막지 배포 태그가 현재 운영보다 앞선지는 보지 않는다.**
+**backend 는 배포하지 않았다.** 세션 시작 시 브리핑은 `BACKEND_TAG=aba5240` 이었으나 실측은 `c066b02` 였다 — 새 API 3종(API-HD-009/010/011)과 alembic `k5a6b7c8d9e0` 은 같은 날 PR #301 배포에서 이미 운영에 들어가 있었다(위 절). 브리핑이 지정한 `4e15f8c` 로 backend 를 배포했다면 API-HD-012(편성 후보 찾기)를 운영에서 제거하는 **후퇴 배포**가 됐다. 당시 `deploy-guard` 는 이것을 막지 못했다 — `4e15f8c` 도 `origin/main` 의 조상이라 가드를 통과했다. **그때의 가드는 "main 밖"만 막지 배포 태그가 현재 운영보다 앞선지는 보지 않았다.**
+
+> **해소(2026-09-21, `PLAN-HD-004` 트랙 A)** — `deploy-guard` 가 VM `~/truewords/.env` 의 `<DEPLOY_SERVICE>_TAG` 를 읽어 **운영 태그가 배포할 HEAD 의 조상인지** 확인하고, 아니면 사라지는 커밋을 출력하고 중단한다(`Makefile` `deploy-guard`, 커밋 `e89b638`). 위 시나리오는 이제 차단된다 — `git merge-base --is-ancestor 4e15f8c c066b02` 가 참이므로 `4e15f8c` 배포는 후퇴로 판정된다. `.env` 를 못 읽으면 "첫 배포" 로 보지 않고 중단한다(`fcf9496`). `FORCE_DEPLOY=1` 은 그대로 예외다.
 
 #### 라우트 전수 실측
 
@@ -344,5 +365,6 @@ make rollback-web TAG=aba5240
 
 #### 남은 것
 
-- **실기기 증거**(§실기기 증거) — 헤드리스로 대체 불가. Phase 3 완료 기준의 마지막 항목이다.
+- **실기기 증거**(§실기기 증거) — 헤드리스로 대체 불가. `PLAN-HD-001` §6 완료 기준표에서 **아직 닫히지 않은 마지막 항목**이다. 함께 열려 있던 "배포 트리 기준 `make e2e` 재실행" 은 `PLAN-HD-004` 최종 게이트가 닫았다 — 운영 태그 `a93a6c7`(web)·`c066b02`(backend·admin)가 둘 다 그 트리의 조상이라 배포된 코드를 포함한다.
 - **`make ci` 의 `docs:check` 로컬 오탐**: `tooling/checks/docs-links.mjs:10` 의 `walk()` 가 `fs.readdirSync` 로 트리를 걸으며 `.gitignore` 를 보지 않아, gitignore 대상인 `docs/guides/*.html`(`.gitignore:40`)을 검사해 missing-anchor 11건을 낸다. GHA 체크아웃에는 그 파일이 없어 원격 CI 는 통과한다. `make ci` 가 여기서 멈춰 뒤의 `pnpm test`·`lint`·`build`·`typecheck` 에 **도달하지 못하므로** 이 배포에서는 따로 실행했다(전부 green, pytest 1069 passed). 배포와 무관한 별도 건.
+  - **해소(2026-09-21, `PLAN-HD-004` 트랙 A `54dc8ea`)**: `walk()` 가 `git ls-files --cached --others --exclude-standard` 를 gitignore 판정의 정본으로 써서 대상 파일을 건너뛴다(목록을 못 얻으면 경고 후 전부 검사한다 — 조용히 건너뛰지 않는다). 실측으로 `make ci` 가 **exit 0 으로 끝까지 돈다** — docs:check 문서 190 · 링크 324 · 새 오류 0, 이어서 `test`·`lint`·`build`·`typecheck` 까지 도달한다.

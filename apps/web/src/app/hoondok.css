@@ -11,6 +11,14 @@
    - 라이트 고정(DEC-PWA-017). .dark 팔레트를 정의하지 않는다.
    ============================================================================= */
 
+/* 스피너 회전 1종 — 1.2s 등속 (DES-PWA-003 §1.5). 이름은 전역이라 스코프 블록 밖 최상위에 둔다.
+   `.btn__spinner`(여러 화면 그룹)와 `_hoondok/ask.css` 의 `.ask-spinner` 가 함께 쓴다. */
+@keyframes hoondok-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
 /* ---------- 1. 토큰 (첫 블록 = 유일한 hex 허용 구역) ---------- */
 [data-app="hoondok"] {
   --paper: #fbfaf8;
@@ -129,9 +137,6 @@
   .check:active {
     transform: scale(0.96);
   }
-  .masthead {
-    display: none;
-  }
   .col {
     width: 100%;
     padding: 4px var(--gutter) 28px;
@@ -233,11 +238,17 @@
     color: var(--ink-3);
     display: block;
   }
+  /* 제목 규격은 `_hoondok/ask.css` 의 `.ql-q`(목록 행 제목 16/600) 와 같고, 자르는 방식도 같게 둔다 —
+     실데이터 제목은 한 줄로 자르면 무슨 미션인지 사라지고, 제한이 없으면 긴 제목 하나가 카드 높이를
+     혼자 키워 카드 리듬이 깨진다. 두 줄까지 보여 준 뒤 자른다. */
   .mission__title {
     font-size: 16px;
     font-weight: 600;
     margin-top: 1px;
-    display: block;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
     line-height: 1.35;
   }
   .mission__meta {
@@ -558,6 +569,18 @@
     padding: 0 14px;
     width: auto;
   }
+  /* 저장 중 좌측 스피너 (DES §1.5 loading). 라벨은 그대로 두고 `.btn` 의 gap 8px 만큼만 민다.
+     `flex: none` 이라 자리가 줄지 않는다 — 전폭 `.btn` 은 바깥 레이아웃이 그대로고 `.btn--sm`(width:auto) 만 늘어난다.
+     궤도를 `--line` 으로 둔 것은 진행 중 버튼이 `.btn[disabled]` 의 `--surface-2` 배경이라 같은 색이면 안 보이기 때문이다. */
+  .btn__spinner {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    border: 2px solid var(--line);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: hoondok-spin 1.2s linear infinite;
+  }
 
   /* ---------- md: 768px 이상. 단일 컬럼 중앙 정렬, 하단 탭 유지 ---------- */
   @media (min-width: 768px) {
@@ -678,10 +701,34 @@
     }
   }
 
+  /* 장식 모션을 끈다. 이 포괄 규칙은 레이어 밖이어도 의도대로 동작한다 — 끄는 쪽이
+     animation-name·transition-property 를 잡는데 globals.css 는 그 둘을 건드리지 않는다.
+     되살림(스피너)은 사정이 달라 아래 `@layer base` 블록에 따로 둔다. */
   @media (prefers-reduced-motion: reduce) {
     * {
       transition: none !important;
       animation: none !important;
+    }
+  }
+}
+
+/* ---------- reduced-motion 에서 스피너만 되살린다 (DES-PWA-003 §1.5) ----------
+   스피너는 회전 1종(1.2s 등속)만 쓰고 prefers-reduced-motion 에서도 유지한다 — 진행 중임을
+   알리는 필수 정보라, 멈춰 있으면 "저장 중" 과 "멈춤" 을 구별할 수 없다. 펄스·바운스·shimmer 는
+   위에서 그대로 꺼 둔다.
+
+   이 규칙만 `@layer base` 안에 있는 이유: globals.css 의 `@layer base` 안에
+   `* { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important }` 가 있고,
+   캐스케이드 레이어에서 !important 는 우선순위가 뒤집혀 **레이어 안이 레이어 밖을 이긴다**.
+   레이어 밖에 두면 import 순서와 무관하게 0.01ms × 1회 로 사실상 정지한다. 같은 base 레이어
+   안으로 들여오면 특이도가 결정하므로 (0,2,0) 이 `*`(0,0,0) 을 이긴다.
+   `_hoondok/ask.css` 의 `.ask-spinner` 도 같은 이유로 같은 모양을 쓴다. */
+@layer base {
+  [data-app="hoondok"] {
+    @media (prefers-reduced-motion: reduce) {
+      .btn__spinner {
+        animation: hoondok-spin 1.2s linear infinite !important;
+      }
     }
   }
 }
@@ -750,12 +797,6 @@
   .toggle[aria-pressed="true"]::after {
     left: 21px;
     border-color: transparent;
-  }
-  .form__msg {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent-strong);
-    margin: 0;
   }
   .form__switch {
     font-size: 13px;

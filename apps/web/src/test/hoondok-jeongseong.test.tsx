@@ -241,11 +241,16 @@ describe("홈 정성 카드 (SCR-PWA-002)", () => {
     expect(screen.queryByText(/매일 오전/)).toBeNull();
   });
 
-  it("비로그인 홈에서는 아무것도 그리지 않는다", async () => {
+  it("비로그인 홈에서도 섹션과 시작 CTA 는 그리되 조회는 하지 않는다", async () => {
     loggedOut();
-    const { container } = render(wrap(<JeongseongCard />));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    expect(container).toBeEmptyDOMElement();
+    render(wrap(<JeongseongCard />));
+    // 값을 지어내지 않는다 — 진행 수치 없이 시작 CTA 만 두고 로그인 요구는 시트가 맡는다
+    expect(await screen.findByRole("link", { name: "정성 시작하기" })).toHaveAttribute(
+      "href",
+      "/hoondok?sheet=jeongseong",
+    );
+    expect(screen.getByText("정성 기간")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).toBeNull();
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes("/hoondok/me/jeongseong"))).toBe(false);
   });
 });

@@ -52,7 +52,7 @@ export function AskLog() {
             <span className="empty__ic">
               <MessageCircleQuestion size={26} aria-hidden="true" />
             </span>
-            <p className="empty__title">{segment === "saved" ? "저장한 답이 없어요" : "아직 질문이 없어요"}</p>
+            <h2 className="empty__title">{segment === "saved" ? "저장한 답이 없어요" : "아직 질문이 없어요"}</h2>
             <p className="empty__body">말씀을 읽다 생긴 물음을 편하게 적어 보세요.</p>
             <Link className="btn btn-line ql-empty__cta" href="/hoondok/ask">
               질문하러 가기

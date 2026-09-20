@@ -193,7 +193,18 @@ make rollback-web     TAG=<이전 sha>
 make oracle-logs                       # compose 로그 follow (최근 100줄)
 ```
 
-세 `deploy-*` 는 먼저 **`deploy-guard`** 를 통과해야 한다 — HEAD 가 `origin/main` 에 포함돼 있고 작업 트리가 깨끗해야 빌드로 넘어간다. 이미지 태그가 커밋 sha 라서, 브랜치 HEAD 나 더러운 트리로 빌드하면 태그와 내용이 어긋나 "운영에 무엇이 올라가 있나" 를 되짚을 수 없다(2026-08-06 실제 사고). 예외가 필요하면 `FORCE_DEPLOY=1 make deploy-backend` 로 명시하고, 그 사실은 기록에 `forced` 로 남는다. 성공한 배포·롤백은 VM `~/truewords/deploy.log` 에 `UTC시각 deploy|rollback 서비스 태그 guarded|forced|manual` 한 줄씩 쌓인다 — `ssh truewords-oracle 'tail ~/truewords/deploy.log'` 가 최근 배포 이력이다.
+세 `deploy-*` 는 먼저 **`deploy-guard`** 를 통과해야 한다 — HEAD 가 `origin/main` 에 포함돼 있고, 작업 트리가 깨끗하고, **현재 운영 태그가 배포할 HEAD 의 조상**이어야 빌드로 넘어간다. 이미지 태그가 커밋 sha 라서, 브랜치 HEAD 나 더러운 트리로 빌드하면 태그와 내용이 어긋나 "운영에 무엇이 올라가 있나" 를 되짚을 수 없다(2026-08-06 실제 사고). 예외가 필요하면 `FORCE_DEPLOY=1 make deploy-backend` 로 명시하고, 그 사실은 기록에 `forced` 로 남는다. 성공한 배포·롤백은 VM `~/truewords/deploy.log` 에 `UTC시각 deploy|rollback 서비스 태그 guarded|forced|manual` 한 줄씩 쌓인다 — `ssh truewords-oracle 'tail ~/truewords/deploy.log'` 가 최근 배포 이력이다.
+
+세 번째 조건(운영 태그 ∈ HEAD 조상)은 2026-09-20 후퇴 배포 미수 뒤에 들어왔다 — 그때 `4e15f8c` 로 backend 를 배포했다면 운영(`c066b02`)에만 있던 `API-HD-012` 가 사라졌을 텐데, `4e15f8c` 도 `origin/main` 의 조상이라 옛 가드를 통과했다. 가드는 호출부가 넘긴 `DEPLOY_SERVICE`(`BACKEND`·`ADMIN`·`WEB`)로 VM `~/truewords/.env` 의 `<SVC>_TAG` 를 읽어 판정하고, 후퇴면 **사라지는 커밋 목록을 출력하고 중단**한다. 새 실패 모드와 대처는 다음과 같다.
+
+| 증상 | 뜻 | 대처 |
+|---|---|---|
+| `ssh … 연결 실패(255)` | VM 에 닿지 못했다 | 터널·키를 확인한다. 확인하지 못한 채 배포하지 않는다 |
+| `~/truewords/.env 를 읽을 수 없습니다` | 파일이 없거나 권한이 없다 | VM 에서 파일을 확인한다. **"첫 배포" 로 보고 통과하지 않는다** |
+| `운영 태그 <sha> 를 로컬 git 에서 찾을 수 없습니다` | 운영 태그가 로컬에 없다 | `git fetch --all` 후 재시도 |
+| `후퇴 배포입니다` + 커밋 목록 | 배포하면 그 커밋들이 운영에서 사라진다 | 의도한 되돌리기면 `rollback-*` 를 쓰고, 그래도 강행하려면 `FORCE_DEPLOY=1` 로 명시한다 |
+
+`DEPLOY_SERVICE` 가 없으면 후퇴 검사만 건너뛴다(앞의 두 조건은 그대로 적용된다).
 
 `deploy-backend` 는 이미지에 `alembic` 과 `uvicorn` 바이너리가 실제로 있는지 확인한 뒤에야 전송한다. runtime stage 에 바이너리가 빠져 기동에 실패했던 사고(dev-log 41~42)의 재발 방지 게이트다. 전송은 `docker save | gzip -1 | ssh` 이고 Makefile 이 `pipefail` 을 켜므로 스트림이 잘리면 즉시 실패한다.
 

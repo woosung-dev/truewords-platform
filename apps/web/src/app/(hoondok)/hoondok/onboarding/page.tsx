@@ -4,6 +4,7 @@
 // 초대 코드 1칸(Phase 3 F)은 선택 입력 — 서버 HOONDOK_INVITE_CODE 가 설정된 환경에서만 403 INVITE_REQUIRED 로 요구된다.
 import { useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
+import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useState } from "react";
@@ -147,13 +148,17 @@ function OnboardingForm() {
           <span className="field__help">베타 초대를 받았다면 입력해요. 없으면 비워 두세요</span>
         </label>
       )}
+      {/* 오류는 색만으로 알리지 않는다(DES §3.3) — 아이콘 + 문장. 정성 시트 폼과 같은 `.hint--alert` 를 쓴다.
+          입력값은 state 에 남아 있어 그대로 다시 낼 수 있다(REQ-PWA-013). */}
       {message && (
-        <p className="form__msg" role="alert">
+        <p className="hint hint--alert" role="alert">
+          <AlertCircle size={14} aria-hidden="true" />
           {message}
         </p>
       )}
       <div className="onb-cta">
-        <HoondokButton type="submit" disabled={isSubmitting}>
+        {/* 저장 중에는 라벨을 유지한 채 스피너를 붙이고 중복 제출을 막는다 (DES §1.5 loading) */}
+        <HoondokButton type="submit" isLoading={isSubmitting}>
           {mode === "signup" ? "가입하고 시작하기" : "로그인"}
         </HoondokButton>
         <Link className="btn btn-ghost" href="/hoondok">
@@ -172,7 +177,8 @@ function OnboardingForm() {
 
 export default function HoondokOnboardingPage() {
   return (
-    <section className="col">
+    // `col--onb` = 첫 화면만 거터 24px (DES-PWA-003 §5 001 행). 다른 화면의 --gutter 20px 와 의도적으로 다르다.
+    <section className="col col--onb">
       <p className="onb-eyebrow">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
       <h2 className="onb-title">
         아침 3분 훈독으로

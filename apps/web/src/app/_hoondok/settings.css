@@ -90,15 +90,20 @@
     color: var(--ink-3);
   }
 
-  /* 준비 중 컨트롤 — 형태는 그대로 두고 컨트롤만 흐리게. 설명 글자는 대비를 유지한다 */
+  /* 준비 중 컨트롤 — `opacity` 로 흐리게 만들지 않는다 (DES §1.5 disabled).
+     겹친 배경에 따라 대비가 예측 불가해지고, 실제로 `--ink-3` 테두리가 3:1 아래로 떨어졌다.
+     왜 꺼졌는지는 `.st-row__soon` "준비 중" 글자가 말하므로 색을 더 낮출 필요가 없다 */
   .toggle[disabled],
   .st-sub[disabled],
   .st-pick[disabled] {
-    cursor: default;
+    cursor: not-allowed;
   }
-  .toggle[disabled],
-  .st-pick[disabled] .st-radio {
-    opacity: 0.55;
+  /* 고른 상태는 점으로 남기되 액센트는 걷는다 — 꺼진 컨트롤이 살아 있는 것처럼 보이지 않게 */
+  .st-pick[disabled][aria-checked="true"] .st-radio {
+    border-color: var(--ink-3);
+  }
+  .st-pick[disabled][aria-checked="true"] .st-radio::after {
+    background: var(--ink-3);
   }
 
   /* ---------- 잠금 화면 문구 (머리말 `.st-lead` 는 hoondok.css 공용) ---------- */
@@ -163,6 +168,13 @@
   }
   .st-group .st-row + .st-row {
     border-top: 1px solid var(--line);
+  }
+  .st-group + .st-group {
+    margin-top: 12px;
+  }
+  /* 눌림 되먹임 (프로토타입 hoondok.css 280~287행의 `.st-row--link:active`) */
+  .st-row--link:active {
+    background: var(--surface-2);
   }
   /* 되돌릴 수 없는 행은 나머지 설정과 붙여 두지 않는다 */
   .st-group--danger,

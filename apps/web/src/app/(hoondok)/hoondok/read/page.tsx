@@ -1,5 +1,4 @@
 // SCR-PWA-003 훈독하기. 오늘 말씀 전문 + 출처 줄 + 완료 버튼(로그인 시 기록, 아니면 로컬 → 로그인 후 소급).
-import Link from "next/link";
 import { MalssumCard } from "@/components/hoondok";
 import { loadToday } from "@/features/hoondok/api";
 import { ReadCompleteButton } from "@/features/hoondok/components/read-complete-button";
@@ -15,15 +14,12 @@ export default async function HoondokReadPage() {
         <>
           <MalssumCard status="available" reading={reading} isFull />
           <TodayNote readingDate={reading.reading_date} />
+          {/* 하단은 주 CTA 한 개 + 그 아래 13px 보조 줄(좌 안내 · 우 질문 링크)이다 — 정본 프로토타입 read 그대로.
+              읽은 말씀에서 바로 묻기(PLAN-HD-002 W2)는 문장을 채워만 두고 보내지는 않는다. */}
           <div className="sect">
-            <ReadCompleteButton />
-            {/* 읽은 말씀에서 바로 묻기 (PLAN-HD-002 W2). 문장을 채워만 두고 보내지는 않는다 */}
-            <Link
-              className="btn btn-line read-ask"
-              href={`/hoondok/ask?q=${encodeURIComponent(`${reading.title} 말씀은 어떤 뜻인가요?`)}`}
-            >
-              이 말씀에 질문하기
-            </Link>
+            <ReadCompleteButton
+              askHref={`/hoondok/ask?q=${encodeURIComponent(`${reading.title} 말씀은 어떤 뜻인가요?`)}`}
+            />
           </div>
         </>
       ) : (

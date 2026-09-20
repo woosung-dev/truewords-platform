@@ -205,6 +205,40 @@ describe("질문·답변 상세 (SCR-PWA-006)", () => {
     expect(readAskItem("q1")).toMatchObject({ status: "no-sources", answer: "" });
   });
 
+  it("답을 기다리는 동안 진행 표시와 그만두기를 함께 두고, 그만두면 다시 시도로 되돌린다", async () => {
+    // 끝나지 않는 응답 — pending 을 붙잡아 둔다
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockReturnValue(new Promise(() => {})),
+    );
+    appendAskItem(item("q1"));
+    const { container } = render(<AskDetail id="q1" />);
+
+    const waiting = await screen.findByRole("status");
+    expect(waiting).toHaveAttribute("aria-busy", "true");
+    // 멈춤과 구별되려면 회전이 필요하다 — prefers-reduced-motion 에서도 유지한다 (DES §1.5)
+    expect(container.querySelector(".ask-spinner")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "그만두기" }));
+
+    expect(await screen.findByText("질문을 그만뒀어요. 다시 시도하면 처음부터 찾아요")).toBeInTheDocument();
+    expect(readAskItem("q1")?.status).toBe("error");
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+  });
+
+  it("근거 카드 출처 줄은 모르는 칸을 '확인되지 않음' 으로 적고 정본 등급 배지를 쓰지 않는다", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    appendAskItem(item("q1", { status: "answered", answer: "답 본문", sources: [SOURCE] }));
+    const { container } = render(<AskDetail id="q1" />);
+
+    expect(await screen.findByText(SOURCE.volume)).toBeInTheDocument();
+    // 화자·판본·공식성은 /chat/stream 이 주지 않는다 — 생략이 아니라 결측으로 적는다 (REQ-PWA-012)
+    expect(screen.getByText("판본 확인되지 않음")).toHaveClass("src__unknown");
+    expect(screen.getByText("공식성 확인되지 않음")).toHaveClass("badge--dashed");
+    // 초록 `badge--rank` 는 O1·O2 정본 전용이다
+    expect(container.querySelector(".badge--rank")).toBeNull();
+  });
+
   it("429 응답은 안내 문구와 다시 시도 버튼을 남긴다", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 429 })));
     appendAskItem(item("q1"));

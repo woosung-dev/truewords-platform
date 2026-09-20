@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -112,5 +114,74 @@ describe("훈독 컴포넌트", () => {
     expect(iso).toBe("2026-09-17");
     expect(weekday).toBe(4); // 2026-09-17 목
     expect(formatKstDate(new Date("2026-09-16T14:59:59Z")).iso).toBe("2026-09-16");
+  });
+});
+
+// hoondok.css 원문 검사 — 브라우저에서만 드러나는 두 결함의 회귀를 막는다.
+describe("훈독 CSS 원문", () => {
+  const HOONDOK_CSS = readFileSync(path.resolve(__dirname, "../app/hoondok.css"), "utf8");
+
+  it("미션 제목은 .ql-q 와 같이 두 줄에서 자른다", () => {
+    const rule = HOONDOK_CSS.match(/\.mission__title\s*\{([^}]*)\}/)?.[1];
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/display:\s*-webkit-box;/);
+    expect(rule).toMatch(/-webkit-box-orient:\s*vertical;/);
+    expect(rule).toMatch(/-webkit-line-clamp:\s*2;/);
+    expect(rule).toMatch(/overflow:\s*hidden;/);
+  });
+});
+
+// reduced-motion 에서도 유지되는 스피너 (DES-PWA-003 §1.5).
+// globals.css 의 `@layer base` 안에 `* { animation-duration: 0.01ms !important;
+// animation-iteration-count: 1 !important }` 가 있고, 캐스케이드 레이어에서 !important 는
+// 우선순위가 뒤집혀 레이어 안이 레이어 밖을 이긴다. 되살림 규칙이 레이어 밖으로 나가는 순간
+// 스피너는 다시 0.01ms × 1회 로 멈춘다 — import 순서로는 되돌릴 수 없다.
+describe("reduced-motion 스피너 되살림", () => {
+  const WEB_ROOT = path.resolve(__dirname, "../..");
+  const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  /** index 를 감싸는 최상위 `@layer <name>` 의 이름. 레이어 밖이면 null. 주석은 걷어낸 뒤 넘긴다. */
+  function enclosingLayer(css: string, index: number) {
+    for (const match of css.matchAll(/@layer\s+([\w-]+)\s*\{/g)) {
+      const start = match.index;
+      let depth = 1;
+      let i = start + match[0].length;
+      while (i < css.length && depth > 0) {
+        if (css[i] === "{") depth += 1;
+        else if (css[i] === "}") depth -= 1;
+        i += 1;
+      }
+      if (index > start && index < i) return match[1];
+    }
+    return null;
+  }
+
+  it.each([
+    ["src/app/hoondok.css", ".btn__spinner"],
+    ["src/app/_hoondok/ask.css", ".ask-spinner"],
+  ])("%s 의 %s 되살림은 @layer base 안 · 스코프 아래에 있다", (file, selector) => {
+    const css = stripComments(readFileSync(path.join(WEB_ROOT, file), "utf8"));
+    const nesting = new RegExp(
+      [
+        "@layer\\s+base\\s*\\{",
+        '\\s*\\[data-app="hoondok"\\]\\s*\\{',
+        "\\s*@media\\s*\\(prefers-reduced-motion:\\s*reduce\\)\\s*\\{",
+        `\\s*${selector.replace(".", "\\.")}\\s*\\{`,
+        "\\s*animation:\\s*hoondok-spin\\s+1\\.2s\\s+linear\\s+infinite\\s*!important;",
+      ].join(""),
+    );
+    expect(css).toMatch(nesting);
+
+    // 되살림은 파일당 하나뿐이고, 그 하나가 base 레이어 안에 있어야 한다.
+    const revivals = [...css.matchAll(/animation:\s*hoondok-spin[^;]*!important/g)];
+    expect(revivals).toHaveLength(1);
+    expect(enclosingLayer(css, revivals[0].index)).toBe("base");
+  });
+
+  it("globals.css 의 reduced-motion 포괄 규칙이 @layer base 안에 있다 (되살림을 레이어에 둔 이유)", () => {
+    const css = stripComments(readFileSync(path.join(WEB_ROOT, "src/app/globals.css"), "utf8"));
+    const index = css.indexOf("animation-iteration-count: 1 !important");
+    expect(index).toBeGreaterThan(-1);
+    expect(enclosingLayer(css, index)).toBe("base");
   });
 });

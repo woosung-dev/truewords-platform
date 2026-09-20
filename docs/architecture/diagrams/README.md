@@ -27,7 +27,7 @@ architecture 3종은 `meta.repository`(revision `8980e0c`) + 컴포넌트별 `so
 | 백엔드 경로 | `backend/main.py`, `backend/src/<domain>` | `apps/api/app/main.py`, `app/core`(설정 · DB · 예외), `app/modules/<10 도메인>`. URL · 테이블 · Alembic head(`a1c9e7d0b2f3`) 는 그대로 |
 | 공유 · 계약 | 없음 (admin 수기 DTO) | `contracts/openapi.json` + `contracts/fixtures/chat-stream.json` → `packages/api-client-ts`(generated + transport). `eslint-config` · `typescript-config` |
 | CI | `ci.yml`(PR) + `cache-cleanup.yml` | `ci.yml`(PR · main push · dispatch, 변경 감지) → reusable `ci-api` · `ci-web` · `ci-contracts` · `ci-e2e` + `cache-cleanup.yml`. Vercel 제거 |
-| 배포 | `make deploy-backend` · `deploy-admin`, `docker save \| gzip \| ssh docker load` 한 줄 파이프 | `deploy-web` 추가, 3종 모두 `deploy-guard`(HEAD ∈ origin/main + 클린 트리) 선행, 이미지 전송은 tgz + `rsync --partial` + VM `docker load` 3단계(#247 `34d70cf`), 프론트 `compose up --no-deps` |
+| 배포 | `make deploy-backend` · `deploy-admin`, `docker save \| gzip \| ssh docker load` 한 줄 파이프 | `deploy-web` 추가, 3종 모두 `deploy-guard`(HEAD ∈ origin/main + 클린 트리 + 운영 태그가 HEAD 의 조상) 선행, 이미지 전송은 tgz + `rsync --partial` + VM `docker load` 3단계(#247 `34d70cf`), 프론트 `compose up --no-deps` |
 | 감시 | ops-check 7건 탐지만 | ops-check FAIL/WARN → ntfy.sh 푸시 |
 | 다이어그램 종수 | 6종 | 7종 — 배포 워크플로(`deploy.workflow.json`) 신규. TODO P2 의 "전달 파이프라인 다이어그램" 항목 해소 |
 | 채팅 · 적재 로직 | — | 변경 없음 (rate limit 20/60s · cache 0.88 · top-50 · rerank 15/12/8 · 700/150 청크 · Queue(100) · 50-point upsert 재확인) |

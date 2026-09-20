@@ -1,8 +1,8 @@
 # TODO
 
-> 마지막 업데이트: 2026-09-20 (훈독 운영 상태 정정 + 편성 후보 찾기 PLAN-HD-003 구현·배포 + 편성 8일분 투입 + **web `a93a6c7` 배포로 PLAN-HD-002 실데이터 화면 노출**)
+> 마지막 업데이트: 2026-09-20 (훈독 운영 상태 정정 + 편성 후보 찾기 PLAN-HD-003 구현·배포 + 편성 8일분 투입 + web `a93a6c7` 배포로 PLAN-HD-002 실데이터 화면 노출 + **`PLAN-HD-001` §6 완료 기준표 증거 재대조**)
 
-> **현재 우선 작업 (2026-09-20~):** 훈독 운영 공백 복구. 2026-09-20 실측으로 운영이 **이미 `HOONDOK_ENABLED=1`** 임을 확인했다 — web `aba5240`, `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 200, `noindex, nofollow`, `smoke-web HOONDOK_ENABLED=1` 12건 OK. 남은 액션 3건: ① `[종결]` 편성 재고 — 2026-09-20 에 **8일분 투입 완료**(`ops-check` 불변식 8건 전부 통과, `hoondok-today` OK "앞으로 8일분"). `PLAN-HD-001` §6 완료 기준 7일분 충족. 다음 보충 시점은 2026-09-27 경 — 입력을 돕는 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, API-HD-012)를 구현·배포했다(PR #301 → main `c066b02`, backend·admin 배포 완료, alembic `k5a6b7c8d9e0` 적용). 운영 admin 편성 화면에서 쓸 수 있다, ② 초대 코드 게이트는 **OFF 유지 결정**(위험은 [runbook 실행 기록](runbooks/hoondok-pwa-rollout.md) 에 기록), ③ `[종결]` 운영 web 태그 랙 — 2026-09-20 승인 후 **web `aba5240` → `a93a6c7` 배포 완료**. [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) 실데이터 화면이 운영에 노출됐다(`/hoondok/garden`·`/settings`·`/ask`·`/ask/[id]`·`/ask/log` 200), 프리뷰 셸 8라우트는 404 유지(`NEXT_PUBLIC_HOONDOK_PREVIEW` 미배선). `smoke-web` 12건 OK, `ops-check` 8건 OK, web 메모리 53.1 MiB(OFF 기준 57.1 에서 증가 없음). backend·admin 은 `c066b02` 무변경(`--no-deps`). 증거는 [runbook §실행 기록](runbooks/hoondok-pwa-rollout.md#실행-기록). **남은 Phase 3 완료 기준은 실기기 설치 증거 하나**(Android·iOS 16.4+ 설치 → 가입 → 훈독 → 완료, 헤드리스 대체 불가). 남은 `[확인 필요]`: 약관 문구와 법적 주체.
+> **현재 우선 작업 (2026-09-20~):** 훈독 운영 공백 복구. 2026-09-20 실측으로 운영이 **이미 `HOONDOK_ENABLED=1`** 임을 확인했다 — web `aba5240`, `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 200, `noindex, nofollow`, `smoke-web HOONDOK_ENABLED=1` 12건 OK. 남은 액션 3건: ① `[종결]` 편성 재고 — 2026-09-20 에 **8일분 투입 완료**(`ops-check` 불변식 8건 전부 통과, `hoondok-today` OK "앞으로 8일분"). `PLAN-HD-001` §6 완료 기준 7일분 충족. 다음 보충 시점은 2026-09-27 경 — 입력을 돕는 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, API-HD-012)를 구현·배포했다(PR #301 → main `c066b02`, backend·admin 배포 완료, alembic `k5a6b7c8d9e0` 적용). 운영 admin 편성 화면에서 쓸 수 있다, ② 초대 코드 게이트는 **OFF 유지 결정**(위험은 [runbook 실행 기록](runbooks/hoondok-pwa-rollout.md) 에 기록), ③ `[종결]` 운영 web 태그 랙 — 2026-09-20 승인 후 **web `aba5240` → `a93a6c7` 배포 완료**. [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) 실데이터 화면이 운영에 노출됐다(`/hoondok/garden`·`/settings`·`/ask`·`/ask/[id]`·`/ask/log` 200), 프리뷰 셸 8라우트는 404 유지(`NEXT_PUBLIC_HOONDOK_PREVIEW` 미배선). `smoke-web` 12건 OK, `ops-check` 8건 OK, web 메모리 53.1 MiB(OFF 기준 57.1 에서 증가 없음). backend·admin 은 `c066b02` 무변경(`--no-deps`). 증거는 [runbook §실행 기록](runbooks/hoondok-pwa-rollout.md#실행-기록). **남은 Phase 3 완료 기준은 2건**이다 — ① 실기기 설치 증거(Android·iOS 16.4+ 설치 → 가입 → 훈독 → 완료, 헤드리스 대체 불가), ② 시연 챗·admin E2E 를 배포 트리 기준으로 재실행(마지막 전체 `make e2e` 85 passed 는 PR #300 트리 `c0b0547` 기준이고 그 위에 #301 이 얹혔다. `make ci` 는 E2E 를 포함하지 않는다). 판정 근거는 [`PLAN-HD-001` §6 완료 기준표](plans/active/2026-09-17-hoondok-mvp.md). 남은 `[확인 필요]`: 약관 문구와 법적 주체.
 >
 > **이전 우선 작업:** 2안 UI 분리의 구현·로컬 검증 완료, 2026-09-05 커밋·푸시 승인. PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과를 재사용하지 않는다. 최신 로컬 증거는 [APP-UI-001](plans/active/2026-09-05-app-owned-ui.md), 최초 M1~M4 기록은 [전환 계획 §5](plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 따른다. 아래 과거 퍼센트·테스트 수치를 새 완료 증거로 사용하지 않는다. 신규 디자인·M5·Flutter·운영 배포는 비범위다.
 
@@ -176,6 +176,15 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Blocked
 
+### 훈독 — Phase 3 종결을 막는 것 (2026-09-20)
+
+각 항목에 **차단 근거**와 **풀리는 조건**을 함께 적는다. 근거 없이 미뤄 둔 것은 Blocked 가 아니라 Next Actions 에 둔다.
+
+- [ ] **실기기 증거** — Android·iOS 16.4+ 에서 설치 → 가입 → 훈독 → 완료. **차단 근거: 사용자 수집 대기.** 헤드리스 E2E 는 `beforeinstallprompt` 를 발사하지 않고 iOS 공유 시트를 재현하지 못해 대체가 불가능하다. 필요한 조치: 사용자가 기기 2대로 [runbook §실기기 증거](runbooks/hoondok-pwa-rollout.md#실기기-증거) 의 빈 양식을 채우면 [`PLAN-HD-001` §6](plans/active/2026-09-17-hoondok-mvp.md) 의 해당 ⬜ 행이 닫힌다
+- [ ] **Phase 4 훈독 알림** — **차단 근거: [`PLAN-HD-001` §7](plans/active/2026-09-17-hoondok-mvp.md) 이 "Phase 3 데이터(7일 중 5일 완료 비율·D7 재방문)를 본 뒤 착수한다" 로 막는다.** `mission_logs` 7일 적재가 아직 시작되지 않아 판정할 데이터가 없다. 필요한 조치: 실기기 증거 → 초대 → 7일 적재 → 두 수치 산출 후 착수 판단
+- [ ] **프리뷰 셸 8라우트 실데이터화** — **차단 근거: `DEC-PWA-020`(가정예배 정식 명칭·주관 부서·순서지 편성 주체)·`DEC-PWA-021`(설교 섭외 운영 주체·교회장 동의 절차) 외부 결정 대기.** 운영에는 프리뷰 플래그를 배선하지 않아 8라우트가 404 이고 로컬에서도 fixture 만 읽는다(2026-09-20 실측). 필요한 조치: 두 결정이 내려온 뒤 실데이터·저장 경로를 설계한다
+- [ ] **이용약관·개인정보처리방침 (`DEC-PWA-001`)** — **차단 근거: 문구와 법적 주체가 미정이고 문서가 0건, 별도 세션 소관.** 현재는 동의를 수집하지 않고 베타 고지만 표시하며 `users.consented_at`·`consent_version` 은 NULL 예약이다. 필요한 조치: 법적 주체 확정 → 문구 작성 → 가입 폼 동의 + 기존 계정 소급 동의 경로. **리드타임이 가장 길어 먼저 착수할수록 좋다**
+
 ### 클라이언트 피드백 14건 중 보류 항목 (2026-05-09)
 
 > 적용 항목(8건: #1·#2·#3·#6·#7·#8·#9·#11·#13)은 별도 브랜치에서 처리 완료. 아래는 의도적으로 보류한 항목들.
@@ -224,6 +233,14 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - `[확인 필요]` `DEC-PWA-020` "가행국 가정예배"의 정식 명칭·주관 부서와 순서지 편성 주체 — 미결이라 `SCR-PWA-010`~`013`(가정예배 홈·챌린지·5분 설교·설교 섭외)은 fixture 만 읽는 **프리뷰 셸**로만 만들었다(PLAN-HD-002 W3-W). 실데이터·저장은 이 결정 뒤다
 - `[확인 필요]` `DEC-PWA-021` 설교 섭외·신청의 운영 주체와 교회장 동의 절차 — 같은 이유로 `SCR-PWA-013` 폼은 제출 경로가 없다
 - `[확인 필요]` **가족·친구 공개 범위의 단계 문구**(`SCR-PWA-016`) — 프리뷰는 프로토타입 `.fm-scope` 그대로 **토글 2**(오늘 완료 여부 · 진행 중인 정성 이름) **+ 고정 1**(노트와 질문 "항상 비공개")로 만들었다. 4단계 라디오 문구는 프로토타입·PRD·디자인 시스템 어디에도 없어 지어내지 않았다. 필요하면 문구를 정해야 한다. [DES-PWA-003 §8](specs/web/hoondok-design-system.md)
+- `[확인 필요]` **질문 상세 출처 줄의 '화자' 칸**(`PLAN-HD-004` 트랙 B2) — `apps/web/src/features/hoondok/ask/format.ts` 의 `sourceFields()` 가 화자 칸을 **생략**한다. `REQ-PWA-012` 는 미확인 항목을 생략이 아니라 "확인되지 않음"으로 적게 하고, 프로토타입 `ask-detail` 마크업은 `번호 · 화자 · 저작물 · 판본 · 배지` 5칸이다. 구현자의 `[가정]`("`volume` 이 화자를 포함해 중복")은 독립 검증에서 반증됐다 — 예시 `말씀선집 355권` 에 화자가 없다. 넣으려면 `sourceFields()` 첫 칸에 `{ id: "speaker", text: "화자 확인되지 않음", isUnknown: true }` 1줄. 뺀다면 375px 줄바꿈이 근거가 된다
+- `[확인 필요]` **훈독 캔버스 배경이 시연 챗 색이다** (`PLAN-HD-004` 브라우저 검토, 2026-09-21) — `body` 배경이 시연 챗 `--background`(측정값 `lab(98.7511 -0.641346 9.20324)`)이고 `html` 은 투명이라 캔버스 색은 `body` 에서 전파된다. 훈독은 `--background: var(--paper)` 를 `[data-app="hoondok"]` **안에서만** 덮으므로 조상인 `body` 까지 닿지 않는다. `[data-app="hoondok"]` 이 `min-height: 100dvh` 라 평상시엔 안 보이고, **고무줄 오버스크롤(iOS·Android) 순간에만** 종이색 앱 아래로 챗 크림색 띠가 드러난다. `theme-color`(`#fbfaf8`)와도 어긋난다.
+  - **안 1** 토큰 블록 선택자를 `html:has([data-app="hoondok"])` 까지 넓힌다 — 구현·검증했으나 `tests/e2e/hoondok.spec.ts:57`("훈독 스코프 토큰은 시연 챗 `:root --accent` 를 바꾸지 않는다")을 깨서 **되돌렸다**. 계약을 "팔레트는 막되 `--background`·`--paper` 2개는 허용"으로 좁히면 가능하지만 `hoondok-css.mjs` 의 hex 허용 구역도 함께 늘려야 한다
+  - **안 2** `html:has([data-app="hoondok"]) { overscroll-behavior-y: none }` — 토큰 유출 0 · hex 0 · 1줄. 대신 Android Chrome 의 **당겨서 새로고침이 사라진다**
+  - **안 3** 그대로 둔다 — 노출은 오버스크롤 순간뿐인 외형 문제다
+  - 경계 계약을 깨는 것도 제스처를 없애는 것도 단독 판단할 일이 아니라 세 안을 남긴다
+- `[확인 필요]` **편성 제목이 본문 발췌다** (`PLAN-HD-004` 브라우저 검토, 2026-09-21) — 로컬 실데이터로 띄운 `/hoondok`·`/hoondok/read`·`/hoondok/ask` 세 화면 모두에서 오늘 말씀 제목이 **본문 첫 문장을 60자에서 자른 문자열**(끝의 `…` 는 CSS 말줄임이 아니라 데이터에 든 글자)로 나온다. `/hoondok/read` 에서는 바로 아래 본문과 같은 문장이 크게 한 번 더 보인다. 화면 코드가 아니라 편성 입력 문제이며, 편성자가 `apps/admin` 편성 화면에서 제목 칸을 짧은 이름(예: `천성경 제1편 3장`)으로 채우면 해소된다. **`[가정]`** 시드와 운영 편성이 같은 방식으로 들어갔다고 보았다 — 운영 데이터는 직접 확인하지 않았다
+- `[확인 필요]` **홈 '이번 주' 섹션 메타**(`PLAN-HD-004` 트랙 B1) — `apps/web/src/features/hoondok/components/home-missions.tsx` 가 로그인 상태에서 `.sect__meta` 를 비운다. 프로토타입 today 화면은 `섹션 '이번 주'(meta '연속 12일')` 를 명시한다. 구현자 근거(바로 아래 `WeekStrip` 의 `.week__streak` 가 같은 연속일을 말하고, summary 도착 전에는 거짓 `0` 이 두 번 보인다)는 독립 검증에서 타당 판정을 받았다. 프로토타입 문자 그대로를 원하면 `summary?.streak_days` 가 정의된 뒤에만 렌더하는 형태로 되돌린다
 - `[확인 필요]` `DEC-PWA-001` 독립 베타의 법적 운영 주체와 FFWPU 공식 승인 요청·검수 절차는 무엇인가?
 - `[확인 필요]` `DEC-PWA-002` 초기 소규모 정본의 정확한 목록과 본문 전재·검색·임베딩·AI 요약·오프라인·푸시 인용별 권리 범위는 어디까지인가?
 - `[확인 필요]` `DEC-PWA-003` 콘텐츠 공식성·검수·철회 최종 책임자는 누구인가?
@@ -238,7 +255,9 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ### 훈독 Phase 3 배포 준비 (2026-09-19 → 2026-09-20 배포 완료)
 - [x] `[종결]` **초대 코드 게이트 — OFF 유지 결정**(2026-09-20). VM `.env` 는 건드리지 않았다. 게이트 코드는 backend 에 이미 배포돼 있어 `HOONDOK_INVITE_CODE` 한 줄 + backend 재생성만으로 즉시 켤 수 있다(다른 컨테이너 파급 없음). 가입 규모가 `[가정]` 10~20명을 넘거나 링크가 의도 밖으로 퍼지면 뒤집는다. 근거는 [runbook §실행 기록](runbooks/hoondok-pwa-rollout.md#실행-기록)
 - [x] `[종결]` **`make deploy-web HOONDOK_ENABLED=1`** — 2026-09-20 web `a93a6c7` 배포. `smoke-web` 12건 OK, 실데이터 9라우트 200 · 프리뷰 8라우트 404
-- [ ] **실기기 증거** — Android·iOS 16.4+ 에서 설치 → 가입 → 훈독 → 완료. 설치 prompt(Android `beforeinstallprompt`)·iOS 공유 시트 분기는 헤드리스가 재현하지 못한다. 양식은 [runbook §실기기 증거](runbooks/hoondok-pwa-rollout.md#실기기-증거). **Phase 3 완료 기준 중 유일하게 남은 항목**
+- [ ] **실기기 증거** — Android·iOS 16.4+ 에서 설치 → 가입 → 훈독 → 완료. 설치 prompt(Android `beforeinstallprompt`)·iOS 공유 시트 분기는 헤드리스가 재현하지 못한다. 양식은 [runbook §실기기 증거](runbooks/hoondok-pwa-rollout.md#실기기-증거). **사용자 수집 대기**(Blocked §훈독)
+- [x] `[종결]` **배포 트리 기준 `make e2e` 재실행** — 2026-09-21 `PLAN-HD-004` 최종 게이트가 트리 `edb2545` 에서 **85 passed** 를 냈다. 그 트리는 운영 태그 `a93a6c7`(web)·`c066b02`(backend·admin)를 둘 다 조상으로 포함해 배포된 코드가 실행에 들어 있다. [`PLAN-HD-001` §6·§9](plans/active/2026-09-17-hoondok-mvp.md) 에 기록
+- [ ] **편성 보충 (2026-09-27 경)** — 2026-09-20 투입분이 **8일분**이라 그 무렵 오늘·내일 편성이 끊기고 `ops-check` `hoondok-today` 가 다시 WARN 이 된다. 편성자가 운영 admin 편성 화면에서 채운다([PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 후보 찾기 사용 가능)
 
 ### 훈독 화면 확장 PLAN-HD-002 (2026-09-19)
 - [x] W0-D 계획 문서 — [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) + README 색인 + 이 섹션. 웨이브형·로컬 통합·디자인 스킬 확정, 플래그 2개 운영 노출 0
@@ -497,7 +516,7 @@ Qdrant Cloud → GCP VM 셀프 호스팅은 2026-04~06 에 실제로 완료됐�
   - [x] 코드 정리 — `apps/web/next.config.ts`·`apps/admin/next.config.ts` 의 host 조건부 redirect 블록과 `LEGACY_WEB_ORIGIN` 상수, 각 앱 `routing.test.ts` 의 legacy host 테스트, `.gitignore`/`.dockerignore` 의 `.vercel` 항목 제거.
   - [x] 프로젝트 삭제 실행 — 2026-09-05 `vercel project rm truewords-platform` 성공. `truewords-platform.vercel.app`·`truewords-platform-woosungdevs-projects.vercel.app` 모두 404 확인. 이후 PR 커밋에 `Vercel` status 없음.
 - [x] ~~**가이드 PDF 재생성**~~ — 폐기(2026-09-05). PDF 3종은 레포에 없는 외부 산출물이고, Vercel 즉시 삭제 결정으로 "삭제 전 재생성" 조건이 성립하지 않는다. 구 주소를 받은 테스터에게는 새 주소(`https://truewords.woosung.dev`, 2026-09-06 canonical)를 공지로 대체한다.
-- [x] **push 자동 배포 상실 → 수동 배포 + 가드로 확정** (2026-09-05) — CD 워크플로는 복원하지 않는다(1인·Always Free VM 에는 로컬 배포가 맞다). 대신 `make deploy-*` 가 `deploy-guard`(HEAD ∈ origin/main + 클린 트리, 예외 `FORCE_DEPLOY=1` 은 기록에 `forced`)를 거치고 VM `~/truewords/deploy.log` 에 한 줄 남긴다. main push 마다 `ci.yml` 이 돌아 "main 은 green" 근거를 남긴다. 2026-08-06 브랜치 HEAD 배포 사고의 재발 방지.
+- [x] **push 자동 배포 상실 → 수동 배포 + 가드로 확정** (2026-09-05) — CD 워크플로는 복원하지 않는다(1인·Always Free VM 에는 로컬 배포가 맞다). 대신 `make deploy-*` 가 `deploy-guard`(HEAD ∈ origin/main + 클린 트리 + 운영 태그가 HEAD 의 조상, 예외 `FORCE_DEPLOY=1` 은 기록에 `forced`)를 거치고 VM `~/truewords/deploy.log` 에 한 줄 남긴다. main push 마다 `ci.yml` 이 돌아 "main 은 green" 근거를 남긴다. 2026-08-06 브랜치 HEAD 배포 사고의 재발 방지.
 - [x] **GCP·Neon 잔존 리소스 감사** (2026-07-30) — ADR: `docs/archive/engineering/2026-07-30-gcp-neon-residual-audit.md`
   - **⚠️ 운영 Gemini 키가 문서에 없는 프로젝트에 있었다.** 서비스의 유일한 외부 의존인데 `jetaime-dev` 가 아니라 **다른 계정(운영자 개인 Google 계정)의 `d-project-497004` ("D-Project")** 소유다. 해시 대조로 확정(값 미노출). 지우면 챗봇 즉사. `infra/oracle-vm/.env.example` 과 `README.md` 에 명시했다. **2026-06-04 `woosung-dev` 사고와 같은 구조의 재료였다.**
   - `jetaime-dev` 실사: TODO 에 적혀 있던 `kairos-api`/`nexus-core` 등은 **이미 없다.** 과금 비활성, Cloud Run 0 / Cloud SQL 0 / 버킷 0. Artifact Registry 는 billing 게이트로 조회 불가(과금도 안 됨). **월 $0 — 남겨 두는 비용이 없다.**

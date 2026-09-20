@@ -77,6 +77,35 @@
   .gd-cta {
     display: flex;
     justify-content: center;
-    margin: 14px 0 0;
+    margin: 16px 0 0;
+  }
+  /* 빈 상태의 다음 행동 버튼은 앱 안에서 한 모양이다 — 질문 기록 `.ql-empty__cta` 와 같이 가운데 좁게 */
+  .gd-cta .btn {
+    width: auto;
+  }
+
+  /* ---------- 불러오는 동안의 자리 지킴 (DES §1.5) ---------- */
+  /* 값은 프로토타입 hoondok.css 의 `.skeleton` 그대로. shimmer 는 두지 않는다 —
+     정적 회색만으로 충분하고 `prefers-reduced-motion` 에서 멈출 것도 없다 */
+  .skeleton {
+    display: block;
+    min-height: 64px;
+    border-radius: var(--r);
+    background: var(--surface-2);
+  }
+  .gd-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-top: 24px;
+  }
+  .gd-skeleton--stats {
+    height: 96px;
+  }
+  .gd-skeleton--cal {
+    height: 300px;
+  }
+  .gd-skeleton--row {
+    height: 120px;
   }
 }

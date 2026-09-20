@@ -146,7 +146,7 @@ export function JeongseongForm({ onClose }: { onClose: () => void }) {
       )}
 
       <div className="js-cta">
-        <HoondokButton type="submit" disabled={create.isPending}>
+        <HoondokButton type="submit" isLoading={create.isPending}>
           정성 시작하기
         </HoondokButton>
         <HoondokButton variant="ghost" onClick={onClose}>

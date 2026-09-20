@@ -1,7 +1,9 @@
 "use client";
 
 // SCR-PWA-002 홈 "정성 기간" 카드. 진행 중이면 남은 날·진행·밀린 날 + 진행 바, 없으면 시트로 보내는 CTA.
-// 비로그인 홈은 읽기 화면이라 아무것도 그리지 않는다([가정] — 정성은 계정에 귀속된 기록이다).
+// 비로그인 홈에서도 섹션과 CTA 는 그린다 — 정본 프로토타입 today 의 마크업 순서에 "정성 기간" 이 있고,
+// 통째로 숨기면 비로그인 홈이 한 단계 얕아지며 기능의 존재 자체가 드러나지 않는다.
+// 값을 지어내지는 않는다(REQ-PWA-013): 보여 주는 것은 시작 CTA 뿐이고 로그인 요구는 시트가 맡는다.
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
@@ -24,12 +26,13 @@ function JeongseongSection({ badge, children }: { badge?: string; children: Reac
 }
 
 export function JeongseongCard() {
-  const { user } = useCurrentUser();
-  const { data: period } = useJeongseong(Boolean(user));
+  const { user, isLoading } = useCurrentUser();
+  const { data: period, isPending } = useJeongseong(Boolean(user));
   const abandon = useAbandonJeongseong();
   const [isConfirming, setIsConfirming] = useState(false);
 
-  if (!user) return null;
+  // 계정·정성 조회가 끝나기 전에는 그리지 않는다 — 시작 CTA 와 진행 카드가 번갈아 보이면 안 된다.
+  if (isLoading || (user && isPending)) return null;
 
   if (!period) {
     return (
@@ -89,7 +92,7 @@ export function JeongseongCard() {
           {isConfirming ? (
             <>
               <span className="js-card__ask">이 정성을 그만할까요?</span>
-              <HoondokButton variant="ghost" isSmall disabled={abandon.isPending} onClick={() => abandon.mutate()}>
+              <HoondokButton variant="ghost" isSmall isLoading={abandon.isPending} onClick={() => abandon.mutate()}>
                 네, 그만할래요
               </HoondokButton>
               <HoondokButton variant="line" isSmall onClick={() => setIsConfirming(false)}>
