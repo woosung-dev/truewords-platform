@@ -25,21 +25,39 @@ SOURCE_LABELS: dict[str, str] = {
     "Q": "통일사상요강",
 }
 
-# 카드용 완결 본문만 — 페이지 인용 조각·파일명 leak 제외, 한국어 문장 종결로 끝나야 함.
+# 카드용 완결 본문만. 아래 규칙은 2026-09-20 운영 코퍼스 3,600 청크 실측으로 보강했다 —
+# 종결어미만 보면 대화 조각·편집자주·기사 헤더·문장 중간 잘림이 그대로 통과한다.
 _PAGE_REF = re.compile(r"\(\d+-\d+")
 _FILE_LEAK = re.compile(r"\.(txt|pdf|hwp)", re.IGNORECASE)
 _SENT_END = re.compile(r"(다|요|까|라|죠|네|군요|십시오|하라|드립니다|아멘)[\"'’」』\)\s.!?]*$")
 _VOL_EXT = re.compile(r"\.(txt|pdf|hwpx?|docx?|pptx?)$", re.IGNORECASE)
+# 편집 표기·지문: "[편집자주: …]", "[네]" 같은 대괄호가 본문에 남은 청크.
+_EDITORIAL = re.compile(r"[\[\]]")
+# 대화 인용 조각: 「…」 가 걸친 채 잘린 청크는 화자가 누구인지 카드에서 알 수 없다.
+_DIALOG = re.compile(r"[「」『』]")
+# 문장 중간에서 시작: 관형사로 쓰이지 않는 조사·어미로 시작하면 앞이 잘린 것이다
+# ("의 장자라구요", "인 입장에서 승리적 기반을").
+_LEADING_PARTICLE = re.compile(r"^[의을를가인]\s")
+# 마크다운·노트 헤더가 남은 청크("# 천애축승자 서약식"). 행사 진행 노트이지 말씀 본문이 아니다.
+_MD_HEADING = re.compile(r"^\s*#")
 
 
 def is_card_worthy(text: str) -> bool:
     """훈독 카드에 그대로 올릴 수 있는 완결 본문인가.
 
-    RAG 청크는 문서 중간을 자른 조각이라 그대로 쓰면 문장이 끊기거나 페이지 표기가
-    섞인다. 이 판정을 통과한 것만 후보로 올린다.
+    RAG 청크는 문서 중간을 자른 조각이라 그대로 쓰면 문장이 끊기거나 편집 표기가 섞인다.
+    이 판정을 통과한 것만 후보로 올린다. 통과율은 낮다(실측 1~2%) — 그래도 편성자가
+    쓰레기를 걸러 내는 시간보다 서버가 넉넉히 받아 거르는 편이 싸다.
     """
     t = text.strip()
     if _PAGE_REF.search(t) or _FILE_LEAK.search(t):
+        return False
+    if _EDITORIAL.search(t) or _DIALOG.search(t):
+        return False
+    if _LEADING_PARTICLE.search(t) or _MD_HEADING.search(t):
+        return False
+    # 빈 줄로 나뉘면 헤더와 본문이 한 청크에 섞인 것이다(기사 제목 + 기사 본문).
+    if "\n\n" in t:
         return False
     return bool(_SENT_END.search(t))
 
@@ -93,16 +111,22 @@ def filter_results(
     """
     picked: list[dict] = []
     seen: set[str] = set()
+    seen_body: set[str] = set()
     for r in results:
         if len(picked) >= limit:
             break
         text = r.text.strip()
         if not r.chunk_id or r.chunk_id in seen:
             continue
+        # 같은 말씀이 여러 권·개정본에 실려 있다. 편성자에게 같은 본문을 두 번 보여 주지 않는다.
+        body_key = "".join(text.split())
+        if body_key in seen_body:
+            continue
         if not (min_len <= len(text) <= max_len):
             continue
         if not is_card_worthy(text):
             continue
         seen.add(r.chunk_id)
+        seen_body.add(body_key)
         picked.append(to_candidate(r))
     return picked

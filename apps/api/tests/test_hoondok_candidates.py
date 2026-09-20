@@ -25,7 +25,7 @@ from app.modules.hoondok.candidates import (
     suggest_title,
 )
 from app.modules.hoondok.dependencies import get_daily_reading_candidate_service
-from app.modules.hoondok.service import MAX_CANDIDATE_LIMIT, DailyReadingCandidateService
+from app.modules.hoondok.service import DailyReadingCandidateService
 from app.modules.search.hybrid import SearchResult
 
 BASE = "/admin/hoondok/daily-readings"
@@ -54,6 +54,13 @@ def _result(text: str = GOOD_TEXT, *, chunk_id: str = "pt-1", source: str = "B",
         ("이것은 문장이 끊긴 조각이고 종결어미가", False),  # 완결되지 않은 청크
         ("참사랑에 대하여 (123-45) 말씀하셨다", False),  # 페이지 인용 조각
         ("천성경.pdf 에서 발췌한 내용입니다", False),  # 파일명 leak
+        # 아래 4건은 2026-09-20 운영 코퍼스 실측에서 종결어미 규칙만으로 통과해 버린 실제 패턴이다.
+        ("[편집자주: 천원사 출판국에서 교정교열했습니다] 오늘 말씀을 전합니다", False),
+        ("대복이 있습니다.」응, 이대복 그런 사람들이에요", False),  # 대화 조각
+        ("의 장자라구요", False),  # 문장 중간에서 잘림
+        ("특별집회 천정궁에서 열려\n\n오늘 집회가 열렸습니다", False),  # 헤더 + 본문 혼합
+        ("# 천애축승자 서약식 서약문을 낭독하는 시간입니다", False),  # 마크다운 노트 헤더
+        ("인 입장에서 승리적 기반을 갖추어야 합니다", False),  # 문장 중간 시작
     ],
 )
 def test_is_card_worthy(text: str, expected: bool):
@@ -93,8 +100,24 @@ def test_filter_drops_out_of_range_unworthy_and_missing_chunk_id():
     assert [c["chunk_id"] for c in picked] == ["ok"]
 
 
+def test_filter_dedupes_same_body_across_volumes():
+    """같은 말씀이 권·개정본마다 실려 있다. chunk_id 가 달라도 한 번만 보여 준다."""
+    same = [
+        _result(chunk_id="v1", volume="참어머님 말씀(2017년)"),
+        _result(chunk_id="v2", volume="참어머님 말씀(2017년)-수정"),
+    ]
+    assert len(filter_results(same, min_len=50, max_len=300, limit=10)) == 1
+
+
+# 본문 중복 제거와 구분하려면 서로 다른 본문이 필요하다.
+OTHER_TEXT = (
+    "하늘부모님의 뜻은 한 사람의 완성이 아니라 가정의 완성에 있습니다. "
+    "그 가정이 모여 종족과 민족과 국가를 이루는 것이 섭리의 순서입니다."
+)
+
+
 def test_filter_dedupes_by_chunk_id_and_respects_limit():
-    results = [_result(chunk_id="dup"), _result(chunk_id="dup"), _result(chunk_id="other")]
+    results = [_result(chunk_id="dup"), _result(chunk_id="dup"), _result(OTHER_TEXT, chunk_id="other")]
     assert len(filter_results(results, min_len=50, max_len=300, limit=10)) == 2
     assert len(filter_results(results, min_len=50, max_len=300, limit=1)) == 1
 
@@ -140,7 +163,7 @@ async def test_search_overfetches_beyond_limit(service):
 async def test_search_caps_limit(service):
     svc, search = service
     await svc.search("참사랑", limit=999)
-    assert search.await_args.kwargs["top_k"] <= MAX_CANDIDATE_LIMIT * 5
+    assert search.await_args.kwargs["top_k"] <= 300
 
 
 async def test_blank_query_is_422(service):

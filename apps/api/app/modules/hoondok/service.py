@@ -256,9 +256,10 @@ DEFAULT_CANDIDATE_MIN_LEN = 50
 DEFAULT_CANDIDATE_MAX_LEN = 300
 DEFAULT_CANDIDATE_LIMIT = 12
 MAX_CANDIDATE_LIMIT = 30
-# 길이·카드 적합성에서 상당수가 떨어지므로 넉넉히 받아 거른다.
-_CANDIDATE_OVERFETCH = 5
-_MAX_CANDIDATE_FETCH = 150
+# 길이·카드 적합성 통과율이 낮아(2026-09-20 실측 1~2%) 넉넉히 받아 거른다. limit 을 못 채우면
+# 빈 배열이 아니라 "찾은 만큼" 을 주고, 화면이 키워드를 바꾸라고 안내한다.
+_CANDIDATE_OVERFETCH = 12
+_MAX_CANDIDATE_FETCH = 300
 
 
 class DailyReadingCandidateService:
