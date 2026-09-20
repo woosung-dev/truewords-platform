@@ -33,7 +33,7 @@ export function askMetaLabel(item: AskItem, now: Date = new Date()): string {
  * 등급은 주지 않으므로 없는 항목을 지어내지 않는다. 관리자가 지정한 표시명이 있으면 그것을 쓰고 없으면 권으로
  * 되돌리는 것, 파일 확장자를 떼는 것 모두 시연 챗 인용 카드(`features/chat/components/assistant-message.tsx`)와 같다.
  */
-export function sourceLabel(source: Source): string {
+function sourceLabel(source: Source): string {
   return stripFileExt(source.display_name?.trim() || source.volume);
 }
 

@@ -129,9 +129,6 @@
   .check:active {
     transform: scale(0.96);
   }
-  .masthead {
-    display: none;
-  }
   .col {
     width: 100%;
     padding: 4px var(--gutter) 28px;
@@ -750,12 +747,6 @@
   .toggle[aria-pressed="true"]::after {
     left: 21px;
     border-color: transparent;
-  }
-  .form__msg {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent-strong);
-    margin: 0;
   }
   .form__switch {
     font-size: 13px;
