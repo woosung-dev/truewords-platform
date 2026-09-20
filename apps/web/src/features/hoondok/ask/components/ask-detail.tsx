@@ -209,7 +209,7 @@ export function AskDetail({ id }: { id: string }) {
               <span>끄면 기록 목록의 저장한 답에서 빠져요</span>
             </span>
             <button
-              className="ask-toggle"
+              className="toggle"
               type="button"
               aria-pressed={Boolean(item.isSaved)}
               aria-label="이 질문 저장"

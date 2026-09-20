@@ -721,6 +721,36 @@
     font-size: 12.5px;
     color: var(--ink-2);
   }
+  /* 토글 46×28 (DES-PWA-003 §2.11, 프로토타입 .toggle 그대로). 설정 알림 4종·AI 질문 저장이 쓴다. 모션 150ms */
+  .toggle {
+    position: relative;
+    width: 46px;
+    height: 28px;
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    flex: none;
+  }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--ink-3);
+    transition: left 0.15s;
+  }
+  .toggle[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .toggle[aria-pressed="true"]::after {
+    left: 21px;
+    border-color: transparent;
+  }
   .form__msg {
     font-size: 13px;
     font-weight: 600;

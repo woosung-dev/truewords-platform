@@ -347,38 +347,6 @@
     line-height: 1.5;
     color: var(--ink-2);
   }
-  /* 토글 46×28 (DES §2.11). off 테두리는 --ink-3 라 3:1 을 넘는다 */
-  .ask-toggle {
-    position: relative;
-    width: 46px;
-    height: 28px;
-    border: 1.5px solid var(--ink-3);
-    border-radius: var(--r-full);
-    background: var(--surface-2);
-    flex: none;
-    transition:
-      background 0.15s ease,
-      border-color 0.15s ease;
-  }
-  .ask-toggle::after {
-    content: "";
-    position: absolute;
-    inset-block-start: 1.5px;
-    inset-inline-start: 1.5px;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: var(--surface);
-    box-shadow: var(--shadow-1);
-    transition: transform 0.15s ease;
-  }
-  .ask-toggle[aria-pressed="true"] {
-    background: var(--accent);
-    border-color: var(--accent);
-  }
-  .ask-toggle[aria-pressed="true"]::after {
-    transform: translateX(18px);
-  }
   .ask-acts {
     display: flex;
     flex-wrap: wrap;
