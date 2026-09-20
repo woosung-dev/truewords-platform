@@ -121,12 +121,6 @@ describe("훈독 컴포넌트", () => {
 describe("훈독 CSS 원문", () => {
   const HOONDOK_CSS = readFileSync(path.resolve(__dirname, "../app/hoondok.css"), "utf8");
 
-  it("토큰 블록이 html 까지 걸려 캔버스(body) 배경이 종이색이 된다", () => {
-    // globals.css 의 `body { background: var(--background) }` 는 훈독 래퍼의 조상이라
-    // 스코프 안 재정의가 닿지 않는다. html 에 토큰을 얹어야 --background 가 body 까지 상속된다.
-    expect(HOONDOK_CSS).toMatch(/html:has\(\[data-app="hoondok"\]\),\s*\[data-app="hoondok"\]\s*\{/);
-  });
-
   it("미션 제목은 .ql-q 와 같이 두 줄에서 자른다", () => {
     const rule = HOONDOK_CSS.match(/\.mission__title\s*\{([^}]*)\}/)?.[1];
     expect(rule).toBeDefined();

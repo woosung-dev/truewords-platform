@@ -54,3 +54,6 @@
 | 브라우저 검토 | 프리미티브 42종 computed style 대조 | **실질 불일치 0.** 남은 차이는 (a) 변형 클래스 표본 차이(`.btn` 을 구현 쪽에서 `--sm` 이 먼저 잡히는 등), (b) 아이콘 폰트(프로토타입 Phosphor) ↔ SVG(lucide) 로 `font-size` 가 무의미한 경우, (c) `.my-note` 의 의도된 이탈(16px = iOS 확대 방지 · 테두리 `--ink-3` = DES §10) 뿐이다 |
 | 브라우저 검토 | 라우트·네트워크·콘솔 | 9 라우트 전부 200, 훈독 API(`auth/me`·`me/summary`·`me/history`·`me/jeongseong`) 전부 200. 앱 레벨 콘솔 오류 0(나머지는 dev HMR 소음). 브레이크포인트 768 · 1024 · 1224 가 정본과 일치 |
 | 브라우저 검토 | 상태 화면 | `/hoondok/ask/log` 빈 상태·`/hoondok/ask/<없는 id>` 없음 상태·`/hoondok/offline` 폴백 모두 제목+본문+행동 3단으로 규격대로. 설정의 알림 토글은 "준비 중" disabled (Phase 4 차단과 일치) |
+| 브라우저 검토 | 결함 2건 수정 → 머지 `0f0c9bb` | ① `.mission__title` 2줄 제한(`.ql-q` 와 같은 규격) — 375px 미션 카드 `[176,92,92]` → `[133,92,92]`, 정본은 `[92,114,92]`. ② 캔버스 배경 수정은 **되돌렸다**(아래) |
+| 브라우저 검토 | **캔버스 배경 수정 롤백** | 토큰 블록 선택자를 `html:has([data-app="hoondok"])` 까지 넓히자 `make e2e` 가 `tests/e2e/hoondok.spec.ts:57` 에서 실패했다 — 훈독 팔레트가 `:root` 로 새지 않는지 지키는 **명시적 경계 계약**이다. 계약을 우회해 통과시키지 않고 되돌렸고, 세 안(계약 좁히기 · `overscroll-behavior-y: none` · 유지)을 `docs/TODO.md` Questions 에 남겼다. 노출은 `min-height:100dvh` 덕에 **고무줄 오버스크롤 순간뿐**이다 |
+| 게이트 | 최종 `make ci` · `make e2e` | 아래 "최종 검증" 절 |

@@ -20,12 +20,6 @@
 }
 
 /* ---------- 1. 토큰 (첫 블록 = 유일한 hex 허용 구역) ---------- */
-/* `html` 까지 선택자를 넓힌 이유 — globals.css 의 `body { background: var(--background) }` 는 훈독 래퍼의
-   조상이라 스코프 안에서 덮은 --background 가 닿지 않고, html 이 투명해 캔버스 색은 body 에서 전파된다.
-   그대로 두면 오버스크롤(고무줄)·내용이 짧은 화면에서 종이색 앱 아래로 시연 챗 크림색 띠가 드러나고
-   theme-color(--paper) 와도 어긋난다. 이 블록은 커스텀 프로퍼티만 담고 있어 html 에 얹어도 그리는 것이 없고,
-   --background 가 상속돼 body 까지 내려가 캔버스가 종이색이 된다. 실제로 칠하는 규칙은 아래 2번 블록에만 둔다. */
-html:has([data-app="hoondok"]),
 [data-app="hoondok"] {
   --paper: #fbfaf8;
   --surface: #ffffff;
