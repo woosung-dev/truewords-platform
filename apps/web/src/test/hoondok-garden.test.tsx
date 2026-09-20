@@ -19,7 +19,7 @@ vi.mock("@/features/hoondok/jeongseong-api", () => ({
   jeongseongAPI: { current: vi.fn(), create: vi.fn(), abandon: vi.fn() },
 }));
 
-import { MonthCalendar } from "@/components/hoondok/month-calendar";
+import { MonthCalendar } from "@/components/hoondok";
 import { GardenScreen } from "@/features/hoondok/garden/components/garden-screen";
 import { historyAPI } from "@/features/hoondok/history-api";
 import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";

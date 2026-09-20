@@ -2,9 +2,8 @@
 
 import { ChevronRight, Flame, Sprout } from "lucide-react";
 import Link from "next/link";
-import { HoondokButton } from "@/components/hoondok";
 // index.ts 의 export 정리는 W4 담당이라 경로를 직접 가리킨다 (PLAN-HD-002 §3.1).
-import { MonthCalendar } from "@/components/hoondok/month-calendar";
+import { HoondokButton, MonthCalendar } from "@/components/hoondok";
 import { isHoondokPreviewEnabled } from "@/features/hoondok/flag";
 import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
 import { useMonthHistory } from "@/features/hoondok/use-history";
