@@ -1,10 +1,11 @@
 "use client";
 
-import { Flame, Sprout } from "lucide-react";
+import { ChevronRight, Flame, Sprout } from "lucide-react";
 import Link from "next/link";
 import { HoondokButton } from "@/components/hoondok";
 // index.ts 의 export 정리는 W4 담당이라 경로를 직접 가리킨다 (PLAN-HD-002 §3.1).
 import { MonthCalendar } from "@/components/hoondok/month-calendar";
+import { isHoondokPreviewEnabled } from "@/features/hoondok/flag";
 import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
 import { useMonthHistory } from "@/features/hoondok/use-history";
 import { useJeongseong } from "@/features/hoondok/use-jeongseong";
@@ -14,9 +15,10 @@ import { useCurrentUser } from "@/features/identity/use-current-user";
 
 // SCR-PWA-014 나의 정원. 프로필 → 통계 3칸 → 월 달력 → 진행 중인 정성 (프로토타입 data-screen="garden" 순서).
 // 읽기 화면이므로 비로그인을 자동으로 내쫓지 않고(gate.ts 원칙) 안내 카드만 보여준다.
-// 가족·친구 섹션은 W3-F 범위라 자리표시도 두지 않는다.
+// 가족·친구 섹션은 프로토타입과 같은 자리(정성 다음)에 두되, 016 이 프리뷰 셸이라 진입 링크만이고 플래그가 꺼지면 그리지 않는다.
 const BETA_NOTICE = "독립 운영 베타 · 가정연합 공식 앱이 아닙니다";
 const JEONGSEONG_HREF = "/hoondok?sheet=jeongseong";
+const FAMILY_HREF = "/hoondok/family";
 
 export type GardenScreenProps = {
   /** 서버가 계산한 KST 월 `YYYY-MM`. 클라이언트가 다시 계산하면 자정 경계에서 hydration 이 어긋난다 */
@@ -77,6 +79,25 @@ function JeongseongSection({ period }: { period: JeongseongPeriodResponse | null
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** 016 가족·친구 진입 (W3-F). 프리뷰 플래그가 꺼져 있으면 아무것도 그리지 않는다 — 운영에는 없는 화면이다. */
+function FamilyEntrySection() {
+  if (!isHoondokPreviewEnabled()) return null;
+  return (
+    <div className="sect">
+      <div className="sect__head">
+        <h2 className="sect__title">가족·친구</h2>
+      </div>
+      <Link className="card fm-entry" href={FAMILY_HREF}>
+        <span className="fm-entry__bd">
+          <b>가족·친구와 함께 읽어요</b>
+          <span>연결과 공개 범위를 확인해요</span>
+        </span>
+        <ChevronRight size={20} aria-hidden="true" />
+      </Link>
     </div>
   );
 }
@@ -186,6 +207,8 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
           <JeongseongSection period={jeongseong.data ?? null} />
         </>
       )}
+
+      <FamilyEntrySection />
 
       <GardenNotice />
     </section>
