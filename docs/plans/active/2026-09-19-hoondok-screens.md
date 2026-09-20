@@ -207,6 +207,8 @@ make e2e
 | W1 `make ci` 2차 | 전체 (HEAD `f1eeb8c`) | **통과** — pytest 1039/4/1 · contracts 하위 호환 · tooling 26 · docs-links · boundaries · hoondok:check 9파일 · web Vitest 168 · admin 104 · lint 경고 web 10·admin 3 전부 기존 파일 · web·admin `next build` 성공 · typecheck | 2026-09-20 |
 | W2 E2E | `make e2e` 전체 (머지 `b2772d4` + `.toggle` 승격 `3438a32`) | 1차 **62 passed / 2 failed** — 둘 다 spec 취약 단언: ① `hoondok-ask` 요청 건수 1 단언이 dev StrictMode 이중 마운트(첫 요청 abort)로 2 → 모든 요청의 무기억(`session_id` 없음)·`chatbot_id: all` 로 정정 ② `admin-flow` 목록 제목 `getByText` 가 Next route announcer 와 중복 매치 → heading 역할. 정정 `1cb2157` → 2차 **64 passed**(1.7m) | 2026-09-20 |
 | W2 시각 대조 | 프로토타입 :4173 `?screen=ask|ask-log|ask-detail` ↔ dev :3000, 390·1280 | 묻기 홈(라벨·textarea·도움말·시작 문장 3·기록 링크·notice)·기록(pill 세그먼트 3 + 준비 중 문구·목록·notice)·상세(질문·배지·AI 설명 점 패턴 박스·근거 카드 번호·이어 묻기·저장 토글·공유) 구조·순서 일치. 1280 `col--read` 640px 실측, 가로 넘침 0. 프로토타입 정본에 `.qs-*`·`.ql-*`·`.ask-*` CSS 가 없어(`.ai-note` 만 존재) 구현은 DES §2.2·§2.10·§2.11 값으로 보완, 질문 제목은 `text-wrap: balance` `[가정]`. 연관 말씀·권위 배지는 `/chat/stream` 미제공으로 미렌더(§9). `make ci` 는 W3 머지 뒤 한 번에 | 2026-09-20 |
+| W3 머지·정적 검증 | web Vitest · typecheck · lint · `hoondok:check` · `format:check` (3 머지 누적 + 배럴 정리) | **208 passed**(+25) · 통과 · 경고 10건 전부 기존 파일 · 9파일 통과 · 310 files 통과. `MonthCalendar`·`monthLabel` 을 `components/hoondok/index.ts` 로 export 해 깊은 경로 import 2곳 제거 | 2026-09-20 |
+| W3 E2E | `hoondok-preview.spec.ts` 신설(라우트 8 × 390/1280 + 동작 4) → `make e2e` 전체 | 1차 포트 3000 점유(시각 대조 dev 서버)로 기동 실패 → 서버 정리. 2차 **84 passed / 1 failed** — 검색 입력을 `getByRole("textbox")` 로 잡아 실패(`type="search"` 라 역할이 `searchbox`) → 정정 `293d57a`. 3차 **85 passed**(1.9m, 실패 0) | 2026-09-20 |
 
 ## 9. 결정 기록
 
