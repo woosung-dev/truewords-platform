@@ -209,6 +209,7 @@ make e2e
 | W2 시각 대조 | 프로토타입 :4173 `?screen=ask|ask-log|ask-detail` ↔ dev :3000, 390·1280 | 묻기 홈(라벨·textarea·도움말·시작 문장 3·기록 링크·notice)·기록(pill 세그먼트 3 + 준비 중 문구·목록·notice)·상세(질문·배지·AI 설명 점 패턴 박스·근거 카드 번호·이어 묻기·저장 토글·공유) 구조·순서 일치. 1280 `col--read` 640px 실측, 가로 넘침 0. 프로토타입 정본에 `.qs-*`·`.ql-*`·`.ask-*` CSS 가 없어(`.ai-note` 만 존재) 구현은 DES §2.2·§2.10·§2.11 값으로 보완, 질문 제목은 `text-wrap: balance` `[가정]`. 연관 말씀·권위 배지는 `/chat/stream` 미제공으로 미렌더(§9). `make ci` 는 W3 머지 뒤 한 번에 | 2026-09-20 |
 | W3 머지·정적 검증 | web Vitest · typecheck · lint · `hoondok:check` · `format:check` (3 머지 누적 + 배럴 정리) | **208 passed**(+25) · 통과 · 경고 10건 전부 기존 파일 · 9파일 통과 · 310 files 통과. `MonthCalendar`·`monthLabel` 을 `components/hoondok/index.ts` 로 export 해 깊은 경로 import 2곳 제거 | 2026-09-20 |
 | W3 E2E | `hoondok-preview.spec.ts` 신설(라우트 8 × 390/1280 + 동작 4) → `make e2e` 전체 | 1차 포트 3000 점유(시각 대조 dev 서버)로 기동 실패 → 서버 정리. 2차 **84 passed / 1 failed** — 검색 입력을 `getByRole("textbox")` 로 잡아 실패(`type="search"` 라 역할이 `searchbox`) → 정정 `293d57a`. 3차 **85 passed**(1.9m, 실패 0) | 2026-09-20 |
+| W3 시각 대조 | 프로토타입 :4173 `?screen=library|worship|family|words` ↔ dev :3000, 390·1280 | 서고(이어 읽기·저작물 5·권리 확인 중 배지·하단 안내)·가정예배(이번 주 순서지 6단계·보내기)·가족·친구(우리 가족 3 + 초대 · 친구 4 + 추가 · 공개 범위) 구조·순서·문구 일치. 원문 뷰 1280 에서 `grid-template-columns: 280px 640px` 2-pane 실측, 가로 넘침 0. 차이는 전부 기록된 `[가정]` — 외부 사진(picsum) 을 글자 카드·이니셜로 대체, 프리뷰 안내 `.notice` 한 줄 추가. 프로토타입 정본에 `.ws-*`·`.fm-*`·`.qs-*` CSS 가 없어(미스타일 렌더) 치수는 이웃 규칙·DES 값에서 가져왔다 | 2026-09-20 |
 
 ## 9. 결정 기록
 
