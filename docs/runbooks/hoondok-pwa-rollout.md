@@ -251,11 +251,22 @@ PR [#301](https://github.com/woosung-dev/truewords-platform/pull/301) 을 main `
 | admin `/hoondok`·`/hoondok/new`·`/dashboard`·`/login` | 200 |
 | web `/hoondok` · `/hoondok/garden` | 200 · 404(web 미배포라 PLAN-HD-002 13화면은 여전히 없다) |
 
-### 2026-09-20 — 편성 재고: 아직 0일분 (미해결)
+### 2026-09-20 — 편성 재고: 2일분 투입, `hoondok-today` WARN 해소
 
 `ops-check` 의 `hoondok-today` WARN 은 **이 날 해소되지 않았다.** 운영 DB 쓰기는 별도 승인이고, 편성 입력은 편성자가 admin 화면에서 한다(`PLAN-HD-001` 결정 5).
 
 같은 날 편성 입력을 돕는 [`PLAN-HD-003`](../plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, [API-HD-012](../specs/api/hoondok-api.md))를 구현했다. 코퍼스 원문을 검색해 폼을 채우며 생성 AI 가 본문을 만들지 않는다. **같은 날 backend·admin 배포를 마쳐 운영 admin 편성 화면에서 쓸 수 있다**(위 절). 편성 입력 자체는 admin 로그인이 필요하므로 편성자가 한다.
 
-임시로 7일분 후보를 운영 Qdrant 읽기 전용 조회로 뽑아 편성자에게 전달했다(원문 그대로, 등급 `R`·검수 `unverified`). 입력이 끝나면 `make ops-check` 로 `hoondok-today` 가 OK 로 바뀌는지 확인하고 이 절에 결과를 적는다.
+편성자가 admin 편성 화면에서 **2건**(2026-09-20·09-21)을 입력해 `ops-check` 가 초록이 됐다.
+
+| 확인 | 결과 |
+|---|---|
+| `make ops-check` | **불변식 8건 전부 통과** — `hoondok-today` OK "오늘·내일 편성 있음 · 앞으로 2일분" |
+| `GET /hoondok/today` | `status: "available"` · 참어머님 · 참어머님 말씀모음(2018~2019) · `authority_grade=R` |
+| web `/hoondok` 홈 | "오늘의 실천" 에 편성 제목·출처·3분이 표시된다 |
+| web `/hoondok/read` | 본문 전문 + 출처 줄에 **"권리 확인 중"** 점선 배지 · "훈독 완료" 버튼 · "완료 기록은 로그인 후 남아요" |
+
+편성자가 `review_status` 를 `reviewed` 로 올렸으므로 "확인되지 않음" 배지는 뜨지 않는다. `authority_grade=R` 배지는 그대로 보인다 — 권리 확인 전이라는 표시는 유지된다.
+
+앞으로 2일분이라 **9/22 에 다시 WARN 이 뜬다.** 완료 기준인 7일분에는 아직 못 미친다.
 
