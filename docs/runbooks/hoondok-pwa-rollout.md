@@ -226,3 +226,11 @@ ssh truewords-oracle 'grep -c "^HOONDOK_INVITE_CODE=" ~/truewords/.env'
 
 게이트를 켰는지 확인하는 읽기 전용 한 줄이다. 켠 뒤에는 잘못된 코드로 `POST /hoondok/auth/signup` 이 403 `INVITE_REQUIRED` 를 내는지로 검증한다.
 
+### 2026-09-20 — 편성 재고: 아직 0일분 (미해결)
+
+`ops-check` 의 `hoondok-today` WARN 은 **이 날 해소되지 않았다.** 운영 DB 쓰기는 별도 승인이고, 편성 입력은 편성자가 admin 화면에서 한다(`PLAN-HD-001` 결정 5).
+
+같은 날 편성 입력을 돕는 [`PLAN-HD-003`](../plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, [API-HD-012](../specs/api/hoondok-api.md))를 구현했다. 코퍼스 원문을 검색해 폼을 채우며 생성 AI 가 본문을 만들지 않는다. **운영에는 미반영** — 쓰려면 `deploy-backend`(PR #300 의 alembic `k5a6b7c8d9e0` 마이그레이션 동반) · `deploy-admin` 이 필요하고 각각 별도 승인이다.
+
+임시로 7일분 후보를 운영 Qdrant 읽기 전용 조회로 뽑아 편성자에게 전달했다(원문 그대로, 등급 `R`·검수 `unverified`). 입력이 끝나면 `make ops-check` 로 `hoondok-today` 가 OK 로 바뀌는지 확인하고 이 절에 결과를 적는다.
+
