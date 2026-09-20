@@ -184,9 +184,9 @@ make e2e
 - [x] W3-L 007·008·009 말씀 프리뷰 — 2026-09-20 머지, 라우트 `/hoondok/library`·`/search`·`/words/[id]`. 원문은 `PREVIEW_WORD_ID = "cheonseonggyeong-1-3"` 한 편만(`screens.ts` 제목 고정 때문 — §7 아래 미결 참고). 검색 입력은 앱바가 아니라 본문 첫 줄 `[가정]`
 - [x] W3-W 010~013 가정예배 프리뷰 — 2026-09-20 머지, 라우트 `/hoondok/worship`·`/challenge/[id]`·`/sermons`·`/request`. 챌린지 fixture `family-21`·`church-40`·`youth-reading`. 프로토타입 011 에 순위 요소가 원래 없어 DEC-PWA-019 는 삭제 0건(회귀 단언만 추가). 외부 사진(picsum) 은 글자 카드·이니셜로 대체 `[가정]`
 - [x] W3-F 016 가족·친구 프리뷰 — 2026-09-20 머지, 라우트 `/hoondok/family` + 정원 진입 섹션(프리뷰 ON·로그인 시만). **공개 범위는 라디오 4가 아니라 토글 2 + 고정 1** — 프로토타입 `.fm-scope` 가 그렇고 4단계 문구는 어느 문서에도 없다 `[확인 필요]`
-- [ ] W3 `hoondok-preview.spec.ts` **라우트 8개**(§4 의 9개에서 정정 — library·search·words·worship·challenge·sermons·request·family) + CSS 공통 승격 정리 + 웨이브 끝 `make ci`·`make e2e`·시각 대조
-- [ ] W4 `index.ts`·DES §8·AGENTS.md·TODO·§8 완료 증거
-- [ ] 사용자 승인 → push → main PR 1개
+- [x] W3 `hoondok-preview.spec.ts` **라우트 8개**(§4 의 9개에서 정정 — library·search·words·worship·challenge·sermons·request·family) + CSS 공통 승격 정리(머지 `74cc34f`, 7묶음 승격 + `.chips` 중복 제거) + 웨이브 끝 `make ci`·`make e2e`·시각 대조 — 2026-09-20 §8
+- [x] W4 `index.ts`(`MonthCalendar`·`monthLabel` 배럴 export `fc3bf7e`)·DES §8 결정 6행·AGENTS.md 라우트 16개·README·TODO·스펙 2종(머지 `60b3adf`)·§8 완료 증거 — 2026-09-20
+- [ ] 사용자 승인 → push → main PR 1개 ← **여기서 대기 중**
 
 ## 8. 완료 증거
 
@@ -210,6 +210,10 @@ make e2e
 | W3 머지·정적 검증 | web Vitest · typecheck · lint · `hoondok:check` · `format:check` (3 머지 누적 + 배럴 정리) | **208 passed**(+25) · 통과 · 경고 10건 전부 기존 파일 · 9파일 통과 · 310 files 통과. `MonthCalendar`·`monthLabel` 을 `components/hoondok/index.ts` 로 export 해 깊은 경로 import 2곳 제거 | 2026-09-20 |
 | W3 E2E | `hoondok-preview.spec.ts` 신설(라우트 8 × 390/1280 + 동작 4) → `make e2e` 전체 | 1차 포트 3000 점유(시각 대조 dev 서버)로 기동 실패 → 서버 정리. 2차 **84 passed / 1 failed** — 검색 입력을 `getByRole("textbox")` 로 잡아 실패(`type="search"` 라 역할이 `searchbox`) → 정정 `293d57a`. 3차 **85 passed**(1.9m, 실패 0) | 2026-09-20 |
 | W3 시각 대조 | 프로토타입 :4173 `?screen=library|worship|family|words` ↔ dev :3000, 390·1280 | 서고(이어 읽기·저작물 5·권리 확인 중 배지·하단 안내)·가정예배(이번 주 순서지 6단계·보내기)·가족·친구(우리 가족 3 + 초대 · 친구 4 + 추가 · 공개 범위) 구조·순서·문구 일치. 원문 뷰 1280 에서 `grid-template-columns: 280px 640px` 2-pane 실측, 가로 넘침 0. 차이는 전부 기록된 `[가정]` — 외부 사진(picsum) 을 글자 카드·이니셜로 대체, 프리뷰 안내 `.notice` 한 줄 추가. 프로토타입 정본에 `.ws-*`·`.fm-*`·`.qs-*` CSS 가 없어(미스타일 렌더) 치수는 이웃 규칙·DES 값에서 가져왔다 | 2026-09-20 |
+| W3 CSS 정리 | 승격 전후 computed style 전수 대조(13 URL × 390/1280, 스코프 하위 전 요소 40속성) · Vitest · tooling (머지 `74cc34f`) | **IDENTICAL** — 값 변경 0. `.chips` 두 정의가 완전히 같아 중복 제거, 나머지 6묶음(`.badge--line`·`.pill-seg`·`.ai-note`·`.chip-btn`·`.gd-cal__*`·`.st-lead`/`.st-row__soon`)은 2~3개 화면군이 쓰던 것을 `hoondok.css` 로 이동. Vitest 208 유지 · tooling 26 · hoondok:check 9파일. 남은 누수 1건: `sheet.css` 의 `.stats + .progress` 가 가정예배 챌린지에도 매치(두 규칙 모두 14px 이라 실측 차이 0) `[확인 필요]` | 2026-09-20 |
+| **최종 `make ci`** | 전체 (HEAD `c0b0547`) | **통과** — pytest **1039 passed / 4 skipped / 1 xfailed** · contracts breaking 0 · tooling 26 · docs-links 문서 188·링크 306·새 오류 0 · boundaries · hoondok:check 9파일 · web Vitest **208** · admin 104 · api-client 13 · lint 경고 web 10·admin 3 전부 기존 파일 · web·admin `next build` · typecheck | 2026-09-20 |
+| **최종 `make e2e`** | 전체 (HEAD `c0b0547`) | **85 passed / 0 failed**(1.9m) — 훈독 프로젝트 39건(스모크 8·플로우 5·정원 2·설정 1·정성 1·AI 질문 3·프리뷰 20) 포함 | 2026-09-20 |
+| 범위 합계 | `main...HEAD` | 커밋 73개 · 126 파일 · +11,169 / −121. 라우트 16개(실데이터 8·프리뷰 8) · 화면 그룹 CSS 8파일 · API 3개 추가(`API-HD-009/010/011`) · 테이블 1개(`ENT-HD-004`, alembic `k5a6b7c8d9e0`) | 2026-09-20 |
 
 ## 9. 결정 기록
 
