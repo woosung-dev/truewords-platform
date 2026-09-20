@@ -157,8 +157,8 @@ function OnboardingForm() {
         </p>
       )}
       <div className="onb-cta">
-        {/* 저장 중에는 라벨을 유지한 채 중복 제출만 막는다 (DES §1.5 loading) */}
-        <HoondokButton type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
+        {/* 저장 중에는 라벨을 유지한 채 스피너를 붙이고 중복 제출을 막는다 (DES §1.5 loading) */}
+        <HoondokButton type="submit" isLoading={isSubmitting}>
           {mode === "signup" ? "가입하고 시작하기" : "로그인"}
         </HoondokButton>
         <Link className="btn btn-ghost" href="/hoondok">

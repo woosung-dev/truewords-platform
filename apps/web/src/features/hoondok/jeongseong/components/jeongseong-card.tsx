@@ -92,7 +92,7 @@ export function JeongseongCard() {
           {isConfirming ? (
             <>
               <span className="js-card__ask">이 정성을 그만할까요?</span>
-              <HoondokButton variant="ghost" isSmall disabled={abandon.isPending} onClick={() => abandon.mutate()}>
+              <HoondokButton variant="ghost" isSmall isLoading={abandon.isPending} onClick={() => abandon.mutate()}>
                 네, 그만할래요
               </HoondokButton>
               <HoondokButton variant="line" isSmall onClick={() => setIsConfirming(false)}>

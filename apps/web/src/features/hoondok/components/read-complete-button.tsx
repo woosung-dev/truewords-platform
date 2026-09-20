@@ -18,13 +18,18 @@ export function ReadCompleteButton({ askHref }: { askHref: string }) {
   const { user, isLoading } = useCurrentUser();
   const { data: summary } = useSummary(Boolean(user));
   const completion = useMissionCompletion("read", user, isLoading);
-  const isDone = completion.isDone || Boolean(summary?.today.read);
+  // 서버가 오늘 완료를 확정한 사실과, 로컬(낙관적)까지 포함한 완료 표시를 나눠 둔다.
+  const isServerDone = Boolean(summary?.today.read);
+  const isDone = completion.isDone || isServerDone;
 
-  // 연속일은 요약이 도착한 뒤에만 적는다 — 오기 전에 0 을 보여 주면 거짓 정보다.
+  // 연속일은 서버가 오늘 완료를 확정했을 때만 적는다. 요약이 오기 전의 0 도, 낙관적 완료 직후의
+  // 옛 요약값도 거짓이다 — 저장에 실패한 채 "연속 N일째" 를 말하면 실패 안내와 서로 어긋난다.
   const streak = summary?.streak_days;
   let note: string;
   if (streak === undefined) note = !user && !isLoading ? "완료 기록은 로그인 후 남아요" : "";
-  else if (isDone) note = `연속 ${streak}일째 이어가고 있어요`;
+  else if (isServerDone) note = `연속 ${streak}일째 이어가고 있어요`;
+  // 로컬만 완료(서버 미확정·미동기·저장 실패) — 카드가 이미 사정을 말하고 있어 보조 줄은 비운다.
+  else if (isDone) note = "";
   else note = `완료하면 연속 ${streak + 1}일이 돼요`;
 
   const footer = (
@@ -59,8 +64,8 @@ export function ReadCompleteButton({ askHref }: { askHref: string }) {
   }
   return (
     <>
-      {/* 저장 중에는 라벨을 그대로 두고 중복 제출만 막는다 (DES §1.5 loading). 좌측 스피너는 공용 규칙이 없어 보류. */}
-      <HoondokButton onClick={completion.markDone} disabled={completion.isSaving} aria-busy={completion.isSaving}>
+      {/* 저장 중에는 라벨을 그대로 두고 좌측 스피너로 진행을 알리며 중복 제출을 막는다 (DES §1.5 loading). */}
+      <HoondokButton onClick={completion.markDone} isLoading={completion.isSaving}>
         <Check size={20} />
         훈독 완료
       </HoondokButton>
