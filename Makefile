@@ -288,6 +288,15 @@ prune-images: ## VM 의 오래된 truewords 이미지·빌드 캐시 정리 (최
 	@# 정렬해 최신 N개만 남긴다. `KEEP=5` / `DRY_RUN=1` 로 조정할 수 있다.
 	@ssh "$(ORACLE)" '$(if $(KEEP),KEEP=$(KEEP) ,)$(if $(DRY_RUN),DRY_RUN=$(DRY_RUN) ,)bash ~/truewords/prune-images.sh'
 
+worktree-gc: ## 로컬 worktree GC — main 에 머지된 것만 제거 (기본 예행, 실제 제거는 `DRY_RUN=0`)
+	@# prune-images 는 VM 디스크, 이쪽은 로컬 디스크다. 2026-09-20 실측에서
+	@# `.claude/worktrees/` 가 7.5G 였다 — worktree 마다 node_modules·.next 가
+	@# 새로 생성된 결과다(복사가 아니다. 추적 파일만 체크아웃되므로).
+	@# Claude Code 자동 스윕은 `cleanupPeriodDays`(여기선 3650=10년) 보다 오래된
+	@# 것만, 그것도 미푸시 커밋이 없을 때만 지운다. 그래서 따로 둔다.
+	@# --force 를 쓰지 않으므로 실행 중(잠김)·미커밋·미머지 worktree 는 손대지 않는다.
+	@$(if $(DRY_RUN),DRY_RUN=$(DRY_RUN) ,)bash tooling/worktree-gc.sh
+
 oracle-logs: ## Oracle Cloud VM Docker Compose 로그 follow (최근 100줄).
 	@ssh -t "$(ORACLE)" 'cd ~/truewords && sudo docker compose logs -f --tail=100'
 
@@ -312,7 +321,7 @@ ci: ## ci.yml 과 같은 검증 (API·웹·관리자·계약·저장소 검사).
 	@pnpm docs:check
 	@pnpm boundaries:check
 	@pnpm hoondok:check
-	@for s in infra/oracle-vm/*.sh; do bash -n "$$s" || exit 1; done
+	@for s in infra/oracle-vm/*.sh tooling/*.sh; do bash -n "$$s" || exit 1; done
 	@pnpm test && pnpm lint && pnpm build && pnpm typecheck
 
 E2E_ADMIN_EMAIL ?= demo-admin@example.com
