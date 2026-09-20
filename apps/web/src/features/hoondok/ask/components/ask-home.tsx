@@ -68,7 +68,7 @@ function AskComposer({ today, initialQuestion }: { today: AskTodayLine | null; i
       <div className="qs-starters">
         <p className="qs-starters__k">이렇게 물어볼 수 있어요</p>
         {STARTERS.map((starter) => (
-          <button key={starter} className="qs-starter" type="button" onClick={() => setQuestion(starter)}>
+          <button key={starter} className="chip-btn qs-starter" type="button" onClick={() => setQuestion(starter)}>
             {starter}
           </button>
         ))}

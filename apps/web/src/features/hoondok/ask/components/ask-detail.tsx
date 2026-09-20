@@ -5,10 +5,10 @@
 // 연관 말씀 섹션은 `/chat/stream` 이 주지 않는 데이터라 렌더하지 않는다(AC-017-02 — 지어내지 않는다).
 import { CornerDownRight, MessageCircleQuestion, Share2, Sparkles, Sunrise } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { askErrorMessage, requestAsk } from "../ask-stream";
-import { answerParagraphs, sourceLabel } from "../format";
+import { answerParagraphs, SOURCE_RANK_UNKNOWN, sourceFields } from "../format";
 import { type AskItem, EMPTY_ASK_ITEMS, readAskItems, subscribeAsk, toggleAskSaved, updateAskItem } from "../storage";
 
 // 이어지는 질문은 답변·근거 맥락에서 제안해야 하지만(AC-017-03) `/chat/stream` 이 주는 suggested_followups 는
@@ -16,6 +16,8 @@ import { type AskItem, EMPTY_ASK_ITEMS, readAskItems, subscribeAsk, toggleAskSav
 const FOLLOWUPS = ["이 말씀의 배경이 궁금해요", "오늘 어떻게 실천할 수 있나요", "비슷한 말씀이 더 있나요"] as const;
 
 const GATE_MESSAGE = "근거 말씀을 찾지 못했어요. 다른 표현으로 물어봐 주세요";
+// 사용자가 스스로 멈춘 것은 실패가 아니지만, 다시 물어볼 길은 오류 카드(입력 보존 + 다시 시도)와 같다.
+const STOPPED_MESSAGE = "질문을 그만뒀어요. 다시 시도하면 처음부터 찾아요";
 const SHARE_VISIBLE_MS = 2200;
 
 function AskMissing() {
@@ -25,7 +27,7 @@ function AskMissing() {
         <span className="empty__ic">
           <MessageCircleQuestion size={26} aria-hidden="true" />
         </span>
-        <p className="empty__title">질문을 찾을 수 없어요</p>
+        <h2 className="empty__title">질문을 찾을 수 없어요</h2>
         <p className="empty__body">질문과 답은 이 기기에만 저장돼요. 다른 기기에서는 보이지 않아요.</p>
         <Link className="btn btn-line ql-empty__cta" href="/hoondok/ask">
           질문하러 가기
@@ -45,6 +47,8 @@ export function AskDetail({ id }: { id: string }) {
     () => false,
   );
   const [shareTick, setShareTick] = useState(0);
+  // 진행 중인 요청 — "그만두기" 가 끊을 수 있어야 하므로 effect 밖에서도 잡힌다.
+  const abortRef = useRef<AbortController | null>(null);
   const item = items.find((candidate) => candidate.id === id) ?? null;
   const status = item?.status;
   const question = item?.question;
@@ -53,6 +57,7 @@ export function AskDetail({ id }: { id: string }) {
   useEffect(() => {
     if (status !== "pending" || !question) return;
     const controller = new AbortController();
+    abortRef.current = controller;
     let isCancelled = false;
     void (async () => {
       try {
@@ -72,6 +77,7 @@ export function AskDetail({ id }: { id: string }) {
     return () => {
       isCancelled = true;
       controller.abort();
+      abortRef.current = null;
     };
   }, [id, status, question]);
 
@@ -85,6 +91,12 @@ export function AskDetail({ id }: { id: string }) {
 
   const sources = item.sources ?? [];
   const paragraphs = answerParagraphs(item.answer ?? "");
+
+  // 중단은 요청을 끊고 저장소 상태도 직접 적는다 — effect 의 catch 는 abort 를 무시하기 때문이다.
+  function handleStop() {
+    abortRef.current?.abort();
+    updateAskItem(id, { status: "error", errorMessage: STOPPED_MESSAGE });
+  }
 
   async function handleShare() {
     if (!item) return;
@@ -111,10 +123,17 @@ export function AskDetail({ id }: { id: string }) {
         </div>
       )}
 
+      {/* 대기는 수 초~십여 초다. 회전 1종(1.2s)으로 진행 중임을 알리고 그만둘 길을 함께 둔다 (DES §1.5) */}
       {item.status === "pending" && (
-        <p className="ask-wait" role="status">
-          근거 말씀을 찾고 있어요. 잠시만 기다려 주세요.
-        </p>
+        <div className="ask-wait" role="status" aria-busy="true">
+          <p className="ask-wait__msg">
+            <span className="ask-spinner" aria-hidden="true" />
+            근거 말씀을 찾고 있어요. 잠시만 기다려 주세요.
+          </p>
+          <HoondokButton variant="line" isSmall onClick={handleStop}>
+            그만두기
+          </HoondokButton>
+        </div>
       )}
 
       {item.status === "error" && (
@@ -174,10 +193,16 @@ export function AskDetail({ id }: { id: string }) {
             </div>
             {sources.map((source, order) => (
               <article className="card ask-ev" key={source.chunk_id ?? `${order}-${source.volume}`}>
+                {/* 말씀보다 출처가 먼저 온다 (REQ-PWA-012). 모르는 칸은 비우지 않고 "확인되지 않음" 으로 적는다 */}
                 <div className="src">
                   <b className="ask-ev__no">{order + 1}</b>
-                  <span className="src__dot" />
-                  <span>{sourceLabel(source)}</span>
+                  {sourceFields(source).map((field) => (
+                    <Fragment key={field.id}>
+                      <span className="src__dot" />
+                      <span className={field.isUnknown ? "src__unknown" : undefined}>{field.text}</span>
+                    </Fragment>
+                  ))}
+                  <span className="badge badge--dashed">{SOURCE_RANK_UNKNOWN}</span>
                 </div>
                 <p className="scripture">{source.text}</p>
               </article>
@@ -225,11 +250,13 @@ export function AskDetail({ id }: { id: string }) {
               <Sunrise size={20} aria-hidden="true" />이 주제로 정성 시작
             </Link>
           </div>
-          <p className="hint">
-            <span aria-live="polite" data-testid="ask-share-status">
-              {shareTick > 0 ? "복사했어요" : ""}
-            </span>
+          {/* `.hint` 는 좌우 두 값을 짝짓는 줄이다. 여기는 값이 하나뿐이라 왼쪽에 붙이고
+              공유 결과만 뒤에 덧붙는다 — 빈 칸이 문장을 오른쪽 끝으로 밀지 않게 한다 */}
+          <p className="hint ask-saved-note">
             <span>이 기기에만 저장돼요</span>
+            <span aria-live="polite" data-testid="ask-share-status">
+              {shareTick > 0 ? "· 복사했어요" : ""}
+            </span>
           </p>
         </div>
       )}
