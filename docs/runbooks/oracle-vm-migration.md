@@ -274,6 +274,16 @@ make rollback-backend TAG=<직전 배포 sha>
 
 `TAG`를 생략하면 Makefile 가드에 막혀 실패한다. 이 가드는 현재 HEAD로 조용히 no-op 롤백하는 것을 막기 위한 것이다. VM에는 이전 태그 이미지가 남아 있으며 `docker load`는 기존 이미지를 지우지 않으므로 빌드와 전송 없이 초 단위로 복구한다.
 
+**DB revision을 올린 배포를 되돌릴 때는 이미지보다 먼저 DB를 내린다.** 구버전 이미지의 기본 CMD는 `alembic upgrade head`를 실행하는데, 그 이미지의 versions 디렉터리에 새 revision 파일이 없으므로 `Can't locate revision` 으로 기동 자체가 실패한다. 이미지만 되돌리면 롤백이 멈춘다.
+
+```bash
+# 예: l6b7c8d9e0f1 (훈독 여정) 을 적용한 배포를 되돌리는 경우
+ssh truewords-oracle 'cd ~/truewords && sudo docker compose exec backend alembic downgrade k5a6b7c8d9e0'
+make rollback-backend TAG=<직전 배포 sha>
+```
+
+되돌릴 대상 revision은 해당 마이그레이션 파일의 `down_revision` 값이다. downgrade가 데이터를 지우는 마이그레이션이면 이 절차는 무손실이 아니므로, 롤백 전에 해당 테이블을 먼저 덤프한다.
+
 ## 8. Cutover와 단계별 되돌리기
 
 Vercel의 `NEXT_PUBLIC_API_URL` 하나만 전환한다. `admin/next.config.ts`의 `BACKEND_URL`은 모듈 최상단에서 계산되므로 환경변수를 바꾼 뒤 Vercel Redeploy가 필수다.

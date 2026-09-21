@@ -10,8 +10,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { identityAPI } from "@/features/identity/api";
+import { claimDeviceForUser } from "@/features/identity/device-owner";
 import { safeReturnTo } from "@/features/identity/gate";
 import { CURRENT_USER_KEY, useCurrentUser } from "@/features/identity/use-current-user";
+import { clearHoondokStorage } from "@/features/identity/use-delete-me";
 
 type Mode = "signup" | "login";
 
@@ -56,6 +58,8 @@ function OnboardingForm() {
             })
           : await identityAPI.login({ email, password });
       // 계정이 바뀌었으므로 이전 계정의 요약을 재사용하지 않는다. 소급 POST 는 돌아간 화면의 훅이 한다.
+      // 캐시만 비우면 기기 저장 기록(질문·이어 읽기·최근 검색)은 남아 다음 계정 화면에 그대로 보인다.
+      claimDeviceForUser(signedIn.id, mode === "signup");
       queryClient.setQueryData(CURRENT_USER_KEY, signedIn);
       queryClient.removeQueries({
         predicate: (query) => query.queryKey[0] === "hoondok" && query.queryKey[1] !== "me",
@@ -77,6 +81,8 @@ function OnboardingForm() {
     }
     queryClient.setQueryData(CURRENT_USER_KEY, null);
     queryClient.removeQueries({ predicate: (query) => query.queryKey[0] === "hoondok" && query.queryKey[1] !== "me" });
+    // 공용 기기에서 다음 사람이 앞 사람의 질문·읽던 위치를 보지 않게 기기 기록도 함께 지운다.
+    clearHoondokStorage();
   }
 
   if (!isLoading && user) {

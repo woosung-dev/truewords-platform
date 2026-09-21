@@ -37,7 +37,12 @@ async def search_words(
     return await service.search(q, limit)
 
 
-@router.get("/words/{volume:path}", response_model=WordsResponse)
+# 원문 전문은 권리 승인 저작물이라 volume·page 순회 수집을 IP 빈도 제한으로 막는다.
+@router.get(
+    "/words/{volume:path}",
+    response_model=WordsResponse,
+    dependencies=[Depends(check_rate_limit)],
+)
 async def get_words(
     volume: str,
     page: int = Query(default=1, ge=1),
