@@ -4,9 +4,13 @@
 > 추가 설명 없이 착수할 수 있도록 자립형으로 썼다. Claude·Codex·Cursor 등 어떤 도구로 실행해도
 > 된다. 아래 §0 을 먼저 읽고, 맡은 트랙의 절만 읽으면 된다.
 >
-> - 상태: **구현 승인 · 진행 중.** 2026-09-21 사전 점검·제품 결정 반영 후 사용자 구현 요청
+> - 상태: **완료 · 운영 배포됨(2026-09-22).** T0~T7 전 트랙 구현·검증 완료 후 main `a425217` 로
+>   backend·admin·web 3서비스 배포. 증거는 [rollout runbook §2026-09-22](../../runbooks/hoondok-pwa-rollout.md).
+>   남은 것은 코드가 아니라 **운영 입력**이다 — `content_rights` 0행이라 서고가 비어 있고,
+>   admin `/hoondok/rights` 승인 전까지 서고·검색·원문이 사용자에게 보이지 않는다(설계상 기본 비노출)
+> - 착수 시 상태: 구현 승인 · 진행 중. 2026-09-21 사전 점검·제품 결정 반영 후 사용자 구현 요청
 > - 기준 커밋: main `7abc4ef`
-> - 선행 문서: [`PLAN-HD-001`](./2026-09-17-hoondok-mvp.md) · [`PLAN-HD-002`](./2026-09-19-hoondok-screens.md) · [`PLAN-HD-004`](./2026-09-20-hoondok-followup-3tracks.md)
+> - 선행 문서: [`PLAN-HD-001`](../active/2026-09-17-hoondok-mvp.md) · [`PLAN-HD-002`](../active/2026-09-19-hoondok-screens.md) · [`PLAN-HD-004`](../active/2026-09-20-hoondok-followup-3tracks.md)
 > - 표기: 라벨 없는 문장은 **코드로 확인한 사실**이다. `[가정]` 은 검증이 필요한 추론,
 >   `[확인 필요]` 는 사용자·외부 결정이 필요한 항목이다
 

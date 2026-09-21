@@ -232,4 +232,4 @@ make e2e
 | 2026-09-19 | **공유 파일 소유** — `tabs.ts`·`app-shell.tsx`·`hoondok.css`·`layout.tsx`·`use-missions.ts`·`index.ts`·`hoondok.spec.ts` 는 W0/W4 만. 예외는 오케스트레이터 1줄 커밋 2건(W2 `ask: live`, W4 export) | 확정 · §3.1 |
 
 
-2026-09-21 후속: [PLAN-HD-005](2026-09-21-hoondok-journey-plan.md)가 말씀 007~009의 권리 원장과 실데이터 연결을 구현한다. 기존 코퍼스의 volume·chunk_index를 사용하며 Qdrant 재적재·장절 백필은 계속 비범위다.
+2026-09-21 후속: [PLAN-HD-005](../completed/2026-09-21-hoondok-journey-plan.md)가 말씀 007~009의 권리 원장과 실데이터 연결을 구현한다. 기존 코퍼스의 volume·chunk_index를 사용하며 Qdrant 재적재·장절 백필은 계속 비범위다.
