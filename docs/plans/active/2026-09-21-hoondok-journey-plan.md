@@ -779,6 +779,9 @@ make e2e                                          # 격리 compose + 시드 + Pl
   `docker run --rm --network tw-monorepo-e2e_default`에 격리 DB 환경변수를 주고 해당 이미지를 실행하면
   `Can't locate revision identified by l6b7c8d9e0f1`을 재현한다. 구 앱 직접 기동 결과와 분리한다.
   운영 배포 전 기본 CMD 롤백 시작 경로를 보완·재검증해야 한다. 이번 변경에서 배포 절차는 수정하지 않는다.
+  **2026-09-22 해소**: 코드 변경 없이 되돌리기를 2단계(새 이미지 `alembic downgrade` → `rollback-backend`)로 확정하고
+  같은 격리 환경에서 재리허설했다 — 실패 재현 → downgrade → 구 이미지 **기본 CMD** 기동 `/health` 200·`/hoondok/today` 200.
+  기준 이미지 digest 는 위와 동일하게 재현됐다. 절차는 [rollout runbook §되돌리기 층 0](../../runbooks/hoondok-pwa-rollout.md).
 - 구 앱 직접 기동 스키마 호환: **PASS**. 같은 이미지에 `uvicorn app.main:app --host 0.0.0.0 --port 8000`을
   명시해 새 DB에서 startup 완료, `/health` 200·`status=ok`, `/hoondok/today` 200·`available`·편성 본문 존재 확인.
   기준 이미지 digest `sha256:3d16e9fb2b4656f7b50ba932caac9bad3c5f5e4dcd22537aec28f90b3c837988`.

@@ -252,7 +252,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Next Actions
 
-- [ ] **PLAN-HD-005 배포 전 롤백 진입점 보완** — 새 DB revision `l6b7c8d9e0f1`에서 기준 이미지 `7abc4ef`의 기본 `alembic upgrade head && uvicorn`은 unknown revision으로 exit 255. 구 앱 직접 기동의 스키마 호환성과 별개다. 운영 배포 전 migration 소유·구 이미지 시작 경로를 검토하고 기본 CMD 롤백 리허설을 통과시킨다. 이번 구현에서 배포 절차를 변경하지 않는다. 재현 명령은 계획 §9.3을 따른다.
+- [x] **PLAN-HD-005 배포 전 롤백 진입점 보완** — **2026-09-22 해소.** 원인은 스키마 비호환이 아니라 진입점 하나였다(구 이미지의 `alembic upgrade head` 가 새 revision 파일을 못 찾아 exit). 코드·배포 절차는 바꾸지 않고 **되돌리기를 2단계로 확정**했다 — 새 이미지로 `alembic downgrade` 먼저, 그 다음 `rollback-backend`. 격리 compose 리허설에서 실패 재현 → downgrade → 구 이미지 **기본 CMD** 기동 `/health` 200·`/hoondok/today` 200 까지 통과했다. 절차와 증거는 [runbook §되돌리기 층 0](runbooks/hoondok-pwa-rollout.md#층-0--backend-마이그레이션이-포함된-배포는-rollback-backend-단독으로-되돌아가지-않는다)
 
 - [x] **PLAN-HD-005 구현·통합 검증** — make ci PASS, E2E 90 passed, MCP 여정·3폭·플래그 51/51, 리뷰 7건 보완, 개발 trace 독립 검사 완료. 구 앱 직접 기동의 새 스키마 호환 PASS; 기본 CMD 롤백은 위 배포 전 과제로 남긴다. [진행표](plans/active/2026-09-21-hoondok-journey-plan.md#91-진행표-트랙이-끝날-때마다-먼저-갱신)를 원본으로 삼는다. 배포는 별도 승인.
 
