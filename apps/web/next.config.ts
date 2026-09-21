@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
   // E2E에서 웹/관리자 쿠키를 hostname으로 분리한다. 개발 리소스만 허용한다.
   allowedDevOrigins: ["127.0.0.1"],
   output: "standalone",
+  // 개발 서버도 검색어가 포함된 URL을 터미널에 남기지 않는다. 다른 경로의 로그는 유지한다.
+  logging: {
+    incomingRequests: { ignore: [/^\/api\/backend\/hoondok\/search(?:[/?]|$)/, /^\/hoondok\/search(?:[/?]|$)/] },
+  },
   outputFileTracingRoot: path.join(__dirname, "../.."),
   transpilePackages: ["@truewords/api-client-ts"],
   experimental: { proxyClientMaxBodySize: "200mb" },

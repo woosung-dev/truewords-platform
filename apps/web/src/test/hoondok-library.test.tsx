@@ -1,174 +1,238 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { ApiError } from "@truewords/api-client-ts";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// SCR-PWA-007·008·009 말씀 프리뷰 셸 (PLAN-HD-002 W3-L).
-// 플래그는 `flag.ts` 가 호출마다 process.env 를 읽으므로 stubEnv 만으로 ON/OFF 를 바꾼다(재import 불필요).
-const { notFoundMock, loadTodayMock } = vi.hoisted(() => ({
-  notFoundMock: vi.fn(() => {
+let pathname = "/hoondok/library";
+
+vi.mock("next/navigation", () => ({
+  notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
-  }),
-  loadTodayMock: vi.fn(),
+  },
+  usePathname: () => pathname,
+  useRouter: () => ({ push: vi.fn() }),
 }));
+vi.mock("@/features/hoondok/library/api", async (original) => ({
+  ...(await original<object>()),
+  libraryAPI: { list: vi.fn(), search: vi.fn(), words: vi.fn() },
+}));
+vi.mock("@/features/identity/api", () => ({ identityAPI: { me: vi.fn() } }));
+vi.mock("@/features/hoondok/missions-api", () => ({ missionsAPI: { summary: vi.fn(), complete: vi.fn() } }));
 
-vi.mock("next/navigation", () => ({ notFound: notFoundMock, usePathname: () => "/hoondok/library" }));
-vi.mock("@/features/hoondok/api", () => ({ loadToday: loadTodayMock }));
+import LibraryPage from "@/app/(hoondok)/hoondok/library/page";
+import SearchPage from "@/app/(hoondok)/hoondok/search/page";
+import WordsPage from "@/app/(hoondok)/hoondok/words/[id]/page";
+import { HoondokAppShell } from "@/components/hoondok";
+import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
+import { parseLastReading, writeLastReading } from "@/features/hoondok/library/last-reading";
+import { missionsAPI } from "@/features/hoondok/missions-api";
+import { identityAPI } from "@/features/identity/api";
 
-import HoondokLibraryPage from "@/app/(hoondok)/hoondok/library/page";
-import HoondokSearchPage from "@/app/(hoondok)/hoondok/search/page";
-import HoondokWordsPage from "@/app/(hoondok)/hoondok/words/[id]/page";
-import { PREVIEW_WORD_ID } from "@/features/hoondok/preview/fixtures/library";
-
-const RECENT_KEY = "hoondok:search:recent";
-const NO_READING = { date: "2026-09-20", status: "none" as const, reading: null };
-
-function wordsPage(id: string) {
-  return HoondokWordsPage({ params: Promise.resolve({ id }) });
+function show(children: ReactNode) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={client}>{children}</QueryClientProvider>);
 }
+const WORK = {
+  volume: "말씀 1권.txt",
+  work_title: "말씀 1권",
+  scope_search: true,
+  scope_full_text: true,
+  source_keys: ["A"],
+  book_series: null,
+  authority_grade: "R" as const,
+};
+const WORDS = {
+  ...WORK,
+  page: 2,
+  page_size: 20,
+  total_chunks: 41,
+  total_pages: 3,
+  chunks: [{ chunk_id: "chunk-21", chunk_index: 20, text: "둘째 구간의 본문" }],
+  body: "둘째 구간의 본문",
+};
+const RESULT = {
+  chunk_id: "chunk-21",
+  chunk_index: 20,
+  volume: WORK.volume,
+  work_title: WORK.work_title,
+  authority_grade: "R" as const,
+  text: "참사랑 말씀",
+  score: 0.8,
+  can_read_full_text: true,
+};
 
 beforeEach(() => {
-  vi.stubEnv("NEXT_PUBLIC_HOONDOK_ENABLED", "1");
-  vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "1");
-  loadTodayMock.mockResolvedValue(NO_READING);
-  localStorage.clear();
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
+  pathname = "/hoondok/library";
   vi.clearAllMocks();
-  vi.restoreAllMocks();
+  localStorage.clear();
+  vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "");
+  vi.mocked(libraryAPI.list).mockResolvedValue({ items: [WORK] });
+  vi.mocked(libraryAPI.search).mockResolvedValue({ results: [RESULT] });
+  vi.mocked(libraryAPI.words).mockResolvedValue(WORDS);
+  vi.mocked(identityAPI.me).mockRejectedValue(new ApiError(401, { message: "unauthorized" }));
 });
+afterEach(() => vi.unstubAllEnvs());
 
-describe("훈독 말씀 프리뷰 플래그", () => {
-  it("OFF 면 서고·검색·원문 세 페이지가 모두 notFound 를 부른다", async () => {
-    vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "");
-    expect(() => HoondokLibraryPage()).toThrow("NEXT_NOT_FOUND");
-    expect(() => HoondokSearchPage()).toThrow("NEXT_NOT_FOUND");
-    await expect(wordsPage(PREVIEW_WORD_ID)).rejects.toThrow("NEXT_NOT_FOUND");
-    expect(notFoundMock).toHaveBeenCalledTimes(3);
+function search(value: string) {
+  fireEvent.change(screen.getByLabelText("말씀 검색"), { target: { value } });
+  fireEvent.click(screen.getByRole("button", { name: "찾기" }));
+}
+
+describe("말씀 서고", () => {
+  it("프리뷰 OFF 에도 실데이터 저작물과 URL 인코딩 링크를 보인다", async () => {
+    show(LibraryPage());
+    expect(await screen.findByRole("link", { name: /말씀 1권/ })).toHaveAttribute("href", wordsHref(WORK.volume));
+    expect(screen.queryByText("미리보기 예시 데이터입니다")).toBeNull();
   });
-});
-
-describe("SCR-PWA-007 말씀 서고", () => {
-  it("예시 고지·검색 진입·이어 읽기·저작물 선반을 보인다", () => {
-    render(HoondokLibraryPage());
-    expect(screen.getByText("미리보기 예시 데이터입니다")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /단어, 구절, 상황/ })).toHaveAttribute("href", "/hoondok/search");
-    expect(screen.getByRole("link", { name: /천성경 제1편 3장/ })).toHaveAttribute(
+  it("검색전용 저작물에는 원문 링크 대신 사유와 검색 진입을 표시한다", async () => {
+    vi.mocked(libraryAPI.list).mockResolvedValue({ items: [{ ...WORK, scope_full_text: false }] });
+    show(LibraryPage());
+    expect(await screen.findByText("검색 인용만 허용 · 원문 공개 확인 중")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /말씀 1권/ })).toBeNull();
+    expect(screen.getByRole("link", { name: "말씀 검색하기" })).toHaveAttribute("href", "/hoondok/search");
+  });
+  it("기기의 마지막 원문 구간은 현재 원문 권리가 허용된 경우에만 이어 읽기에 보인다", async () => {
+    writeLastReading({ volume: WORK.volume, page: 2 });
+    const view = show(LibraryPage());
+    expect(await screen.findByRole("heading", { name: "이어 읽기" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /말씀 1권.*원문 구간 2/ })).toHaveAttribute(
       "href",
-      `/hoondok/words/${PREVIEW_WORD_ID}`,
+      `${wordsHref(WORK.volume)}?page=2`,
     );
-    // 저작물 5종 중 권리 미확정 2종은 점선 배지로만 남고 링크가 아니다
-    expect(screen.getAllByText("권리 확인 중")).toHaveLength(2);
-    expect(screen.queryByRole("link", { name: /평화경/ })).toBeNull();
-    expect(screen.getByText("권리 확인 중인 저작물은 검색·AI 근거에 쓰이지 않습니다")).toBeInTheDocument();
+    view.unmount();
+    vi.mocked(libraryAPI.list).mockResolvedValue({ items: [{ ...WORK, scope_full_text: false }] });
+    show(LibraryPage());
+    await screen.findByText("검색 인용만 허용 · 원문 공개 확인 중");
+    expect(screen.queryByRole("heading", { name: "이어 읽기" })).toBeNull();
+  });
+  it("없는 기록이나 깨진 기록은 이어 읽기와 가짜 제목을 만들지 않는다", async () => {
+    for (const raw of [
+      null,
+      "broken",
+      JSON.stringify({ volume: "말씀", page: 0 }),
+      JSON.stringify({ volume: "말씀", page: 1.5 }),
+    ])
+      expect(parseLastReading(raw)).toBeNull();
+    show(LibraryPage());
+    await screen.findByRole("link", { name: /말씀 1권/ });
+    expect(screen.queryByRole("heading", { name: "이어 읽기" })).toBeNull();
+  });
+  it("권리가 비어 있으면 오늘 훈독으로 돌아갈 수 있다", async () => {
+    vi.mocked(libraryAPI.list).mockResolvedValue({ items: [] });
+    show(LibraryPage());
+    expect(await screen.findByText("공개된 저작물이 아직 없어요")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "오늘 훈독으로 돌아가기" })).toHaveAttribute("href", "/hoondok");
+  });
+  it("오류는 0건으로 가장하지 않고 재시도한다", async () => {
+    vi.mocked(libraryAPI.list).mockRejectedValueOnce(new Error("down"));
+    show(LibraryPage());
+    fireEvent.click(await screen.findByRole("button", { name: "다시 시도" }));
+    expect(await screen.findByRole("link", { name: /말씀 1권/ })).toBeInTheDocument();
   });
 });
-
-describe("SCR-PWA-008 말씀 검색", () => {
-  function submit(value: string) {
-    fireEvent.change(screen.getByLabelText("말씀 검색"), { target: { value } });
-    fireEvent.click(screen.getByRole("button", { name: "찾기" }));
-  }
-
-  it("제출해도 네트워크 요청이 없고 준비 중 상태와 예시 결과를 보인다", () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
-    render(HoondokSearchPage());
-    submit("참사랑");
-    expect(fetchSpy).not.toHaveBeenCalled();
-    expect(screen.getByRole("status")).toHaveTextContent("검색은 준비 중이에요");
-    expect(screen.getByRole("link", { name: /참사랑은 직단거리를 갑니다/ })).toHaveAttribute(
+describe("말씀 검색", () => {
+  it("검색 결과에서 인용 청크가 포함된 원문 구간으로 이동한다", async () => {
+    show(SearchPage());
+    search("참사랑");
+    expect(await screen.findByRole("link", { name: /참사랑 말씀/ })).toHaveAttribute(
       "href",
-      `/hoondok/words/${PREVIEW_WORD_ID}`,
+      wordsHref(WORK.volume, "chunk-21"),
     );
+    expect(libraryAPI.search).toHaveBeenCalledWith("참사랑", expect.any(AbortSignal));
   });
-
-  it("맞는 예시가 없으면 0건 안내를 보인다", () => {
-    render(HoondokSearchPage());
-    submit("없는말");
-    expect(screen.getByText("예시 결과가 없어요")).toBeInTheDocument();
-    expect(screen.getByText("0건")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /참사랑은 직단거리를 갑니다/ })).toBeNull();
+  it("검색만 허용된 결과는 원문 링크를 만들지 않는다", async () => {
+    vi.mocked(libraryAPI.search).mockResolvedValue({ results: [{ ...RESULT, can_read_full_text: false }] });
+    show(SearchPage());
+    search("참사랑");
+    expect(await screen.findByText(/검색 인용만 허용/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /참사랑 말씀/ })).toBeNull();
   });
-
-  it("검색한 말은 기기 저장소에 최신순으로 남고 지우기로 비운다", () => {
-    render(HoondokSearchPage());
-    submit("정성");
-    submit("참사랑");
-    submit("정성"); // 같은 말은 한 번만 남고 맨 앞으로 온다
-    expect(JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]")).toEqual(["정성", "참사랑"]);
-    expect(screen.getByRole("heading", { name: "최근 검색" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "지우기" }));
-    expect(JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]")).toEqual([]);
-    expect(screen.queryByRole("heading", { name: "최근 검색" })).toBeNull();
+  it("0건과 장애를 구분하고 장애 때 입력을 보존한다", async () => {
+    vi.mocked(libraryAPI.search).mockResolvedValueOnce({ results: [] }).mockRejectedValueOnce(new Error("down"));
+    show(SearchPage());
+    search("없는말");
+    expect(await screen.findByText("검색 결과가 없어요")).toBeInTheDocument();
+    search("다른말");
+    expect(await screen.findByText("검색하지 못했어요")).toBeInTheDocument();
+    expect(screen.getByLabelText("말씀 검색")).toHaveValue("다른말");
   });
-
-  it("깨진 저장소 값은 최근 검색 없음으로 본다", () => {
-    localStorage.setItem(RECENT_KEY, "{oops");
-    render(HoondokSearchPage());
-    expect(screen.queryByRole("heading", { name: "최근 검색" })).toBeNull();
-  });
-
-  it("분류 칩은 입력만 채우고 보내지 않는다", () => {
-    render(HoondokSearchPage());
+  it("분류 칩은 입력만 채우고 검색하지 않는다", () => {
+    show(SearchPage());
     fireEvent.click(screen.getByRole("button", { name: "탕감복귀" }));
     expect(screen.getByLabelText("말씀 검색")).toHaveValue("탕감복귀");
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(libraryAPI.search).not.toHaveBeenCalled();
   });
 });
-
-describe("SCR-PWA-009 원문 뷰", () => {
-  it("fixture 에 없는 id 는 notFound 다", async () => {
-    await expect(wordsPage("unknown-id")).rejects.toThrow("NEXT_NOT_FOUND");
+describe("원문 읽기", () => {
+  async function showWords() {
+    return show(
+      await WordsPage({
+        params: Promise.resolve({ id: encodeURIComponent(WORK.volume) }),
+        searchParams: Promise.resolve({ chunk_id: "chunk-21" }),
+      }),
+    );
+  }
+  it("원문 구간·출처 결측·앞뒤 구간을 표시하고 열기만으로 완료하지 않는다", async () => {
+    await showWords();
+    expect(await screen.findByText("둘째 구간의 본문")).toBeInTheDocument();
+    expect(libraryAPI.words).toHaveBeenCalledWith(WORK.volume, 1, "chunk-21", expect.any(AbortSignal));
+    expect(screen.getByText("화자 확인되지 않음")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "다음 구간" })).toHaveAttribute("href", `${wordsHref(WORK.volume)}?page=3`);
+    expect(missionsAPI.complete).not.toHaveBeenCalled();
+    const button = await screen.findByRole("button", { name: "읽음" });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    expect(await screen.findByText("오늘 말씀 읽기를 마쳤어요.")).toBeInTheDocument();
+    expect(localStorage.getItem("hoondok:pending:study")).not.toBeNull();
+    expect(localStorage.getItem("hoondok:pending:read")).toBeNull();
   });
-
-  it("오늘 말씀이 없으면 fixture 단락·목차·형광펜 예시를 보인다", async () => {
-    const { container } = render(await wordsPage(PREVIEW_WORD_ID));
-    expect(screen.getByRole("heading", { name: "천성경 제1편 3장" })).toBeInTheDocument();
-    expect(container.querySelectorAll(".verse")).toHaveLength(3);
-    expect(container.querySelector("mark.hl-1")).toHaveTextContent("참사랑은 직단거리를 갑니다.");
-    expect(screen.getByText("3장 참사랑은 직단거리를 갑니다")).toHaveAttribute("aria-current", "true");
+  it("URL 경계에서 한 번만 복원해 한글·공백·퍼센트가 포함된 volume 을 보존한다", async () => {
+    const volume = "말씀 100% %20권";
+    show(
+      await WordsPage({
+        params: Promise.resolve({ id: encodeURIComponent(volume) }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+    await screen.findByText("둘째 구간의 본문");
+    expect(libraryAPI.words).toHaveBeenCalledWith(volume, 1, undefined, expect.any(AbortSignal));
   });
-
-  it("세그먼트를 바꾸면 AI 설명·노트가 준비 중으로 바뀐다", async () => {
-    const { container } = render(await wordsPage(PREVIEW_WORD_ID));
-    fireEvent.click(screen.getByRole("tab", { name: "AI 설명" }));
-    expect(container.querySelectorAll(".verse")).toHaveLength(0);
-    expect(screen.getByText(/AI 설명은 준비 중이에요/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("tab", { name: "노트" }));
-    expect(screen.getByText("노트는 준비 중이에요")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "노트" })).toHaveAttribute("aria-selected", "true");
+  it("깨진 퍼센트 인코딩은 API 로 보내지 않고 404 다", async () => {
+    await expect(
+      WordsPage({ params: Promise.resolve({ id: "%broken" }), searchParams: Promise.resolve({}) }),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(libraryAPI.words).not.toHaveBeenCalled();
   });
-
-  it("오늘 말씀이 편성돼 있으면 그 제목·출처·본문을 읽기 셸에 넣는다", async () => {
-    loadTodayMock.mockResolvedValue({
-      date: "2026-09-20",
-      status: "available",
-      reading: {
-        id: "r-1",
-        reading_date: "2026-09-20",
-        title: "오늘 편성된 말씀",
-        body: "첫 단락입니다.\n\n둘째 단락입니다.",
-        speaker: "참아버님",
-        spoken_on: null,
-        work_title: "천성경",
-        edition: "2013 한국어판",
-        authority_grade: "O1",
-        review_status: "verified",
-      },
-    });
-    const { container } = render(await wordsPage(PREVIEW_WORD_ID));
-    expect(screen.getByRole("heading", { name: "오늘 편성된 말씀" })).toBeInTheDocument();
-    expect(container.querySelectorAll(".verse")).toHaveLength(2);
-    expect(screen.getByText("첫 단락입니다.")).toBeInTheDocument();
+  it("실제 저작물 제목을 앱바에 반영하고 원문 구간 목록을 링크로 제공한다", async () => {
+    pathname = `/hoondok/words/${encodeURIComponent(WORK.volume)}`;
+    show(
+      <HoondokAppShell>
+        {
+          await WordsPage({
+            params: Promise.resolve({ id: encodeURIComponent(WORK.volume) }),
+            searchParams: Promise.resolve({ page: "2" }),
+          })
+        }
+      </HoondokAppShell>,
+    );
+    expect(await screen.findByRole("heading", { level: 1, name: WORK.work_title })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "원문 구간 1" })).toHaveAttribute(
+      "href",
+      `${wordsHref(WORK.volume)}?page=1`,
+    );
+    expect(screen.getByRole("link", { name: "원문 구간 2" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "원문 구간 3" })).toHaveAttribute(
+      "href",
+      `${wordsHref(WORK.volume)}?page=3`,
+    );
+    expect(JSON.parse(localStorage.getItem("hoondok:read:last") ?? "null")).toEqual({ volume: WORK.volume, page: 2 });
   });
-
-  it("읽기 도구는 누를 수 없는 표시이며 준비 중이라고 글자로 말한다", async () => {
-    const { container } = render(await wordsPage(PREVIEW_WORD_ID));
-    // 형광펜·노트·북마크·목차·설정 5개 × (폰 하단 바 · 데스크톱 상단 툴바) — 어느 쪽도 버튼이 아니다
-    expect(container.querySelectorAll(".reader > span")).toHaveLength(10);
-    expect(screen.queryByRole("button", { name: "형광펜" })).toBeNull();
-    expect(screen.getByText("형광펜·노트·북마크·설정은 준비 중이에요")).toBeInTheDocument();
+  it("권리 철회 404 는 편성이나 예시 본문으로 대체하지 않는다", async () => {
+    vi.mocked(libraryAPI.words).mockRejectedValue(new ApiError(404, { message: "not found" }));
+    await showWords();
+    expect(await screen.findByText("이 원문을 열 수 없어요")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "읽음" })).toBeNull();
+    expect(screen.getByRole("link", { name: "서고로 돌아가기" })).toBeInTheDocument();
   });
 });

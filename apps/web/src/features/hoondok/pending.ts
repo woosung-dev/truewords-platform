@@ -6,6 +6,10 @@ import { formatKstDate } from "./today";
 const PREFIX = "hoondok:pending:";
 const CHANGE_EVENT = "hoondok:pending-change";
 
+function pendingKey(kind: MissionKind, userId?: string): string {
+  return PREFIX + kind + (userId ? `:${userId}` : "");
+}
+
 function storage(): Storage | null {
   try {
     return typeof window === "undefined" ? null : window.localStorage;
@@ -15,13 +19,13 @@ function storage(): Storage | null {
 }
 
 /** 오늘(KST) 키가 있으면 true. 다른 날짜 키는 자정이 지난 것이라 지우고 false. */
-export function readPending(kind: MissionKind, todayIso: string = formatKstDate().iso): boolean {
+export function readPending(kind: MissionKind, todayIso: string = formatKstDate().iso, userId?: string): boolean {
   const store = storage();
   if (!store) return false;
   try {
-    const stored = store.getItem(PREFIX + kind);
+    const stored = store.getItem(pendingKey(kind, userId));
     if (stored === todayIso) return true;
-    if (stored) store.removeItem(PREFIX + kind);
+    if (stored) store.removeItem(pendingKey(kind, userId));
   } catch {
     // 읽기 실패는 "없음" 으로 본다
   }
@@ -36,18 +40,20 @@ function notify(): void {
   }
 }
 
-export function writePending(kind: MissionKind, todayIso: string = formatKstDate().iso): void {
+export function writePending(kind: MissionKind, todayIso: string = formatKstDate().iso, userId?: string): void {
   try {
-    storage()?.setItem(PREFIX + kind, todayIso);
+    storage()?.setItem(pendingKey(kind, userId), todayIso);
   } catch {
     // 저장 실패해도 화면 상태는 유지한다
   }
   notify();
 }
 
-export function clearPending(kind: MissionKind): void {
+export function clearPending(kind: MissionKind, expectedDate?: string, userId?: string): void {
   try {
-    storage()?.removeItem(PREFIX + kind);
+    const store = storage();
+    const key = pendingKey(kind, userId);
+    if (!expectedDate || store?.getItem(key) === expectedDate) store?.removeItem(key);
   } catch {
     // 무시
   }

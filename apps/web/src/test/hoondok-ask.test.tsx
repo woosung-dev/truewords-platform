@@ -1,4 +1,6 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render as renderView, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // SCR-PWA-005·005b·006 AI 질문 (PLAN-HD-002 W2). 기기 저장소·SSE 어댑터·3화면.
@@ -22,6 +24,18 @@ import {
   readAskItems,
   toggleAskSaved,
 } from "@/features/hoondok/ask/storage";
+
+vi.mock("@/features/hoondok/library/api", () => ({
+  libraryAPI: { list: vi.fn(async () => ({ items: [] })) },
+  wordsHref: (volume: string) => `/hoondok/words/${encodeURIComponent(volume)}`,
+}));
+function render(children: ReactNode) {
+  return renderView(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      {children}
+    </QueryClientProvider>,
+  );
+}
 
 const KEY = "hoondok:ask:items";
 
@@ -207,10 +221,7 @@ describe("질문·답변 상세 (SCR-PWA-006)", () => {
 
   it("답을 기다리는 동안 진행 표시와 그만두기를 함께 두고, 그만두면 다시 시도로 되돌린다", async () => {
     // 끝나지 않는 응답 — pending 을 붙잡아 둔다
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockReturnValue(new Promise(() => {})),
-    );
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
     appendAskItem(item("q1"));
     const { container } = render(<AskDetail id="q1" />);
 

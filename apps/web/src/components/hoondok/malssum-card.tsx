@@ -1,4 +1,5 @@
 import { BookOpenText } from "lucide-react";
+import Link from "next/link";
 import { Fragment } from "react";
 import type { TodayReading, TodayStatus } from "@/features/hoondok/today";
 import { AuthorityBadge, ReviewBadge } from "./authority-badge";
@@ -7,9 +8,12 @@ import { AuthorityBadge, ReviewBadge } from "./authority-badge";
 // AC-016-01 메타 6항목 중 화자·날짜·저작물·판본·공식성·검수를 출처 줄과 배지로 보인다.
 
 export function SourceLine({ reading }: { reading: TodayReading }) {
-  const parts = [reading.speaker, reading.spoken_on, reading.work_title, reading.edition].filter((p): p is string =>
-    Boolean(p),
-  );
+  const parts = [
+    reading.speaker || "화자 확인되지 않음",
+    reading.spoken_on || "날짜 확인되지 않음",
+    reading.work_title || "저작물 확인되지 않음",
+    reading.edition || "판본 확인되지 않음",
+  ];
   return (
     <div className="src">
       {parts.map((part, index) => (
@@ -39,7 +43,10 @@ export function MalssumCard(props: MalssumCardProps) {
         <p className="empty__title">
           {props.status === "withdrawn" ? "오늘 말씀이 철회됐어요" : "오늘 말씀이 아직 없어요"}
         </p>
-        <p className="empty__body">서고·검색은 준비 중이에요. 내일 아침에 다시 열어 주세요.</p>
+        <p className="empty__body">공개된 다른 말씀을 서고에서 찾아 읽을 수 있어요.</p>
+        <Link className="btn btn-line" href="/hoondok/library">
+          말씀 서고로 가기
+        </Link>
       </div>
     );
   }

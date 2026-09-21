@@ -12,7 +12,7 @@ export type WeekStripProps = {
   streakDays?: number;
 };
 
-export function WeekStrip({ todayWeekday, doneByDay = [], streakDays = 0 }: WeekStripProps) {
+export function WeekStrip({ todayWeekday, doneByDay = [], streakDays }: WeekStripProps) {
   const todayIndex = (todayWeekday + 6) % 7; // 월=0
   return (
     <div className="week">
@@ -29,10 +29,12 @@ export function WeekStrip({ todayWeekday, doneByDay = [], streakDays = 0 }: Week
           </li>
         ))}
       </ol>
-      <span className="week__streak">
-        <Flame size={16} aria-hidden="true" />
-        연속 <b>{streakDays}</b>일
-      </span>
+      {streakDays !== undefined && (
+        <span className="week__streak">
+          <Flame size={16} aria-hidden="true" />
+          연속 <b>{streakDays}</b>일
+        </span>
+      )}
     </div>
   );
 }

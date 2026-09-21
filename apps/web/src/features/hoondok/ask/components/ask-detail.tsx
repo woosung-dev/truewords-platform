@@ -3,10 +3,12 @@
 // SCR-PWA-006 질문·답변 상세 — AI 설명 → 근거 말씀 → 이어서 물어보기 → 저장·공유.
 // 근거 게이트(AC-017-01·04): sources 가 0건이면 답을 보이지 않고 "확인할 수 없음" 으로 끝낸다.
 // 연관 말씀 섹션은 `/chat/stream` 이 주지 않는 데이터라 렌더하지 않는다(AC-017-02 — 지어내지 않는다).
+import { useQuery } from "@tanstack/react-query";
 import { CornerDownRight, MessageCircleQuestion, Share2, Sparkles, Sunrise } from "lucide-react";
 import Link from "next/link";
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { HoondokButton } from "@/components/hoondok";
+import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
 import { askErrorMessage, requestAsk } from "../ask-stream";
 import { answerParagraphs, SOURCE_RANK_UNKNOWN, sourceFields } from "../format";
 import { type AskItem, EMPTY_ASK_ITEMS, readAskItems, subscribeAsk, toggleAskSaved, updateAskItem } from "../storage";
@@ -52,6 +54,13 @@ export function AskDetail({ id }: { id: string }) {
   const item = items.find((candidate) => candidate.id === id) ?? null;
   const status = item?.status;
   const question = item?.question;
+  const rights = useQuery({
+    queryKey: ["hoondok", "library"],
+    queryFn: libraryAPI.list,
+    enabled: status === "answered",
+    retry: false,
+    staleTime: 0,
+  });
 
   // 답을 아직 받지 않은 질문만 요청한다. 화면을 떠나면 중단하고 저장소를 건드리지 않는다.
   useEffect(() => {
@@ -189,7 +198,7 @@ export function AskDetail({ id }: { id: string }) {
           <div className="sect">
             <div className="sect__head">
               <h3 className="sect__title">근거 말씀</h3>
-              <span className="sect__meta">원문 열기는 준비 중</span>
+              <span className="sect__meta">원문 공개 권한 확인 후 열기</span>
             </div>
             {sources.map((source, order) => (
               <article className="card ask-ev" key={source.chunk_id ?? `${order}-${source.volume}`}>
@@ -205,6 +214,18 @@ export function AskDetail({ id }: { id: string }) {
                   <span className="badge badge--dashed">{SOURCE_RANK_UNKNOWN}</span>
                 </div>
                 <p className="scripture">{source.text}</p>
+                {!rights.isError &&
+                rights.data?.items.some((work) => work.volume === source.volume && work.scope_full_text) ? (
+                  <Link className="btn btn-line btn--sm" href={wordsHref(source.volume, source.chunk_id)}>
+                    원문 보기
+                  </Link>
+                ) : (
+                  <p className="notice">
+                    {rights.isPending
+                      ? "원문 공개 권한을 확인하고 있어요"
+                      : "이 근거의 원문 공개 권한을 확인할 수 없어요"}
+                  </p>
+                )}
               </article>
             ))}
           </div>

@@ -695,6 +695,222 @@
         "title": "CitationItem",
         "type": "object"
       },
+      "ClientErrorInput": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "sw_register",
+              "install_prompt",
+              "unhandled",
+              "api_5xx"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "path": {
+            "maxLength": 2048,
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "path"
+        ],
+        "title": "ClientErrorInput",
+        "type": "object"
+      },
+      "ContentRightInput": {
+        "properties": {
+          "authority_grade": {
+            "default": "R",
+            "enum": [
+              "O1",
+              "O2",
+              "O3",
+              "O4",
+              "O5",
+              "R"
+            ],
+            "title": "Authority Grade",
+            "type": "string"
+          },
+          "book_series": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Book Series"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Note",
+            "type": "string"
+          },
+          "scope_full_text": {
+            "default": false,
+            "title": "Scope Full Text",
+            "type": "boolean"
+          },
+          "scope_jeongseong": {
+            "default": false,
+            "title": "Scope Jeongseong",
+            "type": "boolean"
+          },
+          "scope_search": {
+            "default": false,
+            "title": "Scope Search",
+            "type": "boolean"
+          },
+          "source_keys": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "title": "Source Keys",
+            "type": "array"
+          },
+          "status": {
+            "default": "pending",
+            "enum": [
+              "pending",
+              "allowed",
+              "withdrawn"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "volume": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "volume",
+          "work_title"
+        ],
+        "title": "ContentRightInput",
+        "type": "object"
+      },
+      "ContentRightResponse": {
+        "properties": {
+          "authority_grade": {
+            "default": "R",
+            "enum": [
+              "O1",
+              "O2",
+              "O3",
+              "O4",
+              "O5",
+              "R"
+            ],
+            "title": "Authority Grade",
+            "type": "string"
+          },
+          "book_series": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Book Series"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Note",
+            "type": "string"
+          },
+          "scope_full_text": {
+            "default": false,
+            "title": "Scope Full Text",
+            "type": "boolean"
+          },
+          "scope_jeongseong": {
+            "default": false,
+            "title": "Scope Jeongseong",
+            "type": "boolean"
+          },
+          "scope_search": {
+            "default": false,
+            "title": "Scope Search",
+            "type": "boolean"
+          },
+          "source_keys": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "title": "Source Keys",
+            "type": "array"
+          },
+          "status": {
+            "default": "pending",
+            "enum": [
+              "pending",
+              "allowed",
+              "withdrawn"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "volume": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "volume",
+          "work_title",
+          "id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ContentRightResponse",
+        "type": "object"
+      },
       "CreateAdminRequest": {
         "properties": {
           "email": {
@@ -2145,6 +2361,146 @@
           "state"
         ],
         "title": "JeongseongProgress",
+        "type": "object"
+      },
+      "JeongseongTodayResponse": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "period_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Id"
+          },
+          "reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyReadingPublic"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "no_period",
+                  "upcoming",
+                  "no_candidates",
+                  "rights_withdrawn"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "enum": [
+              "available",
+              "none",
+              "withdrawn"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "status"
+        ],
+        "title": "JeongseongTodayResponse",
+        "type": "object"
+      },
+      "LibraryItem": {
+        "properties": {
+          "authority_grade": {
+            "enum": [
+              "O1",
+              "O2",
+              "O3",
+              "O4",
+              "O5",
+              "R"
+            ],
+            "title": "Authority Grade",
+            "type": "string"
+          },
+          "book_series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Book Series"
+          },
+          "scope_full_text": {
+            "title": "Scope Full Text",
+            "type": "boolean"
+          },
+          "scope_search": {
+            "title": "Scope Search",
+            "type": "boolean"
+          },
+          "source_keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Keys",
+            "type": "array"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "volume",
+          "work_title",
+          "scope_search",
+          "scope_full_text",
+          "source_keys",
+          "book_series",
+          "authority_grade"
+        ],
+        "title": "LibraryItem",
+        "type": "object"
+      },
+      "LibraryResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LibraryItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "LibraryResponse",
         "type": "object"
       },
       "LoginRequest": {
@@ -3844,6 +4200,165 @@
         ],
         "title": "WeightedSourceSchema",
         "type": "object"
+      },
+      "WordChunk": {
+        "properties": {
+          "chunk_id": {
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "chunk_index": {
+            "title": "Chunk Index",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chunk_id",
+          "chunk_index",
+          "text"
+        ],
+        "title": "WordChunk",
+        "type": "object"
+      },
+      "WordSearchResponse": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/WordSearchResult"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "title": "WordSearchResponse",
+        "type": "object"
+      },
+      "WordSearchResult": {
+        "properties": {
+          "authority_grade": {
+            "enum": [
+              "O1",
+              "O2",
+              "O3",
+              "O4",
+              "O5",
+              "R"
+            ],
+            "title": "Authority Grade",
+            "type": "string"
+          },
+          "can_read_full_text": {
+            "title": "Can Read Full Text",
+            "type": "boolean"
+          },
+          "chunk_id": {
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "chunk_index": {
+            "title": "Chunk Index",
+            "type": "integer"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chunk_id",
+          "chunk_index",
+          "text",
+          "work_title",
+          "authority_grade",
+          "volume",
+          "score",
+          "can_read_full_text"
+        ],
+        "title": "WordSearchResult",
+        "type": "object"
+      },
+      "WordsResponse": {
+        "properties": {
+          "authority_grade": {
+            "enum": [
+              "O1",
+              "O2",
+              "O3",
+              "O4",
+              "O5",
+              "R"
+            ],
+            "title": "Authority Grade",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "chunks": {
+            "items": {
+              "$ref": "#/components/schemas/WordChunk"
+            },
+            "title": "Chunks",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total_chunks": {
+            "title": "Total Chunks",
+            "type": "integer"
+          },
+          "total_pages": {
+            "title": "Total Pages",
+            "type": "integer"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authority_grade",
+          "volume",
+          "work_title",
+          "page",
+          "page_size",
+          "total_chunks",
+          "total_pages",
+          "chunks",
+          "body"
+        ],
+        "title": "WordsResponse",
+        "type": "object"
       }
     }
   },
@@ -5445,6 +5960,123 @@
         ]
       }
     },
+    "/admin/hoondok/content-rights": {
+      "get": {
+        "operationId": "list_content_rights_admin_hoondok_content_rights_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContentRightResponse"
+                  },
+                  "title": "Response List Content Rights Admin Hoondok Content Rights Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Content Rights",
+        "tags": [
+          "admin-hoondok"
+        ]
+      },
+      "post": {
+        "operationId": "create_content_right_admin_hoondok_content_rights_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentRightInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentRightResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Content Right",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/content-rights/{right_id}": {
+      "put": {
+        "operationId": "update_content_right_admin_hoondok_content_rights__right_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "right_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Right Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentRightInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentRightResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Content Right",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
     "/admin/hoondok/daily-readings": {
       "get": {
         "description": "API-HD-006 편성 목록. 날짜 오름차순, 편성 없는 날은 행이 없다. 422 종료일 < 시작일 또는 366일 초과.",
@@ -6504,6 +7136,61 @@
         ]
       }
     },
+    "/hoondok/client-errors": {
+      "post": {
+        "operationId": "report_client_error_hoondok_client_errors_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientErrorInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Client Error",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/library": {
+      "get": {
+        "operationId": "get_library_hoondok_library_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Library",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/me/history": {
       "get": {
         "description": "API-HD-010 한 달의 날마다 read 완료 여부. 422 형식·연도 범위 위반, 401 미인증.",
@@ -6632,6 +7319,27 @@
         ]
       }
     },
+    "/hoondok/me/jeongseong/today": {
+      "get": {
+        "operationId": "get_jeongseong_today_hoondok_me_jeongseong_today_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JeongseongTodayResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Jeongseong Today",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/me/summary": {
       "get": {
         "description": "API-HD-004 오늘 3종 · 연속일 · 최대 · 누적 · 이번 주(read 기준). 401 미인증.",
@@ -6702,6 +7410,62 @@
         ]
       }
     },
+    "/hoondok/search": {
+      "get": {
+        "operationId": "search_words_hoondok_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WordSearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search Words",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/today": {
       "get": {
         "description": "API-HD-001 오늘(KST) 말씀. 없으면 status=none, 철회면 withdrawn — 항상 200.",
@@ -6719,6 +7483,76 @@
           }
         },
         "summary": "Get Today",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/words/{volume}": {
+      "get": {
+        "operationId": "get_words_hoondok_words__volume__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "volume",
+            "required": true,
+            "schema": {
+              "title": "Volume",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "chunk_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Chunk Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WordsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Words",
         "tags": [
           "hoondok"
         ]

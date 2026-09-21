@@ -8,6 +8,7 @@ import { Check, HeartHandshake, Users } from "lucide-react";
 import { useState } from "react";
 import { DoneBadge } from "@/components/hoondok";
 import { PREVIEW_LEAD, type PreviewChallenge, SOON } from "@/features/hoondok/preview/fixtures/worship";
+import { PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
 import { ChallengeBadge } from "./challenge-badge";
 import { PreviewAvatar } from "./preview-avatar";
 
@@ -71,9 +72,14 @@ function SummaryCard({ challenge }: { challenge: PreviewChallenge }) {
         <HeartHandshake size={20} aria-hidden="true" />
         오늘 훈독 완료로 표시하기
       </button>
-      <p className="ws-soon" role="status">
-        {soon}
-      </p>
+      {soon && (
+        <PreviewUnavailable
+          title={soon}
+          reason="챌린지 운영 방식이 아직 정해지지 않아 참여 기록을 저장하지 않았어요."
+          href="/hoondok/read"
+          linkLabel="오늘 훈독 읽기"
+        />
+      )}
     </div>
   );
 }
@@ -126,7 +132,7 @@ function CheerChips({ challenge }: { challenge: PreviewChallenge }) {
           </button>
         ))}
       </div>
-      <p className="ch-chip__help">응원 보내기는 {SOON}이에요. 보내면 상대에게만 알림이 갑니다</p>
+      <p className="ch-chip__help">응원 보내기는 {SOON}이에요. 가족 연결과 알림 운영 방식은 아직 정해지지 않았어요</p>
     </div>
   );
 }

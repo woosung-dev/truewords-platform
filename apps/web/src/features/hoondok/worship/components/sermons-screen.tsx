@@ -122,7 +122,10 @@ export function SermonsScreen() {
         </Link>
       </div>
 
-      <p className="notice">{SERMONS.notice}</p>
+      <p className="notice">{SERMONS.notice} 재생 권리와 운영 방식이 정해지기 전에는 설교를 재생할 수 없어요.</p>
+      <Link className="btn btn-line" href="/hoondok/worship">
+        가정예배로 돌아가기
+      </Link>
     </section>
   );
 }

@@ -12,12 +12,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, select
 
 from app.main import app
 from app.modules.admin.auth import create_access_token
 from app.modules.hoondok.dependencies import get_jeongseong_repository, get_mission_repository
-from app.modules.hoondok.models import JeongseongPeriod, MissionLog
+from app.modules.hoondok.models import ClientErrorEvent, JeongseongPeriod, JeongseongReading, MissionLog
 from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
 from app.modules.identity.models import User
@@ -45,7 +45,7 @@ async def session():
     async with engine.begin() as conn:
         await conn.run_sync(
             SQLModel.metadata.create_all,
-            tables=[User.__table__, MissionLog.__table__, JeongseongPeriod.__table__],
+            tables=[User.__table__, MissionLog.__table__, JeongseongPeriod.__table__, JeongseongReading.__table__, ClientErrorEvent.__table__],
         )
     session = AsyncSession(engine, expire_on_commit=False)
     try:
@@ -81,7 +81,10 @@ async def test_delete_account_purges_hoondok_rows_in_same_commit(session: AsyncS
     other = await service.signup(_signup("other@example.com"))
     for u in (me, other):
         await missions.create(MissionLog(user_id=u.id, mission_date=TODAY, kind="read"))
-        await periods.create(JeongseongPeriod(user_id=u.id, topic="감사", duration_days=7, started_on=TODAY))
+        period = await periods.create(JeongseongPeriod(user_id=u.id, topic="감사", duration_days=7, started_on=TODAY))
+        session.add(JeongseongReading(period_id=period.id, reading_date=TODAY, volume="v", chunk_id="1", body="말씀", title="제목", work_title="저작물"))
+        session.add(ClientErrorEvent(user_id=u.id, kind="api_5xx", message="API 서비스 오류", path="/hoondok/search"))
+        await session.commit()
 
     await service.delete_account(me, purgers=[missions, periods])
 
@@ -89,6 +92,9 @@ async def test_delete_account_purges_hoondok_rows_in_same_commit(session: AsyncS
     assert await missions.list_dates(other.id, "read") == [TODAY] and await periods.get_active(other.id) is not None
     assert (await users.get_by_id(me.id)).deleted_at is not None
     assert (await users.get_by_id(other.id)).deleted_at is None
+    assert len((await session.execute(select(JeongseongReading))).scalars().all()) == 1
+    errors = (await session.execute(select(ClientErrorEvent))).scalars().all()
+    assert len(errors) == 1 and errors[0].user_id == other.id
     # 같은 이메일로 재가입 — unique 인덱스 충돌 없음
     again = await service.signup(_signup("me@example.com", password="password2"))
     assert again.id != me.id and again.email == "me@example.com"
@@ -130,6 +136,9 @@ class _MemoryUsers:
     async def get_by_email(self, email: str) -> User | None:
         email = email.strip().lower()
         return next((u for u in self.users.values() if u.email == email), None)
+
+    async def get_for_update(self, user_id: uuid.UUID):
+        return await self.get_by_id(user_id)
 
     async def get_by_id(self, user_id: uuid.UUID) -> User | None:
         return self.users.get(user_id)

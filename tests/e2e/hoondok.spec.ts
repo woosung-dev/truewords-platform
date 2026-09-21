@@ -81,7 +81,7 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   // make e2e 시드(scripts/seed_daily_readings.py)가 오늘 날짜를 채운다. 시드 데이터는 권리 확인 중(R)·미검수다.
   const card = page.getByRole("article").first();
   await expect(card.getByText("권리 확인 중")).toBeVisible();
-  await expect(card.getByText("확인되지 않음")).toBeVisible();
+  await expect(card.getByText("확인되지 않음", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "훈독 완료" }).click();
   await expect(page.getByRole("status")).toContainText("오늘 훈독을 마쳤어요");
   await page.getByRole("link", { name: /로그인하면 오늘 기록이 남아요/ }).click();

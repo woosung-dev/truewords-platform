@@ -1,6 +1,6 @@
 # web/admin/API 통합 검증
 
-실제 계정·권한·DB와 두 Next.js 프록시를 검증한다. 질문 응답만 `apps/api/tests/e2e_app.py`의 dependency override가 공통 SSE fixture를 지연 전송한다. Gemini 호출은 없고 실제 세션/메시지 저장 및 내 기록·피드백은 유지한다. 운영 데이터에는 실행하지 않는다.
+실제 계정·권한·DB와 두 Next.js 프록시를 검증한다. 질문 응답과 검색 임베딩만 `apps/api/tests/e2e_app.py`의 dependency override가 공통 SSE fixture를 지연 전송한다. Gemini 호출은 없고 실제 세션/메시지 저장 및 내 기록·피드백은 유지한다. `seed_hoondok_journey.py`가 5개 합성 저작물·32청크와 권리 원장을 시드하며 검색·원문은 실제 Qdrant를 조회한다. 운영 데이터에는 실행하지 않는다.
 
 ## 격리 환경
 
@@ -30,4 +30,18 @@ pnpm test:e2e
 
 production CSS 최적화는 OKLCH를 Lab으로 표현할 수 있어 색상 문자열 대신 브라우저가 그린 RGBA 채널을 비교한다(채널당 허용 오차 1). 각 Portal 스크린샷은 테스트 첨부 파일로 저장한다. 이 검사는 전체 화면 픽셀 스냅샷이나 모든 접근성 검사를 대체하지 않는다.
 
-부분 실행: `pnpm --filter @truewords/e2e exec playwright test --project=ui-theme-chromium`. 전체 실행에는 기존 34개와 새 UI 회귀 4개, 총 38개가 포함된다.
+부분 실행: `pnpm --filter @truewords/e2e exec playwright test --project=ui-theme-chromium`. 현재 전체 실행 목록은 `pnpm --filter @truewords/e2e exec playwright test --list`로 확인한다.
+
+
+## 훈독 여정 (PLAN-HD-005)
+
+`make e2e`는 관리자·챗봇·오늘 편성·훈독 사용자 다음 `seed_hoondok_journey.py`를 실행한다.
+새 시드는 development·localhost:15432/truewords_e2e·localhost:16333 조합만 허용한다.
+말씀선집 355권 25청크, 기존 SSE 출처용 001권 1청크, 검색 전용·미승인·철회 저작물 각 2청크를 넣는다.
+모든 본문은 합성 문장이다. 운영 원문과 Gemini 키는 필요 없다.
+
+`hoondok-library`는 375·768·1280px에서 실제 서고·검색·원문·study 완료와 권리별 응답,
+20청크 페이지 및 chunk_id 직접 이동을 검증한다. `hoondok-preview`의 네트워크 0 계약은
+가정예배 4화면·가족 1화면에만 적용한다. 브라우저 서버·Compose 포트는 단일 담당자가 사용한다.
+
+개발 서버는 Playwright 설정의 `pnpm --filter @truewords/web dev`를 경유한다. 검색어가 Next 개발 trace에 남지 않도록 앱 스크립트가 설치 버전의 span 임계값을 설정하므로 `pnpm exec next dev`로 우회하지 않는다. Next 업데이트 때는 검색 장애 응답뿐 아니라 stdout/stderr·`.next/dev/trace`의 고유 sentinel 부재도 재검증한다.

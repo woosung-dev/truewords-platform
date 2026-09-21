@@ -9,6 +9,8 @@ export type HoondokScreen = {
   /** true 면 pathname 이 정확히 같을 때만 (홈) */
   exact?: boolean;
   title: string;
+  /** 원문 API의 work_title 을 조회 후 앱바에 반영한다. title 은 로딩·오류 때의 기본값이다. */
+  titleSource?: "work";
   /** 있을 때만 앱바에 뒤로 링크를 그린다. 탭 루트 화면은 없다 */
   backHref?: string;
   tabId: HoondokTab["id"];
@@ -33,7 +35,14 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
   { match: "/hoondok/ask/", title: "질문", backHref: "/hoondok/ask/log", tabId: "ask", variant: "read" },
   { match: "/hoondok/library", title: "말씀", tabId: "library", variant: "app" },
   { match: "/hoondok/search", title: "말씀 검색", backHref: "/hoondok/library", tabId: "library", variant: "app" },
-  { match: "/hoondok/words", title: "천성경 1편 3장", backHref: "/hoondok/library", tabId: "library", variant: "read" },
+  {
+    match: "/hoondok/words",
+    title: "원문 읽기",
+    titleSource: "work",
+    backHref: "/hoondok/library",
+    tabId: "library",
+    variant: "read",
+  },
   { match: "/hoondok/worship", title: "가정예배", tabId: "worship", variant: "app" },
   {
     match: "/hoondok/worship/challenge",

@@ -97,7 +97,10 @@ describe("016 가족·친구 프리뷰 셸", () => {
     fireEvent.click(screen.getByRole("button", { name: /친구 추가하기/ }));
 
     const notices = screen.getAllByRole("status");
-    expect(notices.map((node) => node.textContent)).toEqual(["가족 초대는 준비 중이에요", "친구 추가는 준비 중이에요"]);
+    expect(notices.map((node) => node.querySelector(".empty__title")?.textContent)).toEqual([
+      "가족 초대는 준비 중이에요",
+      "친구 추가는 준비 중이에요",
+    ]);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 

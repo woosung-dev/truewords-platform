@@ -1,5 +1,6 @@
 """FastAPI/Starlette 미들웨어."""
 
+import logging
 import uuid
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -27,3 +28,16 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         response.headers["X-Request-Id"] = rid
         return response
+
+
+class HoondokAccessLogFilter(logging.Filter):
+    """Uvicorn 요청줄에서 훈독 검색어를 제거한다. 응답 실패에도 동일하게 적용한다."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if isinstance(record.args, tuple) and len(record.args) == 5:
+            args = list(record.args)
+            target = str(args[2])
+            if target.split("?", 1)[0].rstrip("/") == "/hoondok/search":
+                args[2] = target.split("?", 1)[0]
+                record.args = tuple(args)
+        return True

@@ -9,7 +9,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
-import { SUMMARY_KEY } from "@/features/hoondok/use-missions";
 import { identityAPI } from "@/features/identity/api";
 import { safeReturnTo } from "@/features/identity/gate";
 import { CURRENT_USER_KEY, useCurrentUser } from "@/features/identity/use-current-user";
@@ -58,7 +57,9 @@ function OnboardingForm() {
           : await identityAPI.login({ email, password });
       // 계정이 바뀌었으므로 이전 계정의 요약을 재사용하지 않는다. 소급 POST 는 돌아간 화면의 훅이 한다.
       queryClient.setQueryData(CURRENT_USER_KEY, signedIn);
-      queryClient.removeQueries({ queryKey: SUMMARY_KEY });
+      queryClient.removeQueries({
+        predicate: (query) => query.queryKey[0] === "hoondok" && query.queryKey[1] !== "me",
+      });
       router.replace(returnTo);
     } catch (error) {
       setMessage(messageFor(error, mode));
@@ -71,16 +72,18 @@ function OnboardingForm() {
     try {
       await identityAPI.logout();
     } catch {
-      // 만료된 쿠키여도 화면은 로그아웃 상태로 둔다
+      setMessage("로그아웃하지 못했어요. 연결을 확인하고 다시 시도해 주세요.");
+      return;
     }
     queryClient.setQueryData(CURRENT_USER_KEY, null);
-    queryClient.removeQueries({ queryKey: SUMMARY_KEY });
+    queryClient.removeQueries({ predicate: (query) => query.queryKey[0] === "hoondok" && query.queryKey[1] !== "me" });
   }
 
   if (!isLoading && user) {
     return (
       <div className="card" role="status">
         <p className="greet">{user.display_name}님, 이미 로그인돼 있어요.</p>
+        {message && <p role="status">{message}</p>}
         <div className="onb-cta">
           <Link className="btn btn-primary" href={returnTo}>
             계속하기

@@ -28,6 +28,9 @@ from app.modules.admin.data_router import router as admin_data_router
 from app.modules.datasource.router import router as datasource_router
 from app.modules.datasource.chunks_router import chunks_router
 from app.modules.hoondok.router import router as hoondok_router
+from app.modules.hoondok.journey_router import router as journey_router
+from app.modules.hoondok.rights_admin_router import router as rights_admin_router
+from app.modules.hoondok.client_errors import router as client_errors_router
 from app.modules.hoondok.admin_router import admin_router as hoondok_admin_router
 from app.modules.identity.router import router as identity_router
 from app.core.common.exception_handlers import (
@@ -39,7 +42,7 @@ from app.core.common.exception_handlers import (
     session_ownership_handler,
     unhandled_exception_handler,
 )
-from app.core.common.middleware import RequestIdMiddleware
+from app.core.common.middleware import HoondokAccessLogFilter, RequestIdMiddleware
 from app.modules.chat.exceptions import SessionOwnershipError
 from app.modules.identity.exceptions import InviteRequiredError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
@@ -120,6 +123,8 @@ app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignor
 app.include_router(chat_router)
 app.include_router(reactions_router)
 app.include_router(chatbot_router)
+app.include_router(journey_router)
+app.include_router(client_errors_router)
 app.include_router(hoondok_router)  # 훈독 공개 읽기 — 비로그인 (PLAN-HD-001 Phase 1)
 app.include_router(identity_router)  # 훈독 계정 /hoondok/auth/* — 쿠키 hoondok_token (Phase 2)
 
@@ -133,6 +138,7 @@ app.include_router(admin_data_router, dependencies=_ADMIN_GATE)
 app.include_router(datasource_router, dependencies=_ADMIN_GATE)
 app.include_router(chunks_router)  # 공개 유지 — 채팅 원문보기 모달 (자체 chatbot ACL)
 app.include_router(analytics_router, dependencies=_ADMIN_GATE)
+app.include_router(rights_admin_router, dependencies=_ADMIN_GATE)
 app.include_router(hoondok_admin_router, dependencies=_ADMIN_GATE)  # 훈독 편성 /admin/hoondok/daily-readings (Phase 3 A)
 
 
@@ -165,3 +171,6 @@ def custom_openapi():
 
 
 app.openapi = custom_openapi
+
+# Uvicorn access logger는 응답 상태와 무관하게 URL query를 기록하므로 필터를 설치한다.
+logging.getLogger("uvicorn.access").addFilter(HoondokAccessLogFilter())

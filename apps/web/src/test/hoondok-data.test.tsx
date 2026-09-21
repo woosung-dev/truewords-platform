@@ -57,7 +57,9 @@ const HISTORY: MonthHistoryResponse = {
 };
 
 function createClient() {
-  return new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  client.setQueryData(CURRENT_USER_KEY, USER);
+  return client;
 }
 function createWrapper(client: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -115,7 +117,7 @@ describe("useJeongseong", () => {
     const unauthorized = await renderJeongseong(json({ message: "로그인이 필요합니다" }, 401));
     expect(unauthorized.result.isSuccess).toBe(true);
     expect(unauthorized.result.data).toBeNull();
-    expect(unauthorized.client.getQueryData(JEONGSEONG_KEY)).toBeNull();
+    expect(unauthorized.client.getQueriesData({ queryKey: JEONGSEONG_KEY })[0]?.[1]).toBeNull();
 
     const none = await renderJeongseong(json({ period: null }));
     expect(none.result.data).toBeNull();
@@ -234,7 +236,7 @@ describe("useMonthHistory", () => {
   it("historyKey(month) 로 캐시하고 401 → null, 5xx → error", async () => {
     const ok = await renderHistory(json(HISTORY));
     expect(ok.result.data).toEqual(HISTORY);
-    expect(ok.client.getQueryData(historyKey("2026-09"))).toEqual(HISTORY);
+    expect(ok.client.getQueriesData({ queryKey: historyKey("2026-09") })[0]?.[1]).toEqual(HISTORY);
     // 접두 키 자체에는 데이터가 없다 — 접두 무효화(PROGRESS_KEYS)만 잡히면 된다
     expect(ok.client.getQueryData(HISTORY_KEY)).toBeUndefined();
 

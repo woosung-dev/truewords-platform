@@ -340,7 +340,8 @@ e2e: ## 두 앱 + API 통합 E2E — ci-e2e.yml 과 같은 격리 compose·시�
 	  && uv run python scripts/create_admin.py admin@test.com test1234 \
 	  && uv run python scripts/seed_chatbot_configs.py \
 	  && uv run python scripts/seed_daily_readings.py \
-	  && uv run python scripts/seed_hoondok_user.py hoondok@example.com test1234 --name 시드식구) \
+	  && uv run python scripts/seed_hoondok_user.py hoondok@example.com test1234 --name 시드식구 \
+	  && uv run python scripts/seed_hoondok_journey.py) \
 	&& pnpm test:e2e
 
 contracts-check: ## 계약 재생성·drift 및 하위 호환성 검사

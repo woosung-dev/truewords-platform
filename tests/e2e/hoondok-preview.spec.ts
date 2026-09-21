@@ -1,14 +1,11 @@
 import { expect, type Page, test } from "@playwright/test";
 
-// 훈독 정적 프리뷰 셸 (PLAN-HD-002 W3 · SCR-PWA-007·008·009·010~013·016).
+// 훈독 정적 프리뷰 셸 (PLAN-HD-002 W3 · SCR-PWA-010~013·016).
 // 세 에이전트가 만든 화면을 오케스트레이터가 한 spec 에 등록한다(§4 W3 완료 기준).
 // 플래그 두 개(ENABLED·PREVIEW)는 playwright.config 의 webServer env 가 준다 — OFF 의 notFound 는 Vitest 가 본다.
 // 이 화면들은 fixture 만 그리므로 백엔드를 타지 않는다. "네트워크 0" 을 여기서 실제로 단언한다.
 
 const PREVIEW_PATHS = [
-  "/hoondok/library",
-  "/hoondok/search",
-  "/hoondok/words/cheonseonggyeong-1-3",
   "/hoondok/worship",
   "/hoondok/worship/challenge/family-21",
   "/hoondok/worship/sermons",
@@ -17,7 +14,8 @@ const PREVIEW_PATHS = [
 ] as const;
 
 const VIEWPORTS = [
-  { name: "phone", width: 390, height: 844 },
+  { name: "phone", width: 375, height: 844 },
+  { name: "tablet", width: 768, height: 1024 },
   { name: "desktop", width: 1280, height: 900 },
 ] as const;
 
@@ -70,7 +68,7 @@ for (const viewport of VIEWPORTS) {
 }
 
 test("fixture 에 없는 id 는 404 다", async ({ page }) => {
-  for (const path of ["/hoondok/words/nope", "/hoondok/worship/challenge/nope"]) {
+  for (const path of ["/hoondok/worship/challenge/nope"]) {
     const response = await page.goto(path);
     expect(response?.status(), path).toBe(404);
   }
@@ -83,23 +81,6 @@ test("프리뷰 ON: 탭 5개가 모두 이동한다", async ({ page }) => {
   for (const label of ["오늘 훈독", "AI 질문", "말씀", "가정예배", "나의 정원"]) {
     await expect(nav.getByRole("link", { name: label })).toBeVisible();
   }
-});
-
-test("검색 제출: 네트워크 0 · 준비 중 안내 · 최근 검색이 기기에 남는다", async ({ page }) => {
-  const errors = await collectConsoleErrors(page);
-  const apiRequests = await collectApiRequests(page);
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/hoondok/search");
-
-  // 입력은 type="search" 라 역할이 searchbox 다. 앱 셸의 "말씀 검색" 링크와 겹치지 않는 셀렉터를 쓴다.
-  await page.getByRole("searchbox").fill("참사랑");
-  await page.getByRole("button", { name: "찾기" }).click();
-  await expect(page.getByRole("status")).toContainText("준비 중");
-  expect(apiRequests).toEqual([]);
-
-  await page.reload();
-  await expect(page.getByRole("button", { name: /참사랑/ })).toBeVisible();
-  expect(errors).toEqual([]);
 });
 
 test("설교 섭외 제출: 이동 없이 준비 중 안내 · 네트워크 0", async ({ page }) => {

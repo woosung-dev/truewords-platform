@@ -18,6 +18,7 @@ import "@/app/_hoondok/family.css";
 import { HoondokAppShell } from "@/components/hoondok";
 import { isHoondokEnabled } from "@/features/hoondok/flag";
 import { HoondokInstallPromptListener } from "@/features/hoondok/install/components/install-prompt-listener";
+import { HoondokErrorListener } from "@/features/hoondok/observability/listener";
 import {
   HOONDOK_APPLE_TOUCH_ICON,
   HOONDOK_ICON_192,
@@ -59,6 +60,7 @@ export default function HoondokLayout({ children }: { children: ReactNode }) {
   return (
     <div data-app="hoondok">
       <HoondokAppShell>{children}</HoondokAppShell>
+      <HoondokErrorListener />
       <HoondokServiceWorker />
       <HoondokInstallPromptListener />
     </div>
