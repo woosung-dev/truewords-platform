@@ -254,7 +254,12 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 - [x] **PLAN-HD-005 배포 전 롤백 진입점 보완** — **2026-09-22 해소.** 원인은 스키마 비호환이 아니라 진입점 하나였다(구 이미지의 `alembic upgrade head` 가 새 revision 파일을 못 찾아 exit). 코드·배포 절차는 바꾸지 않고 **되돌리기를 2단계로 확정**했다 — 새 이미지로 `alembic downgrade` 먼저, 그 다음 `rollback-backend`. 격리 compose 리허설에서 실패 재현 → downgrade → 구 이미지 **기본 CMD** 기동 `/health` 200·`/hoondok/today` 200 까지 통과했다. 절차와 증거는 [runbook §되돌리기 층 0](runbooks/hoondok-pwa-rollout.md#층-0--backend-마이그레이션이-포함된-배포는-rollback-backend-단독으로-되돌아가지-않는다)
 
-- [x] **PLAN-HD-005 구현·통합 검증** — make ci PASS, E2E 90 passed, MCP 여정·3폭·플래그 51/51, 리뷰 7건 보완, 개발 trace 독립 검사 완료. 구 앱 직접 기동의 새 스키마 호환 PASS; 기본 CMD 롤백은 위 배포 전 과제로 남긴다. [진행표](plans/active/2026-09-21-hoondok-journey-plan.md#91-진행표-트랙이-끝날-때마다-먼저-갱신)를 원본으로 삼는다. 배포는 별도 승인.
+- [x] **PLAN-HD-005 구현·통합 검증** — make ci PASS, E2E 90 passed, MCP 여정·3폭·플래그 51/51, 리뷰 7건 보완, 개발 trace 독립 검사 완료. 구 앱 직접 기동의 새 스키마 호환 PASS; 기본 CMD 롤백은 위 배포 전 과제로 남긴다. [진행표](plans/completed/2026-09-21-hoondok-journey-plan.md#91-진행표-트랙이-끝날-때마다-먼저-갱신)를 원본으로 삼는다. 배포는 별도 승인.
+
+### PLAN-HD-005 여정 잇기 (2026-09-22 배포 완료)
+
+- [x] **배포** — main `a425217` 로 backend → admin → web(`HOONDOK_ENABLED=1`) 3서비스. alembic `l6b7c8d9e0f1` 적용, `smoke-web` 12건 OK, `ops-check` 8건 통과, 공개 라우트 9개·`GET /hoondok/library` 200. [runbook §2026-09-22](runbooks/hoondok-pwa-rollout.md)
+- [ ] **권리 원장 승인 입력** — `content_rights` **0행**이라 `/hoondok/library` 가 `{"items":[]}` 다. 권리 게이트의 기본값이 "전부 비노출"이라 **설계대로이고 결함이 아니다.** 운영자가 admin `/hoondok/rights` 에서 저작물을 승인해야 서고·검색·원문이 사용자에게 보인다. 편성 입력과 같은 성격의 운영 작업
 
 ### 훈독 Phase 3 배포 준비 (2026-09-19 → 2026-09-20 배포 완료)
 - [x] `[종결]` **초대 코드 게이트 — OFF 유지 결정**(2026-09-20). VM `.env` 는 건드리지 않았다. 게이트 코드는 backend 에 이미 배포돼 있어 `HOONDOK_INVITE_CODE` 한 줄 + backend 재생성만으로 즉시 켤 수 있다(다른 컨테이너 파급 없음). 가입 규모가 `[가정]` 10~20명을 넘거나 링크가 의도 밖으로 퍼지면 뒤집는다. 근거는 [runbook §실행 기록](runbooks/hoondok-pwa-rollout.md#실행-기록)

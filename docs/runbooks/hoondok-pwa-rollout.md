@@ -410,3 +410,32 @@ make rollback-web TAG=aba5240
 - **실기기 증거**(§실기기 증거) — 헤드리스로 대체 불가. `PLAN-HD-001` §6 완료 기준표에서 **아직 닫히지 않은 마지막 항목**이다. 함께 열려 있던 "배포 트리 기준 `make e2e` 재실행" 은 `PLAN-HD-004` 최종 게이트가 닫았다 — 운영 태그 `a93a6c7`(web)·`c066b02`(backend·admin)가 둘 다 그 트리의 조상이라 배포된 코드를 포함한다.
 - **`make ci` 의 `docs:check` 로컬 오탐**: `tooling/checks/docs-links.mjs:10` 의 `walk()` 가 `fs.readdirSync` 로 트리를 걸으며 `.gitignore` 를 보지 않아, gitignore 대상인 `docs/guides/*.html`(`.gitignore:40`)을 검사해 missing-anchor 11건을 낸다. GHA 체크아웃에는 그 파일이 없어 원격 CI 는 통과한다. `make ci` 가 여기서 멈춰 뒤의 `pnpm test`·`lint`·`build`·`typecheck` 에 **도달하지 못하므로** 이 배포에서는 따로 실행했다(전부 green, pytest 1069 passed). 배포와 무관한 별도 건.
   - **해소(2026-09-21, `PLAN-HD-004` 트랙 A `54dc8ea`)**: `walk()` 가 `git ls-files --cached --others --exclude-standard` 를 gitignore 판정의 정본으로 써서 대상 파일을 건너뛴다(목록을 못 얻으면 경고 후 전부 검사한다 — 조용히 건너뛰지 않는다). 실측으로 `make ci` 가 **exit 0 으로 끝까지 돈다** — docs:check 문서 190 · 링크 324 · 새 오류 0, 이어서 `test`·`lint`·`build`·`typecheck` 까지 도달한다.
+
+### 2026-09-22 — PLAN-HD-005 배포: 여정 잇기 3서비스 (`a425217`)
+
+`#305`(디자인 품질)·`#307`(reading journeys)·`#309`(이 runbook)이 쌓여 운영보다 6커밋 앞서 있던 main 을 배포했다. 배포 전 상태는 web `a93a6c7` · admin·backend `c066b02` · DB `k5a6b7c8d9e0` 였다.
+
+선행: [§되돌리기 층 0](#층-0--backend-마이그레이션이-포함된-배포는-rollback-backend-단독으로-되돌아가지-않는다) 의 롤백 리허설을 먼저 통과시켰다. 이 배포가 `l6b7c8d9e0f1` 을 들여오므로 되돌리기 경로가 먼저 증명돼 있어야 했다.
+
+순서는 `PLAN-HD-001` §6 대로 backend → admin → web 이고 각 단계 별도 승인이었다.
+
+| 단계 | 명령 | 결과 |
+|---|---|---|
+| backend | `make deploy-backend` | `a425217` healthy. entrypoint 검증(alembic 1.19.1 · uvicorn 0.42.0) 통과 |
+| DB | (backend CMD 자동) | `k5a6b7c8d9e0` → **`l6b7c8d9e0f1`** 적용 확인 |
+| admin | `make deploy-admin` (+`DEMO_ADMIN_EMAIL`) | `a425217` healthy |
+| web | `make deploy-web HOONDOK_ENABLED=1` | `a425217` healthy |
+| smoke | `make smoke-web HOONDOK_ENABLED=1` | **12건 OK** · `sw-cache` WARN 1 (§Cloudflare 캐시의 알려진 WARN, FAIL 아님) |
+| ops-check | `make ops-check` | **불변식 8건 전부 통과** · 컨테이너 6개 정상 · `hoondok-today` "앞으로 6일분" |
+
+공개 라우트 9개 전부 200 (`/hoondok`·`read`·`library`·`search`·`garden`·`settings`·`ask`·`ask/log`·`offline`), 신규 공개 API `GET /hoondok/library` 200.
+
+**`deploy-admin` 은 `DEMO_ADMIN_EMAIL` 을 요구한다.** 클라이언트 라우팅 힌트라 빌드에 구워지고, 비우면 모든 계정이 access-denied 로 간다. 값은 VM `.env` 의 것과 같아야 한다 — 레포에 두지 않으므로 배포할 때 VM 에서 읽어 넘긴다.
+
+#### 남은 운영 입력 — 서고가 비어 있다
+
+`GET /hoondok/library` 가 `{"items":[]}` 를 돌려준다. `content_rights` 0행이기 때문이고, **설계대로다** — 권리 게이트의 기본값이 "전부 비노출"이다(`PLAN-HD-005` §1-4). 코드 결함이 아니다.
+
+서고·검색·원문이 사용자에게 보이려면 운영자가 admin `/hoondok/rights` 에서 저작물을 승인해야 한다. 그 전까지 서고 탭은 빈 상태 + 홈 귀환 CTA 로 동작한다(빈 서고 대응은 `PLAN-HD-005` P0 으로 처리됨).
+
+편성과 같은 성격의 운영 입력이며, 편성 잔여분은 이 시점에 6일분이다.
