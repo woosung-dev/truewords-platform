@@ -1,6 +1,6 @@
 """권리 기반 서고·검색·원문·정성 API."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.modules.hoondok.dependencies import get_journey_service
 from app.modules.hoondok.journey_schemas import (
@@ -12,9 +12,18 @@ from app.modules.hoondok.journey_schemas import (
 from app.modules.hoondok.journey_service import JourneyService
 from app.modules.identity.dependencies import get_current_user
 from app.modules.identity.models import User
-from app.modules.safety.middleware import check_rate_limit
+from app.modules.safety.middleware import check_rate_limit, extract_client_ip
+from app.modules.safety.rate_limiter import RateLimiter
 
 router = APIRouter(prefix="/hoondok", tags=["hoondok"])
+
+# 원문은 권리 승인 저작물이라 volume·page 순회 수집을 막아야 한다. 다만 구간을 넘길 때마다
+# 호출되는 읽기 경로라 chat 과 같은 예산(20/분)을 쓰면 정상 독자가 먼저 막힌다 — 별도 예산을 둔다.
+words_limiter = RateLimiter(max_requests=120, window_seconds=60)
+
+
+async def check_words_limit(request: Request) -> None:
+    words_limiter.check(extract_client_ip(request))
 
 
 @router.get("/library", response_model=LibraryResponse)
@@ -37,7 +46,11 @@ async def search_words(
     return await service.search(q, limit)
 
 
-@router.get("/words/{volume:path}", response_model=WordsResponse)
+@router.get(
+    "/words/{volume:path}",
+    response_model=WordsResponse,
+    dependencies=[Depends(check_words_limit)],
+)
 async def get_words(
     volume: str,
     page: int = Query(default=1, ge=1),
