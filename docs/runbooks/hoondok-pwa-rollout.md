@@ -73,8 +73,50 @@ ops-check 는 VM **안**을 본다. 컨테이너가 전부 healthy 인데 사용
 
 | 층 | 어디에 있나 | 되돌리는 법 |
 |---|---|---|
+| DB schema | VM Postgres | **선행 `alembic downgrade`** — 마이그레이션이 포함된 배포에서만 (아래 층 0) |
 | 앱 코드·라우트 | VM 이미지 | `rollback-web` 또는 `deploy-web HOONDOK_ENABLED=0` |
 | 서비스워커 등록·캐시 | **사용자 브라우저** | 킬스위치 배포 (아래) |
+
+층 0 은 backend, 층 1·2 는 web 이야기다. web 만 되돌릴 때는 층 1 부터 읽으면 된다.
+
+### 층 0 — backend: 마이그레이션이 포함된 배포는 `rollback-backend` 단독으로 되돌아가지 않는다
+
+`apps/api/Dockerfile` 의 기본 CMD 가 이렇다.
+
+```
+sh -c "alembic upgrade head && exec uvicorn ..."
+```
+
+새 revision 을 배포한 뒤 구 이미지로 되돌리면, 구 이미지의 `alembic/versions/` 에는 그 revision 파일이 **없다**. 그래서 `alembic upgrade head` 가 `Can't locate revision identified by <새 revision>` 으로 죽고 컨테이너가 기동하지 못한다. `make rollback-backend TAG=<구 sha>` 만으로는 서비스가 돌아오지 않는다는 뜻이다.
+
+이 CMD 는 고치지 않는다 — `|| true` 로 넘기면 코드와 DB schema 가 어긋난 채 뜨고, 그것을 막으려고 넣은 장치다(`dev-log 41`, 2026-04-25 incident).
+
+**되돌리는 순서는 2단계다. 새 이미지가 아직 VM 에 있을 때 downgrade 를 먼저 돌린다.**
+
+```bash
+# 1. 아직 새 이미지로, 구 이미지가 아는 revision 까지 내린다
+ssh truewords-oracle 'cd ~/truewords && sudo docker compose run --rm --no-deps \
+  backend alembic downgrade <구 이미지의 head revision>'
+
+# 2. 그 다음에 이미지를 되돌린다
+make rollback-backend TAG=<구 sha>
+```
+
+순서를 바꾸면 안 된다. 이미지를 먼저 되돌리면 downgrade 를 실행할 주체(새 revision 파일을 가진 이미지)가 사라진다.
+
+**downgrade 가 무엇을 지우는지 먼저 읽는다.** `PLAN-HD-001` §3 의 additive-only 규칙을 지킨 마이그레이션이라면 `downgrade()` 는 신규 테이블 drop 뿐이라 기존 데이터가 남는다. 신규 테이블에 쌓인 데이터는 사라진다 — 그것이 되돌린다는 뜻이다. 규칙을 벗어난 마이그레이션이라면 이 절차를 그대로 쓰지 말고 먼저 `downgrade()` 본문을 읽는다.
+
+#### 리허설 (2026-09-22, `l6b7c8d9e0f1` 배포 전)
+
+격리 compose(`apps/api/docker-compose.e2e.yml`, tmpfs — 운영·로컬 개발 볼륨 무접촉)에서 위 순서를 검증했다.
+
+- 기준 이미지: `git archive c066b02` 트리로 빌드, digest `sha256:3d16e9fb2b4656f7b50ba932caac9bad3c5f5e4dcd22537aec28f90b3c837988` (`PLAN-HD-005` §9.3 이 기록한 digest 와 동일 — 재현됨)
+- **실패 재현**: DB 가 `l6b7c8d9e0f1` 인 상태에서 구 이미지를 기본 CMD 로 기동 → `Can't locate revision identified by 'l6b7c8d9e0f1'`
+- **1단계**: 새 이미지로 `alembic downgrade k5a6b7c8d9e0` → `content_rights`·`jeongseong_readings`·`client_error_events` 3테이블 drop
+- **2단계**: 같은 구 이미지를 **기본 CMD 그대로** 기동 → `Application startup complete`, `/health` 200 `{"status":"ok"}`, `/hoondok/today` 200
+- 검증 후 `alembic upgrade head` 로 격리 DB 를 `l6b7c8d9e0f1` 로 원복, 테스트 컨테이너 제거
+
+이 결과로 `PLAN-HD-005` §9.3 의 "기본 CMD 롤백 **실패**" 와 `docs/TODO.md` Next Actions 의 배포 전 과제가 닫힌다. 원인은 스키마 비호환이 아니라 진입점 하나였고, 절차 2단계로 해소된다.
 
 ### 층 1 — 라우트만 끄기 (대부분의 경우 이걸로 충분)
 
