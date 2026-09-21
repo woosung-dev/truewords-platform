@@ -115,3 +115,29 @@
 | 2026-09-16 | `users` 확정(alembic `i1e2f3a4b5c6`). `consent_version`·`deleted_at` 은 예약 컬럼 | 확정 · Phase 2 sub-PR A |
 | 2026-09-16 | `mission_logs` 확정(alembic `j3f4a5b6c7d8`). 연속일은 `read` 기준 계산, 소급은 당일만 | 확정 · Phase 2 sub-PR B |
 | 2026-09-19 | `jeongseong_periods` 확정(alembic `k5a6b7c8d9e0`). 사용자당 active 1건은 부분 unique, 상태 varchar, 진행률 미저장. `users.deleted_at` 은 API-HD-011 이 기록하고 이메일을 `deleted:{id}` 로 익명화 | 확정 · PLAN-HD-002 W0-B |
+
+---
+
+## ENT-HD-005 `content_rights` — 신규 말씀 기능 권리 원장
+
+`volume` unique를 저작물 키로 사용한다. 승인된 메타데이터 조사에서 664개 volume 간 book_series 충돌이 없었다.
+`work_title`, `source_keys`, `book_series`, `authority_grade`, `note`, 생성·갱신 시각을 기록한다.
+`status`는 varchar이며 `pending`(기본)·`allowed`·`withdrawn`이다. 삭제 대신 철회한다.
+`scope_search`, `scope_full_text`, `scope_jeongseong`은 서로 독립적인 bool이며 기본 false다.
+각 신규 기능은 allowed와 해당 scope를 모두 만족해야 본문을 반환한다. 기존 AI/오늘 편성의 전면 전환은 후속이다.
+
+## ENT-HD-006 `jeongseong_readings` — 날짜별 정성 추출 말씀
+
+`period_id` FK, `reading_date`, `volume`, `chunk_id`, 본문·제목·출처 메타데이터를 저장한다.
+`(period_id, reading_date)` unique로 같은 날 동시 조회도 한 건만 확정한다. 같은 기간에 사용한 chunk_id는 다음 후보에서 제외한다.
+미래 시작일에는 생성하지 않으며 후보가 없으면 행을 만들지 않는다. 이미 저장한 말씀도 권리 철회 후 반환하지 않는다.
+기간은 ENT-HD-004의 달력 기준을 그대로 사용한다. 결석 시 기간 연장이나 day_index 기반 진도를 추가하지 않는다.
+계정 삭제 시 해당 사용자의 기간에 속한 말씀을 함께 삭제한다.
+
+## ENT-HD-007 `client_error_events` — 최소 오류 수집
+
+오류 종류(`sw_register`, `install_prompt`, `unhandled`, `api_5xx`), 고정 안전 문구, 정규화된 경로,
+발생 시각과 선택적인 사용자 연결을 기록한다. 원본 예외 메시지·질문·메모·검색어·토큰은 기록하지 않는다.
+보고 요청 실패를 다시 수집하지 않으며 사용자 삭제 시 연결된 기록을 삭제한다. 관리자 조회 화면은 만들지 않는다.
+
+세 테이블은 additive-only migration으로 추가하며 PostgreSQL ENUM이나 기존 컬럼 파괴적 변경을 도입하지 않는다.

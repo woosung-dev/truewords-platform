@@ -4,7 +4,7 @@
 import uuid
 from datetime import date, datetime, time, timezone
 
-from sqlalchemy import Column, Index, Text, UniqueConstraint, text
+from sqlalchemy import JSON, Column, Index, Text, UniqueConstraint, text
 from sqlmodel import Field, SQLModel
 
 
@@ -87,3 +87,56 @@ class JeongseongPeriod(SQLModel, table=True):
     ended_at: datetime | None = Field(default=None)  # completed·abandoned 로 바뀐 시각(UTC)
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class ContentRight(SQLModel, table=True):
+    """저작물별 신규 기능 이용 권리. 원시 volume을 식별자로 보존한다."""
+
+    __tablename__ = "content_rights"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    volume: str = Field(max_length=512, unique=True, index=True)
+    status: str = Field(default="pending", max_length=16)
+    scope_search: bool = Field(default=False)
+    scope_full_text: bool = Field(default=False)
+    scope_jeongseong: bool = Field(default=False)
+    work_title: str = Field(max_length=200)
+    source_keys: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    book_series: str | None = Field(default=None, max_length=200)
+    authority_grade: str = Field(default="R", max_length=8)
+    note: str = Field(default="", max_length=2000)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class JeongseongReading(SQLModel, table=True):
+    """KST 날짜별 추출 원문 스냅샷. 읽기 완료 기록은 기존 mission_logs를 사용한다."""
+
+    __tablename__ = "jeongseong_readings"
+    __table_args__ = (UniqueConstraint("period_id", "reading_date", name="uq_jeongseong_readings_period_date"),)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    period_id: uuid.UUID = Field(foreign_key="jeongseong_periods.id", index=True)
+    reading_date: date
+    volume: str = Field(max_length=512)
+    chunk_id: str = Field(max_length=128)
+    body: str = Field(sa_column=Column(Text, nullable=False))
+    title: str = Field(max_length=200)
+    speaker: str = Field(default="확인되지 않음", max_length=64)
+    work_title: str = Field(max_length=200)
+    spoken_on: str | None = Field(default=None, max_length=32)
+    edition: str | None = Field(default=None, max_length=120)
+    authority_grade: str = Field(default="R", max_length=8)
+    review_status: str = Field(default="unverified", max_length=16)
+    estimated_minutes: int = Field(default=1)
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class ClientErrorEvent(SQLModel, table=True):
+    """사용자 입력을 저장하지 않는 고정 오류 코드와 정규화 경로."""
+
+    __tablename__ = "client_error_events"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    occurred_at: datetime = Field(default_factory=_utcnow)
+    kind: str = Field(max_length=32)
+    message: str = Field(max_length=200)
+    path: str = Field(max_length=120)
+    user_id: uuid.UUID | None = Field(default=None, foreign_key="users.id", index=True)

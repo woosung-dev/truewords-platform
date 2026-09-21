@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { ApiError } from "@truewords/api-client-ts";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,7 +20,9 @@ import { ReadCompleteButton } from "@/features/hoondok/components/read-complete-
 import { missionsAPI } from "@/features/hoondok/missions-api";
 import { clearPending, readPending, writePending } from "@/features/hoondok/pending";
 import { formatKstDate } from "@/features/hoondok/today";
+import { useMissionCompletion } from "@/features/hoondok/use-missions";
 import { identityAPI } from "@/features/identity/api";
+import { CURRENT_USER_KEY } from "@/features/identity/use-current-user";
 
 const USER = { id: "u1", email: "a@b.c", display_name: "효진" };
 const TODAY = formatKstDate().iso;
@@ -66,6 +68,16 @@ describe("pending (비로그인 완료 체크, KST 날짜 키)", () => {
     expect(readPending("read", "2026-09-17")).toBe(false);
   });
 
+  it("로그인 실패 완료는 해당 계정에만 보이고 지연된 전날 응답은 새 날짜 키를 지우지 않는다", () => {
+    writePending("study", TODAY, "one");
+    expect(readPending("study", TODAY, "two")).toBe(false);
+    expect(readPending("study", TODAY, "one")).toBe(true);
+    clearPending("study", "2000-01-01", "one");
+    expect(readPending("study", TODAY, "one")).toBe(true);
+    clearPending("study", TODAY, "one");
+    expect(readPending("study", TODAY, "one")).toBe(false);
+  });
+
   it("localStorage 가 던져도 예외 없이 '없음' 으로 본다", () => {
     const spy = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("blocked");
@@ -108,17 +120,19 @@ describe("ReadCompleteButton", () => {
     loggedIn();
     vi.mocked(missionsAPI.complete).mockRejectedValueOnce(new TypeError("fetch failed"));
     render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
-    fireEvent.click(await screen.findByRole("button", { name: /훈독 완료/ }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /훈독 완료/ })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /훈독 완료/ }));
     expect(await screen.findByRole("status")).toHaveTextContent("오늘 훈독을 마쳤어요");
     expect(screen.getByText(/아직 저장하지 못했어요/)).toBeInTheDocument();
-    expect(localStorage.getItem(KEY)).toBe(TODAY);
+    expect(localStorage.getItem(`${KEY}:${USER.id}`)).toBe(TODAY);
   });
 
   it("로그인 + 401(쿠키 만료): 온보딩(returnTo=현재 경로)으로 보낸다", async () => {
     loggedIn();
     vi.mocked(missionsAPI.complete).mockRejectedValueOnce(new ApiError(401, { message: "x" }));
     render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
-    fireEvent.click(await screen.findByRole("button", { name: /훈독 완료/ }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /훈독 완료/ })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /훈독 완료/ }));
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/hoondok/onboarding?returnTo=%2Fhoondok%2Fread"));
   });
 
@@ -183,7 +197,8 @@ describe("ReadCompleteButton", () => {
     vi.mocked(missionsAPI.summary).mockResolvedValue({ ...EMPTY_SUMMARY, streak_days: 7 });
     vi.mocked(missionsAPI.complete).mockRejectedValueOnce(new TypeError("fetch failed"));
     render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
-    fireEvent.click(await screen.findByRole("button", { name: /훈독 완료/ }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /훈독 완료/ })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /훈독 완료/ }));
 
     expect(await screen.findByText(/아직 저장하지 못했어요/)).toBeInTheDocument();
     expect(screen.queryByText(/이어가고 있어요/)).toBeNull();
@@ -225,5 +240,27 @@ describe("ReadCompleteButton", () => {
     });
     render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
     expect(await screen.findByRole("status")).toHaveTextContent("오늘 훈독을 마쳤어요");
+  });
+});
+
+describe("완료 상태의 계정·날짜 경계", () => {
+  it("같은 컴포넌트에서 사용자가 바뀌면 앞 계정의 낙관적 완료를 재사용하지 않는다", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(CURRENT_USER_KEY, USER);
+    vi.mocked(missionsAPI.complete).mockResolvedValue({ mission_date: TODAY, kind: "study", completed_at: "x" });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result, rerender } = renderHook(({ id }) => useMissionCompletion("study", { ...USER, id }, false), {
+      wrapper,
+      initialProps: { id: USER.id },
+    });
+    act(() => result.current.markDone());
+    await waitFor(() => expect(result.current.isDone).toBe(true));
+    act(() => {
+      client.setQueryData(CURRENT_USER_KEY, { ...USER, id: "other" });
+      rerender({ id: "other" });
+    });
+    await waitFor(() => expect(result.current.isDone).toBe(false));
   });
 });

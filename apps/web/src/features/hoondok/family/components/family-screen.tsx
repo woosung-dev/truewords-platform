@@ -1,11 +1,13 @@
 "use client";
 
+import { Check, Plus } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { FAMILY_MEMBERS, type FamilyPerson, FRIENDS, SCOPE_ROWS } from "@/features/hoondok/preview/fixtures/family";
 // SCR-PWA-016 가족·친구 (PLAN-HD-002 W3-F) — 프리뷰 셸. 마크업·문구의 원본은 프로토타입 app.html
 // data-screen="family" 이고, 연결·초대·공개 범위 저장은 이번 범위가 아니라 네트워크 요청을 하나도 보내지 않는다.
 // 초대·추가 버튼은 형태만 두고 왜 눌러도 진행되지 않는지는 색이 아니라 글자가 말한다 (DES-PWA-003 §3.3).
-import { Check, Plus } from "lucide-react";
-import { useState } from "react";
-import { FAMILY_MEMBERS, type FamilyPerson, FRIENDS, SCOPE_ROWS } from "@/features/hoondok/preview/fixtures/family";
+import { PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
 
 const PREVIEW_NOTICE = "미리보기 예시 데이터입니다";
 const FOOT_NOTICE = "연결은 양쪽이 동의할 때만 만들어지고, 언제든 끊을 수 있어요.";
@@ -77,9 +79,12 @@ function PeopleSection({
         </li>
       </ul>
       {isSoonShown && (
-        <p className="st-row__soon fm-soon" role="status">
-          {action.soon}
-        </p>
+        <PreviewUnavailable
+          title={action.soon}
+          reason="가족·친구 연결 운영 방식이 정해지지 않아 초대를 보내지 않았어요."
+          href="/hoondok/garden"
+          linkLabel="나의 정원으로 돌아가기"
+        />
       )}
     </div>
   );
@@ -151,6 +156,9 @@ export function FamilyScreen() {
       <ScopeSection />
 
       <p className="notice">{FOOT_NOTICE}</p>
+      <Link className="btn btn-line" href="/hoondok/garden">
+        나의 정원으로 돌아가기
+      </Link>
     </section>
   );
 }

@@ -1097,3 +1097,8 @@
     url("/hoondok/fonts/PretendardVariable-1.3.9.woff2") format("woff2-variations"),
     url("/hoondok/fonts/PretendardVariable-1.3.9.woff2") format("woff2");
 }
+
+/* 훈독 화면에서만 바깥 문서 배경이 드러나는 세로 오버스크롤을 막는다. */
+html:has([data-app="hoondok"]) {
+  overscroll-behavior-y: none;
+}

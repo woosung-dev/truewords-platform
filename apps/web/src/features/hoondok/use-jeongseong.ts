@@ -2,8 +2,10 @@
 
 import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
+import { useCurrentUser } from "@/features/identity/use-current-user";
 import { type JeongseongCreate, type JeongseongPeriodResponse, jeongseongAPI } from "./jeongseong-api";
-import { JEONGSEONG_KEY, SUMMARY_KEY } from "./query-keys";
+import { JEONGSEONG_KEY, JEONGSEONG_TODAY_KEY, SUMMARY_KEY } from "./query-keys";
+import { useKstDate } from "./use-kst-date";
 
 /** 진행 중인 정성. 401 은 "미인증(null)" — 비로그인 홈에서 조용히 지나간다. 5xx·네트워크는 error 로 남긴다. */
 export async function fetchJeongseong(): Promise<JeongseongPeriodResponse | null> {
@@ -17,11 +19,18 @@ export async function fetchJeongseong(): Promise<JeongseongPeriodResponse | null
 
 /** data = 진행 중인 기간 | null. 없음·미인증 둘 다 null 이며, 로그인 여부는 useCurrentUser 가 안다. */
 export function useJeongseong(isEnabled: boolean) {
-  return useQuery({ queryKey: JEONGSEONG_KEY, queryFn: fetchJeongseong, enabled: isEnabled });
+  const { user } = useCurrentUser();
+  const date = useKstDate();
+  return useQuery({
+    queryKey: [...JEONGSEONG_KEY, user?.id ?? null, date],
+    queryFn: fetchJeongseong,
+    enabled: isEnabled,
+  });
 }
 
 /** 정성이 바뀌면 홈 카드(정성)와 요약을 함께 다시 읽는다. */
 function invalidateJeongseong(queryClient: QueryClient): void {
+  void queryClient.resetQueries({ queryKey: JEONGSEONG_TODAY_KEY });
   void queryClient.invalidateQueries({ queryKey: JEONGSEONG_KEY });
   void queryClient.invalidateQueries({ queryKey: SUMMARY_KEY });
 }

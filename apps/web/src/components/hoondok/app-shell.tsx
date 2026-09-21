@@ -3,8 +3,8 @@
 import { ArrowLeft, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
-import { isHoondokPreviewEnabled } from "@/features/hoondok/flag";
+import { type ReactNode, useCallback, useState } from "react";
+import { HoondokScreenTitleContext } from "@/features/hoondok/screen-title";
 import { screenFor } from "@/features/hoondok/screens";
 import { HOONDOK_TABS } from "@/features/hoondok/tabs";
 
@@ -14,11 +14,18 @@ import { HOONDOK_TABS } from "@/features/hoondok/tabs";
 export function HoondokAppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const screen = screenFor(pathname);
-  // 말씀 검색 화면은 프리뷰 플래그에서만 존재한다 — OFF 면 검색 아이콘은 장식으로 남긴다.
-  const isSearchLive = isHoondokPreviewEnabled();
+  const [resolvedTitle, setResolvedTitle] = useState<{ pathname: string; title: string } | null>(null);
+  const updateTitle = useCallback(
+    (title: string | null) => {
+      setResolvedTitle((previous) => (title ? { pathname, title } : previous?.pathname === pathname ? null : previous));
+    },
+    [pathname],
+  );
+  const title =
+    screen.titleSource === "work" && resolvedTitle?.pathname === pathname ? resolvedTitle.title : screen.title;
 
   return (
-    <>
+    <HoondokScreenTitleContext.Provider value={updateTitle}>
       <main className={`app__main app__main--${screen.variant}`}>
         <header className="appbar">
           <div className="appbar__in">
@@ -27,16 +34,10 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
                 <ArrowLeft size={22} />
               </Link>
             )}
-            <h1 className="appbar__title">{screen.title}</h1>
-            {isSearchLive ? (
-              <Link className="icon-btn icon-btn--search" href="/hoondok/search" aria-label="말씀 검색">
-                <Search size={22} />
-              </Link>
-            ) : (
-              <span className="icon-btn icon-btn--search" aria-hidden="true">
-                <Search size={22} />
-              </span>
-            )}
+            <h1 className="appbar__title">{title}</h1>
+            <Link className="icon-btn icon-btn--search" href="/hoondok/search" aria-label="말씀 검색">
+              <Search size={22} />
+            </Link>
           </div>
         </header>
         {children}
@@ -67,18 +68,11 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
             </Link>
           );
         })}
-        {isSearchLive ? (
-          <Link className="nav__search" href="/hoondok/search">
-            <Search size={18} />
-            말씀 검색
-          </Link>
-        ) : (
-          <span className="nav__search" aria-hidden="true">
-            <Search size={18} />
-            말씀 검색 (준비 중)
-          </span>
-        )}
+        <Link className="nav__search" href="/hoondok/search">
+          <Search size={20} />
+          말씀 검색
+        </Link>
       </nav>
-    </>
+    </HoondokScreenTitleContext.Provider>
   );
 }

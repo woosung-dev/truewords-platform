@@ -31,7 +31,7 @@ describe("훈독 화면 레지스트리", () => {
     expect(pick("/hoondok/ask/log")).toEqual(["질문 기록", "/hoondok/ask", "ask", "read"]);
     expect(pick("/hoondok/ask/q-123")).toEqual(["질문", "/hoondok/ask/log", "ask", "read"]);
     expect(pick("/hoondok/search")).toEqual(["말씀 검색", "/hoondok/library", "library", "app"]);
-    expect(pick("/hoondok/words")).toEqual(["천성경 1편 3장", "/hoondok/library", "library", "read"]);
+    expect(pick("/hoondok/words")).toEqual(["원문 읽기", "/hoondok/library", "library", "read"]);
     expect(pick("/hoondok/worship/request")).toEqual(["설교 섭외", "/hoondok/worship/sermons", "worship", "app"]);
     // 미등록 경로는 홈 항목으로 떨어진다
     expect(pick("/hoondok/unknown")).toEqual(["오늘 훈독", undefined, "today", "home"]);
@@ -50,8 +50,8 @@ describe("훈독 화면 레지스트리", () => {
 describe("훈독 탭 단계 · 프리뷰 플래그", () => {
   it("OFF(기본): 오늘 훈독·AI 질문·나의 정원만 이동한다", async () => {
     const { HOONDOK_TABS, TAB_STAGE } = await loadTabsWithPreview("");
-    expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual(["today", "ask", "garden"]);
-    expect(TAB_STAGE).toEqual({ today: "live", garden: "live", ask: "live", library: "preview", worship: "preview" });
+    expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual(["today", "ask", "library", "garden"]);
+    expect(TAB_STAGE).toEqual({ today: "live", garden: "live", ask: "live", library: "live", worship: "preview" });
   });
 
   it("ON: 말씀·가정예배가 켜져 5탭이 모두 이동한다", async () => {
@@ -68,7 +68,7 @@ describe("훈독 탭 단계 · 프리뷰 플래그", () => {
 });
 
 describe("훈독 앱 셸", () => {
-  it("/hoondok/settings: 제목 알림·설치 · 뒤로 → /hoondok/garden · 정원 탭 활성 · 검색은 장식", async () => {
+  it("/hoondok/settings: 제목 알림·설치 · 뒤로 → /hoondok/garden · 정원 탭 활성 · 검색은 항상 활성", async () => {
     vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "");
     vi.resetModules();
     vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/hoondok/settings" }));
@@ -82,7 +82,7 @@ describe("훈독 앱 셸", () => {
     expect(screen.getByRole("link", { name: "뒤로" })).toHaveAttribute("href", "/hoondok/garden");
     expect(screen.getByRole("link", { name: /나의 정원/ })).toHaveAttribute("aria-current", "page");
     expect(container.querySelector("main")).toHaveClass("app__main--app");
-    expect(screen.queryByRole("link", { name: "말씀 검색" })).toBeNull();
+    expect(screen.getAllByRole("link", { name: "말씀 검색" })).toHaveLength(2);
   });
 
   it("프리뷰 ON: 앱바 아이콘·헤더 검색이 /hoondok/search 링크가 된다", async () => {

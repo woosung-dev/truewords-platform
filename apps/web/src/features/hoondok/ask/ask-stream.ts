@@ -1,3 +1,4 @@
+import { hoondokFetch } from "../observability/report";
 // SCR-PWA-005·006 AI 질문 어댑터 — 시연 챗과 같은 `POST /api/backend/chat/stream` SSE 를 소비한다
 // (PLAN-HD-002 W2 · §9 2026-09-19 결정). 백엔드·스키마·프롬프트는 건드리지 않는다.
 //
@@ -57,7 +58,7 @@ export function askErrorMessage(error: unknown): string {
  * `X-Requested-With` 와 쿠키 동봉도 그대로다. 다른 점은 `session_id`·`answer_mode` 를 보내지 않는 것뿐이다.
  */
 export async function requestAsk(question: string, signal?: AbortSignal): Promise<AskResult> {
-  const res = await fetch("/api/backend/chat/stream", {
+  const res = await hoondokFetch("/api/backend/chat/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
     credentials: "include",

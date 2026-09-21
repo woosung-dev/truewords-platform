@@ -117,9 +117,17 @@ describe("/hoondok/read 조건부 렌더", () => {
     vi.doMock("@/features/hoondok/api", () => ({
       loadToday: vi.fn(async () => ({ date: DATE, status: "none", reading: null })),
     }));
+    vi.doMock("@/features/identity/use-current-user", () => ({
+      useCurrentUser: () => ({ user: null, isLoading: false, isError: false }),
+    }));
+    const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query");
     const { default: HoondokReadPage } = await import("../app/(hoondok)/hoondok/read/page");
 
-    render(await HoondokReadPage());
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        {await HoondokReadPage()}
+      </QueryClientProvider>,
+    );
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.queryByText("오늘의 한 줄")).toBeNull();
   });

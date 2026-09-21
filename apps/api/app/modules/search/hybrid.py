@@ -63,6 +63,7 @@ async def hybrid_search(
     dense_embedding: list[float] | None = None,
     sparse_embedding: tuple[list[int], list[float]] | None = None,
     collection_name: str | None = None,
+    volume_filter: list[str] | None = None,
 ) -> list[SearchResult]:
     """Dense + Sparse RRF 하이브리드 검색.
 
@@ -75,6 +76,7 @@ async def hybrid_search(
         query: 사용자 질의 텍스트.
         top_k: 반환할 최대 결과 수.
         source_filter: 데이터 소스 필터 (예: ``["A", "B"]``). None이면 전체 검색.
+        volume_filter: 신규 훈독 권리 허용 volume. None은 기존 검색, 빈 목록은 호출 없이 0건.
         query_metadata: ``extract_query_metadata`` 결과 dict. 권번호 등이 추출된
             경우 source filter 와 AND 결합되어 query_filter 에 추가된다.
         dense_embedding: 사전 계산된 dense 벡터 (None이면 내부 계산).
@@ -85,6 +87,9 @@ async def hybrid_search(
     """
     from app.modules.search.metadata_extractor import build_metadata_filter_conditions
 
+    if volume_filter == []:
+        return []
+
     dense = dense_embedding if dense_embedding is not None else await embed_dense_query(query)
     if sparse_embedding is not None:
         sparse_indices, sparse_values = sparse_embedding
@@ -92,6 +97,8 @@ async def hybrid_search(
         sparse_indices, sparse_values = await embed_sparse_async(query)
 
     must_conditions: list[dict] = []
+    if volume_filter is not None:
+        must_conditions.append(field_match_any("volume", volume_filter))
     if source_filter:
         must_conditions.append(field_match_any("source", source_filter))
     if query_metadata:
@@ -102,11 +109,12 @@ async def hybrid_search(
         collection_name=collection_name or settings.collection_name,
         query=fusion_rrf(),
         prefetch=[
-            build_prefetch(dense, using="dense", limit=50),
+            build_prefetch(dense, using="dense", limit=max(50, top_k) if volume_filter is not None else 50, filter_=query_filter if volume_filter is not None else None),
             build_prefetch(
                 sparse_vector(sparse_indices, sparse_values),
                 using="sparse",
-                limit=50,
+                limit=max(50, top_k) if volume_filter is not None else 50,
+                filter_=query_filter if volume_filter is not None else None,
             ),
         ],
         query_filter=query_filter,

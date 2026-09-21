@@ -1,13 +1,12 @@
 "use client";
 
-// SCR-PWA-008 말씀 검색 (PLAN-HD-002 W3-L). 검색 엔진은 권리 원장·코퍼스 재적재 뒤라 아직 없다 —
-// 이 화면은 입력·분류·기록의 형태만 보이고 어떤 요청도 보내지 않는다. 결과는 fixture 부분 문자열 대조다.
-// 입력 전 상태(최근 검색 · 이렇게도 찾을 수 있어요 · 질문 안내)는 프로토타입 data-screen="search" 그대로다.
+import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, History, MessageCircleQuestion, Search, SearchX } from "lucide-react";
 import Link from "next/link";
 import { useId, useRef, useState, useSyncExternalStore } from "react";
 import { AuthorityBadge } from "@/components/hoondok";
-import { filterPreviewResults, PREVIEW_SEARCH_HOWTO } from "@/features/hoondok/preview/fixtures/library";
+import { PREVIEW_SEARCH_HOWTO } from "@/features/hoondok/preview/fixtures/library";
+import { libraryAPI, wordsHref } from "../api";
 import {
   appendRecentSearch,
   clearRecentSearches,
@@ -19,7 +18,6 @@ import {
 // 프로토타입 앱바 입력의 placeholder·aria-label 그대로.
 const PLACEHOLDER = "단어, 구절, 상황을 입력해 주세요";
 const LABEL = "말씀 검색";
-const PENDING = "검색은 준비 중이에요";
 
 export function SearchScreen() {
   const inputId = useId();
@@ -30,12 +28,19 @@ export function SearchScreen() {
   // 최근 검색의 원본은 이 기기의 localStorage 하나뿐이다. 서버 스냅샷이 빈 배열이라 SSR 과 첫 렌더가 같다.
   const recent = useSyncExternalStore(subscribeRecentSearches, readRecentSearches, () => EMPTY_RECENT as string[]);
   const text = query.trim();
-  const results = submitted ? filterPreviewResults(submitted) : [];
+  const search = useQuery({
+    queryKey: ["hoondok", "word-search", submitted],
+    queryFn: ({ signal }) => libraryAPI.search(submitted ?? "", signal),
+    enabled: Boolean(submitted),
+    retry: false,
+    gcTime: 0,
+  });
+  const results = search.isError ? [] : (search.data?.results ?? []);
 
   function runSearch(value: string) {
     const next = value.trim();
     if (!next) return;
-    // 질의는 서버로 가지 않는다 — 기기에만 남기고 준비 중 상태를 보인다.
+    // 최근 검색은 이 기기에만 보관한다. 검색어는 검색 API 외에 오류 보고로 보내지 않는다.
     appendRecentSearch(next);
     setQuery(next);
     setSubmitted(next);
@@ -48,8 +53,6 @@ export function SearchScreen() {
 
   return (
     <section className="col">
-      <p className="notice">미리보기 예시 데이터입니다</p>
-
       <form
         className="sf-form"
         role="search"
@@ -70,6 +73,7 @@ export function SearchScreen() {
             type="search"
             enterKeyHint="search"
             autoComplete="off"
+            maxLength={200}
             placeholder={PLACEHOLDER}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -83,35 +87,65 @@ export function SearchScreen() {
       {submitted !== null && (
         <div className="sect">
           <div className="sect__head">
-            <h2 className="sect__title">예시 결과</h2>
-            <span className="sect__meta">{`${results.length}건`}</span>
+            <h2 className="sect__title">검색 결과</h2>
+            {search.isSuccess && <span className="sect__meta">{results.length}건</span>}
           </div>
-          {/* 왜 진짜 결과가 아닌지는 색이 아니라 글자가 말한다 (DES-PWA-003 §3.3) */}
-          <p className="sf-status" role="status">
-            {`${PENDING} — 아래는 예시 말씀에서 고른 결과예요`}
-          </p>
-          {results.length === 0 ? (
-            <div className="empty">
+          {search.isPending ? (
+            <p className="sf-status" role="status" aria-busy="true">
+              말씀을 찾고 있어요
+            </p>
+          ) : search.isError ? (
+            <div className="empty" role="status">
               <span className="empty__ic">
                 <SearchX size={26} aria-hidden="true" />
               </span>
-              <p className="empty__title">예시 결과가 없어요</p>
-              <p className="empty__body">지금은 예시 말씀 한 편에서만 찾을 수 있어요. 아래 칩으로 골라 보세요.</p>
+              <p className="empty__title">검색하지 못했어요</p>
+              <p className="empty__body">입력한 검색어는 그대로 있어요. 잠시 뒤 다시 시도해 주세요.</p>
+              <button className="btn btn-line" type="button" onClick={() => void search.refetch()}>
+                다시 시도
+              </button>
+            </div>
+          ) : results.length === 0 ? (
+            <div className="empty" role="status">
+              <span className="empty__ic">
+                <SearchX size={26} aria-hidden="true" />
+              </span>
+              <p className="empty__title">검색 결과가 없어요</p>
+              <p className="empty__body">검색이 허용된 말씀에서 찾지 못했어요. 다른 단어나 짧은 구절로 찾아보세요.</p>
+              <Link className="btn btn-line" href="/hoondok/library">
+                서고로 돌아가기
+              </Link>
             </div>
           ) : (
             <ul className="sr-list">
-              {results.map((result) => (
-                <li key={result.id}>
-                  <Link href={`/hoondok/words/${result.wordId}`}>
+              {results.map((result) => {
+                const body = (
+                  <>
                     <span className="sr-hd">
-                      <b>{result.title}</b>
-                      <AuthorityBadge grade={result.grade} />
+                      <b>{result.work_title}</b>
+                      {result.authority_grade === "R" ? (
+                        <span className="badge badge--dashed">공식성 확인되지 않음</span>
+                      ) : (
+                        <AuthorityBadge grade={result.authority_grade} />
+                      )}
                     </span>
-                    <span className="sr-snippet">{result.snippet}</span>
-                    <span className="sr-src">{result.source}</span>
-                  </Link>
-                </li>
-              ))}
+                    <span className="sr-snippet">{result.text}</span>
+                    <span className="sr-src">화자·판본 확인되지 않음</span>
+                  </>
+                );
+                return (
+                  <li key={result.chunk_id}>
+                    {result.can_read_full_text ? (
+                      <Link href={wordsHref(result.volume, result.chunk_id)}>{body}</Link>
+                    ) : (
+                      <div className="sr-unavailable">
+                        {body}
+                        <p className="notice">검색 인용만 허용된 저작물이에요. 원문 공개 권리는 확인 중입니다.</p>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

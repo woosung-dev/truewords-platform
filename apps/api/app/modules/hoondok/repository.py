@@ -7,7 +7,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.modules.hoondok.models import DailyReading, JeongseongPeriod, MissionLog
+from app.modules.hoondok.models import ClientErrorEvent, DailyReading, JeongseongPeriod, JeongseongReading, MissionLog
 
 
 class DailyReadingRepository:
@@ -93,7 +93,7 @@ class JeongseongRepository:
     async def get_active(self, user_id: uuid.UUID) -> JeongseongPeriod | None:
         """진행 중(active) 기간. 부분 unique 가 사용자당 1건을 보장한다."""
         result = await self.session.execute(
-            select(JeongseongPeriod).where(JeongseongPeriod.user_id == user_id, JeongseongPeriod.status == "active")
+            select(JeongseongPeriod).where(JeongseongPeriod.user_id == user_id, JeongseongPeriod.status == "active").execution_options(populate_existing=True)
         )
         return result.scalar_one_or_none()
 
@@ -117,4 +117,11 @@ class JeongseongRepository:
 
     async def delete_for_user(self, user_id: uuid.UUID) -> None:
         """계정 삭제(API-HD-011)의 일부 — 커밋하지 않는다. MissionLogRepository.delete_for_user 와 같은 규약."""
+        # 자식 삭제 전에 부모를 잠가 새 말씀 저장이 DELETE 사이에 끼어들지 못하게 한다.
+        locked = await self.session.execute(
+            select(JeongseongPeriod.id).where(JeongseongPeriod.user_id == user_id).with_for_update()
+        )
+        period_ids = list(locked.scalars().all())
+        await self.session.execute(delete(JeongseongReading).where(JeongseongReading.period_id.in_(period_ids)))
+        await self.session.execute(delete(ClientErrorEvent).where(ClientErrorEvent.user_id == user_id))
         await self.session.execute(delete(JeongseongPeriod).where(JeongseongPeriod.user_id == user_id))

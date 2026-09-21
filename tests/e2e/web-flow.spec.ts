@@ -34,7 +34,7 @@ test("로그인 → 시연 게이트 → 내 기록 → 로그아웃", async ({ 
 
 test("모바일 뷰에서 SSE 답변·출처 원문을 표시한다", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route("**/api/backend/api/sources/chunks/fixture-chunk?*", (route) =>
+  await page.route("**/api/backend/api/sources/chunks/*?*", (route) =>
     route.fulfill({
       json: {
         chunk_id: "fixture-chunk",

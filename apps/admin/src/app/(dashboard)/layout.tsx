@@ -25,6 +25,7 @@ import { WEB_ORIGIN } from "@/lib/origins";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
   { href: "/chatbots", label: "챗봇", icon: Bot },
+  { href: "/hoondok/rights", label: "훈독 권리", icon: ScrollText },
   { href: "/hoondok", label: "훈독 편성", icon: CalendarDays },
   { href: "/data-sources", label: "데이터 소스", icon: Database },
   { href: "/analytics", label: "검색 분석", icon: BarChart3 },
@@ -49,7 +50,7 @@ function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onL
       {/* 네비게이션 */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          const isActive = NAV_ITEMS.find((candidate) => pathname.startsWith(candidate.href)) === item;
           const Icon = item.icon;
           return (
             <Link

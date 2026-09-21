@@ -12,14 +12,13 @@ import { formatKstDate } from "@/features/hoondok/today";
 
 export default async function HoondokHomePage() {
   const today = await loadToday();
-  const { label, weekday } = formatKstDate();
-  const reading = today.status === "available" ? today.reading : null;
+  const { weekday } = formatKstDate();
 
   return (
     <section className="col">
-      <HomeGreeting dateLabel={label} />
+      <HomeGreeting />
 
-      <HomeMissions reading={reading ?? null} todayWeekday={weekday} />
+      <HomeMissions today={today} todayWeekday={weekday} />
 
       <JeongseongCard />
 

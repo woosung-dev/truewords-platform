@@ -84,6 +84,11 @@ class IdentityService:
         훈독 기록은 하드 삭제, 계정은 deleted_at 소프트 삭제 + 이메일을 `deleted:{id}` 로 익명화해 같은 주소로
         다시 가입할 수 있게 한다(unique 인덱스 충돌 없음). 발급된 쿠키는 get_optional_user 가 deleted_at 으로 거른다.
         """
+        # 잠금 순서는 사용자 → 정성 기간이다. 지연된 오류 저장과 삭제를 직렬화한다.
+        locked_user = await self.repo.get_for_update(user.id)
+        if locked_user is None or locked_user.deleted_at is not None:
+            return
+        user = locked_user
         for purger in purgers:
             await purger.delete_for_user(user.id)
         user.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)

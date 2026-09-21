@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
+import { reportClientError } from "../observability/report";
 import { isIos, isStandalone } from "./platform";
 import { consumeDeferredPrompt, getDeferredPrompt } from "./prompt-store";
 import { dismissInstallCard, markInstalled, readInstallState, subscribeInstall } from "./storage";
@@ -45,9 +46,8 @@ export function useInstallCard({ isAlwaysVisible = false }: InstallVisibility = 
       await deferred.prompt();
       const { outcome } = await deferred.userChoice;
       if (outcome === "accepted") markInstalled();
-    } catch (error) {
-      // 프롬프트 실패 보고는 Phase 3 H(클라이언트 오류 수집) 몫이다
-      console.warn("[hoondok] 설치 프롬프트 실패", error);
+    } catch {
+      reportClientError("install_prompt");
     } finally {
       // prompt() 는 한 번만 유효하다 — 거절했으면 일반 안내(manual)로 내려간다
       consumeDeferredPrompt();

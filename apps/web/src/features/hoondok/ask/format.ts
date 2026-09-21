@@ -46,11 +46,10 @@ export const SOURCE_RANK_UNKNOWN = "공식성 확인되지 않음";
 /**
  * 근거 카드 출처 줄의 칸들. 순서는 DES-PWA-003 §2.2 의 화자 · 저작물 · 위치 · 판본 · 공식성이고,
  * `/chat/stream` 이 주지 않는 칸은 지어내지 않고 "확인되지 않음"으로 적는다 (REQ-PWA-012 · AC-017-02).
- * 화자 칸은 따로 두지 않는다 `[가정]` — 이 말뭉치의 `volume` 이 저작물과 위치를 함께 담고 있어
- * 같은 값이 두 번 적히고 375px 에서 출처 줄만 한 줄 더 늘어난다.
  */
 export function sourceFields(source: Source): SourceField[] {
   return [
+    { id: "speaker", text: "화자 확인되지 않음", isUnknown: true },
     { id: "work", text: sourceLabel(source), isUnknown: false },
     { id: "edition", text: "판본 확인되지 않음", isUnknown: true },
   ];

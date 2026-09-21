@@ -1,66 +1,110 @@
-// SCR-PWA-007 말씀 서고 (PLAN-HD-002 W3-L). 프리뷰 셸이라 값은 전부 fixture 이고 네트워크 요청이 없다.
-// 마크업은 프로토타입 data-screen="library" 그대로 — 검색 필드(상설) · 이어 읽기 · 저작물 · 권리 고지 순서다.
-import { Search } from "lucide-react";
-import Link from "next/link";
-import { AuthorityBadge } from "@/components/hoondok";
-import { PREVIEW_LIBRARY_NOTICE, PREVIEW_RESUME, PREVIEW_WORKS } from "@/features/hoondok/preview/fixtures/library";
+"use client";
 
-// 프로토타입 `.search-field` 의 문구 그대로. 검색 화면의 입력 placeholder 와 같은 말이다.
-const SEARCH_PLACEHOLDER = "단어, 구절, 상황을 입력해 주세요";
+import { useQuery } from "@tanstack/react-query";
+import { BookOpenText, Search } from "lucide-react";
+import Link from "next/link";
+import { useSyncExternalStore } from "react";
+import { AuthorityBadge } from "@/components/hoondok";
+import { libraryAPI, wordsHref } from "../api";
+import { parseLastReading, readLastReadingRaw, subscribeLastReading } from "../last-reading";
 
 export function LibraryScreen() {
+  const query = useQuery({ queryKey: ["hoondok", "library"], queryFn: libraryAPI.list, retry: false, staleTime: 0 });
+  const last = parseLastReading(useSyncExternalStore(subscribeLastReading, readLastReadingRaw, () => null));
+  const resume =
+    query.isSuccess && last
+      ? query.data.items.find((work) => work.volume === last.volume && work.scope_full_text)
+      : null;
   return (
     <section className="col">
-      <p className="notice">미리보기 예시 데이터입니다</p>
-
       <Link className="search-field" href="/hoondok/search">
         <Search size={20} aria-hidden="true" />
-        <span>{SEARCH_PLACEHOLDER}</span>
+        <span>단어, 구절, 상황을 입력해 주세요</span>
       </Link>
-
-      <div className="sect">
-        <div className="sect__head">
-          <h2 className="sect__title">이어 읽기</h2>
-          <span className="sect__meta">{PREVIEW_RESUME.when}</span>
+      {resume && last && (
+        <div className="sect">
+          <div className="sect__head">
+            <h2 className="sect__title">이어 읽기</h2>
+            <span className="sect__meta">이 기기의 마지막 구간</span>
+          </div>
+          <Link className="card resume" href={`${wordsHref(resume.volume)}?page=${last.page}`}>
+            <span className="resume__bd">
+              <b>{resume.work_title}</b>
+              <span className="resume__meta">원문 구간 {last.page}</span>
+            </span>
+            {resume.authority_grade === "R" ? (
+              <span className="badge badge--dashed">공식성 확인되지 않음</span>
+            ) : (
+              <AuthorityBadge grade={resume.authority_grade} />
+            )}
+          </Link>
         </div>
-        <Link className="card resume" href={`/hoondok/words/${PREVIEW_RESUME.wordId}`}>
-          <span className="resume__bd">
-            <b>{PREVIEW_RESUME.title}</b>
-            <span className="resume__meta">{PREVIEW_RESUME.meta}</span>
-          </span>
-          <AuthorityBadge grade={PREVIEW_RESUME.grade} />
-        </Link>
-      </div>
-
+      )}
       <div className="sect">
         <div className="sect__head">
           <h2 className="sect__title">저작물</h2>
-          <span className="sect__meta">권리 확인된 정본만</span>
+          <span className="sect__meta">검색·원문 공개 권리를 확인한 저작물</span>
         </div>
-        <div className="shelf">
-          {PREVIEW_WORKS.map((work) => {
-            const body = (
-              <>
-                <b>{work.title}</b>
-                <span>{work.meta}</span>
-                <AuthorityBadge grade={work.grade} />
-              </>
-            );
-            // 읽을 원문이 있는 저작물만 링크다. 나머지는 왜 못 여는지를 메타 줄·배지가 글자로 말한다(§3.3).
-            return work.wordId ? (
-              <Link key={work.id} className="shelf__item" href={`/hoondok/words/${work.wordId}`}>
-                {body}
-              </Link>
-            ) : (
-              <div key={work.id} className="shelf__item">
-                {body}
-              </div>
-            );
-          })}
-        </div>
+        {query.isPending ? (
+          <p className="sf-status" role="status" aria-busy="true">
+            서고를 불러오고 있어요
+          </p>
+        ) : query.isError ? (
+          <div className="empty" role="status">
+            <span className="empty__ic">
+              <BookOpenText size={26} />
+            </span>
+            <p className="empty__title">서고를 불러오지 못했어요</p>
+            <p className="empty__body">연결을 확인하고 다시 시도해 주세요.</p>
+            <button type="button" className="btn btn-line" onClick={() => void query.refetch()}>
+              다시 시도
+            </button>
+          </div>
+        ) : query.data.items.length === 0 ? (
+          <div className="empty" role="status">
+            <span className="empty__ic">
+              <BookOpenText size={26} />
+            </span>
+            <p className="empty__title">공개된 저작물이 아직 없어요</p>
+            <p className="empty__body">원문 공개 권리가 확인되면 이곳에서 읽을 수 있어요.</p>
+            <Link className="btn btn-line" href="/hoondok">
+              오늘 훈독으로 돌아가기
+            </Link>
+          </div>
+        ) : (
+          <div className="shelf">
+            {query.data.items.map((work) => {
+              const content = (
+                <>
+                  <b>{work.work_title}</b>
+                  <span>{work.volume}</span>
+                  {work.authority_grade === "R" ? (
+                    <span className="badge badge--dashed">공식성 확인되지 않음</span>
+                  ) : (
+                    <AuthorityBadge grade={work.authority_grade} />
+                  )}
+                </>
+              );
+              return work.scope_full_text ? (
+                <Link key={work.volume} className="shelf__item" href={wordsHref(work.volume)}>
+                  {content}
+                </Link>
+              ) : (
+                <div key={work.volume} className="shelf__item">
+                  {content}
+                  <span>검색 인용만 허용 · 원문 공개 확인 중</span>
+                  <Link href="/hoondok/search" className="btn btn-line btn--sm">
+                    말씀 검색하기
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-
-      <p className="notice">{PREVIEW_LIBRARY_NOTICE}</p>
+      <p className="notice">
+        검색과 원문 공개 권한은 각각 확인합니다. 판본·화자·공식성이 확인되지 않은 값은 지어내지 않습니다.
+      </p>
     </section>
   );
 }

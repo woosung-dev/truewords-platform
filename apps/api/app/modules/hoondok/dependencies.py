@@ -4,6 +4,8 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.common.database import get_async_session
+from app.modules.hoondok.journey_repository import JourneyRepository
+from app.modules.hoondok.journey_service import JourneyService
 from app.modules.hoondok.repository import DailyReadingRepository, JeongseongRepository, MissionLogRepository
 from app.modules.hoondok.service import (
     DailyReadingAdminService,
@@ -62,3 +64,14 @@ async def get_jeongseong_service(
 ) -> JeongseongService:
     # get_async_session 은 요청당 캐시되므로 두 리포는 같은 세션을 공유한다.
     return JeongseongService(repo, missions)
+
+
+async def get_journey_repository(session: AsyncSession = Depends(get_async_session)) -> JourneyRepository:
+    return JourneyRepository(session)
+
+
+async def get_journey_service(
+    repo: JourneyRepository = Depends(get_journey_repository),
+    periods: JeongseongRepository = Depends(get_jeongseong_repository),
+) -> JourneyService:
+    return JourneyService(repo, get_raw_client(), periods)

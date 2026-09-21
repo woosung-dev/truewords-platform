@@ -30,7 +30,7 @@
 - 날짜(`date`)는 `YYYY-MM-DD`, 서버가 KST 로 계산한다. 클라이언트가 날짜를 보내는 파라미터는 없다.
 - 오류 본문은 기존 FastAPI 규약(`{"detail": ...}`)을 따른다. 예외: API-HD-002 의 403 `INVITE_REQUIRED` 는 중앙 핸들러의 `ErrorResponse{ error_code, message, request_id }` 형식이다(SEC-MONO-001 의 `SESSION_FORBIDDEN` 과 같다) — 웹이 CSRF 403 과 `error_code` 로 구분한다.
 - Phase 2 항목은 2026-09-16 sub-PR A(002·003)·B(004·005)에서 확정했다.
-- `API-HD-006~008` 만 예외로 **관리자 블록**이다: prefix `/admin/hoondok/daily-readings`, tag `admin-hoondok`, `main.py` 에 `_ADMIN_GATE` 로 등록, 라우터 레벨 `verify_csrf`. 훈독 사용자 쿠키(`hoondok_token`)로는 호출할 수 없다. 2026-09-19 Phase 3 sub-PR A 에서 확정.
+- `API-HD-006~008`·`API-HD-012~013`은 예외로 **관리자 블록**이다: prefix `/admin/hoondok/daily-readings`, tag `admin-hoondok`, `main.py` 에 `_ADMIN_GATE` 로 등록, 라우터 레벨 `verify_csrf`. 훈독 사용자 쿠키(`hoondok_token`)로는 호출할 수 없다. 2026-09-19 Phase 3 sub-PR A 에서 확정.
 - `API-HD-009~011` 은 2026-09-19 PLAN-HD-002 W0-B 에서 확정했다(정성 기간·월 기록·계정 삭제). 모두 `hoondok_token` 이며 상태 변경(POST·DELETE)은 `X-Requested-With` 가 없으면 403.
 
 ---
@@ -301,3 +301,33 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 | 2026-09-19 | 훈독 AI 질문은 **신규 엔드포인트 없이** `POST /chat/stream` 재사용. 백엔드·스키마 무변경이며 무기억(`session_id` 미전송)과 근거 게이트만 클라이언트에 둔다 | 확정 · PLAN-HD-002 W2 |
 | 2026-09-19 | 질문 봇은 슬러그 `all` 고정(`HOONDOK_ASK_CHATBOT_ID`). 전용 봇·프롬프트 미정이라 상수 1줄로 교체 가능한 형태로 둔다 | `[확인 필요]` · PLAN-HD-002 W2 |
 | 2026-09-20 | API-HD-012 신설(편성 후보 검색). **추출형 채택 · 생성형 초안 기각** — 병목은 본문 생산이 아니라 코퍼스에서 고르는 일이고, 생성형은 결정 5(대체 생성 없음)를 뒤집는 데다 교리 recall 이 42~56%로 낮다. 본문 원문 유지·`chunk_id` 기록·등급 `R` 기본 | 확정 · PLAN-HD-003 |
+
+---
+
+## PLAN-HD-005 — 권리·말씀·정성·오류 수집
+
+`API-HD-014~017`의 본문 조회는 신규 기능의 권리 게이트를 적용한다. 기존 AI 답변·전체 오늘 편성의 전면 권리 전환은 이 변경에 포함하지 않는다.
+
+| ID | Method · Path | 인증 | 동작 |
+|---|---|---|---|
+| `API-HD-013` | GET·POST `/admin/hoondok/content-rights`, PUT `/admin/hoondok/content-rights/{id}` | admin + 게이트 + 변경 시 CSRF | 저작물 권리 목록·등록·수정. 삭제 대신 withdrawn |
+| `API-HD-014` | GET `/hoondok/library` | 공개 | allowed AND (scope_search OR scope_full_text) 저작물 목록. 정성 전용은 제외, 빈 목록은 200 |
+| `API-HD-015` | GET `/hoondok/search?q=&limit=` | 공개 | 검색 허용 volume을 Qdrant dense/sparse 양쪽에 적용. 빈 허용 목록은 검색 없이 빈 결과 |
+| `API-HD-016` | GET `/hoondok/words/{volume}?page=&chunk_id=` | 공개 | full_text 허용 저작물의 20청크 구간. chunk_id는 해당 구간 직접 이동 |
+| `API-HD-017` | GET `/hoondok/me/jeongseong/today` | hoondok_token | 오늘 정성 추출 말씀을 lazy 생성·저장·재사용 |
+| `API-HD-018` | POST `/hoondok/client-errors` | 익명 허용 | 안전한 오류 종류·경로만 수집, IP당 20회/분 제한 |
+
+### 응답과 접근 경계
+
+- 서고는 `{items}`이며 항목에 `volume`, `work_title`, 권위·출처 정보, `scope_search`, `scope_full_text`를 제공한다.
+- 검색은 `{results}`이며 항목에 `chunk_id`, `chunk_index`, `text`, `volume`, `score`, `can_read_full_text`를 제공한다. 검색어 원문은 저장하지 않는다. 0건은 200, 검색 장애는 공통 `SEARCH_FAILED` **503**이다.
+- 원문은 `volume`, `work_title`, `page`, `page_size=20`, `total_chunks`, `total_pages`, `chunks`, `body`를 제공한다. `chunk_index` 범위로 조회 후 정렬한다. 미허용·다른 volume의 chunk_id·삭제된 청크는 404이다. 실제 장·절 메타데이터를 만들지 않는다.
+- 정성은 `date`, `status`, `reason`, `period_id`, `reading`을 제공한다. `reason`은 `no_period`, `upcoming`, `no_candidates`, `rights_withdrawn` 또는 null이다. `reading`은 `DailyReadingPublic`과 같다. `scope_jeongseong`은 검색·원문 권한과 독립적이다. 저장 후에도 매 조회 현재 권리를 확인한다.
+- 정성 후보 없음·오류는 웹에서 이유와 함께 일반 편성을 사용한다. 7·21·40일 종료일과 기존 `read` 완료 진도는 유지한다. 완료 후 같은 날 조회해도 같은 말씀이다. 추출은 검수 완료가 아니며 생성 LLM을 사용하지 않는다.
+
+오류 수집 요청은 `{kind,path}`이며 성공은 204다. 익명도 CSRF 헤더가 필요하며 전용 IP당 20회/분 제한을 적용한다. 원본 예외 메시지·질문·검색어·토큰·URL 쿼리를 보내거나 저장하지 않는다. 종류에 대응하는 안전한 문구와 정규화된 경로만 저장하며 보고 실패는 재보고하지 않는다. 계정 삭제 시 정성 말씀과 사용자 연결 오류 기록도 삭제한다.
+
+
+말씀 검색의 웹 경로 `/api/backend/hoondok/search`는 전용 Route Handler를 사용한다.
+백엔드 `GET /hoondok/search` 계약은 유지한다. 연결 실패는 안전한 `SEARCH_FAILED` 503으로 바꾸며,
+Next catch-all rewrite의 실패 로그에 검색어가 포함된 upstream URL이 출력되지 않도록 한다.

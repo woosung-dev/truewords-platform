@@ -18,6 +18,7 @@ import {
   REQUEST_TOPIC_DEFAULT,
   REQUEST_WHEN_OPTIONS,
 } from "@/features/hoondok/preview/fixtures/worship";
+import { PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
 import { PreviewAvatar } from "./preview-avatar";
 
 const SUBMIT_MESSAGE = "접수는 준비 중이에요";
@@ -95,7 +96,7 @@ export function SermonRequestForm() {
             required
             defaultValue={REQUEST_TOPIC_DEFAULT}
           />
-          <span className="field__help">최근 훈독·질문에서 가져왔어요. 바꿔도 돼요.</span>
+          <span className="field__help">미리보기 예시 주제예요. 바꿔도 돼요.</span>
         </div>
 
         <div className="field rq-field">
@@ -140,9 +141,14 @@ export function SermonRequestForm() {
           요청 보내기
         </button>
         {/* 제출 결과는 버튼 바로 아래에서 글자로 알린다 — 색만으로 구분하지 않는다 */}
-        <p className="ws-soon" role="status">
-          {status}
-        </p>
+        {status && (
+          <PreviewUnavailable
+            title={status}
+            reason="섭외를 접수할 운영 주체가 아직 정해지지 않아 전송하지 않았어요. 입력한 내용은 이 화면에 남아 있어요."
+            href="/hoondok/worship/sermons"
+            linkLabel="설교 목록으로 돌아가기"
+          />
+        )}
       </form>
 
       <p className="notice">{REQUEST_NOTICE}</p>

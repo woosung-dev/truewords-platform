@@ -1,6 +1,7 @@
 // 훈독 진행 상태 React Query 키 (PLAN-HD-002 W0-W). 요약·정성·기록 화면이 각자 키를 만들지 않고 여기서 가져간다.
 // 미션 완료 한 번이 세 캐시를 함께 무효화해야 하므로 PROGRESS_KEYS 로 묶는다.
 export const SUMMARY_KEY = ["hoondok", "summary"] as const;
+export const JEONGSEONG_TODAY_KEY = ["hoondok", "jeongseong-today"] as const;
 export const JEONGSEONG_KEY = ["hoondok", "jeongseong"] as const;
 export const HISTORY_KEY = ["hoondok", "history"] as const;
 

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { isHoondokEnabled } from "@/features/hoondok/flag";
+import { reportClientError } from "./observability/report";
 
 export const HOONDOK_SW_URL = "/hoondok/sw.js";
 export const HOONDOK_SW_SCOPE = "/hoondok";
@@ -19,10 +20,7 @@ export function HoondokServiceWorker() {
     if (!isHoondokEnabled() || typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
     navigator.serviceWorker
       .register(HOONDOK_SW_URL, { scope: HOONDOK_SW_SCOPE, updateViaCache: "none" })
-      .catch((error: unknown) => {
-        // 등록 실패 보고는 Phase 3 H(클라이언트 오류 수집) 몫이다. 지금은 콘솔 경고만 남기고 앱은 그대로 동작한다.
-        console.warn("[hoondok] 서비스워커 등록 실패", error);
-      });
+      .catch(() => reportClientError("sw_register"));
   }, []);
   return null;
 }

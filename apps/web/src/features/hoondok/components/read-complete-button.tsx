@@ -14,7 +14,7 @@ import { useCurrentUser } from "@/features/identity/use-current-user";
  * 질문 링크를 전폭 `.btn` 으로 두면 주 CTA 와 크기가 같아져 화면의 시선 종착점이 둘로 갈린다(DES §3.1 · §5).
  * 링크는 줄 높이를 흔들지 않고 히트 영역만 44px 로 넓힌다(`.read-ask-link`).
  */
-export function ReadCompleteButton({ askHref }: { askHref: string }) {
+export function ReadCompleteButton({ askHref, isDisabled = false }: { askHref: string; isDisabled?: boolean }) {
   const { user, isLoading } = useCurrentUser();
   const { data: summary } = useSummary(Boolean(user));
   const completion = useMissionCompletion("read", user, isLoading);
@@ -65,7 +65,7 @@ export function ReadCompleteButton({ askHref }: { askHref: string }) {
   return (
     <>
       {/* 저장 중에는 라벨을 그대로 두고 좌측 스피너로 진행을 알리며 중복 제출을 막는다 (DES §1.5 loading). */}
-      <HoondokButton onClick={completion.markDone} isLoading={completion.isSaving}>
+      <HoondokButton onClick={completion.markDone} isLoading={completion.isSaving} disabled={isDisabled || isLoading}>
         <Check size={20} />
         훈독 완료
       </HoondokButton>

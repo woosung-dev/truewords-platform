@@ -44,6 +44,7 @@ export default defineConfig({
         "hoondok-jeongseong.spec.ts",
         "hoondok-ask.spec.ts",
         "hoondok-preview.spec.ts",
+        "hoondok-library.spec.ts",
       ],
       use: { browserName: "chromium", baseURL: webOrigin },
     },
@@ -73,7 +74,7 @@ export default defineConfig({
               NEXT_PUBLIC_DEMO_ADMIN_EMAIL: adminEmail,
               // 훈독 라우트는 플래그 ON 에서만 존재한다. OFF 404 는 Vitest 가 검증한다.
               NEXT_PUBLIC_HOONDOK_ENABLED: "1",
-              // 프리뷰 셸(말씀·가정예배·가족)은 두 번째 플래그 뒤에 있다 — 운영 이미지에는 넣지 않는다(PLAN-HD-002 §2).
+              // 프리뷰 셸(가정예배·가족)은 두 번째 플래그 뒤에 있다 — 운영 이미지에는 넣지 않는다(PLAN-HD-002 §2).
               NEXT_PUBLIC_HOONDOK_PREVIEW: "1",
             },
             reuseExistingServer: false,

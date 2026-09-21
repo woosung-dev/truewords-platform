@@ -12,18 +12,26 @@ let deferred: BeforeInstallPromptEvent | null = null;
 let isListening = false;
 
 /** 멱등. preventDefault 로 Chrome Android 의 미니 인포바를 막고 이벤트를 보관한다. */
-export function listenForInstallPrompt(): void {
-  if (isListening || typeof window === "undefined") return;
+export function listenForInstallPrompt(): () => void {
+  if (isListening || typeof window === "undefined") return () => {};
   isListening = true;
-  window.addEventListener("beforeinstallprompt", (event) => {
+  const onPrompt = (event: Event) => {
     event.preventDefault();
     deferred = event as BeforeInstallPromptEvent;
     notifyInstallChange();
-  });
-  window.addEventListener("appinstalled", () => {
+  };
+  const onInstalled = () => {
     deferred = null;
     markInstalled();
-  });
+  };
+  window.addEventListener("beforeinstallprompt", onPrompt);
+  window.addEventListener("appinstalled", onInstalled);
+  return () => {
+    window.removeEventListener("beforeinstallprompt", onPrompt);
+    window.removeEventListener("appinstalled", onInstalled);
+    isListening = false;
+    deferred = null;
+  };
 }
 
 export function getDeferredPrompt(): BeforeInstallPromptEvent | null {

@@ -3,7 +3,9 @@
 import { BookOpenText, HandHeart, Library } from "lucide-react";
 import Link from "next/link";
 import { MissionCard, WeekStrip } from "@/components/hoondok";
-import type { TodayReading } from "@/features/hoondok/today";
+import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-today";
+import { formatKstDate, type TodayResponse } from "@/features/hoondok/today";
+import { useKstDate } from "@/features/hoondok/use-kst-date";
 import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
@@ -14,8 +16,10 @@ import { useCurrentUser } from "@/features/identity/use-current-user";
  * 이름을 "이번 주" 섹션 메타로 내리면 인사가 비개인화되고 이름이 보조 정보가 된다.
  * 로그인 전에는 같은 문장을 이름 없이 쓴다(없는 값을 지어내지 않는다).
  */
-export function HomeGreeting({ dateLabel }: { dateLabel: string }) {
+export function HomeGreeting() {
   const { user } = useCurrentUser();
+  const date = useKstDate();
+  const { label: dateLabel } = formatKstDate(new Date(`${date}T12:00:00+09:00`));
   return (
     <div className="card">
       <p className="greet">
@@ -29,28 +33,47 @@ export function HomeGreeting({ dateLabel }: { dateLabel: string }) {
 }
 
 // 홈 "오늘의 실천" + "이번 주" — summary(API-HD-004) 와 완료(API-HD-005)를 결합한다. 비로그인이면 표시만.
-export function HomeMissions({ reading, todayWeekday }: { reading: TodayReading | null; todayWeekday: number }) {
+export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; todayWeekday: number }) {
+  const effective = useEffectiveToday(today);
+  const reading = effective.isPersonalLoading ? null : effective.reading;
   const { user, isLoading } = useCurrentUser();
   const { data: summary } = useSummary(Boolean(user));
   const completion = useMissionCompletion("read", user, isLoading);
+  const study = useMissionCompletion("study", user, isLoading);
   const isReadDone = completion.isDone || Boolean(summary?.today.read);
 
   return (
     <>
+      {effective.reason && (
+        <p className="notice" role="status">
+          {effective.reason}
+        </p>
+      )}
+      {!reading && !effective.isResolving && (
+        <Link className="btn btn-line" href="/hoondok/library">
+          오늘 말씀 대신 서고에서 읽기
+        </Link>
+      )}
       <div className="sect">
         <div className="sect__head">
           <h2 className="sect__title">오늘의 실천</h2>
-          <span className="sect__meta">3가지 · 약 5분</span>
+          <span className="sect__meta">
+            {reading ? "2가지 · 내 속도로" : effective.isResolving ? "오늘 말씀 확인 중" : "1가지 · 말씀 읽기"}
+          </span>
         </div>
         <div className="missions">
           <MissionCard
             kind={`훈독하기 · ${reading?.estimated_minutes ?? 3}분`}
-            title={reading?.title ?? "오늘 말씀을 기다리고 있어요"}
+            title={
+              effective.isPersonalLoading
+                ? "오늘 정성 말씀을 불러오고 있어요"
+                : (reading?.title ?? "오늘 말씀을 기다리고 있어요")
+            }
             meta={reading ? `${reading.work_title} · ${reading.speaker}` : "편성되면 여기서 바로 읽어요"}
             icon={BookOpenText}
             href="/hoondok/read"
             isDone={isReadDone}
-            onToggle={reading && !isReadDone ? completion.markDone : undefined}
+            onToggle={reading && !effective.isResolving && !isReadDone ? completion.markDone : undefined}
           />
           <MissionCard
             kind="기도하기 · 1분"
@@ -62,9 +85,10 @@ export function HomeMissions({ reading, todayWeekday }: { reading: TodayReading 
           <MissionCard
             kind="말씀 읽기 · 이어 읽기"
             title="말씀 서고"
-            meta="서고·이어 읽기는 다음 단계에서"
+            meta="공개된 원문을 읽고 읽음으로 기록해요"
             icon={Library}
-            isDisabled
+            href="/hoondok/library"
+            isDone={study.isDone || Boolean(summary?.today.study)}
           />
         </div>
       </div>
@@ -72,8 +96,9 @@ export function HomeMissions({ reading, todayWeekday }: { reading: TodayReading 
       <div className="sect">
         <div className="sect__head">
           <h2 className="sect__title">이번 주</h2>
-          {/* 로그인 상태에서는 메타를 비운다 — 연속일은 바로 아래 `.week__streak` 가 이미 말하고,
-              계정 조회 중에 로그인 링크를 먼저 보였다가 지우면 깜빡인다. */}
+          {user && summary?.streak_days !== undefined && (
+            <span className="sect__meta">연속 {summary.streak_days}일</span>
+          )}
           {!user && !isLoading && (
             <Link className="sect__meta" href={onboardingHref("/hoondok")}>
               로그인 후 기록돼요 →
@@ -81,9 +106,11 @@ export function HomeMissions({ reading, todayWeekday }: { reading: TodayReading 
           )}
         </div>
         <WeekStrip
-          todayWeekday={todayWeekday}
+          todayWeekday={
+            effective.date === today.date ? todayWeekday : new Date(`${effective.date}T12:00:00+09:00`).getUTCDay()
+          }
           doneByDay={summary?.week.map((day) => day.done) ?? []}
-          streakDays={summary?.streak_days ?? 0}
+          streakDays={summary?.streak_days}
         />
       </div>
     </>

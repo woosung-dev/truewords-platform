@@ -14,6 +14,7 @@ import {
   SERMONS,
   WORSHIP_ORDER,
 } from "@/features/hoondok/preview/fixtures/worship";
+import { PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
 import { ChallengeBadge } from "./challenge-badge";
 
 function OrderCard({ onSoon }: { onSoon: (message: string) => void }) {
@@ -111,9 +112,14 @@ export function WorshipHome() {
         </div>
         <OrderCard onSoon={setSoon} />
         {/* 비어 있어도 자리를 지켜야 눌렀을 때 아래 내용이 밀리지 않는다 */}
-        <p className="ws-soon" role="status">
-          {soon}
-        </p>
+        {soon && (
+          <PreviewUnavailable
+            title={soon}
+            reason="가족 연결과 예배 운영 방식이 정해지기 전에는 순서지를 저장하거나 보낼 수 없어요."
+            href="/hoondok"
+            linkLabel="오늘 훈독으로 돌아가기"
+          />
+        )}
       </div>
 
       <div className="sect">

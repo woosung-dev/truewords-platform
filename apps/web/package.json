@@ -6,7 +6,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "NEXT_TRACE_SPAN_THRESHOLD_MS=9007199254740991 next dev --port 3000",
     "build": "next build",
     "start": "next start --port 3000",
     "lint": "eslint",

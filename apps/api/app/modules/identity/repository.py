@@ -24,6 +24,13 @@ class UserRepository:
         result = await self.session.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
 
+    async def get_for_update(self, user_id: uuid.UUID) -> User | None:
+        """계정 삭제와 사용자 연결 오류 저장이 공유하는 행 잠금."""
+        result = await self.session.execute(
+            select(User).where(User.id == user_id).with_for_update().execution_options(populate_existing=True)
+        )
+        return result.scalar_one_or_none()
+
     async def create(self, user: User) -> User:
         user.email = normalize_email(user.email)
         self.session.add(user)
