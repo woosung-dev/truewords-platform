@@ -377,11 +377,6 @@
     text-wrap: balance;
     margin: 0;
   }
-  .greet__sub {
-    font-size: 13px;
-    color: var(--ink-2);
-    margin: 6px 0 0;
-  }
   .sect {
     margin-top: 24px;
   }
@@ -434,6 +429,57 @@
     font-size: 13px;
     color: var(--ink-2);
     margin-top: 12px;
+  }
+
+  /* ---------- 6.5 사진 히어로 (DES §3.2 · 2026-09-22 DES-PWA-003-Q2 되돌림) ----------
+     사진은 apps/web/public/hoondok/photos/ 정적 파일이다 (외부 hotlink 금지).
+     veil 정지점 3개는 §3.2 가 대비 계산의 근거로 고정한 값이라 rgba 리터럴로 적는다
+     (--ink = #23211f = rgb(35,33,31)). 사진이 안 오면 바탕 --ink 가 남아 흰 글자가 읽힌다. */
+  .shot {
+    position: relative;
+    border-radius: var(--r);
+    overflow: hidden;
+    background: var(--ink);
+    height: 210px;
+  }
+  .shot img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .shot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(35, 33, 31, 0) 18%,
+      rgba(35, 33, 31, 0.8) 55%,
+      rgba(35, 33, 31, 0.92) 100%
+    );
+  }
+  /* 텍스트는 veil 알파 0.80 이상 구간(하단 45%)에만 둔다 (§3.2) */
+  .shot__tx {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 16px;
+    color: var(--accent-ink);
+    z-index: 1;
+  }
+  .shot__greet {
+    font-size: 21px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0;
+  }
+  .shot__sub {
+    font-size: 13px;
+    opacity: 0.92;
+    margin: 4px 0 0;
   }
 
   /* ---------- 7. 진행 표시 (프로토타입 hoondok.css §7) ---------- */
@@ -602,10 +648,17 @@
     .app__main--app .appbar__in {
       max-width: var(--measure-app);
     }
+    /* 폭이 커지면 히어로도 높아진다 — 다만 최대 340px (DES §4.6). 화면별 높이는 각자 다시 정한다 */
+    .shot {
+      height: 260px;
+    }
   }
 
   /* ---------- lg: 1024px 이상. 하단 탭 → 상단 헤더 4 (DES §8 2026-09-16) ---------- */
   @media (min-width: 1024px) {
+    .shot {
+      height: 300px;
+    }
     .nav {
       order: -1;
       position: sticky;

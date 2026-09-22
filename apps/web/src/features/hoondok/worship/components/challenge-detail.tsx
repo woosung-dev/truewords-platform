@@ -191,12 +191,16 @@ export function ChallengeDetail({ challenge }: { challenge: PreviewChallenge }) 
     <section className="col">
       <p className="notice notice--lead">{PREVIEW_LEAD}</p>
 
-      <div className="card ch-hero">
-        <span className="ch-hero__top">
-          <p className="greet">{challenge.title}</p>
-          <ChallengeBadge badge={challenge.badge} />
-        </span>
-        <p className="greet__sub">{challenge.summary}</p>
+      {/* 사진 히어로 160px (DES-PWA-003 §5 011 행 · 2026-09-22 DES-PWA-003-Q2 되돌림) */}
+      <div className="shot ch-hero">
+        <img src="/hoondok/photos/challenge-lake-dawn.webp" alt="새벽 호수 위 나무 다리" />
+        <div className="shot__tx">
+          <span className="ch-hero__top">
+            <p className="shot__greet">{challenge.title}</p>
+            <ChallengeBadge badge={challenge.badge} />
+          </span>
+          <p className="shot__sub">{challenge.summary}</p>
+        </div>
       </div>
 
       <div className="sect ch-sum">

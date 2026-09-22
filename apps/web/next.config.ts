@@ -26,6 +26,11 @@ const nextConfig: NextConfig = {
         source: "/hoondok/fonts/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
+      // 히어로·썸네일 사진도 같은 정적 자산이다 — 내용이 바뀌면 파일명을 바꾼다 (2026-09-22 DES-PWA-003-Q2 되돌림).
+      {
+        source: "/hoondok/photos/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
       // 서비스워커·manifest 는 매 방문 재검증한다 (Phase 3 D). Cloudflare 엣지는 origin no-cache 를 따른다.
       // Service-Worker-Allowed: 스크립트가 /hoondok/ 아래 있어도 슬래시 없는 /hoondok scope 로 등록되게 한다 (C-3).
       {

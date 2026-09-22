@@ -100,9 +100,13 @@ export function WorshipHome() {
     <section className="col">
       <p className="notice notice--lead">{PREVIEW_LEAD}</p>
 
-      <div className="card ws-hero">
-        <p className="ws-eyebrow">{WORSHIP_ORDER.eyebrow}</p>
-        <p className="greet">{WORSHIP_ORDER.headline}</p>
+      {/* 사진 히어로 180px (DES-PWA-003 §5 010 행 · 2026-09-22 DES-PWA-003-Q2 되돌림) */}
+      <div className="shot ws-hero">
+        <img src="/hoondok/photos/worship-bench-family.webp" alt="바닷가 벤치에 나란히 앉은 가족" />
+        <div className="shot__tx">
+          <p className="ws-eyebrow">{WORSHIP_ORDER.eyebrow}</p>
+          <p className="shot__greet">{WORSHIP_ORDER.headline}</p>
+        </div>
       </div>
 
       <div className="sect">
@@ -141,11 +145,15 @@ export function WorshipHome() {
             전체 설교
           </Link>
         </div>
-        <Link className="card sm-hero" href="/hoondok/worship/sermons">
-          <span className="sm-hero__tag badge badge--accent">{featured.tag}</span>
-          <span className="sm-hero__t">{featured.title}</span>
-          <span className="sm-hero__m">
-            {featured.meta} · {featured.duration}
+        <Link className="shot sm-hero" href="/hoondok/worship/sermons">
+          {/* 장식 사진 — 제목·메타가 바로 옆에서 같은 내용을 말하므로 alt 는 빈 문자열이다 (DES §1.6) */}
+          <img src="/hoondok/photos/sermon-orchard-dusk.webp" alt="" />
+          <span className="shot__tx">
+            <span className="sm-hero__tag badge badge--accent">{featured.tag}</span>
+            <span className="sm-hero__t">{featured.title}</span>
+            <span className="sm-hero__m">
+              {featured.meta} · {featured.duration}
+            </span>
           </span>
         </Link>
         <Link className="btn btn-line sm-request" href="/hoondok/worship/request">
