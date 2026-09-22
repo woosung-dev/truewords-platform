@@ -20,6 +20,9 @@ MISSION_KINDS = ("read", "pray", "study")  # 훈독하기 · 기도하기 · 말
 JEONGSEONG_STATUSES = ("active", "completed", "abandoned")
 JEONGSEONG_DURATIONS = (7, 21, 40)  # 앱 검증(Literal). DB CHECK 는 두지 않는다
 LOCK_SCREEN_LEVELS = ("neutral", "faith")  # 잠금화면 문구 수위 (PLAN-HD-006)
+SECTION_LEVELS = (1, 2)  # 1 = 편·장, 2 = 장·절·설교 (PLAN-HD-007)
+SECTION_ORIGINS = ("auto", "manual")  # 추출 스크립트 산출 / 운영자 수기
+MARK_KINDS = ("bookmark", "highlight")
 
 
 class DailyReading(SQLModel, table=True):
@@ -105,6 +108,8 @@ class ContentRight(SQLModel, table=True):
     book_series: str | None = Field(default=None, max_length=200)
     authority_grade: str = Field(default="R", max_length=8)
     note: str = Field(default="", max_length=2000)
+    # Qdrant 청크 수. 시드 스크립트(트랙 D)가 채우며 미집계면 None 이다.
+    chunk_count: int | None = Field(default=None)
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
 
@@ -173,3 +178,68 @@ class PushSubscription(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_utcnow)
     last_sent_on: date | None = Field(default=None)  # KST 날짜 — 하루 1회 발송 판정
     failed_count: int = Field(default=0)
+
+
+class VolumeSection(SQLModel, table=True):
+    """ENT-HD-010 권 안의 장 목차. 본문 규칙 추출이 만들고 운영자 수기 행과 공존한다 (PLAN-HD-007).
+
+    `origin='auto'` 행은 추출 스크립트가 권 단위로 전량 교체하고 `manual` 행은 보존한다
+    (LibraryRepository.replace_auto_sections). 본문 자체는 Qdrant 에만 있고 여기에는 경계만 둔다.
+    """
+
+    __tablename__ = "volume_sections"
+    __table_args__ = (
+        UniqueConstraint("volume", "position", name="uq_volume_sections_volume_position"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    volume: str = Field(max_length=512, index=True)  # Qdrant payload 원문 그대로
+    position: int  # 권 안의 표시 순서(1부터)
+    level: int  # SECTION_LEVELS — 1 편·장, 2 장·절·설교
+    title: str = Field(max_length=200)
+    start_chunk_index: int
+    end_chunk_index: int
+    spoken_on: str | None = Field(default=None, max_length=32)  # 말씀 날짜 서명
+    place: str | None = Field(default=None, max_length=120)
+    origin: str = Field(default="auto", max_length=16, sa_column_kwargs={"server_default": "auto"})
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class ReadingPosition(SQLModel, table=True):
+    """ENT-HD-011 사용자·권별 이어 읽기 위치 1건. 단위는 Qdrant 청크(계획 §2-12)."""
+
+    __tablename__ = "reading_positions"
+    __table_args__ = (
+        UniqueConstraint("user_id", "volume", name="uq_reading_positions_user_volume"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    volume: str = Field(max_length=512)
+    chunk_index: int
+    updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class PassageMark(SQLModel, table=True):
+    """ENT-HD-012 단락 표시 — 북마크와 형광펜(노트 포함). 단위는 청크다.
+
+    `(user_id, chunk_id, kind)` 가 unique 라 같은 단락에 북마크와 형광펜을 함께 둘 수 있다.
+    노트는 형광펜의 `note` 로 두고 별도 테이블을 만들지 않는다(계획 §3 ENT-HD-012).
+    """
+
+    __tablename__ = "passage_marks"
+    __table_args__ = (
+        UniqueConstraint("user_id", "chunk_id", "kind", name="uq_passage_marks_user_chunk_kind"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    volume: str = Field(max_length=512)
+    chunk_id: str = Field(max_length=128)  # Qdrant point id, FK 아님
+    chunk_index: int
+    kind: str = Field(max_length=16)  # MARK_KINDS
+    color: int | None = Field(default=None)  # 1~3, 앱 검증. bookmark 는 항상 None
+    note: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
