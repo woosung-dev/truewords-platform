@@ -17,7 +17,12 @@ export default defineConfig({
   projects: [
     {
       name: "admin-chromium",
-      testMatch: ["admin-flow.spec.ts", "data-source-delete.spec.ts", "hoondok-curation.spec.ts"],
+      testMatch: [
+        "admin-flow.spec.ts",
+        "data-source-delete.spec.ts",
+        "hoondok-curation.spec.ts",
+        "hoondok-rights.spec.ts",
+      ],
       use: { browserName: "chromium", baseURL: adminOrigin },
     },
     {

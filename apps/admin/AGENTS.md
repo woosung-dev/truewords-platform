@@ -11,6 +11,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # 관리자 앱 경계
 
 - 관리자 화면만 소유한다. 사용자 채팅·기록은 `apps/web`이며 루트 `/`는 `/dashboard`로 이동한다.
+- 훈독 권리 원장 `/hoondok/rights`는 시리즈 요약표 + 일괄 승인/철회 다이얼로그(`API-HD-027`·`028`)와 개별 권리 폼을 함께 갖는다.
 - 기존 시연 관리자 gate와 FastAPI 최종 권한 검사를 유지한다. 비관리자는 `/access-denied`에서 멈추며 루트로 반복 이동하지 않는다.
 - 앱 간 이동은 `NEXT_PUBLIC_WEB_URL`을 사용한다. 다른 hostname의 웹 로그인 쿠키가 자동 공유된다고 가정하지 않는다.
 - 생성 DTO/SDK는 `@truewords/api-client-ts`, 공통 검사 설정은 `@truewords/eslint-config`·`@truewords/typescript-config`를 사용한다. 공유 패키지는 앱을 import하지 않는다.
