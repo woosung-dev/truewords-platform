@@ -28,6 +28,9 @@ export const PUSH_MESSAGES = {
   otherDevice: "이 기기에서 받으려면 다시 켜 주세요",
 } as const;
 
+/** `POST /hoondok/me/push` 의 user_agent 상한 (초과하면 422). */
+const USER_AGENT_MAX = 400;
+
 /** 브라우저 능력·권한은 구독할 외부 스토어가 없다 — 렌더마다 다시 읽기만 한다. */
 const subscribeNever = () => () => {};
 
@@ -104,7 +107,8 @@ export function usePushNotifications() {
         await notificationsAPI.subscribe({
           endpoint: json.endpoint ?? subscription.endpoint,
           keys: { p256dh: json.keys?.p256dh ?? "", auth: json.keys?.auth ?? "" },
-          user_agent: typeof navigator === "undefined" ? null : navigator.userAgent,
+          // backend 는 400자를 넘으면 422 로 돌려준다 — 진단용 값 하나 때문에 구독을 잃지 않는다.
+          user_agent: typeof navigator === "undefined" ? null : navigator.userAgent.slice(0, USER_AGENT_MAX),
         });
       }
       if (!intent.readEnabled && prefs.read_enabled) {
