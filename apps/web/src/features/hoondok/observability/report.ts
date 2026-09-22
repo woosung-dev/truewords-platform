@@ -7,6 +7,7 @@ export type ClientErrorKind = ClientErrorInput["kind"] | "push_subscribe";
 export function safeHoondokPath(pathname: string): string {
   const path = pathname.split(/[?#]/, 1)[0];
   if (/^\/hoondok\/words\/[^/]+\/?$/.test(path)) return "/hoondok/words/:volume";
+  if (/^\/hoondok\/library\/[^/]+\/?$/.test(path)) return "/hoondok/library/:series";
   if (/^\/hoondok\/ask\/(?!log\/?$)[^/]+\/?$/.test(path)) return "/hoondok/ask/:id";
   if (/^\/hoondok\/worship\/challenge\/[^/]+\/?$/.test(path)) return "/hoondok/worship/challenge/:id";
   const allowed = [
