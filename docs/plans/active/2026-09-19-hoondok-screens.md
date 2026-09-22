@@ -186,6 +186,7 @@ make e2e
 - [x] W3-F 016 가족·친구 프리뷰 — 2026-09-20 머지, 라우트 `/hoondok/family` + 정원 진입 섹션(프리뷰 ON·로그인 시만). **공개 범위는 라디오 4가 아니라 토글 2 + 고정 1** — 프로토타입 `.fm-scope` 가 그렇고 4단계 문구는 어느 문서에도 없다 `[확인 필요]`
 - [x] W3 `hoondok-preview.spec.ts` **라우트 8개**(§4 의 9개에서 정정 — library·search·words·worship·challenge·sermons·request·family) + CSS 공통 승격 정리(머지 `74cc34f`, 7묶음 승격 + `.chips` 중복 제거) + 웨이브 끝 `make ci`·`make e2e`·시각 대조 — 2026-09-20 §8
 - [x] W4 `index.ts`(`MonthCalendar`·`monthLabel` 배럴 export `fc3bf7e`)·DES §8 결정 6행·AGENTS.md 라우트 16개·README·TODO·스펙 2종(머지 `60b3adf`)·§8 완료 증거 — 2026-09-20
+- [x] 프로토타입 대조 후속 3건 — 2026-09-22 `fix/hoondok-shell-audit` `c60ff17`(미푸시): 앱바 알림 아이콘(`/hoondok/settings` 도달 경로 0건이던 결함)·온보딩 탭바 숨김(DES §2)·서고/원문 저작물 제목 2~3회 중복. 레지스트리 `hideSettingsLink`·`hideNav` 2필드로 처리. Vitest 280(+5). E2E 는 오케스트레이터 몫
 - [ ] 사용자 승인 → push → main PR 1개 ← **여기서 대기 중**
 
 ## 8. 완료 증거
@@ -213,6 +214,7 @@ make e2e
 | W3 CSS 정리 | 승격 전후 computed style 전수 대조(13 URL × 390/1280, 스코프 하위 전 요소 40속성) · Vitest · tooling (머지 `74cc34f`) | **IDENTICAL** — 값 변경 0. `.chips` 두 정의가 완전히 같아 중복 제거, 나머지 6묶음(`.badge--line`·`.pill-seg`·`.ai-note`·`.chip-btn`·`.gd-cal__*`·`.st-lead`/`.st-row__soon`)은 2~3개 화면군이 쓰던 것을 `hoondok.css` 로 이동. Vitest 208 유지 · tooling 26 · hoondok:check 9파일. 남은 누수 1건: `sheet.css` 의 `.stats + .progress` 가 가정예배 챌린지에도 매치(두 규칙 모두 14px 이라 실측 차이 0) `[확인 필요]` | 2026-09-20 |
 | **최종 `make ci`** | 전체 (HEAD `c0b0547`) | **통과** — pytest **1039 passed / 4 skipped / 1 xfailed** · contracts breaking 0 · tooling 26 · docs-links 문서 188·링크 306·새 오류 0 · boundaries · hoondok:check 9파일 · web Vitest **208** · admin 104 · api-client 13 · lint 경고 web 10·admin 3 전부 기존 파일 · web·admin `next build` · typecheck | 2026-09-20 |
 | **최종 `make e2e`** | 전체 (HEAD `c0b0547`) | **85 passed / 0 failed**(1.9m) — 훈독 프로젝트 39건(스모크 8·플로우 5·정원 2·설정 1·정성 1·AI 질문 3·프리뷰 20) 포함 | 2026-09-20 |
+| 대조 후속 3건 | web Vitest · lint · typecheck · `hoondok:check` · `docs-links` (`c60ff17`) | **280 passed**(+5) · 경고 10건 전부 기존 파일 · 통과 · 9파일 통과 · 새 오류 0. `make e2e` 미실행(`주 메뉴` 단언 2건은 온보딩을 거치지 않아 정정 불필요) | 2026-09-22 |
 | 범위 합계 | `main...HEAD` | 커밋 73개 · 126 파일 · +11,169 / −121. 라우트 16개(실데이터 8·프리뷰 8) · 화면 그룹 CSS 8파일 · API 3개 추가(`API-HD-009/010/011`) · 테이블 1개(`ENT-HD-004`, alembic `k5a6b7c8d9e0`) | 2026-09-20 |
 
 ## 9. 결정 기록
