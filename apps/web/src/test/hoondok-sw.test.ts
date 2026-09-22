@@ -4,6 +4,7 @@ import vm from "node:vm";
 import { describe, expect, it, vi } from "vitest";
 
 // public/hoondok/sw.js 를 가짜 self·caches·fetch 로 실행해 install/activate/fetch 분기를 단언한다 (PLAN-HD-001 Phase 3 D).
+// push·notificationclick 은 PLAN-HD-006 에서 같은 가짜 self 에 registration.showNotification·clients 를 더해 검증한다.
 const SW_SOURCE = readFileSync(path.resolve(__dirname, "../../public/hoondok/sw.js"), "utf8");
 const ORIGIN = "https://truewords.example";
 const OFFLINE_HTML =
@@ -11,6 +12,7 @@ const OFFLINE_HTML =
   '<body><script src="/_next/static/chunks/main.js?v=1"></script></body></html>';
 
 type Listener = (event: Record<string, unknown>) => void;
+type FakeWindow = { url: string; focus: ReturnType<typeof vi.fn>; navigate?: ReturnType<typeof vi.fn> };
 type FakeRequest = { url: string; method: string; mode: string };
 
 function keyOf(input: string | FakeRequest) {
@@ -18,7 +20,7 @@ function keyOf(input: string | FakeRequest) {
   return new URL(raw, ORIGIN).href;
 }
 
-function loadWorker(source = SW_SOURCE, { fetchFails = false } = {}) {
+function loadWorker(source = SW_SOURCE, { fetchFails = false, windows = [] as FakeWindow[] } = {}) {
   const listeners = new Map<string, Listener>();
   const store = new Map<string, Map<string, unknown>>();
   const openCache = async (name: string) => {
@@ -43,8 +45,15 @@ function loadWorker(source = SW_SOURCE, { fetchFails = false } = {}) {
     location: { origin: ORIGIN },
     addEventListener: (type: string, fn: Listener) => void listeners.set(type, fn),
     skipWaiting: vi.fn(async () => undefined),
-    clients: { claim: vi.fn(async () => undefined) },
-    registration: { unregister: vi.fn(async () => true) },
+    clients: {
+      claim: vi.fn(async () => undefined),
+      matchAll: vi.fn(async () => windows),
+      openWindow: vi.fn(async (url: string) => ({ url })),
+    },
+    registration: {
+      unregister: vi.fn(async () => true),
+      showNotification: vi.fn(async () => undefined),
+    },
   };
   const fetchMock = vi.fn(async () => {
     if (fetchFails) throw new TypeError("Failed to fetch");
@@ -158,5 +167,82 @@ describe("훈독 서비스워커", () => {
     expect([...worker.store.keys()]).toEqual([]);
     expect(worker.self.registration.unregister).toHaveBeenCalledOnce();
     expect(fetchEvent(worker, { url: `${ORIGIN}/hoondok/read`, method: "GET", mode: "navigate" })).toBeUndefined();
+  });
+});
+
+describe("훈독 서비스워커 알림 (PLAN-HD-006)", () => {
+  function pushEvent(payload: unknown, { broken = false } = {}) {
+    return {
+      data: broken
+        ? {
+            json: () => {
+              throw new SyntaxError("not json");
+            },
+          }
+        : { json: () => payload },
+    };
+  }
+
+  it("push: 서버 페이로드로 알림 하나 — 태그·아이콘·data.url 고정", async () => {
+    const worker = loadWorker();
+    await worker.dispatch(
+      "push",
+      pushEvent({ title: "오늘의 말씀이 준비됐어요", body: "참부모경 1편", url: "/hoondok/read" }),
+    );
+    expect(worker.self.registration.showNotification).toHaveBeenCalledWith("오늘의 말씀이 준비됐어요", {
+      body: "참부모경 1편",
+      icon: "/hoondok/icons/icon-192.png",
+      badge: "/hoondok/icons/icon-192.png",
+      tag: "hoondok-read",
+      data: { url: `${ORIGIN}/hoondok/read` },
+    });
+  });
+
+  it("push: 데이터가 없거나 깨졌으면 중립 문구 + /hoondok, 외부 url 도 /hoondok 으로 되돌린다", async () => {
+    const broken = loadWorker();
+    await broken.dispatch("push", pushEvent(null, { broken: true }));
+    await broken.dispatch("push", {});
+    await broken.dispatch("push", pushEvent({ title: "", url: "https://evil.example/hoondok" }));
+    for (const call of vi.mocked(broken.self.registration.showNotification).mock.calls) {
+      expect(call[0]).toBe("오늘의 읽을거리가 준비됐어요");
+      expect((call[1] as { data: { url: string } }).data.url).toBe(`${ORIGIN}/hoondok`);
+    }
+    expect(broken.self.registration.showNotification).toHaveBeenCalledTimes(3);
+  });
+
+  it("notificationclick: 열린 훈독 창이 있으면 focus + navigate, 없으면 새 창", async () => {
+    const hoondokWindow: FakeWindow = {
+      url: `${ORIGIN}/hoondok/garden`,
+      focus: vi.fn(async () => undefined),
+      navigate: vi.fn(async () => undefined),
+    };
+    const close = vi.fn();
+    const withWindow = loadWorker(SW_SOURCE, { windows: [hoondokWindow] });
+    await withWindow.dispatch("notificationclick", {
+      notification: { close, data: { url: `${ORIGIN}/hoondok/read` } },
+    });
+    expect(close).toHaveBeenCalledOnce();
+    expect(hoondokWindow.focus).toHaveBeenCalledOnce();
+    expect(hoondokWindow.navigate).toHaveBeenCalledWith(`${ORIGIN}/hoondok/read`);
+    expect(withWindow.self.clients.openWindow).not.toHaveBeenCalled();
+
+    // 훈독 밖 창(시연 챗)만 열려 있으면 재사용하지 않는다
+    const otherWindow: FakeWindow = { url: `${ORIGIN}/history`, focus: vi.fn(async () => undefined) };
+    const withoutWindow = loadWorker(SW_SOURCE, { windows: [otherWindow] });
+    await withoutWindow.dispatch("notificationclick", {
+      notification: { close: vi.fn(), data: { url: `${ORIGIN}/hoondok/read` } },
+    });
+    expect(otherWindow.focus).not.toHaveBeenCalled();
+    expect(withoutWindow.self.clients.openWindow).toHaveBeenCalledWith(`${ORIGIN}/hoondok/read`);
+  });
+
+  it("킬스위치: SW_KILL=true 면 push·notificationclick 도 아무것도 하지 않는다", async () => {
+    const worker = loadWorker(SW_SOURCE.replace("const SW_KILL = false;", "const SW_KILL = true;"));
+    await worker.dispatch("push", pushEvent({ title: "x" }));
+    const close = vi.fn();
+    await worker.dispatch("notificationclick", { notification: { close, data: { url: `${ORIGIN}/hoondok` } } });
+    expect(worker.self.registration.showNotification).not.toHaveBeenCalled();
+    expect(worker.self.clients.openWindow).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
   });
 });
