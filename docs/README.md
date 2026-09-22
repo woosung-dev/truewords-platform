@@ -8,6 +8,7 @@
 | [편성 후보 찾기](plans/active/2026-09-20-hoondok-curation-assist.md) | `PLAN-HD-003`. 추출형 후보 검색(API-HD-012)으로 편성 입력을 돕는다. 생성형 초안을 기각한 이유와 되돌리기 비용 |
 | [훈독 화면 확장 계획](plans/active/2026-09-19-hoondok-screens.md) | `PLAN-HD-002`. 남은 화면 13종을 웨이브 4개(실데이터 → AI 질문 → 프리뷰 셸 → 마무리)로, 플래그 2개(운영 노출 0)·파일 소유·서브에이전트 오케스트레이션 규약 |
 | [훈독 후속 3트랙](plans/active/2026-09-20-hoondok-followup-3tracks.md) | `PLAN-HD-004`. 배포·CI 안전망(docs-links 가 gitignore 존중 · `deploy-guard` 후퇴 배포 차단) · 훈독 9화면 디자인 품질 · Phase 3 종결 문서 |
+| [훈독 알림 1종](plans/active/2026-09-22-hoondok-notifications.md) | `PLAN-HD-006`. Phase 4 게이트를 "착수"→"운영 ON" 으로 옮기고 Web Push 구독·발송기·SW·설정 토글을 먼저 구현. VAPID 미설정이면 비활성. 베타 판정 쿼리 2개 |
 | [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md) | web/admin/API 경계, 공통 API·인증·SSE·알림 정책 |
 | [전환 실행 계획](plans/completed/2026-09-05-monorepo-migration.md) | M1~M4 범위와 실제 검증 증거, M5 제외 범위 |
 | [앱별 UI 실행 계획](plans/active/2026-09-05-app-owned-ui.md) | 후속 2안 승인 범위와 재검증 증거 |
@@ -46,7 +47,7 @@ web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업�
 | [01-project-overview](prd/01-project-overview.md) | 기존 제품 배경·데이터 범위 |
 | [16-app-feature-spec](prd/16-app-feature-spec.md) | 이전 MVP/Flutter 구상. 신규 PWA 요구사항으로 자동 상속하지 않음 |
 | [17-ffwpu-pwa-prd](prd/17-ffwpu-pwa-prd.md) | 훈독 앱 PRD v2. 식구의 문제 5개 → 초원AI 벤치마크 현지화 매핑 → 5탭 · 기능 7종 · 보상 정책 · KPI · 9월 일정 · Decision Log. **2026-09-16 승인** (`DEC-PWA-022`) |
-| [훈독 도메인](specs/domain/hoondok-entities.md), [훈독 API](specs/api/hoondok-api.md) | `ENT-HD-001~007`(계정·편성·미션·정성·권리·정성 말씀·오류 기록), `API-HD-001~018`(`/hoondok/*` + 편성 admin `/admin/hoondok/*`) + AI 질문의 `POST /chat/stream` 재사용. KST 고정, additive-only |
+| [훈독 도메인](specs/domain/hoondok-entities.md), [훈독 API](specs/api/hoondok-api.md) | `ENT-HD-001~009`(계정·편성·미션·정성·권리·정성 말씀·오류 기록·알림 설정·푸시 구독), `API-HD-001~022`(`/hoondok/*` + 편성 admin `/admin/hoondok/*`) + AI 질문의 `POST /chat/stream` 재사용. KST 고정, additive-only |
 | [훈독 프로토타입](prd/prototypes/hoondok-ds/README.md) | `app.html` + `hoondok.css` 단일 소스, 16화면, 폰 390 · PC 1280. `index.html` 로 나란히 본다. 값의 원본이며 디자인 시스템 문서가 근거를 설명한다 |
 | [훈독 디자인 시스템](specs/web/hoondok-design-system.md) | `DES-PWA-003`. 채택안 A 아침 햇살의 토큰·컴포넌트 10종·권위 층 배지·WCAG 2.2 AA 대비 실측값·데스크톱 브레이크포인트 3단계·16화면 반응형 대응표. **라이트 단일 테마**이며 다크 팔레트는 정의하지 않는다 (2026-09-16 승인, 데스크톱 내비는 상단 헤더 4). §1.7 앱 아이콘·설치 메타·Pretendard self-host(2026-09-19) |
 | [사용자 웹 UI/UX](specs/web/ui-ux.md), [관리자 UI/UX](specs/admin/ui-ux.md) | 현재 구현·소유권과 미승인 리디자인의 경계 |

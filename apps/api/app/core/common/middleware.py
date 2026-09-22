@@ -30,14 +30,19 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# 쿼리를 통째로 지우는 경로: 검색어(개인 관심사)와 push endpoint(기기 식별 capability URL — 소유 이전 upsert 와
+# 결합하면 남의 구독을 가져갈 수 있다).
+_QUERY_STRIPPED_PATHS = frozenset({"/hoondok/search", "/hoondok/me/push"})
+
+
 class HoondokAccessLogFilter(logging.Filter):
-    """Uvicorn 요청줄에서 훈독 검색어를 제거한다. 응답 실패에도 동일하게 적용한다."""
+    """Uvicorn 요청줄에서 훈독 검색어·push endpoint 쿼리를 제거한다. 응답 실패에도 동일하게 적용한다."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         if isinstance(record.args, tuple) and len(record.args) == 5:
             args = list(record.args)
             target = str(args[2])
-            if target.split("?", 1)[0].rstrip("/") == "/hoondok/search":
+            if target.split("?", 1)[0].rstrip("/") in _QUERY_STRIPPED_PATHS:
                 args[2] = target.split("?", 1)[0]
                 record.args = tuple(args)
         return True

@@ -181,7 +181,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 각 항목에 **차단 근거**와 **풀리는 조건**을 함께 적는다. 근거 없이 미뤄 둔 것은 Blocked 가 아니라 Next Actions 에 둔다.
 
 - [ ] **실기기 증거** — Android·iOS 16.4+ 에서 설치 → 가입 → 훈독 → 완료. **차단 근거: 사용자 수집 대기.** 헤드리스 E2E 는 `beforeinstallprompt` 를 발사하지 않고 iOS 공유 시트를 재현하지 못해 대체가 불가능하다. 필요한 조치: 사용자가 기기 2대로 [runbook §실기기 증거](runbooks/hoondok-pwa-rollout.md#실기기-증거) 의 빈 양식을 채우면 [`PLAN-HD-001` §6](plans/active/2026-09-17-hoondok-mvp.md) 의 해당 ⬜ 행이 닫힌다
-- [ ] **Phase 4 훈독 알림** — **차단 근거: [`PLAN-HD-001` §7](plans/active/2026-09-17-hoondok-mvp.md) 이 "Phase 3 데이터(7일 중 5일 완료 비율·D7 재방문)를 본 뒤 착수한다" 로 막는다.** `mission_logs` 7일 적재가 아직 시작되지 않아 판정할 데이터가 없다. 필요한 조치: 실기기 증거 → 초대 → 7일 적재 → 두 수치 산출 후 착수 판단
+- [ ] **Phase 4 훈독 알림 — 운영 ON** — **차단 근거: [`PLAN-HD-001` §7](plans/active/2026-09-17-hoondok-mvp.md) 2026-09-22 개정으로 게이트가 "착수" 에서 "운영 ON" 으로 옮겨졌다.** 코드는 [`PLAN-HD-006`](plans/active/2026-09-22-hoondok-notifications.md) 으로 구현 중이며 VAPID 미설정이면 토글 "준비 중"·발송기 no-op 이다. 필요한 조치: 실기기 증거 → 초대 → `mission_logs` 7일 적재 → `hoondok_beta_metrics.sql` 2수치 → 승인 → runbook "알림 운영 ON 절차"(VM `.env` VAPID 3줄 + backend 재생성 + cron 등록)
 - [ ] **프리뷰 셸 8라우트 실데이터화** — **차단 근거: `DEC-PWA-020`(가정예배 정식 명칭·주관 부서·순서지 편성 주체)·`DEC-PWA-021`(설교 섭외 운영 주체·교회장 동의 절차) 외부 결정 대기.** 운영에는 프리뷰 플래그를 배선하지 않아 8라우트가 404 이고 로컬에서도 fixture 만 읽는다(2026-09-20 실측). 필요한 조치: 두 결정이 내려온 뒤 실데이터·저장 경로를 설계한다
 - [ ] **이용약관·개인정보처리방침 (`DEC-PWA-001`)** — **차단 근거: 문구와 법적 주체가 미정이고 문서가 0건, 별도 세션 소관.** 현재는 동의를 수집하지 않고 베타 고지만 표시하며 `users.consented_at`·`consent_version` 은 NULL 예약이다. 필요한 조치: 법적 주체 확정 → 문구 작성 → 가입 폼 동의 + 기존 계정 소급 동의 경로. **리드타임이 가장 길어 먼저 착수할수록 좋다**
 
@@ -211,6 +211,9 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ---
 
 ## Questions
+
+- `PLAN-HD-006` 알림: 앱 내 **알림함**(PRD F7 "최종 전달 수단")·기도/가정예배/공지 3종·이메일 인프라는 비범위로 두었다. 훈독 알림 1종의 운영 데이터를 본 뒤 다음 계획에서 다룰지 결정한다 [확인 필요] (2026-09-22)
+- `PLAN-HD-006` 발송기 리뷰 잔여 P2 2건 — (1) `pywebpush` 가 응답 없이 던지는 암호화 실패(`Invalid p256dh key` 등, status None)는 현재 누적하지 않아 영구 재시도된다. 운영 로그에서 빈도를 본 뒤 누적 대상에 넣을지 결정. (2) `send-hoondok-push.sh` 는 `flock -n` 으로 겹침만 막고, 한 run 이 전부 실패한 경우의 prune 전면 보호(성공 0·실패 N 이면 prune 건너뛰기)는 두지 않았다 [확인 필요] (2026-09-22)
 
 - `[종결]` `DEC-MONO-005` — 사용자 승인 후 `apps/admin` 배포별 override로 Vercel preview `dpl_7mjHQuuQA2NuFddcxmz18G7RBbVc`의 `READY`를 확인했었다. 2026-09-05 main 머지 후 Production 배포가 Root Directory `admin` 부재로 실패했고, 같은 날 **Vercel 프로젝트 즉시 삭제**를 결정해 preview·전역 Root Directory 논점이 사라졌다. [전환 runbook](runbooks/monorepo-migration-and-rollback.md#외부-vercel-설정-종결) 참조.
 - `[종결]` `DEC-MONO-002` — **2026-09-06 확정**: web 은 기존 `app.woosung.dev` 유지, admin 은 `truewords-admin.woosung.dev`(zone 을 nexus·kairos·quantbridge 와 공유하므로 프로젝트 접두어). 컷오버 순서는 [전환 runbook §배포 승인 후 순서](runbooks/monorepo-migration-and-rollback.md#배포-승인-후-순서), 실행은 단계별 승인.

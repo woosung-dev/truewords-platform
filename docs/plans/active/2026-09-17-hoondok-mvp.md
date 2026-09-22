@@ -151,6 +151,8 @@ Phase 3 완료 기준: 운영 `truewords.woosung.dev/hoondok` 을 Android·iOS 1
 
 Phase 3 데이터(7일 중 5일 완료 비율, D7 재방문)를 본 뒤 착수한다. 알림 4종 중 훈독 알림만.
 
+> **2026-09-22 개정 (`PLAN-HD-006`)**: 게이트를 "데이터를 본 뒤 **착수**" 에서 "데이터를 본 뒤 **운영 ON**" 으로 옮겼다. 코드는 [`PLAN-HD-006`](2026-09-22-hoondok-notifications.md) 으로 먼저 구현·머지하고, VAPID 미설정이면 토글은 "준비 중"·발송기는 no-op 이다. 아래 항목 중 두 가지가 바뀌었다 — VAPID 공개키는 build-arg 가 아니라 `GET /hoondok/push/config` 런타임 전달(D1), 발송 관측은 구독 컬럼 + `ops-check` psql(D2). 시각은 `users` 가 아니라 `notification_preferences.read_time`(사용자별, 완료자 생략).
+
 - 베타 1차 판정 쿼리 2개(별도 이벤트 수집기 없이).
 - `notifications` 모듈: VAPID 3종(`SecretStr`, `.env.example`·`turbo.json`·Makefile build-arg 동기화), `push_subscriptions`, `POST/DELETE /hoondok/me/push`.
 - 발송기: VM cron `docker compose exec backend python scripts/send_hoondok_push.py`, 404/410 정리, ops-check 항목. **GHA cron 금지.**
@@ -306,3 +308,4 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 2026-09-19 | 홈(`SCR-PWA-002`)에 말씀 본문을 싣지 않는다 — 정본 프로토타입이 `[data-screen="today"]` 에서 `.lede`·`.lede-src` 를 숨기고, PRD `SCR-PWA-002` 는 "인사·요일·연속일·미션 3종·정성 카드·우리 교회 참여"만 열거하며, `DES-PWA-003` §2.2 말씀 카드는 `SCR-PWA-003`·`006`·`008` 컴포넌트다. Phase 1 구현의 홈 "오늘 말씀" 섹션은 미션 카드 제목과 같은 문장을 두 번 렌더했다. 편성 없음(AC-016-04)은 미션 카드가 "오늘 말씀을 기다리고 있어요"로 이미 처리한다. 전문은 `/hoondok/read` 가 갖는다 | 확정(정정) · Phase 3 정본 대조 |
 | 2026-09-20 | §6 완료 기준표를 runbook §실행 기록과 1:1 대조해 확정. "시연 챗·admin E2E" 는 ⚠️ 부분 충족으로 **강등** — 인용됐던 `make ci` 는 E2E 를 돌리지 않고, 배포 트리(`c066b02`) 기준 `make e2e` 재실행 기록이 없다. 실기기·`mission_logs` 2행은 ⬜ 유지하고 실기기 증거 칸은 사용자가 채운다 | 확정(정정) · §6 |
 | 2026-09-21 | "시연 챗·admin E2E" 를 **✅ 로 복원** — `PLAN-HD-004` 최종 게이트가 트리 `edb2545` 에서 `make e2e` 85 passed 를 냈고, 그 트리가 운영 태그 `a93a6c7`·`c066b02` 를 둘 다 조상으로 포함해 전날 강등 사유(배포된 코드가 실행에 없음)가 사라졌다. 실기기·`mission_logs` 2행은 ⬜ 유지 | 확정(해소) · §6·§9 |
+| 2026-09-22 | Phase 4 게이트 "착수" → "운영 ON". 코드는 `PLAN-HD-006` 으로 선행, VAPID 미설정 시 비활성. D1 런타임 공개키·D2 컬럼 관측 | 확정 · §7 |

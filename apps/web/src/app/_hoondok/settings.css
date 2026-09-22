@@ -89,6 +89,39 @@
     font-size: 13px;
     color: var(--ink-3);
   }
+  /* 켜진 알림의 시간은 고를 수 있다 (PLAN-HD-006). label 이 행 전체라 마우스·터치 어디를 눌러도 입력이 열린다 */
+  .st-sub--time {
+    cursor: pointer;
+  }
+  .st-sub__time {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-xs);
+    padding: 6px 10px;
+    min-height: 32px;
+  }
+  .st-sub__time:disabled {
+    color: var(--ink-3);
+    cursor: progress;
+  }
+  /* 왜 못 켜는지·무엇이 잘못됐는지 한 줄. 카드 안 시간 행 아래에 붙는다 */
+  .st-note {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    margin: 10px 0 0;
+  }
+  .st-note a {
+    color: var(--accent-strong);
+    font-weight: 600;
+    text-decoration: underline;
+  }
+  .st-note[role="alert"] {
+    color: var(--accent-strong);
+  }
 
   /* 준비 중 컨트롤 — `opacity` 로 흐리게 만들지 않는다 (DES §1.5 disabled).
      겹친 배경에 따라 대비가 예측 불가해지고, 실제로 `--ink-3` 테두리가 3:1 아래로 떨어졌다.

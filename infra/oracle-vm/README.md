@@ -17,6 +17,7 @@
 | `backup-db.sh` | Postgres 백업 (6시간마다 · pg_dump → 무결성 검증 → Object Storage 업로드 → 보관 기간 정리). |
 | `restore-drill.sh` | 백업 복구 리허설. 운영 DB 는 읽기만 하고 임시 DB 로 복원해 대조합니다. |
 | `refresh-questions.sh` | 봇별 추천 질문 주간 갱신. backend 컨테이너 안에서 실행합니다. |
+| `send-hoondok-push.sh` | 훈독 Web Push 발송(PLAN-HD-006). 15분마다 backend 컨테이너 안에서 돌며 발송 창(`read_time` ~ +2h)에 든 사용자에게 보냅니다. VAPID 3값이 `.env` 에 없으면 no-op(exit 0)이라 알림을 켜기 전에 등록해도 무해합니다. |
 | `prune-images.sh` | truewords 이미지 GC. web/admin/backend repo의 최신 3개·실행 중 이미지·명시적 보존 태그를 남깁니다. 최초 전환 전 admin 태그도 보존 대상으로 지정합니다. 빌드 캐시도 `until=168h` 로 정리합니다. |
 | `preserve-images.example` | VM `preserve-images.txt`의 형식 예제입니다. 실제 전환 전 통합 admin 태그를 기록하면 배포 자동 GC·주간 cron에서도 보존됩니다. |
 | `cache-cleanup.sh` | semantic_cache TTL 만료 point 정리 **수동 진입점**. 스케줄은 `cache-cleanup.yml`(GHA) 이 갖습니다 — cron 에 등록하지 않습니다. |
@@ -265,6 +266,7 @@ sudo docker stats
 30 18 * * 0   /home/ubuntu/truewords/refresh-questions.sh >> /home/ubuntu/truewords-cron.log   2>&1
 45 18 * * *   /home/ubuntu/truewords/ops-check.sh         >> /home/ubuntu/truewords-cron.log   2>&1
 15 19 * * 0   /home/ubuntu/truewords/prune-images.sh     >> /home/ubuntu/truewords-cron.log   2>&1
+*/15 * * * *  /home/ubuntu/truewords/send-hoondok-push.sh >> /home/ubuntu/truewords-cron.log   2>&1
 ```
 
 | 작업 | 주기 | 왜 VM 이어야 하는가 |
@@ -273,6 +275,7 @@ sudo docker stats
 | `refresh-questions.sh` | 매주 월 03:30 KST | 같은 이유 (Postgres 필요) |
 | `ops-check.sh` | 매일 03:45 KST | **감시자는 감시 대상과 다른 실패 도메인에 있어야 한다.** GHA 가 멈춘 사고에서 유일하게 정상 작동한 게 VM cron 이었다 |
 | `prune-images.sh` | 매주 월 04:15 KST | 이미지는 VM 로컬 자원이다. 배포 때마다도 돌지만, 배포가 없는 주에도 빌드 캐시가 쌓이므로 주간 보루를 둔다 |
+| `send-hoondok-push.sh` | **15분마다** | Postgres 가 필요하고, GHA 청구 차단으로 예약 작업이 25일간 조용히 멈춘 이력이 있다(PLAN-HD-006 §2-6). 사용자마다 발송 시각이 달라 창에 든 사람을 15분 간격으로 찾는다 — 하루 1회 보장은 `push_subscriptions.last_sent_on` 이 갖는다 |
 
 `cache-cleanup.sh` 는 **cron 에 등록하지 않는다.** 스케줄 주인은 `.github/workflows/cache-cleanup.yml` 이고 (Qdrant 는 HTTPS 라 어디서든 닿는다), VM 쪽 스크립트는 수동 실행 진입점으로만 남긴다. 스케줄러가 둘이면 같은 작업이 두 번 돈다.
 
@@ -281,7 +284,7 @@ sudo docker stats
 수동 실행은 로컬 Mac 의 make target 을 쓴다.
 
 ```bash
-make ops-check                             # 운영 불변식 점검 (7건)
+make ops-check                             # 운영 불변식 점검 (9건)
 make gemini-check                          # Gemini 키 생존만 단독 확인
 make cron-cache-cleanup ARGS=--dry-run     # 삭제 대상만 확인
 make cron-cache-cleanup                    # GHA 가 멈춘 동안 대신 실행
@@ -307,6 +310,8 @@ make restore-drill                         # 백업 복구 리허설
 | `containers` | 이 VM 의 compose 에 정의된 서비스 전부 — cloudflared 는 up, 나머지 healthy | 분리 전(5개)·분리 후(web 포함 6개) 구성을 같은 스크립트로. compose 에 없는 web 은 오탐이 아니고, 정의됐는데 죽으면 FAIL |
 | `disk` | < 70% 주의 / < 80% 임계 | 디스크 포화. 한 달에 25GB 늘던 실측(2026-08-30)에서 80% 는 남은 시간이 3주도 안 됐다. WARN 은 종료코드를 바꾸지 않는다 |
 | `gemini-key` | embed + generate 둘 다 HTTP 성공, embed 차원 = 1536 | **유일한 외부 의존 사망** — 키 회수·청구 중단·quota 소진·모델 폐기·차원 변경 |
+| `hoondok-today` | 오늘·내일 편성 존재 | 운영자 수기 편성이 끊겨 홈이 "오늘 말씀 없음" 이 되는 것. WARN 이라 종료코드를 바꾸지 않는다 |
+| `hoondok-push` | 구독이 있는데 `max(last_sent_on)` 이 어제보다 이전 · 또는 알림 켠 사용자 ≥1 인데 구독 0 | 발송 cron 중단·VAPID 누락 · 구독이 삭제됨(발송기 prune·브라우저 데이터 삭제). 켠 사용자도 0이면 아직 아무도 켜지 않은 정상 상태라 OK. WARN |
 
 ```bash
 make ops-check
@@ -315,7 +320,7 @@ make ops-check
 # cache-ttl  OK     만료 0건
 # gemini-key OK     embed 0.50s·1536d · generate 0.90s·tok in=2/out=9/think=0 · key sha8=… · tier=paid
 # ...
-# RESULT: OK — 불변식 7건 전부 통과
+# RESULT: OK — 불변식 9건 전부 통과
 ```
 
 임계값은 env 로 덮어쓸 수 있다 (`BACKUP_MAX_AGE_H` / `REMOTE_MAX_AGE_H` / `EXPIRED_MAX` / `SUGGESTED_MAX_AGE_D` / `DISK_MAX_PCT` / `GEMINI_BUDGET_S` / `GEMINI_EXEC_TIMEOUT_S` / `GEMINI_HOST_TIMEOUT_S`). 결과는 `/opt/ops-status.json` 에도 남는다. `make deploy-backend` / `deploy-admin` / `deploy-web`이 배포 전에 자동 실행하되 **배포를 막지는 않는다** — 백업이 낡았다고 배포를 못 하게 하는 건 인과가 뒤집힌 것이다.
@@ -343,7 +348,7 @@ make ops-check
 리허설은 env 만으로 전 분기를 재현한다.
 
 ```bash
-make ops-check                                          # 정상 — 7건 통과
+make ops-check                                          # 정상 — 9건 통과
 make gemini-check                                       # 키만 단독 확인
 ssh truewords-oracle 'GEMINI_BUDGET_S=1 bash ~/truewords/ops-check.sh'   # 예산 초과 (import 단계)
 ssh truewords-oracle 'GEMINI_BUDGET_S=3 bash ~/truewords/ops-check.sh'   # 예산 초과 (API 호출 중)
@@ -372,7 +377,7 @@ backend 컨테이너가 비정상이면 이 검사는 `SKIP` 하고 `containers`
 
 ### 전달 — ntfy 푸시 (2026-09-05)
 
-탐지(위 7건)와 별개로 **전달**이 없어 2026-08-07~31 에 `cache-cleanup.yml` 이 25일간 안 돌았는데도(GHA 청구 차단 재발) 아무도 몰랐다. `ops-check.sh` 는 매일 `cache-ttl FAIL` 을 `/opt/ops-status.json` 에 적고 있었다. 그래서 스크립트 마지막에 [ntfy.sh](https://ntfy.sh) 푸시 한 줄을 붙였다.
+탐지(위 9건)와 별개로 **전달**이 없어 2026-08-07~31 에 `cache-cleanup.yml` 이 25일간 안 돌았는데도(GHA 청구 차단 재발) 아무도 몰랐다. `ops-check.sh` 는 매일 `cache-ttl FAIL` 을 `/opt/ops-status.json` 에 적고 있었다. 그래서 스크립트 마지막에 [ntfy.sh](https://ntfy.sh) 푸시 한 줄을 붙였다.
 
 | 항목 | 값 |
 |---|---|
