@@ -231,6 +231,7 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 | 훈독 | 홈 → 훈독하기 → 완료 → 연속일 1 |
 | 오프라인 | 기내 모드에서 앱 실행 → `/hoondok/offline` 안내 |
 | 아이콘 | 홈 화면 아이콘이 감귤 배경 "훈" 으로 보이는지 |
+| 알림 (Phase 4, 운영 ON 뒤에만) | 설정에서 훈독하기 토글 ON → 권한 허용 → `send_hoondok_push.py --to-email` 발송 → 잠금 화면 도착 → 탭 시 `/hoondok` 이 열리는지. iOS 는 홈 화면 설치 상태에서만 |
 
 **어디에 적나.** 아래 [§실행 기록](#실행-기록)에 `### <날짜> — 실기기 증거 (<기기>)` 절을 하나 만들어 채운다. `PLAN-HD-001` §6 표의 실기기 행은 그 절을 가리키게 되고, `docs/plans/completed/` 로 옮길 때 함께 첨부한다. 빈 양식:
 
@@ -247,9 +248,54 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 | 훈독 완료 → 연속일 1 |  |  |
 | 오프라인 안내 |  |  |
 | 아이콘 |  |  |
+| 알림 도착 → 탭 시 `/hoondok` (Phase 4) |  |  |
 ```
 
 한쪽 기기만 끝났으면 그 열만 채우고 나머지는 비워 둔다 — **채워지지 않은 칸을 추정으로 메우지 않는다.**
+
+## 알림 운영 ON 절차 (PLAN-HD-006 · Phase 4)
+
+코드는 main 에 있어도 **VAPID 3값이 VM `.env` 에 없으면 알림은 꺼져 있다** — `GET /hoondok/push/config` 가 `enabled=false` 를 내고 설정 화면 토글은 "준비 중", 발송기는 exit 0 no-op 이다. 켜는 조건은 [`PLAN-HD-006` §6](../plans/active/2026-09-22-hoondok-notifications.md): 실기기 증거 ✅ + `mission_logs` 7일 적재 + 아래 베타 판정 2수치 + 사용자 승인.
+
+```bash
+# 0. 로컬에서 VAPID 키 1회 생성 (py-vapid 는 backend 의존성에 포함)
+cd apps/api && uv run python - <<'PY'
+from py_vapid import Vapid, b64urlencode
+from cryptography.hazmat.primitives import serialization
+v = Vapid(); v.generate_keys()
+print("HOONDOK_VAPID_PUBLIC_KEY=" + b64urlencode(v.public_key.public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)))
+print("HOONDOK_VAPID_PRIVATE_KEY=" + b64urlencode(v.private_key.private_numbers().private_value.to_bytes(32, "big")))
+print("HOONDOK_VAPID_SUBJECT=mailto:<운영 연락 메일>")
+PY
+# 1. VM .env 에 3줄 추가 (비밀 키는 어디에도 커밋·붙여넣기 금지) → backend 만 재생성
+ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env up -d --no-deps backend'
+curl -s https://truewords.woosung.dev/api/backend/hoondok/push/config   # {"enabled":true,"public_key":"..."}
+# 2. cron 등록 (15분 간격, infra/oracle-vm/README.md §정기 작업)
+#    */15 * * * *  /home/ubuntu/truewords/send-hoondok-push.sh >> /home/ubuntu/truewords-cron.log 2>&1
+# 3. 실기기에서 토글 ON → 즉시 발송으로 증거 확보
+ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec -T backend python scripts/send_hoondok_push.py --to-email <내 계정> --execute'
+# 4. 다음 날 ops-check 의 hoondok-push 행이 OK 인지
+make ops-check
+```
+
+**되돌리기**: `.env` 에서 3줄 제거 → backend 재생성. 토글은 다시 "준비 중", 발송기는 no-op. 이미 저장된 `push_subscriptions` 행은 남지만 발송되지 않는다(삭제는 사용자의 토글 OFF 또는 계정 삭제). cron 줄은 그대로 두어도 무해하다.
+
+**키 교체**: 공개키가 바뀌면 기존 구독은 전부 무효(발송 시 4xx → 자동 삭제)이고 사용자가 토글을 다시 켜야 한다. 교체는 사고 대응에만.
+
+### 베타 1차 판정 쿼리 2개
+
+`apps/api/scripts/hoondok_beta_metrics.sql` 을 운영 postgres 에 그대로 흘린다. 별도 이벤트 수집기 없이 `users.created_at` 과 `mission_logs` 만 쓴다.
+
+```bash
+ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < apps/api/scripts/hoondok_beta_metrics.sql
+```
+
+| 지표 | 정의 | `[가정]` |
+|---|---|---|
+| 7일 중 5일 완료 비율 | 가입 후 7일이 지난 사용자 중, 최근 7일(KST) `read` 완료일이 5일 이상인 비율 | — |
+| D7 재방문 | 가입일 +7일 이후에 `mission_logs` 가 1건 이상인 비율 | 방문 로그가 없어 **완료 기록을 방문의 대리 지표**로 쓴다. 완료 없이 열어만 본 사용자는 미방문으로 센다(보수적) |
+
+두 수치를 `PLAN-HD-006` §7 진행 기록에 날짜와 함께 적고, 그 뒤 F2 AI 질문 우선순위 ADR 의 근거로 쓴다.
 
 ## 실행 기록
 
