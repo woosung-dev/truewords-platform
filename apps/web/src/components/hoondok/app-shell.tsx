@@ -26,7 +26,7 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
 
   return (
     <HoondokScreenTitleContext.Provider value={updateTitle}>
-      <main className={`app__main app__main--${screen.variant}`}>
+      <main className={`app__main app__main--${screen.variant}${screen.hideNav ? " app__main--no-nav" : ""}`}>
         <header className="appbar">
           <div className="appbar__in">
             {screen.backHref && (

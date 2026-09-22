@@ -682,6 +682,10 @@
     .appbar {
       top: 72px;
     }
+    /* 탭 헤더가 없는 화면(온보딩)은 앱바가 맨 위에 붙는다 — 72px 를 남기면 sticky 가 앱바를 밀어 본문 첫 줄을 덮는다 */
+    .app__main--no-nav .appbar {
+      top: 0;
+    }
     /* 홈에서는 헤더 활성 탭이 곧 제목이라 앱바를 시각적으로만 접는다 (h1 은 보조기기용으로 남긴다) */
     .app__main--home .appbar {
       position: absolute;
