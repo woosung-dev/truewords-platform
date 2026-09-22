@@ -55,9 +55,10 @@ async def get_words(
     volume: str,
     page: int = Query(default=1, ge=1),
     chunk_id: str | None = Query(default=None, max_length=128),
+    section: int | None = Query(default=None, ge=1),
     service: JourneyService = Depends(get_journey_service),
 ) -> WordsResponse:
-    return await service.words(volume, page, chunk_id)
+    return await service.words(volume, page, chunk_id, section)
 
 
 @router.get("/me/jeongseong/today", response_model=JeongseongTodayResponse)

@@ -10,9 +10,15 @@ from app.modules.admin.dependencies import (
     verify_csrf,
 )
 from app.modules.admin.service import AdminService
-from app.modules.hoondok.dependencies import get_journey_service
+from app.modules.hoondok.dependencies import get_journey_service, get_library_service
 from app.modules.hoondok.journey_schemas import ContentRightInput, ContentRightResponse
 from app.modules.hoondok.journey_service import JourneyService
+from app.modules.hoondok.library_schemas import (
+    BulkRightsInput,
+    BulkRightsResponse,
+    SeriesSummaryResponse,
+)
+from app.modules.hoondok.library_service import LibraryService
 
 router = APIRouter(
     prefix="/admin/hoondok/content-rights",
@@ -47,6 +53,34 @@ async def create_content_right(
         changes=data.model_dump(mode="json"),
     )
     return ContentRightResponse.model_validate(right)
+
+
+@router.post("/bulk", response_model=BulkRightsResponse)
+async def bulk_update_content_rights(
+    data: BulkRightsInput,
+    service: LibraryService = Depends(get_library_service),
+    audit: AdminService = Depends(get_admin_service),
+    admin: dict = Depends(get_current_admin),
+) -> BulkRightsResponse:
+    """API-HD-027 시리즈 일괄 승인·철회. 등급은 준 경우에만 바꾸고 감사 로그는 1건만 남긴다."""
+    result, target_id = await service.bulk_update(data)
+    await audit.log_audit(
+        admin_user_id=admin["user_id"],
+        action="content_right.bulk",
+        target_table="content_rights",
+        target_id=target_id,  # 시리즈 대표 행 — 실제 범위는 changes 의 book_series·updated 가 갖는다
+        changes={**data.model_dump(mode="json"), "updated": result.updated},
+    )
+    return result
+
+
+@router.get("/series", response_model=SeriesSummaryResponse)
+async def get_series_summary(
+    service: LibraryService = Depends(get_library_service),
+    admin: dict = Depends(get_current_admin),
+) -> SeriesSummaryResponse:
+    """API-HD-028 시리즈별 등록·허용·대기·철회 수와 청크 합. 조회라 감사 로그를 남기지 않는다."""
+    return await service.series_summary()
 
 
 @router.put("/{right_id}", response_model=ContentRightResponse)

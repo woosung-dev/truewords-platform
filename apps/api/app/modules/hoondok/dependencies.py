@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.common.database import get_async_session
 from app.modules.hoondok.journey_repository import JourneyRepository
 from app.modules.hoondok.journey_service import JourneyService
+from app.modules.hoondok.library_repository import LibraryRepository
+from app.modules.hoondok.library_service import LibraryService
 from app.modules.hoondok.notifications_repository import NotificationRepository
 from app.modules.hoondok.notifications_service import NotificationService
 from app.modules.hoondok.repository import DailyReadingRepository, JeongseongRepository, MissionLogRepository
@@ -72,11 +74,25 @@ async def get_journey_repository(session: AsyncSession = Depends(get_async_sessi
     return JourneyRepository(session)
 
 
+async def get_library_repository(
+    session: AsyncSession = Depends(get_async_session),
+) -> LibraryRepository:
+    return LibraryRepository(session)
+
+
+async def get_library_service(
+    repo: LibraryRepository = Depends(get_library_repository),
+) -> LibraryService:
+    return LibraryService(repo)
+
+
 async def get_journey_service(
     repo: JourneyRepository = Depends(get_journey_repository),
     periods: JeongseongRepository = Depends(get_jeongseong_repository),
+    library: LibraryRepository = Depends(get_library_repository),
 ) -> JourneyService:
-    return JourneyService(repo, get_raw_client(), periods)
+    # 장 목차(ENT-HD-010)는 서고 리포가 읽는다 — API-HD-016 의 section 동봉에 필요하다.
+    return JourneyService(repo, get_raw_client(), periods, library=library)
 
 
 async def get_notification_repository(
