@@ -315,6 +315,38 @@ else
   fi
 fi
 
+# ── 8. 훈독 알림 발송 ─────────────────────────────────────────────────────
+# 발송기는 VM cron(*/15)이 돌린다. 창(read_time~+2h)을 지나면 그날은 보내지 않으므로
+# cron 이 멈추거나 VAPID 가 빠져도 사용자에게는 "알림이 안 온다" 는 침묵뿐이고,
+# 컨테이너·백업·API 는 전부 초록이다. 결과(= 최근 발송 기록)로 본다.
+#
+# 구독이 0이면 아직 아무도 켜지 않은 정상 상태다(운영 ON 전 기본). OK 로 둔다 —
+# 매일 WARN 을 띄우면 진짜 경보가 묻힌다(hoondok-today 와 같은 원칙).
+# 어제까지 포함해 보는 이유: 오늘 발송 창이 아직 오지 않은 사용자만 있을 수 있다.
+HD_PUSH=$(sudo docker compose --env-file .env exec -T postgres \
+            psql -U "$U" -d "$D" -t -A -F'|' -c \
+            "with d as (select (now() at time zone 'Asia/Seoul')::date as today)
+             select
+               (select count(*) from push_subscriptions),
+               (select count(*) from notification_preferences where read_enabled),
+               coalesce((select max(last_sent_on)::text from push_subscriptions), 'none'),
+               (select today from d),
+               coalesce((select max(last_sent_on) from push_subscriptions) >= (select today from d) - 1, false);" \
+            2>/dev/null | tr -d ' \r')
+if [ -z "$HD_PUSH" ]; then
+  # 테이블이 없으면(마이그레이션 이전 이미지) 판정할 것이 없다.
+  record "hoondok-push" SKIP "push_subscriptions 를 읽지 못했다 — 마이그레이션 이전이거나 postgres 확인"
+else
+  IFS='|' read -r HP_SUBS HP_ENABLED HP_LAST HP_TODAY HP_RECENT <<< "$HD_PUSH"
+  if [ "${HP_SUBS:-0}" -eq 0 ]; then
+    record "hoondok-push" OK "구독 없음 (알림 켠 사용자 ${HP_ENABLED:-0}명 · 오늘 ${HP_TODAY})"
+  elif [ "${HP_ENABLED:-0}" -ge 1 ] && [ "$HP_RECENT" != "t" ]; then
+    record "hoondok-push" WARN "구독 ${HP_SUBS} · 최근 발송 ${HP_LAST} (24h 발송 0건) — cron·VAPID 확인"
+  else
+    record "hoondok-push" OK "구독 ${HP_SUBS} · 알림 켠 사용자 ${HP_ENABLED} · 최근 발송 ${HP_LAST}"
+  fi
+fi
+
 # ── 출력 ──────────────────────────────────────────────────────────────────
 echo
 printf '%-20s %-6s %s\n' CHECK VERDICT DETAIL
