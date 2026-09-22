@@ -1,42 +1,70 @@
 "use client";
 
+// SCR-PWA-009 원문 뷰. PLAN-HD-007 로 장 목차(API-HD-024)·단락 표시(API-HD-026)·이어 읽기(API-HD-025)·
+// AI 설명(§2-7)이 붙었다. 단락 단위는 Qdrant 청크이고(§2-12) 청크 안 부분 선택은 하지 않는다.
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
+import type { MarkItem, WordChunk } from "@truewords/api-client-ts/types";
 import { Bookmark, BookOpenText, Check, Highlighter, List, NotebookPen, Settings } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AuthorityBadge, HoondokButton } from "@/components/hoondok";
+import { sectionsKey, wordsKey } from "@/features/hoondok/query-keys";
 import { useHoondokScreenTitle } from "@/features/hoondok/screen-title";
 import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
-import { libraryAPI, wordsHref } from "../api";
+import { libraryAPI, type WordsQuery, wordsHref, wordsPageHref } from "../api";
 import { writeLastReading } from "../last-reading";
+import { useMarks, useMarkWriter, useSavedReadingPosition } from "../use-reading";
+import { AiExplain } from "./ai-explain";
+import { PassageSheet } from "./passage-sheet";
+import { ReaderSheet } from "./reader-sheet";
+import { tocLabel, WordsToc } from "./words-toc";
 
-const READER_TOOLS = [
-  { label: "형광펜", Icon: Highlighter },
-  { label: "노트", Icon: NotebookPen },
-  { label: "북마크", Icon: Bookmark },
-  { label: "목차", Icon: List },
-  { label: "설정", Icon: Settings },
-] as const;
-function ReaderBar({ modifier }: { modifier: "reader--top" | "reader--bottom" }) {
-  return (
-    <div className={`reader ${modifier}`} aria-label="읽기 도구">
-      {READER_TOOLS.map(({ label, Icon }) => (
-        <span key={label} className={label === "목차" ? "reader__toc" : undefined}>
-          <Icon size={22} aria-hidden="true" />
-          {label}
-        </span>
-      ))}
-    </div>
-  );
-}
 const SEGMENTS = [
   { id: "text", label: "본문" },
   { id: "ai", label: "AI 설명" },
   { id: "note", label: "노트" },
 ] as const;
+type Segment = (typeof SEGMENTS)[number]["id"];
+
+type ReaderAction = "highlight" | "note" | "bookmark" | "toc";
+const READER_TOOLS = [
+  { action: "highlight" as const, label: "형광펜", Icon: Highlighter },
+  { action: "note" as const, label: "노트", Icon: NotebookPen },
+  { action: "bookmark" as const, label: "북마크", Icon: Bookmark },
+  { action: "toc" as const, label: "목차", Icon: List },
+] as const;
+
+function ReaderBar({
+  modifier,
+  onAction,
+}: {
+  modifier: "reader--top" | "reader--bottom";
+  onAction: (action: ReaderAction) => void;
+}) {
+  return (
+    <div className={`reader ${modifier}`} aria-label="읽기 도구">
+      {READER_TOOLS.map(({ action, label, Icon }) => (
+        <button
+          key={label}
+          type="button"
+          className={action === "toc" ? "reader__toc" : undefined}
+          onClick={() => onAction(action)}
+        >
+          <Icon size={22} aria-hidden="true" />
+          {label}
+        </button>
+      ))}
+      {/* 설정(글자 크기·테마)은 이번 범위가 아니다 — 누를 수 없는 상태를 그대로 보인다 */}
+      <button type="button" disabled aria-disabled="true">
+        <Settings size={22} aria-hidden="true" />
+        설정
+      </button>
+    </div>
+  );
+}
 
 function StudyComplete() {
   const { user, isLoading } = useCurrentUser();
@@ -67,21 +95,80 @@ function StudyComplete() {
   );
 }
 
-export function WordsScreen({ volume, page, chunkId }: { volume: string; page: number; chunkId?: string }) {
-  const [segment, setSegment] = useState<"text" | "ai" | "note">("text");
+/** 단락 하나. 형광펜은 청크 전체를 감싼다 — 부분 선택은 검색·인용 체계(chunk_id)와 어긋난다(계획 §8). */
+function Verse({
+  chunk,
+  highlight,
+  isBookmarked,
+  isSelected,
+  onSelect,
+}: {
+  chunk: WordChunk;
+  highlight: MarkItem | undefined;
+  isBookmarked: boolean;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <p className={isSelected ? "verse verse--on" : "verse"}>
+      {/* 본문 전체를 버튼으로 만들면 긴 인용문이 링크 이름이 된다(DES §2.2) — 번호만 조작 대상이다 */}
+      <button type="button" className="verse__n" aria-label={`단락 ${chunk.chunk_index} 표시하기`} onClick={onSelect}>
+        {chunk.chunk_index}
+        {isBookmarked && <Bookmark size={12} aria-hidden="true" />}
+      </button>
+      <span className="verse__tx">
+        {highlight?.color ? <mark className={`hl-${highlight.color}`}>{chunk.text}</mark> : chunk.text}
+      </span>
+    </p>
+  );
+}
+
+export function WordsScreen({
+  volume,
+  page,
+  chunkId,
+  section,
+}: {
+  volume: string;
+  page: number;
+  chunkId?: string;
+  section?: number;
+}) {
+  const [segment, setSegment] = useState<Segment>("text");
+  const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<"passage" | "toc" | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
+  const { user } = useCurrentUser();
+  const isLoggedIn = Boolean(user);
+
+  const wordsQuery: WordsQuery = { chunkId, section };
   const query = useQuery({
-    queryKey: ["hoondok", "words", volume, page, chunkId],
-    queryFn: ({ signal }) => libraryAPI.words(volume, page, chunkId, signal),
+    queryKey: wordsKey(volume, page, wordsQuery),
+    queryFn: ({ signal }) => libraryAPI.words(volume, page, wordsQuery, signal),
     retry: false,
     staleTime: 0,
     gcTime: 0,
   });
+  const sections = useQuery({
+    queryKey: sectionsKey(volume),
+    queryFn: ({ signal }) => libraryAPI.sections(volume, signal),
+    retry: false,
+    staleTime: 0,
+  });
   useHoondokScreenTitle(query.isSuccess ? query.data.work_title : null);
-  const lastVolume = query.isSuccess ? query.data.volume : null;
-  const lastPage = query.isSuccess ? query.data.page : null;
+
+  const marks = useMarks(volume, isLoggedIn);
+  const writer = useMarkWriter();
+  const doc = query.isSuccess ? query.data : null;
+  const firstChunkIndex = doc?.chunks[0]?.chunk_index ?? null;
+  // 이어 읽기: 로그인은 서버(API-HD-025), 비로그인은 기기에 남긴다. 같은 값 반복 PUT 은 훅이 막는다.
+  useSavedReadingPosition(isLoggedIn, volume, firstChunkIndex);
+  const lastVolume = doc?.volume ?? null;
+  const lastPage = doc?.page ?? null;
   useEffect(() => {
     if (lastVolume && lastPage) writeLastReading({ volume: lastVolume, page: lastPage });
   }, [lastVolume, lastPage]);
+
   if (query.isPending)
     return (
       <section className="col col--read">
@@ -90,7 +177,7 @@ export function WordsScreen({ volume, page, chunkId }: { volume: string; page: n
         </p>
       </section>
     );
-  if (query.isError) {
+  if (query.isError || !doc) {
     const isMissing = query.error instanceof ApiError && query.error.status === 404;
     return (
       <section className="col col--read">
@@ -116,28 +203,72 @@ export function WordsScreen({ volume, page, chunkId }: { volume: string; page: n
       </section>
     );
   }
-  const doc = query.data;
+
+  const tocSections = sections.data?.sections ?? [];
+  const currentSection = doc.section ?? null;
+  const sectionDetail = currentSection
+    ? (tocSections.find((item) => item.position === currentSection.position) ?? null)
+    : null;
+  const selectedChunk = doc.chunks.find((chunk) => chunk.chunk_id === selectedChunkId) ?? null;
+  const markOf = (chunk: string, kind: MarkItem["kind"]) =>
+    marks.find((mark) => mark.chunk_id === chunk && mark.kind === kind);
+  const noteMarks = marks.filter((mark) => mark.kind === "highlight" && mark.note);
+  const firstIndex = doc.chunks[0]?.chunk_index;
+  const lastIndex = doc.chunks[doc.chunks.length - 1]?.chunk_index;
+  const currentPath = `${wordsHref(volume)}?page=${doc.page}`;
+
+  function openPassage(chunkKey: string) {
+    setSelectedChunkId(chunkKey);
+    setHint(null);
+    setSheet("passage");
+  }
+  function handleReaderAction(action: ReaderAction) {
+    if (action === "toc") {
+      setSheet("toc");
+      return;
+    }
+    if (!selectedChunkId) {
+      setHint("먼저 본문에서 단락 번호를 눌러 단락을 골라 주세요.");
+      return;
+    }
+    setHint(null);
+    setSheet("passage");
+  }
+
   return (
     <section className="col col--read words">
-      <aside className="toc" aria-label="원문 구간">
-        <p className="toc__title">{doc.work_title}</p>
-        {Array.from({ length: doc.total_pages }, (_, index) => index + 1).map((sectionPage) => (
-          <Link
-            key={sectionPage}
-            className="toc__item"
-            href={`${wordsHref(volume)}?page=${sectionPage}`}
-            aria-current={sectionPage === doc.page ? "page" : undefined}
-          >
-            원문 구간 {sectionPage}
-          </Link>
-        ))}
+      <aside className="toc" aria-label={tocLabel(tocSections)}>
+        <WordsToc
+          volume={volume}
+          workTitle={doc.work_title}
+          sections={tocSections}
+          currentPosition={currentSection?.position ?? null}
+          page={doc.page}
+          totalPages={doc.total_pages}
+        />
       </aside>
       <div className="words__main">
-        {/* 저작물 제목은 앱바 h1 이 이미 보여준다(screens.ts titleSource: "work") — 프로토타입 원문 뷰에도 별도 제목 줄이 없다 */}
+        {/* 저작물 제목은 앱바 h1 이 이미 보여준다(screens.ts titleSource: "work") */}
+        <div className="masthead">
+          {currentSection && <span className="masthead__nm">{currentSection.title}</span>}
+          {firstIndex !== undefined && lastIndex !== undefined && (
+            <span className="masthead__dt">
+              단락 {firstIndex}–{lastIndex}
+            </span>
+          )}
+        </div>
         <div className="src lede-src">
           {doc.volume !== doc.work_title && <span>{doc.volume}</span>}
-          <span>화자 확인되지 않음</span>
-          <span>날짜 확인되지 않음</span>
+          {/* 장 데이터가 날짜·장소를 가진 권만 실제 값을 쓴다. 없으면 지어내지 않고 결측으로 적는다 */}
+          {sectionDetail?.spoken_on ? (
+            <span>{sectionDetail.spoken_on}</span>
+          ) : (
+            <>
+              <span>화자 확인되지 않음</span>
+              <span>날짜 확인되지 않음</span>
+            </>
+          )}
+          {sectionDetail?.place && <span>{sectionDetail.place}</span>}
           <span>판본 확인되지 않음</span>
           {doc.authority_grade === "R" ? (
             <span className="badge badge--dashed">공식성 확인되지 않음</span>
@@ -146,7 +277,7 @@ export function WordsScreen({ volume, page, chunkId }: { volume: string; page: n
           )}
         </div>
         <div className="lede-rule" />
-        <ReaderBar modifier="reader--top" />
+        <ReaderBar modifier="reader--top" onAction={handleReaderAction} />
         <div className="pill-seg" role="tablist" aria-label="원문 보기">
           {SEGMENTS.map((item) => (
             <button
@@ -163,17 +294,35 @@ export function WordsScreen({ volume, page, chunkId }: { volume: string; page: n
             </button>
           ))}
         </div>
+        {hint && (
+          <p className="notice" role="status">
+            {hint}
+          </p>
+        )}
         <div id="wd-seg-panel" className="wd-panel" role="tabpanel" aria-labelledby={`wd-seg-${segment}`}>
           {segment === "text" && (
             <>
-              <p className="notice">보유한 원문을 순서대로 보여드려요. 구간 번호는 책의 장·절 번호가 아닙니다.</p>
+              {tocSections.length === 0 && (
+                <p className="notice">
+                  이 권은 장 목차가 아직 없어 원문을 순서대로 보여드려요. 단락 번호는 책의 장·절 번호가 아닙니다.
+                </p>
+              )}
               {chunkId && <p className="notice">인용한 말씀이 포함된 원문 구간이에요.</p>}
               <article aria-label="원문 본문">
-                <p className="scripture words-body">{doc.body}</p>
+                {doc.chunks.map((chunk) => (
+                  <Verse
+                    key={chunk.chunk_id}
+                    chunk={chunk}
+                    highlight={markOf(chunk.chunk_id, "highlight")}
+                    isBookmarked={Boolean(markOf(chunk.chunk_id, "bookmark"))}
+                    isSelected={chunk.chunk_id === selectedChunkId}
+                    onSelect={() => openPassage(chunk.chunk_id)}
+                  />
+                ))}
               </article>
               <nav className="words-pages" aria-label="원문 구간 이동">
                 {doc.page > 1 && (
-                  <Link className="btn btn-line btn--sm" href={`${wordsHref(volume)}?page=${doc.page - 1}`}>
+                  <Link className="btn btn-line btn--sm" href={wordsPageHref(volume, doc.page - 1)}>
                     이전 구간
                   </Link>
                 )}
@@ -181,7 +330,7 @@ export function WordsScreen({ volume, page, chunkId }: { volume: string; page: n
                   {doc.page} / {doc.total_pages} 구간
                 </span>
                 {doc.page < doc.total_pages && (
-                  <Link className="btn btn-line btn--sm" href={`${wordsHref(volume)}?page=${doc.page + 1}`}>
+                  <Link className="btn btn-line btn--sm" href={wordsPageHref(volume, doc.page + 1)}>
                     다음 구간
                   </Link>
                 )}
@@ -189,38 +338,75 @@ export function WordsScreen({ volume, page, chunkId }: { volume: string; page: n
               <StudyComplete />
             </>
           )}
-          {segment === "ai" && (
-            <div className="ai-note">
-              <p className="ai-note__lab">AI 설명</p>
-              <p className="ai-note__body">
-                문단마다 붙는 AI 설명은 준비 중이에요. 근거 말씀과 함께 답하는 설명은 AI 질문에서 쓸 수 있어요.
-              </p>
-              <Link className="btn btn-line btn--sm" href="/hoondok/ask">
-                AI 질문으로 가기
-              </Link>
-            </div>
-          )}
+          {segment === "ai" && <AiExplain chunk={selectedChunk} />}
           {segment === "note" && (
-            <div className="empty">
-              <span className="empty__ic">
-                <NotebookPen size={26} aria-hidden="true" />
-              </span>
-              <p className="empty__title">노트는 준비 중이에요</p>
-              <p className="empty__body">
-                원문 메모는 아직 저장할 수 없어요. 오늘의 한 줄은 훈독하기에서 쓸 수 있어요.
-              </p>
-              <Link className="btn btn-line btn--sm" href="/hoondok/read">
-                오늘 훈독 읽기
-              </Link>
-            </div>
+            <>
+              {!isLoggedIn ? (
+                <div className="empty">
+                  <span className="empty__ic">
+                    <NotebookPen size={26} aria-hidden="true" />
+                  </span>
+                  <p className="empty__title">로그인하면 기록이 남아요</p>
+                  <p className="empty__body">노트는 계정에 저장돼요. 로그인하면 이 권의 메모를 모아서 볼 수 있어요.</p>
+                  <Link className="btn btn-line btn--sm" href={onboardingHref(currentPath)}>
+                    로그인하기
+                  </Link>
+                </div>
+              ) : noteMarks.length === 0 ? (
+                <div className="empty">
+                  <span className="empty__ic">
+                    <NotebookPen size={26} aria-hidden="true" />
+                  </span>
+                  <p className="empty__title">이 권에 남긴 노트가 아직 없어요</p>
+                  <p className="empty__body">본문에서 단락 번호를 누르면 형광펜과 함께 메모를 남길 수 있어요.</p>
+                </div>
+              ) : (
+                <ul className="rd-notes">
+                  {noteMarks.map((mark) => (
+                    <li key={mark.chunk_id}>
+                      <Link href={wordsHref(volume, mark.chunk_id)}>
+                        <span className="rd-notes__n">단락 {mark.chunk_index}</span>
+                        <span className="rd-notes__tx">{mark.note}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </div>
-        <p className="notice">형광펜·노트·북마크·설정은 준비 중이에요</p>
         <Link className="btn btn-line btn--sm" href="/hoondok/ask">
           이 말씀에 질문하기
         </Link>
       </div>
-      <ReaderBar modifier="reader--bottom" />
+      <ReaderBar modifier="reader--bottom" onAction={handleReaderAction} />
+      {sheet === "toc" && (
+        <ReaderSheet title={tocLabel(tocSections)} onClose={() => setSheet(null)}>
+          <nav className="toc toc--sheet" aria-label={tocLabel(tocSections)}>
+            <WordsToc
+              volume={volume}
+              workTitle={doc.work_title}
+              sections={tocSections}
+              currentPosition={currentSection?.position ?? null}
+              page={doc.page}
+              totalPages={doc.total_pages}
+              onNavigate={() => setSheet(null)}
+            />
+          </nav>
+        </ReaderSheet>
+      )}
+      {sheet === "passage" && selectedChunk && (
+        <PassageSheet
+          volume={volume}
+          chunk={selectedChunk}
+          highlight={markOf(selectedChunk.chunk_id, "highlight")}
+          bookmark={markOf(selectedChunk.chunk_id, "bookmark")}
+          isLoggedIn={isLoggedIn}
+          returnTo={currentPath}
+          writer={writer}
+          onClose={() => setSheet(null)}
+        />
+      )}
     </section>
   );
 }

@@ -15,7 +15,18 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/features/hoondok/library/api", async (original) => ({
   ...(await original<object>()),
-  libraryAPI: { list: vi.fn(), search: vi.fn(), words: vi.fn() },
+  libraryAPI: {
+    list: vi.fn(),
+    search: vi.fn(),
+    words: vi.fn(),
+    series: vi.fn(),
+    sections: vi.fn(),
+    readingPositions: vi.fn(),
+    saveReadingPosition: vi.fn(),
+    marks: vi.fn(),
+    saveMark: vi.fn(),
+    deleteMark: vi.fn(),
+  },
 }));
 vi.mock("@/features/identity/api", () => ({ identityAPI: { me: vi.fn() } }));
 vi.mock("@/features/hoondok/missions-api", () => ({ missionsAPI: { summary: vi.fn(), complete: vi.fn() } }));
@@ -70,6 +81,9 @@ beforeEach(() => {
   vi.mocked(libraryAPI.list).mockResolvedValue({ items: [WORK] });
   vi.mocked(libraryAPI.search).mockResolvedValue({ results: [RESULT] });
   vi.mocked(libraryAPI.words).mockResolvedValue(WORDS);
+  vi.mocked(libraryAPI.sections).mockResolvedValue({ volume: WORK.volume, sections: [] });
+  vi.mocked(libraryAPI.marks).mockResolvedValue({ items: [] });
+  vi.mocked(libraryAPI.readingPositions).mockResolvedValue({ items: [] });
   vi.mocked(identityAPI.me).mockRejectedValue(new ApiError(401, { message: "unauthorized" }));
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -182,7 +196,12 @@ describe("원문 읽기", () => {
   it("원문 구간·출처 결측·앞뒤 구간을 표시하고 열기만으로 완료하지 않는다", async () => {
     await showWords();
     expect(await screen.findByText("둘째 구간의 본문")).toBeInTheDocument();
-    expect(libraryAPI.words).toHaveBeenCalledWith(WORK.volume, 1, "chunk-21", expect.any(AbortSignal));
+    expect(libraryAPI.words).toHaveBeenCalledWith(
+      WORK.volume,
+      1,
+      { chunkId: "chunk-21", section: undefined },
+      expect.any(AbortSignal),
+    );
     expect(screen.getByText("화자 확인되지 않음")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "다음 구간" })).toHaveAttribute("href", `${wordsHref(WORK.volume)}?page=3`);
     expect(missionsAPI.complete).not.toHaveBeenCalled();
@@ -215,7 +234,12 @@ describe("원문 읽기", () => {
       }),
     );
     await screen.findByText("둘째 구간의 본문");
-    expect(libraryAPI.words).toHaveBeenCalledWith(volume, 1, undefined, expect.any(AbortSignal));
+    expect(libraryAPI.words).toHaveBeenCalledWith(
+      volume,
+      1,
+      { chunkId: undefined, section: undefined },
+      expect.any(AbortSignal),
+    );
   });
   it("깨진 퍼센트 인코딩은 API 로 보내지 않고 404 다", async () => {
     await expect(
