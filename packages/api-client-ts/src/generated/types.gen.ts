@@ -420,7 +420,7 @@ export type ClientErrorInput = {
     /**
      * Kind
      */
-    kind: 'sw_register' | 'install_prompt' | 'unhandled' | 'api_5xx';
+    kind: 'sw_register' | 'install_prompt' | 'unhandled' | 'api_5xx' | 'push_subscribe';
     /**
      * Path
      */
@@ -1580,6 +1580,50 @@ export type NegativeFeedbackItem = {
 };
 
 /**
+ * NotificationPreferenceInput
+ *
+ * API-HD-020 PUT — 부분 수정이 아니라 전체 교체다.
+ */
+export type NotificationPreferenceInput = {
+    /**
+     * Lock Screen Level
+     */
+    lock_screen_level?: 'neutral' | 'faith';
+    /**
+     * Read Enabled
+     */
+    read_enabled: boolean;
+    /**
+     * Read Time
+     */
+    read_time?: string;
+};
+
+/**
+ * NotificationPreferenceResponse
+ *
+ * API-HD-020. 설정 행이 없으면 기본값 + subscription_count=구독 수.
+ */
+export type NotificationPreferenceResponse = {
+    /**
+     * Lock Screen Level
+     */
+    lock_screen_level: 'neutral' | 'faith';
+    /**
+     * Read Enabled
+     */
+    read_enabled: boolean;
+    /**
+     * Read Time
+     */
+    read_time: string;
+    /**
+     * Subscription Count
+     */
+    subscription_count: number;
+};
+
+/**
  * PaginatedResponse[ChatbotConfigResponse]
  */
 export type PaginatedResponseChatbotConfigResponse = {
@@ -1599,6 +1643,71 @@ export type PaginatedResponseChatbotConfigResponse = {
      * Total
      */
     total: number;
+};
+
+/**
+ * PushConfigResponse
+ *
+ * API-HD-019 공개. VAPID 미설정이면 enabled=false·public_key=null — 비밀 키는 절대 내지 않는다.
+ */
+export type PushConfigResponse = {
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Public Key
+     */
+    public_key?: string | null;
+};
+
+/**
+ * PushSubscriptionInput
+ *
+ * API-HD-021. 브라우저 PushSubscription.toJSON() 의 부분집합.
+ */
+export type PushSubscriptionInput = {
+    /**
+     * Endpoint
+     */
+    endpoint: string;
+    keys: PushSubscriptionKeys;
+    /**
+     * User Agent
+     */
+    user_agent?: string | null;
+};
+
+/**
+ * PushSubscriptionKeys
+ */
+export type PushSubscriptionKeys = {
+    /**
+     * Auth
+     */
+    auth: string;
+    /**
+     * P256Dh
+     */
+    p256dh: string;
+};
+
+/**
+ * PushSubscriptionResponse
+ */
+export type PushSubscriptionResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Endpoint
+     */
+    endpoint: string;
+    /**
+     * Id
+     */
+    id: string;
 };
 
 /**
@@ -4621,6 +4730,102 @@ export type GetJeongseongTodayHoondokMeJeongseongTodayGetResponses = {
 
 export type GetJeongseongTodayHoondokMeJeongseongTodayGetResponse = GetJeongseongTodayHoondokMeJeongseongTodayGetResponses[keyof GetJeongseongTodayHoondokMeJeongseongTodayGetResponses];
 
+export type GetNotificationsHoondokMeNotificationsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/notifications';
+};
+
+export type GetNotificationsHoondokMeNotificationsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: NotificationPreferenceResponse;
+};
+
+export type GetNotificationsHoondokMeNotificationsGetResponse = GetNotificationsHoondokMeNotificationsGetResponses[keyof GetNotificationsHoondokMeNotificationsGetResponses];
+
+export type PutNotificationsHoondokMeNotificationsPutData = {
+    body: NotificationPreferenceInput;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/notifications';
+};
+
+export type PutNotificationsHoondokMeNotificationsPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutNotificationsHoondokMeNotificationsPutError = PutNotificationsHoondokMeNotificationsPutErrors[keyof PutNotificationsHoondokMeNotificationsPutErrors];
+
+export type PutNotificationsHoondokMeNotificationsPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: NotificationPreferenceResponse;
+};
+
+export type PutNotificationsHoondokMeNotificationsPutResponse = PutNotificationsHoondokMeNotificationsPutResponses[keyof PutNotificationsHoondokMeNotificationsPutResponses];
+
+export type DeletePushSubscriptionHoondokMePushDeleteData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Endpoint
+         */
+        endpoint: string;
+    };
+    url: '/hoondok/me/push';
+};
+
+export type DeletePushSubscriptionHoondokMePushDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeletePushSubscriptionHoondokMePushDeleteError = DeletePushSubscriptionHoondokMePushDeleteErrors[keyof DeletePushSubscriptionHoondokMePushDeleteErrors];
+
+export type DeletePushSubscriptionHoondokMePushDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeletePushSubscriptionHoondokMePushDeleteResponse = DeletePushSubscriptionHoondokMePushDeleteResponses[keyof DeletePushSubscriptionHoondokMePushDeleteResponses];
+
+export type CreatePushSubscriptionHoondokMePushPostData = {
+    body: PushSubscriptionInput;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/push';
+};
+
+export type CreatePushSubscriptionHoondokMePushPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreatePushSubscriptionHoondokMePushPostError = CreatePushSubscriptionHoondokMePushPostErrors[keyof CreatePushSubscriptionHoondokMePushPostErrors];
+
+export type CreatePushSubscriptionHoondokMePushPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: PushSubscriptionResponse;
+};
+
+export type CreatePushSubscriptionHoondokMePushPostResponse = CreatePushSubscriptionHoondokMePushPostResponses[keyof CreatePushSubscriptionHoondokMePushPostResponses];
+
 export type GetSummaryHoondokMeSummaryGetData = {
     body?: never;
     path?: never;
@@ -4666,6 +4871,22 @@ export type CompleteMissionHoondokMissionsKindCompletePostResponses = {
 };
 
 export type CompleteMissionHoondokMissionsKindCompletePostResponse = CompleteMissionHoondokMissionsKindCompletePostResponses[keyof CompleteMissionHoondokMissionsKindCompletePostResponses];
+
+export type GetPushConfigHoondokPushConfigGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/push/config';
+};
+
+export type GetPushConfigHoondokPushConfigGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PushConfigResponse;
+};
+
+export type GetPushConfigHoondokPushConfigGetResponse = GetPushConfigHoondokPushConfigGetResponses[keyof GetPushConfigHoondokPushConfigGetResponses];
 
 export type SearchWordsHoondokSearchGetData = {
     body?: never;
