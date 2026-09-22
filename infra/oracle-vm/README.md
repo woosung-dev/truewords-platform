@@ -295,6 +295,30 @@ make restore-drill                         # 백업 복구 리허설
 
 로그: `tail ~/truewords-cron.log`, `tail ~/truewords-backup.log`. GHA 쪽 실행 이력은 Actions 탭.
 
+### 1회 실행 스크립트 (말씀 서고 개통)
+
+말씀 서고(PLAN-HD-007)의 권리 원장 시드와 장 목차 추출은 **cron 이 아니다.** 데이터가 바뀌지 않는 한 개통 때 한 번, Qdrant 에 권이 추가되면 그때 다시 돌린다. cron 표에 넣지 않는다.
+
+```bash
+ssh truewords-oracle
+cd /home/ubuntu/truewords
+
+# 1) 권리 원장 시드 — Qdrant volume 664 → 6시리즈 분류 → content_rights upsert
+docker compose --env-file .env exec -T backend \
+  python scripts/seed_content_rights_from_qdrant.py --execute \
+  --allow "천성경,평화경,원리강론" --grade O1
+
+# 2) 장 목차 추출 — 본문 규칙으로 volume_sections 를 채운다 (origin='auto' 만 교체)
+docker compose --env-file .env exec -T backend \
+  python scripts/extract_volume_sections.py --execute
+```
+
+- 두 스크립트 모두 `--execute` 없이 `--dry-run` 이 기본이고, **운영(`ENVIRONMENT=production`)에서는 `--execute` 로만 돈다.** 대신 `--execute` 가 쓰기 전에 같은 계획·커버리지 표를 stdout 에 내므로, 그 출력을 그대로 rollout runbook 에 기록한다. 계획만 미리 보려면 로컬(운영 사본 Qdrant)에서 `--dry-run` 을 먼저 돌린다.
+- 시드는 **이미 있는 행의 `status`·`scope_*`·`authority_grade`·`note` 를 건드리지 않는다.** 재실행해도 운영자가 admin 에서 정한 값이 되돌아가지 않는다. 예외는 `--allow` 로 명시한 시리즈 — 운영자 의도로 보고 기존 행도 연다.
+- 추출은 `volume_sections` 의 `origin='auto'` 행만 교체하고 수기(`manual`) 행은 남긴다. 장이 0건인 권은 비워 두고 화면이 "구간 N" 으로 폴백한다.
+- 2 번은 615 권을 순서대로 훑어 **수십 분** 걸린다. `--series father_anthology` · `--volume "천성경.pdf"` 로 나눠 돌릴 수 있다.
+- 순서는 반드시 1 → 2 다. 2 의 기본 대상은 1 이 만든 `content_rights` 행이다.
+
 ## 운영 불변식 점검 (`ops-check.sh`)
 
 2026-07-24~29 에 `cache-cleanup.yml` 이 5일간 매일 실패했는데 아무도 몰랐다. 조사에서 두 가지가 확인됐다 — GitHub 은 알림을 **만들지 않았고**(`gh api notifications?all=true` 빈 목록), 실패한 run 의 job 은 `steps_count: 0` 이었다. **청구 차단은 job 을 아예 시작하지 않으므로 워크플로 안의 `if: failure()` 알림 스텝으로는 이 사고를 잡을 수 없다.**
