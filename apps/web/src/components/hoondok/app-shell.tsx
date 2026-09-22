@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Bell, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useCallback, useState } from "react";
@@ -38,41 +38,53 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
             <Link className="icon-btn icon-btn--search" href="/hoondok/search" aria-label="말씀 검색">
               <Search size={22} />
             </Link>
+            {!screen.hideSettingsLink && (
+              <Link className="icon-btn" href="/hoondok/settings" aria-label="알림·설치">
+                <Bell size={22} />
+              </Link>
+            )}
           </div>
         </header>
         {children}
       </main>
-      <nav className="nav" aria-label="주 메뉴">
-        <Link className="nav__brand" href="/hoondok">
-          훈독
-        </Link>
-        {HOONDOK_TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = tab.id === screen.tabId;
-          const className = `nav__item${tab.isMid ? " nav__item--mid" : ""}`;
-          const inner = (
-            <>
-              <span className="nav__ic">
-                <Icon size={tab.isMid ? 27 : 24} fill={isActive && !tab.isMid ? "currentColor" : "none"} />
+      {!screen.hideNav && (
+        <nav className="nav" aria-label="주 메뉴">
+          <Link className="nav__brand" href="/hoondok">
+            훈독
+          </Link>
+          {HOONDOK_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = tab.id === screen.tabId;
+            const className = `nav__item${tab.isMid ? " nav__item--mid" : ""}`;
+            const inner = (
+              <>
+                <span className="nav__ic">
+                  <Icon size={tab.isMid ? 27 : 24} fill={isActive && !tab.isMid ? "currentColor" : "none"} />
+                </span>
+                {tab.label}
+              </>
+            );
+            return tab.isDisabled ? (
+              <span key={tab.id} className={className} aria-disabled="true" title="준비 중">
+                {inner}
               </span>
-              {tab.label}
-            </>
-          );
-          return tab.isDisabled ? (
-            <span key={tab.id} className={className} aria-disabled="true" title="준비 중">
-              {inner}
-            </span>
-          ) : (
-            <Link key={tab.id} className={className} href={tab.href} aria-current={isActive ? "page" : undefined}>
-              {inner}
+            ) : (
+              <Link key={tab.id} className={className} href={tab.href} aria-current={isActive ? "page" : undefined}>
+                {inner}
+              </Link>
+            );
+          })}
+          <Link className="nav__search" href="/hoondok/search">
+            <Search size={20} />
+            말씀 검색
+          </Link>
+          {!screen.hideSettingsLink && (
+            <Link className="nav__user" href="/hoondok/settings" aria-label="알림·설치">
+              <Bell size={18} />
             </Link>
-          );
-        })}
-        <Link className="nav__search" href="/hoondok/search">
-          <Search size={20} />
-          말씀 검색
-        </Link>
-      </nav>
+          )}
+        </nav>
+      )}
     </HoondokScreenTitleContext.Provider>
   );
 }

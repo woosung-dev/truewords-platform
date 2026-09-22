@@ -77,7 +77,8 @@ export function LibraryScreen() {
               const content = (
                 <>
                   <b>{work.work_title}</b>
-                  <span>{work.volume}</span>
+                  {/* 권리 원장에는 volume 과 work_title 이 같은 저작물이 있다 — 같은 글자를 두 줄 쓰지 않는다 */}
+                  {work.volume !== work.work_title && <span>{work.volume}</span>}
                   {work.authority_grade === "R" ? (
                     <span className="badge badge--dashed">공식성 확인되지 않음</span>
                   ) : (

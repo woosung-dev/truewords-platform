@@ -153,7 +153,8 @@
     min-height: 76px;
   }
   .nav__brand,
-  .nav__search {
+  .nav__search,
+  .nav__user {
     display: none;
   }
   .nav__item {
@@ -665,6 +666,18 @@
       border-radius: var(--r-full);
       background: var(--surface-2);
       font-size: 14.5px;
+    }
+    /* 헤더 우측 계정 자리(프로토타입 .nav__user). 지금은 알림·설치 설정으로 가는 원형 버튼이다 */
+    .nav__user {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      flex: none;
+      margin-left: 8px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      color: var(--ink-2);
     }
     .appbar {
       top: 72px;
