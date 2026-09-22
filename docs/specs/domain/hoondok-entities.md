@@ -115,6 +115,7 @@
 | 2026-09-16 | `users` 확정(alembic `i1e2f3a4b5c6`). `consent_version`·`deleted_at` 은 예약 컬럼 | 확정 · Phase 2 sub-PR A |
 | 2026-09-16 | `mission_logs` 확정(alembic `j3f4a5b6c7d8`). 연속일은 `read` 기준 계산, 소급은 당일만 | 확정 · Phase 2 sub-PR B |
 | 2026-09-19 | `jeongseong_periods` 확정(alembic `k5a6b7c8d9e0`). 사용자당 active 1건은 부분 unique, 상태 varchar, 진행률 미저장. `users.deleted_at` 은 API-HD-011 이 기록하고 이메일을 `deleted:{id}` 로 익명화 | 확정 · PLAN-HD-002 W0-B |
+| 2026-09-22 | `notification_preferences`·`push_subscriptions` 신설(alembic `m7c8d9e0f1a2`). 설정은 행 없으면 기본값·PUT 전체 교체, 구독은 `endpoint` unique + 소유 이전, 발송 상태(`last_sent_on`·`failed_count`)는 구독 행에 둔다 | 확정 · PLAN-HD-006 sub-PR A |
 
 ---
 
@@ -140,4 +141,21 @@
 발생 시각과 선택적인 사용자 연결을 기록한다. 원본 예외 메시지·질문·메모·검색어·토큰은 기록하지 않는다.
 보고 요청 실패를 다시 수집하지 않으며 사용자 삭제 시 연결된 기록을 삭제한다. 관리자 조회 화면은 만들지 않는다.
 
-세 테이블은 additive-only migration으로 추가하며 PostgreSQL ENUM이나 기존 컬럼 파괴적 변경을 도입하지 않는다.
+## ENT-HD-008 `notification_preferences` — 사용자별 알림 설정 (PLAN-HD-006)
+
+`user_id`가 PK이자 users FK인 1:1 테이블이다. 행이 없으면 기본값(`read_enabled=false`, `read_time='06:00'`,
+`lock_screen_level='neutral'`)으로 취급하며 조회만으로 행을 만들지 않는다.
+`read_time`은 time 컬럼이고 계약에서는 항상 `HH:MM` 문자열이다. 발송 기준 시간대는 KST 고정이라 사용자별 오프셋을 저장하지 않는다.
+`lock_screen_level`은 잠금화면 문구의 수위(`neutral`·`faith`)이며 PostgreSQL ENUM이 아니라 varchar + 앱 Literal 검증이다.
+알림 종류는 "훈독하기" 1종뿐이라 종류별 테이블을 만들지 않는다.
+
+## ENT-HD-009 `push_subscriptions` — 브라우저 푸시 구독 (PLAN-HD-006)
+
+`endpoint`는 브라우저가 발급한 전역 식별자라 unique다. 한 사용자가 기기마다 여러 행을 가질 수 있고,
+같은 기기를 다른 계정이 다시 구독하면 행을 늘리지 않고 `user_id`를 옮긴다.
+`p256dh`·`auth`는 암호화 키이며 `user_agent`는 장애 분류용으로 200자까지만 저장한다.
+`last_sent_on`(KST 날짜)과 `failed_count`는 발송기가 갱신한다 — 하루 1회 발송 판정과 만료 구독 정리의 근거다.
+구독 성공·실패 이력이나 발송 로그 테이블은 두지 않는다.
+계정 삭제 시 두 테이블의 행을 함께 하드 삭제한다(API-HD-011 purger).
+
+이 테이블들은 모두 additive-only migration으로 추가하며 PostgreSQL ENUM이나 기존 컬럼 파괴적 변경을 도입하지 않는다.

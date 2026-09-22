@@ -22,6 +22,10 @@
 | `API-HD-010` | GET | `/hoondok/me/history?month=YYYY-MM` | `hoondok_token` | W0-B |
 | `API-HD-011` | DELETE | `/hoondok/auth/me` | `hoondok_token` + `X-Requested-With` | W0-B |
 | `API-HD-012` | GET | `/admin/hoondok/daily-readings/candidates` | `admin_token` + `require_admin_gate` | HD-003 |
+| `API-HD-019` | GET | `/hoondok/push/config` | 없음(공개) | HD-006 |
+| `API-HD-020` | GET · PUT | `/hoondok/me/notifications` | `hoondok_token` (PUT 은 `X-Requested-With`) | HD-006 |
+| `API-HD-021` | POST | `/hoondok/me/push` | `hoondok_token` + `X-Requested-With` | HD-006 |
+| `API-HD-022` | DELETE | `/hoondok/me/push?endpoint=` | `hoondok_token` + `X-Requested-With` | HD-006 |
 
 공통 규칙:
 
@@ -31,6 +35,7 @@
 - 오류 본문은 기존 FastAPI 규약(`{"detail": ...}`)을 따른다. 예외: API-HD-002 의 403 `INVITE_REQUIRED` 는 중앙 핸들러의 `ErrorResponse{ error_code, message, request_id }` 형식이다(SEC-MONO-001 의 `SESSION_FORBIDDEN` 과 같다) — 웹이 CSRF 403 과 `error_code` 로 구분한다.
 - Phase 2 항목은 2026-09-16 sub-PR A(002·003)·B(004·005)에서 확정했다.
 - `API-HD-006~008`·`API-HD-012~013`은 예외로 **관리자 블록**이다: prefix `/admin/hoondok/daily-readings`, tag `admin-hoondok`, `main.py` 에 `_ADMIN_GATE` 로 등록, 라우터 레벨 `verify_csrf`. 훈독 사용자 쿠키(`hoondok_token`)로는 호출할 수 없다. 2026-09-19 Phase 3 sub-PR A 에서 확정.
+- `API-HD-019~022` 는 PLAN-HD-006(Web Push)이며 라우터는 `apps/api/app/modules/hoondok/notifications_router.py` 다. `API-HD-021` 의 409 `PUSH_DISABLED` 도 `ErrorResponse` 형식이다.
 - `API-HD-009~011` 은 2026-09-19 PLAN-HD-002 W0-B 에서 확정했다(정성 기간·월 기록·계정 삭제). 모두 `hoondok_token` 이며 상태 변경(POST·DELETE)은 `X-Requested-With` 가 없으면 403.
 
 ---
@@ -301,6 +306,47 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 | 2026-09-19 | 훈독 AI 질문은 **신규 엔드포인트 없이** `POST /chat/stream` 재사용. 백엔드·스키마 무변경이며 무기억(`session_id` 미전송)과 근거 게이트만 클라이언트에 둔다 | 확정 · PLAN-HD-002 W2 |
 | 2026-09-19 | 질문 봇은 슬러그 `all` 고정(`HOONDOK_ASK_CHATBOT_ID`). 전용 봇·프롬프트 미정이라 상수 1줄로 교체 가능한 형태로 둔다 | `[확인 필요]` · PLAN-HD-002 W2 |
 | 2026-09-20 | API-HD-012 신설(편성 후보 검색). **추출형 채택 · 생성형 초안 기각** — 병목은 본문 생산이 아니라 코퍼스에서 고르는 일이고, 생성형은 결정 5(대체 생성 없음)를 뒤집는 데다 교리 recall 이 42~56%로 낮다. 본문 원문 유지·`chunk_id` 기록·등급 `R` 기본 | 확정 · PLAN-HD-003 |
+| 2026-09-22 | API-HD-019~022 신설(Web Push). VAPID 미설정이면 구독 자체를 409 `PUSH_DISABLED` 로 거절(조용히 저장하지 않음), `endpoint` unique + 소유 이전, `read_time` 은 `HH:MM` 문자열·KST 고정, 설정 PUT 은 전체 교체. 발송기는 sub-PR B | 확정 · PLAN-HD-006 sub-PR A |
+
+---
+
+## PLAN-HD-006 — 알림 설정과 Web Push 구독 (API-HD-019~022)
+
+발송은 별도 스크립트(sub-PR B)가 맡는다. 여기서는 **구독 보관과 설정**만 정의한다.
+
+서버 VAPID 3값(`HOONDOK_VAPID_PUBLIC_KEY`·`HOONDOK_VAPID_PRIVATE_KEY`·`HOONDOK_VAPID_SUBJECT`)이
+모두 설정되어야 기능이 열린다. 하나라도 비면 `API-HD-019` 가 `enabled=false` 를 내고
+`API-HD-021` 은 409 `PUSH_DISABLED` 로 거절한다 — 보낼 수 없는 구독을 조용히 쌓아 두지 않는다.
+
+### `API-HD-019 GET /hoondok/push/config` (공개)
+
+`{"enabled": bool, "public_key": string|null}`. 비밀 키·subject 는 어떤 응답에도 넣지 않는다.
+
+### `API-HD-020 GET · PUT /hoondok/me/notifications`
+
+`{"read_enabled": bool, "read_time": "HH:MM", "lock_screen_level": "neutral"|"faith", "subscription_count": int}`.
+
+- 저장된 행이 없으면 GET 은 기본값(`false` · `"06:00"` · `"neutral"`)을 돌려주고 행을 만들지 않는다.
+- PUT 은 **전체 교체** upsert 다. 생략한 필드는 기본값으로 되돌아간다(부분 수정 아님).
+- `read_time` 은 항상 `HH:MM` 문자열이다. `"6:00"`·`"25:00"`·`"06:00:00"` 은 422. 발송 기준 시간대는 KST 고정이라 오프셋을 받지 않는다.
+- `subscription_count` 는 본인 구독 수다 — 웹이 "알림 켬 + 기기 0대" 상태를 안내하는 데 쓴다.
+
+### `API-HD-021 POST /hoondok/me/push`
+
+요청 `{"endpoint": str(1..2048), "keys": {"p256dh": str, "auth": str}, "user_agent": str|null}`,
+응답 201 `{"id", "endpoint", "created_at"}`.
+
+`endpoint` 는 브라우저가 발급한 전역 식별자라 unique 다. 같은 endpoint 를 다시 보내면 행이 늘지 않고
+키·`user_agent` 가 갱신되며 `failed_count` 가 0으로 돌아간다. 다른 계정이 같은 기기를 구독하면
+소유(`user_id`)가 옮겨간다 — 한 기기의 알림이 이전 사용자에게 가지 않게 하려는 것이다.
+`user_agent` 는 장애 분류용이며 200자로 잘라 저장한다(400자 초과 요청은 422).
+
+### `API-HD-022 DELETE /hoondok/me/push?endpoint=`
+
+본인 구독만 지우고 없어도 204 다(멱등). 남의 endpoint 를 넣어도 204 지만 그 행은 남는다 —
+존재 여부를 알려주지 않기 위해서다.
+
+`POST /hoondok/client-errors`(API-HD-018)의 `kind` 에 `push_subscribe`(알림 구독 실패)를 추가했다.
 
 ---
 
