@@ -9,6 +9,7 @@
 | [훈독 화면 확장 계획](plans/active/2026-09-19-hoondok-screens.md) | `PLAN-HD-002`. 남은 화면 13종을 웨이브 4개(실데이터 → AI 질문 → 프리뷰 셸 → 마무리)로, 플래그 2개(운영 노출 0)·파일 소유·서브에이전트 오케스트레이션 규약 |
 | [훈독 후속 3트랙](plans/active/2026-09-20-hoondok-followup-3tracks.md) | `PLAN-HD-004`. 배포·CI 안전망(docs-links 가 gitignore 존중 · `deploy-guard` 후퇴 배포 차단) · 훈독 9화면 디자인 품질 · Phase 3 종결 문서 |
 | [훈독 알림 1종](plans/active/2026-09-22-hoondok-notifications.md) | `PLAN-HD-006`. Phase 4 게이트를 "착수"→"운영 ON" 으로 옮기고 Web Push 구독·발송기·SW·설정 토글을 먼저 구현. VAPID 미설정이면 비활성. 베타 판정 쿼리 2개 |
+| [말씀 서고 3계층](plans/active/2026-09-23-hoondok-library.md) | `PLAN-HD-007`. 권리 원장 시드 + 저작물→권→장(본문 규칙 자동 추출, `volume_sections`) + 이어 읽기·북마크·형광펜·노트 서버 저장 + admin 시리즈 일괄 승인. 초기 노출 천성경·평화경·원리강론 |
 | [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md) | web/admin/API 경계, 공통 API·인증·SSE·알림 정책 |
 | [전환 실행 계획](plans/completed/2026-09-05-monorepo-migration.md) | M1~M4 범위와 실제 검증 증거, M5 제외 범위 |
 | [앱별 UI 실행 계획](plans/active/2026-09-05-app-owned-ui.md) | 후속 2안 승인 범위와 재검증 증거 |
