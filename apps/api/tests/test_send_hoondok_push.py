@@ -293,10 +293,10 @@ async def test_expired_subscription_is_pruned(factory, push_on, sent_calls, stat
     assert await _subscriptions(factory) == []
 
 
-async def test_generic_failure_accumulates_then_prunes(factory, push_on, sent_calls):
+async def test_client_rejection_accumulates_then_prunes(factory, push_on, sent_calls):
     await _seed(factory, failed_count=3)
     sent_calls.raises["https://push.example.com/a"] = WebPushException(
-        "boom", response=FakeResponse(500)
+        "bad key", response=FakeResponse(400)
     )
 
     summary = await _run(factory, execute=True)
@@ -311,14 +311,22 @@ async def test_generic_failure_accumulates_then_prunes(factory, push_on, sent_ca
     assert await _subscriptions(factory) == []  # 5회에 삭제
 
 
-async def test_non_webpush_exception_also_counts(factory, push_on, sent_calls):
+@pytest.mark.parametrize(
+    "error",
+    [WebPushException("service down", response=FakeResponse(500)), RuntimeError("네트워크 끊김")],
+    ids=["5xx", "network"],
+)
+async def test_service_or_network_failure_does_not_accumulate(factory, push_on, sent_calls, error):
+    """푸시 서비스 장애·네트워크 단절은 구독 탓이 아니다 — 연속 cron 실패로 전 구독이 지워지면 안 된다."""
     await _seed(factory, failed_count=4)
-    sent_calls.raises["https://push.example.com/a"] = RuntimeError("네트워크 끊김")
+    sent_calls.raises["https://push.example.com/a"] = error
 
     summary = await _run(factory, execute=True)
 
-    assert (summary.failed, summary.pruned) == (1, 1)
-    assert await _subscriptions(factory) == []
+    assert (summary.failed, summary.pruned) == (1, 0)
+    (sub,) = await _subscriptions(factory)
+    assert sub.failed_count == 4  # 그대로
+    assert sub.last_sent_on is None  # 다음 cron 이 다시 시도한다
 
 
 async def test_failure_does_not_block_next_subscription(factory, push_on, sent_calls):
@@ -334,7 +342,7 @@ async def test_failure_does_not_block_next_subscription(factory, push_on, sent_c
         "https://push.example.com/b"
     ]
     by_endpoint = {s.endpoint: s for s in await _subscriptions(factory)}
-    assert by_endpoint["https://push.example.com/a"].failed_count == 1
+    assert by_endpoint["https://push.example.com/a"].failed_count == 0  # 네트워크 예외는 누적 안 함
     assert by_endpoint["https://push.example.com/a"].last_sent_on is None
     assert by_endpoint["https://push.example.com/b"].last_sent_on == TODAY
 

@@ -21,7 +21,7 @@
 | 5 | 발송 관측 (D2) | `push_subscriptions.last_sent_on`·`failed_count` + `ops-check` psql 검사 `hoondok-push` | `hoondok-today` 와 같은 패턴. 상태 파일·테이블 추가 없음 |
 | 6 | 스케줄러 | VM cron `*/15 * * * *` → `send-hoondok-push.sh` → `docker compose exec backend python scripts/send_hoondok_push.py --execute`. **GHA cron 금지** | 청구 차단 이력 · `infra/oracle-vm/README.md` §정기 작업 |
 | 7 | 발송 창 `[가정]` | `read_time` 이후 2시간. 창을 지나면 그날은 보내지 않는다 | 늦은 아침 알림 방지 |
-| 8 | 구독 정리 `[가정]` | 404/410 즉시 삭제, 그 외 실패 `failed_count` 누적 5회에 삭제 | ARCH-MONO-001 §7 "만료 404/410 정리" |
+| 8 | 구독 정리 `[가정]` | 404/410 즉시 삭제 · 그 외 **4xx** 만 `failed_count` 누적 5회에 삭제 · 5xx·네트워크 예외는 누적 없음(리뷰 수정: 15분 cron 이 5번 연속 장애면 전 구독이 지워지던 결함) | ARCH-MONO-001 §7 "만료 404/410 정리" |
 | 9 | 잠금화면 문구 | `lock_screen_level` `neutral`(기본 "오늘의 읽을거리가 준비됐어요") · `faith`("오늘의 말씀이 준비됐어요") | S0 중립형 기본 · 프로토타입 015 |
 | 10 | 앱 내 알림함 | **비범위.** F7 의 "최종 전달 수단" 은 다음 계획 | TODO Questions 기록 |
 
@@ -38,7 +38,7 @@
 |---|---|---|---|
 | 0 문서 | `dev/hoondok-phase4` 직접 | 이 문서 · `PLAN-HD-001` §7 개정 · `docs/TODO.md` · rollout runbook 알림 절 · `docs/README.md` | ✅ `1210002`·`a320db8` |
 | A API | `feat/hoondok-push-api` | `apps/api/**` · `contracts/` · `packages/api-client-ts/src/generated/` · `hoondok-api.md`·`hoondok-entities.md`(예외 허용) | ✅ 머지 `3b4c846` — alembic `m7c8d9e0f1a2`, pytest 1119 passed(+23), contracts 추가만 |
-| B 발송기 | `feat/hoondok-push-sender` (A 스택) | `apps/api/scripts/{send_hoondok_push.py,hoondok_beta_metrics.sql}` · `apps/api/tests/test_send_hoondok_push.py` · `infra/oracle-vm/{send-hoondok-push.sh,ops-check.sh,README.md}` | 진행 중 (worktree `../tw-hoondok-push-sender`) |
+| B 발송기 | `feat/hoondok-push-sender` (A 스택) | `apps/api/scripts/{send_hoondok_push.py,hoondok_beta_metrics.sql}` · `apps/api/tests/test_send_hoondok_push.py` · `infra/oracle-vm/{send-hoondok-push.sh,ops-check.sh,README.md}` | ✅ 머지 `a234839` — pytest 1147(+28), dry-run disabled exit 0, `bash -n`, VAPID 스니펫 py-vapid 1.9.4 동작 확인. 리뷰 수정: 5xx·네트워크 실패 누적 제외 |
 | C web | `feat/hoondok-push-web` | `public/hoondok/sw.js` · `features/hoondok/notifications/**` · `settings/components/settings-screen.tsx` · `observability/report.ts` · `_hoondok/settings.css` · `src/test/hoondok-sw.test.ts` · `tests/e2e/hoondok.spec.ts` | ✅ 머지 — Vitest 275/32 files, lint 0 errors, typecheck, hoondok:check 통과. E2E 구독 흐름은 `HOONDOK_PUSH_API_READY` 게이트 |
 
 **공유 파일(트랙 편집 금지)**: `apps/web/src/app/hoondok.css`, hoondok `layout.tsx`, `features/hoondok/{tabs,screens,flag}.ts`, `components/hoondok/*`, `Makefile`. 필요 시 보고만 하고 오케스트레이터가 처리한다.
@@ -59,7 +59,8 @@
 | 2026-09-22 | 착수 게이트 질문 → "코드 먼저, 운영 ON 은 데이터 뒤" · 발송 시각 "사용자별, 완료자 생략" | 확정 (§2 1·2) |
 | 2026-09-22 | `API-HD-018` 은 client-errors 가 선점 → 새 번호 019~022, ENT 008·009 | 정정 |
 | 2026-09-22 | 브랜치 `dev/hoondok-phase4` + worktree A·C 생성, 병렬 착수 | 완료 |
-| 2026-09-22 | A 머지 `3b4c846` → B worktree 생성·착수 · C 검증 후 머지 | 진행 |
+| 2026-09-22 | A 머지 `3b4c846` → B worktree 생성·착수 · C 검증 후 머지 `41fb19d` | 완료 |
+| 2026-09-22 | B 머지 `a234839` + 리뷰 수정(실패 누적 4xx 한정) → `make ci`·`make e2e` 게이트 | 진행 |
 
 ## 8. 결정 기록
 

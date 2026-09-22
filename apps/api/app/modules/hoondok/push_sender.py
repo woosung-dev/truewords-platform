@@ -226,15 +226,19 @@ async def _send_targets(
                 logger.info("[prune] endpoint 만료 status=%s id=%s", status, subscription.id)
                 await repo.remove(subscription)
                 summary.pruned += 1
-            else:
-                logger.warning("[fail] push 실패 status=%s id=%s", status, subscription.id)
+            elif status is not None and 400 <= status < 500:
+                # 구독 자체의 문제(키 불일치·잘못된 endpoint 등) — 누적 5회에 삭제한다.
+                logger.warning("[fail] push 거절 status=%s id=%s", status, subscription.id)
                 if await repo.bump_failure(subscription):
                     summary.pruned += 1
+            else:
+                # 5xx·상태 없음 = 푸시 서비스 쪽 장애다. 구독 탓이 아니므로 누적하지 않는다 —
+                # 15분 cron 이 5번만 연속 실패해도 전 구독이 지워지는 사고를 막는다.
+                logger.warning("[fail] push 서비스 오류 status=%s id=%s", status, subscription.id)
         except Exception:
+            # 네트워크 단절 등 우리 쪽·경로 장애. 위와 같은 이유로 누적하지 않는다.
             summary.failed += 1
             logger.exception("[fail] push 예외 id=%s", subscription.id)
-            if await repo.bump_failure(subscription):
-                summary.pruned += 1
         else:
             summary.sent += 1
             if mark_sent:
