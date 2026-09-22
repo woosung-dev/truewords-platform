@@ -214,3 +214,40 @@ async def test_allow_reopens_existing_rows(session):
     assert (right.status, right.authority_grade) == ("allowed", "O1")
     assert right.scope_search and right.scope_full_text
     assert right.work_title == "천성경"  # 비어 있던 표시 제목만 채운다
+
+
+async def test_allow_does_not_reopen_withdrawn_rows(session, capsys):
+    """운영자가 철회한 권은 --allow 재실행으로 되살아나지 않는다(리뷰 P2-1)."""
+    session.add(
+        ContentRight(
+            volume="천성경.pdf",
+            status="withdrawn",
+            scope_search=False,
+            scope_full_text=False,
+            work_title="천성경",
+            source_keys=[],
+            authority_grade="O2",
+        )
+    )
+    await session.commit()
+
+    await seed(SAMPLE, allow={"cheonseong_gyeong"}, grade="O1", execute=True)
+    right = (await _rights(session))["천성경.pdf"]
+    assert (right.status, right.authority_grade) == ("withdrawn", "O2")
+    assert not right.scope_search and not right.scope_full_text
+    # 건너뛴 사실은 stdout 으로 알린다
+    assert "천성경.pdf" in capsys.readouterr().out
+
+
+async def test_invalid_grade_is_rejected():
+    """등급 오타가 원장에 들어가면 공개 서고 직렬화가 깨진다(리뷰 P1-4)."""
+    from seed_content_rights_from_qdrant import _main
+
+    original = sys.argv
+    sys.argv = ["seed_content_rights_from_qdrant.py", "--dry-run", "--grade", "o1"]
+    try:
+        with pytest.raises(SystemExit) as error:
+            await _main()
+    finally:
+        sys.argv = original
+    assert error.value.code == 2

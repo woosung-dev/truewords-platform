@@ -107,25 +107,35 @@ class LibraryService:
 
     # --- API-HD-025 이어 읽기 ------------------------------------------------
 
-    async def _label_of(self, volume: str) -> tuple[str, str | None, str]:
-        """표시용 (work_title, series, label). 권리가 사라진 권도 목록에서는 볼륨 키로 보여 준다."""
-        for right in await self._rights():
-            if right.volume == volume:
-                series = right.book_series or None
-                return (
-                    right.work_title,
-                    series,
-                    volume_label(volume, series or "", right.work_title),
-                )
-        return (volume, None, volume)
+    @staticmethod
+    def _label_of(
+        volume: str, rights: dict[str, ContentRight]
+    ) -> tuple[str, str | None, str]:
+        """표시용 (work_title, series, label). 권리가 사라진 권도 목록에서는 볼륨 키로 보여 준다.
+
+        원장은 목록 진입점에서 1회만 읽어 dict 로 넘긴다 — 행마다 전량 재조회하면 N+1 이다.
+        """
+        right = rights.get(volume)
+        if right is None:
+            return (volume, None, volume)
+        series = right.book_series or None
+        return (
+            right.work_title,
+            series,
+            volume_label(volume, series or "", right.work_title),
+        )
+
+    async def _rights_by_volume(self) -> dict[str, ContentRight]:
+        return {right.volume: right for right in await self._rights()}
 
     async def list_positions(
         self, user_id: uuid.UUID, limit: int, volume: str | None = None
     ) -> ReadingPositionsResponse:
         rows = await self.repo.list_positions(user_id, limit, volume)
+        rights = await self._rights_by_volume()
         items = []
         for row in rows:
-            work_title, series, label = await self._label_of(row.volume)
+            work_title, series, label = self._label_of(row.volume, rights)
             items.append(
                 ReadingPositionItem(
                     volume=row.volume,
@@ -156,12 +166,13 @@ class LibraryService:
     # --- API-HD-026 단락 표시 ------------------------------------------------
 
     async def list_marks(
-        self, user_id: uuid.UUID, volume: str | None, kind: str | None
+        self, user_id: uuid.UUID, volume: str | None, kind: str | None, limit: int = 200
     ) -> MarksResponse:
-        rows = await self.repo.list_marks(user_id, volume, kind)
+        rows = await self.repo.list_marks(user_id, volume, kind, limit)
+        rights = await self._rights_by_volume()
         items = []
         for row in rows:
-            work_title, series, label = await self._label_of(row.volume)
+            work_title, series, label = self._label_of(row.volume, rights)
             items.append(
                 MarkItem(
                     chunk_id=row.chunk_id,

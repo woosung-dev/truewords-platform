@@ -68,16 +68,32 @@ export function SeriesScreen({ series }: { series: string }) {
           )}
         </div>
         <div className="shelf shelf--works">
-          {detail.volumes.map((item) => (
-            <Link key={item.volume} className="shelf__item" href={wordsHref(item.volume)}>
-              <b>{item.label}</b>
-              <span>
-                {item.total_chunks !== null && `단락 ${item.total_chunks}개`}
-                {item.total_chunks !== null && item.section_count > 0 && " · "}
-                {item.section_count > 0 && `장 ${item.section_count}개`}
-              </span>
-            </Link>
-          ))}
+          {detail.volumes.map((item) => {
+            const content = (
+              <>
+                <b>{item.label}</b>
+                <span>
+                  {item.total_chunks !== null && `단락 ${item.total_chunks}개`}
+                  {item.total_chunks !== null && item.section_count > 0 && " · "}
+                  {item.section_count > 0 && `장 ${item.section_count}개`}
+                </span>
+              </>
+            );
+            // 목록은 검색만 허용된 권도 담는다(서버 _is_visible) — 원문이 닫힌 권은 눌러도 404 다
+            return item.scope_full_text ? (
+              <Link key={item.volume} className="shelf__item" href={wordsHref(item.volume)}>
+                {content}
+              </Link>
+            ) : (
+              <div key={item.volume} className="shelf__item">
+                {content}
+                <span>검색 인용만 허용 · 원문 공개 확인 중</span>
+                <Link href="/hoondok/search" className="btn btn-line btn--sm">
+                  말씀 검색하기
+                </Link>
+              </div>
+            );
+          })}
         </div>
       </div>
       <p className="notice">

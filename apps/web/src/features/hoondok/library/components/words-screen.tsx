@@ -110,7 +110,7 @@ function Verse({
   onSelect: () => void;
 }) {
   return (
-    <p className={isSelected ? "verse verse--on" : "verse"}>
+    <p className={isSelected ? "verse verse--on" : "verse"} id={`verse-${chunk.chunk_index}`}>
       {/* 본문 전체를 버튼으로 만들면 긴 인용문이 링크 이름이 된다(DES §2.2) — 번호만 조작 대상이다 */}
       <button type="button" className="verse__n" aria-label={`단락 ${chunk.chunk_index} 표시하기`} onClick={onSelect}>
         {chunk.chunk_index}
@@ -168,6 +168,15 @@ export function WordsScreen({
   useEffect(() => {
     if (lastVolume && lastPage) writeLastReading({ volume: lastVolume, page: lastPage });
   }, [lastVolume, lastPage]);
+
+  // 목차로 들어오면 장 시작 단락이 페이지 중간일 수 있다 — 그 단락까지 한 번 내려 준다.
+  const tocStart = sections.data?.sections.find((item) => item.position === section)?.start_chunk_index ?? null;
+  useEffect(() => {
+    if (tocStart === null || lastPage === null) return;
+    const target = document.getElementById(`verse-${tocStart}`);
+    // jsdom 에는 scrollIntoView 가 없다 — 없으면 아무 일도 하지 않는다.
+    target?.scrollIntoView?.({ block: "start" });
+  }, [tocStart, lastPage]);
 
   if (query.isPending)
     return (

@@ -426,7 +426,9 @@ Next catch-all rewrite의 실패 로그에 검색어가 포함된 upstream URL�
 `section`(= `position`, 1 이상)을 주고 `chunk_id` 를 주지 않으면
 `start_chunk_index // 20 + 1` 페이지를 낸다. 없는 `position` 은 404다. `chunk_id` 가 우선한다 —
 검색 결과 진입이 목차 선택보다 구체적이다. 응답에 `section`(`{ position, level, title }` 또는 `null`)이
-더해지며 이는 **반환 페이지의 첫 청크를 품는 구간**이다(편과 장이 겹치면 더 좁은 `level` 2). 기존 필드는 그대로다.
+더해진다. `section=` 으로 들어온 요청은 **요청한 그 장**을 그대로 돌려준다 — 장 시작이 페이지 경계와
+어긋나도 앞 장을 현재 장으로 보이지 않는다. `chunk_id` 또는 `page` 만 준 요청은 **반환 페이지의 첫 청크를
+품는 구간**이다(편과 장이 겹치면 더 좁은 `level` 2). 기존 필드는 그대로다.
 
 ### API-HD-025 이어 읽기 (`hoondok_token`)
 
@@ -440,8 +442,9 @@ Next catch-all rewrite의 실패 로그에 검색어가 포함된 upstream URL�
 
 ### API-HD-026 단락 표시 (`hoondok_token`)
 
-- `GET /hoondok/me/marks?volume=&kind=` — 최신순, 본인 것만. 항목은
+- `GET /hoondok/me/marks?volume=&kind=&limit=` — 최신순, 본인 것만. 항목은
   `{ chunk_id, chunk_index, volume, kind, color, note, updated_at, work_title, label }`.
+  `limit` 은 1~200이고 기본 200이다 — 표시가 쌓여도 한 요청이 읽는 행 수를 묶어 둔다.
 - `PUT /hoondok/me/marks/{chunk_id}` body `{ volume, chunk_index, kind, color, note }`
   — `(user_id, chunk_id, kind)` upsert. `kind` 는 `bookmark`·`highlight`. `highlight` 는 `color`(1~3)가
   없으면 422, `bookmark` 는 넘어온 `color` 를 버린다. `note` 는 2000자까지이며 노트 탭은 `note` 가 있는

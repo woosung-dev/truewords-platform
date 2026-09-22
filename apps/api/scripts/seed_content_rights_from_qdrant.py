@@ -10,6 +10,7 @@
 이미 있는 행의 `status`·`scope_*`·`authority_grade`·`note` 는 건드리지 않는다 —
 운영자가 admin 에서 정한 값이 스크립트 재실행으로 되돌아가면 안 된다. 다만 `--allow`
 로 명시한 시리즈는 운영자 의도가 명시된 것으로 보고 기존 행에도 적용한다.
+예외로 `status=withdrawn` 행은 건드리지 않고 stdout 에 건너뛴 목록만 낸다.
 
 종료 코드:
   0  성공
@@ -28,6 +29,7 @@ import asyncio
 import sys
 import unicodedata
 from pathlib import Path
+from typing import get_args
 
 # scripts/ 에서 app/* import 가능하도록 apps/api/ 를 sys.path 에 추가
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -40,6 +42,7 @@ from app.core.common.database import async_session_factory  # noqa: E402
 from app.core.config import settings  # noqa: E402
 from app.modules.hoondok.library_series import BOOK_SERIES_TITLES, series_title  # noqa: E402
 from app.modules.hoondok.models import ContentRight, _utcnow  # noqa: E402
+from app.modules.hoondok.schemas import AuthorityGrade  # noqa: E402
 from app.modules.pipeline.metadata import classify_book_series  # noqa: E402
 from app.modules.qdrant.raw_client import RawQdrantClient  # noqa: E402
 
@@ -131,6 +134,7 @@ async def seed(counts: dict[str, int], allow: set[str], grade: str, execute: boo
     """분류 결과를 원장에 반영하고 계획을 stdout 에 낸다. `execute=False` 면 쓰지 않는다."""
     grouped: dict[str, list[tuple[str, int]]] = {}
     skipped: list[str] = []
+    withdrawn: list[str] = []
     for volume, count in sorted(counts.items()):
         series = classify_volume_series(volume)
         if not series:
@@ -166,7 +170,11 @@ async def seed(counts: dict[str, int], allow: set[str], grade: str, execute: boo
                 if not right.work_title:
                     right.work_title = series_title(series)
                 if is_allowed:
-                    _apply_allow(right, grade)
+                    # 운영자가 철회한 행은 재시드로 다시 열지 않는다(리뷰 P2-1).
+                    if right.status == "withdrawn":
+                        withdrawn.append(volume)
+                    else:
+                        _apply_allow(right, grade)
                 right.updated_at = _utcnow()
                 updated += 1
             label = f"{series_title(series)}({series})"
@@ -181,6 +189,11 @@ async def seed(counts: dict[str, int], allow: set[str], grade: str, execute: boo
         else:
             await session.rollback()
             print(f"\n[dry-run] 쓰지 않음 — 신규 예정 {created} · 갱신 예정 {updated}")
+
+    if withdrawn:
+        print(f"\n철회 상태라 --allow 를 적용하지 않은 {len(withdrawn)} 건:")
+        for volume in withdrawn:
+            print(f"  - {volume}")
 
     print(f"\n등록 대상 밖 {len(skipped)} 건 (계획 §2-3 후속):")
     for volume in skipped:
@@ -199,7 +212,13 @@ async def _main() -> int:
         default="",
         help='즉시 허용할 시리즈 쉼표 목록 (예: "천성경,평화경,원리강론")',
     )
-    parser.add_argument("--grade", default="O1", help="--allow 시리즈에 줄 권위 등급 (기본 O1)")
+    # 등급은 응답 모델의 Literal 과 같아야 한다 — 오타 1건이 공개 서고 직렬화를 500 으로 만든다.
+    parser.add_argument(
+        "--grade",
+        default="O1",
+        choices=list(get_args(AuthorityGrade)),
+        help="--allow 시리즈에 줄 권위 등급 (기본 O1)",
+    )
     args = parser.parse_args()
 
     if settings.environment == "production" and not args.execute:

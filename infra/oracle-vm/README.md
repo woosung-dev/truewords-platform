@@ -314,7 +314,7 @@ docker compose --env-file .env exec -T backend \
 ```
 
 - 두 스크립트 모두 `--execute` 없이 `--dry-run` 이 기본이고, **운영(`ENVIRONMENT=production`)에서는 `--execute` 로만 돈다.** 대신 `--execute` 가 쓰기 전에 같은 계획·커버리지 표를 stdout 에 내므로, 그 출력을 그대로 rollout runbook 에 기록한다. 계획만 미리 보려면 로컬(운영 사본 Qdrant)에서 `--dry-run` 을 먼저 돌린다.
-- 시드는 **이미 있는 행의 `status`·`scope_*`·`authority_grade`·`note` 를 건드리지 않는다.** 재실행해도 운영자가 admin 에서 정한 값이 되돌아가지 않는다. 예외는 `--allow` 로 명시한 시리즈 — 운영자 의도로 보고 기존 행도 연다.
+- 시드는 **이미 있는 행의 `status`·`scope_*`·`authority_grade`·`note` 를 건드리지 않는다.** 재실행해도 운영자가 admin 에서 정한 값이 되돌아가지 않는다. 예외는 `--allow` 로 명시한 시리즈 — 운영자 의도로 보고 기존 행도 연다. 단 `status=withdrawn` 행은 이 예외에서도 제외되어 그대로 닫혀 있고, 건너뛴 권 목록만 stdout 에 나온다.
 - 추출은 `volume_sections` 의 `origin='auto'` 행만 교체하고 수기(`manual`) 행은 남긴다. 장이 0건인 권은 비워 두고 화면이 "구간 N" 으로 폴백한다.
 - 2 번은 615 권을 순서대로 훑어 **수십 분** 걸린다. `--series father_anthology` · `--volume "천성경.pdf"` 로 나눠 돌릴 수 있다.
 - 순서는 반드시 1 → 2 다. 2 의 기본 대상은 1 이 만든 `content_rights` 행이다.

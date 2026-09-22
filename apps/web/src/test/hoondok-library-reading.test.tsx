@@ -202,6 +202,22 @@ describe("권 목록 화면", () => {
     expect(within(first).getByText("단락 25개 · 장 2개")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /002권/ })).toHaveAttribute("href", wordsHref(OTHER.volume));
   });
+  it("원문이 허용되지 않은 권은 링크가 아니라 검색 안내를 보인다", async () => {
+    vi.mocked(libraryAPI.series).mockResolvedValue({
+      series: SERIES,
+      title: "문선명선생 말씀선집",
+      authority_grade: "O1",
+      volumes: [
+        { volume: VOLUME, label: "001권", total_chunks: 25, section_count: 2, scope_full_text: true },
+        { volume: OTHER.volume, label: "002권", total_chunks: 30, section_count: 0, scope_full_text: false },
+      ],
+    });
+    show(await SeriesPage({ params: Promise.resolve({ series: SERIES }) }));
+    await screen.findByRole("link", { name: /001권/ });
+    expect(screen.queryByRole("link", { name: /002권/ })).toBeNull();
+    expect(screen.getByText("검색 인용만 허용 · 원문 공개 확인 중")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "말씀 검색하기" })).toHaveAttribute("href", "/hoondok/search");
+  });
   it("공개되지 않은 저작물은 404 를 그대로 알리고 서고로 돌려보낸다", async () => {
     vi.mocked(libraryAPI.series).mockRejectedValue(new ApiError(404, { message: "not found" }));
     show(await SeriesPage({ params: Promise.resolve({ series: "없는시리즈" }) }));
@@ -239,6 +255,17 @@ describe("원문 목차·단락", () => {
       { chunkId: undefined, section: 2 },
       expect.any(AbortSignal),
     );
+  });
+  it("section 으로 들어오면 고른 장이 머리말·목차에 그대로 뜬다", async () => {
+    // 서버가 요청한 장을 그대로 돌려준다(API-HD-016) — 페이지 첫 청크가 속한 앞 장이 아니다
+    vi.mocked(libraryAPI.words).mockResolvedValue({
+      ...WORDS,
+      section: { position: 1, level: 1, title: "제1편 감사의 길" },
+    });
+    await showWords({ section: "1" });
+    expect(await screen.findByText("제1편 감사의 길", { selector: ".masthead__nm" })).toBeInTheDocument();
+    const toc = screen.getByRole("complementary", { name: "목차" });
+    expect(within(toc).getByRole("link", { name: "제1편 감사의 길" })).toHaveAttribute("aria-current", "page");
   });
   it("단락 번호와 장 제목·단락 범위를 보인다", async () => {
     await showWords();

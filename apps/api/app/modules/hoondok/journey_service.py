@@ -153,6 +153,8 @@ class JourneyService:
     ) -> WordsResponse:
         if volume not in await self.allowed("scope_full_text"):
             raise HTTPException(404, "원문을 찾을 수 없습니다")
+        # 목차로 들어온 장은 그대로 현재 장이다 — 장 시작이 페이지 경계와 어긋나도 앞 장을 보이지 않는다.
+        requested: WordSection | None = None
         try:
             if not chunk_id and section is not None:
                 # chunk_id 가 우선이다 — 검색 결과 진입이 목차 선택보다 구체적이다.
@@ -160,6 +162,9 @@ class JourneyService:
                 if found is None:
                     raise HTTPException(404, "원문 구간을 찾을 수 없습니다")
                 page = found.start_chunk_index // PAGE_SIZE + 1
+                requested = WordSection(
+                    position=found.position, level=found.level, title=found.title
+                )
             if chunk_id:
                 # Qdrant ID는 UUID 또는 unsigned integer뿐이다. 잘못된 ID도 404로 통일한다.
                 try:
@@ -227,7 +232,9 @@ class JourneyService:
             total_pages=math.ceil(total / PAGE_SIZE),
             chunks=chunks,
             body=body,
-            section=await self._section_at(volume, chunks[0].chunk_index),
+            section=requested
+            if requested is not None
+            else await self._section_at(volume, chunks[0].chunk_index),
         )
 
     async def _section_by_position(self, volume: str, position: int):

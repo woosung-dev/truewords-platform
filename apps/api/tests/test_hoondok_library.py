@@ -333,8 +333,12 @@ async def test_words_section_maps_to_page_and_returns_current_section(ctx: TestC
     # 기존 필드는 그대로
     assert body["page_size"] == 20 and body["total_chunks"] == 200 and body["total_pages"] == 10
     assert body["work_title"] == "천성경.docx" and len(body["chunks"]) == 20
-    # section 은 반환 페이지 첫 청크(40)를 품는 구간 = position 1
-    assert body["section"] == {"position": 1, "level": 1, "title": "제1편 하나님"}
+    # 목차로 고른 장이 그대로 현재 장이다 — 페이지 첫 청크(40)가 속한 앞 장을 보이지 않는다
+    assert body["section"] == {"position": 2, "level": 2, "title": "제2장 하나님의 속성"}
+
+    # section 없이 page 로만 들어오면 여전히 첫 청크를 품는 구간이다
+    plain = ctx.get("/hoondok/words/천성경.docx?page=3").json()
+    assert plain["section"] == {"position": 1, "level": 1, "title": "제1편 하나님"}
 
     assert ctx.get("/hoondok/words/천성경.docx?section=99").status_code == 404
 
@@ -489,6 +493,32 @@ async def test_other_user_cannot_see_or_delete_my_marks(ctx: TestClient):
 
 
 @pytest.mark.asyncio
+async def test_marks_list_is_capped_by_limit(ctx: TestClient):
+    """표시가 쌓여도 한 요청이 읽는 행 수가 유한하다(리뷰 P1-3)."""
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    await add_right(session, "천성경.docx")
+    user = await login(ctx)
+    session.add_all(
+        [
+            PassageMark(
+                user_id=user.id,
+                chunk_id=f"c-{index}",
+                volume="천성경.docx",
+                chunk_index=index,
+                kind="bookmark",
+            )
+            for index in range(5)
+        ]
+    )
+    await session.commit()
+
+    assert len(ctx.get("/hoondok/me/marks").json()["items"]) == 5
+    assert len(ctx.get("/hoondok/me/marks?limit=2").json()["items"]) == 2
+    # 상한을 넘겨 요청하면 422 — 무제한 조회 경로를 열어 두지 않는다
+    assert ctx.get("/hoondok/me/marks?limit=500").status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_me_routes_require_login_and_csrf(ctx: TestClient):
     session: AsyncSession = ctx.session  # type: ignore[attr-defined]
     await add_right(session, "천성경.docx")
@@ -626,6 +656,24 @@ async def test_series_summary_counts_and_chunk_sum(ctx: TestClient):
     assert anthology["chunk_count"] == 300
     assert items["unknown_series"]["title"] == "unknown_series"  # 미등록 키는 키 그대로
     assert items["unknown_series"]["chunk_count"] is None  # 전부 NULL 이면 None
+
+
+def test_admin_rights_routes_require_admin_cookie():
+    """관리자 쿠키 없이는 401 (test_hoondok_journey.test_admin_no_cookie_is_401 선례)."""
+    client = TestClient(app)
+    bulk = client.post(
+        "/admin/hoondok/content-rights/bulk",
+        json={
+            "book_series": "father_anthology",
+            "status": "allowed",
+            "scope_search": True,
+            "scope_full_text": True,
+            "scope_jeongseong": False,
+        },
+        headers=XHR,
+    )
+    assert bulk.status_code == 401
+    assert client.get("/admin/hoondok/content-rights/series").status_code == 401
 
 
 # --- 리포지토리 단위 ---------------------------------------------------------

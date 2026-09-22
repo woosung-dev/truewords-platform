@@ -78,11 +78,12 @@ async def put_reading_position(
 async def get_marks(
     volume: str | None = Query(default=None, max_length=512),
     kind: str | None = Query(default=None, pattern="^(bookmark|highlight)$"),
+    limit: int = Query(default=200, ge=1, le=200),
     user: User = Depends(get_current_user),
     service: LibraryService = Depends(get_library_service),
 ) -> MarksResponse:
     """API-HD-026 내 표시 목록(최신순). 본인 것만 나온다. 401 미인증."""
-    return await service.list_marks(user.id, volume, kind)
+    return await service.list_marks(user.id, volume, kind, limit)
 
 
 @router.put(

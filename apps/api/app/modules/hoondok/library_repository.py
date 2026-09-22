@@ -166,14 +166,20 @@ class LibraryRepository:
     # --- 단락 표시 (ENT-HD-012) ---------------------------------------------
 
     async def list_marks(
-        self, user_id: uuid.UUID, volume: str | None = None, kind: str | None = None
+        self,
+        user_id: uuid.UUID,
+        volume: str | None = None,
+        kind: str | None = None,
+        limit: int = 200,
     ) -> list[PassageMark]:
         statement = select(PassageMark).where(PassageMark.user_id == user_id)
         if volume is not None:
             statement = statement.where(PassageMark.volume == volume)
         if kind is not None:
             statement = statement.where(PassageMark.kind == kind)
-        result = await self.session.execute(statement.order_by(PassageMark.updated_at.desc()))
+        result = await self.session.execute(
+            statement.order_by(PassageMark.updated_at.desc()).limit(limit)
+        )
         return list(result.scalars().all())
 
     async def upsert_mark(

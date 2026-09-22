@@ -5190,6 +5190,10 @@ export type GetMarksHoondokMeMarksGetData = {
          * Kind
          */
         kind?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
     };
     url: '/hoondok/me/marks';
 };
