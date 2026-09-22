@@ -102,8 +102,8 @@
 
 | 트랙 | 브랜치 | 소유 파일 | 완료 기준 | 상태 |
 |---|---|---|---|---|
-| 0 문서 | `dev/hoondok-library` 직접 | 이 문서 · `docs/README.md` · `docs/TODO.md` · runbook | docs-links 새 오류 0 | ⬜ |
-| A 백엔드 | `feat/hoondok-library-api` | `apps/api/**`(models·alembic·`journey_*`·신규 `library_*`·`marks_*`·`rights_admin_router`·tests) · `contracts/` · `packages/api-client-ts/src/generated` · `hoondok-api.md`·`hoondok-entities.md` | pytest: works 집계 · series 404 · sections 게이트 · section→page · position upsert · marks upsert/삭제/타인 불가 · bulk 감사 1건 · purger 등록 · `contracts:check` 추가만 | ⬜ |
+| 0 문서 | `dev/hoondok-library` 직접 | 이 문서 · `docs/README.md` · `docs/TODO.md` · runbook | docs-links 새 오류 0 | 🔄 계획 `9f0b396`, runbook 은 마지막 |
+| A 백엔드 | `feat/hoondok-library-api` | `apps/api/**`(models·alembic·`journey_*`·신규 `library_*`·`marks_*`·`rights_admin_router`·tests) · `contracts/` · `packages/api-client-ts/src/generated` · `hoondok-api.md`·`hoondok-entities.md` | pytest: works 집계 · series 404 · sections 게이트 · section→page · position upsert · marks upsert/삭제/타인 불가 · bulk 감사 1건 · purger 등록 · `contracts:check` 추가만 | 🔄 착수 2026-09-23 worktree `tw-hoondok-library-api` |
 | D 추출·시드 | `feat/hoondok-library-scripts` (A 스택) | `apps/api/scripts/{seed_content_rights_from_qdrant.py,extract_volume_sections.py}` · `apps/api/tests/test_extract_volume_sections.py` · `infra/oracle-vm/README.md` cron 표 옆 "1회 실행" 절 | 규칙 단위 테스트(고정 텍스트 표본) · 로컬 Qdrant(:6333) 대상 `--dry-run` 커버리지 보고가 §3 인수 기준 충족 | ⬜ |
 | B web | `feat/hoondok-library-web` (A 계약 스택) | `app/(hoondok)/hoondok/library/**` · `app/(hoondok)/hoondok/words/**` · `features/hoondok/library/**` · `_hoondok/library.css`(신규) · `observability/report.ts`(allowlist) · `screens.ts`(라우트 1줄, 예외 허용) · `src/test/hoondok-library*.test.tsx` · `tests/e2e/hoondok-library.spec.ts` | Vitest: 저작물→권→원문 · sections 0건 폴백 · 단락 렌더 · 마크 upsert 페이로드 · 비로그인 안내 · AI 설명 요청 1회 · E2E(hoondok-chromium) 라이브 왕복 | ⬜ |
 | C admin | `feat/hoondok-library-admin` (A 계약 스택) | `apps/admin/src/app/(dashboard)/hoondok/rights/**` · `apps/admin/src/features/hoondok/**` · admin Vitest · `tests/e2e/hoondok-curation.spec.ts`(권리 절 추가) | 시리즈 요약 렌더 · 일괄 다이얼로그 → bulk 페이로드 · 감사 로그 확인 | ⬜ |
@@ -125,6 +125,7 @@
 |---|---|---|
 | 2026-09-23 | 조사: 서고·검색·원문은 PLAN-HD-005 로 실데이터 개통 상태, 운영 원장 0행 확인. 로컬 Qdrant(운영 사본)로 payload `book_series`·`title` 비어 있음, 본문 헤딩·차례·날짜 서명 신호 실측(§1) | 사실 확정 |
 | 2026-09-23 | 인터뷰 2회 → §2 확정값 1~9 | 확정 |
+| 2026-09-23 | 계획 리뷰 승인 + `[가정]` 3건(O1 시드·단락=청크·노트=형광펜 메모) 그대로 확정 → 트랙 A 착수(opus worktree) | 진행 |
 
 ## 8. 결정 기록
 
