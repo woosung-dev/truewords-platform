@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.common.database import get_async_session
 from app.modules.hoondok.journey_repository import JourneyRepository
 from app.modules.hoondok.journey_service import JourneyService
+from app.modules.hoondok.notifications_repository import NotificationRepository
+from app.modules.hoondok.notifications_service import NotificationService
 from app.modules.hoondok.repository import DailyReadingRepository, JeongseongRepository, MissionLogRepository
 from app.modules.hoondok.service import (
     DailyReadingAdminService,
@@ -75,3 +77,15 @@ async def get_journey_service(
     periods: JeongseongRepository = Depends(get_jeongseong_repository),
 ) -> JourneyService:
     return JourneyService(repo, get_raw_client(), periods)
+
+
+async def get_notification_repository(
+    session: AsyncSession = Depends(get_async_session),
+) -> NotificationRepository:
+    return NotificationRepository(session)
+
+
+async def get_notification_service(
+    repo: NotificationRepository = Depends(get_notification_repository),
+) -> NotificationService:
+    return NotificationService(repo)

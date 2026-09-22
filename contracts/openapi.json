@@ -703,7 +703,8 @@
               "sw_register",
               "install_prompt",
               "unhandled",
-              "api_5xx"
+              "api_5xx",
+              "push_subscribe"
             ],
             "title": "Kind",
             "type": "string"
@@ -2677,6 +2678,69 @@
         "title": "NegativeFeedbackItem",
         "type": "object"
       },
+      "NotificationPreferenceInput": {
+        "additionalProperties": false,
+        "description": "API-HD-020 PUT — 부분 수정이 아니라 전체 교체다.",
+        "properties": {
+          "lock_screen_level": {
+            "default": "neutral",
+            "enum": [
+              "neutral",
+              "faith"
+            ],
+            "title": "Lock Screen Level",
+            "type": "string"
+          },
+          "read_enabled": {
+            "title": "Read Enabled",
+            "type": "boolean"
+          },
+          "read_time": {
+            "default": "06:00",
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "title": "Read Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "read_enabled"
+        ],
+        "title": "NotificationPreferenceInput",
+        "type": "object"
+      },
+      "NotificationPreferenceResponse": {
+        "description": "API-HD-020. 설정 행이 없으면 기본값 + subscription_count=구독 수.",
+        "properties": {
+          "lock_screen_level": {
+            "enum": [
+              "neutral",
+              "faith"
+            ],
+            "title": "Lock Screen Level",
+            "type": "string"
+          },
+          "read_enabled": {
+            "title": "Read Enabled",
+            "type": "boolean"
+          },
+          "read_time": {
+            "title": "Read Time",
+            "type": "string"
+          },
+          "subscription_count": {
+            "title": "Subscription Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "read_enabled",
+          "read_time",
+          "lock_screen_level",
+          "subscription_count"
+        ],
+        "title": "NotificationPreferenceResponse",
+        "type": "object"
+      },
       "PaginatedResponse_ChatbotConfigResponse_": {
         "properties": {
           "items": {
@@ -2706,6 +2770,112 @@
           "offset"
         ],
         "title": "PaginatedResponse[ChatbotConfigResponse]",
+        "type": "object"
+      },
+      "PushConfigResponse": {
+        "description": "API-HD-019 공개. VAPID 미설정이면 enabled=false·public_key=null — 비밀 키는 절대 내지 않는다.",
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "public_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Key"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "PushConfigResponse",
+        "type": "object"
+      },
+      "PushSubscriptionInput": {
+        "additionalProperties": false,
+        "description": "API-HD-021. 브라우저 PushSubscription.toJSON() 의 부분집합.",
+        "properties": {
+          "endpoint": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/PushSubscriptionKeys"
+          },
+          "user_agent": {
+            "anyOf": [
+              {
+                "maxLength": 400,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agent"
+          }
+        },
+        "required": [
+          "endpoint",
+          "keys"
+        ],
+        "title": "PushSubscriptionInput",
+        "type": "object"
+      },
+      "PushSubscriptionKeys": {
+        "additionalProperties": false,
+        "properties": {
+          "auth": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Auth",
+            "type": "string"
+          },
+          "p256dh": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "P256Dh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "p256dh",
+          "auth"
+        ],
+        "title": "PushSubscriptionKeys",
+        "type": "object"
+      },
+      "PushSubscriptionResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "endpoint": {
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "endpoint",
+          "created_at"
+        ],
+        "title": "PushSubscriptionResponse",
         "type": "object"
       },
       "QueryDetailResponse": {
@@ -7340,6 +7510,146 @@
         ]
       }
     },
+    "/hoondok/me/notifications": {
+      "get": {
+        "description": "API-HD-020 알림 설정. 저장된 행이 없으면 기본값(끔·06:00·neutral). 401 미인증.",
+        "operationId": "get_notifications_hoondok_me_notifications_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Notifications",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "put": {
+        "description": "API-HD-020 알림 설정 전체 교체. 422 시각·수위 형식, 403 CSRF, 401 미인증.",
+        "operationId": "put_notifications_hoondok_me_notifications_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationPreferenceInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Notifications",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/push": {
+      "delete": {
+        "description": "API-HD-022 구독 해지. 본인 것만 지우고 없어도 204. 403 CSRF, 401 미인증.",
+        "operationId": "delete_push_subscription_hoondok_me_push_delete",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "endpoint",
+            "required": true,
+            "schema": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Endpoint",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Push Subscription",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "post": {
+        "description": "API-HD-021 구독 등록(endpoint upsert). 409 PUSH_DISABLED, 422 형식, 403 CSRF, 401 미인증.",
+        "operationId": "create_push_subscription_hoondok_me_push_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushSubscriptionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushSubscriptionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Push Subscription",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/me/summary": {
       "get": {
         "description": "API-HD-004 오늘 3종 · 연속일 · 최대 · 누적 · 이번 주(read 기준). 401 미인증.",
@@ -7405,6 +7715,28 @@
           }
         },
         "summary": "Complete Mission",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/push/config": {
+      "get": {
+        "description": "API-HD-019 VAPID 공개 키. 미설정이면 enabled=false — 항상 200, 인증 불필요.",
+        "operationId": "get_push_config_hoondok_push_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Push Config",
         "tags": [
           "hoondok"
         ]

@@ -19,6 +19,7 @@ REVIEW_STATUSES = ("reviewed", "unverified", "withdrawn")
 MISSION_KINDS = ("read", "pray", "study")  # 훈독하기 · 기도하기 · 말씀 읽기
 JEONGSEONG_STATUSES = ("active", "completed", "abandoned")
 JEONGSEONG_DURATIONS = (7, 21, 40)  # 앱 검증(Literal). DB CHECK 는 두지 않는다
+LOCK_SCREEN_LEVELS = ("neutral", "faith")  # 잠금화면 문구 수위 (PLAN-HD-006)
 
 
 class DailyReading(SQLModel, table=True):
@@ -140,3 +141,35 @@ class ClientErrorEvent(SQLModel, table=True):
     message: str = Field(max_length=200)
     path: str = Field(max_length=120)
     user_id: uuid.UUID | None = Field(default=None, foreign_key="users.id", index=True)
+
+
+class NotificationPreference(SQLModel, table=True):
+    """ENT-HD-008 사용자별 알림 설정 1건. 행이 없으면 기본값(끔·06:00·neutral)으로 취급한다."""
+
+    __tablename__ = "notification_preferences"
+
+    user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True)
+    read_enabled: bool = Field(default=False)
+    read_time: time = Field(default=time(6, 0))  # KST 발송 시각(분 단위, 초는 쓰지 않는다)
+    lock_screen_level: str = Field(default="neutral", max_length=16)  # LOCK_SCREEN_LEVELS
+    updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class PushSubscription(SQLModel, table=True):
+    """ENT-HD-009 브라우저 푸시 구독. endpoint 가 브라우저가 발급한 전역 식별자라 unique 다.
+
+    한 사용자가 기기마다 여러 행을 가질 수 있고, 같은 기기를 다른 계정이 다시 구독하면 소유가 옮겨간다.
+    last_sent_on·failed_count 는 발송기(sub-PR B)가 갱신한다.
+    """
+
+    __tablename__ = "push_subscriptions"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    endpoint: str = Field(max_length=2048, unique=True, index=True)
+    p256dh: str = Field(max_length=255)
+    auth: str = Field(max_length=255)
+    user_agent: str | None = Field(default=None, max_length=200)
+    created_at: datetime = Field(default_factory=_utcnow)
+    last_sent_on: date | None = Field(default=None)  # KST 날짜 — 하루 1회 발송 판정
+    failed_count: int = Field(default=0)

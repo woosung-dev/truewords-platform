@@ -8,6 +8,8 @@
 4. SSE 데이터 모델은 `app/modules/chat/stream_schemas.py`, 공유 예시는 `contracts/fixtures/chat-stream.json`이다. 실제 이벤트는 `chunk`, `sources`, `done`; HTTP 오류/중도 끊김을 `done`으로 간주하지 않는다.
 5. 검증은 `GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run --frozen pytest -q`와 계약 재생성 검사를 실행한다. paid Gemini 평가와 운영 DB·볼륨 변경은 이 검증에 포함하지 않는다.
 
+6. 훈독 알림은 `app/modules/hoondok/notifications_router.py`(공개 `/hoondok/push/config` + `hoondok_token` 의 `/hoondok/me/notifications`·`/hoondok/me/push`)다. VAPID 3값이 모두 설정되지 않으면 구독은 409 `PUSH_DISABLED` 이며 실제 발송 코드는 이 라우터에 두지 않는다.
+
 ## 현재 범위
 
 기존 데모 인증을 보존한다. identity·알림 정책 확장과 Flutter는 별도 승인 작업이다.

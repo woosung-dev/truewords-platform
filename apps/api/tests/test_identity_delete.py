@@ -16,7 +16,11 @@ from sqlmodel import SQLModel, select
 
 from app.main import app
 from app.modules.admin.auth import create_access_token
-from app.modules.hoondok.dependencies import get_jeongseong_repository, get_mission_repository
+from app.modules.hoondok.dependencies import (
+    get_jeongseong_repository,
+    get_mission_repository,
+    get_notification_repository,
+)
 from app.modules.hoondok.models import ClientErrorEvent, JeongseongPeriod, JeongseongReading, MissionLog
 from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
@@ -192,18 +196,37 @@ class _FakePeriods:
         self.rows = {k: p for k, p in self.rows.items() if p.user_id != user_id}
 
 
+class _FakeNotifications:
+    """알림 설정·푸시 구독 purger (PLAN-HD-006). 이 파일은 DB 없이 라우터 배선만 본다."""
+
+    def __init__(self) -> None:
+        self.purged: list[uuid.UUID] = []
+        self.session = MagicMock()
+
+    async def delete_for_user(self, user_id) -> None:
+        self.purged.append(user_id)
+
+
 @pytest.fixture
 def client():
     users, logs, periods = _MemoryUsers(), _FakeLogs(), _FakePeriods()
+    notifications = _FakeNotifications()
     app.dependency_overrides[get_identity_repository] = lambda: users
     app.dependency_overrides[get_mission_repository] = lambda: logs
     app.dependency_overrides[get_jeongseong_repository] = lambda: periods
+    app.dependency_overrides[get_notification_repository] = lambda: notifications
     try:
         c = TestClient(app)
         c.users, c.logs, c.periods = users, logs, periods  # type: ignore[attr-defined]
+        c.notifications = notifications  # type: ignore[attr-defined]
         yield c
     finally:
-        for dep in (get_identity_repository, get_mission_repository, get_jeongseong_repository):
+        for dep in (
+            get_identity_repository,
+            get_mission_repository,
+            get_jeongseong_repository,
+            get_notification_repository,
+        ):
             app.dependency_overrides.pop(dep, None)
 
 
@@ -265,6 +288,7 @@ def test_delete_me_removes_mission_logs_and_jeongseong(client: TestClient):
 
     assert client.logs.rows == {(other_id, TODAY, "read")}
     assert [p.user_id for p in client.periods.rows.values()] == [other_id]
+    assert client.notifications.purged == [me_id]  # 알림 설정·푸시 구독도 같은 삭제에 묶인다
     stored = client.users.users[me_id]
     assert stored.deleted_at is not None and stored.email == f"deleted:{me_id}"
 
