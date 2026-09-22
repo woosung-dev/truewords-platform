@@ -351,6 +351,10 @@ test("알림: 권한 허용 → 구독 저장 → 설정 PUT, reload 뒤에도 �
       };
       PushManager.prototype.subscribe = async () => subscription as unknown as PushSubscription;
       PushManager.prototype.getSubscription = async () => subscription as unknown as PushSubscription;
+      // 헤드리스 Chromium 은 grantPermissions 뒤에도 Notification.permission 을 "denied" 로 답한다(2026-09-22 실측).
+      // 권한 자체는 실기기 증거가 확인하고, 여기서는 허용 이후의 계약(subscribe → POST → PUT)만 본다.
+      Object.defineProperty(Notification, "permission", { get: () => "granted" });
+      Notification.requestPermission = async () => "granted";
     },
     { endpoint: FAKE_ENDPOINT },
   );
