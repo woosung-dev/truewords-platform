@@ -60,11 +60,11 @@
 
 | ID | 메서드·경로 | 인증 | 동작 |
 |---|---|---|---|
-| `API-HD-014` 확장 | `GET /hoondok/library` | 공개 | 응답에 `works[]` 추가 — `book_series` 로 묶은 저작물(`series`·`title`·`volume_count`·`allowed_count`·`authority_grade`·`scope_*` 집계). `items[]` 는 그대로(호환) |
+| `API-HD-014` 확장 | `GET /hoondok/library` | 공개 | 응답에 `works[]` 추가 — `book_series` 로 묶은 저작물(`series`·`title`·`volume_count`=시리즈 등록 행 수·`allowed_count`=허용 행 수·`authority_grade`·`scope_*` 집계). `items[]` 는 그대로(호환) |
 | `API-HD-023` | `GET /hoondok/library/{series}` | 공개 | 시리즈의 허용 권 목록: `volume`·`label`("001권" 등 표시명)·`total_chunks`·`section_count`. 허용 0건이면 404 |
-| `API-HD-024` | `GET /hoondok/words/{volume}/sections` | 공개 | `volume_sections` 목록(level·title·start/end·spoken_on). 권리 게이트는 `API-HD-016` 과 같다. 0건이면 `[]`(프런트가 "구간 N" 폴백) |
+| `API-HD-024` | `GET /hoondok/sections/{volume}` | 공개 | `volume_sections` 목록(level·title·start/end·spoken_on). 권리 게이트는 `API-HD-016` 과 같다. 0건이면 `[]`(프런트가 "구간 N" 폴백) |
 | `API-HD-016` 확장 | `GET /hoondok/words/{volume}?section=` | 공개 | `section`(position) 을 주면 `start_chunk_index // 20 + 1` 페이지로. 응답에 `section`(현재 장 제목·position) 동봉 |
-| `API-HD-025` | `GET · PUT /hoondok/me/reading-position/{volume}` | `hoondok_token`(PUT 은 CSRF) | 이어 읽기 upsert · `GET /hoondok/me/reading-positions` 최근 N개 |
+| `API-HD-025` | `GET /hoondok/me/reading-positions?volume=&limit=` · `PUT /hoondok/me/reading-position/{volume}` | `hoondok_token`(PUT 은 CSRF) | 이어 읽기 목록(최근 N개, `volume` 필터로 단건) · upsert |
 | `API-HD-026` | `GET /hoondok/me/marks?volume=` · `PUT /hoondok/me/marks/{chunk_id}` · `DELETE /hoondok/me/marks/{chunk_id}?kind=` | `hoondok_token` + CSRF | 북마크·형광펜·노트 upsert/삭제. `GET /hoondok/me/marks?kind=bookmark` 로 서고 "북마크" 절 |
 | `API-HD-027` | `POST /admin/hoondok/content-rights/bulk` | admin + 게이트 + CSRF | `{book_series, status, scope_search, scope_full_text, scope_jeongseong, authority_grade?}` — 시리즈 전 행 갱신, 감사 로그 1건(`content_right.bulk`) |
 | `API-HD-028` | `GET /admin/hoondok/content-rights/series` | admin + 게이트 | 시리즈별 `registered`·`allowed`·`pending`·`withdrawn` 수 |
@@ -126,6 +126,7 @@
 | 2026-09-23 | 조사: 서고·검색·원문은 PLAN-HD-005 로 실데이터 개통 상태, 운영 원장 0행 확인. 로컬 Qdrant(운영 사본)로 payload `book_series`·`title` 비어 있음, 본문 헤딩·차례·날짜 서명 신호 실측(§1) | 사실 확정 |
 | 2026-09-23 | 인터뷰 2회 → §2 확정값 1~9 | 확정 |
 | 2026-09-23 | 계획 리뷰 승인 + `[가정]` 3건(O1 시드·단락=청크·노트=형광펜 메모) 그대로 확정 → 트랙 A 착수(opus worktree) | 진행 |
+| 2026-09-23 | A 사전 조사 반영 — `words/{volume:path}` 가 greedy 라 목차는 `GET /hoondok/sections/{volume}` 로 · 이어 읽기 단건은 목록 `?volume=` 필터로 · `volume_count` 는 등록 행 수 · bulk 감사 `target_id` 는 대표 행 id | 계약 정정 |
 
 ## 8. 결정 기록
 
