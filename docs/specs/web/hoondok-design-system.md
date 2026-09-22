@@ -193,7 +193,23 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 ### 1.6 아이콘·이미지·모션
 
 - **아이콘**: Phosphor 단일 패밀리. `regular`(기본) · `fill`(활성 탭·체크 완료·북마크 켬) · `bold`(체크 마크). 이모지 0개. 운영에서는 필요한 아이콘만 골라 self-host 한다.
-- **이미지**: 시안의 `picsum.photos`는 예시다. 운영은 권리 확인된 사진으로 교체하며, 사진 위 텍스트는 반드시 veil과 함께 쓴다(§3.2). `alt`는 장식 사진이면 빈 문자열, 내용이 있으면 설명을 적는다.
+- **이미지**: 시안의 `picsum.photos`는 예시다. **운영 사진은 `apps/web/public/hoondok/photos/` 정적 파일이다** — Unsplash License(상업 이용·수정 허용, 저작자 표시 의무 없음)로 확인했고, 오프라인·프라이버시·서비스워커 정책 때문에 바깥 도메인을 직접 물지 않는다. 사진 위 텍스트는 반드시 veil과 함께 쓴다(§3.2). `alt`는 장식 사진이면 빈 문자열, 내용이 있으면 설명을 적는다. **사람 얼굴 스톡 사진은 아바타로 쓰지 않는다** — 실제 사용자가 들어올 자리라 이니셜 원형을 유지한다.
+
+사진 출처 (2026-09-22 복원, 전부 Unsplash License):
+
+| 파일 (`public/hoondok/photos/`) | 쓰는 곳 | Unsplash 원본 | 작가 |
+|---|---|---|---|
+| `home-morning-field.webp` | `SCR-PWA-002` 홈 히어로 | https://unsplash.com/photos/kmF_Aq8gkp0 | Zugr |
+| `onboarding-sunlit-field.webp` | `SCR-PWA-001` 온보딩 히어로 | https://unsplash.com/photos/2FrX56QL7P8 | Alexander Shustov |
+| `worship-bench-family.webp` | `SCR-PWA-010` 가정예배 히어로 | https://unsplash.com/photos/A88emaZe7d8 | Charlie Foster |
+| `sermon-orchard-dusk.webp` | `SCR-PWA-010`·`012` 설교 히어로 | https://unsplash.com/photos/vIqxsp0_p1g | Jennifer Langley |
+| `challenge-lake-dawn.webp` | `SCR-PWA-011` 챌린지 히어로 | https://unsplash.com/photos/HkTMcmlMOUQ | Ales Krivec |
+| `sermon-thumb-1.webp` | `SCR-PWA-012` 설교 썸네일 | https://unsplash.com/photos/WePxTF-kKks | Sam Wheeler |
+| `sermon-thumb-2.webp` | 〃 | https://unsplash.com/photos/rHv6C-WTOls | Ali Inay |
+| `sermon-thumb-3.webp` | 〃 | https://unsplash.com/photos/9EwxGJdTJNo | Jeff Sheldon |
+| `sermon-thumb-4.webp` | 〃 | https://unsplash.com/photos/VB-w_3dnyvI | Andrew Coelho |
+
+히어로는 1440×900, 썸네일은 720×450 WebP 다. 파일명을 바꿀 때만 캐시가 갱신되도록 `next.config.ts` 가 `/hoondok/photos/:path*` 에 `immutable` 을 준다. 용량 때문에 서비스워커 precache 에는 넣지 않는다 — 오프라인이면 `.shot` 의 `--ink` 바탕이 남고 흰 글자는 그대로 읽힌다.
 - **모션**: 시트 등장 220ms, 체크 전환 150ms, 버튼 누름 120ms, 토글 150ms. 이 네 가지가 전부다. `prefers-reduced-motion: reduce`에서 시트 애니메이션과 전환을 모두 끈다(시안이 이미 구현).
 
 ### 1.7 앱 아이콘·설치 메타 (2026-09-19, PLAN-HD-001 Phase 3 C)
@@ -705,7 +721,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 
 | ID | 항목 | 상태 |
 |---|---|---|
-| `DES-PWA-003-Q2` | 사진 큐레이션 주체와 권리 확인 절차. `picsum.photos` 예시를 대체할 소스가 없으면 홈 히어로를 텍스트 카드로 바꿔야 한다 | **2026-09-16 확정: 베타는 텍스트 카드.** 사진 소스는 `RSK-PWA-008` 과 함께 후속 |
+| `DES-PWA-003-Q2` | 사진 큐레이션 주체와 권리 확인 절차. `picsum.photos` 예시를 대체할 소스가 없으면 홈 히어로를 텍스트 카드로 바꿔야 한다 | 2026-09-16 확정: 베타는 텍스트 카드 → **2026-09-22 되돌림**: 프로토타입이 쓴 picsum 이미지의 Unsplash 원본을 레포 정적 파일로 복원(§1.6 출처 표). 아바타는 이니셜 유지 — 실사용자 자리에 스톡 얼굴을 넣지 않는다 |
 | `DES-PWA-003-Q3` | Pretendard·Phosphor self-host 시 서브셋 범위(동적 서브셋 vs 정적) | **2026-09-16 확정: Phosphor → lucide-react 치환** · **2026-09-19 확정: Pretendard 가변 1종 self-host, 서브셋 없음(§1.2)** |
 | — | 60대 사용자 3명 대상 200% 확대 실사용 확인 | `[가정]` 단계. S5 베타 전 수행 |
 
@@ -737,6 +753,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | 2026-09-20 | 프리뷰 플래그(`NEXT_PUBLIC_HOONDOK_PREVIEW=1`) 뒤의 화면은 fixture 만 읽는 정적 셸이며 상단에 `.notice` "미리보기 예시 데이터입니다" 를 둔다. 네트워크 요청 0, 플래그 OFF 면 404 | 확정 · PLAN-HD-002 W3 |
 | 2026-09-20 | 가족·친구 공개 범위는 프로토타입 `.fm-scope` 그대로 **토글 2(오늘 완료 여부·진행 중인 정성 이름) + 고정 1(노트와 질문 "항상 비공개")** 이다. 4단계 라디오 문구는 어느 문서에도 없어 만들지 않았다 | `[확인 필요]` · `SCR-PWA-016` |
 | 2026-09-22 | 프로토타입 대조 3건 반영 — 앱바 알림 아이콘 → `/hoondok/settings`(알림함은 비범위라 설정으로 연결, PC 는 헤더 `.nav__user` 자리) · 온보딩 탭바 숨김 구현 · 원문 뷰 `lede` h2 제거(앱바 제목과 중복) | 확정 · §2 · §8 2026-09-16 행 |
+| 2026-09-22 | `DES-PWA-003-Q2` **되돌림** — 히어로 사진 복원(홈·온보딩·가정예배·챌린지·설교 히어로 + 설교 썸네일 4장). 프로토타입 picsum 이미지의 Unsplash 원본을 `apps/web/public/hoondok/photos/` 정적 파일로 넣고 hotlink 를 쓰지 않는다. 사람 얼굴 아바타는 이니셜 유지 | 확정 · §1.6 · §7.3 |
 
 
 ### PLAN-HD-005 여정 연결 결정 (2026-09-21)

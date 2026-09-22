@@ -215,6 +215,7 @@ make e2e
 | **최종 `make ci`** | 전체 (HEAD `c0b0547`) | **통과** — pytest **1039 passed / 4 skipped / 1 xfailed** · contracts breaking 0 · tooling 26 · docs-links 문서 188·링크 306·새 오류 0 · boundaries · hoondok:check 9파일 · web Vitest **208** · admin 104 · api-client 13 · lint 경고 web 10·admin 3 전부 기존 파일 · web·admin `next build` · typecheck | 2026-09-20 |
 | **최종 `make e2e`** | 전체 (HEAD `c0b0547`) | **85 passed / 0 failed**(1.9m) — 훈독 프로젝트 39건(스모크 8·플로우 5·정원 2·설정 1·정성 1·AI 질문 3·프리뷰 20) 포함 | 2026-09-20 |
 | 대조 후속 3건 | web Vitest · lint · typecheck · `hoondok:check` · `docs-links` (`c60ff17`) | **280 passed**(+5) · 경고 10건 전부 기존 파일 · 통과 · 9파일 통과 · 새 오류 0. `make e2e` 미실행(`주 메뉴` 단언 2건은 온보딩을 거치지 않아 정정 불필요) | 2026-09-22 |
+| 사진 히어로 복원 | `hoondok:check` · web Vitest · lint · typecheck · `docs-links` · 프로토타입 시각 대조(390·1280) | `DES-PWA-003-Q2` 되돌림 — 홈·온보딩·가정예배·챌린지·설교 히어로 + 설교 썸네일 4장을 `apps/web/public/hoondok/photos/` 정적 WebP 9장(합계 634KB)으로 복원. 아바타는 이니셜 유지. 결과는 아래 검증 행 | 2026-09-22 |
 | 범위 합계 | `main...HEAD` | 커밋 73개 · 126 파일 · +11,169 / −121. 라우트 16개(실데이터 8·프리뷰 8) · 화면 그룹 CSS 8파일 · API 3개 추가(`API-HD-009/010/011`) · 테이블 1개(`ENT-HD-004`, alembic `k5a6b7c8d9e0`) | 2026-09-20 |
 
 ## 9. 결정 기록
