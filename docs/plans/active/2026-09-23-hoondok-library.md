@@ -129,6 +129,7 @@
 | 2026-09-23 | A 완료·머지 — 라우트 11개(위 표) · purger 는 `LibraryRepository` 1개 · `format:check` 기존 결함 3파일은 범위 밖 `[확인 필요]` · `GET /hoondok/sections` 가 원문과 120회/분 예산 공유 `[확인 필요]` → D·B·C 병렬 착수 | 완료 |
 | 2026-09-23 | D 완료 — 이탈: 말씀선집 1차 경계는 설교 번호 줄 `N)`(날짜 서명은 보조) · 자서전은 실제 `N장.` 헤딩 존재 · `평화를 사랑하는 세계인으로` 는 `metadata.py` 규칙이 못 잡아 시드 스크립트 안 `_EXTRA_SERIES_RULES` 로 보완(`metadata.py` 수정은 후속 `[확인 필요]`) · 로컬 Postgres 는 :55434(5432 는 타 프로젝트 점유) | 완료 |
 | 2026-09-23 | B 완료 → 4트랙 전부 dev 머지(`e01dfb8`). 후속 `[확인 필요]`: AI 설명 봇이 `all` 그대로 · `GET /hoondok/sections` 가 원문 예산(120/분) 공유 | 통합 게이트 진입 |
+| 2026-09-23 | 통합 게이트 — `make ci` EXIT 0(pytest 1214 passed/7 skipped/1 xfailed · web Vitest 307 · admin 127 · api-client 13 · docs-links 새 오류 0) · `make e2e` 94 passed(기준선 92) · `hoondok-css.mjs` 통과. 1차 `make e2e` 는 이전 프리뷰 `next dev`(:3140) 잔존으로 기동 실패 → 프리뷰 정지 후 재실행 통과. codex 는 사용 한도(9/24 15:03 복구) → Opus read-only 리뷰 대체 | 게이트 2~4 통과, 5 진행 |
 | 2026-09-23 | A 사전 조사 반영 — `words/{volume:path}` 가 greedy 라 목차는 `GET /hoondok/sections/{volume}` 로 · 이어 읽기 단건은 목록 `?volume=` 필터로 · `volume_count` 는 등록 행 수 · bulk 감사 `target_id` 는 대표 행 id | 계약 정정 |
 
 ## 8. 결정 기록
