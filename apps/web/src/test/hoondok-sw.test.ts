@@ -52,7 +52,7 @@ function loadWorker(source = SW_SOURCE, { fetchFails = false, windows = [] as Fa
     },
     registration: {
       unregister: vi.fn(async () => true),
-      showNotification: vi.fn(async () => undefined),
+      showNotification: vi.fn(async (_title: string, _options: Record<string, unknown>) => undefined),
     },
   };
   const fetchMock = vi.fn(async () => {
@@ -203,9 +203,9 @@ describe("훈독 서비스워커 알림 (PLAN-HD-006)", () => {
     await broken.dispatch("push", pushEvent(null, { broken: true }));
     await broken.dispatch("push", {});
     await broken.dispatch("push", pushEvent({ title: "", url: "https://evil.example/hoondok" }));
-    for (const call of vi.mocked(broken.self.registration.showNotification).mock.calls) {
-      expect(call[0]).toBe("오늘의 읽을거리가 준비됐어요");
-      expect((call[1] as { data: { url: string } }).data.url).toBe(`${ORIGIN}/hoondok`);
+    for (const [title, options] of broken.self.registration.showNotification.mock.calls) {
+      expect(title).toBe("오늘의 읽을거리가 준비됐어요");
+      expect((options as { data: { url: string } }).data.url).toBe(`${ORIGIN}/hoondok`);
     }
     expect(broken.self.registration.showNotification).toHaveBeenCalledTimes(3);
   });

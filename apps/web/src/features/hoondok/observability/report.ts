@@ -1,6 +1,8 @@
 // 원문·질문·검색어·예외 객체를 받지 않는다. 허용된 코드와 경로 템플릿만 전송한다.
 import type { ClientErrorInput } from "@truewords/api-client-ts/types";
-export type ClientErrorKind = ClientErrorInput["kind"];
+// "push_subscribe" 는 PLAN-HD-006 backend 가 받는 kind 다. contracts 재생성 전까지만 로컬로 더한다 —
+// 재생성 뒤 ClientErrorInput["kind"] 에 들어오면 이 합집합은 지운다.
+export type ClientErrorKind = ClientErrorInput["kind"] | "push_subscribe";
 
 export function safeHoondokPath(pathname: string): string {
   const path = pathname.split(/[?#]/, 1)[0];
