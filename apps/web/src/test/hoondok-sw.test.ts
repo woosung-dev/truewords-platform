@@ -52,7 +52,9 @@ function loadWorker(source = SW_SOURCE, { fetchFails = false, windows = [] as Fa
     },
     registration: {
       unregister: vi.fn(async () => true),
-      showNotification: vi.fn(async (_title: string, _options: Record<string, unknown>) => undefined),
+      showNotification: vi.fn<(title: string, options: Record<string, unknown>) => Promise<void>>(
+        async () => undefined,
+      ),
     },
   };
   const fetchMock = vi.fn(async () => {

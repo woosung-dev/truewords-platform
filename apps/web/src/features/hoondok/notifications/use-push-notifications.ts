@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { isUnauthorized, useIdentityGate } from "@/features/identity/gate";
 import { reportClientError } from "../observability/report";
 import { notificationsAPI } from "./api";
@@ -28,6 +28,9 @@ export const PUSH_MESSAGES = {
   otherDevice: "이 기기에서 받으려면 다시 켜 주세요",
 } as const;
 
+/** 브라우저 능력·권한은 구독할 외부 스토어가 없다 — 렌더마다 다시 읽기만 한다. */
+const subscribeNever = () => () => {};
+
 /** 권한 거절은 오류가 아니라 사용자의 선택이다 — 보고하지 않고 문구만 바꾼다. */
 class PushPermissionError extends Error {}
 
@@ -40,7 +43,6 @@ async function currentSubscription(): Promise<PushSubscription | null> {
 export function usePushNotifications() {
   const queryClient = useQueryClient();
   const { user, isLoading: isUserLoading, redirectToOnboarding } = useIdentityGate();
-  const [support, setSupport] = useState<PushSupport | null>(null);
   const [hasDeviceSubscription, setHasDeviceSubscription] = useState<boolean | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -54,13 +56,15 @@ export function usePushNotifications() {
   const isConfigSettled = configQuery.isSuccess || configQuery.isError;
   const isConfigEnabled = configQuery.data?.enabled === true && Boolean(configQuery.data.public_key);
 
-  // 권한·플랫폼 판정은 브라우저에서만 참이다 — SSR 과 첫 렌더를 맞추려고 마운트 뒤에 계산한다.
-  const refreshSupport = useCallback(() => {
-    setSupport(detectPushSupport(isConfigEnabled));
-  }, [isConfigEnabled]);
-  useEffect(() => {
-    if (isConfigSettled) refreshSupport();
-  }, [isConfigSettled, refreshSupport]);
+  // 권한·플랫폼 판정은 브라우저에서만 참이다. useSyncExternalStore 로 읽으면 SSR 스냅샷과 어긋나도
+  // React 가 하이드레이션 뒤에 다시 그려 주고(경고 없음), 렌더마다 다시 읽으므로 권한 변화도 따라온다.
+  const browserSupport = useSyncExternalStore(
+    subscribeNever,
+    () => detectPushSupport(true),
+    () => "unsupported" as PushSupport,
+  );
+  // 설정을 기다리는 동안은 아무것도 약속하지 않는다(null) — "준비 중" 과 "미지원" 사이를 깜빡이지 않게.
+  const support: PushSupport | null = !isConfigSettled ? null : isConfigEnabled ? browserSupport : "disabled";
 
   const prefsQuery = useQuery({
     queryKey: notificationPrefsKey(user?.id ?? null),
@@ -72,10 +76,7 @@ export function usePushNotifications() {
 
   // 서버는 켜졌다는데 이 기기에 구독이 없으면(다른 기기에서 켰거나 브라우저 데이터 삭제) 보조 문구를 띄운다.
   useEffect(() => {
-    if (support !== "ready" || !prefs.read_enabled) {
-      setHasDeviceSubscription(null);
-      return;
-    }
+    if (support !== "ready" || !prefs.read_enabled) return;
     let isActive = true;
     void currentSubscription()
       .then((subscription) => isActive && setHasDeviceSubscription(subscription !== null))
@@ -127,8 +128,8 @@ export function usePushNotifications() {
     },
     onError: (error) => {
       if (error instanceof PushPermissionError) {
+        // 거절하면 Notification.permission 이 "denied" 로 바뀌고, 다음 렌더의 스냅샷이 그대로 읽는다.
         setMessage(PUSH_MESSAGES.permission);
-        refreshSupport();
         return;
       }
       if (isUnauthorized(error)) {
@@ -159,7 +160,7 @@ export function usePushNotifications() {
     isSaving: mutation.isPending,
     message,
     /** 서버는 켜졌는데 이 기기 구독이 없을 때만 true */
-    isDeviceMissing: prefs.read_enabled && hasDeviceSubscription === false,
+    isDeviceMissing: support === "ready" && prefs.read_enabled && hasDeviceSubscription === false,
     toggle: (readEnabled: boolean) => submit({ readEnabled }),
     setReadTime: (readTime: string) => submit({ readTime }),
     setLockScreenLevel: (lockScreenLevel: LockScreenLevel) => submit({ lockScreenLevel }),
