@@ -36,10 +36,10 @@
 
 | 트랙 | 브랜치 | 소유 파일 | 상태 |
 |---|---|---|---|
-| 0 문서 | `dev/hoondok-phase4` 직접 | 이 문서 · `PLAN-HD-001` §7 개정 · `docs/TODO.md` · rollout runbook 알림 절 · `docs/README.md` | 진행 중 |
-| A API | `feat/hoondok-push-api` | `apps/api/**` · `contracts/` · `packages/api-client-ts/src/generated/` · `hoondok-api.md`·`hoondok-entities.md`(예외 허용) | 진행 중 |
-| B 발송기 | `feat/hoondok-push-sender` (A 스택) | `apps/api/scripts/{send_hoondok_push.py,hoondok_beta_metrics.sql}` · `apps/api/tests/test_send_hoondok_push.py` · `infra/oracle-vm/{send-hoondok-push.sh,ops-check.sh,README.md}` | A 뒤 |
-| C web | `feat/hoondok-push-web` | `public/hoondok/sw.js` · `features/hoondok/notifications/**` · `settings/components/settings-screen.tsx` · `observability/report.ts` · `_hoondok/settings.css` · `src/test/hoondok-sw.test.ts` · `tests/e2e/hoondok.spec.ts` | 진행 중 |
+| 0 문서 | `dev/hoondok-phase4` 직접 | 이 문서 · `PLAN-HD-001` §7 개정 · `docs/TODO.md` · rollout runbook 알림 절 · `docs/README.md` | ✅ `1210002`·`a320db8` |
+| A API | `feat/hoondok-push-api` | `apps/api/**` · `contracts/` · `packages/api-client-ts/src/generated/` · `hoondok-api.md`·`hoondok-entities.md`(예외 허용) | ✅ 머지 `3b4c846` — alembic `m7c8d9e0f1a2`, pytest 1119 passed(+23), contracts 추가만 |
+| B 발송기 | `feat/hoondok-push-sender` (A 스택) | `apps/api/scripts/{send_hoondok_push.py,hoondok_beta_metrics.sql}` · `apps/api/tests/test_send_hoondok_push.py` · `infra/oracle-vm/{send-hoondok-push.sh,ops-check.sh,README.md}` | 진행 중 (worktree `../tw-hoondok-push-sender`) |
+| C web | `feat/hoondok-push-web` | `public/hoondok/sw.js` · `features/hoondok/notifications/**` · `settings/components/settings-screen.tsx` · `observability/report.ts` · `_hoondok/settings.css` · `src/test/hoondok-sw.test.ts` · `tests/e2e/hoondok.spec.ts` | ✅ 머지 — Vitest 275/32 files, lint 0 errors, typecheck, hoondok:check 통과. E2E 구독 흐름은 `HOONDOK_PUSH_API_READY` 게이트 |
 
 **공유 파일(트랙 편집 금지)**: `apps/web/src/app/hoondok.css`, hoondok `layout.tsx`, `features/hoondok/{tabs,screens,flag}.ts`, `components/hoondok/*`, `Makefile`. 필요 시 보고만 하고 오케스트레이터가 처리한다.
 
@@ -58,7 +58,8 @@
 |---|---|---|
 | 2026-09-22 | 착수 게이트 질문 → "코드 먼저, 운영 ON 은 데이터 뒤" · 발송 시각 "사용자별, 완료자 생략" | 확정 (§2 1·2) |
 | 2026-09-22 | `API-HD-018` 은 client-errors 가 선점 → 새 번호 019~022, ENT 008·009 | 정정 |
-| 2026-09-22 | 브랜치 `dev/hoondok-phase4` + worktree A·C 생성, 병렬 착수 | 진행 |
+| 2026-09-22 | 브랜치 `dev/hoondok-phase4` + worktree A·C 생성, 병렬 착수 | 완료 |
+| 2026-09-22 | A 머지 `3b4c846` → B worktree 생성·착수 · C 검증 후 머지 | 진행 |
 
 ## 8. 결정 기록
 
