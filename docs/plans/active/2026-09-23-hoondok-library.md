@@ -102,7 +102,7 @@
 
 | 트랙 | 브랜치 | 소유 파일 | 완료 기준 | 상태 |
 |---|---|---|---|---|
-| 0 문서 | `dev/hoondok-library` 직접 | 이 문서 · `docs/README.md` · `docs/TODO.md` · runbook | docs-links 새 오류 0 | 🔄 계획 `9f0b396`, runbook 은 마지막 |
+| 0 문서 | `dev/hoondok-library` 직접 | 이 문서 · `docs/README.md` · `docs/TODO.md` · runbook | docs-links 새 오류 0 | ✅ 계획·README·TODO 갱신, runbook "말씀 서고 개통 절차" 추가(로컬 리허설 수치 포함), docs-links 새 오류 0 |
 | A 백엔드 | `feat/hoondok-library-api` | `apps/api/**`(models·alembic·`journey_*`·신규 `library_*`·`marks_*`·`rights_admin_router`·tests) · `contracts/` · `packages/api-client-ts/src/generated` · `hoondok-api.md`·`hoondok-entities.md` | pytest: works 집계 · series 404 · sections 게이트 · section→page · position upsert · marks upsert/삭제/타인 불가 · bulk 감사 1건 · purger 등록 · `contracts:check` 추가만 | ✅ 머지(4커밋 `c9f8738`~`c3306d6`) — pytest 1181/7/1, contracts 추가만, 신규 테스트 22 |
 | D 추출·시드 | `feat/hoondok-library-scripts` (A 스택) | `apps/api/scripts/{seed_content_rights_from_qdrant.py,extract_volume_sections.py}` · `apps/api/tests/test_extract_volume_sections.py` · `infra/oracle-vm/README.md` cron 표 옆 "1회 실행" 절 | 규칙 단위 테스트(고정 텍스트 표본) · 로컬 Qdrant(:6333) 대상 `--dry-run` 커버리지 보고가 §3 인수 기준 충족 | ✅ 머지 `d0f5cac`·`2672bf6` — pytest 1214(+33), 말씀선집 경계 검출 203/206=99%(23권 표본, 4권은 신호 0), 천성경 13편/65장 · 평화경 10편/177설교 · 원리강론 12장/53절 · 통일사상요강 11장 · 자서전 7장/67소제목. 로컬 시드 620행 왕복 확인 |
 | B web | `feat/hoondok-library-web` (A 계약 스택) | `app/(hoondok)/hoondok/library/**` · `app/(hoondok)/hoondok/words/**` · `features/hoondok/library/**` · `_hoondok/library.css`(신규) · `observability/report.ts`(allowlist) · `screens.ts`(라우트 1줄, 예외 허용) · `src/test/hoondok-library*.test.tsx` · `tests/e2e/hoondok-library.spec.ts` | Vitest: 저작물→권→원문 · sections 0건 폴백 · 단락 렌더 · 마크 upsert 페이로드 · 비로그인 안내 · AI 설명 요청 1회 · E2E(hoondok-chromium) 라이브 왕복 | ✅ 머지 `7073e16`·`8e53fe2` — web Vitest 307(+25), 트랙 단독 `make e2e` 93, `hoondok:check` 통과. 단락 탭 대상은 번호 버튼(DES §2.2), `words()` 시그니처 옵션 객체화, E2E 시드에 `말씀선집 001권` 도 시리즈로 묶음 |
@@ -130,6 +130,7 @@
 | 2026-09-23 | D 완료 — 이탈: 말씀선집 1차 경계는 설교 번호 줄 `N)`(날짜 서명은 보조) · 자서전은 실제 `N장.` 헤딩 존재 · `평화를 사랑하는 세계인으로` 는 `metadata.py` 규칙이 못 잡아 시드 스크립트 안 `_EXTRA_SERIES_RULES` 로 보완(`metadata.py` 수정은 후속 `[확인 필요]`) · 로컬 Postgres 는 :55434(5432 는 타 프로젝트 점유) | 완료 |
 | 2026-09-23 | B 완료 → 4트랙 전부 dev 머지(`e01dfb8`). 후속 `[확인 필요]`: AI 설명 봇이 `all` 그대로 · `GET /hoondok/sections` 가 원문 예산(120/분) 공유 | 통합 게이트 진입 |
 | 2026-09-23 | 통합 게이트 — `make ci` EXIT 0(pytest 1214 passed/7 skipped/1 xfailed · web Vitest 307 · admin 127 · api-client 13 · docs-links 새 오류 0) · `make e2e` 94 passed(기준선 92) · `hoondok-css.mjs` 통과. 1차 `make e2e` 는 이전 프리뷰 `next dev`(:3140) 잔존으로 기동 실패 → 프리뷰 정지 후 재실행 통과. codex 는 사용 한도(9/24 15:03 복구) → Opus read-only 리뷰 대체 | 게이트 2~4 통과, 5 진행 |
+| 2026-09-23 | 로컬 라이브(§5-7) — 운영 사본 Qdrant :6333 + Postgres :55434(시드 620행·구간 435), `hoondok-api-live` 프리뷰. 375/768/1280 에서 저작물 → 원문(1권 저작물은 권 목록 생략) → 목차 78구간 → 형광펜 2색·북마크 → 서버 `passage_marks` 2행·`reading_positions` 1행 → 서고 "이어 읽기 단락 320"·북마크 카드 복귀 확인. 1280 목차 레일 280px, 768 이하 드로어, 가로 스크롤 0. **발견**: `?section=6`(참부모, 323 시작) 요청이 페이지 첫 청크 320 의 직전 장 제목을 표시 → 리뷰 P1-2 와 동일 | 라이브 통과, 결함 1건 → 수정 라운드 |
 | 2026-09-23 | A 사전 조사 반영 — `words/{volume:path}` 가 greedy 라 목차는 `GET /hoondok/sections/{volume}` 로 · 이어 읽기 단건은 목록 `?volume=` 필터로 · `volume_count` 는 등록 행 수 · bulk 감사 `target_id` 는 대표 행 id | 계약 정정 |
 
 ## 8. 결정 기록

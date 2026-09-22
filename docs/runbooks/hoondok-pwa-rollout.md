@@ -297,6 +297,38 @@ ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec
 
 두 수치를 `PLAN-HD-006` §7 진행 기록에 날짜와 함께 적고, 그 뒤 F2 AI 질문 우선순위 ADR 의 근거로 쓴다.
 
+## 말씀 서고 개통 절차 (PLAN-HD-007)
+
+운영 `content_rights` 는 0행이라 `/hoondok/library` 가 `{"items":[],"works":[]}` 다. 권리 게이트의 기본값이 "전부 비노출" 이라 결함이 아니고, 아래 순서로 **원장을 채우고 운영자가 승인해야** 서고·검색·원문이 보인다. 근거는 [`PLAN-HD-007` §6](../plans/active/2026-09-23-hoondok-library.md). 스크립트 상세는 [`infra/oracle-vm/README.md` §1회 실행 스크립트](../../infra/oracle-vm/README.md).
+
+단계마다 사용자 승인이 필요하다(Git Safety Protocol). 순서를 바꾸지 않는다 — 4 는 3 이 만든 행을 대상으로 하고, 6 은 5 가 끝난 뒤에만 사용자에게 의미가 있다.
+
+```bash
+# 1. backend — alembic n8d9e0f1a2b3 (volume_sections · reading_positions · passage_marks · content_rights.chunk_count)
+make deploy-backend
+curl -s https://truewords.woosung.dev/api/backend/hoondok/library        # {"items":[],"works":[]} 이면 정상(아직 원장 0행)
+# 2. admin — /hoondok/rights 시리즈 요약 + 일괄 승인 다이얼로그
+make deploy-admin
+# 3. 권리 원장 시드 — Qdrant volume 664 → 6시리즈 620행. 천성경·평화경·원리강론만 allowed + 검색·원문 + O1
+ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec -T backend \
+  python scripts/seed_content_rights_from_qdrant.py --execute --allow "천성경,평화경,원리강론" --grade O1'
+# 4. 장 목차 추출 — 수십 분. stdout 의 커버리지 표를 아래 실행 기록에 붙인다
+ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec -T backend \
+  python scripts/extract_volume_sections.py --execute'
+# 5. 운영자: https://truewords-admin.woosung.dev/hoondok/rights → 시리즈 요약 → "일괄 승인" 으로 말씀선집 등 나머지 시리즈의 공개 범위·등급 결정
+# 6. web — 서고 3계층·형광펜·북마크·이어 읽기 화면
+make deploy-web HOONDOK_ENABLED=1
+# 7. 확인
+make smoke-web WEB_URL=https://truewords.woosung.dev HOONDOK_ENABLED=1
+curl -s https://truewords.woosung.dev/api/backend/hoondok/library | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d["works"]), "works")'   # 3 이상
+```
+
+- 3·4 는 cron 이 아니다. Qdrant 에 권이 추가될 때만 다시 돌린다. 시드 재실행은 운영자가 admin 에서 바꾼 `status`·`scope_*`·등급을 되돌리지 않는다(`--allow` 시리즈만 예외).
+- 4 를 나눠 돌리려면 `--series father_anthology` 또는 `--volume "천성경.pdf"`. 장이 0건인 권은 화면이 "구간 N" 으로 폴백하므로 개통을 막지 않는다.
+- 로컬 리허설(운영 사본 Qdrant + 별도 Postgres) 결과: 시드 620행(pending 617 · allowed 3), 천성경 78 · 평화경 187 · 원리강론 65 · 통일사상요강 11 · 자서전 74 구간. 저작물 → 원문 → 목차 점프 → 형광펜·북마크 → 이어 읽기 복귀를 375/768/1280 에서 확인(2026-09-23).
+
+**되돌리기**: web 은 `make rollback-web WEB_TAG=<이전 sha>` 로 대칭이다. 원장을 닫으려면 admin 에서 시리즈를 `pending` 으로 일괄 변경하면 서고·검색·원문이 즉시 비노출 된다(테이블 삭제 불필요). backend 마이그레이션은 additive 라 이전 이미지로 돌아가도 새 테이블은 무해하게 남는다(§층 0 원칙 그대로).
+
 ## 실행 기록
 
 ### 2026-09-20 — 플래그 ON 상태 사후 실측

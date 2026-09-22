@@ -265,7 +265,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ### PLAN-HD-005 여정 잇기 (2026-09-22 배포 완료)
 
 - [x] **배포** — main `a425217` 로 backend → admin → web(`HOONDOK_ENABLED=1`) 3서비스. alembic `l6b7c8d9e0f1` 적용, `smoke-web` 12건 OK, `ops-check` 8건 통과, 공개 라우트 9개·`GET /hoondok/library` 200. [runbook §2026-09-22](runbooks/hoondok-pwa-rollout.md)
-- [ ] **권리 원장 승인 입력** → [`PLAN-HD-007`](plans/active/2026-09-23-hoondok-library.md) 로 이관(시드 스크립트 + admin 시리즈 일괄 승인, 2026-09-23). 원문: `content_rights` **0행**이라 `/hoondok/library` 가 `{"items":[]}` 다. 권리 게이트의 기본값이 "전부 비노출"이라 **설계대로이고 결함이 아니다.** 운영자가 admin `/hoondok/rights` 에서 저작물을 승인해야 서고·검색·원문이 사용자에게 보인다. 편성 입력과 같은 성격의 운영 작업
+- [ ] **권리 원장 승인 입력** → [`PLAN-HD-007`](plans/active/2026-09-23-hoondok-library.md) 로 이관. 개통 절차는 [runbook §말씀 서고 개통 절차](runbooks/hoondok-pwa-rollout.md) 에 확정(2026-09-23, 시드 → 추출 → admin 승인 → web 배포). 운영 실행은 dev→main 머지 뒤 단계별 승인(시드 스크립트 + admin 시리즈 일괄 승인, 2026-09-23). 원문: `content_rights` **0행**이라 `/hoondok/library` 가 `{"items":[]}` 다. 권리 게이트의 기본값이 "전부 비노출"이라 **설계대로이고 결함이 아니다.** 운영자가 admin `/hoondok/rights` 에서 저작물을 승인해야 서고·검색·원문이 사용자에게 보인다. 편성 입력과 같은 성격의 운영 작업
 
 ### 훈독 Phase 3 배포 준비 (2026-09-19 → 2026-09-20 배포 완료)
 - [x] `[종결]` **초대 코드 게이트 — OFF 유지 결정**(2026-09-20). VM `.env` 는 건드리지 않았다. 게이트 코드는 backend 에 이미 배포돼 있어 `HOONDOK_INVITE_CODE` 한 줄 + backend 재생성만으로 즉시 켤 수 있다(다른 컨테이너 파급 없음). 가입 규모가 `[가정]` 10~20명을 넘거나 링크가 의도 밖으로 퍼지면 뒤집는다. 근거는 [runbook §실행 기록](runbooks/hoondok-pwa-rollout.md#실행-기록)
