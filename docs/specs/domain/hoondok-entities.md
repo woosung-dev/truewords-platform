@@ -126,6 +126,8 @@
 `status`는 varchar이며 `pending`(기본)·`allowed`·`withdrawn`이다. 삭제 대신 철회한다.
 `scope_search`, `scope_full_text`, `scope_jeongseong`은 서로 독립적인 bool이며 기본 false다.
 각 신규 기능은 allowed와 해당 scope를 모두 만족해야 본문을 반환한다. 기존 AI/오늘 편성의 전면 전환은 후속이다.
+`chunk_count`(nullable int, PLAN-HD-007)는 그 권의 Qdrant 청크 수이며 시드 스크립트가 채운다.
+미집계와 0을 구분해야 해서 nullable이고, 권리 입력 스키마에는 없어 admin 개별 저장이 값을 덮지 않는다.
 
 ## ENT-HD-006 `jeongseong_readings` — 날짜별 정성 추출 말씀
 
@@ -159,3 +161,33 @@
 계정 삭제 시 두 테이블의 행을 함께 하드 삭제한다(API-HD-011 purger).
 
 이 테이블들은 모두 additive-only migration으로 추가하며 PostgreSQL ENUM이나 기존 컬럼 파괴적 변경을 도입하지 않는다.
+
+
+## ENT-HD-010 `volume_sections` — 권 안의 장 목차 (PLAN-HD-007)
+
+`volume`(Qdrant payload 원문 그대로) · `position`(권 안의 표시 순서) · `level`(1 편·장, 2 장·절·설교) ·
+`title` · `start_chunk_index` · `end_chunk_index` · `spoken_on` · `place` · `origin` 을 갖고
+`(volume, position)`이 unique다. 본문 자체는 Qdrant에만 있고 여기에는 **경계만** 둔다.
+`level`·`origin`은 PostgreSQL ENUM이 아니라 int/varchar + 앱 Literal 검증이다.
+`origin`은 `auto`(본문 규칙 추출)와 `manual`(운영자 수기)이며, 추출 스크립트는 권 단위로
+`auto` 행만 전량 교체하고 `manual` 행은 보존한다(`LibraryRepository.replace_auto_sections`).
+장을 수기로 입력하지 않으며 미검출 구간은 행을 만들지 않고 웹이 "구간 N"으로 폴백한다.
+
+## ENT-HD-011 `reading_positions` — 이어 읽기 위치 (PLAN-HD-007)
+
+`user_id` FK · `volume` · `chunk_index` · `updated_at`이며 `(user_id, volume)`이 unique다.
+권마다 최신 1건만 남기므로 이력 테이블을 두지 않는다. 단위는 Qdrant 청크다.
+서버 값이 있으면 서버가 우선이고 없으면 기기 값을 1회 올린다. 비로그인은 기기 값만 쓴다.
+원문이 허용되지 않은 권에는 저장하지 않는다(404).
+
+## ENT-HD-012 `passage_marks` — 북마크·형광펜·노트 (PLAN-HD-007)
+
+`user_id` FK · `volume` · `chunk_id`(Qdrant point id, FK 아님) · `chunk_index` · `kind` ·
+`color` · `note` · 생성·갱신 시각이며 `(user_id, chunk_id, kind)`가 unique다.
+`kind`는 `bookmark`·`highlight`이고 varchar + 앱 Literal 검증이다 — 같은 단락에 북마크와 형광펜을 함께 둘 수 있다.
+`color`는 1~3이며 `highlight`는 필수, `bookmark`는 항상 null이다.
+노트는 형광펜의 `note`(2000자)로 두고 별도 테이블을 만들지 않는다 — 노트 탭은 `note`가 있는 표시를 모은 것이다.
+남의 표시는 조회·수정·삭제 조건에서 `user_id`로 걸러져 접근할 수 없다.
+
+세 테이블 모두 additive-only migration(`n8d9e0f1a2b3`)으로 추가하며 PostgreSQL ENUM이나 기존 컬럼 파괴적 변경을 도입하지 않는다.
+계정 하드 삭제(API-HD-011)는 `reading_positions`·`passage_marks`를 함께 지운다(`LibraryRepository` purger).

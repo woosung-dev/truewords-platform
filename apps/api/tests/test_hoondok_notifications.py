@@ -322,12 +322,19 @@ def test_client_errors_accept_push_subscribe_kind(client: TestClient):
 @pytest.mark.asyncio
 async def test_account_deletion_purges_notification_rows():
     """API-HD-011 계정 삭제가 두 테이블을 함께 비운다 — purger 등록 확인(실 리포·실 라우터)."""
-    from app.modules.hoondok.dependencies import get_jeongseong_repository, get_mission_repository
+    from app.modules.hoondok.dependencies import (
+        get_jeongseong_repository,
+        get_library_repository,
+        get_mission_repository,
+    )
+    from app.modules.hoondok.library_repository import LibraryRepository
     from app.modules.hoondok.models import (
         ClientErrorEvent,
         JeongseongPeriod,
         JeongseongReading,
         MissionLog,
+        PassageMark,
+        ReadingPosition,
     )
     from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
     from app.modules.identity.repository import UserRepository
@@ -347,6 +354,8 @@ async def test_account_deletion_purges_notification_rows():
                 ClientErrorEvent.__table__,
                 NotificationPreference.__table__,
                 PushSubscription.__table__,
+                ReadingPosition.__table__,
+                PassageMark.__table__,
             ],
         )
     session = AsyncSession(engine, expire_on_commit=False)
@@ -364,6 +373,7 @@ async def test_account_deletion_purges_notification_rows():
     app.dependency_overrides[get_notification_repository] = lambda: notifications
     app.dependency_overrides[get_mission_repository] = lambda: MissionLogRepository(session)
     app.dependency_overrides[get_jeongseong_repository] = lambda: JeongseongRepository(session)
+    app.dependency_overrides[get_library_repository] = lambda: LibraryRepository(session)
     try:
         client = TestClient(app)
         client.cookies.set(COOKIE_NAME, IdentityService.issue_token(me))
@@ -374,6 +384,7 @@ async def test_account_deletion_purges_notification_rows():
             get_notification_repository,
             get_mission_repository,
             get_jeongseong_repository,
+            get_library_repository,
         ):
             app.dependency_overrides.pop(provider, None)
 
