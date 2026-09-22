@@ -333,10 +333,9 @@ test("알림: backend 에 VAPID 가 없으면 훈독하기도 '준비 중' 이�
   expect(errors).toEqual([]);
 });
 
-// 구독 저장(POST /hoondok/me/push)과 설정(PUT /hoondok/me/notifications) 은 sub-PR A 의 엔드포인트다.
+// 구독 저장(POST /hoondok/me/push)과 설정(PUT /hoondok/me/notifications) 은 API-HD-020·021(sub-PR A, 머지됨)이다.
 // 여기서는 브라우저 쪽 계약(권한 → subscribe → POST 본문 → PUT) 을 끝까지 확인한다.
 test("알림: 권한 허용 → 구독 저장 → 설정 PUT, reload 뒤에도 켜짐", async ({ page, context }) => {
-  test.skip(!process.env.HOONDOK_PUSH_API_READY, "sub-PR A(backend 알림 API) 머지 후 해제한다");
   await context.grantPermissions(["notifications"]);
   // 서버 설정은 가짜로 켠다 — 로컬 backend 에는 VAPID 키가 없다.
   await page.route("**/api/backend/hoondok/push/config", (route) =>
