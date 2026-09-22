@@ -10,6 +10,8 @@
 
 6. 훈독 알림은 `app/modules/hoondok/notifications_router.py`(공개 `/hoondok/push/config` + `hoondok_token` 의 `/hoondok/me/notifications`·`/hoondok/me/push`)다. VAPID 3값이 모두 설정되지 않으면 구독은 409 `PUSH_DISABLED` 이며 실제 발송 코드는 이 라우터에 두지 않는다.
 
+7. 훈독 말씀 서고는 `app/modules/hoondok/library_{router,service,repository,schemas,series}.py` 다. 목차는 `/hoondok/sections/{volume:path}` 이며 `/hoondok/words/{volume:path}` 가 greedy 라 하위 경로를 쓰지 않는다. 시리즈 admin(`API-HD-027·028`)은 기존 `rights_admin_router.py` 에 둔다.
+
 ## 현재 범위
 
 기존 데모 인증을 보존한다. identity·알림 정책 확장과 Flutter는 별도 승인 작업이다.
