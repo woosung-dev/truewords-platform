@@ -161,6 +161,8 @@ describe("훈독하기 알림 켜기", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(PUSH_MESSAGES.pushDisabled);
     expect(notificationsAPI.savePrefs).not.toHaveBeenCalled();
     expect(reportClientError).toHaveBeenCalledWith("push_subscribe");
+    // 서버가 받지 못한 구독은 브라우저에도 남기지 않는다.
+    expect(subscription.unsubscribe).toHaveBeenCalledOnce();
   });
 
   it("그 밖의 실패는 push_subscribe 로 보고하고 사용자에게는 한 줄만 보인다", async () => {

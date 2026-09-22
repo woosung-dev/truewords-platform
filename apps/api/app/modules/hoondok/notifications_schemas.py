@@ -5,6 +5,9 @@
 """
 
 import uuid
+import ipaddress
+from urllib.parse import urlsplit
+
 from datetime import datetime, time
 from typing import Literal
 
@@ -69,6 +72,24 @@ class PushSubscriptionInput(BaseModel):
     endpoint: str = Field(min_length=1, max_length=2048)
     keys: PushSubscriptionKeys
     user_agent: str | None = Field(default=None, max_length=400)
+
+    @field_validator("endpoint")
+    @classmethod
+    def endpoint_must_be_public_https(cls, value: str) -> str:
+        """발송기가 VM 안에서 이 URL 로 POST 한다 — 내부 주소를 넣어 blind SSRF 로 쓰지 못하게 https·공개 호스트만 받는다."""
+        parsed = urlsplit(value)
+        host = (parsed.hostname or "").lower()
+        if parsed.scheme != "https" or not host:
+            raise ValueError("endpoint 는 https URL 이어야 합니다")
+        if host in ("localhost",) or host.endswith((".local", ".internal")):
+            raise ValueError("endpoint 는 공개 호스트여야 합니다")
+        try:
+            addr = ipaddress.ip_address(host)
+        except ValueError:
+            return value
+        if not addr.is_global:
+            raise ValueError("endpoint 는 공개 호스트여야 합니다")
+        return value
 
     @field_validator("user_agent")
     @classmethod

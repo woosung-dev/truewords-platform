@@ -59,7 +59,10 @@ export function ReadNotificationCard({ push }: { push: PushState }) {
             type="time"
             value={push.prefs.read_time}
             disabled={push.isSaving}
-            onChange={(event) => push.setReadTime(event.target.value)}
+            onChange={(event) => {
+              // 값을 지우면 "" 가 되어 서버가 422 를 낸다 — 비운 상태는 저장하지 않는다.
+              if (event.target.value) push.setReadTime(event.target.value);
+            }}
             aria-label={`${READ_TITLE} 알림 시간`}
           />
         </label>

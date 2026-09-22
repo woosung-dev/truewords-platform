@@ -39,7 +39,7 @@
 | 0 문서 | `dev/hoondok-phase4` 직접 | 이 문서 · `PLAN-HD-001` §7 개정 · `docs/TODO.md` · rollout runbook 알림 절 · `docs/README.md` | ✅ `1210002`·`a320db8` |
 | A API | `feat/hoondok-push-api` | `apps/api/**` · `contracts/` · `packages/api-client-ts/src/generated/` · `hoondok-api.md`·`hoondok-entities.md`(예외 허용) | ✅ 머지 `3b4c846` — alembic `m7c8d9e0f1a2`, pytest 1119 passed(+23), contracts 추가만 |
 | B 발송기 | `feat/hoondok-push-sender` (A 스택) | `apps/api/scripts/{send_hoondok_push.py,hoondok_beta_metrics.sql}` · `apps/api/tests/test_send_hoondok_push.py` · `infra/oracle-vm/{send-hoondok-push.sh,ops-check.sh,README.md}` | ✅ 머지 `a234839` — pytest 1147(+28), dry-run disabled exit 0, `bash -n`, VAPID 스니펫 py-vapid 1.9.4 동작 확인. 리뷰 수정: 5xx·네트워크 실패 누적 제외 |
-| C web | `feat/hoondok-push-web` | `public/hoondok/sw.js` · `features/hoondok/notifications/**` · `settings/components/settings-screen.tsx` · `observability/report.ts` · `_hoondok/settings.css` · `src/test/hoondok-sw.test.ts` · `tests/e2e/hoondok.spec.ts` | ✅ 머지 — Vitest 275/32 files, lint 0 errors, typecheck, hoondok:check 통과. E2E 구독 흐름은 `HOONDOK_PUSH_API_READY` 게이트 |
+| C web | `feat/hoondok-push-web` | `public/hoondok/sw.js` · `features/hoondok/notifications/**` · `settings/components/settings-screen.tsx` · `observability/report.ts` · `_hoondok/settings.css` · `src/test/hoondok-sw.test.ts` · `tests/e2e/hoondok.spec.ts` | ✅ 머지 — Vitest 275/32 files, lint 0 errors, typecheck, hoondok:check 통과. E2E 구독 흐름 게이트 해제(`3ff0ec4`) + 헤드리스 `Notification.permission` 허용 shim(`cc71b0c`) |
 
 **공유 파일(트랙 편집 금지)**: `apps/web/src/app/hoondok.css`, hoondok `layout.tsx`, `features/hoondok/{tabs,screens,flag}.ts`, `components/hoondok/*`, `Makefile`. 필요 시 보고만 하고 오케스트레이터가 처리한다.
 
@@ -60,7 +60,11 @@
 | 2026-09-22 | `API-HD-018` 은 client-errors 가 선점 → 새 번호 019~022, ENT 008·009 | 정정 |
 | 2026-09-22 | 브랜치 `dev/hoondok-phase4` + worktree A·C 생성, 병렬 착수 | 완료 |
 | 2026-09-22 | A 머지 `3b4c846` → B worktree 생성·착수 · C 검증 후 머지 `41fb19d` | 완료 |
-| 2026-09-22 | B 머지 `a234839` + 리뷰 수정(실패 누적 4xx 한정) → `make ci`·`make e2e` 게이트 | 진행 |
+| 2026-09-22 | B 머지 `a234839` + 리뷰 수정(실패 누적 4xx 한정) → `make ci`·`make e2e` 게이트 | 완료 |
+| 2026-09-22 | `make ci` exit 0 — pytest 1148 passed / 7 skipped / 1 xfailed · Vitest web 275 · admin 119 · api-client 13 · lint 0 errors(경고 10 기존) · build·typecheck · docs-links 새 오류 0 | 통과 |
+| 2026-09-22 | `make e2e` 92 passed (1차 91/1 — 헤드리스 Chromium 이 `grantPermissions` 뒤에도 `Notification.permission="denied"` → init script shim `cc71b0c`). 사전 정리: main 체크아웃의 stale 서버 3개(:8000 e2e_app · :3000 · :3001) kill | 통과 |
+| 2026-09-22 | codex 리뷰 — 사용량 한도 초과(2026-09-24 15:03 복구)로 실행 불가 → Opus 서브에이전트 독립 read-only 리뷰로 대체 | 대체 |
+| 2026-09-22 | 독립 리뷰 1회차 FAIL(P0 0 · P1 3 · P2 7) → 수정: 401/403/429 는 실패 누적 제외(P1-1) · ops-check 켠 사용자≥1·구독 0 을 WARN(P1-2) · webpush `timeout=10` + cron `flock -n`(P1-3) · endpoint https·공개 호스트 검증(P2-1) · 해지 요청줄 쿼리 제거(P2-2) · `--to-email` 도 `--execute` 없으면 dry-run(P2-3) · `subscription_count=0` 도 기기 없음 표시(P2-4) · 409 시 브라우저 구독 정리(P2-5) · 시간 빈 값 미저장(P2-7). P2-6·전면 prune 보호는 TODO | 수정 완료 |
 
 ## 8. 결정 기록
 

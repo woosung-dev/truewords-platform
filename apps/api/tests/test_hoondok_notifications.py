@@ -261,6 +261,24 @@ def test_subscribe_rejects_oversized_endpoint(client: TestClient, push_on):
     assert res.status_code == 422
 
 
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "http://fcm.googleapis.com/fcm/send/abc",
+        "https://127.0.0.1:6333/collections",
+        "https://10.0.0.5/x",
+        "https://localhost/x",
+        "https://qdrant.internal/x",
+        "not-a-url",
+    ],
+)
+def test_subscribe_rejects_non_public_https_endpoint(client: TestClient, push_on, endpoint: str):
+    """발송기가 VM 안에서 POST 하는 URL 이다 — 내부 주소는 blind SSRF 가 된다."""
+    _login(client, client.me)  # type: ignore[attr-defined]
+    res = client.post(PUSH, json=_subscription(endpoint), headers=XHR)
+    assert res.status_code == 422
+
+
 def test_subscribe_truncates_long_user_agent(client: TestClient, push_on):
     _login(client, client.me)  # type: ignore[attr-defined]
     assert client.post(PUSH, json=_subscription(user_agent="U" * 400), headers=XHR).status_code == 201

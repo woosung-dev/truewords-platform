@@ -25,5 +25,8 @@ cd "$TW_DIR"
 # 타임스탬프 한 줄 뒤에 스크립트의 요약 JSON 한 줄만 붙인다.
 printf '[%s] hoondok push ' "$(date '+%F %T')"
 
-sudo docker compose --env-file .env exec -T backend \
+# flock -n: 이전 run 이 아직 돌고 있으면(푸시 서비스 응답 지연 등) 겹쳐 띄우지 않고 그냥 끝낸다.
+# 하루 1회 보장은 last_sent_on 이 갖지만, 겹친 run 은 mark 전에 같은 사용자에게 중복 발송할 수 있다.
+exec flock -n /tmp/hoondok-push.lock \
+  sudo docker compose --env-file .env exec -T backend \
   python scripts/send_hoondok_push.py --execute "$@"

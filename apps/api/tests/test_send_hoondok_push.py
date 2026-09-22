@@ -214,6 +214,7 @@ async def test_payload_and_webpush_arguments(factory, push_on, sent_calls):
     assert call["vapid_private_key"] == "test-private"
     assert call["vapid_claims"] == {"sub": "mailto:admin@example.com"}
     assert call["ttl"] == 7200
+    assert call["timeout"] == 10  # pywebpush 기본 None 은 무한 대기다
 
 
 async def test_outside_window_is_not_sent(factory, push_on, sent_calls):
@@ -313,8 +314,14 @@ async def test_client_rejection_accumulates_then_prunes(factory, push_on, sent_c
 
 @pytest.mark.parametrize(
     "error",
-    [WebPushException("service down", response=FakeResponse(500)), RuntimeError("네트워크 끊김")],
-    ids=["5xx", "network"],
+    [
+        WebPushException("service down", response=FakeResponse(500)),
+        RuntimeError("네트워크 끊김"),
+        WebPushException("bad vapid", response=FakeResponse(401)),
+        WebPushException("bad vapid", response=FakeResponse(403)),
+        WebPushException("rate limited", response=FakeResponse(429)),
+    ],
+    ids=["5xx", "network", "401-vapid", "403-vapid", "429-ratelimit"],
 )
 async def test_service_or_network_failure_does_not_accumulate(factory, push_on, sent_calls, error):
     """푸시 서비스 장애·네트워크 단절은 구독 탓이 아니다 — 연속 cron 실패로 전 구독이 지워지면 안 된다."""
@@ -390,6 +397,16 @@ async def test_to_email_ignores_window_and_does_not_mark_sent(factory, push_on, 
     }
     (sub,) = await _subscriptions(factory)
     assert sub.last_sent_on == TODAY  # 정규 발송 판정을 건드리지 않는다
+
+
+async def test_to_email_without_execute_is_dry_run(factory, push_on, sent_calls):
+    """--to-email 만 붙이면 후보만 센다 — --dry-run 인 채로 실기기에 나가면 안 된다."""
+    await _seed(factory)
+
+    summary = await _run(factory, to_email="me@example.com")
+
+    assert (summary.mode, summary.eligible, summary.sent) == ("dry-run", 1, 0)
+    assert sent_calls == []
 
 
 async def test_to_email_unknown_account_sends_nothing(factory, push_on, sent_calls):

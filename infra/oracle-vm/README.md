@@ -311,7 +311,7 @@ make restore-drill                         # 백업 복구 리허설
 | `disk` | < 70% 주의 / < 80% 임계 | 디스크 포화. 한 달에 25GB 늘던 실측(2026-08-30)에서 80% 는 남은 시간이 3주도 안 됐다. WARN 은 종료코드를 바꾸지 않는다 |
 | `gemini-key` | embed + generate 둘 다 HTTP 성공, embed 차원 = 1536 | **유일한 외부 의존 사망** — 키 회수·청구 중단·quota 소진·모델 폐기·차원 변경 |
 | `hoondok-today` | 오늘·내일 편성 존재 | 운영자 수기 편성이 끊겨 홈이 "오늘 말씀 없음" 이 되는 것. WARN 이라 종료코드를 바꾸지 않는다 |
-| `hoondok-push` | 구독이 있는데 `max(last_sent_on)` 이 어제보다 이전 | 발송 cron 중단·VAPID 누락. 구독 0이면 아직 아무도 켜지 않은 정상 상태라 OK. WARN |
+| `hoondok-push` | 구독이 있는데 `max(last_sent_on)` 이 어제보다 이전 · 또는 알림 켠 사용자 ≥1 인데 구독 0 | 발송 cron 중단·VAPID 누락 · 구독이 삭제됨(발송기 prune·브라우저 데이터 삭제). 켠 사용자도 0이면 아직 아무도 켜지 않은 정상 상태라 OK. WARN |
 
 ```bash
 make ops-check

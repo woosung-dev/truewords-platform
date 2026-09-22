@@ -333,6 +333,22 @@ def test_access_log_scrubs_query_even_on_failure():
     assert "SECRET" not in record.getMessage()
 
 
+def test_access_log_scrubs_push_endpoint_query():
+    """push endpoint 는 기기 식별 capability URL 이다 — 해지 요청줄에 남기지 않는다."""
+    record = logging.LogRecord(
+        "uvicorn.access",
+        20,
+        "",
+        0,
+        '%s - "%s %s HTTP/%s" %d',
+        ("127.0.0.1", "DELETE", "/hoondok/me/push?endpoint=https://fcm/SECRET", "1.1", 204),
+        None,
+    )
+    HoondokAccessLogFilter().filter(record)
+    assert "SECRET" not in record.getMessage()
+    assert "/hoondok/me/push" in record.getMessage()
+
+
 def test_today_rejects_admin_cookie_and_failure_is_503():
     svc = AsyncMock()
     svc.search.side_effect = SearchFailedError("safe")

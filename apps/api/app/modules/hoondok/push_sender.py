@@ -33,6 +33,10 @@ logger = logging.getLogger(__name__)
 WINDOW_MINUTES = 120  # §2-7 발송 창: read_time 이후 2시간
 MAX_FAILURES = 5  # §2-8 누적 실패 상한 (도달 시 구독 삭제)
 EXPIRED_STATUSES = (404, 410)  # 만료·해지된 구독 — 즉시 삭제
+# 401/403 = VAPID 키·subject 문제, 429 = 푸시 서비스 레이트리밋. 모두 우리 쪽·서비스 쪽 원인이라
+# 전 구독에 동시에 생긴다 — 구독 탓으로 누적하면 창 한 번(8회 시도)에 전 구독이 지워진다.
+TRANSIENT_STATUSES = (401, 403, 429)
+DELIVER_TIMEOUT_SECONDS = 10  # pywebpush 기본은 timeout=None(무한 대기) — cron 이 매달리지 않게
 TTL_SECONDS = 7200  # 창을 지난 뒤 배달되는 것을 막는다(창 길이와 같다)
 BODY_TEXT = "3분이면 충분해요"
 TARGET_URL = "/hoondok"
@@ -201,6 +205,7 @@ def _deliver(subscription: PushSubscription, payload: dict[str, str], config: Se
         vapid_private_key=private_key.get_secret_value() if private_key else "",
         vapid_claims={"sub": config.hoondok_vapid_subject or ""},
         ttl=TTL_SECONDS,
+        timeout=DELIVER_TIMEOUT_SECONDS,
     )
 
 
@@ -226,13 +231,13 @@ async def _send_targets(
                 logger.info("[prune] endpoint 만료 status=%s id=%s", status, subscription.id)
                 await repo.remove(subscription)
                 summary.pruned += 1
-            elif status is not None and 400 <= status < 500:
+            elif status is not None and 400 <= status < 500 and status not in TRANSIENT_STATUSES:
                 # 구독 자체의 문제(키 불일치·잘못된 endpoint 등) — 누적 5회에 삭제한다.
                 logger.warning("[fail] push 거절 status=%s id=%s", status, subscription.id)
                 if await repo.bump_failure(subscription):
                     summary.pruned += 1
             else:
-                # 5xx·상태 없음 = 푸시 서비스 쪽 장애다. 구독 탓이 아니므로 누적하지 않는다 —
+                # 5xx·401/403/429·상태 없음 = 푸시 서비스·우리 설정 쪽 장애다. 구독 탓이 아니므로 누적하지 않는다 —
                 # 15분 cron 이 5번만 연속 실패해도 전 구독이 지워지는 사고를 막는다.
                 logger.warning("[fail] push 서비스 오류 status=%s id=%s", status, subscription.id)
         except Exception:
@@ -257,12 +262,12 @@ async def run_push_sender(
     if not config.is_hoondok_push_enabled():
         return PushSummary(mode="disabled")
 
-    if to_email:
+    if to_email and execute:
         mode = "to-email"
     elif execute:
         mode = "execute"
     else:
-        mode = "dry-run"
+        mode = "dry-run"  # --to-email 만 있고 --execute 가 없으면 후보만 센다 — 실기기로 나가지 않는다
     summary = PushSummary(mode=mode)
 
     if session_factory is None:
@@ -280,6 +285,8 @@ async def run_push_sender(
             subs, level = await repo.list_for_email(to_email)
             targets = [PushTarget(subscription=s, lock_screen_level=level) for s in subs]
             summary.eligible = len(targets)
+            if mode == "dry-run":
+                return summary
             # 증거용 즉시 발송이라 last_sent_on 을 건드리지 않는다 — 정규 발송이 그대로 나간다.
             await _send_targets(
                 repo, targets, today=today, config=config, summary=summary, mark_sent=False

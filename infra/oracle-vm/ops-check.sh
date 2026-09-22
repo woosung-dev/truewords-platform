@@ -338,8 +338,11 @@ if [ -z "$HD_PUSH" ]; then
   record "hoondok-push" SKIP "push_subscriptions 를 읽지 못했다 — 마이그레이션 이전이거나 postgres 확인"
 else
   IFS='|' read -r HP_SUBS HP_ENABLED HP_LAST HP_TODAY HP_RECENT <<< "$HD_PUSH"
-  if [ "${HP_SUBS:-0}" -eq 0 ]; then
-    record "hoondok-push" OK "구독 없음 (알림 켠 사용자 ${HP_ENABLED:-0}명 · 오늘 ${HP_TODAY})"
+  if [ "${HP_SUBS:-0}" -eq 0 ] && [ "${HP_ENABLED:-0}" -ge 1 ]; then
+    # 켠 사람은 있는데 구독 행이 없다 = 발송기가 지웠거나 브라우저 쪽만 남은 상태. 사용자에겐 침묵뿐이다.
+    record "hoondok-push" WARN "알림 켠 사용자 ${HP_ENABLED}명인데 구독 0 — 구독이 삭제됐는지 확인 (오늘 ${HP_TODAY})"
+  elif [ "${HP_SUBS:-0}" -eq 0 ]; then
+    record "hoondok-push" OK "구독 없음 (오늘 ${HP_TODAY})"
   elif [ "${HP_ENABLED:-0}" -ge 1 ] && [ "$HP_RECENT" != "t" ]; then
     record "hoondok-push" WARN "구독 ${HP_SUBS} · 최근 발송 ${HP_LAST} (24h 발송 0건) — cron·VAPID 확인"
   else

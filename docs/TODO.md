@@ -213,6 +213,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ## Questions
 
 - `PLAN-HD-006` 알림: 앱 내 **알림함**(PRD F7 "최종 전달 수단")·기도/가정예배/공지 3종·이메일 인프라는 비범위로 두었다. 훈독 알림 1종의 운영 데이터를 본 뒤 다음 계획에서 다룰지 결정한다 [확인 필요] (2026-09-22)
+- `PLAN-HD-006` 발송기 리뷰 잔여 P2 2건 — (1) `pywebpush` 가 응답 없이 던지는 암호화 실패(`Invalid p256dh key` 등, status None)는 현재 누적하지 않아 영구 재시도된다. 운영 로그에서 빈도를 본 뒤 누적 대상에 넣을지 결정. (2) `send-hoondok-push.sh` 는 `flock -n` 으로 겹침만 막고, 한 run 이 전부 실패한 경우의 prune 전면 보호(성공 0·실패 N 이면 prune 건너뛰기)는 두지 않았다 [확인 필요] (2026-09-22)
 
 - `[종결]` `DEC-MONO-005` — 사용자 승인 후 `apps/admin` 배포별 override로 Vercel preview `dpl_7mjHQuuQA2NuFddcxmz18G7RBbVc`의 `READY`를 확인했었다. 2026-09-05 main 머지 후 Production 배포가 Root Directory `admin` 부재로 실패했고, 같은 날 **Vercel 프로젝트 즉시 삭제**를 결정해 preview·전역 Root Directory 논점이 사라졌다. [전환 runbook](runbooks/monorepo-migration-and-rollback.md#외부-vercel-설정-종결) 참조.
 - `[종결]` `DEC-MONO-002` — **2026-09-06 확정**: web 은 기존 `app.woosung.dev` 유지, admin 은 `truewords-admin.woosung.dev`(zone 을 nexus·kairos·quantbridge 와 공유하므로 프로젝트 접두어). 컷오버 순서는 [전환 runbook §배포 승인 후 순서](runbooks/monorepo-migration-and-rollback.md#배포-승인-후-순서), 실행은 단계별 승인.

@@ -104,12 +104,18 @@ export function usePushNotifications() {
           applicationServerKey: urlBase64ToUint8Array(configQuery.data?.public_key ?? ""),
         });
         const json = subscription.toJSON();
-        await notificationsAPI.subscribe({
-          endpoint: json.endpoint ?? subscription.endpoint,
-          keys: { p256dh: json.keys?.p256dh ?? "", auth: json.keys?.auth ?? "" },
-          // backend 는 400자를 넘으면 422 로 돌려준다 — 진단용 값 하나 때문에 구독을 잃지 않는다.
-          user_agent: typeof navigator === "undefined" ? null : navigator.userAgent.slice(0, USER_AGENT_MAX),
-        });
+        try {
+          await notificationsAPI.subscribe({
+            endpoint: json.endpoint ?? subscription.endpoint,
+            keys: { p256dh: json.keys?.p256dh ?? "", auth: json.keys?.auth ?? "" },
+            // backend 는 400자를 넘으면 422 로 돌려준다 — 진단용 값 하나 때문에 구독을 잃지 않는다.
+            user_agent: typeof navigator === "undefined" ? null : navigator.userAgent.slice(0, USER_AGENT_MAX),
+          });
+        } catch (error) {
+          // 서버가 받지 못한 구독은 브라우저에도 남기지 않는다(409 PUSH_DISABLED 등 — 고아 구독 방지).
+          await subscription.unsubscribe().catch(() => undefined);
+          throw error;
+        }
       }
       if (!intent.readEnabled && prefs.read_enabled) {
         // 이 기기 구독만 지운다. 다른 기기 구독은 그 기기가 끌 때 지워진다.
@@ -163,8 +169,9 @@ export function usePushNotifications() {
     prefs,
     isSaving: mutation.isPending,
     message,
-    /** 서버는 켜졌는데 이 기기 구독이 없을 때만 true */
-    isDeviceMissing: support === "ready" && prefs.read_enabled && hasDeviceSubscription === false,
+    /** 서버는 켜졌는데 이 기기 구독이 없거나, 서버 구독 행이 하나도 없을 때(발송기가 지운 경우) true */
+    isDeviceMissing:
+      support === "ready" && prefs.read_enabled && (hasDeviceSubscription === false || prefs.subscription_count === 0),
     toggle: (readEnabled: boolean) => submit({ readEnabled }),
     setReadTime: (readTime: string) => submit({ readTime }),
     setLockScreenLevel: (lockScreenLevel: LockScreenLevel) => submit({ lockScreenLevel }),
