@@ -31,6 +31,21 @@ class Settings(BaseSettings):
     # 미설정·빈 값 = 게이트 OFF(로컬·E2E 기존 동작). 운영 값은 VM .env 에만 둔다. 로그인·기존 계정은 무관.
     hoondok_invite_code: SecretStr | None = None
 
+    # 훈독 Web Push (PLAN-HD-006). 3값이 모두 있어야 구독이 열린다 — 하나라도 비면 기능 OFF(구독 409 PUSH_DISABLED).
+    # 공개 키만 클라이언트에 내려간다(API-HD-019). 비밀 키·subject 는 발송기(sub-PR B)만 쓴다.
+    hoondok_vapid_public_key: str | None = None  # base64url (uncompressed P-256)
+    hoondok_vapid_private_key: SecretStr | None = None
+    hoondok_vapid_subject: str | None = None  # "mailto:..." 또는 https URL
+
+    def is_hoondok_push_enabled(self) -> bool:
+        """VAPID 3값이 모두 설정되고 공백이 아닐 때만 True. 미설정이면 구독 API 가 열리지 않는다."""
+        private = self.hoondok_vapid_private_key
+        return bool(
+            (self.hoondok_vapid_public_key or "").strip()
+            and (private.get_secret_value().strip() if private else "")
+            and (self.hoondok_vapid_subject or "").strip()
+        )
+
     # ponytail: 레드팀 시연 한시 관리자 게이트 — admin API 를 허용할 단 하나의 계정 이메일.
     # 시연 종료 후 AdminRole 기반 권한으로 교체/삭제. 코드에 개인 이메일을 두지 않으려고
     # env(DEMO_ADMIN_EMAIL)로 받는다. 비어 있으면 아무도 게이트를 통과하지 못한다 —

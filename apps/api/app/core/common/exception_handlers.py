@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.common.schemas import ErrorResponse
 from app.modules.chat.exceptions import SessionOwnershipError
+from app.modules.hoondok.exceptions import PushDisabledError
 from app.modules.identity.exceptions import InviteRequiredError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
 from app.modules.search.exceptions import EmbeddingFailedError, SearchFailedError
@@ -81,6 +82,22 @@ async def invite_required_handler(
         status_code=403,
         content=ErrorResponse(
             error_code="INVITE_REQUIRED",
+            message=str(exc),
+            request_id=rid,
+        ).model_dump(),
+    )
+
+
+async def push_disabled_handler(
+    request: Request, exc: PushDisabledError
+) -> JSONResponse:
+    """VAPID 미설정 상태의 푸시 구독 시도 (409, PLAN-HD-006). endpoint 원문은 로그에 남기지 않는다."""
+    rid = _get_request_id(request)
+    logger.warning("PushDisabledError", extra={"request_id": rid})
+    return JSONResponse(
+        status_code=409,
+        content=ErrorResponse(
+            error_code="PUSH_DISABLED",
             message=str(exc),
             request_id=rid,
         ).model_dump(),

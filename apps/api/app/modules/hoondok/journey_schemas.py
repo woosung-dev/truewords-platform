@@ -99,5 +99,5 @@ class JeongseongTodayResponse(BaseModel):
 
 class ClientErrorInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    kind: Literal["sw_register", "install_prompt", "unhandled", "api_5xx"]
+    kind: Literal["sw_register", "install_prompt", "unhandled", "api_5xx", "push_subscribe"]
     path: str = Field(max_length=2048)

@@ -16,6 +16,7 @@ _MESSAGES = {
     "install_prompt": "설치 요청 실패",
     "unhandled": "처리되지 않은 클라이언트 오류",
     "api_5xx": "API 서비스 오류",
+    "push_subscribe": "알림 구독 실패",
 }
 _STATIC_PATHS = {
     "",
