@@ -13,6 +13,17 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/features/identity/api", () => ({
   identityAPI: { signup: vi.fn(), login: vi.fn(), logout: vi.fn(), me: vi.fn(), deleteMe: vi.fn() },
 }));
+// 이 파일은 알림이 "준비 중" 인 화면만 본다 — 서버 설정 없음을 고정한다.
+// 켤 수 있을 때의 흐름은 hoondok-push-settings.test.tsx 가 갖는다 (PLAN-HD-006).
+vi.mock("@/features/hoondok/notifications/api", () => ({
+  notificationsAPI: {
+    config: vi.fn(async () => ({ enabled: false, public_key: null })),
+    prefs: vi.fn(),
+    savePrefs: vi.fn(),
+    subscribe: vi.fn(),
+    unsubscribe: vi.fn(),
+  },
+}));
 
 import { INSTALL_CARD_TITLE } from "@/features/hoondok/install/components/install-card";
 import { SettingsScreen } from "@/features/hoondok/settings/components/settings-screen";
@@ -65,9 +76,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("SCR-PWA-015 알림 (Phase 4 전까지 준비 중)", () => {
+describe("SCR-PWA-015 알림 (서버 설정 없음 = 준비 중)", () => {
   it("알림 토글 4개는 disabled + '준비 중' 이고, 시간·잠금 문구 선택도 누를 수 없다", async () => {
     render(wrap(<SettingsScreen />));
+    // 훈독하기 행은 서버 설정을 받은 뒤에 "준비 중" 으로 확정된다
+    await waitFor(() => expect(screen.getAllByText("준비 중")).toHaveLength(6));
 
     for (const label of TOGGLE_LABELS) {
       const toggle = screen.getByRole("button", { name: label });
@@ -79,8 +92,6 @@ describe("SCR-PWA-015 알림 (Phase 4 전까지 준비 중)", () => {
       expect(toggle).toHaveAttribute("aria-pressed", "false");
     }
 
-    // 알림 4행 + 조용한 시간 + 잠금 화면 문구
-    expect(screen.getAllByText("준비 중")).toHaveLength(6);
     // 시간 행 3개(공지는 시간 없음) 는 전부 비활성
     for (const time of ["오전 6:00", "오후 9:30", "토요일 오후 6:00"]) {
       expect(screen.getByText(time).closest("button")).toBeDisabled();
