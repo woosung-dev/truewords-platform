@@ -15,11 +15,19 @@ function isAnonymousAuthProbe(text: string, url: string) {
   return EXPECTED_401.test(text) && url.includes("/hoondok/auth/me");
 }
 
+// 설정 화면은 `GET /hoondok/push/config` 로 알림을 켤 수 있는지 먼저 묻는다 (PLAN-HD-006 C).
+// 이 엔드포인트는 sub-PR A 가 들어오기 전까지 404 고, 화면은 그걸 "준비 중" 으로 다룬다 —
+// 브라우저는 404 도 리소스 오류로 찍으므로 그 한 건만 뺀다. A 머지 뒤에는 200 이라 이 예외는 더 걸리지 않는다.
+function isPushConfigProbe(text: string, url: string) {
+  return /status of 404/.test(text) && url.includes("/hoondok/push/config");
+}
+
 async function collectConsoleErrors(page: Page) {
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     if (isAnonymousAuthProbe(message.text(), message.location().url)) return;
+    if (isPushConfigProbe(message.text(), message.location().url)) return;
     errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
@@ -294,4 +302,88 @@ test("오프라인: /hoondok/read 이동 시 /hoondok/offline 로 폴백 렌더(
   });
   expect(cache.keys.filter((k) => k.startsWith("hoondok-"))).toHaveLength(1);
   expect(cache.hits).toEqual([]);
+});
+
+// ===== Phase 4 알림 (PLAN-HD-006 C) =====
+// VAPID 공개키(P-256 비압축 65바이트)를 base64url 로. 가짜 구독을 만들 때 subscribe 가 이 값을 받는다.
+const FAKE_VAPID_KEY =
+  "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U";
+const FAKE_ENDPOINT = "https://push.example/abc";
+
+async function loginAsSeedUser(page: Page) {
+  await page.goto("/hoondok/onboarding");
+  await page.getByRole("button", { name: "로그인" }).click();
+  await page.getByLabel(/이메일/).fill("hoondok@example.com");
+  await page.getByLabel(/비밀번호/).fill("test1234");
+  await page.getByRole("button", { name: "로그인" }).click();
+  await expect(page).toHaveURL(/\/hoondok$/);
+}
+
+test("알림: backend 에 VAPID 가 없으면 훈독하기도 '준비 중' 이고 켤 수 없다", async ({ page }) => {
+  const errors = await collectConsoleErrors(page);
+  await loginAsSeedUser(page);
+  await page.goto("/hoondok/settings");
+
+  const toggle = page.getByRole("button", { name: "훈독하기 알림" });
+  await expect(page.locator("main").getByText("준비 중")).toHaveCount(6);
+  await expect(toggle).toBeDisabled();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  // 켤 수 없으므로 시간도 고를 수 없다 (input 대신 꺼진 행)
+  await expect(page.getByLabel("훈독하기 알림 시간")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+// 구독 저장(POST /hoondok/me/push)과 설정(PUT /hoondok/me/notifications) 은 sub-PR A 의 엔드포인트다.
+// 여기서는 브라우저 쪽 계약(권한 → subscribe → POST 본문 → PUT) 을 끝까지 확인한다.
+test("알림: 권한 허용 → 구독 저장 → 설정 PUT, reload 뒤에도 켜짐", async ({ page, context }) => {
+  test.skip(!process.env.HOONDOK_PUSH_API_READY, "sub-PR A(backend 알림 API) 머지 후 해제한다");
+  await context.grantPermissions(["notifications"]);
+  // 서버 설정은 가짜로 켠다 — 로컬 backend 에는 VAPID 키가 없다.
+  await page.route("**/api/backend/hoondok/push/config", (route) =>
+    route.fulfill({ json: { enabled: true, public_key: FAKE_VAPID_KEY } }),
+  );
+  // 실제 푸시 서비스에 등록하지 않는다. endpoint·keys 모양만 계약대로 돌려준다.
+  await page.addInitScript(
+    ({ endpoint }) => {
+      const subscription = {
+        endpoint,
+        unsubscribe: async () => true,
+        toJSON: () => ({ endpoint, keys: { p256dh: "fake-p256dh", auth: "fake-auth" } }),
+      };
+      PushManager.prototype.subscribe = async () => subscription as unknown as PushSubscription;
+      PushManager.prototype.getSubscription = async () => subscription as unknown as PushSubscription;
+    },
+    { endpoint: FAKE_ENDPOINT },
+  );
+  const subscribeBodies: unknown[] = [];
+  await page.route("**/api/backend/hoondok/me/push", async (route) => {
+    subscribeBodies.push(route.request().postDataJSON());
+    await route.fulfill({ status: 201, json: { id: "e2e", endpoint: FAKE_ENDPOINT, created_at: "2026-09-22" } });
+  });
+
+  await loginAsSeedUser(page);
+  await page.goto("/hoondok/settings");
+  const toggle = page.getByRole("button", { name: "훈독하기 알림" });
+  await expect(toggle).toBeEnabled();
+
+  const savedPrefs = page.waitForResponse(
+    (response) => response.url().includes("/hoondok/me/notifications") && response.request().method() === "PUT",
+  );
+  await toggle.click();
+  expect((await savedPrefs).status()).toBe(200);
+  expect(subscribeBodies).toEqual([
+    { endpoint: FAKE_ENDPOINT, keys: { p256dh: "fake-p256dh", auth: "fake-auth" }, user_agent: expect.any(String) },
+  ]);
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("훈독하기 알림 시간")).toBeVisible();
+
+  // 켜짐의 근거는 서버다 — 새로고침해도, API 로 직접 물어도 같다.
+  await page.reload();
+  await expect(page.getByRole("button", { name: "훈독하기 알림" })).toHaveAttribute("aria-pressed", "true");
+  const prefs = await (await page.request.get("/api/backend/hoondok/me/notifications")).json();
+  expect(prefs.read_enabled).toBe(true);
+
+  // 뒷정리: 시드 사용자는 다른 스펙도 쓴다 — 켠 채로 두지 않는다.
+  await page.getByRole("button", { name: "훈독하기 알림" }).click();
+  await expect(page.getByRole("button", { name: "훈독하기 알림" })).toHaveAttribute("aria-pressed", "false");
 });

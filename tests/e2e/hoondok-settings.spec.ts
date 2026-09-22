@@ -15,11 +15,18 @@ function isAnonymousAuthProbe(text: string, url: string) {
   return /status of 401/.test(text) && url.includes("/hoondok/auth/me");
 }
 
+// 설정 화면의 `GET /hoondok/push/config` 404 도 계약대로 "준비 중" 으로 다뤄진다 (PLAN-HD-006 C,
+// hoondok.spec.ts 와 같은 필터). sub-PR A 머지 뒤에는 200 이라 이 예외는 더 걸리지 않는다.
+function isPushConfigProbe(text: string, url: string) {
+  return /status of 404/.test(text) && url.includes("/hoondok/push/config");
+}
+
 function collectConsoleErrors(page: Page) {
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     if (isAnonymousAuthProbe(message.text(), message.location().url)) return;
+    if (isPushConfigProbe(message.text(), message.location().url)) return;
     errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
