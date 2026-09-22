@@ -8,6 +8,17 @@
     padding-left: 24px;
     padding-right: 24px;
   }
+  /* 첫 화면 히어로는 홈보다 높다 — 390 에서 300px, 768 이상 340px (DES-PWA-003 §5 001 행).
+     340 이 상한이라 1024 에서 더 키우지 않는다 (§4.6). */
+  .onb-hero {
+    height: 300px;
+    margin-top: 8px;
+  }
+  @media (min-width: 768px) {
+    .onb-hero {
+      height: 340px;
+    }
+  }
 
   /* ---------- 003 훈독하기 : 오늘의 한 줄 (W1-N) ---------- */
   /* 프로토타입의 .my-note 는 빈 입력을 흉내 낸 점선 상자다. 실제 textarea 로 옮기면서

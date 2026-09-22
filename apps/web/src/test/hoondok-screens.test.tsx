@@ -101,3 +101,38 @@ describe("훈독 앱 셸", () => {
     expect(screen.queryByRole("link", { name: "뒤로" })).toBeNull();
   });
 });
+
+describe("훈독 알림·설치 도달 경로 · 온보딩 탭바", () => {
+  async function shell(pathname: string) {
+    vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "");
+    vi.resetModules();
+    vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => pathname }));
+    const { HoondokAppShell } = await import("../components/hoondok/app-shell");
+    return render(
+      <HoondokAppShell>
+        <p>본문</p>
+      </HoondokAppShell>,
+    );
+  }
+
+  it("홈: 앱바 아이콘과 헤더 계정 자리 둘 다 /hoondok/settings 로 간다", async () => {
+    await shell("/hoondok");
+    const links = screen.getAllByRole("link", { name: "알림·설치" });
+    expect(links).toHaveLength(2);
+    for (const link of links) expect(link).toHaveAttribute("href", "/hoondok/settings");
+  });
+
+  it("온보딩·검색·오프라인·질문 기록에는 알림 아이콘이 없다", async () => {
+    for (const pathname of ["/hoondok/onboarding", "/hoondok/search", "/hoondok/offline", "/hoondok/ask/log"]) {
+      const view = await shell(pathname);
+      expect(screen.queryByRole("link", { name: "알림·설치" })).toBeNull();
+      view.unmount();
+    }
+  });
+
+  it("온보딩은 탭 진입 전이라 탭 내비를 그리지 않는다 (DES-PWA-003 §2)", async () => {
+    await shell("/hoondok/onboarding");
+    expect(screen.queryByRole("navigation", { name: "주 메뉴" })).toBeNull();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("시작하기");
+  });
+});

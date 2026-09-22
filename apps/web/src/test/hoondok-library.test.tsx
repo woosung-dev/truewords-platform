@@ -124,6 +124,12 @@ describe("말씀 서고", () => {
     expect(await screen.findByText("공개된 저작물이 아직 없어요")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "오늘 훈독으로 돌아가기" })).toHaveAttribute("href", "/hoondok");
   });
+  it("volume 이 저작물 제목과 같으면 같은 글자를 두 줄 쓰지 않는다", async () => {
+    const same = { ...WORK, volume: "말씀선집 001권", work_title: "말씀선집 001권" };
+    vi.mocked(libraryAPI.list).mockResolvedValue({ items: [same] });
+    show(LibraryPage());
+    expect(await screen.findAllByText("말씀선집 001권")).toHaveLength(1);
+  });
   it("오류는 0건으로 가장하지 않고 재시도한다", async () => {
     vi.mocked(libraryAPI.list).mockRejectedValueOnce(new Error("down"));
     show(LibraryPage());
@@ -186,6 +192,19 @@ describe("원문 읽기", () => {
     expect(await screen.findByText("오늘 말씀 읽기를 마쳤어요.")).toBeInTheDocument();
     expect(localStorage.getItem("hoondok:pending:study")).not.toBeNull();
     expect(localStorage.getItem("hoondok:pending:read")).toBeNull();
+  });
+  it("앱바 제목과 겹치는 저작물 제목을 본문에서 반복하지 않는다", async () => {
+    const same = { ...WORDS, volume: "말씀선집 001권", work_title: "말씀선집 001권" };
+    vi.mocked(libraryAPI.words).mockResolvedValue(same);
+    show(
+      await WordsPage({
+        params: Promise.resolve({ id: encodeURIComponent(same.volume) }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+    await screen.findByText("둘째 구간의 본문");
+    // 목차 제목 1회뿐 — 앱바 h1(titleSource: "work") 와 중복되던 lede h2·출처 줄 volume 은 사라진다
+    expect(screen.getAllByText("말씀선집 001권")).toHaveLength(1);
   });
   it("URL 경계에서 한 번만 복원해 한글·공백·퍼센트가 포함된 volume 을 보존한다", async () => {
     const volume = "말씀 100% %20권";

@@ -12,22 +12,27 @@ import { useCurrentUser } from "@/features/identity/use-current-user";
 
 /**
  * 히어로 인사. 정본 프로토타입 today 의 `.shot__greet` 자리이며 이 화면에서 가장 큰 글자다.
- * 사진이 텍스트 카드로 바뀐 뒤(DES-PWA-003-Q2)에도 "이름은 가장 큰 글자 안에" 라는 위계는 유지한다 —
- * 이름을 "이번 주" 섹션 메타로 내리면 인사가 비개인화되고 이름이 보조 정보가 된다.
- * 로그인 전에는 같은 문장을 이름 없이 쓴다(없는 값을 지어내지 않는다).
+ * 2026-09-22 `DES-PWA-003-Q2` 되돌림으로 사진 히어로를 복원했다 — 사진은 레포 정적 파일이고
+ * 글자는 veil 위(하단 45%)에 놓인다 (DES-PWA-003 §3.2).
+ * "이름은 가장 큰 글자 안에" 라는 위계는 그대로다. 이름을 "이번 주" 섹션 메타로 내리면
+ * 인사가 비개인화되고 이름이 보조 정보가 된다. 로그인 전에는 같은 문장을 이름 없이 쓴다.
  */
 export function HomeGreeting() {
   const { user } = useCurrentUser();
   const date = useKstDate();
   const { label: dateLabel } = formatKstDate(new Date(`${date}T12:00:00+09:00`));
   return (
-    <div className="card">
-      <p className="greet">
-        밤이 깊을수록 새벽은 가까워요.
-        <br />
-        {user ? `${user.display_name}님, 오늘도 함께 읽어요.` : "오늘도 함께 읽어요."}
-      </p>
-      <p className="greet__sub">{dateLabel}</p>
+    <div className="shot">
+      {/* 사진은 화면 폭의 배경이라 Next/Image 대신 정적 <img> 를 쓴다 — 원본이 이미 2x 폭(1440)이고 변환도 없다 */}
+      <img src="/hoondok/photos/home-morning-field.webp" alt="아침 햇살이 드는 들판" />
+      <div className="shot__tx">
+        <p className="shot__greet">
+          밤이 깊을수록 새벽은 가까워요.
+          <br />
+          {user ? `${user.display_name}님, 오늘도 함께 읽어요.` : "오늘도 함께 읽어요."}
+        </p>
+        <p className="shot__sub">{dateLabel}</p>
+      </div>
     </div>
   );
 }

@@ -16,6 +16,7 @@ vi.mock("@/features/hoondok/missions-api", () => ({
   missionsAPI: { complete: vi.fn(), summary: vi.fn() },
 }));
 
+import { HomeGreeting } from "@/features/hoondok/components/home-missions";
 import { ReadCompleteButton } from "@/features/hoondok/components/read-complete-button";
 import { missionsAPI } from "@/features/hoondok/missions-api";
 import { clearPending, readPending, writePending } from "@/features/hoondok/pending";
@@ -262,5 +263,24 @@ describe("완료 상태의 계정·날짜 경계", () => {
       rerender({ id: "other" });
     });
     await waitFor(() => expect(result.current.isDone).toBe(false));
+  });
+});
+
+// 2026-09-22 DES-PWA-003-Q2 되돌림 — 히어로가 다시 사진이다. 사진은 레포 정적 파일이어야 하고
+// (외부 hotlink 금지) 로그인 전 인사에 없는 이름이 들어가면 안 된다.
+describe("HomeGreeting 사진 히어로", () => {
+  it("레포 정적 사진을 싣고 로그인 전에는 이름 없이 인사한다", async () => {
+    loggedOut();
+    render(wrap(<HomeGreeting />));
+    const photo = await screen.findByAltText("아침 햇살이 드는 들판");
+    expect(photo.getAttribute("src")).toMatch(/^\/hoondok\/photos\//);
+    expect(screen.getByText(/오늘도 함께 읽어요/)).toBeInTheDocument();
+    expect(screen.queryByText(/효진님/)).toBeNull();
+  });
+
+  it("로그인하면 같은 문장 안에 이름이 들어간다", async () => {
+    loggedIn();
+    render(wrap(<HomeGreeting />));
+    expect(await screen.findByText(/효진님, 오늘도 함께 읽어요/)).toBeInTheDocument();
   });
 });

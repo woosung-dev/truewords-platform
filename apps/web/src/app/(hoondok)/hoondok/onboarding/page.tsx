@@ -188,6 +188,11 @@ export default function HoondokOnboardingPage() {
   return (
     // `col--onb` = 첫 화면만 거터 24px (DES-PWA-003 §5 001 행). 다른 화면의 --gutter 20px 와 의도적으로 다르다.
     <section className="col col--onb">
+      {/* 첫 화면 사진 히어로 (DES-PWA-003 §5 001 · 2026-09-22 DES-PWA-003-Q2 되돌림).
+          글자를 올리지 않는 장식 사진이라 veil 위 텍스트는 없고 alt 는 장면만 말한다. */}
+      <div className="shot onb-hero">
+        <img src="/hoondok/photos/onboarding-sunlit-field.webp" alt="아침 햇살 속 들판" />
+      </div>
       <p className="onb-eyebrow">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
       <h2 className="onb-title">
         아침 3분 훈독으로

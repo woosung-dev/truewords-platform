@@ -149,11 +149,24 @@
     flex: none;
   }
 
-  /* ---------- 010 · 012 설교 히어로 : 사진 대신 글자 카드 ---------- */
-  .sm-hero {
+  /* ---------- 010 가정예배 히어로 : 사진 180px (DES §5 010 행) ---------- */
+  .ws-hero {
+    height: 180px;
+  }
+  /* veil 위에서는 --accent-strong 이 어두워 읽히지 않는다 — 흰 글자로 되돌린다 (§3.2) */
+  .shot .ws-eyebrow {
+    color: var(--accent-ink);
+    opacity: 0.92;
+  }
+
+  /* ---------- 010 · 012 설교 히어로 : 사진 위 글자 (§3.2) ---------- */
+  .sm-hero .shot__tx {
     display: flex;
     flex-direction: column;
     gap: 6px;
+  }
+  .sm-hero {
+    display: block;
     transition: transform 0.12s ease;
   }
   .sm-hero:active {
@@ -169,19 +182,18 @@
     letter-spacing: -0.02em;
     text-wrap: balance;
   }
+  /* 사진 위이므로 본문 보조색(--ink-2)이 아니라 흰 글자 92% 다 (§3.2 "0.85 아래로 내리지 않는다") */
   .sm-hero__m {
     font-size: 12.5px;
-    color: var(--ink-2);
+    opacity: 0.92;
   }
-  /* 재생은 아직 없다 — 컨트롤은 disabled 이고 옆 글자가 이유를 말한다 (§3.3) */
-  .sm-hero--full {
-    gap: 8px;
-  }
+  /* 재생은 아직 없다 — 컨트롤은 disabled 이고 옆 글자가 이유를 말한다 (§3.3).
+     사진 히어로는 높이가 고정이라 이 줄은 사진 아래에 둔다. */
   .sm-play {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 2px;
+    margin-top: 10px;
   }
   .sm-play__soon {
     font-size: 11.5px;
@@ -191,7 +203,10 @@
     margin-top: 10px;
   }
 
-  /* ---------- 011 챌린지 상세 ---------- */
+  /* ---------- 011 챌린지 상세 : 사진 160px (DES §5 011 행) ---------- */
+  .ch-hero {
+    height: 160px;
+  }
   .ch-hero__top {
     display: flex;
     align-items: center;
@@ -357,16 +372,22 @@
     align-items: flex-start;
     gap: 12px;
   }
+  /* 썸네일 사진 (2026-09-22 복원). 사진이 안 와도 --surface-2 바탕이 자리를 지킨다 */
   .sm-thumb {
     position: relative;
-    display: grid;
-    place-items: center;
+    display: block;
     width: 96px;
     height: 64px;
     flex: none;
+    overflow: hidden;
     border-radius: var(--r-sm);
     background: var(--surface-2);
-    color: var(--ink-2);
+  }
+  .sm-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
   .sm-dur {
     position: absolute;

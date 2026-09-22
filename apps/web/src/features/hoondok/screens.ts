@@ -19,22 +19,55 @@ export type HoondokScreen = {
    * 프로토타입에서 `col--read` 를 쓰는 화면만 read 다.
    */
   variant: "home" | "read" | "app";
+  /** true 면 앱바·헤더의 알림 아이콘(설정 링크)을 숨긴다. 프로토타입에서 ph-bell 이 없는 화면이다 */
+  hideSettingsLink?: true;
+  /** true 면 탭 내비를 그리지 않는다. 온보딩은 탭 진입 전이라 내비가 없다 (DES-PWA-003 §2) */
+  hideNav?: true;
 };
 
 export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
   { match: "/hoondok", exact: true, title: "오늘 훈독", tabId: "today", variant: "home" },
   { match: "/hoondok/read", title: "훈독하기", backHref: "/hoondok", tabId: "today", variant: "read" },
-  { match: "/hoondok/onboarding", title: "시작하기", backHref: "/hoondok", tabId: "today", variant: "app" },
-  { match: "/hoondok/offline", title: "오프라인", backHref: "/hoondok", tabId: "today", variant: "app" },
+  {
+    match: "/hoondok/onboarding",
+    title: "시작하기",
+    backHref: "/hoondok",
+    tabId: "today",
+    variant: "app",
+    hideSettingsLink: true,
+    hideNav: true,
+  },
+  {
+    match: "/hoondok/offline",
+    title: "오프라인",
+    backHref: "/hoondok",
+    tabId: "today",
+    variant: "app",
+    hideSettingsLink: true,
+  },
   { match: "/hoondok/garden", title: "나의 정원", tabId: "garden", variant: "app" },
   { match: "/hoondok/settings", title: "알림·설치", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
   { match: "/hoondok/family", title: "가족·친구", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
   { match: "/hoondok/ask", title: "AI 질문", tabId: "ask", variant: "read" },
-  { match: "/hoondok/ask/log", title: "질문 기록", backHref: "/hoondok/ask", tabId: "ask", variant: "read" },
+  {
+    match: "/hoondok/ask/log",
+    title: "질문 기록",
+    backHref: "/hoondok/ask",
+    tabId: "ask",
+    variant: "read",
+    hideSettingsLink: true,
+  },
   // /hoondok/ask/{id} — log 가 아닌 세그먼트. 위 항목보다 접두가 짧아 최장 매치에서 자연히 밀린다
   { match: "/hoondok/ask/", title: "질문", backHref: "/hoondok/ask/log", tabId: "ask", variant: "read" },
   { match: "/hoondok/library", title: "말씀", tabId: "library", variant: "app" },
-  { match: "/hoondok/search", title: "말씀 검색", backHref: "/hoondok/library", tabId: "library", variant: "app" },
+  {
+    match: "/hoondok/search",
+    title: "말씀 검색",
+    backHref: "/hoondok/library",
+    tabId: "library",
+    variant: "app",
+    hideSettingsLink: true,
+  },
   {
     match: "/hoondok/words",
     title: "원문 읽기",

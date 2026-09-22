@@ -133,9 +133,9 @@ export function WordsScreen({ volume, page, chunkId }: { volume: string; page: n
         ))}
       </aside>
       <div className="words__main">
-        <h2 className="lede">{doc.work_title}</h2>
+        {/* 저작물 제목은 앱바 h1 이 이미 보여준다(screens.ts titleSource: "work") — 프로토타입 원문 뷰에도 별도 제목 줄이 없다 */}
         <div className="src lede-src">
-          <span>{doc.volume}</span>
+          {doc.volume !== doc.work_title && <span>{doc.volume}</span>}
           <span>화자 확인되지 않음</span>
           <span>날짜 확인되지 않음</span>
           <span>판본 확인되지 않음</span>
