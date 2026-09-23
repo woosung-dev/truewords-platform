@@ -1,6 +1,37 @@
 {
   "components": {
     "schemas": {
+      "AdminGroupItem": {
+        "description": "API-HD-043 — 모임원 이름·한 줄 본문은 내지 않는다.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "member_count": {
+            "title": "Member Count",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "member_count",
+          "created_at"
+        ],
+        "title": "AdminGroupItem",
+        "type": "object"
+      },
       "AdminLoginRequest": {
         "properties": {
           "email": {
@@ -1872,6 +1903,22 @@
         "title": "DataSourceCategoryUpdate",
         "type": "object"
       },
+      "DisplayNameInput": {
+        "description": "API-HD-036 참여 · API-HD-037 이름 변경. 앞뒤 공백만 다른 이름은 같은 이름이다.",
+        "properties": {
+          "display_name": {
+            "maxLength": 12,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name"
+        ],
+        "title": "DisplayNameInput",
+        "type": "object"
+      },
       "DuplicateCheckResponse": {
         "description": "업로드 전 중복 문서 검사 결과.",
         "properties": {
@@ -2138,6 +2185,384 @@
         "title": "FeedbackType",
         "type": "string"
       },
+      "GroupCreate": {
+        "properties": {
+          "display_name": {
+            "maxLength": 12,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "jeongseong": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GroupJeongseongInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meeting_time": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meeting Time"
+          },
+          "name": {
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "display_name"
+        ],
+        "title": "GroupCreate",
+        "type": "object"
+      },
+      "GroupDetail": {
+        "description": "API-HD-032 · 031 응답. 전체 인원 없음. invite_code 는 리더에게만 값이 있다.",
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "invite_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Code"
+          },
+          "invite_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Expires At"
+          },
+          "jeongseongs": {
+            "items": {
+              "$ref": "#/components/schemas/GroupJeongseongOut"
+            },
+            "title": "Jeongseongs",
+            "type": "array"
+          },
+          "kind": {
+            "const": "small_group",
+            "title": "Kind",
+            "type": "string"
+          },
+          "leader_display_name": {
+            "title": "Leader Display Name",
+            "type": "string"
+          },
+          "me": {
+            "$ref": "#/components/schemas/GroupMe"
+          },
+          "meeting_time": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meeting Time"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "readers": {
+            "items": {
+              "$ref": "#/components/schemas/GroupReader"
+            },
+            "title": "Readers",
+            "type": "array"
+          },
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/GroupShareOut"
+            },
+            "title": "Shares",
+            "type": "array"
+          },
+          "today_reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TodayReadingSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "leader_display_name",
+          "meeting_time",
+          "date",
+          "today_reading",
+          "jeongseongs",
+          "readers",
+          "shares",
+          "me"
+        ],
+        "title": "GroupDetail",
+        "type": "object"
+      },
+      "GroupJeongseongInput": {
+        "description": "API-HD-031 선택 항목 · API-HD-039 본문. started_on 범위(오늘±30)는 service 가 422 로 검사한다.",
+        "properties": {
+          "duration_days": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Duration Days",
+            "type": "integer"
+          },
+          "started_on": {
+            "format": "date",
+            "title": "Started On",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 24,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "duration_days",
+          "started_on"
+        ],
+        "title": "GroupJeongseongInput",
+        "type": "object"
+      },
+      "GroupJeongseongOut": {
+        "description": "진행은 저장하지 않는다. day_index = (오늘 - started_on) + 1, 시작 전이면 null(state=upcoming).",
+        "properties": {
+          "day_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Index"
+          },
+          "duration_days": {
+            "title": "Duration Days",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_official": {
+            "title": "Is Official",
+            "type": "boolean"
+          },
+          "started_on": {
+            "format": "date",
+            "title": "Started On",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "upcoming",
+              "active"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "started_on",
+          "duration_days",
+          "day_index",
+          "state",
+          "is_official"
+        ],
+        "title": "GroupJeongseongOut",
+        "type": "object"
+      },
+      "GroupMe": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "has_read_today": {
+            "title": "Has Read Today",
+            "type": "boolean"
+          },
+          "has_shared_today": {
+            "title": "Has Shared Today",
+            "type": "boolean"
+          },
+          "member_id": {
+            "format": "uuid",
+            "title": "Member Id",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "leader",
+              "member"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "member_id",
+          "display_name",
+          "role",
+          "has_read_today",
+          "has_shared_today"
+        ],
+        "title": "GroupMe",
+        "type": "object"
+      },
+      "GroupReader": {
+        "description": "오늘 훈독을 마친 모임원 — 완료자만 존재한다.",
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "is_leader": {
+            "title": "Is Leader",
+            "type": "boolean"
+          },
+          "is_me": {
+            "title": "Is Me",
+            "type": "boolean"
+          },
+          "read_at_kst": {
+            "format": "date-time",
+            "title": "Read At Kst",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name",
+          "read_at_kst",
+          "is_me",
+          "is_leader"
+        ],
+        "title": "GroupReader",
+        "type": "object"
+      },
+      "GroupRename": {
+        "properties": {
+          "name": {
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "GroupRename",
+        "type": "object"
+      },
+      "GroupShareOut": {
+        "description": "reaction_count 는 내 한 줄에만 값, 남의 한 줄은 null. 반응한 사람 목록은 주지 않는다.",
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at_kst": {
+            "format": "date-time",
+            "title": "Created At Kst",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "has_my_reaction": {
+            "title": "Has My Reaction",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_mine": {
+            "title": "Is Mine",
+            "type": "boolean"
+          },
+          "reaction_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reaction Count"
+          }
+        },
+        "required": [
+          "id",
+          "display_name",
+          "body",
+          "created_at_kst",
+          "is_mine",
+          "has_my_reaction",
+          "reaction_count"
+        ],
+        "title": "GroupShareOut",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2281,6 +2706,75 @@
           "total_chunks"
         ],
         "title": "IngestionStatusSummary",
+        "type": "object"
+      },
+      "InviteOut": {
+        "properties": {
+          "invite_code": {
+            "title": "Invite Code",
+            "type": "string"
+          },
+          "invite_expires_at": {
+            "format": "date-time",
+            "title": "Invite Expires At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invite_code",
+          "invite_expires_at"
+        ],
+        "title": "InviteOut",
+        "type": "object"
+      },
+      "InvitePreview": {
+        "description": "API-HD-035. 전체 인원 없음. 이미 모임원이면 is_member=true + group_id.",
+        "properties": {
+          "group_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id"
+          },
+          "is_member": {
+            "title": "Is Member",
+            "type": "boolean"
+          },
+          "jeongseongs": {
+            "items": {
+              "$ref": "#/components/schemas/GroupJeongseongOut"
+            },
+            "title": "Jeongseongs",
+            "type": "array"
+          },
+          "kind": {
+            "const": "small_group",
+            "title": "Kind",
+            "type": "string"
+          },
+          "leader_display_name": {
+            "title": "Leader Display Name",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "leader_display_name",
+          "jeongseongs",
+          "is_member"
+        ],
+        "title": "InvitePreview",
         "type": "object"
       },
       "JeongseongCreate": {
@@ -2513,6 +3007,20 @@
           "status"
         ],
         "title": "JeongseongTodayResponse",
+        "type": "object"
+      },
+      "JoinResult": {
+        "properties": {
+          "group_id": {
+            "format": "uuid",
+            "title": "Group Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "group_id"
+        ],
+        "title": "JoinResult",
         "type": "object"
       },
       "LibraryItem": {
@@ -2815,6 +3323,62 @@
         "title": "MarksResponse",
         "type": "object"
       },
+      "MemberItem": {
+        "description": "API-HD-038 — 읽음 상태 필드는 두지 않는다.",
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "joined_at": {
+            "format": "date-time",
+            "title": "Joined At",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "leader",
+              "member"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "display_name",
+          "role",
+          "joined_at"
+        ],
+        "title": "MemberItem",
+        "type": "object"
+      },
+      "MemberList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MemberItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "member_count": {
+            "title": "Member Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "member_count",
+          "items"
+        ],
+        "title": "MemberList",
+        "type": "object"
+      },
       "MessageResponse": {
         "description": "단순 메시지 응답 (로그인/로그아웃 등).",
         "properties": {
@@ -2880,6 +3444,67 @@
           "days"
         ],
         "title": "MonthHistoryResponse",
+        "type": "object"
+      },
+      "MyGroupItem": {
+        "description": "API-HD-030. today_read_count 는 오늘 완료자 수(전체 인원이 아니다).",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "jeongseongs": {
+            "items": {
+              "$ref": "#/components/schemas/GroupJeongseongOut"
+            },
+            "title": "Jeongseongs",
+            "type": "array"
+          },
+          "kind": {
+            "const": "small_group",
+            "title": "Kind",
+            "type": "string"
+          },
+          "my_display_name": {
+            "title": "My Display Name",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "readers_preview": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Readers Preview",
+            "type": "array"
+          },
+          "role": {
+            "enum": [
+              "leader",
+              "member"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "today_read_count": {
+            "title": "Today Read Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "role",
+          "my_display_name",
+          "today_read_count",
+          "readers_preview",
+          "jeongseongs"
+        ],
+        "title": "MyGroupItem",
         "type": "object"
       },
       "NegativeFeedbackItem": {
@@ -3029,6 +3654,101 @@
           "subscription_count"
         ],
         "title": "NotificationPreferenceResponse",
+        "type": "object"
+      },
+      "OfficialJeongseongInput": {
+        "description": "API-HD-042 공식 정성 등록·수정(전체 교체).",
+        "properties": {
+          "duration_days": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Duration Days",
+            "type": "integer"
+          },
+          "source_note": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Note"
+          },
+          "started_on": {
+            "format": "date",
+            "title": "Started On",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "started_on",
+          "duration_days"
+        ],
+        "title": "OfficialJeongseongInput",
+        "type": "object"
+      },
+      "OfficialJeongseongOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_days": {
+            "title": "Duration Days",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "source_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Note"
+          },
+          "started_on": {
+            "format": "date",
+            "title": "Started On",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "started_on",
+          "duration_days",
+          "source_note",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "OfficialJeongseongOut",
         "type": "object"
       },
       "PaginatedResponse_ChatbotConfigResponse_": {
@@ -3530,6 +4250,19 @@
           "created_at"
         ],
         "title": "ReactionResponse",
+        "type": "object"
+      },
+      "ReactionState": {
+        "properties": {
+          "has_reacted": {
+            "title": "Has Reacted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "has_reacted"
+        ],
+        "title": "ReactionState",
         "type": "object"
       },
       "ReactionToggleResponse": {
@@ -4292,6 +5025,21 @@
         "title": "SettingsConfigResponse",
         "type": "object"
       },
+      "ShareInput": {
+        "properties": {
+          "body": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "title": "ShareInput",
+        "type": "object"
+      },
       "SignupRequest": {
         "description": "약관 문구 확정 전(DEC-PWA-001)이라 consent_version 을 받지 않는다.\n\ninvite_code 는 제한 베타 게이트(Phase 3 F) 용 선택 필드 — HOONDOK_INVITE_CODE 미설정이면 무시된다.",
         "properties": {
@@ -4555,6 +5303,59 @@
           "status"
         ],
         "title": "TodayReadingResponse",
+        "type": "object"
+      },
+      "TodayReadingSummary": {
+        "description": "오늘 공식 편성 요약. 원문 링크는 web 이 id·chunk_id 로 만든다.",
+        "properties": {
+          "chunk_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Id"
+          },
+          "estimated_minutes": {
+            "title": "Estimated Minutes",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reading_date": {
+            "format": "date",
+            "title": "Reading Date",
+            "type": "string"
+          },
+          "speaker": {
+            "title": "Speaker",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reading_date",
+          "title",
+          "speaker",
+          "work_title",
+          "chunk_id",
+          "estimated_minutes"
+        ],
+        "title": "TodayReadingSummary",
         "type": "object"
       },
       "TogetherTodayResponse": {
@@ -7301,6 +8102,224 @@
         ]
       }
     },
+    "/admin/hoondok/groups": {
+      "get": {
+        "description": "API-HD-043 모임 목록 — id·name·member_count·created_at 만.",
+        "operationId": "list_groups_admin_hoondok_groups_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminGroupItem"
+                  },
+                  "title": "Response List Groups Admin Hoondok Groups Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Groups",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/groups/{group_id}": {
+      "delete": {
+        "description": "API-HD-043 모임 삭제(신고 대응) → 204 + 감사 로그. 404 없음.",
+        "operationId": "delete_group_admin_hoondok_groups__group_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Group",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/jeongseongs": {
+      "get": {
+        "description": "API-HD-042 공식 정성 목록(시작일 내림차순). 진행 상태는 화면이 started_on·duration_days 로 계산한다.",
+        "operationId": "list_official_jeongseongs_admin_hoondok_jeongseongs_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OfficialJeongseongOut"
+                  },
+                  "title": "Response List Official Jeongseongs Admin Hoondok Jeongseongs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Official Jeongseongs",
+        "tags": [
+          "admin-hoondok"
+        ]
+      },
+      "post": {
+        "description": "API-HD-042 공식 정성 등록 → 201. 모든 모임 상세에 자동 표시된다.",
+        "operationId": "create_official_jeongseong_admin_hoondok_jeongseongs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfficialJeongseongInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfficialJeongseongOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Official Jeongseong",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/jeongseongs/{jeongseong_id}": {
+      "delete": {
+        "description": "API-HD-042 공식 정성 삭제 → 204. 404 없음·모임 정성.",
+        "operationId": "delete_official_jeongseong_admin_hoondok_jeongseongs__jeongseong_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jeongseong_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Jeongseong Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Official Jeongseong",
+        "tags": [
+          "admin-hoondok"
+        ]
+      },
+      "put": {
+        "description": "API-HD-042 공식 정성 수정(전체 교체). 404 없음·모임 정성.",
+        "operationId": "update_official_jeongseong_admin_hoondok_jeongseongs__jeongseong_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jeongseong_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Jeongseong Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfficialJeongseongInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfficialJeongseongOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Official Jeongseong",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
     "/admin/settings/config": {
       "get": {
         "description": "프론트엔드에 필요한 시스템 설정 조회.\n\nAdmin UI 의 데이터 소스 페이지가 적재 대상 컬렉션을 표시할 때 사용한다\n(사용자가 \"어떤 컬렉션에 들어가는지\" 인지 — 운영 사고 방지).\n\nQdrant URL 은 host 만 노출 (api-key 등 민감정보 제외).",
@@ -8074,6 +9093,807 @@
         ]
       }
     },
+    "/hoondok/groups": {
+      "post": {
+        "description": "API-HD-031 모임 만들기 → 201 상세 + invite_code. 409 LEADER_LIMIT·JOIN_LIMIT, 422 검증.",
+        "operationId": "create_group_hoondok_groups_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Group",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
+    "/hoondok/groups/{group_id}": {
+      "delete": {
+        "description": "API-HD-033 모임 하드 삭제(리더) → 204.",
+        "operationId": "delete_group_hoondok_groups__group_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Group",
+        "tags": [
+          "hoondok-groups"
+        ]
+      },
+      "get": {
+        "description": "API-HD-032 모임 상세 — 오늘 완료자만. 전체 인원 없음. 404 비모임원.",
+        "operationId": "get_group_hoondok_groups__group_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Group",
+        "tags": [
+          "hoondok-groups"
+        ]
+      },
+      "patch": {
+        "description": "API-HD-033 모임 이름 변경(리더). 403 LEADER_ONLY, 404 비모임원.",
+        "operationId": "rename_group_hoondok_groups__group_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupRename"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rename Group",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
+    "/hoondok/groups/{group_id}/invite": {
+      "post": {
+        "description": "API-HD-034 초대 코드 새로 만들기(리더). 이전 코드는 즉시 무효, 만료 30일.",
+        "operationId": "regenerate_invite_hoondok_groups__group_id__invite_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Regenerate Invite",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
+    "/hoondok/groups/{group_id}/jeongseongs": {
+      "post": {
+        "description": "API-HD-039 모임 정성 추가(리더). 409 JEONGSEONG_LIMIT, 422 STARTED_ON_OUT_OF_RANGE.",
+        "operationId": "add_jeongseong_hoondok_groups__group_id__jeongseongs_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupJeongseongInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupJeongseongOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Jeongseong",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
+    "/hoondok/groups/{group_id}/jeongseongs/{jeongseong_id}": {
+      "delete": {
+        "description": "API-HD-039 모임 정성 삭제(리더). 공식 정성은 404.",
+        "operationId": "delete_jeongseong_hoondok_groups__group_id__jeongseongs__jeongseong_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "jeongseong_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Jeongseong Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Jeongseong",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
+    "/hoondok/groups/{group_id}/me": {
+      "delete": {
+        "description": "API-HD-037 나가기. 리더는 다른 식구가 있으면 409 LEADER_MUST_HANDOVER, 혼자면 모임 삭제.",
+        "operationId": "leave_group_hoondok_groups__group_id__me_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Leave Group",
+        "tags": [
+          "hoondok-groups"
+        ]
+      },
+      "patch": {
+        "description": "API-HD-037 모임에서 쓰는 내 이름 변경. 409 DISPLAY_NAME_TAKEN.",
+        "operationId": "update_my_name_hoondok_groups__group_id__me_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisplayNameInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupMe"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update My Name",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
+    "/hoondok/groups/{group_id}/members": {
+      "get": {
+        "description": "API-HD-038 식구 목록(리더) — member_count 는 여기만. 읽음 상태 없음.",
+        "operationId": "list_members_hoondok_groups__group_id__members_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Members",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
+    "/hoondok/groups/{group_id}/members/{member_id}": {
+      "delete": {
+        "description": "API-HD-038 식구 내보내기(리더). 자기 자신 409 CANNOT_REMOVE_SELF, 404 MEMBER_NOT_FOUND.",
+        "operationId": "remove_member_hoondok_groups__group_id__members__member_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "member_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Member Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Member",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
+    "/hoondok/groups/{group_id}/shares/today": {
+      "put": {
+        "description": "API-HD-040 오늘의 한 줄 저장(덮어쓰기). 오늘 훈독 전이면 409 READ_REQUIRED.",
+        "operationId": "put_today_share_hoondok_groups__group_id__shares_today_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupShareOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Today Share",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
+    "/hoondok/groups/{group_id}/shares/{share_id}": {
+      "delete": {
+        "description": "API-HD-040 한 줄 삭제 — 작성자 또는 리더. 그 외 403 NOT_ALLOWED.",
+        "operationId": "delete_share_hoondok_groups__group_id__shares__share_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "share_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Share Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Share",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
+    "/hoondok/groups/{group_id}/shares/{share_id}/reaction": {
+      "delete": {
+        "description": "API-HD-041 반응 끄기(멱등).",
+        "operationId": "unreact_share_hoondok_groups__group_id__shares__share_id__reaction_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "share_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Share Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReactionState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unreact Share",
+        "tags": [
+          "hoondok-groups"
+        ]
+      },
+      "put": {
+        "description": "API-HD-041 \"함께 머물렀어요\" 켜기(멱등). 자기 한 줄 409 OWN_SHARE.",
+        "operationId": "react_share_hoondok_groups__group_id__shares__share_id__reaction_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Group Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "share_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Share Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReactionState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "React Share",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
+    "/hoondok/invites/{code}": {
+      "get": {
+        "description": "API-HD-035 초대 미리보기. 잘못·만료·정원 초과는 같은 404 INVITE_NOT_FOUND. 429 limiter.",
+        "operationId": "preview_invite_hoondok_invites__code__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "title": "Code",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitePreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Invite",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
+    "/hoondok/invites/{code}/join": {
+      "post": {
+        "description": "API-HD-036 참여 → 201. 404 INVITE_NOT_FOUND · 409 ALREADY_MEMBER·DISPLAY_NAME_TAKEN·GROUP_FULL·JOIN_LIMIT.",
+        "operationId": "join_group_hoondok_invites__code__join_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "title": "Code",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisplayNameInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Join Group",
+        "tags": [
+          "hoondok-groups"
+        ]
+      }
+    },
     "/hoondok/library": {
       "get": {
         "operationId": "get_library_hoondok_library_get",
@@ -8135,6 +9955,32 @@
         "summary": "Get Series",
         "tags": [
           "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/groups": {
+      "get": {
+        "description": "API-HD-030 내 모임. 0건이면 []. 401 미인증.",
+        "operationId": "list_my_groups_hoondok_me_groups_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MyGroupItem"
+                  },
+                  "title": "Response List My Groups Hoondok Me Groups Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List My Groups",
+        "tags": [
+          "hoondok-groups"
         ]
       }
     },
