@@ -264,6 +264,8 @@ rollback-admin: ## ⚠️ 이전 admin 이미지로 롤백 (`TAG=<이전 sha>` �
 
 # 훈독 플래그 (PLAN-HD-001 결정 10). 기본 OFF. 켤 때만 `make deploy-web HOONDOK_ENABLED=1`.
 HOONDOK_ENABLED ?= 0
+# 함께 읽는 모임 킬 스위치 (PLAN-HD-010 D3). 기본 ON, 끌 때만 `make deploy-web HOONDOK_TOGETHER=0`.
+HOONDOK_TOGETHER ?= 1
 deploy-web: ## Oracle Cloud ARM VM 사용자 웹 배포 (운영 전환 runbook 선행). 훈독은 HOONDOK_ENABLED=1 로만 켠다.
 	@case "$(WEB_URL) $(ADMIN_URL)" in *localhost*) echo "WEB_URL·ADMIN_URL 운영 HTTPS origin을 명시하세요"; exit 1;; esac
 	@$(MAKE) --no-print-directory deploy-guard DEPLOY_SERVICE=WEB
@@ -271,7 +273,8 @@ deploy-web: ## Oracle Cloud ARM VM 사용자 웹 배포 (운영 전환 runbook �
 	@docker buildx build --platform linux/arm64 -f apps/web/Dockerfile \
 		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 \
 		--build-arg NEXT_PUBLIC_WEB_URL=$(WEB_URL) --build-arg NEXT_PUBLIC_ADMIN_URL=$(ADMIN_URL) \
-		--build-arg NEXT_PUBLIC_HOONDOK_ENABLED=$(HOONDOK_ENABLED) -t $(WEB_IMG) --load .
+		--build-arg NEXT_PUBLIC_HOONDOK_ENABLED=$(HOONDOK_ENABLED) \
+		--build-arg NEXT_PUBLIC_HOONDOK_TOGETHER=$(HOONDOK_TOGETHER) -t $(WEB_IMG) --load .
 	@$(call TRANSFER_IMAGE,$(WEB_IMG),web-$(TAG))
 	@ssh "$(ORACLE)" 'grep -q "^WEB_TAG=" ~/truewords/.env || { echo "runbook에 따라 WEB_TAG와 Compose를 먼저 준비하세요"; exit 1; }; sed -i "s/^WEB_TAG=.*/WEB_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait web'
 	@$(call DEPLOY_LOG,deploy,web,$(GUARD_MODE))

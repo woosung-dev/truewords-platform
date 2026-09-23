@@ -6,6 +6,11 @@ import type { HoondokTab } from "./tabs";
 export type HoondokScreen = {
   /** pathname 접두. 끝이 `/` 이면 그 아래 세그먼트만 잡고 자기 자신(`/hoondok/ask`)은 잡지 않는다 */
   match: string;
+  /**
+   * 동적 세그먼트 뒤에 고정 세그먼트가 오는 화면(`/hoondok/groups/{id}/share`). 있으면 match 대신 이것으로 판정하고,
+   * match 는 최장 매치 길이·읽기용 템플릿이다. 첫 캡처는 backHref 의 `:id` 를 채운다.
+   */
+  pattern?: RegExp;
   /** true 면 pathname 이 정확히 같을 때만 (홈) */
   exact?: boolean;
   title: string;
@@ -44,6 +49,27 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "today",
     variant: "app",
     hideSettingsLink: true,
+  },
+  // 함께 읽는 모임 (PLAN-HD-010, SCR-PWA-017~021). 모두 "오늘 훈독" 탭 귀속이고 값은 프로토타입 TITLES·TAB_OF.
+  // /hoondok/groups/{id} 는 끝 `/` 접두로 잡고, new·join·share·settings 는 더 긴 접두가 최장 매치로 이긴다.
+  { match: "/hoondok/groups/new", title: "모임 만들기", backHref: "/hoondok", tabId: "today", variant: "app" },
+  { match: "/hoondok/groups/join", title: "모임 참여", backHref: "/hoondok", tabId: "today", variant: "app" },
+  { match: "/hoondok/groups/", title: "훈독 모임", backHref: "/hoondok", tabId: "today", variant: "app" },
+  {
+    match: "/hoondok/groups/:id/share",
+    pattern: /^\/hoondok\/groups\/([^/]+)\/share\/?$/,
+    title: "한 줄 나눔",
+    backHref: "/hoondok/groups/:id",
+    tabId: "today",
+    variant: "app",
+  },
+  {
+    match: "/hoondok/groups/:id/settings",
+    pattern: /^\/hoondok\/groups\/([^/]+)\/settings\/?$/,
+    title: "모임 설정",
+    backHref: "/hoondok/groups/:id",
+    tabId: "today",
+    variant: "app",
   },
   { match: "/hoondok/garden", title: "나의 정원", tabId: "garden", variant: "app" },
   { match: "/hoondok/settings", title: "알림·설치", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
@@ -112,6 +138,7 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
 const HOME_SCREEN = HOONDOK_SCREENS[0];
 
 function isMatch(screen: HoondokScreen, pathname: string): boolean {
+  if (screen.pattern) return screen.pattern.test(pathname);
   if (screen.exact) return pathname === screen.match;
   if (pathname === screen.match) return true;
   const prefix = screen.match.endsWith("/") ? screen.match : `${screen.match}/`;
@@ -124,5 +151,7 @@ export function screenFor(pathname: string): HoondokScreen {
   for (const screen of HOONDOK_SCREENS) {
     if (isMatch(screen, pathname) && (!best || screen.match.length > best.match.length)) best = screen;
   }
-  return best ?? HOME_SCREEN;
+  if (!best) return HOME_SCREEN;
+  const id = best.pattern?.exec(pathname)?.[1];
+  return id && best.backHref ? { ...best, backHref: best.backHref.replace(":id", id) } : best;
 }
