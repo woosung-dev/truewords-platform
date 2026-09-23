@@ -122,7 +122,7 @@
 
 | 트랙 | 상태 | PR / 커밋 |
 |---|---|---|
-| A 백엔드 | 미착수 | — |
+| A 백엔드 | 완료 (로컬 커밋 f8977cb · 0281f80, 브랜치 `feat/hoondok-groups-api`) — pytest 1287 passed · alembic 왕복 · contracts:check 통과 | 미푸시 |
 | W0 web 기반 | 미착수 | — |
 | W1 모임 화면 | 미착수 | — |
 | W2 홈·완료 뒤·정정 | 미착수 | — |
