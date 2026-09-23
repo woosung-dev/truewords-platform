@@ -1,4 +1,4 @@
-"""훈독 Pydantic 스키마 — API-HD-001·004·005·009·010 + 편성 admin API-HD-006~008 (docs/specs/api/hoondok-api.md)."""
+"""훈독 Pydantic 스키마 — API-HD-001·004·005·009·010·029 + 편성 admin API-HD-006~008 (docs/specs/api/hoondok-api.md)."""
 
 import uuid
 from datetime import date, datetime, time
@@ -37,6 +37,18 @@ class TodayReadingResponse(BaseModel):
     date: date
     status: TodayStatus
     reading: DailyReadingPublic | None = None
+
+
+class TogetherTodayResponse(BaseModel):
+    """API-HD-029 오늘(KST) 훈독하기를 마친 서로 다른 사용자 수. 익명 전체 집계만 — 사람 정보는 없다.
+
+    완료자가 threshold 미만이면 숫자 자체를 내려보내지 않는다(count=null, is_shown=false).
+    """
+
+    date: date
+    count: int | None
+    is_shown: bool
+    threshold: int
 
 
 class MissionCompleteResponse(BaseModel):

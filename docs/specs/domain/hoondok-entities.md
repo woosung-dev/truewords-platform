@@ -73,6 +73,7 @@
 | `kind` | varchar(16) | not null | `read`(훈독하기) · `pray`(기도하기) · `study`(말씀 읽기) |
 | `completed_at` | datetime | not null | 실제 완료 시각(UTC) |
 | — | — | unique(`user_id`, `mission_date`, `kind`) | 하루 1회 (AC-016-02) |
+| — | — | index(`mission_date`, `kind`) `ix_mission_logs_date_kind` | 하루 완료자 수 집계 (API-HD-029, PLAN-HD-009) |
 
 - 연속일·최대 연속일·누적일은 저장하지 않고 `mission_logs` 의 `read` 완료일에서 계산한다(API-HD-004, `hoondok/streak.py`). 계산 기준은 KST 자정, "쉬어가기" 면제는 비범위.
 - 비로그인 상태의 체크는 클라이언트(localStorage, KST 날짜 키)에만 두고, 로그인 후 소급 기록한다(AC-016-02). API 가 날짜를 받지 않으므로 소급은 **당일만** 가능하다.
@@ -116,6 +117,7 @@
 | 2026-09-16 | `mission_logs` 확정(alembic `j3f4a5b6c7d8`). 연속일은 `read` 기준 계산, 소급은 당일만 | 확정 · Phase 2 sub-PR B |
 | 2026-09-19 | `jeongseong_periods` 확정(alembic `k5a6b7c8d9e0`). 사용자당 active 1건은 부분 unique, 상태 varchar, 진행률 미저장. `users.deleted_at` 은 API-HD-011 이 기록하고 이메일을 `deleted:{id}` 로 익명화 | 확정 · PLAN-HD-002 W0-B |
 | 2026-09-22 | `notification_preferences`·`push_subscriptions` 신설(alembic `m7c8d9e0f1a2`). 설정은 행 없으면 기본값·PUT 전체 교체, 구독은 `endpoint` unique + 소유 이전, 발송 상태(`last_sent_on`·`failed_count`)는 구독 행에 둔다 | 확정 · PLAN-HD-006 sub-PR A |
+| 2026-09-23 | 모임 5테이블 신설(ENT-HD-013~017, alembic `r3c4d5e6f7a8`). 공동 정성은 개인 정성을 확장하지 않고 `shared_jeongseongs`(group_id NULL = 공식)로 분리 | 확정 · PLAN-HD-010 트랙 A |
 
 ---
 
@@ -191,3 +193,33 @@
 
 세 테이블 모두 additive-only migration(`n8d9e0f1a2b3`)으로 추가하며 PostgreSQL ENUM이나 기존 컬럼 파괴적 변경을 도입하지 않는다.
 계정 하드 삭제(API-HD-011)는 `reading_positions`·`passage_marks`를 함께 지운다(`LibraryRepository` purger).
+
+## ENT-HD-013 `reading_groups` — 소그룹 모임 (PLAN-HD-010)
+
+`id` · `name`(≤20, 별칭 — 교회명 필드·검색·공개 목록 없음) · `kind`(`small_group`, 가족은 후속) · `meeting_time`(표시용, NULL 가능) ·
+`invite_code`(Crockford base32 `XXXX-XXXX`, 40bit `secrets`, unique) · `invite_expires_at`(naive UTC, 발급 +30일) · 생성·갱신 시각.
+모임당 유효 코드 1개이며 재발급은 덮어쓰기라 이전 코드는 즉시 무효다. 인원 수는 저장하지 않는다.
+
+## ENT-HD-014 `group_members` — 모임원 (PLAN-HD-010)
+
+`id` · `group_id` FK · `user_id` FK · `display_name`(≤12, 앞뒤 공백 제거 후 저장) · `role`(`leader`·`member`, varchar) · `joined_at`.
+unique `(group_id, user_id)` · unique `(group_id, display_name)` · 부분 unique 리더 1명(`uq_group_members_group_leader`, `role='leader'`, `postgresql_where`+`sqlite_where`) · index `user_id`.
+탈퇴·내보내기는 행 하드 삭제(그 사람 한 줄·반응 포함). 계정 삭제 시 리더는 가장 먼저 들어온 식구에게 이전되고, 없으면 모임이 지워진다.
+
+## ENT-HD-015 `shared_jeongseongs` — 함께 드리는 정성 (PLAN-HD-010)
+
+`id` · `group_id` FK **NULL 가능**(NULL = 공식 정성, 모든 모임에 표시) · `title`(≤40, 모임 정성 입력은 ≤24) · `started_on`(KST) · `duration_days`(1~100, 앱 검증) ·
+`source_note`(≤200, 공식) · `created_by_user_id` FK NULL(계정 삭제 시 NULL) · 생성·갱신 시각. index `group_id`.
+진행은 저장하지 않는다 — `day_index = (오늘 - started_on) + 1`, 시작 전은 upcoming, 끝난 뒤는 목록에서 빠진다. 개인 정성(ENT-HD-004)과 분리한다.
+
+## ENT-HD-016 `group_shares` — 오늘의 한 줄 (PLAN-HD-010)
+
+`id` · `group_id` FK · `member_id` FK(`group_members`) · `share_date`(KST) · `body`(≤100) · 생성·갱신 시각.
+unique `(group_id, member_id, share_date)` = 1인 1일 1줄(덮어쓰기) · index `(group_id, share_date)` · index `member_id`. 오늘 `read` 완료자만 쓸 수 있고 화면에는 오늘 것만 나온다. 30일 뒤 정리 스크립트는 후속.
+
+## ENT-HD-017 `share_reactions` — "함께 머물렀어요" (PLAN-HD-010)
+
+PK `(share_id, member_id)` · `created_at`. 종류 컬럼이 없다(반응 1종). index `member_id`. 반응 수는 한 줄 작성자에게만 내려가고 반응한 사람 목록은 어떤 API 에도 없다.
+
+다섯 테이블 모두 additive-only migration(`r3c4d5e6f7a8`, down `q2b3c4d5e6f7`)으로 추가하며 PostgreSQL ENUM·`ondelete` 를 쓰지 않는다.
+삭제 순서는 `GroupRepository` 가 명시한다: `share_reactions → group_shares → shared_jeongseongs(모임) → group_members → reading_groups`.

@@ -28,7 +28,7 @@ footer b{color:var(--txt)} code{background:#2f2c29;padding:1px 5px;border-radius
 </head>
 <body>
 <header>
-  <h1>훈독 프로토타입 · 16화면 · 폰 390 + PC 1280</h1>
+  <h1>훈독 프로토타입 · 21화면 · 폰 390 + PC 1280</h1>
   <p class="sub"><code>app.html</code> 한 벌 + <code>hoondok.css</code>. 화면 버튼을 누르면 폰과 PC 를 나란히 보여 줍니다. 화면 안을 눌러 이동할 수 있습니다. 값·규칙의 원본은 이 두 파일이며 <code>docs/specs/web/hoondok-design-system.md</code> 가 근거를 설명합니다.</p>
   <div class="ctl" id="ctl"><span class="tag">화면</span></div>
   <div class="ctl" id="ctl2">
@@ -39,6 +39,7 @@ footer b{color:var(--txt)} code{background:#2f2c29;padding:1px 5px;border-radius
 <div class="rack" id="rack"></div>
 <footer>
   <b>화면 번호는 PRD `SCR-PWA-0NN`</b>. 004 정성 기간은 시트라 `?screen=today&sheet=jeongseong` 로 홈 위에 열립니다. 001 온보딩은 탭 진입 전이라 내비가 없습니다.<br>
+  017~021 훈독 모임과 홈·훈독하기의 "함께 읽는 사람들" 변형은 `DEC-PWA-023`(2026-09-23)입니다. `?together=default|small|none` 으로 모임 있음·익명 숫자 기준 미만·모임 없음을 봅니다.<br>
   모든 말씀·인물·교회·수치는 프로토타입용 예시입니다.
 </footer>
 <script>
@@ -47,6 +48,8 @@ const S=[
   ['005 AI 질문','screen=ask'],['006 질문 상세','screen=ask-detail'],['007 말씀 서고','screen=library'],['008 말씀 검색','screen=search'],
   ['009 원문 뷰','screen=words'],['010 가정예배','screen=worship'],['011 챌린지','screen=challenge'],['012 5분 설교','screen=sermons'],
   ['013 설교 섭외','screen=sermon-request'],['014 나의 정원','screen=garden'],['015 알림·설치','screen=settings'],['016 가족·친구','screen=family'],
+  ['017 훈독 모임','screen=group'],['018 모임 참여','screen=group-join'],['019 모임 만들기','screen=group-create&created=1'],['020 한 줄 나눔','screen=group-share'],['021 모임 설정','screen=group-settings'],['021 모임 설정 · 모임원','screen=group-settings&role=member'],
+  ['002 홈 · 모임 없음','screen=today&together=none'],['002 홈 · 적은 수','screen=today&together=small'],['003 훈독 완료 뒤','screen=read&done=1'],
 ];
 let cur=1, w=1280, z='fit';
 const ctl=document.getElementById('ctl'), rack=document.getElementById('rack');

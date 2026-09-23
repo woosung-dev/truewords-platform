@@ -1,6 +1,6 @@
 # TODO
 
-> 마지막 업데이트: 2026-09-20 (훈독 운영 상태 정정 + 편성 후보 찾기 PLAN-HD-003 구현·배포 + 편성 8일분 투입 + web `a93a6c7` 배포로 PLAN-HD-002 실데이터 화면 노출 + **`PLAN-HD-001` §6 완료 기준표 증거 재대조**)
+> 마지막 업데이트: 2026-09-23 ("함께 읽는 사람들" 프로토타입 `DEC-PWA-023`) · 2026-09-20 (훈독 운영 상태 정정 + 편성 후보 찾기 PLAN-HD-003 구현·배포 + 편성 8일분 투입 + web `a93a6c7` 배포로 PLAN-HD-002 실데이터 화면 노출 + **`PLAN-HD-001` §6 완료 기준표 증거 재대조**)
 
 > **현재 우선 작업 (2026-09-20~):** 훈독 운영 공백 복구. 2026-09-20 실측으로 운영이 **이미 `HOONDOK_ENABLED=1`** 임을 확인했다 — web `aba5240`, `/hoondok`·`/hoondok/read`·`/hoondok/onboarding` 200, `noindex, nofollow`, `smoke-web HOONDOK_ENABLED=1` 12건 OK. 남은 액션 3건: ① `[종결]` 편성 재고 — 2026-09-20 에 **8일분 투입 완료**(`ops-check` 불변식 8건 전부 통과, `hoondok-today` OK "앞으로 8일분"). `PLAN-HD-001` §6 완료 기준 7일분 충족. 다음 보충 시점은 2026-09-27 경 — 입력을 돕는 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, API-HD-012)를 구현·배포했다(PR #301 → main `c066b02`, backend·admin 배포 완료, alembic `k5a6b7c8d9e0` 적용). 운영 admin 편성 화면에서 쓸 수 있다, ② 초대 코드 게이트는 **OFF 유지 결정**(위험은 [runbook 실행 기록](runbooks/hoondok-pwa-rollout.md) 에 기록), ③ `[종결]` 운영 web 태그 랙 — 2026-09-20 승인 후 **web `aba5240` → `a93a6c7` 배포 완료**. [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md) 실데이터 화면이 운영에 노출됐다(`/hoondok/garden`·`/settings`·`/ask`·`/ask/[id]`·`/ask/log` 200), 프리뷰 셸 8라우트는 404 유지(`NEXT_PUBLIC_HOONDOK_PREVIEW` 미배선). `smoke-web` 12건 OK, `ops-check` 8건 OK, web 메모리 53.1 MiB(OFF 기준 57.1 에서 증가 없음). backend·admin 은 `c066b02` 무변경(`--no-deps`). 증거는 [runbook §실행 기록](runbooks/hoondok-pwa-rollout.md#실행-기록). **남은 Phase 3 완료 기준은 2건**이다 — ① 실기기 설치 증거(Android·iOS 16.4+ 설치 → 가입 → 훈독 → 완료, 헤드리스 대체 불가), ② 시연 챗·admin E2E 를 배포 트리 기준으로 재실행(마지막 전체 `make e2e` 85 passed 는 PR #300 트리 `c0b0547` 기준이고 그 위에 #301 이 얹혔다. `make ci` 는 E2E 를 포함하지 않는다). 판정 근거는 [`PLAN-HD-001` §6 완료 기준표](plans/active/2026-09-17-hoondok-mvp.md). 남은 `[확인 필요]`: 약관 문구와 법적 주체.
 >
@@ -212,6 +212,10 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 ## Questions
 
+- `[종결]` **"함께 머물렀어요" 반응 수 표시** — 2026-09-23 내 한 줄에만·나에게만 확정 (`PLAN-HD-010` D5)
+- `[종결]` **익명 숫자 숨김 기준 인원** — 2026-09-23 10명 미만이면 문장으로 확정 (`PLAN-HD-009`, `PLAN-HD-010` D5)
+- `[확인 필요]` **협회 공식 정성·오늘 범위 공지 수신 방식** — 편성자가 협회 공지를 보고 admin 편성 화면에 수기 등록하는 것 외 채널(공문·자료실·담당자 연락)이 있는지
+- `[확인 필요]` **가족 모임 시점** — 프로토타입은 "가족 모임은 곧 열려요" 자리만. 14세 미만 보호자 연결(`AC-022-03`)과 함께 정한다
 - `[확인 필요]` `PLAN-HD-007` 권위 등급 시드값 — 천성경·평화경·원리강론 `O1` 로 넣는다(§2-11). 다른 등급이면 시드 전에 알려 달라
 - 후속(비범위, `PLAN-HD-007` §2): 참어머님 말씀 36파일·기타 8파일 원장 등록 여부 · 판본 나란히 보기. TTS 는 [`PLAN-HD-008`](plans/active/2026-09-23-hoondok-reader-polish.md) 에서 브라우저 내장 음성으로 대체(서버 TTS 는 비범위 유지, 2026-09-23)
 - 후속(`PLAN-HD-007` 독립 리뷰 P2, 2026-09-23): ① 운영에서 시드·추출 `--dry-run` 이 exit 1 — 안전장치 방향 재검토 `[확인 필요]` ② `replace_auto_sections` 가 manual 행과 같은 `position` 이면 IntegrityError(수기 UI 없어 잠재) ③ `GET /hoondok/sections` 가 원문 120회/분 예산 공유 ④ `GET /hoondok/library` 무페이지네이션(615권 승인 시 620건 응답) ⑤ 빈 노트 저장이 노랑 형광펜 생성·형광펜 해제 시 노트 소멸 무알림 ⑥ AI 설명 탭 왕복 시 답 소실(재요청 비용) ⑦ `MarkInput.volume` 과 `chunk_id` 소속 미검증 ⑧ `library-screen` `parseLastReading` 매 렌더 객체 생성(증상 없음)
@@ -267,6 +271,20 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 - [x] **PLAN-HD-005 배포 전 롤백 진입점 보완** — **2026-09-22 해소.** 원인은 스키마 비호환이 아니라 진입점 하나였다(구 이미지의 `alembic upgrade head` 가 새 revision 파일을 못 찾아 exit). 코드·배포 절차는 바꾸지 않고 **되돌리기를 2단계로 확정**했다 — 새 이미지로 `alembic downgrade` 먼저, 그 다음 `rollback-backend`. 격리 compose 리허설에서 실패 재현 → downgrade → 구 이미지 **기본 CMD** 기동 `/health` 200·`/hoondok/today` 200 까지 통과했다. 절차와 증거는 [runbook §되돌리기 층 0](runbooks/hoondok-pwa-rollout.md#층-0--backend-마이그레이션이-포함된-배포는-rollback-backend-단독으로-되돌아가지-않는다)
 
 - [x] **PLAN-HD-005 구현·통합 검증** — make ci PASS, E2E 90 passed, MCP 여정·3폭·플래그 51/51, 리뷰 7건 보완, 개발 trace 독립 검사 완료. 구 앱 직접 기동의 새 스키마 호환 PASS; 기본 CMD 롤백은 위 배포 전 과제로 남긴다. [진행표](plans/completed/2026-09-21-hoondok-journey-plan.md#91-진행표-트랙이-끝날-때마다-먼저-갱신)를 원본으로 삼는다. 배포는 별도 승인.
+
+### 함께 읽는 사람들 PLAN-HD-009 (2026-09-23)
+
+- [ ] **1단계 익명 숫자 — 구현 중** (`feat/hoondok-together-count`, 로컬 커밋·푸시 전). 오늘 훈독하기 완료자 수(API-HD-029), 10명 미만 숨김, 완료자만 집계, 문구에서 "새벽" 제외. 홈 카드 1장 + 훈독하기 완료 한 줄. 인덱스 마이그레이션 `q2b3c4d5e6f7` 포함이라 배포 시 backend 먼저. [계획](plans/active/2026-09-23-hoondok-together.md)
+- [x] ~~2단계 모임 — 설계 대기~~ → 아래 PLAN-HD-010 으로 대체. 모임·초대 코드·한 줄 나눔·반응·모임 정성·공식 정성. 상세 설계는 1단계 운영 뒤 ([계획 §5](plans/active/2026-09-23-hoondok-together.md#5-2단계-예정-범위-상세-설계는-후속))
+- `[확인 필요]` 가족 모임을 여는 시점 · 협회 공지(공식 정성) 수신 방식
+
+### 훈독 "함께 읽는 사람들" (2026-09-23 · `DEC-PWA-023`)
+
+- [x] **프로토타입 완료, 구현 계획 대기** — 사용자 결정 8건(익명 숫자 → 초대 모임, 완료자만 표시, 한 줄 + "함께 머물렀어요", 협회 공지 경유 정성, 소그룹 먼저, 모임별 이름, N일차 비처벌, 교회 소속 없음)을 [프로토타입](prd/prototypes/hoondok-ds/README.md) 17~20화면(`group`·`group-join`·`group-create`·`group-share`)과 홈·훈독하기 `?together=default|small|none` 변형으로 그렸다. 기존 홈·챌린지·정원·가족·온보딩의 미완료자 이름·"아직"·응원·교회 선택·"밀린 날"을 제거했다. 근거 [벤치마크](research/2026-09-23-hoondok-together-benchmark.md), 결정 [PRD F8·`DEC-PWA-023`](prd/17-ffwpu-pwa-prd.md), [DES-PWA-003 §8](specs/web/hoondok-design-system.md)
+- [x] **구현 계획 작성** — 1단계 익명 숫자는 `PLAN-HD-009`(PR #318), 2단계 모임은 [`PLAN-HD-010`](plans/active/2026-09-23-hoondok-groups.md)(2026-09-23 결정 7건 반영: 리더 지정 범위 제외·설정 5가지·바로 개통·모임 코드가 베타 게이트 통과)
+- [ ] **2단계 구현 중** (2026-09-23) — #317·#318 미머지라 `dev/hoondok-groups` 를 #318 위에 쌓고 #317 을 병합해 트랙 A → W0 → W1∥W2∥C → 통합 ([PLAN-HD-010 §8](plans/active/2026-09-23-hoondok-groups.md#8-트랙-분해-오케스트레이터-모드-devhoondok-groups))
+- `[확인 필요]` **약관 전 모임 개통 위험** — 약관(`DEC-PWA-001`)·14세 미만 정책 미확정 상태에서 개통하기로 사용자가 2026-09-23 결정. 모임은 이름·읽은 시각·한 줄을 남에게 보이는 첫 기능이다. 약관 확정 시 모임 공개 안내·동의 문구를 재검토한다 ([PLAN-HD-010](plans/active/2026-09-23-hoondok-groups.md) D3)
+- [ ] 후속 정리 후보 — 가정예배 탭의 교회장 행·"우리 교회" 설교 요청(`SCR-PWA-012`·`013`)이 소속 교회를 전제한다. `DEC-PWA-023` ⑧과 맞출지 `[확인 필요]`. 또 프로토타입 `group-a/b/c.css` 가 레포에 없어 온보딩·가정예배·정원·설정 일부 마크업이 무스타일로 보인다(구현 CSS 는 `apps/web/src/app/_hoondok/` 이 정본, 기존 결함)
 
 ### PLAN-HD-005 여정 잇기 (2026-09-22 배포 완료)
 

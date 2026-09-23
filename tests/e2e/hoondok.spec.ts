@@ -124,6 +124,26 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   expect(again.status()).toBe(409);
 });
 
+// PLAN-HD-009 함께 읽는 사람들 1단계 — 익명 숫자 카드. E2E 시드는 오늘 완료자가 10명 미만이라 보통 대체 문구지만,
+// 재실행·다른 테스트가 완료를 쌓을 수 있어 두 문구를 모두 허용하고 API 응답과 화면이 맞는지만 본다.
+test("홈 함께 읽는 사람들: 익명 카드 1장 · 기준 미만이면 숫자 없이 대체 문구", async ({ page }) => {
+  await page.goto("/hoondok");
+  await expect(page.getByRole("heading", { name: "함께 읽는 사람들" })).toBeVisible();
+  const card = page.locator(".card.together");
+  await expect(card).toHaveCount(1);
+  await expect(card).toContainText("누가 읽었는지는 보이지 않아요");
+
+  const together = await (await page.request.get("/api/backend/hoondok/today/together")).json();
+  expect(together.threshold).toBe(10);
+  if (together.is_shown) {
+    await expect(card).toContainText(`오늘 함께 읽은 식구 ${together.count.toLocaleString("ko-KR")}명`);
+  } else {
+    expect(together.count).toBeNull();
+    await expect(card).toContainText("오늘도 식구들과 함께 읽어요");
+    await expect(card).not.toContainText(/\d+명/);
+  }
+});
+
 // Phase 3 E — 설치 안내 카드 (PLAN-HD-001 §6 E). 헤드리스 Chromium 은 beforeinstallprompt 를 발사하지 않으므로 일반 안내(manual)
 // 변형과 자격·숨김 규칙만 본다. prompt()·iOS 공유 분기는 실기기 증거(G 뒤)로 대체한다. 시드 사용자는 재실행 시 이미 완료(체크 disabled)라
 // 새 계정으로 직접 완료(user → 201 recorded)를 만든다.

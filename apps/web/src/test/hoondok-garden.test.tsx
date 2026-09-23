@@ -170,14 +170,15 @@ describe("GardenScreen 로그인", () => {
     expect(screen.getByRole("link", { name: "새로 시작" })).toHaveAttribute("href", "/hoondok?sheet=jeongseong");
   });
 
-  it("진행 중인 정성이 있으면 D-N · 진행률 숫자 · 밀린 날을 함께 적는다", async () => {
+  it("진행 중인 정성이 있으면 D-N · 진행률 숫자 · N일차를 함께 적는다 (빠진 날 수는 없다)", async () => {
     loggedIn();
     renderGarden();
 
     expect(await screen.findByText("21일 새벽 정성 · 가정의 화목")).toBeInTheDocument();
     expect(screen.getByText("D-14")).toBeInTheDocument();
     expect(screen.getByText("7 / 21일 · 33%")).toBeInTheDocument();
-    expect(screen.getByText("밀린 날 0")).toBeInTheDocument();
+    expect(screen.getByText("7일차")).toBeInTheDocument();
+    expect(screen.queryByText(/밀린 날/)).toBeNull();
     const bar = screen.getByRole("progressbar", { name: "정성 진행률" });
     expect(bar).toHaveAttribute("aria-valuenow", "33");
     expect(bar.firstElementChild).toHaveStyle({ width: "33%" });

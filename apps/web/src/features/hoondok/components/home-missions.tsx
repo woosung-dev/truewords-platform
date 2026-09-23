@@ -83,7 +83,7 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
           <MissionCard
             kind="기도하기 · 1분"
             title="오늘의 기도 제목"
-            meta="가족·교회 기도 제목은 다음 단계에서"
+            meta="가족·모임 기도 제목은 다음 단계에서"
             icon={HandHeart}
             isDisabled
           />

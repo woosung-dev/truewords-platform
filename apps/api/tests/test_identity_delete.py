@@ -17,6 +17,7 @@ from sqlmodel import SQLModel, select
 from app.main import app
 from app.modules.admin.auth import create_access_token
 from app.modules.hoondok.dependencies import (
+    get_group_repository,
     get_jeongseong_repository,
     get_library_repository,
     get_mission_repository,
@@ -219,6 +220,17 @@ class _FakeLibrary:
         self.purged.append(user_id)
 
 
+class _FakeGroups:
+    """모임 purger (PLAN-HD-010). 실제 삭제·리더 이전은 test_hoondok_groups.py 가 실 리포로 본다."""
+
+    def __init__(self) -> None:
+        self.purged: list[uuid.UUID] = []
+        self.session = MagicMock()
+
+    async def delete_for_user(self, user_id) -> None:
+        self.purged.append(user_id)
+
+
 @pytest.fixture
 def client():
     users, logs, periods = _MemoryUsers(), _FakeLogs(), _FakePeriods()
@@ -228,6 +240,8 @@ def client():
     app.dependency_overrides[get_jeongseong_repository] = lambda: periods
     app.dependency_overrides[get_notification_repository] = lambda: notifications
     app.dependency_overrides[get_library_repository] = lambda: library
+    groups = _FakeGroups()
+    app.dependency_overrides[get_group_repository] = lambda: groups
     try:
         c = TestClient(app)
         c.users, c.logs, c.periods = users, logs, periods  # type: ignore[attr-defined]
@@ -240,6 +254,7 @@ def client():
             get_jeongseong_repository,
             get_notification_repository,
             get_library_repository,
+            get_group_repository,
         ):
             app.dependency_overrides.pop(dep, None)
 

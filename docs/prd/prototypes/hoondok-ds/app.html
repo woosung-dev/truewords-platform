@@ -15,7 +15,7 @@
 <!-- ============================================================================
      화면 목차 (PRD SCR-PWA 번호순). 각 화면은 <section data-screen="..."> 한 블록이다.
      찾기: data-screen="이름"   열기: app.html?screen=이름
-     001  onboarding      온보딩·베타 고지·교회 선택
+     001  onboarding      온보딩·베타 고지·시작 방법 (소속 교회는 묻지 않는다)
      002  today           오늘 훈독 (홈)
      003  read            훈독하기
      005  ask             AI 질문 (묻기 홈)
@@ -31,22 +31,28 @@
      014  garden          나의 정원
      015  settings        알림·설치 설정
      016  family          가족·친구
+     017  group           훈독 모임 상세 (DEC-PWA-023)
+     018  group-join      모임 참여 (?via=link 링크 진입)
+     019  group-create    모임 만들기 (?created=1 초대 코드)
+     020  group-share     한 줄 나눔 쓰기
+     021  group-settings  모임 설정 (?role=member 모임원 보기, 기본은 리더)
      004  (sheet)          정성 기간 만들기 = <div class="sheet" id="sheet-jeongseong">, ?sheet=jeongseong 로 홈 위에 연다
      ============================================================================ -->
 <!-- 마크업은 한 벌이다. 화면 폭이 달라도 이 문서를 복제하지 않는다.
-     ?screen=today|read|words|library|search|onboarding|ask|ask-log|ask-detail|worship|challenge|sermons|sermon-request|garden|settings|family
+     ?screen=today|read|words|library|search|onboarding|ask|ask-log|ask-detail|worship|challenge|sermons|sermon-request|garden|settings|family|group|group-join|group-create|group-share|group-settings
+     ?together=default|small|none (홈·훈독하기 함께 읽는 사람들 변형)   ?done=1 (훈독하기 완료 뒤)   ?via=link   ?created=1   ?role=member (모임 설정 모임원 보기)
      ?sheet=jeongseong   ?nav=top&header=4 (PC 기본 = 상단 헤더 4. rail 은 DES-PWA-003 §4.1 대조용)   ?serif=1 -->
 <div class="app">
 
   <main class="app__main">
     <header class="appbar" id="appbar">
       <div class="appbar__in">
-        <a class="icon-btn" href="#" aria-label="뒤로" data-only="read words search ask-log ask-detail challenge sermons sermon-request settings family"><i class="ph ph-arrow-left"></i></a>
+        <a class="icon-btn" href="#" aria-label="뒤로" data-only="read words search ask-log ask-detail challenge sermons sermon-request settings family group group-join group-create group-share group-settings"><i class="ph ph-arrow-left"></i></a>
         <h1 class="appbar__title" id="apptitle">오늘 훈독</h1>
         <label class="appbar__search" data-only="search"><i class="ph ph-magnifying-glass"></i><input type="search" value="" placeholder="단어, 구절, 상황을 입력해 주세요" aria-label="말씀 검색" autofocus></label>
         <a class="icon-btn" href="?screen=ask-log" aria-label="질문 기록" data-only="ask"><i class="ph ph-clock-counter-clockwise"></i></a>
-        <a class="icon-btn icon-btn--search" href="?screen=search" aria-label="말씀 검색" data-only="today read words library ask ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-magnifying-glass"></i></a>
-        <a class="icon-btn" href="#" aria-label="알림" data-only="today read words library ask ask-detail worship challenge sermons sermon-request garden settings family"><i class="ph ph-bell"></i></a>
+        <a class="icon-btn icon-btn--search" href="?screen=search" aria-label="말씀 검색" data-only="today read words library ask ask-detail worship challenge sermons sermon-request garden settings family group"><i class="ph ph-magnifying-glass"></i></a>
+        <a class="icon-btn" href="#" aria-label="알림" data-only="today read words library ask ask-detail worship challenge sermons sermon-request garden settings family group"><i class="ph ph-bell"></i></a>
       </div>
     </header>
 
@@ -65,7 +71,7 @@
         <img src="https://picsum.photos/seed/hoondok-morning-field/820/440" alt="아침 햇살이 드는 들판" />
         <div class="shot__tx">
           <div class="shot__greet">밤이 깊을수록 새벽은 가까워요.<br>효진님, 오늘도 함께 읽어요.</div>
-          <div class="shot__sub">분당교회 식구 38명이 벌써 훈독했어요</div>
+          <div class="shot__sub">오늘 새벽, 식구들과 같은 말씀을 읽어요</div>
         </div>
       </div>
 
@@ -91,7 +97,7 @@
             <span class="mission__bd">
               <span class="mission__kind">기도하기 · 1분</span>
               <span class="mission__title">오늘의 기도 제목: 자녀의 새 학기</span>
-              <span class="mission__meta">가족 기도 제목 2개 · 우리 교회 1개</span>
+              <span class="mission__meta">가족 기도 제목 2개 · 모임 1개</span>
             </span>
             <button class="check" aria-pressed="false" aria-label="기도하기 완료"><i class="ph-bold ph-check"></i></button>
           </div>
@@ -133,7 +139,7 @@
           <div class="stats" style="margin-top:14px">
             <div><b class="stats__n stats__n--accent">D-14</b><span class="stats__lab">남은 날</span></div>
             <div><b class="stats__n">7</b><span class="stats__lab">진행한 날</span></div>
-            <div><b class="stats__n">0</b><span class="stats__lab">밀린 날</span></div>
+            <div><b class="stats__n">8일차</b><span class="stats__lab">오늘</span></div>
           </div>
           <div class="progress" style="margin-top:14px"><i class="progress__fill" style="width:33%"></i></div>
           <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);margin-top:8px">
@@ -141,13 +147,32 @@
           </div>
         </div>
       </div>
+      <!-- 함께 읽는 사람들 (DEC-PWA-023). 1단계 익명 숫자 → 2단계 초대 모임. 완료한 쪽만 센다.
+           ?together=default(모임 있음) | small(익명 숫자가 기준 미만) | none(모임 없음)
+           [확인 필요] 익명 숫자를 숨기는 기준 인원(예: 10명 미만). 숫자는 푸시 알림에 넣지 않는다 -->
       <div class="sect">
-        <div class="sect__head"><h2 class="sect__title">함께 읽는 사람들</h2><span class="sect__rule"></span><a class="sect__meta" href="?screen=worship">챌린지</a></div>
-        <a class="card together" href="?screen=family">
-          <span class="avatars"><img src="https://picsum.photos/id/129/80/80" alt=""><img src="https://picsum.photos/id/447/80/80" alt=""><img src="https://picsum.photos/id/338/80/80" alt=""></span>
-          <span class="together__bd"><b>우리 가족 4명 중 2명 완료</b><span>재민, 하늘이 아직이에요</span></span>
-          <i class="ph ph-caret-right"></i>
-        </a>
+        <div class="sect__head"><h2 class="sect__title">함께 읽는 사람들</h2><span class="sect__rule"></span><a class="sect__meta" href="?screen=group" data-q="together=default|small">내 모임</a></div>
+        <div class="tg-stack">
+          <div class="card together">
+            <span class="tg-ic" aria-hidden="true"><i class="ph ph-sun-horizon"></i></span>
+            <span class="together__bd" data-q="together=default|none"><b>오늘 새벽 함께 읽은 식구 1,284명</b><span>같은 말씀을 읽었어요 · 누가 읽었는지는 보이지 않아요</span></span>
+            <span class="together__bd" data-q="together=small"><b>오늘도 식구들과 함께 읽었어요</b><span>같은 말씀을 오늘 새벽 함께 읽고 있어요</span></span>
+          </div>
+          <a class="card together" href="?screen=group" data-q="together=default|small">
+            <span class="avatars" aria-hidden="true"><span class="tg-av">은</span><span class="tg-av">미</span><span class="tg-av tg-av--me">효</span></span>
+            <span class="together__bd"><b>새벽별 훈독모임 · 오늘 5명이 함께 읽었어요</b><span>특별정성 12일차 · 모임 정성 9일차</span></span>
+            <i class="ph ph-caret-right"></i>
+          </a>
+          <div class="card tg-entry" data-q="together=none">
+            <b>훈독 모임에서 함께 읽어요</b>
+            <span>리더가 모임을 만들고 초대 코드를 보내요. 모임 안에서는 오늘 읽은 사람과 한 줄 나눔만 보여요.</span>
+            <div class="tg-join">
+              <a class="btn btn-primary btn--sm" href="?screen=group-create">모임 만들기</a>
+              <a class="btn btn-line btn--sm" href="?screen=group-join">초대 코드로 참여</a>
+            </div>
+            <p class="tg-soon"><i class="ph ph-house-line" aria-hidden="true"></i>가족 모임은 곧 열려요</p>
+          </div>
+        </div>
       </div>
       <p class="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
     </section>
@@ -186,7 +211,17 @@
       </div>
 
       <div class="sect">
-        <button class="btn btn-primary"><i class="ph ph-check"></i>훈독 완료</button>
+        <button class="btn btn-primary" id="read-done-btn" type="button"><i class="ph ph-check"></i>훈독 완료</button>
+        <!-- 완료 뒤 한 줄 (DEC-PWA-023). 누르거나 ?done=1 로 연다. 모임이 없으면(?together=none) 한 줄 남기기 진입은 없다 -->
+        <div class="tg-after" id="read-done" role="status" hidden>
+          <p class="tg-after__n" data-q="together=default|none"><i class="ph-fill ph-sun-horizon" aria-hidden="true"></i><span>당신까지 <b>1,285명</b>이 오늘 새벽 함께 읽었어요</span></p>
+          <p class="tg-after__n" data-q="together=small"><i class="ph-fill ph-sun-horizon" aria-hidden="true"></i><span>오늘도 식구들과 함께 읽었어요</span></p>
+          <a class="card together" href="?screen=group-share" data-q="together=default|small">
+            <span class="tg-ic" aria-hidden="true"><i class="ph ph-chat-circle-text"></i></span>
+            <span class="together__bd"><b>새벽별 훈독모임에 한 줄 남기기</b><span>훈독회의 대화처럼, 머문 마음을 한 줄로 나눠요</span></span>
+            <i class="ph ph-caret-right"></i>
+          </a>
+        </div>
         <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);margin-top:12px">
           <span>완료하면 연속 13일이 돼요</span>
           <!-- 탭 대상 44px : 음수 마진으로 줄 높이는 그대로 둔다 -->
@@ -320,7 +355,7 @@
      짝이 되는 스타일은 partials/group-a.css 에 있다.
      ============================================================================= -->
 
-<!-- ===== 온보딩·베타 고지·소속 교회 선택 (SCR-PWA-001) ===== -->
+<!-- ===== 온보딩·베타 고지·시작 방법 (SCR-PWA-001) ===== -->
 <!-- 이 화면에서만 앱바와 하단 탭(=lg 레일)을 숨긴다. 숨김 규칙은 group-a.css 에 있다 -->
 <section class="col onb" data-screen="onboarding" hidden>
   <div class="shot onb-hero">
@@ -331,26 +366,24 @@
   <h2 class="onb-title">아침 3분 훈독으로<br />오늘을 시작해요</h2>
   <p class="onb-lede">매일 말씀을 읽고, 궁금한 건 출처 있는 말씀으로 확인하고, 주말엔 가족과 가정예배까지 이어집니다.</p>
 
+  <!-- 소속 교회를 묻지 않는다 (DEC-PWA-023 결정 8: 소속은 신념 정보라 노출 위험이 높다). 교회별 인원 수도 나열하지 않는다.
+       대신 초대받은 훈독 모임에 들어가는 길과 혼자 시작하는 길 두 가지만 둔다 -->
   <div class="sect">
     <div class="sect__head">
-      <h3 class="sect__title">소속 교회를 골라 주세요</h3><span class="sect__rule"></span>
+      <h3 class="sect__title">어떻게 시작할까요?</h3><span class="sect__rule"></span>
       <span class="sect__meta">나중에 바꿀 수 있어요</span>
     </div>
-    <!-- 라디오 그룹: 행 전체가 탭 대상(최소 56px), 선택 표시는 점 + 굵기 + 배경 3가지가 함께 바뀐다 -->
-    <div class="onb-list" role="radiogroup" aria-label="소속 교회">
-      <button class="onb-pick" type="button" role="radio" aria-checked="true">
-        <span class="onb-radio" aria-hidden="true"></span>
-        <span class="onb-pick__bd"><b>성남 분당교회</b><span>경기 성남시 · 식구 214명 참여 중</span></span>
+    <div class="tg-opts" role="radiogroup" aria-label="시작 방법">
+      <button class="tg-opt" type="button" role="radio" aria-checked="true">
+        <span class="tg-radio" aria-hidden="true"></span>
+        <span class="tg-opt__bd"><b>혼자 시작할게요</b><span>오늘 새벽 함께 읽은 식구 수만 보여요. 이름은 보이지 않아요</span></span>
       </button>
-      <button class="onb-pick" type="button" role="radio" aria-checked="false">
-        <span class="onb-radio" aria-hidden="true"></span>
-        <span class="onb-pick__bd"><b>수원 영통교회</b><span>경기 수원시 · 식구 96명 참여 중</span></span>
-      </button>
-      <button class="onb-pick" type="button" role="radio" aria-checked="false">
-        <span class="onb-radio" aria-hidden="true"></span>
-        <span class="onb-pick__bd"><b>아직 정하지 않음</b><span>혼자 훈독부터 시작</span></span>
+      <button class="tg-opt" type="button" role="radio" aria-checked="false">
+        <span class="tg-radio" aria-hidden="true"></span>
+        <span class="tg-opt__bd"><b>초대 코드가 있어요</b><span>리더가 보낸 훈독 모임 코드나 카카오톡 링크로 들어가요</span></span>
       </button>
     </div>
+    <p class="tg-soon"><i class="ph ph-lock-simple" aria-hidden="true"></i>소속 교회는 묻지 않아요</p>
   </div>
 
   <div class="onb-cta">
@@ -518,7 +551,7 @@
           <span class="ws-order__no" aria-hidden="true">5</span>
           <span class="ws-order__bd">
             <span class="ws-order__k">기도</span>
-            <span class="ws-order__t">하늘이 새 학기 · 할머니 건강 · 분당교회 40일 정성</span>
+            <span class="ws-order__t">하늘이 새 학기 · 할머니 건강 · 21일 특별정성</span>
           </span>
         </li>
         <li class="ws-order__it">
@@ -551,9 +584,9 @@
         <span class="ws-chal__foot"><span>13 / 21일 · 62%</span><span class="ws-people"><i class="ph ph-users" aria-hidden="true"></i>4명 참여</span></span>
       </a>
       <a class="card ws-chal__card" href="?screen=challenge">
-        <span class="ws-chal__top"><b class="ws-chal__name">분당교회 40일 정성</b><span class="badge">D-23</span></span>
-        <span class="progress ws-chal__bar" role="progressbar" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100" aria-label="분당교회 40일 정성 진행률 42퍼센트"><i class="progress__fill" style="width:42%"></i></span>
-        <span class="ws-chal__foot"><span>17 / 40일 · 42% · 오늘 71명 완료</span><span class="ws-people"><i class="ph ph-users" aria-hidden="true"></i>87명 참여</span></span>
+        <span class="ws-chal__top"><b class="ws-chal__name">21일 특별정성 · 공식</b><span class="badge">D-9</span></span>
+        <span class="progress ws-chal__bar" role="progressbar" aria-valuenow="57" aria-valuemin="0" aria-valuemax="100" aria-label="21일 특별정성 12일차, 21일 중 57퍼센트"><i class="progress__fill" style="width:57%"></i></span>
+        <span class="ws-chal__foot"><span>12일차 / 21일 · 57% · 협회 공지</span><span class="ws-people"><i class="ph ph-users" aria-hidden="true"></i>새벽별 훈독모임</span></span>
       </a>
       <a class="card ws-chal__card" href="?screen=challenge">
         <span class="ws-chal__top"><b class="ws-chal__name">청년부 천성경 1편 함께 읽기</b><span class="badge badge--line">모집 중</span></span>
@@ -611,42 +644,21 @@
       <h2 class="sect__title">오늘</h2><span class="sect__rule"></span>
       <span class="sect__meta">9월 10일</span>
     </div>
-    <ul class="card ch-list" role="list">
-      <li class="ch-item">
-        <img class="gb-avatar" src="https://picsum.photos/id/65/80/80" alt="" />
-        <span class="ch-item__bd"><span class="ch-item__t">효진 (나)</span><span class="ch-item__m">오전 6:12 완료</span></span>
-        <span class="badge badge--rank ch-ok"><i class="ph-bold ph-check" aria-hidden="true"></i>완료</span>
+    <!-- 완료한 사람만 그린다 (DEC-PWA-023). 안 읽은 가족의 이름·상태·응원(재촉) 버튼은 두지 않는다.
+         반응은 "함께 머물렀어요" 1종이며 받은 사람에게 알림을 보내지 않는다 -->
+    <ul class="card tg-people" role="list" aria-label="오늘 함께 읽은 가족">
+      <li class="tg-person">
+        <span class="tg-av" aria-hidden="true">하</span>
+        <span class="tg-person__bd"><b>하늘</b><span>오전 7:40 · 보호자 연결</span></span>
+        <button class="tg-stay" type="button" aria-pressed="false"><i class="ph ph-hands-praying" aria-hidden="true"></i>함께 머물렀어요</button>
       </li>
-      <li class="ch-item">
-        <img class="gb-avatar" src="https://picsum.photos/id/447/80/80" alt="" />
-        <span class="ch-item__bd"><span class="ch-item__t">재민</span><span class="ch-item__m">아직이에요</span></span>
-        <button class="btn btn-line btn--sm ch-item__act">응원</button>
-      </li>
-      <li class="ch-item">
-        <img class="gb-avatar" src="https://picsum.photos/id/338/80/80" alt="" />
-        <span class="ch-item__bd"><span class="ch-item__t">하늘 (12)</span><span class="ch-item__m">오전 7:40 완료 · 보호자 연결</span></span>
-        <span class="badge badge--rank ch-ok"><i class="ph-bold ph-check" aria-hidden="true"></i>완료</span>
-      </li>
-      <li class="ch-item">
-        <img class="gb-avatar" src="https://picsum.photos/id/129/80/80" alt="" />
-        <span class="ch-item__bd"><span class="ch-item__t">어머니</span><span class="ch-item__m">아직이에요 · 저녁에 읽으세요</span></span>
-        <button class="btn btn-line btn--sm ch-item__act">응원</button>
+      <li class="tg-person">
+        <span class="tg-av tg-av--me" aria-hidden="true">효</span>
+        <span class="tg-person__bd"><b>효진 (나)</b><span>오전 6:12</span></span>
+        <span class="badge badge--rank"><i class="ph-bold ph-check" aria-hidden="true"></i>읽음</span>
       </li>
     </ul>
-  </div>
-
-  <!-- 응원은 사전 정의 문구만. 자유 입력창을 두지 않는다 (AC-020-03) -->
-  <div class="sect">
-    <div class="sect__head">
-      <h2 class="sect__title">응원 한마디</h2><span class="sect__rule"></span>
-      <span class="sect__meta">정해진 문구만</span>
-    </div>
-    <div class="chips">
-      <button class="ch-chip">오늘도 함께 읽어요</button>
-      <button class="ch-chip">천천히 해도 괜찮아요</button>
-      <button class="ch-chip">저녁 예배 때 나눠요</button>
-    </div>
-    <p class="ch-chip__help" role="status">응원을 보내면 상대에게만 알림이 갑니다</p>
+    <p class="tg-again">오늘 2명이 함께 읽었어요. 읽지 않은 날은 누구에게도 표시하지 않아요.</p>
   </div>
 
   <!-- 달력 : 완료는 체크 아이콘, 쉼은 "쉼" 글자가 1차 신호 (DES-PWA-003 §2.6) -->
@@ -673,9 +685,9 @@
       <span class="ch-cal__d" data-state="done" aria-label="9월 8일 완료"><span class="ch-cal__mark"><i class="ph-bold ph-check" aria-hidden="true"></i></span><span class="ch-cal__n">8</span></span>
       <span class="ch-cal__d" data-state="done" aria-label="9월 9일 완료"><span class="ch-cal__mark"><i class="ph-bold ph-check" aria-hidden="true"></i></span><span class="ch-cal__n">9</span></span>
       <span class="ch-cal__d" data-state="today" aria-label="9월 10일 오늘 완료"><span class="ch-cal__mark"><i class="ph-bold ph-check" aria-hidden="true"></i></span><span class="ch-cal__n">10</span></span>
-      <span class="ch-cal__d" aria-label="9월 11일 아직"><span class="ch-cal__mark"></span><span class="ch-cal__n">11</span></span>
-      <span class="ch-cal__d" aria-label="9월 12일 아직"><span class="ch-cal__mark"></span><span class="ch-cal__n">12</span></span>
-      <span class="ch-cal__d" aria-label="9월 13일 아직"><span class="ch-cal__mark"></span><span class="ch-cal__n">13</span></span>
+      <span class="ch-cal__d" aria-label="9월 11일 예정"><span class="ch-cal__mark"></span><span class="ch-cal__n">11</span></span>
+      <span class="ch-cal__d" aria-label="9월 12일 예정"><span class="ch-cal__mark"></span><span class="ch-cal__n">12</span></span>
+      <span class="ch-cal__d" aria-label="9월 13일 예정"><span class="ch-cal__mark"></span><span class="ch-cal__n">13</span></span>
     </div>
   </div>
 
@@ -848,7 +860,7 @@
     <img class="gd-profile__av" src="https://picsum.photos/id/65/160/160" alt="" />
     <div class="gd-profile__bd">
       <a class="gd-profile__name" href="#">효진 <i class="ph ph-caret-right"></i></a>
-      <span class="gd-profile__meta">분당교회 · 2019 축복가정</span>
+      <span class="gd-profile__meta">2019 축복가정</span>
       <span class="badge badge--line gd-profile__verse"><i class="ph ph-quotes"></i>대표 말씀: 참사랑은 직단거리를 갑니다</span>
     </div>
   </div>
@@ -893,35 +905,35 @@
           <span class="gd-cal__day" role="listitem" aria-label="9월 8일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>8</b></span>
           <span class="gd-cal__day" role="listitem" aria-label="9월 9일 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>9</b></span>
           <span class="gd-cal__day gd-cal__day--today" role="listitem" aria-label="9월 10일 오늘 완료"><i class="gd-cal__dot gd-cal__dot--done"><i class="ph-bold ph-check"></i></i><b>10</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 11일 아직"><i class="gd-cal__dot"></i><b>11</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 12일 아직"><i class="gd-cal__dot"></i><b>12</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 13일 아직"><i class="gd-cal__dot"></i><b>13</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 11일 예정"><i class="gd-cal__dot"></i><b>11</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 12일 예정"><i class="gd-cal__dot"></i><b>12</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 13일 예정"><i class="gd-cal__dot"></i><b>13</b></span>
 
-          <span class="gd-cal__day" role="listitem" aria-label="9월 14일 아직"><i class="gd-cal__dot"></i><b>14</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 15일 아직"><i class="gd-cal__dot"></i><b>15</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 16일 아직"><i class="gd-cal__dot"></i><b>16</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 17일 아직"><i class="gd-cal__dot"></i><b>17</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 18일 아직"><i class="gd-cal__dot"></i><b>18</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 19일 아직"><i class="gd-cal__dot"></i><b>19</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 20일 아직"><i class="gd-cal__dot"></i><b>20</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 14일 예정"><i class="gd-cal__dot"></i><b>14</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 15일 예정"><i class="gd-cal__dot"></i><b>15</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 16일 예정"><i class="gd-cal__dot"></i><b>16</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 17일 예정"><i class="gd-cal__dot"></i><b>17</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 18일 예정"><i class="gd-cal__dot"></i><b>18</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 19일 예정"><i class="gd-cal__dot"></i><b>19</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 20일 예정"><i class="gd-cal__dot"></i><b>20</b></span>
 
-          <span class="gd-cal__day" role="listitem" aria-label="9월 21일 아직"><i class="gd-cal__dot"></i><b>21</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 22일 아직"><i class="gd-cal__dot"></i><b>22</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 23일 아직"><i class="gd-cal__dot"></i><b>23</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 24일 아직"><i class="gd-cal__dot"></i><b>24</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 25일 아직"><i class="gd-cal__dot"></i><b>25</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 26일 아직"><i class="gd-cal__dot"></i><b>26</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 27일 아직"><i class="gd-cal__dot"></i><b>27</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 21일 예정"><i class="gd-cal__dot"></i><b>21</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 22일 예정"><i class="gd-cal__dot"></i><b>22</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 23일 예정"><i class="gd-cal__dot"></i><b>23</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 24일 예정"><i class="gd-cal__dot"></i><b>24</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 25일 예정"><i class="gd-cal__dot"></i><b>25</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 26일 예정"><i class="gd-cal__dot"></i><b>26</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 27일 예정"><i class="gd-cal__dot"></i><b>27</b></span>
 
-          <span class="gd-cal__day" role="listitem" aria-label="9월 28일 아직"><i class="gd-cal__dot"></i><b>28</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 29일 아직"><i class="gd-cal__dot"></i><b>29</b></span>
-          <span class="gd-cal__day" role="listitem" aria-label="9월 30일 아직"><i class="gd-cal__dot"></i><b>30</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 28일 예정"><i class="gd-cal__dot"></i><b>28</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 29일 예정"><i class="gd-cal__dot"></i><b>29</b></span>
+          <span class="gd-cal__day" role="listitem" aria-label="9월 30일 예정"><i class="gd-cal__dot"></i><b>30</b></span>
         </div>
       </div>
       <div class="gd-cal__legend">
         <span><i class="gd-cal__dot gd-cal__dot--done gd-cal__dot--tiny"><i class="ph-bold ph-check"></i></i>완료</span>
         <span><i class="gd-cal__dot gd-cal__dot--rest gd-cal__dot--tiny">쉼</i>쉬어가기</span>
-        <span><i class="gd-cal__dot gd-cal__dot--tiny"></i>아직</span>
+        <span><i class="gd-cal__dot gd-cal__dot--tiny"></i>다가올 날</span>
       </div>
     </div>
     <p class="gd-hint">"쉼"은 주 1회 쓸 수 있는 쉬어가기예요. 연속일이 끊기지 않아요.</p>
@@ -939,31 +951,26 @@
         <span class="badge badge--accent">D-14</span>
       </div>
       <div class="progress" style="margin-top:12px"><i class="progress__fill" style="width:33%"></i></div>
-      <div class="gd-row gd-row--meta"><span>7 / 21일</span><span>밀린 날 0</span></div>
+      <div class="gd-row gd-row--meta"><span>7 / 21일</span><span>8일차</span></div>
     </div>
   </div>
 
-  <!-- 가족 : 동의한 범위(오늘 완료 여부)만. 완료는 체크 아이콘 + "오늘 완료" 글자 두 신호를 함께 쓴다 -->
+  <!-- 함께 읽는 사람들 (DEC-PWA-023) : 모임과 가족 모두 오늘 읽은 사람만 센다. 안 읽은 가족의 이름·"아직" 은 쓰지 않는다 -->
   <div class="sect">
     <div class="sect__head">
-      <h2 class="sect__title">가족</h2><span class="sect__rule"></span>
-      <a class="sect__meta gd-link" href="?screen=family">관리</a>
+      <h2 class="sect__title">함께 읽는 사람들</h2><span class="sect__rule"></span>
+      <a class="sect__meta gd-link" href="?screen=family">가족 관리</a>
     </div>
-    <div class="fm-list">
-      <a class="fm-item" href="?screen=family">
-        <img class="fm-item__av" src="https://picsum.photos/id/447/80/80" alt="" />
-        <span class="fm-item__bd"><b class="fm-item__t">재민</b><span class="fm-item__m">배우자 · 오늘 아직</span></span>
-        <span class="fm-check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+    <div class="tg-stack">
+      <a class="card together" href="?screen=group">
+        <span class="avatars" aria-hidden="true"><span class="tg-av">은</span><span class="tg-av">미</span><span class="tg-av tg-av--me">효</span></span>
+        <span class="together__bd"><b>새벽별 훈독모임 · 오늘 5명이 함께 읽었어요</b><span>모임 40일 정성 9일차</span></span>
+        <i class="ph ph-caret-right"></i>
       </a>
-      <a class="fm-item" href="?screen=family">
-        <img class="fm-item__av" src="https://picsum.photos/id/338/80/80" alt="" />
-        <span class="fm-item__bd"><b class="fm-item__t">하늘</b><span class="fm-item__m">자녀 · 보호자 연결 · 오늘 완료</span></span>
-        <span class="fm-check fm-check--done" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
-      </a>
-      <a class="fm-item" href="?screen=family">
-        <img class="fm-item__av" src="https://picsum.photos/id/129/80/80" alt="" />
-        <span class="fm-item__bd"><b class="fm-item__t">어머니</b><span class="fm-item__m">부모 · 오늘 아직</span></span>
-        <span class="fm-check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+      <a class="card together" href="?screen=family">
+        <span class="avatars" aria-hidden="true"><span class="tg-av">하</span></span>
+        <span class="together__bd"><b>가족 · 오늘 하늘이 함께 읽었어요</b><span>읽은 가족만 보여요</span></span>
+        <i class="ph ph-caret-right"></i>
       </a>
     </div>
   </div>
@@ -986,7 +993,7 @@
     </a>
   </div>
 
-  <p class="notice">기록은 나만 봅니다. 가족에게는 동의한 범위(오늘 완료 여부)만 보여요.</p>
+  <p class="notice">기록은 나만 봅니다. 가족과 모임에는 내가 읽은 날만 보이고, 읽지 않은 날은 보이지 않아요.</p>
 </section>
 
 <!-- ===== 알림·설치 설정 (SCR-PWA-015) ===== -->
@@ -1098,17 +1105,17 @@
     <div class="fm-list">
       <a class="fm-item" href="#">
         <img class="fm-item__av fm-item__av--lg" src="https://picsum.photos/id/447/120/120" alt="" />
-        <span class="fm-item__bd"><b class="fm-item__t">재민</b><span class="fm-item__m">배우자 · 보여주기: 오늘 완료 여부</span></span>
+        <span class="fm-item__bd"><b class="fm-item__t">재민</b><span class="fm-item__m">배우자 · 보여주기: 읽은 날</span></span>
         <i class="ph ph-caret-right fm-go"></i>
       </a>
       <a class="fm-item" href="#">
         <img class="fm-item__av fm-item__av--lg" src="https://picsum.photos/id/338/120/120" alt="" />
-        <span class="fm-item__bd"><b class="fm-item__t">하늘 (12)</b><span class="fm-item__m">자녀 · 보호자 연결 · 보여주기: 완료 여부와 정성</span></span>
+        <span class="fm-item__bd"><b class="fm-item__t">하늘 (12)</b><span class="fm-item__m">자녀 · 보호자 연결 · 보여주기: 읽은 날과 정성</span></span>
         <i class="ph ph-caret-right fm-go"></i>
       </a>
       <a class="fm-item" href="#">
         <img class="fm-item__av fm-item__av--lg" src="https://picsum.photos/id/129/120/120" alt="" />
-        <span class="fm-item__bd"><b class="fm-item__t">어머니</b><span class="fm-item__m">부모 · 보여주기: 오늘 완료 여부</span></span>
+        <span class="fm-item__bd"><b class="fm-item__t">어머니</b><span class="fm-item__m">부모 · 보여주기: 읽은 날</span></span>
         <i class="ph ph-caret-right fm-go"></i>
       </a>
       <a class="fm-item" href="#">
@@ -1119,32 +1126,29 @@
     </div>
   </div>
 
-  <!-- 친구 : 완료 여부만. 순위를 매기지 않는다 (DEC-PWA-019) -->
+  <!-- 친구 : 순위를 매기지 않는다 (DEC-PWA-019). 사람별 완료/미완료 배지를 달지 않고 읽은 수만 요약한다 (DEC-PWA-023).
+       소속 교회는 받지 않으므로 교회명을 쓰지 않는다 -->
   <div class="sect">
     <div class="sect__head">
       <h2 class="sect__title">친구</h2><span class="sect__rule"></span>
-      <span class="sect__meta">4명</span>
+      <span class="sect__meta">오늘 3명이 함께 읽었어요</span>
     </div>
     <div class="fm-list">
       <a class="fm-item" href="#">
         <img class="fm-item__av" src="https://picsum.photos/id/550/80/80" alt="" />
-        <span class="fm-item__bd"><b class="fm-item__t">수아</b><span class="fm-item__m">분당교회 · 21일 정성 함께 중</span></span>
-        <span class="badge badge--rank"><i class="ph-bold ph-check"></i>오늘 완료</span>
+        <span class="fm-item__bd"><b class="fm-item__t">수아</b><span class="fm-item__m">21일 정성 함께 중</span></span>
       </a>
       <a class="fm-item" href="#">
         <img class="fm-item__av" src="https://picsum.photos/id/505/80/80" alt="" />
-        <span class="fm-item__bd"><b class="fm-item__t">민재</b><span class="fm-item__m">영통교회</span></span>
-        <span class="badge badge--line">아직</span>
+        <span class="fm-item__bd"><b class="fm-item__t">민재</b><span class="fm-item__m">함께 읽는 친구</span></span>
       </a>
       <a class="fm-item" href="#">
         <img class="fm-item__av" src="https://picsum.photos/id/225/80/80" alt="" />
-        <span class="fm-item__bd"><b class="fm-item__t">지훈</b><span class="fm-item__m">분당교회 청년부</span></span>
-        <span class="badge badge--rank"><i class="ph-bold ph-check"></i>오늘 완료</span>
+        <span class="fm-item__bd"><b class="fm-item__t">지훈</b><span class="fm-item__m">함께 읽는 친구</span></span>
       </a>
       <a class="fm-item" href="#">
         <img class="fm-item__av" src="https://picsum.photos/id/305/80/80" alt="" />
-        <span class="fm-item__bd"><b class="fm-item__t">예린</b><span class="fm-item__m">용인교회</span></span>
-        <span class="badge badge--rank"><i class="ph-bold ph-check"></i>오늘 완료</span>
+        <span class="fm-item__bd"><b class="fm-item__t">예린</b><span class="fm-item__m">함께 읽는 친구</span></span>
       </a>
     </div>
   </div>
@@ -1158,8 +1162,8 @@
       <p class="st-lead">가족과 친구에게 어디까지 보일지 정해요.</p>
       <div class="fm-scope">
         <div class="fm-scope__row">
-          <span class="fm-scope__k">오늘 완료 여부</span>
-          <button class="toggle" type="button" aria-pressed="true" aria-label="오늘 완료 여부 공개"></button>
+          <span class="fm-scope__k">오늘 읽은 날 표시</span>
+          <button class="toggle" type="button" aria-pressed="true" aria-label="오늘 읽은 날 표시"></button>
         </div>
         <div class="fm-scope__row">
           <span class="fm-scope__k">진행 중인 정성 이름</span>
@@ -1208,6 +1212,415 @@
       </ol>
       <p class="notice">질문과 답은 기기에만 저장돼요. 무기억 모드에서는 남지 않아요</p>
     </section>
+
+
+    <!-- =============================================================================
+         훈독 모임 4화면 (DEC-PWA-023, 2026-09-23) : SCR-PWA-017 group · 018 group-join · 019 group-create · 020 group-share
+         첫 모임 종류는 소그룹(훈독가정교회). 리더가 만들고 초대 코드/카카오톡 링크로 부른다. 가족 모임은 후속.
+         모임 안에서는 완료한 사람만 보인다. 미완료자 이름·상태·독촉 알림·순위·점수·보상 없음.
+         나눔은 100자 한 줄 + 반응 "함께 머물렀어요" 1종. 댓글·피드·좋아요 수 경쟁 없음.
+         스타일은 hoondok.css §13 (tg-*) 이다.
+         ============================================================================= -->
+
+    <!-- ===== 훈독 모임 상세 (SCR-PWA-017) ===== -->
+    <section class="col" data-screen="group" hidden>
+      <div class="tg-head">
+        <span class="badge badge--line">소그룹 · 훈독가정교회</span>
+        <h2 class="tg-head__nm">새벽별 훈독모임</h2>
+        <p class="tg-head__meta">리더 은정 · 매일 오전 6시</p>
+        <div class="tg-acts">
+          <!-- 카카오톡 공유는 Web Share API 로 연다. 공유 카드에는 모임 이름·초대 링크만 넣고 말씀 본문은 넣지 않는다 -->
+          <button class="btn btn-primary btn--sm" type="button"><i class="ph ph-share-network" aria-hidden="true"></i>초대하기 (카카오톡)</button>
+          <a class="btn btn-line btn--sm" href="?screen=group-settings"><i class="ph ph-gear" aria-hidden="true"></i>모임 설정</a>
+        </div>
+      </div>
+
+      <!-- 오늘 범위 : 모든 모임이 공식 편성(협회 공지 → 편성자 등록)을 따른다. 리더 지정은 이번 범위 제외(2026-09-23, PLAN-HD-010) -->
+      <div class="sect">
+        <div class="sect__head"><h3 class="sect__title">오늘 범위</h3><span class="sect__rule"></span><span class="sect__meta">공식 편성</span></div>
+        <a class="card tg-range" href="?screen=words" aria-label="오늘 범위, 천성경 제1편 3장 원문 열기">
+          <div class="src">
+            <span>참아버님</span><span class="src__dot"></span><span>천성경 제1편 3장</span><span class="src__dot"></span><span>2013 한국어판</span>
+            <span class="badge badge--rank">O1 공식 원문</span>
+          </div>
+          <p class="tg-range__t">참사랑은 직단거리를 갑니다</p>
+          <div class="tg-range__ft"><span>10~12단락 · 약 3분</span><span class="tg-link">원문 열기<i class="ph ph-caret-right" aria-hidden="true"></i></span></div>
+        </a>
+      </div>
+
+      <!-- 정성 : 공식 정성 1 + 모임 정성 1. 모임 전체의 N일차만 쓰고 개인별 진행·빠진 날 수는 없다 -->
+      <div class="sect">
+        <div class="sect__head"><h3 class="sect__title">함께 드리는 정성</h3><span class="sect__rule"></span><span class="sect__meta">2개</span></div>
+        <div class="card">
+          <div class="tg-js">
+            <div class="tg-js__top">
+              <span><b class="tg-js__t">21일 특별정성</b><span class="tg-js__by">공식 정성 · 협회 공지를 편성자가 등록</span></span>
+              <span class="tg-js__day"><b>12일차</b>21일 중</span>
+            </div>
+            <div class="progress" role="progressbar" aria-valuenow="12" aria-valuemin="0" aria-valuemax="21" aria-label="21일 특별정성 12일차, 21일 중"><i class="progress__fill" style="width:57%"></i></div>
+            <div class="tg-js__ft"><span>9월 12일 ~ 10월 2일</span><span class="badge badge--accent">공식</span></div>
+          </div>
+          <div class="tg-js">
+            <div class="tg-js__top">
+              <span><b class="tg-js__t">우리 모임 40일 새벽 정성</b><span class="tg-js__by">모임 정성 · 은정 리더가 열었어요</span></span>
+              <span class="tg-js__day"><b>9일차</b>40일 중</span>
+            </div>
+            <div class="progress" role="progressbar" aria-valuenow="9" aria-valuemin="0" aria-valuemax="40" aria-label="우리 모임 40일 새벽 정성 9일차, 40일 중"><i class="progress__fill" style="width:22.5%"></i></div>
+            <div class="tg-js__ft"><span>9월 15일 ~ 10월 24일</span><span class="badge badge--line">모임</span></div>
+          </div>
+          <p class="tg-again">하루 쉬어도 정성은 이어져요. 오늘부터 다시 함께 읽어요.</p>
+        </div>
+      </div>
+
+      <!-- 오늘 함께 읽은 사람 : 완료자만, 가나다순. 미완료자는 목록에 없다 -->
+      <div class="sect">
+        <div class="sect__head"><h3 class="sect__title">오늘 함께 읽은 사람</h3><span class="sect__rule"></span><span class="sect__meta">5명 · 가나다순</span></div>
+        <ul class="card tg-people" role="list">
+          <li class="tg-person"><span class="tg-av" aria-hidden="true">미</span><span class="tg-person__bd"><b>미카</b><span>오전 5:55</span></span></li>
+          <li class="tg-person"><span class="tg-av" aria-hidden="true">서</span><span class="tg-person__bd"><b>서연</b><span>오전 6:10</span></span></li>
+          <li class="tg-person"><span class="tg-av" aria-hidden="true">은</span><span class="tg-person__bd"><b>은정 (리더)</b><span>오전 5:48</span></span></li>
+          <li class="tg-person"><span class="tg-av" aria-hidden="true">정</span><span class="tg-person__bd"><b>정호 아버지</b><span>오전 6:21</span></span></li>
+          <li class="tg-person"><span class="tg-av tg-av--me" aria-hidden="true">효</span><span class="tg-person__bd"><b>효진 (나)</b><span>오전 6:12</span></span></li>
+        </ul>
+      </div>
+
+      <!-- 오늘의 한 줄 : 훈독 → 대화 → 보고기도 중 '대화'를 옮긴 것. 100자 한 줄 + 반응 1종.
+           [확인 필요] 반응 수 표시 — 이 시안은 남의 한 줄에는 수를 숨기고, 내 한 줄에만 "N명이 함께 머물렀어요" 를 작게 보인다.
+           대안: 모두에게 작게 표시 / 누구에게도 표시하지 않음. 반응은 알림을 보내지 않는다 -->
+      <div class="sect">
+        <div class="sect__head"><h3 class="sect__title">오늘의 한 줄</h3><span class="sect__rule"></span><a class="sect__meta" href="?screen=group-share">한 줄 남기기</a></div>
+        <ul class="card tg-notes" role="list">
+          <li class="tg-note">
+            <span class="tg-av" aria-hidden="true">은</span>
+            <div class="tg-note__bd">
+              <div class="tg-note__who"><b>은정</b>오전 5:52</div>
+              <p class="tg-note__tx">"91도도 89도도 직단이 아닙니다" 이 문장에서 오래 머물렀어요.</p>
+              <button class="tg-stay" type="button" aria-pressed="true"><i class="ph ph-hands-praying" aria-hidden="true"></i>함께 머물렀어요</button>
+            </div>
+          </li>
+          <li class="tg-note">
+            <span class="tg-av" aria-hidden="true">미</span>
+            <div class="tg-note__bd">
+              <div class="tg-note__who"><b>미카</b>오전 6:01</div>
+              <p class="tg-note__tx">오늘은 남편과 소리 내어 같이 읽었어요. 감사합니다.</p>
+              <button class="tg-stay" type="button" aria-pressed="false"><i class="ph ph-hands-praying" aria-hidden="true"></i>함께 머물렀어요</button>
+            </div>
+          </li>
+          <li class="tg-note">
+            <span class="tg-av tg-av--me" aria-hidden="true">효</span>
+            <div class="tg-note__bd">
+              <div class="tg-note__who"><b>효진 (나)</b>오전 6:14</div>
+              <p class="tg-note__tx">곧게 사랑한다는 게 돌아가지 않는 거라니, 오늘은 아이에게 먼저 말을 걸어 볼게요.</p>
+              <span class="tg-stay__mine"><i class="ph ph-hands-praying" aria-hidden="true"></i>2명이 함께 머물렀어요 · 나에게만 보여요</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <p class="tg-privacy"><i class="ph ph-lock-simple" aria-hidden="true"></i><span>모임 안에서만 보여요. 안 읽은 사람은 표시하지 않아요. 순위도 점수도 없습니다.</span></p>
+      <p class="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
+    </section>
+
+    <!-- ===== 모임 참여 (SCR-PWA-018) : 코드 입력(또는 ?via=link 로 링크 진입) → 미리보기 → 표시 이름 → 공개 안내 → 참여 ===== -->
+    <section class="col tg-form" data-screen="group-join" hidden>
+      <p class="tg-lede">리더에게 받은 초대 코드를 넣어 주세요. 카카오톡 링크로 들어오면 코드가 이미 채워져 있어요.</p>
+
+      <div class="field" data-q="via=default">
+        <label class="field__label" for="gj-code">초대 코드</label>
+        <div class="tg-code-row">
+          <input id="gj-code" type="text" value="7K2M-Q9XD" autocomplete="off" autocapitalize="characters" />
+          <button class="btn btn-line btn--sm" type="button">확인</button>
+        </div>
+      </div>
+      <div class="field" data-q="via=link">
+        <span class="field__label">초대 링크</span>
+        <div class="tg-via"><i class="ph ph-link-simple" aria-hidden="true"></i><span>은정 님이 보낸 링크로 들어왔어요</span></div>
+      </div>
+
+      <div class="field">
+        <span class="field__label">이 모임</span>
+        <div class="card">
+          <span class="badge badge--line">소그룹 · 훈독가정교회</span>
+          <h2 class="tg-head__nm">새벽별 훈독모임</h2>
+          <p class="tg-head__meta">리더 은정 · 오늘 범위는 공식 편성을 따라요</p>
+          <p class="tg-head__meta">함께 드리는 정성: 21일 특별정성 12일차 · 우리 모임 40일 새벽 정성 9일차</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="gj-name">이 모임에서 쓸 이름</label>
+        <input id="gj-name" type="text" value="효진" maxlength="12" />
+        <span class="field__help">모임마다 다르게 정할 수 있어요. 실명도 애칭도 괜찮아요.</span>
+      </div>
+
+      <div class="field">
+        <span class="field__label">모임에 보이는 것</span>
+        <div class="card">
+          <p class="st-lead" style="margin:0">모임에는 오늘 읽었는지와 내가 남긴 한 줄만 보여요. 형광펜·노트·질문은 항상 나만 봐요.</p>
+          <ul class="tg-vis">
+            <li class="is-shown"><i class="ph ph-eye" aria-hidden="true"></i><span><b>보여요</b> · 읽은 날의 이름과 시각, 내가 남긴 한 줄</span></li>
+            <li class="is-hidden"><i class="ph ph-eye-slash" aria-hidden="true"></i><span><b>안 보여요</b> · 읽지 않은 날, 형광펜·노트·질문, 연속일</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tg-cta">
+        <a class="btn btn-primary" href="?screen=group">모임에 참여하기</a>
+        <a class="btn btn-ghost" href="?screen=today&amp;together=none">나중에</a>
+      </div>
+      <p class="notice">모임은 언제든 나갈 수 있고, 나가면 내 한 줄도 함께 지워져요</p>
+    </section>
+
+    <!-- ===== 모임 만들기 (SCR-PWA-019) : 만들기를 누르거나 ?created=1 이면 초대 코드·카카오톡 공유가 열린다 ===== -->
+    <section class="col tg-form" data-screen="group-create" hidden>
+      <p class="tg-lede">훈독 모임을 만들고 초대 코드로 식구들을 불러요. 모임 안에서는 오늘 읽은 사람과 한 줄 나눔만 보여요.</p>
+
+      <div class="field">
+        <span class="field__label" id="gc-kind">모임 종류</span>
+        <div class="tg-opts" role="radiogroup" aria-labelledby="gc-kind">
+          <button class="tg-opt" type="button" role="radio" aria-checked="true">
+            <span class="tg-radio" aria-hidden="true"></span>
+            <span class="tg-opt__bd"><b>소그룹 · 훈독가정교회</b><span>구역·청년·축복 기수처럼 서로 아는 식구 몇 명</span></span>
+          </button>
+          <button class="tg-opt" type="button" role="radio" aria-checked="false" aria-disabled="true">
+            <span class="tg-radio" aria-hidden="true"></span>
+            <span class="tg-opt__bd"><b>가족 모임</b><span>곧 열려요</span></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="gc-name">모임 이름</label>
+        <input id="gc-name" type="text" value="새벽별 훈독모임" maxlength="20" />
+        <span class="field__help">교회 이름을 쓰지 않아도 돼요. 모임 식구들이 알아볼 별칭이면 충분해요.</span>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="gc-me">이 모임에서 쓸 내 이름</label>
+        <input id="gc-me" type="text" value="은정" maxlength="12" />
+        <span class="field__help">리더로 표시돼요. 실명도 애칭도 괜찮아요.</span>
+      </div>
+
+      <p class="field__help" style="margin-top:14px">오늘 범위는 모든 모임이 공식 편성(오늘 훈독과 같은 말씀)을 따라요.</p>
+
+      <div class="field">
+        <div class="card">
+          <div class="tg-toggle-row">
+            <span><b>모임 정성 열기</b><span>선택 · 공식 정성과 따로 우리 모임이 드리는 정성</span></span>
+            <button class="toggle" type="button" aria-pressed="true" aria-label="모임 정성 열기"></button>
+          </div>
+          <div class="tg-sub">
+            <div class="field">
+              <label class="field__label" for="gc-js-name">정성 이름</label>
+              <input id="gc-js-name" type="text" value="우리 모임 40일 새벽 정성" maxlength="24" />
+            </div>
+            <div class="field">
+              <span class="field__label" id="gc-js-term">기간</span>
+              <div class="tg-opts tg-opts--row" role="radiogroup" aria-labelledby="gc-js-term">
+                <button class="tg-opt" type="button" role="radio" aria-checked="false"><i class="ph-bold ph-check tg-opt__ck" aria-hidden="true"></i>21일</button>
+                <button class="tg-opt" type="button" role="radio" aria-checked="true"><i class="ph-bold ph-check tg-opt__ck" aria-hidden="true"></i>40일</button>
+                <button class="tg-opt" type="button" role="radio" aria-checked="false"><i class="ph-bold ph-check tg-opt__ck" aria-hidden="true"></i>직접</button>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field__label" for="gc-js-start">시작일</label>
+              <input id="gc-js-start" type="text" value="9월 15일 (월)" />
+              <span class="field__help">진행은 "N일차"로만 보여요. 빠진 날이 있어도 정성은 이어지고, 개인별 기록은 보이지 않아요.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tg-cta">
+        <button class="btn btn-primary" type="button" id="gc-make">모임 만들기</button>
+      </div>
+
+      <div class="card" id="gc-done" role="status" style="margin-top:16px" hidden>
+        <b style="font-size:16px">모임을 만들었어요</b>
+        <p class="tg-lede" style="margin-top:4px">이 코드를 식구들에게 보내 주세요. 코드를 받은 사람만 들어올 수 있어요.</p>
+        <p class="tg-code" aria-label="초대 코드 7K2M-Q9XD">7K2M-Q9XD</p>
+        <div class="tg-join">
+          <button class="btn btn-primary btn--sm" type="button"><i class="ph ph-share-network" aria-hidden="true"></i>카카오톡으로 초대</button>
+          <button class="btn btn-line btn--sm" type="button"><i class="ph ph-copy" aria-hidden="true"></i>링크 복사</button>
+        </div>
+        <a class="tg-link" href="?screen=group">모임으로 가기<i class="ph ph-caret-right" aria-hidden="true"></i></a>
+      </div>
+      <p class="notice">모임은 검색되지 않아요. 순위·점수·보상은 없습니다</p>
+    </section>
+
+    <!-- ===== 한 줄 나눔 쓰기 (SCR-PWA-020) : 100자, 모임에만 보인다 ===== -->
+    <section class="col tg-form" data-screen="group-share" hidden>
+      <p class="tg-lede">훈독회의 '대화'처럼, 오늘 말씀에서 머문 마음을 한 줄로 나눠요.</p>
+
+      <div class="field">
+        <span class="field__label">오늘 읽은 말씀</span>
+        <div class="card">
+          <div class="src"><span>참아버님</span><span class="src__dot"></span><span>천성경 제1편 3장</span><span class="badge badge--rank">O1 공식 원문</span></div>
+          <p class="tg-range__t">참사랑은 직단거리를 갑니다</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="gs-text">새벽별 훈독모임에 남길 한 줄</label>
+        <textarea id="gs-text" maxlength="100" rows="3" placeholder="오늘 마음에 머문 구절이나 떠오른 사람을 적어 주세요" aria-describedby="gs-count gs-help"></textarea>
+        <span class="tg-count" id="gs-count" aria-live="polite">0 / 100</span>
+        <span class="field__help" id="gs-help">모임에만 보여요. 내가 언제든 지울 수 있어요.</span>
+      </div>
+
+      <div class="field">
+        <span class="field__label">이렇게 시작해 볼 수 있어요</span>
+        <div class="tg-exs">
+          <button class="tg-ex" type="button" data-fill="#gs-text">오늘 마음에 머문 구절은 "</button>
+          <button class="tg-ex" type="button" data-fill="#gs-text">이 말씀을 읽고 떠오른 사람은 </button>
+          <button class="tg-ex" type="button" data-fill="#gs-text">오늘 이 말씀을 이렇게 살아 보려 해요. </button>
+        </div>
+      </div>
+
+      <div class="tg-cta">
+        <a class="btn btn-primary" href="?screen=group">한 줄 남기기</a>
+        <a class="btn btn-ghost" href="?screen=group">남기지 않고 돌아가기</a>
+      </div>
+      <p class="notice">한 줄에는 댓글을 달 수 없고, 반응은 "함께 머물렀어요" 한 가지예요</p>
+    </section>
+
+    <!-- ===== 모임 설정 (SCR-PWA-021, PLAN-HD-010 결정 2) : 기본은 리더 보기, ?role=member 는 모임원 보기 =====
+         리더 5가지 = 모임 이름 변경 · 식구 목록(전체 인원은 여기서만) · 초대 코드 새로 만들기 · 식구 내보내기 · 나가기/모임 삭제.
+         모임원 = 내 이름 변경 · 나가기. 식구 목록에 읽음 상태를 넣지 않는다. 리더 넘기기(수동 위임)는 후속.
+         되돌릴 수 없는 동작은 한 번 눌러서 끝나지 않는다 — 누르면 바로 아래 확인 카드가 열린다(data-confirm) -->
+    <section class="col tg-form" data-screen="group-settings" hidden>
+      <p class="tg-lede" data-q="role=default|leader">새벽별 훈독모임의 리더 설정이에요. 모임 이름·식구·초대 코드를 관리해요.</p>
+      <p class="tg-lede" data-q="role=member">새벽별 훈독모임에서 쓰는 내 이름을 바꾸거나 모임을 나갈 수 있어요.</p>
+
+      <div class="field" data-q="role=default|leader">
+        <label class="field__label" for="gt-name">모임 이름</label>
+        <div class="tg-inline">
+          <input id="gt-name" type="text" value="새벽별 훈독모임" maxlength="20" />
+          <button class="btn btn-line btn--sm" type="button">저장</button>
+        </div>
+        <span class="field__help">바꾸면 식구 모두에게 새 이름이 보여요. 교회 이름은 쓰지 않아도 돼요.</span>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="gt-me">이 모임에서 쓸 내 이름</label>
+        <div class="tg-inline">
+          <input id="gt-me" type="text" value="은정" maxlength="12" data-q="role=default|leader" />
+          <input id="gt-me-member" type="text" value="효진" maxlength="12" aria-label="이 모임에서 쓸 내 이름" data-q="role=member" />
+          <button class="btn btn-line btn--sm" type="button">저장</button>
+        </div>
+        <span class="field__help">이 모임에서만 쓰는 이름이에요. 같은 모임에 같은 이름은 쓸 수 없어요.</span>
+      </div>
+
+      <!-- 식구 목록 : 전체 인원 "식구 N명" 은 이 화면에서만 보인다. 이름·역할·들어온 날만, 오늘 읽었는지는 없다 -->
+      <div class="sect" data-q="role=default|leader">
+        <div class="sect__head"><h3 class="sect__title">식구</h3><span class="sect__rule"></span><span class="sect__meta">식구 8명</span></div>
+        <ul class="card tg-people" role="list">
+          <li class="tg-person"><span class="tg-av tg-av--me" aria-hidden="true">은</span><span class="tg-person__bd"><b>은정 (나)</b><span>리더 · 9월 12일에 만들었어요</span></span></li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">미</span><span class="tg-person__bd"><b>미카</b><span>모임원 · 9월 12일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-1" aria-expanded="false" aria-controls="gt-kick-1">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-1" role="group" aria-label="미카 님 내보내기 확인" hidden>
+              <p>미카 님을 내보낼까요? 미카 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">서</span><span class="tg-person__bd"><b>서연</b><span>모임원 · 9월 12일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-2" aria-expanded="false" aria-controls="gt-kick-2">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-2" role="group" aria-label="서연 님 내보내기 확인" hidden>
+              <p>서연 님을 내보낼까요? 서연 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">정</span><span class="tg-person__bd"><b>정호 아버지</b><span>모임원 · 9월 13일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-3" aria-expanded="false" aria-controls="gt-kick-3">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-3" role="group" aria-label="정호 아버지 님 내보내기 확인" hidden>
+              <p>정호 아버지 님을 내보낼까요? 정호 아버지 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">효</span><span class="tg-person__bd"><b>효진</b><span>모임원 · 9월 14일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-4" aria-expanded="false" aria-controls="gt-kick-4">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-4" role="group" aria-label="효진 님 내보내기 확인" hidden>
+              <p>효진 님을 내보낼까요? 효진 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">지</span><span class="tg-person__bd"><b>지훈</b><span>모임원 · 9월 15일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-5" aria-expanded="false" aria-controls="gt-kick-5">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-5" role="group" aria-label="지훈 님 내보내기 확인" hidden>
+              <p>지훈 님을 내보낼까요? 지훈 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">수</span><span class="tg-person__bd"><b>수아</b><span>모임원 · 9월 18일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-6" aria-expanded="false" aria-controls="gt-kick-6">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-6" role="group" aria-label="수아 님 내보내기 확인" hidden>
+              <p>수아 님을 내보낼까요? 수아 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">민</span><span class="tg-person__bd"><b>민재</b><span>모임원 · 9월 21일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-7" aria-expanded="false" aria-controls="gt-kick-7">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-7" role="group" aria-label="민재 님 내보내기 확인" hidden>
+              <p>민재 님을 내보낼까요? 민재 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+        </ul>
+        <p class="tg-again">이 목록에는 오늘 읽었는지 표시하지 않아요. 전체 인원도 리더 설정에서만 보여요.</p>
+      </div>
+
+      <!-- 초대 코드 : 모임당 1개, 30일 만료. 새로 만들면 이전 코드는 즉시 무효 -->
+      <div class="sect" data-q="role=default|leader">
+        <div class="sect__head"><h3 class="sect__title">초대 코드</h3><span class="sect__rule"></span><span class="sect__meta">10월 12일까지</span></div>
+        <div class="card">
+          <p class="tg-code" style="margin-top:0" aria-label="초대 코드 7K2M-Q9XD">7K2M-Q9XD</p>
+          <p class="tg-again">코드를 받은 사람은 누구나 들어올 수 있어요. 만든 날부터 30일 동안 쓸 수 있어요.</p>
+          <div class="tg-join">
+            <button class="btn btn-primary btn--sm" type="button"><i class="ph ph-share-network" aria-hidden="true"></i>카카오톡으로 초대</button>
+            <button class="btn btn-line btn--sm" type="button"><i class="ph ph-copy" aria-hidden="true"></i>링크 복사</button>
+          </div>
+          <button class="btn btn-line btn--sm tg-wide" type="button" data-confirm="gt-regen" aria-expanded="false" aria-controls="gt-regen"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i>초대 코드 새로 만들기</button>
+          <div class="tg-confirm" id="gt-regen" role="group" aria-label="초대 코드 새로 만들기 확인" hidden>
+            <p>새 코드를 만들까요? <b>이전 코드는 바로 막혀요.</b> 이미 들어온 식구는 그대로예요.</p>
+            <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">새로 만들기</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 나가기·모임 삭제 : 되돌릴 수 없는 묶음은 다른 설정과 떨어뜨린다 -->
+      <div class="sect">
+        <div class="sect__head"><h3 class="sect__title" data-q="role=default|leader">나가기 · 모임 삭제</h3><h3 class="sect__title" data-q="role=member">모임 나가기</h3><span class="sect__rule"></span></div>
+        <div class="card tg-set">
+          <div class="tg-set__row" data-q="role=default|leader">
+            <span class="tg-set__bd"><b>모임 나가기</b><span>다른 식구가 있으면 리더는 나갈 수 없어요 · 리더 넘기기는 준비 중</span></span>
+            <button class="btn btn-line btn--sm" type="button" disabled aria-disabled="true">나가기</button>
+          </div>
+          <div class="tg-set__row" data-q="role=default|leader">
+            <span class="tg-set__bd"><b>모임 삭제</b><span>식구·한 줄 나눔·모임 정성이 모두 지워져요. 되돌릴 수 없어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-delete" aria-expanded="false" aria-controls="gt-delete">삭제</button>
+            <div class="tg-confirm" id="gt-delete" role="group" aria-label="모임 삭제 확인" hidden>
+              <p>새벽별 훈독모임을 지울까요? 식구 8명 모두 모임에서 빠지고 한 줄 나눔·모임 정성도 함께 지워져요. 각자의 훈독 기록과 개인 정성은 그대로 남아요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">모임 삭제</button></div>
+            </div>
+          </div>
+          <div class="tg-set__row" data-q="role=member">
+            <span class="tg-set__bd"><b>모임 나가기</b><span>나가면 내가 남긴 한 줄과 반응도 함께 지워져요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-leave" aria-expanded="false" aria-controls="gt-leave">나가기</button>
+            <div class="tg-confirm" id="gt-leave" role="group" aria-label="모임 나가기 확인" hidden>
+              <p>새벽별 훈독모임을 나갈까요? 내가 남긴 한 줄과 반응이 지워지고, 다시 들어오려면 초대 코드가 필요해요. 내 훈독 기록은 그대로 남아요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">나가기</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="notice">모임 설정은 이 모임 식구에게만 영향을 줘요. 모임은 검색되지 않아요</p>
+    </section>
   </main>
 
   <div class="sheet" id="sheet-jeongseong" role="dialog" aria-modal="true" aria-labelledby="js-title">
@@ -1243,7 +1656,7 @@
         <input id="js-start" value="9월 11일 (목)" />
         <input id="js-time" value="오전 5:30" aria-label="알림 시각" />
       </div>
-      <span class="field__help">하루를 놓쳐도 정성은 끊기지 않고 "밀린 날"로 표시돼요.</span>
+      <span class="field__help">하루 쉬어도 정성은 끊기지 않아요. 다음 날 그 자리에서 다시 이어 가요.</span>
     </div>
 
     <div class="card ask-row js-field">
@@ -1287,12 +1700,14 @@
   document.querySelectorAll('[data-screen]').forEach(s => s.hidden = s.dataset.screen !== screen);
   const TITLES = {today:'오늘 훈독', read:'훈독하기', words:'천성경 1편 3장', library:'말씀', search:'',
     onboarding:'', ask:'AI 질문', 'ask-log':'질문 기록', 'ask-detail':'질문', worship:'가정예배', challenge:'챌린지', sermons:'5분 설교',
-    'sermon-request':'설교 섭외', garden:'나의 정원', settings:'알림·설치', family:'가족·친구'};
+    'sermon-request':'설교 섭외', garden:'나의 정원', settings:'알림·설치', family:'가족·친구',
+    group:'훈독 모임', 'group-join':'모임 참여', 'group-create':'모임 만들기', 'group-share':'한 줄 나눔', 'group-settings':'모임 설정'};
   document.getElementById('apptitle').textContent = TITLES[screen] ?? screen;
   // 탭 귀속 : 하위 화면은 상위 탭을 활성으로
   const TAB_OF = {today:'today', read:'today', words:'library', library:'library', search:'library',
     ask:'ask', 'ask-log':'ask', 'ask-detail':'ask', worship:'worship', challenge:'worship', sermons:'worship', 'sermon-request':'worship',
-    garden:'garden', settings:'garden', family:'garden'};
+    garden:'garden', settings:'garden', family:'garden',
+    group:'today', 'group-join':'today', 'group-create':'today', 'group-share':'today', 'group-settings':'today'};
   // 정성 기간 시트 : ?sheet=jeongseong
   const sheet = q.get('sheet');
   if (sheet) { const el = document.getElementById('sheet-' + sheet); if (el) el.setAttribute('open',''); }
@@ -1308,7 +1723,44 @@
   document.querySelectorAll('[data-fill]').forEach(b => b.addEventListener('click', () => {
     const el = document.querySelector(b.dataset.fill); if (!el) return;
     el.value = b.textContent.trim(); el.focus();
+    el.dispatchEvent(new Event('input'));
   }));
+  // 쿼리 변형 : data-q="together=default|small" 는 그 값일 때만 보인다. 쿼리가 없으면 값은 default
+  document.querySelectorAll('[data-q]').forEach(el => {
+    const ok = el.dataset.q.split(' ').every(c => { const [k, v] = c.split('='); return v.split('|').includes(q.get(k) || 'default'); });
+    if (!ok) el.hidden = true;
+  });
+  // 라디오 카드 (tg-opt) : 같은 그룹 안에서 하나만. aria-disabled 는 고를 수 없다
+  document.querySelectorAll('.tg-opts').forEach(g => g.addEventListener('click', e => {
+    const b = e.target.closest('.tg-opt'); if (!b || b.getAttribute('aria-disabled') === 'true') return;
+    g.querySelectorAll('.tg-opt').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+  }));
+  // 반응 "함께 머물렀어요" : 누른 사람 화면에서만 켜진다. 수를 세어 보여 주지 않는다
+  document.querySelectorAll('.tg-stay').forEach(b => b.addEventListener('click', () => {
+    b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'));
+  }));
+  // 훈독하기 완료 뒤 한 줄 : 버튼을 누르거나 ?done=1
+  const readDone = document.getElementById('read-done'), readBtn = document.getElementById('read-done-btn');
+  const showReadDone = () => { readDone.hidden = false; readBtn.disabled = true; readBtn.innerHTML = '<i class="ph ph-check"></i>오늘 훈독을 마쳤어요'; };
+  if (q.get('done') === '1') showReadDone();
+  readBtn.addEventListener('click', showReadDone);
+  // 모임 만들기 → 초대 코드 : 버튼을 누르거나 ?created=1
+  const gcDone = document.getElementById('gc-done');
+  if (q.get('created') === '1') gcDone.hidden = false;
+  document.getElementById('gc-make').addEventListener('click', () => { gcDone.hidden = false; gcDone.scrollIntoView({block:'center'}); });
+  // 되돌릴 수 없는 동작 : 누르면 확인 카드가 열리고 초점은 취소로 간다. 취소하면 원래 버튼으로 돌아간다
+  document.querySelectorAll('[data-confirm]').forEach(b => b.addEventListener('click', () => {
+    const box = document.getElementById(b.dataset.confirm); if (!box) return;
+    box.hidden = !box.hidden; b.setAttribute('aria-expanded', String(!box.hidden));
+    if (!box.hidden) box.querySelector('[data-cancel]').focus();
+  }));
+  document.querySelectorAll('.tg-confirm [data-cancel]').forEach(c => c.addEventListener('click', () => {
+    const box = c.closest('.tg-confirm'), opener = document.querySelector('[data-confirm="' + box.id + '"]');
+    box.hidden = true; opener.setAttribute('aria-expanded', 'false'); opener.focus();
+  }));
+  // 한 줄 100자 카운터
+  const gsText = document.getElementById('gs-text'), gsCount = document.getElementById('gs-count');
+  gsText.addEventListener('input', () => { gsCount.textContent = gsText.value.length + ' / 100'; });
   document.querySelectorAll('.toggle').forEach(t => t.addEventListener('click', () => {
     t.setAttribute('aria-pressed', String(t.getAttribute('aria-pressed') !== 'true'));
   }));

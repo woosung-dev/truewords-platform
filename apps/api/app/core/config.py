@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     hoondok_vapid_private_key: SecretStr | None = None
     hoondok_vapid_subject: str | None = None  # "mailto:..." 또는 https URL
 
+    # 훈독 "함께 읽는 사람들" 1단계 익명 숫자 (PLAN-HD-009, API-HD-029).
+    # 오늘 훈독하기 완료자가 이 수 미만이면 숫자를 내려보내지 않는다(count=null). 캐시 0 = 매 요청 집계(테스트용).
+    hoondok_together_min_count: int = 10
+    hoondok_together_cache_seconds: float = 60.0
+
     def is_hoondok_push_enabled(self) -> bool:
         """VAPID 3값이 모두 설정되고 공백이 아닐 때만 True. 미설정이면 구독 API 가 열리지 않는다."""
         private = self.hoondok_vapid_private_key

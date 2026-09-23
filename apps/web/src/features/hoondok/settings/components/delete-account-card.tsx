@@ -12,7 +12,9 @@ import { useDeleteMe } from "@/features/identity/use-delete-me";
 // 내 데이터 삭제 2단계 (API-HD-011, PLAN-HD-002 §9 계정 삭제 결정).
 // 1단계 = 평범한 설정 행, 2단계 = 인라인 확인 카드. 되돌릴 수 없으므로 한 번의 탭으로는 지워지지 않는다.
 const SETTINGS_PATH = "/hoondok/settings";
-const CONFIRM_TEXT = "정말 지울까요? 훈독 기록·정성·계정 정보를 모두 지워요. 되돌릴 수 없어요";
+// 모임 영향(API-HD-011 → 모임 purger)도 함께 알린다 — QA P2-R2-2.
+const CONFIRM_TEXT =
+  "정말 지울까요? 훈독 기록·정성·계정 정보를 모두 지워요. 함께 읽는 모임에서도 빠지고 내가 남긴 한 줄은 지워져요. 내가 리더인 모임은 가장 먼저 들어온 식구가 이어받아요. 되돌릴 수 없어요";
 const FAILURE_TEXT = "지우지 못했어요. 잠시 뒤 다시 시도해 주세요";
 
 export function DeleteAccountCard() {

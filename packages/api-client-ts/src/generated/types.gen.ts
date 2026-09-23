@@ -5,6 +5,30 @@ export type ClientOptions = {
 };
 
 /**
+ * AdminGroupItem
+ *
+ * API-HD-043 — 모임원 이름·한 줄 본문은 내지 않는다.
+ */
+export type AdminGroupItem = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Member Count
+     */
+    member_count: number;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * AdminLoginRequest
  */
 export type AdminLoginRequest = {
@@ -1062,6 +1086,18 @@ export type DataSourceCategoryUpdate = {
 };
 
 /**
+ * DisplayNameInput
+ *
+ * API-HD-036 참여 · API-HD-037 이름 변경. 앞뒤 공백만 다른 이름은 같은 이름이다.
+ */
+export type DisplayNameInput = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+};
+
+/**
  * DuplicateCheckResponse
  *
  * 업로드 전 중복 문서 검사 결과.
@@ -1242,6 +1278,235 @@ export type FeedbackSummary = {
 export type FeedbackType = 'helpful' | 'accurate' | 'well_cited' | 'easy_to_understand' | 'comforting' | 'inaccurate' | 'missing_citation' | 'irrelevant' | 'other';
 
 /**
+ * GroupCreate
+ */
+export type GroupCreate = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    jeongseong?: GroupJeongseongInput | null;
+    /**
+     * Meeting Time
+     */
+    meeting_time?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * GroupDetail
+ *
+ * API-HD-032 · 031 응답. 전체 인원 없음. invite_code 는 리더에게만 값이 있다.
+ */
+export type GroupDetail = {
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Invite Code
+     */
+    invite_code?: string | null;
+    /**
+     * Invite Expires At
+     */
+    invite_expires_at?: string | null;
+    /**
+     * Jeongseongs
+     */
+    jeongseongs: Array<GroupJeongseongOut>;
+    /**
+     * Kind
+     */
+    kind: 'small_group';
+    /**
+     * Leader Display Name
+     */
+    leader_display_name: string;
+    me: GroupMe;
+    /**
+     * Meeting Time
+     */
+    meeting_time: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Readers
+     */
+    readers: Array<GroupReader>;
+    /**
+     * Shares
+     */
+    shares: Array<GroupShareOut>;
+    today_reading: TodayReadingSummary | null;
+};
+
+/**
+ * GroupJeongseongInput
+ *
+ * API-HD-031 선택 항목 · API-HD-039 본문. started_on 범위(오늘±30)는 service 가 422 로 검사한다.
+ */
+export type GroupJeongseongInput = {
+    /**
+     * Duration Days
+     */
+    duration_days: number;
+    /**
+     * Started On
+     */
+    started_on: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * GroupJeongseongOut
+ *
+ * 진행은 저장하지 않는다. day_index = (오늘 - started_on) + 1, 시작 전이면 null(state=upcoming).
+ */
+export type GroupJeongseongOut = {
+    /**
+     * Day Index
+     */
+    day_index: number | null;
+    /**
+     * Duration Days
+     */
+    duration_days: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Is Official
+     */
+    is_official: boolean;
+    /**
+     * Source Note
+     */
+    source_note: string | null;
+    /**
+     * Started On
+     */
+    started_on: string;
+    /**
+     * State
+     */
+    state: 'upcoming' | 'active';
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * GroupMe
+ */
+export type GroupMe = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Has Read Today
+     */
+    has_read_today: boolean;
+    /**
+     * Has Shared Today
+     */
+    has_shared_today: boolean;
+    /**
+     * Member Id
+     */
+    member_id: string;
+    /**
+     * Role
+     */
+    role: 'leader' | 'member';
+};
+
+/**
+ * GroupReader
+ *
+ * 오늘 훈독을 마친 모임원 — 완료자만 존재한다.
+ */
+export type GroupReader = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Is Leader
+     */
+    is_leader: boolean;
+    /**
+     * Is Me
+     */
+    is_me: boolean;
+    /**
+     * Read At Kst
+     */
+    read_at_kst: string;
+};
+
+/**
+ * GroupRename
+ */
+export type GroupRename = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * GroupShareOut
+ *
+ * reaction_count 는 내 한 줄에만 값, 남의 한 줄은 null. 반응한 사람 목록은 주지 않는다.
+ */
+export type GroupShareOut = {
+    /**
+     * Body
+     */
+    body: string;
+    /**
+     * Created At Kst
+     */
+    created_at_kst: string;
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Has My Reaction
+     */
+    has_my_reaction: boolean;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Is Mine
+     */
+    is_mine: boolean;
+    /**
+     * Reaction Count
+     */
+    reaction_count: number | null;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -1354,6 +1619,52 @@ export type IngestionStatusSummary = {
      * Total Chunks
      */
     total_chunks: number;
+};
+
+/**
+ * InviteOut
+ */
+export type InviteOut = {
+    /**
+     * Invite Code
+     */
+    invite_code: string;
+    /**
+     * Invite Expires At
+     */
+    invite_expires_at: string;
+};
+
+/**
+ * InvitePreview
+ *
+ * API-HD-035. 전체 인원 없음. 이미 모임원이면 is_member=true + group_id.
+ */
+export type InvitePreview = {
+    /**
+     * Group Id
+     */
+    group_id?: string | null;
+    /**
+     * Is Member
+     */
+    is_member: boolean;
+    /**
+     * Jeongseongs
+     */
+    jeongseongs: Array<GroupJeongseongOut>;
+    /**
+     * Kind
+     */
+    kind: 'small_group';
+    /**
+     * Leader Display Name
+     */
+    leader_display_name: string;
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**
@@ -1473,6 +1784,16 @@ export type JeongseongTodayResponse = {
      * Status
      */
     status: 'available' | 'none' | 'withdrawn';
+};
+
+/**
+ * JoinResult
+ */
+export type JoinResult = {
+    /**
+     * Group Id
+     */
+    group_id: string;
 };
 
 /**
@@ -1652,6 +1973,44 @@ export type MarksResponse = {
 };
 
 /**
+ * MemberItem
+ *
+ * API-HD-038 — 읽음 상태 필드는 두지 않는다.
+ */
+export type MemberItem = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Joined At
+     */
+    joined_at: string;
+    /**
+     * Role
+     */
+    role: 'leader' | 'member';
+};
+
+/**
+ * MemberList
+ */
+export type MemberList = {
+    /**
+     * Items
+     */
+    items: Array<MemberItem>;
+    /**
+     * Member Count
+     */
+    member_count: number;
+};
+
+/**
  * MessageResponse
  *
  * 단순 메시지 응답 (로그인/로그아웃 등).
@@ -1697,6 +2056,46 @@ export type MonthHistoryResponse = {
      * Month
      */
     month: string;
+};
+
+/**
+ * MyGroupItem
+ *
+ * API-HD-030. today_read_count 는 오늘 완료자 수(전체 인원이 아니다).
+ */
+export type MyGroupItem = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Jeongseongs
+     */
+    jeongseongs: Array<GroupJeongseongOut>;
+    /**
+     * Kind
+     */
+    kind: 'small_group';
+    /**
+     * My Display Name
+     */
+    my_display_name: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Readers Preview
+     */
+    readers_preview: Array<string>;
+    /**
+     * Role
+     */
+    role: 'leader' | 'member';
+    /**
+     * Today Read Count
+     */
+    today_read_count: number;
 };
 
 /**
@@ -1787,6 +2186,64 @@ export type NotificationPreferenceResponse = {
      * Subscription Count
      */
     subscription_count: number;
+};
+
+/**
+ * OfficialJeongseongInput
+ *
+ * API-HD-042 공식 정성 등록·수정(전체 교체).
+ */
+export type OfficialJeongseongInput = {
+    /**
+     * Duration Days
+     */
+    duration_days: number;
+    /**
+     * Source Note
+     */
+    source_note?: string | null;
+    /**
+     * Started On
+     */
+    started_on: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * OfficialJeongseongOut
+ */
+export type OfficialJeongseongOut = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Duration Days
+     */
+    duration_days: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Source Note
+     */
+    source_note: string | null;
+    /**
+     * Started On
+     */
+    started_on: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
 };
 
 /**
@@ -2102,6 +2559,16 @@ export type ReactionResponse = {
      * User Session Id
      */
     user_session_id: string;
+};
+
+/**
+ * ReactionState
+ */
+export type ReactionState = {
+    /**
+     * Has Reacted
+     */
+    has_reacted: boolean;
 };
 
 /**
@@ -2581,6 +3048,16 @@ export type SettingsConfigResponse = {
 };
 
 /**
+ * ShareInput
+ */
+export type ShareInput = {
+    /**
+     * Body
+     */
+    body: string;
+};
+
+/**
  * SignupRequest
  *
  * 약관 문구 확정 전(DEC-PWA-001)이라 consent_version 을 받지 않는다.
@@ -2781,6 +3258,68 @@ export type TodayReadingResponse = {
      * Status
      */
     status: 'available' | 'none' | 'withdrawn';
+};
+
+/**
+ * TodayReadingSummary
+ *
+ * 오늘 공식 편성 요약. 원문 링크는 web 이 id·chunk_id 로 만든다.
+ */
+export type TodayReadingSummary = {
+    /**
+     * Chunk Id
+     */
+    chunk_id: string | null;
+    /**
+     * Estimated Minutes
+     */
+    estimated_minutes: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Reading Date
+     */
+    reading_date: string;
+    /**
+     * Speaker
+     */
+    speaker: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * TogetherTodayResponse
+ *
+ * API-HD-029 오늘(KST) 훈독하기를 마친 서로 다른 사용자 수. 익명 전체 집계만 — 사람 정보는 없다.
+ *
+ * 완료자가 threshold 미만이면 숫자 자체를 내려보내지 않는다(count=null, is_shown=false).
+ */
+export type TogetherTodayResponse = {
+    /**
+     * Count
+     */
+    count: number | null;
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Is Shown
+     */
+    is_shown: boolean;
+    /**
+     * Threshold
+     */
+    threshold: number;
 };
 
 /**
@@ -4527,6 +5066,157 @@ export type UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponses = {
 
 export type UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponse = UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponses[keyof UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponses];
 
+export type ListGroupsAdminHoondokGroupsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/groups';
+};
+
+export type ListGroupsAdminHoondokGroupsGetResponses = {
+    /**
+     * Response List Groups Admin Hoondok Groups Get
+     *
+     * Successful Response
+     */
+    200: Array<AdminGroupItem>;
+};
+
+export type ListGroupsAdminHoondokGroupsGetResponse = ListGroupsAdminHoondokGroupsGetResponses[keyof ListGroupsAdminHoondokGroupsGetResponses];
+
+export type DeleteGroupAdminHoondokGroupsGroupIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/groups/{group_id}';
+};
+
+export type DeleteGroupAdminHoondokGroupsGroupIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteGroupAdminHoondokGroupsGroupIdDeleteError = DeleteGroupAdminHoondokGroupsGroupIdDeleteErrors[keyof DeleteGroupAdminHoondokGroupsGroupIdDeleteErrors];
+
+export type DeleteGroupAdminHoondokGroupsGroupIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteGroupAdminHoondokGroupsGroupIdDeleteResponse = DeleteGroupAdminHoondokGroupsGroupIdDeleteResponses[keyof DeleteGroupAdminHoondokGroupsGroupIdDeleteResponses];
+
+export type ListOfficialJeongseongsAdminHoondokJeongseongsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/jeongseongs';
+};
+
+export type ListOfficialJeongseongsAdminHoondokJeongseongsGetResponses = {
+    /**
+     * Response List Official Jeongseongs Admin Hoondok Jeongseongs Get
+     *
+     * Successful Response
+     */
+    200: Array<OfficialJeongseongOut>;
+};
+
+export type ListOfficialJeongseongsAdminHoondokJeongseongsGetResponse = ListOfficialJeongseongsAdminHoondokJeongseongsGetResponses[keyof ListOfficialJeongseongsAdminHoondokJeongseongsGetResponses];
+
+export type CreateOfficialJeongseongAdminHoondokJeongseongsPostData = {
+    body: OfficialJeongseongInput;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/jeongseongs';
+};
+
+export type CreateOfficialJeongseongAdminHoondokJeongseongsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateOfficialJeongseongAdminHoondokJeongseongsPostError = CreateOfficialJeongseongAdminHoondokJeongseongsPostErrors[keyof CreateOfficialJeongseongAdminHoondokJeongseongsPostErrors];
+
+export type CreateOfficialJeongseongAdminHoondokJeongseongsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: OfficialJeongseongOut;
+};
+
+export type CreateOfficialJeongseongAdminHoondokJeongseongsPostResponse = CreateOfficialJeongseongAdminHoondokJeongseongsPostResponses[keyof CreateOfficialJeongseongAdminHoondokJeongseongsPostResponses];
+
+export type DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Jeongseong Id
+         */
+        jeongseong_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/jeongseongs/{jeongseong_id}';
+};
+
+export type DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteError = DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteErrors[keyof DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteErrors];
+
+export type DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteResponse = DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteResponses[keyof DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteResponses];
+
+export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutData = {
+    body: OfficialJeongseongInput;
+    path: {
+        /**
+         * Jeongseong Id
+         */
+        jeongseong_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/jeongseongs/{jeongseong_id}';
+};
+
+export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutError = UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutErrors[keyof UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutErrors];
+
+export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: OfficialJeongseongOut;
+};
+
+export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponse = UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses[keyof UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses];
+
 export type GetSettingsConfigAdminSettingsConfigGetData = {
     body?: never;
     path?: never;
@@ -5035,6 +5725,531 @@ export type ReportClientErrorHoondokClientErrorsPostResponses = {
 
 export type ReportClientErrorHoondokClientErrorsPostResponse = ReportClientErrorHoondokClientErrorsPostResponses[keyof ReportClientErrorHoondokClientErrorsPostResponses];
 
+export type CreateGroupHoondokGroupsPostData = {
+    body: GroupCreate;
+    path?: never;
+    query?: never;
+    url: '/hoondok/groups';
+};
+
+export type CreateGroupHoondokGroupsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateGroupHoondokGroupsPostError = CreateGroupHoondokGroupsPostErrors[keyof CreateGroupHoondokGroupsPostErrors];
+
+export type CreateGroupHoondokGroupsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: GroupDetail;
+};
+
+export type CreateGroupHoondokGroupsPostResponse = CreateGroupHoondokGroupsPostResponses[keyof CreateGroupHoondokGroupsPostResponses];
+
+export type DeleteGroupHoondokGroupsGroupIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}';
+};
+
+export type DeleteGroupHoondokGroupsGroupIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteGroupHoondokGroupsGroupIdDeleteError = DeleteGroupHoondokGroupsGroupIdDeleteErrors[keyof DeleteGroupHoondokGroupsGroupIdDeleteErrors];
+
+export type DeleteGroupHoondokGroupsGroupIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteGroupHoondokGroupsGroupIdDeleteResponse = DeleteGroupHoondokGroupsGroupIdDeleteResponses[keyof DeleteGroupHoondokGroupsGroupIdDeleteResponses];
+
+export type GetGroupHoondokGroupsGroupIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}';
+};
+
+export type GetGroupHoondokGroupsGroupIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetGroupHoondokGroupsGroupIdGetError = GetGroupHoondokGroupsGroupIdGetErrors[keyof GetGroupHoondokGroupsGroupIdGetErrors];
+
+export type GetGroupHoondokGroupsGroupIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: GroupDetail;
+};
+
+export type GetGroupHoondokGroupsGroupIdGetResponse = GetGroupHoondokGroupsGroupIdGetResponses[keyof GetGroupHoondokGroupsGroupIdGetResponses];
+
+export type RenameGroupHoondokGroupsGroupIdPatchData = {
+    body: GroupRename;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}';
+};
+
+export type RenameGroupHoondokGroupsGroupIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RenameGroupHoondokGroupsGroupIdPatchError = RenameGroupHoondokGroupsGroupIdPatchErrors[keyof RenameGroupHoondokGroupsGroupIdPatchErrors];
+
+export type RenameGroupHoondokGroupsGroupIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: GroupDetail;
+};
+
+export type RenameGroupHoondokGroupsGroupIdPatchResponse = RenameGroupHoondokGroupsGroupIdPatchResponses[keyof RenameGroupHoondokGroupsGroupIdPatchResponses];
+
+export type RegenerateInviteHoondokGroupsGroupIdInvitePostData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}/invite';
+};
+
+export type RegenerateInviteHoondokGroupsGroupIdInvitePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RegenerateInviteHoondokGroupsGroupIdInvitePostError = RegenerateInviteHoondokGroupsGroupIdInvitePostErrors[keyof RegenerateInviteHoondokGroupsGroupIdInvitePostErrors];
+
+export type RegenerateInviteHoondokGroupsGroupIdInvitePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: InviteOut;
+};
+
+export type RegenerateInviteHoondokGroupsGroupIdInvitePostResponse = RegenerateInviteHoondokGroupsGroupIdInvitePostResponses[keyof RegenerateInviteHoondokGroupsGroupIdInvitePostResponses];
+
+export type AddJeongseongHoondokGroupsGroupIdJeongseongsPostData = {
+    body: GroupJeongseongInput;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}/jeongseongs';
+};
+
+export type AddJeongseongHoondokGroupsGroupIdJeongseongsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AddJeongseongHoondokGroupsGroupIdJeongseongsPostError = AddJeongseongHoondokGroupsGroupIdJeongseongsPostErrors[keyof AddJeongseongHoondokGroupsGroupIdJeongseongsPostErrors];
+
+export type AddJeongseongHoondokGroupsGroupIdJeongseongsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: GroupJeongseongOut;
+};
+
+export type AddJeongseongHoondokGroupsGroupIdJeongseongsPostResponse = AddJeongseongHoondokGroupsGroupIdJeongseongsPostResponses[keyof AddJeongseongHoondokGroupsGroupIdJeongseongsPostResponses];
+
+export type DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+        /**
+         * Jeongseong Id
+         */
+        jeongseong_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}/jeongseongs/{jeongseong_id}';
+};
+
+export type DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteError = DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteErrors[keyof DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteErrors];
+
+export type DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteResponse = DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteResponses[keyof DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteResponses];
+
+export type LeaveGroupHoondokGroupsGroupIdMeDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}/me';
+};
+
+export type LeaveGroupHoondokGroupsGroupIdMeDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type LeaveGroupHoondokGroupsGroupIdMeDeleteError = LeaveGroupHoondokGroupsGroupIdMeDeleteErrors[keyof LeaveGroupHoondokGroupsGroupIdMeDeleteErrors];
+
+export type LeaveGroupHoondokGroupsGroupIdMeDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type LeaveGroupHoondokGroupsGroupIdMeDeleteResponse = LeaveGroupHoondokGroupsGroupIdMeDeleteResponses[keyof LeaveGroupHoondokGroupsGroupIdMeDeleteResponses];
+
+export type UpdateMyNameHoondokGroupsGroupIdMePatchData = {
+    body: DisplayNameInput;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}/me';
+};
+
+export type UpdateMyNameHoondokGroupsGroupIdMePatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateMyNameHoondokGroupsGroupIdMePatchError = UpdateMyNameHoondokGroupsGroupIdMePatchErrors[keyof UpdateMyNameHoondokGroupsGroupIdMePatchErrors];
+
+export type UpdateMyNameHoondokGroupsGroupIdMePatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: GroupMe;
+};
+
+export type UpdateMyNameHoondokGroupsGroupIdMePatchResponse = UpdateMyNameHoondokGroupsGroupIdMePatchResponses[keyof UpdateMyNameHoondokGroupsGroupIdMePatchResponses];
+
+export type ListMembersHoondokGroupsGroupIdMembersGetData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}/members';
+};
+
+export type ListMembersHoondokGroupsGroupIdMembersGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListMembersHoondokGroupsGroupIdMembersGetError = ListMembersHoondokGroupsGroupIdMembersGetErrors[keyof ListMembersHoondokGroupsGroupIdMembersGetErrors];
+
+export type ListMembersHoondokGroupsGroupIdMembersGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MemberList;
+};
+
+export type ListMembersHoondokGroupsGroupIdMembersGetResponse = ListMembersHoondokGroupsGroupIdMembersGetResponses[keyof ListMembersHoondokGroupsGroupIdMembersGetResponses];
+
+export type RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+        /**
+         * Member Id
+         */
+        member_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}/members/{member_id}';
+};
+
+export type RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteError = RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteErrors[keyof RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteErrors];
+
+export type RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteResponse = RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteResponses[keyof RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteResponses];
+
+export type PutTodayShareHoondokGroupsGroupIdSharesTodayPutData = {
+    body: ShareInput;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}/shares/today';
+};
+
+export type PutTodayShareHoondokGroupsGroupIdSharesTodayPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutTodayShareHoondokGroupsGroupIdSharesTodayPutError = PutTodayShareHoondokGroupsGroupIdSharesTodayPutErrors[keyof PutTodayShareHoondokGroupsGroupIdSharesTodayPutErrors];
+
+export type PutTodayShareHoondokGroupsGroupIdSharesTodayPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: GroupShareOut;
+};
+
+export type PutTodayShareHoondokGroupsGroupIdSharesTodayPutResponse = PutTodayShareHoondokGroupsGroupIdSharesTodayPutResponses[keyof PutTodayShareHoondokGroupsGroupIdSharesTodayPutResponses];
+
+export type DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+        /**
+         * Share Id
+         */
+        share_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}/shares/{share_id}';
+};
+
+export type DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteError = DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteErrors[keyof DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteErrors];
+
+export type DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteResponse = DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteResponses[keyof DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteResponses];
+
+export type UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+        /**
+         * Share Id
+         */
+        share_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}/shares/{share_id}/reaction';
+};
+
+export type UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteError = UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteErrors[keyof UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteErrors];
+
+export type UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReactionState;
+};
+
+export type UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteResponse = UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteResponses[keyof UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteResponses];
+
+export type ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+        /**
+         * Share Id
+         */
+        share_id: string;
+    };
+    query?: never;
+    url: '/hoondok/groups/{group_id}/shares/{share_id}/reaction';
+};
+
+export type ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutError = ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutErrors[keyof ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutErrors];
+
+export type ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReactionState;
+};
+
+export type ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutResponse = ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutResponses[keyof ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutResponses];
+
+export type PreviewInviteHoondokInvitesCodeGetData = {
+    body?: never;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/hoondok/invites/{code}';
+};
+
+export type PreviewInviteHoondokInvitesCodeGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PreviewInviteHoondokInvitesCodeGetError = PreviewInviteHoondokInvitesCodeGetErrors[keyof PreviewInviteHoondokInvitesCodeGetErrors];
+
+export type PreviewInviteHoondokInvitesCodeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: InvitePreview;
+};
+
+export type PreviewInviteHoondokInvitesCodeGetResponse = PreviewInviteHoondokInvitesCodeGetResponses[keyof PreviewInviteHoondokInvitesCodeGetResponses];
+
+export type JoinGroupHoondokInvitesCodeJoinPostData = {
+    body: DisplayNameInput;
+    path: {
+        /**
+         * Code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/hoondok/invites/{code}/join';
+};
+
+export type JoinGroupHoondokInvitesCodeJoinPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type JoinGroupHoondokInvitesCodeJoinPostError = JoinGroupHoondokInvitesCodeJoinPostErrors[keyof JoinGroupHoondokInvitesCodeJoinPostErrors];
+
+export type JoinGroupHoondokInvitesCodeJoinPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: JoinResult;
+};
+
+export type JoinGroupHoondokInvitesCodeJoinPostResponse = JoinGroupHoondokInvitesCodeJoinPostResponses[keyof JoinGroupHoondokInvitesCodeJoinPostResponses];
+
 export type GetLibraryHoondokLibraryGetData = {
     body?: never;
     path?: never;
@@ -5080,6 +6295,24 @@ export type GetSeriesHoondokLibrarySeriesGetResponses = {
 };
 
 export type GetSeriesHoondokLibrarySeriesGetResponse = GetSeriesHoondokLibrarySeriesGetResponses[keyof GetSeriesHoondokLibrarySeriesGetResponses];
+
+export type ListMyGroupsHoondokMeGroupsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/groups';
+};
+
+export type ListMyGroupsHoondokMeGroupsGetResponses = {
+    /**
+     * Response List My Groups Hoondok Me Groups Get
+     *
+     * Successful Response
+     */
+    200: Array<MyGroupItem>;
+};
+
+export type ListMyGroupsHoondokMeGroupsGetResponse = ListMyGroupsHoondokMeGroupsGetResponses[keyof ListMyGroupsHoondokMeGroupsGetResponses];
 
 export type GetHistoryHoondokMeHistoryGetData = {
     body?: never;
@@ -5590,6 +6823,22 @@ export type GetTodayHoondokTodayGetResponses = {
 };
 
 export type GetTodayHoondokTodayGetResponse = GetTodayHoondokTodayGetResponses[keyof GetTodayHoondokTodayGetResponses];
+
+export type GetTogetherTodayHoondokTodayTogetherGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/today/together';
+};
+
+export type GetTogetherTodayHoondokTodayTogetherGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: TogetherTodayResponse;
+};
+
+export type GetTogetherTodayHoondokTodayTogetherGetResponse = GetTogetherTodayHoondokTodayTogetherGetResponses[keyof GetTogetherTodayHoondokTodayTogetherGetResponses];
 
 export type GetWordsHoondokWordsVolumeGetData = {
     body?: never;

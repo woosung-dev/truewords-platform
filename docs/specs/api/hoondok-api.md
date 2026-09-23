@@ -32,6 +32,21 @@
 | `API-HD-026` | GET · PUT · DELETE | `/hoondok/me/marks` | `hoondok_token` (쓰기는 `X-Requested-With`) | HD-007 |
 | `API-HD-027` | POST | `/admin/hoondok/content-rights/bulk` | `admin_token` + 게이트 + `X-Requested-With` | HD-007 |
 | `API-HD-028` | GET | `/admin/hoondok/content-rights/series` | `admin_token` + `require_admin_gate` | HD-007 |
+| `API-HD-029` | GET | `/hoondok/today/together` | 없음(공개) | HD-009 |
+| `API-HD-030` | GET | `/hoondok/me/groups` | `hoondok_token` | HD-010 |
+| `API-HD-031` | POST | `/hoondok/groups` | `hoondok_token` + `X-Requested-With` | HD-010 |
+| `API-HD-032` | GET | `/hoondok/groups/{group_id}` | `hoondok_token` (모임원) | HD-010 |
+| `API-HD-033` | PATCH · DELETE | `/hoondok/groups/{group_id}` | `hoondok_token` (리더) + `X-Requested-With` | HD-010 |
+| `API-HD-034` | POST | `/hoondok/groups/{group_id}/invite` | `hoondok_token` (리더) + `X-Requested-With` | HD-010 |
+| `API-HD-035` | GET | `/hoondok/invites/{code}` | `hoondok_token` + 미리보기 limiter | HD-010 |
+| `API-HD-036` | POST | `/hoondok/invites/{code}/join` | `hoondok_token` + `X-Requested-With` + 참여 limiter | HD-010 |
+| `API-HD-037` | PATCH · DELETE | `/hoondok/groups/{group_id}/me` | `hoondok_token` (모임원) + `X-Requested-With` | HD-010 |
+| `API-HD-038` | GET · DELETE | `/hoondok/groups/{group_id}/members` · `/hoondok/groups/{group_id}/members/{member_id}` | `hoondok_token` (리더), DELETE 는 `X-Requested-With` | HD-010 |
+| `API-HD-039` | POST · DELETE | `/hoondok/groups/{group_id}/jeongseongs` · `/hoondok/groups/{group_id}/jeongseongs/{jeongseong_id}` | `hoondok_token` (리더) + `X-Requested-With` | HD-010 |
+| `API-HD-040` | PUT · DELETE | `/hoondok/groups/{group_id}/shares/today` · `/hoondok/groups/{group_id}/shares/{share_id}` | `hoondok_token` (모임원) + `X-Requested-With` | HD-010 |
+| `API-HD-041` | PUT · DELETE | `/hoondok/groups/{group_id}/shares/{share_id}/reaction` | `hoondok_token` (모임원) + `X-Requested-With` | HD-010 |
+| `API-HD-042` | GET · POST · PUT · DELETE | `/admin/hoondok/jeongseongs` · `/admin/hoondok/jeongseongs/{jeongseong_id}` | `admin_token` + 게이트 (쓰기는 `X-Requested-With`) | HD-010 |
+| `API-HD-043` | GET · DELETE | `/admin/hoondok/groups` · `/admin/hoondok/groups/{group_id}` | `admin_token` + 게이트 (DELETE 는 `X-Requested-With`) | HD-010 |
 
 공통 규칙:
 
@@ -480,3 +495,105 @@ body `{ book_series, status, scope_search, scope_full_text, scope_jeongseong, au
 
 권의 Qdrant 청크 수를 담는 nullable 열이다. 시드 스크립트(트랙 D)가 채우며 `API-HD-013` 의
 입력 스키마에는 없어 admin 개별 저장이 값을 덮지 않는다. 조회 응답(`ContentRightResponse`)에는 나온다.
+
+---
+
+## API-HD-029 `GET /hoondok/today/together`
+
+> 추가일: 2026-09-23 ([PLAN-HD-009](../../plans/active/2026-09-23-hoondok-together.md) 함께 읽는 사람들 1단계)
+
+오늘(KST) 훈독하기(`kind="read"`, 연속일과 같은 kind)를 완료한 **서로 다른 사용자 수**. 익명 전체 집계만 내며
+사람 정보(이름·ID·모임)는 없다. 인증이 필요 없고 항상 200 이다. 라우터는 `app/modules/hoondok/router.py`.
+
+응답 `TogetherTodayResponse`:
+
+```json
+{ "date": "2026-09-23", "count": 1284, "is_shown": true, "threshold": 10 }
+{ "date": "2026-09-23", "count": null, "is_shown": false, "threshold": 10 }
+```
+
+- 완료자가 `threshold`(`HOONDOK_TOGETHER_MIN_COUNT`, 기본 10) 미만이면 `count=null`, `is_shown=false` — 숫자 자체를 내려보내지 않는다.
+- 집계는 `mission_logs` 의 `mission_date = 오늘(KST)` · `kind = read` 의 `COUNT(DISTINCT user_id)` 이고 `users.deleted_at` 이 있는 사용자는 뺀다. 인덱스 `ix_mission_logs_date_kind(mission_date, kind)`.
+- 원시 수를 프로세스 메모리에 `HOONDOK_TOGETHER_CACHE_SECONDS`(기본 60초) 동안 둔다. 워커별 캐시라 워커 사이 값이 잠시 다를 수 있고, 방금 완료한 사용자가 아직 빠진 값일 수 있다. 0 이면 매 요청 집계한다.
+- 이 숫자는 푸시 알림에 넣지 않는다.
+
+---
+
+## PLAN-HD-010 — 함께 읽는 모임 (API-HD-030~043)
+
+> 추가일: 2026-09-23 ([PLAN-HD-010](../../plans/active/2026-09-23-hoondok-groups.md) 2단계). 라우터 `apps/api/app/modules/hoondok/groups_router.py`(030~041, 공개 블록), `groups_admin_router.py`(042·043, `_ADMIN_GATE`).
+> 엔티티 [ENT-HD-013~017](../domain/hoondok-entities.md#ent-hd-013-reading_groups--소그룹-모임-plan-hd-010).
+
+### 공통
+
+- **비모임원에게는 모든 모임 라우트가 404 `GROUP_NOT_FOUND`** — 없는 모임과 구분하지 않는다. 모임원이 리더 전용 동작을 부르면 403 `LEADER_ONLY`.
+- 오류는 `{"detail": "<코드>"}` 이다. 409 코드: `LEADER_LIMIT`(리더 3) · `JOIN_LIMIT`(속한 모임 5, 리더인 모임 포함 `[가정]`) · `GROUP_FULL`(정원 50) · `ALREADY_MEMBER` · `DISPLAY_NAME_TAKEN` · `JEONGSEONG_LIMIT`(진행 중·예정 모임 정성 3) · `READ_REQUIRED` · `LEADER_MUST_HANDOVER` · `CANNOT_REMOVE_SELF` · `OWN_SHARE`. 404: `GROUP_NOT_FOUND` · `INVITE_NOT_FOUND` · `MEMBER_NOT_FOUND` · `SHARE_NOT_FOUND` · `JEONGSEONG_NOT_FOUND`. 403: `LEADER_ONLY` · `NOT_ALLOWED`(남의 한 줄 삭제). 422: Pydantic 검증 + `STARTED_ON_OUT_OF_RANGE` · `JEONGSEONG_ALREADY_ENDED`.
+- **개인정보 경계**: 모임원 응답에는 오늘(KST) `mission_logs kind='read'` 완료자만 담는다. 미완료자 목록·수·상태, 전체 인원(`member_count`), `user_id` 는 어떤 모임원 응답에도 없다. 전체 인원은 `API-HD-038`(리더)·`API-HD-043`(admin) 에만 있다.
+- 완료자 `readers[]` 는 표시 이름 가나다순 `{display_name, read_at_kst, is_me, is_leader}`. `read_at_kst` 는 `completed_at`(UTC) 을 `+09:00` 로 바꾼 값.
+- 표시 이름(≤12)·모임 이름(≤20)은 앞뒤 공백을 지운 뒤 검증한다 — 공백만이면 422, 앞뒤 공백만 다른 이름은 같은 이름(409). 한 줄(≤100)은 줄마다 앞뒤 공백 제거·연속 공백 1칸·빈 줄 제거 뒤 1~100자.
+- 정성 `jeongseongs[]` `{id, title, started_on, duration_days, day_index, state, is_official, source_note}` — 공식(`group_id NULL`) + 이 모임 것, 끝난 것은 빠진다. `day_index = (오늘 - started_on) + 1`, 시작 전이면 `day_index=null`·`state=upcoming`. `source_note` 는 공식 정성의 출처(API-HD-042 관리자 입력 그대로, 미입력 null), 모임 정성은 항상 null. 030·032·035 가 같은 형태를 쓴다.
+
+### API-HD-030 `GET /hoondok/me/groups`
+
+`[{id, name, kind, role, my_display_name, today_read_count, readers_preview, jeongseongs}]`(정성 항목에 `source_note` 포함), 0건 `[]`. `today_read_count` 는 오늘 완료자 수, `readers_preview` 는 완료자 이름 첫 글자 최대 3개.
+
+### API-HD-031 `POST /hoondok/groups`
+
+`{name, display_name, meeting_time?, jeongseong?{title(≤24), duration_days(1~100), started_on(오늘±30)}}` → 201 `GroupDetail`(032 와 같은 형태, 리더라 `invite_code` 포함). 만든 사람이 리더다.
+
+### API-HD-032 `GET /hoondok/groups/{group_id}`
+
+`{id, name, kind, leader_display_name, meeting_time, date, today_reading, jeongseongs, readers, shares, me, invite_code, invite_expires_at}`.
+`today_reading` 은 오늘 편성 요약 `{id, reading_date, title, speaker, work_title, chunk_id, estimated_minutes}`(본문 없음, 없거나 철회면 null). `jeongseongs[]` 항목에 `source_note` 가 있다. `shares[]` 는 오늘 것 중 오늘 완료자(`readers`)가 쓴 것만 `{id, display_name, body, created_at_kst, is_mine, has_my_reaction, reaction_count}` — `reaction_count` 는 내 한 줄에만 값, 남의 것은 null. 반응한 사람 목록은 누구에게도 주지 않는다. `me` `{member_id, display_name, role, has_read_today, has_shared_today}`. `invite_code`·`invite_expires_at` 은 리더만 값, 모임원은 null.
+
+### API-HD-033 `PATCH · DELETE /hoondok/groups/{group_id}` (리더)
+
+PATCH `{name}` → 200 `GroupDetail`. DELETE → 204, 모임 하드 삭제(`share_reactions → group_shares → shared_jeongseongs(모임) → group_members → reading_groups`).
+
+### API-HD-034 `POST /hoondok/groups/{group_id}/invite` (리더)
+
+→ 200 `{invite_code, invite_expires_at}`. 새 코드로 덮어써 이전 코드는 즉시 404, 만료는 발급 +30일.
+
+### API-HD-035 `GET /hoondok/invites/{code}`
+
+→ 200 `{name, kind, leader_display_name, jeongseongs, is_member, group_id}`(전체 인원 없음, 정성 항목에 `source_note` 포함). 코드는 대소문자·하이픈·공백을 무시하고 Crockford 별칭(I·L→1, O→0)을 적용해 정규화한다. 잘못·만료·정원 초과는 모두 같은 404 `INVITE_NOT_FOUND`. 이미 모임원이면 정원과 무관하게 `is_member=true` + `group_id`. 미리보기 limiter `RateLimiter(30, 60)` IP 기준(036 참여와 따로 센다) — 초과 429 `RATE_LIMIT_EXCEEDED`(`ErrorResponse`).
+
+### API-HD-036 `POST /hoondok/invites/{code}/join`
+
+`{display_name}` → 201 `{group_id}`. 404 `INVITE_NOT_FOUND` · 409 `ALREADY_MEMBER`·`DISPLAY_NAME_TAKEN`·`GROUP_FULL`·`JOIN_LIMIT`. 사용자 행 → 모임 행 순으로 잠근 뒤(`SELECT ... FOR UPDATE`) 인원을 다시 세어 마지막 자리 경쟁에서도 정원을 넘지 않는다. 이름·중복 가입 경쟁은 unique 제약 IntegrityError → 409. 참여 limiter `RateLimiter(30, 60)` IP 기준(035 미리보기와 따로 세고, 가입 게이트의 모임 코드 검증과 공유) — 초과 429 `RATE_LIMIT_EXCEEDED`. 교회 Wi-Fi 처럼 NAT 하나 뒤의 여러 식구를 위한 한도이며 40bit 코드라 추측 방어는 유지된다.
+
+### API-HD-037 `PATCH · DELETE /hoondok/groups/{group_id}/me`
+
+PATCH `{display_name}` → 200 `me`(409 `DISPLAY_NAME_TAKEN`). DELETE 나가기 → 204, 내 한 줄·내가 누른 반응·내 한 줄에 달린 반응·모임원 행을 지운다. 리더는 다른 식구가 있으면 409 `LEADER_MUST_HANDOVER`, 혼자면 모임을 지운다.
+
+### API-HD-038 `GET /hoondok/groups/{group_id}/members` · `DELETE /.../members/{member_id}` (리더)
+
+GET → `{member_count, items[{id, display_name, role, joined_at}]}`(들어온 순). 읽음 상태 필드는 없다. DELETE 내보내기 → 204, 037 탈퇴와 같은 삭제. 자기 자신 409 `CANNOT_REMOVE_SELF`, 없는 식구 404 `MEMBER_NOT_FOUND`.
+
+### API-HD-039 `POST /hoondok/groups/{group_id}/jeongseongs` · `DELETE /.../jeongseongs/{jeongseong_id}` (리더)
+
+POST `{title(≤24), duration_days(1~100), started_on(오늘±30)}` → 201 정성 항목. 이미 끝난 기간은 422 `JEONGSEONG_ALREADY_ENDED`, 진행 중·예정 모임 정성이 3개면 409 `JEONGSEONG_LIMIT`. 수정 API 는 없다. DELETE 는 이 모임 정성만 — 공식 정성·남의 모임 정성은 404.
+
+### API-HD-040 `PUT /hoondok/groups/{group_id}/shares/today` · `DELETE /.../shares/{share_id}`
+
+PUT `{body}` → 200 내 한 줄(1인 1일 1줄 upsert, 같은 id 유지). 오늘 `read` 미완료면 409 `READ_REQUIRED`. DELETE 는 작성자 또는 리더, 그 외 모임원 403 `NOT_ALLOWED`.
+
+### API-HD-041 `PUT · DELETE /hoondok/groups/{group_id}/shares/{share_id}/reaction`
+
+"함께 머물렀어요" 켜기·끄기 → `{has_reacted}`, 둘 다 멱등. 오늘 한 줄만(지난 한 줄 404), 자기 한 줄 409 `OWN_SHARE`. 알림 없음.
+
+### API-HD-042 `/admin/hoondok/jeongseongs` (admin 게이트)
+
+GET 목록(시작일 내림차순) · POST `{title(≤40), started_on, duration_days(1~100), source_note?(≤200)}` → 201 · PUT `/{id}` 전체 교체 · DELETE `/{id}` 204. 응답 `{id, title, started_on, duration_days, source_note, created_at, updated_at}`. 공식 정성(`group_id IS NULL`)만 다루며 모임 정성 id 는 404. 감사 로그 `official_jeongseong.create|update|delete`(`target_table=shared_jeongseongs`).
+
+### API-HD-043 `/admin/hoondok/groups` (admin 게이트)
+
+GET → `[{id, name, member_count, created_at}]`(최신순) — 모임원 이름·한 줄 본문·초대 코드는 admin 에게도 내지 않는다. DELETE `/{id}` → 204(033 과 같은 하드 삭제) + 감사 로그 `reading_group.delete`, 없는 모임 404.
+
+### API-HD-002 변경 — 모임 초대 코드로 가입 (D4)
+
+`HOONDOK_INVITE_CODE` 가 설정돼 있고 `invite_code` 가 전역 코드와 다르면, 모임 코드 형식일 때만 `InviteCodeVerifier` 에 한 번 더 묻는다. 존재·미만료·정원 미달이면 가입 201, 아니면 기존과 같은 403 `INVITE_REQUIRED`. 모임 코드 형식 검증 시 참여 limiter(`API-HD-036`)를 함께 센다. 가입만 통과시키며 모임 참여는 `API-HD-036` 을 따로 부른다. 전역 코드 미설정이면 기존대로 `invite_code` 를 무시한다(verifier 도 부르지 않는다). identity service 는 hoondok 을 import 하지 않고 `identity/dependencies.py get_identity_service` 가 `GroupInviteVerifier` 를 주입한다.
+
+### API-HD-011 변경 — 계정 삭제
+
+`get_user_data_purgers` 에 `GroupRepository` 가 더해졌다. 모임마다 모임원 행·한 줄·반응을 지우고, 리더였다면 가장 먼저 들어온 식구(`joined_at` 오름차순)에게 리더를 넘긴다. 남은 식구가 없으면 모임을 지운다. 이 사용자가 만든 정성의 `created_by_user_id` 는 NULL 로 비운다.

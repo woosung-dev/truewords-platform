@@ -1,0 +1,52 @@
+/* 함께 읽는 모임 — 홈 모임 카드·진입 카드와 훈독하기 완료 뒤 한 줄 진입 (PLAN-HD-010 W2). together.css(W1 소유) 뒤에 온다.
+   색은 토큰만 쓴다(hex 금지, pnpm hoondok:check). 모임 이름은 사용자가 정하므로 길이·이모지와 무관하게 390px 에서 가로로 넘치지 않아야 한다. */
+[data-app="hoondok"] {
+  /* 1단계 익명 카드(.sect) 바로 아래에 붙는다 */
+  .tg-home {
+    margin-top: 12px;
+  }
+  .tg-share-go {
+    margin-top: 12px;
+  }
+  /* 진입 카드 버튼도 모임 화면(.tg-page)과 같은 44px 탭 대상 — 홈은 .tg-page 밖이라 따로 키운다 */
+  .tg-entry .btn--sm {
+    height: 44px;
+  }
+  /* 카드 전체가 링크다 — 본문 글자색을 유지하고 밑줄을 없앤다 */
+  .tg-gc {
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+  }
+  .tg-gc__title {
+    display: block;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  /* .together__bd span(12.5px·ink-2) 이 제목 안 span 까지 잡지 않게 되돌린다 */
+  .together__bd .tg-gc__nm,
+  .together__bd .tg-gc__cnt {
+    font-size: inherit;
+    color: inherit;
+  }
+  /* 이름은 한 줄 말줄임, 뒤 문구는 넘치면 다음 줄로 */
+  .together__bd .tg-gc__nm {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+  /* 공식 정성은 모임마다 같으니 카드 위에 한 줄로 한 번만 (QA P2-R2-4) */
+  .tg-official {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+  }
+  .tg-gc__go {
+    flex: none;
+    color: var(--ink-3);
+  }
+}

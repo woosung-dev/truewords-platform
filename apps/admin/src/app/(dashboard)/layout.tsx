@@ -6,12 +6,14 @@ import {
   Bot,
   CalendarDays,
   Database,
+  Flame,
   LayoutDashboard,
   LogOut,
   Menu,
   MessageSquare,
   ScrollText,
   Settings,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -26,6 +28,8 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
   { href: "/chatbots", label: "챗봇", icon: Bot },
   { href: "/hoondok/rights", label: "훈독 권리", icon: ScrollText },
+  { href: "/hoondok/jeongseongs", label: "공식 정성", icon: Flame },
+  { href: "/hoondok/groups", label: "모임", icon: Users },
   { href: "/hoondok", label: "훈독 편성", icon: CalendarDays },
   { href: "/data-sources", label: "데이터 소스", icon: Database },
   { href: "/analytics", label: "검색 분석", icon: BarChart3 },

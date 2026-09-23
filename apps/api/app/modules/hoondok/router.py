@@ -1,8 +1,13 @@
-"""훈독 API 라우터 — /hoondok/*. today 는 공개, missions·me 는 hoondok_token(admin_token 은 읽지 않는다)."""
+"""훈독 API 라우터 — /hoondok/*. today·today/together 는 공개, missions·me 는 hoondok_token(admin_token 은 읽지 않는다)."""
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.modules.hoondok.dependencies import get_hoondok_service, get_jeongseong_service, get_mission_service
+from app.modules.hoondok.dependencies import (
+    get_hoondok_service,
+    get_jeongseong_service,
+    get_mission_service,
+    get_together_service,
+)
 from app.modules.hoondok.schemas import (
     JeongseongCreate,
     JeongseongCurrentResponse,
@@ -12,8 +17,10 @@ from app.modules.hoondok.schemas import (
     MonthHistoryResponse,
     SummaryResponse,
     TodayReadingResponse,
+    TogetherTodayResponse,
 )
 from app.modules.hoondok.service import HoondokService, JeongseongService, MissionService
+from app.modules.hoondok.together_service import TogetherService
 from app.modules.identity.dependencies import get_current_user, verify_csrf
 from app.modules.identity.models import User
 
@@ -27,6 +34,14 @@ async def get_today(
     service: HoondokService = Depends(get_hoondok_service),
 ) -> TodayReadingResponse:
     """API-HD-001 오늘(KST) 말씀. 없으면 status=none, 철회면 withdrawn — 항상 200."""
+    return await service.get_today()
+
+
+@router.get("/today/together", response_model=TogetherTodayResponse)
+async def get_together_today(
+    service: TogetherService = Depends(get_together_service),
+) -> TogetherTodayResponse:
+    """API-HD-029 오늘(KST) 훈독하기를 마친 서로 다른 사용자 수(익명). 기준 미만이면 count=null — 항상 200, 인증 없음."""
     return await service.get_today()
 
 

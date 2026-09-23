@@ -135,7 +135,7 @@ export function JeongseongForm({ onClose }: { onClose: () => void }) {
           </label>
         </div>
         <span className="field__help">알림은 준비 중이에요 — 시각만 저장돼요</span>
-        <span className="field__help">하루를 놓쳐도 정성은 끊기지 않고 &quot;밀린 날&quot;로 표시돼요.</span>
+        <span className="field__help">하루를 놓쳐도 정성은 끊기지 않아요. 진행은 &quot;N일차&quot;로만 보여요.</span>
       </div>
 
       {message && (

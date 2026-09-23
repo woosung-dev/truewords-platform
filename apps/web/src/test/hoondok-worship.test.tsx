@@ -78,11 +78,23 @@ describe("SCR-PWA-011 챌린지 상세 — DEC-PWA-019 순위 없음", () => {
     expect(list?.tagName).toBe("UL");
   });
 
-  it("응원은 사전 문구 칩만 있고 전부 disabled 다 (AC-020-03)", () => {
-    render(<ChallengeDetail challenge={FAMILY} />);
-    for (const cheer of FAMILY.cheers) expect(screen.getByRole("button", { name: cheer })).toBeDisabled();
+  it("오늘 읽은 사람만 보이고 응원·반응 버튼·미완료 표시가 없다 (DEC-PWA-023)", () => {
+    const { container } = render(<ChallengeDetail challenge={FAMILY} />);
+    expect(container.querySelectorAll(".ch-item")).toHaveLength(FAMILY.members.length);
+    expect(screen.getByText(`오늘 ${FAMILY.members.length}명이 함께 읽었어요.`, { exact: false })).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/아직|응원/);
+    // 참여 표시 버튼 하나뿐이다 — 사람 행에는 버튼이 없다
+    expect(container.querySelectorAll(".ch-item button")).toHaveLength(0);
     // 자유 입력창을 두지 않는다
     expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
+  it("교회 단위 챌린지는 없다 — 어떤 챌린지에도 교회 문구가 없다", () => {
+    for (const challenge of PREVIEW_CHALLENGES) {
+      const { container, unmount } = render(<ChallengeDetail challenge={challenge} />);
+      expect(container.textContent).not.toMatch(/교회|아직|응원/);
+      unmount();
+    }
   });
 
   it("모집 중 챌린지는 진행 바 없이 시작일·참여 예정만 보인다", () => {
