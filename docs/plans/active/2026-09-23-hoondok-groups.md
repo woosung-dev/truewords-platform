@@ -127,7 +127,7 @@
 | W1 모임 화면 | 완료 — 5라우트·Vitest 40·E2E 두 계정 왕복 | `061cc81` |
 | W2 홈·완료 뒤·정정 | 완료 — W2a 정정 + W2b 홈 카드·완료 뒤 진입, Vitest 389 | W2a `dbfb958` · W2b `69b1a2d` |
 | C admin | 완료 — admin Vitest 163(신규 36) · typecheck·lint 통과 | `42f5ec9` |
-| 통합 | 진행 중 — make ci EXIT 0 (pytest 1287 · web 429 · admin 163) · make e2e 98 passed · Playwright QA 진행 중 | — |
+| 통합 | 완료 — Playwright QA 1차 15/15·2차 21/21 PASS(P0·P1 0, P2 16건 수정: `c42fe3f`·`797554c`), UI/UX 평가·개선 `aa8bff8`(화면별 7.5→8.5), 최종 make ci·make e2e 는 PR 본문에 기록 | `dev/hoondok-groups` |
 
 ## 9. 테스트 계획
 
@@ -155,7 +155,7 @@
 | W1 모임 화면 (5라우트) | 1.3일 |
 | W2 홈·완료 뒤·정정 | 0.9일 |
 | C admin | 0.5~0.7일 |
-| 통합 | 0.5~1일 |
+| 통합 | 완료 — Playwright QA 1차 15/15·2차 21/21 PASS(P0·P1 0, P2 16건 수정: `c42fe3f`·`797554c`), UI/UX 평가·개선 `aa8bff8`(화면별 7.5→8.5), 최종 make ci·make e2e 는 PR 본문에 기록 | `dev/hoondok-groups` |
 | **합계** | 임계 경로 A→W0→W1→통합 **약 4~5일**, 순차 합 약 5~6일 (초안 대비 범위 지정 제외 −0.5일, 1단계 재사용으로 W0·W2 소폭 감소) |
 
 ## 11. 운영 배포 (dev→main 머지 뒤, 단계마다 승인)
