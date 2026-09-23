@@ -2,7 +2,7 @@
 
 // SCR-PWA-011 챌린지 상세 (PLAN-HD-002 W3-W 프리뷰 셸).
 // `DEC-PWA-019` — 순위·점수·달란트·보상 배지를 그리지 않는다. 보이는 값은 진행률과 참여 인원뿐이고
-// 참여자 목록도 등수 없이 "완료 / 아직이에요" 두 상태만 쓴다 (RSK-PWA-009: 미완료를 탓하지 않는다).
+// 참여자 목록에는 오늘 읽은 사람만 둔다 — 미완료자의 이름·상태·재촉·반응 버튼은 없다 (DEC-PWA-023 · RSK-PWA-009).
 // 완료 신호는 색이 아니라 체크 아이콘이다 (DES-PWA-003 §2.3 · §3.3).
 import { Check, HeartHandshake, Users } from "lucide-react";
 import { useState } from "react";
@@ -14,7 +14,7 @@ import { PreviewAvatar } from "./preview-avatar";
 
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 
-const STATE_LABEL: Record<string, string> = { done: "완료", today: "오늘 완료", rest: "쉼", todo: "아직" };
+const STATE_LABEL: Record<string, string> = { done: "완료", today: "오늘 완료", rest: "쉼", todo: "예정" };
 
 function SummaryCard({ challenge }: { challenge: PreviewChallenge }) {
   const [soon, setSoon] = useState("");
@@ -75,7 +75,7 @@ function SummaryCard({ challenge }: { challenge: PreviewChallenge }) {
       {soon && (
         <PreviewUnavailable
           title={soon}
-          reason="챌린지 운영 방식이 아직 정해지지 않아 참여 기록을 저장하지 않았어요."
+          reason="챌린지 운영 방식이 정해지지 않아 참여 기록을 저장하지 않았어요."
           href="/hoondok/read"
           linkLabel="오늘 훈독 읽기"
         />
@@ -99,40 +99,13 @@ function MemberList({ challenge }: { challenge: PreviewChallenge }) {
               <span className="ch-item__t">{member.name}</span>
               <span className="ch-item__m">{member.note}</span>
             </span>
-            {member.isDone ? (
-              <DoneBadge />
-            ) : (
-              // 응원 보내기는 아직 붙지 않았다 — 왜 못 누르는지는 색이 아니라 옆 글자가 말한다
-              <span className="ch-item__side">
-                <span className="ch-item__soon">{SOON}</span>
-                <button className="btn btn-line btn--sm" type="button" disabled aria-disabled="true">
-                  응원
-                </button>
-              </span>
-            )}
+            <DoneBadge />
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-function CheerChips({ challenge }: { challenge: PreviewChallenge }) {
-  return (
-    <div className="sect">
-      <div className="sect__head">
-        <h2 className="sect__title">응원 한마디</h2>
-        <span className="sect__meta">정해진 문구만</span>
-      </div>
-      {/* 자유 입력창을 두지 않는다 (AC-020-03) */}
-      <div className="chips">
-        {challenge.cheers.map((cheer) => (
-          <button className="chip-btn" type="button" key={cheer} disabled aria-disabled="true">
-            {cheer}
-          </button>
-        ))}
-      </div>
-      <p className="ch-chip__help">응원 보내기는 {SOON}이에요. 가족 연결과 알림 운영 방식은 아직 정해지지 않았어요</p>
+      <p className="ch-list__help">
+        오늘 {challenge.members.length}명이 함께 읽었어요. 읽지 않은 날은 누구에게도 표시하지 않아요.
+      </p>
     </div>
   );
 }
@@ -208,7 +181,6 @@ export function ChallengeDetail({ challenge }: { challenge: PreviewChallenge }) 
       </div>
 
       {challenge.members.length > 0 && <MemberList challenge={challenge} />}
-      {challenge.cheers.length > 0 && <CheerChips challenge={challenge} />}
       <CalendarCard challenge={challenge} />
 
       <p className="notice">{challenge.notice}</p>

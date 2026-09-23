@@ -5,6 +5,7 @@
 // 문장·순서·수치는 프로토타입 app.html 의 `data-screen="worship|challenge|sermons|sermon-request"` 를 그대로 옮겼고
 // **사람 이름과 교회 이름만 익명 자리표시로 바꿨다**(실명·실교회는 프리뷰에 두지 않는다, W3 공통 규칙).
 // `DEC-PWA-019` 에 따라 순위·점수·달란트·보상 배지는 어떤 필드로도 두지 않는다 — 진행률과 참여 인원뿐이다.
+// `DEC-PWA-023` 에 따라 참여자는 오늘 읽은 사람만 두고, 사람에게 보내는 재촉·교회 단위 챌린지는 두지 않는다.
 
 import type { AuthorityGrade } from "@/features/hoondok/today";
 
@@ -55,7 +56,7 @@ export const WORSHIP_ORDER: WorshipOrder = {
       title: "이번 주 우리 집에서 “곧게 사랑한” 순간은?",
       note: "아이에게는: 누구를 제일 먼저 도와주고 싶었어?",
     },
-    { no: 5, kind: "기도", title: "막내 새 학기 · 할머니 건강 · 우리 교회 40일 정성" },
+    { no: 5, kind: "기도", title: "막내 새 학기 · 할머니 건강 · 21일 특별정성" },
     { no: 6, kind: "마무리", title: "축도와 저녁 식사" },
   ],
   shareHelp: "가족 4명에게만 보내요. 외부 링크는 만들지 않아요.",
@@ -63,15 +64,15 @@ export const WORSHIP_ORDER: WorshipOrder = {
 
 /* ----------------------------------------------------- 010 목록 · 011 챌린지 상세 */
 
+/** 오늘 읽은 참여자. 안 읽은 사람은 목록에 넣지 않는다 — 이름·상태 모두 없다 (DEC-PWA-023) */
 export type ChallengeMember = {
   id: string;
   name: string;
-  /** "오전 6:12 완료" · "아직이에요" — 미완료를 부정적으로 적지 않는다 (RSK-PWA-009) */
+  /** "오전 6:12" 처럼 읽은 시각과 관계만 적는다 */
   note: string;
-  isDone: boolean;
 };
 
-/** 달력 한 칸. `rest` 는 주 1회 쉼(면제)이고 `todo` 는 아직 오지 않은 날이다 */
+/** 달력 한 칸. `rest` 는 주 1회 쉼(면제)이고 `todo` 는 다가올 날이다 */
 export type ChallengeDayState = "done" | "rest" | "today" | "todo";
 
 export type ChallengeDay = { day: number; state: ChallengeDayState };
@@ -99,9 +100,8 @@ export type PreviewChallenge = {
   /** 개설자·구성 한 줄. 이름 대신 관계로 적는다 */
   opener: string;
   todayLabel: string;
+  /** 오늘 읽은 사람만 */
   members: readonly ChallengeMember[];
-  /** 사전 정의 문구만. 자유 입력창을 두지 않는다 (AC-020-03) */
-  cheers: readonly string[];
   calendar: ChallengeCalendar | null;
   /** 화면 맨 아래 고지 */
   notice: string;
@@ -119,12 +119,9 @@ export const PREVIEW_CHALLENGES: readonly PreviewChallenge[] = [
     opener: "개설 우리 가족 · 가족 4명",
     todayLabel: "9월 10일",
     members: [
-      { id: "me", name: "나", note: "오전 6:12 완료", isDone: true },
-      { id: "spouse", name: "배우자", note: "아직이에요", isDone: false },
-      { id: "child", name: "아이 (12세)", note: "오전 7:40 완료 · 보호자 연결", isDone: true },
-      { id: "mother", name: "어머니", note: "아직이에요 · 저녁에 읽으세요", isDone: false },
+      { id: "child", name: "아이 (12세)", note: "오전 7:40 · 보호자 연결" },
+      { id: "me", name: "나", note: "오전 6:12" },
     ],
-    cheers: ["오늘도 함께 읽어요", "천천히 해도 괜찮아요", "저녁 예배 때 나눠요"],
     calendar: {
       title: "지난 13일",
       monthLabel: "9월",
@@ -148,23 +145,21 @@ export const PREVIEW_CHALLENGES: readonly PreviewChallenge[] = [
     notice: "가족끼리만 보이는 기록입니다. 순위도 점수도 매기지 않습니다",
   },
   {
-    id: "church-40",
-    title: "우리 교회 40일 정성",
-    badge: { label: "D-23", tone: "plain" },
-    summary: "8월 25일 ~ 10월 3일 · 매일 훈독하기 1회 · 교회 챌린지",
-    progress: { done: 17, total: 40, percent: 42, remainLabel: "D-23" },
-    cardFoot: "17 / 40일 · 42% · 오늘 71명 완료",
-    participantLabel: "87명 참여",
-    opener: "개설 우리 교회 · 87명 참여",
+    id: "official-21",
+    title: "21일 특별정성 · 공식",
+    badge: { label: "D-9", tone: "plain" },
+    summary: "9월 1일 ~ 9월 21일 · 매일 훈독하기 1회 · 협회 공지",
+    progress: { done: 12, total: 21, percent: 57, remainLabel: "D-9" },
+    cardFoot: "12일차 / 21일 · 57% · 협회 공지",
+    participantLabel: "모임 식구와 함께",
+    opener: "협회 공지 · 모든 모임에 함께 표시",
     todayLabel: "9월 10일",
     members: [
-      { id: "me", name: "나", note: "오전 6:12 완료", isDone: true },
-      { id: "n1", name: "같은 조 식구 A", note: "오전 5:50 완료", isDone: true },
-      { id: "n2", name: "같은 조 식구 B", note: "아직이에요", isDone: false },
+      { id: "n1", name: "모임 식구 A", note: "오전 5:50" },
+      { id: "me", name: "나", note: "오전 6:12" },
     ],
-    cheers: ["오늘도 함께 읽어요", "천천히 해도 괜찮아요", "주일에 만나요"],
     calendar: null,
-    notice: "교회 챌린지도 진행률과 참여 인원만 보여 줍니다. 개인 순위는 없습니다",
+    notice: "공식 정성도 진행률과 읽은 사람 수만 보여 줍니다. 개인 순위는 없습니다",
   },
   {
     id: "youth-reading",
@@ -177,9 +172,8 @@ export const PREVIEW_CHALLENGES: readonly PreviewChallenge[] = [
     opener: "개설 청년부장 A · 12명 참여 예정",
     todayLabel: "9월 10일",
     members: [],
-    cheers: [],
     calendar: null,
-    notice: "아직 시작하지 않은 챌린지예요. 시작일이 되면 진행률이 생깁니다",
+    notice: "9월 15일에 시작하는 챌린지예요. 시작일이 되면 진행률이 생깁니다",
   },
 ];
 
@@ -302,5 +296,5 @@ export const REQUEST_NOTICE = "요청 내용은 신청자·교회장·운영자�
 /** 모든 프리뷰 화면 맨 위의 한 줄. 예시 데이터임을 먼저 밝힌다 */
 export const PREVIEW_LEAD = "미리보기 예시 데이터입니다";
 
-/** 아직 붙지 않은 동작을 누른 사람에게 돌려주는 문장. 색이 아니라 글자로 알린다 (DES §3.3) */
+/** 준비되지 않은 동작을 누른 사람에게 돌려주는 문장. 색이 아니라 글자로 알린다 (DES §3.3) */
 export const SOON = "준비 중";

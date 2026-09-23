@@ -10,14 +10,14 @@ import { DeleteAccountCard } from "./delete-account-card";
 
 // SCR-PWA-015 알림·설치 설정 (PLAN-HD-002 W1-S · PLAN-HD-006 알림).
 // 라벨·설명·순서는 프로토타입 app.html data-screen="settings" 그대로다.
-// 실제로 켜고 끄는 알림은 "훈독하기" 한 종류뿐이다 — 기도·가정예배·공지는 보낼 내용이 아직 없어 disabled + "준비 중" 이다.
+// 실제로 켜고 끄는 알림은 "훈독하기" 한 종류뿐이다 — 기도·가정예배·공지는 보낼 내용이 없어 disabled + "준비 중" 이다.
 
 type NotificationRow = { id: string; title: string; description: string; time?: string };
 
 const SOON_NOTIFICATIONS: readonly NotificationRow[] = [
   { id: "pray", title: "기도하기", description: "하루를 기도로 마무리해요", time: "오후 9:30" },
   { id: "worship", title: "가정예배", description: "순서지가 준비되면 알려드려요", time: "토요일 오후 6:00" },
-  { id: "notice", title: "공지", description: "우리 교회와 앱 소식" },
+  { id: "notice", title: "공지", description: "앱 소식" },
 ];
 
 function InstallSection() {

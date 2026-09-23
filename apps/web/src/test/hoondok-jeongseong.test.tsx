@@ -204,6 +204,9 @@ describe("홈 정성 카드 (SCR-PWA-002)", () => {
     expect(screen.getByText("D-14")).toBeInTheDocument();
     expect(screen.getByText("7 / 21일")).toBeInTheDocument();
     expect(screen.getByText("매일 오전 5:30")).toBeInTheDocument();
+    // 빠진 날 수는 쓰지 않고 오늘이 몇 일차인지만 적는다 (DEC-PWA-023)
+    expect(screen.getByText("7일차")).toBeInTheDocument();
+    expect(screen.queryByText("밀린 날")).toBeNull();
     const bar = screen.getByRole("progressbar", { name: "정성 진행률" });
     expect(bar).toHaveAttribute("aria-valuenow", "33");
     expect(bar.firstElementChild).toHaveStyle({ width: "33%" });
