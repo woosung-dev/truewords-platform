@@ -15,7 +15,7 @@ import { useInvitePreview, useJoinGroup } from "../use-groups";
 import { GroupAlert, GroupLoading, GroupLoginRequired, groupHref, HOME_HREF } from "./group-common";
 import { DISPLAY_NAME_MAX } from "./group-create-form";
 
-export const INVITE_NOT_FOUND_MESSAGE = "코드를 다시 확인해 주세요 (만료되었거나 없는 코드)";
+export const INVITE_NOT_FOUND_MESSAGE = "초대 코드가 맞지 않거나 만료됐어요. 리더에게 코드를 다시 받아 주세요";
 const RATE_LIMITED_MESSAGE = "잠시 뒤 다시 시도해 주세요";
 
 /** 미리보기 오류 → 문구. 잘못·만료·정원 초과는 서버가 같은 404 로 준다. */
@@ -229,9 +229,10 @@ export function GroupJoinForm({ initialCode }: GroupJoinFormProps) {
           <PreviewCard preview={preview.data} />
           <div className="card tg-done" role="status">
             <b className="tg-done__t">이미 이 모임 식구예요</b>
-            <Link className="tg-link" href={groupHref(preview.data.group_id)}>
+            {/* 이 화면의 유일한 다음 행동이라 글자 링크가 아닌 주 버튼으로 둔다 */}
+            <Link className="btn btn-primary tg-done__go" href={groupHref(preview.data.group_id)}>
               모임으로 가기
-              <ChevronRight size={16} aria-hidden="true" />
+              <ChevronRight size={18} aria-hidden="true" />
             </Link>
           </div>
         </>

@@ -29,11 +29,18 @@ import {
   READ_HREF,
 } from "./group-common";
 
-/** 정성 한 줄 머리 "12일차 / 총 21일". 시작 전이면 "{시작일} 시작". */
+/** 정성 한 줄 머리 "12일차, 21일 중". 시작 전이면 "{시작일} 시작". */
 export function jeongseongDayText(item: GroupJeongseongOut): string {
   return item.day_index === null
     ? `${formatKstDay(item.started_on)} 시작`
-    : `${item.day_index}일차 / 총 ${item.duration_days}일`;
+    : `${item.day_index}일차, ${item.duration_days}일 중`;
+}
+
+/** 기간 "9월 12일 ~ 10월 2일" (프로토타입 group). 끝나는 날 = 시작일 + 기간 - 1, KST 날짜 그대로 센다. */
+export function jeongseongPeriodText(item: Pick<GroupJeongseongOut, "started_on" | "duration_days">): string {
+  const start = new Date(`${item.started_on}T12:00:00+09:00`);
+  const end = new Date(start.getTime() + (item.duration_days - 1) * 86_400_000);
+  return `${formatKstDay(item.started_on)} ~ ${formatKstDay(end.toISOString())}`;
 }
 
 function JeongseongRow({ item }: { item: GroupJeongseongOut }) {
@@ -48,14 +55,14 @@ function JeongseongRow({ item }: { item: GroupJeongseongOut }) {
           <span className="tg-js__by">
             {item.is_official
               ? item.source_note
-                ? `공식 정성 · 출처 · ${item.source_note}`
+                ? `공식 정성 · 출처: ${item.source_note}`
                 : "공식 정성"
               : "모임 정성"}
           </span>
         </span>
         <span className="tg-js__day">
           {item.day_index === null ? <b className="tg-js__soon">곧 시작</b> : <b>{item.day_index}일차</b>}
-          {item.day_index === null ? formatKstDay(item.started_on) : `/ 총 ${item.duration_days}일`}
+          {item.day_index === null ? formatKstDay(item.started_on) : `${item.duration_days}일 중`}
         </span>
       </div>
       <div
@@ -69,7 +76,7 @@ function JeongseongRow({ item }: { item: GroupJeongseongOut }) {
         <i className="progress__fill" style={{ width: `${percent}%` }} />
       </div>
       <div className="tg-js__ft">
-        <span>{formatKstDay(item.started_on)}부터</span>
+        <span>{jeongseongPeriodText(item)}</span>
         {item.is_official ? (
           <span className="badge badge--accent">공식</span>
         ) : (
@@ -125,7 +132,8 @@ function Readers({ readers }: { readers: GroupDetail["readers"] }) {
       <div className="sect__head">
         <h3 className="sect__title">오늘 함께 읽은 식구</h3>
         <span className="sect__rule" />
-        {readers.length > 0 && <span className="sect__meta">가나다순</span>}
+        {/* 완료자 수만 센다 — 전체 인원·안 읽은 사람 수는 어디에도 없다(D5) */}
+        {readers.length > 0 && <span className="sect__meta">{readers.length}명 · 가나다순</span>}
       </div>
       {readers.length > 0 ? (
         <ul className="card tg-people" aria-label="오늘 함께 읽은 식구">

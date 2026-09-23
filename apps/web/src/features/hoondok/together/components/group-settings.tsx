@@ -160,7 +160,7 @@ function MemberSection({ detail, members }: { detail: GroupDetail; members: Memb
                   openLabel="내보내기"
                   openAriaLabel={`${member.display_name} 내보내기`}
                   label={`${member.display_name} 님 내보내기 확인`}
-                  message={`${member.display_name} 님을 내보낼까요? ${member.display_name} 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.`}
+                  message={`${member.display_name} 님을 내보낼까요? ${member.display_name} 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있으니, 막으려면 초대 코드를 새로 만들어 주세요.`}
                   confirmLabel="내보내기"
                   isPending={remove.isPending && remove.variables === member.id}
                   onConfirm={() => remove.mutate(member.id)}

@@ -131,7 +131,10 @@ function ShareEditor({ detail }: { detail: GroupDetail }) {
               className="tg-ex"
               type="button"
               onClick={() => {
-                setBody(starter);
+                // 비어 있거나 다른 시작 문장만 있으면 바꾸고, 쓰던 글이 있으면 지우지 않고 뒤에 잇는다
+                const current = body.trim();
+                const isBlank = !current || STARTERS.some((item) => item.trim() === current);
+                setBody(isBlank ? starter : `${body.trimEnd()} ${starter}`.slice(0, SHARE_MAX));
                 document.getElementById("gs-text")?.focus();
               }}
             >

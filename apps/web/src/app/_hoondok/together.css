@@ -751,6 +751,9 @@
     display: block;
     font-size: 16px;
   }
+  .tg-done__go {
+    margin-top: 12px;
+  }
   .tg-js__soon {
     font-size: 16px;
   }
@@ -773,6 +776,8 @@
     display: inline-flex;
     align-items: center;
     min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
     padding: 0 4px;
     background: none;
     border: 0;

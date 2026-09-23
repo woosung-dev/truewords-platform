@@ -12,6 +12,7 @@ import { useCurrentUser } from "@/features/identity/use-current-user";
 import { type GroupCreate, groupErrorOf } from "../groups-api";
 import { useCreateGroup, useGroup } from "../use-groups";
 import {
+  formatKstDay,
   GroupAlert,
   GroupInviteShare,
   GroupLoading,
@@ -72,7 +73,10 @@ function CreatedCard({ groupId }: { groupId: string }) {
   return (
     <div className="card tg-done" role="status">
       <b className="tg-done__t">모임을 만들었어요</b>
-      <p className="tg-lede">이 코드를 식구들에게 보내 주세요. 코드를 받은 사람만 들어올 수 있어요.</p>
+      <p className="tg-lede">
+        이 코드를 식구들에게 보내 주세요. 코드를 받은 사람만 들어올 수 있어요.
+        {group.data.invite_expires_at && ` ${formatKstDay(group.data.invite_expires_at)}까지 쓸 수 있어요.`}
+      </p>
       <GroupInviteShare groupName={group.data.name} code={group.data.invite_code} />
       <Link className="tg-link" href={groupHref(groupId)}>
         모임으로 가기
@@ -125,10 +129,15 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
     event.preventDefault();
     // 버튼 비활성과 별개로 Enter 연타도 막는다 — 요청이 가는 동안 두 번째 제출은 버린다.
     if (create.isPending) return;
+    // 오류는 버튼 위 한 곳에 뜨므로, 고쳐야 할 칸으로 초점을 옮겨 긴 폼에서 찾지 않게 한다
+    const fail = (message: string, fieldId: string) => {
+      setFormError(message);
+      document.getElementById(fieldId)?.focus();
+    };
     const trimmedName = name.trim();
     const trimmedMe = myName.trim();
-    if (!trimmedName) return setFormError("모임 이름을 적어 주세요");
-    if (!trimmedMe) return setFormError("이 모임에서 쓸 내 이름을 적어 주세요");
+    if (!trimmedName) return fail("모임 이름을 적어 주세요", "gc-name");
+    if (!trimmedMe) return fail("이 모임에서 쓸 내 이름을 적어 주세요", "gc-me");
     const body: GroupCreate = {
       name: trimmedName,
       display_name: trimmedMe,
@@ -137,9 +146,10 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
     if (hasJeongseong) {
       const title = jsTitle.trim();
       const days = term === "custom" ? Number(customDays) : Number(term);
-      if (!title) return setFormError("정성 이름을 적어 주세요");
-      if (!Number.isInteger(days) || days < 1 || days > 100) return setFormError("정성 기간은 1~100일로 정해 주세요");
-      if (!startedOn) return setFormError("정성 시작일을 골라 주세요");
+      if (!title) return fail("정성 이름을 적어 주세요", "gc-js-name");
+      if (!Number.isInteger(days) || days < 1 || days > 100)
+        return fail("정성 기간은 1~100일로 정해 주세요", term === "custom" ? "gc-js-days" : "gc-js-name");
+      if (!startedOn) return fail("정성 시작일을 골라 주세요", "gc-js-start");
       body.jeongseong = { title, duration_days: days, started_on: startedOn };
     }
     setFormError(null);

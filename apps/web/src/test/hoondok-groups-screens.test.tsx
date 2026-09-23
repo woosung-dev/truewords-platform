@@ -248,6 +248,7 @@ describe("SCR-PWA-019 모임 만들기", () => {
     fireEvent.click(screen.getByRole("button", { name: "모임 만들기" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("정성 기간은 1~100일로 정해 주세요");
     expect(groupsAPI.create).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("기간 (1~100일)")).toHaveFocus();
 
     fireEvent.change(screen.getByLabelText("기간 (1~100일)"), { target: { value: "30" } });
     fireEvent.click(screen.getByRole("button", { name: "모임 만들기" }));
@@ -268,6 +269,8 @@ describe("SCR-PWA-019 모임 만들기", () => {
     fireEvent.click(screen.getByRole("button", { name: "모임 만들기" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("이 모임에서 쓸 내 이름을 적어 주세요");
     expect(groupsAPI.create).not.toHaveBeenCalled();
+    // 오류는 버튼 위에 뜨므로 고칠 칸으로 초점이 옮겨 간다
+    expect(screen.getByLabelText("이 모임에서 쓸 내 이름")).toHaveFocus();
   });
 
   it("연타: 요청 중에는 버튼이 잠기고 두 번째 제출은 가지 않는다", async () => {
@@ -376,7 +379,9 @@ describe("SCR-PWA-018 모임 참여", () => {
   it("없는·만료 코드(404)와 limiter(429) 안내", async () => {
     vi.mocked(groupsAPI.previewInvite).mockRejectedValueOnce(apiError(404, "INVITE_NOT_FOUND"));
     const { unmount } = renderUi(<GroupJoinForm initialCode="7K2M-Q9XD" />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("코드를 다시 확인해 주세요 (만료되었거나 없는 코드)");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "초대 코드가 맞지 않거나 만료됐어요. 리더에게 코드를 다시 받아 주세요",
+    );
     expect(screen.queryByRole("button", { name: "모임에 참여하기" })).not.toBeInTheDocument();
     unmount();
     vi.mocked(groupsAPI.previewInvite).mockRejectedValueOnce(apiError(429, "RATE_LIMIT_EXCEEDED"));
@@ -450,7 +455,9 @@ describe("SCR-PWA-018 모임 참여", () => {
     vi.mocked(groupsAPI.join).mockRejectedValue(apiError(404, "INVITE_NOT_FOUND"));
     renderUi(<GroupJoinForm initialCode="7K2M-Q9XD" />);
     fireEvent.click(await screen.findByRole("button", { name: "모임에 참여하기" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("코드를 다시 확인해 주세요 (만료되었거나 없는 코드)");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "초대 코드가 맞지 않거나 만료됐어요. 리더에게 코드를 다시 받아 주세요",
+    );
   });
 });
 
@@ -466,11 +473,14 @@ describe("SCR-PWA-017 모임 상세", () => {
     expect(within(readers).getByText("효진 (나)")).toBeInTheDocument();
     expect(screen.getByText("안 읽은 사람은 표시하지 않아요.")).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/식구 \d+명|아직/);
-    // 정성은 모임 전체 N일차 / 총 M일 + 공식 표시
-    expect(screen.getByText("12일차").parentElement).toHaveTextContent("12일차/ 총 21일");
+    // 완료자 수만 머리에 — "N명 · 가나다순" (프로토타입 group)
+    expect(screen.getByText("2명 · 가나다순")).toBeInTheDocument();
+    // 정성은 모임 전체 N일차 · M일 중 · 시작~끝 날짜 + 공식 표시 (21일: 9월 12일 ~ 10월 2일)
+    expect(screen.getByText("12일차").parentElement).toHaveTextContent("12일차21일 중");
+    expect(screen.getByText("9월 12일 ~ 10월 2일")).toBeInTheDocument();
     expect(screen.getByText("공식")).toBeInTheDocument();
     // 출처는 관리자가 적은 source_note 그대로 (QA P2-13)
-    expect(screen.getByText("공식 정성 · 출처 · 협회 공지")).toBeInTheDocument();
+    expect(screen.getByText("공식 정성 · 출처: 협회 공지")).toBeInTheDocument();
     // 오늘 범위는 훈독하기로, 설정 진입은 모두에게
     expect(screen.getByRole("link", { name: /오늘 범위/ })).toHaveAttribute("href", "/hoondok/read");
     expect(screen.getByRole("link", { name: /모임 설정/ })).toHaveAttribute("href", `/hoondok/groups/${G}/settings`);
@@ -597,6 +607,20 @@ describe("SCR-PWA-020 한 줄 쓰기", () => {
     await waitFor(() => expect(button).toBeDisabled());
     fireEvent.submit(button.closest("form") as HTMLFormElement);
     expect(groupsAPI.putTodayShare).toHaveBeenCalledTimes(1);
+  });
+
+  it("시작 문장은 빈 칸이면 채우고, 쓰던 글이 있으면 지우지 않고 뒤에 잇는다", async () => {
+    vi.mocked(groupsAPI.get).mockResolvedValue(detail());
+    renderUi(<GroupShareForm groupId={G} />);
+    const text = await screen.findByLabelText("새벽별 훈독모임에 남길 한 줄");
+    fireEvent.click(screen.getByRole("button", { name: "이 말씀을 읽고 떠오른 사람은" }));
+    expect(text).toHaveValue("아이에게 먼저 말을 걸어 볼게요. 이 말씀을 읽고 떠오른 사람은 ");
+    fireEvent.change(text, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "이 말씀을 읽고 떠오른 사람은" }));
+    expect(text).toHaveValue("이 말씀을 읽고 떠오른 사람은 ");
+    // 다른 시작 문장만 있으면 바꾼다(겹쳐 쌓지 않는다)
+    fireEvent.click(screen.getByRole("button", { name: /오늘 이 말씀을 이렇게 살아 보려 해요/ }));
+    expect(text).toHaveValue("오늘 이 말씀을 이렇게 살아 보려 해요. ");
   });
 
   it("오늘 훈독 전이면 쓰기 대신 훈독하기, 서버 409 READ_REQUIRED 도 같은 안내", async () => {
