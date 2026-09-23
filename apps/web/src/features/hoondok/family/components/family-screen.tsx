@@ -1,12 +1,19 @@
 "use client";
 
-import { Check, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { FAMILY_MEMBERS, type FamilyPerson, FRIENDS, SCOPE_ROWS } from "@/features/hoondok/preview/fixtures/family";
+import {
+  FAMILY_MEMBERS,
+  type FamilyPerson,
+  FRIENDS,
+  FRIENDS_TODAY_LABEL,
+  SCOPE_ROWS,
+} from "@/features/hoondok/preview/fixtures/family";
 // SCR-PWA-016 가족·친구 (PLAN-HD-002 W3-F) — 프리뷰 셸. 마크업·문구의 원본은 프로토타입 app.html
 // data-screen="family" 이고, 연결·초대·공개 범위 저장은 이번 범위가 아니라 네트워크 요청을 하나도 보내지 않는다.
 // 초대·추가 버튼은 형태만 두고 왜 눌러도 진행되지 않는지는 색이 아니라 글자가 말한다 (DES-PWA-003 §3.3).
+// 사람별 완료/미완료 배지는 두지 않는다 — 읽은 사람 수만 요약한다 (DEC-PWA-023).
 import { PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
 
 const PREVIEW_NOTICE = "미리보기 예시 데이터입니다";
@@ -29,15 +36,6 @@ function PersonRow({ person, isLarge }: { person: FamilyPerson; isLarge: boolean
         <b className="fm-item__t">{person.name}</b>
         <span className="fm-item__m">{person.meta}</span>
       </span>
-      {/* 완료는 체크 아이콘과 글자 두 신호를 함께 쓴다. 미완료도 경고색 없이 "아직" 으로만 적는다 (RSK-PWA-009) */}
-      {person.isDoneToday ? (
-        <span className="badge badge--rank">
-          <Check size={14} aria-hidden="true" />
-          오늘 완료
-        </span>
-      ) : (
-        <span className="badge badge--line">아직</span>
-      )}
     </li>
   );
 }
@@ -143,7 +141,7 @@ export function FamilyScreen() {
 
       <PeopleSection
         title="친구"
-        meta={`${FRIENDS.length}명`}
+        meta={FRIENDS_TODAY_LABEL}
         people={FRIENDS}
         isLarge={false}
         action={{

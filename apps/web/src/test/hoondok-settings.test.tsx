@@ -92,6 +92,10 @@ describe("SCR-PWA-015 알림 (서버 설정 없음 = 준비 중)", () => {
       expect(toggle).toHaveAttribute("aria-pressed", "false");
     }
 
+    // 공지는 앱 소식만 — 소속 교회를 받지 않는다 (DEC-PWA-023)
+    expect(screen.getByText("앱 소식")).toBeInTheDocument();
+    expect(screen.queryByText(/교회/)).toBeNull();
+
     // 시간 행 3개(공지는 시간 없음) 는 전부 비활성
     for (const time of ["오전 6:00", "오후 9:30", "토요일 오후 6:00"]) {
       expect(screen.getByText(time).closest("button")).toBeDisabled();

@@ -1,17 +1,29 @@
 "use client";
 
-// SCR-PWA-002 홈 "정성 기간" 카드. 진행 중이면 남은 날·진행·밀린 날 + 진행 바, 없으면 시트로 보내는 CTA.
+// SCR-PWA-002 홈 "정성 기간" 카드. 진행 중이면 남은 날·진행한 날·N일차 + 진행 바, 없으면 시트로 보내는 CTA.
+// 빠진 날 수(API `missed_days`)는 화면에 쓰지 않는다 — 진행은 "N일차"로만 보인다 (DEC-PWA-023).
 // 비로그인 홈에서도 섹션과 CTA 는 그린다 — 정본 프로토타입 today 의 마크업 순서에 "정성 기간" 이 있고,
 // 통째로 숨기면 비로그인 홈이 한 단계 얕아지며 기능의 존재 자체가 드러나지 않는다.
 // 값을 지어내지는 않는다(REQ-PWA-013): 보여 주는 것은 시작 CTA 뿐이고 로그인 요구는 시트가 맡는다.
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
+import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
 import { useAbandonJeongseong, useJeongseong } from "@/features/hoondok/use-jeongseong";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { formatMonthDay, formatReminder } from "../format";
 
 const SHEET_HREF = "/hoondok?sheet=jeongseong";
+
+/**
+ * 오늘이 정성 몇 일차인지. end_on = started_on + (duration - 1) 이고 remaining = end_on - today 라
+ * 일차 = duration - remaining 이다. 시작 전이면 일차가 없고, 끝난 뒤에는 마지막 날에 멈춘다.
+ */
+export function jeongseongDayLabel(period: Pick<JeongseongPeriodResponse, "duration_days" | "progress">): string {
+  if (period.progress.state === "upcoming") return "시작 전";
+  const day = Math.min(Math.max(period.duration_days - period.progress.remaining_days, 1), period.duration_days);
+  return `${day}일차`;
+}
 
 function JeongseongSection({ badge, children }: { badge?: string; children: ReactNode }) {
   return (
@@ -68,8 +80,8 @@ export function JeongseongCard() {
             <span className="stats__lab">진행한 날</span>
           </div>
           <div>
-            <b className="stats__n">{progress.missed_days}</b>
-            <span className="stats__lab">밀린 날</span>
+            <b className="stats__n">{jeongseongDayLabel(period)}</b>
+            <span className="stats__lab">오늘</span>
           </div>
         </div>
         <div

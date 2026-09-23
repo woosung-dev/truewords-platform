@@ -81,11 +81,11 @@ describe("016 가족·친구 프리뷰 셸", () => {
     expect(screen.getByRole("heading", { name: "우리 가족" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "친구" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "내가 보여주는 범위" })).toBeInTheDocument();
-    // 오늘 훈독 여부는 색이 아니라 글자로 — 완료 4명(가족 1 + 친구 3), 아직 3명
-    expect(screen.getAllByText("오늘 완료")).toHaveLength(4);
-    expect(screen.getAllByText("아직")).toHaveLength(3);
-    // 실교회명을 두지 않는다
-    expect(screen.queryByText(/분당교회|영통교회|용인교회/)).toBeNull();
+    // 사람별 완료/미완료 배지는 없고 친구는 읽은 수만 요약한다 (DEC-PWA-023)
+    expect(screen.getByText("오늘 3명이 함께 읽었어요")).toBeInTheDocument();
+    expect(screen.queryByText(/오늘 완료|아직/)).toBeNull();
+    // 소속 교회를 받지 않으므로 교회명이 없다
+    expect(screen.queryByText(/교회/)).toBeNull();
   });
 
   it("초대·추가 버튼: 네트워크 요청 0 · 인라인 '준비 중' 을 글자로 알린다", async () => {
@@ -109,7 +109,7 @@ describe("016 가족·친구 프리뷰 셸", () => {
     const { Page } = await loadFamilyPage("1");
     const { container } = render(<Page />);
 
-    const done = screen.getByRole("button", { name: "오늘 완료 여부 공개" });
+    const done = screen.getByRole("button", { name: "오늘 읽은 날 표시 공개" });
     const jeongseong = screen.getByRole("button", { name: "진행 중인 정성 이름 공개" });
     expect(done).toHaveAttribute("aria-pressed", "true");
     expect(jeongseong).toHaveAttribute("aria-pressed", "false");
@@ -137,14 +137,14 @@ describe("014 정원의 가족·친구 진입", () => {
     await renderGarden("1");
     const link = await screen.findByRole("link", { name: /가족·친구와 함께 읽어요/ });
     expect(link).toHaveAttribute("href", "/hoondok/family");
-    expect(screen.getByRole("heading", { name: "가족·친구" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "함께 읽는 사람들" })).toBeInTheDocument();
   });
 
   it("프리뷰 OFF(기본): 진입 섹션을 그리지 않는다", async () => {
     await renderGarden("");
     // 정원 본문이 뜬 뒤에도 (프로필 이름 기준) 진입 섹션은 없다
     expect(await screen.findByText("효진")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "가족·친구" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "함께 읽는 사람들" })).toBeNull();
     expect(screen.queryByRole("link", { name: /가족·친구와 함께 읽어요/ })).toBeNull();
   });
 });

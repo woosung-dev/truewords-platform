@@ -68,10 +68,6 @@
     color: var(--ink-2);
     line-height: 1.5;
   }
-  /* 배지는 줄바꿈 없이 오른쪽에 고정하고, 좁은 폭에서는 설명이 먼저 줄바꿈된다 */
-  .fm-item > .badge {
-    flex: none;
-  }
 
   /* ---------- 공개 범위 : fieldset 한 장. legend 가 묶음 이름이다 ---------- */
   .fm-scope {
