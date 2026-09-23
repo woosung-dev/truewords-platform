@@ -3,6 +3,7 @@
 import { Check } from "lucide-react";
 import Link from "next/link";
 import { DoneBadge, HoondokButton } from "@/components/hoondok";
+import { TogetherDoneNotice } from "@/features/hoondok/together/components/together-card";
 import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
@@ -58,6 +59,8 @@ export function ReadCompleteButton({ askHref, isDisabled = false }: { askHref: s
             <span className="read-done__note">기록을 아직 저장하지 못했어요. 연결되면 다시 시도해요.</span>
           )}
         </div>
+        {/* 함께 읽는 사람들 한 줄 (PLAN-HD-009). 서버에 기록된 완료만 집계되므로 로컬만 완료면 "당신까지" 를 쓰지 않는다. */}
+        <TogetherDoneNotice isCounted={Boolean(user) && !completion.isUnsynced && !completion.hasSaveFailed} />
         {footer}
       </>
     );

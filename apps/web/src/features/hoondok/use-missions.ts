@@ -33,7 +33,7 @@ export type CompleteSource = "user" | "sync";
 
 /**
  * 미션 완료 한 번의 결과 규칙:
- * - 201 → recorded, 409(하루 1회) → already: 둘 다 완료로 보고 진행 상태 캐시(PROGRESS_KEYS: 요약·정성·기록)를 다시 읽는다
+ * - 201 → recorded, 409(하루 1회) → already: 둘 다 완료로 보고 진행 상태 캐시(PROGRESS_KEYS: 요약·정성·기록·함께 읽기)를 다시 읽는다
  * - 401 → unauthorized: 호출자가 온보딩으로 보낸다 (returnTo = 현재 경로)
  * - 그 외(오프라인·5xx) → pending-local: 로컬 완료 표시를 유지하고 다음 로그인/방문 때 소급한다
  * - recorded 이면서 출처가 user 인 첫 완료 뒤에만 설치 안내 카드가 자격을 얻는다 (Phase 3 E, 소급 제외)

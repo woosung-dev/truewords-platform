@@ -9,6 +9,7 @@ import { InstallCard } from "@/features/hoondok/install/components/install-card"
 import { JeongseongCard } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import { JeongseongSheet } from "@/features/hoondok/jeongseong/components/jeongseong-sheet";
 import { formatKstDate } from "@/features/hoondok/today";
+import { TogetherCard } from "@/features/hoondok/together/components/together-card";
 
 export default async function HoondokHomePage() {
   const today = await loadToday();
@@ -21,6 +22,9 @@ export default async function HoondokHomePage() {
       <HomeMissions today={today} todayWeekday={weekday} />
 
       <JeongseongCard />
+
+      {/* 함께 읽는 사람들 1단계 — 익명 숫자 카드 1장 (PLAN-HD-009). 모임 카드는 2단계 */}
+      <TogetherCard />
 
       <InstallCard />
 

@@ -15,6 +15,7 @@ import "@/app/_hoondok/ask.css";
 import "@/app/_hoondok/library.css";
 import "@/app/_hoondok/worship.css";
 import "@/app/_hoondok/family.css";
+import "@/app/_hoondok/together.css";
 import { HoondokAppShell } from "@/components/hoondok";
 import { isHoondokEnabled } from "@/features/hoondok/flag";
 import { HoondokInstallPromptListener } from "@/features/hoondok/install/components/install-prompt-listener";
