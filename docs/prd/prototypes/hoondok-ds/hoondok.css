@@ -322,6 +322,133 @@ a.card:active,button.card:active,.shelf__item:active,.fm-item:active,
   padding:10px var(--gutter) 28px;max-height:88dvh;overflow:auto}
 .sheet__grip{width:40px;height:5px;border-radius:var(--r-full);background:var(--line);margin:0 auto 14px}
 
+/* ---------- 13. 함께 읽는 사람들 · 훈독 모임 (DEC-PWA-023, 2026-09-23) ----------
+   1단계 = 익명 숫자, 2단계 = 초대 모임. 모임 안에서도 완료한 사람만 그린다.
+   미완료자 이름·상태·재촉 버튼을 그릴 자리를 만들지 않는다. 새 색은 없고 기존 토큰만 쓴다.
+   아바타는 이니셜이다 (§8 2026-09-22: 실사용자 자리에 스톡 얼굴을 넣지 않는다) */
+/* ?together= 등 쿼리 변형과 완료 뒤 블록은 hidden 으로 끈다. .together 의 display:flex 가 hidden 을 이기지 않게 한다 */
+[data-q][hidden],.tg-after[hidden]{display:none}
+.tg-stack{display:flex;flex-direction:column;gap:12px}
+.tg-ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;
+  background:var(--accent-soft);color:var(--accent-strong);font-size:20px}
+.tg-av{width:36px;height:36px;border-radius:50%;display:inline-grid;place-items:center;flex:none;
+  background:var(--surface-2);color:var(--ink-2);font-size:13.5px;font-weight:600}
+.tg-av--me{background:var(--accent-soft);color:var(--accent-strong)}   /* 6.4:1 */
+.avatars .tg-av{border:2px solid var(--surface)}
+.tg-entry{display:flex;flex-direction:column;gap:4px}
+.tg-entry b{font-size:15.5px}
+.tg-entry > span{font-size:13px;color:var(--ink-2);line-height:1.55}
+.tg-join{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.tg-soon{display:flex;align-items:center;gap:6px;margin:10px 0 0;font-size:12.5px;color:var(--ink-3)}
+
+/* 훈독하기 완료 뒤 한 줄 */
+.tg-after{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.tg-after__n{display:flex;align-items:center;gap:8px;margin:0;font-size:15px;color:var(--ink)}
+.tg-after__n i{font-size:20px;color:var(--accent)}
+.tg-after__n b{font-variant-numeric:tabular-nums}
+
+/* 모임 상세 머리 */
+.tg-head__nm{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:8px 0 0}
+.tg-head__meta{font-size:13px;color:var(--ink-2);margin-top:4px}
+.tg-acts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.tg-range{display:block}
+.tg-range__t{font-size:16.5px;font-weight:600;line-height:1.4;margin:10px 0 0}
+.tg-range__ft{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:6px;
+  font-size:12.5px;color:var(--ink-2)}
+.tg-link{display:inline-flex;align-items:center;gap:4px;min-height:44px;color:var(--accent-strong);font-weight:600;font-size:13.5px}
+
+/* 정성 : 모임 전체의 N일차만. 개인별 진행은 없다 */
+.tg-js + .tg-js{border-top:1px solid var(--line);margin-top:16px;padding-top:16px}
+.tg-js__top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.tg-js__t{display:block;font-size:15.5px;font-weight:600;line-height:1.35}
+.tg-js__by{display:block;font-size:12.5px;color:var(--ink-2);margin-top:3px}
+.tg-js__day{flex:none;text-align:right;font-size:13px;color:var(--ink-2)}
+.tg-js__day b{display:block;font-size:22px;letter-spacing:-.02em;color:var(--accent);font-variant-numeric:tabular-nums}
+.tg-js .progress{margin-top:12px}
+.tg-js__ft{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font-size:12.5px;color:var(--ink-2)}
+.tg-again{margin:14px 0 0;font-size:13px;color:var(--ink-2);line-height:1.55}
+
+/* 오늘 함께 읽은 사람 : 완료자만, 가나다순 (읽은 시각 순서로 줄 세우지 않는다) */
+.tg-people{list-style:none;margin:0;padding:4px 16px}
+.tg-person{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 0}
+.tg-person + .tg-person{border-top:1px solid var(--line)}
+.tg-person__bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tg-person__bd b{font-size:15px;font-weight:600}
+.tg-person__bd span{font-size:12.5px;color:var(--ink-2)}
+
+/* 한 줄 나눔 : 100자 한 줄 + 반응 1종. 댓글·좋아요 수 경쟁 없음 */
+.tg-notes{list-style:none;margin:0;padding:0 16px}
+.tg-note{display:flex;gap:12px;padding:14px 0}
+.tg-note + .tg-note{border-top:1px solid var(--line)}
+.tg-note__bd{flex:1;min-width:0}
+.tg-note__who{font-size:12.5px;color:var(--ink-2)}
+.tg-note__who b{color:var(--ink);font-size:13.5px;margin-right:4px}
+.tg-note__tx{margin:4px 0 0;font-size:15px;line-height:1.6;overflow-wrap:anywhere}
+.tg-stay{display:inline-flex;align-items:center;gap:6px;min-height:36px;margin-top:8px;padding:0 12px;
+  border-radius:var(--r-full);border:1px solid var(--ink-3);background:var(--surface);font-size:13px;color:var(--ink-2)}
+.tg-stay i{font-size:16px}
+.tg-stay[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-soft);color:var(--accent-strong);font-weight:600}
+.tg-stay__mine{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;color:var(--ink-3)}
+
+.tg-privacy{display:flex;gap:10px;align-items:flex-start;margin-top:24px;padding:14px 16px;border-radius:var(--r);
+  background:var(--surface-2);font-size:13px;color:var(--ink-2);line-height:1.6}
+.tg-privacy i{font-size:18px;flex:none;margin-top:1px}
+
+/* 모임 참여·만들기·한 줄 쓰기 폼 */
+.tg-form .field{margin-top:22px}
+.tg-form .field textarea{min-height:88px;resize:vertical;line-height:1.6}
+.tg-lede{margin:8px 0 0;font-size:14.5px;color:var(--ink-2);line-height:1.6}
+.tg-code-row{display:flex;gap:8px}
+.tg-code-row input{flex:1;min-width:0;letter-spacing:.06em;font-weight:600}
+.tg-code-row .btn{height:auto}
+.tg-via{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--r-sm);background:var(--surface-2);font-size:14px}
+.tg-via i{font-size:20px;color:var(--ink-2)}
+.tg-opts{display:flex;flex-direction:column;gap:8px}
+.tg-opt{display:flex;align-items:flex-start;gap:12px;width:100%;min-height:56px;padding:12px 14px;text-align:left;
+  border-radius:var(--r-sm);background:var(--surface);border:1.5px solid var(--line)}
+.tg-opt[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.tg-opt[aria-disabled="true"]{background:var(--surface-2);cursor:not-allowed}
+.tg-radio{width:22px;height:22px;border-radius:50%;border:2px solid var(--ink-3);flex:none;margin-top:1px;
+  display:grid;place-items:center;background:var(--surface)}
+.tg-opt[aria-checked="true"] .tg-radio{border-color:var(--accent)}
+.tg-opt[aria-checked="true"] .tg-radio::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.tg-opt__bd{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tg-opt__bd b{font-size:15px;font-weight:600}
+.tg-opt[aria-checked="true"] .tg-opt__bd b{color:var(--accent-strong)}
+.tg-opt__bd span{font-size:12.5px;color:var(--ink-2);line-height:1.5}
+/* 기간 3택 : 순서 없는 짧은 선택지라 가로 3칸. 선택은 테두리 + 굵기 + 체크 아이콘 세 신호 */
+.tg-opts--row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.tg-opts--row .tg-opt{justify-content:center;align-items:center;min-height:48px;padding:8px;gap:6px;font-size:15px}
+.tg-opt__ck{display:none;font-size:15px}
+.tg-opt[aria-checked="true"] .tg-opt__ck{display:inline}
+.tg-opts--row .tg-opt[aria-checked="true"]{color:var(--accent-strong);font-weight:600}
+.tg-sub{margin-top:12px;padding:14px;border-radius:var(--r-sm);background:var(--surface-2)}
+.tg-sub .field{margin-top:14px}
+.tg-sub .field:first-child{margin-top:0}
+.tg-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tg-toggle-row b{display:block;font-size:15px}
+.tg-toggle-row span{font-size:12.5px;color:var(--ink-2)}
+.tg-vis{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.5}
+.tg-vis li{display:flex;gap:8px;align-items:flex-start}
+.tg-vis i{font-size:18px;flex:none;margin-top:1px}
+.tg-vis .is-shown i{color:var(--ok-strong)}
+.tg-vis .is-hidden i{color:var(--ink-3)}
+.tg-count{align-self:flex-end;font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.tg-exs{display:flex;flex-direction:column;gap:8px}
+.tg-ex{min-height:44px;padding:9px 12px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);
+  text-align:left;font-size:14px;line-height:1.4;color:var(--ink)}
+.tg-code{margin:12px 0 0;padding:16px;border-radius:var(--r-sm);border:1.5px dashed var(--ink-3);background:var(--surface);
+  text-align:center;font-size:24px;font-weight:700;letter-spacing:.08em;font-variant-numeric:tabular-nums}
+.tg-cta{display:flex;flex-direction:column;gap:10px;margin-top:24px}
+@media (min-width:768px){
+  /* 폼 3화면은 설정·설교 섭외와 같은 560px (§5 013·015 근거: 라벨과 입력이 멀어지지 않게) */
+  .col.tg-form{max-width:560px}
+  .app__main:has(.tg-form:not([hidden])) .appbar__in{max-width:560px}
+}
+@media (min-width:1024px) and (hover:hover){
+  .tg-opt:not([aria-disabled="true"]):not([aria-checked="true"]):hover,.tg-ex:hover,.tg-stay:hover{background:var(--surface-2)}
+}
+
 /* =============================================================================
    md : 768px 이상.  단일 컬럼 중앙 정렬. 하단 탭은 그대로 둔다.
    ============================================================================= */
