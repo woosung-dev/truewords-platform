@@ -59,7 +59,7 @@ const WORDS = {
   page_size: 20,
   total_chunks: 41,
   total_pages: 3,
-  chunks: [{ chunk_id: "chunk-21", chunk_index: 20, text: "둘째 구간의 본문" }],
+  chunks: [{ chunk_id: "chunk-21", chunk_index: 20, text: "둘째 구간의 본문", display_text: "둘째 구간의 본문" }],
   body: "둘째 구간의 본문",
 };
 const RESULT = {
@@ -69,6 +69,7 @@ const RESULT = {
   work_title: WORK.work_title,
   authority_grade: "R" as const,
   text: "참사랑 말씀",
+  display_text: "참사랑 말씀",
   score: 0.8,
   can_read_full_text: true,
 };
@@ -193,7 +194,7 @@ describe("원문 읽기", () => {
       }),
     );
   }
-  it("원문 구간·출처 결측·앞뒤 구간을 표시하고 열기만으로 완료하지 않는다", async () => {
+  it("원문 구간·앞뒤 구간을 보이고 결측 문구는 숨기며 열기만으로 완료하지 않는다", async () => {
     await showWords();
     expect(await screen.findByText("둘째 구간의 본문")).toBeInTheDocument();
     expect(libraryAPI.words).toHaveBeenCalledWith(
@@ -202,7 +203,8 @@ describe("원문 읽기", () => {
       { chunkId: "chunk-21", section: undefined },
       expect.any(AbortSignal),
     );
-    expect(screen.getByText("화자 확인되지 않음")).toBeInTheDocument();
+    for (const missing of ["화자 확인되지 않음", "날짜 확인되지 않음", "판본 확인되지 않음"])
+      expect(screen.queryByText(missing)).toBeNull();
     expect(screen.getByRole("link", { name: "다음 구간" })).toHaveAttribute("href", `${wordsHref(WORK.volume)}?page=3`);
     expect(missionsAPI.complete).not.toHaveBeenCalled();
     const button = await screen.findByRole("button", { name: "읽음" });

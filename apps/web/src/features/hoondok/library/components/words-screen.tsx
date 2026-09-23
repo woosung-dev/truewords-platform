@@ -2,20 +2,23 @@
 
 // SCR-PWA-009 원문 뷰. PLAN-HD-007 로 장 목차(API-HD-024)·단락 표시(API-HD-026)·이어 읽기(API-HD-025)·
 // AI 설명(§2-7)이 붙었다. 단락 단위는 Qdrant 청크이고(§2-12) 청크 안 부분 선택은 하지 않는다.
+// PLAN-HD-008 로 표시 텍스트(display_text)·본문 탭 선택·브라우저 음성 듣기(../tts)가 더해졌다.
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
 import type { MarkItem, WordChunk } from "@truewords/api-client-ts/types";
 import { Bookmark, BookOpenText, Check, Highlighter, List, NotebookPen, Settings } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AuthorityBadge, HoondokButton } from "@/components/hoondok";
 import { sectionsKey, wordsKey } from "@/features/hoondok/query-keys";
 import { useHoondokScreenTitle } from "@/features/hoondok/screen-title";
 import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
-import { libraryAPI, type WordsQuery, wordsHref, wordsPageHref } from "../api";
+import { libraryAPI, verseNumber, type WordsQuery, wordsHref, wordsPageHref } from "../api";
 import { writeLastReading } from "../last-reading";
+import { TtsBar } from "../tts/tts-bar";
+import { useSpeechReader } from "../tts/use-speech-reader";
 import { useMarks, useMarkWriter, useSavedReadingPosition } from "../use-reading";
 import { AiExplain } from "./ai-explain";
 import { PassageSheet } from "./passage-sheet";
@@ -95,29 +98,56 @@ function StudyComplete() {
   );
 }
 
-/** 단락 하나. 형광펜은 청크 전체를 감싼다 — 부분 선택은 검색·인용 체계(chunk_id)와 어긋난다(계획 §8). */
+/** 단락 하나. 형광펜은 청크 전체를 감싼다 — 부분 선택은 검색·인용 체계(chunk_id)와 어긋난다(계획 §8).
+ *  표시는 서버가 정리한 display_text(문단 "\n\n")이고, AI 설명·인용은 원본 text 를 쓴다. */
 function Verse({
   chunk,
   highlight,
   isBookmarked,
   isSelected,
+  isSpeaking,
   onSelect,
 }: {
   chunk: WordChunk;
   highlight: MarkItem | undefined;
   isBookmarked: boolean;
   isSelected: boolean;
+  isSpeaking: boolean;
   onSelect: () => void;
 }) {
+  const number = verseNumber(chunk.chunk_index);
+  const paragraphs = chunk.display_text.split("\n\n").filter(Boolean);
+  const className = ["verse", isSelected && "verse--on", isSpeaking && "verse--speaking"].filter(Boolean).join(" ");
+  // 본문 아무 데나 탭하면 시트가 열린다. 드래그로 글자를 고르는 중이면 열지 않는다(복사 방해 금지).
+  function handleBodyClick() {
+    if (window.getSelection()?.toString()) return;
+    onSelect();
+  }
   return (
-    <p className={isSelected ? "verse verse--on" : "verse"} id={`verse-${chunk.chunk_index}`}>
+    // 키보드·스크린리더는 번호 버튼으로 연다 — 단락 클릭은 포인터 보조 경로다.
+    // biome-ignore lint/a11y/useKeyWithClickEvents: 같은 동작의 버튼(.verse__n)이 단락 안에 있다
+    <p className={className} id={`verse-${chunk.chunk_index}`} onClick={handleBodyClick}>
       {/* 본문 전체를 버튼으로 만들면 긴 인용문이 링크 이름이 된다(DES §2.2) — 번호만 조작 대상이다 */}
-      <button type="button" className="verse__n" aria-label={`단락 ${chunk.chunk_index} 표시하기`} onClick={onSelect}>
-        {chunk.chunk_index}
+      <button
+        type="button"
+        className="verse__n"
+        aria-label={`단락 ${number} 표시하기`}
+        onClick={(event) => {
+          event.stopPropagation();
+          onSelect();
+        }}
+      >
+        {number}
         {isBookmarked && <Bookmark size={12} aria-hidden="true" />}
       </button>
       <span className="verse__tx">
-        {highlight?.color ? <mark className={`hl-${highlight.color}`}>{chunk.text}</mark> : chunk.text}
+        {paragraphs.map((paragraph, index) => (
+          // 문단은 순서가 곧 정체성이다(서버 정리 결과가 바뀌면 청크 key 가 다시 그린다).
+          // biome-ignore lint/suspicious/noArrayIndexKey: 문단 목록은 재정렬되지 않는다
+          <span key={index} className="verse__para">
+            {highlight?.color ? <mark className={`hl-${highlight.color}`}>{paragraph}</mark> : paragraph}
+          </span>
+        ))}
       </span>
     </p>
   );
@@ -181,6 +211,21 @@ export function WordsScreen({
     target?.scrollIntoView?.({ block: "start" });
   }, [scrollTarget, lastPage]);
 
+  // 듣기: 단락(청크)마다 표시 텍스트를 읽는다. 구간이 바뀌면 멈추고 처음 상태로 돌아간다.
+  const docChunks = doc?.chunks;
+  const speechParagraphs = useMemo(
+    () => (docChunks ?? []).map((chunk) => ({ id: chunk.chunk_id, text: chunk.display_text })),
+    [docChunks],
+  );
+  const reader = useSpeechReader(speechParagraphs, `${volume}|${lastPage ?? ""}`);
+  const isReading = reader.status === "playing" || reader.status === "paused";
+  const speakingIndex = isReading ? (docChunks?.[reader.currentIndex]?.chunk_index ?? null) : null;
+  useEffect(() => {
+    if (speakingIndex === null) return;
+    // 읽는 단락을 화면 가운데로 따라간다. jsdom 에는 scrollIntoView 가 없다.
+    document.getElementById(`verse-${speakingIndex}`)?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+  }, [speakingIndex]);
+
   if (query.isPending)
     return (
       <section className="col col--read">
@@ -225,8 +270,6 @@ export function WordsScreen({
   const markOf = (chunk: string, kind: MarkItem["kind"]) =>
     marks.find((mark) => mark.chunk_id === chunk && mark.kind === kind);
   const noteMarks = marks.filter((mark) => mark.kind === "highlight" && mark.note);
-  const firstIndex = doc.chunks[0]?.chunk_index;
-  const lastIndex = doc.chunks[doc.chunks.length - 1]?.chunk_index;
   const currentPath = `${wordsHref(volume)}?page=${doc.page}`;
 
   function openPassage(chunkKey: string) {
@@ -240,7 +283,7 @@ export function WordsScreen({
       return;
     }
     if (!selectedChunkId) {
-      setHint("먼저 본문에서 단락 번호를 눌러 단락을 골라 주세요.");
+      setHint("먼저 본문에서 단락을 눌러 골라 주세요.");
       return;
     }
     setHint(null);
@@ -263,25 +306,15 @@ export function WordsScreen({
         {/* 저작물 제목은 앱바 h1 이 이미 보여준다(screens.ts titleSource: "work") */}
         <div className="masthead">
           {currentSection && <span className="masthead__nm">{currentSection.title}</span>}
-          {firstIndex !== undefined && lastIndex !== undefined && (
-            <span className="masthead__dt">
-              단락 {firstIndex}–{lastIndex}
-            </span>
-          )}
+          <span className="masthead__dt">
+            {doc.page} / {doc.total_pages} 구간
+          </span>
         </div>
         <div className="src lede-src">
-          {doc.volume !== doc.work_title && <span>{doc.volume}</span>}
-          {/* 장 데이터가 날짜·장소를 가진 권만 실제 값을 쓴다. 없으면 지어내지 않고 결측으로 적는다 */}
-          {sectionDetail?.spoken_on ? (
-            <span>{sectionDetail.spoken_on}</span>
-          ) : (
-            <>
-              <span>화자 확인되지 않음</span>
-              <span>날짜 확인되지 않음</span>
-            </>
-          )}
+          {/* 장 데이터가 날짜·장소를 가진 권만 실제 값을 보인다. 없는 값은 지어내지도, 결측 문구로 채우지도 않는다
+              (PLAN-HD-008). 파일 이름(volume 키)은 사람에게 의미가 없어 보이지 않는다 */}
+          {sectionDetail?.spoken_on && <span>{sectionDetail.spoken_on}</span>}
           {sectionDetail?.place && <span>{sectionDetail.place}</span>}
-          <span>판본 확인되지 않음</span>
           {doc.authority_grade === "R" ? (
             <span className="badge badge--dashed">공식성 확인되지 않음</span>
           ) : (
@@ -306,6 +339,12 @@ export function WordsScreen({
             </button>
           ))}
         </div>
+        <TtsBar
+          reader={reader}
+          title={`듣기 · ${doc.page}구간`}
+          total={doc.chunks.length}
+          nextHref={doc.page < doc.total_pages ? wordsPageHref(volume, doc.page + 1) : null}
+        />
         {hint && (
           <p className="notice" role="status">
             {hint}
@@ -328,6 +367,7 @@ export function WordsScreen({
                     highlight={markOf(chunk.chunk_id, "highlight")}
                     isBookmarked={Boolean(markOf(chunk.chunk_id, "bookmark"))}
                     isSelected={chunk.chunk_id === selectedChunkId}
+                    isSpeaking={chunk.chunk_index === speakingIndex}
                     onSelect={() => openPassage(chunk.chunk_id)}
                   />
                 ))}
@@ -338,9 +378,7 @@ export function WordsScreen({
                     이전 구간
                   </Link>
                 )}
-                <span>
-                  {doc.page} / {doc.total_pages} 구간
-                </span>
+                {/* 현재 구간 번호는 머리글(.masthead__dt)이 보인다 — 여기서는 이동만 한다 */}
                 {doc.page < doc.total_pages && (
                   <Link className="btn btn-line btn--sm" href={wordsPageHref(volume, doc.page + 1)}>
                     다음 구간
@@ -370,14 +408,14 @@ export function WordsScreen({
                     <NotebookPen size={26} aria-hidden="true" />
                   </span>
                   <p className="empty__title">이 권에 남긴 노트가 아직 없어요</p>
-                  <p className="empty__body">본문에서 단락 번호를 누르면 형광펜과 함께 메모를 남길 수 있어요.</p>
+                  <p className="empty__body">본문에서 단락을 누르면 형광펜과 함께 메모를 남길 수 있어요.</p>
                 </div>
               ) : (
                 <ul className="rd-notes">
                   {noteMarks.map((mark) => (
                     <li key={mark.chunk_id}>
                       <Link href={wordsHref(volume, mark.chunk_id)}>
-                        <span className="rd-notes__n">단락 {mark.chunk_index}</span>
+                        <span className="rd-notes__n">단락 {verseNumber(mark.chunk_index)}</span>
                         <span className="rd-notes__tx">{mark.note}</span>
                       </Link>
                     </li>

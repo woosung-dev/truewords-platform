@@ -129,7 +129,7 @@ export function SearchScreen() {
                         <AuthorityBadge grade={result.authority_grade} />
                       )}
                     </span>
-                    <span className="sr-snippet">{result.text}</span>
+                    <span className="sr-snippet">{result.display_text}</span>
                     <span className="sr-src">화자·판본 확인되지 않음</span>
                   </>
                 );

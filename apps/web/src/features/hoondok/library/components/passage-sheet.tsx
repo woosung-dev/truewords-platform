@@ -8,6 +8,7 @@ import { Bookmark, BookmarkCheck } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { onboardingHref } from "@/features/identity/gate";
+import { verseNumber } from "../api";
 import type { useMarkWriter } from "../use-reading";
 import { ReaderSheet } from "./reader-sheet";
 
@@ -37,7 +38,7 @@ export function PassageSheet({
   onClose: () => void;
 }) {
   const [note, setNote] = useState(highlight?.note ?? "");
-  const title = `단락 ${chunk.chunk_index}`;
+  const title = `단락 ${verseNumber(chunk.chunk_index)}`;
 
   if (!isLoggedIn) {
     return (
@@ -94,7 +95,7 @@ export function PassageSheet({
 
   return (
     <ReaderSheet title={title} onClose={onClose}>
-      <p className="js-lede rd-sheet__quote">{chunk.text}</p>
+      <p className="js-lede rd-sheet__quote">{chunk.display_text}</p>
       <div className="rd-sheet__row">
         <span className="rd-sheet__lab" id="rd-hl-label">
           형광펜

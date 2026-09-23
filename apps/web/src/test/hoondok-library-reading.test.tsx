@@ -1,7 +1,7 @@
 // PLAN-HD-007 말씀 서고 3계층·읽기 기록. 기존 hoondok-library.test.tsx 가 검증한 평면 목록·검색은 그대로 두고
 // 여기서는 저작물 → 권 → 장, 단락 표시, AI 설명, 이어 읽기 병합만 본다.
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ApiError } from "@truewords/api-client-ts";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -102,8 +102,8 @@ const WORDS = {
   total_pages: 2,
   section: { position: 2, level: 2, title: "1장 이웃을 듣는 마음" },
   chunks: [
-    { chunk_id: "c0", chunk_index: 0, text: "첫째 단락의 본문" },
-    { chunk_id: "c1", chunk_index: 1, text: "둘째 단락의 본문" },
+    { chunk_id: "c0", chunk_index: 0, text: "첫째 단락의 본문", display_text: "첫째 단락의 본문" },
+    { chunk_id: "c1", chunk_index: 1, text: "둘째 단락의 본문", display_text: "둘째 단락의 본문" },
   ],
   body: "첫째 단락의 본문",
 };
@@ -277,14 +277,27 @@ describe("원문 목차·단락", () => {
     expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById("verse-1"));
     delete (Element.prototype as Partial<Element>).scrollIntoView;
   });
-  it("단락 번호와 장 제목·단락 범위를 보인다", async () => {
+  it("단락 번호(1부터)와 장 제목·구간 번호를 보인다", async () => {
     await showWords();
     expect(await screen.findByText("1장 이웃을 듣는 마음", { selector: ".masthead__nm" })).toBeInTheDocument();
-    expect(screen.getByText("단락 0–1")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "단락 1 표시하기" })).toBeInTheDocument();
-    // 장이 날짜·장소를 가지면 결측 문구 대신 실제 값을 쓴다
+    expect(screen.getByText("1 / 2 구간")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "단락 2 표시하기" })).toBeInTheDocument();
+    // 장이 날짜·장소를 가지면 실제 값을 쓴다
     expect(screen.getByText("1956년 4월 8일")).toBeInTheDocument();
+    expect(screen.getByText("전 본부교회")).toBeInTheDocument();
     expect(screen.queryByText("날짜 확인되지 않음")).toBeNull();
+  });
+  it("머리글에 파일 이름·결측 문구를 보이지 않는다", async () => {
+    vi.mocked(libraryAPI.sections).mockResolvedValue({ volume: VOLUME, sections: [] });
+    vi.mocked(libraryAPI.words).mockResolvedValue({ ...WORDS, section: null });
+    const view = await showWords();
+    await screen.findByText("첫째 단락의 본문");
+    const source = view.container.querySelector(".lede-src");
+    expect(source).not.toBeNull();
+    expect(source).not.toHaveTextContent(VOLUME);
+    expect(source).not.toHaveTextContent("확인되지 않음");
+    // 권위 배지는 그대로 남는다
+    expect(source?.children.length).toBe(1);
   });
   it("형광펜·북마크 표시를 본문에 반영한다", async () => {
     loggedIn();
@@ -317,7 +330,7 @@ describe("원문 목차·단락", () => {
     const view = await showWords();
     await waitFor(() => expect(view.container.querySelector("mark.hl-2")).toHaveTextContent("첫째 단락의 본문"));
     expect(view.container.querySelectorAll("mark")).toHaveLength(1);
-    expect(screen.getByRole("button", { name: "단락 1 표시하기" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "단락 2 표시하기" }).querySelector("svg")).not.toBeNull();
   });
 });
 
@@ -335,15 +348,15 @@ const HIGHLIGHT_MARK = {
 
 describe("단락 시트", () => {
   /** 단락 번호를 눌러 시트를 연다. 리더 바에도 같은 이름의 버튼이 있어 조회는 시트 안으로 좁힌다. */
-  async function openSheet(chunkIndex: number) {
-    fireEvent.click(await screen.findByRole("button", { name: `단락 ${chunkIndex} 표시하기` }));
+  async function openSheet(verseNo: number) {
+    fireEvent.click(await screen.findByRole("button", { name: `단락 ${verseNo} 표시하기` }));
     return within(await screen.findByRole("dialog"));
   }
 
   it("형광펜 색을 고르면 PUT, 같은 색을 다시 누르면 DELETE 한다", async () => {
     loggedIn();
     await showWords();
-    const sheet = await openSheet(0);
+    const sheet = await openSheet(1);
     // 저장 성공이 표시 목록을 무효화하므로 다음 조회 결과를 먼저 바꿔 둔다
     vi.mocked(libraryAPI.marks).mockResolvedValue({ items: [HIGHLIGHT_MARK] });
     fireEvent.click(sheet.getByRole("button", { name: "연두 형광펜" }));
@@ -365,7 +378,7 @@ describe("단락 시트", () => {
   it("북마크는 토글이고 노트는 형광펜에 저장된다", async () => {
     loggedIn();
     await showWords();
-    const sheet = await openSheet(0);
+    const sheet = await openSheet(1);
     fireEvent.click(sheet.getByRole("button", { name: "북마크" }));
     await waitFor(() =>
       expect(libraryAPI.saveMark).toHaveBeenCalledWith("c0", {
@@ -388,9 +401,36 @@ describe("단락 시트", () => {
       }),
     );
   });
+  it("단락 본문 아무 데나 눌러도 시트가 열린다", async () => {
+    await showWords();
+    fireEvent.click(await screen.findByText("둘째 단락의 본문"));
+    const sheet = within(await screen.findByRole("dialog"));
+    expect(sheet.getByText("단락 2")).toBeInTheDocument();
+  });
+  it("글자를 드래그로 고르는 중이면 본문을 눌러도 시트를 열지 않는다", async () => {
+    await showWords();
+    const text = await screen.findByText("첫째 단락의 본문");
+    const selection = vi.spyOn(window, "getSelection").mockReturnValue({ toString: () => "첫째" } as Selection);
+    fireEvent.click(text);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    selection.mockRestore();
+  });
+  it("본문은 서버 표시 텍스트를 문단으로 나눠 그리고 형광펜은 문단마다 감싼다", async () => {
+    loggedIn();
+    vi.mocked(libraryAPI.words).mockResolvedValue({
+      ...WORDS,
+      chunks: [{ chunk_id: "c0", chunk_index: 0, text: "원본\n줄바꿈", display_text: "첫 문단\n\n둘째 문단" }],
+    });
+    vi.mocked(libraryAPI.marks).mockResolvedValue({ items: [HIGHLIGHT_MARK] });
+    const view = await showWords();
+    await waitFor(() => expect(view.container.querySelectorAll("mark.hl-2")).toHaveLength(2));
+    const paragraphs = [...view.container.querySelectorAll(".verse__para")].map((node) => node.textContent);
+    expect(paragraphs).toEqual(["첫 문단", "둘째 문단"]);
+    expect(screen.queryByText(/원본/)).toBeNull();
+  });
   it("비로그인은 안내만 보이고 어떤 기록도 보내지 않는다", async () => {
     await showWords();
-    const sheet = await openSheet(0);
+    const sheet = await openSheet(1);
     expect(sheet.getByText("로그인하면 기록이 남아요")).toBeInTheDocument();
     expect(sheet.queryByRole("button", { name: "노랑 형광펜" })).toBeNull();
     expect(libraryAPI.saveMark).not.toHaveBeenCalled();
@@ -407,7 +447,7 @@ describe("AI 설명 탭", () => {
       disclaimer: "",
     });
     await showWords();
-    fireEvent.click(await screen.findByRole("button", { name: "단락 1 표시하기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "단락 2 표시하기" }));
     fireEvent.click(screen.getByRole("button", { name: "닫기" }));
     fireEvent.click(screen.getByRole("tab", { name: "AI 설명" }));
     fireEvent.click(screen.getByRole("button", { name: "이 단락 설명 요청" }));
@@ -422,7 +462,7 @@ describe("AI 설명 탭", () => {
       disclaimer: "",
     });
     await showWords();
-    fireEvent.click(await screen.findByRole("button", { name: "단락 1 표시하기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "단락 2 표시하기" }));
     fireEvent.click(screen.getByRole("button", { name: "닫기" }));
     fireEvent.click(screen.getByRole("tab", { name: "AI 설명" }));
     fireEvent.click(screen.getByRole("button", { name: "이 단락 설명 요청" }));
@@ -433,12 +473,59 @@ describe("AI 설명 탭", () => {
   it("근거가 0건이면 답을 보이지 않는다", async () => {
     vi.mocked(requestAsk).mockResolvedValue({ answer: "보이면 안 되는 답", sources: [], disclaimer: "" });
     await showWords();
-    fireEvent.click(await screen.findByRole("button", { name: "단락 0 표시하기" }));
+    fireEvent.click(await screen.findByRole("button", { name: "단락 1 표시하기" }));
     fireEvent.click(screen.getByRole("button", { name: "닫기" }));
     fireEvent.click(screen.getByRole("tab", { name: "AI 설명" }));
     fireEvent.click(screen.getByRole("button", { name: "이 단락 설명 요청" }));
     await waitFor(() => expect(screen.getByText(/근거 말씀을 찾지 못했어요/)).toBeInTheDocument());
     expect(screen.queryByText("보이면 안 되는 답")).toBeNull();
+  });
+});
+
+describe("듣기 바", () => {
+  it("음성 합성이 없는 브라우저는 한 줄 안내만 보인다", async () => {
+    await showWords();
+    expect(await screen.findByText("이 브라우저는 소리 내어 읽기를 지원하지 않아요.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "듣기 시작" })).toBeNull();
+  });
+  it("읽는 단락을 표시하고 구간 끝에서 다음 구간 링크만 보인다(자동 이동 없음)", async () => {
+    const spoken: { onend: (() => void) | null }[] = [];
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        speak: (utterance: { onend: (() => void) | null }) => spoken.push(utterance),
+        cancel: vi.fn(),
+        pause: vi.fn(),
+        resume: vi.fn(),
+        getVoices: () => [{ lang: "ko-KR", name: "유나" }],
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
+    });
+    Object.defineProperty(window, "SpeechSynthesisUtterance", {
+      configurable: true,
+      value: class {
+        onend: (() => void) | null = null;
+        constructor(readonly text: string) {}
+      },
+    });
+    try {
+      const view = await showWords();
+      fireEvent.click(await screen.findByRole("button", { name: "듣기 시작" }));
+      await waitFor(() => expect(document.getElementById("verse-0")).toHaveClass("verse--speaking"));
+      expect(screen.getByText("단락 1 / 2")).toBeInTheDocument();
+      act(() => spoken[0].onend?.());
+      await waitFor(() => expect(document.getElementById("verse-1")).toHaveClass("verse--speaking"));
+      act(() => spoken[1].onend?.());
+      expect(await screen.findByRole("link", { name: "다음 구간 이어 듣기" })).toHaveAttribute(
+        "href",
+        `${wordsHref(VOLUME)}?page=2`,
+      );
+      expect(view.container.querySelector(".verse--speaking")).toBeNull();
+    } finally {
+      Reflect.deleteProperty(window, "speechSynthesis");
+      Reflect.deleteProperty(window, "SpeechSynthesisUtterance");
+    }
   });
 });
 
@@ -473,7 +560,7 @@ describe("이어 읽기", () => {
     });
     show(LibraryPage());
     expect(await screen.findByRole("heading", { name: "이어 읽기" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /단락 42까지 읽었어요/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /단락 43까지 읽었어요/ })).toHaveAttribute(
       "href",
       `${wordsHref(VOLUME)}?page=3`,
     );
@@ -509,7 +596,7 @@ describe("이어 읽기", () => {
     });
     show(LibraryPage());
     expect(await screen.findByRole("heading", { name: "북마크" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /단락 0$/ })).toHaveAttribute("href", wordsHref(VOLUME, "b0"));
-    expect(screen.queryByRole("link", { name: /단락 5$/ })).toBeNull();
+    expect(screen.getByRole("link", { name: /단락 1$/ })).toHaveAttribute("href", wordsHref(VOLUME, "b0"));
+    expect(screen.queryByRole("link", { name: /단락 6$/ })).toBeNull();
   });
 });

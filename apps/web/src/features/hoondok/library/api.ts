@@ -80,3 +80,7 @@ export function seriesHref(series: string): string {
 export function pageOfChunkIndex(chunkIndex: number): number {
   return Math.floor(chunkIndex / WORDS_PAGE_SIZE) + 1;
 }
+/** 사람에게 보이는 단락 번호(1부터). 저장·API 키는 0부터인 chunk_index 그대로다(PLAN-HD-008). */
+export function verseNumber(chunkIndex: number): number {
+  return chunkIndex + 1;
+}

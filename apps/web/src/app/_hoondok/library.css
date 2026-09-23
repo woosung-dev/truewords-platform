@@ -700,3 +700,93 @@
     }
   }
 }
+
+/* ---------- PLAN-HD-008 원문 읽기 다듬기 : 문단 · 본문 탭 선택 · 듣기(브라우저 음성) ---------- */
+/* 오디오 바는 DES §3(오디오 바 행)의 --ink 배경 + 흰 글자 · 반지름 --r 이다. 재생 버튼은 터치 타깃 44px 로 키웠다.
+   진행 트랙·보조 글자의 흰 투명도는 hex 없이 color-mix 로 만든다(토큰 블록 밖 hex 금지). */
+[data-app="hoondok"] {
+  /* 단락 아무 데나 누르면 단락 시트가 열린다 — 누를 수 있다는 표시 */
+  .verse {
+    cursor: pointer;
+  }
+  /* 서버 display_text 의 문단("\n\n") 하나 */
+  .verse__para {
+    display: block;
+  }
+  .verse__para + .verse__para {
+    margin-top: 0.7em;
+  }
+  /* 지금 소리 내어 읽는 단락 — 선택(.verse--on, 강조색 선)과 구분되게 은은한 바탕 + 회색 선 */
+  .verse--speaking .verse__tx {
+    background: var(--surface-2);
+    box-shadow: inset 3px 0 0 var(--ink-3);
+    border-radius: var(--r-xs);
+    padding-left: 10px;
+  }
+  .rd-sheet__quote,
+  .rd-ai__quote {
+    white-space: pre-line;
+  }
+
+  .audio {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: var(--r);
+    background: var(--ink);
+    color: var(--surface);
+  }
+  .audio__play {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--ink);
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  .audio__bd {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .audio__bd b {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .audio__bd .progress {
+    height: 4px;
+    background: color-mix(in srgb, var(--surface) 25%, transparent);
+  }
+  .audio__t {
+    font-size: 12.5px;
+    color: color-mix(in srgb, var(--surface) 80%, transparent);
+    font-variant-numeric: tabular-nums;
+    flex: none;
+  }
+  .audio__rate {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 8px;
+    border-radius: var(--r-full);
+    border: 1px solid color-mix(in srgb, var(--surface) 40%, transparent);
+    color: var(--surface);
+    font-size: 12.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    flex: none;
+  }
+  .audio button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .tts-note,
+  .tts-next {
+    margin-top: 8px;
+  }
+}
