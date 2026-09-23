@@ -7,8 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // 함께 읽는 모임 W0 기반 (PLAN-HD-010 §9 Vitest W0): API 경로·메서드·CSRF, 오류 매핑, 초대 코드·링크·공유 폴백,
 // 훈독 완료 → 모임 캐시 무효화, 가입 폼 초대 코드 미리 채움. 모임 API 는 fetch 만 바꿔 실제 경로로 검증한다.
 let returnToParam: string | null = null;
+const routerReplace = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: routerReplace, prefetch: vi.fn() }),
   usePathname: () => "/hoondok/read",
   useSearchParams: () => ({ get: (key: string) => (key === "returnTo" ? returnToParam : null) }),
 }));
@@ -26,17 +27,19 @@ import { GROUPS_KEY, groupKey, groupMembersKey, MY_GROUPS_KEY, PROGRESS_KEYS } f
 import { screenFor } from "@/features/hoondok/screens";
 import { activeTabId } from "@/features/hoondok/tabs";
 import { groupErrorOf, groupsAPI, isGroupError } from "@/features/hoondok/together/groups-api";
+import { withObjectParticle } from "@/features/hoondok/together/josa";
 import {
+  extractInviteCode,
   formatInviteCode,
   inviteLink,
   isValidInviteCode,
   normalizeInviteCode,
   shareInvite,
 } from "@/features/hoondok/together/invite-code";
-import { useInvitePreview, useToggleReaction } from "@/features/hoondok/together/use-groups";
+import { useGroup, useInvitePreview, useToggleReaction } from "@/features/hoondok/together/use-groups";
 import { useCompleteMission } from "@/features/hoondok/use-missions";
 import { identityAPI } from "@/features/identity/api";
-import { inviteCodeFromReturnTo } from "@/features/identity/gate";
+import { carryInviteCode, inviteCodeFromReturnTo } from "@/features/identity/gate";
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -75,6 +78,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe("groupsAPI 경로·메서드·CSRF (API-HD-030~041)", () => {
@@ -363,5 +367,128 @@ describe("가입 폼 초대 코드 미리 채움 (D4)", () => {
     render(<QueryClientProvider client={makeClient()}>{<OnboardingPage />}</QueryClientProvider>);
     await screen.findByRole("form", { name: "가입" });
     expect(screen.getByLabelText(/초대 코드/)).toHaveValue("");
+  });
+});
+
+describe("붙여 넣은 글에서 초대 코드 찾기 (QA P2-10)", () => {
+  it.each([
+    ["WMDM-5QH5", "WMDM-5QH5"],
+    [" wmdm 5qh5 ", "WMDM-5QH5"],
+    ["초대 코드: WMDM-5QH5", "WMDM-5QH5"],
+    ["[목요 말씀 모임] 초대 코드: wmdm–5qh5 (7일 동안 쓸 수 있어요)", "WMDM-5QH5"], // en-dash
+    ["코드 WMDM—5QH5", "WMDM-5QH5"], // em-dash
+    ["목요 말씀 모임\nhttp://127.0.0.1:3160/hoondok/groups/join?code=WMDM-5QH5", "WMDM-5QH5"],
+    ["https://truewords.woosung.dev/hoondok/groups/join?code=wmdm-5qh5&x=1", "WMDM-5QH5"],
+    ["https://truewords.woosung.dev/hoondok/groups/join?code=WMDM%2D5QH5", "WMDM-5QH5"],
+  ])("%j → %s", (text, code) => {
+    expect(extractInviteCode(text)).toBe(code);
+  });
+
+  it.each(["QA-BETA-2026", "새벽-2026", "abcd", "WMDM-5QH5X", "", "초대합니다"])("%j 는 코드가 아니다", (text) => {
+    expect(extractInviteCode(text)).toBeNull();
+  });
+
+  it("en-dash 도 정규화에서 지운다", () => {
+    expect(normalizeInviteCode("WMDM–5QH5")).toBe("WMDM5QH5");
+  });
+});
+
+describe("목적격 조사 을/를 (QA P2-5)", () => {
+  it.each([
+    ["목요 말씀 모임", "목요 말씀 모임을"],
+    ["새벽 소모임", "새벽 소모임을"],
+    ["청년회", "청년회를"],
+    ["Morning", "Morning을(를)"],
+    ["모임 3", "모임 3을(를)"],
+  ])("%s → %s", (name, expected) => {
+    expect(withObjectParticle(name)).toBe(expected);
+  });
+});
+
+describe("가입 칸 초대 코드 (QA P2-1 · P2-10 · P2-11)", () => {
+  async function fillSignup() {
+    await screen.findByRole("form", { name: "가입" });
+    fireEvent.change(screen.getByLabelText(/이름/), { target: { value: "효진" } });
+    fireEvent.change(screen.getByLabelText(/이메일/), { target: { value: "new@example.com" } });
+    fireEvent.change(screen.getByLabelText(/비밀번호/), { target: { value: "password1" } });
+  }
+
+  it("carryInviteCode — 코드 없는 참여 화면으로 돌아갈 때만 모임 코드를 붙인다", () => {
+    expect(carryInviteCode("/hoondok/groups/join", "wmdm 5qh5")).toBe("/hoondok/groups/join?code=WMDM-5QH5");
+    expect(carryInviteCode("/hoondok/groups/join?code=ABCD-2345", "WMDM-5QH5")).toBe(
+      "/hoondok/groups/join?code=ABCD-2345",
+    );
+    expect(carryInviteCode("/hoondok/groups/join", "QA-BETA-2026")).toBe("/hoondok/groups/join");
+    expect(carryInviteCode("/hoondok", "WMDM-5QH5")).toBe("/hoondok");
+    expect(carryInviteCode("/hoondok/read", "")).toBe("/hoondok/read");
+  });
+
+  it("홈 '초대 코드로 참여' 에서 온 가입은 넣은 모임 코드를 참여 화면으로 넘긴다", async () => {
+    returnToParam = "/hoondok/groups/join";
+    vi.mocked(identityAPI.signup).mockResolvedValueOnce({ user: { id: "u1", email: "a@b.c", display_name: "효진" } });
+    render(<QueryClientProvider client={makeClient()}>{<OnboardingPage />}</QueryClientProvider>);
+    await fillSignup();
+    fireEvent.change(screen.getByLabelText(/초대 코드/), { target: { value: "xtfw yht0" } });
+    fireEvent.submit(screen.getByRole("form"));
+    await waitFor(() => expect(routerReplace).toHaveBeenCalledWith("/hoondok/groups/join?code=XTFW-YHT0"));
+  });
+
+  it("카톡 메시지·링크를 붙여 넣으면 코드만 남고, 코드가 안 보이는 글(베타 코드)은 그대로 붙는다", async () => {
+    render(<QueryClientProvider client={makeClient()}>{<OnboardingPage />}</QueryClientProvider>);
+    await screen.findByRole("form", { name: "가입" });
+    const input = screen.getByLabelText(/초대 코드/);
+    fireEvent.paste(input, { clipboardData: { getData: () => "초대 코드: WMDM-5QH5" } });
+    expect(input).toHaveValue("WMDM-5QH5");
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.paste(input, {
+      clipboardData: { getData: () => "https://truewords.woosung.dev/hoondok/groups/join?code=wmdm-5qh5" },
+    });
+    expect(input).toHaveValue("WMDM-5QH5");
+    fireEvent.change(input, { target: { value: "" } });
+    // 코드가 없으면 기본 붙여넣기에 맡긴다(preventDefault 하지 않음)
+    const event = new Event("paste", { bubbles: true, cancelable: true });
+    Object.assign(event, { clipboardData: { getData: () => "QA-BETA-2026" } });
+    input.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it("코드를 넣었는데 거절되면 '맞지 않거나 만료됐어요', 비어 있으면 '필요해요'", async () => {
+    vi.mocked(identityAPI.signup).mockRejectedValue(new ApiError(403, { error_code: "INVITE_REQUIRED", message: "x" }));
+    render(<QueryClientProvider client={makeClient()}>{<OnboardingPage />}</QueryClientProvider>);
+    await fillSignup();
+    fireEvent.change(screen.getByLabelText(/초대 코드/), { target: { value: "ZZZZ-ZZZZ" } });
+    fireEvent.submit(screen.getByRole("form"));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "초대 코드가 맞지 않거나 만료됐어요. 다시 확인해 주세요",
+    );
+    fireEvent.change(screen.getByLabelText(/초대 코드/), { target: { value: "  " } });
+    fireEvent.submit(screen.getByRole("form"));
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("초대 코드가 필요해요. 초대받은 코드를 확인해 주세요"),
+    );
+  });
+});
+
+describe("열어 둔 모임 화면의 KST 자정 갱신 (QA P2-6)", () => {
+  it("자정이 지나면 상세를 다시 읽고, 언마운트 뒤에는 타이머가 남지 않는다", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-23T14:59:59.000Z")); // KST 23:59:59
+    fetchMock.mockImplementation(async () => json({ id: "g", shares: [] }));
+    const client = makeClient();
+    const { unmount } = renderHook(() => useGroup("g"), { wrapper: wrapWith(client) });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000); // KST 00:00 을 넘긴다
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(lastCall().url).toBe("/api/backend/hoondok/groups/g");
+    unmount();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(86_400_000);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

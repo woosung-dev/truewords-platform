@@ -51,7 +51,8 @@ describe("TogetherCard (홈)", () => {
   it("기준 미만이면 숫자 없이 대체 문구를 쓴다", async () => {
     respond(hidden);
     render(wrap(<TogetherCard />));
-    expect(await screen.findByText("오늘도 식구들과 함께 읽었어요")).toBeInTheDocument();
+    // 아직 아무도 안 읽었을 수 있어 현재형이다 (완료 뒤 안내만 과거형)
+    expect(await screen.findByText("오늘도 식구들과 함께 읽어요")).toBeInTheDocument();
     expect(screen.queryByText(/\d+명/)).toBeNull();
   });
 

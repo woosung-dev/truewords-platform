@@ -139,7 +139,7 @@ test("홈 함께 읽는 사람들: 익명 카드 1장 · 기준 미만이면 숫
     await expect(card).toContainText(`오늘 함께 읽은 식구 ${together.count.toLocaleString("ko-KR")}명`);
   } else {
     expect(together.count).toBeNull();
-    await expect(card).toContainText("오늘도 식구들과 함께 읽었어요");
+    await expect(card).toContainText("오늘도 식구들과 함께 읽어요");
     await expect(card).not.toContainText(/\d+명/);
   }
 });

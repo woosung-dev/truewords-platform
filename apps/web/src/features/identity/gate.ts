@@ -3,7 +3,7 @@
 import { ApiError } from "@truewords/api-client-ts";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback } from "react";
-import { formatInviteCode, JOIN_PATH } from "@/features/hoondok/together/invite-code";
+import { extractInviteCode, formatInviteCode, JOIN_PATH } from "@/features/hoondok/together/invite-code";
 import { useCurrentUser } from "./use-current-user";
 
 const ONBOARDING = "/hoondok/onboarding";
@@ -24,6 +24,20 @@ export function inviteCodeFromReturnTo(returnTo: string): string {
   if (path.replace(/\/$/, "") !== JOIN_PATH) return "";
   const code = new URLSearchParams(query).get("code");
   return code ? formatInviteCode(code).slice(0, 64) : "";
+}
+
+/**
+ * 가입 칸에 넣은 모임 코드를 참여 화면으로 넘긴다 (QA P2-11). returnTo 가 코드 없는 참여 화면일 때만
+ * `?code=` 를 붙인다 — 베타 코드인지 모임 코드인지는 클라이언트가 모르므로 모양(8자)만 본다. 그 외에는 그대로.
+ */
+export function carryInviteCode(returnTo: string, typed: string): string {
+  const [path, query = ""] = returnTo.split("?", 2);
+  if (path.replace(/\/$/, "") !== JOIN_PATH) return returnTo;
+  const params = new URLSearchParams(query);
+  const code = extractInviteCode(typed);
+  if (params.get("code") || !code) return returnTo;
+  params.set("code", code);
+  return `${JOIN_PATH}?${params.toString()}`;
 }
 
 export function onboardingHref(returnTo?: string | null): string {

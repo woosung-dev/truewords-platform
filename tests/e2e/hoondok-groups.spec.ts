@@ -76,7 +76,8 @@ test("두 계정 모임 왕복: 만들기 → 참여 → 한 줄 → 완료자�
     await b.page.getByRole("button", { name: "한 줄 남기기" }).click();
     await expect(b.page).toHaveURL(new RegExp(`${groupPath}$`));
     await expect(b.page.getByText("오늘 말씀에 오래 머물렀어요.")).toBeVisible();
-    await expect(b.page.getByText("0명이 함께 머물렀어요 · 나에게만 보여요")).toBeVisible();
+    // 반응이 아직 없으면 수를 보이지 않는다 (QA P2-2)
+    await expect(b.page.getByText(/명이 함께 머물렀어요/)).toHaveCount(0);
     await expectNoHorizontalOverflow(b.page);
 
     // ---- A: 상세에는 완료자 B 만(A 는 안 읽었으므로 없다), 인원 수 없음 ----
@@ -105,7 +106,7 @@ test("두 계정 모임 왕복: 만들기 → 참여 → 한 줄 → 완료자�
     await expect(a.page.getByText("식구 2명")).toBeVisible();
     await expectNoHorizontalOverflow(a.page);
     await expect(a.page.getByRole("button", { name: "나가기" })).toBeDisabled();
-    await a.page.getByRole("button", { name: "내보내기", expanded: false }).click();
+    await a.page.getByRole("button", { name: "식구비 내보내기", expanded: false }).click();
     const confirm = a.page.getByRole("group", { name: "식구비 님 내보내기 확인" });
     await confirm.getByRole("button", { name: "내보내기" }).click();
     await expect(a.page.getByText("식구 1명")).toBeVisible();

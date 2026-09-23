@@ -10,6 +10,7 @@ import { type FormEvent, type ReactNode, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { type GroupDetail, groupErrorOf, type MemberList } from "../groups-api";
+import { withObjectParticle } from "../josa";
 import {
   useDeleteGroup,
   useGroup,
@@ -157,6 +158,7 @@ function MemberSection({ detail, members }: { detail: GroupDetail; members: Memb
               {!isMe && (
                 <InlineConfirm
                   openLabel="내보내기"
+                  openAriaLabel={`${member.display_name} 내보내기`}
                   label={`${member.display_name} 님 내보내기 확인`}
                   message={`${member.display_name} 님을 내보낼까요? ${member.display_name} 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.`}
                   confirmLabel="내보내기"
@@ -252,8 +254,8 @@ function DangerSection({ detail, memberCount }: { detail: GroupDetail; memberCou
               label="모임 나가기 확인"
               message={
                 isLeader
-                  ? `${detail.name}을(를) 나갈까요? 다른 식구가 없어 모임이 함께 삭제돼요. 내 훈독 기록은 그대로 남아요.`
-                  : `${detail.name}을(를) 나갈까요? 나가면 내 한 줄도 함께 지워져요. 다시 들어오려면 초대 코드가 필요해요. 내 훈독 기록은 그대로 남아요.`
+                  ? `${withObjectParticle(detail.name)} 나갈까요? 다른 식구가 없어 모임이 함께 삭제돼요. 내 훈독 기록은 그대로 남아요.`
+                  : `${withObjectParticle(detail.name)} 나갈까요? 나가면 내 한 줄도 함께 지워져요. 다시 들어오려면 초대 코드가 필요해요. 내 훈독 기록은 그대로 남아요.`
               }
               confirmLabel="나가기"
               isPending={leave.isPending}
@@ -270,7 +272,7 @@ function DangerSection({ detail, memberCount }: { detail: GroupDetail; memberCou
             <InlineConfirm
               openLabel="삭제"
               label="모임 삭제 확인"
-              message={`${detail.name}을(를) 지울까요? 식구 모두 모임에서 빠지고 한 줄 나눔·모임 정성도 함께 지워져요. 각자의 훈독 기록과 개인 정성은 그대로 남아요.`}
+              message={`${withObjectParticle(detail.name)} 지울까요? 식구 모두 모임에서 빠지고 한 줄 나눔·모임 정성도 함께 지워져요. 각자의 훈독 기록과 개인 정성은 그대로 남아요.`}
               confirmLabel="모임 삭제"
               isPending={remove.isPending}
               onConfirm={() => remove.mutate(undefined, { onSuccess: goHome })}

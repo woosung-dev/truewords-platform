@@ -152,6 +152,8 @@ export function GroupAlert({ children }: { children: ReactNode }) {
 export type InlineConfirmProps = {
   /** 여는 버튼 글자 */
   openLabel: string;
+  /** 여는 버튼 접근 이름 — 같은 글자 버튼이 여러 개일 때 대상을 붙인다 (예: "미카 내보내기") */
+  openAriaLabel?: string;
   /** 확인 카드 aria-label (예: "미카 님 내보내기 확인") */
   label: string;
   message: ReactNode;
@@ -165,6 +167,7 @@ export type InlineConfirmProps = {
 /** 누르면 바로 아래 확인 카드가 열리고 초점은 취소로 간다. 취소하면 원래 버튼으로 돌아간다. */
 export function InlineConfirm({
   openLabel,
+  openAriaLabel,
   label,
   message,
   confirmLabel,
@@ -193,6 +196,7 @@ export function InlineConfirm({
         ref={openerRef}
         type="button"
         className={openClassName}
+        aria-label={openAriaLabel}
         aria-expanded={isOpen}
         aria-controls={boxId}
         onClick={() => setIsOpen((value) => !value)}

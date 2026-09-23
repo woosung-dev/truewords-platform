@@ -44,7 +44,14 @@ function JeongseongRow({ item }: { item: GroupJeongseongOut }) {
       <div className="tg-js__top">
         <span>
           <b className="tg-js__t">{item.title}</b>
-          <span className="tg-js__by">{item.is_official ? "공식 정성 · 협회 공지를 편성자가 등록" : "모임 정성"}</span>
+          {/* 공식 정성 출처는 관리자가 적은 source_note 그대로. 없으면 출처를 지어내지 않는다 (QA P2-13) */}
+          <span className="tg-js__by">
+            {item.is_official
+              ? item.source_note
+                ? `공식 정성 · 출처 · ${item.source_note}`
+                : "공식 정성"
+              : "모임 정성"}
+          </span>
         </span>
         <span className="tg-js__day">
           {item.day_index === null ? <b className="tg-js__soon">곧 시작</b> : <b>{item.day_index}일차</b>}
@@ -178,10 +185,13 @@ function ShareItem({ share, groupId, isLeader, onGone }: ShareItemProps) {
         </div>
         <p className="tg-note__tx">{share.body}</p>
         {share.is_mine ? (
-          <span className="tg-stay__mine">
-            <HandHeart size={16} aria-hidden="true" />
-            {share.reaction_count ?? 0}명이 함께 머물렀어요 · 나에게만 보여요
-          </span>
+          // 반응이 아직 없으면 "0명이" 를 보이지 않는다 — 1명부터 나에게만 알린다
+          (share.reaction_count ?? 0) > 0 && (
+            <span className="tg-stay__mine">
+              <HandHeart size={16} aria-hidden="true" />
+              {share.reaction_count}명이 함께 머물렀어요 · 나에게만 보여요
+            </span>
+          )
         ) : (
           <button
             className="tg-stay"

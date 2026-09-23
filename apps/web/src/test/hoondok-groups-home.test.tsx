@@ -108,6 +108,7 @@ describe("GroupList (홈 모임 카드)", () => {
               day_index: 12,
               state: "active",
               is_official: true,
+              source_note: null,
             },
             {
               id: "j2",
@@ -117,6 +118,7 @@ describe("GroupList (홈 모임 카드)", () => {
               day_index: null,
               state: "upcoming",
               is_official: false,
+              source_note: null,
             },
           ],
         }),
@@ -255,6 +257,7 @@ describe("GroupCard · jeongseongLine", () => {
       day_index: day,
       state,
       is_official: false,
+      source_note: null,
     });
     expect(jeongseongLine({ jeongseongs: [js("특별정성", 12, "active"), js("모임 정성", 9, "active")] })).toBe(
       "특별정성 12일차 · 모임 정성 9일차",
@@ -269,7 +272,7 @@ describe("GroupCard · jeongseongLine", () => {
 });
 
 describe("훈독하기 완료 뒤 한 줄 남기기 진입", () => {
-  it("서버 확정 완료 + 모임 있음: '{첫 모임}에 한 줄 남기기' → 한 줄 쓰기", async () => {
+  it("서버 확정 완료 + 모임 있음: '{첫 모임}에 나눔 한 줄 남기기 · 식구에게 보여요' → 한 줄 쓰기", async () => {
     loggedIn();
     myGroups = () => json([group({ id: "g-a", name: "첫 모임" }), group({ id: "g-b", name: "둘째" })]);
     vi.mocked(missionsAPI.complete).mockResolvedValueOnce(undefined as never);
@@ -277,7 +280,9 @@ describe("훈독하기 완료 뒤 한 줄 남기기 진입", () => {
     const button = await screen.findByRole("button", { name: /훈독 완료/ });
     await waitFor(() => expect(button).toBeEnabled());
     fireEvent.click(button);
-    const link = await screen.findByRole("link", { name: /첫 모임에 한 줄 남기기/ });
+    // 개인 "오늘의 한 줄"(나만 봄)과 헷갈리지 않게 공개 나눔임을 이름에 담는다 (QA P2-12)
+    const link = await screen.findByRole("link", { name: /첫 모임에 나눔 한 줄 남기기/ });
+    expect(link).toHaveTextContent("식구에게 보여요");
     expect(link).toHaveAttribute("href", "/hoondok/groups/g-a/share");
     expect(screen.queryByText(/둘째/)).toBeNull();
   });

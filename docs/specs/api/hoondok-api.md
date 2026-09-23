@@ -531,11 +531,11 @@ body `{ book_series, status, scope_search, scope_full_text, scope_jeongseong, au
 - **개인정보 경계**: 모임원 응답에는 오늘(KST) `mission_logs kind='read'` 완료자만 담는다. 미완료자 목록·수·상태, 전체 인원(`member_count`), `user_id` 는 어떤 모임원 응답에도 없다. 전체 인원은 `API-HD-038`(리더)·`API-HD-043`(admin) 에만 있다.
 - 완료자 `readers[]` 는 표시 이름 가나다순 `{display_name, read_at_kst, is_me, is_leader}`. `read_at_kst` 는 `completed_at`(UTC) 을 `+09:00` 로 바꾼 값.
 - 표시 이름(≤12)·모임 이름(≤20)은 앞뒤 공백을 지운 뒤 검증한다 — 공백만이면 422, 앞뒤 공백만 다른 이름은 같은 이름(409). 한 줄(≤100)은 줄마다 앞뒤 공백 제거·연속 공백 1칸·빈 줄 제거 뒤 1~100자.
-- 정성 `jeongseongs[]` `{id, title, started_on, duration_days, day_index, state, is_official}` — 공식(`group_id NULL`) + 이 모임 것, 끝난 것은 빠진다. `day_index = (오늘 - started_on) + 1`, 시작 전이면 `day_index=null`·`state=upcoming`.
+- 정성 `jeongseongs[]` `{id, title, started_on, duration_days, day_index, state, is_official, source_note}` — 공식(`group_id NULL`) + 이 모임 것, 끝난 것은 빠진다. `day_index = (오늘 - started_on) + 1`, 시작 전이면 `day_index=null`·`state=upcoming`. `source_note` 는 공식 정성의 출처(API-HD-042 관리자 입력 그대로, 미입력 null), 모임 정성은 항상 null. 030·032·035 가 같은 형태를 쓴다.
 
 ### API-HD-030 `GET /hoondok/me/groups`
 
-`[{id, name, kind, role, my_display_name, today_read_count, readers_preview, jeongseongs}]`, 0건 `[]`. `today_read_count` 는 오늘 완료자 수, `readers_preview` 는 완료자 이름 첫 글자 최대 3개.
+`[{id, name, kind, role, my_display_name, today_read_count, readers_preview, jeongseongs}]`(정성 항목에 `source_note` 포함), 0건 `[]`. `today_read_count` 는 오늘 완료자 수, `readers_preview` 는 완료자 이름 첫 글자 최대 3개.
 
 ### API-HD-031 `POST /hoondok/groups`
 
@@ -544,7 +544,7 @@ body `{ book_series, status, scope_search, scope_full_text, scope_jeongseong, au
 ### API-HD-032 `GET /hoondok/groups/{group_id}`
 
 `{id, name, kind, leader_display_name, meeting_time, date, today_reading, jeongseongs, readers, shares, me, invite_code, invite_expires_at}`.
-`today_reading` 은 오늘 편성 요약 `{id, reading_date, title, speaker, work_title, chunk_id, estimated_minutes}`(본문 없음, 없거나 철회면 null). `shares[]` 는 오늘 것만 `{id, display_name, body, created_at_kst, is_mine, has_my_reaction, reaction_count}` — `reaction_count` 는 내 한 줄에만 값, 남의 것은 null. 반응한 사람 목록은 누구에게도 주지 않는다. `me` `{member_id, display_name, role, has_read_today, has_shared_today}`. `invite_code`·`invite_expires_at` 은 리더만 값, 모임원은 null.
+`today_reading` 은 오늘 편성 요약 `{id, reading_date, title, speaker, work_title, chunk_id, estimated_minutes}`(본문 없음, 없거나 철회면 null). `jeongseongs[]` 항목에 `source_note` 가 있다. `shares[]` 는 오늘 것 중 오늘 완료자(`readers`)가 쓴 것만 `{id, display_name, body, created_at_kst, is_mine, has_my_reaction, reaction_count}` — `reaction_count` 는 내 한 줄에만 값, 남의 것은 null. 반응한 사람 목록은 누구에게도 주지 않는다. `me` `{member_id, display_name, role, has_read_today, has_shared_today}`. `invite_code`·`invite_expires_at` 은 리더만 값, 모임원은 null.
 
 ### API-HD-033 `PATCH · DELETE /hoondok/groups/{group_id}` (리더)
 
@@ -556,7 +556,7 @@ PATCH `{name}` → 200 `GroupDetail`. DELETE → 204, 모임 하드 삭제(`shar
 
 ### API-HD-035 `GET /hoondok/invites/{code}`
 
-→ 200 `{name, kind, leader_display_name, jeongseongs, is_member, group_id}`(전체 인원 없음). 코드는 대소문자·하이픈·공백을 무시하고 Crockford 별칭(I·L→1, O→0)을 적용해 정규화한다. 잘못·만료·정원 초과는 모두 같은 404 `INVITE_NOT_FOUND`. 이미 모임원이면 정원과 무관하게 `is_member=true` + `group_id`. 초대 limiter `RateLimiter(10, 60)` IP 기준(036·가입 게이트와 공유) — 초과 429 `RATE_LIMIT_EXCEEDED`(`ErrorResponse`).
+→ 200 `{name, kind, leader_display_name, jeongseongs, is_member, group_id}`(전체 인원 없음, 정성 항목에 `source_note` 포함). 코드는 대소문자·하이픈·공백을 무시하고 Crockford 별칭(I·L→1, O→0)을 적용해 정규화한다. 잘못·만료·정원 초과는 모두 같은 404 `INVITE_NOT_FOUND`. 이미 모임원이면 정원과 무관하게 `is_member=true` + `group_id`. 초대 limiter `RateLimiter(10, 60)` IP 기준(036·가입 게이트와 공유) — 초과 429 `RATE_LIMIT_EXCEEDED`(`ErrorResponse`).
 
 ### API-HD-036 `POST /hoondok/invites/{code}/join`
 

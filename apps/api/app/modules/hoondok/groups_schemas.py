@@ -97,6 +97,8 @@ class GroupJeongseongOut(BaseModel):
     day_index: int | None
     state: JeongseongState
     is_official: bool
+    # 공식 정성의 출처(관리자 입력, 예: "협회 공지"). 모임 정성·출처 미입력은 null
+    source_note: str | None
 
 
 class MyGroupItem(BaseModel):

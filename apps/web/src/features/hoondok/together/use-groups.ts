@@ -1,7 +1,9 @@
 "use client";
 
-import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, type QueryKey, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { GROUPS_KEY, groupKey, groupMembersKey, MY_GROUPS_KEY } from "../query-keys";
+import { useKstDate } from "../use-kst-date";
 import { type GroupCreate, type GroupDetail, type GroupJeongseongInput, groupErrorOf, groupsAPI } from "./groups-api";
 import { isValidInviteCode, normalizeInviteCode } from "./invite-code";
 
@@ -21,18 +23,44 @@ function invalidateGroup(queryClient: QueryClient, groupId: string) {
   void queryClient.invalidateQueries({ queryKey: MY_GROUPS_KEY });
 }
 
+/**
+ * 열어 둔 화면도 KST 자정을 넘기면 "오늘" 목록(읽은 식구·한 줄·N일차)을 다시 읽는다 (QA P2-6).
+ * 자정 타이머·창 복귀 감지는 useKstDate 가 맡고(언마운트 때 정리), 날짜가 바뀐 순간에만 무효화한다.
+ * 모임 캐시는 mutation 이 setQueryData 로 고치므로 날짜를 키에 넣지 않는다.
+ */
+function useInvalidateOnKstDateChange(queryKey: QueryKey) {
+  const queryClient = useQueryClient();
+  const date = useKstDate();
+  const seenDate = useRef(date);
+  // queryKey 는 렌더마다 새 배열이지만 날짜가 같으면 바로 돌아가므로 무효화는 날짜가 바뀐 한 번뿐이다
+  useEffect(() => {
+    if (seenDate.current === date) return;
+    seenDate.current = date;
+    void queryClient.invalidateQueries({ queryKey });
+  }, [date, queryClient, queryKey]);
+}
+
 /** API-HD-030 내 모임. 비로그인이면 부르지 않도록 isEnabled 로 막는다(401 을 만들지 않는다). */
 export function useMyGroups(isEnabled = true) {
-  return useQuery({ queryKey: MY_GROUPS_KEY, queryFn: groupsAPI.mine, enabled: isEnabled, retry: retryOnce });
+  useInvalidateOnKstDateChange(MY_GROUPS_KEY);
+  return useQuery({
+    queryKey: MY_GROUPS_KEY,
+    queryFn: groupsAPI.mine,
+    enabled: isEnabled,
+    retry: retryOnce,
+    refetchOnWindowFocus: "always",
+  });
 }
 
 /** API-HD-032 상세. 비모임원·없는 모임은 404 — 화면은 groupErrorOf(error).status 로 안내한다. */
 export function useGroup(groupId: string | undefined) {
+  useInvalidateOnKstDateChange(groupKey(groupId ?? ""));
   return useQuery({
     queryKey: groupKey(groupId ?? ""),
     queryFn: () => groupsAPI.get(groupId ?? ""),
     enabled: Boolean(groupId),
     retry: retryOnce,
+    refetchOnWindowFocus: "always",
   });
 }
 
