@@ -107,3 +107,51 @@ test.describe("훈독 편성", () => {
     expect(requests).toEqual([]);
   });
 });
+
+/**
+ * 공식 정성 (API-HD-042, PLAN-HD-010 트랙 C): 등록 → 목록 → 수정 → 삭제.
+ * 시드에 의존하지 않고 스스로 만든 항목을 마지막에 지워 DB 에 남기지 않는다.
+ */
+test.describe("훈독 공식 정성", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
+  test("등록 → 목록에 진행 중 → 제목 수정 → 삭제 확인 후 사라진다", async ({ page }) => {
+    await page.getByRole("link", { name: "공식 정성" }).click();
+    await page.waitForURL("**/hoondok/jeongseongs", { timeout: 5_000 });
+    await expect(page.getByRole("heading", { name: "공식 정성", level: 1 })).toBeVisible();
+
+    const title = `E2E 정성 ${Date.now()}`;
+    await page.getByRole("button", { name: "새 공식 정성" }).click();
+    // 시작일 기본값 = KST 오늘 → 진행 중 1일차
+    await page.locator("#jeongseong-title").fill(title);
+    await page.locator("#jeongseong-duration").fill("100");
+    await page.getByRole("button", { name: "등록" }).click();
+    await expect(page.getByText("공식 정성이 등록되었습니다")).toBeVisible();
+
+    const row = page.locator("tbody tr", { hasText: title });
+    await expect(row).toHaveCount(1);
+    await expect(row.getByText("진행 중")).toBeVisible();
+    await expect(row.getByText("1일차")).toBeVisible();
+
+    const edited = `${title} 수정`;
+    await row.getByRole("button", { name: "수정" }).click();
+    await expect(page.locator("#jeongseong-title")).toHaveValue(title);
+    await page.locator("#jeongseong-title").fill(edited);
+    await page.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("저장되었습니다")).toBeVisible();
+    const editedRow = page.locator("tbody tr", { hasText: edited });
+    await expect(editedRow).toHaveCount(1);
+
+    await editedRow.getByRole("button", { name: "삭제" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByText(/되돌릴 수 없어요/)).toBeVisible();
+    await dialog.getByRole("button", { name: "삭제" }).click();
+    await expect(page.getByText("공식 정성이 삭제되었습니다")).toBeVisible();
+    await expect(page.locator("tbody tr", { hasText: edited })).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "공식 정성", level: 1 })).toBeVisible();
+    await expect(page.locator("tbody tr", { hasText: edited })).toHaveCount(0);
+  });
+});
