@@ -306,6 +306,8 @@
     display: flex;
     gap: 11px;
     margin: 0 0 16px;
+    /* 목차·검색 점프가 sticky 앱바(약 60px) 아래에 멈추도록 — lg 에서는 상단 헤더 72 + 앱바를 더한다 */
+    scroll-margin-top: 76px;
     font-family: var(--font-scripture);
     font-size: 17px;
     line-height: 1.85;
@@ -436,6 +438,9 @@
       column-gap: 32px;
       max-width: calc(280px + 32px + var(--measure-read));
       justify-content: center;
+    }
+    .verse {
+      scroll-margin-top: 148px;
     }
     /* 상단 헤더 72 + 앱바 52 아래에 붙인다 (프로토타입의 좌측 레일 기준 76px 을 앱 셸 값으로 옮긴 것) */
     .words .toc {

@@ -169,14 +169,17 @@ export function WordsScreen({
     if (lastVolume && lastPage) writeLastReading({ volume: lastVolume, page: lastPage });
   }, [lastVolume, lastPage]);
 
-  // 목차로 들어오면 장 시작 단락이 페이지 중간일 수 있다 — 그 단락까지 한 번 내려 준다.
+  // 목차·검색 결과·북마크로 들어오면 목표 단락이 페이지 중간일 수 있다 — 그 단락까지 한 번 내려 준다.
+  // 목차는 장 시작 단락, 검색·북마크는 chunk_id 가 가리키는 단락이다.
   const tocStart = sections.data?.sections.find((item) => item.position === section)?.start_chunk_index ?? null;
+  const citedIndex = chunkId ? (doc?.chunks.find((chunk) => chunk.chunk_id === chunkId)?.chunk_index ?? null) : null;
+  const scrollTarget = tocStart ?? citedIndex;
   useEffect(() => {
-    if (tocStart === null || lastPage === null) return;
-    const target = document.getElementById(`verse-${tocStart}`);
+    if (scrollTarget === null || lastPage === null) return;
+    const target = document.getElementById(`verse-${scrollTarget}`);
     // jsdom 에는 scrollIntoView 가 없다 — 없으면 아무 일도 하지 않는다.
     target?.scrollIntoView?.({ block: "start" });
-  }, [tocStart, lastPage]);
+  }, [scrollTarget, lastPage]);
 
   if (query.isPending)
     return (

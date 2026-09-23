@@ -10,8 +10,9 @@ import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "rea
 import { HoondokButton } from "@/components/hoondok";
 import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
 import { askErrorMessage, requestAsk } from "../ask-stream";
-import { answerParagraphs, SOURCE_RANK_UNKNOWN, sourceFields } from "../format";
+import { SOURCE_RANK_UNKNOWN, sourceFields } from "../format";
 import { type AskItem, EMPTY_ASK_ITEMS, readAskItems, subscribeAsk, toggleAskSaved, updateAskItem } from "../storage";
+import { AnswerMarkdown } from "./answer-markdown";
 
 // 이어지는 질문은 답변·근거 맥락에서 제안해야 하지만(AC-017-03) `/chat/stream` 이 주는 suggested_followups 는
 // 시연 챗 말투라 훈독 문장으로 고정한다 `[가정]`. 탭하면 묻기 홈을 채우기만 하고 보내지 않는다.
@@ -99,7 +100,6 @@ export function AskDetail({ id }: { id: string }) {
   if (!item) return isMounted ? <AskMissing /> : <section className="col col--read" />;
 
   const sources = item.sources ?? [];
-  const paragraphs = answerParagraphs(item.answer ?? "");
 
   // 중단은 요청을 끊고 저장소 상태도 직접 적는다 — effect 의 catch 는 abort 를 무시하기 때문이다.
   function handleStop() {
@@ -179,18 +179,17 @@ export function AskDetail({ id }: { id: string }) {
                 <Sparkles size={14} aria-hidden="true" />
                 AI 설명 · 공식 해설 아님
               </div>
-              {paragraphs.map((paragraph, index) => (
-                <p className="ai-note__body" key={paragraph.slice(0, 24)}>
-                  {paragraph}
-                  {/* 근거 번호는 답 끝에 한 번만 붙인다 `[가정]` — 문장 단위 인용 위치는 모델이 주지 않는다 */}
-                  {index === paragraphs.length - 1 &&
-                    sources.map((_, order) => (
-                      <sup className="ask-ref" key={`ref-${order + 1}`}>
-                        {order + 1}
-                      </sup>
-                    ))}
+              <AnswerMarkdown answer={item.answer ?? ""} />
+              {/* 근거 번호는 답 끝에 한 번만 붙인다 `[가정]` — 문장 단위 인용 위치는 모델이 주지 않는다 */}
+              {sources.length > 0 && (
+                <p className="ai-note__body">
+                  {sources.map((_, order) => (
+                    <sup className="ask-ref" key={`ref-${order + 1}`}>
+                      {order + 1}
+                    </sup>
+                  ))}
                 </p>
-              ))}
+              )}
               {item.disclaimer && <p className="ai-note__micro">{item.disclaimer}</p>}
             </div>
           </div>
