@@ -16,6 +16,8 @@
 - UI·테마·표시 유틸은 이 앱의 `src/components/ui`, `src/app/globals.css`, `src/lib/utils.ts`가 소유한다. `@/components/ui/*`, `@/lib/utils`를 사용하며 관리자 앱의 UI·CSS를 import하지 않는다.
 - [사용자 웹 UI/UX 명세](../../docs/specs/web/ui-ux.md)를 따른다. 현재 화면 보존과 신규 PWA 디자인 승인을 구분하며 `/design-system`을 양 앱 공통 디자인 기준으로 취급하지 않는다.
 - 앱별 React Query Provider를 유지한다. 서버 모듈 전역에 사용자·세션 상태를 두지 않는다.
+- TypeScript strict를 유지하고 불명확한 API 값은 `unknown`으로 검증한다. Next.js 동적 `params`/`searchParams`는 Promise로 다루고 설치된 `node_modules/next/dist/docs/`의 해당 API를 확인한다.
+- 인증 실패 후 이동은 웹 앱이 소유한다. 공통 SDK가 브라우저 위치를 바꾸지 않는다. API 호출은 기존 같은 origin 프록시·쿠키 경로를 따른다.
 - 루트에서 `pnpm --filter @truewords/web test`, `typecheck`, `lint`, `build`로 검증한다. 통합 검증은 `pnpm test:e2e`다.
 - 개발 서버는 `pnpm --filter @truewords/web dev`로 실행한다(Makefile·E2E도 동일 경로). Next 16.3.4의 `NEXT_TRACE_SPAN_THRESHOLD_MS`를 큰 값으로 지정해 요청 쿼리가 개발 `.next/dev/trace`에 기록되지 않도록 한다. 공식 trace OFF 옵션은 아니며 직접 `next dev` 실행은 이 보호를 우회한다. 과거 trace는 자동 삭제하지 않는다. Next 업데이트 시 upstream 미기동 검색 sentinel을 API·UI에 보내 stdout/stderr와 디스크 trace를 함께 확인한다.
 - 설치된 Next.js의 `node_modules/next/dist/docs/` 관련 문서를 먼저 확인한다. 빌드/프록시 설정은 Next.js 16.3.4 기준이다.
