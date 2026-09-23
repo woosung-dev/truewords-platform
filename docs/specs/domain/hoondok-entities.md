@@ -73,6 +73,7 @@
 | `kind` | varchar(16) | not null | `read`(훈독하기) · `pray`(기도하기) · `study`(말씀 읽기) |
 | `completed_at` | datetime | not null | 실제 완료 시각(UTC) |
 | — | — | unique(`user_id`, `mission_date`, `kind`) | 하루 1회 (AC-016-02) |
+| — | — | index(`mission_date`, `kind`) `ix_mission_logs_date_kind` | 하루 완료자 수 집계 (API-HD-029, PLAN-HD-009) |
 
 - 연속일·최대 연속일·누적일은 저장하지 않고 `mission_logs` 의 `read` 완료일에서 계산한다(API-HD-004, `hoondok/streak.py`). 계산 기준은 KST 자정, "쉬어가기" 면제는 비범위.
 - 비로그인 상태의 체크는 클라이언트(localStorage, KST 날짜 키)에만 두고, 로그인 후 소급 기록한다(AC-016-02). API 가 날짜를 받지 않으므로 소급은 **당일만** 가능하다.

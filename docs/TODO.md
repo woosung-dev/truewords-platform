@@ -268,6 +268,12 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 
 - [x] **PLAN-HD-005 구현·통합 검증** — make ci PASS, E2E 90 passed, MCP 여정·3폭·플래그 51/51, 리뷰 7건 보완, 개발 trace 독립 검사 완료. 구 앱 직접 기동의 새 스키마 호환 PASS; 기본 CMD 롤백은 위 배포 전 과제로 남긴다. [진행표](plans/completed/2026-09-21-hoondok-journey-plan.md#91-진행표-트랙이-끝날-때마다-먼저-갱신)를 원본으로 삼는다. 배포는 별도 승인.
 
+### 함께 읽는 사람들 PLAN-HD-009 (2026-09-23)
+
+- [ ] **1단계 익명 숫자 — 구현 중** (`feat/hoondok-together-count`, 로컬 커밋·푸시 전). 오늘 훈독하기 완료자 수(API-HD-029), 10명 미만 숨김, 완료자만 집계, 문구에서 "새벽" 제외. 홈 카드 1장 + 훈독하기 완료 한 줄. 인덱스 마이그레이션 `q2b3c4d5e6f7` 포함이라 배포 시 backend 먼저. [계획](plans/active/2026-09-23-hoondok-together.md)
+- [ ] **2단계 모임 — 설계 대기.** 모임·초대 코드·한 줄 나눔·반응·모임 정성·공식 정성. 상세 설계는 1단계 운영 뒤 ([계획 §5](plans/active/2026-09-23-hoondok-together.md#5-2단계-예정-범위-상세-설계는-후속))
+- `[확인 필요]` 가족 모임을 여는 시점 · 협회 공지(공식 정성) 수신 방식
+
 ### PLAN-HD-005 여정 잇기 (2026-09-22 배포 완료)
 
 - [x] **배포** — main `a425217` 로 backend → admin → web(`HOONDOK_ENABLED=1`) 3서비스. alembic `l6b7c8d9e0f1` 적용, `smoke-web` 12건 OK, `ops-check` 8건 통과, 공개 라우트 9개·`GET /hoondok/library` 200. [runbook §2026-09-22](runbooks/hoondok-pwa-rollout.md)

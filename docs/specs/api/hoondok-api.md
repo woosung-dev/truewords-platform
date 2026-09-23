@@ -32,6 +32,7 @@
 | `API-HD-026` | GET · PUT · DELETE | `/hoondok/me/marks` | `hoondok_token` (쓰기는 `X-Requested-With`) | HD-007 |
 | `API-HD-027` | POST | `/admin/hoondok/content-rights/bulk` | `admin_token` + 게이트 + `X-Requested-With` | HD-007 |
 | `API-HD-028` | GET | `/admin/hoondok/content-rights/series` | `admin_token` + `require_admin_gate` | HD-007 |
+| `API-HD-029` | GET | `/hoondok/today/together` | 없음(공개) | HD-009 |
 
 공통 규칙:
 
@@ -480,3 +481,24 @@ body `{ book_series, status, scope_search, scope_full_text, scope_jeongseong, au
 
 권의 Qdrant 청크 수를 담는 nullable 열이다. 시드 스크립트(트랙 D)가 채우며 `API-HD-013` 의
 입력 스키마에는 없어 admin 개별 저장이 값을 덮지 않는다. 조회 응답(`ContentRightResponse`)에는 나온다.
+
+---
+
+## API-HD-029 `GET /hoondok/today/together`
+
+> 추가일: 2026-09-23 ([PLAN-HD-009](../../plans/active/2026-09-23-hoondok-together.md) 함께 읽는 사람들 1단계)
+
+오늘(KST) 훈독하기(`kind="read"`, 연속일과 같은 kind)를 완료한 **서로 다른 사용자 수**. 익명 전체 집계만 내며
+사람 정보(이름·ID·모임)는 없다. 인증이 필요 없고 항상 200 이다. 라우터는 `app/modules/hoondok/router.py`.
+
+응답 `TogetherTodayResponse`:
+
+```json
+{ "date": "2026-09-23", "count": 1284, "is_shown": true, "threshold": 10 }
+{ "date": "2026-09-23", "count": null, "is_shown": false, "threshold": 10 }
+```
+
+- 완료자가 `threshold`(`HOONDOK_TOGETHER_MIN_COUNT`, 기본 10) 미만이면 `count=null`, `is_shown=false` — 숫자 자체를 내려보내지 않는다.
+- 집계는 `mission_logs` 의 `mission_date = 오늘(KST)` · `kind = read` 의 `COUNT(DISTINCT user_id)` 이고 `users.deleted_at` 이 있는 사용자는 뺀다. 인덱스 `ix_mission_logs_date_kind(mission_date, kind)`.
+- 원시 수를 프로세스 메모리에 `HOONDOK_TOGETHER_CACHE_SECONDS`(기본 60초) 동안 둔다. 워커별 캐시라 워커 사이 값이 잠시 다를 수 있고, 방금 완료한 사용자가 아직 빠진 값일 수 있다. 0 이면 매 요청 집계한다.
+- 이 숫자는 푸시 알림에 넣지 않는다.
