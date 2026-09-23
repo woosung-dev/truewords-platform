@@ -29,8 +29,8 @@
 |---|---|---|---|
 | A — API | `GET /hoondok/today/together`, `TogetherService`(프로세스 메모리 TTL 캐시), `MissionLogRepository.count_users_on`, 설정 2개, 인덱스 마이그레이션, pytest 12건, 계약 재생성 | 완료 | `5afe0dc` |
 | B — 웹 | `features/hoondok/together/`(api·use-together·together-card), `TOGETHER_KEY` → `PROGRESS_KEYS`, 홈 카드(정성 다음), 훈독하기 완료 한 줄, `_hoondok/together.css`, Vitest 8건, e2e 1건 | 완료 | `3538463` |
-| D — 문서 | 이 계획, API 명세, 도메인 명세 인덱스, TODO, `apps/web/AGENTS.md` | 완료 | (docs 커밋) |
-| 검증 | `make ci` · `make e2e` · 라이브(:8020/:3160) | 최종 보고 참조 | — |
+| D — 문서 | 이 계획, API 명세, 도메인 명세 인덱스, TODO, `apps/web/AGENTS.md` | 완료 | `e0420bb` |
+| 검증 | `make ci` EXIT 0(pytest 1230 passed / 7 skipped / 1 xfailed, web Vitest 319, admin 127) · 라이브 :8020/:3160 — 로컬 DB 오늘 완료 0명 → 대체 문구, `HOONDOK_TOGETHER_MIN_COUNT=0` 재기동 → "오늘 함께 읽은 식구 0명" 확인 · `make e2e` 미실행(:8000 점유) | e2e 대기 | — |
 
 ## 4. 인수 조건
 
@@ -40,7 +40,7 @@
 - [x] 인증 없이 200, 캐시 60초 안에는 같은 값·만료 뒤 재집계·0 이면 매번 집계 (pytest)
 - [x] 홈: 기준 이상이면 "오늘 함께 읽은 식구 1,284명"(천 단위 쉼표), 미만이면 대체 문구, 로딩은 스켈레톤, 오류면 섹션째 숨김, 링크·모임·"아직" 없음 (Vitest)
 - [x] 완료 영역: "당신까지 N명이 함께 읽었어요" / 대체 문구. 서버 집계에 없는 완료(비로그인·저장 실패)는 숫자가 있어도 "당신까지" 를 쓰지 않는다 (Vitest)
-- [x] 홈 e2e: 카드 1장, API 값과 화면 문구가 맞는다
+- [ ] 홈 e2e: 카드 1장, API 값과 화면 문구가 맞는다 (스펙 작성, `make e2e` 미실행 — :8000 점유)
 - [x] `pnpm hoondok:check` 통과(토큰 밖 hex 0)
 
 `[가정]` 서버 캐시(60초)와 워커별 메모리 때문에 방금 완료한 본인이 숫자에 아직 없을 수 있다. 화면은 +1 보정을 하지 않고 서버 값을 그대로 쓴다 — 보정은 캐시 적중 여부를 모르는 클라이언트가 틀린 숫자를 만들 위험이 더 크다. 완료 직후 `PROGRESS_KEYS` 무효화로 다시 읽기는 한다.
