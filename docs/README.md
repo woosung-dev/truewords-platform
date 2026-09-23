@@ -11,6 +11,7 @@
 | [훈독 알림 1종](plans/active/2026-09-22-hoondok-notifications.md) | `PLAN-HD-006`. Phase 4 게이트를 "착수"→"운영 ON" 으로 옮기고 Web Push 구독·발송기·SW·설정 토글을 먼저 구현. VAPID 미설정이면 비활성. 베타 판정 쿼리 2개 |
 | [말씀 서고 3계층](plans/active/2026-09-23-hoondok-library.md) | `PLAN-HD-007`. 권리 원장 시드 + 저작물→권→장(본문 규칙 자동 추출, `volume_sections`) + 이어 읽기·북마크·형광펜·노트 서버 저장 + admin 시리즈 일괄 승인. 초기 노출 천성경·평화경·원리강론 |
 | [원문 뷰 다듬기](plans/active/2026-09-23-hoondok-reader-polish.md) | `PLAN-HD-008`. 표시 전용 `display_text`(겹침·페이지 번호·PDF 줄바꿈 정리, Qdrant 무변경) + 단락 본문 탭 선택 + 번호 1부터 + 머리글 결측 문구 제거 + 브라우저 음성 듣기 |
+| [함께 읽는 모임 (2단계)](plans/active/2026-09-23-hoondok-groups.md) | `PLAN-HD-010`. 1단계 익명 숫자(`PLAN-HD-009`) 위에 초대 코드 모임·식구 목록·한 줄 나눔·반응·모임/공식 정성 + 모임 설정 5가지. 신규 5테이블·API-HD-030~043, 베타 테스터에게 바로 개통(플래그는 킬 스위치) |
 | [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md) | web/admin/API 경계, 공통 API·인증·SSE·알림 정책 |
 | [전환 실행 계획](plans/completed/2026-09-05-monorepo-migration.md) | M1~M4 범위와 실제 검증 증거, M5 제외 범위 |
 | [앱별 UI 실행 계획](plans/active/2026-09-05-app-owned-ui.md) | 후속 2안 승인 범위와 재검증 증거 |
