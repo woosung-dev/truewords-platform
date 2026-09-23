@@ -65,7 +65,10 @@ class LibraryResponse(BaseModel):
 class WordChunk(BaseModel):
     chunk_id: str
     chunk_index: int
+    # 원본 청크. AI 설명·인용·검색은 이 값을 쓴다.
     text: str
+    # 화면 표시용(PLAN-HD-008) — 앞 청크 겹침·페이지 번호 제거, PDF 줄바꿈 합침, 문단은 "\n\n".
+    display_text: str
 
 
 class WordSearchResult(WordChunk):

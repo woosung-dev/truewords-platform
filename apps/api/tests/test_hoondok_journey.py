@@ -159,6 +159,9 @@ async def test_words_locates_chunk_page_and_orders_without_parent(setup):
     assert response.page == 2 and response.total_pages == 2
     assert [c.chunk_index for c in response.chunks] == list(range(20, 25))
     assert "LEAK" not in response.body
+    # 표시 텍스트는 원본과 별도 필드다(PLAN-HD-008) — 원본 text 는 그대로다.
+    assert [c.text for c in response.chunks] == [str(i) for i in range(20, 25)]
+    assert [c.display_text for c in response.chunks] == [str(i) for i in range(20, 25)]
     assert client.scroll.call_args.kwargs["scroll_filter"]["must"][1]["range"] == {
         "gte": 20,
         "lt": 40,

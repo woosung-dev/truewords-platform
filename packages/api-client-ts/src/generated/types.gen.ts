@@ -3120,6 +3120,10 @@ export type WordChunk = {
      */
     chunk_index: number;
     /**
+     * Display Text
+     */
+    display_text: string;
+    /**
      * Text
      */
     text: string;
@@ -3155,6 +3159,10 @@ export type WordSearchResult = {
      * Chunk Index
      */
     chunk_index: number;
+    /**
+     * Display Text
+     */
+    display_text: string;
     /**
      * Score
      */
