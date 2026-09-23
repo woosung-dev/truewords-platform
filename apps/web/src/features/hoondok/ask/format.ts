@@ -54,11 +54,3 @@ export function sourceFields(source: Source): SourceField[] {
     { id: "edition", text: "판본 확인되지 않음", isUnknown: true },
   ];
 }
-
-/** 답 본문을 빈 줄 기준으로 나눈 단락. 빈 답이면 빈 배열이다. */
-export function answerParagraphs(answer: string): string[] {
-  return answer
-    .split(/\n{2,}/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-}

@@ -267,6 +267,16 @@ describe("원문 목차·단락", () => {
     const toc = screen.getByRole("complementary", { name: "목차" });
     expect(within(toc).getByRole("link", { name: "제1편 감사의 길" })).toHaveAttribute("aria-current", "page");
   });
+  it("chunk_id 로 들어오면 인용된 단락까지 내려 준다", async () => {
+    // 검색 결과·북마크 링크(API-HD-016 chunk_id). 페이지 첫 단락이 아니라 가리킨 단락이 목표다
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    await showWords({ chunk_id: "c1" });
+    await screen.findByText("둘째 단락의 본문");
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById("verse-1"));
+    delete (Element.prototype as Partial<Element>).scrollIntoView;
+  });
   it("단락 번호와 장 제목·단락 범위를 보인다", async () => {
     await showWords();
     expect(await screen.findByText("1장 이웃을 듣는 마음", { selector: ".masthead__nm" })).toBeInTheDocument();
@@ -404,6 +414,21 @@ describe("AI 설명 탭", () => {
     await waitFor(() => expect(screen.getByText("쉬운 설명")).toBeInTheDocument());
     expect(requestAsk).toHaveBeenCalledTimes(1);
     expect(requestAsk).toHaveBeenCalledWith(`${EXPLAIN_PREFIX}둘째 단락의 본문`);
+  });
+  it("답의 마크다운 기호를 드러내지 않고 소제목·강조로 그린다", async () => {
+    vi.mocked(requestAsk).mockResolvedValue({
+      answer: "### 한 줄 요약\n변치 않는 **뼈사랑**입니다.",
+      sources: [{ text: "근거" }] as never,
+      disclaimer: "",
+    });
+    await showWords();
+    fireEvent.click(await screen.findByRole("button", { name: "단락 1 표시하기" }));
+    fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+    fireEvent.click(screen.getByRole("tab", { name: "AI 설명" }));
+    fireEvent.click(screen.getByRole("button", { name: "이 단락 설명 요청" }));
+    expect(await screen.findByText("한 줄 요약", { selector: ".ai-note__head" })).toBeInTheDocument();
+    expect(screen.getByText("뼈사랑").tagName).toBe("STRONG");
+    expect(screen.queryByText(/###|\*\*/)).toBeNull();
   });
   it("근거가 0건이면 답을 보이지 않는다", async () => {
     vi.mocked(requestAsk).mockResolvedValue({ answer: "보이면 안 되는 답", sources: [], disclaimer: "" });

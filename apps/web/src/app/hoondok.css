@@ -1035,6 +1035,25 @@
   .ai-note__body + .ai-note__body {
     margin-top: 10px;
   }
+  /* 답 본문의 마크다운 소제목·목록 (AnswerMarkdown) */
+  .ai-note__head {
+    margin: 14px 0 4px;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .ai-note__list {
+    margin: 6px 0 0;
+    padding-left: 20px;
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  .ai-note__head + .ai-note__body,
+  .ai-note__list + .ai-note__body,
+  .ai-note__body + .ai-note__list {
+    margin-top: 6px;
+  }
   /* done 이벤트의 고지 — 본문보다 한 단계 작은 소문 */
   .ai-note__micro {
     margin: 12px 0 0;

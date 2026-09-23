@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import type { WordChunk } from "@truewords/api-client-ts/types";
 import { Sparkles } from "lucide-react";
 import { type AskResult, askErrorMessage, requestAsk } from "@/features/hoondok/ask/ask-stream";
+import { AnswerMarkdown } from "@/features/hoondok/ask/components/answer-markdown";
 
 /** 질문 앞머리 — 공식 해설이 아님을 전제로 두고 근거 말씀을 함께 요구한다. */
 export const EXPLAIN_PREFIX =
@@ -61,14 +62,7 @@ export function AiExplain({ chunk }: { chunk: WordChunk | null }) {
           <p className="ai-note__body">{GATE_MESSAGE}</p>
         ) : (
           <>
-            {result.answer
-              .split(/\n{2,}/)
-              .filter((paragraph) => paragraph.trim() !== "")
-              .map((paragraph) => (
-                <p className="ai-note__body" key={paragraph.slice(0, 24)}>
-                  {paragraph}
-                </p>
-              ))}
+            <AnswerMarkdown answer={result.answer} />
             {result.disclaimer && <p className="ai-note__micro">{result.disclaimer}</p>}
           </>
         ))}
