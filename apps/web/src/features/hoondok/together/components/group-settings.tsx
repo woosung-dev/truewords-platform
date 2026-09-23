@@ -150,9 +150,8 @@ function MemberSection({ detail, members }: { detail: GroupDetail; members: Memb
                   {isMe && " (나)"}
                 </b>
                 <span>
-                  {isLeader
-                    ? `리더 · ${formatKstDay(member.joined_at)}에 만들었어요`
-                    : `모임원 · ${formatKstDay(member.joined_at)}에 들어왔어요`}
+                  {/* 리더를 이어받은 식구도 있으니 만든 날이 아니라 들어온 날로 적는다 (QA P2-R2-3) */}
+                  {`${isLeader ? "리더" : "모임원"} · ${formatKstDay(member.joined_at)}부터 함께`}
                 </span>
               </span>
               {!isMe && (

@@ -133,6 +133,9 @@ describe("SCR-PWA-015 내 데이터 삭제 (API-HD-011)", () => {
     const confirm = await openConfirm();
     expect(confirm).toHaveTextContent("정말 지울까요?");
     expect(confirm).toHaveTextContent("되돌릴 수 없어요");
+    // 모임 영향도 알린다 (QA P2-R2-2)
+    expect(confirm).toHaveTextContent("함께 읽는 모임에서도 빠지고 내가 남긴 한 줄은 지워져요");
+    expect(confirm).toHaveTextContent("내가 리더인 모임은 가장 먼저 들어온 식구가 이어받아요");
     // 확인 카드를 열기만 해서는 아무것도 지우지 않는다
     expect(identityAPI.deleteMe).not.toHaveBeenCalled();
 

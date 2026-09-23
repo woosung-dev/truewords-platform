@@ -38,8 +38,8 @@
 | `API-HD-032` | GET | `/hoondok/groups/{group_id}` | `hoondok_token` (모임원) | HD-010 |
 | `API-HD-033` | PATCH · DELETE | `/hoondok/groups/{group_id}` | `hoondok_token` (리더) + `X-Requested-With` | HD-010 |
 | `API-HD-034` | POST | `/hoondok/groups/{group_id}/invite` | `hoondok_token` (리더) + `X-Requested-With` | HD-010 |
-| `API-HD-035` | GET | `/hoondok/invites/{code}` | `hoondok_token` + 초대 limiter | HD-010 |
-| `API-HD-036` | POST | `/hoondok/invites/{code}/join` | `hoondok_token` + `X-Requested-With` + 초대 limiter | HD-010 |
+| `API-HD-035` | GET | `/hoondok/invites/{code}` | `hoondok_token` + 미리보기 limiter | HD-010 |
+| `API-HD-036` | POST | `/hoondok/invites/{code}/join` | `hoondok_token` + `X-Requested-With` + 참여 limiter | HD-010 |
 | `API-HD-037` | PATCH · DELETE | `/hoondok/groups/{group_id}/me` | `hoondok_token` (모임원) + `X-Requested-With` | HD-010 |
 | `API-HD-038` | GET · DELETE | `/hoondok/groups/{group_id}/members` · `/hoondok/groups/{group_id}/members/{member_id}` | `hoondok_token` (리더), DELETE 는 `X-Requested-With` | HD-010 |
 | `API-HD-039` | POST · DELETE | `/hoondok/groups/{group_id}/jeongseongs` · `/hoondok/groups/{group_id}/jeongseongs/{jeongseong_id}` | `hoondok_token` (리더) + `X-Requested-With` | HD-010 |
@@ -556,11 +556,11 @@ PATCH `{name}` → 200 `GroupDetail`. DELETE → 204, 모임 하드 삭제(`shar
 
 ### API-HD-035 `GET /hoondok/invites/{code}`
 
-→ 200 `{name, kind, leader_display_name, jeongseongs, is_member, group_id}`(전체 인원 없음, 정성 항목에 `source_note` 포함). 코드는 대소문자·하이픈·공백을 무시하고 Crockford 별칭(I·L→1, O→0)을 적용해 정규화한다. 잘못·만료·정원 초과는 모두 같은 404 `INVITE_NOT_FOUND`. 이미 모임원이면 정원과 무관하게 `is_member=true` + `group_id`. 초대 limiter `RateLimiter(10, 60)` IP 기준(036·가입 게이트와 공유) — 초과 429 `RATE_LIMIT_EXCEEDED`(`ErrorResponse`).
+→ 200 `{name, kind, leader_display_name, jeongseongs, is_member, group_id}`(전체 인원 없음, 정성 항목에 `source_note` 포함). 코드는 대소문자·하이픈·공백을 무시하고 Crockford 별칭(I·L→1, O→0)을 적용해 정규화한다. 잘못·만료·정원 초과는 모두 같은 404 `INVITE_NOT_FOUND`. 이미 모임원이면 정원과 무관하게 `is_member=true` + `group_id`. 미리보기 limiter `RateLimiter(30, 60)` IP 기준(036 참여와 따로 센다) — 초과 429 `RATE_LIMIT_EXCEEDED`(`ErrorResponse`).
 
 ### API-HD-036 `POST /hoondok/invites/{code}/join`
 
-`{display_name}` → 201 `{group_id}`. 404 `INVITE_NOT_FOUND` · 409 `ALREADY_MEMBER`·`DISPLAY_NAME_TAKEN`·`GROUP_FULL`·`JOIN_LIMIT`. 사용자 행 → 모임 행 순으로 잠근 뒤(`SELECT ... FOR UPDATE`) 인원을 다시 세어 마지막 자리 경쟁에서도 정원을 넘지 않는다. 이름·중복 가입 경쟁은 unique 제약 IntegrityError → 409.
+`{display_name}` → 201 `{group_id}`. 404 `INVITE_NOT_FOUND` · 409 `ALREADY_MEMBER`·`DISPLAY_NAME_TAKEN`·`GROUP_FULL`·`JOIN_LIMIT`. 사용자 행 → 모임 행 순으로 잠근 뒤(`SELECT ... FOR UPDATE`) 인원을 다시 세어 마지막 자리 경쟁에서도 정원을 넘지 않는다. 이름·중복 가입 경쟁은 unique 제약 IntegrityError → 409. 참여 limiter `RateLimiter(30, 60)` IP 기준(035 미리보기와 따로 세고, 가입 게이트의 모임 코드 검증과 공유) — 초과 429 `RATE_LIMIT_EXCEEDED`. 교회 Wi-Fi 처럼 NAT 하나 뒤의 여러 식구를 위한 한도이며 40bit 코드라 추측 방어는 유지된다.
 
 ### API-HD-037 `PATCH · DELETE /hoondok/groups/{group_id}/me`
 
@@ -592,7 +592,7 @@ GET → `[{id, name, member_count, created_at}]`(최신순) — 모임원 이름
 
 ### API-HD-002 변경 — 모임 초대 코드로 가입 (D4)
 
-`HOONDOK_INVITE_CODE` 가 설정돼 있고 `invite_code` 가 전역 코드와 다르면, 모임 코드 형식일 때만 `InviteCodeVerifier` 에 한 번 더 묻는다. 존재·미만료·정원 미달이면 가입 201, 아니면 기존과 같은 403 `INVITE_REQUIRED`. 모임 코드 형식 검증 시 초대 limiter 를 함께 센다. 가입만 통과시키며 모임 참여는 `API-HD-036` 을 따로 부른다. 전역 코드 미설정이면 기존대로 `invite_code` 를 무시한다(verifier 도 부르지 않는다). identity service 는 hoondok 을 import 하지 않고 `identity/dependencies.py get_identity_service` 가 `GroupInviteVerifier` 를 주입한다.
+`HOONDOK_INVITE_CODE` 가 설정돼 있고 `invite_code` 가 전역 코드와 다르면, 모임 코드 형식일 때만 `InviteCodeVerifier` 에 한 번 더 묻는다. 존재·미만료·정원 미달이면 가입 201, 아니면 기존과 같은 403 `INVITE_REQUIRED`. 모임 코드 형식 검증 시 참여 limiter(`API-HD-036`)를 함께 센다. 가입만 통과시키며 모임 참여는 `API-HD-036` 을 따로 부른다. 전역 코드 미설정이면 기존대로 `invite_code` 를 무시한다(verifier 도 부르지 않는다). identity service 는 hoondok 을 import 하지 않고 `identity/dependencies.py get_identity_service` 가 `GroupInviteVerifier` 를 주입한다.
 
 ### API-HD-011 변경 — 계정 삭제
 

@@ -26,9 +26,13 @@ from app.modules.qdrant import get_raw_client  # raw httpx — SDK HTTP/2 hang �
 from app.modules.safety.middleware import extract_client_ip
 from app.modules.safety.rate_limiter import RateLimiter
 
-# 초대 코드 추측 방어 (PLAN-HD-010 §5): API-HD-035·036 과 가입(API-HD-002)의 모임 코드 검증이 공유한다.
+# 초대 코드 추측 방어 (PLAN-HD-010 §5). 미리보기(API-HD-035)와 참여(API-HD-036)를 따로 센다.
+# 교회 Wi-Fi 처럼 NAT 하나 뒤에서 식구 10~15명이 한꺼번에 들어와도 막히지 않도록 IP 당 30회/60초로 둔다.
+# 코드는 40bit 무작위(약 1.1조 가지)라 30회/분이면 공간 절반을 훑는 데 약 3.5만 년 — 추측 방어는 충분하다.
+# 가입(API-HD-002)의 모임 코드 검증은 참여 limiter 를 함께 쓴다(코드로 들어오는 경로이므로).
 # [가정] 인메모리·단일 워커 전제 — RateLimiter 주석 참고.
-invite_limiter = RateLimiter(max_requests=10, window_seconds=60)
+invite_preview_limiter = RateLimiter(max_requests=30, window_seconds=60)
+invite_join_limiter = RateLimiter(max_requests=30, window_seconds=60)
 
 
 async def get_hoondok_repository(
@@ -127,8 +131,12 @@ async def get_notification_service(
     return NotificationService(repo)
 
 
-async def check_invite_limit(request: Request) -> None:
-    invite_limiter.check(extract_client_ip(request))
+async def check_invite_preview_limit(request: Request) -> None:
+    invite_preview_limiter.check(extract_client_ip(request))
+
+
+async def check_invite_join_limit(request: Request) -> None:
+    invite_join_limiter.check(extract_client_ip(request))
 
 
 async def get_group_repository(session: AsyncSession = Depends(get_async_session)) -> GroupRepository:
@@ -149,4 +157,4 @@ async def get_group_invite_verifier(
 ) -> GroupInviteVerifier:
     """D4 베타 게이트 — identity 가입에 주입한다(identity 는 hoondok 을 직접 import 하지 않는다)."""
     ip = extract_client_ip(request)
-    return GroupInviteVerifier(service, lambda: invite_limiter.check(ip))
+    return GroupInviteVerifier(service, lambda: invite_join_limiter.check(ip))

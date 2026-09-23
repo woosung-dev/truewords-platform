@@ -7,7 +7,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, status
 
-from app.modules.hoondok.dependencies import check_invite_limit, get_group_service
+from app.modules.hoondok.dependencies import check_invite_join_limit, check_invite_preview_limit, get_group_service
 from app.modules.hoondok.groups_schemas import (
     DisplayNameInput,
     GroupCreate,
@@ -98,7 +98,7 @@ async def regenerate_invite(
 @router.get(
     "/invites/{code}",
     response_model=InvitePreview,
-    dependencies=[Depends(check_invite_limit)],
+    dependencies=[Depends(check_invite_preview_limit)],
 )
 async def preview_invite(
     code: str,
@@ -113,7 +113,7 @@ async def preview_invite(
     "/invites/{code}/join",
     response_model=JoinResult,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(check_invite_limit), Depends(verify_csrf)],
+    dependencies=[Depends(check_invite_join_limit), Depends(verify_csrf)],
 )
 async def join_group(
     code: str,
