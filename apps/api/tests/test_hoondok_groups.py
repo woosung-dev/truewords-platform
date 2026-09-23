@@ -420,6 +420,30 @@ async def test_kst_midnight_boundary_for_readers_and_shares(ctx: Ctx):
     assert cc.put(f"/hoondok/groups/{group['id']}/shares/today", json={"body": "내일"}, headers=XHR).json()["detail"] == "READ_REQUIRED"
 
 
+async def test_detail_shares_only_from_todays_readers(ctx: Ctx):
+    """읽음 기록이 없는 작성자의 오늘 한 줄은 상세에 나오지 않는다(한 줄은 오늘 완료자만)."""
+    group, people = await _group_of_three(ctx)
+    (b, cb), (c, cc) = people["나래"], people["다온"]
+    gid = group["id"]
+    await ctx.read(b)
+    assert cb.put(f"/hoondok/groups/{gid}/shares/today", json={"body": "읽은 사람"}, headers=XHR).status_code == 200
+    # 다온은 오늘 읽지 않았는데 한 줄만 남아 있는 상태(날짜 경계·데이터 정정 등)를 직접 만든다
+    ctx.session.add(
+        GroupShare(
+            group_id=uuid.UUID(gid),
+            member_id=uuid.UUID(cc.get(f"/hoondok/groups/{gid}").json()["me"]["member_id"]),
+            share_date=TODAY,
+            body="안 읽은 사람",
+        )
+    )
+    await ctx.session.commit()
+    for client in (cb, cc, people["가람"][1]):
+        detail = client.get(f"/hoondok/groups/{gid}").json()
+        assert [share["body"] for share in detail["shares"]] == ["읽은 사람"]
+        assert "안 읽은 사람" not in res_text(detail)
+    assert cc.get(f"/hoondok/groups/{gid}").json()["me"]["has_shared_today"] is False
+
+
 # --- 권한 ------------------------------------------------------------------
 
 
@@ -645,7 +669,10 @@ async def test_jeongseongs_official_everywhere_day_index_and_limit(ctx: Ctx):
         ("예정 공식", TODAY + timedelta(days=5), 7),
         ("끝난 공식", TODAY - timedelta(days=10), 7),
     ):
-        ctx.session.add(SharedJeongseong(group_id=None, title=title, started_on=started, duration_days=days))
+        note = "협회 공지 2026-09" if title == "진행 공식" else None
+        ctx.session.add(
+            SharedJeongseong(group_id=None, title=title, started_on=started, duration_days=days, source_note=note)
+        )
     await ctx.session.commit()
 
     for client, group_id in ((ca, gid), (ctx.client((await ctx.session.execute(select(User).where(User.display_name == "라온"))).scalar_one()), other["id"])):
@@ -653,10 +680,18 @@ async def test_jeongseongs_official_everywhere_day_index_and_limit(ctx: Ctx):
         assert set(items) == {"진행 공식", "예정 공식"}
         assert (items["진행 공식"]["day_index"], items["진행 공식"]["state"], items["진행 공식"]["is_official"]) == (3, "active", True)
         assert (items["예정 공식"]["day_index"], items["예정 공식"]["state"]) == (None, "upcoming")
+        # 공식 정성 출처는 관리자 입력 그대로, 미입력은 null (QA P2-13)
+        assert (items["진행 공식"]["source_note"], items["예정 공식"]["source_note"]) == ("협회 공지 2026-09", None)
+    # API-HD-030 내 모임 · API-HD-035 초대 미리보기에도 같은 항목이 간다
+    mine = {j["title"]: j for j in ca.get("/hoondok/me/groups").json()[0]["jeongseongs"]}
+    assert mine["진행 공식"]["source_note"] == "협회 공지 2026-09"
+    preview = ctx.client(await ctx.user("마루")).get(f"/hoondok/invites/{group['invite_code']}").json()
+    assert {j["title"]: j["source_note"] for j in preview["jeongseongs"]}["진행 공식"] == "협회 공지 2026-09"
 
     url = f"/hoondok/groups/{gid}/jeongseongs"
     created = ca.post(url, json={"title": " 모임 21일 ", "duration_days": 21, "started_on": "2026-09-23"}, headers=XHR)
     assert created.status_code == 201 and created.json()["is_official"] is False and created.json()["day_index"] == 1
+    assert created.json()["source_note"] is None
     assert created.json()["title"] == "모임 21일"
     ca.post(url, json={"title": "둘", "duration_days": 7, "started_on": "2026-09-20"}, headers=XHR)
     ca.post(url, json={"title": "셋", "duration_days": 7, "started_on": "2026-10-01"}, headers=XHR)

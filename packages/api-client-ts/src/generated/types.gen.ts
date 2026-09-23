@@ -1393,6 +1393,10 @@ export type GroupJeongseongOut = {
      */
     is_official: boolean;
     /**
+     * Source Note
+     */
+    source_note: string | null;
+    /**
      * Started On
      */
     started_on: string;

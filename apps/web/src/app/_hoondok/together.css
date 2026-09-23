@@ -508,11 +508,29 @@
   .tg-sub .field:first-child {
     margin-top: 0;
   }
+  /* 줄 전체가 버튼(aria-pressed). 안의 .toggle 은 장식이라 눌림 모양을 줄의 aria-pressed 로 옮긴다 */
   .tg-toggle-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .tg-toggle-row[aria-pressed="true"] .toggle {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .tg-toggle-row[aria-pressed="true"] .toggle::after {
+    left: 21px;
+    border-color: transparent;
   }
   .tg-toggle-row b {
     display: block;
@@ -767,6 +785,7 @@
     color: var(--accent-strong);
   }
   .tg-text-btn:focus-visible,
+  .tg-toggle-row:focus-visible,
   .tg-sect-link:focus-visible,
   .tg-link:focus-visible {
     outline: 2px solid var(--accent);

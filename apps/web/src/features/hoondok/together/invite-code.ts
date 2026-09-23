@@ -4,17 +4,43 @@ const ALPHABET = /^[0-9A-HJKMNP-TV-Z]{8}$/;
 
 export const JOIN_PATH = "/hoondok/groups/join";
 
-/** 대문자화 · 공백/하이픈 제거 · Crockford 별칭(I·L→1, O→0). */
+// 하이픈 자리에 올 수 있는 문자 — 공백·하이픈·en/em dash 등 (카톡·메모 앱이 하이픈을 대시로 바꾼다)
+const SEPARATORS = /[\s\-\u2010-\u2015\u2212]+/g;
+
+/** 대문자화 · 공백/하이픈(대시 포함) 제거 · Crockford 별칭(I·L→1, O→0). */
 export function normalizeInviteCode(raw: string): string {
-  return raw
-    .toUpperCase()
-    .replace(/[\s-]+/g, "")
-    .replace(/[IL]/g, "1")
-    .replace(/O/g, "0");
+  return raw.toUpperCase().replace(SEPARATORS, "").replace(/[IL]/g, "1").replace(/O/g, "0");
 }
 
 export function isValidInviteCode(raw: string): boolean {
   return ALPHABET.test(normalizeInviteCode(raw));
+}
+
+// 문장 속 코드 — 4자 + (구분자 0~1개) + 4자. 앞뒤가 영숫자·하이픈이면 더 긴 단어의 일부라 코드로 보지 않는다
+// (예: 베타 코드 `QA-BETA-2026` 의 `BETA-2026`). 별칭 I·L·O 도 받고 정규화에서 바꾼다.
+const CODE_IN_TEXT = /(?<![0-9A-Za-z-])[0-9A-Za-z]{4}[\s\-\u2010-\u2015\u2212]?[0-9A-Za-z]{4}(?![0-9A-Za-z-])/g;
+const CODE_PARAM = /[?&]code=([^&#\s]+)/;
+
+/**
+ * 붙여 넣은 글에서 모임 초대 코드를 찾는다. 찾으면 `XXXX-XXXX`, 없으면 null.
+ * 순서: 링크의 `code` 파라미터 → 글 전체가 코드 → 글 속 첫 8자 코드("초대 코드: WMDM-5QH5").
+ */
+export function extractInviteCode(text: string): string | null {
+  const param = CODE_PARAM.exec(text)?.[1];
+  if (param) {
+    let decoded = param;
+    try {
+      decoded = decodeURIComponent(param);
+    } catch {
+      // 깨진 % 인코딩이면 원문으로 판정한다
+    }
+    if (isValidInviteCode(decoded)) return formatInviteCode(decoded);
+  }
+  if (isValidInviteCode(text)) return formatInviteCode(text);
+  for (const match of text.matchAll(CODE_IN_TEXT)) {
+    if (isValidInviteCode(match[0])) return formatInviteCode(match[0]);
+  }
+  return null;
 }
 
 /** 유효하면 `XXXX-XXXX`, 아니면 정규화 값 그대로(입력 중 표시용). */

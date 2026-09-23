@@ -112,6 +112,7 @@ def jeongseong_out(js: SharedJeongseong, today: date) -> GroupJeongseongOut | No
         day_index=day if day >= 1 else None,
         state="active" if day >= 1 else "upcoming",
         is_official=js.group_id is None,
+        source_note=js.source_note if js.group_id is None else None,
     )
 
 
@@ -239,7 +240,9 @@ class GroupService:
         leader = await self.repo.get_leader(group.id)
         reading = await self.repo.get_daily_reading(today)
         readers = await self._readers(group.id, today)
-        shares = await self.repo.list_shares(group.id, today)
+        # 한 줄은 오늘 완료자만 보인다(PLAN-HD-010 §5) — 읽음 기록이 없는 작성자의 한 줄은 방어적으로 뺀다
+        reader_ids = {member.id for member, _ in readers}
+        shares = [row for row in await self.repo.list_shares(group.id, today) if row[1].id in reader_ids]
         share_ids = [share.id for share, _ in shares]
         mine = [share.id for share, author in shares if author.id == me.id]
         counts = await self.repo.reaction_counts(mine)

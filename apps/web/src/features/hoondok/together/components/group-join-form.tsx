@@ -10,7 +10,7 @@ import { type FormEvent, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { type GroupJeongseongOut, groupErrorOf, type InvitePreview } from "../groups-api";
-import { formatInviteCode, isValidInviteCode, JOIN_PATH, normalizeInviteCode } from "../invite-code";
+import { extractInviteCode, formatInviteCode, isValidInviteCode, JOIN_PATH, normalizeInviteCode } from "../invite-code";
 import { useInvitePreview, useJoinGroup } from "../use-groups";
 import { GroupAlert, GroupLoading, GroupLoginRequired, groupHref, HOME_HREF } from "./group-common";
 import { DISPLAY_NAME_MAX } from "./group-create-form";
@@ -140,7 +140,7 @@ export function GroupJoinForm({ initialCode }: GroupJoinFormProps) {
   const myName = displayName ?? Array.from(user.display_name).slice(0, DISPLAY_NAME_MAX).join("");
 
   const checkCode = () => {
-    const normalized = normalizeInviteCode(codeInput);
+    const normalized = normalizeInviteCode(extractInviteCode(codeInput) ?? codeInput);
     if (!isValidInviteCode(normalized)) {
       setCodeError("초대 코드는 8자리예요 (예: 7K2M-Q9XD)");
       return;
@@ -193,9 +193,10 @@ export function GroupJoinForm({ initialCode }: GroupJoinFormProps) {
             autoComplete="off"
             autoCapitalize="characters"
             spellCheck={false}
-            maxLength={16}
+            // 카톡 메시지·링크 전체를 붙여 넣어도 잘리지 않게 넉넉히 받고, 코드가 보이면 그 코드만 남긴다
+            maxLength={512}
             aria-invalid={Boolean(codeError) || undefined}
-            onChange={(event) => setCodeInput(event.target.value)}
+            onChange={(event) => setCodeInput(extractInviteCode(event.target.value) ?? event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();

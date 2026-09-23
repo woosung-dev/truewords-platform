@@ -235,19 +235,21 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
 
         <div className="field">
           <div className="card">
-            <div className="tg-toggle-row">
+            {/* 줄 전체가 토글 버튼이다 — 글자를 눌러도 켜지고 누르는 영역이 44px 이상이다(어르신 사용자) */}
+            <button
+              className="tg-toggle-row"
+              type="button"
+              aria-pressed={hasJeongseong}
+              aria-labelledby="gc-js-label"
+              aria-describedby="gc-js-desc"
+              onClick={() => setHasJeongseong((value) => !value)}
+            >
               <span>
                 <b id="gc-js-label">모임 정성 열기</b>
-                <span>선택 · 공식 정성과 따로 우리 모임이 드리는 정성</span>
+                <span id="gc-js-desc">선택 · 공식 정성과 따로 우리 모임이 드리는 정성</span>
               </span>
-              <button
-                className="toggle"
-                type="button"
-                aria-pressed={hasJeongseong}
-                aria-labelledby="gc-js-label"
-                onClick={() => setHasJeongseong((value) => !value)}
-              />
-            </div>
+              <span className="toggle" aria-hidden="true" />
+            </button>
             {hasJeongseong && (
               <div className="tg-sub">
                 <div className="field">

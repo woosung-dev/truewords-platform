@@ -83,6 +83,7 @@ const JEONGSEONG_OFFICIAL = {
   day_index: 12,
   state: "active" as const,
   is_official: true,
+  source_note: "협회 공지" as string | null,
 };
 
 function detail(overrides: Partial<GroupDetail> = {}): GroupDetail {
@@ -237,7 +238,8 @@ describe("SCR-PWA-019 모임 만들기", () => {
     fireEvent.change(screen.getByLabelText("모임 시간 (선택)"), { target: { value: "06:30" } });
     const toggle = screen.getByRole("button", { name: "모임 정성 열기" });
     expect(toggle).toHaveAttribute("aria-pressed", "false");
-    fireEvent.click(toggle);
+    // 줄 전체가 버튼이라 설명 글자를 눌러도 켜진다 (QA P2-8)
+    fireEvent.click(screen.getByText("선택 · 공식 정성과 따로 우리 모임이 드리는 정성"));
     expect(toggle).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByLabelText("정성 이름")).toHaveAttribute("maxLength", "24");
     fireEvent.change(screen.getByLabelText("정성 이름"), { target: { value: "우리 모임 정성" } });
@@ -313,6 +315,21 @@ describe("SCR-PWA-019 모임 만들기", () => {
 });
 
 describe("SCR-PWA-018 모임 참여", () => {
+  it("카톡 메시지·링크 전체를 붙여 넣어도 코드만 남는다 (QA P2-10)", async () => {
+    vi.mocked(groupsAPI.previewInvite).mockResolvedValue(PREVIEW);
+    renderUi(<GroupJoinForm />);
+    const input = await screen.findByLabelText("초대 코드");
+    expect(Number(input.getAttribute("maxLength"))).toBeGreaterThan(100);
+    fireEvent.change(input, { target: { value: "[새벽별 훈독모임] 초대 코드: 7k2m–q9xd" } });
+    expect(input).toHaveValue("7K2M-Q9XD");
+    fireEvent.change(input, {
+      target: { value: "새벽별 훈독모임\nhttps://truewords.woosung.dev/hoondok/groups/join?code=7K2M-Q9XD" },
+    });
+    expect(input).toHaveValue("7K2M-Q9XD");
+    fireEvent.click(screen.getByRole("button", { name: "확인" }));
+    await waitFor(() => expect(groupsAPI.previewInvite).toHaveBeenCalledWith("7K2MQ9XD"));
+  });
+
   it("?code= 를 채우고 정규화한 코드로 미리보기 — 인원 수 없이 이름·리더·정성 + 공개 안내", async () => {
     vi.mocked(groupsAPI.previewInvite).mockResolvedValue(PREVIEW);
     renderUi(<GroupJoinForm initialCode=" 7k2m q9xd " />);
@@ -452,6 +469,8 @@ describe("SCR-PWA-017 모임 상세", () => {
     // 정성은 모임 전체 N일차 / 총 M일 + 공식 표시
     expect(screen.getByText("12일차").parentElement).toHaveTextContent("12일차/ 총 21일");
     expect(screen.getByText("공식")).toBeInTheDocument();
+    // 출처는 관리자가 적은 source_note 그대로 (QA P2-13)
+    expect(screen.getByText("공식 정성 · 출처 · 협회 공지")).toBeInTheDocument();
     // 오늘 범위는 훈독하기로, 설정 진입은 모두에게
     expect(screen.getByRole("link", { name: /오늘 범위/ })).toHaveAttribute("href", "/hoondok/read");
     expect(screen.getByRole("link", { name: /모임 설정/ })).toHaveAttribute("href", `/hoondok/groups/${G}/settings`);
@@ -473,6 +492,26 @@ describe("SCR-PWA-017 모임 상세", () => {
     expect(screen.getAllByRole("button", { name: "함께 머물렀어요" })).toHaveLength(1);
     expect(screen.getByRole("link", { name: "고치기" })).toHaveAttribute("href", `/hoondok/groups/${G}/share`);
     expect(screen.getByRole("link", { name: "내 한 줄 고치기" })).toBeInTheDocument();
+  });
+
+  it("공식 정성 출처가 없으면 출처 문구를 지어내지 않는다 (QA P2-13)", async () => {
+    vi.mocked(groupsAPI.get).mockResolvedValue(
+      detail({ jeongseongs: [{ ...JEONGSEONG_OFFICIAL, source_note: null }] }),
+    );
+    renderUi(<GroupDetailView groupId={G} />);
+    expect(await screen.findByText("공식 정성")).toBeInTheDocument();
+    expect(screen.queryByText(/출처|협회 공지/)).not.toBeInTheDocument();
+  });
+
+  it("내 한 줄에 반응이 0개면 '0명이 함께 머물렀어요' 를 보이지 않는다 (QA P2-2)", async () => {
+    const base = detail();
+    vi.mocked(groupsAPI.get).mockResolvedValue({
+      ...base,
+      shares: base.shares.map((share) => (share.is_mine ? { ...share, reaction_count: 0 } : share)),
+    });
+    renderUi(<GroupDetailView groupId={G} />);
+    await screen.findByRole("button", { name: "함께 머물렀어요" });
+    expect(screen.queryByText(/명이 함께 머물렀어요/)).not.toBeInTheDocument();
   });
 
   it("오늘 훈독 전이면 한 줄 남기기 대신 훈독하기", async () => {
@@ -614,8 +653,10 @@ describe("SCR-PWA-021 모임 설정", () => {
     renderUi(<GroupSettings groupId={G} />);
     await screen.findByText("식구 3명");
     // 나 자신에게는 내보내기가 없다
-    expect(screen.getAllByRole("button", { name: "내보내기", expanded: false })).toHaveLength(2);
-    fireEvent.click(screen.getAllByRole("button", { name: "내보내기", expanded: false })[0]);
+    // 여는 버튼마다 대상 이름이 접근 이름에 들어간다 (QA P2-4)
+    expect(screen.getAllByRole("button", { name: /^.+ 내보내기$/, expanded: false })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "서연 내보내기" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "미카 내보내기" }));
     const kick = screen.getByRole("group", { name: "미카 님 내보내기 확인" });
     fireEvent.click(within(kick).getByRole("button", { name: "내보내기" }));
     await waitFor(() => expect(groupsAPI.removeMember).toHaveBeenCalledWith(G, "m-2"));
@@ -680,6 +721,9 @@ describe("SCR-PWA-021 모임 설정", () => {
     fireEvent.click(screen.getByRole("button", { name: "나가기" }));
     const box = screen.getByRole("group", { name: "모임 나가기 확인" });
     expect(box).toHaveTextContent("나가면 내 한 줄도 함께 지워져요");
+    // 받침 없는 "모임" → 조사 "을" (QA P2-5)
+    expect(box).toHaveTextContent("새벽별 훈독모임을 나갈까요?");
+    expect(box).not.toHaveTextContent("을(를)");
     fireEvent.click(within(box).getByRole("button", { name: "나가기" }));
     await waitFor(() => expect(groupsAPI.leave).toHaveBeenCalledWith(G));
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/hoondok"));

@@ -2397,6 +2397,17 @@
             "title": "Is Official",
             "type": "boolean"
           },
+          "source_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Note"
+          },
           "started_on": {
             "format": "date",
             "title": "Started On",
@@ -2422,7 +2433,8 @@
           "duration_days",
           "day_index",
           "state",
-          "is_official"
+          "is_official",
+          "source_note"
         ],
         "title": "GroupJeongseongOut",
         "type": "object"
