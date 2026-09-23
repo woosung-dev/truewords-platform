@@ -229,9 +229,15 @@ export function WordsScreen({
   if (query.isPending)
     return (
       <section className="col col--read">
-        <p role="status" aria-busy="true">
-          원문을 불러오고 있어요
-        </p>
+        <div className="wd-loading" role="status" aria-busy="true">
+          {/* 문구는 스크린리더용, 화면에는 머리글·단락 자리만 보인다(PLAN-HD-008 트랙 C) */}
+          <span className="wd-sr">원문을 불러오고 있어요</span>
+          <span className="wd-skel wd-skel--head" aria-hidden="true" />
+          <span className="wd-skel wd-skel--meta" aria-hidden="true" />
+          {[0, 1, 2, 3].map((index) => (
+            <span key={index} className="wd-skel wd-skel--verse" aria-hidden="true" />
+          ))}
+        </div>
       </section>
     );
   if (query.isError || !doc) {

@@ -287,6 +287,15 @@ describe("원문 목차·단락", () => {
     expect(screen.getByText("전 본부교회")).toBeInTheDocument();
     expect(screen.queryByText("날짜 확인되지 않음")).toBeNull();
   });
+  it("불러오는 동안 머리글·단락 자리를 보이고 문구는 상태 영역에 남긴다", async () => {
+    vi.mocked(libraryAPI.words).mockReturnValue(new Promise(() => {}));
+    const view = await showWords();
+    const status = await screen.findByRole("status");
+    expect(status).toHaveAttribute("aria-busy", "true");
+    expect(status).toHaveTextContent("원문을 불러오고 있어요");
+    expect(view.container.querySelectorAll(".wd-skel--verse")).toHaveLength(4);
+    expect(view.container.querySelector(".wd-skel--head")).not.toBeNull();
+  });
   it("머리글에 파일 이름·결측 문구를 보이지 않는다", async () => {
     vi.mocked(libraryAPI.sections).mockResolvedValue({ volume: VOLUME, sections: [] });
     vi.mocked(libraryAPI.words).mockResolvedValue({ ...WORDS, section: null });
@@ -511,6 +520,8 @@ describe("듣기 바", () => {
     });
     try {
       const view = await showWords();
+      // 재생 전에는 총 단락 수만 보인다
+      expect(await screen.findByText("2단락")).toBeInTheDocument();
       fireEvent.click(await screen.findByRole("button", { name: "듣기 시작" }));
       await waitFor(() => expect(document.getElementById("verse-0")).toHaveClass("verse--speaking"));
       expect(screen.getByText("단락 1 / 2")).toBeInTheDocument();
@@ -522,6 +533,7 @@ describe("듣기 바", () => {
         `${wordsHref(VOLUME)}?page=2`,
       );
       expect(view.container.querySelector(".verse--speaking")).toBeNull();
+      expect(screen.getByText("2단락")).toBeInTheDocument();
     } finally {
       Reflect.deleteProperty(window, "speechSynthesis");
       Reflect.deleteProperty(window, "SpeechSynthesisUtterance");

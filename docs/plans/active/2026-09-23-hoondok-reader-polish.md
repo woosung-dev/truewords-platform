@@ -30,7 +30,7 @@
 |---|---|---|---|
 | A API `display_text` | `apps/api/app/modules/hoondok/{display_text.py,journey_schemas.py,journey_service.py}` · `apps/api/tests/{test_display_text.py,test_hoondok_journey.py,fixtures/hoondok_cheonseong_p1_chunks.json}` · `contracts/openapi.json` · `packages/api-client-ts/src/generated` · `docs/specs/api/hoondok-api.md` | 규칙 단위 테스트 + 천성경 1구간 청크 0~4 스냅샷, `contracts:check` 추가만, 라이브 :8010 에서 `- 2 -`·`머 리 말` 0건·청크 3→4 중복 0·맹세 1~8 각각 문단 | ✅ 커밋 `853dcd9` |
 | B 원문 화면 | `apps/web/src/features/hoondok/library/{api.ts,components/*,tts/*}` · `apps/web/src/app/_hoondok/library.css` · `apps/web/src/test/{hoondok-library*.test.tsx,hoondok-speech-reader.test.tsx}` · `tests/e2e/hoondok-library.spec.ts` | Vitest: 본문 탭 시트·선택 중 미열림·결측 문구 없음·번호 +1·문단/형광펜·듣기 바 + 훅(재생→다음 단락·일시정지·언마운트 취소·미지원·속도 재시작·옛 세대 무시). `hoondok:check` 통과 | ✅ 커밋 `78d554b` |
-| C Playwright 점검 | (메인 세션) | 실브라우저에서 문단·탭·듣기 바 확인 | ⏳ 메인 세션 Playwright 점검 — 대기 |
+| C Playwright 점검 | (메인 세션) | 실브라우저에서 문단·탭·듣기 바 확인 | ✅ 통과(문단·본문 탭·형광펜 유지·듣기 재생/일시정지/이어 듣기·구간 이동 시 취소·리더 바 가림 없음). 반영 3건: 구간 이동 버튼 44px · 재생 전 "N단락" · 로딩 스켈레톤(모션 줄이기면 정지) |
 | D 문서 | 이 문서 · `docs/README.md` · `docs/TODO.md` · `PLAN-HD-007` §2-8 표시 · `apps/web/AGENTS.md` | docs-links 새 오류 0 | ✅ 이 커밋 |
 
 ## 4. 무엇을 바꿨나
@@ -64,7 +64,7 @@
 - [x] 본문 탭으로 시트가 열리고 드래그 선택 중엔 열리지 않는다
 - [x] 머리글에 파일 이름·결측 문구가 없다
 - [x] 듣기: 재생 → 다음 단락 → 끝, 일시정지·이어 듣기, 이탈·구간 변경 시 취소, 속도 변경 재시작
-- [ ] 실브라우저(메인 세션 Playwright) 점검 — 트랙 C
+- [x] 실브라우저(메인 세션 Playwright) 점검 — 트랙 C
 
 ## 6. 한계 (확인된 사실)
 

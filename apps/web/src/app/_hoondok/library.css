@@ -789,4 +789,54 @@
   .tts-next {
     margin-top: 8px;
   }
+
+  /* 트랙 C: 구간 이동 버튼 탭 대상 44px (공용 .btn--sm 38px 은 그대로 두고 이 화면만) */
+  .words-pages .btn {
+    height: 44px;
+  }
+
+  /* 트랙 C: 원문 로딩 자리 — 머리글 + 단락 4개 높이. 토큰 색만, 모션 줄이기면 멈춘다 */
+  .wd-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 6px;
+  }
+  .wd-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .wd-skel {
+    display: block;
+    border-radius: var(--r-xs);
+    background: var(--surface-2);
+    animation: wd-skel-pulse 1.6s ease-in-out infinite;
+  }
+  .wd-skel--head {
+    width: 45%;
+    height: 22px;
+  }
+  .wd-skel--meta {
+    width: 30%;
+    height: 14px;
+    margin-bottom: 10px;
+  }
+  .wd-skel--verse {
+    height: 92px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wd-skel {
+      animation: none;
+    }
+  }
+}
+
+@keyframes wd-skel-pulse {
+  50% {
+    opacity: 0.55;
+  }
 }

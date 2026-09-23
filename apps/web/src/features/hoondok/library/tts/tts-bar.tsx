@@ -67,9 +67,8 @@ export function TtsBar({
             <i className="progress__fill" style={{ width: `${percent}%` }} />
           </span>
         </span>
-        <span className="audio__t">
-          단락 {position} / {total}
-        </span>
+        {/* 재생·일시정지 중에만 위치를 보인다. 재생 전·끝난 뒤에는 이 구간의 단락 수만 */}
+        <span className="audio__t">{isActive ? `단락 ${position} / ${total}` : `${total}단락`}</span>
         <button
           type="button"
           className="audio__rate"
