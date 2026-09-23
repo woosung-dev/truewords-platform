@@ -1,10 +1,12 @@
 """훈독 DI 조립."""
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.common.database import get_async_session
 from app.core.config import settings
+from app.modules.hoondok.groups_repository import GroupRepository
+from app.modules.hoondok.groups_service import GroupAdminService, GroupInviteVerifier, GroupService
 from app.modules.hoondok.journey_repository import JourneyRepository
 from app.modules.hoondok.journey_service import JourneyService
 from app.modules.hoondok.library_repository import LibraryRepository
@@ -21,6 +23,12 @@ from app.modules.hoondok.service import (
 )
 from app.modules.hoondok.together_service import TogetherService
 from app.modules.qdrant import get_raw_client  # raw httpx — SDK HTTP/2 hang 회피 (docs/dev-log/47)
+from app.modules.safety.middleware import extract_client_ip
+from app.modules.safety.rate_limiter import RateLimiter
+
+# 초대 코드 추측 방어 (PLAN-HD-010 §5): API-HD-035·036 과 가입(API-HD-002)의 모임 코드 검증이 공유한다.
+# [가정] 인메모리·단일 워커 전제 — RateLimiter 주석 참고.
+invite_limiter = RateLimiter(max_requests=10, window_seconds=60)
 
 
 async def get_hoondok_repository(
@@ -117,3 +125,28 @@ async def get_notification_service(
     repo: NotificationRepository = Depends(get_notification_repository),
 ) -> NotificationService:
     return NotificationService(repo)
+
+
+async def check_invite_limit(request: Request) -> None:
+    invite_limiter.check(extract_client_ip(request))
+
+
+async def get_group_repository(session: AsyncSession = Depends(get_async_session)) -> GroupRepository:
+    return GroupRepository(session)
+
+
+async def get_group_service(repo: GroupRepository = Depends(get_group_repository)) -> GroupService:
+    return GroupService(repo)
+
+
+async def get_group_admin_service(repo: GroupRepository = Depends(get_group_repository)) -> GroupAdminService:
+    return GroupAdminService(repo)
+
+
+async def get_group_invite_verifier(
+    request: Request,
+    service: GroupService = Depends(get_group_service),
+) -> GroupInviteVerifier:
+    """D4 베타 게이트 — identity 가입에 주입한다(identity 는 hoondok 을 직접 import 하지 않는다)."""
+    ip = extract_client_ip(request)
+    return GroupInviteVerifier(service, lambda: invite_limiter.check(ip))

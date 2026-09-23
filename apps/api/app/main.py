@@ -34,6 +34,8 @@ from app.modules.hoondok.rights_admin_router import router as rights_admin_route
 from app.modules.hoondok.client_errors import router as client_errors_router
 from app.modules.hoondok.notifications_router import router as hoondok_notifications_router
 from app.modules.hoondok.admin_router import admin_router as hoondok_admin_router
+from app.modules.hoondok.groups_admin_router import groups_admin_router, jeongseong_admin_router
+from app.modules.hoondok.groups_router import router as hoondok_groups_router
 from app.modules.identity.router import router as identity_router
 from app.core.common.exception_handlers import (
     embedding_failed_handler,
@@ -133,6 +135,7 @@ app.include_router(client_errors_router)
 app.include_router(hoondok_router)  # 훈독 공개 읽기 — 비로그인 (PLAN-HD-001 Phase 1)
 app.include_router(hoondok_notifications_router)  # 훈독 알림 설정·푸시 구독 (PLAN-HD-006)
 app.include_router(hoondok_library_router)  # 훈독 서고 3계층·읽기 기록 (PLAN-HD-007)
+app.include_router(hoondok_groups_router)  # 훈독 함께 읽는 모임 /hoondok/groups·invites·me/groups (PLAN-HD-010)
 app.include_router(identity_router)  # 훈독 계정 /hoondok/auth/* — 쿠키 hoondok_token (Phase 2)
 
 # ponytail: 레드팀 시연 한시 게이트 — dependencies.require_admin_gate 참조. 시연 후 회수.
@@ -147,6 +150,8 @@ app.include_router(chunks_router)  # 공개 유지 — 채팅 원문보기 모�
 app.include_router(analytics_router, dependencies=_ADMIN_GATE)
 app.include_router(rights_admin_router, dependencies=_ADMIN_GATE)
 app.include_router(hoondok_admin_router, dependencies=_ADMIN_GATE)  # 훈독 편성 /admin/hoondok/daily-readings (Phase 3 A)
+app.include_router(jeongseong_admin_router, dependencies=_ADMIN_GATE)  # 공식 정성 /admin/hoondok/jeongseongs (PLAN-HD-010)
+app.include_router(groups_admin_router, dependencies=_ADMIN_GATE)  # 모임 목록·삭제 /admin/hoondok/groups (PLAN-HD-010)
 
 
 @app.get("/health")
