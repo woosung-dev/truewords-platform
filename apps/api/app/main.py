@@ -29,6 +29,7 @@ from app.modules.datasource.router import router as datasource_router
 from app.modules.datasource.chunks_router import chunks_router
 from app.modules.hoondok.router import router as hoondok_router
 from app.modules.hoondok.journey_router import router as journey_router
+from app.modules.hoondok.library_router import router as hoondok_library_router
 from app.modules.hoondok.rights_admin_router import router as rights_admin_router
 from app.modules.hoondok.client_errors import router as client_errors_router
 from app.modules.hoondok.notifications_router import router as hoondok_notifications_router
@@ -131,6 +132,7 @@ app.include_router(journey_router)
 app.include_router(client_errors_router)
 app.include_router(hoondok_router)  # 훈독 공개 읽기 — 비로그인 (PLAN-HD-001 Phase 1)
 app.include_router(hoondok_notifications_router)  # 훈독 알림 설정·푸시 구독 (PLAN-HD-006)
+app.include_router(hoondok_library_router)  # 훈독 서고 3계층·읽기 기록 (PLAN-HD-007)
 app.include_router(identity_router)  # 훈독 계정 /hoondok/auth/* — 쿠키 hoondok_token (Phase 2)
 
 # ponytail: 레드팀 시연 한시 게이트 — dependencies.require_admin_gate 참조. 시연 후 회수.

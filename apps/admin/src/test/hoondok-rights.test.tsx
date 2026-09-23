@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import RightsPage from "@/app/(dashboard)/hoondok/rights/page";
 import { rightsAPI } from "@/features/hoondok/rights-api";
 
-vi.mock("@/features/hoondok/rights-api", () => ({ rightsAPI: { list: vi.fn(), create: vi.fn(), update: vi.fn() } }));
+vi.mock("@/features/hoondok/rights-api", () => ({
+  rightsAPI: { list: vi.fn(), create: vi.fn(), update: vi.fn(), seriesSummary: vi.fn(), bulk: vi.fn() },
+}));
 const record = {
   id: "right-1",
   volume: "v",
@@ -32,6 +34,8 @@ function show() {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(rightsAPI.list).mockResolvedValue([]);
+  // 개별 폼 시나리오는 시리즈 요약을 비워 둔다 — 요약은 hoondok-rights-series.test.tsx 가 본다.
+  vi.mocked(rightsAPI.seriesSummary).mockResolvedValue({ items: [] });
 });
 describe("권리 원장", () => {
   it("빈 원장에서도 pending과 세 범위 비허용으로 등록할 수 있다", async () => {

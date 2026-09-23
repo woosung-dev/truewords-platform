@@ -127,6 +127,50 @@ export type BodyUploadDocumentAdminDataSourcesUploadPost = {
 };
 
 /**
+ * BulkRightsInput
+ */
+export type BulkRightsInput = {
+    /**
+     * Authority Grade
+     */
+    authority_grade?: 'O1' | 'O2' | 'O3' | 'O4' | 'O5' | 'R' | null;
+    /**
+     * Book Series
+     */
+    book_series: string;
+    /**
+     * Scope Full Text
+     */
+    scope_full_text?: boolean;
+    /**
+     * Scope Jeongseong
+     */
+    scope_jeongseong?: boolean;
+    /**
+     * Scope Search
+     */
+    scope_search?: boolean;
+    /**
+     * Status
+     */
+    status: 'pending' | 'allowed' | 'withdrawn';
+};
+
+/**
+ * BulkRightsResponse
+ */
+export type BulkRightsResponse = {
+    /**
+     * Book Series
+     */
+    book_series: string;
+    /**
+     * Updated
+     */
+    updated: number;
+};
+
+/**
  * CategoryDocumentStats
  *
  * 카테고리별 Qdrant 문서 통계.
@@ -485,6 +529,10 @@ export type ContentRightResponse = {
      * Book Series
      */
     book_series?: string | null;
+    /**
+     * Chunk Count
+     */
+    chunk_count?: number | null;
     /**
      * Created At
      */
@@ -1469,6 +1517,46 @@ export type LibraryResponse = {
      * Items
      */
     items: Array<LibraryItem>;
+    /**
+     * Works
+     */
+    works?: Array<LibraryWork>;
+};
+
+/**
+ * LibraryWork
+ *
+ * `book_series` 로 묶은 저작물 1건. 허용 권이 1건 이상인 시리즈만 목록에 오른다.
+ */
+export type LibraryWork = {
+    /**
+     * Allowed Count
+     */
+    allowed_count: number;
+    /**
+     * Authority Grade
+     */
+    authority_grade: 'O1' | 'O2' | 'O3' | 'O4' | 'O5' | 'R';
+    /**
+     * Scope Full Text
+     */
+    scope_full_text: boolean;
+    /**
+     * Scope Search
+     */
+    scope_search: boolean;
+    /**
+     * Series
+     */
+    series: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Volume Count
+     */
+    volume_count: number;
 };
 
 /**
@@ -1483,6 +1571,84 @@ export type LoginRequest = {
      * Password
      */
     password: string;
+};
+
+/**
+ * MarkInput
+ */
+export type MarkInput = {
+    /**
+     * Chunk Index
+     */
+    chunk_index: number;
+    /**
+     * Color
+     */
+    color?: number | null;
+    /**
+     * Kind
+     */
+    kind: 'bookmark' | 'highlight';
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Volume
+     */
+    volume: string;
+};
+
+/**
+ * MarkItem
+ */
+export type MarkItem = {
+    /**
+     * Chunk Id
+     */
+    chunk_id: string;
+    /**
+     * Chunk Index
+     */
+    chunk_index: number;
+    /**
+     * Color
+     */
+    color: number | null;
+    /**
+     * Kind
+     */
+    kind: 'bookmark' | 'highlight';
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Note
+     */
+    note: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Volume
+     */
+    volume: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * MarksResponse
+ */
+export type MarksResponse = {
+    /**
+     * Items
+     */
+    items: Array<MarkItem>;
 };
 
 /**
@@ -1952,6 +2118,56 @@ export type ReactionToggleResponse = {
 };
 
 /**
+ * ReadingPositionInput
+ */
+export type ReadingPositionInput = {
+    /**
+     * Chunk Index
+     */
+    chunk_index: number;
+};
+
+/**
+ * ReadingPositionItem
+ */
+export type ReadingPositionItem = {
+    /**
+     * Chunk Index
+     */
+    chunk_index: number;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Series
+     */
+    series: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Volume
+     */
+    volume: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * ReadingPositionsResponse
+ */
+export type ReadingPositionsResponse = {
+    /**
+     * Items
+     */
+    items: Array<ReadingPositionItem>;
+};
+
+/**
  * SearchStats
  */
 export type SearchStats = {
@@ -2043,6 +2259,146 @@ export type SearchTiersConfig = {
      * Weighted Sources
      */
     weighted_sources?: Array<WeightedSourceSchema>;
+};
+
+/**
+ * SectionItem
+ */
+export type SectionItem = {
+    /**
+     * End Chunk Index
+     */
+    end_chunk_index: number;
+    /**
+     * Level
+     */
+    level: number;
+    /**
+     * Place
+     */
+    place: string | null;
+    /**
+     * Position
+     */
+    position: number;
+    /**
+     * Spoken On
+     */
+    spoken_on: string | null;
+    /**
+     * Start Chunk Index
+     */
+    start_chunk_index: number;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * SectionsResponse
+ */
+export type SectionsResponse = {
+    /**
+     * Sections
+     */
+    sections: Array<SectionItem>;
+    /**
+     * Volume
+     */
+    volume: string;
+};
+
+/**
+ * SeriesDetailResponse
+ */
+export type SeriesDetailResponse = {
+    /**
+     * Authority Grade
+     */
+    authority_grade: 'O1' | 'O2' | 'O3' | 'O4' | 'O5' | 'R';
+    /**
+     * Series
+     */
+    series: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Volumes
+     */
+    volumes: Array<SeriesVolume>;
+};
+
+/**
+ * SeriesSummaryItem
+ */
+export type SeriesSummaryItem = {
+    /**
+     * Allowed
+     */
+    allowed: number;
+    /**
+     * Chunk Count
+     */
+    chunk_count: number | null;
+    /**
+     * Pending
+     */
+    pending: number;
+    /**
+     * Registered
+     */
+    registered: number;
+    /**
+     * Series
+     */
+    series: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Withdrawn
+     */
+    withdrawn: number;
+};
+
+/**
+ * SeriesSummaryResponse
+ */
+export type SeriesSummaryResponse = {
+    /**
+     * Items
+     */
+    items: Array<SeriesSummaryItem>;
+};
+
+/**
+ * SeriesVolume
+ */
+export type SeriesVolume = {
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Scope Full Text
+     */
+    scope_full_text: boolean;
+    /**
+     * Section Count
+     */
+    section_count: number;
+    /**
+     * Total Chunks
+     */
+    total_chunks: number | null;
+    /**
+     * Volume
+     */
+    volume: string;
 };
 
 /**
@@ -2818,6 +3174,26 @@ export type WordSearchResult = {
 };
 
 /**
+ * WordSection
+ *
+ * API-HD-016 응답에 동봉하는 현재 구간 요약.
+ */
+export type WordSection = {
+    /**
+     * Level
+     */
+    level: number;
+    /**
+     * Position
+     */
+    position: number;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
  * WordsResponse
  */
 export type WordsResponse = {
@@ -2841,6 +3217,7 @@ export type WordsResponse = {
      * Page Size
      */
     page_size: number;
+    section?: WordSection | null;
     /**
      * Total Chunks
      */
@@ -3892,6 +4269,47 @@ export type CreateContentRightAdminHoondokContentRightsPostResponses = {
 
 export type CreateContentRightAdminHoondokContentRightsPostResponse = CreateContentRightAdminHoondokContentRightsPostResponses[keyof CreateContentRightAdminHoondokContentRightsPostResponses];
 
+export type BulkUpdateContentRightsAdminHoondokContentRightsBulkPostData = {
+    body: BulkRightsInput;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/content-rights/bulk';
+};
+
+export type BulkUpdateContentRightsAdminHoondokContentRightsBulkPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BulkUpdateContentRightsAdminHoondokContentRightsBulkPostError = BulkUpdateContentRightsAdminHoondokContentRightsBulkPostErrors[keyof BulkUpdateContentRightsAdminHoondokContentRightsBulkPostErrors];
+
+export type BulkUpdateContentRightsAdminHoondokContentRightsBulkPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: BulkRightsResponse;
+};
+
+export type BulkUpdateContentRightsAdminHoondokContentRightsBulkPostResponse = BulkUpdateContentRightsAdminHoondokContentRightsBulkPostResponses[keyof BulkUpdateContentRightsAdminHoondokContentRightsBulkPostResponses];
+
+export type GetSeriesSummaryAdminHoondokContentRightsSeriesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/content-rights/series';
+};
+
+export type GetSeriesSummaryAdminHoondokContentRightsSeriesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SeriesSummaryResponse;
+};
+
+export type GetSeriesSummaryAdminHoondokContentRightsSeriesGetResponse = GetSeriesSummaryAdminHoondokContentRightsSeriesGetResponses[keyof GetSeriesSummaryAdminHoondokContentRightsSeriesGetResponses];
+
 export type UpdateContentRightAdminHoondokContentRightsRightIdPutData = {
     body: ContentRightInput;
     path: {
@@ -4625,6 +5043,36 @@ export type GetLibraryHoondokLibraryGetResponses = {
 
 export type GetLibraryHoondokLibraryGetResponse = GetLibraryHoondokLibraryGetResponses[keyof GetLibraryHoondokLibraryGetResponses];
 
+export type GetSeriesHoondokLibrarySeriesGetData = {
+    body?: never;
+    path: {
+        /**
+         * Series
+         */
+        series: string;
+    };
+    query?: never;
+    url: '/hoondok/library/{series}';
+};
+
+export type GetSeriesHoondokLibrarySeriesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetSeriesHoondokLibrarySeriesGetError = GetSeriesHoondokLibrarySeriesGetErrors[keyof GetSeriesHoondokLibrarySeriesGetErrors];
+
+export type GetSeriesHoondokLibrarySeriesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SeriesDetailResponse;
+};
+
+export type GetSeriesHoondokLibrarySeriesGetResponse = GetSeriesHoondokLibrarySeriesGetResponses[keyof GetSeriesHoondokLibrarySeriesGetResponses];
+
 export type GetHistoryHoondokMeHistoryGetData = {
     body?: never;
     path?: never;
@@ -4730,6 +5178,109 @@ export type GetJeongseongTodayHoondokMeJeongseongTodayGetResponses = {
 
 export type GetJeongseongTodayHoondokMeJeongseongTodayGetResponse = GetJeongseongTodayHoondokMeJeongseongTodayGetResponses[keyof GetJeongseongTodayHoondokMeJeongseongTodayGetResponses];
 
+export type GetMarksHoondokMeMarksGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Volume
+         */
+        volume?: string | null;
+        /**
+         * Kind
+         */
+        kind?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/hoondok/me/marks';
+};
+
+export type GetMarksHoondokMeMarksGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMarksHoondokMeMarksGetError = GetMarksHoondokMeMarksGetErrors[keyof GetMarksHoondokMeMarksGetErrors];
+
+export type GetMarksHoondokMeMarksGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MarksResponse;
+};
+
+export type GetMarksHoondokMeMarksGetResponse = GetMarksHoondokMeMarksGetResponses[keyof GetMarksHoondokMeMarksGetResponses];
+
+export type DeleteMarkHoondokMeMarksChunkIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Chunk Id
+         */
+        chunk_id: string;
+    };
+    query?: {
+        /**
+         * Kind
+         */
+        kind?: string | null;
+    };
+    url: '/hoondok/me/marks/{chunk_id}';
+};
+
+export type DeleteMarkHoondokMeMarksChunkIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteMarkHoondokMeMarksChunkIdDeleteError = DeleteMarkHoondokMeMarksChunkIdDeleteErrors[keyof DeleteMarkHoondokMeMarksChunkIdDeleteErrors];
+
+export type DeleteMarkHoondokMeMarksChunkIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteMarkHoondokMeMarksChunkIdDeleteResponse = DeleteMarkHoondokMeMarksChunkIdDeleteResponses[keyof DeleteMarkHoondokMeMarksChunkIdDeleteResponses];
+
+export type PutMarkHoondokMeMarksChunkIdPutData = {
+    body: MarkInput;
+    path: {
+        /**
+         * Chunk Id
+         */
+        chunk_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/marks/{chunk_id}';
+};
+
+export type PutMarkHoondokMeMarksChunkIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutMarkHoondokMeMarksChunkIdPutError = PutMarkHoondokMeMarksChunkIdPutErrors[keyof PutMarkHoondokMeMarksChunkIdPutErrors];
+
+export type PutMarkHoondokMeMarksChunkIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: MarkItem;
+};
+
+export type PutMarkHoondokMeMarksChunkIdPutResponse = PutMarkHoondokMeMarksChunkIdPutResponses[keyof PutMarkHoondokMeMarksChunkIdPutResponses];
+
 export type GetNotificationsHoondokMeNotificationsGetData = {
     body?: never;
     path?: never;
@@ -4825,6 +5376,70 @@ export type CreatePushSubscriptionHoondokMePushPostResponses = {
 };
 
 export type CreatePushSubscriptionHoondokMePushPostResponse = CreatePushSubscriptionHoondokMePushPostResponses[keyof CreatePushSubscriptionHoondokMePushPostResponses];
+
+export type PutReadingPositionHoondokMeReadingPositionVolumePutData = {
+    body: ReadingPositionInput;
+    path: {
+        /**
+         * Volume
+         */
+        volume: string;
+    };
+    query?: never;
+    url: '/hoondok/me/reading-position/{volume}';
+};
+
+export type PutReadingPositionHoondokMeReadingPositionVolumePutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutReadingPositionHoondokMeReadingPositionVolumePutError = PutReadingPositionHoondokMeReadingPositionVolumePutErrors[keyof PutReadingPositionHoondokMeReadingPositionVolumePutErrors];
+
+export type PutReadingPositionHoondokMeReadingPositionVolumePutResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReadingPositionItem;
+};
+
+export type PutReadingPositionHoondokMeReadingPositionVolumePutResponse = PutReadingPositionHoondokMeReadingPositionVolumePutResponses[keyof PutReadingPositionHoondokMeReadingPositionVolumePutResponses];
+
+export type GetReadingPositionsHoondokMeReadingPositionsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Volume
+         */
+        volume?: string | null;
+    };
+    url: '/hoondok/me/reading-positions';
+};
+
+export type GetReadingPositionsHoondokMeReadingPositionsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetReadingPositionsHoondokMeReadingPositionsGetError = GetReadingPositionsHoondokMeReadingPositionsGetErrors[keyof GetReadingPositionsHoondokMeReadingPositionsGetErrors];
+
+export type GetReadingPositionsHoondokMeReadingPositionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReadingPositionsResponse;
+};
+
+export type GetReadingPositionsHoondokMeReadingPositionsGetResponse = GetReadingPositionsHoondokMeReadingPositionsGetResponses[keyof GetReadingPositionsHoondokMeReadingPositionsGetResponses];
 
 export type GetSummaryHoondokMeSummaryGetData = {
     body?: never;
@@ -4922,6 +5537,36 @@ export type SearchWordsHoondokSearchGetResponses = {
 
 export type SearchWordsHoondokSearchGetResponse = SearchWordsHoondokSearchGetResponses[keyof SearchWordsHoondokSearchGetResponses];
 
+export type GetSectionsHoondokSectionsVolumeGetData = {
+    body?: never;
+    path: {
+        /**
+         * Volume
+         */
+        volume: string;
+    };
+    query?: never;
+    url: '/hoondok/sections/{volume}';
+};
+
+export type GetSectionsHoondokSectionsVolumeGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetSectionsHoondokSectionsVolumeGetError = GetSectionsHoondokSectionsVolumeGetErrors[keyof GetSectionsHoondokSectionsVolumeGetErrors];
+
+export type GetSectionsHoondokSectionsVolumeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SectionsResponse;
+};
+
+export type GetSectionsHoondokSectionsVolumeGetResponse = GetSectionsHoondokSectionsVolumeGetResponses[keyof GetSectionsHoondokSectionsVolumeGetResponses];
+
 export type GetTodayHoondokTodayGetData = {
     body?: never;
     path?: never;
@@ -4955,6 +5600,10 @@ export type GetWordsHoondokWordsVolumeGetData = {
          * Chunk Id
          */
         chunk_id?: string | null;
+        /**
+         * Section
+         */
+        section?: number | null;
     };
     url: '/hoondok/words/{volume}';
 };

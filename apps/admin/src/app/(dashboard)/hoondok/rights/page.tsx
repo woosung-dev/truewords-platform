@@ -3,12 +3,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ContentRightInput, ContentRightResponse } from "@truewords/api-client-ts/types";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { saveErrorMessage } from "@/features/hoondok/api";
-import { GRADE_LABEL } from "@/features/hoondok/labels";
+import BulkRightsDialog from "@/features/hoondok/components/bulk-rights-dialog";
+import SeriesSummary from "@/features/hoondok/components/series-summary";
+import { GRADE_LABEL, SERIES_TITLE, STATUS_LABEL } from "@/features/hoondok/labels";
 import { rightsAPI } from "@/features/hoondok/rights-api";
+import type { SeriesSummaryItem } from "@/features/hoondok/types";
 
 const EMPTY: ContentRightInput = {
   volume: "",
@@ -22,7 +26,6 @@ const EMPTY: ContentRightInput = {
   scope_jeongseong: false,
   note: "",
 };
-const STATUS_LABEL = { pending: "확인 대기", allowed: "허용", withdrawn: "철회" };
 const SCOPES = [
   ["scope_search", "검색 스니펫"],
   ["scope_full_text", "원문 전재"],
@@ -32,6 +35,12 @@ const SCOPES = [
 export default function ContentRightsPage() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["hoondok", "content-rights"], queryFn: rightsAPI.list });
+  const summaryQuery = useQuery({
+    queryKey: ["hoondok", "content-rights", "series"],
+    queryFn: rightsAPI.seriesSummary,
+  });
+  const [bulkTarget, setBulkTarget] = useState<SeriesSummaryItem | null>(null);
+  const [seriesFilter, setSeriesFilter] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ContentRightInput>(EMPTY);
   const [message, setMessage] = useState("");
@@ -61,6 +70,12 @@ export default function ContentRightsPage() {
     setMessage("");
     mutation.reset();
   }
+  // 총서 필터는 목록에 실제로 있는 값만 고른다 — 원장에 없는 총서를 선택지로 만들지 않는다.
+  const seriesOptions = [
+    ...new Set((query.data ?? []).flatMap((right) => (right.book_series ? [right.book_series] : []))),
+  ].sort();
+  const visibleRights = (query.data ?? []).filter((right) => !seriesFilter || right.book_series === seriesFilter);
+
   return (
     <div className="max-w-5xl space-y-6">
       <div>
@@ -69,6 +84,23 @@ export default function ContentRightsPage() {
           저작물별 승인 상태와 기능별 권리를 각각 확인해 주세요. 새 기록은 확인 대기로 시작합니다.
         </p>
       </div>
+      <section className="space-y-3">
+        <h2 className="font-semibold">저작물별 현황</h2>
+        <SeriesSummary query={summaryQuery} onBulk={setBulkTarget} />
+      </section>
+      {bulkTarget ? (
+        <BulkRightsDialog
+          key={bulkTarget.series}
+          target={bulkTarget}
+          onOpenChange={(open) => {
+            if (!open) setBulkTarget(null);
+          }}
+          onDone={async (updated) => {
+            toast.success(`${updated}권 갱신`);
+            await queryClient.invalidateQueries({ queryKey: ["hoondok", "content-rights"] });
+          }}
+        />
+      ) : null}
       <form
         className="rounded-xl border bg-card p-5 space-y-4"
         onSubmit={(event) => {
@@ -214,33 +246,57 @@ export default function ContentRightsPage() {
           등록된 권리가 없습니다. 승인 근거를 확인한 저작물을 등록해 주세요.
         </p>
       ) : (
-        <ul className="divide-y rounded-xl border bg-card">
-          {query.data.map((right) => (
-            <li key={right.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-              <div className="min-w-0">
-                <h2 className="font-medium break-words">{right.work_title}</h2>
-                <p className="text-sm text-muted-foreground break-all">
-                  {right.volume} · {STATUS_LABEL[right.status ?? "pending"]} ·{" "}
-                  {GRADE_LABEL[right.authority_grade ?? "R"]}
-                </p>
-                <p className="text-sm">
-                  {SCOPES.filter(([key]) => right[key])
-                    .map(([, label]) => label)
-                    .join(" · ") || "허용 범위 없음"}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={mutation.isPending}
-                onClick={() => edit(right)}
-                aria-label={`${right.work_title} 수정`}
-              >
-                수정
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="series-filter">총서 필터</Label>
+            <select
+              id="series-filter"
+              className="h-10 rounded-md border bg-background px-3"
+              value={seriesFilter}
+              onChange={(e) => setSeriesFilter(e.target.value)}
+            >
+              <option value="">전체</option>
+              {seriesOptions.map((value) => (
+                <option key={value} value={value}>
+                  {SERIES_TITLE[value] ?? value}
+                </option>
+              ))}
+            </select>
+          </div>
+          {visibleRights.length === 0 ? (
+            <p className="rounded-xl border border-dashed p-8 text-muted-foreground">
+              이 총서에 해당하는 기록이 없습니다.
+            </p>
+          ) : null}
+          <ul className="divide-y rounded-xl border bg-card">
+            {visibleRights.map((right) => (
+              <li key={right.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div className="min-w-0">
+                  <h2 className="font-medium break-words">{right.work_title}</h2>
+                  <p className="text-sm text-muted-foreground break-all">
+                    {right.volume} · {STATUS_LABEL[right.status ?? "pending"]} ·{" "}
+                    {GRADE_LABEL[right.authority_grade ?? "R"]}
+                    {right.chunk_count != null ? ` · ${right.chunk_count}청크` : ""}
+                  </p>
+                  <p className="text-sm">
+                    {SCOPES.filter(([key]) => right[key])
+                      .map(([, label]) => label)
+                      .join(" · ") || "허용 범위 없음"}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={mutation.isPending}
+                  onClick={() => edit(right)}
+                  aria-label={`${right.work_title} 수정`}
+                >
+                  수정
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );

@@ -164,6 +164,83 @@
         "title": "Body_upload_document_admin_data_sources_upload_post",
         "type": "object"
       },
+      "BulkRightsInput": {
+        "properties": {
+          "authority_grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "O1",
+                  "O2",
+                  "O3",
+                  "O4",
+                  "O5",
+                  "R"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Grade"
+          },
+          "book_series": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Book Series",
+            "type": "string"
+          },
+          "scope_full_text": {
+            "default": false,
+            "title": "Scope Full Text",
+            "type": "boolean"
+          },
+          "scope_jeongseong": {
+            "default": false,
+            "title": "Scope Jeongseong",
+            "type": "boolean"
+          },
+          "scope_search": {
+            "default": false,
+            "title": "Scope Search",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "allowed",
+              "withdrawn"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "book_series",
+          "status"
+        ],
+        "title": "BulkRightsInput",
+        "type": "object"
+      },
+      "BulkRightsResponse": {
+        "properties": {
+          "book_series": {
+            "title": "Book Series",
+            "type": "string"
+          },
+          "updated": {
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "book_series",
+          "updated"
+        ],
+        "title": "BulkRightsResponse",
+        "type": "object"
+      },
       "CategoryDocumentStats": {
         "description": "카테고리별 Qdrant 문서 통계.",
         "properties": {
@@ -834,6 +911,17 @@
               }
             ],
             "title": "Book Series"
+          },
+          "chunk_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Count"
           },
           "created_at": {
             "format": "date-time",
@@ -2496,12 +2584,71 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "works": {
+            "items": {
+              "$ref": "#/components/schemas/LibraryWork"
+            },
+            "title": "Works",
+            "type": "array"
           }
         },
         "required": [
           "items"
         ],
         "title": "LibraryResponse",
+        "type": "object"
+      },
+      "LibraryWork": {
+        "description": "`book_series` 로 묶은 저작물 1건. 허용 권이 1건 이상인 시리즈만 목록에 오른다.",
+        "properties": {
+          "allowed_count": {
+            "title": "Allowed Count",
+            "type": "integer"
+          },
+          "authority_grade": {
+            "enum": [
+              "O1",
+              "O2",
+              "O3",
+              "O4",
+              "O5",
+              "R"
+            ],
+            "title": "Authority Grade",
+            "type": "string"
+          },
+          "scope_full_text": {
+            "title": "Scope Full Text",
+            "type": "boolean"
+          },
+          "scope_search": {
+            "title": "Scope Search",
+            "type": "boolean"
+          },
+          "series": {
+            "title": "Series",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "volume_count": {
+            "title": "Volume Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "series",
+          "title",
+          "volume_count",
+          "allowed_count",
+          "authority_grade",
+          "scope_search",
+          "scope_full_text"
+        ],
+        "title": "LibraryWork",
         "type": "object"
       },
       "LoginRequest": {
@@ -2523,6 +2670,149 @@
           "password"
         ],
         "title": "LoginRequest",
+        "type": "object"
+      },
+      "MarkInput": {
+        "properties": {
+          "chunk_index": {
+            "minimum": 0.0,
+            "title": "Chunk Index",
+            "type": "integer"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "kind": {
+            "enum": [
+              "bookmark",
+              "highlight"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "volume": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Volume",
+            "type": "string"
+          }
+        },
+        "required": [
+          "volume",
+          "chunk_index",
+          "kind"
+        ],
+        "title": "MarkInput",
+        "type": "object"
+      },
+      "MarkItem": {
+        "properties": {
+          "chunk_id": {
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "chunk_index": {
+            "title": "Chunk Index",
+            "type": "integer"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "kind": {
+            "enum": [
+              "bookmark",
+              "highlight"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chunk_id",
+          "chunk_index",
+          "volume",
+          "kind",
+          "color",
+          "note",
+          "updated_at",
+          "work_title",
+          "label"
+        ],
+        "title": "MarkItem",
+        "type": "object"
+      },
+      "MarksResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MarkItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "MarksResponse",
         "type": "object"
       },
       "MessageResponse": {
@@ -3270,6 +3560,82 @@
         "title": "ReactionToggleResponse",
         "type": "object"
       },
+      "ReadingPositionInput": {
+        "properties": {
+          "chunk_index": {
+            "minimum": 0.0,
+            "title": "Chunk Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chunk_index"
+        ],
+        "title": "ReadingPositionInput",
+        "type": "object"
+      },
+      "ReadingPositionItem": {
+        "properties": {
+          "chunk_index": {
+            "title": "Chunk Index",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "volume",
+          "chunk_index",
+          "updated_at",
+          "work_title",
+          "series",
+          "label"
+        ],
+        "title": "ReadingPositionItem",
+        "type": "object"
+      },
+      "ReadingPositionsResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReadingPositionItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ReadingPositionsResponse",
+        "type": "object"
+      },
       "SearchStats": {
         "properties": {
           "avg_latency_ms": {
@@ -3398,6 +3764,229 @@
           }
         },
         "title": "SearchTiersConfig",
+        "type": "object"
+      },
+      "SectionItem": {
+        "properties": {
+          "end_chunk_index": {
+            "title": "End Chunk Index",
+            "type": "integer"
+          },
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "spoken_on": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spoken On"
+          },
+          "start_chunk_index": {
+            "title": "Start Chunk Index",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position",
+          "level",
+          "title",
+          "start_chunk_index",
+          "end_chunk_index",
+          "spoken_on",
+          "place"
+        ],
+        "title": "SectionItem",
+        "type": "object"
+      },
+      "SectionsResponse": {
+        "properties": {
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionItem"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          }
+        },
+        "required": [
+          "volume",
+          "sections"
+        ],
+        "title": "SectionsResponse",
+        "type": "object"
+      },
+      "SeriesDetailResponse": {
+        "properties": {
+          "authority_grade": {
+            "enum": [
+              "O1",
+              "O2",
+              "O3",
+              "O4",
+              "O5",
+              "R"
+            ],
+            "title": "Authority Grade",
+            "type": "string"
+          },
+          "series": {
+            "title": "Series",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "volumes": {
+            "items": {
+              "$ref": "#/components/schemas/SeriesVolume"
+            },
+            "title": "Volumes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "series",
+          "title",
+          "authority_grade",
+          "volumes"
+        ],
+        "title": "SeriesDetailResponse",
+        "type": "object"
+      },
+      "SeriesSummaryItem": {
+        "properties": {
+          "allowed": {
+            "title": "Allowed",
+            "type": "integer"
+          },
+          "chunk_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Count"
+          },
+          "pending": {
+            "title": "Pending",
+            "type": "integer"
+          },
+          "registered": {
+            "title": "Registered",
+            "type": "integer"
+          },
+          "series": {
+            "title": "Series",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "withdrawn": {
+            "title": "Withdrawn",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "series",
+          "title",
+          "registered",
+          "allowed",
+          "pending",
+          "withdrawn",
+          "chunk_count"
+        ],
+        "title": "SeriesSummaryItem",
+        "type": "object"
+      },
+      "SeriesSummaryResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SeriesSummaryItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SeriesSummaryResponse",
+        "type": "object"
+      },
+      "SeriesVolume": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "scope_full_text": {
+            "title": "Scope Full Text",
+            "type": "boolean"
+          },
+          "section_count": {
+            "title": "Section Count",
+            "type": "integer"
+          },
+          "total_chunks": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Chunks"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          }
+        },
+        "required": [
+          "volume",
+          "label",
+          "total_chunks",
+          "section_count",
+          "scope_full_text"
+        ],
+        "title": "SeriesVolume",
         "type": "object"
       },
       "SessionDetailResponse": {
@@ -4466,6 +5055,30 @@
         "title": "WordSearchResult",
         "type": "object"
       },
+      "WordSection": {
+        "description": "API-HD-016 응답에 동봉하는 현재 구간 요약.",
+        "properties": {
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position",
+          "level",
+          "title"
+        ],
+        "title": "WordSection",
+        "type": "object"
+      },
       "WordsResponse": {
         "properties": {
           "authority_grade": {
@@ -4498,6 +5111,16 @@
           "page_size": {
             "title": "Page Size",
             "type": "integer"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WordSection"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "total_chunks": {
             "title": "Total Chunks",
@@ -6194,6 +6817,70 @@
         ]
       }
     },
+    "/admin/hoondok/content-rights/bulk": {
+      "post": {
+        "description": "API-HD-027 시리즈 일괄 승인·철회. 등급은 준 경우에만 바꾸고 감사 로그는 1건만 남긴다.",
+        "operationId": "bulk_update_content_rights_admin_hoondok_content_rights_bulk_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkRightsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkRightsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Bulk Update Content Rights",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/content-rights/series": {
+      "get": {
+        "description": "API-HD-028 시리즈별 등록·허용·대기·철회 수와 청크 합. 조회라 감사 로그를 남기지 않는다.",
+        "operationId": "get_series_summary_admin_hoondok_content_rights_series_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesSummaryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Series Summary",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
     "/admin/hoondok/content-rights/{right_id}": {
       "put": {
         "operationId": "update_content_right_admin_hoondok_content_rights__right_id__put",
@@ -7361,6 +8048,49 @@
         ]
       }
     },
+    "/hoondok/library/{series}": {
+      "get": {
+        "description": "API-HD-023 시리즈의 허용 권 목록. 미등록·허용 0건은 404.",
+        "operationId": "get_series_hoondok_library__series__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "series",
+            "required": true,
+            "schema": {
+              "title": "Series",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Series",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/me/history": {
       "get": {
         "description": "API-HD-010 한 달의 날마다 read 완료 여부. 422 형식·연도 범위 위반, 401 미인증.",
@@ -7510,6 +8240,190 @@
         ]
       }
     },
+    "/hoondok/me/marks": {
+      "get": {
+        "description": "API-HD-026 내 표시 목록(최신순). 본인 것만 나온다. 401 미인증.",
+        "operationId": "get_marks_hoondok_me_marks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "volume",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Volume"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(bookmark|highlight)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarksResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Marks",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/marks/{chunk_id}": {
+      "delete": {
+        "description": "API-HD-026 표시 삭제. 본인 것만 지우고 없어도 204. 403 CSRF, 401 미인증.",
+        "operationId": "delete_mark_hoondok_me_marks__chunk_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chunk_id",
+            "required": true,
+            "schema": {
+              "title": "Chunk Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(bookmark|highlight)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Mark",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "put": {
+        "description": "API-HD-026 표시 upsert(`user·chunk_id·kind`). 422 형광펜 색 누락, 404 미허용, 403 CSRF, 401.",
+        "operationId": "put_mark_hoondok_me_marks__chunk_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chunk_id",
+            "required": true,
+            "schema": {
+              "title": "Chunk Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Mark",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/me/notifications": {
       "get": {
         "description": "API-HD-020 알림 설정. 저장된 행이 없으면 기본값(끔·06:00·neutral). 401 미인증.",
@@ -7645,6 +8559,122 @@
           }
         },
         "summary": "Create Push Subscription",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/reading-position/{volume}": {
+      "put": {
+        "description": "API-HD-025 이어 읽기 upsert. 404 원문 미허용, 403 CSRF, 401 미인증.",
+        "operationId": "put_reading_position_hoondok_me_reading_position__volume__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "volume",
+            "required": true,
+            "schema": {
+              "title": "Volume",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadingPositionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadingPositionItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Reading Position",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/reading-positions": {
+      "get": {
+        "description": "API-HD-025 이어 읽기 목록(최신순). `volume` 을 주면 그 권만. 401 미인증.",
+        "operationId": "get_reading_positions_hoondok_me_reading_positions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "volume",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Volume"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadingPositionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Reading Positions",
         "tags": [
           "hoondok"
         ]
@@ -7798,6 +8828,49 @@
         ]
       }
     },
+    "/hoondok/sections/{volume}": {
+      "get": {
+        "description": "API-HD-024 장 목차. 권리 게이트는 API-HD-016 과 같고 0건이면 빈 배열 200.",
+        "operationId": "get_sections_hoondok_sections__volume__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "volume",
+            "required": true,
+            "schema": {
+              "title": "Volume",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SectionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Sections",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/today": {
       "get": {
         "description": "API-HD-001 오늘(KST) 말씀. 없으면 status=none, 철회면 withdrawn — 항상 200.",
@@ -7859,6 +8932,23 @@
                 }
               ],
               "title": "Chunk Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "section",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Section"
             }
           }
         ],

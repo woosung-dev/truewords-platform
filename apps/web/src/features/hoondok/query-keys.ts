@@ -10,3 +10,17 @@ export const historyKey = (month: string) => [...HISTORY_KEY, month] as const;
 
 /** 미션 완료 성공(recorded·already) 시 순회 무효화하는 키 — 접두 매칭이라 historyKey(month) 도 포함된다. */
 export const PROGRESS_KEYS = [SUMMARY_KEY, JEONGSEONG_KEY, HISTORY_KEY] as const;
+
+// --- 말씀 서고·읽기 기록 (PLAN-HD-007). 진행 상태와 무효화 주기가 달라 PROGRESS_KEYS 에 넣지 않는다.
+export const LIBRARY_KEY = ["hoondok", "library"] as const;
+export const MARKS_KEY = ["hoondok", "marks"] as const;
+export const READING_POSITIONS_KEY = ["hoondok", "reading-positions"] as const;
+
+export const seriesKey = (series: string) => ["hoondok", "series", series] as const;
+export const sectionsKey = (volume: string) => ["hoondok", "sections", volume] as const;
+/** 권별 표시 목록. 접두가 MARKS_KEY 라 표시 1건이 바뀌면 서고 북마크 절도 함께 무효화된다. */
+export const marksKey = (volume?: string) => [...MARKS_KEY, volume ?? "all"] as const;
+export const wordsKey = (volume: string, page: number, query: { chunkId?: string; section?: number }) =>
+  ["hoondok", "words", volume, page, query.chunkId ?? null, query.section ?? null] as const;
+/** 서고 "북마크" 절 — 권 구분 없이 북마크만. 같은 접두라 표시 변경 한 번에 함께 무효화된다. */
+export const BOOKMARKS_KEY = [...MARKS_KEY, "bookmark"] as const;

@@ -26,6 +26,12 @@
 | `API-HD-020` | GET · PUT | `/hoondok/me/notifications` | `hoondok_token` (PUT 은 `X-Requested-With`) | HD-006 |
 | `API-HD-021` | POST | `/hoondok/me/push` | `hoondok_token` + `X-Requested-With` | HD-006 |
 | `API-HD-022` | DELETE | `/hoondok/me/push?endpoint=` | `hoondok_token` + `X-Requested-With` | HD-006 |
+| `API-HD-023` | GET | `/hoondok/library/{series}` | 없음(공개) | HD-007 |
+| `API-HD-024` | GET | `/hoondok/sections/{volume}` | 없음(공개) | HD-007 |
+| `API-HD-025` | GET · PUT | `/hoondok/me/reading-positions` · `/hoondok/me/reading-position/{volume}` | `hoondok_token` (PUT 은 `X-Requested-With`) | HD-007 |
+| `API-HD-026` | GET · PUT · DELETE | `/hoondok/me/marks` | `hoondok_token` (쓰기는 `X-Requested-With`) | HD-007 |
+| `API-HD-027` | POST | `/admin/hoondok/content-rights/bulk` | `admin_token` + 게이트 + `X-Requested-With` | HD-007 |
+| `API-HD-028` | GET | `/admin/hoondok/content-rights/series` | `admin_token` + `require_admin_gate` | HD-007 |
 
 공통 규칙:
 
@@ -306,6 +312,7 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 | 2026-09-19 | 훈독 AI 질문은 **신규 엔드포인트 없이** `POST /chat/stream` 재사용. 백엔드·스키마 무변경이며 무기억(`session_id` 미전송)과 근거 게이트만 클라이언트에 둔다 | 확정 · PLAN-HD-002 W2 |
 | 2026-09-19 | 질문 봇은 슬러그 `all` 고정(`HOONDOK_ASK_CHATBOT_ID`). 전용 봇·프롬프트 미정이라 상수 1줄로 교체 가능한 형태로 둔다 | `[확인 필요]` · PLAN-HD-002 W2 |
 | 2026-09-20 | API-HD-012 신설(편성 후보 검색). **추출형 채택 · 생성형 초안 기각** — 병목은 본문 생산이 아니라 코퍼스에서 고르는 일이고, 생성형은 결정 5(대체 생성 없음)를 뒤집는 데다 교리 recall 이 42~56%로 낮다. 본문 원문 유지·`chunk_id` 기록·등급 `R` 기본 | 확정 · PLAN-HD-003 |
+| 2026-09-23 | API-HD-023~028 신설(말씀 서고 3계층·읽기 기록). 목차 경로는 `/hoondok/sections/{volume}` — `/hoondok/words/{volume:path}` 가 greedy 라 하위 경로를 쓸 수 없다. `API-HD-014` 에 `works[]`, `API-HD-016` 에 `section` 파라미터·필드, `content_rights` 에 `chunk_count` 를 **추가만** 했다(하위 호환). 기록은 로그인 필수, 읽기는 공개 | 확정 · PLAN-HD-007 트랙 A |
 | 2026-09-22 | API-HD-019~022 신설(Web Push). VAPID 미설정이면 구독 자체를 409 `PUSH_DISABLED` 로 거절(조용히 저장하지 않음), `endpoint` unique + 소유 이전, `read_time` 은 `HH:MM` 문자열·KST 고정, 설정 PUT 은 전체 교체. 발송기는 sub-PR B | 확정 · PLAN-HD-006 sub-PR A |
 
 ---
@@ -377,3 +384,90 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 말씀 검색의 웹 경로 `/api/backend/hoondok/search`는 전용 Route Handler를 사용한다.
 백엔드 `GET /hoondok/search` 계약은 유지한다. 연결 실패는 안전한 `SEARCH_FAILED` 503으로 바꾸며,
 Next catch-all rewrite의 실패 로그에 검색어가 포함된 upstream URL이 출력되지 않도록 한다.
+
+
+---
+
+## PLAN-HD-007 — 말씀 서고 3계층과 읽기 기록 (API-HD-023~028)
+
+저작물(`book_series`) → 권(`volume`) → 장(`volume_sections`) 3계층과 사용자 읽기 기록을 추가한다.
+서고·목차 조회는 공개이고 기록(`/hoondok/me/*`)은 `hoondok_token` 이 필요하다(PLAN-HD-007 §2-6).
+단락의 단위는 Qdrant 청크(`chunk_index`·`chunk_id`)이며 청크 안 부분 선택은 하지 않는다(§2-12).
+
+### API-HD-014 확장 `GET /hoondok/library`
+
+`items[]` 는 그대로 두고 `works[]` 를 더한다. 항목은
+`{ series, title, volume_count, allowed_count, authority_grade, scope_search, scope_full_text }` 다.
+`book_series` 로 묶으며 **허용(`allowed` AND (`scope_search` OR `scope_full_text`)) 권이 1건 이상인 시리즈만** 오른다.
+`volume_count` 는 원장에 등록된 전체 권 수(`status` 무관), `allowed_count` 는 지금 열려 있는 권 수다.
+`authority_grade` 는 허용 권의 최빈 등급이고 동률이면 가장 보수적인 `R` 이다. `scope_*` 는 허용 권의 OR 다.
+`book_series` 가 비어 있는 행은 저작물로 묶을 수 없어 `works` 에서 빠진다(`items` 에는 남는다). 정렬은 제목순.
+
+### API-HD-023 `GET /hoondok/library/{series}` (공개)
+
+응답 `{ series, title, authority_grade, volumes[] }`, 항목은
+`{ volume, label, total_chunks, section_count, scope_full_text }` 다.
+`label` 은 말씀선집만 권 번호 3자리(`"001권"`)로 정규화하고 나머지는 원장의 `work_title` 이며,
+정렬은 라벨의 숫자 우선이다(`001권` < `010권` < `100권`). `total_chunks` 는 `content_rights.chunk_count`
+라 시드 전에는 `null` 이다. `section_count` 는 `volume_sections` 집계다.
+미등록 시리즈이거나 허용 권이 0건이면 404 — 존재 여부를 알리지 않는다.
+
+### API-HD-024 `GET /hoondok/sections/{volume}` (공개)
+
+응답 `{ volume, sections[] }`, 항목은
+`{ position, level, title, start_chunk_index, end_chunk_index, spoken_on, place }` 다.
+권리 게이트는 `API-HD-016` 과 같다(`allowed` + `scope_full_text`, 아니면 404). 0건이면 빈 배열 200이고
+웹은 "구간 N" 폴백을 쓴다. 경로가 `/hoondok/words/{volume}/sections` 가 **아닌** 이유는
+`/hoondok/words/{volume:path}` 가 greedy 라 하위 경로를 volume 으로 삼키기 때문이다.
+원문과 같은 IP당 120회/분 예산을 쓴다.
+
+### API-HD-016 확장 `GET /hoondok/words/{volume}?section=`
+
+`section`(= `position`, 1 이상)을 주고 `chunk_id` 를 주지 않으면
+`start_chunk_index // 20 + 1` 페이지를 낸다. 없는 `position` 은 404다. `chunk_id` 가 우선한다 —
+검색 결과 진입이 목차 선택보다 구체적이다. 응답에 `section`(`{ position, level, title }` 또는 `null`)이
+더해진다. `section=` 으로 들어온 요청은 **요청한 그 장**을 그대로 돌려준다 — 장 시작이 페이지 경계와
+어긋나도 앞 장을 현재 장으로 보이지 않는다. `chunk_id` 또는 `page` 만 준 요청은 **반환 페이지의 첫 청크를
+품는 구간**이다(편과 장이 겹치면 더 좁은 `level` 2). 기존 필드는 그대로다.
+
+### API-HD-025 이어 읽기 (`hoondok_token`)
+
+- `GET /hoondok/me/reading-positions?limit=5&volume=` — 최신순. 항목은
+  `{ volume, chunk_index, updated_at, work_title, series, label }`. `volume` 을 주면 그 권만 — 원문 화면의
+  복귀 조회를 위해 단건 경로 대신 필터를 둔다. `limit` 은 1~50.
+- `PUT /hoondok/me/reading-position/{volume}` body `{ chunk_index }` (0 이상, `X-Requested-With` 필요)
+  — `(user_id, volume)` upsert, 200으로 갱신된 항목을 낸다. 원문이 허용되지 않은 권은 404.
+
+서버 값이 있으면 서버가 우선이고 없으면 기기 값을 1회 올린다. 비로그인은 기기 값만 쓴다(PLAN-HD-007 §2-13).
+
+### API-HD-026 단락 표시 (`hoondok_token`)
+
+- `GET /hoondok/me/marks?volume=&kind=&limit=` — 최신순, 본인 것만. 항목은
+  `{ chunk_id, chunk_index, volume, kind, color, note, updated_at, work_title, label }`.
+  `limit` 은 1~200이고 기본 200이다 — 표시가 쌓여도 한 요청이 읽는 행 수를 묶어 둔다.
+- `PUT /hoondok/me/marks/{chunk_id}` body `{ volume, chunk_index, kind, color, note }`
+  — `(user_id, chunk_id, kind)` upsert. `kind` 는 `bookmark`·`highlight`. `highlight` 는 `color`(1~3)가
+  없으면 422, `bookmark` 는 넘어온 `color` 를 버린다. `note` 는 2000자까지이며 노트 탭은 `note` 가 있는
+  표시를 모은 것이다. 원문이 허용되지 않은 권은 404.
+- `DELETE /hoondok/me/marks/{chunk_id}?kind=` — 204. 없는 표시도 204이며 남의 표시는 지워지지 않는다.
+
+계정 하드 삭제(`API-HD-011`)는 `reading_positions`·`passage_marks` 를 함께 지운다.
+
+### API-HD-027 `POST /admin/hoondok/content-rights/bulk`
+
+body `{ book_series, status, scope_search, scope_full_text, scope_jeongseong, authority_grade? }`,
+응답 `{ book_series, updated }`. 그 시리즈의 **모든** 행을 갱신하며 `authority_grade` 는 준 경우에만 바꾼다
+(미지정이면 기존 등급 보존). 행이 0건이면 404. 감사 로그는 정확히 1건(`content_right.bulk`,
+`target_table="content_rights"`)이고 `target_id` 는 시리즈 대표 행이며 실제 범위는 `changes` 의
+`book_series`·`updated` 가 갖는다. 관리자 게이트 + `X-Requested-With` 가 필요하다.
+
+### API-HD-028 `GET /admin/hoondok/content-rights/series`
+
+응답 `{ items: [{ series, title, registered, allowed, pending, withdrawn, chunk_count }] }` — 원장에
+있는 모든 시리즈(제목 미등록 키는 키 그대로). `chunk_count` 는 합이며 전부 미집계면 `null` 이라
+0 과 구분된다. `book_series` 가 빈 행은 집계에서 빠진다. 조회라 감사 로그를 남기지 않는다.
+
+### `content_rights.chunk_count`
+
+권의 Qdrant 청크 수를 담는 nullable 열이다. 시드 스크립트(트랙 D)가 채우며 `API-HD-013` 의
+입력 스키마에는 없어 admin 개별 저장이 값을 덮지 않는다. 조회 응답(`ContentRightResponse`)에는 나온다.

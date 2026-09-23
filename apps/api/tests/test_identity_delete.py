@@ -18,6 +18,7 @@ from app.main import app
 from app.modules.admin.auth import create_access_token
 from app.modules.hoondok.dependencies import (
     get_jeongseong_repository,
+    get_library_repository,
     get_mission_repository,
     get_notification_repository,
 )
@@ -207,18 +208,30 @@ class _FakeNotifications:
         self.purged.append(user_id)
 
 
+class _FakeLibrary:
+    """이어 읽기·단락 표시 purger (PLAN-HD-007). 이 파일은 DB 없이 라우터 배선만 본다."""
+
+    def __init__(self) -> None:
+        self.purged: list[uuid.UUID] = []
+        self.session = MagicMock()
+
+    async def delete_for_user(self, user_id) -> None:
+        self.purged.append(user_id)
+
+
 @pytest.fixture
 def client():
     users, logs, periods = _MemoryUsers(), _FakeLogs(), _FakePeriods()
-    notifications = _FakeNotifications()
+    notifications, library = _FakeNotifications(), _FakeLibrary()
     app.dependency_overrides[get_identity_repository] = lambda: users
     app.dependency_overrides[get_mission_repository] = lambda: logs
     app.dependency_overrides[get_jeongseong_repository] = lambda: periods
     app.dependency_overrides[get_notification_repository] = lambda: notifications
+    app.dependency_overrides[get_library_repository] = lambda: library
     try:
         c = TestClient(app)
         c.users, c.logs, c.periods = users, logs, periods  # type: ignore[attr-defined]
-        c.notifications = notifications  # type: ignore[attr-defined]
+        c.notifications, c.library = notifications, library  # type: ignore[attr-defined]
         yield c
     finally:
         for dep in (
@@ -226,6 +239,7 @@ def client():
             get_mission_repository,
             get_jeongseong_repository,
             get_notification_repository,
+            get_library_repository,
         ):
             app.dependency_overrides.pop(dep, None)
 
@@ -289,6 +303,7 @@ def test_delete_me_removes_mission_logs_and_jeongseong(client: TestClient):
     assert client.logs.rows == {(other_id, TODAY, "read")}
     assert [p.user_id for p in client.periods.rows.values()] == [other_id]
     assert client.notifications.purged == [me_id]  # 알림 설정·푸시 구독도 같은 삭제에 묶인다
+    assert client.library.purged == [me_id]  # 이어 읽기·단락 표시도 함께 지운다 (PLAN-HD-007)
     stored = client.users.users[me_id]
     assert stored.deleted_at is not None and stored.email == f"deleted:{me_id}"
 

@@ -13,6 +13,10 @@ from app.core.config import settings
 from app.modules.datasource.chunk_merge import merge_with_dedup
 from app.modules.hoondok.candidates import filter_results
 from app.modules.hoondok.journey_repository import JourneyRepository
+from app.modules.hoondok.library_repository import LibraryRepository
+from app.modules.hoondok.library_schemas import LibraryWork, WordSection
+from app.modules.hoondok.library_series import series_title
+from app.modules.hoondok.library_service import majority_grade
 from app.modules.hoondok.journey_schemas import (
     ContentRightInput,
     JeongseongTodayResponse,
@@ -47,9 +51,12 @@ class JourneyService:
         periods: JeongseongRepository,
         today_fn: Callable[[], date] = today_kst,
         search_fn: Callable[..., Awaitable[list[SearchResult]]] = hybrid_search,
+        library: LibraryRepository | None = None,
     ) -> None:
         self.repo, self.client, self.periods = repo, client, periods
         self.today_fn, self.search_fn = today_fn, search_fn
+        # 장 목차는 서고 리포가 갖는다. 없으면 API-HD-016 의 section 은 항상 None 이다.
+        self.sections = library
 
     async def allowed(
         self, scope: Literal["scope_search", "scope_full_text", "scope_jeongseong"]
@@ -78,12 +85,14 @@ class JourneyService:
             raise HTTPException(409, "이미 등록된 저작물입니다") from None
 
     async def library(self) -> LibraryResponse:
+        all_rights = await self.repo.list_rights()
         rights = {
             r.volume: r
-            for r in await self.repo.list_rights()
+            for r in all_rights
             if r.status == "allowed" and (r.scope_search or r.scope_full_text)
         }
         return LibraryResponse(
+            works=_works(all_rights, rights),
             items=[
                 LibraryItem(
                     volume=r.volume,
@@ -136,11 +145,26 @@ class JourneyService:
         )
 
     async def words(
-        self, volume: str, page: int, chunk_id: str | None
+        self,
+        volume: str,
+        page: int,
+        chunk_id: str | None,
+        section: int | None = None,
     ) -> WordsResponse:
         if volume not in await self.allowed("scope_full_text"):
             raise HTTPException(404, "원문을 찾을 수 없습니다")
+        # 목차로 들어온 장은 그대로 현재 장이다 — 장 시작이 페이지 경계와 어긋나도 앞 장을 보이지 않는다.
+        requested: WordSection | None = None
         try:
+            if not chunk_id and section is not None:
+                # chunk_id 가 우선이다 — 검색 결과 진입이 목차 선택보다 구체적이다.
+                found = await self._section_by_position(volume, section)
+                if found is None:
+                    raise HTTPException(404, "원문 구간을 찾을 수 없습니다")
+                page = found.start_chunk_index // PAGE_SIZE + 1
+                requested = WordSection(
+                    position=found.position, level=found.level, title=found.title
+                )
             if chunk_id:
                 # Qdrant ID는 UUID 또는 unsigned integer뿐이다. 잘못된 ID도 404로 통일한다.
                 try:
@@ -208,7 +232,23 @@ class JourneyService:
             total_pages=math.ceil(total / PAGE_SIZE),
             chunks=chunks,
             body=body,
+            section=requested
+            if requested is not None
+            else await self._section_at(volume, chunks[0].chunk_index),
         )
+
+    async def _section_by_position(self, volume: str, position: int):
+        if self.sections is None:
+            return None
+        return await self.sections.get_section_by_position(volume, position)
+
+    async def _section_at(self, volume: str, chunk_index: int) -> WordSection | None:
+        if self.sections is None:
+            return None
+        found = await self.sections.get_section_at(volume, chunk_index)
+        if found is None:
+            return None
+        return WordSection(position=found.position, level=found.level, title=found.title)
 
     async def today(self, user_id: uuid.UUID) -> JeongseongTodayResponse:
         today = self.today_fn()
@@ -312,3 +352,35 @@ class JourneyService:
                 estimated_minutes=reading.estimated_minutes,
             ),
         )
+
+
+def _works(
+    all_rights: list[ContentRight], visible: dict[str, ContentRight]
+) -> list[LibraryWork]:
+    """API-HD-014 확장 — 허용 권이 1건 이상인 시리즈만 집계한다.
+
+    `volume_count` 는 원장에 등록된 전체 권 수(status 무관)고 `allowed_count` 는 지금 열려 있는 권 수다.
+    `book_series` 가 비어 있는 행은 저작물로 묶을 수 없어 works 에서 제외한다(items 에는 그대로 남는다).
+    """
+    registered: dict[str, int] = {}
+    for right in all_rights:
+        if right.book_series:
+            registered[right.book_series] = registered.get(right.book_series, 0) + 1
+    grouped: dict[str, list[ContentRight]] = {}
+    for right in visible.values():
+        if right.book_series:
+            grouped.setdefault(right.book_series, []).append(right)
+    works = [
+        LibraryWork(
+            series=series,
+            title=series_title(series),
+            volume_count=registered.get(series, len(rows)),
+            allowed_count=len(rows),
+            authority_grade=majority_grade([r.authority_grade for r in rows]),  # type: ignore[arg-type]
+            scope_search=any(r.scope_search for r in rows),
+            scope_full_text=any(r.scope_full_text for r in rows),
+        )
+        for series, rows in grouped.items()
+    ]
+    works.sort(key=lambda w: w.title)
+    return works

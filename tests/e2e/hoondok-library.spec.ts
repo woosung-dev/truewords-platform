@@ -2,13 +2,30 @@ import { expect, test } from "@playwright/test";
 
 const volume = "말씀선집 355권";
 const wordsPath = `/hoondok/words/${encodeURIComponent(volume)}`;
+// 시드가 두 권을 `father_anthology` 로 묶는다 (apps/api/scripts/seed_hoondok_journey.py)
+const workTitle = "문선명선생 말씀선집";
+const seriesPath = "/hoondok/library/father_anthology";
+const headers = { "X-Requested-With": "XMLHttpRequest" };
+
+async function signUp(page: import("@playwright/test").Page, prefix: string) {
+  const response = await page.request.post("/api/backend/hoondok/auth/signup", {
+    headers,
+    data: { email: `${prefix}-${Date.now()}@example.com`, password: "password1", display_name: "서고" },
+  });
+  expect(response.status()).toBe(201);
+}
 
 for (const width of [375, 768, 1280]) {
   test(`말씀 실데이터 ${width}px: 서고 · 검색 · 원문 · 읽음`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     const response = await page.goto("/hoondok/library");
     expect(response?.status()).toBe(200);
-    await expect(page.getByRole("link", { name: new RegExp(volume) }).first()).toBeVisible();
+    // 저작물 → 권 → 원문 3계층 (PLAN-HD-007)
+    await page.getByRole("link", { name: new RegExp(workTitle) }).click();
+    await expect(page).toHaveURL(new RegExp(`${seriesPath}$`));
+    await expect(page.getByRole("link", { name: /001권/ })).toBeVisible();
+    await page.getByRole("link", { name: /355권/ }).click();
+    await expect(page).toHaveURL(new RegExp(encodeURIComponent(volume)));
     await expect(page.getByText("미리보기 예시 데이터입니다")).toHaveCount(0);
     await page.goto("/hoondok/search");
     await page.getByRole("searchbox").fill("감사");
@@ -28,7 +45,19 @@ for (const width of [375, 768, 1280]) {
 test("공개 API: 기본 거부 · 검색 전용 · 20청크 구간 · 출처 직접 이동", async ({ request }) => {
   const library = await request.get("/api/backend/hoondok/library");
   expect(library.status()).toBe(200);
-  const { items } = await library.json();
+  const { items, works } = await library.json();
+  // API-HD-014 확장 · 023 · 024 — 저작물 집계, 시리즈 404, 장 목차
+  expect(works.find((work: { series: string }) => work.series === "father_anthology")).toMatchObject({
+    allowed_count: 2,
+    volume_count: 2,
+  });
+  const series = await request.get("/api/backend/hoondok/library/father_anthology");
+  expect(series.status()).toBe(200);
+  expect((await series.json()).volumes.map((item: { label: string }) => item.label)).toEqual(["001권", "355권"]);
+  expect((await request.get("/api/backend/hoondok/library/없는시리즈")).status()).toBe(404);
+  const sections = await request.get(`/api/backend/hoondok/sections/${encodeURIComponent(volume)}`);
+  expect(sections.status()).toBe(200);
+  expect((await sections.json()).sections).toHaveLength(3);
   expect(items.map((item: { volume: string }) => item.volume)).toContain(volume);
   expect(items.map((item: { volume: string }) => item.volume)).not.toContain("미승인 말씀");
   expect(items.map((item: { volume: string }) => item.volume)).not.toContain("철회 말씀");
@@ -61,7 +90,6 @@ test("공개 API: 기본 거부 · 검색 전용 · 20청크 구간 · 출처 �
 });
 
 test("정성: 같은 날 유지 · 실제 완료 · 전날 이력 뒤 다른 말씀 · 홈/read 일치", async ({ page }) => {
-  const headers = { "X-Requested-With": "XMLHttpRequest" };
   const signup = await page.request.post("/api/backend/hoondok/auth/signup", {
     headers,
     data: { email: `journey-${Date.now()}@example.com`, password: "password1", display_name: "여정" },
@@ -114,13 +142,13 @@ test("AI 질문의 실제 응답 근거에서 인용한 원문 구간으로 이�
 });
 
 // 기기 기록은 본문·검색어를 남기지 않고 실제 원문 구간으로 복귀해야 한다.
-test("원문 구간 목록과 기기 이어 읽기로 마지막 구간에 복귀한다", async ({ page }) => {
+test("장 목차로 이동하고 기기 이어 읽기로 마지막 구간에 복귀한다", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(wordsPath);
-  await page
-    .getByRole("complementary", { name: "원문 구간" })
-    .getByRole("link", { name: "원문 구간 2", exact: true })
-    .click();
+  const toc = page.getByRole("complementary", { name: "목차" });
+  await expect(toc.getByRole("link", { name: "제1편 감사의 길" })).toBeVisible();
+  await expect(toc.getByRole("link", { name: "1장 이웃을 듣는 마음" })).toHaveAttribute("aria-current", "page");
+  await toc.getByRole("link", { name: "제2편 참사랑의 실천" }).click();
   await expect(page.getByRole("article", { name: "원문 본문" })).toContainText("21번째 합성 문장");
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem("hoondok:read:last")))
@@ -130,4 +158,28 @@ test("원문 구간 목록과 기기 이어 읽기로 마지막 구간에 복귀
   await page.locator("a.resume").click();
   await expect(page).toHaveURL(/\?page=2$/);
   await expect(page.getByRole("article", { name: "원문 본문" })).toContainText("21번째 합성 문장");
+});
+
+// 기록(형광펜·북마크·이어 읽기)은 로그인 계정에 남고 새로고침·다른 화면에서도 같은 값을 본다.
+test("단락 형광펜은 새로고침 뒤에도 남고 북마크는 서고에 모인다", async ({ page }) => {
+  await signUp(page, "library");
+  await page.goto(wordsPath);
+  await page.getByRole("button", { name: "단락 0 표시하기" }).click();
+  const sheet = page.getByRole("dialog");
+  await sheet.getByRole("button", { name: "연두 형광펜" }).click();
+  await expect(sheet.getByRole("button", { name: "연두 형광펜" })).toHaveAttribute("aria-pressed", "true");
+  await sheet.getByRole("button", { name: "닫기" }).click();
+  await page.reload();
+  await expect(page.locator("mark.hl-2")).toContainText("1번째 합성 문장");
+
+  await page.getByRole("button", { name: "단락 1 표시하기" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "북마크", exact: true }).click();
+  await expect(page.getByRole("dialog").getByRole("button", { name: "북마크 해제" })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "닫기" }).click();
+
+  await page.goto("/hoondok/library");
+  await expect(page.getByRole("heading", { name: "북마크", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: /단락 1$/ })).toBeVisible();
+  // 이어 읽기는 서버 값으로 바뀐다 — 원문을 연 페이지의 첫 단락이 기준이다
+  await expect(page.getByText("단락 0까지 읽었어요")).toBeVisible();
 });

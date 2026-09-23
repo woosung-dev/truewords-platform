@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.modules.hoondok.library_schemas import LibraryWork, WordSection
 from app.modules.hoondok.schemas import AuthorityGrade, DailyReadingPublic, TodayStatus
 
 
@@ -39,6 +40,8 @@ class ContentRightInput(BaseModel):
 class ContentRightResponse(ContentRightInput):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
+    # 시드 스크립트가 채우는 Qdrant 청크 수. 입력에는 없어 admin 저장이 덮어쓰지 않는다.
+    chunk_count: int | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -55,6 +58,8 @@ class LibraryItem(BaseModel):
 
 class LibraryResponse(BaseModel):
     items: list[LibraryItem]
+    # API-HD-014 확장 — 저작물(시리즈) 집계. 기존 소비자를 위해 기본값을 둔다.
+    works: list[LibraryWork] = Field(default_factory=list)
 
 
 class WordChunk(BaseModel):
@@ -85,6 +90,8 @@ class WordsResponse(BaseModel):
     total_pages: int
     chunks: list[WordChunk]
     body: str
+    # API-HD-016 확장 — 반환 페이지 첫 청크를 품는 장. 목차가 없으면 None.
+    section: WordSection | None = None
 
 
 class JeongseongTodayResponse(BaseModel):
