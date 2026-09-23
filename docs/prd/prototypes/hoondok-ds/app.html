@@ -35,18 +35,19 @@
      018  group-join      모임 참여 (?via=link 링크 진입)
      019  group-create    모임 만들기 (?created=1 초대 코드)
      020  group-share     한 줄 나눔 쓰기
+     021  group-settings  모임 설정 (?role=member 모임원 보기, 기본은 리더)
      004  (sheet)          정성 기간 만들기 = <div class="sheet" id="sheet-jeongseong">, ?sheet=jeongseong 로 홈 위에 연다
      ============================================================================ -->
 <!-- 마크업은 한 벌이다. 화면 폭이 달라도 이 문서를 복제하지 않는다.
-     ?screen=today|read|words|library|search|onboarding|ask|ask-log|ask-detail|worship|challenge|sermons|sermon-request|garden|settings|family|group|group-join|group-create|group-share
-     ?together=default|small|none (홈·훈독하기 함께 읽는 사람들 변형)   ?done=1 (훈독하기 완료 뒤)   ?via=link   ?created=1
+     ?screen=today|read|words|library|search|onboarding|ask|ask-log|ask-detail|worship|challenge|sermons|sermon-request|garden|settings|family|group|group-join|group-create|group-share|group-settings
+     ?together=default|small|none (홈·훈독하기 함께 읽는 사람들 변형)   ?done=1 (훈독하기 완료 뒤)   ?via=link   ?created=1   ?role=member (모임 설정 모임원 보기)
      ?sheet=jeongseong   ?nav=top&header=4 (PC 기본 = 상단 헤더 4. rail 은 DES-PWA-003 §4.1 대조용)   ?serif=1 -->
 <div class="app">
 
   <main class="app__main">
     <header class="appbar" id="appbar">
       <div class="appbar__in">
-        <a class="icon-btn" href="#" aria-label="뒤로" data-only="read words search ask-log ask-detail challenge sermons sermon-request settings family group group-join group-create group-share"><i class="ph ph-arrow-left"></i></a>
+        <a class="icon-btn" href="#" aria-label="뒤로" data-only="read words search ask-log ask-detail challenge sermons sermon-request settings family group group-join group-create group-share group-settings"><i class="ph ph-arrow-left"></i></a>
         <h1 class="appbar__title" id="apptitle">오늘 훈독</h1>
         <label class="appbar__search" data-only="search"><i class="ph ph-magnifying-glass"></i><input type="search" value="" placeholder="단어, 구절, 상황을 입력해 주세요" aria-label="말씀 검색" autofocus></label>
         <a class="icon-btn" href="?screen=ask-log" aria-label="질문 기록" data-only="ask"><i class="ph ph-clock-counter-clockwise"></i></a>
@@ -1226,17 +1227,17 @@
       <div class="tg-head">
         <span class="badge badge--line">소그룹 · 훈독가정교회</span>
         <h2 class="tg-head__nm">새벽별 훈독모임</h2>
-        <p class="tg-head__meta">식구 8명 · 리더 은정 · 매일 오전 6시</p>
+        <p class="tg-head__meta">리더 은정 · 매일 오전 6시</p>
         <div class="tg-acts">
           <!-- 카카오톡 공유는 Web Share API 로 연다. 공유 카드에는 모임 이름·초대 링크만 넣고 말씀 본문은 넣지 않는다 -->
           <button class="btn btn-primary btn--sm" type="button"><i class="ph ph-share-network" aria-hidden="true"></i>초대하기 (카카오톡)</button>
-          <a class="btn btn-line btn--sm" href="#"><i class="ph ph-gear" aria-hidden="true"></i>모임 설정</a>
+          <a class="btn btn-line btn--sm" href="?screen=group-settings"><i class="ph ph-gear" aria-hidden="true"></i>모임 설정</a>
         </div>
       </div>
 
-      <!-- 오늘 범위 : 공식 편성(협회 공지 → 편성자 등록)을 따르거나 리더가 원문에서 지정한다 -->
+      <!-- 오늘 범위 : 모든 모임이 공식 편성(협회 공지 → 편성자 등록)을 따른다. 리더 지정은 이번 범위 제외(2026-09-23, PLAN-HD-010) -->
       <div class="sect">
-        <div class="sect__head"><h3 class="sect__title">오늘 범위</h3><span class="sect__rule"></span><span class="sect__meta">공식 편성 따름</span></div>
+        <div class="sect__head"><h3 class="sect__title">오늘 범위</h3><span class="sect__rule"></span><span class="sect__meta">공식 편성</span></div>
         <a class="card tg-range" href="?screen=words" aria-label="오늘 범위, 천성경 제1편 3장 원문 열기">
           <div class="src">
             <span>참아버님</span><span class="src__dot"></span><span>천성경 제1편 3장</span><span class="src__dot"></span><span>2013 한국어판</span>
@@ -1327,7 +1328,7 @@
       <div class="field" data-q="via=default">
         <label class="field__label" for="gj-code">초대 코드</label>
         <div class="tg-code-row">
-          <input id="gj-code" type="text" value="SAEBYEOK-7K2" autocomplete="off" autocapitalize="characters" />
+          <input id="gj-code" type="text" value="7K2M-Q9XD" autocomplete="off" autocapitalize="characters" />
           <button class="btn btn-line btn--sm" type="button">확인</button>
         </div>
       </div>
@@ -1341,7 +1342,7 @@
         <div class="card">
           <span class="badge badge--line">소그룹 · 훈독가정교회</span>
           <h2 class="tg-head__nm">새벽별 훈독모임</h2>
-          <p class="tg-head__meta">식구 8명 · 리더 은정 · 오늘 범위는 공식 편성을 따라요</p>
+          <p class="tg-head__meta">리더 은정 · 오늘 범위는 공식 편성을 따라요</p>
           <p class="tg-head__meta">함께 드리는 정성: 21일 특별정성 12일차 · 우리 모임 40일 새벽 정성 9일차</p>
         </div>
       </div>
@@ -1400,19 +1401,7 @@
         <span class="field__help">리더로 표시돼요. 실명도 애칭도 괜찮아요.</span>
       </div>
 
-      <div class="field">
-        <span class="field__label" id="gc-range">오늘 범위</span>
-        <div class="tg-opts" role="radiogroup" aria-labelledby="gc-range">
-          <button class="tg-opt" type="button" role="radio" aria-checked="true">
-            <span class="tg-radio" aria-hidden="true"></span>
-            <span class="tg-opt__bd"><b>공식 편성 따르기</b><span>매일 오늘 훈독과 같은 말씀. 협회 공지를 편성자가 등록해요</span></span>
-          </button>
-          <button class="tg-opt" type="button" role="radio" aria-checked="false">
-            <span class="tg-radio" aria-hidden="true"></span>
-            <span class="tg-opt__bd"><b>리더가 지정하기</b><span>말씀 서고 원문에서 단락 범위를 골라 모임에 알려요</span></span>
-          </button>
-        </div>
-      </div>
+      <p class="field__help" style="margin-top:14px">오늘 범위는 모든 모임이 공식 편성(오늘 훈독과 같은 말씀)을 따라요.</p>
 
       <div class="field">
         <div class="card">
@@ -1449,7 +1438,7 @@
       <div class="card" id="gc-done" role="status" style="margin-top:16px" hidden>
         <b style="font-size:16px">모임을 만들었어요</b>
         <p class="tg-lede" style="margin-top:4px">이 코드를 식구들에게 보내 주세요. 코드를 받은 사람만 들어올 수 있어요.</p>
-        <p class="tg-code" aria-label="초대 코드 SAEBYEOK-7K2">SAEBYEOK-7K2</p>
+        <p class="tg-code" aria-label="초대 코드 7K2M-Q9XD">7K2M-Q9XD</p>
         <div class="tg-join">
           <button class="btn btn-primary btn--sm" type="button"><i class="ph ph-share-network" aria-hidden="true"></i>카카오톡으로 초대</button>
           <button class="btn btn-line btn--sm" type="button"><i class="ph ph-copy" aria-hidden="true"></i>링크 복사</button>
@@ -1492,6 +1481,145 @@
         <a class="btn btn-ghost" href="?screen=group">남기지 않고 돌아가기</a>
       </div>
       <p class="notice">한 줄에는 댓글을 달 수 없고, 반응은 "함께 머물렀어요" 한 가지예요</p>
+    </section>
+
+    <!-- ===== 모임 설정 (SCR-PWA-021, PLAN-HD-010 결정 2) : 기본은 리더 보기, ?role=member 는 모임원 보기 =====
+         리더 5가지 = 모임 이름 변경 · 식구 목록(전체 인원은 여기서만) · 초대 코드 새로 만들기 · 식구 내보내기 · 나가기/모임 삭제.
+         모임원 = 내 이름 변경 · 나가기. 식구 목록에 읽음 상태를 넣지 않는다. 리더 넘기기(수동 위임)는 후속.
+         되돌릴 수 없는 동작은 한 번 눌러서 끝나지 않는다 — 누르면 바로 아래 확인 카드가 열린다(data-confirm) -->
+    <section class="col tg-form" data-screen="group-settings" hidden>
+      <p class="tg-lede" data-q="role=default|leader">새벽별 훈독모임의 리더 설정이에요. 모임 이름·식구·초대 코드를 관리해요.</p>
+      <p class="tg-lede" data-q="role=member">새벽별 훈독모임에서 쓰는 내 이름을 바꾸거나 모임을 나갈 수 있어요.</p>
+
+      <div class="field" data-q="role=default|leader">
+        <label class="field__label" for="gt-name">모임 이름</label>
+        <div class="tg-inline">
+          <input id="gt-name" type="text" value="새벽별 훈독모임" maxlength="20" />
+          <button class="btn btn-line btn--sm" type="button">저장</button>
+        </div>
+        <span class="field__help">바꾸면 식구 모두에게 새 이름이 보여요. 교회 이름은 쓰지 않아도 돼요.</span>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="gt-me">이 모임에서 쓸 내 이름</label>
+        <div class="tg-inline">
+          <input id="gt-me" type="text" value="은정" maxlength="12" data-q="role=default|leader" />
+          <input id="gt-me-member" type="text" value="효진" maxlength="12" aria-label="이 모임에서 쓸 내 이름" data-q="role=member" />
+          <button class="btn btn-line btn--sm" type="button">저장</button>
+        </div>
+        <span class="field__help">이 모임에서만 쓰는 이름이에요. 같은 모임에 같은 이름은 쓸 수 없어요.</span>
+      </div>
+
+      <!-- 식구 목록 : 전체 인원 "식구 N명" 은 이 화면에서만 보인다. 이름·역할·들어온 날만, 오늘 읽었는지는 없다 -->
+      <div class="sect" data-q="role=default|leader">
+        <div class="sect__head"><h3 class="sect__title">식구</h3><span class="sect__rule"></span><span class="sect__meta">식구 8명</span></div>
+        <ul class="card tg-people" role="list">
+          <li class="tg-person"><span class="tg-av tg-av--me" aria-hidden="true">은</span><span class="tg-person__bd"><b>은정 (나)</b><span>리더 · 9월 12일에 만들었어요</span></span></li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">미</span><span class="tg-person__bd"><b>미카</b><span>모임원 · 9월 12일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-1" aria-expanded="false" aria-controls="gt-kick-1">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-1" role="group" aria-label="미카 님 내보내기 확인" hidden>
+              <p>미카 님을 내보낼까요? 미카 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">서</span><span class="tg-person__bd"><b>서연</b><span>모임원 · 9월 12일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-2" aria-expanded="false" aria-controls="gt-kick-2">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-2" role="group" aria-label="서연 님 내보내기 확인" hidden>
+              <p>서연 님을 내보낼까요? 서연 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">정</span><span class="tg-person__bd"><b>정호 아버지</b><span>모임원 · 9월 13일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-3" aria-expanded="false" aria-controls="gt-kick-3">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-3" role="group" aria-label="정호 아버지 님 내보내기 확인" hidden>
+              <p>정호 아버지 님을 내보낼까요? 정호 아버지 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">효</span><span class="tg-person__bd"><b>효진</b><span>모임원 · 9월 14일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-4" aria-expanded="false" aria-controls="gt-kick-4">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-4" role="group" aria-label="효진 님 내보내기 확인" hidden>
+              <p>효진 님을 내보낼까요? 효진 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">지</span><span class="tg-person__bd"><b>지훈</b><span>모임원 · 9월 15일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-5" aria-expanded="false" aria-controls="gt-kick-5">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-5" role="group" aria-label="지훈 님 내보내기 확인" hidden>
+              <p>지훈 님을 내보낼까요? 지훈 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">수</span><span class="tg-person__bd"><b>수아</b><span>모임원 · 9월 18일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-6" aria-expanded="false" aria-controls="gt-kick-6">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-6" role="group" aria-label="수아 님 내보내기 확인" hidden>
+              <p>수아 님을 내보낼까요? 수아 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+          <li class="tg-person tg-member">
+            <span class="tg-av" aria-hidden="true">민</span><span class="tg-person__bd"><b>민재</b><span>모임원 · 9월 21일에 들어왔어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-kick-7" aria-expanded="false" aria-controls="gt-kick-7">내보내기</button>
+            <div class="tg-confirm" id="gt-kick-7" role="group" aria-label="민재 님 내보내기 확인" hidden>
+              <p>민재 님을 내보낼까요? 민재 님이 남긴 한 줄과 반응도 함께 지워져요. 지금 초대 코드로는 다시 들어올 수 있어요 — 막으려면 초대 코드를 새로 만들어 주세요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">내보내기</button></div>
+            </div>
+          </li>
+        </ul>
+        <p class="tg-again">이 목록에는 오늘 읽었는지 표시하지 않아요. 전체 인원도 리더 설정에서만 보여요.</p>
+      </div>
+
+      <!-- 초대 코드 : 모임당 1개, 30일 만료. 새로 만들면 이전 코드는 즉시 무효 -->
+      <div class="sect" data-q="role=default|leader">
+        <div class="sect__head"><h3 class="sect__title">초대 코드</h3><span class="sect__rule"></span><span class="sect__meta">10월 12일까지</span></div>
+        <div class="card">
+          <p class="tg-code" style="margin-top:0" aria-label="초대 코드 7K2M-Q9XD">7K2M-Q9XD</p>
+          <p class="tg-again">코드를 받은 사람은 누구나 들어올 수 있어요. 만든 날부터 30일 동안 쓸 수 있어요.</p>
+          <div class="tg-join">
+            <button class="btn btn-primary btn--sm" type="button"><i class="ph ph-share-network" aria-hidden="true"></i>카카오톡으로 초대</button>
+            <button class="btn btn-line btn--sm" type="button"><i class="ph ph-copy" aria-hidden="true"></i>링크 복사</button>
+          </div>
+          <button class="btn btn-line btn--sm tg-wide" type="button" data-confirm="gt-regen" aria-expanded="false" aria-controls="gt-regen"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i>초대 코드 새로 만들기</button>
+          <div class="tg-confirm" id="gt-regen" role="group" aria-label="초대 코드 새로 만들기 확인" hidden>
+            <p>새 코드를 만들까요? <b>이전 코드는 바로 막혀요.</b> 이미 들어온 식구는 그대로예요.</p>
+            <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">새로 만들기</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 나가기·모임 삭제 : 되돌릴 수 없는 묶음은 다른 설정과 떨어뜨린다 -->
+      <div class="sect">
+        <div class="sect__head"><h3 class="sect__title" data-q="role=default|leader">나가기 · 모임 삭제</h3><h3 class="sect__title" data-q="role=member">모임 나가기</h3><span class="sect__rule"></span></div>
+        <div class="card tg-set">
+          <div class="tg-set__row" data-q="role=default|leader">
+            <span class="tg-set__bd"><b>모임 나가기</b><span>다른 식구가 있으면 리더는 나갈 수 없어요 · 리더 넘기기는 준비 중</span></span>
+            <button class="btn btn-line btn--sm" type="button" disabled aria-disabled="true">나가기</button>
+          </div>
+          <div class="tg-set__row" data-q="role=default|leader">
+            <span class="tg-set__bd"><b>모임 삭제</b><span>식구·한 줄 나눔·모임 정성이 모두 지워져요. 되돌릴 수 없어요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-delete" aria-expanded="false" aria-controls="gt-delete">삭제</button>
+            <div class="tg-confirm" id="gt-delete" role="group" aria-label="모임 삭제 확인" hidden>
+              <p>새벽별 훈독모임을 지울까요? 식구 8명 모두 모임에서 빠지고 한 줄 나눔·모임 정성도 함께 지워져요. 각자의 훈독 기록과 개인 정성은 그대로 남아요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">모임 삭제</button></div>
+            </div>
+          </div>
+          <div class="tg-set__row" data-q="role=member">
+            <span class="tg-set__bd"><b>모임 나가기</b><span>나가면 내가 남긴 한 줄과 반응도 함께 지워져요</span></span>
+            <button class="btn btn-line btn--sm tg-danger" type="button" data-confirm="gt-leave" aria-expanded="false" aria-controls="gt-leave">나가기</button>
+            <div class="tg-confirm" id="gt-leave" role="group" aria-label="모임 나가기 확인" hidden>
+              <p>새벽별 훈독모임을 나갈까요? 내가 남긴 한 줄과 반응이 지워지고, 다시 들어오려면 초대 코드가 필요해요. 내 훈독 기록은 그대로 남아요.</p>
+              <div class="tg-confirm__cta"><button class="btn btn-ghost btn--sm" type="button" data-cancel>취소</button><button class="btn btn-primary btn--sm" type="button">나가기</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="notice">모임 설정은 이 모임 식구에게만 영향을 줘요. 모임은 검색되지 않아요</p>
     </section>
   </main>
 
@@ -1573,13 +1701,13 @@
   const TITLES = {today:'오늘 훈독', read:'훈독하기', words:'천성경 1편 3장', library:'말씀', search:'',
     onboarding:'', ask:'AI 질문', 'ask-log':'질문 기록', 'ask-detail':'질문', worship:'가정예배', challenge:'챌린지', sermons:'5분 설교',
     'sermon-request':'설교 섭외', garden:'나의 정원', settings:'알림·설치', family:'가족·친구',
-    group:'훈독 모임', 'group-join':'모임 참여', 'group-create':'모임 만들기', 'group-share':'한 줄 나눔'};
+    group:'훈독 모임', 'group-join':'모임 참여', 'group-create':'모임 만들기', 'group-share':'한 줄 나눔', 'group-settings':'모임 설정'};
   document.getElementById('apptitle').textContent = TITLES[screen] ?? screen;
   // 탭 귀속 : 하위 화면은 상위 탭을 활성으로
   const TAB_OF = {today:'today', read:'today', words:'library', library:'library', search:'library',
     ask:'ask', 'ask-log':'ask', 'ask-detail':'ask', worship:'worship', challenge:'worship', sermons:'worship', 'sermon-request':'worship',
     garden:'garden', settings:'garden', family:'garden',
-    group:'today', 'group-join':'today', 'group-create':'today', 'group-share':'today'};
+    group:'today', 'group-join':'today', 'group-create':'today', 'group-share':'today', 'group-settings':'today'};
   // 정성 기간 시트 : ?sheet=jeongseong
   const sheet = q.get('sheet');
   if (sheet) { const el = document.getElementById('sheet-' + sheet); if (el) el.setAttribute('open',''); }
@@ -1620,6 +1748,16 @@
   const gcDone = document.getElementById('gc-done');
   if (q.get('created') === '1') gcDone.hidden = false;
   document.getElementById('gc-make').addEventListener('click', () => { gcDone.hidden = false; gcDone.scrollIntoView({block:'center'}); });
+  // 되돌릴 수 없는 동작 : 누르면 확인 카드가 열리고 초점은 취소로 간다. 취소하면 원래 버튼으로 돌아간다
+  document.querySelectorAll('[data-confirm]').forEach(b => b.addEventListener('click', () => {
+    const box = document.getElementById(b.dataset.confirm); if (!box) return;
+    box.hidden = !box.hidden; b.setAttribute('aria-expanded', String(!box.hidden));
+    if (!box.hidden) box.querySelector('[data-cancel]').focus();
+  }));
+  document.querySelectorAll('.tg-confirm [data-cancel]').forEach(c => c.addEventListener('click', () => {
+    const box = c.closest('.tg-confirm'), opener = document.querySelector('[data-confirm="' + box.id + '"]');
+    box.hidden = true; opener.setAttribute('aria-expanded', 'false'); opener.focus();
+  }));
   // 한 줄 100자 카운터
   const gsText = document.getElementById('gs-text'), gsCount = document.getElementById('gs-count');
   gsText.addEventListener('input', () => { gsCount.textContent = gsText.value.length + ' / 100'; });

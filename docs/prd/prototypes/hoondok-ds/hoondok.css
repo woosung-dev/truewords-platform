@@ -440,6 +440,26 @@ a.card:active,button.card:active,.shelf__item:active,.fm-item:active,
 .tg-code{margin:12px 0 0;padding:16px;border-radius:var(--r-sm);border:1.5px dashed var(--ink-3);background:var(--surface);
   text-align:center;font-size:24px;font-weight:700;letter-spacing:.08em;font-variant-numeric:tabular-nums}
 .tg-cta{display:flex;flex-direction:column;gap:10px;margin-top:24px}
+/* 모임 설정 (021) : 입력 + 저장 한 줄, 식구 행 내보내기, 되돌릴 수 없는 동작의 인라인 확인 카드. 새 색 없음 */
+.tg-inline{display:flex;gap:8px}
+.tg-inline input{flex:1;min-width:0}
+.tg-inline .btn{height:auto}
+.tg-member{flex-wrap:wrap}
+.tg-member .btn{flex:none}
+.tg-danger{color:var(--accent-strong)}   /* 5.73:1. 되돌릴 수 없는 동작의 첫 버튼. 확인 카드의 실행 버튼만 채움 */
+.tg-wide{width:100%;margin-top:10px}
+.tg-confirm{flex-basis:100%;margin:4px 0 8px;padding:14px;border-radius:var(--r-sm);background:var(--surface-2);
+  font-size:14px;line-height:1.55}
+.tg-confirm[hidden]{display:none}
+.tg-confirm p{margin:0}
+.tg-confirm__cta{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.tg-set{padding:4px 16px}
+.tg-set__row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-height:64px;padding:10px 0}
+.tg-set__row + .tg-set__row{border-top:1px solid var(--line)}
+.tg-set__bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tg-set__bd b{font-size:15px;font-weight:600}
+.tg-set__bd span{font-size:12.5px;color:var(--ink-2);line-height:1.5}
+.tg-set__row .btn{flex:none}
 @media (min-width:768px){
   /* 폼 3화면은 설정·설교 섭외와 같은 560px (§5 013·015 근거: 라벨과 입력이 멀어지지 않게) */
   .col.tg-form{max-width:560px}
