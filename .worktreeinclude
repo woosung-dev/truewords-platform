@@ -1,0 +1,6 @@
+# Claude Code worktree에 복사할 Git 무시 개발 환경 파일.
+# Git이 추적하는 파일, 의존성, 캐시, 운영 infra 환경 파일은 포함하지 않는다.
+# 일반 git worktree add에는 적용되지 않는다.
+apps/api/.env
+apps/web/.env.local
+apps/admin/.env.local

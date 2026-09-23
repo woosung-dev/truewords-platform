@@ -1,99 +1,17 @@
-# TrueWords 기술 문서
+# TrueWords 문서
 
-현재 작업은 **[PLAN-HD-005 훈독 여정 연결](plans/completed/2026-09-21-hoondok-journey-plan.md)** 구현이다. 권리 원장·말씀 서고/검색/원문·정성 추출 말씀·클라이언트 오류 수집을 통합하고 있으며, 배포는 별도 승인이다. 이전 **훈독 운영 공백 복구** 기록은 다음과 같다. 훈독 MVP 는 Phase 1(#276)·Phase 2(#282)·Phase 3 편성 트랙(#287)·PWA 트랙(#298, SW 킬스위치 후속 #299)·화면 확장 [PLAN-HD-002](plans/active/2026-09-19-hoondok-screens.md)(#300, main `4e15f8c`)까지 main 에 머지됐고, 운영은 **`HOONDOK_ENABLED=1`** 이고 2026-09-20 web 을 `aba5240` → **`a93a6c7`** 로 배포해 PLAN-HD-002 의 실데이터 9라우트가 200, 프리뷰 8라우트는 404 다(`x-robots-tag: noindex, nofollow`, `smoke-web` 12건 OK). 편성 재고는 2026-09-20 에 **8일분**이 투입돼 `PLAN-HD-001` §6 완료 기준(7일분 이상)을 넘겼고, 초대 코드 게이트는 끈 채로 유지하기로 결정했다 — 실측값·결정·위험은 [훈독 PWA 롤아웃 runbook](runbooks/hoondok-pwa-rollout.md) 의 실행 기록이 소유한다. 편성 재고를 지속적으로 채우기 위해 [PLAN-HD-003](plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형)를 구현했다 — 코퍼스 원문을 검색해 폼을 채우며 생성 AI 가 본문을 만들지 않는다. 2026-09-20 backend·admin 을 `c066b02` 로 배포해 운영 편성 화면에서 쓸 수 있다. Phase 3 완료 기준 중 남은 것은 **실기기 증거** 1건이다 — 함께 열려 있던 "배포 트리 기준 `make e2e` 재실행" 은 2026-09-21 [PLAN-HD-004](plans/active/2026-09-20-hoondok-followup-3tracks.md) 최종 게이트(85 passed, 운영 태그 두 개를 조상으로 포함하는 트리)로 닫혔다(판정은 [`PLAN-HD-001` §6](plans/active/2026-09-17-hoondok-mvp.md) 완료 기준표). 프리뷰 플래그는 운영에 배선하지 않는다. 앱별 UI 소유권 분리(2안)는 완료된 전제이며, web 태그 승격·알림·Flutter 는 별도 승인이다.
+현재 동작과 실행 명령은 [루트 README](../README.md)와 코드가 우선한다. 이 디렉터리에는 코드만으로 알기 어려운 제품·권리 규칙, 결정 이유, 운영 절차를 둔다. 완료 체크리스트와 세션 기록은 Git/PR 이력으로 확인한다.
 
-| 먼저 읽을 문서 | 용도 |
+| 찾는 내용 | 위치 |
 |---|---|
-| [훈독 MVP 실행 계획](plans/active/2026-09-17-hoondok-mvp.md) | 확정값 12개, 3테이블·5 API·화면 4, additive-only 규칙, Phase 1~4 완료 기준 |
-| [편성 후보 찾기](plans/active/2026-09-20-hoondok-curation-assist.md) | `PLAN-HD-003`. 추출형 후보 검색(API-HD-012)으로 편성 입력을 돕는다. 생성형 초안을 기각한 이유와 되돌리기 비용 |
-| [훈독 화면 확장 계획](plans/active/2026-09-19-hoondok-screens.md) | `PLAN-HD-002`. 남은 화면 13종을 웨이브 4개(실데이터 → AI 질문 → 프리뷰 셸 → 마무리)로, 플래그 2개(운영 노출 0)·파일 소유·서브에이전트 오케스트레이션 규약 |
-| [훈독 후속 3트랙](plans/active/2026-09-20-hoondok-followup-3tracks.md) | `PLAN-HD-004`. 배포·CI 안전망(docs-links 가 gitignore 존중 · `deploy-guard` 후퇴 배포 차단) · 훈독 9화면 디자인 품질 · Phase 3 종결 문서 |
-| [훈독 알림 1종](plans/active/2026-09-22-hoondok-notifications.md) | `PLAN-HD-006`. Phase 4 게이트를 "착수"→"운영 ON" 으로 옮기고 Web Push 구독·발송기·SW·설정 토글을 먼저 구현. VAPID 미설정이면 비활성. 베타 판정 쿼리 2개 |
-| [말씀 서고 3계층](plans/active/2026-09-23-hoondok-library.md) | `PLAN-HD-007`. 권리 원장 시드 + 저작물→권→장(본문 규칙 자동 추출, `volume_sections`) + 이어 읽기·북마크·형광펜·노트 서버 저장 + admin 시리즈 일괄 승인. 초기 노출 천성경·평화경·원리강론 |
-| [원문 뷰 다듬기](plans/active/2026-09-23-hoondok-reader-polish.md) | `PLAN-HD-008`. 표시 전용 `display_text`(겹침·페이지 번호·PDF 줄바꿈 정리, Qdrant 무변경) + 단락 본문 탭 선택 + 번호 1부터 + 머리글 결측 문구 제거 + 브라우저 음성 듣기 |
-| [함께 읽는 사람들 1단계](plans/active/2026-09-23-hoondok-together.md) | `PLAN-HD-009`. 오늘 훈독하기 완료자 익명 숫자(API-HD-029), 10명 미만 숨김, 완료자만 집계. 모임·나눔은 2단계 |
-| [함께 읽는 모임 (2단계)](plans/active/2026-09-23-hoondok-groups.md) | `PLAN-HD-010`. 1단계 익명 숫자(`PLAN-HD-009`) 위에 초대 코드 모임·식구 목록·한 줄 나눔·반응·모임/공식 정성 + 모임 설정 5가지. 신규 5테이블·API-HD-030~043, 베타 테스터에게 바로 개통(플래그는 킬 스위치) |
-| [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md) | web/admin/API 경계, 공통 API·인증·SSE·알림 정책 |
-| [전환 실행 계획](plans/completed/2026-09-05-monorepo-migration.md) | M1~M4 범위와 실제 검증 증거, M5 제외 범위 |
-| [앱별 UI 실행 계획](plans/active/2026-09-05-app-owned-ui.md) | 후속 2안 승인 범위와 재검증 증거 |
-| [로컬 환경 설정](runbooks/environment-setup.md) | 앱별 실행과 환경변수 |
-| [전환·복구 runbook](runbooks/monorepo-migration-and-rollback.md) | 로컬 볼륨 보존, 운영 origin·이미지·라우팅 전환 |
-| [TODO](TODO.md) | 승인 대기 결정과 후속 작업 |
+| 훈독 제품 범위·권리 | [PRD](prd/17-ffwpu-pwa-prd.md), [도메인](specs/domain/hoondok-entities.md), [API](specs/api/hoondok-api.md) |
+| 웹·관리자 화면 기준 | [훈독 디자인](specs/web/hoondok-design-system.md), [웹](specs/web/ui-ux.md), [관리자](specs/admin/ui-ux.md) |
+| 시스템 경계·기술 결정 | [모노레포 설계](architecture/2026-09-05-pwa-flutter-monorepo.md), [ADR](adr/) |
+| 개발·배포·복구 | [환경 설정](runbooks/environment-setup.md), [CI/CD](runbooks/ci-cd-pipeline.md), [훈독 롤아웃](runbooks/hoondok-pwa-rollout.md), [Oracle VM](../infra/oracle-vm/README.md) |
+| 남은 결정·운영 작업 | [TODO](TODO.md) |
 
-## 문서 책임
+`plans/active/`의 기존 계획은 진행 중인 트랙의 범위와 인수 조건을 확인할 때만 사용한다. `plans/completed/`, `archive/`, 오래된 `research/` 자료는 당시의 기록이며 현재 운영 상태나 테스트 결과를 뜻하지 않는다. 과거 기록은 필요한 근거가 남은 것만 유지하고, 제거한 자료는 Git 이력에서 찾는다.
 
-```text
-docs/
-├── prd/                 # 제품 배경·요구사항
-├── specs/               # 공통 업무 동작 + 플랫폼별 인수 조건
-│   ├── domain/          # 데이터 모델·도메인 정의
-│   ├── api/             # API 동작 명세 (생성 계약은 루트 contracts/)
-│   ├── web/             # 사용자 웹의 UI/UX 소유권·구현 기준
-│   └── admin/           # 관리자 UI/UX 소유권·구현 기준
-├── adr/                 # 장기 의사결정·보류 결정의 근거
-├── architecture/        # 시스템 설계·문서 이전 manifest
-├── plans/
-│   ├── active/          # 현재 승인되어 실행하는 계획
-│   └── completed/       # 실제 완료 증거를 첨부한 계획만 이동
-├── runbooks/            # 개발·CI·운영·배포·복구
-├── research/            # 시장/기술 조사, 실측, 외부 코드 분석
-└── archive/             # 과거 계획·사고·종료된 체험단·폐기 설계
-```
+문서를 새로 쓸 때는 **코드·테스트·이슈로 설명할 수 없는 정보만** 추가한다. 코드 변경마다 문서를 의무적으로 갱신하지 않는다. 현재 계약이나 운영 절차가 바뀌면 그 소유 문서만 수정한다.
 
-문서 ID와 파일명은 보존한다. PRD를 웹/모바일별로 복제하지 않고, 한 기능 spec에서 공통 규칙과 플랫폼별 동작을 구분한다. 과거 문서의 `backend/`, `admin/`, `src.*`와 실행 결과는 **당시 기록**이며 현재 명령의 근거로 사용하지 않는다.
-
-web/admin의 UI·테마·화면 UX 명세는 앱별로 소유한다. 공통 업무 규칙을 복제하지 않으며, 현재 구현 기준을 기록했다는 이유로 새 디자인이 승인된 것으로 취급하지 않는다. 훈독 앱은 `apps/web` 안에 들어가지만 화면 규칙을 `DES-PWA-003`이 따로 소유하며, 기존 시연 웹의 보존 기준(`UI-WEB-001`)과 섞지 않는다.
-
-## 제품·기능 명세
-
-| 문서 | 내용 |
-|---|---|
-| [01-project-overview](prd/01-project-overview.md) | 기존 제품 배경·데이터 범위 |
-| [16-app-feature-spec](prd/16-app-feature-spec.md) | 이전 MVP/Flutter 구상. 신규 PWA 요구사항으로 자동 상속하지 않음 |
-| [17-ffwpu-pwa-prd](prd/17-ffwpu-pwa-prd.md) | 훈독 앱 PRD v2. 식구의 문제 5개 → 초원AI 벤치마크 현지화 매핑 → 5탭 · 기능 7종 · 보상 정책 · KPI · 9월 일정 · Decision Log. **2026-09-16 승인** (`DEC-PWA-022`) |
-| [훈독 도메인](specs/domain/hoondok-entities.md), [훈독 API](specs/api/hoondok-api.md) | `ENT-HD-001~009`(계정·편성·미션·정성·권리·정성 말씀·오류 기록·알림 설정·푸시 구독), `API-HD-001~022`(`/hoondok/*` + 편성 admin `/admin/hoondok/*`) + AI 질문의 `POST /chat/stream` 재사용. KST 고정, additive-only |
-| [훈독 프로토타입](prd/prototypes/hoondok-ds/README.md) | `app.html` + `hoondok.css` 단일 소스, 16화면, 폰 390 · PC 1280. `index.html` 로 나란히 본다. 값의 원본이며 디자인 시스템 문서가 근거를 설명한다 |
-| [훈독 디자인 시스템](specs/web/hoondok-design-system.md) | `DES-PWA-003`. 채택안 A 아침 햇살의 토큰·컴포넌트 10종·권위 층 배지·WCAG 2.2 AA 대비 실측값·데스크톱 브레이크포인트 3단계·16화면 반응형 대응표. **라이트 단일 테마**이며 다크 팔레트는 정의하지 않는다 (2026-09-16 승인, 데스크톱 내비는 상단 헤더 4). §1.7 앱 아이콘·설치 메타·Pretendard self-host(2026-09-19) |
-| [사용자 웹 UI/UX](specs/web/ui-ux.md), [관리자 UI/UX](specs/admin/ui-ux.md) | 현재 구현·소유권과 미승인 리디자인의 경계 |
-| [17-chatbot-system-prompt-spec](specs/17-chatbot-system-prompt-spec.md) | 챗봇별 시스템 프롬프트 |
-| [18-category-document-stats](specs/18-category-document-stats.md), [19-category-tag-management-ui](specs/19-category-tag-management-ui.md) | 문서 통계·카테고리 UI |
-| [도메인 사전](specs/domain/06-terminology-dictionary-structure.md), [중복 업로드 API](specs/api/check_duplicate.md) | 용어 데이터 구조·업로드 동작 |
-
-2026-03/04 날짜가 있는 `specs/`의 개별 설계는 당시 승인 상태를 유지한다. 과거 계획의 체크박스를 현재 완료 증거로 바꾸지 않는다. 미착수 Flutter/과거 Cloud Run 스펙은 `archive/specs/`에 분리했다.
-
-## 아키텍처·결정
-
-| 문서 | 내용 |
-|---|---|
-| [02-architecture-design](architecture/02-architecture-design.md), [05-rag-pipeline](architecture/05-rag-pipeline.md) | 기반 설계와 RAG 정책 |
-| [07-multi-chatbot-version](architecture/07-multi-chatbot-version.md), [11-data-routing-strategies](architecture/11-data-routing-strategies.md) | 챗봇 조합·라우팅 |
-| [08-semantic-cache](architecture/08-semantic-cache.md), [09-security-countermeasures](architecture/09-security-countermeasures.md) | 캐시·가드레일 설계 |
-| [구조 다이어그램 7종](architecture/diagrams/README.md) | 현재 구조 (main `8980e0c`, 2026-09-06 재생성). 운영·레포·데이터·채팅·적재 2종·배포 워크플로. JSON 원본·HTML 뷰어·PNG. 분리 전 JSON 은 [archive](archive/diagrams-2026-09-04/) |
-| [ADR 목록](adr/) | 기존 ADR 번호 유지. [Oracle 이전](adr/2026-07-25-gcp-to-oracle-migration.md), [HTTP/2 회피](adr/47-qdrant-sdk-http2-permanent-fix.md), [CI/CD 점검 결정](adr/2026-09-05-cicd-audit-decisions.md), [툴체인 최신화(pnpm 12·TS 6·Next 16.3)](adr/2026-09-06-toolchain-latest-decisions.md), [Biome 전환 결정(2026-09-06 확정 · P3 ①·② 완료)](adr/2026-09-06-biome-migration-proposal.md) 등 |
-
-현재 앱의 위치와 실행 명령은 [루트 README](../README.md), 현재 설계는 [ARCH-MONO-001](architecture/2026-09-05-pwa-flutter-monorepo.md)을 우선한다. 과거 아키텍처 문서의 청사진·성능 수치는 이번 이전에서 재측정한 결과가 아니다.
-
-## 개발·운영
-
-| 문서 | 내용 |
-|---|---|
-| [environment-setup](runbooks/environment-setup.md) | pnpm/uv, 앱별 환경, 쿠키·볼륨 주의점 |
-| [ci-cd-pipeline](runbooks/ci-cd-pipeline.md) | 변경 범위별 검증·독립 배포·필수 CI 집계 |
-| [development-workflow](runbooks/development-workflow.md), [integration-branch-workflow](runbooks/integration-branch-workflow.md) | 작업·통합 브랜치 규칙 |
-| [oracle-vm-migration](runbooks/oracle-vm-migration.md), [VM 운영 기준](../infra/oracle-vm/README.md) | 기존 Oracle 이전 이력·일상 운영 |
-| [redteam-test-guide](runbooks/redteam-test-guide.md), [semantic-cache-cleanup](runbooks/semantic-cache-cleanup.md) | 과거 화면 기반 레드팀 가이드·캐시 운영 |
-
-## 조사·이력
-
-| 분류 | 읽을 자료 |
-|---|---|
-| 현재 PWA 제품 조사 | [초원AI 벤치마크](research/2026-08-30-chowon-ai-benchmark.md), [가정연합 PWA 방향](research/2026-08-30-pwa-app-direction.md), [검토 보고서](research/2026-08-31-chowon-pwa-strategy-report.html), [함께 읽는 사람들 벤치마크](research/2026-09-23-hoondok-together-benchmark.md) |
-| 기존 시장 전략 | [12](research/12-market-analysis.md), [13](research/13-competitor-deep-dive.md), [14](research/14-success-factors-strategy.md): 개신교/성경 앱 전제이며 FFWPU PRD로 자동 상속하지 않음 |
-| 기존 디자인 조사 | [17-design-strategy](research/17-design-strategy.md): 과거 디자인 전략. 신규 PWA·관리자의 공통 디자인 승인 기준이 아님 |
-| 기술·코드 조사 | [청킹/임베딩](research/19-rag-chunking-embedding-research.md), [로컬 LLM](research/15-local-llm-benchmark.md), [외부 코드 분석](research/insights/README.md) |
-| 과거 계획·운영 기록 | [archive 설명](archive/README.md). 완료 여부를 이번 이전에서 새로 판정하지 않음 |
-| 이전 감사 | [문서 이전 manifest](architecture/2026-09-05-document-migration-manifest.json): 모든 기존 문서/매체의 이전 전 SHA-256·새 위치·분류 이유 |
-
-기존 색인에만 있고 기준 commit `59e3a59`에 원본이 없는 문서 3개(`03-vector-db-comparison`, `04-gemini-file-search-analysis`, `10-vibe-coding-and-pinecone-vs-qdrant`)는 새 색인의 링크에서 제외했다. 원본 복구 전 내용을 만들거나 다른 문서로 가장하지 않는다. 상세는 manifest의 `missingIndexSources`를 참조한다.
-
-검증: 저장소 루트에서 `node tooling/checks/docs-links.mjs`. 로컬 Markdown/HTML 링크·앵커·매체 경로를 검사하며, 외부 사이트 접근이나 과거 명령의 실행 성공을 보증하지 않는다. `.gitignore` 대상은 `git ls-files` 판정으로 건너뛴다 — 로컬에만 있는 파일이 원격 CI 에 없어 생기던 오탐을 막는다(2026-09-21, `PLAN-HD-004` 트랙 A).
+링크 검사: `node tooling/checks/docs-links.mjs`

@@ -2,7 +2,7 @@
 
 - **작성일**: 2026-09-06
 - **상태**: **결정 확정 (2026-09-06 사용자 승인).** P3 ①·② 는 브랜치 `chore/biome-format-baseline` 에서 실행 완료(아래 실행 기록), ③·④ 는 후속 PR. ④ 전까지 `packages/eslint-config` 와 ESLint 는 그대로 둔다
-- **관련**: [툴체인 최신화 ADR](2026-09-06-toolchain-latest-decisions.md) · [모노레포 설계 ARCH-MONO-001](../architecture/2026-09-05-pwa-flutter-monorepo.md) · [프론트엔드 규칙](../../.ai/rules/frontend.md)
+- **관련**: [툴체인 최신화 ADR](2026-09-06-toolchain-latest-decisions.md) · [모노레포 설계 ARCH-MONO-001](../architecture/2026-09-05-pwa-flutter-monorepo.md) · [웹 규칙](../../apps/web/AGENTS.md) · [관리자 규칙](../../apps/admin/AGENTS.md)
 
 ## 배경
 
@@ -26,7 +26,7 @@
 |---|---|---|
 | P1 | **Biome 2.x 를 유일한 lint · format 도구로 채택**하고 `packages/eslint-config` 와 각 앱의 `eslint.config.mjs` · `eslint` · `eslint-config-next` 의존성을 제거한다 | 대안 A "ESLint 유지 + Biome 포맷터만" 은 도구 2개 유지 비용. 대안 B "유지" 는 react-hooks v7 13건과 느린 lint 가 남는다. 미매핑 `@next/next/*` 11종은 대부분 `pages/` · `_document` 시대 규칙이라 App Router 앱에 실질 영향이 작다 — 단 `no-html-link-for-pages`(내부 링크에 `<a>`) 는 리뷰 체크리스트로 흡수 |
 | P2 | **포맷 규칙**: 2-space · double quote · lineWidth 120 · semicolons 유지(현재 코드 다수 스타일) | 첫 도입이므로 기존 코드에 가장 가까운 값을 택해 diff 를 줄인다 |
-| P3 | **단계 도입**: ① 루트 `biome.json` + `useSortedClasses` 는 끔 ② `biome check --write`(organizeImports · format) **1커밋**(134 파일, 로직 변경 0 — 리뷰는 "포맷만" 으로) ③ 규칙 위반 수동 정리는 **파일군별 소커밋**(a11y → hooks → noArrayIndexKey 순) ④ CI `pnpm lint` → `biome ci .` 로 교체, `packages/eslint-config` 삭제, `.ai/rules/frontend.md` · `AGENTS.md` · `docs/README.md` 갱신 | 한 PR 에 포맷과 로직 수정을 섞으면 리뷰가 불가능하다 |
+| P3 | **단계 도입**: ① 루트 `biome.json` + `useSortedClasses` 는 끔 ② `biome check --write`(organizeImports · format) **1커밋**(134 파일, 로직 변경 0 — 리뷰는 "포맷만" 으로) ③ 규칙 위반 수동 정리는 **파일군별 소커밋**(a11y → hooks → noArrayIndexKey 순) ④ CI `pnpm lint` → `biome ci .` 로 교체, `packages/eslint-config` 삭제, `apps/web/AGENTS.md` · `apps/admin/AGENTS.md` · `docs/README.md` 갱신 | 한 PR 에 포맷과 로직 수정을 섞으면 리뷰가 불가능하다 |
 | P4 | **React Compiler 규칙은 Biome nursery `useReactCompiler` 를 warn 으로 켠다** | 툴체인 ADR D4 의 13건 추적을 이 규칙으로 이어받는다. nursery 이므로 error 승격은 안정화 후 |
 
 ## 예상 작업량과 위험

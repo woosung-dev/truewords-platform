@@ -1,6 +1,6 @@
 # 데이터 소스 선택/라우팅 전략 20가지
 
-> **⚠️ Status (2026-05-15):** 본 문서는 Phase 2 초기 설계 기록물이다. 운영 구현은 단일 컬렉션 `malssum_poc_v5` + `semantic_cache` 로 수렴했고, 라우팅은 PostgreSQL `data_source_categories` payload 필터 (`source` / `book_series` / `category`) 기반. 본문 내 `collection_main`, `chunking_poc_A/B/C`, `all-paragraph`, `dictionary_collection` 등은 모두 deprecated. 운영 현황: `docs/adr/52-collection-main-deprecation.md` 및 `.ai/project/rag-pipeline.md`.
+> **⚠️ Status (2026-05-15):** 본 문서는 Phase 2 초기 설계 기록물이다. 운영 구현은 단일 컬렉션 `malssum_poc_v5` + `semantic_cache` 로 수렴했고, 라우팅은 PostgreSQL `data_source_categories` payload 필터 (`source` / `book_series` / `category`) 기반. 본문 내 `collection_main`, `chunking_poc_A/B/C`, `all-paragraph`, `dictionary_collection` 등은 모두 deprecated. 운영 현황: `docs/adr/52-collection-main-deprecation.md` 및 현재 API 코드.
 
 ## 개념
 

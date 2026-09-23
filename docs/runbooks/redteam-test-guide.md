@@ -1111,7 +1111,7 @@ AI가 가진 시스템 프롬프트를 무시하거나, 공격자의 지시를 �
 | 다중 챗봇 버전 | `docs/architecture/07-multi-chatbot-version.md` | Cascading Search 설계 |
 | 시맨틱 캐시 | `docs/architecture/08-semantic-cache.md` | 캐시 전략, TTL |
 | 기능 명세 | `docs/prd/16-app-feature-spec.md` | MVP 기능 목록 |
-| 종교 도메인 규칙 | `.ai/project/domain.md` | 용어 처리, 다층 해석 |
+| 종교 도메인 규칙 | `apps/api/AGENTS.md` | 용어 처리, 다층 해석 |
 
 ### C. 주요 API 엔드포인트 (디버깅용)
 

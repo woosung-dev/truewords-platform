@@ -5,7 +5,7 @@
 > - **payload 필터**: `book_type` enum 폐기 → `source` / `book_series` / `category` (PR #94).
 > - **dictionary_collection**: 데이터 미확보로 보류 (memory `project_terminology_blocked.md`).
 >
-> 현재 아키텍처: `.ai/project/rag-pipeline.md` 및 `docs/adr/52-collection-main-deprecation.md`.
+> 현재 아키텍처: `docs/adr/52-collection-main-deprecation.md` 및 현재 API 코드.
 
 ## 인프라 구조 (3-Layer)
 
