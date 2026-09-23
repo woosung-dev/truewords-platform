@@ -4,6 +4,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.common.database import get_async_session
+from app.core.config import settings
 from app.modules.hoondok.journey_repository import JourneyRepository
 from app.modules.hoondok.journey_service import JourneyService
 from app.modules.hoondok.library_repository import LibraryRepository
@@ -18,6 +19,7 @@ from app.modules.hoondok.service import (
     JeongseongService,
     MissionService,
 )
+from app.modules.hoondok.together_service import TogetherService
 from app.modules.qdrant import get_raw_client  # raw httpx — SDK HTTP/2 hang 회피 (docs/dev-log/47)
 
 
@@ -54,6 +56,16 @@ async def get_mission_service(
     repo: MissionLogRepository = Depends(get_mission_repository),
 ) -> MissionService:
     return MissionService(repo)
+
+
+async def get_together_service(
+    repo: MissionLogRepository = Depends(get_mission_repository),
+) -> TogetherService:
+    return TogetherService(
+        repo,
+        min_count=settings.hoondok_together_min_count,
+        cache_seconds=settings.hoondok_together_cache_seconds,
+    )
 
 
 async def get_jeongseong_repository(

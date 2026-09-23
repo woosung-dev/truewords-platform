@@ -4557,6 +4557,43 @@
         "title": "TodayReadingResponse",
         "type": "object"
       },
+      "TogetherTodayResponse": {
+        "description": "API-HD-029 오늘(KST) 훈독하기를 마친 서로 다른 사용자 수. 익명 전체 집계만 — 사람 정보는 없다.\n\n완료자가 threshold 미만이면 숫자 자체를 내려보내지 않는다(count=null, is_shown=false).",
+        "properties": {
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "is_shown": {
+            "title": "Is Shown",
+            "type": "boolean"
+          },
+          "threshold": {
+            "title": "Threshold",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "count",
+          "is_shown",
+          "threshold"
+        ],
+        "title": "TogetherTodayResponse",
+        "type": "object"
+      },
       "TopQuery": {
         "properties": {
           "count": {
@@ -8898,6 +8935,28 @@
           }
         },
         "summary": "Get Today",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/today/together": {
+      "get": {
+        "description": "API-HD-029 오늘(KST) 훈독하기를 마친 서로 다른 사용자 수(익명). 기준 미만이면 count=null — 항상 200, 인증 없음.",
+        "operationId": "get_together_today_hoondok_today_together_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TogetherTodayResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Together Today",
         "tags": [
           "hoondok"
         ]

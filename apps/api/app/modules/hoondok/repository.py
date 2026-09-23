@@ -3,11 +3,12 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import delete
+from sqlalchemy import delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.modules.hoondok.models import ClientErrorEvent, DailyReading, JeongseongPeriod, JeongseongReading, MissionLog
+from app.modules.identity.models import User
 
 
 class DailyReadingRepository:
@@ -84,6 +85,18 @@ class MissionLogRepository:
     async def delete_for_user(self, user_id: uuid.UUID) -> None:
         """계정 삭제(API-HD-011)의 일부 — 커밋하지 않는다. 같은 세션을 쓰는 호출자가 사용자 저장과 함께 한 번에 커밋한다."""
         await self.session.execute(delete(MissionLog).where(MissionLog.user_id == user_id))
+
+    async def count_users_on(self, mission_date: date, kind: str) -> int:
+        """그날 그 kind 를 완료한 서로 다른 사용자 수 (API-HD-029). 소프트 삭제(deleted_at) 사용자는 뺀다.
+
+        unique(user·date·kind) 라 사용자당 1행이지만 DISTINCT 로 그 가정에 기대지 않는다.
+        """
+        result = await self.session.execute(
+            select(func.count(func.distinct(MissionLog.user_id)))
+            .join(User, User.id == MissionLog.user_id)
+            .where(MissionLog.mission_date == mission_date, MissionLog.kind == kind, User.deleted_at.is_(None))
+        )
+        return int(result.scalar_one())
 
 
 class JeongseongRepository:

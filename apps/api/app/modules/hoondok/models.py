@@ -54,6 +54,8 @@ class MissionLog(SQLModel, table=True):
     __tablename__ = "mission_logs"
     __table_args__ = (
         UniqueConstraint("user_id", "mission_date", "kind", name="uq_mission_logs_user_date_kind"),
+        # "함께 읽는 사람들"(API-HD-029) 하루 집계 — unique 는 user_id 가 선두라 날짜 조건에 못 쓴다.
+        Index("ix_mission_logs_date_kind", "mission_date", "kind"),
     )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)

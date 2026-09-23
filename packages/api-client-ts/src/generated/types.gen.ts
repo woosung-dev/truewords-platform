@@ -2784,6 +2784,32 @@ export type TodayReadingResponse = {
 };
 
 /**
+ * TogetherTodayResponse
+ *
+ * API-HD-029 오늘(KST) 훈독하기를 마친 서로 다른 사용자 수. 익명 전체 집계만 — 사람 정보는 없다.
+ *
+ * 완료자가 threshold 미만이면 숫자 자체를 내려보내지 않는다(count=null, is_shown=false).
+ */
+export type TogetherTodayResponse = {
+    /**
+     * Count
+     */
+    count: number | null;
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Is Shown
+     */
+    is_shown: boolean;
+    /**
+     * Threshold
+     */
+    threshold: number;
+};
+
+/**
  * TopQuery
  */
 export type TopQuery = {
@@ -5590,6 +5616,22 @@ export type GetTodayHoondokTodayGetResponses = {
 };
 
 export type GetTodayHoondokTodayGetResponse = GetTodayHoondokTodayGetResponses[keyof GetTodayHoondokTodayGetResponses];
+
+export type GetTogetherTodayHoondokTodayTogetherGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/today/together';
+};
+
+export type GetTogetherTodayHoondokTodayTogetherGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: TogetherTodayResponse;
+};
+
+export type GetTogetherTodayHoondokTodayTogetherGetResponse = GetTogetherTodayHoondokTodayTogetherGetResponses[keyof GetTogetherTodayHoondokTodayTogetherGetResponses];
 
 export type GetWordsHoondokWordsVolumeGetData = {
     body?: never;
