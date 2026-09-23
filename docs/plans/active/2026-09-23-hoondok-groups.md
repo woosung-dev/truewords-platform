@@ -123,7 +123,7 @@
 | 트랙 | 상태 | PR / 커밋 |
 |---|---|---|
 | A 백엔드 | 완료 (로컬 커밋 f8977cb · 0281f80, 브랜치 `feat/hoondok-groups-api`) — pytest 1287 passed · alembic 왕복 · contracts:check 통과 | 미푸시 |
-| W0 web 기반 | 미착수 | — |
+| W0 web 기반 | 완료 (로컬 커밋 `893d01d`, 브랜치 `feat/hoondok-groups-web-base`) — Vitest 373(신규 36) · typecheck · lint · `hoondok:check` 통과. 플래그 `NEXT_PUBLIC_HOONDOK_TOGETHER` 미설정 = OFF, Dockerfile·`deploy-web HOONDOK_TOGETHER`(기본 1)·Playwright·`.env.example` = 1. W1 은 비로그인 참여 시 `onboardingHref(경로+쿼리)` 로 넘겨야 초대 코드가 미리 채워진다 | 미푸시 |
 | W1 모임 화면 | 미착수 | — |
 | W2 홈·완료 뒤·정정 | 정정(W2a) 완료 · 홈 카드(W2b) 미착수 | W2a `dbfb958` |
 | C admin | 미착수 | — |
