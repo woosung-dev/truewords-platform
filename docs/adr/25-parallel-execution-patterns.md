@@ -364,7 +364,7 @@ Detached worktree (YC Partner Flow 부분 적용)
 ## 관련 문서
 
 - `docs/adr/23-development-process-analysis.md` — Phase-Adaptive / YC Partner Flow 결정 원본
-- `docs/runbooks/development-workflow.md` — 실무 워크플로우 가이드
+- 당시 실무 워크플로우 가이드 — Git 이력의 `docs/runbooks/development-workflow.md` 참조
 - [oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode) — OMC 저장소
 - [everything-claude-code](https://github.com/affaan-m/everything-claude-code) — ECC 저장소
 - [Claude Code Agent Teams 공식 문서](https://code.claude.com/docs/en/agent-teams) — Anthropic 2026

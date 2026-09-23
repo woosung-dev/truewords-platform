@@ -1,7 +1,7 @@
 <!-- archify 로 생성한 구조 다이어그램 7종의 원본·산출물·재생성 절차. -->
 # 아키텍처 다이어그램 7종 — 현재 모노레포 구조 (2026-09-06)
 
-**이 묶음은 main `8980e0c`(2026-09-06, web/admin 분리 컷오버·canonical 전환 이후)의 구조를 그린다.** 2026-09-04 통합 admin/backend 스냅샷은 `docs/archive/diagrams-2026-09-04/` 에 JSON 원본만 보존했고, 당시 HTML/PNG 는 git 이력(`5cb30b5` 이전)에서 볼 수 있다. 다이어그램은 코드·compose·runbook 에서 읽은 사실을 그린 것이며 운영 배포 증거는 [전환·복구 runbook](../../runbooks/monorepo-migration-and-rollback.md)과 [VM 운영](../../../infra/oracle-vm/README.md)을 따른다.
+**이 묶음은 main `8980e0c`(2026-09-06, web/admin 분리 컷오버·canonical 전환 이후)의 구조를 그린다.** 2026-09-04 통합 admin/backend 스냅샷은 Git 이력에서 볼 수 있다. 다이어그램은 코드·compose·runbook 에서 읽은 사실을 그린 것이며 운영 배포 증거는 [전환·복구 runbook](../../runbooks/monorepo-migration-and-rollback.md)과 [VM 운영](../../../infra/oracle-vm/README.md)을 따른다.
 
 원본은 `.json`, `.html`은 자체 포함 인터랙티브 뷰어(테마 · 검색 · 관계 추적 · guided views · 내보내기), `.png`는 정적 캡처(2048×1320 light)다.
 

@@ -175,7 +175,7 @@ PWA/알림 (M5)
 | 운영 배포 | **2026-09-06 완료** — backend `e833ce9` · web `dfb6916` · admin `41a9ef2`, Cloudflare `app → web:3000`·`truewords-admin → admin:3000`, `ops-check` 7건 OK. 기록: [runbook §실행 기록](../../runbooks/monorepo-migration-and-rollback.md#실행-기록-2026-09-06) |
 | 계정/데이터 이전·PWA 실기기 푸시 | 미실행 |
 
-M1~M4의 T-MONO-001~013 구현·로컬 검증을 완료했다. PR 생성·CI·최종 main 리뷰는 GitHub에서 추적하며 main merge와 운영 배포는 하지 않는다. 문서 이전은 [manifest](../../architecture/2026-09-05-document-migration-manifest.json), 운영 준비는 [runbook](../../runbooks/monorepo-migration-and-rollback.md)으로 추적한다. 실기기·운영 성공으로 확대 해석하지 않는다.
+M1~M4의 T-MONO-001~013 구현·로컬 검증을 완료했다. PR 생성·CI·최종 main 리뷰는 GitHub에서 추적하며 main merge와 운영 배포는 하지 않는다. 문서 이전 당시의 위치 대응표는 Git 이력(`docs/architecture/2026-09-05-document-migration-manifest.json`)에 있고, 운영 준비는 [runbook](../../runbooks/monorepo-migration-and-rollback.md)으로 추적한다. 실기기·운영 성공으로 확대 해석하지 않는다.
 
 검증 중 발견한 환경 실패도 보존한다. 초기 E2E는 테스트 API 프로세스 종료·Next 개발 origin 허용 누락으로 중단됐고 설정 후 통과했다. 이미지 빌드와 동시 실행한 전체 E2E는 Chromium context 종료로 33/34였으며, 빌드 종료 후 같은 소스·재시도 0으로 전체 34/34를 확인했다. 삭제 시나리오의 기존 숨겨진 key selector는 실제 표시 셀로 수정했다. 이 기록을 운영 브라우저 장애나 새 업무 규칙 변경으로 해석하지 않는다.
 

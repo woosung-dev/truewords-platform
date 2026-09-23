@@ -134,7 +134,7 @@ repo/
 
 Flutter 착수 시 루트 `pubspec.yaml`·`pubspec.lock`, `apps/mobile`, `packages/api-client-dart`, `ci-mobile.yml`을 함께 추가한다. Pub workspace는 Dart 패키지들의 의존성 해석과 lockfile을 공유한다. [Pub 공식 문서](https://dart.dev/tools/pub/workspaces)
 
-사용자 예시의 Flutter `ui/data` 책임 분리는 유지하되, 실제 내부 배치는 기존 `.ai/stacks/flutter/mobile.md`의 Feature-First + Riverpod + Repository 규칙과 착수 시 정렬한다. 두 구조를 동시에 강제하지 않는다. 별도 domain/use-case 계층은 복잡성이 필요할 때만 검토한다. [Flutter 공식 권고](https://docs.flutter.dev/app-architecture/recommendations)
+사용자 예시의 Flutter `ui/data` 책임 분리는 유지하되, 실제 내부 배치는 Flutter 도입 시 Feature-First + Riverpod + Repository 규칙을 해당 앱의 `AGENTS.md`에 정의한다. 두 구조를 동시에 강제하지 않는다. 별도 domain/use-case 계층은 복잡성이 필요할 때만 검토한다. [Flutter 공식 권고](https://docs.flutter.dev/app-architecture/recommendations)
 
 ## 4. 공유와 의존성 경계
 

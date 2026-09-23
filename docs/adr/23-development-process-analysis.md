@@ -244,6 +244,6 @@ Phase 2 (Flutter 모바일 MVP 2-3일):
 
 ## 관련 문서
 
-- `docs/runbooks/development-workflow.md` — 실무 워크플로우 가이드 (이 결정 반영)
+- 당시 실무 워크플로우 가이드 — Git 이력의 `docs/runbooks/development-workflow.md` 참조
 - `docs/research/insights/02-nexus-core-analysis.md` — 이 결정을 촉발한 Nexus Core 패턴 분석
 - `~/.gstack/projects/woosung-dev-truewords-platform/woosung-main-design-20260410-100111.md` — 현재 진행 중 Design Doc
