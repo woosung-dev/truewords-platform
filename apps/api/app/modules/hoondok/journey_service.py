@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.config import settings
 from app.modules.datasource.chunk_merge import merge_with_dedup
 from app.modules.hoondok.candidates import filter_results
+from app.modules.hoondok.display_text import to_display_text
 from app.modules.hoondok.journey_repository import JourneyRepository
 from app.modules.hoondok.library_repository import LibraryRepository
 from app.modules.hoondok.library_schemas import LibraryWork, WordSection
@@ -133,6 +134,7 @@ class JourneyService:
                     chunk_id=r.chunk_id,
                     chunk_index=r.chunk_index,
                     text=r.text,
+                    display_text=to_display_text(None, r.text),
                     volume=r.volume,
                     score=r.score,
                     work_title=rights[r.volume].work_title,
@@ -215,9 +217,17 @@ class JourneyService:
         )
         if not ordered:
             raise HTTPException(404, "원문 구간을 찾을 수 없습니다")
+        # 표시 텍스트는 바로 앞 청크와의 겹침을 잘라낸다. 페이지 첫 청크는 앞이 없다.
         chunks = [
-            WordChunk(chunk_id=r.chunk_id, chunk_index=r.chunk_index, text=r.text)
-            for r in ordered
+            WordChunk(
+                chunk_id=r.chunk_id,
+                chunk_index=r.chunk_index,
+                text=r.text,
+                display_text=to_display_text(
+                    ordered[i - 1].text if i > 0 else None, r.text
+                ),
+            )
+            for i, r in enumerate(ordered)
         ]
         body = merge_with_dedup(
             main_text=chunks[0].text, before=[], after=[c.text for c in chunks[1:]]

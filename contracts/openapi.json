@@ -4970,6 +4970,10 @@
             "title": "Chunk Index",
             "type": "integer"
           },
+          "display_text": {
+            "title": "Display Text",
+            "type": "string"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -4978,7 +4982,8 @@
         "required": [
           "chunk_id",
           "chunk_index",
-          "text"
+          "text",
+          "display_text"
         ],
         "title": "WordChunk",
         "type": "object"
@@ -5025,6 +5030,10 @@
             "title": "Chunk Index",
             "type": "integer"
           },
+          "display_text": {
+            "title": "Display Text",
+            "type": "string"
+          },
           "score": {
             "title": "Score",
             "type": "number"
@@ -5046,6 +5055,7 @@
           "chunk_id",
           "chunk_index",
           "text",
+          "display_text",
           "work_title",
           "authority_grade",
           "volume",

@@ -7,6 +7,7 @@ import type { WordChunk } from "@truewords/api-client-ts/types";
 import { Sparkles } from "lucide-react";
 import { type AskResult, askErrorMessage, requestAsk } from "@/features/hoondok/ask/ask-stream";
 import { AnswerMarkdown } from "@/features/hoondok/ask/components/answer-markdown";
+import { verseNumber } from "../api";
 
 /** 질문 앞머리 — 공식 해설이 아님을 전제로 두고 근거 말씀을 함께 요구한다. */
 export const EXPLAIN_PREFIX =
@@ -40,8 +41,9 @@ export function AiExplain({ chunk }: { chunk: WordChunk | null }) {
         AI 설명 · 공식 해설 아님
       </p>
       <p className="rd-ai__quote">
-        <span className="verse__n">{chunk.chunk_index}</span>
-        {chunk.text}
+        <span className="verse__n">{verseNumber(chunk.chunk_index)}</span>
+        {/* 보이는 인용은 정리된 표시 텍스트, AI 에 보내는 질문은 원본 text 다(PLAN-HD-008) */}
+        {chunk.display_text}
       </p>
       <button
         className="btn btn-line btn--sm"

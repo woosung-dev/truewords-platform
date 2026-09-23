@@ -10,7 +10,15 @@ import { useEffect, useSyncExternalStore } from "react";
 import { AuthorityBadge } from "@/components/hoondok";
 import { LIBRARY_KEY } from "@/features/hoondok/query-keys";
 import { useCurrentUser } from "@/features/identity/use-current-user";
-import { libraryAPI, pageOfChunkIndex, seriesHref, WORDS_PAGE_SIZE, wordsHref, wordsPageHref } from "../api";
+import {
+  libraryAPI,
+  pageOfChunkIndex,
+  seriesHref,
+  verseNumber,
+  WORDS_PAGE_SIZE,
+  wordsHref,
+  wordsPageHref,
+} from "../api";
 import { parseLastReading, readLastReadingRaw, subscribeLastReading } from "../last-reading";
 import { useBookmarks, useReadingPositions, useReadingPositionWriter } from "../use-reading";
 
@@ -75,7 +83,7 @@ export function LibraryScreen() {
               <b>{serverResume.work_title}</b>
               <span className="resume__meta">
                 {serverResume.label !== serverResume.work_title && `${serverResume.label} · `}
-                단락 {serverResume.chunk_index}까지 읽었어요
+                단락 {verseNumber(serverResume.chunk_index)}까지 읽었어요
               </span>
             </span>
             {resumeGrade && <GradeBadge grade={resumeGrade} />}
@@ -189,7 +197,7 @@ export function LibraryScreen() {
               <Link key={mark.chunk_id} className="shelf__item" href={wordsHref(mark.volume, mark.chunk_id)}>
                 <b>{mark.work_title}</b>
                 <span>
-                  {mark.label !== mark.work_title && `${mark.label} · `}단락 {mark.chunk_index}
+                  {mark.label !== mark.work_title && `${mark.label} · `}단락 {verseNumber(mark.chunk_index)}
                 </span>
                 <Bookmark size={18} aria-hidden="true" />
               </Link>

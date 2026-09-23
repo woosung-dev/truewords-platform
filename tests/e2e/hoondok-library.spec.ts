@@ -164,7 +164,7 @@ test("장 목차로 이동하고 기기 이어 읽기로 마지막 구간에 복
 test("단락 형광펜은 새로고침 뒤에도 남고 북마크는 서고에 모인다", async ({ page }) => {
   await signUp(page, "library");
   await page.goto(wordsPath);
-  await page.getByRole("button", { name: "단락 0 표시하기" }).click();
+  await page.getByRole("button", { name: "단락 1 표시하기" }).click();
   const sheet = page.getByRole("dialog");
   await sheet.getByRole("button", { name: "연두 형광펜" }).click();
   await expect(sheet.getByRole("button", { name: "연두 형광펜" })).toHaveAttribute("aria-pressed", "true");
@@ -172,14 +172,14 @@ test("단락 형광펜은 새로고침 뒤에도 남고 북마크는 서고에 �
   await page.reload();
   await expect(page.locator("mark.hl-2")).toContainText("1번째 합성 문장");
 
-  await page.getByRole("button", { name: "단락 1 표시하기" }).click();
+  await page.getByRole("button", { name: "단락 2 표시하기" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "북마크", exact: true }).click();
   await expect(page.getByRole("dialog").getByRole("button", { name: "북마크 해제" })).toBeVisible();
   await page.getByRole("dialog").getByRole("button", { name: "닫기" }).click();
 
   await page.goto("/hoondok/library");
   await expect(page.getByRole("heading", { name: "북마크", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: /단락 1$/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /단락 2$/ })).toBeVisible();
   // 이어 읽기는 서버 값으로 바뀐다 — 원문을 연 페이지의 첫 단락이 기준이다
-  await expect(page.getByText("단락 0까지 읽었어요")).toBeVisible();
+  await expect(page.getByText("단락 1까지 읽었어요")).toBeVisible();
 });
