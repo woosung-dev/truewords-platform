@@ -11,7 +11,7 @@ import { type FormEvent, Suspense, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { identityAPI } from "@/features/identity/api";
 import { claimDeviceForUser } from "@/features/identity/device-owner";
-import { safeReturnTo } from "@/features/identity/gate";
+import { inviteCodeFromReturnTo, safeReturnTo } from "@/features/identity/gate";
 import { CURRENT_USER_KEY, useCurrentUser } from "@/features/identity/use-current-user";
 import { clearHoondokStorage } from "@/features/identity/use-delete-me";
 
@@ -38,7 +38,8 @@ function OnboardingForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
+  // 모임 참여 링크에서 왔으면 그 모임 코드로 미리 채운다 (PLAN-HD-010 D4)
+  const [inviteCode, setInviteCode] = useState(() => inviteCodeFromReturnTo(returnTo));
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 

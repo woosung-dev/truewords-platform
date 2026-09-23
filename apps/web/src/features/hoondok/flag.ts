@@ -10,3 +10,10 @@ export function isHoondokEnabled(): boolean {
 export function isHoondokPreviewEnabled(): boolean {
   return process.env.NEXT_PUBLIC_HOONDOK_PREVIEW === "1";
 }
+
+// 함께 읽는 모임 킬 스위치 (PLAN-HD-010 D3). 빌드 시 고정. 코드에서는 미설정 = OFF 로 두고(잘못 빠진 배선이 켜지 않게),
+// 배포(Dockerfile ARG·deploy-web HOONDOK_TOGETHER)·로컬 .env.example·Playwright 가 1 을 넘긴다.
+// OFF 면 /hoondok/groups/** 가 404, 홈 모임 카드가 렌더되지 않는다. 백엔드 라우트·정정 문구는 플래그와 무관하다.
+export function isHoondokTogetherEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_HOONDOK_TOGETHER === "1";
+}

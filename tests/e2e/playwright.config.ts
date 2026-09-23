@@ -50,6 +50,7 @@ export default defineConfig({
         "hoondok-ask.spec.ts",
         "hoondok-preview.spec.ts",
         "hoondok-library.spec.ts",
+        "hoondok-groups.spec.ts",
       ],
       use: { browserName: "chromium", baseURL: webOrigin },
     },
@@ -81,6 +82,8 @@ export default defineConfig({
               NEXT_PUBLIC_HOONDOK_ENABLED: "1",
               // 프리뷰 셸(가정예배·가족)은 두 번째 플래그 뒤에 있다 — 운영 이미지에는 넣지 않는다(PLAN-HD-002 §2).
               NEXT_PUBLIC_HOONDOK_PREVIEW: "1",
+              // 함께 읽는 모임 킬 스위치(PLAN-HD-010 D3) — 배포와 같이 ON.
+              NEXT_PUBLIC_HOONDOK_TOGETHER: "1",
             },
             reuseExistingServer: false,
             timeout: 60_000,

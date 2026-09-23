@@ -1,7 +1,6 @@
-/* 함께 읽는 사람들 1단계 — 익명 숫자 (PLAN-HD-009). 값은 프로토타입 hoondok.css §13 의
-   `.together`·`.tg-ic`·`.tg-after__n` 그대로이고 색은 토큰만 쓴다(hex 금지, pnpm hoondok:check).
-   모임·아바타·초대 진입(`.tg-av`·`.tg-entry`·`.tg-join`)은 2단계라 여기 두지 않는다.
-   미완료자 이름·상태를 그릴 자리를 만들지 않는다. */
+/* 함께 읽는 사람들 — 1단계 익명 숫자(PLAN-HD-009) + 2단계 초대 모임(PLAN-HD-010). 값은 프로토타입 hoondok.css §13
+   그대로이고 색은 토큰만 쓴다(hex 금지, pnpm hoondok:check). 프로토타입의 Phosphor `<i>` 는 lucide `<svg>` 로 옮겼다
+   (크기는 컴포넌트 size prop 이 정한다). 미완료자 이름·상태·재촉 버튼을 그릴 자리를 만들지 않는다. */
 [data-app="hoondok"] {
   /* ---------- 홈 익명 카드 : 해 아이콘 원 + 굵은 한 줄 + 보조줄 ---------- */
   .together {
@@ -54,5 +53,639 @@
   }
   .tg-after__n b {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* ================= 2단계 : 초대 모임 (PLAN-HD-010, SCR-PWA-017~021) ================= */
+
+  /* ---------- 홈 모임 카드·진입 카드 ---------- */
+  .tg-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  /* 아바타는 이니셜이다 (DES §8 2026-09-22: 실사용자 자리에 스톡 얼굴을 넣지 않는다) */
+  .tg-av {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    background: var(--surface-2);
+    color: var(--ink-2);
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .tg-av--me {
+    background: var(--accent-soft);
+    color: var(--accent-strong); /* 6.4:1 */
+  }
+  .avatars {
+    display: flex;
+    flex: none;
+  }
+  .avatars > * + * {
+    margin-left: -8px;
+  }
+  .avatars .tg-av {
+    border: 2px solid var(--surface);
+  }
+  .tg-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .tg-entry b {
+    font-size: 15.5px;
+  }
+  .tg-entry > span {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.55;
+  }
+  .tg-join {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .tg-soon {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 10px 0 0;
+    font-size: 12.5px;
+    color: var(--ink-3);
+  }
+  /* 훈독하기 완료 뒤 블록(한 줄 남기기 진입 포함) */
+  .tg-after {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .tg-after .tg-after__n {
+    margin: 0;
+  }
+
+  /* ---------- 모임 상세 머리 · 오늘 범위 ---------- */
+  .tg-head__nm {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 8px 0 0;
+  }
+  .tg-head__meta {
+    font-size: 13px;
+    color: var(--ink-2);
+    margin-top: 4px;
+  }
+  .tg-acts {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .tg-range {
+    display: block;
+  }
+  .tg-range__t {
+    font-size: 16.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 10px 0 0;
+  }
+  .tg-range__ft {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .tg-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 44px;
+    color: var(--accent-strong);
+    font-weight: 600;
+    font-size: 13.5px;
+  }
+
+  /* ---------- 정성 : 모임 전체의 N일차만. 개인별 진행은 없다 ---------- */
+  .tg-js + .tg-js {
+    border-top: 1px solid var(--line);
+    margin-top: 16px;
+    padding-top: 16px;
+  }
+  .tg-js__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .tg-js__t {
+    display: block;
+    font-size: 15.5px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .tg-js__by {
+    display: block;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    margin-top: 3px;
+  }
+  .tg-js__day {
+    flex: none;
+    text-align: right;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .tg-js__day b {
+    display: block;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .tg-js .progress {
+    margin-top: 12px;
+  }
+  .tg-js__ft {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .tg-again {
+    margin: 14px 0 0;
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.55;
+  }
+
+  /* ---------- 오늘 함께 읽은 사람 : 완료자만, 가나다순 ---------- */
+  .tg-people {
+    list-style: none;
+    margin: 0;
+    padding: 4px 16px;
+  }
+  .tg-person {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 8px 0;
+  }
+  .tg-person + .tg-person {
+    border-top: 1px solid var(--line);
+  }
+  .tg-person__bd {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .tg-person__bd b {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .tg-person__bd span {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+
+  /* ---------- 한 줄 나눔 : 100자 한 줄 + 반응 1종. 댓글·좋아요 수 경쟁 없음 ---------- */
+  .tg-notes {
+    list-style: none;
+    margin: 0;
+    padding: 0 16px;
+  }
+  .tg-note {
+    display: flex;
+    gap: 12px;
+    padding: 14px 0;
+  }
+  .tg-note + .tg-note {
+    border-top: 1px solid var(--line);
+  }
+  .tg-note__bd {
+    flex: 1;
+    min-width: 0;
+  }
+  .tg-note__who {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .tg-note__who b {
+    color: var(--ink);
+    font-size: 13.5px;
+    margin-right: 4px;
+  }
+  .tg-note__tx {
+    margin: 4px 0 0;
+    font-size: 15px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
+  /* "함께 머물렀어요" 토글 — 눌림은 aria-pressed 로만 표현한다 */
+  .tg-stay {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    margin-top: 8px;
+    padding: 0 12px;
+    border-radius: var(--r-full);
+    border: 1px solid var(--ink-3);
+    background: var(--surface);
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .tg-stay svg {
+    flex: none;
+  }
+  .tg-stay[aria-pressed="true"] {
+    background: var(--accent-soft);
+    border-color: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 600;
+  }
+  .tg-stay:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* 내 한 줄에만: "N명이 함께 머물렀어요 · 나에게만 보여요" */
+  .tg-stay__mine {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: var(--ink-3);
+  }
+  .tg-privacy {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-top: 24px;
+    padding: 14px 16px;
+    border-radius: var(--r);
+    background: var(--surface-2);
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+  .tg-privacy svg {
+    flex: none;
+    margin-top: 1px;
+  }
+
+  /* ---------- 참여·만들기·한 줄 쓰기 폼 (SCR-PWA-018·019·020) ---------- */
+  .tg-form .field {
+    margin-top: 22px;
+  }
+  /* 공용 .field 는 input 만 그린다 — 한 줄 textarea 도 같은 값으로 */
+  .tg-form .field textarea {
+    font: inherit;
+    font-size: 16px; /* iOS 확대 방지 */
+    color: var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-sm);
+    padding: 12px 14px;
+    width: 100%;
+    min-height: 88px;
+    resize: vertical;
+    line-height: 1.6;
+  }
+  .tg-form .field textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .tg-lede {
+    margin: 8px 0 0;
+    font-size: 14.5px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+  .tg-code-row {
+    display: flex;
+    gap: 8px;
+  }
+  .tg-code-row input {
+    flex: 1;
+    min-width: 0;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+  .tg-code-row .btn {
+    height: auto;
+  }
+  .tg-via {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    font-size: 14px;
+  }
+  .tg-via svg {
+    flex: none;
+    color: var(--ink-2);
+  }
+  .tg-opts {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tg-opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    min-height: 56px;
+    padding: 12px 14px;
+    text-align: left;
+    font: inherit;
+    color: var(--ink);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+  }
+  .tg-opt[aria-checked="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .tg-opt[aria-disabled="true"] {
+    background: var(--surface-2);
+    cursor: not-allowed;
+  }
+  .tg-opt:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .tg-radio {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--ink-3);
+    flex: none;
+    margin-top: 1px;
+    display: grid;
+    place-items: center;
+    background: var(--surface);
+  }
+  .tg-opt[aria-checked="true"] .tg-radio {
+    border-color: var(--accent);
+  }
+  .tg-opt[aria-checked="true"] .tg-radio::after {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .tg-opt__bd {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .tg-opt__bd b {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .tg-opt[aria-checked="true"] .tg-opt__bd b {
+    color: var(--accent-strong);
+  }
+  .tg-opt__bd span {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  /* 기간 3택 : 순서 없는 짧은 선택지라 가로 3칸. 선택은 테두리 + 굵기 + 체크 아이콘 세 신호 */
+  .tg-opts--row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .tg-opts--row .tg-opt {
+    justify-content: center;
+    align-items: center;
+    min-height: 48px;
+    padding: 8px;
+    gap: 6px;
+    font-size: 15px;
+  }
+  .tg-opt__ck {
+    display: none;
+  }
+  .tg-opt[aria-checked="true"] .tg-opt__ck {
+    display: inline;
+  }
+  .tg-opts--row .tg-opt[aria-checked="true"] {
+    color: var(--accent-strong);
+    font-weight: 600;
+  }
+  .tg-sub {
+    margin-top: 12px;
+    padding: 14px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+  }
+  .tg-sub .field {
+    margin-top: 14px;
+  }
+  .tg-sub .field:first-child {
+    margin-top: 0;
+  }
+  .tg-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .tg-toggle-row b {
+    display: block;
+    font-size: 15px;
+  }
+  .tg-toggle-row span {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  /* "모임에 보이는 것" 안내 — 보이는 것(ok) / 보이지 않는 것(ink-3) */
+  .tg-vis {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .tg-vis li {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .tg-vis svg {
+    flex: none;
+    margin-top: 1px;
+  }
+  .tg-vis .is-shown svg {
+    color: var(--ok-strong);
+  }
+  .tg-vis .is-hidden svg {
+    color: var(--ink-3);
+  }
+  .tg-count {
+    align-self: flex-end;
+    font-size: 12.5px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .tg-exs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tg-ex {
+    min-height: 44px;
+    padding: 9px 12px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    text-align: left;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--ink);
+  }
+  /* 만든 직후 초대 코드 */
+  .tg-code {
+    margin: 12px 0 0;
+    padding: 16px;
+    border-radius: var(--r-sm);
+    border: 1.5px dashed var(--ink-3);
+    background: var(--surface);
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+  }
+  .tg-cta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  /* ---------- 모임 설정 (SCR-PWA-021) : 입력 + 저장 한 줄 · 식구 행 내보내기 · 인라인 확인 카드. 새 색 없음 ---------- */
+  .tg-inline {
+    display: flex;
+    gap: 8px;
+  }
+  .tg-inline input {
+    flex: 1;
+    min-width: 0;
+  }
+  .tg-inline .btn {
+    height: auto;
+  }
+  .tg-member {
+    flex-wrap: wrap;
+  }
+  .tg-member .btn {
+    flex: none;
+  }
+  /* 5.73:1. 되돌릴 수 없는 동작의 첫 버튼. 확인 카드의 실행 버튼만 채움 */
+  .tg-danger {
+    color: var(--accent-strong);
+  }
+  .tg-wide {
+    width: 100%;
+    margin-top: 10px;
+  }
+  .tg-confirm {
+    flex-basis: 100%;
+    margin: 4px 0 8px;
+    padding: 14px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .tg-confirm[hidden] {
+    display: none;
+  }
+  .tg-confirm p {
+    margin: 0;
+  }
+  .tg-confirm__cta {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .tg-set {
+    padding: 4px 16px;
+  }
+  .tg-set__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    min-height: 64px;
+    padding: 10px 0;
+  }
+  .tg-set__row + .tg-set__row {
+    border-top: 1px solid var(--line);
+  }
+  .tg-set__bd {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .tg-set__bd b {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .tg-set__bd span {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .tg-set__row .btn {
+    flex: none;
+  }
+
+  /* ---------- md: 768px 이상. 폼 3화면은 설정·설교 섭외와 같은 560px (라벨과 입력이 멀어지지 않게) ---------- */
+  @media (min-width: 768px) {
+    .col.tg-form {
+      max-width: 560px;
+    }
+    .app__main:has(.tg-form) .appbar__in {
+      max-width: 560px;
+    }
+  }
+  @media (min-width: 1024px) and (hover: hover) {
+    .tg-opt:not([aria-disabled="true"]):not([aria-checked="true"]):hover,
+    .tg-ex:hover,
+    .tg-stay:hover {
+      background: var(--surface-2);
+    }
   }
 }

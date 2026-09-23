@@ -12,7 +12,8 @@
         "NEXT_PUBLIC_ADMIN_URL",
         "NEXT_PUBLIC_DEMO_ADMIN_EMAIL",
         "NEXT_PUBLIC_HOONDOK_ENABLED",
-        "NEXT_PUBLIC_HOONDOK_PREVIEW"
+        "NEXT_PUBLIC_HOONDOK_PREVIEW",
+        "NEXT_PUBLIC_HOONDOK_TOGETHER"
       ],
       "outputs": [".next/**", "!.next/cache/**"]
     },
