@@ -9,6 +9,7 @@ import { InstallCard } from "@/features/hoondok/install/components/install-card"
 import { JeongseongCard } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import { JeongseongSheet } from "@/features/hoondok/jeongseong/components/jeongseong-sheet";
 import { formatKstDate } from "@/features/hoondok/today";
+import { GroupList } from "@/features/hoondok/together/components/group-list";
 import { TogetherCard } from "@/features/hoondok/together/components/together-card";
 
 export default async function HoondokHomePage() {
@@ -23,8 +24,9 @@ export default async function HoondokHomePage() {
 
       <JeongseongCard />
 
-      {/* 함께 읽는 사람들 1단계 — 익명 숫자 카드 1장 (PLAN-HD-009). 모임 카드는 2단계 */}
+      {/* 함께 읽는 사람들 — 1단계 익명 숫자 카드 1장 (PLAN-HD-009) + 2단계 모임 카드·진입 카드 (PLAN-HD-010, 플래그 OFF 면 없음) */}
       <TogetherCard />
+      <GroupList />
 
       <InstallCard />
 
