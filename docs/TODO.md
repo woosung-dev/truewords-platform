@@ -213,7 +213,7 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ## Questions
 
 - `[확인 필요]` `PLAN-HD-007` 권위 등급 시드값 — 천성경·평화경·원리강론 `O1` 로 넣는다(§2-11). 다른 등급이면 시드 전에 알려 달라
-- 후속(비범위, `PLAN-HD-007` §2): 참어머님 말씀 36파일·기타 8파일 원장 등록 여부 · TTS · 판본 나란히 보기
+- 후속(비범위, `PLAN-HD-007` §2): 참어머님 말씀 36파일·기타 8파일 원장 등록 여부 · 판본 나란히 보기. TTS 는 [`PLAN-HD-008`](plans/active/2026-09-23-hoondok-reader-polish.md) 에서 브라우저 내장 음성으로 대체(서버 TTS 는 비범위 유지, 2026-09-23)
 - 후속(`PLAN-HD-007` 독립 리뷰 P2, 2026-09-23): ① 운영에서 시드·추출 `--dry-run` 이 exit 1 — 안전장치 방향 재검토 `[확인 필요]` ② `replace_auto_sections` 가 manual 행과 같은 `position` 이면 IntegrityError(수기 UI 없어 잠재) ③ `GET /hoondok/sections` 가 원문 120회/분 예산 공유 ④ `GET /hoondok/library` 무페이지네이션(615권 승인 시 620건 응답) ⑤ 빈 노트 저장이 노랑 형광펜 생성·형광펜 해제 시 노트 소멸 무알림 ⑥ AI 설명 탭 왕복 시 답 소실(재요청 비용) ⑦ `MarkInput.volume` 과 `chunk_id` 소속 미검증 ⑧ `library-screen` `parseLastReading` 매 렌더 객체 생성(증상 없음)
 
 - `PLAN-HD-006` 알림: 앱 내 **알림함**(PRD F7 "최종 전달 수단")·기도/가정예배/공지 3종·이메일 인프라는 비범위로 두었다. 훈독 알림 1종의 운영 데이터를 본 뒤 다음 계획에서 다룰지 결정한다 [확인 필요] (2026-09-22)
@@ -258,6 +258,11 @@ Flutter 앱    ░░░░░░░░░░░░░░░░░░░░   0%
 ---
 
 ## Next Actions
+
+### 훈독 원문 뷰 후속 (PLAN-HD-008, 2026-09-23)
+
+- [ ] **방안 D — 원본 파일 기반 읽기 전용 원문** 논의. 청크 = 단락 구조라 청크 경계의 단어 끊김·목차 붙음이 `display_text` 로도 남는다([PLAN-HD-008 §6](plans/active/2026-09-23-hoondok-reader-polish.md)). 원본에서 문단을 직접 뽑으면 해결되나 적재 경로가 하나 더 생긴다 `[확인 필요: 원본이 PDF 뿐인지 HWP/DOCX 도 있는지]`
+- [ ] **"함께 읽는 사람들"** 벤치마크와 프로토타입 논의 — 홈(`docs/prd/prototypes/hoondok-ds/app.html:145`), 나의 정원(`app.html:977`), PRD(`docs/prd/17-ffwpu-pwa-prd.md:115`). 현재 구현 없음 `[확인 필요]`
 
 - [x] **PLAN-HD-005 배포 전 롤백 진입점 보완** — **2026-09-22 해소.** 원인은 스키마 비호환이 아니라 진입점 하나였다(구 이미지의 `alembic upgrade head` 가 새 revision 파일을 못 찾아 exit). 코드·배포 절차는 바꾸지 않고 **되돌리기를 2단계로 확정**했다 — 새 이미지로 `alembic downgrade` 먼저, 그 다음 `rollback-backend`. 격리 compose 리허설에서 실패 재현 → downgrade → 구 이미지 **기본 CMD** 기동 `/health` 200·`/hoondok/today` 200 까지 통과했다. 절차와 증거는 [runbook §되돌리기 층 0](runbooks/hoondok-pwa-rollout.md#층-0--backend-마이그레이션이-포함된-배포는-rollback-backend-단독으로-되돌아가지-않는다)
 

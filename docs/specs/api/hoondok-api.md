@@ -313,6 +313,7 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 | 2026-09-19 | 질문 봇은 슬러그 `all` 고정(`HOONDOK_ASK_CHATBOT_ID`). 전용 봇·프롬프트 미정이라 상수 1줄로 교체 가능한 형태로 둔다 | `[확인 필요]` · PLAN-HD-002 W2 |
 | 2026-09-20 | API-HD-012 신설(편성 후보 검색). **추출형 채택 · 생성형 초안 기각** — 병목은 본문 생산이 아니라 코퍼스에서 고르는 일이고, 생성형은 결정 5(대체 생성 없음)를 뒤집는 데다 교리 recall 이 42~56%로 낮다. 본문 원문 유지·`chunk_id` 기록·등급 `R` 기본 | 확정 · PLAN-HD-003 |
 | 2026-09-23 | API-HD-023~028 신설(말씀 서고 3계층·읽기 기록). 목차 경로는 `/hoondok/sections/{volume}` — `/hoondok/words/{volume:path}` 가 greedy 라 하위 경로를 쓸 수 없다. `API-HD-014` 에 `works[]`, `API-HD-016` 에 `section` 파라미터·필드, `content_rights` 에 `chunk_count` 를 **추가만** 했다(하위 호환). 기록은 로그인 필수, 읽기는 공개 | 확정 · PLAN-HD-007 트랙 A |
+| 2026-09-23 | API-HD-015·016 항목에 `display_text` 추가(하위 호환). 원본 `text` 는 유지하고 표시할 때만 정리한다 — Qdrant 재적재·재임베딩 없음 | 확정 · PLAN-HD-008 트랙 A |
 | 2026-09-22 | API-HD-019~022 신설(Web Push). VAPID 미설정이면 구독 자체를 409 `PUSH_DISABLED` 로 거절(조용히 저장하지 않음), `endpoint` unique + 소유 이전, `read_time` 은 `HH:MM` 문자열·KST 고정, 설정 PUT 은 전체 교체. 발송기는 sub-PR B | 확정 · PLAN-HD-006 sub-PR A |
 
 ---
@@ -429,6 +430,14 @@ Next catch-all rewrite의 실패 로그에 검색어가 포함된 upstream URL�
 더해진다. `section=` 으로 들어온 요청은 **요청한 그 장**을 그대로 돌려준다 — 장 시작이 페이지 경계와
 어긋나도 앞 장을 현재 장으로 보이지 않는다. `chunk_id` 또는 `page` 만 준 요청은 **반환 페이지의 첫 청크를
 품는 구간**이다(편과 장이 겹치면 더 좁은 `level` 2). 기존 필드는 그대로다.
+
+### API-HD-015·016 확장 `display_text` (PLAN-HD-008)
+
+`chunks[]`(016)와 `results[]`(015) 항목에 `display_text: string` 이 **추가만** 된다(하위 호환). `text` 는
+Qdrant 원본 그대로이고 AI 설명·인용은 계속 `text` 를 쓴다. `display_text` 는 화면 표시용이다 — 앞 청크와
+겹치는 머리(~150자) 제거(016만, 페이지 첫 청크와 015 는 앞이 없다), 페이지 번호 줄(`- 2 -`) 제거,
+한 글자씩 띄운 제목(`머 리 말`) 붙이기, PDF 줄바꿈 합치기, 문단 경계는 `"\n\n"`.
+규칙은 `app/modules/hoondok/display_text.py` 순수 함수가 소유하고 Qdrant 데이터·임베딩은 바꾸지 않는다.
 
 ### API-HD-025 이어 읽기 (`hoondok_token`)
 
