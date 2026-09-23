@@ -5,11 +5,23 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { MyGroupItem } from "../groups-api";
 
-/** 진행 중인 정성만 "{제목} N일차" 로 잇는다. 시작 전(upcoming)은 싣지 않는다. */
+type GroupJeongseong = MyGroupItem["jeongseongs"][number];
+
+/** 진행 중인 정성인가 — 시작 전(upcoming)은 싣지 않는다. */
+export function isActiveJeongseong(js: GroupJeongseong): boolean {
+  return js.state === "active" && js.day_index !== null;
+}
+
+/** "{제목} N일차" 한 조각. */
+export function jeongseongLabel(js: GroupJeongseong): string {
+  return `${js.title} ${js.day_index}일차`;
+}
+
+/** 이 모임이 정한 진행 중 정성만 잇는다. 공식 정성은 모든 카드에 반복되므로 목록 위에 한 번만 싣는다(QA P2-R2-4). */
 export function jeongseongLine(group: Pick<MyGroupItem, "jeongseongs">): string {
   return group.jeongseongs
-    .filter((js) => js.state === "active" && js.day_index !== null)
-    .map((js) => `${js.title} ${js.day_index}일차`)
+    .filter((js) => !js.is_official && isActiveJeongseong(js))
+    .map(jeongseongLabel)
     .join(" · ");
 }
 

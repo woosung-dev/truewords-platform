@@ -652,7 +652,10 @@ describe("SCR-PWA-021 모임 설정", () => {
     expect(await screen.findByText("식구 3명")).toBeInTheDocument();
     const list = screen.getByRole("list", { name: "식구 목록" });
     expect(within(list).getByText("은정 (나)")).toBeInTheDocument();
-    expect(within(list).getByText("모임원 · 9월 13일에 들어왔어요")).toBeInTheDocument();
+    expect(within(list).getByText("모임원 · 9월 13일부터 함께")).toBeInTheDocument();
+    // 리더도 들어온 날로 적는다 — 이어받은 리더에게 "만들었어요" 라고 하지 않는다 (QA P2-R2-3)
+    expect(within(list).getByText("리더 · 9월 12일부터 함께")).toBeInTheDocument();
+    expect(list.textContent).not.toMatch(/만들었어요/);
     expect(list.textContent).not.toMatch(/읽었|오전|오후/);
     expect(screen.getByLabelText("모임 이름")).toHaveValue("새벽별 훈독모임");
     expect(screen.getByText("10월 23일까지")).toBeInTheDocument();

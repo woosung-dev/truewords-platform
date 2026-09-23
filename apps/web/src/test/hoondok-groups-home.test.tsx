@@ -21,7 +21,7 @@ vi.mock("@/features/hoondok/missions-api", () => ({
 import { ReadCompleteButton } from "@/features/hoondok/components/read-complete-button";
 import { missionsAPI } from "@/features/hoondok/missions-api";
 import { GroupCard, jeongseongLine } from "@/features/hoondok/together/components/group-card";
-import { GroupList } from "@/features/hoondok/together/components/group-list";
+import { GroupList, officialJeongseongLine } from "@/features/hoondok/together/components/group-list";
 import { GroupShareEntry } from "@/features/hoondok/together/components/together-card";
 import type { MyGroupItem } from "@/features/hoondok/together/groups-api";
 import { useCompleteMission } from "@/features/hoondok/use-missions";
@@ -127,10 +127,39 @@ describe("GroupList (홈 모임 카드)", () => {
     const card = await screen.findByRole("link", { name: /은혜 훈독모임/ });
     expect(card).toHaveAttribute("href", "/hoondok/groups/g-1");
     expect(card).toHaveTextContent("은혜 훈독모임 · 오늘 5명이 함께 읽었어요");
-    expect(card).toHaveTextContent("특별정성 12일차");
+    // 공식 정성은 카드 안이 아니라 목록 위 한 줄에 (QA P2-R2-4)
+    expect(card).not.toHaveTextContent("특별정성");
+    expect(screen.getByText("공식 정성 · 특별정성 12일차")).toHaveClass("tg-official");
     expect(card).not.toHaveTextContent("다음 정성");
     expect(within(card).getByText("은")).toHaveClass("tg-av");
     expect(screen.queryByText(/새벽|아직/)).toBeNull();
+  });
+
+  it("공식 정성은 여러 모임에 걸쳐 id 로 한 번만, 카드에는 그 모임 정성만 (QA P2-R2-4)", async () => {
+    loggedIn();
+    const js = (id: string, title: string, isOfficial: boolean) => ({
+      id,
+      title,
+      duration_days: 21,
+      started_on: "2026-09-24",
+      day_index: 1,
+      state: "active" as const,
+      is_official: isOfficial,
+      source_note: null,
+    });
+    const official = [js("o1", "추석 21일 정성", true), js("o2", "가을 7일 정성", true)];
+    myGroups = () =>
+      json([
+        group({ id: "g-a", name: "첫 모임", jeongseongs: [...official, js("m1", "첫 모임 정성", false)] }),
+        group({ id: "g-b", name: "둘째 모임", jeongseongs: official }),
+      ]);
+    render(wrap(<GroupList />));
+    const first = await screen.findByRole("link", { name: /첫 모임/ });
+    const second = screen.getByRole("link", { name: /둘째 모임/ });
+    expect(screen.getAllByText("공식 정성 · 추석 21일 정성 1일차 · 가을 7일 정성 1일차")).toHaveLength(1);
+    expect(first).toHaveTextContent("첫 모임 정성 1일차");
+    expect(first).not.toHaveTextContent("추석");
+    expect(second).not.toHaveTextContent(/추석|가을/);
   });
 
   it("오늘 완료자가 0명이면 숫자 없이 이름 + '오늘의 말씀을 함께 읽어요'", async () => {
@@ -263,6 +292,27 @@ describe("GroupCard · jeongseongLine", () => {
       "특별정성 12일차 · 모임 정성 9일차",
     );
     expect(jeongseongLine({ jeongseongs: [js("곧", null, "upcoming")] })).toBe("");
+    expect(jeongseongLine({ jeongseongs: [{ ...js("공식", 3, "active"), is_official: true }] })).toBe("");
+  });
+
+  it("공식 정성 한 줄: 2개까지 싣고 나머지는 '외 N', 진행 중인 것만, 없으면 빈 문자열", () => {
+    const js = (id: string, state: "active" | "upcoming" = "active") => ({
+      id,
+      title: `정성${id}`,
+      duration_days: 7,
+      started_on: "2026-09-24",
+      day_index: state === "active" ? 1 : null,
+      state,
+      is_official: true,
+      source_note: null,
+    });
+    expect(officialJeongseongLine([{ jeongseongs: [js("a"), js("b"), js("c"), js("d")] }])).toBe(
+      "공식 정성 · 정성a 1일차 · 정성b 1일차 외 2",
+    );
+    expect(officialJeongseongLine([{ jeongseongs: [js("a")] }, { jeongseongs: [js("a"), js("z", "upcoming")] }])).toBe(
+      "공식 정성 · 정성a 1일차",
+    );
+    expect(officialJeongseongLine([{ jeongseongs: [] }])).toBe("");
   });
 
   it("이니셜은 3개까지", () => {

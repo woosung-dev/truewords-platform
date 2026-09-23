@@ -59,8 +59,8 @@
 | `API-HD-032` | GET `/hoondok/groups/{id}` | 모임원 | 머리(name·kind·리더 표시 이름·meeting_time) · `today_reading`(daily_reading 요약 + 원문 링크, 없으면 null) · `jeongseongs`(진행 중 공식 + 모임) · `readers`(오늘 완료자만, 가나다순 `{display_name, read_at_kst, is_me, is_leader}`) · `shares`(오늘 것만) · `me` · `invite_code`·`invite_expires_at`(리더에게만). 전체 인원 없음 |
 | `API-HD-033` | PATCH · DELETE `/hoondok/groups/{id}` | 리더+CSRF | PATCH `{name}` · DELETE = 모임 하드 삭제 204 |
 | `API-HD-034` | POST `/hoondok/groups/{id}/invite` | 리더+CSRF | 재발급 → `{invite_code, invite_expires_at}`, 이전 코드 즉시 무효 |
-| `API-HD-035` | GET `/hoondok/invites/{code}` | 로그인 + 초대 limiter | 미리보기 `{name, kind, leader_display_name, jeongseongs[]}`(전체 인원 없음). 잘못·만료·정원 초과는 같은 404. 이미 모임원이면 `is_member=true` + `group_id` |
-| `API-HD-036` | POST `/hoondok/invites/{code}/join` | 로그인+CSRF + limiter | `{display_name}` → 201 `{group_id}`. 404 무효 · 409 이미 모임원 / 이름 중복 / 정원 / 가입 한도 |
+| `API-HD-035` | GET `/hoondok/invites/{code}` | 로그인 + 미리보기 limiter | 미리보기 `{name, kind, leader_display_name, jeongseongs[]}`(전체 인원 없음). 잘못·만료·정원 초과는 같은 404. 이미 모임원이면 `is_member=true` + `group_id` |
+| `API-HD-036` | POST `/hoondok/invites/{code}/join` | 로그인+CSRF + 참여 limiter | `{display_name}` → 201 `{group_id}`. 404 무효 · 409 이미 모임원 / 이름 중복 / 정원 / 가입 한도 |
 | `API-HD-037` | PATCH · DELETE `/hoondok/groups/{id}/me` | 모임원+CSRF | PATCH `{display_name}`(중복 409) · DELETE 탈퇴(내 한 줄·내 반응·내 한 줄에 달린 반응 삭제). 리더는 다른 식구가 있으면 409 `LEADER_MUST_HANDOVER`, 혼자면 모임 삭제 |
 | `API-HD-038` | GET `/hoondok/groups/{id}/members` · DELETE `/.../members/{member_id}` | 리더(+CSRF) | 목록 `{member_count, items[{id, display_name, role, joined_at}]}` — **읽음 상태 없음, 전체 인원은 여기만**. DELETE 내보내기(탈퇴와 같은 삭제), 자기 자신 409 |
 | `API-HD-039` | POST `/hoondok/groups/{id}/jeongseongs` · DELETE `/.../jeongseongs/{jid}` | 리더+CSRF | `{title(≤24), duration_days(1~100), started_on(오늘±30)}` → 201. 진행 중 모임 정성 ≤3. 수정 API 없음 |
@@ -76,7 +76,7 @@
 
 - 어떤 모임원 응답에도 미완료자 목록·수·상태를 넣지 않는다. 전체 인원은 `API-HD-038`(리더) 과 admin 목록에만. 작은 모임에서 "아는 사람 중 목록에 없는 사람" 추론은 구조상 못 막는다 — 공개 안내가 이를 전제로 쓴다 `[가정]`.
 - 한 줄은 오늘 완료자만(D6) — 미완료자 한 줄이 읽음 목록과 어긋나 미완료를 드러내지 않게.
-- 초대 코드: Crockford base32 8자 `XXXX-XXXX`(40bit, `secrets`), 대소문자·하이픈 무시 정규화, 이름 접두 없음. 초대 limiter `RateLimiter(10, 60)` IP 기준(`API-HD-035·036`, 가입 경로의 모임 코드 검증도 같은 limiter) `[가정]` 인메모리·단일 워커 전제.
+- 초대 코드: Crockford base32 8자 `XXXX-XXXX`(40bit, `secrets`), 대소문자·하이픈 무시 정규화, 이름 접두 없음. 초대 limiter 는 미리보기(`API-HD-035`)·참여(`API-HD-036`)를 따로 센다 — 각각 `RateLimiter(30, 60)` IP 기준, 가입 경로의 모임 코드 검증은 참여 limiter 를 공유. 교회 Wi-Fi(NAT 하나)에서 식구 10~15명이 한꺼번에 들어오는 경우를 위한 한도이며, 코드가 40bit 라 30회/분이면 공간 절반에 약 3.5만 년이 걸려 추측 방어는 유지된다(QA P2-R2-1). `[가정]` 인메모리·단일 워커 전제.
 - 모임 이름은 별칭(≤20), 교회명 필드·검색·공개 목록 없음.
 - 삭제: 탈퇴·내보내기 = `group_members` + 그 사람 `group_shares` + 누른 반응 + 그 사람 한 줄에 달린 반응. 모임 삭제 = `share_reactions → group_shares → shared_jeongseongs(group) → group_members → reading_groups`. 계정 삭제(`API-HD-011`) = `GroupRepository.delete_for_user` 를 purger 에 등록, 리더인 모임은 가장 먼저 들어온 식구에게 이전, 없으면 모임 삭제.
 - 신고·차단은 범위 밖. 대응 수단은 리더의 한 줄 삭제·내보내기 + admin 모임 삭제.
@@ -132,7 +132,7 @@
 ## 9. 테스트 계획
 
 **pytest (A)**
-- 생성·초대: 리더 1명 · 코드 형식 `^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$` · 소문자·하이픈 없는 입력 정규화 · 만료 404 · 재발급 뒤 이전 코드 404 · 정원·가입·리더 한도 409 · 이름 중복 409 · 이미 모임원 409 · limiter 11번째 429.
+- 생성·초대: 리더 1명 · 코드 형식 `^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$` · 소문자·하이픈 없는 입력 정규화 · 만료 404 · 재발급 뒤 이전 코드 404 · 정원·가입·리더 한도 409 · 이름 중복 409 · 이미 모임원 409 · 미리보기·참여 limiter 각각 31번째 429(서로 독립).
 - 베타 게이트(D4): 전역 코드 설정 + 유효 모임 코드로 가입 201 · 만료/무효 모임 코드 403 `INVITE_REQUIRED` · 전역 미설정이면 기존대로 무시.
 - 완료자만: 모임원 3명 중 1명 완료 → `readers` 1건, 상세·미리보기·내 모임 응답 직렬화 문자열에 나머지 이름·user_id·member_count 없음 · `read_at_kst` · 가나다순.
 - 권한: 비모임원 404 · 모임원이 리더 전용(PATCH·invite·members·jeongseongs) 403 · 초대 코드는 리더 응답에만 · CSRF 없음 403 · 비로그인 401.

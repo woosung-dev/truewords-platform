@@ -20,7 +20,7 @@ from sqlmodel import SQLModel, func, select
 import app.modules.hoondok.groups_service as groups_service
 from app.core.common.database import get_async_session
 from app.main import app
-from app.modules.hoondok.dependencies import get_group_service, invite_limiter
+from app.modules.hoondok.dependencies import get_group_service, invite_join_limiter, invite_preview_limiter
 from app.modules.hoondok.groups_repository import GroupRepository
 from app.modules.hoondok.groups_service import GroupService, normalize_invite_code
 from app.modules.hoondok.models import (
@@ -109,13 +109,15 @@ async def ctx():
     app.dependency_overrides[get_group_service] = lambda: GroupService(
         GroupRepository(session), today_fn=lambda: context.today, now_fn=lambda: context.now
     )
-    invite_limiter.reset()
+    invite_preview_limiter.reset()
+    invite_join_limiter.reset()
     try:
         yield context
     finally:
         app.dependency_overrides.pop(get_async_session, None)
         app.dependency_overrides.pop(get_group_service, None)
-        invite_limiter.reset()
+        invite_preview_limiter.reset()
+        invite_join_limiter.reset()
         await session.close()
         await engine.dispose()
 
@@ -341,12 +343,25 @@ async def test_leader_and_join_limits(ctx: Ctx):
     assert len(cc.get("/hoondok/me/groups").json()) == 5
 
 
-async def test_invite_limiter_11th_request_is_429(ctx: Ctx):
+async def test_invite_preview_limiter_31st_request_is_429_and_join_is_independent(ctx: Ctx):
     client = ctx.client(await ctx.user())
-    for _ in range(10):
+    for _ in range(30):
         assert client.get("/hoondok/invites/ZZZZ-ZZZZ").status_code == 404
+    blocked = client.get("/hoondok/invites/ZZZZ-ZZZZ")
+    assert blocked.status_code == 429 and blocked.json()["error_code"] == "RATE_LIMIT_EXCEEDED"
+    # 미리보기 한도를 다 써도 참여는 따로 센다
+    res = client.post("/hoondok/invites/ZZZZ-ZZZZ/join", json={"display_name": "x"}, headers=XHR)
+    assert res.status_code == 404
+
+
+async def test_invite_join_limiter_31st_request_is_429_and_preview_is_independent(ctx: Ctx):
+    client = ctx.client(await ctx.user())
+    for _ in range(30):
+        res = client.post("/hoondok/invites/ZZZZ-ZZZZ/join", json={"display_name": "x"}, headers=XHR)
+        assert res.status_code == 404
     blocked = client.post("/hoondok/invites/ZZZZ-ZZZZ/join", json={"display_name": "x"}, headers=XHR)
     assert blocked.status_code == 429 and blocked.json()["error_code"] == "RATE_LIMIT_EXCEEDED"
+    assert client.get("/hoondok/invites/ZZZZ-ZZZZ").status_code == 404
 
 
 # --- 완료자만 · 개인정보 -------------------------------------------------------
@@ -815,16 +830,20 @@ async def test_signup_gate_rejects_full_group_code(ctx: Ctx, monkeypatch):
     assert (res.status_code, res.json()["error_code"]) == (403, "INVITE_REQUIRED")
 
 
-async def test_signup_gate_group_codes_share_invite_limiter(ctx: Ctx, monkeypatch):
+async def test_signup_gate_group_codes_share_join_limiter(ctx: Ctx, monkeypatch):
     from app.core.config import settings
 
     monkeypatch.setattr(settings, "hoondok_invite_code", SecretStr("새벽-2026"))
     client = ctx.client()
-    for i in range(10):
+    for i in range(30):
         assert _signup(client, f"l{i}@example.com", "ZZZZ-ZZZZ").status_code == 403
-    assert _signup(client, "l10@example.com", "ZZZZ-ZZZZ").status_code == 429
+    assert _signup(client, "l30@example.com", "ZZZZ-ZZZZ").status_code == 429
+    # 가입 게이트는 참여 limiter 를 공유한다 — 참여도 막히고 미리보기는 따로 센다
+    member = ctx.client(await ctx.user())
+    assert member.post("/hoondok/invites/ZZZZ-ZZZZ/join", json={"display_name": "x"}, headers=XHR).status_code == 429
+    assert member.get("/hoondok/invites/ZZZZ-ZZZZ").status_code == 404
     # 모임 코드 형식이 아니면 limiter 를 세지 않는다(전역 코드 오타는 기존 403)
-    assert _signup(client, "l11@example.com", "틀린코드").status_code == 403
+    assert _signup(client, "l31@example.com", "틀린코드").status_code == 403
 
 
 class _SpyVerifier:
