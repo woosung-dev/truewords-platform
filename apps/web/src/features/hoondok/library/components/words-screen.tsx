@@ -3,12 +3,13 @@
 // SCR-PWA-009 원문 뷰. PLAN-HD-007 로 장 목차(API-HD-024)·단락 표시(API-HD-026)·이어 읽기(API-HD-025)·
 // AI 설명(§2-7)이 붙었다. 단락 단위는 Qdrant 청크이고(§2-12) 청크 안 부분 선택은 하지 않는다.
 // PLAN-HD-008 로 표시 텍스트(display_text)·본문 탭 선택·브라우저 음성 듣기(../tts)가 더해졌다.
+// PLAN-HD-011 로 듣기는 AI 목소리(단락 mp3)가 기본이고 브라우저 음성은 대체 경로다.
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
 import type { MarkItem, WordChunk } from "@truewords/api-client-ts/types";
 import { Bookmark, BookOpenText, Check, Highlighter, List, NotebookPen, Settings } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthorityBadge, HoondokButton } from "@/components/hoondok";
 import { sectionsKey, wordsKey } from "@/features/hoondok/query-keys";
 import { useHoondokScreenTitle } from "@/features/hoondok/screen-title";
@@ -18,7 +19,8 @@ import { useCurrentUser } from "@/features/identity/use-current-user";
 import { libraryAPI, verseNumber, type WordsQuery, wordsHref, wordsPageHref } from "../api";
 import { writeLastReading } from "../last-reading";
 import { TtsBar } from "../tts/tts-bar";
-import { useSpeechReader } from "../tts/use-speech-reader";
+import { useReadAloud } from "../tts/use-read-aloud";
+import { type AiVoiceId, chunkAudioUrl } from "../tts/voice-api";
 import { useMarks, useMarkWriter, useSavedReadingPosition } from "../use-reading";
 import { AiExplain } from "./ai-explain";
 import { PassageSheet } from "./passage-sheet";
@@ -217,7 +219,12 @@ export function WordsScreen({
     () => (docChunks ?? []).map((chunk) => ({ id: chunk.chunk_id, text: chunk.display_text })),
     [docChunks],
   );
-  const reader = useSpeechReader(speechParagraphs, `${volume}|${lastPage ?? ""}`);
+  // AI 목소리는 청크 id 만 보낸다 — 서버가 같은 display_text 를 조회해 합성한다(임의 텍스트 합성 금지).
+  const audioUrl = useCallback(
+    (index: number, voice: AiVoiceId) => chunkAudioUrl(speechParagraphs[index]?.id ?? "", voice),
+    [speechParagraphs],
+  );
+  const reader = useReadAloud(speechParagraphs, `${volume}|${lastPage ?? ""}`, audioUrl);
   const isReading = reader.status === "playing" || reader.status === "paused";
   const speakingIndex = isReading ? (docChunks?.[reader.currentIndex]?.chunk_index ?? null) : null;
   useEffect(() => {

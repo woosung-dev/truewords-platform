@@ -97,7 +97,8 @@ function voiceSnapshot(): boolean | null {
   return Boolean(koreanVoice(engine));
 }
 
-export function useSpeechReader(paragraphs: SpeechParagraph[], resetKey: string | number) {
+/** controlledRate 를 주면 속도는 호출자가 소유한다(PLAN-HD-011 기기 기억값). setRate 는 여전히 읽던 단락부터 다시 읽는다. */
+export function useSpeechReader(paragraphs: SpeechParagraph[], resetKey: string | number, controlledRate?: SpeechRate) {
   const isSupported = useSyncExternalStore(
     noopSubscribe,
     () => synth() !== null,
@@ -106,15 +107,19 @@ export function useSpeechReader(paragraphs: SpeechParagraph[], resetKey: string 
   const hasKoreanVoice = useSyncExternalStore(subscribeVoices, voiceSnapshot, () => null);
   const [status, setStatus] = useState<SpeechStatus>("idle");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [rate, setRateState] = useState<SpeechRate>(1.0);
+  const [rateState, setRateState] = useState<SpeechRate>(controlledRate ?? 1.0);
+  const rate = controlledRate ?? rateState;
 
   // 세대 토큰 — 취소·재시작마다 올린다. cancel() 뒤에 늦게 오는 onend/onerror 는 옛 세대라 무시한다.
   const generation = useRef(0);
-  const rateRef = useRef<SpeechRate>(1.0);
+  const rateRef = useRef<SpeechRate>(rate);
   const paragraphsRef = useRef(paragraphs);
   useEffect(() => {
     paragraphsRef.current = paragraphs;
   }, [paragraphs]);
+  useEffect(() => {
+    rateRef.current = rate;
+  }, [rate]);
 
   // 구간이 바뀌면 처음 상태로 돌린다(렌더 중 조정 — 이펙트 안 setState 를 피한다).
   const [seenKey, setSeenKey] = useState(resetKey);

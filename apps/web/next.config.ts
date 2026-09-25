@@ -31,6 +31,11 @@ const nextConfig: NextConfig = {
         source: "/hoondok/photos/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
+      // 낭독 목소리 견본(PLAN-HD-011)도 정적 자산이다 — 소리를 바꾸면 파일명을 바꾼다.
+      {
+        source: "/hoondok/voices/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
       // 서비스워커·manifest 는 매 방문 재검증한다 (Phase 3 D). Cloudflare 엣지는 origin no-cache 를 따른다.
       // Service-Worker-Allowed: 스크립트가 /hoondok/ 아래 있어도 슬래시 없는 /hoondok scope 로 등록되게 한다 (C-3).
       {

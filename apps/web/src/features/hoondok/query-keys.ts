@@ -33,3 +33,6 @@ export const wordsKey = (volume: string, page: number, query: { chunkId?: string
   ["hoondok", "words", volume, page, query.chunkId ?? null, query.section ?? null] as const;
 /** 서고 "북마크" 절 — 권 구분 없이 북마크만. 같은 접두라 표시 변경 한 번에 함께 무효화된다. */
 export const BOOKMARKS_KEY = [...MARKS_KEY, "bookmark"] as const;
+
+/** AI 낭독 목소리 목록·켜짐·월 상한 (PLAN-HD-011, API-HD-044). 사용자별 값이 아니다. */
+export const TTS_VOICES_KEY = ["hoondok", "tts-voices"] as const;
