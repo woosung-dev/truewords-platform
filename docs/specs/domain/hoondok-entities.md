@@ -226,6 +226,6 @@ PK `(share_id, member_id)` · `created_at`. 종류 컬럼이 없다(반응 1종)
 
 ## ENT-HD-018 `hoondok_tts_usage` — AI 낭독 새 합성 (PLAN-HD-011)
 
-`id` · `month`(`YYYY-MM`, UTC, index) · `voice`(≤16) · `chars`(합성한 글자 수, 공백 정규화 후) · `cache_key`(sha256 hex) · `created_at`.
-캐시 적중은 행을 만들지 않는다. 사용자 FK 가 없다 — 누가 들었는지는 저장하지 않고 월 비용 상한 계산에만 쓴다. additive-only migration `s4d5e6f7a8b9`(down `r3c4d5e6f7a8`).
+`id` · `month`(`YYYY-MM`, America/Los_Angeles — Google 청구 달, index) · `voice`(≤16) · `chars`(합성했거나 과금됐을 수 있는 글자 수, 공백 정규화 후) · `cache_key`(sha256 hex) · `user_id`(nullable, FK 없음) · `created_at`(index `user_id, created_at`).
+캐시 적중은 행을 만들지 않는다. 합성 전에 예약 행을 만들고 실패하면 줄이거나 지운다. `user_id` 는 사용자 최근 24시간 한도 계산용이다 — FK 를 두지 않아 계정 삭제와 무관하게 비용 기록이 남는다. [확인 필요] 계정 삭제 시 `user_id` 를 비울지는 계정 삭제 정책과 함께 정한다. additive-only migration `s4d5e6f7a8b9`(down `r3c4d5e6f7a8`).
 

@@ -607,7 +607,7 @@ GET → `[{id, name, member_count, created_at}]`(최신순) — 모임원 이름
 
 ### API-HD-044 `GET /hoondok/tts/voices`
 
-항상 200, 인증 없음. `{enabled, limit_reached, default_voice, voices[{id, label, description}]}`. `limit_reached` = 이번 달(UTC) 새 합성 글자 합계 ≥ `HOONDOK_TTS_MONTHLY_CHAR_LIMIT`(기본 900,000). 둘 중 하나라도 AI 를 못 쓰면 웹은 브라우저 음성으로 읽는다.
+항상 200, 인증 없음. `{enabled, limit_reached, default_voice, voices[{id, label, description}]}`. `enabled` = 키가 있고 캐시 디렉터리에 쓸 수 있음(못 쓰면 `false` — 매 청취가 새 합성으로 세어지지 않게 닫는다). `limit_reached` = 이번 달(America/Los_Angeles, Google 청구 달) 새 합성 글자 합계 ≥ `HOONDOK_TTS_MONTHLY_CHAR_LIMIT`(기본 900,000). 둘 중 하나라도 AI 를 못 쓰면 웹은 브라우저 음성으로 읽는다.
 
 ### API-HD-045 `GET /hoondok/tts/chunks/{chunk_id}?voice=`
 
@@ -615,11 +615,12 @@ GET → `[{id, name, member_count, created_at}]`(최신순) — 모임원 이름
 
 ### API-HD-046 `GET /hoondok/tts/readings/{reading_id}/{paragraph}?voice=`
 
-오늘 훈독 말씀의 단락(본문을 빈 줄로 나눈 순서, 0부터) mp3. `reading_id` 는 `API-HD-001`·`API-HD-017` 응답의 `reading.id` — 편성(`daily_readings`, 철회·미래 날짜 제외) 또는 **본인** 정성 말씀(`jeongseong_readings`, `scope_jeongseong` 허용 저작물만).
+오늘 훈독 말씀의 단락(본문을 빈 줄로 나눈 순서, 0부터) mp3. `reading_id` 는 `API-HD-001`·`API-HD-017` 응답의 `reading.id` — 편성(`daily_readings`, 철회·미래 날짜 제외) 또는 **본인** 정성 말씀(`jeongseong_readings`, 진행 중 기간의 오늘 말씀만, `scope_jeongseong` 허용 저작물만).
 
 045·046 공통:
 
 - 캐시 키 `sha256(voice|0.9|공백 정규화한 본문)`, 저장 `HOONDOK_TTS_CACHE_DIR/{key[:2]}/{key}.mp3`(임시 파일 → `os.replace`). 적중이면 합성·상한 검사 없이 준다. 같은 키 동시 요청은 프로세스 락으로 1회만 합성한다.
-- 새 합성만 `hoondok_tts_usage`(ENT-HD-018) 에 글자 수를 남기고 합계로 상한을 검사한다.
-- 오류(`ErrorResponse.error_code`): 401 미인증 · 404 `TTS_SOURCE_NOT_FOUND`(본문 없음·권리 없음·단락 범위 밖) · 422 `TTS_INVALID_VOICE` · 429 `TTS_QUOTA_EXCEEDED`(limiter 초과는 `RATE_LIMIT_EXCEEDED`) · 502 `TTS_UPSTREAM_FAILED`(Google 5xx·네트워크, 1회 재시도 후) · 503 `TTS_DISABLED`. 검사 순서는 voice → 키 → 본문 → 캐시 → 상한.
-- limiter `RateLimiter(60, 60)` IP 기준.
+- 새 합성만 `hoondok_tts_usage`(ENT-HD-018) 에 글자 수를 남긴다. 월 상한(`HOONDOK_TTS_MONTHLY_CHAR_LIMIT`)과 사용자 최근 24시간 한도(`HOONDOK_TTS_USER_DAILY_CHAR_LIMIT`, 기본 30,000)를 검사하고 **합성 전에 글자 수를 예약·커밋**한다(전역 락 — 동시 요청이 상한을 넘지 않고, Google 호출 동안 DB 커넥션을 쥐지 않는다). 합성이 실패하면 Google 이 과금했을 수 있는 글자 수(성공한 조각 + 결과를 모르는 조각)로 줄이거나 지우고, 시간 초과는 예약을 그대로 둔다. 캐시 파일은 사용량 커밋 뒤에 쓴다.
+- Google 호출 재시도(1회)는 5xx·연결 실패만. 읽기 타임아웃은 이미 과금됐을 수 있어 재시도하지 않는다. 요청 전체 상한 45초.
+- 오류(`ErrorResponse.error_code`): 401 미인증 · 404 `TTS_SOURCE_NOT_FOUND`(본문 없음·권리 없음·단락 범위 밖) · 422 `TTS_INVALID_VOICE` · 429 `TTS_QUOTA_EXCEEDED`(월 상한) · 429 `TTS_USER_LIMIT_EXCEEDED`(사용자 24시간 한도) · 429 `RATE_LIMIT_EXCEEDED`(요청 빈도 — 웹은 짧게 재시도하는 일시적 오류로 본다) · 502 `TTS_UPSTREAM_FAILED` · 503 `TTS_DISABLED`(키 없음 또는 캐시 디렉터리 쓰기 불가) · 504 `TTS_TIMEOUT`. 검사 순서는 voice → 켜짐 → 본문 → 캐시 → 상한.
+- limiter: 계정 `RateLimiter(60, 60)` + IP `RateLimiter(600, 60)`(모임이 한 IP 를 함께 쓰는 경우). 비용은 요청 수가 아니라 글자 한도가 막는다.
