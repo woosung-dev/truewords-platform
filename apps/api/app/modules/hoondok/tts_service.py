@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import os
 import re
 import uuid
@@ -30,6 +31,8 @@ from app.modules.hoondok.service import today_kst
 from app.modules.hoondok.tts_google import TtsUpstreamError, synthesize_mp3
 from app.modules.hoondok.tts_repository import TtsRepository
 from app.modules.hoondok.tts_schemas import TtsVoice, TtsVoiceId, TtsVoicesResponse
+
+logger = logging.getLogger(__name__)
 
 # Chirp 3 HD 는 모든 목소리를 speakingRate 0.9 로 만든다. 화면의 0.8/1.0/1.2 는 재생 속도(playbackRate)다.
 SPEAKING_RATE = 0.9
@@ -196,6 +199,9 @@ class TtsService:
             return await asyncio.to_thread(path.read_bytes)
         except FileNotFoundError:
             return None
+        except OSError:
+            logger.exception("훈독 TTS 캐시 읽기 실패")
+            return None
 
     async def _write_cache(self, key: str, content: bytes) -> None:
         path = self._path(key)
@@ -233,6 +239,10 @@ class TtsService:
                 raise TtsError(502, "TTS_UPSTREAM_FAILED", "AI 낭독을 만들지 못했어요") from None
             if not content:
                 raise TtsError(502, "TTS_UPSTREAM_FAILED", "AI 낭독을 만들지 못했어요")
-            await self._write_cache(key, content)
+            try:
+                await self._write_cache(key, content)
+            except OSError:
+                # 볼륨 권한·디스크 부족이어도 듣기는 막지 않는다. 사용량은 그대로 세어 상한이 비용을 막는다.
+                logger.exception("훈독 TTS 캐시 저장 실패")
             await self.repo.add_usage(TtsUsage(month=month, voice=voice, chars=len(text), cache_key=key))
             return TtsAudio(content, key, False)

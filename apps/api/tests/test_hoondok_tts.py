@@ -480,3 +480,18 @@ def test_audio_errors_carry_distinct_codes(client):
     assert (bad_voice.status_code, bad_voice.json()["error_code"]) == (422, "TTS_INVALID_VOICE")
     missing = client.get(f"/hoondok/tts/readings/{uuid.uuid4()}/0?voice=sulafat")
     assert (missing.status_code, missing.json()["error_code"]) == (404, "TTS_SOURCE_NOT_FOUND")
+
+
+@pytest.mark.asyncio
+async def test_cache_write_failure_still_serves_and_counts(db, tmp_path, monkeypatch):
+    """캐시 볼륨에 쓸 수 없어도(권한·디스크) 듣기는 되고 사용량은 센다 — 상한이 비용을 막는다."""
+    await _allow(db, scope_full_text=True)
+    service, _, _ = _make(db, tmp_path)
+
+    async def broken(key, content):
+        raise PermissionError("read-only")
+
+    monkeypatch.setattr(service, "_write_cache", broken)
+    audio = await service.chunk_audio(CHUNK_ID, "sulafat")
+    assert audio.content == MP3 and not audio.is_cached
+    assert len(await _usage(db)) == 1
