@@ -183,3 +183,53 @@ test("단락 형광펜은 새로고침 뒤에도 남고 북마크는 서고에 �
   // 이어 읽기는 서버 값으로 바뀐다 — 원문을 연 페이지의 첫 단락이 기준이다
   await expect(page.getByText("단락 1까지 읽었어요")).toBeVisible();
 });
+
+// PLAN-HD-011 AI 낭독 목소리. E2E 서버에는 Google 키가 없어(enabled=false) 목록·단락 음성을 route 로 스텁한다 —
+// 실제 Google 호출 0. 단락 음성은 견본 정적 파일을 대신 돌려준다.
+test("원문 듣기: 목소리 시트에서 고르면 그 목소리로 단락 음성을 받는다", async ({ page }) => {
+  await signUp(page, "voice");
+  await page.route("**/api/backend/hoondok/tts/voices", (route) =>
+    route.fulfill({
+      json: {
+        enabled: true,
+        limit_reached: false,
+        default_voice: "sulafat",
+        voices: [
+          { id: "sulafat", label: "차분한 여성", description: "따뜻하고 낮은 톤" },
+          { id: "aoede", label: "맑은 여성", description: "밝고 가벼운 톤" },
+          { id: "algieba", label: "부드러운 남성", description: "매끄럽고 편안한 톤" },
+          { id: "iapetus", label: "또렷한 남성", description: "단정하고 분명한 톤" },
+        ],
+      },
+    }),
+  );
+  const requested: string[] = [];
+  await page.route("**/api/backend/hoondok/tts/chunks/**", async (route) => {
+    requested.push(new URL(route.request().url()).searchParams.get("voice") ?? "");
+    const sample = await page.request.get("/hoondok/voices/aoede.mp3");
+    await route.fulfill({ body: await sample.body(), contentType: "audio/mpeg" });
+  });
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto(wordsPath);
+
+  const chip = page.getByRole("button", { name: "낭독 목소리 차분한 여성, 바꾸기" });
+  await chip.click();
+  const sheet = page.getByRole("dialog", { name: "낭독 목소리" });
+  await expect(sheet.getByRole("radio")).toHaveCount(4);
+  await sheet.getByRole("radio", { name: /맑은 여성/ }).click();
+  await expect(sheet.getByRole("radio", { name: /맑은 여성/ })).toHaveAttribute("aria-checked", "true");
+  await sheet.getByRole("button", { name: "1.2배" }).click();
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+  const picked = page.getByRole("button", { name: "낭독 목소리 맑은 여성, 1.2배, 바꾸기" });
+  await expect(picked).toBeFocused();
+  // 터치 대상 44px
+  expect((await picked.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+
+  await page.getByRole("button", { name: "듣기 시작" }).click();
+  await expect.poll(() => requested[0]).toBe("aoede");
+  // 기기에 기억한다 — 새로고침 뒤에도 같은 목소리
+  await page.reload();
+  await expect(page.getByRole("button", { name: "낭독 목소리 맑은 여성, 1.2배, 바꾸기" })).toBeVisible();
+});
