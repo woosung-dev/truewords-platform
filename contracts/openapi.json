@@ -2009,6 +2009,46 @@
         "title": "DuplicateCheckResponse",
         "type": "object"
       },
+      "ErrorResponse": {
+        "description": "통합 에러 응답 포맷 (Flutter 소비 라우터 기준).\n\nAttributes:\n    error_code: 프론트엔드 분기용 에러 코드 (예: INPUT_BLOCKED)\n    message: 사용자 표시 메시지 (한국어)\n    request_id: 요청 추적 식별자 (UUID v4 또는 X-Request-Id 헤더값)\n    details: 디버깅용 추가 정보 (선택, 프로덕션에서는 사용 자제)",
+        "properties": {
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "디버깅용 추가 정보",
+            "title": "Details"
+          },
+          "error_code": {
+            "description": "프론트엔드 분기용 에러 코드",
+            "title": "Error Code",
+            "type": "string"
+          },
+          "message": {
+            "description": "사용자 표시 메시지 (한국어)",
+            "title": "Message",
+            "type": "string"
+          },
+          "request_id": {
+            "description": "요청 추적 식별자",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error_code",
+          "message",
+          "request_id"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
       "FeaturedMalssum": {
         "description": "레드팀 시연 — 답변 화면에 무작위로 곁들이는 큐레이션 말씀 1개.\n\n의미 검색이 아니라 사람이 추린 목록에서 random 선택. 매 응답마다 새로\n계산되며 캐시 payload 에는 포함하지 않는다 (항상 fresh).",
         "properties": {
@@ -5423,6 +5463,73 @@
           "count"
         ],
         "title": "TopQuery",
+        "type": "object"
+      },
+      "TtsVoice": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "enum": [
+              "sulafat",
+              "aoede",
+              "algieba",
+              "iapetus"
+            ],
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description"
+        ],
+        "title": "TtsVoice",
+        "type": "object"
+      },
+      "TtsVoicesResponse": {
+        "description": "항상 200, 인증 없음. enabled=false 면 키가 없고, limit_reached=true 면 이번 달(UTC) 새 합성이 멈췄다.\n\n두 경우 모두 클라이언트는 브라우저 음성으로 돌아간다. 이미 만든 단락도 enabled=false 면 내려가지 않는다.",
+        "properties": {
+          "default_voice": {
+            "enum": [
+              "sulafat",
+              "aoede",
+              "algieba",
+              "iapetus"
+            ],
+            "title": "Default Voice",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "limit_reached": {
+            "title": "Limit Reached",
+            "type": "boolean"
+          },
+          "voices": {
+            "items": {
+              "$ref": "#/components/schemas/TtsVoice"
+            },
+            "title": "Voices",
+            "type": "array"
+          }
+        },
+        "required": [
+          "enabled",
+          "limit_reached",
+          "default_voice",
+          "voices"
+        ],
+        "title": "TtsVoicesResponse",
         "type": "object"
       },
       "UpdateAdminStatusRequest": {
@@ -10815,6 +10922,239 @@
           }
         },
         "summary": "Get Together Today",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/tts/chunks/{chunk_id}": {
+      "get": {
+        "description": "API-HD-045 원문 뷰 단락(청크) 1개의 mp3. 본문은 서버가 display_text 로 조회한다.",
+        "operationId": "get_chunk_audio_hoondok_tts_chunks__chunk_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chunk_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "title": "Chunk Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "voice",
+            "required": true,
+            "schema": {
+              "maxLength": 16,
+              "title": "Voice",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "audio/mpeg": {}
+            },
+            "description": "단락 mp3"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "로그인 필요"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "TTS_SOURCE_NOT_FOUND — 본문 없음·권리 없음·단락 번호 범위 밖"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "TTS_INVALID_VOICE — 알 수 없는 목소리"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 (또는 RATE_LIMIT_EXCEEDED)"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "TTS_UPSTREAM_FAILED — Google 오류·네트워크"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정"
+          }
+        },
+        "summary": "Get Chunk Audio",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/tts/readings/{reading_id}/{paragraph}": {
+      "get": {
+        "description": "API-HD-046 오늘 훈독 말씀(편성 또는 내 정성)의 단락 1개 mp3. 단락 = 본문을 빈 줄로 나눈 순서(0부터).",
+        "operationId": "get_reading_audio_hoondok_tts_readings__reading_id___paragraph__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reading_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Reading Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "paragraph",
+            "required": true,
+            "schema": {
+              "maximum": 200,
+              "minimum": 0,
+              "title": "Paragraph",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "voice",
+            "required": true,
+            "schema": {
+              "maxLength": 16,
+              "title": "Voice",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "audio/mpeg": {}
+            },
+            "description": "단락 mp3"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "로그인 필요"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "TTS_SOURCE_NOT_FOUND — 본문 없음·권리 없음·단락 번호 범위 밖"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "TTS_INVALID_VOICE — 알 수 없는 목소리"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 (또는 RATE_LIMIT_EXCEEDED)"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "TTS_UPSTREAM_FAILED — Google 오류·네트워크"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정"
+          }
+        },
+        "summary": "Get Reading Audio",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/tts/voices": {
+      "get": {
+        "description": "API-HD-044 목소리 4종 + 켜짐 여부 + 이번 달 상한 도달 여부. 항상 200, 인증 없음.",
+        "operationId": "get_tts_voices_hoondok_tts_voices_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TtsVoicesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Tts Voices",
         "tags": [
           "hoondok"
         ]

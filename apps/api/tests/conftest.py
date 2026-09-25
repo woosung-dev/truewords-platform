@@ -47,6 +47,16 @@ def _hoondok_push_off(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _hoondok_tts_off(monkeypatch, tmp_path):
+    """훈독 AI 낭독(GOOGLE_TTS_API_KEY)을 테스트 기본 OFF 로, 캐시 디렉터리는 테스트별 임시 폴더로 고정한다 —
+    로컬 .env 의 실제 키로 Google 을 부르거나 저장소 안에 mp3 를 남기지 않게. 켜는 테스트는 각자 덮어쓴다."""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "google_tts_api_key", None)
+    monkeypatch.setattr(settings, "hoondok_tts_cache_dir", str(tmp_path / "tts-cache"))
+
+
+@pytest.fixture(autouse=True)
 def _reset_cache_cooldown():
     """`app.modules.chat.dependencies._cache_last_failure_monotonic` 은 모듈 전역이라
     캐시 lazy init 실패를 유발한 테스트의 타임스탬프가 다음 테스트로 새어나간다.

@@ -335,3 +335,19 @@ class ShareReaction(SQLModel, table=True):
     share_id: uuid.UUID = Field(foreign_key="group_shares.id", primary_key=True)
     member_id: uuid.UUID = Field(foreign_key="group_members.id", primary_key=True, index=True)
     created_at: datetime = Field(default_factory=_utcnow)
+
+
+class TtsUsage(SQLModel, table=True):
+    """ENT-HD-018 AI 낭독 새 합성 1건 (PLAN-HD-011). 월 글자 상한은 month 별 chars 합계로 검사한다.
+
+    캐시 적중은 기록하지 않는다. 누가 들었는지는 남기지 않는다(사용자 FK 없음) — 비용 집계 전용이다.
+    """
+
+    __tablename__ = "hoondok_tts_usage"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    month: str = Field(max_length=7, index=True)  # "YYYY-MM" (UTC)
+    voice: str = Field(max_length=16)
+    chars: int
+    cache_key: str = Field(max_length=64)  # sha256 hex — 같은 파일을 다시 만든 경우를 추적한다
+    created_at: datetime = Field(default_factory=_utcnow)

@@ -22,6 +22,8 @@ from app.modules.hoondok.service import (
     MissionService,
 )
 from app.modules.hoondok.together_service import TogetherService
+from app.modules.hoondok.tts_repository import TtsRepository
+from app.modules.hoondok.tts_service import TtsService
 from app.modules.qdrant import get_raw_client  # raw httpx — SDK HTTP/2 hang 회피 (docs/dev-log/47)
 from app.modules.safety.middleware import extract_client_ip
 from app.modules.safety.rate_limiter import RateLimiter
@@ -117,6 +119,24 @@ async def get_journey_service(
 ) -> JourneyService:
     # 장 목차(ENT-HD-010)는 서고 리포가 읽는다 — API-HD-016 의 section 동봉에 필요하다.
     return JourneyService(repo, get_raw_client(), periods, library=library)
+
+
+async def get_tts_repository(session: AsyncSession = Depends(get_async_session)) -> TtsRepository:
+    return TtsRepository(session)
+
+
+async def get_tts_service(
+    repo: TtsRepository = Depends(get_tts_repository),
+    journey: JourneyService = Depends(get_journey_service),
+) -> TtsService:
+    key = settings.google_tts_api_key
+    return TtsService(
+        repo,
+        journey,
+        api_key=key.get_secret_value() if key else None,
+        monthly_limit=settings.hoondok_tts_monthly_char_limit,
+        cache_dir=settings.hoondok_tts_cache_dir,
+    )
 
 
 async def get_notification_repository(

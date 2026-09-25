@@ -36,12 +36,14 @@ from app.modules.hoondok.notifications_router import router as hoondok_notificat
 from app.modules.hoondok.admin_router import admin_router as hoondok_admin_router
 from app.modules.hoondok.groups_admin_router import groups_admin_router, jeongseong_admin_router
 from app.modules.hoondok.groups_router import router as hoondok_groups_router
+from app.modules.hoondok.tts_router import router as hoondok_tts_router
 from app.modules.identity.router import router as identity_router
 from app.core.common.exception_handlers import (
     embedding_failed_handler,
     input_blocked_handler,
     invite_required_handler,
     push_disabled_handler,
+    tts_error_handler,
     rate_limit_handler,
     search_failed_handler,
     session_ownership_handler,
@@ -49,7 +51,7 @@ from app.core.common.exception_handlers import (
 )
 from app.core.common.middleware import HoondokAccessLogFilter, RequestIdMiddleware
 from app.modules.chat.exceptions import SessionOwnershipError
-from app.modules.hoondok.exceptions import PushDisabledError
+from app.modules.hoondok.exceptions import PushDisabledError, TtsError
 from app.modules.identity.exceptions import InviteRequiredError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
 from app.modules.search.exceptions import EmbeddingFailedError, SearchFailedError
@@ -122,6 +124,7 @@ app.add_exception_handler(EmbeddingFailedError, embedding_failed_handler)  # typ
 app.add_exception_handler(SessionOwnershipError, session_ownership_handler)  # type: ignore[arg-type]
 app.add_exception_handler(InviteRequiredError, invite_required_handler)  # type: ignore[arg-type]
 app.add_exception_handler(PushDisabledError, push_disabled_handler)  # type: ignore[arg-type]
+app.add_exception_handler(TtsError, tts_error_handler)  # type: ignore[arg-type]
 
 # Catch-all — 반드시 마지막에 등록 (구체 예외 핸들러가 먼저 매칭되도록)
 app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignore[arg-type]
@@ -135,6 +138,7 @@ app.include_router(client_errors_router)
 app.include_router(hoondok_router)  # 훈독 공개 읽기 — 비로그인 (PLAN-HD-001 Phase 1)
 app.include_router(hoondok_notifications_router)  # 훈독 알림 설정·푸시 구독 (PLAN-HD-006)
 app.include_router(hoondok_library_router)  # 훈독 서고 3계층·읽기 기록 (PLAN-HD-007)
+app.include_router(hoondok_tts_router)  # 훈독 AI 낭독 목소리 /hoondok/tts/* (PLAN-HD-011)
 app.include_router(hoondok_groups_router)  # 훈독 함께 읽는 모임 /hoondok/groups·invites·me/groups (PLAN-HD-010)
 app.include_router(identity_router)  # 훈독 계정 /hoondok/auth/* — 쿠키 hoondok_token (Phase 2)
 
