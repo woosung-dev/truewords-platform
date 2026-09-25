@@ -6955,7 +6955,7 @@ export type GetChunkAudioHoondokTtsChunksChunkIdGetErrors = {
      */
     422: ErrorResponse;
     /**
-     * TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 (또는 RATE_LIMIT_EXCEEDED)
+     * TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 · TTS_USER_LIMIT_EXCEEDED — 사용자 24시간 한도 · RATE_LIMIT_EXCEEDED — 요청 빈도(잠시 뒤 재시도)
      */
     429: ErrorResponse;
     /**
@@ -6963,9 +6963,13 @@ export type GetChunkAudioHoondokTtsChunksChunkIdGetErrors = {
      */
     502: ErrorResponse;
     /**
-     * TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정
+     * TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정 또는 캐시 디렉터리 쓰기 불가
      */
     503: ErrorResponse;
+    /**
+     * TTS_TIMEOUT — 합성 시간 상한(45초) 초과
+     */
+    504: ErrorResponse;
 };
 
 export type GetChunkAudioHoondokTtsChunksChunkIdGetError = GetChunkAudioHoondokTtsChunksChunkIdGetErrors[keyof GetChunkAudioHoondokTtsChunksChunkIdGetErrors];
@@ -7014,7 +7018,7 @@ export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors = {
      */
     422: ErrorResponse;
     /**
-     * TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 (또는 RATE_LIMIT_EXCEEDED)
+     * TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 · TTS_USER_LIMIT_EXCEEDED — 사용자 24시간 한도 · RATE_LIMIT_EXCEEDED — 요청 빈도(잠시 뒤 재시도)
      */
     429: ErrorResponse;
     /**
@@ -7022,9 +7026,13 @@ export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors = {
      */
     502: ErrorResponse;
     /**
-     * TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정
+     * TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정 또는 캐시 디렉터리 쓰기 불가
      */
     503: ErrorResponse;
+    /**
+     * TTS_TIMEOUT — 합성 시간 상한(45초) 초과
+     */
+    504: ErrorResponse;
 };
 
 export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetError = GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors[keyof GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors];

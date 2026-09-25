@@ -21,7 +21,10 @@ from app.modules.safety.rate_limiter import RateLimiter
 router = APIRouter(prefix="/hoondok/tts", tags=["hoondok"])
 
 # 구간 20단락을 이어 들으며 다음 단락을 미리 받는다 — 정상 청취는 분당 10건 안팎이다. [가정] 인메모리·단일 워커.
-tts_limiter = RateLimiter(max_requests=60, window_seconds=60)
+# 계정마다 분당 60건. IP 는 여러 명이 한 IP 를 쓰는 모임(교회 Wi-Fi)을 위해 넉넉히 둔다.
+# 비용은 요청 수가 아니라 글자 수 한도(월 상한·사용자 24시간 한도)가 막는다.
+tts_user_limiter = RateLimiter(max_requests=60, window_seconds=60)
+tts_ip_limiter = RateLimiter(max_requests=600, window_seconds=60)
 # 파일 내용은 (목소리, 본문)에 묶여 바뀌지 않는다. 본문 정리 규칙이 바뀌어도 30일이면 새로 받는다.
 AUDIO_CACHE_CONTROL = "private, max-age=2592000"
 
@@ -31,16 +34,19 @@ _errors = {
         401: "로그인 필요",
         404: "TTS_SOURCE_NOT_FOUND — 본문 없음·권리 없음·단락 번호 범위 밖",
         422: "TTS_INVALID_VOICE — 알 수 없는 목소리",
-        429: "TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 (또는 RATE_LIMIT_EXCEEDED)",
+        429: "TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 · TTS_USER_LIMIT_EXCEEDED — 사용자 24시간 한도 · "
+        "RATE_LIMIT_EXCEEDED — 요청 빈도(잠시 뒤 재시도)",
         502: "TTS_UPSTREAM_FAILED — Google 오류·네트워크",
-        503: "TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정",
+        503: "TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정 또는 캐시 디렉터리 쓰기 불가",
+        504: "TTS_TIMEOUT — 합성 시간 상한(45초) 초과",
     }.items()
 }
 _audio_responses = {200: {"content": {"audio/mpeg": {}}, "description": "단락 mp3"}, **_errors}
 
 
-async def check_tts_limit(request: Request) -> None:
-    tts_limiter.check(extract_client_ip(request))
+async def check_tts_limit(request: Request, user: User = Depends(get_current_user)) -> None:
+    tts_ip_limiter.check(extract_client_ip(request))
+    tts_user_limiter.check(f"user:{user.id}")
 
 
 def _mp3(audio: TtsAudio) -> Response:
@@ -74,7 +80,7 @@ async def get_chunk_audio(
     service: TtsService = Depends(get_tts_service),
 ) -> Response:
     """API-HD-045 원문 뷰 단락(청크) 1개의 mp3. 본문은 서버가 display_text 로 조회한다."""
-    return _mp3(await service.chunk_audio(chunk_id, voice))
+    return _mp3(await service.chunk_audio(chunk_id, voice, user.id))
 
 
 @router.get(

@@ -135,6 +135,7 @@ async def get_tts_service(
         journey,
         api_key=key.get_secret_value() if key else None,
         monthly_limit=settings.hoondok_tts_monthly_char_limit,
+        user_daily_limit=settings.hoondok_tts_user_daily_char_limit,
         cache_dir=settings.hoondok_tts_cache_dir,
     )
 
