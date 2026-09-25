@@ -12,6 +12,8 @@
 
 7. 훈독 말씀 서고는 `app/modules/hoondok/library_{router,service,repository,schemas,series}.py` 다. 장 목차 추출 규칙은 `section_rules.py`(순수 함수, I/O 없음)에 두고, 1회 실행 스크립트 `scripts/seed_content_rights_from_qdrant.py`(권리 원장 시드)·`scripts/extract_volume_sections.py`(장 목차 추출)가 Qdrant·DB I/O 를 맡는다 — cron 이 아니며 절차는 `infra/oracle-vm/README.md` 다. 목차는 `/hoondok/sections/{volume:path}` 이며 `/hoondok/words/{volume:path}` 가 greedy 라 하위 경로를 쓰지 않는다. 시리즈 admin(`API-HD-027·028`)은 기존 `rights_admin_router.py` 에 둔다.
 
+8. 훈독 AI 낭독 목소리는 `app/modules/hoondok/tts_{router,service,repository,schemas,google}.py` 다(PLAN-HD-011). 임의 텍스트를 받지 않고 청크 id·말씀 id+단락 번호로 서버가 본문을 조회한다. `GOOGLE_TTS_API_KEY` 가 없으면 503 `TTS_DISABLED`, 월 상한은 `hoondok_tts_usage` 합계다. 테스트는 Google 을 부르지 않는다(conftest 가 키를 비운다).
+
 ## RAG·데이터 경계
 
 - 채팅 답변은 기존 RAG 파이프라인과 safety/output filter를 통과시킨다. 검색 근거와 출처를 생략하거나 별도 LLM 직접 호출로 우회하지 않는다.
