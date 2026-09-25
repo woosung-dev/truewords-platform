@@ -313,6 +313,40 @@ ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec
 
 두 수치를 `PLAN-HD-006` §7 진행 기록에 날짜와 함께 적고, 그 뒤 F2 AI 질문 우선순위 ADR 의 근거로 쓴다.
 
+## AI 낭독 목소리 운영 ON (PLAN-HD-011)
+
+코드가 배포돼도 **`GOOGLE_TTS_API_KEY` 가 VM `.env` 에 없으면 AI 목소리는 꺼져 있다** — `GET /hoondok/tts/voices` 가 `enabled=false`, 단락 음성은 503 `TTS_DISABLED` 이고 화면은 브라우저 음성으로 읽는다. 켜기 전 [`PLAN-HD-011` §6 확인 필요](../plans/active/2026-09-25-hoondok-ai-voice.md) 중 "협회 본문을 Google Cloud 로 보내는 것" 확인이 먼저다.
+
+```bash
+# 0. GCP 프로젝트 gcp-project-504004 에서 Cloud Text-to-Speech API 사용 설정 →
+#    사용자 인증 정보 → API 키 만들기 → "키 제한: Cloud Text-to-Speech API" 하나만 선택(애플리케이션 제한은 없음, 서버 호출).
+#    결제 계정이 연결돼 있어야 한다. Chirp 3 HD 무료 한도는 월 100만 자, 앱 상한은 90만 자(HOONDOK_TTS_MONTHLY_CHAR_LIMIT,
+#    America/Los_Angeles 달 기준 = Google 청구 달). 같은 프로젝트의 다른 TTS 사용량도 무료 한도를 함께 쓴다.
+# 0-1. 예산 알림 — 결제 → 예산 및 알림 → 예산 만들기: 범위 = 프로젝트 gcp-project-504004 · 서비스 Cloud Text-to-Speech API,
+#    금액 = 월 $5(무료 한도 안이면 $0 이어야 한다), 알림 기준 50%·90%·100%(실제 비용), 수신 = 결제 관리자 이메일.
+#    앱 상한이 뚫리거나 다른 사용량이 있으면 이 알림이 먼저 울린다. 예산은 청구를 멈추지 않는다 — 알림을 받으면 아래 되돌리기.
+# 1. 캐시 디렉터리 — backend 컨테이너 사용자(appuser) uid 로 소유를 맞춘다. [확인 필요] uid 는 이미지에서 실측한다.
+ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env exec -T backend id -u'   # 예: 1000
+ssh truewords-oracle 'sudo mkdir -p /opt/truewords/tts-cache && sudo chown <위 uid>:<위 uid> /opt/truewords/tts-cache'
+# 2. VM .env 에 키 1줄 (어디에도 커밋·붙여넣기 금지). compose 가 HOONDOK_TTS_CACHE_DIR=/data/tts-cache 와 볼륨을 이미 건다.
+#    GOOGLE_TTS_API_KEY=<키>
+#    (선택) HOONDOK_TTS_USER_DAILY_CHAR_LIMIT=30000  — 사용자 한 명의 최근 24시간 새 합성 글자 수. 기본값 그대로면 적지 않는다.
+# 3. 새 compose(볼륨·HOONDOK_TTS_CACHE_DIR)를 VM 에 올린다 — make deploy-* 는 compose 파일을 복사하지 않는다
+scp infra/oracle-vm/docker-compose.yml truewords-oracle:~/truewords/docker-compose.yml
+# 4. backend 먼저 (alembic s4d5e6f7a8b9 hoondok_tts_usage 포함)
+make deploy-backend
+curl -s https://truewords.woosung.dev/api/backend/hoondok/tts/voices | jq '{enabled, limit_reached}'   # true, false
+#    enabled=false 인데 키를 넣었다면 캐시 디렉터리 권한이다 — backend 로그에 "캐시 디렉터리에 쓸 수 없어" 가 찍힌다. 1 을 다시 확인.
+# 5. web 나중 (목소리 시트·견본 mp3). backend 가 먼저 있어야 시트가 AI 목록을 받는다
+make deploy-web
+# 6. 확인: 로그인 → 원문 뷰 듣기 → 첫 단락 1~2초 로딩 후 재생, 같은 단락 두 번째는 즉시(X-Tts-Cache: hit)
+ssh truewords-oracle 'sudo du -sh /opt/truewords/tts-cache; sudo find /opt/truewords/tts-cache -name "*.mp3" | wc -l'
+```
+
+- **사용량**: `SELECT month, sum(chars) FROM hoondok_tts_usage GROUP BY 1 ORDER BY 1 DESC;` — 새로 합성한(또는 실패했지만 과금됐을 수 있는) 글자 수만 있다(캐시 적중 제외). `month` 는 태평양 시간 달이다. 상한 도달이면 그달은 새 단락을 만들지 않고 이미 만든 단락만 준다. 한 사용자 몰림은 `SELECT user_id, sum(chars) FROM hoondok_tts_usage WHERE created_at > now() - interval '1 day' GROUP BY 1 ORDER BY 2 DESC LIMIT 5;`.
+- **디스크**: 단락 1개 ≈ 수십~수백 KB(mp3). [확인 필요] 한 달 사용 뒤 `du -sh` 로 증가량을 보고 정리 기준을 정한다. 지워도 다음 청취 때 다시 만들어진다(그만큼 글자 수를 다시 센다).
+- **되돌리기**: `.env` 에서 키 줄 제거 → backend 재생성(`up -d --no-deps backend`). 화면은 즉시 브라우저 음성으로 돌아가고 캐시 파일은 남는다. 키 유출 의심 시 GCP 콘솔에서 키를 먼저 삭제한다.
+
 ## 말씀 서고 개통 절차 (PLAN-HD-007)
 
 운영 `content_rights` 는 0행이라 `/hoondok/library` 가 `{"items":[],"works":[]}` 다. 권리 게이트의 기본값이 "전부 비노출" 이라 결함이 아니고, 아래 순서로 **원장을 채우고 운영자가 승인해야** 서고·검색·원문이 보인다. 근거는 [`PLAN-HD-007` §6](../plans/active/2026-09-23-hoondok-library.md). 스크립트 상세는 [`infra/oracle-vm/README.md` §1회 실행 스크립트](../../infra/oracle-vm/README.md).

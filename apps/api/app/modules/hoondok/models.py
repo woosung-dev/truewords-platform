@@ -335,3 +335,23 @@ class ShareReaction(SQLModel, table=True):
     share_id: uuid.UUID = Field(foreign_key="group_shares.id", primary_key=True)
     member_id: uuid.UUID = Field(foreign_key="group_members.id", primary_key=True, index=True)
     created_at: datetime = Field(default_factory=_utcnow)
+
+
+class TtsUsage(SQLModel, table=True):
+    """ENT-HD-018 AI 낭독 새 합성 1건 (PLAN-HD-011). 월 글자 상한은 month 별 chars 합계, 사용자 한도는
+    user_id 별 최근 24시간 chars 합계로 검사한다.
+
+    합성 전에 글자 수를 먼저 적어 예약하고, 실패하면 Google 이 과금했을 수 있는 만큼으로 줄이거나 지운다.
+    캐시 적중은 기록하지 않는다. user_id 는 한도 계산용이라 FK 를 두지 않는다(계정 삭제와 무관하게 비용 기록은 남는다).
+    """
+
+    __tablename__ = "hoondok_tts_usage"
+    __table_args__ = (Index("ix_hoondok_tts_usage_user_created", "user_id", "created_at"),)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    month: str = Field(max_length=7, index=True)  # "YYYY-MM" (America/Los_Angeles — Google 청구 달)
+    voice: str = Field(max_length=16)
+    chars: int
+    cache_key: str = Field(max_length=64)  # sha256 hex — 같은 파일을 다시 만든 경우를 추적한다
+    user_id: uuid.UUID | None = Field(default=None)
+    created_at: datetime = Field(default_factory=_utcnow)

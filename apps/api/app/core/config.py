@@ -42,6 +42,22 @@ class Settings(BaseSettings):
     hoondok_together_min_count: int = 10
     hoondok_together_cache_seconds: float = 60.0
 
+    # 훈독 AI 낭독 목소리 (PLAN-HD-011). Google Cloud Text-to-Speech(Chirp 3 HD) API 키가 없으면 기능 OFF —
+    # 음성 API 는 503 TTS_DISABLED, 클라이언트는 브라우저 음성으로 돌아간다. 키는 VM .env 에만 둔다.
+    google_tts_api_key: SecretStr | None = None
+    # 달(America/Los_Angeles — Google 청구 달)마다 새로 합성하는 글자 수 상한. Chirp 3 HD 무료 한도 100만 자의 90%.
+    # 캐시 적중은 세지 않는다.
+    hoondok_tts_monthly_char_limit: int = 900_000
+    # 사용자 한 명이 최근 24시간에 새로 합성할 수 있는 글자 수. 한 계정이 이번 달 몫을 다 쓰지 못하게 한다.
+    # [가정] 3만 자 ≈ 원문 구간 15~20개. 넘으면 429 TTS_USER_LIMIT_EXCEEDED, 클라이언트는 기기 음성으로 읽는다.
+    hoondok_tts_user_daily_char_limit: int = 30_000
+    # 합성한 단락 mp3 저장 위치. 운영은 컨테이너 밖 볼륨으로 마운트한다(infra/oracle-vm/README.md).
+    hoondok_tts_cache_dir: str = "var/hoondok-tts"
+
+    def is_hoondok_tts_enabled(self) -> bool:
+        key = self.google_tts_api_key
+        return bool(key and key.get_secret_value().strip())
+
     def is_hoondok_push_enabled(self) -> bool:
         """VAPID 3값이 모두 설정되고 공백이 아닐 때만 True. 미설정이면 구독 API 가 열리지 않는다."""
         private = self.hoondok_vapid_private_key

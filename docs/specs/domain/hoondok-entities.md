@@ -223,3 +223,9 @@ PK `(share_id, member_id)` · `created_at`. 종류 컬럼이 없다(반응 1종)
 
 다섯 테이블 모두 additive-only migration(`r3c4d5e6f7a8`, down `q2b3c4d5e6f7`)으로 추가하며 PostgreSQL ENUM·`ondelete` 를 쓰지 않는다.
 삭제 순서는 `GroupRepository` 가 명시한다: `share_reactions → group_shares → shared_jeongseongs(모임) → group_members → reading_groups`.
+
+## ENT-HD-018 `hoondok_tts_usage` — AI 낭독 새 합성 (PLAN-HD-011)
+
+`id` · `month`(`YYYY-MM`, America/Los_Angeles — Google 청구 달, index) · `voice`(≤16) · `chars`(합성했거나 과금됐을 수 있는 글자 수, 공백 정규화 후) · `cache_key`(sha256 hex) · `user_id`(nullable, FK 없음) · `created_at`(index `user_id, created_at`).
+캐시 적중은 행을 만들지 않는다. 합성 전에 예약 행을 만들고 실패하면 줄이거나 지운다. `user_id` 는 사용자 최근 24시간 한도 계산용이다 — FK 를 두지 않아 계정 삭제와 무관하게 비용 기록이 남는다. [확인 필요] 계정 삭제 시 `user_id` 를 비울지는 계정 삭제 정책과 함께 정한다. additive-only migration `s4d5e6f7a8b9`(down `r3c4d5e6f7a8`).
+

@@ -70,6 +70,11 @@ services:
     env_file: .env
     environment:
       - QDRANT_URL=http://qdrant:6333
+      # 훈독 AI 낭독 단락 mp3 캐시 (PLAN-HD-011). 호스트 디렉터리는 backend 컨테이너 appuser 가 쓸 수 있어야 한다
+      # (docs/runbooks/hoondok-pwa-rollout.md §AI 낭독 목소리 운영 ON). GOOGLE_TTS_API_KEY 가 없으면 쓰지 않는다.
+      - HOONDOK_TTS_CACHE_DIR=/data/tts-cache
+    volumes:
+      - /opt/truewords/tts-cache:/data/tts-cache
     mem_limit: 3g
     stop_grace_period: 40s
     depends_on:

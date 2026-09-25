@@ -758,6 +758,18 @@
   .audio__bd b {
     font-size: 13px;
     font-weight: 600;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* 제목과 "단락 k / n" 을 한 줄에 — 오른쪽 자리는 낭독 목소리 칩이 쓴다 (PLAN-HD-011) */
+  .audio__meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
   }
   .audio__bd .progress {
     height: 4px;
@@ -769,17 +781,32 @@
     font-variant-numeric: tabular-nums;
     flex: none;
   }
-  .audio__rate {
-    min-width: 44px;
+  /* 낭독 목소리 칩 (PLAN-HD-011 1안). 어두운 바 위라 흰 글자, 누르면 시트가 열리고 caret 이 뒤집힌다 */
+  .audio__who {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     min-height: 44px;
-    padding: 0 8px;
-    border-radius: var(--r-full);
-    border: 1px solid color-mix(in srgb, var(--surface) 40%, transparent);
+    padding: 0 8px 0 10px;
+    border-radius: var(--r-sm);
     color: var(--surface);
-    font-size: 12.5px;
+    font-size: 14px;
     font-weight: 600;
-    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
     flex: none;
+  }
+  .audio__who svg {
+    color: color-mix(in srgb, var(--surface) 80%, transparent);
+    transition: transform 0.2s;
+  }
+  .audio__who[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+  .audio__who:active {
+    background: color-mix(in srgb, var(--surface) 12%, transparent);
+  }
+  .audio__play[aria-busy="true"] {
+    cursor: progress;
   }
   .audio button:focus-visible {
     outline: 2px solid var(--accent);
@@ -788,6 +815,115 @@
   .tts-note,
   .tts-next {
     margin-top: 8px;
+  }
+
+  /* ---------- PLAN-HD-011 낭독 목소리 시트 (1안 조용한 목록) ----------
+     시트 껍데기는 sheet.css 의 .sheet/.sheet__panel 이다. 여기서는 좌우 여백을 줄 안쪽으로 옮기고
+     (구분선이 패널 끝까지 닿게) 머리글·목록·속도 세그먼트만 그린다. 카드 테두리·확인 버튼은 없다. */
+  .vs .sheet__panel {
+    padding: 6px 0 16px;
+  }
+  .vs__head {
+    display: flex;
+    align-items: center;
+    padding: 8px 8px 4px var(--gutter);
+  }
+  .vs__head h2 {
+    flex: 1;
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .vs__close {
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 14.5px;
+    color: var(--ink-2);
+  }
+  .vs__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 64px;
+    padding: 8px var(--gutter);
+    text-align: left;
+  }
+  .vs__row + .vs__row {
+    border-top: 1px solid var(--line);
+  }
+  .vs__row:active {
+    background: var(--surface);
+  }
+  .vs__row:focus-visible,
+  .vs__close:focus-visible,
+  .vs__seg button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+  .vs__bd {
+    flex: 1;
+    min-width: 0;
+  }
+  .vs__n {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .vs__d {
+    display: block;
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .vs__row[aria-checked="true"] .vs__n {
+    color: var(--accent-strong);
+  }
+  .vs__st {
+    flex: none;
+    width: 24px;
+    display: grid;
+    place-items: center;
+    color: var(--accent);
+  }
+  .vs__note {
+    margin: 4px var(--gutter) 0;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .vs__rate {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+    padding: 12px var(--gutter) 4px;
+    border-top: 1px solid var(--line);
+  }
+  .vs__rate > span {
+    flex: 1;
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .vs__seg {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+  }
+  .vs__seg button {
+    min-width: 56px;
+    min-height: 44px;
+    font-size: 14px;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .vs__seg button + button {
+    border-left: 1px solid var(--line);
+  }
+  .vs__seg button[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--paper);
+    font-weight: 600;
   }
 
   /* 트랙 C: 구간 이동 버튼 탭 대상 44px (공용 .btn--sm 38px 은 그대로 두고 이 화면만) */

@@ -247,6 +247,45 @@ class JourneyService:
             else await self._section_at(volume, chunks[0].chunk_index),
         )
 
+    async def chunk_display_text(self, chunk_id: str) -> str | None:
+        """원문 뷰(API-HD-016)가 그 단락에 보이는 display_text 그대로. AI 낭독(PLAN-HD-011)이 합성 원문으로 쓴다.
+
+        full_text 허용 저작물이 아니거나 청크가 없으면 None. 겹침 자르기는 words() 와 같게
+        페이지 첫 청크는 앞 청크 없이, 나머지는 바로 앞 청크 기준으로 한다 — 화면과 들리는 글이 같아야 한다.
+        """
+        try:
+            point_id: str | int = str(uuid.UUID(chunk_id))
+        except ValueError:
+            if not chunk_id.isdecimal() or not 0 <= int(chunk_id) < 2**64:
+                return None
+            point_id = int(chunk_id)
+        try:
+            records = await self.client.retrieve(settings.collection_name, ids=[point_id])
+            if not records:
+                return None
+            current = point_to_search_result(records[0])
+            if not isinstance(current.chunk_index, int) or current.chunk_index < 0:
+                return None
+            if current.volume not in await self.allowed("scope_full_text"):
+                return None
+            previous: str | None = None
+            if current.chunk_index % PAGE_SIZE != 0:
+                points, _ = await self.client.scroll(
+                    settings.collection_name,
+                    scroll_filter=build_filter(
+                        must=[
+                            field_match("volume", current.volume),
+                            field_match("chunk_index", current.chunk_index - 1),
+                        ]
+                    ),
+                    limit=1,
+                    with_vectors=False,
+                )
+                previous = point_to_search_result(points[0]).text if points else None
+        except Exception:
+            raise SearchFailedError("훈독 원문 조회 실패") from None
+        return to_display_text(previous, current.text)
+
     async def _section_by_position(self, volume: str, position: int):
         if self.sections is None:
             return None

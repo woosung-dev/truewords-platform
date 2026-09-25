@@ -47,6 +47,9 @@
 | `API-HD-041` | PUT · DELETE | `/hoondok/groups/{group_id}/shares/{share_id}/reaction` | `hoondok_token` (모임원) + `X-Requested-With` | HD-010 |
 | `API-HD-042` | GET · POST · PUT · DELETE | `/admin/hoondok/jeongseongs` · `/admin/hoondok/jeongseongs/{jeongseong_id}` | `admin_token` + 게이트 (쓰기는 `X-Requested-With`) | HD-010 |
 | `API-HD-043` | GET · DELETE | `/admin/hoondok/groups` · `/admin/hoondok/groups/{group_id}` | `admin_token` + 게이트 (DELETE 는 `X-Requested-With`) | HD-010 |
+| `API-HD-044` | GET | `/hoondok/tts/voices` | 공개 | HD-011 |
+| `API-HD-045` | GET | `/hoondok/tts/chunks/{chunk_id}?voice=` | `hoondok_token` + limiter | HD-011 |
+| `API-HD-046` | GET | `/hoondok/tts/readings/{reading_id}/{paragraph}?voice=` | `hoondok_token` + limiter | HD-011 |
 
 공통 규칙:
 
@@ -597,3 +600,27 @@ GET → `[{id, name, member_count, created_at}]`(최신순) — 모임원 이름
 ### API-HD-011 변경 — 계정 삭제
 
 `get_user_data_purgers` 에 `GroupRepository` 가 더해졌다. 모임마다 모임원 행·한 줄·반응을 지우고, 리더였다면 가장 먼저 들어온 식구(`joined_at` 오름차순)에게 리더를 넘긴다. 남은 식구가 없으면 모임을 지운다. 이 사용자가 만든 정성의 `created_by_user_id` 는 NULL 로 비운다.
+
+## PLAN-HD-011 — AI 낭독 목소리 (API-HD-044~046)
+
+[계획](../../plans/active/2026-09-25-hoondok-ai-voice.md). Google Cloud Text-to-Speech Chirp 3 HD, 목소리 4종(`sulafat` 기본·`aoede`·`algieba`·`iapetus`) 모두 `speakingRate 0.9`. **임의 텍스트 합성은 없다** — 클라이언트는 식별자만 보내고 서버가 본문을 조회한다. `GOOGLE_TTS_API_KEY` 가 없으면 기능 OFF.
+
+### API-HD-044 `GET /hoondok/tts/voices`
+
+항상 200, 인증 없음. `{enabled, limit_reached, default_voice, voices[{id, label, description}]}`. `enabled` = 키가 있고 캐시 디렉터리에 쓸 수 있음(못 쓰면 `false` — 매 청취가 새 합성으로 세어지지 않게 닫는다). `limit_reached` = 이번 달(America/Los_Angeles, Google 청구 달) 새 합성 글자 합계 ≥ `HOONDOK_TTS_MONTHLY_CHAR_LIMIT`(기본 900,000). 둘 중 하나라도 AI 를 못 쓰면 웹은 브라우저 음성으로 읽는다.
+
+### API-HD-045 `GET /hoondok/tts/chunks/{chunk_id}?voice=`
+
+200 `audio/mpeg` 단락 mp3, `Cache-Control: private, max-age=2592000`, `ETag`, `X-Tts-Cache: hit|miss`. 합성 원문은 원문 뷰(`API-HD-016`)가 그 단락에 보이는 `display_text`(페이지 첫 청크는 앞 청크 겹침을 자르지 않는 같은 규칙) — `scope_full_text` 허용 저작물만.
+
+### API-HD-046 `GET /hoondok/tts/readings/{reading_id}/{paragraph}?voice=`
+
+오늘 훈독 말씀의 단락(본문을 빈 줄로 나눈 순서, 0부터) mp3. `reading_id` 는 `API-HD-001`·`API-HD-017` 응답의 `reading.id` — 편성(`daily_readings`, 철회·미래 날짜 제외) 또는 **본인** 정성 말씀(`jeongseong_readings`, 진행 중 기간의 오늘 말씀만, `scope_jeongseong` 허용 저작물만).
+
+045·046 공통:
+
+- 캐시 키 `sha256(voice|0.9|공백 정규화한 본문)`, 저장 `HOONDOK_TTS_CACHE_DIR/{key[:2]}/{key}.mp3`(임시 파일 → `os.replace`). 적중이면 합성·상한 검사 없이 준다. 같은 키 동시 요청은 프로세스 락으로 1회만 합성한다.
+- 새 합성만 `hoondok_tts_usage`(ENT-HD-018) 에 글자 수를 남긴다. 월 상한(`HOONDOK_TTS_MONTHLY_CHAR_LIMIT`)과 사용자 최근 24시간 한도(`HOONDOK_TTS_USER_DAILY_CHAR_LIMIT`, 기본 30,000)를 검사하고 **합성 전에 글자 수를 예약·커밋**한다(전역 락 — 동시 요청이 상한을 넘지 않고, Google 호출 동안 DB 커넥션을 쥐지 않는다). 합성이 실패하면 Google 이 과금했을 수 있는 글자 수(성공한 조각 + 결과를 모르는 조각)로 줄이거나 지우고, 시간 초과는 예약을 그대로 둔다. 캐시 파일은 사용량 커밋 뒤에 쓴다.
+- Google 호출 재시도(1회)는 5xx·연결 실패만. 읽기 타임아웃은 이미 과금됐을 수 있어 재시도하지 않는다. 요청 전체 상한 45초.
+- 오류(`ErrorResponse.error_code`): 401 미인증 · 404 `TTS_SOURCE_NOT_FOUND`(본문 없음·권리 없음·단락 범위 밖) · 422 `TTS_INVALID_VOICE` · 429 `TTS_QUOTA_EXCEEDED`(월 상한) · 429 `TTS_USER_LIMIT_EXCEEDED`(사용자 24시간 한도) · 429 `RATE_LIMIT_EXCEEDED`(요청 빈도 — 웹은 짧게 재시도하는 일시적 오류로 본다) · 502 `TTS_UPSTREAM_FAILED` · 503 `TTS_DISABLED`(키 없음 또는 캐시 디렉터리 쓰기 불가) · 504 `TTS_TIMEOUT`. 검사 순서는 voice → 켜짐 → 본문 → 캐시 → 상한.
+- limiter: 계정 `RateLimiter(60, 60)` + IP `RateLimiter(600, 60)`(모임이 한 IP 를 함께 쓰는 경우). 비용은 요청 수가 아니라 글자 한도가 막는다.

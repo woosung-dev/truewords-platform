@@ -1166,6 +1166,46 @@ export type DuplicateCheckResponse = {
 };
 
 /**
+ * ErrorResponse
+ *
+ * 통합 에러 응답 포맷 (Flutter 소비 라우터 기준).
+ *
+ * Attributes:
+ * error_code: 프론트엔드 분기용 에러 코드 (예: INPUT_BLOCKED)
+ * message: 사용자 표시 메시지 (한국어)
+ * request_id: 요청 추적 식별자 (UUID v4 또는 X-Request-Id 헤더값)
+ * details: 디버깅용 추가 정보 (선택, 프로덕션에서는 사용 자제)
+ */
+export type ErrorResponse = {
+    /**
+     * Details
+     *
+     * 디버깅용 추가 정보
+     */
+    details?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Error Code
+     *
+     * 프론트엔드 분기용 에러 코드
+     */
+    error_code: string;
+    /**
+     * Message
+     *
+     * 사용자 표시 메시지 (한국어)
+     */
+    message: string;
+    /**
+     * Request Id
+     *
+     * 요청 추적 식별자
+     */
+    request_id: string;
+};
+
+/**
  * FeaturedMalssum
  *
  * 레드팀 시연 — 답변 화면에 무작위로 곁들이는 큐레이션 말씀 1개.
@@ -3334,6 +3374,50 @@ export type TopQuery = {
      * Query Text
      */
     query_text: string;
+};
+
+/**
+ * TtsVoice
+ */
+export type TtsVoice = {
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Id
+     */
+    id: 'sulafat' | 'aoede' | 'algieba' | 'iapetus';
+    /**
+     * Label
+     */
+    label: string;
+};
+
+/**
+ * TtsVoicesResponse
+ *
+ * 항상 200, 인증 없음. enabled=false 면 키가 없고, limit_reached=true 면 이번 달(UTC) 새 합성이 멈췄다.
+ *
+ * 두 경우 모두 클라이언트는 브라우저 음성으로 돌아간다. 이미 만든 단락도 enabled=false 면 내려가지 않는다.
+ */
+export type TtsVoicesResponse = {
+    /**
+     * Default Voice
+     */
+    default_voice: 'sulafat' | 'aoede' | 'algieba' | 'iapetus';
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Limit Reached
+     */
+    limit_reached: boolean;
+    /**
+     * Voices
+     */
+    voices: Array<TtsVoice>;
 };
 
 /**
@@ -6839,6 +6923,144 @@ export type GetTogetherTodayHoondokTodayTogetherGetResponses = {
 };
 
 export type GetTogetherTodayHoondokTodayTogetherGetResponse = GetTogetherTodayHoondokTodayTogetherGetResponses[keyof GetTogetherTodayHoondokTodayTogetherGetResponses];
+
+export type GetChunkAudioHoondokTtsChunksChunkIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Chunk Id
+         */
+        chunk_id: string;
+    };
+    query: {
+        /**
+         * Voice
+         */
+        voice: string;
+    };
+    url: '/hoondok/tts/chunks/{chunk_id}';
+};
+
+export type GetChunkAudioHoondokTtsChunksChunkIdGetErrors = {
+    /**
+     * 로그인 필요
+     */
+    401: ErrorResponse;
+    /**
+     * TTS_SOURCE_NOT_FOUND — 본문 없음·권리 없음·단락 번호 범위 밖
+     */
+    404: ErrorResponse;
+    /**
+     * TTS_INVALID_VOICE — 알 수 없는 목소리
+     */
+    422: ErrorResponse;
+    /**
+     * TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 · TTS_USER_LIMIT_EXCEEDED — 사용자 24시간 한도 · RATE_LIMIT_EXCEEDED — 요청 빈도(잠시 뒤 재시도)
+     */
+    429: ErrorResponse;
+    /**
+     * TTS_UPSTREAM_FAILED — Google 오류·네트워크
+     */
+    502: ErrorResponse;
+    /**
+     * TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정 또는 캐시 디렉터리 쓰기 불가
+     */
+    503: ErrorResponse;
+    /**
+     * TTS_TIMEOUT — 합성 시간 상한(45초) 초과
+     */
+    504: ErrorResponse;
+};
+
+export type GetChunkAudioHoondokTtsChunksChunkIdGetError = GetChunkAudioHoondokTtsChunksChunkIdGetErrors[keyof GetChunkAudioHoondokTtsChunksChunkIdGetErrors];
+
+export type GetChunkAudioHoondokTtsChunksChunkIdGetResponses = {
+    /**
+     * 단락 mp3
+     */
+    200: Blob | File;
+};
+
+export type GetChunkAudioHoondokTtsChunksChunkIdGetResponse = GetChunkAudioHoondokTtsChunksChunkIdGetResponses[keyof GetChunkAudioHoondokTtsChunksChunkIdGetResponses];
+
+export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetData = {
+    body?: never;
+    path: {
+        /**
+         * Reading Id
+         */
+        reading_id: string;
+        /**
+         * Paragraph
+         */
+        paragraph: number;
+    };
+    query: {
+        /**
+         * Voice
+         */
+        voice: string;
+    };
+    url: '/hoondok/tts/readings/{reading_id}/{paragraph}';
+};
+
+export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors = {
+    /**
+     * 로그인 필요
+     */
+    401: ErrorResponse;
+    /**
+     * TTS_SOURCE_NOT_FOUND — 본문 없음·권리 없음·단락 번호 범위 밖
+     */
+    404: ErrorResponse;
+    /**
+     * TTS_INVALID_VOICE — 알 수 없는 목소리
+     */
+    422: ErrorResponse;
+    /**
+     * TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 · TTS_USER_LIMIT_EXCEEDED — 사용자 24시간 한도 · RATE_LIMIT_EXCEEDED — 요청 빈도(잠시 뒤 재시도)
+     */
+    429: ErrorResponse;
+    /**
+     * TTS_UPSTREAM_FAILED — Google 오류·네트워크
+     */
+    502: ErrorResponse;
+    /**
+     * TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정 또는 캐시 디렉터리 쓰기 불가
+     */
+    503: ErrorResponse;
+    /**
+     * TTS_TIMEOUT — 합성 시간 상한(45초) 초과
+     */
+    504: ErrorResponse;
+};
+
+export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetError = GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors[keyof GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors];
+
+export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetResponses = {
+    /**
+     * 단락 mp3
+     */
+    200: Blob | File;
+};
+
+export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetResponse = GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetResponses[keyof GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetResponses];
+
+export type GetTtsVoicesHoondokTtsVoicesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/tts/voices';
+};
+
+export type GetTtsVoicesHoondokTtsVoicesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: TtsVoicesResponse;
+};
+
+export type GetTtsVoicesHoondokTtsVoicesGetResponse = GetTtsVoicesHoondokTtsVoicesGetResponses[keyof GetTtsVoicesHoondokTtsVoicesGetResponses];
 
 export type GetWordsHoondokWordsVolumeGetData = {
     body?: never;
