@@ -107,6 +107,8 @@ export function useSpeechReader(paragraphs: SpeechParagraph[], resetKey: string 
   const hasKoreanVoice = useSyncExternalStore(subscribeVoices, voiceSnapshot, () => null);
   const [status, setStatus] = useState<SpeechStatus>("idle");
   const [currentIndex, setCurrentIndex] = useState(0);
+  // cue 로 멈춘 채 준비만 한 상태 — 아직 한 번도 말하지 않았다. resume 이 그 단락부터 새로 시작한다.
+  const [isCued, setIsCued] = useState(false);
   const [rateState, setRateState] = useState<SpeechRate>(controlledRate ?? 1.0);
   const rate = controlledRate ?? rateState;
 
@@ -127,6 +129,7 @@ export function useSpeechReader(paragraphs: SpeechParagraph[], resetKey: string 
     setSeenKey(resetKey);
     setStatus("idle");
     setCurrentIndex(0);
+    setIsCued(false);
   }
   // 구간을 바꾸거나 화면을 떠나면 말하던 것을 멈춘다.
   useEffect(
@@ -144,6 +147,7 @@ export function useSpeechReader(paragraphs: SpeechParagraph[], resetKey: string 
     generation.current += 1;
     engine.cancel();
     const index = Math.min(Math.max(fromIndex, 0), list.length - 1);
+    setIsCued(false);
     setCurrentIndex(index);
     setStatus("playing");
     speakChain(
@@ -165,6 +169,18 @@ export function useSpeechReader(paragraphs: SpeechParagraph[], resetKey: string 
     (fromIndex?: number) => start(fromIndex ?? (status === "ended" ? 0 : currentIndex)),
     [start, status, currentIndex],
   );
+  /** 말하지 않고 그 단락에 멈춘 상태로 둔다(PLAN-HD-011 대체 경로). iOS 는 제스처 밖의 첫 발화를 막을 수 있어
+   * 자동으로 시작하지 않는다 — 사용자가 "이어 듣기" 를 누르면 resume 이 그 단락부터 읽는다. */
+  const cue = useCallback((fromIndex: number) => {
+    const engine = synth();
+    const list = paragraphsRef.current;
+    if (!engine || list.length === 0) return;
+    generation.current += 1;
+    engine.cancel();
+    setCurrentIndex(Math.min(Math.max(fromIndex, 0), list.length - 1));
+    setIsCued(true);
+    setStatus("paused");
+  }, []);
   const pause = useCallback(() => {
     const engine = synth();
     if (!engine || status !== "playing") return;
@@ -174,12 +190,17 @@ export function useSpeechReader(paragraphs: SpeechParagraph[], resetKey: string 
   const resume = useCallback(() => {
     const engine = synth();
     if (!engine || status !== "paused") return;
+    if (isCued) {
+      start(currentIndex);
+      return;
+    }
     engine.resume();
     setStatus("playing");
-  }, [status]);
+  }, [status, isCued, currentIndex, start]);
   const stop = useCallback(() => {
     generation.current += 1;
     synth()?.cancel();
+    setIsCued(false);
     setStatus("idle");
     setCurrentIndex(0);
   }, []);
@@ -193,5 +214,5 @@ export function useSpeechReader(paragraphs: SpeechParagraph[], resetKey: string 
     [status, currentIndex, start],
   );
 
-  return { isSupported, hasKoreanVoice, status, currentIndex, rate, play, pause, resume, stop, setRate };
+  return { isSupported, hasKoreanVoice, status, currentIndex, rate, isCued, play, cue, pause, resume, stop, setRate };
 }

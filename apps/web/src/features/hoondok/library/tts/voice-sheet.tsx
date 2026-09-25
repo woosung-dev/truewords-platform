@@ -36,8 +36,8 @@ export function VoiceSheet({
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog) openDialog(dialog);
-    // 열리면 지금 고른 줄로 포커스를 옮긴다.
-    listRef.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus();
+    // 열리면 지금 고른 줄(없으면 첫 줄 — Tab 을 받는 줄)로 포커스를 옮긴다.
+    listRef.current?.querySelector<HTMLElement>('[role="radio"][tabindex="0"]')?.focus();
     const chip = opener.current;
     return () => {
       if (chip?.isConnected) chip.focus();
@@ -48,6 +48,22 @@ export function VoiceSheet({
     reader.stopSample();
     onClose();
   }
+  // 라디오 그룹 키보드: 방향키로 이웃 줄에 포커스를 옮기며 바로 고른다(끝에서 처음으로 돈다). Tab 은 그룹에 한 번만 선다.
+  function handleListKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key];
+    if (step === undefined) return;
+    event.preventDefault();
+    const buttons = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]') ?? []);
+    const from = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    const to = (Math.max(from, 0) + step + buttons.length) % buttons.length;
+    buttons[to]?.focus();
+    reader.selectVoice(rows[to].id);
+  }
+  // 고른 줄이 없으면(기기 음성으로 읽는 중 AI 목록이 보일 때) 첫 줄이 Tab 을 받는다.
+  const tabStop = Math.max(
+    rows.findIndex((row) => row.id === reader.choice),
+    0,
+  );
   function handleBackdrop(event: MouseEvent<HTMLDialogElement>) {
     if (event.target === dialogRef.current) close();
   }
@@ -78,8 +94,14 @@ export function VoiceSheet({
             닫기
           </button>
         </div>
-        <div className="vs__list" role="radiogroup" aria-labelledby={titleId} ref={listRef}>
-          {rows.map((row) => {
+        <div
+          className="vs__list"
+          role="radiogroup"
+          aria-labelledby={titleId}
+          ref={listRef}
+          onKeyDown={handleListKeyDown}
+        >
+          {rows.map((row, index) => {
             const isChecked = reader.choice === row.id;
             const isSampling = reader.sampling === row.id;
             return (
@@ -89,6 +111,7 @@ export function VoiceSheet({
                 className="vs__row"
                 role="radio"
                 aria-checked={isChecked}
+                tabIndex={index === tabStop ? 0 : -1}
                 onClick={() => reader.selectVoice(row.id)}
               >
                 <span className="vs__bd">

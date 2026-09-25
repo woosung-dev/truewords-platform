@@ -12,8 +12,9 @@ export type AiVoiceId = TtsVoice["id"];
 export const DEVICE_VOICE = "device" as const;
 export type VoiceChoice = AiVoiceId | typeof DEVICE_VOICE;
 
-/** AI 목소리를 쓰지 못하는 이유. null 이면 쓸 수 있다. */
-export type AiUnavailable = "loading" | "login" | "disabled" | "quota" | "error";
+/** AI 목소리를 쓰지 못하는 이유. null 이면 쓸 수 있다.
+ * daily = 내 최근 24시간 한도, busy = 요청 빈도 제한(짧게 재시도한 뒤에도). busy·error 는 일시적이다. */
+export type AiUnavailable = "loading" | "login" | "disabled" | "quota" | "daily" | "busy" | "error";
 
 export class VoiceAudioError extends Error {
   constructor(readonly reason: Exclude<AiUnavailable, "loading">) {
@@ -54,21 +55,48 @@ async function errorCode(response: Response): Promise<string | null> {
   return null;
 }
 
+/** 요청 빈도 제한(429 RATE_LIMIT_EXCEEDED)에 걸리면 이만큼 기다렸다가 다시 받는다. 모임에서 한 IP 를 함께 쓸 때 잠깐 걸린다. */
+export const RATE_LIMIT_RETRY_MS = [600, 1500] as const;
+
+function wait(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        reject(signal.reason);
+      },
+      { once: true },
+    );
+  });
+}
+
 /** 단락 mp3 를 받는다. 실패는 VoiceAudioError 로 이유를 구분한다 — 호출자가 브라우저 음성으로 돌아간다. */
 export async function fetchVoiceAudio(url: string, signal?: AbortSignal): Promise<Blob> {
-  let response: Response;
-  try {
-    response = await hoondokFetch(url, { credentials: "include", signal });
-  } catch (error) {
-    if (signal?.aborted) throw error;
+  for (let attempt = 0; ; attempt += 1) {
+    let response: Response;
+    try {
+      response = await hoondokFetch(url, { credentials: "include", signal });
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      throw new VoiceAudioError("error");
+    }
+    if (response.ok) return response.blob();
+    if (response.status === 401) throw new VoiceAudioError("login");
+    const code = await errorCode(response);
+    if (code === "RATE_LIMIT_EXCEEDED") {
+      // 일시적이다 — 잠깐 기다렸다 다시 받는다. 그래도 안 되면 이번만 기기 음성으로 읽는다(고정하지 않는다).
+      const delay = RATE_LIMIT_RETRY_MS[attempt];
+      if (delay === undefined) throw new VoiceAudioError("busy");
+      await wait(delay, signal);
+      continue;
+    }
+    if (code === "TTS_QUOTA_EXCEEDED") throw new VoiceAudioError("quota");
+    if (code === "TTS_USER_LIMIT_EXCEEDED") throw new VoiceAudioError("daily");
+    if (code === "TTS_DISABLED") throw new VoiceAudioError("disabled");
     throw new VoiceAudioError("error");
   }
-  if (response.ok) return response.blob();
-  if (response.status === 401) throw new VoiceAudioError("login");
-  const code = await errorCode(response);
-  if (code === "TTS_QUOTA_EXCEEDED") throw new VoiceAudioError("quota");
-  if (code === "TTS_DISABLED") throw new VoiceAudioError("disabled");
-  throw new VoiceAudioError("error");
 }
 
 /** 목소리 견본(정적 파일, 5초). 줄을 누르면 4초만 들려준다. */

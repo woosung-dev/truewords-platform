@@ -207,6 +207,34 @@ describe("낭독 목소리 시트", () => {
     expect(JSON.parse(localStorage.getItem(VOICE_PREFS_KEY) ?? "{}")).toEqual({ voice: "iapetus", rate: 0.8 });
   });
 
+  it("라디오 그룹은 Tab 을 한 줄에만 두고 방향키로 이웃 줄을 고른다(끝에서 돈다)", async () => {
+    show();
+    const { dialog } = await openSheet();
+    vi.useFakeTimers();
+    const radio = (name: RegExp) => within(dialog).getByRole("radio", { name });
+    expect(document.activeElement).toBe(radio(/차분한 여성/));
+    expect(
+      within(dialog)
+        .getAllByRole("radio")
+        .map((el) => el.tabIndex),
+    ).toEqual([0, -1, -1, -1]);
+
+    fireEvent.keyDown(radio(/차분한 여성/), { key: "ArrowDown" });
+    expect(document.activeElement).toBe(radio(/맑은 여성/));
+    expect(radio(/맑은 여성/)).toHaveAttribute("aria-checked", "true");
+    expect(
+      within(dialog)
+        .getAllByRole("radio")
+        .map((el) => el.tabIndex),
+    ).toEqual([-1, 0, -1, -1]);
+    expect(played.at(-1)?.src).toMatch(/aoede\.mp3$/); // 고르면 견본
+
+    fireEvent.keyDown(radio(/맑은 여성/), { key: "ArrowUp" });
+    fireEvent.keyDown(radio(/차분한 여성/), { key: "ArrowUp" });
+    expect(document.activeElement).toBe(radio(/또렷한 남성/));
+    expect(radio(/또렷한 남성/)).toHaveAttribute("aria-checked", "true");
+  });
+
   it("localStorage 가 막혀도 선택은 이번 방문 동안 유지된다", async () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new DOMException("blocked", "SecurityError");
@@ -327,7 +355,7 @@ describe("브라우저 음성 대체", () => {
     ).toBeInTheDocument();
   });
 
-  it("재생 중 상한(429)에 걸리면 그 단락부터 기기 음성으로 이어 읽는다", async () => {
+  it("재생 중 상한(429)에 걸리면 그 단락에 기기 음성을 멈춰 두고, 이어 듣기를 누르면 거기서 읽는다", async () => {
     installSpeech();
     vi.mocked(fetchVoiceAudio).mockImplementation(async (url: string) => {
       if (url.includes("/c1?")) throw new VoiceAudioError("quota");
@@ -339,9 +367,42 @@ describe("브라우저 음성 대체", () => {
     act(() => {
       mp3Plays()[0].element.dispatchEvent(new Event("ended"));
     });
-    await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("device:playing:1"));
-    expect(spoken.map((item) => item.text)).toEqual(["둘째 단락"]);
+    // 받기가 끝난 뒤(제스처 밖)라 바로 말하지 않는다 — iOS 가 막을 수 있다.
+    await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("device:paused:1"));
+    expect(spoken).toEqual([]);
+    expect(screen.getByText(/이어 듣기를 눌러 주세요/)).toHaveTextContent(
+      "이번 달 AI 낭독 한도에 도달해 기기 음성으로 읽어요. 이어 듣기를 눌러 주세요.",
+    );
     expect(screen.getByRole("button", { name: "낭독 목소리 기기 음성, 바꾸기" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "이어 듣기" }));
+    expect(screen.getByTestId("state")).toHaveTextContent("device:playing:1");
+    expect(spoken.map((item) => item.text)).toEqual(["둘째 단락"]);
+    expect(screen.queryByText(/이어 듣기를 눌러 주세요/)).toBeNull();
+  });
+
+  it("일시적 실패(요청 빈도)는 기기 음성으로 읽는 동안만이고, 다 읽고 나면 다음 재생은 AI 로 다시 시도한다", async () => {
+    installSpeech();
+    let failOnce = true;
+    vi.mocked(fetchVoiceAudio).mockImplementation(async (url: string) => {
+      if (failOnce) {
+        failOnce = false;
+        throw new VoiceAudioError("busy");
+      }
+      return new Blob([url]);
+    });
+    show();
+    await clickPlay();
+    await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("device:paused:0"));
+    expect(screen.getByText(/이어 듣기를 눌러 주세요/)).toHaveTextContent("요청이 많아 잠시 기기 음성으로 읽어요.");
+    fireEvent.click(screen.getByRole("button", { name: "이어 듣기" }));
+    // 세 단락을 기기 음성으로 끝까지 읽는다.
+    for (let i = 0; i < 3; i += 1) act(() => spoken[i].onend?.());
+    await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent(/^ai:/));
+
+    await clickPlay();
+    await waitFor(() => expect(mp3Plays()).toHaveLength(1));
+    expect(screen.getByTestId("state")).toHaveTextContent("ai:playing:0");
   });
 
   it("목록 API 가 실패하고 기기 음성도 없으면 지원하지 않음 안내만 보인다", async () => {

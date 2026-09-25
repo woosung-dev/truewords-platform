@@ -2,6 +2,8 @@
 
 // PLAN-HD-011 듣기 통합. AI 목소리(useVoiceReader)가 기본이고, 못 쓰면 브라우저 음성(useSpeechReader, PLAN-HD-008)이
 // 대체 경로다. 못 쓰는 경우: 목록 API 실패·키 없음(enabled=false)·이번 달 상한·비로그인·재생 중 받기 실패.
+// 재생 중 실패로 바뀔 때는 자동으로 말하지 않고 그 단락에 멈춰 둔다(iOS 제스처 제한) — 사용자가 "이어 듣기" 를 누른다.
+// 일시적 실패(busy·error)는 고정하지 않는다 — 기기 음성으로 읽는 동안만 기기 음성이고, 멈추면 다음 재생은 AI 로 다시 시도한다.
 // 목소리·속도 선택은 기기에 기억한다(voice-prefs). 줄을 누르면 즉시 선택하고, 본문을 듣는 중이 아니면 견본 4초를 들려준다.
 import { useQuery } from "@tanstack/react-query";
 import type { TtsVoice } from "@truewords/api-client-ts/types";
@@ -28,8 +30,11 @@ const NOTICES: Record<AiUnavailable, string | null> = {
   login: "로그인하면 AI 목소리로 들을 수 있어요.",
   disabled: "AI 목소리가 아직 준비되지 않아 기기 음성으로 읽어요.",
   quota: "이번 달 AI 낭독 한도에 도달해 기기 음성으로 읽어요.",
+  daily: "오늘 AI 낭독을 많이 들어 기기 음성으로 읽어요.",
+  busy: "요청이 많아 잠시 기기 음성으로 읽어요.",
   error: "AI 목소리를 불러오지 못해 기기 음성으로 읽어요.",
 };
+const TRANSIENT: ReadonlySet<VoiceFailure> = new Set<VoiceFailure>(["busy", "error"]);
 
 export function useReadAloud(
   paragraphs: SpeechParagraph[],
@@ -44,7 +49,7 @@ export function useReadAloud(
     retry: false,
     staleTime: 5 * 60_000,
   });
-  // 재생 중 받기에 실패한 이유. 목록 API 가 멀쩡해도 이 방문 동안은 기기 음성으로 읽는다.
+  // 재생 중 받기에 실패한 이유. 한도·로그인 등은 이 방문 동안 기기 음성으로 읽고, 일시적 실패는 기기 음성으로 읽는 동안만이다.
   const [failure, setFailure] = useState<VoiceFailure | null>(null);
 
   const speech = useSpeechReader(paragraphs, resetKey, prefs.rate);
@@ -55,18 +60,20 @@ export function useReadAloud(
 
   const onFailure = useCallback((reason: VoiceFailure, index: number) => {
     setFailure(reason);
-    // 끊긴 단락부터 기기 음성으로 이어 읽는다. 기기 음성도 없으면 멈춘 채 안내만 남는다.
-    if (speechRef.current.isSupported) speechRef.current.play(index);
+    // 끊긴 단락에 기기 음성을 멈춘 채 준비해 둔다 — 받기가 끝난 뒤(제스처 밖)라 바로 말하면 iOS 가 막을 수 있다.
+    // 기기 음성도 없으면 멈춘 채 안내만 남는다.
+    if (speechRef.current.isSupported) speechRef.current.cue(index);
   }, []);
   const voice = useVoiceReader({ count: paragraphs.length, urlFor, resetKey, rate: prefs.rate, onFailure });
 
+  const isSpeechBusy = speech.status === "playing" || speech.status === "paused";
   let unavailable: AiUnavailable | null = null;
   if (voicesQuery.isPending || identity.isLoading) unavailable = "loading";
   else if (voicesQuery.isError || !voicesQuery.data) unavailable = "error";
   else if (!voicesQuery.data.enabled) unavailable = "disabled";
   else if (voicesQuery.data.limit_reached) unavailable = "quota";
   else if (!identity.user) unavailable = "login";
-  if (failure) unavailable = failure;
+  if (failure && (!TRANSIENT.has(failure) || isSpeechBusy)) unavailable = failure;
   const isAi = unavailable === null;
 
   const aiVoices: TtsVoice[] = voicesQuery.data?.voices ?? [];
@@ -74,7 +81,6 @@ export function useReadAloud(
     prefs.voice && prefs.voice !== DEVICE_VOICE ? prefs.voice : (voicesQuery.data?.default_voice ?? FALLBACK_VOICE);
   // 지금 소리를 내고 있는 쪽이 모드를 정한다 — 확인 중(loading)에 기기 음성으로 시작했다가 AI 가 켜져도
   // 읽던 소리가 화면 상태와 어긋나지 않게. 둘 다 쉬고 있으면 AI 를 쓸 수 있을 때 AI 다.
-  const isSpeechBusy = speech.status === "playing" || speech.status === "paused";
   const isVoiceBusy = voice.status === "playing" || voice.status === "paused";
   const mode: "ai" | "device" = isSpeechBusy ? "device" : isVoiceBusy || isAi ? "ai" : "device";
   const active = mode === "ai" ? voice : speech;
@@ -176,6 +182,8 @@ export function useReadAloud(
     /** 시트에 보일 AI 목소리. 못 쓰면 빈 배열이고 시트는 "기기 음성" 한 줄만 보인다. */
     voices: isAi ? aiVoices : [],
     notice: unavailable ? NOTICES[unavailable] : null,
+    /** AI 가 끊겨 기기 음성을 멈춘 채 준비해 둔 동안 듣기 바에 보일 한 줄. */
+    resumeHint: speech.isCued && unavailable ? `${NOTICES[unavailable]} 이어 듣기를 눌러 주세요.` : null,
     sampling,
     play,
     pause,

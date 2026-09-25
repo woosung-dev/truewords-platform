@@ -107,6 +107,11 @@ export function TtsBar({
           <ChevronUp size={16} aria-hidden="true" />
         </button>
       </div>
+      {reader.resumeHint && (
+        <p className="notice tts-note" role="status">
+          {reader.resumeHint}
+        </p>
+      )}
       {reader.mode === "device" && reader.hasKoreanVoice === false && (
         <p className="notice tts-note">기기에 한국어 음성이 없어 읽기 품질이 낮을 수 있어요.</p>
       )}
