@@ -85,6 +85,12 @@
 }
 
 :root {
+  /* 폰트 패밀리 — layout.tsx 의 Fontsource import 가 @font-face 를 등록한다.
+     대체 폰트는 이전 Google 폰트 로더의 Fallback(Arial·Times New Roman)과 같게 두고 generic(serif)은 넣지 않는다 —
+     serif 를 넣으면 Cormorant 에 없는 한글이 시스템 명조로 바뀌어 font-display 제목 모양이 달라진다. */
+  --font-inter: "Inter Variable", Arial;
+  --font-reading: "Noto Serif KR", "Times New Roman";
+  --font-display: "Cormorant Garamond", "Times New Roman";
   /* TrueWords Light Mode (Plan A.2) — Paper × Scholar × AI */
   /* Background: warm paper #FFFBEB */
   --background: oklch(0.988 0.024 95);

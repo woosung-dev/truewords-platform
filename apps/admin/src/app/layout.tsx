@@ -1,28 +1,18 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Inter, Noto_Serif_KR } from "next/font/google";
+// 폰트는 Fontsource 로 자체 호스팅한다 — Next 의 Google 폰트 로더는 빌드·dev 중 Google Fonts 를 받아
+// Turbopack 버그(vercel/next.js#99114)로 무작위 실패한다. CSS 변수는 globals.css :root 에서 정의.
+import "@fontsource-variable/inter";
+// 묵상/본문 페이지 — 가독성 높은 한국어 세리프
+import "@fontsource/noto-serif-kr/400.css";
+import "@fontsource/noto-serif-kr/500.css";
+import "@fontsource/noto-serif-kr/700.css";
+// 디스플레이 헤딩 — 학술적 권위
+import "@fontsource/cormorant-garamond/400.css";
+import "@fontsource/cormorant-garamond/500.css";
+import "@fontsource/cormorant-garamond/600.css";
+import "@fontsource/cormorant-garamond/700.css";
 import "./globals.css";
 import Providers from "@/components/providers";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-// 묵상/본문 페이지 — 가독성 높은 한국어 세리프
-const notoSerifKR = Noto_Serif_KR({
-  variable: "--font-reading",
-  weight: ["400", "500", "700"],
-  subsets: ["latin"],
-  display: "swap",
-});
-
-// 디스플레이 헤딩 — 학술적 권위
-const cormorant = Cormorant_Garamond({
-  variable: "--font-display",
-  weight: ["400", "500", "600", "700"],
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "TrueWords Admin",
@@ -35,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={`${inter.variable} ${notoSerifKR.variable} ${cormorant.variable} h-full antialiased`}>
+    <html lang="ko" className="h-full antialiased">
       <head>
         <link
           rel="stylesheet"
