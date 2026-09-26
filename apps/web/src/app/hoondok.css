@@ -1175,7 +1175,7 @@
   }
 }
 
-/* Pretendard self-host (PLAN-HD-001 Phase 3 C, DES-PWA-003 §1.2). 루트 layout 의 CDN 'Pretendard Variable' 과
+/* Pretendard self-host (PLAN-HD-001 Phase 3 C, DES-PWA-003 §1.2). 다른 Pretendard 와
    패밀리명을 분리해 로드 순서와 무관하게 이 파일이 쓰인다. 파일명의 버전은 next.config headers() 의 immutable 캐시와 짝이다. */
 @font-face {
   font-family: "Pretendard Hoondok";
