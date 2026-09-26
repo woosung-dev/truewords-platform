@@ -615,6 +615,8 @@ GET → `[{id, name, member_count, created_at}]`(최신순) — 모임원 이름
 
 ### API-HD-046 `GET /hoondok/tts/readings/{reading_id}/{paragraph}?voice=`
 
+> 2026-09-26 부터 웹 화면에서 부르지 않는다(오늘 훈독 듣기 바 제거, PLAN-HD-011 결정 2). 계약은 유지한다.
+
 오늘 훈독 말씀의 단락(본문을 빈 줄로 나눈 순서, 0부터) mp3. `reading_id` 는 `API-HD-001`·`API-HD-017` 응답의 `reading.id` — 편성(`daily_readings`, 철회·미래 날짜 제외) 또는 **본인** 정성 말씀(`jeongseong_readings`, 진행 중 기간의 오늘 말씀만, `scope_jeongseong` 허용 저작물만).
 
 045·046 공통:
