@@ -31,19 +31,6 @@ export function chunkAudioUrl(chunkId: string, voice: AiVoiceId): string {
   return `${BASE}/hoondok/tts/chunks/${encodeURIComponent(chunkId)}?voice=${voice}`;
 }
 
-/** 오늘 훈독 말씀의 단락 mp3 경로. 단락 번호는 본문을 빈 줄로 나눈 순서(0부터, splitReadingParagraphs). */
-export function readingAudioUrl(readingId: string, paragraph: number, voice: AiVoiceId): string {
-  return `${BASE}/hoondok/tts/readings/${encodeURIComponent(readingId)}/${paragraph}?voice=${voice}`;
-}
-
-/** 서버 apps/api tts_service.split_paragraphs 와 같은 규칙 — 빈 줄로 나누고 빈 조각은 버린다. */
-export function splitReadingParagraphs(body: string): string[] {
-  return body
-    .split(/\n\s*\n/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-}
-
 async function errorCode(response: Response): Promise<string | null> {
   try {
     const body: unknown = await response.json();
