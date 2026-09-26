@@ -22,6 +22,10 @@ TTS_ENDPOINT = "https://texttospeech.googleapis.com/v1/text:synthesize"
 LANGUAGE_CODE = "ko-KR"
 # 5,000바이트 ÷ 3 ≈ 1,666자. 문장 경계를 찾을 여유를 두고 1,400자로 자른다.
 MAX_CHARS_PER_REQUEST = 1400
+# Google 은 요청 전체와 별개로 "문장 하나" 길이도 거절한다(400 "sentences that are too long").
+# 2026-09-26 운영 실측: 한글 300자(716바이트) 통과, 340자(810바이트) 거절. 원리강론 830단락 중 5개가 걸렸다.
+# 이보다 긴 문장은 쉼표에서 나눠 따로 요청한다 — 한글 1자 3바이트 기준 600바이트 이하로 여유를 둔다.
+MAX_CHARS_PER_SENTENCE = 200
 TIMEOUT_SECONDS = 20.0
 _SENTENCE_END = re.compile(r"(?<=[.?!。])\s+")
 _CLAUSE_END = re.compile(r"(?<=[,，])\s+")
@@ -53,18 +57,29 @@ def _pack(parts: list[str], limit: int) -> list[str]:
     return pieces
 
 
-def split_for_synthesis(text: str, limit: int = MAX_CHARS_PER_REQUEST) -> list[str]:
-    """문장 → 쉼표 → 글자 수 순서로 나눠 요청마다 limit 자 이하가 되게 한다. 이어 붙이면 원문과 같다(공백 1칸 기준)."""
-    if len(text) <= limit:
+def split_for_synthesis(
+    text: str, limit: int = MAX_CHARS_PER_REQUEST, sentence_limit: int = MAX_CHARS_PER_SENTENCE
+) -> list[str]:
+    """요청마다 limit 자 이하, 문장마다 sentence_limit 자 이하가 되게 나눈다. 이어 붙이면 원문과 같다(공백 1칸 기준).
+
+    짧은 문장은 limit 안에서 한 요청으로 묶는다. 긴 문장은 쉼표 → 글자 수 순서로 나눠 각각 따로 요청한다 —
+    같은 요청에 이어 담으면 Google 이 다시 한 문장으로 본다.
+    """
+    sentence_limit = min(sentence_limit, limit)
+    if len(text) <= sentence_limit:
         return [text]
     result: list[str] = []
-    for piece in _pack(_SENTENCE_END.split(text), limit):
-        if len(piece) <= limit:
-            result.append(piece)
+    short: list[str] = []
+    for sentence in _SENTENCE_END.split(text):
+        if len(sentence) <= sentence_limit:
+            short.append(sentence)
             continue
-        for clause in _pack(_CLAUSE_END.split(piece), limit):
+        result.extend(_pack(short, limit))
+        short = []
+        for clause in _pack(_CLAUSE_END.split(sentence), sentence_limit):
             # 쉼표도 없는 긴 문장은 글자 수로 자른다(드묾).
-            result.extend(clause[i : i + limit] for i in range(0, len(clause), limit))
+            result.extend(clause[i : i + sentence_limit] for i in range(0, len(clause), sentence_limit))
+    result.extend(_pack(short, limit))
     return result
 
 

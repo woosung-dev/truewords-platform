@@ -36,6 +36,8 @@ from app.modules.hoondok.repository import JeongseongRepository
 from app.modules.hoondok.tts_google import (
     TTS_ENDPOINT,
     TtsUpstreamError,
+    MAX_CHARS_PER_REQUEST,
+    MAX_CHARS_PER_SENTENCE,
     split_for_synthesis,
     synthesize_mp3,
 )
@@ -440,6 +442,17 @@ def test_split_for_synthesis_keeps_requests_under_limit():
     long_word = "나" * 250
     assert [len(p) for p in split_for_synthesis(long_word, limit=100)] == [100, 100, 50]
     assert split_for_synthesis("짧다.") == ["짧다."]
+
+
+def test_split_for_synthesis_breaks_long_sentence_even_when_paragraph_is_short():
+    # 운영 재현: 단락은 1,400자 미만이지만 한 문장이 433자라 Google 이 400 "sentences that are too long" 을 냈다.
+    long_sentence = "그러나 그들이 타락됨으로 인하여 이것이 사탄의 침범을 당하였기 때문에, " * 12 + "세울 수 없게 되었다."
+    text = f"짧은 앞 문장이다. {long_sentence} 짧은 뒤 문장이다."
+    assert len(text) < MAX_CHARS_PER_REQUEST
+    pieces = split_for_synthesis(text)
+    assert len(pieces) > 1
+    assert all(len(p) <= MAX_CHARS_PER_SENTENCE for p in pieces if p not in ("짧은 앞 문장이다.", "짧은 뒤 문장이다."))
+    assert " ".join(pieces) == text
 
 
 # --- 라우터 -----------------------------------------------------------------------
