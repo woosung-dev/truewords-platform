@@ -166,8 +166,8 @@ test("단락 형광펜은 새로고침 뒤에도 남고 북마크는 서고에 �
   await page.goto(wordsPath);
   await page.getByRole("button", { name: "단락 1 표시하기" }).click();
   const sheet = page.getByRole("dialog");
-  await sheet.getByRole("button", { name: "연두 형광펜" }).click();
-  await expect(sheet.getByRole("button", { name: "연두 형광펜" })).toHaveAttribute("aria-pressed", "true");
+  await sheet.getByRole("button", { name: "초록 형광펜" }).click();
+  await expect(sheet.getByRole("button", { name: "초록 형광펜" })).toHaveAttribute("aria-pressed", "true");
   await sheet.getByRole("button", { name: "닫기" }).click();
   await page.reload();
   await expect(page.locator("mark.hl-2")).toContainText("1번째 합성 문장");

@@ -7,6 +7,8 @@ import { HoondokButton, MonthCalendar } from "@/components/hoondok";
 import { isHoondokCardsEnabled, isHoondokPreviewEnabled } from "@/features/hoondok/flag";
 import { JeongseongDayBadge, JeongseongProgress } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
+import { DeviceRecordsEntry } from "@/features/hoondok/records/components/device-records";
+import { RecordsGardenSection } from "@/features/hoondok/records/components/records-section";
 import { useMonthHistory } from "@/features/hoondok/use-history";
 import { useJeongseong } from "@/features/hoondok/use-jeongseong";
 import { useSummary } from "@/features/hoondok/use-missions";
@@ -17,6 +19,7 @@ import { useCurrentUser } from "@/features/identity/use-current-user";
 // 읽기 화면이므로 비로그인을 자동으로 내쫓지 않고(gate.ts 원칙) 안내 카드만 보여준다.
 // "함께 읽는 사람들" 섹션은 프로토타입과 같은 자리(정성 다음)에 두되, 016 이 프리뷰 셸이라 진입 링크만이고 플래그가 꺼지면 그리지 않는다.
 // 정성 진행은 "N일차"로만 적고 빠진 날 수는 쓰지 않는다 (DEC-PWA-023).
+// '나의 기록'(C1)은 자기 요청·오류를 따로 가진다 — 표시 목록이 실패해도 통계·달력은 그대로 보인다.
 const BETA_NOTICE = "독립 운영 베타 · 가정연합 공식 앱이 아닙니다";
 const JEONGSEONG_HREF = "/hoondok?sheet=jeongseong";
 const FAMILY_HREF = "/hoondok/family";
@@ -143,7 +146,7 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
               <Sprout size={28} />
             </span>
             <h2 className="empty__title">로그인하면 훈독 기록과 정성을 볼 수 있어요</h2>
-            <p className="empty__body">연속일 · 월 달력 · 진행 중인 정성이 여기에 모여요.</p>
+            <p className="empty__body">연속일 · 월 달력 · 진행 중인 정성 · 형광펜과 노트가 여기에 모여요.</p>
             {/* 이 화면의 유일한 행동이라 주 버튼이다 (DES §4 한 화면에 primary 하나) */}
             <p className="gd-cta">
               <Link className="btn btn-primary" href={onboardingHref("/hoondok/garden")}>
@@ -152,6 +155,7 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
             </p>
           </div>
         </div>
+        <DeviceRecordsEntry isGuest />
         <GardenNotice />
       </section>
     );
@@ -221,6 +225,10 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
           <JeongseongSection period={jeongseong.data ?? null} />
         </>
       )}
+
+      <RecordsGardenSection />
+
+      <DeviceRecordsEntry />
 
       <BookmarksEntrySection />
 

@@ -15,7 +15,8 @@ import { ReaderSheet } from "./reader-sheet";
 
 export const HIGHLIGHT_COLORS = [1, 2, 3] as const;
 export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
-const COLOR_LABEL: Record<HighlightColor, string> = { 1: "노랑", 2: "연두", 3: "하늘" };
+/** 색 이름. 색만으로 구분하지 않도록 버튼·나의 기록 칩이 함께 쓴다 (디자인 시스템 §1 형광펜 3색) */
+export const HIGHLIGHT_COLOR_LABEL: Record<HighlightColor, string> = { 1: "노랑", 2: "초록", 3: "분홍" };
 /** 노트만 남길 때 함께 만드는 형광펜 색 */
 const NOTE_DEFAULT_COLOR: HighlightColor = 1;
 
@@ -119,7 +120,7 @@ export function PassageSheet({
               type="button"
               className={`rd-hl__sw rd-hl__sw--${color}`}
               aria-pressed={activeColor === color}
-              aria-label={`${COLOR_LABEL[color]} 형광펜`}
+              aria-label={`${HIGHLIGHT_COLOR_LABEL[color]} 형광펜`}
               onClick={() => toggleColor(color)}
             >
               {activeColor === color ? "선택됨" : ""}
