@@ -1077,7 +1077,7 @@ export const getJeongseongTodayHoondokMeJeongseongTodayGet = <ThrowOnError exten
 /**
  * Get Marks
  *
- * API-HD-026 내 표시 목록(최신순). 본인 것만 나온다. 401 미인증.
+ * API-HD-026 내 표시 목록(최신순). 본인 것만 나온다. `excerpt=true` 면 원문 발췌를 붙인다. 401 미인증.
  */
 export const getMarksHoondokMeMarksGet = <ThrowOnError extends boolean = false>(options?: Options<GetMarksHoondokMeMarksGetData, ThrowOnError>): RequestResult<GetMarksHoondokMeMarksGetResponses, GetMarksHoondokMeMarksGetErrors, ThrowOnError> => (options?.client ?? client).get<GetMarksHoondokMeMarksGetResponses, GetMarksHoondokMeMarksGetErrors, ThrowOnError>({ url: '/hoondok/me/marks', ...options });
 

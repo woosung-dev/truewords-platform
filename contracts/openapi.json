@@ -3652,6 +3652,17 @@
             ],
             "title": "Color"
           },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
+          },
           "kind": {
             "enum": [
               "bookmark",
@@ -11010,7 +11021,7 @@
     },
     "/hoondok/me/marks": {
       "get": {
-        "description": "API-HD-026 내 표시 목록(최신순). 본인 것만 나온다. 401 미인증.",
+        "description": "API-HD-026 내 표시 목록(최신순). 본인 것만 나온다. `excerpt=true` 면 원문 발췌를 붙인다. 401 미인증.",
         "operationId": "get_marks_hoondok_me_marks_get",
         "parameters": [
           {
@@ -11057,6 +11068,16 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "excerpt",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Excerpt",
+              "type": "boolean"
             }
           }
         ],

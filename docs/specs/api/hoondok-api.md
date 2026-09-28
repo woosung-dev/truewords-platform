@@ -480,6 +480,11 @@ Qdrant 원본 그대로이고 AI 설명·인용은 계속 `text` 를 쓴다. `di
 - `GET /hoondok/me/marks?volume=&kind=&limit=` — 최신순, 본인 것만. 항목은
   `{ chunk_id, chunk_index, volume, kind, color, note, updated_at, work_title, label }`.
   `limit` 은 1~200이고 기본 200이다 — 표시가 쌓여도 한 요청이 읽는 행 수를 묶어 둔다.
+- `GET /hoondok/me/marks?excerpt=true` — 항목마다 `excerpt: string | null` 이 **추가만** 된다(하위 호환,
+  파라미터가 없으면 키도 없고 Qdrant 도 부르지 않는다). 값은 원문 뷰(`API-HD-016`)가 그 단락에 보이는
+  `display_text` 앞 300자다(페이지 첫 청크는 앞 청크 겹침을 자르지 않는 같은 규칙). 원문(`scope_full_text`)이
+  막힌 권·청크를 못 찾은 경우·Qdrant 실패는 `null` 이고 목록은 200이다. 저장 시점 스냅샷을 두지 않는다 —
+  권리를 거두면 발췌도 함께 사라져야 한다. Qdrant 는 청크 묶음 조회 1회 + 앞 청크가 필요한 권마다 1회만 부른다.
 - `PUT /hoondok/me/marks/{chunk_id}` body `{ volume, chunk_index, kind, color, note }`
   — `(user_id, chunk_id, kind)` upsert. `kind` 는 `bookmark`·`highlight`. `highlight` 는 `color`(1~3)가
   없으면 422, `bookmark` 는 넘어온 `color` 를 버린다. `note` 는 2000자까지이며 노트 탭은 `note` 가 있는

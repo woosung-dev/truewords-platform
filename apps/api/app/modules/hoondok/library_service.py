@@ -1,10 +1,13 @@
 """말씀 서고 3계층·읽기 기록 (API-HD-023~028). 권리 게이트는 API-HD-016 과 같은 기준을 쓴다."""
 
+import logging
 import uuid
 from collections import Counter
 
 from fastapi import HTTPException
 
+from app.core.config import settings
+from app.modules.hoondok.display_text import to_display_text
 from app.modules.hoondok.library_repository import LibraryRepository
 from app.modules.hoondok.library_schemas import (
     BulkRightsInput,
@@ -22,9 +25,27 @@ from app.modules.hoondok.library_schemas import (
     SeriesVolume,
 )
 from app.modules.hoondok.library_series import label_sort_key, series_title, volume_label
-from app.modules.hoondok.models import ContentRight
+from app.modules.hoondok.models import ContentRight, PassageMark
+from app.modules.qdrant import RawQdrantClient
+from app.modules.qdrant.filters import build_filter, field_match, field_match_any
+from app.modules.search.hybrid import SearchResult, point_to_search_result
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_GRADE = "R"
+# 원문 뷰(API-HD-016)의 페이지 크기. journey_service.PAGE_SIZE 와 같아야 한다 — 서로 import 하면 순환이라 따로 둔다.
+WORDS_PAGE_SIZE = 20
+EXCERPT_CHARS = 300
+
+
+def _point_id(chunk_id: str) -> str | int | None:
+    """Qdrant 포인트 ID(UUID 또는 unsigned integer). 둘 다 아니면 None — 요청에 넣으면 묶음 전체가 거절된다."""
+    try:
+        return str(uuid.UUID(chunk_id))
+    except ValueError:
+        if chunk_id.isdecimal() and 0 <= int(chunk_id) < 2**64:
+            return int(chunk_id)
+        return None
 
 
 def majority_grade(grades: list[str]) -> str:
@@ -38,8 +59,10 @@ def majority_grade(grades: list[str]) -> str:
 
 
 class LibraryService:
-    def __init__(self, repo: LibraryRepository) -> None:
+    def __init__(self, repo: LibraryRepository, client: RawQdrantClient) -> None:
         self.repo = repo
+        # 표시 목록의 발췌(API-HD-026 `excerpt=true`)만 Qdrant 를 읽는다.
+        self.client = client
 
     # --- 권리 게이트 ---------------------------------------------------------
 
@@ -166,27 +189,105 @@ class LibraryService:
     # --- API-HD-026 단락 표시 ------------------------------------------------
 
     async def list_marks(
-        self, user_id: uuid.UUID, volume: str | None, kind: str | None, limit: int = 200
+        self,
+        user_id: uuid.UUID,
+        volume: str | None,
+        kind: str | None,
+        limit: int = 200,
+        excerpt: bool = False,
     ) -> MarksResponse:
         rows = await self.repo.list_marks(user_id, volume, kind, limit)
         rights = await self._rights_by_volume()
+        # 요청했을 때만 Qdrant 를 부른다 — 원문 화면의 기존 호출은 DB 만 읽는다.
+        excerpts = await self._excerpts(rows, rights) if excerpt else None
         items = []
-        for row in rows:
+        for i, row in enumerate(rows):
             work_title, series, label = self._label_of(row.volume, rights)
-            items.append(
-                MarkItem(
-                    chunk_id=row.chunk_id,
-                    chunk_index=row.chunk_index,
-                    volume=row.volume,
-                    kind=row.kind,  # type: ignore[arg-type]
-                    color=row.color,
-                    note=row.note,
-                    updated_at=row.updated_at,
-                    work_title=work_title,
-                    label=label,
-                )
+            item = MarkItem(
+                chunk_id=row.chunk_id,
+                chunk_index=row.chunk_index,
+                volume=row.volume,
+                kind=row.kind,  # type: ignore[arg-type]
+                color=row.color,
+                note=row.note,
+                updated_at=row.updated_at,
+                work_title=work_title,
+                label=label,
             )
+            if excerpts is not None:
+                # 요청했을 때만 필드가 set 된다 — 라우트의 exclude_unset 이 기존 응답 모양을 지킨다.
+                item.excerpt = excerpts[i]
+            items.append(item)
         return MarksResponse(items=items)
+
+    async def _excerpts(
+        self, rows: list[PassageMark], rights: dict[str, ContentRight]
+    ) -> list[str | None]:
+        """행마다 원문 뷰(API-HD-016)가 그 단락에 보이는 display_text 앞 300자. 못 채우면 None.
+
+        원문(full_text)이 열린 권만 채운다 — 저장 시점 스냅샷을 두지 않아 권리를 거두면 발췌도 사라진다.
+        Qdrant 는 청크 묶음 retrieve 1회 + 앞 청크가 필요한 권마다 scroll 1회만 부른다(행마다 부르지 않는다).
+        겹침 자르기는 chunk_display_text 와 같다 — 페이지 첫 청크는 앞 청크 없이, 나머지는 바로 앞 청크 기준.
+        Qdrant 가 실패하면 목록은 그대로 내고 발췌만 모두 비운다.
+        """
+        excerpts: list[str | None] = [None] * len(rows)
+        targets: list[tuple[int, PassageMark, str | int]] = []
+        for i, row in enumerate(rows):
+            right = rights.get(row.volume)
+            if right is None or right.status != "allowed" or not right.scope_full_text:
+                continue
+            point_id = _point_id(row.chunk_id)
+            if point_id is not None:
+                targets.append((i, row, point_id))
+        if not targets:
+            return excerpts
+        try:
+            # 같은 청크의 북마크·형광펜은 한 번만 묻는다.
+            ids = list(dict.fromkeys(point_id for _, _, point_id in targets))
+            records = await self.client.retrieve(settings.collection_name, ids=ids)
+            by_id = {str(record.id): point_to_search_result(record) for record in records}
+            matched: dict[int, SearchResult] = {}
+            for i, row, point_id in targets:
+                found = by_id.get(str(point_id))
+                if (
+                    found is not None
+                    and found.volume == row.volume
+                    and isinstance(found.chunk_index, int)
+                    and found.chunk_index >= 0
+                ):
+                    matched[i] = found
+            wanted: dict[str, set[int]] = {}
+            for found in matched.values():
+                if found.chunk_index % WORDS_PAGE_SIZE:
+                    wanted.setdefault(found.volume, set()).add(found.chunk_index - 1)
+            previous: dict[tuple[str, int], str] = {}
+            for volume, indices in wanted.items():
+                points, _ = await self.client.scroll(
+                    settings.collection_name,
+                    scroll_filter=build_filter(
+                        must=[
+                            field_match("volume", volume),
+                            field_match_any("chunk_index", sorted(indices)),
+                        ]
+                    ),
+                    limit=len(indices),
+                    with_vectors=False,
+                )
+                for point in points:
+                    prev = point_to_search_result(point)
+                    previous[(prev.volume, prev.chunk_index)] = prev.text
+        except Exception as exc:
+            # 예외 메시지에 공급자 URL 이 섞일 수 있어 종류만 남긴다.
+            logger.warning("훈독 표시 발췌 조회 실패 — 발췌 없이 응답한다 (%s)", type(exc).__name__)
+            return excerpts
+        for i, found in matched.items():
+            prev_text = (
+                previous.get((found.volume, found.chunk_index - 1))
+                if found.chunk_index % WORDS_PAGE_SIZE
+                else None
+            )
+            excerpts[i] = to_display_text(prev_text, found.text)[:EXCERPT_CHARS].rstrip()
+        return excerpts
 
     async def save_mark(self, user_id: uuid.UUID, chunk_id: str, data: MarkInput) -> MarkItem:
         right = await self._readable(data.volume)
