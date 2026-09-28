@@ -7,10 +7,16 @@ import { HoondokButton } from "@/components/hoondok";
 import { INSTALL_CARD_BODY } from "@/features/hoondok/install/components/install-card";
 import { inAppBrowser } from "@/features/hoondok/install/platform";
 import { useInstallCard } from "@/features/hoondok/install/use-install-card";
+import { useKstDate } from "@/features/hoondok/use-kst-date";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { formatKoreanTime } from "../format";
 import { type PushPromptPlacement, pushPromptVariant } from "../push-prompt-policy";
-import { readPushPromptDeclines, recordPushPromptDecline, subscribePushPrompt } from "../push-prompt-storage";
+import {
+  readPushPromptDeclines,
+  readPushPromptLastDeclinedOn,
+  recordPushPromptDecline,
+  subscribePushPrompt,
+} from "../push-prompt-storage";
 import { usePushNotifications } from "../use-push-notifications";
 import { LOCK_SCREEN_LEVELS } from "./lock-screen-picker";
 
@@ -44,6 +50,8 @@ function PushPromptBody({ placement, isReadDone = false }: PushPromptProps) {
   const push = usePushNotifications();
   // 서버·hydration 첫 렌더는 null(숨김) — 클라이언트가 저장소를 읽은 뒤에 그린다.
   const declines = useSyncExternalStore(subscribePushPrompt, readPushPromptDeclines, () => null);
+  const lastDeclinedOn = useSyncExternalStore(subscribePushPrompt, readPushPromptLastDeclinedOn, () => null);
+  const today = useKstDate();
   // 홈 기본 설치 카드와 같은 판정 — 홈에 설치 안내가 이미 보이면 iOS 안내를 겹쳐 싣지 않는다.
   const { variant: installVariant } = useInstallCard();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -55,6 +63,7 @@ function PushPromptBody({ placement, isReadDone = false }: PushPromptProps) {
     isReadEnabled: push.prefs.read_enabled,
     support: push.support,
     declines,
+    isDeclinedToday: lastDeclinedOn === today,
     isReadDone,
     isInstallCardVisible: installVariant !== "hidden",
   });

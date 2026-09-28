@@ -40,9 +40,14 @@ import {
   PushPromptCard,
 } from "@/features/hoondok/notifications/components/push-prompt-card";
 import { type PushPromptInput, pushPromptVariant } from "@/features/hoondok/notifications/push-prompt-policy";
-import { readPushPromptDeclines, recordPushPromptDecline } from "@/features/hoondok/notifications/push-prompt-storage";
+import {
+  readPushPromptDeclines,
+  readPushPromptLastDeclinedOn,
+  recordPushPromptDecline,
+} from "@/features/hoondok/notifications/push-prompt-storage";
 import type { NotificationPrefs } from "@/features/hoondok/notifications/types";
 import { PUSH_MESSAGES } from "@/features/hoondok/notifications/use-push-notifications";
+import { formatKstDate } from "@/features/hoondok/today";
 import { identityAPI } from "@/features/identity/api";
 
 const USER = { id: "u1", email: "a@b.c", display_name: "효진" };
@@ -56,6 +61,9 @@ const KAKAO_ANDROID_UA =
   "Mozilla/5.0 (Linux; Android 14; SM-S918N Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/126.0.6478.134 Mobile Safari/537.36;KAKAOTALK 2410800";
 const INSTAGRAM_UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 339.0.3.12.91 (iPhone15,3; iOS 17_5; ko_KR; ko; scale=3.00; 1290x2796; 618023787)";
+/** KST 오늘·어제 (YYYY-MM-DD) — "나중에" 날짜 비교용 */
+const kstToday = () => formatKstDate().iso;
+const kstYesterday = () => formatKstDate(new Date(Date.now() - 86_400_000)).iso;
 const VAPID_KEY = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U";
 const ENDPOINT = "https://push.example/abc";
 
@@ -149,6 +157,7 @@ describe("pushPromptVariant — 노출 정책", () => {
     isReadEnabled: false,
     support: "ready",
     declines: 0,
+    isDeclinedToday: false,
     isReadDone: false,
     isInstallCardVisible: false,
   };
@@ -168,23 +177,33 @@ describe("pushPromptVariant — 노출 정책", () => {
     // 인앱 브라우저는 detectPushSupport 가 unsupported 로 돌려준다 — 위 "미지원" 행이 그 경우다
     ["저장소를 아직 못 읽음(SSR)", { declines: null }],
     ["홈은 오늘 안 읽었으면 나중에 1번에 멈춘다", { declines: 1, isReadDone: false }],
+    [
+      "같은 날 나중에 뒤에는 오늘 읽었어도 다시 묻지 않는다(홈)",
+      { declines: 1, isReadDone: true, isDeclinedToday: true },
+    ],
+    [
+      "같은 날 나중에 뒤에는 오늘 읽었어도 다시 묻지 않는다(훈독 완료 뒤)",
+      { placement: "after-read", declines: 1, isReadDone: true, isDeclinedToday: true },
+    ],
   ])("숨김: %s", (_, patch) => {
     expect(pushPromptVariant({ ...base, ...patch })).toBe("hidden");
   });
 
-  it("홈: 첫 방문(나중에 0)이거나, 오늘 마쳤고(미션 체크 즉시 완료 포함) 나중에 2번 미만이면 두 번째 기회", () => {
+  it("홈: 첫 방문(나중에 0)이거나, 나중에 1번이 오늘이 아니고 오늘 마쳤으면(미션 체크 즉시 완료 포함) 두 번째 기회", () => {
     expect(pushPromptVariant({ ...base, declines: 0, isReadDone: false })).toBe("ready");
     expect(pushPromptVariant({ ...base, declines: 0, isReadDone: true })).toBe("ready");
     expect(pushPromptVariant({ ...base, declines: 1, isReadDone: false })).toBe("hidden");
     expect(pushPromptVariant({ ...base, declines: 1, isReadDone: true })).toBe("ready");
+    expect(pushPromptVariant({ ...base, declines: 1, isReadDone: true, isDeclinedToday: true })).toBe("hidden");
     expect(pushPromptVariant({ ...base, declines: 2, isReadDone: true })).toBe("hidden");
   });
 
-  it("훈독 완료 뒤 자리는 오늘 마쳤고 나중에 2번 미만일 때만", () => {
+  it("훈독 완료 뒤 자리는 오늘 마쳤고, 나중에 0번이거나 1번이 오늘이 아닐 때만", () => {
     const afterRead = { ...base, placement: "after-read" as const };
     expect(pushPromptVariant({ ...afterRead, isReadDone: false })).toBe("hidden");
     expect(pushPromptVariant({ ...afterRead, isReadDone: true, declines: 0 })).toBe("ready");
     expect(pushPromptVariant({ ...afterRead, isReadDone: true, declines: 1 })).toBe("ready");
+    expect(pushPromptVariant({ ...afterRead, isReadDone: true, declines: 1, isDeclinedToday: true })).toBe("hidden");
     expect(pushPromptVariant({ ...afterRead, isReadDone: true, declines: 2 })).toBe("hidden");
     expect(pushPromptVariant({ ...afterRead, isReadDone: true, declines: 5 })).toBe("hidden");
   });
@@ -201,16 +220,32 @@ describe("pushPromptVariant — 노출 정책", () => {
 });
 
 describe("push-prompt-storage — localStorage 한 키", () => {
-  it("나중에 횟수를 {declines} 로 쌓고, 깨진 값은 0 으로 본다", () => {
+  it("나중에 횟수와 KST 날짜를 {declines, lastDeclinedOn} 로 쌓고, 깨진 값은 0·null 로 본다", () => {
     expect(readPushPromptDeclines()).toBe(0);
+    expect(readPushPromptLastDeclinedOn()).toBeNull();
     recordPushPromptDecline();
     recordPushPromptDecline();
-    expect(localStorage.getItem(PROMPT_KEY)).toBe('{"declines":2}');
+    expect(JSON.parse(localStorage.getItem(PROMPT_KEY) ?? "null")).toEqual({ declines: 2, lastDeclinedOn: kstToday() });
     expect(readPushPromptDeclines()).toBe(2);
+    expect(readPushPromptLastDeclinedOn()).toBe(kstToday());
     for (const broken of ["not-json", '{"declines":-1}', '{"declines":1.5}', '"2"', "null"]) {
       localStorage.setItem(PROMPT_KEY, broken);
       expect(readPushPromptDeclines()).toBe(0);
+      expect(readPushPromptLastDeclinedOn()).toBeNull();
     }
+    for (const badDate of ['{"declines":1,"lastDeclinedOn":20260928}', '{"declines":1,"lastDeclinedOn":"어제"}']) {
+      localStorage.setItem(PROMPT_KEY, badDate);
+      expect(readPushPromptDeclines()).toBe(1);
+      expect(readPushPromptLastDeclinedOn()).toBeNull();
+    }
+  });
+
+  it('옛 저장값 {"declines":n} 은 날짜 없음으로 읽고, 다음 나중에서 날짜를 붙여 이어 쌓는다', () => {
+    localStorage.setItem(PROMPT_KEY, '{"declines":1}');
+    expect(readPushPromptDeclines()).toBe(1);
+    expect(readPushPromptLastDeclinedOn()).toBeNull();
+    recordPushPromptDecline();
+    expect(JSON.parse(localStorage.getItem(PROMPT_KEY) ?? "null")).toEqual({ declines: 2, lastDeclinedOn: kstToday() });
   });
 
   it("저장소가 던져도 예외 없이 0 이고 기록도 조용히 넘어간다", () => {
@@ -273,26 +308,36 @@ describe("PushPromptCard — ready", () => {
     expect(notificationsAPI.savePrefs).not.toHaveBeenCalled();
   });
 
-  it("나중에: 홈은 오늘 안 읽었으면 한 번에 멈추고, 오늘 마친 뒤(훈독하기 화면·홈 체크)에 한 번 더 묻는다", async () => {
+  it("나중에: 같은 날에는 어느 자리에서도 다시 묻지 않고, 다음 날 오늘 마친 뒤에 한 번 더 묻는다", async () => {
     const home = render(wrap(<PushPromptCard placement="home" />));
     fireEvent.click(await screen.findByRole("button", { name: "나중에" }));
     expect(screen.queryByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeNull();
-    expect(localStorage.getItem(PROMPT_KEY)).toBe('{"declines":1}');
+    expect(JSON.parse(localStorage.getItem(PROMPT_KEY) ?? "null")).toEqual({ declines: 1, lastDeclinedOn: kstToday() });
     home.unmount();
 
-    // 홈을 다시 열어도 보이지 않는다
-    const againClient = makeClient();
-    const again = render(wrap(<PushPromptCard placement="home" />, againClient));
-    await settle(againClient, { expectPrefs: true });
-    expect(again.container).toBeEmptyDOMElement();
-    again.unmount();
+    // 같은 날 홈을 다시 열어도, 오늘 훈독을 마쳐도 보이지 않는다
+    for (const element of [
+      <PushPromptCard key="home" placement="home" />,
+      <PushPromptCard key="home-done" placement="home" isReadDone />,
+      <PushPromptCard key="after-read" placement="after-read" isReadDone />,
+    ]) {
+      const sameDayClient = makeClient();
+      const sameDay = render(wrap(element, sameDayClient));
+      await settle(sameDayClient, { expectPrefs: true });
+      expect(sameDay.container).toBeEmptyDOMElement();
+      sameDay.unmount();
+    }
 
-    // 오늘 훈독을 마친 뒤에는 한 번 더 — 여기서도 나중에면 2번째라 이후 설정에서만
+    // 다음 날(첫 나중에가 어제) 훈독을 마친 뒤에는 한 번 더 — 여기서도 나중에면 2번째라 이후 설정에서만
+    localStorage.setItem(PROMPT_KEY, JSON.stringify({ declines: 1, lastDeclinedOn: kstYesterday() }));
     const afterRead = render(wrap(<PushPromptCard placement="after-read" isReadDone />));
     fireEvent.click(await screen.findByRole("button", { name: "나중에" }));
     expect(screen.queryByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeNull();
-    expect(localStorage.getItem(PROMPT_KEY)).toBe('{"declines":2}');
+    expect(JSON.parse(localStorage.getItem(PROMPT_KEY) ?? "null")).toEqual({ declines: 2, lastDeclinedOn: kstToday() });
     afterRead.unmount();
+
+    // 상한(2번)은 날짜와 무관하다 — 다음 날이어도 더 묻지 않는다
+    localStorage.setItem(PROMPT_KEY, JSON.stringify({ declines: 2, lastDeclinedOn: kstYesterday() }));
 
     const lastClient = makeClient();
     const last = render(wrap(<PushPromptCard placement="after-read" isReadDone />, lastClient));
@@ -307,14 +352,20 @@ describe("PushPromptCard — ready", () => {
     expect(homeDone.container).toBeEmptyDOMElement();
   });
 
-  it("홈 미션 체크로 오늘 마치면 홈 자리에서 두 번째 기회가 온다", async () => {
-    localStorage.setItem(PROMPT_KEY, '{"declines":1}');
+  it("다음 날 홈 미션 체크로 오늘 마치면 홈 자리에서 두 번째 기회가 온다", async () => {
+    localStorage.setItem(PROMPT_KEY, JSON.stringify({ declines: 1, lastDeclinedOn: kstYesterday() }));
     const client = makeClient();
     const view = render(wrap(<PushPromptCard placement="home" />, client));
     await settle(client, { expectPrefs: true });
     expect(view.container).toBeEmptyDOMElement();
     // 같은 자리에서 오늘 완료가 되면(미션 카드 즉시 완료) 그대로 나타난다
     view.rerender(wrap(<PushPromptCard placement="home" isReadDone />, client));
+    expect(await screen.findByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeInTheDocument();
+  });
+
+  it('옛 저장값 {"declines":1}(날짜 없음)은 같은 날로 보지 않아 두 번째 기회를 막지 않는다', async () => {
+    localStorage.setItem(PROMPT_KEY, '{"declines":1}');
+    render(wrap(<PushPromptCard placement="after-read" isReadDone />));
     expect(await screen.findByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeInTheDocument();
   });
 
