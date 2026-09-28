@@ -4,7 +4,7 @@
 // 아래에 탭 두 개(메뉴·말씀)와 별 토글 목록. 배경막·포커스 가둠·Esc 는 <dialog>.showModal() 이 맡는다(정성 시트와 같다).
 import { useQuery } from "@tanstack/react-query";
 import type { LibraryWork } from "@truewords/api-client-ts/types";
-import { BookOpenText, RotateCcw, Star, X } from "lucide-react";
+import { RotateCcw, Star, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type KeyboardEvent, type MouseEvent, type ReactNode, useEffect, useRef, useState } from "react";
@@ -114,7 +114,7 @@ function MenuRow({
       <li className="mn-row">
         <span className="mn-row__go" aria-disabled="true">
           <span className="mn-row__ic">
-            <Icon size={18} aria-hidden="true" />
+            <Icon size={20} aria-hidden="true" />
           </span>
           <span className="mn-row__t">{item.label}</span>
         </span>
@@ -126,7 +126,7 @@ function MenuRow({
     <li className="mn-row">
       <Link className="mn-row__go" href={item.href} aria-current={isCurrent ? "page" : undefined} onClick={onGo}>
         <span className="mn-row__ic">
-          <Icon size={18} aria-hidden="true" />
+          <Icon size={20} aria-hidden="true" />
         </span>
         <span className="mn-row__t">{item.label}</span>
       </Link>
@@ -175,9 +175,6 @@ function WorksPanel({
           {works.map((work) => (
             <li className="mn-row" key={work.series}>
               <Link className="mn-row__go" href={seriesHref(work.series)} onClick={onGo}>
-                <span className="mn-row__ic">
-                  <BookOpenText size={18} aria-hidden="true" />
-                </span>
                 <span className="mn-row__t">{work.title}</span>
                 <span className="mn-row__m">{volumeSummary(work)}</span>
               </Link>
@@ -310,17 +307,13 @@ export function MenuDrawer({ onClose }: { onClose: () => void }) {
               onReset={() => resetGroup("menu", "즐겨찾는 메뉴를 비웠어요")}
               empty="별을 누르면 자주 여는 메뉴가 여기에 모여요"
             >
-              {menuChips.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <li key={item.id}>
-                    <Link className="mn-chip" href={item.href} onClick={onClose}>
-                      <Icon size={16} aria-hidden="true" />
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
+              {menuChips.map((item) => (
+                <li key={item.id}>
+                  <Link className="mn-chip" href={item.href} onClick={onClose}>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
             </FavGroup>
             <FavGroup
               kind="works"
@@ -332,7 +325,6 @@ export function MenuDrawer({ onClose }: { onClose: () => void }) {
               {workChips.map((work) => (
                 <li key={work.series}>
                   <Link className="mn-chip" href={seriesHref(work.series)} onClick={onClose}>
-                    <BookOpenText size={16} aria-hidden="true" />
                     {work.title}
                   </Link>
                 </li>
