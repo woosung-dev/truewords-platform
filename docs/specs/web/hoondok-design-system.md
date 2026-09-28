@@ -214,17 +214,20 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 
 ### 1.7 앱 아이콘·설치 메타 (2026-09-19, PLAN-HD-001 Phase 3 C)
 
-앱 아이콘은 **"훈" 한 글자(Pretendard Bold 외곽선, OFL) 의 단색 도형**이다. 로고·상징·소속 표기는 넣지 않는다(`REQ-PWA-001` 독립 베타 정체성 — 공식 로고·제휴 표현 금지). 원본은 `apps/web/public/hoondok/icons/` 의 SVG 3종이고 PNG 5장은 거기서 생성한 산출물이다. 아이콘 파일이 곧 시안이며 PR 에서 승인한다.
+앱 아이콘은 **HD 모노그램**(H 오른쪽 기둥과 D 기둥을 하나로 묶고 위에 읽는 자리 표시 한 줄을 둔 직접 그린 벡터, 폰트 없음)의 단색 도형이다. 공식 표장·상징·소속 표기는 넣지 않는다(`REQ-PWA-001` 독립 베타 정체성 — 공식 로고·제휴 표현 금지). 원본은 `apps/web/public/hoondok/icons/` 의 SVG 4종이고 PNG 6장은 거기서 생성한 산출물이다. 아이콘 파일이 곧 시안이며 PR 에서 승인한다.
 
 | 파일 | 원본 | 용도 | 규격 |
 |---|---|---|---|
-| `icon-192.png` · `icon-512.png` | `hoondok-icon.svg` | manifest `purpose: any`(데스크톱·브라우저 UI) | 모서리 22% 라운드·투명 코너, 글자 높이 59% |
-| `icon-maskable-512.png` | `hoondok-icon-maskable.svg` | manifest `purpose: maskable`(Android 런처 마스크) | 풀블리드 정사각, 글자 높이 49% — 중앙 80% 안전영역 안(글자 대각 반지름 170px ≤ 205px) |
+| `icon-192.png` · `icon-512.png` | `hoondok-icon.svg` | manifest `purpose: any`(데스크톱·브라우저 UI) | 모서리 22% 라운드·투명 코너, 모노그램 폭 55% |
+| `icon-maskable-512.png` | `hoondok-icon-maskable.svg` | manifest `purpose: maskable`(Android 런처 마스크) | 풀블리드 정사각, 모노그램 폭 46% — 중앙 80% 안전영역 안(최원점 반지름 157px ≤ 205px) |
 | `apple-touch-icon-180.png` | `hoondok-icon-maskable.svg` | `<link rel="apple-touch-icon">`(iOS 가 22% 라운딩) | 풀블리드 180 |
 | `badge-96.png` | `hoondok-badge.svg` | 알림 `badge`(Android 상태 표시줄 작은 아이콘 — 알파 채널만 쓰므로 컬러 아이콘이면 흰 네모가 된다) | 투명 배경 · 흰 글자만, 세로 여백 10% |
+| `favicon-32.png` | `favicon.svg` | 브라우저 탭 파비콘(hoondok layout `icons.icon`, SVG 도 함께 선언) | 16 격자 전용 판 — 정수 좌표·획 2칸이라 16·32px 에서 흐려지지 않는다. PC 헤더 브랜드 표지(32px)도 이 SVG 를 쓴다 |
 
 - 색은 토큰 두 개만 쓴다. **감귤 배경 `--accent #c24721` + 종이색 글자 `--paper #fbfaf8`**(2026-09-19 확정 — 종이색 배경·감귤 글자 B 안은 밝은 홈 화면에서 묻혀 미채택, 비교 시트는 git 히스토리 밖 세션 산출물). 어두운 홈·밝은 홈·iOS 라운딩·Android 원형 마스크 모두에서 글자가 읽힌다.
-- 재생성: `rsvg-convert -w <N> -h <N> <원본.svg> -o <출력.png>` (192·512·512·180·96). 글자 외곽선은 `Pretendard-Bold.otf` 에서 fontTools `SVGPathPen` 으로 1회 추출해 SVG 에 path 로 박았으므로 폰트 설치가 필요 없다.
+- 모노그램은 128 단위 중심선에 획 11(시안 10 에서 런처 48px 가독성 때문에 굵힘)·square 끝·round 이음으로 그린다. 탭 파비콘은 같은 모양을 16 격자에서 획 2칸으로 다시 그린 별도 판이다 — 큰 판을 줄이면 16px 에서 획이 반 픽셀에 걸쳐 흐려진다.
+- 루트 `app/favicon.ico`(시연 챗용, `sizes="256x256"`)가 `/hoondok` 응답에도 함께 붙는다. 탭 크기에 딱 맞는 `favicon-32.png`(`32x32`)와 SVG 를 선언해야 훈독 탭에 HD 가 뜬다.
+- 재생성: `rsvg-convert -w <N> -h <N> <원본.svg> -o <출력.png>` (192·512·512·180·96·32). SVG 는 path 뿐이라 폰트 설치가 필요 없다.
 - 설치 메타는 hoondok layout 의 `generateMetadata`·`generateViewport` 에만 붙인다: `manifest` `/hoondok/manifest.webmanifest` · `appleWebApp`(capable, title "훈독", statusBarStyle default) · `icons`(icon 192, apple 180) · `viewport.themeColor` = `--paper`. 플래그 OFF 면 붙이지 않는다. 루트 layout·시연 챗은 무변경.
 - manifest 값: `id`·`start_url`·`scope` = **`/hoondok`(슬래시 없음 — Next `trailingSlash` 기본 false 로 `/hoondok/` 은 308 이고 scope 는 경로 접두 비교라 `/hoondok/` 이면 홈이 범위 밖)**, `display: standalone`, `lang: ko`, `background_color`·`theme_color` = `--paper #fbfaf8`, `description` 에 "FFWPU 공식 앱이 아닙니다" 고지. `theme_color` 는 토큰을 참조할 수 없어 값으로 적고 Vitest(`apps/web/src/test/hoondok-pwa.test.ts`)가 `hoondok.css --paper`·`viewport` 와 일치를 단언한다.
 
@@ -752,7 +755,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | 2026-09-16 | `SCR-PWA-005` AI 질문 = 묻기 홈("물음 한 장") + 기록 화면 분리. FAB·3탭 세그먼트 제거 | 확정 · §2.9 |
 | 2026-09-16 | 16화면 단일 소스 프로토타입 완성 (`prd/prototypes/hoondok-ds/`). 이 문서의 §4·§5 규칙은 그 프로토타입으로 검증됐다. 테마 비교(DESIGN.md 6종 번역, 독립 심사 C·E 동률 1위)와 내비 7안 비교는 참고로만 쓰고 **A 기준 유지**를 택했다. 비교 산출물은 git 히스토리(PR #269 이전 커밋)에만 남긴다 | 확정 |
 | 2026-09-19 | Pretendard self-host = 가변 1종(1.96MB) · 패밀리명 `"Pretendard Hoondok"` · `font-display: swap` · OFL 동봉. 동적 서브셋·정적 4종 미채택 | 확정 · §1.2 · PLAN-HD-001 Phase 3 C |
-| 2026-09-19 | 앱 아이콘 = "훈" 글자 단색 도형 4종(any 192/512 · maskable 512 · apple 180), **감귤 배경 + 종이색 글자 확정**(종이색 배경 B 안 미채택). manifest `id`·`start_url`·`scope` 는 `/hoondok`(슬래시 없음) | 확정 · §1.7 |
+| 2026-09-19 | 앱 아이콘 = "훈" 글자 단색 도형 4종(any 192/512 · maskable 512 · apple 180), **감귤 배경 + 종이색 글자 확정**(종이색 배경 B 안 미채택). manifest `id`·`start_url`·`scope` 는 `/hoondok`(슬래시 없음) | 글자는 2026-09-29 HD 모노그램으로 **대체**, 색·manifest 는 유지 · §1.7 |
 | 2026-09-19 | `--scrim` `rgba(35,33,31,0.45)` 토큰 신설. §2.7 이 값으로만 적던 배경막을 정성 시트 `::backdrop` 이 쓴다 | 확정 · `hoondok.css` |
 | 2026-09-19 | 화면 그룹 CSS 는 `src/app/_hoondok/*.css` 8개로 나누고 `hoondok.css` 는 토큰·공용 규칙만 갖는다. `app/hoondok/` 은 라우트 세그먼트와 충돌하므로 언더스코어 private 폴더다 | 확정 · PLAN-HD-002 W0-W |
 | 2026-09-19 | `.toggle`(46×28, §2.11) 은 `hoondok.css` 공용 규칙으로 승격. 설정 알림·AI 질문 저장·가족 공개 범위가 같은 규칙을 쓰고 화면 CSS 는 비활성 등 변형만 더한다 | 확정 · §2.11 |
@@ -772,6 +775,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | 2026-09-23 | `SCR-PWA-009` 단락 번호 = Qdrant `chunk_index`(형광펜·북마크·노트의 단위). 장 목차가 0건인 권은 "원문 구간 N" 으로 폴백한다. 본문/AI 설명/노트 3탭은 모두 동작한다(AI 설명은 고른 단락만·저장 없음) | 확정 · PLAN-HD-007 §2-12·§3 web |
 | 2026-09-29 | **전체 메뉴(햄버거)** — 폰 앱바는 [검색][알림][메뉴], PC 헤더는 알림 원형 버튼 오른쪽 `.nav__menu`. 오른쪽에서 여는 `<dialog>` 패널(폰 전폭·PC 400px). 밀리의 서재 즐겨찾기 패널을 따라 위 띠에 즐겨찾기 칩 2묶음(메뉴·말씀)과 초기화(되돌리기), 아래 밑줄 탭 2개(메뉴·말씀)와 별 토글. 메뉴 묶음은 하단 5탭 순서, 꺼진 플래그 화면은 숨기지 않고 "준비 중". 즐겨찾기는 이 기기 localStorage `hoondok:favorites` 에만 두고 계정·서버에 올리지 않는다 | 확정 · `features/hoondok/menu` |
 | 2026-09-29 | **가정예배 탭 첫 화면 = 5분 설교**(`SCR-PWA-012`, `/hoondok/worship`). 이번 주 순서지·챌린지(`SCR-PWA-010`)는 `/hoondok/worship/order` 로 옮기고 전체 메뉴 > 가정예배와 5분 설교 하단 링크에서 연다. `/hoondok/worship/sermons` 는 없앴다(프리뷰 전용이라 운영 링크 없음). 설교 재생은 YouTube 임베드로 하되 영상 목록이 정해질 때까지 재생 컨트롤은 비활성 | 확정 · 재생 영상 `[확인 필요]` |
+| 2026-09-29 | 앱 아이콘·파비콘·알림 배지 = **HD 모노그램**(로고 탐색 시안 03 HOONDOK 의 모노그램만 채택, 영문 워드마크는 미채택). 색은 2026-09-19 감귤 배경 + 종이색 글자 유지(시안의 남색은 앱 팔레트에 없음). 탭 파비콘 16 격자 전용 판 추가, PC 헤더 브랜드에 표지 + "훈독". 상표 유사성 검색·3초 인지 테스트는 하지 않았다 | 확정 · §1.7 · 상표 검색 `[확인 필요]` |
 
 
 ### PLAN-HD-005 여정 연결 결정 (2026-09-21)
