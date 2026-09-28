@@ -344,7 +344,7 @@ test("알림: backend 에 VAPID 가 없으면 훈독하기도 '준비 중' 이�
   await page.goto("/hoondok/settings");
 
   const toggle = page.getByRole("button", { name: "훈독하기 알림" });
-  await expect(page.locator("main").getByText("준비 중")).toHaveCount(6);
+  await expect(page.locator("main").getByText("준비 중")).toHaveCount(5);
   await expect(toggle).toBeDisabled();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
   // 켤 수 없으므로 시간도 고를 수 없다 (input 대신 꺼진 행)
