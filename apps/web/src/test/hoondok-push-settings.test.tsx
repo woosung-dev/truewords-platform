@@ -78,7 +78,7 @@ let restoreNavigator = () => {};
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
-  serverPrefs = { read_enabled: false, read_time: "06:00", lock_screen_level: "neutral", subscription_count: 0 };
+  serverPrefs = { read_enabled: false, read_time: "06:00", subscription_count: 0 };
   vi.mocked(identityAPI.me).mockResolvedValue({ user: USER });
   vi.mocked(notificationsAPI.config).mockResolvedValue({ enabled: true, public_key: VAPID_KEY });
   vi.mocked(notificationsAPI.prefs).mockImplementation(async () => serverPrefs);
@@ -127,7 +127,6 @@ describe("훈독하기 알림 켜기", () => {
     expect(notificationsAPI.savePrefs).toHaveBeenCalledWith({
       read_enabled: true,
       read_time: "06:00",
-      lock_screen_level: "neutral",
     });
     await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "true"));
     // 켜진 뒤에만 시간을 고를 수 있다
@@ -181,7 +180,7 @@ describe("훈독하기 알림 켜기", () => {
 
 describe("훈독하기 알림 끄기·바꾸기", () => {
   beforeEach(() => {
-    serverPrefs = { read_enabled: true, read_time: "06:00", lock_screen_level: "neutral", subscription_count: 1 };
+    serverPrefs = { read_enabled: true, read_time: "06:00", subscription_count: 1 };
     pushManager.getSubscription.mockResolvedValue(subscription);
   });
 
@@ -196,12 +195,11 @@ describe("훈독하기 알림 끄기·바꾸기", () => {
     expect(notificationsAPI.savePrefs).toHaveBeenCalledWith({
       read_enabled: false,
       read_time: "06:00",
-      lock_screen_level: "neutral",
     });
     await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "false"));
   });
 
-  it("시간·잠금 화면 문구는 구독을 건드리지 않고 PUT 만 한다", async () => {
+  it("시간은 구독을 건드리지 않고 PUT 만 한다", async () => {
     render(wrap(<SettingsScreen />));
     const time = await screen.findByLabelText("훈독하기 알림 시간");
 
@@ -210,18 +208,9 @@ describe("훈독하기 알림 끄기·바꾸기", () => {
       expect(notificationsAPI.savePrefs).toHaveBeenCalledWith({
         read_enabled: true,
         read_time: "05:30",
-        lock_screen_level: "neutral",
       }),
     );
 
-    fireEvent.click(screen.getAllByRole("radio")[1]);
-    await waitFor(() =>
-      expect(notificationsAPI.savePrefs).toHaveBeenCalledWith({
-        read_enabled: true,
-        read_time: "05:30",
-        lock_screen_level: "faith",
-      }),
-    );
     expect(notificationsAPI.subscribe).not.toHaveBeenCalled();
     expect(notificationsAPI.unsubscribe).not.toHaveBeenCalled();
   });
@@ -239,13 +228,12 @@ describe("켤 수 없는 상태", () => {
     vi.mocked(notificationsAPI.config).mockResolvedValue({ enabled: false, public_key: null });
     render(wrap(<SettingsScreen />));
 
-    await waitFor(() => expect(screen.getAllByText("준비 중")).toHaveLength(6));
+    await waitFor(() => expect(screen.getAllByText("준비 중")).toHaveLength(5));
     for (const label of [READ_TOGGLE, ...SOON_TOGGLES]) {
       const toggle = screen.getByRole("button", { name: label });
       expect(toggle).toBeDisabled();
       expect(toggle).toHaveAttribute("aria-pressed", "false");
     }
-    for (const radio of screen.getAllByRole("radio")) expect(radio).toBeDisabled();
     expect(notificationsAPI.prefs).not.toHaveBeenCalled();
   });
 

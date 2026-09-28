@@ -994,7 +994,7 @@
     border-color: var(--line);
   }
 
-  /* 라디오 원 (DES §2.11). 설정 잠금 화면 문구·모임 종류·설교 섭외 대상 세 곳이 이 하나를 쓴다.
+  /* 라디오 원 (DES §2.11). 모임 종류·설교 섭외 대상 두 곳이 이 하나를 쓴다.
      선택 신호는 `role="radio"` 버튼의 aria-checked 또는 라벨 안 네이티브 input:checked 둘 중 하나다 */
   .radio {
     width: 22px;
@@ -1113,7 +1113,7 @@
    두 화면 그룹 이상이 쓰는 규칙만 여기로 올렸다. 값은 원래 파일(_hoondok/ask.css · sheet.css ·
    library.css · garden.css · settings.css · worship.css)에서 한 글자도 바꾸지 않고 옮겼고, 순서도
    원래 캐스케이드 그대로다. 한 화면만 쓰는 변형(.gd-cal__dot--tiny · .gd-cal__legend ·
-   .gd-cal__dot[data-rest] · .st-picks + .st-row__soon · .notice--lead)은 그 화면 파일에 그대로 둔다. */
+   .gd-cal__dot[data-rest] · .notice--lead)은 그 화면 파일에 그대로 둔다. */
 [data-app="hoondok"] {
   /* ---------- 배지 테두리형 (DES §2.3) : ask · worship · family. 원래 _hoondok/ask.css ---------- */
   .badge--line {

@@ -18,7 +18,6 @@ import {
   subscribePushPrompt,
 } from "../push-prompt-storage";
 import { usePushNotifications } from "../use-push-notifications";
-import { LOCK_SCREEN_LEVELS } from "./lock-screen-picker";
 
 // 알림 받기 제안 카드. 노출 조건은 push-prompt-policy 한 곳이고, 여기서는 그 결과와 한 번의 "알림 받기" 뒤 상태만 그린다.
 // 켜기는 설정 토글과 같은 usePushNotifications().enable — 권한 요청이 클릭 핸들러 안에서 시작된다.
@@ -26,6 +25,8 @@ import { LOCK_SCREEN_LEVELS } from "./lock-screen-picker";
 export const PUSH_PROMPT_TITLE = "매일 아침 훈독 시간을 알려 드릴까요?";
 export const PUSH_PROMPT_IOS_TITLE = "iPhone·iPad 는 홈 화면에 추가해야 알림을 받을 수 있어요";
 const SETTINGS_PATH = "/hoondok/settings";
+// 발송기(push_sender.TITLE_TEXT)가 보내는 제목과 같다 — 말씀 본문·신앙 맥락이 잠금 화면에 드러나지 않는다.
+const PUSH_TITLE_PREVIEW = "오늘의 책갈피가 꽂혀 있어요";
 
 const subscribeNever = () => () => {};
 const isInAppSnapshot = () => inAppBrowser() !== null;
@@ -100,8 +101,6 @@ function PushPromptBody({ placement, isReadDone = false }: PushPromptProps) {
 
   // 정책이 보여 준 자리라면 ios 변형 ⇔ ios-not-installed 다 (권한을 물을 수 없어 "알림 받기" 가 없다).
   const isIos = push.support === "ios-not-installed";
-  const lockScreenTitle =
-    LOCK_SCREEN_LEVELS.find((level) => level.id === push.prefs.lock_screen_level)?.title ?? LOCK_SCREEN_LEVELS[0].title;
 
   return (
     <section className="card install push-prompt" aria-labelledby={titleId}>
@@ -114,7 +113,7 @@ function PushPromptBody({ placement, isReadDone = false }: PushPromptProps) {
             {isIos ? PUSH_PROMPT_IOS_TITLE : PUSH_PROMPT_TITLE}
           </h2>
           <p className="install__body">
-            {isIos ? INSTALL_CARD_BODY.ios : `잠금 화면에는 '${lockScreenTitle}' 처럼 보여요`}
+            {isIos ? INSTALL_CARD_BODY.ios : `잠금 화면에는 '${PUSH_TITLE_PREVIEW}' 처럼 보여요`}
           </p>
         </div>
       </div>

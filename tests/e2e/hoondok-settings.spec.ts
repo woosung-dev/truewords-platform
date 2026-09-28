@@ -51,16 +51,14 @@ test("설정: 알림 준비 중 · 설치 안내 상시 · 내 데이터 삭제 
   await page.goto("/hoondok/settings");
   await expect(page.getByRole("heading", { name: "알림", exact: true })).toBeVisible();
 
-  // 알림 4종 · 시간 · 잠금 화면 문구는 Phase 4 전까지 전부 비활성이다
+  // 알림 4종 · 시간은 Phase 4 전까지 전부 비활성이다
   for (const label of ["훈독하기 알림", "기도하기 알림", "가정예배 알림", "공지 알림"]) {
     const toggle = page.getByRole("button", { name: label });
     await expect(toggle).toBeDisabled();
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
   }
   // 탭 내비의 "말씀 검색 (준비 중)" 은 프리뷰 플래그에 따라 달라지므로 본문(main) 안만 센다
-  await expect(page.locator("main").getByText("준비 중")).toHaveCount(6);
-  await expect(page.getByRole("radio")).toHaveCount(2);
-  await expect(page.getByRole("radio").first()).toBeDisabled();
+  await expect(page.locator("main").getByText("준비 중")).toHaveCount(5);
 
   // 설치 안내는 완료 기록(자격) 없이도 설정에 늘 있다. 헤드리스라 prompt 미캡처 → 일반 안내(manual)
   expect(await page.evaluate(() => localStorage.getItem("hoondok:install:eligible"))).toBeNull();

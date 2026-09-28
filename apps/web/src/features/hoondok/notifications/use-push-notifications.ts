@@ -8,16 +8,15 @@ import { reportClientError } from "../observability/report";
 import { notificationsAPI } from "./api";
 import { detectPushSupport, type PushSupport, urlBase64ToUint8Array } from "./push-support";
 import { notificationPrefsKey, PUSH_CONFIG_KEY } from "./query-keys";
-import { type LockScreenLevel, type NotificationPrefs, PUSH_DISABLED_CODE } from "./types";
+import { type NotificationPrefs, PUSH_DISABLED_CODE } from "./types";
 
-// 훈독하기 알림 한 종류의 켜기/끄기·시간·문구 수준을 한 곳에서 다룬다 (PLAN-HD-006 SCR-PWA-015).
+// 훈독하기 알림 한 종류의 켜기/끄기·시간을 한 곳에서 다룬다 (PLAN-HD-006 SCR-PWA-015).
 // 서버(prefs)가 "켜짐" 의 기준이고, 이 기기의 구독 여부는 pushManager 가 따로 답한다 — 둘은 다를 수 있다.
 
 /** 서버가 아직 답하지 않았을 때 화면이 기댈 기본값. read_time 은 프로토타입의 오전 6:00. */
 export const DEFAULT_PREFS: NotificationPrefs = {
   read_enabled: false,
   read_time: "06:00",
-  lock_screen_level: "neutral",
   subscription_count: 0,
 };
 
@@ -37,7 +36,7 @@ const subscribeNever = () => () => {};
 /** 권한 거절은 오류가 아니라 사용자의 선택이다 — 보고하지 않고 문구만 바꾼다. */
 class PushPermissionError extends Error {}
 
-type PushIntent = { readEnabled: boolean; readTime: string; lockScreenLevel: LockScreenLevel };
+type PushIntent = { readEnabled: boolean; readTime: string };
 
 /**
  * 권한 요청은 클릭 핸들러 안에서 **동기적으로** 시작해야 한다. iOS WebKit 은 사용자 제스처 밖(await 뒤·mutationFn 안)의
@@ -148,7 +147,6 @@ export function usePushNotifications() {
       return notificationsAPI.savePrefs({
         read_enabled: intent.readEnabled,
         read_time: intent.readTime,
-        lock_screen_level: intent.lockScreenLevel,
       });
     },
     onSuccess: (next) => {
@@ -180,7 +178,6 @@ export function usePushNotifications() {
     mutation.mutate({
       readEnabled,
       readTime: patch.readTime ?? prefs.read_time,
-      lockScreenLevel: patch.lockScreenLevel ?? prefs.lock_screen_level,
       permission: readEnabled && !prefs.read_enabled ? requestPermissionNow() : null,
     });
   };
@@ -201,6 +198,5 @@ export function usePushNotifications() {
     /** 알림 받기 제안 카드의 주 버튼. 클릭 핸들러에서 바로 불러야 한다(권한 요청이 제스처 안에서 시작된다). */
     enable: () => submit({ readEnabled: true }),
     setReadTime: (readTime: string) => submit({ readTime }),
-    setLockScreenLevel: (lockScreenLevel: LockScreenLevel) => submit({ lockScreenLevel }),
   };
 }

@@ -5,7 +5,6 @@ import { useSyncExternalStore } from "react";
 import { InstallCard } from "@/features/hoondok/install/components/install-card";
 import { inAppBrowser } from "@/features/hoondok/install/platform";
 import { useInstallCard } from "@/features/hoondok/install/use-install-card";
-import { LockScreenPicker } from "@/features/hoondok/notifications/components/lock-screen-picker";
 import { ReadNotificationCard, SOON } from "@/features/hoondok/notifications/components/read-notification-card";
 import { usePushNotifications } from "@/features/hoondok/notifications/use-push-notifications";
 import { DeleteAccountCard } from "./delete-account-card";
@@ -55,7 +54,6 @@ function InstallSection() {
 }
 
 export function SettingsScreen() {
-  // 알림 카드와 잠금 화면 문구가 같은 서버 설정을 보므로 훅은 한 번만 부르고 내려준다.
   const push = usePushNotifications();
 
   return (
@@ -98,14 +96,6 @@ export function SettingsScreen() {
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="sect">
-        <div className="sect__head">
-          <h2 className="sect__title">잠금 화면 문구</h2>
-          <span className="sect__meta">기본 중립형</span>
-        </div>
-        <LockScreenPicker push={push} />
       </div>
 
       <div className="sect">

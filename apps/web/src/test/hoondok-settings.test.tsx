@@ -77,10 +77,10 @@ afterEach(() => {
 });
 
 describe("SCR-PWA-015 알림 (서버 설정 없음 = 준비 중)", () => {
-  it("알림 토글 4개는 disabled + '준비 중' 이고, 시간·잠금 문구 선택도 누를 수 없다", async () => {
+  it("알림 토글 4개는 disabled + '준비 중' 이고, 시간 선택도 누를 수 없다", async () => {
     render(wrap(<SettingsScreen />));
     // 훈독하기 행은 서버 설정을 받은 뒤에 "준비 중" 으로 확정된다
-    await waitFor(() => expect(screen.getAllByText("준비 중")).toHaveLength(6));
+    await waitFor(() => expect(screen.getAllByText("준비 중")).toHaveLength(5));
 
     for (const label of TOGGLE_LABELS) {
       const toggle = screen.getByRole("button", { name: label });
@@ -100,12 +100,6 @@ describe("SCR-PWA-015 알림 (서버 설정 없음 = 준비 중)", () => {
     for (const time of ["오전 6:00", "오후 9:30", "토요일 오후 6:00"]) {
       expect(screen.getByText(time).closest("button")).toBeDisabled();
     }
-
-    const radios = screen.getAllByRole("radio");
-    expect(radios).toHaveLength(2);
-    expect(radios[0]).toHaveAttribute("aria-checked", "true");
-    expect(radios[1]).toHaveAttribute("aria-checked", "false");
-    for (const radio of radios) expect(radio).toBeDisabled();
 
     // 알림함은 싣지 않는다 (PLAN-HD-002 W1-S)
     expect(screen.queryByText("알림함")).toBeNull();
