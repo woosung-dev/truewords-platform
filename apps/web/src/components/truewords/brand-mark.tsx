@@ -28,14 +28,23 @@ export function BrandIcon({ inverse, className }: BrandIconProps) {
 export interface BrandMarkProps extends BrandIconProps {
   /** 워드마크를 화면 제목(h1)으로 렌더한다 */
   asHeading?: boolean;
+  /** 좁은 화면(< sm)에서 워드마크를 시각적으로 숨긴다(스크린 리더에는 유지) — 헤더 조작부가 많은 화면용 */
+  compact?: boolean;
 }
 
-export function BrandMark({ inverse, asHeading, className }: BrandMarkProps) {
+export function BrandMark({ inverse, asHeading, compact, className }: BrandMarkProps) {
   const Wordmark = asHeading ? "h1" : "span";
   return (
-    <span className={cn("flex items-center gap-2", className)}>
+    <span className={cn("flex shrink-0 items-center gap-2", className)}>
       <BrandIcon inverse={inverse} />
-      <Wordmark className="font-display text-xl font-semibold tracking-wide">TrueWords</Wordmark>
+      <Wordmark
+        className={cn(
+          "font-display text-xl font-semibold tracking-wide whitespace-nowrap",
+          compact && "max-sm:sr-only",
+        )}
+      >
+        TrueWords
+      </Wordmark>
     </span>
   );
 }

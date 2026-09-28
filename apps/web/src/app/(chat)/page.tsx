@@ -650,12 +650,12 @@ export default function ChatPage() {
         <button
           type="button"
           onClick={handleNewChat}
-          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="flex shrink-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring max-md:min-h-11"
           aria-label="홈으로"
         >
-          <BrandMark asHeading />
+          <BrandMark asHeading compact />
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {/* 레드팀 시연 — 현재 참여자 + 변경(게이트 재진입) */}
           <button
             type="button"
@@ -685,7 +685,7 @@ export default function ChatPage() {
             <Skeleton className="h-9 w-40" />
           ) : (
             <Select value={selectedBot} onValueChange={(val) => handleBotChange(val)}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-48 min-w-0">
                 {/* base-ui-react Select는 라벨 변환을 children 함수로 받는다.
                     미지정 시 trigger에 raw value(chatbot_id)가 그대로 노출됨. */}
                 <SelectValue placeholder="챗봇 선택">
@@ -793,7 +793,7 @@ export default function ChatPage() {
                         key={prompt}
                         type="button"
                         onClick={() => handleSend(prompt)}
-                        className="rounded-full border bg-card px-4 py-2 text-xs text-foreground/80 transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+                        className="rounded-full border bg-card px-4 py-2 text-xs text-foreground/80 transition max-md:min-h-11 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
                       >
                         {prompt}
                       </button>
@@ -804,7 +804,7 @@ export default function ChatPage() {
 
             {/* 맞춤 설정 영역: persona / emphasis / visibility */}
             <section className="flex flex-col gap-2" aria-label="맞춤 설정">
-              <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">맞춤 설정</h2>
+              <h2 className="px-1 text-xs font-medium text-muted-foreground">맞춤 설정</h2>
 
               <PersonaRowTrigger value={answerMode} onClick={() => setPersonaSheetOpen(true)} />
             </section>
@@ -975,7 +975,7 @@ export default function ChatPage() {
                           </div>
 
                           {msg.feedback && (
-                            <span className="text-[11px] text-muted-foreground">
+                            <span className="text-2xs text-muted-foreground">
                               {isPositiveFeedback(msg.feedback) ? "피드백 감사합니다" : "의견이 기록됐습니다"}
                             </span>
                           )}
@@ -1053,7 +1053,7 @@ export default function ChatPage() {
       {/* P0-D — 면책 4문장 footer (전 화면 공통) */}
       <footer className="border-t bg-background px-4 py-3">
         <div className="mx-auto max-w-2xl">
-          <ul className="space-y-0.5 text-center text-[11px] leading-relaxed text-muted-foreground">
+          <ul className="space-y-0.5 text-center text-2xs leading-relaxed text-muted-foreground">
             {DISCLAIMER_LINES.map((line) => (
               <li key={line} className="break-keep-all">
                 {line}

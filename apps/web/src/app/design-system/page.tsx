@@ -53,7 +53,7 @@ export default function DesignSystemPage() {
       <header className="sticky top-0 z-10 border-b border-border bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
           <h1 className="font-display text-xl font-semibold text-foreground">TrueWords Design System</h1>
-          <span className="font-mono text-[11px] text-muted-foreground">v1.0.0 · foundation</span>
+          <span className="font-mono text-2xs text-muted-foreground">v1.0.0 · foundation</span>
         </div>
       </header>
 
@@ -86,7 +86,7 @@ export default function DesignSystemPage() {
             <p className="text-2xl font-semibold">H1 헤딩 (Pretendard)</p>
             <p className="text-lg font-medium">H2 / 섹션 타이틀</p>
             <p className="text-base">본문 기본 — body 16px, line-height 1.625. 한국어 가독성 검증 문장입니다.</p>
-            <p className="font-reading text-[18px] leading-[1.85] break-keep-all">
+            <p className="font-reading text-lg leading-[1.85] break-keep-all">
               본문 페이지(prose-reading) — Noto Serif KR 으로 렌더되는 묵상용 가독 텍스트입니다. 참사랑은 위함을 위하는
               사랑이며, 영원성·절대성·불변성의 본질을 가집니다.
             </p>
@@ -246,7 +246,7 @@ export default function DesignSystemPage() {
             {showSkeleton ? (
               <AnswerSkeleton lines={3} />
             ) : (
-              <p className="font-reading text-[15px] leading-[1.75]">
+              <p className="font-reading text-md leading-[1.75]">
                 <StreamingText key={streamingKey} text={SAMPLE_ANSWER} streaming />
               </p>
             )}

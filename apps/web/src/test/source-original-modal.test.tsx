@@ -76,7 +76,7 @@ describe("renderBody3Tone — main/before/after 색 톤 분리", () => {
     const marks = container.querySelectorAll("mark");
     expect(marks.length).toBe(1);
     expect(marks[0].textContent).toBe("BBBB");
-    expect(marks[0].className).toContain("bg-yellow-200");
+    expect(marks[0].className).toContain("bg-highlight");
     expect(marks[0].className).toContain("font-medium");
   });
 

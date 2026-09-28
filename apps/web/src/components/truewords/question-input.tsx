@@ -54,9 +54,7 @@ export function QuestionInput({
       {empty ? (
         <div aria-hidden="true" className="pointer-events-none absolute inset-x-4 top-3 select-none">
           <p className="text-base text-muted-foreground">{placeholderLine1}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {placeholderLine2}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{placeholderLine2}</p>
         </div>
       ) : null}
 
