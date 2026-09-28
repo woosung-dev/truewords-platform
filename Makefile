@@ -2,7 +2,7 @@
 # 사용법: `make` (도움말) / `make <target>`
 #
 # 앱 하나의 dev·build·test·lint 는 pnpm 스크립트를 쓴다 (`pnpm dev`, `pnpm dev:api`, `pnpm test`,
-# `pnpm --filter @truewords/<앱> <script>`). 여기에는 pnpm 스크립트로 대신할 수 없는 것만 둔다.
+# `pnpm --filter @truewords/<앱> <script>`). 여기에는 pnpm 스크립트로 대신할 수 없는 것만 둔다 (예외: 자주 쓰는 `backend-test`).
 
 .DEFAULT_GOAL := help
 # 배포의 `docker save | gzip -1 > 파일` 등 파이프는 기본 sh 에서 마지막 명령의
@@ -72,6 +72,9 @@ e2e: ## 두 앱 + API 통합 E2E — ci-e2e.yml 과 같은 격리 compose·시�
 	  && uv run python scripts/seed_hoondok_user.py hoondok@example.com test1234 --name 시드식구 \
 	  && uv run python scripts/seed_hoondok_journey.py) \
 	&& pnpm test:e2e
+
+backend-test: ## backend 전체 pytest (ci-api.yml 과 같은 env·범위)
+	@cd apps/api && GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run pytest
 
 ##@ 배포 (Oracle Cloud VM)
 #
