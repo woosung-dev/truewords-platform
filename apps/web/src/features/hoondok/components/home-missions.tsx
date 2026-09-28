@@ -7,10 +7,12 @@ import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-t
 import { useResumeCard } from "@/features/hoondok/library/use-resume";
 import { PushPromptCard } from "@/features/hoondok/notifications/components/push-prompt-card";
 import { formatKstDate, type TodayResponse } from "@/features/hoondok/today";
+import { TogetherCard } from "@/features/hoondok/together/components/together-card";
 import { useKstDate } from "@/features/hoondok/use-kst-date";
 import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
+import { EmptyDayLine } from "./empty-day";
 
 /**
  * 히어로 인사. 정본 프로토타입 today 의 `.shot__greet` 자리이며 이 화면에서 가장 큰 글자다.
@@ -50,6 +52,41 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
   // 마지막으로 읽던 원문 구간. 기록이 없거나 불러오지 못하면 지금까지와 같은 서고 안내 카드다
   const resume = useResumeCard();
   const isReadDone = completion.isDone || Boolean(summary?.today.read);
+  // 편성 없는 날(C3): 훈독하기 카드 대신 오늘 상태 한 줄, 첫 카드는 이어 읽기. 기록이 없다고 확인되면 서고로 말한다
+  const hasResume = resume.status !== "none";
+
+  const readCard = (
+    <MissionCard
+      kind={`훈독하기 · ${reading?.estimated_minutes ?? 3}분`}
+      title={reading?.title ?? "오늘 말씀을 확인하지 못했어요"}
+      meta={reading ? `${reading.work_title} · ${reading.speaker}` : "훈독하기에서 다시 불러와요"}
+      icon={BookOpenText}
+      href="/hoondok/read"
+      isPending={!reading && effective.isResolving}
+      isDone={isReadDone}
+      onToggle={reading && !effective.isResolving && !isReadDone ? completion.markDone : undefined}
+    />
+  );
+  const prayCard = (
+    <MissionCard
+      kind="기도하기 · 1분"
+      title="오늘의 기도 제목"
+      meta="가족·모임 기도 제목은 다음 단계에서"
+      icon={HandHeart}
+      isDisabled
+    />
+  );
+  const studyCard = (
+    <MissionCard
+      kind="말씀 읽기 · 이어 읽기"
+      title={resume.status === "ready" ? resume.title : "말씀 서고"}
+      meta={resume.status === "ready" ? resume.meta : "공개된 원문을 읽고 읽음으로 기록해요"}
+      icon={Library}
+      href={resume.status === "ready" ? resume.href : "/hoondok/library"}
+      isPending={resume.status === "pending"}
+      isDone={study.isDone || Boolean(summary?.today.study)}
+    />
+  );
 
   return (
     <>
@@ -58,48 +95,35 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
           {effective.reason}
         </p>
       )}
-      {!reading && !effective.isResolving && (
-        <Link className="btn btn-line" href="/hoondok/library">
-          오늘 말씀 대신 서고에서 읽기
-        </Link>
-      )}
       <div className="sect">
         <div className="sect__head">
           <h2 className="sect__title">오늘의 실천</h2>
           <span className="sect__meta">
-            {reading ? "2가지 · 내 속도로" : effective.isResolving ? "오늘 말씀 확인 중" : "1가지 · 말씀 읽기"}
+            {reading
+              ? "2가지 · 내 속도로"
+              : effective.isEmptyDay
+                ? hasResume
+                  ? "오늘은 이어 읽기"
+                  : "오늘은 서고에서"
+                : effective.isResolving
+                  ? "오늘 말씀 확인 중"
+                  : "1가지 · 말씀 읽기"}
           </span>
         </div>
         <div className="missions">
-          <MissionCard
-            kind={`훈독하기 · ${reading?.estimated_minutes ?? 3}분`}
-            title={
-              effective.isPersonalLoading
-                ? "오늘 정성 말씀을 불러오고 있어요"
-                : (reading?.title ?? "오늘 말씀을 기다리고 있어요")
-            }
-            meta={reading ? `${reading.work_title} · ${reading.speaker}` : "편성되면 여기서 바로 읽어요"}
-            icon={BookOpenText}
-            href="/hoondok/read"
-            isDone={isReadDone}
-            onToggle={reading && !effective.isResolving && !isReadDone ? completion.markDone : undefined}
-          />
-          <MissionCard
-            kind="기도하기 · 1분"
-            title="오늘의 기도 제목"
-            meta="가족·모임 기도 제목은 다음 단계에서"
-            icon={HandHeart}
-            isDisabled
-          />
-          <MissionCard
-            kind="말씀 읽기 · 이어 읽기"
-            title={resume.status === "ready" ? resume.title : "말씀 서고"}
-            meta={resume.status === "ready" ? resume.meta : "공개된 원문을 읽고 읽음으로 기록해요"}
-            icon={Library}
-            href={resume.status === "ready" ? resume.href : "/hoondok/library"}
-            isPending={resume.status === "pending"}
-            isDone={study.isDone || Boolean(summary?.today.study)}
-          />
+          {effective.isEmptyDay ? (
+            <>
+              <EmptyDayLine hint={hasResume ? "읽던 말씀을 이어서 읽어 보세요." : "서고에서 한 권 골라 읽어 보세요."} />
+              {studyCard}
+              {prayCard}
+            </>
+          ) : (
+            <>
+              {readCard}
+              {prayCard}
+              {studyCard}
+            </>
+          )}
         </div>
       </div>
 
@@ -128,4 +152,12 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
       <PushPromptCard placement="home" isReadDone={isReadDone} />
     </>
   );
+}
+
+/** 홈 "함께 읽는 사람들" 익명 카드. 편성 없는 날에는 "같은 말씀을 읽었어요" 가 사실이 아니라 그리지 않는다(C3). */
+export function HomeTogether({ today }: { today: TodayResponse }) {
+  const { reading, isResolving, isEmptyDay } = useEffectiveToday(today);
+  // 확인 중인데 말씀이 아직 없으면 기다린다 — 빈 날에 카드가 떴다 사라지거나 숫자를 부르지 않게
+  if (isEmptyDay || (!reading && isResolving)) return null;
+  return <TogetherCard />;
 }

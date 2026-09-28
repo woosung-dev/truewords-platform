@@ -1,5 +1,4 @@
-import { BookOpenText } from "lucide-react";
-import Link from "next/link";
+import { BookOpenText, Calendar } from "lucide-react";
 
 import type { TodayReading, TodayStatus } from "@/features/hoondok/today";
 import { AuthorityBadge, ReviewBadge } from "./authority-badge";
@@ -39,19 +38,17 @@ type MalssumCardProps =
 
 export function MalssumCard(props: MalssumCardProps) {
   if (props.status !== "available") {
-    // AC-016-04: 대체 콘텐츠를 만들지 않고 상태와 다음 행동만 보인다.
+    // AC-016-04: 대체 콘텐츠를 만들지 않고 상태만 말한다. "곧 온다" 고 약속하지 않는다.
+    // 다음 행동(이어 읽기 → 서고)은 부르는 화면이 카드 아래에 둔다(C3, EmptyDayActions).
     return (
       <div className="card empty" role="status">
         <span className="empty__ic">
-          <BookOpenText size={26} />
+          {props.status === "withdrawn" ? <BookOpenText size={26} /> : <Calendar size={26} />}
         </span>
         <p className="empty__title">
-          {props.status === "withdrawn" ? "오늘 말씀이 철회됐어요" : "오늘 말씀이 아직 없어요"}
+          {props.status === "withdrawn" ? "오늘 말씀이 철회됐어요" : "오늘은 정해진 말씀이 없어요"}
         </p>
-        <p className="empty__body">공개된 다른 말씀을 서고에서 찾아 읽을 수 있어요.</p>
-        <Link className="btn btn-line" href="/hoondok/library">
-          말씀 서고로 가기
-        </Link>
+        <p className="empty__body">읽던 말씀을 이어 읽거나 서고에서 골라 읽어요.</p>
       </div>
     );
   }
