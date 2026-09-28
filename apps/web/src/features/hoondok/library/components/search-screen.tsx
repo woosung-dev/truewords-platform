@@ -134,7 +134,9 @@ export function SearchScreen() {
                       {highlightSnippet(result.display_text, submitted).map((part, index) =>
                         part.hit ? (
                           // biome-ignore lint/suspicious/noArrayIndexKey: 조각 순서가 곧 본문 순서다
-                          <mark key={index}>{part.text}</mark>
+                          <mark key={index} className="sq-hit">
+                            {part.text}
+                          </mark>
                         ) : (
                           part.text
                         ),
@@ -146,7 +148,7 @@ export function SearchScreen() {
                 return (
                   <li key={result.chunk_id}>
                     {result.can_read_full_text ? (
-                      <Link href={wordsHref(result.volume, result.chunk_id)}>{body}</Link>
+                      <Link href={wordsHref(result.volume, result.chunk_id, submitted)}>{body}</Link>
                     ) : (
                       <div className="sr-unavailable">
                         {body}

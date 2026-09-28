@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { highlightSnippet } from "@/features/hoondok/library/search-highlight";
+import { highlightSnippet, markSearchTerms } from "@/features/hoondok/library/search-highlight";
 
 const hits = (text: string, query: string) =>
   highlightSnippet(text, query)
@@ -32,5 +32,10 @@ describe("검색 결과 하이라이트", () => {
     expect(parts[0]).toEqual({ text: "…", hit: false });
     expect(parts.map((part) => part.text).join("").length).toBeLessThan(text.length);
     expect(hits(text, "탕감복귀")).toEqual(["탕감복귀"]);
+  });
+
+  it("원문 뷰용 표시는 앞을 자르지 않는다", () => {
+    const text = `${"가나다 ".repeat(40)}탕감복귀 이후`;
+    expect(markSearchTerms(text, "탕감복귀").map((part) => part.text).join("")).toBe(text);
   });
 });

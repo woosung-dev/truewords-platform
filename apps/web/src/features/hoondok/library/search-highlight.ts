@@ -17,10 +17,34 @@ function termsOf(query: string): string[] {
   return [...new Set([phrase, ...words])].filter(Boolean).sort((a, b) => b.length - a.length);
 }
 
-export function highlightSnippet(text: string, query: string): SnippetPart[] {
+function patternOf(query: string): RegExp | null {
   const terms = termsOf(query);
-  if (terms.length === 0) return [{ text, hit: false }];
-  const pattern = new RegExp(terms.map(escapeRegExp).join("|"), "gi");
+  return terms.length === 0 ? null : new RegExp(terms.map(escapeRegExp).join("|"), "gi");
+}
+
+function splitByPattern(text: string, pattern: RegExp): SnippetPart[] {
+  const parts: SnippetPart[] = [];
+  let cursor = 0;
+  for (const match of text.matchAll(pattern)) {
+    const index = match.index ?? 0;
+    if (index > cursor) parts.push({ text: text.slice(cursor, index), hit: false });
+    parts.push({ text: match[0], hit: true });
+    cursor = index + match[0].length;
+  }
+  if (cursor < text.length) parts.push({ text: text.slice(cursor), hit: false });
+  return parts;
+}
+
+/** 본문 전체를 자르지 않고 검색어 위치만 나눈다 (원문 뷰용). */
+export function markSearchTerms(text: string, query: string): SnippetPart[] {
+  const pattern = patternOf(query);
+  return pattern ? splitByPattern(text, pattern) : [{ text, hit: false }];
+}
+
+/** 검색 결과 목록용 — 첫 일치가 뒤쪽이면 그 근처부터 보이도록 앞을 줄인다. */
+export function highlightSnippet(text: string, query: string): SnippetPart[] {
+  const pattern = patternOf(query);
+  if (!pattern) return [{ text, hit: false }];
   const first = text.search(pattern);
   if (first < 0) return [{ text, hit: false }];
 
@@ -30,15 +54,6 @@ export function highlightSnippet(text: string, query: string): SnippetPart[] {
     const space = text.lastIndexOf(" ", first - LEAD);
     start = space > 0 ? space + 1 : first - LEAD;
   }
-  const body = text.slice(start);
-  const parts: SnippetPart[] = start > 0 ? [{ text: "…", hit: false }] : [];
-  let cursor = 0;
-  for (const match of body.matchAll(pattern)) {
-    const index = match.index ?? 0;
-    if (index > cursor) parts.push({ text: body.slice(cursor, index), hit: false });
-    parts.push({ text: match[0], hit: true });
-    cursor = index + match[0].length;
-  }
-  if (cursor < body.length) parts.push({ text: body.slice(cursor), hit: false });
-  return parts;
+  const parts = splitByPattern(text.slice(start), pattern);
+  return start > 0 ? [{ text: "…", hit: false }, ...parts] : parts;
 }

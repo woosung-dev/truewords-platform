@@ -202,12 +202,15 @@
     line-clamp: 6;
     overflow: hidden;
   }
-  .sr-snippet mark {
-    background: var(--hl-1);
+  /* 검색어 임시 표시 — 목록과 원문 뷰가 같은 모양이다. 형광펜(배경색)·책갈피 카드 밑줄(옅은 띠)과
+     겹치지 않도록 배경 없이 강조색 실선 밑줄 + 굵기로만 표시한다 */
+  mark.sq-hit {
+    background: transparent;
     color: inherit;
     font-weight: 600;
-    border-radius: 3px;
-    padding: 0 1px;
+    text-decoration: underline 2px var(--accent);
+    text-underline-offset: 0.22em;
+    text-decoration-skip-ink: none;
   }
   .sr-src {
     font-size: 12.5px;
@@ -723,6 +726,41 @@
   .verse {
     cursor: pointer;
   }
+  /* 원문 뷰 검색어 안내 — "밑줄 지우기" 는 글자 버튼이지만 누르는 영역은 44px 을 지킨다 */
+  .notice--search {
+    padding-top: 12px;
+  }
+  /* 밑줄 지우기 뒤 초점만 받는 안내 줄 — 조작 대상이 아니라 초점 링을 그리지 않는다 */
+  .notice[tabindex="-1"]:focus {
+    outline: none;
+  }
+  .notice__action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 8px;
+    margin-left: 2px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent-strong);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  /* 검색·북마크로 도착한 단락 —한 번 옅게 번졌다 사라진다(형광펜처럼 남지 않는다). 동작 줄이기에서는 전역 규칙이 끈다 */
+  .verse--arrive {
+    position: relative;
+  }
+  .verse--arrive::after {
+    content: "";
+    position: absolute;
+    inset: -6px -8px;
+    border-radius: var(--r-xs);
+    background: var(--accent-soft);
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    opacity: 0;
+    animation: wd-arrive 1.6s ease-out 0.15s;
+  }
   /* 서버 display_text 의 문단("\n\n") 하나 */
   .verse__para {
     display: block;
@@ -982,6 +1020,16 @@
     .wd-skel {
       animation: none;
     }
+  }
+}
+
+@keyframes wd-arrive {
+  0%,
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
   }
 }
 
