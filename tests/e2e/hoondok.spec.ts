@@ -111,7 +111,7 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   await page.getByRole("link", { name: "뒤로" }).click();
   await expect(page).toHaveURL(/\/hoondok$/);
   await expect(page.getByText("이투이님")).toBeVisible();
-  await expect(page.locator(".week__streak")).toContainText("연속 1일");
+  await expect(page.locator(".sect__head", { hasText: "이번 주" })).toContainText("연속 1일");
   await expect(page.locator(".week__day[data-today][data-done]")).toHaveCount(1);
   await expect(page.getByRole("button", { name: /훈독하기.*완료/ })).toHaveAttribute("aria-pressed", "true");
   // 소급 동기화(sync)로 기록된 완료는 설치 안내 자격이 아니다 (Phase 3 E)

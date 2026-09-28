@@ -52,7 +52,7 @@ for (const app of ["web", "admin"] as const) {
         "background-color",
         isDark ? "oklch(0.18 0.012 50)" : "oklch(0.988 0.024 95)",
       );
-      await expect(email).toHaveCSS("height", "32px");
+      await expect(email).toHaveCSS("height", "44px");
       await email.fill(app === "admin" ? process.env.E2E_ADMIN_EMAIL || "demo-admin@example.com" : "admin@test.com");
       await email.press("Tab");
       await expect(password).toBeFocused();
@@ -60,7 +60,7 @@ for (const app of ["web", "admin"] as const) {
       await password.press("Tab");
       const login = page.getByRole("button", { name: "로그인", exact: true });
       await expect(login).toBeFocused();
-      await expect(login).toHaveCSS("height", "32px");
+      await expect(login).toHaveCSS("height", "44px");
       await login.press("Enter");
 
       if (app === "admin") {
