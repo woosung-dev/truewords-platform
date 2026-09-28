@@ -24,7 +24,7 @@ import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { libraryAPI, verseNumber, type WordsQuery, wordsHref, wordsPageHref } from "../api";
 import { writeLastReading } from "../last-reading";
-import { markSearchTerms } from "../search-highlight";
+import { hasSearchHit, markSearchTerms } from "../search-highlight";
 import { TtsBar } from "../tts/tts-bar";
 import { useReadAloud } from "../tts/use-read-aloud";
 import { type AiVoiceId, chunkAudioUrl } from "../tts/voice-api";
@@ -364,9 +364,7 @@ export function WordsScreen({
   // 검색으로 들어온 경우에만 밑줄 안내를 보인다. 책갈피 카드로 들어온 단락은 카드 밑줄이 우선이다.
   const searchMarksOn = Boolean(searchQuery) && !cardId && showSearchMarks;
   const citedChunk = chunkId ? doc.chunks.find((chunk) => chunk.chunk_id === chunkId) : undefined;
-  const citedHasHit = Boolean(
-    searchQuery && citedChunk && markSearchTerms(citedChunk.display_text, searchQuery).some((part) => part.hit),
-  );
+  const citedHasHit = Boolean(searchQuery && citedChunk && hasSearchHit(citedChunk.display_text, searchQuery));
 
   function openPassage(chunkKey: string) {
     setSelectedChunkId(chunkKey);
@@ -590,6 +588,15 @@ export function WordsScreen({
           returnTo={currentPath}
           writer={writer}
           onClose={() => setSheet(null)}
+          onListenFrom={
+            reader.isSupported && !reader.isResolving
+              ? () => {
+                  // iOS 는 제스처 안에서 시작한 재생만 허용한다 — 누른 핸들러에서 바로 부른다.
+                  reader.play(doc.chunks.indexOf(selectedChunk));
+                  setSheet(null);
+                }
+              : undefined
+          }
         />
       )}
     </section>

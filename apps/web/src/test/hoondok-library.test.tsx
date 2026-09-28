@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ApiError } from "@truewords/api-client-ts";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -161,6 +161,40 @@ describe("말씀 검색", () => {
       wordsHref(WORK.volume, "chunk-21", "참사랑"),
     );
     expect(libraryAPI.search).toHaveBeenCalledWith("참사랑", expect.any(AbortSignal));
+  });
+  it("검색어가 나온 말씀과 뜻이 가까운 말씀을 나눠 각 묶음 안은 서버 순서대로 보인다", async () => {
+    const near = { ...RESULT, chunk_id: "near-1", display_text: "하나님의 사랑을 닮는 삶" };
+    const hit2 = { ...RESULT, chunk_id: "hit-2", display_text: "참사랑의 길" };
+    vi.mocked(libraryAPI.search).mockResolvedValue({ results: [near, RESULT, hit2] });
+    show(SearchPage());
+    search("참사랑");
+    const words = await screen.findByRole("region", { name: "검색어가 나온 말씀" });
+    const meaning = screen.getByRole("region", { name: "뜻이 가까운 말씀" });
+    expect(within(words).getByRole("heading", { level: 3, name: "검색어가 나온 말씀" })).toBeInTheDocument();
+    expect(within(words).getByText("2건")).toBeInTheDocument();
+    expect(
+      within(words)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual([expect.stringContaining("참사랑 말씀"), expect.stringContaining("참사랑의 길")]);
+    expect(within(meaning).getByText("1건")).toBeInTheDocument();
+    expect(within(meaning).getByText(/검색어가 그대로 나오지는 않지만/)).toBeInTheDocument();
+    expect(within(meaning).getByRole("link", { name: /하나님의 사랑을 닮는 삶/ })).toBeInTheDocument();
+    expect(meaning.querySelector("mark")).toBeNull();
+    // 위 = 단어 일치, 아래 = 뜻
+    expect(words.compareDocumentPosition(meaning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  it("한쪽 묶음이 0건이면 그 제목을 보이지 않는다", async () => {
+    show(SearchPage());
+    search("참사랑");
+    expect(await screen.findByRole("region", { name: "검색어가 나온 말씀" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "뜻이 가까운 말씀" })).toBeNull();
+  });
+  it("검색어가 하나도 나오지 않으면 뜻이 가까운 묶음만 보인다", async () => {
+    show(SearchPage());
+    search("축복");
+    expect(await screen.findByRole("region", { name: "뜻이 가까운 말씀" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "검색어가 나온 말씀" })).toBeNull();
   });
   it("검색만 허용된 결과는 원문 링크를 만들지 않는다", async () => {
     vi.mocked(libraryAPI.search).mockResolvedValue({ results: [{ ...RESULT, can_read_full_text: false }] });

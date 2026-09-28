@@ -251,7 +251,9 @@ describe("검색으로 들어온 원문", () => {
     expect(screen.queryByRole("button", { name: "밑줄 지우기" })).not.toBeInTheDocument();
   });
   it("검색 결과 링크는 검색어를 q 로 싣는다", () => {
-    expect(wordsHref(VOLUME, "c1", "참 사랑")).toBe(`${wordsHref(VOLUME)}?chunk_id=c1&q=%EC%B0%B8%20%EC%82%AC%EB%9E%91`);
+    expect(wordsHref(VOLUME, "c1", "참 사랑")).toBe(
+      `${wordsHref(VOLUME)}?chunk_id=c1&q=%EC%B0%B8%20%EC%82%AC%EB%9E%91`,
+    );
   });
 });
 
@@ -567,6 +569,58 @@ describe("듣기 바", () => {
       Reflect.deleteProperty(window, "speechSynthesis");
       Reflect.deleteProperty(window, "SpeechSynthesisUtterance");
     }
+  });
+});
+
+describe("이 단락부터 듣기", () => {
+  it("단락 시트의 버튼은 그 단락부터 읽기 시작하고 시트를 닫는다", async () => {
+    const spoken: { text: string }[] = [];
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        speak: (utterance: { text: string }) => spoken.push(utterance),
+        cancel: vi.fn(),
+        pause: vi.fn(),
+        resume: vi.fn(),
+        getVoices: () => [{ lang: "ko-KR", name: "유나" }],
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
+    });
+    Object.defineProperty(window, "SpeechSynthesisUtterance", {
+      configurable: true,
+      value: class {
+        onend: (() => void) | null = null;
+        constructor(readonly text: string) {}
+      },
+    });
+    try {
+      await showWords();
+      await screen.findByRole("button", { name: "듣기 시작" });
+      // 듣기는 로그인과 무관하다 — 비로그인 안내 시트에도 버튼이 있다
+      fireEvent.click(await screen.findByRole("button", { name: "단락 2 표시하기" }));
+      fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "이 단락부터 듣기" }));
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(spoken.map((utterance) => utterance.text)).toEqual(["둘째 단락의 본문"]);
+      await waitFor(() => expect(document.getElementById("verse-1")).toHaveClass("verse--speaking"));
+      expect(screen.getByText("단락 2 / 2")).toBeInTheDocument();
+
+      // 읽는 중에도 다른 단락을 고르면 그 단락부터 다시 읽는다
+      fireEvent.click(screen.getByRole("button", { name: "단락 1 표시하기" }));
+      fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "이 단락부터 듣기" }));
+      expect(spoken.at(-1)?.text).toBe("첫째 단락의 본문");
+      await waitFor(() => expect(document.getElementById("verse-0")).toHaveClass("verse--speaking"));
+    } finally {
+      Reflect.deleteProperty(window, "speechSynthesis");
+      Reflect.deleteProperty(window, "SpeechSynthesisUtterance");
+    }
+  });
+  it("소리 내어 읽을 수 없는 브라우저는 시트에 듣기 버튼을 두지 않는다", async () => {
+    await showWords();
+    await screen.findByText("이 브라우저는 소리 내어 읽기를 지원하지 않아요.");
+    fireEvent.click(await screen.findByRole("button", { name: "단락 1 표시하기" }));
+    const sheet = within(await screen.findByRole("dialog"));
+    expect(sheet.queryByRole("button", { name: "이 단락부터 듣기" })).toBeNull();
   });
 });
 
