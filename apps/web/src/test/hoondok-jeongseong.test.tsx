@@ -114,7 +114,7 @@ describe("정성 시트 (SCR-PWA-004)", () => {
     expect(document.querySelector('input[type="time"]')).toBeNull();
     expect(screen.queryByLabelText(/알림 시각/)).toBeNull();
     expect(screen.getByRole("link", { name: "설정 › 훈독하기" })).toHaveAttribute("href", "/hoondok/settings");
-    expect(screen.getByText(/시각에 맞춰 가요/)).toBeInTheDocument();
+    expect(screen.getByText(/에서 켜고 시각을 정해요/)).toBeInTheDocument();
   });
 
   it("21일 · 주제 '감사' 제출 → POST 본문과 CSRF 헤더, 성공하면 홈으로 닫는다", async () => {

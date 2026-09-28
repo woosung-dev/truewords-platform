@@ -52,7 +52,10 @@ test("정성 시트에서 21일 정성을 만들면 홈 카드가 D-20 으로 �
   await expect(dialog.getByText(/가족 챌린지/)).toHaveCount(0);
   // 정성 알림은 훈독하기 알림에 합쳤다 — 시각 입력 대신 설정 › 훈독하기 링크만 있다
   await expect(dialog.locator('input[type="time"]')).toHaveCount(0);
-  await expect(dialog.getByRole("link", { name: "설정 › 훈독하기" })).toHaveAttribute("href", "/hoondok/settings");
+  const notifyLink = dialog.getByRole("link", { name: "설정 › 훈독하기" });
+  await expect(notifyLink).toHaveAttribute("href", "/hoondok/settings");
+  // 본문 속 링크여도 터치 영역은 44px (시각 크기는 그대로, 음수 여백으로 넓힌다)
+  expect((await notifyLink.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
 
   await page.locator(".js-opt").filter({ hasText: "세 주" }).click();

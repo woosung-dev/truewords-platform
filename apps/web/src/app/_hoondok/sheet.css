@@ -147,7 +147,16 @@ body:has([data-app="hoondok"] .sheet[open]) {
   .js-field input[type="date"] {
     min-height: 48px;
   }
-  .js-field .field__help a {
+  /* 링크는 줄 높이를 그대로 두고 탭 대상만 44px 로 넓힌다(.read-ask-link 와 같은 음수 마진 패턴).
+     위로 12px 넘치는 탭 영역이 날짜 입력 아래 끝을 덮지 않게 이 줄만 6px 더 띄운다(.field gap 6 + 6 = 12). */
+  .js-notify-help {
+    margin-top: 6px;
+  }
+  .js-notify-help a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin: -12px 0;
     color: var(--accent-strong);
     font-weight: 600;
     text-decoration: underline;

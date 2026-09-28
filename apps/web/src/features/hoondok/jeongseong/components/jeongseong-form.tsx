@@ -116,8 +116,8 @@ export function JeongseongForm({ onClose }: { onClose: () => void }) {
           value={startedOn}
           onChange={(event) => setStartedOn(event.target.value)}
         />
-        <span className="field__help">
-          알림은 <Link href="/hoondok/settings">설정 › 훈독하기</Link> 시각에 맞춰 가요
+        <span className="field__help js-notify-help">
+          알림은 <Link href="/hoondok/settings">설정 › 훈독하기</Link>에서 켜고 시각을 정해요
         </span>
         <span className="field__help">하루를 놓쳐도 정성은 끊기지 않아요. 진행은 &quot;N일차&quot;로만 보여요.</span>
       </div>
