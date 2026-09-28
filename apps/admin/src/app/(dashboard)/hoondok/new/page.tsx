@@ -64,7 +64,7 @@ function NewDailyReading() {
   });
 
   return (
-    <div className="max-w-2xl space-y-1">
+    <div className="page-form space-y-1">
       <button
         type="button"
         onClick={() => router.push("/hoondok")}

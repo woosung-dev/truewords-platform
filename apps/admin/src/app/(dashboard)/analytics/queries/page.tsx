@@ -81,7 +81,7 @@ export default function QueriesExplorerPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / size)) : 1;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 page-wide">
       {/* 헤더 */}
       <div>
         <nav className="flex items-center gap-1 text-xs">

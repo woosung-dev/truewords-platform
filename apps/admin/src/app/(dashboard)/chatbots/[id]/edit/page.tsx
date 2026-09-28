@@ -48,7 +48,7 @@ export default function EditChatbotPage({ params }: { params: Promise<{ id: stri
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl space-y-4">
+      <div className="page-form space-y-4">
         <Skeleton className="h-5 w-32" />
         <Skeleton className="h-9 w-56" />
         <div className="rounded-xl border p-5 space-y-4">
@@ -77,7 +77,7 @@ export default function EditChatbotPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="max-w-2xl space-y-1">
+    <div className="page-form space-y-1">
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground mb-4">
         <Link href="/chatbots" className="hover:text-foreground transition-colors">
           챗봇

@@ -40,6 +40,10 @@ const NAV_ITEMS = [
   { href: "/settings", label: "설정", icon: Settings },
 ];
 
+// 사이드바(slate-950) 위에서는 전역 outline-ring/50(1.2:1)이 보이지 않으므로 밝은 sidebar-ring 링을 따로 준다.
+const SIDEBAR_FOCUS =
+  "focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring";
+
 function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onLogout: () => void }) {
   const pathname = usePathname();
 
@@ -63,13 +67,15 @@ function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onL
               key={item.href}
               href={item.href}
               onClick={onNavigate}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+              aria-current={isActive ? "page" : undefined}
+              className={`relative flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${SIDEBAR_FOCUS} ${
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-primary font-medium"
+                  ? // 활성 글자는 밝은 전경(16:1), brass 는 좌측 막대·아이콘에만 쓴다(글자로 쓰면 3.3:1 미달).
+                    "bg-sidebar-accent text-sidebar-foreground font-medium before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-sidebar-primary"
                   : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
               }`}
             >
-              <Icon className="w-4 h-4 shrink-0" />
+              <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-sidebar-primary" : ""}`} />
               {item.label}
             </Link>
           );
@@ -80,14 +86,14 @@ function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onL
       <div className="px-3 py-3 border-t border-sidebar-border">
         <a
           href={WEB_ORIGIN}
-          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground"
+          className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground ${SIDEBAR_FOCUS}`}
         >
           <MessageSquare className="w-4 h-4 shrink-0" />
           사용자 웹
         </a>
         <button
           onClick={onLogout}
-          className="flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+          className={`flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${SIDEBAR_FOCUS}`}
         >
           <LogOut className="w-4 h-4 shrink-0" />
           로그아웃
@@ -126,6 +132,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <AuthGuard requireAdmin>
+      {/* 키보드 사용자가 사이드바 14개 링크를 건너뛰고 본문으로 바로 가는 링크. 포커스될 때만 보인다. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:outline-2 focus:outline-offset-2 focus:outline-ring"
+      >
+        본문으로 건너뛰기
+      </a>
       <div className="flex min-h-screen bg-admin-bg">
         {/* 데스크톱 사이드바 */}
         <aside className="hidden w-56 shrink-0 md:block border-r border-sidebar-border">
@@ -157,7 +170,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </header>
 
           {/* 메인 콘텐츠 */}
-          <main className="flex-1 p-6 bg-admin-bg">{children}</main>
+          <main id="main-content" tabIndex={-1} className="flex-1 p-6 bg-admin-bg outline-none">
+            {children}
+          </main>
         </div>
       </div>
     </AuthGuard>

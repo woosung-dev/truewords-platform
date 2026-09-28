@@ -27,7 +27,7 @@ export default function NewChatbotPage() {
   });
 
   return (
-    <div className="max-w-2xl space-y-1">
+    <div className="page-form space-y-1">
       <button
         onClick={() => router.back()}
         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"

@@ -18,14 +18,13 @@ function StatCard({
   label: string;
   value: number | string;
   icon: React.ElementType;
-  color?: "default" | "green" | "red" | "blue";
+  color?: "default" | "red";
   loading?: boolean;
 }) {
+  // KPI 숫자는 중립색이 기본이다. 조치가 필요한 값(실패·부정 피드백 > 0)만 색으로 알린다.
   const colorMap = {
     default: "text-foreground",
-    green: "text-success",
     red: "text-destructive",
-    blue: "text-primary",
   };
 
   return (
@@ -73,7 +72,7 @@ export default function DashboardPage() {
   const negativeCount = summary?.feedback_negative ?? 0;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 page-wide">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">대시보드</h1>
         <p className="text-sm text-muted-foreground mt-1">시스템 현황을 한눈에 확인합니다</p>
@@ -82,14 +81,8 @@ export default function DashboardPage() {
       {/* KPI 카드 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="전체 챗봇" value={totalChatbots} icon={Bot} loading={chatbotsLoading} />
-        <StatCard
-          label="활성 챗봇"
-          value={activeChatbots}
-          icon={CheckCircle2}
-          color="green"
-          loading={chatbotsLoading}
-        />
-        <StatCard label="총 청크 수" value={totalChunks} icon={Database} color="blue" loading={statusLoading} />
+        <StatCard label="활성 챗봇" value={activeChatbots} icon={CheckCircle2} loading={chatbotsLoading} />
+        <StatCard label="총 청크 수" value={totalChunks} icon={Database} loading={statusLoading} />
         <StatCard
           label="처리 실패"
           value={failedFiles}
@@ -102,8 +95,8 @@ export default function DashboardPage() {
       {/* 검색 & 피드백 메트릭 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="오늘 질문" value={todayQuestions} icon={Search} loading={summaryLoading} />
-        <StatCard label="이번 주 질문" value={weekQuestions} icon={Search} color="blue" loading={summaryLoading} />
-        <StatCard label="긍정 피드백" value={helpfulCount} icon={ThumbsUp} color="green" loading={summaryLoading} />
+        <StatCard label="이번 주 질문" value={weekQuestions} icon={Search} loading={summaryLoading} />
+        <StatCard label="긍정 피드백" value={helpfulCount} icon={ThumbsUp} loading={summaryLoading} />
         <StatCard
           label="부정 피드백"
           value={negativeCount}

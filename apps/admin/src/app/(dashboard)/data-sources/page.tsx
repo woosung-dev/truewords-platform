@@ -348,7 +348,7 @@ export default function DataSourcesPage() {
   const hasAnyUploading = pendingFiles.some((f) => f.status === "uploading");
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="page-wide space-y-6">
       {/* 중복 업로드 확인 다이얼로그 (단건) */}
       <DuplicateConfirmDialog
         open={duplicateDialog.open}
@@ -652,7 +652,7 @@ export default function DataSourcesPage() {
               <div className="px-4 py-3 border-b border-warning-border bg-warning-soft/60 flex items-center gap-2">
                 <RotateCcw className="w-3.5 h-3.5 text-warning" />
                 <span className="text-xs font-medium text-warning">중단된 파일 — 재개 가능</span>
-                <span className="text-xs text-warning/70">
+                <span className="text-xs text-warning">
                   같은 파일을 다시 업로드하면 중단 지점부터 이어서 처리합니다
                 </span>
               </div>
