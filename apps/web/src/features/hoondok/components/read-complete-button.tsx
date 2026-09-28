@@ -3,6 +3,7 @@
 import { Check } from "lucide-react";
 import Link from "next/link";
 import { DoneBadge, HoondokButton } from "@/components/hoondok";
+import { PushPromptCard } from "@/features/hoondok/notifications/components/push-prompt-card";
 import { GroupShareEntry, TogetherDoneNotice } from "@/features/hoondok/together/components/together-card";
 import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
 import { onboardingHref } from "@/features/identity/gate";
@@ -65,6 +66,8 @@ export function ReadCompleteButton({ askHref, isDisabled = false }: { askHref: s
         <TogetherDoneNotice isCounted={isCounted} />
         <GroupShareEntry isCounted={isCounted && !completion.isSaving} />
         {footer}
+        {/* 알림 받기 제안 — 오늘 마친 뒤의 두 번째 자리(PLAN-HD-006). 보조 줄은 완료 동작에 붙어 있어야 해서 그 아래에 둔다. */}
+        <PushPromptCard placement="after-read" isReadDone />
       </>
     );
   }

@@ -250,4 +250,93 @@
     justify-content: flex-end;
     gap: 8px;
   }
+
+  /* ---------- 알림 받기 제안 카드 (홈 상단 · 훈독하기 완료 아래, PLAN-HD-006) ----------
+     몸통은 설치 안내 카드(.install*)를 그대로 쓴다. 주 버튼은 전폭 `.btn`, "나중에" 는 글자 버튼이라 주 CTA 와 겨루지 않는다. */
+  .push-prompt {
+    margin-top: 16px;
+  }
+  .push-prompt .st-note {
+    margin: 0;
+  }
+  /* 켠 뒤의 아이콘은 완료 색 — 설치 카드의 액센트 박스와 구분된다 */
+  .push-prompt__ic--on {
+    background: var(--ok-soft);
+    color: var(--ok-strong);
+  }
+  .push-prompt__later {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .push-prompt__later[disabled] {
+    color: var(--ink-3);
+    cursor: not-allowed;
+  }
+  /* 설정 링크 — 줄 높이는 그대로 두고 탭 대상만 44px (.read-ask-link 와 같은 패턴) */
+  .push-prompt__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin: -8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-strong);
+  }
+
+  /* ---------- 인앱 브라우저 안내 (카카오톡 등, 앱 셸 위 한 줄) ---------- */
+  .inapp {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 8px 12px var(--gutter);
+    background: var(--accent-soft);
+    border-bottom: 1px solid var(--line);
+  }
+  .inapp__bd {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .inapp__title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 0;
+  }
+  .inapp__body {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    margin: 0;
+  }
+  .inapp__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .inapp .btn--sm {
+    height: 44px;
+  }
+  .inapp__note {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .inapp__close {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    color: var(--ink-2);
+    border-radius: var(--r-sm);
+  }
 }
