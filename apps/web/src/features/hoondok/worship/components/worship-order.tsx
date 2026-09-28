@@ -1,9 +1,9 @@
 "use client";
 
-// SCR-PWA-010 가정예배 홈 (PLAN-HD-002 W3-W 프리뷰 셸).
-// 마크업·문구·순서는 프로토타입 `data-screen="worship"` 그대로이고, 사진 히어로만 글자 카드로 바꿨다(홈 결정 12 선례).
-// 순서지·챌린지·설교는 전부 fixture 이고 어떤 버튼도 네트워크를 타지 않는다 — 누르면 인라인 "준비 중"만 알린다.
-import { Mic, Pencil, Send, Users } from "lucide-react";
+// SCR-PWA-010 이번 주 순서지·챌린지 (PLAN-HD-002 W3-W 프리뷰 셸).
+// 마크업·문구·순서는 프로토타입 `data-screen="worship"` 그대로다. 5분 설교 묶음은 2026-09-29 가정예배 탭 첫 화면으로 옮겼다.
+// 순서지·챌린지는 전부 fixture 이고 어떤 버튼도 네트워크를 타지 않는다 — 누르면 인라인 "준비 중"만 알린다.
+import { Pencil, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { AuthorityBadge } from "@/components/hoondok";
@@ -11,7 +11,6 @@ import {
   PREVIEW_CHALLENGES,
   PREVIEW_LEAD,
   type PreviewChallenge,
-  SERMONS,
   WORSHIP_ORDER,
 } from "@/features/hoondok/preview/fixtures/worship";
 import { PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
@@ -92,9 +91,8 @@ function ChallengeCard({ challenge }: { challenge: PreviewChallenge }) {
   );
 }
 
-export function WorshipHome() {
+export function WorshipOrder() {
   const [soon, setSoon] = useState("");
-  const { featured } = SERMONS;
 
   return (
     <section className="col">
@@ -136,30 +134,6 @@ export function WorshipHome() {
             <ChallengeCard challenge={challenge} key={challenge.id} />
           ))}
         </div>
-      </div>
-
-      <div className="sect">
-        <div className="sect__head">
-          <h2 className="sect__title">5분 설교</h2>
-          <Link className="sect__meta" href="/hoondok/worship/sermons">
-            전체 설교
-          </Link>
-        </div>
-        <Link className="shot sm-hero" href="/hoondok/worship/sermons">
-          {/* 장식 사진 — 제목·메타가 바로 옆에서 같은 내용을 말하므로 alt 는 빈 문자열이다 (DES §1.6) */}
-          <img src="/hoondok/photos/sermon-orchard-dusk.webp" alt="" />
-          <span className="shot__tx">
-            <span className="sm-hero__tag badge badge--accent">{featured.tag}</span>
-            <span className="sm-hero__t">{featured.title}</span>
-            <span className="sm-hero__m">
-              {featured.meta} · {featured.duration}
-            </span>
-          </span>
-        </Link>
-        <Link className="btn btn-line sm-request" href="/hoondok/worship/request">
-          <Mic size={20} aria-hidden="true" />
-          교회장께 설교 요청하기
-        </Link>
       </div>
 
       <p className="notice">챌린지는 진행률과 참여 인원만 보여 줍니다. 개인 순위는 없습니다</p>

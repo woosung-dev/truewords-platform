@@ -32,7 +32,16 @@ describe("훈독 화면 레지스트리", () => {
     expect(pick("/hoondok/ask/q-123")).toEqual(["질문", "/hoondok/ask/log", "ask", "read"]);
     expect(pick("/hoondok/search")).toEqual(["말씀 검색", "/hoondok/library", "library", "app"]);
     expect(pick("/hoondok/words")).toEqual(["원문 읽기", "/hoondok/library", "library", "read"]);
-    expect(pick("/hoondok/worship/request")).toEqual(["설교 섭외", "/hoondok/worship/sermons", "worship", "app"]);
+    // 가정예배 탭 첫 화면 = 5분 설교, 순서지·챌린지는 하위 화면 (2026-09-29)
+    expect(pick("/hoondok/worship")).toEqual(["5분 설교", undefined, "worship", "app"]);
+    expect(pick("/hoondok/worship/order")).toEqual(["순서지·챌린지", "/hoondok/worship", "worship", "app"]);
+    expect(pick("/hoondok/worship/challenge/family-21")).toEqual([
+      "챌린지",
+      "/hoondok/worship/order",
+      "worship",
+      "app",
+    ]);
+    expect(pick("/hoondok/worship/request")).toEqual(["설교 섭외", "/hoondok/worship", "worship", "app"]);
     // 미등록 경로는 홈 항목으로 떨어진다
     expect(pick("/hoondok/unknown")).toEqual(["오늘 훈독", undefined, "today", "home"]);
   });
@@ -43,7 +52,7 @@ describe("훈독 화면 레지스트리", () => {
     expect(activeTabId("/hoondok/settings")).toBe("garden");
     expect(activeTabId("/hoondok/family")).toBe("garden");
     expect(activeTabId("/hoondok/search")).toBe("library");
-    expect(activeTabId("/hoondok/worship/sermons")).toBe("worship");
+    expect(activeTabId("/hoondok/worship/order")).toBe("worship");
   });
 });
 

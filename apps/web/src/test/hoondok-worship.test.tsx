@@ -25,35 +25,35 @@ async function loadPages(preview: "" | "1") {
     throw new Error(NOT_FOUND);
   });
   vi.doMock("next/navigation", () => ({ notFound, usePathname: () => "/hoondok/worship" }));
-  const [worship, challenge, sermons, request] = await Promise.all([
+  const [worship, challenge, order, request] = await Promise.all([
     import("../app/(hoondok)/hoondok/worship/page"),
     import("../app/(hoondok)/hoondok/worship/challenge/[id]/page"),
-    import("../app/(hoondok)/hoondok/worship/sermons/page"),
+    import("../app/(hoondok)/hoondok/worship/order/page"),
     import("../app/(hoondok)/hoondok/worship/request/page"),
   ]);
   return {
     notFound,
     WorshipPage: worship.default,
     ChallengePage: challenge.default,
-    SermonsPage: sermons.default,
+    OrderPage: order.default,
     RequestPage: request.default,
   };
 }
 
 describe("프리뷰 플래그 게이트", () => {
   it("OFF: 가정예배 4화면이 모두 404 다", async () => {
-    const { notFound, WorshipPage, ChallengePage, SermonsPage, RequestPage } = await loadPages("");
+    const { notFound, WorshipPage, ChallengePage, OrderPage, RequestPage } = await loadPages("");
     expect(() => WorshipPage()).toThrow(NOT_FOUND);
-    expect(() => SermonsPage()).toThrow(NOT_FOUND);
+    expect(() => OrderPage()).toThrow(NOT_FOUND);
     expect(() => RequestPage()).toThrow(NOT_FOUND);
     await expect(ChallengePage({ params: Promise.resolve({ id: FAMILY.id }) })).rejects.toThrow(NOT_FOUND);
     expect(notFound).toHaveBeenCalledTimes(4);
   });
 
   it("ON: 네 화면이 열리고, fixture 에 없는 챌린지 id 만 404 다", async () => {
-    const { notFound, WorshipPage, ChallengePage, SermonsPage, RequestPage } = await loadPages("1");
+    const { notFound, WorshipPage, ChallengePage, OrderPage, RequestPage } = await loadPages("1");
     expect(() => WorshipPage()).not.toThrow();
-    expect(() => SermonsPage()).not.toThrow();
+    expect(() => OrderPage()).not.toThrow();
     expect(() => RequestPage()).not.toThrow();
     await expect(ChallengePage({ params: Promise.resolve({ id: FAMILY.id }) })).resolves.toBeTruthy();
     expect(notFound).not.toHaveBeenCalled();
