@@ -49,13 +49,38 @@ function useLocalReceipt(today: string, userId?: string): LocalReceipt | null {
  */
 export function useCardReceipt(cardId: string | null) {
   const today = useKstDate();
+  const { user, isLoading: isUserLoading } = useCurrentUser();
+  const userId = user?.id ?? null;
+  const { anonReceipt, mutateReceive } = useSyncAnonReceipt();
+  const userReceipt = useLocalReceipt(today, userId ?? undefined);
+  const mine = useMyCards("received", userId);
+
+  const localReceipt = userId ? (userReceipt ?? anonReceipt) : anonReceipt;
+  const isReceived = cardId ? isReceivedToday({ today, cardId, localReceipt, serverItems: mine.data?.items }) : false;
+  // 로그인 사용자는 서버 목록을 읽기 전까지 판정을 미룬다(모션을 잘못 다시 틀지 않게)
+  const isResolved = !isUserLoading && (!userId || !mine.isPending || mine.isError);
+
+  const markReceived = useCallback(
+    (id: string) => {
+      writeLocalReceipt({ date: today, cardId: id }, userId ?? undefined);
+      if (userId) mutateReceive(id);
+    },
+    [today, userId, mutateReceive],
+  );
+
+  return { isReceived, isResolved, markReceived, userId };
+}
+
+/**
+ * 로그인 뒤 소급: 비로그인으로 오늘 받은 기기 기록이 있으면 그 카드를 한 번 receive 하고 기록을 계정 키로 옮긴다.
+ * 책갈피 화면(홈 카드·받기·나의 책갈피) 어디서 로그인 상태를 처음 보든 같은 규칙으로 돈다.
+ */
+export function useSyncAnonReceipt() {
+  const today = useKstDate();
   const queryClient = useQueryClient();
   const { user, isLoading: isUserLoading } = useCurrentUser();
   const userId = user?.id ?? null;
   const anonReceipt = useLocalReceipt(today);
-  const userReceipt = useLocalReceipt(today, userId ?? undefined);
-  const mine = useMyCards("received", userId);
-
   const receive = useMutation({
     mutationKey: ["hoondok", "cards", "receive"],
     mutationFn: (id: string) => cardsAPI.receive(id),
@@ -75,20 +100,7 @@ export function useCardReceipt(cardId: string | null) {
     mutateReceive(anonReceipt.cardId);
   }, [isUserLoading, userId, anonReceipt, mutateReceive]);
 
-  const localReceipt = userId ? (userReceipt ?? anonReceipt) : anonReceipt;
-  const isReceived = cardId ? isReceivedToday({ today, cardId, localReceipt, serverItems: mine.data?.items }) : false;
-  // 로그인 사용자는 서버 목록을 읽기 전까지 판정을 미룬다(모션을 잘못 다시 틀지 않게)
-  const isResolved = !isUserLoading && (!userId || !mine.isPending || mine.isError);
-
-  const markReceived = useCallback(
-    (id: string) => {
-      writeLocalReceipt({ date: today, cardId: id }, userId ?? undefined);
-      if (userId) mutateReceive(id);
-    },
-    [today, userId, mutateReceive],
-  );
-
-  return { isReceived, isResolved, markReceived, userId };
+  return { anonReceipt, mutateReceive };
 }
 
 /** 건넴 표시(050). 로그인 사용자만 부른다 — 비로그인 건네기는 기록 없이 된다. */

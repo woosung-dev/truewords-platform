@@ -10,7 +10,7 @@ import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import type { CardReceiptItem, CardShelf, MyCardsFilter } from "../api";
 import { cardPath } from "../share";
-import { useMyCards } from "../use-cards";
+import { useMyCards, useSyncAnonReceipt } from "../use-cards";
 
 // 책등 색·길이·들여쓰기 (시안 LAY). 책 이름 순서대로 돌려 쓴다.
 // 책등 아래 리본 꼬리는 최대 6개 (시안)
@@ -161,6 +161,8 @@ function Panel({ filter, userId }: { filter: MyCardsFilter; userId: string }) {
 
 export function BookmarksScreen({ initialFilter }: { initialFilter: MyCardsFilter }) {
   const { user, isLoading } = useCurrentUser();
+  // 비로그인으로 오늘 받은 책갈피가 있으면 로그인 뒤 여기서도 소급한다
+  useSyncAnonReceipt();
   const [filter, setFilter] = useState<MyCardsFilter>(initialFilter);
 
   if (isLoading)

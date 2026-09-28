@@ -63,6 +63,10 @@ function Ribbon({ width, height, right }: { width: number; height: number; right
 }
 
 /** 2:1 카톡 링크 미리보기 (시안 ⑦ `.og`): 제목·출처·훈독만. 본문은 링크 설명(og:description)이 보인다. */
+// 카드 화면(cards.css .bm__leaves·.bm__cup)과 같은 가장자리 페이드 — 사진 경계가 네모로 보이지 않게
+const LEAVES_MASK = "radial-gradient(130% 120% at 0 0, black 45%, transparent 78%)";
+const CUP_MASK = "linear-gradient(90deg, transparent, black 18%, black 88%, transparent)";
+
 function LinkImage({ card, assets }: { card: CardPublic; assets: ImageAssets }) {
   const { width, height } = IMAGE_SIZE.link;
   return (
@@ -73,10 +77,16 @@ function LinkImage({ card, assets }: { card: CardPublic; assets: ImageAssets }) 
         src={assets.leaves}
         width={330}
         height={400}
-        style={{ position: "absolute", left: 0, top: 0, opacity: 0.8 }}
+        style={{ position: "absolute", left: 0, top: 0, opacity: 0.8, maskImage: LEAVES_MASK }}
         alt=""
       />
-      <img src={assets.cup} width={300} height={212} style={{ position: "absolute", right: 24, bottom: 0 }} alt="" />
+      <img
+        src={assets.cup}
+        width={300}
+        height={212}
+        style={{ position: "absolute", right: 24, bottom: 0, maskImage: CUP_MASK }}
+        alt=""
+      />
       <Ribbon width={56} height={124} right={64} />
       <div
         style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 64px", width: 560 }}
@@ -114,7 +124,7 @@ function CardImage({ card, assets, format }: { card: CardPublic; assets: ImageAs
         src={assets.leaves}
         width={isStory ? 560 : 500}
         height={isStory ? 679 : 606}
-        style={{ position: "absolute", left: 0, top: 0, opacity: 0.85 }}
+        style={{ position: "absolute", left: 0, top: 0, opacity: 0.85, maskImage: LEAVES_MASK }}
         alt=""
       />
       <Ribbon width={isStory ? 104 : 86} height={isStory ? 250 : 184} right={isStory ? 90 : 60} />
@@ -162,7 +172,7 @@ function CardImage({ card, assets, format }: { card: CardPublic; assets: ImageAs
             {card.text}
           </div>
           <div style={{ fontSize: isStory ? 34 : 30, color: C.ink2, marginTop: isStory ? 40 : 28 }}>
-            — {card.source_label}
+            {`— ${card.source_label}`}
           </div>
         </div>
       </div>
@@ -188,7 +198,7 @@ function CardImage({ card, assets, format }: { card: CardPublic; assets: ImageAs
           src={assets.cup}
           width={isStory ? 520 : 380}
           height={isStory ? 368 : 269}
-          style={{ position: "absolute", right: isStory ? 40 : 40, bottom: 0 }}
+          style={{ position: "absolute", right: 40, bottom: 0, maskImage: CUP_MASK }}
           alt=""
         />
       </div>
