@@ -126,10 +126,24 @@ class JeongseongPeriodResponse(BaseModel):
     progress: JeongseongProgress
 
 
+class JeongseongLastEnded(BaseModel):
+    """최근에 마친 정성 기간(마무리 카드용). 완료한 날 수는 보내지 않는다 — 빠진 날을 계산할 수 없게 한다."""
+
+    id: uuid.UUID
+    topic: str
+    duration_days: int
+    started_on: date
+    end_on: date
+
+
 class JeongseongCurrentResponse(BaseModel):
-    """GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null."""
+    """GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null.
+
+    last_ended 는 period 가 null 일 때만 채운다 — 최근 7일 안에 끝난 completed 1건(abandoned 제외).
+    """
 
     period: JeongseongPeriodResponse | None = None
+    last_ended: JeongseongLastEnded | None = None
 
 
 # --- 편성 admin (API-HD-006~008, Phase 3 A) ---------------------------------

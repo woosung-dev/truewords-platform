@@ -110,6 +110,16 @@ class JeongseongRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_last_completed(self, user_id: uuid.UUID) -> JeongseongPeriod | None:
+        """가장 늦게 시작한 completed 기간. active 는 사용자당 1건이라 기간이 겹치지 않아 가장 늦게 끝난 기간과 같다."""
+        result = await self.session.execute(
+            select(JeongseongPeriod)
+            .where(JeongseongPeriod.user_id == user_id, JeongseongPeriod.status == "completed")
+            .order_by(JeongseongPeriod.started_on.desc(), JeongseongPeriod.created_at.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
     async def create(self, period: JeongseongPeriod) -> JeongseongPeriod:
         """부분 unique(user·active) 위반은 IntegrityError 그대로 — service 가 409 로 바꾼다."""
         return await self._save(period)

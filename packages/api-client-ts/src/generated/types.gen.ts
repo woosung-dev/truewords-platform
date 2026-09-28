@@ -1940,9 +1940,40 @@ export type JeongseongCreate = {
  * JeongseongCurrentResponse
  *
  * GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null.
+ *
+ * last_ended 는 period 가 null 일 때만 채운다 — 최근 7일 안에 끝난 completed 1건(abandoned 제외).
  */
 export type JeongseongCurrentResponse = {
+    last_ended?: JeongseongLastEnded | null;
     period?: JeongseongPeriodResponse | null;
+};
+
+/**
+ * JeongseongLastEnded
+ *
+ * 최근에 마친 정성 기간(마무리 카드용). 완료한 날 수는 보내지 않는다 — 빠진 날을 계산할 수 없게 한다.
+ */
+export type JeongseongLastEnded = {
+    /**
+     * Duration Days
+     */
+    duration_days: number;
+    /**
+     * End On
+     */
+    end_on: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Started On
+     */
+    started_on: string;
+    /**
+     * Topic
+     */
+    topic: string;
 };
 
 /**

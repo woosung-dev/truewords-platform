@@ -99,7 +99,7 @@
 | — | — | **부분 unique** `uq_jeongseong_periods_user_active` on (`user_id`) `WHERE status = 'active'` | 사용자당 진행 중 1건. `completed`·`abandoned` 행은 여러 건 남는다 |
 
 - **진행률은 저장하지 않는다.** `end_on = started_on + (duration_days - 1)`, `done_days`·`missed_days`·`remaining_days`·`percent`·`state(upcoming·active·completed)` 는 `mission_logs` 의 `read` 완료일에서 매번 계산한다(`hoondok/jeongseong.py`). `missed_days` 는 어제까지만 센다 — 오늘은 밀린 날이 아니다.
-- 상태 전이: `active → completed` 는 `end_on < today` 인 상태로 `GET/POST/DELETE /hoondok/me/jeongseong` 이 읽는 시점에 기록한다(배치 없음). `active → abandoned` 는 DELETE. 두 전이 모두 `ended_at`·`updated_at` 을 채운다. 되돌리기는 없다.
+- 상태 전이: `active → completed` 는 `end_on < today` 인 상태로 `GET/POST/DELETE /hoondok/me/jeongseong` 이 읽는 시점에 기록한다(배치 없음). `active → abandoned` 는 DELETE. 두 전이 모두 `ended_at`·`updated_at` 을 채운다. 되돌리기는 없다. 가장 최근 `completed` 행은 `end_on` 뒤 7일 동안 GET `last_ended`(마무리 카드)로 읽히고, `abandoned` 행은 읽히지 않는다.
 - 부분 unique 는 SQLModel `__table_args__` 의 `Index(..., unique=True, postgresql_where=..., sqlite_where=...)` 로 선언해 aiosqlite 테스트에서도 같은 제약을 재현한다. 동시 생성 경쟁은 IntegrityError → 409.
 - 계정 삭제([API-HD-011](../api/hoondok-api.md))는 본인 행을 하드 삭제한다.
 

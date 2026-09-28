@@ -223,7 +223,7 @@ GET /admin/hoondok/daily-readings/candidates?q=참사랑&sources=B&sources=O&lim
 GET /hoondok/me/jeongseong
 ```
 
-응답 200 `{ period: JeongseongPeriodResponse | null }`.
+응답 200 `{ period: JeongseongPeriodResponse | null, last_ended: JeongseongLastEnded | null }`.
 
 ```json
 {
@@ -242,7 +242,8 @@ GET /hoondok/me/jeongseong
       "percent": 5,
       "state": "active"
     }
-  }
+  },
+  "last_ended": null
 }
 ```
 
@@ -257,6 +258,8 @@ GET /hoondok/me/jeongseong
 | `progress.percent` | `done_days / duration_days × 100` 정수 반올림(half-up) |
 
 `active` 인데 `end_on < today` 면 이 요청이 `status=completed` · `ended_at` 을 기록하고 `period: null` 을 돌려준다(별도 배치 없음). 진행 중인 기간이 없으면 `period: null`. 401 미인증.
+
+`last_ended` `{id, topic, duration_days, started_on, end_on}` 은 마무리 카드용이다. `period` 가 null 일 때만 채우며, 가장 최근에 끝난 `completed` 기간 1건의 `end_on` 이 `오늘(KST) - 7` 이후일 때만 준다. `abandoned`(그만두기)는 보지 않고, 진행 중·예정 기간이 있으면 null 이다. 완료한 날 수·진행률은 보내지 않는다 — 빠진 날을 계산할 수 없게 한다.
 
 ### POST — 시작
 
@@ -340,6 +343,7 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 | 2026-09-23 | API-HD-015·016 항목에 `display_text` 추가(하위 호환). 원본 `text` 는 유지하고 표시할 때만 정리한다 — Qdrant 재적재·재임베딩 없음 | 확정 · PLAN-HD-008 트랙 A |
 | 2026-09-22 | API-HD-019~022 신설(Web Push). VAPID 미설정이면 구독 자체를 409 `PUSH_DISABLED` 로 거절(조용히 저장하지 않음), `endpoint` unique + 소유 이전, `read_time` 은 `HH:MM` 문자열·KST 고정, 설정 PUT 은 전체 교체. 발송기는 sub-PR B | 확정 · PLAN-HD-006 sub-PR A |
 | 2026-09-28 | API-HD-020 에서 알림 문구 수준 필드(중립·신앙) 제거 — 오버 스펙, 알림 문구는 중립 문구 하나. PUT 에 옛 필드가 오면 422 대신 버린다 | 확정 · PLAN-HD-006 §8 |
+| 2026-09-29 | API-HD-009 GET 에 `last_ended` 추가(하위 호환). 마친 정성은 주제·기간만 돌려주고 완료한 날 수는 보내지 않는다 — 빠진 날을 드러내지 않는다. 그만둔 기간은 마무리 카드가 없다 | 확정 |
 
 ---
 

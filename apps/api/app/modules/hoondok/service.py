@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.common.clock import today_kst
 from app.modules.hoondok.candidates import filter_results
-from app.modules.hoondok.jeongseong import compute_progress
+from app.modules.hoondok.jeongseong import compute_progress, period_end
 from app.modules.hoondok.models import DailyReading, JeongseongPeriod, MissionLog
 from app.modules.hoondok.repository import DailyReadingRepository, JeongseongRepository, MissionLogRepository
 from app.modules.hoondok.schemas import (
@@ -22,6 +22,7 @@ from app.modules.hoondok.schemas import (
     DailyReadingPublic,
     JeongseongCreate,
     JeongseongCurrentResponse,
+    JeongseongLastEnded,
     JeongseongPeriodResponse,
     MissionCompleteResponse,
     MissionKind,
@@ -37,6 +38,7 @@ from app.modules.search.hybrid import hybrid_search
 
 HISTORY_MIN_YEAR = 2020  # 월 기록 조회 하한. 상한은 올해 + 1
 JEONGSEONG_START_WINDOW_DAYS = 30  # 시작일 허용 범위: 오늘 ~ 오늘 + 30
+JEONGSEONG_LAST_ENDED_DAYS = 7  # 마무리 카드: end_on 이 오늘 - 7 이후인 completed 만
 
 
 def _utcnow() -> datetime:
@@ -133,8 +135,25 @@ class JeongseongService:
         today = self.today_fn()
         period = await self._resolve_active(user_id, today)
         if period is None:
-            return JeongseongCurrentResponse(period=None)
+            return JeongseongCurrentResponse(period=None, last_ended=await self._last_ended(user_id, today))
+        # 진행 중·예정 기간이 있으면 마무리 카드를 띄우지 않는다.
         return JeongseongCurrentResponse(period=await self._to_response(period, today))
+
+    async def _last_ended(self, user_id: uuid.UUID, today: date) -> JeongseongLastEnded | None:
+        """최근 7일 안에 끝난 completed 기간. abandoned(그만두기)는 마무리 카드를 띄우지 않으므로 보지 않는다."""
+        period = await self.repo.get_last_completed(user_id)
+        if period is None:
+            return None
+        end_on = period_end(period.started_on, period.duration_days)
+        if end_on < today - timedelta(days=JEONGSEONG_LAST_ENDED_DAYS):
+            return None
+        return JeongseongLastEnded(
+            id=period.id,
+            topic=period.topic,
+            duration_days=period.duration_days,
+            started_on=period.started_on,
+            end_on=end_on,
+        )
 
     async def create(self, user_id: uuid.UUID, data: JeongseongCreate) -> JeongseongPeriodResponse:
         today = self.today_fn()

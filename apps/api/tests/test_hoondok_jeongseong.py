@@ -1,10 +1,10 @@
 """훈독 API-HD-009 정성 기간 — 진행률 순수 함수 · 부분 unique(sqlite_where) · 서비스 409/자동 completed ·
-라우터 401/403/422/201/409 · DELETE 204/404 · admin_token 거부."""
+마무리 카드 last_ended(7일·abandoned 제외·KST 자정) · 라우터 401/403/422/201/409 · DELETE 204/404 · admin_token 거부."""
 
 from __future__ import annotations
 
 import uuid
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -15,16 +15,19 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
+from app.core.common.clock import today_kst
 from app.main import app
 from app.modules.admin.auth import create_access_token
 from app.modules.hoondok.dependencies import get_jeongseong_repository, get_mission_repository
 from app.modules.hoondok.jeongseong import compute_progress
-from app.modules.hoondok.models import JeongseongPeriod, MissionLog
+from app.modules.hoondok.models import ClientErrorEvent, JeongseongPeriod, JeongseongReading, MissionLog
 from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
 from app.modules.hoondok.schemas import JeongseongCreate
 from app.modules.hoondok.service import JeongseongService
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
 from app.modules.identity.models import User
+from app.modules.identity.repository import UserRepository
+from app.modules.identity.schemas import SignupRequest
 from app.modules.identity.service import IdentityService
 
 TODAY = date(2026, 9, 19)
@@ -85,7 +88,14 @@ async def session():
     async with engine.begin() as conn:
         await conn.run_sync(
             SQLModel.metadata.create_all,
-            tables=[User.__table__, MissionLog.__table__, JeongseongPeriod.__table__],
+            # 정성 말씀·오류 기록은 계정 삭제(delete_for_user)가 함께 지우므로 테이블이 있어야 한다
+            tables=[
+                User.__table__,
+                MissionLog.__table__,
+                JeongseongPeriod.__table__,
+                JeongseongReading.__table__,
+                ClientErrorEvent.__table__,
+            ],
         )
     session = AsyncSession(engine, expire_on_commit=False)
     try:
@@ -181,6 +191,121 @@ async def test_service_get_marks_completed_after_end_on(session: AsyncSession):
     assert current is not None and current.progress.state == "active" and current.progress.remaining_days == 0
 
 
+# --- 마무리 카드 last_ended (aiosqlite) -------------------------------------------
+
+
+def _service(session: AsyncSession, today_fn=lambda: TODAY) -> JeongseongService:
+    return JeongseongService(JeongseongRepository(session), MissionLogRepository(session), today_fn=today_fn)
+
+
+async def _ended(
+    repo: JeongseongRepository,
+    user_id: uuid.UUID,
+    end_offset: int,
+    *,
+    status: str = "completed",
+    topic: str = "감사",
+    duration_days: int = 7,
+) -> JeongseongPeriod:
+    """end_on = TODAY + end_offset 인 끝난 기간."""
+    period = _period(user_id, topic, duration_days, TODAY + timedelta(days=end_offset - (duration_days - 1)))
+    period.status = status
+    return await repo.create(period)
+
+
+@pytest.mark.asyncio
+async def test_last_ended_shows_completed_within_seven_days(session: AsyncSession):
+    repo = JeongseongRepository(session)
+    service = _service(session)
+    for offset, shown in ((-1, True), (-7, True), (-8, False)):
+        user_id = uuid.uuid4()
+        period = await _ended(repo, user_id, offset, duration_days=21)
+        current = await service.get_current(user_id)
+        assert current.period is None
+        if shown:
+            assert current.last_ended is not None, offset
+            assert current.last_ended.model_dump() == {
+                "id": period.id,
+                "topic": "감사",
+                "duration_days": 21,
+                "started_on": TODAY + timedelta(days=offset - 20),
+                "end_on": TODAY + timedelta(days=offset),
+            }
+        else:
+            assert current.last_ended is None, offset
+
+    # 어제 끝난 active 기간 — 이 GET 이 completed 로 정리하고 같은 응답에서 마무리 카드를 준다
+    user_id = uuid.uuid4()
+    stale = await repo.create(_period(user_id, topic="지난", started_on=TODAY - timedelta(days=7)))
+    current = await service.get_current(user_id)
+    assert current.period is None and current.last_ended is not None and current.last_ended.id == stale.id
+
+
+@pytest.mark.asyncio
+async def test_last_ended_ignores_abandoned(session: AsyncSession):
+    repo = JeongseongRepository(session)
+    service = _service(session)
+    user_id = uuid.uuid4()
+    await _ended(repo, user_id, -1, status="abandoned")
+    assert (await service.get_current(user_id)).last_ended is None
+
+    # DELETE(그만두기)로 끝낸 기간도 마무리 카드가 없다
+    other = uuid.uuid4()
+    await service.create(other, JeongseongCreate(topic="감사", duration_days=7))
+    await service.abandon(other)
+    assert (await service.get_current(other)).last_ended is None
+
+
+@pytest.mark.asyncio
+async def test_last_ended_null_while_period_active_or_upcoming(session: AsyncSession):
+    repo = JeongseongRepository(session)
+    service = _service(session)
+    for started_on in (TODAY, TODAY + timedelta(days=3)):  # 진행 중 · 예정
+        user_id = uuid.uuid4()
+        await _ended(repo, user_id, -1)
+        await service.create(user_id, JeongseongCreate(topic="새", duration_days=7, started_on=started_on))
+        current = await service.get_current(user_id)
+        assert current.period is not None and current.last_ended is None
+
+
+@pytest.mark.asyncio
+async def test_last_ended_picks_latest_completed(session: AsyncSession):
+    repo = JeongseongRepository(session)
+    user_id = uuid.uuid4()
+    # 늦게 끝난 기간을 먼저 넣는다 — 입력 순서가 아니라 기간 순서로 고른다
+    latest = await _ended(repo, user_id, -1, topic="나중")
+    await _ended(repo, user_id, -8, topic="먼저")
+    ended = (await _service(session).get_current(user_id)).last_ended
+    assert ended is not None and ended.id == latest.id and ended.topic == "나중"
+
+
+@pytest.mark.asyncio
+async def test_last_ended_gone_after_account_delete(session: AsyncSession):
+    identity = IdentityService(UserRepository(session))
+    me = await identity.signup(SignupRequest(email="me@example.com", password="password1", display_name="효진"))
+    repo = JeongseongRepository(session)
+    await _ended(repo, me.id, -1)
+    service = _service(session)
+    assert (await service.get_current(me.id)).last_ended is not None
+
+    await identity.delete_account(me, purgers=[repo])
+    assert (await service.get_current(me.id)).last_ended is None
+
+
+@pytest.mark.asyncio
+async def test_last_ended_window_follows_kst_midnight(session: AsyncSession):
+    """end_on 이 7일 전이면 그날 밤 23:59(KST)까지 보이고 KST 자정(UTC 15:00)부터 사라진다."""
+    repo = JeongseongRepository(session)
+    user_id = uuid.uuid4()
+    await _ended(repo, user_id, -7)  # end_on = 9/12, TODAY = 9/19
+
+    def at(hour: int, minute: int):
+        return lambda: today_kst(datetime(2026, 9, 19, hour, minute, tzinfo=timezone.utc))
+
+    assert (await _service(session, at(14, 59)).get_current(user_id)).last_ended is not None  # KST 9/19 23:59
+    assert (await _service(session, at(15, 0)).get_current(user_id)).last_ended is None  # KST 9/20 00:00
+
+
 # --- router (인메모리 fake) -------------------------------------------------------
 
 
@@ -208,6 +333,10 @@ class _Periods:
 
     async def get_active(self, user_id):
         return next((p for p in self.rows.values() if p.user_id == user_id and p.status == "active"), None)
+
+    async def get_last_completed(self, user_id):
+        done = [p for p in self.rows.values() if p.user_id == user_id and p.status == "completed"]
+        return max(done, key=lambda p: p.started_on, default=None)
 
     async def create(self, period: JeongseongPeriod) -> JeongseongPeriod:
         if await self.get_active(period.user_id) is not None:
@@ -254,7 +383,7 @@ def test_router_401_403_422_201_409_and_get_null(client: TestClient):
 
     client.cookies.set(COOKIE_NAME, IdentityService.issue_token(client.hoondok_user))
     assert client.post(PATH, json=body).status_code == 403  # CSRF 헤더 없음
-    assert client.get(PATH).json() == {"period": None}
+    assert client.get(PATH).json() == {"period": None, "last_ended": None}
 
     for bad in (
         {**body, "duration_days": 10},  # Literal 밖
@@ -303,10 +432,28 @@ def test_router_delete_abandons_204_then_404(client: TestClient):
 
     row = client.periods.rows[uuid.UUID(created.json()["id"])]
     assert row.status == "abandoned" and row.ended_at is not None
-    assert client.get(PATH).json() == {"period": None}
+    assert client.get(PATH).json() == {"period": None, "last_ended": None}
     assert client.delete(PATH, headers=XHR).status_code == 404
     # 그만둔 뒤 새 기간 시작 가능
     assert client.post(PATH, json={"topic": "다시", "duration_days": 7}, headers=XHR).status_code == 201
+
+
+def test_router_get_last_ended_without_day_counts(client: TestClient):
+    client.cookies.set(COOKIE_NAME, IdentityService.issue_token(client.hoondok_user))
+    created = client.post(PATH, json={"topic": "감사", "duration_days": 7}, headers=XHR).json()
+    today = today_kst()
+    client.periods.rows[uuid.UUID(created["id"])].started_on = today - timedelta(days=7)  # end_on = 어제
+
+    body = client.get(PATH).json()
+    assert body["period"] is None
+    # 완료한 날 수·진행률은 보내지 않는다 — 빠진 날을 계산할 수 없게 한다
+    assert body["last_ended"] == {
+        "id": created["id"],
+        "topic": "감사",
+        "duration_days": 7,
+        "started_on": (today - timedelta(days=7)).isoformat(),
+        "end_on": (today - timedelta(days=1)).isoformat(),
+    }
 
 
 def test_router_rejects_admin_token(client: TestClient):
