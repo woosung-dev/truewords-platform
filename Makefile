@@ -1,7 +1,8 @@
-# TrueWords Platform — 자주 쓰는 작업을 모아둔 Makefile
+# TrueWords Platform — 앱을 가로지르는 검증·로컬 인프라·배포·운영 명령
 # 사용법: `make` (도움말) / `make <target>`
 #
-# 디렉터리: apps/web·admin (Next.js 16 + pnpm), apps/api (FastAPI + uv)
+# 앱 하나의 dev·build·test·lint 는 pnpm 스크립트를 쓴다 (`pnpm dev`, `pnpm dev:api`, `pnpm test`,
+# `pnpm --filter @truewords/<앱> <script>`). 여기에는 pnpm 스크립트로 대신할 수 없는 것만 둔다 (예외: 자주 쓰는 `backend-test`).
 
 .DEFAULT_GOAL := help
 # 배포의 `docker save | gzip -1 > 파일` 등 파이프는 기본 sh 에서 마지막 명령의
@@ -22,144 +23,66 @@ FORCE_DEPLOY ?=
 # 비어 있으면 어느 서비스의 운영 태그와 비교할지 알 수 없어 그 검사만 건너뛴다.
 DEPLOY_SERVICE ?=
 
-.PHONY: help \
-        admin-dev admin-type admin-lint admin-test admin-test-watch admin-build admin-e2e admin-install \
-        backend-dev backend-test backend-test-fast backend-lint backend-install backend-migrate backend-start \
-        infra-up infra-down infra-logs infra-status infra-reset \
-        deploy-guard deploy-backend rollback-backend deploy-admin rollback-admin oracle-logs \
-        ci e2e ops-check smoke-web cron-cache-cleanup cron-refresh-questions restore-drill \
-        verify verify-modal test-all type-check clean web-dev web-build web-test web-type \
-        deploy-web rollback-web contracts-check
-
-# ============================================================
-# 도움말
-# ============================================================
 help: ## 사용 가능한 명령 목록
-	@echo "TrueWords Platform — make targets"
-	@echo ""
-	@echo "▶ 오늘 변경분 검증"
-	@grep -E '^(verify|verify-modal):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo "▶ Admin (Next.js 16)"
-	@grep -E '^admin-[a-z0-9-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo "▶ Backend (FastAPI)"
-	@grep -E '^backend-[a-z0-9-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo "▶ Local infra (Docker — PostgreSQL + Qdrant)"
-	@grep -E '^infra-[a-z0-9-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo "▶ 배포 (Oracle Cloud VM)"
-	@grep -E '^(deploy-guard|deploy-backend|rollback-backend|deploy-admin|rollback-admin|deploy-web|rollback-web|oracle-logs):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo "▶ CI / 운영 작업 (로컬 사전 점검 · GitHub Actions 대체)"
-	@grep -E '^(ci|e2e|ops-check|smoke-web|cron-cache-cleanup|cron-refresh-questions|restore-drill):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo "▶ 통합"
-	@grep -E '^(test-all|type-check|clean):.*##' $(MAKEFILE_LIST) | awk -F':.*##' '{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
+	@awk 'BEGIN {FS = ":.*## "} /^##@ / {printf "\n\033[1m%s\033[0m\n", substr($$0, 5)} /^[a-z0-9-]+:.*## / {printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# ============================================================
-# 오늘 변경분 검증 — source-original-modal.tsx (highlight + .txt strip)
-# ============================================================
-verify: verify-modal type-check ## 원문 모달 단위 테스트 + 모든 TS 패키지 타입 검사
-
-verify-modal: ## 원문 보기 모달 단위 테스트만 (source-original-modal)
-	@echo "▶ source-original-modal 단위 테스트 실행"
-	@pnpm --filter @truewords/web exec vitest run src/test/source-original-modal.test.tsx
-
-# ============================================================
-# Admin (Next.js 16, pnpm)
-# ============================================================
-web-dev: ## 사용자 웹 dev 서버 (http://localhost:3000)
-	@pnpm --filter @truewords/web dev
-
-web-build: ## 사용자 웹 프로덕션 빌드
-	@pnpm --filter @truewords/web build
-
-web-test: ## 사용자 웹 Vitest
-	@pnpm --filter @truewords/web test
-
-web-type: ## 사용자 웹 타입 검사
-	@pnpm --filter @truewords/web typecheck
-
-admin-dev: ## admin dev 서버 (http://localhost:3001)
-	@cd apps/admin && pnpm dev
-
-admin-type: ## admin TypeScript 타입 체크 (tsc --noEmit)
-	@cd apps/admin && pnpm tsc --noEmit
-
-admin-lint: ## admin ESLint
-	@cd apps/admin && pnpm lint
-
-admin-test: ## admin Vitest 단위 테스트 1회 실행
-	@cd apps/admin && pnpm test
-
-admin-test-watch: ## admin Vitest watch 모드
-	@cd apps/admin && pnpm test:watch
-
-admin-build: ## admin 프로덕션 빌드
-	@cd apps/admin && pnpm build
-
-admin-e2e: ## admin Playwright E2E (헤드리스)
-	@pnpm test:e2e
-
-admin-install: ## admin 의존성 설치 (pnpm install)
-	@pnpm install --frozen-lockfile
-
-# ============================================================
-# Backend (FastAPI, uv)
-# ============================================================
-backend-dev: ## backend dev 서버 (http://localhost:8000, --reload)
-	@cd apps/api && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-backend-test: ## backend 전체 pytest (ci-api.yml 과 같은 env·범위)
-	@cd apps/api && GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run pytest
-
-backend-test-fast: ## backend pytest fail-fast (-x, 첫 실패 즉시 중단)
-	@cd apps/api && GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run pytest -x
-
-backend-lint: ## backend ruff lint (있을 때만)
-	@cd apps/api && (uv run ruff check . 2>/dev/null || echo "ruff 미설정 — skip")
-
-backend-install: ## API 의존성 설치 (uv.lock 고정, dev 그룹. eval 은 `uv sync --frozen --group eval`)
-	@cd apps/api && uv sync --frozen
-
-backend-migrate: ## backend alembic 마이그레이션 적용 (upgrade head)
-	@cd apps/api && uv run alembic upgrade head
-
-backend-start: infra-up backend-migrate backend-dev ## 인프라 up → 마이그레이션 → dev 서버 (cold start 한 방)
-
-# ============================================================
-# Local infra — Docker Compose (PostgreSQL + Qdrant)
-# apps/api/docker-compose.yml 의 postgres/qdrant 서비스만 사용. backend 서비스는
-# 호스트(uvicorn)에서 직접 띄운다.
-# ============================================================
+##@ 로컬 인프라 (Docker — PostgreSQL + Qdrant)
+# apps/api/docker-compose.yml 의 postgres/qdrant 서비스만 사용. API 는 호스트에서 `pnpm dev:api` 로 띄운다.
 infra-up: ## postgres + qdrant 컨테이너 기동 (백그라운드, healthy 까지 대기)
 	@cd apps/api && docker compose up -d --wait postgres qdrant
 
 infra-down: ## postgres + qdrant 컨테이너 정지 (볼륨은 보존)
 	@cd apps/api && docker compose down
 
-infra-logs: ## postgres + qdrant 로그 follow (Ctrl+C 로 종료)
-	@cd apps/api && docker compose logs -f postgres qdrant
+##@ 검증 — 로컬 사전 점검 · GitHub Actions 대체
+#
+# `make ci` 는 .github/workflows/ci.yml 의 검사 집합을 로컬에서 재현한다. E2E 만
+# 별도 `make e2e` 다 — 격리 compose·시드가 필요해서다. GHA 청구 차단(2026-07-24~31,
+# 08-07~31)처럼 PR 게이트가 사라졌을 때 임시 게이트가 된다. 명령이 갈라지면 로컬
+# 통과가 무의미해지므로 ci.yml 을 바꿀 때 이 두 target 도 같이 바꾼다.
+# 전제: uv · pnpm · Docker 데몬(contracts:check 의 oasdiff 컨테이너, e2e compose) · origin/main.
+ci: ## ci.yml 과 같은 검증 (API·웹·관리자·계약·저장소 검사). E2E 는 `make e2e`
+	@cd apps/api && uv sync --frozen
+	@cd apps/api && GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run pytest -q
+	@pnpm install --frozen-lockfile
+	@pnpm contracts:check
+	@pnpm tooling:test
+	@pnpm docs:check
+	@pnpm boundaries:check
+	@pnpm hoondok:check
+	@for s in infra/oracle-vm/*.sh tooling/*.sh; do bash -n "$$s" || exit 1; done
+	@pnpm test && pnpm lint && pnpm build && pnpm typecheck
 
-infra-status: ## 컨테이너 상태 + 포트 binding 확인
-	@cd apps/api && docker compose ps
+E2E_ADMIN_EMAIL ?= demo-admin@example.com
+e2e: ## 두 앱 + API 통합 E2E — ci-e2e.yml 과 같은 격리 compose·시드·env (끝나면 compose down)
+	@# 시드 없이 돌리면 로그인 의존 테스트가 통째로 죽는다(2026-07-30 사전 결함 기록). 순서를 여기 고정한다.
+	@docker compose -f apps/api/docker-compose.e2e.yml up -d --wait
+	@trap 'docker compose -f apps/api/docker-compose.e2e.yml down' EXIT; \
+	export ENVIRONMENT=development GEMINI_API_KEY=e2e-fixture-no-external-llm \
+	  ADMIN_JWT_SECRET=e2e-only-not-a-production-secret COOKIE_SECURE=false \
+	  DATABASE_URL=postgresql+asyncpg://truewords:truewords@127.0.0.1:15432/truewords_e2e \
+	  QDRANT_URL=http://127.0.0.1:16333 ADMIN_FRONTEND_URL=http://localhost:3001 \
+	  WEB_FRONTEND_URL=http://127.0.0.1:3000 EMBED_BATCH_SLEEP=0.001 \
+	  DEMO_ADMIN_EMAIL=$(E2E_ADMIN_EMAIL) E2E_ADMIN_EMAIL=$(E2E_ADMIN_EMAIL); \
+	(cd apps/api && uv run alembic upgrade head \
+	  && uv run python scripts/create_admin.py $(E2E_ADMIN_EMAIL) test1234 \
+	  && uv run python scripts/create_admin.py admin@test.com test1234 \
+	  && uv run python scripts/seed_chatbot_configs.py \
+	  && uv run python scripts/seed_daily_readings.py \
+	  && uv run python scripts/seed_hoondok_user.py hoondok@example.com test1234 --name 시드식구 \
+	  && uv run python scripts/seed_hoondok_journey.py) \
+	&& pnpm test:e2e
 
-infra-reset: ## ⚠️ 컨테이너 + 데이터 볼륨까지 전부 삭제 (postgres/qdrant 데이터 초기화)
-	@echo "⚠️  postgres_data, qdrant_data 볼륨까지 삭제됩니다. 5초 후 진행 (Ctrl+C 로 취소)..."
-	@sleep 5
-	@cd apps/api && docker compose down -v
+backend-test: ## backend 전체 pytest (ci-api.yml 과 같은 env·범위)
+	@cd apps/api && GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run pytest
 
-# ============================================================
-# Oracle Cloud VM 배포
+##@ 배포 (Oracle Cloud VM)
 #
 # 순서: deploy-guard → ops-check(advisory) → arm64 빌드 → 전송 → compose 교체 → deploy.log → GC.
 # 이미지 태그는 커밋 sha($(TAG))다. 태그가 곧 "운영에 무엇이 올라가 있나" 의 근거이므로
 # 가드가 HEAD ∈ origin/main + 클린 트리를 강제한다 (2026-08-06 브랜치 HEAD 배포 사고).
 # 여기에 더해 가드는 현재 운영 태그가 HEAD 의 조상인지 본다 — main 안이면서 운영보다
 # 뒤인 커밋으로 배포하면 이미 나간 기능이 조용히 사라지기 때문이다 (2026-09-20 미수 사고).
-# ============================================================
 
 # 배포·롤백 기록 — VM ~/truewords/deploy.log 에 한 줄 (UTC 시각 · 동작 · 서비스 · 태그 · 경로).
 # $(1)=deploy|rollback, $(2)=서비스, $(3)=guarded|forced|manual. `$$(date)` 는 VM 에서 평가된다.
@@ -294,65 +217,13 @@ prune-images: ## VM 의 오래된 truewords 이미지·빌드 캐시 정리 (최
 	@# 정렬해 최신 N개만 남긴다. `KEEP=5` / `DRY_RUN=1` 로 조정할 수 있다.
 	@ssh "$(ORACLE)" '$(if $(KEEP),KEEP=$(KEEP) ,)$(if $(DRY_RUN),DRY_RUN=$(DRY_RUN) ,)bash ~/truewords/prune-images.sh'
 
-worktree-gc: ## 로컬 worktree GC — main 에 머지된 것만 제거 (기본 예행, 실제 제거는 `DRY_RUN=0`)
-	@# prune-images 는 VM 디스크, 이쪽은 로컬 디스크다. 2026-09-20 실측에서
-	@# `.claude/worktrees/` 가 7.5G 였다 — worktree 마다 node_modules·.next 가
-	@# 새로 생성된 결과다(복사가 아니다. 추적 파일만 체크아웃되므로).
-	@# Claude Code 자동 스윕은 `cleanupPeriodDays`(여기선 3650=10년) 보다 오래된
-	@# 것만, 그것도 미푸시 커밋이 없을 때만 지운다. 그래서 따로 둔다.
-	@# --force 를 쓰지 않으므로 실행 중(잠김)·미커밋·미머지 worktree 는 손대지 않는다.
-	@$(if $(DRY_RUN),DRY_RUN=$(DRY_RUN) ,)bash tooling/worktree-gc.sh
-
 oracle-logs: ## Oracle Cloud VM Docker Compose 로그 follow (최근 100줄).
 	@ssh -t "$(ORACLE)" 'cd ~/truewords && sudo docker compose logs -f --tail=100'
 
-# ============================================================
-# CI / 운영 작업 — 로컬 사전 점검 + GitHub Actions 대체 진입점
-#
-# `make ci` 는 .github/workflows/ci.yml 의 검사 집합을 로컬에서 재현한다. E2E 만
-# 별도 `make e2e` 다 — 격리 compose·시드가 필요해서다. GHA 청구 차단(2026-07-24~31,
-# 08-07~31)처럼 PR 게이트가 사라졌을 때 임시 게이트가 된다. 명령이 갈라지면 로컬
-# 통과가 무의미해지므로 ci.yml 을 바꿀 때 이 두 target 도 같이 바꾼다.
-# 전제: uv · pnpm · Docker 데몬(contracts:check 의 oasdiff 컨테이너, e2e compose) · origin/main.
+##@ 운영 점검 — VM 예약 작업의 수동 실행·검증 진입점
 #
 # 예약 작업은 VM cron 이 주인이다. 아래 target 들은 수동 실행·검증용 진입점이며
 # 실제 스케줄은 VM crontab 에 있다 (infra/oracle-vm/README.md §정기 작업).
-# ============================================================
-ci: ## ci.yml 과 같은 검증 (API·웹·관리자·계약·저장소 검사). E2E 는 `make e2e`
-	@cd apps/api && uv sync --frozen
-	@cd apps/api && GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run pytest -q
-	@pnpm install --frozen-lockfile
-	@pnpm contracts:check
-	@pnpm tooling:test
-	@pnpm docs:check
-	@pnpm boundaries:check
-	@pnpm hoondok:check
-	@for s in infra/oracle-vm/*.sh tooling/*.sh; do bash -n "$$s" || exit 1; done
-	@pnpm test && pnpm lint && pnpm build && pnpm typecheck
-
-E2E_ADMIN_EMAIL ?= demo-admin@example.com
-e2e: ## 두 앱 + API 통합 E2E — ci-e2e.yml 과 같은 격리 compose·시드·env (끝나면 compose down)
-	@# 시드 없이 돌리면 로그인 의존 테스트가 통째로 죽는다(2026-07-30 사전 결함 기록). 순서를 여기 고정한다.
-	@docker compose -f apps/api/docker-compose.e2e.yml up -d --wait
-	@trap 'docker compose -f apps/api/docker-compose.e2e.yml down' EXIT; \
-	export ENVIRONMENT=development GEMINI_API_KEY=e2e-fixture-no-external-llm \
-	  ADMIN_JWT_SECRET=e2e-only-not-a-production-secret COOKIE_SECURE=false \
-	  DATABASE_URL=postgresql+asyncpg://truewords:truewords@127.0.0.1:15432/truewords_e2e \
-	  QDRANT_URL=http://127.0.0.1:16333 ADMIN_FRONTEND_URL=http://localhost:3001 \
-	  WEB_FRONTEND_URL=http://127.0.0.1:3000 EMBED_BATCH_SLEEP=0.001 \
-	  DEMO_ADMIN_EMAIL=$(E2E_ADMIN_EMAIL) E2E_ADMIN_EMAIL=$(E2E_ADMIN_EMAIL); \
-	(cd apps/api && uv run alembic upgrade head \
-	  && uv run python scripts/create_admin.py $(E2E_ADMIN_EMAIL) test1234 \
-	  && uv run python scripts/create_admin.py admin@test.com test1234 \
-	  && uv run python scripts/seed_chatbot_configs.py \
-	  && uv run python scripts/seed_daily_readings.py \
-	  && uv run python scripts/seed_hoondok_user.py hoondok@example.com test1234 --name 시드식구 \
-	  && uv run python scripts/seed_hoondok_journey.py) \
-	&& pnpm test:e2e
-
-contracts-check: ## 계약 재생성·drift 및 하위 호환성 검사
-	@pnpm contracts:check
-
 ops-check: ## 운영 불변식 점검 — 예약 작업이 "안 돈" 것까지 결과 기준으로 잡는다
 	@ssh "$(ORACLE)" 'bash ~/truewords/ops-check.sh'
 
@@ -377,18 +248,12 @@ cron-refresh-questions: ## 봇별 추천 질문 갱신 수동 실행 (`ARGS=--dr
 restore-drill: ## Postgres 백업 복구 리허설 (운영 DB 는 읽기만, 임시 DB 로 대조)
 	@ssh "$(ORACLE)" 'bash ~/truewords/restore-drill.sh'
 
-# ============================================================
-# 통합
-# ============================================================
-test-all: web-test admin-test backend-test ## web + admin + API 단위 테스트
-
-type-check: ## 모든 TypeScript 패키지 타입 검사
-	@pnpm typecheck
-
-clean: ## 빌드 산출물 정리 (.next, __pycache__, .pytest_cache)
-	@echo "▶ apps/admin/.next 삭제"
-	@rm -rf apps/admin/.next
-	@echo "▶ Python 캐시 삭제"
-	@find apps/api -type d -name "__pycache__" -prune -exec rm -rf {} + 2>/dev/null || true
-	@find apps/api -type d -name ".pytest_cache" -prune -exec rm -rf {} + 2>/dev/null || true
-	@echo "▶ 완료"
+##@ 로컬 정리
+worktree-gc: ## 로컬 worktree GC — main 에 머지된 것만 제거 (기본 예행, 실제 제거는 `DRY_RUN=0`)
+	@# prune-images 는 VM 디스크, 이쪽은 로컬 디스크다. 2026-09-20 실측에서
+	@# `.claude/worktrees/` 가 7.5G 였다 — worktree 마다 node_modules·.next 가
+	@# 새로 생성된 결과다(복사가 아니다. 추적 파일만 체크아웃되므로).
+	@# Claude Code 자동 스윕은 `cleanupPeriodDays`(여기선 3650=10년) 보다 오래된
+	@# 것만, 그것도 미푸시 커밋이 없을 때만 지운다. 그래서 따로 둔다.
+	@# --force 를 쓰지 않으므로 실행 중(잠김)·미커밋·미머지 worktree 는 손대지 않는다.
+	@$(if $(DRY_RUN),DRY_RUN=$(DRY_RUN) ,)bash tooling/worktree-gc.sh
