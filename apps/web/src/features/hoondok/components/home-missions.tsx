@@ -4,6 +4,7 @@ import { BookOpenText, HandHeart, Library } from "lucide-react";
 import Link from "next/link";
 import { MissionCard, WeekStrip } from "@/components/hoondok";
 import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-today";
+import { useResumeCard } from "@/features/hoondok/library/use-resume";
 import { PushPromptCard } from "@/features/hoondok/notifications/components/push-prompt-card";
 import { formatKstDate, type TodayResponse } from "@/features/hoondok/today";
 import { useKstDate } from "@/features/hoondok/use-kst-date";
@@ -46,6 +47,8 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
   const { data: summary } = useSummary(Boolean(user));
   const completion = useMissionCompletion("read", user, isLoading);
   const study = useMissionCompletion("study", user, isLoading);
+  // 마지막으로 읽던 원문 구간. 기록이 없거나 불러오지 못하면 지금까지와 같은 서고 안내 카드다
+  const resume = useResumeCard();
   const isReadDone = completion.isDone || Boolean(summary?.today.read);
 
   return (
@@ -90,10 +93,11 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
           />
           <MissionCard
             kind="말씀 읽기 · 이어 읽기"
-            title="말씀 서고"
-            meta="공개된 원문을 읽고 읽음으로 기록해요"
+            title={resume.status === "ready" ? resume.title : "말씀 서고"}
+            meta={resume.status === "ready" ? resume.meta : "공개된 원문을 읽고 읽음으로 기록해요"}
             icon={Library}
-            href="/hoondok/library"
+            href={resume.status === "ready" ? resume.href : "/hoondok/library"}
+            isPending={resume.status === "pending"}
             isDone={study.isDone || Boolean(summary?.today.study)}
           />
         </div>

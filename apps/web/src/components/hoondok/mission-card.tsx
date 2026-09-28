@@ -12,10 +12,22 @@ export type MissionCardProps = {
   isDone?: boolean;
   /** 준비 중 (기도하기·말씀 읽기). 이동·체크 모두 비활성 */
   isDisabled?: boolean;
+  /** 불러오는 중 — 제목·메타 자리에 한 줄씩 회색 막대를 두어 카드 높이를 지킨다 */
+  isPending?: boolean;
   onToggle?: () => void;
 };
 
-export function MissionCard({ kind, title, meta, icon: Icon, href, isDone, isDisabled, onToggle }: MissionCardProps) {
+export function MissionCard({
+  kind,
+  title,
+  meta,
+  icon: Icon,
+  href,
+  isDone,
+  isDisabled,
+  isPending,
+  onToggle,
+}: MissionCardProps) {
   const body = (
     <>
       <span className="mission__ic">
@@ -23,15 +35,19 @@ export function MissionCard({ kind, title, meta, icon: Icon, href, isDone, isDis
       </span>
       <span className="mission__bd">
         <span className="mission__kind">{isDisabled ? `${kind} · 준비 중` : kind}</span>
-        <span className="mission__title">{title}</span>
-        <span className="mission__meta">{meta}</span>
+        <span className="mission__title">
+          {isPending ? <span className="mission__skel" aria-hidden="true" /> : title}
+        </span>
+        <span className="mission__meta">
+          {isPending ? <span className="mission__skel" aria-hidden="true" /> : meta}
+        </span>
       </span>
     </>
   );
   return (
     <div className="mission" data-done={isDone ? "" : undefined} data-disabled={isDisabled ? "" : undefined}>
       {href && !isDisabled ? (
-        <Link className="mission__link" href={href}>
+        <Link className="mission__link" href={href} aria-busy={isPending || undefined}>
           {body}
         </Link>
       ) : (

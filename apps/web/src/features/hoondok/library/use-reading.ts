@@ -4,9 +4,10 @@
 // 비로그인은 조회조차 보내지 않는다 — 401 을 오류로 쌓지 않기 위해서다.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MarkInput, MarkItem } from "@truewords/api-client-ts/types";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { BOOKMARKS_KEY, MARKS_KEY, marksKey, READING_POSITIONS_KEY } from "../query-keys";
 import { libraryAPI } from "./api";
+import { type LastReading, parseLastReading, readLastReadingRaw, subscribeLastReading } from "./last-reading";
 
 export function useMarks(volume: string, isEnabled: boolean) {
   const query = useQuery({
@@ -55,6 +56,12 @@ export function useReadingPositions(isEnabled: boolean) {
     staleTime: 0,
   });
   return { items: query.data?.items ?? [], isPending: isEnabled && query.isPending, isSuccess: query.isSuccess };
+}
+
+/** 이 기기의 마지막 원문 구간(`hoondok:read:last`). 서버 렌더와 하이드레이션 첫 그림은 null 이다. */
+export function useLastReading(): LastReading | null {
+  const raw = useSyncExternalStore(subscribeLastReading, readLastReadingRaw, () => null);
+  return useMemo(() => parseLastReading(raw), [raw]);
 }
 
 /**
