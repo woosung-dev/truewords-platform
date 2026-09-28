@@ -789,6 +789,45 @@
     opacity: 0;
     animation: wd-arrive 1.6s ease-out 0.15s;
   }
+  /* 동작 줄이기: 번짐 없이 도착 표시(검색 안내 줄·이어 읽기 라벨)만 남긴다 */
+  @media (prefers-reduced-motion: reduce) {
+    .verse--arrive::after {
+      animation: none;
+    }
+  }
+  /* 이어 읽기 도착 라벨 — 글자가 주 신호이고 단락 번짐(.verse--arrive)은 보조다. 동작 줄이기에서도 라벨은 남는다.
+     앱바 아래에 멈추도록 .verse 와 같은 scroll-margin 을 쓴다 */
+  .wd-resume {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 14px;
+    scroll-margin-top: 76px;
+  }
+  @media (min-width: 1224px) {
+    .wd-resume {
+      scroll-margin-top: 148px;
+    }
+  }
+  .wd-resume::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+  .wd-resume__lab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: var(--r-full);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+  }
   /* 서버 display_text 의 문단("\n\n") 하나 */
   .verse__para {
     display: block;

@@ -6,6 +6,7 @@ import { AlertCircle, Copy, Share2, Users } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
+import { serverDate as toDate } from "@/features/hoondok/kst";
 import { onboardingHref } from "@/features/identity/gate";
 import { groupErrorOf } from "../groups-api";
 import { formatInviteCode, inviteLink, type ShareMethod, shareInvite } from "../invite-code";
@@ -21,11 +22,6 @@ export const groupHref = (groupId: string) => `/hoondok/groups/${encodeURICompon
 /** 이름 첫 글자(아바타). 이모지·결합 문자도 한 글자로 센다. */
 export function initialOf(name: string): string {
   return Array.from(name.trim())[0] ?? "";
-}
-
-/** 서버 시각 문자열 → Date. 오프셋이 없으면 naive UTC(서버 규칙)로 읽는다. */
-function toDate(value: string): Date {
-  return new Date(/[zZ]|[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`);
 }
 
 /** 0~23시 → "오전 5:55" · "오후 12:05". ICU 빌드마다 ko-KR 오전/오후 표기가 달라(AM 으로 나오기도 한다) 직접 만든다. */

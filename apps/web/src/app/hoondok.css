@@ -334,6 +334,20 @@
     margin-top: 3px;
     display: block;
   }
+  /* 불러오는 중 자리 — 막대가 글자 한 줄(부모 line-height) 안에 들어가 내용이 와도 카드 높이가 그대로다 */
+  .mission__skel {
+    display: inline-block;
+    width: 11em;
+    max-width: 100%;
+    height: 0.9em;
+    vertical-align: middle;
+    border-radius: var(--r-xs);
+    background: var(--surface-2);
+  }
+  /* 불러오는 동안 제목은 두 줄(line-clamp 2 × line-height 1.35) 높이를 잡는다 — 긴 제목이 와도 카드가 커지지 않는다 */
+  .mission[data-pending] .mission__title {
+    min-height: 2.7em;
+  }
   .mission[data-done] .mission__ic {
     background: var(--ok-soft);
     color: var(--ok-strong);
@@ -504,7 +518,7 @@
     font-size: var(--fs-xs);
     color: var(--ink-2);
     flex: none;
-  }  /* 머리 오른쪽에 메타와 배지를 함께 둘 때의 묶음 */
+  } /* 머리 오른쪽에 메타와 배지를 함께 둘 때의 묶음 */
   .sect__side {
     display: flex;
     align-items: center;
