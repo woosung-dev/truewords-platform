@@ -64,8 +64,12 @@ export const libraryAPI = {
     request<void>(`/hoondok/me/marks/${encodeURIComponent(chunkId)}?kind=${kind}`, { method: "DELETE" }),
 };
 
-export function wordsHref(volume: string, chunkId?: string | null): string {
-  return `/hoondok/words/${encodeURIComponent(volume)}${chunkId ? `?chunk_id=${encodeURIComponent(chunkId)}` : ""}`;
+/** searchQuery 는 원문 뷰가 검색어에 밑줄을 긋는 데만 쓴다 — 원문 API 로는 보내지 않는다. */
+export function wordsHref(volume: string, chunkId?: string | null, searchQuery?: string): string {
+  const base = `/hoondok/words/${encodeURIComponent(volume)}`;
+  if (!chunkId) return base;
+  const q = searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : "";
+  return `${base}?chunk_id=${encodeURIComponent(chunkId)}${q}`;
 }
 export function wordsPageHref(volume: string, page: number): string {
   return `${wordsHref(volume)}?page=${page}`;

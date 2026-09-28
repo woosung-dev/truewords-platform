@@ -158,7 +158,7 @@ describe("말씀 검색", () => {
     search("참사랑");
     expect(await screen.findByRole("link", { name: /참사랑 말씀/ })).toHaveAttribute(
       "href",
-      wordsHref(WORK.volume, "chunk-21"),
+      wordsHref(WORK.volume, "chunk-21", "참사랑"),
     );
     expect(libraryAPI.search).toHaveBeenCalledWith("참사랑", expect.any(AbortSignal));
   });

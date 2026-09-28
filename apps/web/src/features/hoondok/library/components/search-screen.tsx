@@ -14,6 +14,7 @@ import {
   readRecentSearches,
   subscribeRecentSearches,
 } from "../recent-searches";
+import { highlightSnippet } from "../search-highlight";
 
 // 프로토타입 앱바 입력의 placeholder·aria-label 그대로.
 const PLACEHOLDER = "단어, 구절, 상황을 입력해 주세요";
@@ -129,14 +130,25 @@ export function SearchScreen() {
                         <AuthorityBadge grade={result.authority_grade} />
                       )}
                     </span>
-                    <span className="sr-snippet">{result.display_text}</span>
+                    <span className="sr-snippet">
+                      {highlightSnippet(result.display_text, submitted).map((part, index) =>
+                        part.hit ? (
+                          // biome-ignore lint/suspicious/noArrayIndexKey: 조각 순서가 곧 본문 순서다
+                          <mark key={index} className="sq-hit">
+                            {part.text}
+                          </mark>
+                        ) : (
+                          part.text
+                        ),
+                      )}
+                    </span>
                     <span className="sr-src">화자·판본 확인되지 않음</span>
                   </>
                 );
                 return (
                   <li key={result.chunk_id}>
                     {result.can_read_full_text ? (
-                      <Link href={wordsHref(result.volume, result.chunk_id)}>{body}</Link>
+                      <Link href={wordsHref(result.volume, result.chunk_id, submitted)}>{body}</Link>
                     ) : (
                       <div className="sr-unavailable">
                         {body}

@@ -226,6 +226,35 @@ describe("권 목록 화면", () => {
   });
 });
 
+describe("검색으로 들어온 원문", () => {
+  it("도착 단락의 검색어에 임시 밑줄을 긋고, 검색어는 원문 API 로 보내지 않는다", async () => {
+    await showWords({ chunk_id: "c1", q: "단락의" });
+    const hit = await screen.findByText("단락의", { selector: "mark.sq-hit" });
+    expect(hit.closest("p")).toHaveClass("verse--arrive");
+    // 다른 단락에는 긋지 않는다
+    expect(document.querySelectorAll("mark.sq-hit")).toHaveLength(1);
+    expect(libraryAPI.words).toHaveBeenCalledWith(
+      VOLUME,
+      1,
+      { chunkId: "c1", section: undefined },
+      expect.any(AbortSignal),
+    );
+    expect(screen.getByText(/검색어에 밑줄을 그었어요/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "밑줄 지우기" }));
+    expect(document.querySelectorAll("mark.sq-hit")).toHaveLength(0);
+    expect(screen.getByText("인용한 말씀이 포함된 원문 구간이에요.")).toBeInTheDocument();
+  });
+  it("검색어가 본문에 없으면 뜻이 가까운 구간이라고 알린다", async () => {
+    await showWords({ chunk_id: "c1", q: "탕감복귀" });
+    expect(await screen.findByText("검색어가 그대로 나오지는 않지만 뜻이 가까운 구간이에요.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "밑줄 지우기" })).not.toBeInTheDocument();
+  });
+  it("검색 결과 링크는 검색어를 q 로 싣는다", () => {
+    expect(wordsHref(VOLUME, "c1", "참 사랑")).toBe(`${wordsHref(VOLUME)}?chunk_id=c1&q=%EC%B0%B8%20%EC%82%AC%EB%9E%91`);
+  });
+});
+
 describe("원문 목차·단락", () => {
   it("장 목차를 편·장 단계로 보이고 현재 장을 표시한다", async () => {
     await showWords();

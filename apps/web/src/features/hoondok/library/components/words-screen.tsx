@@ -24,6 +24,7 @@ import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { libraryAPI, verseNumber, type WordsQuery, wordsHref, wordsPageHref } from "../api";
 import { writeLastReading } from "../last-reading";
+import { markSearchTerms } from "../search-highlight";
 import { TtsBar } from "../tts/tts-bar";
 import { useReadAloud } from "../tts/use-read-aloud";
 import { type AiVoiceId, chunkAudioUrl } from "../tts/voice-api";
@@ -117,6 +118,8 @@ function Verse({
   onSelect,
   cardText,
   cardRibbonRef,
+  isArrival,
+  searchQuery,
 }: {
   chunk: WordChunk;
   highlight: MarkItem | undefined;
@@ -127,6 +130,10 @@ function Verse({
   /** 오늘의 책갈피가 꽂힌 단락이면 카드 본문 (PLAN-HD-012) — 그 문장에 밑줄·여백 리본 */
   cardText?: string | null;
   cardRibbonRef?: RefObject<HTMLSpanElement | null>;
+  /** 검색·북마크로 들어온 단락 — 도착 순간에만 은은하게 번졌다 사라진다 */
+  isArrival?: boolean;
+  /** 검색으로 들어온 단락이면 검색어. 밑줄은 저장하지 않는 임시 표시다(형광펜 = 배경색과 구분) */
+  searchQuery?: string;
 }) {
   const number = verseNumber(chunk.chunk_index);
   const paragraphs = chunk.display_text.split("\n\n").filter(Boolean);
@@ -138,6 +145,7 @@ function Verse({
     isSpeaking && "verse--speaking",
     marked && "verse--card",
     marked && !marked.isMatched && "verse--card-all",
+    isArrival && "verse--arrive",
   ]
     .filter(Boolean)
     .join(" ");
@@ -185,13 +193,27 @@ function Verse({
           );
         })}
         {!marked &&
-          paragraphs.map((paragraph, index) => (
-            // 문단은 순서가 곧 정체성이다(서버 정리 결과가 바뀌면 청크 key 가 다시 그린다).
-            // biome-ignore lint/suspicious/noArrayIndexKey: 문단 목록은 재정렬되지 않는다
-            <span key={index} className="verse__para">
-              {highlight?.color ? <mark className={`hl-${highlight.color}`}>{paragraph}</mark> : paragraph}
-            </span>
-          ))}
+          paragraphs.map((paragraph, index) => {
+            const text = searchQuery
+              ? markSearchTerms(paragraph, searchQuery).map((part, partIndex) =>
+                  part.hit ? (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: 조각 순서가 곧 본문 순서다
+                    <mark key={partIndex} className="sq-hit">
+                      {part.text}
+                    </mark>
+                  ) : (
+                    part.text
+                  ),
+                )
+              : paragraph;
+            return (
+              // 문단은 순서가 곧 정체성이다(서버 정리 결과가 바뀌면 청크 key 가 다시 그린다).
+              // biome-ignore lint/suspicious/noArrayIndexKey: 문단 목록은 재정렬되지 않는다
+              <span key={index} className="verse__para">
+                {highlight?.color ? <mark className={`hl-${highlight.color}`}>{text}</mark> : text}
+              </span>
+            );
+          })}
       </span>
     </p>
   );
@@ -203,11 +225,14 @@ export function WordsScreen({
   chunkId,
   section,
   cardId,
+  searchQuery,
 }: {
   volume: string;
   page: number;
   chunkId?: string;
   section?: number;
+  /** 검색 결과로 들어왔을 때의 검색어(URL q). 원문 API 로 보내지 않고 화면 표시에만 쓴다 */
+  searchQuery?: string;
   /** 오늘의 책갈피에서 "책에 다시 꽂기" 로 왔을 때의 카드 id (PLAN-HD-012). chunk_id 단락 안 문장에 밑줄을 긋는다 */
   cardId?: string;
 }) {
@@ -217,6 +242,8 @@ export function WordsScreen({
   const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
   const [sheet, setSheet] = useState<"passage" | "toc" | null>(null);
   const [hint, setHint] = useState<string | null>(null);
+  const [showSearchMarks, setShowSearchMarks] = useState(true);
+  const citedNoticeRef = useRef<HTMLParagraphElement>(null);
   const { user } = useCurrentUser();
   const isLoggedIn = Boolean(user);
 
@@ -256,8 +283,11 @@ export function WordsScreen({
   useEffect(() => {
     if (scrollTarget === null || lastPage === null) return;
     const target = document.getElementById(`verse-${scrollTarget}`);
+    // 검색어가 긴 단락 뒤쪽에 있으면 단락 머리 대신 첫 검색어를 화면 가운데로 보낸다.
+    const hit = target?.querySelector(".sq-hit");
     // jsdom 에는 scrollIntoView 가 없다 — 없으면 아무 일도 하지 않는다.
-    target?.scrollIntoView?.({ block: "start" });
+    if (hit) hit.scrollIntoView?.({ block: "center" });
+    else target?.scrollIntoView?.({ block: "start" });
   }, [scrollTarget, lastPage]);
 
   // 듣기: 단락(청크)마다 표시 텍스트를 읽는다. 구간이 바뀌면 멈추고 처음 상태로 돌아간다.
@@ -331,6 +361,12 @@ export function WordsScreen({
     marks.find((mark) => mark.chunk_id === chunk && mark.kind === kind);
   const noteMarks = marks.filter((mark) => mark.kind === "highlight" && mark.note);
   const currentPath = `${wordsHref(volume)}?page=${doc.page}`;
+  // 검색으로 들어온 경우에만 밑줄 안내를 보인다. 책갈피 카드로 들어온 단락은 카드 밑줄이 우선이다.
+  const searchMarksOn = Boolean(searchQuery) && !cardId && showSearchMarks;
+  const citedChunk = chunkId ? doc.chunks.find((chunk) => chunk.chunk_id === chunkId) : undefined;
+  const citedHasHit = Boolean(
+    searchQuery && citedChunk && markSearchTerms(citedChunk.display_text, searchQuery).some((part) => part.hit),
+  );
 
   function openPassage(chunkKey: string) {
     setSelectedChunkId(chunkKey);
@@ -419,8 +455,32 @@ export function WordsScreen({
                 </p>
               )}
               {chunkId && (
-                <p className="notice">
-                  {wordsCard.card ? "오늘의 책갈피가 꽂힌 자리예요." : "인용한 말씀이 포함된 원문 구간이에요."}
+                // 밑줄을 지우면 버튼이 사라진다 — 같은 안내 줄로 초점을 옮겨 키보드·스크린리더 위치를 지킨다
+                <p
+                  className={`notice${searchQuery && !wordsCard.card ? " notice--search" : ""}`}
+                  role="status"
+                  tabIndex={-1}
+                  ref={citedNoticeRef}
+                >
+                  {wordsCard.card
+                    ? "오늘의 책갈피가 꽂힌 자리예요."
+                    : !searchMarksOn
+                      ? "인용한 말씀이 포함된 원문 구간이에요."
+                      : citedHasHit
+                        ? "검색어에 밑줄을 그었어요. 저장되지 않는 표시예요."
+                        : "검색어가 그대로 나오지는 않지만 뜻이 가까운 구간이에요."}
+                  {searchMarksOn && citedHasHit && (
+                    <button
+                      className="notice__action"
+                      type="button"
+                      onClick={() => {
+                        setShowSearchMarks(false);
+                        citedNoticeRef.current?.focus();
+                      }}
+                    >
+                      밑줄 지우기
+                    </button>
+                  )}
                 </p>
               )}
               <article aria-label="원문 본문">
@@ -437,6 +497,8 @@ export function WordsScreen({
                         onSelect={() => openPassage(chunk.chunk_id)}
                         cardText={isCardChunk ? wordsCard.card?.text : null}
                         cardRibbonRef={cardRibbonRef}
+                        isArrival={!cardId && chunk.chunk_id === chunkId}
+                        searchQuery={searchMarksOn && chunk.chunk_id === chunkId ? searchQuery : undefined}
                       />
                       {isCardChunk && wordsCard.card && (
                         <CardPulloutBar card={wordsCard.card} isToday={wordsCard.isToday} ribbonRef={cardRibbonRef} />
