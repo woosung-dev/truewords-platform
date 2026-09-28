@@ -11,8 +11,10 @@
   /* shadcn 표준 토큰 */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  /* 자기참조(var(--font-sans))는 순환이라 무효였다 — 실제 글꼴 변수로 연결한다. */
+  --font-sans: var(--font-inter), sans-serif;
+  /* 고정폭은 웹폰트 없이 시스템 mono 스택을 쓴다. */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --font-heading: var(--font-sans);
   --font-reading: var(--font-reading);
   --font-display: var(--font-display);
@@ -57,6 +59,12 @@
   --color-border-strong: var(--tw-border-strong);
   --color-surface-muted: var(--tw-surface-muted);
   --color-persona-icon-bg: var(--tw-persona-icon-bg);
+  --color-highlight: var(--tw-highlight);
+  /* 글자 크기 보조 단계 — 임의값(10~11.5px, 15~15.5px)을 흡수한다. 12·14·16px 은 text-xs·sm·base. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-md: 0.9375rem;
+  --text-md--line-height: 1.5rem;
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -156,6 +164,8 @@
   --tw-info-border: oklch(0.808 0.06 213);
   /* 페르소나 아이콘 배경 — 따뜻한 베이지 (#F5EDE0) */
   --tw-persona-icon-bg: oklch(0.944 0.03 78);
+  /* 원문 보기의 인용 구간 형광 표시 (yellow-200 60%) */
+  --tw-highlight: oklch(0.945 0.129 101.54 / 60%);
   /* Motion 토큰 */
   --tw-duration-fast: 150ms;
   --tw-duration-normal: 250ms;
@@ -171,6 +181,8 @@
   --tw-shadow-modal: 0 20px 48px oklch(0.18 0.012 50 / 16%), 0 4px 12px oklch(0.18 0.012 50 / 6%);
 }
 
+/* 현재 .dark 를 붙이는 경로가 없다(ThemeProvider 없음) — 앱은 라이트로 고정이고 이 팔레트는 보존용이다.
+   다크를 켜려면 이 블록의 대비(예: 대화 기록 선택 칩의 흰 글자)부터 다시 검증한다. */
 .dark {
   /* TrueWords Dark Mode (Plan A.2) — Mahogany × Parchment */
   /* Background: mahogany ink #1C1714 */
@@ -222,6 +234,7 @@
   --tw-info-soft: oklch(0.62 0.105 213 / 18%);
   --tw-info-border: oklch(0.62 0.105 213 / 30%);
   --tw-persona-icon-bg: oklch(0.28 0.02 60);
+  --tw-highlight: oklch(0.795 0.184 86.047 / 25%);
   /* Shadow 토큰 — Dark (검정에 가까운 잉크 그림자 더 진하게) */
   --tw-shadow-card: 0 1px 3px oklch(0 0 0 / 30%), 0 1px 2px oklch(0 0 0 / 20%);
   --tw-shadow-card-hover: 0 4px 12px oklch(0 0 0 / 40%), 0 2px 4px oklch(0 0 0 / 20%);
@@ -235,6 +248,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* 한국어는 어절 단위로 줄바꿈하고, 긴 URL·영문만 필요할 때 끊는다. */
+    word-break: keep-all;
+    overflow-wrap: anywhere;
   }
   html {
     @apply font-sans;

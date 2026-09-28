@@ -53,7 +53,7 @@ export function AssistantMessage({ content, sources, onSourceClick, className }:
                       if (src) onSourceClick?.(src);
                     }}
                     className={cn(
-                      "mx-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded bg-accent/15 px-1.5 align-[2px] text-[11px] font-bold leading-none text-accent transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                      "mx-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded bg-accent/10 px-1.5 align-[2px] text-[11px] font-bold leading-none text-accent transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
                       disabled
                         ? "cursor-not-allowed opacity-60"
                         : "cursor-pointer hover:bg-accent hover:text-accent-foreground",
@@ -110,7 +110,7 @@ function SourceCardGrid({ sources, onSourceClick }: SourceCardGridProps) {
           >
             <span
               aria-hidden="true"
-              className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded bg-accent/15 text-[11px] font-bold text-accent"
+              className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded bg-accent/10 text-[11px] font-bold text-accent"
             >
               {num}
             </span>

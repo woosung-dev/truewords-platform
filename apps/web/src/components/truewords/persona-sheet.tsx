@@ -154,7 +154,7 @@ export function PersonaSheet({ open, onOpenChange, value, onValueChange }: Perso
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-foreground">{p.label}</span>
                     {p.badge ? (
-                      <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent">
+                      <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">
                         {p.badge}
                       </span>
                     ) : null}

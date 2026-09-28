@@ -664,7 +664,7 @@ export default function ChatPage() {
           >
             <User className="h-3.5 w-3.5" />
             <span className="font-medium text-foreground">{participantName}</span>
-            <span className="text-muted-foreground/70">· {participantCategory}</span>
+            <span className="text-muted-foreground">· {participantCategory}</span>
             <span className="ml-1 text-primary">변경</span>
           </button>
           {messages.length > 0 && (
@@ -996,7 +996,7 @@ export default function ChatPage() {
           <div className="border-t bg-background px-4 pb-4 pt-3">
             <div className="mx-auto max-w-2xl">
               <div
-                className={`relative flex items-end rounded-2xl border bg-card shadow-sm transition focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 ${
+                className={`relative flex items-end rounded-2xl border bg-card shadow-sm transition focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 ${
                   !selectedBot ? "opacity-60" : ""
                 }`}
               >

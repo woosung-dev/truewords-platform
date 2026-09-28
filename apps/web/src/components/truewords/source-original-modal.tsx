@@ -132,7 +132,7 @@ export function renderBody3Tone(body: string, mainStart: number, mainEnd: number
     <>
       {before && <span className="text-muted-foreground">{before}</span>}
       {main && (
-        <mark className="rounded-sm bg-yellow-200/60 px-0.5 font-medium text-foreground dark:bg-yellow-500/25">
+        <mark className="rounded-sm bg-highlight px-0.5 font-medium text-foreground">
           {main}
         </mark>
       )}

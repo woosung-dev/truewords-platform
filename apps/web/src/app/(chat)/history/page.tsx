@@ -212,7 +212,7 @@ export default function HistoryPage() {
           <EmptyAll onStart={() => router.push("/")} />
         ) : (
           <div
-            className={`flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-card shadow-[0_6px_20px_-6px_rgba(28,23,20,0.12)] ${
+            className={`flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-card shadow-(--tw-shadow-card-hover) ${
               showReader ? "reader-open" : ""
             }`}
           >
@@ -233,7 +233,7 @@ export default function HistoryPage() {
                     placeholder="지난 대화 검색…"
                     aria-label="대화 검색"
                     autoComplete="off"
-                    className="h-10 w-full rounded-lg border bg-card pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/30"
+                    className="h-10 w-full rounded-lg border bg-card pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/30"
                   />
                 </div>
                 {/* 봇 필터 */}
