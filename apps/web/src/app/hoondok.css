@@ -868,6 +868,10 @@
     .icon-btn--search {
       display: none;
     }
+    /* 헤더 4 오른쪽 끝에 알림 원형 버튼이 이미 있다 — 탭 헤더가 있는 화면의 앱바에서는 종을 하나만 남긴다 */
+    .app__main:not(.app__main--no-nav) .icon-btn--bell {
+      display: none;
+    }
     @media (hover: hover) {
       .nav__item:hover {
         background: var(--surface-2);

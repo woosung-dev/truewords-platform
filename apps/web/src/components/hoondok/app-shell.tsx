@@ -47,7 +47,7 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
               </Link>
             )}
             {!screen.hideSettingsLink && (
-              <Link className="icon-btn" href="/hoondok/settings" aria-label="알림·설치">
+              <Link className="icon-btn icon-btn--bell" href="/hoondok/settings" aria-label="알림·설치">
                 <Bell size={22} />
               </Link>
             )}

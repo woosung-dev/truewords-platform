@@ -1,7 +1,7 @@
 "use client";
 
 // SCR-PWA-010 이번 주 순서지·챌린지 (PLAN-HD-002 W3-W 프리뷰 셸).
-// 마크업·문구·순서는 프로토타입 `data-screen="worship"` 그대로다. 5분 설교 묶음은 2026-09-29 가정예배 탭 첫 화면으로 옮겼다.
+// 마크업·문구·순서는 프로토타입 `data-screen="worship"` 그대로다. 5분 설교 묶음은 2026-09-29 "5분 설교" 탭 첫 화면으로 옮겼다.
 // 순서지·챌린지는 전부 fixture 이고 어떤 버튼도 네트워크를 타지 않는다 — 누르면 인라인 "준비 중"만 알린다.
 import { Pencil, Send, Users } from "lucide-react";
 import Link from "next/link";
