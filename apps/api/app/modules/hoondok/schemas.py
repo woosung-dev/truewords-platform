@@ -96,7 +96,7 @@ class JeongseongCreate(BaseModel):
     topic: str = Field(min_length=1, max_length=40)
     duration_days: JeongseongDuration
     started_on: date | None = None
-    reminder_time: time | None = None  # 표시용. 푸시는 Phase 4
+    reminder_time: time | None = None  # 사용 중단 — 알림 시각은 notification_preferences.read_time
 
     @field_validator("topic", mode="before")
     @classmethod
