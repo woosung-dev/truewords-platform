@@ -21,6 +21,7 @@ from app.core.common.clock import KST
 from app.core.config import settings
 from app.modules.hoondok import push_sender
 from app.modules.hoondok.models import (
+    ContentRight,
     DailyReading,
     JeongseongPeriod,
     MissionLog,
@@ -85,6 +86,7 @@ async def factory():
                 MissionLog.__table__,
                 DailyReading.__table__,
                 JeongseongPeriod.__table__,
+                ContentRight.__table__,
             ],
         )
     session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -178,6 +180,19 @@ async def _seed_jeongseong(
                 duration_days=duration_days,
                 started_on=started_on,
                 status=status,
+            )
+        )
+        await session.commit()
+
+
+async def _seed_right(
+    factory, *, status: str = "allowed", scope_jeongseong: bool = True, volume: str = "천성경"
+) -> None:
+    """정성 말씀을 뽑을 권리 원장 1건. 운영 시드는 status=pending · scope_jeongseong=False 로 들어간다."""
+    async with factory() as session:
+        session.add(
+            ContentRight(
+                volume=volume, status=status, scope_jeongseong=scope_jeongseong, work_title=volume
             )
         )
         await session.commit()
@@ -374,8 +389,9 @@ async def test_no_official_reading_without_jeongseong_is_skipped(
 
 
 async def test_no_official_reading_with_jeongseong_in_progress_is_sent(factory, push_on, sent_calls):
-    """편성이 없어도 정성 기간을 진행 중인 사용자는 보낸다 — 사용자별 판정이다."""
+    """편성이 없어도 정성 기간을 진행 중인 사용자는 보낸다(정성 말씀 권리가 있을 때) — 사용자별 판정이다."""
     await _set_reading(factory, None)
+    await _seed_right(factory)
     in_progress = await _seed(factory, email="a@example.com", endpoints=("https://push.example.com/a",))
     await _seed(factory, email="b@example.com", endpoints=("https://push.example.com/b",))
     await _seed_jeongseong(factory, in_progress, started_on=TODAY - timedelta(days=2))
@@ -450,6 +466,7 @@ async def test_jeongseong_not_in_progress_is_ignored(
 ):
     """진행 중이 아닌 정성 기간은 편성 대신이 되지 못하고 문구에도 섞이지 않는다."""
     await _set_reading(factory, None)
+    await _seed_right(factory)  # 권리가 있어도 생략된다 — 생략 이유가 권리가 아니라 기간 상태임을 보인다
     user_id = await _seed(factory, level="faith")
     await _seed_jeongseong(
         factory, user_id, started_on=TODAY - timedelta(days=started_offset), status=status
@@ -469,6 +486,54 @@ async def test_jeongseong_not_in_progress_is_ignored(
         "body": "3분이면 충분해요",
         "url": "/hoondok",
     }
+
+
+@pytest.mark.parametrize(
+    "right",
+    [
+        None,
+        {"status": "pending", "scope_jeongseong": True},
+        {"status": "withdrawn", "scope_jeongseong": True},
+        {"status": "allowed", "scope_jeongseong": False},  # 운영 시드 기본(scope_jeongseong=False)
+    ],
+    ids=["no-rights", "pending", "withdrawn", "allowed-without-scope"],
+)
+async def test_no_reading_and_no_jeongseong_source_is_skipped(factory, push_on, sent_calls, right):
+    """편성 없음 + 정성 진행 중이어도 정성 말씀을 뽑을 권리가 없으면 "준비됐어요" 가 거짓이다 — 생략한다."""
+    await _set_reading(factory, None)
+    if right is not None:
+        await _seed_right(factory, **right)
+    user_id = await _seed(factory)
+    await _seed_jeongseong(factory, user_id, started_on=TODAY - timedelta(days=2))
+
+    summary = await _run(factory, execute=True)
+
+    assert (summary.eligible, summary.sent, summary.skipped_no_reading) == (0, 0, 1)
+    assert sent_calls == []
+
+    await _seed_right(factory, volume="평화경")  # allowed · scope_jeongseong 1건이 생기면 보낸다
+    summary = await _run(factory, execute=True)
+
+    assert (summary.sent, summary.skipped_no_reading) == (1, 0)
+
+
+async def test_reading_judgment_failure_does_not_abort_run(factory, push_on, sent_calls, monkeypatch):
+    """`/hoondok/today` 판정이 터져도 run 은 끝까지 간다 — 편성 없음으로 보고 정성 사용자만 보낸다."""
+    from app.modules.hoondok.service import HoondokService
+
+    async def _boom(self):
+        raise RuntimeError("편성 조회 실패")
+
+    monkeypatch.setattr(HoondokService, "get_today", _boom)
+    await _seed_right(factory)
+    in_progress = await _seed(factory, email="a@example.com", endpoints=("https://push.example.com/a",))
+    await _seed(factory, email="b@example.com", endpoints=("https://push.example.com/b",))
+    await _seed_jeongseong(factory, in_progress)
+
+    summary = await _run(factory, execute=True)
+
+    assert (summary.eligible, summary.sent, summary.skipped_no_reading) == (1, 1, 1)
+    assert [c["subscription_info"]["endpoint"] for c in sent_calls] == ["https://push.example.com/a"]
 
 
 async def test_done_today_counts_as_done_even_without_reading(factory, push_on, sent_calls):
@@ -603,6 +668,23 @@ async def test_to_email_ignores_window_and_does_not_mark_sent(factory, push_on, 
     }
     (sub,) = await _subscriptions(factory)
     assert sub.last_sent_on == TODAY  # 정규 발송 판정을 건드리지 않는다
+
+
+async def test_to_email_reflects_jeongseong_in_progress(factory, push_on, sent_calls):
+    """증거 발송도 진행 중 정성의 N일차 문구를 싣는다 — 편성·권리가 없어도 보낸다."""
+    await _set_reading(factory, None)
+    user_id = await _seed(factory, level="faith", read_time=time(21, 0))
+    await _seed_jeongseong(factory, user_id, started_on=TODAY - timedelta(days=6))
+
+    summary = await _run(factory, execute=True, to_email="me@example.com")
+
+    assert (summary.mode, summary.sent) == ("to-email", 1)
+    (call,) = sent_calls
+    assert json.loads(call["data"]) == {
+        "title": "감사 정성 7일차",
+        "body": "오늘의 말씀이 준비됐어요",
+        "url": "/hoondok",
+    }
 
 
 async def test_to_email_without_execute_is_dry_run(factory, push_on, sent_calls):

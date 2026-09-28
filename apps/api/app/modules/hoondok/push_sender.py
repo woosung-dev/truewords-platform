@@ -2,7 +2,8 @@
 
 정책:
   - 대상: `read_enabled` · 발송 창(`read_time` ~ +2h) 안 · 오늘 아직 안 보냄 · 계정 살아 있음 · 오늘 `read` 미완료
-  - 오늘 공식 편성(`GET /hoondok/today` 가 available)도 진행 중 정성 기간도 없는 사용자는 생략한다
+  - 오늘 공식 편성(`GET /hoondok/today` 가 available)이 없으면, 진행 중 정성 기간이 있고 정성 말씀을 뽑을
+    권리(allowed · scope_jeongseong)가 1건이라도 있는 사용자에게만 보낸다. 나머지는 생략한다
   - 정성 기간 알림은 따로 보내지 않는다 — 진행 중이면 훈독하기 알림 1건의 문구에 N일차를 합친다
   - 구독 단위 발송(한 사용자 기기 N대 → N건), 하루 1회(`last_sent_on`)
   - 404/410 은 만료 구독이라 즉시 삭제, 그 밖의 실패는 `failed_count` 누적 5회에 삭제
@@ -28,9 +29,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.common.clock import KST
 from app.core.config import Settings, settings as default_settings
 from app.modules.hoondok.jeongseong import period_end
-from app.modules.hoondok.models import JeongseongPeriod, MissionLog, NotificationPreference, PushSubscription
-from app.modules.hoondok.repository import DailyReadingRepository
-from app.modules.hoondok.service import HoondokService
+from app.modules.hoondok.models import (
+    ContentRight,
+    JeongseongPeriod,
+    MissionLog,
+    NotificationPreference,
+    PushSubscription,
+)
 from app.modules.identity.models import User
 
 logger = logging.getLogger(__name__)
@@ -98,6 +103,12 @@ def build_payload(lock_screen_level: str, jeongseong: JeongseongDay | None = Non
     else:
         title, body = TITLES["neutral"], f"{jeongseong.day}일차 · {BODY_TEXT}"
     return {"title": title, "body": body, "url": TARGET_URL}
+
+
+def _jeongseong_day(period: JeongseongPeriod | None, today: date) -> JeongseongDay | None:
+    if period is None:
+        return None
+    return JeongseongDay(topic=period.topic, day=(today - period.started_on).days + 1)
 
 
 @dataclass(frozen=True)
@@ -220,6 +231,18 @@ class PushSenderRepository:
             if today <= period_end(period.started_on, period.duration_days)
         }
 
+    async def has_jeongseong_source(self) -> bool:
+        """정성 말씀을 뽑을 권리(allowed · scope_jeongseong)가 1건이라도 있는가 — 없으면 정성 말씀이 만들어질 수 없다.
+
+        남는 위험: 권리는 있어도 주제에 맞는 후보가 0건이면 그날 정성 말씀은 비어 있다(후보 검색은 cron 에서 하지 않는다).
+        """
+        result = await self.session.execute(
+            select(ContentRight.id)
+            .where(ContentRight.status == "allowed", ContentRight.scope_jeongseong.is_(True))
+            .limit(1)
+        )
+        return result.first() is not None
+
     async def mark_sent(self, subscription: PushSubscription, today: date) -> None:
         subscription.last_sent_on = today
         subscription.failed_count = 0
@@ -333,7 +356,16 @@ async def run_push_sender(
 
         if to_email:
             subs, level = await repo.list_for_email(to_email)
-            targets = [PushTarget(subscription=s, lock_screen_level=level) for s in subs]
+            # 창·완료·편성은 무시하지만 진행 중 정성은 문구에 반영한다 — 실기기에서 N일차 문구를 확인하는 용도.
+            in_progress = await repo.jeongseong_in_progress(today, [s.user_id for s in subs])
+            targets = [
+                PushTarget(
+                    subscription=s,
+                    lock_screen_level=level,
+                    jeongseong=_jeongseong_day(in_progress.get(s.user_id), today),
+                )
+                for s in subs
+            ]
             summary.eligible = len(targets)
             if mode == "dry-run":
                 return summary
@@ -343,6 +375,23 @@ async def run_push_sender(
             )
             return summary
 
+        # 함수 안 import — service 모듈이 검색·임베딩 스택(fastembed·genai)을 끌고 와 15분 cron 기동이 느려진다.
+        from app.modules.hoondok.repository import DailyReadingRepository
+        from app.modules.hoondok.service import HoondokService
+
+        # 공식 편성은 사용자와 무관하다 — 실행당 1번, `GET /hoondok/today` 와 같은 판정(없음·철회면 말씀 없음).
+        # 판정이 실패해도 run 전체를 죽이지 않고 편성 없음으로 본다(정성 사용자는 계속 판정한다).
+        # 후보 ORM 객체를 읽기 전에 해 둔다 — rollback 이 이미 읽은 객체를 만료시키지 않게.
+        try:
+            today_reading = await HoondokService(
+                DailyReadingRepository(session), today_fn=lambda: today
+            ).get_today()
+            has_reading = today_reading.status == "available"
+        except Exception:
+            logger.exception("[reading] 오늘 편성 판정 실패 — 편성 없음으로 본다")
+            await session.rollback()  # 실패한 문장이 트랜잭션을 망가뜨렸을 수 있다(Postgres)
+            has_reading = False
+
         candidates = [
             (sub, pref)
             for sub, pref in await repo.list_candidates(today)
@@ -351,25 +400,23 @@ async def run_push_sender(
         user_ids = [sub.user_id for sub, _ in candidates]
         done = await repo.users_done_today(today, user_ids)
         in_progress = await repo.jeongseong_in_progress(today, user_ids)
-        # 공식 편성은 사용자와 무관하다 — 실행당 1번, `GET /hoondok/today` 와 같은 판정(없음·철회면 말씀 없음).
-        today_reading = await HoondokService(DailyReadingRepository(session), today_fn=lambda: today).get_today()
-        has_reading = today_reading.status == "available"
+        # 편성 없는 날에만 본다 — 정성 말씀을 뽑을 권리가 0건이면 정성 사용자에게도 "준비됐어요" 가 거짓이다.
+        has_jeongseong_source = False if has_reading else await repo.has_jeongseong_source()
         targets: list[PushTarget] = []
         for sub, pref in candidates:
             if sub.user_id in done:
                 summary.skipped_done += 1
                 continue
             period = in_progress.get(sub.user_id)
-            if period is None and not has_reading:
+            if not has_reading and (period is None or not has_jeongseong_source):
                 summary.skipped_no_reading += 1
                 continue
-            jeongseong = (
-                JeongseongDay(topic=period.topic, day=(today - period.started_on).days + 1)
-                if period is not None
-                else None
-            )
             targets.append(
-                PushTarget(subscription=sub, lock_screen_level=pref.lock_screen_level, jeongseong=jeongseong)
+                PushTarget(
+                    subscription=sub,
+                    lock_screen_level=pref.lock_screen_level,
+                    jeongseong=_jeongseong_day(period, today),
+                )
             )
         summary.eligible = len(targets)
 
