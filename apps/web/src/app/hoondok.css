@@ -167,15 +167,19 @@
     padding: 4px var(--gutter) 28px;
   }
 
-  /* 하단 5탭 (base·md). 탭 정의는 features/hoondok/tabs.ts 한 곳이다. */
+  /* 하단 5탭 (base·md). 탭 정의는 features/hoondok/tabs.ts 한 곳이다.
+     스크롤과 무관하게 화면 하단에 붙인다 — 본문 끝까지 내려야 탭이 보이던 문제 */
   .nav {
     flex: none;
+    position: sticky;
+    bottom: 0;
+    z-index: 25;
     background: var(--surface);
     border-top: 1px solid var(--line);
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    padding: 8px 6px 0;
-    min-height: 76px;
+    padding: 8px 6px env(safe-area-inset-bottom);
+    min-height: calc(76px + env(safe-area-inset-bottom));
   }
   .nav__brand,
   .nav__search,
@@ -688,6 +692,7 @@
       order: -1;
       position: sticky;
       top: 0;
+      bottom: auto;
       z-index: 25;
       height: 72px;
       width: 100%;

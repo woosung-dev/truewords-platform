@@ -192,9 +192,22 @@
   .sr-hd b {
     font-size: 15.5px;
   }
+  /* 긴 구간은 6줄까지만 — 검색어가 뒤에 나오면 search-highlight.ts 가 그 근처부터 잘라 준다 */
   .sr-snippet {
     font-size: 14.5px;
     line-height: 1.6;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
+    overflow: hidden;
+  }
+  .sr-snippet mark {
+    background: var(--hl-1);
+    color: inherit;
+    font-weight: 600;
+    border-radius: 3px;
+    padding: 0 1px;
   }
   .sr-src {
     font-size: 12.5px;
@@ -349,9 +362,10 @@
   .reader--top {
     display: none;
   }
+  /* 하단 탭(76px + 안전 영역) 바로 위에 붙는다 */
   .reader--bottom {
     position: sticky;
-    bottom: 0;
+    bottom: calc(76px + env(safe-area-inset-bottom));
     margin: 20px calc(var(--gutter) * -1) 0;
     padding: 4px 6px 6px;
     background: var(--surface);

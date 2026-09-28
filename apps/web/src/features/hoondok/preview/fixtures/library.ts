@@ -119,12 +119,11 @@ export const PREVIEW_WORKS: readonly PreviewWork[] = [
 /** 서고 아래 고지 (프로토타입 `.notice`). */
 export const PREVIEW_LIBRARY_NOTICE = "권리 확인 중인 저작물은 검색·AI 근거에 쓰이지 않습니다";
 
-/** 검색 진입 안내 칩 (프로토타입 `.howto`). 분류 4가지는 그대로 옮긴다. */
+/** 검색 진입 안내 칩 (프로토타입 `.howto`). 프로토타입의 "목차"(천성경 1편 등)는 본문 검색으로 목차에 가지 않아 뺐다 — 목차는 서고에서 연다. */
 export const PREVIEW_SEARCH_HOWTO: readonly { key: string; chips: readonly string[] }[] = [
   { key: "단어", chips: ["탕감복귀", "정성", "축복"] },
   { key: "구절", chips: ['"참사랑은 직단거리를 갑니다"'] },
   { key: "상황", chips: ["자녀와 갈등이 있을 때", "새벽에 일어나기 힘들 때"] },
-  { key: "목차", chips: ["천성경 1편", "말씀선집 200권"] },
 ];
 
 export const PREVIEW_SEARCH_RESULTS: readonly PreviewSearchResult[] = [
