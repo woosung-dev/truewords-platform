@@ -51,6 +51,7 @@ export default defineConfig({
         "hoondok-preview.spec.ts",
         "hoondok-library.spec.ts",
         "hoondok-groups.spec.ts",
+        "hoondok-cards.spec.ts",
       ],
       use: { browserName: "chromium", baseURL: webOrigin },
     },
@@ -84,6 +85,8 @@ export default defineConfig({
               NEXT_PUBLIC_HOONDOK_PREVIEW: "1",
               // 함께 읽는 모임 킬 스위치(PLAN-HD-010 D3) — 배포와 같이 ON.
               NEXT_PUBLIC_HOONDOK_TOGETHER: "1",
+              // 오늘의 책갈피(PLAN-HD-012) — 시드 fixture 3장으로 여정을 검증한다.
+              NEXT_PUBLIC_HOONDOK_CARDS: "1",
             },
             reuseExistingServer: false,
             timeout: 60_000,

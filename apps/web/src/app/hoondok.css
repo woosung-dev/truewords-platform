@@ -38,6 +38,31 @@
   --hl-1: #fff0c9;
   --hl-2: #dcefe3;
   --hl-3: #ffe0d6;
+  /* 오늘의 책갈피 (PLAN-HD-012) — 종이 카드·책·책장. 값은 승인 시안 bookmark-final(목업 A) 그대로 */
+  --card-paper: #efe9e0;
+  --cover: #d8c2a4;
+  --cover-2: #c6a984;
+  --pages: #f7f2e8;
+  --pages-line: #ece5d6;
+  --plate: #f7f0e3;
+  --plate-line: #b99c77;
+  --table: #d7c2ab;
+  --table-2: #c9b198;
+  --shelf: #cdb395;
+  --shelf-2: #b99b79;
+  --tassel: #8c3217;
+  --rib-heart: #fbe0d3;
+  --kakao: #fee500;
+  --kakao-ink: #3a1d1d;
+  --spine-1: #e7d6bf;
+  --spine-2: #dbe5d4;
+  --spine-3: #f0dacd;
+  --spine-4: #f2e3c6;
+  --spine-5: #e6dccf;
+  --spine-6: #e3e6dc;
+  --spine-7: #eadbe0;
+  --spine-8: #dde3e6;
+  --spine-9: #efe6d2;
 
   --r: 16px;
   --r-sm: 12px;

@@ -4,7 +4,11 @@
 // PRD SCR-PWA-002 는 미션 3종만 열거하며, DES §2.2 말씀 카드는 SCR-PWA-003·006·008 컴포넌트다.
 // 홈은 "오늘 무엇을 할지", 읽기는 `/hoondok/read` 로 분리해야 미션 카드 → 훈독 루프가 산다.
 import { loadToday } from "@/features/hoondok/api";
+import { loadTodayCard } from "@/features/hoondok/cards/api";
+import { BookmarkHomeCard } from "@/features/hoondok/cards/components/home-card";
+import { cardDayLabel } from "@/features/hoondok/cards/format";
 import { HomeGreeting, HomeMissions } from "@/features/hoondok/components/home-missions";
+import { isHoondokCardsEnabled } from "@/features/hoondok/flag";
 import { InstallCard } from "@/features/hoondok/install/components/install-card";
 import { JeongseongCard } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import { JeongseongSheet } from "@/features/hoondok/jeongseong/components/jeongseong-sheet";
@@ -13,12 +17,15 @@ import { GroupList } from "@/features/hoondok/together/components/group-list";
 import { TogetherCard } from "@/features/hoondok/together/components/together-card";
 
 export default async function HoondokHomePage() {
-  const today = await loadToday();
-  const { weekday } = formatKstDate();
+  // 오늘의 책갈피(PLAN-HD-012)는 플래그 ON 일 때만 부른다. 풀이 비었거나 못 읽으면 카드를 그리지 않는다.
+  const [today, card] = await Promise.all([loadToday(), isHoondokCardsEnabled() ? loadTodayCard() : null]);
+  const { weekday, iso } = formatKstDate();
 
   return (
     <section className="col">
       <HomeGreeting />
+
+      {card && <BookmarkHomeCard card={card} dateLabel={cardDayLabel(iso)} />}
 
       <HomeMissions today={today} todayWeekday={weekday} />
 
