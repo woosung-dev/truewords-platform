@@ -214,16 +214,17 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 
 ### 1.7 앱 아이콘·설치 메타 (2026-09-19, PLAN-HD-001 Phase 3 C)
 
-앱 아이콘은 **"훈" 한 글자(Pretendard Bold 외곽선, OFL) 의 단색 도형**이다. 로고·상징·소속 표기는 넣지 않는다(`REQ-PWA-001` 독립 베타 정체성 — 공식 로고·제휴 표현 금지). 원본은 `apps/web/public/hoondok/icons/` 의 SVG 2종이고 PNG 4장은 거기서 생성한 산출물이다. 아이콘 파일이 곧 시안이며 PR 에서 승인한다.
+앱 아이콘은 **"훈" 한 글자(Pretendard Bold 외곽선, OFL) 의 단색 도형**이다. 로고·상징·소속 표기는 넣지 않는다(`REQ-PWA-001` 독립 베타 정체성 — 공식 로고·제휴 표현 금지). 원본은 `apps/web/public/hoondok/icons/` 의 SVG 3종이고 PNG 5장은 거기서 생성한 산출물이다. 아이콘 파일이 곧 시안이며 PR 에서 승인한다.
 
 | 파일 | 원본 | 용도 | 규격 |
 |---|---|---|---|
 | `icon-192.png` · `icon-512.png` | `hoondok-icon.svg` | manifest `purpose: any`(데스크톱·브라우저 UI) | 모서리 22% 라운드·투명 코너, 글자 높이 59% |
 | `icon-maskable-512.png` | `hoondok-icon-maskable.svg` | manifest `purpose: maskable`(Android 런처 마스크) | 풀블리드 정사각, 글자 높이 49% — 중앙 80% 안전영역 안(글자 대각 반지름 170px ≤ 205px) |
 | `apple-touch-icon-180.png` | `hoondok-icon-maskable.svg` | `<link rel="apple-touch-icon">`(iOS 가 22% 라운딩) | 풀블리드 180 |
+| `badge-96.png` | `hoondok-badge.svg` | 알림 `badge`(Android 상태 표시줄 작은 아이콘 — 알파 채널만 쓰므로 컬러 아이콘이면 흰 네모가 된다) | 투명 배경 · 흰 글자만, 세로 여백 10% |
 
 - 색은 토큰 두 개만 쓴다. **감귤 배경 `--accent #c24721` + 종이색 글자 `--paper #fbfaf8`**(2026-09-19 확정 — 종이색 배경·감귤 글자 B 안은 밝은 홈 화면에서 묻혀 미채택, 비교 시트는 git 히스토리 밖 세션 산출물). 어두운 홈·밝은 홈·iOS 라운딩·Android 원형 마스크 모두에서 글자가 읽힌다.
-- 재생성: `rsvg-convert -w <N> -h <N> <원본.svg> -o <출력.png>` (192·512·512·180). 글자 외곽선은 `Pretendard-Bold.otf` 에서 fontTools `SVGPathPen` 으로 1회 추출해 SVG 에 path 로 박았으므로 폰트 설치가 필요 없다.
+- 재생성: `rsvg-convert -w <N> -h <N> <원본.svg> -o <출력.png>` (192·512·512·180·96). 글자 외곽선은 `Pretendard-Bold.otf` 에서 fontTools `SVGPathPen` 으로 1회 추출해 SVG 에 path 로 박았으므로 폰트 설치가 필요 없다.
 - 설치 메타는 hoondok layout 의 `generateMetadata`·`generateViewport` 에만 붙인다: `manifest` `/hoondok/manifest.webmanifest` · `appleWebApp`(capable, title "훈독", statusBarStyle default) · `icons`(icon 192, apple 180) · `viewport.themeColor` = `--paper`. 플래그 OFF 면 붙이지 않는다. 루트 layout·시연 챗은 무변경.
 - manifest 값: `id`·`start_url`·`scope` = **`/hoondok`(슬래시 없음 — Next `trailingSlash` 기본 false 로 `/hoondok/` 은 308 이고 scope 는 경로 접두 비교라 `/hoondok/` 이면 홈이 범위 밖)**, `display: standalone`, `lang: ko`, `background_color`·`theme_color` = `--paper #fbfaf8`, `description` 에 "FFWPU 공식 앱이 아닙니다" 고지. `theme_color` 는 토큰을 참조할 수 없어 값으로 적고 Vitest(`apps/web/src/test/hoondok-pwa.test.ts`)가 `hoondok.css --paper`·`viewport` 와 일치를 단언한다.
 
