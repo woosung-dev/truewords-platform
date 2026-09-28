@@ -74,7 +74,7 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
     exit 0
   fi
 fi
-trap 'rmdir "$LOCK_DIR" 2>/dev/null' EXIT
+trap 'rm -rf "$LOCK_DIR"' EXIT
 
 # ── 기준 ref 최신화 ─────────────────────────────────────────────────────────
 # 머지 판정이 낡은 origin/main 을 보면 방금 머지한 것을 미머지로 오판한다.
@@ -111,6 +111,20 @@ display_name() {
     *)                     n="../$(basename "$p")" ;;
   esac
   if [ ${#n} -gt 38 ]; then printf '…%s' "${n: -37}"; else printf '%s' "$n"; fi
+}
+
+# 브랜치 이름 → "PR번호 headRefOid" (머지된 PR 만). 통합 브랜치 하나를 여러
+# worktree 가 가리키므로 결과를 캐시해 gh 호출을 브랜치당 한 번으로 줄인다.
+PR_CACHE="$LOCK_DIR/pr-cache"
+merged_pr_of() {
+  local hit
+  if hit=$(awk -F'\t' -v k="$1" '$1==k{print $2; f=1; exit} END{exit !f}' "$PR_CACHE" 2>/dev/null); then
+    printf '%s' "$hit"; return
+  fi
+  hit=$(gh pr list --state merged --head "$1" --json number,headRefOid \
+          --jq '.[] | "\(.number) \(.headRefOid)"' 2>/dev/null | head -1)
+  printf '%s\t%s\n' "$1" "$hit" >> "$PR_CACHE"
+  printf '%s' "$hit"
 }
 
 removable=""
@@ -154,23 +168,41 @@ process_record() {
   #      본질이므로, 따로 기록해 둔 GitHub 에 묻는 것이 유일하게 맞는 방법이다.
   #      headRefOid 까지 대조하는 이유: PR 머지 뒤 그 브랜치에 커밋을 더 했다면
   #      gh 는 여전히 "머지됨" 이라 답하지만 tip 에는 미머지 작업이 남아 있다.
+  #  (c) 통합 브랜치 경유: sub-task 브랜치는 PR 없이 dev/* 에 합쳐지고, 그 dev/*
+  #      가 main 에 squash 머지된다. (b) 는 sub-task 이름으로 PR 을 찾으니 영원히
+  #      못 찾는다(2026-09-28 실측 15개 오탐). tip 을 품은 원격 브랜치 중 머지된
+  #      PR 의 headRefOid 가 tip 의 자손이면 그 PR 로 main 에 들어간 것이다.
+  #  detached worktree 는 브랜치 이름 대신 HEAD 커밋으로 같은 판정을 한다.
   merged_reason=""
-  if [ "$short" != "(detached)" ]; then
-    if git merge-base --is-ancestor "$short" "$BASE_REF" 2>/dev/null; then
+  tip=$(git -C "$current" rev-parse HEAD 2>/dev/null)
+  [ "$short" = "(detached)" ] || tip=$(git rev-parse "$short" 2>/dev/null)
+  if [ -n "$tip" ]; then
+    if git merge-base --is-ancestor "$tip" "$BASE_REF" 2>/dev/null; then
       merged_reason="조상"
     elif [ "$USE_GH" = "1" ]; then
-      pr=$(gh pr list --state merged --head "$short" --json number,headRefOid \
-             --jq '.[] | "\(.number) \(.headRefOid)"' 2>/dev/null | head -1)
-      # gh 실패(네트워크·미인증·PR 없음)는 빈 문자열이 되어 "모름 → 보존" 으로
-      # 떨어진다. 실패를 "머지됨" 으로 읽지 않는 것이 이 분기의 안전 규칙이다.
-      # --state merged 만 본다 — 열린 PR(리뷰 중)은 지우면 안 된다.
-      if [ -n "$pr" ] && [ "${pr##* }" = "$(git rev-parse "$short" 2>/dev/null)" ]; then
-        merged_reason="PR #${pr%% *}"
+      if [ "$short" != "(detached)" ]; then
+        pr=$(merged_pr_of "$short")
+        # gh 실패(네트워크·미인증·PR 없음)는 빈 문자열이 되어 "모름 → 보존" 으로
+        # 떨어진다. 실패를 "머지됨" 으로 읽지 않는 것이 이 분기의 안전 규칙이다.
+        # --state merged 만 본다 — 열린 PR(리뷰 중)은 지우면 안 된다.
+        if [ -n "$pr" ] && [ "${pr##* }" = "$tip" ]; then
+          merged_reason="PR #${pr%% *}"
+        fi
+      fi
+      if [ -z "$merged_reason" ]; then
+        while IFS= read -r rb; do
+          [ -n "$rb" ] || continue
+          pr=$(merged_pr_of "$rb")
+          if [ -n "$pr" ] && git merge-base --is-ancestor "$tip" "${pr##* }" 2>/dev/null; then
+            merged_reason="PR #${pr%% *} 경유"; break
+          fi
+        done < <(git branch -r --contains "$tip" --format='%(refname:short)' 2>/dev/null \
+                   | sed -n 's#^origin/##p' | grep -vx -e main -e HEAD -e origin)
       fi
     fi
   fi
   if [ -z "$merged_reason" ]; then
-    ahead=$(git rev-list --count "$BASE_REF".."$short" 2>/dev/null || echo "?")
+    ahead=$(git rev-list --count "$BASE_REF".."$tip" 2>/dev/null || echo "?")
     printf '%-38s %6s  ⚠️  미머지 %s커밋 (%s)\n' "$rel" "$size_h" "$ahead" "$short"
     kept_kb=$((kept_kb + size_kb)); return 0
   fi
