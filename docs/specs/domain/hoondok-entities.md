@@ -91,7 +91,7 @@
 | `topic` | varchar(40) | not null | 정성 주제. 앞뒤 공백 제거 후 1~40자 |
 | `duration_days` | int | not null | `7` · `21` · `40`. 앱 검증(`Literal`)만, DB CHECK 없음 |
 | `started_on` | date | not null | 시작일(KST). 생성 시 오늘 ~ 오늘+30 |
-| `reminder_time` | time | null | 표시용 리마인더 시각. 푸시는 Phase 4 |
+| `reminder_time` | time | null | **사용 중단(2026-09-28)** — 웹은 더 보내지도 보여 주지도 않는다. 정성 기간 알림은 ENT-HD-008 `read_time` 의 훈독하기 알림에 통합됐다(PLAN-HD-006 §2-12). 컬럼 삭제는 별도 2단계 |
 | `status` | varchar(16) | not null, server_default `active` | `active` · `completed` · `abandoned`. PG ENUM 아님 |
 | `ended_at` | datetime | null | `completed`·`abandoned` 로 바뀐 시각(UTC) |
 | `created_at` | datetime | not null | |

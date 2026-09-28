@@ -4,6 +4,7 @@ import { BookOpenText, HandHeart, Library } from "lucide-react";
 import Link from "next/link";
 import { MissionCard, WeekStrip } from "@/components/hoondok";
 import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-today";
+import { PushPromptCard } from "@/features/hoondok/notifications/components/push-prompt-card";
 import { formatKstDate, type TodayResponse } from "@/features/hoondok/today";
 import { useKstDate } from "@/features/hoondok/use-kst-date";
 import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
@@ -118,6 +119,10 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
           streakDays={summary?.streak_days}
         />
       </div>
+
+      {/* 알림 받기 제안 (PLAN-HD-006). 계정·설정 조회 뒤 늦게 나타나므로 미션 목록 아래에 둔다 — 위에 두면 목록을 밀어
+          체크를 누르려던 손가락이 "나중에" 를 누른다. 오늘 마쳤는지는 여기 isReadDone(미션 체크 즉시 완료 포함)이 알려 준다. */}
+      <PushPromptCard placement="home" isReadDone={isReadDone} />
     </>
   );
 }

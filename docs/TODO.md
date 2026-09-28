@@ -9,7 +9,7 @@
 - [ ] 말씀 서고 개통: 권리 원장 시드·본문 추출 후 admin에서 각 저작물을 승인한다. 현재 미승인 항목은 사용자에게 보이지 않는다. [운영 절차](runbooks/hoondok-pwa-rollout.md#말씀-서고-개통-절차-plan-hd-007)
 - [ ] 훈독 AI 낭독 목소리 운영 ON: [확인 필요] GCP `gcp-project-504004` 에서 Text-to-Speech 전용 키 발급 → VM `.env` → 캐시 볼륨 → backend 먼저, web 나중. 키가 없으면 브라우저 음성으로만 읽는다. [운영 절차](runbooks/hoondok-pwa-rollout.md#ai-낭독-목소리-운영-on-plan-hd-011)
 - [ ] 훈독 AI 낭독 캐시 디스크 용량 점검: [확인 필요] `/opt/truewords/tts-cache` 증가량과 점검 주기, backend appuser uid 를 실측한다. [AI 목소리 계획](plans/active/2026-09-25-hoondok-ai-voice.md)
-- [ ] 훈독 알림 운영 ON: 실기기 증거, 7일간의 `mission_logs`, 베타 지표 확인과 별도 승인 후 VAPID를 설정한다. [알림 계획](plans/active/2026-09-22-hoondok-notifications.md)
+- [ ] 훈독 알림 운영 ON: 2026-09-28 게이트 개정 — 수정 배포 뒤 VAPID 투입·cron 등록 → Android·iPhone 실기기 도착 확인. 기도하기 알림은 기도 기능 기획 뒤 붙인다. [알림 계획](plans/active/2026-09-22-hoondok-notifications.md) · [ON 절차](runbooks/hoondok-pwa-rollout.md#알림-운영-on-절차-plan-hd-006--phase-4)
 - [ ] GitHub Actions 비용 차단 재발 여부, `cache-cleanup.yml` 첫 예약 실행, main push 검사와 실패 시 Issue 알림 동작을 확인한다. [CI/CD 결정](adr/2026-09-05-cicd-audit-decisions.md)
 - [ ] 운영 장애 알림 수신 방식을 확정하고 VM에 적용한 뒤 실패를 강제로 재현해 실제 수신을 확인한다. 현재 `NTFY_TOPIC` 미설정이면 알림이 전송되지 않는다. cron 자체가 멈추는 경우를 감지할 dead-man ping도 필요하다. [VM 운영](../infra/oracle-vm/README.md#전달--ntfy-푸시-2026-09-05)
 - [ ] public Git 이력에 값이 남은 레드팀 관리자 계정의 비밀번호가 실제로 교체됐는지 확인한다. 미교체면 즉시 교체한다. [레드팀 가이드](runbooks/redteam-test-guide.md)

@@ -189,4 +189,24 @@ describe("SCR-PWA-015 설치 안내 (상시 노출)", () => {
     expect(await screen.findByText("이미 홈 화면에서 열었어요")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: INSTALL_CARD_TITLE })).toBeNull();
   });
+
+  it("iPhone 카카오톡 인앱이면 설치 단계(공유 버튼) 대신 기본 브라우저 안내 한 줄 — standalone 문구보다 먼저", async () => {
+    restoreNavigator();
+    restoreNavigator = stubNavigator({
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 KAKAOTALK 10.8.5",
+      maxTouchPoints: 5,
+    });
+    // standalone 으로 보이는 환경이어도 인앱 분기가 먼저다
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true })),
+    );
+    render(wrap(<SettingsScreen />));
+
+    expect(await screen.findByText("기본 브라우저에서 열면 홈 화면에 추가할 수 있어요")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: INSTALL_CARD_TITLE })).toBeNull();
+    expect(screen.queryByText(/공유 버튼/)).toBeNull();
+    expect(screen.queryByText("이미 홈 화면에서 열었어요")).toBeNull();
+  });
 });
