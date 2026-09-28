@@ -37,6 +37,25 @@ const subscribeNever = () => () => {};
 /** 권한 거절은 오류가 아니라 사용자의 선택이다 — 보고하지 않고 문구만 바꾼다. */
 class PushPermissionError extends Error {}
 
+type PushIntent = { readEnabled: boolean; readTime: string; lockScreenLevel: LockScreenLevel };
+
+/**
+ * 권한 요청은 클릭 핸들러 안에서 **동기적으로** 시작해야 한다. iOS WebKit 은 사용자 제스처 밖(await 뒤·mutationFn 안)의
+ * requestPermission 을 탭 안의 요청으로 인정하지 않을 수 있다. 그래서 여기서 바로 부르고 promise 만 mutation 에 넘긴다.
+ * 옛 콜백형 구현이 undefined 를 돌려줘도 Promise.resolve 로 감싸 같은 모양이 되고, 동기 예외는 거절된 promise 가 된다.
+ */
+function requestPermissionNow(): Promise<NotificationPermission> {
+  let request: Promise<NotificationPermission>;
+  try {
+    request = Promise.resolve(Notification.requestPermission());
+  } catch (error) {
+    request = Promise.reject(error);
+  }
+  // mutationFn 이 await 하기 전에 거절돼도 처리되지 않은 거절로 찍히지 않게 한다 — 결과는 mutationFn 이 그대로 받는다.
+  request.catch(() => undefined);
+  return request;
+}
+
 async function currentSubscription(): Promise<PushSubscription | null> {
   if (typeof navigator === "undefined" || !navigator.serviceWorker) return null;
   const registration = await navigator.serviceWorker.ready;
@@ -94,9 +113,10 @@ export function usePushNotifications() {
   }
 
   const mutation = useMutation({
-    mutationFn: async (intent: { readEnabled: boolean; readTime: string; lockScreenLevel: LockScreenLevel }) => {
-      if (intent.readEnabled && !prefs.read_enabled) {
-        const permission = await Notification.requestPermission();
+    // permission 은 켜는 경우에만 있다 — 클릭 핸들러가 이미 시작한 권한 요청이다(requestPermissionNow).
+    mutationFn: async (intent: PushIntent & { permission: Promise<NotificationPermission> | null }) => {
+      if (intent.permission) {
+        const permission = await intent.permission;
         if (permission !== "granted") throw new PushPermissionError(permission);
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.subscribe({
@@ -153,12 +173,15 @@ export function usePushNotifications() {
     },
   });
 
-  const submit = (patch: Partial<{ readEnabled: boolean; readTime: string; lockScreenLevel: LockScreenLevel }>) => {
+  // 클릭 핸들러에서 곧바로 불린다 — 켜는 경우의 권한 요청이 await 없이 여기서 시작돼야 제스처 안의 요청이 된다.
+  const submit = (patch: Partial<PushIntent>) => {
     if (!user) return;
+    const readEnabled = patch.readEnabled ?? prefs.read_enabled;
     mutation.mutate({
-      readEnabled: patch.readEnabled ?? prefs.read_enabled,
+      readEnabled,
       readTime: patch.readTime ?? prefs.read_time,
       lockScreenLevel: patch.lockScreenLevel ?? prefs.lock_screen_level,
+      permission: readEnabled && !prefs.read_enabled ? requestPermissionNow() : null,
     });
   };
 
@@ -167,12 +190,16 @@ export function usePushNotifications() {
     isSignedIn: Boolean(user),
     isUserLoading,
     prefs,
+    /** 서버 설정을 실제로 읽었다 — 그 전의 prefs 는 DEFAULT_PREFS(꺼짐)라 "켜져 있지 않다" 의 근거가 못 된다 */
+    isPrefsReady: prefsQuery.isSuccess,
     isSaving: mutation.isPending,
     message,
     /** 서버는 켜졌는데 이 기기 구독이 없거나, 서버 구독 행이 하나도 없을 때(발송기가 지운 경우) true */
     isDeviceMissing:
       support === "ready" && prefs.read_enabled && (hasDeviceSubscription === false || prefs.subscription_count === 0),
     toggle: (readEnabled: boolean) => submit({ readEnabled }),
+    /** 알림 받기 제안 카드의 주 버튼. 클릭 핸들러에서 바로 불러야 한다(권한 요청이 제스처 안에서 시작된다). */
+    enable: () => submit({ readEnabled: true }),
     setReadTime: (readTime: string) => submit({ readTime }),
     setLockScreenLevel: (lockScreenLevel: LockScreenLevel) => submit({ lockScreenLevel }),
   };

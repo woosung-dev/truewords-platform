@@ -15,13 +15,14 @@ export type PushSupport =
 /**
  * 판정 순서에 뜻이 있다.
  * 1) 서버 설정이 먼저다 — 보낼 수 없는 알림은 어떤 브라우저에서도 켤 수 없으므로 "준비 중" 이 정확하다.
- * 2) 그 다음이 브라우저 능력 → iOS 설치 → 권한. 앞의 조건이 풀리지 않으면 뒤를 안내해도 소용이 없다.
+ * 2) 그 다음이 iOS 설치 → 브라우저 능력 → 권한. iOS 사파리 탭에는 PushManager·Notification 이 아예 없어서
+ *    능력을 먼저 보면 "미지원" 으로 끝나 설치 안내에 닿지 못한다 — 홈 화면에 추가하면 생기므로 설치가 먼저다.
  */
 export function detectPushSupport(isConfigEnabled: boolean): PushSupport {
   if (!isConfigEnabled) return "disabled";
   if (typeof window === "undefined") return "unsupported";
-  if (!("PushManager" in window) || !("Notification" in window) || !navigator.serviceWorker) return "unsupported";
   if (isIos() && !isStandalone()) return "ios-not-installed";
+  if (!("PushManager" in window) || !("Notification" in window) || !navigator.serviceWorker) return "unsupported";
   if (Notification.permission === "denied") return "denied";
   return "ready";
 }

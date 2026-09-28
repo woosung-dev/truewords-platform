@@ -46,21 +46,43 @@ describe("detectPushSupport 5상태", () => {
     expect(detectPushSupport(true)).toBe("unsupported"); // navigator.serviceWorker 없음
   });
 
-  it("ios-not-installed: iOS 인데 홈 화면 앱이 아니면", () => {
-    restoreNavigator = stubSupportedBrowser();
-    const restoreIos = stubNavigator({ userAgent: IOS_UA, maxTouchPoints: 5 });
+  it("ios-not-installed: PushManager·Notification·serviceWorker 가 없는 iOS 사파리 탭", () => {
+    // 실제 iOS 사파리 탭 그대로 — 푸시 API 가 하나도 없다. 능력을 먼저 보면 "미지원" 으로 끝나 설치 안내에 닿지 못한다
+    restoreNavigator = stubNavigator({ userAgent: IOS_UA, maxTouchPoints: 5 });
     vi.stubGlobal(
       "matchMedia",
       vi.fn(() => ({ matches: false })),
     );
+    expect("PushManager" in window).toBe(false);
+    expect("Notification" in window).toBe(false);
     expect(detectPushSupport(true)).toBe("ios-not-installed");
-    // 홈 화면에 추가했으면 켤 수 있다
+    // 서버 설정이 없으면 iOS 여도 "준비 중" 이 먼저다
+    expect(detectPushSupport(false)).toBe("disabled");
+  });
+
+  it("iOS 홈 화면 앱: 설치하면 생기는 푸시 API 로 판정하고, 그래도 없으면(구형 iOS) 미지원", () => {
+    restoreNavigator = stubSupportedBrowser();
+    const restoreIos = stubNavigator({ userAgent: IOS_UA, maxTouchPoints: 5 });
     vi.stubGlobal(
       "matchMedia",
       vi.fn(() => ({ matches: true })),
     );
     expect(detectPushSupport(true)).toBe("ready");
+    vi.unstubAllGlobals();
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true })),
+    );
+    expect(detectPushSupport(true)).toBe("unsupported");
     restoreIos();
+  });
+
+  it("데스크톱은 iOS 분기를 타지 않는다 — 푸시 API 가 없으면 미지원, 있으면 준비", () => {
+    restoreNavigator = stubNavigator({ userAgent: DESKTOP_UA, maxTouchPoints: 0 });
+    expect(detectPushSupport(true)).toBe("unsupported");
+    restoreNavigator();
+    restoreNavigator = stubSupportedBrowser();
+    expect(detectPushSupport(true)).toBe("ready");
   });
 
   it("denied: 이미 차단했으면 다시 물을 수 없다", () => {
@@ -76,7 +98,10 @@ describe("detectPushSupport 5상태", () => {
 
 describe("urlBase64ToUint8Array", () => {
   it("base64url(-,_) 과 패딩 없는 문자열을 그대로 바이트로 만든다", () => {
-    const key = btoa(String.fromCharCode(251, 255, 190)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const key = btoa(String.fromCharCode(251, 255, 190))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
     expect([...urlBase64ToUint8Array(key)]).toEqual([251, 255, 190]);
   });
 });
