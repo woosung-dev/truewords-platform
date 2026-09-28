@@ -26,7 +26,7 @@ PR은 GitHub Actions에서 검증하고, 운영 배포는 로컬 Mac에서 명�
 | 저장소 | `pnpm docs:check`, `pnpm boundaries:check`, `pnpm tooling:test`, `bash -n infra/oracle-vm/*.sh` |
 | 통합 | `pnpm test:e2e`; web/admin/API와 격리된 테스트 데이터, 실제 실행 범위는 테스트 설정 참조. 로컬은 `make e2e`가 격리 compose 기동→migration→시드→실행→정리를 묶는다 |
 
-루트 `make ci`는 ci.yml의 검사 집합(E2E 제외)을 로컬에서 재현하고, `make e2e`가 `ci-e2e.yml`과 같은 격리 compose·시드·env로 E2E를 돌린다. CI를 바꾸면 두 target과 이 문서를 함께 맞춘다. `make backend-test`는 CI와 같은 env·범위로 전체 회귀를 실행한다(과거의 테스트 제외 옵션은 제거했다). Judge LLM/RAGAS 유료 평가는 CI에 추가하지 않는다.
+루트 `make ci`는 ci.yml의 검사 집합(E2E 제외)을 로컬에서 재현하고, `make e2e`가 `ci-e2e.yml`과 같은 격리 compose·시드·env로 E2E를 돌린다. CI를 바꾸면 두 target과 이 문서를 함께 맞춘다. API만 돌릴 때는 `pnpm --filter @truewords/api test`가 CI와 같은 env·범위로 전체 회귀를 실행한다. Judge LLM/RAGAS 유료 평가는 CI에 추가하지 않는다.
 
 실제 실행 횟수·통과/실패·외부 의존으로 실행하지 못한 항목은 해당 실행 계획에 남긴다. [최초 M1~M4 완료 증거](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)와 [후속 앱별 UI 분리 검증](../plans/active/2026-09-05-app-owned-ui.md)을 구분한다. 과거 청구 차단 기록을 현재 Actions 장애로 단정하지 않는다.
 
