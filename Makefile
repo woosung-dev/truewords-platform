@@ -50,6 +50,7 @@ ci: ## ci.yml 과 같은 검증 (API·웹·관리자·계약·저장소 검사).
 	@pnpm docs:check
 	@pnpm boundaries:check
 	@pnpm hoondok:check
+	@pnpm agents:check
 	@for s in infra/oracle-vm/*.sh tooling/*.sh; do bash -n "$$s" || exit 1; done
 	@pnpm test && pnpm lint && pnpm build && pnpm typecheck
 
