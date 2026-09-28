@@ -1,16 +1,18 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { Pencil, Plus } from "lucide-react";
 import Link from "next/link";
+import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { hoondokAPI } from "@/features/hoondok/api";
-import { addDays, dateRange, formatDayLabel, kstTodayIso, LIST_DAYS } from "@/features/hoondok/dates";
+import { ScheduleStockBanner } from "@/features/hoondok/components/schedule-stock";
+import { dateRange, formatDayLabel, LIST_DAYS } from "@/features/hoondok/dates";
 import { GRADE_LABEL, REVIEW_LABEL } from "@/features/hoondok/labels";
+import { scheduleStock } from "@/features/hoondok/stock";
 import type { ReviewStatus } from "@/features/hoondok/types";
+import { useUpcomingReadings } from "@/features/hoondok/use-upcoming-readings";
 
 // 검수 상태 배지 — 챗봇 목록의 활성/비활성 배지 토큰을 그대로 쓴다(새 디자인 없음).
 const REVIEW_BADGE: Record<ReviewStatus, string> = {
@@ -21,17 +23,14 @@ const REVIEW_BADGE: Record<ReviewStatus, string> = {
 
 /** 오늘(KST)부터 14일 — 편성 없는 날은 "미편성" 행으로 보여 빠진 날을 바로 채울 수 있게 한다. */
 export default function HoondokReadingsPage() {
-  const from = kstTodayIso();
-  const to = addDays(from, LIST_DAYS);
-
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["hoondok", "daily-readings", from, to],
-    queryFn: () => hoondokAPI.list(from, to),
-  });
+  const { from, data, isLoading, isError, refetch } = useUpcomingReadings();
 
   const days = dateRange(from, LIST_DAYS);
   const byDate = new Map((data ?? []).map((reading) => [reading.reading_date, reading]));
   const scheduled = days.filter((iso) => byDate.has(iso)).length;
+  // 재고 배너·첫 빈 날 표시는 목록과 같은 응답으로 계산한다. 오류면 기존 오류 화면만 보인다.
+  const stock = data && !isError ? scheduleStock(data, from) : null;
+  const firstGap = stock && stock.level !== "ok" ? stock.firstGap : null;
 
   return (
     <div className="space-y-5 page-wide">
@@ -51,6 +50,18 @@ export default function HoondokReadingsPage() {
           <Plus className="w-4 h-4 mr-1.5" />새 편성
         </Link>
       </div>
+
+      {isLoading ? (
+        <Skeleton className="h-5 w-72" />
+      ) : (
+        stock && (
+          <ScheduleStockBanner
+            stock={stock}
+            today={from}
+            firstGapReadingId={firstGap ? byDate.get(firstGap)?.id : undefined}
+          />
+        )
+      )}
 
       {isLoading ? (
         <div className="rounded-xl border bg-card overflow-hidden">
@@ -85,12 +96,16 @@ export default function HoondokReadingsPage() {
               {days.map((iso, index) => {
                 const reading = byDate.get(iso);
                 const isToday = index === 0;
+                const isFirstGap = iso === firstGap;
                 return (
                   <TableRow
                     key={iso}
                     data-date={iso}
                     data-today={isToday ? "true" : undefined}
-                    className="hover:bg-admin-muted/30 transition-colors"
+                    data-first-gap={isFirstGap ? "true" : undefined}
+                    className={
+                      isFirstGap ? "bg-warning-soft hover:bg-warning-soft" : "hover:bg-admin-muted/30 transition-colors"
+                    }
                   >
                     <TableCell className={isToday ? "font-medium" : undefined}>
                       {formatDayLabel(iso)}
@@ -112,6 +127,11 @@ export default function HoondokReadingsPage() {
                         </span>
                       ) : (
                         <span className="text-muted-foreground italic">미편성</span>
+                      )}
+                      {isFirstGap && (
+                        <StatusBadge tone="warning" className="ml-2">
+                          첫 빈 날
+                        </StatusBadge>
                       )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[14rem] truncate">
@@ -135,7 +155,7 @@ export default function HoondokReadingsPage() {
                         <Link
                           href={`/hoondok/${reading.id}/edit`}
                           className={buttonVariants({
-                            variant: "ghost",
+                            variant: isFirstGap ? "outline" : "ghost",
                             size: "sm",
                             className: "text-muted-foreground hover:text-foreground",
                           })}
@@ -146,7 +166,7 @@ export default function HoondokReadingsPage() {
                       ) : (
                         <Link
                           href={`/hoondok/new?date=${iso}`}
-                          className={buttonVariants({ variant: "ghost", size: "sm" })}
+                          className={buttonVariants({ variant: isFirstGap ? "outline" : "ghost", size: "sm" })}
                         >
                           <Plus className="w-3.5 h-3.5 mr-1.5" />
                           편성하기
