@@ -7,12 +7,8 @@
 3. `contracts/openapi.json`은 `uv run --frozen python scripts/export_openapi.py`로 생성한다. 생성 JSON/SDK를 수동 편집하지 않는다. exporter는 lifespan과 네트워크 없이 동작해야 한다.
 4. SSE 데이터 모델은 `app/modules/chat/stream_schemas.py`, 공유 예시는 `contracts/fixtures/chat-stream.json`이다. 실제 이벤트는 `chunk`, `sources`, `done`; HTTP 오류/중도 끊김을 `done`으로 간주하지 않는다.
 5. 검증은 `GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run --frozen pytest -q`와 계약 재생성 검사를 실행한다. paid Gemini 평가와 운영 DB·볼륨 변경은 이 검증에 포함하지 않는다.
-
-6. 훈독 알림은 `app/modules/hoondok/notifications_router.py`(공개 `/hoondok/push/config` + `hoondok_token` 의 `/hoondok/me/notifications`·`/hoondok/me/push`)다. VAPID 3값이 모두 설정되지 않으면 구독은 409 `PUSH_DISABLED` 이며 실제 발송 코드는 이 라우터에 두지 않는다.
-
-7. 훈독 말씀 서고는 `app/modules/hoondok/library_{router,service,repository,schemas,series}.py` 다. 장 목차 추출 규칙은 `section_rules.py`(순수 함수, I/O 없음)에 두고, 1회 실행 스크립트 `scripts/seed_content_rights_from_qdrant.py`(권리 원장 시드)·`scripts/extract_volume_sections.py`(장 목차 추출)가 Qdrant·DB I/O 를 맡는다 — cron 이 아니며 절차는 `infra/oracle-vm/README.md` 다. 목차는 `/hoondok/sections/{volume:path}` 이며 `/hoondok/words/{volume:path}` 가 greedy 라 하위 경로를 쓰지 않는다. 시리즈 admin(`API-HD-027·028`)은 기존 `rights_admin_router.py` 에 둔다.
-
-8. 훈독 AI 낭독 목소리는 `app/modules/hoondok/tts_{router,service,repository,schemas,google}.py` 다(PLAN-HD-011). 임의 텍스트를 받지 않고 청크 id·말씀 id+단락 번호로 서버가 본문을 조회한다. `GOOGLE_TTS_API_KEY` 가 없거나 캐시 디렉터리에 쓸 수 없으면 503 `TTS_DISABLED`, 월 상한(태평양 시간 달)·사용자 24시간 한도는 `hoondok_tts_usage` 합계이며 합성 전에 예약·커밋한 뒤 Google 을 부른다. 테스트는 Google 을 부르지 않는다(conftest 가 키를 비운다).
+6. `/hoondok/words/{volume:path}`는 하위 경로까지 잡는 greedy 라우트다. 그 아래에 경로를 만들지 않고 목차처럼 별도 접두(`/hoondok/sections/{volume:path}`)를 쓴다.
+7. 테스트는 Google TTS를 호출하지 않는다. conftest가 `GOOGLE_TTS_API_KEY`를 비워 낭독을 끈다.
 
 ## RAG·데이터 경계
 

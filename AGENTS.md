@@ -7,6 +7,15 @@
 - 사용자 웹은 `apps/web`, 관리자는 `apps/admin`, 업무 규칙·최종 권한 검사는 `apps/api`가 소유한다. 공유 패키지는 `packages/api-client-ts`, `packages/eslint-config`, `packages/typescript-config`뿐이다. 앱 간 UI·테마·CSS를 공유하지 않는다.
 - FastAPI 라우트·Pydantic 모델이 API 원본이다. `contracts/openapi.json`과 생성 SDK를 직접 수정하지 않는다. SSE는 별도 이벤트 계약을 따른다.
 
+## 웹 앱 공통 (`apps/web`·`apps/admin`)
+
+- 각 앱의 UI·테마·표시 유틸은 그 앱의 `src/components/ui`·`src/app/globals.css`·`src/lib/utils.ts`가 소유한다. `@/components/ui/*`·`@/lib/utils`를 쓰고 다른 앱의 UI·CSS를 import하지 않는다.
+- 생성 DTO/SDK는 `@truewords/api-client-ts`, 공통 검사 설정은 `@truewords/eslint-config`·`@truewords/typescript-config`를 쓴다. 공유 패키지는 앱을 import하지 않는다.
+- API는 같은 origin의 `/api/backend` 프록시·쿠키 경로로 호출한다. 앱 간 이동은 `NEXT_PUBLIC_WEB_URL`·`NEXT_PUBLIC_ADMIN_URL`을 쓰고, 계정 쿠키가 다른 hostname과 공유된다고 가정하거나 복사하지 않는다.
+- 인증 실패 후 이동은 각 앱이 소유한다. 공통 SDK가 브라우저 위치를 바꾸지 않는다.
+- TypeScript strict를 유지하고 불명확한 API 값은 `unknown`으로 검증한다. 동적 `params`/`searchParams`는 Promise로 다룬다.
+- React Query Provider는 앱별로 두고 서버 상태를 맡긴다. 서버 모듈 전역에 사용자·세션 상태를 두지 않는다.
+
 ## 변경 원칙
 
 - 작업 범위와 성공 조건을 짧게 확인하고, 영향받는 코드만 수정한다. 불확실한 업무 규칙은 `[가정]` 또는 `[확인 필요]`로 표시한다.
@@ -14,6 +23,12 @@
 - 버그는 재현 테스트, 복잡한 업무 규칙은 의미 있는 동작 테스트로 확인한다. 단순 변경에는 테스트를 관례적으로 추가하지 않는다.
 - 네트워크 실패, 빈 응답, 타입 불일치, 권한 오류 등 실제로 가능한 경계 조건을 검토한다.
 - 새 Flutter 앱과 SDK는 도입 결정 전 만들지 않는다. 폴더 이동만을 근거로 API URL·DB 스키마·RAG 정책을 변경하지 않는다.
+
+## AGENTS.md 작성 기준
+
+- 쓴다: 소유 경계, 코드만 봐서는 드러나지 않는 불변식(보안·개인정보·권리), 함정, 검증 명령.
+- 쓰지 않는다: 기능 설명, 파일·키·컴포넌트 목록, 계획 ID·Phase·PR 번호, 계획 문서 링크, 스펙에 이미 있는 계약. 기능을 추가했다는 이유로 AGENTS.md를 고치지 않는다.
+- `pnpm agents:check`(`make ci`·CI 포함)가 계획 ID·Phase 표기·계획 문서 링크·300자 초과 줄을 막는다. `next dev`가 넣는 `nextjs-agent-rules` 블록은 검사하지 않는다.
 
 ## Git·운영
 
