@@ -72,6 +72,8 @@ try {
     writeFileSync(base, JSON.stringify(normalizeLegacyStreamContract(JSON.parse(readFileSync(base, "utf8")))));
     console.log("최초 기준의 알려진 SSE MIME 오기만 교정: application/json → text/event-stream");
   }
+  // 합의된 하위 호환 깨짐 목록 — 컨테이너가 읽을 수 있게 임시 디렉터리로 복사한다.
+  writeFileSync(path.join(temporary, "allow.txt"), readFileSync(path.join(root, "contracts/breaking-allowlist.txt")));
   run(
     "docker",
     [
@@ -84,6 +86,10 @@ try {
       "breaking",
       "--fail-on",
       "WARN",
+      "--err-ignore",
+      "/specs/allow.txt",
+      "--warn-ignore",
+      "/specs/allow.txt",
       "--",
       "/specs/base.json",
       "/specs/current.json",
