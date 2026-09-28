@@ -38,6 +38,8 @@ FastAPI 라우트·Pydantic 모델이 원본이다. `contracts/openapi.json`과 
 
 기준 branch의 계약이 아직 없는 최초 이전 PR은 이동 전 FastAPI schema를 기준선으로 사용한다. 이후 PR은 기준 branch 계약과 비교한다. URL 버전만으로 호환성을 보장하지 않으며, 필드 제거·타입·required·enum·nullable과 오류 응답을 점검한다.
 
+합의한 하위 호환 깨짐(쓰는 곳이 함께 배포되는 우리 앱뿐인 필드 제거 등)은 `contracts/breaking-allowlist.txt`에 oasdiff 메시지 한 줄씩 적어 그 항목만 통과시킨다. 목록에 없는 깨짐은 그대로 실패한다. 해당 PR이 머지된 뒤 다음 계약 PR에서 항목을 지운다.
+
 최초 기준 export의 `POST /chat/stream` 200 응답만 `application/json` 오기를 실제 응답 형식인 `text/event-stream`으로 정규화한다. `tooling/checks/legacy-contract.mjs`가 정확한 기존 모양을 검사하며, **기준 branch에 계약이 있는 이후 PR에는 적용하지 않는다.** 실제 REST schema 변경을 허용하는 예외가 아니다. 상세는 [전환 검증 runbook](monorepo-migration-and-rollback.md#최초-계약-pr의-한정된-sse-정규화)을 참조한다.
 
 SSE는 별도 fixture·이벤트 모델·증분 수신 테스트로 검증한다. OpenAPI 생성 성공만으로 chunk 경계·UTF-8·취소·done 처리까지 완료됐다고 주장하지 않는다.

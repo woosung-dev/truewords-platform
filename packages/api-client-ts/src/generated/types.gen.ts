@@ -2412,10 +2412,6 @@ export type NegativeFeedbackItem = {
  */
 export type NotificationPreferenceInput = {
     /**
-     * Lock Screen Level
-     */
-    lock_screen_level?: 'neutral' | 'faith';
-    /**
      * Read Enabled
      */
     read_enabled: boolean;
@@ -2431,10 +2427,6 @@ export type NotificationPreferenceInput = {
  * API-HD-020. 설정 행이 없으면 기본값 + subscription_count=구독 수.
  */
 export type NotificationPreferenceResponse = {
-    /**
-     * Lock Screen Level
-     */
-    lock_screen_level: 'neutral' | 'faith';
     /**
      * Read Enabled
      */

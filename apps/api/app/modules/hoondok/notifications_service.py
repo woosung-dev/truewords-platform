@@ -44,7 +44,6 @@ class NotificationService:
             return NotificationPreferenceResponse(
                 read_enabled=False,
                 read_time=DEFAULT_READ_TIME,
-                lock_screen_level="neutral",
                 subscription_count=count,
             )
         return self._to_response(stored, count)
@@ -56,7 +55,6 @@ class NotificationService:
         stored = await self.repo.get_preference(user_id) or NotificationPreference(user_id=user_id)
         stored.read_enabled = data.read_enabled
         stored.read_time = parse_read_time(data.read_time)
-        stored.lock_screen_level = data.lock_screen_level
         stored.updated_at = _utcnow()
         saved = await self.repo.save_preference(stored)
         return self._to_response(saved, await self.repo.count_subscriptions(user_id))
@@ -100,6 +98,5 @@ class NotificationService:
         return NotificationPreferenceResponse(
             read_enabled=row.read_enabled,
             read_time=format_read_time(row.read_time),
-            lock_screen_level=row.lock_screen_level,  # type: ignore[arg-type]
             subscription_count=count,
         )

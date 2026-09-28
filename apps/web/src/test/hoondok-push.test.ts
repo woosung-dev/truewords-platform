@@ -163,17 +163,15 @@ describe("notificationsAPI", () => {
     expect(init.method).toBe("DELETE");
   });
 
-  it("savePrefs: PUT 본문은 계약 3필드뿐이다", async () => {
+  it("savePrefs: PUT 본문은 계약 2필드뿐이다", async () => {
     const fetchMock = stubFetch(200, {
       read_enabled: true,
       read_time: "06:30",
-      lock_screen_level: "faith",
       subscription_count: 1,
     });
     const prefs = await notificationsAPI.savePrefs({
       read_enabled: true,
       read_time: "06:30",
-      lock_screen_level: "faith",
     });
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("/api/backend/hoondok/me/notifications");
@@ -181,7 +179,6 @@ describe("notificationsAPI", () => {
     expect(JSON.parse(init.body as string)).toEqual({
       read_enabled: true,
       read_time: "06:30",
-      lock_screen_level: "faith",
     });
     expect(prefs.subscription_count).toBe(1);
   });

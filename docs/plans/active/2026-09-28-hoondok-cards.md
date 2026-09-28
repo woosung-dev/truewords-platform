@@ -22,7 +22,7 @@
 - **API** — [API 명세](../../specs/api/hoondok-api.md#plan-hd-012--오늘의-책갈피-api-hd-047052) 047~052. 오늘 카드는 풀이 비면 `card: null`(항상 200, `/hoondok/today` 관례).
 - **시드** — `apps/api/scripts/seed_hoondok_cards.py`: 엑셀 `말씀카드_후보문구.xlsx` 11탭(말씀선집 제외) 문구를 Qdrant 청크와 한글 정규화 포함 검사로 대조해 draft 로 넣는다. 로컬·E2E 전용(운영 환경 거부). 2026-09-28 로컬 `malssum_poc_v5` dry-run: 590 중 일치 588 · 불일치 2(청크 경계에 걸친 문구 `[가정]`). E2E 는 `seed_hoondok_journey.py` 가 active 3장을 넣는다.
 - **웹 화면** — `SCR-PWA-022` 홈 카드, `023` `/hoondok/bookmark` 받기·읽기, `024` 건네기 시트, `025` `/hoondok/c/{id}` 받은 사람(공개), `026` `/hoondok/bookmarks` 나의 책갈피. 원문 연결은 기존 `/hoondok/words/{volume}?chunk_id=&card={id}`(밑줄·여백 리본). OG 이미지 `/hoondok/c/{id}/image?f=link|square|story`(`next/og`, Pretendard TTF 서브셋). 비로그인은 localStorage KST 날짜 키에 두었다가 로그인 뒤 당일분을 소급한다.
-- **알림** — `push_sender.py`: 중립형 "오늘의 책갈피가 꽂혀 있어요"(책 이름 없음), 신앙형 "오늘의 책갈피 — {책}에서 한 장"(오늘 카드를 모르면 "오늘의 말씀 책갈피가 꽂혀 있어요"), 본문 "한 장 꺼내 읽어 보세요". 태그 `hoondok-read` 유지.
+- **알림** — `push_sender.py`: 제목 "오늘의 책갈피가 꽂혀 있어요"(책 이름 없음), 본문 "한 장 꺼내 읽어 보세요". 알림 문구는 이것 하나다(2026-09-28 문구 선택 제거). 태그 `hoondok-read` 유지.
 
 ## 3. 트랙
 

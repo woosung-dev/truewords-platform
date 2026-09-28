@@ -4018,15 +4018,6 @@
         "additionalProperties": false,
         "description": "API-HD-020 PUT — 부분 수정이 아니라 전체 교체다.",
         "properties": {
-          "lock_screen_level": {
-            "default": "neutral",
-            "enum": [
-              "neutral",
-              "faith"
-            ],
-            "title": "Lock Screen Level",
-            "type": "string"
-          },
           "read_enabled": {
             "title": "Read Enabled",
             "type": "boolean"
@@ -4047,14 +4038,6 @@
       "NotificationPreferenceResponse": {
         "description": "API-HD-020. 설정 행이 없으면 기본값 + subscription_count=구독 수.",
         "properties": {
-          "lock_screen_level": {
-            "enum": [
-              "neutral",
-              "faith"
-            ],
-            "title": "Lock Screen Level",
-            "type": "string"
-          },
           "read_enabled": {
             "title": "Read Enabled",
             "type": "boolean"
@@ -4071,7 +4054,6 @@
         "required": [
           "read_enabled",
           "read_time",
-          "lock_screen_level",
           "subscription_count"
         ],
         "title": "NotificationPreferenceResponse",
@@ -11232,7 +11214,7 @@
         ]
       },
       "put": {
-        "description": "API-HD-020 알림 설정 전체 교체. 422 시각·수위 형식, 403 CSRF, 401 미인증.",
+        "description": "API-HD-020 알림 설정 전체 교체. 422 시각 형식, 403 CSRF, 401 미인증.",
         "operationId": "put_notifications_hoondok_me_notifications_put",
         "requestBody": {
           "content": {

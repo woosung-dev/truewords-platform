@@ -9,11 +9,9 @@ import ipaddress
 from urllib.parse import urlsplit
 
 from datetime import datetime, time
-from typing import Literal
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-LockScreenLevel = Literal["neutral", "faith"]
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # "HH:MM" 만 받는다 — "6:00"(한 자리), "06:00:00"(초 포함)은 422.
 TIME_PATTERN = r"^([01][0-9]|2[0-3]):[0-5][0-9]$"
@@ -45,7 +43,14 @@ class NotificationPreferenceInput(BaseModel):
 
     read_enabled: bool
     read_time: str = Field(default=DEFAULT_READ_TIME, pattern=TIME_PATTERN)
-    lock_screen_level: LockScreenLevel = "neutral"
+
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_removed_fields(cls, data: Any) -> Any:
+        """2026-09-28 에 없앤 잠금 화면 문구 필드. 이전 화면이 아직 보내도 422 가 되지 않게 버린다."""
+        if isinstance(data, dict) and "lock_screen_level" in data:
+            data = {k: v for k, v in data.items() if k != "lock_screen_level"}
+        return data
 
 
 class NotificationPreferenceResponse(BaseModel):
@@ -53,7 +58,6 @@ class NotificationPreferenceResponse(BaseModel):
 
     read_enabled: bool
     read_time: str
-    lock_screen_level: LockScreenLevel
     subscription_count: int
 
 

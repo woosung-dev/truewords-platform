@@ -19,7 +19,6 @@ REVIEW_STATUSES = ("reviewed", "unverified", "withdrawn")
 MISSION_KINDS = ("read", "pray", "study")  # 훈독하기 · 기도하기 · 말씀 읽기
 JEONGSEONG_STATUSES = ("active", "completed", "abandoned")
 JEONGSEONG_DURATIONS = (7, 21, 40)  # 앱 검증(Literal). DB CHECK 는 두지 않는다
-LOCK_SCREEN_LEVELS = ("neutral", "faith")  # 잠금화면 문구 수위 (PLAN-HD-006)
 SECTION_LEVELS = (1, 2)  # 1 = 편·장, 2 = 장·절·설교 (PLAN-HD-007)
 SECTION_ORIGINS = ("auto", "manual")  # 추출 스크립트 산출 / 운영자 수기
 MARK_KINDS = ("bookmark", "highlight")
@@ -154,14 +153,13 @@ class ClientErrorEvent(SQLModel, table=True):
 
 
 class NotificationPreference(SQLModel, table=True):
-    """ENT-HD-008 사용자별 알림 설정 1건. 행이 없으면 기본값(끔·06:00·neutral)으로 취급한다."""
+    """ENT-HD-008 사용자별 알림 설정 1건. 행이 없으면 기본값(끔·06:00)으로 취급한다."""
 
     __tablename__ = "notification_preferences"
 
     user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True)
     read_enabled: bool = Field(default=False)
     read_time: time = Field(default=time(6, 0))  # KST 발송 시각(분 단위, 초는 쓰지 않는다)
-    lock_screen_level: str = Field(default="neutral", max_length=16)  # LOCK_SCREEN_LEVELS
     updated_at: datetime = Field(default_factory=_utcnow)
 
 

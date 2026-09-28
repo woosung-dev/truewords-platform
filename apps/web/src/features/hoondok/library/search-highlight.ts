@@ -35,6 +35,13 @@ function splitByPattern(text: string, pattern: RegExp): SnippetPart[] {
   return parts;
 }
 
+/** 검색어 전체나 두 글자 이상 낱말이 본문에 하나라도 나오는가 — 목록·원문 밑줄과 같은 규칙이다.
+ *  검색 결과를 "검색어가 나온 말씀" 과 "뜻이 가까운 말씀" 으로 나누는 기준이기도 하다. */
+export function hasSearchHit(text: string, query: string): boolean {
+  const pattern = patternOf(query);
+  return pattern ? text.search(pattern) >= 0 : false;
+}
+
 /** 본문 전체를 자르지 않고 검색어 위치만 나눈다 (원문 뷰용). */
 export function markSearchTerms(text: string, query: string): SnippetPart[] {
   const pattern = patternOf(query);

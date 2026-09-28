@@ -339,6 +339,7 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 | 2026-09-23 | API-HD-023~028 신설(말씀 서고 3계층·읽기 기록). 목차 경로는 `/hoondok/sections/{volume}` — `/hoondok/words/{volume:path}` 가 greedy 라 하위 경로를 쓸 수 없다. `API-HD-014` 에 `works[]`, `API-HD-016` 에 `section` 파라미터·필드, `content_rights` 에 `chunk_count` 를 **추가만** 했다(하위 호환). 기록은 로그인 필수, 읽기는 공개 | 확정 · PLAN-HD-007 트랙 A |
 | 2026-09-23 | API-HD-015·016 항목에 `display_text` 추가(하위 호환). 원본 `text` 는 유지하고 표시할 때만 정리한다 — Qdrant 재적재·재임베딩 없음 | 확정 · PLAN-HD-008 트랙 A |
 | 2026-09-22 | API-HD-019~022 신설(Web Push). VAPID 미설정이면 구독 자체를 409 `PUSH_DISABLED` 로 거절(조용히 저장하지 않음), `endpoint` unique + 소유 이전, `read_time` 은 `HH:MM` 문자열·KST 고정, 설정 PUT 은 전체 교체. 발송기는 sub-PR B | 확정 · PLAN-HD-006 sub-PR A |
+| 2026-09-28 | API-HD-020 에서 알림 문구 수준 필드(중립·신앙) 제거 — 오버 스펙, 알림 문구는 중립 문구 하나. PUT 에 옛 필드가 오면 422 대신 버린다 | 확정 · PLAN-HD-006 §8 |
 
 ---
 
@@ -356,11 +357,12 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 
 ### `API-HD-020 GET · PUT /hoondok/me/notifications`
 
-`{"read_enabled": bool, "read_time": "HH:MM", "lock_screen_level": "neutral"|"faith", "subscription_count": int}`.
+`{"read_enabled": bool, "read_time": "HH:MM", "subscription_count": int}`.
 
-- 저장된 행이 없으면 GET 은 기본값(`false` · `"06:00"` · `"neutral"`)을 돌려주고 행을 만들지 않는다.
+- 저장된 행이 없으면 GET 은 기본값(`false` · `"06:00"`)을 돌려주고 행을 만들지 않는다.
 - PUT 은 **전체 교체** upsert 다. 생략한 필드는 기본값으로 되돌아간다(부분 수정 아님).
 - `read_time` 은 항상 `HH:MM` 문자열이다. `"6:00"`·`"25:00"`·`"06:00:00"` 은 422. 발송 기준 시간대는 KST 고정이라 오프셋을 받지 않는다.
+- 모르는 필드는 422 다. 단, 2026-09-28 에 없앤 문구 수준 필드는 이전 화면이 보내도 받아서 버린다.
 - `subscription_count` 는 본인 구독 수다 — 웹이 "알림 켬 + 기기 0대" 상태를 안내하는 데 쓴다.
 
 ### `API-HD-021 POST /hoondok/me/push`

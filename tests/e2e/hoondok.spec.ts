@@ -344,7 +344,7 @@ test("알림: backend 에 VAPID 가 없으면 훈독하기도 '준비 중' 이�
   await page.goto("/hoondok/settings");
 
   const toggle = page.getByRole("button", { name: "훈독하기 알림" });
-  await expect(page.locator("main").getByText("준비 중")).toHaveCount(6);
+  await expect(page.locator("main").getByText("준비 중")).toHaveCount(5);
   await expect(toggle).toBeDisabled();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
   // 켤 수 없으므로 시간도 고를 수 없다 (input 대신 꺼진 행)
@@ -453,7 +453,7 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
   const missionsBefore = await missions.boundingBox();
   releaseConfig();
   await expect(card.getByRole("heading", { name: "매일 아침 훈독 시간을 알려 드릴까요?" })).toBeVisible();
-  await expect(card).toContainText("오늘의 읽을거리가 준비됐어요");
+  await expect(card).toContainText("오늘의 책갈피가 꽂혀 있어요");
   // 카드는 미션 목록 아래에 붙고, 나타나도 목록 위치가 그대로다 (위에 끼어들어 밀면 오터치 → "나중에" 영구 거절)
   const missionsAfter = await missions.boundingBox();
   const cardBox = await card.boundingBox();

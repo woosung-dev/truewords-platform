@@ -6,12 +6,12 @@
        응답한다(다른 URL 에서 안내 HTML 을 그대로 내면 usePathname 기반 앱 셸이 hydration 불일치를 낸다). precache 자산은 네트워크 실패 시 캐시.
    (3) activate: 구버전 hoondok-* 캐시 삭제 + clients.claim.
    (4) push: 서버가 보낸 {title, body, url} 로 알림 하나를 띄운다(태그 hoondok-read — 같은 태그는 덮어쓰므로 쌓이지 않는다).
-       데이터가 없거나 깨졌으면 신앙 맥락이 드러나지 않는 중립 문구로 대신한다(DES-PWA-003 잠금 화면 문구 기본값).
+       데이터가 없거나 깨졌으면 신앙 맥락이 드러나지 않는 중립 문구로 대신한다.
    (5) notificationclick: 열려 있는 /hoondok 창이 있으면 그 창을 focus 후 해당 URL 로 보내고, 없으면 새 창을 연다.
    런타임에 cache.put 을 하지 않으므로 /api/backend/* · /hoondok/onboarding · 인증 응답은 캐시에 들어갈 수 없다(ARCH-MONO-001 §7).
    sw.js 를 바꾸면 SW_VERSION 을 올린다(캐시 이름). 킬스위치: SW_KILL = true 로 배포하면 다음 방문에서 캐시 전삭제 + 등록 해제.
    rollback-web 만으로는 이미 설치된 SW 가 지워지지 않는다 — 절차는 runbook(Phase 3 G). */
-const SW_VERSION = "2026-09-28.1";
+const SW_VERSION = "2026-09-28.2";
 const SW_KILL = false;
 const CACHE_PREFIX = "hoondok-";
 const CACHE_NAME = `${CACHE_PREFIX}${SW_VERSION}`;

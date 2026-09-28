@@ -132,7 +132,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
   sessionStorage.clear();
-  serverPrefs = { read_enabled: false, read_time: "06:00", lock_screen_level: "neutral", subscription_count: 0 };
+  serverPrefs = { read_enabled: false, read_time: "06:00", subscription_count: 0 };
   vi.mocked(identityAPI.me).mockResolvedValue({ user: USER });
   vi.mocked(notificationsAPI.config).mockResolvedValue({ enabled: true, public_key: VAPID_KEY });
   vi.mocked(notificationsAPI.prefs).mockImplementation(async () => serverPrefs);
@@ -264,7 +264,7 @@ describe("PushPromptCard — ready", () => {
   it("알림 받기: 권한 요청이 클릭 안에서 동기적으로 시작되고 → 구독 → PUT → 켠 시각 안내", async () => {
     render(wrap(<PushPromptCard placement="home" />));
     expect(await screen.findByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeInTheDocument();
-    expect(screen.getByText("잠금 화면에는 '오늘의 읽을거리가 준비됐어요' 처럼 보여요")).toBeInTheDocument();
+    expect(screen.getByText("잠금 화면에는 '오늘의 책갈피가 꽂혀 있어요' 처럼 보여요")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "알림 받기" }));
     // await 없이 바로 — mutationFn 안(비동기)이 아니라 클릭 핸들러 안에서 불렸다는 뜻이다 (iOS 제스처 규칙)
@@ -279,7 +279,6 @@ describe("PushPromptCard — ready", () => {
     expect(notificationsAPI.savePrefs).toHaveBeenCalledWith({
       read_enabled: true,
       read_time: "06:00",
-      lock_screen_level: "neutral",
     });
     expect(screen.getByRole("link", { name: "시각은 설정에서 바꿀 수 있어요" })).toHaveAttribute(
       "href",
