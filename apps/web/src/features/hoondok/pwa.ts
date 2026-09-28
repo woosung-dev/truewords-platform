@@ -3,4 +3,7 @@
 export const HOONDOK_MANIFEST_PATH = "/hoondok/manifest.webmanifest";
 export const HOONDOK_THEME_COLOR = "#fbfaf8";
 export const HOONDOK_ICON_192 = "/hoondok/icons/icon-192.png";
+// 탭 파비콘 전용 판(16 격자). 루트 app/favicon.ico(256x256) 보다 탭 크기에 정확히 맞는 32 를 함께 선언해야 탭에서 이긴다.
+export const HOONDOK_FAVICON_SVG = "/hoondok/icons/favicon.svg";
+export const HOONDOK_FAVICON_32 = "/hoondok/icons/favicon-32.png";
 export const HOONDOK_APPLE_TOUCH_ICON = "/hoondok/icons/apple-touch-icon-180.png";

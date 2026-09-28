@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useCallback, useState } from "react";
 import { MenuDrawer } from "@/features/hoondok/menu/components/menu-drawer";
+import { HOONDOK_FAVICON_SVG } from "@/features/hoondok/pwa";
 import { HoondokScreenTitleContext } from "@/features/hoondok/screen-title";
 import { screenFor } from "@/features/hoondok/screens";
 import { HOONDOK_TABS } from "@/features/hoondok/tabs";
@@ -69,6 +70,7 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
       {!screen.hideNav && (
         <nav className="nav" aria-label="주 메뉴">
           <Link className="nav__brand" href="/hoondok">
+            <img className="nav__mark" src={HOONDOK_FAVICON_SVG} alt="" width={32} height={32} />
             훈독
           </Link>
           {HOONDOK_TABS.map((tab) => {

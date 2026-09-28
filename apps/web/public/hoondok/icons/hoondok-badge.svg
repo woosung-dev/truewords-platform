@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="68.5 68.5 375 375" width="96" height="96">
-  <!-- 안드로이드 알림 배지(상태 표시줄 작은 아이콘). hoondok-icon.svg 의 글자만, 배경 없음, 흰색. 글자 박스 277x300 을 375 정사각 가운데(세로 여백 10%) -->
-  <path fill="#FFFFFF" transform="translate(108.503 380.638) scale(0.16685 -0.16685)" d="M1714 614H54V414H780V190H1032V414H1714ZM1534 48H502V302H248V-152H1534ZM1628 1484H1012V1646H756V1484H134V1292H1628ZM884 1242C494 1242 270 1146 272 966C270 784 494 684 884 684C1272 684 1496 784 1496 966C1496 1146 1272 1242 884 1242ZM884 1064C1124 1064 1234 1036 1234 966C1234 896 1124 866 884 866C640 866 530 896 532 966C530 1036 640 1064 884 1064Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="11 0 115 115" width="96" height="96">
+  <!-- 안드로이드 알림 배지(상태 표시줄 작은 아이콘). HD 모노그램만, 배경 없음, 흰색. 세로 여백 10% -->
+  <g fill="none" stroke="#FFFFFF">
+    <path d="M25 29V98M25 64H66M66 29V98M66 29H78C101 29 112 42 112 64C112 87 101 98 78 98H66" stroke-width="11" stroke-linecap="square" stroke-linejoin="round"/>
+    <path d="M59 14.5H73" stroke-width="6"/>
+  </g>
 </svg>

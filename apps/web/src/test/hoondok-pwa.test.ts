@@ -52,6 +52,13 @@ describe("훈독 PWA 설치 메타", () => {
     expect(meta.manifest).toBe("/hoondok/manifest.webmanifest");
     expect(meta.appleWebApp).toMatchObject({ capable: true, title: "훈독" });
     expect(meta.icons).toMatchObject({ apple: [{ url: "/hoondok/icons/apple-touch-icon-180.png" }] });
+    // 루트 app/favicon.ico(Next 기본 삼각형, sizes 256x256)도 함께 붙으므로 탭 크기에 딱 맞는 32 와 SVG 가 있어야 탭에서 이긴다
+    expect(meta.icons).toMatchObject({
+      icon: expect.arrayContaining([
+        { url: "/hoondok/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+        { url: "/hoondok/icons/favicon.svg", type: "image/svg+xml" },
+      ]),
+    });
     expect(meta.robots).toEqual({ index: false, follow: false });
     expect(on.generateViewport().themeColor).toBe(PAPER);
 
@@ -81,7 +88,7 @@ describe("훈독 PWA 설치 메타", () => {
     expect(manifest.background_color).toBe(PAPER);
   });
 
-  it("아이콘 파일이 존재하고 PNG 크기가 sizes 와 같다 (192·512 any · 512 maskable · apple 180)", () => {
+  it("아이콘 파일이 존재하고 PNG 크기가 sizes 와 같다 (192·512 any · 512 maskable · apple 180 · 파비콘 32)", () => {
     expect(manifest.icons.map((icon) => icon.purpose)).toEqual(["any", "any", "maskable"]);
     for (const icon of manifest.icons) {
       const file = path.join(PUBLIC_DIR, icon.src);
@@ -94,6 +101,8 @@ describe("훈독 PWA 설치 메타", () => {
       width: 180,
       height: 180,
     });
+    expect(pngSize(path.join(PUBLIC_DIR, "hoondok/icons/favicon-32.png"))).toEqual({ width: 32, height: 32 });
+    expect(existsSync(path.join(PUBLIC_DIR, "hoondok/icons/favicon.svg"))).toBe(true);
   });
 
   it("Pretendard self-host: 2MB 이하 woff2 + OFL 동봉 + 별도 패밀리명 @font-face", () => {
