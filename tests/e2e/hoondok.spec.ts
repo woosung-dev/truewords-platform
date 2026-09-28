@@ -344,7 +344,8 @@ test("알림: backend 에 VAPID 가 없으면 훈독하기도 '준비 중' 이�
   await page.goto("/hoondok/settings");
 
   const toggle = page.getByRole("button", { name: "훈독하기 알림" });
-  await expect(page.locator("main").getByText("준비 중")).toHaveCount(5);
+  // 훈독하기 · 그 밖의 알림(기도하기·가정예배·공지 한 줄) · 조용한 시간
+  await expect(page.locator("main").getByText("준비 중")).toHaveCount(3);
   await expect(toggle).toBeDisabled();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
   // 켤 수 없으므로 시간도 고를 수 없다 (input 대신 꺼진 행)
@@ -404,7 +405,9 @@ test("알림: 권한 허용 → 구독 저장 → 설정 PUT, reload 뒤에도 �
     { endpoint: FAKE_ENDPOINT, keys: { p256dh: "fake-p256dh", auth: "fake-auth" }, user_agent: expect.any(String) },
   ]);
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByLabel("훈독하기 알림 시간")).toBeVisible();
+  // 켜지면 시각 칸(추천 4 + 직접 정하기)을 고를 수 있다
+  await expect(page.getByRole("group", { name: "언제 알려 드릴까요?" }).getByRole("radio")).toHaveCount(5);
+  await expect(page.getByRole("radio", { name: /새벽/ })).toBeEnabled();
 
   // 켜짐의 근거는 서버다 — 새로고침해도, API 로 직접 물어도 같다.
   await page.reload();
@@ -452,7 +455,7 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
   await expect(card).toHaveCount(0);
   const missionsBefore = await missions.boundingBox();
   releaseConfig();
-  await expect(card.getByRole("heading", { name: "매일 아침 훈독 시간을 알려 드릴까요?" })).toBeVisible();
+  await expect(card.getByRole("heading", { name: "매일 언제 훈독을 알려 드릴까요?" })).toBeVisible();
   await expect(card).toContainText("오늘의 책갈피가 꽂혀 있어요");
   // 카드는 미션 목록 아래에 붙고, 나타나도 목록 위치가 그대로다 (위에 끼어들어 밀면 오터치 → "나중에" 영구 거절)
   const missionsAfter = await missions.boundingBox();
@@ -466,13 +469,19 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
   const savedPrefs = page.waitForResponse(
     (response) => response.url().includes("/hoondok/me/notifications") && response.request().method() === "PUT",
   );
-  await card.getByRole("button", { name: "알림 받기" }).click();
+  // 지금(KST)과 가까운 칸이 미리 골라져 있고, 버튼이 그 시각을 말한다 — 그 시각이 그대로 PUT 에 실린다
+  const checkedTime = (await card.getByRole("radio", { checked: true }).locator("..").locator("b").textContent()) ?? "";
+  expect(checkedTime).toMatch(/^오[전후] \d{1,2}:\d{2}$/);
+  await card.getByRole("button", { name: `${checkedTime}에 알림 받기` }).click();
   expect((await subscribed).status()).toBe(201);
-  expect((await savedPrefs).status()).toBe(200);
+  const saved = await savedPrefs;
+  expect(saved.status()).toBe(200);
+  const savedTime = (saved.request().postDataJSON() as { read_time: string }).read_time;
   expect(subscribeBodies).toEqual([
     { endpoint: FAKE_ENDPOINT, keys: { p256dh: "fake-p256dh", auth: "fake-auth" }, user_agent: expect.any(String) },
   ]);
-  await expect(card).toContainText("매일 오전 6:00에 알려 드릴게요");
+  await expect(card).toContainText(`매일 ${checkedTime}에 알려 드릴게요`);
+  expect(["05:30", "07:30", "12:30", "21:30"]).toContain(savedTime);
   await expect(card.getByRole("link", { name: "시각은 설정에서 바꿀 수 있어요" })).toHaveAttribute(
     "href",
     "/hoondok/settings",
