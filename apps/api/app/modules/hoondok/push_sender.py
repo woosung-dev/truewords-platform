@@ -52,11 +52,7 @@ URGENCY = "high"  # 정해진 시각 알림이라 안드로이드 Doze 지연 �
 # 오늘의 책갈피(PLAN-HD-012)로 연다 — 새 알림 종류를 만들지 않고 훈독하기 알림 1건에 합친다(DEC-PWA-024).
 BODY_TEXT = "한 장 꺼내 읽어 보세요"
 TARGET_URL = "/hoondok/bookmark"
-TITLES = {
-    "neutral": "오늘의 책갈피가 꽂혀 있어요",  # 말씀 본문·책 이름 없음(잠금화면 노출 원칙)
-    "faith": "오늘의 말씀 책갈피가 꽂혀 있어요",  # 오늘 카드의 책 이름을 모를 때
-}
-FAITH_CARD_TITLE = "오늘의 책갈피 — {work_title}에서 한 장"  # 책 이름까지만, 본문은 넣지 않는다
+TITLE_TEXT = "오늘의 책갈피가 꽂혀 있어요"  # 말씀 본문·책 이름·신앙 맥락을 넣지 않는다
 MISSION_KIND_READ = "read"
 
 
@@ -88,40 +84,23 @@ def is_in_window(read_time: time, current: time) -> bool:
 class JeongseongDay:
     """진행 중 정성 기간의 오늘 일차 — 알림 문구용."""
 
-    topic: str
     day: int  # 1..duration_days
 
 
-def build_payload(
-    lock_screen_level: str,
-    jeongseong: JeongseongDay | None = None,
-    card_work_title: str | None = None,
-) -> dict[str, str]:
-    """잠금화면 문구 수위별 페이로드(§2-9). 모르는 값은 중립형으로 떨어진다.
+def build_payload(jeongseong: JeongseongDay | None = None) -> dict[str, str]:
+    """알림 페이로드(§2-9). 문구는 하나다.
 
-    신앙형은 오늘 책갈피의 책 이름(`card_work_title`)을 알면 제목에 넣는다. 중립형은 책 이름을 넣지 않는다.
-    정성 기간이 진행 중이면 같은 알림 1건에 N일차를 합친다. 중립형은 제목을 그대로 두고 본문에만
+    정성 기간이 진행 중이면 같은 알림 1건에 N일차를 합친다. 제목은 그대로 두고 본문에만
     일차를 붙인다 — 정성 주제(신앙 맥락)를 잠금 화면에 드러내지 않는다.
     """
-    level = lock_screen_level if lock_screen_level in TITLES else "neutral"
-    if level == "faith" and card_work_title:
-        faith_title = FAITH_CARD_TITLE.format(work_title=card_work_title)
-    else:
-        faith_title = TITLES["faith"]
-    if jeongseong is None:
-        title = faith_title if level == "faith" else TITLES["neutral"]
-        body = BODY_TEXT
-    elif level == "faith":
-        title, body = f"{jeongseong.topic} 정성 {jeongseong.day}일차", faith_title
-    else:
-        title, body = TITLES["neutral"], f"{jeongseong.day}일차 · {BODY_TEXT}"
-    return {"title": title, "body": body, "url": TARGET_URL}
+    body = BODY_TEXT if jeongseong is None else f"{jeongseong.day}일차 · {BODY_TEXT}"
+    return {"title": TITLE_TEXT, "body": body, "url": TARGET_URL}
 
 
 def _jeongseong_day(period: JeongseongPeriod | None, today: date) -> JeongseongDay | None:
     if period is None:
         return None
-    return JeongseongDay(topic=period.topic, day=(today - period.started_on).days + 1)
+    return JeongseongDay(day=(today - period.started_on).days + 1)
 
 
 @dataclass(frozen=True)
@@ -129,9 +108,7 @@ class PushTarget:
     """발송 대상 1건 = 구독 1개."""
 
     subscription: PushSubscription
-    lock_screen_level: str
     jeongseong: JeongseongDay | None = None
-    card_work_title: str | None = None  # 오늘 책갈피의 책 이름(신앙형 문구용)
 
 
 @dataclass
@@ -187,7 +164,7 @@ class PushSenderRepository:
         )
         return [(sub, pref) for sub, pref in result.all()]
 
-    async def list_for_email(self, email: str) -> tuple[Sequence[PushSubscription], str]:
+    async def list_for_email(self, email: str) -> Sequence[PushSubscription]:
         """`--to-email` 용. 창·완료·편성·last_sent_on 을 보지 않는다(삭제된 계정만 제외)."""
         user = (
             await self.session.execute(
@@ -195,8 +172,8 @@ class PushSenderRepository:
             )
         ).scalar_one_or_none()
         if user is None:
-            return [], "neutral"
-        subs = (
+            return []
+        return (
             (
                 await self.session.execute(
                     select(PushSubscription).where(PushSubscription.user_id == user.id)
@@ -205,8 +182,6 @@ class PushSenderRepository:
             .scalars()
             .all()
         )
-        pref = await self.session.get(NotificationPreference, user.id)
-        return subs, (pref.lock_screen_level if pref else "neutral")
 
     async def users_done_today(self, today: date, user_ids: Iterable[uuid.UUID]) -> set[uuid.UUID]:
         ids = list(dict.fromkeys(user_ids))
@@ -309,7 +284,7 @@ async def _send_targets(
     """구독 하나의 실패가 나머지를 막지 않는다 — 예외는 여기서 전부 흡수한다."""
     for target in targets:
         subscription = target.subscription
-        payload = build_payload(target.lock_screen_level, target.jeongseong, target.card_work_title)
+        payload = build_payload(target.jeongseong)
         try:
             await asyncio.to_thread(_deliver, subscription, payload, config)
         except WebPushException as exc:
@@ -336,20 +311,6 @@ async def _send_targets(
             summary.sent += 1
             if mark_sent:
                 await repo.mark_sent(subscription, today)
-
-
-async def _today_card_title(session: AsyncSession, today: date) -> str | None:
-    """오늘 책갈피(API-HD-047 과 같은 카드)의 책 이름. 풀이 비었거나 조회가 실패하면 None — 일반 문구로 보낸다."""
-    from app.modules.hoondok.cards_repository import CardRepository
-    from app.modules.hoondok.cards_service import CardService
-
-    try:
-        card = await CardService(CardRepository(session)).today_card(today)
-    except Exception:
-        logger.exception("[card] 오늘 책갈피 조회 실패 — 일반 문구로 보낸다")
-        await session.rollback()
-        return None
-    return card.work_title if card else None
 
 
 async def run_push_sender(
@@ -382,18 +343,15 @@ async def run_push_sender(
 
     async with session_factory() as session:
         repo = PushSenderRepository(session)
-        card_title = await _today_card_title(session, today)
 
         if to_email:
-            subs, level = await repo.list_for_email(to_email)
+            subs = await repo.list_for_email(to_email)
             # 창·완료·편성은 무시하지만 진행 중 정성은 문구에 반영한다 — 실기기에서 N일차 문구를 확인하는 용도.
             in_progress = await repo.jeongseong_in_progress(today, [s.user_id for s in subs])
             targets = [
                 PushTarget(
                     subscription=s,
-                    lock_screen_level=level,
                     jeongseong=_jeongseong_day(in_progress.get(s.user_id), today),
-                    card_work_title=card_title,
                 )
                 for s in subs
             ]
@@ -445,9 +403,7 @@ async def run_push_sender(
             targets.append(
                 PushTarget(
                     subscription=sub,
-                    lock_screen_level=pref.lock_screen_level,
                     jeongseong=_jeongseong_day(period, today),
-                    card_work_title=card_title,
                 )
             )
         summary.eligible = len(targets)

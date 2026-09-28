@@ -27,7 +27,6 @@ from app.modules.hoondok.models import (
     MissionLog,
     NotificationPreference,
     PushSubscription,
-    WordCard,
 )
 from app.modules.hoondok.push_sender import JeongseongDay, build_payload, is_in_window, run_push_sender
 from app.modules.identity.models import User
@@ -88,7 +87,6 @@ async def factory():
                 DailyReading.__table__,
                 JeongseongPeriod.__table__,
                 ContentRight.__table__,
-                WordCard.__table__,
             ],
         )
     session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -105,7 +103,6 @@ async def _seed(
     email: str = "me@example.com",
     read_enabled: bool = True,
     read_time: time = time(6, 0),
-    level: str = "neutral",
     endpoints: tuple[str, ...] = ("https://push.example.com/a",),
     last_sent_on: date | None = None,
     failed_count: int = 0,
@@ -126,7 +123,6 @@ async def _seed(
                 user_id=user.id,
                 read_enabled=read_enabled,
                 read_time=read_time,
-                lock_screen_level=level,
             )
         )
         for endpoint in endpoints:
@@ -233,66 +229,22 @@ def test_is_in_window_does_not_wrap_past_midnight():
     assert is_in_window(time(23, 30), time(0, 30)) is False
 
 
-@pytest.mark.parametrize(
-    "level,title",
-    [
-        ("neutral", "오늘의 책갈피가 꽂혀 있어요"),
-        ("faith", "오늘의 말씀 책갈피가 꽂혀 있어요"),
-        ("unknown", "오늘의 책갈피가 꽂혀 있어요"),  # 모르는 값은 중립형
-    ],
-)
-def test_build_payload_titles(level: str, title: str):
-    payload = build_payload(level)
-    assert payload == {"title": title, "body": "한 장 꺼내 읽어 보세요", "url": "/hoondok/bookmark"}
+def test_build_payload_is_single_neutral_text():
+    """문구는 하나다 — 말씀 본문·책 이름·신앙 맥락을 잠금 화면에 올리지 않는다."""
+    assert build_payload() == {
+        "title": "오늘의 책갈피가 꽂혀 있어요",
+        "body": "한 장 꺼내 읽어 보세요",
+        "url": "/hoondok/bookmark",
+    }
 
 
-@pytest.mark.parametrize(
-    "level,title,body",
-    [
-        # 중립형은 제목을 바꾸지 않는다 — 정성 주제(신앙 맥락)가 잠금 화면에 드러나지 않는다.
-        ("neutral", "오늘의 책갈피가 꽂혀 있어요", "5일차 · 한 장 꺼내 읽어 보세요"),
-        ("faith", "감사 정성 5일차", "오늘의 말씀 책갈피가 꽂혀 있어요"),
-        ("unknown", "오늘의 책갈피가 꽂혀 있어요", "5일차 · 한 장 꺼내 읽어 보세요"),
-    ],
-)
-def test_build_payload_jeongseong(level: str, title: str, body: str):
-    payload = build_payload(level, JeongseongDay(topic="감사", day=5))
-    assert payload == {"title": title, "body": body, "url": "/hoondok/bookmark"}
-
-
-def test_build_payload_card_title_only_for_faith():
-    """신앙형만 오늘 책갈피의 책 이름을 넣는다. 중립형은 책 이름도 잠금 화면에 올리지 않는다(PLAN-HD-012)."""
-    faith = build_payload("faith", card_work_title="천성경")
-    assert faith["title"] == "오늘의 책갈피 — 천성경에서 한 장"
-    assert build_payload("neutral", card_work_title="천성경")["title"] == "오늘의 책갈피가 꽂혀 있어요"
-    with_period = build_payload("faith", JeongseongDay(topic="감사", day=5), card_work_title="천성경")
-    assert with_period["title"] == "감사 정성 5일차"
-    assert with_period["body"] == "오늘의 책갈피 — 천성경에서 한 장"
-    neutral_period = build_payload("neutral", JeongseongDay(topic="감사", day=5), card_work_title="천성경")
-    assert "천성경" not in json.dumps(neutral_period, ensure_ascii=False)
-
-
-async def test_faith_payload_uses_today_card_work_title(factory, push_on, sent_calls):
-    """오늘 책갈피(API-HD-047 과 같은 카드)의 책 이름이 신앙형 제목에 들어간다."""
-    async with factory() as session:
-        session.add(
-            WordCard(
-                text="말씀 한 줄",
-                volume="천성경.pdf",
-                chunk_id="c-1",
-                chunk_index=1,
-                work_title="천성경",
-                source_label="천성경 p.1",
-                status="active",
-            )
-        )
-        await session.commit()
-    await _seed(factory, level="faith")
-
-    await _run(factory, execute=True)
-
-    (call,) = sent_calls
-    assert json.loads(call["data"])["title"] == "오늘의 책갈피 — 천성경에서 한 장"
+def test_build_payload_jeongseong_adds_day_to_body_only():
+    """정성 진행 중이면 본문에만 N일차를 붙인다 — 제목·정성 주제는 바꾸거나 드러내지 않는다."""
+    assert build_payload(JeongseongDay(day=5)) == {
+        "title": "오늘의 책갈피가 꽂혀 있어요",
+        "body": "5일차 · 한 장 꺼내 읽어 보세요",
+        "url": "/hoondok/bookmark",
+    }
 
 
 # --- 대상 선정 ----------------------------------------------------------------
@@ -317,7 +269,7 @@ async def test_execute_sends_and_marks_sent(factory, push_on, sent_calls):
 
 
 async def test_payload_and_webpush_arguments(factory, push_on, sent_calls):
-    await _seed(factory, level="faith")
+    await _seed(factory)
 
     await _run(factory, execute=True)
 
@@ -327,7 +279,7 @@ async def test_payload_and_webpush_arguments(factory, push_on, sent_calls):
         "keys": {"p256dh": "p256", "auth": "auth"},
     }
     assert json.loads(call["data"]) == {
-        "title": "오늘의 말씀 책갈피가 꽂혀 있어요",
+        "title": "오늘의 책갈피가 꽂혀 있어요",
         "body": "한 장 꺼내 읽어 보세요",
         "url": "/hoondok/bookmark",
     }
@@ -464,18 +416,11 @@ async def test_official_reading_is_sent_as_before(factory, push_on, sent_calls, 
     [(0, 1), (20, 21)],  # 시작일 = 1일차, 종료일(21일 기간의 마지막 날) = 21일차
     ids=["first-day", "last-day"],
 )
-@pytest.mark.parametrize(
-    "level,title,body",
-    [
-        ("neutral", "오늘의 책갈피가 꽂혀 있어요", "{day}일차 · 한 장 꺼내 읽어 보세요"),
-        ("faith", "감사 정성 {day}일차", "오늘의 말씀 책갈피가 꽂혀 있어요"),
-    ],
-)
 async def test_jeongseong_in_progress_merges_day_into_payload(
-    factory, push_on, sent_calls, offset, day, level, title, body
+    factory, push_on, sent_calls, offset, day
 ):
     """정성 기간 알림은 따로 없다 — 훈독하기 알림 1건에 N일차를 합친다."""
-    user_id = await _seed(factory, level=level)
+    user_id = await _seed(factory)
     await _seed_jeongseong(factory, user_id, started_on=TODAY - timedelta(days=offset))
 
     summary = await _run(factory, execute=True)
@@ -483,8 +428,8 @@ async def test_jeongseong_in_progress_merges_day_into_payload(
     assert summary.sent == 1
     (call,) = sent_calls
     assert json.loads(call["data"]) == {
-        "title": title.format(day=day),
-        "body": body.format(day=day),
+        "title": "오늘의 책갈피가 꽂혀 있어요",
+        "body": f"{day}일차 · 한 장 꺼내 읽어 보세요",
         "url": "/hoondok/bookmark",
     }
 
@@ -505,7 +450,7 @@ async def test_jeongseong_not_in_progress_is_ignored(
     """진행 중이 아닌 정성 기간은 편성 대신이 되지 못하고 문구에도 섞이지 않는다."""
     await _set_reading(factory, None)
     await _seed_right(factory)  # 권리가 있어도 생략된다 — 생략 이유가 권리가 아니라 기간 상태임을 보인다
-    user_id = await _seed(factory, level="faith")
+    user_id = await _seed(factory)
     await _seed_jeongseong(
         factory, user_id, started_on=TODAY - timedelta(days=started_offset), status=status
     )
@@ -520,7 +465,7 @@ async def test_jeongseong_not_in_progress_is_ignored(
     assert summary.sent == 1
     (call,) = sent_calls
     assert json.loads(call["data"]) == {
-        "title": "오늘의 말씀 책갈피가 꽂혀 있어요",
+        "title": "오늘의 책갈피가 꽂혀 있어요",
         "body": "한 장 꺼내 읽어 보세요",
         "url": "/hoondok/bookmark",
     }
@@ -711,7 +656,7 @@ async def test_to_email_ignores_window_and_does_not_mark_sent(factory, push_on, 
 async def test_to_email_reflects_jeongseong_in_progress(factory, push_on, sent_calls):
     """증거 발송도 진행 중 정성의 N일차 문구를 싣는다 — 편성·권리가 없어도 보낸다."""
     await _set_reading(factory, None)
-    user_id = await _seed(factory, level="faith", read_time=time(21, 0))
+    user_id = await _seed(factory, read_time=time(21, 0))
     await _seed_jeongseong(factory, user_id, started_on=TODAY - timedelta(days=6))
 
     summary = await _run(factory, execute=True, to_email="me@example.com")
@@ -719,8 +664,8 @@ async def test_to_email_reflects_jeongseong_in_progress(factory, push_on, sent_c
     assert (summary.mode, summary.sent) == ("to-email", 1)
     (call,) = sent_calls
     assert json.loads(call["data"]) == {
-        "title": "감사 정성 7일차",
-        "body": "오늘의 말씀 책갈피가 꽂혀 있어요",
+        "title": "오늘의 책갈피가 꽂혀 있어요",
+        "body": "7일차 · 한 장 꺼내 읽어 보세요",
         "url": "/hoondok/bookmark",
     }
 

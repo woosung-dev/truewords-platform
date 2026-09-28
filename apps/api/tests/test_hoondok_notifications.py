@@ -192,26 +192,20 @@ def test_preferences_default_then_replace(client: TestClient):
     assert client.get(PREFS).json() == {
         "read_enabled": False,
         "read_time": "06:00",
-        "lock_screen_level": "neutral",
         "subscription_count": 0,
     }
-    saved = client.put(
-        PREFS,
-        json={"read_enabled": True, "read_time": "21:30", "lock_screen_level": "faith"},
-        headers=XHR,
-    )
+    saved = client.put(PREFS, json={"read_enabled": True, "read_time": "21:30"}, headers=XHR)
     assert saved.status_code == 200, saved.text
     expected = {
         "read_enabled": True,
         "read_time": "21:30",
-        "lock_screen_level": "faith",
         "subscription_count": 0,
     }
     assert saved.json() == expected
     assert client.get(PREFS).json() == expected
     # 전체 교체 — 두 번째 PUT 이 앞의 값을 덮는다
     again = client.put(PREFS, json={"read_enabled": False}, headers=XHR)
-    assert again.json()["read_time"] == "06:00" and again.json()["lock_screen_level"] == "neutral"
+    assert again.json()["read_time"] == "06:00"
 
 
 @pytest.mark.parametrize("value", ["6:00", "25:00", "06:00:00", "06:60", "", "아침"])
@@ -221,11 +215,19 @@ def test_read_time_must_be_zero_padded_hh_mm(client: TestClient, value: str):
     assert res.status_code == 422
 
 
-def test_unknown_lock_screen_level_is_422(client: TestClient):
+def test_removed_lock_screen_field_from_old_client_is_ignored(client: TestClient):
+    """2026-09-28 에 없앤 잠금 화면 문구 필드 — 이전 화면이 보내도 422 없이 저장하고 응답에 싣지 않는다."""
     _login(client, client.me)  # type: ignore[attr-defined]
     res = client.put(
-        PREFS, json={"read_enabled": True, "lock_screen_level": "verse"}, headers=XHR
+        PREFS, json={"read_enabled": True, "lock_screen_level": "faith"}, headers=XHR
     )
+    assert res.status_code == 200, res.text
+    assert res.json() == {"read_enabled": True, "read_time": "06:00", "subscription_count": 0}
+
+
+def test_other_unknown_fields_are_still_422(client: TestClient):
+    _login(client, client.me)  # type: ignore[attr-defined]
+    res = client.put(PREFS, json={"read_enabled": True, "quiet_hours": "22-06"}, headers=XHR)
     assert res.status_code == 422
 
 
