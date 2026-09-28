@@ -104,6 +104,19 @@ describe("useSpeechReader", () => {
     expect(engine.resume).toHaveBeenCalledTimes(1);
     expect(result.current.status).toBe("playing");
   });
+  it("일시정지 중에 다른 단락부터 읽으면 엔진의 일시정지를 풀고 그 단락을 읽는다", () => {
+    const { result } = renderHook(() => useSpeechReader(PARAGRAPHS, "p1"));
+    act(() => result.current.play());
+    act(() => result.current.pause());
+    // cancel() 은 엔진의 paused 를 풀지 않는다 — 브라우저처럼 남겨 둔다
+    Object.assign(engine, { paused: true });
+    engine.resume.mockClear();
+    act(() => result.current.play(1));
+    expect(engine.resume).toHaveBeenCalledTimes(1);
+    expect(spoken.at(-1)?.text).toBe("다음 단락입니다.");
+    expect(result.current.status).toBe("playing");
+    expect(result.current.currentIndex).toBe(1);
+  });
   it("멈춘 뒤 늦게 온 onend 는 다음 문장을 읽게 하지 않는다", () => {
     const { result } = renderHook(() => useSpeechReader(PARAGRAPHS, "p1"));
     act(() => result.current.play());

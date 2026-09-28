@@ -146,6 +146,8 @@ export function useSpeechReader(paragraphs: SpeechParagraph[], resetKey: string 
     if (!engine || list.length === 0) return;
     generation.current += 1;
     engine.cancel();
+    // cancel() 은 일시정지 상태를 풀지 않는다 — 멈춘 채 다른 단락부터 읽게 하면 새 발화가 묶여 있지 않게 푼다.
+    if (engine.paused) engine.resume();
     const index = Math.min(Math.max(fromIndex, 0), list.length - 1);
     setIsCued(false);
     setCurrentIndex(index);

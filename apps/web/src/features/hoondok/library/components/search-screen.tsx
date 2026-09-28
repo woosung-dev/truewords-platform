@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { WordSearchResponse } from "@truewords/api-client-ts/types";
 import { ChevronRight, History, MessageCircleQuestion, Search, SearchX } from "lucide-react";
 import Link from "next/link";
 import { useId, useRef, useState, useSyncExternalStore } from "react";
@@ -14,11 +15,81 @@ import {
   readRecentSearches,
   subscribeRecentSearches,
 } from "../recent-searches";
-import { highlightSnippet } from "../search-highlight";
+import { hasSearchHit, highlightSnippet } from "../search-highlight";
 
 // 프로토타입 앱바 입력의 placeholder·aria-label 그대로.
 const PLACEHOLDER = "단어, 구절, 상황을 입력해 주세요";
 const LABEL = "말씀 검색";
+
+type SearchResult = WordSearchResponse["results"][number];
+
+/** 검색 결과 한 묶음. 뜻이 가까운 묶음은 검색어가 본문에 없으니 밑줄 없이 앞부분이 그대로 보인다. */
+function ResultGroup({
+  id,
+  title,
+  description,
+  results,
+  query,
+}: {
+  id: string;
+  title: string;
+  description?: string;
+  results: SearchResult[];
+  query: string;
+}) {
+  return (
+    <section className="sr-group" aria-labelledby={id}>
+      <div className="sect__head">
+        <h3 className="sect__title" id={id}>
+          {title}
+        </h3>
+        <span className="sect__meta">{results.length}건</span>
+      </div>
+      {description && <p className="sr-group__desc">{description}</p>}
+      <ul className="sr-list">
+        {results.map((result) => {
+          const body = (
+            <>
+              <span className="sr-hd">
+                <b>{result.work_title}</b>
+                {result.authority_grade === "R" ? (
+                  <span className="badge badge--dashed">공식성 확인되지 않음</span>
+                ) : (
+                  <AuthorityBadge grade={result.authority_grade} />
+                )}
+              </span>
+              <span className="sr-snippet">
+                {highlightSnippet(result.display_text, query).map((part, index) =>
+                  part.hit ? (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: 조각 순서가 곧 본문 순서다
+                    <mark key={index} className="sq-hit">
+                      {part.text}
+                    </mark>
+                  ) : (
+                    part.text
+                  ),
+                )}
+              </span>
+              <span className="sr-src">화자·판본 확인되지 않음</span>
+            </>
+          );
+          return (
+            <li key={result.chunk_id}>
+              {result.can_read_full_text ? (
+                <Link href={wordsHref(result.volume, result.chunk_id, query)}>{body}</Link>
+              ) : (
+                <div className="sr-unavailable">
+                  {body}
+                  <p className="notice">검색 인용만 허용된 저작물이에요. 원문 공개 권리는 확인 중입니다.</p>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
 
 export function SearchScreen() {
   const inputId = useId();
@@ -37,6 +108,9 @@ export function SearchScreen() {
     gcTime: 0,
   });
   const results = search.isError ? [] : (search.data?.results ?? []);
+  // 서버는 의미·단어 검색을 섞어 점수순으로 준다. 목록 밑줄과 같은 규칙으로 나누고 각 묶음 안은 서버 순서를 지킨다.
+  const wordHits = submitted ? results.filter((result) => hasSearchHit(result.display_text, submitted)) : [];
+  const meaningHits = submitted ? results.filter((result) => !hasSearchHit(result.display_text, submitted)) : [];
 
   function runSearch(value: string) {
     const next = value.trim();
@@ -89,7 +163,6 @@ export function SearchScreen() {
         <div className="sect">
           <div className="sect__head">
             <h2 className="sect__title">검색 결과</h2>
-            {search.isSuccess && <span className="sect__meta">{results.length}건</span>}
           </div>
           {search.isPending ? (
             <p className="sf-status" role="status" aria-busy="true">
@@ -118,47 +191,20 @@ export function SearchScreen() {
               </Link>
             </div>
           ) : (
-            <ul className="sr-list">
-              {results.map((result) => {
-                const body = (
-                  <>
-                    <span className="sr-hd">
-                      <b>{result.work_title}</b>
-                      {result.authority_grade === "R" ? (
-                        <span className="badge badge--dashed">공식성 확인되지 않음</span>
-                      ) : (
-                        <AuthorityBadge grade={result.authority_grade} />
-                      )}
-                    </span>
-                    <span className="sr-snippet">
-                      {highlightSnippet(result.display_text, submitted).map((part, index) =>
-                        part.hit ? (
-                          // biome-ignore lint/suspicious/noArrayIndexKey: 조각 순서가 곧 본문 순서다
-                          <mark key={index} className="sq-hit">
-                            {part.text}
-                          </mark>
-                        ) : (
-                          part.text
-                        ),
-                      )}
-                    </span>
-                    <span className="sr-src">화자·판본 확인되지 않음</span>
-                  </>
-                );
-                return (
-                  <li key={result.chunk_id}>
-                    {result.can_read_full_text ? (
-                      <Link href={wordsHref(result.volume, result.chunk_id, submitted)}>{body}</Link>
-                    ) : (
-                      <div className="sr-unavailable">
-                        {body}
-                        <p className="notice">검색 인용만 허용된 저작물이에요. 원문 공개 권리는 확인 중입니다.</p>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+            <>
+              {wordHits.length > 0 && (
+                <ResultGroup id={`${inputId}-word`} title="검색어가 나온 말씀" results={wordHits} query={submitted} />
+              )}
+              {meaningHits.length > 0 && (
+                <ResultGroup
+                  id={`${inputId}-meaning`}
+                  title="뜻이 가까운 말씀"
+                  description="검색어가 그대로 나오지는 않지만 뜻이 가까워요."
+                  results={meaningHits}
+                  query={submitted}
+                />
+              )}
+            </>
           )}
         </div>
       )}

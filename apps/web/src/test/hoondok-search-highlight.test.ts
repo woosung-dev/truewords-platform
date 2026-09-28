@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { highlightSnippet, markSearchTerms } from "@/features/hoondok/library/search-highlight";
+import { hasSearchHit, highlightSnippet, markSearchTerms } from "@/features/hoondok/library/search-highlight";
 
 const hits = (text: string, query: string) =>
   highlightSnippet(text, query)
@@ -36,6 +36,39 @@ describe("검색 결과 하이라이트", () => {
 
   it("원문 뷰용 표시는 앞을 자르지 않는다", () => {
     const text = `${"가나다 ".repeat(40)}탕감복귀 이후`;
-    expect(markSearchTerms(text, "탕감복귀").map((part) => part.text).join("")).toBe(text);
+    expect(
+      markSearchTerms(text, "탕감복귀")
+        .map((part) => part.text)
+        .join(""),
+    ).toBe(text);
+  });
+});
+
+describe("검색어 일치 판정", () => {
+  it("구절의 따옴표는 빼고 구절이나 낱말이 나오면 일치다", () => {
+    expect(hasSearchHit("참사랑은 직단거리를 갑니다", '"참사랑은 직단거리를 갑니다"')).toBe(true);
+    expect(hasSearchHit("직단거리로 가는 길", '"참사랑은 직단거리를 갑니다"')).toBe(false);
+    expect(hasSearchHit("참사랑은 위하는 것", "참사랑은 어디로")).toBe(true);
+  });
+
+  it("한 글자 낱말만으로는 일치로 보지 않는다", () => {
+    expect(hasSearchHit("길을 걷는다", "길 탕감")).toBe(false);
+  });
+
+  it("영문은 대소문자를 가리지 않는다", () => {
+    expect(hasSearchHit("True Love 와 참사랑", "true love")).toBe(true);
+  });
+
+  it("빈 검색어는 일치가 아니다", () => {
+    expect(hasSearchHit("정성을 드린다", '  ""  ')).toBe(false);
+  });
+
+  it("목록 밑줄과 같은 결과다", () => {
+    for (const [text, query] of [
+      ["탕감복귀를 해야 한다", "탕감복귀"],
+      ["정성을 드린다", "축복"],
+      ["길을 걷는다", "길 탕감"],
+    ])
+      expect(hasSearchHit(text, query)).toBe(highlightSnippet(text, query).some((part) => part.hit));
   });
 });

@@ -168,6 +168,18 @@
     color: var(--ink-2);
     margin: 0 0 12px;
   }
+  /* 검색 결과 두 묶음 : 검색어가 나온 말씀 → 뜻이 가까운 말씀. 소제목(h3)은 "검색 결과"(h2)보다 한 단계 작다 */
+  .sr-group + .sr-group {
+    margin-top: 28px;
+  }
+  .sr-group .sect__title {
+    font-size: var(--fs-md);
+  }
+  .sr-group__desc {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+    margin: -6px 0 12px;
+  }
   .sr-list {
     list-style: none;
     margin: 0;
@@ -604,6 +616,9 @@
     line-height: 1.7;
     color: var(--ink-2);
     margin: 8px 0 0;
+  }
+  .rd-sheet__listen {
+    margin-top: 14px;
   }
   .rd-sheet__gate {
     font-size: var(--fs-sm);
