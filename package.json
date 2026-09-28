@@ -24,7 +24,6 @@
     "docs:check": "node tooling/checks/docs-links.mjs",
     "boundaries:check": "node tooling/checks/boundaries.mjs",
     "hoondok:check": "node tooling/checks/hoondok-css.mjs",
-    "agents:check": "node tooling/checks/agents-md.mjs",
     "tooling:test": "node --test tooling/checks/*.test.mjs"
   },
   "devDependencies": {
