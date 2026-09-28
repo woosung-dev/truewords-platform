@@ -1,6 +1,7 @@
 """격리 E2E 전용 합성 코퍼스·권리 원장. 운영 원문을 복사하지 않는다."""
 
 import asyncio
+from datetime import datetime
 from pathlib import Path
 import sys
 from urllib.parse import urlparse
@@ -13,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.core.common.database import async_session_factory, init_db
 from app.core.config import settings
-from app.modules.hoondok.models import ContentRight, VolumeSection
+from app.modules.hoondok.models import ContentRight, VolumeSection, WordCard
 
 FIXTURE_VOLUME = "말씀선집 355권"
 FIXTURE_TEXT = (
@@ -36,6 +37,14 @@ FIXTURE_SECTIONS = [
     (1, 1, "제1편 감사의 길", 0, 19, None, None),
     (2, 2, "1장 이웃을 듣는 마음", 0, 19, "1956년 4월 8일", "전 본부교회"),
     (3, 1, "제2편 참사랑의 실천", 20, 24, None, None),
+]
+
+# ENT-HD-019 오늘의 책갈피 fixture — active 3장(PLAN-HD-012). 본문은 FIXTURE_VOLUME 청크 text 의 일부 그대로다.
+# (청크 번호, 본문) — 번호 순으로 created_at 이 커져 회전 순서가 고정된다.
+FIXTURE_CARDS = [
+    (0, "감사와 참사랑은 이웃의 이야기를 끝까지 듣고 작은 약속을 지키는 일에서 시작합니다."),
+    (1, "오늘 만나는 가족에게 따뜻한 말을 전하며 서로를 존중하는 마음을 일상에서 실천합니다."),
+    (2, "이것은 여정 검증을 위한 3번째 합성 문장입니다."),
 ]
 
 
@@ -84,6 +93,19 @@ async def seed() -> None:
             section.place = place
             section.origin = "auto"
             session.add(section)
+        for index, text in FIXTURE_CARDS:
+            card_id = uuid5(NAMESPACE_URL, f"hoondok-e2e:card:{index}")
+            card = await session.get(WordCard, card_id) or WordCard(id=card_id)
+            card.text = text
+            card.volume = FIXTURE_VOLUME
+            card.chunk_id = chunk_id(FIXTURE_VOLUME, index)
+            card.chunk_index = index
+            card.work_title = "말씀선집"
+            card.source_label = f"{FIXTURE_VOLUME} · E2E 합성 {index + 1}"
+            card.topic = "감사"
+            card.status = "active"
+            card.created_at = datetime(2026, 1, 1, 0, index)
+            session.add(card)
         await session.commit()
     async with httpx.AsyncClient(base_url=settings.qdrant_url, timeout=30) as client:
         collection_path = f"/collections/{settings.collection_name}"
@@ -117,6 +139,7 @@ async def seed() -> None:
         response.raise_for_status()
     print(
         f"훈독 여정 fixture: {len(WORKS)}개 저작물 · {len(points)}청크 · 장 {len(FIXTURE_SECTIONS)}개"
+        f" · 책갈피 {len(FIXTURE_CARDS)}장"
     )
 
 
