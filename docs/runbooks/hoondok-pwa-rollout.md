@@ -247,7 +247,8 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 | 훈독 | 홈 → 훈독하기 → 완료 → 연속일 1 |
 | 오프라인 | 기내 모드에서 앱 실행 → `/hoondok/offline` 안내 |
 | 아이콘 | 홈 화면 아이콘이 감귤 배경 "훈" 으로 보이는지 |
-| 알림 (Phase 4, 운영 ON 뒤에만) | 설정에서 훈독하기 토글 ON → 권한 허용 → `send_hoondok_push.py --to-email` 발송 → 잠금 화면 도착 → 탭 시 `/hoondok` 이 열리는지. iOS 는 홈 화면 설치 상태에서만 |
+| 알림 (Phase 4, 운영 ON 뒤에만) | 홈의 "알림 받기" 카드(또는 설정 토글) → 권한 허용 → `send_hoondok_push.py --to-email` 발송 → 잠금 화면 도착 → 탭 시 `/hoondok` 이 열리는지. iOS 는 사파리 탭에서 카드가 설치 안내로 바뀌는지 확인한 뒤, 홈 화면 앱에서 켠다 |
+| 인앱 브라우저 | 카카오톡으로 받은 링크를 열었을 때 외부 브라우저(Safari/Chrome)로 넘어가는지, 안 넘어가면 배너가 보이는지 |
 
 **어디에 적나.** 아래 [§실행 기록](#실행-기록)에 `### <날짜> — 실기기 증거 (<기기>)` 절을 하나 만들어 채운다. `PLAN-HD-001` §6 표의 실기기 행은 그 절을 가리키게 되고, `docs/plans/completed/` 로 옮길 때 함께 첨부한다. 빈 양식:
 
@@ -265,25 +266,29 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 | 오프라인 안내 |  |  |
 | 아이콘 |  |  |
 | 알림 도착 → 탭 시 `/hoondok` (Phase 4) |  |  |
+| 카카오톡 링크 → 외부 브라우저 |  |  |
 ```
 
 한쪽 기기만 끝났으면 그 열만 채우고 나머지는 비워 둔다 — **채워지지 않은 칸을 추정으로 메우지 않는다.**
 
 ## 알림 운영 ON 절차 (PLAN-HD-006 · Phase 4)
 
-코드는 main 에 있어도 **VAPID 3값이 VM `.env` 에 없으면 알림은 꺼져 있다** — `GET /hoondok/push/config` 가 `enabled=false` 를 내고 설정 화면 토글은 "준비 중", 발송기는 exit 0 no-op 이다. 켜는 조건은 [`PLAN-HD-006` §6](../plans/active/2026-09-22-hoondok-notifications.md): 실기기 증거 ✅ + `mission_logs` 7일 적재 + 아래 베타 판정 2수치 + 사용자 승인.
+코드는 main 에 있어도 **VAPID 3값이 VM `.env` 에 없으면 알림은 꺼져 있다** — `GET /hoondok/push/config` 가 `enabled=false` 를 내고 설정 화면 토글은 "준비 중", 발송기는 exit 0 no-op 이다. 켜는 조건은 [`PLAN-HD-006` §6](../plans/active/2026-09-22-hoondok-notifications.md)(2026-09-28 개정: 수정 배포 뒤 사용자 승인). 발송기의 편성 없는 날 생략(§2-11)이 들어간 backend 가 먼저 배포돼 있어야 한다.
 
 ```bash
-# 0. 로컬에서 VAPID 키 1회 생성 (py-vapid 는 backend 의존성에 포함)
-cd apps/api && uv run python - <<'PY'
+# 0. VM 의 backend 컨테이너에서 키를 만들어 .env 에 바로 붙인다 — 비밀키는 화면·로그·채팅에 나오지 않는다.
+#    이미 HOONDOK_VAPID_ 줄이 있으면 아무것도 하지 않는다(키 교체는 아래 "키 교체" 참고).
+#    subject 는 개인 메일 대신 서비스 URL 을 쓴다(VAPID 는 mailto: 또는 https: 를 받는다).
+ssh truewords-oracle 'cd ~/truewords && if grep -q "^HOONDOK_VAPID_" .env; then echo "이미 설정됨 — 중단"; else sudo docker compose --env-file .env exec -T backend python - >> .env <<PY
 from py_vapid import Vapid, b64urlencode
 from cryptography.hazmat.primitives import serialization
 v = Vapid(); v.generate_keys()
 print("HOONDOK_VAPID_PUBLIC_KEY=" + b64urlencode(v.public_key.public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)))
 print("HOONDOK_VAPID_PRIVATE_KEY=" + b64urlencode(v.private_key.private_numbers().private_value.to_bytes(32, "big")))
-print("HOONDOK_VAPID_SUBJECT=mailto:<운영 연락 메일>")
+print("HOONDOK_VAPID_SUBJECT=https://truewords.woosung.dev")
 PY
-# 1. VM .env 에 3줄 추가 (비밀 키는 어디에도 커밋·붙여넣기 금지) → backend 만 재생성
+fi; grep -c "^HOONDOK_VAPID_" .env'   # 3 이어야 한다(값은 출력하지 않는다)
+# 1. backend 만 재생성
 ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env up -d --no-deps backend'
 curl -s https://truewords.woosung.dev/api/backend/hoondok/push/config   # {"enabled":true,"public_key":"..."}
 # 2. cron 등록 (15분 간격, infra/oracle-vm/README.md §정기 작업)
