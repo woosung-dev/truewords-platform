@@ -12,7 +12,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  /* 관리자는 mono 웹폰트를 싣지 않는다 — 시스템 고정폭 스택을 쓴다. */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -60,6 +61,7 @@
   --color-info-soft: var(--tw-info-soft);
   --color-info-border: var(--tw-info-border);
   --color-fg-subtle: var(--tw-fg-subtle);
+  --color-placeholder: var(--tw-placeholder);
   --color-border-strong: var(--tw-border-strong);
   --color-surface-muted: var(--tw-surface-muted);
   --color-cat-indigo: var(--tw-cat-indigo);
@@ -131,13 +133,15 @@
   --tw-success-fg: oklch(1 0 0);
   /* Subtle: placeholder fg #A89C8A */
   --tw-fg-subtle: oklch(0.677 0.022 75);
+  /* 입력 placeholder — 입력값(foreground)·보조 글자(muted-fg 7.4:1)보다 옅되 흰 배경 4.8:1 을 지킨다. */
+  --tw-placeholder: oklch(0.55 0.015 250);
   /* Border strong: 인용 brass border #D4C4A8 */
   --tw-border-strong: oklch(0.808 0.045 75);
   /* Surface muted: 인용 카드 배경 (= secondary) */
   --tw-surface-muted: oklch(0.969 0.014 87);
   /* === Design Tokens Refactor (PR feat/design-tokens-refactor) === */
-  /* Warning: brass 계 amber (paper bg 위 명확 대비) */
-  --tw-warning: oklch(0.58 0.155 70);
+  /* Warning: brass 계 amber. 글자로도 쓰이므로 warning-soft 위 5.1:1, 흰 글자 5.7:1 을 지키는 명도로 둔다. */
+  --tw-warning: oklch(0.52 0.14 65);
   --tw-warning-fg: oklch(1 0 0);
   --tw-warning-soft: oklch(0.965 0.045 85);
   --tw-warning-border: oklch(0.808 0.08 78);
@@ -192,10 +196,12 @@
   --sidebar-accent-foreground: oklch(0.968 0.007 248);
   /* slate-800 */
   --sidebar-border: oklch(0.279 0.041 260);
-  /* brass for accent ring */
-  --sidebar-ring: oklch(0.539 0.166 47);
+  /* 사이드바 포커스 링 — 밝은 brass. slate-950·900 위 7.7:1 이상 */
+  --sidebar-ring: oklch(0.75 0.15 65);
 }
 
+/* 다크 팔레트 — 현재 관리자에는 .dark 를 켜는 경로가 없다(라이트 고정, 토스트도 light).
+   다크 지원을 결정할 때 대비(사이드바 primary-fg/primary 등)를 다시 점검한 뒤 쓴다. */
 .dark {
   /* TrueWords Dark Mode (Plan A.2) — Mahogany × Parchment */
   /* Background: mahogany ink #1C1714 */
@@ -296,12 +302,31 @@
   --input: oklch(0.33 0.01 250);
 }
 
+/* 관리자 본문 폭 규칙 2종 — 화면마다 제각각이던 max-w 를 통일한다.
+   page-wide: 목록·표·대시보드(1440px 화면에서 사이드바를 빼고 거의 꽉 차는 72rem)
+   page-form: 한 열 입력 폼(42rem). 폼 하단 고정 버튼 바도 이 폭을 따른다. */
+@utility page-wide {
+  width: 100%;
+  max-width: 72rem;
+}
+@utility page-form {
+  width: 100%;
+  max-width: 42rem;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+    /* 한국어는 어절 단위로 줄바꿈하고, 긴 영문·URL 은 넘치지 않게 끊는다. 표 셀 말줄임(truncate)은 그대로 동작한다. */
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--tw-placeholder);
   }
   html {
     @apply font-sans;

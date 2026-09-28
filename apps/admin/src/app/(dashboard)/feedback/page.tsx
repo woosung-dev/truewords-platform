@@ -13,19 +13,21 @@ import type { NegativeFeedbackItem } from "@/features/analytics/types";
 // ─────────────────────────────────────────────
 // 피드백 유형 상수 (cool slate × admin amber 충돌 회피 팔레트)
 // ─────────────────────────────────────────────
+// 차트·카테고리 토큰만 쓴다(흰 배경 위 비텍스트 대비 3:1 이상). 긍정은 차가운 색, 부정은 따뜻한 색·회색.
 const FEEDBACK_COLORS: Record<string, string> = {
-  // 긍정 — teal 계열 톤
-  helpful: "#0d9488", // teal-600 — 긍정 기타/도움됨
-  accurate: "#0891b2", // cyan-600 — 정확
-  well_cited: "#059669", // emerald-600 — 출처 명확
-  easy_to_understand: "#0284c7", // sky-600 — 이해 쉬움
-  comforting: "#7c3aed", // violet-600 — 은혜/위로
-  // 부정 — red/orange 계열
-  inaccurate: "#dc2626", // red-600 — 가장 심각한 부정
-  missing_citation: "#ea580c", // orange-600 — 경고 (admin amber 와 차별)
-  irrelevant: "#64748b", // slate-500 — 중립적 부정
-  other: "#b45309", // amber-700 — 부정 기타
+  // 긍정
+  helpful: "var(--chart-3)", // 초록 — 도움됨
+  accurate: "var(--tw-cat-blue)", // 정확
+  well_cited: "var(--chart-4)", // 청록 — 출처 명확
+  easy_to_understand: "var(--tw-cat-indigo)", // 이해 쉬움
+  comforting: "var(--tw-cat-violet)", // 은혜/위로
+  // 부정
+  inaccurate: "var(--chart-5)", // 빨강 — 가장 심각한 부정
+  missing_citation: "var(--chart-2)", // brass — 출처 부족
+  irrelevant: "var(--tw-cat-slate)", // 중립적 부정
+  other: "var(--tw-cat-rose)", // 부정 기타
 };
+const FEEDBACK_FALLBACK_COLOR = "var(--tw-cat-slate)";
 
 const FEEDBACK_LABELS: Record<string, string> = {
   // 긍정
@@ -103,7 +105,7 @@ function FeedbackDistributionChart({
     return {
       name: FEEDBACK_LABELS[key] ?? d.feedback_type,
       value: d.count,
-      color: FEEDBACK_COLORS[key] ?? "#94a3b8",
+      color: FEEDBACK_COLORS[key] ?? FEEDBACK_FALLBACK_COLOR,
     };
   });
 
@@ -311,7 +313,7 @@ export default function FeedbackPage() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 page-wide">
       {/* 헤더 + 기간 선택 */}
       <div className="flex items-start justify-between gap-3">
         <div>
