@@ -28,16 +28,19 @@ def series_title(series: str) -> str:
 
 
 def volume_label(volume: str, series: str, work_title: str = "") -> str:
-    """권 표시명. 말씀선집만 권 번호를 3자리로 정규화하고(`"001권"`), 나머지는 원장의 표시 제목을 쓴다."""
+    """권 표시명. 말씀선집만 권 번호를 앞 0 없는 숫자로 정규화하고(`"001권.pdf"` → `"1권"`), 나머지는 원장의 표시 제목을 쓴다.
+
+    0 채움(`"001권"`)은 파일명 정렬용 흔적이라 화면에 내보내지 않는다. 순서는 `label_sort_key` 가 숫자로 잡는다.
+    """
     if series == "father_anthology":
         matched = _VOLUME_NUMBER.search(volume)
         if matched is not None:
-            return f"{int(matched.group(1)):03d}권"
+            return f"{int(matched.group(1))}권"
     return work_title or volume
 
 
 def label_sort_key(label: str) -> tuple[int, str]:
-    """권 라벨 정렬 키. `"001권" < "010권" < "100권"` 이 되도록 숫자를 먼저 본다."""
+    """권 라벨 정렬 키. 문자열 순서(`"100권" < "1권"`)가 아니라 `"1권" < "10권" < "100권"` 이 되도록 숫자를 먼저 본다."""
     matched = _LABEL_NUMBER.search(label)
     number = int(matched.group(1)) if matched is not None else _NO_NUMBER
     return (number, label)

@@ -23,7 +23,7 @@ for (const width of [375, 768, 1280]) {
     // 저작물 → 권 → 원문 3계층 (PLAN-HD-007)
     await page.getByRole("link", { name: new RegExp(workTitle) }).click();
     await expect(page).toHaveURL(new RegExp(`${seriesPath}$`));
-    await expect(page.getByRole("link", { name: /001권/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /^1권/ })).toBeVisible();
     await page.getByRole("link", { name: /355권/ }).click();
     await expect(page).toHaveURL(new RegExp(encodeURIComponent(volume)));
     await expect(page.getByText("미리보기 예시 데이터입니다")).toHaveCount(0);
@@ -53,7 +53,7 @@ test("공개 API: 기본 거부 · 검색 전용 · 20청크 구간 · 출처 �
   });
   const series = await request.get("/api/backend/hoondok/library/father_anthology");
   expect(series.status()).toBe(200);
-  expect((await series.json()).volumes.map((item: { label: string }) => item.label)).toEqual(["001권", "355권"]);
+  expect((await series.json()).volumes.map((item: { label: string }) => item.label)).toEqual(["1권", "355권"]);
   expect((await request.get("/api/backend/hoondok/library/없는시리즈")).status()).toBe(404);
   const sections = await request.get(`/api/backend/hoondok/sections/${encodeURIComponent(volume)}`);
   expect(sections.status()).toBe(200);
@@ -225,7 +225,9 @@ test("원문 듣기: 목소리 시트에서 고르면 그 목소리로 단락 �
   await expect(picked).toBeFocused();
   // 터치 대상 44px
   expect((await picked.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(
+    0,
+  );
 
   await page.getByRole("button", { name: "듣기 시작" }).click();
   await expect.poll(() => requested[0]).toBe("aoede");
