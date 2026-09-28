@@ -8,6 +8,12 @@ export function kstMonthKey(now: Date = new Date()): string {
   return formatKstDate(now).iso.slice(0, 7);
 }
 
+/** 서버 시각 → KST `YYYY-MM-DD`. 오프셋이 없으면 naive UTC(서버 규칙)로 읽는다. 읽지 못하면 null. */
+export function kstDayOf(value: string): string | null {
+  const date = new Date(/[zZ]|[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`);
+  return Number.isNaN(date.getTime()) ? null : formatKstDate(date).iso;
+}
+
 /**
  * 월요일 시작 달력 그리드. leadingBlanks 는 1일 앞에 둘 빈 칸 수(월=0 … 일=6).
  * cells 는 API 가 준 그 달의 날들 그대로(1일부터 일수만큼, 미래는 done=false).

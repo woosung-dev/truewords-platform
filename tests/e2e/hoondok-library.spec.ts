@@ -180,8 +180,8 @@ test("단락 형광펜은 새로고침 뒤에도 남고 북마크는 서고에 �
   await page.goto("/hoondok/library");
   await expect(page.getByRole("heading", { name: "북마크", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /단락 2$/ })).toBeVisible();
-  // 이어 읽기는 서버 값으로 바뀐다 — 원문을 연 페이지의 첫 단락이 기준이다
-  await expect(page.getByText("단락 1까지 읽었어요")).toBeVisible();
+  // 이어 읽기는 서버 값으로 바뀐다 — 원문을 연 페이지의 첫 단락이 기준이다(홈 카드와 같은 문구)
+  await expect(page.getByText("355권 · 1단락부터 이어 읽어요")).toBeVisible();
 });
 
 // PLAN-HD-011 AI 낭독 목소리. E2E 서버에는 Google 키가 없어(enabled=false) 목록·단락 음성을 route 로 스텁한다 —
