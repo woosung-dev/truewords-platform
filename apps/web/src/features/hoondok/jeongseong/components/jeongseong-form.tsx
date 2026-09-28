@@ -96,10 +96,14 @@ export function JeongseongForm({ onClose }: { onClose: () => void }) {
           autoComplete="off"
           maxLength={TOPIC_MAX_LENGTH}
           required
+          placeholder="예: 감사, 가정의 평화"
+          aria-describedby={`${fieldId}-topic-help`}
           value={topic}
           onChange={(event) => setTopic(event.target.value)}
         />
-        <span className="field__help">칩을 고르거나 직접 적어요. {TOPIC_MAX_LENGTH}자까지 들어가요</span>
+        <span className="field__help" id={`${fieldId}-topic-help`}>
+          칩을 고르거나 직접 적어요. {TOPIC_MAX_LENGTH}자까지 들어가요
+        </span>
       </div>
 
       <div className="field js-field">

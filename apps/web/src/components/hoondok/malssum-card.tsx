@@ -1,6 +1,6 @@
 import { BookOpenText } from "lucide-react";
 import Link from "next/link";
-import { Fragment } from "react";
+
 import type { TodayReading, TodayStatus } from "@/features/hoondok/today";
 import { AuthorityBadge, ReviewBadge } from "./authority-badge";
 
@@ -16,11 +16,12 @@ export function SourceLine({ reading }: { reading: TodayReading }) {
   ];
   return (
     <div className="src">
+      {/* 구분점은 뒤 항목과 한 덩어리로 묶는다 — 따로 두면 줄 끝에 "·" 만 남는 줄바꿈이 생긴다 */}
       {parts.map((part, index) => (
-        <Fragment key={`${index}-${part}`}>
+        <span className="src__part" key={`${index}-${part}`}>
           {index > 0 && <span className="src__dot" />}
-          <span>{part}</span>
-        </Fragment>
+          {part}
+        </span>
       ))}
       <AuthorityBadge grade={reading.authority_grade} />
       <ReviewBadge status={reading.review_status} />

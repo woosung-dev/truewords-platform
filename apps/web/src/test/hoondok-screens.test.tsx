@@ -122,8 +122,22 @@ describe("훈독 알림·설치 도달 경로 · 온보딩 탭바", () => {
     for (const link of links) expect(link).toHaveAttribute("href", "/hoondok/settings");
   });
 
-  it("온보딩·검색·오프라인·질문 기록에는 알림 아이콘이 없다", async () => {
-    for (const pathname of ["/hoondok/onboarding", "/hoondok/search", "/hoondok/offline", "/hoondok/ask/log"]) {
+  it("검색 화면 자신에서는 앱바 검색 아이콘을 숨기고 헤더 검색 자리를 현재 위치로 표시한다", async () => {
+    await shell("/hoondok/search");
+    const links = screen.getAllByRole("link", { name: "말씀 검색" });
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveClass("nav__search");
+    expect(links[0]).toHaveAttribute("aria-current", "page");
+  });
+
+  it("온보딩·검색·오프라인·질문 기록·알림 설정 자신에는 알림 아이콘이 없다", async () => {
+    for (const pathname of [
+      "/hoondok/onboarding",
+      "/hoondok/search",
+      "/hoondok/offline",
+      "/hoondok/ask/log",
+      "/hoondok/settings",
+    ]) {
       const view = await shell(pathname);
       expect(screen.queryByRole("link", { name: "알림·설치" })).toBeNull();
       view.unmount();

@@ -35,9 +35,11 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
               </Link>
             )}
             <h1 className="appbar__title">{title}</h1>
-            <Link className="icon-btn icon-btn--search" href="/hoondok/search" aria-label="말씀 검색">
-              <Search size={22} />
-            </Link>
+            {!screen.hideSearchLink && (
+              <Link className="icon-btn icon-btn--search" href="/hoondok/search" aria-label="말씀 검색">
+                <Search size={22} />
+              </Link>
+            )}
             {!screen.hideSettingsLink && (
               <Link className="icon-btn" href="/hoondok/settings" aria-label="알림·설치">
                 <Bell size={22} />
@@ -74,7 +76,11 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
-          <Link className="nav__search" href="/hoondok/search">
+          <Link
+            className="nav__search"
+            href="/hoondok/search"
+            aria-current={screen.hideSearchLink ? "page" : undefined}
+          >
             <Search size={20} />
             말씀 검색
           </Link>

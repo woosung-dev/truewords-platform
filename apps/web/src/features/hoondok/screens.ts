@@ -26,6 +26,8 @@ export type HoondokScreen = {
   variant: "home" | "read" | "app";
   /** true 면 앱바·헤더의 알림 아이콘(설정 링크)을 숨긴다. 프로토타입에서 ph-bell 이 없는 화면이다 */
   hideSettingsLink?: true;
+  /** true 면 앱바의 검색 아이콘을 숨긴다. 검색 화면 자신이다 — 헤더(≥1024px) 검색 자리는 aria-current 로 남는다 */
+  hideSearchLink?: true;
   /** true 면 탭 내비를 그리지 않는다. 온보딩은 탭 진입 전이라 내비가 없다 (DES-PWA-003 §2) */
   hideNav?: true;
 };
@@ -76,7 +78,15 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
   { match: "/hoondok/c/", title: "오늘의 책갈피", tabId: "today", variant: "app" },
   { match: "/hoondok/bookmarks", title: "나의 책갈피", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
   { match: "/hoondok/garden", title: "나의 정원", tabId: "garden", variant: "app" },
-  { match: "/hoondok/settings", title: "알림·설치", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
+  // 알림 아이콘이 가리키는 화면 자신이라 아이콘을 숨긴다
+  {
+    match: "/hoondok/settings",
+    title: "알림·설치",
+    backHref: "/hoondok/garden",
+    tabId: "garden",
+    variant: "app",
+    hideSettingsLink: true,
+  },
   { match: "/hoondok/family", title: "가족·친구", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
   { match: "/hoondok/ask", title: "AI 질문", tabId: "ask", variant: "read" },
   {
@@ -106,6 +116,7 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "library",
     variant: "app",
     hideSettingsLink: true,
+    hideSearchLink: true,
   },
   {
     match: "/hoondok/words",

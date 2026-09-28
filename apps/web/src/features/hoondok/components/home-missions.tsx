@@ -116,7 +116,6 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
             effective.date === today.date ? todayWeekday : new Date(`${effective.date}T12:00:00+09:00`).getUTCDay()
           }
           doneByDay={summary?.week.map((day) => day.done) ?? []}
-          streakDays={summary?.streak_days}
         />
       </div>
 

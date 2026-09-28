@@ -17,6 +17,9 @@ function openDialog(dialog: HTMLDialogElement): void {
   if (dialog.open) return;
   if (typeof dialog.showModal === "function") dialog.showModal();
   else dialog.setAttribute("open", "");
+  // showModal 은 첫 조작 요소(기간 첫 칸)에 포커스를 준다 — 그러면 포커스 링과 기본 선택(채움)이 두 칸에 동시에
+  // 떠서 무엇이 골라졌는지 헷갈린다. 시작 포커스는 제목(읽기 시작점)에 두고 조작은 Tab 으로 들어간다.
+  dialog.querySelector<HTMLElement>(".js-title")?.focus();
 }
 
 function JeongseongSheetPanel() {
@@ -28,10 +31,10 @@ function JeongseongSheetPanel() {
   const close = useCallback(() => router.replace(HOME, { scroll: false }), [router]);
 
   useEffect(() => {
+    // 열기 전 포커스를 기억했다가 닫힐 때 돌려준다 (DES-PWA-003 §2.7) — 여는 순간 포커스가 시트 안으로 옮겨 가므로 먼저 잡는다
+    const opener = document.activeElement;
     const dialog = dialogRef.current;
     if (dialog) openDialog(dialog);
-    // 열기 전 포커스를 기억했다가 닫힐 때 돌려준다 (DES-PWA-003 §2.7)
-    const opener = document.activeElement;
     return () => {
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
     };
@@ -46,7 +49,7 @@ function JeongseongSheetPanel() {
     <dialog className="sheet" ref={dialogRef} aria-labelledby="js-title" onClose={close} onClick={handleBackdrop}>
       <div className="sheet__panel">
         <div className="sheet__grip" aria-hidden="true" />
-        <h2 className="js-title" id="js-title">
+        <h2 className="js-title" id="js-title" tabIndex={-1}>
           정성 기간 만들기
         </h2>
         <p className="js-lede">
