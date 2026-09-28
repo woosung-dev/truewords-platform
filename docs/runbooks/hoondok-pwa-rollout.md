@@ -588,3 +588,23 @@ make rollback-web TAG=aba5240
 | 원장 시드 | `content_rights` 620행 — allowed 3(천성경·평화경·원리강론, 검색·원문, O1) · pending 617(말씀선집 615 · 통일사상요강 · 자서전) |
 | 목차 추출 | `--series` 로 3회. 천성경 L1 13 · L2 65 / 평화경 10 · 177 / 원리강론 12 · 53. 0건 권 없음, 권당 약 5초 |
 | 확인 | `GET /hoondok/library` → 3 works |
+
+### 2026-09-28 — 알림 운영 ON: backend·web `03735d7` + VAPID + cron
+
+[§알림 운영 ON 절차](#알림-운영-on-절차-plan-hd-006--phase-4) -1~2 단계. 배포 전 상태는 backend `e433466` · web·admin `c0c2182` 였고 admin 은 변경이 없어 배포하지 않았다.
+
+| 단계 | 결과 |
+|---|---|
+| backend·web | `03735d7` healthy. alembic `s4d5e6f7a8b9`(변경 없음). `smoke-web` 12건 OK(`sw-cache` WARN 1, 알려진 항목) |
+| VAPID | VM backend 컨테이너에서 생성해 `.env` 에 바로 추가(값 비출력). `grep -c` 3, 다른 줄 무변경 확인 |
+| backend 재생성 | `push/config` → `enabled:true` · 공개키 87자 |
+| cron | `*/15` 등록. 1회 실행 `{"mode":"execute","eligible":0,...}` — 구독 0건 |
+| ops-check | `hoondok-push` OK("구독 없음"). `hoondok-today` **WARN "앞으로 0일분"** — 편성이 9/27 에 끝나 발송기는 정성 진행자 외에는 생략한다(§2-11). 편성을 넣어야 일반 사용자에게 알림이 간다 |
+
+**Android 에뮬레이터**(Android 16 · Chrome 150, 로컬 하네스가 실제 `sw.js` 를 서빙 → FCM 구독 → pywebpush 201):
+
+- 권한은 두 번 묻는다 — Chrome 의 사이트 권한, 이어서 Android 13+ 의 앱 알림 권한(Chrome 에 처음 허용할 때만).
+- 도착·알림 탭 → `/hoondok` 열림 확인.
+- 컬러 `badge` 는 상태 표시줄에서 흰 네모가 된다 → 단색 `badge-96.png` 로 교체 후 "훈" 글자 확인.
+- 강제 Doze(`deviceidle force-idle`)에서는 GMS 의 FCM 연결이 끊겨(`FcmRetry`) `Urgency` 유무와 관계없이 깨어날 때 도착했다 — 에뮬레이터로는 판정 불가, 실기기 야간 발송으로 본다.
+- 7분에 5건을 보내고 매번 지웠더니 Chrome 이 뒤쪽 알림을 **"Possible spam"** 으로 가렸다(기기 내 스팸 분류: 문구·빈도·무시 이력). 하루 1건·평이한 문구면 해당하지 않을 것으로 본다 `[가정]`. 테스트 발송을 한 기기에 몰아서 반복하지 않는다.
