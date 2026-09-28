@@ -32,7 +32,7 @@ describe("훈독 화면 레지스트리", () => {
     expect(pick("/hoondok/ask/q-123")).toEqual(["질문", "/hoondok/ask/log", "ask", "read"]);
     expect(pick("/hoondok/search")).toEqual(["말씀 검색", "/hoondok/library", "library", "app"]);
     expect(pick("/hoondok/words")).toEqual(["원문 읽기", "/hoondok/library", "library", "read"]);
-    // 가정예배 탭 첫 화면 = 5분 설교, 순서지·챌린지는 하위 화면 (2026-09-29)
+    // 5분 설교 탭(이전 가정예배) 첫 화면 = 5분 설교, 순서지·챌린지는 하위 화면 (2026-09-29)
     expect(pick("/hoondok/worship")).toEqual(["5분 설교", undefined, "worship", "app"]);
     expect(pick("/hoondok/worship/order")).toEqual(["순서지·챌린지", "/hoondok/worship", "worship", "app"]);
     expect(pick("/hoondok/worship/challenge/family-21")).toEqual([
@@ -63,7 +63,7 @@ describe("훈독 탭 단계 · 프리뷰 플래그", () => {
     expect(TAB_STAGE).toEqual({ today: "live", garden: "live", ask: "live", library: "live", worship: "preview" });
   });
 
-  it("ON: 말씀·가정예배가 켜져 5탭이 모두 이동한다", async () => {
+  it("ON: 말씀·5분 설교가 켜져 5탭이 모두 이동한다", async () => {
     const { HOONDOK_TABS, isTabEnabled } = await loadTabsWithPreview("1");
     expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual([
       "today",

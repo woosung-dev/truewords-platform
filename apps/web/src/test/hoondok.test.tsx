@@ -56,7 +56,7 @@ describe("훈독 탭 정의", () => {
     const { HOONDOK_TABS, activeTabId } = await import("../features/hoondok/tabs");
     expect(HOONDOK_TABS).toHaveLength(5);
     expect(new Set(HOONDOK_TABS.map((t) => t.href)).size).toBe(5);
-    expect(HOONDOK_TABS.map((t) => t.label)).toEqual(["오늘 훈독", "AI 질문", "말씀", "가정예배", "나의 정원"]);
+    expect(HOONDOK_TABS.map((t) => t.label)).toEqual(["오늘 훈독", "AI 질문", "말씀", "5분 설교", "나의 정원"]);
     expect(activeTabId("/hoondok/read")).toBe("today");
     expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual(["today", "ask", "library", "garden"]);
   });

@@ -1,4 +1,4 @@
-/* SCR-PWA-010 가정예배 홈 · 011 챌린지 상세 · 012 5분 설교 · 013 설교 섭외 폼 (PLAN-HD-002 W3-W 프리뷰 셸).
+/* SCR-PWA-010 가정예배 순서지 · 011 챌린지 상세 · 012 5분 설교 · 013 설교 섭외 폼 (PLAN-HD-002 W3-W 프리뷰 셸).
    프로토타입 app.html 의 `.ws-*`·`.ch-*`·`.sm-*`·`.rq-*` 마크업에는 정본 hoondok.css 규칙이 없다(정원 `.gd-*` 와 같은 사정)
    — 값은 DES-PWA-003 §2.4 순서지 · §2.5 챌린지 카드 · §2.6 달력 · §5 010~013 레이아웃 표에서 가져왔고
    색·반경·그림자는 hoondok.css 토큰만 쓴다(hex 금지, pnpm hoondok:check). 라이트 단일 테마.
@@ -164,47 +164,6 @@
     opacity: 0.92;
   }
 
-  /* ---------- 010 · 012 설교 히어로 : 사진 위 글자 (§3.2) ---------- */
-  .sm-hero .shot__tx {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .sm-hero {
-    display: block;
-    transition: transform 0.12s ease;
-  }
-  .sm-hero:active {
-    transform: scale(0.99);
-  }
-  .sm-hero__tag {
-    align-self: flex-start;
-  }
-  .sm-hero__t {
-    font-size: var(--fs-xl);
-    font-weight: 700;
-    line-height: 1.35;
-    letter-spacing: -0.02em;
-    text-wrap: balance;
-  }
-  /* 사진 위이므로 본문 보조색(--ink-2)이 아니라 흰 글자 92% 다 (§3.2 "0.85 아래로 내리지 않는다") */
-  .sm-hero__m {
-    font-size: var(--fs-xs);
-    opacity: 0.92;
-  }
-  /* 재생은 아직 없다 — 컨트롤은 disabled 이고 옆 글자가 이유를 말한다 (§3.3).
-     사진 히어로는 높이가 고정이라 이 줄은 사진 아래에 둔다. */
-  .sm-play {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-  }
-  .sm-play__soon {
-    font-size: var(--fs-2xs);
-    color: var(--ink-3);
-  }
-
   /* ---------- 011 챌린지 상세 : 사진 160px (DES §5 011 행) ---------- */
   .ch-hero {
     height: 160px;
@@ -272,10 +231,6 @@
     font-size: var(--fs-xs);
     color: var(--ink-2);
   }
-  .sm-item__soon {
-    font-size: var(--fs-2xs);
-    color: var(--ink-3);
-  }
   .ch-list__help {
     margin: 10px 0 0;
     font-size: var(--fs-xs);
@@ -291,7 +246,7 @@
     font-weight: 600;
   }
 
-  /* ---------- 012 교회장 행 · 설교 목록 ---------- */
+  /* ---------- 012 5분 설교 · 011 참여자 · 013 대상 교회장 공용 아바타 ---------- */
   .pv-avatar {
     display: grid;
     place-items: center;
@@ -304,60 +259,89 @@
     font-size: var(--fs-sm);
     font-weight: 600;
   }
-  .pv-avatar--lg {
-    width: 52px;
-    min-height: 52px;
-    font-size: var(--fs-xl);
+  /* 이번 주 설교. 포스터는 16:9 — YouTube 임베드가 붙으면 같은 자리·같은 비율로 바뀐다 */
+  .sm-feat .sect__title {
+    margin-bottom: 12px;
   }
-  /* 390 은 가로 스크롤, 768 이상은 줄바꿈 (DES §4.4-3) */
-  .sm-pastors {
-    display: flex;
-    gap: 10px;
-    margin: 0;
-    padding: 0 0 4px;
-    list-style: none;
-    overflow-x: auto;
+  .sm-poster {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: var(--r);
+    background: var(--ink);
   }
-  .sm-pastors > li {
-    flex: none;
+  .sm-poster img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
-  .sm-pastor {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    width: 88px;
-    padding: 4px 0;
-    text-align: center;
-    transition: transform 0.12s ease;
-  }
-  .sm-pastor:active {
-    transform: scale(0.98);
-  }
-  .sm-pastor__n {
-    font-size: var(--fs-xs);
+  /* 재생할 수 없다는 것을 누르는 자리에서 알린다 — 사진을 한 단 눌러 두고 가운데 한 줄만 쓴다 */
+  .sm-poster__state {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: var(--scrim);
+    color: var(--accent-ink);
+    font-size: var(--fs-sm);
     font-weight: 600;
   }
-  .sm-pastor__c {
+  .sm-dur {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    padding: 1px 6px;
+    border-radius: var(--r-xs);
+    background: var(--veil-80);
+    color: var(--accent-ink);
     font-size: var(--fs-2xs);
-    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
   }
-  .sm-quote-card {
-    margin-top: 10px;
+  .sm-feat__t {
+    margin: 14px 0 0;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
   }
-  .sm-quote {
-    margin: 0 0 10px;
+  .sm-feat__by {
+    margin: 4px 0 0;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  .sm-feat__src {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 0;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  /* 요약은 카드가 아니라 인용이다 — 왼쪽 선 하나로만 본문과 가른다 */
+  .sm-summary {
+    margin: 16px 0 0;
+    padding: 2px 0 2px 14px;
+    border-left: 2px solid var(--line);
+  }
+  .sm-summary p {
+    margin: 0;
     font-size: var(--fs-lg);
     line-height: 1.65;
   }
-  .sm-quote__part {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+  .sm-summary footer {
+    margin-top: 6px;
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
   }
+
+  /* 많이 본 설교. 폰은 썸네일 옆 글자, 카드 테두리 없이 간격으로만 나눈다 */
   .sm-list {
     display: grid;
-    gap: 10px;
+    gap: 16px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -367,12 +351,12 @@
     align-items: flex-start;
     gap: 12px;
   }
-  /* 썸네일 사진 (2026-09-22 복원). 사진이 안 와도 --surface-2 바탕이 자리를 지킨다 */
+  /* 사진이 안 와도 --surface-2 바탕이 자리를 지킨다 */
   .sm-thumb {
     position: relative;
     display: block;
-    width: 96px;
-    height: 64px;
+    width: 128px;
+    aspect-ratio: 16 / 9;
     flex: none;
     overflow: hidden;
     border-radius: var(--r-sm);
@@ -384,16 +368,9 @@
     height: 100%;
     object-fit: cover;
   }
-  .sm-dur {
-    position: absolute;
+  .sm-thumb .sm-dur {
     right: 4px;
     bottom: 4px;
-    padding: 1px 6px;
-    border-radius: var(--r-xs);
-    background: var(--ink);
-    color: var(--accent-ink);
-    font-size: var(--fs-2xs);
-    font-variant-numeric: tabular-nums;
   }
   .sm-item__bd {
     display: flex;
@@ -410,6 +387,76 @@
   .sm-item__m {
     font-size: var(--fs-xs);
     color: var(--ink-2);
+  }
+
+  /* 교회장께 설교 요청. 아바타는 누르는 곳이 아니다 — 강조색 대신 바탕색으로 둔다 */
+  .sm-ask__lede {
+    margin: 4px 0 14px;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  .sm-pastors {
+    display: flex;
+    gap: 4px;
+    margin: 0 0 16px;
+    padding: 0;
+    list-style: none;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .sm-pastor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+    /* 390 에서 다섯째가 반쯤 보이는 폭 — 잘린 끝이 옆으로 더 있다는 표시다(스크롤바는 숨긴다) */
+    width: 76px;
+    text-align: center;
+    scroll-snap-align: start;
+  }
+  .sm-pastors .pv-avatar {
+    width: 44px;
+    min-height: 44px;
+    background: var(--surface-2);
+    color: var(--ink-2);
+  }
+  .sm-pastor__n {
+    font-size: var(--fs-xs);
+    font-weight: 600;
+  }
+  .sm-pastor__c {
+    font-size: var(--fs-2xs);
+    color: var(--ink-3);
+  }
+
+  /* 이번 주 가정예배로 가는 한 줄 */
+  .sm-order {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    color: var(--ink-2);
+    transition: transform 0.12s ease;
+  }
+  .sm-order:active {
+    transform: scale(0.99);
+  }
+  .sm-order__bd {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .sm-order__t {
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .sm-order__m {
+    font-size: var(--fs-xs);
   }
 
   /* ---------- 013 설교 섭외 폼 ---------- */
@@ -554,9 +601,20 @@
       flex-wrap: wrap;
       overflow-x: visible;
     }
-    /* 병렬 항목이라 2열을 허용한다 (DES §4.4-3) */
+    /* 병렬 항목이라 2열을 허용한다 (DES §4.4-3). 넓으면 썸네일을 위로 올려 영상 목록 모양으로 둔다 */
     .sm-list {
       grid-template-columns: 1fr 1fr;
+      gap: 24px 16px;
+    }
+    .sm-item {
+      flex-direction: column;
+      gap: 10px;
+    }
+    .sm-thumb {
+      width: 100%;
+    }
+    .sm-ask .btn {
+      width: auto;
     }
   }
 }

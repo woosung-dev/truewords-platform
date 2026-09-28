@@ -86,7 +86,7 @@ describe("전체 메뉴 드로어", () => {
     const groups = within(dialog)
       .getAllByRole("heading", { level: 3 })
       .map((heading) => heading.textContent);
-    expect(groups).toEqual(["즐겨찾는 메뉴", "즐겨찾는 말씀", "오늘 훈독", "AI 질문", "말씀", "가정예배", "나의 정원"]);
+    expect(groups).toEqual(["즐겨찾는 메뉴", "즐겨찾는 말씀", "오늘 훈독", "AI 질문", "말씀", "5분 설교", "나의 정원"]);
 
     // 읽기는 제목에서 시작한다
     expect(document.activeElement).toBe(within(dialog).getByRole("heading", { name: "전체 메뉴" }));
@@ -103,9 +103,11 @@ describe("전체 메뉴 드로어", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("프리뷰가 꺼진 가정예배는 숨기지 않고 '준비 중' 으로 남기며 별이 없다", () => {
+  it("프리뷰가 꺼진 5분 설교 묶음은 숨기지 않고 '준비 중' 으로 남기며 별이 없다", () => {
     const dialog = openMenu();
-    const worship = within(dialog).getByRole("heading", { name: "가정예배" }).closest("section") as HTMLElement;
+    const worship = within(dialog)
+      .getByRole("heading", { level: 3, name: "5분 설교" })
+      .closest("section") as HTMLElement;
     expect(within(worship).getAllByText("준비 중")).toHaveLength(3);
     expect(within(worship).queryByRole("link")).toBeNull();
     expect(within(worship).queryByRole("button", { name: /즐겨찾기/ })).toBeNull();

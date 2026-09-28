@@ -188,31 +188,48 @@ export type PreviewPastor = { id: string; name: string; church: string };
 export type PreviewSermon = {
   id: string;
   title: string;
-  meta: string;
+  /** 설교자 · 교회 */
+  by: string;
   duration: string;
 };
 
 export type SermonsFixture = {
-  /** 세그먼트 2종. 전체 설교 목록은 아직 데이터가 없어 꺼 둔다 */
-  segments: readonly { id: string; label: string; isSoon?: boolean }[];
-  pastors: readonly PreviewPastor[];
-  featured: {
-    tag: string;
-    title: string;
-    meta: string;
-    duration: string;
+  featured: PreviewSermon & {
+    /** 본문 말씀 */
+    scripture: string;
     postedOn: string;
     grade: AuthorityGrade;
+    /** 교회가 올린 한 줄 요약 */
+    summary: string;
   };
-  quote: { body: string; source: readonly string[]; grade: AuthorityGrade };
   popular: readonly PreviewSermon[];
+  pastors: readonly PreviewPastor[];
   notice: string;
 };
 
+// 2026-09-29 정리: 제목의 따옴표·조회수(실측값이 없다)·꺼 둔 "전체 설교" 세그먼트·"새 설교" 배지를 뺐다.
+// 5분 설교 목록이라 21분짜리 항목은 5분대로 바꿨다.
 export const SERMONS: SermonsFixture = {
-  segments: [
-    { id: "short", label: "5분 설교" },
-    { id: "full", label: "전체 설교", isSoon: true },
+  featured: {
+    id: "s0",
+    title: "내가 구한 것, 그 너머의 선물",
+    by: "교회장 A · 우리 교회",
+    scripture: "천성경 1편 3장",
+    duration: "4:52",
+    postedOn: "9월 7일",
+    grade: "O5",
+    summary: "하늘부모님은 우리가 구한 것보다 더 큰 것을 준비해 두셨습니다.",
+  },
+  popular: [
+    {
+      id: "s1",
+      title: "땅이 부족한 것이 아니라 믿음이 부족했던 것입니다",
+      by: "교회장 B · 이웃 교회 1",
+      duration: "4:05",
+    },
+    { id: "s2", title: "참사랑은 우회하지 않습니다", by: "교회장 C · 이웃 교회 2", duration: "5:31" },
+    { id: "s3", title: "함박눈은 하늘의 축복", by: "교회장 D · 이웃 교회 3", duration: "4:29" },
+    { id: "s4", title: "가정은 하늘이 지으신 첫 학교입니다", by: "청년부장 A · 우리 교회 청년부", duration: "5:14" },
   ],
   pastors: [
     { id: "p1", name: "교회장 A", church: "우리 교회" },
@@ -221,46 +238,7 @@ export const SERMONS: SermonsFixture = {
     { id: "p4", name: "교회장 C", church: "이웃 교회 2" },
     { id: "p5", name: "교회장 D", church: "이웃 교회 3" },
   ],
-  featured: {
-    tag: "새 설교",
-    title: "“내가 구한 것, 그 너머의 선물”",
-    meta: "교회장 A · 우리 교회 · 천성경 1편 3장",
-    duration: "4:52",
-    postedOn: "9월 7일 게시",
-    grade: "O5",
-  },
-  quote: {
-    body: "“하늘부모님은 우리가 구한 것보다 더 큰 것을 준비해 두셨습니다.”",
-    source: ["설교 요약", "우리 교회 게시"],
-    grade: "O5",
-  },
-  popular: [
-    {
-      id: "s1",
-      title: "“땅이 부족한 것이 아니라 믿음이 부족했던 것입니다”",
-      meta: "교회장 B · 이웃 교회 1 · 1.1천 명 시청",
-      duration: "4:05",
-    },
-    {
-      id: "s2",
-      title: "“참사랑은 우회하지 않습니다”",
-      meta: "교회장 C · 이웃 교회 2 · 862명 시청",
-      duration: "5:31",
-    },
-    {
-      id: "s3",
-      title: "“함박눈은 하늘의 축복”",
-      meta: "교회장 D · 이웃 교회 3 · 704명 시청",
-      duration: "4:29",
-    },
-    {
-      id: "s4",
-      title: "“가정은 하늘이 지으신 첫 학교입니다”",
-      meta: "청년부장 A · 우리 교회 청년부 · 512명 시청",
-      duration: "21:14",
-    },
-  ],
-  notice: "설교는 각 교회가 게시한 지역 콘텐츠(O5)이며 외부 링크로 재생됩니다",
+  notice: "설교는 각 교회가 올린 지역 콘텐츠(O5)예요. 재생 권리가 정해지면 이 화면에서 유튜브 영상으로 재생돼요.",
 };
 
 /* --------------------------------------------------------------- 013 섭외 폼 */
