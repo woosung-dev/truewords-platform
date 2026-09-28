@@ -2,6 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Button } from "@/components/ui/button";
+import { DialogContent } from "@/components/ui/dialog";
 
 interface Props {
   /** false 면 렌더하지 않는다. */
@@ -27,21 +28,18 @@ export function ConfirmDeleteDialog({
   if (!open) return null;
   return (
     <Dialog.Root open onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40" />
-        <Dialog.Popup className="fixed inset-0 z-50 m-auto flex h-fit w-full max-w-md flex-col rounded-2xl bg-popover p-6 shadow-2xl">
-          <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>
-          <Dialog.Description className="mt-2 text-sm text-muted-foreground">{description}</Dialog.Description>
-          <div className="mt-6 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
-              취소
-            </Button>
-            <Button type="button" variant="destructive" onClick={onConfirm} disabled={isPending}>
-              {isPending ? "삭제 중..." : confirmLabel}
-            </Button>
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
+      <DialogContent className="max-w-md p-6">
+        <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>
+        <Dialog.Description className="mt-2 text-sm text-muted-foreground">{description}</Dialog.Description>
+        <div className="mt-6 flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            취소
+          </Button>
+          <Button type="button" variant="destructive" onClick={onConfirm} disabled={isPending}>
+            {isPending ? "삭제 중..." : confirmLabel}
+          </Button>
+        </div>
+      </DialogContent>
     </Dialog.Root>
   );
 }
