@@ -89,6 +89,7 @@
 | `id` | uuid | PK | |
 | `user_id` | uuid | FK `users.id`, not null, index `ix_jeongseong_periods_user_id` | |
 | `topic` | varchar(40) | not null | 정성 주제. 앞뒤 공백 제거 후 1~40자 |
+| `resolution` | varchar(50) | null | 나의 각오(선택). 앞뒤 공백 제거, 빈 값은 NULL. 본인 응답에만 담는다 — 모임·가족·관리자 응답에 넣지 않는다. 처리방침 항목은 `DEC-PWA-001` 확정 때 함께 적는다 `[확인 필요]` |
 | `duration_days` | int | not null | `7` · `21` · `40`. 앱 검증(`Literal`)만, DB CHECK 없음 |
 | `started_on` | date | not null | 시작일(KST). 생성 시 오늘 ~ 오늘+30 |
 | `reminder_time` | time | null | **사용 중단(2026-09-28)** — 웹은 더 보내지도 보여 주지도 않는다. 정성 기간 알림은 ENT-HD-008 `read_time` 의 훈독하기 알림에 통합됐다(PLAN-HD-006 §2-12). 컬럼 삭제는 별도 2단계 |
@@ -99,7 +100,7 @@
 | — | — | **부분 unique** `uq_jeongseong_periods_user_active` on (`user_id`) `WHERE status = 'active'` | 사용자당 진행 중 1건. `completed`·`abandoned` 행은 여러 건 남는다 |
 
 - **진행률은 저장하지 않는다.** `end_on = started_on + (duration_days - 1)`, `done_days`·`missed_days`·`remaining_days`·`percent`·`state(upcoming·active·completed)` 는 `mission_logs` 의 `read` 완료일에서 매번 계산한다(`hoondok/jeongseong.py`). `missed_days` 는 어제까지만 센다 — 오늘은 밀린 날이 아니다.
-- 상태 전이: `active → completed` 는 `end_on < today` 인 상태로 `GET/POST/DELETE /hoondok/me/jeongseong` 이 읽는 시점에 기록한다(배치 없음). `active → abandoned` 는 DELETE. 두 전이 모두 `ended_at`·`updated_at` 을 채운다. 되돌리기는 없다. 가장 최근 `completed` 행은 `end_on` 뒤 7일 동안 GET `last_ended`(마무리 카드)로 읽히고, `abandoned` 행은 읽히지 않는다.
+- 상태 전이: `active → completed` 는 `end_on < today` 인 상태로 `GET/POST/DELETE /hoondok/me/jeongseong` 이 읽는 시점에 기록한다(배치 없음). `active → abandoned` 는 DELETE. 두 전이 모두 `ended_at`·`updated_at` 을 채운다. 되돌리기는 없다. 가장 최근에 끝난 행(`ended_at` 순)이 `completed` 면 `end_on` 뒤 7일 동안 GET `last_ended`(마무리 카드)로 읽히고, `abandoned` 면 아무것도 읽히지 않는다.
 - 부분 unique 는 SQLModel `__table_args__` 의 `Index(..., unique=True, postgresql_where=..., sqlite_where=...)` 로 선언해 aiosqlite 테스트에서도 같은 제약을 재현한다. 동시 생성 경쟁은 IntegrityError → 409.
 - 계정 삭제([API-HD-011](../api/hoondok-api.md))는 본인 행을 하드 삭제한다.
 
@@ -118,6 +119,7 @@
 | 2026-09-19 | `jeongseong_periods` 확정(alembic `k5a6b7c8d9e0`). 사용자당 active 1건은 부분 unique, 상태 varchar, 진행률 미저장. `users.deleted_at` 은 API-HD-011 이 기록하고 이메일을 `deleted:{id}` 로 익명화 | 확정 · PLAN-HD-002 W0-B |
 | 2026-09-22 | `notification_preferences`·`push_subscriptions` 신설(alembic `m7c8d9e0f1a2`). 설정은 행 없으면 기본값·PUT 전체 교체, 구독은 `endpoint` unique + 소유 이전, 발송 상태(`last_sent_on`·`failed_count`)는 구독 행에 둔다 | 확정 · PLAN-HD-006 sub-PR A |
 | 2026-09-28 | `notification_preferences` 의 알림 문구 수준 컬럼 삭제(alembic `u6f7a8b9c0d1`) — 오버 스펙, 알림 문구는 중립 문구 하나 | 확정 · PLAN-HD-006 §8 |
+| 2026-09-29 | `jeongseong_periods.resolution` varchar(50) nullable 추가(alembic `v7a8b9c0d1e2`) — 나의 각오. 본인 응답에만, 수정 없음 | 확정(사용자 승인) |
 | 2026-09-23 | 모임 5테이블 신설(ENT-HD-013~017, alembic `r3c4d5e6f7a8`). 공동 정성은 개인 정성을 확장하지 않고 `shared_jeongseongs`(group_id NULL = 공식)로 분리 | 확정 · PLAN-HD-010 트랙 A |
 
 ---

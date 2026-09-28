@@ -3197,6 +3197,18 @@
             ],
             "title": "Reminder Time"
           },
+          "resolution": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
           "started_on": {
             "anyOf": [
               {
@@ -3224,7 +3236,7 @@
         "type": "object"
       },
       "JeongseongCurrentResponse": {
-        "description": "GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null.\n\nlast_ended 는 period 가 null 일 때만 채운다 — 최근 7일 안에 끝난 completed 1건(abandoned 제외).",
+        "description": "GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null.\n\nlast_ended 는 period 가 null 일 때만 채운다 — 가장 최근에 끝난 기간이 7일 안에 끝난 completed 일 때만(abandoned 면 null).",
         "properties": {
           "last_ended": {
             "anyOf": [
@@ -3267,6 +3279,17 @@
             "title": "Id",
             "type": "string"
           },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
           "started_on": {
             "format": "date",
             "title": "Started On",
@@ -3280,6 +3303,7 @@
         "required": [
           "id",
           "topic",
+          "resolution",
           "duration_days",
           "started_on",
           "end_on"
@@ -3313,6 +3337,17 @@
             ],
             "title": "Reminder Time"
           },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
           "started_on": {
             "format": "date",
             "title": "Started On",
@@ -3335,6 +3370,7 @@
         "required": [
           "id",
           "topic",
+          "resolution",
           "duration_days",
           "started_on",
           "reminder_time",

@@ -42,6 +42,7 @@ const USER: HoondokUser = { id: "u1", email: "a@b.c", display_name: "효진" };
 const PERIOD: JeongseongPeriodResponse = {
   id: "p1",
   topic: "감사",
+  resolution: null,
   duration_days: 21,
   started_on: "2026-09-19",
   reminder_time: null,

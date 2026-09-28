@@ -1927,6 +1927,10 @@ export type JeongseongCreate = {
      */
     reminder_time?: string | null;
     /**
+     * Resolution
+     */
+    resolution?: string | null;
+    /**
      * Started On
      */
     started_on?: string | null;
@@ -1941,7 +1945,7 @@ export type JeongseongCreate = {
  *
  * GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null.
  *
- * last_ended 는 period 가 null 일 때만 채운다 — 최근 7일 안에 끝난 completed 1건(abandoned 제외).
+ * last_ended 는 period 가 null 일 때만 채운다 — 가장 최근에 끝난 기간이 7일 안에 끝난 completed 일 때만(abandoned 면 null).
  */
 export type JeongseongCurrentResponse = {
     last_ended?: JeongseongLastEnded | null;
@@ -1966,6 +1970,10 @@ export type JeongseongLastEnded = {
      * Id
      */
     id: string;
+    /**
+     * Resolution
+     */
+    resolution: string | null;
     /**
      * Started On
      */
@@ -1993,6 +2001,10 @@ export type JeongseongPeriodResponse = {
      * Reminder Time
      */
     reminder_time: string | null;
+    /**
+     * Resolution
+     */
+    resolution: string | null;
     /**
      * Started On
      */

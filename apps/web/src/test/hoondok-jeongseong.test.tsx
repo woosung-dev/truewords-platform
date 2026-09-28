@@ -35,6 +35,7 @@ const TODAY = formatKstDate().iso;
 const PERIOD: JeongseongPeriodResponse = {
   id: "p1",
   topic: "감사",
+  resolution: null,
   duration_days: 21,
   started_on: "2026-09-19",
   reminder_time: "05:30:00",

@@ -97,12 +97,21 @@ class JeongseongCreate(BaseModel):
     duration_days: JeongseongDuration
     started_on: date | None = None
     reminder_time: time | None = None  # 사용 중단 — 알림 시각은 notification_preferences.read_time
+    resolution: str | None = Field(default=None, max_length=50)  # 나의 각오(선택). 수정 API 는 없다
 
     @field_validator("topic", mode="before")
     @classmethod
     def _strip_topic(cls, value: object) -> object:
         # 앞뒤 공백을 지운 뒤 min_length=1 이 적용되게 한다 — "   " 는 422.
         return value.strip() if isinstance(value, str) else value
+
+    @field_validator("resolution", mode="before")
+    @classmethod
+    def _strip_resolution(cls, value: object) -> object:
+        # 앞뒤 공백을 지운 뒤 50자를 센다. 비었으면 각오 없음(null).
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
 
 
 class JeongseongProgress(BaseModel):
@@ -119,6 +128,7 @@ class JeongseongProgress(BaseModel):
 class JeongseongPeriodResponse(BaseModel):
     id: uuid.UUID
     topic: str
+    resolution: str | None
     duration_days: int
     started_on: date
     reminder_time: time | None
@@ -131,6 +141,7 @@ class JeongseongLastEnded(BaseModel):
 
     id: uuid.UUID
     topic: str
+    resolution: str | None
     duration_days: int
     started_on: date
     end_on: date
@@ -139,7 +150,7 @@ class JeongseongLastEnded(BaseModel):
 class JeongseongCurrentResponse(BaseModel):
     """GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null.
 
-    last_ended 는 period 가 null 일 때만 채운다 — 최근 7일 안에 끝난 completed 1건(abandoned 제외).
+    last_ended 는 period 가 null 일 때만 채운다 — 가장 최근에 끝난 기간이 7일 안에 끝난 completed 일 때만(abandoned 면 null).
     """
 
     period: JeongseongPeriodResponse | None = None

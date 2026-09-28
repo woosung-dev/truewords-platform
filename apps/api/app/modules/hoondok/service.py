@@ -140,9 +140,9 @@ class JeongseongService:
         return JeongseongCurrentResponse(period=await self._to_response(period, today))
 
     async def _last_ended(self, user_id: uuid.UUID, today: date) -> JeongseongLastEnded | None:
-        """최근 7일 안에 끝난 completed 기간. abandoned(그만두기)는 마무리 카드를 띄우지 않으므로 보지 않는다."""
-        period = await self.repo.get_last_completed(user_id)
-        if period is None:
+        """최근 7일 안에 끝난 completed 기간. 가장 최근에 끝난 기간이 abandoned(그만두기)면 마무리 카드가 없다."""
+        period = await self.repo.get_last_ended(user_id)
+        if period is None or period.status != "completed":
             return None
         end_on = period_end(period.started_on, period.duration_days)
         if end_on < today - timedelta(days=JEONGSEONG_LAST_ENDED_DAYS):
@@ -150,6 +150,7 @@ class JeongseongService:
         return JeongseongLastEnded(
             id=period.id,
             topic=period.topic,
+            resolution=period.resolution,
             duration_days=period.duration_days,
             started_on=period.started_on,
             end_on=end_on,
@@ -168,6 +169,7 @@ class JeongseongService:
         period = JeongseongPeriod(
             user_id=user_id,
             topic=data.topic,
+            resolution=data.resolution,
             duration_days=data.duration_days,
             started_on=started_on,
             reminder_time=data.reminder_time,
@@ -208,6 +210,7 @@ class JeongseongService:
         return JeongseongPeriodResponse(
             id=period.id,
             topic=period.topic,
+            resolution=period.resolution,
             duration_days=period.duration_days,
             started_on=period.started_on,
             reminder_time=period.reminder_time,

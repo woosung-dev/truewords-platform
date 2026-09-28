@@ -49,6 +49,7 @@ const SUMMARY = {
 const PERIOD: JeongseongPeriodResponse = {
   id: "p1",
   topic: "가정의 화목",
+  resolution: null,
   duration_days: 21,
   started_on: "2026-09-04",
   reminder_time: null,
