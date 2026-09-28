@@ -1,0 +1,789 @@
+/* 오늘의 책갈피 (PLAN-HD-012, SCR-PWA-022~026) — 홈 카드 · 받기/읽기 · 건네기 시트 · 원문 밑줄 · 받은 사람 · 나의 책갈피.
+   값의 원본은 승인 시안 bookmark-final.html(목업 A). 색은 hoondok.css 토큰만 쓴다(hex 금지, pnpm hoondok:check).
+   모션은 transform·opacity 만(features/hoondok/cards/motion.ts). 여기의 CSS 애니메이션은 홈 대기 모션 하나이고 동작 줄이기면 끈다. */
+
+/* 홈 대기: 책갈피 끝이 3px 오르내림, 800ms 뒤 3초 주기 2회 (@keyframes 는 중첩할 수 없어 최상위에 둔다) */
+@keyframes hoondok-bm-breathe {
+  0%,
+  100% {
+    transform: translateY(9.6em);
+  }
+  50% {
+    transform: translateY(9em);
+  }
+}
+
+[data-app="hoondok"] {
+  /* ---------- 1. 책 (홈 sm · 받는 순간 lg, em 단위로 크기만 바꾼다) ---------- */
+  .bk {
+    position: relative;
+    width: 17.6em;
+    height: 23.2em;
+    font-size: 10px;
+    perspective: 42em;
+  }
+  .bk--sm {
+    font-size: 5.1px;
+  }
+  .bk__pages {
+    position: absolute;
+    left: 1.2em;
+    right: -0.5em;
+    top: 0.5em;
+    bottom: -0.3em;
+    background: repeating-linear-gradient(90deg, var(--pages) 0 0.3em, var(--pages-line) 0.3em 0.36em);
+    border-radius: 0.2em 0.6em 0.6em 0.2em;
+    box-shadow: 0 1em 2em rgba(87, 62, 40, 0.14);
+  }
+  .bk__glow {
+    position: absolute;
+    left: 1.2em;
+    top: 0.5em;
+    width: 5em;
+    bottom: 0;
+    background: linear-gradient(90deg, rgba(255, 243, 210, 0.95), rgba(255, 236, 190, 0));
+    opacity: 0;
+    border-radius: 0.2em;
+  }
+  .bk__rib {
+    position: absolute;
+    left: 10.8em;
+    top: -13em;
+    width: 3.6em;
+    height: 16em;
+    will-change: transform;
+  }
+  .bk.is-closed .bk__rib {
+    transform: translateY(11em);
+  }
+  .bk--sm.is-closed .bk__rib {
+    transform: translateY(9.6em);
+  }
+  .bk--sm.is-waiting .bk__rib {
+    animation: hoondok-bm-breathe 3s ease-in-out 0.8s 2;
+  }
+  .bk--sm .bk__tas {
+    display: none;
+  }
+  .bk__rib-body {
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 94%, 0 100%);
+    box-shadow: inset -0.4em 0 0 rgba(0, 0, 0, 0.08);
+  }
+  .bk__rib-heart {
+    position: absolute;
+    left: 50%;
+    top: 1.2em;
+    width: 1.8em;
+    height: 1.8em;
+    margin-left: -0.9em;
+    color: var(--rib-heart);
+  }
+  .bk__tas {
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    width: 0.25em;
+    height: 3em;
+    margin-left: -0.12em;
+    background: var(--accent-strong);
+    transform-origin: 50% 100%;
+    will-change: transform;
+  }
+  .bk__tas::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -0.5em;
+    width: 1.1em;
+    height: 1.1em;
+    margin-left: -0.55em;
+    border-radius: 50%;
+    background: var(--accent-strong);
+  }
+  .bk__tas::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -2.2em;
+    width: 1.4em;
+    height: 1.9em;
+    margin-left: -0.7em;
+    border-radius: 0.6em 0.6em 0.2em 0.2em;
+    background: repeating-linear-gradient(90deg, var(--tassel) 0 0.2em, var(--accent-strong) 0.2em 0.38em);
+  }
+  .bk__cover {
+    position: absolute;
+    inset: 0;
+    background: var(--cover);
+    border-radius: 0.3em 0.8em 0.8em 0.3em;
+    transform-origin: 0 50%;
+    will-change: transform;
+    box-shadow:
+      inset 1.6em 0 0 var(--cover-2),
+      inset 1.75em 0 0 rgba(0, 0, 0, 0.06),
+      0 0.2em 0.6em rgba(87, 62, 40, 0.18);
+    backface-visibility: hidden;
+  }
+  .bk__plate {
+    position: absolute;
+    left: 3.6em;
+    right: 1.8em;
+    top: 4.2em;
+    padding: 1.2em 0.8em;
+    background: var(--plate);
+    border: 0.1em solid var(--plate-line);
+    border-radius: 0.3em;
+    text-align: center;
+  }
+  .bk__plate b {
+    display: block;
+    font-size: 2.4em;
+    letter-spacing: 0.14em;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--ink);
+    word-break: keep-all;
+  }
+  .bk__plate span {
+    display: block;
+    font-size: 1.25em;
+    color: var(--ink-2);
+    margin-top: 0.4em;
+  }
+
+  /* ---------- 2. 홈 카드 (022) ---------- */
+  .bmhome {
+    padding: 18px 18px 16px;
+  }
+  .bmhome__top {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+  }
+  .bmhome__book {
+    flex: none;
+    width: 92px;
+    height: 128px;
+    display: grid;
+    place-items: end center;
+    padding-bottom: 2px;
+  }
+  .bmhome__bd {
+    min-width: 0;
+  }
+  .bmhome__kind {
+    display: block;
+    font-size: 12.5px;
+    color: var(--ink-3);
+  }
+  .bmhome__title {
+    display: block;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.4;
+    margin: 3px 0 4px;
+    overflow-wrap: anywhere;
+  }
+  .bmhome__meta {
+    display: block;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .bmhome__go {
+    margin-top: 16px;
+  }
+
+  /* ---------- 3. 책갈피 카드 (목업 A) ---------- */
+  .bm {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--card-paper);
+    border-radius: var(--r);
+    overflow: hidden;
+    container-type: inline-size;
+    isolation: isolate;
+  }
+  .bm::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(120% 70% at 0% 0%, rgba(120, 105, 85, 0.1), transparent 60%),
+      radial-gradient(80% 60% at 100% 100%, rgba(255, 255, 255, 0.35), transparent 70%);
+  }
+  .bm--full {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    aspect-ratio: 358 / 540;
+  }
+  .bm__leaves {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 52cqw;
+    -webkit-mask-image: radial-gradient(130% 120% at 0 0, black 45%, transparent 78%);
+    mask-image: radial-gradient(130% 120% at 0 0, black 45%, transparent 78%);
+    pointer-events: none;
+  }
+  .bm__rib {
+    position: absolute;
+    right: 9cqw;
+    top: 0;
+    width: 11cqw;
+    height: 25cqw;
+    background: var(--accent);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+    box-shadow: inset -1cqw 0 0 rgba(0, 0, 0, 0.07);
+  }
+  .bm__rib svg {
+    position: absolute;
+    left: 50%;
+    top: 10cqw;
+    width: 5.2cqw;
+    height: 5.2cqw;
+    margin-left: -2.6cqw;
+    color: var(--rib-heart);
+  }
+  .bm__in {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 9cqw 9cqw 0;
+  }
+  .bm__eyebrow {
+    margin: 0;
+    font-size: max(12px, 3.6cqw);
+    color: var(--ink-2);
+    letter-spacing: 0.02em;
+  }
+  .bm__rule {
+    width: 9cqw;
+    height: 1px;
+    background: var(--ink-3);
+    opacity: 0.6;
+    margin: 2.4cqw 0 0;
+  }
+  .bm__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 0;
+  }
+  .bm__mark {
+    font-size: max(26px, 8cqw);
+    line-height: 0.6;
+    height: 0.45em;
+    color: var(--accent);
+    font-family: Georgia, serif;
+    align-self: flex-start;
+    margin-left: -1cqw;
+  }
+  .bm__q {
+    margin: 0;
+    text-wrap: balance;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.62;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    color: var(--ink);
+    font-size: min(6.4cqw, 24px);
+  }
+  .bm__q--m {
+    font-size: min(5.8cqw, 22px);
+  }
+  .bm__q--s {
+    font-size: min(5.1cqw, 19px);
+  }
+  .bm__q--xs {
+    font-size: min(4.4cqw, 17px);
+  }
+  .bm__src {
+    margin: 3.2cqw 0 0;
+    font-size: max(13px, 3.6cqw);
+    color: var(--ink-2);
+  }
+  .bm__src::before {
+    content: "— ";
+  }
+  .bm__scene {
+    position: relative;
+    flex: none;
+    width: calc(100% + 18cqw);
+    height: 34cqw;
+    margin: 0 -9cqw;
+  }
+  .bm__twig {
+    position: absolute;
+    left: 3cqw;
+    bottom: 4cqw;
+    width: 26cqw;
+  }
+  .bm__table {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 7.6cqw;
+    background: linear-gradient(180deg, var(--table), var(--table-2));
+  }
+  .bm__cup {
+    position: absolute;
+    right: 4cqw;
+    bottom: 0;
+    width: 48cqw;
+    -webkit-mask-image: linear-gradient(90deg, transparent, black 18%, black 88%, transparent);
+    mask-image: linear-gradient(90deg, transparent, black 18%, black 88%, transparent);
+  }
+  .bm__veil {
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  /* ---------- 4. 받기·읽기 (023) ---------- */
+  .bmk-stage {
+    position: relative;
+  }
+  .bmk-card {
+    transform-origin: 0 0;
+    will-change: transform;
+  }
+  /* 받음 판정 전에는 카드·버튼을 보이지 않는다(모션을 틀지 결정하기 전) */
+  .bmk--wait .bmk-card,
+  .bmk--wait .bmk-actions {
+    visibility: hidden;
+  }
+  .bmk-moment {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .bmk-moment[hidden] {
+    display: none;
+  }
+  .bmk-moment__date {
+    margin: 0 0 4px;
+    font-size: 14px;
+    color: var(--ink-3);
+  }
+  .bmk-moment__t {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .bmk-moment__bk {
+    margin-top: 150px;
+    will-change: transform, opacity;
+  }
+  .bmk-moment__cap {
+    margin: 34px 0 0;
+    font-size: 15px;
+    color: var(--ink-2);
+    opacity: 0;
+  }
+  /* 책에 다시 꽂기: 머리 글자는 보이지 않는다 */
+  .bmk--fold .bmk-moment__date,
+  .bmk--fold .bmk-moment__t {
+    opacity: 0;
+  }
+  .bmk-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 420px;
+    margin: 12px auto 0;
+  }
+  .btn--tall {
+    height: auto;
+    min-height: 58px;
+    flex-direction: column;
+    gap: 0;
+    line-height: 1.3;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .btn--tall small {
+    font-weight: 400;
+    font-size: 12.5px;
+    opacity: 0.9;
+  }
+  .bmk-row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .bmk-row2 .btn {
+    padding: 0 12px;
+  }
+  .bmk-toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    z-index: 70;
+    max-width: calc(100% - 32px);
+    margin: 0;
+    padding: 10px 16px;
+    border-radius: var(--r-full);
+    background: rgba(35, 33, 31, 0.92);
+    color: var(--surface);
+    font-size: 14px;
+    text-align: center;
+    transform: translateX(-50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .bmk-toast[data-on] {
+    opacity: 1;
+  }
+
+  /* ---------- 5. 건네기 시트 (024) ---------- */
+  .bmk-share__pv {
+    display: block;
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    margin: 8px auto 0;
+    border-radius: var(--r);
+    box-shadow: var(--shadow-2);
+  }
+  .bmk-share__lock {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin: 16px 0 0;
+    padding: 10px 12px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+  .bmk-share__lock svg {
+    flex: none;
+    margin-top: 1px;
+  }
+  .bmk-share__dests {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .bmk-dest {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 64px;
+    padding: 10px 14px;
+    text-align: left;
+    color: inherit;
+    text-decoration: none;
+    font: inherit;
+    cursor: pointer;
+  }
+  .bmk-dest__ic {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    color: var(--ink-2);
+  }
+  .bmk-dest__ic--kk {
+    background: var(--kakao);
+    color: var(--kakao-ink);
+  }
+  .bmk-dest__bd {
+    flex: 1;
+    min-width: 0;
+  }
+  .bmk-dest__bd b {
+    display: block;
+    font-size: 15.5px;
+    font-weight: 600;
+  }
+  .bmk-dest__bd span {
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+  .bmk-share__link {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .bmk-share__link p {
+    margin: 0 0 6px;
+  }
+  .bmk-share__link input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+  }
+
+  /* ---------- 6. 원문 연결: 밑줄 · 여백 리본 끈 ---------- */
+  .verse--card {
+    position: relative;
+    padding-left: 24px;
+  }
+  .wd-card-rib {
+    position: absolute;
+    left: 0;
+    top: -28px;
+    width: 14px;
+    height: calc(100% + 28px);
+    background: var(--accent);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 8px), 0 100%);
+    transform-origin: 50% 0;
+    will-change: transform;
+  }
+  .wd-card-ul {
+    background: linear-gradient(transparent 62%, var(--accent-soft) 62%);
+  }
+  .wd-card-lines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transform-origin: 0 50%;
+  }
+  .wd-card-lines i {
+    position: absolute;
+    display: block;
+    height: 2px;
+    background: var(--accent);
+  }
+  .verse--card-all .verse__tx {
+    background: var(--accent-soft);
+    border-radius: var(--r-xs);
+    padding: 2px 8px;
+  }
+  .wd-card-act {
+    margin: 0 0 22px 24px;
+  }
+
+  /* ---------- 7. 받은 사람 화면 (025) ---------- */
+  .rcv__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 420px;
+    margin: 16px auto 0;
+  }
+
+  /* ---------- 8. 나의 책갈피 (026) ---------- */
+  .bks-seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 3px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+  }
+  .bks-seg button {
+    min-height: 44px;
+    border-radius: 10px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .bks-seg button[aria-selected="true"] {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--shadow-1);
+  }
+  .bks-sum {
+    margin: 16px 0 8px;
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .bks-sum b {
+    margin-right: 2px;
+    font-size: 24px;
+    color: var(--ink);
+  }
+  .bks-shelf {
+    padding-top: 8px;
+  }
+  .bks-shelf__stack {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .bks-spine {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 46px;
+    padding: 0 14px 0 16px;
+    border-radius: 4px 7px 7px 4px;
+    text-align: left;
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow:
+      inset 6px 0 0 rgba(0, 0, 0, 0.07),
+      0 1px 0 rgba(0, 0, 0, 0.05);
+  }
+  .bks-spine--1 {
+    background: var(--spine-1);
+  }
+  .bks-spine--2 {
+    background: var(--spine-2);
+  }
+  .bks-spine--3 {
+    background: var(--spine-3);
+  }
+  .bks-spine--4 {
+    background: var(--spine-4);
+  }
+  .bks-spine--5 {
+    background: var(--spine-5);
+  }
+  .bks-spine--6 {
+    background: var(--spine-6);
+  }
+  .bks-spine--7 {
+    background: var(--spine-7);
+  }
+  .bks-spine--8 {
+    background: var(--spine-8);
+  }
+  .bks-spine--9 {
+    background: var(--spine-9);
+  }
+  .bks-spine[aria-pressed="true"] {
+    z-index: 1;
+    outline: 2.5px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .bks-spine__t {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bks-spine__n {
+    padding: 1px 9px;
+    border-radius: var(--r-full);
+    background: rgba(255, 255, 255, 0.7);
+    font-size: 13.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .bks-spine__tails {
+    position: absolute;
+    right: 62px;
+    bottom: -1px;
+    display: flex;
+    gap: 3px;
+    pointer-events: none;
+  }
+  .bks-spine__tails i {
+    display: block;
+    width: 6px;
+    height: 10px;
+    background: var(--accent);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%);
+  }
+  .bks-shelf__board {
+    height: 10px;
+    margin-top: 6px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, var(--shelf), var(--shelf-2));
+  }
+  .bks-list {
+    margin-top: 20px;
+  }
+  .bks-list__h {
+    margin: 0 0 6px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .bks-list ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .bks-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    color: inherit;
+    text-decoration: none;
+  }
+  .bks-item__rib {
+    flex: none;
+    width: 10px;
+    height: 34px;
+    margin-top: 3px;
+    background: var(--accent);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  }
+  .bks-item__bd {
+    flex: 1;
+    min-width: 0;
+  }
+  .bks-item__q {
+    display: block;
+    font-size: 15px;
+    line-height: 1.55;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .bks-item__m {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-top: 5px;
+    font-size: 12.5px;
+    color: var(--ink-3);
+  }
+  .bks-skeleton {
+    display: block;
+    height: 240px;
+    margin-top: 16px;
+  }
+
+  @media (min-width: 1024px) {
+    .bmk-toast {
+      bottom: 32px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bk--sm.is-waiting .bk__rib {
+      animation: none;
+    }
+  }
+}

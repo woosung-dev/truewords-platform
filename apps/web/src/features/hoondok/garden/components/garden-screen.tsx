@@ -4,7 +4,7 @@ import { ChevronRight, Flame, Sprout } from "lucide-react";
 import Link from "next/link";
 // index.ts 의 export 정리는 W4 담당이라 경로를 직접 가리킨다 (PLAN-HD-002 §3.1).
 import { HoondokButton, MonthCalendar } from "@/components/hoondok";
-import { isHoondokPreviewEnabled } from "@/features/hoondok/flag";
+import { isHoondokCardsEnabled, isHoondokPreviewEnabled } from "@/features/hoondok/flag";
 import { jeongseongDayLabel } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
 import { useMonthHistory } from "@/features/hoondok/use-history";
@@ -94,6 +94,22 @@ function JeongseongSection({ period }: { period: JeongseongPeriodResponse | null
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** 나의 책갈피 진입 (PLAN-HD-012 SCR-PWA-026). 플래그가 꺼져 있으면 그리지 않는다. */
+function BookmarksEntrySection() {
+  if (!isHoondokCardsEnabled()) return null;
+  return (
+    <div className="sect">
+      <Link className="card fm-entry" href="/hoondok/bookmarks">
+        <span className="fm-entry__bd">
+          <b>나의 책갈피</b>
+          <span>받은 책갈피가 책별로 꽂혀 있어요 · 건넨 책갈피도 여기에</span>
+        </span>
+        <ChevronRight size={20} aria-hidden="true" />
+      </Link>
     </div>
   );
 }
@@ -220,6 +236,8 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
           <JeongseongSection period={jeongseong.data ?? null} />
         </>
       )}
+
+      <BookmarksEntrySection />
 
       <FamilyEntrySection />
 

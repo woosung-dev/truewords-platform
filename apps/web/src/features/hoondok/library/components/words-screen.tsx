@@ -9,8 +9,14 @@ import { ApiError } from "@truewords/api-client-ts";
 import type { MarkItem, WordChunk } from "@truewords/api-client-ts/types";
 import { Bookmark, BookOpenText, Check, Highlighter, List, NotebookPen, Settings } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthorityBadge, HoondokButton } from "@/components/hoondok";
+import {
+  CardMarkOverlay,
+  CardPulloutBar,
+  useMarkedParagraphs,
+  useWordsCard,
+} from "@/features/hoondok/cards/components/words-card";
 import { sectionsKey, wordsKey } from "@/features/hoondok/query-keys";
 import { useHoondokScreenTitle } from "@/features/hoondok/screen-title";
 import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
@@ -109,6 +115,8 @@ function Verse({
   isSelected,
   isSpeaking,
   onSelect,
+  cardText,
+  cardRibbonRef,
 }: {
   chunk: WordChunk;
   highlight: MarkItem | undefined;
@@ -116,10 +124,23 @@ function Verse({
   isSelected: boolean;
   isSpeaking: boolean;
   onSelect: () => void;
+  /** 오늘의 책갈피가 꽂힌 단락이면 카드 본문 (PLAN-HD-012) — 그 문장에 밑줄·여백 리본 */
+  cardText?: string | null;
+  cardRibbonRef?: RefObject<HTMLSpanElement | null>;
 }) {
   const number = verseNumber(chunk.chunk_index);
   const paragraphs = chunk.display_text.split("\n\n").filter(Boolean);
-  const className = ["verse", isSelected && "verse--on", isSpeaking && "verse--speaking"].filter(Boolean).join(" ");
+  const marked = useMarkedParagraphs(chunk.display_text, cardText);
+  const verseRef = useRef<HTMLParagraphElement>(null);
+  const className = [
+    "verse",
+    isSelected && "verse--on",
+    isSpeaking && "verse--speaking",
+    marked && "verse--card",
+    marked && !marked.isMatched && "verse--card-all",
+  ]
+    .filter(Boolean)
+    .join(" ");
   // 본문 아무 데나 탭하면 시트가 열린다. 드래그로 글자를 고르는 중이면 열지 않는다(복사 방해 금지).
   function handleBodyClick() {
     if (window.getSelection()?.toString()) return;
@@ -128,7 +149,10 @@ function Verse({
   return (
     // 키보드·스크린리더는 번호 버튼으로 연다 — 단락 클릭은 포인터 보조 경로다.
     // biome-ignore lint/a11y/useKeyWithClickEvents: 같은 동작의 버튼(.verse__n)이 단락 안에 있다
-    <p className={className} id={`verse-${chunk.chunk_index}`} onClick={handleBodyClick}>
+    <p className={className} id={`verse-${chunk.chunk_index}`} onClick={handleBodyClick} ref={verseRef}>
+      {marked && cardRibbonRef && (
+        <CardMarkOverlay verseRef={verseRef} isMatched={marked.isMatched} ribbonRef={cardRibbonRef} />
+      )}
       {/* 본문 전체를 버튼으로 만들면 긴 인용문이 링크 이름이 된다(DES §2.2) — 번호만 조작 대상이다 */}
       <button
         type="button"
@@ -143,13 +167,31 @@ function Verse({
         {isBookmarked && <Bookmark size={12} aria-hidden="true" />}
       </button>
       <span className="verse__tx">
-        {paragraphs.map((paragraph, index) => (
-          // 문단은 순서가 곧 정체성이다(서버 정리 결과가 바뀌면 청크 key 가 다시 그린다).
-          // biome-ignore lint/suspicious/noArrayIndexKey: 문단 목록은 재정렬되지 않는다
-          <span key={index} className="verse__para">
-            {highlight?.color ? <mark className={`hl-${highlight.color}`}>{paragraph}</mark> : paragraph}
-          </span>
-        ))}
+        {marked?.paragraphs.map((paragraph) => {
+          const parts = paragraph.parts.map((part, index) =>
+            part.isMarked ? (
+              // biome-ignore lint/suspicious/noArrayIndexKey: 조각 순서가 곧 정체성이다
+              <span key={index} className="wd-card-ul">
+                {part.text}
+              </span>
+            ) : (
+              part.text
+            ),
+          );
+          return (
+            <span key={paragraph.key} className="verse__para">
+              {highlight?.color ? <mark className={`hl-${highlight.color}`}>{parts}</mark> : parts}
+            </span>
+          );
+        })}
+        {!marked &&
+          paragraphs.map((paragraph, index) => (
+            // 문단은 순서가 곧 정체성이다(서버 정리 결과가 바뀌면 청크 key 가 다시 그린다).
+            // biome-ignore lint/suspicious/noArrayIndexKey: 문단 목록은 재정렬되지 않는다
+            <span key={index} className="verse__para">
+              {highlight?.color ? <mark className={`hl-${highlight.color}`}>{paragraph}</mark> : paragraph}
+            </span>
+          ))}
       </span>
     </p>
   );
@@ -160,13 +202,18 @@ export function WordsScreen({
   page,
   chunkId,
   section,
+  cardId,
 }: {
   volume: string;
   page: number;
   chunkId?: string;
   section?: number;
+  /** 오늘의 책갈피에서 "책에 다시 꽂기" 로 왔을 때의 카드 id (PLAN-HD-012). chunk_id 단락 안 문장에 밑줄을 긋는다 */
+  cardId?: string;
 }) {
   const [segment, setSegment] = useState<Segment>("text");
+  const wordsCard = useWordsCard(cardId, chunkId);
+  const cardRibbonRef = useRef<HTMLSpanElement>(null);
   const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
   const [sheet, setSheet] = useState<"passage" | "toc" | null>(null);
   const [hint, setHint] = useState<string | null>(null);
@@ -371,19 +418,32 @@ export function WordsScreen({
                   이 권은 장 목차가 아직 없어 원문을 순서대로 보여드려요. 단락 번호는 책의 장·절 번호가 아닙니다.
                 </p>
               )}
-              {chunkId && <p className="notice">인용한 말씀이 포함된 원문 구간이에요.</p>}
+              {chunkId && (
+                <p className="notice">
+                  {wordsCard.card ? "오늘의 책갈피가 꽂힌 자리예요." : "인용한 말씀이 포함된 원문 구간이에요."}
+                </p>
+              )}
               <article aria-label="원문 본문">
-                {doc.chunks.map((chunk) => (
-                  <Verse
-                    key={chunk.chunk_id}
-                    chunk={chunk}
-                    highlight={markOf(chunk.chunk_id, "highlight")}
-                    isBookmarked={Boolean(markOf(chunk.chunk_id, "bookmark"))}
-                    isSelected={chunk.chunk_id === selectedChunkId}
-                    isSpeaking={chunk.chunk_index === speakingIndex}
-                    onSelect={() => openPassage(chunk.chunk_id)}
-                  />
-                ))}
+                {doc.chunks.map((chunk) => {
+                  const isCardChunk = wordsCard.card?.chunk_id === chunk.chunk_id;
+                  return (
+                    <Fragment key={chunk.chunk_id}>
+                      <Verse
+                        chunk={chunk}
+                        highlight={markOf(chunk.chunk_id, "highlight")}
+                        isBookmarked={Boolean(markOf(chunk.chunk_id, "bookmark"))}
+                        isSelected={chunk.chunk_id === selectedChunkId}
+                        isSpeaking={chunk.chunk_index === speakingIndex}
+                        onSelect={() => openPassage(chunk.chunk_id)}
+                        cardText={isCardChunk ? wordsCard.card?.text : null}
+                        cardRibbonRef={cardRibbonRef}
+                      />
+                      {isCardChunk && wordsCard.card && (
+                        <CardPulloutBar card={wordsCard.card} isToday={wordsCard.isToday} ribbonRef={cardRibbonRef} />
+                      )}
+                    </Fragment>
+                  );
+                })}
               </article>
               <nav className="words-pages" aria-label="원문 구간 이동">
                 {doc.page > 1 && (

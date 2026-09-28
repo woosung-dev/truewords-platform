@@ -13,6 +13,8 @@ export function safeHoondokPath(pathname: string): string {
   // 모임 (PLAN-HD-010). new·join 은 아래 고정 목록이 받는다. 모임 id 는 보내지 않는다.
   const group = /^\/hoondok\/groups\/(?!(?:new|join)\/?$)[^/]+(\/share|\/settings)?\/?$/.exec(path);
   if (group) return `/hoondok/groups/:id${group[1] ?? ""}`;
+  // 받은 사람 화면 (PLAN-HD-012). 카드 id 는 보내지 않는다.
+  if (/^\/hoondok\/c\/[^/]+\/?$/.test(path)) return "/hoondok/c/:id";
   const allowed = [
     "/hoondok",
     "/hoondok/read",
@@ -30,6 +32,8 @@ export function safeHoondokPath(pathname: string): string {
     "/hoondok/family",
     "/hoondok/groups/new",
     "/hoondok/groups/join",
+    "/hoondok/bookmark",
+    "/hoondok/bookmarks",
   ];
   return allowed.includes(path) ? path : "/hoondok";
 }
