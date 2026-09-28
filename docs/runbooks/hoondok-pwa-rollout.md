@@ -608,3 +608,11 @@ make rollback-web TAG=aba5240
 - 컬러 `badge` 는 상태 표시줄에서 흰 네모가 된다 → 단색 `badge-96.png` 로 교체 후 "훈" 글자 확인.
 - 강제 Doze(`deviceidle force-idle`)에서는 GMS 의 FCM 연결이 끊겨(`FcmRetry`) `Urgency` 유무와 관계없이 깨어날 때 도착했다 — 에뮬레이터로는 판정 불가, 실기기 야간 발송으로 본다.
 - 7분에 5건을 보내고 매번 지웠더니 Chrome 이 뒤쪽 알림을 **"Possible spam"** 으로 가렸다(기기 내 스팸 분류: 문구·빈도·무시 이력). 하루 1건·평이한 문구면 해당하지 않을 것으로 본다 `[가정]`. 테스트 발송을 한 기기에 몰아서 반복하지 않는다.
+
+**iOS 시뮬레이터**(Xcode 27.0 · iOS 27.0 · iPhone 17, 로그인 없이 볼 수 있는 운영 화면 + 로컬 하네스):
+
+- 운영 `/hoondok/settings` Safari 탭: 설치 카드 iOS 안내 + 훈독하기 알림 칸에 "홈 화면에 추가한 뒤 켤 수 있어요" (§2-11~14 의 판정 순서 수정이 실제 WebKit 에서 동작).
+- 홈 화면에 추가 → 아이콘 "훈독"으로 열면 주소창 없는 앱 화면, 설정은 "이미 홈 화면에서 열었어요" + "로그인하면 알림을 켤 수 있어요"(알림 사용 가능 판정).
+- 하네스: Safari 탭 `PushManager false · Notification false`, 홈 화면 앱 `standalone=true · PushManager true`. 버튼 탭 → iOS 권한 창 → 허용(`granted`) — 클릭 핸들러 안 동기 권한 요청을 제스처로 인정.
+- **구독·도착은 시뮬레이터로 확인할 수 없다.** 구독 요청이 응답 없이 멈추고, 시뮬레이터 로그에 `com.apple.webkit.webpushd` 가 `OS_REASON_CODESIGNING | Launch Constraint Violation` 으로 5분에 27회 기동 실패한다(iPhone 18 Pro 에서도 같다). Apple 푸시 도착·탭은 실제 iPhone(iOS 16.4+ 홈 화면 앱)에서 본다.
+- iOS 27 Safari UA 는 `iPhone OS 18_7 … Version/27.0` 이다(OS 버전 고정). 판정은 OS 버전이 아니라 `iPhone`·standalone 으로 한다.
