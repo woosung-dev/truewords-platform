@@ -173,14 +173,14 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
           </span>
           <div className="tg-opts" role="radiogroup" aria-labelledby="gc-kind">
             <button className="tg-opt" type="button" role="radio" aria-checked="true">
-              <span className="tg-radio" aria-hidden="true" />
+              <span className="radio" aria-hidden="true" />
               <span className="tg-opt__bd">
                 <b>소그룹 · 훈독가정교회</b>
                 <span>구역·청년·축복 기수처럼 서로 아는 식구 몇 명</span>
               </span>
             </button>
             <button className="tg-opt" type="button" role="radio" aria-checked="false" aria-disabled="true">
-              <span className="tg-radio" aria-hidden="true" />
+              <span className="radio" aria-hidden="true" />
               <span className="tg-opt__bd">
                 <b>가족 모임</b>
                 <span>곧 열려요</span>

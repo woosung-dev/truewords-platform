@@ -8,10 +8,6 @@
   .tg-share-go {
     margin-top: 12px;
   }
-  /* 진입 카드 버튼도 모임 화면(.tg-page)과 같은 44px 탭 대상 — 홈은 .tg-page 밖이라 따로 키운다 */
-  .tg-entry .btn--sm {
-    height: 44px;
-  }
   /* 카드 전체가 링크다 — 본문 글자색을 유지하고 밑줄을 없앤다 */
   .tg-gc {
     color: inherit;
@@ -41,7 +37,7 @@
   /* 공식 정성은 모임마다 같으니 카드 위에 한 줄로 한 번만 (QA P2-R2-4) */
   .tg-official {
     margin: 0;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     overflow-wrap: anywhere;
   }

@@ -74,6 +74,34 @@
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-2: 0 10px 30px rgba(87, 62, 40, 0.1);
   --scrim: rgba(35, 33, 31, 0.45);
+  /* 반투명 색 — rgba 리터럴도 hex 처럼 이 블록에만 둔다(hoondok:check).
+     --veil-* 는 --ink(35,33,31) 의 알파 단계로, 사진 히어로 베일(DES §3.2 대비 근거)과 토스트 바탕이 쓴다. */
+  --veil-0: rgba(35, 33, 31, 0);
+  --veil-80: rgba(35, 33, 31, 0.8);
+  --veil-92: rgba(35, 33, 31, 0.92);
+  /* 책·책갈피 일러스트(PLAN-HD-012)의 음영·광택. 값은 승인 시안 그대로 */
+  --shade-5: rgba(0, 0, 0, 0.05);
+  --shade-6: rgba(0, 0, 0, 0.06);
+  --shade-7: rgba(0, 0, 0, 0.07);
+  --shade-8: rgba(0, 0, 0, 0.08);
+  --umber-14: rgba(87, 62, 40, 0.14);
+  --umber-18: rgba(87, 62, 40, 0.18);
+  --paper-tint: rgba(120, 105, 85, 0.1);
+  --glow: rgba(255, 243, 210, 0.95);
+  --glow-0: rgba(255, 236, 190, 0);
+  --sheen-35: rgba(255, 255, 255, 0.35);
+  --sheen-70: rgba(255, 255, 255, 0.7);
+
+  /* 글자 크기 8단계 (rem — 브라우저 글자 크기 설정을 따른다, DES §1.2·§3.4).
+     px 은 루트 16px 기준 환산값. 새 크기를 만들지 말고 가장 가까운 단계를 쓴다. */
+  --fs-2xs: 0.6875rem; /* 11 — 배지·탭 라벨·소문 */
+  --fs-xs: 0.78125rem; /* 12.5 — 메타·보조 설명 */
+  --fs-sm: 0.875rem; /* 14 — 작은 버튼·칩·보조 본문 */
+  --fs-md: 0.9375rem; /* 15 — 기본 본문 */
+  --fs-lg: 1.03125rem; /* 16.5 — 카드 제목·읽기 본문·입력(iOS 확대 방지 16 이상) */
+  --fs-xl: 1.1875rem; /* 19 — 앱바 제목·인사·시트 제목 */
+  --fs-2xl: 1.375rem; /* 22 — 말씀 제목 */
+  --fs-3xl: 1.5625rem; /* 25 — 온보딩 제목·큰 숫자 */
 
   --sans:
     "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
@@ -96,8 +124,11 @@
   background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: var(--fs-md);
   line-height: 1.5;
+  /* 한국어는 어절 단위로 줄을 바꾼다("오/늘" 처럼 단어 중간에서 끊지 않는다). 공백 없는 긴 URL·영문만 어디서든 끊는다 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   -webkit-font-smoothing: antialiased;
   display: flex;
   flex-direction: column;
@@ -143,7 +174,7 @@
     padding: 10px var(--gutter) 8px;
   }
   .appbar__title {
-    font-size: 18px;
+    font-size: var(--fs-xl);
     margin: 0;
     flex: 1;
     font-weight: 600;
@@ -157,6 +188,18 @@
     place-items: center;
     color: var(--ink-2);
     flex: none;
+    position: relative;
+  }
+  /* 보이는 크기(40·30·46×28)는 그대로 두고 누르는 자리만 44px 로 넓힌다 (보이지 않는 가상 패딩).
+     `.toggle` 은 ::after 가 손잡이라 ::before 를 쓴다 */
+  .icon-btn::after,
+  .check::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+  }
+  .check::after {
+    inset: -9px;
   }
   .icon-btn:active,
   .check:active {
@@ -191,7 +234,7 @@
     flex-direction: column;
     align-items: center;
     gap: 3px;
-    font-size: 11px;
+    font-size: var(--fs-2xs);
     color: var(--ink-3);
     padding-top: 4px;
   }
@@ -204,9 +247,13 @@
     color: var(--accent);
     font-weight: 600;
   }
+  /* 준비 중 탭 — opacity 로 흐리지 않는다(DES §1.5 disabled). 글자는 --ink-3 대비를 지키고
+     아이콘 선만 점선으로 바꿔 "아직" 을 알린다(권위 배지 `.badge--dashed` 와 같은 신호) */
   .nav__item[aria-disabled="true"] {
-    opacity: 0.55;
     cursor: default;
+  }
+  .nav__item[aria-disabled="true"] svg {
+    stroke-dasharray: 2 2;
   }
   .nav__item:not(.nav__item--mid):active {
     background: var(--surface-2);
@@ -264,7 +311,7 @@
     min-width: 0;
   }
   .mission__kind {
-    font-size: 12px;
+    font-size: var(--fs-xs);
     color: var(--ink-3);
     display: block;
   }
@@ -272,7 +319,7 @@
      실데이터 제목은 한 줄로 자르면 무슨 미션인지 사라지고, 제한이 없으면 긴 제목 하나가 카드 높이를
      혼자 키워 카드 리듬이 깨진다. 두 줄까지 보여 준 뒤 자른다. */
   .mission__title {
-    font-size: 16px;
+    font-size: var(--fs-lg);
     font-weight: 600;
     margin-top: 1px;
     display: -webkit-box;
@@ -282,7 +329,7 @@
     line-height: 1.35;
   }
   .mission__meta {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-3);
     margin-top: 3px;
     display: block;
@@ -291,10 +338,17 @@
     background: var(--ok-soft);
     color: var(--ok-strong);
   }
+  /* 비활성 미션 — opacity 대신 바탕을 --surface-2 로 내린다(DES §1.5). 글자 대비는 그대로 남는다 */
   .mission[data-disabled] {
-    opacity: 0.6;
+    background: var(--surface-2);
+    box-shadow: none;
+  }
+  .mission[data-disabled] .mission__ic {
+    background: var(--surface);
+    color: var(--ink-3);
   }
   .check {
+    position: relative;
     width: 30px;
     height: 30px;
     border-radius: 50%;
@@ -320,7 +374,7 @@
 
   /* ---------- 4. 말씀 카드 · 출처 줄 (DES §2.2) ---------- */
   .src {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     display: flex;
     gap: 6px;
@@ -334,8 +388,14 @@
     background: var(--line);
     flex: none;
   }
+  /* 구분점 + 항목 한 덩어리. 줄바꿈은 덩어리 사이에서만 일어나 줄 끝에 점만 남지 않는다 */
+  .src__part {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
   .lede {
-    font-size: 21px;
+    font-size: var(--fs-2xl);
     font-weight: 700;
     line-height: 1.35;
     letter-spacing: -0.02em;
@@ -349,7 +409,7 @@
   }
   .scripture {
     font-family: var(--font-scripture);
-    font-size: 16.5px;
+    font-size: var(--fs-lg);
     line-height: 1.75;
     border-left: 4px solid var(--ink);
     padding: 4px 0 4px 14px;
@@ -368,7 +428,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     font-weight: 600;
     padding: 3px 8px;
     border-radius: var(--r-xs);
@@ -399,7 +459,7 @@
     box-shadow: var(--shadow-hairline);
   }
   .greet {
-    font-size: 19px;
+    font-size: var(--fs-xl);
     font-weight: 700;
     line-height: 1.35;
     letter-spacing: -0.02em;
@@ -417,13 +477,20 @@
     margin-bottom: 12px;
   }
   .sect__title {
-    font-size: 16px;
+    font-size: var(--fs-lg);
     margin: 0;
     font-weight: 600;
   }
   .sect__meta {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
+    flex: none;
+  }
+  /* 머리 오른쪽에 메타와 배지를 함께 둘 때의 묶음 */
+  .sect__side {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     flex: none;
   }
   .empty {
@@ -436,17 +503,17 @@
     place-items: center;
   }
   .empty__title {
-    font-size: 16px;
+    font-size: var(--fs-lg);
     font-weight: 600;
     margin: 8px 0 0;
   }
   .empty__body {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     margin: 4px 0 0;
   }
   .notice {
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     color: var(--ink-2);
     text-align: center;
     padding: 22px 0 0;
@@ -455,14 +522,14 @@
   .hint {
     display: flex;
     justify-content: space-between;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     margin-top: 12px;
   }
 
   /* ---------- 6.5 사진 히어로 (DES §3.2 · 2026-09-22 DES-PWA-003-Q2 되돌림) ----------
      사진은 apps/web/public/hoondok/photos/ 정적 파일이다 (외부 hotlink 금지).
-     veil 정지점 3개는 §3.2 가 대비 계산의 근거로 고정한 값이라 rgba 리터럴로 적는다
+     veil 정지점 3개는 §3.2 가 대비 계산의 근거로 고정한 값이라 토큰 --veil-0·80·92 로 고정한다
      (--ink = #23211f = rgb(35,33,31)). 사진이 안 오면 바탕 --ink 가 남아 흰 글자가 읽힌다. */
   .shot {
     position: relative;
@@ -481,12 +548,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      180deg,
-      rgba(35, 33, 31, 0) 18%,
-      rgba(35, 33, 31, 0.8) 55%,
-      rgba(35, 33, 31, 0.92) 100%
-    );
+    background: linear-gradient(180deg, var(--veil-0) 18%, var(--veil-80) 55%, var(--veil-92) 100%);
   }
   /* 텍스트는 veil 알파 0.80 이상 구간(하단 45%)에만 둔다 (§3.2) */
   .shot__tx {
@@ -498,7 +560,7 @@
     z-index: 1;
   }
   .shot__greet {
-    font-size: 21px;
+    font-size: var(--fs-2xl);
     font-weight: 700;
     line-height: 1.35;
     letter-spacing: -0.02em;
@@ -506,7 +568,7 @@
     margin: 0;
   }
   .shot__sub {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     opacity: 0.92;
     margin: 4px 0 0;
   }
@@ -530,9 +592,13 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
   }
+  /* 숫자 앞 아이콘(정원 "현재 연속일" 의 불꽃)이 있어도 세 칸 숫자가 같은 줄에 서도록 한 줄 flex 로 둔다 —
+     block 이면 SVG(preflight display:block)가 숫자를 아랫줄로 밀어 첫 칸만 기준선이 내려간다 */
   .stats__n {
-    display: block;
-    font-size: 24px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--fs-3xl);
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
   }
@@ -543,7 +609,7 @@
   .stats__lab {
     display: block;
     margin-top: 2px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
 
@@ -573,7 +639,7 @@
     border-radius: 50%;
     display: grid;
     place-items: center;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-3);
     border: 1px solid var(--ink-3);
     background: var(--surface);
@@ -589,19 +655,6 @@
     color: var(--accent);
     font-weight: 700;
   }
-  .week__streak {
-    font-size: 13px;
-    color: var(--ink-2);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex: none;
-  }
-  .week__streak b {
-    color: var(--accent);
-    font-size: 16px;
-    font-variant-numeric: tabular-nums;
-  }
 
   /* ---------- 9. 버튼 (DES §1.5) ---------- */
   .btn {
@@ -609,11 +662,12 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    height: 50px;
+    /* 높이는 고정하지 않는다(DES §3.4) — 글자 확대·긴 라벨 줄바꿈에서 넘치지 않게 min-height 만 둔다 */
+    min-height: 50px;
     padding: 0 20px;
     border-radius: var(--r);
     font-weight: 600;
-    font-size: 15px;
+    font-size: var(--fs-md);
     width: 100%;
     transition:
       background 0.12s ease,
@@ -639,9 +693,10 @@
     color: var(--ink-3);
     cursor: not-allowed;
   }
+  /* 작은 버튼도 누르는 높이는 44px (화면마다 덮어쓰던 보정을 여기 하나로 모았다) */
   .btn--sm {
-    height: 38px;
-    font-size: 13.5px;
+    min-height: 44px;
+    font-size: var(--fs-sm);
     padding: 0 14px;
     width: auto;
   }
@@ -709,7 +764,7 @@
     .nav__brand {
       display: flex;
       align-items: center;
-      font-size: 19px;
+      font-size: var(--fs-xl);
       font-weight: 700;
       letter-spacing: -0.02em;
       color: var(--ink);
@@ -727,7 +782,7 @@
       min-height: 40px;
       padding: 0 12px;
       border-radius: var(--r-xs);
-      font-size: 15px;
+      font-size: var(--fs-md);
       font-weight: 500;
       color: var(--ink-2);
     }
@@ -748,7 +803,13 @@
       margin-left: auto;
       border-radius: var(--r-full);
       background: var(--surface-2);
-      font-size: 14.5px;
+      font-size: var(--fs-md);
+    }
+    /* 검색 화면에서는 헤더 검색 자리가 현재 위치다 — 활성 탭처럼 글자를 진하게 */
+    .nav__search[aria-current] {
+      color: var(--ink);
+      font-weight: 600;
+      box-shadow: inset 0 0 0 1.5px var(--ink-3);
     }
     /* 헤더 우측 계정 자리(프로토타입 .nav__user). 지금은 알림·설치 설정으로 가는 원형 버튼이다 */
     .nav__user {
@@ -846,13 +907,13 @@
     gap: 6px;
   }
   .field__label {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--ink-2);
   }
   .field input {
     font: inherit;
-    font-size: 16px; /* iOS 확대 방지 */
+    font-size: var(--fs-lg); /* iOS 확대 방지 */
     color: var(--ink);
     background: var(--surface);
     border: 1.5px solid var(--ink-3);
@@ -865,7 +926,7 @@
     outline-offset: 2px;
   }
   .field__help {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   /* 토글 46×28 (DES-PWA-003 §2.11, 프로토타입 .toggle 그대로). 설정 알림 4종·AI 질문 저장·가족 공개 범위 3곳이 쓴다. 모션 150ms */
@@ -898,8 +959,56 @@
     left: 21px;
     border-color: transparent;
   }
+  /* 보이는 46×28 은 그대로, 누르는 자리만 62×44 로 넓힌다 (::after 는 손잡이라 ::before) */
+  .toggle::before {
+    content: "";
+    position: absolute;
+    inset: -9.5px -9.5px;
+  }
+  /* 준비 중(켤 수 없는) 토글 — opacity 로 흐리지 않고(DES §1.5) 테두리를 점선으로, 손잡이를 바탕색으로 가라앉힌다.
+     테두리 색(--ink-3)은 그대로라 윤곽 대비는 유지되고, "준비 중" 글자(`.st-row__soon`)가 이유를 말한다 */
+  .toggle[disabled] {
+    border-style: dashed;
+    cursor: not-allowed;
+  }
+  .toggle[disabled]::after {
+    background: var(--surface-2);
+    border-color: var(--line);
+  }
+
+  /* 라디오 원 (DES §2.11). 설정 잠금 화면 문구·모임 종류·설교 섭외 대상 세 곳이 이 하나를 쓴다.
+     선택 신호는 `role="radio"` 버튼의 aria-checked 또는 라벨 안 네이티브 input:checked 둘 중 하나다 */
+  .radio {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--ink-3);
+    background: var(--surface);
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  [aria-checked="true"] > .radio,
+  label:has(input:checked) > .radio {
+    border-color: var(--accent);
+  }
+  [aria-checked="true"] > .radio::after,
+  label:has(input:checked) > .radio::after {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  /* 꺼진 라디오의 고른 상태는 점으로 남기되 액센트는 걷는다 — 살아 있는 컨트롤처럼 보이지 않게 */
+  [disabled][aria-checked="true"] > .radio {
+    border-color: var(--ink-3);
+  }
+  [disabled][aria-checked="true"] > .radio::after {
+    background: var(--ink-3);
+  }
   .form__switch {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     text-align: center;
     margin: 0;
@@ -911,13 +1020,13 @@
     min-height: 44px;
   }
   .onb-eyebrow {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--accent-strong);
     margin: 8px 0 0;
   }
   .onb-title {
-    font-size: 26px;
+    font-size: var(--fs-3xl);
     font-weight: 700;
     line-height: 1.3;
     letter-spacing: -0.02em;
@@ -925,7 +1034,7 @@
     text-wrap: balance;
   }
   .onb-lede {
-    font-size: 15px;
+    font-size: var(--fs-md);
     color: var(--ink-2);
     margin: 10px 0 0;
   }
@@ -964,13 +1073,13 @@
     min-width: 0;
   }
   .install__title {
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 600;
     line-height: 1.35;
     margin: 2px 0 0;
   }
   .install__body {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     line-height: 1.5;
     margin: 4px 0 0;
@@ -1013,7 +1122,7 @@
     min-height: 44px;
     padding: 0 10px;
     border-radius: var(--r-xs);
-    font-size: 14px;
+    font-size: var(--fs-sm);
     color: var(--ink-2);
     transition:
       background 0.15s ease,
@@ -1033,7 +1142,7 @@
   /* 왜 꺼져 있는지는 색이 아니라 글자가 말한다 (§3.3) — 세그먼트 바로 아래 한 줄 */
   .pill-seg__soon {
     margin: 8px 0 0;
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     color: var(--ink-3);
     text-align: right;
   }
@@ -1052,13 +1161,13 @@
     align-items: center;
     gap: 6px;
     margin-bottom: 8px;
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     font-weight: 600;
     color: var(--ink-2);
   }
   .ai-note__body {
     margin: 0;
-    font-size: 14.5px;
+    font-size: var(--fs-md);
     line-height: 1.7;
     color: var(--ink-2);
   }
@@ -1068,14 +1177,14 @@
   /* 답 본문의 마크다운 소제목·목록 (AnswerMarkdown) */
   .ai-note__head {
     margin: 14px 0 4px;
-    font-size: 14.5px;
+    font-size: var(--fs-md);
     font-weight: 600;
     color: var(--ink);
   }
   .ai-note__list {
     margin: 6px 0 0;
     padding-left: 20px;
-    font-size: 14.5px;
+    font-size: var(--fs-md);
     line-height: 1.7;
     color: var(--ink-2);
   }
@@ -1089,7 +1198,7 @@
     margin: 12px 0 0;
     padding-top: 10px;
     border-top: 1px solid var(--line);
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     line-height: 1.5;
     color: var(--ink-3);
   }
@@ -1108,7 +1217,7 @@
     border: 1px solid var(--line);
     border-radius: var(--r-sm);
     background: var(--surface);
-    font-size: 13.5px;
+    font-size: var(--fs-sm);
     line-height: 1.35;
     text-align: left;
     transition: transform 0.12s ease;
@@ -1139,7 +1248,7 @@
   }
   .gd-cal__head {
     margin-bottom: 8px;
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     color: var(--ink-3);
   }
   .gd-cal__grid {
@@ -1169,7 +1278,7 @@
     color: var(--ok-strong);
   }
   .gd-cal__day b {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     font-weight: 500;
     color: var(--ink-2);
     font-variant-numeric: tabular-nums;
@@ -1190,14 +1299,14 @@
 
   /* ---------- 안내 머리말 · 준비 중 표시 : settings · family. 원래 _hoondok/settings.css ---------- */
   .st-lead {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     line-height: 1.5;
     margin: 0 0 12px;
   }
   /* 왜 꺼져 있는지는 색이 아니라 글자가 말한다 (DES-PWA-003 §3.3 색만으로 구분 금지) */
   .st-row__soon {
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     font-weight: 600;
     color: var(--ink-3);
     flex: none;

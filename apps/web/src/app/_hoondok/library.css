@@ -18,7 +18,7 @@
     border-radius: var(--r-xs);
     background: var(--accent-soft);
     color: var(--accent-strong);
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     font-weight: 600;
   }
   .term:active {
@@ -45,7 +45,7 @@
     border-radius: var(--r-sm);
     background: var(--surface-2);
     color: var(--ink-3);
-    font-size: 15px;
+    font-size: var(--fs-md);
   }
   .search-field svg {
     color: var(--ink-2);
@@ -64,10 +64,10 @@
     min-width: 0;
   }
   .resume__bd b {
-    font-size: 16px;
+    font-size: var(--fs-lg);
   }
   .resume__meta {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .shelf {
@@ -95,12 +95,12 @@
   }
   .shelf__item b {
     grid-area: t;
-    font-size: 16px;
+    font-size: var(--fs-lg);
     font-weight: 600;
   }
   .shelf__item > span:first-of-type {
     grid-area: m;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     margin-top: 2px;
   }
@@ -140,13 +140,15 @@
     color: var(--ink-2);
     flex: none;
   }
+  /* 입력은 테두리 없는 글자 줄이라 보이는 모양은 그대로 두고, 필드 높이(56px) 전체를 누르는 자리로 늘린다 */
   .sf-input {
     flex: 1;
+    align-self: stretch;
     min-width: 0;
     border: 0;
     background: transparent;
     font: inherit;
-    font-size: 16px; /* iOS 확대 방지 */
+    font-size: var(--fs-lg); /* iOS 확대 방지 */
     color: var(--ink);
     outline: none;
   }
@@ -156,13 +158,13 @@
   .sf-submit {
     width: auto;
     flex: none;
-    height: 44px;
+    min-height: 44px;
     padding: 0 16px;
-    font-size: 14px;
+    font-size: var(--fs-sm);
     border-radius: var(--r-sm);
   }
   .sf-status {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     margin: 0 0 12px;
   }
@@ -190,12 +192,12 @@
     gap: 8px;
   }
   .sr-hd b {
-    font-size: 15.5px;
+    font-size: var(--fs-md);
   }
   /* 긴 구간은 6줄까지만 — 검색어가 뒤에 나오면 search-highlight.ts 가 그 근처부터 잘라 준다 */
   .sr-snippet {
-    font-size: 14.5px;
-    line-height: 1.6;
+    font-size: var(--fs-md);
+    line-height: 1.65;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 6;
@@ -213,7 +215,7 @@
     text-decoration-skip-ink: none;
   }
   .sr-src {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .sr-list a:active {
@@ -232,7 +234,7 @@
     gap: 10px;
     width: 100%;
     min-height: 48px;
-    font-size: 16px;
+    font-size: var(--fs-lg);
     text-align: left;
     color: var(--ink);
     border-bottom: 1px solid var(--line);
@@ -257,7 +259,7 @@
   .howto__k {
     flex: none;
     width: 36px;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--ink-2);
     padding-top: 6px;
@@ -266,7 +268,7 @@
   .howto .term {
     min-height: 34px;
     padding: 5px 12px;
-    font-size: 14px;
+    font-size: var(--fs-sm);
     background: var(--surface);
     border: 1px solid var(--line);
     color: var(--ink);
@@ -297,10 +299,10 @@
     min-width: 0;
   }
   .ask-hint b {
-    font-size: 15px;
+    font-size: var(--fs-md);
   }
   .ask-hint span span {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     line-height: 1.5;
   }
@@ -325,12 +327,12 @@
     /* 목차·검색 점프가 sticky 앱바(약 60px) 아래에 멈추도록 — lg 에서는 상단 헤더 72 + 앱바를 더한다 */
     scroll-margin-top: 76px;
     font-family: var(--font-scripture);
-    font-size: 17px;
-    line-height: 1.85;
+    font-size: var(--fs-lg);
+    line-height: 1.75;
   }
   .verse__n {
     color: var(--ink-3);
-    font-size: 12px;
+    font-size: var(--fs-xs);
     padding-top: 6px;
     width: 16px;
     flex: none;
@@ -359,7 +361,7 @@
     justify-content: center;
     gap: 2px;
     min-height: 48px;
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     color: var(--ink-2);
   }
   .reader--top {
@@ -380,7 +382,7 @@
     display: none;
   }
   .toc__title {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--ink-3);
     padding: 6px 12px;
@@ -390,7 +392,7 @@
     display: block;
     padding: 9px 12px;
     border-radius: var(--r-xs);
-    font-size: 14.5px;
+    font-size: var(--fs-md);
     color: var(--ink-2);
     line-height: 1.4;
   }
@@ -420,7 +422,7 @@
       min-height: 40px;
       padding: 0 12px;
       border-radius: var(--r-xs);
-      font-size: 13.5px;
+      font-size: var(--fs-sm);
     }
     .reader--top svg {
       width: 20px;
@@ -505,14 +507,18 @@
 /* 새로 정의하는 것은 저작물 선반 변형(.shelf--works) · 원문 머리글(.masthead, 프로토타입은 데스크톱 헤더용이라
    비어 있었다) · 단락 조작(.verse__n 버튼 · .verse--on) · 단락 시트(.rd-*) 넷이다. 색은 전부 토큰이다. */
 [data-app="hoondok"] {
+  /* 갈 곳이 없는 이동 버튼 — opacity 로 흐리지 않고(DES §1.5) 글자는 --ink-3, 아이콘 선만 점선으로 둔다 */
   .reader > button:disabled {
     color: var(--ink-3);
-    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .reader > button:disabled svg {
+    stroke-dasharray: 2 2;
   }
 
   /* 저작물·권 선반 : 폰은 기존 1열 목록 그대로, ≥768px 은 2열 그리드 (DES §4.3 007 행) */
   .shelf--works .shelf__item b {
-    font-size: 16.5px;
+    font-size: var(--fs-lg);
   }
 
   /* 원문 머리글 : 장 제목 + 이 페이지가 담은 단락 범위 */
@@ -524,12 +530,12 @@
     margin-top: 6px;
   }
   .masthead__nm {
-    font-size: 17px;
+    font-size: var(--fs-lg);
     font-weight: 700;
     letter-spacing: -0.02em;
   }
   .masthead__dt {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-3);
     font-variant-numeric: tabular-nums;
   }
@@ -550,7 +556,7 @@
     padding: 4px 2px 0;
     border-radius: var(--r-xs);
     color: var(--ink-3);
-    font-size: 12px;
+    font-size: var(--fs-xs);
   }
   button.verse__n:active {
     background: var(--surface-2);
@@ -587,13 +593,13 @@
   /* 단락 시트 : 형광펜 3색 · 북마크 · 노트 */
   .rd-sheet__quote {
     font-family: var(--font-scripture);
-    font-size: 15px;
+    font-size: var(--fs-md);
     line-height: 1.7;
     color: var(--ink-2);
     margin: 8px 0 0;
   }
   .rd-sheet__gate {
-    font-size: 14px;
+    font-size: var(--fs-sm);
     color: var(--ink-2);
     margin: 14px 0;
   }
@@ -605,7 +611,7 @@
     margin-top: 18px;
   }
   .rd-sheet__lab {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--ink-2);
   }
@@ -619,7 +625,7 @@
     min-height: 36px;
     border-radius: var(--r-sm);
     border: 1.5px solid var(--line);
-    font-size: 11px;
+    font-size: var(--fs-2xs);
     color: var(--ink);
   }
   .rd-hl__sw[aria-pressed="true"] {
@@ -643,7 +649,7 @@
   }
   .rd-sheet__note textarea {
     font: inherit;
-    font-size: 16px; /* iOS 확대 방지 */
+    font-size: var(--fs-lg); /* iOS 확대 방지 */
     color: var(--ink);
     background: var(--surface);
     border: 1.5px solid var(--ink-3);
@@ -665,7 +671,7 @@
     display: flex;
     gap: 10px;
     font-family: var(--font-scripture);
-    font-size: 15px;
+    font-size: var(--fs-md);
     line-height: 1.7;
     color: var(--ink-2);
     margin: 10px 0 14px;
@@ -690,12 +696,12 @@
     border: 1px solid var(--line);
   }
   .rd-notes__n {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-3);
   }
   .rd-notes__tx {
-    font-size: 14.5px;
-    line-height: 1.6;
+    font-size: var(--fs-md);
+    line-height: 1.65;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
@@ -740,7 +746,7 @@
     min-height: 44px;
     padding: 0 8px;
     margin-left: 2px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--accent-strong);
     text-decoration: underline;
@@ -808,7 +814,7 @@
     gap: 6px;
   }
   .audio__bd b {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     min-width: 0;
     overflow: hidden;
@@ -828,7 +834,7 @@
     background: color-mix(in srgb, var(--surface) 25%, transparent);
   }
   .audio__t {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: color-mix(in srgb, var(--surface) 80%, transparent);
     font-variant-numeric: tabular-nums;
     flex: none;
@@ -842,7 +848,7 @@
     padding: 0 8px 0 10px;
     border-radius: var(--r-sm);
     color: var(--surface);
-    font-size: 14px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     white-space: nowrap;
     flex: none;
@@ -883,13 +889,13 @@
   .vs__head h2 {
     flex: 1;
     margin: 0;
-    font-size: 17px;
+    font-size: var(--fs-lg);
     font-weight: 700;
   }
   .vs__close {
     min-height: 44px;
     padding: 0 12px;
-    font-size: 14.5px;
+    font-size: var(--fs-md);
     color: var(--ink-2);
   }
   .vs__row {
@@ -919,13 +925,13 @@
   }
   .vs__n {
     display: block;
-    font-size: 16px;
+    font-size: var(--fs-lg);
     font-weight: 600;
   }
   .vs__d {
     display: block;
     margin-top: 2px;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .vs__row[aria-checked="true"] .vs__n {
@@ -940,7 +946,7 @@
   }
   .vs__note {
     margin: 4px var(--gutter) 0;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .vs__rate {
@@ -953,7 +959,7 @@
   }
   .vs__rate > span {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--fs-sm);
     color: var(--ink-2);
   }
   .vs__seg {
@@ -965,7 +971,7 @@
   .vs__seg button {
     min-width: 56px;
     min-height: 44px;
-    font-size: 14px;
+    font-size: var(--fs-sm);
     color: var(--ink-2);
     font-variant-numeric: tabular-nums;
   }
@@ -976,11 +982,6 @@
     background: var(--ink);
     color: var(--paper);
     font-weight: 600;
-  }
-
-  /* 트랙 C: 구간 이동 버튼 탭 대상 44px (공용 .btn--sm 38px 은 그대로 두고 이 화면만) */
-  .words-pages .btn {
-    height: 44px;
   }
 
   /* 트랙 C: 원문 로딩 자리 — 머리글 + 단락 4개 높이. 토큰 색만, 모션 줄이기면 멈춘다 */

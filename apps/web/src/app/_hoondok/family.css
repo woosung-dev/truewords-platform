@@ -38,13 +38,13 @@
     border-radius: var(--r-full);
     background: var(--accent-soft);
     color: var(--accent-strong);
-    font-size: 14px;
+    font-size: var(--fs-sm);
     font-weight: 600;
   }
   .fm-item__av--lg {
     width: 44px;
     min-height: 44px;
-    font-size: 16px;
+    font-size: var(--fs-lg);
   }
   /* 초대·추가 행의 + 자리는 사람이 아니므로 강조색을 쓰지 않는다 */
   .fm-add {
@@ -59,12 +59,12 @@
     gap: 3px;
   }
   .fm-item__t {
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 600;
     line-height: 1.35;
   }
   .fm-item__m {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     line-height: 1.5;
   }
@@ -96,11 +96,11 @@
     border-top: 1px solid var(--line);
   }
   .fm-scope__k {
-    font-size: 14px;
+    font-size: var(--fs-sm);
   }
   /* 바꿀 수 없는 행은 컨트롤 대신 글자로 이유를 말한다 (REQ-PWA-015) */
   .fm-scope__fixed {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-3);
     flex: none;
   }
@@ -124,12 +124,12 @@
     gap: 2px;
   }
   .fm-entry__bd b {
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 600;
     line-height: 1.35;
   }
   .fm-entry__bd span {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .fm-entry > svg {

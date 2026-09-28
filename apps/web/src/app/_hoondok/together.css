@@ -16,11 +16,11 @@
     min-width: 0;
   }
   .together__bd b {
-    font-size: 15.5px;
+    font-size: var(--fs-md);
     font-variant-numeric: tabular-nums;
   }
   .together__bd span {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .tg-ic {
@@ -44,7 +44,7 @@
     align-items: center;
     gap: 8px;
     margin: 16px 0 0;
-    font-size: 15px;
+    font-size: var(--fs-md);
     color: var(--ink);
   }
   .tg-after__n svg {
@@ -73,7 +73,7 @@
     flex: none;
     background: var(--surface-2);
     color: var(--ink-2);
-    font-size: 13.5px;
+    font-size: var(--fs-sm);
     font-weight: 600;
   }
   .tg-av--me {
@@ -96,12 +96,12 @@
     gap: 4px;
   }
   .tg-entry b {
-    font-size: 15.5px;
+    font-size: var(--fs-md);
   }
   .tg-entry > span {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
-    line-height: 1.55;
+    line-height: 1.5;
   }
   .tg-join {
     display: grid;
@@ -114,7 +114,7 @@
     align-items: center;
     gap: 6px;
     margin: 10px 0 0;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-3);
   }
   /* 훈독하기 완료 뒤 블록(한 줄 남기기 진입 포함) */
@@ -130,13 +130,13 @@
 
   /* ---------- 모임 상세 머리 · 오늘 범위 ---------- */
   .tg-head__nm {
-    font-size: 22px;
+    font-size: var(--fs-2xl);
     font-weight: 700;
     letter-spacing: -0.02em;
     margin: 8px 0 0;
   }
   .tg-head__meta {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     margin-top: 4px;
   }
@@ -150,7 +150,7 @@
     display: block;
   }
   .tg-range__t {
-    font-size: 16.5px;
+    font-size: var(--fs-lg);
     font-weight: 600;
     line-height: 1.4;
     margin: 10px 0 0;
@@ -161,7 +161,7 @@
     align-items: center;
     gap: 12px;
     margin-top: 6px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .tg-link {
@@ -171,7 +171,7 @@
     min-height: 44px;
     color: var(--accent-strong);
     font-weight: 600;
-    font-size: 13.5px;
+    font-size: var(--fs-sm);
   }
 
   /* ---------- 정성 : 모임 전체의 N일차만. 개인별 진행은 없다 ---------- */
@@ -188,25 +188,25 @@
   }
   .tg-js__t {
     display: block;
-    font-size: 15.5px;
+    font-size: var(--fs-md);
     font-weight: 600;
     line-height: 1.35;
   }
   .tg-js__by {
     display: block;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     margin-top: 3px;
   }
   .tg-js__day {
     flex: none;
     text-align: right;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .tg-js__day b {
     display: block;
-    font-size: 22px;
+    font-size: var(--fs-2xl);
     letter-spacing: -0.02em;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
@@ -219,14 +219,14 @@
     justify-content: space-between;
     gap: 12px;
     margin-top: 8px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .tg-again {
     margin: 14px 0 0;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
-    line-height: 1.55;
+    line-height: 1.5;
   }
 
   /* ---------- 오늘 함께 읽은 사람 : 완료자만, 가나다순 ---------- */
@@ -253,11 +253,11 @@
     gap: 2px;
   }
   .tg-person__bd b {
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 600;
   }
   .tg-person__bd span {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
 
@@ -280,18 +280,18 @@
     min-width: 0;
   }
   .tg-note__who {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .tg-note__who b {
     color: var(--ink);
-    font-size: 13.5px;
+    font-size: var(--fs-sm);
     margin-right: 4px;
   }
   .tg-note__tx {
     margin: 4px 0 0;
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: var(--fs-md);
+    line-height: 1.65;
     overflow-wrap: anywhere;
     white-space: pre-line;
   }
@@ -307,7 +307,7 @@
     border: 1px solid var(--ink-3);
     background: var(--surface);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .tg-stay svg {
@@ -329,7 +329,7 @@
     align-items: center;
     gap: 6px;
     margin-top: 8px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-3);
   }
   .tg-privacy {
@@ -340,9 +340,9 @@
     padding: 14px 16px;
     border-radius: var(--r);
     background: var(--surface-2);
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
-    line-height: 1.6;
+    line-height: 1.65;
   }
   .tg-privacy svg {
     flex: none;
@@ -356,7 +356,7 @@
   /* 공용 .field 는 input 만 그린다 — 한 줄 textarea 도 같은 값으로 */
   .tg-form .field textarea {
     font: inherit;
-    font-size: 16px; /* iOS 확대 방지 */
+    font-size: var(--fs-lg); /* iOS 확대 방지 */
     color: var(--ink);
     background: var(--surface);
     border: 1.5px solid var(--ink-3);
@@ -365,7 +365,7 @@
     width: 100%;
     min-height: 88px;
     resize: vertical;
-    line-height: 1.6;
+    line-height: 1.65;
   }
   .tg-form .field textarea:focus-visible {
     outline: 2px solid var(--accent);
@@ -373,9 +373,9 @@
   }
   .tg-lede {
     margin: 8px 0 0;
-    font-size: 14.5px;
+    font-size: var(--fs-md);
     color: var(--ink-2);
-    line-height: 1.6;
+    line-height: 1.65;
   }
   .tg-code-row {
     display: flex;
@@ -387,9 +387,6 @@
     letter-spacing: 0.06em;
     font-weight: 600;
   }
-  .tg-code-row .btn {
-    height: auto;
-  }
   .tg-via {
     display: flex;
     align-items: center;
@@ -397,7 +394,7 @@
     padding: 12px 14px;
     border-radius: var(--r-sm);
     background: var(--surface-2);
-    font-size: 14px;
+    font-size: var(--fs-sm);
   }
   .tg-via svg {
     flex: none;
@@ -434,26 +431,9 @@
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
-  .tg-radio {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    border: 2px solid var(--ink-3);
-    flex: none;
+  /* 라디오 원은 hoondok.css 공용 `.radio`. 두 줄 설명과 첫 줄을 맞추는 1px 만 여기 둔다 */
+  .tg-opt .radio {
     margin-top: 1px;
-    display: grid;
-    place-items: center;
-    background: var(--surface);
-  }
-  .tg-opt[aria-checked="true"] .tg-radio {
-    border-color: var(--accent);
-  }
-  .tg-opt[aria-checked="true"] .tg-radio::after {
-    content: "";
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--accent);
   }
   .tg-opt__bd {
     display: flex;
@@ -462,14 +442,14 @@
     min-width: 0;
   }
   .tg-opt__bd b {
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 600;
   }
   .tg-opt[aria-checked="true"] .tg-opt__bd b {
     color: var(--accent-strong);
   }
   .tg-opt__bd span {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     line-height: 1.5;
   }
@@ -484,7 +464,7 @@
     min-height: 48px;
     padding: 8px;
     gap: 6px;
-    font-size: 15px;
+    font-size: var(--fs-md);
   }
   .tg-opt__ck {
     display: none;
@@ -534,10 +514,10 @@
   }
   .tg-toggle-row b {
     display: block;
-    font-size: 15px;
+    font-size: var(--fs-md);
   }
   .tg-toggle-row span {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   /* "모임에 보이는 것" 안내 — 보이는 것(ok) / 보이지 않는 것(ink-3) */
@@ -548,7 +528,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    font-size: 14px;
+    font-size: var(--fs-sm);
     line-height: 1.5;
   }
   .tg-vis li {
@@ -568,7 +548,7 @@
   }
   .tg-count {
     align-self: flex-end;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-3);
     font-variant-numeric: tabular-nums;
   }
@@ -585,7 +565,7 @@
     background: var(--surface);
     text-align: left;
     font: inherit;
-    font-size: 14px;
+    font-size: var(--fs-sm);
     line-height: 1.4;
     color: var(--ink);
   }
@@ -597,7 +577,7 @@
     border: 1.5px dashed var(--ink-3);
     background: var(--surface);
     text-align: center;
-    font-size: 24px;
+    font-size: var(--fs-3xl);
     font-weight: 700;
     letter-spacing: 0.08em;
     font-variant-numeric: tabular-nums;
@@ -617,9 +597,6 @@
   .tg-inline input {
     flex: 1;
     min-width: 0;
-  }
-  .tg-inline .btn {
-    height: auto;
   }
   .tg-member {
     flex-wrap: wrap;
@@ -641,8 +618,8 @@
     padding: 14px;
     border-radius: var(--r-sm);
     background: var(--surface-2);
-    font-size: 14px;
-    line-height: 1.55;
+    font-size: var(--fs-sm);
+    line-height: 1.5;
   }
   .tg-confirm[hidden] {
     display: none;
@@ -678,11 +655,11 @@
     gap: 2px;
   }
   .tg-set__bd b {
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 600;
   }
   .tg-set__bd span {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     line-height: 1.5;
   }
@@ -691,10 +668,7 @@
   }
 
   /* ---------- W1 모임 화면 보강 (SCR-PWA-017~021). 새 색 없음, 토큰만 ---------- */
-  /* 탭 대상 44px 이상 — 모임 화면의 작은 버튼(.btn--sm 38px)과 반응 토글을 키운다 */
-  .tg-page .btn--sm {
-    height: 44px;
-  }
+  /* 탭 대상 44px 이상 — 반응 토글을 키운다 (작은 버튼 .btn--sm 은 공용 규칙이 이미 44px) */
   .tg-page .tg-stay {
     min-height: 44px;
   }
@@ -734,7 +708,7 @@
   /* 공유·저장 결과 한 줄. 비어 있어도 자리를 잡지 않는다 */
   .tg-status {
     margin: 8px 0 0;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .tg-status:empty {
@@ -749,13 +723,13 @@
   }
   .tg-done__t {
     display: block;
-    font-size: 16px;
+    font-size: var(--fs-lg);
   }
   .tg-done__go {
     margin-top: 12px;
   }
   .tg-js__soon {
-    font-size: 16px;
+    font-size: var(--fs-lg);
   }
   .tg-sect-link {
     display: inline-flex;
@@ -782,7 +756,7 @@
     background: none;
     border: 0;
     font: inherit;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--ink-2);
   }

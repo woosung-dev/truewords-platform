@@ -3,8 +3,8 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // 훈독 CSS 스코프 검사 (PLAN-HD-001 Phase 1 sub-PR 1, DES-PWA-003 §7 · PLAN-HD-002 W0-W 화면 그룹 CSS).
-// 1) :root 선언 0  2) 첫 토큰 블록 밖 hex 색 0  3) `@media` 의 min-width 브레이크포인트 ⊆ {768,1024,1224}  4) 폐기값 #d4562e 0
-// 메인 hoondok.css 만 토큰 블록(hex 허용 구역)을 가진다. _hoondok/*.css 는 토큰이 없어 hex 를 전부 거부하고 --accent 를 묻지 않는다.
+// 1) :root 선언 0  2) 첫 토큰 블록 밖 hex·rgb()·rgba()·hsl()·hsla() 색 0  3) `@media` 의 min-width 브레이크포인트 ⊆ {768,1024,1224}  4) 폐기값 #d4562e 0
+// 메인 hoondok.css 만 토큰 블록(색 리터럴 허용 구역)을 가진다. _hoondok/*.css 는 토큰이 없어 색 리터럴을 전부 거부하고 --accent 를 묻지 않는다.
 const root = fileURLToPath(new URL("../../", import.meta.url));
 export const HOONDOK_CSS = "apps/web/src/app/hoondok.css";
 export const HOONDOK_CSS_DIR = "apps/web/src/app/_hoondok";
@@ -55,6 +55,9 @@ export function checkSource(source, { hasTokens = true } = {}) {
     failures.push(`폐기값 ${RETIRED_HEX} 이 있습니다 — --accent(#c24721) 로 고치세요`);
   for (const match of rest.matchAll(/#[0-9a-f]{3,8}\b/gi))
     failures.push(`토큰 블록 밖 hex 색: ${match[0]} — var() 를 쓰세요`);
+  // 반투명 그림자·베일도 hex 와 같은 색 리터럴이라 토큰으로 올린다 (함수 이름과 여는 괄호까지만 본다)
+  for (const match of rest.matchAll(/\b(?:rgba?|hsla?)\s*\(/gi))
+    failures.push(`토큰 블록 밖 색 함수: ${match[0]} — 토큰 블록에 정의하고 var() 를 쓰세요`);
   // 브레이크포인트는 @media 프렐류드(@media … {)만 본다. 일반 선언의 min-width(터치 타깃 등)는 대상이 아니다.
   for (const query of css.matchAll(/@media([^{]*)\{/g)) {
     for (const match of query[1].matchAll(/min-width\s*:\s*(\d+)px/g)) {
@@ -79,6 +82,6 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     process.exitCode = 1;
   } else
     console.log(
-      `훈독 CSS 스코프 통과 (${files.length}개 파일 · :root 0 · 토큰 밖 hex 0 · 브레이크포인트 768/1024/1224 · #d4562e 0)`,
+      `훈독 CSS 스코프 통과 (${files.length}개 파일 · :root 0 · 토큰 밖 hex·rgba·hsl 0 · 브레이크포인트 768/1024/1224 · #d4562e 0)`,
     );
 }
