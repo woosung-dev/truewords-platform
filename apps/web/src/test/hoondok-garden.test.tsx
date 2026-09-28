@@ -53,7 +53,8 @@ const PERIOD: JeongseongPeriodResponse = {
   started_on: "2026-09-04",
   reminder_time: null,
   status: "active",
-  progress: { end_on: "2026-09-24", done_days: 7, missed_days: 0, remaining_days: 14, percent: 33, state: "active" },
+  // 7일차(21 - 14)에 읽은 날은 5일 — 일차와 읽은 날을 일부러 다르게 둬 화면이 done 기준 값을 쓰면 잡히게 한다
+  progress: { end_on: "2026-09-24", done_days: 5, missed_days: 1, remaining_days: 14, percent: 24, state: "active" },
 };
 
 function wrap(children: ReactNode) {
@@ -89,10 +90,24 @@ describe("MonthCalendar (DES §2.6)", () => {
     expect(container.querySelectorAll(".gd-cal__pad")).toHaveLength(1);
     expect(container.querySelectorAll(".gd-cal__day")).toHaveLength(30);
     expect(screen.getByLabelText("9월 1일 완료")).toBeInTheDocument();
-    expect(screen.getByLabelText("9월 3일 아직")).toBeInTheDocument();
+    // 완료하지 않은 지난날은 날짜만 읽는다 — "아직" 이 없다 (DEC-PWA-023)
+    expect(screen.getByLabelText("9월 3일")).toBeInTheDocument();
     expect(screen.getByLabelText("9월 10일 오늘 완료")).toBeInTheDocument();
-    // 범례는 완료·아직 2개 — "쉼" 은 데이터가 없어 그리지 않는다
-    expect(container.querySelectorAll(".gd-cal__legend > span")).toHaveLength(2);
+    expect(container.querySelector('[aria-label*="아직"]')).toBeNull();
+    // 범례는 완료 1개 — "아직" 은 없고 "쉼" 은 데이터가 없어 그리지 않는다
+    const legend = container.querySelectorAll(".gd-cal__legend > span");
+    expect(legend).toHaveLength(1);
+    expect(legend[0]).toHaveTextContent("완료");
+    expect(container.querySelector(".gd-cal__legend")).not.toHaveTextContent("아직");
+  });
+
+  it("완료하지 않은 칸에는 원이 없고 날짜만 있다 — 원은 완료 칸에만 그린다", () => {
+    const { container } = render(<MonthCalendar month={MONTH} days={DAYS} today={TODAY} />);
+
+    expect(container.querySelectorAll(".gd-cal__day:not([data-done]) .gd-cal__dot")).toHaveLength(0);
+    expect(container.querySelectorAll(".gd-cal__day[data-done] .gd-cal__dot--done svg")).toHaveLength(3);
+    const missed = screen.getByLabelText("9월 3일");
+    expect(missed).toHaveTextContent(/^3$/);
   });
 
   it("오늘 칸은 data-today, 완료 칸은 data-done, 미래 칸은 data-future 를 갖는다", () => {
@@ -107,9 +122,11 @@ describe("MonthCalendar (DES §2.6)", () => {
     expect(container.querySelectorAll(".gd-cal__day[data-future]")).toHaveLength(20);
   });
 
-  it("오늘이 아직이면 레이블이 '오늘 아직' 이다", () => {
+  it("오늘 아직 완료 전이면 레이블이 '9월 11일 오늘' 이고 원이 없다", () => {
     render(<MonthCalendar month={MONTH} days={DAYS} today="2026-09-11" />);
-    expect(screen.getByLabelText("9월 11일 오늘 아직")).toBeInTheDocument();
+    const todayCell = screen.getByLabelText("9월 11일 오늘");
+    expect(todayCell).toHaveAttribute("data-today");
+    expect(todayCell.querySelector(".gd-cal__dot")).toBeNull();
   });
 });
 
@@ -170,18 +187,36 @@ describe("GardenScreen 로그인", () => {
     expect(screen.getByRole("link", { name: "새로 시작" })).toHaveAttribute("href", "/hoondok?sheet=jeongseong");
   });
 
-  it("진행 중인 정성이 있으면 D-N · 진행률 숫자 · N일차를 함께 적는다 (빠진 날 수는 없다)", async () => {
+  it("진행 중인 정성은 N일차 · 날짜 기준 막대 · 시작일 · 남은 날만 적는다 (읽은 날 수·퍼센트 없음)", async () => {
     loggedIn();
+    const { container } = renderGarden();
+
+    expect(await screen.findByText("21일 정성 · 가정의 화목")).toBeInTheDocument();
+    expect(screen.getByText("7일차")).toBeInTheDocument();
+    expect(screen.getByText("9월 4일에 시작했어요")).toBeInTheDocument();
+    expect(screen.getByText("14일 남았어요")).toBeInTheDocument();
+    // 막대는 일차 / 기간(7/21 = 33%). 읽은 날 기준 percent(24)를 쓰지 않는다
+    const bar = screen.getByRole("progressbar", { name: "21일 정성 중 7일차" });
+    expect(bar).toHaveAttribute("aria-valuenow", "7");
+    expect(bar).toHaveAttribute("aria-valuemax", "21");
+    expect(bar.firstElementChild).toHaveStyle({ width: "33%" });
+    const card = container.querySelector(".gd-row")?.closest(".card")?.textContent ?? "";
+    for (const banned of ["진행한 날", "/ 21일", "/21일", "%", "D-", "새벽", "밀린 날"])
+      expect(card).not.toContain(banned);
+  });
+
+  it("시작 전 정성은 막대 없이 '시작 전 · M월 D일부터' 만 단다", async () => {
+    loggedIn({
+      ...PERIOD,
+      started_on: "2026-09-13",
+      progress: { ...PERIOD.progress, state: "upcoming", done_days: 0, percent: 0, remaining_days: 23 },
+    });
     renderGarden();
 
-    expect(await screen.findByText("21일 새벽 정성 · 가정의 화목")).toBeInTheDocument();
-    expect(screen.getByText("D-14")).toBeInTheDocument();
-    expect(screen.getByText("7 / 21일 · 33%")).toBeInTheDocument();
-    expect(screen.getByText("7일차")).toBeInTheDocument();
-    expect(screen.queryByText(/밀린 날/)).toBeNull();
-    const bar = screen.getByRole("progressbar", { name: "정성 진행률" });
-    expect(bar).toHaveAttribute("aria-valuenow", "33");
-    expect(bar.firstElementChild).toHaveStyle({ width: "33%" });
+    expect(await screen.findByText("시작 전 · 9월 13일부터")).toBeInTheDocument();
+    expect(screen.getByText("21일 정성 · 가정의 화목")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.queryByText(/남았어요/)).toBeNull();
   });
 
   it("5xx 면 '기록을 불러오지 못했어요' + 다시 시도로 세 질의를 다시 읽는다", async () => {
