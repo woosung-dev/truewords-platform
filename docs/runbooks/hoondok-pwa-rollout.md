@@ -276,6 +276,11 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 코드는 main 에 있어도 **VAPID 3값이 VM `.env` 에 없으면 알림은 꺼져 있다** — `GET /hoondok/push/config` 가 `enabled=false` 를 내고 설정 화면 토글은 "준비 중", 발송기는 exit 0 no-op 이다. 켜는 조건은 [`PLAN-HD-006` §6](../plans/active/2026-09-22-hoondok-notifications.md)(2026-09-28 개정: 수정 배포 뒤 사용자 승인). 발송기의 편성 없는 날 생략(§2-11)이 들어간 backend 가 먼저 배포돼 있어야 한다.
 
 ```bash
+# -1. 발송 스크립트·점검 스크립트를 VM 에 둔다. 2026-09-28 실측: send-hoondok-push.sh 는 VM 에 없었고
+#     ops-check.sh 는 hoondok-push 검사가 없는 옛 사본이었다. 덮어쓰기 전에 VM 사본과 diff 를 본다.
+ssh truewords-oracle 'cat ~/truewords/ops-check.sh' | diff - infra/oracle-vm/ops-check.sh | head -40
+scp infra/oracle-vm/send-hoondok-push.sh infra/oracle-vm/ops-check.sh truewords-oracle:~/truewords/
+ssh truewords-oracle 'chmod +x ~/truewords/send-hoondok-push.sh ~/truewords/ops-check.sh'
 # 0. VM 의 backend 컨테이너에서 키를 만들어 .env 에 바로 붙인다 — 비밀키는 화면·로그·채팅에 나오지 않는다.
 #    이미 HOONDOK_VAPID_ 줄이 있으면 아무것도 하지 않는다(키 교체는 아래 "키 교체" 참고).
 #    subject 는 개인 메일 대신 서비스 URL 을 쓴다(VAPID 는 mailto: 또는 https: 를 받는다).
