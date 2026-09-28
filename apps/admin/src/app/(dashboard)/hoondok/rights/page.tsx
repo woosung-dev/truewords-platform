@@ -5,8 +5,10 @@ import type { ContentRightInput, ContentRightResponse } from "@truewords/api-cli
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { saveErrorMessage } from "@/features/hoondok/api";
 import BulkRightsDialog from "@/features/hoondok/components/bulk-rights-dialog";
 import SeriesSummary from "@/features/hoondok/components/series-summary";
@@ -31,6 +33,13 @@ const SCOPES = [
   ["scope_full_text", "원문 전재"],
   ["scope_jeongseong", "정성 말씀"],
 ] as const;
+const GRADES = ["R", "O1", "O2", "O3", "O4", "O5"] as const;
+
+// 등급 선택지는 "코드 + 한국어 라벨"로 보인다. R 의 라벨("권리 확인 중")에는 코드가 없어 앞에 붙인다.
+function gradeOptionLabel(grade: (typeof GRADES)[number]): string {
+  const label = GRADE_LABEL[grade];
+  return label.startsWith(grade) ? label : `${grade} ${label}`;
+}
 
 export default function ContentRightsPage() {
   const queryClient = useQueryClient();
@@ -77,7 +86,7 @@ export default function ContentRightsPage() {
   const visibleRights = (query.data ?? []).filter((right) => !seriesFilter || right.book_series === seriesFilter);
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="page-wide space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">훈독 권리 원장</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -160,9 +169,8 @@ export default function ContentRightsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">승인 상태</Label>
-              <select
+              <NativeSelect
                 id="status"
-                className="h-10 w-full rounded-md border bg-background px-3"
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as ContentRightInput["status"] })}
               >
@@ -171,43 +179,46 @@ export default function ContentRightsPage() {
                     {label}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
             <div className="space-y-2">
               <Label htmlFor="grade">공식성 등급</Label>
-              <select
+              <NativeSelect
                 id="grade"
-                className="h-10 w-full rounded-md border bg-background px-3"
                 value={form.authority_grade}
                 onChange={(e) =>
                   setForm({ ...form, authority_grade: e.target.value as ContentRightInput["authority_grade"] })
                 }
               >
-                {["R", "O1", "O2", "O3", "O4", "O5"].map((value) => (
+                {GRADES.map((value) => (
                   <option key={value} value={value}>
-                    {value}
+                    {gradeOptionLabel(value)}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
           </div>
-          <fieldset className="flex flex-wrap gap-4">
+          <fieldset className="flex flex-wrap gap-x-6 gap-y-1">
             <legend className="mb-2 text-sm font-medium">기능별 허용 범위</legend>
             {SCOPES.map(([key, label]) => (
-              <label key={key} className="flex min-h-11 items-center gap-2">
-                <input
-                  type="checkbox"
+              <div key={key} className="flex min-h-11 items-center gap-2.5">
+                <Checkbox
+                  id={`right-${key}`}
+                  // base-ui Checkbox 는 네이티브 input 이 아니라 fieldset disabled 가 닿지 않는다.
+                  disabled={mutation.isPending}
                   checked={form[key] ?? false}
-                  onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
+                  onCheckedChange={(checked) => setForm({ ...form, [key]: checked === true })}
                 />
-                {label}
-              </label>
+                <Label htmlFor={`right-${key}`} className="cursor-pointer font-normal">
+                  {label}
+                </Label>
+              </div>
             ))}
           </fieldset>
           <div className="space-y-2">
             <Label htmlFor="note">승인 근거 · 메모</Label>
             <textarea
-              className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="min-h-24 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               id="note"
               maxLength={2000}
               value={form.note ?? ""}
@@ -249,19 +260,16 @@ export default function ContentRightsPage() {
         <>
           <div className="flex items-center gap-2">
             <Label htmlFor="series-filter">총서 필터</Label>
-            <select
-              id="series-filter"
-              className="h-10 rounded-md border bg-background px-3"
-              value={seriesFilter}
-              onChange={(e) => setSeriesFilter(e.target.value)}
-            >
-              <option value="">전체</option>
-              {seriesOptions.map((value) => (
-                <option key={value} value={value}>
-                  {SERIES_TITLE[value] ?? value}
-                </option>
-              ))}
-            </select>
+            <div className="w-56">
+              <NativeSelect id="series-filter" value={seriesFilter} onChange={(e) => setSeriesFilter(e.target.value)}>
+                <option value="">전체</option>
+                {seriesOptions.map((value) => (
+                  <option key={value} value={value}>
+                    {SERIES_TITLE[value] ?? value}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
           </div>
           {visibleRights.length === 0 ? (
             <p className="rounded-xl border border-dashed p-8 text-muted-foreground">

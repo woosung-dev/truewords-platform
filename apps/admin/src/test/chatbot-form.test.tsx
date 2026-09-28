@@ -21,14 +21,14 @@ const baseProps = {
 };
 
 describe("ChatbotForm", () => {
-  it("create 모드에서 Chatbot ID 필드가 렌더된다", () => {
+  it("create 모드에서 챗봇 ID 필드가 렌더된다", () => {
     render(<ChatbotForm mode="create" {...baseProps} />);
-    expect(screen.getByLabelText(/Chatbot ID/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/챗봇 ID/)).toBeInTheDocument();
   });
 
-  it("edit 모드에서 Chatbot ID 필드가 렌더되지 않는다", () => {
+  it("edit 모드에서 챗봇 ID 필드가 렌더되지 않는다", () => {
     render(<ChatbotForm mode="edit" {...baseProps} />);
-    expect(screen.queryByLabelText(/Chatbot ID/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/챗봇 ID/)).not.toBeInTheDocument();
   });
 
   it("edit 모드에서 initialValues 의 display_name 이 반영된다", () => {
@@ -41,7 +41,7 @@ describe("ChatbotForm", () => {
     const onSubmit = vi.fn();
     const { container } = render(<ChatbotForm mode="create" {...baseProps} onSubmit={onSubmit} />);
 
-    fireEvent.change(screen.getByLabelText(/Chatbot ID/), {
+    fireEvent.change(screen.getByLabelText(/챗봇 ID/), {
       target: { value: "test_bot" },
     });
     fireEvent.change(screen.getByLabelText(/표시 이름/), {

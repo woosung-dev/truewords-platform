@@ -117,6 +117,7 @@ export default function LoginPage() {
                 required
                 autoFocus
                 autoComplete="email"
+                className="h-11"
               />
             </div>
 
@@ -130,12 +131,13 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="pr-10"
+                  className="h-11 pr-12"
                 />
+                {/* 로그인은 휴대폰에서도 열리므로 입력·표시 버튼 모두 44px 터치 영역을 둔다. */}
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-0 top-0 flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-ring"
                   tabIndex={-1}
                   aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 표시"}
                 >
@@ -144,7 +146,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="h-11 w-full" disabled={loading}>
               {loading ? "로그인 중..." : "로그인"}
             </Button>
           </form>
