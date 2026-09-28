@@ -11214,7 +11214,7 @@
         ]
       },
       "put": {
-        "description": "API-HD-020 알림 설정 전체 교체. 422 시각·수위 형식, 403 CSRF, 401 미인증.",
+        "description": "API-HD-020 알림 설정 전체 교체. 422 시각 형식, 403 CSRF, 401 미인증.",
         "operationId": "put_notifications_hoondok_me_notifications_put",
         "requestBody": {
           "content": {

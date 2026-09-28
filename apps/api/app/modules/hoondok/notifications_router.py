@@ -44,7 +44,7 @@ async def put_notifications(
     user: User = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service),
 ) -> NotificationPreferenceResponse:
-    """API-HD-020 알림 설정 전체 교체. 422 시각·수위 형식, 403 CSRF, 401 미인증."""
+    """API-HD-020 알림 설정 전체 교체. 422 시각 형식, 403 CSRF, 401 미인증."""
     return await service.put_preference(user.id, data)
 
 

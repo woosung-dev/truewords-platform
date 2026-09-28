@@ -1112,7 +1112,7 @@ export const getNotificationsHoondokMeNotificationsGet = <ThrowOnError extends b
 /**
  * Put Notifications
  *
- * API-HD-020 알림 설정 전체 교체. 422 시각·수위 형식, 403 CSRF, 401 미인증.
+ * API-HD-020 알림 설정 전체 교체. 422 시각 형식, 403 CSRF, 401 미인증.
  */
 export const putNotificationsHoondokMeNotificationsPut = <ThrowOnError extends boolean = false>(options: Options<PutNotificationsHoondokMeNotificationsPutData, ThrowOnError>): RequestResult<PutNotificationsHoondokMeNotificationsPutResponses, PutNotificationsHoondokMeNotificationsPutErrors, ThrowOnError> => (options.client ?? client).put<PutNotificationsHoondokMeNotificationsPutResponses, PutNotificationsHoondokMeNotificationsPutErrors, ThrowOnError>({
     url: '/hoondok/me/notifications',
