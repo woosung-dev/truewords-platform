@@ -5,7 +5,7 @@ import Link from "next/link";
 // index.ts 의 export 정리는 W4 담당이라 경로를 직접 가리킨다 (PLAN-HD-002 §3.1).
 import { HoondokButton, MonthCalendar } from "@/components/hoondok";
 import { isHoondokCardsEnabled, isHoondokPreviewEnabled } from "@/features/hoondok/flag";
-import { jeongseongDayLabel } from "@/features/hoondok/jeongseong/components/jeongseong-card";
+import { JeongseongDayBadge, JeongseongProgress } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
 import { useMonthHistory } from "@/features/hoondok/use-history";
 import { useJeongseong } from "@/features/hoondok/use-jeongseong";
@@ -46,7 +46,7 @@ function GardenSkeleton() {
   );
 }
 
-/** 진행 중인 정성 카드. 퍼센트는 바 길이와 함께 숫자로도 적는다(DES §3.3). */
+/** 진행 중인 정성 카드. 막대·배지·문구는 홈 카드와 같은 조각이다 — 날짜 기준 일차만 적고 읽은 날 수·퍼센트는 쓰지 않는다. */
 function JeongseongSection({ period }: { period: JeongseongPeriodResponse | null }) {
   return (
     <div className="sect">
@@ -58,26 +58,11 @@ function JeongseongSection({ period }: { period: JeongseongPeriodResponse | null
           <>
             <div className="gd-row">
               <b className="gd-row__t">
-                {period.duration_days}일 새벽 정성 · {period.topic}
+                {period.duration_days}일 정성 · {period.topic}
               </b>
-              <span className="badge badge--accent">D-{period.progress.remaining_days}</span>
+              <JeongseongDayBadge period={period} />
             </div>
-            <div
-              className="progress"
-              role="progressbar"
-              aria-label="정성 진행률"
-              aria-valuenow={period.progress.percent}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <i className="progress__fill" style={{ width: `${period.progress.percent}%` }} />
-            </div>
-            <div className="gd-row gd-row--meta">
-              <span>
-                {period.progress.done_days} / {period.duration_days}일 · {period.progress.percent}%
-              </span>
-              <span>{jeongseongDayLabel(period)}</span>
-            </div>
+            <JeongseongProgress period={period} />
           </>
         ) : (
           <div className="empty gd-empty">

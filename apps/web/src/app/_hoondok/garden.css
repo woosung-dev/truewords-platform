@@ -30,6 +30,11 @@
   }
 
   /* ---------- 월 달력 범례 (DES §2.6) : 골격은 hoondok.css 공용이고 범례는 정원만 쓴다 ---------- */
+  /* 완료하지 않은 칸 : 원을 그리지 않고 원 자리(26px)만 비워 한 줄의 날짜 숫자 높이를 맞춘다 (DEC-PWA-023) */
+  .gd-cal__blank {
+    width: 26px;
+    min-height: 26px;
+  }
   /* 범례용 축소판 */
   .gd-cal__dot--tiny {
     width: 20px;
@@ -61,15 +66,13 @@
     font-size: var(--fs-md);
     font-weight: 600;
   }
+  /* "시작 전 · 10월 1일부터" 처럼 긴 배지도 제목에 밀려 줄바꿈되지 않게 둔다 */
+  .gd-row .badge {
+    flex: none;
+  }
   /* 진행 바 본체는 hoondok.css §7. 제목 줄과의 간격만 정원 값(12px)으로 둔다 */
   .gd-row + .progress {
     margin-top: 12px;
-  }
-  .gd-row--meta {
-    margin-top: 10px;
-    font-size: var(--fs-xs);
-    color: var(--ink-2);
-    font-variant-numeric: tabular-nums;
   }
   .gd-empty {
     padding: 24px 16px;
