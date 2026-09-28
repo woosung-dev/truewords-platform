@@ -50,18 +50,26 @@ test("정성 시트에서 21일 정성을 만들면 홈 카드가 D-20 으로 �
   await expect(dialog.getByRole("heading", { name: "정성 기간 만들기" })).toBeVisible();
   // 가족 챌린지 토글은 W3 범위라 이 시트에 없다
   await expect(dialog.getByText(/가족 챌린지/)).toHaveCount(0);
+  // 정성 알림은 훈독하기 알림에 합쳤다 — 시각 입력 대신 설정 › 훈독하기 링크만 있다
+  await expect(dialog.locator('input[type="time"]')).toHaveCount(0);
+  await expect(dialog.getByRole("link", { name: "설정 › 훈독하기" })).toHaveAttribute("href", "/hoondok/settings");
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
 
   await page.locator(".js-opt").filter({ hasText: "세 주" }).click();
   await expect(page.locator(".js-opt[data-on]")).toContainText("21");
   await page.getByRole("button", { name: "감사" }).click();
+  const created = page.waitForRequest(
+    (request) => request.url().includes("/hoondok/me/jeongseong") && request.method() === "POST",
+  );
   await page.getByRole("button", { name: "정성 시작하기" }).click();
+  // 알림 시각은 보내지 않는다 (훈독하기 알림 시각 한 곳)
+  expect((await created).postDataJSON()).not.toHaveProperty("reminder_time");
 
   // 성공하면 URL 에서 sheet 가 빠지고 홈 카드가 진행 상태로 바뀐다 (오늘 시작 → 21일 중 남은 20일)
   await expect(page).toHaveURL(/\/hoondok$/);
   await expect(page.getByText("21일 새벽 정성 · 감사")).toBeVisible();
   await expect(page.getByText("D-20")).toBeVisible();
-  await expect(page.getByText("매일 오전 5:30")).toBeVisible();
+  await expect(page.getByText(/매일 오전/)).toHaveCount(0);
   await expect(page.getByRole("progressbar", { name: "정성 진행률" })).toBeVisible();
 
   // 사용자당 active 1건 (API-HD-009) — 같은 계정의 재요청은 409

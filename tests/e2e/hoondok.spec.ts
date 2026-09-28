@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 
 // 훈독 Phase 1 스모크 (PLAN-HD-001 §4 sub-PR 1). 플래그 ON 은 playwright.config webServer env 가 준다.
 const PATHS = ["/hoondok", "/hoondok/read", "/hoondok/garden", "/hoondok/settings"] as const;
@@ -326,8 +326,7 @@ test("오프라인: /hoondok/read 이동 시 /hoondok/offline 로 폴백 렌더(
 
 // ===== Phase 4 알림 (PLAN-HD-006 C) =====
 // VAPID 공개키(P-256 비압축 65바이트)를 base64url 로. 가짜 구독을 만들 때 subscribe 가 이 값을 받는다.
-const FAKE_VAPID_KEY =
-  "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U";
+const FAKE_VAPID_KEY = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U";
 const FAKE_ENDPOINT = "https://push.example/abc";
 
 async function loginAsSeedUser(page: Page) {
@@ -353,15 +352,15 @@ test("알림: backend 에 VAPID 가 없으면 훈독하기도 '준비 중' 이�
   expect(errors).toEqual([]);
 });
 
-// 구독 저장(POST /hoondok/me/push)과 설정(PUT /hoondok/me/notifications) 은 API-HD-020·021(sub-PR A, 머지됨)이다.
-// 여기서는 브라우저 쪽 계약(권한 → subscribe → POST 본문 → PUT) 을 끝까지 확인한다.
-test("알림: 권한 허용 → 구독 저장 → 설정 PUT, reload 뒤에도 켜짐", async ({ page, context }) => {
+/**
+ * 알림을 켤 수 있는 브라우저를 흉내낸다. 서버 설정(VAPID)은 가짜로 켜고 — 로컬 backend 에는 VAPID 키가 없다 —
+ * 실제 푸시 서비스에는 등록하지 않는다(endpoint·keys 모양만 계약대로). POST /hoondok/me/push 는 201 로 받아 본문만 모은다.
+ */
+async function stubPushBrowser(page: Page, context: BrowserContext) {
   await context.grantPermissions(["notifications"]);
-  // 서버 설정은 가짜로 켠다 — 로컬 backend 에는 VAPID 키가 없다.
   await page.route("**/api/backend/hoondok/push/config", (route) =>
     route.fulfill({ json: { enabled: true, public_key: FAKE_VAPID_KEY } }),
   );
-  // 실제 푸시 서비스에 등록하지 않는다. endpoint·keys 모양만 계약대로 돌려준다.
   await page.addInitScript(
     ({ endpoint }) => {
       const subscription = {
@@ -383,6 +382,13 @@ test("알림: 권한 허용 → 구독 저장 → 설정 PUT, reload 뒤에도 �
     subscribeBodies.push(route.request().postDataJSON());
     await route.fulfill({ status: 201, json: { id: "e2e", endpoint: FAKE_ENDPOINT, created_at: "2026-09-22" } });
   });
+  return subscribeBodies;
+}
+
+// 구독 저장(POST /hoondok/me/push)과 설정(PUT /hoondok/me/notifications) 은 API-HD-020·021(sub-PR A, 머지됨)이다.
+// 여기서는 브라우저 쪽 계약(권한 → subscribe → POST 본문 → PUT) 을 끝까지 확인한다.
+test("알림: 권한 허용 → 구독 저장 → 설정 PUT, reload 뒤에도 켜짐", async ({ page, context }) => {
+  const subscribeBodies = await stubPushBrowser(page, context);
 
   await loginAsSeedUser(page);
   await page.goto("/hoondok/settings");
@@ -409,4 +415,60 @@ test("알림: 권한 허용 → 구독 저장 → 설정 PUT, reload 뒤에도 �
   // 뒷정리: 시드 사용자는 다른 스펙도 쓴다 — 켠 채로 두지 않는다.
   await page.getByRole("button", { name: "훈독하기 알림" }).click();
   await expect(page.getByRole("button", { name: "훈독하기 알림" })).toHaveAttribute("aria-pressed", "false");
+});
+
+// 알림 받기 제안 카드 — 가입 직후 홈 상단(기본 선택이 "알림 받기" 인 한 장). 새 계정이라 시드 사용자 설정을 건드리지 않는다.
+test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/me/push 201 → reload 뒤 설정에서 켜짐", async ({
+  page,
+  context,
+}) => {
+  const errors = await collectConsoleErrors(page);
+  const subscribeBodies = await stubPushBrowser(page, context);
+
+  await page.goto("/hoondok/onboarding");
+  await page.getByLabel(/이름/).fill("알림");
+  await page.getByLabel(/이메일/).fill(`e2e-push-${Date.now()}@example.com`);
+  await page.getByLabel(/비밀번호/).fill("password1");
+  await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page.getByText("알림님")).toBeVisible();
+  // 헤드리스 Chromium UA 는 인앱 브라우저가 아니다 — 안내 배너가 뜨면 안 된다
+  await expect(page.locator(".inapp")).toHaveCount(0);
+
+  const card = page.locator(".push-prompt");
+  await expect(card.getByRole("heading", { name: "매일 아침 훈독 시간을 알려 드릴까요?" })).toBeVisible();
+  await expect(card).toContainText("오늘의 읽을거리가 준비됐어요");
+
+  const subscribed = page.waitForResponse(
+    (response) => response.url().includes("/hoondok/me/push") && response.request().method() === "POST",
+  );
+  const savedPrefs = page.waitForResponse(
+    (response) => response.url().includes("/hoondok/me/notifications") && response.request().method() === "PUT",
+  );
+  await card.getByRole("button", { name: "알림 받기" }).click();
+  expect((await subscribed).status()).toBe(201);
+  expect((await savedPrefs).status()).toBe(200);
+  expect(subscribeBodies).toEqual([
+    { endpoint: FAKE_ENDPOINT, keys: { p256dh: "fake-p256dh", auth: "fake-auth" }, user_agent: expect.any(String) },
+  ]);
+  await expect(card).toContainText("매일 오전 6:00에 알려 드릴게요");
+  await expect(card.getByRole("link", { name: "시각은 설정에서 바꿀 수 있어요" })).toHaveAttribute(
+    "href",
+    "/hoondok/settings",
+  );
+
+  // 켜짐의 근거는 서버다 — 새로고침하면 서버 설정(켜짐)을 읽은 뒤 제안 카드는 없고, 설정 토글은 켜져 있다
+  const prefsAfterReload = page.waitForResponse(
+    (response) => response.url().includes("/hoondok/me/notifications") && response.request().method() === "GET",
+  );
+  await page.reload();
+  expect((await prefsAfterReload).status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "오늘의 실천" })).toBeVisible();
+  await expect(page.locator(".push-prompt")).toHaveCount(0);
+  await page.goto("/hoondok/settings");
+  await expect(page.getByRole("button", { name: "훈독하기 알림" })).toHaveAttribute("aria-pressed", "true");
+  const prefs = await (await page.request.get("/api/backend/hoondok/me/notifications")).json();
+  expect(prefs.read_enabled).toBe(true);
+  // 비로그인 온보딩 첫 로드의 /auth/me 401 은 정상 리소스 로그다 (설치 안내 테스트와 같은 필터)
+  expect(errors.filter((message) => !/status of 401/.test(message))).toEqual([]);
 });
