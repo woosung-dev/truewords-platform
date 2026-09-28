@@ -557,6 +557,13 @@
     border-radius: var(--r-xs);
     color: var(--ink-3);
     font-size: var(--fs-xs);
+    position: relative;
+  }
+  /* 누르는 자리를 왼쪽 여백(거터)으로만 넓혀 폭 44px 로 만든다. 오른쪽 본문 쪽으로 넓히면 형광펜 선택을 방해한다 */
+  button.verse__n::after {
+    content: "";
+    position: absolute;
+    inset: 0 -4px 0 -16px;
   }
   button.verse__n:active {
     background: var(--surface-2);

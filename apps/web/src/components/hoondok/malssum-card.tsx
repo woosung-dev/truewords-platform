@@ -15,16 +15,20 @@ export function SourceLine({ reading }: { reading: TodayReading }) {
     reading.edition || "판본 확인되지 않음",
   ];
   return (
-    <div className="src">
-      {/* 구분점은 뒤 항목과 한 덩어리로 묶는다 — 따로 두면 줄 끝에 "·" 만 남는 줄바꿈이 생긴다 */}
-      {parts.map((part, index) => (
-        <span className="src__part" key={`${index}-${part}`}>
-          {index > 0 && <span className="src__dot" />}
-          {part}
-        </span>
-      ))}
-      <AuthorityBadge grade={reading.authority_grade} />
-      <ReviewBadge status={reading.review_status} />
+    <div className="src-line">
+      {/* 구분점은 모든 항목 앞에 붙이고 줄 머리의 점은 CSS(.src--clip)가 잘라 낸다 — 줄 끝·줄 머리에 "·" 만 남지 않는다 */}
+      <div className="src src--clip">
+        {parts.map((part, index) => (
+          <span className="src__part" key={`${index}-${part}`}>
+            <span className="src__dot" />
+            {part}
+          </span>
+        ))}
+      </div>
+      <div className="src">
+        <AuthorityBadge grade={reading.authority_grade} />
+        <ReviewBadge status={reading.review_status} />
+      </div>
     </div>
   );
 }
