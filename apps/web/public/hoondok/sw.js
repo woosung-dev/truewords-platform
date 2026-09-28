@@ -11,7 +11,7 @@
    런타임에 cache.put 을 하지 않으므로 /api/backend/* · /hoondok/onboarding · 인증 응답은 캐시에 들어갈 수 없다(ARCH-MONO-001 §7).
    sw.js 를 바꾸면 SW_VERSION 을 올린다(캐시 이름). 킬스위치: SW_KILL = true 로 배포하면 다음 방문에서 캐시 전삭제 + 등록 해제.
    rollback-web 만으로는 이미 설치된 SW 가 지워지지 않는다 — 절차는 runbook(Phase 3 G). */
-const SW_VERSION = "2026-09-22.1";
+const SW_VERSION = "2026-09-28.1";
 const SW_KILL = false;
 const CACHE_PREFIX = "hoondok-";
 const CACHE_NAME = `${CACHE_PREFIX}${SW_VERSION}`;
@@ -23,12 +23,15 @@ const PRECACHE_URLS = [
   "/hoondok/icons/icon-512.png",
   "/hoondok/icons/icon-maskable-512.png",
   "/hoondok/icons/apple-touch-icon-180.png",
+  "/hoondok/icons/badge-96.png",
 ];
 // 이 접두의 요청에는 관여하지 않는다(respondWith 없음) — 네트워크 그대로, 캐시 금지.
 const NEVER_TOUCH = ["/api/backend/", "/hoondok/onboarding", "/hoondok/auth"];
 // 알림 (PLAN-HD-006). 한 종류뿐이라 태그도 하나다 — 새 알림이 이전 것을 덮는다.
 const NOTIFICATION_TAG = "hoondok-read";
 const NOTIFICATION_ICON = "/hoondok/icons/icon-192.png";
+// 안드로이드 상태 표시줄 작은 아이콘은 알파 채널만 쓴다 — 컬러 정사각이면 흰 네모가 된다. 투명 배경 + 흰 글자 전용.
+const NOTIFICATION_BADGE = "/hoondok/icons/badge-96.png";
 const NOTIFICATION_FALLBACK_TITLE = "오늘의 읽을거리가 준비됐어요";
 
 /** 오프라인 안내 HTML 이 참조하는 same-origin /_next/static 자산(CSS·JS 청크) URL 을 모은다. */
@@ -156,7 +159,7 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(title, {
       body,
       icon: NOTIFICATION_ICON,
-      badge: NOTIFICATION_ICON,
+      badge: NOTIFICATION_BADGE,
       tag: NOTIFICATION_TAG,
       data: { url },
     }),

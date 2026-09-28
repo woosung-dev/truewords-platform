@@ -48,6 +48,7 @@ EXPIRED_STATUSES = (404, 410)  # 만료·해지된 구독 — 즉시 삭제
 TRANSIENT_STATUSES = (401, 403, 429)
 DELIVER_TIMEOUT_SECONDS = 10  # pywebpush 기본은 timeout=None(무한 대기) — cron 이 매달리지 않게
 TTL_SECONDS = 7200  # 창을 지난 뒤 배달되는 것을 막는다(창 길이와 같다)
+URGENCY = "high"  # 정해진 시각 알림이라 안드로이드 Doze 지연 방지(RFC 8030 §5.3 Urgency 헤더)
 BODY_TEXT = "3분이면 충분해요"
 TARGET_URL = "/hoondok"
 TITLES = {
@@ -278,6 +279,7 @@ def _deliver(subscription: PushSubscription, payload: dict[str, str], config: Se
         vapid_private_key=private_key.get_secret_value() if private_key else "",
         vapid_claims={"sub": config.hoondok_vapid_subject or ""},
         ttl=TTL_SECONDS,
+        headers={"Urgency": URGENCY},
         timeout=DELIVER_TIMEOUT_SECONDS,
     )
 

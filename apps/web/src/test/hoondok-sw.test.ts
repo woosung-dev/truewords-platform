@@ -93,6 +93,7 @@ describe("훈독 서비스워커", () => {
         `${ORIGIN}/hoondok/icons/icon-192.png`,
         `${ORIGIN}/hoondok/icons/icon-maskable-512.png`,
         `${ORIGIN}/hoondok/icons/apple-touch-icon-180.png`,
+        `${ORIGIN}/hoondok/icons/badge-96.png`,
         `${ORIGIN}/_next/static/css/app.css`,
         `${ORIGIN}/_next/static/chunks/main.js?v=1`,
       ]),
@@ -194,7 +195,7 @@ describe("훈독 서비스워커 알림 (PLAN-HD-006)", () => {
     expect(worker.self.registration.showNotification).toHaveBeenCalledWith("오늘의 말씀이 준비됐어요", {
       body: "참부모경 1편",
       icon: "/hoondok/icons/icon-192.png",
-      badge: "/hoondok/icons/icon-192.png",
+      badge: "/hoondok/icons/badge-96.png",
       tag: "hoondok-read",
       data: { url: `${ORIGIN}/hoondok/read` },
     });

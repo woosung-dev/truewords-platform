@@ -141,6 +141,7 @@ ICONS=(
   "/hoondok/icons/icon-512.png"
   "/hoondok/icons/icon-maskable-512.png"
   "/hoondok/icons/apple-touch-icon-180.png"
+  "/hoondok/icons/badge-96.png"
 )
 FONT="/hoondok/fonts/${FONT_FILE}"
 
