@@ -17,3 +17,10 @@ export function isHoondokPreviewEnabled(): boolean {
 export function isHoondokTogetherEnabled(): boolean {
   return process.env.NEXT_PUBLIC_HOONDOK_TOGETHER === "1";
 }
+
+// 오늘의 책갈피 (PLAN-HD-012 결정 5). 빌드 시 고정, 미설정 = OFF. 협회가 외부 공유를 허락하지 않으면 이 플래그를 끈다.
+// OFF 면 홈 책갈피 카드가 없고 /hoondok/bookmarks · /hoondok/c/** 는 404 다. /hoondok/bookmark 는 알림 url 이라
+// 404 대신 홈으로 보낸다(계획 §4 — 알림을 누른 사용자가 빈 화면을 보지 않게).
+export function isHoondokCardsEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_HOONDOK_CARDS === "1";
+}

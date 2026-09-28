@@ -1,5 +1,5 @@
 """훈독 DB 모델 — ENT-HD-002 daily_readings · ENT-HD-003 mission_logs · ENT-HD-004 jeongseong_periods ·
-ENT-HD-013~017 함께 읽는 모임 (docs/specs/domain/hoondok-entities.md)."""
+ENT-HD-013~017 함께 읽는 모임 · ENT-HD-019·020 오늘의 책갈피 (docs/specs/domain/hoondok-entities.md)."""
 
 import uuid
 from datetime import date, datetime, time, timezone
@@ -25,6 +25,7 @@ SECTION_ORIGINS = ("auto", "manual")  # 추출 스크립트 산출 / 운영자 �
 MARK_KINDS = ("bookmark", "highlight")
 GROUP_KINDS = ("small_group",)  # 가족 모임은 후속 (PLAN-HD-010)
 GROUP_ROLES = ("leader", "member")
+CARD_STATUSES = ("draft", "active", "retired")  # 오늘의 책갈피 풀 상태 (PLAN-HD-012)
 
 
 class DailyReading(SQLModel, table=True):
@@ -355,3 +356,41 @@ class TtsUsage(SQLModel, table=True):
     cache_key: str = Field(max_length=64)  # sha256 hex — 같은 파일을 다시 만든 경우를 추적한다
     user_id: uuid.UUID | None = Field(default=None)
     created_at: datetime = Field(default_factory=_utcnow)
+
+
+# --- 오늘의 책갈피 (PLAN-HD-012, ENT-HD-019·020) ------------------------------------
+
+
+class WordCard(SQLModel, table=True):
+    """ENT-HD-019 말씀 카드 풀. 본문은 원문 그대로이며 만든 뒤 바꾸지 않는다(admin 수정 불가).
+
+    오늘 카드는 저장하지 않고 계산한다 — 그날 `pinned_on` 카드, 없으면 active 풀의 날짜 서수 회전
+    (hoondok/cards_service.py `pick_today_card`).
+    """
+
+    __tablename__ = "word_cards"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    text: str = Field(sa_column=Column(Text, nullable=False))
+    volume: str = Field(max_length=512, index=True)  # Qdrant payload 원문 그대로 — 권리 판정 키
+    chunk_id: str = Field(max_length=128)  # Qdrant point id, FK 아님. 원문 역추적용이라 필수
+    chunk_index: int
+    work_title: str = Field(max_length=200)
+    source_label: str = Field(max_length=300)  # 예: "천성경 제1편 하나님 p.42"
+    topic: str | None = Field(default=None, max_length=200)
+    status: str = Field(default="draft", max_length=16, sa_column_kwargs={"server_default": "draft"})  # CARD_STATUSES
+    pinned_on: date | None = Field(default=None, unique=True)  # KST. 이 날 이 카드를 강제로 내보낸다
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class CardReceipt(SQLModel, table=True):
+    """ENT-HD-020 나의 책갈피. 받은 날과 건넴 표시만 둔다 — 열람 수·받은 사람 정보는 저장하지 않는다."""
+
+    __tablename__ = "card_receipts"
+    __table_args__ = (UniqueConstraint("user_id", "card_id", name="uq_card_receipts_user_card"),)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    card_id: uuid.UUID = Field(foreign_key="word_cards.id", index=True)
+    received_on: date  # KST. 서버가 today_kst() 로 정한다
+    shared_at: datetime | None = Field(default=None)  # 처음 건넨 시각(naive UTC)

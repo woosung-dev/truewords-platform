@@ -8,7 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.common.database import get_async_session
 from app.core.config import settings
 from app.modules.admin.auth import decode_access_token
+from app.modules.hoondok.cards_repository import CardRepository
 from app.modules.hoondok.dependencies import (
+    get_card_repository,
     get_group_invite_verifier,
     get_group_repository,
     get_jeongseong_repository,
@@ -59,13 +61,15 @@ async def get_user_data_purgers(
     notifications: NotificationRepository = Depends(get_notification_repository),
     library: LibraryRepository = Depends(get_library_repository),
     groups: GroupRepository = Depends(get_group_repository),
+    cards: CardRepository = Depends(get_card_repository),
 ) -> list[UserDataPurger]:
     """계정 삭제(API-HD-011)에서 함께 지울 훈독 리포. identity → hoondok 의존은 이 DI 한 곳에만 둔다.
 
     get_async_session 은 요청당 캐시되므로 UserRepository 와 같은 세션을 공유하고, 삭제는 사용자 저장 커밋에 묶인다.
     """
     # library = reading_positions·passage_marks, groups = 모임원·한 줄·반응 + 리더 자동 이전 (PLAN-HD-010)
-    return [missions, jeongseong, notifications, library, groups]
+    # cards = card_receipts (PLAN-HD-012)
+    return [missions, jeongseong, notifications, library, groups, cards]
 
 
 def decode_hoondok_token(token: str) -> uuid.UUID | None:

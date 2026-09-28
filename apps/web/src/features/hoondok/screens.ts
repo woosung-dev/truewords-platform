@@ -71,6 +71,10 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "today",
     variant: "app",
   },
+  // 오늘의 책갈피 (PLAN-HD-012, SCR-PWA-023·025·026). 받은 사람 화면(/hoondok/c/{id})은 밖에서 들어오므로 뒤로 링크가 없다.
+  { match: "/hoondok/bookmark", title: "오늘의 책갈피", backHref: "/hoondok", tabId: "today", variant: "app" },
+  { match: "/hoondok/c/", title: "오늘의 책갈피", tabId: "today", variant: "app" },
+  { match: "/hoondok/bookmarks", title: "나의 책갈피", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
   { match: "/hoondok/garden", title: "나의 정원", tabId: "garden", variant: "app" },
   { match: "/hoondok/settings", title: "알림·설치", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
   { match: "/hoondok/family", title: "가족·친구", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },

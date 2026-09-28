@@ -50,6 +50,12 @@
 | `API-HD-044` | GET | `/hoondok/tts/voices` | 공개 | HD-011 |
 | `API-HD-045` | GET | `/hoondok/tts/chunks/{chunk_id}?voice=` | `hoondok_token` + limiter | HD-011 |
 | `API-HD-046` | GET | `/hoondok/tts/readings/{reading_id}/{paragraph}?voice=` | `hoondok_token` + limiter | HD-011 |
+| `API-HD-047` | GET | `/hoondok/cards/today` | 없음(공개) | HD-012 |
+| `API-HD-048` | GET | `/hoondok/cards/{card_id}` | 없음(공개) | HD-012 |
+| `API-HD-049` | POST | `/hoondok/me/cards/{card_id}/receive` | `hoondok_token` + `X-Requested-With` | HD-012 |
+| `API-HD-050` | POST | `/hoondok/me/cards/{card_id}/shared` | `hoondok_token` + `X-Requested-With` | HD-012 |
+| `API-HD-051` | GET | `/hoondok/me/cards?filter=shared` | `hoondok_token` | HD-012 |
+| `API-HD-052` | GET · POST · PATCH | `/admin/hoondok/cards` · `/admin/hoondok/cards/{card_id}` | `admin_token` + 게이트 (쓰기는 `X-Requested-With`) | HD-012 |
 
 공통 규칙:
 
@@ -626,3 +632,12 @@ GET → `[{id, name, member_count, created_at}]`(최신순) — 모임원 이름
 - Google 호출 재시도(1회)는 5xx·연결 실패만. 읽기 타임아웃은 이미 과금됐을 수 있어 재시도하지 않는다. 요청 전체 상한 45초.
 - 오류(`ErrorResponse.error_code`): 401 미인증 · 404 `TTS_SOURCE_NOT_FOUND`(본문 없음·권리 없음·단락 범위 밖) · 422 `TTS_INVALID_VOICE` · 429 `TTS_QUOTA_EXCEEDED`(월 상한) · 429 `TTS_USER_LIMIT_EXCEEDED`(사용자 24시간 한도) · 429 `RATE_LIMIT_EXCEEDED`(요청 빈도 — 웹은 짧게 재시도하는 일시적 오류로 본다) · 502 `TTS_UPSTREAM_FAILED` · 503 `TTS_DISABLED`(키 없음 또는 캐시 디렉터리 쓰기 불가) · 504 `TTS_TIMEOUT`. 검사 순서는 voice → 켜짐 → 본문 → 캐시 → 상한.
 - limiter: 계정 `RateLimiter(60, 60)` + IP `RateLimiter(600, 60)`(모임이 한 IP 를 함께 쓰는 경우). 비용은 요청 수가 아니라 글자 한도가 막는다.
+
+## PLAN-HD-012 — 오늘의 책갈피 (API-HD-047~052)
+
+[계획](../../plans/active/2026-09-28-hoondok-cards.md). 공개 범위는 `status=active` 카드뿐이고 외부 공유 권리 게이트는 없다(`DEC-PWA-024`). 카드 응답에는 원문 연결용 `volume`·`chunk_id`·`chunk_index` 가 있다.
+
+- `API-HD-047` 항상 200 `{date, card}` — 그날 고정 카드, 없으면 active 풀 `(created_at, id)` 정렬 후 `date.toordinal() % n`, 풀이 비면 `card: null`. `API-HD-048` active 가 아니면 404.
+- `API-HD-049·050` 멱등 upsert(`received_on` 은 처음 받은 KST 날짜, `shared_at` 은 처음 건넨 시각). 050 은 받지 않은 카드면 받기도 함께 기록한다. 비공개 카드 404.
+- `API-HD-051` `{shelves[{work_title, count}], items[{card, received_on, shared_at}]}` — 책장은 개수 내림차순, 목록은 받은 날 최신순, active 카드만.
+- `API-HD-052` 목록(`status`·`page`·`page_size`)·등록(기본 draft)·PATCH(`status`·`pinned_on` 만, 그 밖의 필드는 422 — 본문 불변). 같은 날짜 고정은 409. 변경마다 `log_audit`.

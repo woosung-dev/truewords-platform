@@ -38,6 +38,8 @@ from app.modules.hoondok.models import (
     ReadingPosition,
     SharedJeongseong,
     ShareReaction,
+    CardReceipt,
+    WordCard,
 )
 from app.modules.identity.dependencies import COOKIE_NAME
 from app.modules.identity.models import User
@@ -95,6 +97,8 @@ async def ctx():
         PushSubscription,
         ReadingPosition,
         PassageMark,
+        WordCard,
+        CardReceipt,
         *GROUP_TABLES,
     ]
     async with engine.begin() as conn:

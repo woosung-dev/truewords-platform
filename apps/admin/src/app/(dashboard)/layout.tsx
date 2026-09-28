@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
+  Bookmark,
   Bot,
   CalendarDays,
   Database,
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { href: "/hoondok/rights", label: "훈독 권리", icon: ScrollText },
   { href: "/hoondok/jeongseongs", label: "공식 정성", icon: Flame },
   { href: "/hoondok/groups", label: "모임", icon: Users },
+  { href: "/hoondok/cards", label: "오늘의 책갈피", icon: Bookmark },
   { href: "/hoondok", label: "훈독 편성", icon: CalendarDays },
   { href: "/data-sources", label: "데이터 소스", icon: Database },
   { href: "/analytics", label: "검색 분석", icon: BarChart3 },

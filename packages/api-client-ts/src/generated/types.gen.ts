@@ -195,6 +195,211 @@ export type BulkRightsResponse = {
 };
 
 /**
+ * CardAdminCreate
+ *
+ * POST 본문. 본문(`text`)은 원문 그대로 — 등록 뒤에는 바꿀 수 없다.
+ */
+export type CardAdminCreate = {
+    /**
+     * Chunk Id
+     */
+    chunk_id: string;
+    /**
+     * Chunk Index
+     */
+    chunk_index: number;
+    /**
+     * Pinned On
+     */
+    pinned_on?: string | null;
+    /**
+     * Source Label
+     */
+    source_label: string;
+    /**
+     * Status
+     */
+    status?: 'draft' | 'active' | 'retired';
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Topic
+     */
+    topic?: string | null;
+    /**
+     * Volume
+     */
+    volume: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * CardAdminItem
+ */
+export type CardAdminItem = {
+    /**
+     * Chunk Id
+     */
+    chunk_id: string;
+    /**
+     * Chunk Index
+     */
+    chunk_index: number;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Pinned On
+     */
+    pinned_on: string | null;
+    /**
+     * Source Label
+     */
+    source_label: string;
+    /**
+     * Status
+     */
+    status: 'draft' | 'active' | 'retired';
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Topic
+     */
+    topic: string | null;
+    /**
+     * Volume
+     */
+    volume: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * CardAdminListResponse
+ */
+export type CardAdminListResponse = {
+    /**
+     * Items
+     */
+    items: Array<CardAdminItem>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * CardAdminUpdate
+ *
+ * PATCH 본문. 보낸 필드만 바꾼다(`pinned_on: null` 은 고정 해제). 그 밖의 필드(`text` 포함)는 422.
+ */
+export type CardAdminUpdate = {
+    /**
+     * Pinned On
+     */
+    pinned_on?: string | null;
+    /**
+     * Status
+     */
+    status?: 'draft' | 'active' | 'retired' | null;
+};
+
+/**
+ * CardPublic
+ *
+ * 공개 카드 1장. `volume`·`chunk_id`·`chunk_index` 로 서고 원문(`/hoondok/words/{volume}?chunk_id=`)에 잇는다.
+ */
+export type CardPublic = {
+    /**
+     * Chunk Id
+     */
+    chunk_id: string;
+    /**
+     * Chunk Index
+     */
+    chunk_index: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Source Label
+     */
+    source_label: string;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Topic
+     */
+    topic: string | null;
+    /**
+     * Volume
+     */
+    volume: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * CardReceiptItem
+ *
+ * API-HD-049·050 응답이자 051 목록의 한 줄.
+ */
+export type CardReceiptItem = {
+    card: CardPublic;
+    /**
+     * Received On
+     */
+    received_on: string;
+    /**
+     * Shared At
+     */
+    shared_at: string | null;
+};
+
+/**
+ * CardShelf
+ *
+ * 책장 한 칸 — 책(`work_title`)별 개수.
+ */
+export type CardShelf = {
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
  * CategoryDocumentStats
  *
  * 카테고리별 Qdrant 문서 통계.
@@ -2099,6 +2304,22 @@ export type MonthHistoryResponse = {
 };
 
 /**
+ * MyCardsResponse
+ *
+ * API-HD-051. shelves 는 개수 내림차순(동률은 책 이름순), items 는 받은 날 최신순.
+ */
+export type MyCardsResponse = {
+    /**
+     * Items
+     */
+    items: Array<CardReceiptItem>;
+    /**
+     * Shelves
+     */
+    shelves: Array<CardShelf>;
+};
+
+/**
  * MyGroupItem
  *
  * API-HD-030. today_read_count 는 오늘 완료자 수(전체 인원이 아니다).
@@ -3263,6 +3484,19 @@ export type SummaryResponse = {
      * Week
      */
     week: Array<WeekDay>;
+};
+
+/**
+ * TodayCardResponse
+ *
+ * API-HD-047. 풀이 비었으면 card=null — `/hoondok/today` 처럼 항상 200 이다.
+ */
+export type TodayCardResponse = {
+    card: CardPublic | null;
+    /**
+     * Date
+     */
+    date: string;
 };
 
 /**
@@ -4857,6 +5091,99 @@ export type DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses = {
 
 export type DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponse = DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses[keyof DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses];
 
+export type ListCardsAdminHoondokCardsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Status
+         */
+        status?: 'draft' | 'active' | 'retired' | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/admin/hoondok/cards';
+};
+
+export type ListCardsAdminHoondokCardsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListCardsAdminHoondokCardsGetError = ListCardsAdminHoondokCardsGetErrors[keyof ListCardsAdminHoondokCardsGetErrors];
+
+export type ListCardsAdminHoondokCardsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: CardAdminListResponse;
+};
+
+export type ListCardsAdminHoondokCardsGetResponse = ListCardsAdminHoondokCardsGetResponses[keyof ListCardsAdminHoondokCardsGetResponses];
+
+export type CreateCardAdminHoondokCardsPostData = {
+    body: CardAdminCreate;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/cards';
+};
+
+export type CreateCardAdminHoondokCardsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateCardAdminHoondokCardsPostError = CreateCardAdminHoondokCardsPostErrors[keyof CreateCardAdminHoondokCardsPostErrors];
+
+export type CreateCardAdminHoondokCardsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: CardAdminItem;
+};
+
+export type CreateCardAdminHoondokCardsPostResponse = CreateCardAdminHoondokCardsPostResponses[keyof CreateCardAdminHoondokCardsPostResponses];
+
+export type UpdateCardAdminHoondokCardsCardIdPatchData = {
+    body: CardAdminUpdate;
+    path: {
+        /**
+         * Card Id
+         */
+        card_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/cards/{card_id}';
+};
+
+export type UpdateCardAdminHoondokCardsCardIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateCardAdminHoondokCardsCardIdPatchError = UpdateCardAdminHoondokCardsCardIdPatchErrors[keyof UpdateCardAdminHoondokCardsCardIdPatchErrors];
+
+export type UpdateCardAdminHoondokCardsCardIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: CardAdminItem;
+};
+
+export type UpdateCardAdminHoondokCardsCardIdPatchResponse = UpdateCardAdminHoondokCardsCardIdPatchResponses[keyof UpdateCardAdminHoondokCardsCardIdPatchResponses];
+
 export type ListContentRightsAdminHoondokContentRightsGetData = {
     body?: never;
     path?: never;
@@ -5784,6 +6111,52 @@ export type SignupHoondokAuthSignupPostResponses = {
 
 export type SignupHoondokAuthSignupPostResponse = SignupHoondokAuthSignupPostResponses[keyof SignupHoondokAuthSignupPostResponses];
 
+export type GetTodayCardHoondokCardsTodayGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/cards/today';
+};
+
+export type GetTodayCardHoondokCardsTodayGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: TodayCardResponse;
+};
+
+export type GetTodayCardHoondokCardsTodayGetResponse = GetTodayCardHoondokCardsTodayGetResponses[keyof GetTodayCardHoondokCardsTodayGetResponses];
+
+export type GetCardHoondokCardsCardIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Card Id
+         */
+        card_id: string;
+    };
+    query?: never;
+    url: '/hoondok/cards/{card_id}';
+};
+
+export type GetCardHoondokCardsCardIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetCardHoondokCardsCardIdGetError = GetCardHoondokCardsCardIdGetErrors[keyof GetCardHoondokCardsCardIdGetErrors];
+
+export type GetCardHoondokCardsCardIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: CardPublic;
+};
+
+export type GetCardHoondokCardsCardIdGetResponse = GetCardHoondokCardsCardIdGetResponses[keyof GetCardHoondokCardsCardIdGetResponses];
+
 export type ReportClientErrorHoondokClientErrorsPostData = {
     body: ClientErrorInput;
     path?: never;
@@ -6379,6 +6752,98 @@ export type GetSeriesHoondokLibrarySeriesGetResponses = {
 };
 
 export type GetSeriesHoondokLibrarySeriesGetResponse = GetSeriesHoondokLibrarySeriesGetResponses[keyof GetSeriesHoondokLibrarySeriesGetResponses];
+
+export type GetMyCardsHoondokMeCardsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Filter
+         *
+         * shared = 건넨 책갈피만
+         */
+        filter?: 'shared' | null;
+    };
+    url: '/hoondok/me/cards';
+};
+
+export type GetMyCardsHoondokMeCardsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMyCardsHoondokMeCardsGetError = GetMyCardsHoondokMeCardsGetErrors[keyof GetMyCardsHoondokMeCardsGetErrors];
+
+export type GetMyCardsHoondokMeCardsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyCardsResponse;
+};
+
+export type GetMyCardsHoondokMeCardsGetResponse = GetMyCardsHoondokMeCardsGetResponses[keyof GetMyCardsHoondokMeCardsGetResponses];
+
+export type ReceiveCardHoondokMeCardsCardIdReceivePostData = {
+    body?: never;
+    path: {
+        /**
+         * Card Id
+         */
+        card_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/cards/{card_id}/receive';
+};
+
+export type ReceiveCardHoondokMeCardsCardIdReceivePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReceiveCardHoondokMeCardsCardIdReceivePostError = ReceiveCardHoondokMeCardsCardIdReceivePostErrors[keyof ReceiveCardHoondokMeCardsCardIdReceivePostErrors];
+
+export type ReceiveCardHoondokMeCardsCardIdReceivePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: CardReceiptItem;
+};
+
+export type ReceiveCardHoondokMeCardsCardIdReceivePostResponse = ReceiveCardHoondokMeCardsCardIdReceivePostResponses[keyof ReceiveCardHoondokMeCardsCardIdReceivePostResponses];
+
+export type MarkCardSharedHoondokMeCardsCardIdSharedPostData = {
+    body?: never;
+    path: {
+        /**
+         * Card Id
+         */
+        card_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/cards/{card_id}/shared';
+};
+
+export type MarkCardSharedHoondokMeCardsCardIdSharedPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type MarkCardSharedHoondokMeCardsCardIdSharedPostError = MarkCardSharedHoondokMeCardsCardIdSharedPostErrors[keyof MarkCardSharedHoondokMeCardsCardIdSharedPostErrors];
+
+export type MarkCardSharedHoondokMeCardsCardIdSharedPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: CardReceiptItem;
+};
+
+export type MarkCardSharedHoondokMeCardsCardIdSharedPostResponse = MarkCardSharedHoondokMeCardsCardIdSharedPostResponses[keyof MarkCardSharedHoondokMeCardsCardIdSharedPostResponses];
 
 export type ListMyGroupsHoondokMeGroupsGetData = {
     body?: never;

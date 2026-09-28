@@ -272,6 +272,350 @@
         "title": "BulkRightsResponse",
         "type": "object"
       },
+      "CardAdminCreate": {
+        "description": "POST 본문. 본문(`text`)은 원문 그대로 — 등록 뒤에는 바꿀 수 없다.",
+        "properties": {
+          "chunk_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "chunk_index": {
+            "minimum": 0.0,
+            "title": "Chunk Index",
+            "type": "integer"
+          },
+          "pinned_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned On"
+          },
+          "source_label": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Source Label",
+            "type": "string"
+          },
+          "status": {
+            "default": "draft",
+            "enum": [
+              "draft",
+              "active",
+              "retired"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic"
+          },
+          "volume": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "volume",
+          "chunk_id",
+          "chunk_index",
+          "work_title",
+          "source_label"
+        ],
+        "title": "CardAdminCreate",
+        "type": "object"
+      },
+      "CardAdminItem": {
+        "properties": {
+          "chunk_id": {
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "chunk_index": {
+            "title": "Chunk Index",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "pinned_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned On"
+          },
+          "source_label": {
+            "title": "Source Label",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "active",
+              "retired"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "volume",
+          "chunk_id",
+          "chunk_index",
+          "work_title",
+          "source_label",
+          "topic",
+          "status",
+          "pinned_on",
+          "created_at"
+        ],
+        "title": "CardAdminItem",
+        "type": "object"
+      },
+      "CardAdminListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CardAdminItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "CardAdminListResponse",
+        "type": "object"
+      },
+      "CardAdminUpdate": {
+        "additionalProperties": false,
+        "description": "PATCH 본문. 보낸 필드만 바꾼다(`pinned_on: null` 은 고정 해제). 그 밖의 필드(`text` 포함)는 422.",
+        "properties": {
+          "pinned_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned On"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "draft",
+                  "active",
+                  "retired"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "CardAdminUpdate",
+        "type": "object"
+      },
+      "CardPublic": {
+        "description": "공개 카드 1장. `volume`·`chunk_id`·`chunk_index` 로 서고 원문(`/hoondok/words/{volume}?chunk_id=`)에 잇는다.",
+        "properties": {
+          "chunk_id": {
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "chunk_index": {
+            "title": "Chunk Index",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "source_label": {
+            "title": "Source Label",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "volume",
+          "chunk_id",
+          "chunk_index",
+          "work_title",
+          "source_label",
+          "topic"
+        ],
+        "title": "CardPublic",
+        "type": "object"
+      },
+      "CardReceiptItem": {
+        "description": "API-HD-049·050 응답이자 051 목록의 한 줄.",
+        "properties": {
+          "card": {
+            "$ref": "#/components/schemas/CardPublic"
+          },
+          "received_on": {
+            "format": "date",
+            "title": "Received On",
+            "type": "string"
+          },
+          "shared_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shared At"
+          }
+        },
+        "required": [
+          "card",
+          "received_on",
+          "shared_at"
+        ],
+        "title": "CardReceiptItem",
+        "type": "object"
+      },
+      "CardShelf": {
+        "description": "책장 한 칸 — 책(`work_title`)별 개수.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "work_title",
+          "count"
+        ],
+        "title": "CardShelf",
+        "type": "object"
+      },
       "CategoryDocumentStats": {
         "description": "카테고리별 Qdrant 문서 통계.",
         "properties": {
@@ -3498,6 +3842,31 @@
         "title": "MonthHistoryResponse",
         "type": "object"
       },
+      "MyCardsResponse": {
+        "description": "API-HD-051. shelves 는 개수 내림차순(동률은 책 이름순), items 는 받은 날 최신순.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CardReceiptItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "shelves": {
+            "items": {
+              "$ref": "#/components/schemas/CardShelf"
+            },
+            "title": "Shelves",
+            "type": "array"
+          }
+        },
+        "required": [
+          "shelves",
+          "items"
+        ],
+        "title": "MyCardsResponse",
+        "type": "object"
+      },
       "MyGroupItem": {
         "description": "API-HD-030. today_read_count 는 오늘 완료자 수(전체 인원이 아니다).",
         "properties": {
@@ -5299,6 +5668,32 @@
           "week"
         ],
         "title": "SummaryResponse",
+        "type": "object"
+      },
+      "TodayCardResponse": {
+        "description": "API-HD-047. 풀이 비었으면 card=null — `/hoondok/today` 처럼 항상 200 이다.",
+        "properties": {
+          "card": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CardPublic"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "card"
+        ],
+        "title": "TodayCardResponse",
         "type": "object"
       },
       "TodayFlags": {
@@ -7720,6 +8115,178 @@
         ]
       }
     },
+    "/admin/hoondok/cards": {
+      "get": {
+        "description": "API-HD-052 카드 풀 목록(최신 등록순). `status` 로 거른다.",
+        "operationId": "list_cards_admin_hoondok_cards_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "draft",
+                    "active",
+                    "retired"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAdminListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Cards",
+        "tags": [
+          "admin-hoondok"
+        ]
+      },
+      "post": {
+        "description": "API-HD-052 카드 등록 → 201. 409 같은 날짜 고정, 422 검증.",
+        "operationId": "create_card_admin_hoondok_cards_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAdminCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAdminItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Card",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/cards/{card_id}": {
+      "patch": {
+        "description": "API-HD-052 활성화·중지(status)·날짜 고정(pinned_on, null 이면 해제). 404 없음, 409 날짜 충돌, 422 그 밖의 필드(text 포함).",
+        "operationId": "update_card_admin_hoondok_cards__card_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "card_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Card Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardAdminUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardAdminItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Card",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
     "/admin/hoondok/content-rights": {
       "get": {
         "operationId": "list_content_rights_admin_hoondok_content_rights_get",
@@ -9178,6 +9745,72 @@
         ]
       }
     },
+    "/hoondok/cards/today": {
+      "get": {
+        "description": "API-HD-047 오늘(KST)의 책갈피. 고정 카드 → 없으면 active 풀 회전. 풀이 비면 card=null — 항상 200, 인증 없음.",
+        "operationId": "get_today_card_hoondok_cards_today_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayCardResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Today Card",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/cards/{card_id}": {
+      "get": {
+        "description": "API-HD-048 카드 1장(받은 사람 화면·OG 이미지용). active 가 아니면 404, 인증 없음.",
+        "operationId": "get_card_hoondok_cards__card_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "card_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Card Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Card",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/client-errors": {
       "post": {
         "operationId": "report_client_error_hoondok_client_errors_post",
@@ -10072,6 +10705,147 @@
           }
         },
         "summary": "Get Series",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/cards": {
+      "get": {
+        "description": "API-HD-051 나의 책갈피 — 책별 개수(책장) + 받은 날 최신순 목록. active 카드만. 401 미인증.",
+        "operationId": "get_my_cards_hoondok_me_cards_get",
+        "parameters": [
+          {
+            "description": "shared = 건넨 책갈피만",
+            "in": "query",
+            "name": "filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "shared",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "shared = 건넨 책갈피만",
+              "title": "Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyCardsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get My Cards",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/cards/{card_id}/receive": {
+      "post": {
+        "description": "API-HD-049 책갈피 받기(멱등, 받은 날은 처음 받은 KST 날짜 유지). 404 비공개 카드, 403 CSRF, 401 미인증.",
+        "operationId": "receive_card_hoondok_me_cards__card_id__receive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "card_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Card Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardReceiptItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Receive Card",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/cards/{card_id}/shared": {
+      "post": {
+        "description": "API-HD-050 건넴 표시(멱등). 받지 않은 카드면 받기도 함께 기록한다. 받은 사람 정보는 저장하지 않는다.",
+        "operationId": "mark_card_shared_hoondok_me_cards__card_id__shared_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "card_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Card Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardReceiptItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mark Card Shared",
         "tags": [
           "hoondok"
         ]

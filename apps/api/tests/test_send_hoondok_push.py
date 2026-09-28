@@ -27,6 +27,7 @@ from app.modules.hoondok.models import (
     MissionLog,
     NotificationPreference,
     PushSubscription,
+    WordCard,
 )
 from app.modules.hoondok.push_sender import JeongseongDay, build_payload, is_in_window, run_push_sender
 from app.modules.identity.models import User
@@ -87,6 +88,7 @@ async def factory():
                 DailyReading.__table__,
                 JeongseongPeriod.__table__,
                 ContentRight.__table__,
+                WordCard.__table__,
             ],
         )
     session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -234,28 +236,63 @@ def test_is_in_window_does_not_wrap_past_midnight():
 @pytest.mark.parametrize(
     "level,title",
     [
-        ("neutral", "오늘의 읽을거리가 준비됐어요"),
-        ("faith", "오늘의 말씀이 준비됐어요"),
-        ("unknown", "오늘의 읽을거리가 준비됐어요"),  # 모르는 값은 중립형
+        ("neutral", "오늘의 책갈피가 꽂혀 있어요"),
+        ("faith", "오늘의 말씀 책갈피가 꽂혀 있어요"),
+        ("unknown", "오늘의 책갈피가 꽂혀 있어요"),  # 모르는 값은 중립형
     ],
 )
 def test_build_payload_titles(level: str, title: str):
     payload = build_payload(level)
-    assert payload == {"title": title, "body": "3분이면 충분해요", "url": "/hoondok"}
+    assert payload == {"title": title, "body": "한 장 꺼내 읽어 보세요", "url": "/hoondok/bookmark"}
 
 
 @pytest.mark.parametrize(
     "level,title,body",
     [
         # 중립형은 제목을 바꾸지 않는다 — 정성 주제(신앙 맥락)가 잠금 화면에 드러나지 않는다.
-        ("neutral", "오늘의 읽을거리가 준비됐어요", "5일차 · 3분이면 충분해요"),
-        ("faith", "감사 정성 5일차", "오늘의 말씀이 준비됐어요"),
-        ("unknown", "오늘의 읽을거리가 준비됐어요", "5일차 · 3분이면 충분해요"),
+        ("neutral", "오늘의 책갈피가 꽂혀 있어요", "5일차 · 한 장 꺼내 읽어 보세요"),
+        ("faith", "감사 정성 5일차", "오늘의 말씀 책갈피가 꽂혀 있어요"),
+        ("unknown", "오늘의 책갈피가 꽂혀 있어요", "5일차 · 한 장 꺼내 읽어 보세요"),
     ],
 )
 def test_build_payload_jeongseong(level: str, title: str, body: str):
     payload = build_payload(level, JeongseongDay(topic="감사", day=5))
-    assert payload == {"title": title, "body": body, "url": "/hoondok"}
+    assert payload == {"title": title, "body": body, "url": "/hoondok/bookmark"}
+
+
+def test_build_payload_card_title_only_for_faith():
+    """신앙형만 오늘 책갈피의 책 이름을 넣는다. 중립형은 책 이름도 잠금 화면에 올리지 않는다(PLAN-HD-012)."""
+    faith = build_payload("faith", card_work_title="천성경")
+    assert faith["title"] == "오늘의 책갈피 — 천성경에서 한 장"
+    assert build_payload("neutral", card_work_title="천성경")["title"] == "오늘의 책갈피가 꽂혀 있어요"
+    with_period = build_payload("faith", JeongseongDay(topic="감사", day=5), card_work_title="천성경")
+    assert with_period["title"] == "감사 정성 5일차"
+    assert with_period["body"] == "오늘의 책갈피 — 천성경에서 한 장"
+    neutral_period = build_payload("neutral", JeongseongDay(topic="감사", day=5), card_work_title="천성경")
+    assert "천성경" not in json.dumps(neutral_period, ensure_ascii=False)
+
+
+async def test_faith_payload_uses_today_card_work_title(factory, push_on, sent_calls):
+    """오늘 책갈피(API-HD-047 과 같은 카드)의 책 이름이 신앙형 제목에 들어간다."""
+    async with factory() as session:
+        session.add(
+            WordCard(
+                text="말씀 한 줄",
+                volume="천성경.pdf",
+                chunk_id="c-1",
+                chunk_index=1,
+                work_title="천성경",
+                source_label="천성경 p.1",
+                status="active",
+            )
+        )
+        await session.commit()
+    await _seed(factory, level="faith")
+
+    await _run(factory, execute=True)
+
+    (call,) = sent_calls
+    assert json.loads(call["data"])["title"] == "오늘의 책갈피 — 천성경에서 한 장"
 
 
 # --- 대상 선정 ----------------------------------------------------------------
@@ -290,9 +327,9 @@ async def test_payload_and_webpush_arguments(factory, push_on, sent_calls):
         "keys": {"p256dh": "p256", "auth": "auth"},
     }
     assert json.loads(call["data"]) == {
-        "title": "오늘의 말씀이 준비됐어요",
-        "body": "3분이면 충분해요",
-        "url": "/hoondok",
+        "title": "오늘의 말씀 책갈피가 꽂혀 있어요",
+        "body": "한 장 꺼내 읽어 보세요",
+        "url": "/hoondok/bookmark",
     }
     assert call["vapid_private_key"] == "test-private"
     assert call["vapid_claims"] == {"sub": "mailto:admin@example.com"}
@@ -403,9 +440,9 @@ async def test_no_official_reading_with_jeongseong_in_progress_is_sent(factory, 
     (call,) = sent_calls
     assert call["subscription_info"]["endpoint"] == "https://push.example.com/a"
     assert json.loads(call["data"]) == {
-        "title": "오늘의 읽을거리가 준비됐어요",
-        "body": "3일차 · 3분이면 충분해요",
-        "url": "/hoondok",
+        "title": "오늘의 책갈피가 꽂혀 있어요",
+        "body": "3일차 · 한 장 꺼내 읽어 보세요",
+        "url": "/hoondok/bookmark",
     }
 
 
@@ -419,7 +456,7 @@ async def test_official_reading_is_sent_as_before(factory, push_on, sent_calls, 
 
     assert (summary.sent, summary.skipped_no_reading) == (1, 0)
     (call,) = sent_calls
-    assert json.loads(call["data"])["body"] == "3분이면 충분해요"
+    assert json.loads(call["data"])["body"] == "한 장 꺼내 읽어 보세요"
 
 
 @pytest.mark.parametrize(
@@ -430,8 +467,8 @@ async def test_official_reading_is_sent_as_before(factory, push_on, sent_calls, 
 @pytest.mark.parametrize(
     "level,title,body",
     [
-        ("neutral", "오늘의 읽을거리가 준비됐어요", "{day}일차 · 3분이면 충분해요"),
-        ("faith", "감사 정성 {day}일차", "오늘의 말씀이 준비됐어요"),
+        ("neutral", "오늘의 책갈피가 꽂혀 있어요", "{day}일차 · 한 장 꺼내 읽어 보세요"),
+        ("faith", "감사 정성 {day}일차", "오늘의 말씀 책갈피가 꽂혀 있어요"),
     ],
 )
 async def test_jeongseong_in_progress_merges_day_into_payload(
@@ -448,7 +485,7 @@ async def test_jeongseong_in_progress_merges_day_into_payload(
     assert json.loads(call["data"]) == {
         "title": title.format(day=day),
         "body": body.format(day=day),
-        "url": "/hoondok",
+        "url": "/hoondok/bookmark",
     }
 
 
@@ -483,9 +520,9 @@ async def test_jeongseong_not_in_progress_is_ignored(
     assert summary.sent == 1
     (call,) = sent_calls
     assert json.loads(call["data"]) == {
-        "title": "오늘의 말씀이 준비됐어요",
-        "body": "3분이면 충분해요",
-        "url": "/hoondok",
+        "title": "오늘의 말씀 책갈피가 꽂혀 있어요",
+        "body": "한 장 꺼내 읽어 보세요",
+        "url": "/hoondok/bookmark",
     }
 
 
@@ -683,8 +720,8 @@ async def test_to_email_reflects_jeongseong_in_progress(factory, push_on, sent_c
     (call,) = sent_calls
     assert json.loads(call["data"]) == {
         "title": "감사 정성 7일차",
-        "body": "오늘의 말씀이 준비됐어요",
-        "url": "/hoondok",
+        "body": "오늘의 말씀 책갈피가 꽂혀 있어요",
+        "url": "/hoondok/bookmark",
     }
 
 
