@@ -143,7 +143,8 @@ GET /hoondok/today
 200 `{ today: { read, pray, study }, streak_days, best_streak_days, total_days, week: [{ date, done }] × 7 }`. 401 미인증.
 
 - `today.*` 는 오늘(KST) 종류별 완료 여부. `streak_days`·`best_streak_days`·`total_days`·`week[].done` 은 **`read`(훈독하기) 완료 기준**(계획 §10, 2026-09-16)이며 `mission_logs` 에서 매번 계산하고 저장하지 않는다(`hoondok/streak.py`).
-- `streak_days`: 오늘 완료면 오늘부터, 아니면 어제부터 거슬러 센다(오늘 아직 안 읽었다고 연속이 끊기지 않는다). 어제도 비었으면 0.
+- `streak_days`: 오늘 완료면 오늘부터, 아니면 어제부터 거슬러 센다(오늘 아직 안 읽었다고 연속이 끊기지 않는다). 편성이 있는데 읽지 않은 날에서 끊긴다.
+- 편성 없는 날(`daily_readings` 행 없음·`withdrawn`)은 `streak_days`·`best_streak_days` 에서 건너뛴다 — 읽지 않았어도 끊지 않고 늘리지도 않는다. 읽은 날은 편성 여부와 상관없이 센다(정성 진행자는 빈 날에도 정성 말씀을 읽는다) `[가정]`.
 - `week`: 월요일 시작 7칸, 홈 요일 스트립과 같은 순서.
 
 ## API-HD-005 `POST /hoondok/missions/{kind}/complete` (Phase 2)
@@ -340,6 +341,7 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 | 2026-09-23 | API-HD-015·016 항목에 `display_text` 추가(하위 호환). 원본 `text` 는 유지하고 표시할 때만 정리한다 — Qdrant 재적재·재임베딩 없음 | 확정 · PLAN-HD-008 트랙 A |
 | 2026-09-22 | API-HD-019~022 신설(Web Push). VAPID 미설정이면 구독 자체를 409 `PUSH_DISABLED` 로 거절(조용히 저장하지 않음), `endpoint` unique + 소유 이전, `read_time` 은 `HH:MM` 문자열·KST 고정, 설정 PUT 은 전체 교체. 발송기는 sub-PR B | 확정 · PLAN-HD-006 sub-PR A |
 | 2026-09-28 | API-HD-020 에서 알림 문구 수준 필드(중립·신앙) 제거 — 오버 스펙, 알림 문구는 중립 문구 하나. PUT 에 옛 필드가 오면 422 대신 버린다 | 확정 · PLAN-HD-006 §8 |
+| 2026-09-29 | API-HD-004 연속일은 편성 없는 날(행 없음·철회)을 건너뛴다(S1) — 운영 공백이 사용자 연속을 0 으로 만들지 않게. 응답 스키마 변경 없음 | 확정 · C3 편성 공백 |
 
 ---
 
