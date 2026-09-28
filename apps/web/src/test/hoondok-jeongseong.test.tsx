@@ -106,11 +106,15 @@ describe("정성 시트 (SCR-PWA-004)", () => {
     for (const days of ["7", "21", "40"]) {
       expect(screen.getByRole("radio", { name: new RegExp(`^${days}일`) })).toBeInTheDocument();
     }
-    // 기본 21일 · 시작일 오늘(KST) · 알림 05:30. 가족 챌린지 토글은 W3 범위라 없다
+    // 기본 21일 · 시작일 오늘(KST). 가족 챌린지 토글은 W3 범위라 없다
     expect(screen.getByRole("radio", { name: /^21일/ })).toBeChecked();
     expect(screen.getByLabelText("시작일")).toHaveValue(TODAY);
-    expect(screen.getByLabelText("알림 시각")).toHaveValue("05:30");
     expect(screen.queryByText(/가족 챌린지/)).toBeNull();
+    // 정성 알림은 훈독하기 알림에 합쳤다 — 시각 입력 대신 설정으로 가는 링크만 있다
+    expect(document.querySelector('input[type="time"]')).toBeNull();
+    expect(screen.queryByLabelText(/알림 시각/)).toBeNull();
+    expect(screen.getByRole("link", { name: "설정 › 훈독하기" })).toHaveAttribute("href", "/hoondok/settings");
+    expect(screen.getByText(/시각에 맞춰 가요/)).toBeInTheDocument();
   });
 
   it("21일 · 주제 '감사' 제출 → POST 본문과 CSRF 헤더, 성공하면 홈으로 닫는다", async () => {
@@ -125,12 +129,13 @@ describe("정성 시트 (SCR-PWA-004)", () => {
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/hoondok", { scroll: false }));
     const post = lastPost();
     expect(post.url).toBe("/api/backend/hoondok/me/jeongseong");
+    // reminder_time 은 보내지 않는다 (알림 시각은 설정 › 훈독하기 한 곳)
     expect(post.body).toEqual({
       topic: "감사",
       duration_days: 21,
       started_on: TODAY,
-      reminder_time: "05:30",
     });
+    expect(post.body).not.toHaveProperty("reminder_time");
     expect(post.headers.get("X-Requested-With")).toBe("XMLHttpRequest");
   });
 
@@ -203,7 +208,8 @@ describe("홈 정성 카드 (SCR-PWA-002)", () => {
     expect(await screen.findByText("21일 새벽 정성 · 감사")).toBeInTheDocument();
     expect(screen.getByText("D-14")).toBeInTheDocument();
     expect(screen.getByText("7 / 21일")).toBeInTheDocument();
-    expect(screen.getByText("매일 오전 5:30")).toBeInTheDocument();
+    // 예전 기간에 저장된 reminder_time 이 있어도 카드는 시각을 쓰지 않는다 — 알림은 훈독하기 시각 하나다
+    expect(screen.queryByText(/매일 오전/)).toBeNull();
     // 빠진 날 수는 쓰지 않고 오늘이 몇 일차인지만 적는다 (DEC-PWA-023)
     expect(screen.getByText("7일차")).toBeInTheDocument();
     expect(screen.queryByText("밀린 날")).toBeNull();
