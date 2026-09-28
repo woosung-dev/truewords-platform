@@ -3,7 +3,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
-  BookOpen,
   Check,
   ChevronLeft,
   Copy,
@@ -17,6 +16,7 @@ import { useRouter } from "next/navigation";
 // 대화 기록 페이지 — 로그인 사용자의 지난 대화를 2-pane(목록 + 리딩)으로 열람하고 이어서 대화
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { BrandMark } from "@/components/truewords";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authAPI } from "@/features/auth/api";
@@ -169,10 +169,7 @@ export default function HistoryPage() {
           className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           aria-label="채팅으로"
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <BookOpen className="h-4 w-4" />
-          </span>
-          <span className="font-display text-xl font-semibold tracking-wide">TrueWords</span>
+          <BrandMark />
         </button>
         <div className="flex items-center gap-2">
           <Button

@@ -19,6 +19,8 @@ import { useRouter } from "next/navigation";
 import { ChangeEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  BrandIcon,
+  BrandMark,
   FollowupPills,
   PERSONAS,
   type PersonaMode,
@@ -590,7 +592,7 @@ export default function ChatPage() {
       <div className="flex min-h-dvh items-center justify-center bg-background p-6">
         <Card className="w-full max-w-md space-y-5 p-6">
           <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-primary" />
+            <BrandIcon />
             <h1 className="text-lg font-semibold">TrueWords 시연 참여</h1>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -631,7 +633,7 @@ export default function ChatPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground max-md:min-h-11"
           >
             다른 계정으로 로그인 (로그아웃)
           </button>
@@ -651,8 +653,7 @@ export default function ChatPage() {
           className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           aria-label="홈으로"
         >
-          <BookOpen className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold">TrueWords</h1>
+          <BrandMark asHeading />
         </button>
         <div className="flex items-center gap-2">
           {/* 레드팀 시연 — 현재 참여자 + 변경(게이트 재진입) */}
@@ -1026,7 +1027,7 @@ export default function ChatPage() {
                     variant="default"
                     onClick={handleStop}
                     aria-label="응답 생성 중단"
-                    className="absolute bottom-2 right-2 h-9 w-9 rounded-xl"
+                    className="absolute bottom-0.5 right-0.5 size-11 rounded-xl md:bottom-2 md:right-2 md:size-9"
                   >
                     <Square className="h-4 w-4" />
                   </Button>
@@ -1038,7 +1039,7 @@ export default function ChatPage() {
                     onClick={() => handleSend()}
                     disabled={!canSend}
                     aria-label="메시지 전송"
-                    className="absolute bottom-2 right-2 h-9 w-9 rounded-xl"
+                    className="absolute bottom-0.5 right-0.5 size-11 rounded-xl md:bottom-2 md:right-2 md:size-9"
                   >
                     <ArrowUp className="h-4 w-4" />
                   </Button>

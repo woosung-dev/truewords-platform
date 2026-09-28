@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BrandMark } from "@/components/truewords";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,12 +49,7 @@ export default function LoginPage() {
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* 좌측 브랜딩 패널 */}
       <div className="hidden lg:flex flex-col justify-between bg-primary text-primary-foreground p-10">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0">
-            <span className="text-sm font-bold text-accent-foreground">TW</span>
-          </div>
-          <span className="font-semibold text-lg tracking-tight">TrueWords</span>
-        </div>
+        <BrandMark inverse />
 
         <div className="space-y-6">
           <blockquote className="text-2xl font-light text-primary-foreground/90 leading-relaxed">
@@ -84,12 +80,7 @@ export default function LoginPage() {
       <div className="flex items-center justify-center bg-background p-8">
         <div className="w-full max-w-sm space-y-8">
           {/* 모바일에서만 보이는 로고 */}
-          <div className="flex items-center gap-2.5 lg:hidden">
-            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-accent-foreground">TW</span>
-            </div>
-            <span className="font-semibold text-lg">TrueWords</span>
-          </div>
+          <BrandMark className="lg:hidden" />
 
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">TrueWords 로그인</h1>
@@ -129,12 +120,13 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="pr-10"
+                  className="pr-12 md:pr-10"
                 />
+                {/* 모바일 44px, 데스크톱 32px 타점 — 아이콘(16px)은 가운데 */}
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-0 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:size-8"
                   tabIndex={-1}
                   aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 표시"}
                 >
