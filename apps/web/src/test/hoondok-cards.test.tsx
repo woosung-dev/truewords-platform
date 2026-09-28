@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CardPublic, CardReceiptItem } from "@/features/hoondok/cards/api";
+import { bookName, bookParts } from "@/features/hoondok/cards/components/book";
 import { markParagraphs } from "@/features/hoondok/cards/components/words-card";
 import { findCardSentence, normalizeForMatch } from "@/features/hoondok/cards/match";
 import {
@@ -37,6 +38,16 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.resetModules();
   vi.restoreAllMocks();
+});
+
+describe("책 이름 (표지·홈 카드 제목)", () => {
+  it("volume 이 파일명이어도 확장자를 붙여 보이지 않는다 — 운영 '천성경 .pdf' 재현", () => {
+    expect(bookName({ work_title: "천성경", volume: "천성경.pdf" })).toBe("천성경");
+    expect(bookParts({ work_title: "천성경", volume: "천성경.pdf" })).toEqual({ title: "천성경", sub: "" });
+    expect(bookName({ work_title: "말씀선집", volume: "말씀선집 355권.PDF" })).toBe("말씀선집 355권");
+    expect(bookName({ work_title: "평화경", volume: " 평화경 .docx " })).toBe("평화경");
+    expect(bookName({ work_title: "천성경", volume: "천성경 제1편" })).toBe("천성경 제1편");
+  });
 });
 
 describe("원문 문장 매칭 (공백·문장부호 느슨한 정규화)", () => {

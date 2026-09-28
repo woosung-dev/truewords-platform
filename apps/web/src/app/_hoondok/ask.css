@@ -21,17 +21,17 @@
     border-bottom: 1px solid var(--line);
   }
   .qs-today__k {
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     font-weight: 600;
     color: var(--ink-3);
   }
   .qs-today__v {
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 600;
     line-height: 1.4;
   }
   .qs-today__src {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
 
@@ -46,7 +46,7 @@
   }
   /* 화면에서 가장 큰 것은 오늘 읽은 말씀 한 줄이어야 한다 — 라벨은 `.field__label` 로 물러난다 (DES §1.2) */
   .qs-label {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--ink-2);
   }
@@ -61,8 +61,8 @@
     background: var(--surface);
     color: var(--ink);
     font: inherit;
-    font-size: 16px; /* iOS 자동 확대 방지 — .field input 과 같은 이유 */
-    line-height: 1.6;
+    font-size: var(--fs-lg); /* iOS 자동 확대 방지 — .field input 과 같은 이유 */
+    line-height: 1.65;
     resize: vertical;
   }
   .qs-input::placeholder {
@@ -70,7 +70,7 @@
   }
   .qs-help {
     margin: 0;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     line-height: 1.5;
     color: var(--ink-2);
   }
@@ -80,7 +80,7 @@
   }
   .qs-starters__k {
     margin: 0 0 8px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-3);
   }
   /* 칩 버튼 본체는 hoondok.css 의 `.chip-btn` (DES §2.11). 여기엔 세로로 쌓이는 배치만 둔다 —
@@ -98,7 +98,7 @@
     justify-content: center;
     min-height: 44px;
     margin-top: 20px;
-    font-size: 13.5px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     color: var(--accent-strong);
   }
@@ -129,7 +129,7 @@
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
-    font-size: 16px;
+    font-size: var(--fs-lg);
     font-weight: 600;
     line-height: 1.4;
     overflow: hidden;
@@ -138,11 +138,11 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .ql-saved {
-    font-size: 11px;
+    font-size: var(--fs-2xs);
   }
   /* 버튼은 폭 100% 가 기본이라 빈 상태에서만 가운데로 좁힌다 */
   .ql-empty__cta {
@@ -154,7 +154,7 @@
   /* `title-1` (DES §1.2) — 질문 상세 제목 */
   .ask-q {
     margin: 10px 0 0;
-    font-size: 22px;
+    font-size: var(--fs-2xl);
     font-weight: 700;
     line-height: 1.35;
     letter-spacing: -0.02em;
@@ -172,7 +172,7 @@
     border: 1px solid var(--line);
     border-radius: var(--r);
     background: var(--surface);
-    font-size: 13.5px;
+    font-size: var(--fs-sm);
     color: var(--ink-2);
     text-align: center;
   }
@@ -199,8 +199,8 @@
   }
   .ask-fail__msg {
     margin: 0 0 12px;
-    font-size: 14.5px;
-    line-height: 1.6;
+    font-size: var(--fs-md);
+    line-height: 1.65;
     color: var(--ink-2);
   }
   .ask-fail .btn {
@@ -210,7 +210,7 @@
   /* 근거 번호 : 숫자가 뜻을 담으므로 색만으로 구분하지 않는다 (DES §2.2) */
   .ask-ref {
     margin-left: 2px;
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     font-weight: 700;
     color: var(--accent);
   }
@@ -229,14 +229,14 @@
     border-radius: 50%;
     background: var(--accent-soft);
     color: var(--accent-strong);
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     font-weight: 700;
     flex: none;
   }
   /* 근거 카드의 인용은 본문보다 한 단계 작다 (DES §2.2) */
   .ask-ev .scripture {
     margin: 10px 0 0;
-    font-size: 15px;
+    font-size: var(--fs-md);
   }
 
   .ask-chips {
@@ -253,7 +253,7 @@
     border: 1px solid var(--line);
     border-radius: var(--r-sm);
     background: var(--surface);
-    font-size: 13.5px;
+    font-size: var(--fs-sm);
     line-height: 1.35;
     transition: transform 0.12s ease;
   }
@@ -276,14 +276,14 @@
   }
   .ask-row__bd b {
     display: block;
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 600;
     line-height: 1.35;
   }
   .ask-row__bd span {
     display: block;
     margin-top: 3px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     line-height: 1.5;
     color: var(--ink-2);
   }

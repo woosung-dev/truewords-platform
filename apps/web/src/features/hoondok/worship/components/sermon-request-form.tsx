@@ -56,7 +56,7 @@ export function SermonRequestForm() {
                     defaultChecked={index === 0}
                     required
                   />
-                  <span className="rq-radio" aria-hidden="true" />
+                  <span className="radio" aria-hidden="true" />
                   <PreviewAvatar name={target.name} />
                   <span className="ch-item__bd">
                     <span className="ch-item__t">{target.name}</span>

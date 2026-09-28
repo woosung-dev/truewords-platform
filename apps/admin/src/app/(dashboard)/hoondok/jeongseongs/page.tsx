@@ -86,7 +86,7 @@ export default function OfficialJeongseongsPage() {
   });
 
   return (
-    <div className="space-y-5 max-w-5xl">
+    <div className="space-y-5 page-wide">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">공식 정성</h1>

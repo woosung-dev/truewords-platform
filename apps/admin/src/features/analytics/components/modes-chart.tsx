@@ -16,12 +16,13 @@ const MODE_LABEL: Record<Mode, string> = {
   kids: "어린이",
 };
 
+// globals.css 의 차트·카테고리 토큰만 쓴다 — 흰 배경 위 비텍스트 대비 3:1 이상(5.2~13:1).
 const MODE_COLOR: Record<Mode, string> = {
-  standard: "#475569", // slate-600
-  theological: "#6366f1", // indigo-500
-  pastoral: "#e11d48", // rose-600
-  beginner: "#f59e0b", // amber-500
-  kids: "#0ea5e9", // sky-500
+  standard: "var(--tw-cat-slate)",
+  theological: "var(--chart-1)", // navy
+  pastoral: "var(--chart-4)", // 목회 청록(pastoral)
+  beginner: "var(--chart-2)", // brass
+  kids: "var(--tw-cat-rose)",
 };
 
 type PivotRow = { date: string } & Partial<Record<Mode, number>>;

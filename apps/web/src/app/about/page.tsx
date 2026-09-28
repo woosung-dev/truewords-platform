@@ -1,6 +1,5 @@
 import { BookOpenCheck, CalendarClock, ScrollText, ShieldAlert } from "lucide-react";
 import type { Metadata } from "next";
-import { ADMIN_ORIGIN } from "@/lib/origins";
 
 export const metadata: Metadata = {
   title: "TrueWords — 신학 입장 & 운영 투명성",
@@ -70,7 +69,7 @@ export default function AboutPage() {
       {/* Hero */}
       <section className="border-b border-border bg-secondary/50">
         <div className="mx-auto max-w-3xl px-6 py-20 md:py-28 break-keep-all">
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">TrueWords · About</p>
+          <p className="font-mono text-2xs uppercase tracking-[0.2em] text-muted-foreground">TrueWords · About</p>
           <h1 className="font-display mt-4 text-4xl md:text-5xl font-semibold leading-[1.15] tracking-tight text-foreground">
             우리는 어떤 원칙으로
             <br />이 챗봇을 운영합니까
@@ -96,35 +95,22 @@ export default function AboutPage() {
                   <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-secondary text-accent">
                     <Icon className="h-4.5 w-4.5" strokeWidth={1.6} />
                   </span>
-                  <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                    {p.eyebrow}
-                  </span>
+                  {/* 한글 라벨은 자간을 넓히지 않는다(라틴 대문자 라벨만 tracking 허용) */}
+                  <span className="text-xs font-medium text-muted-foreground">{p.eyebrow}</span>
                 </div>
-                <h2 className="mt-4 text-lg md:text-xl font-semibold leading-snug text-foreground break-keep-all">
-                  {p.title}
-                </h2>
-                <p className="prose-reading mt-3 text-[15px] text-muted-foreground break-keep-all">{p.body}</p>
+                <h2 className="mt-4 text-lg md:text-xl font-semibold leading-snug text-foreground">{p.title}</h2>
+                <p className="prose-reading mt-3 text-md text-muted-foreground">{p.body}</p>
               </article>
             );
           })}
         </div>
       </section>
 
-      {/* 모델 / 기술 footer */}
+      {/* footer — 사용자 웹이므로 모델명·관리자 링크는 노출하지 않는다 */}
       <footer className="border-t border-border">
-        <div className="mx-auto max-w-5xl px-6 py-10 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <p className="font-mono text-[12px] text-muted-foreground">
-            TrueWords v1.0.0 · gemini-2.5-flash · 615권 학습
-          </p>
-          <div className="flex items-center gap-5 font-mono text-[12px] text-muted-foreground">
-            <a href={`${ADMIN_ORIGIN}/dashboard`} className="underline-offset-4 hover:text-foreground hover:underline">
-              대시보드
-            </a>
-            <span aria-hidden className="text-border">
-              ·
-            </span>
-            <span>© TrueWords Platform</span>
-          </div>
+        <div className="mx-auto max-w-5xl px-6 py-10 flex flex-col gap-3 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
+          <p>TrueWords v1.0.0 · 615권 학습</p>
+          <p>© TrueWords Platform</p>
         </div>
       </footer>
     </main>

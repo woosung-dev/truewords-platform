@@ -4,6 +4,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { AlertTriangle, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DialogContent } from "@/components/ui/dialog";
 import type { DuplicateCheckResponse } from "@/features/data-source/types";
 
 // ADR-30: 재업로드 시 사용자 의사결정.
@@ -62,108 +63,105 @@ export default function DuplicateConfirmDialog({
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
-        <Dialog.Popup className="fixed inset-0 z-50 m-auto flex h-fit w-full max-w-md flex-col rounded-2xl bg-popover shadow-2xl transition duration-200 data-ending-style:opacity-0 data-ending-style:scale-95 data-starting-style:opacity-0 data-starting-style:scale-95">
-          {/* 헤더 */}
-          <div className="flex items-center justify-between border-b px-6 py-4">
-            <Dialog.Title className="flex items-center gap-2 text-base font-semibold text-warning">
-              <AlertTriangle className="h-5 w-5" />
-              동일 파일이 이미 존재합니다
-            </Dialog.Title>
-            <Dialog.Close
-              aria-label="닫기"
-              className="rounded-lg p-1 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </Dialog.Close>
-          </div>
+      <DialogContent className="max-w-md">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between border-b px-6 py-4">
+          <Dialog.Title className="flex items-center gap-2 text-base font-semibold text-warning">
+            <AlertTriangle className="h-5 w-5" />
+            동일 파일이 이미 존재합니다
+          </Dialog.Title>
+          <Dialog.Close
+            aria-label="닫기"
+            className="rounded-lg p-1 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </Dialog.Close>
+        </div>
 
-          {/* 본문 */}
-          <div className="space-y-4 px-6 py-5">
-            <div className="rounded-lg border bg-admin-muted/30 p-3 text-sm space-y-2">
-              <div className="flex gap-2">
-                <span className="text-muted-foreground shrink-0 w-20">파일명</span>
-                <span className="font-medium break-all">{filename}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="text-muted-foreground shrink-0 w-20">기존 분류</span>
-                <div className="flex flex-wrap gap-1">
-                  {(duplicate.sources ?? []).length > 0 ? (
-                    (duplicate.sources ?? []).map((src) => (
-                      <Badge key={src} variant="outline" className="text-xs">
-                        {src}
-                      </Badge>
-                    ))
-                  ) : (
-                    <Badge variant="outline" className="text-xs bg-warning-soft text-warning border-warning-border">
-                      미분류
+        {/* 본문 */}
+        <div className="space-y-4 px-6 py-5">
+          <div className="rounded-lg border bg-admin-muted/30 p-3 text-sm space-y-2">
+            <div className="flex gap-2">
+              <span className="text-muted-foreground shrink-0 w-20">파일명</span>
+              <span className="font-medium break-all">{filename}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="text-muted-foreground shrink-0 w-20">기존 분류</span>
+              <div className="flex flex-wrap gap-1">
+                {(duplicate.sources ?? []).length > 0 ? (
+                  (duplicate.sources ?? []).map((src) => (
+                    <Badge key={src} variant="outline" className="text-xs">
+                      {src}
                     </Badge>
-                  )}
-                </div>
+                  ))
+                ) : (
+                  <Badge variant="outline" className="text-xs bg-warning-soft text-warning border-warning-border">
+                    미분류
+                  </Badge>
+                )}
               </div>
-              <div className="flex gap-2">
-                <span className="text-muted-foreground shrink-0 w-20">청크 수</span>
-                <span>{(duplicate.chunk_count ?? 0).toLocaleString()}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="text-muted-foreground shrink-0 w-20">최근 업로드</span>
-                <span className="text-muted-foreground">{lastUploadedLabel}</span>
-              </div>
-              {/* 파일 식별자 — PR #99 hash 시점 이동 후 PARTIAL 도 보존. 동일 파일 재업로드
+            </div>
+            <div className="flex gap-2">
+              <span className="text-muted-foreground shrink-0 w-20">청크 수</span>
+              <span>{(duplicate.chunk_count ?? 0).toLocaleString()}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="text-muted-foreground shrink-0 w-20">최근 업로드</span>
+              <span className="text-muted-foreground">{lastUploadedLabel}</span>
+            </div>
+            {/* 파일 식별자 — PR #99 hash 시점 이동 후 PARTIAL 도 보존. 동일 파일 재업로드
                   여부를 사용자가 직관 확인 (동일 파일이면 hash 8자리 동일). */}
-              {duplicate.content_hash && (
-                <div className="flex gap-2">
-                  <span className="text-muted-foreground shrink-0 w-20">파일 식별자</span>
-                  <span className="font-mono text-xs text-muted-foreground">{duplicate.content_hash}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="text-sm text-muted-foreground leading-relaxed">
-              아래 옵션을 선택하세요. 기본은 <span className="font-medium text-foreground">내용 갱신 (분류 유지)</span>
-              로, 기존 분류(<span className="font-medium text-foreground">{existingSourcesLabel}</span>)에 이번 업로드
-              분류 (<span className="font-medium text-foreground">{targetLabel}</span>)를 합쳐{" "}
-              <span className="font-medium text-foreground">{mergedPreview}</span>로 적재됩니다.
-            </div>
+            {duplicate.content_hash && (
+              <div className="flex gap-2">
+                <span className="text-muted-foreground shrink-0 w-20">파일 식별자</span>
+                <span className="font-mono text-xs text-muted-foreground">{duplicate.content_hash}</span>
+              </div>
+            )}
           </div>
 
-          {/* 액션 — ADR-30 결정 매트릭스 */}
-          <div className="flex flex-col gap-2 border-t px-6 py-4">
-            <Button
-              variant="default"
-              autoFocus
-              className="w-full justify-center whitespace-normal break-words text-left"
-              onClick={() => decide("merge")}
-            >
-              내용 갱신 (분류 유지: {mergedPreview})
-            </Button>
-            {canAddTag && (
-              <Button
-                variant="outline"
-                className="w-full justify-center whitespace-normal break-words"
-                onClick={() => decide("add-tag")}
-              >
-                임베딩 없이 &quot;{targetSource}&quot; 태그만 추가
-              </Button>
-            )}
+          <div className="text-sm text-muted-foreground leading-relaxed">
+            아래 옵션을 선택하세요. 기본은 <span className="font-medium text-foreground">내용 갱신 (분류 유지)</span>
+            로, 기존 분류(<span className="font-medium text-foreground">{existingSourcesLabel}</span>)에 이번 업로드
+            분류 (<span className="font-medium text-foreground">{targetLabel}</span>)를 합쳐{" "}
+            <span className="font-medium text-foreground">{mergedPreview}</span>로 적재됩니다.
+          </div>
+        </div>
+
+        {/* 액션 — ADR-30 결정 매트릭스 */}
+        <div className="flex flex-col gap-2 border-t px-6 py-4">
+          <Button
+            variant="default"
+            autoFocus
+            className="w-full justify-center whitespace-normal break-words text-left"
+            onClick={() => decide("merge")}
+          >
+            내용 갱신 (분류 유지: {mergedPreview})
+          </Button>
+          {canAddTag && (
             <Button
               variant="outline"
-              className="w-full justify-center whitespace-normal break-words border-warning-border text-warning hover:bg-warning-soft"
-              aria-describedby="replace-warning-text"
-              onClick={() => decide("replace")}
+              className="w-full justify-center whitespace-normal break-words"
+              onClick={() => decide("add-tag")}
             >
-              덮어쓰기 (분류를 &quot;{targetLabel}&quot;로 교체)
+              임베딩 없이 &quot;{targetSource}&quot; 태그만 추가
             </Button>
-            <span id="replace-warning-text" className="sr-only">
-              위험: 기존 분류가 사라지고 신규 분류로 통째 교체됩니다.
-            </span>
-            <Button variant="ghost" className="w-full justify-center" onClick={() => decide("cancel")}>
-              취소
-            </Button>
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
+          )}
+          <Button
+            variant="outline"
+            className="w-full justify-center whitespace-normal break-words border-warning-border text-warning hover:bg-warning-soft"
+            aria-describedby="replace-warning-text"
+            onClick={() => decide("replace")}
+          >
+            덮어쓰기 (분류를 &quot;{targetLabel}&quot;로 교체)
+          </Button>
+          <span id="replace-warning-text" className="sr-only">
+            위험: 기존 분류가 사라지고 신규 분류로 통째 교체됩니다.
+          </span>
+          <Button variant="ghost" className="w-full justify-center" onClick={() => decide("cancel")}>
+            취소
+          </Button>
+        </div>
+      </DialogContent>
     </Dialog.Root>
   );
 }

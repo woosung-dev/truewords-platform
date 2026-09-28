@@ -432,8 +432,8 @@ Next catch-all rewrite의 실패 로그에 검색어가 포함된 upstream URL�
 
 응답 `{ series, title, authority_grade, volumes[] }`, 항목은
 `{ volume, label, total_chunks, section_count, scope_full_text }` 다.
-`label` 은 말씀선집만 권 번호 3자리(`"001권"`)로 정규화하고 나머지는 원장의 `work_title` 이며,
-정렬은 라벨의 숫자 우선이다(`001권` < `010권` < `100권`). `total_chunks` 는 `content_rights.chunk_count`
+`label` 은 말씀선집만 앞 0 없는 권 번호(`"1권"`, 원본 `"001권.pdf"`)로 정규화하고 나머지는 원장의 `work_title` 이며,
+정렬은 라벨의 숫자 우선이다(`1권` < `10권` < `100권`). `total_chunks` 는 `content_rights.chunk_count`
 라 시드 전에는 `null` 이다. `section_count` 는 `volume_sections` 집계다.
 미등록 시리즈이거나 허용 권이 0건이면 404 — 존재 여부를 알리지 않는다.
 

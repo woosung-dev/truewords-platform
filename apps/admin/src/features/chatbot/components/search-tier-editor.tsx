@@ -148,7 +148,7 @@ export default function SearchTierEditor({ tiers, onChange }: SearchTierEditorPr
             <div className="space-y-1.5">
               <Label htmlFor={`min-results-${index}`} className="text-xs text-muted-foreground">
                 최소 결과 수
-                <span className="ml-1 text-[10px] text-muted-foreground/70">
+                <span className="ml-1 text-xs font-normal text-muted-foreground">
                   (이 티어에서 최소 몇 개가 나와야 통과)
                 </span>
               </Label>
@@ -172,7 +172,7 @@ export default function SearchTierEditor({ tiers, onChange }: SearchTierEditorPr
               <div className="flex items-center justify-between">
                 <Label className="text-xs text-muted-foreground">
                   점수 임계값
-                  <span className="ml-1 text-[10px] text-muted-foreground/70">
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">
                     (RRF fusion 점수 기준, 0.05~0.3 권장)
                   </span>
                 </Label>

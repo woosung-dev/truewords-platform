@@ -304,7 +304,7 @@ export default function CategoryTab() {
             <p className="text-sm font-medium text-warning">
               Qdrant에 등록되지 않은 소스가 {unregisteredSources.length}개 있습니다
             </p>
-            <p className="text-xs text-warning/80 mt-0.5">검색 티어에서 사용하려면 카테고리로 등록하세요</p>
+            <p className="text-xs text-warning mt-0.5">검색 티어에서 사용하려면 카테고리로 등록하세요</p>
             <div className="flex flex-wrap gap-1.5 mt-2">
               {unregisteredSources.map((source) => (
                 <Button

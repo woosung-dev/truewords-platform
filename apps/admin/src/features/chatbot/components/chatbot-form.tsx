@@ -127,7 +127,8 @@ export function ChatbotForm({
         {mode === "create" && (
           <div className="space-y-1.5">
             <Label htmlFor="chatbot-id">
-              Chatbot ID <span className="text-destructive">*</span>
+              챗봇 ID <span className="font-mono text-xs font-normal text-muted-foreground">chatbot_id</span>
+              <span className="text-destructive">*</span>
             </Label>
             <Input
               id="chatbot-id"
@@ -263,16 +264,17 @@ export function ChatbotForm({
           <span className="text-xs text-muted-foreground bg-admin-muted px-2 py-0.5 rounded-md">준비중</span>
         </div>
 
-        <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 p-3">
+        <div className="flex items-start gap-2.5 rounded-lg border border-warning-border bg-warning-soft p-3">
           <Checkbox
             id="raw-rag-only"
             checked={values.search_tiers.raw_rag_only}
             onCheckedChange={(c) => patchSearch("raw_rag_only", c === true)}
             className="mt-0.5"
           />
-          <Label htmlFor="raw-rag-only" className="cursor-pointer text-sm flex flex-col gap-0.5">
-            <span className="font-medium text-amber-900">RAG-only 모드 (시연용 대조군)</span>
-            <span className="text-xs text-amber-700 font-normal">
+          {/* Label 기본 items-center 를 items-start 로 바꿔 제목을 설명과 같은 왼쪽 정렬로 둔다. */}
+          <Label htmlFor="raw-rag-only" className="cursor-pointer text-sm flex flex-col items-start gap-1">
+            <span className="font-medium text-foreground">RAG-only 모드 (시연용 대조군)</span>
+            <span className="text-xs text-foreground font-normal leading-relaxed">
               켜면 시스템 프롬프트(기본 17원칙·톤·인용형식·범위 제한)를 우회하고 검색 결과만으로 답변합니다. 인용
               번호·LLM 차원 가드레일이 빠집니다. (PII 필터·면책 고지·rate-limit·입력 인젝션 차단은 그대로 유지됩니다.)
             </span>
@@ -294,7 +296,8 @@ export function ChatbotForm({
       </div>
 
       {/* 하단 액션 바 */}
-      <div className="sticky bottom-0 flex gap-3 border-t bg-background/80 backdrop-blur-sm py-4 -mx-6 px-6">
+      {/* 폼(page-form) 폭에 맞춘 하단 고정 버튼 바 — 좌우로 삐져나오지 않는다. */}
+      <div className="sticky bottom-0 flex gap-3 border-t bg-background/90 backdrop-blur-sm py-4">
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? submitPendingLabel : submitLabel}
         </Button>

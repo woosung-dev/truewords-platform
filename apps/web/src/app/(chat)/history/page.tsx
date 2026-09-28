@@ -1,22 +1,12 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowRight,
-  BookOpen,
-  Check,
-  ChevronLeft,
-  Copy,
-  Inbox,
-  LogOut,
-  MessageSquare,
-  Plus,
-  Search,
-} from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, Copy, Inbox, LogOut, MessageSquare, Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 // 대화 기록 페이지 — 로그인 사용자의 지난 대화를 2-pane(목록 + 리딩)으로 열람하고 이어서 대화
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { BrandMark } from "@/components/truewords";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authAPI } from "@/features/auth/api";
@@ -166,13 +156,10 @@ export default function HistoryPage() {
         <button
           type="button"
           onClick={() => router.push("/")}
-          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="flex shrink-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring max-md:min-h-11"
           aria-label="채팅으로"
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <BookOpen className="h-4 w-4" />
-          </span>
-          <span className="font-display text-xl font-semibold tracking-wide">TrueWords</span>
+          <BrandMark />
         </button>
         <div className="flex items-center gap-2">
           <Button
@@ -212,7 +199,7 @@ export default function HistoryPage() {
           <EmptyAll onStart={() => router.push("/")} />
         ) : (
           <div
-            className={`flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-card shadow-[0_6px_20px_-6px_rgba(28,23,20,0.12)] ${
+            className={`flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-card shadow-(--tw-shadow-card-hover) ${
               showReader ? "reader-open" : ""
             }`}
           >
@@ -233,7 +220,7 @@ export default function HistoryPage() {
                     placeholder="지난 대화 검색…"
                     aria-label="대화 검색"
                     autoComplete="off"
-                    className="h-10 w-full rounded-lg border bg-card pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/30"
+                    className="h-10 w-full rounded-lg border bg-card pl-9 max-md:h-11 pr-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/30"
                   />
                 </div>
                 {/* 봇 필터 */}
@@ -288,7 +275,7 @@ export default function HistoryPage() {
                 ) : (
                   groups.map((g) => (
                     <div key={g.bk}>
-                      <h2 className="sticky top-0 z-[2] bg-gradient-to-b from-background from-80% to-transparent px-4 pb-1.5 pt-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <h2 className="sticky top-0 z-[2] bg-gradient-to-b from-background from-80% to-transparent px-4 pb-1.5 pt-2.5 text-2xs font-bold text-muted-foreground">
                         {g.label}
                       </h2>
                       <ul className="space-y-0.5 px-1.5">
@@ -367,11 +354,11 @@ export default function HistoryPage() {
                               <div
                                 className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                                   isUser
-                                    ? "whitespace-pre-wrap rounded-br-sm bg-primary text-[14.5px] leading-[1.75] text-primary-foreground"
+                                    ? "whitespace-pre-wrap rounded-br-sm bg-primary text-sm leading-[1.75] text-primary-foreground"
                                     : "rounded-bl-sm border bg-background text-foreground"
                                 }`}
                               >
-                                <span className="mb-1 block text-[10.5px] font-bold uppercase tracking-wider opacity-60">
+                                <span className="mb-1 block text-2xs font-bold opacity-60">
                                   {isUser ? "나" : selected.chatbot_name || "TrueWords"}
                                 </span>
                                 {isUser ? (
@@ -386,7 +373,7 @@ export default function HistoryPage() {
                             </div>
                           );
                         })}
-                        <p className="mt-1 border-t pt-3 text-center text-[11.5px] text-muted-foreground">
+                        <p className="mt-1 border-t pt-3 text-center text-xs text-muted-foreground">
                           이 답변은 AI가 생성한 참고 자료이며, 신앙 지도자의 조언을 대체하지 않습니다.
                         </p>
                       </div>
@@ -424,13 +411,13 @@ function ThreadRow({ item, active, onSelect }: { item: SessionListItem; active: 
         }`}
       >
         <span
-          className={`line-clamp-2 text-[13.5px] leading-snug ${
+          className={`line-clamp-2 text-sm leading-snug ${
             active ? "font-semibold text-primary" : "font-medium text-foreground"
           }`}
         >
           {item.preview || "제목 없는 대화"}
         </span>
-        <span className="flex flex-wrap items-center gap-1.5 text-[11.5px] text-muted-foreground">
+        <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           <span>{relTime(item.last_activity)}</span>
           <span className="opacity-50">·</span>
           <span>{item.message_count}개 메시지</span>
@@ -461,7 +448,8 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-[28px] rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+      // 시각 크기(28px)는 두고 모바일 타점만 위아래 8px 씩 넓혀 44px 로 맞춘다
+      className={`relative min-h-[28px] rounded-full border px-2.5 py-1 text-xs font-medium transition-colors max-md:after:absolute max-md:after:inset-x-0 max-md:after:-inset-y-2 max-md:after:content-[''] ${
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-card text-muted-foreground hover:border-primary/60"
@@ -490,7 +478,7 @@ function CopyButton({ text }: { text: string }) {
       type="button"
       onClick={onCopy}
       aria-label="응답 복사"
-      className="mt-2.5 inline-flex items-center gap-1 rounded-md border bg-card px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+      className="mt-2.5 inline-flex items-center gap-1 rounded-md border bg-card px-2 py-1 text-2xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
     >
       {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
       {copied ? "복사됨" : "복사"}

@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DialogContent } from "@/components/ui/dialog";
 import { getCategoryColors } from "@/features/data-source/category-colors";
 import VolumeTransfer from "@/features/data-source/components/volume-transfer";
 import {
@@ -144,97 +145,94 @@ export default function VolumeTransferSheet({
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
-        <Dialog.Popup className="fixed inset-4 z-50 mx-auto my-auto flex max-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col rounded-2xl bg-popover shadow-2xl transition duration-200 data-ending-style:opacity-0 data-ending-style:scale-95 data-starting-style:opacity-0 data-starting-style:scale-95 sm:inset-8 sm:max-h-[calc(100vh-6rem)]">
-          {/* 헤더 */}
-          <div className="flex items-center justify-between border-b px-6 py-4 shrink-0">
-            <Dialog.Title className="flex items-center gap-2.5 text-base font-semibold">
-              {categoryKey ? (
-                <>
-                  <Badge variant="outline" className={`font-mono text-xs ${colors?.text ?? ""} ${colors?.bg ?? ""}`}>
-                    {categoryKey}
-                  </Badge>
-                  {categoryName}
-                </>
-              ) : (
-                <span className="text-warning">미분류 문서 분류</span>
-              )}
-              <span className="text-muted-foreground font-normal text-sm">— 문서 관리</span>
-            </Dialog.Title>
-            <Dialog.Close className="rounded-lg p-2 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors">
-              <X className="h-5 w-5" />
-            </Dialog.Close>
-          </div>
+      <DialogContent className="inset-4 mx-auto my-auto h-auto max-h-[calc(100vh-4rem)] max-w-5xl sm:inset-8 sm:max-h-[calc(100vh-6rem)]">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between border-b px-6 py-4 shrink-0">
+          <Dialog.Title className="flex items-center gap-2.5 text-base font-semibold">
+            {categoryKey ? (
+              <>
+                <Badge variant="outline" className={`font-mono text-xs ${colors?.text ?? ""} ${colors?.bg ?? ""}`}>
+                  {categoryKey}
+                </Badge>
+                {categoryName}
+              </>
+            ) : (
+              <span className="text-warning">미분류 문서 분류</span>
+            )}
+            <span className="text-muted-foreground font-normal text-sm">— 문서 관리</span>
+          </Dialog.Title>
+          <Dialog.Close className="rounded-lg p-2 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors">
+            <X className="h-5 w-5" />
+          </Dialog.Close>
+        </div>
 
-          {/* 미분류 모드: 카테고리 선택 */}
-          {!categoryKey && (
-            <div className="px-6 pt-4 shrink-0">
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">분류할 카테고리 선택</label>
-              <select
-                value={selectedCategoryForUncategorized}
-                onChange={(e) => setSelectedCategoryForUncategorized(e.target.value)}
-                className="w-full max-w-xs text-sm border rounded-lg px-3 py-2 bg-background"
-              >
-                <option value="">카테고리를 선택하세요</option>
-                {activeCategories.map((c) => (
-                  <option key={c.key} value={c.key}>
-                    {c.name} ({c.key})
-                  </option>
-                ))}
-              </select>
+        {/* 미분류 모드: 카테고리 선택 */}
+        {!categoryKey && (
+          <div className="px-6 pt-4 shrink-0">
+            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">분류할 카테고리 선택</label>
+            <select
+              value={selectedCategoryForUncategorized}
+              onChange={(e) => setSelectedCategoryForUncategorized(e.target.value)}
+              className="w-full max-w-xs text-sm border rounded-lg px-3 py-2 bg-background"
+            >
+              <option value="">카테고리를 선택하세요</option>
+              {activeCategories.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.name} ({c.key})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Transfer 컴포넌트 */}
+        <div className="flex-1 min-h-0 px-6 py-4">
+          <VolumeTransfer
+            allVolumes={allVolumes}
+            includedVolumes={includedVolumes}
+            onMove={handleMove}
+            categoryMap={categoryMap}
+          />
+        </div>
+
+        {/* 하단 */}
+        <div className="border-t px-6 py-4 shrink-0">
+          {/* 변경 요약 */}
+          {hasChanges && (
+            <div className="mb-3 px-4 py-2.5 bg-warning-soft border border-warning-border rounded-lg text-sm text-warning">
+              변경 예정:
+              {diff.added.length > 0 && <span className="font-medium"> +{diff.added.length}건 추가</span>}
+              {diff.removed.length > 0 && <span className="font-medium"> -{diff.removed.length}건 제거</span>}
             </div>
           )}
 
-          {/* Transfer 컴포넌트 */}
-          <div className="flex-1 min-h-0 px-6 py-4">
-            <VolumeTransfer
-              allVolumes={allVolumes}
-              includedVolumes={includedVolumes}
-              onMove={handleMove}
-              categoryMap={categoryMap}
-            />
-          </div>
-
-          {/* 하단 */}
-          <div className="border-t px-6 py-4 shrink-0">
-            {/* 변경 요약 */}
-            {hasChanges && (
-              <div className="mb-3 px-4 py-2.5 bg-warning-soft border border-warning-border rounded-lg text-sm text-warning">
-                변경 예정:
-                {diff.added.length > 0 && <span className="font-medium"> +{diff.added.length}건 추가</span>}
-                {diff.removed.length > 0 && <span className="font-medium"> -{diff.removed.length}건 제거</span>}
-              </div>
-            )}
-
-            {/* 저장 프로그레스 */}
-            {saving && (
-              <div className="mb-3 text-sm text-muted-foreground text-center">
-                처리 중... (한 번의 요청으로 일괄 적용)
-              </div>
-            )}
-
-            {/* 버튼 */}
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={handleCancel} disabled={saving}>
-                취소
-              </Button>
-              <Button onClick={handleSave} disabled={!hasChanges || saving || !effectiveKey}>
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                    저장 중...
-                  </>
-                ) : hasChanges ? (
-                  `저장 (${diff.added.length + diff.removed.length}건 변경)`
-                ) : (
-                  "변경 없음"
-                )}
-              </Button>
+          {/* 저장 프로그레스 */}
+          {saving && (
+            <div className="mb-3 text-sm text-muted-foreground text-center">
+              처리 중... (한 번의 요청으로 일괄 적용)
             </div>
+          )}
+
+          {/* 버튼 */}
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={handleCancel} disabled={saving}>
+              취소
+            </Button>
+            <Button onClick={handleSave} disabled={!hasChanges || saving || !effectiveKey}>
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                  저장 중...
+                </>
+              ) : hasChanges ? (
+                `저장 (${diff.added.length + diff.removed.length}건 변경)`
+              ) : (
+                "변경 없음"
+              )}
+            </Button>
           </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
+        </div>
+      </DialogContent>
     </Dialog.Root>
   );
 }

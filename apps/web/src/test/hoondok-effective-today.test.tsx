@@ -123,7 +123,9 @@ describe("홈·읽기 공통 오늘 말씀", () => {
       }),
     );
     expect(await screen.findByText("연속 3일")).toHaveClass("sect__meta");
-    expect(view.container.querySelector(".week__streak")).toHaveTextContent("연속 3일");
+    // 연속일은 섹션 머리 한 곳에만 — 스트립 옆에 한 번 더 그리지 않는다
+    expect(view.container.querySelector(".week__streak")).toBeNull();
+    expect(screen.getAllByText(/연속/)).toHaveLength(1);
   });
   it.each(["no_candidates", "rights_withdrawn", "upcoming"] as const)(
     "%s 는 이유를 알리고 일반 편성으로 돌아간다",

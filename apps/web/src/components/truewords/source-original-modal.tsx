@@ -80,7 +80,7 @@ export function SourceOriginalModal({
           <p className="font-mono text-xs text-muted-foreground tabular-nums break-keep-all">{sourceLabel}</p>
           {/* 단일 연속 본문 — 백엔드가 dedup 후 보낸 한 덩어리. 청크 경계 끊김 0.
               메인 청크는 일반 text-foreground, 인접 문맥은 muted 처리. */}
-          <p className="font-reading text-[15.5px] leading-[1.85] text-foreground break-keep-all whitespace-pre-line">
+          <p className="font-reading text-md leading-[1.85] text-foreground break-keep-all whitespace-pre-line">
             {renderBody3Tone(body, mainStart, mainEnd)}
           </p>
         </article>
@@ -131,11 +131,7 @@ export function renderBody3Tone(body: string, mainStart: number, mainEnd: number
   return (
     <>
       {before && <span className="text-muted-foreground">{before}</span>}
-      {main && (
-        <mark className="rounded-sm bg-yellow-200/60 px-0.5 font-medium text-foreground dark:bg-yellow-500/25">
-          {main}
-        </mark>
-      )}
+      {main && <mark className="rounded-sm bg-highlight px-0.5 font-medium text-foreground">{main}</mark>}
       {after && <span className="text-muted-foreground">{after}</span>}
     </>
   );

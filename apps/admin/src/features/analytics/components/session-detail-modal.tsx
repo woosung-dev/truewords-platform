@@ -6,6 +6,7 @@ import { Bookmark, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
 import type { SessionMessage } from "@/features/analytics/types";
@@ -144,70 +145,67 @@ export default function SessionDetailModal({ open, onOpenChange, sessionId }: Pr
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
-        <Dialog.Popup className="fixed inset-0 z-50 m-auto flex h-fit max-h-[85vh] w-full max-w-3xl flex-col rounded-2xl bg-popover shadow-2xl transition duration-200 data-ending-style:opacity-0 data-ending-style:scale-95 data-starting-style:opacity-0 data-starting-style:scale-95">
-          <div className="flex items-start justify-between border-b px-6 py-4 gap-3">
-            <div className="min-w-0 flex-1">
-              <Dialog.Title className="text-base font-semibold">대화 상세 기록</Dialog.Title>
-              <Dialog.Description className="text-xs text-muted-foreground mt-1">
-                {data
-                  ? `${data.chatbot_name ?? "(봇 미지정)"} · 시작 ${formatDateTime(
-                      data.started_at,
-                    )} · 메시지 ${(data.messages ?? []).length}건`
-                  : "불러오는 중..."}
-              </Dialog.Description>
-              {/* 레드팀 시연 — 게이트로 입력된 참여자. 익명 세션은 미표시. */}
-              {data?.participant_name && (
-                <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                  참여자: {data.participant_name}
-                  {data.participant_category ? ` · ${data.participant_category}` : ""}
-                </span>
-              )}
-            </div>
-            <Dialog.Close className="rounded-lg p-1 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors shrink-0">
-              <X className="h-4 w-4" />
-            </Dialog.Close>
+      <DialogContent className="max-h-[85vh] max-w-3xl">
+        <div className="flex items-start justify-between border-b px-6 py-4 gap-3">
+          <div className="min-w-0 flex-1">
+            <Dialog.Title className="text-base font-semibold">대화 상세 기록</Dialog.Title>
+            <Dialog.Description className="text-xs text-muted-foreground mt-1">
+              {data
+                ? `${data.chatbot_name ?? "(봇 미지정)"} · 시작 ${formatDateTime(
+                    data.started_at,
+                  )} · 메시지 ${(data.messages ?? []).length}건`
+                : "불러오는 중..."}
+            </Dialog.Description>
+            {/* 레드팀 시연 — 게이트로 입력된 참여자. 익명 세션은 미표시. */}
+            {data?.participant_name && (
+              <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                참여자: {data.participant_name}
+                {data.participant_category ? ` · ${data.participant_category}` : ""}
+              </span>
+            )}
           </div>
+          <Dialog.Close className="rounded-lg p-1 text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors shrink-0">
+            <X className="h-4 w-4" />
+          </Dialog.Close>
+        </div>
 
-          <div className="overflow-y-auto px-6 py-4 space-y-3">
-            {isLoading && (
-              <div className="space-y-3">
-                {[0, 1, 2].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
-            )}
-
-            {isError && (
-              <div className="flex flex-col items-center gap-3 py-10">
-                <p className="text-sm text-muted-foreground">대화 정보를 불러오지 못했습니다</p>
-                <Button size="sm" variant="outline" onClick={() => refetch()}>
-                  다시 시도
-                </Button>
-              </div>
-            )}
-
-            {!isLoading && !isError && data && (data.messages ?? []).length === 0 && (
-              <p className="text-sm text-muted-foreground py-10 text-center">메시지가 없습니다</p>
-            )}
-
-            {!isLoading &&
-              !isError &&
-              data &&
-              (data.messages ?? []).map((msg) => (
-                <div
-                  key={msg.id}
-                  ref={(el) => {
-                    messageRefs.current[msg.id] = el;
-                  }}
-                >
-                  <MessageBubble msg={msg} />
-                </div>
+        <div className="overflow-y-auto px-6 py-4 space-y-3">
+          {isLoading && (
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
               ))}
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
+            </div>
+          )}
+
+          {isError && (
+            <div className="flex flex-col items-center gap-3 py-10">
+              <p className="text-sm text-muted-foreground">대화 정보를 불러오지 못했습니다</p>
+              <Button size="sm" variant="outline" onClick={() => refetch()}>
+                다시 시도
+              </Button>
+            </div>
+          )}
+
+          {!isLoading && !isError && data && (data.messages ?? []).length === 0 && (
+            <p className="text-sm text-muted-foreground py-10 text-center">메시지가 없습니다</p>
+          )}
+
+          {!isLoading &&
+            !isError &&
+            data &&
+            (data.messages ?? []).map((msg) => (
+              <div
+                key={msg.id}
+                ref={(el) => {
+                  messageRefs.current[msg.id] = el;
+                }}
+              >
+                <MessageBubble msg={msg} />
+              </div>
+            ))}
+        </div>
+      </DialogContent>
     </Dialog.Root>
   );
 }

@@ -19,6 +19,8 @@ import { useRouter } from "next/navigation";
 import { ChangeEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  BrandIcon,
+  BrandMark,
   FollowupPills,
   PERSONAS,
   type PersonaMode,
@@ -590,7 +592,7 @@ export default function ChatPage() {
       <div className="flex min-h-dvh items-center justify-center bg-background p-6">
         <Card className="w-full max-w-md space-y-5 p-6">
           <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-primary" />
+            <BrandIcon />
             <h1 className="text-lg font-semibold">TrueWords 시연 참여</h1>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -631,7 +633,7 @@ export default function ChatPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground max-md:min-h-11"
           >
             다른 계정으로 로그인 (로그아웃)
           </button>
@@ -648,13 +650,12 @@ export default function ChatPage() {
         <button
           type="button"
           onClick={handleNewChat}
-          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="flex shrink-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring max-md:min-h-11"
           aria-label="홈으로"
         >
-          <BookOpen className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold">TrueWords</h1>
+          <BrandMark asHeading compact />
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {/* 레드팀 시연 — 현재 참여자 + 변경(게이트 재진입) */}
           <button
             type="button"
@@ -664,7 +665,7 @@ export default function ChatPage() {
           >
             <User className="h-3.5 w-3.5" />
             <span className="font-medium text-foreground">{participantName}</span>
-            <span className="text-muted-foreground/70">· {participantCategory}</span>
+            <span className="text-muted-foreground">· {participantCategory}</span>
             <span className="ml-1 text-primary">변경</span>
           </button>
           {messages.length > 0 && (
@@ -684,7 +685,7 @@ export default function ChatPage() {
             <Skeleton className="h-9 w-40" />
           ) : (
             <Select value={selectedBot} onValueChange={(val) => handleBotChange(val)}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-48 min-w-0">
                 {/* base-ui-react Select는 라벨 변환을 children 함수로 받는다.
                     미지정 시 trigger에 raw value(chatbot_id)가 그대로 노출됨. */}
                 <SelectValue placeholder="챗봇 선택">
@@ -792,7 +793,7 @@ export default function ChatPage() {
                         key={prompt}
                         type="button"
                         onClick={() => handleSend(prompt)}
-                        className="rounded-full border bg-card px-4 py-2 text-xs text-foreground/80 transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+                        className="rounded-full border bg-card px-4 py-2 text-xs text-foreground/80 transition max-md:min-h-11 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
                       >
                         {prompt}
                       </button>
@@ -803,7 +804,7 @@ export default function ChatPage() {
 
             {/* 맞춤 설정 영역: persona / emphasis / visibility */}
             <section className="flex flex-col gap-2" aria-label="맞춤 설정">
-              <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">맞춤 설정</h2>
+              <h2 className="px-1 text-xs font-medium text-muted-foreground">맞춤 설정</h2>
 
               <PersonaRowTrigger value={answerMode} onClick={() => setPersonaSheetOpen(true)} />
             </section>
@@ -974,7 +975,7 @@ export default function ChatPage() {
                           </div>
 
                           {msg.feedback && (
-                            <span className="text-[11px] text-muted-foreground">
+                            <span className="text-2xs text-muted-foreground">
                               {isPositiveFeedback(msg.feedback) ? "피드백 감사합니다" : "의견이 기록됐습니다"}
                             </span>
                           )}
@@ -996,7 +997,7 @@ export default function ChatPage() {
           <div className="border-t bg-background px-4 pb-4 pt-3">
             <div className="mx-auto max-w-2xl">
               <div
-                className={`relative flex items-end rounded-2xl border bg-card shadow-sm transition focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 ${
+                className={`relative flex items-end rounded-2xl border bg-card shadow-sm transition focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 ${
                   !selectedBot ? "opacity-60" : ""
                 }`}
               >
@@ -1026,7 +1027,7 @@ export default function ChatPage() {
                     variant="default"
                     onClick={handleStop}
                     aria-label="응답 생성 중단"
-                    className="absolute bottom-2 right-2 h-9 w-9 rounded-xl"
+                    className="absolute bottom-0.5 right-0.5 size-11 rounded-xl md:bottom-2 md:right-2 md:size-9"
                   >
                     <Square className="h-4 w-4" />
                   </Button>
@@ -1038,7 +1039,7 @@ export default function ChatPage() {
                     onClick={() => handleSend()}
                     disabled={!canSend}
                     aria-label="메시지 전송"
-                    className="absolute bottom-2 right-2 h-9 w-9 rounded-xl"
+                    className="absolute bottom-0.5 right-0.5 size-11 rounded-xl md:bottom-2 md:right-2 md:size-9"
                   >
                     <ArrowUp className="h-4 w-4" />
                   </Button>
@@ -1052,7 +1053,7 @@ export default function ChatPage() {
       {/* P0-D — 면책 4문장 footer (전 화면 공통) */}
       <footer className="border-t bg-background px-4 py-3">
         <div className="mx-auto max-w-2xl">
-          <ul className="space-y-0.5 text-center text-[11px] leading-relaxed text-muted-foreground">
+          <ul className="space-y-0.5 text-center text-2xs leading-relaxed text-muted-foreground">
             {DISCLAIMER_LINES.map((line) => (
               <li key={line} className="break-keep-all">
                 {line}

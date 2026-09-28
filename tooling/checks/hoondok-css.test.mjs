@@ -19,6 +19,18 @@ test("토큰 블록 밖 hex 를 거부하고 주석 안 hex 는 무시한다", (
   assert.ok(checkSource(`${ok}\n[data-app="hoondok"] .z { color: #fff; }`).some((f) => f.includes("#fff")));
   assert.deepEqual(checkSource(`${ok}\n/* #a03a1a on #fbe9e1 */`), []);
 });
+test("토큰 블록 밖 rgba·hsl 색 함수를 거부하고 토큰 블록 안은 허용한다", () => {
+  assert.ok(
+    checkSource(`${ok}\n[data-app="hoondok"] .z { background: rgba(0, 0, 0, 0.5); }`).some((f) => f.includes("rgba(")),
+  );
+  assert.ok(checkSource(`${ok}\n[data-app="hoondok"] .z { color: hsl(0 0% 50%); }`).some((f) => f.includes("hsl(")));
+  assert.deepEqual(
+    checkSource(ok.replace("--paper: #fbfaf8;", "--paper: #fbfaf8; --scrim: rgba(35, 33, 31, 0.45);")),
+    [],
+  );
+  const aux = '[data-app="hoondok"] { .g { box-shadow: 0 1px 0 rgb(0 0 0 / 5%); } }';
+  assert.ok(checkSource(aux, { hasTokens: false }).some((f) => f.includes("rgb(")));
+});
 test("허용 밖 브레이크포인트와 폐기값을 거부한다", () => {
   assert.ok(checkSource(ok.replace("768px", "1440px")).some((f) => f.includes("1440px")));
   assert.ok(checkSource(ok.replace("#c24721", "#d4562e")).some((f) => f.includes("#d4562e")));

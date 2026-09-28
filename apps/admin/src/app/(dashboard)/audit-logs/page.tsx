@@ -42,7 +42,7 @@ export default function AuditLogsPage() {
   const hasNext = logs.length === PAGE_SIZE;
 
   return (
-    <div className="max-w-4xl space-y-4">
+    <div className="page-wide space-y-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">감사 로그</h1>
         <p className="text-sm text-muted-foreground mt-1">관리자 작업 이력을 확인합니다</p>

@@ -32,7 +32,7 @@ export function LockScreenPicker({ push }: { push: PushState }) {
             aria-disabled={!isActive || push.isSaving}
             onClick={() => push.setLockScreenLevel(level.id)}
           >
-            <span className="st-radio" aria-hidden="true" />
+            <span className="radio" aria-hidden="true" />
             <span className="st-pick__bd">
               <b>{level.title}</b>
               <span>{level.note}</span>

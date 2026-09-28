@@ -34,7 +34,7 @@ export default function HoondokReadingsPage() {
   const scheduled = days.filter((iso) => byDate.has(iso)).length;
 
   return (
-    <div className="space-y-5 max-w-5xl">
+    <div className="space-y-5 page-wide">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">훈독 편성</h1>
@@ -100,7 +100,8 @@ export default function HoondokReadingsPage() {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="max-w-[28rem] truncate">
+                    {/* 1440px 화면(page-wide 72rem)에서 검수·편집 열까지 가로 스크롤 없이 보이도록 제목·출처 폭을 줄인다. */}
+                    <TableCell className="max-w-[22rem] truncate" title={reading?.title}>
                       {reading ? (
                         <span
                           className={
@@ -113,7 +114,7 @@ export default function HoondokReadingsPage() {
                         <span className="text-muted-foreground italic">미편성</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[18rem] truncate">
+                    <TableCell className="text-sm text-muted-foreground max-w-[14rem] truncate">
                       {reading ? `${reading.speaker} · ${reading.work_title}` : "—"}
                     </TableCell>
                     <TableCell>

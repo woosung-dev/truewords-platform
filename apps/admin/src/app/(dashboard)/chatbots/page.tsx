@@ -29,7 +29,7 @@ export default function ChatbotsPage() {
   const visibleItems = showInactive ? allItems : allItems.filter((c) => c.is_active);
 
   return (
-    <div className="space-y-5 max-w-5xl">
+    <div className="space-y-5 page-wide">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">챗봇 관리</h1>

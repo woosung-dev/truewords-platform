@@ -76,7 +76,7 @@ function FloatingButton({ icon: Icon, label, onClick, active }: FloatingButtonPr
       className={cn(
         "flex flex-1 flex-col items-center justify-center gap-0.5",
         "min-h-11 rounded-xl px-3 py-1.5",
-        "text-[11px] font-medium tracking-tight",
+        "text-2xs font-medium tracking-tight",
         "transition-all duration-150 ease-out",
         "active:scale-[0.95] active:duration-75",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",

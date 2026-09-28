@@ -60,12 +60,15 @@ export function SeriesScreen({ series }: { series: string }) {
       <div className="sect">
         <div className="sect__head">
           <h2 className="sect__title">권</h2>
-          <span className="sect__meta">{detail.volumes.length}권 공개</span>
-          {detail.authority_grade === "R" ? (
-            <span className="badge badge--dashed">공식성 확인되지 않음</span>
-          ) : (
-            <AuthorityBadge grade={detail.authority_grade} />
-          )}
+          {/* 제목은 왼쪽, 개수·등급은 오른쪽 한 묶음 — 세 요소를 space-between 에 두면 개수가 가운데 떠 보인다 */}
+          <span className="sect__side">
+            <span className="sect__meta">{detail.volumes.length}권 공개</span>
+            {detail.authority_grade === "R" ? (
+              <span className="badge badge--dashed">공식성 확인되지 않음</span>
+            ) : (
+              <AuthorityBadge grade={detail.authority_grade} />
+            )}
+          </span>
         </div>
         <div className="shelf shelf--works">
           {detail.volumes.map((item) => {

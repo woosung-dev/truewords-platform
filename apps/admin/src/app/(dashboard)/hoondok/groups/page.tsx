@@ -51,7 +51,7 @@ export default function HoondokGroupsPage() {
   });
 
   return (
-    <div className="space-y-5 max-w-4xl">
+    <div className="space-y-5 page-wide">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">모임</h1>
         <p className="text-sm text-muted-foreground mt-1">

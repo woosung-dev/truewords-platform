@@ -175,7 +175,7 @@ export default function AnalyticsPage() {
   }));
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 page-wide">
       {/* 헤더 */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">검색 분석</h1>

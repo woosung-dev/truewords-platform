@@ -67,18 +67,22 @@ body:has([data-app="hoondok"] .sheet[open]) {
 
   /* ---------- 2. 시트 본문 ---------- */
   .js-title {
-    font-size: 19px;
+    font-size: var(--fs-xl);
     font-weight: 700;
     letter-spacing: -0.02em;
     margin: 0;
   }
+  /* 시트를 열면 제목이 시작 포커스를 받는다(jeongseong-sheet.tsx). 누를 수 없는 제목이라 링을 그리지 않는다 */
+  .js-title:focus {
+    outline: none;
+  }
   .js-lede {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     margin: 6px 0 0;
   }
   .js-gate {
-    font-size: 14px;
+    font-size: var(--fs-sm);
     color: var(--ink-2);
     margin: 0;
   }
@@ -119,12 +123,12 @@ body:has([data-app="hoondok"] .sheet[open]) {
     pointer-events: none;
   }
   .js-opt b {
-    font-size: 20px;
+    font-size: var(--fs-xl);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
   .js-opt span {
-    font-size: 12px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   /* 선택 = 테두리 + 배경 + 글자색 세 가지가 함께 바뀐다 (색만으로 구분 금지, §3.3) */
@@ -189,7 +193,7 @@ body:has([data-app="hoondok"] .sheet[open]) {
     margin-top: 14px;
   }
   .js-card__title {
-    font-size: 16.5px;
+    font-size: var(--fs-lg);
     font-weight: 600;
     margin: 0;
   }
@@ -201,17 +205,17 @@ body:has([data-app="hoondok"] .sheet[open]) {
     margin-top: 14px;
   }
   .js-card__ask {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     flex: 1 1 100%;
   }
   .js-invite__title {
-    font-size: 16.5px;
+    font-size: var(--fs-lg);
     font-weight: 600;
     margin: 0;
   }
   .js-invite__body {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     margin: 4px 0 14px;
   }

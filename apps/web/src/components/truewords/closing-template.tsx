@@ -27,11 +27,11 @@ export function ClosingTemplate({ kind, body, signature, className }: ClosingTem
         className,
       )}
     >
-      <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-accent">
+      <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-accent">
         <Sparkles className="size-3.5" aria-hidden="true" />
         {HEADING_BY_KIND[kind]}
       </div>
-      <p className="font-reading text-[15px] leading-[1.85] italic text-foreground break-keep-all whitespace-pre-line">
+      <p className="font-reading text-md leading-[1.85] italic text-foreground break-keep-all whitespace-pre-line">
         {body}
       </p>
       {signature ? (

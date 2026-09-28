@@ -97,7 +97,7 @@ export function CitationCard({
     >
       {/* Header — 인용 메타 4중 (P1-B) */}
       <header className="flex items-start justify-between gap-3 px-4 pt-3 pb-2">
-        <p className="font-mono text-[11px] leading-snug text-muted-foreground tabular-nums break-keep-all">
+        <p className="font-mono text-2xs leading-snug text-muted-foreground tabular-nums break-keep-all">
           [{formatMeta(meta)}]
         </p>
         {onOpenOriginal ? (
@@ -121,8 +121,8 @@ export function CitationCard({
           aria-labelledby={`citation-tab-${tab}`}
           className={cn(
             "min-h-12 leading-relaxed text-foreground",
-            tab === "haeseol" && "font-reading text-[15px] leading-[1.75]",
-            tab === "bonmun" && "font-reading text-[15px] leading-[1.85]",
+            tab === "haeseol" && "font-reading text-md leading-[1.75]",
+            tab === "bonmun" && "font-reading text-md leading-[1.85]",
             tab === "note" && "text-sm",
           )}
         >
@@ -169,7 +169,7 @@ export function CitationCard({
               <Icon className="size-3.5" aria-hidden="true" />
               {label}
               {locked ? (
-                <span className="ml-0.5 text-[10px]" aria-hidden="true">
+                <span className="ml-0.5 text-2xs" aria-hidden="true">
                   🔒
                 </span>
               ) : null}

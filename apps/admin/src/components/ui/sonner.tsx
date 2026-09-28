@@ -1,15 +1,14 @@
 "use client";
 
 import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon } from "lucide-react";
-import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
+// 관리자는 라이트 고정이다(.dark 를 켜는 경로 없음). ThemeProvider 없이 "system" 을 쓰면
+// OS 다크에서 토스트만 어둡게 떠서 light 로 고정한다.
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="light"
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

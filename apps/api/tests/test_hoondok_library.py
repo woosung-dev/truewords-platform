@@ -149,10 +149,12 @@ async def login(client: TestClient, email: str = "reader@example.com") -> User:
 
 
 def test_volume_label_and_sort_key():
-    assert volume_label("말씀선집   001권.pdf", "father_anthology") == "001권"
-    assert volume_label("말씀선집 56권", "father_anthology") == "056권"
+    # 표시 라벨은 0 채움 없는 숫자다 — 파일명의 "001권" 을 그대로 보이지 않는다 (디자인 점검 서고 "001권" 재현)
+    assert volume_label("말씀선집   001권.pdf", "father_anthology") == "1권"
+    assert volume_label("말씀선집 56권", "father_anthology") == "56권"
+    assert volume_label("말씀선집 355권.pdf", "father_anthology") == "355권"
     assert volume_label("천성경 (증보판).docx", "cheonseong_gyeong", "천성경") == "천성경"
-    assert sorted(["010권", "100권", "001권"], key=label_sort_key) == ["001권", "010권", "100권"]
+    assert sorted(["10권", "100권", "1권"], key=label_sort_key) == ["1권", "10권", "100권"]
     assert series_title("cheonseong_gyeong") == "천성경"
     assert series_title("what_is_this") == "what_is_this"  # 미등록 키는 키 그대로
 
@@ -229,7 +231,7 @@ async def test_series_detail_sorts_labels_and_counts_sections(ctx: TestClient):
 
     body = ctx.get("/hoondok/library/father_anthology").json()
     assert body["title"] == "문선명선생 말씀선집" and body["authority_grade"] == "O1"
-    assert [v["label"] for v in body["volumes"]] == ["001권", "010권", "100권"]
+    assert [v["label"] for v in body["volumes"]] == ["1권", "10권", "100권"]
     assert [v["total_chunks"] for v in body["volumes"]] == [100, 300, None]
     assert [v["section_count"] for v in body["volumes"]] == [1, 0, 0]
 
@@ -379,7 +381,7 @@ async def test_reading_position_upsert_and_newest_first(ctx: TestClient):
 
     items = ctx.get("/hoondok/me/reading-positions").json()["items"]
     assert [i["volume"] for i in items] == ["말씀선집   001권.pdf", "천성경.docx"]  # 최신순
-    assert items[0]["label"] == "001권"
+    assert items[0]["label"] == "1권"
     assert items[1]["chunk_index"] == 34
     # volume 필터
     filtered = ctx.get("/hoondok/me/reading-positions?volume=천성경.docx").json()["items"]

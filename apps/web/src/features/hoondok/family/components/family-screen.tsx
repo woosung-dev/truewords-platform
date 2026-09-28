@@ -125,7 +125,7 @@ function ScopeSection() {
 export function FamilyScreen() {
   return (
     <section className="col">
-      <p className="notice">{PREVIEW_NOTICE}</p>
+      <p className="notice notice--lead">{PREVIEW_NOTICE}</p>
 
       <PeopleSection
         title="우리 가족"

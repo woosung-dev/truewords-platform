@@ -1,18 +1,16 @@
-import { Flame } from "lucide-react";
-
-// 요일 스트립 (DES-PWA-003 §2.11 · 홈 "이번 주"). 월요일 시작 7칸 + 연속일.
-// Phase 1 은 완료 데이터가 없어 오늘 표시만 한다. 완료·연속일은 Phase 2 summary 로 채운다.
+// 요일 스트립 (DES-PWA-003 §2.11 · 홈 "이번 주"). 월요일 시작 7칸.
+// 연속일은 섹션 머리(`.sect__meta`)가 한 번만 말한다 — 스트립 옆에도 두면 같은 숫자가 두 번 보이고,
+// 로그인 여부에 따라 요일 원이 쓸 폭이 달라져 원 크기가 바뀐다.
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 
 export type WeekStripProps = {
   /** 0=일 … 6=토 */
   todayWeekday: number;
-  /** 월요일부터 7개. Phase 1 은 전부 false */
+  /** 월요일부터 7개 */
   doneByDay?: readonly boolean[];
-  streakDays?: number;
 };
 
-export function WeekStrip({ todayWeekday, doneByDay = [], streakDays }: WeekStripProps) {
+export function WeekStrip({ todayWeekday, doneByDay = [] }: WeekStripProps) {
   const todayIndex = (todayWeekday + 6) % 7; // 월=0
   return (
     <div className="week">
@@ -29,12 +27,6 @@ export function WeekStrip({ todayWeekday, doneByDay = [], streakDays }: WeekStri
           </li>
         ))}
       </ol>
-      {streakDays !== undefined && (
-        <span className="week__streak">
-          <Flame size={16} aria-hidden="true" />
-          연속 <b>{streakDays}</b>일
-        </span>
-      )}
     </div>
   );
 }

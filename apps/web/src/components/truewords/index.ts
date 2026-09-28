@@ -1,5 +1,7 @@
 // TrueWords component library — barrel export
 
+export type { BrandIconProps, BrandMarkProps } from "./brand-mark";
+export { BrandIcon, BrandMark } from "./brand-mark";
 export type { ChatButtonProps } from "./chat-button";
 export { ChatButton, chatButtonVariants } from "./chat-button";
 export type {

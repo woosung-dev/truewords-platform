@@ -124,7 +124,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="page-wide space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">설정</h1>
         <p className="text-sm text-muted-foreground mt-1">관리자 계정을 관리합니다</p>

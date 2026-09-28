@@ -4,10 +4,14 @@ import type { CardPublic } from "../api";
 // 책 한 권 (시안 `.bk`). 홈 카드(sm)·받는 순간(lg) 이 같은 마크업을 크기만 바꿔 쓴다(em 단위).
 // 닫힘 = 책갈피가 책 속에 들어가 술·끝만 보인다. 열림 = 모션 시작 상태(리본 제자리). 움직임은 motion.ts 가 준다.
 
+// volume 은 서고 원문 링크 키라 서버가 Qdrant 원본(파일명)을 그대로 준다 — "천성경.pdf" · "말씀선집 355권.pdf".
+// 표시할 때만 끝의 문서 확장자를 뗀다(서버 candidates.clean_volume 과 같은 목록). 떼지 않으면 뒤 부분이 ".pdf" 가 된다.
+const VOLUME_EXT = /\.(txt|pdf|hwpx?|docx?|pptx?)$/i;
+
 /** 책 이름. volume 이 저작물 이름으로 시작하면 뒤 부분(편·권)을 붙인다 — "천성경 제1편" · "말씀선집 355권". */
 export function bookParts(card: Pick<CardPublic, "work_title" | "volume">): { title: string; sub: string } {
   const title = card.work_title.trim();
-  const volume = card.volume.trim();
+  const volume = card.volume.trim().replace(VOLUME_EXT, "").trim();
   const sub = volume.startsWith(title) ? volume.slice(title.length).trim() : "";
   return { title, sub };
 }

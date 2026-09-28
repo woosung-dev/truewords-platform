@@ -9,7 +9,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 14px;
+    font-size: var(--fs-sm);
     color: var(--ink-2);
     margin: 0;
   }
@@ -44,13 +44,13 @@
   }
   .st-row__t {
     display: block;
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 600;
     line-height: 1.35;
   }
   .st-row__d {
     display: block;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     line-height: 1.5;
     margin-top: 3px;
@@ -79,14 +79,14 @@
     border-top: 1px solid var(--line);
   }
   .st-sub__k {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .st-sub__v {
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     color: var(--ink-3);
   }
   /* 켜진 알림의 시간은 고를 수 있다 (PLAN-HD-006). label 이 행 전체라 마우스·터치 어디를 눌러도 입력이 열린다 */
@@ -94,7 +94,7 @@
     cursor: pointer;
   }
   .st-sub__time {
-    font-size: 13px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--ink);
     background: var(--surface-2);
@@ -109,7 +109,7 @@
   }
   /* 왜 못 켜는지·무엇이 잘못됐는지 한 줄. 카드 안 시간 행 아래에 붙는다 */
   .st-note {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     line-height: 1.5;
     color: var(--ink-2);
     margin: 10px 0 0;
@@ -125,18 +125,10 @@
 
   /* 준비 중 컨트롤 — `opacity` 로 흐리게 만들지 않는다 (DES §1.5 disabled).
      겹친 배경에 따라 대비가 예측 불가해지고, 실제로 `--ink-3` 테두리가 3:1 아래로 떨어졌다.
-     왜 꺼졌는지는 `.st-row__soon` "준비 중" 글자가 말하므로 색을 더 낮출 필요가 없다 */
-  .toggle[disabled],
+     왜 꺼졌는지는 `.st-row__soon` "준비 중" 글자가 말하고, 꺼진 토글(점선 테두리)·라디오(회색 점) 모양은 hoondok.css 공용 규칙이 준다 */
   .st-sub[disabled],
   .st-pick[disabled] {
     cursor: not-allowed;
-  }
-  /* 고른 상태는 점으로 남기되 액센트는 걷는다 — 꺼진 컨트롤이 살아 있는 것처럼 보이지 않게 */
-  .st-pick[disabled][aria-checked="true"] .st-radio {
-    border-color: var(--ink-3);
-  }
-  .st-pick[disabled][aria-checked="true"] .st-radio::after {
-    background: var(--ink-3);
   }
 
   /* ---------- 잠금 화면 문구 (머리말 `.st-lead` 는 hoondok.css 공용) ---------- */
@@ -158,34 +150,15 @@
   }
   .st-pick__bd b {
     display: block;
-    font-size: 14px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     line-height: 1.35;
   }
   .st-pick__bd span {
     display: block;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     margin-top: 2px;
-  }
-  .st-radio {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    border: 2px solid var(--ink-3);
-    display: grid;
-    place-items: center;
-    flex: none;
-  }
-  .st-pick[aria-checked="true"] .st-radio {
-    border-color: var(--accent);
-  }
-  .st-pick[aria-checked="true"] .st-radio::after {
-    content: "";
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--accent);
   }
 
   /* ---------- 그 밖의 설정 : 행 묶음 ---------- */
@@ -231,8 +204,8 @@
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    font-size: 14px;
-    line-height: 1.55;
+    font-size: var(--fs-sm);
+    line-height: 1.5;
     margin: 0;
   }
   .st-danger__ic {
@@ -274,7 +247,7 @@
     align-items: center;
     min-height: 44px;
     padding: 0 12px;
-    font-size: 13.5px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     color: var(--ink-2);
   }
@@ -288,7 +261,7 @@
     align-items: center;
     min-height: 44px;
     margin: -8px 0;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--accent-strong);
   }
@@ -310,13 +283,13 @@
     gap: 8px;
   }
   .inapp__title {
-    font-size: 14px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     line-height: 1.4;
     margin: 0;
   }
   .inapp__body {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     line-height: 1.5;
     color: var(--ink-2);
     margin: 0;
@@ -327,11 +300,8 @@
     flex-wrap: wrap;
     gap: 8px;
   }
-  .inapp .btn--sm {
-    height: 44px;
-  }
   .inapp__note {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .inapp__close {

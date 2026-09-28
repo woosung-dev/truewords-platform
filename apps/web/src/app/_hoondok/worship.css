@@ -10,19 +10,24 @@
    `.gd-cal__head` · `.gd-cal__grid` · `.gd-cal__day` · `.gd-cal__dot` · `.gd-cal__dot--done`)는
    PLAN-HD-002 W3 CSS 정리에서 모두 hoondok.css 로 올라갔고, 이 파일은 달력의 "쉼" 칸 한 가지만 덧붙인다
    (`.gd-cal__pad` 는 빈 칸이라 CSS 규칙이 없다).
-   `.notice--lead` 는 아직 이 파일의 4화면만 쓰므로 여기 남긴다. */
+   `.notice--lead` 는 프리뷰 셸 5화면(이 파일의 4화면 + 가족·친구)만 쓰므로 여기 남긴다. */
 [data-app="hoondok"] {
   /* ---------- 프리뷰 공통 : 본문 맨 위 머리말 ---------- */
   /* `.notice` 는 화면 맨 아래용이라 위 여백만 갖는다. 머리말로 쓸 때는 아래로 뒤집는다 */
   .notice--lead {
-    padding: 0 0 4px;
+    padding: 0;
+    margin: 4px 0 12px;
+  }
+  /* 머리말 아래 간격은 화면마다 다음 요소의 margin-top(세그먼트 8·섹션 24·히어로 0)에 휘둘리지 않고 12px 로 같다 */
+  .notice--lead + * {
+    margin-top: 0;
   }
 
   /* 아직 붙지 않은 동작의 인라인 응답. 자리를 늘 비워 둬 눌러도 아래 내용이 밀리지 않는다 */
   .ws-soon {
     min-height: 20px;
     margin: 10px 0 0;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--accent-strong);
   }
@@ -30,7 +35,7 @@
   /* ---------- 010 히어로 : 사진 대신 글자 카드 (홈 SCR-PWA-002 선례) ---------- */
   .ws-eyebrow {
     margin: 0 0 6px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--accent-strong);
   }
@@ -64,7 +69,7 @@
     border-radius: var(--r-full);
     background: var(--surface-2);
     color: var(--ink-2);
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
@@ -74,20 +79,20 @@
   }
   .ws-order__k {
     display: block;
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     color: var(--ink-3);
   }
   .ws-order__t {
     display: block;
     margin-top: 2px;
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 600;
     line-height: 1.4;
   }
   .ws-order__d {
     display: block;
     margin-top: 4px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     line-height: 1.5;
     color: var(--ink-2);
   }
@@ -99,7 +104,7 @@
   }
   .ws-actions__help {
     margin: 10px 0 0;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     line-height: 1.5;
     color: var(--ink-2);
   }
@@ -125,7 +130,7 @@
     gap: 10px;
   }
   .ws-chal__name {
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 600;
     line-height: 1.35;
   }
@@ -135,7 +140,7 @@
     flex-wrap: wrap;
     justify-content: space-between;
     gap: 6px 10px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     font-variant-numeric: tabular-nums;
   }
@@ -176,7 +181,7 @@
     align-self: flex-start;
   }
   .sm-hero__t {
-    font-size: 19px;
+    font-size: var(--fs-xl);
     font-weight: 700;
     line-height: 1.35;
     letter-spacing: -0.02em;
@@ -184,7 +189,7 @@
   }
   /* 사진 위이므로 본문 보조색(--ink-2)이 아니라 흰 글자 92% 다 (§3.2 "0.85 아래로 내리지 않는다") */
   .sm-hero__m {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     opacity: 0.92;
   }
   /* 재생은 아직 없다 — 컨트롤은 disabled 이고 옆 글자가 이유를 말한다 (§3.3).
@@ -196,7 +201,7 @@
     margin-top: 10px;
   }
   .sm-play__soon {
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     color: var(--ink-3);
   }
   .sm-request {
@@ -222,7 +227,7 @@
     justify-content: space-between;
     gap: 6px 10px;
     margin: 10px 0 0;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     font-variant-numeric: tabular-nums;
   }
@@ -231,13 +236,13 @@
   }
   .ch-recruit__t {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--fs-md);
     font-weight: 600;
     line-height: 1.4;
   }
   .ch-recruit__d {
     margin: 6px 0 0;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   /* 오늘 목록 : 등수 없이 오늘 읽은 사람만 (DEC-PWA-023) */
@@ -263,20 +268,20 @@
     min-width: 0;
   }
   .ch-item__t {
-    font-size: 14.5px;
+    font-size: var(--fs-md);
     font-weight: 600;
   }
   .ch-item__m {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .sm-item__soon {
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     color: var(--ink-3);
   }
   .ch-list__help {
     margin: 10px 0 0;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     line-height: 1.5;
     color: var(--ink-2);
   }
@@ -285,7 +290,7 @@
     border-color: transparent;
     background: var(--surface-2);
     color: var(--ink-2);
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     font-weight: 600;
   }
 
@@ -299,13 +304,13 @@
     border-radius: var(--r-full);
     background: var(--accent-soft);
     color: var(--accent-strong);
-    font-size: 14px;
+    font-size: var(--fs-sm);
     font-weight: 600;
   }
   .pv-avatar--lg {
     width: 52px;
     min-height: 52px;
-    font-size: 18px;
+    font-size: var(--fs-xl);
   }
   /* 390 은 가로 스크롤, 768 이상은 줄바꿈 (DES §4.4-3) */
   .sm-pastors {
@@ -333,11 +338,11 @@
     transform: scale(0.98);
   }
   .sm-pastor__n {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     font-weight: 600;
   }
   .sm-pastor__c {
-    font-size: 11.5px;
+    font-size: var(--fs-2xs);
     color: var(--ink-3);
   }
   .sm-quote-card {
@@ -345,7 +350,7 @@
   }
   .sm-quote {
     margin: 0 0 10px;
-    font-size: 16px;
+    font-size: var(--fs-lg);
     line-height: 1.65;
   }
   .sm-quote__part {
@@ -390,7 +395,7 @@
     border-radius: var(--r-xs);
     background: var(--ink);
     color: var(--accent-ink);
-    font-size: 11px;
+    font-size: var(--fs-2xs);
     font-variant-numeric: tabular-nums;
   }
   .sm-item__bd {
@@ -401,20 +406,20 @@
     min-width: 0;
   }
   .sm-item__t {
-    font-size: 14.5px;
+    font-size: var(--fs-md);
     font-weight: 600;
     line-height: 1.4;
   }
   .sm-item__m {
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
 
   /* ---------- 013 설교 섭외 폼 ---------- */
   .rq-lede {
     margin: 8px 0 18px;
-    font-size: 14.5px;
-    line-height: 1.6;
+    font-size: var(--fs-md);
+    line-height: 1.65;
     color: var(--ink-2);
   }
   .rq-field {
@@ -447,17 +452,7 @@
     opacity: 0;
     pointer-events: none;
   }
-  .rq-radio {
-    width: 20px;
-    height: 20px;
-    flex: none;
-    border: 1.5px solid var(--ink-3);
-    border-radius: 50%;
-  }
-  /* 선택 = 원 채움 + 이름 굵기 + 글자색 세 가지가 함께 바뀐다 (색만으로 구분 금지, §3.3) */
-  .rq-pick__it:has(input:checked) .rq-radio {
-    border: 6px solid var(--accent);
-  }
+  /* 선택 = 원 안 점(공용 `.radio`) + 이름 굵기 + 글자색 세 가지가 함께 바뀐다 (색만으로 구분 금지, §3.3) */
   .rq-pick__it:has(input:checked) .ch-item__t {
     font-weight: 700;
     color: var(--accent-strong);
@@ -489,11 +484,11 @@
     transform: scale(0.985);
   }
   .rq-opt b {
-    font-size: 14.5px;
+    font-size: var(--fs-md);
     font-weight: 600;
   }
   .rq-opt span {
-    font-size: 12px;
+    font-size: var(--fs-xs);
     color: var(--ink-2);
   }
   .rq-opt:has(input:checked) {
@@ -513,7 +508,7 @@
     background: var(--surface);
     color: var(--ink);
     font: inherit;
-    font-size: 16px; /* iOS 확대 방지 — .field input 과 같은 이유 */
+    font-size: var(--fs-lg); /* iOS 확대 방지 — .field input 과 같은 이유 */
   }
   .rq-select {
     min-height: 48px;
@@ -521,7 +516,7 @@
   .rq-memo {
     display: block;
     min-height: 88px;
-    line-height: 1.6;
+    line-height: 1.65;
     resize: vertical;
   }
   .rq-memo::placeholder {
@@ -540,8 +535,8 @@
     padding: 14px;
     border-radius: var(--r);
     background: var(--surface-2);
-    font-size: 12.5px;
-    line-height: 1.6;
+    font-size: var(--fs-xs);
+    line-height: 1.65;
     color: var(--ink-2);
   }
   .rq-note svg {
