@@ -424,6 +424,16 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
 }) => {
   const errors = await collectConsoleErrors(page);
   const subscribeBodies = await stubPushBrowser(page, context);
+  // 카드는 계정·서버 설정 조회 뒤 늦게 나타난다 — 그 순간 미션 목록이 밀리지 않는지 보려고 config 응답을 붙잡아 둔다
+  // (나중에 등록한 route 가 먼저 매칭된다)
+  let releaseConfig = () => {};
+  const configHeld = new Promise<void>((resolve) => {
+    releaseConfig = resolve;
+  });
+  await page.route("**/api/backend/hoondok/push/config", async (route) => {
+    await configHeld;
+    await route.fulfill({ json: { enabled: true, public_key: FAKE_VAPID_KEY } });
+  });
 
   await page.goto("/hoondok/onboarding");
   await page.getByLabel(/이름/).fill("알림");
@@ -435,9 +445,20 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
   // 헤드리스 Chromium UA 는 인앱 브라우저가 아니다 — 안내 배너가 뜨면 안 된다
   await expect(page.locator(".inapp")).toHaveCount(0);
 
+  const missions = page.locator(".missions");
   const card = page.locator(".push-prompt");
+  // 요약(연속일)까지 그려진 뒤 — 목록 위 늦은 요소가 모두 자리 잡은 상태에서 잰다
+  await expect(page.locator(".sect__meta").filter({ hasText: /연속 \d+일/ })).toBeVisible();
+  await expect(card).toHaveCount(0);
+  const missionsBefore = await missions.boundingBox();
+  releaseConfig();
   await expect(card.getByRole("heading", { name: "매일 아침 훈독 시간을 알려 드릴까요?" })).toBeVisible();
   await expect(card).toContainText("오늘의 읽을거리가 준비됐어요");
+  // 카드는 미션 목록 아래에 붙고, 나타나도 목록 위치가 그대로다 (위에 끼어들어 밀면 오터치 → "나중에" 영구 거절)
+  const missionsAfter = await missions.boundingBox();
+  const cardBox = await card.boundingBox();
+  expect(missionsAfter?.y).toBe(missionsBefore?.y);
+  expect(cardBox?.y ?? 0).toBeGreaterThanOrEqual((missionsAfter?.y ?? 0) + (missionsAfter?.height ?? 0));
 
   const subscribed = page.waitForResponse(
     (response) => response.url().includes("/hoondok/me/push") && response.request().method() === "POST",

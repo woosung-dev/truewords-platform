@@ -26,10 +26,12 @@ import {
   HoondokInAppBrowserBanner,
   INAPP_REDIRECT_KEY,
   KAKAO_BANNER_TITLE,
+  KAKAO_OPEN_LABEL,
+  OTHER_BANNER_BODY,
   OTHER_BANNER_TITLE,
 } from "@/features/hoondok/install/components/in-app-browser-banner";
 import { INSTALL_CARD_BODY } from "@/features/hoondok/install/components/install-card";
-import { inAppBrowser, kakaoOpenExternalUrl } from "@/features/hoondok/install/platform";
+import { externalNavigation, inAppBrowser, kakaoOpenExternalUrl } from "@/features/hoondok/install/platform";
 import { markInstallEligible } from "@/features/hoondok/install/storage";
 import { notificationsAPI } from "@/features/hoondok/notifications/api";
 import {
@@ -101,11 +103,15 @@ function wrap(children: ReactNode, client = makeClient()) {
 
 /**
  * 계정·서버 설정·알림 설정 조회가 모두 끝날 때까지 기다린다. 숨김 단언이 "아직 불러오는 중이라 비어 있음" 으로
- * 거저 통과하지 않게 — prefs 를 부르는 경우(로그인 + VAPID)는 그 호출이 일어난 뒤 조회가 멈출 때까지 본다.
+ * 거저 통과하지 않게 — 부를 조회(config·prefs)는 그 호출이 일어난 뒤 조회가 멈출 때까지 본다.
+ * expectConfig=false 는 겉 컴포넌트가 속(알림 훅)을 마운트하지 않는 경우(비로그인·인앱)다.
  */
-async function settle(client: QueryClient, { expectPrefs }: { expectPrefs: boolean }) {
-  await waitFor(() => expect(notificationsAPI.config).toHaveBeenCalled());
+async function settle(
+  client: QueryClient,
+  { expectPrefs, expectConfig = true }: { expectPrefs: boolean; expectConfig?: boolean },
+) {
   await waitFor(() => expect(identityAPI.me).toHaveBeenCalled());
+  if (expectConfig) await waitFor(() => expect(notificationsAPI.config).toHaveBeenCalled());
   if (expectPrefs) await waitFor(() => expect(notificationsAPI.prefs).toHaveBeenCalled());
   await waitFor(() => expect(client.isFetching()).toBe(0));
   await act(async () => {
@@ -142,7 +148,6 @@ describe("pushPromptVariant — 노출 정책", () => {
     isPrefsReady: true,
     isReadEnabled: false,
     support: "ready",
-    isInAppBrowser: false,
     declines: 0,
     isReadDone: false,
     isInstallCardVisible: false,
@@ -160,11 +165,19 @@ describe("pushPromptVariant — 노출 정책", () => {
     ["준비 중(disabled)", { support: "disabled" }],
     ["미지원", { support: "unsupported" }],
     ["권한 차단", { support: "denied" }],
-    ["인앱 브라우저", { isInAppBrowser: true }],
+    // 인앱 브라우저는 detectPushSupport 가 unsupported 로 돌려준다 — 위 "미지원" 행이 그 경우다
     ["저장소를 아직 못 읽음(SSR)", { declines: null }],
-    ["홈은 나중에 1번이면 멈춘다", { declines: 1 }],
+    ["홈은 오늘 안 읽었으면 나중에 1번에 멈춘다", { declines: 1, isReadDone: false }],
   ])("숨김: %s", (_, patch) => {
     expect(pushPromptVariant({ ...base, ...patch })).toBe("hidden");
+  });
+
+  it("홈: 첫 방문(나중에 0)이거나, 오늘 마쳤고(미션 체크 즉시 완료 포함) 나중에 2번 미만이면 두 번째 기회", () => {
+    expect(pushPromptVariant({ ...base, declines: 0, isReadDone: false })).toBe("ready");
+    expect(pushPromptVariant({ ...base, declines: 0, isReadDone: true })).toBe("ready");
+    expect(pushPromptVariant({ ...base, declines: 1, isReadDone: false })).toBe("hidden");
+    expect(pushPromptVariant({ ...base, declines: 1, isReadDone: true })).toBe("ready");
+    expect(pushPromptVariant({ ...base, declines: 2, isReadDone: true })).toBe("hidden");
   });
 
   it("훈독 완료 뒤 자리는 오늘 마쳤고 나중에 2번 미만일 때만", () => {
@@ -260,7 +273,7 @@ describe("PushPromptCard — ready", () => {
     expect(notificationsAPI.savePrefs).not.toHaveBeenCalled();
   });
 
-  it("나중에: 홈은 한 번이면 더 묻지 않고, 훈독 완료 뒤 자리는 한 번 더 묻는다", async () => {
+  it("나중에: 홈은 오늘 안 읽었으면 한 번에 멈추고, 오늘 마친 뒤(훈독하기 화면·홈 체크)에 한 번 더 묻는다", async () => {
     const home = render(wrap(<PushPromptCard placement="home" />));
     fireEvent.click(await screen.findByRole("button", { name: "나중에" }));
     expect(screen.queryByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeNull();
@@ -285,6 +298,24 @@ describe("PushPromptCard — ready", () => {
     const last = render(wrap(<PushPromptCard placement="after-read" isReadDone />, lastClient));
     await settle(lastClient, { expectPrefs: true });
     expect(last.container).toBeEmptyDOMElement();
+    last.unmount();
+
+    // 상한(2번)에 닿았으면 홈에서 오늘 마쳤어도 더 묻지 않는다
+    const homeDoneClient = makeClient();
+    const homeDone = render(wrap(<PushPromptCard placement="home" isReadDone />, homeDoneClient));
+    await settle(homeDoneClient, { expectPrefs: true });
+    expect(homeDone.container).toBeEmptyDOMElement();
+  });
+
+  it("홈 미션 체크로 오늘 마치면 홈 자리에서 두 번째 기회가 온다", async () => {
+    localStorage.setItem(PROMPT_KEY, '{"declines":1}');
+    const client = makeClient();
+    const view = render(wrap(<PushPromptCard placement="home" />, client));
+    await settle(client, { expectPrefs: true });
+    expect(view.container).toBeEmptyDOMElement();
+    // 같은 자리에서 오늘 완료가 되면(미션 카드 즉시 완료) 그대로 나타난다
+    view.rerender(wrap(<PushPromptCard placement="home" isReadDone />, client));
+    expect(await screen.findByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeInTheDocument();
   });
 
   it("저장소가 막혀 있어도 카드는 그려지고 나중에를 누르면 그 자리에서 사라진다", async () => {
@@ -301,11 +332,11 @@ describe("PushPromptCard — ready", () => {
 });
 
 describe("PushPromptCard — 그리지 않는 경우", () => {
-  async function expectNothing(element: ReactNode, { expectPrefs }: { expectPrefs: boolean }) {
+  async function expectNothing(element: ReactNode, options: { expectPrefs: boolean; expectConfig?: boolean }) {
     vi.clearAllMocks();
     const client = makeClient();
     const view = render(wrap(element, client));
-    await settle(client, { expectPrefs });
+    await settle(client, options);
     expect(view.container).toBeEmptyDOMElement();
     view.unmount();
   }
@@ -320,7 +351,10 @@ describe("PushPromptCard — 그리지 않는 경우", () => {
 
     vi.mocked(notificationsAPI.config).mockResolvedValue({ enabled: true, public_key: VAPID_KEY });
     vi.mocked(identityAPI.me).mockRejectedValue(new ApiError(401, { message: "로그인이 필요합니다" }));
-    await expectNothing(<PushPromptCard placement="home" />, { expectPrefs: false });
+    await expectNothing(<PushPromptCard placement="home" />, { expectPrefs: false, expectConfig: false });
+    // 비로그인 홈 방문은 알림 조회를 하나도 만들지 않는다 (겉 컴포넌트가 속을 마운트하지 않는다)
+    expect(notificationsAPI.config).not.toHaveBeenCalled();
+    expect(notificationsAPI.prefs).not.toHaveBeenCalled();
 
     vi.mocked(identityAPI.me).mockResolvedValue({ user: USER });
     await expectNothing(<PushPromptCard placement="after-read" />, { expectPrefs: true });
@@ -330,9 +364,11 @@ describe("PushPromptCard — 그리지 않는 경우", () => {
     expect(await screen.findByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeInTheDocument();
   });
 
-  it("카카오톡 인앱 브라우저에서는 알림 제안을 하지 않는다 (배너가 바깥 브라우저로 보낸다)", async () => {
+  it("카카오톡 인앱 브라우저에서는 알림 제안도, 알림 조회도 하지 않는다 (배너가 바깥 브라우저로 보낸다)", async () => {
     const restoreUa = stubNavigator({ userAgent: KAKAO_ANDROID_UA });
-    await expectNothing(<PushPromptCard placement="home" />, { expectPrefs: true });
+    await expectNothing(<PushPromptCard placement="home" />, { expectPrefs: false, expectConfig: false });
+    expect(notificationsAPI.config).not.toHaveBeenCalled();
+    expect(notificationsAPI.prefs).not.toHaveBeenCalled();
     restoreUa();
   });
 });
@@ -432,54 +468,61 @@ describe("inAppBrowser — UA 표", () => {
 });
 
 describe("HoondokInAppBrowserBanner", () => {
+  // jsdom 은 kakaotalk:// 스킴 이동을 수행하지 못한다 — 이동 한 곳(externalNavigation.go)만 가로챈다
+  function spyGo() {
+    return vi.spyOn(externalNavigation, "go").mockImplementation(() => {});
+  }
+
   it("일반 브라우저(헤드리스 포함)와 SSR 첫 렌더에서는 아무것도 그리지 않는다", () => {
-    const navigate = vi.fn();
-    const view = render(<HoondokInAppBrowserBanner navigate={navigate} />);
+    const go = spyGo();
+    const view = render(<HoondokInAppBrowserBanner />);
     expect(view.container).toBeEmptyDOMElement();
-    expect(navigate).not.toHaveBeenCalled();
+    expect(go).not.toHaveBeenCalled();
     view.unmount();
 
     // 서버 렌더는 UA 를 모른다 — 인앱 UA 여도 첫 HTML 은 비어 있어야 hydration 이 어긋나지 않는다
     const restoreUa = stubNavigator({ userAgent: KAKAO_IOS_UA });
-    expect(renderToString(<HoondokInAppBrowserBanner navigate={navigate} />)).toBe("");
-    expect(navigate).not.toHaveBeenCalled();
+    expect(renderToString(<HoondokInAppBrowserBanner />)).toBe("");
+    expect(go).not.toHaveBeenCalled();
     restoreUa();
   });
 
   it("카카오톡: 세션당 한 번 외부 브라우저로 넘기고, 남은 배너의 버튼으로 다시 열 수 있다", () => {
     const restoreUa = stubNavigator({ userAgent: KAKAO_IOS_UA, maxTouchPoints: 5 });
-    const navigate = vi.fn();
+    const go = spyGo();
     const expected = kakaoOpenExternalUrl(window.location.href);
 
-    const first = render(<HoondokInAppBrowserBanner navigate={navigate} />);
-    expect(navigate).toHaveBeenCalledOnce();
-    expect(navigate).toHaveBeenCalledWith(expected);
+    const first = render(<HoondokInAppBrowserBanner />);
+    expect(go).toHaveBeenCalledOnce();
+    expect(go).toHaveBeenCalledWith(expected);
     expect(sessionStorage.getItem(INAPP_REDIRECT_KEY)).toBe("1");
     expect(screen.getByText(KAKAO_BANNER_TITLE)).toBeInTheDocument();
     first.unmount();
 
     // 같은 세션에서 다시 열어도 자동 전환은 하지 않는다
-    render(<HoondokInAppBrowserBanner navigate={navigate} />);
-    expect(navigate).toHaveBeenCalledOnce();
-    fireEvent.click(screen.getByRole("button", { name: "Safari 로 열기" }));
-    expect(navigate).toHaveBeenCalledTimes(2);
-    expect(navigate).toHaveBeenLastCalledWith(expected);
+    render(<HoondokInAppBrowserBanner />);
+    expect(go).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: KAKAO_OPEN_LABEL }));
+    expect(go).toHaveBeenCalledTimes(2);
+    expect(go).toHaveBeenLastCalledWith(expected);
 
     fireEvent.click(screen.getByRole("button", { name: "안내 닫기" }));
     expect(screen.queryByText(KAKAO_BANNER_TITLE)).toBeNull();
     restoreUa();
   });
 
-  it("카카오톡 Android 는 Chrome 으로 열기, 세션 저장소가 막혀 있으면 자동 전환하지 않는다", () => {
+  it("카카오톡 Android 도 브라우저 이름 없이 같은 '기본 브라우저로 열기', 세션 저장소가 막혀 있으면 자동 전환하지 않는다", () => {
     const restoreUa = stubNavigator({ userAgent: KAKAO_ANDROID_UA, maxTouchPoints: 5 });
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    const navigate = vi.fn();
-    render(<HoondokInAppBrowserBanner navigate={navigate} />);
-    expect(navigate).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Chrome 으로 열기" }));
-    expect(navigate).toHaveBeenCalledOnce();
+    const go = spyGo();
+    render(<HoondokInAppBrowserBanner />);
+    expect(go).not.toHaveBeenCalled();
+    // 갤럭시 기본 브라우저는 삼성 인터넷일 수 있다 — 특정 브라우저 이름을 약속하지 않는다
+    expect(screen.queryByRole("button", { name: /Chrome|Safari|삼성/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: KAKAO_OPEN_LABEL }));
+    expect(go).toHaveBeenCalledOnce();
     restoreUa();
   });
 
@@ -487,12 +530,14 @@ describe("HoondokInAppBrowserBanner", () => {
     const restoreUa = stubNavigator({ userAgent: INSTAGRAM_UA });
     const writeText = vi.fn(async () => undefined);
     const restoreClipboard = stubNavigator({ clipboard: { writeText } });
-    const navigate = vi.fn();
-    render(<HoondokInAppBrowserBanner navigate={navigate} />);
+    const go = spyGo();
+    render(<HoondokInAppBrowserBanner />);
 
     expect(screen.getByText(OTHER_BANNER_TITLE)).toBeInTheDocument();
-    expect(screen.getByText(/우측 상단 메뉴에서 '다른 브라우저로 열기'/)).toBeInTheDocument();
-    expect(navigate).not.toHaveBeenCalled();
+    // 앱마다 메뉴 위치가 달라 "우측 상단" 처럼 위치를 특정하지 않는다
+    expect(screen.getByText(OTHER_BANNER_BODY)).toBeInTheDocument();
+    expect(screen.queryByText(/우측|상단|하단/)).toBeNull();
+    expect(go).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "링크 복사" }));
     expect(await screen.findByRole("status")).toHaveTextContent("링크를 복사했어요");

@@ -7,6 +7,7 @@ import { HoondokButton } from "@/components/hoondok";
 import { INSTALL_CARD_BODY } from "@/features/hoondok/install/components/install-card";
 import { inAppBrowser } from "@/features/hoondok/install/platform";
 import { useInstallCard } from "@/features/hoondok/install/use-install-card";
+import { useCurrentUser } from "@/features/identity/use-current-user";
 import { formatKoreanTime } from "../format";
 import { type PushPromptPlacement, pushPromptVariant } from "../push-prompt-policy";
 import { readPushPromptDeclines, recordPushPromptDecline, subscribePushPrompt } from "../push-prompt-storage";
@@ -15,8 +16,9 @@ import { LOCK_SCREEN_LEVELS } from "./lock-screen-picker";
 
 // 알림 받기 제안 카드. 노출 조건은 push-prompt-policy 한 곳이고, 여기서는 그 결과와 한 번의 "알림 받기" 뒤 상태만 그린다.
 // 켜기는 설정 토글과 같은 usePushNotifications().enable — 권한 요청이 클릭 핸들러 안에서 시작된다.
+// 겉(PushPromptCard)은 계정·인앱만 보고, 속(PushPromptBody)만 알림 훅을 부른다 — 비로그인·인앱 방문은 알림 요청을 만들지 않는다.
 export const PUSH_PROMPT_TITLE = "매일 아침 훈독 시간을 알려 드릴까요?";
-export const PUSH_PROMPT_IOS_TITLE = "iPhone 은 홈 화면에 추가해야 알림을 받을 수 있어요";
+export const PUSH_PROMPT_IOS_TITLE = "iPhone·iPad 는 홈 화면에 추가해야 알림을 받을 수 있어요";
 const SETTINGS_PATH = "/hoondok/settings";
 
 const subscribeNever = () => () => {};
@@ -24,18 +26,24 @@ const isInAppSnapshot = () => inAppBrowser() !== null;
 
 type Phase = "idle" | "requested" | "dismissed";
 
-export function PushPromptCard({
-  placement,
-  isReadDone = false,
-}: {
-  placement: PushPromptPlacement;
-  isReadDone?: boolean;
-}) {
+type PushPromptProps = { placement: PushPromptPlacement; isReadDone?: boolean };
+
+/**
+ * 겉: 로그인 확인 중·비로그인·인앱 브라우저면 아무것도 그리지 않고 알림 훅도 부르지 않는다.
+ * `/hoondok/push/config`·`/hoondok/me/notifications` 는 로그인한 일반 브라우저 방문에서만 나간다.
+ */
+export function PushPromptCard(props: PushPromptProps) {
+  const { user } = useCurrentUser();
+  const isInAppBrowser = useSyncExternalStore(subscribeNever, isInAppSnapshot, () => false);
+  if (!user || isInAppBrowser) return null;
+  return <PushPromptBody {...props} />;
+}
+
+function PushPromptBody({ placement, isReadDone = false }: PushPromptProps) {
   const titleId = useId();
   const push = usePushNotifications();
   // 서버·hydration 첫 렌더는 null(숨김) — 클라이언트가 저장소를 읽은 뒤에 그린다.
   const declines = useSyncExternalStore(subscribePushPrompt, readPushPromptDeclines, () => null);
-  const isInAppBrowser = useSyncExternalStore(subscribeNever, isInAppSnapshot, () => false);
   // 홈 기본 설치 카드와 같은 판정 — 홈에 설치 안내가 이미 보이면 iOS 안내를 겹쳐 싣지 않는다.
   const { variant: installVariant } = useInstallCard();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -46,7 +54,6 @@ export function PushPromptCard({
     isPrefsReady: push.isPrefsReady,
     isReadEnabled: push.prefs.read_enabled,
     support: push.support,
-    isInAppBrowser,
     declines,
     isReadDone,
     isInstallCardVisible: installVariant !== "hidden",

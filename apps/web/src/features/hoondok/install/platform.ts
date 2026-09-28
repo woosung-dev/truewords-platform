@@ -38,3 +38,13 @@ export function inAppBrowser(userAgent?: string): "kakaotalk" | "other" | null {
 export function kakaoOpenExternalUrl(href: string): string {
   return `kakaotalk://web/openExternal?url=${encodeURIComponent(href)}`;
 }
+
+/**
+ * 바깥 브라우저로 넘기는 이동 한 곳. 객체 메서드로 두는 이유는 테스트가 `vi.spyOn(externalNavigation, "go")` 로
+ * 가로채기 위해서다 — jsdom 은 location.href 대입(스킴 이동)을 막을 방법이 없다.
+ */
+export const externalNavigation = {
+  go(url: string): void {
+    window.location.href = url;
+  },
+};

@@ -256,6 +256,10 @@
   .push-prompt {
     margin-top: 16px;
   }
+  /* 홈에서는 "이번 주" 섹션 다음 — 섹션 간격(.sect 24px)에 맞춘다 */
+  .sect + .push-prompt {
+    margin-top: 24px;
+  }
   .push-prompt .st-note {
     margin: 0;
   }

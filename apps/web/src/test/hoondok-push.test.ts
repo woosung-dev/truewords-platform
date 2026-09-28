@@ -77,6 +77,23 @@ describe("detectPushSupport 5상태", () => {
     restoreIos();
   });
 
+  it("인앱 브라우저(iPhone 카카오톡)는 홈 화면 추가로도 풀리지 않으니 설치 안내가 아니라 미지원", () => {
+    restoreNavigator = stubSupportedBrowser();
+    const restoreKakao = stubNavigator({
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 KAKAOTALK 10.8.5",
+      maxTouchPoints: 5,
+    });
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: false })),
+    );
+    expect(detectPushSupport(true)).toBe("unsupported");
+    // 서버 설정이 없으면 여전히 "준비 중" 이 먼저다
+    expect(detectPushSupport(false)).toBe("disabled");
+    restoreKakao();
+  });
+
   it("데스크톱은 iOS 분기를 타지 않는다 — 푸시 API 가 없으면 미지원, 있으면 준비", () => {
     restoreNavigator = stubNavigator({ userAgent: DESKTOP_UA, maxTouchPoints: 0 });
     expect(detectPushSupport(true)).toBe("unsupported");
