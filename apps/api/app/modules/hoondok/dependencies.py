@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.common.database import get_async_session
 from app.core.config import settings
+from app.modules.hoondok.cards_repository import CardRepository
+from app.modules.hoondok.cards_service import CardAdminService, CardService
 from app.modules.hoondok.groups_repository import GroupRepository
 from app.modules.hoondok.groups_service import GroupAdminService, GroupInviteVerifier, GroupService
 from app.modules.hoondok.journey_repository import JourneyRepository
@@ -179,3 +181,15 @@ async def get_group_invite_verifier(
     """D4 베타 게이트 — identity 가입에 주입한다(identity 는 hoondok 을 직접 import 하지 않는다)."""
     ip = extract_client_ip(request)
     return GroupInviteVerifier(service, lambda: invite_join_limiter.check(ip))
+
+
+async def get_card_repository(session: AsyncSession = Depends(get_async_session)) -> CardRepository:
+    return CardRepository(session)
+
+
+async def get_card_service(repo: CardRepository = Depends(get_card_repository)) -> CardService:
+    return CardService(repo)
+
+
+async def get_card_admin_service(repo: CardRepository = Depends(get_card_repository)) -> CardAdminService:
+    return CardAdminService(repo)

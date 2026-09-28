@@ -17,6 +17,7 @@ from sqlmodel import SQLModel, select
 from app.main import app
 from app.modules.admin.auth import create_access_token
 from app.modules.hoondok.dependencies import (
+    get_card_repository,
     get_group_repository,
     get_jeongseong_repository,
     get_library_repository,
@@ -231,6 +232,17 @@ class _FakeGroups:
         self.purged.append(user_id)
 
 
+class _FakeCards:
+    """나의 책갈피 purger (PLAN-HD-012). 실제 삭제는 test_hoondok_cards.py 가 실 리포로 본다."""
+
+    def __init__(self) -> None:
+        self.purged: list[uuid.UUID] = []
+        self.session = MagicMock()
+
+    async def delete_for_user(self, user_id) -> None:
+        self.purged.append(user_id)
+
+
 @pytest.fixture
 def client():
     users, logs, periods = _MemoryUsers(), _FakeLogs(), _FakePeriods()
@@ -242,6 +254,8 @@ def client():
     app.dependency_overrides[get_library_repository] = lambda: library
     groups = _FakeGroups()
     app.dependency_overrides[get_group_repository] = lambda: groups
+    cards = _FakeCards()
+    app.dependency_overrides[get_card_repository] = lambda: cards
     try:
         c = TestClient(app)
         c.users, c.logs, c.periods = users, logs, periods  # type: ignore[attr-defined]
@@ -255,6 +269,7 @@ def client():
             get_notification_repository,
             get_library_repository,
             get_group_repository,
+            get_card_repository,
         ):
             app.dependency_overrides.pop(dep, None)
 
