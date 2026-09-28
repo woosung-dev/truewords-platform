@@ -27,7 +27,7 @@ export function safeHoondokPath(pathname: string): string {
     "/hoondok/onboarding",
     "/hoondok/offline",
     "/hoondok/worship",
-    "/hoondok/worship/sermons",
+    "/hoondok/worship/order",
     "/hoondok/worship/request",
     "/hoondok/family",
     "/hoondok/groups/new",

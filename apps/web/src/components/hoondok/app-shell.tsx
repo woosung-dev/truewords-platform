@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, Bell, Search } from "lucide-react";
+import { ArrowLeft, Bell, Menu, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useCallback, useState } from "react";
+import { MenuDrawer } from "@/features/hoondok/menu/components/menu-drawer";
 import { HoondokScreenTitleContext } from "@/features/hoondok/screen-title";
 import { screenFor } from "@/features/hoondok/screens";
 import { HOONDOK_TABS } from "@/features/hoondok/tabs";
@@ -11,6 +12,7 @@ import { HOONDOK_TABS } from "@/features/hoondok/tabs";
 // 앱 셸 = 앱바(헤더) + 탭 내비. 탭 정의 한 목록을 <1024px 하단 5탭, ≥1024px 상단 헤더 4 로 렌더한다
 // (DES-PWA-003 §8 2026-09-16 결정). 형태 차이는 hoondok.css .nav 가 담당하고 마크업은 하나다.
 // 제목·뒤로 링크·본문 폭·활성 탭은 화면 레지스트리(features/hoondok/screens.ts) 가 pathname 으로 정한다.
+// 종 옆 햄버거는 전체 메뉴(즐겨찾기) 드로어를 연다 — 탭이 있는 화면에서만 보인다.
 export function HoondokAppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const screen = screenFor(pathname);
@@ -21,6 +23,9 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
     },
     [pathname],
   );
+  // 연 경로를 기억한다 — 드로어 밖에서 경로가 바뀌면(뒤로 가기·스와이프) 새 화면 위에 남지 않고 닫힌다
+  const [menuPath, setMenuPath] = useState<string | null>(null);
+  const isMenuOpen = menuPath === pathname;
   const title =
     screen.titleSource === "work" && resolvedTitle?.pathname === pathname ? resolvedTitle.title : screen.title;
 
@@ -44,6 +49,18 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
               <Link className="icon-btn" href="/hoondok/settings" aria-label="알림·설치">
                 <Bell size={22} />
               </Link>
+            )}
+            {!screen.hideNav && (
+              <button
+                className="icon-btn icon-btn--menu"
+                type="button"
+                aria-label="전체 메뉴"
+                aria-haspopup="dialog"
+                aria-expanded={isMenuOpen}
+                onClick={() => setMenuPath(pathname)}
+              >
+                <Menu size={22} />
+              </button>
             )}
           </div>
         </header>
@@ -89,8 +106,19 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
               <Bell size={18} />
             </Link>
           )}
+          <button
+            className="nav__menu"
+            type="button"
+            aria-label="전체 메뉴"
+            aria-haspopup="dialog"
+            aria-expanded={isMenuOpen}
+            onClick={() => setMenuPath(pathname)}
+          >
+            <Menu size={18} />
+          </button>
         </nav>
       )}
+      {isMenuOpen && <MenuDrawer onClose={() => setMenuPath(null)} />}
     </HoondokScreenTitleContext.Provider>
   );
 }

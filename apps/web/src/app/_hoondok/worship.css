@@ -204,9 +204,6 @@
     font-size: var(--fs-2xs);
     color: var(--ink-3);
   }
-  .sm-request {
-    margin-top: 10px;
-  }
 
   /* ---------- 011 챌린지 상세 : 사진 160px (DES §5 011 행) ---------- */
   .ch-hero {

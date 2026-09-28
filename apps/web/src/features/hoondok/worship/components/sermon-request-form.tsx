@@ -145,7 +145,7 @@ export function SermonRequestForm() {
           <PreviewUnavailable
             title={status}
             reason="섭외를 접수할 운영 주체가 아직 정해지지 않아 전송하지 않았어요. 입력한 내용은 이 화면에 남아 있어요."
-            href="/hoondok/worship/sermons"
+            href="/hoondok/worship"
             linkLabel="설교 목록으로 돌아가기"
           />
         )}

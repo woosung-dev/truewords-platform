@@ -8,7 +8,7 @@ import { expect, type Page, test } from "@playwright/test";
 const PREVIEW_PATHS = [
   "/hoondok/worship",
   "/hoondok/worship/challenge/family-21",
-  "/hoondok/worship/sermons",
+  "/hoondok/worship/order",
   "/hoondok/worship/request",
   "/hoondok/family",
 ] as const;
@@ -106,5 +106,29 @@ test("가족·친구: 초대 버튼은 안내만 내고 네트워크를 타지 �
   await page.getByRole("button", { name: /초대/ }).first().click();
   await expect(page.getByRole("status")).toContainText("준비 중");
   expect(apiRequests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("전체 메뉴: 즐겨찾기 칩이 남고, 칩으로 가정예배 5분 설교에 간다", async ({ page }) => {
+  const errors = await collectConsoleErrors(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/hoondok/garden");
+
+  await page.locator(".appbar").getByRole("button", { name: "전체 메뉴" }).click();
+  const menu = page.getByRole("dialog", { name: "전체 메뉴" });
+  await menu.getByRole("button", { name: "5분 설교 즐겨찾기" }).click();
+  // 다시 열어도(새로고침) 칩이 남는다 — 이 기기 localStorage 에 둔다
+  await page.reload();
+  await page.locator(".appbar").getByRole("button", { name: "전체 메뉴" }).click();
+  await expect(menu).toBeVisible();
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+
+  await menu.locator(".mn-chip", { hasText: "5분 설교" }).click();
+  await expect(page).toHaveURL(/\/hoondok\/worship$/);
+  await expect(menu).toBeHidden();
+  await expect(page.getByRole("heading", { level: 1, name: "5분 설교" })).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "주 메뉴" }).getByRole("link", { name: "가정예배" }),
+  ).toHaveAttribute("aria-current", "page");
   expect(errors).toEqual([]);
 });

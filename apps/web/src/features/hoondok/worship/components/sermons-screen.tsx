@@ -1,6 +1,6 @@
 "use client";
 
-// SCR-PWA-012 5분 설교 · 전체 설교 (PLAN-HD-002 W3-W 프리뷰 셸).
+// SCR-PWA-012 5분 설교 · 전체 설교 (PLAN-HD-002 W3-W 프리뷰 셸). 가정예배 탭 첫 화면이다(2026-09-29).
 // 재생은 붙지 않았다 — 재생 컨트롤은 전부 disabled 이고 왜 못 누르는지는 옆 글자가 말한다 (DES-PWA-003 §3.3).
 // 히어로·썸네일 사진은 레포 정적 파일로 복원했다 (2026-09-22 DES-PWA-003-Q2 되돌림).
 // 교회장 아바타는 실제 사람 자리라 스톡 얼굴을 쓰지 않고 이니셜 원형을 유지한다.
@@ -133,8 +133,8 @@ export function SermonsScreen() {
       </div>
 
       <p className="notice">{SERMONS.notice} 재생 권리와 운영 방식이 정해지기 전에는 설교를 재생할 수 없어요.</p>
-      <Link className="btn btn-line" href="/hoondok/worship">
-        가정예배로 돌아가기
+      <Link className="btn btn-line" href="/hoondok/worship/order">
+        이번 주 순서지·챌린지 보기
       </Link>
     </section>
   );
