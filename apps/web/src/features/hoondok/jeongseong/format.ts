@@ -19,6 +19,9 @@ export const TOPIC_CHIPS = ["가정의 화목", "자녀", "감사", "건강", "�
 /** 주제 최대 길이 (API-HD-009 는 1~40자). */
 export const TOPIC_MAX_LENGTH = 40;
 
+/** 나의 각오 최대 길이 (API-HD-009 는 앞뒤 공백을 지운 뒤 0~50자). */
+export const RESOLUTION_MAX_LENGTH = 50;
+
 /** 시작일 입력의 min·max. ISO 문자열만 다뤄 브라우저 로컬 타임존에 흔들리지 않는다. */
 export function startRange(todayIso: string): { min: string; max: string } {
   const [year, month, day] = todayIso.split("-").map(Number);

@@ -80,8 +80,10 @@ test("정성 시트에서 21일 정성을 만들면 홈 카드가 1일차 · 20�
     (request) => request.url().includes("/hoondok/me/jeongseong") && request.method() === "POST",
   );
   await page.getByRole("button", { name: "정성 시작하기" }).click();
-  // 알림 시각은 보내지 않는다 (훈독하기 알림 시각 한 곳)
-  expect((await created).postDataJSON()).not.toHaveProperty("reminder_time");
+  // 알림 시각은 보내지 않는다 (훈독하기 알림 시각 한 곳). 각오를 비워도 시작하고, 빈 각오는 보내지 않는다
+  const createdBody = (await created).postDataJSON();
+  expect(createdBody).not.toHaveProperty("reminder_time");
+  expect(createdBody).not.toHaveProperty("resolution");
 
   // 성공하면 URL 에서 sheet 가 빠지고 홈 카드가 진행 상태로 바뀐다 (오늘 시작 → 1일차 · 남은 20일)
   await expect(page).toHaveURL(/\/hoondok$/);
@@ -189,6 +191,99 @@ test("정원 달력은 완료한 칸에만 원을 그리고, 정성 카드는 �
       expect(await horizontalOverflow(page), `${path} ${width}px 가로 넘침`).toBeLessThanOrEqual(0);
     }
   }
+
+  expect(errors).toEqual([]);
+});
+
+test("각오를 적고 시작하면 홈 카드에 보이고, 마친 뒤에는 숫자 없는 마무리 카드 → 닫기 → 시작 CTA", async ({ page }) => {
+  const errors = await collectConsoleErrors(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signUp(page, "각오");
+  const VOW = "하루를 말씀으로 먼저 시작하기";
+
+  // ① 나의 각오(선택) — 50자 · 글자 수 · 나만 봐요
+  await page.goto("/hoondok?sheet=jeongseong");
+  const dialog = page.getByRole("dialog");
+  const vow = dialog.getByLabel(/나의 각오/);
+  await expect(vow).toHaveAttribute("maxlength", "50");
+  await expect(dialog.getByText("나만 봐요", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("0/50")).toBeVisible();
+  await vow.fill(VOW);
+  await expect(dialog.getByText(`${VOW.length}/50`)).toBeVisible();
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+
+  await page.getByRole("button", { name: "가정의 화목" }).click();
+  const created = page.waitForResponse(
+    (response) => response.url().includes("/hoondok/me/jeongseong") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "정성 시작하기" }).click();
+  const createdResponse = await created;
+  expect(createdResponse.request().postDataJSON()).toMatchObject({ resolution: VOW });
+  const period = await createdResponse.json();
+  expect(period.resolution).toBe(VOW);
+
+  // ③ 홈 진행 카드에 각오가 "나만 봐요" 와 함께 보인다
+  await expect(page).toHaveURL(/\/hoondok$/);
+  const homeCard = page.locator(".sect").filter({ has: page.getByRole("heading", { name: "정성 기간", exact: true }) });
+  await expect(homeCard.getByText(VOW)).toBeVisible();
+  await expect(homeCard.getByText("나의 각오 · 나만 봐요")).toBeVisible();
+
+  // ④ 기간이 끝난 상태 — 실제 종료는 DB 조작이 필요해 GET 응답만 API-HD-009 계약 모양으로 바꾼다
+  //    (period null + last_ended {id, topic, resolution, duration_days, started_on, end_on})
+  const lastEnded = {
+    id: period.id,
+    topic: period.topic,
+    resolution: period.resolution,
+    duration_days: period.duration_days,
+    started_on: kstIso(-21),
+    end_on: kstIso(-1),
+  };
+  const JEONGSEONG_API = "**/api/backend/hoondok/me/jeongseong";
+  await page.route(JEONGSEONG_API, (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({ json: { period: null, last_ended: lastEnded } })
+      : route.fallback(),
+  );
+  await page.goto("/hoondok");
+  const closing = homeCard.getByRole("article", { name: "정성 기간을 마쳤어요" });
+  await expect(closing).toBeVisible();
+  await expect(closing).toContainText("가정의 화목");
+  await expect(closing).toContainText(VOW);
+  // 함께한 날 수·기간 일수·날짜 범위 — 어느 숫자도 없다
+  expect(await closing.textContent()).not.toMatch(/\d/);
+  await expect(homeCard.getByRole("progressbar")).toHaveCount(0);
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await horizontalOverflow(page), `마무리 카드 ${width}px 가로 넘침`).toBeLessThanOrEqual(0);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  // ⑥ 새 정성 시작하기 → 시트. 시트를 닫으면 마무리 카드는 그대로 남는다
+  await closing.getByRole("link", { name: "새 정성 시작하기" }).click();
+  await expect(page).toHaveURL(/\/hoondok\?sheet=jeongseong$/);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "닫기" }).click();
+  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(closing).toBeVisible();
+
+  // ⑤ 닫기 → 시작 CTA, 새로고침해도 닫힌 채다
+  await closing.getByRole("button", { name: "닫기" }).click();
+  await expect(homeCard.getByRole("link", { name: "정성 시작하기" })).toBeVisible();
+  await expect(homeCard.getByRole("article")).toHaveCount(0);
+  expect(await page.evaluate((id) => localStorage.getItem(`hoondok:jeongseong-closed:${id}`), period.id)).toBe("1");
+  await page.reload();
+  await expect(homeCard.getByRole("link", { name: "정성 시작하기" })).toBeVisible();
+  await expect(homeCard.getByRole("article")).toHaveCount(0);
+
+  // ⑦ 그만한 기간은 마무리 카드가 없다 — 실제 서버 응답(last_ended null)으로 확인한다
+  await page.unroute(JEONGSEONG_API);
+  const headers = { "X-Requested-With": "XMLHttpRequest" };
+  expect((await page.request.delete("/api/backend/hoondok/me/jeongseong", { headers })).status()).toBe(204);
+  const afterAbandon = await page.request.get("/api/backend/hoondok/me/jeongseong");
+  expect(await afterAbandon.json()).toEqual({ period: null, last_ended: null });
+  await page.goto("/hoondok");
+  await expect(homeCard.getByRole("link", { name: "정성 시작하기" })).toBeVisible();
+  await expect(homeCard.getByRole("article")).toHaveCount(0);
 
   expect(errors).toEqual([]);
 });

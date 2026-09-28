@@ -155,6 +155,43 @@ describe("정성 시트 (SCR-PWA-004)", () => {
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
+  it("나의 각오(선택)는 50자 · 글자 수 · '나만 봐요', 적으면 앞뒤 공백을 지워 보낸다", async () => {
+    loggedIn();
+    on("POST", "/hoondok/me/jeongseong", () => json({ ...PERIOD, resolution: "날마다 감사" }, 201));
+    sheetParam = "jeongseong";
+    render(wrap(<JeongseongSheet />));
+
+    const vow = await screen.findByLabelText(/나의 각오/);
+    expect(vow.tagName).toBe("TEXTAREA");
+    expect(vow).toHaveAttribute("maxLength", "50");
+    expect(vow).not.toBeRequired();
+    expect(screen.getByText("(선택)")).toBeInTheDocument();
+    expect(screen.getByText("나만 봐요")).toBeInTheDocument();
+    expect(screen.getByText("0/50")).toBeInTheDocument();
+
+    fireEvent.change(vow, { target: { value: "  날마다 감사  " } });
+    expect(screen.getByText("10/50")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "감사" }));
+    fireEvent.submit(screen.getByRole("form", { name: "정성 기간 만들기" }));
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/hoondok", { scroll: false }));
+    expect(lastPost().body).toEqual({ topic: "감사", duration_days: 21, started_on: TODAY, resolution: "날마다 감사" });
+  });
+
+  it("각오를 공백만 적으면 보내지 않고 그대로 시작한다", async () => {
+    loggedIn();
+    on("POST", "/hoondok/me/jeongseong", () => json(PERIOD, 201));
+    sheetParam = "jeongseong";
+    render(wrap(<JeongseongSheet />));
+
+    fireEvent.change(await screen.findByLabelText(/나의 각오/), { target: { value: "   " } });
+    fireEvent.click(screen.getByRole("button", { name: "감사" }));
+    fireEvent.submit(screen.getByRole("form", { name: "정성 기간 만들기" }));
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+    expect(lastPost().body).not.toHaveProperty("resolution");
+  });
+
   it("401 은 안내 대신 온보딩으로 보낸다 (returnTo 가 시트를 다시 연다)", async () => {
     loggedIn();
     on("POST", "/hoondok/me/jeongseong", () => json({ message: "로그인이 필요합니다" }, 401));
@@ -266,6 +303,25 @@ describe("홈 정성 카드 (SCR-PWA-002)", () => {
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(true));
   });
 
+  it("진행 중 카드에 나의 각오를 '나만 봐요' 표시와 함께 보여 준다", async () => {
+    loggedIn();
+    on("GET", "/hoondok/me/jeongseong", () => json({ period: { ...PERIOD, resolution: "날마다 감사" } }));
+    render(wrap(<JeongseongCard />));
+
+    expect(await screen.findByText("날마다 감사")).toBeInTheDocument();
+    expect(screen.getByText("나의 각오 · 나만 봐요")).toBeInTheDocument();
+    expect(screen.getByText("7일차")).toBeInTheDocument();
+  });
+
+  it("각오가 없으면 각오 상자를 그리지 않는다", async () => {
+    loggedIn();
+    on("GET", "/hoondok/me/jeongseong", () => json({ period: PERIOD, last_ended: null }));
+    render(wrap(<JeongseongCard />));
+
+    expect(await screen.findByText("7일차")).toBeInTheDocument();
+    expect(screen.queryByText(/나의 각오/)).toBeNull();
+  });
+
   it("진행 중인 정성이 없으면 시트로 보내는 CTA 만 둔다", async () => {
     loggedIn();
     on("GET", "/hoondok/me/jeongseong", () => json({ period: null }));
@@ -321,5 +377,99 @@ describe("홈 정성 카드 (SCR-PWA-002)", () => {
     expect(screen.getByText("정성 기간")).toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).toBeNull();
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes("/hoondok/me/jeongseong"))).toBe(false);
+  });
+});
+
+describe("정성 마무리 카드 (API-HD-009 last_ended)", () => {
+  const ENDED = {
+    id: "p0",
+    topic: "가정의 화목",
+    resolution: "매일 새벽 말씀 앞에 앉기",
+    duration_days: 21,
+    started_on: "2026-09-08",
+    end_on: "2026-09-28",
+  };
+  const CLOSED_KEY = "hoondok:jeongseong-closed:p0";
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("기간이 없고 last_ended 가 있으면 '정성 기간을 마쳤어요' + 주제 + 각오만 보인다 — 숫자·날짜 범위 없음", async () => {
+    loggedIn();
+    on("GET", "/hoondok/me/jeongseong", () => json({ period: null, last_ended: ENDED }));
+    const { container } = render(wrap(<JeongseongCard />));
+
+    const card = await screen.findByRole("article", { name: "정성 기간을 마쳤어요" });
+    expect(card).toHaveTextContent("가정의 화목");
+    expect(card).toHaveTextContent("매일 새벽 말씀 앞에 앉기");
+    expect(screen.getByRole("link", { name: "새 정성 시작하기" })).toHaveAttribute("href", "/hoondok?sheet=jeongseong");
+    expect(screen.getByRole("button", { name: "닫기" })).toBeInTheDocument();
+    // 함께한 날 수·기간 일수·날짜 범위 — 어느 숫자도 없다(빼기로 빠진 날이 드러나지 않게)
+    expect(container.textContent).not.toMatch(/\d/);
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.queryByRole("link", { name: "정성 시작하기" })).toBeNull();
+  });
+
+  it("각오 없이 마친 기간도 같은 카드다 — 각오 상자만 없다", async () => {
+    loggedIn();
+    on("GET", "/hoondok/me/jeongseong", () => json({ period: null, last_ended: { ...ENDED, resolution: null } }));
+    render(wrap(<JeongseongCard />));
+
+    expect(await screen.findByRole("article", { name: "정성 기간을 마쳤어요" })).toHaveTextContent("가정의 화목");
+    expect(screen.queryByText(/나의 각오/)).toBeNull();
+  });
+
+  it("닫으면 기간 id 로 저장하고 시작 CTA 로 바뀐다 — 다시 그려도 닫힌 채다", async () => {
+    loggedIn();
+    on("GET", "/hoondok/me/jeongseong", () => json({ period: null, last_ended: ENDED }));
+    const first = render(wrap(<JeongseongCard />));
+
+    fireEvent.click(await screen.findByRole("button", { name: "닫기" }));
+    expect(await screen.findByRole("link", { name: "정성 시작하기" })).toBeInTheDocument();
+    expect(screen.queryByRole("article")).toBeNull();
+    expect(localStorage.getItem(CLOSED_KEY)).toBe("1");
+
+    // 새로고침 = 새 캐시로 다시 그리기
+    first.unmount();
+    render(wrap(<JeongseongCard />));
+    expect(await screen.findByRole("link", { name: "정성 시작하기" })).toBeInTheDocument();
+    expect(screen.queryByRole("article")).toBeNull();
+  });
+
+  it("다른 기간을 닫은 기록은 이 기간의 마무리 카드를 가리지 않는다", async () => {
+    localStorage.setItem("hoondok:jeongseong-closed:other", "1");
+    loggedIn();
+    on("GET", "/hoondok/me/jeongseong", () => json({ period: null, last_ended: ENDED }));
+    render(wrap(<JeongseongCard />));
+
+    expect(await screen.findByRole("article", { name: "정성 기간을 마쳤어요" })).toBeInTheDocument();
+  });
+
+  it("저장소가 막혀도(읽기·쓰기 예외) 카드는 보이고 닫기는 이번 화면에서 동작한다", async () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    loggedIn();
+    on("GET", "/hoondok/me/jeongseong", () => json({ period: null, last_ended: ENDED }));
+    render(wrap(<JeongseongCard />));
+
+    fireEvent.click(await screen.findByRole("button", { name: "닫기" }));
+    expect(await screen.findByRole("link", { name: "정성 시작하기" })).toBeInTheDocument();
+  });
+
+  it("진행 중인 기간이 있으면 last_ended 가 와도 진행 카드를 보인다", async () => {
+    loggedIn();
+    on("GET", "/hoondok/me/jeongseong", () => json({ period: PERIOD, last_ended: ENDED }));
+    render(wrap(<JeongseongCard />));
+
+    expect(await screen.findByText("21일 정성 · 감사")).toBeInTheDocument();
+    expect(screen.queryByRole("article")).toBeNull();
   });
 });
