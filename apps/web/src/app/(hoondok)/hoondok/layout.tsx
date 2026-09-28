@@ -2,6 +2,7 @@
 // React Query Provider 는 루트 layout 을 공유한다. 토큰·컴포넌트 CSS 와 Pretendard self-host(@font-face) 는
 // [data-app="hoondok"] 스코프·/hoondok/fonts 로 격리하고, PWA manifest·아이콘·theme-color(Phase 3 C)와 서비스워커 등록(Phase 3 D)도
 // 이 레이아웃에만 붙인다. beforeinstallprompt 리스너(Phase 3 E)도 같다 — 카드는 홈에만 있지만 이벤트는 어느 경로에서든 발사된다.
+// 인앱 브라우저 안내(카카오톡 등)도 어느 경로로 들어오든 떠야 하므로 여기서 앱 셸 위에 둔다 — 일반 브라우저·SSR 에서는 아무것도 그리지 않는다.
 // 화면 그룹 CSS(_hoondok/*.css, W0-W) 는 hoondok.css 뒤에 고정 순서로 import 한다 — 토큰은 hoondok.css 한 곳에만 있다.
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
@@ -19,6 +20,7 @@ import "@/app/_hoondok/together.css";
 import "@/app/_hoondok/together-home.css";
 import { HoondokAppShell } from "@/components/hoondok";
 import { isHoondokEnabled } from "@/features/hoondok/flag";
+import { HoondokInAppBrowserBanner } from "@/features/hoondok/install/components/in-app-browser-banner";
 import { HoondokInstallPromptListener } from "@/features/hoondok/install/components/install-prompt-listener";
 import { HoondokErrorListener } from "@/features/hoondok/observability/listener";
 import {
@@ -61,6 +63,7 @@ export default function HoondokLayout({ children }: { children: ReactNode }) {
   if (!isHoondokEnabled()) notFound();
   return (
     <div data-app="hoondok">
+      <HoondokInAppBrowserBanner />
       <HoondokAppShell>{children}</HoondokAppShell>
       <HoondokErrorListener />
       <HoondokServiceWorker />

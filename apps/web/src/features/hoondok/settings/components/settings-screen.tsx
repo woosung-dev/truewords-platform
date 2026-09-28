@@ -1,7 +1,9 @@
 "use client";
 
 import { Smartphone } from "lucide-react";
+import { useSyncExternalStore } from "react";
 import { InstallCard } from "@/features/hoondok/install/components/install-card";
+import { inAppBrowser } from "@/features/hoondok/install/platform";
 import { useInstallCard } from "@/features/hoondok/install/use-install-card";
 import { LockScreenPicker } from "@/features/hoondok/notifications/components/lock-screen-picker";
 import { ReadNotificationCard, SOON } from "@/features/hoondok/notifications/components/read-notification-card";
@@ -20,9 +22,25 @@ const SOON_NOTIFICATIONS: readonly NotificationRow[] = [
   { id: "notice", title: "공지", description: "앱 소식" },
 ];
 
+const subscribeNever = () => () => {};
+const isInAppSnapshot = () => inAppBrowser() !== null;
+
 function InstallSection() {
   // 설정에서는 자격·숨김과 무관하게 안내가 보인다. hidden 은 곧 standalone 이므로 한 줄로 바꾼다.
   const { variant } = useInstallCard({ isAlwaysVisible: true });
+  // 인앱 브라우저(카카오톡 등)는 홈 화면 추가가 안 된다 — iOS 공유 버튼 안내를 그대로 두면 상단 배너
+  // ("앱 설치·알림이 안 돼요")와 모순된다. 서버·hydration 첫 렌더는 false(일반 안내)이고 클라이언트에서 UA 를 읽는다.
+  const isInAppBrowser = useSyncExternalStore(subscribeNever, isInAppSnapshot, () => false);
+  if (isInAppBrowser) {
+    return (
+      <p className="card st-installed" role="status">
+        <span className="st-installed__ic" aria-hidden="true">
+          <Smartphone size={20} />
+        </span>
+        <span>기본 브라우저에서 열면 홈 화면에 추가할 수 있어요</span>
+      </p>
+    );
+  }
   if (variant === "hidden") {
     return (
       <p className="card st-installed" role="status">

@@ -11,7 +11,7 @@ import { HoondokButton } from "@/components/hoondok";
 import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
 import { useAbandonJeongseong, useJeongseong } from "@/features/hoondok/use-jeongseong";
 import { useCurrentUser } from "@/features/identity/use-current-user";
-import { formatMonthDay, formatReminder } from "../format";
+import { formatMonthDay } from "../format";
 
 const SHEET_HREF = "/hoondok?sheet=jeongseong";
 
@@ -61,7 +61,6 @@ export function JeongseongCard() {
   }
 
   const { progress } = period;
-  const reminder = formatReminder(period.reminder_time);
   const badge = progress.state === "upcoming" ? `시작 전 · ${formatMonthDay(period.started_on)}부터` : undefined;
 
   return (
@@ -98,7 +97,6 @@ export function JeongseongCard() {
           <span>
             {progress.done_days} / {period.duration_days}일
           </span>
-          {reminder && <span>매일 오전 {reminder}</span>}
         </p>
         <div className="js-card__cta">
           {isConfirming ? (

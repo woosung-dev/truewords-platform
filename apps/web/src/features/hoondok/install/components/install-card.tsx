@@ -7,7 +7,8 @@ import { type InstallVariant, useInstallCard } from "../use-install-card";
 // SCR-PWA-015 의 설치 안내 부분 (PLAN-HD-001 Phase 3 E). 알림 문구는 Phase 4 라 쓰지 않는다.
 export const INSTALL_CARD_TITLE = "홈 화면에 추가하면 아침마다 바로 열려요";
 
-const BODY: Record<Exclude<InstallVariant, "hidden">, string> = {
+// 알림 받기 제안 카드(iOS 미설치)도 같은 단계 문구를 쓴다 — 설치 방법은 이 한 곳에서만 고친다.
+export const INSTALL_CARD_BODY: Record<Exclude<InstallVariant, "hidden">, string> = {
   ios: "공유 버튼(네모에서 화살표가 나오는 모양)을 누른 뒤 '홈 화면에 추가'를 고르세요.",
   prompt: "앱처럼 설치해 두면 주소창 없이 바로 훈독할 수 있어요.",
   manual: "Chrome 이나 Safari 에서 이 주소를 열고, 브라우저 메뉴의 '홈 화면에 추가'(또는 '앱 설치')를 고르세요.",
@@ -32,7 +33,7 @@ export function InstallCard({ isAlwaysVisible = false }: { isAlwaysVisible?: boo
           <h2 className="install__title" id="hoondok-install-title">
             {INSTALL_CARD_TITLE}
           </h2>
-          <p className="install__body">{BODY[variant]}</p>
+          <p className="install__body">{INSTALL_CARD_BODY[variant]}</p>
         </div>
       </div>
       <div className="install__actions">

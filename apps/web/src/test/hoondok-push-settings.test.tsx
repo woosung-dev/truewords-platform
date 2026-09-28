@@ -110,6 +110,8 @@ describe("훈독하기 알림 켜기", () => {
     await waitFor(() => expect(readToggle()).toBeEnabled());
 
     fireEvent.click(readToggle());
+    // 권한 요청은 클릭 핸들러 안에서 바로 시작된다 — await 뒤(mutationFn 안)면 iOS 가 제스처 밖 요청으로 볼 수 있다
+    expect(Notification.requestPermission).toHaveBeenCalledOnce();
 
     await waitFor(() => expect(notificationsAPI.savePrefs).toHaveBeenCalled());
     expect(Notification.requestPermission).toHaveBeenCalledOnce();
