@@ -1,4 +1,4 @@
-"""훈독 Web Push 발송기 (PLAN-HD-006 sub-PR B) — 창·완료·중복 판정, 구독 정리, 모드별 부작용.
+"""훈독 Web Push 발송기 (PLAN-HD-006 sub-PR B) — 창·완료·중복·편성 판정, 정성 기간 문구, 구독 정리, 모드별 부작용.
 
 네트워크는 0 이다. pywebpush 는 모듈 전역을 monkeypatch 로 갈아끼운다.
 """
@@ -12,6 +12,7 @@ from datetime import date, datetime, time, timedelta
 import pytest
 from pydantic import SecretStr
 from pywebpush import WebPushException
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel, select
@@ -19,8 +20,14 @@ from sqlmodel import SQLModel, select
 from app.core.common.clock import KST
 from app.core.config import settings
 from app.modules.hoondok import push_sender
-from app.modules.hoondok.models import MissionLog, NotificationPreference, PushSubscription
-from app.modules.hoondok.push_sender import build_payload, is_in_window, run_push_sender
+from app.modules.hoondok.models import (
+    DailyReading,
+    JeongseongPeriod,
+    MissionLog,
+    NotificationPreference,
+    PushSubscription,
+)
+from app.modules.hoondok.push_sender import JeongseongDay, build_payload, is_in_window, run_push_sender
 from app.modules.identity.models import User
 
 TODAY = date(2026, 9, 22)
@@ -64,6 +71,7 @@ def sent_calls(monkeypatch):
 
 @pytest.fixture
 async def factory():
+    """기본은 오늘(TODAY) 공식 편성이 있는 날이다 — 편성 없는 날은 `_set_reading(factory, None)`."""
     engine = create_async_engine(
         "sqlite+aiosqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False}
     )
@@ -75,10 +83,14 @@ async def factory():
                 NotificationPreference.__table__,
                 PushSubscription.__table__,
                 MissionLog.__table__,
+                DailyReading.__table__,
+                JeongseongPeriod.__table__,
             ],
         )
+    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    await _set_reading(session_factory, "reviewed")
     try:
-        yield async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        yield session_factory
     finally:
         await engine.dispose()
 
@@ -130,6 +142,47 @@ async def _seed(
         return user.id
 
 
+async def _set_reading(factory, review_status: str | None) -> None:
+    """오늘 편성을 바꾼다. None 은 편성 없음, "withdrawn" 은 권리 철회(`/hoondok/today` 가 말씀을 내지 않는다)."""
+    async with factory() as session:
+        await session.execute(delete(DailyReading).where(DailyReading.reading_date == TODAY))
+        if review_status is not None:
+            session.add(
+                DailyReading(
+                    reading_date=TODAY,
+                    title="오늘의 말씀",
+                    body="본문",
+                    speaker="화자",
+                    work_title="저작물",
+                    authority_grade="O1",
+                    review_status=review_status,
+                )
+            )
+        await session.commit()
+
+
+async def _seed_jeongseong(
+    factory,
+    user_id: uuid.UUID,
+    *,
+    started_on: date = TODAY,
+    duration_days: int = 21,
+    status: str = "active",
+    topic: str = "감사",
+) -> None:
+    async with factory() as session:
+        session.add(
+            JeongseongPeriod(
+                user_id=user_id,
+                topic=topic,
+                duration_days=duration_days,
+                started_on=started_on,
+                status=status,
+            )
+        )
+        await session.commit()
+
+
 async def _subscriptions(factory) -> list[PushSubscription]:
     async with factory() as session:
         result = await session.execute(select(PushSubscription))
@@ -176,6 +229,20 @@ def test_build_payload_titles(level: str, title: str):
     assert payload == {"title": title, "body": "3분이면 충분해요", "url": "/hoondok"}
 
 
+@pytest.mark.parametrize(
+    "level,title,body",
+    [
+        # 중립형은 제목을 바꾸지 않는다 — 정성 주제(신앙 맥락)가 잠금 화면에 드러나지 않는다.
+        ("neutral", "오늘의 읽을거리가 준비됐어요", "5일차 · 3분이면 충분해요"),
+        ("faith", "감사 정성 5일차", "오늘의 말씀이 준비됐어요"),
+        ("unknown", "오늘의 읽을거리가 준비됐어요", "5일차 · 3분이면 충분해요"),
+    ],
+)
+def test_build_payload_jeongseong(level: str, title: str, body: str):
+    payload = build_payload(level, JeongseongDay(topic="감사", day=5))
+    assert payload == {"title": title, "body": body, "url": "/hoondok"}
+
+
 # --- 대상 선정 ----------------------------------------------------------------
 
 
@@ -191,6 +258,7 @@ async def test_execute_sends_and_marks_sent(factory, push_on, sent_calls):
         "failed": 0,
         "pruned": 0,
         "skipped_done": 0,
+        "skipped_no_reading": 0,
     }
     (sub,) = await _subscriptions(factory)
     assert sub.last_sent_on == TODAY and sub.failed_count == 0
@@ -276,6 +344,141 @@ async def test_one_user_many_devices_gets_one_push_each(factory, push_on, sent_c
 
     assert (summary.eligible, summary.sent) == (2, 2)
     assert len(sent_calls) == 2
+
+
+# --- 편성·정성 기간 -----------------------------------------------------------
+
+
+@pytest.mark.parametrize("review_status", [None, "withdrawn"], ids=["no-reading", "rights-withdrawn"])
+async def test_no_official_reading_without_jeongseong_is_skipped(
+    factory, push_on, sent_calls, review_status
+):
+    """편성이 없거나 철회된 날 — 읽을 말씀이 없는데 "준비됐어요" 를 보내지 않는다."""
+    await _set_reading(factory, review_status)
+    await _seed(factory)
+
+    summary = await _run(factory, execute=True)
+
+    assert summary.as_dict() == {
+        "mode": "execute",
+        "eligible": 0,
+        "sent": 0,
+        "failed": 0,
+        "pruned": 0,
+        "skipped_done": 0,
+        "skipped_no_reading": 1,
+    }
+    assert sent_calls == []
+    (sub,) = await _subscriptions(factory)
+    assert sub.last_sent_on is None  # 창 안에서 편성이 들어오면 다음 cron 이 보낸다
+
+
+async def test_no_official_reading_with_jeongseong_in_progress_is_sent(factory, push_on, sent_calls):
+    """편성이 없어도 정성 기간을 진행 중인 사용자는 보낸다 — 사용자별 판정이다."""
+    await _set_reading(factory, None)
+    in_progress = await _seed(factory, email="a@example.com", endpoints=("https://push.example.com/a",))
+    await _seed(factory, email="b@example.com", endpoints=("https://push.example.com/b",))
+    await _seed_jeongseong(factory, in_progress, started_on=TODAY - timedelta(days=2))
+
+    summary = await _run(factory, execute=True)
+
+    assert (summary.eligible, summary.sent, summary.skipped_no_reading) == (1, 1, 1)
+    (call,) = sent_calls
+    assert call["subscription_info"]["endpoint"] == "https://push.example.com/a"
+    assert json.loads(call["data"]) == {
+        "title": "오늘의 읽을거리가 준비됐어요",
+        "body": "3일차 · 3분이면 충분해요",
+        "url": "/hoondok",
+    }
+
+
+@pytest.mark.parametrize("review_status", ["reviewed", "unverified"])
+async def test_official_reading_is_sent_as_before(factory, push_on, sent_calls, review_status):
+    """`/hoondok/today` 가 available 이면(검수 전 포함) 기존 문구 그대로 보낸다."""
+    await _set_reading(factory, review_status)
+    await _seed(factory)
+
+    summary = await _run(factory, execute=True)
+
+    assert (summary.sent, summary.skipped_no_reading) == (1, 0)
+    (call,) = sent_calls
+    assert json.loads(call["data"])["body"] == "3분이면 충분해요"
+
+
+@pytest.mark.parametrize(
+    "offset,day",
+    [(0, 1), (20, 21)],  # 시작일 = 1일차, 종료일(21일 기간의 마지막 날) = 21일차
+    ids=["first-day", "last-day"],
+)
+@pytest.mark.parametrize(
+    "level,title,body",
+    [
+        ("neutral", "오늘의 읽을거리가 준비됐어요", "{day}일차 · 3분이면 충분해요"),
+        ("faith", "감사 정성 {day}일차", "오늘의 말씀이 준비됐어요"),
+    ],
+)
+async def test_jeongseong_in_progress_merges_day_into_payload(
+    factory, push_on, sent_calls, offset, day, level, title, body
+):
+    """정성 기간 알림은 따로 없다 — 훈독하기 알림 1건에 N일차를 합친다."""
+    user_id = await _seed(factory, level=level)
+    await _seed_jeongseong(factory, user_id, started_on=TODAY - timedelta(days=offset))
+
+    summary = await _run(factory, execute=True)
+
+    assert summary.sent == 1
+    (call,) = sent_calls
+    assert json.loads(call["data"]) == {
+        "title": title.format(day=day),
+        "body": body.format(day=day),
+        "url": "/hoondok",
+    }
+
+
+@pytest.mark.parametrize(
+    "started_offset,status",
+    [
+        (-1, "active"),  # upcoming — 내일 시작
+        (21, "active"),  # 종료일이 어제 — 아직 completed 로 정리되지 않은 active
+        (2, "completed"),
+        (2, "abandoned"),
+    ],
+    ids=["upcoming", "active-past-end", "completed", "abandoned"],
+)
+async def test_jeongseong_not_in_progress_is_ignored(
+    factory, push_on, sent_calls, started_offset, status
+):
+    """진행 중이 아닌 정성 기간은 편성 대신이 되지 못하고 문구에도 섞이지 않는다."""
+    await _set_reading(factory, None)
+    user_id = await _seed(factory, level="faith")
+    await _seed_jeongseong(
+        factory, user_id, started_on=TODAY - timedelta(days=started_offset), status=status
+    )
+
+    summary = await _run(factory, execute=True)
+
+    assert (summary.sent, summary.skipped_no_reading) == (0, 1)
+
+    await _set_reading(factory, "reviewed")
+    summary = await _run(factory, execute=True)
+
+    assert summary.sent == 1
+    (call,) = sent_calls
+    assert json.loads(call["data"]) == {
+        "title": "오늘의 말씀이 준비됐어요",
+        "body": "3분이면 충분해요",
+        "url": "/hoondok",
+    }
+
+
+async def test_done_today_counts_as_done_even_without_reading(factory, push_on, sent_calls):
+    """완료 판정이 먼저다 — 편성 없는 날의 완료자는 skipped_done 으로만 센다(중복 집계 없음)."""
+    await _set_reading(factory, None)
+    await _seed(factory, done_today=True)
+
+    summary = await _run(factory, execute=True)
+
+    assert (summary.skipped_done, summary.skipped_no_reading) == (1, 0)
 
 
 # --- 실패 처리 ----------------------------------------------------------------
@@ -369,6 +572,7 @@ async def test_dry_run_selects_without_side_effects(factory, push_on, sent_calls
         "failed": 0,
         "pruned": 0,
         "skipped_done": 0,
+        "skipped_no_reading": 0,
     }
     assert sent_calls == []
     (sub,) = await _subscriptions(factory)
@@ -376,7 +580,8 @@ async def test_dry_run_selects_without_side_effects(factory, push_on, sent_calls
 
 
 async def test_to_email_ignores_window_and_does_not_mark_sent(factory, push_on, sent_calls):
-    """창 밖 · 오늘 완료 · 토글 OFF 여도 보낸다 — 실기기 증거용 1회 발송."""
+    """창 밖 · 오늘 완료 · 토글 OFF · 편성 없음이어도 보낸다 — 실기기 증거용 1회 발송."""
+    await _set_reading(factory, None)
     await _seed(
         factory,
         read_enabled=False,
@@ -394,6 +599,7 @@ async def test_to_email_ignores_window_and_does_not_mark_sent(factory, push_on, 
         "failed": 0,
         "pruned": 0,
         "skipped_done": 0,
+        "skipped_no_reading": 0,
     }
     (sub,) = await _subscriptions(factory)
     assert sub.last_sent_on == TODAY  # 정규 발송 판정을 건드리지 않는다
@@ -431,6 +637,7 @@ async def test_disabled_without_vapid(factory, sent_calls):
         "failed": 0,
         "pruned": 0,
         "skipped_done": 0,
+        "skipped_no_reading": 0,
     }
     assert sent_calls == []
 

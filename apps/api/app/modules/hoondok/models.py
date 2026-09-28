@@ -71,7 +71,7 @@ class JeongseongPeriod(SQLModel, table=True):
     """정성 기간(7·21·40일). 사용자당 active 1건 — 부분 unique 인덱스(status='active')가 지킨다.
 
     진행률(done·missed·percent)은 저장하지 않고 mission_logs 의 read 완료일에서 매번 계산한다(hoondok/jeongseong.py).
-    reminder_time 은 표시용이며 푸시는 Phase 4 다.
+    reminder_time 은 사용 중단 — 알림 시각은 notification_preferences.read_time.
     """
 
     __tablename__ = "jeongseong_periods"

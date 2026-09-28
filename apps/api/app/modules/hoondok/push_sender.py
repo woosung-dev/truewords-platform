@@ -2,6 +2,8 @@
 
 정책:
   - 대상: `read_enabled` · 발송 창(`read_time` ~ +2h) 안 · 오늘 아직 안 보냄 · 계정 살아 있음 · 오늘 `read` 미완료
+  - 오늘 공식 편성(`GET /hoondok/today` 가 available)도 진행 중 정성 기간도 없는 사용자는 생략한다
+  - 정성 기간 알림은 따로 보내지 않는다 — 진행 중이면 훈독하기 알림 1건의 문구에 N일차를 합친다
   - 구독 단위 발송(한 사용자 기기 N대 → N건), 하루 1회(`last_sent_on`)
   - 404/410 은 만료 구독이라 즉시 삭제, 그 밖의 실패는 `failed_count` 누적 5회에 삭제
   - VAPID 3값이 없으면 아무것도 하지 않는다(`disabled`)
@@ -25,7 +27,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.common.clock import KST
 from app.core.config import Settings, settings as default_settings
-from app.modules.hoondok.models import MissionLog, NotificationPreference, PushSubscription
+from app.modules.hoondok.jeongseong import period_end
+from app.modules.hoondok.models import JeongseongPeriod, MissionLog, NotificationPreference, PushSubscription
+from app.modules.hoondok.repository import DailyReadingRepository
+from app.modules.hoondok.service import HoondokService
 from app.modules.identity.models import User
 
 logger = logging.getLogger(__name__)
@@ -71,13 +76,28 @@ def is_in_window(read_time: time, current: time) -> bool:
     return start <= minute_of_day < end
 
 
-def build_payload(lock_screen_level: str) -> dict[str, str]:
-    """잠금화면 문구 수위별 페이로드(§2-9). 모르는 값은 중립형으로 떨어진다."""
-    return {
-        "title": TITLES.get(lock_screen_level, TITLES["neutral"]),
-        "body": BODY_TEXT,
-        "url": TARGET_URL,
-    }
+@dataclass(frozen=True)
+class JeongseongDay:
+    """진행 중 정성 기간의 오늘 일차 — 알림 문구용."""
+
+    topic: str
+    day: int  # 1..duration_days
+
+
+def build_payload(lock_screen_level: str, jeongseong: JeongseongDay | None = None) -> dict[str, str]:
+    """잠금화면 문구 수위별 페이로드(§2-9). 모르는 값은 중립형으로 떨어진다.
+
+    정성 기간이 진행 중이면 같은 알림 1건에 N일차를 합친다. 중립형은 제목을 그대로 두고 본문에만
+    일차를 붙인다 — 정성 주제(신앙 맥락)를 잠금 화면에 드러내지 않는다.
+    """
+    level = lock_screen_level if lock_screen_level in TITLES else "neutral"
+    if jeongseong is None:
+        title, body = TITLES[level], BODY_TEXT
+    elif level == "faith":
+        title, body = f"{jeongseong.topic} 정성 {jeongseong.day}일차", TITLES["faith"]
+    else:
+        title, body = TITLES["neutral"], f"{jeongseong.day}일차 · {BODY_TEXT}"
+    return {"title": title, "body": body, "url": TARGET_URL}
 
 
 @dataclass(frozen=True)
@@ -86,11 +106,15 @@ class PushTarget:
 
     subscription: PushSubscription
     lock_screen_level: str
+    jeongseong: JeongseongDay | None = None
 
 
 @dataclass
 class PushSummary:
-    """stdout 요약 1줄. pruned 는 삭제된 구독 수이고 failed 의 부분집합이다."""
+    """stdout 요약 1줄. pruned 는 삭제된 구독 수이고 failed 의 부분집합이다.
+
+    skipped_* 는 구독 단위로 센다. 오늘 이미 완료했으면 편성 여부와 무관하게 skipped_done 이다.
+    """
 
     mode: str
     eligible: int = 0
@@ -98,6 +122,7 @@ class PushSummary:
     failed: int = 0
     pruned: int = 0
     skipped_done: int = 0
+    skipped_no_reading: int = 0
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -107,6 +132,7 @@ class PushSummary:
             "failed": self.failed,
             "pruned": self.pruned,
             "skipped_done": self.skipped_done,
+            "skipped_no_reading": self.skipped_no_reading,
         }
 
 
@@ -137,7 +163,7 @@ class PushSenderRepository:
         return [(sub, pref) for sub, pref in result.all()]
 
     async def list_for_email(self, email: str) -> tuple[Sequence[PushSubscription], str]:
-        """`--to-email` 용. 창·완료·last_sent_on 을 보지 않는다(삭제된 계정만 제외)."""
+        """`--to-email` 용. 창·완료·편성·last_sent_on 을 보지 않는다(삭제된 계정만 제외)."""
         user = (
             await self.session.execute(
                 select(User).where(User.email == email.strip().lower(), User.deleted_at.is_(None))
@@ -169,6 +195,30 @@ class PushSenderRepository:
             )
         )
         return set(result.scalars().all())
+
+    async def jeongseong_in_progress(
+        self, today: date, user_ids: Iterable[uuid.UUID]
+    ) -> dict[uuid.UUID, JeongseongPeriod]:
+        """오늘 진행 중인 정성 기간(사용자당 최대 1건 — 부분 unique). 후보 전체를 한 번의 쿼리로 가져온다.
+
+        종료일은 파이썬에서 `period_end` 로 거른다(DB 별 날짜 산술을 피한다). active 인데 종료일이 지난
+        기간은 읽는 시점에 completed 로 정리되지만(JeongseongService) 발송기는 쓰지 않고 건너뛰기만 한다.
+        """
+        ids = list(dict.fromkeys(user_ids))
+        if not ids:
+            return {}
+        result = await self.session.execute(
+            select(JeongseongPeriod).where(
+                JeongseongPeriod.user_id.in_(ids),
+                JeongseongPeriod.status == "active",
+                JeongseongPeriod.started_on <= today,
+            )
+        )
+        return {
+            period.user_id: period
+            for period in result.scalars().all()
+            if today <= period_end(period.started_on, period.duration_days)
+        }
 
     async def mark_sent(self, subscription: PushSubscription, today: date) -> None:
         subscription.last_sent_on = today
@@ -221,7 +271,7 @@ async def _send_targets(
     """구독 하나의 실패가 나머지를 막지 않는다 — 예외는 여기서 전부 흡수한다."""
     for target in targets:
         subscription = target.subscription
-        payload = build_payload(target.lock_screen_level)
+        payload = build_payload(target.lock_screen_level, target.jeongseong)
         try:
             await asyncio.to_thread(_deliver, subscription, payload, config)
         except WebPushException as exc:
@@ -298,13 +348,29 @@ async def run_push_sender(
             for sub, pref in await repo.list_candidates(today)
             if is_in_window(pref.read_time, current.time())
         ]
-        done = await repo.users_done_today(today, [sub.user_id for sub, _ in candidates])
+        user_ids = [sub.user_id for sub, _ in candidates]
+        done = await repo.users_done_today(today, user_ids)
+        in_progress = await repo.jeongseong_in_progress(today, user_ids)
+        # 공식 편성은 사용자와 무관하다 — 실행당 1번, `GET /hoondok/today` 와 같은 판정(없음·철회면 말씀 없음).
+        today_reading = await HoondokService(DailyReadingRepository(session), today_fn=lambda: today).get_today()
+        has_reading = today_reading.status == "available"
         targets: list[PushTarget] = []
         for sub, pref in candidates:
             if sub.user_id in done:
                 summary.skipped_done += 1
                 continue
-            targets.append(PushTarget(subscription=sub, lock_screen_level=pref.lock_screen_level))
+            period = in_progress.get(sub.user_id)
+            if period is None and not has_reading:
+                summary.skipped_no_reading += 1
+                continue
+            jeongseong = (
+                JeongseongDay(topic=period.topic, day=(today - period.started_on).days + 1)
+                if period is not None
+                else None
+            )
+            targets.append(
+                PushTarget(subscription=sub, lock_screen_level=pref.lock_screen_level, jeongseong=jeongseong)
+            )
         summary.eligible = len(targets)
 
         if mode == "dry-run":
