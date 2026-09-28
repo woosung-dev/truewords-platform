@@ -297,6 +297,7 @@ async def test_payload_and_webpush_arguments(factory, push_on, sent_calls):
     assert call["vapid_private_key"] == "test-private"
     assert call["vapid_claims"] == {"sub": "mailto:admin@example.com"}
     assert call["ttl"] == 7200
+    assert call["headers"] == {"Urgency": "high"}  # 없으면 FCM 이 보통 우선순위라 Doze 에서 창을 넘길 수 있다
     assert call["timeout"] == 10  # pywebpush 기본 None 은 무한 대기다
 
 
