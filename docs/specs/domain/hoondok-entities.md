@@ -229,3 +229,10 @@ PK `(share_id, member_id)` · `created_at`. 종류 컬럼이 없다(반응 1종)
 `id` · `month`(`YYYY-MM`, America/Los_Angeles — Google 청구 달, index) · `voice`(≤16) · `chars`(합성했거나 과금됐을 수 있는 글자 수, 공백 정규화 후) · `cache_key`(sha256 hex) · `user_id`(nullable, FK 없음) · `created_at`(index `user_id, created_at`).
 캐시 적중은 행을 만들지 않는다. 합성 전에 예약 행을 만들고 실패하면 줄이거나 지운다. `user_id` 는 사용자 최근 24시간 한도 계산용이다 — FK 를 두지 않아 계정 삭제와 무관하게 비용 기록이 남는다. [확인 필요] 계정 삭제 시 `user_id` 를 비울지는 계정 삭제 정책과 함께 정한다. additive-only migration `s4d5e6f7a8b9`(down `r3c4d5e6f7a8`).
 
+## ENT-HD-019 `word_cards` — 오늘의 책갈피 카드 풀 (PLAN-HD-012)
+
+`id` · `text`(원문 그대로, 등록 뒤 수정 불가) · `volume`(index) · `chunk_id`(필수, FK 아님) · `chunk_index` · `work_title` · `source_label`(≤300) · `topic` · `status`(`draft`·`active`·`retired`, varchar) · `pinned_on`(KST, unique `uq_word_cards_pinned_on`) · `created_at`. 오늘 카드는 저장하지 않고 계산한다.
+
+## ENT-HD-020 `card_receipts` — 나의 책갈피 (PLAN-HD-012)
+
+`id` · `user_id` FK · `card_id` FK · `received_on`(KST) · `shared_at`(nullable, 처음 건넨 시각). unique `(user_id, card_id)` · index `user_id`·`card_id`. 열람 수·받은 사람 정보는 저장하지 않는다. 계정 삭제 시 함께 지운다. 두 테이블 모두 additive-only migration `t5e6f7a8b9c0`(down `s4d5e6f7a8b9`).
