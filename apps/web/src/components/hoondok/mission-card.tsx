@@ -45,7 +45,12 @@ export function MissionCard({
     </>
   );
   return (
-    <div className="mission" data-done={isDone ? "" : undefined} data-disabled={isDisabled ? "" : undefined}>
+    <div
+      className="mission"
+      data-done={isDone ? "" : undefined}
+      data-disabled={isDisabled ? "" : undefined}
+      data-pending={isPending ? "" : undefined}
+    >
       {href && !isDisabled ? (
         <Link className="mission__link" href={href} aria-busy={isPending || undefined}>
           {body}

@@ -283,11 +283,16 @@ export function WordsScreen({
   const tocStart = sections.data?.sections.find((item) => item.position === section)?.start_chunk_index ?? null;
   const citedIndex = chunkId ? (doc?.chunks.find((chunk) => chunk.chunk_id === chunkId)?.chunk_index ?? null) : null;
   const scrollTarget = tocStart ?? citedIndex;
-  // 이어 읽기는 구간 첫 단락이 도착 단락이다(저장값이 그 단락). 라벨이 보이도록 라벨 자리로 내린다.
+  // 이어 읽기는 구간 첫 단락이 도착 단락이다(저장값이 그 단락). 라벨이 화면 밖일 때만 라벨 자리로 내린다 —
+  // 이미 보이는데 내리면 위의 장 머리글이 앱바 뒤로 가려진다.
   const resumeIndex = isResume ? firstChunkIndex : null;
   useEffect(() => {
     if (resumeIndex === null) return;
-    document.getElementById("wd-resume")?.scrollIntoView?.({ block: "start" });
+    const label = document.getElementById("wd-resume");
+    if (!label) return;
+    const { top, bottom } = label.getBoundingClientRect();
+    if (top >= 0 && bottom <= window.innerHeight) return;
+    label.scrollIntoView?.({ block: "start" });
   }, [resumeIndex]);
   useEffect(() => {
     if (scrollTarget === null || lastPage === null) return;

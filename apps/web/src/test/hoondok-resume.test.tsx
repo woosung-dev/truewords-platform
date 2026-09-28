@@ -288,6 +288,8 @@ describe("홈 이어 읽기 카드", () => {
     const card = resumeMission();
     expect(card).toHaveAttribute("aria-busy", "true");
     expect(within(view.container).getAllByText("", { selector: ".mission__skel" })).toHaveLength(2);
+    // 제목 두 줄 높이를 잡는 표시 — 긴 제목이 와도 카드가 커지지 않는다
+    expect(card?.closest(".mission")).toHaveAttribute("data-pending", "");
   });
 });
 
@@ -319,9 +321,13 @@ describe("원문 이어 읽기 도착", () => {
     vi.mocked(libraryAPI.words).mockResolvedValue(WORDS as never);
   });
 
-  it("from=resume 이면 첫 단락 앞에 라벨을 두고 그 단락을 한 번 강조하며 라벨로 내린다", async () => {
+  it("from=resume 이면 첫 단락 앞에 라벨을 두고 그 단락을 한 번 강조하며, 라벨이 화면 밖이면 라벨로 내린다", async () => {
     const scroll = vi.mocked(Element.prototype.scrollIntoView);
     scroll.mockClear();
+    // 라벨이 화면 아래에 있는 상황 — jsdom 은 레이아웃이 없어 위치를 직접 준다
+    const rect = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockReturnValue({ top: 2000, bottom: 2040 } as DOMRect);
     await showWords({ page: "2", from: "resume" });
     const label = (await screen.findByText("여기서부터 이어 읽어요")).closest("p");
     expect(label).toHaveAttribute("role", "status");
@@ -339,6 +345,19 @@ describe("원문 이어 읽기 도착", () => {
       { chunkId: undefined, section: undefined },
       expect.anything(),
     );
+    rect.mockRestore();
+  });
+  it("라벨이 이미 화면 안에 있으면 스크롤하지 않는다 — 장 머리글을 가리지 않는다", async () => {
+    const scroll = vi.mocked(Element.prototype.scrollIntoView);
+    scroll.mockClear();
+    const rect = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockReturnValue({ top: 320, bottom: 352 } as DOMRect);
+    await showWords({ page: "2", from: "resume" });
+    await screen.findByText("여기서부터 이어 읽어요");
+    expect(document.querySelector(".verse--arrive")).not.toBeNull();
+    expect(scroll).not.toHaveBeenCalled();
+    rect.mockRestore();
   });
   it("다른 경로로 들어오면 라벨도 강조도 없다", async () => {
     await showWords({ page: "2" });

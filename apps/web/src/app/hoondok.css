@@ -344,6 +344,10 @@
     border-radius: var(--r-xs);
     background: var(--surface-2);
   }
+  /* 불러오는 동안 제목은 두 줄(line-clamp 2 × line-height 1.35) 높이를 잡는다 — 긴 제목이 와도 카드가 커지지 않는다 */
+  .mission[data-pending] .mission__title {
+    min-height: 2.7em;
+  }
   .mission[data-done] .mission__ic {
     background: var(--ok-soft);
     color: var(--ok-strong);

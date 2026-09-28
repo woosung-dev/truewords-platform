@@ -8,9 +8,14 @@ export function kstMonthKey(now: Date = new Date()): string {
   return formatKstDate(now).iso.slice(0, 7);
 }
 
-/** 서버 시각 → KST `YYYY-MM-DD`. 오프셋이 없으면 naive UTC(서버 규칙)로 읽는다. 읽지 못하면 null. */
+/** 서버 시각 문자열 → Date. 오프셋이 없으면 naive UTC(서버 규칙)로 읽는다. */
+export function serverDate(value: string): Date {
+  return new Date(/[zZ]|[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`);
+}
+
+/** 서버 시각 → KST `YYYY-MM-DD`. 읽지 못하면 null. */
 export function kstDayOf(value: string): string | null {
-  const date = new Date(/[zZ]|[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`);
+  const date = serverDate(value);
   return Number.isNaN(date.getTime()) ? null : formatKstDate(date).iso;
 }
 
