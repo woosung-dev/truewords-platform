@@ -33,6 +33,17 @@ class DailyReadingRepository:
         )
         return list(result.scalars().all())
 
+    async def list_scheduled_dates(self, start: date, end: date) -> set[date]:
+        """[start, end] 에서 편성이 살아 있는 날짜(철회 제외). 연속일(API-HD-004)이 빈 날을 가르는 데 쓴다 — 날짜 열만 읽는다."""
+        result = await self.session.execute(
+            select(DailyReading.reading_date).where(
+                DailyReading.reading_date >= start,
+                DailyReading.reading_date <= end,
+                DailyReading.review_status != "withdrawn",
+            )
+        )
+        return set(result.scalars().all())
+
     async def create(self, reading: DailyReading) -> DailyReading:
         """unique(reading_date) 위반은 IntegrityError 그대로 — 호출자가 409 로 바꾼다. 실패한 세션은 롤백해 재사용 가능하게 둔다."""
         return await self._save(reading)

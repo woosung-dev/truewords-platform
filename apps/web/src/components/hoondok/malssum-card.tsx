@@ -1,5 +1,5 @@
-import { BookOpenText } from "lucide-react";
-import Link from "next/link";
+import { BookOpenText, Calendar } from "lucide-react";
+import type { ReactNode } from "react";
 
 import type { TodayReading, TodayStatus } from "@/features/hoondok/today";
 import { AuthorityBadge, ReviewBadge } from "./authority-badge";
@@ -35,23 +35,27 @@ export function SourceLine({ reading }: { reading: TodayReading }) {
 
 type MalssumCardProps =
   | { status: "available"; reading: TodayReading; isFull?: boolean }
-  | { status: Exclude<TodayStatus, "available">; reading?: null; isFull?: boolean };
+  | {
+      status: Exclude<TodayStatus, "available">;
+      reading?: null;
+      isFull?: boolean;
+      /** 상태 아래 한 줄. 다음 행동이 무엇인지(이어 읽기 기록 유무)는 부르는 화면이 안다 */
+      hint?: ReactNode;
+    };
 
 export function MalssumCard(props: MalssumCardProps) {
   if (props.status !== "available") {
-    // AC-016-04: 대체 콘텐츠를 만들지 않고 상태와 다음 행동만 보인다.
+    // AC-016-04: 대체 콘텐츠를 만들지 않고 상태만 말한다. "곧 온다" 고 약속하지 않는다.
+    // 다음 행동(이어 읽기 → 서고)과 그 안내 문구는 부르는 화면이 정한다(C3, EmptyDayActions).
     return (
       <div className="card empty" role="status">
         <span className="empty__ic">
-          <BookOpenText size={26} />
+          {props.status === "withdrawn" ? <BookOpenText size={26} /> : <Calendar size={26} />}
         </span>
         <p className="empty__title">
-          {props.status === "withdrawn" ? "오늘 말씀이 철회됐어요" : "오늘 말씀이 아직 없어요"}
+          {props.status === "withdrawn" ? "오늘 말씀이 철회됐어요" : "오늘은 정해진 말씀이 없어요"}
         </p>
-        <p className="empty__body">공개된 다른 말씀을 서고에서 찾아 읽을 수 있어요.</p>
-        <Link className="btn btn-line" href="/hoondok/library">
-          말씀 서고로 가기
-        </Link>
+        {props.hint && <p className="empty__body">{props.hint}</p>}
       </div>
     );
   }

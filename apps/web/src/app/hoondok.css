@@ -389,6 +389,53 @@
     border-color: var(--line);
   }
 
+  /* ---------- 3.1 편성 없는 날 (C3) ----------
+     홈 "오늘의 실천" 첫 줄은 누를 곳이 아니라 카드가 아닌 바탕 줄로 위계를 낮춘다. 두 줄까지 어절 단위로 줄바꿈된다.
+     훈독하기(/read) 빈 날의 다음 행동은 이어 읽기 카드(`.card.resume`, library.css) → 서고 버튼 순서로 쌓는다. */
+  .day-quiet {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    border-radius: var(--r);
+    background: var(--surface-2);
+  }
+  .day-quiet__ic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--ink-2);
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  .day-quiet__bd {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding-top: 1px;
+  }
+  .day-quiet__bd b {
+    font-size: var(--fs-md);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .day-quiet__bd span {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+    line-height: 1.55;
+  }
+  .day-go {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .day-go .card.resume {
+    min-height: 64px;
+  }
+
   /* ---------- 4. 말씀 카드 · 출처 줄 (DES §2.2) ---------- */
   .src {
     font-size: var(--fs-xs);

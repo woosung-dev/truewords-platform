@@ -104,7 +104,7 @@ describe("훈독 컴포넌트", () => {
   it("말씀 카드는 편성 없음 상태에서 대체 본문을 만들지 않는다 (AC-016-04)", async () => {
     const { MalssumCard } = await import("../components/hoondok");
     render(<MalssumCard status="none" />);
-    expect(screen.getByRole("status")).toHaveTextContent("오늘 말씀이 아직 없어요");
+    expect(screen.getByRole("status")).toHaveTextContent("오늘은 정해진 말씀이 없어요");
     expect(document.querySelector(".scripture")).toBeNull();
   });
 

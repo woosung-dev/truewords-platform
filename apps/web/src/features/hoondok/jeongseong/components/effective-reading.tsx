@@ -1,5 +1,6 @@
 "use client";
 import { MalssumCard } from "@/components/hoondok";
+import { EmptyDayActions } from "../../components/empty-day";
 import { ReadCompleteButton } from "../../components/read-complete-button";
 import { TodayNote } from "../../note/components/today-note";
 import type { TodayResponse } from "../../today";
@@ -29,8 +30,15 @@ export function EffectiveReading({ today }: { today: TodayResponse }) {
             />
           </div>
         </>
+      ) : effective.isResolving ? (
+        <div className="card" role="status" aria-busy="true">
+          오늘 말씀을 확인하고 있어요
+        </div>
       ) : (
-        <MalssumCard status={effective.status === "withdrawn" ? "withdrawn" : "none"} />
+        // 편성 없는 날·철회는 상태 카드 + 다음 행동. 조회 실패면 위 안내만 두고 빈 날이라고 말하지 않는다(C3)
+        <EmptyDayActions
+          status={effective.isEmptyDay ? (effective.status === "withdrawn" ? "withdrawn" : "none") : undefined}
+        />
       )}
     </>
   );
