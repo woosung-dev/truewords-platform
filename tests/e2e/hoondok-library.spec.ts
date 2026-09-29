@@ -36,7 +36,7 @@ for (const width of [375, 768, 1280]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(
       0,
     );
-    await page.getByRole("button", { name: "읽음", exact: true }).click();
+    await page.getByRole("button", { name: "오늘 말씀 읽음으로 기록", exact: true }).click();
     await page.goto("/hoondok");
     await expect(page.locator(".mission").filter({ hasText: "말씀 읽기" })).toHaveAttribute("data-done", "");
   });

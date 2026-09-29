@@ -13,6 +13,19 @@ function rateLabel(rate: number): string {
   return `${rate.toFixed(1)}배`;
 }
 
+/** 재생·일시정지·이어 듣기 한 버튼. 듣기 바와 하단 독의 미니 플레이어가 같이 쓴다. */
+export function togglePlayback(reader: ReadAloud) {
+  if (reader.status === "playing") reader.pause();
+  else if (reader.status === "paused") reader.resume();
+  else reader.play();
+}
+
+export function playbackLabel(reader: ReadAloud): string {
+  if (reader.isLoading) return "목소리를 준비하고 있어요";
+  if (reader.status === "playing") return "일시정지";
+  return reader.status === "paused" ? "이어 듣기" : "듣기 시작";
+}
+
 export function TtsBar({
   reader,
   title,
@@ -44,30 +57,17 @@ export function TtsBar({
   const percent = total > 0 ? Math.round((position / total) * 100) : 0;
   const isLoading = reader.isLoading;
 
-  function toggle() {
-    if (isPlaying) reader.pause();
-    else if (reader.status === "paused") reader.resume();
-    else reader.play();
-  }
-  const playLabel = isLoading
-    ? "목소리를 준비하고 있어요"
-    : isPlaying
-      ? "일시정지"
-      : reader.status === "paused"
-        ? "이어 듣기"
-        : "듣기 시작";
-
   return (
     <>
       <div className="audio">
         <button
           type="button"
           className="audio__play"
-          aria-label={playLabel}
+          aria-label={playbackLabel(reader)}
           aria-busy={isLoading || undefined}
           // AI 목소리를 쓸 수 있는지 확인하는 짧은 동안은 누르지 않게 한다 — 기기 음성으로 시작했다가 바뀌지 않게.
           disabled={reader.isResolving}
-          onClick={toggle}
+          onClick={() => togglePlayback(reader)}
         >
           {isLoading ? (
             <span className="btn__spinner" aria-hidden="true" />
