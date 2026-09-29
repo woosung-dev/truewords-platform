@@ -112,6 +112,8 @@ export function usePushNotifications() {
   }
 
   const mutation = useMutation({
+    // 저장은 한 줄로 세운다 — 추천 칸을 연달아 바꾸면(화살표 키) PUT 이 겹치는데, 늦게 온 앞 응답이 마지막 선택을 덮지 않게 한다.
+    scope: { id: "hoondok-notification-prefs" },
     // permission 은 켜는 경우에만 있다 — 클릭 핸들러가 이미 시작한 권한 요청이다(requestPermissionNow).
     mutationFn: async (intent: PushIntent & { permission: Promise<NotificationPermission> | null }) => {
       if (intent.permission) {
@@ -195,8 +197,8 @@ export function usePushNotifications() {
     isDeviceMissing:
       support === "ready" && prefs.read_enabled && (hasDeviceSubscription === false || prefs.subscription_count === 0),
     toggle: (readEnabled: boolean) => submit({ readEnabled }),
-    /** 알림 받기 제안 카드의 주 버튼. 클릭 핸들러에서 바로 불러야 한다(권한 요청이 제스처 안에서 시작된다). */
-    enable: () => submit({ readEnabled: true }),
+    /** 알림 받기 제안 카드의 주 버튼. 클릭 핸들러에서 바로 불러야 한다(권한 요청이 제스처 안에서 시작된다). readTime 을 주면 같은 PUT 에 싣는다. */
+    enable: (readTime?: string) => submit({ readEnabled: true, readTime }),
     setReadTime: (readTime: string) => submit({ readTime }),
   };
 }

@@ -5,7 +5,7 @@ import { HoondokButton } from "@/components/hoondok";
 import { type InstallVariant, useInstallCard } from "../use-install-card";
 
 // SCR-PWA-015 의 설치 안내 부분 (PLAN-HD-001 Phase 3 E). 알림 문구는 Phase 4 라 쓰지 않는다.
-export const INSTALL_CARD_TITLE = "홈 화면에 추가하면 아침마다 바로 열려요";
+export const INSTALL_CARD_TITLE = "홈 화면에 추가하면 앱처럼 바로 열려요";
 
 // 알림 받기 제안 카드(iOS 미설치)도 같은 단계 문구를 쓴다 — 설치 방법은 이 한 곳에서만 고친다.
 export const INSTALL_CARD_BODY: Record<Exclude<InstallVariant, "hidden">, string> = {

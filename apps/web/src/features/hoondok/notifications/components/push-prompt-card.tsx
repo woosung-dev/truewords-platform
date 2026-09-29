@@ -1,6 +1,6 @@
 "use client";
 
-import { BellRing, Smartphone } from "lucide-react";
+import { BellRing, Check, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useId, useState, useSyncExternalStore } from "react";
 import { HoondokButton } from "@/components/hoondok";
@@ -10,6 +10,7 @@ import { useInstallCard } from "@/features/hoondok/install/use-install-card";
 import { useKstDate } from "@/features/hoondok/use-kst-date";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { formatKoreanTime } from "../format";
+import { kstMinutesNow, nearestPreset, READ_TIME_PRESETS } from "../presets";
 import { type PushPromptPlacement, pushPromptVariant } from "../push-prompt-policy";
 import {
   readPushPromptDeclines,
@@ -21,8 +22,9 @@ import { usePushNotifications } from "../use-push-notifications";
 
 // 알림 받기 제안 카드. 노출 조건은 push-prompt-policy 한 곳이고, 여기서는 그 결과와 한 번의 "알림 받기" 뒤 상태만 그린다.
 // 켜기는 설정 토글과 같은 usePushNotifications().enable — 권한 요청이 클릭 핸들러 안에서 시작된다.
+// 추천 4칸 중 지금(KST)과 가장 가까운 칸을 미리 골라 두고, 버튼이 그 시각을 말한다 — 같은 PUT 에 시각을 싣는다.
 // 겉(PushPromptCard)은 계정·인앱만 보고, 속(PushPromptBody)만 알림 훅을 부른다 — 비로그인·인앱 방문은 알림 요청을 만들지 않는다.
-export const PUSH_PROMPT_TITLE = "매일 아침 훈독 시간을 알려 드릴까요?";
+export const PUSH_PROMPT_TITLE = "매일 언제 훈독을 알려 드릴까요?";
 export const PUSH_PROMPT_IOS_TITLE = "iPhone·iPad 는 홈 화면에 추가해야 알림을 받을 수 있어요";
 const SETTINGS_PATH = "/hoondok/settings";
 // 발송기(push_sender.TITLE_TEXT)가 보내는 제목과 같다 — 말씀 본문·신앙 맥락이 잠금 화면에 드러나지 않는다.
@@ -32,6 +34,9 @@ const subscribeNever = () => () => {};
 const isInAppSnapshot = () => inAppBrowser() !== null;
 
 type Phase = "idle" | "requested" | "dismissed";
+
+/** 카드가 처음 그려질 때의 KST 시각에 가장 가까운 칸 — 열어 둔 사이에 칸이 저절로 바뀌지 않는다. */
+const initialReadTime = () => nearestPreset(kstMinutesNow()).time;
 
 type PushPromptProps = { placement: PushPromptPlacement; isReadDone?: boolean };
 
@@ -56,6 +61,7 @@ function PushPromptBody({ placement, isReadDone = false }: PushPromptProps) {
   // 홈 기본 설치 카드와 같은 판정 — 홈에 설치 안내가 이미 보이면 iOS 안내를 겹쳐 싣지 않는다.
   const { variant: installVariant } = useInstallCard();
   const [phase, setPhase] = useState<Phase>("idle");
+  const [readTime, setReadTime] = useState(initialReadTime);
 
   const variant = pushPromptVariant({
     placement,
@@ -118,16 +124,38 @@ function PushPromptBody({ placement, isReadDone = false }: PushPromptProps) {
         </div>
       </div>
       {!isIos && push.support === "ready" && (
-        <HoondokButton
-          isLoading={push.isSaving}
-          onClick={() => {
-            setPhase("requested");
-            // 권한 요청이 이 클릭 안에서 동기적으로 시작된다 (usePushNotifications.enable)
-            push.enable();
-          }}
-        >
-          알림 받기
-        </HoondokButton>
+        <>
+          <div className="st-presets st-presets--sm" role="radiogroup" aria-labelledby={titleId}>
+            {READ_TIME_PRESETS.map((preset) => {
+              const isChecked = preset.time === readTime;
+              return (
+                <label className="st-preset" key={preset.time} data-on={isChecked ? "" : undefined}>
+                  <input
+                    type="radio"
+                    name={`${titleId}-time`}
+                    value={preset.time}
+                    checked={isChecked}
+                    disabled={push.isSaving}
+                    onChange={() => setReadTime(preset.time)}
+                  />
+                  <span className="st-preset__k">{preset.label}</span>
+                  <b className="st-preset__v">{formatKoreanTime(preset.time)}</b>
+                  <Check className="st-preset__ck" size={18} aria-hidden="true" />
+                </label>
+              );
+            })}
+          </div>
+          <HoondokButton
+            isLoading={push.isSaving}
+            onClick={() => {
+              setPhase("requested");
+              // 권한 요청이 이 클릭 안에서 동기적으로 시작된다 (usePushNotifications.enable)
+              push.enable(readTime);
+            }}
+          >
+            {formatKoreanTime(readTime)}에 알림 받기
+          </HoondokButton>
+        </>
       )}
       {push.message && (
         <p className="st-note" role="alert">
