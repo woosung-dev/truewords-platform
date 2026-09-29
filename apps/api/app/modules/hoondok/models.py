@@ -227,10 +227,10 @@ class ReadingPosition(SQLModel, table=True):
 
 
 class PassageMark(SQLModel, table=True):
-    """ENT-HD-012 단락 표시 — 북마크와 형광펜(노트 포함). 단위는 청크다.
+    """ENT-HD-012 단락 표시 — 단위는 청크다. `(user_id, chunk_id, kind)` 가 unique 다.
 
-    `(user_id, chunk_id, kind)` 가 unique 라 같은 단락에 북마크와 형광펜을 함께 둘 수 있다.
-    노트는 형광펜의 `note` 로 두고 별도 테이블을 만들지 않는다(계획 §3 ENT-HD-012).
+    형광펜·메모는 구절 단위(ENT-HD-021 `passage_highlights`)로 옮겨 이제 `bookmark` 만 쓴다.
+    예전 `kind="highlight"` 행은 지우지 않고 남겨 두되 API 는 읽지 않는다.
     """
 
     __tablename__ = "passage_marks"
@@ -245,6 +245,31 @@ class PassageMark(SQLModel, table=True):
     chunk_index: int
     kind: str = Field(max_length=16)  # MARK_KINDS
     color: int | None = Field(default=None)  # 1~3, 앱 검증. bookmark 는 항상 None
+    note: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class PassageHighlight(SQLModel, table=True):
+    """ENT-HD-021 구절 형광펜 — 사용자가 고른 글자 범위와 메모 (API-HD-053).
+
+    오프셋은 원문 뷰(API-HD-016) 청크 `display_text` 의 글자 위치이며 끝은 배타다. 한 구절은 같은 페이지 안의
+    여러 단락에 걸칠 수 있어 unique 를 두지 않는다 — 한 단락에 여러 형광펜이 올 수 있다.
+    """
+
+    __tablename__ = "passage_highlights"
+    __table_args__ = (Index("ix_passage_highlights_user_volume", "user_id", "volume"),)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    volume: str = Field(max_length=512)
+    chunk_id: str = Field(max_length=128)  # 시작 단락의 Qdrant point id, FK 아님
+    start_chunk_index: int
+    start_offset: int
+    end_chunk_index: int
+    end_offset: int
+    quote: str = Field(sa_column=Column(Text, nullable=False))  # 고른 글 그대로 — 목록 표시·재고정용
+    color: int  # 1~3, 앱 검증
     note: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)

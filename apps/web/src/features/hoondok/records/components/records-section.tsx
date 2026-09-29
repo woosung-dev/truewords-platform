@@ -1,21 +1,13 @@
 "use client";
 
 // 나의 정원 속 '나의 기록' (C1). 형광펜·북마크·노트 수는 그 탭으로 들어가는 입구다 — 이름을 먼저, 잉크색으로
-// 같은 크기에 두고 강조색·증감·목표를 두지 않는다 (DEC-PWA-019). 아래에 가장 최근 형광펜 한 단락을 보인다.
+// 같은 크기에 두고 강조색·증감·목표를 두지 않는다 (DEC-PWA-019). 아래에 가장 최근 형광펜 구절 하나를 보인다.
 import { Bookmark, ChevronRight, Highlighter, NotebookPen } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { verseNumber, wordsHref } from "../../library/api";
-import {
-  countRecords,
-  formatCount,
-  isCapped,
-  RECORDS_PATH,
-  type RecordTab,
-  recordsHref,
-  volumeTitle,
-} from "../records";
-import { useRecordMarks } from "../use-records";
+import { countRecords, formatCount, RECORDS_PATH, type RecordTab, recordsHref, volumeTitle } from "../records";
+import { useRecords } from "../use-records";
 import { RecordQuote } from "./record-item";
 import { RecordsEmpty, RecordsError } from "./records-screen";
 
@@ -26,27 +18,28 @@ const TALLY: readonly { tab: RecordTab; label: string; Icon: typeof Highlighter 
 ];
 
 export function RecordsGardenSection() {
-  const marks = useRecordMarks(true);
-  const items = marks.data?.items ?? [];
+  const records = useRecords(true);
+  const items = records.data?.items ?? [];
   const hasItems = items.length > 0;
 
   let body: ReactNode;
-  if (marks.isError) body = <RecordsError onRetry={() => void marks.refetch()} isNested />;
-  else if (marks.isPending)
+  if (records.isError) body = <RecordsError onRetry={records.refetch} isNested />;
+  else if (!records.data)
     body = <span className="skeleton rc-skeleton" role="status" aria-busy="true" aria-label="기록을 불러오는 중" />;
   else if (!hasItems) body = <RecordsEmpty title="아직 남긴 기록이 없어요" isNested />;
   else {
     const counts = countRecords(items);
-    const capped = isCapped(items);
-    const latest = items.find((mark) => mark.kind === "highlight");
+    const { capped } = records.data;
+    // 형광펜 목록이 최신순이라 처음 나온 형광펜이 가장 최근 것이다
+    const latest = items.find((entry) => entry.kind === "highlight");
     const where = latest ? `${volumeTitle(latest)} · 단락 ${verseNumber(latest.chunk_index)}` : "";
     const latestBody = latest && (
       <>
         <span className="rc-latest__k">
           <span>최근 형광펜</span>
-          {latest.excerpt != null && <ChevronRight size={16} aria-hidden="true" />}
+          {latest.text != null && <ChevronRight size={16} aria-hidden="true" />}
         </span>
-        <RecordQuote mark={latest} />
+        <RecordQuote entry={latest} />
         <span className="rc-latest__m">{where}</span>
       </>
     );
@@ -56,12 +49,12 @@ export function RecordsGardenSection() {
           {TALLY.map(({ tab, label, Icon }) => (
             <Link key={tab} href={recordsHref({ tab })}>
               <Icon size={18} aria-hidden="true" />
-              <span>{label}</span> <b>{formatCount(counts[tab], capped)}</b>
+              <span>{label}</span> <b>{formatCount(counts[tab], capped[tab])}</b>
             </Link>
           ))}
         </nav>
         {latest &&
-          (latest.excerpt == null ? (
+          (latest.text == null ? (
             <div className="rc-latest">{latestBody}</div>
           ) : (
             <Link className="rc-latest" href={wordsHref(latest.volume, latest.chunk_id)}>

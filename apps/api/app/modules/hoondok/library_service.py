@@ -1,4 +1,4 @@
-"""말씀 서고 3계층·읽기 기록 (API-HD-023~028). 권리 게이트는 API-HD-016 과 같은 기준을 쓴다."""
+"""말씀 서고 3계층·읽기 기록 (API-HD-023~028·053). 권리 게이트는 API-HD-016 과 같은 기준을 쓴다."""
 
 import logging
 import uuid
@@ -12,6 +12,10 @@ from app.modules.hoondok.library_repository import LibraryRepository
 from app.modules.hoondok.library_schemas import (
     BulkRightsInput,
     BulkRightsResponse,
+    HighlightInput,
+    HighlightItem,
+    HighlightPatch,
+    HighlightsResponse,
     MarkInput,
     MarkItem,
     MarksResponse,
@@ -25,7 +29,7 @@ from app.modules.hoondok.library_schemas import (
     SeriesVolume,
 )
 from app.modules.hoondok.library_series import label_sort_key, series_title, volume_label
-from app.modules.hoondok.models import ContentRight, PassageMark
+from app.modules.hoondok.models import ContentRight, PassageHighlight, PassageMark, _utcnow
 from app.modules.qdrant import RawQdrantClient
 from app.modules.qdrant.filters import build_filter, field_match, field_match_any
 from app.modules.search.hybrid import SearchResult, point_to_search_result
@@ -46,6 +50,13 @@ def _point_id(chunk_id: str) -> str | int | None:
         if chunk_id.isdecimal() and 0 <= int(chunk_id) < 2**64:
             return int(chunk_id)
         return None
+
+
+def _clean_note(note: str | None) -> str | None:
+    """메모는 앞뒤 공백을 걷고, 비었으면 메모가 없는 것(None)으로 둔다."""
+    if note is None:
+        return None
+    return note.strip() or None
 
 
 def majority_grade(grades: list[str]) -> str:
@@ -72,6 +83,11 @@ class LibraryService:
     @staticmethod
     def _is_visible(right: ContentRight) -> bool:
         return right.status == "allowed" and (right.scope_search or right.scope_full_text)
+
+    @staticmethod
+    def _is_full_text(right: ContentRight | None) -> bool:
+        """원문(full_text)까지 열린 권 — `_readable`·표시 발췌와 같은 기준. 형광펜 `readable` 이 쓴다."""
+        return right is not None and right.status == "allowed" and right.scope_full_text
 
     async def _readable(self, volume: str) -> ContentRight:
         """원문(full_text)이 열린 권만 통과. 아니면 존재 자체를 알리지 않는 404."""
@@ -315,6 +331,89 @@ class LibraryService:
 
     async def delete_mark(self, user_id: uuid.UUID, chunk_id: str, kind: str | None) -> None:
         await self.repo.delete_mark(user_id, chunk_id, kind)
+
+    # --- API-HD-053 구절 형광펜 ----------------------------------------------
+
+    @staticmethod
+    def _highlight_item(
+        row: PassageHighlight, work_title: str, label: str, readable: bool
+    ) -> HighlightItem:
+        return HighlightItem(
+            id=str(row.id),
+            volume=row.volume,
+            chunk_id=row.chunk_id,
+            start_chunk_index=row.start_chunk_index,
+            start_offset=row.start_offset,
+            end_chunk_index=row.end_chunk_index,
+            end_offset=row.end_offset,
+            quote=row.quote,
+            color=row.color,
+            note=row.note,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+            work_title=work_title,
+            label=label,
+            readable=readable,
+        )
+
+    async def list_highlights(
+        self, user_id: uuid.UUID, volume: str | None, limit: int
+    ) -> HighlightsResponse:
+        """권리가 닫힌 권의 형광펜도 목록에서 빼지 않는다(원문 뷰 동작 유지) — `readable` 만 false 로 알린다."""
+        rows = await self.repo.list_highlights(user_id, volume, limit)
+        rights = await self._rights_by_volume()
+        items = []
+        for row in rows:
+            work_title, _series, label = self._label_of(row.volume, rights)
+            readable = self._is_full_text(rights.get(row.volume))
+            items.append(self._highlight_item(row, work_title, label, readable))
+        return HighlightsResponse(items=items)
+
+    async def create_highlight(self, user_id: uuid.UUID, data: HighlightInput) -> HighlightItem:
+        right = await self._readable(data.volume)
+        row = await self.repo.save_highlight(
+            PassageHighlight(
+                user_id=user_id,
+                volume=data.volume,
+                chunk_id=data.chunk_id,
+                start_chunk_index=data.start_chunk_index,
+                start_offset=data.start_offset,
+                end_chunk_index=data.end_chunk_index,
+                end_offset=data.end_offset,
+                quote=data.quote,
+                color=data.color,
+                note=_clean_note(data.note),
+            )
+        )
+        series = right.book_series or None
+        return self._highlight_item(
+            row,
+            right.work_title,
+            volume_label(row.volume, series or "", right.work_title),
+            readable=True,  # _readable 을 통과했다
+        )
+
+    async def update_highlight(
+        self, user_id: uuid.UUID, highlight_id: uuid.UUID, data: HighlightPatch
+    ) -> HighlightItem:
+        """보낸 필드만 바꾼다. 권리가 닫힌 권의 형광펜도 색·메모는 고칠 수 있다(목록과 같은 기준)."""
+        row = await self.repo.get_own_highlight(user_id, highlight_id)
+        if row is None:
+            raise HTTPException(404, "형광펜을 찾을 수 없습니다")
+        if "color" in data.model_fields_set and data.color is not None:
+            row.color = data.color
+        if "note" in data.model_fields_set:
+            row.note = _clean_note(data.note)
+        row.updated_at = _utcnow()
+        row = await self.repo.save_highlight(row)
+        rights = await self._rights_by_volume()
+        work_title, _series, label = self._label_of(row.volume, rights)
+        return self._highlight_item(
+            row, work_title, label, self._is_full_text(rights.get(row.volume))
+        )
+
+    async def delete_highlight(self, user_id: uuid.UUID, highlight_id: uuid.UUID) -> None:
+        await self.repo.delete_highlight(user_id, highlight_id)
 
     # --- API-HD-027·028 admin ------------------------------------------------
 

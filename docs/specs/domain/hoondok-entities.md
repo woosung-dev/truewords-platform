@@ -119,8 +119,9 @@
 | 2026-09-19 | `jeongseong_periods` 확정(alembic `k5a6b7c8d9e0`). 사용자당 active 1건은 부분 unique, 상태 varchar, 진행률 미저장. `users.deleted_at` 은 API-HD-011 이 기록하고 이메일을 `deleted:{id}` 로 익명화 | 확정 · PLAN-HD-002 W0-B |
 | 2026-09-22 | `notification_preferences`·`push_subscriptions` 신설(alembic `m7c8d9e0f1a2`). 설정은 행 없으면 기본값·PUT 전체 교체, 구독은 `endpoint` unique + 소유 이전, 발송 상태(`last_sent_on`·`failed_count`)는 구독 행에 둔다 | 확정 · PLAN-HD-006 sub-PR A |
 | 2026-09-28 | `notification_preferences` 의 알림 문구 수준 컬럼 삭제(alembic `u6f7a8b9c0d1`) — 오버 스펙, 알림 문구는 중립 문구 하나 | 확정 · PLAN-HD-006 §8 |
-| 2026-09-29 | `jeongseong_periods.resolution` varchar(50) nullable 추가(alembic `v7a8b9c0d1e2`) — 나의 각오. 본인 응답에만, 수정 없음 | 확정(사용자 승인) |
+| 2026-09-29 | `jeongseong_periods.resolution` varchar(50) nullable 추가(alembic `w8b9c0d1e2f3`) — 나의 각오. 본인 응답에만, 수정 없음 | 확정(사용자 승인) |
 | 2026-09-23 | 모임 5테이블 신설(ENT-HD-013~017, alembic `r3c4d5e6f7a8`). 공동 정성은 개인 정성을 확장하지 않고 `shared_jeongseongs`(group_id NULL = 공식)로 분리 | 확정 · PLAN-HD-010 트랙 A |
+| 2026-09-29 | 형광펜을 단락 단위에서 구절(글자 범위) 단위로 옮긴다 — `passage_highlights` 신설(ENT-HD-021, alembic `v7a8b9c0d1e2`). `passage_marks` 는 북마크만 쓰고 예전 `highlight` 행은 옮기거나 지우지 않는다 | 확정 · API-HD-053 |
 
 ---
 
@@ -184,17 +185,27 @@
 서버 값이 있으면 서버가 우선이고 없으면 기기 값을 1회 올린다. 비로그인은 기기 값만 쓴다.
 원문이 허용되지 않은 권에는 저장하지 않는다(404).
 
-## ENT-HD-012 `passage_marks` — 북마크·형광펜·노트 (PLAN-HD-007)
+## ENT-HD-012 `passage_marks` — 단락 북마크 (PLAN-HD-007)
 
 `user_id` FK · `volume` · `chunk_id`(Qdrant point id, FK 아님) · `chunk_index` · `kind` ·
 `color` · `note` · 생성·갱신 시각이며 `(user_id, chunk_id, kind)`가 unique다.
-`kind`는 `bookmark`·`highlight`이고 varchar + 앱 Literal 검증이다 — 같은 단락에 북마크와 형광펜을 함께 둘 수 있다.
-`color`는 1~3이며 `highlight`는 필수, `bookmark`는 항상 null이다.
-노트는 형광펜의 `note`(2000자)로 두고 별도 테이블을 만들지 않는다 — 노트 탭은 `note`가 있는 표시를 모은 것이다.
+`kind`는 varchar + 앱 Literal 검증이며 이제 `bookmark`만 쓴다. `bookmark`의 `color`는 항상 null이다.
+형광펜·메모는 구절 단위(ENT-HD-021)로 옮겨 `kind=highlight` 행(색·노트)은 더 기록하지 않는다.
+예전 `highlight` 행은 지우지 않고 남기며 API는 읽지 않는다(삭제는 별도 절차).
 남의 표시는 조회·수정·삭제 조건에서 `user_id`로 걸러져 접근할 수 없다.
 
 세 테이블 모두 additive-only migration(`n8d9e0f1a2b3`)으로 추가하며 PostgreSQL ENUM이나 기존 컬럼 파괴적 변경을 도입하지 않는다.
-계정 하드 삭제(API-HD-011)는 `reading_positions`·`passage_marks`를 함께 지운다(`LibraryRepository` purger).
+계정 하드 삭제(API-HD-011)는 `reading_positions`·`passage_marks`·`passage_highlights`를 함께 지운다(`LibraryRepository` purger).
+
+## ENT-HD-021 `passage_highlights` — 구절 형광펜·메모 (API-HD-053)
+
+`id` · `user_id` FK · `volume`(≤512) · `chunk_id`(≤128, 시작 단락의 Qdrant point id, FK 아님) ·
+`start_chunk_index` · `start_offset` · `end_chunk_index` · `end_offset` · `quote`(text, 필수) · `color`(1~3, 앱 검증) ·
+`note`(text, nullable) · 생성·갱신 시각. index `user_id` · `(user_id, volume)`.
+오프셋은 원문 뷰 청크 `display_text`의 글자 위치이며 끝은 배타다. 한 구절은 같은 페이지(20청크) 안에서만 여러 단락에 걸친다.
+한 단락에 여러 형광펜을 둘 수 있어 unique가 없다. `quote`는 고른 글 그대로이며 목록 표시와 오프셋이 어긋날 때 다시 고정하는 데 쓴다.
+남의 형광펜은 조회·수정·삭제 조건에서 `user_id`로 걸러진다. 계정 삭제 시 함께 지운다.
+additive-only migration `v7a8b9c0d1e2`(down `u6f7a8b9c0d1`).
 
 ## ENT-HD-013 `reading_groups` — 소그룹 모임 (PLAN-HD-010)
 

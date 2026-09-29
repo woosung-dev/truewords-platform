@@ -1,2 +1,6 @@
 # 합의된 하위 호환 깨짐만 적는다(oasdiff --err-ignore/--warn-ignore). 한 줄 = "METHOD /path 메시지".
 # 기준이 main 으로 바뀌면 다시 걸리지 않으니, 그 PR 이 머지된 뒤 다음 계약 PR 에서 지운다.
+# 2026-09-29 단락 표시는 북마크만 — 형광펜은 구절 단위(API-HD-053)로 옮겼다. 쓰는 곳이 훈독 웹 하나라 함께 배포한다.
+PUT /hoondok/me/marks/{chunk_id} the `kind` request property const value `bookmark` was added
+PUT /hoondok/me/marks/{chunk_id} removed the enum value `bookmark` of the request property `kind`
+PUT /hoondok/me/marks/{chunk_id} removed the enum value `highlight` of the request property `kind`

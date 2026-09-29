@@ -1,4 +1,4 @@
-"""말씀 서고 3계층·읽기 기록 회귀 (PLAN-HD-007 트랙 A, API-HD-014/016 확장 · 023~028)."""
+"""말씀 서고 3계층·읽기 기록 회귀 (PLAN-HD-007 트랙 A, API-HD-014/016 확장 · 023~028 · 053)."""
 
 import uuid
 
@@ -24,6 +24,7 @@ from app.modules.hoondok.library_series import label_sort_key, series_title, vol
 from app.modules.hoondok.library_service import LibraryService, majority_grade
 from app.modules.hoondok.models import (
     ContentRight,
+    PassageHighlight,
     PassageMark,
     ReadingPosition,
     VolumeSection,
@@ -38,6 +39,17 @@ from app.modules.qdrant import QdrantPoint
 XHR = {"X-Requested-With": "XMLHttpRequest"}
 ADMIN_ID = uuid.uuid4()
 BODY = "감사하는 마음으로 하루를 시작하고 서로를 존중하며 작은 일에서도 사랑을 실천하는 삶을 살아가야 합니다."
+# 구절 형광펜(API-HD-053) 기본 입력 — 7번 단락 5번째 글자부터 8번 단락 12번째 글자 앞까지
+HIGHLIGHT = {
+    "volume": "천성경.docx",
+    "chunk_id": "c-7",
+    "start_chunk_index": 7,
+    "start_offset": 5,
+    "end_chunk_index": 8,
+    "end_offset": 12,
+    "quote": "하루를 시작하고 서로를 존중하며",
+    "color": 1,
+}
 
 
 @pytest.fixture
@@ -55,6 +67,7 @@ async def ctx():
                 VolumeSection.__table__,
                 ReadingPosition.__table__,
                 PassageMark.__table__,
+                PassageHighlight.__table__,
                 AdminAuditLog.__table__,
             ],
         )
@@ -416,38 +429,29 @@ async def test_marks_upsert_update_and_delete(ctx: TestClient):
 
     created = ctx.put(
         "/hoondok/me/marks/c-1",
-        json={"volume": "천성경.docx", "chunk_index": 7, "kind": "highlight", "color": 2},
+        json={"volume": "천성경.docx", "chunk_index": 7, "kind": "bookmark", "color": 2},
         headers=XHR,
     )
     assert created.status_code == 200
-    assert created.json()["color"] == 2 and created.json()["note"] is None
+    assert created.json()["color"] is None  # 북마크는 색을 버린다
+    assert created.json()["note"] is None
     assert created.json()["work_title"] == "천성경"
 
     updated = ctx.put(
         "/hoondok/me/marks/c-1",
-        json={
-            "volume": "천성경.docx",
-            "chunk_index": 7,
-            "kind": "highlight",
-            "color": 3,
-            "note": "기억할 구절",
-        },
+        json={"volume": "천성경.docx", "chunk_index": 7, "kind": "bookmark", "note": "기억할 단락"},
         headers=XHR,
     )
-    assert updated.json()["color"] == 3 and updated.json()["note"] == "기억할 구절"
-    assert len((await session.execute(select(PassageMark))).scalars().all()) == 1
+    assert updated.json()["note"] == "기억할 단락"
+    assert len((await session.execute(select(PassageMark))).scalars().all()) == 1  # upsert
 
-    # 같은 청크에 북마크는 별개 행 (unique 는 user·chunk·kind)
-    bookmark = ctx.put(
-        "/hoondok/me/marks/c-1",
-        json={"volume": "천성경.docx", "chunk_index": 7, "kind": "bookmark", "color": 2},
+    ctx.put(
+        "/hoondok/me/marks/c-2",
+        json={"volume": "천성경.docx", "chunk_index": 8, "kind": "bookmark"},
         headers=XHR,
     )
-    assert bookmark.json()["color"] is None  # 북마크는 색을 버린다
-    assert len((await session.execute(select(PassageMark))).scalars().all()) == 2
-
     assert len(ctx.get("/hoondok/me/marks").json()["items"]) == 2
-    assert len(ctx.get("/hoondok/me/marks?kind=bookmark").json()["items"]) == 1
+    assert len(ctx.get("/hoondok/me/marks?kind=bookmark").json()["items"]) == 2
     assert len(ctx.get("/hoondok/me/marks?volume=천성경.docx").json()["items"]) == 2
 
     assert ctx.delete("/hoondok/me/marks/c-1?kind=bookmark", headers=XHR).status_code == 204
@@ -457,18 +461,21 @@ async def test_marks_upsert_update_and_delete(ctx: TestClient):
 
 
 @pytest.mark.asyncio
-async def test_highlight_requires_color_and_volume_must_be_allowed(ctx: TestClient):
+async def test_mark_highlight_kind_is_rejected_and_volume_must_be_allowed(ctx: TestClient):
+    """형광펜은 API-HD-053 구절 단위로 옮겼다 — 단락 표시의 `kind=highlight` 는 422."""
     session: AsyncSession = ctx.session  # type: ignore[attr-defined]
     await add_right(session, "천성경.docx")
     await login(ctx)
     assert (
         ctx.put(
             "/hoondok/me/marks/c-1",
-            json={"volume": "천성경.docx", "chunk_index": 1, "kind": "highlight"},
+            json={"volume": "천성경.docx", "chunk_index": 1, "kind": "highlight", "color": 2},
             headers=XHR,
         ).status_code
         == 422
     )
+    assert ctx.get("/hoondok/me/marks?kind=highlight").status_code == 422
+    assert ctx.delete("/hoondok/me/marks/c-1?kind=highlight", headers=XHR).status_code == 422
     assert (
         ctx.put(
             "/hoondok/me/marks/c-1",
@@ -477,6 +484,38 @@ async def test_highlight_requires_color_and_volume_must_be_allowed(ctx: TestClie
         ).status_code
         == 404
     )
+
+
+@pytest.mark.asyncio
+async def test_marks_list_ignores_legacy_highlight_rows(ctx: TestClient):
+    """예전 `kind="highlight"` 행은 DB 에 남아도 목록에 나오지 않는다 — 나오면 MarkItem 검증이 500 을 낸다."""
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    await add_right(session, "천성경.docx")
+    user = await login(ctx)
+    session.add_all(
+        [
+            PassageMark(
+                user_id=user.id,
+                chunk_id="c-1",
+                volume="천성경.docx",
+                chunk_index=1,
+                kind="highlight",
+                color=2,
+                note="예전 노트",
+            ),
+            PassageMark(
+                user_id=user.id, chunk_id="c-1", volume="천성경.docx", chunk_index=1, kind="bookmark"
+            ),
+        ]
+    )
+    await session.commit()
+
+    response = ctx.get("/hoondok/me/marks")
+    assert response.status_code == 200
+    assert [(i["chunk_id"], i["kind"]) for i in response.json()["items"]] == [("c-1", "bookmark")]
+    assert len(ctx.get("/hoondok/me/marks?volume=천성경.docx").json()["items"]) == 1
+    # 예전 행은 지우지 않는다(데이터 삭제는 별도 절차)
+    assert len((await session.execute(select(PassageMark))).scalars().all()) == 2
 
 
 @pytest.mark.asyncio
@@ -591,37 +630,40 @@ async def seed_excerpt_marks(ctx: TestClient) -> User:
     await add_right(session, "원리강론.docx", scope_full_text=False)
     await add_right(session, "통일사상.docx", status="withdrawn")
     user = await login(ctx)
+    # 단락 표시는 북마크만 남았다(형광펜은 API-HD-053). 예전 highlight 행은 목록에 나오지 않으니 발췌도 묻지 않는다.
     marks = [
-        (_A_ID[0], "천성경.docx", 0, "highlight"),
-        (_A_ID[0], "천성경.docx", 0, "bookmark"),  # 같은 청크 — Qdrant 에는 한 번만 묻는다
-        (_A_ID[5], "천성경.docx", 5, "highlight"),
-        (_A_ID[20], "천성경.docx", 20, "highlight"),
-        (_B_ID[3], "평화경.docx", 3, "bookmark"),
-        ("c-1", "천성경.docx", 7, "highlight"),  # Qdrant ID 가 아니다
-        (_ELSEWHERE_ID, "천성경.docx", 9, "bookmark"),  # payload 는 평화경
-        (str(uuid.UUID(int=500)), "원리강론.docx", 1, "bookmark"),
-        (str(uuid.UUID(int=501)), "통일사상.docx", 1, "bookmark"),
-        (str(uuid.UUID(int=502)), "없는 권.docx", 1, "bookmark"),
+        (_A_ID[0], "천성경.docx", 0),
+        (_A_ID[5], "천성경.docx", 5),
+        (_A_ID[20], "천성경.docx", 20),
+        (_B_ID[3], "평화경.docx", 3),
+        ("c-1", "천성경.docx", 7),  # Qdrant ID 가 아니다
+        (_ELSEWHERE_ID, "천성경.docx", 9),  # payload 는 평화경
+        (str(uuid.UUID(int=500)), "원리강론.docx", 1),
+        (str(uuid.UUID(int=501)), "통일사상.docx", 1),
+        (str(uuid.UUID(int=502)), "없는 권.docx", 1),
     ]
     session.add_all(
         [
+            PassageMark(user_id=user.id, chunk_id=chunk_id, volume=volume, chunk_index=index, kind="bookmark")
+            for chunk_id, volume, index in marks
+        ]
+        + [
             PassageMark(
                 user_id=user.id,
-                chunk_id=chunk_id,
-                volume=volume,
-                chunk_index=index,
-                kind=kind,
-                color=1 if kind == "highlight" else None,
+                chunk_id=_A_ID[4],
+                volume="천성경.docx",
+                chunk_index=4,
+                kind="highlight",
+                color=1,
             )
-            for chunk_id, volume, index, kind in marks
         ]
     )
     await session.commit()
     return user
 
 
-def excerpt_of(items: list[dict], chunk_id: str, kind: str = "highlight") -> str | None:
-    return next(i for i in items if i["chunk_id"] == chunk_id and i["kind"] == kind)["excerpt"]
+def excerpt_of(items: list[dict], chunk_id: str) -> str | None:
+    return next(i for i in items if i["chunk_id"] == chunk_id)["excerpt"]
 
 
 def test_excerpt_page_size_matches_words_view():
@@ -637,11 +679,11 @@ async def test_marks_without_excerpt_param_keep_shape_and_skip_qdrant(ctx: TestC
 
     for url in ("/hoondok/me/marks", "/hoondok/me/marks?excerpt=false"):
         items = ctx.get(url).json()["items"]
-        assert len(items) == 10
+        assert len(items) == 9
         assert all("excerpt" not in item for item in items)
     put = ctx.put(
         f"/hoondok/me/marks/{_A_ID[5]}",
-        json={"volume": "천성경.docx", "chunk_index": 5, "kind": "highlight", "color": 2},
+        json={"volume": "천성경.docx", "chunk_index": 5, "kind": "bookmark"},
         headers=XHR,
     )
     assert put.status_code == 200 and "excerpt" not in put.json()
@@ -657,7 +699,7 @@ async def test_marks_excerpt_uses_display_text_with_batched_calls(ctx: TestClien
     response = ctx.get("/hoondok/me/marks?excerpt=true")
     assert response.status_code == 200
     items = response.json()["items"]
-    assert len(items) == 10 and all("excerpt" in item for item in items)
+    assert len(items) == 9 and all("excerpt" in item for item in items)
 
     # 호출 수: 청크 묶음 retrieve 1회 + 앞 청크가 필요한 권마다 scroll 1회
     assert qdrant.kinds() == ["retrieve", "scroll", "scroll"]
@@ -679,19 +721,19 @@ async def test_marks_excerpt_uses_display_text_with_batched_calls(ctx: TestClien
     # 페이지 첫 청크는 앞 청크 없이 — 겹친 머리를 그대로 둔다
     assert excerpt_of(items, _A_ID[20]) == to_display_text(None, points[_A_ID[20]][2])
     assert excerpt_of(items, _A_ID[20]).startswith("하나님의 뜻")
-    assert excerpt_of(items, _A_ID[0]) == excerpt_of(items, _A_ID[0], "bookmark")
+    assert excerpt_of(items, _A_ID[0]).startswith("첫 단락입니다.")
     # 300자에서 자른다
-    assert excerpt_of(items, _B_ID[3], "bookmark") == "말씀" * 150
+    assert excerpt_of(items, _B_ID[3]) == "말씀" * 150
 
     # 권리가 막힌 권·원장에 없는 권·잘못된 ID·권이 어긋난 청크는 null
-    for chunk_id, kind in (
-        ("c-1", "highlight"),
-        (_ELSEWHERE_ID, "bookmark"),
-        (str(uuid.UUID(int=500)), "bookmark"),
-        (str(uuid.UUID(int=501)), "bookmark"),
-        (str(uuid.UUID(int=502)), "bookmark"),
+    for chunk_id in (
+        "c-1",
+        _ELSEWHERE_ID,
+        str(uuid.UUID(int=500)),
+        str(uuid.UUID(int=501)),
+        str(uuid.UUID(int=502)),
     ):
-        assert excerpt_of(items, chunk_id, kind) is None
+        assert excerpt_of(items, chunk_id) is None
 
 
 @pytest.mark.asyncio
@@ -704,7 +746,7 @@ async def test_marks_excerpt_falls_back_to_null_when_qdrant_fails(ctx: TestClien
     response = ctx.get("/hoondok/me/marks?excerpt=true")
     assert response.status_code == 200
     items = response.json()["items"]
-    assert len(items) == 10
+    assert len(items) == 9
     assert all(item["excerpt"] is None for item in items)
 
 
@@ -741,12 +783,23 @@ async def test_me_routes_require_login_and_csrf(ctx: TestClient):
     assert ctx.get("/hoondok/me/marks").status_code == 401
     assert ctx.put("/hoondok/me/marks/c-1", json=mark, headers=XHR).status_code == 401
 
+    highlight_url = f"/hoondok/me/highlights/{uuid.uuid4()}"
+    assert ctx.get("/hoondok/me/highlights").status_code == 401
+    assert ctx.post("/hoondok/me/highlights", json=HIGHLIGHT, headers=XHR).status_code == 401
+    assert ctx.patch(highlight_url, json={"color": 2}, headers=XHR).status_code == 401
+    assert ctx.delete(highlight_url, headers=XHR).status_code == 401
+
     await login(ctx)
     assert ctx.put("/hoondok/me/marks/c-1", json=mark).status_code == 403
     assert ctx.delete("/hoondok/me/marks/c-1").status_code == 403
     assert (
         ctx.put("/hoondok/me/reading-position/천성경.docx", json={"chunk_index": 1}).status_code == 403
     )
+    assert ctx.post("/hoondok/me/highlights", json=HIGHLIGHT).status_code == 403
+    assert ctx.patch(highlight_url, json={"color": 2}).status_code == 403
+    assert ctx.delete(highlight_url).status_code == 403
+    # CSRF 로 막힌 POST 는 아무것도 남기지 않는다
+    assert (await session.execute(select(PassageHighlight))).scalars().all() == []
 
 
 def test_csrf_dependency_is_declared_on_every_mutating_route():
@@ -761,6 +814,9 @@ def test_csrf_dependency_is_declared_on_every_mutating_route():
         ("PUT", "/hoondok/me/reading-position/{volume:path}"),
         ("PUT", "/hoondok/me/marks/{chunk_id}"),
         ("DELETE", "/hoondok/me/marks/{chunk_id}"),
+        ("POST", "/hoondok/me/highlights"),
+        ("PATCH", "/hoondok/me/highlights/{highlight_id}"),
+        ("DELETE", "/hoondok/me/highlights/{highlight_id}"),
     }
     found = set()
     for route, inherited in iter_api_routes(app):
@@ -770,6 +826,189 @@ def test_csrf_dependency_is_declared_on_every_mutating_route():
                 assert verify_csrf in dependency_callables(route, inherited), f"{key} 에 verify_csrf 누락"
                 found.add(key)
     assert found == mutating
+
+
+# --- API-HD-053 구절 형광펜 --------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_highlight_create_list_patch_and_delete(ctx: TestClient):
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    await add_right(session, "천성경.docx", book_series="cheonseong_gyeong", work_title="천성경")
+    await login(ctx)
+
+    created = ctx.post(
+        "/hoondok/me/highlights", json={**HIGHLIGHT, "note": "  새길 말씀  "}, headers=XHR
+    )
+    assert created.status_code == 201
+    body = created.json()
+    highlight_id = body["id"]
+    assert uuid.UUID(highlight_id)
+    assert (body["start_chunk_index"], body["start_offset"]) == (7, 5)
+    assert (body["end_chunk_index"], body["end_offset"]) == (8, 12)
+    assert body["chunk_id"] == "c-7" and body["quote"] == HIGHLIGHT["quote"]
+    assert body["color"] == 1 and body["note"] == "새길 말씀"  # 앞뒤 공백은 걷는다
+    assert body["work_title"] == "천성경" and body["label"] == "천성경"
+
+    # 같은 단락에 두 번째 형광펜 — unique 가 없어 별개 행이다
+    second = ctx.post(
+        "/hoondok/me/highlights",
+        json={**HIGHLIGHT, "start_offset": 0, "end_chunk_index": 7, "end_offset": 3, "note": "   "},
+        headers=XHR,
+    )
+    assert second.status_code == 201
+    assert second.json()["note"] is None  # 공백뿐인 메모는 메모가 없는 것
+    items = ctx.get("/hoondok/me/highlights").json()["items"]
+    assert [i["id"] for i in items] == [second.json()["id"], highlight_id]  # 최신순
+    assert len(ctx.get("/hoondok/me/highlights?volume=천성경.docx").json()["items"]) == 2
+    assert ctx.get("/hoondok/me/highlights?volume=평화경.docx").json()["items"] == []
+    assert len(ctx.get("/hoondok/me/highlights?limit=1").json()["items"]) == 1
+    assert ctx.get("/hoondok/me/highlights?limit=501").status_code == 422
+
+    url = f"/hoondok/me/highlights/{highlight_id}"
+    recolored = ctx.patch(url, json={"color": 3}, headers=XHR)
+    assert recolored.status_code == 200
+    assert recolored.json()["color"] == 3 and recolored.json()["note"] == "새길 말씀"  # 보낸 필드만
+    assert recolored.json()["updated_at"] >= body["updated_at"]
+    # PATCH 는 최신순 맨 앞으로 올린다
+    assert ctx.get("/hoondok/me/highlights").json()["items"][0]["id"] == highlight_id
+
+    noted = ctx.patch(url, json={"note": "다시 읽기"}, headers=XHR)
+    assert noted.json()["note"] == "다시 읽기" and noted.json()["color"] == 3
+    assert ctx.patch(url, json={"note": None}, headers=XHR).json()["note"] is None
+    ctx.patch(url, json={"note": "또 메모"}, headers=XHR)
+    assert ctx.patch(url, json={"note": ""}, headers=XHR).json()["note"] is None
+    # 색을 null 로 보내면 422 — 형광펜은 색 없이 둘 수 없다
+    assert ctx.patch(url, json={"color": None}, headers=XHR).status_code == 422
+    assert ctx.patch(url, json={"color": 4}, headers=XHR).status_code == 422
+    # 범위·인용은 PATCH 로 바뀌지 않는다
+    row = await session.get(PassageHighlight, uuid.UUID(highlight_id))
+    assert row is not None and (row.start_offset, row.end_offset, row.color) == (5, 12, 3)
+
+    assert ctx.delete(url, headers=XHR).status_code == 204
+    assert ctx.delete(url, headers=XHR).status_code == 204  # 멱등
+    assert ctx.patch(url, json={"color": 2}, headers=XHR).status_code == 404
+    assert [i["id"] for i in ctx.get("/hoondok/me/highlights").json()["items"]] == [
+        second.json()["id"]
+    ]
+
+
+@pytest.mark.asyncio
+async def test_other_user_cannot_see_patch_or_delete_my_highlights(ctx: TestClient):
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    await add_right(session, "천성경.docx")
+    await login(ctx, "owner@example.com")
+    highlight_id = ctx.post("/hoondok/me/highlights", json=HIGHLIGHT, headers=XHR).json()["id"]
+
+    await login(ctx, "other@example.com")  # 쿠키 교체
+    url = f"/hoondok/me/highlights/{highlight_id}"
+    assert ctx.get("/hoondok/me/highlights").json()["items"] == []
+    assert ctx.patch(url, json={"color": 3, "note": "남의 메모"}, headers=XHR).status_code == 404
+    assert ctx.delete(url, headers=XHR).status_code == 204  # 멱등이지만 지우지 않는다
+    row = await session.get(PassageHighlight, uuid.UUID(highlight_id))
+    assert row is not None and row.color == 1 and row.note is None  # 주인의 형광펜은 그대로다
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"end_chunk_index": 7, "end_offset": 5},  # 끝 = 시작
+        {"end_chunk_index": 7, "end_offset": 2},  # 같은 단락에서 끝이 앞
+        {"start_chunk_index": 8, "end_chunk_index": 7},  # 단락이 거꾸로
+        {"start_chunk_index": 19, "end_chunk_index": 20},  # 페이지(20청크) 경계를 넘는다
+        {"color": 0},
+        {"color": 4},
+        {"quote": ""},
+        {"start_offset": -1},
+        {"chunk_id": ""},
+    ],
+)
+async def test_highlight_range_and_field_validation(ctx: TestClient, override: dict):
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    await add_right(session, "천성경.docx")
+    await login(ctx)
+    response = ctx.post("/hoondok/me/highlights", json={**HIGHLIGHT, **override}, headers=XHR)
+    assert response.status_code == 422
+    assert (await session.execute(select(PassageHighlight))).scalars().all() == []
+
+
+@pytest.mark.asyncio
+async def test_highlight_across_chunks_within_one_page_is_allowed(ctx: TestClient):
+    """한 페이지(0~19, 20~39 …) 안이면 여러 단락에 걸쳐도 된다."""
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    await add_right(session, "천성경.docx")
+    await login(ctx)
+    for start, end in [(0, 19), (20, 39)]:
+        response = ctx.post(
+            "/hoondok/me/highlights",
+            json={**HIGHLIGHT, "start_chunk_index": start, "end_chunk_index": end},
+            headers=XHR,
+        )
+        assert response.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_highlight_404_when_full_text_not_allowed(ctx: TestClient):
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    await add_right(session, "검색만.docx", scope_full_text=False)
+    await add_right(session, "보류.docx", status="pending")
+    await login(ctx)
+    for volume in ("검색만.docx", "보류.docx", "없음.docx"):
+        response = ctx.post("/hoondok/me/highlights", json={**HIGHLIGHT, "volume": volume}, headers=XHR)
+        assert response.status_code == 404
+    assert (await session.execute(select(PassageHighlight))).scalars().all() == []
+
+
+@pytest.mark.asyncio
+async def test_highlight_readable_follows_full_text_right(ctx: TestClient):
+    """`readable` 은 원문(full_text)이 열린 권인지다 — 나의 기록이 quote·원문 링크를 가릴지 정한다.
+
+    권리가 닫혀도 목록에서 빼지 않고(원문 뷰 동작 그대로) `readable` 만 false 로 알린다.
+    """
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    right = await add_right(session, "천성경.docx")
+    await add_right(session, "검색만.docx", scope_full_text=False)
+    await add_right(session, "철회.docx", status="withdrawn")
+    user = await login(ctx)
+    created = ctx.post("/hoondok/me/highlights", json=HIGHLIGHT, headers=XHR)
+    assert created.status_code == 201 and created.json()["readable"] is True
+
+    # 권리가 닫히기 전에 남긴 형광펜 — 검색만 열린 권·철회된 권·원장에 없는 권
+    session.add_all(
+        [
+            PassageHighlight(
+                user_id=user.id,
+                volume=volume,
+                chunk_id="c-1",
+                start_chunk_index=1,
+                start_offset=0,
+                end_chunk_index=1,
+                end_offset=3,
+                quote="말씀을",
+                color=2,
+            )
+            for volume in ("검색만.docx", "철회.docx", "없음.docx")
+        ]
+    )
+    await session.commit()
+    items = ctx.get("/hoondok/me/highlights").json()["items"]
+    assert {i["volume"]: i["readable"] for i in items} == {
+        "천성경.docx": True,
+        "검색만.docx": False,
+        "철회.docx": False,
+        "없음.docx": False,
+    }
+    # 기존 필드는 그대로다 — quote 를 가리는 일은 나의 기록 화면이 한다
+    assert all(i["quote"] for i in items)
+
+    # 권리를 거두면 PATCH 응답도 false
+    right.scope_full_text = False
+    await session.commit()
+    patched = ctx.patch(
+        f"/hoondok/me/highlights/{created.json()['id']}", json={"color": 3}, headers=XHR
+    )
+    assert patched.status_code == 200 and patched.json()["readable"] is False
 
 
 # --- API-HD-027·028 admin ----------------------------------------------------
@@ -954,16 +1193,20 @@ async def test_replace_auto_sections_keeps_manual_rows(ctx: TestClient):
 
 @pytest.mark.asyncio
 async def test_account_deletion_purges_library_rows(ctx: TestClient):
-    """API-HD-011 하드 삭제가 이어 읽기·표시를 함께 지운다 — purger 등록 확인."""
+    """API-HD-011 하드 삭제가 이어 읽기·표시·형광펜을 함께 지운다 — purger 등록 확인."""
     session: AsyncSession = ctx.session  # type: ignore[attr-defined]
     await add_right(session, "천성경.docx")
-    user = await login(ctx)
+    other = await login(ctx, "other@example.com")
+    user = await login(ctx)  # 쿠키는 마지막 로그인(본인)
     ctx.put("/hoondok/me/reading-position/천성경.docx", json={"chunk_index": 3}, headers=XHR)
     ctx.put(
         "/hoondok/me/marks/c-1",
         json={"volume": "천성경.docx", "chunk_index": 3, "kind": "bookmark"},
         headers=XHR,
     )
+    assert ctx.post("/hoondok/me/highlights", json=HIGHLIGHT, headers=XHR).status_code == 201
+    session.add(PassageHighlight(user_id=other.id, **HIGHLIGHT))  # 다른 사람 것은 남아야 한다
+    await session.commit()
 
     from app.modules.hoondok.dependencies import (
         get_card_repository,
@@ -999,5 +1242,7 @@ async def test_account_deletion_purges_library_rows(ctx: TestClient):
 
     assert (await session.execute(select(ReadingPosition))).scalars().all() == []
     assert (await session.execute(select(PassageMark))).scalars().all() == []
+    remaining = (await session.execute(select(PassageHighlight))).scalars().all()
+    assert [row.user_id for row in remaining] == [other.id]
     refreshed = await session.get(User, user.id)
     assert refreshed is not None and refreshed.deleted_at is not None

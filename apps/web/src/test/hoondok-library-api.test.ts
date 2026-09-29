@@ -40,7 +40,7 @@ describe("서고 API 경로", () => {
     );
   });
   it("표시 저장·삭제는 chunk_id 를 경로에, volume 을 본문에 둔다", async () => {
-    await libraryAPI.saveMark("c 1", { volume: VOLUME, chunk_index: 0, kind: "highlight", color: 1, note: null });
+    await libraryAPI.saveMark("c 1", { volume: VOLUME, chunk_index: 0, kind: "bookmark", color: null, note: null });
     const [saveUrl, saveInit] = lastCall();
     expect(saveUrl).toBe("/api/backend/hoondok/me/marks/c%201");
     expect(JSON.parse(String(saveInit.body)).volume).toBe(VOLUME);
@@ -49,6 +49,35 @@ describe("서고 API 경로", () => {
     const [deleteUrl, deleteInit] = lastCall();
     expect(deleteUrl).toBe("/api/backend/hoondok/me/marks/c%201?kind=bookmark");
     expect(deleteInit.method).toBe("DELETE");
+  });
+  it("구절 형광펜은 volume 을 쿼리로 조회하고 id 경로로 고치고 지운다 (API-HD-053)", async () => {
+    await libraryAPI.highlights({ volume: VOLUME });
+    expect(lastCall()[0]).toBe(`/api/backend/hoondok/me/highlights?${new URLSearchParams({ volume: VOLUME })}`);
+    const input = {
+      volume: VOLUME,
+      chunk_id: "c 1",
+      start_chunk_index: 0,
+      start_offset: 2,
+      end_chunk_index: 1,
+      end_offset: 3,
+      quote: "구절",
+      color: 2,
+    };
+    await libraryAPI.createHighlight(input);
+    const [createUrl, createInit] = lastCall();
+    expect(createUrl).toBe("/api/backend/hoondok/me/highlights");
+    expect(createInit.method).toBe("POST");
+    expect(JSON.parse(String(createInit.body))).toEqual(input);
+    expect(new Headers(createInit.headers).get("X-Requested-With")).toBe("XMLHttpRequest");
+    await libraryAPI.updateHighlight("h/1", { note: null });
+    const [patchUrl, patchInit] = lastCall();
+    expect(patchUrl).toBe("/api/backend/hoondok/me/highlights/h%2F1");
+    expect(patchInit.method).toBe("PATCH");
+    expect(patchInit.body).toBe(JSON.stringify({ note: null }));
+    fetchMock.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
+    await libraryAPI.deleteHighlight("h/1");
+    expect(lastCall()[0]).toBe("/api/backend/hoondok/me/highlights/h%2F1");
+    expect(lastCall()[1].method).toBe("DELETE");
   });
   it("쓰기 요청에는 CSRF 헤더가 붙는다", async () => {
     await libraryAPI.saveReadingPosition(VOLUME, 0);

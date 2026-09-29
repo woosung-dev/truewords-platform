@@ -1,7 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
 
 // C1 나의 기록 · 이 기기에만 있는 기록. 시드(apps/api/scripts/seed_hoondok_journey.py)의 합성 권
-// `말씀선집 355권`(청크 25개, 목차: 1장 0~19 · 제2편 20~24)에 표시를 남기고 정원 → 나의 기록 → 원문을 오간다.
+// `말씀선집 355권`(청크 25개, 목차: 1장 0~19 · 제2편 20~24)에 구절 형광펜(API-HD-053)·북마크(API-HD-026)를 남기고
+// 정원 → 나의 기록 → 원문을 오간다.
 const volume = "말씀선집 355권";
 const headers = { "X-Requested-With": "XMLHttpRequest" };
 
@@ -26,22 +27,44 @@ async function chunks(page: Page): Promise<Chunk[]> {
   return found;
 }
 
-async function putMark(page: Page, chunk: Chunk, body: { kind: string; color?: number; note?: string }) {
+async function putBookmark(page: Page, chunk: Chunk) {
   const response = await page.request.put(`/api/backend/hoondok/me/marks/${chunk.chunk_id}`, {
     headers,
-    data: { volume, chunk_index: chunk.chunk_index, color: null, note: null, ...body },
+    data: { volume, chunk_index: chunk.chunk_index, kind: "bookmark", color: null, note: null },
   });
   expect(response.status()).toBe(200);
+}
+
+/** 그 단락의 "N번째 합성 문장입니다." 구절을 칠한다 — 원문 뷰가 글자를 골라 보내는 것과 같은 요청이다. */
+async function postHighlight(page: Page, chunk: Chunk, body: { color: number; note?: string }) {
+  const quote = `${chunk.chunk_index + 1}번째 합성 문장입니다.`;
+  const start = chunk.display_text.indexOf(quote);
+  expect(start).toBeGreaterThanOrEqual(0);
+  const response = await page.request.post("/api/backend/hoondok/me/highlights", {
+    headers,
+    data: {
+      volume,
+      chunk_id: chunk.chunk_id,
+      start_chunk_index: chunk.chunk_index,
+      start_offset: start,
+      end_chunk_index: chunk.chunk_index,
+      end_offset: start + quote.length,
+      quote,
+      note: null,
+      ...body,
+    },
+  });
+  expect(response.status()).toBe(201);
 }
 
 /** 노랑(단락 2) · 초록(단락 22) · 분홍+노트(단락 4) · 북마크(단락 6). 마지막에 남긴 분홍이 최근 형광펜이다. */
 async function seedMarks(page: Page) {
   const all = await chunks(page);
   const at = (index: number) => all.find((chunk) => chunk.chunk_index === index) as Chunk;
-  await putMark(page, at(5), { kind: "bookmark" });
-  await putMark(page, at(1), { kind: "highlight", color: 1 });
-  await putMark(page, at(21), { kind: "highlight", color: 2 });
-  await putMark(page, at(3), { kind: "highlight", color: 3, note: "아이와 함께 읽기" });
+  await putBookmark(page, at(5));
+  await postHighlight(page, at(1), { color: 1 });
+  await postHighlight(page, at(21), { color: 2 });
+  await postHighlight(page, at(3), { color: 3, note: "아이와 함께 읽기" });
   return { at };
 }
 
@@ -49,7 +72,7 @@ async function overflow(page: Page) {
   return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 }
 
-test("정원 나의 기록: 세 가지 수·최근 형광펜 발췌 → 노트 탭 · 분홍 칩 → 원문 → 뒤로 복원", async ({ page }) => {
+test("정원 나의 기록: 세 가지 수·최근 형광펜 구절 → 노트 탭 · 분홍 칩 → 원문 → 뒤로 복원", async ({ page }) => {
   await signUp(page, "records");
   const { at } = await seedMarks(page);
 
@@ -58,15 +81,16 @@ test("정원 나의 기록: 세 가지 수·최근 형광펜 발췌 → 노트 �
   await expect(tally.getByRole("link", { name: "형광펜 3" })).toBeVisible();
   await expect(tally.getByRole("link", { name: "북마크 1" })).toBeVisible();
   await expect(tally.getByRole("link", { name: "노트 1" })).toBeVisible();
-  // 최근 형광펜 = 분홍(단락 4). 발췌는 원문 뷰의 그 단락 display_text 첫머리와 같다
+  // 최근 형광펜 = 분홍(단락 4). 고른 구절(quote) 그대로다
   const latest = page.getByRole("link", { name: /최근 형광펜/ });
-  await expect(latest.locator("mark.hl-3")).toContainText(at(3).display_text.slice(0, 30));
-  await expect(latest).toContainText("4번째 합성 문장");
+  await expect(latest.locator("mark.hl-3")).toHaveText("4번째 합성 문장입니다.");
+  await expect(latest).toContainText("단락 4");
 
   await tally.getByRole("link", { name: "노트 1" }).click();
   await expect(page).toHaveURL(/\/hoondok\/records\?tab=note$/);
   await expect(page.getByRole("tab", { name: "노트 1" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tabpanel")).toContainText("아이와 함께 읽기");
+  await expect(page.getByRole("tabpanel")).toContainText("4번째 합성 문장입니다.");
 
   await page.getByRole("tab", { name: "형광펜 3" }).click();
   await expect(page).toHaveURL(/\/hoondok\/records$/);
@@ -75,10 +99,11 @@ test("정원 나의 기록: 세 가지 수·최근 형광펜 발췌 → 노트 �
   const items = page.getByRole("tabpanel").getByRole("link");
   await expect(items).toHaveCount(1);
 
-  // 발췌를 누르면 원문의 그 단락이 열린다
+  // 구절을 누르면 원문의 그 단락이 열리고 그 구절이 칠해져 있다
   await items.first().click();
   await expect(page).toHaveURL(new RegExp(`chunk_id=${at(3).chunk_id}`));
   await expect(page.getByRole("article", { name: "원문 본문" })).toContainText("4번째 합성 문장");
+  await expect(page.locator("mark.hl-3")).toHaveText("4번째 합성 문장입니다.");
   await page.goBack();
   await expect(page).toHaveURL(/\/hoondok\/records\?color=3$/);
   await expect(page.getByRole("group", { name: "형광펜 색" }).getByRole("button", { name: "분홍 1" })).toHaveAttribute(
@@ -100,21 +125,30 @@ test("권을 고르면 목차 장 머리 아래 원문 순서로 놓인다", asy
   await expect(panel.locator(".rc-meta")).toHaveText([/단락 2/, /단락 4/, /단락 22/]);
 });
 
-test("원문이 막힌 권은 '원문 공개 확인 중' 이고 원문 링크가 없다", async ({ page }) => {
+test("원문이 막힌 권은 '원문 공개 확인 중' 이고 구절·원문 링크가 없다", async ({ page }) => {
   await signUp(page, "records-blocked");
   await seedMarks(page);
-  // 권리 철회를 브라우저에서 만들 수 없어 서버 응답의 발췌만 null 로 바꾼다 — 서버 판정은 pytest 가 고정한다
-  const isExcerptList = (url: URL) =>
-    url.pathname.endsWith("/api/backend/hoondok/me/marks") && url.searchParams.get("excerpt") === "true";
-  await page.route(isExcerptList, async (route) => {
+  // 권리 철회를 브라우저에서 만들 수 없어 서버 응답의 판정만 바꾼다(형광펜 readable=false, 북마크 발췌 null).
+  // 서버 판정은 pytest 가 고정한다
+  const isRecordList = (url: URL) =>
+    url.pathname.endsWith("/api/backend/hoondok/me/highlights") ||
+    (url.pathname.endsWith("/api/backend/hoondok/me/marks") && url.searchParams.get("excerpt") === "true");
+  await page.route(isRecordList, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
-    for (const item of body.items) item.excerpt = null;
+    for (const item of body.items) {
+      if ("quote" in item) item.readable = false;
+      else item.excerpt = null;
+    }
     await route.fulfill({ response, json: body });
   });
   await page.goto("/hoondok/records");
   const panel = page.getByRole("tabpanel");
   await expect(panel.getByText("원문 공개 확인 중")).toHaveCount(3);
+  await expect(panel.getByRole("link")).toHaveCount(0);
+  await expect(panel.getByText("합성 문장입니다.")).toHaveCount(0);
+  await page.getByRole("tab", { name: "북마크 1" }).click();
+  await expect(panel.getByText("원문 공개 확인 중")).toHaveCount(1);
   await expect(panel.getByRole("link")).toHaveCount(0);
   await page.goto("/hoondok/garden");
   await expect(page.getByRole("link", { name: /최근 형광펜/ })).toHaveCount(0);

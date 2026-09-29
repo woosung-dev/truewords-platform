@@ -337,6 +337,7 @@ async def test_account_deletion_purges_notification_rows():
         JeongseongPeriod,
         JeongseongReading,
         MissionLog,
+        PassageHighlight,
         PassageMark,
         ReadingPosition,
     )
@@ -360,6 +361,7 @@ async def test_account_deletion_purges_notification_rows():
                 PushSubscription.__table__,
                 ReadingPosition.__table__,
                 PassageMark.__table__,
+                PassageHighlight.__table__,
             ],
         )
     session = AsyncSession(engine, expire_on_commit=False)
