@@ -399,7 +399,7 @@ describe("단락 시트", () => {
     const sheet = await openSheet(1);
     // 저장 성공이 표시 목록을 무효화하므로 다음 조회 결과를 먼저 바꿔 둔다
     vi.mocked(libraryAPI.marks).mockResolvedValue({ items: [HIGHLIGHT_MARK] });
-    fireEvent.click(sheet.getByRole("button", { name: "연두 형광펜" }));
+    fireEvent.click(sheet.getByRole("button", { name: "초록 형광펜" }));
     await waitFor(() =>
       expect(libraryAPI.saveMark).toHaveBeenCalledWith("c0", {
         volume: VOLUME,
@@ -410,9 +410,9 @@ describe("단락 시트", () => {
       }),
     );
     await waitFor(() =>
-      expect(sheet.getByRole("button", { name: "연두 형광펜" })).toHaveAttribute("aria-pressed", "true"),
+      expect(sheet.getByRole("button", { name: "초록 형광펜" })).toHaveAttribute("aria-pressed", "true"),
     );
-    fireEvent.click(sheet.getByRole("button", { name: "연두 형광펜" }));
+    fireEvent.click(sheet.getByRole("button", { name: "초록 형광펜" }));
     await waitFor(() => expect(libraryAPI.deleteMark).toHaveBeenCalledWith("c0", "highlight"));
   });
   it("북마크는 토글이고 노트는 형광펜에 저장된다", async () => {

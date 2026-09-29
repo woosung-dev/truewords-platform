@@ -2225,6 +2225,10 @@ export type MarkItem = {
      */
     color: number | null;
     /**
+     * Excerpt
+     */
+    excerpt?: string | null;
+    /**
      * Kind
      */
     kind: 'bookmark' | 'highlight';
@@ -7019,6 +7023,10 @@ export type GetMarksHoondokMeMarksGetData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Excerpt
+         */
+        excerpt?: boolean;
     };
     url: '/hoondok/me/marks';
 };

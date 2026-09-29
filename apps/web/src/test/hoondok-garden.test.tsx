@@ -15,6 +15,11 @@ vi.mock("@/features/hoondok/missions-api", () => ({
   missionsAPI: { complete: vi.fn(), summary: vi.fn() },
 }));
 vi.mock("@/features/hoondok/history-api", () => ({ historyAPI: { month: vi.fn() } }));
+// 정원 '나의 기록' 섹션(C1)의 표시 목록 — 이 파일은 통계·달력·정성만 보므로 빈 목록으로 둔다(실제 fetch 0)
+vi.mock("@/features/hoondok/library/api", async (original) => ({
+  ...(await original<object>()),
+  libraryAPI: { marks: vi.fn().mockResolvedValue({ items: [] }) },
+}));
 vi.mock("@/features/hoondok/jeongseong-api", () => ({
   jeongseongAPI: { current: vi.fn(), create: vi.fn(), abandon: vi.fn() },
 }));

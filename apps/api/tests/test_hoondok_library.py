@@ -16,6 +16,8 @@ from app.modules.admin.repository import AdminRepository
 from app.modules.admin.service import AdminService
 from app.modules.hoondok.dependencies import get_journey_service, get_library_service
 from app.modules.hoondok.journey_repository import JourneyRepository
+from app.modules.hoondok import journey_service, library_service
+from app.modules.hoondok.display_text import to_display_text
 from app.modules.hoondok.journey_service import JourneyService
 from app.modules.hoondok.library_repository import LibraryRepository
 from app.modules.hoondok.library_series import label_sort_key, series_title, volume_label
@@ -66,7 +68,7 @@ async def ctx():
         library=library,
     )
     users = UserRepository(session)
-    app.dependency_overrides[get_library_service] = lambda: LibraryService(library)
+    app.dependency_overrides[get_library_service] = lambda: LibraryService(library, qdrant)
     app.dependency_overrides[get_journey_service] = lambda: journey
     app.dependency_overrides[get_identity_repository] = lambda: users
     app.dependency_overrides[get_admin_service] = lambda: AdminService(AdminRepository(session))
@@ -518,6 +520,216 @@ async def test_marks_list_is_capped_by_limit(ctx: TestClient):
     assert len(ctx.get("/hoondok/me/marks?limit=2").json()["items"]) == 2
     # 상한을 넘겨 요청하면 422 — 무제한 조회 경로를 열어 두지 않는다
     assert ctx.get("/hoondok/me/marks?limit=500").status_code == 422
+
+
+# --- API-HD-026 `excerpt=true` 발췌 --------------------------------------------
+
+_OVERLAP = "하나님의 뜻 앞에 서서 참된 마음으로 살아가는 길을 찾아야 합니다. "
+_A_ID = {index: str(uuid.UUID(int=index + 1)) for index in (0, 4, 5, 19, 20)}
+_B_ID = {index: str(uuid.UUID(int=100 + index)) for index in (2, 3)}
+_ELSEWHERE_ID = str(uuid.UUID(int=999))  # payload 의 권이 표시의 권과 다른 청크
+
+
+class _RecordingQdrant:
+    """발췌용 가짜 Qdrant — 호출을 기록하고 point id → (volume, chunk_index, text) 로 답한다."""
+
+    def __init__(self, fail: str | None = None) -> None:
+        self.fail = fail
+        self.calls: list[tuple[str, dict]] = []
+        self.points: dict[str, tuple[str, int, str]] = {
+            _A_ID[0]: ("천성경.docx", 0, "첫 단락입니다. " + BODY),
+            _A_ID[4]: ("천성경.docx", 4, "앞 단락 본문입니다. " * 3 + _OVERLAP),
+            _A_ID[5]: (
+                "천성경.docx",
+                5,
+                _OVERLAP + "그러므로 우리는 오늘도 말씀을 가까이하며 사랑을 실천하는 하루를 보내야 합니다. " + BODY,
+            ),
+            _A_ID[19]: ("천성경.docx", 19, "앞 페이지 끝 단락입니다. " * 3 + _OVERLAP),
+            _A_ID[20]: ("천성경.docx", 20, _OVERLAP + "새 페이지의 첫 단락은 앞 청크와 겹쳐도 자르지 않습니다. " + BODY),
+            _B_ID[2]: ("평화경.docx", 2, "평화경 앞 단락입니다."),
+            _B_ID[3]: ("평화경.docx", 3, "말씀" * 250),
+            _ELSEWHERE_ID: ("평화경.docx", 9, BODY),
+        }
+
+    def _point(self, point_id: str) -> QdrantPoint:
+        volume, index, text = self.points[point_id]
+        return QdrantPoint(point_id, 0, {"volume": volume, "chunk_index": index, "text": text})
+
+    async def retrieve(self, _collection, ids, **_kwargs):
+        self.calls.append(("retrieve", {"ids": list(ids)}))
+        if self.fail == "retrieve":
+            raise RuntimeError("qdrant down")
+        return [self._point(point_id) for point_id in ids if point_id in self.points]
+
+    async def scroll(self, _collection, scroll_filter=None, limit=10, **_kwargs):
+        self.calls.append(("scroll", {"filter": scroll_filter, "limit": limit}))
+        if self.fail == "scroll":
+            raise RuntimeError("qdrant down")
+        volume_cond, index_cond = scroll_filter["must"]
+        indices = set(index_cond["match"]["any"])
+        found = [
+            self._point(point_id)
+            for point_id, (volume, index, _text) in self.points.items()
+            if volume == volume_cond["match"]["value"] and index in indices
+        ]
+        return found[:limit], None
+
+    def kinds(self) -> list[str]:
+        return [kind for kind, _ in self.calls]
+
+
+def use_qdrant(ctx: TestClient, qdrant: _RecordingQdrant) -> None:
+    library = LibraryRepository(ctx.session)  # type: ignore[attr-defined]
+    app.dependency_overrides[get_library_service] = lambda: LibraryService(library, qdrant)  # type: ignore[arg-type]
+
+
+async def seed_excerpt_marks(ctx: TestClient) -> User:
+    """열린 권 2개 + 검색만 열린 권·철회된 권·원장에 없는 권, 잘못된 ID·권이 어긋난 청크."""
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    await add_right(session, "천성경.docx")
+    await add_right(session, "평화경.docx")
+    await add_right(session, "원리강론.docx", scope_full_text=False)
+    await add_right(session, "통일사상.docx", status="withdrawn")
+    user = await login(ctx)
+    marks = [
+        (_A_ID[0], "천성경.docx", 0, "highlight"),
+        (_A_ID[0], "천성경.docx", 0, "bookmark"),  # 같은 청크 — Qdrant 에는 한 번만 묻는다
+        (_A_ID[5], "천성경.docx", 5, "highlight"),
+        (_A_ID[20], "천성경.docx", 20, "highlight"),
+        (_B_ID[3], "평화경.docx", 3, "bookmark"),
+        ("c-1", "천성경.docx", 7, "highlight"),  # Qdrant ID 가 아니다
+        (_ELSEWHERE_ID, "천성경.docx", 9, "bookmark"),  # payload 는 평화경
+        (str(uuid.UUID(int=500)), "원리강론.docx", 1, "bookmark"),
+        (str(uuid.UUID(int=501)), "통일사상.docx", 1, "bookmark"),
+        (str(uuid.UUID(int=502)), "없는 권.docx", 1, "bookmark"),
+    ]
+    session.add_all(
+        [
+            PassageMark(
+                user_id=user.id,
+                chunk_id=chunk_id,
+                volume=volume,
+                chunk_index=index,
+                kind=kind,
+                color=1 if kind == "highlight" else None,
+            )
+            for chunk_id, volume, index, kind in marks
+        ]
+    )
+    await session.commit()
+    return user
+
+
+def excerpt_of(items: list[dict], chunk_id: str, kind: str = "highlight") -> str | None:
+    return next(i for i in items if i["chunk_id"] == chunk_id and i["kind"] == kind)["excerpt"]
+
+
+def test_excerpt_page_size_matches_words_view():
+    # 페이지 첫 청크 판정이 원문 뷰와 같아야 발췌가 화면 단락과 같다
+    assert library_service.WORDS_PAGE_SIZE == journey_service.PAGE_SIZE
+
+
+@pytest.mark.asyncio
+async def test_marks_without_excerpt_param_keep_shape_and_skip_qdrant(ctx: TestClient):
+    qdrant = _RecordingQdrant()
+    use_qdrant(ctx, qdrant)
+    await seed_excerpt_marks(ctx)
+
+    for url in ("/hoondok/me/marks", "/hoondok/me/marks?excerpt=false"):
+        items = ctx.get(url).json()["items"]
+        assert len(items) == 10
+        assert all("excerpt" not in item for item in items)
+    put = ctx.put(
+        f"/hoondok/me/marks/{_A_ID[5]}",
+        json={"volume": "천성경.docx", "chunk_index": 5, "kind": "highlight", "color": 2},
+        headers=XHR,
+    )
+    assert put.status_code == 200 and "excerpt" not in put.json()
+    assert qdrant.calls == []
+
+
+@pytest.mark.asyncio
+async def test_marks_excerpt_uses_display_text_with_batched_calls(ctx: TestClient):
+    qdrant = _RecordingQdrant()
+    use_qdrant(ctx, qdrant)
+    await seed_excerpt_marks(ctx)
+
+    response = ctx.get("/hoondok/me/marks?excerpt=true")
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert len(items) == 10 and all("excerpt" in item for item in items)
+
+    # 호출 수: 청크 묶음 retrieve 1회 + 앞 청크가 필요한 권마다 scroll 1회
+    assert qdrant.kinds() == ["retrieve", "scroll", "scroll"]
+    ids = qdrant.calls[0][1]["ids"]
+    assert len(ids) == len(set(ids))
+    # 열린 권의 올바른 ID 만 묻는다 — 잘못된 ID·막힌 권은 보내지 않는다
+    assert set(ids) == {_A_ID[0], _A_ID[5], _A_ID[20], _B_ID[3], _ELSEWHERE_ID}
+    scrolled = {
+        call["filter"]["must"][0]["match"]["value"]: call["filter"]["must"][1]["match"]["any"]
+        for _, call in qdrant.calls[1:]
+    }
+    # 페이지 첫 청크(0·20)는 앞 청크를 찾지 않는다
+    assert scrolled == {"천성경.docx": [4], "평화경.docx": [2]}
+
+    points = qdrant.points
+    # 겹침 제거 — 원문 뷰 display_text 와 같고 앞 청크와 겹친 머리가 없다
+    assert excerpt_of(items, _A_ID[5]) == to_display_text(points[_A_ID[4]][2], points[_A_ID[5]][2])
+    assert excerpt_of(items, _A_ID[5]).startswith("그러므로")
+    # 페이지 첫 청크는 앞 청크 없이 — 겹친 머리를 그대로 둔다
+    assert excerpt_of(items, _A_ID[20]) == to_display_text(None, points[_A_ID[20]][2])
+    assert excerpt_of(items, _A_ID[20]).startswith("하나님의 뜻")
+    assert excerpt_of(items, _A_ID[0]) == excerpt_of(items, _A_ID[0], "bookmark")
+    # 300자에서 자른다
+    assert excerpt_of(items, _B_ID[3], "bookmark") == "말씀" * 150
+
+    # 권리가 막힌 권·원장에 없는 권·잘못된 ID·권이 어긋난 청크는 null
+    for chunk_id, kind in (
+        ("c-1", "highlight"),
+        (_ELSEWHERE_ID, "bookmark"),
+        (str(uuid.UUID(int=500)), "bookmark"),
+        (str(uuid.UUID(int=501)), "bookmark"),
+        (str(uuid.UUID(int=502)), "bookmark"),
+    ):
+        assert excerpt_of(items, chunk_id, kind) is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fail", ["retrieve", "scroll"])
+async def test_marks_excerpt_falls_back_to_null_when_qdrant_fails(ctx: TestClient, fail: str):
+    qdrant = _RecordingQdrant(fail=fail)
+    use_qdrant(ctx, qdrant)
+    await seed_excerpt_marks(ctx)
+
+    response = ctx.get("/hoondok/me/marks?excerpt=true")
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert len(items) == 10
+    assert all(item["excerpt"] is None for item in items)
+
+
+@pytest.mark.asyncio
+async def test_marks_excerpt_skips_qdrant_when_nothing_is_readable(ctx: TestClient):
+    qdrant = _RecordingQdrant()
+    use_qdrant(ctx, qdrant)
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    await add_right(session, "원리강론.docx", scope_full_text=False)
+    user = await login(ctx)
+
+    assert ctx.get("/hoondok/me/marks?excerpt=true").json() == {"items": []}
+    session.add(
+        PassageMark(
+            user_id=user.id,
+            chunk_id=str(uuid.UUID(int=500)),
+            volume="원리강론.docx",
+            chunk_index=1,
+            kind="bookmark",
+        )
+    )
+    await session.commit()
+    items = ctx.get("/hoondok/me/marks?excerpt=true").json()["items"]
+    assert [item["excerpt"] for item in items] == [None]
+    assert qdrant.calls == []
 
 
 @pytest.mark.asyncio

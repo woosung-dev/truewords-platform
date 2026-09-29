@@ -111,4 +111,341 @@
   .gd-skeleton--row {
     height: 120px;
   }
+
+  /* ---------- 나의 기록 (C1) : 정원 섹션 · /hoondok/records · /hoondok/records/device ----------
+     수는 입구다 — 이름을 먼저, 잉크색으로 같은 크기에 둔다. 강조색·큰 숫자를 쓰지 않는다 (DEC-PWA-019) */
+  .rc-rec {
+    padding: 0;
+    overflow: hidden;
+  }
+  .rc-tally {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .rc-tally a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    min-height: 56px;
+    padding: 10px 6px;
+    font-size: var(--fs-sm);
+    color: var(--ink);
+    transition: background-color 0.15s ease-out;
+  }
+  .rc-tally a + a {
+    border-left: 1px solid var(--line);
+  }
+  .rc-tally svg {
+    flex: none;
+    color: var(--ink-3);
+  }
+  .rc-tally b {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .rc-tally a:active,
+  a.rc-latest:active,
+  a.rc-local:active,
+  a.rc-item__main:active {
+    background: var(--surface-2);
+  }
+  .rc-latest {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--line);
+    transition: background-color 0.15s ease-out;
+  }
+  .rc-latest__k {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .rc-latest__k svg {
+    color: var(--ink-3);
+  }
+  .rc-latest__m {
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+  }
+  .rc-skeleton {
+    min-height: 120px;
+  }
+
+  /* 발췌 : 원문 뷰의 형광펜처럼 칠한다. 줄 수만 줄이고 글자는 바꾸지 않는다 */
+  .rc-q {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-family: var(--font-scripture);
+    font-size: var(--fs-lg);
+    line-height: 1.8;
+    color: var(--ink);
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .rc-q--4 {
+    -webkit-line-clamp: 4;
+  }
+  .rc-q mark {
+    color: inherit;
+    padding: 2px 1px;
+    border-radius: 3px;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  /* 원문이 막힌 단락 : 발췌 대신 한 줄 안내. 본문 글꼴이 아니라 보조 글자로 둔다 */
+  .rc-q--blocked {
+    font-family: inherit;
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+
+  /* 다른 화면으로 가는 한 줄 (이 기기에만 있는 기록) */
+  .rc-local {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 10px 14px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    transition: background-color 0.15s ease-out;
+  }
+  .rc-local > svg {
+    flex: none;
+    color: var(--ink-2);
+  }
+  .rc-local > svg:last-child {
+    color: var(--ink-3);
+  }
+  .rc-local__bd {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .rc-local__bd b {
+    font-size: var(--fs-md);
+    font-weight: 600;
+  }
+  .rc-local__bd span {
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    color: var(--ink-2);
+    word-break: keep-all;
+  }
+  a.rc-local:active {
+    background: var(--line);
+  }
+
+  /* 종류 탭의 수 · 색/권 칩 : 색만으로 구분하지 않도록 이름을 함께 쓴다 */
+  .rc-n {
+    font-variant-numeric: tabular-nums;
+  }
+  .pill-seg button:not(.is-on) .rc-n {
+    color: var(--ink-3);
+  }
+  .rc-chips {
+    margin-top: 14px;
+  }
+  .rc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .rc-chip small {
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .rc-sw {
+    display: inline-block;
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border-radius: var(--r-full);
+    box-shadow: inset 0 0 0 1px var(--ink-3);
+  }
+  .rc-sw--1 {
+    background: var(--hl-1);
+  }
+  .rc-sw--2 {
+    background: var(--hl-2);
+  }
+  .rc-sw--3 {
+    background: var(--hl-3);
+  }
+  .rc-sw--sm {
+    width: 10px;
+    height: 10px;
+  }
+
+  /* 목록 */
+  .rc-listcard {
+    padding: 0 16px;
+  }
+  .rc-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .rc-item {
+    border-bottom: 1px solid var(--line);
+  }
+  .rc-item:last-child {
+    border-bottom: 0;
+  }
+  .rc-item__main {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 0;
+    transition: background-color 0.15s ease-out;
+  }
+  .rc-note {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .rc-note svg {
+    flex: none;
+    margin-top: 3px;
+    color: var(--ink-2);
+  }
+  .rc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+  }
+  .rc-meta > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  /* 한 권 : 장 머리 아래 원문 순서 */
+  .rc-chap + .rc-chap {
+    border-top: 1px solid var(--line);
+  }
+  .rc-chap__t {
+    margin: 0;
+    padding: 14px 0 0;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    line-height: 1.4;
+    word-break: keep-all;
+  }
+  .rc-none {
+    margin: 0;
+    padding: 16px 0;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+    text-align: center;
+  }
+  .rc-empty {
+    margin-top: 16px;
+  }
+
+  /* 이 기기에만 있는 기록 */
+  .rc-info {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    padding: 14px 16px;
+    border-radius: var(--r);
+    background: var(--surface-2);
+  }
+  .rc-info > svg {
+    flex: none;
+    margin-top: 1px;
+    color: var(--ink-2);
+  }
+  .rc-info b {
+    display: block;
+    font-size: var(--fs-md);
+    font-weight: 600;
+  }
+  .rc-info p {
+    margin: 4px 0 0;
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    color: var(--ink-2);
+    word-break: keep-all;
+  }
+  .rc-lines {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .rc-lines li {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .rc-lines li:last-child {
+    border-bottom: 0;
+  }
+  .rc-lines time {
+    display: block;
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .rc-lines p {
+    margin: 4px 0 0;
+    font-size: var(--fs-md);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+  .rc-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    text-align: center;
+  }
+  /* 작은 버튼도 탭 대상 44px (공용 .btn--sm 은 38px) */
+  .rc-copy .btn {
+    width: auto;
+    min-height: 44px;
+  }
+  .rc-copy p {
+    margin: 0;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    color: var(--ink-2);
+    word-break: keep-all;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rc-tally a,
+    .rc-latest,
+    .rc-local,
+    .rc-item__main {
+      transition: none;
+    }
+  }
 }

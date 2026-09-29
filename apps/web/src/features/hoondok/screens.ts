@@ -78,6 +78,15 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
   { match: "/hoondok/c/", title: "오늘의 책갈피", tabId: "today", variant: "app" },
   { match: "/hoondok/bookmarks", title: "나의 책갈피", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
   { match: "/hoondok/garden", title: "나의 정원", tabId: "garden", variant: "app" },
+  // 나의 기록 (C1). 기기 기록도 정원에서 들어오므로 뒤로는 정원이다
+  { match: "/hoondok/records", title: "나의 기록", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
+  {
+    match: "/hoondok/records/device",
+    title: "이 기기에만 있는 기록",
+    backHref: "/hoondok/garden",
+    tabId: "garden",
+    variant: "app",
+  },
   // 알림 아이콘이 가리키는 화면 자신이라 아이콘을 숨긴다
   {
     match: "/hoondok/settings",
