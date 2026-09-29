@@ -120,7 +120,11 @@ test("정성: 같은 날 유지 · 실제 완료 · 전날 이력 뒤 다른 말
   await page.getByRole("button", { name: "훈독 완료", exact: true }).click();
   await expect(page.getByText("연속 2일째 이어가고 있어요")).toBeVisible();
   await page.goto("/hoondok");
-  await expect(page.getByText("2 / 7일", { exact: true })).toBeVisible();
+  // 홈 정성 카드는 날짜 기준 일차만 적는다(읽은 날 분수 없음, DEC-PWA-023). 읽은 날 수는 아래 API 로 본다
+  await expect(page.getByText("2일차", { exact: true })).toBeVisible();
+  const bar = page.getByRole("progressbar", { name: "7일 정성 중 2일차" });
+  await expect(bar).toHaveAttribute("aria-valuenow", "2");
+  await expect(bar).toHaveAttribute("aria-valuemax", "7");
   const current = await (await page.request.get("/api/backend/hoondok/me/jeongseong")).json();
   expect(current.period.duration_days).toBe(7);
   expect(current.period.progress.done_days).toBe(2);
