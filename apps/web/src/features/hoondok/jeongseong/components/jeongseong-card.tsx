@@ -9,7 +9,7 @@
 // 값을 지어내지는 않는다(REQ-PWA-013): 보여 주는 것은 시작 CTA 뿐이고 로그인 요구는 시트가 맡는다.
 import { Lock } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useId, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import type { JeongseongLastEnded, JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
 import { useAbandonJeongseong, useJeongseongCurrent } from "@/features/hoondok/use-jeongseong";
@@ -106,6 +106,12 @@ export function JeongseongCard() {
   const [isConfirming, setIsConfirming] = useState(false);
   // 저장소 쓰기가 막혀도(사생활 모드) 이번 화면에서는 닫힌 채로 둔다
   const [closedId, setClosedId] = useState<string | null>(null);
+  const inviteRef = useRef<HTMLAnchorElement>(null);
+
+  // 마무리 카드를 닫으면 카드가 통째로 사라진다 — 키보드 포커스를 이어 나오는 시작 CTA 로 옮긴다
+  useEffect(() => {
+    if (closedId) inviteRef.current?.focus();
+  }, [closedId]);
 
   // 계정·정성 조회가 끝나기 전에는 그리지 않는다 — 시작 CTA 와 진행 카드가 번갈아 보이면 안 된다.
   if (isLoading || (user && isPending)) return null;
@@ -132,7 +138,7 @@ export function JeongseongCard() {
         <div className="card js-invite">
           <p className="js-invite__title">정성 기간 만들기</p>
           <p className="js-invite__body">7·21·40일 중 골라 매일 훈독을 이어가요</p>
-          <Link className="btn btn-line btn--sm" href={SHEET_HREF}>
+          <Link ref={inviteRef} className="btn btn-line btn--sm" href={SHEET_HREF}>
             정성 시작하기
           </Link>
         </div>

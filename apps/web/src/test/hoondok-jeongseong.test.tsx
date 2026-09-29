@@ -429,7 +429,8 @@ describe("정성 마무리 카드 (API-HD-009 last_ended)", () => {
     const first = render(wrap(<JeongseongCard />));
 
     fireEvent.click(await screen.findByRole("button", { name: "닫기" }));
-    expect(await screen.findByRole("link", { name: "정성 시작하기" })).toBeInTheDocument();
+    // 카드가 사라져도 키보드 포커스가 body 로 떨어지지 않고 시작 CTA 로 옮겨 간다
+    expect(await screen.findByRole("link", { name: "정성 시작하기" })).toHaveFocus();
     expect(screen.queryByRole("article")).toBeNull();
     expect(localStorage.getItem(CLOSED_KEY)).toBe("1");
 
