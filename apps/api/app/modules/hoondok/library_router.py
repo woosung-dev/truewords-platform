@@ -1,15 +1,21 @@
-"""말씀 서고 3계층·읽기 기록 API (API-HD-023~026).
+"""말씀 서고 3계층·읽기 기록 API (API-HD-023~026·053).
 
 서고·목차는 공개, `/hoondok/me/*` 는 `hoondok_token` 이며 쓰기는 CSRF 헤더를 요구한다.
 목차 경로가 `/hoondok/sections/{volume:path}` 인 이유: `/hoondok/words/{volume:path}` 가 greedy 라
 `/hoondok/words/<권>/sections` 를 volume 으로 삼켜 버린다(PLAN-HD-007 트랙 A 조사).
 """
 
+import uuid
+
 from fastapi import APIRouter, Depends, Query, status
 
 from app.modules.hoondok.dependencies import get_library_service
 from app.modules.hoondok.journey_router import check_words_limit
 from app.modules.hoondok.library_schemas import (
+    HighlightInput,
+    HighlightItem,
+    HighlightPatch,
+    HighlightsResponse,
     MarkInput,
     MarkItem,
     MarksResponse,
@@ -77,7 +83,7 @@ async def put_reading_position(
 @router.get("/me/marks", response_model=MarksResponse)
 async def get_marks(
     volume: str | None = Query(default=None, max_length=512),
-    kind: str | None = Query(default=None, pattern="^(bookmark|highlight)$"),
+    kind: str | None = Query(default=None, pattern="^bookmark$"),
     limit: int = Query(default=200, ge=1, le=200),
     user: User = Depends(get_current_user),
     service: LibraryService = Depends(get_library_service),
@@ -108,9 +114,64 @@ async def put_mark(
 )
 async def delete_mark(
     chunk_id: str,
-    kind: str | None = Query(default=None, pattern="^(bookmark|highlight)$"),
+    kind: str | None = Query(default=None, pattern="^bookmark$"),
     user: User = Depends(get_current_user),
     service: LibraryService = Depends(get_library_service),
 ) -> None:
     """API-HD-026 표시 삭제. 본인 것만 지우고 없어도 204. 403 CSRF, 401 미인증."""
     await service.delete_mark(user.id, chunk_id, kind)
+
+
+@router.get("/me/highlights", response_model=HighlightsResponse)
+async def get_highlights(
+    volume: str | None = Query(default=None, max_length=512),
+    limit: int = Query(default=500, ge=1, le=500),
+    user: User = Depends(get_current_user),
+    service: LibraryService = Depends(get_library_service),
+) -> HighlightsResponse:
+    """API-HD-053 내 구절 형광펜 목록(최신순). 본인 것만 나온다. 401 미인증."""
+    return await service.list_highlights(user.id, volume, limit)
+
+
+@router.post(
+    "/me/highlights",
+    response_model=HighlightItem,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(verify_csrf)],
+)
+async def post_highlight(
+    data: HighlightInput,
+    user: User = Depends(get_current_user),
+    service: LibraryService = Depends(get_library_service),
+) -> HighlightItem:
+    """API-HD-053 구절 형광펜 만들기. 422 범위 오류, 404 원문 미허용, 403 CSRF, 401 미인증."""
+    return await service.create_highlight(user.id, data)
+
+
+@router.patch(
+    "/me/highlights/{highlight_id}",
+    response_model=HighlightItem,
+    dependencies=[Depends(verify_csrf)],
+)
+async def patch_highlight(
+    highlight_id: uuid.UUID,
+    data: HighlightPatch,
+    user: User = Depends(get_current_user),
+    service: LibraryService = Depends(get_library_service),
+) -> HighlightItem:
+    """API-HD-053 색·메모 바꾸기. 남의 것·없는 것은 404. 403 CSRF, 401 미인증."""
+    return await service.update_highlight(user.id, highlight_id, data)
+
+
+@router.delete(
+    "/me/highlights/{highlight_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(verify_csrf)],
+)
+async def delete_highlight(
+    highlight_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    service: LibraryService = Depends(get_library_service),
+) -> None:
+    """API-HD-053 구절 형광펜 지우기(메모 포함). 본인 것만 지우고 없어도 204. 403 CSRF, 401 미인증."""
+    await service.delete_highlight(user.id, highlight_id)

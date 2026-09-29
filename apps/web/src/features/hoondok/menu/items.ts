@@ -3,7 +3,6 @@ import {
   BookMarked,
   Bookmark,
   BookOpen,
-  CirclePlay,
   Library,
   ListOrdered,
   type LucideIcon,
@@ -15,6 +14,7 @@ import {
   Sunrise,
   UserPlus,
   Users,
+  Video,
 } from "lucide-react";
 import { isHoondokCardsEnabled, isHoondokPreviewEnabled, isHoondokTogetherEnabled } from "@/features/hoondok/flag";
 
@@ -81,18 +81,19 @@ const GROUP_DEFS: readonly { id: string; title: string; items: readonly MenuItem
   },
   {
     id: "worship",
-    title: "가정예배",
+    title: "5분 설교",
     items: [
       {
         id: "sermons",
         label: "5분 설교",
         href: "/hoondok/worship",
-        icon: CirclePlay,
+        icon: Video,
         isAvailable: isHoondokPreviewEnabled,
       },
       {
         id: "worship-order",
-        label: "순서지·챌린지",
+        // 탭 이름이 5분 설교로 바뀌어 "가정예배" 라는 말이 메뉴에서 사라지지 않게 항목 이름에 남긴다
+        label: "가정예배 순서지·챌린지",
         href: "/hoondok/worship/order",
         icon: ListOrdered,
         isAvailable: isHoondokPreviewEnabled,

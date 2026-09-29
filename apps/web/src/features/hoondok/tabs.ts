@@ -1,8 +1,9 @@
-import { BookOpenText, House, type LucideIcon, MessageCircle, Sprout, Sunrise } from "lucide-react";
+import { BookOpenText, type LucideIcon, MessageCircle, Sprout, Sunrise, Video } from "lucide-react";
 import { isHoondokPreviewEnabled } from "./flag";
 import { screenFor } from "./screens";
 
 // 하단 5탭 = 상단 헤더 4 의 단일 정의 (DES-PWA-003 §7.1-3, DEC-PWA-015 명칭).
+// 넷째 탭은 첫 화면이 5분 설교라 이름도 "5분 설교"다 (2026-09-29, 이전 "가정예배"). id·경로는 그대로 둔다.
 // 두 형태는 CSS(hoondok.css .nav) 만 다르고 이 목록 하나를 렌더한다.
 export type HoondokTab = {
   id: "today" | "ask" | "library" | "worship" | "garden";
@@ -36,7 +37,7 @@ const TAB_DEFS: readonly Omit<HoondokTab, "isDisabled">[] = [
   { id: "today", label: "오늘 훈독", href: "/hoondok", icon: Sunrise },
   { id: "ask", label: "AI 질문", href: "/hoondok/ask", icon: MessageCircle },
   { id: "library", label: "말씀", href: "/hoondok/library", icon: BookOpenText, isMid: true },
-  { id: "worship", label: "가정예배", href: "/hoondok/worship", icon: House },
+  { id: "worship", label: "5분 설교", href: "/hoondok/worship", icon: Video },
   { id: "garden", label: "나의 정원", href: "/hoondok/garden", icon: Sprout },
 ];
 

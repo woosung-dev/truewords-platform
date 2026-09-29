@@ -849,6 +849,12 @@
       color: var(--ink);
       flex: none;
       margin-right: 20px;
+      gap: 10px;
+    }
+    /* HD 표지(파비콘 16 격자 판). 32px = 격자 2배라 획이 흐려지지 않는다 */
+    .nav__mark {
+      display: block;
+      flex: none;
     }
     .nav__ic {
       display: none;
@@ -921,6 +927,10 @@
       padding-top: 24px;
     }
     .icon-btn--search {
+      display: none;
+    }
+    /* 헤더 4 오른쪽 끝에 알림 원형 버튼이 이미 있다 — 탭 헤더가 있는 화면의 앱바에서는 종을 하나만 남긴다 */
+    .app__main:not(.app__main--no-nav) .icon-btn--bell {
       display: none;
     }
     @media (hover: hover) {

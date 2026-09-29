@@ -126,7 +126,7 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "library",
     variant: "read",
   },
-  // 가정예배 탭 첫 화면은 5분 설교다. 순서지·챌린지는 전체 메뉴 > 가정예배에서 연다 (2026-09-29)
+  // 5분 설교 탭(이전 가정예배) 첫 화면. 가정예배 순서지·챌린지는 전체 메뉴 > 5분 설교에서 연다 (2026-09-29)
   { match: "/hoondok/worship", title: "5분 설교", tabId: "worship", variant: "app" },
   {
     match: "/hoondok/worship/order",
