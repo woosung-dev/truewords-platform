@@ -56,6 +56,7 @@
 | `API-HD-050` | POST | `/hoondok/me/cards/{card_id}/shared` | `hoondok_token` + `X-Requested-With` | HD-012 |
 | `API-HD-051` | GET | `/hoondok/me/cards?filter=shared` | `hoondok_token` | HD-012 |
 | `API-HD-052` | GET · POST · PATCH | `/admin/hoondok/cards` · `/admin/hoondok/cards/{card_id}` | `admin_token` + 게이트 (쓰기는 `X-Requested-With`) | HD-012 |
+| `API-HD-053` | GET · POST · PATCH · DELETE | `/hoondok/me/highlights` · `/hoondok/me/highlights/{highlight_id}` | `hoondok_token` (쓰기는 `X-Requested-With`) | HD-007 |
 
 공통 규칙:
 
@@ -417,11 +418,12 @@ Next catch-all rewrite의 실패 로그에 검색어가 포함된 upstream URL�
 
 ---
 
-## PLAN-HD-007 — 말씀 서고 3계층과 읽기 기록 (API-HD-023~028)
+## PLAN-HD-007 — 말씀 서고 3계층과 읽기 기록 (API-HD-023~028·053)
 
 저작물(`book_series`) → 권(`volume`) → 장(`volume_sections`) 3계층과 사용자 읽기 기록을 추가한다.
 서고·목차 조회는 공개이고 기록(`/hoondok/me/*`)은 `hoondok_token` 이 필요하다(PLAN-HD-007 §2-6).
-단락의 단위는 Qdrant 청크(`chunk_index`·`chunk_id`)이며 청크 안 부분 선택은 하지 않는다(§2-12).
+단락의 단위는 Qdrant 청크(`chunk_index`·`chunk_id`)다. 청크 안 부분 선택은 단락 표시(API-HD-026)가 아니라
+구절 형광펜(API-HD-053)이 맡는다.
 
 ### API-HD-014 확장 `GET /hoondok/library`
 
@@ -479,16 +481,41 @@ Qdrant 원본 그대로이고 AI 설명·인용은 계속 `text` 를 쓴다. `di
 
 ### API-HD-026 단락 표시 (`hoondok_token`)
 
-- `GET /hoondok/me/marks?volume=&kind=&limit=` — 최신순, 본인 것만. 항목은
+단락 표시는 이제 북마크뿐이다 — 형광펜·메모는 API-HD-053 으로 옮겼다. 예전 `kind=highlight` 행은 DB 에
+남아 있지만 목록에 나오지 않는다.
+
+- `GET /hoondok/me/marks?volume=&kind=&limit=` — 최신순, 본인 북마크만. 항목은
   `{ chunk_id, chunk_index, volume, kind, color, note, updated_at, work_title, label }`.
   `limit` 은 1~200이고 기본 200이다 — 표시가 쌓여도 한 요청이 읽는 행 수를 묶어 둔다.
 - `PUT /hoondok/me/marks/{chunk_id}` body `{ volume, chunk_index, kind, color, note }`
-  — `(user_id, chunk_id, kind)` upsert. `kind` 는 `bookmark`·`highlight`. `highlight` 는 `color`(1~3)가
-  없으면 422, `bookmark` 는 넘어온 `color` 를 버린다. `note` 는 2000자까지이며 노트 탭은 `note` 가 있는
-  표시를 모은 것이다. 원문이 허용되지 않은 권은 404.
+  — `(user_id, chunk_id, kind)` upsert. `kind` 는 `bookmark` 만 받고(`highlight` 는 422), 넘어온 `color` 는
+  버린다. `note` 는 2000자까지. 원문이 허용되지 않은 권은 404.
 - `DELETE /hoondok/me/marks/{chunk_id}?kind=` — 204. 없는 표시도 204이며 남의 표시는 지워지지 않는다.
 
-계정 하드 삭제(`API-HD-011`)는 `reading_positions`·`passage_marks` 를 함께 지운다.
+계정 하드 삭제(`API-HD-011`)는 `reading_positions`·`passage_marks`·`passage_highlights` 를 함께 지운다.
+
+### API-HD-053 구절 형광펜 (`hoondok_token`)
+
+원문 뷰에서 사용자가 고른 글자 범위에 색(1~3)과 메모를 둔다. 한 단락에 여러 개를 둘 수 있다.
+위치는 `(start_chunk_index, start_offset)` ~ `(end_chunk_index, end_offset)` 이고, 오프셋은 원문 뷰(API-HD-016)
+청크 `display_text` 의 글자 위치다(끝은 배타). 여러 단락에 걸칠 수 있지만 두 끝이 **같은 페이지**
+(`chunk_index // 20`)에 있어야 한다 — 한 화면에서만 고를 수 있기 때문이다. `chunk_id` 는 시작 단락이며
+원문 링크(`?chunk_id=`)에 쓴다. `quote`(1~4000자)는 고른 글 그대로이고, 목록 표시와 `display_text` 규칙이
+바뀌어 오프셋이 어긋났을 때 다시 고정(re-anchor)하는 데 쓴다.
+
+- `GET /hoondok/me/highlights?volume=&limit=` — `updated_at` 최신순, 본인 것만. `limit` 은 1~500, 기본 500.
+  항목은 `{ id, volume, chunk_id, start_chunk_index, start_offset, end_chunk_index, end_offset, quote,
+  color, note, created_at, updated_at, work_title, label }`.
+- `POST /hoondok/me/highlights` body `{ volume, chunk_id, start_chunk_index, start_offset, end_chunk_index,
+  end_offset, quote, color, note? }` — 201로 만든 항목을 낸다. 끝이 시작보다 앞이거나 같음·다른 페이지·
+  색 범위 밖·빈 `quote` 는 422, 원문이 허용되지 않은 권은 404.
+- `PATCH /hoondok/me/highlights/{highlight_id}` body `{ color?, note? }` — 보낸 필드만 바꾸고 `updated_at` 을
+  갱신한다. `color: null` 은 422, `note` 에 `null`·빈 문자열을 보내면 메모를 지운다. 범위·`quote` 는 바꾸지
+  않는다(다시 칠하려면 지우고 새로 만든다). 없는 것·남의 것은 404.
+- `DELETE /hoondok/me/highlights/{highlight_id}` — 204(메모 포함). 없는 것도 204이며 남의 것은 지워지지 않는다.
+
+`note` 는 2000자까지이고 앞뒤 공백을 걷어 비면 `null` 로 저장한다. 쓰기는 모두 `X-Requested-With` 가
+없으면 403, 미인증 401.
 
 ### API-HD-027 `POST /admin/hoondok/content-rights/bulk`
 

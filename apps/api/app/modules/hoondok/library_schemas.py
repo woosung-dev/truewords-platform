@@ -7,7 +7,8 @@ from pydantic import BaseModel, Field, model_validator
 
 from app.modules.hoondok.schemas import AuthorityGrade
 
-MarkKind = Literal["bookmark", "highlight"]
+# 형광펜은 API-HD-053 구절 단위로 옮겼다 — 단락 표시(API-HD-026)는 북마크만 남는다.
+MarkKind = Literal["bookmark"]
 RightStatus = Literal["pending", "allowed", "withdrawn"]
 
 
@@ -102,11 +103,8 @@ class MarkInput(BaseModel):
 
     @model_validator(mode="after")
     def check_color(self) -> "MarkInput":
-        """형광펜은 색이 있어야 하고, 북마크는 색을 갖지 않는다(넘어와도 버린다)."""
-        if self.kind == "highlight" and self.color is None:
-            raise ValueError("형광펜은 색을 골라 주세요")
-        if self.kind == "bookmark":
-            self.color = None
+        """북마크는 색을 갖지 않는다(넘어와도 버린다)."""
+        self.color = None
         return self
 
 
@@ -124,6 +122,69 @@ class MarkItem(BaseModel):
 
 class MarksResponse(BaseModel):
     items: list[MarkItem]
+
+
+# --- API-HD-053 구절 형광펜 -------------------------------------------------
+# 오프셋은 원문 뷰(API-HD-016) 청크 `display_text` 의 글자 위치다(끝은 배타). 한 구절은 여러 단락에
+# 걸칠 수 있지만 한 페이지(PAGE_SIZE 청크) 안이어야 한다 — 화면 하나에서만 고를 수 있기 때문이다.
+
+HIGHLIGHT_PAGE_SIZE = 20  # journey_service.PAGE_SIZE 와 같다
+
+
+class HighlightInput(BaseModel):
+    volume: str = Field(min_length=1, max_length=512)
+    chunk_id: str = Field(min_length=1, max_length=128)  # 시작 단락 — 원문 링크(`?chunk_id=`)에 쓴다
+    start_chunk_index: int = Field(ge=0)
+    start_offset: int = Field(ge=0)
+    end_chunk_index: int = Field(ge=0)
+    end_offset: int = Field(ge=0)
+    quote: str = Field(min_length=1, max_length=4000)  # 고른 글 그대로. 목록 표시·재고정(re-anchor)에 쓴다
+    color: int = Field(ge=1, le=3)
+    note: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def check_range(self) -> "HighlightInput":
+        """끝이 시작보다 뒤여야 하고, 두 끝이 같은 페이지에 있어야 한다."""
+        if (self.end_chunk_index, self.end_offset) <= (self.start_chunk_index, self.start_offset):
+            raise ValueError("구절의 끝이 시작보다 앞에 있어요")
+        if self.start_chunk_index // HIGHLIGHT_PAGE_SIZE != self.end_chunk_index // HIGHLIGHT_PAGE_SIZE:
+            raise ValueError("한 구간 안의 구절만 칠할 수 있어요")
+        return self
+
+
+class HighlightPatch(BaseModel):
+    """보낸 필드만 바꾼다. `note` 에 null·빈 문자열을 보내면 메모를 지운다."""
+
+    color: int | None = Field(default=None, ge=1, le=3)
+    note: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def check_color(self) -> "HighlightPatch":
+        """형광펜은 색 없이 둘 수 없다 — 색을 보냈다면 null 이 아니어야 한다."""
+        if "color" in self.model_fields_set and self.color is None:
+            raise ValueError("형광펜은 색을 골라 주세요")
+        return self
+
+
+class HighlightItem(BaseModel):
+    id: str
+    volume: str
+    chunk_id: str
+    start_chunk_index: int
+    start_offset: int
+    end_chunk_index: int
+    end_offset: int
+    quote: str
+    color: int
+    note: str | None
+    created_at: datetime
+    updated_at: datetime
+    work_title: str
+    label: str
+
+
+class HighlightsResponse(BaseModel):
+    items: list[HighlightItem]
 
 
 # --- API-HD-027·028 admin ---------------------------------------------------

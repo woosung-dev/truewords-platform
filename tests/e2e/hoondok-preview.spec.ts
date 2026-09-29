@@ -78,7 +78,7 @@ test("프리뷰 ON: 탭 5개가 모두 이동한다", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/hoondok/library");
   const nav = page.getByRole("navigation", { name: "주 메뉴" });
-  for (const label of ["오늘 훈독", "AI 질문", "말씀", "가정예배", "나의 정원"]) {
+  for (const label of ["오늘 훈독", "AI 질문", "말씀", "5분 설교", "나의 정원"]) {
     await expect(nav.getByRole("link", { name: label })).toBeVisible();
   }
 });
@@ -109,7 +109,7 @@ test("가족·친구: 초대 버튼은 안내만 내고 네트워크를 타지 �
   expect(errors).toEqual([]);
 });
 
-test("전체 메뉴: 즐겨찾기 칩이 남고, 칩으로 가정예배 5분 설교에 간다", async ({ page }) => {
+test("전체 메뉴: 즐겨찾기 칩이 남고, 칩으로 5분 설교 탭에 간다", async ({ page }) => {
   const errors = await collectConsoleErrors(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/hoondok/garden");
@@ -128,7 +128,7 @@ test("전체 메뉴: 즐겨찾기 칩이 남고, 칩으로 가정예배 5분 설
   await expect(menu).toBeHidden();
   await expect(page.getByRole("heading", { level: 1, name: "5분 설교" })).toBeVisible();
   await expect(
-    page.getByRole("navigation", { name: "주 메뉴" }).getByRole("link", { name: "가정예배" }),
+    page.getByRole("navigation", { name: "주 메뉴" }).getByRole("link", { name: "5분 설교" }),
   ).toHaveAttribute("aria-current", "page");
   expect(errors).toEqual([]);
 });

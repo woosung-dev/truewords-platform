@@ -1,5 +1,9 @@
 import { createApiClient } from "@truewords/api-client-ts";
 import type {
+  HighlightInput,
+  HighlightItem,
+  HighlightPatch,
+  HighlightsResponse,
   LibraryResponse,
   MarkInput,
   MarkItem,
@@ -62,6 +66,24 @@ export const libraryAPI = {
     }),
   deleteMark: (chunkId: string, kind: MarkItem["kind"]) =>
     request<void>(`/hoondok/me/marks/${encodeURIComponent(chunkId)}?kind=${kind}`, { method: "DELETE" }),
+  /** API-HD-053 구절 형광펜 목록(최신순, 서버 상한 500건). */
+  highlights: (query: { volume?: string; limit?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (query.volume) params.set("volume", query.volume);
+    if (query.limit !== undefined) params.set("limit", String(query.limit));
+    const suffix = params.size > 0 ? `?${params}` : "";
+    return request<HighlightsResponse>(`/hoondok/me/highlights${suffix}`, { cache: "no-store" });
+  },
+  createHighlight: (input: HighlightInput) =>
+    request<HighlightItem>("/hoondok/me/highlights", { method: "POST", body: JSON.stringify(input) }),
+  /** 보낸 필드만 바꾼다. `note: null` 이면 메모만 지우고 형광펜은 남는다. */
+  updateHighlight: (id: string, patch: HighlightPatch) =>
+    request<HighlightItem>(`/hoondok/me/highlights/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+  deleteHighlight: (id: string) =>
+    request<void>(`/hoondok/me/highlights/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };
 
 /** searchQuery 는 원문 뷰가 검색어에 밑줄을 긋는 데만 쓴다 — 원문 API 로는 보내지 않는다. */

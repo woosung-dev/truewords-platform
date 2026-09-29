@@ -134,7 +134,6 @@ body:has([data-app="hoondok"] .mn[open]) {
     position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
     min-height: 40px;
     padding: 0 14px;
     border: 1px solid var(--line);
@@ -145,10 +144,6 @@ body:has([data-app="hoondok"] .mn[open]) {
     font-weight: 500;
     color: var(--ink);
     transition: transform 0.12s ease;
-  }
-  .mn-chip svg {
-    flex: none;
-    color: var(--accent);
   }
   /* 보이는 높이 40 은 그대로 두고 누르는 자리만 44 로 넓힌다 */
   .mn-chip::after {
@@ -260,15 +255,13 @@ body:has([data-app="hoondok"] .mn[open]) {
     font-size: var(--fs-md);
     color: var(--ink);
   }
+  /* 아이콘은 글자를 돕는 표지일 뿐이다 — 행마다 색 원을 깔지 않고 글자보다 한 단 옅게 둔다 */
   .mn-row__ic {
     flex: none;
-    width: 32px;
-    height: 32px;
+    width: 24px;
     display: grid;
     place-items: center;
-    border-radius: 50%;
-    background: var(--accent-soft);
-    color: var(--accent-strong);
+    color: var(--ink-2);
   }
   .mn-row__t {
     min-width: 0;
@@ -280,13 +273,12 @@ body:has([data-app="hoondok"] .mn[open]) {
     color: var(--ink-3);
     white-space: nowrap;
   }
-  /* 지금 보고 있는 화면 — 굵기와 채운 아이콘 원 두 가지로 알린다 */
+  /* 지금 보고 있는 화면 — 굵기와 강조색 아이콘 두 가지로 알린다 */
   .mn-row__go[aria-current="page"] {
     font-weight: 700;
   }
   .mn-row__go[aria-current="page"] .mn-row__ic {
-    background: var(--accent);
-    color: var(--accent-ink);
+    color: var(--accent);
   }
   /* 준비 중 — 탭 내비의 준비 중 탭처럼 아이콘 선을 점선으로 바꾸고 글자로 이유를 적는다 */
   .mn-row__go[aria-disabled="true"] {
@@ -294,7 +286,6 @@ body:has([data-app="hoondok"] .mn[open]) {
     cursor: default;
   }
   .mn-row__go[aria-disabled="true"] .mn-row__ic {
-    background: var(--surface-2);
     color: var(--ink-3);
   }
   .mn-row__go[aria-disabled="true"] svg {

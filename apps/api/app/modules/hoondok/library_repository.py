@@ -1,4 +1,4 @@
-"""말씀 서고 Repository — AsyncSession 은 여기만 보유한다 (ENT-HD-010~012, PLAN-HD-007)."""
+"""말씀 서고 Repository — AsyncSession 은 여기만 보유한다 (ENT-HD-010~012·021, PLAN-HD-007)."""
 
 import uuid
 from collections.abc import Sequence
@@ -9,6 +9,7 @@ from sqlmodel import select
 
 from app.modules.hoondok.models import (
     ContentRight,
+    PassageHighlight,
     PassageMark,
     ReadingPosition,
     VolumeSection,
@@ -172,7 +173,10 @@ class LibraryRepository:
         kind: str | None = None,
         limit: int = 200,
     ) -> list[PassageMark]:
-        statement = select(PassageMark).where(PassageMark.user_id == user_id)
+        # 예전 `kind="highlight"` 행은 DB 에 남아 있지만 구절 형광펜(ENT-HD-021)으로 옮겨 읽지 않는다.
+        statement = select(PassageMark).where(
+            PassageMark.user_id == user_id, PassageMark.kind == "bookmark"
+        )
         if volume is not None:
             statement = statement.where(PassageMark.volume == volume)
         if kind is not None:
@@ -227,10 +231,49 @@ class LibraryRepository:
         await self.session.execute(statement)
         await self.session.commit()
 
+    # --- 구절 형광펜 (ENT-HD-021) -------------------------------------------
+
+    async def list_highlights(
+        self, user_id: uuid.UUID, volume: str | None, limit: int
+    ) -> list[PassageHighlight]:
+        statement = select(PassageHighlight).where(PassageHighlight.user_id == user_id)
+        if volume is not None:
+            statement = statement.where(PassageHighlight.volume == volume)
+        result = await self.session.execute(
+            statement.order_by(PassageHighlight.updated_at.desc()).limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def get_own_highlight(
+        self, user_id: uuid.UUID, highlight_id: uuid.UUID
+    ) -> PassageHighlight | None:
+        """본인 형광펜만 찾는다 — 남의 것은 없는 것과 같다."""
+        result = await self.session.execute(
+            select(PassageHighlight).where(
+                PassageHighlight.id == highlight_id, PassageHighlight.user_id == user_id
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def save_highlight(self, highlight: PassageHighlight) -> PassageHighlight:
+        return await self._save(highlight)
+
+    async def delete_highlight(self, user_id: uuid.UUID, highlight_id: uuid.UUID) -> None:
+        """본인 형광펜만 지운다. 없어도 조용히 지나간다(DELETE 는 멱등)."""
+        await self.session.execute(
+            delete(PassageHighlight).where(
+                PassageHighlight.id == highlight_id, PassageHighlight.user_id == user_id
+            )
+        )
+        await self.session.commit()
+
     # --- 계정 삭제 (API-HD-011) ---------------------------------------------
 
     async def delete_for_user(self, user_id: uuid.UUID) -> None:
         """UserDataPurger 규약 — 커밋하지 않는다. 사용자 저장 커밋에 함께 묶인다."""
+        await self.session.execute(
+            delete(PassageHighlight).where(PassageHighlight.user_id == user_id)
+        )
         await self.session.execute(
             delete(PassageMark).where(PassageMark.user_id == user_id)
         )
@@ -238,7 +281,7 @@ class LibraryRepository:
             delete(ReadingPosition).where(ReadingPosition.user_id == user_id)
         )
 
-    async def _save[T: (ReadingPosition, PassageMark)](self, row: T) -> T:
+    async def _save[T: (ReadingPosition, PassageMark, PassageHighlight)](self, row: T) -> T:
         self.session.add(row)
         try:
             await self.session.commit()

@@ -29,7 +29,7 @@ export function AiExplain({ chunk }: { chunk: WordChunk | null }) {
           <Sparkles size={14} aria-hidden="true" />
           AI 설명 · 공식 해설 아님
         </p>
-        <p className="ai-note__body">본문에서 단락을 하나 골라 주세요. 고른 단락만 설명해요.</p>
+        <p className="ai-note__body">본문에서 단락 번호를 눌러 단락을 하나 골라 주세요. 고른 단락만 설명해요.</p>
       </div>
     );
   }

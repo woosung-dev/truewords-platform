@@ -27,6 +27,8 @@ import { HoondokInstallPromptListener } from "@/features/hoondok/install/compone
 import { HoondokErrorListener } from "@/features/hoondok/observability/listener";
 import {
   HOONDOK_APPLE_TOUCH_ICON,
+  HOONDOK_FAVICON_32,
+  HOONDOK_FAVICON_SVG,
   HOONDOK_ICON_192,
   HOONDOK_MANIFEST_PATH,
   HOONDOK_THEME_COLOR,
@@ -48,7 +50,11 @@ export function generateMetadata(): Metadata {
     manifest: HOONDOK_MANIFEST_PATH,
     appleWebApp: { capable: true, title: "훈독", statusBarStyle: "default" },
     icons: {
-      icon: [{ url: HOONDOK_ICON_192, sizes: "192x192", type: "image/png" }],
+      icon: [
+        { url: HOONDOK_ICON_192, sizes: "192x192", type: "image/png" },
+        { url: HOONDOK_FAVICON_32, sizes: "32x32", type: "image/png" },
+        { url: HOONDOK_FAVICON_SVG, type: "image/svg+xml" },
+      ],
       apple: [{ url: HOONDOK_APPLE_TOUCH_ICON, sizes: "180x180", type: "image/png" }],
     },
   };
