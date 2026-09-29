@@ -239,12 +239,18 @@ describe("원문 읽기", () => {
     );
     for (const missing of ["화자 확인되지 않음", "날짜 확인되지 않음", "판본 확인되지 않음"])
       expect(screen.queryByText(missing)).toBeNull();
-    expect(screen.getByRole("link", { name: "다음 구간" })).toHaveAttribute("href", `${wordsHref(WORK.volume)}?page=3`);
+    expect(screen.getByRole("link", { name: /^다음 구간/ })).toHaveAttribute(
+      "href",
+      `${wordsHref(WORK.volume)}?page=3`,
+    );
     expect(missionsAPI.complete).not.toHaveBeenCalled();
-    const button = await screen.findByRole("button", { name: "읽음" });
+    // 오늘 훈독으로 가는 링크는 읽음을 남긴 뒤에만 보인다
+    expect(screen.queryByRole("link", { name: "오늘 훈독" })).toBeNull();
+    const button = await screen.findByRole("button", { name: "오늘 말씀 읽음으로 기록" });
     await waitFor(() => expect(button).toBeEnabled());
     fireEvent.click(button);
-    expect(await screen.findByText("오늘 말씀 읽기를 마쳤어요.")).toBeInTheDocument();
+    expect(await screen.findByText("오늘 말씀 읽기를 마쳤어요")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "오늘 훈독" })).toHaveAttribute("href", "/hoondok");
     expect(localStorage.getItem("hoondok:pending:study")).not.toBeNull();
     expect(localStorage.getItem("hoondok:pending:read")).toBeNull();
   });
@@ -311,7 +317,7 @@ describe("원문 읽기", () => {
     vi.mocked(libraryAPI.words).mockRejectedValue(new ApiError(404, { message: "not found" }));
     await showWords();
     expect(await screen.findByText("이 원문을 열 수 없어요")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "읽음" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "오늘 말씀 읽음으로 기록" })).toBeNull();
     expect(screen.getByRole("link", { name: "서고로 돌아가기" })).toBeInTheDocument();
   });
 });
