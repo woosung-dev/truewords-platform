@@ -241,3 +241,73 @@ describe("GardenScreen 로그인", () => {
     await waitFor(() => expect(screen.getByText("현재 연속일")).toBeInTheDocument());
   });
 });
+
+describe("GardenScreen 계정·로그아웃", () => {
+  async function openConfirm() {
+    loggedIn();
+    renderGarden();
+    expect(await screen.findByText("a@b.c")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "로그아웃" }));
+    return screen.getByRole("group", { name: "로그아웃 확인" });
+  }
+
+  it("이메일과 로그아웃 행을 보이고, 누르면 확인 카드가 뜬다 — 기기 기록 지우기가 기본으로 켜져 있다", async () => {
+    await openConfirm();
+
+    expect(screen.getByRole("checkbox", { name: /이 기기에 남은 기록도 지우기/ })).toBeChecked();
+    expect(screen.getByRole("button", { name: "취소" })).toHaveFocus();
+    expect(identityAPI.logout).not.toHaveBeenCalled();
+  });
+
+  it("로그아웃하면 같은 화면에 머물러 '로그아웃했어요' 를 알리고 기기 기록을 지운다", async () => {
+    localStorage.setItem("hoondok:ask:items", "[]");
+    localStorage.setItem("hoondok:device-owner", "u1");
+    vi.mocked(identityAPI.logout).mockResolvedValue({});
+    await openConfirm();
+
+    fireEvent.click(screen.getByRole("button", { name: "로그아웃" }));
+
+    const title = await screen.findByRole("heading", { name: "로그아웃했어요" });
+    expect(title).toHaveFocus();
+    expect(identityAPI.logout).toHaveBeenCalledOnce();
+    expect(screen.queryByText("a@b.c")).not.toBeInTheDocument();
+    expect(localStorage.getItem("hoondok:ask:items")).toBeNull();
+    expect(localStorage.getItem("hoondok:device-owner")).toBeNull();
+  });
+
+  it("지우기를 끄면 기기 기록과 주인 표시를 남긴다 — 다른 계정이 로그인할 때 claimDeviceForUser 가 지운다", async () => {
+    localStorage.setItem("hoondok:ask:items", "[]");
+    localStorage.setItem("hoondok:device-owner", "u1");
+    vi.mocked(identityAPI.logout).mockResolvedValue({});
+    await openConfirm();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /이 기기에 남은 기록도 지우기/ }));
+    fireEvent.click(screen.getByRole("button", { name: "로그아웃" }));
+
+    await screen.findByRole("heading", { name: "로그아웃했어요" });
+    expect(localStorage.getItem("hoondok:ask:items")).toBe("[]");
+    expect(localStorage.getItem("hoondok:device-owner")).toBe("u1");
+  });
+
+  it("로그아웃이 실패하면 확인 카드에 오류를 보이고 로그인 상태와 기기 기록을 그대로 둔다", async () => {
+    localStorage.setItem("hoondok:ask:items", "[]");
+    vi.mocked(identityAPI.logout).mockRejectedValue(new Error("offline"));
+    await openConfirm();
+
+    fireEvent.click(screen.getByRole("button", { name: "로그아웃" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("로그아웃하지 못했어요");
+    expect(screen.getByText("현재 연속일")).toBeInTheDocument();
+    expect(localStorage.getItem("hoondok:ask:items")).toBe("[]");
+  });
+
+  it("취소하면 확인 카드를 닫고 로그아웃하지 않는다", async () => {
+    await openConfirm();
+
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+
+    expect(screen.queryByRole("group", { name: "로그아웃 확인" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "로그아웃" })).toBeInTheDocument();
+    expect(identityAPI.logout).not.toHaveBeenCalled();
+  });
+});
