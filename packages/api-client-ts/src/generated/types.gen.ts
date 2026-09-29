@@ -1762,6 +1762,136 @@ export type HttpValidationError = {
 };
 
 /**
+ * HighlightInput
+ */
+export type HighlightInput = {
+    /**
+     * Chunk Id
+     */
+    chunk_id: string;
+    /**
+     * Color
+     */
+    color: number;
+    /**
+     * End Chunk Index
+     */
+    end_chunk_index: number;
+    /**
+     * End Offset
+     */
+    end_offset: number;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Quote
+     */
+    quote: string;
+    /**
+     * Start Chunk Index
+     */
+    start_chunk_index: number;
+    /**
+     * Start Offset
+     */
+    start_offset: number;
+    /**
+     * Volume
+     */
+    volume: string;
+};
+
+/**
+ * HighlightItem
+ */
+export type HighlightItem = {
+    /**
+     * Chunk Id
+     */
+    chunk_id: string;
+    /**
+     * Color
+     */
+    color: number;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * End Chunk Index
+     */
+    end_chunk_index: number;
+    /**
+     * End Offset
+     */
+    end_offset: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Note
+     */
+    note: string | null;
+    /**
+     * Quote
+     */
+    quote: string;
+    /**
+     * Start Chunk Index
+     */
+    start_chunk_index: number;
+    /**
+     * Start Offset
+     */
+    start_offset: number;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Volume
+     */
+    volume: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * HighlightPatch
+ *
+ * 보낸 필드만 바꾼다. `note` 에 null·빈 문자열을 보내면 메모를 지운다.
+ */
+export type HighlightPatch = {
+    /**
+     * Color
+     */
+    color?: number | null;
+    /**
+     * Note
+     */
+    note?: string | null;
+};
+
+/**
+ * HighlightsResponse
+ */
+export type HighlightsResponse = {
+    /**
+     * Items
+     */
+    items: Array<HighlightItem>;
+};
+
+/**
  * InProgressEntry
  */
 export type InProgressEntry = {
@@ -2154,7 +2284,7 @@ export type MarkInput = {
     /**
      * Kind
      */
-    kind: 'bookmark' | 'highlight';
+    kind: 'bookmark';
     /**
      * Note
      */
@@ -2184,7 +2314,7 @@ export type MarkItem = {
     /**
      * Kind
      */
-    kind: 'bookmark' | 'highlight';
+    kind: 'bookmark';
     /**
      * Label
      */
@@ -6854,6 +6984,125 @@ export type ListMyGroupsHoondokMeGroupsGetResponses = {
 };
 
 export type ListMyGroupsHoondokMeGroupsGetResponse = ListMyGroupsHoondokMeGroupsGetResponses[keyof ListMyGroupsHoondokMeGroupsGetResponses];
+
+export type GetHighlightsHoondokMeHighlightsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Volume
+         */
+        volume?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/hoondok/me/highlights';
+};
+
+export type GetHighlightsHoondokMeHighlightsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetHighlightsHoondokMeHighlightsGetError = GetHighlightsHoondokMeHighlightsGetErrors[keyof GetHighlightsHoondokMeHighlightsGetErrors];
+
+export type GetHighlightsHoondokMeHighlightsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: HighlightsResponse;
+};
+
+export type GetHighlightsHoondokMeHighlightsGetResponse = GetHighlightsHoondokMeHighlightsGetResponses[keyof GetHighlightsHoondokMeHighlightsGetResponses];
+
+export type PostHighlightHoondokMeHighlightsPostData = {
+    body: HighlightInput;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/highlights';
+};
+
+export type PostHighlightHoondokMeHighlightsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PostHighlightHoondokMeHighlightsPostError = PostHighlightHoondokMeHighlightsPostErrors[keyof PostHighlightHoondokMeHighlightsPostErrors];
+
+export type PostHighlightHoondokMeHighlightsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: HighlightItem;
+};
+
+export type PostHighlightHoondokMeHighlightsPostResponse = PostHighlightHoondokMeHighlightsPostResponses[keyof PostHighlightHoondokMeHighlightsPostResponses];
+
+export type DeleteHighlightHoondokMeHighlightsHighlightIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Highlight Id
+         */
+        highlight_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/highlights/{highlight_id}';
+};
+
+export type DeleteHighlightHoondokMeHighlightsHighlightIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteHighlightHoondokMeHighlightsHighlightIdDeleteError = DeleteHighlightHoondokMeHighlightsHighlightIdDeleteErrors[keyof DeleteHighlightHoondokMeHighlightsHighlightIdDeleteErrors];
+
+export type DeleteHighlightHoondokMeHighlightsHighlightIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteHighlightHoondokMeHighlightsHighlightIdDeleteResponse = DeleteHighlightHoondokMeHighlightsHighlightIdDeleteResponses[keyof DeleteHighlightHoondokMeHighlightsHighlightIdDeleteResponses];
+
+export type PatchHighlightHoondokMeHighlightsHighlightIdPatchData = {
+    body: HighlightPatch;
+    path: {
+        /**
+         * Highlight Id
+         */
+        highlight_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/highlights/{highlight_id}';
+};
+
+export type PatchHighlightHoondokMeHighlightsHighlightIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchHighlightHoondokMeHighlightsHighlightIdPatchError = PatchHighlightHoondokMeHighlightsHighlightIdPatchErrors[keyof PatchHighlightHoondokMeHighlightsHighlightIdPatchErrors];
+
+export type PatchHighlightHoondokMeHighlightsHighlightIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: HighlightItem;
+};
+
+export type PatchHighlightHoondokMeHighlightsHighlightIdPatchResponse = PatchHighlightHoondokMeHighlightsHighlightIdPatchResponses[keyof PatchHighlightHoondokMeHighlightsHighlightIdPatchResponses];
 
 export type GetHistoryHoondokMeHistoryGetData = {
     body?: never;
