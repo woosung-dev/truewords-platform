@@ -225,13 +225,14 @@ GET /admin/hoondok/daily-readings/candidates?q=참사랑&sources=B&sources=O&lim
 GET /hoondok/me/jeongseong
 ```
 
-응답 200 `{ period: JeongseongPeriodResponse | null }`.
+응답 200 `{ period: JeongseongPeriodResponse | null, last_ended: JeongseongLastEnded | null }`.
 
 ```json
 {
   "period": {
     "id": "6f1c…",
     "topic": "감사",
+    "resolution": "날마다 감사로 시작하기",
     "duration_days": 21,
     "started_on": "2026-09-19",
     "reminder_time": "06:00:00",
@@ -244,12 +245,14 @@ GET /hoondok/me/jeongseong
       "percent": 5,
       "state": "active"
     }
-  }
+  },
+  "last_ended": null
 }
 ```
 
 | 필드 | 설명 |
 |---|---|
+| `resolution` | 나의 각오. 없으면 null. **본인 응답에만** 담는다 — 모임·가족·관리자 응답에는 없다 |
 | `status` | DB 저장 상태 `active` (응답에 나오는 기간은 항상 active) |
 | `progress.end_on` | `started_on + (duration_days - 1)`, 양끝 포함 |
 | `progress.state` | 오늘(KST) 기준 `upcoming`(시작 전) · `active` · `completed`(계산값, 저장 안 함) |
@@ -259,6 +262,8 @@ GET /hoondok/me/jeongseong
 | `progress.percent` | `done_days / duration_days × 100` 정수 반올림(half-up) |
 
 `active` 인데 `end_on < today` 면 이 요청이 `status=completed` · `ended_at` 을 기록하고 `period: null` 을 돌려준다(별도 배치 없음). 진행 중인 기간이 없으면 `period: null`. 401 미인증.
+
+`last_ended` `{id, topic, resolution, duration_days, started_on, end_on}` 은 마무리 카드용이다. `period` 가 null 일 때만 채운다. 가장 최근에 끝난 기간(`ended_at` 순)이 `completed` 이고 그 `end_on` 이 `오늘(KST) - 7` 이후일 때만 주고, 가장 최근에 끝난 기간이 `abandoned`(그만두기)면 null 이다. 진행 중·예정 기간이 있어도 null 이다. 완료한 날 수·진행률은 보내지 않는다 — 빠진 날을 계산할 수 없게 한다.
 
 ### POST — 시작
 
@@ -270,6 +275,7 @@ GET /hoondok/me/jeongseong
 | `duration_days` | `7` \| `21` \| `40` |
 | `started_on` | 선택. 생략 시 오늘(KST). **오늘 ~ 오늘+30** 밖이면 422 |
 | `reminder_time` | 선택 `HH:MM[:SS]`. 표시용 — 푸시는 Phase 4 |
+| `resolution` | 선택. 앞뒤 공백 제거 후 0~50자, 비면 null 로 저장. 51자면 422. 수정 API 는 없다 |
 
 201 `JeongseongPeriodResponse`(위 `period` 와 같은 형태). 409 이미 진행 중(`"이미 진행 중인 정성 기간이 있어요"`, 선조회 + 부분 unique IntegrityError 폴백) · 422 검증 · 403 CSRF · 401 미인증. 끝난 기간이 남아 있으면 GET 과 같이 `completed` 로 정리한 뒤 새로 만든다.
 
@@ -343,6 +349,9 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 | 2026-09-22 | API-HD-019~022 신설(Web Push). VAPID 미설정이면 구독 자체를 409 `PUSH_DISABLED` 로 거절(조용히 저장하지 않음), `endpoint` unique + 소유 이전, `read_time` 은 `HH:MM` 문자열·KST 고정, 설정 PUT 은 전체 교체. 발송기는 sub-PR B | 확정 · PLAN-HD-006 sub-PR A |
 | 2026-09-28 | API-HD-020 에서 알림 문구 수준 필드(중립·신앙) 제거 — 오버 스펙, 알림 문구는 중립 문구 하나. PUT 에 옛 필드가 오면 422 대신 버린다 | 확정 · PLAN-HD-006 §8 |
 | 2026-09-29 | API-HD-004 연속일은 편성 없는 날(행 없음·철회)을 건너뛴다(S1) — 운영 공백이 사용자 연속을 0 으로 만들지 않게. 응답 스키마 변경 없음 | 확정 · C3 편성 공백 |
+| 2026-09-29 | API-HD-009 GET 에 `last_ended` 추가(하위 호환). 마친 정성은 주제·각오·기간만 돌려주고 완료한 날 수는 보내지 않는다 — 빠진 날을 드러내지 않는다. 가장 최근에 끝난 기간이 그만둔 기간이면 마무리 카드가 없다 | 확정 |
+| 2026-09-29 | API-HD-009 에 `resolution`(나의 각오, 선택 50자) 추가 — 새 자유 텍스트라 본인 응답에만 담고 모임·가족·관리자 응답에는 넣지 않는다. 수정 API 없음, 계정 삭제 시 기간과 함께 삭제 | 확정(사용자 승인) |
+| 2026-09-29 | C1 기록 화면(정원 '나의 기록'·`/hoondok/records`)은 형광펜·노트를 API-HD-053 에서 읽는다(북마크는 API-HD-026 `excerpt=true`). 수의 상한은 목록마다 따로(형광펜 500·북마크 200)라 한쪽이 차도 다른 쪽 수는 그대로다. 원문이 막힌 권을 가리려고 API-HD-053 에 `readable` 을 추가했다(하위 호환) | 확정 · `readable` 기준 `[가정]` |
 
 ---
 
@@ -487,6 +496,11 @@ Qdrant 원본 그대로이고 AI 설명·인용은 계속 `text` 를 쓴다. `di
 - `GET /hoondok/me/marks?volume=&kind=&limit=` — 최신순, 본인 북마크만. 항목은
   `{ chunk_id, chunk_index, volume, kind, color, note, updated_at, work_title, label }`.
   `limit` 은 1~200이고 기본 200이다 — 표시가 쌓여도 한 요청이 읽는 행 수를 묶어 둔다.
+- `GET /hoondok/me/marks?excerpt=true` — 항목마다 `excerpt: string | null` 이 **추가만** 된다(하위 호환,
+  파라미터가 없으면 키도 없고 Qdrant 도 부르지 않는다). 값은 원문 뷰(`API-HD-016`)가 그 단락에 보이는
+  `display_text` 앞 300자다(페이지 첫 청크는 앞 청크 겹침을 자르지 않는 같은 규칙). 원문(`scope_full_text`)이
+  막힌 권·청크를 못 찾은 경우·Qdrant 실패는 `null` 이고 목록은 200이다. 저장 시점 스냅샷을 두지 않는다 —
+  권리를 거두면 발췌도 함께 사라져야 한다. Qdrant 는 청크 묶음 조회 1회 + 앞 청크가 필요한 권마다 1회만 부른다.
 - `PUT /hoondok/me/marks/{chunk_id}` body `{ volume, chunk_index, kind, color, note }`
   — `(user_id, chunk_id, kind)` upsert. `kind` 는 `bookmark` 만 받고(`highlight` 는 422), 넘어온 `color` 는
   버린다. `note` 는 2000자까지. 원문이 허용되지 않은 권은 404.
@@ -506,6 +520,7 @@ Qdrant 원본 그대로이고 AI 설명·인용은 계속 `text` 를 쓴다. `di
 - `GET /hoondok/me/highlights?volume=&limit=` — `updated_at` 최신순, 본인 것만. `limit` 은 1~500, 기본 500.
   항목은 `{ id, volume, chunk_id, start_chunk_index, start_offset, end_chunk_index, end_offset, quote,
   color, note, created_at, updated_at, work_title, label }`.
+- 항목에 `readable: bool` 이 **추가만** 된다(하위 호환, POST·PATCH 응답도 같다) — 원문(`scope_full_text`)이 열린 권이면 `true`. 닫힌 권의 형광펜도 목록에 그대로 나오고 `quote` 도 바뀌지 않으며, 나의 기록은 `false` 면 `quote`·원문 링크 대신 "원문 공개 확인 중" 만 보인다.
 - `POST /hoondok/me/highlights` body `{ volume, chunk_id, start_chunk_index, start_offset, end_chunk_index,
   end_offset, quote, color, note? }` — 201로 만든 항목을 낸다. 끝이 시작보다 앞이거나 같음·다른 페이지·
   색 범위 밖·빈 `quote` 는 422, 원문이 허용되지 않은 권은 404.

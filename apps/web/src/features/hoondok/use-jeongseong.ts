@@ -3,29 +3,53 @@
 import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
 import { useCurrentUser } from "@/features/identity/use-current-user";
-import { type JeongseongCreate, type JeongseongPeriodResponse, jeongseongAPI } from "./jeongseong-api";
+import {
+  type JeongseongCreate,
+  type JeongseongCurrentResponse,
+  type JeongseongPeriodResponse,
+  jeongseongAPI,
+} from "./jeongseong-api";
 import { JEONGSEONG_KEY, JEONGSEONG_TODAY_KEY, SUMMARY_KEY } from "./query-keys";
 import { useKstDate } from "./use-kst-date";
 
-/** 진행 중인 정성. 401 은 "미인증(null)" — 비로그인 홈에서 조용히 지나간다. 5xx·네트워크는 error 로 남긴다. */
-export async function fetchJeongseong(): Promise<JeongseongPeriodResponse | null> {
+/** GET 응답 전체(진행 중 기간 + 마친 기간). 401 은 "미인증(null)" — 비로그인 홈에서 조용히 지나간다. 5xx·네트워크는 error 로 남긴다. */
+async function fetchJeongseongCurrent(): Promise<JeongseongCurrentResponse | null> {
   try {
-    return (await jeongseongAPI.current()).period ?? null;
+    return await jeongseongAPI.current();
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) return null;
     throw error;
   }
 }
 
-/** data = 진행 중인 기간 | null. 없음·미인증 둘 다 null 이며, 로그인 여부는 useCurrentUser 가 안다. */
-export function useJeongseong(isEnabled: boolean) {
+function selectPeriod(data: JeongseongCurrentResponse | null): JeongseongPeriodResponse | null {
+  return data?.period ?? null;
+}
+
+/** 두 훅이 같은 키·같은 요청을 나눠 쓴다 — 홈 카드와 정원이 함께 떠도 GET 은 한 번이다. */
+function useJeongseongQuery<T>(isEnabled: boolean, select: (data: JeongseongCurrentResponse | null) => T) {
   const { user } = useCurrentUser();
   const date = useKstDate();
   return useQuery({
     queryKey: [...JEONGSEONG_KEY, user?.id ?? null, date],
-    queryFn: fetchJeongseong,
+    queryFn: fetchJeongseongCurrent,
     enabled: isEnabled,
+    select,
   });
+}
+
+/** data = 진행 중인 기간 | null. 없음·미인증 둘 다 null 이며, 로그인 여부는 useCurrentUser 가 안다. */
+export function useJeongseong(isEnabled: boolean) {
+  return useJeongseongQuery(isEnabled, selectPeriod);
+}
+
+function selectCurrent(data: JeongseongCurrentResponse | null): JeongseongCurrentResponse {
+  return { period: data?.period ?? null, last_ended: data?.last_ended ?? null };
+}
+
+/** data = `{ period, last_ended }` — 홈 카드가 마무리 카드(last_ended)까지 고를 때 쓴다. 미인증은 둘 다 null. */
+export function useJeongseongCurrent(isEnabled: boolean) {
+  return useJeongseongQuery(isEnabled, selectCurrent);
 }
 
 /** 정성이 바뀌면 홈 카드(정성)와 요약을 함께 다시 읽는다. */

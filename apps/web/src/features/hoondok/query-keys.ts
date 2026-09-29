@@ -33,6 +33,8 @@ export const wordsKey = (volume: string, page: number, query: { chunkId?: string
   ["hoondok", "words", volume, page, query.chunkId ?? null, query.section ?? null] as const;
 /** 서고 "북마크" 절 — 권 구분 없이 북마크만. 같은 접두라 표시 변경 한 번에 함께 무효화된다. */
 export const BOOKMARKS_KEY = [...MARKS_KEY, "bookmark"] as const;
+/** 나의 기록 — 발췌가 붙은 북마크 목록. 같은 접두라 원문에서 북마크를 바꾸면 함께 무효화된다. */
+export const RECORD_MARKS_KEY = [...MARKS_KEY, "records"] as const;
 /** 구절 형광펜·메모 (API-HD-053). 단락 표시(MARKS_KEY)와 테이블·주기가 달라 접두를 나눈다. */
 export const HIGHLIGHTS_KEY = ["hoondok", "highlights"] as const;
 export const highlightsKey = (volume?: string) => [...HIGHLIGHTS_KEY, volume ?? "all"] as const;

@@ -3090,6 +3090,11 @@
             "title": "Quote",
             "type": "string"
           },
+          "readable": {
+            "default": false,
+            "title": "Readable",
+            "type": "boolean"
+          },
           "start_chunk_index": {
             "title": "Start Chunk Index",
             "type": "integer"
@@ -3404,6 +3409,18 @@
             ],
             "title": "Reminder Time"
           },
+          "resolution": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
           "started_on": {
             "anyOf": [
               {
@@ -3431,8 +3448,18 @@
         "type": "object"
       },
       "JeongseongCurrentResponse": {
-        "description": "GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null.",
+        "description": "GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null.\n\nlast_ended 는 period 가 null 일 때만 채운다 — 가장 최근에 끝난 기간이 7일 안에 끝난 completed 일 때만(abandoned 면 null).",
         "properties": {
+          "last_ended": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JeongseongLastEnded"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "period": {
             "anyOf": [
               {
@@ -3445,6 +3472,55 @@
           }
         },
         "title": "JeongseongCurrentResponse",
+        "type": "object"
+      },
+      "JeongseongLastEnded": {
+        "description": "최근에 마친 정성 기간(마무리 카드용). 완료한 날 수는 보내지 않는다 — 빠진 날을 계산할 수 없게 한다.",
+        "properties": {
+          "duration_days": {
+            "title": "Duration Days",
+            "type": "integer"
+          },
+          "end_on": {
+            "format": "date",
+            "title": "End On",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "started_on": {
+            "format": "date",
+            "title": "Started On",
+            "type": "string"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "topic",
+          "resolution",
+          "duration_days",
+          "started_on",
+          "end_on"
+        ],
+        "title": "JeongseongLastEnded",
         "type": "object"
       },
       "JeongseongPeriodResponse": {
@@ -3473,6 +3549,17 @@
             ],
             "title": "Reminder Time"
           },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
           "started_on": {
             "format": "date",
             "title": "Started On",
@@ -3495,6 +3582,7 @@
         "required": [
           "id",
           "topic",
+          "resolution",
           "duration_days",
           "started_on",
           "reminder_time",
@@ -3855,6 +3943,17 @@
               }
             ],
             "title": "Color"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
           },
           "kind": {
             "const": "bookmark",
@@ -11403,7 +11502,7 @@
     },
     "/hoondok/me/marks": {
       "get": {
-        "description": "API-HD-026 내 표시 목록(최신순). 본인 것만 나온다. 401 미인증.",
+        "description": "API-HD-026 내 표시 목록(최신순). 본인 것만 나온다. `excerpt=true` 면 원문 발췌를 붙인다. 401 미인증.",
         "operationId": "get_marks_hoondok_me_marks_get",
         "parameters": [
           {
@@ -11450,6 +11549,16 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "excerpt",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Excerpt",
+              "type": "boolean"
             }
           }
         ],

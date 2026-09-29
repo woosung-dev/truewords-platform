@@ -32,7 +32,6 @@ import { identityAPI } from "@/features/identity/api";
 const USER = { id: "u1", email: "a@b.c", display_name: "효진" };
 const DESKTOP_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36";
-const TOGGLE_LABELS = ["훈독하기 알림", "기도하기 알림", "가정예배 알림", "공지 알림"];
 
 /** jsdom 의 navigator 속성은 프로토타입 getter 라 own property 로 덮고 끝나면 지운다 (hoondok-install.test 방식). */
 function stubNavigator(props: Record<string, unknown>) {
@@ -77,33 +76,45 @@ afterEach(() => {
 });
 
 describe("SCR-PWA-015 알림 (서버 설정 없음 = 준비 중)", () => {
-  it("알림 토글 4개는 disabled + '준비 중' 이고, 시간 선택도 누를 수 없다", async () => {
+  it("훈독하기 토글은 disabled + '준비 중' 이고, 시간 선택도 누를 수 없다", async () => {
     render(wrap(<SettingsScreen />));
-    // 훈독하기 행은 서버 설정을 받은 뒤에 "준비 중" 으로 확정된다
-    await waitFor(() => expect(screen.getAllByText("준비 중")).toHaveLength(5));
+    // 훈독하기 · 그 밖의 알림 · 조용한 시간 — 훈독하기 행은 서버 설정을 받은 뒤에 "준비 중" 으로 확정된다
+    await waitFor(() => expect(screen.getAllByText("준비 중")).toHaveLength(3));
 
-    for (const label of TOGGLE_LABELS) {
-      const toggle = screen.getByRole("button", { name: label });
-      expect(toggle).toBeDisabled();
-      expect(toggle).toHaveAttribute("aria-disabled", "true");
-      expect(toggle).toHaveAttribute("aria-pressed", "false");
-      // 눌러도 상태가 바뀌지 않는다 (네이티브 disabled — 핸들러 자체가 없다)
-      fireEvent.click(toggle);
-      expect(toggle).toHaveAttribute("aria-pressed", "false");
+    const toggle = screen.getByRole("button", { name: "훈독하기 알림" });
+    expect(toggle).toBeDisabled();
+    expect(toggle).toHaveAttribute("aria-disabled", "true");
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    // 눌러도 상태가 바뀌지 않는다 (네이티브 disabled — 핸들러 자체가 없다)
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    // 켤 수 없으면 추천 칸 대신 꺼진 시간 행 하나다
+    expect(screen.getByText("오전 6:00").closest("button")).toBeDisabled();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    await waitFor(() => expect(identityAPI.me).toHaveBeenCalled());
+  });
+
+  it("기도하기·가정예배·공지는 '그 밖의 알림' 한 줄로 접고, 조용한 시간은 '준비 중' · 알림함은 없다", async () => {
+    render(wrap(<SettingsScreen />));
+    await waitFor(() => expect(identityAPI.me).toHaveBeenCalled());
+
+    expect(screen.getByText("그 밖의 알림")).toBeInTheDocument();
+    expect(screen.getByText("기도하기 · 가정예배 · 공지")).toBeInTheDocument();
+    for (const label of ["기도하기 알림", "가정예배 알림", "공지 알림"]) {
+      expect(screen.queryByRole("button", { name: label })).toBeNull();
     }
-
-    // 공지는 앱 소식만 — 소속 교회를 받지 않는다 (DEC-PWA-023)
-    expect(screen.getByText("앱 소식")).toBeInTheDocument();
+    // 종류 수를 세지 않는다 · '아침' 에 묶지 않는다
+    expect(screen.queryByText("4종")).toBeNull();
+    expect(screen.queryByText(/아침 훈독/)).toBeNull();
+    // 공지 설명(소속 교회)을 받지 않는다 (DEC-PWA-023)
     expect(screen.queryByText(/교회/)).toBeNull();
 
-    // 시간 행 3개(공지는 시간 없음) 는 전부 비활성
-    for (const time of ["오전 6:00", "오후 9:30", "토요일 오후 6:00"]) {
-      expect(screen.getByText(time).closest("button")).toBeDisabled();
-    }
-
+    // 조용한 시간은 누를 수 있는 줄(링크·버튼)이 아니라 '준비 중' 표시다
+    const quiet = screen.getByText("조용한 시간").closest(".st-row");
+    expect(quiet).toHaveTextContent("준비 중");
+    expect(quiet?.querySelector("a, button")).toBeNull();
     // 알림함은 싣지 않는다 (PLAN-HD-002 W1-S)
     expect(screen.queryByText("알림함")).toBeNull();
-    await waitFor(() => expect(identityAPI.me).toHaveBeenCalled());
   });
 });
 

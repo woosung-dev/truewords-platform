@@ -6,8 +6,10 @@ import { useEffect, useRef } from "react";
 // index.ts 의 export 정리는 W4 담당이라 경로를 직접 가리킨다 (PLAN-HD-002 §3.1).
 import { HoondokButton, MonthCalendar } from "@/components/hoondok";
 import { isHoondokCardsEnabled, isHoondokPreviewEnabled } from "@/features/hoondok/flag";
-import { jeongseongDayLabel } from "@/features/hoondok/jeongseong/components/jeongseong-card";
+import { JeongseongDayBadge, JeongseongProgress } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
+import { DeviceRecordsEntry } from "@/features/hoondok/records/components/device-records";
+import { RecordsGardenSection } from "@/features/hoondok/records/components/records-section";
 import { useMonthHistory } from "@/features/hoondok/use-history";
 import { useJeongseong } from "@/features/hoondok/use-jeongseong";
 import { useSummary } from "@/features/hoondok/use-missions";
@@ -20,6 +22,7 @@ import { AccountSection } from "./account-section";
 // 읽기 화면이므로 비로그인을 자동으로 내쫓지 않고(gate.ts 원칙) 안내 카드만 보여준다.
 // "함께 읽는 사람들" 섹션은 프로토타입과 같은 자리(정성 다음)에 두되, 016 이 프리뷰 셸이라 진입 링크만이고 플래그가 꺼지면 그리지 않는다.
 // 정성 진행은 "N일차"로만 적고 빠진 날 수는 쓰지 않는다 (DEC-PWA-023).
+// '나의 기록'(C1)은 자기 요청·오류를 따로 가진다 — 표시 목록이 실패해도 통계·달력은 그대로 보인다.
 // 계정(이메일·로그아웃)은 매일 보는 기록과 떨어진 맨 아래에 둔다. 로그아웃하면 이 화면에 머물러 비로그인 카드가 곧 결과 안내가 된다.
 const BETA_NOTICE = "독립 운영 베타 · 가정연합 공식 앱이 아닙니다";
 const JEONGSEONG_HREF = "/hoondok?sheet=jeongseong";
@@ -50,7 +53,7 @@ function GardenSkeleton() {
   );
 }
 
-/** 진행 중인 정성 카드. 퍼센트는 바 길이와 함께 숫자로도 적는다(DES §3.3). */
+/** 진행 중인 정성 카드. 막대·배지·문구는 홈 카드와 같은 조각이다 — 날짜 기준 일차만 적고 읽은 날 수·퍼센트는 쓰지 않는다. */
 function JeongseongSection({ period }: { period: JeongseongPeriodResponse | null }) {
   return (
     <div className="sect">
@@ -62,26 +65,11 @@ function JeongseongSection({ period }: { period: JeongseongPeriodResponse | null
           <>
             <div className="gd-row">
               <b className="gd-row__t">
-                {period.duration_days}일 새벽 정성 · {period.topic}
+                {period.duration_days}일 정성 · {period.topic}
               </b>
-              <span className="badge badge--accent">D-{period.progress.remaining_days}</span>
+              <JeongseongDayBadge period={period} />
             </div>
-            <div
-              className="progress"
-              role="progressbar"
-              aria-label="정성 진행률"
-              aria-valuenow={period.progress.percent}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <i className="progress__fill" style={{ width: `${period.progress.percent}%` }} />
-            </div>
-            <div className="gd-row gd-row--meta">
-              <span>
-                {period.progress.done_days} / {period.duration_days}일 · {period.progress.percent}%
-              </span>
-              <span>{jeongseongDayLabel(period)}</span>
-            </div>
+            <JeongseongProgress period={period} />
           </>
         ) : (
           <div className="empty gd-empty">
@@ -176,7 +164,7 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
             <p className="empty__body">
               {hasLoggedOut
                 ? "다시 로그인하면 기록과 정성을 이어서 볼 수 있어요."
-                : "연속일 · 월 달력 · 진행 중인 정성이 여기에 모여요."}
+                : "연속일 · 월 달력 · 진행 중인 정성 · 형광펜과 노트가 여기에 모여요."}
             </p>
             {/* 이 화면의 유일한 행동이라 주 버튼이다 (DES §4 한 화면에 primary 하나) */}
             <p className="gd-cta">
@@ -186,6 +174,7 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
             </p>
           </div>
         </div>
+        <DeviceRecordsEntry isGuest />
         <GardenNotice />
       </section>
     );
@@ -255,6 +244,10 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
           <JeongseongSection period={jeongseong.data ?? null} />
         </>
       )}
+
+      <RecordsGardenSection />
+
+      <DeviceRecordsEntry />
 
       <BookmarksEntrySection />
 

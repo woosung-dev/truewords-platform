@@ -54,6 +54,7 @@ export default defineConfig({
         "hoondok-empty-day.spec.ts",
         "hoondok-groups.spec.ts",
         "hoondok-cards.spec.ts",
+        "hoondok-records.spec.ts",
       ],
       use: { browserName: "chromium", baseURL: webOrigin },
     },

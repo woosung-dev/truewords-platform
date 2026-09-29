@@ -3,7 +3,8 @@
 // SCR-PWA-004 정성 기간 만들기 폼. 필드 순서·문구는 프로토타입 `#sheet-jeongseong` 그대로이고
 // 가족 챌린지 토글만 뺐다(W3 범위). 저장은 API-HD-009 `POST /hoondok/me/jeongseong` 한 번이다.
 // 정성 알림은 따로 두지 않고 훈독하기 알림(설정 › 훈독하기 시각)에 합쳤다 — 그래서 알림 시각 칸이 없고 reminder_time 도 보내지 않는다.
-import { AlertCircle } from "lucide-react";
+// 나의 각오는 선택 칸이다 — 비우면 보내지 않고, 본인 카드(진행·마무리)에만 다시 보인다.
+import { AlertCircle, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useId, useState } from "react";
@@ -12,7 +13,14 @@ import type { JeongseongDuration } from "@/features/hoondok/jeongseong-api";
 import { formatKstDate } from "@/features/hoondok/today";
 import { createErrorMessage, UNAUTHORIZED, useCreateJeongseong } from "@/features/hoondok/use-jeongseong";
 import { onboardingHref } from "@/features/identity/gate";
-import { DEFAULT_DURATION, DURATION_OPTIONS, startRange, TOPIC_CHIPS, TOPIC_MAX_LENGTH } from "../format";
+import {
+  DEFAULT_DURATION,
+  DURATION_OPTIONS,
+  RESOLUTION_MAX_LENGTH,
+  startRange,
+  TOPIC_CHIPS,
+  TOPIC_MAX_LENGTH,
+} from "../format";
 
 /** 401 로 온보딩에 갔다 돌아올 때 시트를 다시 연다. */
 const RETURN_TO = "/hoondok?sheet=jeongseong";
@@ -25,17 +33,20 @@ export function JeongseongForm({ onClose }: { onClose: () => void }) {
   const range = startRange(today);
   const [duration, setDuration] = useState<JeongseongDuration>(DEFAULT_DURATION);
   const [topic, setTopic] = useState("");
+  const [resolution, setResolution] = useState("");
   const [startedOn, setStartedOn] = useState(today);
   const [message, setMessage] = useState("");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
+    const trimmedResolution = resolution.trim();
     create.mutate(
       {
         topic: topic.trim(),
         duration_days: duration,
         started_on: startedOn,
+        ...(trimmedResolution ? { resolution: trimmedResolution } : {}),
       },
       {
         onSuccess: onClose,
@@ -104,6 +115,32 @@ export function JeongseongForm({ onClose }: { onClose: () => void }) {
         <span className="field__help" id={`${fieldId}-topic-help`}>
           칩을 고르거나 직접 적어요. {TOPIC_MAX_LENGTH}자까지 들어가요
         </span>
+      </div>
+
+      <div className="field js-field">
+        <label className="field__label" htmlFor={`${fieldId}-vow`}>
+          나의 각오 <span className="js-optional">(선택)</span>
+        </label>
+        <textarea
+          id={`${fieldId}-vow`}
+          className="js-vow-input"
+          name="resolution"
+          rows={2}
+          maxLength={RESOLUTION_MAX_LENGTH}
+          placeholder="예: 하루를 말씀으로 먼저 시작하기"
+          aria-describedby={`${fieldId}-vow-help ${fieldId}-vow-count`}
+          value={resolution}
+          onChange={(event) => setResolution(event.target.value)}
+        />
+        <div className="js-vow-foot">
+          <span className="field__help js-vow-help" id={`${fieldId}-vow-help`}>
+            <Lock size={14} aria-hidden="true" />
+            나만 봐요
+          </span>
+          <span className="js-vow-count" id={`${fieldId}-vow-count`}>
+            {resolution.length}/{RESOLUTION_MAX_LENGTH}
+          </span>
+        </div>
       </div>
 
       <div className="field js-field">

@@ -113,7 +113,7 @@ async def get_library_repository(
 async def get_library_service(
     repo: LibraryRepository = Depends(get_library_repository),
 ) -> LibraryService:
-    return LibraryService(repo)
+    return LibraryService(repo, get_raw_client())
 
 
 async def get_journey_service(

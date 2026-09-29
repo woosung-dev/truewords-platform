@@ -48,6 +48,38 @@ export function writeNote(date: string, text: string): void {
   notify();
 }
 
+export type DeviceNote = { date: string; text: string };
+
+const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** SSR·저장소 없음의 스냅샷. useSyncExternalStore 가 같은 참조를 봐야 하므로 상수 하나를 돌려쓴다. */
+export const EMPTY_NOTES: readonly DeviceNote[] = [];
+
+// 저장된 내용이 그대로면 같은 배열을 돌려줘야 useSyncExternalStore 가 무한히 다시 그리지 않는다.
+let notesSnapshot: { signature: string; items: readonly DeviceNote[] } = { signature: "[]", items: EMPTY_NOTES };
+
+/** 이 기기에 남은 한 줄 전부, 날짜 최신순. 빈 값·날짜가 아닌 키는 건너뛰고 읽지 못하면 빈 목록이다. */
+export function readAllNotes(): readonly DeviceNote[] {
+  try {
+    const store = storage();
+    if (!store) return EMPTY_NOTES;
+    const found: DeviceNote[] = [];
+    for (let i = 0; i < store.length; i += 1) {
+      const key = store.key(i);
+      const date = key?.startsWith(PREFIX) ? key.slice(PREFIX.length) : "";
+      if (!DATE_KEY.test(date)) continue;
+      const text = (store.getItem(PREFIX + date) ?? "").slice(0, NOTE_MAX);
+      if (text.trim()) found.push({ date, text });
+    }
+    found.sort((a, b) => b.date.localeCompare(a.date));
+    const signature = JSON.stringify(found);
+    if (signature !== notesSnapshot.signature) notesSnapshot = { signature, items: found };
+    return notesSnapshot.items;
+  } catch {
+    return EMPTY_NOTES;
+  }
+}
+
 /** useSyncExternalStore 용 구독 — 같은 탭의 write 와 다른 탭의 storage 이벤트. */
 export function subscribeNote(onChange: () => void): () => void {
   if (typeof window === "undefined") return () => {};

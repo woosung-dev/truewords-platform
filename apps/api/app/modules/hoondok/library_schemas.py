@@ -118,6 +118,8 @@ class MarkItem(BaseModel):
     updated_at: datetime
     work_title: str
     label: str
+    # 목록 `?excerpt=true` 일 때만 응답에 나온다 — 원문 뷰 display_text 앞 300자, 원문이 막힌 권·조회 실패는 null.
+    excerpt: str | None = None
 
 
 class MarksResponse(BaseModel):
@@ -181,6 +183,8 @@ class HighlightItem(BaseModel):
     updated_at: datetime
     work_title: str
     label: str
+    # 원문(full_text)이 열린 권인지. 나의 기록은 false 면 quote·원문 링크를 가린다. 모르면 닫힌 쪽(false)으로 둔다.
+    readable: bool = False
 
 
 class HighlightsResponse(BaseModel):

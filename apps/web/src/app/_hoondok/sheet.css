@@ -1,6 +1,6 @@
 /* 정성 기간 시트(SCR-PWA-004) + 홈 정성 카드(SCR-PWA-002).
    값은 프로토타입 hoondok-ds/hoondok.css 의 `.sheet*`·`.chips`·`.field` 이며
-   (`.progress`·`.stats` 본체와 `.chips`·`.chip-btn` 은 hoondok.css 공용, 여기엔 카드 여백만 둔다)
+   (`.progress`·`.badge`·`.hint` 본체와 `.chips`·`.chip-btn` 은 hoondok.css 공용, 여기엔 카드 여백만 둔다)
    토큰만 쓴다(hex 금지). 프로토타입이 비워 둔 `.js-*` 는 DES-PWA-003 §2.7·§2.11 규격으로 채웠다.
    하단 시트 → 중앙 모달 전환은 DES-PWA-003 §2.7·§5(004 행)를 따라 1024px 이다
    (프로토타입 CSS 는 768px 이지만 §5 표가 768 = "동일" 로 하단 시트를 유지한다). */
@@ -184,13 +184,86 @@ body:has([data-app="hoondok"] .sheet[open]) {
     gap: 8px;
   }
 
-  /* ---------- 3. 홈 정성 카드 ---------- */
-  /* 누적 기록·진행 바 본체는 hoondok.css §7. 카드 안 세로 간격(14px)만 여기서 준다 */
-  .js-card__title + .stats {
-    margin-top: 14px;
+  /* 나의 각오(선택) : 두 줄 textarea + "나만 봐요" · 글자 수. 입력 규격은 `.field input` 공용 값과 같다 */
+  .js-optional {
+    font-weight: 400;
   }
-  .stats + .progress {
-    margin-top: 14px;
+  .js-vow-input {
+    font: inherit;
+    font-size: var(--fs-lg); /* iOS 확대 방지 */
+    color: var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-sm);
+    padding: 12px 14px;
+    width: 100%;
+    min-height: 76px;
+    resize: none;
+    line-height: 1.55;
+  }
+  .js-vow-input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .js-vow-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .js-vow-help {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .js-vow-help svg {
+    flex: none;
+  }
+  .js-vow-count {
+    flex: none;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- 3. 홈 정성 카드 ---------- */
+  /* 진행 바 본체는 hoondok.css §7. 제목 줄(제목 + N일차 배지)과 카드 안 세로 간격만 여기서 준다 */
+  .js-card__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .js-card__top .badge {
+    flex: none;
+    margin-top: 2px;
+  }
+  .js-card__top + .progress,
+  .js-vow + .progress {
+    margin-top: 16px;
+  }
+  /* 각오 블록 : 내 메모 층(점선 테두리 + "나만 봐요", DES-PWA-003 §2.11). 진행 카드·마무리 카드가 함께 쓴다 */
+  .js-vow {
+    margin: 14px 0 0;
+    padding: 12px 14px;
+    border: 1.5px dashed var(--ink-3);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+  }
+  .js-vow figcaption {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .js-vow blockquote {
+    margin: 5px 0 0;
+    font-size: var(--fs-md);
+    line-height: 1.6;
+    color: var(--ink);
+    overflow-wrap: anywhere;
   }
   .js-card__title {
     font-size: var(--fs-lg);
@@ -218,6 +291,26 @@ body:has([data-app="hoondok"] .sheet[open]) {
     font-size: var(--fs-xs);
     color: var(--ink-2);
     margin: 4px 0 14px;
+  }
+
+  /* 마무리 카드 : 제목 + 주제 + 각오. 날 수·날짜 범위는 두지 않는다 */
+  .js-close__title {
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .js-close__topic {
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+  }
+  .js-close__cta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 18px;
   }
 
   /* ---------- 4. lg : 하단 시트 → 중앙 모달 (DES-PWA-003 §2.7) ---------- */

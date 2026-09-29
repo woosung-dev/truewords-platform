@@ -121,6 +121,21 @@ class JeongseongRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_last_ended(self, user_id: uuid.UUID) -> JeongseongPeriod | None:
+        """가장 최근에 끝난(completed·abandoned) 기간 1건.
+
+        ended_at 순으로 고른다. 새 기간을 만들거나 그만두기 전에 끝난 active 를 먼저 completed 로 정리하므로
+        ended_at 순서가 실제로 끝난 순서와 같다. 예정 기간을 그만두면 started_on 이 뒤 기간보다 늦을 수 있어
+        started_on 으로는 고르지 않는다.
+        """
+        result = await self.session.execute(
+            select(JeongseongPeriod)
+            .where(JeongseongPeriod.user_id == user_id, JeongseongPeriod.status.in_(("completed", "abandoned")))
+            .order_by(JeongseongPeriod.ended_at.desc().nulls_last(), JeongseongPeriod.created_at.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
     async def create(self, period: JeongseongPeriod) -> JeongseongPeriod:
         """부분 unique(user·active) 위반은 IntegrityError 그대로 — service 가 409 로 바꾼다."""
         return await self._save(period)
