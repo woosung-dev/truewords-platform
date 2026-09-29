@@ -6,13 +6,14 @@
 // PLAN-HD-011 로 듣기는 AI 목소리(단락 mp3)가 기본이고 브라우저 음성은 대체 경로다.
 // API-HD-053 로 형광펜·메모는 사용자가 고른 구절 단위다. 본문을 눌러 단락 시트를 여는 경로는 없앴다 — 글자 선택과
 // 다툰다. 단락 시트는 번호 버튼으로만 연다.
+// 폰·태블릿에서 세그먼트·듣기 바(.wd-chrome)와 하단 독은 내리면 접히고 올리면 앱바 아래로 돌아온다(use-reading-chrome).
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
 import type { HighlightItem, MarkItem, WordChunk } from "@truewords/api-client-ts/types";
-import { Bookmark, BookOpenText, Check, Highlighter, List, NotebookPen, Settings } from "lucide-react";
+import { Bookmark, BookOpenText, NotebookPen } from "lucide-react";
 import Link from "next/link";
 import { Fragment, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AuthorityBadge, HoondokButton } from "@/components/hoondok";
+import { AuthorityBadge } from "@/components/hoondok";
 import {
   CardMarkOverlay,
   CardPulloutBar,
@@ -21,8 +22,6 @@ import {
 } from "@/features/hoondok/cards/components/words-card";
 import { sectionsKey, wordsKey } from "@/features/hoondok/query-keys";
 import { useHoondokScreenTitle } from "@/features/hoondok/screen-title";
-import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
-import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { libraryAPI, verseNumber, type WordsQuery, wordsHref, wordsPageHref } from "../api";
 import { readHintDismissed, readLastColor, writeHintDismissed, writeLastColor } from "../highlight-prefs";
@@ -55,13 +54,17 @@ import {
   useMarkWriter,
   useSavedReadingPosition,
 } from "../use-reading";
+import { useReadingChrome } from "../use-reading-chrome";
 import { AiExplain } from "./ai-explain";
 import { type HighlightActions, HighlightLayer } from "./highlight-layer";
 import { HighlightNotes } from "./highlight-notes";
 import { HighlightGateSheet, MemoSheet } from "./memo-sheet";
 import { PassageSheet } from "./passage-sheet";
+import { ReaderDock } from "./reader-dock";
 import { ReaderSheet } from "./reader-sheet";
 import { ReaderToast, useReaderToast } from "./reader-toast";
+import { READER_TOOLS, type ReaderAction } from "./reader-tools";
+import { ReadingEnd } from "./reading-end";
 import { tocLabel, WordsToc } from "./words-toc";
 
 const SEGMENTS = [
@@ -71,35 +74,22 @@ const SEGMENTS = [
 ] as const;
 type Segment = (typeof SEGMENTS)[number]["id"];
 
-type ReaderAction = "highlight" | "note" | "bookmark" | "toc";
 type Sheet = "passage" | "toc" | "memo" | "gate";
 /** 메모 시트 대상 — 새로 고른 구절(저장할 때 이 색으로 칠한다) 또는 이미 칠한 형광펜 */
 type MemoTarget = { range: TextRange; color: HighlightColor } | { id: string };
 
 const HIGHLIGHT_HINT = "칠할 구절을 길게 눌러 고르세요. PC에서는 끌어서 고를 수 있어요.";
-const PICK_VERSE_HINT = "먼저 단락 번호를 눌러 단락을 골라 주세요.";
 const SAVE_FAILED = "기록을 저장하지 못했어요. 연결을 확인하고 다시 시도해 주세요.";
 const TOO_LONG = "한 번에 4,000자까지 칠할 수 있어요. 조금 줄여서 골라 주세요.";
 const NO_DECORATIONS: Decoration[] = [];
-const READER_TOOLS = [
-  { action: "highlight" as const, label: "형광펜", Icon: Highlighter },
-  { action: "note" as const, label: "노트", Icon: NotebookPen },
-  { action: "bookmark" as const, label: "북마크", Icon: Bookmark },
-  { action: "toc" as const, label: "목차", Icon: List },
-] as const;
 
-function ReaderBar({
-  modifier,
-  onAction,
-}: {
-  modifier: "reader--top" | "reader--bottom";
-  onAction: (action: ReaderAction) => void;
-}) {
+/** ≥1024px 본문 위 가로 툴바. 폰·태블릿은 하단 독(ReaderDock)이 같은 도구를 보인다. */
+function ReaderBar({ onAction }: { onAction: (action: ReaderAction) => void }) {
   return (
-    <div className={`reader ${modifier}`} aria-label="읽기 도구">
+    <div className="reader reader--top" aria-label="읽기 도구">
       {READER_TOOLS.map(({ action, label, Icon }) => (
         <button
-          key={label}
+          key={action}
           type="button"
           className={action === "toc" ? "reader__toc" : undefined}
           onClick={() => onAction(action)}
@@ -108,40 +98,6 @@ function ReaderBar({
           {label}
         </button>
       ))}
-      {/* 설정(글자 크기·테마)은 이번 범위가 아니다 — 누를 수 없는 상태를 그대로 보인다 */}
-      <button type="button" disabled aria-disabled="true">
-        <Settings size={22} aria-hidden="true" />
-        설정
-      </button>
-    </div>
-  );
-}
-
-function StudyComplete() {
-  const { user, isLoading } = useCurrentUser();
-  const { data: summary } = useSummary(Boolean(user));
-  const completion = useMissionCompletion("study", user, isLoading);
-  const isDone = completion.isDone || Boolean(summary?.today.study);
-  return (
-    <div className="sect">
-      {isDone ? (
-        <div className="card read-done" role="status">
-          <p>오늘 말씀 읽기를 마쳤어요.</p>
-          {completion.isUnsynced && (
-            <Link href={onboardingHref("/hoondok/library")}>로그인하면 오늘 기록이 남아요 →</Link>
-          )}
-          {completion.hasSaveFailed && <p>기록을 아직 저장하지 못했어요. 연결되면 다시 시도해요.</p>}
-        </div>
-      ) : (
-        <HoondokButton onClick={completion.markDone} isLoading={completion.isSaving} disabled={isLoading}>
-          <Check size={20} />
-          읽음
-        </HoondokButton>
-      )}
-      <p className="notice">말씀 읽기 완료를 기록해요. 연속 훈독일은 훈독하기 완료를 기준으로 계산해요.</p>
-      <Link className="btn btn-line" href="/hoondok">
-        오늘 훈독으로 돌아가기
-      </Link>
     </div>
   );
 }
@@ -294,6 +250,9 @@ export function WordsScreen({
   const [isHintDismissed, setIsHintDismissed] = useState(readHintDismissed);
   const [showSearchMarks, setShowSearchMarks] = useState(true);
   const citedNoticeRef = useRef<HTMLParagraphElement>(null);
+  const rootRef = useRef<HTMLElement>(null);
+  const chromeAnchorRef = useRef<HTMLDivElement>(null);
+  const chromeRef = useRef<HTMLDivElement>(null);
   const { user } = useCurrentUser();
   const isLoggedIn = Boolean(user);
 
@@ -320,6 +279,7 @@ export function WordsScreen({
   const showToast = toast.show;
   const highlightWriter = useHighlightWriter(volume, () => showToast(SAVE_FAILED));
   const doc = query.isSuccess ? query.data : null;
+  useReadingChrome(rootRef, chromeAnchorRef, chromeRef, doc !== null);
   const firstChunkIndex = doc?.chunks[0]?.chunk_index ?? null;
   // 이어 읽기: 로그인은 서버(API-HD-025), 비로그인은 기기에 남긴다. 같은 값 반복 PUT 은 훅이 막는다.
   useSavedReadingPosition(isLoggedIn, volume, firstChunkIndex);
@@ -449,17 +409,8 @@ export function WordsScreen({
       setHint(HIGHLIGHT_HINT);
       return;
     }
-    if (action === "note") {
-      setHint(null);
-      setSegment("note");
-      return;
-    }
-    if (!selectedChunkId) {
-      setHint(PICK_VERSE_HINT);
-      return;
-    }
     setHint(null);
-    setSheet("passage");
+    setSegment("note");
   }
 
   /** 지우고 5초 동안 되돌릴 수 있다 — 되돌리기는 메모까지 같은 값으로 다시 만든다. */
@@ -550,7 +501,7 @@ export function WordsScreen({
   const toastNode = toast.toast && <ReaderToast toast={toast.toast} onDismiss={toast.dismiss} />;
 
   return (
-    <section className="col col--read words">
+    <section className="col col--read words" ref={rootRef}>
       <aside className="toc" aria-label={tocLabel(tocSections)}>
         <WordsToc
           volume={volume}
@@ -581,34 +532,38 @@ export function WordsScreen({
           )}
         </div>
         <div className="lede-rule" />
-        <ReaderBar modifier="reader--top" onAction={handleReaderAction} />
-        <div className="pill-seg" role="tablist" aria-label="원문 보기">
-          {SEGMENTS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              id={`wd-seg-${item.id}`}
-              aria-selected={segment === item.id}
-              aria-controls="wd-seg-panel"
-              className={segment === item.id ? "is-on" : ""}
-              onClick={() => setSegment(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
+        <ReaderBar onAction={handleReaderAction} />
+        <div ref={chromeAnchorRef} />
+        <div className="wd-chrome" ref={chromeRef}>
+          <div className="pill-seg" role="tablist" aria-label="원문 보기">
+            {SEGMENTS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                id={`wd-seg-${item.id}`}
+                aria-selected={segment === item.id}
+                aria-controls="wd-seg-panel"
+                className={segment === item.id ? "is-on" : ""}
+                onClick={() => setSegment(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <TtsBar
+            reader={reader}
+            title={`듣기 · ${doc.page}구간`}
+            total={doc.chunks.length}
+            nextHref={doc.page < doc.total_pages ? wordsPageHref(volume, doc.page + 1) : null}
+          />
+          {/* 도구를 누른 순간에는 크롬이 보이는 상태다 — 안내를 크롬 안에 두어야 스크롤 위치와 무관하게 보인다 */}
+          {hint && (
+            <p className="notice" role="status">
+              {hint}
+            </p>
+          )}
         </div>
-        <TtsBar
-          reader={reader}
-          title={`듣기 · ${doc.page}구간`}
-          total={doc.chunks.length}
-          nextHref={doc.page < doc.total_pages ? wordsPageHref(volume, doc.page + 1) : null}
-        />
-        {hint && (
-          <p className="notice" role="status">
-            {hint}
-          </p>
-        )}
         <div id="wd-seg-panel" className="wd-panel" role="tabpanel" aria-labelledby={`wd-seg-${segment}`}>
           {segment === "text" && (
             <>
@@ -685,20 +640,7 @@ export function WordsScreen({
                   );
                 })}
               </HighlightLayer>
-              <nav className="words-pages" aria-label="원문 구간 이동">
-                {doc.page > 1 && (
-                  <Link className="btn btn-line btn--sm" href={wordsPageHref(volume, doc.page - 1)}>
-                    이전 구간
-                  </Link>
-                )}
-                {/* 현재 구간 번호는 머리글(.masthead__dt)이 보인다 — 여기서는 이동만 한다 */}
-                {doc.page < doc.total_pages && (
-                  <Link className="btn btn-line btn--sm" href={wordsPageHref(volume, doc.page + 1)}>
-                    다음 구간
-                  </Link>
-                )}
-              </nav>
-              <StudyComplete />
+              <ReadingEnd volume={volume} workTitle={workTitle} page={doc.page} totalPages={doc.total_pages} />
             </>
           )}
           {segment === "ai" && <AiExplain chunk={selectedChunk} />}
@@ -712,11 +654,8 @@ export function WordsScreen({
             />
           )}
         </div>
-        <Link className="btn btn-line btn--sm" href="/hoondok/ask">
-          이 말씀에 질문하기
-        </Link>
       </div>
-      <ReaderBar modifier="reader--bottom" onAction={handleReaderAction} />
+      <ReaderDock reader={reader} total={doc.chunks.length} onAction={handleReaderAction} />
       {sheet === null && toastNode}
       {sheet === "toc" && (
         <ReaderSheet title={tocLabel(tocSections)} onClose={closeSheet} toast={toastNode}>
