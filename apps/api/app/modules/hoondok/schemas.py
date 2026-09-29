@@ -97,12 +97,21 @@ class JeongseongCreate(BaseModel):
     duration_days: JeongseongDuration
     started_on: date | None = None
     reminder_time: time | None = None  # 사용 중단 — 알림 시각은 notification_preferences.read_time
+    resolution: str | None = Field(default=None, max_length=50)  # 나의 각오(선택). 수정 API 는 없다
 
     @field_validator("topic", mode="before")
     @classmethod
     def _strip_topic(cls, value: object) -> object:
         # 앞뒤 공백을 지운 뒤 min_length=1 이 적용되게 한다 — "   " 는 422.
         return value.strip() if isinstance(value, str) else value
+
+    @field_validator("resolution", mode="before")
+    @classmethod
+    def _strip_resolution(cls, value: object) -> object:
+        # 앞뒤 공백을 지운 뒤 50자를 센다. 비었으면 각오 없음(null).
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
 
 
 class JeongseongProgress(BaseModel):
@@ -119,6 +128,7 @@ class JeongseongProgress(BaseModel):
 class JeongseongPeriodResponse(BaseModel):
     id: uuid.UUID
     topic: str
+    resolution: str | None
     duration_days: int
     started_on: date
     reminder_time: time | None
@@ -126,10 +136,25 @@ class JeongseongPeriodResponse(BaseModel):
     progress: JeongseongProgress
 
 
+class JeongseongLastEnded(BaseModel):
+    """최근에 마친 정성 기간(마무리 카드용). 완료한 날 수는 보내지 않는다 — 빠진 날을 계산할 수 없게 한다."""
+
+    id: uuid.UUID
+    topic: str
+    resolution: str | None
+    duration_days: int
+    started_on: date
+    end_on: date
+
+
 class JeongseongCurrentResponse(BaseModel):
-    """GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null."""
+    """GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null.
+
+    last_ended 는 period 가 null 일 때만 채운다 — 가장 최근에 끝난 기간이 7일 안에 끝난 completed 일 때만(abandoned 면 null).
+    """
 
     period: JeongseongPeriodResponse | None = None
+    last_ended: JeongseongLastEnded | None = None
 
 
 # --- 편성 admin (API-HD-006~008, Phase 3 A) ---------------------------------

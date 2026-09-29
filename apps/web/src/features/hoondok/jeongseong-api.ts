@@ -11,6 +11,8 @@ import { hoondokFetch } from "./observability/report";
 // POST·DELETE 에 필요한 X-Requested-With 는 createApiClient 의 transport 가 붙인다.
 export type { JeongseongCreate, JeongseongCurrentResponse, JeongseongPeriodResponse };
 export type JeongseongProgress = JeongseongPeriodResponse["progress"];
+/** 막 마친 기간(마무리 카드용) — 완료한 날 수는 서버가 보내지 않는다. */
+export type JeongseongLastEnded = NonNullable<JeongseongCurrentResponse["last_ended"]>;
 export type JeongseongDuration = JeongseongCreate["duration_days"];
 
 const { request } = createApiClient({ baseUrl: "/api/backend", fetch: hoondokFetch });
@@ -19,7 +21,7 @@ const PATH = "/hoondok/me/jeongseong";
 
 export const jeongseongAPI = {
   today: () => request<JeongseongTodayResponse>(`${PATH}/today`, { cache: "no-store" }),
-  /** 진행 중인 기간 + 진행률. 없으면 `{ period: null }`. */
+  /** 진행 중인 기간 + 진행률, 없으면 period null. 막 마친 기간은 last_ended. */
   current: () => request<JeongseongCurrentResponse>(PATH),
   /** 시작 — 201. 409 이미 진행 중 · 422 검증 · 401 미인증. */
   create: (body: JeongseongCreate) =>
