@@ -36,10 +36,9 @@ export function EffectiveReading({ today }: { today: TodayResponse }) {
         </div>
       ) : (
         // 편성 없는 날·철회는 상태 카드 + 다음 행동. 조회 실패면 위 안내만 두고 빈 날이라고 말하지 않는다(C3)
-        <>
-          {effective.isEmptyDay && <MalssumCard status={effective.status === "withdrawn" ? "withdrawn" : "none"} />}
-          <EmptyDayActions />
-        </>
+        <EmptyDayActions
+          status={effective.isEmptyDay ? (effective.status === "withdrawn" ? "withdrawn" : "none") : undefined}
+        />
       )}
     </>
   );

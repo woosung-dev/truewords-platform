@@ -41,6 +41,26 @@ export function HomeGreeting() {
   );
 }
 
+/** 오늘 편성이 정해지기 전 미션 카드 자리. 어떤 카드가 몇 번째에 올지 말하지 않고 불러오는 중 카드 높이만 지킨다 */
+function MissionSlot() {
+  return (
+    <div className="mission" data-pending="" aria-hidden="true">
+      <span className="mission__ic" />
+      <span className="mission__bd">
+        <span className="mission__kind">
+          <span className="mission__skel" />
+        </span>
+        <span className="mission__title">
+          <span className="mission__skel" />
+        </span>
+        <span className="mission__meta">
+          <span className="mission__skel" />
+        </span>
+      </span>
+    </div>
+  );
+}
+
 // 홈 "오늘의 실천" + "이번 주" — summary(API-HD-004) 와 완료(API-HD-005)를 결합한다. 비로그인이면 표시만.
 export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; todayWeekday: number }) {
   const effective = useEffectiveToday(today);
@@ -52,8 +72,16 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
   // 마지막으로 읽던 원문 구간. 기록이 없거나 불러오지 못하면 지금까지와 같은 서고 안내 카드다
   const resume = useResumeCard();
   const isReadDone = completion.isDone || Boolean(summary?.today.read);
-  // 편성 없는 날(C3): 훈독하기 카드 대신 오늘 상태 한 줄, 첫 카드는 이어 읽기. 기록이 없다고 확인되면 서고로 말한다
-  const hasResume = resume.status !== "none";
+  // 오늘 편성이 있는지 아직 모른다 — 카드 순서가 빈 날/있는 날 중 어느 쪽인지 정해지지 않았으므로 자리만 잡는다.
+  // 일반 편성이 이미 있으면 순서가 정해져 있어 기존대로 훈독하기 카드가 불러오는 중으로 그려진다
+  const isUndecided = effective.status !== "available" && effective.isResolving;
+  // 편성 없는 날(C3): 훈독하기 카드 대신 오늘 상태 한 줄, 첫 카드는 이어 읽기. 기록 유무가 정해진 뒤에만 말한다
+  const emptyHint =
+    resume.status === "ready"
+      ? "읽던 말씀을 이어서 읽어 보세요."
+      : resume.status === "none"
+        ? "서고에서 한 권 골라 읽어 보세요."
+        : null;
 
   const readCard = (
     <MissionCard
@@ -102,18 +130,26 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
             {reading
               ? "2가지 · 내 속도로"
               : effective.isEmptyDay
-                ? hasResume
+                ? resume.status === "ready"
                   ? "오늘은 이어 읽기"
-                  : "오늘은 서고에서"
+                  : resume.status === "none"
+                    ? "오늘은 서고에서"
+                    : null
                 : effective.isResolving
                   ? "오늘 말씀 확인 중"
                   : "1가지 · 말씀 읽기"}
           </span>
         </div>
-        <div className="missions">
-          {effective.isEmptyDay ? (
+        <div className="missions" aria-busy={isUndecided || undefined}>
+          {isUndecided ? (
             <>
-              <EmptyDayLine hint={hasResume ? "읽던 말씀을 이어서 읽어 보세요." : "서고에서 한 권 골라 읽어 보세요."} />
+              <MissionSlot />
+              <MissionSlot />
+              <MissionSlot />
+            </>
+          ) : effective.isEmptyDay ? (
+            <>
+              <EmptyDayLine hint={emptyHint} />
               {studyCard}
               {prayCard}
             </>

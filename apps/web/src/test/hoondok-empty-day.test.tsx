@@ -135,6 +135,45 @@ describe("홈 · 편성 없는 날", () => {
     expect(screen.queryByRole("link", { name: /^말씀 서고/ })).toBeNull();
   });
 
+  it("편성이 정해지기 전에는 카드 순서를 정하지 않고 자리만 잡는다 — 빈 날로 정해져도 카드가 자리를 바꾸지 않는다", async () => {
+    vi.mocked(identityAPI.me).mockResolvedValue({ user: USER });
+    let resolveJeongseong: (value: JeongseongTodayResponse) => void = () => {};
+    vi.mocked(jeongseongAPI.today).mockReturnValue(
+      new Promise((resolve) => {
+        resolveJeongseong = resolve;
+      }),
+    );
+    const view = show(<HomeMissions today={EMPTY} todayWeekday={2} />);
+    await waitFor(() => expect(jeongseongAPI.today).toHaveBeenCalled());
+    const missions = view.container.querySelector(".missions");
+    expect(missions).toHaveAttribute("aria-busy", "true");
+    // 종류 이름 없는 자리 3개 — 훈독하기 카드를 먼저 그렸다가 빈 날로 바뀌며 순서가 뒤집히지 않는다
+    expect(missionOrder(view.container)).toEqual(["", "", ""]);
+    expect(screen.queryByRole("link", { name: /훈독하기/ })).toBeNull();
+    resolveJeongseong({ date: DATE, status: "none", reason: null, period_id: null, reading: null });
+    await waitFor(() =>
+      expect(missionOrder(view.container)).toEqual(["안내", "말씀 읽기 · 이어 읽기", "기도하기 · 1분 · 준비 중"]),
+    );
+    expect(missions).not.toHaveAttribute("aria-busy");
+  });
+
+  it("이어 읽을 기록을 확인하는 동안에는 기록이 있다고도 없다고도 말하지 않는다", async () => {
+    vi.mocked(identityAPI.me).mockResolvedValue({ user: USER });
+    let resolvePositions: (value: { items: [] }) => void = () => {};
+    vi.mocked(libraryAPI.readingPositions).mockReturnValue(
+      new Promise((resolve) => {
+        resolvePositions = resolve;
+      }),
+    );
+    show(<HomeMissions today={EMPTY} todayWeekday={2} />);
+    const line = await screen.findByText("오늘은 정해진 말씀이 없어요");
+    expect(line.closest("[role=status]")).not.toHaveTextContent(/읽던 말씀|서고에서/);
+    expect(screen.queryByText(/^오늘은 (이어 읽기|서고에서)$/)).toBeNull();
+    resolvePositions({ items: [] });
+    expect(await screen.findByText("서고에서 한 권 골라 읽어 보세요.")).toBeInTheDocument();
+    expect(screen.getByText("오늘은 서고에서")).toHaveClass("sect__meta");
+  });
+
   it("철회된 날도 빈 날과 같은 안내다", async () => {
     show(<HomeMissions today={WITHDRAWN} todayWeekday={2} />);
     expect(await screen.findByText("오늘은 정해진 말씀이 없어요")).toBeInTheDocument();
@@ -203,6 +242,7 @@ describe("훈독하기(/read) · 편성 없는 날", () => {
     const view = show(<EffectiveReading today={EMPTY} />);
     expect(await screen.findByText("천성경 · 참사랑의 근본")).toBeInTheDocument();
     expect(screen.getByText("오늘은 정해진 말씀이 없어요")).toHaveClass("empty__title");
+    expect(screen.getByText("읽던 말씀을 이어 읽거나 서고에서 골라 읽어요.")).toHaveClass("empty__body");
     const links = screen.getAllByRole("link");
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
       `${wordsHref(VOLUME)}?page=1&from=resume`,
@@ -219,6 +259,9 @@ describe("훈독하기(/read) · 편성 없는 날", () => {
     expect(primary).toHaveAttribute("href", "/hoondok/library");
     expect(primary).toHaveClass("btn-primary");
     expect(screen.getAllByRole("link")).toHaveLength(1);
+    // 상태 카드 문구도 기록이 없다는 사실을 따른다
+    expect(screen.getByText("서고에서 한 권 골라 읽어요.")).toHaveClass("empty__body");
+    expect(screen.queryByText(/읽던 말씀/)).toBeNull();
     expect(screen.queryByText(/아직 없어요/)).toBeNull();
   });
 
