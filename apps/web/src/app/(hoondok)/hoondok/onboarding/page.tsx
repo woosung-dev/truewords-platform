@@ -14,7 +14,7 @@ import { identityAPI } from "@/features/identity/api";
 import { claimDeviceForUser } from "@/features/identity/device-owner";
 import { carryInviteCode, inviteCodeFromReturnTo, safeReturnTo } from "@/features/identity/gate";
 import { CURRENT_USER_KEY, useCurrentUser } from "@/features/identity/use-current-user";
-import { clearHoondokStorage } from "@/features/identity/use-delete-me";
+import { useLogout } from "@/features/identity/use-logout";
 
 type Mode = "signup" | "login";
 
@@ -47,6 +47,7 @@ function OnboardingForm() {
   const [inviteCode, setInviteCode] = useState(() => inviteCodeFromReturnTo(returnTo));
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const logout = useLogout();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,17 +79,12 @@ function OnboardingForm() {
     }
   }
 
-  async function handleLogout() {
-    try {
-      await identityAPI.logout();
-    } catch {
-      setMessage("로그아웃하지 못했어요. 연결을 확인하고 다시 시도해 주세요.");
-      return;
-    }
-    queryClient.setQueryData(CURRENT_USER_KEY, null);
-    queryClient.removeQueries({ predicate: (query) => query.queryKey[0] === "hoondok" && query.queryKey[1] !== "me" });
+  function handleLogout() {
     // 공용 기기에서 다음 사람이 앞 사람의 질문·읽던 위치를 보지 않게 기기 기록도 함께 지운다.
-    clearHoondokStorage();
+    logout.mutate(
+      { clearDevice: true },
+      { onError: () => setMessage("로그아웃하지 못했어요. 연결을 확인하고 다시 시도해 주세요.") },
+    );
   }
 
   if (!isLoading && user) {
