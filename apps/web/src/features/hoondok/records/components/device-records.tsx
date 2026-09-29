@@ -52,7 +52,7 @@ export function DeviceRecordsEntry({ isGuest = false }: { isGuest?: boolean }) {
         <Smartphone size={22} aria-hidden="true" />
         <span className="rc-local__bd">
           <b>{isGuest ? summary : "이 기기에만 있는 기록"}</b>
-          <span>{isGuest ? "로그인해도 계정으로 옮겨지지 않아요" : summary}</span>
+          <span>{isGuest ? "이미 있는 계정으로 로그인하면 지워져요" : summary}</span>
         </span>
         <ChevronRight size={18} aria-hidden="true" />
       </Link>
@@ -88,7 +88,8 @@ export function DeviceRecordsScreen() {
         <div>
           <b>이 브라우저에만 저장돼 있어요</b>
           <p>
-            폰을 바꾸거나 로그아웃하거나 인터넷 사용 기록을 지우면 함께 지워져요. 계정으로 옮기는 기능은 아직 없어요.
+            폰을 바꾸거나 로그아웃하거나 인터넷 사용 기록을 지우면 함께 지워져요. 로그인 전에 남긴 기록은 이미 있는
+            계정으로 로그인할 때도 지워져요. 계정으로 옮기는 기능은 아직 없어요.
           </p>
         </div>
       </div>
