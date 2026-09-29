@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ApiError } from "@truewords/api-client-ts";
-import type { HighlightItem, MarkItem, SectionItem } from "@truewords/api-client-ts/types";
+import type { HighlightItem, SectionItem } from "@truewords/api-client-ts/types";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -18,7 +18,7 @@ vi.mock("@/features/identity/api", () => ({
 }));
 vi.mock("@/features/hoondok/library/api", async (original) => ({
   ...(await original<object>()),
-  libraryAPI: { highlights: vi.fn(), marks: vi.fn(), sections: vi.fn() },
+  libraryAPI: { highlights: vi.fn(), sections: vi.fn() },
 }));
 vi.mock("@/features/hoondok/missions-api", () => ({ missionsAPI: { complete: vi.fn(), summary: vi.fn() } }));
 vi.mock("@/features/hoondok/history-api", () => ({ historyAPI: { month: vi.fn() } }));
@@ -73,22 +73,7 @@ function highlight(
   };
 }
 
-/** API-HD-026 북마크(`excerpt=true`). */
-function bookmark(overrides: Partial<MarkItem> & Pick<MarkItem, "chunk_id" | "chunk_index">): MarkItem {
-  return {
-    volume: VOLUME,
-    kind: "bookmark",
-    color: null,
-    note: null,
-    updated_at: "2026-09-26T01:00:00Z",
-    work_title: "천성경",
-    label: "천성경",
-    excerpt: `단락 ${overrides.chunk_index + 1} 원문 발췌`,
-    ...overrides,
-  };
-}
-
-// 최신순(서버 순서): 분홍 노트 → 노랑 → 초록(평화경). 북마크는 따로 1개.
+// 최신순(서버 순서): 분홍 노트 → 노랑 → 초록(평화경).
 const HIGHLIGHTS: HighlightItem[] = [
   highlight({
     id: "h12",
@@ -110,8 +95,7 @@ const HIGHLIGHTS: HighlightItem[] = [
     updated_at: "2026-09-25T01:00:00Z",
   }),
 ];
-const BOOKMARKS: MarkItem[] = [bookmark({ chunk_id: "c3", chunk_index: 2 })];
-const RECORDS = toRecords(HIGHLIGHTS, BOOKMARKS).items;
+const RECORDS = toRecords(HIGHLIGHTS).items;
 
 const SECTIONS: SectionItem[] = [
   {
@@ -148,10 +132,9 @@ function wrap(children: ReactNode) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
-function loggedIn(highlights: HighlightItem[] = HIGHLIGHTS, bookmarks: MarkItem[] = BOOKMARKS) {
+function loggedIn(highlights: HighlightItem[] = HIGHLIGHTS) {
   vi.mocked(identityAPI.me).mockResolvedValue({ user: USER });
   vi.mocked(libraryAPI.highlights).mockResolvedValue({ items: highlights });
-  vi.mocked(libraryAPI.marks).mockResolvedValue({ items: bookmarks });
   vi.mocked(libraryAPI.sections).mockResolvedValue({ volume: VOLUME, sections: SECTIONS });
 }
 
@@ -182,7 +165,7 @@ describe("나의 기록 순수 함수", () => {
     }
   });
 
-  it("URL 필터: 모르는 값은 기본값이고 기본값은 URL 에 쓰지 않으며 북마크는 색을 버린다", () => {
+  it("URL 필터: 모르는 값은 기본값이고 기본값은 URL 에 쓰지 않는다", () => {
     expect(parseRecordsFilter(new URLSearchParams("tab=x&color=9"))).toEqual({
       tab: "highlight",
       color: null,
@@ -195,50 +178,38 @@ describe("나의 기록 순수 함수", () => {
     });
     expect(recordsHref()).toBe("/hoondok/records");
     expect(recordsHref({ tab: "note", color: 3 })).toBe("/hoondok/records?tab=note&color=3");
-    expect(recordsHref({ tab: "bookmark", color: 2, volume: VOLUME })).toBe(
-      `/hoondok/records?tab=bookmark&volume=${encodeURIComponent(VOLUME).replace(/%20/g, "+")}`,
+    expect(recordsHref({ color: 2, volume: VOLUME })).toBe(
+      `/hoondok/records?color=2&volume=${encodeURIComponent(VOLUME).replace(/%20/g, "+")}`,
     );
+    // 예전 북마크 탭 링크는 형광펜 탭으로 연다
+    expect(parseRecordsFilter(new URLSearchParams("tab=bookmark")).tab).toBe("highlight");
   });
 
-  it("두 목록을 합친다 — 형광펜 글은 quote, 북마크 글은 발췌이고 원문이 막히면 글이 없다", () => {
-    const { items } = toRecords(
-      [
-        highlight({ id: "h1", chunk_id: "c1", start_chunk_index: 0, start_offset: 4, quote: "고른 그대로" }),
-        highlight({ id: "h2", chunk_id: "c2", start_chunk_index: 1, readable: false }),
-        // 필드가 없는 예전 응답은 닫힌 쪽으로 둔다
-        highlight({ id: "h3", chunk_id: "c3", start_chunk_index: 2, readable: undefined }),
-      ],
-      [bookmark({ chunk_id: "b1", chunk_index: 5 }), bookmark({ chunk_id: "b2", chunk_index: 6, excerpt: null })],
-    );
-    expect(items.map((entry) => [entry.key, entry.kind, entry.chunk_index, entry.offset, entry.text])).toEqual([
-      ["h1", "highlight", 0, 4, "고른 그대로"],
-      ["h2", "highlight", 1, 0, null],
-      ["h3", "highlight", 2, 0, null],
-      ["bookmark:b1", "bookmark", 5, 0, "단락 6 원문 발췌"],
-      ["bookmark:b2", "bookmark", 6, 0, null],
+  it("형광펜 글은 quote 이고 원문이 막히면 글이 없다", () => {
+    const { items } = toRecords([
+      highlight({ id: "h1", chunk_id: "c1", start_chunk_index: 0, start_offset: 4, quote: "고른 그대로" }),
+      highlight({ id: "h2", chunk_id: "c2", start_chunk_index: 1, readable: false }),
+      // 필드가 없는 예전 응답은 닫힌 쪽으로 둔다
+      highlight({ id: "h3", chunk_id: "c3", start_chunk_index: 2, readable: undefined }),
     ]);
-    expect(items[3].color).toBeNull();
+    expect(items.map((entry) => [entry.key, entry.chunk_index, entry.offset, entry.text])).toEqual([
+      ["h1", 0, 4, "고른 그대로"],
+      ["h2", 1, 0, null],
+      ["h3", 2, 0, null],
+    ]);
   });
 
-  it("노트는 형광펜에 포함해 세고, 상한은 목록마다 따로라 한쪽이 차도 다른 쪽 수는 그대로다", () => {
-    expect(countRecords(RECORDS)).toEqual({ highlight: 3, note: 1, bookmark: 1 });
+  it("노트는 형광펜에 포함해 세고, 형광펜 목록이 상한이면 둘 다 '+' 를 붙인다", () => {
+    expect(countRecords(RECORDS)).toEqual({ highlight: 3, note: 1 });
     expect(formatCount(23, false)).toBe("23");
     expect(formatCount(500, true)).toBe("500+");
     expect(formatCount(0, true)).toBe("0");
     // 공백만 있는 노트는 노트가 아니다
-    const blank = toRecords([highlight({ id: "x", chunk_id: "x", start_chunk_index: 1, note: "  " })], []);
+    const blank = toRecords([highlight({ id: "x", chunk_id: "x", start_chunk_index: 1, note: "  " })]);
     expect(countRecords(blank.items).note).toBe(0);
 
-    expect(toRecords(manyHighlights(499), BOOKMARKS).capped).toEqual({
-      highlight: false,
-      note: false,
-      bookmark: false,
-    });
-    expect(toRecords(manyHighlights(500), BOOKMARKS).capped).toEqual({ highlight: true, note: true, bookmark: false });
-    const bookmarks = Array.from({ length: 200 }, (_, index) =>
-      bookmark({ chunk_id: `b${index}`, chunk_index: index }),
-    );
-    expect(toRecords(HIGHLIGHTS, bookmarks).capped).toEqual({ highlight: false, note: false, bookmark: true });
+    expect(toRecords(manyHighlights(499)).capped).toEqual({ highlight: false, note: false });
+    expect(toRecords(manyHighlights(500)).capped).toEqual({ highlight: true, note: true });
   });
 
   it("색·권으로 거르고 권은 최근에 남긴 순서로 묶는다", () => {
@@ -246,10 +217,8 @@ describe("나의 기록 순수 함수", () => {
     expect(
       applyFilter(RECORDS, { tab: "highlight", color: null, volume: "평화경.docx" }).map((m) => m.chunk_id),
     ).toEqual(["p1"]);
-    // 북마크 탭은 색을 보지 않는다
-    expect(applyFilter(RECORDS, { tab: "bookmark", color: 3, volume: null }).map((m) => m.chunk_id)).toEqual(["c3"]);
     expect(volumeGroups(RECORDS)).toEqual([
-      { volume: VOLUME, title: "천성경", count: 3 },
+      { volume: VOLUME, title: "천성경", count: 2 },
       { volume: "평화경.docx", title: "평화경", count: 1 },
     ]);
     expect(volumeTitle({ work_title: "문선명선생 말씀선집", label: "355권" })).toBe("문선명선생 말씀선집 355권");
@@ -257,20 +226,17 @@ describe("나의 기록 순수 함수", () => {
   });
 
   it("한 권은 원문 순서(단락, 글자 위치)로 놓고 더 좁은 장 머리 아래에 묶는다", () => {
-    const { items } = toRecords(
-      [
-        highlight({ id: "a", chunk_id: "c13", start_chunk_index: 12 }),
-        highlight({ id: "b", chunk_id: "c4", start_chunk_index: 3 }),
-        highlight({ id: "c", chunk_id: "c26", start_chunk_index: 25 }),
-        highlight({ id: "d", chunk_id: "c11", start_chunk_index: 10, start_offset: 30 }),
-        highlight({ id: "e", chunk_id: "c11", start_chunk_index: 10, start_offset: 5 }),
-      ],
-      [bookmark({ chunk_id: "c12", chunk_index: 11 })],
-    );
+    const { items } = toRecords([
+      highlight({ id: "a", chunk_id: "c13", start_chunk_index: 12 }),
+      highlight({ id: "b", chunk_id: "c4", start_chunk_index: 3 }),
+      highlight({ id: "c", chunk_id: "c26", start_chunk_index: 25 }),
+      highlight({ id: "d", chunk_id: "c11", start_chunk_index: 10, start_offset: 30 }),
+      highlight({ id: "e", chunk_id: "c11", start_chunk_index: 10, start_offset: 5 }),
+    ]);
     const groups = sectionGroups(items, SECTIONS);
     expect(groups.map((g) => [g.section?.title ?? null, g.items.map((entry) => entry.key)])).toEqual([
       ["1장 참사랑의 근본", ["b"]],
-      ["2장 참사랑의 속성", ["e", "d", "bookmark:c12", "a"]],
+      ["2장 참사랑의 속성", ["e", "d", "a"]],
       [null, ["c"]],
     ]);
     // 목차가 없으면 머리 없는 한 묶음
@@ -292,18 +258,14 @@ describe("정원 '나의 기록' 섹션", () => {
     return render(wrap(<GardenScreen month="2026-09" today="2026-09-29" />));
   }
 
-  it("이름 먼저 세 가지 수가 각 탭의 입구이고, 최근 형광펜 구절이 원문 그 단락으로 간다", async () => {
+  it("이름 먼저 두 가지 수가 각 탭의 입구이고, 최근 형광펜 구절이 원문 그 단락으로 간다", async () => {
     loggedIn();
     renderGarden();
     const nav = await screen.findByRole("navigation", { name: "나의 기록 종류" });
     expect(within(nav).getByRole("link", { name: "형광펜 3" })).toHaveAttribute("href", "/hoondok/records");
-    expect(within(nav).getByRole("link", { name: "북마크 1" })).toHaveAttribute(
-      "href",
-      "/hoondok/records?tab=bookmark",
-    );
+    expect(within(nav).getAllByRole("link")).toHaveLength(2);
     expect(within(nav).getByRole("link", { name: "노트 1" })).toHaveAttribute("href", "/hoondok/records?tab=note");
     expect(libraryAPI.highlights).toHaveBeenCalledWith();
-    expect(libraryAPI.marks).toHaveBeenCalledWith({ excerpt: true });
     const latest = screen.getByRole("link", { name: /최근 형광펜/ });
     expect(latest).toHaveAttribute("href", wordsHref(VOLUME, "c12"));
     expect(latest.querySelector("mark.hl-3")).toHaveTextContent("단락 12 고른 구절");
@@ -312,40 +274,29 @@ describe("정원 '나의 기록' 섹션", () => {
   });
 
   it("원문이 막힌 최근 형광펜은 quote 대신 안내만 두고 링크를 숨긴다", async () => {
-    loggedIn([highlight({ id: "h1", chunk_id: "c1", start_chunk_index: 0, quote: "숨길 구절", readable: false })], []);
+    loggedIn([highlight({ id: "h1", chunk_id: "c1", start_chunk_index: 0, quote: "숨길 구절", readable: false })]);
     renderGarden();
     expect(await screen.findByText("원문 공개 확인 중")).toBeInTheDocument();
     expect(screen.queryByText("숨길 구절")).toBeNull();
     expect(screen.queryByRole("link", { name: /최근 형광펜/ })).toBeNull();
   });
 
-  it("형광펜이 상한(500)이면 '+' 를 붙이고 북마크 수는 그대로 센다", async () => {
+  it("형광펜이 상한(500)이면 '+' 를 붙인다", async () => {
     loggedIn(manyHighlights(500));
     renderGarden();
     expect(await screen.findByRole("link", { name: "형광펜 500+" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "북마크 1" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "노트 0" })).toBeInTheDocument();
   });
 
-  it("북마크가 상한(200)이면 북마크에만 '+' 를 붙인다", async () => {
-    loggedIn(
-      HIGHLIGHTS,
-      Array.from({ length: 200 }, (_, index) => bookmark({ chunk_id: `b${index}`, chunk_index: index })),
-    );
-    renderGarden();
-    expect(await screen.findByRole("link", { name: "북마크 200+" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "형광펜 3" })).toBeInTheDocument();
-  });
-
   it("기록이 없으면 문구와 서고 입구만, 불러오지 못하면 다시 시도", async () => {
-    loggedIn([], []);
+    loggedIn([]);
     renderGarden();
     expect(await screen.findByRole("heading", { name: "아직 남긴 기록이 없어요" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "말씀 서고로 가기" })).toHaveAttribute("href", "/hoondok/library");
     expect(screen.queryByRole("navigation", { name: "나의 기록 종류" })).toBeNull();
   });
 
-  it("형광펜 목록이 실패해도 정원의 나머지는 보이고 다시 시도하면 실패한 목록만 다시 부른다", async () => {
+  it("형광펜 목록이 실패해도 정원의 나머지는 보이고 다시 시도하면 다시 부른다", async () => {
     loggedIn();
     vi.mocked(libraryAPI.highlights).mockRejectedValue(new Error("down"));
     renderGarden();
@@ -356,15 +307,6 @@ describe("정원 '나의 기록' 섹션", () => {
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(await screen.findByRole("link", { name: "형광펜 3" })).toBeInTheDocument();
     expect(libraryAPI.highlights).toHaveBeenCalledTimes(2);
-    expect(libraryAPI.marks).toHaveBeenCalledTimes(1);
-  });
-
-  it("북마크 목록만 실패해도 기록 전체를 오류로 둔다 — 수가 틀리지 않게", async () => {
-    loggedIn();
-    vi.mocked(libraryAPI.marks).mockRejectedValue(new Error("down"));
-    renderGarden();
-    expect(await screen.findByRole("heading", { name: "기록을 불러오지 못했어요" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /형광펜/ })).toBeNull();
   });
 
   it("비로그인은 기록 목록을 부르지 않는다", async () => {
@@ -372,7 +314,6 @@ describe("정원 '나의 기록' 섹션", () => {
     renderGarden();
     expect(await screen.findByRole("link", { name: "시작하기" })).toBeInTheDocument();
     expect(libraryAPI.highlights).not.toHaveBeenCalled();
-    expect(libraryAPI.marks).not.toHaveBeenCalled();
   });
 });
 
@@ -415,16 +356,17 @@ describe("나의 기록 화면", () => {
     expect(within(screen.getByRole("tabpanel")).getAllByRole("link")).toHaveLength(1);
   });
 
-  it("북마크 탭은 발췌를 보이고 색 칩이 없다", async () => {
+  it("종류 탭은 형광펜·노트 둘이고 예전 북마크 탭 링크는 형광펜 탭으로 연다", async () => {
     searchParams = new URLSearchParams("tab=bookmark");
     loggedIn();
     renderRecords();
-    await screen.findByRole("tab", { name: "북마크 1" });
-    expect(screen.queryByRole("group", { name: "형광펜 색" })).toBeNull();
-    const links = within(screen.getByRole("tabpanel")).getAllByRole("link");
-    expect(links).toHaveLength(1);
-    expect(links[0]).toHaveAttribute("href", wordsHref(VOLUME, "c3"));
-    expect(links[0]).toHaveTextContent("단락 3 원문 발췌");
+    const tabs = await screen.findByRole("tablist", { name: "기록 종류" });
+    expect(
+      within(tabs)
+        .getAllByRole("tab")
+        .map((tab) => tab.textContent),
+    ).toEqual(["형광펜 3", "노트 1"]);
+    expect(within(tabs).getByRole("tab", { name: "형광펜 3" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("권을 고르면 목차 장 머리 아래 원문 순서(단락, 글자 위치)로 놓는다", async () => {
@@ -450,19 +392,16 @@ describe("나의 기록 화면", () => {
   });
 
   it("원문이 막힌 권의 형광펜은 quote·링크 대신 '원문 공개 확인 중' 이고 내 노트는 남는다", async () => {
-    loggedIn(
-      [
-        highlight({
-          id: "h1",
-          chunk_id: "c1",
-          start_chunk_index: 0,
-          quote: "숨길 구절",
-          note: "내 노트",
-          readable: false,
-        }),
-      ],
-      [bookmark({ chunk_id: "c5", chunk_index: 4, excerpt: null })],
-    );
+    loggedIn([
+      highlight({
+        id: "h1",
+        chunk_id: "c1",
+        start_chunk_index: 0,
+        quote: "숨길 구절",
+        note: "내 노트",
+        readable: false,
+      }),
+    ]);
     renderRecords();
     const panel = await screen.findByRole("tabpanel");
     expect(within(panel).getByText("원문 공개 확인 중")).toBeInTheDocument();
@@ -476,20 +415,19 @@ describe("나의 기록 화면", () => {
     renderRecords();
     expect(await screen.findByRole("tab", { name: "형광펜 500+" })).toBeInTheDocument();
     expect(screen.getByText("최근 형광펜 500개까지 모아 보여요.")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "북마크 1" })).toBeInTheDocument();
     // 칩 수도 상한 안의 수라 "+" 를 붙인다 — 탭만 500+ 이고 칩이 500 이면 전부인 것처럼 읽힌다
     expect(screen.getByRole("button", { name: "노랑 500+" })).toBeInTheDocument();
   });
 
   it("빈 기록 · 빈 탭 · 오류 · 비로그인", async () => {
-    loggedIn([], []);
+    loggedIn([]);
     const { unmount } = renderRecords();
     expect(await screen.findByRole("heading", { name: "아직 남긴 기록이 없어요" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "말씀 서고로 가기" })).toHaveAttribute("href", "/hoondok/library");
     unmount();
 
     searchParams = new URLSearchParams("tab=note");
-    loggedIn([highlight({ id: "h1", chunk_id: "c1", start_chunk_index: 0 })], []);
+    loggedIn([highlight({ id: "h1", chunk_id: "c1", start_chunk_index: 0 })]);
     const second = renderRecords();
     expect(await screen.findByRole("heading", { name: "아직 남긴 노트가 없어요" })).toBeInTheDocument();
     second.unmount();
@@ -565,6 +503,5 @@ describe("이 기기에만 있는 기록", () => {
     await screen.findByRole("link", { name: "시작하기" });
     expect(screen.getByRole("link", { name: /오늘의 한 줄 1개/ })).toHaveAttribute("href", "/hoondok/records/device");
     expect(libraryAPI.highlights).not.toHaveBeenCalled();
-    expect(libraryAPI.marks).not.toHaveBeenCalled();
   });
 });

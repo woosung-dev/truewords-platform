@@ -164,8 +164,8 @@ test("장 목차로 이동하고 기기 이어 읽기로 마지막 구간에 복
   await expect(page.getByRole("article", { name: "원문 본문" })).toContainText("21번째 합성 문장");
 });
 
-// 기록(형광펜·북마크·이어 읽기)은 로그인 계정에 남고 새로고침·다른 화면에서도 같은 값을 본다.
-test("단락 형광펜은 새로고침 뒤에도 남고 북마크는 서고에 모인다", async ({ page }) => {
+// 기록(형광펜·이어 읽기)은 로그인 계정에 남고 새로고침·다른 화면에서도 같은 값을 본다.
+test("단락 형광펜은 새로고침 뒤에도 남고 이어 읽기는 서고에 모인다", async ({ page }) => {
   await signUp(page, "library");
   await page.goto(wordsPath);
   await page.getByRole("button", { name: "단락 1 표시하기" }).click();
@@ -177,14 +177,13 @@ test("단락 형광펜은 새로고침 뒤에도 남고 북마크는 서고에 �
   await page.reload();
   await expect(page.locator("mark.hl-2")).toContainText("1번째 합성 문장");
 
+  // 북마크는 없다 — 모아 두기는 형광펜·메모가 맡는다
   await page.getByRole("button", { name: "단락 2 표시하기" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "북마크", exact: true }).click();
-  await expect(page.getByRole("dialog").getByRole("button", { name: "북마크 해제" })).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("button", { name: /북마크/ })).toHaveCount(0);
   await page.getByRole("dialog").getByRole("button", { name: "닫기" }).click();
 
   await page.goto("/hoondok/library");
-  await expect(page.getByRole("heading", { name: "북마크", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: /단락 2$/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "북마크", exact: true })).toHaveCount(0);
   // 이어 읽기는 서버 값으로 바뀐다 — 원문을 연 페이지의 첫 단락이 기준이다(홈 카드와 같은 문구)
   await expect(page.getByText("355권 · 1단락부터 이어 읽어요")).toBeVisible();
 });

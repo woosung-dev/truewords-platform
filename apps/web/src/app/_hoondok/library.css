@@ -579,7 +579,7 @@
     margin-top: 10px;
   }
 
-  /* 단락 시트 : 이 단락부터 듣기 · 북마크 · 단락 전체 칠하기. 긴 단락은 머리 4줄만 보인다 */
+  /* 단락 시트 : 이 단락부터 듣기 · 단락 전체 칠하기. 긴 단락은 머리 4줄만 보인다 */
   .rd-sheet__quote {
     font-family: var(--font-scripture);
     font-size: var(--fs-md);
@@ -726,7 +726,7 @@
     text-decoration: underline;
     text-underline-offset: 0.2em;
   }
-  /* 검색·북마크로 도착한 단락 —한 번 옅게 번졌다 사라진다(형광펜처럼 남지 않는다). 동작 줄이기에서는 전역 규칙이 끈다 */
+  /* 검색·나의 기록으로 도착한 단락 —한 번 옅게 번졌다 사라진다(형광펜처럼 남지 않는다). 동작 줄이기에서는 전역 규칙이 끈다 */
   .verse--arrive {
     position: relative;
   }

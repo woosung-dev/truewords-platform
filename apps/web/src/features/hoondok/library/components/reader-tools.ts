@@ -1,5 +1,4 @@
 // 원문 뷰 읽기 도구 세 가지. 폰·태블릿은 하단 독(ReaderDock), ≥1024px 은 본문 위 가로 툴바(ReaderBar)가 같은 목록을 쓴다.
-// 북마크는 단락 번호 → 단락 시트에서만 한다 — 도구에서는 단락을 먼저 골라야 해 눌러도 반응이 없어 보였다.
 import { Highlighter, List, NotebookPen } from "lucide-react";
 
 export type ReaderAction = "highlight" | "note" | "toc";

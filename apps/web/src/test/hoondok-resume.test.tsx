@@ -21,7 +21,6 @@ vi.mock("@/features/hoondok/library/api", async (original) => ({
     sections: vi.fn(),
     readingPositions: vi.fn(),
     saveReadingPosition: vi.fn(),
-    marks: vi.fn(),
   },
 }));
 vi.mock("@/features/identity/api", () => ({ identityAPI: { me: vi.fn() } }));
@@ -234,7 +233,6 @@ beforeEach(() => {
   vi.mocked(libraryAPI.list).mockResolvedValue({ items: [ITEM], works: [] });
   vi.mocked(libraryAPI.sections).mockResolvedValue({ volume: VOLUME, sections: SECTIONS });
   vi.mocked(libraryAPI.readingPositions).mockResolvedValue({ items: [] });
-  vi.mocked(libraryAPI.marks).mockResolvedValue({ items: [] });
 });
 
 describe("홈 이어 읽기 카드", () => {
