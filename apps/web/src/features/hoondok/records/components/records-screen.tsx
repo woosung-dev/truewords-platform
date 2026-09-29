@@ -89,10 +89,12 @@ function Loading() {
 function ColorChips({
   items,
   filter,
+  isCapped,
   onPick,
 }: {
   items: readonly RecordEntry[];
   filter: RecordsFilter;
+  isCapped: boolean;
   onPick: (next: Partial<RecordsFilter>) => void;
 }) {
   const counts = colorCounts(applyFilter(items, filter, "color"));
@@ -115,7 +117,7 @@ function ColorChips({
           onClick={() => onPick({ color: filter.color === color ? null : color })}
         >
           <span className={`rc-sw rc-sw--${color}`} aria-hidden="true" />
-          {COLOR_NAME[color]} <small>{counts[color]}</small>
+          {COLOR_NAME[color]} <small>{formatCount(counts[color], isCapped)}</small>
         </button>
       ))}
     </div>
@@ -125,9 +127,11 @@ function ColorChips({
 function VolumeChips({
   items,
   filter,
+  isCapped,
   onPick,
 }: {
   items: readonly RecordEntry[];
+  isCapped: boolean;
   filter: RecordsFilter;
   onPick: (next: Partial<RecordsFilter>) => void;
 }) {
@@ -156,7 +160,7 @@ function VolumeChips({
           aria-pressed={filter.volume === group.volume}
           onClick={() => onPick({ volume: filter.volume === group.volume ? null : group.volume })}
         >
-          {group.title} <small>{group.count}</small>
+          {group.title} <small>{formatCount(group.count, isCapped)}</small>
         </button>
       ))}
     </div>
@@ -231,8 +235,10 @@ function RecordsBody({ records }: { records: RecordSet }) {
           </div>
         ) : (
           <>
-            {filter.tab !== "bookmark" && <ColorChips items={items} filter={filter} onPick={pick} />}
-            <VolumeChips items={items} filter={filter} onPick={pick} />
+            {filter.tab !== "bookmark" && (
+              <ColorChips items={items} filter={filter} isCapped={capped[filter.tab]} onPick={pick} />
+            )}
+            <VolumeChips items={items} filter={filter} isCapped={capped[filter.tab]} onPick={pick} />
             <div className="sect">
               <div className="sect__head">
                 <h2 className="sect__title">{filter.volume ? (volumeName ?? filter.volume) : "최근 남긴 순"}</h2>
