@@ -349,6 +349,7 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 | 2026-09-28 | API-HD-020 에서 알림 문구 수준 필드(중립·신앙) 제거 — 오버 스펙, 알림 문구는 중립 문구 하나. PUT 에 옛 필드가 오면 422 대신 버린다 | 확정 · PLAN-HD-006 §8 |
 | 2026-09-29 | API-HD-009 GET 에 `last_ended` 추가(하위 호환). 마친 정성은 주제·각오·기간만 돌려주고 완료한 날 수는 보내지 않는다 — 빠진 날을 드러내지 않는다. 가장 최근에 끝난 기간이 그만둔 기간이면 마무리 카드가 없다 | 확정 |
 | 2026-09-29 | API-HD-009 에 `resolution`(나의 각오, 선택 50자) 추가 — 새 자유 텍스트라 본인 응답에만 담고 모임·가족·관리자 응답에는 넣지 않는다. 수정 API 없음, 계정 삭제 시 기간과 함께 삭제 | 확정(사용자 승인) |
+| 2026-09-29 | C1 기록 화면(정원 '나의 기록'·`/hoondok/records`)은 형광펜·노트를 API-HD-053 에서 읽는다(북마크는 API-HD-026 `excerpt=true`). 수의 상한은 목록마다 따로(형광펜 500·북마크 200)라 한쪽이 차도 다른 쪽 수는 그대로다. 원문이 막힌 권을 가리려고 API-HD-053 에 `readable` 을 추가했다(하위 호환) | 확정 · `readable` 기준 `[가정]` |
 
 ---
 
@@ -517,6 +518,7 @@ Qdrant 원본 그대로이고 AI 설명·인용은 계속 `text` 를 쓴다. `di
 - `GET /hoondok/me/highlights?volume=&limit=` — `updated_at` 최신순, 본인 것만. `limit` 은 1~500, 기본 500.
   항목은 `{ id, volume, chunk_id, start_chunk_index, start_offset, end_chunk_index, end_offset, quote,
   color, note, created_at, updated_at, work_title, label }`.
+- 항목에 `readable: bool` 이 **추가만** 된다(하위 호환, POST·PATCH 응답도 같다) — 원문(`scope_full_text`)이 열린 권이면 `true`. 닫힌 권의 형광펜도 목록에 그대로 나오고 `quote` 도 바뀌지 않으며, 나의 기록은 `false` 면 `quote`·원문 링크 대신 "원문 공개 확인 중" 만 보인다.
 - `POST /hoondok/me/highlights` body `{ volume, chunk_id, start_chunk_index, start_offset, end_chunk_index,
   end_offset, quote, color, note? }` — 201로 만든 항목을 낸다. 끝이 시작보다 앞이거나 같음·다른 페이지·
   색 범위 밖·빈 `quote` 는 422, 원문이 허용되지 않은 권은 404.

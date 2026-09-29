@@ -3090,6 +3090,11 @@
             "title": "Quote",
             "type": "string"
           },
+          "readable": {
+            "default": false,
+            "title": "Readable",
+            "type": "boolean"
+          },
           "start_chunk_index": {
             "title": "Start Chunk Index",
             "type": "integer"

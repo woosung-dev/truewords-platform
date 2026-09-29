@@ -1844,6 +1844,10 @@ export type HighlightItem = {
      */
     quote: string;
     /**
+     * Readable
+     */
+    readable?: boolean;
+    /**
      * Start Chunk Index
      */
     start_chunk_index: number;

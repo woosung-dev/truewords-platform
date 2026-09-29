@@ -84,6 +84,11 @@ class LibraryService:
     def _is_visible(right: ContentRight) -> bool:
         return right.status == "allowed" and (right.scope_search or right.scope_full_text)
 
+    @staticmethod
+    def _is_full_text(right: ContentRight | None) -> bool:
+        """원문(full_text)까지 열린 권 — `_readable`·표시 발췌와 같은 기준. 형광펜 `readable` 이 쓴다."""
+        return right is not None and right.status == "allowed" and right.scope_full_text
+
     async def _readable(self, volume: str) -> ContentRight:
         """원문(full_text)이 열린 권만 통과. 아니면 존재 자체를 알리지 않는 404."""
         for right in await self._rights():
@@ -330,7 +335,9 @@ class LibraryService:
     # --- API-HD-053 구절 형광펜 ----------------------------------------------
 
     @staticmethod
-    def _highlight_item(row: PassageHighlight, work_title: str, label: str) -> HighlightItem:
+    def _highlight_item(
+        row: PassageHighlight, work_title: str, label: str, readable: bool
+    ) -> HighlightItem:
         return HighlightItem(
             id=str(row.id),
             volume=row.volume,
@@ -346,17 +353,20 @@ class LibraryService:
             updated_at=row.updated_at,
             work_title=work_title,
             label=label,
+            readable=readable,
         )
 
     async def list_highlights(
         self, user_id: uuid.UUID, volume: str | None, limit: int
     ) -> HighlightsResponse:
+        """권리가 닫힌 권의 형광펜도 목록에서 빼지 않는다(원문 뷰 동작 유지) — `readable` 만 false 로 알린다."""
         rows = await self.repo.list_highlights(user_id, volume, limit)
         rights = await self._rights_by_volume()
         items = []
         for row in rows:
             work_title, _series, label = self._label_of(row.volume, rights)
-            items.append(self._highlight_item(row, work_title, label))
+            readable = self._is_full_text(rights.get(row.volume))
+            items.append(self._highlight_item(row, work_title, label, readable))
         return HighlightsResponse(items=items)
 
     async def create_highlight(self, user_id: uuid.UUID, data: HighlightInput) -> HighlightItem:
@@ -377,7 +387,10 @@ class LibraryService:
         )
         series = right.book_series or None
         return self._highlight_item(
-            row, right.work_title, volume_label(row.volume, series or "", right.work_title)
+            row,
+            right.work_title,
+            volume_label(row.volume, series or "", right.work_title),
+            readable=True,  # _readable 을 통과했다
         )
 
     async def update_highlight(
@@ -393,8 +406,11 @@ class LibraryService:
             row.note = _clean_note(data.note)
         row.updated_at = _utcnow()
         row = await self.repo.save_highlight(row)
-        work_title, _series, label = self._label_of(row.volume, await self._rights_by_volume())
-        return self._highlight_item(row, work_title, label)
+        rights = await self._rights_by_volume()
+        work_title, _series, label = self._label_of(row.volume, rights)
+        return self._highlight_item(
+            row, work_title, label, self._is_full_text(rights.get(row.volume))
+        )
 
     async def delete_highlight(self, user_id: uuid.UUID, highlight_id: uuid.UUID) -> None:
         await self.repo.delete_highlight(user_id, highlight_id)

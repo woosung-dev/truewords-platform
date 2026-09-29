@@ -183,6 +183,8 @@ class HighlightItem(BaseModel):
     updated_at: datetime
     work_title: str
     label: str
+    # 원문(full_text)이 열린 권인지. 나의 기록은 false 면 quote·원문 링크를 가린다. 모르면 닫힌 쪽(false)으로 둔다.
+    readable: bool = False
 
 
 class HighlightsResponse(BaseModel):

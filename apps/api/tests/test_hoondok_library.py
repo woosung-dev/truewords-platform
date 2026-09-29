@@ -960,6 +960,57 @@ async def test_highlight_404_when_full_text_not_allowed(ctx: TestClient):
     assert (await session.execute(select(PassageHighlight))).scalars().all() == []
 
 
+@pytest.mark.asyncio
+async def test_highlight_readable_follows_full_text_right(ctx: TestClient):
+    """`readable` 은 원문(full_text)이 열린 권인지다 — 나의 기록이 quote·원문 링크를 가릴지 정한다.
+
+    권리가 닫혀도 목록에서 빼지 않고(원문 뷰 동작 그대로) `readable` 만 false 로 알린다.
+    """
+    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
+    right = await add_right(session, "천성경.docx")
+    await add_right(session, "검색만.docx", scope_full_text=False)
+    await add_right(session, "철회.docx", status="withdrawn")
+    user = await login(ctx)
+    created = ctx.post("/hoondok/me/highlights", json=HIGHLIGHT, headers=XHR)
+    assert created.status_code == 201 and created.json()["readable"] is True
+
+    # 권리가 닫히기 전에 남긴 형광펜 — 검색만 열린 권·철회된 권·원장에 없는 권
+    session.add_all(
+        [
+            PassageHighlight(
+                user_id=user.id,
+                volume=volume,
+                chunk_id="c-1",
+                start_chunk_index=1,
+                start_offset=0,
+                end_chunk_index=1,
+                end_offset=3,
+                quote="말씀을",
+                color=2,
+            )
+            for volume in ("검색만.docx", "철회.docx", "없음.docx")
+        ]
+    )
+    await session.commit()
+    items = ctx.get("/hoondok/me/highlights").json()["items"]
+    assert {i["volume"]: i["readable"] for i in items} == {
+        "천성경.docx": True,
+        "검색만.docx": False,
+        "철회.docx": False,
+        "없음.docx": False,
+    }
+    # 기존 필드는 그대로다 — quote 를 가리는 일은 나의 기록 화면이 한다
+    assert all(i["quote"] for i in items)
+
+    # 권리를 거두면 PATCH 응답도 false
+    right.scope_full_text = False
+    await session.commit()
+    patched = ctx.patch(
+        f"/hoondok/me/highlights/{created.json()['id']}", json={"color": 3}, headers=XHR
+    )
+    assert patched.status_code == 200 and patched.json()["readable"] is False
+
+
 # --- API-HD-027·028 admin ----------------------------------------------------
 
 

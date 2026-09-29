@@ -3,7 +3,6 @@
 // 나의 기록 (C1, `/hoondok/records?tab=&color=&volume=`). 종류 탭 · 색 칩 · 권 칩으로 좁히고, 권을 고르면
 // 목차(API-HD-024) 장 머리 아래에 원문 순서로 놓는다. URL 이 상태의 원본이라 원문을 보고 뒤로 오면 같은 칩이 골라져 있다.
 import { useQuery } from "@tanstack/react-query";
-import type { MarkItem } from "@truewords/api-client-ts/types";
 import { Highlighter } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,19 +17,21 @@ import {
   colorCounts,
   countRecords,
   formatCount,
-  isCapped,
+  HIGHLIGHTS_LIMIT,
   MARKS_LIMIT,
   marksOfTab,
   parseRecordsFilter,
   RECORD_TABS,
   RECORDS_PATH,
+  type RecordEntry,
+  type RecordSet,
   type RecordsFilter,
   type RecordTab,
   recordsHref,
   sectionGroups,
   volumeGroups,
 } from "../records";
-import { useRecordMarks } from "../use-records";
+import { useRecords } from "../use-records";
 import { RecordItem } from "./record-item";
 
 const LIBRARY_HREF = "/hoondok/library";
@@ -50,7 +51,9 @@ export function RecordsEmpty({ title, isNested = false }: { title: string; isNes
         <Highlighter size={28} />
       </span>
       <Heading className="empty__title">{title}</Heading>
-      <p className="empty__body">말씀 원문에서 단락을 누르면 형광펜·노트·북마크를 남길 수 있어요.</p>
+      <p className="empty__body">
+        말씀 원문에서 구절을 고르면 형광펜·노트를, 단락 번호를 누르면 북마크를 남길 수 있어요.
+      </p>
       <p className="gd-cta">
         <Link className="btn btn-line btn--sm" href={LIBRARY_HREF}>
           말씀 서고로 가기
@@ -88,7 +91,7 @@ function ColorChips({
   filter,
   onPick,
 }: {
-  items: readonly MarkItem[];
+  items: readonly RecordEntry[];
   filter: RecordsFilter;
   onPick: (next: Partial<RecordsFilter>) => void;
 }) {
@@ -124,7 +127,7 @@ function VolumeChips({
   filter,
   onPick,
 }: {
-  items: readonly MarkItem[];
+  items: readonly RecordEntry[];
   filter: RecordsFilter;
   onPick: (next: Partial<RecordsFilter>) => void;
 }) {
@@ -161,7 +164,7 @@ function VolumeChips({
 }
 
 /** 한 권: 장 머리 아래 원문 순서. 목차가 없거나(0건·404) 못 읽으면 머리 없이 원문 순서만 둔다. */
-function VolumeList({ volume, items }: { volume: string; items: MarkItem[] }) {
+function VolumeList({ volume, items }: { volume: string; items: RecordEntry[] }) {
   const sections = useQuery({
     queryKey: sectionsKey(volume),
     queryFn: ({ signal }) => libraryAPI.sections(volume, signal),
@@ -179,8 +182,8 @@ function VolumeList({ volume, items }: { volume: string; items: MarkItem[] }) {
         <div key={group.section?.position ?? `none-${index}`} className="rc-chap">
           {group.section && <h3 className="rc-chap__t">{group.section.title}</h3>}
           <ul className="rc-list">
-            {group.items.map((mark) => (
-              <RecordItem key={`${mark.chunk_id}:${mark.kind}`} mark={mark} showVolume={false} />
+            {group.items.map((entry) => (
+              <RecordItem key={entry.key} entry={entry} showVolume={false} />
             ))}
           </ul>
         </div>
@@ -189,15 +192,19 @@ function VolumeList({ volume, items }: { volume: string; items: MarkItem[] }) {
   );
 }
 
-function RecordsBody({ items }: { items: MarkItem[] }) {
+function RecordsBody({ records }: { records: RecordSet }) {
   const router = useRouter();
   const filter = parseRecordsFilter(useSearchParams());
   const pick = (next: Partial<RecordsFilter>) => router.replace(recordsHref({ ...filter, ...next }), { scroll: false });
-  const capped = isCapped(items);
+  const { items, capped } = records;
   const counts = countRecords(items);
   const tabItems = marksOfTab(items, filter.tab);
   const shown = applyFilter(items, filter);
   const volumeName = filter.volume ? volumeGroups(items).find((group) => group.volume === filter.volume)?.title : null;
+  const capNotice =
+    filter.tab === "bookmark"
+      ? `최근 북마크 ${MARKS_LIMIT}개까지 모아 보여요.`
+      : `최근 형광펜 ${HIGHLIGHTS_LIMIT}개까지 모아 보여요.`;
 
   return (
     <section className="col">
@@ -213,7 +220,7 @@ function RecordsBody({ items }: { items: MarkItem[] }) {
             className={filter.tab === tab.id ? "is-on" : undefined}
             onClick={() => pick({ tab: tab.id })}
           >
-            {tab.label} <span className="rc-n">{formatCount(counts[tab.id], capped)}</span>
+            {tab.label} <span className="rc-n">{formatCount(counts[tab.id], capped[tab.id])}</span>
           </button>
         ))}
       </div>
@@ -238,8 +245,8 @@ function RecordsBody({ items }: { items: MarkItem[] }) {
               ) : (
                 <div className="card rc-listcard">
                   <ul className="rc-list">
-                    {shown.map((mark) => (
-                      <RecordItem key={`${mark.chunk_id}:${mark.kind}`} mark={mark} showVolume />
+                    {shown.map((entry) => (
+                      <RecordItem key={entry.key} entry={entry} showVolume />
                     ))}
                   </ul>
                 </div>
@@ -248,7 +255,7 @@ function RecordsBody({ items }: { items: MarkItem[] }) {
           </>
         )}
       </div>
-      {capped && <p className="notice">최근 기록 {MARKS_LIMIT}개까지 모아 보여요.</p>}
+      {capped[filter.tab] && <p className="notice">{capNotice}</p>}
       <p className="notice">{PRIVATE_NOTICE}</p>
     </section>
   );
@@ -256,7 +263,7 @@ function RecordsBody({ items }: { items: MarkItem[] }) {
 
 export function RecordsScreen() {
   const { user, isLoading } = useCurrentUser();
-  const marks = useRecordMarks(Boolean(user));
+  const records = useRecords(Boolean(user));
 
   if (isLoading) return <Loading />;
 
@@ -280,18 +287,18 @@ export function RecordsScreen() {
       </section>
     );
 
-  if (marks.isError)
+  if (records.isError)
     return (
       <section className="col">
         <div className="card">
-          <RecordsError onRetry={() => void marks.refetch()} />
+          <RecordsError onRetry={records.refetch} />
         </div>
       </section>
     );
 
-  if (marks.isPending) return <Loading />;
+  if (!records.data) return <Loading />;
 
-  if (marks.data.items.length === 0)
+  if (records.data.items.length === 0)
     return (
       <section className="col">
         <div className="card">
@@ -301,5 +308,5 @@ export function RecordsScreen() {
       </section>
     );
 
-  return <RecordsBody items={marks.data.items} />;
+  return <RecordsBody records={records.data} />;
 }
