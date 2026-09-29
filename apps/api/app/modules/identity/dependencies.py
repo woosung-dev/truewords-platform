@@ -67,7 +67,7 @@ async def get_user_data_purgers(
 
     get_async_session 은 요청당 캐시되므로 UserRepository 와 같은 세션을 공유하고, 삭제는 사용자 저장 커밋에 묶인다.
     """
-    # library = reading_positions·passage_marks, groups = 모임원·한 줄·반응 + 리더 자동 이전 (PLAN-HD-010)
+    # library = reading_positions·passage_marks·passage_highlights, groups = 모임원·한 줄·반응 + 리더 자동 이전 (PLAN-HD-010)
     # cards = card_receipts (PLAN-HD-012)
     return [missions, jeongseong, notifications, library, groups, cards]
 
