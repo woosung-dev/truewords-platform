@@ -477,6 +477,8 @@ describe("나의 기록 화면", () => {
     expect(await screen.findByRole("tab", { name: "형광펜 500+" })).toBeInTheDocument();
     expect(screen.getByText("최근 형광펜 500개까지 모아 보여요.")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "북마크 1" })).toBeInTheDocument();
+    // 칩 수도 상한 안의 수라 "+" 를 붙인다 — 탭만 500+ 이고 칩이 500 이면 전부인 것처럼 읽힌다
+    expect(screen.getByRole("button", { name: "노랑 500+" })).toBeInTheDocument();
   });
 
   it("빈 기록 · 빈 탭 · 오류 · 비로그인", async () => {
