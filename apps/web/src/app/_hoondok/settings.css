@@ -207,6 +207,18 @@
   .st-time__fs:disabled .st-preset:active {
     transform: none;
   }
+  /* 꺼진 동안의 고른 칸 — 어느 칸인지는 남기되 강조색을 빼서 꺼진 상태가 먼저 보이게 한다 (회색 채움 + 회색 체크) */
+  .st-time__fs:disabled .st-preset[data-on] {
+    border-color: var(--ink-3);
+    background: var(--surface-2);
+  }
+  .st-time__fs:disabled .st-preset[data-on] .st-preset__k,
+  .st-time__fs:disabled .st-preset[data-on] .st-preset__v {
+    color: var(--ink-2);
+  }
+  .st-time__fs:disabled .st-preset[data-on] .st-preset__ck {
+    color: var(--ink-3);
+  }
   .st-custom {
     display: flex;
     align-items: center;
