@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { notificationsAPI } from "@/features/hoondok/notifications/api";
+import {
+  isPresetTime,
+  kstMinutesNow,
+  nearestPreset,
+  READ_TIME_PRESETS,
+} from "@/features/hoondok/notifications/presets";
 import { detectPushSupport, urlBase64ToUint8Array } from "@/features/hoondok/notifications/push-support";
 
 // PLAN-HD-006 — 알림 지원 판정(순수 함수)과 API 어댑터. React 없이 본다.
@@ -181,5 +187,44 @@ describe("notificationsAPI", () => {
       read_time: "06:30",
     });
     expect(prefs.subscription_count).toBe(1);
+  });
+});
+
+describe("추천 시각 4칸 · 가장 가까운 칸", () => {
+  const at = (time: string) => {
+    const [hour, minute] = time.split(":").map(Number);
+    return nearestPreset(hour * 60 + minute).time;
+  };
+
+  it("칸은 새벽·아침·점심·저녁 네 개이고 서버 기본값 06:00 은 칸에 없다(직접 정하기)", () => {
+    expect(READ_TIME_PRESETS.map((preset) => preset.time)).toEqual(["05:30", "07:30", "12:30", "21:30"]);
+    expect(isPresetTime("06:00")).toBe(false);
+    expect(isPresetTime("21:30")).toBe(true);
+  });
+
+  it("칸 시각 그대로면 그 칸, 그 사이는 가까운 칸", () => {
+    for (const preset of READ_TIME_PRESETS) expect(at(preset.time)).toBe(preset.time);
+    expect(at("06:29")).toBe("05:30");
+    expect(at("06:31")).toBe("07:30");
+    expect(at("11:00")).toBe("12:30");
+    expect(at("20:00")).toBe("21:30");
+  });
+
+  it("하루는 원이다 — 자정 무렵은 전날 저녁 칸이, 새벽 두세 시는 새벽 칸이 가깝다", () => {
+    expect(at("00:00")).toBe("21:30"); // 저녁까지 150분 · 새벽까지 330분
+    expect(at("23:59")).toBe("21:30");
+    expect(at("03:00")).toBe("05:30"); // 저녁에서 330분 · 새벽까지 150분
+  });
+
+  it("거리가 같으면 지금보다 앞선 칸 — 알림이 평소 읽는 때보다 먼저 오게", () => {
+    expect(at("06:30")).toBe("05:30"); // 60 · 60
+    expect(at("10:00")).toBe("07:30"); // 150 · 150
+    expect(at("17:00")).toBe("12:30"); // 270 · 270
+    expect(at("01:30")).toBe("21:30"); // 240 · 240, 자정을 넘어 앞선 칸
+  });
+
+  it("지금 시각은 기기 시간대가 아니라 KST 로 잰다", () => {
+    expect(kstMinutesNow(new Date("2026-09-28T22:45:00Z"))).toBe(7 * 60 + 45); // KST 9/29 07:45
+    expect(kstMinutesNow(new Date("2026-09-29T15:00:00Z"))).toBe(0); // KST 자정
   });
 });
