@@ -70,8 +70,10 @@ async def get_mission_repository(
 
 async def get_mission_service(
     repo: MissionLogRepository = Depends(get_mission_repository),
+    readings: DailyReadingRepository = Depends(get_hoondok_repository),
 ) -> MissionService:
-    return MissionService(repo)
+    # 연속일(API-HD-004)이 편성 없는 날을 건너뛰려고 편성 리포를 함께 받는다. 같은 요청 세션을 공유한다.
+    return MissionService(repo, readings)
 
 
 async def get_together_service(

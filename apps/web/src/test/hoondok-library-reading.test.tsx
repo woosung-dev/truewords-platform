@@ -1006,11 +1006,36 @@ describe("이어 읽기", () => {
     });
     show(LibraryPage());
     expect(await screen.findByRole("heading", { name: "이어 읽기" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /단락 43까지 읽었어요/ })).toHaveAttribute(
+    // 저장값은 마지막으로 연 구간의 첫 단락이다 — 홈 카드와 같은 "N단락부터" 문구
+    expect(screen.getByRole("link", { name: /001권 · 43단락부터 이어 읽어요/ })).toHaveAttribute(
       "href",
       `${wordsHref(VOLUME)}?page=3`,
     );
+    expect(screen.queryByText(/까지 읽었어요/)).toBeNull();
     expect(libraryAPI.saveReadingPosition).not.toHaveBeenCalled();
+  });
+  it("서버 기록이라도 원문 공개가 닫힌 권이면 이어 읽기를 만들지 않는다", async () => {
+    loggedIn();
+    vi.mocked(libraryAPI.list).mockResolvedValue({
+      items: [{ ...ITEM, scope_full_text: false }, OTHER],
+      works: [WORK],
+    });
+    vi.mocked(libraryAPI.readingPositions).mockResolvedValue({
+      items: [
+        {
+          volume: VOLUME,
+          chunk_index: 42,
+          updated_at: "2026-09-23T00:00:00Z",
+          work_title: "말씀선집 001권",
+          series: SERIES,
+          label: "001권",
+        },
+      ],
+    });
+    show(LibraryPage());
+    await screen.findByRole("link", { name: /문선명선생 말씀선집/ });
+    await waitFor(() => expect(libraryAPI.readingPositions).toHaveBeenCalled());
+    expect(screen.queryByRole("heading", { name: "이어 읽기" })).toBeNull();
   });
   it("서버가 비어 있고 기기에만 기록이 있으면 한 번 올린다", async () => {
     loggedIn();

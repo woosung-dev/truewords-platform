@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addDays, kstTodayIso } from "@/features/hoondok/dates";
 import type { DailyReading } from "@/features/hoondok/types";
@@ -83,7 +83,10 @@ describe("훈독 편성 목록", () => {
     const editLinks = screen.getAllByRole("link", { name: /편집/ });
     expect(editLinks).toHaveLength(2);
     expect(editLinks[0]).toHaveAttribute("href", "/hoondok/11111111-1111-1111-1111-111111111111/edit");
-    const createLinks = screen.getAllByRole("link", { name: /편성하기/ });
+    // 표 안의 링크만 센다 — 위 재고 배너에도 첫 빈 날 "편성하기" 버튼이 있다.
+    const createLinks = within(container.querySelector("tbody") as HTMLElement).getAllByRole("link", {
+      name: /편성하기/,
+    });
     expect(createLinks).toHaveLength(13);
     expect(createLinks[0]).toHaveAttribute("href", `/hoondok/new?date=${addDays(TODAY, 1)}`);
   });

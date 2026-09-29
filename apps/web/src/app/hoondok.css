@@ -334,6 +334,20 @@
     margin-top: 3px;
     display: block;
   }
+  /* 불러오는 중 자리 — 막대가 글자 한 줄(부모 line-height) 안에 들어가 내용이 와도 카드 높이가 그대로다 */
+  .mission__skel {
+    display: inline-block;
+    width: 11em;
+    max-width: 100%;
+    height: 0.9em;
+    vertical-align: middle;
+    border-radius: var(--r-xs);
+    background: var(--surface-2);
+  }
+  /* 불러오는 동안 제목은 두 줄(line-clamp 2 × line-height 1.35) 높이를 잡는다 — 긴 제목이 와도 카드가 커지지 않는다 */
+  .mission[data-pending] .mission__title {
+    min-height: 2.7em;
+  }
   .mission[data-done] .mission__ic {
     background: var(--ok-soft);
     color: var(--ok-strong);
@@ -373,6 +387,53 @@
   .check[disabled] {
     cursor: not-allowed;
     border-color: var(--line);
+  }
+
+  /* ---------- 3.1 편성 없는 날 (C3) ----------
+     홈 "오늘의 실천" 첫 줄은 누를 곳이 아니라 카드가 아닌 바탕 줄로 위계를 낮춘다. 두 줄까지 어절 단위로 줄바꿈된다.
+     훈독하기(/read) 빈 날의 다음 행동은 이어 읽기 카드(`.card.resume`, library.css) → 서고 버튼 순서로 쌓는다. */
+  .day-quiet {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    border-radius: var(--r);
+    background: var(--surface-2);
+  }
+  .day-quiet__ic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--ink-2);
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  .day-quiet__bd {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding-top: 1px;
+  }
+  .day-quiet__bd b {
+    font-size: var(--fs-md);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .day-quiet__bd span {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+    line-height: 1.55;
+  }
+  .day-go {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .day-go .card.resume {
+    min-height: 64px;
   }
 
   /* ---------- 4. 말씀 카드 · 출처 줄 (DES §2.2) ---------- */
@@ -504,7 +565,7 @@
     font-size: var(--fs-xs);
     color: var(--ink-2);
     flex: none;
-  }  /* 머리 오른쪽에 메타와 배지를 함께 둘 때의 묶음 */
+  } /* 머리 오른쪽에 메타와 배지를 함께 둘 때의 묶음 */
   .sect__side {
     display: flex;
     align-items: center;

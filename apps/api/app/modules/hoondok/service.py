@@ -73,9 +73,11 @@ class MissionService:
     def __init__(
         self,
         repo: MissionLogRepository,
+        readings: DailyReadingRepository,
         today_fn: Callable[[], date] = today_kst,
     ) -> None:
         self.repo = repo
+        self.readings = readings
         self.today_fn = today_fn
 
     async def complete(self, user_id: uuid.UUID, kind: MissionKind) -> MissionCompleteResponse:
@@ -91,7 +93,16 @@ class MissionService:
         kinds_today = await self.repo.kinds_on(user_id, today)
         read_dates = set(await self.repo.list_dates(user_id, "read"))
         flags = TodayFlags(read="read" in kinds_today, pray="pray" in kinds_today, study="study" in kinds_today)
-        return compute_summary(read_dates, today, flags)
+        return compute_summary(read_dates, today, flags, await self._unscheduled_days(read_dates, today))
+
+    async def _unscheduled_days(self, read_dates: set[date], today: date) -> set[date]:
+        """첫 완료일~오늘 중 편성 없는 날(행 없음·철회). 연속은 첫 완료일 전으로 이어질 수 없어 그 구간만 한 번에 읽는다."""
+        if not read_dates:
+            return set()
+        start = min(read_dates)
+        scheduled = await self.readings.list_scheduled_dates(start, today)
+        span = (today - start).days + 1
+        return {start + timedelta(days=i) for i in range(span)} - scheduled
 
     async def history(self, user_id: uuid.UUID, month: str | None) -> MonthHistoryResponse:
         """API-HD-010 월 기록. month 는 라우터가 `YYYY-MM` 형태를 검증하고, 연도 범위는 여기서 422 로 막는다."""

@@ -10,7 +10,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
 import type { HighlightItem, MarkItem, WordChunk } from "@truewords/api-client-ts/types";
-import { Bookmark, BookOpenText, NotebookPen } from "lucide-react";
+import { ArrowDown, Bookmark, BookOpenText, NotebookPen } from "lucide-react";
 import Link from "next/link";
 import { Fragment, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthorityBadge } from "@/components/hoondok";
@@ -141,7 +141,7 @@ function Verse({
   /** 오늘의 책갈피가 꽂힌 단락이면 카드 본문 (PLAN-HD-012) — 그 문장에 밑줄·여백 리본 */
   cardText?: string | null;
   cardRibbonRef?: RefObject<HTMLSpanElement | null>;
-  /** 검색·북마크로 들어온 단락 — 도착 순간에만 은은하게 번졌다 사라진다 */
+  /** 검색·북마크·이어 읽기로 들어온 단락 — 도착 순간에만 은은하게 번졌다 사라진다 */
   isArrival?: boolean;
   /** 검색으로 들어온 단락이면 검색어. 밑줄은 저장하지 않는 임시 표시다(형광펜 = 배경색과 구분) */
   searchQuery?: string;
@@ -229,11 +229,14 @@ export function WordsScreen({
   section,
   cardId,
   searchQuery,
+  isResume,
 }: {
   volume: string;
   page: number;
   chunkId?: string;
   section?: number;
+  /** 홈 이어 읽기 카드로 들어왔을 때(URL from=resume). 표시용이라 원문 API 로 보내지 않는다 */
+  isResume?: boolean;
   /** 검색 결과로 들어왔을 때의 검색어(URL q). 원문 API 로 보내지 않고 화면 표시에만 쓴다 */
   searchQuery?: string;
   /** 오늘의 책갈피에서 "책에 다시 꽂기" 로 왔을 때의 카드 id (PLAN-HD-012). chunk_id 단락 안 문장에 밑줄을 긋는다 */
@@ -294,6 +297,17 @@ export function WordsScreen({
   const tocStart = sections.data?.sections.find((item) => item.position === section)?.start_chunk_index ?? null;
   const citedIndex = chunkId ? (doc?.chunks.find((chunk) => chunk.chunk_id === chunkId)?.chunk_index ?? null) : null;
   const scrollTarget = tocStart ?? citedIndex;
+  // 이어 읽기는 구간 첫 단락이 도착 단락이다(저장값이 그 단락). 라벨이 화면 밖일 때만 라벨 자리로 내린다 —
+  // 이미 보이는데 내리면 위의 장 머리글이 앱바 뒤로 가려진다.
+  const resumeIndex = isResume ? firstChunkIndex : null;
+  useEffect(() => {
+    if (resumeIndex === null) return;
+    const label = document.getElementById("wd-resume");
+    if (!label) return;
+    const { top, bottom } = label.getBoundingClientRect();
+    if (top >= 0 && bottom <= window.innerHeight) return;
+    label.scrollIntoView?.({ block: "start" });
+  }, [resumeIndex]);
   useEffect(() => {
     if (scrollTarget === null || lastPage === null) return;
     const target = document.getElementById(`verse-${scrollTarget}`);
@@ -386,8 +400,12 @@ export function WordsScreen({
   const citedHasHit = Boolean(searchQuery && citedChunk && hasSearchHit(citedChunk.display_text, searchQuery));
 
   // 새 형광펜은 로그인 계정에만 남는다. 첫 사용 안내는 이 권에 형광펜이 하나도 없을 때만 보인다.
+  // 이어 읽기 도착에서는 띄우지 않는다 — 형광펜 조회가 원문보다 늦게 끝나면 안내가 라벨 위에 끼어들어
+  // 도착한 단락이 한 번 밀려 내려간다. 안내는 다음에 원문을 그냥 열 때 보인다.
   const isFirstHintShown =
-    !isHintDismissed && (isLoggedIn ? highlights.isSuccess && highlights.items.length === 0 : true);
+    !isHintDismissed &&
+    resumeIndex === null &&
+    (isLoggedIn ? highlights.isSuccess && highlights.items.length === 0 : true);
   const memoItem = memoTarget && "id" in memoTarget ? highlights.items.find((item) => item.id === memoTarget.id) : null;
 
   function openPassage(chunkKey: string) {
@@ -616,6 +634,14 @@ export function WordsScreen({
                   </button>
                 </p>
               )}
+              {resumeIndex !== null && (
+                <p className="wd-resume" id="wd-resume" role="status">
+                  <span className="wd-resume__lab">
+                    <ArrowDown size={15} aria-hidden="true" />
+                    여기서부터 이어 읽어요
+                  </span>
+                </p>
+              )}
               <HighlightLayer chunks={doc.chunks} items={highlights.items} actions={highlightActions}>
                 {doc.chunks.map((chunk) => {
                   const isCardChunk = wordsCard.card?.chunk_id === chunk.chunk_id;
@@ -630,7 +656,7 @@ export function WordsScreen({
                         onSelect={() => openPassage(chunk.chunk_id)}
                         cardText={isCardChunk ? wordsCard.card?.text : null}
                         cardRibbonRef={cardRibbonRef}
-                        isArrival={!cardId && chunk.chunk_id === chunkId}
+                        isArrival={(!cardId && chunk.chunk_id === chunkId) || chunk.chunk_index === resumeIndex}
                         searchQuery={searchMarksOn && chunk.chunk_id === chunkId ? searchQuery : undefined}
                       />
                       {isCardChunk && wordsCard.card && (

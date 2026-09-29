@@ -6,7 +6,14 @@ export default async function HoondokWordsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string; chunk_id?: string; section?: string; card?: string; q?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    chunk_id?: string;
+    section?: string;
+    card?: string;
+    q?: string;
+    from?: string;
+  }>;
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
   // Next.js 16 App Router 는 이 경로의 params 값을 URL 인코딩된 채 전달한다.
@@ -27,6 +34,7 @@ export default async function HoondokWordsPage({
       cardId={typeof query.card === "string" && query.card ? query.card : undefined}
       searchQuery={typeof query.q === "string" && query.q.trim() ? query.q.trim().slice(0, 200) : undefined}
       section={query.section !== undefined && Number.isSafeInteger(section) && section > 0 ? section : undefined}
+      isResume={query.from === "resume"}
     />
   );
 }
