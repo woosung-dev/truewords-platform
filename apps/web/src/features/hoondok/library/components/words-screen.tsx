@@ -1,15 +1,17 @@
 "use client";
 
-// SCR-PWA-009 원문 뷰. PLAN-HD-007 로 장 목차(API-HD-024)·단락 표시(API-HD-026)·이어 읽기(API-HD-025)·
-// AI 설명(§2-7)이 붙었다. 단락 단위는 Qdrant 청크이고(§2-12) 청크 안 부분 선택은 하지 않는다.
-// PLAN-HD-008 로 표시 텍스트(display_text)·본문 탭 선택·브라우저 음성 듣기(../tts)가 더해졌다.
+// SCR-PWA-009 원문 뷰. PLAN-HD-007 로 장 목차(API-HD-024)·북마크(API-HD-026)·이어 읽기(API-HD-025)·
+// AI 설명(§2-7)이 붙었다. 단락 단위는 Qdrant 청크다(§2-12).
+// PLAN-HD-008 로 표시 텍스트(display_text)·브라우저 음성 듣기(../tts)가 더해졌다.
 // PLAN-HD-011 로 듣기는 AI 목소리(단락 mp3)가 기본이고 브라우저 음성은 대체 경로다.
+// API-HD-053 로 형광펜·메모는 사용자가 고른 구절 단위다. 본문을 눌러 단락 시트를 여는 경로는 없앴다 — 글자 선택과
+// 다툰다. 단락 시트는 번호 버튼으로만 연다.
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
-import type { MarkItem, WordChunk } from "@truewords/api-client-ts/types";
+import type { HighlightItem, MarkItem, WordChunk } from "@truewords/api-client-ts/types";
 import { Bookmark, BookOpenText, Check, Highlighter, List, NotebookPen, Settings } from "lucide-react";
 import Link from "next/link";
-import { Fragment, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthorityBadge, HoondokButton } from "@/components/hoondok";
 import {
   CardMarkOverlay,
@@ -23,15 +25,43 @@ import { useMissionCompletion, useSummary } from "@/features/hoondok/use-mission
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { libraryAPI, verseNumber, type WordsQuery, wordsHref, wordsPageHref } from "../api";
+import { readHintDismissed, readLastColor, writeHintDismissed, writeLastColor } from "../highlight-prefs";
+import {
+  anchorHighlights,
+  type Decoration,
+  findWholeChunkHighlight,
+  type HighlightColor,
+  highlightInput,
+  inputFromItem,
+  MAX_QUOTE,
+  partsToRanges,
+  segmentChunk,
+  splitParagraphs,
+  type Segment as TextPiece,
+  type TextRange,
+  toHighlightColor,
+  wholeChunkRange,
+} from "../highlight-range";
 import { writeLastReading } from "../last-reading";
 import { hasSearchHit, markSearchTerms } from "../search-highlight";
 import { TtsBar } from "../tts/tts-bar";
 import { useReadAloud } from "../tts/use-read-aloud";
 import { type AiVoiceId, chunkAudioUrl } from "../tts/voice-api";
-import { useMarks, useMarkWriter, useSavedReadingPosition } from "../use-reading";
+import {
+  isPendingHighlight,
+  useHighlights,
+  useHighlightWriter,
+  useMarks,
+  useMarkWriter,
+  useSavedReadingPosition,
+} from "../use-reading";
 import { AiExplain } from "./ai-explain";
+import { type HighlightActions, HighlightLayer } from "./highlight-layer";
+import { HighlightNotes } from "./highlight-notes";
+import { HighlightGateSheet, MemoSheet } from "./memo-sheet";
 import { PassageSheet } from "./passage-sheet";
 import { ReaderSheet } from "./reader-sheet";
+import { ReaderToast, useReaderToast } from "./reader-toast";
 import { tocLabel, WordsToc } from "./words-toc";
 
 const SEGMENTS = [
@@ -42,6 +72,15 @@ const SEGMENTS = [
 type Segment = (typeof SEGMENTS)[number]["id"];
 
 type ReaderAction = "highlight" | "note" | "bookmark" | "toc";
+type Sheet = "passage" | "toc" | "memo" | "gate";
+/** 메모 시트 대상 — 새로 고른 구절(저장할 때 이 색으로 칠한다) 또는 이미 칠한 형광펜 */
+type MemoTarget = { range: TextRange; color: HighlightColor } | { id: string };
+
+const HIGHLIGHT_HINT = "칠할 구절을 길게 눌러 고르세요. PC에서는 끌어서 고를 수 있어요.";
+const PICK_VERSE_HINT = "먼저 단락 번호를 눌러 단락을 골라 주세요.";
+const SAVE_FAILED = "기록을 저장하지 못했어요. 연결을 확인하고 다시 시도해 주세요.";
+const TOO_LONG = "한 번에 4,000자까지 칠할 수 있어요. 조금 줄여서 골라 주세요.";
+const NO_DECORATIONS: Decoration[] = [];
 const READER_TOOLS = [
   { action: "highlight" as const, label: "형광펜", Icon: Highlighter },
   { action: "note" as const, label: "노트", Icon: NotebookPen },
@@ -107,11 +146,26 @@ function StudyComplete() {
   );
 }
 
-/** 단락 하나. 형광펜은 청크 전체를 감싼다 — 부분 선택은 검색·인용 체계(chunk_id)와 어긋난다(계획 §8).
- *  표시는 서버가 정리한 display_text(문단 "\n\n")이고, AI 설명·인용은 원본 text 를 쓴다. */
+/** 조각 하나. 형광펜(바깥) → 책갈피 카드 밑줄 → 검색어 밑줄(안쪽) 순서로 감싼다. */
+function PieceText({ piece }: { piece: TextPiece }) {
+  let node: ReactNode = piece.text;
+  if (piece.isSearchHit) node = <mark className="sq-hit">{node}</mark>;
+  if (piece.isCardMark) node = <span className="wd-card-ul">{node}</span>;
+  if (piece.highlight)
+    node = (
+      <mark className={`hl hl-${piece.highlight.color}`} data-hl-id={piece.highlight.id}>
+        {node}
+      </mark>
+    );
+  return node;
+}
+
+/** 단락 하나. 형광펜은 고른 구절만 감싼다(API-HD-053) — 구간 계산은 ../highlight-range 가 맡는다.
+ *  표시는 서버가 정리한 display_text(문단 "\n\n")이고, AI 설명·인용은 원본 text 를 쓴다.
+ *  문단 span 의 글자는 display_text 조각 그대로여야 한다 — 선택 → 오프셋 계산이 data-start 와 글자 수로 위치를 잡는다. */
 function Verse({
   chunk,
-  highlight,
+  decorations,
   isBookmarked,
   isSelected,
   isSpeaking,
@@ -122,7 +176,8 @@ function Verse({
   searchQuery,
 }: {
   chunk: WordChunk;
-  highlight: MarkItem | undefined;
+  /** 이 단락에 걸친 형광펜 구간 */
+  decorations: Decoration[];
   isBookmarked: boolean;
   isSelected: boolean;
   isSpeaking: boolean;
@@ -136,8 +191,26 @@ function Verse({
   searchQuery?: string;
 }) {
   const number = verseNumber(chunk.chunk_index);
-  const paragraphs = chunk.display_text.split("\n\n").filter(Boolean);
-  const marked = useMarkedParagraphs(chunk.display_text, cardText);
+  const text = chunk.display_text;
+  const marked = useMarkedParagraphs(text, cardText);
+  const pieces = useMemo(() => {
+    // 책갈피 카드 밑줄이 있는 단락에는 검색어 밑줄을 긋지 않는다(원래 규칙 그대로)
+    const extra: Decoration[] = marked
+      ? marked.paragraphs.flatMap((paragraph) =>
+          partsToRanges(paragraph.key, paragraph.parts, (part) => part.isMarked).map((range) => ({
+            kind: "card" as const,
+            ...range,
+          })),
+        )
+      : searchQuery
+        ? splitParagraphs(text).flatMap((paragraph) =>
+            partsToRanges(paragraph.start, markSearchTerms(paragraph.text, searchQuery), (part) => part.hit).map(
+              (range) => ({ kind: "search" as const, ...range }),
+            ),
+          )
+        : [];
+    return segmentChunk(text, extra.length ? [...decorations, ...extra] : decorations);
+  }, [text, decorations, marked, searchQuery]);
   const verseRef = useRef<HTMLParagraphElement>(null);
   const className = [
     "verse",
@@ -149,71 +222,45 @@ function Verse({
   ]
     .filter(Boolean)
     .join(" ");
-  // 본문 아무 데나 탭하면 시트가 열린다. 드래그로 글자를 고르는 중이면 열지 않는다(복사 방해 금지).
-  function handleBodyClick() {
-    if (window.getSelection()?.toString()) return;
-    onSelect();
-  }
   return (
-    // 키보드·스크린리더는 번호 버튼으로 연다 — 단락 클릭은 포인터 보조 경로다.
-    // biome-ignore lint/a11y/useKeyWithClickEvents: 같은 동작의 버튼(.verse__n)이 단락 안에 있다
-    <p className={className} id={`verse-${chunk.chunk_index}`} onClick={handleBodyClick} ref={verseRef}>
+    <p
+      className={className}
+      id={`verse-${chunk.chunk_index}`}
+      data-chunk-index={chunk.chunk_index}
+      data-chunk-id={chunk.chunk_id}
+      ref={verseRef}
+    >
       {marked && cardRibbonRef && (
         <CardMarkOverlay verseRef={verseRef} isMatched={marked.isMatched} ribbonRef={cardRibbonRef} />
       )}
       {/* 본문 전체를 버튼으로 만들면 긴 인용문이 링크 이름이 된다(DES §2.2) — 번호만 조작 대상이다 */}
-      <button
-        type="button"
-        className="verse__n"
-        aria-label={`단락 ${number} 표시하기`}
-        onClick={(event) => {
-          event.stopPropagation();
-          onSelect();
-        }}
-      >
+      <button type="button" className="verse__n" aria-label={`단락 ${number} 표시하기`} onClick={onSelect}>
         {number}
         {isBookmarked && <Bookmark size={12} aria-hidden="true" />}
       </button>
       <span className="verse__tx">
-        {marked?.paragraphs.map((paragraph) => {
-          const parts = paragraph.parts.map((part, index) =>
-            part.isMarked ? (
-              // biome-ignore lint/suspicious/noArrayIndexKey: 조각 순서가 곧 정체성이다
-              <span key={index} className="wd-card-ul">
-                {part.text}
-              </span>
-            ) : (
-              part.text
-            ),
-          );
-          return (
-            <span key={paragraph.key} className="verse__para">
-              {highlight?.color ? <mark className={`hl-${highlight.color}`}>{parts}</mark> : parts}
-            </span>
-          );
-        })}
-        {!marked &&
-          paragraphs.map((paragraph, index) => {
-            const text = searchQuery
-              ? markSearchTerms(paragraph, searchQuery).map((part, partIndex) =>
-                  part.hit ? (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: 조각 순서가 곧 본문 순서다
-                    <mark key={partIndex} className="sq-hit">
-                      {part.text}
-                    </mark>
-                  ) : (
-                    part.text
-                  ),
-                )
-              : paragraph;
-            return (
-              // 문단은 순서가 곧 정체성이다(서버 정리 결과가 바뀌면 청크 key 가 다시 그린다).
-              // biome-ignore lint/suspicious/noArrayIndexKey: 문단 목록은 재정렬되지 않는다
-              <span key={index} className="verse__para">
-                {highlight?.color ? <mark className={`hl-${highlight.color}`}>{text}</mark> : text}
-              </span>
-            );
-          })}
+        {pieces.map(({ paragraph, segments }) => (
+          <span key={paragraph.start} className="verse__para" data-start={paragraph.start}>
+            {segments.map((piece) => (
+              <Fragment key={piece.start}>
+                <PieceText piece={piece} />
+                {piece.memoAfter.map((id) => (
+                  // 메모 표지는 글자가 아니다 — 선택·오프셋 계산에서 빠지도록 data-hl-ui 로 표시한다
+                  <button
+                    key={id}
+                    type="button"
+                    className="hl-memo"
+                    data-hl-ui=""
+                    data-hl-memo={id}
+                    aria-label="메모 보기"
+                  >
+                    <NotebookPen size={14} aria-hidden="true" />
+                  </button>
+                ))}
+              </Fragment>
+            ))}
+          </span>
+        ))}
       </span>
     </p>
   );
@@ -240,8 +287,11 @@ export function WordsScreen({
   const wordsCard = useWordsCard(cardId, chunkId);
   const cardRibbonRef = useRef<HTMLSpanElement>(null);
   const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<"passage" | "toc" | null>(null);
+  const [sheet, setSheet] = useState<Sheet | null>(null);
+  const [memoTarget, setMemoTarget] = useState<MemoTarget | null>(null);
   const [hint, setHint] = useState<string | null>(null);
+  // 첫 사용 안내를 닫았는가(이 기기). 원문은 브라우저에서만 불러오므로 서버 렌더에는 이 안내가 없다.
+  const [isHintDismissed, setIsHintDismissed] = useState(readHintDismissed);
   const [showSearchMarks, setShowSearchMarks] = useState(true);
   const citedNoticeRef = useRef<HTMLParagraphElement>(null);
   const { user } = useCurrentUser();
@@ -265,6 +315,10 @@ export function WordsScreen({
 
   const marks = useMarks(volume, isLoggedIn);
   const writer = useMarkWriter();
+  const highlights = useHighlights(volume, isLoggedIn);
+  const toast = useReaderToast();
+  const showToast = toast.show;
+  const highlightWriter = useHighlightWriter(volume, () => showToast(SAVE_FAILED));
   const doc = query.isSuccess ? query.data : null;
   const firstChunkIndex = doc?.chunks[0]?.chunk_index ?? null;
   // 이어 읽기: 로그인은 서버(API-HD-025), 비로그인은 기기에 남긴다. 같은 값 반복 PUT 은 훅이 막는다.
@@ -292,6 +346,11 @@ export function WordsScreen({
 
   // 듣기: 단락(청크)마다 표시 텍스트를 읽는다. 구간이 바뀌면 멈추고 처음 상태로 돌아간다.
   const docChunks = doc?.chunks;
+  // 형광펜을 이 페이지 단락별 구간으로 — 다른 페이지 단락에 걸친 부분은 그리지 않는다
+  const decorationsByChunk = useMemo(
+    () => anchorHighlights(highlights.items, docChunks ?? []),
+    [highlights.items, docChunks],
+  );
   const speechParagraphs = useMemo(
     () => (docChunks ?? []).map((chunk) => ({ id: chunk.chunk_id, text: chunk.display_text })),
     [docChunks],
@@ -357,32 +416,138 @@ export function WordsScreen({
     ? (tocSections.find((item) => item.position === currentSection.position) ?? null)
     : null;
   const selectedChunk = doc.chunks.find((chunk) => chunk.chunk_id === selectedChunkId) ?? null;
-  const markOf = (chunk: string, kind: MarkItem["kind"]) =>
-    marks.find((mark) => mark.chunk_id === chunk && mark.kind === kind);
-  const noteMarks = marks.filter((mark) => mark.kind === "highlight" && mark.note);
+  const bookmarkOf = (chunk: string): MarkItem | undefined =>
+    marks.find((mark) => mark.chunk_id === chunk && mark.kind === "bookmark");
   const currentPath = `${wordsHref(volume)}?page=${doc.page}`;
+  const workTitle = doc.work_title;
   // 검색으로 들어온 경우에만 밑줄 안내를 보인다. 책갈피 카드로 들어온 단락은 카드 밑줄이 우선이다.
   const searchMarksOn = Boolean(searchQuery) && !cardId && showSearchMarks;
   const citedChunk = chunkId ? doc.chunks.find((chunk) => chunk.chunk_id === chunkId) : undefined;
   const citedHasHit = Boolean(searchQuery && citedChunk && hasSearchHit(citedChunk.display_text, searchQuery));
+
+  // 새 형광펜은 로그인 계정에만 남는다. 첫 사용 안내는 이 권에 형광펜이 하나도 없을 때만 보인다.
+  const isFirstHintShown =
+    !isHintDismissed && (isLoggedIn ? highlights.isSuccess && highlights.items.length === 0 : true);
+  const memoItem = memoTarget && "id" in memoTarget ? highlights.items.find((item) => item.id === memoTarget.id) : null;
 
   function openPassage(chunkKey: string) {
     setSelectedChunkId(chunkKey);
     setHint(null);
     setSheet("passage");
   }
+  function closeSheet() {
+    setSheet(null);
+    setMemoTarget(null);
+  }
   function handleReaderAction(action: ReaderAction) {
     if (action === "toc") {
       setSheet("toc");
       return;
     }
+    if (action === "highlight") {
+      setSegment("text");
+      setHint(HIGHLIGHT_HINT);
+      return;
+    }
+    if (action === "note") {
+      setHint(null);
+      setSegment("note");
+      return;
+    }
     if (!selectedChunkId) {
-      setHint("먼저 본문에서 단락을 눌러 골라 주세요.");
+      setHint(PICK_VERSE_HINT);
       return;
     }
     setHint(null);
     setSheet("passage");
   }
+
+  /** 지우고 5초 동안 되돌릴 수 있다 — 되돌리기는 메모까지 같은 값으로 다시 만든다. */
+  function eraseHighlight(item: HighlightItem) {
+    highlightWriter.remove.mutate(item.id);
+    showToast("형광펜을 지웠어요", {
+      label: "되돌리기",
+      run: () => highlightWriter.create.mutate(inputFromItem(item)),
+    });
+  }
+  async function copyQuote(quote: string, chunkIndex: number) {
+    const text = `${quote}\n\n${workTitle} · 단락 ${verseNumber(chunkIndex)}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast("복사했어요");
+    } catch {
+      showToast("복사하지 못했어요. 글자를 길게 눌러 직접 복사해 주세요.");
+    }
+  }
+  /** 단락 시트 "단락 전체 칠하기": 없으면 칠하고, 다른 색이면 바꾸고, 지금 색을 다시 누르면 지운다. */
+  function paintWholeChunk(chunk: WordChunk, color: HighlightColor) {
+    const current = findWholeChunkHighlight(highlights.items, chunk);
+    if (current && isPendingHighlight(current.id)) return;
+    if (current && toHighlightColor(current.color) === color) {
+      eraseHighlight(current);
+      return;
+    }
+    writeLastColor(color);
+    if (current) {
+      highlightWriter.update.mutate({ id: current.id, patch: { color } });
+      return;
+    }
+    const range = wholeChunkRange(chunk);
+    if (!range) return;
+    if (range.quote.length > MAX_QUOTE) {
+      showToast("이 단락은 너무 길어 전체를 칠할 수 없어요. 본문에서 구절을 골라 칠해 주세요.");
+      return;
+    }
+    highlightWriter.create.mutate(highlightInput(volume, range, color));
+  }
+  async function saveMemo(note: string): Promise<boolean> {
+    if (!memoTarget) return false;
+    try {
+      if ("range" in memoTarget)
+        await highlightWriter.create.mutateAsync(highlightInput(volume, memoTarget.range, memoTarget.color, note));
+      else await highlightWriter.update.mutateAsync({ id: memoTarget.id, patch: { note: note || null } });
+    } catch {
+      // 실패 알림은 쓰기 훅이 띄운다 — 시트는 열어 두어 적은 글을 지킨다
+      return false;
+    }
+    closeSheet();
+    showToast(note ? "메모를 저장했어요" : "메모를 지웠어요");
+    return true;
+  }
+  const highlightActions: HighlightActions = {
+    onCreate: (range, color) => {
+      if (!isLoggedIn) {
+        setSheet("gate");
+        return;
+      }
+      if (range.quote.length > MAX_QUOTE) {
+        showToast(TOO_LONG);
+        return;
+      }
+      writeLastColor(color);
+      highlightWriter.create.mutate(highlightInput(volume, range, color));
+    },
+    onOpenMemo: (target) => {
+      if (!isLoggedIn) {
+        setSheet("gate");
+        return;
+      }
+      if ("range" in target && target.range.quote.length > MAX_QUOTE) {
+        showToast(TOO_LONG);
+        return;
+      }
+      setMemoTarget("range" in target ? { range: target.range, color: readLastColor() } : target);
+      setSheet("memo");
+    },
+    onCopy: (quote, chunkIndex) => void copyQuote(quote, chunkIndex),
+    onRecolor: (item, color) => {
+      writeLastColor(color);
+      highlightWriter.update.mutate({ id: item.id, patch: { color } });
+    },
+    onErase: eraseHighlight,
+  };
+  // 모달 시트가 열려 있으면 바깥 알림은 누를 수 없다 — 열린 시트 안에 그린다
+  const toastNode = toast.toast && <ReaderToast toast={toast.toast} onDismiss={toast.dismiss} />;
 
   return (
     <section className="col col--read words">
@@ -481,15 +646,30 @@ export function WordsScreen({
                   )}
                 </p>
               )}
-              <article aria-label="원문 본문">
+              {isFirstHintShown && (
+                <p className="notice wd-hl-hint">
+                  글자를 길게 누르면 원하는 구절에 형광펜과 메모를 남길 수 있어요.
+                  <button
+                    className="notice__action"
+                    type="button"
+                    onClick={() => {
+                      writeHintDismissed();
+                      setIsHintDismissed(true);
+                    }}
+                  >
+                    알겠어요
+                  </button>
+                </p>
+              )}
+              <HighlightLayer chunks={doc.chunks} items={highlights.items} actions={highlightActions}>
                 {doc.chunks.map((chunk) => {
                   const isCardChunk = wordsCard.card?.chunk_id === chunk.chunk_id;
                   return (
                     <Fragment key={chunk.chunk_id}>
                       <Verse
                         chunk={chunk}
-                        highlight={markOf(chunk.chunk_id, "highlight")}
-                        isBookmarked={Boolean(markOf(chunk.chunk_id, "bookmark"))}
+                        decorations={decorationsByChunk.get(chunk.chunk_index) ?? NO_DECORATIONS}
+                        isBookmarked={Boolean(bookmarkOf(chunk.chunk_id))}
                         isSelected={chunk.chunk_id === selectedChunkId}
                         isSpeaking={chunk.chunk_index === speakingIndex}
                         onSelect={() => openPassage(chunk.chunk_id)}
@@ -504,7 +684,7 @@ export function WordsScreen({
                     </Fragment>
                   );
                 })}
-              </article>
+              </HighlightLayer>
               <nav className="words-pages" aria-label="원문 구간 이동">
                 {doc.page > 1 && (
                   <Link className="btn btn-line btn--sm" href={wordsPageHref(volume, doc.page - 1)}>
@@ -523,39 +703,13 @@ export function WordsScreen({
           )}
           {segment === "ai" && <AiExplain chunk={selectedChunk} />}
           {segment === "note" && (
-            <>
-              {!isLoggedIn ? (
-                <div className="empty">
-                  <span className="empty__ic">
-                    <NotebookPen size={26} aria-hidden="true" />
-                  </span>
-                  <p className="empty__title">로그인하면 기록이 남아요</p>
-                  <p className="empty__body">노트는 계정에 저장돼요. 로그인하면 이 권의 메모를 모아서 볼 수 있어요.</p>
-                  <Link className="btn btn-line btn--sm" href={onboardingHref(currentPath)}>
-                    로그인하기
-                  </Link>
-                </div>
-              ) : noteMarks.length === 0 ? (
-                <div className="empty">
-                  <span className="empty__ic">
-                    <NotebookPen size={26} aria-hidden="true" />
-                  </span>
-                  <p className="empty__title">이 권에 남긴 노트가 아직 없어요</p>
-                  <p className="empty__body">본문에서 단락을 누르면 형광펜과 함께 메모를 남길 수 있어요.</p>
-                </div>
-              ) : (
-                <ul className="rd-notes">
-                  {noteMarks.map((mark) => (
-                    <li key={mark.chunk_id}>
-                      <Link href={wordsHref(volume, mark.chunk_id)}>
-                        <span className="rd-notes__n">단락 {verseNumber(mark.chunk_index)}</span>
-                        <span className="rd-notes__tx">{mark.note}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
+            <HighlightNotes
+              volume={volume}
+              items={highlights.items}
+              isLoggedIn={isLoggedIn}
+              returnTo={currentPath}
+              onOpen={() => setSegment("text")}
+            />
           )}
         </div>
         <Link className="btn btn-line btn--sm" href="/hoondok/ask">
@@ -563,8 +717,9 @@ export function WordsScreen({
         </Link>
       </div>
       <ReaderBar modifier="reader--bottom" onAction={handleReaderAction} />
+      {sheet === null && toastNode}
       {sheet === "toc" && (
-        <ReaderSheet title={tocLabel(tocSections)} onClose={() => setSheet(null)}>
+        <ReaderSheet title={tocLabel(tocSections)} onClose={closeSheet} toast={toastNode}>
           <nav className="toc toc--sheet" aria-label={tocLabel(tocSections)}>
             <WordsToc
               volume={volume}
@@ -582,12 +737,14 @@ export function WordsScreen({
         <PassageSheet
           volume={volume}
           chunk={selectedChunk}
-          highlight={markOf(selectedChunk.chunk_id, "highlight")}
-          bookmark={markOf(selectedChunk.chunk_id, "bookmark")}
+          wholeHighlight={findWholeChunkHighlight(highlights.items, selectedChunk)}
+          bookmark={bookmarkOf(selectedChunk.chunk_id)}
           isLoggedIn={isLoggedIn}
           returnTo={currentPath}
           writer={writer}
-          onClose={() => setSheet(null)}
+          toast={toastNode}
+          onPaintWhole={(color) => paintWholeChunk(selectedChunk, color)}
+          onClose={closeSheet}
           onListenFrom={
             reader.isSupported && !reader.isResolving
               ? () => {
@@ -599,6 +756,20 @@ export function WordsScreen({
           }
         />
       )}
+      {sheet === "memo" && memoTarget && ("range" in memoTarget || memoItem) && (
+        <MemoSheet
+          key={"range" in memoTarget ? "new" : memoTarget.id}
+          quote={"range" in memoTarget ? memoTarget.range.quote : (memoItem?.quote ?? "")}
+          color={"range" in memoTarget ? memoTarget.color : toHighlightColor(memoItem?.color)}
+          chunkIndex={"range" in memoTarget ? memoTarget.range.startChunkIndex : (memoItem?.start_chunk_index ?? 0)}
+          initialNote={"range" in memoTarget ? "" : (memoItem?.note ?? "")}
+          isNew={"range" in memoTarget}
+          toast={toastNode}
+          onSave={saveMemo}
+          onClose={closeSheet}
+        />
+      )}
+      {sheet === "gate" && <HighlightGateSheet returnTo={currentPath} toast={toastNode} onClose={closeSheet} />}
     </section>
   );
 }
