@@ -609,13 +609,18 @@
     margin-top: 10px;
   }
 
-  /* 단락 시트 : 형광펜 3색 · 북마크 · 노트 */
+  /* 단락 시트 : 이 단락부터 듣기 · 북마크 · 단락 전체 칠하기. 긴 단락은 머리 4줄만 보인다 */
   .rd-sheet__quote {
     font-family: var(--font-scripture);
     font-size: var(--fs-md);
     line-height: 1.7;
     color: var(--ink-2);
     margin: 8px 0 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    overflow: hidden;
   }
   .rd-sheet__listen {
     margin-top: 14px;
@@ -641,10 +646,15 @@
     display: flex;
     gap: 8px;
   }
-  /* 색만으로 구분하지 않는다(§3.3) — 선택된 색은 테두리와 "선택됨" 글자가 함께 바뀐다 */
+  /* 색만으로 구분하지 않는다(§3.3) — 선택된 색은 테두리와 체크·"선택됨" 글자가 함께 바뀐다 */
   .rd-hl__sw {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
     min-width: 44px;
-    min-height: 36px;
+    min-height: 44px;
+    padding: 0 6px;
     border-radius: var(--r-sm);
     border: 1.5px solid var(--line);
     font-size: var(--fs-2xs);
@@ -663,26 +673,8 @@
   .rd-hl__sw--3 {
     background: var(--hl-3);
   }
-  .rd-sheet__note {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 18px;
-  }
-  .rd-sheet__note textarea {
-    font: inherit;
-    font-size: var(--fs-lg); /* iOS 확대 방지 */
-    color: var(--ink);
-    background: var(--surface);
-    border: 1.5px solid var(--ink-3);
-    border-radius: var(--r-sm);
-    padding: 12px 14px;
-    min-height: 88px;
-    width: 100%;
-  }
-  .rd-sheet__note textarea:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+  .rd-sheet__hint {
+    padding-top: 14px;
   }
   .rd-sheet__close {
     margin-top: 10px;
@@ -721,12 +713,6 @@
     font-size: var(--fs-xs);
     color: var(--ink-3);
   }
-  .rd-notes__tx {
-    font-size: var(--fs-md);
-    line-height: 1.65;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
 
   @media (min-width: 768px) {
     .shelf--works {
@@ -750,10 +736,6 @@
 /* 오디오 바는 DES §3(오디오 바 행)의 --ink 배경 + 흰 글자 · 반지름 --r 이다. 재생 버튼은 터치 타깃 44px 로 키웠다.
    진행 트랙·보조 글자의 흰 투명도는 hex 없이 color-mix 로 만든다(토큰 블록 밖 hex 금지). */
 [data-app="hoondok"] {
-  /* 단락 아무 데나 누르면 단락 시트가 열린다 — 누를 수 있다는 표시 */
-  .verse {
-    cursor: pointer;
-  }
   /* 원문 뷰 검색어 안내 — "밑줄 지우기" 는 글자 버튼이지만 누르는 영역은 44px 을 지킨다 */
   .notice--search {
     padding-top: 12px;
@@ -1059,5 +1041,310 @@
 @keyframes wd-skel-pulse {
   50% {
     opacity: 0.55;
+  }
+}
+
+/* ---------- API-HD-053 구절 형광펜 · 메모 ----------
+   본문 감싸개(.wd-body)가 떠 있는 도구의 기준점이라 도구가 글과 함께 스크롤된다. 도구는 오디오 바와 같은
+   --ink 바탕 + 흰 글자(16.05:1)이고 누르는 자리는 44px 이다. 모션은 피드백 하나(120ms 페이드 + 4px 떠오름)뿐이며
+   동작 줄이기에서는 hoondok.css 의 포괄 규칙이 끈다. 반투명 흰색은 hex 없이 color-mix 로 만든다. */
+[data-app="hoondok"] {
+  .wd-body {
+    position: relative;
+  }
+  /* 칠한 구절 — 줄이 바뀌어도 줄마다 칠이 이어진다. 누르면 형광펜 도구가 뜬다 */
+  mark.hl {
+    color: inherit;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    cursor: pointer;
+  }
+  /* 메모 표지 — 글자가 아니라 고르거나 복사되지 않는다. 보이는 원 28px, 누르는 자리는 ::after 로 44px */
+  .hl-memo {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: 0 2px;
+    vertical-align: middle;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    color: var(--ink-2);
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .hl-memo::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
+  .hl-memo:active {
+    background: var(--line);
+  }
+  .wd-hl-hint {
+    padding-top: 12px;
+  }
+
+  /* 고른 구절 도구 · 형광펜 도구. 자리를 잡기 전에는 보이지 않는다(highlight-layer.tsx 가 data-placement 를 단다) */
+  .hl-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: var(--r);
+    background: var(--ink);
+    color: var(--surface);
+    box-shadow: var(--shadow-2);
+    visibility: hidden;
+    animation: hl-bar-in 0.12s ease-out;
+  }
+  .hl-bar[data-placement] {
+    visibility: visible;
+  }
+  .hl-bar button {
+    border-radius: var(--r-sm);
+  }
+  .hl-bar button:active {
+    background: color-mix(in srgb, var(--surface) 12%, transparent);
+  }
+  .hl-bar button:focus-visible {
+    outline: 2px solid var(--surface);
+    outline-offset: -2px;
+  }
+  .hl-bar__sw {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    min-height: 48px;
+  }
+  .hl-bar__dot {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--r-full);
+    color: var(--ink);
+  }
+  .hl-bar__dot--1 {
+    background: var(--hl-1);
+  }
+  .hl-bar__dot--2 {
+    background: var(--hl-2);
+  }
+  .hl-bar__dot--3 {
+    background: var(--hl-3);
+  }
+  /* 지금 색 — 체크와 흰 고리가 함께 바뀐다(색만으로 알리지 않는다, §3.3) */
+  .hl-bar__sw[aria-pressed="true"] .hl-bar__dot {
+    box-shadow:
+      0 0 0 2px var(--ink),
+      0 0 0 4px var(--surface);
+  }
+  .hl-bar__div {
+    align-self: stretch;
+    width: 1px;
+    margin: 8px 4px;
+    background: color-mix(in srgb, var(--surface) 25%, transparent);
+  }
+  .hl-bar__act {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 52px;
+    min-height: 48px;
+    padding: 0 6px;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  @media (hover: hover) {
+    .hl-bar button:hover {
+      background: color-mix(in srgb, var(--surface) 12%, transparent);
+    }
+  }
+
+  /* 메모 시트 — 고른 구절(형광펜 색 왼쪽 띠, 6줄까지) + 내 메모(점선 = 내 메모, §3.3 권위 층 컨테이너) */
+  .rd-memo__quote {
+    margin: 10px 0 0;
+    padding: 10px 12px 10px 14px;
+    border-left: 6px solid var(--hl-1);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    background: var(--surface);
+  }
+  .rd-memo__quote--2 {
+    border-left-color: var(--hl-2);
+  }
+  .rd-memo__quote--3 {
+    border-left-color: var(--hl-3);
+  }
+  .rd-memo__quote blockquote {
+    margin: 0;
+    font-family: var(--font-scripture);
+    font-size: var(--fs-md);
+    line-height: 1.7;
+    white-space: pre-line;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
+    overflow: hidden;
+  }
+  .rd-memo__quote figcaption {
+    margin-top: 6px;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .rd-memo__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 18px;
+  }
+  /* 입력 경계라 점선 색은 --ink-3 (§6-3 비텍스트 3:1). 훈독하기 "오늘의 한 줄"(.my-note)과 같은 규칙이다 */
+  .rd-memo__field textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px 14px;
+    border: 1.5px dashed var(--ink-3);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--fs-lg); /* iOS 확대 방지 */
+    resize: vertical;
+  }
+  .rd-memo__field textarea::placeholder {
+    color: var(--ink-3);
+  }
+  .rd-memo__foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 6px 0 0;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .rd-memo__count {
+    font-variant-numeric: tabular-nums;
+  }
+  .rd-memo__save {
+    margin-top: 16px;
+  }
+
+  /* 노트 탭 — 색 칩 + 색 이름 · 단락, 인용 3줄, 내 메모(점선) */
+  .rd-notes__title {
+    margin-bottom: 10px;
+  }
+  .rd-notes__count {
+    margin-left: 4px;
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    color: var(--ink-3);
+  }
+  .rd-notes__n {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .rd-notes__chip {
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-full);
+    background: var(--hl-1);
+    flex: none;
+  }
+  .rd-notes__chip--2 {
+    background: var(--hl-2);
+  }
+  .rd-notes__chip--3 {
+    background: var(--hl-3);
+  }
+  .rd-notes__quote {
+    font-family: var(--font-scripture);
+    font-size: var(--fs-md);
+    line-height: 1.65;
+    white-space: pre-line;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+  }
+  .rd-notes__memo {
+    margin-top: 4px;
+    padding: 8px 12px;
+    border: 1.5px dashed var(--line);
+    border-radius: var(--r-sm);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    color: var(--ink-2);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  /* 원문 뷰 알림 (§2.11 토스트) — 폰은 하단 탭 + 리더 바 위, ≥1024px 은 리더 바가 위로 가서 화면 아래 */
+  .rd-toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(148px + env(safe-area-inset-bottom));
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: max-content;
+    max-width: calc(100% - 32px);
+    min-height: 44px;
+    padding: 0 6px 0 16px;
+    border-radius: var(--r-sm);
+    background: var(--veil-92);
+    color: var(--surface);
+    font-size: var(--fs-sm);
+    box-shadow: var(--shadow-2);
+    transform: translateX(-50%);
+    animation: rd-toast-in 0.12s ease-out;
+  }
+  .rd-toast__msg {
+    padding: 10px 10px 10px 0;
+  }
+  .rd-toast__act {
+    flex: none;
+    min-height: 44px;
+    padding: 0 10px;
+    border-radius: var(--r-xs);
+    color: var(--surface);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .rd-toast__act:focus-visible {
+    outline: 2px solid var(--surface);
+    outline-offset: -2px;
+  }
+  @media (min-width: 1024px) {
+    .rd-toast {
+      bottom: 32px;
+    }
+  }
+}
+
+@keyframes hl-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes rd-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px);
   }
 }

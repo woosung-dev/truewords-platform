@@ -2972,6 +2972,213 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HighlightInput": {
+        "properties": {
+          "chunk_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "color": {
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Color",
+            "type": "integer"
+          },
+          "end_chunk_index": {
+            "minimum": 0.0,
+            "title": "End Chunk Index",
+            "type": "integer"
+          },
+          "end_offset": {
+            "minimum": 0.0,
+            "title": "End Offset",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "quote": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "start_chunk_index": {
+            "minimum": 0.0,
+            "title": "Start Chunk Index",
+            "type": "integer"
+          },
+          "start_offset": {
+            "minimum": 0.0,
+            "title": "Start Offset",
+            "type": "integer"
+          },
+          "volume": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Volume",
+            "type": "string"
+          }
+        },
+        "required": [
+          "volume",
+          "chunk_id",
+          "start_chunk_index",
+          "start_offset",
+          "end_chunk_index",
+          "end_offset",
+          "quote",
+          "color"
+        ],
+        "title": "HighlightInput",
+        "type": "object"
+      },
+      "HighlightItem": {
+        "properties": {
+          "chunk_id": {
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "color": {
+            "title": "Color",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "end_chunk_index": {
+            "title": "End Chunk Index",
+            "type": "integer"
+          },
+          "end_offset": {
+            "title": "End Offset",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "start_chunk_index": {
+            "title": "Start Chunk Index",
+            "type": "integer"
+          },
+          "start_offset": {
+            "title": "Start Offset",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "volume",
+          "chunk_id",
+          "start_chunk_index",
+          "start_offset",
+          "end_chunk_index",
+          "end_offset",
+          "quote",
+          "color",
+          "note",
+          "created_at",
+          "updated_at",
+          "work_title",
+          "label"
+        ],
+        "title": "HighlightItem",
+        "type": "object"
+      },
+      "HighlightPatch": {
+        "description": "보낸 필드만 바꾼다. `note` 에 null·빈 문자열을 보내면 메모를 지운다.",
+        "properties": {
+          "color": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "HighlightPatch",
+        "type": "object"
+      },
+      "HighlightsResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HighlightItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "HighlightsResponse",
+        "type": "object"
+      },
       "InProgressEntry": {
         "properties": {
           "next_chunk": {
@@ -3680,10 +3887,7 @@
             "title": "Color"
           },
           "kind": {
-            "enum": [
-              "bookmark",
-              "highlight"
-            ],
+            "const": "bookmark",
             "title": "Kind",
             "type": "string"
           },
@@ -3747,10 +3951,7 @@
             "title": "Excerpt"
           },
           "kind": {
-            "enum": [
-              "bookmark",
-              "highlight"
-            ],
+            "const": "bookmark",
             "title": "Kind",
             "type": "string"
           },
@@ -10953,6 +11154,198 @@
         ]
       }
     },
+    "/hoondok/me/highlights": {
+      "get": {
+        "description": "API-HD-053 내 구절 형광펜 목록(최신순). 본인 것만 나온다. 401 미인증.",
+        "operationId": "get_highlights_hoondok_me_highlights_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "volume",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Volume"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 500,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HighlightsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Highlights",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "post": {
+        "description": "API-HD-053 구절 형광펜 만들기. 422 범위 오류, 404 원문 미허용, 403 CSRF, 401 미인증.",
+        "operationId": "post_highlight_hoondok_me_highlights_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HighlightInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HighlightItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Highlight",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/highlights/{highlight_id}": {
+      "delete": {
+        "description": "API-HD-053 구절 형광펜 지우기(메모 포함). 본인 것만 지우고 없어도 204. 403 CSRF, 401 미인증.",
+        "operationId": "delete_highlight_hoondok_me_highlights__highlight_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "highlight_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Highlight Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Highlight",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "patch": {
+        "description": "API-HD-053 색·메모 바꾸기. 남의 것·없는 것은 404. 403 CSRF, 401 미인증.",
+        "operationId": "patch_highlight_hoondok_me_highlights__highlight_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "highlight_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Highlight Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HighlightPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HighlightItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Highlight",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/me/history": {
       "get": {
         "description": "API-HD-010 한 달의 날마다 read 완료 여부. 422 형식·연도 범위 위반, 401 미인증.",
@@ -11131,7 +11524,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "pattern": "^(bookmark|highlight)$",
+                  "pattern": "^bookmark$",
                   "type": "string"
                 },
                 {
@@ -11213,7 +11606,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "pattern": "^(bookmark|highlight)$",
+                  "pattern": "^bookmark$",
                   "type": "string"
                 },
                 {

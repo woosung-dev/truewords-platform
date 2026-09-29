@@ -1,8 +1,9 @@
 // PLAN-HD-007 말씀 서고 3계층·읽기 기록. 기존 hoondok-library.test.tsx 가 검증한 평면 목록·검색은 그대로 두고
-// 여기서는 저작물 → 권 → 장, 단락 표시, AI 설명, 이어 읽기 병합만 본다.
+// 여기서는 저작물 → 권 → 장, 단락 표시, AI 설명, 이어 읽기 병합과 구절 형광펜·메모(API-HD-053)를 본다.
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ApiError } from "@truewords/api-client-ts";
+import type { HighlightInput, HighlightItem } from "@truewords/api-client-ts/types";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -27,6 +28,10 @@ vi.mock("@/features/hoondok/library/api", async (original) => ({
     marks: vi.fn(),
     saveMark: vi.fn(),
     deleteMark: vi.fn(),
+    highlights: vi.fn(),
+    createHighlight: vi.fn(),
+    updateHighlight: vi.fn(),
+    deleteHighlight: vi.fn(),
   },
 }));
 vi.mock("@/features/identity/api", () => ({ identityAPI: { me: vi.fn() } }));
@@ -108,6 +113,34 @@ const WORDS = {
   body: "첫째 단락의 본문",
 };
 
+/** 형광펜 서버 흉내 — 쓰기가 끝난 뒤 다시 읽어도 같은 값을 돌려주게 메모리에 둔다. */
+let serverHighlights: HighlightItem[] = [];
+let clock = 0;
+function tick(): string {
+  clock += 1;
+  return new Date(Date.UTC(2026, 8, 29, 0, 0, clock)).toISOString();
+}
+function highlight(overrides: Partial<HighlightItem> = {}): HighlightItem {
+  const at = tick();
+  return {
+    id: "h1",
+    volume: VOLUME,
+    chunk_id: "c0",
+    start_chunk_index: 0,
+    start_offset: 3,
+    end_chunk_index: 0,
+    end_offset: 6,
+    quote: "단락의",
+    color: 2,
+    note: null,
+    created_at: at,
+    updated_at: at,
+    work_title: ITEM.work_title,
+    label: "001권",
+    ...overrides,
+  };
+}
+
 function show(children: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={client}>{children}</QueryClientProvider>);
@@ -128,6 +161,31 @@ beforeEach(() => {
   pathname = "/hoondok/library";
   vi.clearAllMocks();
   localStorage.clear();
+  window.getSelection()?.removeAllRanges();
+  serverHighlights = [];
+  let created = 0;
+  vi.mocked(libraryAPI.highlights).mockImplementation(async () => ({ items: [...serverHighlights] }));
+  vi.mocked(libraryAPI.createHighlight).mockImplementation(async (input: HighlightInput) => {
+    created += 1;
+    const item = highlight({ ...input, id: `new-${created}`, note: input.note ?? null });
+    serverHighlights = [item, ...serverHighlights];
+    return item;
+  });
+  vi.mocked(libraryAPI.updateHighlight).mockImplementation(async (id, patch) => {
+    const current = serverHighlights.find((item) => item.id === id);
+    if (!current) throw new ApiError(404, { message: "not found" });
+    const next = {
+      ...current,
+      color: patch.color ?? current.color,
+      note: patch.note === undefined ? current.note : patch.note || null,
+      updated_at: tick(),
+    };
+    serverHighlights = serverHighlights.map((item) => (item.id === id ? next : item));
+    return next;
+  });
+  vi.mocked(libraryAPI.deleteHighlight).mockImplementation(async (id) => {
+    serverHighlights = serverHighlights.filter((item) => item.id !== id);
+  });
   vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "");
   vi.mocked(identityAPI.me).mockRejectedValue(new ApiError(401, { message: "unauthorized" }));
   vi.mocked(libraryAPI.list).mockResolvedValue({ items: [ITEM, OTHER], works: [WORK] });
@@ -139,8 +197,8 @@ beforeEach(() => {
     chunk_id: "c0",
     chunk_index: 0,
     volume: VOLUME,
-    kind: "highlight",
-    color: 1,
+    kind: "bookmark",
+    color: null,
     note: null,
     updated_at: "2026-09-23T00:00:00Z",
     work_title: ITEM.work_title,
@@ -339,21 +397,11 @@ describe("원문 목차·단락", () => {
     // 권위 배지는 그대로 남는다
     expect(source?.children.length).toBe(1);
   });
-  it("형광펜·북마크 표시를 본문에 반영한다", async () => {
+  it("구절 형광펜은 고른 글자만 칠하고 북마크는 번호에 표시한다", async () => {
     loggedIn();
+    serverHighlights = [highlight({ note: "기억할 문장" })];
     vi.mocked(libraryAPI.marks).mockResolvedValue({
       items: [
-        {
-          chunk_id: "c0",
-          chunk_index: 0,
-          volume: VOLUME,
-          kind: "highlight",
-          color: 2,
-          note: "기억할 문장",
-          updated_at: "2026-09-23T00:00:00Z",
-          work_title: ITEM.work_title,
-          label: "001권",
-        },
         {
           chunk_id: "c1",
           chunk_index: 1,
@@ -368,54 +416,70 @@ describe("원문 목차·단락", () => {
       ],
     });
     const view = await showWords();
-    await waitFor(() => expect(view.container.querySelector("mark.hl-2")).toHaveTextContent("첫째 단락의 본문"));
+    await waitFor(() => expect(view.container.querySelector("mark.hl-2")).toHaveTextContent(/^단락의$/));
     expect(view.container.querySelectorAll("mark")).toHaveLength(1);
+    expect(view.container.querySelector("#verse-0 .verse__para")).toHaveTextContent("첫째 단락의 본문");
+    // 메모가 있는 형광펜 끝에 메모 표지 — 글자가 아니라 선택에서 빠진다
+    expect(screen.getByRole("button", { name: "메모 보기" })).toHaveAttribute("data-hl-ui");
     expect(screen.getByRole("button", { name: "단락 2 표시하기" }).querySelector("svg")).not.toBeNull();
+    // 단락 표시 API 는 북마크만 묻는다
+    expect(libraryAPI.highlights).toHaveBeenCalledWith({ volume: VOLUME });
   });
 });
 
-const HIGHLIGHT_MARK = {
-  chunk_id: "c0",
-  chunk_index: 0,
-  volume: VOLUME,
-  kind: "highlight" as const,
-  color: 2,
-  note: null,
-  updated_at: "2026-09-23T00:00:00Z",
-  work_title: ITEM.work_title,
-  label: "001권",
-};
+/** 번호 버튼으로 단락 시트를 연다. 리더 바에도 같은 이름의 버튼이 있어 조회는 시트 안으로 좁힌다. */
+async function openSheet(verseNo: number) {
+  fireEvent.click(await screen.findByRole("button", { name: `단락 ${verseNo} 표시하기` }));
+  return within(await screen.findByRole("dialog"));
+}
 
 describe("단락 시트", () => {
-  /** 단락 번호를 눌러 시트를 연다. 리더 바에도 같은 이름의 버튼이 있어 조회는 시트 안으로 좁힌다. */
-  async function openSheet(verseNo: number) {
-    fireEvent.click(await screen.findByRole("button", { name: `단락 ${verseNo} 표시하기` }));
-    return within(await screen.findByRole("dialog"));
-  }
-
-  it("형광펜 색을 고르면 PUT, 같은 색을 다시 누르면 DELETE 한다", async () => {
+  it("단락 전체 칠하기: 색을 고르면 단락 전체를 만들고, 다른 색은 바꾸고, 지금 색은 지운 뒤 되돌릴 수 있다", async () => {
     loggedIn();
     await showWords();
     const sheet = await openSheet(1);
-    // 저장 성공이 표시 목록을 무효화하므로 다음 조회 결과를 먼저 바꿔 둔다
-    vi.mocked(libraryAPI.marks).mockResolvedValue({ items: [HIGHLIGHT_MARK] });
     fireEvent.click(sheet.getByRole("button", { name: "초록 형광펜" }));
     await waitFor(() =>
-      expect(libraryAPI.saveMark).toHaveBeenCalledWith("c0", {
+      expect(libraryAPI.createHighlight).toHaveBeenCalledWith({
         volume: VOLUME,
-        chunk_index: 0,
-        kind: "highlight",
+        chunk_id: "c0",
+        start_chunk_index: 0,
+        start_offset: 0,
+        end_chunk_index: 0,
+        end_offset: 9,
+        quote: "첫째 단락의 본문",
         color: 2,
-        note: null,
       }),
     );
     await waitFor(() =>
       expect(sheet.getByRole("button", { name: "초록 형광펜" })).toHaveAttribute("aria-pressed", "true"),
     );
-    fireEvent.click(sheet.getByRole("button", { name: "초록 형광펜" }));
-    await waitFor(() => expect(libraryAPI.deleteMark).toHaveBeenCalledWith("c0", "highlight"));
+    await waitFor(() => expect(document.querySelector("#verse-0 mark.hl-2")).toHaveTextContent("첫째 단락의 본문"));
+
+    fireEvent.click(sheet.getByRole("button", { name: "분홍 형광펜" }));
+    await waitFor(() => expect(libraryAPI.updateHighlight).toHaveBeenCalledWith("new-1", { color: 3 }));
+    await waitFor(() =>
+      expect(sheet.getByRole("button", { name: "분홍 형광펜" })).toHaveAttribute("aria-pressed", "true"),
+    );
+
+    // 지금 색을 다시 누르면 지운다 — 조용히 지우지 않고 시트 안 알림으로 되돌릴 기회를 준다
+    fireEvent.click(sheet.getByRole("button", { name: "분홍 형광펜" }));
+    await waitFor(() => expect(libraryAPI.deleteHighlight).toHaveBeenCalledWith("new-1"));
+    expect(await sheet.findByText("형광펜을 지웠어요")).toBeInTheDocument();
+    fireEvent.click(sheet.getByRole("button", { name: "되돌리기" }));
+    await waitFor(() => expect(libraryAPI.createHighlight).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(libraryAPI.createHighlight).mock.calls[1][0]).toMatchObject({ color: 3, end_offset: 9 });
   });
-  it("북마크는 토글이고 노트는 형광펜에 저장된다", async () => {
+  it("부분 구절 형광펜은 단락 전체 칠하기에 눌린 색으로 보이지 않는다", async () => {
+    loggedIn();
+    serverHighlights = [highlight()];
+    await showWords();
+    await waitFor(() => expect(document.querySelector("mark.hl-2")).not.toBeNull());
+    const sheet = await openSheet(1);
+    for (const name of ["노랑 형광펜", "초록 형광펜", "분홍 형광펜"])
+      expect(sheet.getByRole("button", { name })).toHaveAttribute("aria-pressed", "false");
+  });
+  it("북마크는 bookmark 표시로 토글되고 시트에는 노트 입력이 없다", async () => {
     loggedIn();
     await showWords();
     const sheet = await openSheet(1);
@@ -429,43 +493,52 @@ describe("단락 시트", () => {
         note: null,
       }),
     );
-    fireEvent.change(sheet.getByLabelText(/노트/), { target: { value: " 기억할 문장 " } });
-    fireEvent.click(sheet.getByRole("button", { name: "노트 저장" }));
-    await waitFor(() =>
-      expect(libraryAPI.saveMark).toHaveBeenCalledWith("c0", {
-        volume: VOLUME,
-        chunk_index: 0,
-        kind: "highlight",
-        color: 1,
-        note: "기억할 문장",
-      }),
-    );
+    expect(sheet.queryByRole("textbox")).toBeNull();
+    expect(sheet.getByText(/원하는 구절만 칠하려면 본문 글자를 길게 누르세요/)).toBeInTheDocument();
   });
-  it("단락 본문 아무 데나 눌러도 시트가 열린다", async () => {
+  it("북마크된 단락은 해제로 지운다", async () => {
+    loggedIn();
+    vi.mocked(libraryAPI.marks).mockResolvedValue({
+      items: [
+        {
+          chunk_id: "c0",
+          chunk_index: 0,
+          volume: VOLUME,
+          kind: "bookmark",
+          color: null,
+          note: null,
+          updated_at: "2026-09-23T00:00:00Z",
+          work_title: ITEM.work_title,
+          label: "001권",
+        },
+      ],
+    });
+    await showWords();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "단락 1 표시하기" }).querySelector("svg")).not.toBeNull(),
+    );
+    const sheet = await openSheet(1);
+    fireEvent.click(sheet.getByRole("button", { name: "북마크 해제" }));
+    await waitFor(() => expect(libraryAPI.deleteMark).toHaveBeenCalledWith("c0", "bookmark"));
+  });
+  it("본문 글자를 눌러도 단락 시트가 열리지 않는다 — 글자 선택과 다투지 않게 번호로만 연다", async () => {
     await showWords();
     fireEvent.click(await screen.findByText("둘째 단락의 본문"));
-    const sheet = within(await screen.findByRole("dialog"));
-    expect(sheet.getByText("단락 2")).toBeInTheDocument();
-  });
-  it("글자를 드래그로 고르는 중이면 본문을 눌러도 시트를 열지 않는다", async () => {
-    await showWords();
-    const text = await screen.findByText("첫째 단락의 본문");
-    const selection = vi.spyOn(window, "getSelection").mockReturnValue({ toString: () => "첫째" } as Selection);
-    fireEvent.click(text);
     expect(screen.queryByRole("dialog")).toBeNull();
-    selection.mockRestore();
   });
-  it("본문은 서버 표시 텍스트를 문단으로 나눠 그리고 형광펜은 문단마다 감싼다", async () => {
+  it("본문은 서버 표시 텍스트를 문단으로 나눠 그리고 문단을 넘는 형광펜은 문단마다 감싼다", async () => {
     loggedIn();
     vi.mocked(libraryAPI.words).mockResolvedValue({
       ...WORDS,
       chunks: [{ chunk_id: "c0", chunk_index: 0, text: "원본\n줄바꿈", display_text: "첫 문단\n\n둘째 문단" }],
     });
-    vi.mocked(libraryAPI.marks).mockResolvedValue({ items: [HIGHLIGHT_MARK] });
+    serverHighlights = [highlight({ start_offset: 2, end_offset: 8, quote: "문단\n\n둘째" })];
     const view = await showWords();
     await waitFor(() => expect(view.container.querySelectorAll("mark.hl-2")).toHaveLength(2));
-    const paragraphs = [...view.container.querySelectorAll(".verse__para")].map((node) => node.textContent);
-    expect(paragraphs).toEqual(["첫 문단", "둘째 문단"]);
+    expect([...view.container.querySelectorAll("mark.hl-2")].map((node) => node.textContent)).toEqual(["문단", "둘째"]);
+    const paragraphs = [...view.container.querySelectorAll(".verse__para")];
+    expect(paragraphs.map((node) => node.textContent)).toEqual(["첫 문단", "둘째 문단"]);
+    expect(paragraphs.map((node) => node.getAttribute("data-start"))).toEqual(["0", "6"]);
     expect(screen.queryByText(/원본/)).toBeNull();
   });
   it("비로그인은 안내만 보이고 어떤 기록도 보내지 않는다", async () => {
@@ -476,6 +549,274 @@ describe("단락 시트", () => {
     expect(libraryAPI.saveMark).not.toHaveBeenCalled();
     expect(libraryAPI.deleteMark).not.toHaveBeenCalled();
     expect(libraryAPI.marks).not.toHaveBeenCalled();
+    expect(libraryAPI.highlights).not.toHaveBeenCalled();
+  });
+});
+
+/** 본문 글자를 고른 것처럼 선택을 만들고 손을 뗀다. 고른 구절 도구가 뜰 때까지 기다린다. */
+async function selectText(paragraphText: string, from: number, to: number) {
+  const paragraph = await screen.findByText(paragraphText, { selector: ".verse__para" });
+  const node = paragraph.firstChild as Text;
+  const range = document.createRange();
+  range.setStart(node, from);
+  range.setEnd(node, to);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  fireEvent.mouseUp(document);
+  return within(await screen.findByRole("toolbar", { name: "고른 구절" }));
+}
+
+describe("구절 형광펜", () => {
+  it("글자를 고르고 색을 누르면 그 구절만 칠한다(청크 오프셋·인용)", async () => {
+    loggedIn();
+    const view = await showWords();
+    await waitFor(() => expect(libraryAPI.highlights).toHaveBeenCalled());
+    const toolbar = await selectText("첫째 단락의 본문", 3, 6);
+    fireEvent.click(toolbar.getByRole("button", { name: "초록 형광펜" }));
+    await waitFor(() =>
+      expect(libraryAPI.createHighlight).toHaveBeenCalledWith({
+        volume: VOLUME,
+        chunk_id: "c0",
+        start_chunk_index: 0,
+        start_offset: 3,
+        end_chunk_index: 0,
+        end_offset: 6,
+        quote: "단락의",
+        color: 2,
+      }),
+    );
+    await waitFor(() => expect(view.container.querySelector("mark.hl-2")).toHaveTextContent(/^단락의$/));
+    // 칠하고 나면 선택과 도구가 사라진다
+    expect(screen.queryByRole("toolbar", { name: "고른 구절" })).toBeNull();
+    expect(window.getSelection()?.isCollapsed).toBe(true);
+    // 다음 새 구절의 기본색이 된다
+    expect(localStorage.getItem("hoondok:hl-color")).toBe("2");
+  });
+  it("저장에 실패하면 칠을 되돌리고 알린다", async () => {
+    loggedIn();
+    vi.mocked(libraryAPI.createHighlight).mockRejectedValue(new ApiError(422, { message: "invalid" }));
+    const view = await showWords();
+    await waitFor(() => expect(libraryAPI.highlights).toHaveBeenCalled());
+    const toolbar = await selectText("첫째 단락의 본문", 3, 6);
+    fireEvent.click(toolbar.getByRole("button", { name: "노랑 형광펜" }));
+    expect(await screen.findByText(/기록을 저장하지 못했어요/)).toBeInTheDocument();
+    expect(view.container.querySelector("mark.hl")).toBeNull();
+  });
+  it("칠한 구절을 누르면 형광펜 도구가 뜨고, 지우기는 되돌리기 알림을 보인다(메모까지 되살린다)", async () => {
+    loggedIn();
+    serverHighlights = [highlight({ note: "기억할 문장" })];
+    const view = await showWords();
+    await waitFor(() => expect(view.container.querySelector("mark.hl-2")).not.toBeNull());
+    fireEvent.click(view.container.querySelector("mark.hl-2") as HTMLElement);
+    const popover = within(await screen.findByRole("toolbar", { name: "칠한 구절" }));
+    expect(popover.getByRole("button", { name: "초록 형광펜" })).toHaveAttribute("aria-pressed", "true");
+    // 지금 색을 다시 눌러도 지우지 않는다(예전 P0: 같은 색 재탭이 메모까지 조용히 지웠다)
+    fireEvent.click(popover.getByRole("button", { name: "초록 형광펜" }));
+    expect(libraryAPI.deleteHighlight).not.toHaveBeenCalled();
+
+    fireEvent.click(view.container.querySelector("mark.hl-2") as HTMLElement);
+    fireEvent.click(
+      within(await screen.findByRole("toolbar", { name: "칠한 구절" })).getByRole("button", { name: "지우기" }),
+    );
+    await waitFor(() => expect(libraryAPI.deleteHighlight).toHaveBeenCalledWith("h1"));
+    await waitFor(() => expect(view.container.querySelector("mark.hl")).toBeNull());
+    expect(await screen.findByText("형광펜을 지웠어요")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "되돌리기" }));
+    await waitFor(() =>
+      expect(libraryAPI.createHighlight).toHaveBeenCalledWith({
+        volume: VOLUME,
+        chunk_id: "c0",
+        start_chunk_index: 0,
+        start_offset: 3,
+        end_chunk_index: 0,
+        end_offset: 6,
+        quote: "단락의",
+        color: 2,
+        note: "기억할 문장",
+      }),
+    );
+    await waitFor(() => expect(view.container.querySelector("mark.hl-2")).toHaveTextContent("단락의"));
+  });
+  it("형광펜 도구에서 다른 색을 고르면 색만 바꾼다", async () => {
+    loggedIn();
+    serverHighlights = [highlight()];
+    const view = await showWords();
+    await waitFor(() => expect(view.container.querySelector("mark.hl-2")).not.toBeNull());
+    fireEvent.click(view.container.querySelector("mark.hl-2") as HTMLElement);
+    fireEvent.click(
+      within(await screen.findByRole("toolbar", { name: "칠한 구절" })).getByRole("button", { name: "노랑 형광펜" }),
+    );
+    await waitFor(() => expect(libraryAPI.updateHighlight).toHaveBeenCalledWith("h1", { color: 1 }));
+    await waitFor(() => expect(view.container.querySelector("mark.hl-1")).toHaveTextContent("단락의"));
+  });
+  it("새 구절에 메모를 남기면 저장을 누를 때 형광펜과 함께 만든다", async () => {
+    loggedIn();
+    await showWords();
+    await waitFor(() => expect(libraryAPI.highlights).toHaveBeenCalled());
+    const toolbar = await selectText("둘째 단락의 본문", 0, 2);
+    fireEvent.click(toolbar.getByRole("button", { name: "메모" }));
+    const sheet = within(await screen.findByRole("dialog", { name: "메모" }));
+    expect(sheet.getByText("둘째")).toBeInTheDocument();
+    // 아무것도 적지 않으면 저장하지 않는다 — 메모를 열었다고 형광펜이 생기지 않는다
+    expect(sheet.getByRole("button", { name: "저장" })).toBeDisabled();
+    expect(libraryAPI.createHighlight).not.toHaveBeenCalled();
+    fireEvent.change(sheet.getByLabelText("메모"), { target: { value: " 오늘 붙들 말씀 " } });
+    fireEvent.click(sheet.getByRole("button", { name: "저장" }));
+    await waitFor(() =>
+      expect(libraryAPI.createHighlight).toHaveBeenCalledWith({
+        volume: VOLUME,
+        chunk_id: "c1",
+        start_chunk_index: 1,
+        start_offset: 0,
+        end_chunk_index: 1,
+        end_offset: 2,
+        quote: "둘째",
+        color: 1,
+        note: "오늘 붙들 말씀",
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(await screen.findByText("메모를 저장했어요")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "메모 보기" })).toBeInTheDocument();
+  });
+  it("메모 표지를 누르면 메모를 고치고, 비워서 저장하면 메모만 지운다", async () => {
+    loggedIn();
+    serverHighlights = [highlight({ note: "기억할 문장" })];
+    const view = await showWords();
+    fireEvent.click(await screen.findByRole("button", { name: "메모 보기" }));
+    let sheet = within(await screen.findByRole("dialog", { name: "메모" }));
+    expect(sheet.getByLabelText("메모")).toHaveValue("기억할 문장");
+    fireEvent.change(sheet.getByLabelText("메모"), { target: { value: "고친 생각" } });
+    fireEvent.click(sheet.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(libraryAPI.updateHighlight).toHaveBeenCalledWith("h1", { note: "고친 생각" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    fireEvent.click(await screen.findByRole("button", { name: "메모 보기" }));
+    sheet = within(await screen.findByRole("dialog", { name: "메모" }));
+    expect(sheet.getByLabelText("메모")).toHaveValue("고친 생각");
+    fireEvent.change(sheet.getByLabelText("메모"), { target: { value: "  " } });
+    expect(sheet.getByText("비워서 저장하면 메모만 지워지고 형광펜은 남아요.")).toBeInTheDocument();
+    fireEvent.click(sheet.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(libraryAPI.updateHighlight).toHaveBeenLastCalledWith("h1", { note: null }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "메모 보기" })).toBeNull());
+    expect(view.container.querySelector("mark.hl-2")).toHaveTextContent("단락의");
+    expect(libraryAPI.deleteHighlight).not.toHaveBeenCalled();
+  });
+  it("메모 저장이 실패하면 시트를 닫지 않고 적은 글을 지킨다", async () => {
+    loggedIn();
+    serverHighlights = [highlight({ note: "기억할 문장" })];
+    vi.mocked(libraryAPI.updateHighlight).mockRejectedValue(new ApiError(500, { message: "down" }));
+    await showWords();
+    fireEvent.click(await screen.findByRole("button", { name: "메모 보기" }));
+    const sheet = within(await screen.findByRole("dialog", { name: "메모" }));
+    fireEvent.change(sheet.getByLabelText("메모"), { target: { value: "지켜야 할 글" } });
+    fireEvent.click(sheet.getByRole("button", { name: "저장" }));
+    expect(await sheet.findByText(/기록을 저장하지 못했어요/)).toBeInTheDocument();
+    expect(sheet.getByLabelText("메모")).toHaveValue("지켜야 할 글");
+    expect(sheet.getByRole("button", { name: "저장" })).toBeEnabled();
+  });
+  it("비로그인은 색·메모를 누르면 로그인 안내를 보고 아무것도 보내지 않는다", async () => {
+    await showWords();
+    const toolbar = await selectText("첫째 단락의 본문", 0, 2);
+    fireEvent.click(toolbar.getByRole("button", { name: "노랑 형광펜" }));
+    const gate = within(await screen.findByRole("dialog", { name: "형광펜·메모" }));
+    expect(gate.getByText("로그인하면 기록이 남아요")).toBeInTheDocument();
+    expect(gate.getByRole("link", { name: "로그인하고 표시하기" }).getAttribute("href")).toContain(
+      "/hoondok/onboarding",
+    );
+    expect(libraryAPI.createHighlight).not.toHaveBeenCalled();
+    expect(libraryAPI.highlights).not.toHaveBeenCalled();
+  });
+  it("복사는 로그인 없이 인용과 출처를 함께 담는다", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+    try {
+      await showWords();
+      const toolbar = await selectText("첫째 단락의 본문", 3, 9);
+      fireEvent.click(toolbar.getByRole("button", { name: "복사" }));
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith("단락의 본문\n\n말씀선집 001권 · 단락 1"));
+      expect(await screen.findByText("복사했어요")).toBeInTheDocument();
+      writeText.mockRejectedValueOnce(new Error("denied"));
+      fireEvent.click((await selectText("둘째 단락의 본문", 0, 2)).getByRole("button", { name: "복사" }));
+      expect(await screen.findByText(/복사하지 못했어요/)).toBeInTheDocument();
+    } finally {
+      Reflect.deleteProperty(navigator, "clipboard");
+    }
+  });
+  it("Esc 로 고른 구절 도구를 닫는다", async () => {
+    await showWords();
+    await selectText("첫째 단락의 본문", 0, 2);
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("toolbar", { name: "고른 구절" })).toBeNull());
+    expect(window.getSelection()?.isCollapsed).toBe(true);
+  });
+  it("형광펜이 하나도 없으면 첫 사용 안내를 보이고, 닫으면 이 기기에서 다시 보이지 않는다", async () => {
+    const view = await showWords();
+    const hint = await screen.findByText(/글자를 길게 누르면 원하는 구절에 형광펜과 메모를/);
+    fireEvent.click(within(hint).getByRole("button", { name: "알겠어요" }));
+    expect(screen.queryByText(/글자를 길게 누르면 원하는 구절에/)).toBeNull();
+    expect(localStorage.getItem("hoondok:hl-hint-dismissed")).toBe("1");
+    view.unmount();
+    await showWords();
+    await screen.findByText("첫째 단락의 본문");
+    expect(screen.queryByText(/글자를 길게 누르면 원하는 구절에/)).toBeNull();
+  });
+  it("리더 바: 형광펜은 고르는 법을 알리고 노트는 노트 탭으로 간다", async () => {
+    await showWords();
+    await screen.findByText("첫째 단락의 본문");
+    const bar = screen.getAllByLabelText("읽기 도구")[0];
+    fireEvent.click(within(bar).getByRole("button", { name: "형광펜" }));
+    expect(
+      await screen.findByText("칠할 구절을 길게 눌러 고르세요. PC에서는 끌어서 고를 수 있어요."),
+    ).toBeInTheDocument();
+    fireEvent.click(within(bar).getByRole("button", { name: "북마크" }));
+    expect(screen.getByText("먼저 단락 번호를 눌러 단락을 골라 주세요.")).toBeInTheDocument();
+    fireEvent.click(within(bar).getByRole("button", { name: "노트" }));
+    expect(screen.getByRole("tab", { name: "노트" })).toHaveAttribute("aria-selected", "true");
+  });
+});
+
+describe("노트 탭", () => {
+  it("이 권의 형광펜을 본문 순서로 색 이름·단락·메모와 함께 모은다", async () => {
+    loggedIn();
+    serverHighlights = [
+      highlight({
+        id: "late",
+        chunk_id: "c1",
+        start_chunk_index: 1,
+        end_chunk_index: 1,
+        start_offset: 0,
+        end_offset: 2,
+        quote: "둘째",
+        color: 3,
+      }),
+      highlight({ id: "early", note: "붙들 말씀", color: 1 }),
+    ];
+    await showWords();
+    fireEvent.click(await screen.findByRole("tab", { name: "노트" }));
+    const items = await screen.findAllByRole("listitem");
+    expect(items.map((item) => item.textContent)).toEqual(["노랑 · 단락 1단락의붙들 말씀", "분홍 · 단락 2둘째"]);
+    expect(within(items[0]).getByRole("link")).toHaveAttribute("href", wordsHref(VOLUME, "c0"));
+    // 누르면 본문 탭으로 돌아간다(같은 화면 안 이동이라 탭 상태가 남지 않게). jsdom 의 문서 이동은 막는다
+    const stayHere = (event: MouseEvent) => event.preventDefault();
+    document.addEventListener("click", stayHere);
+    fireEvent.click(within(items[1]).getByRole("link"));
+    document.removeEventListener("click", stayHere);
+    expect(screen.getByRole("tab", { name: "본문" })).toHaveAttribute("aria-selected", "true");
+  });
+  it("비어 있으면 길게 눌러 고르는 법을 알린다", async () => {
+    loggedIn();
+    await showWords();
+    fireEvent.click(await screen.findByRole("tab", { name: "노트" }));
+    expect(await screen.findByText("이 권에 남긴 형광펜·메모가 아직 없어요")).toBeInTheDocument();
+    expect(screen.getByText(/본문 글자를 길게 누르면/)).toBeInTheDocument();
+  });
+  it("비로그인은 로그인 안내를 보인다", async () => {
+    await showWords();
+    fireEvent.click(await screen.findByRole("tab", { name: "노트" }));
+    expect(screen.getByText("로그인하면 기록이 남아요")).toBeInTheDocument();
+    expect(libraryAPI.highlights).not.toHaveBeenCalled();
   });
 });
 

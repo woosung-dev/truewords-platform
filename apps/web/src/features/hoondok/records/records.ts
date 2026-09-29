@@ -2,7 +2,7 @@
 // 노트는 형광펜의 `note` 라서(ENT-HD-012) 노트 수는 형광펜 수에 포함된다.
 // 수는 내 기록이 몇 개인지만 말한다 — 남과 비교·평균·증감·목표는 두지 않는다 (DEC-PWA-019).
 import type { MarkItem, SectionItem } from "@truewords/api-client-ts/types";
-import { HIGHLIGHT_COLORS, type HighlightColor } from "../library/components/passage-sheet";
+import { HIGHLIGHT_COLORS, type HighlightColor } from "../library/highlight-range";
 
 export const RECORDS_PATH = "/hoondok/records";
 /** 이 기기에만 있는 기록(오늘의 한 줄·저장한 AI 답). 서버를 부르지 않는다. */

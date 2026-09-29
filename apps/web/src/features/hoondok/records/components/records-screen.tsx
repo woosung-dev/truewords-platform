@@ -11,7 +11,7 @@ import { HoondokButton } from "@/components/hoondok";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { libraryAPI } from "../../library/api";
-import { HIGHLIGHT_COLOR_LABEL, HIGHLIGHT_COLORS } from "../../library/components/passage-sheet";
+import { COLOR_NAME, HIGHLIGHT_COLORS } from "../../library/highlight-range";
 import { sectionsKey } from "../../query-keys";
 import {
   applyFilter,
@@ -112,7 +112,7 @@ function ColorChips({
           onClick={() => onPick({ color: filter.color === color ? null : color })}
         >
           <span className={`rc-sw rc-sw--${color}`} aria-hidden="true" />
-          {HIGHLIGHT_COLOR_LABEL[color]} <small>{counts[color]}</small>
+          {COLOR_NAME[color]} <small>{counts[color]}</small>
         </button>
       ))}
     </div>

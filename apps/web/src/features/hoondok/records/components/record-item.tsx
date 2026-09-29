@@ -4,7 +4,7 @@ import type { MarkItem } from "@truewords/api-client-ts/types";
 import { NotebookPen } from "lucide-react";
 import Link from "next/link";
 import { verseNumber, wordsHref } from "../../library/api";
-import { HIGHLIGHT_COLOR_LABEL, type HighlightColor } from "../../library/components/passage-sheet";
+import { COLOR_NAME, type HighlightColor } from "../../library/highlight-range";
 import { hasNote, recordDateLabel, volumeTitle } from "../records";
 
 export const BLOCKED_TEXT = "원문 공개 확인 중";
@@ -36,7 +36,7 @@ export function RecordItem({ mark, showVolume }: { mark: MarkItem; showVolume: b
         {color && (
           <span>
             <span className={`rc-sw rc-sw--${color} rc-sw--sm`} aria-hidden="true" />
-            {HIGHLIGHT_COLOR_LABEL[color]}
+            {COLOR_NAME[color]}
           </span>
         )}
         <span>{where}</span>

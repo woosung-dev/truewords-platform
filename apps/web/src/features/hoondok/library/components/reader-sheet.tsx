@@ -2,6 +2,7 @@
 
 // 원문 뷰가 쓰는 시트 껍데기 (DES-PWA-003 §2.7). 정성 시트와 달리 열림 상태가 URL 이 아니라 지역 상태다 —
 // 단락 선택·목차 열기는 뒤로가기로 돌아갈 만한 이동이 아니다. 배경막·Esc·포커스 가둠은 <dialog> 가 맡는다.
+// 모달이 열리면 바깥이 눌리지 않으므로 원문 뷰 알림(되돌리기 등)은 `toast` 로 받아 대화상자 안에 그린다.
 import { type MouseEvent, type ReactNode, useEffect, useId, useRef } from "react";
 
 /** showModal 이 없는 환경(jsdom)에서는 open 속성만 세운다 — 문구·역할 검증은 그대로 돈다. */
@@ -11,7 +12,17 @@ function openDialog(dialog: HTMLDialogElement): void {
   else dialog.setAttribute("open", "");
 }
 
-export function ReaderSheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+export function ReaderSheet({
+  title,
+  onClose,
+  children,
+  toast,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  toast?: ReactNode;
+}) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   useEffect(() => {
@@ -37,6 +48,7 @@ export function ReaderSheet({ title, onClose, children }: { title: string; onClo
           닫기
         </button>
       </div>
+      {toast}
     </dialog>
   );
 }
