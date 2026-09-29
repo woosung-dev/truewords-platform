@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ApiError } from "@truewords/api-client-ts";
 import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
@@ -147,7 +147,11 @@ afterEach(() => {
   restoreNavigator();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
+
+/** "…에 알림 받기" — 버튼 문구에 미리 고른 시각이 들어간다. */
+const ENABLE_BUTTON = /에 알림 받기$/;
 
 describe("pushPromptVariant — 노출 정책", () => {
   const base: PushPromptInput = {
@@ -261,47 +265,61 @@ describe("push-prompt-storage — localStorage 한 키", () => {
 });
 
 describe("PushPromptCard — ready", () => {
-  it("알림 받기: 권한 요청이 클릭 안에서 동기적으로 시작되고 → 구독 → PUT → 켠 시각 안내", async () => {
+  it("알림 받기: 지금(KST)과 가까운 칸을 미리 고르고, 권한 요청이 클릭 안에서 동기적으로 시작돼 → 구독 → 그 시각으로 PUT", async () => {
+    // KST 9/29 07:40 — 가장 가까운 칸은 아침 7:30 이다 (Date 만 멈추고 타이머는 그대로 둔다)
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-28T22:40:00Z"));
     render(wrap(<PushPromptCard placement="home" />));
     expect(await screen.findByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeInTheDocument();
     expect(screen.getByText("잠금 화면에는 '오늘의 책갈피가 꽂혀 있어요' 처럼 보여요")).toBeInTheDocument();
+    const group = screen.getByRole("radiogroup", { name: PUSH_PROMPT_TITLE });
+    expect(within(group).getAllByRole("radio")).toHaveLength(4);
+    expect(within(group).getByRole("radio", { name: /아침\s*오전 7:30/ })).toBeChecked();
 
-    fireEvent.click(screen.getByRole("button", { name: "알림 받기" }));
+    fireEvent.click(screen.getByRole("button", { name: "오전 7:30에 알림 받기" }));
     // await 없이 바로 — mutationFn 안(비동기)이 아니라 클릭 핸들러 안에서 불렸다는 뜻이다 (iOS 제스처 규칙)
     expect(Notification.requestPermission).toHaveBeenCalledOnce();
 
-    expect(await screen.findByText("매일 오전 6:00에 알려 드릴게요")).toBeInTheDocument();
+    expect(await screen.findByText("매일 오전 7:30에 알려 드릴게요")).toBeInTheDocument();
     expect(notificationsAPI.subscribe).toHaveBeenCalledWith({
       endpoint: ENDPOINT,
       keys: { p256dh: "p256", auth: "auth" },
       user_agent: DESKTOP_UA,
     });
+    // 권한 요청 1번 · PUT 1번, 시각은 버튼이 말한 그 칸이다
+    expect(notificationsAPI.savePrefs).toHaveBeenCalledOnce();
     expect(notificationsAPI.savePrefs).toHaveBeenCalledWith({
       read_enabled: true,
-      read_time: "06:00",
+      read_time: "07:30",
     });
     expect(screen.getByRole("link", { name: "시각은 설정에서 바꿀 수 있어요" })).toHaveAttribute(
       "href",
       "/hoondok/settings",
     );
-    expect(screen.queryByRole("button", { name: "알림 받기" })).toBeNull();
+    expect(screen.queryByRole("button", { name: ENABLE_BUTTON })).toBeNull();
   });
 
-  it("훈독 완료 뒤 자리에서 켜면 오늘은 건너뛰므로 '내일' 로 안내한다", async () => {
-    serverPrefs = { ...serverPrefs, read_time: "05:30" };
+  it("다른 칸을 고르면 버튼 문구와 저장 시각이 함께 바뀌고, 훈독 완료 뒤 자리에서는 '내일' 로 안내한다", async () => {
     render(wrap(<PushPromptCard placement="after-read" isReadDone />));
-    fireEvent.click(await screen.findByRole("button", { name: "알림 받기" }));
+    fireEvent.click(await screen.findByRole("radio", { name: /새벽\s*오전 5:30/ }));
+    // 칸을 고르는 것만으로는 권한도 저장도 없다
+    expect(Notification.requestPermission).not.toHaveBeenCalled();
+    expect(notificationsAPI.savePrefs).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "오전 5:30에 알림 받기" }));
     expect(await screen.findByText("내일 오전 5:30에 알려 드릴게요")).toBeInTheDocument();
+    expect(notificationsAPI.savePrefs).toHaveBeenCalledWith({ read_enabled: true, read_time: "05:30" });
   });
 
   it("권한을 거절하면 기존 안내 문구가 이 자리에 남고, 다시 물을 수 없으니 알림 받기 버튼은 사라진다", async () => {
     restoreNavigator();
     restoreNavigator = stubReadyBrowser("denied");
     render(wrap(<PushPromptCard placement="home" />));
-    fireEvent.click(await screen.findByRole("button", { name: "알림 받기" }));
+    fireEvent.click(await screen.findByRole("button", { name: ENABLE_BUTTON }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(PUSH_MESSAGES.permission);
-    expect(screen.queryByRole("button", { name: "알림 받기" })).toBeNull();
+    expect(screen.queryByRole("button", { name: ENABLE_BUTTON })).toBeNull();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
     expect(screen.getByRole("button", { name: "나중에" })).toBeInTheDocument();
     expect(pushManager.subscribe).not.toHaveBeenCalled();
     expect(notificationsAPI.savePrefs).not.toHaveBeenCalled();
@@ -439,7 +457,8 @@ describe("PushPromptCard — iOS 사파리 탭", () => {
     render(wrap(<PushPromptCard placement="home" />));
     expect(await screen.findByRole("heading", { name: PUSH_PROMPT_IOS_TITLE })).toBeInTheDocument();
     expect(screen.getByText(INSTALL_CARD_BODY.ios)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "알림 받기" })).toBeNull();
+    expect(screen.queryByRole("button", { name: ENABLE_BUTTON })).toBeNull();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "나중에" }));
     expect(screen.queryByRole("heading", { name: PUSH_PROMPT_IOS_TITLE })).toBeNull();
     expect(readPushPromptDeclines()).toBe(1);

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ApiError } from "@truewords/api-client-ts";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -22,6 +22,7 @@ vi.mock("@/features/hoondok/observability/report", async (importOriginal) => ({
 }));
 
 import { notificationsAPI } from "@/features/hoondok/notifications/api";
+import { SAVED_TEXT } from "@/features/hoondok/notifications/components/read-notification-card";
 import type { NotificationPrefs } from "@/features/hoondok/notifications/types";
 import { PUSH_MESSAGES } from "@/features/hoondok/notifications/use-push-notifications";
 import { reportClientError } from "@/features/hoondok/observability/report";
@@ -33,7 +34,6 @@ const DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
 const VAPID_KEY = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U";
 const ENDPOINT = "https://push.example/abc?token=1";
 const READ_TOGGLE = "훈독하기 알림";
-const SOON_TOGGLES = ["기도하기 알림", "가정예배 알림", "공지 알림"];
 
 const subscription = {
   endpoint: ENDPOINT,
@@ -201,7 +201,9 @@ describe("훈독하기 알림 끄기·바꾸기", () => {
 
   it("시간은 구독을 건드리지 않고 PUT 만 한다", async () => {
     render(wrap(<SettingsScreen />));
-    const time = await screen.findByLabelText("훈독하기 알림 시간");
+    // 서버 설정을 읽기 전(기본값 = 꺼짐)에는 시각 칸이 비활성이다 — 켜짐을 확인한 뒤 바꾼다
+    await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "true"));
+    const time = screen.getByLabelText("훈독하기 알림 시간");
 
     fireEvent.change(time, { target: { value: "05:30" } });
     await waitFor(() =>
@@ -223,21 +225,115 @@ describe("훈독하기 알림 끄기·바꾸기", () => {
   });
 });
 
+describe("훈독 시간 고르기 (추천 4칸 + 직접 정하기)", () => {
+  beforeEach(() => {
+    serverPrefs = { read_enabled: true, read_time: "06:00", subscription_count: 1 };
+    pushManager.getSubscription.mockResolvedValue(subscription);
+  });
+
+  const radio = (name: RegExp) => screen.getByRole("radio", { name });
+  const summary = () => screen.getByText(/에 알려드려요/).closest("p");
+
+  it("켠 상태는 radio 4칸 + 직접 정하기이고, 칸에 없는 기본 06:00 은 '직접 정하기' 로 보인다", async () => {
+    render(wrap(<SettingsScreen />));
+    await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "true"));
+
+    const group = screen.getByRole("group", { name: "언제 알려 드릴까요?" });
+    expect(within(group).getAllByRole("radio")).toHaveLength(5);
+    for (const name of [/새벽\s*오전 5:30/, /아침\s*오전 7:30/, /점심\s*오후 12:30/, /저녁\s*오후 9:30/]) {
+      expect(radio(name)).not.toBeChecked();
+    }
+    expect(radio(/직접 정하기/)).toBeChecked();
+    expect(screen.getByLabelText("훈독하기 알림 시간")).toHaveValue("06:00");
+    expect(summary()).toHaveAttribute("role", "status");
+    expect(summary()).toHaveTextContent("매일 오전 6:00에 알려드려요");
+    // 불러오기만 해서는 저장하지 않는다
+    expect(notificationsAPI.savePrefs).not.toHaveBeenCalled();
+    expect(screen.queryByText(SAVED_TEXT)).toBeNull();
+  });
+
+  it("칸을 고르면 PUT 한 번으로 바로 저장하고 '저장했어요' 와 요약 문장을 보인다 — 권한·구독은 건드리지 않는다", async () => {
+    render(wrap(<SettingsScreen />));
+    await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "true"));
+
+    fireEvent.click(radio(/새벽\s*오전 5:30/));
+
+    expect(await screen.findByText(SAVED_TEXT)).toBeInTheDocument();
+    expect(notificationsAPI.savePrefs).toHaveBeenCalledOnce();
+    expect(notificationsAPI.savePrefs).toHaveBeenCalledWith({ read_enabled: true, read_time: "05:30" });
+    expect(summary()).toHaveTextContent("매일 오전 5:30에 알려드려요");
+    expect(screen.getByText(SAVED_TEXT).closest('[role="status"]')).not.toBeNull();
+    expect(radio(/새벽\s*오전 5:30/)).toBeChecked();
+    expect(radio(/직접 정하기/)).not.toBeChecked();
+    expect(screen.queryByLabelText("훈독하기 알림 시간")).toBeNull();
+    expect(Notification.requestPermission).not.toHaveBeenCalled();
+    expect(notificationsAPI.subscribe).not.toHaveBeenCalled();
+    expect(notificationsAPI.unsubscribe).not.toHaveBeenCalled();
+
+    // 이미 고른 칸을 다시 눌러도 더 보내지 않는다
+    fireEvent.click(radio(/새벽\s*오전 5:30/));
+    expect(notificationsAPI.savePrefs).toHaveBeenCalledOnce();
+  });
+
+  it("직접 정하기는 여는 것만으로는 저장하지 않고, 시각을 바꾸면 그 값으로 한 번 저장한다", async () => {
+    serverPrefs = { ...serverPrefs, read_time: "07:30" };
+    render(wrap(<SettingsScreen />));
+    await waitFor(() => expect(radio(/아침\s*오전 7:30/)).toBeChecked());
+    expect(screen.queryByLabelText("훈독하기 알림 시간")).toBeNull();
+
+    fireEvent.click(radio(/직접 정하기/));
+    const time = screen.getByLabelText("훈독하기 알림 시간");
+    expect(time).toHaveValue("07:30");
+    expect(notificationsAPI.savePrefs).not.toHaveBeenCalled();
+
+    fireEvent.change(time, { target: { value: "21:00" } });
+    expect(await screen.findByText(SAVED_TEXT)).toBeInTheDocument();
+    expect(notificationsAPI.savePrefs).toHaveBeenCalledOnce();
+    expect(notificationsAPI.savePrefs).toHaveBeenCalledWith({ read_enabled: true, read_time: "21:00" });
+    expect(summary()).toHaveTextContent("매일 오후 9:00에 알려드려요");
+    expect(radio(/직접 정하기/)).toBeChecked();
+  });
+
+  it("저장에 실패하면 원래 칸으로 돌아가고 '저장했어요' 없이 한 줄 안내만 남는다", async () => {
+    vi.mocked(notificationsAPI.savePrefs).mockRejectedValueOnce(new ApiError(503, { message: "down" }));
+    render(wrap(<SettingsScreen />));
+    await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "true"));
+
+    fireEvent.click(radio(/점심\s*오후 12:30/));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(PUSH_MESSAGES.failed);
+    expect(radio(/직접 정하기/)).toBeChecked();
+    expect(radio(/점심\s*오후 12:30/)).not.toBeChecked();
+    expect(summary()).toHaveTextContent("매일 오전 6:00에 알려드려요");
+    expect(screen.queryByText(SAVED_TEXT)).toBeNull();
+  });
+
+  it("끄면 칸이 모두 비활성이 되고 요약 문장이 사라진다", async () => {
+    render(wrap(<SettingsScreen />));
+    await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "true"));
+
+    fireEvent.click(readToggle());
+
+    await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "false"));
+    for (const item of screen.getAllByRole("radio")) expect(item).toBeDisabled();
+    expect(screen.getByLabelText("훈독하기 알림 시간")).toBeDisabled();
+    expect(screen.queryByText(/에 알려드려요/)).toBeNull();
+  });
+});
+
 describe("켤 수 없는 상태", () => {
-  it("서버 설정이 없으면 지금까지처럼 4종 모두 '준비 중' 이다", async () => {
+  it("서버 설정이 없으면 훈독하기도 '준비 중' 이다 (그 밖의 알림 · 조용한 시간과 함께 3곳)", async () => {
     vi.mocked(notificationsAPI.config).mockResolvedValue({ enabled: false, public_key: null });
     render(wrap(<SettingsScreen />));
 
-    await waitFor(() => expect(screen.getAllByText("준비 중")).toHaveLength(5));
-    for (const label of [READ_TOGGLE, ...SOON_TOGGLES]) {
-      const toggle = screen.getByRole("button", { name: label });
-      expect(toggle).toBeDisabled();
-      expect(toggle).toHaveAttribute("aria-pressed", "false");
-    }
+    await waitFor(() => expect(screen.getAllByText("준비 중")).toHaveLength(3));
+    const toggle = screen.getByRole("button", { name: READ_TOGGLE });
+    expect(toggle).toBeDisabled();
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
     expect(notificationsAPI.prefs).not.toHaveBeenCalled();
   });
 
-  it("브라우저 미지원·iOS 미설치·권한 차단은 각각 이유를 밝히고 기도·가정예배·공지는 그대로 준비 중", async () => {
+  it("브라우저 미지원·iOS 미설치·권한 차단은 각각 이유를 밝히고 시각 칸을 싣지 않는다", async () => {
     const cases = [
       { setup: () => vi.unstubAllGlobals(), text: "이 브라우저는 알림을 지원하지 않아요" },
       {
@@ -261,7 +357,7 @@ describe("켤 수 없는 상태", () => {
       const view = render(wrap(<SettingsScreen />));
       expect(await screen.findByText(text)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: READ_TOGGLE })).toBeDisabled();
-      for (const label of SOON_TOGGLES) expect(screen.getByRole("button", { name: label })).toBeDisabled();
+      expect(screen.queryAllByRole("radio")).toHaveLength(0);
       view.unmount();
     }
   });

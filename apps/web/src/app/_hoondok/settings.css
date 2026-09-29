@@ -84,23 +84,201 @@
     font-size: var(--fs-xs);
     color: var(--ink-3);
   }
-  /* 켜진 알림의 시간은 고를 수 있다 (PLAN-HD-006). label 이 행 전체라 마우스·터치 어디를 눌러도 입력이 열린다 */
-  .st-sub--time {
-    cursor: pointer;
+  /* ---------- 훈독 시간 고르기 : 추천 4칸 + 직접 정하기 (설정 카드 · 알림 받기 제안 카드) ----------
+     네이티브 라디오를 라벨로 감싼다 — 화살표 키·폼 연결은 브라우저가 맡고 모양만 여기서 입힌다(.js-opt 선례).
+     선택 = 테두리 + 배경 + 글자색 + 체크 표시가 함께 바뀐다 (색만으로 구분 금지, §3.3) */
+  .st-time {
+    margin-top: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
   }
-  .st-sub__time {
-    font-size: var(--fs-xs);
+  .st-time__fs {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  /* legend 는 흐름 밖에 놓여 margin 이 먹지 않는 브라우저가 있다 — float 로 흐름 안에 내린다 */
+  .st-time__q {
+    float: left;
+    width: 100%;
+    padding: 0;
+    margin: 0 0 10px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     color: var(--ink);
-    background: var(--surface-2);
-    border: 1px solid var(--line);
-    border-radius: var(--r-xs);
-    padding: 6px 10px;
-    min-height: 32px;
   }
-  .st-sub__time:disabled {
+  .st-time__q + * {
+    clear: both;
+  }
+  .st-presets {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .st-preset {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+    min-height: 60px;
+    padding: 10px 12px;
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .st-preset input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    margin: 0;
+    pointer-events: none;
+  }
+  .st-preset__k {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+    line-height: 1.3;
+  }
+  .st-preset__v {
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+  }
+  /* 직접 정하기 : 전폭 한 줄. 고르면 아래에 시각 입력이 열린다 */
+  .st-preset--custom {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
+    margin-top: 8px;
+  }
+  .st-preset--custom .st-preset__k {
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .st-preset--custom .st-preset__v {
+    font-size: var(--fs-sm);
+  }
+  /* 제안 카드 안의 추천 칸은 한 단계 작게 — 주 버튼이 여전히 가장 굵다 */
+  .st-presets--sm .st-preset {
+    min-height: 56px;
+    padding: 8px 11px;
+  }
+  .st-presets--sm .st-preset__v {
+    font-size: var(--fs-md);
+  }
+  .st-preset__ck {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: var(--accent-strong);
+    visibility: hidden;
+  }
+  .st-preset[data-on] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .st-preset[data-on] .st-preset__k,
+  .st-preset[data-on] .st-preset__v {
+    color: var(--accent-strong);
+  }
+  .st-preset[data-on] .st-preset__ck {
+    visibility: visible;
+  }
+  .st-preset:has(input:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .st-preset:active {
+    transform: scale(0.985);
+  }
+  /* 꺼진 동안은 누를 수 없다 — opacity 대신 점선 테두리 (아래 "준비 중 컨트롤" 과 같은 이유) */
+  .st-time__fs:disabled .st-preset {
+    border-style: dashed;
+    cursor: not-allowed;
+  }
+  .st-time__fs:disabled .st-preset:active {
+    transform: none;
+  }
+  /* 꺼진 동안의 고른 칸 — 어느 칸인지는 남기되 강조색을 빼서 꺼진 상태가 먼저 보이게 한다 (회색 채움 + 회색 체크) */
+  .st-time__fs:disabled .st-preset[data-on] {
+    border-color: var(--ink-3);
+    background: var(--surface-2);
+  }
+  .st-time__fs:disabled .st-preset[data-on] .st-preset__k,
+  .st-time__fs:disabled .st-preset[data-on] .st-preset__v {
+    color: var(--ink-2);
+  }
+  .st-time__fs:disabled .st-preset[data-on] .st-preset__ck {
     color: var(--ink-3);
-    cursor: progress;
+  }
+  .st-custom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .st-custom__k {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+    flex: none;
+  }
+  /* iOS 가 16px 미만 입력에서 화면을 확대하지 않게 --fs-lg */
+  .st-custom__in {
+    flex: 1;
+    min-width: 0;
+    min-height: 48px;
+    padding: 10px 14px;
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-sm);
+  }
+  .st-custom__in:disabled {
+    border-style: dashed;
+    cursor: not-allowed;
+  }
+  /* 요약 한 줄 : 고른 결과를 문장으로 되읽어 준다 (role=status) */
+  .st-sum {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 14px 0 0;
+    padding: 12px 14px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .st-sum__ic {
+    flex: none;
+    margin-top: 2px;
+    color: var(--accent-strong);
+  }
+  .st-sum__saved {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--ok-strong);
+  }
+  .st-sum__sub {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
   }
   /* 왜 못 켜는지·무엇이 잘못됐는지 한 줄. 카드 안 시간 행 아래에 붙는다 */
   .st-note {

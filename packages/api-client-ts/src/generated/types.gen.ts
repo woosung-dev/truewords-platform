@@ -1927,6 +1927,10 @@ export type JeongseongCreate = {
      */
     reminder_time?: string | null;
     /**
+     * Resolution
+     */
+    resolution?: string | null;
+    /**
      * Started On
      */
     started_on?: string | null;
@@ -1940,9 +1944,44 @@ export type JeongseongCreate = {
  * JeongseongCurrentResponse
  *
  * GET. 진행 중인 기간이 없으면(또는 끝나서 completed 로 정리됐으면) period 는 null.
+ *
+ * last_ended 는 period 가 null 일 때만 채운다 — 가장 최근에 끝난 기간이 7일 안에 끝난 completed 일 때만(abandoned 면 null).
  */
 export type JeongseongCurrentResponse = {
+    last_ended?: JeongseongLastEnded | null;
     period?: JeongseongPeriodResponse | null;
+};
+
+/**
+ * JeongseongLastEnded
+ *
+ * 최근에 마친 정성 기간(마무리 카드용). 완료한 날 수는 보내지 않는다 — 빠진 날을 계산할 수 없게 한다.
+ */
+export type JeongseongLastEnded = {
+    /**
+     * Duration Days
+     */
+    duration_days: number;
+    /**
+     * End On
+     */
+    end_on: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Resolution
+     */
+    resolution: string | null;
+    /**
+     * Started On
+     */
+    started_on: string;
+    /**
+     * Topic
+     */
+    topic: string;
 };
 
 /**
@@ -1962,6 +2001,10 @@ export type JeongseongPeriodResponse = {
      * Reminder Time
      */
     reminder_time: string | null;
+    /**
+     * Resolution
+     */
+    resolution: string | null;
     /**
      * Started On
      */

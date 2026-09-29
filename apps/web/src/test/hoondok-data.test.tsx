@@ -15,6 +15,7 @@ import {
   useAbandonJeongseong,
   useCreateJeongseong,
   useJeongseong,
+  useJeongseongCurrent,
 } from "@/features/hoondok/use-jeongseong";
 import type { HoondokUser } from "@/features/identity/types";
 import { CURRENT_USER_KEY } from "@/features/identity/use-current-user";
@@ -42,6 +43,7 @@ const USER: HoondokUser = { id: "u1", email: "a@b.c", display_name: "효진" };
 const PERIOD: JeongseongPeriodResponse = {
   id: "p1",
   topic: "감사",
+  resolution: null,
   duration_days: 21,
   started_on: "2026-09-19",
   reminder_time: null,
@@ -141,6 +143,32 @@ describe("useJeongseong", () => {
   it("isEnabled=false 면 요청하지 않는다", () => {
     renderHook(() => useJeongseong(false), { wrapper: createWrapper(createClient()) });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("useJeongseongCurrent 는 같은 요청 하나로 {period, last_ended} 를 준다 — 401 은 둘 다 null", async () => {
+    const ended = {
+      id: "p0",
+      topic: "감사",
+      resolution: null,
+      duration_days: 7,
+      started_on: "2026-09-12",
+      end_on: "2026-09-18",
+    };
+    const client = createClient();
+    fetchMock.mockResolvedValue(json({ period: null, last_ended: ended }));
+    const { result } = renderHook(() => ({ period: useJeongseong(true), current: useJeongseongCurrent(true) }), {
+      wrapper: createWrapper(client),
+    });
+    await waitFor(() => expect(result.current.current.isSuccess).toBe(true));
+    expect(result.current.current.data).toEqual({ period: null, last_ended: ended });
+    expect(result.current.period.data).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const unauthorized = createClient();
+    fetchMock.mockResolvedValueOnce(json({ message: "로그인이 필요합니다" }, 401));
+    const other = renderHook(() => useJeongseongCurrent(true), { wrapper: createWrapper(unauthorized) });
+    await waitFor(() => expect(other.result.current.isSuccess).toBe(true));
+    expect(other.result.current.data).toEqual({ period: null, last_ended: null });
   });
 });
 
