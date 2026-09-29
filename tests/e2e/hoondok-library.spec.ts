@@ -165,10 +165,11 @@ test("단락 형광펜은 새로고침 뒤에도 남고 북마크는 서고에 �
   await signUp(page, "library");
   await page.goto(wordsPath);
   await page.getByRole("button", { name: "단락 1 표시하기" }).click();
-  const sheet = page.getByRole("dialog");
-  await sheet.getByRole("button", { name: "연두 형광펜" }).click();
-  await expect(sheet.getByRole("button", { name: "연두 형광펜" })).toHaveAttribute("aria-pressed", "true");
-  await sheet.getByRole("button", { name: "닫기" }).click();
+  // 단락 시트의 "단락 전체 칠하기" 는 끌어서 고르기 어려운 사람을 위한 경로다 (API-HD-053)
+  const whole = page.getByRole("dialog").getByRole("group", { name: "단락 전체 칠하기" });
+  await whole.getByRole("button", { name: "초록 형광펜" }).click();
+  await expect(whole.getByRole("button", { name: "초록 형광펜" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("dialog").getByRole("button", { name: "닫기" }).click();
   await page.reload();
   await expect(page.locator("mark.hl-2")).toContainText("1번째 합성 문장");
 
@@ -182,6 +183,46 @@ test("단락 형광펜은 새로고침 뒤에도 남고 북마크는 서고에 �
   await expect(page.getByRole("link", { name: /단락 2$/ })).toBeVisible();
   // 이어 읽기는 서버 값으로 바뀐다 — 원문을 연 페이지의 첫 단락이 기준이다
   await expect(page.getByText("단락 1까지 읽었어요")).toBeVisible();
+});
+
+// 형광펜 단위는 사용자가 고른 구절이다. 헤드리스에서 길게 누르기·끌기를 흉내 내지 않고 Range 로 선택을 만든다.
+test("본문에서 고른 구절만 칠해지고 새로고침 뒤에도 그 구절만 남는다", async ({ page }) => {
+  const phrase = "이웃의 이야기를 끝까지 듣고";
+  await signUp(page, "passage");
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(wordsPath);
+  await expect(page.getByRole("article", { name: "원문 본문" })).toContainText("1번째 합성 문장");
+  await page.evaluate((text) => {
+    const paragraph = document.querySelector(".verse__para");
+    if (!paragraph) throw new Error("본문 문단이 없어요");
+    const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const at = node.textContent?.indexOf(text) ?? -1;
+      if (at < 0) continue;
+      const range = document.createRange();
+      range.setStart(node, at);
+      range.setEnd(node, at + text.length);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+      return;
+    }
+    throw new Error("고를 구절을 찾지 못했어요");
+  }, phrase);
+
+  const toolbar = page.getByRole("toolbar", { name: "고른 구절" });
+  await expect(toolbar).toBeVisible();
+  const saved = page.waitForResponse(
+    (response) => response.url().includes("/hoondok/me/highlights") && response.request().method() === "POST",
+  );
+  await toolbar.getByRole("button", { name: "노랑 형광펜" }).click();
+  expect((await saved).status()).toBe(201);
+  await expect(page.locator("mark.hl-1")).toHaveText(phrase);
+
+  await page.reload();
+  await expect(page.locator("mark.hl")).toHaveCount(1);
+  await expect(page.locator("mark.hl-1")).toHaveText(phrase);
 });
 
 // PLAN-HD-011 AI 낭독 목소리. E2E 서버에는 Google 키가 없어(enabled=false) 목록·단락 음성을 route 로 스텁한다 —
