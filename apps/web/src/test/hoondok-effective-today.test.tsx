@@ -16,6 +16,11 @@ import { CURRENT_USER_KEY } from "@/features/identity/use-current-user";
 vi.mock("next/navigation", () => ({ usePathname: () => "/hoondok", useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/features/hoondok/jeongseong-api", () => ({ jeongseongAPI: { today: vi.fn() } }));
 vi.mock("@/features/hoondok/missions-api", () => ({ missionsAPI: { summary: vi.fn(), complete: vi.fn() } }));
+// 홈 이어 읽기 카드(A1)는 기록이 없으면 서고 안내 그대로다 — 이 파일은 오늘 말씀만 본다
+vi.mock("@/features/hoondok/library/api", async (original) => ({
+  ...(await original<object>()),
+  libraryAPI: { readingPositions: vi.fn(async () => ({ items: [] })), list: vi.fn(), sections: vi.fn() },
+}));
 
 const DATE = formatKstDate().iso;
 const PUBLIC: TodayResponse = {

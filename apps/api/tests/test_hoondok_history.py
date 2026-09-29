@@ -43,8 +43,8 @@ def client():
     user = User(email="a@b.c", password_hash="x", display_name="효진")
     logs = _Logs()
     app.dependency_overrides[get_identity_repository] = lambda: _Users(user)
-    # today 를 고정해 기본 월·미래 판정을 결정적으로 만든다
-    app.dependency_overrides[get_mission_service] = lambda: MissionService(logs, today_fn=lambda: TODAY)
+    # today 를 고정해 기본 월·미래 판정을 결정적으로 만든다. 월 기록은 편성을 읽지 않는다(MagicMock).
+    app.dependency_overrides[get_mission_service] = lambda: MissionService(logs, MagicMock(), today_fn=lambda: TODAY)
     try:
         c = TestClient(app)
         c.hoondok_user = user  # type: ignore[attr-defined]

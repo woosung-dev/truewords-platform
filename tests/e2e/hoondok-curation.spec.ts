@@ -15,6 +15,20 @@ const TEST_PASSWORD = "test1234";
 // admin 프로젝트의 baseURL 은 admin origin 이다. web 홈 확인만 절대 URL 로 간다.
 const WEB_ORIGIN = process.env.E2E_WEB_ORIGIN || "http://127.0.0.1:3000";
 
+function kstToday(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+function addDaysIso(iso: string, n: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
 async function login(page: Page) {
   await page.goto("/login");
   await page.locator("#email").click();
@@ -77,6 +91,33 @@ test.describe("훈독 편성", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(original);
     await page.reload();
     await expect(title).toHaveValue(original);
+  });
+
+  test("재고: 시드 20일분이면 조용한 한 줄 · 사이드바 배지 없음", async ({ page }) => {
+    await page.goto("/hoondok");
+    await expect(page.getByRole("status").filter({ hasText: "채워져 있어요" })).toHaveText(
+      "앞으로 15일분 이상 채워져 있어요",
+    );
+    await expect(page.getByRole("link", { name: "훈독 편성", exact: true })).toBeVisible();
+  });
+
+  test("재고: 3일분만 남으면 경고 배너 · 사이드바 3일 · 첫 빈 날 새 편성으로", async ({ page }) => {
+    // DB 는 건드리지 않는다 — 실제 목록 응답에서 오늘+3일 이후 행만 뺀다.
+    const firstGap = addDaysIso(kstToday(), 3);
+    await page.route(/\/admin\/hoondok\/daily-readings\?/, async (route) => {
+      const response = await route.fetch();
+      const rows = (await response.json()) as { reading_date: string }[];
+      await route.fulfill({ response, json: rows.filter((row) => row.reading_date < firstGap) });
+    });
+    await page.goto("/hoondok");
+    const banner = page.getByRole("status").filter({ hasText: "남았어요" });
+    await expect(banner).toContainText("앞으로 3일분 남았어요");
+    await expect(page.getByRole("link", { name: /훈독 편성/ })).toContainText("3일");
+    await expect(page.locator('tr[data-first-gap="true"]')).toHaveAttribute("data-date", firstGap);
+
+    await banner.getByRole("link", { name: /편성하기$/ }).click();
+    await page.waitForURL(`**/hoondok/new?date=${firstGap}`, { timeout: 5_000 });
+    await expect(page.locator("#reading-date")).toHaveValue(firstGap);
   });
 
   test("새 편성 ?date= 프리필 · 필수 미입력 저장은 인라인 오류로 멈춘다", async ({ page }) => {

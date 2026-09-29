@@ -36,7 +36,7 @@ for (const width of [375, 768, 1280]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(
       0,
     );
-    await page.getByRole("button", { name: "읽음", exact: true }).click();
+    await page.getByRole("button", { name: "오늘 말씀 읽음으로 기록", exact: true }).click();
     await page.goto("/hoondok");
     await expect(page.locator(".mission").filter({ hasText: "말씀 읽기" })).toHaveAttribute("data-done", "");
   });
@@ -185,8 +185,8 @@ test("단락 형광펜은 새로고침 뒤에도 남고 북마크는 서고에 �
   await page.goto("/hoondok/library");
   await expect(page.getByRole("heading", { name: "북마크", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /단락 2$/ })).toBeVisible();
-  // 이어 읽기는 서버 값으로 바뀐다 — 원문을 연 페이지의 첫 단락이 기준이다
-  await expect(page.getByText("단락 1까지 읽었어요")).toBeVisible();
+  // 이어 읽기는 서버 값으로 바뀐다 — 원문을 연 페이지의 첫 단락이 기준이다(홈 카드와 같은 문구)
+  await expect(page.getByText("355권 · 1단락부터 이어 읽어요")).toBeVisible();
 });
 
 // 형광펜 단위는 사용자가 고른 구절이다. 헤드리스에서 길게 누르기·끌기를 흉내 내지 않고 Range 로 선택을 만든다.

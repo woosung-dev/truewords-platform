@@ -762,16 +762,23 @@ describe("구절 형광펜", () => {
     await screen.findByText("첫째 단락의 본문");
     expect(screen.queryByText(/글자를 길게 누르면 원하는 구절에/)).toBeNull();
   });
-  it("리더 바: 형광펜은 고르는 법을 알리고 노트는 노트 탭으로 간다", async () => {
+  it("읽기 도구는 형광펜·노트·목차 셋이다: 형광펜은 고르는 법을 알리고 노트는 노트 탭으로 간다", async () => {
     await showWords();
     await screen.findByText("첫째 단락의 본문");
-    const bar = screen.getAllByLabelText("읽기 도구")[0];
+    // 폰·태블릿 하단 독과 ≥1024px 가로 툴바가 같은 도구를 보인다. 북마크는 단락 시트에서만 한다
+    const bars = screen.getAllByLabelText("읽기 도구");
+    expect(bars).toHaveLength(2);
+    for (const bar of bars)
+      expect(
+        within(bar)
+          .getAllByRole("button")
+          .map((button) => button.textContent),
+      ).toEqual(["형광펜", "노트", "목차"]);
+    const bar = bars[1];
     fireEvent.click(within(bar).getByRole("button", { name: "형광펜" }));
     expect(
       await screen.findByText("칠할 구절을 길게 눌러 고르세요. PC에서는 끌어서 고를 수 있어요."),
     ).toBeInTheDocument();
-    fireEvent.click(within(bar).getByRole("button", { name: "북마크" }));
-    expect(screen.getByText("먼저 단락 번호를 눌러 단락을 골라 주세요.")).toBeInTheDocument();
     fireEvent.click(within(bar).getByRole("button", { name: "노트" }));
     expect(screen.getByRole("tab", { name: "노트" })).toHaveAttribute("aria-selected", "true");
   });
@@ -896,7 +903,9 @@ describe("듣기 바", () => {
       expect(await screen.findByText("2단락")).toBeInTheDocument();
       fireEvent.click(await screen.findByRole("button", { name: "듣기 시작" }));
       await waitFor(() => expect(document.getElementById("verse-0")).toHaveClass("verse--speaking"));
-      expect(screen.getByText("단락 1 / 2")).toBeInTheDocument();
+      expect(screen.getByRole("progressbar", { name: "듣기 진행" })).toHaveAttribute("aria-valuenow", "1");
+      // 하단 독에 미니 플레이어가 붙는다 — 위 듣기 바가 스크롤로 접혀도 여기서 멈출 수 있다
+      expect(screen.getByRole("button", { name: "일시정지 · 단락 1 / 2" })).toBeInTheDocument();
       act(() => spoken[0].onend?.());
       await waitFor(() => expect(document.getElementById("verse-1")).toHaveClass("verse--speaking"));
       act(() => spoken[1].onend?.());
@@ -906,6 +915,7 @@ describe("듣기 바", () => {
       );
       expect(view.container.querySelector(".verse--speaking")).toBeNull();
       expect(screen.getByText("2단락")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /· 단락/ })).toBeNull();
     } finally {
       Reflect.deleteProperty(window, "speechSynthesis");
       Reflect.deleteProperty(window, "SpeechSynthesisUtterance");
@@ -944,7 +954,7 @@ describe("이 단락부터 듣기", () => {
       expect(screen.queryByRole("dialog")).toBeNull();
       expect(spoken.map((utterance) => utterance.text)).toEqual(["둘째 단락의 본문"]);
       await waitFor(() => expect(document.getElementById("verse-1")).toHaveClass("verse--speaking"));
-      expect(screen.getByText("단락 2 / 2")).toBeInTheDocument();
+      expect(screen.getByRole("progressbar", { name: "듣기 진행" })).toHaveAttribute("aria-valuenow", "2");
 
       // 읽는 중에도 다른 단락을 고르면 그 단락부터 다시 읽는다
       fireEvent.click(screen.getByRole("button", { name: "단락 1 표시하기" }));
@@ -996,11 +1006,36 @@ describe("이어 읽기", () => {
     });
     show(LibraryPage());
     expect(await screen.findByRole("heading", { name: "이어 읽기" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /단락 43까지 읽었어요/ })).toHaveAttribute(
+    // 저장값은 마지막으로 연 구간의 첫 단락이다 — 홈 카드와 같은 "N단락부터" 문구
+    expect(screen.getByRole("link", { name: /001권 · 43단락부터 이어 읽어요/ })).toHaveAttribute(
       "href",
       `${wordsHref(VOLUME)}?page=3`,
     );
+    expect(screen.queryByText(/까지 읽었어요/)).toBeNull();
     expect(libraryAPI.saveReadingPosition).not.toHaveBeenCalled();
+  });
+  it("서버 기록이라도 원문 공개가 닫힌 권이면 이어 읽기를 만들지 않는다", async () => {
+    loggedIn();
+    vi.mocked(libraryAPI.list).mockResolvedValue({
+      items: [{ ...ITEM, scope_full_text: false }, OTHER],
+      works: [WORK],
+    });
+    vi.mocked(libraryAPI.readingPositions).mockResolvedValue({
+      items: [
+        {
+          volume: VOLUME,
+          chunk_index: 42,
+          updated_at: "2026-09-23T00:00:00Z",
+          work_title: "말씀선집 001권",
+          series: SERIES,
+          label: "001권",
+        },
+      ],
+    });
+    show(LibraryPage());
+    await screen.findByRole("link", { name: /문선명선생 말씀선집/ });
+    await waitFor(() => expect(libraryAPI.readingPositions).toHaveBeenCalled());
+    expect(screen.queryByRole("heading", { name: "이어 읽기" })).toBeNull();
   });
   it("서버가 비어 있고 기기에만 기록이 있으면 한 번 올린다", async () => {
     loggedIn();
