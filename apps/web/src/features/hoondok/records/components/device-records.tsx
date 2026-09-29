@@ -1,8 +1,10 @@
 "use client";
 
 // 이 기기에만 있는 기록 (C1 결정 9). 오늘의 한 줄(note/storage)과 저장한 AI 답(ask/storage)은 이 브라우저
-// localStorage 에만 있다 — 이 화면과 입구는 서버를 부르지 않는다. 로그아웃·다른 계정 로그인도 이 기록을 지운다
-// (identity `clearHoondokStorage`). 계정으로 옮기는 기능은 없으니 한 줄을 글로 한 번에 복사할 길만 둔다.
+// localStorage 에만 있다 — 이 화면과 입구는 서버를 부르지 않는다. 로그아웃에서 '기기 기록 지우기'를 고르거나
+// 기기 주인 표시와 다른 계정으로 로그인하면 이 기록이 지워진다(identity `use-logout`·`device-owner`).
+// 규칙이 경우마다 달라 안내 문구는 "지워질 수 있어요"로 둔다. 계정으로 옮기는 기능은 없으니 한 줄을 글로
+// 한 번에 복사할 길만 둔다.
 import { ChevronRight, Copy, MessageSquareText, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
@@ -88,9 +90,8 @@ export function DeviceRecordsScreen() {
         <div>
           <b>이 브라우저에만 저장돼 있어요</b>
           <p>
-            폰을 바꾸거나 인터넷 사용 기록을 지우면 함께 지워져요. 로그아웃할 때 ‘이 기기에 남은 기록도 지우기’를
-            고르거나 다른 계정으로 로그인해도 지워지고, 로그인 전에 남긴 기록은 이미 있는 계정으로 로그인할 때 지워져요.
-            계정으로 옮기는 기능은 아직 없어요.
+            폰을 바꾸거나 인터넷 사용 기록을 지우면 함께 지워져요. 로그아웃할 때 ‘이 기기에 남은 기록도 지우기’를 고르면
+            지워지고, 계정에 로그인할 때도 지워질 수 있어요. 계정으로 옮기는 기능은 아직 없어요.
           </p>
         </div>
       </div>
