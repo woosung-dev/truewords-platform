@@ -337,6 +337,13 @@ describe("원문 이어 읽기 도착", () => {
     expect(first).toHaveClass("verse--arrive");
     expect(screen.getByRole("button", { name: "단락 22 표시하기" }).closest("p")).not.toHaveClass("verse--arrive");
     expect((label as Node).compareDocumentPosition(first as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // 형광펜 본문(API-HD-053)과 함께 — 본문 article 은 한 겹이고 라벨은 그 밖, 첫 안내 뒤에 선다
+    const articles = screen.getAllByRole("article", { name: "원문 본문" });
+    expect(articles).toHaveLength(1);
+    expect(articles[0]).toContainElement(first);
+    expect(articles[0]).not.toContainElement(label);
+    const hint = screen.getByText(/글자를 길게 누르면/);
+    expect(hint.compareDocumentPosition(label as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     await waitFor(() => expect(scroll.mock.contexts).toContain(label));
     // from 은 표시용 — 원문 API 로 보내지 않는다
     expect(libraryAPI.words).toHaveBeenCalledWith(
