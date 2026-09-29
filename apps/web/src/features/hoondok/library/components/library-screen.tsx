@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { LibraryItem, LibraryWork } from "@truewords/api-client-ts/types";
 import { Bookmark, BookOpenText, Search } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect } from "react";
 import { AuthorityBadge } from "@/components/hoondok";
 import { LIBRARY_KEY } from "@/features/hoondok/query-keys";
 import { useCurrentUser } from "@/features/identity/use-current-user";
@@ -19,8 +19,8 @@ import {
   wordsHref,
   wordsPageHref,
 } from "../api";
-import { parseLastReading, readLastReadingRaw, subscribeLastReading } from "../last-reading";
-import { useBookmarks, useReadingPositions, useReadingPositionWriter } from "../use-reading";
+import { pickResume, resumeFromPhrase } from "../resume";
+import { useBookmarks, useLastReading, useReadingPositions, useReadingPositionWriter } from "../use-reading";
 
 const BOOKMARK_LIMIT = 5;
 
@@ -43,7 +43,7 @@ export function LibraryScreen() {
   const query = useQuery({ queryKey: LIBRARY_KEY, queryFn: libraryAPI.list, retry: false, staleTime: 0 });
   const { user } = useCurrentUser();
   const isLoggedIn = Boolean(user);
-  const device = parseLastReading(useSyncExternalStore(subscribeLastReading, readLastReadingRaw, () => null));
+  const device = useLastReading();
   const positions = useReadingPositions(isLoggedIn);
   const bookmarks = useBookmarks(isLoggedIn, BOOKMARK_LIMIT);
   const items = query.data?.items ?? [];
@@ -56,12 +56,8 @@ export function LibraryScreen() {
     if (shouldUpload && device) remember(device.volume, (device.page - 1) * WORDS_PAGE_SIZE);
   }, [shouldUpload, device, remember]);
 
-  const serverResume = positions.items[0] ?? null;
-  const deviceResume =
-    !isLoggedIn && device ? items.find((item) => item.volume === device.volume && item.scope_full_text) : undefined;
-  const resumeGrade = serverResume
-    ? items.find((item) => item.volume === serverResume.volume)?.authority_grade
-    : undefined;
+  // 홈 이어 읽기 카드와 같은 규칙 — 원문 공개가 허용된 권만 고른다
+  const resume = pickResume({ isLoggedIn, positions: positions.items, device, items });
 
   return (
     <section className="col">
@@ -69,43 +65,27 @@ export function LibraryScreen() {
         <Search size={20} aria-hidden="true" />
         <span>단어, 구절, 상황을 입력해 주세요</span>
       </Link>
-      {serverResume ? (
+      {resume && (
         <div className="sect">
           <div className="sect__head">
             <h2 className="sect__title">이어 읽기</h2>
-            <span className="sect__meta">계정에 저장된 위치</span>
+            <span className="sect__meta">
+              {resume.source === "account" ? "계정에 저장된 위치" : "이 기기의 마지막 구간"}
+            </span>
           </div>
-          <Link
-            className="card resume"
-            href={wordsPageHref(serverResume.volume, pageOfChunkIndex(serverResume.chunk_index))}
-          >
+          <Link className="card resume" href={wordsPageHref(resume.volume, pageOfChunkIndex(resume.chunkIndex))}>
             <span className="resume__bd">
-              <b>{serverResume.work_title}</b>
+              <b>{resume.workTitle}</b>
               <span className="resume__meta">
-                {serverResume.label !== serverResume.work_title && `${serverResume.label} · `}
-                단락 {verseNumber(serverResume.chunk_index)}까지 읽었어요
+                {resume.label && resume.label !== resume.workTitle && `${resume.label} · `}
+                {resume.source === "account"
+                  ? resumeFromPhrase(resume.chunkIndex)
+                  : `원문 구간 ${pageOfChunkIndex(resume.chunkIndex)}`}
               </span>
             </span>
-            {resumeGrade && <GradeBadge grade={resumeGrade} />}
+            <GradeBadge grade={resume.authorityGrade} />
           </Link>
         </div>
-      ) : (
-        deviceResume &&
-        device && (
-          <div className="sect">
-            <div className="sect__head">
-              <h2 className="sect__title">이어 읽기</h2>
-              <span className="sect__meta">이 기기의 마지막 구간</span>
-            </div>
-            <Link className="card resume" href={wordsPageHref(deviceResume.volume, device.page)}>
-              <span className="resume__bd">
-                <b>{deviceResume.work_title}</b>
-                <span className="resume__meta">원문 구간 {device.page}</span>
-              </span>
-              <GradeBadge grade={deviceResume.authority_grade} />
-            </Link>
-          </div>
-        )
       )}
       <div className="sect">
         <div className="sect__head">

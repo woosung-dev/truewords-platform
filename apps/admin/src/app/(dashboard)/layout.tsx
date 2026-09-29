@@ -23,6 +23,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { authAPI } from "@/features/auth/api";
 import AuthGuard from "@/features/auth/components/auth-guard";
+import { ScheduleStockNavBadge } from "@/features/hoondok/components/schedule-stock";
 import { WEB_ORIGIN } from "@/lib/origins";
 
 const NAV_ITEMS = [
@@ -77,6 +78,8 @@ function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onL
             >
               <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-sidebar-primary" : ""}`} />
               {item.label}
+              {/* 편성 재고: 어느 관리 화면에서나 남은 일수를 본다. 편성 화면과 같은 쿼리라 요청이 늘지 않는다. */}
+              {item.href === "/hoondok" && <ScheduleStockNavBadge />}
             </Link>
           );
         })}

@@ -50,6 +50,8 @@ export default defineConfig({
         "hoondok-ask.spec.ts",
         "hoondok-preview.spec.ts",
         "hoondok-library.spec.ts",
+        "hoondok-resume.spec.ts",
+        "hoondok-empty-day.spec.ts",
         "hoondok-groups.spec.ts",
         "hoondok-cards.spec.ts",
         "hoondok-records.spec.ts",

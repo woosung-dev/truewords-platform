@@ -37,16 +37,28 @@ export function useEffectiveToday(initialToday: TodayResponse) {
       : null;
   const isResolving = identity.isLoading || (isPersonal && personal.isPending) || (!personalized && regular.isPending);
   const regularToday = regular.data?.date === date ? regular.data : undefined;
-  const reading = personalized ?? (regularToday?.status === "available" ? regularToday.reading : null);
+  // 서버 렌더가 API 를 못 읽으면 status "none" + error 로 온다(loadToday) — 편성 없는 날이 아니라 조회 실패다
+  const isRegularError = regular.isError || Boolean(regularToday?.error);
+  const hasRegular = regularToday?.status === "available";
+  const reading = personalized ?? (hasRegular ? regularToday.reading : null);
+  // 일반 편성도 없는 날에는 "일반 편성을 보여드려요" 가 사실이 아니라 이유만 말한다
+  const withRegular = (fallback: string, alone: string) => (hasRegular ? fallback : alone);
   let reason: string | null = null;
   if (identity.isError || (isPersonal && personal.isError))
-    reason = "정성 말씀을 확인하지 못해 일반 편성을 보여드려요.";
+    reason = withRegular("정성 말씀을 확인하지 못해 일반 편성을 보여드려요.", "정성 말씀을 확인하지 못했어요.");
   else if (isPersonal && personal.data?.reason === "no_candidates")
-    reason = "오늘 주제에 맞는 정성 말씀을 찾지 못해 일반 편성을 보여드려요.";
+    reason = withRegular(
+      "오늘 주제에 맞는 정성 말씀을 찾지 못해 일반 편성을 보여드려요.",
+      "오늘 주제에 맞는 정성 말씀을 찾지 못했어요.",
+    );
   else if (isPersonal && personal.data?.reason === "rights_withdrawn")
-    reason = "정성 말씀의 공개 권한이 바뀌어 일반 편성을 보여드려요.";
-  else if (isPersonal && personal.data?.reason === "upcoming") reason = "정성 시작일 전이라 일반 편성을 보여드려요.";
-  if (regular.isError && !personalized) reason = "오늘 편성을 불러오지 못했어요. 연결을 확인해 주세요.";
+    reason = withRegular(
+      "정성 말씀의 공개 권한이 바뀌어 일반 편성을 보여드려요.",
+      "정성 말씀의 공개 권한이 바뀌었어요.",
+    );
+  else if (isPersonal && personal.data?.reason === "upcoming")
+    reason = withRegular("정성 시작일 전이라 일반 편성을 보여드려요.", "정성 시작일 전이에요.");
+  if (isRegularError && !personalized) reason = "오늘 편성을 불러오지 못했어요. 연결을 확인해 주세요.";
   return {
     reading,
     status: reading
@@ -57,6 +69,8 @@ export function useEffectiveToday(initialToday: TodayResponse) {
     reason,
     isResolving,
     isPersonalLoading: isPersonal && personal.isPending,
+    /** 편성 없는 날(행 없음·철회). 확인 중·조회 실패는 아니다. 대체 말씀 없이 이어 읽기·서고로 안내한다(C3) */
+    isEmptyDay: !reading && !isResolving && !isRegularError && regularToday !== undefined,
     date,
   };
 }
