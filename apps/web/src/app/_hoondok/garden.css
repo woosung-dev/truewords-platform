@@ -108,4 +108,49 @@
   .gd-skeleton--row {
     height: 120px;
   }
+
+  /* ---------- 계정 : 이메일 + 로그아웃 (행·확인 버튼 줄은 settings.css 의 .st-* 를 그대로 쓴다) ---------- */
+  .gd-account__email {
+    overflow-wrap: anywhere;
+  }
+  /* fieldset 이라 브라우저 기본 여백·최소 폭을 지운다 (테두리·안쪽 여백은 .card) */
+  .gd-logout {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+    margin: 0;
+    /* 폰은 하단 탭(76px + 안전 영역) 위로, 앱바 아래로 올린다. ≥1024px 은 탭이 위로 가서 여유만 남는다 */
+    scroll-margin: 72px 0 calc(76px + env(safe-area-inset-bottom) + 16px);
+  }
+  .gd-logout__t {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  /* 체크 칸만이 아니라 줄 전체가 누르는 자리다 (44px) */
+  .gd-logout__opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 44px;
+    padding: 12px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    cursor: pointer;
+  }
+  .gd-logout__opt input {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin: 1px 0 0;
+    accent-color: var(--accent-strong);
+  }
+  .gd-logout__d {
+    display: block;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
 }
