@@ -440,8 +440,12 @@ export function WordsScreen({
   const citedHasHit = Boolean(searchQuery && citedChunk && hasSearchHit(citedChunk.display_text, searchQuery));
 
   // 새 형광펜은 로그인 계정에만 남는다. 첫 사용 안내는 이 권에 형광펜이 하나도 없을 때만 보인다.
+  // 이어 읽기 도착에서는 띄우지 않는다 — 형광펜 조회가 원문보다 늦게 끝나면 안내가 라벨 위에 끼어들어
+  // 도착한 단락이 한 번 밀려 내려간다. 안내는 다음에 원문을 그냥 열 때 보인다.
   const isFirstHintShown =
-    !isHintDismissed && (isLoggedIn ? highlights.isSuccess && highlights.items.length === 0 : true);
+    !isHintDismissed &&
+    resumeIndex === null &&
+    (isLoggedIn ? highlights.isSuccess && highlights.items.length === 0 : true);
   const memoItem = memoTarget && "id" in memoTarget ? highlights.items.find((item) => item.id === memoTarget.id) : null;
 
   function openPassage(chunkKey: string) {
