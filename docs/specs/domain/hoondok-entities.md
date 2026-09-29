@@ -119,7 +119,7 @@
 | 2026-09-19 | `jeongseong_periods` 확정(alembic `k5a6b7c8d9e0`). 사용자당 active 1건은 부분 unique, 상태 varchar, 진행률 미저장. `users.deleted_at` 은 API-HD-011 이 기록하고 이메일을 `deleted:{id}` 로 익명화 | 확정 · PLAN-HD-002 W0-B |
 | 2026-09-22 | `notification_preferences`·`push_subscriptions` 신설(alembic `m7c8d9e0f1a2`). 설정은 행 없으면 기본값·PUT 전체 교체, 구독은 `endpoint` unique + 소유 이전, 발송 상태(`last_sent_on`·`failed_count`)는 구독 행에 둔다 | 확정 · PLAN-HD-006 sub-PR A |
 | 2026-09-28 | `notification_preferences` 의 알림 문구 수준 컬럼 삭제(alembic `u6f7a8b9c0d1`) — 오버 스펙, 알림 문구는 중립 문구 하나 | 확정 · PLAN-HD-006 §8 |
-| 2026-09-29 | `jeongseong_periods.resolution` varchar(50) nullable 추가(alembic `v7a8b9c0d1e2`) — 나의 각오. 본인 응답에만, 수정 없음 | 확정(사용자 승인) |
+| 2026-09-29 | `jeongseong_periods.resolution` varchar(50) nullable 추가(alembic `w8b9c0d1e2f3`) — 나의 각오. 본인 응답에만, 수정 없음 | 확정(사용자 승인) |
 | 2026-09-23 | 모임 5테이블 신설(ENT-HD-013~017, alembic `r3c4d5e6f7a8`). 공동 정성은 개인 정성을 확장하지 않고 `shared_jeongseongs`(group_id NULL = 공식)로 분리 | 확정 · PLAN-HD-010 트랙 A |
 | 2026-09-29 | 형광펜을 단락 단위에서 구절(글자 범위) 단위로 옮긴다 — `passage_highlights` 신설(ENT-HD-021, alembic `v7a8b9c0d1e2`). `passage_marks` 는 북마크만 쓰고 예전 `highlight` 행은 옮기거나 지우지 않는다 | 확정 · API-HD-053 |
 
