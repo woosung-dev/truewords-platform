@@ -16,6 +16,7 @@ const PREFIX = "ghcr.io/woosung-dev/truewords";
 const SHA = "1234567890abcdef1234567890abcdef12345678";
 const TAG = SHA.slice(0, 12);
 const OLD = "aaaaaaaa";
+const SRC = "fedcba9876543210fedcba9876543210fedcba98"; // 배포 코드(최신 main) 커밋 — 대상 sha 와 다르다
 
 // 가짜 docker — 동작은 fixtures/fake-docker.sh 주석 참조.
 const FAKE_DOCKER = readFileSync(path.join(root, "tooling/checks/fixtures/fake-docker.sh"), "utf8");
@@ -34,6 +35,20 @@ function fakes(base) {
   writeExec(path.join(bin, "docker"), FAKE_DOCKER);
   writeExec(path.join(bin, "sudo"), '#!/bin/sh\nexec "$@"\n');
   writeExec(path.join(bin, "flock"), '#!/bin/sh\n[ -f "$FAKE_STATE/flock_busy" ] && exit 1\nexit 0\n');
+  // env_mv_fail 에 N 을 쓰면 .env 로의 N 번째 mv 가 실패한다(.env 원자 교체 실패 흉내).
+  writeExec(
+    path.join(bin, "mv"),
+    [
+      "#!/bin/bash",
+      'for last in "$@"; do :; done',
+      'if [ -f "$FAKE_STATE/env_mv_fail" ] && [ "${last##*/}" = .env ]; then',
+      '  n=$(( $(cat "$FAKE_STATE/env_mv_count" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$FAKE_STATE/env_mv_count"',
+      '  [ "$n" = "$(cat "$FAKE_STATE/env_mv_fail")" ] && exit 1',
+      "fi",
+      'exec /bin/mv "$@"',
+      "",
+    ].join("\n"),
+  );
   writeExec(
     path.join(state, "backup.sh"),
     '#!/bin/sh\necho backup >> "$FAKE_STATE/calls.log"\n[ ! -f "$FAKE_STATE/backup_fail" ]\n',
@@ -50,12 +65,12 @@ function cleanEnv(extra) {
   return { ...env, ...extra };
 }
 
-const image = (ref, id, head = "") => `${ref}\t${id}\t${head}\n`;
+const image = (ref, id, head = "", known = "") => `${ref}\t${id}\t${head}\t${known}\n`;
 
 /**
  * 운영 VM 흉내. 현재 세 서비스는 레지스트리 도입 전 이름(truewords-<svc>:aaaaaaaa)으로 떠 있다.
  */
-function vm({ dbHead = "rev1", pullable = "", extraImages = "" } = {}) {
+function vm({ dbHead = "rev1", pullable = "", extraImages = "", compose = "ghcr" } = {}) {
   const base = mkdtempSync(path.join(tmpdir(), "truewords-deploy-sh-"));
   const home = path.join(base, "home");
   const tw = path.join(home, "truewords");
@@ -64,6 +79,9 @@ function vm({ dbHead = "rev1", pullable = "", extraImages = "" } = {}) {
   const envText = `POSTGRES_USER=tw\nBACKEND_TAG=${OLD}\nADMIN_TAG=${OLD}\nWEB_TAG=${OLD}\nGEMINI_API_KEY=secret-stays\n`;
   writeFileSync(path.join(tw, ".env"), envText, { mode: 0o600 });
   writeFileSync(path.join(tw, "preserve-images.txt"), "truewords-admin:30ca81f\n");
+  // 이미 GHCR 로 동기화된 VM(기본) 또는 레지스트리 도입 전 compose("legacy").
+  const name = compose === "ghcr" ? `${PREFIX}-backend` : "truewords-backend";
+  writeFileSync(path.join(tw, "docker-compose.yml"), `services:\n  backend:\n    image: ${name}:\${BACKEND_TAG}\n`);
   writeFileSync(
     path.join(state, "images"),
     image(`truewords-backend:${OLD}`, "id-old-backend", "rev1") +
@@ -102,7 +120,7 @@ function vm({ dbHead = "rev1", pullable = "", extraImages = "" } = {}) {
 }
 
 const newImages = (backendHead = "rev1") =>
-  image(`${PREFIX}-backend:${TAG}`, "id-new-backend", backendHead) +
+  image(`${PREFIX}-backend:${TAG}`, "id-new-backend", backendHead, "rev0,rev1") +
   image(`${PREFIX}-admin:${TAG}`, "id-new-admin") +
   image(`${PREFIX}-web:${TAG}`, "id-new-web");
 
@@ -112,7 +130,7 @@ const tagOf = (text, key) => text.match(new RegExp(`^${key}=(.*)$`, "m"))?.[1];
 test("deploy: 이미지 pull → .env → backend→web 순서 교체, 기록·상태·파일 동기화", () => {
   const box = vm({ pullable: newImages() });
   try {
-    const result = box.run(["deploy", SHA, "web", "backend"]);
+    const result = box.run(["deploy", SHA, "web", "backend"], { TW_SRC_SHA: SRC });
     assert.equal(result.status, 0, result.stderr);
     const env = box.read(".env");
     assert.equal(tagOf(env, "BACKEND_TAG"), TAG);
@@ -140,7 +158,8 @@ test("deploy: 이미지 pull → .env → backend→web 순서 교체, 기록·�
     assert.match(state, /^STATUS=deployed$/m);
     assert.match(state, new RegExp(`^PREV_BACKEND_TAG=${OLD}$`, "m"));
     assert.match(state, /^MIGRATED=0$/m);
-    assert.equal(box.read("deploy-state/synced-sha").trim(), SHA);
+    // 동기화 기록은 대상 sha 가 아니라 파일의 원본(최신 main) 커밋이다.
+    assert.equal(box.read("deploy-state/synced-sha").trim(), SRC);
     // cron 이 부르는 파일이 checkout 에서 ~/truewords 로 동기화된다.
     assert.equal(
       box.read("docker-compose.yml"),
@@ -149,6 +168,8 @@ test("deploy: 이미지 pull → .env → backend→web 순서 교체, 기록·�
     assert.ok(existsSync(path.join(box.tw, "ops-check.sh")));
     // 교체 대상이 아닌 admin 의 현재 이미지는 새 이름으로 재태그된다(compose 이미지 이름 전환 대비).
     assert.match(box.calls(), new RegExp(`docker tag truewords-admin:${OLD} ${PREFIX}-admin:${OLD}`));
+    // 교체 대상의 직전 태그도 새 이름으로 맞춘다 — 실패 복구가 그 이름을 찾는다.
+    assert.match(box.calls(), new RegExp(`docker tag truewords-backend:${OLD} ${PREFIX}-backend:${OLD}`));
   } finally {
     box.cleanup();
   }
@@ -162,7 +183,7 @@ test("deploy: DB 와 이미지 alembic head 가 다르면 --migrate 없이 종�
     assert.match(result.stdout, /MIGRATION_REQUIRED db=rev1 image=rev2/);
     assert.equal(box.read(".env"), box.envText);
     assert.deepEqual(ups(box.calls()), []);
-    assert.ok(!existsSync(path.join(box.tw, "docker-compose.yml")), "게이트 전에 파일을 동기화하면 안 된다");
+    assert.doesNotMatch(box.read("docker-compose.yml"), /postgres/, "게이트 전에 파일을 동기화하면 안 된다");
     assert.ok(!existsSync(path.join(box.tw, "deploy-state/last-deploy.env")));
     assert.ok(!existsSync(path.join(box.tw, "deploy.log")));
   } finally {
@@ -278,16 +299,130 @@ test("deploy: 복구할 이전 이미지가 없으면 종료 6", () => {
   }
 });
 
-test("deploy --migrate 후 교체 검사가 실패하면 자동 롤백하지 않고 종료 1", () => {
+test("deploy --migrate 후 교체 검사가 실패하면 backend 는 두고 바뀐 web 만 이전 태그로 되돌린 뒤 종료 1", () => {
   const box = vm({ pullable: newImages("rev2"), dbHead: "rev1" });
   try {
     box.touch("unhealthy", `${PREFIX}-web:${TAG}\n`);
     const result = box.run(["deploy", SHA, "backend", "web", "--migrate"]);
     assert.equal(result.status, 1, result.stderr);
-    assert.match(result.stderr, /자동 롤백하지 않는다/);
-    assert.equal(tagOf(box.read(".env"), "BACKEND_TAG"), TAG);
+    assert.match(result.stderr, /backend 는 자동 롤백하지 않는다/);
+    const env = box.read(".env");
+    assert.equal(tagOf(env, "BACKEND_TAG"), TAG); // 새 DB revision 과 짝인 새 backend 유지
+    assert.equal(tagOf(env, "WEB_TAG"), OLD); // web 은 이전 태그로
+    assert.equal(box.running("web"), `${PREFIX}-web:${OLD}`);
     assert.doesNotMatch(box.calls(), /up .*backend[\s\S]*up .*backend/); // backend 재교체 없음
+    const order = ups(box.calls());
+    assert.ok(
+      order.every((args) => args.includes("--no-deps")),
+      order.join("\n"),
+    );
+    assert.match(box.read("deploy.log"), /rollback web aaaaaaaa auto-restore$/m);
     assert.match(box.read("deploy-state/last-deploy.env"), /^STATUS=failed_after_migration$/m);
+  } finally {
+    box.cleanup();
+  }
+});
+
+test("deploy: DB head 가 비었거나 여러 개이거나 이미지보다 앞서면 --migrate 와 무관하게 백업 전에 종료 1", () => {
+  for (const [dbHead, message] of [
+    ["", /비어 있다/],
+    ["rev1\nrev9", /여러 개/],
+    ["rev9", /DB 가 이미지보다 앞섰다/],
+  ]) {
+    const box = vm({ pullable: newImages("rev2"), dbHead });
+    try {
+      const result = box.run(["deploy", SHA, "backend", "--migrate"]);
+      assert.equal(result.status, 1, `db=${JSON.stringify(dbHead)} ${result.stderr}`);
+      assert.match(result.stderr, message);
+      assert.doesNotMatch(box.calls(), /^backup$/m);
+      assert.doesNotMatch(box.calls(), /^migrate /m);
+      assert.equal(box.read(".env"), box.envText);
+      assert.deepEqual(ups(box.calls()), []);
+    } finally {
+      box.cleanup();
+    }
+  }
+});
+
+test("pin: DB 가 이전 이미지보다 앞서면(migration 을 넘는 되돌리기) 종료 1, 아무것도 바꾸지 않는다", () => {
+  const box = vm({
+    dbHead: "rev2",
+    extraImages: image(`${PREFIX}-backend:bbbbbbbb`, "id-older-backend", "rev1", "rev0"),
+  });
+  try {
+    const result = box.run(["pin", "backend", "bbbbbbbb"]);
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, /DB 가 이미지보다 앞섰다/);
+    assert.equal(box.read(".env"), box.envText);
+    assert.deepEqual(ups(box.calls()), []);
+  } finally {
+    box.cleanup();
+  }
+});
+
+test("pin: VM compose 가 아직 옛 이미지 이름이면(동기화 전) 아무것도 하지 않고 종료 1", () => {
+  const box = vm({ compose: "legacy", extraImages: image("truewords-web:9999999", "id-older-web") });
+  try {
+    const result = box.run(["pin", "web", "9999999"]);
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, /GHCR 이미지 이름이 아니다/);
+    assert.equal(box.read(".env"), box.envText);
+    assert.deepEqual(ups(box.calls()), []);
+    assert.doesNotMatch(box.calls(), /docker (pull|tag)/);
+  } finally {
+    box.cleanup();
+  }
+});
+
+test("sync: 최신 main 파일로 동기화하고, 현재 태그 이미지를 새 이름으로 맞춘다(컨테이너는 그대로)", () => {
+  const box = vm({ compose: "legacy" });
+  try {
+    const result = box.run(["sync"], { TW_SRC_SHA: SRC });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(
+      box.read("docker-compose.yml"),
+      readFileSync(path.join(root, "infra/oracle-vm/docker-compose.yml"), "utf8"),
+    );
+    assert.equal(box.read("deploy-state/synced-sha").trim(), SRC);
+    for (const svc of ["backend", "admin", "web"]) {
+      assert.match(box.calls(), new RegExp(`docker tag truewords-${svc}:${OLD} ${PREFIX}-${svc}:${OLD}`));
+    }
+    assert.deepEqual(ups(box.calls()), []);
+    assert.equal(box.read(".env"), box.envText);
+    assert.equal(box.run(["sync", SHA]).status, 2); // sha 는 받지 않는다 — 원본은 늘 이 스크립트의 커밋
+  } finally {
+    box.cleanup();
+  }
+});
+
+test("deploy: .env 기록이 중간에 실패하면 이미 바꾼 줄을 되돌리고 교체 없이 종료 1", () => {
+  const box = vm({ pullable: newImages() });
+  try {
+    box.touch("env_mv_fail", "2"); // backend 줄은 성공, web 줄에서 실패
+    const result = box.run(["deploy", SHA, "backend", "web"]);
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, /\.env 갱신 실패 — 이전 태그로 되돌렸다/);
+    assert.equal(box.read(".env"), box.envText);
+    assert.deepEqual(ups(box.calls()), []);
+    assert.match(box.read("deploy-state/last-deploy.env"), /^STATUS=env_failed$/m);
+  } finally {
+    box.cleanup();
+  }
+});
+
+test("rollback: 교체 도중 끊긴 배포(STATUS=switching)도 직전 태그로 --no-deps 교체해 되돌린다", () => {
+  const box = vm({ pullable: newImages() });
+  try {
+    assert.equal(box.run(["deploy", SHA, "web"]).status, 0);
+    // 교체 도중 프로세스가 죽은 상태를 흉내 낸다.
+    const statePath = path.join(box.tw, "deploy-state/last-deploy.env");
+    writeFileSync(statePath, readFileSync(statePath, "utf8").replace(/^STATUS=.*$/m, "STATUS=switching"));
+    const result = box.run(["rollback"]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(tagOf(box.read(".env"), "WEB_TAG"), OLD);
+    const last = ups(box.calls()).at(-1);
+    assert.match(last, /--no-deps/);
+    assert.match(last, /web$/);
   } finally {
     box.cleanup();
   }
@@ -332,7 +467,7 @@ test("pin: 지정 태그(레지스트리 도입 전 이름)로 교체하고 roll
     assert.equal(result.status, 0, result.stderr);
     assert.equal(tagOf(box.read(".env"), "WEB_TAG"), "9999999");
     assert.match(box.read("deploy.log"), /rollback web 9999999 manual$/m);
-    assert.ok(!existsSync(path.join(box.tw, "docker-compose.yml")), "pin 은 파일을 동기화하지 않는다");
+    assert.doesNotMatch(box.read("docker-compose.yml"), /postgres/, "pin 은 파일을 동기화하지 않는다");
   } finally {
     box.cleanup();
   }

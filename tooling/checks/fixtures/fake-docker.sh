@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # deploy-sh.test.mjs 전용 가짜 docker. 상태는 $FAKE_STATE 의 파일들이다.
-#   images·pullable 줄 = "ref<TAB>image id<TAB>alembic head", running_<svc> = 실행 중 ref,
+#   images·pullable 줄 = "ref<TAB>image id<TAB>alembic head<TAB>아는 이전 revision(쉼표)", running_<svc> = 실행 중 ref,
 #   unhealthy = 교체 후 unhealthy 로 보일 ref 목록, db_head = DB alembic_version.
 F="${FAKE_STATE:?}"
 printf 'docker %s\n' "$*" >> "$F/calls.log"
@@ -34,9 +34,20 @@ case "$1" in
     printf '%s\t%s\n' "$3" "$(echo "$line" | cut -f2-)" >> "$F/images"
     exit 0 ;;
   run)
+    # run --rm --network none --entrypoint <cat|sh> <ref> ...
     args=("$@")
-    field "${args[${#args[@]}-2]}" 3
-    exit 0 ;;
+    for ((i = 0; i < ${#args[@]}; i++)); do
+      [ "${args[$i]}" = "--entrypoint" ] && { ep="${args[$((i + 1))]}"; ref="${args[$((i + 2))]}"; break; }
+    done
+    if [ "$ep" = cat ]; then
+      field "$ref" 3
+      exit 0
+    fi
+    # image_knows_rev: 마지막 인자 revision 이 이 이미지의 head 이거나 4번째 칸(쉼표 목록)에 있으면 0
+    rev=$(last "$@")
+    [ "$(field "$ref" 3)" = "$rev" ] && exit 0
+    case ",$(field "$ref" 4)," in *",$rev,"*) exit 0 ;; esac
+    exit 1 ;;
   inspect)
     svc="${4#cid-}"
     ref=$(cat "$F/running_$svc" 2> /dev/null) || exit 1

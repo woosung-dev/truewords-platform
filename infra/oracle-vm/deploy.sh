@@ -3,13 +3,21 @@
 #
 # ── 누가 부르나 ──────────────────────────────────────────────────────────────
 #  1. GitHub Actions(release.yml) → ssh 강제 명령 → ~/truewords/bin/deploy-entry
-#     → 정확한 sha 로 체크아웃한 ~/truewords/repo/infra/oracle-vm/deploy.sh (DEPLOY_MODE=auto)
+#     → **최신 origin/main** 으로 체크아웃한 ~/truewords/repo/infra/oracle-vm/deploy.sh (DEPLOY_MODE=auto)
+#     → setsid 로 떼어 낸 프로세스에서 실행(ssh 가 끊겨도 교체·복구가 끝까지 돈다)
 #  2. 비상 경로(make deploy-* / rollback-*) → 일반 ssh → rsync 한 ~/truewords/breakglass/deploy.sh
 #  두 경로가 같은 스크립트를 쓰므로 교체·검증·롤백·기록 규칙이 하나다.
 #
+# ── 배포 대상 sha 와 배포 코드는 다르다 ─────────────────────────────────────
+#   <sha40> 는 "어느 이미지 태그로 바꿀지" 라는 **데이터**일 뿐이다. 이 스크립트와 동기화되는
+#   VM 파일(compose·cron 스크립트)은 늘 이 스크립트가 놓인 디렉토리(SRC_DIR = 최신 main, 비상
+#   경로는 가드를 통과한 로컬 HEAD)에서 온다. 옛 sha 로 되돌려도 옛 deploy.sh·cron 스크립트가
+#   되살아나지 않는다. compose 를 되돌리려면 main 에 되돌림 커밋을 넣는다.
+#   TW_SRC_SHA = SRC_DIR 의 커밋(동기화 기록 synced-sha 에 남는다).
+#
 # ── 사용법 ──────────────────────────────────────────────────────────────────
 #   deploy.sh deploy <sha40> <backend|admin|web>... [--migrate]   이 sha 의 이미지로 교체 + VM 파일 동기화
-#   deploy.sh sync <sha40>                                        VM 파일 동기화만 (컨테이너는 그대로)
+#   deploy.sh sync                                                VM 파일 동기화만 (컨테이너는 그대로)
 #   deploy.sh pin <backend|admin|web> <tag>                       지정 태그로 교체 (make rollback-* 용)
 #   deploy.sh rollback                                            직전 deploy 를 이전 태그로 되돌림
 #   deploy.sh status                                              현재 태그 (KEY=VALUE 줄)
@@ -34,8 +42,11 @@
 #   승인 없는 스키마 변경이다. 그래서 교체 전에 이미지의 /app/ALEMBIC_EXPECTED_HEAD 와 DB 의
 #   alembic_version 을 비교하고, 다르면 --migrate 없이는 종료 3 으로 멈춘다.
 #   --migrate 면 backup-db.sh → 새 이미지로 `alembic upgrade head` → DB head 재확인 순이다.
-#   migration 이 돈 배포는 **자동 롤백하지 않는다** — 이전 이미지는 새 revision 을 몰라 기동 때
-#   upgrade 단계에서 죽는다. 복구는 사람이 백업 복원과 함께 판단한다(README §배포와 롤백).
+#   DB head 가 비었거나 여러 개이거나, 이미지가 모르는 revision 이면(DB 가 이미지보다 앞섬)
+#   --migrate 와 무관하게 종료 1 이다 — migration 으로 풀 수 있는 상황이 아니다.
+#   migration 이 돈 배포는 backend 를 **자동 롤백하지 않는다** — 이전 이미지는 새 revision 을 몰라
+#   기동 때 upgrade 단계에서 죽는다. 같은 배포에서 바뀐 admin·web 만 이전 태그로 되돌린다.
+#   backend 복구는 사람이 백업 복원과 함께 판단한다(README §배포와 롤백).
 #
 # 이 VM 에는 kairos·quantbridge·nexus 도 산다. 여기서 다루는 것은 compose project
 # ~/truewords 의 backend·admin·web 과 truewords 이미지뿐이다.
@@ -54,6 +65,7 @@ DISK_MAX_PCT="${DEPLOY_DISK_MAX_PCT:-85}"
 BACKUP_SCRIPT="${DEPLOY_BACKUP_SCRIPT:-${TW_DIR}/backup-db.sh}"
 # deploy.log 의 마지막 칸. deploy-entry 는 auto 로 고정하고, Makefile 은 guarded|forced|manual 을 넘긴다.
 DEPLOY_MODE="${DEPLOY_MODE:-manual}"
+SRC_SHA="${TW_SRC_SHA:-}"
 ORDER="backend admin web"
 # VM ~/truewords 로 복사하는 파일 — cron 이 이 경로를 직접 부른다(README §정기 작업).
 # .env·preserve-images.txt·백업은 절대 건드리지 않는다. 손으로 scp 하던 drift 를 여기서 끊는다.
@@ -89,19 +101,30 @@ read_kv() {
   echo "$value"
 }
 
-# .env 의 태그 한 줄만 바꾼다. 임시 파일(mktemp=0600)에 쓴 뒤 cat 으로 덮어 원본의 권한·소유를 유지한다.
+# .env 의 태그 한 줄만 바꾼다. 같은 디렉토리의 임시 파일에 원본 권한(cp -p)으로 쓴 뒤 mv 로 원자 교체한다.
+# 도중에 실패하면 원본은 그대로이고, 임시 파일은 원인 확인용으로 남긴다(.env.tag.*).
 set_env_tag() {
   local key="$1" value="$2" tmp
-  tmp=$(mktemp "${TW_DIR}/.env.XXXXXX") || return 1
-  if awk -v k="$key" -v v="$value" '
+  tmp=$(mktemp "${TW_DIR}/.env.tag.XXXXXX") || return 1
+  if cp -p "$ENV_FILE" "$tmp" && awk -v k="$key" -v v="$value" '
       $0 ~ "^" k "=" { if (!done) print k "=" v; done = 1; next }
       { print }
-      END { if (!done) print k "=" v }' "$ENV_FILE" >"$tmp" && cat "$tmp" >"$ENV_FILE"; then
-    rm -f "$tmp"
+      END { if (!done) print k "=" v }' "$ENV_FILE" >"$tmp" && mv -f "$tmp" "$ENV_FILE"; then
     return 0
   fi
-  rm -f "$tmp"
+  log "⚠️  .env 갱신 실패 (${key}) — 원본은 그대로, 임시 파일 ${tmp} 를 남겼다"
   return 1
+}
+
+# 서비스 목록의 .env 태그를 PREV_<svc> 로 되돌린다. 하나라도 실패하면 1.
+restore_env_tags() {
+  local svc prev ok=0
+  for svc in "$@"; do
+    prev=$(prev_of "$svc")
+    [ -n "$prev" ] || continue
+    set_env_tag "$(tag_key "$svc")" "$prev" || ok=1
+  done
+  return "$ok"
 }
 
 append_log() { printf '%s %s %s %s %s\n' "$(date -u +%FT%TZ)" "$1" "$2" "$3" "$4" >>"$LOG_FILE"; }
@@ -111,6 +134,23 @@ take_lock() {
   [ "${TW_DEPLOY_LOCK_HELD:-}" = 1 ] && return 0
   exec 9>"${TW_DIR}/.deploy.lock" || die 1 "잠금 파일을 열지 못했다"
   flock -n 9 || die 4 "다른 배포가 진행 중이다 (잠금 점유)"
+  # 자식(prune-images.sh)이 "잠금은 부모가 쥐고 있다" 를 알게 한다.
+  export TW_DEPLOY_LOCK_HELD=1
+}
+
+# VM compose 가 GHCR 이름을 쓰는가. 아니면 교체 후 검사가 옛 이름과 새 이름을 비교해 거짓 실패(종료 6)한다.
+compose_uses_ghcr() {
+  grep -qF "image: ${IMAGE_PREFIX}-backend:" "${TW_DIR}/docker-compose.yml" 2>/dev/null
+}
+
+# 현재 .env 태그(직전 세대)를 새 이름으로 맞춘다 — 복구·재생성이 이 이름을 찾는다. 실패는 경고만.
+ensure_current_images() {
+  local svc tag
+  for svc in $ORDER; do
+    tag=$(prev_of "$svc")
+    [ -n "$tag" ] || continue
+    ensure_image "$svc" "$tag" || log "⚠️  ${svc}:${tag} 이미지를 새 이름으로 맞추지 못했다 — 이 서비스의 자동 복구는 실패할 수 있다"
+  done
 }
 
 disk_gate() {
@@ -144,6 +184,29 @@ ensure_image() {
 
 image_head() {
   d run --rm --network none --entrypoint cat "$1" /app/ALEMBIC_EXPECTED_HEAD 2>/dev/null | tr -d '[:space:]'
+}
+
+# 이미지의 migration 스크립트에 이 revision 이 있는가 (없으면 DB 가 이미지보다 앞섰거나 갈라졌다).
+image_knows_rev() {
+  [[ $2 =~ ^[0-9A-Za-z_]+$ ]] || return 1
+  # shellcheck disable=SC2016 # $1 은 컨테이너 안 sh 의 인자다
+  d run --rm --network none --entrypoint sh "$1" -c \
+    'grep -rqsE "^revision(: str)? = .$1.\$" /app/alembic/versions' sh "$2" 2>/dev/null
+}
+
+# 마이그레이션 게이트. 0 = 같다, 3 = 이미지가 앞서 upgrade 필요. 그 밖의 상태는 여기서 종료 1.
+# 백업·파일 동기화보다 앞에서 부른다.
+migration_gate() {
+  local ref="$1" expected="$2"
+  read_db_head || die 1 "DB alembic_version 을 읽지 못했다 — postgres 상태 확인"
+  [ -n "$DB_HEAD" ] || die 1 "DB alembic_version 이 비어 있다 — 새 DB 이거나 복원 문제다. 자동 배포하지 않는다"
+  case "$DB_HEAD" in
+    *" "*) die 1 "DB alembic_version 에 head 가 여러 개다 (${DB_HEAD}) — migration 분기를 사람이 정리해야 한다" ;;
+  esac
+  [ "$DB_HEAD" = "$expected" ] && return 0
+  image_knows_rev "$ref" "$DB_HEAD" \
+    || die 1 "DB revision '${DB_HEAD}' 를 이미지(${expected})가 모른다 — DB 가 이미지보다 앞섰다. migration 을 넘는 되돌리기는 자동화하지 않는다 (README §롤백)"
+  return 3
 }
 
 # DB 의 alembic_version. 계정·DB 이름은 postgres 컨테이너 env 에서 읽어 .env 를 열지 않는다.
@@ -256,20 +319,19 @@ read_current_tags() {
   done
 }
 
-# 실패한 교체를 이전 태그로 되돌린다. migration 이 돌았으면 되돌리지 않는다.
+# 실패한 교체를 이전 태그로 되돌린다. migration 이 돌았으면 backend 만 빼고 되돌린다
+# (이전 backend 이미지는 새 DB revision 으로 기동하지 못한다).
 restore_after_failure() {
-  local switched="$1" svc prev ok=1
-  if [ "$MIGRATED" = 1 ]; then
-    set_state_status failed_after_migration
-    log "migration 이 적용된 배포라 자동 롤백하지 않는다 — 이전 backend 이미지는 새 DB revision 으로 기동하지 못한다."
-    log "현재 .env 는 새 태그다. 원인을 고쳐 다시 배포하거나, 백업 복원 후 'deploy.sh pin backend <이전 태그>' (README §배포와 롤백)."
-    exit 1
-  fi
+  local switched="$1" svc prev ok=1 restore_set="" skip_backend=0
+  [ "$MIGRATED" = 1 ] && skip_backend=1
   for svc in $TARGETS; do
-    prev=$(prev_of "$svc")
-    [ -n "$prev" ] && { set_env_tag "$(tag_key "$svc")" "$prev" || ok=0; }
+    [ "$skip_backend" = 1 ] && [ "$svc" = backend ] && continue
+    restore_set="${restore_set:+$restore_set }${svc}"
   done
+  # shellcheck disable=SC2086 # 서비스 이름 목록(공백 분리)
+  restore_env_tags $restore_set || ok=0
   for svc in $switched; do
+    [ "$skip_backend" = 1 ] && [ "$svc" = backend ] && continue
     prev=$(prev_of "$svc")
     if [ -z "$prev" ]; then
       log "${svc}: 이전 태그가 없어(첫 배포) 되돌릴 수 없다"
@@ -283,6 +345,16 @@ restore_after_failure() {
       ok=0
     fi
   done
+  if [ "$skip_backend" = 1 ]; then
+    if [ "$ok" = 1 ]; then
+      set_state_status failed_after_migration
+      log "migration 이 적용된 배포라 backend 는 자동 롤백하지 않는다 — 새 태그 그대로다.${restore_set:+ 이전 태그로 되돌린 서비스: ${restore_set}}"
+      log "원인을 고쳐 다시 배포하거나, 백업 복원 후 'deploy.sh pin backend <이전 태그>' (README §배포와 롤백)."
+      exit 1
+    fi
+    set_state_status restore_failed
+    die 6 "migration 뒤 교체 실패, admin·web 복구도 실패 — 즉시 사람이 확인해야 한다"
+  fi
   if [ "$ok" = 1 ]; then
     set_state_status restored
     die 5 "교체 후 검사 실패 — 이전 태그로 복구했다 (${switched})"
@@ -293,33 +365,39 @@ restore_after_failure() {
 
 # deploy·pin 공통 본체. 전역: TARGETS, NEW_<svc>, SHA, MIGRATE, ACTION, DO_SYNC
 run_switch() {
-  local svc tag ref expected switched=""
+  local svc ref expected switched="" need_migrate=0 gate=0 mlog
   MIGRATED=0
   disk_gate
   read_current_tags
+  # pin 은 파일을 동기화하지 않는다. compose 가 아직 옛 이미지 이름이면 교체 후 검사가 이름 불일치로
+  # 거짓 실패하고 불필요한 재시작이 일어난다 — 아무것도 하기 전에 멈춘다.
+  if [ "$DO_SYNC" != 1 ] && ! compose_uses_ghcr; then
+    die 1 "VM docker-compose.yml 이 아직 GHCR 이미지 이름이 아니다 — Release 배포(또는 sync)를 먼저 한 번 실행한다. 아무것도 바꾸지 않았다"
+  fi
 
   # 1) 이미지 준비 — 여기서 실패하면 아무것도 바뀌지 않았다.
   for svc in $TARGETS; do
     ensure_image "$svc" "$(new_of "$svc")" "${SHA:-}" \
       || die 1 "${svc} 이미지 $(image_ref "$svc" "$(new_of "$svc")") 를 준비하지 못했다 (.env 는 그대로)"
   done
+  # 직전 세대(현재 태그)도 새 이름으로 — 교체 대상 포함. 실패 복구와 compose 재생성이 이 이름을 쓴다.
+  ensure_current_images
 
-  # 2) 마이그레이션 게이트
-  local need_migrate=0
+  # 2) 마이그레이션 게이트 — 백업·동기화보다 앞. 종료 3 은 정말로 아무것도 바꾸지 않는다.
   case " $TARGETS " in
     *" backend "*)
       ref=$(image_ref backend "$(new_of backend)")
       expected=$(image_head "$ref")
       [ -n "$expected" ] || die 1 "${ref} 에서 ALEMBIC_EXPECTED_HEAD 를 읽지 못했다"
-      read_db_head || die 1 "DB alembic_version 을 읽지 못했다 — postgres 상태 확인"
-      if [ "$DB_HEAD" != "$expected" ]; then
-        echo "MIGRATION_REQUIRED db=${DB_HEAD:-none} image=${expected}"
+      migration_gate "$ref" "$expected" || gate=$?
+      if [ "$gate" = 3 ]; then
+        echo "MIGRATION_REQUIRED db=${DB_HEAD} image=${expected}"
         if [ "$MIGRATE" != 1 ]; then
-          log "마이그레이션 필요: DB '${DB_HEAD:-none}' → 이미지 '${expected}'. 아무것도 바꾸지 않았다."
+          log "마이그레이션 필요: DB '${DB_HEAD}' → 이미지 '${expected}'. 아무것도 바꾸지 않았다."
           if [ "$DO_SYNC" = 1 ]; then
             log "승인하려면 --migrate (Actions: production-migrate 승인, 비상: MIGRATE=1 make deploy-backend)."
           else
-            log "pin 은 migration 을 하지 않는다 — DB 와 head 가 다른 이미지로 되돌리면 기동 때 실패한다(README §배포와 롤백)."
+            log "pin 은 migration 을 하지 않는다 — DB 보다 앞선 이미지로는 pin 하지 않는다(README §배포와 롤백)."
           fi
           exit 3
         fi
@@ -328,35 +406,45 @@ run_switch() {
       ;;
   esac
 
-  # 3) VM 파일 동기화 (deploy 만)
+  # 3) VM 파일 동기화 (deploy 만) — 원본은 SRC_DIR(최신 main), 대상 sha 가 아니다.
   if [ "$DO_SYNC" = 1 ]; then
     sync_files || die 1 "VM 파일 동기화 실패 (서비스는 그대로)"
-    mkdir -p "$STATE_DIR" && echo "$SHA" >"${STATE_DIR}/synced-sha"
-    # 이미지 이름이 GHCR 로 바뀐 직후에도 교체 대상이 아닌 서비스가 재생성될 수 있게 현재 태그 이미지를 맞춰 둔다.
-    for svc in $ORDER; do
-      case " $TARGETS " in *" ${svc} "*) continue ;; esac
-      tag=$(prev_of "$svc")
-      [ -n "$tag" ] && { ensure_image "$svc" "$tag" || log "⚠️  ${svc}:${tag} 이미지를 새 이름으로 맞추지 못했다 (교체 대상 아님)"; }
-    done
+    record_synced
+    compose_uses_ghcr || die 1 "동기화한 docker-compose.yml 이 GHCR 이미지 이름이 아니다 (서비스는 그대로)"
   fi
 
-  # 4) 승인된 migration — 백업 → 새 이미지로 upgrade → head 재확인
+  # 4) 승인된 migration — 백업 → 새 이미지로 upgrade → head 재확인.
+  #    출력 전문은 VM 파일에만 남긴다(Actions 로그는 공개). 화면에는 끝부분만.
   if [ "$need_migrate" = 1 ]; then
     log "migration 전 백업: ${BACKUP_SCRIPT}"
     bash "$BACKUP_SCRIPT" >&2 || die 1 "백업 실패 — migration 하지 않았다"
     MIGRATED=1
-    sudo env "BACKEND_TAG=$(new_of backend)" docker compose --env-file .env run --rm --no-deps backend alembic upgrade head >&2 \
-      || die 1 "alembic upgrade 실패 — 서비스는 교체하지 않았다. DB 상태를 확인하고 필요하면 방금 백업으로 복원한다"
+    mkdir -p "$STATE_DIR" || die 1 "상태 디렉토리를 만들지 못했다"
+    mlog="${STATE_DIR}/migrate-$(date -u +%Y%m%dT%H%M%SZ).log"
+    # shellcheck disable=SC2024 # 로그 파일은 일부러 배포 사용자 소유로 만든다
+    if ! sudo env "BACKEND_TAG=$(new_of backend)" docker compose --env-file .env run --rm -T --no-deps backend alembic upgrade head >"$mlog" 2>&1; then
+      tail -n 20 "$mlog" >&2
+      die 1 "alembic upgrade 실패 — 서비스는 교체하지 않았다. 전문 ${mlog}. DB 상태를 확인하고 필요하면 방금 백업으로 복원한다"
+    fi
+    tail -n 5 "$mlog" >&2
     read_db_head && [ "$DB_HEAD" = "$expected" ] \
       || die 1 "migration 후 DB head '${DB_HEAD}' ≠ 기대 '${expected}' — 서비스는 교체하지 않았다"
-    log "migration 완료: ${expected}"
+    log "migration 완료: ${expected} (전문 ${mlog})"
   fi
 
-  # 5) 이전 태그 저장 → .env 기록
+  # 5) 이전 태그 저장 → .env 기록. 도중 실패면 이미 바꾼 줄을 되돌리고 멈춘다.
   mkdir -p "$STATE_DIR" || die 1 "상태 디렉토리를 만들지 못했다"
   write_state switching || die 1 "상태 파일을 쓰지 못했다"
   for svc in $TARGETS; do
-    set_env_tag "$(tag_key "$svc")" "$(new_of "$svc")" || die 1 ".env 갱신 실패"
+    if ! set_env_tag "$(tag_key "$svc")" "$(new_of "$svc")"; then
+      # shellcheck disable=SC2086 # 서비스 이름 목록(공백 분리)
+      if restore_env_tags $TARGETS; then
+        set_state_status env_failed
+        die 1 ".env 갱신 실패 — 이전 태그로 되돌렸다. 서비스는 교체하지 않았다"
+      fi
+      set_state_status env_failed
+      die 6 ".env 갱신 실패, 이전 태그로 되돌리지도 못했다 — .env 를 즉시 확인한다"
+    fi
   done
 
   # 6) 교체 — backend → admin → web
@@ -372,6 +460,12 @@ run_switch() {
   return 0
 }
 
+# 동기화 기록. SRC_DIR 의 커밋(TW_SRC_SHA)을 남긴다 — 모르면 unknown.
+record_synced() {
+  mkdir -p "$STATE_DIR" || return 1
+  if [[ $SRC_SHA =~ ^[0-9a-f]{40}$ ]]; then echo "$SRC_SHA"; else echo unknown; fi >"${STATE_DIR}/synced-sha"
+}
+
 cmd_status() {
   local svc
   for svc in $ORDER; do echo "$(tag_key "$svc")=$(read_kv "$ENV_FILE" "$(tag_key "$svc")")"; done
@@ -383,7 +477,13 @@ cmd_rollback() {
   local status services svc key prev new cur switched=""
   take_lock
   status=$(read_kv "$STATE_FILE" STATUS)
-  [ "$status" = deployed ] || die 1 "되돌릴 배포가 없다 (마지막 상태: ${status:-없음})"
+  # deployed 말고도, 교체 도중 끊긴 배포(switching — 프로세스가 죽었거나 VM 재부팅)와
+  # 복구가 실패한 배포(restore_failed)도 같은 방법으로 직전 태그로 돌린다.
+  case "$status" in
+    deployed | switching | restore_failed) ;;
+    *) die 1 "되돌릴 배포가 없다 (마지막 상태: ${status:-없음})" ;;
+  esac
+  compose_uses_ghcr || die 1 "VM docker-compose.yml 이 GHCR 이미지 이름이 아니다 — 자동 롤백 중단"
   services=$(grep -s '^DEPLOY_SERVICES=' "$STATE_FILE" | cut -d= -f2- | tr -d '"')
   services=$(normalize_services "$services")
   [ -n "$services" ] || die 1 "상태 파일에 서비스 목록이 없다"
@@ -396,7 +496,9 @@ cmd_rollback() {
     new=$(read_kv "$STATE_FILE" "NEW_${key}")
     cur=$(read_kv "$ENV_FILE" "$key")
     valid_tag "$prev" || die 1 "${svc}: 이전 태그가 없다 (첫 배포는 되돌릴 수 없다)"
-    [ "$cur" = "$new" ] || die 1 "${svc}: 배포 이후 태그가 바뀌었다 (현재 ${cur}, 배포 ${new}) — 자동 롤백 중단"
+    # 현재 태그는 배포한 태그(new)거나, 복구가 .env 만 되돌리고 멈춘 경우의 이전 태그(prev)여야 한다.
+    [ "$cur" = "$new" ] || [ "$cur" = "$prev" ] \
+      || die 1 "${svc}: 배포 이후 태그가 바뀌었다 (현재 ${cur}, 배포 ${new}) — 자동 롤백 중단"
     ensure_image "$svc" "$prev" || die 1 "${svc}: 이전 이미지 ${prev} 를 준비하지 못했다 (아무것도 바꾸지 않았다)"
     printf -v "PREV_${svc}" '%s' "$prev"
   done
@@ -420,7 +522,7 @@ cmd_rollback() {
 }
 
 usage() {
-  echo "사용법: $0 deploy <sha40> <backend|admin|web>... [--migrate] | sync <sha40> | pin <svc> <tag> | rollback | status" >&2
+  echo "사용법: $0 deploy <sha40> <backend|admin|web>... [--migrate] | sync | pin <svc> <tag> | rollback | status" >&2
   exit 2
 }
 
@@ -441,13 +543,15 @@ main() {
       cmd_rollback
       ;;
     sync)
-      [ $# -eq 1 ] && [[ $1 =~ ^[0-9a-f]{40}$ ]] || usage
-      SHA="$1"
+      [ $# -eq 0 ] || usage
       take_lock
+      read_current_tags
       sync_files || die 1 "VM 파일 동기화 실패"
-      mkdir -p "$STATE_DIR" && echo "$SHA" >"${STATE_DIR}/synced-sha"
-      append_log sync files "${SHA:0:12}" "$DEPLOY_MODE"
-      log "✅ 동기화 완료 (${SHA:0:12})"
+      record_synced || die 1 "동기화 기록을 쓰지 못했다"
+      # compose 가 GHCR 이름으로 바뀐 직후일 수 있다 — 지금 태그의 이미지를 새 이름으로 맞춘다.
+      if compose_uses_ghcr; then ensure_current_images; fi
+      append_log sync files "$(cut -c1-12 "${STATE_DIR}/synced-sha")" "$DEPLOY_MODE"
+      log "✅ 동기화 완료 ($(cat "${STATE_DIR}/synced-sha"))"
       ;;
     deploy)
       [ $# -ge 2 ] && [[ $1 =~ ^[0-9a-f]{40}$ ]] || usage
