@@ -5,9 +5,6 @@ import type {
   HighlightPatch,
   HighlightsResponse,
   LibraryResponse,
-  MarkInput,
-  MarkItem,
-  MarksResponse,
   ReadingPositionItem,
   ReadingPositionsResponse,
   SectionsResponse,
@@ -52,22 +49,6 @@ export const libraryAPI = {
       method: "PUT",
       body: JSON.stringify({ chunk_index: chunkIndex }),
     }),
-  /** `excerpt` 를 켜면 항목마다 원문 발췌(`excerpt`, 원문이 막힌 권은 null)가 붙는다 — 나의 기록 화면만 쓴다. */
-  marks: (query: { volume?: string; kind?: MarkItem["kind"]; excerpt?: boolean } = {}) => {
-    const params = new URLSearchParams();
-    if (query.volume) params.set("volume", query.volume);
-    if (query.kind) params.set("kind", query.kind);
-    if (query.excerpt) params.set("excerpt", "true");
-    const suffix = params.size > 0 ? `?${params}` : "";
-    return request<MarksResponse>(`/hoondok/me/marks${suffix}`, { cache: "no-store" });
-  },
-  saveMark: (chunkId: string, input: MarkInput) =>
-    request<MarkItem>(`/hoondok/me/marks/${encodeURIComponent(chunkId)}`, {
-      method: "PUT",
-      body: JSON.stringify(input),
-    }),
-  deleteMark: (chunkId: string, kind: MarkItem["kind"]) =>
-    request<void>(`/hoondok/me/marks/${encodeURIComponent(chunkId)}?kind=${kind}`, { method: "DELETE" }),
   /** API-HD-053 구절 형광펜 목록(최신순, 서버 상한 500건). */
   highlights: (query: { volume?: string; limit?: number } = {}) => {
     const params = new URLSearchParams();

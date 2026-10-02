@@ -25,9 +25,6 @@ vi.mock("@/features/hoondok/library/api", async (original) => ({
     sections: vi.fn(),
     readingPositions: vi.fn(),
     saveReadingPosition: vi.fn(),
-    marks: vi.fn(),
-    saveMark: vi.fn(),
-    deleteMark: vi.fn(),
     highlights: vi.fn(),
     createHighlight: vi.fn(),
     updateHighlight: vi.fn(),
@@ -191,20 +188,7 @@ beforeEach(() => {
   vi.mocked(libraryAPI.list).mockResolvedValue({ items: [ITEM, OTHER], works: [WORK] });
   vi.mocked(libraryAPI.words).mockResolvedValue(WORDS);
   vi.mocked(libraryAPI.sections).mockResolvedValue({ volume: VOLUME, sections: SECTIONS });
-  vi.mocked(libraryAPI.marks).mockResolvedValue({ items: [] });
   vi.mocked(libraryAPI.readingPositions).mockResolvedValue({ items: [] });
-  vi.mocked(libraryAPI.saveMark).mockResolvedValue({
-    chunk_id: "c0",
-    chunk_index: 0,
-    volume: VOLUME,
-    kind: "bookmark",
-    color: null,
-    note: null,
-    updated_at: "2026-09-23T00:00:00Z",
-    work_title: ITEM.work_title,
-    label: "001권",
-  });
-  vi.mocked(libraryAPI.deleteMark).mockResolvedValue(undefined);
   vi.mocked(libraryAPI.saveReadingPosition).mockResolvedValue({
     volume: VOLUME,
     chunk_index: 0,
@@ -397,32 +381,15 @@ describe("원문 목차·단락", () => {
     // 권위 배지는 그대로 남는다
     expect(source?.children.length).toBe(1);
   });
-  it("구절 형광펜은 고른 글자만 칠하고 북마크는 번호에 표시한다", async () => {
+  it("구절 형광펜은 고른 글자만 칠한다", async () => {
     loggedIn();
     serverHighlights = [highlight({ note: "기억할 문장" })];
-    vi.mocked(libraryAPI.marks).mockResolvedValue({
-      items: [
-        {
-          chunk_id: "c1",
-          chunk_index: 1,
-          volume: VOLUME,
-          kind: "bookmark",
-          color: null,
-          note: null,
-          updated_at: "2026-09-23T00:00:00Z",
-          work_title: ITEM.work_title,
-          label: "001권",
-        },
-      ],
-    });
     const view = await showWords();
     await waitFor(() => expect(view.container.querySelector("mark.hl-2")).toHaveTextContent(/^단락의$/));
     expect(view.container.querySelectorAll("mark")).toHaveLength(1);
     expect(view.container.querySelector("#verse-0 .verse__para")).toHaveTextContent("첫째 단락의 본문");
     // 메모가 있는 형광펜 끝에 메모 표지 — 글자가 아니라 선택에서 빠진다
     expect(screen.getByRole("button", { name: "메모 보기" })).toHaveAttribute("data-hl-ui");
-    expect(screen.getByRole("button", { name: "단락 2 표시하기" }).querySelector("svg")).not.toBeNull();
-    // 단락 표시 API 는 북마크만 묻는다
     expect(libraryAPI.highlights).toHaveBeenCalledWith({ volume: VOLUME });
   });
 });
@@ -479,47 +446,13 @@ describe("단락 시트", () => {
     for (const name of ["노랑 형광펜", "초록 형광펜", "분홍 형광펜"])
       expect(sheet.getByRole("button", { name })).toHaveAttribute("aria-pressed", "false");
   });
-  it("북마크는 bookmark 표시로 토글되고 시트에는 노트 입력이 없다", async () => {
+  it("시트에는 북마크도 노트 입력도 없다 — 모아 두기는 형광펜·메모가 맡는다", async () => {
     loggedIn();
     await showWords();
     const sheet = await openSheet(1);
-    fireEvent.click(sheet.getByRole("button", { name: "북마크" }));
-    await waitFor(() =>
-      expect(libraryAPI.saveMark).toHaveBeenCalledWith("c0", {
-        volume: VOLUME,
-        chunk_index: 0,
-        kind: "bookmark",
-        color: null,
-        note: null,
-      }),
-    );
+    expect(sheet.queryByRole("button", { name: /북마크/ })).toBeNull();
     expect(sheet.queryByRole("textbox")).toBeNull();
     expect(sheet.getByText(/원하는 구절만 칠하려면 본문 글자를 길게 누르세요/)).toBeInTheDocument();
-  });
-  it("북마크된 단락은 해제로 지운다", async () => {
-    loggedIn();
-    vi.mocked(libraryAPI.marks).mockResolvedValue({
-      items: [
-        {
-          chunk_id: "c0",
-          chunk_index: 0,
-          volume: VOLUME,
-          kind: "bookmark",
-          color: null,
-          note: null,
-          updated_at: "2026-09-23T00:00:00Z",
-          work_title: ITEM.work_title,
-          label: "001권",
-        },
-      ],
-    });
-    await showWords();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "단락 1 표시하기" }).querySelector("svg")).not.toBeNull(),
-    );
-    const sheet = await openSheet(1);
-    fireEvent.click(sheet.getByRole("button", { name: "북마크 해제" }));
-    await waitFor(() => expect(libraryAPI.deleteMark).toHaveBeenCalledWith("c0", "bookmark"));
   });
   it("본문 글자를 눌러도 단락 시트가 열리지 않는다 — 글자 선택과 다투지 않게 번호로만 연다", async () => {
     await showWords();
@@ -546,9 +479,6 @@ describe("단락 시트", () => {
     const sheet = await openSheet(1);
     expect(sheet.getByText("로그인하면 기록이 남아요")).toBeInTheDocument();
     expect(sheet.queryByRole("button", { name: "노랑 형광펜" })).toBeNull();
-    expect(libraryAPI.saveMark).not.toHaveBeenCalled();
-    expect(libraryAPI.deleteMark).not.toHaveBeenCalled();
-    expect(libraryAPI.marks).not.toHaveBeenCalled();
     expect(libraryAPI.highlights).not.toHaveBeenCalled();
   });
 });
@@ -1043,31 +973,5 @@ describe("이어 읽기", () => {
     show(LibraryPage());
     await waitFor(() => expect(libraryAPI.saveReadingPosition).toHaveBeenCalledWith(VOLUME, 20));
     expect(libraryAPI.saveReadingPosition).toHaveBeenCalledTimes(1);
-  });
-  it("북마크 절은 최근 5건만 보이고 비로그인은 조회하지 않는다", async () => {
-    show(LibraryPage());
-    await screen.findByRole("link", { name: /문선명선생 말씀선집/ });
-    expect(screen.queryByRole("heading", { name: "북마크" })).toBeNull();
-    expect(libraryAPI.marks).not.toHaveBeenCalled();
-  });
-  it("로그인하면 북마크 절이 원문 청크로 연결된다", async () => {
-    loggedIn();
-    vi.mocked(libraryAPI.marks).mockResolvedValue({
-      items: Array.from({ length: 6 }, (_, index) => ({
-        chunk_id: `b${index}`,
-        chunk_index: index,
-        volume: VOLUME,
-        kind: "bookmark" as const,
-        color: null,
-        note: null,
-        updated_at: "2026-09-23T00:00:00Z",
-        work_title: "말씀선집 001권",
-        label: "001권",
-      })),
-    });
-    show(LibraryPage());
-    expect(await screen.findByRole("heading", { name: "북마크" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /단락 1$/ })).toHaveAttribute("href", wordsHref(VOLUME, "b0"));
-    expect(screen.queryByRole("link", { name: /단락 6$/ })).toBeNull();
   });
 });

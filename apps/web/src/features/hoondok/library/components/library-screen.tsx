@@ -1,28 +1,18 @@
 "use client";
 
 // SCR-PWA-007 말씀 서고. PLAN-HD-007 로 저작물(works) → 권 → 장 3계층의 첫 칸이 됐다.
-// 이어 읽기는 로그인 시 서버 값 우선, 없으면 기기 값 1회 업로드(§2-13). 북마크 절은 최근 5건이다.
+// 이어 읽기는 로그인 시 서버 값 우선, 없으면 기기 값 1회 업로드(§2-13).
 import { useQuery } from "@tanstack/react-query";
 import type { LibraryItem, LibraryWork } from "@truewords/api-client-ts/types";
-import { Bookmark, BookOpenText, Search } from "lucide-react";
+import { BookOpenText, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { AuthorityBadge } from "@/components/hoondok";
 import { LIBRARY_KEY } from "@/features/hoondok/query-keys";
 import { useCurrentUser } from "@/features/identity/use-current-user";
-import {
-  libraryAPI,
-  pageOfChunkIndex,
-  seriesHref,
-  verseNumber,
-  WORDS_PAGE_SIZE,
-  wordsHref,
-  wordsPageHref,
-} from "../api";
+import { libraryAPI, pageOfChunkIndex, seriesHref, WORDS_PAGE_SIZE, wordsHref, wordsPageHref } from "../api";
 import { pickResume, resumeFromPhrase } from "../resume";
-import { useBookmarks, useLastReading, useReadingPositions, useReadingPositionWriter } from "../use-reading";
-
-const BOOKMARK_LIMIT = 5;
+import { useLastReading, useReadingPositions, useReadingPositionWriter } from "../use-reading";
 
 function GradeBadge({ grade }: { grade: LibraryItem["authority_grade"] }) {
   return grade === "R" ? (
@@ -45,7 +35,6 @@ export function LibraryScreen() {
   const isLoggedIn = Boolean(user);
   const device = useLastReading();
   const positions = useReadingPositions(isLoggedIn);
-  const bookmarks = useBookmarks(isLoggedIn, BOOKMARK_LIMIT);
   const items = query.data?.items ?? [];
   const works = query.data?.works ?? [];
 
@@ -166,25 +155,6 @@ export function LibraryScreen() {
           </div>
         )}
       </div>
-      {bookmarks.length > 0 && (
-        <div className="sect">
-          <div className="sect__head">
-            <h2 className="sect__title">북마크</h2>
-            <span className="sect__meta">최근 {bookmarks.length}건</span>
-          </div>
-          <div className="shelf">
-            {bookmarks.map((mark) => (
-              <Link key={mark.chunk_id} className="shelf__item" href={wordsHref(mark.volume, mark.chunk_id)}>
-                <b>{mark.work_title}</b>
-                <span>
-                  {mark.label !== mark.work_title && `${mark.label} · `}단락 {verseNumber(mark.chunk_index)}
-                </span>
-                <Bookmark size={18} aria-hidden="true" />
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
       <p className="notice">
         검색과 원문 공개 권한은 각각 확인합니다. 판본·화자·공식성이 확인되지 않은 값은 지어내지 않습니다.
       </p>

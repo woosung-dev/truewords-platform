@@ -491,7 +491,8 @@ Qdrant 원본 그대로이고 AI 설명·인용은 계속 `text` 를 쓴다. `di
 ### API-HD-026 단락 표시 (`hoondok_token`)
 
 단락 표시는 이제 북마크뿐이다 — 형광펜·메모는 API-HD-053 으로 옮겼다. 예전 `kind=highlight` 행은 DB 에
-남아 있지만 목록에 나오지 않는다.
+남아 있지만 목록에 나오지 않는다. 2026-09-29 부터 웹은 북마크 화면을 없애 이 API 를 부르지 않는다
+(엔드포인트·기존 행은 유지, 제거는 별도 결정).
 
 - `GET /hoondok/me/marks?volume=&kind=&limit=` — 최신순, 본인 북마크만. 항목은
   `{ chunk_id, chunk_index, volume, kind, color, note, updated_at, work_title, label }`.

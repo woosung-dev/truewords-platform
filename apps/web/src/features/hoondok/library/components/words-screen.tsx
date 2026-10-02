@@ -1,6 +1,6 @@
 "use client";
 
-// SCR-PWA-009 원문 뷰. PLAN-HD-007 로 장 목차(API-HD-024)·북마크(API-HD-026)·이어 읽기(API-HD-025)·
+// SCR-PWA-009 원문 뷰. PLAN-HD-007 로 장 목차(API-HD-024)·이어 읽기(API-HD-025)·
 // AI 설명(§2-7)이 붙었다. 단락 단위는 Qdrant 청크다(§2-12).
 // PLAN-HD-008 로 표시 텍스트(display_text)·브라우저 음성 듣기(../tts)가 더해졌다.
 // PLAN-HD-011 로 듣기는 AI 목소리(단락 mp3)가 기본이고 브라우저 음성은 대체 경로다.
@@ -9,8 +9,8 @@
 // 폰·태블릿에서 세그먼트·듣기 바(.wd-chrome)와 하단 독은 내리면 접히고 올리면 앱바 아래로 돌아온다(use-reading-chrome).
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
-import type { HighlightItem, MarkItem, WordChunk } from "@truewords/api-client-ts/types";
-import { ArrowDown, Bookmark, BookOpenText, NotebookPen } from "lucide-react";
+import type { HighlightItem, WordChunk } from "@truewords/api-client-ts/types";
+import { ArrowDown, BookOpenText, NotebookPen } from "lucide-react";
 import Link from "next/link";
 import { Fragment, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthorityBadge } from "@/components/hoondok";
@@ -46,14 +46,7 @@ import { hasSearchHit, markSearchTerms } from "../search-highlight";
 import { TtsBar } from "../tts/tts-bar";
 import { useReadAloud } from "../tts/use-read-aloud";
 import { type AiVoiceId, chunkAudioUrl } from "../tts/voice-api";
-import {
-  isPendingHighlight,
-  useHighlights,
-  useHighlightWriter,
-  useMarks,
-  useMarkWriter,
-  useSavedReadingPosition,
-} from "../use-reading";
+import { isPendingHighlight, useHighlights, useHighlightWriter, useSavedReadingPosition } from "../use-reading";
 import { useReadingChrome } from "../use-reading-chrome";
 import { AiExplain } from "./ai-explain";
 import { type HighlightActions, HighlightLayer } from "./highlight-layer";
@@ -122,7 +115,6 @@ function PieceText({ piece }: { piece: TextPiece }) {
 function Verse({
   chunk,
   decorations,
-  isBookmarked,
   isSelected,
   isSpeaking,
   onSelect,
@@ -134,14 +126,13 @@ function Verse({
   chunk: WordChunk;
   /** 이 단락에 걸친 형광펜 구간 */
   decorations: Decoration[];
-  isBookmarked: boolean;
   isSelected: boolean;
   isSpeaking: boolean;
   onSelect: () => void;
   /** 오늘의 책갈피가 꽂힌 단락이면 카드 본문 (PLAN-HD-012) — 그 문장에 밑줄·여백 리본 */
   cardText?: string | null;
   cardRibbonRef?: RefObject<HTMLSpanElement | null>;
-  /** 검색·북마크·이어 읽기로 들어온 단락 — 도착 순간에만 은은하게 번졌다 사라진다 */
+  /** 검색·나의 기록·이어 읽기로 들어온 단락 — 도착 순간에만 은은하게 번졌다 사라진다 */
   isArrival?: boolean;
   /** 검색으로 들어온 단락이면 검색어. 밑줄은 저장하지 않는 임시 표시다(형광펜 = 배경색과 구분) */
   searchQuery?: string;
@@ -192,7 +183,6 @@ function Verse({
       {/* 본문 전체를 버튼으로 만들면 긴 인용문이 링크 이름이 된다(DES §2.2) — 번호만 조작 대상이다 */}
       <button type="button" className="verse__n" aria-label={`단락 ${number} 표시하기`} onClick={onSelect}>
         {number}
-        {isBookmarked && <Bookmark size={12} aria-hidden="true" />}
       </button>
       <span className="verse__tx">
         {pieces.map(({ paragraph, segments }) => (
@@ -275,8 +265,6 @@ export function WordsScreen({
   });
   useHoondokScreenTitle(query.isSuccess ? query.data.work_title : null);
 
-  const marks = useMarks(volume, isLoggedIn);
-  const writer = useMarkWriter();
   const highlights = useHighlights(volume, isLoggedIn);
   const toast = useReaderToast();
   const showToast = toast.show;
@@ -292,8 +280,8 @@ export function WordsScreen({
     if (lastVolume && lastPage) writeLastReading({ volume: lastVolume, page: lastPage });
   }, [lastVolume, lastPage]);
 
-  // 목차·검색 결과·북마크로 들어오면 목표 단락이 페이지 중간일 수 있다 — 그 단락까지 한 번 내려 준다.
-  // 목차는 장 시작 단락, 검색·북마크는 chunk_id 가 가리키는 단락이다.
+  // 목차·검색 결과·나의 기록으로 들어오면 목표 단락이 페이지 중간일 수 있다 — 그 단락까지 한 번 내려 준다.
+  // 목차는 장 시작 단락, 검색·나의 기록은 chunk_id 가 가리키는 단락이다.
   const tocStart = sections.data?.sections.find((item) => item.position === section)?.start_chunk_index ?? null;
   const citedIndex = chunkId ? (doc?.chunks.find((chunk) => chunk.chunk_id === chunkId)?.chunk_index ?? null) : null;
   const scrollTarget = tocStart ?? citedIndex;
@@ -390,8 +378,6 @@ export function WordsScreen({
     ? (tocSections.find((item) => item.position === currentSection.position) ?? null)
     : null;
   const selectedChunk = doc.chunks.find((chunk) => chunk.chunk_id === selectedChunkId) ?? null;
-  const bookmarkOf = (chunk: string): MarkItem | undefined =>
-    marks.find((mark) => mark.chunk_id === chunk && mark.kind === "bookmark");
   const currentPath = `${wordsHref(volume)}?page=${doc.page}`;
   const workTitle = doc.work_title;
   // 검색으로 들어온 경우에만 밑줄 안내를 보인다. 책갈피 카드로 들어온 단락은 카드 밑줄이 우선이다.
@@ -650,7 +636,6 @@ export function WordsScreen({
                       <Verse
                         chunk={chunk}
                         decorations={decorationsByChunk.get(chunk.chunk_index) ?? NO_DECORATIONS}
-                        isBookmarked={Boolean(bookmarkOf(chunk.chunk_id))}
                         isSelected={chunk.chunk_id === selectedChunkId}
                         isSpeaking={chunk.chunk_index === speakingIndex}
                         onSelect={() => openPassage(chunk.chunk_id)}
@@ -700,13 +685,10 @@ export function WordsScreen({
       )}
       {sheet === "passage" && selectedChunk && (
         <PassageSheet
-          volume={volume}
           chunk={selectedChunk}
           wholeHighlight={findWholeChunkHighlight(highlights.items, selectedChunk)}
-          bookmark={bookmarkOf(selectedChunk.chunk_id)}
           isLoggedIn={isLoggedIn}
           returnTo={currentPath}
-          writer={writer}
           toast={toastNode}
           onPaintWhole={(color) => paintWholeChunk(selectedChunk, color)}
           onClose={closeSheet}

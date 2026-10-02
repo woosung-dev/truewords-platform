@@ -98,7 +98,7 @@ export function HighlightGateSheet({
 }) {
   return (
     <ReaderSheet title="형광펜·메모" onClose={onClose} toast={toast}>
-      <p className="js-lede">형광펜·메모·북마크는 계정에 남는 기록이에요. 복사는 로그인 없이 할 수 있어요.</p>
+      <p className="js-lede">형광펜·메모는 계정에 남는 기록이에요. 복사는 로그인 없이 할 수 있어요.</p>
       <p className="rd-sheet__gate">로그인하면 기록이 남아요</p>
       <Link className="btn btn-primary" href={onboardingHref(returnTo)}>
         로그인하고 표시하기

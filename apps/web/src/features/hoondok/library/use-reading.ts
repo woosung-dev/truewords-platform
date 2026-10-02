@@ -1,65 +1,13 @@
 "use client";
 
-// 읽기 기록(API-HD-025·026·053) React Query 어댑터. 기록은 로그인 전용이라 모든 훅이 `enabled` 로 게이트된다.
+// 읽기 기록(API-HD-025·053) React Query 어댑터. 기록은 로그인 전용이라 모든 훅이 `enabled` 로 게이트된다.
 // 비로그인은 조회조차 보내지 않는다 — 401 을 오류로 쌓지 않기 위해서다.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type {
-  HighlightInput,
-  HighlightItem,
-  HighlightPatch,
-  HighlightsResponse,
-  MarkInput,
-  MarkItem,
-} from "@truewords/api-client-ts/types";
+import type { HighlightInput, HighlightItem, HighlightPatch, HighlightsResponse } from "@truewords/api-client-ts/types";
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
-import {
-  BOOKMARKS_KEY,
-  HIGHLIGHTS_KEY,
-  highlightsKey,
-  MARKS_KEY,
-  marksKey,
-  READING_POSITIONS_KEY,
-} from "../query-keys";
+import { HIGHLIGHTS_KEY, highlightsKey, READING_POSITIONS_KEY } from "../query-keys";
 import { libraryAPI } from "./api";
 import { type LastReading, parseLastReading, readLastReadingRaw, subscribeLastReading } from "./last-reading";
-
-export function useMarks(volume: string, isEnabled: boolean) {
-  const query = useQuery({
-    queryKey: marksKey(volume),
-    queryFn: () => libraryAPI.marks({ volume }),
-    enabled: isEnabled,
-    retry: false,
-    staleTime: 0,
-  });
-  return query.data?.items ?? [];
-}
-
-export function useBookmarks(isEnabled: boolean, limit: number) {
-  const query = useQuery({
-    queryKey: BOOKMARKS_KEY,
-    queryFn: () => libraryAPI.marks({ kind: "bookmark" }),
-    enabled: isEnabled,
-    retry: false,
-    staleTime: 0,
-  });
-  return (query.data?.items ?? []).slice(0, limit);
-}
-
-/** 북마크 저장·삭제. 어느 쪽이 끝나든 MARKS_KEY 접두 전체를 무효화해 원문·서고가 같은 값을 본다. */
-export function useMarkWriter() {
-  const client = useQueryClient();
-  const invalidate = () => client.invalidateQueries({ queryKey: MARKS_KEY });
-  const save = useMutation({
-    mutationFn: ({ chunkId, input }: { chunkId: string; input: MarkInput }) => libraryAPI.saveMark(chunkId, input),
-    onSuccess: invalidate,
-  });
-  const remove = useMutation({
-    mutationFn: ({ chunkId, kind }: { chunkId: string; kind: MarkItem["kind"] }) =>
-      libraryAPI.deleteMark(chunkId, kind),
-    onSuccess: invalidate,
-  });
-  return { save, remove, isSaving: save.isPending || remove.isPending, hasFailed: save.isError || remove.isError };
-}
 
 const NO_HIGHLIGHTS: HighlightItem[] = [];
 

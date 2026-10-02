@@ -23,9 +23,6 @@ vi.mock("@/features/hoondok/library/api", async (original) => ({
     sections: vi.fn(),
     readingPositions: vi.fn(),
     saveReadingPosition: vi.fn(),
-    marks: vi.fn(),
-    saveMark: vi.fn(),
-    deleteMark: vi.fn(),
   },
 }));
 vi.mock("@/features/identity/api", () => ({ identityAPI: { me: vi.fn() } }));
@@ -83,7 +80,6 @@ beforeEach(() => {
   vi.mocked(libraryAPI.search).mockResolvedValue({ results: [RESULT] });
   vi.mocked(libraryAPI.words).mockResolvedValue(WORDS);
   vi.mocked(libraryAPI.sections).mockResolvedValue({ volume: WORK.volume, sections: [] });
-  vi.mocked(libraryAPI.marks).mockResolvedValue({ items: [] });
   vi.mocked(libraryAPI.readingPositions).mockResolvedValue({ items: [] });
   vi.mocked(identityAPI.me).mockRejectedValue(new ApiError(401, { message: "unauthorized" }));
 });

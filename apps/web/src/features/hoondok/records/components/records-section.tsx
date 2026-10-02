@@ -1,8 +1,8 @@
 "use client";
 
-// 나의 정원 속 '나의 기록' (C1). 형광펜·북마크·노트 수는 그 탭으로 들어가는 입구다 — 이름을 먼저, 잉크색으로
+// 나의 정원 속 '나의 기록' (C1). 형광펜·노트 수는 그 탭으로 들어가는 입구다 — 이름을 먼저, 잉크색으로
 // 같은 크기에 두고 강조색·증감·목표를 두지 않는다 (DEC-PWA-019). 아래에 가장 최근 형광펜 구절 하나를 보인다.
-import { Bookmark, ChevronRight, Highlighter, NotebookPen } from "lucide-react";
+import { ChevronRight, Highlighter, NotebookPen } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { verseNumber, wordsHref } from "../../library/api";
@@ -13,7 +13,6 @@ import { RecordsEmpty, RecordsError } from "./records-screen";
 
 const TALLY: readonly { tab: RecordTab; label: string; Icon: typeof Highlighter }[] = [
   { tab: "highlight", label: "형광펜", Icon: Highlighter },
-  { tab: "bookmark", label: "북마크", Icon: Bookmark },
   { tab: "note", label: "노트", Icon: NotebookPen },
 ];
 
@@ -30,8 +29,8 @@ export function RecordsGardenSection() {
   else {
     const counts = countRecords(items);
     const { capped } = records.data;
-    // 형광펜 목록이 최신순이라 처음 나온 형광펜이 가장 최근 것이다
-    const latest = items.find((entry) => entry.kind === "highlight");
+    // 형광펜 목록이 최신순이라 첫 항목이 가장 최근 것이다
+    const latest = items[0];
     const where = latest ? `${volumeTitle(latest)} · 단락 ${verseNumber(latest.chunk_index)}` : "";
     const latestBody = latest && (
       <>

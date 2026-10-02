@@ -1,5 +1,4 @@
-// 나의 기록 한 줄. 형광펜은 고른 구절(`quote`), 북마크는 원문 표시 글(display_text) 발췌를 그대로 두고
-// 줄 수만 CSS 로 줄인다 — 글자를 바꾸지 않는다.
+// 나의 기록 한 줄. 형광펜이 고른 구절(`quote`)을 그대로 두고 줄 수만 CSS 로 줄인다 — 글자를 바꾸지 않는다.
 // 글이 null 이면 원문이 막혔거나 확인하지 못한 권이라 원문 링크를 숨긴다(권리 게이트는 서버가 판정).
 import { NotebookPen } from "lucide-react";
 import Link from "next/link";

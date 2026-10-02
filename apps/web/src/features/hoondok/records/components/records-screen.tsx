@@ -18,7 +18,6 @@ import {
   countRecords,
   formatCount,
   HIGHLIGHTS_LIMIT,
-  MARKS_LIMIT,
   marksOfTab,
   parseRecordsFilter,
   RECORD_TABS,
@@ -39,7 +38,6 @@ const PRIVATE_NOTICE = "기록은 나만 봐요. 가족과 모임에도 보이�
 const EMPTY_TITLE: Record<RecordTab, string> = {
   highlight: "아직 남긴 형광펜이 없어요",
   note: "아직 남긴 노트가 없어요",
-  bookmark: "아직 남긴 북마크가 없어요",
 };
 
 /** 빈 상태는 문구와 서고 입구만 둔다 — 예시 말씀을 지어 넣지 않는다. 정원 섹션 안에서는 제목을 h3 로 낮춘다. */
@@ -51,9 +49,7 @@ export function RecordsEmpty({ title, isNested = false }: { title: string; isNes
         <Highlighter size={28} />
       </span>
       <Heading className="empty__title">{title}</Heading>
-      <p className="empty__body">
-        말씀 원문에서 구절을 고르면 형광펜·노트를, 단락 번호를 누르면 북마크를 남길 수 있어요.
-      </p>
+      <p className="empty__body">말씀 원문에서 구절을 고르면 형광펜·노트를 남길 수 있어요.</p>
       <p className="gd-cta">
         <Link className="btn btn-line btn--sm" href={LIBRARY_HREF}>
           말씀 서고로 가기
@@ -205,10 +201,6 @@ function RecordsBody({ records }: { records: RecordSet }) {
   const tabItems = marksOfTab(items, filter.tab);
   const shown = applyFilter(items, filter);
   const volumeName = filter.volume ? volumeGroups(items).find((group) => group.volume === filter.volume)?.title : null;
-  const capNotice =
-    filter.tab === "bookmark"
-      ? `최근 북마크 ${MARKS_LIMIT}개까지 모아 보여요.`
-      : `최근 형광펜 ${HIGHLIGHTS_LIMIT}개까지 모아 보여요.`;
 
   return (
     <section className="col">
@@ -235,9 +227,7 @@ function RecordsBody({ records }: { records: RecordSet }) {
           </div>
         ) : (
           <>
-            {filter.tab !== "bookmark" && (
-              <ColorChips items={items} filter={filter} isCapped={capped[filter.tab]} onPick={pick} />
-            )}
+            <ColorChips items={items} filter={filter} isCapped={capped[filter.tab]} onPick={pick} />
             <VolumeChips items={items} filter={filter} isCapped={capped[filter.tab]} onPick={pick} />
             <div className="sect">
               <div className="sect__head">
@@ -261,7 +251,7 @@ function RecordsBody({ records }: { records: RecordSet }) {
           </>
         )}
       </div>
-      {capped[filter.tab] && <p className="notice">{capNotice}</p>}
+      {capped[filter.tab] && <p className="notice">최근 형광펜 {HIGHLIGHTS_LIMIT}개까지 모아 보여요.</p>}
       <p className="notice">{PRIVATE_NOTICE}</p>
     </section>
   );
@@ -281,7 +271,7 @@ export function RecordsScreen() {
             <span className="empty__ic" aria-hidden="true">
               <Highlighter size={28} />
             </span>
-            <h2 className="empty__title">로그인하면 형광펜·노트·북마크가 여기에 모여요</h2>
+            <h2 className="empty__title">로그인하면 형광펜·노트가 여기에 모여요</h2>
             <p className="empty__body">원문에서 남긴 기록을 책별로, 원문 순서대로 다시 볼 수 있어요.</p>
             <p className="gd-cta">
               <Link className="btn btn-primary" href={onboardingHref(RECORDS_PATH)}>

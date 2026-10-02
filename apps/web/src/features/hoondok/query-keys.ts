@@ -22,20 +22,13 @@ export const PROGRESS_KEYS = [SUMMARY_KEY, JEONGSEONG_KEY, HISTORY_KEY, TOGETHER
 
 // --- 말씀 서고·읽기 기록 (PLAN-HD-007). 진행 상태와 무효화 주기가 달라 PROGRESS_KEYS 에 넣지 않는다.
 export const LIBRARY_KEY = ["hoondok", "library"] as const;
-export const MARKS_KEY = ["hoondok", "marks"] as const;
 export const READING_POSITIONS_KEY = ["hoondok", "reading-positions"] as const;
 
 export const seriesKey = (series: string) => ["hoondok", "series", series] as const;
 export const sectionsKey = (volume: string) => ["hoondok", "sections", volume] as const;
-/** 권별 표시 목록. 접두가 MARKS_KEY 라 표시 1건이 바뀌면 서고 북마크 절도 함께 무효화된다. */
-export const marksKey = (volume?: string) => [...MARKS_KEY, volume ?? "all"] as const;
 export const wordsKey = (volume: string, page: number, query: { chunkId?: string; section?: number }) =>
   ["hoondok", "words", volume, page, query.chunkId ?? null, query.section ?? null] as const;
-/** 서고 "북마크" 절 — 권 구분 없이 북마크만. 같은 접두라 표시 변경 한 번에 함께 무효화된다. */
-export const BOOKMARKS_KEY = [...MARKS_KEY, "bookmark"] as const;
-/** 나의 기록 — 발췌가 붙은 북마크 목록. 같은 접두라 원문에서 북마크를 바꾸면 함께 무효화된다. */
-export const RECORD_MARKS_KEY = [...MARKS_KEY, "records"] as const;
-/** 구절 형광펜·메모 (API-HD-053). 단락 표시(MARKS_KEY)와 테이블·주기가 달라 접두를 나눈다. */
+/** 구절 형광펜·메모 (API-HD-053). 권별 목록과 나의 기록(전체)이 같은 접두라 쓰기 한 번에 함께 무효화된다. */
 export const HIGHLIGHTS_KEY = ["hoondok", "highlights"] as const;
 export const highlightsKey = (volume?: string) => [...HIGHLIGHTS_KEY, volume ?? "all"] as const;
 
