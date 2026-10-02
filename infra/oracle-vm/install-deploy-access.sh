@@ -37,6 +37,11 @@ sudo -n docker version >/dev/null 2>&1 || { echo "❌ 'sudo -n docker' 가 비�
 # deploy.sh 는 migration 때 'sudo env BACKEND_TAG=… docker compose' 를 쓴다 — docker 만 허용된 sudoers 면 그때 멈춘다.
 sudo -n env true >/dev/null 2>&1 || { echo "❌ 'sudo -n env' 가 비대화식으로 동작하지 않는다" >&2; exit 1; }
 command -v setsid >/dev/null || { echo "❌ setsid 가 없다 (util-linux) — ssh 가 끊기면 배포가 중간에 죽는다" >&2; exit 1; }
+# logind KillUserProcesses=yes 면 ssh 세션이 끝날 때 세션의 프로세스를 모두 죽인다 — setsid 로 떼어 내도 같다.
+# Ubuntu 기본값은 no 다. 바꾸는 것은 시스템 설정이라 여기서는 경고만 한다.
+if [ "$(busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager KillUserProcesses 2>/dev/null)" = "b true" ]; then
+  echo "⚠️  systemd-logind KillUserProcesses=yes — ssh 가 끊기면 떼어 낸 배포도 죽는다. /etc/systemd/logind.conf 를 확인한다" >&2
+fi
 
 step "sparse 체크아웃 ${REPO_DIR}"
 if [ ! -d "${REPO_DIR}/.git" ]; then

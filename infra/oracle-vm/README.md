@@ -204,6 +204,8 @@ VM 에서는 배포가 ssh 세션과 떨어진 프로세스로 돈다. 연결이
 | `VM status 출력에 … 가 없다` (Plan 단계) | VM 상태를 끝까지 읽지 못했다(ssh 실패·잘린 출력) | VM 접속을 확인하고 다시 실행한다. 빈 결과를 첫 배포로 보지 않는다 |
 | DB head 가 비었다·여러 개다·이미지가 모른다 (종료 1) | migration 으로 풀 수 없는 DB 상태이거나, DB 가 이미지보다 앞섰다(옛 backend 로 되돌리는 중) | 백업 전에 멈췄다. DB 의 `alembic_version` 을 사람이 확인한다 |
 | 배포 뒤 상태를 읽지 못함 | 교체는 끝났을 수 있지만 검증 직전 ssh 가 끊겼다 | 자동 롤백하지 않았다. `status` 와 공개 URL 을 직접 확인한다 |
+| 결과를 알 수 없다 (종료 7, 128 이상) | VM 의 실행이 결과 코드 없이 끝났거나 시그널로 죽었다. 교체가 일부 됐을 수 있다 | `deploy-runs/` 의 그 실행 로그와 `status` 를 본다 |
+| `VM 직전 배포가 <상태> 로 끝남` (Plan 단계) | 직전 실행이 `switching`·`migrating`·`restore_failed`·`failed_after_migration` 으로 끝나 운영이 `.env` 와 다른 이미지로 돌 수 있다. 같은 sha 를 다시 돌려 "바꿀 것 없음" 으로 통과시키지 않는다 | `switching`·`restore_failed` 는 `make rollback-last`. `migrating`(upgrade 실패·중단)과 `failed_after_migration` 은 DB 를 확인한 뒤 비상 경로로 마무리한다(성공하면 `deployed` 로 돌아온다) |
 
 ### 롤백
 
@@ -265,13 +267,13 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
    ssh truewords-oracle "DEPLOY_PUBKEY='$(cat ~/.ssh/truewords_deploy.pub)' MIGRATE_PUBKEY='$(cat ~/.ssh/truewords_deploy_migrate.pub)' bash -s" < infra/oracle-vm/install-deploy-access.sh
    ```
 3. 출력된 줄 중 `truewords-deploy@github-actions`(강제 명령 `…/deploy-entry`)와 `truewords-deploy-migrate@github-actions`(`env TW_ALLOW_MIGRATE=1 …/deploy-entry`) 두 줄을 확인하고 VM `~/.ssh/authorized_keys` 에 추가한다. 확인: `ssh -i ~/.ssh/truewords_deploy -o IdentitiesOnly=yes <user>@<host> status` 가 태그를 출력하고, `… 'status; id'` 와 배포 키의 `… 'deploy <sha> backend --migrate'` 는 거부돼야 한다. VM sshd 의 `AcceptEnv` 가 `LANG LC_*` 뿐이고 `PermitUserEnvironment` 가 꺼져 있는지도 본다(`sudo sshd -T | grep -Ei 'acceptenv|permituserenvironment'`) — 클라이언트가 `TW_ALLOW_MIGRATE` 를 보낼 수 없어야 한다. 함께 출력되는 `truewords-ops-read@github-actions` 줄은 ops-check 결과(`/opt/ops-status.json`)만 읽는 별도 키용이다 — 그 키를 쓰는 워크플로를 둘 때만 넣는다.
-4. GitHub 환경 두 개를 만든다 — `production`, `production-migrate`. 둘 다 Required reviewers = 저장소 소유자, Deployment branches = `main` 만. 키·VM 주소·호스트 키는 **환경 secret** 이다(공개 저장소의 Actions 로그에서 마스킹된다). 같은 secret 이름에 환경마다 다른 키를 넣는다. 호스트 키는 `ssh-keyscan` 결과를 VM 안의 지문(`ssh truewords-oracle 'ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub'`)과 대조한 뒤에만 넣는다.
+4. GitHub 환경 두 개를 만든다 — `production`, `production-migrate`. 둘 다 Required reviewers = 저장소 소유자, Deployment branches = `main` 만. 키·VM 주소·호스트 키는 **환경 secret** 이다(공개 저장소의 Actions 로그에서 마스킹된다). 같은 secret 이름에 환경마다 다른 키를 넣는다. `DEPLOY_HOST` 는 DNS 이름이 아니라 **IP** 로 넣는다 — 이름이면 ssh 오류 메시지에 해석된 IP 가 찍혀 마스킹을 비켜 간다. 호스트 키는 `ssh-keyscan` 결과를 VM 안의 지문(`ssh truewords-oracle 'ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub'`)과 대조한 뒤에만 넣는다.
    ```bash
    gh secret set DEPLOY_SSH_KEY --env production < ~/.ssh/truewords_deploy
    gh secret set DEPLOY_SSH_KEY --env production-migrate < ~/.ssh/truewords_deploy_migrate
    for env in production production-migrate; do
-     gh secret set DEPLOY_HOST --env "$env" --body '<VM 공인 IP 또는 호스트>'
-     gh secret set DEPLOY_HOST_KEY --env "$env" --body "$(ssh-keyscan -t ed25519 <호스트> 2>/dev/null)"
+     gh secret set DEPLOY_HOST --env "$env" --body '<VM 공인 IP>'
+     gh secret set DEPLOY_HOST_KEY --env "$env" --body "$(ssh-keyscan -t ed25519 <VM 공인 IP> 2>/dev/null)"
    done
    ```
 5. 저장소 Variable 을 넣는다(공개돼도 되는 값만).
