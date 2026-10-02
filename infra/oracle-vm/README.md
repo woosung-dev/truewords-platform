@@ -185,7 +185,7 @@ sudo docker compose --env-file .env up -d
 
 ### 정상 경로 — Actions
 
-1. Actions → **Release** → Run workflow. `sha` 는 비우면 main 의 HEAD, `deploy=true`.
+1. Actions → **Release** → Run workflow. `sha` 는 비우면 main 의 HEAD, `deploy=true`. 그 sha 에 main push 로 돈 `CI` 의 최신 실행이 성공이어야 시작한다(`rollback=true` 는 성공한 실행 하나면 된다. 판정: `tooling/checks/ci-gate.mjs`).
 2. `production` 환경 승인. 이미지가 바뀐 서비스만 교체된다(판정: `tooling/checks/deploy-services.mjs`).
 3. DB migration 이 필요하면 1차 배포는 아무것도 바꾸지 않고 멈추고, `Deploy with DB migration` job 이 `production-migrate` 승인을 기다린다. 승인하면 백업 → `alembic upgrade head` → 교체 순이다. `--migrate` 는 그 환경에만 있는 migration 전용 키로만 VM 이 받는다. migration 출력 전문은 VM `deploy-state/migrate-*.log` 에만 남고 Actions 로그(공개)에는 끝부분만 나온다.
 4. 공개 URL 스모크까지 통과하면 끝. 실패하면 `[deploy-alert]` GitHub Issue 가 열리고(저장소 소유자에게 메일) 다음 성공 배포가 닫는다. `NTFY_TOPIC` secret 이 있으면 ntfy 도 보낸다. 승인 거절·만료는 VM 에 아무것도 하지 않았으므로 이슈를 열지 않는다.
@@ -196,6 +196,7 @@ VM 에서는 배포가 ssh 세션과 떨어진 프로세스로 돈다. 연결이
 
 | 결과 | 뜻 | 대처 |
 |---|---|---|
+| `CI 가 아직 끝나지 않았다`·`CI 가 <결론> 로 끝났다`·`CI 실행이 없다` (Resolve commit 단계) | 그 sha 의 main push CI 가 초록이 아니다. 빌드·VM 모두 손대지 않았고 이슈도 열지 않는다 | 진행 중이면 끝난 뒤 다시 실행한다. 실패·취소면 메시지의 실행 URL 에서 원인을 고치거나 재실행해 초록을 만든 뒤 실행한다 |
 | `MIGRATION_REQUIRED` (종료 3) | 이미지와 DB 의 alembic head 가 다르다. 아무것도 바꾸지 않았다 | migration 내용을 확인하고 `production-migrate` 를 승인한다 |
 | 잠금 점유 (종료 4) | 다른 배포(비상 경로 포함)가 진행 중이다 | 끝난 뒤 다시 실행한다 |
 | 검사 실패·복구함 (종료 5) | 교체 후 이미지 ID·healthy·내부 HTTP 검사가 실패해 이전 태그로 되돌렸다 | 이슈의 실행 로그와 `make oracle-logs` 로 원인을 본다 |

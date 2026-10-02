@@ -5,9 +5,10 @@ name: Release
 #
 #   CI(main push) 성공 ─ workflow_run ─▶ meta ─▶ build ×3 (이미지·오프라인 검사)
 #   Run workflow(deploy=true) ─────────▶ meta ─▶ build ×3 ─▶ deploy [production 승인]
-#                                                             └▶ deploy-migrate [production-migrate 승인]
+#                                   (CI 성공 확인)             └▶ deploy-migrate [production-migrate 승인]
 #
 # 신뢰 경계: workflow_run 은 기본 브랜치의 이 파일로 돌고, main push 로 돈 CI 성공만 받는다.
+# 수동 실행도 그 sha 의 main push CI 가 성공했어야 한다(meta 의 CI 게이트).
 # PR 코드는 체크아웃하지 않는다. 배포 키는 production 환경 secret 이라 승인 없이는 읽히지 않는다.
 
 on:
@@ -54,6 +55,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+      actions: read # CI 게이트가 CI 실행 목록을 읽는다
     outputs:
       sha: ${{ steps.resolve.outputs.sha }}
       tag: ${{ steps.resolve.outputs.tag }}
@@ -87,6 +89,23 @@ jobs:
           echo "sha=${sha}" >> "$GITHUB_OUTPUT"
           echo "tag=${sha:0:12}" >> "$GITHUB_OUTPUT"
           echo "### ${sha:0:12} — $(git log -1 --format=%s "$sha")" >> "$GITHUB_STEP_SUMMARY"
+      # workflow_run 은 job if: 가 CI 성공을 보장하지만, 수동 실행은 아무 main 커밋이나 받는다.
+      # main 은 머지 뒤에도 빨개질 수 있으므로(ruleset strict=false, 2026-09-28 c863615e) 그 sha 의
+      # main push CI 실행을 Actions runs API 로 확인한다. check-run 이 아니라 run 을 보는 이유와
+      # 판정 규칙(최신 실행이 성공, rollback 은 성공 하나)은 tooling/checks/ci-gate.mjs 머리 주석.
+      - name: Require green CI for this commit
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.resolve.outputs.sha }}
+          ROLLBACK: ${{ inputs.rollback }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${SHA}&event=push&branch=main&per_page=100" \
+            > "$RUNNER_TEMP/ci-runs.json"
+          flags=()
+          [ "$ROLLBACK" = true ] && flags+=(--rollback)
+          node tooling/checks/ci-gate.mjs --sha "$SHA" --runs "$RUNNER_TEMP/ci-runs.json" "${flags[@]}"
 
   build:
     name: Image (${{ matrix.service }})
