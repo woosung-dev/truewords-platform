@@ -13,7 +13,8 @@ SHELL       := /bin/bash
 ORACLE ?= truewords-oracle
 # 이미지 태그 = 커밋 sha 앞 12자 (release.yml·deploy.sh 와 같은 규칙). 이름은 GHCR 과 같다.
 IMAGE_PREFIX := ghcr.io/woosung-dev/truewords
-TAG      ?= $(shell git rev-parse --short=12 HEAD)
+# --short=12 는 모호하면 더 길어진다 — deploy.sh 가 sha 앞 12자로 계산하는 태그와 어긋나지 않게 자른다.
+TAG      ?= $(shell git rev-parse HEAD | cut -c1-12)
 DEPLOY_SHA = $(shell git rev-parse HEAD)
 IMG      := $(IMAGE_PREFIX)-backend:$(TAG)
 ADMIN_IMG := $(IMAGE_PREFIX)-admin:$(TAG)
@@ -97,10 +98,11 @@ MIGRATE ?=
 
 # VM 의 deploy.sh 실행. $(1)=deploy.log 경로 칸(guarded|forced|manual), $(2)=deploy.sh 인자.
 # rsync 가 실패하면 옛 사본으로 돌지 않게 즉시 멈춘다. 종료 코드는 deploy.sh 계약을 그대로 올린다.
+# TW_SRC_SHA: 동기화하는 파일의 원본 커밋(가드를 통과한 HEAD). pin·rollback 은 파일을 동기화하지 않는다.
 define VM_DEPLOY_SH
 rsync -a --delete infra/oracle-vm/ "$(ORACLE):truewords/breakglass/" || exit 1; \
-rc=0; ssh "$(ORACLE)" 'DEPLOY_MODE=$(1) bash ~/truewords/breakglass/deploy.sh $(2)' || rc=$$?; \
-[ $$rc -ne 3 ] || echo "ℹ️  DB migration 이 필요해 아무것도 바꾸지 않았습니다 — 승인하면 MIGRATE=1 make deploy-backend"; \
+rc=0; ssh "$(ORACLE)" 'DEPLOY_MODE=$(1) TW_SRC_SHA=$(DEPLOY_SHA) bash ~/truewords/breakglass/deploy.sh $(2)' || rc=$$?; \
+$(if $(filter deploy,$(firstword $(2))),[ $$rc -ne 3 ] || echo "ℹ️  DB migration 이 필요해 아무것도 바꾸지 않았습니다 — 승인하면 MIGRATE=1 make deploy-backend";) \
 exit $$rc
 endef
 

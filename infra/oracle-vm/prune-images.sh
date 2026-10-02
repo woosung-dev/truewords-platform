@@ -40,6 +40,16 @@ set -uo pipefail
 
 KEEP="${KEEP:-3}"
 TW_DIR="${TW_DIR:-${HOME}/truewords}"
+# 배포 잠금을 존중한다. 배포가 새 이미지를 받고 .env 를 쓰기 직전에 주간 cron 이 돌면, 아직
+# "현재 태그" 가 아닌 새 이미지나 막 직전 세대가 된 이미지를 지울 수 있다. deploy.sh 가 부를 때는
+# 부모가 잠금을 쥐고 있다(TW_DEPLOY_LOCK_HELD=1). 잠금이 바쁘면 이번 회차는 건너뛴다 — 다음 배포·주간에 다시 돈다.
+if [ "${TW_DEPLOY_LOCK_HELD:-}" != 1 ] && [ -d "$TW_DIR" ]; then
+  exec 9>"${TW_DIR}/.deploy.lock" || { echo "❌ 배포 잠금 파일을 열지 못했다 — GC 중단" >&2; exit 1; }
+  if ! flock -n 9; then
+    echo "[$(date '+%F %T')] 배포가 진행 중이다 (잠금 점유) — 이번 GC 는 건너뛴다"
+    exit 0
+  fi
+fi
 # GHCR 이름(release.yml·deploy.sh)과 레지스트리 도입 전 이름(docker load) 둘 다 우리 것이다.
 # 이 목록 밖의 repo(다른 스택)는 절대 건드리지 않는다.
 REPOS="${REPOS:-ghcr.io/woosung-dev/truewords-backend ghcr.io/woosung-dev/truewords-admin ghcr.io/woosung-dev/truewords-web truewords-backend truewords-admin truewords-web}"
