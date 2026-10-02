@@ -111,8 +111,9 @@ jobs:
           ref: ${{ needs.meta.outputs.sha }}
           persist-credentials: false
 
-      # 빌드 인자는 커밋된 infra/oracle-vm/build-args.env 가 원본이다(공개 값). 개인 정보인
-      # 시연 관리자 이메일만 저장소 Variable 이다. GHCR 이미지는 공개이므로 secret 을 넣지 않는다.
+      # 빌드 인자는 커밋된 infra/oracle-vm/build-args.env 가 원본이다(공개 값). 시연 관리자 이메일만
+      # 저장소 Variable 이다 — 번들에 구워져 공개되지만 소스에 하드코딩하지 않는다(ADR 2026-09-05 D6).
+      # GHCR 이미지는 공개이므로 secret 을 넣지 않는다.
       - name: Build arguments
         id: args
         env:
@@ -234,6 +235,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: production
+    # 같은 그룹에는 대기 중인 job 이 하나만 남는다(새 대기가 옛 대기를 조용히 취소한다).
+    # 그래서 deploy-migrate 는 다른 그룹이다 — 한 실행의 migration 승인 대기가 다른 실행의 배포를
+    # 취소하지 않게. 두 job 이 동시에 VM 에 닿는 것은 VM 잠금(종료 4 → 알림, 다시 실행)이 막는다.
     concurrency:
       group: deploy-production
       cancel-in-progress: false
@@ -262,15 +266,18 @@ jobs:
         id: ssh
         uses: ./.github/actions/vm-ssh
         with:
-          host: ${{ vars.DEPLOY_HOST }}
+          # 주소·호스트 키는 환경 secret — 공개 저장소의 Actions 로그에서 마스킹된다.
+          host: ${{ secrets.DEPLOY_HOST }}
           user: ${{ vars.DEPLOY_USER }}
           port: ${{ vars.DEPLOY_PORT || '22' }}
-          host-key: ${{ vars.DEPLOY_HOST_KEY }}
+          host-key: ${{ secrets.DEPLOY_HOST_KEY }}
           ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
       - name: Current production tags
         id: status
-        run: ssh deploy-target status | tee "$RUNNER_TEMP/status.env"
+        run: |
+          set -euo pipefail
+          ssh deploy-target status | tee "$RUNNER_TEMP/status.env"
 
       # 서비스별로 "운영 태그 → 이 sha" 사이에 그 이미지에 들어가는 파일이 바뀌었는지 본다.
       # 운영 태그가 이 sha 의 조상이 아니면(후퇴) rollback=true 없이는 멈춘다 — 옛 deploy-guard 와 같은 규칙.
@@ -303,6 +310,7 @@ jobs:
               4) echo "::error::VM 에서 다른 배포가 진행 중이다 (잠금)"; exit 1 ;;
               5) echo "::error::교체 후 검사 실패 — VM 이 이전 태그로 복구했다"; exit 1 ;;
               6) echo "::error::교체 후 검사 실패, 복구도 실패 — 즉시 VM 확인 (make oracle-logs)"; exit 1 ;;
+              255) echo "::error::ssh 연결이 끊겼다 — VM 에서는 배포가 끝까지 돌았을 수 있다. ~/truewords/deploy-runs 의 최근 로그와 status 를 확인한다"; exit 1 ;;
               *) echo "::error::배포 실패 (종료 ${rc}) — 서비스는 교체되지 않았거나 위 로그를 확인"; exit 1 ;;
             esac
           elif [ "$SYNC" = true ]; then
@@ -319,7 +327,21 @@ jobs:
           SERVICES: ${{ steps.plan.outputs.services }}
         run: |
           set -uo pipefail
-          ssh deploy-target status > "$RUNNER_TEMP/after.env"
+          # ssh 가 잠깐 끊긴 것을 "배포가 틀렸다" 로 읽고 롤백하면 멀쩡한 배포를 되돌린다.
+          # 세 번 다 못 읽으면 판단하지 않고(롤백 없이) 실패로 남긴다.
+          read_ok=0
+          for attempt in 1 2 3; do
+            if ssh deploy-target status > "$RUNNER_TEMP/after.env" && grep -q '^LAST_STATUS=' "$RUNNER_TEMP/after.env"; then
+              read_ok=1
+              break
+            fi
+            sleep 10
+          done
+          if [ "$read_ok" != 1 ]; then
+            echo "rollback=unverified" >> "$GITHUB_OUTPUT"
+            echo "::error::배포 뒤 VM 상태를 읽지 못했다(ssh) — 롤백하지 않았다. 사람이 status·공개 URL 을 확인한다"
+            exit 1
+          fi
           ok=1
           for svc in $SERVICES; do
             key="$(echo "$svc" | tr '[:lower:]' '[:upper:]')_TAG"
@@ -366,20 +388,28 @@ jobs:
           O_DEPLOY: ${{ steps.deploy.outcome }}
           O_VERIFY: ${{ steps.verify.outcome }}
           DEPLOY_RC: ${{ steps.deploy.outputs.rc }}
+          JOB_STATUS: ${{ job.status }}
           VERIFY_ROLLBACK: ${{ steps.verify.outputs.rollback }}
         run: |
           failed=""
           for pair in "ssh:$O_SSH" "status:$O_STATUS" "plan:$O_PLAN" "deploy:$O_DEPLOY" "verify-smoke:$O_VERIFY"; do
-            [ "${pair#*:}" = failure ] && { failed="${pair%%:*}"; break; }
+            case "${pair#*:}" in
+              failure) failed="${pair%%:*}"; break ;;
+              cancelled) failed="${pair%%:*}(취소됨)"; break ;;
+            esac
           done
+          [ -n "$failed" ] || [ "$JOB_STATUS" = success ] || failed="준비 단계(checkout·setup-node)"
           case "${failed}:${DEPLOY_RC}" in
+            "deploy(취소됨)":*) rollback="알 수 없음 — 실행이 취소됐지만 VM 의 배포는 끝까지 돌았을 수 있다. deploy-runs 로그·status 확인" ;;
             deploy:5) rollback="VM 이 자동 복구함 (deploy.sh 종료 5)" ;;
             deploy:6) rollback="자동 복구 실패 (deploy.sh 종료 6) — 즉시 확인" ;;
+            deploy:255) rollback="알 수 없음 — ssh 가 끊겼고 VM 의 배포는 계속됐을 수 있다. deploy-runs 로그·status 확인" ;;
             deploy:*) rollback="해당 없음 — 서비스는 교체되지 않음 (종료 ${DEPLOY_RC:-?})" ;;
-            verify-smoke:*)
+            verify-smoke*)
               case "$VERIFY_ROLLBACK" in
                 succeeded) rollback="스모크 실패 후 rollback 성공" ;;
-                *) rollback="스모크 실패 후 rollback 실패 — 즉시 확인" ;;
+                unverified) rollback="안 함 — 배포 뒤 VM 상태를 읽지 못했다(ssh). 운영은 새 태그일 수 있다" ;;
+                *) rollback="스모크 실패 후 rollback 실패 또는 미완료 — 즉시 확인" ;;
               esac ;;
             :*) rollback="" ;;
             *) rollback="해당 없음 — VM 에 아무것도 바꾸지 않음" ;;
@@ -395,7 +425,7 @@ jobs:
     # 별도 환경 = 별도 승인. "코드 배포 승인" 이 "스키마 변경 승인" 을 겸하지 않게 한다.
     environment: production-migrate
     concurrency:
-      group: deploy-production
+      group: deploy-production-migrate
       cancel-in-progress: false
     permissions:
       contents: read
@@ -420,10 +450,11 @@ jobs:
         id: ssh
         uses: ./.github/actions/vm-ssh
         with:
-          host: ${{ vars.DEPLOY_HOST }}
+          # 주소·호스트 키는 환경 secret — 공개 저장소의 Actions 로그에서 마스킹된다.
+          host: ${{ secrets.DEPLOY_HOST }}
           user: ${{ vars.DEPLOY_USER }}
           port: ${{ vars.DEPLOY_PORT || '22' }}
-          host-key: ${{ vars.DEPLOY_HOST_KEY }}
+          host-key: ${{ secrets.DEPLOY_HOST_KEY }}
           ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
       # 승인을 기다리는 사이 다른 배포가 끼었을 수 있어 계획을 다시 세운다.
@@ -453,7 +484,9 @@ jobs:
           echo "rc=${rc}" >> "$GITHUB_OUTPUT"
           case "$rc" in
             0) echo "deployed=true" >> "$GITHUB_OUTPUT" ;;
+            4) echo "::error::VM 에서 다른 배포가 진행 중이다 (잠금) — 끝난 뒤 다시 실행한다"; exit 1 ;;
             5) echo "::error::migration 없이 끝난 교체가 검사에 실패해 이전 태그로 복구했다"; exit 1 ;;
+            255) echo "::error::ssh 연결이 끊겼다 — VM 에서는 migration 배포가 끝까지 돌았을 수 있다. deploy-runs 로그·status 확인"; exit 1 ;;
             *) echo "::error::migration 배포 실패 (종료 ${rc}) — 자동 롤백하지 않는다. VM deploy.log·백업을 확인한다 (README §배포와 롤백)"; exit 1 ;;
           esac
 
@@ -464,7 +497,15 @@ jobs:
           SERVICES: ${{ steps.plan.outputs.services }}
         run: |
           set -uo pipefail
-          ssh deploy-target status > "$RUNNER_TEMP/after.env"
+          read_ok=0
+          for attempt in 1 2 3; do
+            if ssh deploy-target status > "$RUNNER_TEMP/after.env" && grep -q '^LAST_STATUS=' "$RUNNER_TEMP/after.env"; then
+              read_ok=1
+              break
+            fi
+            sleep 10
+          done
+          [ "$read_ok" = 1 ] || { echo "::error::배포 뒤 VM 상태를 읽지 못했다(ssh) — 사람이 status·공개 URL 을 확인한다"; exit 1; }
           for svc in $SERVICES; do
             key="$(echo "$svc" | tr '[:lower:]' '[:upper:]')_TAG"
             got=$(sed -n "s/^${key}=//p" "$RUNNER_TEMP/after.env")
@@ -492,12 +533,19 @@ jobs:
           O_DEPLOY: ${{ steps.deploy.outcome }}
           O_VERIFY: ${{ steps.verify.outcome }}
           DEPLOY_RC: ${{ steps.deploy.outputs.rc }}
+          JOB_STATUS: ${{ job.status }}
         run: |
           failed=""
           for pair in "ssh:$O_SSH" "re-plan:$O_PLAN" "deploy-migrate:$O_DEPLOY" "verify-smoke:$O_VERIFY"; do
-            [ "${pair#*:}" = failure ] && { failed="${pair%%:*}"; break; }
+            case "${pair#*:}" in
+              failure) failed="${pair%%:*}"; break ;;
+              cancelled) failed="${pair%%:*}(취소됨)"; break ;;
+            esac
           done
+          [ -n "$failed" ] || [ "$JOB_STATUS" = success ] || failed="준비 단계(checkout·setup-node)"
           case "${failed}:${DEPLOY_RC}" in
+            "deploy-migrate(취소됨)":* | deploy-migrate:255) rollback="알 수 없음 — VM 의 migration 배포는 끝까지 돌았을 수 있다. deploy-runs 로그·status 확인" ;;
+            deploy-migrate:4) rollback="해당 없음 — 잠금 점유로 아무것도 바꾸지 않음" ;;
             deploy-migrate:5) rollback="migration 없이 끝나 VM 이 자동 복구함 (종료 5)" ;;
             deploy-migrate:*) rollback="자동 롤백 안 함 (migration 정책) — deploy.log·백업 확인 (종료 ${DEPLOY_RC:-?})" ;;
             verify-smoke:*) rollback="자동 롤백 안 함 (migration 적용됨) — 사람이 판단" ;;
@@ -545,9 +593,15 @@ jobs:
           kind=""; result=none; services=""; step=""; rollback=""
           if [ "$BUILD" = failure ]; then
             result=failure; kind="이미지 빌드"; step="build (Image job 로그 확인)"; rollback="해당 없음 — VM 에 아무것도 바꾸지 않음"
-          elif [ "$DEPLOY" = failure ]; then
+          # 단계가 하나도 돌지 않은 실패·취소 = 환경 승인 거절·만료, 또는 더 새 실행에 밀려 대기 중 취소.
+          # VM 에 아무것도 하지 않았으니 이슈를 열지 않는다(빈 칸 알림 방지).
+          elif { [ "$DEPLOY" = failure ] || [ "$DEPLOY" = cancelled ]; } && [ -z "$D_STEP" ]; then
+            echo "::notice::배포 job 이 단계 실행 전에 끝났다 (승인 거절·만료 또는 대기 중 취소) — 알림 없음"
+          elif [ "$DEPLOY" = failure ] || [ "$DEPLOY" = cancelled ]; then
             result=failure; kind="배포"; services="$D_SERVICES"; step="$D_STEP"; rollback="$D_ROLLBACK"
-          elif [ "$MIGRATE" = failure ]; then
+          elif { [ "$MIGRATE" = failure ] || [ "$MIGRATE" = cancelled ]; } && [ -z "$M_STEP" ]; then
+            echo "::notice::migration 배포가 단계 실행 전에 끝났다 (production-migrate 승인 거절·만료) — 아무것도 바꾸지 않았다, 알림 없음"
+          elif [ "$MIGRATE" = failure ] || [ "$MIGRATE" = cancelled ]; then
             result=failure; kind="migration 배포"; services="$M_SERVICES"; step="$M_STEP"; rollback="$M_ROLLBACK"
           elif [ "$DEPLOY" = success ] && { [ "$NEEDS_MIGRATE" != true ] || [ "$MIGRATE" = success ]; }; then
             result=success; services="${M_SERVICES:-$D_SERVICES}"

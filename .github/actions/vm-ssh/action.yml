@@ -4,10 +4,13 @@ description: 배포 키와 고정된 host key 로 ssh 별칭 `deploy-target` 을
 # host key 는 저장소 Variable 에 고정한다. 실행 중 ssh-keyscan 으로 받으면 그 순간의 응답을
 # 그대로 믿는 셈이라 고정의 의미가 없다. 붙여 넣은 값은 줄마다 ssh-keygen -lf 로 검증한다 —
 # 형제 레포(kairos)는 ssh-keyscan 출력의 주석 줄(#)이 섞여 첫 배포가 실패했다.
+#
+# 공개 저장소라 Actions 로그를 누구나 본다. VM 주소·호스트 키는 환경 secret 으로 받아(로그 마스킹)
+# 여기서도 출력하지 않는다 — ssh-keygen 지문 출력은 버리고, 오류 메시지에는 변수 이름만 쓴다.
 
 inputs:
   host:
-    description: VM 주소 (vars.DEPLOY_HOST)
+    description: VM 주소 (secrets.DEPLOY_HOST — 환경 secret)
     required: true
   user:
     description: VM 사용자 (vars.DEPLOY_USER)
@@ -17,7 +20,7 @@ inputs:
     required: false
     default: "22"
   host-key:
-    description: VM host 공개키 줄 (vars.DEPLOY_HOST_KEY) — `ssh-ed25519 AAAA…` 또는 known_hosts 줄
+    description: VM host 공개키 줄 (secrets.DEPLOY_HOST_KEY — 환경 secret) — `ssh-ed25519 AAAA…` 또는 known_hosts 줄
     required: true
   ssh-key:
     description: 배포 개인키 (secrets.DEPLOY_SSH_KEY)
@@ -37,7 +40,7 @@ runs:
       run: |
         set -euo pipefail
         for name in DEPLOY_HOST DEPLOY_USER DEPLOY_HOST_KEY DEPLOY_SSH_KEY; do
-          [ -n "${!name}" ] || { echo "::error::${name} 가 비어 있다 (infra/oracle-vm/README.md §GitHub Actions 배포 설정)"; exit 1; }
+          [ -n "${!name}" ] || { echo "::error::${name} 가 비어 있다 (infra/oracle-vm/README.md §배포와 롤백 · 최초 설정)"; exit 1; }
         done
         [[ $DEPLOY_HOST =~ ^[A-Za-z0-9.:-]+$ ]] || { echo "::error::DEPLOY_HOST 형식 오류"; exit 1; }
         [[ $DEPLOY_USER =~ ^[a-z_][a-z0-9_-]*$ ]] || { echo "::error::DEPLOY_USER 형식 오류"; exit 1; }
@@ -64,7 +67,7 @@ runs:
             *) type="${f[1]:-}" key="${f[2]:-}" ;;
           esac
           printf '%s %s %s\n' "$hostpat" "$type" "$key" > "$RUNNER_TEMP/host-key-line"
-          ssh-keygen -lf "$RUNNER_TEMP/host-key-line" \
+          ssh-keygen -lf "$RUNNER_TEMP/host-key-line" > /dev/null 2>&1 \
             || { echo "::error::DEPLOY_HOST_KEY 에 host key 로 읽을 수 없는 줄이 있다"; exit 1; }
           cat "$RUNNER_TEMP/host-key-line" >> "$known"
           n=$((n + 1))
