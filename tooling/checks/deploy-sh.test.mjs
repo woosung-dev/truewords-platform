@@ -271,6 +271,13 @@ test("deploy: 교체 후 검사가 실패하면 이전 태그로 복구하고 �
     assert.match(log, new RegExp(`rollback web ${OLD} auto-restore`));
     assert.doesNotMatch(log, / deploy /);
     assert.match(box.read("deploy-state/last-deploy.env"), /^STATUS=restored$/m);
+    // 복구 교체도 --no-deps — 다른 서비스(특히 backend 의 SSE)를 재생성하지 않는다.
+    const order = ups(box.calls());
+    assert.equal(order.length, 4, order.join("\n"));
+    assert.ok(
+      order.every((args) => args.includes("--no-deps")),
+      order.join("\n"),
+    );
   } finally {
     box.cleanup();
   }
@@ -449,6 +456,10 @@ test("rollback: 직전 deploy 를 이전 태그로 되돌리고, 두 번째는 �
     assert.equal(tagOf(env, "WEB_TAG"), OLD);
     assert.equal(box.running("web"), `${PREFIX}-web:${OLD}`);
     assert.match(box.read("deploy.log"), new RegExp(`rollback web ${OLD} auto`));
+    assert.ok(
+      ups(box.calls()).every((args) => args.includes("--no-deps")),
+      "rollback 교체도 --no-deps 여야 한다",
+    );
     const second = box.run(["rollback"]);
     assert.equal(second.status, 1);
     assert.match(second.stderr, /되돌릴 배포가 없다/);
@@ -552,10 +563,10 @@ function entryFixture() {
       path.join(origin, "infra/oracle-vm/deploy.sh"),
       [
         "#!/usr/bin/env bash",
-        "sleep \"${STUB_SLEEP:-0}\"",
+        'sleep "${STUB_SLEEP:-0}"',
         `echo "STUB ${name} args=$* mode=$DEPLOY_MODE lock=\${TW_DEPLOY_LOCK_HELD:-} action=\${DEPLOY_ACTION:-} src=\${TW_SRC_SHA:-}"`,
-        "echo done > \"$TW_DIR/stub-done\"",
-        "exit \"${STUB_RC:-0}\"",
+        'echo done > "$TW_DIR/stub-done"',
+        'exit "${STUB_RC:-0}"',
         "",
       ].join("\n"),
     );

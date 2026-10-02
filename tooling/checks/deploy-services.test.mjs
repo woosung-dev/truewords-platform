@@ -164,11 +164,15 @@ test("VM status 출력이 잘렸거나 비었으면 첫 배포로 보지 않고 
     // CLI 도 같은 판정으로 실패한다(release.yml 의 Plan 단계).
     const file = path.join(r.dir, "status.env");
     writeFileSync(file, "BACKEND_TAG=\n");
-    const cli = spawnSync(process.execPath, [path.join(root, "tooling/checks/deploy-services.mjs"), "--sha", sha, "--main", sha, "--status", file], {
-      cwd: r.dir,
-      encoding: "utf8",
-      env: { ...process.env, GITHUB_OUTPUT: "" },
-    });
+    const cli = spawnSync(
+      process.execPath,
+      [path.join(root, "tooling/checks/deploy-services.mjs"), "--sha", sha, "--main", sha, "--status", file],
+      {
+        cwd: r.dir,
+        encoding: "utf8",
+        env: { ...process.env, GITHUB_OUTPUT: "" },
+      },
+    );
     assert.equal(cli.status, 1, cli.stdout);
     assert.match(cli.stderr, /::error::VM status 출력에/);
   } finally {
@@ -202,7 +206,13 @@ test("VM 파일 동기화는 대상 sha 가 아니라 최신 main 기준 — 되
     });
     assert.equal(sync.sync, true);
     // 기록이 unknown(비상 경로가 원본 커밋을 모를 때)이면 동기화한다.
-    const unknown = planDeploy({ sha: older, mainSha: main, status: status(older, { SYNCED_SHA: "unknown" }), rollback: false, git: r.git });
+    const unknown = planDeploy({
+      sha: older,
+      mainSha: main,
+      status: status(older, { SYNCED_SHA: "unknown" }),
+      rollback: false,
+      git: r.git,
+    });
     assert.equal(unknown.sync, true);
   } finally {
     r.cleanup();
@@ -223,7 +233,12 @@ test("배포가 재생성하지 않는 compose 서비스(postgres 등) 정의가
     };
     const base = write(compose("postgres:17-alpine"));
     const backendOnly = write(compose("postgres:17-alpine").replace("ghcr.io/x", "ghcr.io/y"));
-    const quiet = planDeploy({ sha: backendOnly, status: status(base, { SYNCED_SHA: base }), rollback: false, git: r.git });
+    const quiet = planDeploy({
+      sha: backendOnly,
+      status: status(base, { SYNCED_SHA: base }),
+      rollback: false,
+      git: r.git,
+    });
     assert.deepEqual(quiet.notes, []);
     const pg = write(compose("postgres:18-alpine"));
     const noted = planDeploy({ sha: pg, status: status(base, { SYNCED_SHA: base }), rollback: false, git: r.git });
