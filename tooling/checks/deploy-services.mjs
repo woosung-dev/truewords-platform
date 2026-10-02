@@ -46,6 +46,11 @@ const TAG = /^[0-9a-f]{7,40}$/;
 // VM status 가 반드시 내는 줄. 하나라도 없으면 출력이 잘린 것(ssh 실패·파이프 끊김)으로 보고 멈춘다 —
 // 빈 결과를 "첫 배포" 로 읽으면 후퇴 검사를 건너뛰고 세 서비스를 모두 교체한다.
 export const STATUS_KEYS = ["BACKEND_TAG", "ADMIN_TAG", "WEB_TAG", "SYNCED_SHA", "LAST_STATUS"];
+// 직전 배포가 이 상태로 끝났을 때만 새 계획을 세운다. 나머지(switching·restore_failed·migrating·
+// failed_after_migration 등)는 운영이 .env 와 다른 이미지로 돌 수 있다 — 같은 sha 를 다시 실행하면
+// "바꿀 것 없음" 으로 초록이 되고 열린 [deploy-alert] 까지 닫힌다. 사람이 정리할 때까지 멈춘다.
+// env_failed 는 .env 를 되돌렸고 아무것도 교체하지 않은 경우뿐이다(되돌리기도 실패하면 restore_failed).
+export const SETTLED_STATUSES = ["", "deployed", "rolled_back", "restored", "env_failed"];
 // compose 에 정의돼 있지만 배포가 교체하지 않는 서비스. 정의가 바뀌면 동기화는 되지만 적용은 사람이 한다.
 export const UNMANAGED_SERVICES = ["postgres", "qdrant", "cloudflared"];
 const COMPOSE = "infra/oracle-vm/docker-compose.yml";
@@ -78,6 +83,12 @@ export function planDeploy({ sha, mainSha = sha, status, rollback, git }) {
   const missing = STATUS_KEYS.filter((key) => !(key in status));
   if (missing.length > 0) {
     errors.push(`VM status 출력에 ${missing.join(", ")} 가 없다 — ssh 실패나 잘린 출력으로 보고 중단한다`);
+    return { services, sync: false, reasons, errors, notes };
+  }
+  if (!SETTLED_STATUSES.includes(status.LAST_STATUS)) {
+    errors.push(
+      `VM 직전 배포가 ${status.LAST_STATUS} 로 끝남 — rollback-last 또는 수동 확인 (infra/oracle-vm/README.md §배포와 롤백)`,
+    );
     return { services, sync: false, reasons, errors, notes };
   }
   const resolve = (ref) => {

@@ -26,6 +26,12 @@
 #   0 성공 · 1 실패 · 2 인자 오류 · 3 마이그레이션 승인 필요(아무것도 바꾸지 않음) · 4 잠금 점유
 #   5 교체 후 검사 실패 → 이전 태그로 복구함 · 6 실패했고 복구도 실패
 #
+# ── 상태 STATUS (deploy-state/last-deploy.env = status 의 LAST_STATUS) ──────
+#   deployed·rolled_back·restored·env_failed: 운영이 .env 와 맞다 → Actions Plan 이 새 배포를 세운다.
+#   switching·migrating·restore_failed·failed_after_migration: 어중간할 수 있다 → Plan 이 멈춘다.
+#   rollback 은 deployed·switching·restore_failed 만 되돌린다(migration 이 돈 배포는 거부).
+#   목록을 바꾸면 tooling/checks/deploy-services.mjs 의 SETTLED_STATUSES 도 맞춘다.
+#
 # ── 순서가 곧 안전장치다 ────────────────────────────────────────────────────
 #   디스크 → 이미지 준비(pull) → 마이그레이션 게이트 → 파일 동기화 → (승인된 migration)
 #   → 이전 태그 저장 → .env 기록 → backend → admin → web 교체 → 교체마다 검사 → 기록 → GC
@@ -409,7 +415,7 @@ run_switch() {
   # 3) VM 파일 동기화 (deploy 만) — 원본은 SRC_DIR(최신 main), 대상 sha 가 아니다.
   if [ "$DO_SYNC" = 1 ]; then
     sync_files || die 1 "VM 파일 동기화 실패 (서비스는 그대로)"
-    record_synced
+    record_synced || die 1 "동기화 기록을 쓰지 못했다 (서비스는 그대로)"
     compose_uses_ghcr || die 1 "동기화한 docker-compose.yml 이 GHCR 이미지 이름이 아니다 (서비스는 그대로)"
   fi
 
@@ -420,6 +426,9 @@ run_switch() {
     bash "$BACKUP_SCRIPT" >&2 || die 1 "백업 실패 — migration 하지 않았다"
     MIGRATED=1
     mkdir -p "$STATE_DIR" || die 1 "상태 디렉토리를 만들지 못했다"
+    # upgrade 가 실패하거나 중간에 죽어도 직전 배포의 STATUS=deployed 가 남지 않게 먼저 기록한다 —
+    # 남으면 rollback-last 가 이와 무관한 직전 배포를 되돌린다. migrating 은 rollback 도 Plan 도 거부한다.
+    write_state migrating || die 1 "상태 파일을 쓰지 못했다 — migration 하지 않았다"
     mlog="${STATE_DIR}/migrate-$(date -u +%Y%m%dT%H%M%SZ).log"
     # shellcheck disable=SC2024 # 로그 파일은 일부러 배포 사용자 소유로 만든다
     if ! sudo env "BACKEND_TAG=$(new_of backend)" docker compose --env-file .env run --rm -T --no-deps backend alembic upgrade head >"$mlog" 2>&1; then
@@ -442,8 +451,9 @@ run_switch() {
         set_state_status env_failed
         die 1 ".env 갱신 실패 — 이전 태그로 되돌렸다. 서비스는 교체하지 않았다"
       fi
-      set_state_status env_failed
-      die 6 ".env 갱신 실패, 이전 태그로 되돌리지도 못했다 — .env 를 즉시 확인한다"
+      # .env 가 새·이전 태그가 섞인 채다 — rollback(-last) 이 이전 태그로 정리할 수 있는 상태로 남긴다.
+      set_state_status restore_failed
+      die 6 ".env 갱신 실패, 이전 태그로 되돌리지도 못했다 — .env 를 즉시 확인한다 (rollback-last 로 정리)"
     fi
   done
 
@@ -509,12 +519,19 @@ cmd_rollback() {
         || die 1 "이전 backend 이미지의 alembic head 가 DB '${DB_HEAD}' 와 다르다 — 자동 롤백 중단"
       ;;
   esac
+  # 여기부터의 실패는 restore_failed 로 남긴다 — Plan 이 새 배포를 막고, rollback 은 다시 시도할 수 있다.
   for svc in $services; do
-    set_env_tag "$(tag_key "$svc")" "$(prev_of "$svc")" || die 6 ".env 복원 실패"
+    if ! set_env_tag "$(tag_key "$svc")" "$(prev_of "$svc")"; then
+      set_state_status restore_failed
+      die 6 ".env 복원 실패"
+    fi
   done
   for svc in $services; do
     switched="${switched:+$switched }${svc}"
-    switch_one "$svc" "$(prev_of "$svc")" || die 6 "${svc} 롤백 후 검사 실패 — 즉시 사람이 확인해야 한다"
+    if ! switch_one "$svc" "$(prev_of "$svc")"; then
+      set_state_status restore_failed
+      die 6 "${svc} 롤백 후 검사 실패 — 즉시 사람이 확인해야 한다"
+    fi
     append_log rollback "$svc" "$(prev_of "$svc")" "$DEPLOY_MODE"
   done
   set_state_status rolled_back

@@ -180,6 +180,48 @@ test("VM status 출력이 잘렸거나 비었으면 첫 배포로 보지 않고 
   }
 });
 
+test("직전 배포가 어중간하게 끝났으면(switching 등) 같은 sha 재실행을 '바꿀 것 없음' 으로 통과시키지 않는다", () => {
+  const r = repo();
+  try {
+    const sha = r.commit(["apps/web/page.tsx"]);
+    // 운영 태그가 이미 이 sha 라 서비스 판정만으로는 "배포할 것 없음" 이 되는 상황.
+    for (const last of ["switching", "migrating", "restore_failed", "failed_after_migration", "weird"]) {
+      const plan = planDeploy({
+        sha,
+        status: status(short(sha), { SYNCED_SHA: sha, LAST_STATUS: last }),
+        rollback: false,
+        git: r.git,
+      });
+      assert.deepEqual(plan.services, []);
+      assert.equal(plan.sync, false);
+      assert.equal(plan.errors.length, 1, last);
+      assert.match(plan.errors[0], new RegExp(`VM 직전 배포가 ${last} 로 끝남 — rollback-last 또는 수동 확인`));
+    }
+    for (const last of ["", "deployed", "rolled_back", "restored", "env_failed"]) {
+      const plan = planDeploy({
+        sha,
+        status: status(short(sha), { SYNCED_SHA: sha, LAST_STATUS: last }),
+        rollback: false,
+        git: r.git,
+      });
+      assert.deepEqual(plan.errors, [], last);
+    }
+    // CLI 도 종료 1 (release.yml Plan 단계가 실패 → 알림, 열린 deploy-alert 를 닫지 않는다).
+    const file = path.join(r.dir, "status.env");
+    const t = short(sha);
+    writeFileSync(file, `BACKEND_TAG=${t}\nADMIN_TAG=${t}\nWEB_TAG=${t}\nSYNCED_SHA=${sha}\nLAST_STATUS=switching\n`);
+    const cli = spawnSync(
+      process.execPath,
+      [path.join(root, "tooling/checks/deploy-services.mjs"), "--sha", sha, "--main", sha, "--status", file],
+      { cwd: r.dir, encoding: "utf8", env: { ...process.env, GITHUB_OUTPUT: "" } },
+    );
+    assert.equal(cli.status, 1, cli.stdout);
+    assert.match(cli.stderr, /::error::VM 직전 배포가 switching 로 끝남/);
+  } finally {
+    r.cleanup();
+  }
+});
+
 test("VM 파일 동기화는 대상 sha 가 아니라 최신 main 기준 — 되돌리는 배포에서도 후퇴 오류가 없다", () => {
   const r = repo();
   try {
