@@ -27,9 +27,9 @@
     "tooling:test": "node --test tooling/checks/*.test.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.12",
+    "@biomejs/biome": "2.5.14",
     "@hey-api/openapi-ts": "0.99.0",
-    "turbo": "2.10.12",
+    "turbo": "2.11.5",
     "typescript": "6.0.3",
     "vitest": "4.1.11"
   }
