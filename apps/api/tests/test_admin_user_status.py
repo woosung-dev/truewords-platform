@@ -180,7 +180,7 @@ def test_status_route_requires_csrf_and_admin_gate():
 @pytest.mark.asyncio
 async def test_status_endpoint_returns_updated_state():
     """endpoint 응답이 변경된 상태를 그대로 반영 — 프론트 낙관적 갱신의 계약."""
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     from httpx import ASGITransport, AsyncClient
 
@@ -192,7 +192,7 @@ async def test_status_endpoint_returns_updated_state():
     updated.email = "trial@example.com"
     updated.role = "admin"
     updated.is_active = False
-    updated.created_at = datetime(2026, 7, 7, 9, 0, 0)
+    updated.created_at = datetime(2026, 7, 7, 9, 0, 0, tzinfo=timezone.utc)
 
     service = MagicMock()
     service.set_admin_active = AsyncMock(return_value=(updated, True))
@@ -229,7 +229,7 @@ async def test_status_endpoint_returns_updated_state():
 @pytest.mark.asyncio
 async def test_no_audit_log_when_unchanged():
     """멱등 요청(changed=False)은 감사 로그를 남기지 않는다."""
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     from httpx import ASGITransport, AsyncClient
 
@@ -241,7 +241,7 @@ async def test_no_audit_log_when_unchanged():
     unchanged.email = "trial@example.com"
     unchanged.role = "admin"
     unchanged.is_active = False
-    unchanged.created_at = datetime(2026, 7, 7, 9, 0, 0)
+    unchanged.created_at = datetime(2026, 7, 7, 9, 0, 0, tzinfo=timezone.utc)
 
     service = MagicMock()
     service.set_admin_active = AsyncMock(return_value=(unchanged, False))

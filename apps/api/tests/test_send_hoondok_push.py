@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 
 import pytest
 from pydantic import SecretStr
@@ -114,7 +114,7 @@ async def _seed(
             email=email,
             password_hash="x",
             display_name="효진",
-            deleted_at=datetime(2026, 9, 1) if deleted else None,
+            deleted_at=datetime(2026, 9, 1, tzinfo=timezone.utc) if deleted else None,
         )
         session.add(user)
         await session.commit()

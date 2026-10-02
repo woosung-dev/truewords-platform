@@ -1,7 +1,7 @@
 """Analytics sessions/{id} 엔드포인트 + negative feedback 의 session_id 추적성 테스트."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -72,14 +72,14 @@ async def test_session_detail_returns_messages_with_reactions_and_feedback(
         "session_id": session_id,
         "chatbot_id": chatbot_id,
         "chatbot_name": "축복AI",
-        "started_at": datetime(2026, 5, 3, 9, 0, 0),
+        "started_at": datetime(2026, 5, 3, 9, 0, 0, tzinfo=timezone.utc),
         "ended_at": None,
         "messages": [
             {
                 "id": user_msg_id,
                 "role": "user",
                 "content": "축복 절차에 대해서 알려줘",
-                "created_at": datetime(2026, 5, 3, 9, 6, 0),
+                "created_at": datetime(2026, 5, 3, 9, 6, 0, tzinfo=timezone.utc),
                 "resolved_answer_mode": None,
                 "persona_overridden": None,
                 "reactions": [],
@@ -90,14 +90,14 @@ async def test_session_detail_returns_messages_with_reactions_and_feedback(
                 "id": asst_msg_id,
                 "role": "assistant",
                 "content": "축복 절차는 다음과 같습니다...",
-                "created_at": datetime(2026, 5, 3, 9, 6, 5),
+                "created_at": datetime(2026, 5, 3, 9, 6, 5, tzinfo=timezone.utc),
                 "resolved_answer_mode": "default",
                 "persona_overridden": False,
                 "reactions": [{"kind": "thumbs_down", "count": 1}],
                 "feedback": {
                     "feedback_type": "inaccurate",
                     "comment": "정확하지 않음",
-                    "created_at": datetime(2026, 5, 3, 9, 7, 0),
+                    "created_at": datetime(2026, 5, 3, 9, 7, 0, tzinfo=timezone.utc),
                 },
                 "citations": [
                     {
@@ -150,7 +150,7 @@ async def test_negative_feedback_includes_session_id_for_drilldown(
             "answer_snippet": "축복 절차는...",
             "feedback_type": "inaccurate",
             "comment": None,
-            "created_at": datetime(2026, 5, 3, 9, 7, 0),
+            "created_at": datetime(2026, 5, 3, 9, 7, 0, tzinfo=timezone.utc),
         }
     ]
     _override_repo(repo)
@@ -188,7 +188,7 @@ async def test_feedback_list_supports_positive_polarity(
             "answer_snippet": "도움이 되어 기쁩니다",
             "feedback_type": "helpful",
             "comment": "정확했어요",
-            "created_at": datetime(2026, 5, 3, 9, 8, 0),
+            "created_at": datetime(2026, 5, 3, 9, 8, 0, tzinfo=timezone.utc),
         }
     ]
     _override_repo(repo)
@@ -224,7 +224,7 @@ async def test_feedback_list_forwards_days_and_participant(
             "answer_snippet": "축복 절차는...",
             "feedback_type": "other",
             "comment": None,
-            "created_at": datetime(2026, 5, 3, 9, 7, 0),
+            "created_at": datetime(2026, 5, 3, 9, 7, 0, tzinfo=timezone.utc),
         }
     ]
     _override_repo(repo)

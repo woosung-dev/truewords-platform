@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -49,7 +49,7 @@ from app.modules.identity.exceptions import InviteRequiredError
 
 XHR = {"X-Requested-With": "XMLHttpRequest"}
 TODAY = date(2026, 9, 23)
-NOW = datetime(2026, 9, 23, 3, 0)  # naive UTC = KST 12:00
+NOW = datetime(2026, 9, 23, 3, 0, tzinfo=timezone.utc)  # KST 12:00
 CODE_RE = re.compile(r"^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$")
 GROUP_TABLES = [ReadingGroup, GroupMember, SharedJeongseong, GroupShare, ShareReaction]
 
@@ -376,7 +376,7 @@ async def test_invite_join_limiter_31st_request_is_429_and_preview_is_independen
 async def test_only_completers_are_visible_and_no_member_count_anywhere(ctx: Ctx):
     group, people = await _group_of_three(ctx)
     (a, ca), (b, cb), (c, _) = people["가람"], people["나래"], people["다온"]
-    await ctx.read(b, at=datetime(2026, 9, 22, 21, 10))  # KST 9/23 06:10
+    await ctx.read(b, at=datetime(2026, 9, 22, 21, 10, tzinfo=timezone.utc))  # KST 9/23 06:10
 
     detail = ca.get(f"/hoondok/groups/{group['id']}").json()
     assert detail["readers"] == [
@@ -415,7 +415,7 @@ async def test_kst_midnight_boundary_for_readers_and_shares(ctx: Ctx):
     group, people = await _group_of_three(ctx)
     (b, cb), (c, cc) = people["나래"], people["다온"]
     # 어제 23:59 KST(= 어제 14:59 UTC) 완료는 오늘 목록에 없다
-    await ctx.read(b, day=TODAY - timedelta(days=1), at=datetime(2026, 9, 22, 14, 59))
+    await ctx.read(b, day=TODAY - timedelta(days=1), at=datetime(2026, 9, 22, 14, 59, tzinfo=timezone.utc))
     ctx.session.add(
         GroupShare(
             group_id=uuid.UUID(group["id"]),

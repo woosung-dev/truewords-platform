@@ -1,7 +1,7 @@
 """Analytics /search/queries 엔드포인트 테스트."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -73,13 +73,13 @@ async def test_queries_returns_items_sorted_by_count_desc(
             {
                 "query_text": "36가정 축복",
                 "count": 3,
-                "latest_at": datetime(2026, 4, 17, 12, 34),
+                "latest_at": datetime(2026, 4, 17, 12, 34, tzinfo=timezone.utc),
                 "negative_feedback_count": 1,
             },
             {
                 "query_text": "노조와 사조직",
                 "count": 2,
-                "latest_at": datetime(2026, 4, 17, 1, 3),
+                "latest_at": datetime(2026, 4, 17, 1, 3, tzinfo=timezone.utc),
                 "negative_feedback_count": 0,
             },
         ],

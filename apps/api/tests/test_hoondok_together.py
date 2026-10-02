@@ -46,7 +46,7 @@ async def _user(repo: MissionLogRepository, *, deleted: bool = False) -> uuid.UU
         email=f"{uuid.uuid4().hex}@example.com",
         password_hash="x",
         display_name="식구",
-        deleted_at=datetime(2026, 9, 1) if deleted else None,
+        deleted_at=datetime(2026, 9, 1, tzinfo=timezone.utc) if deleted else None,
     )
     repo.session.add(user)
     await repo.session.commit()
