@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -44,7 +44,14 @@ function repo() {
   return { dir, commit, git, run, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 
-const status = (tag, extra = {}) => ({ BACKEND_TAG: tag, ADMIN_TAG: tag, WEB_TAG: tag, ...extra });
+const status = (tag, extra = {}) => ({
+  BACKEND_TAG: tag,
+  ADMIN_TAG: tag,
+  WEB_TAG: tag,
+  SYNCED_SHA: "",
+  LAST_STATUS: "deployed",
+  ...extra,
+});
 const short = (sha) => sha.slice(0, 8); // 운영 .env 의 옛 8자 태그도 그대로 해석돼야 한다
 
 test("서비스별로 이미지 입력이 바뀐 것만 고른다", () => {
@@ -77,6 +84,7 @@ test("공유 입력·compose 는 여러 서비스, 문서·도구는 배포하�
       sync: false,
       reasons: {},
       errors: [],
+      notes: [],
     });
     assert.deepEqual(services(["pnpm-lock.yaml"]).services, ["admin", "web"]);
     assert.deepEqual(services(["packages/api-client-ts/x.ts"]).services, ["admin", "web"]);
@@ -97,7 +105,7 @@ test("운영 태그가 없으면 첫 배포로 포함하고, 동기화 기록이
     const sha = r.commit(["apps/api/main.py"]);
     const plan = planDeploy({
       sha,
-      status: { BACKEND_TAG: "", ADMIN_TAG: sha, WEB_TAG: sha },
+      status: status(sha, { BACKEND_TAG: "" }),
       rollback: false,
       git: r.git,
     });
@@ -132,13 +140,95 @@ test("git 에서 찾을 수 없거나 형식이 아닌 운영 태그는 추측�
     const sha = r.commit(["apps/web/page.tsx"]);
     const plan = planDeploy({
       sha,
-      status: { BACKEND_TAG: "0123456789ab", ADMIN_TAG: "not-a-tag", WEB_TAG: sha },
+      status: status(sha, { BACKEND_TAG: "0123456789ab", ADMIN_TAG: "not-a-tag" }),
       rollback: false,
       git: r.git,
     });
     assert.match(plan.errors.join("\n"), /backend: 운영 태그 0123456789ab 를 git 에서 찾을 수 없다/);
     assert.match(plan.errors.join("\n"), /admin: 운영 태그 'not-a-tag' 가 sha 형식이 아니다/);
     assert.throws(() => planDeploy({ sha: "abc", status: {}, rollback: false, git: r.git }), /40자/);
+  } finally {
+    r.cleanup();
+  }
+});
+
+test("VM status 출력이 잘렸거나 비었으면 첫 배포로 보지 않고 오류", () => {
+  const r = repo();
+  try {
+    const sha = r.commit(["apps/web/page.tsx"]);
+    for (const st of [{}, parseStatus(""), { BACKEND_TAG: "", ADMIN_TAG: "", WEB_TAG: "", SYNCED_SHA: "" }]) {
+      const plan = planDeploy({ sha, status: st, rollback: false, git: r.git });
+      assert.deepEqual(plan.services, []);
+      assert.match(plan.errors.join("\n"), /VM status 출력에 .* 가 없다/);
+    }
+    // CLI 도 같은 판정으로 실패한다(release.yml 의 Plan 단계).
+    const file = path.join(r.dir, "status.env");
+    writeFileSync(file, "BACKEND_TAG=\n");
+    const cli = spawnSync(process.execPath, [path.join(root, "tooling/checks/deploy-services.mjs"), "--sha", sha, "--main", sha, "--status", file], {
+      cwd: r.dir,
+      encoding: "utf8",
+      env: { ...process.env, GITHUB_OUTPUT: "" },
+    });
+    assert.equal(cli.status, 1, cli.stdout);
+    assert.match(cli.stderr, /::error::VM status 출력에/);
+  } finally {
+    r.cleanup();
+  }
+});
+
+test("VM 파일 동기화는 대상 sha 가 아니라 최신 main 기준 — 되돌리는 배포에서도 후퇴 오류가 없다", () => {
+  const r = repo();
+  try {
+    const older = r.commit(["apps/web/page.tsx", "infra/oracle-vm/ops-check.sh"]);
+    const synced = r.commit(["infra/oracle-vm/ops-check.sh"]);
+    const main = r.commit(["docs/a.md"]);
+    // 이미지 변경 없는 옛 커밋 + VM 은 이미 main 과 같은 infra → 할 일 없음, 오류 없음.
+    const quiet = planDeploy({
+      sha: older,
+      mainSha: main,
+      status: status(older, { SYNCED_SHA: synced }),
+      rollback: false,
+      git: r.git,
+    });
+    assert.deepEqual(quiet.errors, []);
+    assert.equal(quiet.sync, false);
+    const newerMain = r.commit(["infra/oracle-vm/backup-db.sh"]);
+    const sync = planDeploy({
+      sha: older,
+      mainSha: newerMain,
+      status: status(older, { SYNCED_SHA: synced }),
+      rollback: false,
+      git: r.git,
+    });
+    assert.equal(sync.sync, true);
+    // 기록이 unknown(비상 경로가 원본 커밋을 모를 때)이면 동기화한다.
+    const unknown = planDeploy({ sha: older, mainSha: main, status: status(older, { SYNCED_SHA: "unknown" }), rollback: false, git: r.git });
+    assert.equal(unknown.sync, true);
+  } finally {
+    r.cleanup();
+  }
+});
+
+test("배포가 재생성하지 않는 compose 서비스(postgres 등) 정의가 바뀌면 알림을 남긴다", () => {
+  const r = repo();
+  const compose = (pg) =>
+    `services:\n  postgres:\n    image: ${pg}\n  backend:\n    image: ghcr.io/x:\${BACKEND_TAG}\n  qdrant:\n    image: qdrant/qdrant:v1\n`;
+  try {
+    const write = (body) => {
+      mkdirSync(path.join(r.dir, "infra/oracle-vm"), { recursive: true });
+      writeFileSync(path.join(r.dir, "infra/oracle-vm/docker-compose.yml"), body);
+      r.run("add", "-A");
+      r.run("commit", "-qm", "compose");
+      return r.run("rev-parse", "HEAD");
+    };
+    const base = write(compose("postgres:17-alpine"));
+    const backendOnly = write(compose("postgres:17-alpine").replace("ghcr.io/x", "ghcr.io/y"));
+    const quiet = planDeploy({ sha: backendOnly, status: status(base, { SYNCED_SHA: base }), rollback: false, git: r.git });
+    assert.deepEqual(quiet.notes, []);
+    const pg = write(compose("postgres:18-alpine"));
+    const noted = planDeploy({ sha: pg, status: status(base, { SYNCED_SHA: base }), rollback: false, git: r.git });
+    assert.equal(noted.notes.length, 1);
+    assert.match(noted.notes[0], /postgres 정의가 바뀌었다/);
   } finally {
     r.cleanup();
   }
