@@ -17,7 +17,7 @@ from datetime import date, datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
-from app.core.common.clock import KST, today_kst
+from app.core.common.clock import KST, today_kst, utcnow
 from app.modules.hoondok.groups_repository import GroupRepository
 from app.modules.hoondok.groups_schemas import (
     AdminGroupItem,
@@ -59,10 +59,6 @@ MAX_GROUP_JEONGSEONGS = 3  # 모임당 진행 중·예정 모임 정성
 STARTED_ON_WINDOW_DAYS = 30  # 모임 정성 시작일 오늘±30
 
 
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
 def generate_invite_code() -> str:
     raw = "".join(secrets.choice(INVITE_ALPHABET) for _ in range(8))
     return f"{raw[:4]}-{raw[4:]}"
@@ -79,8 +75,10 @@ def normalize_invite_code(value: str | None) -> str | None:
 
 
 def to_kst(moment: datetime) -> datetime:
-    """naive UTC → KST aware."""
-    return moment.replace(tzinfo=timezone.utc).astimezone(KST)
+    """UTC 시각 → KST aware. DB 값은 aware UTC 지만 naive 가 오면 UTC 로 읽는다."""
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    return moment.astimezone(KST)
 
 
 def _error(code: int, detail: str) -> HTTPException:
@@ -122,7 +120,7 @@ class GroupService:
         repo: GroupRepository,
         *,
         today_fn: Callable[[], date] = today_kst,
-        now_fn: Callable[[], datetime] = _utcnow,
+        now_fn: Callable[[], datetime] = utcnow,
     ) -> None:
         self.repo = repo
         self.today_fn = today_fn
@@ -542,7 +540,7 @@ class GroupInviteVerifier:
 class GroupAdminService:
     """API-HD-042 공식 정성 · API-HD-043 모임 목록·삭제."""
 
-    def __init__(self, repo: GroupRepository, *, now_fn: Callable[[], datetime] = _utcnow) -> None:
+    def __init__(self, repo: GroupRepository, *, now_fn: Callable[[], datetime] = utcnow) -> None:
         self.repo = repo
         self.now_fn = now_fn
 

@@ -164,7 +164,7 @@ class GroupRepository:
     # --- 완료자 -----------------------------------------------------------
 
     async def readers_on(self, group_id: uuid.UUID, day: date) -> list[tuple[GroupMember, datetime]]:
-        """그날(KST) read 를 마친 모임원과 완료 시각(UTC naive). 미완료자는 조회하지 않는다."""
+        """그날(KST) read 를 마친 모임원과 완료 시각(aware UTC). 미완료자는 조회하지 않는다."""
         result = await self.session.execute(
             select(GroupMember, MissionLog.completed_at)
             .join(MissionLog, MissionLog.user_id == GroupMember.user_id)

@@ -1,11 +1,13 @@
 """분석 대시보드 SQL 집계 쿼리."""
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from uuid import UUID
 
 from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
+
+from app.core.common.clock import utcnow
 
 # 긍정 폴러리티 판별 집합 (native enum 은 대문자 name 으로 저장됨).
 # HELPFUL = 그냥 좋아요/기타 버킷, 나머지는 긍정 세분 사유. 긍정값 추가 시 여기만 수정.
@@ -20,7 +22,7 @@ class AnalyticsRepository:
 
     async def get_question_counts(self) -> dict:
         """오늘/이번주 질문 수 조회."""
-        now = datetime.utcnow()
+        now = utcnow()
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         week_start = today_start - timedelta(days=today_start.weekday())
 
@@ -51,13 +53,15 @@ class AnalyticsRepository:
 
     async def get_daily_trend(self, days: int = 30) -> list[dict]:
         """일별 질문 수 트렌드."""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        # [가정] 일별 집계는 UTC 날짜 기준(기존 동작 유지). timestamptz 라 세션 TimeZone 에
+        # 흔들리지 않게 AT TIME ZONE 'UTC' 를 명시한다. KST 전환은 제품 결정 대기.
+        cutoff = utcnow() - timedelta(days=days)
         result = await self.session.execute(
             text("""
-                SELECT DATE(created_at) AS date, COUNT(*) AS count
+                SELECT DATE(created_at AT TIME ZONE 'UTC') AS date, COUNT(*) AS count
                 FROM search_events
                 WHERE created_at >= :cutoff
-                GROUP BY DATE(created_at)
+                GROUP BY DATE(created_at AT TIME ZONE 'UTC')
                 ORDER BY date
             """),
             {"cutoff": cutoff},
@@ -68,18 +72,19 @@ class AnalyticsRepository:
         # BL-6 — 일별 × resolved_answer_mode × persona_overridden 카운트.
         # 4주 시범 운영 baseline (R3 결정 근거).
         # persona_overridden NULL = 측정값 없음/legacy → false 와 분리 (codex P2).
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        # 날짜는 get_daily_trend 와 같은 UTC 날짜 기준.
+        cutoff = utcnow() - timedelta(days=days)
         result = await self.session.execute(
             text("""
                 SELECT
-                    DATE(created_at) AS date,
+                    DATE(created_at AT TIME ZONE 'UTC') AS date,
                     resolved_answer_mode AS mode,
                     persona_overridden,
                     COUNT(*) AS count
                 FROM session_messages
                 WHERE created_at >= :cutoff
                   AND resolved_answer_mode IS NOT NULL
-                GROUP BY DATE(created_at), resolved_answer_mode, persona_overridden
+                GROUP BY DATE(created_at AT TIME ZONE 'UTC'), resolved_answer_mode, persona_overridden
                 ORDER BY date, resolved_answer_mode
             """),
             {"cutoff": cutoff},
@@ -98,7 +103,7 @@ class AnalyticsRepository:
 
     async def get_search_stats(self, days: int = 30) -> dict:
         """검색 통계 집계."""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
         result = await self.session.execute(
             text("""
                 SELECT
@@ -129,7 +134,7 @@ class AnalyticsRepository:
 
     async def get_top_queries(self, days: int = 30, limit: int = 10) -> list[dict]:
         """인기 질문 Top N."""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
         result = await self.session.execute(
             text("""
                 SELECT query_text, COUNT(*) AS count
@@ -149,7 +154,7 @@ class AnalyticsRepository:
         params: dict = {}
         if days > 0:
             where = "WHERE created_at >= :cutoff"
-            params["cutoff"] = datetime.utcnow() - timedelta(days=days)
+            params["cutoff"] = utcnow() - timedelta(days=days)
         result = await self.session.execute(
             text(f"""
                 SELECT feedback_type, COUNT(*) AS count
@@ -179,7 +184,7 @@ class AnalyticsRepository:
                 "occurrences": list[dict] # asked_at desc
             }
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
 
         # 1) 전체 발생 수 (limit 초과 감지용)
         # 주: search_events.message_id 는 assistant 메시지를 가리킨다.
@@ -382,7 +387,7 @@ class AnalyticsRepository:
         params: dict = {"limit": limit, "offset": offset}
         if days > 0:
             date_filter = "AND af.created_at >= :cutoff"
-            params["cutoff"] = datetime.utcnow() - timedelta(days=days)
+            params["cutoff"] = utcnow() - timedelta(days=days)
         result = await self.session.execute(
             text(f"""
                 SELECT
@@ -593,7 +598,7 @@ class AnalyticsRepository:
                 "days": int,
             }
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
         q_pattern = f"%{q}%" if q else ""
         offset = (page - 1) * size
 

@@ -27,6 +27,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from statistics import mean
+from zoneinfo import ZoneInfo
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
@@ -355,7 +356,7 @@ def build_report_md(v3_ragas, v4_ragas, v3_judge, v4_judge, codex_text: str | No
     lines = []
     lines.append("# Phase 2 v4 PoC — paragraph + metadata prefix injection")
     lines.append("")
-    lines.append(f"생성: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    lines.append(f"생성: {datetime.now(ZoneInfo("Asia/Seoul")).strftime('%Y-%m-%d %H:%M')}")
     lines.append("")
     lines.append("## 종합 결론")
     lines.append("")

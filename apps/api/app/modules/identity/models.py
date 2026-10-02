@@ -5,10 +5,7 @@ from datetime import datetime, timezone
 
 from sqlmodel import Field, SQLModel
 
-
-def _utcnow() -> datetime:
-    """naive UTC datetime (asyncpg 호환)."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+from app.core.common.clock import utcnow
 
 
 class User(SQLModel, table=True):
@@ -23,5 +20,5 @@ class User(SQLModel, table=True):
     timezone: str = Field(default="Asia/Seoul", max_length=64)  # 예약 컬럼. 베타는 KST 고정(결정 9)
     consented_at: datetime | None = Field(default=None)  # 약관 문구 확정 전(DEC-PWA-001)에는 NULL
     consent_version: str | None = Field(default=None, max_length=32)
-    created_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     deleted_at: datetime | None = Field(default=None)  # 소프트 삭제. 삭제 API 는 Phase 2 비범위

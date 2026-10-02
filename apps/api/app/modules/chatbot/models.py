@@ -1,15 +1,12 @@
 """ChatbotConfig DB 모델."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlmodel import Field, SQLModel, Column
 from sqlalchemy import JSON
 
-
-def _utcnow() -> datetime:
-    """naive UTC datetime (asyncpg 호환)."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+from app.core.common.clock import utcnow
 
 
 class ChatbotConfig(SQLModel, table=True):
@@ -32,5 +29,5 @@ class ChatbotConfig(SQLModel, table=True):
     suggested_questions: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     suggested_at: datetime | None = None
     organization_id: uuid.UUID | None = None
-    created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)

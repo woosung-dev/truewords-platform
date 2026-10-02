@@ -45,6 +45,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -358,7 +359,7 @@ def main() -> None:
     print_summary(scores)
 
     if args.output is None:
-        ts = datetime.now().strftime("%Y%m%d_%H%M")
+        ts = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y%m%d_%H%M")
         DEFAULT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         args.output = DEFAULT_OUTPUT_DIR / f"ragas_{ts}.xlsx"
     write_xlsx(items, scores, args.output)

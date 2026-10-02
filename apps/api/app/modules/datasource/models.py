@@ -1,14 +1,11 @@
 """데이터 소스 카테고리 DB 모델."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlmodel import Field, SQLModel
 
-
-def _utcnow() -> datetime:
-    """naive UTC datetime (asyncpg 호환)."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+from app.core.common.clock import utcnow
 
 
 class DataSourceCategory(SQLModel, table=True):
@@ -24,5 +21,5 @@ class DataSourceCategory(SQLModel, table=True):
     is_active: bool = Field(default=True)
     # False면 검색 티어 에디터에서 제외 (ex: D 용어사전)
     is_searchable: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)

@@ -36,6 +36,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -312,7 +313,7 @@ def main() -> None:
     sampled = sample_all(args.input_dir, args.seed)
     summarize(sampled)
 
-    ts = datetime.now().strftime("%Y%m%d_%H%M")
+    ts = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y%m%d_%H%M")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     xlsx_path = args.output_dir / f"{args.prefix}_{ts}.xlsx"
     json_path = args.output_dir / f"{args.prefix}_{ts}.json"

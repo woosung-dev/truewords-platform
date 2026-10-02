@@ -2,15 +2,12 @@
 ENT-HD-013~017 함께 읽는 모임 · ENT-HD-019·020 오늘의 책갈피 (docs/specs/domain/hoondok-entities.md)."""
 
 import uuid
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time
 
 from sqlalchemy import JSON, Column, Index, Text, UniqueConstraint, text
 from sqlmodel import Field, SQLModel
 
-
-def _utcnow() -> datetime:
-    """naive UTC datetime (asyncpg 호환)."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+from app.core.common.clock import utcnow
 
 
 # 상태값은 Postgres ENUM 이 아니라 varchar + 앱 검증 (additive-only 규칙, 계획 §3-3).
@@ -46,8 +43,8 @@ class DailyReading(SQLModel, table=True):
     source_note: str | None = Field(default=None, max_length=500)
     chunk_id: str | None = Field(default=None, max_length=128)  # Qdrant point id, FK 아님
     estimated_minutes: int = Field(default=3)
-    created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class MissionLog(SQLModel, table=True):
@@ -64,7 +61,7 @@ class MissionLog(SQLModel, table=True):
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
     mission_date: date  # 완료 판정일(KST). 서버가 today_kst() 로 정한다
     kind: str = Field(max_length=16)  # MISSION_KINDS
-    completed_at: datetime = Field(default_factory=_utcnow)  # 실제 완료 시각(UTC)
+    completed_at: datetime = Field(default_factory=utcnow)  # 실제 완료 시각(UTC)
 
 
 class JeongseongPeriod(SQLModel, table=True):
@@ -95,8 +92,8 @@ class JeongseongPeriod(SQLModel, table=True):
     reminder_time: time | None = Field(default=None)
     status: str = Field(default="active", max_length=16, sa_column_kwargs={"server_default": "active"})
     ended_at: datetime | None = Field(default=None)  # completed·abandoned 로 바뀐 시각(UTC)
-    created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class ContentRight(SQLModel, table=True):
@@ -116,8 +113,8 @@ class ContentRight(SQLModel, table=True):
     note: str = Field(default="", max_length=2000)
     # Qdrant 청크 수. 시드 스크립트(트랙 D)가 채우며 미집계면 None 이다.
     chunk_count: int | None = Field(default=None)
-    created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class JeongseongReading(SQLModel, table=True):
@@ -139,7 +136,7 @@ class JeongseongReading(SQLModel, table=True):
     authority_grade: str = Field(default="R", max_length=8)
     review_status: str = Field(default="unverified", max_length=16)
     estimated_minutes: int = Field(default=1)
-    created_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class ClientErrorEvent(SQLModel, table=True):
@@ -147,7 +144,7 @@ class ClientErrorEvent(SQLModel, table=True):
 
     __tablename__ = "client_error_events"
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    occurred_at: datetime = Field(default_factory=_utcnow)
+    occurred_at: datetime = Field(default_factory=utcnow)
     kind: str = Field(max_length=32)
     message: str = Field(max_length=200)
     path: str = Field(max_length=120)
@@ -162,7 +159,7 @@ class NotificationPreference(SQLModel, table=True):
     user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True)
     read_enabled: bool = Field(default=False)
     read_time: time = Field(default=time(6, 0))  # KST 발송 시각(분 단위, 초는 쓰지 않는다)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class PushSubscription(SQLModel, table=True):
@@ -180,7 +177,7 @@ class PushSubscription(SQLModel, table=True):
     p256dh: str = Field(max_length=255)
     auth: str = Field(max_length=255)
     user_agent: str | None = Field(default=None, max_length=200)
-    created_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     last_sent_on: date | None = Field(default=None)  # KST 날짜 — 하루 1회 발송 판정
     failed_count: int = Field(default=0)
 
@@ -207,8 +204,8 @@ class VolumeSection(SQLModel, table=True):
     spoken_on: str | None = Field(default=None, max_length=32)  # 말씀 날짜 서명
     place: str | None = Field(default=None, max_length=120)
     origin: str = Field(default="auto", max_length=16, sa_column_kwargs={"server_default": "auto"})
-    created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class ReadingPosition(SQLModel, table=True):
@@ -223,7 +220,7 @@ class ReadingPosition(SQLModel, table=True):
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
     volume: str = Field(max_length=512)
     chunk_index: int
-    updated_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class PassageMark(SQLModel, table=True):
@@ -246,8 +243,8 @@ class PassageMark(SQLModel, table=True):
     kind: str = Field(max_length=16)  # MARK_KINDS
     color: int | None = Field(default=None)  # 1~3, 앱 검증. bookmark 는 항상 None
     note: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
-    created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class PassageHighlight(SQLModel, table=True):
@@ -271,8 +268,8 @@ class PassageHighlight(SQLModel, table=True):
     quote: str = Field(sa_column=Column(Text, nullable=False))  # 고른 글 그대로 — 목록 표시·재고정용
     color: int  # 1~3, 앱 검증
     note: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
-    created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 # --- 함께 읽는 모임 (PLAN-HD-010, ENT-HD-013~017) ------------------------------------
@@ -290,9 +287,9 @@ class ReadingGroup(SQLModel, table=True):
     kind: str = Field(default="small_group", max_length=16)  # GROUP_KINDS
     meeting_time: time | None = Field(default=None)  # 표시용
     invite_code: str = Field(max_length=16, unique=True, index=True)  # Crockford base32 XXXX-XXXX
-    invite_expires_at: datetime  # naive UTC
-    created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    invite_expires_at: datetime  # aware UTC
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class GroupMember(SQLModel, table=True):
@@ -316,7 +313,7 @@ class GroupMember(SQLModel, table=True):
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
     display_name: str = Field(max_length=12)  # 모임별 이름(앞뒤 공백 제거 후 저장)
     role: str = Field(default="member", max_length=16)  # GROUP_ROLES
-    joined_at: datetime = Field(default_factory=_utcnow)
+    joined_at: datetime = Field(default_factory=utcnow)
 
 
 class SharedJeongseong(SQLModel, table=True):
@@ -331,8 +328,8 @@ class SharedJeongseong(SQLModel, table=True):
     duration_days: int  # 1~100, 앱 검증
     source_note: str | None = Field(default=None, max_length=200)
     created_by_user_id: uuid.UUID | None = Field(default=None, foreign_key="users.id")
-    created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class GroupShare(SQLModel, table=True):
@@ -349,8 +346,8 @@ class GroupShare(SQLModel, table=True):
     member_id: uuid.UUID = Field(foreign_key="group_members.id", index=True)
     share_date: date  # KST
     body: str = Field(max_length=100)
-    created_at: datetime = Field(default_factory=_utcnow)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class ShareReaction(SQLModel, table=True):
@@ -360,7 +357,7 @@ class ShareReaction(SQLModel, table=True):
 
     share_id: uuid.UUID = Field(foreign_key="group_shares.id", primary_key=True)
     member_id: uuid.UUID = Field(foreign_key="group_members.id", primary_key=True, index=True)
-    created_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class TtsUsage(SQLModel, table=True):
@@ -380,7 +377,7 @@ class TtsUsage(SQLModel, table=True):
     chars: int
     cache_key: str = Field(max_length=64)  # sha256 hex — 같은 파일을 다시 만든 경우를 추적한다
     user_id: uuid.UUID | None = Field(default=None)
-    created_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # --- 오늘의 책갈피 (PLAN-HD-012, ENT-HD-019·020) ------------------------------------
@@ -405,7 +402,7 @@ class WordCard(SQLModel, table=True):
     topic: str | None = Field(default=None, max_length=200)
     status: str = Field(default="draft", max_length=16, sa_column_kwargs={"server_default": "draft"})  # CARD_STATUSES
     pinned_on: date | None = Field(default=None, unique=True)  # KST. 이 날 이 카드를 강제로 내보낸다
-    created_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class CardReceipt(SQLModel, table=True):
@@ -418,4 +415,4 @@ class CardReceipt(SQLModel, table=True):
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
     card_id: uuid.UUID = Field(foreign_key="word_cards.id", index=True)
     received_on: date  # KST. 서버가 today_kst() 로 정한다
-    shared_at: datetime | None = Field(default=None)  # 처음 건넨 시각(naive UTC)
+    shared_at: datetime | None = Field(default=None)  # 처음 건넨 시각(UTC)

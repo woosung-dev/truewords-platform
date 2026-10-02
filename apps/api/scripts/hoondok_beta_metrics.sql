@@ -5,8 +5,8 @@
 --     psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < apps/api/scripts/hoondok_beta_metrics.sql
 --
 -- 읽기 전용이다. 별도 이벤트 수집기 없이 users.created_at 과 mission_logs 만 쓴다.
--- 날짜 기준은 KST 고정(PLAN-HD-001 결정 9). users.created_at 은 naive UTC 컬럼이라
--- 'UTC' → 'Asia/Seoul' 두 단계로 변환한다. mission_logs.mission_date 는 이미 KST 날짜다.
+-- 날짜 기준은 KST 고정(PLAN-HD-001 결정 9). users.created_at 은 timestamptz 라
+-- AT TIME ZONE 'Asia/Seoul' 한 번으로 KST 날짜가 된다. mission_logs.mission_date 는 이미 KST 날짜다.
 --
 -- [가정] 두 지표 모두 **완료 기록을 방문의 대리 지표**로 쓴다. 방문 로그가 없어서다.
 --        열어만 보고 완료하지 않은 사용자는 미방문으로 세므로 수치는 보수적(낮게 나온다).
@@ -23,10 +23,10 @@ WITH d AS (
 ),
 eligible AS (
     SELECT u.id,
-           (u.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date AS signed_up_on
+           (u.created_at AT TIME ZONE 'Asia/Seoul')::date AS signed_up_on
     FROM users u, d
     WHERE u.deleted_at IS NULL
-      AND (u.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date < d.today - 7
+      AND (u.created_at AT TIME ZONE 'Asia/Seoul')::date < d.today - 7
 ),
 active AS (
     SELECT e.id,
@@ -58,10 +58,10 @@ WITH d AS (
 ),
 eligible AS (
     SELECT u.id,
-           (u.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date AS signed_up_on
+           (u.created_at AT TIME ZONE 'Asia/Seoul')::date AS signed_up_on
     FROM users u, d
     WHERE u.deleted_at IS NULL
-      AND (u.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date < d.today - 7
+      AND (u.created_at AT TIME ZONE 'Asia/Seoul')::date < d.today - 7
 )
 SELECT count(*)                                  AS denominator_users,
        count(*) FILTER (WHERE returned)          AS numerator_users,

@@ -1,7 +1,7 @@
 """격리 E2E 전용 합성 코퍼스·권리 원장. 운영 원문을 복사하지 않는다."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 from urllib.parse import urlparse
@@ -104,7 +104,7 @@ async def seed() -> None:
             card.source_label = f"{FIXTURE_VOLUME} · E2E 합성 {index + 1}"
             card.topic = "감사"
             card.status = "active"
-            card.created_at = datetime(2026, 1, 1, 0, index)
+            card.created_at = datetime(2026, 1, 1, 0, index, tzinfo=timezone.utc)
             session.add(card)
         await session.commit()
     async with httpx.AsyncClient(base_url=settings.qdrant_url, timeout=30) as client:

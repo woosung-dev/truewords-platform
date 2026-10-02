@@ -8,7 +8,7 @@
 
 ## 공통 규칙
 
-- PK 는 `uuid`(`uuid4`), 타임스탬프 컬럼은 **naive UTC**(`datetime.now(timezone.utc).replace(tzinfo=None)`, asyncpg 호환)이다.
+- PK 는 `uuid`(`uuid4`), 타임스탬프 컬럼은 **aware UTC**(`timestamptz`, 생성은 `app/core/common/clock.py` 의 `utcnow()`)이다. naive 값은 DB 바인딩에서 거부된다.
 - "오늘"·"날짜" 컬럼(`date`)은 **KST(`Asia/Seoul`) 기준**으로 서버가 계산한다(결정 9). 클라이언트 시간을 신뢰하지 않는다.
 - 상태값은 Postgres ENUM 이 아니라 `varchar` + 애플리케이션 검증이다.
 - 기존 테이블(`admin_users`, `research_sessions` 등)과 FK 를 맺지 않는다. 훈독 계정은 `AdminUser` 와 완전히 분리한다(`REQ-PWA-008`).
@@ -210,7 +210,7 @@ additive-only migration `v7a8b9c0d1e2`(down `u6f7a8b9c0d1`).
 ## ENT-HD-013 `reading_groups` — 소그룹 모임 (PLAN-HD-010)
 
 `id` · `name`(≤20, 별칭 — 교회명 필드·검색·공개 목록 없음) · `kind`(`small_group`, 가족은 후속) · `meeting_time`(표시용, NULL 가능) ·
-`invite_code`(Crockford base32 `XXXX-XXXX`, 40bit `secrets`, unique) · `invite_expires_at`(naive UTC, 발급 +30일) · 생성·갱신 시각.
+`invite_code`(Crockford base32 `XXXX-XXXX`, 40bit `secrets`, unique) · `invite_expires_at`(UTC, 발급 +30일) · 생성·갱신 시각.
 모임당 유효 코드 1개이며 재발급은 덮어쓰기라 이전 코드는 즉시 무효다. 인원 수는 저장하지 않는다.
 
 ## ENT-HD-014 `group_members` — 모임원 (PLAN-HD-010)

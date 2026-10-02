@@ -7,12 +7,12 @@
 import uuid
 from collections import Counter
 from collections.abc import Callable, Sequence
-from datetime import date, datetime, timezone
+from datetime import date
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
-from app.core.common.clock import today_kst
+from app.core.common.clock import today_kst, utcnow
 from app.modules.hoondok.cards_repository import CardRepository
 from app.modules.hoondok.cards_schemas import (
     CardAdminCreate,
@@ -92,7 +92,7 @@ class CardService:
         elif not shared or receipt.shared_at is not None:
             return _receipt_item(receipt, card)  # 바꿀 것이 없다
         if shared:
-            receipt.shared_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            receipt.shared_at = utcnow()
         try:
             saved = await self.repo.save_receipt(receipt)
         except IntegrityError:

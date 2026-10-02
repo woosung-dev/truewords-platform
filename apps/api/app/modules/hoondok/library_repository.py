@@ -7,13 +7,13 @@ from sqlalchemy import case, delete, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.core.common.clock import utcnow
 from app.modules.hoondok.models import (
     ContentRight,
     PassageHighlight,
     PassageMark,
     ReadingPosition,
     VolumeSection,
-    _utcnow,
 )
 
 
@@ -68,7 +68,7 @@ class LibraryRepository:
         result = await self.session.execute(
             update(ContentRight)
             .where(ContentRight.book_series == series)
-            .values(**values, updated_at=_utcnow())
+            .values(**values, updated_at=utcnow())
         )
         updated = int(result.rowcount or 0)
         if updated == 0:
@@ -161,7 +161,7 @@ class LibraryRepository:
             position = ReadingPosition(user_id=user_id, volume=volume, chunk_index=chunk_index)
         else:
             position.chunk_index = chunk_index
-            position.updated_at = _utcnow()
+            position.updated_at = utcnow()
         return await self._save(position)
 
     # --- 단락 표시 (ENT-HD-012) ---------------------------------------------
@@ -218,7 +218,7 @@ class LibraryRepository:
         else:
             mark.volume, mark.chunk_index = volume, chunk_index
             mark.color, mark.note = color, note
-            mark.updated_at = _utcnow()
+            mark.updated_at = utcnow()
         return await self._save(mark)
 
     async def delete_mark(self, user_id: uuid.UUID, chunk_id: str, kind: str | None) -> None:

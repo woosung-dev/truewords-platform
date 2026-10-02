@@ -7,6 +7,8 @@ from datetime import datetime
 from sqlalchemy import Text
 from sqlmodel import Column, Field, SQLModel
 
+from app.core.common.clock import utcnow
+
 
 class IngestionStatus(str, enum.Enum):
     PENDING = "pending"
@@ -28,8 +30,8 @@ class IngestionJob(SQLModel, table=True):
     processed_chunks: int = 0
     status: IngestionStatus = Field(default=IngestionStatus.PENDING, index=True)
     error_message: str | None = Field(default=None, sa_column=Column(Text))
-    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow, index=True)
+    updated_at: datetime = Field(default_factory=utcnow)
     completed_at: datetime | None = None
     # 추출된 원본 텍스트의 SHA-256 hex digest. ADR-30 skip 모드에서 콘텐츠
     # 변경 여부를 비교해 동일하면 임베딩을 생략한다 (Gemini 호출 비용 절감).

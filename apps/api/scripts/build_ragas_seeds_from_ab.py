@@ -23,6 +23,7 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from openpyxl import load_workbook
 
@@ -144,7 +145,7 @@ def main() -> int:
             print("⚠️  --xlsx와 --label은 함께 지정해야 합니다.")
             return 1
         args.output_dir.mkdir(parents=True, exist_ok=True)
-        ts = datetime.now().strftime("%Y%m%d_%H%M")
+        ts = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y%m%d_%H%M")
         seed_path = build_seed_single(args.xlsx, args.label, args.output_dir, ts)
         if seed_path is None:
             return 1
@@ -188,7 +189,7 @@ def main() -> int:
 
     # 각 측정 xlsx에서 동일 question으로 답변+contexts 추출 → seed JSON 생성
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now().strftime("%Y%m%d_%H%M")
+    ts = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y%m%d_%H%M")
     seed_paths: dict[str, Path] = {}
 
     for ver, path_str in MEASUREMENT_FILES.items():

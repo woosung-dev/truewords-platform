@@ -3,12 +3,12 @@
 import secrets
 import uuid
 from collections.abc import Sequence
-from datetime import datetime, timezone
 from typing import Protocol
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
+from app.core.common.clock import utcnow
 from app.core.config import settings
 from app.modules.admin.auth import create_access_token, hash_password, verify_password
 from app.modules.identity.exceptions import InviteRequiredError
@@ -107,7 +107,7 @@ class IdentityService:
         user = locked_user
         for purger in purgers:
             await purger.delete_for_user(user.id)
-        user.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        user.deleted_at = utcnow()
         user.email = f"deleted:{user.id}"
         await self.repo.save(user)  # 한 번의 커밋 — purger 의 DELETE 도 같은 세션에서 함께 반영된다
 

@@ -1,11 +1,11 @@
 """데이터 소스 카테고리 Repository."""
 
 import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.core.common.clock import utcnow
 from app.modules.datasource.models import DataSourceCategory
 
 
@@ -74,7 +74,7 @@ class DataSourceCategoryRepository:
         """
         for field, value in updates.items():
             setattr(category, field, value)
-        category.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        category.updated_at = utcnow()
         await self.session.flush()
         return category
 

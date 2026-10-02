@@ -26,7 +26,7 @@ from pywebpush import WebPushException, webpush
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.common.clock import KST
+from app.core.common.clock import KST, utcnow
 from app.core.config import Settings, settings as default_settings
 from app.modules.hoondok.jeongseong import period_end
 from app.modules.hoondok.models import (
@@ -56,13 +56,9 @@ TITLE_TEXT = "오늘의 책갈피가 꽂혀 있어요"  # 말씀 본문·책 이
 MISSION_KIND_READ = "read"
 
 
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
-
-
 def now_kst(now: datetime | None = None) -> datetime:
     """KST 기준 현재 시각. `now` 는 tz-aware 또는 naive UTC 를 받는다(테스트 주입용)."""
-    current = now or _utcnow()
+    current = now or utcnow()
     if current.tzinfo is None:
         current = current.replace(tzinfo=timezone.utc)
     return current.astimezone(KST)

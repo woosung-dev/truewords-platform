@@ -24,14 +24,15 @@ import re
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from weakref import WeakKeyDictionary
 from zoneinfo import ZoneInfo
 
+from app.core.common.clock import utcnow
 from app.modules.hoondok.exceptions import TtsError
 from app.modules.hoondok.journey_service import JourneyService
-from app.modules.hoondok.models import TtsUsage, _utcnow
+from app.modules.hoondok.models import TtsUsage
 from app.modules.hoondok.service import today_kst
 from app.modules.hoondok.tts_google import TtsUpstreamError, synthesize_mp3
 from app.modules.hoondok.tts_repository import TtsRepository
@@ -85,7 +86,7 @@ def cache_key(voice: str, text: str, speaking_rate: float = SPEAKING_RATE) -> st
 
 def billing_month(now: datetime | None = None) -> str:
     """Google 청구 달 "YYYY-MM" (America/Los_Angeles). now 는 aware datetime(기본 지금)."""
-    return (now or datetime.now(timezone.utc)).astimezone(BILLING_TZ).strftime("%Y-%m")
+    return (now or utcnow()).astimezone(BILLING_TZ).strftime("%Y-%m")
 
 
 @dataclass(frozen=True)
@@ -142,7 +143,7 @@ class TtsService:
         synth_fn: SynthFn | None = None,
         month_fn: Callable[[], str] = billing_month,
         today_fn: Callable[[], date] = today_kst,
-        now_fn: Callable[[], datetime] = _utcnow,
+        now_fn: Callable[[], datetime] = utcnow,
         request_timeout: float = REQUEST_TIMEOUT_SECONDS,
     ) -> None:
         self.repo, self.journey = repo, journey

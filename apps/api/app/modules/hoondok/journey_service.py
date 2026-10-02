@@ -9,6 +9,7 @@ from typing import Literal
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 
+from app.core.common.clock import utcnow
 from app.core.config import settings
 from app.modules.datasource.chunk_merge import merge_with_dedup
 from app.modules.hoondok.candidates import filter_results
@@ -28,7 +29,7 @@ from app.modules.hoondok.journey_schemas import (
     WordSearchResult,
     WordsResponse,
 )
-from app.modules.hoondok.models import ContentRight, JeongseongReading, _utcnow
+from app.modules.hoondok.models import ContentRight, JeongseongReading
 from app.modules.hoondok.repository import JeongseongRepository
 from app.modules.hoondok.schemas import DailyReadingPublic
 from app.modules.hoondok.service import today_kst
@@ -79,7 +80,7 @@ class JourneyService:
             raise HTTPException(404, "권리 기록을 찾을 수 없습니다")
         for key, value in data.model_dump().items():
             setattr(right, key, value)
-        right.updated_at = _utcnow()
+        right.updated_at = utcnow()
         try:
             return await self.repo.save_right(right)
         except IntegrityError:

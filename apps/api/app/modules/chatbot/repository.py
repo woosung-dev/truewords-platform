@@ -1,12 +1,13 @@
 """챗봇 설정 Repository."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from sqlalchemy import func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.core.common.clock import utcnow
 from app.modules.chatbot.models import ChatbotConfig
 
 
@@ -66,8 +67,7 @@ class ChatbotRepository:
         for key, value in updates.items():
             if value is not None:
                 setattr(config, key, value)
-        # DB 기존 데이터가 naive datetime이므로 naive UTC 유지 (asyncpg 호환)
-        config.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        config.updated_at = utcnow()
         await self.session.flush()
         return config
 
@@ -85,7 +85,7 @@ class ChatbotRepository:
         cron job 의 추천 질문 생성을 위해 사용. user role 메시지 기준으로 봇별 필터.
         analytics_repository.get_top_queries 와 달리 chatbot_config_id 로 격리.
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
         result = await self.session.execute(
             text(
                 """
@@ -114,6 +114,6 @@ class ChatbotRepository:
     ) -> ChatbotConfig:
         """추천 질문 + 갱신 시각 저장. cron job 전용."""
         config.suggested_questions = questions
-        config.suggested_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        config.suggested_at = utcnow()
         await self.session.flush()
         return config

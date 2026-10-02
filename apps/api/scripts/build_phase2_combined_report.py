@@ -25,6 +25,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from statistics import mean
+from zoneinfo import ZoneInfo
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -279,7 +280,7 @@ def build_report_md(args, a_ragas, f_ragas, a_judge, f_judge, codex_text: str | 
     lines = []
     lines.append("# Phase 2 — 새 평가셋 50문항 A vs F 재검증")
     lines.append("")
-    lines.append(f"생성: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    lines.append(f"생성: {datetime.now(ZoneInfo("Asia/Seoul")).strftime('%Y-%m-%d %H:%M')}")
     lines.append("")
     lines.append("## 종합 결론")
     lines.append("")

@@ -32,6 +32,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -247,7 +248,7 @@ def main() -> int:
     metadata.update(load_metadata(args.action1plus2))
 
     if args.output is None:
-        ts = datetime.now().strftime("%Y%m%d_%H%M")
+        ts = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y%m%d_%H%M")
         args.output = Path.home() / "Downloads" / f"ragas_3way_{ts}.xlsx"
 
     build_xlsx(baseline, action2, a1plus2, metadata, args.output)
