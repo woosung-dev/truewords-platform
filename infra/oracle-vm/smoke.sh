@@ -14,6 +14,12 @@
 # ── 실행 ────────────────────────────────────────────────────────────────────
 #   make smoke-web WEB_URL=https://<운영 web origin> HOONDOK_ENABLED=0
 #   bash infra/oracle-vm/smoke.sh --url https://<origin> --hoondok 1
+#   bash infra/oracle-vm/smoke.sh --url https://<web> --hoondok 1 --admin-url https://<admin>
+#
+# release.yml 은 배포 직후 `SMOKE_CACHE_BUST=<run id>` 로 부른다. 모든 요청에 `_smoke=<값>` 쿼리를
+# 붙여 Cloudflare 엣지 캐시를 건너뛰고 **오리진(터널 → 컨테이너)** 을 본다 — 엣지에 남은 구 sw.js
+# 때문에 자동 롤백하면 롤백이 아무것도 고치지 못한다. 엣지 stale 판정은 사람이 돌리는
+# `make smoke-web`(캐시 우회 없음)의 몫이다.
 #
 # `--hoondok` 은 **기대값**이지 조회가 아니다. 배포할 때 넘긴 값을 그대로 적어
 # "의도한 상태로 떠 있는가" 를 묻는다. 0 인데 /hoondok 이 열려 있으면 실패다.
@@ -25,7 +31,9 @@
 set -uo pipefail
 
 BASE_URL="${WEB_URL:-}"
+ADMIN_BASE_URL=""
 HOONDOK="${HOONDOK_ENABLED:-0}"
+CACHE_BUST="${SMOKE_CACHE_BUST:-}"
 TIMEOUT="${SMOKE_TIMEOUT_S:-15}"
 # 운영 폰트 파일명은 버전이 박혀 있다(Phase 3 C). 파일을 갈면 여기도 같이 바꾼다.
 FONT_FILE="${SMOKE_FONT_FILE:-PretendardVariable-1.3.9.woff2}"
@@ -34,8 +42,9 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --url)     BASE_URL="$2"; shift 2 ;;
     --hoondok) HOONDOK="$2";  shift 2 ;;
+    --admin-url) ADMIN_BASE_URL="$2"; shift 2 ;;
     -h|--help)
-      echo "사용법: $0 --url <web origin> [--hoondok 0|1]"
+      echo "사용법: $0 --url <web origin> [--hoondok 0|1] [--admin-url <admin origin>]"
       exit 0 ;;
     *) echo "알 수 없는 인자: $1" >&2; exit 2 ;;
   esac
@@ -50,6 +59,11 @@ case "$HOONDOK" in
   *) echo "--hoondok 은 0 또는 1 이어야 합니다 (받은 값: ${HOONDOK})" >&2; exit 2 ;;
 esac
 BASE_URL="${BASE_URL%/}"
+ADMIN_BASE_URL="${ADMIN_BASE_URL%/}"
+if [ -n "$CACHE_BUST" ] && [[ ! $CACHE_BUST =~ ^[A-Za-z0-9._-]+$ ]]; then
+  echo "SMOKE_CACHE_BUST 는 [A-Za-z0-9._-] 만 허용합니다" >&2
+  exit 2
+fi
 
 FAIL=0
 ROWS=()
@@ -67,8 +81,13 @@ trap 'rm -f "$HDR_FILE" "$BODY_FILE"' EXIT
 
 # 응답을 한 번만 받아 상태코드·헤더·본문을 파일에 남긴다. 같은 URL 을 헤더용,
 # 본문용으로 두 번 치면 그 사이 배포가 끼어들 때 서로 다른 응답을 섞어 판정한다.
+# $1 = 경로, $2 = origin(생략하면 web). SMOKE_CACHE_BUST 가 있으면 엣지 캐시를 건너뛰는 쿼리를 붙인다.
 fetch() {
-  curl -sS -o "$BODY_FILE" -D "$HDR_FILE" -w '%{http_code}' -m "$TIMEOUT" "${BASE_URL}${1}" 2>/dev/null
+  local url="${2:-$BASE_URL}${1}"
+  if [ -n "$CACHE_BUST" ]; then
+    case "$url" in *\?*) url="${url}&_smoke=${CACHE_BUST}" ;; *) url="${url}?_smoke=${CACHE_BUST}" ;; esac
+  fi
+  curl -sS -o "$BODY_FILE" -D "$HDR_FILE" -w '%{http_code}' -m "$TIMEOUT" "$url" 2>/dev/null
 }
 
 # 헤더는 대소문자를 보장하지 않는다(HTTP/2 는 소문자, Cloudflare 가 바꾸기도 한다).
@@ -94,6 +113,16 @@ echo "[$(date '+%F %T')] smoke 시작 — ${BASE_URL} (HOONDOK_ENABLED=${HOONDOK
 # 루트 layout 을 쓰므로, 훈독 쪽 변경이 여기서 먼저 터진 적이 있다(Phase 3 D
 # hydration). 훈독이 꺼져 있어도 이 검사는 항상 돈다.
 check_status "chat-login" "/login" 200
+
+# 관리자 앱은 origin 이 다르다. 넘겼을 때만 본다(배포 자동화는 항상 넘긴다).
+if [ -n "$ADMIN_BASE_URL" ]; then
+  CODE=$(fetch "/login" "$ADMIN_BASE_URL")
+  if [ "$CODE" = "200" ]; then
+    record "admin-login" OK "${ADMIN_BASE_URL}/login → ${CODE}"
+  else
+    record "admin-login" FAIL "${ADMIN_BASE_URL}/login → ${CODE} (기대 200)"
+  fi
+fi
 
 # ── 2. 백엔드 도달성 (web → rewrite → backend) ────────────────────────────
 # `/api/backend/*` 는 web 이 백엔드로 넘기는 rewrite 다(next.config.ts). 백엔드를

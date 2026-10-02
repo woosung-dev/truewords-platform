@@ -94,7 +94,7 @@ chmod 600 "${TW_DIR}/.env"
 
 # 7) docker compose 기동
 cd "${TW_DIR}"
-if sudo docker image inspect "truewords-backend:$(grep '^BACKEND_TAG=' .env | cut -d= -f2-)" >/dev/null 2>&1; then
+if sudo docker image inspect "ghcr.io/woosung-dev/truewords-backend:$(grep '^BACKEND_TAG=' .env | cut -d= -f2-)" >/dev/null 2>&1; then
   sudo docker compose --env-file .env up -d
 else
   echo "==> backend 이미지 전달 전에는 sudo docker compose up -d qdrant cloudflared 로 2개만 먼저 띄웁니다."
