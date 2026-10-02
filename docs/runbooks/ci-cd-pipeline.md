@@ -65,7 +65,7 @@ Docker context는 저장소 루트다. API의 venv·소스 레이어 분리, Ale
 | 시작 | CI 의 main push run 이 성공하면(`workflow_run`) 또는 수동 실행. 대상 sha 가 `origin/main` 의 조상이 아니면 멈춘다 |
 | 빌드 | 서비스마다 `ubuntu-24.04-arm` 에서 빌드·push. 같은 태그가 이미 있으면 건너뛴다. 오프라인 probe(리비전·빌드 설정 라벨, backend 는 alembic·uvicorn·import, web/admin 은 rewrite 목적지·origin) |
 | 배포 판정 | `tooling/checks/deploy-services.mjs` 가 운영 태그 → 이 sha 사이에 **각 Dockerfile 이 실제로 읽는 파일**이 바뀐 서비스만 고른다. 운영 태그가 이 sha 의 조상이 아니면 `rollback=true` 없이는 멈춘다 |
-| 배포 | 강제 명령 SSH 로 VM `deploy.sh`. DB migration 이 필요하면 아무것도 바꾸지 않고 `deploy-migrate` job 이 `production-migrate` 승인을 받는다 |
+| 배포 | 강제 명령 SSH 로 VM 의 **최신 main** `deploy.sh` 를 ssh 와 떨어진 프로세스로 실행한다(대상 sha 는 태그를 고르는 데이터). DB migration 이 필요하면 아무것도 바꾸지 않고 `deploy-migrate` job 이 `production-migrate` 승인과 그 환경의 migration 전용 키로 진행한다 |
 | 검증 | 운영 태그 확인 + 공개 URL 스모크(캐시 우회, 3회). 실패하면 직전 태그로 자동 롤백(migration 배포는 제외) |
 | 알림 | 실패하면 `[deploy-alert]` GitHub Issue 를 열거나 댓글(저장소 소유자에게 메일), 다음 성공 배포가 닫는다. `NTFY_TOPIC` secret 이 있을 때만 ntfy 도 보낸다 |
 

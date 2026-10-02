@@ -187,8 +187,10 @@ sudo docker compose --env-file .env up -d
 
 1. Actions → **Release** → Run workflow. `sha` 는 비우면 main 의 HEAD, `deploy=true`.
 2. `production` 환경 승인. 이미지가 바뀐 서비스만 교체된다(판정: `tooling/checks/deploy-services.mjs`).
-3. DB migration 이 필요하면 1차 배포는 아무것도 바꾸지 않고 멈추고, `Deploy with DB migration` job 이 `production-migrate` 승인을 기다린다. 승인하면 백업 → `alembic upgrade head` → 교체 순이다.
-4. 공개 URL 스모크까지 통과하면 끝. 실패하면 `[deploy-alert]` GitHub Issue 가 열리고(저장소 소유자에게 메일) 다음 성공 배포가 닫는다. `NTFY_TOPIC` secret 이 있으면 ntfy 도 보낸다.
+3. DB migration 이 필요하면 1차 배포는 아무것도 바꾸지 않고 멈추고, `Deploy with DB migration` job 이 `production-migrate` 승인을 기다린다. 승인하면 백업 → `alembic upgrade head` → 교체 순이다. `--migrate` 는 그 환경에만 있는 migration 전용 키로만 VM 이 받는다. migration 출력 전문은 VM `deploy-state/migrate-*.log` 에만 남고 Actions 로그(공개)에는 끝부분만 나온다.
+4. 공개 URL 스모크까지 통과하면 끝. 실패하면 `[deploy-alert]` GitHub Issue 가 열리고(저장소 소유자에게 메일) 다음 성공 배포가 닫는다. `NTFY_TOPIC` secret 이 있으면 ntfy 도 보낸다. 승인 거절·만료는 VM 에 아무것도 하지 않았으므로 이슈를 열지 않는다.
+
+VM 에서는 배포가 ssh 세션과 떨어진 프로세스로 돈다. 연결이 끊기거나 실행을 취소해도 교체·검사·자동 복구는 끝까지 가고, 전체 출력은 `~/truewords/deploy-runs/<시각>-<pid>.log`, 결과 코드는 같은 이름의 `.rc` 에 남는다(30일 뒤 삭제). 알림에 "VM 에서는 계속됐을 수 있다" 가 보이면 그 로그와 `status` 부터 본다.
 
 자동 배포(main 머지마다)로 바꿀 때는 `release.yml` deploy job 의 `if:` 를 바로 아래 주석 줄로 바꾼다. 환경 승인은 그대로 걸린다.
 
@@ -199,15 +201,18 @@ sudo docker compose --env-file .env up -d
 | 검사 실패·복구함 (종료 5) | 교체 후 이미지 ID·healthy·내부 HTTP 검사가 실패해 이전 태그로 되돌렸다 | 이슈의 실행 로그와 `make oracle-logs` 로 원인을 본다 |
 | 복구 실패 (종료 6) · migration 뒤 실패 | 운영이 어중간한 상태일 수 있다 | `ssh truewords-oracle 'grep _TAG ~/truewords/.env; tail ~/truewords/deploy.log'` 로 상태를 보고 아래 롤백 절차를 따른다 |
 | 후퇴 배포 거부 (Plan 단계) | 운영 태그가 이 sha 의 조상이 아니다 | 의도한 되돌리기면 `rollback=true` 로 다시 실행한다 |
+| `VM status 출력에 … 가 없다` (Plan 단계) | VM 상태를 끝까지 읽지 못했다(ssh 실패·잘린 출력) | VM 접속을 확인하고 다시 실행한다. 빈 결과를 첫 배포로 보지 않는다 |
+| DB head 가 비었다·여러 개다·이미지가 모른다 (종료 1) | migration 으로 풀 수 없는 DB 상태이거나, DB 가 이미지보다 앞섰다(옛 backend 로 되돌리는 중) | 백업 전에 멈췄다. DB 의 `alembic_version` 을 사람이 확인한다 |
+| 배포 뒤 상태를 읽지 못함 | 교체는 끝났을 수 있지만 검증 직전 ssh 가 끊겼다 | 자동 롤백하지 않았다. `status` 와 공개 URL 을 직접 확인한다 |
 
 ### 롤백
 
 | 상황 | 방법 |
 |---|---|
-| 방금 배포를 되돌린다 | `make rollback-last` — `deploy-state/last-deploy.env` 의 직전 태그로 되돌린다. migration 이 포함된 배포는 거부한다 |
-| 특정 태그로 | `make rollback-backend TAG=<태그>` (`admin`·`web` 동일). 태그는 7~12자 sha. VM 에 없으면 GHCR 에서 받는다 |
+| 방금 배포를 되돌린다 | `make rollback-last` — `deploy-state/last-deploy.env` 의 직전 태그로 되돌린다. 교체 도중 끊긴 배포(`LAST_STATUS=switching`, VM 재부팅·프로세스 강제 종료)와 복구가 실패한 배포(`restore_failed`)도 같은 명령으로 돌린다. migration 이 포함된 배포는 거부한다 |
+| 특정 태그로 | `make rollback-backend TAG=<태그>` (`admin`·`web` 동일). 태그는 7~12자 sha. VM 에 없으면 GHCR 에서 받는다. VM compose 가 아직 옛 이미지 이름이면(Release 배포·sync 를 한 번도 안 했으면) 아무것도 하지 않고 멈춘다 |
 | 특정 커밋으로(Actions) | Release 를 그 `sha` + `deploy=true` + `rollback=true` 로 실행한다 |
-| migration 이 돈 backend | 자동화하지 않는다. 이전 backend 이미지는 새 revision 을 몰라 기동하지 못한다. [§실제 복구](#실제-복구)로 DB 를 배포 직전 백업(`--migrate` 가 만든 것)으로 되돌린 뒤 `rollback-backend TAG=<이전>` |
+| migration 이 돈 backend | 자동화하지 않는다. 이전 backend 이미지는 새 revision 을 몰라 기동하지 못한다(deploy.sh 도 "DB 가 이미지보다 앞섰다" 로 거부한다). [§실제 복구](#실제-복구)로 DB 를 배포 직전 백업(`--migrate` 가 만든 것)으로 되돌린 뒤 `rollback-backend TAG=<이전>`. 같은 배포에서 실패한 admin·web 은 deploy.sh 가 이미 이전 태그로 되돌렸다 |
 
 롤백도 `deploy.log` 에 `rollback … manual|auto|auto-restore` 로 남는다. `prune-images.sh` 는 `.env` 의 현재 태그와 직전 태그(`PREV_*`)를 지우지 않지만, 그보다 오래된 태그는 GHCR 에서 다시 받는다고 생각한다. 단일 Compose 교체는 무중단을 보장하지 않는다.
 
@@ -232,11 +237,17 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
 | `운영 태그 <sha> 를 로컬 git 에서 찾을 수 없습니다` | 운영 태그가 로컬에 없다 | `git fetch --all` 후 재시도 |
 | `후퇴 배포입니다` + 커밋 목록 | 배포하면 그 커밋들이 운영에서 사라진다 | 의도한 되돌리기면 `rollback-*` 를 쓰고, 그래도 강행하려면 `FORCE_DEPLOY=1` 로 명시한다 |
 
+비상 경로는 사람의 ssh 세션에서 **포그라운드로** 돈다. 교체 도중 연결이 끊기면 그 자리에서 멈출 수 있으니 안정된 연결에서 실행하고, 끊겼다면 `LAST_STATUS` 를 보고 `make rollback-last` 로 정리한다.
+
 `deploy-backend` 는 이미지에 `alembic`·`uvicorn` 바이너리와 `/app/ALEMBIC_EXPECTED_HEAD` 가 있는지 확인한 뒤에야 전송한다(runtime stage 에 바이너리가 빠져 기동에 실패했던 dev-log 41~42 의 재발 방지). 전송은 로컬 tgz → `rsync --partial` → VM `docker load` 라 끊기면 그 단계만 다시 돈다.
 
 ### VM 파일 동기화
 
-`deploy <sha>`·`sync <sha>` 는 그 커밋의 `docker-compose.yml` 과 cron 스크립트(`deploy.sh` 의 `SYNC_FILES`)를 `~/truewords` 로 복사한다. 이전 사본은 `deploy-state/prev-files/` 에 남는다. **`.env`·`preserve-images.txt`·백업은 건드리지 않는다.** 이미지가 바뀌지 않고 `infra/oracle-vm/` 만 바뀐 커밋은 컨테이너를 재시작하지 않고 `sync` 만 한다. 손으로 `scp` 하지 않는다.
+`deploy`·`sync` 는 `docker-compose.yml` 과 cron 스크립트(`deploy.sh` 의 `SYNC_FILES`)를 `~/truewords` 로 복사한다. 원본은 **배포 대상 sha 가 아니라 최신 main** 이다 — VM 진입점은 늘 최신 origin/main 으로 체크아웃해 그 `deploy.sh` 를 실행하고, 대상 sha 는 이미지 태그를 고르는 데이터로만 넘긴다. 그래서 옛 커밋으로 되돌려도 옛 배포 코드·cron 스크립트가 되살아나지 않는다. compose 를 되돌려야 하면 main 에 되돌림 커밋을 넣는다. 비상 경로는 가드를 통과한 로컬 HEAD 가 원본이다. 이전 사본은 `deploy-state/prev-files/` 에, 원본 커밋은 `deploy-state/synced-sha` 에 남는다. **`.env`·`preserve-images.txt`·백업은 건드리지 않는다.** 이미지가 바뀌지 않고 `infra/oracle-vm/` 만 바뀐 커밋은 컨테이너를 재시작하지 않고 `sync` 만 한다. 손으로 `scp` 하지 않는다.
+
+배포가 교체하는 것은 backend·admin·web 뿐이다. compose 의 `postgres`·`qdrant`·`cloudflared` 정의가 바뀌면 파일은 동기화되지만 컨테이너는 그대로다 — Plan 단계가 `::notice::` 로 알려 준다. 적용은 사람이 한다: 백업 확인 → `ssh truewords-oracle 'cd ~/truewords && sudo docker compose --env-file .env up -d --no-deps <서비스>'`. postgres·qdrant 재생성은 데이터 볼륨을 그대로 쓰지만 짧은 중단이 있다.
+
+이미지 GC(`prune-images.sh`)는 배포 잠금을 존중한다. 주간 cron 이 배포와 겹치면 그 회차는 건너뛴다.
 
 예외는 강제 명령 진입점 `~/truewords/bin/deploy-entry` 다. 배포로 갱신되지 않으므로(키가 스스로 권한을 넓히지 못하게) `deploy-entry.sh` 를 바꾼 PR 이 머지되면 아래 설치 스크립트를 다시 실행한다.
 
@@ -244,26 +255,29 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
 
 순서대로 한다. 2·3 은 VM, 4 이후는 GitHub 이다.
 
-1. 로컬에서 배포 전용 키를 만든다. 다른 용도로 쓰지 않는다.
+1. 로컬에서 키 두 개를 만든다 — 배포 키, migration 키. 다른 용도로 쓰지 않는다.
    ```bash
    ssh-keygen -t ed25519 -N '' -C truewords-deploy@github-actions -f ~/.ssh/truewords_deploy
+   ssh-keygen -t ed25519 -N '' -C truewords-deploy-migrate@github-actions -f ~/.ssh/truewords_deploy_migrate
    ```
 2. VM 에 체크아웃과 진입점을 설치한다(다시 실행해도 같은 결과). 마지막에 `authorized_keys` 에 넣을 줄을 **출력만** 한다.
    ```bash
-   ssh truewords-oracle "DEPLOY_PUBKEY='$(cat ~/.ssh/truewords_deploy.pub)' bash -s" < infra/oracle-vm/install-deploy-access.sh
+   ssh truewords-oracle "DEPLOY_PUBKEY='$(cat ~/.ssh/truewords_deploy.pub)' MIGRATE_PUBKEY='$(cat ~/.ssh/truewords_deploy_migrate.pub)' bash -s" < infra/oracle-vm/install-deploy-access.sh
    ```
-3. 출력된 `restrict,command="…/deploy-entry" ssh-ed25519 … truewords-deploy@github-actions` 줄을 확인하고 VM `~/.ssh/authorized_keys` 에 추가한다. 확인: `ssh -i ~/.ssh/truewords_deploy -o IdentitiesOnly=yes <user>@<host> status` 가 태그를 출력하고, `… 'status; id'` 는 거부돼야 한다. 함께 출력되는 `truewords-ops-read@github-actions` 줄은 ops-check 결과(`/opt/ops-status.json`)만 읽는 별도 키용이다 — 그 키를 쓰는 워크플로를 둘 때만 넣는다.
-4. GitHub 환경 두 개를 만든다 — `production`, `production-migrate`. 둘 다 Required reviewers = 저장소 소유자, Deployment branches = `main` 만. 배포 키는 **환경 secret** 으로 두 환경에 각각 넣는다.
+3. 출력된 줄 중 `truewords-deploy@github-actions`(강제 명령 `…/deploy-entry`)와 `truewords-deploy-migrate@github-actions`(`env TW_ALLOW_MIGRATE=1 …/deploy-entry`) 두 줄을 확인하고 VM `~/.ssh/authorized_keys` 에 추가한다. 확인: `ssh -i ~/.ssh/truewords_deploy -o IdentitiesOnly=yes <user>@<host> status` 가 태그를 출력하고, `… 'status; id'` 와 배포 키의 `… 'deploy <sha> backend --migrate'` 는 거부돼야 한다. VM sshd 의 `AcceptEnv` 가 `LANG LC_*` 뿐이고 `PermitUserEnvironment` 가 꺼져 있는지도 본다(`sudo sshd -T | grep -Ei 'acceptenv|permituserenvironment'`) — 클라이언트가 `TW_ALLOW_MIGRATE` 를 보낼 수 없어야 한다. 함께 출력되는 `truewords-ops-read@github-actions` 줄은 ops-check 결과(`/opt/ops-status.json`)만 읽는 별도 키용이다 — 그 키를 쓰는 워크플로를 둘 때만 넣는다.
+4. GitHub 환경 두 개를 만든다 — `production`, `production-migrate`. 둘 다 Required reviewers = 저장소 소유자, Deployment branches = `main` 만. 키·VM 주소·호스트 키는 **환경 secret** 이다(공개 저장소의 Actions 로그에서 마스킹된다). 같은 secret 이름에 환경마다 다른 키를 넣는다. 호스트 키는 `ssh-keyscan` 결과를 VM 안의 지문(`ssh truewords-oracle 'ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub'`)과 대조한 뒤에만 넣는다.
    ```bash
    gh secret set DEPLOY_SSH_KEY --env production < ~/.ssh/truewords_deploy
-   gh secret set DEPLOY_SSH_KEY --env production-migrate < ~/.ssh/truewords_deploy
+   gh secret set DEPLOY_SSH_KEY --env production-migrate < ~/.ssh/truewords_deploy_migrate
+   for env in production production-migrate; do
+     gh secret set DEPLOY_HOST --env "$env" --body '<VM 공인 IP 또는 호스트>'
+     gh secret set DEPLOY_HOST_KEY --env "$env" --body "$(ssh-keyscan -t ed25519 <호스트> 2>/dev/null)"
+   done
    ```
-5. 저장소 Variable 을 넣는다. 호스트 키는 `ssh-keyscan` 결과를 VM 안의 지문(`ssh truewords-oracle 'ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub'`)과 대조한 뒤에만 넣는다.
+5. 저장소 Variable 을 넣는다(공개돼도 되는 값만).
    ```bash
-   gh variable set DEPLOY_HOST --body '<VM 공인 IP 또는 호스트>'
    gh variable set DEPLOY_USER --body ubuntu
    gh variable set DEPLOY_PORT --body 22          # 22 면 생략 가능
-   gh variable set DEPLOY_HOST_KEY --body "$(ssh-keyscan -t ed25519 <호스트> 2>/dev/null)"
    gh variable set DEMO_ADMIN_EMAIL --body '<VM .env 의 DEMO_ADMIN_EMAIL 과 같은 값>'
    ```
 6. Release 를 `deploy=false` 로 한 번 실행해 이미지 3개를 만든 뒤, GitHub → Packages 에서 `truewords-backend`·`truewords-admin`·`truewords-web` 의 visibility 가 **Public** 인지 확인한다(아니면 바꾼다). VM 은 로그인 없이 받는다 — secret 이 이미지에 들어가지 않는 것이 이 전제다.
