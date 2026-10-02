@@ -252,7 +252,7 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
    ```bash
    ssh truewords-oracle "DEPLOY_PUBKEY='$(cat ~/.ssh/truewords_deploy.pub)' bash -s" < infra/oracle-vm/install-deploy-access.sh
    ```
-3. 출력된 `restrict,command="…/deploy-entry" ssh-ed25519 … truewords-deploy@github-actions` 줄을 확인하고 VM `~/.ssh/authorized_keys` 에 추가한다. 확인: `ssh -i ~/.ssh/truewords_deploy -o IdentitiesOnly=yes <user>@<host> status` 가 태그를 출력하고, `… 'status; id'` 는 거부돼야 한다.
+3. 출력된 `restrict,command="…/deploy-entry" ssh-ed25519 … truewords-deploy@github-actions` 줄을 확인하고 VM `~/.ssh/authorized_keys` 에 추가한다. 확인: `ssh -i ~/.ssh/truewords_deploy -o IdentitiesOnly=yes <user>@<host> status` 가 태그를 출력하고, `… 'status; id'` 는 거부돼야 한다. 함께 출력되는 `truewords-ops-read@github-actions` 줄은 ops-check 결과(`/opt/ops-status.json`)만 읽는 별도 키용이다 — 그 키를 쓰는 워크플로를 둘 때만 넣는다.
 4. GitHub 환경 두 개를 만든다 — `production`, `production-migrate`. 둘 다 Required reviewers = 저장소 소유자, Deployment branches = `main` 만. 배포 키는 **환경 secret** 으로 두 환경에 각각 넣는다.
    ```bash
    gh secret set DEPLOY_SSH_KEY --env production < ~/.ssh/truewords_deploy

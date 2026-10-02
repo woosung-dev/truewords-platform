@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 # GitHub Actions 배포 키의 강제 명령(forced command) — VM ~/truewords/bin/deploy-entry 로 한 번 설치한다.
 #
-#   authorized_keys:
+#   authorized_keys (키 두 개, 같은 진입점):
 #   restrict,command="/home/ubuntu/truewords/bin/deploy-entry" ssh-ed25519 <pub> truewords-deploy@github-actions
+#   restrict,command="env SSH_ORIGINAL_COMMAND=ops-status /home/ubuntu/truewords/bin/deploy-entry" ssh-ed25519 <pub> truewords-ops-read@github-actions
+#   두 번째(ops-alert.yml 용) 키는 클라이언트가 무엇을 보내든 ops-status 만 실행된다.
 #
 # ── 신뢰 모델 ────────────────────────────────────────────────────────────────
 # 이 키로는 셸을 얻을 수 없다(restrict: pty·포워딩·agent 금지). 클라이언트가 보낸 명령은
-# $SSH_ORIGINAL_COMMAND 로만 들어오고, 아래 네 형식 말고는 **어떤 부작용보다도 먼저** 거부한다.
+# $SSH_ORIGINAL_COMMAND 로만 들어오고, 아래 형식 말고는 **어떤 부작용보다도 먼저** 거부한다.
 #
-#   status | rollback | sync <sha40> | deploy <sha40> <backend|admin|web>... [--migrate]
+#   status | ops-status | rollback | sync <sha40> | deploy <sha40> <backend|admin|web>... [--migrate]
+#
+# ops-status 는 ops-check.sh 가 쓴 /opt/ops-status.json 을 그대로 출력만 한다 — 잠금·체크아웃·
+# deploy.sh 를 거치지 않는다(배포 중에도 읽힌다). GitHub 토큰을 VM 에 두지 않고 Actions 가 당겨 간다.
 #
 # deploy·sync 는 공개 레포의 **main 에 들어간 커밋만** 받는다. 그 sha 로 sparse 체크아웃
 # (~/truewords/repo, infra/oracle-vm 만)을 옮긴 뒤 **그 sha 의** deploy.sh 를 실행한다.
@@ -31,6 +36,7 @@ DEPLOY_SH="${REPO_DIR}/infra/oracle-vm/deploy.sh"
 CMD="${SSH_ORIGINAL_COMMAND:-}"
 
 re_status='^status$'
+re_ops='^ops-status$'
 re_rollback='^rollback$'
 re_sync='^sync ([0-9a-f]{40})$'
 re_deploy='^deploy ([0-9a-f]{40})(( (backend|admin|web))+)( --migrate)?$'
@@ -41,7 +47,11 @@ reject() {
 }
 
 SHA=""
-if [[ $CMD =~ $re_status ]]; then
+if [[ $CMD =~ $re_ops ]]; then
+  cat -- "${OPS_STATUS_FILE:-/opt/ops-status.json}" \
+    || { echo "deploy-entry: ops-status 파일을 읽지 못했다 (ops-check.sh 가 한 번도 돌지 않았거나 경로 문제)" >&2; exit 1; }
+  exit 0
+elif [[ $CMD =~ $re_status ]]; then
   ACTION=status
 elif [[ $CMD =~ $re_rollback ]]; then
   ACTION=rollback
@@ -52,7 +62,7 @@ elif [[ $CMD =~ $re_deploy ]]; then
   ACTION=deploy
   SHA="${BASH_REMATCH[1]}"
 else
-  reject "허용되지 않은 명령 (status | rollback | sync <sha40> | deploy <sha40> <svc>... [--migrate])"
+  reject "허용되지 않은 명령 (status | ops-status | rollback | sync <sha40> | deploy <sha40> <svc>... [--migrate])"
 fi
 # 위 정규식을 통과한 문자열은 [0-9a-z -] 뿐이라 공백 분리가 안전하다.
 read -r -a ARGS <<<"$CMD"

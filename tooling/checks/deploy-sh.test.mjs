@@ -438,6 +438,10 @@ test("entry: 허용 형식 밖의 명령은 부작용 전에 종료 2", () => {
       `deploy $(id) web`,
       `sync ${SHA} web`,
       "pin web aaaaaaaa", // pin 은 사람(일반 ssh) 전용
+      "ops-status; id",
+      "ops-status\nid",
+      "ops-status /etc/shadow",
+      " ops-status",
       "bash",
     ]) {
       const result = box.entry(command);
@@ -457,6 +461,27 @@ test("entry: status 는 현재 체크아웃의 deploy.sh 를 잠금 없이 auto 
     const result = box.entry("status");
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout.trim(), "STUB A args=status mode=auto lock= action=");
+  } finally {
+    box.cleanup();
+  }
+});
+
+test("entry: ops-status 는 상태 JSON 만 출력하고 잠금·체크아웃·deploy.sh 를 건드리지 않는다", () => {
+  const { box, a, head } = entryFixture();
+  try {
+    const statusFile = path.join(box.base, "ops-status.json");
+    const json = '{"checked_at":"2026-10-02T18:45:00Z","failures":0,"checks":[]}\n';
+    writeFileSync(statusFile, json);
+    box.touch("flock_busy"); // 배포 중에도 읽혀야 한다
+    const result = box.entry("ops-status", { OPS_STATUS_FILE: statusFile });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, json);
+    assert.ok(!existsSync(path.join(box.tw, ".deploy.lock")), "ops-status 가 잠금 파일을 만들었다");
+    assert.equal(head(), a);
+
+    const missing = box.entry("ops-status", { OPS_STATUS_FILE: path.join(box.base, "none.json") });
+    assert.equal(missing.status, 1);
+    assert.match(missing.stderr, /ops-status 파일을 읽지 못했다/);
   } finally {
     box.cleanup();
   }
