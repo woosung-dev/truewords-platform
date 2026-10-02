@@ -306,8 +306,8 @@ jobs:
               *) echo "::error::배포 실패 (종료 ${rc}) — 서비스는 교체되지 않았거나 위 로그를 확인"; exit 1 ;;
             esac
           elif [ "$SYNC" = true ]; then
-            # shellcheck disable=SC2029 # 원격 명령은 러너에서 만든다(검증된 sha·서비스명)
-            ssh deploy-target "sync ${SHA}"
+            # VM 은 늘 최신 main 의 파일로 맞춘다(대상 sha 를 넘기지 않는다).
+            ssh deploy-target sync
           else
             echo "::notice::이미지가 바뀐 서비스가 없고 VM 파일도 최신이다 — 배포할 것이 없다"
           fi

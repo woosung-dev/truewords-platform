@@ -2,8 +2,17 @@
 // 가짜 docker·sudo·flock 을 PATH 앞에 두고 임시 HOME(= ~/truewords)에서 실제 스크립트를 돌린다.
 // 운영 VM·네트워크·진짜 docker 를 건드리지 않는다. git 은 진짜를 쓴다(진입점의 main 조상 검사).
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -105,6 +114,7 @@ function vm({ dbHead = "rev1", pullable = "", extraImages = "", compose = "ghcr"
     });
   return {
     base,
+    env,
     tw,
     state,
     envText,
@@ -540,7 +550,14 @@ function entryFixture() {
   const commit = (name) => {
     writeFileSync(
       path.join(origin, "infra/oracle-vm/deploy.sh"),
-      `#!/usr/bin/env bash\necho "STUB ${name} args=$* mode=$DEPLOY_MODE lock=\${TW_DEPLOY_LOCK_HELD:-} action=\${DEPLOY_ACTION:-}"\n`,
+      [
+        "#!/usr/bin/env bash",
+        "sleep \"${STUB_SLEEP:-0}\"",
+        `echo "STUB ${name} args=$* mode=$DEPLOY_MODE lock=\${TW_DEPLOY_LOCK_HELD:-} action=\${DEPLOY_ACTION:-} src=\${TW_SRC_SHA:-}"`,
+        "echo done > \"$TW_DIR/stub-done\"",
+        "exit \"${STUB_RC:-0}\"",
+        "",
+      ].join("\n"),
     );
     git(origin, "add", "-A");
     git(origin, "commit", "-qm", name);
@@ -576,6 +593,7 @@ test("entry: 허용 형식 밖의 명령은 부작용 전에 종료 2", () => {
       `deploy ${SHA.toUpperCase()} web`,
       `deploy $(id) web`,
       `sync ${SHA} web`,
+      `sync ${SHA}`, // sync 는 대상 sha 를 받지 않는다
       "pin web aaaaaaaa", // pin 은 사람(일반 ssh) 전용
       "ops-status; id",
       "ops-status\nid",
@@ -599,7 +617,7 @@ test("entry: status 는 현재 체크아웃의 deploy.sh 를 잠금 없이 auto 
   try {
     const result = box.entry("status");
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout.trim(), "STUB A args=status mode=auto lock= action=");
+    assert.equal(result.stdout.trim(), "STUB A args=status mode=auto lock= action= src=");
   } finally {
     box.cleanup();
   }
@@ -626,13 +644,77 @@ test("entry: ops-status 는 상태 JSON 만 출력하고 잠금·체크아웃·d
   }
 });
 
-test("entry: deploy 는 main 의 정확한 sha 로 체크아웃한 뒤 그 sha 의 deploy.sh 를 실행한다", () => {
-  const { box, b, head } = entryFixture();
+test("entry: deploy 는 대상 sha 가 main 에 있는지 확인한 뒤 최신 main 의 deploy.sh 에 sha 를 데이터로 넘긴다", () => {
+  const { box, a, b, head } = entryFixture();
   try {
-    const result = box.entry(`deploy ${b} backend web --migrate`);
+    // 옛 커밋 A 로 되돌려도 실행되는 배포 코드는 최신 main(B)의 것이다.
+    const result = box.entry(`deploy ${a} backend web`);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout.trim(), `STUB B args=deploy ${b} backend web --migrate mode=auto lock=1 action=`);
+    assert.equal(result.stdout.trim(), `STUB B args=deploy ${a} backend web mode=auto lock=1 action= src=${b}`);
     assert.equal(head(), b);
+    // 출력은 VM 의 실행 기록에도 남는다.
+    const runs = readdirSync(path.join(box.tw, "deploy-runs"));
+    const logName = runs.find((name) => name.endsWith(".log"));
+    assert.ok(logName, runs.join(","));
+    assert.match(readFileSync(path.join(box.tw, "deploy-runs", logName), "utf8"), /STUB B args=deploy/);
+    assert.equal(readFileSync(path.join(box.tw, "deploy-runs", logName.replace(/\.log$/, ".rc")), "utf8").trim(), "0");
+  } finally {
+    box.cleanup();
+  }
+});
+
+test("entry: --migrate 는 migration 전용 키(TW_ALLOW_MIGRATE=1)로만 받는다", () => {
+  const { box, b } = entryFixture();
+  try {
+    const denied = box.entry(`deploy ${b} backend --migrate`);
+    assert.equal(denied.status, 2);
+    assert.match(denied.stderr, /migration 전용 키/);
+    assert.doesNotMatch(denied.stdout, /STUB/);
+    const allowed = box.entry(`deploy ${b} backend --migrate`, { TW_ALLOW_MIGRATE: "1" });
+    assert.equal(allowed.status, 0, allowed.stderr);
+    assert.match(allowed.stdout, new RegExp(`STUB B args=deploy ${b} backend --migrate`));
+  } finally {
+    box.cleanup();
+  }
+});
+
+test("entry: deploy.sh 의 종료 코드를 그대로 돌려준다 (rollback·sync 도 최신 main 코드)", () => {
+  const { box, b } = entryFixture();
+  try {
+    const restored = box.entry(`deploy ${b} web`, { STUB_RC: "5" });
+    assert.equal(restored.status, 5);
+    const rollback = box.entry("rollback");
+    assert.equal(rollback.status, 0, rollback.stderr);
+    assert.match(rollback.stdout, new RegExp(`STUB B args=rollback .* src=${b}`));
+    const sync = box.entry("sync");
+    assert.equal(sync.status, 0, sync.stderr);
+    assert.match(sync.stdout, /STUB B args=sync mode=auto lock=1/);
+  } finally {
+    box.cleanup();
+  }
+});
+
+test("entry: ssh 가 끊겨(HUP) 진입점이 죽어도 떼어 낸 deploy.sh 는 끝까지 돌고 결과를 남긴다", async () => {
+  const { box, b } = entryFixture();
+  try {
+    const child = spawn("bash", [ENTRY_SH], {
+      env: box.env({ SSH_ORIGINAL_COMMAND: `deploy ${b} web`, STUB_SLEEP: "1.5" }),
+      detached: true, // 진입점을 프로세스 그룹 우두머리로 — 그룹 전체에 HUP 을 보낸다(sshd 와 같은 효과)
+      stdio: "ignore",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    process.kill(-child.pid, "SIGHUP");
+    const done = path.join(box.tw, "stub-done");
+    for (let i = 0; i < 50 && !existsSync(done); i++) await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.ok(existsSync(done), "떼어 낸 deploy.sh 가 HUP 으로 같이 죽었다");
+    const runDir = path.join(box.tw, "deploy-runs");
+    let rcName;
+    for (let i = 0; i < 20 && !rcName; i++) {
+      rcName = readdirSync(runDir).find((name) => name.endsWith(".rc"));
+      if (!rcName) await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    assert.ok(rcName, "결과 코드 파일이 없다");
+    assert.equal(readFileSync(path.join(runDir, rcName), "utf8").trim(), "0");
   } finally {
     box.cleanup();
   }
