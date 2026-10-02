@@ -1,0 +1,44 @@
+name: GHCR cleanup
+
+# release.yml 은 main push 마다 truewords-{backend,admin,web}:<sha12> 를 GHCR 에 올린다.
+# 보존 상한이 없으면 레지스트리가 끝없이 자란다(VM 디스크 GC 와 같은 이유 — prune-images.sh).
+#
+# - 패키지마다 태그 달린 최신 15개를 남긴다. 운영 롤백은 VM 에 남은 이미지(현재+직전)로 하므로
+#   GHCR 에서 오래된 태그가 지워져도 롤백이 막히지 않는다. 그보다 오래된 커밋을 다시 배포하면
+#   release.yml 이 그 sha 를 다시 빌드한다.
+# - 태그 없는 매니페스트는 dataaxiom/ghcr-cleanup-action 으로 지운다. 이 액션은 멀티 아키텍처
+#   인덱스·attestation(provenance) 하위 매니페스트를 부모 태그와 묶어 판단한다.
+#   actions/delete-package-versions 의 untagged 삭제는 그 하위 매니페스트를 "태그 없음" 으로 보고
+#   지워 태그 달린 이미지를 깨뜨리므로 쓰지 않는다.
+# - 수동 실행은 기본 dry-run 이다. 예약 실행도 저장소 Variable GHCR_CLEANUP_ENABLED=true 를
+#   넣기 전까지는 dry-run 이다 — 첫 수동 dry-run 결과를 확인한 뒤 켠다.
+
+on:
+  schedule:
+    # 매주 월 04:45 KST (일 19:45 UTC) — VM prune-images(04:15 KST) 뒤.
+    - cron: "45 19 * * 0"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "삭제하지 않고 대상만 출력"
+        required: false
+        default: true
+        type: boolean
+
+permissions: {}
+
+jobs:
+  cleanup:
+    name: Prune old images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      packages: write
+    steps:
+      - uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
+        with:
+          packages: truewords-backend,truewords-admin,truewords-web
+          keep-n-tagged: 15
+          delete-untagged: true
+          delete-orphaned-images: true
+          dry-run: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) || (github.event_name == 'schedule' && vars.GHCR_CLEANUP_ENABLED != 'true') }}

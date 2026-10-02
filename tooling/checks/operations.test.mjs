@@ -114,3 +114,35 @@ test("롤백 보존 파일 읽기 실패 시 실제 삭제 전에 GC를 중단",
     rmSync(temporary, { recursive: true, force: true });
   }
 });
+
+test("이미지 GC 는 배포 잠금이 점유돼 있으면 docker 를 건드리지 않고 건너뛴다 (deploy.sh 자식이면 진행)", () => {
+  const temporary = mkdtempSync(path.join(tmpdir(), "truewords-gc-lock-"));
+  const source = readFileSync(new URL("../../infra/oracle-vm/prune-images.sh", import.meta.url), "utf8");
+  const run = (extraEnv) =>
+    spawnSync(
+      "bash",
+      [
+        "-c",
+        `
+      flock() { return 1; }
+      df() { printf 'used\\n1000000\\n'; }
+      sudo() { echo DOCKER_CALLED; return 0; }
+      ${source}
+    `,
+      ],
+      {
+        encoding: "utf8",
+        env: { ...process.env, TW_DIR: temporary, DRY_RUN: "1", PRESERVE_IMAGES_FILE: "/nonexistent", ...extraEnv },
+      },
+    );
+  try {
+    const busy = run({ TW_DEPLOY_LOCK_HELD: "" });
+    assert.equal(busy.status, 0, busy.stderr);
+    assert.match(busy.stdout, /잠금 점유\) — 이번 GC 는 건너뛴다/);
+    assert.doesNotMatch(busy.stdout, /이미지 GC 시작/);
+    const held = run({ TW_DEPLOY_LOCK_HELD: "1" });
+    assert.match(held.stdout, /이미지 GC 시작/);
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+});

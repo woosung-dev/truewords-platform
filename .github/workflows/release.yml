@@ -1,0 +1,695 @@
+name: Release
+
+# main 에 들어간 커밋을 arm64 이미지로 만들어 GHCR 에 올리고, 승인되면 Oracle VM 에 배포한다.
+# 결정: docs/adr/2026-10-02-gha-deploy-pipeline.md · 설정·운영: infra/oracle-vm/README.md §배포와 롤백
+#
+#   CI(main push) 성공 ─ workflow_run ─▶ meta ─▶ build ×3 (이미지·오프라인 검사)
+#   Run workflow(deploy=true) ─────────▶ meta ─▶ build ×3 ─▶ deploy [production 승인]
+#                                                             └▶ deploy-migrate [production-migrate 승인]
+#
+# 신뢰 경계: workflow_run 은 기본 브랜치의 이 파일로 돌고, main push 로 돈 CI 성공만 받는다.
+# PR 코드는 체크아웃하지 않는다. 배포 키는 production 환경 secret 이라 승인 없이는 읽히지 않는다.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "배포할 main 커밋 (비우면 실행 시점의 main)"
+        required: false
+        default: ""
+        type: string
+      deploy:
+        description: "이미지 빌드 뒤 운영에 배포 (production 승인 필요)"
+        required: false
+        default: false
+        type: boolean
+      rollback:
+        description: "운영보다 오래된 커밋으로 의도적으로 되돌림 (후퇴 검사 생략)"
+        required: false
+        default: false
+        type: boolean
+
+permissions: {}
+
+env:
+  IMAGE_PREFIX: ghcr.io/woosung-dev/truewords
+
+jobs:
+  meta:
+    name: Resolve commit
+    # main push 로 돈 CI 가 성공했을 때, 또는 main 에서 수동 실행했을 때만.
+    # PR 의 CI 는 event=pull_request 라 여기서 걸러진다. 저장소 비교는 포크가 같은 브랜치 이름을 써도 막는다.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      tag: ${{ steps.resolve.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve sha and image tag
+        id: resolve
+        env:
+          EVENT: ${{ github.event_name }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          INPUT_SHA: ${{ inputs.sha }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = workflow_run ]; then
+            want="$RUN_SHA"
+          elif [ -n "$INPUT_SHA" ]; then
+            want="$INPUT_SHA"
+          else
+            want="$DISPATCH_SHA"
+          fi
+          [[ $want =~ ^[0-9a-f]{7,40}$ ]] || { echo "::error::sha 형식이 아니다: ${want}"; exit 1; }
+          sha=$(git rev-parse --verify --quiet "${want}^{commit}") || { echo "::error::커밋을 찾을 수 없다: ${want}"; exit 1; }
+          git merge-base --is-ancestor "$sha" origin/main || { echo "::error::${sha} 는 main 에 없다"; exit 1; }
+          # 태그는 12자 — 7~8자 short sha 는 커밋이 늘면 모호해질 수 있고, git 이 그대로 해석할 수 있어야
+          # deploy-services 의 조상 검사가 성립한다.
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "tag=${sha:0:12}" >> "$GITHUB_OUTPUT"
+          echo "### ${sha:0:12} — $(git log -1 --format=%s "$sha")" >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Image (${{ matrix.service }})
+    needs: meta
+    # 네이티브 arm64 러너(공개 레포 무료). QEMU 에뮬레이션을 쓰지 않는다.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, admin, web]
+    env:
+      SERVICE: ${{ matrix.service }}
+      SHA: ${{ needs.meta.outputs.sha }}
+      TAG: ${{ needs.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.sha }}
+          persist-credentials: false
+
+      # 빌드 인자는 커밋된 infra/oracle-vm/build-args.env 가 원본이다(공개 값). 시연 관리자 이메일만
+      # 저장소 Variable 이다 — 번들에 구워져 공개되지만 소스에 하드코딩하지 않는다(ADR 2026-09-05 D6).
+      # GHCR 이미지는 공개이므로 secret 을 넣지 않는다.
+      - name: Build arguments
+        id: args
+        env:
+          DEMO_ADMIN_EMAIL: ${{ vars.DEMO_ADMIN_EMAIL }}
+        run: |
+          set -euo pipefail
+          file=infra/oracle-vm/build-args.env
+          common="NEXT_PUBLIC_API_URL NEXT_PUBLIC_WEB_URL NEXT_PUBLIC_ADMIN_URL"
+          case "$SERVICE" in
+            backend) keys="" ;;
+            admin) keys="$common" ;;
+            web) keys="$common NEXT_PUBLIC_HOONDOK_ENABLED NEXT_PUBLIC_HOONDOK_TOGETHER NEXT_PUBLIC_HOONDOK_CARDS" ;;
+          esac
+          args=""
+          for key in $keys; do
+            value=$(sed -n "s/^${key}=//p" "$file" | tail -1)
+            [ -n "$value" ] || { echo "::error::${file} 에 ${key} 가 비어 있다"; exit 1; }
+            [[ $value =~ ^[A-Za-z0-9:/._-]+$ ]] || { echo "::error::${key} 값에 허용되지 않은 문자가 있다"; exit 1; }
+            args+="${key}=${value}"$'\n'
+          done
+          if [ "$SERVICE" = admin ]; then
+            [ -n "$DEMO_ADMIN_EMAIL" ] || { echo "::error::저장소 Variable DEMO_ADMIN_EMAIL 이 비어 있다 — 비우면 모든 계정이 access-denied 다"; exit 1; }
+            [[ $DEMO_ADMIN_EMAIL =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+$ ]] || { echo "::error::DEMO_ADMIN_EMAIL 형식 오류"; exit 1; }
+            args+="NEXT_PUBLIC_DEMO_ADMIN_EMAIL=${DEMO_ADMIN_EMAIL}"$'\n'
+          fi
+          # 같은 태그를 다른 인자로 다시 만들지 않는다. 인자 지문을 라벨로 남겨 기존 이미지와 대조한다.
+          config=$(printf '%s' "$args" | sha256sum | cut -c1-16)
+          {
+            echo "config=${config}"
+            echo "args<<__BUILD_ARGS__"
+            printf '%s' "$args"
+            echo "__BUILD_ARGS__"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Skip if the tag already exists
+        id: exists
+        run: |
+          if docker buildx imagetools inspect "${IMAGE_PREFIX}-${SERVICE}:${TAG}" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::${IMAGE_PREFIX}-${SERVICE}:${TAG} 가 이미 있어 빌드하지 않는다 (검사는 그대로 돈다)"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push
+        if: steps.exists.outputs.exists != 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ${{ matrix.service == 'backend' && 'apps/api/Dockerfile' || format('apps/{0}/Dockerfile', matrix.service) }}
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:${{ needs.meta.outputs.tag }}
+          build-args: ${{ steps.args.outputs.args }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ needs.meta.outputs.sha }}
+            org.opencontainers.image.title=truewords-${{ matrix.service }}
+            dev.truewords.build-config=${{ steps.args.outputs.config }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,scope=${{ matrix.service }},mode=max
+
+      # 태그가 이미 있어 빌드를 건너뛴 경우에도 항상 돈다 — "있다" 와 "맞다" 는 다르다.
+      # 네트워크 없이(--network none) 실행해 외부 의존 없이 이미지 자체만 본다.
+      - name: Probe image offline
+        env:
+          CONFIG: ${{ steps.args.outputs.config }}
+          DEMO_ADMIN_EMAIL: ${{ vars.DEMO_ADMIN_EMAIL }}
+        run: |
+          set -euo pipefail
+          image="${IMAGE_PREFIX}-${SERVICE}:${TAG}"
+          docker pull -q "$image" > /dev/null
+          label() { docker image inspect -f "{{ index .Config.Labels \"$1\" }}" "$image"; }
+          [ "$(label org.opencontainers.image.revision)" = "$SHA" ] \
+            || { echo "::error::${image} 의 revision 라벨이 ${SHA} 가 아니다"; exit 1; }
+          [ "$(label dev.truewords.build-config)" = "$CONFIG" ] \
+            || { echo "::error::${image} 는 지금과 다른 빌드 인자로 만들어졌다(DEMO_ADMIN_EMAIL 변경 등). 태그는 덮어쓰지 않는다 — 새 커밋으로 배포한다"; exit 1; }
+          file=infra/oracle-vm/build-args.env
+          arg() { sed -n "s/^$1=//p" "$file" | tail -1; }
+          case "$SERVICE" in
+            backend)
+              # Makefile 의 기존 게이트(dev-log 41~42: runtime 에 바이너리 누락) + 앱 import.
+              docker run --rm --network none --entrypoint sh "$image" \
+                -c 'alembic --version && uvicorn --version && test -s /app/ALEMBIC_EXPECTED_HEAD && echo "head $(cat /app/ALEMBIC_EXPECTED_HEAD)"'
+              docker run --rm --network none -e GEMINI_API_KEY=offline-probe --entrypoint python "$image" \
+                -c 'from app.main import app; assert app.openapi()["paths"]; print("app import OK")'
+              ;;
+            web | admin)
+              # rewrites 와 앱 간 origin 은 빌드 때 구워진다(README §web/admin 빌드의 build-arg).
+              if [ "$SERVICE" = web ]; then other=$(arg NEXT_PUBLIC_ADMIN_URL); else other=$(arg NEXT_PUBLIC_WEB_URL); fi
+              docker run --rm --network none -e APP="$SERVICE" -e API="$(arg NEXT_PUBLIC_API_URL)" -e ORIGIN="$other" \
+                -e EMAIL="$([ "$SERVICE" = admin ] && echo "$DEMO_ADMIN_EMAIL")" --entrypoint sh "$image" -c '
+                  set -e
+                  test -f "apps/$APP/server.js"
+                  grep -qF "$API" "apps/$APP/.next/routes-manifest.json" || { echo "rewrite 목적지 $API 없음"; exit 1; }
+                  grep -rqF "$ORIGIN" "apps/$APP/.next" || { echo "origin $ORIGIN 이 빌드에 없음"; exit 1; }
+                  [ -z "$EMAIL" ] || grep -rqF "$EMAIL" "apps/$APP/.next/static" || { echo "시연 관리자 게이트가 번들에 없음"; exit 1; }
+                  echo "build args OK"'
+              ;;
+          esac
+
+  deploy:
+    name: Deploy
+    needs: [meta, build]
+    # ── 단계적 자동화 ────────────────────────────────────────────────────────
+    # 지금은 수동 실행(Actions → Release → Run workflow, deploy=true)만 배포한다.
+    # main 머지마다 배포로 바꿀 때는 아래 if 한 줄을 그 다음 주석 줄로 바꾼다.
+    # 어느 쪽이든 production 환경 승인(필수 검토자)은 그대로 걸린다.
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy
+    # if: github.event_name == 'workflow_run' || (github.event_name == 'workflow_dispatch' && inputs.deploy)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: production
+    # 같은 그룹에는 대기 중인 job 이 하나만 남는다(새 대기가 옛 대기를 조용히 취소한다).
+    # 그래서 deploy-migrate 는 다른 그룹이다 — 한 실행의 migration 승인 대기가 다른 실행의 배포를
+    # 취소하지 않게. 두 job 이 동시에 VM 에 닿는 것은 VM 잠금(종료 4 → 알림, 다시 실행)이 막는다.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    # 실패한 job 의 outputs 도 다음 job(alert)에서 읽힌다 — 알림 본문의 근거.
+    outputs:
+      needs_migrate: ${{ steps.deploy.outputs.needs_migrate }}
+      services: ${{ steps.plan.outputs.services }}
+      failed_step: ${{ steps.outcome.outputs.failed_step }}
+      rollback: ${{ steps.outcome.outputs.rollback }}
+    env:
+      SHA: ${{ needs.meta.outputs.sha }}
+      TAG: ${{ needs.meta.outputs.tag }}
+      ROLLBACK: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      # 러너 쪽 배포 도구(ssh 설정 action·배포 계획)는 늘 최신 main 의 것을 쓴다 — VM 진입점이 최신 main 의
+      # deploy.sh 를 돌리는 것과 같은 규칙. 대상 sha 가 이 파이프라인 이전 커밋이어도(되돌리기) 동작하고,
+      # 도구의 수정이 바로 적용된다. build-args.env·smoke.sh 는 그 이미지를 만든 대상 sha 의 것을 쓴다.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          path: .deploy-tooling
+          persist-credentials: false
+          sparse-checkout: |
+            .github/actions/vm-ssh
+            tooling/checks/deploy-services.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: SSH
+        id: ssh
+        uses: ./.deploy-tooling/.github/actions/vm-ssh
+        with:
+          # 주소·호스트 키는 환경 secret — 공개 저장소의 Actions 로그에서 마스킹된다.
+          host: ${{ secrets.DEPLOY_HOST }}
+          user: ${{ vars.DEPLOY_USER }}
+          port: ${{ vars.DEPLOY_PORT || '22' }}
+          host-key: ${{ secrets.DEPLOY_HOST_KEY }}
+          ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Current production tags
+        id: status
+        run: |
+          set -euo pipefail
+          ssh deploy-target status | tee "$RUNNER_TEMP/status.env"
+
+      # 서비스별로 "운영 태그 → 이 sha" 사이에 그 이미지에 들어가는 파일이 바뀌었는지 본다.
+      # 운영 태그가 이 sha 의 조상이 아니면(후퇴) rollback=true 없이는 멈춘다 — 옛 deploy-guard 와 같은 규칙.
+      - name: Plan
+        id: plan
+        run: |
+          set -euo pipefail
+          flags=()
+          [ "$ROLLBACK" = true ] && flags+=(--rollback)
+          node .deploy-tooling/tooling/checks/deploy-services.mjs --sha "$SHA" --status "$RUNNER_TEMP/status.env" "${flags[@]}"
+
+      - name: Deploy
+        id: deploy
+        env:
+          SERVICES: ${{ steps.plan.outputs.services }}
+          SYNC: ${{ steps.plan.outputs.sync }}
+        run: |
+          set -uo pipefail
+          if [ -n "$SERVICES" ]; then
+            rc=0
+            # shellcheck disable=SC2029 # 원격 명령은 러너에서 만든다(검증된 sha·서비스명)
+            ssh deploy-target "deploy ${SHA} ${SERVICES}" || rc=$?
+            echo "rc=${rc}" >> "$GITHUB_OUTPUT"
+            case "$rc" in
+              0) echo "deployed=true" >> "$GITHUB_OUTPUT" ;;
+              3)
+                echo "needs_migrate=true" >> "$GITHUB_OUTPUT"
+                echo "::notice::DB migration 이 필요하다 — 아무것도 바꾸지 않았다. deploy-migrate(production-migrate 승인)로 이어진다"
+                ;;
+              4) echo "::error::VM 에서 다른 배포가 진행 중이다 (잠금)"; exit 1 ;;
+              5) echo "::error::교체 후 검사 실패 — VM 이 이전 태그로 복구했다"; exit 1 ;;
+              6) echo "::error::교체 후 검사 실패, 복구도 실패 — 즉시 VM 확인 (make oracle-logs)"; exit 1 ;;
+              255) echo "::error::ssh 연결이 끊겼다 — VM 에서는 배포가 끝까지 돌았을 수 있다. ~/truewords/deploy-runs 의 최근 로그와 status 를 확인한다"; exit 1 ;;
+              7 | 12[89] | 1[3-9][0-9] | 2[0-4][0-9] | 25[0-4])
+                echo "::error::배포 결과를 알 수 없다 (종료 ${rc}) — VM 에서 교체가 일부 됐을 수 있다. ~/truewords/deploy-runs 의 최근 로그와 status 를 확인한다"; exit 1 ;;
+              *) echo "::error::배포 실패 (종료 ${rc}) — 서비스는 교체되지 않았거나 위 로그를 확인"; exit 1 ;;
+            esac
+          elif [ "$SYNC" = true ]; then
+            # VM 은 늘 최신 main 의 파일로 맞춘다(대상 sha 를 넘기지 않는다).
+            ssh deploy-target sync
+          else
+            echo "::notice::이미지가 바뀐 서비스가 없고 VM 파일도 최신이다 — 배포할 것이 없다"
+          fi
+
+      - name: Verify and smoke
+        id: verify
+        if: steps.deploy.outputs.deployed == 'true'
+        env:
+          SERVICES: ${{ steps.plan.outputs.services }}
+        run: |
+          set -uo pipefail
+          # ssh 가 잠깐 끊긴 것을 "배포가 틀렸다" 로 읽고 롤백하면 멀쩡한 배포를 되돌린다.
+          # 세 번 다 못 읽으면 판단하지 않고(롤백 없이) 실패로 남긴다.
+          read_ok=0
+          for attempt in 1 2 3; do
+            if ssh deploy-target status > "$RUNNER_TEMP/after.env" && grep -q '^LAST_STATUS=' "$RUNNER_TEMP/after.env"; then
+              read_ok=1
+              break
+            fi
+            sleep 10
+          done
+          if [ "$read_ok" != 1 ]; then
+            echo "rollback=unverified" >> "$GITHUB_OUTPUT"
+            echo "::error::배포 뒤 VM 상태를 읽지 못했다(ssh) — 롤백하지 않았다. 사람이 status·공개 URL 을 확인한다"
+            exit 1
+          fi
+          ok=1
+          for svc in $SERVICES; do
+            key="$(echo "$svc" | tr '[:lower:]' '[:upper:]')_TAG"
+            got=$(sed -n "s/^${key}=//p" "$RUNNER_TEMP/after.env")
+            [ "$got" = "$TAG" ] || { echo "::error::${svc} 운영 태그 '${got}' ≠ ${TAG}"; ok=0; }
+          done
+          file=infra/oracle-vm/build-args.env
+          arg() { sed -n "s/^$1=//p" "$file" | tail -1; }
+          if [ "$ok" = 1 ]; then
+            ok=0
+            # 교체 직후 Next 첫 요청 지연에 흔들리지 않게 세 번까지 본다.
+            for attempt in 1 2 3; do
+              if SMOKE_CACHE_BUST="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}" bash infra/oracle-vm/smoke.sh \
+                   --url "$(arg NEXT_PUBLIC_WEB_URL)" --admin-url "$(arg NEXT_PUBLIC_ADMIN_URL)" \
+                   --hoondok "$(arg NEXT_PUBLIC_HOONDOK_ENABLED)"; then
+                ok=1
+                break
+              fi
+              sleep 15
+            done
+          fi
+          if [ "$ok" != 1 ]; then
+            echo "::error::배포 후 검증 실패 — 이전 태그로 롤백한다"
+            rc=0
+            ssh deploy-target rollback || rc=$?
+            if [ "$rc" = 0 ]; then
+              echo "rollback=succeeded" >> "$GITHUB_OUTPUT"
+              echo "::error::롤백 완료 — 원인을 고친 뒤 다시 배포한다"
+            else
+              echo "rollback=failed" >> "$GITHUB_OUTPUT"
+              echo "::error::롤백도 실패 (종료 ${rc}) — 즉시 VM 확인"
+            fi
+            exit 1
+          fi
+
+      # 어느 단계에서 멈췄고 운영이 어떤 상태로 남았는지 — alert job 이 이슈 본문에 쓴다.
+      - name: Outcome
+        id: outcome
+        if: always()
+        env:
+          O_SSH: ${{ steps.ssh.outcome }}
+          O_STATUS: ${{ steps.status.outcome }}
+          O_PLAN: ${{ steps.plan.outcome }}
+          O_DEPLOY: ${{ steps.deploy.outcome }}
+          O_VERIFY: ${{ steps.verify.outcome }}
+          DEPLOY_RC: ${{ steps.deploy.outputs.rc }}
+          JOB_STATUS: ${{ job.status }}
+          VERIFY_ROLLBACK: ${{ steps.verify.outputs.rollback }}
+        run: |
+          failed=""
+          for pair in "ssh:$O_SSH" "status:$O_STATUS" "plan:$O_PLAN" "deploy:$O_DEPLOY" "verify-smoke:$O_VERIFY"; do
+            case "${pair#*:}" in
+              failure) failed="${pair%%:*}"; break ;;
+              cancelled) failed="${pair%%:*}(취소됨)"; break ;;
+            esac
+          done
+          [ -n "$failed" ] || [ "$JOB_STATUS" = success ] || failed="준비 단계(checkout·setup-node)"
+          case "${failed}:${DEPLOY_RC}" in
+            "deploy(취소됨)":*) rollback="알 수 없음 — 실행이 취소됐지만 VM 의 배포는 끝까지 돌았을 수 있다. deploy-runs 로그·status 확인" ;;
+            deploy:5) rollback="VM 이 자동 복구함 (deploy.sh 종료 5)" ;;
+            deploy:6) rollback="자동 복구 실패 (deploy.sh 종료 6) — 즉시 확인" ;;
+            deploy:255) rollback="알 수 없음 — ssh 가 끊겼고 VM 의 배포는 계속됐을 수 있다. deploy-runs 로그·status 확인" ;;
+            deploy:7 | deploy:12[89] | deploy:1[3-9][0-9] | deploy:2[0-4][0-9] | deploy:25[0-4]) rollback="알 수 없음 — 결과 코드 없이 끝났다 (종료 ${DEPLOY_RC}). deploy-runs 로그·status 확인" ;;
+            deploy:*) rollback="해당 없음 — 서비스는 교체되지 않음 (종료 ${DEPLOY_RC:-?})" ;;
+            verify-smoke*)
+              case "$VERIFY_ROLLBACK" in
+                succeeded) rollback="스모크 실패 후 rollback 성공" ;;
+                unverified) rollback="안 함 — 배포 뒤 VM 상태를 읽지 못했다(ssh). 운영은 새 태그일 수 있다" ;;
+                *) rollback="스모크 실패 후 rollback 실패 또는 미완료 — 즉시 확인" ;;
+              esac ;;
+            :*) rollback="" ;;
+            *) rollback="해당 없음 — VM 에 아무것도 바꾸지 않음" ;;
+          esac
+          { echo "failed_step=${failed}"; echo "rollback=${rollback}"; } >> "$GITHUB_OUTPUT"
+
+  deploy-migrate:
+    name: Deploy with DB migration
+    needs: [meta, deploy]
+    if: needs.deploy.outputs.needs_migrate == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    # 별도 환경 = 별도 승인. "코드 배포 승인" 이 "스키마 변경 승인" 을 겸하지 않게 한다.
+    environment: production-migrate
+    concurrency:
+      group: deploy-production-migrate
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    outputs:
+      services: ${{ steps.plan.outputs.services }}
+      failed_step: ${{ steps.outcome.outputs.failed_step }}
+      rollback: ${{ steps.outcome.outputs.rollback }}
+    env:
+      SHA: ${{ needs.meta.outputs.sha }}
+      TAG: ${{ needs.meta.outputs.tag }}
+      ROLLBACK: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      # 러너 쪽 배포 도구(ssh 설정 action·배포 계획)는 늘 최신 main 의 것을 쓴다 — VM 진입점이 최신 main 의
+      # deploy.sh 를 돌리는 것과 같은 규칙. 대상 sha 가 이 파이프라인 이전 커밋이어도(되돌리기) 동작하고,
+      # 도구의 수정이 바로 적용된다. build-args.env·smoke.sh 는 그 이미지를 만든 대상 sha 의 것을 쓴다.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          path: .deploy-tooling
+          persist-credentials: false
+          sparse-checkout: |
+            .github/actions/vm-ssh
+            tooling/checks/deploy-services.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: SSH
+        id: ssh
+        uses: ./.deploy-tooling/.github/actions/vm-ssh
+        with:
+          # 주소·호스트 키는 환경 secret — 공개 저장소의 Actions 로그에서 마스킹된다.
+          host: ${{ secrets.DEPLOY_HOST }}
+          user: ${{ vars.DEPLOY_USER }}
+          port: ${{ vars.DEPLOY_PORT || '22' }}
+          host-key: ${{ secrets.DEPLOY_HOST_KEY }}
+          ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      # 승인을 기다리는 사이 다른 배포가 끼었을 수 있어 계획을 다시 세운다.
+      - name: Re-plan
+        id: plan
+        run: |
+          set -euo pipefail
+          ssh deploy-target status | tee "$RUNNER_TEMP/status.env"
+          flags=()
+          [ "$ROLLBACK" = true ] && flags+=(--rollback)
+          node .deploy-tooling/tooling/checks/deploy-services.mjs --sha "$SHA" --status "$RUNNER_TEMP/status.env" "${flags[@]}"
+
+      # migration 이 돈 배포는 자동 롤백하지 않는다 — 이전 backend 이미지는 새 revision 을 몰라 기동하지 못한다.
+      - name: Deploy with --migrate
+        id: deploy
+        env:
+          SERVICES: ${{ steps.plan.outputs.services }}
+        run: |
+          set -uo pipefail
+          case " $SERVICES " in
+            *" backend "*) ;;
+            *) echo "::error::다시 세운 계획에 backend 가 없다 (${SERVICES:-없음}) — 상황이 바뀌었으니 처음부터 다시 실행한다"; exit 1 ;;
+          esac
+          rc=0
+          # shellcheck disable=SC2029 # 원격 명령은 러너에서 만든다(검증된 sha·서비스명)
+          ssh deploy-target "deploy ${SHA} ${SERVICES} --migrate" || rc=$?
+          echo "rc=${rc}" >> "$GITHUB_OUTPUT"
+          case "$rc" in
+            0) echo "deployed=true" >> "$GITHUB_OUTPUT" ;;
+            4) echo "::error::VM 에서 다른 배포가 진행 중이다 (잠금) — 끝난 뒤 다시 실행한다"; exit 1 ;;
+            5) echo "::error::migration 없이 끝난 교체가 검사에 실패해 이전 태그로 복구했다"; exit 1 ;;
+            255) echo "::error::ssh 연결이 끊겼다 — VM 에서는 migration 배포가 끝까지 돌았을 수 있다. deploy-runs 로그·status 확인"; exit 1 ;;
+            7 | 12[89] | 1[3-9][0-9] | 2[0-4][0-9] | 25[0-4])
+              echo "::error::migration 배포 결과를 알 수 없다 (종료 ${rc}) — ~/truewords/deploy-runs 의 최근 로그와 status 를 확인한다"; exit 1 ;;
+            *) echo "::error::migration 배포 실패 (종료 ${rc}) — 자동 롤백하지 않는다. VM deploy.log·백업을 확인한다 (README §배포와 롤백)"; exit 1 ;;
+          esac
+
+      - name: Verify and smoke
+        id: verify
+        if: steps.deploy.outputs.deployed == 'true'
+        env:
+          SERVICES: ${{ steps.plan.outputs.services }}
+        run: |
+          set -uo pipefail
+          read_ok=0
+          for attempt in 1 2 3; do
+            if ssh deploy-target status > "$RUNNER_TEMP/after.env" && grep -q '^LAST_STATUS=' "$RUNNER_TEMP/after.env"; then
+              read_ok=1
+              break
+            fi
+            sleep 10
+          done
+          [ "$read_ok" = 1 ] || { echo "::error::배포 뒤 VM 상태를 읽지 못했다(ssh) — 사람이 status·공개 URL 을 확인한다"; exit 1; }
+          for svc in $SERVICES; do
+            key="$(echo "$svc" | tr '[:lower:]' '[:upper:]')_TAG"
+            got=$(sed -n "s/^${key}=//p" "$RUNNER_TEMP/after.env")
+            [ "$got" = "$TAG" ] || { echo "::error::${svc} 운영 태그 '${got}' ≠ ${TAG}"; exit 1; }
+          done
+          file=infra/oracle-vm/build-args.env
+          arg() { sed -n "s/^$1=//p" "$file" | tail -1; }
+          for attempt in 1 2 3; do
+            if SMOKE_CACHE_BUST="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}" bash infra/oracle-vm/smoke.sh \
+                 --url "$(arg NEXT_PUBLIC_WEB_URL)" --admin-url "$(arg NEXT_PUBLIC_ADMIN_URL)" \
+                 --hoondok "$(arg NEXT_PUBLIC_HOONDOK_ENABLED)"; then
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::migration 배포 후 스모크 실패 — 자동 롤백하지 않는다. 사람이 판단한다 (README §배포와 롤백)"
+          exit 1
+
+      - name: Outcome
+        id: outcome
+        if: always()
+        env:
+          O_SSH: ${{ steps.ssh.outcome }}
+          O_PLAN: ${{ steps.plan.outcome }}
+          O_DEPLOY: ${{ steps.deploy.outcome }}
+          O_VERIFY: ${{ steps.verify.outcome }}
+          DEPLOY_RC: ${{ steps.deploy.outputs.rc }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          failed=""
+          for pair in "ssh:$O_SSH" "re-plan:$O_PLAN" "deploy-migrate:$O_DEPLOY" "verify-smoke:$O_VERIFY"; do
+            case "${pair#*:}" in
+              failure) failed="${pair%%:*}"; break ;;
+              cancelled) failed="${pair%%:*}(취소됨)"; break ;;
+            esac
+          done
+          [ -n "$failed" ] || [ "$JOB_STATUS" = success ] || failed="준비 단계(checkout·setup-node)"
+          case "${failed}:${DEPLOY_RC}" in
+            "deploy-migrate(취소됨)":* | deploy-migrate:255) rollback="알 수 없음 — VM 의 migration 배포는 끝까지 돌았을 수 있다. deploy-runs 로그·status 확인" ;;
+            deploy-migrate:7 | deploy-migrate:12[89] | deploy-migrate:1[3-9][0-9] | deploy-migrate:2[0-4][0-9] | deploy-migrate:25[0-4]) rollback="알 수 없음 — 결과 코드 없이 끝났다 (종료 ${DEPLOY_RC}). deploy-runs 로그·status 확인" ;;
+            deploy-migrate:4) rollback="해당 없음 — 잠금 점유로 아무것도 바꾸지 않음" ;;
+            deploy-migrate:5) rollback="migration 없이 끝나 VM 이 자동 복구함 (종료 5)" ;;
+            deploy-migrate:*) rollback="자동 롤백 안 함 (migration 정책) — deploy.log·백업 확인 (종료 ${DEPLOY_RC:-?})" ;;
+            verify-smoke:*) rollback="자동 롤백 안 함 (migration 적용됨) — 사람이 판단" ;;
+            :*) rollback="" ;;
+            *) rollback="해당 없음 — VM 에 아무것도 바꾸지 않음" ;;
+          esac
+          { echo "failed_step=${failed}"; echo "rollback=${rollback}"; } >> "$GITHUB_OUTPUT"
+
+  # ── 알림 ─────────────────────────────────────────────────────────────────
+  # 1차 채널은 GitHub Issue 다 — 새 이슈는 저장소 소유자에게 메일로 간다(별도 앱·secret 불필요).
+  # 실패하면 `[deploy-alert]` 이슈를 열거나(열린 것이 있으면 댓글), 다음 배포가 성공하면 닫는다.
+  # 그래서 열린 deploy-alert 는 늘 0개 또는 1개다. ntfy 는 NTFY_TOPIC secret 이 있을 때만 덧붙는다.
+  # 한계: 이 job 도 Actions 위에서 돈다. Actions 자체가 멈추면(청구 차단 등) 이 알림도 없다 —
+  # 그 공백은 VM cron 의 ops-check.sh 가 결과 기준으로 메운다(README §운영 불변식 점검).
+  alert:
+    name: Deploy alert
+    needs: [meta, build, deploy, deploy-migrate]
+    if: always() && needs.meta.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    env:
+      HAS_NTFY: ${{ secrets.NTFY_TOPIC != '' }}
+    steps:
+      - name: Decide
+        id: decide
+        env:
+          BUILD: ${{ needs.build.result }}
+          DEPLOY: ${{ needs.deploy.result }}
+          MIGRATE: ${{ needs.deploy-migrate.result }}
+          NEEDS_MIGRATE: ${{ needs.deploy.outputs.needs_migrate }}
+          D_SERVICES: ${{ needs.deploy.outputs.services }}
+          D_STEP: ${{ needs.deploy.outputs.failed_step }}
+          D_ROLLBACK: ${{ needs.deploy.outputs.rollback }}
+          M_SERVICES: ${{ needs.deploy-migrate.outputs.services }}
+          M_STEP: ${{ needs.deploy-migrate.outputs.failed_step }}
+          M_ROLLBACK: ${{ needs.deploy-migrate.outputs.rollback }}
+          SHA: ${{ needs.meta.outputs.sha }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          EVENT: ${{ github.event_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          kind=""; result=none; services=""; step=""; rollback=""
+          if [ "$BUILD" = failure ]; then
+            result=failure; kind="이미지 빌드"; step="build (Image job 로그 확인)"; rollback="해당 없음 — VM 에 아무것도 바꾸지 않음"
+          # 단계가 하나도 돌지 않은 실패·취소 = 환경 승인 거절·만료, 또는 더 새 실행에 밀려 대기 중 취소.
+          # VM 에 아무것도 하지 않았으니 이슈를 열지 않는다(빈 칸 알림 방지).
+          elif { [ "$DEPLOY" = failure ] || [ "$DEPLOY" = cancelled ]; } && [ -z "$D_STEP" ]; then
+            echo "::notice::배포 job 이 단계 실행 전에 끝났다 (승인 거절·만료 또는 대기 중 취소) — 알림 없음"
+          elif [ "$DEPLOY" = failure ] || [ "$DEPLOY" = cancelled ]; then
+            result=failure; kind="배포"; services="$D_SERVICES"; step="$D_STEP"; rollback="$D_ROLLBACK"
+          elif { [ "$MIGRATE" = failure ] || [ "$MIGRATE" = cancelled ]; } && [ -z "$M_STEP" ]; then
+            echo "::notice::migration 배포가 단계 실행 전에 끝났다 (production-migrate 승인 거절·만료) — 아무것도 바꾸지 않았다, 알림 없음"
+          elif [ "$MIGRATE" = failure ] || [ "$MIGRATE" = cancelled ]; then
+            result=failure; kind="migration 배포"; services="$M_SERVICES"; step="$M_STEP"; rollback="$M_ROLLBACK"
+          elif [ "$DEPLOY" = success ] && { [ "$NEEDS_MIGRATE" != true ] || [ "$MIGRATE" = success ]; }; then
+            result=success; services="${M_SERVICES:-$D_SERVICES}"
+          fi
+          echo "result=${result}" >> "$GITHUB_OUTPUT"
+          [ "$result" = none ] && exit 0
+          {
+            echo "- 결과: **${result}** ${kind}"
+            echo "- 커밋: \`${SHA}\` (태그 \`${TAG}\`)"
+            echo "- 서비스: ${services:-없음}"
+            [ -z "$step" ] || echo "- 멈춘 단계: ${step}"
+            [ -z "$rollback" ] || echo "- 자동 롤백: ${rollback}"
+            echo "- 실행: ${RUN_URL} (${EVENT})"
+            echo "- 시각: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo
+            echo "운영 태그 확인: \`ssh truewords-oracle 'grep _TAG ~/truewords/.env; tail ~/truewords/deploy.log'\`"
+            echo "절차: infra/oracle-vm/README.md §배포와 롤백"
+          } > "$RUNNER_TEMP/alert.md"
+          echo "title=[deploy-alert] ${kind} 실패 ${TAG}" >> "$GITHUB_OUTPUT"
+
+      # cache-cleanup.yml 과 같은 패턴: 열린 alert 가 있으면 댓글, 없으면 새 이슈(라벨이 없으면 라벨 없이).
+      - name: Open or update deploy-alert issue
+        if: steps.decide.outputs.result == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ steps.decide.outputs.title }}
+        run: |
+          set -euo pipefail
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title \
+            --jq '[.[] | select(.title | startswith("[deploy-alert]"))][0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/alert.md"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$RUNNER_TEMP/alert.md" --label deploy-alert 2> /dev/null \
+              || gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$RUNNER_TEMP/alert.md"
+          fi
+
+      - name: Close resolved deploy-alert issues
+        if: steps.decide.outputs.result == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for number in $(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title \
+              --jq '.[] | select(.title | startswith("[deploy-alert]")) | .number'); do
+            gh issue close "$number" --repo "$GITHUB_REPOSITORY" --comment "$(cat "$RUNNER_TEMP/alert.md")"
+          done
+
+      - name: ntfy (optional)
+        if: steps.decide.outputs.result != 'none' && env.HAS_NTFY == 'true'
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          RESULT: ${{ steps.decide.outputs.result }}
+          TAG: ${{ needs.meta.outputs.tag }}
+        run: |
+          prio=default; tags=white_check_mark
+          [ "$RESULT" = success ] || { prio=high; tags=rotating_light; }
+          # Title 헤더는 ASCII 만 안전하다 — 한국어 상세는 본문으로 (ops-check.sh 와 같은 규칙).
+          curl -fsS -m 10 -o /dev/null -H "Title: [truewords] deploy ${RESULT} ${TAG}" \
+            -H "Priority: ${prio}" -H "Tags: ${tags}" --data-binary "@${RUNNER_TEMP}/alert.md" \
+            "https://ntfy.sh/${NTFY_TOPIC}" || echo "::warning::ntfy 전송 실패"

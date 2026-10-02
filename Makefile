@@ -11,12 +11,19 @@ SHELL       := /bin/bash
 .SHELLFLAGS := -o pipefail -c
 # ~/.ssh/config의 Host 별칭.
 ORACLE ?= truewords-oracle
-TAG      ?= $(shell git rev-parse --short HEAD)
-IMG      := truewords-backend:$(TAG)
-ADMIN_IMG := truewords-admin:$(TAG)
-WEB_IMG := truewords-web:$(TAG)
-WEB_URL ?= http://localhost:3000
-ADMIN_URL ?= http://localhost:3001
+# 이미지 태그 = 커밋 sha 앞 12자 (release.yml·deploy.sh 와 같은 규칙). 이름은 GHCR 과 같다.
+IMAGE_PREFIX := ghcr.io/woosung-dev/truewords
+# --short=12 는 모호하면 더 길어진다 — deploy.sh 가 sha 앞 12자로 계산하는 태그와 어긋나지 않게 자른다.
+TAG      ?= $(shell git rev-parse HEAD | cut -c1-12)
+DEPLOY_SHA = $(shell git rev-parse HEAD)
+IMG      := $(IMAGE_PREFIX)-backend:$(TAG)
+ADMIN_IMG := $(IMAGE_PREFIX)-admin:$(TAG)
+WEB_IMG := $(IMAGE_PREFIX)-web:$(TAG)
+# 운영 web/admin 빌드 인자의 원본 — release.yml 과 같은 파일을 읽는다.
+BUILD_ARGS_FILE := infra/oracle-vm/build-args.env
+build_arg = $(shell sed -n 's/^$(1)=//p' $(BUILD_ARGS_FILE) | tail -1)
+WEB_URL ?= $(call build_arg,NEXT_PUBLIC_WEB_URL)
+ADMIN_URL ?= $(call build_arg,NEXT_PUBLIC_ADMIN_URL)
 # 배포 가드 예외. 비워 두면 deploy-guard 가 "HEAD ∈ origin/main + 클린 트리 + 운영 태그가 HEAD 의 조상" 을 강제한다.
 FORCE_DEPLOY ?=
 # 후퇴 배포 검사가 읽을 VM .env 태그 변수 이름(BACKEND|ADMIN|WEB). deploy-* 호출부가 넘긴다.
@@ -76,20 +83,33 @@ e2e: ## 두 앱 + API 통합 E2E — ci-e2e.yml 과 같은 격리 compose·시�
 backend-test: ## backend 전체 pytest (ci-api.yml 과 같은 env·범위)
 	@cd apps/api && GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run pytest
 
-##@ 배포 (Oracle Cloud VM)
+##@ 배포 — 비상 경로 (정상 경로는 GitHub Actions Release, infra/oracle-vm/README.md §배포와 롤백)
 #
-# 순서: deploy-guard → ops-check(advisory) → arm64 빌드 → 전송 → compose 교체 → deploy.log → GC.
+# GitHub 이 멈췄을 때만 쓴다. 이미지 빌드·전송만 로컬이고, VM 안의 교체·검사·롤백·기록·GC 는
+# Actions 와 같은 infra/oracle-vm/deploy.sh 가 한다(로컬 트리의 사본을 ~/truewords/breakglass 로 rsync).
+# 순서: deploy-guard → ops-check(advisory) → arm64 빌드 → 이미지 검사 → 전송(docker load) → deploy.sh.
 # 이미지 태그는 커밋 sha($(TAG))다. 태그가 곧 "운영에 무엇이 올라가 있나" 의 근거이므로
 # 가드가 HEAD ∈ origin/main + 클린 트리를 강제한다 (2026-08-06 브랜치 HEAD 배포 사고).
 # 여기에 더해 가드는 현재 운영 태그가 HEAD 의 조상인지 본다 — main 안이면서 운영보다
 # 뒤인 커밋으로 배포하면 이미 나간 기능이 조용히 사라지기 때문이다 (2026-09-20 미수 사고).
-
-# 배포·롤백 기록 — VM ~/truewords/deploy.log 에 한 줄 (UTC 시각 · 동작 · 서비스 · 태그 · 경로).
-# $(1)=deploy|rollback, $(2)=서비스, $(3)=guarded|forced|manual. `$$(date)` 는 VM 에서 평가된다.
-define DEPLOY_LOG
-ssh "$(ORACLE)" 'printf "%s $(1) $(2) $(TAG) $(3)\n" "$$(date -u +%FT%TZ)" >> ~/truewords/deploy.log'
-endef
 GUARD_MODE = $(if $(FORCE_DEPLOY),forced,guarded)
+# backend 이미지의 alembic head 가 DB 와 다르면 deploy.sh 가 종료 3 으로 멈춘다. 승인하면 MIGRATE=1.
+MIGRATE ?=
+
+# VM 의 deploy.sh 실행. $(1)=deploy.log 경로 칸(guarded|forced|manual), $(2)=deploy.sh 인자.
+# rsync 가 실패하면 옛 사본으로 돌지 않게 즉시 멈춘다. 종료 코드는 deploy.sh 계약을 그대로 올린다.
+# TW_SRC_SHA: 동기화하는 파일의 원본 커밋(가드를 통과한 HEAD). pin·rollback 은 파일을 동기화하지 않는다.
+define VM_DEPLOY_SH
+rsync -a --delete infra/oracle-vm/ "$(ORACLE):truewords/breakglass/" || exit 1; \
+rc=0; ssh "$(ORACLE)" 'DEPLOY_MODE=$(1) TW_SRC_SHA=$(DEPLOY_SHA) bash ~/truewords/breakglass/deploy.sh $(2)' || rc=$$?; \
+$(if $(filter deploy,$(firstword $(2))),[ $$rc -ne 3 ] || echo "ℹ️  DB migration 이 필요해 아무것도 바꾸지 않았습니다 — 승인하면 MIGRATE=1 make deploy-backend";) \
+exit $$rc
+endef
+
+# deploy-* 는 HEAD 만 배포한다. TAG 를 넘기면 deploy.sh 가 sha 로 계산한 태그와 이미지 이름이 어긋난다.
+define HEAD_ONLY
+[ "$(origin TAG)" = "file" ] || { echo "❌ deploy-* 는 HEAD 로만 배포합니다 (TAG 지정 불가 — 되돌리기는 rollback-*)"; exit 1; }
+endef
 
 # 이미지 전송 — 로컬 tgz 파일 → rsync --partial → VM 에서 docker load.
 # 예전 `docker save | gzip | ssh 'gunzip | docker load'` 한 줄 파이프는 ssh 가 끊기면 조용히 멈추고
@@ -141,75 +161,76 @@ deploy-guard: ## 배포 전 가드 — HEAD ∈ origin/main + 클린 트리 + �
 	echo "   의도한 되돌리기면 rollback 타깃(make rollback-backend|admin|web TAG=<이전 sha>)을, 그래도 강행하려면 FORCE_DEPLOY=1 을 쓰세요."; \
 	exit 1
 
-deploy-backend: ## Oracle Cloud ARM VM backend 배포 (중단 가능, 별도 승인 필요).
+deploy-backend: ## [비상] backend 배포 — 로컬 arm64 빌드 → VM deploy.sh (migration 승인은 MIGRATE=1).
+	@$(HEAD_ONLY)
 	@$(MAKE) --no-print-directory deploy-guard DEPLOY_SERVICE=BACKEND
 	@# 배포는 사람이 VM 을 들여다보는 몇 안 되는 순간이다. 예약 작업이 조용히
 	@# 죽어 있으면 여기서라도 눈에 들어오게 한다. 배포를 막지는 않는다 —
 	@# 백업이 낡았다고 배포를 못 하게 하는 건 인과가 뒤집힌 것이다.
 	@$(MAKE) --no-print-directory ops-check || echo "⚠️  ops-check 위반 있음 — 배포는 계속합니다. 위 DETAIL 확인."
-	@docker buildx build --platform linux/arm64 -f apps/api/Dockerfile -t $(IMG) --load .
-	@docker run --rm --entrypoint sh $(IMG) -c "alembic --version && uvicorn --version"
+	@docker buildx build --platform linux/arm64 -f apps/api/Dockerfile -t $(IMG) \
+		--label org.opencontainers.image.revision=$(DEPLOY_SHA) --load .
+	@docker run --rm --network none --entrypoint sh $(IMG) -c "alembic --version && uvicorn --version && test -s /app/ALEMBIC_EXPECTED_HEAD"
 	@$(call TRANSFER_IMAGE,$(IMG),backend-$(TAG))
-	@ssh "$(ORACLE)" 'sed -i "s/^BACKEND_TAG=.*/BACKEND_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait backend'
-	@$(call DEPLOY_LOG,deploy,backend,$(GUARD_MODE))
-	@$(MAKE) --no-print-directory prune-images
+	@$(call VM_DEPLOY_SH,$(GUARD_MODE),deploy $(DEPLOY_SHA) backend$(if $(MIGRATE), --migrate,))
 
-rollback-backend: ## ⚠️ 이전 backend 이미지로 롤백 (`TAG=<이전 sha>` 필수).
+rollback-backend: ## ⚠️ 이전 backend 이미지로 롤백 (`TAG=<이전 sha>` 필수). 직전 배포 되돌리기는 rollback-last.
 	@# TAG 기본값(현재 HEAD)으로 롤백하면 방금 배포한 태그를 재기록하는 no-op 이 된다.
 	@# 배포 실패 직후 반사적으로 호출하는 경로라, 롤백된 줄 알고 장애가 이어진다. 명시 전달을 강제한다.
 	@[ "$(origin TAG)" != "file" ] || { echo "❌ 롤백은 TAG=<이전 sha> 를 명시해야 합니다 (예: make rollback-backend TAG=abc1234)"; exit 1; }
-	@ssh "$(ORACLE)" 'sed -i "s/^BACKEND_TAG=.*/BACKEND_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --wait backend'
-	@$(call DEPLOY_LOG,rollback,backend,manual)
+	@$(call VM_DEPLOY_SH,manual,pin backend $(TAG))
 
-deploy-admin: ## Oracle Cloud ARM VM admin 배포 (WEB_URL·ADMIN_URL·DEMO_ADMIN_EMAIL 운영 값 필수).
-	@case "$(WEB_URL) $(ADMIN_URL)" in *localhost*) echo "WEB_URL·ADMIN_URL 운영 HTTPS origin을 명시하세요"; exit 1;; esac
+deploy-admin: ## [비상] admin 배포 (DEMO_ADMIN_EMAIL 필수 — 저장소 Variable·VM .env 와 같은 값).
+	@$(HEAD_ONLY)
 	@# 시연 관리자 게이트 계정은 클라이언트 라우팅 힌트로 빌드에 구워진다. 비우면 모든 계정이 access-denied 로 간다.
 	@[ -n "$(DEMO_ADMIN_EMAIL)" ] || { echo "DEMO_ADMIN_EMAIL=<시연 관리자 이메일> 을 명시하세요 (VM .env 의 값과 같아야 합니다)"; exit 1; }
+	@# 빌드 인자 원본은 build-args.env 다. 다르게 빌드하면 GHCR 의 같은 태그와 내용이 갈라진다.
+	@[ -n "$(FORCE_DEPLOY)" ] || [ "$(WEB_URL) $(ADMIN_URL)" = "$(call build_arg,NEXT_PUBLIC_WEB_URL) $(call build_arg,NEXT_PUBLIC_ADMIN_URL)" ] \
+		|| { echo "❌ WEB_URL·ADMIN_URL 이 $(BUILD_ARGS_FILE) 와 다릅니다 — 파일을 고쳐 머지하거나 FORCE_DEPLOY=1 로 명시하세요"; exit 1; }
 	@$(MAKE) --no-print-directory deploy-guard DEPLOY_SERVICE=ADMIN
-	@# NEXT_PUBLIC_API_URL 은 rewrites 가 빌드 타임에 구워지므로 build-arg 로 넣는다.
-	@# 컨테이너 내부 DNS 를 쓰면 Cloudflare 왕복이 한 번 줄어든다.
 	@$(MAKE) --no-print-directory ops-check || echo "⚠️  ops-check 위반 있음 — 배포는 계속합니다. 위 DETAIL 확인."
+	@# NEXT_PUBLIC_API_URL 은 rewrites 가 빌드 타임에 구워지므로 build-arg 로 넣는다(컨테이너 내부 DNS).
 	@docker buildx build --platform linux/arm64 -f apps/admin/Dockerfile \
-		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 \
+		--build-arg NEXT_PUBLIC_API_URL=$(call build_arg,NEXT_PUBLIC_API_URL) \
 		--build-arg NEXT_PUBLIC_DEMO_ADMIN_EMAIL=$(DEMO_ADMIN_EMAIL) \
-		--build-arg NEXT_PUBLIC_WEB_URL=$(WEB_URL) --build-arg NEXT_PUBLIC_ADMIN_URL=$(ADMIN_URL) -t $(ADMIN_IMG) --load .
+		--build-arg NEXT_PUBLIC_WEB_URL=$(WEB_URL) --build-arg NEXT_PUBLIC_ADMIN_URL=$(ADMIN_URL) \
+		--label org.opencontainers.image.revision=$(DEPLOY_SHA) -t $(ADMIN_IMG) --load .
 	@$(call TRANSFER_IMAGE,$(ADMIN_IMG),admin-$(TAG))
-	@# --no-deps: backend 는 env_file .env 를 읽어 태그 sed 만으로 설정 해시가 바뀐다. 없으면 프론트 배포가 backend 를 재생성해 진행 중 SSE 가 끊긴다(2026-09-06 deploy-web 에서 확인).
-	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait admin'
-	@$(call DEPLOY_LOG,deploy,admin,$(GUARD_MODE))
-	@$(MAKE) --no-print-directory prune-images
+	@$(call VM_DEPLOY_SH,$(GUARD_MODE),deploy $(DEPLOY_SHA) admin)
 
 rollback-admin: ## ⚠️ 이전 admin 이미지로 롤백 (`TAG=<이전 sha>` 필수).
 	@# deploy-backend 와 같은 이유로 TAG 명시를 강제한다 (기본값 롤백은 no-op).
 	@[ "$(origin TAG)" != "file" ] || { echo "❌ 롤백은 TAG=<이전 sha> 를 명시해야 합니다 (예: make rollback-admin TAG=abc1234)"; exit 1; }
-	@ssh "$(ORACLE)" 'sed -i "s/^ADMIN_TAG=.*/ADMIN_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait admin'
-	@$(call DEPLOY_LOG,rollback,admin,manual)
+	@$(call VM_DEPLOY_SH,manual,pin admin $(TAG))
 
-# 훈독 플래그 (PLAN-HD-001 결정 10). 기본 OFF. 켤 때만 `make deploy-web HOONDOK_ENABLED=1`.
-HOONDOK_ENABLED ?= 0
-# 함께 읽는 모임 킬 스위치 (PLAN-HD-010 D3). 기본 ON, 끌 때만 `make deploy-web HOONDOK_TOGETHER=0`.
-HOONDOK_TOGETHER ?= 1
-# 오늘의 책갈피 (PLAN-HD-012 결정 5). 기본 OFF — 카드 투입·협회 확인 뒤 `make deploy-web HOONDOK_CARDS=1`.
-HOONDOK_CARDS ?= 0
-deploy-web: ## Oracle Cloud ARM VM 사용자 웹 배포 (운영 전환 runbook 선행). 훈독은 HOONDOK_ENABLED=1 로만 켠다.
-	@case "$(WEB_URL) $(ADMIN_URL)" in *localhost*) echo "WEB_URL·ADMIN_URL 운영 HTTPS origin을 명시하세요"; exit 1;; esac
+# 훈독 플래그 — 기본값은 build-args.env(운영 값)다. 다른 값으로 배포하려면 FORCE_DEPLOY=1 이 필요하고
+# deploy.log 에 forced 로 남는다(같은 태그의 GHCR 이미지와 내용이 갈라지므로). 정상 경로는 파일 변경 PR 이다.
+HOONDOK_ENABLED ?= $(call build_arg,NEXT_PUBLIC_HOONDOK_ENABLED)
+HOONDOK_TOGETHER ?= $(call build_arg,NEXT_PUBLIC_HOONDOK_TOGETHER)
+HOONDOK_CARDS ?= $(call build_arg,NEXT_PUBLIC_HOONDOK_CARDS)
+deploy-web: ## [비상] 사용자 웹 배포. 빌드 인자는 build-args.env (다른 값은 FORCE_DEPLOY=1).
+	@$(HEAD_ONLY)
+	@[ -n "$(FORCE_DEPLOY)" ] || [ "$(WEB_URL) $(ADMIN_URL) $(HOONDOK_ENABLED) $(HOONDOK_TOGETHER) $(HOONDOK_CARDS)" = \
+		"$(call build_arg,NEXT_PUBLIC_WEB_URL) $(call build_arg,NEXT_PUBLIC_ADMIN_URL) $(call build_arg,NEXT_PUBLIC_HOONDOK_ENABLED) $(call build_arg,NEXT_PUBLIC_HOONDOK_TOGETHER) $(call build_arg,NEXT_PUBLIC_HOONDOK_CARDS)" ] \
+		|| { echo "❌ 빌드 인자가 $(BUILD_ARGS_FILE) 와 다릅니다 — 파일을 고쳐 머지하거나(정상) 비상이면 FORCE_DEPLOY=1"; exit 1; }
 	@$(MAKE) --no-print-directory deploy-guard DEPLOY_SERVICE=WEB
 	@$(MAKE) --no-print-directory ops-check || echo "⚠️  ops-check 위반 있음 — 배포는 계속합니다. 위 DETAIL 확인."
 	@docker buildx build --platform linux/arm64 -f apps/web/Dockerfile \
-		--build-arg NEXT_PUBLIC_API_URL=http://backend:8080 \
+		--build-arg NEXT_PUBLIC_API_URL=$(call build_arg,NEXT_PUBLIC_API_URL) \
 		--build-arg NEXT_PUBLIC_WEB_URL=$(WEB_URL) --build-arg NEXT_PUBLIC_ADMIN_URL=$(ADMIN_URL) \
 		--build-arg NEXT_PUBLIC_HOONDOK_ENABLED=$(HOONDOK_ENABLED) \
 		--build-arg NEXT_PUBLIC_HOONDOK_TOGETHER=$(HOONDOK_TOGETHER) \
-		--build-arg NEXT_PUBLIC_HOONDOK_CARDS=$(HOONDOK_CARDS) -t $(WEB_IMG) --load .
+		--build-arg NEXT_PUBLIC_HOONDOK_CARDS=$(HOONDOK_CARDS) \
+		--label org.opencontainers.image.revision=$(DEPLOY_SHA) -t $(WEB_IMG) --load .
 	@$(call TRANSFER_IMAGE,$(WEB_IMG),web-$(TAG))
-	@ssh "$(ORACLE)" 'grep -q "^WEB_TAG=" ~/truewords/.env || { echo "runbook에 따라 WEB_TAG와 Compose를 먼저 준비하세요"; exit 1; }; sed -i "s/^WEB_TAG=.*/WEB_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait web'
-	@$(call DEPLOY_LOG,deploy,web,$(GUARD_MODE))
-	@$(MAKE) --no-print-directory prune-images
+	@$(call VM_DEPLOY_SH,$(GUARD_MODE),deploy $(DEPLOY_SHA) web)
 
-rollback-web: ## 이전 사용자 웹 이미지로 롤백 (`TAG=<이전 sha>` 필수).
+rollback-web: ## ⚠️ 이전 사용자 웹 이미지로 롤백 (`TAG=<이전 sha>` 필수).
 	@[ "$(origin TAG)" != "file" ] || { echo "TAG=<이전 sha>를 명시하세요"; exit 1; }
-	@ssh "$(ORACLE)" 'sed -i "s/^WEB_TAG=.*/WEB_TAG=$(TAG)/" ~/truewords/.env && cd ~/truewords && sudo docker compose up -d --no-deps --wait web'
-	@$(call DEPLOY_LOG,rollback,web,manual)
+	@$(call VM_DEPLOY_SH,manual,pin web $(TAG))
+
+rollback-last: ## ⚠️ 직전 배포(Actions·make 모두)를 그 직전 태그로 되돌림. migration 이 포함됐으면 거부.
+	@$(call VM_DEPLOY_SH,manual,rollback)
 
 prune-images: ## VM 의 오래된 truewords 이미지·빌드 캐시 정리 (최신 3개 + 실행 중은 보존)
 	@# `docker image prune` 은 여기서 무효다 — 구버전 이미지가 전부 커밋 sha 태그를

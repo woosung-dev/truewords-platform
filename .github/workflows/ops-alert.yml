@@ -1,0 +1,135 @@
+name: Ops alert
+
+# VM ops-check(매일 18:45 UTC cron)의 결과를 Actions 가 당겨 와 GitHub Issue 로 알린다.
+# 이슈는 저장소 소유자에게 메일로 간다 — VM 에 GitHub 토큰을 두지 않는다(pull 방식).
+# 결정: docs/adr/2026-10-02-gha-deploy-pipeline.md D10 · 설정: infra/oracle-vm/README.md §운영 불변식 점검
+#
+# 읽기 전용 키(ops-read 환경 secret OPS_READ_SSH_KEY)는 VM 강제 명령이
+# `env SSH_ORIGINAL_COMMAND=ops-status …/deploy-entry` 라 무엇을 보내든 ops-status.json 출력만 한다.
+#
+# 이슈 소유: 제목이 "[ops-alert] VM 점검" 으로 시작하는 것만 이 워크플로가 열고 닫는다.
+# cache-cleanup.yml 의 "[ops-alert] Semantic Cache Cleanup 실패" 는 건드리지 않는다.
+#
+# 한계: 이 워크플로도 Actions 위에서 돈다. Actions 가 멈추면(청구 차단 등) 이 알림도 없다 —
+# 그때는 VM 쪽 ntfy(ops-check.sh, NTFY_TOPIC 이 있을 때)가 남는다. 거꾸로 VM 이 멈춰 cron 이 안 돌면
+# 이 워크플로가 "닿지 못함·낡음" 으로 잡는다. 서로 다른 실패 도메인에서 서로를 덮는다.
+
+on:
+  schedule:
+    - cron: "20 19 * * *" # ops-check(18:45 UTC) 35분 뒤 = 04:20 KST
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ops-alert
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Read VM ops-status
+    # ops-read 환경은 main 만 허용한다. 다른 브랜치 수동 실행은 여기서 건너뛴다.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: ops-read
+    permissions:
+      contents: read
+    outputs:
+      state: ${{ steps.report.outputs.state }}
+      title: ${{ steps.report.outputs.title }}
+      body: ${{ steps.report.outputs.body }}
+    steps:
+      # 도구는 main 의 것만 — 판정 스크립트와 ssh 설정 action.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+          sparse-checkout: |
+            .github/actions/vm-ssh
+            tooling/checks/ops-alert-report.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      # 실패해도 다음 단계가 "ssh 설정 실패" 로 알린다.
+      - name: SSH
+        id: ssh
+        continue-on-error: true
+        uses: ./.github/actions/vm-ssh
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          user: ${{ vars.DEPLOY_USER }}
+          port: ${{ vars.DEPLOY_PORT || '22' }}
+          host-key: ${{ secrets.DEPLOY_HOST_KEY }}
+          ssh-key: ${{ secrets.OPS_READ_SSH_KEY }}
+
+      # ssh 오류 원문은 출력하지 않는다 — 공개 로그에 호스트 이름·IP 가 섞인다. 종료 코드만 넘긴다.
+      - name: Fetch ops-status
+        id: fetch
+        if: steps.ssh.outcome == 'success'
+        run: |
+          set -uo pipefail
+          rc=0
+          ssh deploy-target ops-status > "$RUNNER_TEMP/ops-status.json" 2> /dev/null || rc=$?
+          echo "rc=${rc}" >> "$GITHUB_OUTPUT"
+
+      - name: Report
+        id: report
+        if: always()
+        env:
+          SSH_OUTCOME: ${{ steps.ssh.outcome }}
+          FETCH_RC: ${{ steps.fetch.outputs.rc }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node tooling/checks/ops-alert-report.mjs --file "$RUNNER_TEMP/ops-status.json" --ssh "$SSH_OUTCOME" --rc "$FETCH_RC"
+
+  alert:
+    name: Ops alert issue
+    needs: check
+    if: always() && needs.check.result != 'skipped'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PREFIX: "[ops-alert] VM 점검"
+    steps:
+      - name: Open or update issue
+        if: needs.check.outputs.state != 'ok'
+        env:
+          STATE: ${{ needs.check.outputs.state }}
+          TITLE: ${{ needs.check.outputs.title }}
+          BODY: ${{ needs.check.outputs.body }}
+          CHECK_RESULT: ${{ needs.check.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          # 판정 단계까지 가지 못한 실패(체크아웃 등)도 빈 칸 없이 알린다.
+          if [ -z "$STATE" ]; then
+            TITLE="${PREFIX} — 워크플로 실패"
+            BODY=$(printf '**워크플로 실패** (check job: %s)\n\n실행: %s' "$CHECK_RESULT" "$RUN_URL")
+          fi
+          printf '%s\n' "$BODY" > "$RUNNER_TEMP/body.md"
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title \
+            --jq '[.[] | select(.title | startswith("[ops-alert] VM 점검"))][0].number // empty')
+          if [ -n "$existing" ]; then
+            # 매일 같은 실패로 이슈가 쌓이면 신호가 묻힌다 — 열린 것에 댓글만.
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$RUNNER_TEMP/body.md" --label ops-alert 2> /dev/null \
+              || gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$RUNNER_TEMP/body.md"
+          fi
+
+      - name: Close resolved issue
+        if: needs.check.outputs.state == 'ok'
+        env:
+          BODY: ${{ needs.check.outputs.body }}
+        run: |
+          set -euo pipefail
+          for number in $(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title \
+              --jq '.[] | select(.title | startswith("[ops-alert] VM 점검")) | .number'); do
+            gh issue close "$number" --repo "$GITHUB_REPOSITORY" --comment "정상 복귀 — ${BODY}"
+          done

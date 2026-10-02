@@ -30,7 +30,7 @@
 # ── 실행 ────────────────────────────────────────────────────────────────────
 #   ssh truewords-oracle 'bash ~/truewords/prune-images.sh'   (또는 `make prune-images`)
 #   cron: 15 19 * * 0  — 주간. 배포가 없는 주에도 빌드 캐시가 정리되도록.
-#   make deploy-backend / deploy-admin 말미에서도 호출된다.
+#   deploy.sh(GitHub Actions 배포·make deploy-* 비상 경로) 성공 말미에서도 호출된다.
 #
 # KEEP=5 처럼 환경변수로 조정할 수 있다. DRY_RUN=1 이면 지우지 않고 보여만 준다.
 
@@ -39,9 +39,32 @@
 set -uo pipefail
 
 KEEP="${KEEP:-3}"
-REPOS="${REPOS:-truewords-backend truewords-admin truewords-web}"
+TW_DIR="${TW_DIR:-${HOME}/truewords}"
+# 배포 잠금을 존중한다. 배포가 새 이미지를 받고 .env 를 쓰기 직전에 주간 cron 이 돌면, 아직
+# "현재 태그" 가 아닌 새 이미지나 막 직전 세대가 된 이미지를 지울 수 있다. deploy.sh 가 부를 때는
+# 부모가 잠금을 쥐고 있다(TW_DEPLOY_LOCK_HELD=1). 잠금이 바쁘면 이번 회차는 건너뛴다 — 다음 배포·주간에 다시 돈다.
+if [ "${TW_DEPLOY_LOCK_HELD:-}" != 1 ] && [ -d "$TW_DIR" ]; then
+  exec 9>"${TW_DIR}/.deploy.lock" || { echo "❌ 배포 잠금 파일을 열지 못했다 — GC 중단" >&2; exit 1; }
+  if ! flock -n 9; then
+    echo "[$(date '+%F %T')] 배포가 진행 중이다 (잠금 점유) — 이번 GC 는 건너뛴다"
+    exit 0
+  fi
+fi
+# GHCR 이름(release.yml·deploy.sh)과 레지스트리 도입 전 이름(docker load) 둘 다 우리 것이다.
+# 이 목록 밖의 repo(다른 스택)는 절대 건드리지 않는다.
+REPOS="${REPOS:-ghcr.io/woosung-dev/truewords-backend ghcr.io/woosung-dev/truewords-admin ghcr.io/woosung-dev/truewords-web truewords-backend truewords-admin truewords-web}"
 # 최신 N개 밖의 지정 롤백 태그도 보존한다(공백으로 구분한 repo:tag 목록).
 PRESERVE_IMAGES="${PRESERVE_IMAGES:-}"
+# 현재 태그(.env)와 직전 태그(deploy.sh 상태 파일)는 생성시각과 무관하게 남긴다 —
+# 롤백 한 세대를 GC 가 지우면 `deploy.sh rollback` 이 pull 에 기대야 한다.
+# .env 는 source 하지 않고 태그 줄만 읽는다.
+for KEY in BACKEND ADMIN WEB; do
+  SVC=$(echo "$KEY" | tr '[:upper:]' '[:lower:]')
+  for T in $(grep -sh -e "^${KEY}_TAG=" "${TW_DIR}/.env"; grep -sh -e "^PREV_${KEY}_TAG=" "${TW_DIR}/deploy-state/last-deploy.env"); do
+    T="${T#*=}"
+    [ -n "$T" ] && PRESERVE_IMAGES="$PRESERVE_IMAGES ghcr.io/woosung-dev/truewords-${SVC}:${T} truewords-${SVC}:${T}"
+  done
+done
 # 배포 자동 GC와 cron에서도 같은 롤백 목록을 읽는다. 비밀 .env는 source하지 않는다.
 PRESERVE_IMAGES_FILE="${PRESERVE_IMAGES_FILE:-${TW_DIR:-${HOME}/truewords}/preserve-images.txt}"
 if [ -f "$PRESERVE_IMAGES_FILE" ]; then
@@ -88,7 +111,7 @@ for repo in $REPOS; do
   done
 done
 
-# 빌드 캐시 — truewords 는 로컬 Mac 에서 빌드해 docker load 하므로 캐시를
+# 빌드 캐시 — truewords 는 VM 에서 빌드하지 않으므로(GHCR pull·docker load) 캐시를
 # 만들지 않는다. 여기 쌓이는 것은 같은 VM 의 다른 스택 몫이라 until 로 최근
 # 것은 남긴다.
 if [ "$DRY_RUN" = "1" ]; then
