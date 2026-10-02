@@ -33,7 +33,10 @@ function repo() {
   };
   const git = (args) => {
     try {
-      return { ok: true, out: execFileSync("git", ["-C", dir, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }) };
+      return {
+        ok: true,
+        out: execFileSync("git", ["-C", dir, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }),
+      };
     } catch {
       return { ok: false, out: "" };
     }
@@ -49,7 +52,8 @@ test("서비스별로 이미지 입력이 바뀐 것만 고른다", () => {
   try {
     const base = r.commit(["apps/api/main.py", "apps/web/page.tsx", "apps/admin/page.tsx", "docs/a.md"]);
     const synced = { SYNCED_SHA: base };
-    const plan = (files) => planDeploy({ sha: r.commit(files), status: status(short(base), synced), rollback: false, git: r.git });
+    const plan = (files) =>
+      planDeploy({ sha: r.commit(files), status: status(short(base), synced), rollback: false, git: r.git });
 
     assert.deepEqual(plan(["apps/web/page.tsx"]).services, ["web"]);
     // 커밋이 쌓여도 비교 기준은 운영 태그다 — 이전 커밋의 web 변경도 여전히 포함된다.
@@ -91,7 +95,12 @@ test("운영 태그가 없으면 첫 배포로 포함하고, 동기화 기록이
   const r = repo();
   try {
     const sha = r.commit(["apps/api/main.py"]);
-    const plan = planDeploy({ sha, status: { BACKEND_TAG: "", ADMIN_TAG: sha, WEB_TAG: sha }, rollback: false, git: r.git });
+    const plan = planDeploy({
+      sha,
+      status: { BACKEND_TAG: "", ADMIN_TAG: sha, WEB_TAG: sha },
+      rollback: false,
+      git: r.git,
+    });
     assert.deepEqual(plan.services, ["backend"]);
     const same = planDeploy({ sha, status: status(sha), rollback: false, git: r.git });
     assert.deepEqual(same.services, []);
@@ -152,7 +161,13 @@ test("각 Dockerfile 의 COPY 원본이 그 서비스의 배포 판정 경로에
     const sources = readFileSync(path.join(root, dockerfile), "utf8")
       .split("\n")
       .filter((line) => /^COPY\s/.test(line) && !/--from=/.test(line))
-      .flatMap((line) => line.replace(/^COPY\s+(--\S+\s+)*/, "").trim().split(/\s+/).slice(0, -1));
+      .flatMap((line) =>
+        line
+          .replace(/^COPY\s+(--\S+\s+)*/, "")
+          .trim()
+          .split(/\s+/)
+          .slice(0, -1),
+      );
     assert.ok(sources.length > 0, `${dockerfile} 에서 COPY 를 찾지 못했다`);
     for (const source of sources) {
       const probe = source.endsWith("/") ? `${source}x` : source;

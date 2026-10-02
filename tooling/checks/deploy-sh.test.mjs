@@ -73,7 +73,8 @@ function vm({ dbHead = "rev1", pullable = "", extraImages = "" } = {}) {
   );
   writeFileSync(path.join(state, "pullable"), pullable);
   writeFileSync(path.join(state, "db_head"), `${dbHead}\n`);
-  for (const svc of ["backend", "admin", "web"]) writeFileSync(path.join(state, `running_${svc}`), `truewords-${svc}:${OLD}\n`);
+  for (const svc of ["backend", "admin", "web"])
+    writeFileSync(path.join(state, `running_${svc}`), `truewords-${svc}:${OLD}\n`);
 
   const env = (extra = {}) =>
     cleanEnv({
@@ -122,7 +123,10 @@ test("deploy: 이미지 pull → .env → backend→web 순서 교체, 기록·�
 
     const order = ups(box.calls());
     assert.equal(order.length, 2);
-    assert.ok(order.every((args) => args.includes("--no-deps") && args.includes("--wait")), order.join("\n"));
+    assert.ok(
+      order.every((args) => args.includes("--no-deps") && args.includes("--wait")),
+      order.join("\n"),
+    );
     assert.match(order[0], /backend$/);
     assert.match(order[1], /web$/);
     assert.equal(box.running("backend"), `${PREFIX}-backend:${TAG}`);
@@ -138,7 +142,10 @@ test("deploy: 이미지 pull → .env → backend→web 순서 교체, 기록·�
     assert.match(state, /^MIGRATED=0$/m);
     assert.equal(box.read("deploy-state/synced-sha").trim(), SHA);
     // cron 이 부르는 파일이 checkout 에서 ~/truewords 로 동기화된다.
-    assert.equal(box.read("docker-compose.yml"), readFileSync(path.join(root, "infra/oracle-vm/docker-compose.yml"), "utf8"));
+    assert.equal(
+      box.read("docker-compose.yml"),
+      readFileSync(path.join(root, "infra/oracle-vm/docker-compose.yml"), "utf8"),
+    );
     assert.ok(existsSync(path.join(box.tw, "ops-check.sh")));
     // 교체 대상이 아닌 admin 의 현재 이미지는 새 이름으로 재태그된다(compose 이미지 이름 전환 대비).
     assert.match(box.calls(), new RegExp(`docker tag truewords-admin:${OLD} ${PREFIX}-admin:${OLD}`));
@@ -279,7 +286,7 @@ test("deploy --migrate 후 교체 검사가 실패하면 자동 롤백하지 않
     assert.equal(result.status, 1, result.stderr);
     assert.match(result.stderr, /자동 롤백하지 않는다/);
     assert.equal(tagOf(box.read(".env"), "BACKEND_TAG"), TAG);
-    assert.doesNotMatch(box.calls(), new RegExp(`up .*backend[\\s\\S]*up .*backend`)); // backend 재교체 없음
+    assert.doesNotMatch(box.calls(), /up .*backend[\s\S]*up .*backend/); // backend 재교체 없음
     assert.match(box.read("deploy-state/last-deploy.env"), /^STATUS=failed_after_migration$/m);
   } finally {
     box.cleanup();
@@ -336,10 +343,7 @@ test("status: 기계가 읽는 KEY=VALUE 줄만 stdout 에 낸다", () => {
   try {
     const result = box.run(["status"]);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(
-      result.stdout,
-      `BACKEND_TAG=${OLD}\nADMIN_TAG=${OLD}\nWEB_TAG=${OLD}\nSYNCED_SHA=\nLAST_STATUS=\n`,
-    );
+    assert.equal(result.stdout, `BACKEND_TAG=${OLD}\nADMIN_TAG=${OLD}\nWEB_TAG=${OLD}\nSYNCED_SHA=\nLAST_STATUS=\n`);
   } finally {
     box.cleanup();
   }
