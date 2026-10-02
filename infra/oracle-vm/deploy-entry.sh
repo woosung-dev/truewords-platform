@@ -34,7 +34,9 @@
 # 배포 잠금(fd 9)은 떼어 낸 프로세스가 끝날 때까지 쥔다.
 #
 # 종료 코드: deploy.sh 의 계약을 그대로 전달한다. 여기서 직접 내는 것은
-#   1 체크아웃·실행 실패 · 2 거부된 명령 또는 main 밖의 커밋 · 4 잠금 점유
+#   1 체크아웃·실행 실패(deploy.sh 를 시작하기 전) · 2 거부된 명령 또는 main 밖의 커밋 · 4 잠금 점유
+#   7 떼어 낸 실행의 결과를 모른다(결과 코드 없이 끝남) — 교체가 일부 됐을 수 있다. deploy-runs 로그·status 확인
+#   deploy.sh 가 시그널로 죽으면 128+n 이 그대로 전달된다(역시 결과 모름).
 
 set -uo pipefail
 
@@ -57,6 +59,10 @@ reject() {
 fail() {
   echo "deploy-entry: $1" >&2
   exit 1
+}
+unknown() {
+  echo "deploy-entry: $1" >&2
+  exit 7
 }
 
 SHA=""
@@ -147,11 +153,11 @@ while :; do
     sleep 1
     [ -f "$RUN_RC" ] && break
     drain
-    fail "떼어 낸 배포 프로세스가 결과 없이 끝났다 — ${RUN_LOG} 확인"
+    unknown "떼어 낸 배포 프로세스가 결과 없이 끝났다 — ${RUN_LOG} 와 status 확인"
   fi
   sleep 1
 done
 drain
 RC=$(cat "$RUN_RC")
-[[ $RC =~ ^[0-9]+$ ]] || fail "결과 코드를 읽지 못했다 (${RUN_RC})"
+[[ $RC =~ ^[0-9]+$ ]] || unknown "결과 코드를 읽지 못했다 (${RUN_RC}) — ${RUN_LOG} 와 status 확인"
 exit "$RC"

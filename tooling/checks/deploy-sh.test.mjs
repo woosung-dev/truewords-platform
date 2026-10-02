@@ -44,7 +44,7 @@ function fakes(base) {
   writeExec(path.join(bin, "docker"), FAKE_DOCKER);
   writeExec(path.join(bin, "sudo"), '#!/bin/sh\nexec "$@"\n');
   writeExec(path.join(bin, "flock"), '#!/bin/sh\n[ -f "$FAKE_STATE/flock_busy" ] && exit 1\nexit 0\n');
-  // env_mv_fail 에 N 을 쓰면 .env 로의 N 번째 mv 가 실패한다(.env 원자 교체 실패 흉내).
+  // env_mv_fail 에 "N M …" 을 쓰면 .env 로의 N·M… 번째 mv 가 실패한다(.env 원자 교체 실패 흉내).
   writeExec(
     path.join(bin, "mv"),
     [
@@ -52,7 +52,7 @@ function fakes(base) {
       'for last in "$@"; do :; done',
       'if [ -f "$FAKE_STATE/env_mv_fail" ] && [ "${last##*/}" = .env ]; then',
       '  n=$(( $(cat "$FAKE_STATE/env_mv_count" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$FAKE_STATE/env_mv_count"',
-      '  [ "$n" = "$(cat "$FAKE_STATE/env_mv_fail")" ] && exit 1',
+      '  case " $(cat "$FAKE_STATE/env_mv_fail") " in *" $n "*) exit 1 ;; esac',
       "fi",
       'exec /bin/mv "$@"',
       "",
@@ -427,6 +427,62 @@ test("deploy: .env 기록이 중간에 실패하면 이미 바꾼 줄을 되돌�
   }
 });
 
+test("deploy: .env 기록도 되돌리기도 실패하면 종료 6·restore_failed — rollback 이 이전 태그로 정리한다", () => {
+  const box = vm({ pullable: newImages() });
+  try {
+    box.touch("env_mv_fail", "2 3"); // web 줄 기록 실패, backend 되돌리기도 실패 → .env 가 섞인 채
+    const result = box.run(["deploy", SHA, "backend", "web"]);
+    assert.equal(result.status, 6, result.stderr);
+    assert.equal(tagOf(box.read(".env"), "BACKEND_TAG"), TAG);
+    assert.deepEqual(ups(box.calls()), []);
+    assert.match(box.read("deploy-state/last-deploy.env"), /^STATUS=restore_failed$/m);
+    assert.match(box.run(["status"]).stdout, /^LAST_STATUS=restore_failed$/m);
+
+    const rollback = box.run(["rollback"]);
+    assert.equal(rollback.status, 0, rollback.stderr);
+    assert.equal(box.read(".env"), box.envText);
+    assert.match(box.read("deploy-state/last-deploy.env"), /^STATUS=rolled_back$/m);
+  } finally {
+    box.cleanup();
+  }
+});
+
+test("deploy --migrate: upgrade 가 실패하면 STATUS=migrating 으로 남아 직전의 무관한 배포를 rollback 하지 않는다", () => {
+  const box = vm({ pullable: newImages("rev2"), dbHead: "rev1" });
+  try {
+    // 직전에 성공한 배포(web)가 있다 — 남은 STATUS=deployed 를 rollback 이 되돌리면 안 된다.
+    assert.equal(box.run(["deploy", SHA, "web"]).status, 0);
+    box.touch("migrate_fail");
+    const result = box.run(["deploy", SHA, "backend", "--migrate"]);
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, /alembic upgrade 실패/);
+    const state = box.read("deploy-state/last-deploy.env");
+    assert.match(state, /^STATUS=migrating$/m);
+    assert.match(state, /^MIGRATED=1$/m);
+    assert.equal(tagOf(box.read(".env"), "BACKEND_TAG"), OLD);
+
+    const rollback = box.run(["rollback"]);
+    assert.equal(rollback.status, 1);
+    assert.equal(tagOf(box.read(".env"), "WEB_TAG"), TAG, "무관한 직전 web 배포를 되돌렸다");
+  } finally {
+    box.cleanup();
+  }
+});
+
+test("deploy: 동기화 기록을 쓰지 못하면 교체 없이 종료 1", () => {
+  const box = vm({ pullable: newImages() });
+  try {
+    mkdirSync(path.join(box.tw, "deploy-state/synced-sha"), { recursive: true }); // 파일 자리에 디렉토리
+    const result = box.run(["deploy", SHA, "web"], { TW_SRC_SHA: SRC });
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, /동기화 기록을 쓰지 못했다/);
+    assert.equal(box.read(".env"), box.envText);
+    assert.deepEqual(ups(box.calls()), []);
+  } finally {
+    box.cleanup();
+  }
+});
+
 test("rollback: 교체 도중 끊긴 배포(STATUS=switching)도 직전 태그로 --no-deps 교체해 되돌린다", () => {
   const box = vm({ pullable: newImages() });
   try {
@@ -564,6 +620,7 @@ function entryFixture() {
       [
         "#!/usr/bin/env bash",
         'sleep "${STUB_SLEEP:-0}"',
+        '[ -z "${STUB_KILL_WRAPPER:-}" ] || kill -9 "$PPID"', // 결과 코드를 쓰는 래퍼가 죽은 상황
         `echo "STUB ${name} args=$* mode=$DEPLOY_MODE lock=\${TW_DEPLOY_LOCK_HELD:-} action=\${DEPLOY_ACTION:-} src=\${TW_SRC_SHA:-}"`,
         'echo done > "$TW_DIR/stub-done"',
         'exit "${STUB_RC:-0}"',
@@ -700,6 +757,17 @@ test("entry: deploy.sh 의 종료 코드를 그대로 돌려준다 (rollback·sy
     const sync = box.entry("sync");
     assert.equal(sync.status, 0, sync.stderr);
     assert.match(sync.stdout, /STUB B args=sync mode=auto lock=1/);
+  } finally {
+    box.cleanup();
+  }
+});
+
+test("entry: 떼어 낸 실행이 결과 코드 없이 끝나면 '결과 모름' 종료 7 (교체 안 됨의 1 과 구분)", () => {
+  const { box, b } = entryFixture();
+  try {
+    const result = box.entry(`deploy ${b} web`, { STUB_KILL_WRAPPER: "1" });
+    assert.equal(result.status, 7, result.stderr);
+    assert.match(result.stderr, /결과 없이 끝났다/);
   } finally {
     box.cleanup();
   }
