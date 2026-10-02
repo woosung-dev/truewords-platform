@@ -22,7 +22,11 @@
 | `preserve-images.example` | VM `preserve-images.txt`의 형식 예제입니다. 실제 전환 전 통합 admin 태그를 기록하면 배포 자동 GC·주간 cron에서도 보존됩니다. |
 | `cache-cleanup.sh` | semantic_cache TTL 만료 point 정리 **수동 진입점**. 스케줄은 `cache-cleanup.yml`(GHA) 이 갖습니다 — cron 에 등록하지 않습니다. |
 | `ops-check.sh` | 운영 불변식 점검. 예약 작업이 "돌지 않은" 것까지 결과 기준으로 잡습니다. Gemini 키 생존도 함께 봅니다(§`gemini-key`) — probe 본체는 backend 이미지의 `scripts/gemini_key_probe.py` 라 이 디렉토리에 없습니다. 훈독 편성 재고는 §`hoondok-today` 가 WARN 으로 봅니다. FAIL/WARN 이면 ntfy 푸시를 보냅니다(§전달). |
-| `smoke.sh` | 배포 직후 **공개 URL** 스모크. 이 디렉토리에서 유일하게 VM 이 아니라 **로컬에서** 실행합니다(`make smoke-web`) — 검사 대상이 Cloudflare 엣지·터널·Next 라우팅을 통과하는 공개 경로 그 자체라 ssh 를 쓰지 않습니다. 절차는 [훈독 PWA 롤아웃 runbook](../../docs/runbooks/hoondok-pwa-rollout.md). |
+| `deploy.sh` | VM 에서 서비스를 교체하는 **유일한** 코드 경로(이미지 준비 → migration 게이트 → 파일 동기화 → 교체·검사 → 자동 복구·기록). Actions 와 `make deploy-*` 가 함께 씁니다. §배포와 롤백 |
+| `deploy-entry.sh` | Actions 배포 키의 강제 명령 진입점. VM `~/truewords/bin/deploy-entry` 로 설치되며 배포로 갱신되지 않습니다 |
+| `install-deploy-access.sh` | 배포 접근 준비(VM 의 sparse 체크아웃·진입점 설치). 다시 실행해도 같은 결과이며 `authorized_keys` 는 바꾸지 않습니다 |
+| `build-args.env` | web/admin 빌드 인자(공개 값)의 원본. Actions 와 비상 경로가 같은 파일을 읽습니다 |
+| `smoke.sh` | 배포 직후 **공개 URL** 스모크. VM 이 아니라 **로컬 또는 Actions 러너에서** 실행합니다(`make smoke-web`, Release 의 검증 단계) — 검사 대상이 Cloudflare 엣지·터널·Next 라우팅을 통과하는 공개 경로 그 자체라 ssh 를 쓰지 않습니다. 절차는 [훈독 PWA 롤아웃 runbook](../../docs/runbooks/hoondok-pwa-rollout.md). |
 
 ## 인프라 사양
 
@@ -164,39 +168,62 @@ curl -sS -X POST \
 
 ### 7. backend 이미지를 전달하고 전체를 기동한다
 
-정상 경로는 로컬 Mac 에서 `make deploy-backend` 다. 수동으로 할 때는 Makefile 과 같은 형태를 쓴다.
+Actions 배포를 아직 연결하지 않았다면 로컬 Mac 에서 비상 경로 `make deploy-backend` 로 이미지를 넣는다(§배포와 롤백). 연결 뒤에는 Release 워크플로가 GHCR 에서 받는다. 이미지가 준비되면 VM 에서 전체를 기동한다.
 
 ```bash
-# 로컬 Mac
-docker save truewords-backend:$(git rev-parse --short HEAD) | gzip -1 | \
-  ssh truewords-oracle 'gunzip | sudo docker load'
-
-# Oracle VM
 cd ~/truewords
 sudo docker compose --env-file .env up -d
 ```
 
-`BACKEND_TAG` 는 전달한 이미지 태그와 같아야 한다. `make deploy-backend` 가 이 값을 자동 갱신한다.
+`BACKEND_TAG` 는 VM 에 있는 이미지 태그와 같아야 한다. 이후의 교체는 `deploy.sh` 가 이 값을 갱신한다.
 
 ---
 
 ## 배포와 롤백
 
-로컬 Mac(Apple Silicon)이 VM 과 같은 arm64 라 레지스트리 없이 이미지를 직접 밀어 넣는다.
+정상 경로는 GitHub Actions `release.yml` 이다. main 의 CI 가 성공하면 서비스별 arm64 이미지를 `ghcr.io/woosung-dev/truewords-<svc>:<sha 12자>` 로 올리고, 배포는 강제 명령 SSH 키로 VM 의 `deploy.sh` 를 부른다. `make deploy-*` 는 Actions 를 쓸 수 없을 때의 **비상 경로**이고, 같은 `deploy.sh` 를 rsync 해서 부른다 — 교체 순서·검사·자동 복구·`deploy.log` 규칙은 두 경로가 같다. 결정 배경은 [배포 파이프라인 ADR](../../docs/adr/2026-10-02-gha-deploy-pipeline.md), 동작의 원본은 `deploy.sh` 머리 주석이다.
+
+### 정상 경로 — Actions
+
+1. Actions → **Release** → Run workflow. `sha` 는 비우면 main 의 HEAD, `deploy=true`.
+2. `production` 환경 승인. 이미지가 바뀐 서비스만 교체된다(판정: `tooling/checks/deploy-services.mjs`).
+3. DB migration 이 필요하면 1차 배포는 아무것도 바꾸지 않고 멈추고, `Deploy with DB migration` job 이 `production-migrate` 승인을 기다린다. 승인하면 백업 → `alembic upgrade head` → 교체 순이다.
+4. 공개 URL 스모크까지 통과하면 끝. 실패하면 `[deploy-alert]` GitHub Issue 가 열리고(저장소 소유자에게 메일) 다음 성공 배포가 닫는다. `NTFY_TOPIC` secret 이 있으면 ntfy 도 보낸다.
+
+자동 배포(main 머지마다)로 바꿀 때는 `release.yml` deploy job 의 `if:` 를 바로 아래 주석 줄로 바꾼다. 환경 승인은 그대로 걸린다.
+
+| 결과 | 뜻 | 대처 |
+|---|---|---|
+| `MIGRATION_REQUIRED` (종료 3) | 이미지와 DB 의 alembic head 가 다르다. 아무것도 바꾸지 않았다 | migration 내용을 확인하고 `production-migrate` 를 승인한다 |
+| 잠금 점유 (종료 4) | 다른 배포(비상 경로 포함)가 진행 중이다 | 끝난 뒤 다시 실행한다 |
+| 검사 실패·복구함 (종료 5) | 교체 후 이미지 ID·healthy·내부 HTTP 검사가 실패해 이전 태그로 되돌렸다 | 이슈의 실행 로그와 `make oracle-logs` 로 원인을 본다 |
+| 복구 실패 (종료 6) · migration 뒤 실패 | 운영이 어중간한 상태일 수 있다 | `ssh truewords-oracle 'grep _TAG ~/truewords/.env; tail ~/truewords/deploy.log'` 로 상태를 보고 아래 롤백 절차를 따른다 |
+| 후퇴 배포 거부 (Plan 단계) | 운영 태그가 이 sha 의 조상이 아니다 | 의도한 되돌리기면 `rollback=true` 로 다시 실행한다 |
+
+### 롤백
+
+| 상황 | 방법 |
+|---|---|
+| 방금 배포를 되돌린다 | `make rollback-last` — `deploy-state/last-deploy.env` 의 직전 태그로 되돌린다. migration 이 포함된 배포는 거부한다 |
+| 특정 태그로 | `make rollback-backend TAG=<태그>` (`admin`·`web` 동일). 태그는 7~12자 sha. VM 에 없으면 GHCR 에서 받는다 |
+| 특정 커밋으로(Actions) | Release 를 그 `sha` + `deploy=true` + `rollback=true` 로 실행한다 |
+| migration 이 돈 backend | 자동화하지 않는다. 이전 backend 이미지는 새 revision 을 몰라 기동하지 못한다. [§실제 복구](#실제-복구)로 DB 를 배포 직전 백업(`--migrate` 가 만든 것)으로 되돌린 뒤 `rollback-backend TAG=<이전>` |
+
+롤백도 `deploy.log` 에 `rollback … manual|auto|auto-restore` 로 남는다. `prune-images.sh` 는 `.env` 의 현재 태그와 직전 태그(`PREV_*`)를 지우지 않지만, 그보다 오래된 태그는 GHCR 에서 다시 받는다고 생각한다. 단일 Compose 교체는 무중단을 보장하지 않는다.
+
+### 비상 경로 — `make deploy-*`
 
 ```bash
-make deploy-backend                    # 빌드 → entrypoint 검증 → 전송 → compose 교체
-make deploy-admin                      # admin 도 동일 패턴
-make deploy-web                        # 새 사용자 앱, 운영 승인 후
-make rollback-backend TAG=<이전 sha>   # TAG 명시 필수
-make rollback-admin   TAG=<이전 sha>
-make rollback-web     TAG=<이전 sha>
+make deploy-backend                    # 빌드 → probe → 전송 → VM deploy.sh
+MIGRATE=1 make deploy-backend          # migration 을 승인할 때 (종료 3 안내를 본 뒤)
+make deploy-admin DEMO_ADMIN_EMAIL=…   # 저장소 Variable·VM .env 와 같은 값
+make deploy-web
 make oracle-logs                       # compose 로그 follow (최근 100줄)
 ```
 
-세 `deploy-*` 는 먼저 **`deploy-guard`** 를 통과해야 한다 — HEAD 가 `origin/main` 에 포함돼 있고, 작업 트리가 깨끗하고, **현재 운영 태그가 배포할 HEAD 의 조상**이어야 빌드로 넘어간다. 이미지 태그가 커밋 sha 라서, 브랜치 HEAD 나 더러운 트리로 빌드하면 태그와 내용이 어긋나 "운영에 무엇이 올라가 있나" 를 되짚을 수 없다(2026-08-06 실제 사고). 예외가 필요하면 `FORCE_DEPLOY=1 make deploy-backend` 로 명시하고, 그 사실은 기록에 `forced` 로 남는다. 성공한 배포·롤백은 VM `~/truewords/deploy.log` 에 `UTC시각 deploy|rollback 서비스 태그 guarded|forced|manual` 한 줄씩 쌓인다 — `ssh truewords-oracle 'tail ~/truewords/deploy.log'` 가 최근 배포 이력이다.
+세 `deploy-*` 는 먼저 **`deploy-guard`** 를 통과해야 한다 — HEAD 가 `origin/main` 에 포함돼 있고, 작업 트리가 깨끗하고, **현재 운영 태그가 배포할 HEAD 의 조상**이어야 빌드로 넘어간다. 이미지 태그가 커밋 sha 라서, 브랜치 HEAD 나 더러운 트리로 빌드하면 태그와 내용이 어긋나 "운영에 무엇이 올라가 있나" 를 되짚을 수 없다(2026-08-06 실제 사고). 빌드 인자는 `build-args.env` 와 같아야 하고(같은 태그의 GHCR 이미지와 내용이 갈라지지 않게), `TAG` 는 지정할 수 없다. 예외가 필요하면 `FORCE_DEPLOY=1` 로 명시하고 `deploy.log` 에 `forced` 로 남는다. `deploy.log` 형식은 `UTC시각 deploy|rollback 서비스 태그 auto|guarded|forced|manual|auto-restore` 다.
 
-세 번째 조건(운영 태그 ∈ HEAD 조상)은 2026-09-20 후퇴 배포 미수 뒤에 들어왔다 — 그때 `4e15f8c` 로 backend 를 배포했다면 운영(`c066b02`)에만 있던 `API-HD-012` 가 사라졌을 텐데, `4e15f8c` 도 `origin/main` 의 조상이라 옛 가드를 통과했다. 가드는 호출부가 넘긴 `DEPLOY_SERVICE`(`BACKEND`·`ADMIN`·`WEB`)로 VM `~/truewords/.env` 의 `<SVC>_TAG` 를 읽어 판정하고, 후퇴면 **사라지는 커밋 목록을 출력하고 중단**한다. 새 실패 모드와 대처는 다음과 같다.
+세 번째 조건(운영 태그 ∈ HEAD 조상)은 2026-09-20 후퇴 배포 미수 뒤에 들어왔다 — 그때 `4e15f8c` 로 backend 를 배포했다면 운영(`c066b02`)에만 있던 `API-HD-012` 가 사라졌을 텐데, `4e15f8c` 도 `origin/main` 의 조상이라 옛 가드를 통과했다. 가드는 호출부가 넘긴 `DEPLOY_SERVICE`(`BACKEND`·`ADMIN`·`WEB`)로 VM `~/truewords/.env` 의 `<SVC>_TAG` 를 읽어 판정하고, 후퇴면 **사라지는 커밋 목록을 출력하고 중단**한다.
 
 | 증상 | 뜻 | 대처 |
 |---|---|---|
@@ -205,11 +232,43 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
 | `운영 태그 <sha> 를 로컬 git 에서 찾을 수 없습니다` | 운영 태그가 로컬에 없다 | `git fetch --all` 후 재시도 |
 | `후퇴 배포입니다` + 커밋 목록 | 배포하면 그 커밋들이 운영에서 사라진다 | 의도한 되돌리기면 `rollback-*` 를 쓰고, 그래도 강행하려면 `FORCE_DEPLOY=1` 로 명시한다 |
 
-`DEPLOY_SERVICE` 가 없으면 후퇴 검사만 건너뛴다(앞의 두 조건은 그대로 적용된다).
+`deploy-backend` 는 이미지에 `alembic`·`uvicorn` 바이너리와 `/app/ALEMBIC_EXPECTED_HEAD` 가 있는지 확인한 뒤에야 전송한다(runtime stage 에 바이너리가 빠져 기동에 실패했던 dev-log 41~42 의 재발 방지). 전송은 로컬 tgz → `rsync --partial` → VM `docker load` 라 끊기면 그 단계만 다시 돈다.
 
-`deploy-backend` 는 이미지에 `alembic` 과 `uvicorn` 바이너리가 실제로 있는지 확인한 뒤에야 전송한다. runtime stage 에 바이너리가 빠져 기동에 실패했던 사고(dev-log 41~42)의 재발 방지 게이트다. 전송은 `docker save | gzip -1 | ssh` 이고 Makefile 이 `pipefail` 을 켜므로 스트림이 잘리면 즉시 실패한다.
+### VM 파일 동기화
 
-`rollback-backend` / `rollback-admin` / `rollback-web`은 `TAG` 를 반드시 받는다. 기본값(현재 HEAD)으로 돌면 방금 배포한 태그를 재기록하는 no-op 이 되고, 롤백된 줄 알고 장애가 이어진다. 이전 이미지가 VM 에 남아 있어야 하므로 `sudo docker image ls truewords-backend` (또는 `truewords-admin`·`truewords-web`) 로 확인한다. 최신 3개 보존만으로 원하는 이전 태그가 항상 남는다고 가정하지 않는다. `prune-images.sh` dry-run에서 실행 중 이미지와 명시적 보존 태그를 확인한다. 단일 Compose 교체는 무중단을 보장하지 않는다.
+`deploy <sha>`·`sync <sha>` 는 그 커밋의 `docker-compose.yml` 과 cron 스크립트(`deploy.sh` 의 `SYNC_FILES`)를 `~/truewords` 로 복사한다. 이전 사본은 `deploy-state/prev-files/` 에 남는다. **`.env`·`preserve-images.txt`·백업은 건드리지 않는다.** 이미지가 바뀌지 않고 `infra/oracle-vm/` 만 바뀐 커밋은 컨테이너를 재시작하지 않고 `sync` 만 한다. 손으로 `scp` 하지 않는다.
+
+예외는 강제 명령 진입점 `~/truewords/bin/deploy-entry` 다. 배포로 갱신되지 않으므로(키가 스스로 권한을 넓히지 못하게) `deploy-entry.sh` 를 바꾼 PR 이 머지되면 아래 설치 스크립트를 다시 실행한다.
+
+### 최초 설정 (1회)
+
+순서대로 한다. 2·3 은 VM, 4 이후는 GitHub 이다.
+
+1. 로컬에서 배포 전용 키를 만든다. 다른 용도로 쓰지 않는다.
+   ```bash
+   ssh-keygen -t ed25519 -N '' -C truewords-deploy@github-actions -f ~/.ssh/truewords_deploy
+   ```
+2. VM 에 체크아웃과 진입점을 설치한다(다시 실행해도 같은 결과). 마지막에 `authorized_keys` 에 넣을 줄을 **출력만** 한다.
+   ```bash
+   ssh truewords-oracle "DEPLOY_PUBKEY='$(cat ~/.ssh/truewords_deploy.pub)' bash -s" < infra/oracle-vm/install-deploy-access.sh
+   ```
+3. 출력된 `restrict,command="…/deploy-entry" ssh-ed25519 … truewords-deploy@github-actions` 줄을 확인하고 VM `~/.ssh/authorized_keys` 에 추가한다. 확인: `ssh -i ~/.ssh/truewords_deploy -o IdentitiesOnly=yes <user>@<host> status` 가 태그를 출력하고, `… 'status; id'` 는 거부돼야 한다.
+4. GitHub 환경 두 개를 만든다 — `production`, `production-migrate`. 둘 다 Required reviewers = 저장소 소유자, Deployment branches = `main` 만. 배포 키는 **환경 secret** 으로 두 환경에 각각 넣는다.
+   ```bash
+   gh secret set DEPLOY_SSH_KEY --env production < ~/.ssh/truewords_deploy
+   gh secret set DEPLOY_SSH_KEY --env production-migrate < ~/.ssh/truewords_deploy
+   ```
+5. 저장소 Variable 을 넣는다. 호스트 키는 `ssh-keyscan` 결과를 VM 안의 지문(`ssh truewords-oracle 'ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub'`)과 대조한 뒤에만 넣는다.
+   ```bash
+   gh variable set DEPLOY_HOST --body '<VM 공인 IP 또는 호스트>'
+   gh variable set DEPLOY_USER --body ubuntu
+   gh variable set DEPLOY_PORT --body 22          # 22 면 생략 가능
+   gh variable set DEPLOY_HOST_KEY --body "$(ssh-keyscan -t ed25519 <호스트> 2>/dev/null)"
+   gh variable set DEMO_ADMIN_EMAIL --body '<VM .env 의 DEMO_ADMIN_EMAIL 과 같은 값>'
+   ```
+6. Release 를 `deploy=false` 로 한 번 실행해 이미지 3개를 만든 뒤, GitHub → Packages 에서 `truewords-backend`·`truewords-admin`·`truewords-web` 의 visibility 가 **Public** 인지 확인한다(아니면 바꾼다). VM 은 로그인 없이 받는다 — secret 이 이미지에 들어가지 않는 것이 이 전제다.
+7. 첫 배포(`deploy=true`)가 compose 의 이미지 이름을 GHCR 로 바꾸고, 지금 돌고 있는 옛 이름(`truewords-<svc>:<태그>`) 이미지는 같은 ID 로 새 이름 태그를 붙여 이어 쓴다.
+8. GHCR 정리(`ghcr-cleanup.yml`)는 예약 실행이 dry-run 이다. 수동 실행(dry_run=true) 로그에서 지울 버전이 맞는지 본 뒤 `gh variable set GHCR_CLEANUP_ENABLED --body true`.
 
 ### 전환 전 이미지의 지속 보존
 

@@ -1,6 +1,6 @@
 # CI·독립 배포
 
-PR은 GitHub Actions에서 검증하고, 운영 배포는 로컬 Mac에서 명시적으로 실행한다. **main 머지나 push가 Oracle 운영을 자동 배포하지 않는다.** 이번 모노레포 PR은 구성 준비이며 원격 배포·Cloudflare 변경은 미실행이다.
+PR은 GitHub Actions에서 검증하고, main 의 CI 가 성공하면 `release.yml` 이 arm64 이미지를 GHCR 에 올린다. **운영 배포는 지금 수동 실행(`deploy=true`) + `production` 환경 승인일 때만 일어난다** — main 머지만으로는 이미지만 만들어진다. 결정 배경은 [배포 파이프라인 ADR](../adr/2026-10-02-gha-deploy-pipeline.md)이다.
 
 ## PR 검사 경로
 
@@ -48,17 +48,32 @@ Turbo는 의존 작업·입출력을 명시해야 한다. 생성 결과와 공�
 
 ## 독립 이미지와 배포
 
-| 앱 | Dockerfile / 이미지 | 배포·복구 |
+| 앱 | Dockerfile / 이미지 (`ghcr.io/woosung-dev/…`) | 비상 배포·복구 |
 |---|---|---|
-| API | `apps/api/Dockerfile` / `truewords-backend` | `make deploy-backend`, `make rollback-backend TAG=<태그>` |
-| 사용자 web | `apps/web/Dockerfile` / `truewords-web` | `make deploy-web`, `make rollback-web TAG=<태그>` |
-| 관리자 admin | `apps/admin/Dockerfile` / `truewords-admin` | `make deploy-admin`, `make rollback-admin TAG=<태그>` |
+| API | `apps/api/Dockerfile` / `truewords-backend:<sha12>` | `make deploy-backend [MIGRATE=1]`, `make rollback-backend TAG=<태그>` |
+| 사용자 web | `apps/web/Dockerfile` / `truewords-web:<sha12>` | `make deploy-web`, `make rollback-web TAG=<태그>` |
+| 관리자 admin | `apps/admin/Dockerfile` / `truewords-admin:<sha12>` | `make deploy-admin`, `make rollback-admin TAG=<태그>` |
 
 Docker context는 저장소 루트다. API의 venv·소스 레이어 분리, Alembic·운영 scripts 포함, `app.main:app` import 경로를 검증한다. Next standalone은 workspace를 포함하므로 `apps/<app>/server.js`·public·static 배치가 앱별 이미지에 들어가야 한다.
 
-`NEXT_PUBLIC_API_URL`과 앱 간 origin은 build 시 고정된다. 운영에서는 API rewrite를 `http://backend:8080`으로 빌드하고 확정 사용자/admin origin을 전달한다. 런타임 env만 수정한 뒤 목적지가 바뀌었다고 판정하지 않는다.
+`NEXT_PUBLIC_*` 는 build 시 고정된다. 원본은 커밋된 `infra/oracle-vm/build-args.env`(시연 관리자 이메일만 저장소 Variable `DEMO_ADMIN_EMAIL`)이고, release 와 비상 경로가 같은 파일을 읽는다. 런타임 env만 수정한 뒤 목적지가 바뀌었다고 판정하지 않는다.
 
-`make deploy-*`는 먼저 `deploy-guard`로 **HEAD가 `origin/main`에 포함되고, 작업 트리가 깨끗하고, 현재 운영 태그가 배포할 HEAD의 조상인지** 확인한다(앞의 둘은 2026-08-06 브랜치 HEAD 배포 사고, 셋째는 2026-09-20 후퇴 배포 미수의 재발 방지 — [훈독 PWA 롤아웃 runbook](hoondok-pwa-rollout.md)). 셋째 조건은 호출부가 넘긴 `DEPLOY_SERVICE`로 VM `~/truewords/.env`의 `<SVC>_TAG`를 읽어 판정하며, **읽지 못하면 "첫 배포"로 보지 않고 중단한다**(ssh 실패 255와 `.env` 읽기 실패를 메시지로 구분한다). 예외는 `FORCE_DEPLOY=1`뿐이며 기록에 `forced`로 남는다. 이어서 ops-check(advisory) → 로컬 arm64 빌드 → entrypoint/smoke 확인 → SSH image load → 태그 갱신 → compose healthy 확인 → VM `~/truewords/deploy.log`에 `시각 동작 서비스 태그 경로` 한 줄 기록 순이다. 롤백도 같은 로그에 `rollback … manual`로 남는다. 단일 VM의 Compose 교체는 무중단을 보장하지 않는다. 이미지 배포 권한은 PR 생성 권한과 구분한다.
+### 정상 경로 — `release.yml`
+
+| 단계 | 내용 |
+|---|---|
+| 시작 | CI 의 main push run 이 성공하면(`workflow_run`) 또는 수동 실행. 대상 sha 가 `origin/main` 의 조상이 아니면 멈춘다 |
+| 빌드 | 서비스마다 `ubuntu-24.04-arm` 에서 빌드·push. 같은 태그가 이미 있으면 건너뛴다. 오프라인 probe(리비전·빌드 설정 라벨, backend 는 alembic·uvicorn·import, web/admin 은 rewrite 목적지·origin) |
+| 배포 판정 | `tooling/checks/deploy-services.mjs` 가 운영 태그 → 이 sha 사이에 **각 Dockerfile 이 실제로 읽는 파일**이 바뀐 서비스만 고른다. 운영 태그가 이 sha 의 조상이 아니면 `rollback=true` 없이는 멈춘다 |
+| 배포 | 강제 명령 SSH 로 VM `deploy.sh`. DB migration 이 필요하면 아무것도 바꾸지 않고 `deploy-migrate` job 이 `production-migrate` 승인을 받는다 |
+| 검증 | 운영 태그 확인 + 공개 URL 스모크(캐시 우회, 3회). 실패하면 직전 태그로 자동 롤백(migration 배포는 제외) |
+| 알림 | 실패하면 `[deploy-alert]` GitHub Issue 를 열거나 댓글(저장소 소유자에게 메일), 다음 성공 배포가 닫는다. `NTFY_TOPIC` secret 이 있을 때만 ntfy 도 보낸다 |
+
+자동 배포로 바꾸려면 `release.yml` deploy job 의 `if:` 를 바로 아래 주석 줄로 바꾼다. 환경 승인은 그대로 남는다.
+
+### 비상 경로 — `make deploy-*`
+
+Actions 를 쓸 수 없을 때만 쓴다. `deploy-guard`(HEAD ∈ `origin/main`, 깨끗한 트리, 운영 태그가 HEAD 의 조상) → ops-check(advisory) → 로컬 arm64 빌드(같은 GHCR 이름·같은 빌드 인자) → 이미지 전송 → **VM 에 rsync 한 같은 `deploy.sh`** 순이다. 그래서 교체·검사·롤백·`deploy.log` 규칙이 정상 경로와 같다. 예외는 `FORCE_DEPLOY=1` 뿐이며 `deploy.log` 에 `forced` 로 남는다. 실패 모드와 VM 쪽 절차는 [VM 운영 §배포와 롤백](../../infra/oracle-vm/README.md#배포와-롤백)이 원본이다. 단일 VM의 Compose 교체는 무중단을 보장하지 않는다.
 
 ## 최초 분리 전환·rollback
 
@@ -74,6 +89,8 @@ Docker context는 저장소 루트다. API의 venv·소스 레이어 분리, Ale
 |---|---|
 | PR CI | GitHub Actions, 외부 머지 게이트 |
 | `cache-cleanup.yml` | GitHub Actions, HTTPS Qdrant 대상; working directory는 `apps/api` |
+| `release.yml` | GitHub Actions, CI 성공 뒤 이미지 빌드·승인 배포 |
+| `ghcr-cleanup.yml` | GitHub Actions 주간, GHCR 오래된 버전 정리(`GHCR_CLEANUP_ENABLED=true` 전까지 dry-run) |
 | PostgreSQL 백업·추천 질문 | VM cron, 호스트 로컬 DB 접근 필요 |
 | `ops-check.sh`·이미지 GC | VM cron, 실제 컨테이너·디스크·백업 결과 점검 |
 | 수동 실행 | 기존 Make target·VM wrapper. 같은 작업의 스케줄러를 중복 등록하지 않음 |

@@ -1,7 +1,7 @@
 # CI/CD 점검 결정 ADR — 보호 없는 main, 재발한 청구 차단, 죽은 Vercel, 전달 없는 감시
 
 - **작성일**: 2026-09-05
-- **상태**: 결정 확정 · 구현 `dev/cicd-hardening` 통합 브랜치 (sub-PR 5개) · 외부 작업(public 전환·Vercel 삭제·시크릿 삭제·VM 반영)은 별도 승인 후 실행
+- **상태**: 결정 확정 · 구현 `dev/cicd-hardening` 통합 브랜치 (sub-PR 5개) · 외부 작업(public 전환·Vercel 삭제·시크릿 삭제·VM 반영)은 별도 승인 후 실행 · **D5 는 [배포 파이프라인 ADR](2026-10-02-gha-deploy-pipeline.md)로 대체**
 - **관련**: [CI·독립 배포 runbook](../runbooks/ci-cd-pipeline.md) · [통합 브랜치 워크플로](../runbooks/integration-branch-workflow.md) · [예약 작업 조용한 실패 ADR](2026-07-30-silent-scheduled-job-failure.md) · [VM 운영](../../infra/oracle-vm/README.md)
 
 ## 배경
