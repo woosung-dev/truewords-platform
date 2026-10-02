@@ -93,6 +93,7 @@ Actions 를 쓸 수 없을 때만 쓴다. `deploy-guard`(HEAD ∈ `origin/main`,
 | `ghcr-cleanup.yml` | GitHub Actions 주간, GHCR 오래된 버전 정리(`GHCR_CLEANUP_ENABLED=true` 전까지 dry-run) |
 | PostgreSQL 백업·추천 질문 | VM cron, 호스트 로컬 DB 접근 필요 |
 | `ops-check.sh`·이미지 GC | VM cron, 실제 컨테이너·디스크·백업 결과 점검 |
+| `ops-alert.yml` | GitHub Actions 매일 19:20 UTC, `ops-check.sh` 결과를 읽기 전용 키로 당겨 `[ops-alert] VM 점검` 이슈로 전달(VM 미응답·낡은 결과도 알림) |
 | 수동 실행 | 기존 Make target·VM wrapper. 같은 작업의 스케줄러를 중복 등록하지 않음 |
 
 기존 운영은 6시간마다 DB 백업, 주간 추천 질문 갱신, 일일 운영 점검을 사용한다. 이번 전환에서 cron 업무 정책을 바꾸지 않으며 `ops-check.sh`에는 새 web의 상태를 포함한다. 과거 예약 작업 실패의 근거는 [ADR](../adr/2026-07-30-silent-scheduled-job-failure.md)에 보존했다.

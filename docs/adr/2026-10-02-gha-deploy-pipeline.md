@@ -30,6 +30,7 @@ D5 이후 배포는 로컬 Mac 의 `make deploy-*`(로컬 arm64 빌드 → `dock
 | D7 | **롤백 정책** | 교체 후 검사(이미지 ID·healthy·내부 HTTP·backend 는 DB head)가 실패하면 deploy.sh 가 즉시 이전 태그로 되돌린다(종료 5). 공개 URL 스모크가 실패하면 Actions 가 `rollback` 을 부른다 — 단, 검증 직전 VM 상태를 읽지 못하면(ssh) 롤백하지 않고 알린다. **migration 이 돈 배포는 backend 를 자동 롤백하지 않는다** — 이전 backend 이미지는 새 revision 을 몰라 기동하지 못한다. 같은 배포에서 바뀐 admin·web 은 이전 태그로 되돌린다 |
 | D8 | **알림은 GitHub Issue(+ GitHub 메일), ntfy 는 선택** | 휴대폰 앱을 설치하지 않으므로 ntfy 를 1차 채널로 쓸 수 없다. 배포·빌드가 실패하면 `[deploy-alert]` 이슈를 열거나 열린 이슈에 댓글을 달고, 다음 배포가 성공하면 닫는다(열린 알림은 늘 0~1개). 새 이슈는 저장소 소유자에게 메일로 간다. `NTFY_TOPIC` secret 이 있을 때만 ntfy 를 덧붙인다 |
 | D9 | **GHCR 보존은 `dataaxiom/ghcr-cleanup-action`**, 서비스마다 태그 15개 + 태그 없는 버전·고아 정리 | `actions/delete-package-versions` 의 untagged 삭제는 multi-arch 이미지의 하위 manifest 를 지워 태그를 깨뜨릴 수 있다. 예약 실행은 `GHCR_CLEANUP_ENABLED=true` 전까지 dry-run 이다 |
+| D10 | **VM 불변식 알림은 Actions 가 당겨 간다(`ops-alert.yml`)** | VM 에 GitHub 토큰을 두지 않는다. 매일 ops-check 35분 뒤 `ops-read` 환경의 읽기 전용 키(강제 명령이 `ops-status` 만 실행)로 `/opt/ops-status.json` 을 읽어, FAIL·WARN·접속 실패·낡은 결과(26시간 초과)·형식 오류면 `[ops-alert] VM 점검` 이슈를 열고 정상이면 그 이슈만 닫는다. VM cron 이 멈추면 이쪽이, Actions 가 멈추면 VM 쪽 ntfy(선택)가 남아 서로 다른 실패 도메인에서 덮는다. 이슈 본문은 공개라 버킷 이름·키 지문·IP 를 가리고 ssh 오류 원문을 싣지 않는다 |
 
 ## 하지 않기로 한 것
 
@@ -40,6 +41,6 @@ D5 이후 배포는 로컬 Mac 의 `make deploy-*`(로컬 arm64 빌드 → `dock
 
 ## 남은 공백 — 정직하게
 
-- 알림 job 도 Actions 위에서 돈다. Actions 자체가 멈추면 배포 알림도 없다(그때는 배포도 일어나지 않는다). VM 쪽 불변식은 `ops-check.sh` 가 결과 기준으로 계속 본다.
+- 알림 job 도 Actions 위에서 돈다. Actions 자체가 멈추면 배포 알림도 없다(그때는 배포도 일어나지 않는다). VM 쪽 불변식은 `ops-check.sh` 가 결과 기준으로 계속 보지만, 그 결과를 사람에게 전하는 `ops-alert.yml` 도 Actions 라 같은 사고에서는 ntfy(설정했을 때)만 남는다.
 - migration 을 넘는 backend 롤백은 자동화하지 않았다. 백업 복원과 함께 사람이 판단한다.
 - `[확인 필요]` 기본 `GITHUB_TOKEN` 으로 GHCR 버전 삭제가 되는지 — 첫 dry-run 해제 전에 수동 실행으로 확인한다.

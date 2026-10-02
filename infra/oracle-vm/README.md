@@ -266,7 +266,7 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
    ```bash
    ssh truewords-oracle "DEPLOY_PUBKEY='$(cat ~/.ssh/truewords_deploy.pub)' MIGRATE_PUBKEY='$(cat ~/.ssh/truewords_deploy_migrate.pub)' bash -s" < infra/oracle-vm/install-deploy-access.sh
    ```
-3. 출력된 줄 중 `truewords-deploy@github-actions`(강제 명령 `…/deploy-entry`)와 `truewords-deploy-migrate@github-actions`(`env TW_ALLOW_MIGRATE=1 …/deploy-entry`) 두 줄을 확인하고 VM `~/.ssh/authorized_keys` 에 추가한다. 확인: `ssh -i ~/.ssh/truewords_deploy -o IdentitiesOnly=yes <user>@<host> status` 가 태그를 출력하고, `… 'status; id'` 와 배포 키의 `… 'deploy <sha> backend --migrate'` 는 거부돼야 한다. VM sshd 의 `AcceptEnv` 가 `LANG LC_*` 뿐이고 `PermitUserEnvironment` 가 꺼져 있는지도 본다(`sudo sshd -T | grep -Ei 'acceptenv|permituserenvironment'`) — 클라이언트가 `TW_ALLOW_MIGRATE` 를 보낼 수 없어야 한다. 함께 출력되는 `truewords-ops-read@github-actions` 줄은 ops-check 결과(`/opt/ops-status.json`)만 읽는 별도 키용이다 — 그 키를 쓰는 워크플로를 둘 때만 넣는다.
+3. 출력된 줄 중 `truewords-deploy@github-actions`(강제 명령 `…/deploy-entry`)와 `truewords-deploy-migrate@github-actions`(`env TW_ALLOW_MIGRATE=1 …/deploy-entry`) 두 줄을 확인하고 VM `~/.ssh/authorized_keys` 에 추가한다. 확인: `ssh -i ~/.ssh/truewords_deploy -o IdentitiesOnly=yes <user>@<host> status` 가 태그를 출력하고, `… 'status; id'` 와 배포 키의 `… 'deploy <sha> backend --migrate'` 는 거부돼야 한다. VM sshd 의 `AcceptEnv` 가 `LANG LC_*` 뿐이고 `PermitUserEnvironment` 가 꺼져 있는지도 본다(`sudo sshd -T | grep -Ei 'acceptenv|permituserenvironment'`) — 클라이언트가 `TW_ALLOW_MIGRATE` 를 보낼 수 없어야 한다. 함께 출력되는 `truewords-ops-read@github-actions` 줄은 ops-check 결과(`/opt/ops-status.json`)만 읽는 `ops-alert.yml` 용 키다 — [§전달 — GitHub Issue](#전달--github-issue-ops-alertyml) 설정에서 넣는다.
 4. GitHub 환경 두 개를 만든다 — `production`, `production-migrate`. 둘 다 Required reviewers = 저장소 소유자, Deployment branches = `main` 만. 키·VM 주소·호스트 키는 **환경 secret** 이다(공개 저장소의 Actions 로그에서 마스킹된다). 같은 secret 이름에 환경마다 다른 키를 넣는다. `DEPLOY_HOST` 는 DNS 이름이 아니라 **IP** 로 넣는다 — 이름이면 ssh 오류 메시지에 해석된 IP 가 찍혀 마스킹을 비켜 간다. 호스트 키는 `ssh-keyscan` 결과를 VM 안의 지문(`ssh truewords-oracle 'ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub'`)과 대조한 뒤에만 넣는다.
    ```bash
    gh secret set DEPLOY_SSH_KEY --env production < ~/.ssh/truewords_deploy
@@ -493,7 +493,34 @@ make ops-check                                                        # 정상: 
 ssh truewords-oracle 'BACKUP_MAX_AGE_H=0 bash ~/truewords/ops-check.sh'   # backup FAIL 강제 → 폰에 "[truewords] ops-check FAIL x1"
 ```
 
-> 한계: **cron 자체가 안 돌면 이 방식으로는 모른다.** 스크립트가 실행돼야 푸시가 나간다. "안 돌았음" 까지 잡으려면 dead-man ping(healthchecks.io 류)을 `ops-check.sh`·`backup-db.sh` 끝에 한 줄 더 붙여야 한다 — 별도 과제. 배경: [ADR](../../docs/adr/2026-07-30-silent-scheduled-job-failure.md)
+> 한계: **cron 자체가 안 돌면 이 방식으로는 모른다.** 스크립트가 실행돼야 푸시가 나간다. 그 공백은 아래 `ops-alert.yml` 이 "결과가 낡음" 으로 잡는다(`backup-db.sh` 의 미실행은 다음 ops-check 의 `backup` 항목이 잡는다). 배경: [ADR](../../docs/adr/2026-07-30-silent-scheduled-job-failure.md)
+
+### 전달 — GitHub Issue (`ops-alert.yml`)
+
+앱 없이 받는 1차 채널이다. Actions 가 매일 19:20 UTC(ops-check 35분 뒤)에 VM 의 `/opt/ops-status.json` 을 **당겨 와** 판정하고, 문제가 있으면 `[ops-alert] VM 점검 — …` 이슈를 연다(새 이슈는 저장소 소유자에게 메일). VM 에는 GitHub 토큰을 두지 않는다. 판정 규칙의 원본은 `tooling/checks/ops-alert-report.mjs` 다.
+
+| 결과 | 이슈 |
+|---|---|
+| FAIL·WARN 항목 | 항목별 이름·판정·DETAIL. 버킷 이름·키 지문(`sha8=`)·OCID·IP 는 가린다(공개 저장소) |
+| VM 에 닿지 못함 · ops-status 를 읽지 못함 · ssh 설정 실패 | ssh 오류 원문은 싣지 않는다(주소가 섞인다). 종료 코드로만 구분한다 |
+| 결과가 낡음(`checked_at` 이 26시간 넘게 지남) | VM cron 이 멈췄다 — `crontab -l`·`~/truewords-cron.log` |
+| 결과 JSON 형식 오류 | 원문 대신 크기만 적는다 |
+| 전부 OK(SKIP 포함) | 이 워크플로가 연 `[ops-alert] VM 점검` 이슈만 닫는다. `cache-cleanup.yml` 의 이슈는 건드리지 않는다 |
+
+열린 이슈가 있으면 새로 열지 않고 댓글을 단다. 수동 실행: Actions → **Ops alert** → Run workflow(main).
+
+설정(1회, 배포 설정의 1~3과 같은 설치 스크립트를 쓴다):
+
+1. 키를 만든다: `ssh-keygen -t ed25519 -N '' -C truewords-ops-read@github-actions -f ~/.ssh/truewords_ops_read`
+2. 설치 스크립트를 `OPS_PUBKEY="$(cat ~/.ssh/truewords_ops_read.pub)"` 와 함께 실행하고, 출력된 `truewords-ops-read@github-actions` 줄(`env SSH_ORIGINAL_COMMAND=ops-status …/deploy-entry`)을 `authorized_keys` 에 넣는다. 확인: `ssh -i ~/.ssh/truewords_ops_read -o IdentitiesOnly=yes <user>@<IP> 'deploy x'` 도 JSON 만 출력해야 한다.
+3. GitHub 환경 `ops-read` — Required reviewers **없음**(예약 실행이 승인을 기다리지 않게), Deployment branches = `main` 만. 환경 secret:
+   ```bash
+   gh secret set OPS_READ_SSH_KEY --env ops-read < ~/.ssh/truewords_ops_read
+   gh secret set DEPLOY_HOST --env ops-read --body '<VM 공인 IP>'
+   gh secret set DEPLOY_HOST_KEY --env ops-read --body "$(ssh-keyscan -t ed25519 <VM 공인 IP> 2>/dev/null)"
+   ```
+   `DEPLOY_USER`·`DEPLOY_PORT` 는 배포와 같은 저장소 Variable 을 쓴다.
+4. Run workflow 로 한 번 돌려 정상이면 이슈가 생기지 않는 것, `ops-read` secret 하나를 일부러 비우면 "ssh 설정 실패" 이슈가 생기는 것을 본다(반증 가능한 리허설). 확인 뒤 되돌리고 이슈를 닫는다.
 
 ---
 
