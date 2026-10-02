@@ -60,7 +60,7 @@ CHUNK_ID = "11111111-1111-1111-1111-111111111111"
 CHUNK_TEXT = "하나님은 사랑과 진리와 생명의 본체이십니다.\n\n참부모님께서는 실체로 오셨습니다."
 MP3 = b"ID3-fake-mp3"
 USER = uuid.UUID("22222222-2222-2222-2222-222222222222")
-NOW = datetime(2026, 9, 25, 3, 0)  # naive UTC (models._utcnow 와 같은 형식)
+NOW = datetime(2026, 9, 25, 3, 0, tzinfo=timezone.utc)  # aware UTC (clock.utcnow 와 같은 형식)
 
 
 @pytest.fixture

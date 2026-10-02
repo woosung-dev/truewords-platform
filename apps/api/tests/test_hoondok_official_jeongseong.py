@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -128,7 +128,7 @@ async def test_official_jeongseong_crud_with_audit(ctx: TestClient):
 async def test_admin_group_list_hides_member_names_and_delete_cascades(ctx: TestClient):
     session: AsyncSession = ctx.session  # type: ignore[attr-defined]
     user = User(email="a@example.com", password_hash="x", display_name="계정이름")
-    group = ReadingGroup(name="새벽 모임", invite_code="ABCD-EFGH", invite_expires_at=datetime(2026, 10, 23))
+    group = ReadingGroup(name="새벽 모임", invite_code="ABCD-EFGH", invite_expires_at=datetime(2026, 10, 23, tzinfo=timezone.utc))
     session.add_all([user, group])
     await session.commit()
     member = GroupMember(group_id=group.id, user_id=user.id, display_name="모임이름", role="leader")

@@ -1,10 +1,11 @@
 """관리자 JWT 인증 유틸리티."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 import bcrypt
 from jose import JWTError, jwt
 
+from app.core.common.clock import utcnow
 from app.core.config import settings
 
 
@@ -19,7 +20,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 def create_access_token(data: dict, expires_minutes: int | None = None) -> str:
     """기본 만료는 admin 값. 훈독(identity)은 expires_minutes 로 7일을 넘긴다."""
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(
+    expire = utcnow() + timedelta(
         minutes=expires_minutes if expires_minutes is not None else settings.admin_jwt_expire_minutes
     )
     to_encode["exp"] = expire

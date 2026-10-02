@@ -7,6 +7,8 @@ from datetime import datetime
 from sqlmodel import Field, SQLModel, Column
 from sqlalchemy import JSON, Text
 
+from app.core.common.clock import utcnow
+
 
 class AdminRole(str, enum.Enum):
     SUPER_ADMIN = "super_admin"
@@ -23,8 +25,8 @@ class AdminUser(SQLModel, table=True):
     role: AdminRole = AdminRole.ADMIN
     is_active: bool = Field(default=True)
     organization_id: uuid.UUID | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class AdminAuditLog(SQLModel, table=True):
@@ -37,4 +39,4 @@ class AdminAuditLog(SQLModel, table=True):
     target_id: uuid.UUID
     changes: dict = Field(default_factory=dict, sa_column=Column(JSON))
     ip_address: str | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)

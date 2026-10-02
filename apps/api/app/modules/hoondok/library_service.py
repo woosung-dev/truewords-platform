@@ -6,6 +6,7 @@ from collections import Counter
 
 from fastapi import HTTPException
 
+from app.core.common.clock import utcnow
 from app.core.config import settings
 from app.modules.hoondok.display_text import to_display_text
 from app.modules.hoondok.library_repository import LibraryRepository
@@ -29,7 +30,7 @@ from app.modules.hoondok.library_schemas import (
     SeriesVolume,
 )
 from app.modules.hoondok.library_series import label_sort_key, series_title, volume_label
-from app.modules.hoondok.models import ContentRight, PassageHighlight, PassageMark, _utcnow
+from app.modules.hoondok.models import ContentRight, PassageHighlight, PassageMark
 from app.modules.qdrant import RawQdrantClient
 from app.modules.qdrant.filters import build_filter, field_match, field_match_any
 from app.modules.search.hybrid import SearchResult, point_to_search_result
@@ -404,7 +405,7 @@ class LibraryService:
             row.color = data.color
         if "note" in data.model_fields_set:
             row.note = _clean_note(data.note)
-        row.updated_at = _utcnow()
+        row.updated_at = utcnow()
         row = await self.repo.save_highlight(row)
         rights = await self._rights_by_volume()
         work_title, _series, label = self._label_of(row.volume, rights)

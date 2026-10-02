@@ -3,13 +3,13 @@
 import calendar
 import uuid
 from collections.abc import Callable
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, timedelta
 
 import httpx
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
-from app.core.common.clock import today_kst
+from app.core.common.clock import today_kst, utcnow
 from app.modules.hoondok.candidates import filter_results
 from app.modules.hoondok.jeongseong import compute_progress, period_end
 from app.modules.hoondok.models import DailyReading, JeongseongPeriod, MissionLog
@@ -39,10 +39,6 @@ from app.modules.search.hybrid import hybrid_search
 HISTORY_MIN_YEAR = 2020  # 월 기록 조회 하한. 상한은 올해 + 1
 JEONGSEONG_START_WINDOW_DAYS = 30  # 시작일 허용 범위: 오늘 ~ 오늘 + 30
 JEONGSEONG_LAST_ENDED_DAYS = 7  # 마무리 카드: end_on 이 오늘 - 7 이후인 completed 만
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class HoondokService:
@@ -210,7 +206,7 @@ class JeongseongService:
         return period
 
     async def _transition(self, period: JeongseongPeriod, to_status: str) -> None:
-        now = _utcnow()
+        now = utcnow()
         period.status = to_status
         period.ended_at = now
         period.updated_at = now
@@ -275,7 +271,7 @@ class DailyReadingAdminService:
         reading = await self.get(reading_id)
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(reading, field, value)
-        reading.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        reading.updated_at = utcnow()
         try:
             return await self.repo.save(reading)
         except IntegrityError:

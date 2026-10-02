@@ -7,6 +7,8 @@ from datetime import datetime
 from sqlmodel import Field, SQLModel, Column
 from sqlalchemy import JSON, Text, UniqueConstraint
 
+from app.core.common.clock import utcnow
+
 
 class MessageRole(str, enum.Enum):
     USER = "user"
@@ -40,7 +42,7 @@ class ResearchSession(SQLModel, table=True):
     participant_name: str | None = Field(default=None, max_length=128, index=True)
     participant_category: str | None = Field(default=None, max_length=128, index=True)
     started_at: datetime = Field(
-        default_factory=datetime.utcnow, index=True
+        default_factory=utcnow, index=True
     )
     ended_at: datetime | None = None
 
@@ -57,7 +59,7 @@ class SessionMessage(SQLModel, table=True):
     # default=1 (legacy/backfill 의미), 신규 코드는 항상 명시적 2 주입.
     pipeline_version: int = Field(default=1, index=False)
     created_at: datetime = Field(
-        default_factory=datetime.utcnow, index=True
+        default_factory=utcnow, index=True
     )
     # M1 — 측정 인프라 (Cross-review #2 Opus W4-blocking).
     # 답변 단위로 어떤 페르소나/위기 신호가 작동했는지 영속화 → A/B 효과 분석 가능.
@@ -80,7 +82,7 @@ class SearchEvent(SQLModel, table=True):
     total_results: int = 0
     latency_ms: int = 0
     qdrant_request_id: str | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class AnswerCitation(SQLModel, table=True):
@@ -97,7 +99,7 @@ class AnswerCitation(SQLModel, table=True):
     text_snippet: str = Field(sa_column=Column(Text))
     relevance_score: float = 0.0
     rank_position: int = 0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class AnswerFeedback(SQLModel, table=True):
@@ -124,10 +126,10 @@ class AnswerFeedback(SQLModel, table=True):
     feedback_type: FeedbackType
     comment: str | None = None
     user_id: uuid.UUID | None = None  # 미래 확장용
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column_kwargs={"onupdate": datetime.utcnow},
+        default_factory=utcnow,
+        sa_column_kwargs={"onupdate": utcnow},
     )
 
 
@@ -157,7 +159,7 @@ class MessageReaction(SQLModel, table=True):
     # 비로그인 사용자도 토글 가능 — 클라이언트가 보내는 fingerprint/cookie 기반 id.
     user_session_id: str = Field(index=True, max_length=128)
     kind: MessageReactionKind
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 # PoC 정리 (2026-04-29) — P1-K AnswerReview/ReviewLabel + P1-H ChatMessageNote 제거.

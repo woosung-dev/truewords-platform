@@ -201,8 +201,8 @@ def _service(session: AsyncSession, today_fn=lambda: TODAY) -> JeongseongService
 
 
 def _at(day_offset: int) -> datetime:
-    """TODAY + day_offset 날짜의 정오(UTC, naive) — ended_at 용."""
-    return datetime.combine(TODAY + timedelta(days=day_offset), time(12, 0))
+    """TODAY + day_offset 날짜의 정오(UTC) — ended_at 용."""
+    return datetime.combine(TODAY + timedelta(days=day_offset), time(12, 0), tzinfo=timezone.utc)
 
 
 async def _ended(

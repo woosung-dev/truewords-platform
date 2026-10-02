@@ -1,7 +1,7 @@
 """오늘의 책갈피 (PLAN-HD-012, API-HD-047~052) — 회전 규칙·공개 범위·멱등 받기/건넴·책장·admin."""
 
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -26,7 +26,7 @@ from app.modules.identity.service import IdentityService
 
 XHR = {"X-Requested-With": "XMLHttpRequest"}
 TODAY = date(2026, 9, 28)
-BASE = datetime(2026, 9, 1)
+BASE = datetime(2026, 9, 1, tzinfo=timezone.utc)
 
 
 def make_card(n: int, *, status: str = "active", pinned_on: date | None = None, work_title: str = "천성경") -> WordCard:

@@ -88,7 +88,7 @@ async def test_login_wrong_password_unknown_email_and_deleted_share_401(repo: Us
         assert exc.value.status_code == 401
         assert exc.value.detail == "이메일 또는 비밀번호가 올바르지 않습니다"
 
-    user.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    user.deleted_at = datetime.now(timezone.utc)
     await repo.session.commit()
     with pytest.raises(HTTPException) as exc:
         await service.login(LoginRequest(email="hoondok@example.com", password="password1"))
@@ -164,7 +164,7 @@ async def test_get_optional_user_ignores_admin_token_and_deleted_users():
     req.cookies = {COOKIE_NAME: hoondok}
     assert (await get_optional_user(req, repo)) is user
 
-    user.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    user.deleted_at = datetime.now(timezone.utc)
     assert await get_optional_user(req, repo) is None
     with pytest.raises(HTTPException) as exc:
         await get_current_user(None)

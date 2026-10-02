@@ -1,8 +1,9 @@
 """배치 적재 통계 리포트."""
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
+
+from app.core.common.clock import utcnow
 
 
 class BatchReporter:
@@ -23,11 +24,11 @@ class BatchReporter:
     def generate(self, output_dir: Path) -> Path:
         """리포트 JSON 생성. 파일명에 타임스탬프 포함."""
         output_dir.mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = utcnow().strftime("%Y%m%d_%H%M%S")
         filepath = output_dir / f"report_{timestamp}.json"
 
         report = {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": utcnow().isoformat(),
             "total_volumes": len(self.volumes),
             "total_chunks": sum(v["chunks"] for v in self.volumes),
             "total_time_sec": round(sum(v["time_sec"] for v in self.volumes), 2),

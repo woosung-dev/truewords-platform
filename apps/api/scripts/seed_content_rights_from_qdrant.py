@@ -38,10 +38,11 @@ if str(BACKEND_DIR) not in sys.path:
 
 from sqlmodel import select  # noqa: E402
 
+from app.core.common.clock import utcnow  # noqa: E402
 from app.core.common.database import async_session_factory  # noqa: E402
 from app.core.config import settings  # noqa: E402
 from app.modules.hoondok.library_series import BOOK_SERIES_TITLES, series_title  # noqa: E402
-from app.modules.hoondok.models import ContentRight, _utcnow  # noqa: E402
+from app.modules.hoondok.models import ContentRight  # noqa: E402
 from app.modules.hoondok.schemas import AuthorityGrade  # noqa: E402
 from app.modules.pipeline.metadata import classify_book_series  # noqa: E402
 from app.modules.qdrant.raw_client import RawQdrantClient  # noqa: E402
@@ -175,7 +176,7 @@ async def seed(counts: dict[str, int], allow: set[str], grade: str, execute: boo
                         withdrawn.append(volume)
                     else:
                         _apply_allow(right, grade)
-                right.updated_at = _utcnow()
+                right.updated_at = utcnow()
                 updated += 1
             label = f"{series_title(series)}({series})"
             print(

@@ -16,11 +16,11 @@ progress.json 제거로 소실된 처리 이력을 Qdrant 실제 데이터 기�
 import argparse
 import asyncio
 import sys
-from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from app.core.common.clock import utcnow
 from app.core.common.database import async_session_factory
 from app.core.config import settings
 from app.modules.pipeline.ingestion_models import IngestionJob, IngestionStatus
@@ -82,7 +82,7 @@ async def backfill(volumes: dict[str, dict], dry_run: bool) -> tuple[int, int]:
     """
     inserted = 0
     skipped = 0
-    now = datetime.utcnow()
+    now = utcnow()
 
     async with async_session_factory() as session:
         repo = IngestionJobRepository(session)

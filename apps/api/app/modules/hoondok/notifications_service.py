@@ -1,10 +1,10 @@
 """훈독 알림 Service — 설정 upsert · 구독 등록/해지 (API-HD-019~022). AsyncSession 을 import 하지 않는다."""
 
 import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy.exc import IntegrityError
 
+from app.core.common.clock import utcnow
 from app.core.config import Settings, settings as default_settings
 from app.modules.hoondok.exceptions import PushDisabledError
 from app.modules.hoondok.models import NotificationPreference, PushSubscription
@@ -19,10 +19,6 @@ from app.modules.hoondok.notifications_schemas import (
     format_read_time,
     parse_read_time,
 )
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class NotificationService:
@@ -55,7 +51,7 @@ class NotificationService:
         stored = await self.repo.get_preference(user_id) or NotificationPreference(user_id=user_id)
         stored.read_enabled = data.read_enabled
         stored.read_time = parse_read_time(data.read_time)
-        stored.updated_at = _utcnow()
+        stored.updated_at = utcnow()
         saved = await self.repo.save_preference(stored)
         return self._to_response(saved, await self.repo.count_subscriptions(user_id))
 

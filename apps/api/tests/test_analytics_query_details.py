@@ -1,7 +1,7 @@
 """Analytics query-details 엔드포인트 테스트."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -78,8 +78,8 @@ async def test_query_details_returns_full_occurrence_payload(
     session_id = uuid.uuid4()
     chatbot_id = uuid.uuid4()
     event_id = uuid.uuid4()
-    asked_at = datetime(2026, 4, 21, 10, 0, 0)
-    feedback_at = datetime(2026, 4, 21, 10, 1, 30)
+    asked_at = datetime(2026, 4, 21, 10, 0, 0, tzinfo=timezone.utc)
+    feedback_at = datetime(2026, 4, 21, 10, 1, 30, tzinfo=timezone.utc)
 
     repo = AsyncMock(spec=AnalyticsRepository)
     repo.get_query_details.return_value = {
@@ -162,7 +162,7 @@ async def test_query_details_handles_missing_answer_and_deleted_bot(
                 "session_id": uuid.uuid4(),
                 "chatbot_id": None,
                 "chatbot_name": None,
-                "asked_at": datetime(2026, 4, 20, 9, 0, 0),
+                "asked_at": datetime(2026, 4, 20, 9, 0, 0, tzinfo=timezone.utc),
                 "rewritten_query": None,
                 "search_tier": 0,
                 "total_results": 0,

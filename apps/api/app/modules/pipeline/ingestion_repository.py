@@ -1,12 +1,12 @@
 """IngestionJob DB CRUD."""
 
 import os
-from datetime import datetime
 
 from sqlalchemy import func
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.common.clock import utcnow
 from app.modules.pipeline.ingestion_models import IngestionJob, IngestionStatus
 
 
@@ -29,7 +29,7 @@ class IngestionJobRepository:
     ) -> IngestionJob:
         """신규 생성 또는 기존 row 상태 초기화 (재업로드 지원)."""
         job = await self.get_by_volume_key(volume_key)
-        now = datetime.utcnow()
+        now = utcnow()
         if job is None:
             job = IngestionJob(
                 volume_key=volume_key,
@@ -63,7 +63,7 @@ class IngestionJobRepository:
             return
         job.status = IngestionStatus.RUNNING
         job.total_chunks = total_chunks
-        job.updated_at = datetime.utcnow()
+        job.updated_at = utcnow()
         self.session.add(job)
         await self.session.flush()
 
@@ -72,7 +72,7 @@ class IngestionJobRepository:
         if job is None:
             return
         job.processed_chunks = processed_chunks
-        job.updated_at = datetime.utcnow()
+        job.updated_at = utcnow()
         self.session.add(job)
         await self.session.flush()
 
@@ -92,7 +92,7 @@ class IngestionJobRepository:
         job = await self.get_by_volume_key(volume_key)
         if job is None:
             return
-        now = datetime.utcnow()
+        now = utcnow()
         job.status = IngestionStatus.COMPLETED
         job.processed_chunks = processed_chunks
         if total_chunks is not None:
@@ -108,7 +108,7 @@ class IngestionJobRepository:
             return
         job.status = IngestionStatus.PARTIAL
         job.processed_chunks = processed_chunks
-        job.updated_at = datetime.utcnow()
+        job.updated_at = utcnow()
         self.session.add(job)
         await self.session.flush()
 
@@ -121,7 +121,7 @@ class IngestionJobRepository:
         if job is None:
             return
         job.content_hash = content_hash
-        job.updated_at = datetime.utcnow()
+        job.updated_at = utcnow()
         self.session.add(job)
         await self.session.flush()
 
@@ -129,7 +129,7 @@ class IngestionJobRepository:
         job = await self.get_by_volume_key(volume_key)
         if job is None:
             return
-        now = datetime.utcnow()
+        now = utcnow()
         job.status = IngestionStatus.FAILED
         job.error_message = reason
         job.completed_at = now
@@ -150,7 +150,7 @@ class IngestionJobRepository:
             return None
         normalized = (display_name or "").strip() or None
         job.display_name = normalized
-        job.updated_at = datetime.utcnow()
+        job.updated_at = utcnow()
         self.session.add(job)
         await self.session.flush()
         return job
