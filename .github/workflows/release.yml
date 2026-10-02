@@ -239,8 +239,12 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
+    # 실패한 job 의 outputs 도 다음 job(alert)에서 읽힌다 — 알림 본문의 근거.
     outputs:
       needs_migrate: ${{ steps.deploy.outputs.needs_migrate }}
+      services: ${{ steps.plan.outputs.services }}
+      failed_step: ${{ steps.outcome.outputs.failed_step }}
+      rollback: ${{ steps.outcome.outputs.rollback }}
     env:
       SHA: ${{ needs.meta.outputs.sha }}
       TAG: ${{ needs.meta.outputs.tag }}
@@ -254,7 +258,9 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
-      - uses: ./.github/actions/vm-ssh
+      - name: SSH
+        id: ssh
+        uses: ./.github/actions/vm-ssh
         with:
           host: ${{ vars.DEPLOY_HOST }}
           user: ${{ vars.DEPLOY_USER }}
@@ -263,6 +269,7 @@ jobs:
           ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
       - name: Current production tags
+        id: status
         run: ssh deploy-target status | tee "$RUNNER_TEMP/status.env"
 
       # 서비스별로 "운영 태그 → 이 sha" 사이에 그 이미지에 들어가는 파일이 바뀌었는지 본다.
@@ -286,6 +293,7 @@ jobs:
             rc=0
             # shellcheck disable=SC2029 # 원격 명령은 러너에서 만든다(검증된 sha·서비스명)
             ssh deploy-target "deploy ${SHA} ${SERVICES}" || rc=$?
+            echo "rc=${rc}" >> "$GITHUB_OUTPUT"
             case "$rc" in
               0) echo "deployed=true" >> "$GITHUB_OUTPUT" ;;
               3)
@@ -305,6 +313,7 @@ jobs:
           fi
 
       - name: Verify and smoke
+        id: verify
         if: steps.deploy.outputs.deployed == 'true'
         env:
           SERVICES: ${{ steps.plan.outputs.services }}
@@ -337,34 +346,45 @@ jobs:
             rc=0
             ssh deploy-target rollback || rc=$?
             if [ "$rc" = 0 ]; then
+              echo "rollback=succeeded" >> "$GITHUB_OUTPUT"
               echo "::error::롤백 완료 — 원인을 고친 뒤 다시 배포한다"
             else
+              echo "rollback=failed" >> "$GITHUB_OUTPUT"
               echo "::error::롤백도 실패 (종료 ${rc}) — 즉시 VM 확인"
             fi
             exit 1
           fi
 
-      - name: Notify
+      # 어느 단계에서 멈췄고 운영이 어떤 상태로 남았는지 — alert job 이 이슈 본문에 쓴다.
+      - name: Outcome
+        id: outcome
         if: always()
         env:
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-          JOB_STATUS: ${{ job.status }}
-          SERVICES: ${{ steps.plan.outputs.services }}
-          NEEDS_MIGRATE: ${{ steps.deploy.outputs.needs_migrate }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          O_SSH: ${{ steps.ssh.outcome }}
+          O_STATUS: ${{ steps.status.outcome }}
+          O_PLAN: ${{ steps.plan.outcome }}
+          O_DEPLOY: ${{ steps.deploy.outcome }}
+          O_VERIFY: ${{ steps.verify.outcome }}
+          DEPLOY_RC: ${{ steps.deploy.outputs.rc }}
+          VERIFY_ROLLBACK: ${{ steps.verify.outputs.rollback }}
         run: |
-          if [ -z "$NTFY_TOPIC" ]; then
-            echo "::warning::NTFY_TOPIC secret 이 없어 배포 알림을 보내지 않는다"
-            exit 0
-          fi
-          status="$JOB_STATUS"; prio=default; tags=white_check_mark
-          [ "$NEEDS_MIGRATE" = true ] && { status="waiting-migrate"; tags=hourglass; }
-          [ "$JOB_STATUS" = success ] || { prio=high; tags=rotating_light; }
-          # Title 헤더는 ASCII 만 안전하다 — 한국어 상세는 본문으로 (ops-check.sh 와 같은 규칙).
-          curl -fsS -m 10 -o /dev/null \
-            -H "Title: [truewords] deploy ${status} ${TAG}" -H "Priority: ${prio}" -H "Tags: ${tags}" \
-            -d "services: ${SERVICES:-없음} · ${RUN_URL}" "https://ntfy.sh/${NTFY_TOPIC}" \
-            || echo "::warning::ntfy 전송 실패"
+          failed=""
+          for pair in "ssh:$O_SSH" "status:$O_STATUS" "plan:$O_PLAN" "deploy:$O_DEPLOY" "verify-smoke:$O_VERIFY"; do
+            [ "${pair#*:}" = failure ] && { failed="${pair%%:*}"; break; }
+          done
+          case "${failed}:${DEPLOY_RC}" in
+            deploy:5) rollback="VM 이 자동 복구함 (deploy.sh 종료 5)" ;;
+            deploy:6) rollback="자동 복구 실패 (deploy.sh 종료 6) — 즉시 확인" ;;
+            deploy:*) rollback="해당 없음 — 서비스는 교체되지 않음 (종료 ${DEPLOY_RC:-?})" ;;
+            verify-smoke:*)
+              case "$VERIFY_ROLLBACK" in
+                succeeded) rollback="스모크 실패 후 rollback 성공" ;;
+                *) rollback="스모크 실패 후 rollback 실패 — 즉시 확인" ;;
+              esac ;;
+            :*) rollback="" ;;
+            *) rollback="해당 없음 — VM 에 아무것도 바꾸지 않음" ;;
+          esac
+          { echo "failed_step=${failed}"; echo "rollback=${rollback}"; } >> "$GITHUB_OUTPUT"
 
   deploy-migrate:
     name: Deploy with DB migration
@@ -379,6 +399,10 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
+    outputs:
+      services: ${{ steps.plan.outputs.services }}
+      failed_step: ${{ steps.outcome.outputs.failed_step }}
+      rollback: ${{ steps.outcome.outputs.rollback }}
     env:
       SHA: ${{ needs.meta.outputs.sha }}
       TAG: ${{ needs.meta.outputs.tag }}
@@ -392,7 +416,9 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
-      - uses: ./.github/actions/vm-ssh
+      - name: SSH
+        id: ssh
+        uses: ./.github/actions/vm-ssh
         with:
           host: ${{ vars.DEPLOY_HOST }}
           user: ${{ vars.DEPLOY_USER }}
@@ -424,6 +450,7 @@ jobs:
           rc=0
           # shellcheck disable=SC2029 # 원격 명령은 러너에서 만든다(검증된 sha·서비스명)
           ssh deploy-target "deploy ${SHA} ${SERVICES} --migrate" || rc=$?
+          echo "rc=${rc}" >> "$GITHUB_OUTPUT"
           case "$rc" in
             0) echo "deployed=true" >> "$GITHUB_OUTPUT" ;;
             5) echo "::error::migration 없이 끝난 교체가 검사에 실패해 이전 태그로 복구했다"; exit 1 ;;
@@ -431,6 +458,7 @@ jobs:
           esac
 
       - name: Verify and smoke
+        id: verify
         if: steps.deploy.outputs.deployed == 'true'
         env:
           SERVICES: ${{ steps.plan.outputs.services }}
@@ -455,44 +483,129 @@ jobs:
           echo "::error::migration 배포 후 스모크 실패 — 자동 롤백하지 않는다. 사람이 판단한다 (README §배포와 롤백)"
           exit 1
 
-      - name: Notify
+      - name: Outcome
+        id: outcome
         if: always()
         env:
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-          JOB_STATUS: ${{ job.status }}
-          SERVICES: ${{ steps.plan.outputs.services }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          O_SSH: ${{ steps.ssh.outcome }}
+          O_PLAN: ${{ steps.plan.outcome }}
+          O_DEPLOY: ${{ steps.deploy.outcome }}
+          O_VERIFY: ${{ steps.verify.outcome }}
+          DEPLOY_RC: ${{ steps.deploy.outputs.rc }}
         run: |
-          if [ -z "$NTFY_TOPIC" ]; then
-            echo "::warning::NTFY_TOPIC secret 이 없어 배포 알림을 보내지 않는다"
-            exit 0
-          fi
-          prio=default; tags=white_check_mark
-          [ "$JOB_STATUS" = success ] || { prio=urgent; tags=rotating_light; }
-          curl -fsS -m 10 -o /dev/null \
-            -H "Title: [truewords] deploy+migrate ${JOB_STATUS} ${TAG}" -H "Priority: ${prio}" -H "Tags: ${tags}" \
-            -d "services: ${SERVICES:-없음} · ${RUN_URL}" "https://ntfy.sh/${NTFY_TOPIC}" \
-            || echo "::warning::ntfy 전송 실패"
+          failed=""
+          for pair in "ssh:$O_SSH" "re-plan:$O_PLAN" "deploy-migrate:$O_DEPLOY" "verify-smoke:$O_VERIFY"; do
+            [ "${pair#*:}" = failure ] && { failed="${pair%%:*}"; break; }
+          done
+          case "${failed}:${DEPLOY_RC}" in
+            deploy-migrate:5) rollback="migration 없이 끝나 VM 이 자동 복구함 (종료 5)" ;;
+            deploy-migrate:*) rollback="자동 롤백 안 함 (migration 정책) — deploy.log·백업 확인 (종료 ${DEPLOY_RC:-?})" ;;
+            verify-smoke:*) rollback="자동 롤백 안 함 (migration 적용됨) — 사람이 판단" ;;
+            :*) rollback="" ;;
+            *) rollback="해당 없음 — VM 에 아무것도 바꾸지 않음" ;;
+          esac
+          { echo "failed_step=${failed}"; echo "rollback=${rollback}"; } >> "$GITHUB_OUTPUT"
 
-  # 자동 실행(main push)에서 빌드가 깨지면 배포 job 이 아예 돌지 않아 아무 알림도 없다.
-  build-failure-alert:
-    name: Build failure alert
-    needs: [meta, build]
-    if: failure()
+  # ── 알림 ─────────────────────────────────────────────────────────────────
+  # 1차 채널은 GitHub Issue 다 — 새 이슈는 저장소 소유자에게 메일로 간다(별도 앱·secret 불필요).
+  # 실패하면 `[deploy-alert]` 이슈를 열거나(열린 것이 있으면 댓글), 다음 배포가 성공하면 닫는다.
+  # 그래서 열린 deploy-alert 는 늘 0개 또는 1개다. ntfy 는 NTFY_TOPIC secret 이 있을 때만 덧붙는다.
+  # 한계: 이 job 도 Actions 위에서 돈다. Actions 자체가 멈추면(청구 차단 등) 이 알림도 없다 —
+  # 그 공백은 VM cron 의 ops-check.sh 가 결과 기준으로 메운다(README §운영 불변식 점검).
+  alert:
+    name: Deploy alert
+    needs: [meta, build, deploy, deploy-migrate]
+    if: always() && needs.meta.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    permissions: {}
+    permissions:
+      issues: write
+    env:
+      HAS_NTFY: ${{ secrets.NTFY_TOPIC != '' }}
     steps:
-      - name: Notify
+      - name: Decide
+        id: decide
         env:
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          BUILD: ${{ needs.build.result }}
+          DEPLOY: ${{ needs.deploy.result }}
+          MIGRATE: ${{ needs.deploy-migrate.result }}
+          NEEDS_MIGRATE: ${{ needs.deploy.outputs.needs_migrate }}
+          D_SERVICES: ${{ needs.deploy.outputs.services }}
+          D_STEP: ${{ needs.deploy.outputs.failed_step }}
+          D_ROLLBACK: ${{ needs.deploy.outputs.rollback }}
+          M_SERVICES: ${{ needs.deploy-migrate.outputs.services }}
+          M_STEP: ${{ needs.deploy-migrate.outputs.failed_step }}
+          M_ROLLBACK: ${{ needs.deploy-migrate.outputs.rollback }}
+          SHA: ${{ needs.meta.outputs.sha }}
           TAG: ${{ needs.meta.outputs.tag }}
+          EVENT: ${{ github.event_name }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          if [ -z "$NTFY_TOPIC" ]; then
-            echo "::warning::NTFY_TOPIC secret 이 없어 알림을 보내지 않는다"
-            exit 0
+          set -euo pipefail
+          kind=""; result=none; services=""; step=""; rollback=""
+          if [ "$BUILD" = failure ]; then
+            result=failure; kind="이미지 빌드"; step="build (Image job 로그 확인)"; rollback="해당 없음 — VM 에 아무것도 바꾸지 않음"
+          elif [ "$DEPLOY" = failure ]; then
+            result=failure; kind="배포"; services="$D_SERVICES"; step="$D_STEP"; rollback="$D_ROLLBACK"
+          elif [ "$MIGRATE" = failure ]; then
+            result=failure; kind="migration 배포"; services="$M_SERVICES"; step="$M_STEP"; rollback="$M_ROLLBACK"
+          elif [ "$DEPLOY" = success ] && { [ "$NEEDS_MIGRATE" != true ] || [ "$MIGRATE" = success ]; }; then
+            result=success; services="${M_SERVICES:-$D_SERVICES}"
           fi
-          curl -fsS -m 10 -o /dev/null -H "Title: [truewords] release build failed ${TAG}" \
-            -H "Priority: high" -H "Tags: rotating_light" -d "${RUN_URL}" "https://ntfy.sh/${NTFY_TOPIC}" \
-            || echo "::warning::ntfy 전송 실패"
+          echo "result=${result}" >> "$GITHUB_OUTPUT"
+          [ "$result" = none ] && exit 0
+          {
+            echo "- 결과: **${result}** ${kind}"
+            echo "- 커밋: \`${SHA}\` (태그 \`${TAG}\`)"
+            echo "- 서비스: ${services:-없음}"
+            [ -z "$step" ] || echo "- 멈춘 단계: ${step}"
+            [ -z "$rollback" ] || echo "- 자동 롤백: ${rollback}"
+            echo "- 실행: ${RUN_URL} (${EVENT})"
+            echo "- 시각: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo
+            echo "운영 태그 확인: \`ssh truewords-oracle 'grep _TAG ~/truewords/.env; tail ~/truewords/deploy.log'\`"
+            echo "절차: infra/oracle-vm/README.md §배포와 롤백"
+          } > "$RUNNER_TEMP/alert.md"
+          echo "title=[deploy-alert] ${kind} 실패 ${TAG}" >> "$GITHUB_OUTPUT"
+
+      # cache-cleanup.yml 과 같은 패턴: 열린 alert 가 있으면 댓글, 없으면 새 이슈(라벨이 없으면 라벨 없이).
+      - name: Open or update deploy-alert issue
+        if: steps.decide.outputs.result == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ steps.decide.outputs.title }}
+        run: |
+          set -euo pipefail
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title \
+            --jq '[.[] | select(.title | startswith("[deploy-alert]"))][0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/alert.md"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$RUNNER_TEMP/alert.md" --label deploy-alert 2> /dev/null \
+              || gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$RUNNER_TEMP/alert.md"
+          fi
+
+      - name: Close resolved deploy-alert issues
+        if: steps.decide.outputs.result == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for number in $(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json number,title \
+              --jq '.[] | select(.title | startswith("[deploy-alert]")) | .number'); do
+            gh issue close "$number" --repo "$GITHUB_REPOSITORY" --comment "$(cat "$RUNNER_TEMP/alert.md")"
+          done
+
+      - name: ntfy (optional)
+        if: steps.decide.outputs.result != 'none' && env.HAS_NTFY == 'true'
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          RESULT: ${{ steps.decide.outputs.result }}
+          TAG: ${{ needs.meta.outputs.tag }}
+        run: |
+          prio=default; tags=white_check_mark
+          [ "$RESULT" = success ] || { prio=high; tags=rotating_light; }
+          # Title 헤더는 ASCII 만 안전하다 — 한국어 상세는 본문으로 (ops-check.sh 와 같은 규칙).
+          curl -fsS -m 10 -o /dev/null -H "Title: [truewords] deploy ${RESULT} ${TAG}" \
+            -H "Priority: ${prio}" -H "Tags: ${tags}" --data-binary "@${RUNNER_TEMP}/alert.md" \
+            "https://ntfy.sh/${NTFY_TOPIC}" || echo "::warning::ntfy 전송 실패"
