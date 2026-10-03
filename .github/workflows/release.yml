@@ -3,7 +3,7 @@ name: Release
 # main 에 들어간 커밋을 arm64 이미지로 만들어 GHCR 에 올리고, 승인되면 Oracle VM 에 배포한다.
 # 결정: docs/adr/2026-10-02-gha-deploy-pipeline.md · 설정·운영: infra/oracle-vm/README.md §배포와 롤백
 #
-#   CI(main push) 성공 ─ workflow_run ─▶ meta ─▶ build ×3 (이미지·오프라인 검사)
+#   CI(main push) 성공 ─ workflow_run ─▶ meta ─▶ build ×3 ─▶ deploy [production 승인]  (VM 에 닿는 변경일 때만)
 #   Run workflow(deploy=true) ─────────▶ meta ─▶ build ×3 ─▶ deploy [production 승인]
 #                                   (CI 성공 확인)             └▶ deploy-migrate [production-migrate 승인]
 #
@@ -59,6 +59,7 @@ jobs:
     outputs:
       sha: ${{ steps.resolve.outputs.sha }}
       tag: ${{ steps.resolve.outputs.tag }}
+      deployable: ${{ steps.deployable.outputs.services != '' || steps.deployable.outputs.sync == 'true' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -106,6 +107,23 @@ jobs:
           flags=()
           [ "$ROLLBACK" = true ] && flags+=(--rollback)
           node tooling/checks/ci-gate.mjs --sha "$SHA" --runs "$RUNNER_TEMP/ci-runs.json" "${flags[@]}"
+      # 자동 배포는 이 커밋이 이미지나 VM 파일을 바꿀 때만 production 승인을 요청한다 — 문서·테스트만 바뀐
+      # 머지마다 할 일 없는 승인 요청이 오지 않게. deploy job 과 같은 계획기에 "운영 = 직전 커밋" 을 넣어 판정한다.
+      # 앞선 머지의 배포를 거절했다면 운영은 뒤처진 채로 남는다 — 다음 배포 대상 머지나 수동 실행이
+      # 운영 태그 기준으로 밀린 변경까지 함께 올린다.
+      - name: Does this commit change the VM
+        id: deployable
+        if: github.event_name == 'workflow_run'
+        env:
+          SHA: ${{ steps.resolve.outputs.sha }}
+        run: |
+          set -euo pipefail
+          parent=$(git rev-parse "${SHA}^1")
+          printf 'BACKEND_TAG=%s\nADMIN_TAG=%s\nWEB_TAG=%s\nSYNCED_SHA=%s\nLAST_STATUS=\n' \
+            "${parent:0:12}" "${parent:0:12}" "${parent:0:12}" "$parent" > "$RUNNER_TEMP/parent-status.env"
+          # 판정이 실패하면 배포 쪽으로 둔다 — deploy job 의 실제 계획이 운영 태그로 다시 판단한다.
+          node tooling/checks/deploy-services.mjs --sha "$SHA" --main "$SHA" --status "$RUNNER_TEMP/parent-status.env" \
+            || { echo "::warning::변경 판정 실패 — 배포 승인을 요청한다"; echo "sync=true" >> "$GITHUB_OUTPUT"; }
 
   build:
     name: Image (${{ matrix.service }})
@@ -245,12 +263,12 @@ jobs:
   deploy:
     name: Deploy
     needs: [meta, build]
-    # ── 단계적 자동화 ────────────────────────────────────────────────────────
-    # 지금은 수동 실행(Actions → Release → Run workflow, deploy=true)만 배포한다.
-    # main 머지마다 배포로 바꿀 때는 아래 if 한 줄을 그 다음 주석 줄로 바꾼다.
+    # main 머지(CI 성공)는 VM 에 닿는 변경일 때 자동으로, 수동 실행은 deploy=true 일 때 배포한다.
     # 어느 쪽이든 production 환경 승인(필수 검토자)은 그대로 걸린다.
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy
-    # if: github.event_name == 'workflow_run' || (github.event_name == 'workflow_dispatch' && inputs.deploy)
+    # 수동 배포로 되돌리려면 앞 줄(workflow_run 조건)을 지운다.
+    if: >-
+      (github.event_name == 'workflow_run' && needs.meta.outputs.deployable == 'true') ||
+      (github.event_name == 'workflow_dispatch' && inputs.deploy)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: production

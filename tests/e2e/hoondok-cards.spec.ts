@@ -1,4 +1,5 @@
-import { type BrowserContext, expect, type Page, test } from "@playwright/test";
+import type { BrowserContext, Page } from "@playwright/test";
+import { expect, test } from "./hoondok-test";
 
 // 오늘의 책갈피 (PLAN-HD-012, SCR-PWA-022~026). 시드 seed_hoondok_journey.py 의 active 카드 3장 중 오늘 회전 카드를 쓴다.
 // 플래그 NEXT_PUBLIC_HOONDOK_CARDS=1 은 playwright.config webServer env 가 준다. 계정은 매번 새로 만든다(재실행 안전).

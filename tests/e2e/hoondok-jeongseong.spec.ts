@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./hoondok-test";
 
 // 훈독 정성 기간 (PLAN-HD-002 W1-J · SCR-PWA-004 시트 + SCR-PWA-002 홈 카드).
 // 시드 사용자는 이미 정성이 있을 수 있어(409) 매 실행 새 계정을 만든다.

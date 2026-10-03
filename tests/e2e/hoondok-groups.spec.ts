@@ -1,4 +1,5 @@
-import { type Browser, type BrowserContext, expect, type Page, test } from "@playwright/test";
+import type { Browser, BrowserContext, Page } from "@playwright/test";
+import { expect, test } from "./hoondok-test";
 
 // 함께 읽는 모임 E2E (PLAN-HD-010 §9, hoondok-chromium). 두 브라우저 컨텍스트 = 두 계정.
 // A 가입 → 모임 만들기 → 코드 · B 가입 → join?code= → 참여 · B 훈독 완료 → 한 줄 · A 상세에 B 만(A 없음) → 반응 ·

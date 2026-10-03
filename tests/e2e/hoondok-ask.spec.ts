@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./hoondok-test";
 
 // 훈독 AI 질문 (PLAN-HD-002 W2 · SCR-PWA-005·005b·006).
 // `/chat/stream` 은 page.route 로 스텁한다 — 실 LLM 호출 0 (CI 비용 원칙, docs/adr RAGAS 결정과 같은 이유).

@@ -1,4 +1,5 @@
-import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
+import { expect, test } from "./hoondok-test";
 
 // 편성 없는 날(C3 안 A). 시드는 KST 오늘부터 20일분이라 오늘 편성을 관리자 API(API-HD-007)로 60일 뒤로 옮겨
 // 진짜 빈 날(행 없음)을 만들고, 끝나면 반드시 되돌린다. workers=1 이라 다른 스펙과 겹치지 않는다.

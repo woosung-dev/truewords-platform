@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./hoondok-test";
 
 // 훈독 정적 프리뷰 셸 (PLAN-HD-002 W3 · SCR-PWA-010~013·016).
 // 세 에이전트가 만든 화면을 오케스트레이터가 한 spec 에 등록한다(§4 W3 완료 기준).

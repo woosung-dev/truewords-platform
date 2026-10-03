@@ -1,7 +1,7 @@
 # GitHub Actions 배포 파이프라인 ADR — GHCR 이미지, 승인 배포, VM 단일 배포 경로
 
 - **작성일**: 2026-10-02
-- **상태**: 결정 확정 · 구현 `feat/gha-deploy-pipeline` · VM 설치·GitHub 설정은 별도 승인 후 실행
+- **상태**: 결정 확정 · 운영 적용 2026-10-02 (자동 배포 2026-10-03)
 - **대체**: [CI/CD 점검 ADR](2026-09-05-cicd-audit-decisions.md)의 D5("CD 워크플로는 복원하지 않는다")
 - **관련**: [CI·독립 배포 runbook](../runbooks/ci-cd-pipeline.md) · [VM 운영 §배포와 롤백](../../infra/oracle-vm/README.md#배포와-롤백)
 
@@ -22,7 +22,7 @@ D5 이후 배포는 로컬 Mac 의 `make deploy-*`(로컬 arm64 빌드 → `dock
 | # | 결정 | 이유 |
 |---|---|---|
 | D1 | **main 의 CI 성공 커밋을 GitHub 호스티드 arm64 러너(`ubuntu-24.04-arm`)에서 빌드해 GHCR public 이미지 `ghcr.io/woosung-dev/truewords-<svc>:<sha 12자>` 로 올린다** | public 저장소라 arm 러너·GHCR 이 무료다. 태그는 불변: 같은 태그가 이미 있으면 다시 빌드하지 않는다. 이미지에 secret 이 들어가지 않으므로 public 이 안전하다 — 빌드 인자는 공개 값뿐이다(D6) |
-| D2 | **단계적 자동화: 지금은 수동 실행(`deploy=true`) + `production` 환경 승인일 때만 배포** | 첫 몇 번은 사람이 보며 돌린다. 자동 전환은 `release.yml` deploy job 의 `if:` 한 줄을 주석 줄로 바꾸는 것뿐이고, 그 뒤에도 환경 승인은 남는다 |
+| D2 | **단계적 자동화: 수동 실행(`deploy=true`)으로 시작해, 2026-10-03 부터 main 머지도 배포한다. 어느 쪽이든 `production` 환경 승인 뒤에만** | 첫 배포 2회(migration 경로 포함)는 사람이 보며 돌렸다. 자동 실행은 그 커밋이 이미지·VM 파일을 바꿀 때만 승인을 요청한다 — 문서·테스트 머지마다 할 일 없는 승인 요청이 쌓이지 않게. 판정은 deploy job 과 같은 계획기에 "운영 = 직전 커밋" 을 넣어 얻는다 |
 | D3 | **Actions → VM 은 강제 명령(forced command) SSH 키 — 배포 키와 migration 키를 나눈다** | `authorized_keys` 의 `restrict,command="~/truewords/bin/deploy-entry"` 로 키가 할 수 있는 일을 `status`·`rollback`·`sync`·`deploy <sha> <svc…>` 로 한정한다. `--migrate` 는 `production-migrate` 환경에만 있는 두 번째 키(강제 명령이 `TW_ALLOW_MIGRATE=1` 을 붙임)로만 받는다 — 스키마 변경 승인을 자격증명으로 강제한다. 진입점은 정규식으로 검증하고, VM 에서도 sha 가 `origin/main` 의 조상인지 다시 본다. VM 주소·호스트 키는 환경 secret 이다(공개 로그 마스킹) |
 | D4 | **VM 에서 서비스를 바꾸는 코드는 `infra/oracle-vm/deploy.sh` 하나, 실행되는 것은 늘 최신 main 의 것** | Actions 와 비상 경로(`make deploy-*`·`rollback-*`)가 같은 스크립트를 부른다. 진입점은 최신 origin/main 으로 체크아웃해 그 `deploy.sh` 를 돌리고 대상 sha 는 이미지 태그를 고르는 데이터로만 넘긴다 — 옛 sha 로 되돌려도 옛 배포 코드·cron 스크립트가 되살아나지 않는다. compose·cron 스크립트도 같은 원본으로 동기화한다(손 `scp` 금지). 실행은 setsid 로 떼어 낸 프로세스에서 하고 출력은 VM `deploy-runs/` 에 남긴다 — ssh 가 끊기거나 실행이 취소돼도 교체·검사·자동 복구가 끝까지 돈다 |
 | D5 | **migration 은 별도 승인** | 이미지의 `ALEMBIC_EXPECTED_HEAD` 와 DB head 가 다르면 deploy.sh 가 아무것도 바꾸지 않고 종료 3. Actions 는 `production-migrate` 환경 승인을 한 번 더 받은 뒤 백업 → `alembic upgrade head` → 교체 순으로 진행한다. DB head 가 비었거나 여러 개이거나 이미지가 모르는 revision(DB 가 앞섬)이면 백업 전에 종료 1 — migration 으로 풀 수 없는 상태다 |
