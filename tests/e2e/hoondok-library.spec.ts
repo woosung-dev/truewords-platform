@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./hoondok-test";
 
 const volume = "말씀선집 355권";
 const wordsPath = `/hoondok/words/${encodeURIComponent(volume)}`;

@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./hoondok-test";
 
 // SCR-PWA-014 나의 정원 (PLAN-HD-002 W1-G). 시드 사용자로 오늘 훈독을 기록한 뒤 통계·달력·탭을 본다.
 // 플래그 ON 은 playwright.config webServer env 가 준다.

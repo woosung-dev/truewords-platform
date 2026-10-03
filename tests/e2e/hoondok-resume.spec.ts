@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./hoondok-test";
 
 // 홈 "말씀 읽기 · 이어 읽기" 카드 → 원문 도착 라벨 (A1). 합성 코퍼스(apps/api/scripts/seed_hoondok_journey.py):
 // "말씀선집 355권" 25단락, 장 목차 = 제1편(0~19) · 1장(0~19) · 제2편(20~24). 원장 work_title 은 volume 과 같다.

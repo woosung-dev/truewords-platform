@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./hoondok-test";
 
 /**
  * E2E: 훈독 권리 원장 admin 화면 (PLAN-HD-007 트랙 C).

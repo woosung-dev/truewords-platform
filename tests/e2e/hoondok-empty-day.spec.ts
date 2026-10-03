@@ -1,4 +1,5 @@
-import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
+import { expect, test, waitPastKstMidnight } from "./hoondok-test";
 
 // 편성 없는 날(C3 안 A). 시드는 KST 오늘부터 20일분이라 오늘 편성을 관리자 API(API-HD-007)로 60일 뒤로 옮겨
 // 진짜 빈 날(행 없음)을 만들고, 끝나면 반드시 되돌린다. workers=1 이라 다른 스펙과 겹치지 않는다.
@@ -46,7 +47,9 @@ function missionOrder(page: Page) {
 
 test.describe.configure({ mode: "serial" });
 
-test.beforeAll(async ({ playwright }) => {
+test.beforeAll(async ({ playwright }, testInfo) => {
+  // 오늘 편성을 옮긴 뒤 자정을 넘기면 빈 날이 아니게 된다 — 파일 전체(약 20초)와 테스트별 대기 창(2분)을 넘는 창으로 먼저 기다린다.
+  await waitPastKstMidnight(240_000, testInfo);
   admin = await playwright.request.newContext({ baseURL: adminOrigin });
   const login = await admin.post("/api/backend/admin/auth/login", {
     headers: csrf,

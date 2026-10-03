@@ -94,6 +94,7 @@ test("공유 입력·compose 는 여러 서비스, 문서·도구는 배포하�
     const opsOnly = services(["infra/oracle-vm/ops-check.sh"]);
     assert.deepEqual(opsOnly.services, []);
     assert.equal(opsOnly.sync, true);
+    assert.equal(services(["infra/oracle-vm/README.md"]).sync, false);
   } finally {
     r.cleanup();
   }

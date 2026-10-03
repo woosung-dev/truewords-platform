@@ -1,4 +1,5 @@
-import { type BrowserContext, expect, type Page, test } from "@playwright/test";
+import type { BrowserContext, Page } from "@playwright/test";
+import { expect, test } from "./hoondok-test";
 
 // SCR-PWA-015 알림·설치 설정 (PLAN-HD-002 W1-S). 계정을 지우는 흐름이라 **매번 새 계정**을 만든다 —
 // 시드 사용자(hoondok@example.com)는 다른 spec 이 계속 쓰므로 절대 삭제하지 않는다.
