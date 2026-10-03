@@ -185,7 +185,7 @@ sudo docker compose --env-file .env up -d
 
 ### 정상 경로 — Actions
 
-1. main 머지 뒤 CI 가 성공하면 Release 가 자동으로 돈다. 그 커밋이 이미지나 VM 파일(`infra/oracle-vm/`)을 바꿀 때만 배포 job 이 승인을 요청한다(문서·테스트만 바뀐 머지는 이미지만 만든다). 다른 커밋을 올리거나 다시 돌릴 때는 Actions → **Release** → Run workflow, `sha`(비우면 main 의 HEAD), `deploy=true`. 수동 실행은 그 sha 에 main push 로 돈 `CI` 의 최신 실행이 성공이어야 시작한다(`rollback=true` 는 성공한 실행 하나면 된다. 판정: `tooling/checks/ci-gate.mjs`).
+1. main 머지 뒤 CI 가 성공하면 Release 가 자동으로 돈다. 그 커밋이 이미지나 VM 파일(`infra/oracle-vm/` 의 `*.md` 제외)을 바꿀 때만 배포 job 이 승인을 요청한다(문서·테스트만 바뀐 머지는 이미지만 만든다). 직전 커밋의 main CI 가 성공하지 않았으면(실패·취소) 밀린 변경이 있을 수 있어 판정 없이 승인을 요청한다. 다른 커밋을 올리거나 다시 돌릴 때는 Actions → **Release** → Run workflow, `sha`(비우면 main 의 HEAD), `deploy=true`. 수동 실행은 그 sha 에 main push 로 돈 `CI` 의 최신 실행이 성공이어야 시작한다(`rollback=true` 는 성공한 실행 하나면 된다. 판정: `tooling/checks/ci-gate.mjs`).
 2. `production` 환경 승인. 이미지가 바뀐 서비스만 교체된다(판정: `tooling/checks/deploy-services.mjs`).
 3. DB migration 이 필요하면 1차 배포는 아무것도 바꾸지 않고 멈추고, `Deploy with DB migration` job 이 `production-migrate` 승인을 기다린다. 승인하면 백업 → `alembic upgrade head` → 교체 순이다. `--migrate` 는 그 환경에만 있는 migration 전용 키로만 VM 이 받는다. migration 출력 전문은 VM `deploy-state/migrate-*.log` 에만 남고 Actions 로그(공개)에는 끝부분만 나온다.
 4. 공개 URL 스모크까지 통과하면 끝. 실패하면 `[deploy-alert]` GitHub Issue 가 열리고(저장소 소유자에게 메일) 다음 성공 배포가 닫는다. `NTFY_TOPIC` secret 이 있으면 ntfy 도 보낸다. 승인 거절·만료는 VM 에 아무것도 하지 않았으므로 이슈를 열지 않는다.

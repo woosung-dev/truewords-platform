@@ -24,8 +24,10 @@ export const SERVICE_PATHS = {
 };
 // 세 서비스 모두에 영향: 빌드 컨텍스트 필터와 compose 정의(이미지·env·볼륨).
 export const ALL_SERVICES_PATHS = [".dockerignore", "infra/oracle-vm/docker-compose.yml"];
-// 컨테이너는 그대로 두고 VM 파일(cron 스크립트 등)만 맞추면 되는 변경.
+// 컨테이너는 그대로 두고 VM 파일(cron 스크립트 등)만 맞추면 되는 변경. 문서(*.md)는 VM 에 올라가지 않는다 —
+// README 만 바뀐 머지가 자동 배포 승인을 요청하지 않게 뺀다.
 export const SYNC_PATHS = ["infra/oracle-vm/"];
+const isSyncFile = (file) => matches(file, SYNC_PATHS) && !file.endsWith(".md");
 
 export function matches(file, patterns) {
   return patterns.some((pattern) => (pattern.endsWith("/") ? file.startsWith(pattern) : file === pattern));
@@ -140,7 +142,7 @@ export function planDeploy({ sha, mainSha = sha, status, rollback, git }) {
   if (!base) {
     sync = true;
     reasons.sync = "동기화 기록 없음";
-  } else if (base !== mainSha && changedFiles(base, mainSha).some((file) => matches(file, SYNC_PATHS))) {
+  } else if (base !== mainSha && changedFiles(base, mainSha).some(isSyncFile)) {
     sync = true;
     reasons.sync = "infra/oracle-vm 변경";
   }
