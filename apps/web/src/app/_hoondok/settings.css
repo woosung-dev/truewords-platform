@@ -68,7 +68,7 @@
     justify-content: space-between;
     gap: 10px;
     width: 100%;
-    min-height: 40px;
+    min-height: 44px; /* 누르는 줄 — 어르신 손가락 기준 (§3.6) */
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px solid var(--line);
@@ -320,6 +320,77 @@
   .st-group + .st-group {
     margin-top: 12px;
   }
+  /* ---------- 말씀 글자 크기 : 4단계 세그먼트 + 미리보기 한 줄 ----------
+     고른 칸 = 잉크 채움 + 굵은 글자(낭독 속도 세그먼트 .vs__seg 와 같은 규칙, 색만으로 구분하지 않는다) */
+  .st-scale {
+    margin: 0;
+    padding: 14px 16px 16px;
+    min-width: 0;
+  }
+  /* legend 는 흐름 밖에 놓여 margin 이 먹지 않는 브라우저가 있다 — float 로 흐름 안에 내린다(.st-time__q 와 같다) */
+  .st-scale__q {
+    float: left;
+    width: 100%;
+    padding: 0;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .st-scale__q + * {
+    clear: both;
+  }
+  .st-scale__opts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+  }
+  .st-scale__opt {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 44px;
+    padding: 4px 6px;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+    text-align: center;
+    line-height: 1.25;
+    cursor: pointer;
+  }
+  .st-scale__opt + .st-scale__opt {
+    border-left: 1px solid var(--line);
+  }
+  .st-scale__opt input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    margin: 0;
+    pointer-events: none;
+  }
+  .st-scale__opt[data-on] {
+    background: var(--ink);
+    color: var(--paper);
+    font-weight: 600;
+  }
+  .st-scale__opt:has(input:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+  .st-scale__opt:not([data-on]):active {
+    background: var(--surface-2);
+  }
+  /* 원문 단락(.verse)과 같은 글꼴·크기 규칙이라 고른 크기를 그대로 미리 본다 */
+  .st-scale__preview {
+    margin: 12px 0 0;
+    font-family: var(--font-scripture);
+    font-size: calc(var(--fs-lg) * var(--read-scale, 1));
+    line-height: 1.75;
+    color: var(--ink);
+  }
+
   /* 눌림 되먹임 (프로토타입 hoondok.css 280~287행의 `.st-row--link:active`) */
   .st-row--link:active {
     background: var(--surface-2);
