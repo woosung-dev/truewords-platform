@@ -74,10 +74,23 @@ afterEach(() => {
 });
 
 describe("QueriesExplorerPage", () => {
-  it("빈 결과면 안내 문구를 보여준다", async () => {
+  it("검색어 없이 비었으면 기간을 말한다", async () => {
     mockGetQueries.mockResolvedValue(fixture({ total: 0, items: [] }));
     renderPage();
-    expect(await screen.findByText(/조건에 맞는 질문이 없습니다/)).toBeDefined();
+    expect(await screen.findByText("최근 30일 동안 질문이 없어요.")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "검색어 지우기" })).toBeNull();
+  });
+
+  it("검색어로 비었으면 검색어를 인용하고 지우기 버튼을 준다", async () => {
+    mockSearchParams.set("q", "없는말");
+    try {
+      mockGetQueries.mockResolvedValue(fixture({ total: 0, items: [] }));
+      renderPage();
+      expect(await screen.findByText("“없는말”에 맞는 질문이 없어요.")).toBeDefined();
+      expect(screen.getByRole("button", { name: "검색어 지우기" })).toBeDefined();
+    } finally {
+      mockSearchParams.delete("q");
+    }
   });
 
   it("결과가 있으면 순위와 질문 텍스트가 노출된다", async () => {

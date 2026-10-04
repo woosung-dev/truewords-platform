@@ -1,159 +1,129 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, ArrowRight, Bot, CheckCircle2, Database, Search, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ArrowRight, ChevronRight, CircleCheck } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import { LoadError } from "@/components/load-error";
+import { METRIC_ERROR, type Metric, MetricBand } from "@/components/metric-band";
+import { StatusBadge } from "@/components/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
+import SessionDetailModal from "@/features/analytics/components/session-detail-modal";
+import type { NegativeFeedbackItem } from "@/features/analytics/types";
 import { chatbotAPI } from "@/features/chatbot/api";
 import { dataAPI } from "@/features/data-source/api";
+import { formatShortDateTime } from "@/lib/utils";
 
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  color = "default",
-  loading,
-}: {
-  label: string;
-  value: number | string;
-  icon: React.ElementType;
-  color?: "default" | "red";
-  loading?: boolean;
-}) {
-  // KPI 숫자는 중립색이 기본이다. 조치가 필요한 값(실패·부정 피드백 > 0)만 색으로 알린다.
-  const colorMap = {
-    default: "text-foreground",
-    red: "text-destructive",
-  };
-
-  return (
-    <div className="rounded-xl border bg-card p-5 space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{label}</span>
-        <div className="w-8 h-8 rounded-md bg-admin-muted flex items-center justify-center">
-          <Icon className="w-4 h-4 text-muted-foreground" />
-        </div>
-      </div>
-      {loading ? (
-        <Skeleton className="h-8 w-16" />
-      ) : (
-        <p className={`text-3xl font-bold tracking-tight ${colorMap[color]}`}>{value.toLocaleString()}</p>
-      )}
-    </div>
-  );
-}
+// "확인할 것"에 올리는 부정 피드백 범위. 누적 숫자는 KPI 띠에 있고, 여기는 최근 것만 본다.
+const RECENT_NEGATIVE_DAYS = 7;
+const RECENT_NEGATIVE_LIMIT = 3;
 
 export default function DashboardPage() {
-  const { data: chatbots, isLoading: chatbotsLoading } = useQuery({
+  const chatbotsQuery = useQuery({
     queryKey: ["chatbots", 0],
     queryFn: () => chatbotAPI.list(100, 0),
   });
 
-  const { data: status, isLoading: statusLoading } = useQuery({
+  const statusQuery = useQuery({
     queryKey: ["ingest-status"],
     queryFn: dataAPI.getStatus,
     staleTime: 30000,
   });
 
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: analyticsAPI.getDashboardSummary,
     staleTime: 60000,
   });
 
-  const totalChatbots = chatbots?.total ?? 0;
+  const negativeQuery = useQuery({
+    queryKey: ["feedback-list", "negative", RECENT_NEGATIVE_DAYS, RECENT_NEGATIVE_LIMIT],
+    queryFn: () => analyticsAPI.getFeedbackList("negative", RECENT_NEGATIVE_LIMIT, 0, RECENT_NEGATIVE_DAYS),
+    staleTime: 60000,
+  });
+
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+
+  const chatbots = chatbotsQuery.data;
+  const status = statusQuery.data;
+  const summary = summaryQuery.data;
+  const failedQueries = [chatbotsQuery, statusQuery, summaryQuery, negativeQuery].filter((q) => q.isError);
+
   const activeChatbots = chatbots?.items.filter((c) => c.is_active).length ?? 0;
-  const totalChunks = status?.summary.total_chunks ?? 0;
-  const failedFiles = status?.summary.failed_count ?? 0;
-  const todayQuestions = summary?.today_questions ?? 0;
-  const weekQuestions = summary?.week_questions ?? 0;
-  const helpfulCount = summary?.feedback_helpful ?? 0;
   const negativeCount = summary?.feedback_negative ?? 0;
+
+  const metrics: Metric[] = [
+    chatbotsQuery.isError
+      ? { label: "활성 챗봇", ...METRIC_ERROR }
+      : { label: "활성 챗봇", value: `${activeChatbots} / ${chatbots?.total ?? 0}`, loading: chatbotsQuery.isLoading },
+    summaryQuery.isError
+      ? { label: "오늘 질문", ...METRIC_ERROR }
+      : { label: "오늘 질문", value: summary?.today_questions ?? 0, loading: summaryQuery.isLoading },
+    summaryQuery.isError
+      ? { label: "이번 주 질문", ...METRIC_ERROR }
+      : { label: "이번 주 질문", value: summary?.week_questions ?? 0, loading: summaryQuery.isLoading },
+    summaryQuery.isError
+      ? { label: "부정 피드백", ...METRIC_ERROR }
+      : {
+          label: "부정 피드백",
+          value: negativeCount,
+          hint: "누적",
+          tone: negativeCount > 0 ? "danger" : undefined,
+          loading: summaryQuery.isLoading,
+        },
+  ];
 
   return (
     <div className="space-y-6 page-wide">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">대시보드</h1>
-        <p className="text-sm text-muted-foreground mt-1">시스템 현황을 한눈에 확인합니다</p>
-      </div>
+      <h1 className="text-2xl font-bold tracking-tight">대시보드</h1>
 
-      {/* KPI 카드 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="전체 챗봇" value={totalChatbots} icon={Bot} loading={chatbotsLoading} />
-        <StatCard label="활성 챗봇" value={activeChatbots} icon={CheckCircle2} loading={chatbotsLoading} />
-        <StatCard label="총 청크 수" value={totalChunks} icon={Database} loading={statusLoading} />
-        <StatCard
-          label="처리 실패"
-          value={failedFiles}
-          icon={AlertCircle}
-          color={failedFiles > 0 ? "red" : "default"}
-          loading={statusLoading}
+      {failedQueries.length > 0 && (
+        <LoadError
+          message="일부 지표를 불러오지 못했습니다."
+          onRetry={() => {
+            for (const q of failedQueries) q.refetch();
+          }}
         />
+      )}
+
+      <div className="space-y-2">
+        <MetricBand metrics={metrics} />
+        {statusQuery.isLoading || summaryQuery.isLoading ? (
+          <Skeleton className="h-4 w-48" />
+        ) : (
+          <p className="text-sm text-muted-foreground tabular-nums">
+            청크 {status ? status.summary.total_chunks.toLocaleString() : "—"} · 긍정 피드백{" "}
+            {summary ? summary.feedback_helpful.toLocaleString() : "—"}
+          </p>
+        )}
       </div>
 
-      {/* 검색 & 피드백 메트릭 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="오늘 질문" value={todayQuestions} icon={Search} loading={summaryLoading} />
-        <StatCard label="이번 주 질문" value={weekQuestions} icon={Search} loading={summaryLoading} />
-        <StatCard label="긍정 피드백" value={helpfulCount} icon={ThumbsUp} loading={summaryLoading} />
-        <StatCard
-          label="부정 피드백"
-          value={negativeCount}
-          icon={ThumbsDown}
-          color={negativeCount > 0 ? "red" : "default"}
-          loading={summaryLoading}
+      <section aria-labelledby="todo-heading" className="space-y-3">
+        <h2 id="todo-heading" className="text-base font-semibold">
+          확인할 것
+        </h2>
+        <TodoList
+          failedFiles={status?.summary.failed_count}
+          negatives={negativeQuery.data}
+          loading={statusQuery.isLoading || negativeQuery.isLoading}
+          partialError={statusQuery.isError || negativeQuery.isError}
+          onSelectSession={setSelectedSessionId}
         />
-      </div>
-
-      {/* 빠른 이동 */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">빠른 이동</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link
-            href="/chatbots"
-            className="group flex items-center justify-between rounded-xl border bg-card p-5 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Bot className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">챗봇 관리</p>
-                <p className="text-xs text-muted-foreground mt-0.5">챗봇 설정 및 검색 티어 구성</p>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-          </Link>
-
-          <Link
-            href="/data-sources"
-            className="group flex items-center justify-between rounded-xl border bg-card p-5 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Database className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">데이터 소스</p>
-                <p className="text-xs text-muted-foreground mt-0.5">RAG 지식 베이스 문서 업로드</p>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-          </Link>
-        </div>
-      </div>
+      </section>
 
       {/* 최근 챗봇 목록 */}
-      {!chatbotsLoading && chatbots && chatbots.items.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">최근 챗봇</h2>
+      {chatbots && chatbots.items.length > 0 && (
+        <section aria-labelledby="recent-chatbots-heading" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 id="recent-chatbots-heading" className="text-base font-semibold">
+              최근 챗봇
+            </h2>
             <Link href="/chatbots" className="text-xs text-primary hover:underline flex items-center gap-1">
               전체 보기 <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          <div className="rounded-xl border bg-card overflow-hidden">
+          <div className="rounded-lg border bg-card overflow-hidden">
             {chatbots.items.slice(0, 5).map((config, i) => (
               <Link
                 key={config.id}
@@ -163,11 +133,14 @@ export default function DashboardPage() {
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div
+                  {/* 상태 열이 없는 목록이라 점 하나로만 알리고, 글자는 스크린 리더에 준다. */}
+                  <span
+                    aria-hidden="true"
                     className={`w-2 h-2 rounded-full shrink-0 ${
-                      config.is_active ? "bg-success" : "bg-admin-muted-foreground/40"
+                      config.is_active ? "bg-success" : "bg-muted-foreground/40"
                     }`}
                   />
+                  <span className="sr-only">{config.is_active ? "활성" : "비활성"}</span>
                   <span className="font-medium text-sm truncate">{config.display_name}</span>
                   <span className="text-xs text-muted-foreground font-mono hidden sm:inline">{config.chatbot_id}</span>
                 </div>
@@ -177,7 +150,82 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
-        </div>
+        </section>
+      )}
+
+      <SessionDetailModal
+        open={selectedSessionId !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedSessionId(null);
+        }}
+        sessionId={selectedSessionId}
+      />
+    </div>
+  );
+}
+
+/** 운영자가 지금 손봐야 할 것만 모은다. 둘 다 없으면 한 줄로 끝낸다. */
+function TodoList({
+  failedFiles,
+  negatives,
+  loading,
+  partialError,
+  onSelectSession,
+}: {
+  failedFiles?: number;
+  negatives?: NegativeFeedbackItem[];
+  loading: boolean;
+  partialError: boolean;
+  onSelectSession: (sessionId: string) => void;
+}) {
+  if (loading) {
+    return <Skeleton className="h-12 w-full" />;
+  }
+
+  const hasFailed = (failedFiles ?? 0) > 0;
+  const hasNegatives = (negatives?.length ?? 0) > 0;
+
+  return (
+    <div className="rounded-lg border bg-card divide-y">
+      {hasFailed && (
+        <Link href="/data-sources" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-admin-muted/40">
+          <StatusBadge tone="danger">처리 실패</StatusBadge>
+          <span>문서 {failedFiles}건을 처리하지 못했어요</span>
+          <ChevronRight className="ml-auto size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        </Link>
+      )}
+      {negatives?.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => onSelectSession(item.session_id)}
+          className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-admin-muted/40"
+        >
+          <StatusBadge tone="warning">부정 피드백</StatusBadge>
+          <span className="min-w-0 flex-1 truncate" title={item.question}>
+            {item.question}
+          </span>
+          <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+            {item.chatbot_name ?? "-"} · {formatShortDateTime(item.created_at)}
+          </span>
+        </button>
+      ))}
+      {hasNegatives && (
+        <Link href="/feedback" className="flex items-center gap-1 px-4 py-2.5 text-xs text-primary hover:underline">
+          피드백 화면에서 모두 보기 <ArrowRight className="size-3" aria-hidden="true" />
+        </Link>
+      )}
+      {!hasFailed && !hasNegatives && (
+        <p className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+          {partialError ? (
+            "불러오지 못했어요."
+          ) : (
+            <>
+              <CircleCheck className="size-4 shrink-0 text-success" aria-hidden="true" />
+              지금 확인할 항목이 없어요.
+            </>
+          )}
+        </p>
       )}
     </div>
   );

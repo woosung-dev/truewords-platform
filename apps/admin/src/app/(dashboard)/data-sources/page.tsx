@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { LoadError } from "@/components/load-error";
+import { METRIC_ERROR, MetricBand } from "@/components/metric-band";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { dataAPI, dataSourceCategoryAPI, type OnDuplicateMode } from "@/features/data-source/api";
@@ -89,7 +91,12 @@ export default function DataSourcesPage() {
   const defaultSource = "";
 
   const hasProcessing = pendingFiles.some((f) => f.status === "processing");
-  const { data: status } = useQuery({
+  const {
+    data: status,
+    isLoading: statusLoading,
+    isError: statusError,
+    refetch: refetchStatus,
+  } = useQuery({
     queryKey: ["ingest-status"],
     queryFn: dataAPI.getStatus,
     // 처리 중 파일이 있을 때만 5초 폴링. 없으면 OFF (페이지 진입 시 1회만)
@@ -345,6 +352,14 @@ export default function DataSourcesPage() {
   };
 
   const pendingCount = pendingFiles.filter((f) => f.status === "pending").length;
+  // 처리 이력이 정말 비었을 때만(불러오기 실패가 아니라) 드롭존에 첫 업로드 안내를 붙인다.
+  const isEmpty =
+    !statusLoading &&
+    !statusError &&
+    pendingFiles.length === 0 &&
+    completedEntries.length === 0 &&
+    failedEntries.length === 0 &&
+    inProgressEntries.length === 0;
   const hasAnyUploading = pendingFiles.some((f) => f.status === "uploading");
 
   return (
@@ -373,9 +388,6 @@ export default function DataSourcesPage() {
       {/* 헤더 + 적재 대상 컬렉션 indicator (PR #97) */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">데이터 소스</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          RAG 파이프라인에 문서를 업로드하고 임베딩 상태를 관리합니다
-        </p>
         {configData && (
           <div className="flex items-center gap-2 mt-2 text-xs">
             <Badge
@@ -398,39 +410,31 @@ export default function DataSourcesPage() {
         )}
       </div>
 
-      {/* 통계 카드 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">총 파일</span>
-            <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-          </div>
-          <p className="text-2xl font-bold mt-1">{totalFiles}</p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">생성 청크</span>
-            <Database className="w-3.5 h-3.5 text-primary" />
-          </div>
-          <p className="text-2xl font-bold mt-1 text-primary">{totalChunks.toLocaleString()}</p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">처리 완료</span>
-            <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-          </div>
-          <p className="text-2xl font-bold mt-1 text-success">{completedCount}</p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">실패</span>
-            <AlertCircle className={`w-3.5 h-3.5 ${failedCount > 0 ? "text-destructive" : "text-muted-foreground"}`} />
-          </div>
-          <p className={`text-2xl font-bold mt-1 ${failedCount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-            {failedCount}
-          </p>
-        </div>
-      </div>
+      {statusError && <LoadError message="처리 현황을 불러오지 못했습니다." onRetry={() => refetchStatus()} />}
+
+      {/* 통계 — 숫자는 중립색, 실패가 있을 때만 빨강 */}
+      <MetricBand
+        metrics={
+          statusError
+            ? [
+                { label: "총 파일", ...METRIC_ERROR },
+                { label: "생성 청크", ...METRIC_ERROR },
+                { label: "처리 완료", ...METRIC_ERROR },
+                { label: "실패", ...METRIC_ERROR },
+              ]
+            : [
+                { label: "총 파일", value: totalFiles, loading: statusLoading },
+                { label: "생성 청크", value: totalChunks, loading: statusLoading },
+                { label: "처리 완료", value: completedCount, loading: statusLoading },
+                {
+                  label: "실패",
+                  value: failedCount,
+                  tone: failedCount > 0 ? "danger" : undefined,
+                  loading: statusLoading,
+                },
+              ]
+        }
+      />
 
       {/* 탭 */}
       <div className="flex gap-1 border-b">
@@ -487,7 +491,7 @@ export default function DataSourcesPage() {
             onDragOver={handleDrag}
             onDragLeave={handleDrag}
             onDrop={handleDrop}
-            className={`relative flex h-36 flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all ${
+            className={`relative flex h-36 flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2 ${
               dragActive
                 ? "border-primary bg-primary/5 scale-[1.01]"
                 : "border-muted-foreground/20 hover:border-muted-foreground/40 hover:bg-primary/5"
@@ -502,8 +506,12 @@ export default function DataSourcesPage() {
             </div>
             <p className="text-sm font-medium">파일을 드래그하거나 클릭하여 추가</p>
             <p className="text-xs text-muted-foreground mt-1">TXT, PDF, DOCX · 최대 50MB</p>
+            {isEmpty && (
+              <p className="text-xs text-muted-foreground mt-1">첫 문서를 올리면 아래에 처리 상태가 보여요.</p>
+            )}
             <input
               type="file"
+              aria-label="업로드할 파일 선택 (TXT·PDF·DOCX, 최대 50MB)"
               multiple
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               onChange={handleFileInput}
@@ -526,8 +534,8 @@ export default function DataSourcesPage() {
               <span className="text-sm">
                 일괄 업로드 default를 <strong>skip</strong>으로 설정
                 <span id="bulk-skip-mode-hint" className="block text-xs text-muted-foreground">
-                  사전 검사 모달에서 권장 옵션이 skip으로 미리 선택됩니다 — 콘텐츠 동일 시 Gemini 호출 0회로 비용 절감.
-                  단건 업로드는 별도 모달이 사용자 의사를 확인합니다.
+                  사전 검사 모달에서 권장 옵션이 skip으로 미리 선택됩니다. 콘텐츠가 같으면 Gemini 를 호출하지 않아
+                  비용이 들지 않습니다. 단건 업로드는 별도 모달이 사용자 의사를 확인합니다.
                 </span>
               </span>
             </label>
@@ -651,7 +659,7 @@ export default function DataSourcesPage() {
             <div className="rounded-xl border border-warning-border bg-warning-soft/40 overflow-hidden">
               <div className="px-4 py-3 border-b border-warning-border bg-warning-soft/60 flex items-center gap-2">
                 <RotateCcw className="w-3.5 h-3.5 text-warning" />
-                <span className="text-xs font-medium text-warning">중단된 파일 — 재개 가능</span>
+                <span className="text-xs font-medium text-warning">중단된 파일 · 재개 가능</span>
                 <span className="text-xs text-warning">
                   같은 파일을 다시 업로드하면 중단 지점부터 이어서 처리합니다
                 </span>
@@ -760,17 +768,6 @@ export default function DataSourcesPage() {
                   );
                 })}
               </div>
-            </div>
-          )}
-
-          {/* 빈 상태 */}
-          {pendingFiles.length === 0 && completedEntries.length === 0 && failedEntries.length === 0 && (
-            <div className="rounded-xl border bg-card flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-12 h-12 rounded-full bg-admin-muted flex items-center justify-center mb-4">
-                <Upload className="w-6 h-6 text-muted-foreground" />
-              </div>
-              <p className="text-sm font-medium">아직 업로드된 문서가 없습니다</p>
-              <p className="text-xs text-muted-foreground mt-1">위 영역에 파일을 드래그하거나 클릭하여 시작하세요</p>
             </div>
           )}
         </div>

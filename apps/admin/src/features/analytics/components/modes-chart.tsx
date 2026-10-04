@@ -4,6 +4,7 @@
 import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { DailyModeCount } from "@/features/analytics/types";
+import { formatShortDate } from "@/lib/utils";
 
 const MODES = ["standard", "theological", "pastoral", "beginner", "kids"] as const;
 type Mode = (typeof MODES)[number];
@@ -31,7 +32,7 @@ function pivotToDate(rows: DailyModeCount[]): PivotRow[] {
   // override true/false/null 통합 후 mode 별 합산 (override 분포는 별도 표시 필요 시 확장)
   const map = new Map<string, PivotRow>();
   for (const r of rows) {
-    const dateKey = r.date.slice(5); // "2026-05-14" → "05-14"
+    const dateKey = r.date.slice(0, 10); // 축·툴팁에서 "5/14"로 줄여 보인다
     const existing = map.get(dateKey) ?? { date: dateKey };
     const mode = r.mode as Mode;
     if (MODES.includes(mode)) {
@@ -46,7 +47,7 @@ function computeOverrideRate(rows: DailyModeCount[]): {
   pastoralOverride: number;
   totalPastoral: number;
 } {
-  // persona_overridden=true 인 row 만 추출 (NULL/legacy 는 제외 — codex P2 의미 분리)
+  // persona_overridden=true 인 row 만 추출 (NULL/legacy 는 측정값이 없으므로 제외)
   let pastoralOverride = 0;
   let totalPastoral = 0;
   for (const r of rows) {
@@ -58,7 +59,27 @@ function computeOverrideRate(rows: DailyModeCount[]): {
   return { pastoralOverride, totalPastoral };
 }
 
-export function ModesChart({ rows, loading }: { rows?: DailyModeCount[]; loading: boolean }) {
+/** 차트를 못 보는 사용자를 위한 한 줄 요약. 모드별 합계를 많은 순으로 말한다. */
+function modesSummary(rows: DailyModeCount[]): string {
+  const totals = MODES.map((mode) => ({
+    mode,
+    count: rows.filter((r) => r.mode === mode).reduce((sum, r) => sum + r.count, 0),
+  }))
+    .filter((t) => t.count > 0)
+    .sort((a, b) => b.count - a.count);
+  const parts = totals.map((t) => `${MODE_LABEL[t.mode]} ${t.count.toLocaleString()}건`).join(", ");
+  return `최근 30일 모드 분포: ${parts}`;
+}
+
+export function ModesChart({
+  rows,
+  loading,
+  error = false,
+}: {
+  rows?: DailyModeCount[];
+  loading: boolean;
+  error?: boolean;
+}) {
   const chartData = pivotToDate(rows ?? []);
   const { pastoralOverride, totalPastoral } = computeOverrideRate(rows ?? []);
   const overrideRate = totalPastoral > 0 ? Math.round((pastoralOverride / totalPastoral) * 100) : 0;
@@ -75,37 +96,43 @@ export function ModesChart({ rows, loading }: { rows?: DailyModeCount[]; loading
       </div>
       {loading ? (
         <Skeleton className="h-52 w-full" />
+      ) : error ? (
+        <p className="text-sm text-muted-foreground">불러오지 못했어요.</p>
       ) : chartData.length === 0 ? (
-        <div className="h-52 flex items-center justify-center">
-          <p className="text-sm text-muted-foreground">데이터가 없습니다</p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          최근 30일 동안 답변 기록이 없어요. 사용자 웹에서 질문이 들어오면 모드별로 쌓여요.
+        </p>
       ) : (
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-              interval="preserveStartEnd"
-            />
-            <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
-            <Tooltip
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 8,
-                border: "1px solid var(--border)",
-                background: "var(--card)",
-                color: "var(--foreground)",
-              }}
-              cursor={{ fill: "var(--muted)" }}
-            />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
-            {MODES.map((mode) => (
-              <Bar key={mode} dataKey={mode} name={MODE_LABEL[mode]} stackId="modes" fill={MODE_COLOR[mode]} />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
+        <div role="img" aria-label={modesSummary(rows ?? [])}>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+              <XAxis
+                dataKey="date"
+                tickFormatter={formatShortDate}
+                tick={{ fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                interval="preserveStartEnd"
+              />
+              <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
+              <Tooltip
+                labelFormatter={(label) => formatShortDate(String(label))}
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: "1px solid var(--border)",
+                  background: "var(--card)",
+                  color: "var(--foreground)",
+                }}
+                cursor={{ fill: "var(--muted)" }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              {MODES.map((mode) => (
+                <Bar key={mode} dataKey={mode} name={MODE_LABEL[mode]} stackId="modes" fill={MODE_COLOR[mode]} />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       )}
     </div>
   );

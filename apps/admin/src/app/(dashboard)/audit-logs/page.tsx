@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchAPI } from "@/lib/api";
+import { formatPageRange } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
 
@@ -33,20 +34,24 @@ function formatDate(dateStr: string) {
 export default function AuditLogsPage() {
   const [offset, setOffset] = useState(0);
 
-  const { data: logs = [], isLoading } = useQuery({
+  const {
+    data: logs = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["audit-logs", offset],
     queryFn: () => fetchAPI<AuditLog[]>(`/admin/audit-logs?limit=${PAGE_SIZE}&offset=${offset}`),
   });
 
   const hasPrev = offset > 0;
   const hasNext = logs.length === PAGE_SIZE;
+  // 한 쪽에 다 들어가면 이전·다음 버튼은 할 일이 없다.
+  const showPager = !isError && (hasPrev || hasNext);
 
   return (
     <div className="page-wide space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">감사 로그</h1>
-        <p className="text-sm text-muted-foreground mt-1">관리자 작업 이력을 확인합니다</p>
-      </div>
+      <h1 className="text-2xl font-bold tracking-tight">감사 로그</h1>
 
       <div className="rounded-xl border bg-card overflow-hidden">
         <table className="w-full text-sm">
@@ -76,10 +81,24 @@ export default function AuditLogsPage() {
                   </td>
                 </tr>
               ))}
-            {!isLoading && logs.length === 0 && (
+            {isError && (
               <tr>
-                <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
-                  감사 로그가 없습니다
+                <td colSpan={4} className="px-4 py-10">
+                  <div role="alert" className="flex flex-col items-center gap-3 text-center">
+                    <p className="text-sm text-muted-foreground">감사 로그를 불러오지 못했습니다.</p>
+                    <Button variant="outline" size="sm" onClick={() => refetch()}>
+                      다시 시도
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            )}
+            {!isLoading && !isError && logs.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  {offset === 0
+                    ? "아직 기록된 관리자 작업이 없어요. 설정을 바꾸면 여기에 남아요."
+                    : "이 쪽에는 기록이 없어요."}
                 </td>
               </tr>
             )}
@@ -110,26 +129,28 @@ export default function AuditLogsPage() {
       </div>
 
       {/* 페이지네이션 */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          {offset + 1}–{offset + logs.length}건
-        </p>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!hasPrev}
-            onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))}
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            이전
-          </Button>
-          <Button size="sm" variant="outline" disabled={!hasNext} onClick={() => setOffset((o) => o + PAGE_SIZE)}>
-            다음
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
+      {!isLoading && !isError && (logs.length > 0 || showPager) && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">{formatPageRange(offset, logs.length)}</p>
+          {showPager && (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!hasPrev}
+                onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                이전
+              </Button>
+              <Button size="sm" variant="outline" disabled={!hasNext} onClick={() => setOffset((o) => o + PAGE_SIZE)}>
+                다음
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

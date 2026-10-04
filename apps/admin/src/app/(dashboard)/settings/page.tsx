@@ -75,9 +75,7 @@ export default function SettingsPage() {
     onSuccess: (_data, vars) => {
       // success-feedback — 무엇이 어떻게 됐는지 대상까지 밝힌다.
       toast.success(
-        vars.isActive
-          ? `활성화되었습니다: ${vars.email}`
-          : `비활성화되었습니다: ${vars.email} — 새 로그인이 차단됩니다`,
+        vars.isActive ? `활성화되었습니다: ${vars.email}` : `비활성화되었습니다: ${vars.email}. 새 로그인이 차단됩니다`,
       );
       setPendingTarget(null);
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
@@ -125,10 +123,7 @@ export default function SettingsPage() {
 
   return (
     <div className="page-wide space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">설정</h1>
-        <p className="text-sm text-muted-foreground mt-1">관리자 계정을 관리합니다</p>
-      </div>
+      <h1 className="text-2xl font-bold tracking-tight">설정</h1>
 
       {/* 관리자 계정 생성 */}
       <div className="rounded-xl border bg-card p-5 space-y-4 max-w-lg">

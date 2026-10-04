@@ -4,29 +4,25 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { LoadError } from "@/components/load-error";
+import { METRIC_ERROR, MetricBand } from "@/components/metric-band";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
 import { ModesChart } from "@/features/analytics/components/modes-chart";
 import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
 import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
-import type { DailyCount, SearchStats, TopQuery } from "@/features/analytics/types";
+import { dailyTrendSummary, searchKpis } from "@/features/analytics/format";
+import type { SearchStats, TopQuery } from "@/features/analytics/types";
+import { formatShortDate } from "@/lib/utils";
 
-// ─────────────────────────────────────────────
-// StatCard (inline, 카드 컴포넌트 미사용 패턴 유지)
-// ─────────────────────────────────────────────
-function StatCard({ label, value, loading }: { label: string; value: string | number; loading?: boolean }) {
-  return (
-    <div className="rounded-xl border bg-card p-5 space-y-3">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      {loading ? <Skeleton className="h-8 w-20" /> : <p className="text-3xl font-bold tracking-tight">{value}</p>}
-    </div>
-  );
-}
+// 빈 상태·오류 문구 — 차트 높이를 비워 두지 않고 한 줄로 말한다.
+const NO_SEARCHES = "최근 30일 동안 검색이 없어요. 사용자 웹에서 질문이 들어오면 날짜별로 쌓여요.";
+const LOAD_FAILED = "불러오지 못했어요.";
 
 // ─────────────────────────────────────────────
 // Fallback 분포 — CSS 수평 바
 // ─────────────────────────────────────────────
-function FallbackDistribution({ stats, loading }: { stats?: SearchStats; loading: boolean }) {
+function FallbackDistribution({ stats, loading, error }: { stats?: SearchStats; loading: boolean; error: boolean }) {
   const total = stats ? stats.fallback_none + stats.fallback_relaxed + stats.fallback_suggestions : 0;
 
   const rows: {
@@ -47,6 +43,10 @@ function FallbackDistribution({ stats, loading }: { stats?: SearchStats; loading
             <Skeleton key={i} className="h-6 w-full" />
           ))}
         </div>
+      ) : error ? (
+        <p className="text-sm text-muted-foreground">{LOAD_FAILED}</p>
+      ) : total === 0 ? (
+        <p className="text-sm text-muted-foreground">최근 30일 동안 검색이 없어요.</p>
       ) : (
         <div className="space-y-3">
           {rows.map(({ label, key }) => {
@@ -79,10 +79,12 @@ function FallbackDistribution({ stats, loading }: { stats?: SearchStats; loading
 function TopQueriesTable({
   queries,
   loading,
+  error,
   onSelect,
 }: {
   queries?: TopQuery[];
   loading: boolean;
+  error: boolean;
   onSelect: (queryText: string) => void;
 }) {
   return (
@@ -99,8 +101,10 @@ function TopQueriesTable({
             <Skeleton key={i} className="h-8 w-full" />
           ))}
         </div>
+      ) : error ? (
+        <p className="text-sm text-muted-foreground">{LOAD_FAILED}</p>
       ) : !queries || queries.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">인기 질문이 없습니다</p>
+        <p className="text-sm text-muted-foreground">최근 30일 동안 질문이 없어요.</p>
       ) : (
         <div className="overflow-hidden rounded-lg border">
           <table className="w-full text-sm">
@@ -113,23 +117,24 @@ function TopQueriesTable({
             </thead>
             <tbody>
               {queries.map((q, i) => (
+                // 행 어디를 눌러도 열리고, 키보드는 질문 칸의 버튼으로 연다(표 시맨틱 유지).
                 <tr
                   key={i}
                   className={(i !== 0 ? "border-t " : "") + "cursor-pointer hover:bg-admin-muted/40 transition-colors"}
                   onClick={() => onSelect(q.query_text)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onSelect(q.query_text);
-                    }
-                  }}
-                  title="클릭하면 상세 정보를 확인할 수 있습니다"
                 >
                   <td className="py-2 px-3 text-muted-foreground font-mono text-xs">{i + 1}</td>
                   <td className="py-2 px-3 max-w-0 w-full">
-                    <TruncateTooltip text={q.query_text} />
+                    <button
+                      type="button"
+                      className="block w-full text-left"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect(q.query_text);
+                      }}
+                    >
+                      <TruncateTooltip text={q.query_text} />
+                    </button>
                   </td>
                   <td className="py-2 px-3 text-right font-medium">{q.count.toLocaleString()}</td>
                 </tr>
@@ -148,103 +153,111 @@ function TopQueriesTable({
 export default function AnalyticsPage() {
   const [selectedQuery, setSelectedQuery] = useState<string | null>(null);
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const statsQuery = useQuery({
     queryKey: ["search-stats"],
     queryFn: () => analyticsAPI.getSearchStats(30),
   });
 
-  const { data: trend, isLoading: trendLoading } = useQuery({
+  const trendQuery = useQuery({
     queryKey: ["daily-trend"],
     queryFn: () => analyticsAPI.getDailyTrend(30),
   });
 
-  const { data: topQueries, isLoading: topQueriesLoading } = useQuery({
+  const topQueriesQuery = useQuery({
     queryKey: ["top-queries"],
     queryFn: () => analyticsAPI.getTopQueries(30, 10),
   });
 
-  const { data: dailyModes, isLoading: dailyModesLoading } = useQuery({
+  const dailyModesQuery = useQuery({
     queryKey: ["daily-modes"],
     queryFn: () => analyticsAPI.getDailyModes(30),
   });
 
-  // 차트용 날짜 포맷 (MM/DD)
-  const chartData: DailyCount[] = (trend ?? []).map((d) => ({
-    ...d,
-    date: d.date.slice(5), // "2026-04-11" → "04/11"
-  }));
+  const failedQueries = [statsQuery, trendQuery, topQueriesQuery, dailyModesQuery].filter((q) => q.isError);
+  const kpis = searchKpis(statsQuery.data, statsQuery.isError);
+  const statsLoading = statsQuery.isLoading;
+  const trend = trendQuery.data ?? [];
+  const errorHint = statsQuery.isError ? METRIC_ERROR.hint : undefined;
+  const rateHint = errorHint ?? (statsQuery.data?.total_searches === 0 ? "검색 없음" : undefined);
 
   return (
     <div className="space-y-6 page-wide">
       {/* 헤더 */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">검색 분석</h1>
-        <p className="text-sm text-muted-foreground mt-1">검색 파이프라인 성능을 분석합니다</p>
+        <p className="text-sm text-muted-foreground mt-1">최근 30일</p>
       </div>
 
-      {/* 통계 카드 4개 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="총 검색 수" value={(stats?.total_searches ?? 0).toLocaleString()} loading={statsLoading} />
-        <StatCard
-          label="쿼리 재작성률"
-          value={stats ? `${(stats.rewrite_rate * 100).toFixed(1)}%` : "0%"}
-          loading={statsLoading}
+      {failedQueries.length > 0 && (
+        <LoadError
+          message="일부 지표를 불러오지 못했습니다."
+          onRetry={() => {
+            for (const q of failedQueries) q.refetch();
+          }}
         />
-        <StatCard
-          label="결과 없음 비율"
-          value={stats ? `${(stats.zero_result_rate * 100).toFixed(1)}%` : "0%"}
-          loading={statsLoading}
-        />
-        <StatCard
-          label="평균 지연 시간"
-          value={stats ? `${Math.round(stats.avg_latency_ms).toLocaleString()} ms` : "0 ms"}
-          loading={statsLoading}
-        />
-      </div>
+      )}
+
+      <MetricBand
+        metrics={[
+          { label: "총 검색 수", value: kpis.totalSearches, hint: errorHint, loading: statsLoading },
+          { label: "쿼리 재작성률", value: kpis.rewriteRate, hint: rateHint, loading: statsLoading },
+          { label: "결과 없음 비율", value: kpis.zeroResultRate, hint: rateHint, loading: statsLoading },
+          { label: "평균 지연 시간", value: kpis.avgLatency, hint: rateHint, loading: statsLoading },
+        ]}
+      />
 
       {/* 일별 트렌드 차트 */}
       <div className="rounded-xl border bg-card p-5 space-y-4">
         <h2 className="text-sm font-semibold">일별 검색량 (최근 30일)</h2>
-        {trendLoading ? (
+        {trendQuery.isLoading ? (
           <Skeleton className="h-52 w-full" />
-        ) : chartData.length === 0 ? (
-          <div className="h-52 flex items-center justify-center">
-            <p className="text-sm text-muted-foreground">데이터가 없습니다</p>
-          </div>
+        ) : trendQuery.isError ? (
+          <p className="text-sm text-muted-foreground">{LOAD_FAILED}</p>
+        ) : trend.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{NO_SEARCHES}</p>
         ) : (
-          <ResponsiveContainer width="100%" height={208}>
-            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  border: "1px solid var(--border)",
-                  background: "var(--card)",
-                  color: "var(--foreground)",
-                }}
-                cursor={{ fill: "var(--muted)" }}
-              />
-              <Bar dataKey="count" name="검색 수" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div role="img" aria-label={dailyTrendSummary(trend, formatShortDate)}>
+            <ResponsiveContainer width="100%" height={208}>
+              <BarChart data={trend} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={formatShortDate}
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip
+                  labelFormatter={(label) => formatShortDate(String(label))}
+                  contentStyle={{
+                    fontSize: 12,
+                    borderRadius: 8,
+                    border: "1px solid var(--border)",
+                    background: "var(--card)",
+                    color: "var(--foreground)",
+                  }}
+                  cursor={{ fill: "var(--muted)" }}
+                />
+                <Bar dataKey="count" name="검색 수" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         )}
       </div>
 
       {/* BL-6 — 일별 모드 분포 차트 (4주 시범 운영 baseline) */}
-      <ModesChart rows={dailyModes} loading={dailyModesLoading} />
+      <ModesChart rows={dailyModesQuery.data} loading={dailyModesQuery.isLoading} error={dailyModesQuery.isError} />
 
       {/* 하단 2열 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FallbackDistribution stats={stats} loading={statsLoading} />
-        <TopQueriesTable queries={topQueries} loading={topQueriesLoading} onSelect={(q) => setSelectedQuery(q)} />
+        <FallbackDistribution stats={statsQuery.data} loading={statsLoading} error={statsQuery.isError} />
+        <TopQueriesTable
+          queries={topQueriesQuery.data}
+          loading={topQueriesQuery.isLoading}
+          error={topQueriesQuery.isError}
+          onSelect={(q) => setSelectedQuery(q)}
+        />
       </div>
 
       <QueryDetailModal
