@@ -444,6 +444,7 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
   await page.getByLabel(/이름/).fill("알림");
   await page.getByLabel(/이메일/).fill(`e2e-push-${Date.now()}@example.com`);
   await page.getByLabel(/비밀번호/).fill("password1");
+  const summaryLoaded = page.waitForResponse((response) => response.url().includes("/hoondok/me/summary"));
   await page.getByRole("button", { name: "가입하고 시작하기" }).click();
   await expect(page).toHaveURL(/\/hoondok$/);
   await expect(page.getByText("알림님")).toBeVisible();
@@ -452,8 +453,8 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
 
   const missions = page.locator(".missions");
   const card = page.locator(".push-prompt");
-  // 요약(연속일)까지 그려진 뒤 — 목록 위 늦은 요소가 모두 자리 잡은 상태에서 잰다
-  await expect(page.locator(".sect__meta").filter({ hasText: /연속 \d+일/ })).toBeVisible();
+  // 요약까지 도착한 뒤 — 목록 위 늦은 요소가 모두 자리 잡은 상태에서 잰다. 새 계정은 연속 0 이라 연속일 문구가 없다
+  await summaryLoaded;
   await expect(card).toHaveCount(0);
   const missionsBefore = await missions.boundingBox();
   releaseConfig();

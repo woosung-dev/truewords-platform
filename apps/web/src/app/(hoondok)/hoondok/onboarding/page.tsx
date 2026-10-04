@@ -106,6 +106,13 @@ function OnboardingForm() {
 
   return (
     <form className="form" onSubmit={handleSubmit} aria-label={mode === "signup" ? "가입" : "로그인"}>
+      {/* 이미 가입한 사람이 입력칸 넷을 지나 맨 끝까지 내려가지 않게, 전환은 폼 맨 위에 둔다 */}
+      <p className="form__switch">
+        {mode === "signup" ? "이미 계정이 있어요? " : "처음이에요? "}
+        <button type="button" onClick={() => setMode(mode === "signup" ? "login" : "signup")}>
+          {mode === "signup" ? "로그인" : "가입하기"}
+        </button>
+      </p>
       {mode === "signup" && (
         <label className="field">
           <span className="field__label">이름</span>
@@ -183,12 +190,6 @@ function OnboardingForm() {
           둘러보기 (로그인 없이)
         </Link>
       </div>
-      <p className="form__switch">
-        {mode === "signup" ? "이미 계정이 있어요? " : "처음이에요? "}
-        <button type="button" onClick={() => setMode(mode === "signup" ? "login" : "signup")}>
-          {mode === "signup" ? "로그인" : "가입하기"}
-        </button>
-      </p>
     </form>
   );
 }

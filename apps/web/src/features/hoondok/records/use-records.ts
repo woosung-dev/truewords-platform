@@ -23,6 +23,7 @@ export function useRecords(isEnabled: boolean) {
     data,
     isError: highlights.isError,
     isPending: highlights.isPending,
+    isFetching: highlights.isFetching,
     refetch: () => void highlights.refetch(),
   };
 }

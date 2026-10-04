@@ -2,7 +2,8 @@ import { Check, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
 // 미션 카드 (DES-PWA-003 §2.1). 카드 본체는 <a>, 체크는 형제 <button> — 중첩 인터랙티브 금지.
-// Phase 1 은 표시·이동만이며 체크 기록(mission_logs)은 Phase 2 다.
+// 체크는 누를 수 있을 때·완료했을 때·불러오는 동안만 그린다. 준비 중이거나 다른 곳에서 기록하는 카드(말씀 읽기는
+// 원문 끝에서 읽음으로 기록)에 빈 원을 두면 누를 수 있는 컨트롤처럼 보이기 때문이다.
 export type MissionCardProps = {
   kind: string;
   title: string;
@@ -14,6 +15,8 @@ export type MissionCardProps = {
   isDisabled?: boolean;
   /** 불러오는 중 — 제목·메타 자리에 한 줄씩 회색 막대를 두어 카드 높이를 지킨다 */
   isPending?: boolean;
+  /** 오늘 먼저 할 일 한 장 — 제목을 한 단계 키우고 아이콘 칩에 액센트를 쓴다 */
+  isLead?: boolean;
   onToggle?: () => void;
 };
 
@@ -26,6 +29,7 @@ export function MissionCard({
   isDone,
   isDisabled,
   isPending,
+  isLead,
   onToggle,
 }: MissionCardProps) {
   const body = (
@@ -46,7 +50,7 @@ export function MissionCard({
   );
   return (
     <div
-      className="mission"
+      className={isLead ? "mission mission--lead" : "mission"}
       data-done={isDone ? "" : undefined}
       data-disabled={isDisabled ? "" : undefined}
       data-pending={isPending ? "" : undefined}
@@ -60,16 +64,18 @@ export function MissionCard({
           {body}
         </span>
       )}
-      <button
-        type="button"
-        className="check"
-        aria-pressed={Boolean(isDone)}
-        aria-label={`${kind} 완료`}
-        disabled={isDisabled || !onToggle}
-        onClick={onToggle}
-      >
-        <Check size={16} strokeWidth={3} />
-      </button>
+      {!isDisabled && (isDone || isPending || onToggle) && (
+        <button
+          type="button"
+          className="check"
+          aria-pressed={Boolean(isDone)}
+          aria-label={`${kind} 완료`}
+          disabled={!onToggle}
+          onClick={onToggle}
+        >
+          <Check size={16} strokeWidth={3} />
+        </button>
+      )}
     </div>
   );
 }

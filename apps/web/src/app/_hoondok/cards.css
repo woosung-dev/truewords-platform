@@ -196,6 +196,31 @@
   .bmhome__go {
     margin-top: 16px;
   }
+  /* 받은 뒤 한 줄 행 : 책 48×64(em 축척만 줄인다) + 책 이름 + 다시 보기. 카드 전체가 링크다 */
+  .bmhome--row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px 12px 16px;
+  }
+  .bmhome--row .bmhome__book {
+    width: 48px;
+    height: 64px;
+    padding-bottom: 0;
+  }
+  .bmhome--row .bk--sm {
+    font-size: 2.75px;
+  }
+  .bmhome--row .bmhome__bd {
+    flex: 1;
+  }
+  .bmhome--row .bmhome__title {
+    margin: 0 0 2px;
+  }
+  .bmhome__chev {
+    flex: none;
+    color: var(--ink-3);
+  }
 
   /* ---------- 3. 책갈피 카드 (목업 A) ---------- */
   .bm {
@@ -315,9 +340,6 @@
     margin: 3.2cqw 0 0;
     font-size: max(13px, 3.6cqw);
     color: var(--ink-2);
-  }
-  .bm__src::before {
-    content: "— ";
   }
   .bm__scene {
     position: relative;

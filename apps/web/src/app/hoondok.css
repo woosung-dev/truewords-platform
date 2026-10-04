@@ -94,7 +94,7 @@
 
   /* 글자 크기 8단계 (rem — 브라우저 글자 크기 설정을 따른다, DES §1.2·§3.4).
      px 은 루트 16px 기준 환산값. 새 크기를 만들지 말고 가장 가까운 단계를 쓴다. */
-  --fs-2xs: 0.6875rem; /* 11 — 배지·탭 라벨·소문 */
+  --fs-2xs: 0.75rem; /* 12 — 배지·탭 라벨·소문. 40~70대 주 사용자를 위한 글자 바닥이라 이보다 작게 쓰지 않는다 */
   --fs-xs: 0.78125rem; /* 12.5 — 메타·보조 설명 */
   --fs-sm: 0.875rem; /* 14 — 작은 버튼·칩·보조 본문 */
   --fs-md: 0.9375rem; /* 15 — 기본 본문 */
@@ -120,7 +120,8 @@
 
 /* ---------- 2. 스코프 리셋 · 앱 셸 ---------- */
 [data-app="hoondok"] {
-  color-scheme: light;
+  /* 라이트 고정(DEC-PWA-017). only 를 붙여 브라우저 자동 다크가 화면을 반전하지 않게 한다 */
+  color-scheme: only light;
   background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
@@ -173,10 +174,22 @@
     min-height: 52px;
     padding: 10px var(--gutter) 8px;
   }
+  /* 탭 루트 화면의 제목이 화면에서 가장 높은 단계다. 긴 저작물 이름이 앱바를 두 줄로 키우지 않게
+     한 줄로 자르고, 전체 이름은 h1 의 title 속성과 본문이 갖는다 */
   .appbar__title {
-    font-size: var(--fs-xl);
+    font-size: var(--fs-2xl);
     margin: 0;
     flex: 1;
+    min-width: 0;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* 뒤로 링크가 있는 하위 화면의 제목은 길잡이다 — 본문 제목보다 한 단계 낮춘다 */
+  .appbar--sub .appbar__title {
+    font-size: var(--fs-lg);
     font-weight: 600;
     letter-spacing: -0.01em;
   }
@@ -243,9 +256,24 @@
     place-items: center;
     line-height: 1;
   }
+  /* 활성 탭은 색 + 굵기 + 아이콘 위 표지 막대 세 신호가 함께 바뀐다 (DES §2.8). 선 아이콘을 채우면 덩어리가 되어 채우지 않는다 */
   .nav__item[aria-current] {
     color: var(--accent);
     font-weight: 600;
+  }
+  .nav__item[aria-current]:not(.nav__item--mid) .nav__ic {
+    position: relative;
+  }
+  .nav__item[aria-current]:not(.nav__item--mid) .nav__ic::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    width: 20px;
+    height: 3px;
+    margin-left: -10px;
+    border-radius: var(--r-full);
+    background: var(--accent);
   }
   /* 준비 중 탭 — opacity 로 흐리지 않는다(DES §1.5 disabled). 글자는 --ink-3 대비를 지키고
      아이콘 선만 점선으로 바꿔 "아직" 을 알린다(권위 배지 `.badge--dashed` 와 같은 신호) */
@@ -348,21 +376,37 @@
   .mission[data-pending] .mission__title {
     min-height: 2.7em;
   }
+  /* 오늘 먼저 할 일(아직 하지 않은 훈독하기) 한 장만 한 단계 크게 둔다. 완료하면 다른 카드와 같아진다 */
+  .mission--lead {
+    padding: 18px 16px;
+  }
+  .mission--lead .mission__title {
+    font-size: var(--fs-xl);
+    line-height: 1.4;
+  }
+  .mission--lead .mission__ic {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+  }
   .mission[data-done] .mission__ic {
     background: var(--ok-soft);
     color: var(--ok-strong);
   }
   /* 비활성 미션 — opacity 로 흐리지 않는다(DES §1.5). 회색 채움은 "눌린 상태"로 읽혀서
-     준비 중 탭·토글과 같은 점선 테두리 신호를 쓰고 바탕은 비운다. 글자 대비는 그대로 남는다 */
+     준비 중 탭·토글과 같은 점선 테두리 신호를 쓰고 바탕은 비운다. 점선은 장식 경계색(--line)이라
+     활성 카드보다 진해지지 않고, "· 준비 중" 글자가 이유를 말한다 (비활성 요소는 WCAG 1.4.11 면제) */
   .mission[data-disabled] {
     background: transparent;
-    border-style: dashed;
-    border-color: var(--ink-3);
+    border: 1.5px dashed var(--line);
     box-shadow: none;
   }
   .mission[data-disabled] .mission__ic {
     background: var(--surface);
     color: var(--ink-3);
+  }
+  .mission[data-disabled] .mission__title {
+    color: var(--ink-2);
+    font-weight: 500;
   }
   .check {
     position: relative;
@@ -384,8 +428,11 @@
     border-color: var(--ok);
     color: var(--accent-ink);
   }
+  /* 불러오는 동안의 자리. 누를 수 없는 카드(준비 중·원문 끝에서 기록)에는 체크를 그리지 않는다 */
   .check[disabled] {
     cursor: not-allowed;
+  }
+  .check[disabled]:not([aria-pressed="true"]) {
     border-color: var(--line);
   }
 
@@ -499,8 +546,10 @@
   .malssum {
     display: block;
   }
+  /* 훈독하기 본문은 설정의 말씀 글자 크기(--read-scale, 레이아웃이 단계마다 정한다)를 곱한다. 값이 없으면 1 */
   .malssum .scripture {
     margin: 10px 0 0;
+    font-size: calc(var(--fs-lg) * var(--read-scale, 1));
   }
 
   /* ---------- 5. 권위 층 배지 (DES §2.3) ---------- */
@@ -538,6 +587,13 @@
     padding: 16px;
     box-shadow: var(--shadow-hairline);
   }
+  /* 흰 테두리 카드는 누를 수 있는 것·오늘 할 일에 둔다. 누를 수 없는 정보·초대는 평평한 띠다
+     (편성 없는 날 .day-quiet 와 같은 바탕). 띠 안의 선 버튼은 흰 바탕이라 그대로 버튼으로 읽힌다 */
+  .card--flat {
+    background: var(--surface-2);
+    border-color: transparent;
+    box-shadow: none;
+  }
   .greet {
     font-size: var(--fs-xl);
     font-weight: 700;
@@ -556,10 +612,12 @@
     gap: 12px;
     margin-bottom: 12px;
   }
+  /* 섹션 제목은 카드 제목(--fs-lg 600)보다 한 단계 위다 — 같은 크기면 "오늘의 실천" 이 카드 글자와 섞인다 */
   .sect__title {
-    font-size: var(--fs-lg);
+    font-size: var(--fs-xl);
     margin: 0;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
   .sect__meta {
     font-size: var(--fs-xs);
@@ -586,17 +644,69 @@
     font-weight: 600;
     margin: 8px 0 0;
   }
+  /* 가운데 정렬 글은 마지막 한 단어만 다음 줄로 떨어지지 않게 줄 길이를 고른다 */
   .empty__body {
     font-size: var(--fs-xs);
     color: var(--ink-2);
     margin: 4px 0 0;
+    text-wrap: balance;
   }
   .notice {
-    font-size: var(--fs-2xs);
+    font-size: var(--fs-xs);
     color: var(--ink-2);
     text-align: center;
     padding: 22px 0 0;
     margin: 0;
+    text-wrap: balance;
+  }
+  /* 상태·오류 안내 (DES §1.5 error). 화면 맨 아래 베타 고지 줄(.notice)과 다른 왼쪽 정렬 상자로 두고
+     아이콘 + 원인 문장을 쓴다. 다시 불러오기 버튼은 조회 실패일 때만 붙고, 좁으면 문장 아래로 내려간다 */
+  .status-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px 10px;
+    margin: 12px 0 0;
+    padding: 12px 14px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .status-box > svg {
+    flex: none;
+    margin-top: 1px;
+    color: var(--ink-2);
+  }
+  .status-box__t {
+    flex: 1 1 12em;
+    min-width: 0;
+    margin: 0;
+  }
+  .status-box .btn {
+    flex: none;
+    margin-left: auto;
+  }
+  /* 섹션 안 빈 상태 한 줄 (나의 정원). 화면 전체가 빌 때의 .empty 와 달리 아이콘·큰 제목 없이
+     문장과 다음 행동 하나만 둔다. 누를 수 없는 띠라 흰 카드가 아니라 --surface-2 바탕이다 */
+  .empty-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    padding: 12px 14px 12px 16px;
+    border-radius: var(--r);
+    background: var(--surface-2);
+  }
+  .empty-line__t {
+    flex: 1 1 10em;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--fs-md);
+    color: var(--ink-2);
+    text-wrap: balance;
   }
   .hint {
     display: flex;
@@ -609,34 +719,34 @@
   /* ---------- 6.5 사진 히어로 (DES §3.2 · 2026-09-22 DES-PWA-003-Q2 되돌림) ----------
      사진은 apps/web/public/hoondok/photos/ 정적 파일이다 (외부 hotlink 금지).
      veil 정지점 3개는 §3.2 가 대비 계산의 근거로 고정한 값이라 토큰 --veil-0·80·92 로 고정한다
-     (--ink = #23211f = rgb(35,33,31)). 사진이 안 오면 바탕 --ink 가 남아 흰 글자가 읽힌다. */
+     (--ink = #23211f = rgb(35,33,31)). 사진이 안 오면 바탕 --ink 가 남아 흰 글자가 읽힌다.
+     높이는 고정하지 않는다(§3.4) — 글자를 키우면 히어로가 함께 자라고, veil 은 글자 상자가 들고 다녀
+     글자가 몇 줄이 되든 알파 0.80 이상 구간에만 놓인다. 글자가 없는 사진(온보딩)에는 veil 이 없다. */
   .shot {
     position: relative;
     border-radius: var(--r);
     overflow: hidden;
     background: var(--ink);
-    height: 210px;
+    min-height: 210px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
   }
   .shot img {
+    position: absolute;
+    inset: 0;
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
-  .shot::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, var(--veil-0) 18%, var(--veil-80) 55%, var(--veil-92) 100%);
-  }
-  /* 텍스트는 veil 알파 0.80 이상 구간(하단 45%)에만 둔다 (§3.2) */
+  /* 상자 위쪽 56px 동안 0 → 0.80 으로 짙어지고 글자는 그 아래(패딩 안)에서 시작한다. 끝은 0.92 */
   .shot__tx {
-    position: absolute;
-    left: 18px;
-    right: 18px;
-    bottom: 16px;
-    color: var(--accent-ink);
+    position: relative;
     z-index: 1;
+    padding: 56px 18px 16px;
+    color: var(--accent-ink);
+    background: linear-gradient(180deg, var(--veil-0) 0, var(--veil-80) 56px, var(--veil-92) 100%);
   }
   .shot__greet {
     font-size: var(--fs-2xl);
@@ -710,6 +820,8 @@
     padding: 0;
     list-style: none;
   }
+  /* 완료한 날만 원(초록 + 체크)을 그리고 나머지는 요일 글자만 둔다 — 빈 원은 빠진 날을 세게 만든다
+     (DEC-PWA-023, 정원 달력과 같은 규칙). 오늘은 액센트 테두리 + 굵은 글자 */
   .week__day {
     width: 100%;
     max-width: 34px;
@@ -720,19 +832,21 @@
     place-items: center;
     font-size: var(--fs-xs);
     color: var(--ink-3);
-    border: 1px solid var(--ink-3);
-    background: var(--surface);
+    border: 1px solid transparent;
   }
   .week__day[data-done] {
     background: var(--ok-soft);
     color: var(--ok-strong);
-    border-color: transparent;
     font-weight: 600;
   }
   .week__day[data-today] {
     border: 2px solid var(--accent);
     color: var(--accent);
     font-weight: 700;
+  }
+  /* 완료한 오늘: 테두리는 오늘(액센트), 체크는 완료(초록) */
+  .week__day[data-today][data-done] {
+    color: var(--ok-strong);
   }
 
   /* ---------- 9. 버튼 (DES §1.5) ---------- */
@@ -813,14 +927,20 @@
     }
     /* 폭이 커지면 히어로도 높아진다 — 다만 최대 340px (DES §4.6). 화면별 높이는 각자 다시 정한다 */
     .shot {
-      height: 260px;
+      min-height: 260px;
+    }
+    /* 넓은 폭에서 카드 안 전폭 버튼이 640~1000px 로 늘어지지 않게 글자 폭으로 둔다 */
+    .card .btn:not(.btn--sm) {
+      width: auto;
+      min-width: 200px;
+      align-self: flex-start;
     }
   }
 
   /* ---------- lg: 1024px 이상. 하단 탭 → 상단 헤더 4 (DES §8 2026-09-16) ---------- */
   @media (min-width: 1024px) {
     .shot {
-      height: 300px;
+      min-height: 300px;
     }
     .nav {
       order: -1;
@@ -890,11 +1010,10 @@
       background: var(--surface-2);
       font-size: var(--fs-md);
     }
-    /* 검색 화면에서는 헤더 검색 자리가 현재 위치다 — 활성 탭처럼 글자를 진하게 */
+    /* 검색 화면에서는 본문 검색칸이 같은 일을 하므로 헤더 검색칸을 감춘다. 자리는 남겨 알림·메뉴 버튼이 움직이지 않게 하고,
+       보조기기에서도 빠진다(visibility) */
     .nav__search[aria-current] {
-      color: var(--ink);
-      font-weight: 600;
-      box-shadow: inset 0 0 0 1.5px var(--ink-3);
+      visibility: hidden;
     }
     /* 헤더 우측 계정 자리(프로토타입 .nav__user). 지금은 알림·설치 설정으로 가는 원형 버튼이다 */
     .nav__user {
@@ -937,17 +1056,24 @@
       .nav__item:hover {
         background: var(--surface-2);
       }
-      .btn-primary:hover {
-        background: var(--accent-strong);
-      }
-      .btn-ghost:hover,
-      .btn-line:hover,
-      .icon-btn:hover {
-        background: var(--surface-2);
-      }
-      .card:hover {
-        box-shadow: var(--shadow-1);
-      }
+    }
+  }
+
+  /* hover 는 폭이 아니라 포인터가 정한다 (DES §4.5) — 768~1023 포인터 환경에도 같은 규칙이다.
+     흰 카드 중 누를 수 있는 것(링크 카드·미션)만 그림자가 오르고, 정보 카드는 그대로다 */
+  @media (hover: hover) {
+    .btn-primary:not([disabled]):hover {
+      background: var(--accent-strong);
+    }
+    .btn-ghost:hover,
+    .btn-line:hover,
+    .icon-btn:hover,
+    .chip-btn:not([aria-pressed="true"]):not([disabled]):hover {
+      background: var(--surface-2);
+    }
+    a.card:hover,
+    .mission:has(> a.mission__link:hover) {
+      box-shadow: var(--shadow-1);
     }
   }
 
@@ -1097,9 +1223,8 @@
     background: var(--ink-3);
   }
   .form__switch {
-    font-size: var(--fs-xs);
+    font-size: var(--fs-sm);
     color: var(--ink-2);
-    text-align: center;
     margin: 0;
   }
   .form__switch button {
@@ -1108,10 +1233,11 @@
     text-decoration: underline;
     min-height: 44px;
   }
+  /* 베타 고지는 액센트를 쓰지 않는다 (DES §2.11 베타 고지 = 회색). 이 화면의 액센트는 가입 버튼 하나다 */
   .onb-eyebrow {
     font-size: var(--fs-xs);
-    font-weight: 600;
-    color: var(--accent-strong);
+    font-weight: 500;
+    color: var(--ink-2);
     margin: 8px 0 0;
   }
   .onb-title {
@@ -1254,11 +1380,12 @@
     font-weight: 600;
     color: var(--ink-2);
   }
+  /* 본문은 화면에서 가장 중요한 글이라 --ink (DES §2.11 본문 16.05:1). 라벨만 --ink-2 */
   .ai-note__body {
     margin: 0;
     font-size: var(--fs-md);
     line-height: 1.7;
-    color: var(--ink-2);
+    color: var(--ink);
   }
   .ai-note__body + .ai-note__body {
     margin-top: 10px;
@@ -1275,7 +1402,7 @@
     padding-left: 20px;
     font-size: var(--fs-md);
     line-height: 1.7;
-    color: var(--ink-2);
+    color: var(--ink);
   }
   .ai-note__head + .ai-note__body,
   .ai-note__list + .ai-note__body,
@@ -1415,7 +1542,17 @@
     url("/hoondok/fonts/PretendardVariable-1.3.9.woff2") format("woff2");
 }
 
-/* 훈독 화면에서만 바깥 문서 배경이 드러나는 세로 오버스크롤을 막는다. */
+/* 훈독 화면에서만 바깥 문서 배경이 드러나는 세로 오버스크롤을 막는다.
+   라이트 고정(DEC-PWA-017)은 문서 루트에도 선언해야 브라우저 자동 다크가 끼어들지 않는다.
+   키보드로 내려갈 때 포커스가 sticky 앱바·하단 탭에 가리지 않게 스크롤 여백을 둔다 (DES §3.6, WCAG 2.4.11) */
 html:has([data-app="hoondok"]) {
   overscroll-behavior-y: none;
+  color-scheme: only light;
+  scroll-padding-block: 72px calc(84px + env(safe-area-inset-bottom) + 16px);
+}
+/* ≥1024px 은 탭이 위 헤더(72px)로 올라가 앱바와 함께 위를 가리고 아래는 비어 있다 */
+@media (min-width: 1024px) {
+  html:has([data-app="hoondok"]) {
+    scroll-padding-block: 132px 16px;
+  }
 }

@@ -258,15 +258,18 @@ describe("받기·읽기 화면 (SCR-PWA-023)", () => {
     expect(container.querySelector(".bmk-moment")).toHaveAttribute("hidden");
   });
 
-  it("홈 카드: 받기 전엔 책 이름과 꺼내기, 받은 뒤엔 다시 보기", async () => {
+  it("홈 카드: 받기 전엔 책 이름과 꺼내기, 받은 뒤엔 카드 전체가 다시 보기 링크인 한 줄", async () => {
     const { BookmarkHomeCard } = await import("@/features/hoondok/cards/components/home-card");
-    const { unmount } = render(wrap(<BookmarkHomeCard card={CARD} dateLabel="9월 28일 월요일" />));
+    const { unmount } = render(wrap(<BookmarkHomeCard card={CARD} />));
     expect(screen.getByText("천성경 제1편")).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "책갈피 꺼내기" })).toHaveAttribute("href", "/hoondok/bookmark");
     unmount();
     writeLocalReceipt({ date: TODAY, cardId: CARD.id });
-    render(wrap(<BookmarkHomeCard card={CARD} dateLabel="9월 28일 월요일" />));
-    expect(await screen.findByRole("link", { name: "책갈피 다시 보기" })).toBeInTheDocument();
+    render(wrap(<BookmarkHomeCard card={CARD} />));
+    const again = await screen.findByRole("link", { name: /책갈피 다시 보기/ });
+    expect(again).toHaveAttribute("href", "/hoondok/bookmark");
+    expect(again).toHaveTextContent("천성경 제1편");
+    expect(screen.queryByRole("link", { name: "책갈피 꺼내기" })).toBeNull();
   });
 });
 

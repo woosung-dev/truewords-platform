@@ -43,7 +43,7 @@ export function InstallCard({ isAlwaysVisible = false }: { isAlwaysVisible?: boo
           </HoondokButton>
         )}
         {!isAlwaysVisible && (
-          <HoondokButton variant="line" isSmall onClick={dismiss}>
+          <HoondokButton variant="ghost" isSmall onClick={dismiss}>
             나중에
           </HoondokButton>
         )}

@@ -288,11 +288,13 @@ describe("정원 '나의 기록' 섹션", () => {
     expect(screen.getByRole("link", { name: "노트 0" })).toBeInTheDocument();
   });
 
-  it("기록이 없으면 문구와 서고 입구만, 불러오지 못하면 다시 시도", async () => {
+  it("기록이 없으면 한 줄 문장과 서고 입구만 둔다", async () => {
     loggedIn([]);
     renderGarden();
-    expect(await screen.findByRole("heading", { name: "아직 남긴 기록이 없어요" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "말씀 서고로 가기" })).toHaveAttribute("href", "/hoondok/library");
+    expect(await screen.findByText("아직 남긴 기록이 없어요")).toBeInTheDocument();
+    // 정원 섹션 안이라 큰 제목을 두지 않는다
+    expect(screen.queryByRole("heading", { name: "아직 남긴 기록이 없어요" })).toBeNull();
+    expect(screen.getByRole("link", { name: "말씀 읽으러 가기" })).toHaveAttribute("href", "/hoondok/library");
     expect(screen.queryByRole("navigation", { name: "나의 기록 종류" })).toBeNull();
   });
 
@@ -300,11 +302,11 @@ describe("정원 '나의 기록' 섹션", () => {
     loggedIn();
     vi.mocked(libraryAPI.highlights).mockRejectedValue(new Error("down"));
     renderGarden();
-    expect(await screen.findByRole("heading", { name: "기록을 불러오지 못했어요" })).toBeInTheDocument();
+    expect(await screen.findByText(/기록을 불러오지 못했어요/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "진행 중인 정성" })).toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "나의 기록 종류" })).toBeNull();
     vi.mocked(libraryAPI.highlights).mockResolvedValue({ items: HIGHLIGHTS });
-    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    fireEvent.click(screen.getByRole("button", { name: "다시 불러오기" }));
     expect(await screen.findByRole("link", { name: "형광펜 3" })).toBeInTheDocument();
     expect(libraryAPI.highlights).toHaveBeenCalledTimes(2);
   });
@@ -423,7 +425,7 @@ describe("나의 기록 화면", () => {
     loggedIn([]);
     const { unmount } = renderRecords();
     expect(await screen.findByRole("heading", { name: "아직 남긴 기록이 없어요" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "말씀 서고로 가기" })).toHaveAttribute("href", "/hoondok/library");
+    expect(screen.getByRole("link", { name: "말씀 읽으러 가기" })).toHaveAttribute("href", "/hoondok/library");
     unmount();
 
     searchParams = new URLSearchParams("tab=note");
@@ -435,8 +437,8 @@ describe("나의 기록 화면", () => {
     loggedIn();
     vi.mocked(libraryAPI.highlights).mockRejectedValue(new Error("down"));
     const third = renderRecords();
-    expect(await screen.findByRole("heading", { name: "기록을 불러오지 못했어요" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+    expect(await screen.findByText(/기록을 불러오지 못했어요/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "다시 불러오기" })).toBeInTheDocument();
     third.unmount();
 
     vi.mocked(libraryAPI.highlights).mockClear();

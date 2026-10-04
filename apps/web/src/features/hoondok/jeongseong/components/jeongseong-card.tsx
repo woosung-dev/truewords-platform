@@ -135,7 +135,8 @@ export function JeongseongCard() {
   if (!period) {
     return (
       <JeongseongSection>
-        <div className="card js-invite">
+        {/* 시작 초대는 정보 띠다(평평한 바탕). 안의 선 버튼이 흰 바탕이라 버튼으로 읽힌다 */}
+        <div className="card card--flat js-invite">
           <p className="js-invite__title">정성 기간 만들기</p>
           <p className="js-invite__body">7·21·40일 중 골라 매일 훈독을 이어가요</p>
           <Link ref={inviteRef} className="btn btn-line btn--sm" href={SHEET_HREF}>

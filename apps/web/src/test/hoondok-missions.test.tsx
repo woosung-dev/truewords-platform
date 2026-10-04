@@ -184,7 +184,7 @@ describe("ReadCompleteButton", () => {
     vi.mocked(missionsAPI.summary).mockResolvedValue({ ...EMPTY_SUMMARY, streak_days: 0 });
     vi.mocked(missionsAPI.complete).mockResolvedValue({ mission_date: TODAY, kind: "read", completed_at: "x" });
     render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
-    expect(await screen.findByText("완료하면 연속 1일이 돼요")).toBeInTheDocument();
+    expect(await screen.findByText("오늘 훈독을 마치면 기록이 시작돼요")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /훈독 완료/ }));
 
@@ -214,6 +214,20 @@ describe("ReadCompleteButton", () => {
     });
     render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
     expect(await screen.findByText("연속 13일째 이어가고 있어요")).toBeInTheDocument();
+  });
+
+  it("누적일이 이정표(7·21·40)에 닿은 날에만 완료 카드에 한 줄을 둔다", async () => {
+    loggedIn();
+    const done = { ...EMPTY_SUMMARY, today: { read: true, pray: false, study: false }, streak_days: 3 };
+    vi.mocked(missionsAPI.summary).mockResolvedValue({ ...done, total_days: 21 });
+    const { unmount } = render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
+    expect(await screen.findByText("말씀과 함께한 날이 21일이 되었어요.")).toBeInTheDocument();
+    unmount();
+
+    vi.mocked(missionsAPI.summary).mockResolvedValue({ ...done, total_days: 22 });
+    render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
+    expect(await screen.findByText("연속 3일째 이어가고 있어요")).toBeInTheDocument();
+    expect(screen.queryByText(/함께한 날이/)).toBeNull();
   });
 
   it("저장 중에는 라벨을 유지한 채 스피너를 돌리고 중복 제출을 막는다 (DES §1.5 loading)", async () => {

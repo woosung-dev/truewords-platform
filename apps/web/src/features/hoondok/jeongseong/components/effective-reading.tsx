@@ -2,6 +2,7 @@
 import { MalssumCard } from "@/components/hoondok";
 import { EmptyDayActions } from "../../components/empty-day";
 import { ReadCompleteButton } from "../../components/read-complete-button";
+import { StatusBox } from "../../components/status-box";
 import { TodayNote } from "../../note/components/today-note";
 import type { TodayResponse } from "../../today";
 import { useEffectiveToday } from "../use-effective-today";
@@ -11,9 +12,9 @@ export function EffectiveReading({ today }: { today: TodayResponse }) {
   return (
     <>
       {effective.reason && (
-        <p className="notice" role="status">
+        <StatusBox onRetry={effective.isLoadError ? effective.retry : undefined} isRetrying={effective.isRetrying}>
           {effective.reason}
-        </p>
+        </StatusBox>
       )}
       {effective.isPersonalLoading ? (
         <div className="card" role="status" aria-busy="true">

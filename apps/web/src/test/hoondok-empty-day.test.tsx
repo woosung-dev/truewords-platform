@@ -130,8 +130,8 @@ describe("홈 · 편성 없는 날", () => {
     expect(missionOrder(view.container)[1]).toBe("말씀 읽기 · 이어 읽기");
     const card = view.container.querySelector(".missions > .mission .mission__link");
     expect(card).toHaveAttribute("href", `${wordsHref(VOLUME)}?page=1&from=resume`);
-    // 체크는 A1 과 같이 비활성 — 빈 날에 훈독하기 완료 동선을 새로 만들지 않는다
-    expect(screen.getByRole("button", { name: "말씀 읽기 · 이어 읽기 완료" })).toBeDisabled();
+    // 누를 수 없는 카드라 체크를 두지 않는다 — 빈 날에 훈독하기 완료 동선을 새로 만들지 않는다
+    expect(screen.queryByRole("button", { name: "말씀 읽기 · 이어 읽기 완료" })).toBeNull();
     expect(screen.queryByRole("link", { name: /^말씀 서고/ })).toBeNull();
   });
 
@@ -217,7 +217,8 @@ describe("홈 · 편성 없는 날", () => {
       ]),
     );
     expect(screen.getByText("일반 편성")).toHaveClass("mission__title");
-    expect(screen.getByText("2가지 · 내 속도로")).toBeInTheDocument();
+    // 평소 날의 섹션 머리에는 장식 문구를 두지 않는다
+    expect(view.container.querySelector(".sect__head .sect__meta")).toBeNull();
     expect(view.container.querySelector(".day-quiet")).toBeNull();
   });
 });

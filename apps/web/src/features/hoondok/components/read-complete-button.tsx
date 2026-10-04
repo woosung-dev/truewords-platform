@@ -9,6 +9,9 @@ import { useMissionCompletion, useSummary } from "@/features/hoondok/use-mission
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 
+/** 누적일 이정표. 정성 기간 단위(7·21·40일)와 같다. 그날 완료 카드에 문장 한 줄만 둔다 — 배지·애니메이션 없음 (DEC-PWA-019). */
+const MILESTONE_DAYS: readonly number[] = [7, 21, 40];
+
 /**
  * "훈독 완료" — 로그인 상태면 POST /hoondok/missions/read/complete, 아니면 로컬(KST 날짜 키)에 두고 로그인 후 소급한다.
  *
@@ -33,7 +36,12 @@ export function ReadCompleteButton({ askHref, isDisabled = false }: { askHref: s
   else if (isServerDone) note = `연속 ${streak}일째 이어가고 있어요`;
   // 로컬만 완료(서버 미확정·미동기·저장 실패) — 카드가 이미 사정을 말하고 있어 보조 줄은 비운다.
   else if (isDone) note = "";
+  // 0 은 말하지 않는다 — "연속 0일" 류는 빠진 날을 세는 문장이 된다 (DEC-PWA-023)
+  else if (streak === 0) note = "오늘 훈독을 마치면 기록이 시작돼요";
   else note = `완료하면 연속 ${streak + 1}일이 돼요`;
+  // 서버가 오늘 완료를 확정했을 때의 누적일은 오늘을 포함한다 — 값이 이정표와 같으면 오늘 그 날에 닿은 것이다
+  const totalDays = summary?.total_days ?? 0;
+  const isMilestone = isServerDone && MILESTONE_DAYS.includes(totalDays);
 
   const footer = (
     <p className="hint">
@@ -52,6 +60,7 @@ export function ReadCompleteButton({ askHref, isDisabled = false }: { askHref: s
             <DoneBadge />
             <span>오늘 훈독을 마쳤어요.</span>
           </span>
+          {isMilestone && <span className="read-done__note">말씀과 함께한 날이 {totalDays}일이 되었어요.</span>}
           {completion.isUnsynced && (
             <Link className="read-done__note" href={onboardingHref("/hoondok/read")}>
               로그인하면 오늘 기록이 남아요 →

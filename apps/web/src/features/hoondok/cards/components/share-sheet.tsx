@@ -62,7 +62,7 @@ export function ShareSheet({
           src={cardImagePath(card.id, "square")}
           width={1080}
           height={1080}
-          alt={`건넬 책갈피 카드: ${card.text} — ${card.source_label}`}
+          alt={`건넬 책갈피 카드: ${card.text}. 출처 ${card.source_label}`}
         />
         <p className="bmk-share__lock">
           <Lock size={16} aria-hidden="true" />

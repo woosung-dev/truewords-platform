@@ -118,7 +118,7 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
     return (
       <section className="col tg-form tg-page">
         <CreatedCard groupId={createdId} />
-        <p className="notice">모임은 검색되지 않아요. 순위·점수·보상은 없습니다</p>
+        <p className="notice">모임은 검색되지 않아요.</p>
       </section>
     );
 
@@ -340,7 +340,7 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
           </HoondokButton>
         </div>
       </form>
-      <p className="notice">모임은 검색되지 않아요. 순위·점수·보상은 없습니다</p>
+      <p className="notice">모임은 검색되지 않아요.</p>
     </section>
   );
 }
