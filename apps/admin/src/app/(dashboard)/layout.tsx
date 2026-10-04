@@ -1,45 +1,17 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  BarChart3,
-  Bookmark,
-  Bot,
-  CalendarDays,
-  Database,
-  Flame,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  MessageSquare,
-  ScrollText,
-  Settings,
-  Users,
-} from "lucide-react";
+import { LogOut, Menu, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useId, useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { authAPI } from "@/features/auth/api";
 import AuthGuard from "@/features/auth/components/auth-guard";
 import { ScheduleStockNavBadge } from "@/features/hoondok/components/schedule-stock";
 import { WEB_ORIGIN } from "@/lib/origins";
-
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
-  { href: "/chatbots", label: "챗봇", icon: Bot },
-  { href: "/hoondok/rights", label: "훈독 권리", icon: ScrollText },
-  { href: "/hoondok/jeongseongs", label: "공식 정성", icon: Flame },
-  { href: "/hoondok/groups", label: "모임", icon: Users },
-  { href: "/hoondok/cards", label: "오늘의 책갈피", icon: Bookmark },
-  { href: "/hoondok", label: "훈독 편성", icon: CalendarDays },
-  { href: "/data-sources", label: "데이터 소스", icon: Database },
-  { href: "/analytics", label: "검색 분석", icon: BarChart3 },
-  { href: "/feedback", label: "피드백", icon: MessageSquare },
-  { href: "/audit-logs", label: "감사 로그", icon: ScrollText },
-  { href: "/settings", label: "설정", icon: Settings },
-];
+import { findActiveNavItem, NAV_GROUPS } from "./nav-items";
 
 // 사이드바(slate-950) 위에서는 전역 outline-ring/50(1.2:1)이 보이지 않으므로 밝은 sidebar-ring 링을 따로 준다.
 const SIDEBAR_FOCUS =
@@ -47,6 +19,9 @@ const SIDEBAR_FOCUS =
 
 function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onLogout: () => void }) {
   const pathname = usePathname();
+  const activeItem = findActiveNavItem(pathname);
+  // 데스크톱 사이드바와 모바일 Sheet 가 함께 그려질 수 있어 그룹 머리 id 를 인스턴스마다 다르게 둔다.
+  const navId = useId();
 
   return (
     <div className="flex flex-col h-full bg-sidebar">
@@ -59,28 +34,45 @@ function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onL
       </div>
 
       {/* 네비게이션 */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV_ITEMS.map((item) => {
-          const isActive = NAV_ITEMS.find((candidate) => pathname.startsWith(candidate.href)) === item;
-          const Icon = item.icon;
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        {NAV_GROUPS.map((group, groupIndex) => {
+          const headingId = group.title ? `${navId}-${groupIndex}` : undefined;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onNavigate}
-              aria-current={isActive ? "page" : undefined}
-              className={`relative flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${SIDEBAR_FOCUS} ${
-                isActive
-                  ? // 활성 글자는 밝은 전경(16:1), brass 는 좌측 막대·아이콘에만 쓴다(글자로 쓰면 3.3:1 미달).
-                    "bg-sidebar-accent text-sidebar-foreground font-medium before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-sidebar-primary"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              }`}
+            <div
+              key={group.title ?? groupIndex}
+              role={group.title ? "group" : undefined}
+              aria-labelledby={headingId}
+              className="space-y-0.5"
             >
-              <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-sidebar-primary" : ""}`} />
-              {item.label}
-              {/* 편성 재고: 어느 관리 화면에서나 남은 일수를 본다. 편성 화면과 같은 쿼리라 요청이 늘지 않는다. */}
-              {item.href === "/hoondok" && <ScheduleStockNavBadge />}
-            </Link>
+              {group.title && (
+                <p id={headingId} className="px-3 pt-4 pb-1 text-[11px] font-medium text-sidebar-foreground/45">
+                  {group.title}
+                </p>
+              )}
+              {group.items.map((item) => {
+                const isActive = activeItem === item;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onNavigate}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`relative flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${SIDEBAR_FOCUS} ${
+                      isActive
+                        ? // 활성 글자는 밝은 전경(16:1), brass 는 좌측 막대·아이콘에만 쓴다(글자로 쓰면 3.3:1 미달).
+                          "bg-sidebar-accent text-sidebar-foreground font-medium before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-sidebar-primary"
+                        : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-sidebar-primary" : ""}`} />
+                    {item.label}
+                    {/* 편성 재고: 어느 관리 화면에서나 남은 일수를 본다. 편성 화면과 같은 쿼리라 요청이 늘지 않는다. */}
+                    {item.href === "/hoondok" && <ScheduleStockNavBadge />}
+                  </Link>
+                );
+              })}
+            </div>
           );
         })}
       </nav>
@@ -108,7 +100,7 @@ function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onL
 
 function PageTitle() {
   const pathname = usePathname();
-  const found = NAV_ITEMS.find((item) => pathname.startsWith(item.href));
+  const found = findActiveNavItem(pathname);
   return <span className="text-sm font-medium text-foreground">{found?.label ?? ""}</span>;
 }
 
@@ -116,13 +108,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  // admin 컨텍스트에서 paper × warm 토큰을 cool slate 로 차단.
-  // body 에 클래스 적용해야 portal(Sheet/Dialog) 도 inherit.
-  useEffect(() => {
-    document.body.classList.add("admin-scope");
-    return () => document.body.classList.remove("admin-scope");
-  }, []);
 
   async function handleLogout() {
     try {
@@ -151,20 +136,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </aside>
 
         <div className="flex flex-1 flex-col min-w-0">
-          {/* 상단 헤더 */}
-          <header className="flex h-14 items-center gap-3 border-b bg-admin-bg px-4 shrink-0">
+          {/* 상단 헤더 — 모바일 전용. 데스크톱은 사이드바 활성 항목과 h1 이 위치를 알린다. */}
+          <header className="flex h-14 items-center gap-3 border-b bg-admin-bg px-4 shrink-0 md:hidden">
             {/* 모바일 햄버거 */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger
+                aria-label="메뉴 열기"
                 className={buttonVariants({
                   variant: "ghost",
-                  size: "sm",
-                  className: "md:hidden -ml-2",
+                  size: "icon",
+                  className: "size-11 -ml-3",
                 })}
               >
                 <Menu className="w-5 h-5" />
               </SheetTrigger>
-              <SheetContent side="left" className="w-56 p-0 border-r border-sidebar-border">
+              {/* 닫기 버튼은 기본이 밝은 패널용 색이라 어두운 사이드바에서 보이지 않는다 */}
+              <SheetContent
+                side="left"
+                className="w-56 p-0 border-r border-sidebar-border [&>[data-slot=sheet-close]]:text-sidebar-foreground/70 [&>[data-slot=sheet-close]]:hover:bg-sidebar-accent [&>[data-slot=sheet-close]]:hover:text-sidebar-foreground"
+              >
+                <SheetTitle className="sr-only">관리자 메뉴</SheetTitle>
                 <SidebarContent onNavigate={() => setMobileOpen(false)} onLogout={handleLogout} />
               </SheetContent>
             </Sheet>
