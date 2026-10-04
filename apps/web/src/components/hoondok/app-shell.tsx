@@ -33,14 +33,17 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
   return (
     <HoondokScreenTitleContext.Provider value={updateTitle}>
       <main className={`app__main app__main--${screen.variant}${screen.hideNav ? " app__main--no-nav" : ""}`}>
-        <header className="appbar">
+        <header className={screen.backHref ? "appbar appbar--sub" : "appbar"}>
           <div className="appbar__in">
             {screen.backHref && (
               <Link className="icon-btn" href={screen.backHref} aria-label="뒤로">
                 <ArrowLeft size={22} />
               </Link>
             )}
-            <h1 className="appbar__title">{title}</h1>
+            {/* 긴 제목은 한 줄로 잘린다 — 전체 이름은 title 로 남긴다 */}
+            <h1 className="appbar__title" title={title}>
+              {title}
+            </h1>
             {!screen.hideSearchLink && (
               <Link className="icon-btn icon-btn--search" href="/hoondok/search" aria-label="말씀 검색">
                 <Search size={22} />
@@ -80,7 +83,7 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
             const inner = (
               <>
                 <span className="nav__ic">
-                  <Icon size={tab.isMid ? 27 : 24} fill={isActive && !tab.isMid ? "currentColor" : "none"} />
+                  <Icon size={tab.isMid ? 27 : 24} strokeWidth={isActive && !tab.isMid ? 2.4 : 2} />
                 </span>
                 {tab.label}
               </>

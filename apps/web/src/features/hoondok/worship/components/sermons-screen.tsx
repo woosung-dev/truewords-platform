@@ -25,7 +25,9 @@ export function SermonsScreen() {
         <h2 className="sect__title">이번 주 설교</h2>
         <div className="sm-poster">
           <img src="/hoondok/photos/sermon-orchard-dusk.webp" alt="" />
-          <span className="sm-poster__state">재생 준비 중</span>
+          <span className="sm-poster__state">
+            <span>재생 준비 중</span>
+          </span>
           <span className="sm-dur">{featured.duration}</span>
         </div>
         <h3 className="sm-feat__t" id="sm-feat-title">
@@ -70,8 +72,10 @@ export function SermonsScreen() {
       <div className="sect sm-ask">
         <h2 className="sect__title">교회장께 설교 요청</h2>
         <p className="sm-ask__lede">듣고 싶은 주제를 적어 보내면 우리 지역 교회장께 전해져요.</p>
-        {/* 누를 곳은 아래 버튼 하나다 — 아바타마다 같은 폼으로 가는 링크를 두지 않는다 */}
-        <ul className="sm-pastors" aria-label="우리 지역 교회장">
+        {/* 누를 곳은 아래 버튼 하나다 — 아바타마다 같은 폼으로 가는 링크를 두지 않는다.
+            가로로 넘기는 목록이라 키보드로도 들어와 화살표로 넘길 수 있게 포커스를 받는다 */}
+        {/* biome-ignore lint/a11y/noNoninteractiveTabindex: 스크롤 영역은 키보드로 넘길 수 있어야 한다 (axe scrollable-region-focusable) */}
+        <ul className="sm-pastors" aria-label="우리 지역 교회장" tabIndex={0}>
           {pastors.map((pastor) => (
             <li className="sm-pastor" key={pastor.id}>
               <PreviewAvatar name={pastor.name} />

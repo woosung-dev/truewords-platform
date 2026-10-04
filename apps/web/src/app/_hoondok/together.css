@@ -364,7 +364,9 @@
     padding: 12px 14px;
     width: 100%;
     min-height: 88px;
-    resize: vertical;
+    /* 손잡이 대신 글 길이만큼 자란다(미지원 브라우저는 min-height 고정 + 내부 스크롤) */
+    resize: none;
+    field-sizing: content;
     line-height: 1.65;
   }
   .tg-form .field textarea:focus-visible {

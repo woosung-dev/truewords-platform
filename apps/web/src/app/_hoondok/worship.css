@@ -154,9 +154,9 @@
     flex: none;
   }
 
-  /* ---------- 010 가정예배 히어로 : 사진 180px (DES §5 010 행) ---------- */
+  /* ---------- 010 가정예배 히어로 : 사진 최소 180px (DES §5 010 행). 글자가 커지면 함께 자란다 ---------- */
   .ws-hero {
-    height: 180px;
+    min-height: 180px;
   }
   /* veil 위에서는 --accent-strong 이 어두워 읽히지 않는다 — 흰 글자로 되돌린다 (§3.2) */
   .shot .ws-eyebrow {
@@ -164,9 +164,9 @@
     opacity: 0.92;
   }
 
-  /* ---------- 011 챌린지 상세 : 사진 160px (DES §5 011 행) ---------- */
+  /* ---------- 011 챌린지 상세 : 사진 최소 160px (DES §5 011 행) ---------- */
   .ch-hero {
-    height: 160px;
+    min-height: 160px;
   }
   .ch-hero__top {
     display: flex;
@@ -277,7 +277,8 @@
     height: 100%;
     object-fit: cover;
   }
-  /* 재생할 수 없다는 것을 누르는 자리에서 알린다 — 사진을 한 단 눌러 두고 가운데 한 줄만 쓴다 */
+  /* 재생할 수 없다는 것을 누르는 자리에서 알린다 — 사진을 한 단 눌러 두고 가운데 한 줄만 쓴다.
+     막(0.45)만으로는 밝은 사진 위 흰 글자가 AA 에 못 미쳐 글자는 0.80 알약에 담는다 (DES §3.2) */
   .sm-poster__state {
     position: absolute;
     inset: 0;
@@ -287,6 +288,11 @@
     color: var(--accent-ink);
     font-size: var(--fs-sm);
     font-weight: 600;
+  }
+  .sm-poster__state > span {
+    padding: 6px 12px;
+    border-radius: var(--r-full);
+    background: var(--veil-80);
   }
   .sm-dur {
     position: absolute;
@@ -561,7 +567,9 @@
     display: block;
     min-height: 88px;
     line-height: 1.65;
-    resize: vertical;
+    /* 손잡이 대신 글 길이만큼 자란다(미지원 브라우저는 min-height 고정 + 내부 스크롤) */
+    resize: none;
+    field-sizing: content;
   }
   .rq-memo::placeholder {
     color: var(--ink-3);

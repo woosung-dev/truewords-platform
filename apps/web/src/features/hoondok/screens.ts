@@ -26,7 +26,7 @@ export type HoondokScreen = {
   variant: "home" | "read" | "app";
   /** true 면 앱바·헤더의 알림 아이콘(설정 링크)을 숨긴다. 프로토타입에서 ph-bell 이 없는 화면이다 */
   hideSettingsLink?: true;
-  /** true 면 앱바의 검색 아이콘을 숨긴다. 검색 화면 자신이다 — 헤더(≥1024px) 검색 자리는 aria-current 로 남는다 */
+  /** true 면 앱바의 검색 아이콘을 숨긴다. 검색 화면 자신(헤더 ≥1024px 검색칸은 aria-current 를 달고 CSS 가 감춘다)과 가입 중인 온보딩이다 */
   hideSearchLink?: true;
   /** true 면 탭 내비를 그리지 않는다. 온보딩은 탭 진입 전이라 내비가 없다 (DES-PWA-003 §2) */
   hideNav?: true;
@@ -42,6 +42,7 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "today",
     variant: "app",
     hideSettingsLink: true,
+    hideSearchLink: true,
     hideNav: true,
   },
   {
