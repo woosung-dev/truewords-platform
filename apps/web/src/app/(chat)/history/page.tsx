@@ -93,6 +93,8 @@ export default function HistoryPage() {
     sessions.forEach((s) => s.chatbot_name && names.add(s.chatbot_name));
     return Array.from(names);
   }, [sessions]);
+  // 챗봇이 하나뿐이면 챗봇 필터·행마다 붙는 챗봇 칩은 같은 말의 반복이라 숨긴다.
+  const showBots = botOptions.length > 1;
 
   const q = search.trim().toLowerCase();
   const filtered = useMemo(
@@ -150,7 +152,7 @@ export default function HistoryPage() {
   const hasNoSessions = !isLoading && !isError && sessions.length === 0;
 
   return (
-    <div className="flex h-dvh flex-col bg-secondary">
+    <div className="flex h-dvh flex-col bg-secondary max-sm:bg-background">
       {/* ── 상단바 (채팅 진입점과 동일 톤) ── */}
       <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background px-4 py-3">
         <button
@@ -187,9 +189,9 @@ export default function HistoryPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex min-h-0 w-full max-w-[1180px] flex-1 flex-col px-4 py-4 sm:px-5">
+      <main className="mx-auto flex min-h-0 w-full max-w-[1180px] flex-1 flex-col px-4 pt-4 sm:px-5 sm:pb-4">
         <div className="mb-3">
-          <h1 className="font-display text-2xl font-semibold tracking-tight">대화 기록</h1>
+          <h1 className="text-xl font-semibold tracking-tight">대화 기록</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             지난 대화를 목록에서 찾아 읽고, 이어서 대화할 수 있어요.
           </p>
@@ -199,18 +201,19 @@ export default function HistoryPage() {
           <EmptyAll onStart={() => router.push("/")} />
         ) : (
           <div
-            className={`flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-card shadow-(--tw-shadow-card-hover) ${
+            // 좁은 화면에서는 테두리 상자 없이 화면 폭 그대로 쓰고, 넓은 화면에서는 그림자 없이 테두리만 둔다.
+            className={`-mx-4 flex min-h-0 flex-1 overflow-hidden border-t sm:mx-0 sm:rounded-xl sm:border sm:bg-card ${
               showReader ? "reader-open" : ""
             }`}
           >
             {/* ── 사이드바: 목록 ── */}
             <aside
-              className={`flex w-full min-w-0 flex-col border-r bg-background sm:w-[320px] sm:min-w-[320px] ${
+              className={`flex w-full min-w-0 flex-col bg-background sm:w-[320px] sm:min-w-[320px] sm:border-r ${
                 showReader ? "hidden sm:flex" : "flex"
               }`}
               aria-label="대화 목록"
             >
-              <div className="flex flex-col gap-2 border-b p-3">
+              <div className="flex flex-col gap-2 border-b p-3 max-md:gap-y-4">
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
@@ -223,9 +226,12 @@ export default function HistoryPage() {
                     className="h-10 w-full rounded-lg border bg-card pl-9 max-md:h-11 pr-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/30"
                   />
                 </div>
-                {/* 봇 필터 */}
-                {botOptions.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5">
+                {/* 봇 필터 — 챗봇이 둘 이상일 때만. 두 줄이 모두 "전체"로 시작하므로 줄 이름을 붙인다. */}
+                {showBots && (
+                  <div className="flex flex-wrap items-center gap-1.5 max-md:gap-y-4" role="group" aria-label="챗봇">
+                    <span className="mr-1 text-xs text-muted-foreground" aria-hidden="true">
+                      챗봇
+                    </span>
                     <FilterChip active={botFilter === "all"} onClick={() => setBotFilter("all")}>
                       전체
                     </FilterChip>
@@ -237,7 +243,12 @@ export default function HistoryPage() {
                   </div>
                 )}
                 {/* 기간 필터 */}
-                <div className="flex flex-wrap items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5 max-md:gap-y-4" role="group" aria-label="기간">
+                  {showBots && (
+                    <span className="mr-1 text-xs text-muted-foreground" aria-hidden="true">
+                      기간
+                    </span>
+                  )}
                   {(
                     [
                       ["all", "전체"],
@@ -275,7 +286,7 @@ export default function HistoryPage() {
                 ) : (
                   groups.map((g) => (
                     <div key={g.bk}>
-                      <h2 className="sticky top-0 z-[2] bg-gradient-to-b from-background from-80% to-transparent px-4 pb-1.5 pt-2.5 text-2xs font-bold text-muted-foreground">
+                      <h2 className="sticky top-0 z-[2] bg-background px-4 pb-1.5 pt-2.5 text-2xs font-bold text-muted-foreground">
                         {g.label}
                       </h2>
                       <ul className="space-y-0.5 px-1.5">
@@ -284,6 +295,7 @@ export default function HistoryPage() {
                             key={s.session_id}
                             item={s}
                             active={s.session_id === selectedId}
+                            showBot={showBots}
                             onSelect={() => handleSelect(s.session_id)}
                           />
                         ))}
@@ -316,7 +328,7 @@ export default function HistoryPage() {
                           {selected.preview || "제목 없는 대화"}
                         </h2>
                         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                          {selected.chatbot_name && (
+                          {showBots && selected.chatbot_name && (
                             <span className="rounded-full border bg-secondary px-2 py-0.5 font-medium text-foreground/70">
                               {selected.chatbot_name}
                             </span>
@@ -327,11 +339,7 @@ export default function HistoryPage() {
                         </div>
                       </div>
                     </div>
-                    <Button
-                      type="button"
-                      onClick={handleContinue}
-                      className="shrink-0 gap-1.5 bg-accent text-white hover:bg-accent/90"
-                    >
+                    <Button type="button" onClick={handleContinue} className="shrink-0 gap-1.5">
                       <ArrowRight className="h-4 w-4" />
                       <span className="whitespace-nowrap">이어서 대화</span>
                     </Button>
@@ -399,7 +407,17 @@ export default function HistoryPage() {
 }
 
 // ── 목록 항목 ───────────────────────────────────────────────
-function ThreadRow({ item, active, onSelect }: { item: SessionListItem; active: boolean; onSelect: () => void }) {
+function ThreadRow({
+  item,
+  active,
+  showBot,
+  onSelect,
+}: {
+  item: SessionListItem;
+  active: boolean;
+  showBot: boolean;
+  onSelect: () => void;
+}) {
   return (
     <li>
       <button
@@ -407,12 +425,12 @@ function ThreadRow({ item, active, onSelect }: { item: SessionListItem; active: 
         onClick={onSelect}
         aria-current={active ? "true" : undefined}
         className={`flex min-h-[44px] w-full flex-col items-start gap-1 rounded-lg border-l-2 px-3 py-2.5 text-left transition-colors ${
-          active ? "border-accent bg-accent/10" : "border-transparent hover:bg-secondary"
+          active ? "border-primary bg-primary/5" : "border-transparent hover:bg-secondary"
         }`}
       >
         <span
           className={`line-clamp-2 text-sm leading-snug ${
-            active ? "font-semibold text-primary" : "font-medium text-foreground"
+            active ? "font-semibold text-foreground" : "font-medium text-foreground"
           }`}
         >
           {item.preview || "제목 없는 대화"}
@@ -421,7 +439,7 @@ function ThreadRow({ item, active, onSelect }: { item: SessionListItem; active: 
           <span>{relTime(item.last_activity)}</span>
           <span className="opacity-50">·</span>
           <span>{item.message_count}개 메시지</span>
-          {item.chatbot_name && (
+          {showBot && item.chatbot_name && (
             <>
               <span className="opacity-50">·</span>
               <span className="rounded-full border bg-card px-1.5 py-px font-medium text-foreground/70">
@@ -448,7 +466,7 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      // 시각 크기(28px)는 두고 모바일 타점만 위아래 8px 씩 넓혀 44px 로 맞춘다
+      // 시각 크기(28px)는 두고 모바일 타점만 위아래 8px 씩 넓혀 44px 로 맞춘다. 줄 간격을 16px 로 둬 이웃 줄 타점과 겹치지 않는다
       className={`relative min-h-[28px] rounded-full border px-2.5 py-1 text-xs font-medium transition-colors max-md:after:absolute max-md:after:inset-x-0 max-md:after:-inset-y-2 max-md:after:content-[''] ${
         active
           ? "border-primary bg-primary text-primary-foreground"
