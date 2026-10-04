@@ -19,7 +19,7 @@ async function enterChat(page: Page) {
 test("미인증 사용자 웹은 자체 로그인으로 이동한다", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole("heading", { name: "TrueWords 로그인" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "로그인", exact: true })).toBeVisible();
 });
 
 test("로그인 → 시연 게이트 → 내 기록 → 로그아웃", async ({ page }) => {
@@ -49,6 +49,9 @@ test("모바일 뷰에서 SSE 답변·출처 원문을 표시한다", async ({ p
     }),
   );
   await enterChat(page);
+  // 면책 첫 문장은 고정 영역에 늘 보이고, 첫 질문을 보낼 버튼도 첫 화면 안에 있다.
+  await expect(page.getByText("TrueWords AI 답변은 참고용이며, 신앙 지도자의 조언을 대체하지 않습니다.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "질문 보내기" })).toBeInViewport({ ratio: 1 });
   const input = page.getByRole("textbox", { name: "질문 입력" });
   await input.fill("참사랑을 알려주세요");
   await input.press("Control+Enter");
@@ -56,7 +59,10 @@ test("모바일 뷰에서 SSE 답변·출처 원문을 표시한다", async ({ p
   await expect(page.getByText("참사랑은", { exact: true })).toBeVisible();
   await expect(page.getByText("참사랑은 함께 실천하는 사랑입니다.", { exact: true })).toHaveCount(0);
   await expect(page.getByText("참사랑은 함께 실천하는 사랑입니다.", { exact: true })).toBeVisible();
-  await page.getByText("클릭하여 원문 보기 →").click();
+  await page
+    .getByRole("button", { name: /^원문 보기: / })
+    .first()
+    .click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByText("인용 원문 검증", { exact: true })).toBeVisible();
 });

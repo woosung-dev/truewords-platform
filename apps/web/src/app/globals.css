@@ -96,7 +96,8 @@
   /* 폰트 패밀리 — layout.tsx 의 Fontsource import 가 @font-face 를 등록한다.
      대체 폰트는 이전 Google 폰트 로더의 Fallback(Arial·Times New Roman)과 같게 두고 generic(serif)은 넣지 않는다 —
      serif 를 넣으면 Cormorant 에 없는 한글이 시스템 명조로 바뀌어 font-display 제목 모양이 달라진다. */
-  --font-inter: "Inter Variable", Arial;
+  /* Inter 에는 한글이 없어 한글 글꼴을 기기 기본값에 맡기지 않고 순서를 정해 둔다. */
+  --font-inter: "Inter Variable", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", Arial;
   --font-reading: "Noto Serif KR", "Times New Roman";
   --font-display: "Cormorant Garamond", "Times New Roman";
   /* TrueWords Light Mode (Plan A.2) — Paper × Scholar × AI */
@@ -282,7 +283,7 @@
   }
   /* 챗봇 답변 마크다운 — react-markdown 렌더 결과에 적용 */
   .prose-chat {
-    font-size: 14px;
+    font-size: 1rem;
     line-height: 1.75;
     color: var(--foreground);
     word-break: keep-all;

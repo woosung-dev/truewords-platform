@@ -1,6 +1,6 @@
 // preprocess() 함수 회귀 테스트 — bullet 정규화 및 citation 치환 검증.
 import { describe, expect, it } from "vitest";
-import { preprocess } from "@/features/chat/components/assistant-message";
+import { preprocess, sourcePreview } from "@/features/chat/components/assistant-message";
 
 describe("preprocess - citation 치환", () => {
   it("[1] → [1](cite:1) 로 변환한다", () => {
@@ -96,5 +96,28 @@ describe("preprocess - bullet 정규화", () => {
     const input = "일반 텍스트입니다. 변경 없음.";
     const result = preprocess(input);
     expect(result).toBe("일반 텍스트입니다. 변경 없음.");
+  });
+});
+
+describe("sourcePreview - 출처 행 근거 문장", () => {
+  it("모델이 짚은 인용 구절이 있으면 청크 본문보다 먼저 쓴다", () => {
+    expect(sourcePreview({ cited_phrase: "참사랑은 위하는 사랑", text: "청크 본문 전체" })).toBe(
+      "참사랑은 위하는 사랑",
+    );
+  });
+
+  it("인용 구절이 없거나 빈 문자열이면 청크 본문으로 대신한다", () => {
+    expect(sourcePreview({ cited_phrase: null, text: "청크 본문" })).toBe("청크 본문");
+    expect(sourcePreview({ cited_phrase: "   ", text: "청크 본문" })).toBe("청크 본문");
+  });
+
+  it("줄바꿈·연속 공백은 한 칸으로 줄인다", () => {
+    expect(sourcePreview({ text: "첫 줄\n\n  둘째   줄" })).toBe("첫 줄 둘째 줄");
+  });
+
+  it("긴 본문은 잘라서 말줄임표를 붙인다", () => {
+    const result = sourcePreview({ text: "가".repeat(300) });
+    expect(result.endsWith("…")).toBe(true);
+    expect(result.length).toBeLessThanOrEqual(121);
   });
 });

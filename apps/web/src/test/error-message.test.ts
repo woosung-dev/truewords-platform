@@ -72,4 +72,13 @@ describe("toFriendlyError", () => {
     expect(toFriendlyError(undefined).content).toContain("일시적");
     expect(toFriendlyError(null).content).toContain("일시적");
   });
+
+  it("다시 보내도 같은 입력 차단·로그인 만료만 다시 보내기를 막는다", () => {
+    expect(toFriendlyError(new ApiError(400, { error_code: "INPUT_BLOCKED" })).retryable).toBe(false);
+    expect(toFriendlyError(new ApiError(401, { error_code: "UNAUTHORIZED" })).retryable).toBe(false);
+    expect(toFriendlyError(new ApiError(503, { error_code: "SEARCH_FAILED" })).retryable).toBe(true);
+    expect(toFriendlyError(new ApiError(429, { error_code: "RATE_LIMIT_EXCEEDED" })).retryable).toBe(true);
+    // 연결이 끊긴 스트림 등 ApiError 가 아닌 실패는 다시 보내 볼 수 있다.
+    expect(toFriendlyError(new Error("network broken")).retryable).toBe(true);
+  });
 });

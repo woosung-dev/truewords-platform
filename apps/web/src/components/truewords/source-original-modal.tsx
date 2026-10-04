@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Loader2 } from "lucide-react";
 import * as React from "react";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn, stripFileExt } from "@/lib/utils";
 
@@ -28,6 +29,33 @@ export interface SourceOriginalModalProps {
   fallbackLabel?: string;
 }
 
+// 포인터 화면(md 이상)에서는 답변을 보면서 원문을 대조하도록 오른쪽 패널로 연다.
+const DESKTOP_QUERY = "(min-width: 768px)";
+
+function subscribeDesktop(onChange: () => void) {
+  const mq = window.matchMedia(DESKTOP_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+function useIsDesktop() {
+  return React.useSyncExternalStore(
+    subscribeDesktop,
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => false,
+  );
+}
+
+// 권한 밖(403)은 다시 시도해도 같으므로 안내만 하고, 나머지 실패는 다시 시도할 수 있게 한다.
+class SourceLoadError extends Error {
+  constructor(
+    message: string,
+    readonly retryable: boolean,
+  ) {
+    super(message);
+  }
+}
+
 export function SourceOriginalModal({
   open,
   onOpenChange,
@@ -37,16 +65,17 @@ export function SourceOriginalModal({
 }: SourceOriginalModalProps) {
   // React Query 캐싱 — 같은 (chunk_id, chatbot_id) 재오픈 시 staleTime 내엔 추가 fetch 없음.
   // 원문은 거의 변하지 않으므로 5분으로 길게 잡았다 (Provider default 30s 를 override).
-  const { data, isLoading, error } = useQuery<SourceChunkDetail>({
+  const isDesktop = useIsDesktop();
+  const { data, isLoading, error, refetch, isFetching } = useQuery<SourceChunkDetail>({
     queryKey: ["source-chunk", chunkId, chatbotId],
     enabled: open && !!chunkId && !!chatbotId,
     staleTime: 5 * 60_000,
     queryFn: async ({ signal }) => {
       const url = `/api/backend/api/sources/chunks/${encodeURIComponent(chunkId!)}?chatbot_id=${encodeURIComponent(chatbotId)}`;
       const res = await fetch(url, { signal });
-      if (res.status === 404) throw new Error("청크를 찾을 수 없어요");
-      if (res.status === 403) throw new Error("이 챗봇의 검색 범위에 포함되지 않은 자료입니다");
-      if (!res.ok) throw new Error("원문을 불러오지 못했어요");
+      if (res.status === 404) throw new SourceLoadError("이 출처의 원문을 찾지 못했어요.", true);
+      if (res.status === 403) throw new SourceLoadError("이 챗봇의 검색 범위에 포함되지 않은 자료입니다.", false);
+      if (!res.ok) throw new SourceLoadError("원문을 불러오지 못했어요.", true);
       return (await res.json()) as SourceChunkDetail;
     },
   });
@@ -61,7 +90,19 @@ export function SourceOriginalModal({
       );
     }
     if (error) {
-      return <p className="py-8 text-sm text-destructive">{(error as Error).message}</p>;
+      // 네트워크 예외 등 원문 메시지는 사용자에게 보이지 않는다.
+      const known = error instanceof SourceLoadError ? error : null;
+      const retryable = known?.retryable ?? true;
+      return (
+        <div role="alert" className="flex flex-col items-start gap-3 py-8">
+          <p className="text-sm text-destructive">{known?.message ?? "원문을 불러오지 못했어요."}</p>
+          {retryable && (
+            <Button type="button" variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+              {isFetching ? "다시 불러오는 중…" : "다시 시도"}
+            </Button>
+          )}
+        </div>
+      );
     }
     if (data) {
       const { merged_text = "", main_offset_start = 0, main_offset_end = 0, text = "" } = data;
@@ -77,7 +118,7 @@ export function SourceOriginalModal({
 
       return (
         <article className="space-y-2">
-          <p className="font-mono text-xs text-muted-foreground tabular-nums break-keep-all">{sourceLabel}</p>
+          <p className="text-xs font-medium text-muted-foreground break-keep-all">{sourceLabel}</p>
           {/* 단일 연속 본문 — 백엔드가 dedup 후 보낸 한 덩어리. 청크 경계 끊김 0.
               메인 청크는 일반 text-foreground, 인접 문맥은 muted 처리. */}
           <p className="font-reading text-md leading-[1.85] text-foreground break-keep-all whitespace-pre-line">
@@ -92,18 +133,24 @@ export function SourceOriginalModal({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        side="bottom"
-        className={cn("max-h-[85vh] overflow-y-auto rounded-t-2xl px-5 pt-5 pb-safe")}
+        side={isDesktop ? "right" : "bottom"}
+        // 오른쪽 패널에서는 답변이 흐려지지 않게 해 나란히 대조할 수 있게 한다.
+        overlayClassName={isDesktop ? "bg-black/20 supports-backdrop-filter:backdrop-blur-none" : undefined}
+        className={cn(
+          "overflow-y-auto px-5 pt-5 pb-safe",
+          isDesktop ? "data-[side=right]:w-full data-[side=right]:sm:max-w-[480px]" : "max-h-[85vh] rounded-t-2xl",
+        )}
         aria-label="원문 보기"
       >
-        {/* 데스크톱(wide)에서 본문이 좌측에 좁게 쌓여 모달이 한쪽으로 치우친 것처럼
-            보이는 문제(#2) 해결 — 헤더·본문을 max-w + mx-auto 로 가운데 정렬. */}
-        <SheetHeader className="mx-auto w-full max-w-3xl px-0 pt-0 pb-3">
+        {/* 바텀시트(wide)에서 본문이 좌측에 좁게 쌓여 한쪽으로 치우친 것처럼
+            보이는 문제(#2) 해결 — 헤더·본문을 max-w + mx-auto 로 가운데 정렬.
+            pr-12 는 오른쪽 위 닫기 버튼과 설명문이 겹치지 않게 비운다. */}
+        <SheetHeader className="mx-auto w-full max-w-3xl px-0 pt-0 pr-12 pb-3">
           <SheetTitle className="flex items-center gap-1.5 text-lg">
             <ArrowUpRight className="size-4 text-accent" aria-hidden="true" />
             원문 보기
           </SheetTitle>
-          <SheetDescription>인용된 메인 청크와 위·아래 인접 문맥을 함께 보여드립니다.</SheetDescription>
+          <SheetDescription>인용한 부분과 앞뒤 문맥을 함께 보여 드려요.</SheetDescription>
         </SheetHeader>
         <div className="mx-auto w-full max-w-3xl">{renderBody()}</div>
       </SheetContent>
