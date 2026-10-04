@@ -87,3 +87,36 @@ export function subscribeRecentSearches(onChange: () => void): () => void {
     window.removeEventListener("storage", onChange);
   };
 }
+
+// 마지막으로 찾은 말 — 결과를 열었다 뒤로 오면 입력과 결과를 그대로 되살린다. 이 탭의 sessionStorage 한 키에만 두고
+// URL(?q=)에는 싣지 않는다. 서버 요청 기록에 검색어가 남지 않게 하기 위해서다.
+const LAST_KEY = "hoondok:last-search";
+
+function sessionStore(): Storage | null {
+  try {
+    return typeof window === "undefined" ? null : window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 되살릴 검색어. 최근 검색에 남아 있는 말만 돌려준다 — 최근 검색은 기기 주인이 바뀌거나 사용자가 지우면 함께
+ * 사라지므로(identity/device-owner) 앞 사람의 검색어나 지운 검색어가 되살아나지 않는다.
+ */
+export function readLastSearch(): string | null {
+  try {
+    const value = sessionStore()?.getItem(LAST_KEY) ?? null;
+    return value && readRecentSearches().includes(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeLastSearch(query: string): void {
+  try {
+    sessionStore()?.setItem(LAST_KEY, query);
+  } catch {
+    // 저장이 막히면 뒤로 왔을 때 빈 입력으로 시작할 뿐이다
+  }
+}
