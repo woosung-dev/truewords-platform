@@ -62,7 +62,8 @@ export function generateMetadata(): Metadata {
 }
 
 export function generateViewport(): Viewport {
-  return isHoondokEnabled() ? { themeColor: HOONDOK_THEME_COLOR } : {};
+  // 라이트 고정(DEC-PWA-017)을 브라우저 자동 다크에도 알린다. CSS 의 color-scheme 과 짝이다.
+  return isHoondokEnabled() ? { themeColor: HOONDOK_THEME_COLOR, colorScheme: "only light" } : {};
 }
 
 // 오늘 날짜(KST)를 요청마다 계산하므로 정적 프리렌더를 끈다.

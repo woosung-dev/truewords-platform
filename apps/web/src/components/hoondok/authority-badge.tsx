@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import type { AuthorityGrade, ReviewStatus } from "@/features/hoondok/today";
+import type { AuthorityGrade } from "@/features/hoondok/today";
 
 // 권위 층 배지 (DES-PWA-003 §2.3). O1·O2 초록(--ok-soft), O3~O5 중립, R 점선.
 // 등급 배지는 항상 "숫자 + 한국어 라벨", 완료 배지는 항상 체크 아이콘을 함께 둔다.
@@ -18,11 +18,6 @@ const GRADE_LABEL: Record<AuthorityGrade, string> = {
 export function AuthorityBadge({ grade }: { grade: AuthorityGrade }) {
   const modifier = grade === "O1" || grade === "O2" ? "badge--rank" : grade === "R" ? "badge--dashed" : "";
   return <span className={`badge ${modifier}`.trim()}>{`${grade} ${GRADE_LABEL[grade]}`}</span>;
-}
-
-export function ReviewBadge({ status }: { status: ReviewStatus }) {
-  if (status !== "unverified") return null;
-  return <span className="badge badge--dashed">확인되지 않음</span>;
 }
 
 export function DoneBadge() {

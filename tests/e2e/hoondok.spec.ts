@@ -91,7 +91,7 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   // 훈독 화면의 R 라벨은 DS §2.3 정본 "R 참고 자료" 하나다(관리자 운영 라벨 "권리 확인 중"과 다르다).
   const card = page.getByRole("article").first();
   await expect(card.getByText("R 참고 자료")).toBeVisible();
-  await expect(card.getByText("확인되지 않음", { exact: true })).toBeVisible();
+  await expect(card.getByText("검수 전", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "훈독 완료" }).click();
   await expect(page.getByRole("status")).toContainText("오늘 훈독을 마쳤어요");
   await page.getByRole("link", { name: /로그인하면 오늘 기록이 남아요/ }).click();
