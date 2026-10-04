@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 afterEach(() => {
@@ -76,7 +76,7 @@ describe("훈독 컴포넌트", () => {
     expect(container.querySelector("[aria-hidden]")).toBeNull();
   });
 
-  it("미션 카드는 링크와 체크 버튼이 형제이고, 준비 중이면 둘 다 비활성", async () => {
+  it("미션 카드는 링크와 체크 버튼이 형제이고, 준비 중이면 링크도 체크도 없다", async () => {
     vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/hoondok" }));
     const { MissionCard } = await import("../components/hoondok");
     const { BookOpenText } = await import("lucide-react");
@@ -97,8 +97,66 @@ describe("훈독 컴포넌트", () => {
     expect(link).toHaveAttribute("href", "/hoondok/read");
     expect(link.querySelector("button")).toBeNull();
     expect(screen.getByRole("button", { name: "훈독하기 · 3분 완료" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "기도하기 · 1분 완료" })).toBeDisabled();
+    // 누를 수 없는 체크를 그리지 않는다 — 비활성 원이 할 일처럼 보이지 않게
+    expect(screen.queryByRole("button", { name: "기도하기 · 1분 완료" })).toBeNull();
     expect(screen.queryByRole("link", { name: /기도하기/ })).toBeNull();
+  });
+
+  it("이번 주 스트립: 완료 칸은 체크 아이콘과 '완료' 를 읽고, 완료하지 않은 칸은 요일 글자만 둔다", async () => {
+    const { WeekStrip } = await import("../components/hoondok");
+    // 3 = 수요일 → 월요일 시작 세 번째 칸이 오늘
+    const { container } = render(<WeekStrip todayWeekday={3} doneByDay={[true, false, true]} />);
+    const days = container.querySelectorAll(".week__day");
+    expect(days).toHaveLength(7);
+    expect(days[0]).toHaveTextContent("월 완료");
+    expect(days[0]?.querySelector("svg")).not.toBeNull();
+    expect(days[1]).toHaveTextContent(/^화$/);
+    expect(days[1]?.querySelector("svg")).toBeNull();
+    expect(days[2]).toHaveAttribute("aria-current", "date");
+    expect(days[2]).toHaveTextContent("수 오늘 완료");
+  });
+
+  it("말씀 전문의 제목이 본문 첫 문장을 자른 것이면 제목은 보조기기에만 남긴다", async () => {
+    const { MalssumCard } = await import("../components/hoondok");
+    const { isTitleEcho } = await import("../components/hoondok/malssum-card");
+    expect(isTitleEcho("하나님은 참사랑의 근본이시니…", "하나님은 참사랑의 근본이시니 그 사랑으로")).toBe(true);
+    expect(isTitleEcho("참사랑의 근본", "하나님은 참사랑의 근본이시니")).toBe(false);
+    expect(isTitleEcho("…", "본문")).toBe(false);
+
+    const reading = {
+      id: "r1",
+      reading_date: "2026-10-05",
+      title: "하나님은 참사랑의 근본이시니…",
+      body: "하나님은 참사랑의 근본이시니 그 사랑으로 세상을 지으셨다.",
+      speaker: "화자",
+      spoken_on: null,
+      work_title: "정본",
+      edition: "판본",
+      authority_grade: "O1",
+      review_status: "unverified",
+      estimated_minutes: 3,
+    } as const;
+    const { rerender } = render(<MalssumCard status="available" reading={reading} isFull />);
+    // 글 이름표는 그대로 — 화면에서만 숨긴다
+    expect(screen.getByRole("article", { name: reading.title })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: reading.title })).toHaveClass("sr-only");
+    // 검수 전은 점선 배지가 아니라 출처 줄 글자다
+    expect(screen.getByText("검수 전")).toHaveClass("src__part");
+
+    rerender(<MalssumCard status="available" reading={{ ...reading, title: "오늘의 말씀" }} isFull />);
+    expect(screen.getByRole("heading", { name: "오늘의 말씀" })).not.toHaveClass("sr-only");
+  });
+
+  it("상태 상자는 조회 실패일 때만 다시 불러오기 버튼을 둔다", async () => {
+    const { StatusBox } = await import("../features/hoondok/components/status-box");
+    const onRetry = vi.fn();
+    const { rerender } = render(<StatusBox onRetry={onRetry}>오늘 편성을 불러오지 못했어요.</StatusBox>);
+    expect(screen.getByRole("status")).toHaveTextContent("오늘 편성을 불러오지 못했어요.");
+    fireEvent.click(screen.getByRole("button", { name: "다시 불러오기" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+
+    rerender(<StatusBox>오늘은 일반 편성을 보여 드려요.</StatusBox>);
+    expect(screen.queryByRole("button")).toBeNull();
   });
 
   it("말씀 카드는 편성 없음 상태에서 대체 본문을 만들지 않는다 (AC-016-04)", async () => {

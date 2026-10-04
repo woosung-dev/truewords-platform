@@ -147,7 +147,7 @@ test("기록 0개 · 비로그인 · 시트 색 이름 · 390/1280 넘침 0", as
   await signUp(page, "records-empty");
   await page.goto("/hoondok/records");
   await expect(page.getByRole("heading", { name: "아직 남긴 기록이 없어요" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "말씀 서고로 가기" })).toHaveAttribute("href", "/hoondok/library");
+  await expect(page.getByRole("link", { name: "말씀 읽으러 가기" })).toHaveAttribute("href", "/hoondok/library");
 
   await page.goto(`/hoondok/words/${encodeURIComponent(volume)}`);
   await page.getByRole("button", { name: "단락 1 표시하기" }).click();

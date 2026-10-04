@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Highlighter } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { HoondokButton } from "@/components/hoondok";
+import { StatusBox } from "@/features/hoondok/components/status-box";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { libraryAPI } from "../../library/api";
@@ -40,37 +40,38 @@ const EMPTY_TITLE: Record<RecordTab, string> = {
   note: "아직 남긴 노트가 없어요",
 };
 
-/** 빈 상태는 문구와 서고 입구만 둔다 — 예시 말씀을 지어 넣지 않는다. 정원 섹션 안에서는 제목을 h3 로 낮춘다. */
+/** 빈 상태는 문구와 서고 입구만 둔다 — 예시 말씀을 지어 넣지 않는다. 버튼 문구는 제목과 짝을 맞춘다(없다 ↔ 읽으러 가기).
+ *  정원 섹션 안에서는 아이콘·큰 제목 없이 한 줄로 줄인다 — 이 화면 단독일 때만 큰 빈 상태다. */
 export function RecordsEmpty({ title, isNested = false }: { title: string; isNested?: boolean }) {
-  const Heading = isNested ? "h3" : "h2";
+  const action = (
+    <Link className="btn btn-line btn--sm" href={LIBRARY_HREF}>
+      말씀 읽으러 가기
+    </Link>
+  );
+  if (isNested)
+    return (
+      <div className="empty-line">
+        <p className="empty-line__t">{title}</p>
+        {action}
+      </div>
+    );
   return (
     <div className="empty gd-empty">
       <span className="empty__ic" aria-hidden="true">
         <Highlighter size={28} />
       </span>
-      <Heading className="empty__title">{title}</Heading>
+      <h2 className="empty__title">{title}</h2>
       <p className="empty__body">말씀 원문에서 구절을 고르면 형광펜·노트를 남길 수 있어요.</p>
-      <p className="gd-cta">
-        <Link className="btn btn-line btn--sm" href={LIBRARY_HREF}>
-          말씀 서고로 가기
-        </Link>
-      </p>
+      <p className="gd-cta">{action}</p>
     </div>
   );
 }
 
-export function RecordsError({ onRetry, isNested = false }: { onRetry: () => void; isNested?: boolean }) {
-  const Heading = isNested ? "h3" : "h2";
+export function RecordsError({ onRetry, isRetrying }: { onRetry: () => void; isRetrying: boolean }) {
   return (
-    <div className="empty gd-empty" role="status">
-      <Heading className="empty__title">기록을 불러오지 못했어요</Heading>
-      <p className="empty__body">잠시 뒤 다시 시도해 주세요.</p>
-      <p className="gd-cta">
-        <HoondokButton variant="line" isSmall onClick={onRetry}>
-          다시 시도
-        </HoondokButton>
-      </p>
-    </div>
+    <StatusBox onRetry={onRetry} isRetrying={isRetrying}>
+      기록을 불러오지 못했어요. 연결을 확인하고 다시 불러와 주세요.
+    </StatusBox>
   );
 }
 
@@ -286,9 +287,7 @@ export function RecordsScreen() {
   if (records.isError)
     return (
       <section className="col">
-        <div className="card">
-          <RecordsError onRetry={records.refetch} />
-        </div>
+        <RecordsError onRetry={records.refetch} isRetrying={records.isFetching} />
       </section>
     );
 

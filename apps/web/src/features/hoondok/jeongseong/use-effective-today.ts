@@ -58,7 +58,9 @@ export function useEffectiveToday(initialToday: TodayResponse) {
     );
   else if (isPersonal && personal.data?.reason === "upcoming")
     reason = withRegular("정성 시작일 전이라 일반 편성을 보여드려요.", "정성 시작일 전이에요.");
-  if (isRegularError && !personalized) reason = "오늘 편성을 불러오지 못했어요. 연결을 확인해 주세요.";
+  // 보여 줄 말씀 없이 조회만 실패했다 — 이때만 다시 불러오기를 둔다(대체 편성 안내에는 다시 불러올 것이 없다)
+  const isLoadError = isRegularError && !personalized;
+  if (isLoadError) reason = "오늘 편성을 불러오지 못했어요. 연결을 확인해 주세요.";
   return {
     reading,
     status: reading
@@ -67,6 +69,12 @@ export function useEffectiveToday(initialToday: TodayResponse) {
         ? ("withdrawn" as const)
         : ("none" as const),
     reason,
+    isLoadError,
+    isRetrying: regular.isFetching,
+    retry: () => {
+      void regular.refetch();
+      if (isPersonal) void personal.refetch();
+    },
     isResolving,
     isPersonalLoading: isPersonal && personal.isPending,
     /** 편성 없는 날(행 없음·철회). 확인 중·조회 실패는 아니다. 대체 말씀 없이 이어 읽기·서고로 안내한다(C3) */

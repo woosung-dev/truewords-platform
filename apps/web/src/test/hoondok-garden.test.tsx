@@ -29,6 +29,7 @@ import { GardenScreen } from "@/features/hoondok/garden/components/garden-screen
 import { historyAPI } from "@/features/hoondok/history-api";
 import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
 import { jeongseongAPI } from "@/features/hoondok/jeongseong-api";
+import { libraryAPI } from "@/features/hoondok/library/api";
 import { missionsAPI } from "@/features/hoondok/missions-api";
 import { identityAPI } from "@/features/identity/api";
 
@@ -163,9 +164,15 @@ describe("GardenScreen 로그인", () => {
     expect(screen.getByText("효진")).toBeInTheDocument();
     expect(container.querySelector(".gd-profile__av")).toHaveTextContent("효");
 
+    // 쌓인 것(누적일)이 먼저, 연속은 그다음이다
     const stats = container.querySelectorAll(".stats__n");
-    expect(Array.from(stats, (node) => node.textContent)).toEqual(["3", "12", "47"]);
-    expect(screen.getByText("현재 연속일")).toBeInTheDocument();
+    expect(Array.from(stats, (node) => node.textContent)).toEqual(["47", "3", "12"]);
+    expect(Array.from(container.querySelectorAll(".stats__lab"), (node) => node.textContent)).toEqual([
+      "누적일",
+      "현재 연속일",
+      "최대 연속일",
+    ]);
+    expect(container.querySelector(".stats__n--accent")).toHaveTextContent("3");
 
     expect(historyAPI.month).toHaveBeenCalledWith(MONTH);
     expect(container.querySelectorAll(".gd-cal__day[data-done]")).toHaveLength(3);
@@ -185,12 +192,43 @@ describe("GardenScreen 로그인", () => {
     expect(screen.queryByRole("status", { name: "기록을 불러오는 중" })).toBeNull();
   });
 
-  it("진행 중인 정성이 없으면 '새로 시작' 링크가 홈 시트로 간다", async () => {
+  it("현재 연속이 0 이면 불꽃·강조색 없이 숫자만 둔다", async () => {
+    loggedIn();
+    vi.mocked(missionsAPI.summary).mockResolvedValue({
+      ...SUMMARY,
+      today: { ...SUMMARY.today, read: false },
+      streak_days: 0,
+    });
+    const { container } = renderGarden();
+
+    expect(await screen.findByText("현재 연속일")).toBeInTheDocument();
+    expect(container.querySelector(".stats__n--accent")).toBeNull();
+    expect(container.querySelector(".stats svg")).toBeNull();
+  });
+
+  it("세 값이 모두 0 이면 숫자 3칸 대신 한 줄로 말한다", async () => {
+    loggedIn();
+    vi.mocked(missionsAPI.summary).mockResolvedValue({
+      ...SUMMARY,
+      today: { ...SUMMARY.today, read: false },
+      streak_days: 0,
+      best_streak_days: 0,
+      total_days: 0,
+    });
+    const { container } = renderGarden();
+
+    expect(await screen.findByText("첫 훈독을 마치면 여기에 날이 쌓여요.")).toBeInTheDocument();
+    expect(container.querySelector(".stats")).toBeNull();
+  });
+
+  it("진행 중인 정성이 없으면 한 줄 문장과 '정성 시작하기' 링크가 홈 시트로 간다", async () => {
     loggedIn(null);
     renderGarden();
 
-    expect(await screen.findByRole("heading", { name: "진행 중인 정성이 없어요" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "새로 시작" })).toHaveAttribute("href", "/hoondok?sheet=jeongseong");
+    expect(await screen.findByText("진행 중인 정성이 없어요")).toBeInTheDocument();
+    // 섹션 안 빈 상태는 큰 제목을 두지 않는다
+    expect(screen.queryByRole("heading", { name: "진행 중인 정성이 없어요" })).toBeNull();
+    expect(screen.getByRole("link", { name: "정성 시작하기" })).toHaveAttribute("href", "/hoondok?sheet=jeongseong");
   });
 
   it("진행 중인 정성은 N일차 · 날짜 기준 막대 · 시작일 · 남은 날만 적는다 (읽은 날 수·퍼센트 없음)", async () => {
@@ -225,20 +263,26 @@ describe("GardenScreen 로그인", () => {
     expect(screen.queryByText(/남았어요/)).toBeNull();
   });
 
-  it("5xx 면 '기록을 불러오지 못했어요' + 다시 시도로 세 질의를 다시 읽는다", async () => {
+  it("5xx 면 오류 상자 하나 + 다시 불러오기로 세 질의와 기록 목록을 다시 읽는다", async () => {
     loggedIn();
     vi.mocked(missionsAPI.summary).mockRejectedValue(new ApiError(500, { message: "boom" }));
+    vi.mocked(libraryAPI.highlights).mockRejectedValueOnce(new ApiError(500, { message: "boom" }));
     const { container } = renderGarden();
 
-    // useSummary 는 retry: 1 이라 첫 실패 뒤 한 번 더 시도한다 — 기본 1s 대기로는 짧다
-    expect(
-      await screen.findByRole("heading", { name: "기록을 불러오지 못했어요" }, { timeout: 5000 }),
-    ).toBeInTheDocument();
+    // useSummary 는 retry: 1 이라 첫 실패 뒤 한 번 더 시도한다 — 기본 1s 대기로는 짧다.
+    // 그동안은 먼저 실패한 '나의 기록' 섹션이 제 오류를 보이고, 위쪽이 실패를 알리면 섹션은 물러난다
+    await waitFor(() => expect(container.querySelector(".gd-profile + .status-box")).not.toBeNull(), { timeout: 5000 });
+    expect(screen.queryByRole("heading", { name: "나의 기록" })).toBeNull();
+    expect(container.querySelectorAll(".status-box")).toHaveLength(1);
+    expect(screen.getByText(/기록을 불러오지 못했어요/)).toBeInTheDocument();
     expect(container.querySelectorAll(".gd-cal__day")).toHaveLength(0);
+    expect(libraryAPI.highlights).toHaveBeenCalledTimes(1);
 
     vi.mocked(missionsAPI.summary).mockResolvedValue(SUMMARY);
-    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    fireEvent.click(screen.getByRole("button", { name: "다시 불러오기" }));
     await waitFor(() => expect(screen.getByText("현재 연속일")).toBeInTheDocument());
+    expect(libraryAPI.highlights).toHaveBeenCalledTimes(2);
+    expect(await screen.findByRole("heading", { name: "나의 기록" })).toBeInTheDocument();
   });
 });
 

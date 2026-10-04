@@ -6,7 +6,6 @@
 import { loadToday } from "@/features/hoondok/api";
 import { loadTodayCard } from "@/features/hoondok/cards/api";
 import { BookmarkHomeCard } from "@/features/hoondok/cards/components/home-card";
-import { cardDayLabel } from "@/features/hoondok/cards/format";
 import { HomeGreeting, HomeMissions, HomeTogether } from "@/features/hoondok/components/home-missions";
 import { isHoondokCardsEnabled } from "@/features/hoondok/flag";
 import { InstallCard } from "@/features/hoondok/install/components/install-card";
@@ -18,13 +17,13 @@ import { GroupList } from "@/features/hoondok/together/components/group-list";
 export default async function HoondokHomePage() {
   // 오늘의 책갈피(PLAN-HD-012)는 플래그 ON 일 때만 부른다. 풀이 비었거나 못 읽으면 카드를 그리지 않는다.
   const [today, card] = await Promise.all([loadToday(), isHoondokCardsEnabled() ? loadTodayCard() : null]);
-  const { weekday, iso } = formatKstDate();
+  const { weekday } = formatKstDate();
 
   return (
     <section className="col">
       <HomeGreeting />
 
-      {card && <BookmarkHomeCard card={card} dateLabel={cardDayLabel(iso)} />}
+      {card && <BookmarkHomeCard card={card} />}
 
       <HomeMissions today={today} todayWeekday={weekday} />
 

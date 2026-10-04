@@ -29,7 +29,8 @@ export function TogetherCard() {
       {isPending ? (
         <span className="skeleton tg-skeleton" aria-hidden="true" data-testid="together-skeleton" />
       ) : (
-        <div className="card together">
+        // 누를 곳이 없는 정보 카드라 평평한 띠로 둔다 — 흰 테두리 카드는 누를 수 있는 것에만 쓴다
+        <div className="card card--flat together">
           <span className="tg-ic" aria-hidden="true">
             <Sunrise size={20} />
           </span>

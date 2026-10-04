@@ -16,13 +16,17 @@ const TALLY: readonly { tab: RecordTab; label: string; Icon: typeof Highlighter 
   { tab: "note", label: "노트", Icon: NotebookPen },
 ];
 
-export function RecordsGardenSection() {
+/** `isErrorShownAbove` — 정원 위쪽이 이미 불러오기 실패를 알렸다. 같은 오류 상자를 한 번 더 쌓지 않고 섹션을 숨긴다
+ *  (위 상자의 다시 불러오기가 이 목록도 함께 읽는다). */
+export function RecordsGardenSection({ isErrorShownAbove = false }: { isErrorShownAbove?: boolean }) {
   const records = useRecords(true);
   const items = records.data?.items ?? [];
   const hasItems = items.length > 0;
 
+  if (records.isError && isErrorShownAbove) return null;
+
   let body: ReactNode;
-  if (records.isError) body = <RecordsError onRetry={records.refetch} isNested />;
+  if (records.isError) body = <RecordsError onRetry={records.refetch} isRetrying={records.isFetching} />;
   else if (!records.data)
     body = <span className="skeleton rc-skeleton" role="status" aria-busy="true" aria-label="기록을 불러오는 중" />;
   else if (!hasItems) body = <RecordsEmpty title="아직 남긴 기록이 없어요" isNested />;
@@ -76,7 +80,7 @@ export function RecordsGardenSection() {
           <span className="sect__meta">나만 봄</span>
         )}
       </div>
-      <div className={hasItems ? "card rc-rec" : "card"}>{body}</div>
+      {hasItems ? <div className="card rc-rec">{body}</div> : body}
     </div>
   );
 }

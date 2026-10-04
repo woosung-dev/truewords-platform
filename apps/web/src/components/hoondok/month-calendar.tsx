@@ -45,7 +45,6 @@ export function MonthCalendar({ month, days, today }: MonthCalendarProps) {
     <div className="sect">
       <div className="sect__head">
         <h2 className="sect__title">{label}</h2>
-        <span className="sect__meta">훈독 완료한 날</span>
       </div>
       <div className="card">
         <div className="gd-cal__head" aria-hidden="true">

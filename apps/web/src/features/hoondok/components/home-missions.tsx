@@ -13,6 +13,7 @@ import { useMissionCompletion, useSummary } from "@/features/hoondok/use-mission
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { EmptyDayLine } from "./empty-day";
+import { StatusBox } from "./status-box";
 
 /**
  * 히어로 인사. 정본 프로토타입 today 의 `.shot__greet` 자리이며 이 화면에서 가장 큰 글자다.
@@ -82,6 +83,18 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
       : resume.status === "none"
         ? "서고에서 한 권 골라 읽어 보세요."
         : null;
+  // 섹션 머리 오른쪽은 오늘 상태가 다를 때만 말한다(빈 날·확인 중). 평소의 "2가지 · 내 속도로" 같은 장식 문구는 두지 않는다
+  const dayMeta = effective.isEmptyDay
+    ? resume.status === "ready"
+      ? "오늘은 이어 읽기"
+      : resume.status === "none"
+        ? "오늘은 서고에서"
+        : null
+    : !reading && effective.isResolving
+      ? "오늘 말씀 확인 중"
+      : null;
+  // 연속일은 1 이상일 때만 말한다 — "연속 0일" 은 실패처럼 읽힌다 (DEC-PWA-023 빠진 날을 드러내지 않는다)
+  const streak = user ? (summary?.streak_days ?? 0) : 0;
 
   const readCard = (
     <MissionCard
@@ -92,6 +105,7 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
       href="/hoondok/read"
       isPending={!reading && effective.isResolving}
       isDone={isReadDone}
+      isLead={Boolean(reading) && !isReadDone}
       onToggle={reading && !effective.isResolving && !isReadDone ? completion.markDone : undefined}
     />
   );
@@ -119,26 +133,14 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
   return (
     <>
       {effective.reason && (
-        <p className="notice" role="status">
+        <StatusBox onRetry={effective.isLoadError ? effective.retry : undefined} isRetrying={effective.isRetrying}>
           {effective.reason}
-        </p>
+        </StatusBox>
       )}
       <div className="sect">
         <div className="sect__head">
           <h2 className="sect__title">오늘의 실천</h2>
-          <span className="sect__meta">
-            {reading
-              ? "2가지 · 내 속도로"
-              : effective.isEmptyDay
-                ? resume.status === "ready"
-                  ? "오늘은 이어 읽기"
-                  : resume.status === "none"
-                    ? "오늘은 서고에서"
-                    : null
-                : effective.isResolving
-                  ? "오늘 말씀 확인 중"
-                  : "1가지 · 말씀 읽기"}
-          </span>
+          {dayMeta && <span className="sect__meta">{dayMeta}</span>}
         </div>
         <div className="missions" aria-busy={isUndecided || undefined}>
           {isUndecided ? (
@@ -166,9 +168,7 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
       <div className="sect">
         <div className="sect__head">
           <h2 className="sect__title">이번 주</h2>
-          {user && summary?.streak_days !== undefined && (
-            <span className="sect__meta">연속 {summary.streak_days}일</span>
-          )}
+          {streak > 0 && <span className="sect__meta">연속 {streak}일</span>}
           {!user && !isLoading && (
             <Link className="sect__meta" href={onboardingHref("/hoondok")}>
               로그인 후 기록돼요 →
