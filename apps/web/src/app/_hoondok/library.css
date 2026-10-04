@@ -1163,6 +1163,10 @@
     padding-top: 0;
     margin-bottom: 16px;
   }
+  /* 안내가 두 줄로 접히면 44px 버튼이 둘째 줄을 키운다. 누를 자리는 그대로 두고 줄 높이에서만 뺀다 */
+  .wd-hl-hint .notice__action {
+    margin-block: -12px;
+  }
 
   /* 고른 구절 도구 · 형광펜 도구. 자리를 잡기 전에는 보이지 않는다(highlight-layer.tsx 가 data-placement 를 단다) */
   .hl-bar {
