@@ -59,7 +59,8 @@ export function TtsBar({
 
   return (
     <>
-      <div className="audio">
+      {/* 진행 막대는 듣기를 시작한 뒤에만 보인다(data-active) — 재생 전의 빈 막대는 정보가 없다 */}
+      <div className="audio" data-active={isActive || isEnded ? "" : undefined}>
         <button
           type="button"
           className="audio__play"

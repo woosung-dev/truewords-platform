@@ -34,11 +34,12 @@ import {
   HOONDOK_THEME_COLOR,
 } from "@/features/hoondok/pwa";
 import { HoondokServiceWorker } from "@/features/hoondok/service-worker";
+import { HoondokTextScale } from "@/features/hoondok/settings/components/text-scale-root";
 
 // 베타 기간 검색 색인 금지 (권리 미확정 정본). next.config headers() 의 X-Robots-Tag 와 짝이다.
 const BASE_METADATA: Metadata = {
   title: "훈독",
-  description: "아침 3분 훈독 — 독립 운영 베타",
+  description: "아침 3분 훈독 · 독립 운영 베타",
   robots: { index: false, follow: false },
 };
 
@@ -69,8 +70,11 @@ export const dynamic = "force-dynamic";
 
 export default function HoondokLayout({ children }: { children: ReactNode }) {
   if (!isHoondokEnabled()) notFound();
+  // 말씀 글자 크기는 첫 페인트 전 인라인 스크립트가 이 div 의 style 에 건다(HoondokTextScale).
+  // 그래서 이 div 한 칸의 속성 불일치 경고만 끈다 — 자식은 그대로 검사한다
   return (
-    <div data-app="hoondok">
+    <div data-app="hoondok" suppressHydrationWarning>
+      <HoondokTextScale />
       <HoondokInAppBrowserBanner />
       <HoondokAppShell>{children}</HoondokAppShell>
       <HoondokErrorListener />

@@ -315,7 +315,10 @@ describe("훈독 시간 고르기 (추천 4칸 + 직접 정하기)", () => {
     fireEvent.click(readToggle());
 
     await waitFor(() => expect(readToggle()).toHaveAttribute("aria-pressed", "false"));
-    for (const item of screen.getAllByRole("radio")) expect(item).toBeDisabled();
+    // 같은 화면의 말씀 글자 크기 라디오는 알림과 무관하다 — 시각 칸만 본다
+    const timeRadios = screen.getAllByRole("radio", { name: /오전|오후|직접 정하기/ });
+    expect(timeRadios).toHaveLength(5);
+    for (const item of timeRadios) expect(item).toBeDisabled();
     expect(screen.getByLabelText("훈독하기 알림 시간")).toBeDisabled();
     expect(screen.queryByText(/에 알려드려요/)).toBeNull();
   });
@@ -357,7 +360,7 @@ describe("켤 수 없는 상태", () => {
       const view = render(wrap(<SettingsScreen />));
       expect(await screen.findByText(text)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: READ_TOGGLE })).toBeDisabled();
-      expect(screen.queryAllByRole("radio")).toHaveLength(0);
+      expect(screen.queryAllByRole("radio", { name: /오전|오후|직접 정하기/ })).toHaveLength(0);
       view.unmount();
     }
   });

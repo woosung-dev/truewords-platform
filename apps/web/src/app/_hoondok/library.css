@@ -107,6 +107,28 @@
   .shelf__item .badge {
     grid-area: b;
   }
+  /* 누르면 열리는 행은 오른쪽 끝 화살표로 알린다. 검색만 허용된 행(div)에는 없다 */
+  a.shelf__item {
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas:
+      "t b c"
+      "m b c";
+  }
+  .shelf__go {
+    grid-area: c;
+    color: var(--ink-3);
+  }
+  /* 목록 전체가 같은 등급일 때 묶음 머리 아래 한 줄 (서고·권 목록·검색 결과) */
+  .list-note {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+    margin: -4px 0 12px;
+  }
+  /* 한 표면 안의 행은 바깥 링이 overflow 에 잘린다 — 링을 안쪽으로 그린다 */
+  .shelf__item:focus-visible,
+  .sr-list a:focus-visible {
+    outline-offset: -2px;
+  }
   a.resume:active,
   a.shelf__item:active {
     background: var(--surface-2);
@@ -131,8 +153,8 @@
     border: 1.5px solid var(--ink-3);
     color: var(--ink-3);
   }
+  /* 포커스 링은 하나만 — 테두리 색은 그대로 두고 바깥 링만 그린다 (§1.5) */
   .sf-field:focus-within {
-    border-color: var(--accent);
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
@@ -154,6 +176,23 @@
   }
   .sf-input::placeholder {
     color: var(--ink-3);
+  }
+  /* 브라우저 기본 지우기(파란 ×)는 숨기고 .sf-clear 가 대신한다 */
+  .sf-input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .sf-clear {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-sm);
+    color: var(--ink-3);
+  }
+  .sf-clear:active {
+    background: var(--surface-2);
   }
   .sf-submit {
     width: auto;
@@ -180,23 +219,24 @@
     color: var(--ink-2);
     margin: -6px 0 12px;
   }
+  /* 결과 목록은 서고 선반(.shelf)과 같은 모양 — 한 표면 안에 구분선으로 나눈 행이다 */
   .sr-list {
     list-style: none;
     margin: 0;
     padding: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    overflow: hidden;
   }
   .sr-list li + li {
-    margin-top: 8px;
+    border-top: 1px solid var(--line);
   }
   .sr-list a {
     display: flex;
     flex-direction: column;
     gap: 4px;
     padding: 14px 16px;
-    border-radius: var(--r);
-    background: var(--surface);
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow-hairline);
   }
   .sr-hd {
     display: flex;
@@ -225,10 +265,6 @@
     text-decoration: underline 2px var(--accent);
     text-underline-offset: 0.22em;
     text-decoration-skip-ink: none;
-  }
-  .sr-src {
-    font-size: var(--fs-xs);
-    color: var(--ink-2);
   }
   .sr-list a:active {
     background: var(--surface-2);
@@ -277,9 +313,10 @@
     padding-top: 6px;
   }
   /* 검색 제안은 용어도 선택된 옵션도 아니다 — 액센트 대신 중립 표면으로 되돌린다 (프로토타입 주석) */
+  /* 어르신 손가락 기준 44px (§3.6) */
   .howto .term {
-    min-height: 34px;
-    padding: 5px 12px;
+    min-height: 44px;
+    padding: 5px 14px;
     font-size: var(--fs-sm);
     background: var(--surface);
     border: 1px solid var(--line);
@@ -330,7 +367,7 @@
     min-width: 0;
   }
   .wd-panel {
-    margin-top: 20px;
+    margin-top: 8px;
   }
   .verse {
     display: flex;
@@ -339,7 +376,8 @@
     /* 목차·검색 점프가 sticky 앱바(약 60px) 아래에 멈추도록 — lg 에서는 상단 헤더 72 + 앱바를 더한다 */
     scroll-margin-top: 76px;
     font-family: var(--font-scripture);
-    font-size: var(--fs-lg);
+    /* 말씀 글자 크기 설정(설정 화면)이 훈독 루트에 --read-scale 을 건다. 없으면 1 */
+    font-size: calc(var(--fs-lg) * var(--read-scale, 1));
     line-height: 1.75;
   }
   .verse__n {
@@ -406,14 +444,26 @@
 
   /* ---------- lg: 1024px 이상 — 리더 바가 본문 상단 툴바로 올라온다 ---------- */
   @media (min-width: 1024px) {
+    /* 상단 헤더의 검색 링크가 같은 일을 한다 (§8 2026-09-16 "PC는 헤더 검색바가 둘을 대신") */
+    .search-field {
+      display: none;
+    }
+    /* 툴바는 표면 없이 머리글 줄 오른쪽 글자 버튼으로 — 본문 위에 표면이 여러 겹 쌓이지 않게 한다 */
+    .wd-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .wd-head .masthead {
+      flex: 1;
+      min-width: 0;
+    }
     .reader--top {
       display: flex;
-      gap: 4px;
-      margin-top: 14px;
-      padding: 4px;
-      border-radius: var(--r-sm);
-      background: var(--surface);
-      border: 1px solid var(--line);
+      flex: none;
+      gap: 2px;
+      margin-top: 2px;
     }
     .reader--top > button {
       flex-direction: row;
@@ -433,6 +483,7 @@
     @media (hover: hover) {
       .term:hover,
       .ask-hint:hover,
+      .reader--top > button:hover,
       a.shelf__item:hover,
       .recent button:hover,
       .toc__item:hover {
@@ -441,7 +492,9 @@
       .toc__item[aria-current]:hover {
         background: var(--accent-soft);
       }
-      .sr-list a:hover,
+      .sr-list a:hover {
+        background: var(--surface-2);
+      }
       a.resume:hover {
         box-shadow: var(--shadow-1);
       }
@@ -503,13 +556,16 @@
     font-size: var(--fs-lg);
   }
 
-  /* 원문 머리글 : 장 제목 + 이 페이지가 담은 단락 범위 */
+  /* 원문 머리글 : 장 제목 · 이 페이지의 구간 · 날짜·장소·등급을 한 흐름으로 (폭이 모자라면 줄을 바꾼다) */
   .masthead {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     gap: 4px 10px;
     margin-top: 6px;
+  }
+  .masthead .lede-src {
+    gap: 4px 8px;
   }
   .masthead__nm {
     font-size: var(--fs-lg);
@@ -802,22 +858,32 @@
   .audio {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-top: 12px;
-    padding: 10px 12px;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 6px 10px 6px 6px;
     border-radius: var(--r);
     background: var(--ink);
     color: var(--surface);
   }
+  /* 보이는 원은 40px, 누르는 자리는 ::after 로 44px */
   .audio__play {
-    width: 44px;
-    height: 44px;
+    position: relative;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: var(--surface);
     color: var(--ink);
     display: grid;
     place-items: center;
     flex: none;
+  }
+  .audio__play::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+  }
+  .audio:not([data-active]) .progress {
+    display: none;
   }
   .audio__bd {
     flex: 1;
@@ -1092,8 +1158,10 @@
   .hl-memo:active {
     background: var(--line);
   }
+  /* 첫 단락과 둘째 단락 사이 띠 — 위아래 간격을 단락 간격(16px)과 맞춘다 */
   .wd-hl-hint {
-    padding-top: 12px;
+    padding-top: 0;
+    margin-bottom: 16px;
   }
 
   /* 고른 구절 도구 · 형광펜 도구. 자리를 잡기 전에는 보이지 않는다(highlight-layer.tsx 가 data-placement 를 단다) */
@@ -1227,7 +1295,10 @@
     color: var(--ink);
     font: inherit;
     font-size: var(--fs-lg); /* iOS 확대 방지 */
-    resize: vertical;
+    /* 크기 조절 손잡이 대신 글이 늘면 칸이 따라 늘어난다(지원 브라우저). 아니면 고정 높이에서 스크롤 */
+    resize: none;
+    field-sizing: content;
+    max-height: 50dvh;
   }
   .rd-memo__field textarea::placeholder {
     color: var(--ink-3);

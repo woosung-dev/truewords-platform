@@ -90,7 +90,8 @@ describe("SCR-PWA-015 알림 (서버 설정 없음 = 준비 중)", () => {
     expect(toggle).toHaveAttribute("aria-pressed", "false");
     // 켤 수 없으면 추천 칸 대신 꺼진 시간 행 하나다
     expect(screen.getByText("오전 6:00").closest("button")).toBeDisabled();
-    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    // 같은 화면의 말씀 글자 크기 라디오(보통·크게…)는 알림과 무관하다 — 시각 칸만 센다
+    expect(screen.queryAllByRole("radio", { name: /오전|오후|직접 정하기/ })).toHaveLength(0);
     await waitFor(() => expect(identityAPI.me).toHaveBeenCalled());
   });
 

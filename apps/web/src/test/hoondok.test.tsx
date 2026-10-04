@@ -72,7 +72,8 @@ describe("훈독 컴포넌트", () => {
       </>,
     );
     expect(screen.getByText("O1 공식 원문")).toHaveClass("badge--rank");
-    expect(screen.getByText("권리 확인 중")).toHaveClass("badge--dashed");
+    // R 은 권리 상태가 아니라 권위 등급 — 훈독 화면은 DS §2.3 정본 라벨 하나만 쓴다
+    expect(screen.getByText("R 참고 자료")).toHaveClass("badge--dashed");
     expect(container.querySelector("[aria-hidden]")).toBeNull();
   });
 

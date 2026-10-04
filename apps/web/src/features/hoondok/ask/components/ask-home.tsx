@@ -2,6 +2,7 @@
 
 // SCR-PWA-005 묻기 홈("물음 한 장") — 오늘 말씀 한 줄 + 라벨 있는 입력 + 시작 문장 3개.
 // FAB·세그먼트는 없다(DES-PWA-003 §2.9 2026-09-16 정정). 시작 문장은 입력을 채울 뿐 보내지 않는다(AC-017-03).
+import { CornerDownRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, useSyncExternalStore } from "react";
@@ -19,6 +20,13 @@ const STARTERS = [
   "정성을 드린다는 게 정확히 뭘 하는 건가요?",
   "자녀에게 말씀을 어떻게 가르치면 좋을까요?",
 ] as const;
+
+/** 질문 기록 링크 문구. 0 은 말하지 않는다 — 아직 없는 것을 숫자로 세지 않는다. */
+export function askLogLinkLabel(questionCount: number, savedCount: number): string {
+  if (questionCount === 0) return "질문 기록 보기";
+  if (savedCount === 0) return `내 질문 ${questionCount}개 보기`;
+  return `내 질문 ${questionCount}개와 저장한 답 ${savedCount}개 보기`;
+}
 
 function AskComposer({ today, initialQuestion }: { today: AskTodayLine | null; initialQuestion: string }) {
   const router = useRouter();
@@ -67,15 +75,17 @@ function AskComposer({ today, initialQuestion }: { today: AskTodayLine | null; i
 
       <div className="qs-starters">
         <p className="qs-starters__k">이렇게 물어볼 수 있어요</p>
+        {/* 입력칸과 헷갈리지 않게 채움 바탕 + 화살표 — 답 화면의 "이어서 물어보기" 행과 같은 모양이다 */}
         {STARTERS.map((starter) => (
           <button key={starter} className="chip-btn qs-starter" type="button" onClick={() => setQuestion(starter)}>
+            <CornerDownRight size={18} aria-hidden="true" />
             {starter}
           </button>
         ))}
       </div>
 
       <Link className="qs-log" href="/hoondok/ask/log">
-        {`내 질문 ${items.length}개와 저장한 답 ${savedCount}개 보기`}
+        {askLogLinkLabel(items.length, savedCount)}
       </Link>
       <p className="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
     </section>

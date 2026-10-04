@@ -13,8 +13,9 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { HOONDOK_ASK_CHATBOT_ID, requestAsk } from "@/features/hoondok/ask/ask-stream";
+import { linkCitations } from "@/features/hoondok/ask/components/answer-markdown";
 import { AskDetail } from "@/features/hoondok/ask/components/ask-detail";
-import { AskHome } from "@/features/hoondok/ask/components/ask-home";
+import { AskHome, askLogLinkLabel } from "@/features/hoondok/ask/components/ask-home";
 import { AskLog } from "@/features/hoondok/ask/components/ask-log";
 import {
   ASK_MAX,
@@ -172,6 +173,14 @@ describe("묻기 홈 (SCR-PWA-005)", () => {
     render(<AskHome today={null} />);
     expect(screen.getByLabelText("무엇이 궁금하세요?")).toHaveValue("이 말씀의 배경이 궁금해요");
   });
+
+  it("질문 기록 링크는 0 을 세지 않는다", () => {
+    expect(askLogLinkLabel(0, 0)).toBe("질문 기록 보기");
+    expect(askLogLinkLabel(3, 0)).toBe("내 질문 3개 보기");
+    expect(askLogLinkLabel(3, 1)).toBe("내 질문 3개와 저장한 답 1개 보기");
+    render(<AskHome today={null} />);
+    expect(screen.getByRole("link", { name: "질문 기록 보기" })).toHaveAttribute("href", "/hoondok/ask/log");
+  });
 });
 
 describe("질문 기록 (SCR-PWA-005b)", () => {
@@ -248,6 +257,59 @@ describe("질문·답변 상세 (SCR-PWA-006)", () => {
     expect(screen.getByText("공식성 확인되지 않음")).toHaveClass("badge--dashed");
     // 초록 `badge--rank` 는 O1·O2 정본 전용이다
     expect(container.querySelector(".badge--rank")).toBeNull();
+  });
+
+  it("답 안의 근거 번호 [N] 은 근거 카드로 가는 위첨자 링크가 되고, 카드가 없는 번호는 지운다", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    const second = { ...SOURCE, volume: "천성경 2편", text: "정성은 하늘을 감동시킵니다." };
+    appendAskItem(
+      item("q1", {
+        status: "answered",
+        answer: "정성은 실천입니다 [1]. 함께 드립니다[2][7].",
+        sources: [SOURCE, second],
+      }),
+    );
+    const { container } = render(<AskDetail id="q1" />);
+
+    const first = await screen.findByRole("link", { name: "근거 말씀 1" });
+    expect(first).toHaveAttribute("href", "#ask-ev-1");
+    expect(first.closest("sup")).toHaveClass("ask-ref");
+    expect(screen.getByRole("link", { name: "근거 말씀 2" })).toHaveAttribute("href", "#ask-ev-2");
+    // 근거 카드가 2장뿐이라 [7] 은 누를 곳이 없다 — 지운다. 대괄호 원문도 남지 않는다
+    expect(screen.queryByRole("link", { name: "근거 말씀 7" })).toBeNull();
+    expect(container.querySelector(".ai-note")?.textContent).not.toMatch(/\[\d\]/);
+    // 답 끝에 번호만 늘어놓던 묶음은 없다
+    expect(container.querySelectorAll(".ask-ref")).toHaveLength(2);
+
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    fireEvent.click(first);
+    const card = container.querySelector("#ask-ev-1");
+    expect(scrollIntoView.mock.contexts[0]).toBe(card);
+    expect(card).toHaveFocus();
+    expect(card).toHaveAttribute("data-flash");
+  });
+
+  it("근거 번호 바꾸기: 연달아 붙은 번호는 한 링크로 묶고 연도 같은 큰 숫자는 그대로 둔다", () => {
+    expect(linkCitations("실천입니다 [1][2].", 3)).toBe("실천입니다[1,2](#ask-ev-1,2).");
+    expect(linkCitations("실천입니다 [1, 3].", 3)).toBe("실천입니다[1,3](#ask-ev-1,3).");
+    expect(linkCitations("없는 번호 [4].", 3)).toBe("없는 번호.");
+    expect(linkCitations("1956년 [2018] 자료", 3)).toBe("1956년 [2018] 자료");
+    // 마크다운 링크의 대괄호는 건드리지 않는다
+    expect(linkCitations("[1](https://example.com)", 3)).toBe("[1](https://example.com)");
+    // 근거 카드가 없는 화면(원문 뷰 AI 설명 탭)은 번호를 모두 지운다
+    expect(linkCitations("실천입니다 [1].", 0)).toBe("실천입니다.");
+  });
+
+  it("답 상자 안에 서버 고지가 있으면 페이지 끝에 같은 고지를 반복하지 않는다", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    appendAskItem(item("q1", { status: "answered", answer: "답 본문", sources: [SOURCE], disclaimer: "참고용 고지" }));
+    render(<AskDetail id="q1" />);
+    expect(await screen.findByText("참고용 고지")).toBeInTheDocument();
+    expect(screen.queryByText("AI 설명은 참고용이며 교회장의 지도를 대체하지 않습니다")).toBeNull();
+    // 상자 라벨이 이 묶음의 제목이다 — 같은 말을 섹션 머리로 되풀이하지 않는다
+    expect(screen.getByRole("heading", { name: "AI 설명 · 공식 해설 아님" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "AI 설명" })).toBeNull();
   });
 
   it("429 응답은 안내 문구와 다시 시도 버튼을 남긴다", async () => {

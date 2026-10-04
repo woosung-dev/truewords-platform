@@ -75,6 +75,7 @@ beforeEach(() => {
   pathname = "/hoondok/library";
   vi.clearAllMocks();
   localStorage.clear();
+  sessionStorage.clear();
   vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "");
   vi.mocked(libraryAPI.list).mockResolvedValue({ items: [WORK] });
   vi.mocked(libraryAPI.search).mockResolvedValue({ results: [RESULT] });
@@ -147,6 +148,23 @@ describe("말씀 서고", () => {
     fireEvent.click(await screen.findByRole("button", { name: "다시 시도" }));
     expect(await screen.findByRole("link", { name: /말씀 1권/ })).toBeInTheDocument();
   });
+  it("선반 전체가 같은 등급이면 배지는 머리에 한 번만, 행에는 달지 않는다", async () => {
+    const other = { ...WORK, volume: "말씀 2권.txt", work_title: "말씀 2권" };
+    vi.mocked(libraryAPI.list).mockResolvedValue({ items: [WORK, other] });
+    show(LibraryPage());
+    const first = await screen.findByRole("link", { name: /말씀 1권/ });
+    expect(screen.getAllByText("R 참고 자료")).toHaveLength(1);
+    expect(within(first).queryByText("R 참고 자료")).toBeNull();
+    expect(screen.getByText("모두 공식성이 확인되지 않은 참고 자료예요.")).toBeInTheDocument();
+  });
+  it("등급이 섞이면 머리 배지·안내 없이 행마다 제 등급을 단다", async () => {
+    const official = { ...WORK, volume: "천성경.txt", work_title: "천성경", authority_grade: "O1" as const };
+    vi.mocked(libraryAPI.list).mockResolvedValue({ items: [WORK, official] });
+    show(LibraryPage());
+    expect(within(await screen.findByRole("link", { name: /천성경/ })).getByText("O1 공식 원문")).toBeInTheDocument();
+    expect(within(screen.getByRole("link", { name: /말씀 1권/ })).getByText("R 참고 자료")).toBeInTheDocument();
+    expect(screen.queryByText("모두 공식성이 확인되지 않은 참고 자료예요.")).toBeNull();
+  });
 });
 describe("말씀 검색", () => {
   it("검색 결과에서 인용 청크가 포함된 원문 구간으로 이동한다", async () => {
@@ -212,6 +230,78 @@ describe("말씀 검색", () => {
     show(SearchPage());
     fireEvent.click(screen.getByRole("button", { name: "탕감복귀" }));
     expect(screen.getByLabelText("말씀 검색")).toHaveValue("탕감복귀");
+    expect(libraryAPI.search).not.toHaveBeenCalled();
+  });
+  it("결과 전체가 같은 등급이면 배지와 결측 안내를 결과 머리에 한 번만 둔다", async () => {
+    const second = { ...RESULT, chunk_id: "chunk-22", display_text: "참사랑의 길" };
+    vi.mocked(libraryAPI.search).mockResolvedValue({ results: [RESULT, second] });
+    show(SearchPage());
+    search("참사랑");
+    const link = await screen.findByRole("link", { name: /참사랑 말씀/ });
+    expect(screen.getAllByText("R 참고 자료")).toHaveLength(1);
+    expect(within(link).queryByText("R 참고 자료")).toBeNull();
+    expect(screen.getByText("모두 공식성·화자·판본이 확인되지 않은 참고 자료예요.")).toBeInTheDocument();
+    expect(screen.queryByText("화자·판본 확인되지 않음")).toBeNull();
+  });
+  it("결과 등급이 섞이면 행마다 제 등급을 단다", async () => {
+    const official = { ...RESULT, chunk_id: "chunk-30", authority_grade: "O1" as const, display_text: "참사랑 정본" };
+    vi.mocked(libraryAPI.search).mockResolvedValue({ results: [RESULT, official] });
+    show(SearchPage());
+    search("참사랑");
+    expect(
+      within(await screen.findByRole("link", { name: /참사랑 정본/ })).getByText("O1 공식 원문"),
+    ).toBeInTheDocument();
+    expect(within(screen.getByRole("link", { name: /참사랑 말씀/ })).getByText("R 참고 자료")).toBeInTheDocument();
+    expect(screen.getByText("화자·판본은 확인되지 않았어요.")).toBeInTheDocument();
+  });
+  it("결과를 열었다 돌아오면 마지막 검색어와 결과가 그대로 있다", async () => {
+    const first = show(SearchPage());
+    search("참사랑");
+    await screen.findByRole("link", { name: /참사랑 말씀/ });
+    first.unmount();
+
+    // 원문으로 갔다가 뒤로 — 검색 화면이 새로 마운트된다
+    show(SearchPage());
+    expect(screen.getByLabelText("말씀 검색")).toHaveValue("참사랑");
+    expect(await screen.findByRole("link", { name: /참사랑 말씀/ })).toBeInTheDocument();
+    // URL 에는 싣지 않는다 — 이 탭의 sessionStorage 에만 둔다
+    expect(sessionStorage.getItem("hoondok:last-search")).toBe("참사랑");
+  });
+  it("최근 검색이 지워졌으면(계정 바뀜·지우기) 마지막 검색어를 되살리지 않는다", async () => {
+    const first = show(SearchPage());
+    search("참사랑");
+    await screen.findByRole("link", { name: /참사랑 말씀/ });
+    first.unmount();
+    vi.mocked(libraryAPI.search).mockClear();
+    // 다른 계정이 로그인하면 기기 기록(hoondok:*)이 지워진다 — 최근 검색도 함께 사라진다
+    localStorage.clear();
+
+    show(SearchPage());
+    expect(screen.getByLabelText("말씀 검색")).toHaveValue("");
+    expect(screen.queryByRole("heading", { name: "검색 결과" })).toBeNull();
+    expect(libraryAPI.search).not.toHaveBeenCalled();
+  });
+  it("최근 검색을 지워도 지금 보이는 입력·결과는 남는다", async () => {
+    const first = show(SearchPage());
+    search("참사랑");
+    await screen.findByRole("link", { name: /참사랑 말씀/ });
+    first.unmount();
+    show(SearchPage());
+    await screen.findByRole("link", { name: /참사랑 말씀/ });
+
+    fireEvent.click(screen.getByRole("button", { name: "지우기" }));
+
+    expect(screen.queryByRole("heading", { name: "최근 검색" })).toBeNull();
+    expect(screen.getByLabelText("말씀 검색")).toHaveValue("참사랑");
+    expect(screen.getByRole("link", { name: /참사랑 말씀/ })).toBeInTheDocument();
+  });
+  it("지우기 버튼은 입력이 있을 때만 보이고 입력만 비운다", () => {
+    show(SearchPage());
+    expect(screen.queryByRole("button", { name: "검색어 지우기" })).toBeNull();
+    fireEvent.change(screen.getByLabelText("말씀 검색"), { target: { value: "정성" } });
+    fireEvent.click(screen.getByRole("button", { name: "검색어 지우기" }));
+    expect(screen.getByLabelText("말씀 검색")).toHaveValue("");
+    expect(screen.getByLabelText("말씀 검색")).toHaveFocus();
     expect(libraryAPI.search).not.toHaveBeenCalled();
   });
 });

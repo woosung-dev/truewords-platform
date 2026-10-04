@@ -245,7 +245,9 @@ test("설정: 훈독 시간 — 06:00 은 직접 정하기 · 칸을 고르면 P
   await toggle.click();
   expect((await disabled).status()).toBe(200);
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
-  for (const radio of await page.getByRole("radio").all()) await expect(radio).toBeDisabled();
+  // 같은 화면의 말씀 글자 크기 라디오는 알림과 무관하다 — 시각 칸만 본다
+  for (const radio of await page.getByRole("group", { name: "언제 알려 드릴까요?" }).getByRole("radio").all())
+    await expect(radio).toBeDisabled();
   await expect(page.getByText("에 알려드려요")).toHaveCount(0);
 
   // 비로그인 온보딩 첫 로드의 /auth/me 401 은 정상 리소스 로그다 (hoondok.spec 알림 제안 테스트와 같은 필터)
