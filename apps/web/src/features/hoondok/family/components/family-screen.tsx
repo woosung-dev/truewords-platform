@@ -117,7 +117,7 @@ function ScopeSection() {
           </div>
         ))}
       </fieldset>
-      <p className="st-row__soon fm-soon">저장은 준비 중이에요 — 지금은 선택만 바뀝니다</p>
+      <p className="st-row__soon fm-soon">저장은 준비 중이에요. 지금은 선택만 바뀌어요.</p>
     </div>
   );
 }
@@ -134,7 +134,7 @@ export function FamilyScreen() {
         isLarge
         action={{
           title: "가족 초대하기",
-          note: "초대 링크 또는 코드 · 보상 없음",
+          note: "초대 링크 또는 코드",
           soon: "가족 초대는 준비 중이에요",
         }}
       />
@@ -146,7 +146,7 @@ export function FamilyScreen() {
         isLarge={false}
         action={{
           title: "친구 추가하기",
-          note: "초대 링크로 연결해요 · 순위 없음",
+          note: "초대 링크로 연결해요",
           soon: "친구 추가는 준비 중이에요",
         }}
       />
