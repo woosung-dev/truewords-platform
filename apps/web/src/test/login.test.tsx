@@ -57,7 +57,7 @@ describe("LoginPage", () => {
   it("사용자 웹 로그인 제목을 표시한다", () => {
     render(<LoginPage />);
 
-    expect(screen.getByText("TrueWords 로그인")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "로그인" })).toBeInTheDocument();
   });
 
   it("관리자 계정도 사용자 웹에서는 채팅으로 이동한다", async () => {
@@ -113,6 +113,27 @@ describe("LoginPage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("이메일 또는 비밀번호가 올바르지 않습니다")).toBeInTheDocument();
+    });
+  });
+
+  it("로그인 실패는 스크린 리더에 알리고 이메일 칸으로 포커스를 돌려준다", async () => {
+    vi.mocked(authAPI.login).mockRejectedValueOnce(new ApiError(401, { message: "인증이 필요합니다" }));
+
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText("이메일"), {
+      target: { value: "admin@test.com" },
+    });
+    fireEvent.change(screen.getByLabelText("비밀번호"), {
+      target: { value: "wrong" },
+    });
+    const submit = screen.getByRole("button", { name: "로그인" });
+    submit.focus();
+    fireEvent.click(submit);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("이메일 또는 비밀번호가 올바르지 않습니다");
+    await waitFor(() => {
+      expect(screen.getByLabelText("이메일")).toHaveFocus();
     });
   });
 

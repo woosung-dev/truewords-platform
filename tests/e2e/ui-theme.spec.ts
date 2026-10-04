@@ -58,6 +58,12 @@ for (const app of ["web", "admin"] as const) {
       await expect(password).toBeFocused();
       await password.fill("test1234");
       await password.press("Tab");
+      // 비밀번호 표시 버튼이 탭 순서에 있으면(키보드로도 켤 수 있게) 그 다음이 로그인 버튼이다.
+      const toggle = page.getByRole("button", { name: "비밀번호 표시" });
+      if ((await toggle.getAttribute("tabindex")) !== "-1") {
+        await expect(toggle).toBeFocused();
+        await toggle.press("Tab");
+      }
       const login = page.getByRole("button", { name: "로그인", exact: true });
       await expect(login).toBeFocused();
       await expect(login).toHaveCSS("height", "44px");

@@ -1,18 +1,18 @@
-import { BookOpenCheck, CalendarClock, ScrollText, ShieldAlert } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "TrueWords — 신학 입장 & 운영 투명성",
-  description: "TrueWords AI 챗봇의 운영 원칙, 신학적 입장, 검수 사이클, 한계와 면책을 공개합니다.",
+  title: "TrueWords · 운영 원칙",
+  description: "TrueWords AI 답변이 근거를 보여 주는 방식과 한계를 안내합니다.",
 };
 
-// ADR-46 Screen 6 — P1-F 신학 입장 / 운영 투명성 페이지.
-// 본문은 정적 placeholder. 검수 통계는 P1-K(W3)에서 백엔드 연동 예정.
+// ADR-46 Screen 6 — 운영 원칙 페이지.
+// 지금 실제로 동작하는 것(답변마다 근거 권과 원문 보기)과 면책 고지만 적는다.
+// 아직 운영하지 않는 절차(정기 검수·리포트)나 확인되지 않은 수치는 쓰지 않는다.
 
 type Principle = {
   id: string;
-  icon: typeof BookOpenCheck;
-  eyebrow: string;
   title: string;
   body: string;
 };
@@ -20,99 +20,56 @@ type Principle = {
 const PRINCIPLES: Principle[] = [
   {
     id: "sources",
-    icon: ScrollText,
-    eyebrow: "출처 명기",
-    title: "모든 답변에 4중 근거를 답니다",
+    title: "답변마다 근거를 함께 보여 줍니다",
     body:
-      "답변 본문에는 권/장/절·문단·페이지·원문 인용을 함께 표기합니다. " +
-      "AI가 생성한 문장이라도, 그 근거가 학습 데이터의 어느 위치에 있는지 " +
-      "독자가 직접 확인하고 비판적으로 검토할 수 있어야 한다고 믿습니다.",
-  },
-  {
-    id: "review-cycle",
-    icon: CalendarClock,
-    eyebrow: "검수 사이클",
-    title: "주 1회 신학 검수 + 월 1회 종합 리포트",
-    body:
-      "신학 자문진이 매주 무작위로 추출된 답변 표본을 4축(적합 / 톤 / 인용 / 신학) " +
-      "으로 검수합니다. 결과는 월간 리포트로 공개되며, 부적합 비율이 임계치를 " +
-      "넘으면 해당 카테고리의 답변 흐름을 즉시 점검합니다.",
+      "답변 아래에 근거가 된 권이 번호와 함께 나옵니다. 본문에 번호가 있으면 같은 번호의 출처를 가리킵니다. " +
+      "출처를 누르면 인용한 부분과 앞뒤 문맥을 원문으로 확인할 수 있습니다.",
   },
   {
     id: "stance",
-    icon: BookOpenCheck,
-    eyebrow: "신학 입장",
-    title: "특정 교파를 대변하지 않습니다",
+    title: "교단의 공식 입장이 아닙니다",
     body:
-      "TrueWords 는 학습된 615권의 텍스트를 가장 정확하게 인용·요약하는 데 " +
-      "집중하며, 교파적 판단이 필요한 영역에서는 단정하지 않고 출처와 함께 " +
-      "여러 해석을 제시합니다. 챗봇별 신학 입장은 페르소나 페이지에서 별도 명시됩니다.",
+      "AI 답변은 교단의 공식 입장과 다를 수 있습니다. " +
+      "민감한 주제는 반드시 출처 원문과 지도자 안내를 함께 확인해 주세요.",
   },
   {
     id: "limits",
-    icon: ShieldAlert,
-    eyebrow: "한계와 면책",
     title: "AI 답변은 신앙 상담을 대체하지 않습니다",
     body:
-      "본 서비스는 학습된 텍스트 기반의 정보 제공 도구입니다. 위기 상황 · " +
-      "목회 상담 · 의료 · 법률 영역의 판단을 대체할 수 없으며, 모든 답변은 " +
-      "독자의 판단과 공동체의 분별 안에서 활용되어야 합니다.",
+      "TrueWords는 말씀 텍스트를 바탕으로 정보를 제공하는 도구입니다. 위기 상황, 목회 상담, 의료, 법률 영역의 " +
+      "판단을 대체할 수 없으며, 모든 답변은 독자의 판단과 공동체의 분별 안에서 활용되어야 합니다.",
   },
 ];
 
-// PoC 정리 (2026-04-29) — P1-K 검수 사이클 placeholder 통계 섹션 제거.
-// 운영 인력 (신학 자문 4명) 확보 + 검수 시작 시점에 재추가.
-
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      {/* Hero */}
-      <section className="border-b border-border bg-secondary/50">
-        <div className="mx-auto max-w-3xl px-6 py-20 md:py-28 break-keep-all">
-          <p className="font-mono text-2xs uppercase tracking-[0.2em] text-muted-foreground">TrueWords · About</p>
-          <h1 className="font-display mt-4 text-4xl md:text-5xl font-semibold leading-[1.15] tracking-tight text-foreground">
-            우리는 어떤 원칙으로
-            <br />이 챗봇을 운영합니까
-          </h1>
-          <p className="prose-reading mt-6 max-w-2xl text-base md:text-lg text-muted-foreground">
-            TrueWords 는 615권의 학습 텍스트를 근거로 답변하는 AI 챗봇입니다. 모든 답변은 출처와 함께 제공되며, 신학
-            자문진의 정기 검수를 거칩니다. 아래는 우리가 지키려는 네 가지 원칙입니다.
-          </p>
-        </div>
-      </section>
+    <main className="min-h-dvh bg-background text-foreground">
+      <div className="mx-auto max-w-2xl px-4 py-6 break-keep-all sm:px-6 md:py-12">
+        <Link
+          href="/"
+          className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <ChevronLeft className="size-4" aria-hidden="true" />
+          채팅으로
+        </Link>
 
-      {/* 4 운영 원칙 카드 — 2 column grid */}
-      <section className="mx-auto max-w-5xl px-6 py-16 md:py-20">
-        <div className="grid gap-5 md:grid-cols-2">
-          {PRINCIPLES.map((p) => {
-            const Icon = p.icon;
-            return (
-              <article
-                key={p.id}
-                className="group relative rounded-xl border border-border bg-card p-6 md:p-7 shadow-[var(--tw-shadow-card)] transition-shadow hover:shadow-[var(--tw-shadow-card-hover)]"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-secondary text-accent">
-                    <Icon className="h-4.5 w-4.5" strokeWidth={1.6} />
-                  </span>
-                  {/* 한글 라벨은 자간을 넓히지 않는다(라틴 대문자 라벨만 tracking 허용) */}
-                  <span className="text-xs font-medium text-muted-foreground">{p.eyebrow}</span>
-                </div>
-                <h2 className="mt-4 text-lg md:text-xl font-semibold leading-snug text-foreground">{p.title}</h2>
-                <p className="prose-reading mt-3 text-md text-muted-foreground">{p.body}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
+        <h1 className="mt-6 text-2xl font-bold tracking-tight md:text-3xl">TrueWords 운영 원칙</h1>
+        <p className="mt-3 text-base leading-[1.8] text-muted-foreground">
+          TrueWords는 말씀 원문에서 관련 구절을 찾아, 그 내용을 근거로 답하는 AI 챗봇입니다.
+        </p>
 
-      {/* footer — 사용자 웹이므로 모델명·관리자 링크는 노출하지 않는다 */}
-      <footer className="border-t border-border">
-        <div className="mx-auto max-w-5xl px-6 py-10 flex flex-col gap-3 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <p>TrueWords v1.0.0 · 615권 학습</p>
-          <p>© TrueWords Platform</p>
-        </div>
-      </footer>
+        <dl className="mt-8 divide-y divide-border border-y border-border">
+          {PRINCIPLES.map((p) => (
+            <div key={p.id} className="py-6">
+              <dt className="text-lg font-semibold leading-snug">{p.title}</dt>
+              <dd className="mt-2 text-base leading-[1.8] text-muted-foreground">{p.body}</dd>
+            </div>
+          ))}
+        </dl>
+
+        {/* 사용자 웹이므로 모델명·관리자 링크는 노출하지 않는다 */}
+        <p className="mt-8 text-xs text-muted-foreground">© TrueWords Platform</p>
+      </div>
     </main>
   );
 }
