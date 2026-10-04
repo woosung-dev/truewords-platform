@@ -50,7 +50,8 @@ for (const app of ["web", "admin"] as const) {
       await expectColor(
         page.locator("body"),
         "background-color",
-        isDark ? "oklch(0.18 0.012 50)" : "oklch(0.988 0.024 95)",
+        // 관리자 로그인도 cool slate 범위(body.admin-scope)라 라이트 배경이 웹과 다르다.
+        isDark ? "oklch(0.18 0.012 50)" : app === "admin" ? "oklch(0.985 0.005 250)" : "oklch(0.988 0.024 95)",
       );
       await expect(email).toHaveCSS("height", "44px");
       await email.fill(app === "admin" ? process.env.E2E_ADMIN_EMAIL || "demo-admin@example.com" : "admin@test.com");
