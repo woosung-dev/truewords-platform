@@ -1,9 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { User } from "lucide-react";
+import { ThumbsDown, ThumbsUp, User } from "lucide-react";
 import { useState } from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { LoadError } from "@/components/load-error";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
@@ -90,15 +91,26 @@ function formatDate(isoString: string): string {
     .replace(/\.$/, "");
 }
 
+// 빈 분포 문구. 전체 기간이면 언제 쌓이는지까지 알려 준다.
+function emptyFeedbackText(days: number): string {
+  return days === 0
+    ? "아직 피드백이 없어요. 사용자 웹에서 답변에 피드백을 남기면 여기에 모여요."
+    : "이 기간에 피드백이 없어요.";
+}
+
 // ─────────────────────────────────────────────
 // 피드백 유형 분포 PieChart
 // ─────────────────────────────────────────────
 function FeedbackDistributionChart({
   data,
   loading,
+  error,
+  days,
 }: {
   data?: { feedback_type: string; count: number }[];
   loading: boolean;
+  error: boolean;
+  days: number;
 }) {
   const chartData = (data ?? []).map((d) => {
     const key = normalizeFeedbackType(d.feedback_type);
@@ -114,45 +126,50 @@ function FeedbackDistributionChart({
       <h2 className="text-sm font-semibold">피드백 유형 분포</h2>
       {loading ? (
         <Skeleton className="h-64 w-full" />
+      ) : error ? (
+        <p className="text-sm text-muted-foreground">불러오지 못했어요.</p>
       ) : chartData.length === 0 ? (
-        <div className="h-64 flex items-center justify-center">
-          <p className="text-sm text-muted-foreground">피드백이 없습니다</p>
-        </div>
+        <p className="text-sm text-muted-foreground">{emptyFeedbackText(days)}</p>
       ) : (
-        <ResponsiveContainer width="100%" height={256}>
-          <PieChart>
-            <Pie
-              data={chartData}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              outerRadius={90}
-              innerRadius={48}
-              paddingAngle={2}
-            >
-              {chartData.map((entry, index) => (
-                <Cell key={index} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              cursor={{ fill: "var(--color-admin-muted)", opacity: 0.4 }}
-              wrapperStyle={{ outline: "none", zIndex: 50 }}
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 8,
-                border: "1px solid var(--color-border)",
-                background: "var(--color-card)",
-                color: "var(--color-foreground)",
-                boxShadow: "0 8px 24px oklch(0 0 0 / 0.10), 0 2px 4px oklch(0 0 0 / 0.06)",
-                padding: "8px 12px",
-              }}
-              itemStyle={{ color: "var(--color-foreground)" }}
-              labelStyle={{ color: "var(--color-foreground)", fontWeight: 600 }}
-            />
-            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-          </PieChart>
-        </ResponsiveContainer>
+        <div
+          role="img"
+          aria-label={`피드백 유형 분포: ${chartData.map((d) => `${d.name} ${d.value.toLocaleString()}건`).join(", ")}`}
+        >
+          <ResponsiveContainer width="100%" height={256}>
+            <PieChart>
+              <Pie
+                data={chartData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={90}
+                innerRadius={48}
+                paddingAngle={2}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={index} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                cursor={{ fill: "var(--color-admin-muted)", opacity: 0.4 }}
+                wrapperStyle={{ outline: "none", zIndex: 50 }}
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-card)",
+                  color: "var(--color-foreground)",
+                  boxShadow: "0 8px 24px oklch(0 0 0 / 0.10), 0 2px 4px oklch(0 0 0 / 0.06)",
+                  padding: "8px 12px",
+                }}
+                itemStyle={{ color: "var(--color-foreground)" }}
+                labelStyle={{ color: "var(--color-foreground)", fontWeight: 600 }}
+              />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
       )}
     </div>
   );
@@ -166,12 +183,16 @@ function FeedbackTable({
   onPolarityChange,
   items,
   loading,
+  error,
+  days,
   onSelectSession,
 }: {
   polarity: "positive" | "negative";
   onPolarityChange: (p: "positive" | "negative") => void;
   items?: NegativeFeedbackItem[];
   loading: boolean;
+  error: boolean;
+  days: number;
   onSelectSession: (sessionId: string) => void;
 }) {
   const polarityLabel = polarity === "positive" ? "긍정" : "부정";
@@ -183,14 +204,21 @@ function FeedbackTable({
           {(["negative", "positive"] as const).map((p) => (
             <button
               key={p}
+              type="button"
+              aria-pressed={polarity === p}
               onClick={() => onPolarityChange(p)}
-              className={`px-3 py-1 rounded-md transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md transition-colors ${
                 polarity === p
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {p === "positive" ? "👍 긍정" : "👎 부정"}
+              {p === "positive" ? (
+                <ThumbsUp className="size-3.5" aria-hidden="true" />
+              ) : (
+                <ThumbsDown className="size-3.5" aria-hidden="true" />
+              )}
+              {p === "positive" ? "긍정" : "부정"}
             </button>
           ))}
         </div>
@@ -202,8 +230,12 @@ function FeedbackTable({
             <Skeleton key={i} className="h-10 w-full" />
           ))}
         </div>
+      ) : error ? (
+        <p className="text-sm text-muted-foreground">불러오지 못했어요.</p>
       ) : !items || items.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">{polarityLabel} 피드백이 없습니다</p>
+        <p className="text-sm text-muted-foreground">
+          {days === 0 ? `${polarityLabel} 피드백이 아직 없어요.` : `이 기간에 ${polarityLabel} 피드백이 없어요.`}
+        </p>
       ) : (
         <div className="overflow-x-auto overflow-hidden rounded-lg border">
           <table className="w-full text-sm">
@@ -298,17 +330,18 @@ const DAYS_OPTIONS: { value: number; label: string }[] = [
 export default function FeedbackPage() {
   const [days, setDays] = useState<number>(0); // 0 = 전체 (기본)
 
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ["feedback-summary", days],
     queryFn: () => analyticsAPI.getFeedbackSummary(days),
   });
 
   const [polarity, setPolarity] = useState<"positive" | "negative">("negative");
 
-  const { data: feedbackList, isLoading: feedbackLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ["feedback-list", polarity, days],
     queryFn: () => analyticsAPI.getFeedbackList(polarity, 20, 0, days),
   });
+  const failedQueries = [summaryQuery, listQuery].filter((q) => q.isError);
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
@@ -316,10 +349,7 @@ export default function FeedbackPage() {
     <div className="space-y-6 page-wide">
       {/* 헤더 + 기간 선택 */}
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">피드백 대시보드</h1>
-          <p className="text-sm text-muted-foreground mt-1">사용자 피드백을 분석합니다</p>
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight">피드백 대시보드</h1>
         <label className="flex items-center gap-1.5 shrink-0 mt-1">
           <span className="text-muted-foreground text-xs">기간</span>
           <select
@@ -336,15 +366,31 @@ export default function FeedbackPage() {
         </label>
       </div>
 
+      {failedQueries.length > 0 && (
+        <LoadError
+          message="피드백을 불러오지 못했습니다."
+          onRetry={() => {
+            for (const q of failedQueries) q.refetch();
+          }}
+        />
+      )}
+
       {/* 피드백 유형 분포 */}
-      <FeedbackDistributionChart data={summary?.distribution} loading={summaryLoading} />
+      <FeedbackDistributionChart
+        data={summaryQuery.data?.distribution}
+        loading={summaryQuery.isLoading}
+        error={summaryQuery.isError}
+        days={days}
+      />
 
       {/* 피드백 목록 (긍정/부정 토글) */}
       <FeedbackTable
         polarity={polarity}
         onPolarityChange={setPolarity}
-        items={feedbackList}
-        loading={feedbackLoading}
+        items={listQuery.data}
+        loading={listQuery.isLoading}
+        error={listQuery.isError}
+        days={days}
         onSelectSession={setSelectedSessionId}
       />
 

@@ -93,7 +93,6 @@ export default function QueriesExplorerPage() {
           <span className="text-muted-foreground">질문 탐색</span>
         </nav>
         <h1 className="text-2xl font-bold tracking-tight mt-2">질문 탐색</h1>
-        <p className="text-sm text-muted-foreground mt-1">전체 질문을 검색·정렬하고 각 질문의 상세를 확인합니다</p>
       </div>
 
       {/* 필터 바 */}
@@ -156,7 +155,17 @@ export default function QueriesExplorerPage() {
             </Button>
           </div>
         ) : !data || data.items.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-10 text-center">조건에 맞는 질문이 없습니다</p>
+          // 검색어로 비었는지, 기간 자체가 비었는지에 따라 다음 행동이 다르다.
+          q ? (
+            <div className="flex flex-wrap items-center gap-2 py-6 text-sm text-muted-foreground">
+              <span>&ldquo;{q}&rdquo;에 맞는 질문이 없어요.</span>
+              <Button size="sm" variant="outline" onClick={() => setSearchInput("")}>
+                검색어 지우기
+              </Button>
+            </div>
+          ) : (
+            <p className="py-6 text-sm text-muted-foreground">최근 {days}일 동안 질문이 없어요.</p>
+          )
         ) : (
           <div className="overflow-hidden rounded-lg border">
             <table className="w-full text-sm">
@@ -165,7 +174,7 @@ export default function QueriesExplorerPage() {
                   <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground w-10">순위</th>
                   <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">질문</th>
                   <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-16">횟수</th>
-                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-14">👎</th>
+                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-14">부정</th>
                   <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-36">최근 발생</th>
                 </tr>
               </thead>
@@ -173,25 +182,26 @@ export default function QueriesExplorerPage() {
                 {data.items.map((item, i) => {
                   const rank = (page - 1) * size + i + 1;
                   return (
+                    // 행 어디를 눌러도 열리고, 키보드는 질문 칸의 버튼으로 연다(표 시맨틱 유지).
                     <tr
                       key={`${item.query_text}-${i}`}
                       className={
                         (i !== 0 ? "border-t " : "") + "cursor-pointer hover:bg-admin-muted/40 transition-colors"
                       }
                       onClick={() => setSelectedQuery(item.query_text)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setSelectedQuery(item.query_text);
-                        }
-                      }}
-                      title="클릭하면 상세 정보를 확인할 수 있습니다"
                     >
                       <td className="py-2 px-3 text-muted-foreground font-mono text-xs">{rank}</td>
                       <td className="py-2 px-3 max-w-0 w-full">
-                        <TruncateTooltip text={item.query_text} />
+                        <button
+                          type="button"
+                          className="block w-full text-left"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedQuery(item.query_text);
+                          }}
+                        >
+                          <TruncateTooltip text={item.query_text} />
+                        </button>
                       </td>
                       <td className="py-2 px-3 text-right font-medium">{item.count.toLocaleString()}</td>
                       <td className="py-2 px-3 text-right">

@@ -7,12 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DialogContent } from "@/components/ui/dialog";
 
-// UI/UX 가이드 적용 (ui-ux-pro-max):
-//   §1 a11y    — aria-label / aria-describedby / focus management / color-not-only
-//   §2 touch   — loading-buttons (삭제 중 disable + spinner)
-//   §4 style   — destructive-emphasis (red), primary-action(취소가 default), elevation
-//   §7 motion  — modal-motion (scale+fade), reduced-motion 호환 (CSS transition만 사용)
-//   §8 forms   — confirmation-dialogs + typed-confirm + input-labels + error-clarity
+// 되돌릴 수 없는 파일 삭제 확인.
+//   접근성: aria-label·aria-describedby·포커스 이동, 색만으로 구분하지 않는다
+//   진행 중: 삭제 중에는 버튼을 막고 스피너를 보인다
+//   강조: 위험 동작은 빨강, 기본 동작은 취소
+//   움직임: scale+fade 를 CSS transition 으로만 줘 reduced-motion 을 따른다
+//   입력: 파일명을 그대로 입력해야 삭제(typed-confirm), 입력 라벨과 오류 문장을 둔다
 export interface DeleteTarget {
   volume: string; // 타이핑 confirm 대상 (NFC 정규화된 volume_key)
   sources: string[]; // 분류 태그

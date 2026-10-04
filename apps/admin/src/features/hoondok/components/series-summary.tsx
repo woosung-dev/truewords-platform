@@ -27,16 +27,17 @@ export default function SeriesSummary({ query, onBulk }: Props) {
   if (query.data.items.length === 0) {
     return (
       <p className="rounded-xl border border-dashed p-8 text-muted-foreground">
-        권리 원장이 비어 있어요 — VM 에서 <code>seed_content_rights_from_qdrant.py</code> 를 먼저 실행합니다
+        권리 원장이 비어 있어요. VM 에서 <code>seed_content_rights_from_qdrant.py</code> 를 먼저 실행합니다
       </p>
     );
   }
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="table-scroll-hint overflow-hidden rounded-xl border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>저작물</TableHead>
+            {/* 좁은 화면에서 숫자 열을 넘겨도 어느 저작물인지 보이도록 첫 열을 붙여 둔다. */}
+            <TableHead className="max-md:sticky max-md:left-0 max-md:z-10 max-md:bg-card">저작물</TableHead>
             <TableHead className="text-right">등록</TableHead>
             <TableHead className="text-right">공개</TableHead>
             <TableHead className="text-right">대기</TableHead>
@@ -48,7 +49,9 @@ export default function SeriesSummary({ query, onBulk }: Props) {
         <TableBody>
           {query.data.items.map((item) => (
             <TableRow key={item.series}>
-              <TableCell className="font-medium">{item.title || SERIES_TITLE[item.series] || item.series}</TableCell>
+              <TableCell className="font-medium max-md:sticky max-md:left-0 max-md:z-10 max-md:bg-card">
+                {item.title || SERIES_TITLE[item.series] || item.series}
+              </TableCell>
               <TableCell className="text-right">{item.registered}</TableCell>
               <TableCell className="text-right">{item.allowed}</TableCell>
               <TableCell className="text-right">{item.pending}</TableCell>

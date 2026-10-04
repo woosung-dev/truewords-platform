@@ -5,12 +5,12 @@ import { AlertTriangle, Loader2, UserX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DialogContent } from "@/components/ui/dialog";
 
-// UI/UX 가이드 적용 (ui-ux-pro-max):
-//   §1 a11y    — aria-describedby / focus trap(base-ui) / color-not-only(icon+text+color)
-//   §2 touch   — loading-buttons (전환 중 disable + spinner)
-//   §4 style   — destructive-emphasis, primary-action(취소가 안전한 default)
-//   §7 motion  — modal-motion (scale+fade), CSS transition만 사용해 reduced-motion 호환
-//   §8 forms   — confirmation-dialogs, error-clarity(결과를 문장으로 명시)
+// 관리자 계정 비활성화 확인.
+//   접근성: aria-describedby·포커스 가둠(base-ui), 아이콘+글자+색으로 함께 알린다
+//   진행 중: 전환 중에는 버튼을 막고 스피너를 보인다
+//   강조: 위험 동작은 빨강, 안전한 기본 동작은 취소
+//   움직임: scale+fade 를 CSS transition 으로만 줘 reduced-motion 을 따른다
+//   문구: 결과를 문장으로 밝힌다
 //
 // delete-confirm-dialog 와 달리 타이핑 확인(typed-confirm)을 요구하지 않는다.
 // 계정 비활성화는 목록에서 '활성화' 한 번으로 되돌릴 수 있어(undo-support) 마찰을

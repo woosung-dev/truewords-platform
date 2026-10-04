@@ -10,17 +10,20 @@ interface Props {
   title: string;
   description: string;
   confirmLabel: string;
+  /** 진행 중 버튼 문구. 기본 "삭제 중..." */
+  pendingLabel?: string;
   isPending: boolean;
   onConfirm: () => void;
   onOpenChange: (open: boolean) => void;
 }
 
-/** 공식 정성·모임 삭제 확인. 되돌릴 수 없는 동작이라 브라우저 confirm 대신 문구를 충분히 보인다(bulk-rights-dialog 와 같은 Dialog). */
+/** 공식 정성·모임 삭제, 데이터 소스 카테고리 비활성화·태그 제거 확인. 브라우저 confirm 대신 문구를 충분히 보인다(bulk-rights-dialog 와 같은 Dialog). */
 export function ConfirmDeleteDialog({
   open,
   title,
   description,
   confirmLabel,
+  pendingLabel = "삭제 중...",
   isPending,
   onConfirm,
   onOpenChange,
@@ -36,7 +39,7 @@ export function ConfirmDeleteDialog({
             취소
           </Button>
           <Button type="button" variant="destructive" onClick={onConfirm} disabled={isPending}>
-            {isPending ? "삭제 중..." : confirmLabel}
+            {isPending ? pendingLabel : confirmLabel}
           </Button>
         </div>
       </DialogContent>

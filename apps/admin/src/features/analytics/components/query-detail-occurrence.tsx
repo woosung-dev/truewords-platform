@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronRight, Minus, ThumbsDown, ThumbsUp, User } from "lucide-react";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import type { QueryOccurrence } from "@/features/analytics/types";
 
@@ -33,6 +34,33 @@ function FeedbackIcon({ type }: { type: string | undefined }) {
     return <ThumbsUp className="h-3.5 w-3.5 text-success" aria-label="긍정 피드백" />;
   }
   return <ThumbsDown className="h-3.5 w-3.5 text-destructive" aria-label="부정 피드백" />;
+}
+
+function feedbackStep(type: string | undefined): string {
+  if (!type) return "피드백 없음";
+  return POSITIVE_FEEDBACK.has(type.toUpperCase()) ? "피드백 긍정" : "피드백 부정";
+}
+
+function processSteps(occurrence: QueryOccurrence): { key: string; label: ReactNode }[] {
+  return [
+    { key: "question", label: "질문" },
+    ...(occurrence.rewritten_query
+      ? [
+          {
+            key: "rewrite",
+            label: (
+              <span>
+                재작성 <span className="text-foreground">&ldquo;{occurrence.rewritten_query}&rdquo;</span>
+              </span>
+            ),
+          },
+        ]
+      : []),
+    { key: "tier", label: `tier ${occurrence.search_tier}` },
+    { key: "results", label: `결과 ${occurrence.total_results}건` },
+    { key: "answer", label: occurrence.answer_text ? "답변" : "답변 없음" },
+    { key: "feedback", label: feedbackStep(occurrence.feedback?.feedback_type) },
+  ];
 }
 
 export default function QueryDetailOccurrence({ index, occurrence, expanded, onToggle }: Props) {
@@ -77,21 +105,17 @@ export default function QueryDetailOccurrence({ index, occurrence, expanded, onT
 
       {expanded && (
         <div id={panelId} role="region" aria-labelledby={headerId} className="border-t px-4 py-4 space-y-4 text-sm">
-          {/* 검색 메타 */}
-          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-            <span>tier {occurrence.search_tier}</span>
-            <span>·</span>
-            <span>{occurrence.total_results}건</span>
-            <span>·</span>
-            <span>{occurrence.latency_ms} ms</span>
-            {occurrence.rewritten_query && (
-              <>
-                <span>·</span>
-                <span>
-                  재작성: <span className="text-foreground">&ldquo;{occurrence.rewritten_query}&rdquo;</span>
-                </span>
-              </>
-            )}
+          {/* 처리 단계: 질문부터 피드백까지 일어난 순서대로 읽히게 하고, 지연은 오른쪽 끝에 둔다 */}
+          <div className="flex items-start gap-3 text-xs text-muted-foreground">
+            <ol aria-label="처리 단계" className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+              {processSteps(occurrence).map((step, i) => (
+                <li key={step.key} className="flex items-center gap-1.5">
+                  {i > 0 && <span aria-hidden="true">→</span>}
+                  {step.label}
+                </li>
+              ))}
+            </ol>
+            <span className="ml-auto shrink-0 font-mono tabular-nums">{occurrence.latency_ms} ms</span>
           </div>
 
           {/* 답변 */}

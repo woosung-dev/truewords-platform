@@ -157,7 +157,7 @@ export default function HoondokCardsPage() {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border bg-card">
+          <div className="table-scroll-hint overflow-x-auto rounded-xl border bg-card">
             <Table>
               <TableHeader>
                 <TableRow className="bg-admin-muted/40 hover:bg-admin-muted/40">

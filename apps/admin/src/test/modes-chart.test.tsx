@@ -15,9 +15,25 @@ describe("ModesChart", () => {
     expect(screen.getByText("일별 모드 분포 (최근 30일, UTC 기준)")).toBeInTheDocument();
   });
 
-  it("빈 데이터 시 '데이터가 없습니다' 노출", () => {
+  it("빈 데이터면 언제 쌓이는지 한 줄로 알린다", () => {
     render(<ModesChart rows={[]} loading={false} />);
-    expect(screen.getByText("데이터가 없습니다")).toBeInTheDocument();
+    expect(screen.getByText(/최근 30일 동안 답변 기록이 없어요/)).toBeInTheDocument();
+  });
+
+  it("불러오지 못하면 빈 데이터로 보이지 않는다", () => {
+    render(<ModesChart rows={undefined} loading={false} error />);
+    expect(screen.getByText("불러오지 못했어요.")).toBeInTheDocument();
+    expect(screen.queryByText(/답변 기록이 없어요/)).not.toBeInTheDocument();
+  });
+
+  it("차트에 모드별 합계 요약을 붙인다", () => {
+    const rows: DailyModeCount[] = [
+      { date: "2026-05-13", mode: "standard", persona_overridden: false, count: 5 },
+      { date: "2026-05-14", mode: "standard", persona_overridden: false, count: 2 },
+      { date: "2026-05-14", mode: "pastoral", persona_overridden: false, count: 3 },
+    ];
+    render(<ModesChart rows={rows} loading={false} />);
+    expect(screen.getByRole("img", { name: "최근 30일 모드 분포: 표준 7건, 목회상담 3건" })).toBeInTheDocument();
   });
 
   it("pastoral override 비율 계산 + 노출", () => {

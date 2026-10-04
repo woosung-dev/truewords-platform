@@ -36,8 +36,7 @@ export default function NewChatbotPage() {
         챗봇 목록
       </button>
 
-      <h1 className="text-2xl font-bold tracking-tight">새 챗봇 만들기</h1>
-      <p className="text-sm text-muted-foreground pb-4">새로운 AI 챗봇의 기본 설정을 구성합니다</p>
+      <h1 className="text-2xl font-bold tracking-tight pb-4">새 챗봇 만들기</h1>
 
       <ChatbotForm
         mode="create"

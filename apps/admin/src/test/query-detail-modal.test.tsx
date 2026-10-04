@@ -122,6 +122,28 @@ describe("QueryDetailModal", () => {
     expect(screen.getByText(/매칭된 출처가 없습니다/)).toBeDefined();
   });
 
+  it("처리 단계를 질문부터 피드백까지 순서대로 보여준다", async () => {
+    mockGetQueryDetails.mockResolvedValue({
+      query_text: "천일국",
+      total_count: 1,
+      returned_count: 1,
+      days: 30,
+      occurrences: [
+        occurrenceFixture({
+          rewritten_query: "천일국의 의미",
+          search_tier: 1,
+          feedback: { feedback_type: "INACCURATE", comment: null, created_at: "2026-04-21T10:01:00" },
+        }),
+      ],
+    } satisfies QueryDetail);
+
+    renderModal();
+    const steps = await screen.findByRole("list", { name: "처리 단계" });
+    const labels = Array.from(steps.querySelectorAll("li")).map((li) => li.textContent?.replace("→", "").trim());
+    expect(labels).toEqual(["질문", "재작성 “천일국의 의미”", "tier 1", "결과 3건", "답변", "피드백 부정"]);
+    expect(screen.getByText("200 ms")).toBeDefined();
+  });
+
   it("봇이 삭제된 발생은 '(삭제된 봇)' 라벨을 보여준다", async () => {
     mockGetQueryDetails.mockResolvedValue({
       query_text: "천일국",

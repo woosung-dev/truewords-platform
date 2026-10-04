@@ -22,6 +22,7 @@ import {
   useRemoveVolumeTag,
 } from "@/features/data-source/hooks";
 import type { CategoryDocumentStats, DataSourceCategory } from "@/features/data-source/types";
+import { ConfirmDeleteDialog } from "@/features/hoondok/components/confirm-delete-dialog";
 
 const COLOR_OPTIONS = [
   { key: "indigo", label: "인디고" },
@@ -58,6 +59,12 @@ export default function CategoryTab() {
   const { data: categoryStats, isLoading: statsLoading } = useCategoryStats();
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const removeTagMutation = useRemoveVolumeTag();
+  // 카테고리 비활성화·태그 제거 확인. 두 동작 모두 같은 Dialog 를 쓴다.
+  const [pendingConfirm, setPendingConfirm] = useState<
+    | { kind: "deactivate"; category: DataSourceCategory }
+    | { kind: "remove-tag"; category: DataSourceCategory; volume: string }
+    | null
+  >(null);
 
   // Transfer Sheet 상태
   const [transferOpen, setTransferOpen] = useState(false);
@@ -201,6 +208,7 @@ export default function CategoryTab() {
     mutationFn: (id: string) => dataSourceCategoryAPI.delete(id),
     onSuccess: () => {
       toast.success("카테고리가 비활성화되었습니다");
+      setPendingConfirm(null);
       queryClient.invalidateQueries({ queryKey: ["data-source-categories"] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -256,9 +264,19 @@ export default function CategoryTab() {
     }
   }
 
-  function handleDeactivate(cat: DataSourceCategory) {
-    if (!confirm(`"${cat.name}" 카테고리를 비활성화하시겠습니까?`)) return;
-    deleteMutation.mutate(cat.id);
+  function handleConfirm() {
+    if (!pendingConfirm) return;
+    if (pendingConfirm.kind === "deactivate") {
+      deleteMutation.mutate(pendingConfirm.category.id);
+      return;
+    }
+    removeTagMutation.mutate(
+      { volume: pendingConfirm.volume, source: pendingConfirm.category.key },
+      {
+        onSuccess: () => setPendingConfirm(null),
+        onError: (err: Error) => toast.error(err.message),
+      },
+    );
   }
 
   const isPending = createMutation.isPending || updateMutation.isPending;
@@ -441,7 +459,7 @@ export default function CategoryTab() {
                             title="비활성화"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeactivate(cat);
+                              setPendingConfirm({ kind: "deactivate", category: cat });
                             }}
                           >
                             <Power className="w-3.5 h-3.5" />
@@ -466,26 +484,22 @@ export default function CategoryTab() {
                                   <Tag className="w-3 h-3" />
                                   {cat.key}
                                 </Badge>
+                                {/* 데이터를 남기는 "제거"와 지우는 "영구 삭제"를 잘못 누르지 않도록 32px 타점과 간격을 둔다. */}
                                 <button
                                   type="button"
-                                  className="text-muted-foreground hover:text-foreground transition-colors"
+                                  className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-admin-muted hover:text-foreground transition-colors"
                                   aria-label={`${cat.key} 카테고리에서 ${vol} 제거`}
                                   title={`${cat.key} 카테고리에서 제거 (데이터는 보존)`}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (confirm(`"${vol}"을(를) ${cat.name} 카테고리에서 제거하시겠습니까?`)) {
-                                      removeTagMutation.mutate(
-                                        { volume: vol, source: cat.key },
-                                        { onError: (err: Error) => toast.error(err.message) },
-                                      );
-                                    }
+                                    setPendingConfirm({ kind: "remove-tag", category: cat, volume: vol });
                                   }}
                                 >
                                   <X className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   type="button"
-                                  className="text-muted-foreground hover:text-destructive transition-colors"
+                                  className="ml-2 inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-danger-soft hover:text-destructive transition-colors"
                                   aria-label={`${vol} 영구 삭제`}
                                   title="파일 영구 삭제 (Qdrant + DB 모두)"
                                   onClick={(e) => {
@@ -642,6 +656,27 @@ export default function CategoryTab() {
           categoryColor={transferTarget.color}
         />
       )}
+
+      <ConfirmDeleteDialog
+        open={pendingConfirm !== null}
+        title={
+          pendingConfirm?.kind === "deactivate"
+            ? `"${pendingConfirm.category.name}" 카테고리를 비활성화할까요?`
+            : `"${pendingConfirm?.volume ?? ""}"을(를) 카테고리에서 뺄까요?`
+        }
+        description={
+          pendingConfirm?.kind === "deactivate"
+            ? "문서와 청크는 지워지지 않아요. 수정 화면의 '활성 상태'로 다시 켤 수 있어요."
+            : `${pendingConfirm?.category.name ?? ""} 태그만 빠지고 문서와 청크는 그대로 남아요.`
+        }
+        confirmLabel={pendingConfirm?.kind === "deactivate" ? "비활성화" : "제거"}
+        pendingLabel="처리 중..."
+        isPending={deleteMutation.isPending || removeTagMutation.isPending}
+        onConfirm={handleConfirm}
+        onOpenChange={(open) => {
+          if (!open) setPendingConfirm(null);
+        }}
+      />
 
       {/* ADR-30 Phase 3 — 영구 삭제 확인 다이얼로그 */}
       <DeleteConfirmDialog

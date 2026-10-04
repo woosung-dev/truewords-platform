@@ -11,15 +11,23 @@ import { ScheduleStockBanner } from "@/features/hoondok/components/schedule-stoc
 import { dateRange, formatDayLabel, LIST_DAYS } from "@/features/hoondok/dates";
 import { GRADE_LABEL, REVIEW_LABEL } from "@/features/hoondok/labels";
 import { scheduleStock } from "@/features/hoondok/stock";
-import type { ReviewStatus } from "@/features/hoondok/types";
+import type { AuthorityGrade, ReviewStatus } from "@/features/hoondok/types";
 import { useUpcomingReadings } from "@/features/hoondok/use-upcoming-readings";
 
-// 검수 상태 배지 — 챗봇 목록의 활성/비활성 배지 토큰을 그대로 쓴다(새 디자인 없음).
-const REVIEW_BADGE: Record<ReviewStatus, string> = {
-  reviewed: "bg-success-soft text-success hover:bg-success-soft border border-success-border",
-  unverified: "bg-transparent text-muted-foreground hover:bg-transparent border border-dashed border-border",
-  withdrawn: "bg-destructive/10 text-destructive hover:bg-destructive/10 border border-destructive/30",
-};
+// 공식성·검수는 대부분 같은 값이라 기본은 글자로 두고, 눈여겨볼 값만 배지로 올린다.
+// 공식 원문·편집(O1·O2)은 성공, 철회는 위험이다.
+function GradeCell({ grade }: { grade: AuthorityGrade }) {
+  if (grade === "O1" || grade === "O2") return <StatusBadge tone="success">{GRADE_LABEL[grade]}</StatusBadge>;
+  return <span className="text-sm text-muted-foreground">{GRADE_LABEL[grade]}</span>;
+}
+
+function ReviewCell({ status }: { status: ReviewStatus }) {
+  if (status === "withdrawn") return <StatusBadge tone="danger">{REVIEW_LABEL[status]}</StatusBadge>;
+  return <span className="text-sm text-muted-foreground">{REVIEW_LABEL[status]}</span>;
+}
+
+// 좁은 화면에서 표를 옆으로 넘겨도 어느 날짜 행인지 보이도록 날짜 열을 붙여 둔다.
+const STICKY_CELL = "max-md:sticky max-md:left-0 max-md:z-10";
 
 /** 오늘(KST)부터 14일 — 편성 없는 날은 "미편성" 행으로 보여 빠진 날을 바로 채울 수 있게 한다. */
 export default function HoondokReadingsPage() {
@@ -79,11 +87,15 @@ export default function HoondokReadingsPage() {
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <div className="table-scroll-hint overflow-x-auto rounded-xl border bg-card">
           <Table>
             <TableHeader>
               <TableRow className="bg-admin-muted/40 hover:bg-admin-muted/40">
-                <TableHead className="font-semibold text-foreground">날짜</TableHead>
+                <TableHead
+                  className={`font-semibold text-foreground ${STICKY_CELL} max-md:bg-[color-mix(in_oklab,var(--color-admin-muted)_40%,var(--color-card))]`}
+                >
+                  날짜
+                </TableHead>
                 <TableHead className="font-semibold text-foreground">제목</TableHead>
                 <TableHead className="font-semibold text-foreground">출처</TableHead>
                 <TableHead className="font-semibold text-foreground">공식성</TableHead>
@@ -107,7 +119,11 @@ export default function HoondokReadingsPage() {
                       isFirstGap ? "bg-warning-soft hover:bg-warning-soft" : "hover:bg-admin-muted/30 transition-colors"
                     }
                   >
-                    <TableCell className={isToday ? "font-medium" : undefined}>
+                    <TableCell
+                      className={`${STICKY_CELL} ${isFirstGap ? "max-md:bg-warning-soft" : "max-md:bg-card"} ${
+                        isToday ? "font-medium" : ""
+                      }`}
+                    >
                       {formatDayLabel(iso)}
                       {isToday && (
                         <Badge variant="secondary" className="ml-2">
@@ -137,16 +153,8 @@ export default function HoondokReadingsPage() {
                     <TableCell className="text-sm text-muted-foreground max-w-[14rem] truncate">
                       {reading ? `${reading.speaker} · ${reading.work_title}` : "—"}
                     </TableCell>
-                    <TableCell>
-                      {reading && <Badge variant="secondary">{GRADE_LABEL[reading.authority_grade]}</Badge>}
-                    </TableCell>
-                    <TableCell>
-                      {reading && (
-                        <Badge className={REVIEW_BADGE[reading.review_status]}>
-                          {REVIEW_LABEL[reading.review_status]}
-                        </Badge>
-                      )}
-                    </TableCell>
+                    <TableCell>{reading && <GradeCell grade={reading.authority_grade} />}</TableCell>
+                    <TableCell>{reading && <ReviewCell status={reading.review_status} />}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {reading ? `${reading.estimated_minutes}분` : ""}
                     </TableCell>
