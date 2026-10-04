@@ -87,9 +87,10 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   // 훈독하기: 출처 줄(화자·저작물) + 전문 + 완료 버튼 → 비로그인이라 로컬 완료 + 로그인 링크
   await expect(page.locator(".src").first()).toContainText("참");
   await expect(page.locator(".scripture")).toBeVisible();
-  // make e2e 시드(scripts/seed_daily_readings.py)가 오늘 날짜를 채운다. 시드 데이터는 권리 확인 중(R)·미검수다.
+  // make e2e 시드(scripts/seed_daily_readings.py)가 오늘 날짜를 채운다. 시드 데이터는 R 등급·미검수다.
+  // 훈독 화면의 R 라벨은 DS §2.3 정본 "R 참고 자료" 하나다(관리자 운영 라벨 "권리 확인 중"과 다르다).
   const card = page.getByRole("article").first();
-  await expect(card.getByText("권리 확인 중")).toBeVisible();
+  await expect(card.getByText("R 참고 자료")).toBeVisible();
   await expect(card.getByText("확인되지 않음", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "훈독 완료" }).click();
   await expect(page.getByRole("status")).toContainText("오늘 훈독을 마쳤어요");

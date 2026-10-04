@@ -4,12 +4,13 @@
 // 허용 권이 0건인 시리즈는 백엔드가 404 를 주므로 존재 여부를 화면에서 추측하지 않는다.
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
-import { BookOpenText } from "lucide-react";
+import { BookOpenText, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { AuthorityBadge } from "@/components/hoondok";
 import { seriesKey } from "@/features/hoondok/query-keys";
 import { useHoondokScreenTitle } from "@/features/hoondok/screen-title";
 import { libraryAPI, wordsHref } from "../api";
+import { R_GROUP_NOTE } from "../grade";
 
 export function SeriesScreen({ series }: { series: string }) {
   const query = useQuery({
@@ -59,17 +60,15 @@ export function SeriesScreen({ series }: { series: string }) {
     <section className="col">
       <div className="sect">
         <div className="sect__head">
-          <h2 className="sect__title">권</h2>
-          {/* 제목은 왼쪽, 개수·등급은 오른쪽 한 묶음 — 세 요소를 space-between 에 두면 개수가 가운데 떠 보인다 */}
+          <h2 className="sect__title">권 목록</h2>
+          {/* 제목은 왼쪽, 개수·등급은 오른쪽 한 묶음 — 세 요소를 space-between 에 두면 개수가 가운데 떠 보인다.
+              등급은 저작물 단위라 권 행마다 반복하지 않는다 */}
           <span className="sect__side">
             <span className="sect__meta">{detail.volumes.length}권 공개</span>
-            {detail.authority_grade === "R" ? (
-              <span className="badge badge--dashed">공식성 확인되지 않음</span>
-            ) : (
-              <AuthorityBadge grade={detail.authority_grade} />
-            )}
+            <AuthorityBadge grade={detail.authority_grade} />
           </span>
         </div>
+        {detail.authority_grade === "R" && <p className="list-note">{R_GROUP_NOTE}</p>}
         <div className="shelf shelf--works">
           {detail.volumes.map((item) => {
             const content = (
@@ -86,6 +85,7 @@ export function SeriesScreen({ series }: { series: string }) {
             return item.scope_full_text ? (
               <Link key={item.volume} className="shelf__item" href={wordsHref(item.volume)}>
                 {content}
+                <ChevronRight className="shelf__go" size={20} aria-hidden="true" />
               </Link>
             ) : (
               <div key={item.volume} className="shelf__item">

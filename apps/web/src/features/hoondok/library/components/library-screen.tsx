@@ -3,24 +3,17 @@
 // SCR-PWA-007 말씀 서고. PLAN-HD-007 로 저작물(works) → 권 → 장 3계층의 첫 칸이 됐다.
 // 이어 읽기는 로그인 시 서버 값 우선, 없으면 기기 값 1회 업로드(§2-13).
 import { useQuery } from "@tanstack/react-query";
-import type { LibraryItem, LibraryWork } from "@truewords/api-client-ts/types";
-import { BookOpenText, Search } from "lucide-react";
+import type { LibraryWork } from "@truewords/api-client-ts/types";
+import { BookOpenText, ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { AuthorityBadge } from "@/components/hoondok";
 import { LIBRARY_KEY } from "@/features/hoondok/query-keys";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { libraryAPI, pageOfChunkIndex, seriesHref, WORDS_PAGE_SIZE, wordsHref, wordsPageHref } from "../api";
+import { R_GROUP_NOTE, sharedGrade } from "../grade";
 import { pickResume, resumeFromPhrase } from "../resume";
 import { useLastReading, useReadingPositions, useReadingPositionWriter } from "../use-reading";
-
-function GradeBadge({ grade }: { grade: LibraryItem["authority_grade"] }) {
-  return grade === "R" ? (
-    <span className="badge badge--dashed">공식성 확인되지 않음</span>
-  ) : (
-    <AuthorityBadge grade={grade} />
-  );
-}
 
 /** 저작물 카드의 부제 — 전권이 열려 있으면 권 수만, 일부면 공개 비율을 적는다. */
 function volumeSummary(work: LibraryWork): string {
@@ -47,6 +40,8 @@ export function LibraryScreen() {
 
   // 홈 이어 읽기 카드와 같은 규칙 — 원문 공개가 허용된 권만 고른다
   const resume = pickResume({ isLoggedIn, positions: positions.items, device, items });
+  // 선반 전체가 같은 등급이면 배지는 묶음 머리에 한 번만 — 행에는 그와 다른 등급만 단다
+  const shelfGrade = sharedGrade((works.length > 0 ? works : items).map((entry) => entry.authority_grade));
 
   return (
     <section className="col">
@@ -72,15 +67,16 @@ export function LibraryScreen() {
                   : `원문 구간 ${pageOfChunkIndex(resume.chunkIndex)}`}
               </span>
             </span>
-            <GradeBadge grade={resume.authorityGrade} />
+            <AuthorityBadge grade={resume.authorityGrade} />
           </Link>
         </div>
       )}
       <div className="sect">
         <div className="sect__head">
           <h2 className="sect__title">저작물</h2>
-          <span className="sect__meta">검색·원문 공개 권리를 확인한 저작물</span>
+          {query.isSuccess && shelfGrade && <AuthorityBadge grade={shelfGrade} />}
         </div>
+        {query.isSuccess && shelfGrade === "R" && <p className="list-note">{R_GROUP_NOTE}</p>}
         {query.isPending ? (
           <p className="sf-status" role="status" aria-busy="true">
             서고를 불러오고 있어요
@@ -121,7 +117,8 @@ export function LibraryScreen() {
                 >
                   <b>{work.title}</b>
                   <span>{volumeSummary(work)}</span>
-                  <GradeBadge grade={work.authority_grade} />
+                  {work.authority_grade !== shelfGrade && <AuthorityBadge grade={work.authority_grade} />}
+                  <ChevronRight className="shelf__go" size={20} aria-hidden="true" />
                 </Link>
               );
             })}
@@ -135,12 +132,13 @@ export function LibraryScreen() {
                   <b>{work.work_title}</b>
                   {/* 권리 원장에는 volume 과 work_title 이 같은 저작물이 있다 — 같은 글자를 두 줄 쓰지 않는다 */}
                   {work.volume !== work.work_title && <span>{work.volume}</span>}
-                  <GradeBadge grade={work.authority_grade} />
+                  {work.authority_grade !== shelfGrade && <AuthorityBadge grade={work.authority_grade} />}
                 </>
               );
               return work.scope_full_text ? (
                 <Link key={work.volume} className="shelf__item" href={wordsHref(work.volume)}>
                   {content}
+                  <ChevronRight className="shelf__go" size={20} aria-hidden="true" />
                 </Link>
               ) : (
                 <div key={work.volume} className="shelf__item">
