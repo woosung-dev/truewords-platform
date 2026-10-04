@@ -34,7 +34,11 @@
     border: 1.5px dashed var(--ink-3);
     border-radius: var(--r);
     padding: 13px 15px;
-    resize: vertical;
+    /* 크기 조절 손잡이 대신 글이 늘면 칸이 따라 늘어난다(지원 브라우저). 최소 높이는 3줄(rows=3) 자리다 */
+    resize: none;
+    field-sizing: content;
+    min-height: 104px;
+    max-height: 50dvh;
   }
   .my-note::placeholder {
     color: var(--ink-3);

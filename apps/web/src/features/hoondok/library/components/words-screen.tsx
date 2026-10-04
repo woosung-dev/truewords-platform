@@ -76,7 +76,7 @@ const SAVE_FAILED = "기록을 저장하지 못했어요. 연결을 확인하고
 const TOO_LONG = "한 번에 4,000자까지 칠할 수 있어요. 조금 줄여서 골라 주세요.";
 const NO_DECORATIONS: Decoration[] = [];
 
-/** ≥1024px 본문 위 가로 툴바. 폰·태블릿은 하단 독(ReaderDock)이 같은 도구를 보인다. */
+/** ≥1024px 머리글 줄 오른쪽의 글자 버튼 툴바. 폰·태블릿은 하단 독(ReaderDock)이 같은 도구를 보인다. */
 function ReaderBar({ onAction }: { onAction: (action: ReaderAction) => void }) {
   return (
     <div className="reader reader--top" aria-label="읽기 도구">
@@ -517,26 +517,24 @@ export function WordsScreen({
         />
       </aside>
       <div className="words__main">
-        {/* 저작물 제목은 앱바 h1 이 이미 보여준다(screens.ts titleSource: "work") */}
-        <div className="masthead">
-          {currentSection && <span className="masthead__nm">{currentSection.title}</span>}
-          <span className="masthead__dt">
-            {doc.page} / {doc.total_pages} 구간
-          </span>
+        {/* 저작물 제목은 앱바 h1 이 이미 보여준다(screens.ts titleSource: "work").
+            장 제목·구간·날짜·등급은 한 흐름으로 이어 써서 본문이 첫 화면에 더 많이 들어오게 한다 */}
+        <div className="wd-head">
+          <div className="masthead">
+            {currentSection && <span className="masthead__nm">{currentSection.title}</span>}
+            <span className="masthead__dt">
+              {doc.page} / {doc.total_pages} 구간
+            </span>
+            <span className="src lede-src">
+              {/* 장 데이터가 날짜·장소를 가진 권만 실제 값을 보인다. 없는 값은 지어내지도, 결측 문구로 채우지도 않는다
+                  (PLAN-HD-008). 파일 이름(volume 키)은 사람에게 의미가 없어 보이지 않는다 */}
+              {sectionDetail?.spoken_on && <span>{sectionDetail.spoken_on}</span>}
+              {sectionDetail?.place && <span>{sectionDetail.place}</span>}
+              <AuthorityBadge grade={doc.authority_grade} />
+            </span>
+          </div>
+          <ReaderBar onAction={handleReaderAction} />
         </div>
-        <div className="src lede-src">
-          {/* 장 데이터가 날짜·장소를 가진 권만 실제 값을 보인다. 없는 값은 지어내지도, 결측 문구로 채우지도 않는다
-              (PLAN-HD-008). 파일 이름(volume 키)은 사람에게 의미가 없어 보이지 않는다 */}
-          {sectionDetail?.spoken_on && <span>{sectionDetail.spoken_on}</span>}
-          {sectionDetail?.place && <span>{sectionDetail.place}</span>}
-          {doc.authority_grade === "R" ? (
-            <span className="badge badge--dashed">공식성 확인되지 않음</span>
-          ) : (
-            <AuthorityBadge grade={doc.authority_grade} />
-          )}
-        </div>
-        <div className="lede-rule" />
-        <ReaderBar onAction={handleReaderAction} />
         <div ref={chromeAnchorRef} />
         <div className="wd-chrome" ref={chromeRef}>
           <div className="pill-seg" role="tablist" aria-label="원문 보기">
@@ -605,21 +603,6 @@ export function WordsScreen({
                   )}
                 </p>
               )}
-              {isFirstHintShown && (
-                <p className="notice wd-hl-hint">
-                  글자를 길게 누르면 원하는 구절에 형광펜과 메모를 남길 수 있어요.
-                  <button
-                    className="notice__action"
-                    type="button"
-                    onClick={() => {
-                      writeHintDismissed();
-                      setIsHintDismissed(true);
-                    }}
-                  >
-                    알겠어요
-                  </button>
-                </p>
-              )}
               {resumeIndex !== null && (
                 <p className="wd-resume" id="wd-resume" role="status">
                   <span className="wd-resume__lab">
@@ -629,7 +612,7 @@ export function WordsScreen({
                 </p>
               )}
               <HighlightLayer chunks={doc.chunks} items={highlights.items} actions={highlightActions}>
-                {doc.chunks.map((chunk) => {
+                {doc.chunks.map((chunk, order) => {
                   const isCardChunk = wordsCard.card?.chunk_id === chunk.chunk_id;
                   return (
                     <Fragment key={chunk.chunk_id}>
@@ -646,6 +629,22 @@ export function WordsScreen({
                       />
                       {isCardChunk && wordsCard.card && (
                         <CardPulloutBar card={wordsCard.card} isToday={wordsCard.isToday} ribbonRef={cardRibbonRef} />
+                      )}
+                      {/* 첫 사용 안내는 첫 단락 아래 — 본문 위에 두면 첫 화면의 본문 자리를 먼저 차지한다 */}
+                      {order === 0 && isFirstHintShown && (
+                        <p className="notice wd-hl-hint">
+                          글자를 길게 누르면 원하는 구절에 형광펜과 메모를 남길 수 있어요.
+                          <button
+                            className="notice__action"
+                            type="button"
+                            onClick={() => {
+                              writeHintDismissed();
+                              setIsHintDismissed(true);
+                            }}
+                          >
+                            알겠어요
+                          </button>
+                        </p>
                       )}
                     </Fragment>
                   );
