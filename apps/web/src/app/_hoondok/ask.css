@@ -63,7 +63,10 @@
     font: inherit;
     font-size: var(--fs-lg); /* iOS 자동 확대 방지 — .field input 과 같은 이유 */
     line-height: 1.65;
-    resize: vertical;
+    /* 크기 조절 손잡이 대신 글이 늘면 칸이 따라 늘어난다(지원 브라우저). 아니면 고정 높이에서 스크롤 */
+    resize: none;
+    field-sizing: content;
+    max-height: 50dvh;
   }
   .qs-input::placeholder {
     color: var(--ink-3);
@@ -83,11 +86,21 @@
     font-size: var(--fs-xs);
     color: var(--ink-3);
   }
-  /* 칩 버튼 본체는 hoondok.css 의 `.chip-btn` (DES §2.11). 여기엔 세로로 쌓이는 배치만 둔다 —
-     시작 문장은 길어서 한 줄에 하나씩 흐른다 */
+  /* 칩 버튼 본체는 hoondok.css 의 `.chip-btn` (DES §2.11). 시작 문장은 길어서 한 줄에 하나씩 흐른다.
+     흰 바탕 + 테두리면 바로 위 입력칸처럼 보인다 — 채움 바탕 + 화살표로 "누르면 채워지는 문장" 임을 보인다.
+     답 화면의 "이어서 물어보기"(.ask-chip)와 같은 모양이다 */
   .qs-starter {
-    display: block;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
     width: 100%;
+    background: var(--surface-2);
+    border-color: transparent;
+  }
+  .qs-starter > svg {
+    flex: none;
+    margin-top: 1px;
+    color: var(--ink-3);
   }
   .qs-starter + .qs-starter {
     margin-top: 8px;
@@ -207,15 +220,41 @@
     width: auto;
   }
 
-  /* 근거 번호 : 숫자가 뜻을 담으므로 색만으로 구분하지 않는다 (DES §2.2) */
+  /* 답 본문의 근거 번호 : 위첨자 링크. 숫자가 뜻을 담으므로 색만으로 구분하지 않는다 (DES §2.2).
+     글자는 작아도 누르는 자리는 ::after 로 넓힌다 */
   .ask-ref {
-    margin-left: 2px;
+    margin-left: 1px;
     font-size: var(--fs-2xs);
     font-weight: 700;
-    color: var(--accent);
+    color: var(--accent-strong);
+  }
+  .ask-ref a {
+    position: relative;
+    padding: 0 1px;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+  .ask-ref a::after {
+    content: "";
+    position: absolute;
+    inset: -10px -6px;
   }
   .ask-ev + .ask-ev {
     margin-top: 12px;
+  }
+  /* 답의 근거 번호로 찾아온 카드 — 잠깐 강조색 테두리 (ask-detail 이 1.5초 뒤 data-flash 를 뗀다) */
+  .ask-ev {
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  .ask-ev[data-flash] {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  /* 초점은 강조 테두리가 알린다 — 카드는 조작 대상이 아니라 초점 링을 겹쳐 그리지 않는다 */
+  .ask-ev:focus {
+    outline: none;
   }
   /* 모르는 출처 칸 — 값과 같은 줄에 있지만 한 단계 낮은 색으로 결측임을 형태로도 알린다 (REQ-PWA-012) */
   .src__unknown {
@@ -250,9 +289,9 @@
     gap: 8px;
     min-height: 44px;
     padding: 11px 14px;
-    border: 1px solid var(--line);
+    border: 1px solid transparent;
     border-radius: var(--r-sm);
-    background: var(--surface);
+    background: var(--surface-2);
     font-size: var(--fs-sm);
     line-height: 1.35;
     transition: transform 0.12s ease;
@@ -293,6 +332,11 @@
     gap: 8px;
     margin-top: 12px;
   }
+  /* 말씀 글자 크기 설정(--read-scale, 설정 화면)은 AI 답 본문에도 걸린다. 감싸개는 AnswerMarkdown 이 둔다 */
+  .ai-answer :is(.ai-note__body, .ai-note__head, .ai-note__list) {
+    font-size: calc(var(--fs-md) * var(--read-scale, 1));
+  }
+
   /* 값이 하나뿐인 안내 줄 — 좌우 배분(`.hint` 기본)이면 빈 칸이 문장을 오른쪽 끝으로 민다.
      이름은 `.ask-hint`(library.css 의 검색 화면 질문 진입 카드)와 겹치지 않게 둔다 */
   .ask-saved-note {

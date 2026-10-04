@@ -6,13 +6,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { CornerDownRight, MessageCircleQuestion, Share2, Sparkles, Sunrise } from "lucide-react";
 import Link from "next/link";
-import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
 import { askErrorMessage, requestAsk } from "../ask-stream";
 import { SOURCE_RANK_UNKNOWN, sourceFields } from "../format";
 import { type AskItem, EMPTY_ASK_ITEMS, readAskItems, subscribeAsk, toggleAskSaved, updateAskItem } from "../storage";
-import { AnswerMarkdown } from "./answer-markdown";
+import { AnswerMarkdown, evidenceId } from "./answer-markdown";
 
 // 이어지는 질문은 답변·근거 맥락에서 제안해야 하지만(AC-017-03) `/chat/stream` 이 주는 suggested_followups 는
 // 시연 챗 말투라 훈독 문장으로 고정한다 `[가정]`. 탭하면 묻기 홈을 채우기만 하고 보내지 않는다.
@@ -22,6 +22,8 @@ const GATE_MESSAGE = "근거 말씀을 찾지 못했어요. 다른 표현으로 
 // 사용자가 스스로 멈춘 것은 실패가 아니지만, 다시 물어볼 길은 오류 카드(입력 보존 + 다시 시도)와 같다.
 const STOPPED_MESSAGE = "질문을 그만뒀어요. 다시 시도하면 처음부터 찾아요";
 const SHARE_VISIBLE_MS = 2200;
+/** 답의 근거 번호를 눌러 찾아간 카드를 강조하는 시간 */
+const CITE_FLASH_MS = 1500;
 
 function AskMissing() {
   return (
@@ -50,6 +52,8 @@ export function AskDetail({ id }: { id: string }) {
     () => false,
   );
   const [shareTick, setShareTick] = useState(0);
+  /** 답의 근거 번호로 찾아간 카드 번호 — 잠깐 테두리로 강조한다 */
+  const [flashedEvidence, setFlashedEvidence] = useState<number | null>(null);
   // 진행 중인 요청 — "그만두기" 가 끊을 수 있어야 하므로 effect 밖에서도 잡힌다.
   const abortRef = useRef<AbortController | null>(null);
   const item = items.find((candidate) => candidate.id === id) ?? null;
@@ -96,6 +100,22 @@ export function AskDetail({ id }: { id: string }) {
     const timer = window.setTimeout(() => setShareTick(0), SHARE_VISIBLE_MS);
     return () => window.clearTimeout(timer);
   }, [shareTick]);
+
+  useEffect(() => {
+    if (flashedEvidence === null) return;
+    const timer = window.setTimeout(() => setFlashedEvidence(null), CITE_FLASH_MS);
+    return () => window.clearTimeout(timer);
+  }, [flashedEvidence]);
+
+  // 답의 근거 번호 → 그 근거 카드로 내려가 초점을 옮기고 잠깐 강조한다. 동작 줄이기면 바로 이동한다.
+  const jumpToEvidence = useCallback((order: number) => {
+    const card = document.getElementById(evidenceId(order));
+    if (!card) return;
+    const isReduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    card.scrollIntoView?.({ block: "center", behavior: isReduced ? "auto" : "smooth" });
+    card.focus({ preventScroll: true });
+    setFlashedEvidence(order);
+  }, []);
 
   if (!item) return isMounted ? <AskMissing /> : <section className="col col--read" />;
 
@@ -170,26 +190,14 @@ export function AskDetail({ id }: { id: string }) {
       {item.status === "answered" && (
         <>
           <div className="sect">
-            <div className="sect__head">
-              <h3 className="sect__title">AI 설명</h3>
-              <span className="sect__meta">공식 해설 아님</span>
-            </div>
+            {/* 상자 라벨이 이 묶음의 제목이다(§2.11 필수 표기) — 같은 말을 섹션 머리로 한 번 더 쓰지 않는다 */}
             <div className="ai-note">
-              <div className="ai-note__lab">
+              <h3 className="ai-note__lab">
                 <Sparkles size={14} aria-hidden="true" />
                 AI 설명 · 공식 해설 아님
-              </div>
-              <AnswerMarkdown answer={item.answer ?? ""} />
-              {/* 근거 번호는 답 끝에 한 번만 붙인다 `[가정]` — 문장 단위 인용 위치는 모델이 주지 않는다 */}
-              {sources.length > 0 && (
-                <p className="ai-note__body">
-                  {sources.map((_, order) => (
-                    <sup className="ask-ref" key={`ref-${order + 1}`}>
-                      {order + 1}
-                    </sup>
-                  ))}
-                </p>
-              )}
+              </h3>
+              {/* 답 안의 근거 번호 [N] 은 아래 N 번 근거 카드로 가는 위첨자 링크가 된다 */}
+              <AnswerMarkdown answer={item.answer ?? ""} citeCount={sources.length} onCite={jumpToEvidence} />
               {item.disclaimer && <p className="ai-note__micro">{item.disclaimer}</p>}
             </div>
           </div>
@@ -197,10 +205,16 @@ export function AskDetail({ id }: { id: string }) {
           <div className="sect">
             <div className="sect__head">
               <h3 className="sect__title">근거 말씀</h3>
-              <span className="sect__meta">원문 공개 권한 확인 후 열기</span>
             </div>
             {sources.map((source, order) => (
-              <article className="card ask-ev" key={source.chunk_id ?? `${order}-${source.volume}`}>
+              <article
+                className="card ask-ev"
+                key={source.chunk_id ?? `${order}-${source.volume}`}
+                id={evidenceId(order + 1)}
+                // 답의 근거 번호를 누르면 초점이 이 카드로 온다
+                tabIndex={-1}
+                data-flash={flashedEvidence === order + 1 ? "" : undefined}
+              >
                 {/* 말씀보다 출처가 먼저 온다 (REQ-PWA-012). 모르는 칸은 비우지 않고 "확인되지 않음" 으로 적는다 */}
                 <div className="src">
                   <b className="ask-ev__no">{order + 1}</b>
@@ -232,7 +246,6 @@ export function AskDetail({ id }: { id: string }) {
           <div className="sect">
             <div className="sect__head">
               <h3 className="sect__title">이어서 물어보기</h3>
-              <span className="sect__meta">탭해야 보냅니다</span>
             </div>
             <div className="ask-chips">
               {FOLLOWUPS.map((followup) => (
@@ -281,7 +294,10 @@ export function AskDetail({ id }: { id: string }) {
         </div>
       )}
 
-      <p className="notice">AI 설명은 참고용이며 교회장의 지도를 대체하지 않습니다</p>
+      {/* 답 상자 안에 서버 고지가 있으면 같은 고지를 페이지 끝에 한 번 더 두지 않는다 */}
+      {!(item.status === "answered" && item.disclaimer) && (
+        <p className="notice">AI 설명은 참고용이며 교회장의 지도를 대체하지 않습니다</p>
+      )}
     </section>
   );
 }
