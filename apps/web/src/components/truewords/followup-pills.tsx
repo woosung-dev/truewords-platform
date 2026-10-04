@@ -1,6 +1,6 @@
 "use client";
 
-import { Lightbulb, Lock, MessageCircle } from "lucide-react";
+import { Lock, MessageCircle, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChatButton } from "./chat-button";
 
@@ -40,14 +40,12 @@ export function FollowupPills({
   // 추천 질문은 최대 3개까지만 노출 — 시각적 무게를 줄이고 선택 피로도 완화.
   const visibleSuggestions = suggestions.slice(0, 3);
 
+  // 답변보다 눈에 띄지 않도록 테두리 알약 대신 구분선 목록으로 둔다.
   return (
-    <section className={cn("space-y-3", className)} aria-label={heading}>
-      <h3 className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
-        <Lightbulb className="size-4 text-accent" aria-hidden="true" />
-        {heading}
-      </h3>
+    <section className={cn("space-y-1.5", className)} aria-label={heading}>
+      <h3 className="text-xs font-medium text-muted-foreground">{heading}</h3>
 
-      <ul className="flex flex-col gap-2">
+      <ul className="divide-y divide-border border-y border-border">
         {visibleSuggestions.map((q, idx) => {
           const blurred = !authenticated && idx >= visibleCount;
           return (
@@ -59,16 +57,16 @@ export function FollowupPills({
                 tabIndex={blurred ? -1 : 0}
                 disabled={blurred}
                 className={cn(
-                  "w-full rounded-full border border-border bg-card px-4 py-2.5 max-md:min-h-11",
-                  "text-left text-sm text-foreground break-keep-all",
-                  "transition-all duration-150 ease-out",
-                  "active:scale-[0.98]",
+                  "flex min-h-11 w-full items-center justify-between gap-3 py-2.5",
+                  "text-left text-md text-foreground break-keep-all",
+                  "transition-colors duration-150",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  !blurred && "hover:border-primary hover:bg-secondary cursor-pointer",
+                  !blurred && "hover:text-primary cursor-pointer",
                   blurred && "select-none pointer-events-none [filter:blur(6px)] opacity-60",
                 )}
               >
-                {q}
+                <span>{q}</span>
+                <Plus className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
               </button>
             </li>
           );

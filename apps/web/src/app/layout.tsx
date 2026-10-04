@@ -6,11 +6,8 @@ import "@fontsource-variable/inter";
 import "@fontsource/noto-serif-kr/400.css";
 import "@fontsource/noto-serif-kr/500.css";
 import "@fontsource/noto-serif-kr/700.css";
-// 디스플레이 헤딩 — 학술적 권위
-import "@fontsource/cormorant-garamond/400.css";
-import "@fontsource/cormorant-garamond/500.css";
+// 디스플레이 헤딩 — 학술적 권위. 워드마크·제목이 600 만 쓰므로 그 굵기만 불러온다.
 import "@fontsource/cormorant-garamond/600.css";
-import "@fontsource/cormorant-garamond/700.css";
 import "./globals.css";
 import Providers from "@/components/providers";
 

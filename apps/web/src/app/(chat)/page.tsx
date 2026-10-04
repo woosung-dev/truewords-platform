@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  AlertCircle,
   ArrowUp,
   BookOpen,
   Copy,
@@ -15,6 +16,7 @@ import {
   ThumbsUp,
   User,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -48,6 +50,7 @@ import {
   type FeaturedMalssum,
   type FeedbackType,
 } from "@/features/chatbot/chat-api";
+import { cn } from "@/lib/utils";
 
 interface Message {
   role: "user" | "assistant";
@@ -63,7 +66,13 @@ interface Message {
   persona?: PersonaMode;
   // 레드팀 시연 — 답변에 곁들이는 무작위 말씀 (답변별 보존). 없으면 카드 미표시.
   featuredMalssum?: FeaturedMalssum | null;
+  // 전송 실패 안내. 받은 본문(content)과 따로 두어 부분 답변은 그대로 보이고 안내·다시 보내기만 덧붙인다.
+  failed?: { query: string; notice: string; retryable: boolean };
 }
+
+// 아직 아무것도 받지 못한 답변 자리(placeholder). 실패 안내가 붙은 답변은 자리로 보지 않는다.
+const isPendingAssistant = (m: Message | undefined) =>
+  m?.role === "assistant" && !m.content?.trim() && !m.messageId && !m.failed;
 
 // PERSONAS 배열에서 모드 키로 정의를 찾는다. 미일치 시 첫 항목(표준) fallback.
 const personaForMode = (mode: string) => PERSONAS.find((p) => p.key === mode) ?? PERSONAS[0];
@@ -107,7 +116,7 @@ const stripCitationsBlock = (text: string): string => {
 
 // 봇별 동적 추천이 비어있을 때만 사용하는 fallback. backend cron 갱신 전 / 신규 봇 대응.
 const FALLBACK_PROMPTS = [
-  "하나님을 왜 '하늘부모님'이라고 부르나요?",
+  "하나님을 왜 ‘하늘부모님’이라고 부르나요?",
   "참부모님의 위상과 가치는 왜 영원한가요?",
   "3일 금식은 반드시 해야 하나요?",
   "천일국 시대의 구원 조건은 무엇인가요?",
@@ -321,16 +330,12 @@ export default function ChatPage() {
   const visibleMessages = useMemo(() => {
     let lastPlaceholderIdx = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
-      if (m.role === "assistant" && !m.content?.trim() && !m.messageId) {
+      if (isPendingAssistant(messages[i])) {
         lastPlaceholderIdx = i;
         break;
       }
     }
-    return messages.filter((m, i) => {
-      const isPlaceholder = m.role === "assistant" && !m.content?.trim() && !m.messageId;
-      return !isPlaceholder || i === lastPlaceholderIdx;
-    });
+    return messages.filter((m, i) => !isPendingAssistant(m) || i === lastPlaceholderIdx);
   }, [messages]);
 
   const selectedBotInfo = useMemo(() => bots.find((b) => b.chatbot_id === selectedBot), [bots, selectedBot]);
@@ -360,20 +365,14 @@ export default function ChatPage() {
         const secondLast = prev[prev.length - 2];
 
         // (a) dedupe — 같은 query 의 placeholder 가 이미 있음
-        if (
-          last?.role === "assistant" &&
-          !last.content?.trim() &&
-          !last.messageId &&
-          secondLast?.role === "user" &&
-          secondLast.content === query
-        ) {
+        if (isPendingAssistant(last) && secondLast?.role === "user" && secondLast.content === query) {
           return prev;
         }
 
         // (b) stuck placeholder 제거 — 이전 응답이 빈 placeholder 로 끝나면 그것을 버리고
         //     새 pair 만 남긴다 (다른 query 라도 동일 처리).
         let base = prev;
-        if (last?.role === "assistant" && !last.content?.trim() && !last.messageId) {
+        if (isPendingAssistant(last)) {
           base = prev.slice(0, -1);
         }
         return [...base, { role: "user", content: query }, { role: "assistant", content: "", persona: answerMode }];
@@ -469,10 +468,10 @@ export default function ChatPage() {
           }));
         } else {
           const friendly = toFriendlyError(e);
-          // 부분 보존 + 에러 인디케이터. content 가 비어있으면 friendly 메시지로 대체.
+          // 부분 보존 + 실패 안내. 안내는 본문과 따로 두어 role="alert" 와 다시 보내기를 붙인다.
           patchLastAssistant((m) => ({
             ...m,
-            content: m.content ? `${m.content}\n\n_— ${friendly.content}_` : friendly.content,
+            failed: { query, notice: friendly.content, retryable: friendly.retryable },
             suggestedFollowups: m.suggestedFollowups ?? friendly.suggestedFollowups ?? null,
           }));
         }
@@ -589,7 +588,7 @@ export default function ChatPage() {
   if (!participantReady) {
     const canEnter = !!participantName.trim() && !!participantCategory.trim();
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-background p-6">
+      <main className="flex min-h-dvh items-center justify-center bg-background p-6">
         <Card className="w-full max-w-md space-y-5 p-6">
           <div className="flex items-center gap-2">
             <BrandIcon />
@@ -638,7 +637,7 @@ export default function ChatPage() {
             다른 계정으로 로그인 (로그아웃)
           </button>
         </Card>
-      </div>
+      </main>
     );
   }
 
@@ -685,7 +684,7 @@ export default function ChatPage() {
             <Skeleton className="h-9 w-40" />
           ) : (
             <Select value={selectedBot} onValueChange={(val) => handleBotChange(val)}>
-              <SelectTrigger className="w-48 min-w-0">
+              <SelectTrigger className="w-48 min-w-0" aria-label="질문할 챗봇 선택">
                 {/* base-ui-react Select는 라벨 변환을 children 함수로 받는다.
                     미지정 시 trigger에 raw value(chatbot_id)가 그대로 노출됨. */}
                 <SelectValue placeholder="챗봇 선택">
@@ -736,33 +735,24 @@ export default function ChatPage() {
 
       {isEmptyState ? (
         // ── ADR-46 Screen 2 — 입력 화면 ─────────────────────────────
-        <div className="flex-1 overflow-y-auto px-4 py-6">
-          <div className="mx-auto flex max-w-2xl flex-col gap-6">
-            {/* 인사말 — empty state 아이콘은 현재 답변 모드에 따라 동적으로 변경된다. */}
-            <div className="flex flex-col items-center gap-3 pt-6 pb-2 text-muted-foreground">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-persona-icon-bg">
-                {botsLoading ? (
-                  <Loader2 className="h-7 w-7 animate-spin text-accent" />
-                ) : (
-                  (() => {
-                    const ModeIcon = personaForMode(answerMode).Icon;
-                    return <ModeIcon size={28} />;
-                  })()
-                )}
-              </div>
-              {botsLoading ? (
-                <div className="space-y-1 text-center" role="status" aria-live="polite">
+        // 390×844 첫 화면 안에 "질문 보내기"까지 보이도록 장식 아이콘을 빼고 왼쪽 정렬로 쌓는다.
+        <main id="main" className="flex-1 overflow-y-auto px-4 py-6">
+          <div className="mx-auto flex max-w-2xl flex-col gap-5">
+            {botsLoading ? (
+              <div className="flex items-start gap-2 pt-1 text-muted-foreground" role="status" aria-live="polite">
+                <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-accent" aria-hidden="true" />
+                <div className="space-y-0.5">
                   <p className="text-sm font-medium text-foreground/80">
                     {warmingUp ? "서버를 깨우고 있어요" : "챗봇을 불러오는 중..."}
                   </p>
                   {warmingUp && <p className="text-xs">첫 접속 시 최대 10초 정도 걸릴 수 있어요</p>}
                 </div>
-              ) : (
-                <p className="text-center text-sm">
-                  {selectedBotName ? `${selectedBotName}에게 질문해 보세요` : "챗봇을 선택하고 질문해 보세요"}
-                </p>
-              )}
-            </div>
+              </div>
+            ) : (
+              <h2 className="pt-1 text-xl font-semibold tracking-tight text-foreground">
+                {selectedBotName ? "무엇이 궁금하세요?" : "챗봇을 선택하고 질문해 보세요"}
+              </h2>
+            )}
 
             {/* P0-C QuestionInput — 두 줄 placeholder */}
             <QuestionInput
@@ -780,34 +770,16 @@ export default function ChatPage() {
               }}
             />
 
-            {/* 추천 질문 (chip) — 봇별 동적 (backend cron 매일 갱신), 비어있으면 FALLBACK */}
+            {/* 추천 질문 — 봇별 동적 (backend cron 매일 갱신), 비어있으면 FALLBACK. 목록은 3개까지만 보인다. */}
             {!botsLoading &&
               selectedBot &&
               (() => {
                 const dynamic = selectedBotInfo?.suggested_questions ?? [];
                 const prompts = dynamic.length > 0 ? dynamic : FALLBACK_PROMPTS;
-                return (
-                  <div className="flex w-full flex-wrap justify-center gap-2">
-                    {prompts.map((prompt) => (
-                      <button
-                        key={prompt}
-                        type="button"
-                        onClick={() => handleSend(prompt)}
-                        className="rounded-full border bg-card px-4 py-2 text-xs text-foreground/80 transition max-md:min-h-11 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
-                      >
-                        {prompt}
-                      </button>
-                    ))}
-                  </div>
-                );
+                return <FollowupPills suggestions={prompts} onSelect={(q) => handleSend(q)} heading="추천 질문" />;
               })()}
 
-            {/* 맞춤 설정 영역: persona / emphasis / visibility */}
-            <section className="flex flex-col gap-2" aria-label="맞춤 설정">
-              <h2 className="px-1 text-xs font-medium text-muted-foreground">맞춤 설정</h2>
-
-              <PersonaRowTrigger value={answerMode} onClick={() => setPersonaSheetOpen(true)} />
-            </section>
+            <PersonaRowTrigger value={answerMode} onClick={() => setPersonaSheetOpen(true)} />
 
             {/* 보내기 CTA */}
             <Button
@@ -821,171 +793,161 @@ export default function ChatPage() {
               질문 보내기
             </Button>
           </div>
-        </div>
+        </main>
       ) : (
         // ── 채팅 진행 중: 메시지 + 후속 질문 입력바 ───────────────────
-        <>
+        <main id="main" className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 overflow-y-auto px-4 py-6">
             {/* pb-[60vh] — 답변이 짧아도 새 user 메시지를 viewport 상단으로
                 정확히 scrollIntoView 할 수 있도록 하단 여유 공간 확보. (ChatGPT/Claude 패턴) */}
-            <div className="mx-auto max-w-2xl space-y-4 pb-[60vh]">
+            <div className="mx-auto max-w-2xl space-y-8 pb-[60vh]">
               {visibleMessages.map((msg) => {
                 const msgIdx = messages.indexOf(msg);
-                return (
-                  <div
-                    key={msgIdx}
-                    data-msg-role={msg.role}
-                    className={`group flex gap-3 ${msg.role === "user" ? "justify-end scroll-mt-4" : ""}`}
-                  >
-                    {msg.role === "assistant" &&
-                      (() => {
-                        // 답변 시점의 모드를 우선 — 사용자가 모드를 바꿔도 과거 답변 아바타는 고정.
-                        const ModeIcon = personaForMode(msg.persona ?? answerMode).Icon;
-                        return (
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-persona-icon-bg">
-                            <ModeIcon size={16} />
-                          </div>
-                        );
-                      })()}
-                    <div className={`max-w-[85%] space-y-2 ${msg.role === "user" ? "order-first" : ""}`}>
-                      {msg.role === "user" ? (
-                        <Card className="bg-primary px-4 py-3 text-primary-foreground">
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
-                        </Card>
-                      ) : (
-                        <Card className="bg-card px-4 py-3 shadow-sm">
-                          {msg.content?.trim() ? (
-                            <AssistantMessage
-                              content={stripDisclaimer(msg.content)}
-                              sources={msg.sources}
-                              onSourceClick={(src) =>
-                                setChunkModal({
-                                  open: true,
-                                  chunkId: src.chunk_id ?? null,
-                                  displayName: src.display_name ?? null,
-                                })
-                              }
-                            />
-                          ) : (
-                            // chunk 도착 전 placeholder 상태 — typing indicator 만 노출.
-                            // 본문 비어있을 때 ClosingCallout 까지 보이면 빈 답변처럼 보여 어색.
-                            <div
-                              className="flex items-center gap-1.5 py-2 text-muted-foreground"
-                              aria-label="응답 생성 중"
-                            >
-                              <span className="size-1.5 rounded-full bg-current animate-pulse" />
-                              <span className="size-1.5 rounded-full bg-current animate-pulse [animation-delay:150ms]" />
-                              <span className="size-1.5 rounded-full bg-current animate-pulse [animation-delay:300ms]" />
-                            </div>
-                          )}
-                          {/* B1 — 본문/권유 시각 분리. messageId 도착(=응답 완료) 후에만 노출.
-                            chunk 진행 중엔 본문만 누적되어 자연스럽게. */}
-                          {msg.messageId && <ClosingCallout closing={msg.closing} className="mt-3" />}
-                          {/* 레드팀 시연 — 답변에 곁들이는 무작위 말씀 카드. 응답 완료 후에만. */}
-                          {msg.messageId && msg.featuredMalssum?.text && (
-                            <div className="mt-3 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
-                              <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-primary">
-                                <BookOpen className="h-3.5 w-3.5" />
-                                함께 보는 말씀
-                              </div>
-                              <p className="text-sm leading-relaxed text-foreground/90">{msg.featuredMalssum.text}</p>
-                              {(msg.featuredMalssum.source ||
-                                msg.featuredMalssum.volume ||
-                                msg.featuredMalssum.category) && (
-                                <p className="mt-1.5 text-xs text-muted-foreground">
-                                  {/* 출처(그룹·권) · 주제 */}
-                                  {[
-                                    msg.featuredMalssum.source,
-                                    msg.featuredMalssum.volume,
-                                    msg.featuredMalssum.category,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(" · ")}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </Card>
-                      )}
-
-                      {/* P0-A — 답변 후속 추천 질문 3개. SuggestedFollowupsStage 가 채움. */}
-                      {msg.role === "assistant" && msg.suggestedFollowups && msg.suggestedFollowups.length > 0 && (
-                        <FollowupPills
-                          suggestions={msg.suggestedFollowups}
-                          onSelect={(q) => handleSend(q)}
-                          heading="다음 질문을 추천해 드립니다"
-                          className="mt-6 pl-1"
-                        />
-                      )}
-
-                      {/* 어시스턴트 메시지 하단 액션 툴바: 복사 | 👍 / 👎 */}
-                      {msg.role === "assistant" && msg.messageId && (
-                        <div
-                          className={`flex items-center gap-2 pl-1 transition ${
-                            msg.feedback ? "opacity-100" : "opacity-60 group-hover:opacity-100"
-                          }`}
-                        >
-                          <div className="inline-flex items-center gap-0.5 rounded-lg border bg-card/70 px-1 py-0.5 shadow-sm">
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              aria-label="답변 복사"
-                              onClick={() => handleCopy(stripDisclaimer(msg.content))}
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                            </Button>
-
-                            <div className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
-
-                            {/* 긍정 — 항상 노출. popover 로 "어떤 점이 좋았나요?" 사유 수집.
-                              사유 미선택 시 helpful(기타) 로 전송. active 사유 다시 열어 변경/취소 가능. */}
-                            <FeedbackPopover
-                              tone="positive"
-                              reasons={POSITIVE_REASONS}
-                              title="어떤 점이 좋았나요?"
-                              Icon={ThumbsUp}
-                              triggerAriaLabel="도움이 됐어요"
-                              activeClass="bg-success-soft text-success hover:bg-success-soft"
-                              defaultReason="helpful"
-                              disabled={false}
-                              active={isPositiveFeedback(msg.feedback)}
-                              currentReason={isPositiveFeedback(msg.feedback) ? msg.feedback! : null}
-                              onSubmit={(reason, comment) => submitFeedback(msgIdx, reason, comment)}
-                              onCancel={() => cancelFeedback(msgIdx)}
-                            />
-
-                            {/* 부정 — 항상 노출. popover 가 reason+comment 입력 단계를 거치므로
-                              실수 클릭은 popover 단계에서 차단됨. 제출 후에도 popover 재오픈으로 변경 가능. */}
-                            <FeedbackPopover
-                              tone="negative"
-                              reasons={NEGATIVE_REASONS}
-                              title="어떤 점이 아쉬웠나요?"
-                              Icon={ThumbsDown}
-                              triggerAriaLabel="개선이 필요해요"
-                              activeClass="bg-danger-soft text-destructive hover:bg-danger-soft disabled:opacity-100"
-                              defaultReason="inaccurate"
-                              disabled={false}
-                              active={!!msg.feedback && !isPositiveFeedback(msg.feedback)}
-                              currentReason={msg.feedback && !isPositiveFeedback(msg.feedback) ? msg.feedback : null}
-                              onSubmit={(reason, comment) => submitFeedback(msgIdx, reason, comment)}
-                              onCancel={() => cancelFeedback(msgIdx)}
-                            />
-                          </div>
-
-                          {msg.feedback && (
-                            <span className="text-2xs text-muted-foreground">
-                              {isPositiveFeedback(msg.feedback) ? "피드백 감사합니다" : "의견이 기록됐습니다"}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                if (msg.role === "user") {
+                  // 짧은 질문이 답보다 무겁지 않게 옅은 말풍선으로 둔다(아바타 없이 오른쪽 정렬로 구분).
+                  return (
+                    <div key={msgIdx} data-msg-role="user" className="flex scroll-mt-4 justify-end">
+                      <p className="max-w-[85%] whitespace-pre-wrap rounded-2xl border bg-secondary px-4 py-2.5 text-md leading-relaxed text-foreground">
+                        {msg.content}
+                      </p>
                     </div>
-                    {msg.role === "user" && (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary">
-                        <User className="h-4 w-4 text-secondary-foreground" />
+                  );
+                }
+                const isLast = msgIdx === messages.length - 1;
+                return (
+                  // 답변은 카드 없이 컬럼 전체 폭을 쓴다. 답변 시점의 모드를 라벨로 남긴다(모드를 바꿔도 과거 답변은 그대로).
+                  <div key={msgIdx} data-msg-role="assistant">
+                    <p className="mb-2 text-xs font-medium text-muted-foreground">
+                      AI 답변{msg.persona ? ` · ${personaForMode(msg.persona).label}` : ""}
+                    </p>
+                    {msg.content?.trim() ? (
+                      <AssistantMessage
+                        content={stripDisclaimer(msg.content)}
+                        sources={msg.sources}
+                        onSourceClick={(src) =>
+                          setChunkModal({
+                            open: true,
+                            chunkId: src.chunk_id ?? null,
+                            displayName: src.display_name ?? null,
+                          })
+                        }
+                      />
+                    ) : msg.failed ? null : (
+                      // chunk 도착 전 — 지금 하는 일을 글로 알린다. 첫 chunk 가 오면 본문으로 바뀐다.
+                      <p role="status" className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
+                        <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                        말씀에서 근거를 찾는 중…
+                      </p>
+                    )}
+                    {msg.failed && (
+                      <div
+                        role="alert"
+                        className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg bg-secondary px-3 py-2.5 text-sm text-foreground ${
+                          msg.content?.trim() ? "mt-3" : ""
+                        }`}
+                      >
+                        <AlertCircle className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <span className="min-w-0 flex-1">{msg.failed.notice}</span>
+                        {isLast && msg.failed.retryable && !loading && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => msg.failed && handleSend(msg.failed.query)}
+                            className="max-md:min-h-11"
+                          >
+                            다시 보내기
+                          </Button>
+                        )}
                       </div>
+                    )}
+                    {/* B1 — 본문/권유 시각 분리. messageId 도착(=응답 완료) 후에만 노출.
+                        chunk 진행 중엔 본문만 누적되어 자연스럽게. */}
+                    {msg.messageId && <ClosingCallout closing={msg.closing} className="mt-4" />}
+                    {/* 레드팀 시연 — 답변에 곁들이는 무작위 말씀 카드. 응답 완료 후에만. */}
+                    {msg.messageId && msg.featuredMalssum?.text && (
+                      <div className="mt-4 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
+                        <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-primary">
+                          <BookOpen className="h-3.5 w-3.5" />
+                          함께 보는 말씀
+                        </div>
+                        <p className="text-sm leading-relaxed text-foreground/90">{msg.featuredMalssum.text}</p>
+                        {(msg.featuredMalssum.source || msg.featuredMalssum.volume || msg.featuredMalssum.category) && (
+                          <p className="mt-1.5 text-xs text-muted-foreground">
+                            {/* 출처(그룹·권) · 주제 */}
+                            {[msg.featuredMalssum.source, msg.featuredMalssum.volume, msg.featuredMalssum.category]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 답변 행동 줄: 복사 | 👍 / 👎 — 피드백 대상인 답 바로 아래, 추천 질문 위.
+                        터치 기기에는 hover 가 없으므로 흐리게 두지 않는다. */}
+                    {msg.messageId && (
+                      <div className="mt-3 -ml-2 flex items-center gap-0.5">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="size-11 text-muted-foreground hover:text-foreground md:size-8"
+                          aria-label="답변 복사"
+                          onClick={() => handleCopy(stripDisclaimer(msg.content))}
+                        >
+                          <Copy className="size-4" />
+                        </Button>
+
+                        {/* 긍정 — 항상 노출. popover 로 "어떤 점이 좋았나요?" 사유 수집.
+                          사유 미선택 시 helpful(기타) 로 전송. active 사유 다시 열어 변경/취소 가능. */}
+                        <FeedbackPopover
+                          tone="positive"
+                          reasons={POSITIVE_REASONS}
+                          title="어떤 점이 좋았나요?"
+                          Icon={ThumbsUp}
+                          triggerAriaLabel="도움이 됐어요"
+                          activeClass="bg-success-soft text-success hover:bg-success-soft hover:text-success"
+                          defaultReason="helpful"
+                          disabled={false}
+                          active={isPositiveFeedback(msg.feedback)}
+                          currentReason={isPositiveFeedback(msg.feedback) ? msg.feedback! : null}
+                          onSubmit={(reason, comment) => submitFeedback(msgIdx, reason, comment)}
+                          onCancel={() => cancelFeedback(msgIdx)}
+                        />
+
+                        {/* 부정 — 항상 노출. popover 가 reason+comment 입력 단계를 거치므로
+                          실수 클릭은 popover 단계에서 차단됨. 제출 후에도 popover 재오픈으로 변경 가능. */}
+                        <FeedbackPopover
+                          tone="negative"
+                          reasons={NEGATIVE_REASONS}
+                          title="어떤 점이 아쉬웠나요?"
+                          Icon={ThumbsDown}
+                          triggerAriaLabel="개선이 필요해요"
+                          activeClass="bg-danger-soft text-destructive hover:bg-danger-soft hover:text-destructive disabled:opacity-100"
+                          defaultReason="inaccurate"
+                          disabled={false}
+                          active={!!msg.feedback && !isPositiveFeedback(msg.feedback)}
+                          currentReason={msg.feedback && !isPositiveFeedback(msg.feedback) ? msg.feedback : null}
+                          onSubmit={(reason, comment) => submitFeedback(msgIdx, reason, comment)}
+                          onCancel={() => cancelFeedback(msgIdx)}
+                        />
+
+                        {msg.feedback && (
+                          <span className="ml-1 text-xs text-muted-foreground">
+                            {isPositiveFeedback(msg.feedback) ? "피드백 감사합니다" : "의견이 기록됐습니다"}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* P0-A — 답변 후속 추천 질문 3개. SuggestedFollowupsStage 가 채움. */}
+                    {msg.suggestedFollowups && msg.suggestedFollowups.length > 0 && (
+                      <FollowupPills
+                        suggestions={msg.suggestedFollowups}
+                        onSelect={(q) => handleSend(q)}
+                        heading="이어서 물어보기"
+                        className="mt-6"
+                      />
                     )}
                   </div>
                 );
@@ -993,11 +955,12 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* 입력 영역 — 후속 질문용 컴팩트 입력바 (ChatGPT / Claude 스타일) */}
-          <div className="border-t bg-background px-4 pb-4 pt-3">
+          {/* 입력 영역 — 후속 질문용 컴팩트 입력바 (ChatGPT / Claude 스타일).
+              응답 뒤 자동 포커스되므로 상시 굵은 링 대신 테두리 색만 바꾼다. */}
+          <div className="border-t bg-background px-4 pb-3 pt-3">
             <div className="mx-auto max-w-2xl">
               <div
-                className={`relative flex items-end rounded-2xl border bg-card shadow-sm transition focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 ${
+                className={`relative flex items-end rounded-2xl border bg-card shadow-sm transition focus-within:border-foreground/50 ${
                   !selectedBot ? "opacity-60" : ""
                 }`}
               >
@@ -1007,18 +970,19 @@ export default function ChatPage() {
                   value={input}
                   onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  aria-label="질문 입력"
                   placeholder={
                     botsLoading
                       ? warmingUp
                         ? "서버를 깨우고 있어요... 잠시만 기다려주세요"
                         : "챗봇을 불러오는 중..."
                       : selectedBot
-                        ? "메시지를 입력하세요 (Shift+Enter로 줄바꿈)"
+                        ? "이어서 질문하기"
                         : "상단에서 먼저 챗봇을 선택해 주세요"
                   }
                   disabled={!selectedBot}
                   autoFocus
-                  className="min-h-[48px] max-h-[200px] resize-none border-0 bg-transparent px-4 py-3 pr-14 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="min-h-[48px] max-h-[200px] resize-none border-0 bg-transparent px-4 py-3 pr-14 text-md shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
                 {loading ? (
                   <Button
@@ -1045,22 +1009,40 @@ export default function ChatPage() {
                   </Button>
                 )}
               </div>
+              {/* 키보드 안내는 물리 키보드를 쓰는 넓은 화면에서만 */}
+              <p className="mt-1.5 hidden px-1 text-2xs text-muted-foreground md:block">
+                Enter로 보내기 · Shift+Enter로 줄바꿈
+              </p>
             </div>
           </div>
-        </>
+        </main>
       )}
 
-      {/* P0-D — 면책 4문장 footer (전 화면 공통) */}
-      <footer className="border-t bg-background px-4 py-3">
-        <div className="mx-auto max-w-2xl">
-          <ul className="space-y-0.5 text-center text-2xs leading-relaxed text-muted-foreground">
-            {DISCLAIMER_LINES.map((line) => (
+      {/* P0-D — 면책 고지(전 화면 공통). 첫 문장은 고정 영역에 늘 보이고, 나머지 세 문장은 "자세히"로 펼친다. */}
+      <footer className="border-t bg-background px-4 py-2">
+        <details className="group mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground">
+          <summary className="block cursor-pointer list-none rounded-sm py-1 break-keep-all focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+            {DISCLAIMER_LINES[0]}{" "}
+            <span className="font-medium whitespace-nowrap text-foreground/80 underline underline-offset-2 group-open:hidden">
+              자세히
+            </span>
+            <span className="hidden font-medium whitespace-nowrap text-foreground/80 underline underline-offset-2 group-open:inline">
+              접기
+            </span>
+          </summary>
+          <ul className="space-y-0.5 pb-1">
+            {DISCLAIMER_LINES.slice(1).map((line) => (
               <li key={line} className="break-keep-all">
                 {line}
               </li>
             ))}
+            <li>
+              <Link href="/about" className="font-medium text-foreground/80 underline underline-offset-2">
+                운영 원칙 보기
+              </Link>
+            </li>
           </ul>
-        </div>
+        </details>
       </footer>
 
       {/* P0-E PersonaSheet — 답변 모드 5종 */}
@@ -1155,9 +1137,9 @@ function FeedbackPopover({
             aria-label={triggerAriaLabel}
             aria-pressed={active}
             disabled={disabled}
-            className={`h-7 w-7 ${active ? activeClass : ""}`}
+            className={cn("size-11 text-muted-foreground hover:text-foreground md:size-8", active && activeClass)}
           >
-            <Icon className="h-3.5 w-3.5" />
+            <Icon className="size-4" />
           </Button>
         }
       />

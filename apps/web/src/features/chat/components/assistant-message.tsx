@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -24,7 +25,7 @@ export interface AssistantMessageProps {
  * - 인라인 citation `[1]` `[2]` → 클릭 가능한 위첨자 → 출처 카드 매칭.
  *   (백엔드 prompt 가 emit. 못 emit 해도 graceful — 카드는 그대로 노출.)
  * - 본문 [출처: ...] 잔류 텍스트는 정규식으로 strip.
- * - sources 는 번호 매겨진 카드 그리드로 하단 노출.
+ * - sources 는 번호 매겨진 출처 목록으로 하단 노출(인용 구절 미리보기 포함).
  */
 export function AssistantMessage({ content, sources, onSourceClick, className }: AssistantMessageProps) {
   const cleaned = React.useMemo(() => preprocess(content, sources?.length ?? Infinity), [content, sources]);
@@ -75,56 +76,103 @@ export function AssistantMessage({ content, sources, onSourceClick, className }:
         </ReactMarkdown>
       </div>
 
-      {sources && sources.length > 0 && <SourceCardGrid sources={sources} onSourceClick={onSourceClick} />}
+      {sources && sources.length > 0 && <SourceList sources={sources} onSourceClick={onSourceClick} />}
     </div>
   );
 }
 
-interface SourceCardGridProps {
+// 출처 행 미리보기 길이 — 두 줄 말줄임 전에 DOM 에 넣는 최대 글자 수.
+const PREVIEW_MAX = 120;
+
+/**
+ * 출처 행에 보일 근거 문장. 모델이 짚은 인용 구절이 있으면 그것을, 없으면 청크 본문 앞부분을 쓴다.
+ * 공백·줄바꿈은 한 칸으로 줄이고, 길면 잘라 "…"를 붙인다.
+ */
+export function sourcePreview(src: Pick<Source, "cited_phrase" | "text">): string {
+  const raw = src.cited_phrase?.trim() || src.text || "";
+  const flat = raw.replace(/\s+/g, " ").trim();
+  return flat.length > PREVIEW_MAX ? `${flat.slice(0, PREVIEW_MAX).trimEnd()}…` : flat;
+}
+
+interface SourceListProps {
   sources: Source[];
   onSourceClick?: (source: Source) => void;
 }
 
-function SourceCardGrid({ sources, onSourceClick }: SourceCardGridProps) {
+function SourceList({ sources, onSourceClick }: SourceListProps) {
+  const baseId = React.useId();
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-      {sources.map((src, idx) => {
-        const num = idx + 1;
-        const clickable = !!src.chunk_id;
-        const Tag = clickable ? "button" : "div";
-        // admin 에서 지정한 display_name 이 있으면 그것을 우선 노출. 없으면 volume 으로
-        // fallback 하되, 파일 확장자(.txt 등)는 default 로 제거 — 채팅 답변 가독성 향상.
-        const rawLabel = src.display_name?.trim() || src.volume;
-        const primaryLabel = stripFileExt(rawLabel);
-        return (
-          <Tag
-            key={`${src.chunk_id || src.volume}-${idx}`}
-            type={clickable ? "button" : undefined}
-            onClick={clickable ? () => onSourceClick?.(src) : undefined}
-            className={cn(
-              "group flex items-start gap-2.5 rounded-lg border border-border bg-card px-3 py-2.5 text-left transition-colors",
-              clickable
-                ? "cursor-pointer hover:border-accent hover:bg-accent/5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
-                : "cursor-default",
-            )}
-          >
-            <span
-              aria-hidden="true"
-              className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded bg-accent/10 text-2xs font-bold text-accent"
-            >
-              {num}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-xs font-semibold text-foreground">{primaryLabel}</span>
-              <span className="mt-0.5 block text-2xs text-muted-foreground">
-                {src.source ? `${src.source} · ` : ""}
-                {clickable ? "클릭하여 원문 보기 →" : "원문 미연결"}
-              </span>
-            </span>
-          </Tag>
-        );
-      })}
-    </div>
+    <section aria-label="출처" className="pt-1">
+      <h3 className="text-xs font-medium text-muted-foreground">출처 {sources.length}</h3>
+      <ol className="mt-1.5 divide-y divide-border border-y border-border">
+        {sources.map((src, idx) => {
+          const num = idx + 1;
+          const clickable = !!src.chunk_id;
+          const Tag = clickable ? "button" : "div";
+          // admin 에서 지정한 display_name 이 있으면 그것을 우선 노출. 없으면 volume 으로
+          // fallback 하되, 파일 확장자(.txt 등)는 default 로 제거 — 채팅 답변 가독성 향상.
+          // 내부 분류 코드(src.source, 예: "A")는 사용자에게 뜻이 없어 보이지 않는다.
+          const rawLabel = src.display_name?.trim() || src.volume;
+          const primaryLabel = stripFileExt(rawLabel);
+          const preview = sourcePreview(src);
+          const previewId = `${baseId}-${idx}`;
+          return (
+            <li key={`${src.chunk_id || src.volume}-${idx}`}>
+              <Tag
+                type={clickable ? "button" : undefined}
+                onClick={clickable ? () => onSourceClick?.(src) : undefined}
+                aria-label={clickable ? `원문 보기: ${primaryLabel}` : undefined}
+                aria-describedby={clickable && preview ? previewId : undefined}
+                className={cn(
+                  "group flex w-full items-start gap-3 py-2.5 text-left transition-colors",
+                  clickable
+                    ? "cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    : "cursor-default",
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded bg-accent/10 text-2xs font-bold text-accent"
+                >
+                  {num}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={cn(
+                      "block truncate text-sm font-medium text-foreground",
+                      clickable && "group-hover:text-primary",
+                    )}
+                  >
+                    {primaryLabel}
+                  </span>
+                  {preview && (
+                    <span id={previewId} className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                      {preview}
+                    </span>
+                  )}
+                </span>
+                <span
+                  aria-hidden={clickable ? true : undefined}
+                  className={cn(
+                    "mt-0.5 inline-flex shrink-0 items-center gap-0.5 text-xs text-muted-foreground",
+                    clickable && "group-hover:text-foreground",
+                  )}
+                >
+                  {clickable ? (
+                    <>
+                      원문 보기
+                      <ChevronRight className="size-3.5" />
+                    </>
+                  ) : (
+                    "원문 미연결"
+                  )}
+                </span>
+              </Tag>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 
@@ -189,7 +237,7 @@ export function preprocess(text: string, maxSourceN: number = Infinity): string 
     .trim();
 }
 
-/** ClosingCalloutCard — 본문과 시각적으로 분리된 권유 안내 (B1). */
+/** ClosingCallout — 본문과 시각적으로 분리된 마무리 기도·권유 안내 (B1). */
 export interface ClosingCalloutProps {
   /** 백엔드 ClosingTemplateStage 결과 (prayer/resolution). null 이면 보조 멘트 출력. */
   closing?: string | null;
@@ -198,31 +246,18 @@ export interface ClosingCalloutProps {
 
 export function ClosingCallout({ closing, className }: ClosingCalloutProps) {
   if (closing) {
+    // 서버가 준 기도문·결의문 — 상자 없이 왼쪽 선 하나로 본문과 구분한다.
     return (
-      <div
-        className={cn(
-          "rounded-lg border border-accent/20 bg-accent/5 px-4 py-3 text-sm leading-relaxed text-foreground/90",
-          className,
-        )}
-      >
-        <div className="mb-1 flex items-center gap-1.5 text-2xs font-semibold text-accent">
-          <span aria-hidden="true">✦</span>
-          <span>마무리 기도/결의</span>
-        </div>
-        {closing}
+      <div className={cn("border-l-2 border-border pl-4", className)}>
+        <p className="mb-1 text-xs font-medium text-muted-foreground">마무리 기도·결의</p>
+        <p className="whitespace-pre-line text-md leading-relaxed text-foreground/90">{closing}</p>
       </div>
     );
   }
-  // 기본 권유 callout — 모든 답변에 동일.
+  // 기본 권유 — 모든 답변에 같은 문장이라 상자 대신 작은 각주 한 줄로 둔다(바로 위 출처 목록의 선이 구분선 구실을 한다).
   return (
-    <div
-      className={cn(
-        "rounded-lg border border-border bg-secondary/40 px-4 py-3 text-xs leading-relaxed text-muted-foreground",
-        className,
-      )}
-    >
-      <span className="font-medium text-foreground">더 깊은 말씀이 필요하신가요?</span> 소속 교회나 담당 목회자님께
-      상담을 요청하시길 권해드립니다.
-    </div>
+    <p className={cn("text-xs leading-relaxed text-muted-foreground", className)}>
+      더 깊은 말씀이 필요하신가요? 소속 교회나 담당 목회자님께 상담을 요청하시길 권해드립니다.
+    </p>
   );
 }

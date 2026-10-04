@@ -81,7 +81,7 @@ export const PERSONAS: PersonaDef[] = [
     key: "pastoral",
     Icon: PersonaIconPastoral,
     label: "목회 상담",
-    description: "위로와 공감 중심 — 위급 키워드 자동 라우팅",
+    description: "위로와 공감 중심 · 위급 키워드 자동 라우팅",
   },
   {
     key: "beginner",
