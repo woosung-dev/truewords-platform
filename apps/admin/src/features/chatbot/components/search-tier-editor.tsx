@@ -84,29 +84,32 @@ export default function SearchTierEditor({ tiers, onChange }: SearchTierEditorPr
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0"
+                className="h-8 w-8 p-0"
                 onClick={() => moveTier(index, -1)}
                 disabled={index === 0}
                 title="위로 이동"
+                aria-label={`Tier ${index + 1} 위로 이동`}
               >
                 <ChevronUp className="w-3.5 h-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0"
+                className="h-8 w-8 p-0"
                 onClick={() => moveTier(index, 1)}
                 disabled={index === tiers.length - 1}
                 title="아래로 이동"
+                aria-label={`Tier ${index + 1} 아래로 이동`}
               >
                 <ChevronDown className="w-3.5 h-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                 onClick={() => removeTier(index)}
                 title="삭제"
+                aria-label={`Tier ${index + 1} 삭제`}
               >
                 <X className="w-3.5 h-3.5" />
               </Button>
@@ -170,7 +173,8 @@ export default function SearchTierEditor({ tiers, onChange }: SearchTierEditorPr
             {/* 점수 임계값 — 슬라이더 + 입력값 연동 */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">
+                {/* 슬라이더와 숫자 입력이 같은 라벨을 쓴다. */}
+                <Label id={`threshold-label-${index}`} className="text-xs text-muted-foreground">
                   점수 임계값
                   <span className="ml-1 text-xs font-normal text-muted-foreground">
                     (RRF fusion 점수 기준, 0.05~0.3 권장)
@@ -190,6 +194,7 @@ export default function SearchTierEditor({ tiers, onChange }: SearchTierEditorPr
                   max={1}
                   step={0.05}
                   className="flex-1"
+                  aria-labelledby={`threshold-label-${index}`}
                 />
                 <Input
                   type="number"
@@ -198,6 +203,7 @@ export default function SearchTierEditor({ tiers, onChange }: SearchTierEditorPr
                   step={0.05}
                   value={tier.score_threshold}
                   onChange={(e) => handleScoreInput(index, e.target.value)}
+                  aria-labelledby={`threshold-label-${index}`}
                   className="w-20 h-8 text-sm text-center"
                 />
               </div>

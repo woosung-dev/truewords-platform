@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -105,27 +105,12 @@ export default function ChatbotsPage() {
               <TableBody>
                 {visibleItems.map((config) => (
                   <TableRow key={config.id} className="hover:bg-admin-muted/30 transition-colors">
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                            config.is_active ? "bg-success" : "bg-admin-muted-foreground/40"
-                          }`}
-                        />
-                        {config.display_name}
-                      </div>
-                    </TableCell>
+                    <TableCell className="font-medium">{config.display_name}</TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{config.chatbot_id}</TableCell>
                     <TableCell>
-                      {config.is_active ? (
-                        <Badge className="bg-success-soft text-success hover:bg-success-soft border border-success-border">
-                          활성
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-secondary text-muted-foreground hover:bg-secondary border border-border">
-                          비활성
-                        </Badge>
-                      )}
+                      <StatusBadge tone={config.is_active ? "success" : "neutral"}>
+                        {config.is_active ? "활성" : "비활성"}
+                      </StatusBadge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {config.search_tiers?.tiers?.length ?? 0}개

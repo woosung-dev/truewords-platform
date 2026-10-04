@@ -59,7 +59,7 @@ const POLICY_OPTIONS: { value: OnDuplicateMode; label: string; hint: string }[] 
   {
     value: "skip",
     label: "콘텐츠 동일 시 건너뜀 (skip)",
-    hint: "Gemini 임베딩 호출 0회 — 비용 절감. 콘텐츠가 변경되었으면 자동으로 분류 보존하며 갱신.",
+    hint: "콘텐츠가 같으면 Gemini 임베딩을 호출하지 않아 비용이 들지 않습니다. 콘텐츠가 바뀌었으면 분류를 보존하며 갱신합니다.",
   },
   {
     value: "merge",
@@ -198,8 +198,8 @@ export default function BulkPrecheckDialog({
                   <div className="mt-3 rounded-md border border-success-border bg-success-soft/60 p-2 text-xs leading-relaxed text-success flex gap-1.5 items-start">
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <span>
-                      모두 <strong>정상 완료</strong> 상태 — skip 옵션 선택 시 콘텐츠 동일 파일은 임베딩 호출 0회로 비용
-                      절감됩니다.
+                      모두 <strong>정상 완료</strong> 상태입니다. skip 을 고르면 콘텐츠가 같은 파일은 임베딩을 호출하지
+                      않습니다.
                     </span>
                   </div>
                 )}
