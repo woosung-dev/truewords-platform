@@ -16,6 +16,7 @@ docs/dev-log/47 참조)
 import asyncio
 import json
 import logging
+from time import perf_counter
 from typing import Any, Literal
 
 import httpx
@@ -23,6 +24,7 @@ import httpx
 from app.core.common.gemini import generate_text, MODEL_GENERATE
 from app.core.common.log_helpers import query_fingerprint
 from app.core.config import settings
+from app.modules.chat.trace import current_trace
 from app.modules.pipeline.embedder import embed_sparse_async
 from app.modules.qdrant import RawQdrantClient
 from app.modules.qdrant.filters import (
@@ -64,6 +66,8 @@ async def _call_qdrant_with_retry(
             return await client.query_points(**kwargs)
         except (httpx.HTTPError, httpx.TimeoutException) as exc:
             last_exc = exc
+            if (t := current_trace.get()) is not None:
+                t.event("fallback_relaxed_retry", attempt=attempt, error=type(exc).__name__)
             logger.warning(
                 "Fallback relaxed search Qdrant call failed "
                 "(attempt %d/%d, %s): %s",
@@ -125,11 +129,17 @@ async def fallback_search(
     # audit 2차 S-5: 원문 query 대신 fingerprint (PII 차단).
     logger.info("Fallback Step 1: relaxed search for query: %s", query_fingerprint(query))
 
+    # rag-trace 훅 — 수집기가 없으면 아래 `if t is not None` 블록은 모두 건너뛴다.
+    t = current_trace.get()
     if sparse_embedding is not None:
         sparse_indices, sparse_values = sparse_embedding
     else:
+        started = perf_counter() if t is not None else 0.0
         sparse_indices, sparse_values = await embed_sparse_async(query)
+        if t is not None:
+            t.add_span("sparse_embed", "embedding", started)
 
+    started = perf_counter() if t is not None else 0.0
     points = await _call_qdrant_with_retry(
         client,
         collection_name=collection_name or settings.collection_name,
@@ -151,6 +161,15 @@ async def fallback_search(
         for point in points
         if point.score >= score_threshold
     ]
+    if t is not None:
+        t.add_span("qdrant.relaxed_query", "retrieval", started, output={"n_results": len(points)})
+        t.record_fallback(
+            collection=collection_name or settings.collection_name,
+            dense=dense_embedding,
+            sparse=(sparse_indices, sparse_values),
+            results=[point_to_search_result(point) for point in points],
+            threshold=score_threshold,
+        )
 
     if relaxed_results:
         logger.info("Fallback Step 1 found %d results", len(relaxed_results))
@@ -159,6 +178,8 @@ async def fallback_search(
     # 2단계: LLM 질문 제안
     # audit 2차 S-5: fingerprint (PII 차단).
     logger.info("Fallback Step 2: generating suggestions for query: %s", query_fingerprint(query))
+    if t is not None:
+        t.event("fallback_suggestions")
     await _generate_suggestions(query)
     return [], "suggestions"
 

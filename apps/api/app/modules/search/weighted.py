@@ -3,8 +3,10 @@
 import asyncio
 import logging
 from dataclasses import dataclass
+from time import perf_counter
 
 from app.core.common.gemini import embed_dense_query
+from app.modules.chat.trace import TierRecord, current_trace
 from app.modules.pipeline.embedder import embed_sparse_async
 from app.modules.qdrant import RawQdrantClient
 from app.modules.search.hybrid import SearchResult, hybrid_search
@@ -71,7 +73,12 @@ async def weighted_search(
 
     # 임베딩 1회 계산
     dense = dense_embedding if dense_embedding is not None else await embed_dense_query(query)
+    # rag-trace 훅 — 수집기가 없으면 아래 `if t is not None` 블록은 모두 건너뛴다.
+    t = current_trace.get()
+    started = perf_counter() if t is not None else 0.0
     sparse = await embed_sparse_async(query)
+    if t is not None:
+        t.add_span("sparse_embed", "embedding", started)
 
     # 가중치 정규화
     total_weight = sum(ws.weight for ws in config.sources)
@@ -109,9 +116,20 @@ async def weighted_search(
 
     # score_threshold 필터 + 병합
     all_results: list[SearchResult] = []
-    for ws, results in zip(config.sources, per_source_results):
+    for idx, (ws, results) in enumerate(zip(config.sources, per_source_results)):
         threshold = threshold_map[ws.source]
         qualified = [r for r in results if r.score >= threshold]
+        if t is not None:
+            t.record_tier(
+                TierRecord(
+                    mode="weighted",
+                    tier_idx=idx,
+                    sources=[ws.source],
+                    threshold=threshold,
+                    results=list(results),
+                    weight=weight_map.get(ws.source, 0),
+                )
+            )
 
         # Phase 0: weighted score 분포 로깅 — cutoff 정책 변경 결정 근거.
         # 자세한 배경: docs/dev-log/2026-05-01-cascade-threshold-paths.md
@@ -138,4 +156,6 @@ async def weighted_search(
         key=lambda r: r.score * weight_map.get(r.source, 0),
         reverse=True,
     )
+    if t is not None:
+        t.record_merge(all_results, top_k)
     return all_results[:top_k]

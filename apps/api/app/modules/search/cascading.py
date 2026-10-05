@@ -7,8 +7,10 @@ min_results 이상의 결과가 확보되면 조기 종료한다.
 
 import logging
 from dataclasses import dataclass, field
+from time import perf_counter
 
 from app.core.common.gemini import embed_dense_query
+from app.modules.chat.trace import TierRecord, current_trace
 from app.modules.pipeline.embedder import embed_sparse_async
 from app.modules.qdrant import RawQdrantClient
 from app.modules.search.exceptions import SearchFailedError
@@ -75,7 +77,13 @@ async def cascading_search(
     """
     # 임베딩 1회 계산 (외부 주입 시 스킵)
     dense = dense_embedding if dense_embedding is not None else await embed_dense_query(query)
+    # rag-trace 훅 — 수집기가 없으면 아래 `if t is not None` 블록은 모두 건너뛴다.
+    t = current_trace.get()
+    started = perf_counter() if t is not None else 0.0
     sparse = await embed_sparse_async(query)
+    if t is not None:
+        t.add_span("sparse_embed", "embedding", started)
+        t.tier_plan = [(list(tier.sources), tier.min_results) for tier in config.tiers]
 
     all_results: list[SearchResult] = []
     tier_failures = 0
@@ -101,6 +109,18 @@ async def cascading_search(
                 e,
             )
             tier_failures += 1
+            if t is not None:
+                t.record_tier(
+                    TierRecord(
+                        mode="cascading",
+                        tier_idx=tier_idx,
+                        sources=list(tier.sources),
+                        threshold=tier.score_threshold,
+                        results=[],
+                        min_results=tier.min_results,
+                        error=f"{type(e).__name__}: {e}"[:200],
+                    )
+                )
             continue
 
         qualified = [r for r in results if r.score >= tier.score_threshold]
@@ -125,7 +145,20 @@ async def cascading_search(
 
         all_results.extend(qualified)
 
-        if len(all_results) >= tier.min_results:
+        stop = len(all_results) >= tier.min_results
+        if t is not None:
+            t.record_tier(
+                TierRecord(
+                    mode="cascading",
+                    tier_idx=tier_idx,
+                    sources=list(tier.sources),
+                    threshold=tier.score_threshold,
+                    results=list(results),
+                    min_results=tier.min_results,
+                    stopped_here=stop,
+                )
+            )
+        if stop:
             break
 
     # 모든 tier가 실패한 경우에만 fatal error
@@ -133,4 +166,6 @@ async def cascading_search(
         raise SearchFailedError(f"All {total_tiers} search tiers failed")
 
     all_results.sort(key=lambda r: r.score, reverse=True)
+    if t is not None:
+        t.record_merge(all_results, top_k)
     return all_results[:top_k]
