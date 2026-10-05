@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from time import perf_counter
 
 from app.core.common.gemini import embed_dense_query
-from app.modules.chat.trace import TierRecord, current_trace
+from app.modules.chat.trace import TierRecord, current_trace, error_text
 from app.modules.pipeline.embedder import embed_sparse_async
 from app.modules.qdrant import RawQdrantClient
 from app.modules.search.exceptions import SearchFailedError
@@ -118,7 +118,7 @@ async def cascading_search(
                         threshold=tier.score_threshold,
                         results=[],
                         min_results=tier.min_results,
-                        error=f"{type(e).__name__}: {e}"[:200],
+                        error=error_text(e),
                     )
                 )
             continue

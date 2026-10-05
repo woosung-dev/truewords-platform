@@ -140,21 +140,27 @@ async def fallback_search(
             t.add_span("sparse_embed", "embedding", started)
 
     started = perf_counter() if t is not None else 0.0
-    points = await _call_qdrant_with_retry(
-        client,
-        collection_name=collection_name or settings.collection_name,
-        query=fusion_rrf(),
-        prefetch=[
-            build_prefetch(dense_embedding, using="dense", limit=50),
-            build_prefetch(
-                sparse_vector(sparse_indices, sparse_values),
-                using="sparse",
-                limit=50,
-            ),
-        ],
-        query_filter=None,
-        limit=top_k,
-    )
+    try:
+        points = await _call_qdrant_with_retry(
+            client,
+            collection_name=collection_name or settings.collection_name,
+            query=fusion_rrf(),
+            prefetch=[
+                build_prefetch(dense_embedding, using="dense", limit=50),
+                build_prefetch(
+                    sparse_vector(sparse_indices, sparse_values),
+                    using="sparse",
+                    limit=50,
+                ),
+            ],
+            query_filter=None,
+            limit=top_k,
+        )
+    except BaseException as exc:
+        # rag-trace: 취소(예산 초과)·재시도 소진도 워터폴에 남긴다.
+        if t is not None:
+            t.record_failed_call("qdrant.relaxed_query", "retrieval", started, exc)
+        raise
 
     relaxed_results = [
         point_to_search_result(point)

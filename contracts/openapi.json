@@ -313,19 +313,26 @@
             "title": "Dense Rank"
           },
           "drop_stage": {
-            "enum": [
-              "not_retrieved",
-              "filtered",
-              "fusion_cut",
-              "below_threshold",
-              "tier_not_reached",
-              "merge_cut",
-              "rerank_cut",
-              "context_cut",
-              "kept"
+            "anyOf": [
+              {
+                "enum": [
+                  "not_retrieved",
+                  "filtered",
+                  "fusion_cut",
+                  "below_threshold",
+                  "tier_not_reached",
+                  "merge_cut",
+                  "rerank_cut",
+                  "context_cut",
+                  "kept"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Drop Stage",
-            "type": "string"
+            "title": "Drop Stage"
           },
           "duplicate_of": {
             "anyOf": [

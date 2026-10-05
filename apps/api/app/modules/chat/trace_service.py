@@ -6,8 +6,9 @@
   않는다(이 서비스는 ChatRepository 를 받지 않는다).
 - 단계 내부 정보는 `chat.trace` 의 ContextVar 수집기로 모은다. 운영 경로는 수집기를
   설정하지 않으므로 영향이 없다.
-- 전체 예산은 25초다(admin rewrite 프록시 기본 timeout 30초). 넘으면 그때까지의
-  trace 를 partial=True 로 돌려준다.
+- 전체 예산은 25초다(admin rewrite 프록시 기본 timeout 30초). 봇 설정 조회부터 잰다.
+  넘으면 그때까지의 trace 를 partial=True 로 돌려준다. 디버그 조회·sparse modifier
+  조회는 예산 뒤 2초 유예 안에서 함께 끝낸다(최악 약 27초 + 직렬화).
 """
 
 from __future__ import annotations
@@ -252,16 +253,20 @@ def classify_drop(
     in_filtered: bool,
     in_unreached_tier: bool,
     in_unfiltered: bool,
-) -> DropStage:
+    rerank_incomplete: bool = False,
+) -> DropStage | None:
     """가장 멀리 간 단계부터 거꾸로 보며 처음 실패한 단계를 고른다.
 
     파이프라인 순서: 조회 → 필터 → fusion → threshold → tier → 병합 → rerank → context.
-    rerank_ran=False 는 stop_after=search 실행이라 검색 출력까지만 판정한다.
+    rerank_ran=False 는 rerank 출력이 없는 실행이라 검색 출력까지만 판정한다.
+    그중 rerank_incomplete(rerank 도중 끊김)면 검색 출력 후보는 None(판정 보류)이다.
     """
     if rerank_ran and in_rerank_output:
         return "kept" if in_context else "context_cut"
     if in_search_output:
-        return "rerank_cut" if rerank_ran else "kept"
+        if rerank_ran:
+            return "rerank_cut"
+        return None if rerank_incomplete else "kept"
     if in_merged:
         return "merge_cut"
     if in_fused:
@@ -282,11 +287,14 @@ def build_candidates(
     search_output: list[SearchResult] | None,
     rerank_output: list[SearchResult] | None,
     context_slice: int | None,
+    rerank_incomplete: bool = False,
 ) -> tuple[list[CandidateRow], list[str]]:
     """수집기 기록으로 후보 표와 경고를 만든다.
 
     drop_stage 는 후보가 가장 멀리 간 단계의 바로 다음 단계다(처음 실패한 단계).
-    rerank_output 이 None 이면 rerank 단계 전에 멈춘 실행이다(stop_after=search).
+    rerank_output 이 None 이면 rerank 를 거치지 않은 실행이다. stop_after=search 면
+    검색 출력이 끝이고(kept), rerank_incomplete(예산 초과·오류로 rerank 미완료)면
+    검색 출력 행은 판정을 보류한다(None).
     """
     views = _tier_views(c, debug)
     info: dict[str, dict[str, Any]] = {}
@@ -398,6 +406,7 @@ def build_candidates(
                 in_filtered=tv is not None,
                 in_unreached_tier=bool(set(meta["tags"]) & unreached_sources),
                 in_unfiltered=cid in unfiltered,
+                rerank_incomplete=rerank_incomplete,
             )
 
             rows.append(
@@ -477,6 +486,10 @@ class RagTraceService:
 
     async def run(self, req: RagTraceRequest) -> RagTraceResponse:
         state = _RunState()
+        loop = asyncio.get_running_loop()
+        # 예산은 봇 설정 조회부터 잰다. 후처리(디버그·sparse modifier)는 유예까지만 쓴다.
+        deadline = loop.time() + self.budget_seconds
+        grace_deadline = deadline + _DEBUG_GRACE_SECONDS
         # 봇 설정을 먼저 읽는다 — 없는 봇은 404 로 바로 끝낸다(HTTPException 전파).
         pre_cfg = (
             await self.chatbot_service.build_runtime_config(req.chatbot_id)
@@ -486,8 +499,6 @@ class RagTraceService:
 
         collector = TraceCollector()
         token = current_trace.set(collector)
-        loop = asyncio.get_running_loop()
-        deadline = loop.time() + self.budget_seconds
         try:
             try:
                 async with asyncio.timeout_at(deadline):
@@ -502,16 +513,11 @@ class RagTraceService:
                 state.warnings.append(f"stage_error:{type(exc).__name__}")
             pipeline_end = perf_counter()
 
-            debug: DebugLookup | None = None
-            if state.search_output is not None:
-                try:
-                    # 예산을 다 쓴 경우에도 순위 칸을 채우도록 짧은 유예를 준다(프록시 30초 안).
-                    async with asyncio.timeout(max(deadline - loop.time(), _DEBUG_GRACE_SECONDS)):
-                        debug = await self._debug_lookup(collector)
-                except Exception as exc:  # 디버그 조회 실패는 순위 칸만 비운다
-                    logger.warning("rag_trace: 디버그 조회 실패 %s", type(exc).__name__)
-                    state.warnings.append("debug_lookup_failed")
-            sparse_modifier = await self._sparse_modifier(state.ctx)
+            # 예산을 다 쓴 경우에도 순위 칸을 채우도록 같은 유예 안에서 병렬로 조회한다.
+            debug, sparse_modifier = await asyncio.gather(
+                self._debug_lookup_within(collector, state, grace_deadline),
+                self._sparse_modifier(state.ctx, grace_deadline),
+            )
         finally:
             current_trace.reset(token)
 
@@ -568,11 +574,8 @@ class RagTraceService:
             if ctx.cache_hit and ctx.cache_response is not None:
                 # 운영이라면 여기서 캐시 답변으로 끝난다. 점수만 남기고 계속 진행한다.
                 if span is not None:
-                    span.output = {
-                        "would_hit": True,
-                        "score": ctx.cache_response.score,
-                        "cached_question": ctx.cache_response.question,
-                    }
+                    # 캐시에 저장된 질문은 다른 사용자의 원문이라 점수만 남긴다.
+                    span.output = {"would_hit": True, "score": ctx.cache_response.score}
                 state.warnings.append("cache_would_hit")
                 ctx.cache_hit = False
                 ctx.cache_response = None
@@ -735,6 +738,19 @@ class RagTraceService:
 
     # ---- 디버그 조회 -----------------------------------------------------------
 
+    async def _debug_lookup_within(
+        self, c: TraceCollector, state: _RunState, until: float
+    ) -> DebugLookup | None:
+        if state.search_output is None:
+            return None
+        try:
+            async with asyncio.timeout_at(until):
+                return await self._debug_lookup(c)
+        except Exception as exc:  # 디버그 조회 실패는 순위 칸만 비운다
+            logger.warning("rag_trace: 디버그 조회 실패 %s", type(exc).__name__)
+            state.warnings.append("debug_lookup_failed")
+            return None
+
     async def _debug_lookup(self, c: TraceCollector) -> DebugLookup | None:
         """운영과 같은 필터의 dense·sparse 50, 필터 없는 dense·sparse 50 을 한 번에 조회한다."""
         if c.query_vectors is None:
@@ -761,14 +777,14 @@ class RagTraceService:
             lookup.per_call[call_idx] = (ids[slot], ids[slot + 1])
         return lookup
 
-    async def _sparse_modifier(self, ctx: ChatContext | None) -> str | None:
+    async def _sparse_modifier(self, ctx: ChatContext | None, until: float) -> str | None:
         collection = ctx.resolved_collections.main if ctx and ctx.resolved_collections else None
         if collection is None:
             return None
         if collection in _sparse_modifier_cache:
             return _sparse_modifier_cache[collection]
         try:
-            async with asyncio.timeout(2.0):
+            async with asyncio.timeout_at(until):
                 info = await get_raw_client().get_collection(collection)
         except Exception as exc:
             logger.warning("rag_trace: 컬렉션 정보 조회 실패 %s", type(exc).__name__)
@@ -796,14 +812,19 @@ class RagTraceService:
         context_slice = generation_context_slice_for(ctx.intent) if ctx else None
         candidates: list[CandidateRow] = []
         if state.search_output is not None:
+            # rerank 까지 가야 했는데(stop_after≠search) 출력이 없으면 rerank 도중 끊긴 실행이다.
+            rerank_incomplete = req.stop_after != "search" and state.rerank_output is None
             candidates, cand_warnings = build_candidates(
                 c,
                 debug,
                 search_output=state.search_output,
                 rerank_output=state.rerank_output,
                 context_slice=context_slice if state.rerank_output is not None else None,
+                rerank_incomplete=rerank_incomplete,
             )
             state.warnings.extend(cand_warnings)
+            if rerank_incomplete:
+                state.warnings.append("candidates_incomplete")
         if c.rerank is not None and c.rerank.status != "ok":
             state.warnings.append(f"rerank_{c.rerank.status}")
 

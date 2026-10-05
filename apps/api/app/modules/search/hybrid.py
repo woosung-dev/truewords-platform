@@ -113,21 +113,33 @@ async def hybrid_search(
     query_filter = build_filter(must=must_conditions) if must_conditions else None
 
     started = perf_counter() if t is not None else 0.0
-    points = await client.query_points(
-        collection_name=collection_name or settings.collection_name,
-        query=fusion_rrf(),
-        prefetch=[
-            build_prefetch(dense, using="dense", limit=max(50, top_k) if volume_filter is not None else 50, filter_=query_filter if volume_filter is not None else None),
-            build_prefetch(
-                sparse_vector(sparse_indices, sparse_values),
-                using="sparse",
-                limit=max(50, top_k) if volume_filter is not None else 50,
-                filter_=query_filter if volume_filter is not None else None,
-            ),
-        ],
-        query_filter=query_filter,
-        limit=top_k,
-    )
+    try:
+        points = await client.query_points(
+            collection_name=collection_name or settings.collection_name,
+            query=fusion_rrf(),
+            prefetch=[
+                build_prefetch(dense, using="dense", limit=max(50, top_k) if volume_filter is not None else 50, filter_=query_filter if volume_filter is not None else None),
+                build_prefetch(
+                    sparse_vector(sparse_indices, sparse_values),
+                    using="sparse",
+                    limit=max(50, top_k) if volume_filter is not None else 50,
+                    filter_=query_filter if volume_filter is not None else None,
+                ),
+            ],
+            query_filter=query_filter,
+            limit=top_k,
+        )
+    except BaseException as exc:
+        # rag-trace: 취소(예산 초과)·오류로 끝난 Qdrant 호출도 워터폴에 남긴다.
+        if t is not None:
+            t.record_failed_call(
+                "qdrant.hybrid_query",
+                "retrieval",
+                started,
+                exc,
+                input={"source_filter": source_filter, "query_filter": query_filter},
+            )
+        raise
 
     results = [point_to_search_result(point) for point in points]
     if t is not None:

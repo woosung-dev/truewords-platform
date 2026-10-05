@@ -24,6 +24,8 @@ from dataclasses import dataclass, field
 from time import perf_counter
 from typing import Any
 
+import httpx
+
 # input/output dict 의 문자열 값 상한, 리스트 길이 상한, error 문자열 상한.
 MAX_VALUE_CHARS = 500
 MAX_LIST_ITEMS = 50
@@ -49,8 +51,21 @@ def clip(value: Any) -> Any:
     return clip(str(value))
 
 
-def _error_text(exc: BaseException) -> str:
+def error_text(exc: BaseException) -> str:
+    """span error 문자열. httpx 예외 메시지에는 요청 URL(내부 Qdrant 주소)이 들어가므로
+    상태 코드나 예외 이름만 남긴다."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        return f"HTTPStatusError: {exc.response.status_code}"
+    if isinstance(exc, httpx.HTTPError):
+        return type(exc).__name__
     return f"{type(exc).__name__}: {exc}"[:MAX_ERROR_CHARS]
+
+
+def _failure_status(exc: BaseException) -> str:
+    # GeneratorExit: 소비자가 스트림을 중간에 닫음(sanitizer abort 등).
+    if isinstance(exc, (asyncio.CancelledError, GeneratorExit)):
+        return "cancelled"
+    return "error"
 
 
 @dataclass
@@ -176,19 +191,28 @@ class TraceCollector:
             "input_tokens": getattr(usage, "prompt_token_count", None) if usage else None,
             "output_tokens": getattr(usage, "candidates_token_count", None) if usage else None,
         }
-        status = "ok"
-        # GeneratorExit: 소비자가 스트림을 중간에 닫음(sanitizer abort 등).
-        if isinstance(error, (asyncio.CancelledError, GeneratorExit)):
-            status = "cancelled"
-        elif error is not None:
-            status = "error"
         self.add_span(
             name,
             "llm" if "embed" not in name else "embedding",
             start,
-            status=status,
+            status=_failure_status(error) if error is not None else "ok",
             llm=llm,
-            error=_error_text(error) if error is not None else None,
+            error=error_text(error) if error is not None else None,
+        )
+
+    def record_failed_call(
+        self, name: str, kind: str, start: float, exc: BaseException, input: dict[str, Any] | None = None
+    ) -> None:
+        """끝나지 못한 하위 호출(취소·오류)을 span 으로 남긴다. 예산 초과로 취소된 것은
+        mark_timeout 이 timeout 으로 바꾼다."""
+        status = _failure_status(exc)
+        self.add_span(
+            name,
+            kind,
+            start,
+            status=status,
+            input=input,
+            error=error_text(exc) if status == "error" else None,
         )
 
     # ---- 검색 훅 --------------------------------------------------------------
@@ -282,7 +306,7 @@ async def trace_span(
         raise
     except BaseException as exc:
         span.status = "error"
-        span.error = _error_text(exc)
+        span.error = error_text(exc)
         raise
     finally:
         _current_stage.reset(token)

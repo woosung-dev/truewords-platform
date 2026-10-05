@@ -9,10 +9,18 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import uuid
+from time import perf_counter
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+with patch("app.main.init_db", new_callable=AsyncMock):
+    from app.main import app
 
 import app.core.common.gemini as gemini
 import app.modules.chat.trace_service as trace_service
@@ -31,10 +39,13 @@ from app.modules.chat.pipeline.stages.safety_output import SafetyOutputStage
 from app.modules.chat.pipeline.stages.search import SearchStage
 from app.modules.chat.pipeline.stages.session import SessionStage
 from app.modules.chat.pipeline.stages.suggested_followups import SuggestedFollowupsStage
-from app.modules.chat.repository import ChatRepository
-from app.modules.chat.trace import current_trace
+from app.core.common.database import get_async_session
+from app.modules.admin.dependencies import get_current_admin
+from app.modules.chat.dependencies import get_cache_service
+from app.modules.chat.trace import TraceCollector, current_trace
 from app.modules.chat.trace_schemas import RagTraceRequest
 from app.modules.chat.trace_service import TRACE_STAGES, RagTraceService, rrf_expected
+from app.modules.chatbot.dependencies import get_chatbot_service
 from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
@@ -45,6 +56,7 @@ from app.modules.chatbot.runtime_config import (
 )
 from app.modules.qdrant.raw_client import QdrantPoint
 from app.modules.safety.output_filter import DISCLAIMER
+from app.modules.search.cascading import CascadingConfig, SearchTier, cascading_search
 from app.modules.search.intent_classifier import META_FALLBACK_ANSWER
 
 # ---------------------------------------------------------------------------
@@ -63,6 +75,7 @@ class FakeModels:
     def __init__(self) -> None:
         self.intent = "conceptual"
         self.stream_delay = 0.0
+        self.rerank_delay = 0.0
         self.generate_calls: list[str] = []
         self.stream_calls = 0
 
@@ -75,6 +88,8 @@ class FakeModels:
         if "질문 분류기" in sys:
             text = self.intent
         elif "관련성 평가기" in sys:
+            if self.rerank_delay:
+                await asyncio.sleep(self.rerank_delay)
             n = contents.count("[문단 ")
             text = json.dumps({"scores": [round(0.9 - i * 0.1, 2) for i in range(n)]})
         elif "후속 질문 추천기" in sys:
@@ -114,16 +129,27 @@ class FakeQdrant:
     def __init__(self) -> None:
         self.query_calls = 0
         self.batch_calls = 0
+        self.query_delay = 0.0
+        self.lookup_delay = 0.0
+        self.batch_error: BaseException | None = None
 
     async def query_points(self, collection_name, **kwargs):
         self.query_calls += 1
+        if self.query_delay:
+            await asyncio.sleep(self.query_delay)
         return [_point(i, rrf_expected(i + 1, i + 1)) for i in range(5)]
 
     async def query_batch_points(self, collection_name, searches):
         self.batch_calls += 1
+        if self.lookup_delay:
+            await asyncio.sleep(self.lookup_delay)
+        if self.batch_error is not None:
+            raise self.batch_error
         return [[_point(i, 1.0 - i * 0.1) for i in range(5)] for _ in searches]
 
     async def get_collection(self, collection_name):
+        if self.lookup_delay:
+            await asyncio.sleep(self.lookup_delay)
         return {"config": {"params": {"sparse_vectors": {"sparse": {}}}}}
 
 
@@ -188,22 +214,61 @@ def _top_level(resp) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
-async def test_full_run_writes_nothing_and_applies_safety(harness) -> None:
-    with (
-        patch.object(ChatRepository, "create_session", new_callable=AsyncMock) as create_session,
-        patch.object(ChatRepository, "create_message", new_callable=AsyncMock) as create_message,
-        patch.object(ChatRepository, "create_search_event", new_callable=AsyncMock) as create_event,
-        patch.object(ChatRepository, "create_citations", new_callable=AsyncMock) as create_citations,
-        patch.object(ChatRepository, "commit", new_callable=AsyncMock) as commit,
-    ):
-        resp = await harness.service.run(RagTraceRequest(query="참사랑이란 무엇인가요?"))
+def _spy_session() -> MagicMock:
+    """요청 범위 AsyncSession 자리. 읽기(execute)만 허용하고 쓰기 호출을 센다."""
+    session = MagicMock(spec=AsyncSession)
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = None
+    session.execute = AsyncMock(return_value=result)
+    for name in ("flush", "commit", "rollback", "delete", "merge", "refresh"):
+        setattr(session, name, AsyncMock())
+    return session
 
-    for mock in (create_session, create_message, create_event, create_citations, commit):
-        mock.assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_router_run_writes_nothing_to_db_or_cache(harness) -> None:
+    """실제 라우터 → get_rag_trace_service 조립 경로로 실행해 DB 쓰기·캐시 저장 0회를 본다."""
+    session = _spy_session()
+    overrides = {
+        get_async_session: lambda: session,
+        get_chatbot_service: lambda: harness.chatbot_service,
+        get_cache_service: lambda: harness.cache_service,
+        get_current_admin: lambda: {
+            "user_id": uuid.uuid4(),
+            "role": "admin",
+            "email": "demo-admin@example.com",
+        },
+    }
+    app.dependency_overrides.update(overrides)
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post(
+                "/admin/rag-trace",
+                json={"query": "참사랑이란 무엇인가요?"},
+                headers={"X-Requested-With": "XMLHttpRequest"},
+            )
+    finally:
+        for dep in overrides:
+            app.dependency_overrides.pop(dep, None)
+
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["partial"] is False and body["generation"]["answer"]
+    # corpus_updated_at 읽기 1회뿐 — 메시지·검색 이벤트·인용 INSERT 경로(add/flush/commit) 0회.
+    assert session.execute.await_count == 1
+    session.add.assert_not_called()
+    session.add_all.assert_not_called()
+    for name in ("flush", "commit", "delete", "merge"):
+        getattr(session, name).assert_not_awaited()
     harness.cache_service.check_cache.assert_awaited_once()
     harness.cache_service.store_cache.assert_not_awaited()
     assert current_trace.get() is None  # 수집기 reset
+
+
+@pytest.mark.asyncio
+async def test_full_run_applies_safety(harness) -> None:
+    resp = await harness.service.run(RagTraceRequest(query="참사랑이란 무엇인가요?"))
+    assert current_trace.get() is None
 
     assert resp.partial is False
     assert resp.generation is not None
@@ -316,7 +381,8 @@ async def test_cache_would_hit_is_reported_and_pipeline_continues(harness) -> No
 
     assert "cache_would_hit" in resp.warnings
     cache_span = next(s for s in resp.spans if s.name == "cache_check")
-    assert cache_span.output["would_hit"] is True and cache_span.output["score"] == 0.97
+    # 캐시에 저장된 질문(다른 사용자 원문)은 싣지 않는다.
+    assert cache_span.output == {"would_hit": True, "score": 0.97}
     assert _top_level(resp) == list(TRACE_STAGES)
     assert resp.generation is not None and "캐시 답변" not in resp.generation.answer
 
@@ -414,6 +480,78 @@ async def test_budget_exceeded_returns_partial_trace(harness) -> None:
 
 
 @pytest.mark.asyncio
+async def test_budget_exceeded_during_rerank_leaves_search_rows_undecided(harness) -> None:
+    harness.models.rerank_delay = 1.0
+    harness.service.budget_seconds = 0.3
+    resp = await harness.service.run(RagTraceRequest(query="참사랑이란 무엇인가요?"))
+
+    assert resp.partial is True
+    assert {"budget_exceeded", "candidates_incomplete"} <= set(resp.warnings)
+    assert next(s for s in resp.spans if s.name == "rerank").status == "timeout"
+    # rerank 가 끝나지 않았으니 검색 출력 후보를 '끝까지 남음'으로 표시하지 않는다.
+    assert resp.candidates and {r.drop_stage for r in resp.candidates} == {None}
+
+
+@pytest.mark.asyncio
+async def test_budget_exceeded_during_qdrant_call_keeps_cancelled_span(harness) -> None:
+    harness.qdrant.query_delay = 1.0
+    harness.service.budget_seconds = 0.3
+    resp = await harness.service.run(RagTraceRequest(query="참사랑이란 무엇인가요?"))
+
+    assert resp.partial is True
+    assert next(s for s in resp.spans if s.name == "search").status == "timeout"
+    qdrant_span = next(s for s in resp.spans if s.name == "qdrant.hybrid_query")
+    assert qdrant_span.parent == "search" and qdrant_span.status == "timeout"
+    assert qdrant_span.duration_ms >= 250
+
+
+@pytest.mark.asyncio
+async def test_post_phase_lookups_share_one_grace_window(harness) -> None:
+    """예산은 봇 설정 조회부터 재고, 디버그 조회·sparse modifier 는 같은 유예 안에서 끝난다."""
+
+    async def slow_config(_chatbot_id):
+        await asyncio.sleep(0.2)
+        return _runtime_config()
+
+    harness.chatbot_service.build_runtime_config.side_effect = slow_config
+    harness.qdrant.lookup_delay = 5.0
+    harness.service.budget_seconds = 0.8
+    started = perf_counter()
+    with patch.object(trace_service, "_DEBUG_GRACE_SECONDS", 0.3):
+        resp = await harness.service.run(
+            RagTraceRequest(query="참사랑이란 무엇인가요?", stop_after="search")
+        )
+    elapsed = perf_counter() - started
+
+    # 상한 = 예산 0.8(설정 조회 0.2 포함) + 유예 0.3 = 1.1초. 설정 조회를 예산 밖에 두고
+    # 디버그 조회(남은 예산)와 sparse modifier(자체 2초)를 차례로 기다리면 3초 가까이 걸린다.
+    assert elapsed < 1.3
+    assert resp.partial is False
+    assert "debug_lookup_failed" in resp.warnings
+    assert resp.effective_config is not None and resp.effective_config.sparse_modifier is None
+
+
+@pytest.mark.asyncio
+async def test_span_error_hides_internal_qdrant_url(harness) -> None:
+    url = "http://qdrant:6333/collections/malssum_poc_v5/points/query/batch"
+    request = httpx.Request("POST", url)
+    harness.qdrant.batch_error = httpx.HTTPStatusError(
+        f"Client error '400 Bad Request' for url '{url}'",
+        request=request,
+        response=httpx.Response(400, request=request),
+    )
+    resp = await harness.service.run(
+        RagTraceRequest(query="참사랑이란 무엇인가요?", stop_after="search")
+    )
+
+    assert "debug_lookup_failed" in resp.warnings
+    span = next(s for s in resp.spans if s.name == "debug_lookup")
+    assert span.status == "error" and span.error == "HTTPStatusError: 400"
+    dumped = resp.model_dump_json()
+    assert "http://" not in dumped and "6333" not in dumped
+
+
+@pytest.mark.asyncio
 async def test_pastoral_stream_hotline_gap_is_only_warned(harness) -> None:
     resp = await harness.service.run(
         RagTraceRequest(query="참사랑이란 무엇인가요?", answer_mode="pastoral")
@@ -431,8 +569,34 @@ async def test_pastoral_stream_hotline_gap_is_only_warned(harness) -> None:
 
 @pytest.mark.asyncio
 async def test_hooks_are_noop_without_collector(harness) -> None:
-    assert current_trace.get() is None
-    vec = await gemini.embed_dense_query("질문")
-    text = await gemini.generate_text("프롬프트")
-    assert vec == [0.1, 0.2, 0.3] and text == "재작성된 질문"
+    """운영 경로(수집기 없음)에서 검색·Gemini 훅이 수집기를 만들거나 기록하지 않는다."""
+    record_methods = [
+        "add_span",
+        "event",
+        "record_llm",
+        "record_failed_call",
+        "record_hybrid",
+        "record_tier",
+        "record_merge",
+        "record_fallback",
+        "record_rerank",
+    ]
+    patches = [patch.object(TraceCollector, m) for m in record_methods]
+    patches.append(patch.object(TraceCollector, "__init__", side_effect=AssertionError("생성 금지")))
+    mocks = [p.start() for p in patches]
+    try:
+        assert current_trace.get() is None
+        results = await cascading_search(
+            harness.qdrant,
+            "참사랑",
+            CascadingConfig(tiers=[SearchTier(sources=["A"], min_results=3, score_threshold=0.1)]),
+            top_k=5,
+        )
+        text = await gemini.generate_text("프롬프트")
+    finally:
+        for p in patches:
+            p.stop()
+    assert [r.chunk_id for r in results] == _IDS and text == "재작성된 질문"
+    for mock in mocks:
+        mock.assert_not_called()
     assert current_trace.get() is None

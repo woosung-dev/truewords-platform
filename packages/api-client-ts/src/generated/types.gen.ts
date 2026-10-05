@@ -219,7 +219,7 @@ export type CandidateRow = {
     /**
      * Drop Stage
      */
-    drop_stage: 'not_retrieved' | 'filtered' | 'fusion_cut' | 'below_threshold' | 'tier_not_reached' | 'merge_cut' | 'rerank_cut' | 'context_cut' | 'kept';
+    drop_stage: 'not_retrieved' | 'filtered' | 'fusion_cut' | 'below_threshold' | 'tier_not_reached' | 'merge_cut' | 'rerank_cut' | 'context_cut' | 'kept' | null;
     /**
      * Duplicate Of
      */
