@@ -4,6 +4,7 @@ import json
 import logging
 
 from app.core.common.gemini import generate_text
+from app.modules.chat.trace import RerankRecord, current_trace
 from app.modules.search.hybrid import SearchResult
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,8 @@ async def rerank(
     if not results:
         return []
 
+    # rag-trace 훅 — 수집기가 없으면 아래 `if t is not None` 블록은 모두 건너뛴다.
+    t = current_trace.get()
     try:
         prompt = _build_rerank_prompt(query, results)
         response_text = await generate_text(
@@ -72,7 +75,12 @@ async def rerank(
         if scores is None:
             # 파싱 실패 → 원본 반환
             logger.warning("Rerank 파싱 실패, 원본 결과 반환")
+            if t is not None:
+                t.record_rerank(RerankRecord(query, list(results), None, "parse_fail", top_k))
             return results[:top_k]
+
+        if t is not None:
+            t.record_rerank(RerankRecord(query, list(results), list(scores), "ok", top_k))
 
         # rerank_score 부여 + 정렬. parent_*/chunk_id 등 메타데이터는 원본에서 그대로 carry.
         reranked = [
@@ -95,4 +103,6 @@ async def rerank(
     except Exception:
         # API 실패 등 → graceful degradation
         logger.exception("Rerank 실패, 원본 결과 반환")
+        if t is not None:
+            t.record_rerank(RerankRecord(query, list(results), None, "api_fail", top_k))
         return results[:top_k]

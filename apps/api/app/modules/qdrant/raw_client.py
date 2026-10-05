@@ -402,6 +402,15 @@ class RawQdrantClient:
 
     # ---- collection mgmt -------------------------------------------------
 
+    async def get_collection(self, collection_name: str) -> dict:
+        """컬렉션 정보 (``GET /collections/{name}``) 의 ``result`` dict. 읽기 전용."""
+        async with self._client() as client:
+            resp = await client.get(
+                f"{self._base}/collections/{collection_name}", headers=self._headers
+            )
+            resp.raise_for_status()
+            return resp.json().get("result", {})
+
     async def collection_exists(self, collection_name: str) -> bool:
         """컬렉션 존재 여부 확인 (``GET /collections``)."""
         async with self._client() as client:

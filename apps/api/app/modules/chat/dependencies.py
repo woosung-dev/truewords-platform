@@ -17,6 +17,7 @@ from app.modules.chat.reactions_repository import MessageReactionRepository
 from app.modules.chat.reactions_service import MessageReactionService
 from app.modules.chat.repository import ChatRepository
 from app.modules.chat.service import ChatService
+from app.modules.chat.trace_service import RagTraceService
 from app.modules.chatbot.dependencies import get_chatbot_service
 from app.modules.chatbot.service import ChatbotService
 from app.core.common.database import get_async_session
@@ -107,6 +108,19 @@ async def get_chat_service(
 ) -> ChatService:
     return ChatService(
         chat_repo=chat_repo,
+        chatbot_service=chatbot_service,
+        cache_service=cache_service,
+        ingestion_repo=ingestion_repo,
+    )
+
+
+async def get_rag_trace_service(
+    chatbot_service: ChatbotService = Depends(get_chatbot_service),
+    cache_service: SemanticCacheService | None = Depends(get_cache_service),
+    ingestion_repo: IngestionJobRepository = Depends(get_ingestion_repository),
+) -> RagTraceService:
+    """관리자 rag-trace — ChatRepository 를 주입하지 않아 대화·검색 기록을 남기지 않는다."""
+    return RagTraceService(
         chatbot_service=chatbot_service,
         cache_service=cache_service,
         ingestion_repo=ingestion_repo,

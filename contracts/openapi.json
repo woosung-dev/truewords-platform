@@ -272,6 +272,193 @@
         "title": "BulkRightsResponse",
         "type": "object"
       },
+      "CandidateRow": {
+        "description": "후보 문서 1건이 단계별로 어디까지 살아남았는지. 순위는 1부터 센다.",
+        "properties": {
+          "chunk_id": {
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "cited_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cited Rank"
+          },
+          "context_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Rank"
+          },
+          "dense_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dense Rank"
+          },
+          "drop_stage": {
+            "anyOf": [
+              {
+                "enum": [
+                  "not_retrieved",
+                  "filtered",
+                  "fusion_cut",
+                  "below_threshold",
+                  "tier_not_reached",
+                  "merge_cut",
+                  "rerank_cut",
+                  "context_cut",
+                  "kept"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drop Stage"
+          },
+          "duplicate_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duplicate Of"
+          },
+          "fused_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fused Rank"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "hybrid",
+              "fallback_relaxed"
+            ],
+            "title": "Origin",
+            "type": "string"
+          },
+          "preview": {
+            "title": "Preview",
+            "type": "string"
+          },
+          "qualified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualified"
+          },
+          "rerank_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerank Rank"
+          },
+          "rerank_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerank Score"
+          },
+          "rrf_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rrf Score"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "sparse_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sparse Rank"
+          },
+          "tier_idx": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier Idx"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "chunk_id",
+          "volume",
+          "source",
+          "preview",
+          "origin",
+          "drop_stage"
+        ],
+        "title": "CandidateRow",
+        "type": "object"
+      },
       "CardAdminCreate": {
         "description": "POST 본문. 본문(`text`)은 원문 그대로 — 등록 뒤에는 바꿀 수 없다.",
         "properties": {
@@ -2353,6 +2540,127 @@
         "title": "DuplicateCheckResponse",
         "type": "object"
       },
+      "EffectiveConfig": {
+        "description": "이번 실행에 실제로 적용된 값만 담는다(읽는 코드가 없는 설정 필드는 넣지 않는다).",
+        "properties": {
+          "chatbot_id": {
+            "title": "Chatbot Id",
+            "type": "string"
+          },
+          "collection": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collection"
+          },
+          "context_slice": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Slice"
+          },
+          "embedding_model": {
+            "title": "Embedding Model",
+            "type": "string"
+          },
+          "generation_model": {
+            "title": "Generation Model",
+            "type": "string"
+          },
+          "intent_classifier_enabled": {
+            "title": "Intent Classifier Enabled",
+            "type": "boolean"
+          },
+          "multiturn_enabled": {
+            "title": "Multiturn Enabled",
+            "type": "boolean"
+          },
+          "query_rewrite_enabled": {
+            "title": "Query Rewrite Enabled",
+            "type": "boolean"
+          },
+          "query_rewrite_enabled_reason": {
+            "title": "Query Rewrite Enabled Reason",
+            "type": "string"
+          },
+          "rerank_enabled": {
+            "title": "Rerank Enabled",
+            "type": "boolean"
+          },
+          "rerank_enabled_reason": {
+            "title": "Rerank Enabled Reason",
+            "type": "string"
+          },
+          "rerank_top_k": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerank Top K"
+          },
+          "search_mode": {
+            "enum": [
+              "cascading",
+              "weighted"
+            ],
+            "title": "Search Mode",
+            "type": "string"
+          },
+          "sparse_modifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sparse Modifier"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/TraceTier"
+            },
+            "title": "Tiers",
+            "type": "array"
+          },
+          "weighted_sources": {
+            "items": {
+              "$ref": "#/components/schemas/TraceWeightedSource"
+            },
+            "title": "Weighted Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "chatbot_id",
+          "search_mode",
+          "rerank_enabled",
+          "rerank_enabled_reason",
+          "query_rewrite_enabled",
+          "query_rewrite_enabled_reason",
+          "multiturn_enabled",
+          "intent_classifier_enabled",
+          "generation_model",
+          "embedding_model"
+        ],
+        "title": "EffectiveConfig",
+        "type": "object"
+      },
       "ErrorResponse": {
         "description": "통합 에러 응답 포맷 (Flutter 소비 라우터 기준).\n\nAttributes:\n    error_code: 프론트엔드 분기용 에러 코드 (예: INPUT_BLOCKED)\n    message: 사용자 표시 메시지 (한국어)\n    request_id: 요청 추적 식별자 (UUID v4 또는 X-Request-Id 헤더값)\n    details: 디버깅용 추가 정보 (선택, 프로덕션에서는 사용 자제)",
         "properties": {
@@ -2568,6 +2876,36 @@
         ],
         "title": "FeedbackType",
         "type": "string"
+      },
+      "GenerationTrace": {
+        "properties": {
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          },
+          "context_prompt": {
+            "title": "Context Prompt",
+            "type": "string"
+          },
+          "history_window": {
+            "items": {
+              "$ref": "#/components/schemas/TraceTurn"
+            },
+            "title": "History Window",
+            "type": "array"
+          },
+          "system_prompt": {
+            "title": "System Prompt",
+            "type": "string"
+          }
+        },
+        "required": [
+          "system_prompt",
+          "context_prompt",
+          "answer"
+        ],
+        "title": "GenerationTrace",
+        "type": "object"
       },
       "GroupCreate": {
         "properties": {
@@ -3850,6 +4188,41 @@
         "title": "LibraryWork",
         "type": "object"
       },
+      "LlmUsage": {
+        "properties": {
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          }
+        },
+        "required": [
+          "model"
+        ],
+        "title": "LlmUsage",
+        "type": "object"
+      },
       "LoginRequest": {
         "properties": {
           "email": {
@@ -4844,6 +5217,166 @@
           "latency_ms"
         ],
         "title": "QueryOccurrence",
+        "type": "object"
+      },
+      "RagTraceRequest": {
+        "properties": {
+          "answer_mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "standard",
+                  "theological",
+                  "pastoral",
+                  "beginner",
+                  "kids"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer Mode"
+          },
+          "chatbot_id": {
+            "default": "all",
+            "title": "Chatbot Id",
+            "type": "string"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/TraceTurn"
+            },
+            "maxItems": 12,
+            "title": "History",
+            "type": "array"
+          },
+          "overrides": {
+            "$ref": "#/components/schemas/TraceOverrides"
+          },
+          "query": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "stop_after": {
+            "default": "full",
+            "enum": [
+              "search",
+              "rerank",
+              "full"
+            ],
+            "title": "Stop After",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "RagTraceRequest",
+        "type": "object"
+      },
+      "RagTraceResponse": {
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateRow"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "effective_config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fallback_type": {
+            "default": "none",
+            "title": "Fallback Type",
+            "type": "string"
+          },
+          "generation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenerationTrace"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "intent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intent"
+          },
+          "partial": {
+            "default": false,
+            "title": "Partial",
+            "type": "boolean"
+          },
+          "resolved_answer_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Answer Mode"
+          },
+          "rewritten": {
+            "default": false,
+            "title": "Rewritten",
+            "type": "boolean"
+          },
+          "search_query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search Query"
+          },
+          "spans": {
+            "items": {
+              "$ref": "#/components/schemas/StageSpan"
+            },
+            "title": "Spans",
+            "type": "array"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/TraceTotals"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "totals"
+        ],
+        "title": "RagTraceResponse",
         "type": "object"
       },
       "ReactionAggregate": {
@@ -5916,6 +6449,111 @@
         "title": "SourceChunkDetail",
         "type": "object"
       },
+      "StageSpan": {
+        "properties": {
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "number"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "input": {
+            "additionalProperties": true,
+            "title": "Input",
+            "type": "object"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "llm": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LlmUsage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "output": {
+            "additionalProperties": true,
+            "title": "Output",
+            "type": "object"
+          },
+          "parallel_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parallel Group"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent"
+          },
+          "start_ms": {
+            "title": "Start Ms",
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "skipped",
+              "error",
+              "timeout",
+              "cancelled",
+              "short_circuit"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "ttft_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttft Ms"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "status",
+          "start_ms",
+          "duration_ms"
+        ],
+        "title": "StageSpan",
+        "type": "object"
+      },
       "SummaryResponse": {
         "description": "API-HD-004. 연속일·최대·누적은 read 기준이며 저장하지 않는다. week 는 월요일 시작 7칸.",
         "properties": {
@@ -6140,6 +6778,159 @@
           "count"
         ],
         "title": "TopQuery",
+        "type": "object"
+      },
+      "TraceOverrides": {
+        "description": "이번 실행에만 적용하는 설정. None 이면 봇 설정을 그대로 쓴다.",
+        "properties": {
+          "intent": {
+            "anyOf": [
+              {
+                "enum": [
+                  "factoid",
+                  "conceptual",
+                  "reasoning",
+                  "meta"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intent"
+          },
+          "query_rewrite_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query Rewrite Enabled"
+          },
+          "rerank_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerank Enabled"
+          }
+        },
+        "title": "TraceOverrides",
+        "type": "object"
+      },
+      "TraceTier": {
+        "properties": {
+          "min_results": {
+            "title": "Min Results",
+            "type": "integer"
+          },
+          "score_threshold": {
+            "title": "Score Threshold",
+            "type": "number"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sources",
+          "min_results",
+          "score_threshold"
+        ],
+        "title": "TraceTier",
+        "type": "object"
+      },
+      "TraceTotals": {
+        "properties": {
+          "critical_path_ms": {
+            "title": "Critical Path Ms",
+            "type": "number"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "llm_calls": {
+            "title": "Llm Calls",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "total_ms": {
+            "title": "Total Ms",
+            "type": "number"
+          }
+        },
+        "required": [
+          "total_ms",
+          "critical_path_ms",
+          "llm_calls",
+          "input_tokens",
+          "output_tokens"
+        ],
+        "title": "TraceTotals",
+        "type": "object"
+      },
+      "TraceTurn": {
+        "description": "플레이그라운드에 넣는 직전 대화 1개. DB 에 저장하지 않는다.",
+        "properties": {
+          "content": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "TraceTurn",
+        "type": "object"
+      },
+      "TraceWeightedSource": {
+        "properties": {
+          "score_threshold": {
+            "title": "Score Threshold",
+            "type": "number"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "source",
+          "weight",
+          "score_threshold"
+        ],
+        "title": "TraceWeightedSource",
         "type": "object"
       },
       "TtsVoice": {
@@ -9285,6 +10076,47 @@
         "summary": "Update Official Jeongseong",
         "tags": [
           "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/rag-trace": {
+      "post": {
+        "operationId": "run_rag_trace_admin_rag_trace_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RagTraceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RagTraceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Rag Trace",
+        "tags": [
+          "admin-rag-trace"
         ]
       }
     },

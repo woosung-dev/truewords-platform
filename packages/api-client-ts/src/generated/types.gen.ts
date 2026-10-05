@@ -195,6 +195,86 @@ export type BulkRightsResponse = {
 };
 
 /**
+ * CandidateRow
+ *
+ * 후보 문서 1건이 단계별로 어디까지 살아남았는지. 순위는 1부터 센다.
+ */
+export type CandidateRow = {
+    /**
+     * Chunk Id
+     */
+    chunk_id: string;
+    /**
+     * Cited Rank
+     */
+    cited_rank?: number | null;
+    /**
+     * Context Rank
+     */
+    context_rank?: number | null;
+    /**
+     * Dense Rank
+     */
+    dense_rank?: number | null;
+    /**
+     * Drop Stage
+     */
+    drop_stage: 'not_retrieved' | 'filtered' | 'fusion_cut' | 'below_threshold' | 'tier_not_reached' | 'merge_cut' | 'rerank_cut' | 'context_cut' | 'kept' | null;
+    /**
+     * Duplicate Of
+     */
+    duplicate_of?: string | null;
+    /**
+     * Fused Rank
+     */
+    fused_rank?: number | null;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Origin
+     */
+    origin: 'hybrid' | 'fallback_relaxed';
+    /**
+     * Preview
+     */
+    preview: string;
+    /**
+     * Qualified
+     */
+    qualified?: boolean | null;
+    /**
+     * Rerank Rank
+     */
+    rerank_rank?: number | null;
+    /**
+     * Rerank Score
+     */
+    rerank_score?: number | null;
+    /**
+     * Rrf Score
+     */
+    rrf_score?: number | null;
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Sparse Rank
+     */
+    sparse_rank?: number | null;
+    /**
+     * Tier Idx
+     */
+    tier_idx?: number | null;
+    /**
+     * Volume
+     */
+    volume: string;
+};
+
+/**
  * CardAdminCreate
  *
  * POST 본문. 본문(`text`)은 원문 그대로 — 등록 뒤에는 바꿀 수 없다.
@@ -1371,6 +1451,78 @@ export type DuplicateCheckResponse = {
 };
 
 /**
+ * EffectiveConfig
+ *
+ * 이번 실행에 실제로 적용된 값만 담는다(읽는 코드가 없는 설정 필드는 넣지 않는다).
+ */
+export type EffectiveConfig = {
+    /**
+     * Chatbot Id
+     */
+    chatbot_id: string;
+    /**
+     * Collection
+     */
+    collection?: string | null;
+    /**
+     * Context Slice
+     */
+    context_slice?: number | null;
+    /**
+     * Embedding Model
+     */
+    embedding_model: string;
+    /**
+     * Generation Model
+     */
+    generation_model: string;
+    /**
+     * Intent Classifier Enabled
+     */
+    intent_classifier_enabled: boolean;
+    /**
+     * Multiturn Enabled
+     */
+    multiturn_enabled: boolean;
+    /**
+     * Query Rewrite Enabled
+     */
+    query_rewrite_enabled: boolean;
+    /**
+     * Query Rewrite Enabled Reason
+     */
+    query_rewrite_enabled_reason: string;
+    /**
+     * Rerank Enabled
+     */
+    rerank_enabled: boolean;
+    /**
+     * Rerank Enabled Reason
+     */
+    rerank_enabled_reason: string;
+    /**
+     * Rerank Top K
+     */
+    rerank_top_k?: number | null;
+    /**
+     * Search Mode
+     */
+    search_mode: 'cascading' | 'weighted';
+    /**
+     * Sparse Modifier
+     */
+    sparse_modifier?: string | null;
+    /**
+     * Tiers
+     */
+    tiers?: Array<TraceTier>;
+    /**
+     * Weighted Sources
+     */
+    weighted_sources?: Array<TraceWeightedSource>;
+};
+
+/**
  * ErrorResponse
  *
  * 통합 에러 응답 포맷 (Flutter 소비 라우터 기준).
@@ -1521,6 +1673,28 @@ export type FeedbackSummary = {
  * FeedbackType
  */
 export type FeedbackType = 'helpful' | 'accurate' | 'well_cited' | 'easy_to_understand' | 'comforting' | 'inaccurate' | 'missing_citation' | 'irrelevant' | 'other';
+
+/**
+ * GenerationTrace
+ */
+export type GenerationTrace = {
+    /**
+     * Answer
+     */
+    answer: string;
+    /**
+     * Context Prompt
+     */
+    context_prompt: string;
+    /**
+     * History Window
+     */
+    history_window?: Array<TraceTurn>;
+    /**
+     * System Prompt
+     */
+    system_prompt: string;
+};
 
 /**
  * GroupCreate
@@ -2303,6 +2477,24 @@ export type LibraryWork = {
 };
 
 /**
+ * LlmUsage
+ */
+export type LlmUsage = {
+    /**
+     * Input Tokens
+     */
+    input_tokens?: number | null;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Output Tokens
+     */
+    output_tokens?: number | null;
+};
+
+/**
  * LoginRequest
  */
 export type LoginRequest = {
@@ -2912,6 +3104,78 @@ export type QueryOccurrence = {
      * User Message Id
      */
     user_message_id?: string | null;
+};
+
+/**
+ * RagTraceRequest
+ */
+export type RagTraceRequest = {
+    /**
+     * Answer Mode
+     */
+    answer_mode?: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids' | null;
+    /**
+     * Chatbot Id
+     */
+    chatbot_id?: string;
+    /**
+     * History
+     */
+    history?: Array<TraceTurn>;
+    overrides?: TraceOverrides;
+    /**
+     * Query
+     */
+    query: string;
+    /**
+     * Stop After
+     */
+    stop_after?: 'search' | 'rerank' | 'full';
+};
+
+/**
+ * RagTraceResponse
+ */
+export type RagTraceResponse = {
+    /**
+     * Candidates
+     */
+    candidates?: Array<CandidateRow>;
+    effective_config?: EffectiveConfig | null;
+    /**
+     * Fallback Type
+     */
+    fallback_type?: string;
+    generation?: GenerationTrace | null;
+    /**
+     * Intent
+     */
+    intent?: string | null;
+    /**
+     * Partial
+     */
+    partial?: boolean;
+    /**
+     * Resolved Answer Mode
+     */
+    resolved_answer_mode?: string | null;
+    /**
+     * Rewritten
+     */
+    rewritten?: boolean;
+    /**
+     * Search Query
+     */
+    search_query?: string | null;
+    /**
+     * Spans
+     */
+    spans?: Array<StageSpan>;
+    totals: TraceTotals;
+    /**
+     * Warnings
+     */
+    warnings?: Array<string>;
 };
 
 /**
@@ -3635,6 +3899,61 @@ export type SourceChunkDetail = {
 };
 
 /**
+ * StageSpan
+ */
+export type StageSpan = {
+    /**
+     * Duration Ms
+     */
+    duration_ms: number;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Input
+     */
+    input?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Kind
+     */
+    kind: string;
+    llm?: LlmUsage | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Output
+     */
+    output?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Parallel Group
+     */
+    parallel_group?: string | null;
+    /**
+     * Parent
+     */
+    parent?: string | null;
+    /**
+     * Start Ms
+     */
+    start_ms: number;
+    /**
+     * Status
+     */
+    status: 'ok' | 'skipped' | 'error' | 'timeout' | 'cancelled' | 'short_circuit';
+    /**
+     * Ttft Ms
+     */
+    ttft_ms?: number | null;
+};
+
+/**
  * SummaryResponse
  *
  * API-HD-004. 연속일·최대·누적은 read 기준이며 저장하지 않는다. week 는 월요일 시작 7칸.
@@ -3781,6 +4100,104 @@ export type TopQuery = {
      * Query Text
      */
     query_text: string;
+};
+
+/**
+ * TraceOverrides
+ *
+ * 이번 실행에만 적용하는 설정. None 이면 봇 설정을 그대로 쓴다.
+ */
+export type TraceOverrides = {
+    /**
+     * Intent
+     */
+    intent?: 'factoid' | 'conceptual' | 'reasoning' | 'meta' | null;
+    /**
+     * Query Rewrite Enabled
+     */
+    query_rewrite_enabled?: boolean | null;
+    /**
+     * Rerank Enabled
+     */
+    rerank_enabled?: boolean | null;
+};
+
+/**
+ * TraceTier
+ */
+export type TraceTier = {
+    /**
+     * Min Results
+     */
+    min_results: number;
+    /**
+     * Score Threshold
+     */
+    score_threshold: number;
+    /**
+     * Sources
+     */
+    sources: Array<string>;
+};
+
+/**
+ * TraceTotals
+ */
+export type TraceTotals = {
+    /**
+     * Critical Path Ms
+     */
+    critical_path_ms: number;
+    /**
+     * Input Tokens
+     */
+    input_tokens: number;
+    /**
+     * Llm Calls
+     */
+    llm_calls: number;
+    /**
+     * Output Tokens
+     */
+    output_tokens: number;
+    /**
+     * Total Ms
+     */
+    total_ms: number;
+};
+
+/**
+ * TraceTurn
+ *
+ * 플레이그라운드에 넣는 직전 대화 1개. DB 에 저장하지 않는다.
+ */
+export type TraceTurn = {
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Role
+     */
+    role: 'user' | 'assistant';
+};
+
+/**
+ * TraceWeightedSource
+ */
+export type TraceWeightedSource = {
+    /**
+     * Score Threshold
+     */
+    score_threshold: number;
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Weight
+     */
+    weight: number;
 };
 
 /**
@@ -5800,6 +6217,31 @@ export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutRespon
 };
 
 export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponse = UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses[keyof UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses];
+
+export type RunRagTraceAdminRagTracePostData = {
+    body: RagTraceRequest;
+    path?: never;
+    query?: never;
+    url: '/admin/rag-trace';
+};
+
+export type RunRagTraceAdminRagTracePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RunRagTraceAdminRagTracePostError = RunRagTraceAdminRagTracePostErrors[keyof RunRagTraceAdminRagTracePostErrors];
+
+export type RunRagTraceAdminRagTracePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: RagTraceResponse;
+};
+
+export type RunRagTraceAdminRagTracePostResponse = RunRagTraceAdminRagTracePostResponses[keyof RunRagTraceAdminRagTracePostResponses];
 
 export type GetSettingsConfigAdminSettingsConfigGetData = {
     body?: never;

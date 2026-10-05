@@ -9,10 +9,12 @@ hang 하는 문제를 회피. (PR #78 진단, docs/dev-log/47 참조)
 """
 
 from dataclasses import dataclass
+from time import perf_counter
 
 from pydantic import ValidationError
 
 from app.core.common.gemini import embed_dense_query
+from app.modules.chat.trace import HybridCall, current_trace
 from app.core.config import settings
 from app.modules.pipeline.chunk_payload import QdrantChunkPayload
 from app.modules.pipeline.embedder import embed_sparse_async
@@ -91,10 +93,15 @@ async def hybrid_search(
         return []
 
     dense = dense_embedding if dense_embedding is not None else await embed_dense_query(query)
+    # rag-trace 훅 — 수집기가 없으면 아래 `if t is not None` 블록은 모두 건너뛴다.
+    t = current_trace.get()
     if sparse_embedding is not None:
         sparse_indices, sparse_values = sparse_embedding
     else:
+        started = perf_counter() if t is not None else 0.0
         sparse_indices, sparse_values = await embed_sparse_async(query)
+        if t is not None:
+            t.add_span("sparse_embed", "embedding", started)
 
     must_conditions: list[dict] = []
     if volume_filter is not None:
@@ -105,23 +112,50 @@ async def hybrid_search(
         must_conditions.extend(build_metadata_filter_conditions(query_metadata))
     query_filter = build_filter(must=must_conditions) if must_conditions else None
 
-    points = await client.query_points(
-        collection_name=collection_name or settings.collection_name,
-        query=fusion_rrf(),
-        prefetch=[
-            build_prefetch(dense, using="dense", limit=max(50, top_k) if volume_filter is not None else 50, filter_=query_filter if volume_filter is not None else None),
-            build_prefetch(
-                sparse_vector(sparse_indices, sparse_values),
-                using="sparse",
-                limit=max(50, top_k) if volume_filter is not None else 50,
-                filter_=query_filter if volume_filter is not None else None,
-            ),
-        ],
-        query_filter=query_filter,
-        limit=top_k,
-    )
+    started = perf_counter() if t is not None else 0.0
+    try:
+        points = await client.query_points(
+            collection_name=collection_name or settings.collection_name,
+            query=fusion_rrf(),
+            prefetch=[
+                build_prefetch(dense, using="dense", limit=max(50, top_k) if volume_filter is not None else 50, filter_=query_filter if volume_filter is not None else None),
+                build_prefetch(
+                    sparse_vector(sparse_indices, sparse_values),
+                    using="sparse",
+                    limit=max(50, top_k) if volume_filter is not None else 50,
+                    filter_=query_filter if volume_filter is not None else None,
+                ),
+            ],
+            query_filter=query_filter,
+            limit=top_k,
+        )
+    except BaseException as exc:
+        # rag-trace: 취소(예산 초과)·오류로 끝난 Qdrant 호출도 워터폴에 남긴다.
+        if t is not None:
+            t.record_failed_call(
+                "qdrant.hybrid_query",
+                "retrieval",
+                started,
+                exc,
+                input={"source_filter": source_filter, "query_filter": query_filter},
+            )
+        raise
 
-    return [point_to_search_result(point) for point in points]
+    results = [point_to_search_result(point) for point in points]
+    if t is not None:
+        t.record_hybrid(
+            HybridCall(
+                collection=collection_name or settings.collection_name,
+                source_filter=list(source_filter) if source_filter else None,
+                query_filter=query_filter,
+                prefetch_limit=max(50, top_k) if volume_filter is not None else 50,
+                dense=dense,
+                sparse=(sparse_indices, sparse_values),
+                results=results,
+            ),
+            started,
+        )
+    return results
 
 
 def _normalize_source(raw: object) -> str:

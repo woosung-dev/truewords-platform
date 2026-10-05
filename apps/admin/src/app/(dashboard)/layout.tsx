@@ -15,6 +15,7 @@ import {
   ScrollText,
   Settings,
   Users,
+  Waypoints,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -36,6 +37,7 @@ const NAV_ITEMS = [
   { href: "/hoondok", label: "훈독 편성", icon: CalendarDays },
   { href: "/data-sources", label: "데이터 소스", icon: Database },
   { href: "/analytics", label: "검색 분석", icon: BarChart3 },
+  { href: "/rag-trace", label: "파이프라인 추적", icon: Waypoints },
   { href: "/feedback", label: "피드백", icon: MessageSquare },
   { href: "/audit-logs", label: "감사 로그", icon: ScrollText },
   { href: "/settings", label: "설정", icon: Settings },

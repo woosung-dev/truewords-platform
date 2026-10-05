@@ -12,10 +12,13 @@ Cloud Run concurrency 잠김 + 비용 폭증 (메타 β single biggest productio
 
 import asyncio
 from collections.abc import AsyncGenerator
+from time import perf_counter
 
 from google.genai import types
 from app.core.common.gemini_client import get_client
 from app.core.config import settings
+# 관리자 rag-trace 수집기. 꺼져 있으면 훅 비용은 ContextVar.get() 1회다.
+from app.modules.chat.trace import current_trace
 
 # 싱글턴 — retry_429=True (SDK 기본, 429 포함 재시도). chat 생성/쿼리 임베딩 전용.
 _client = get_client()
@@ -39,14 +42,23 @@ async def embed_dense_document(text: str) -> list[float]:
 
 async def embed_dense_query(text: str) -> list[float]:
     """쿼리용 dense 임베딩 (비동기). output_dimensionality=1536 고정."""
-    result = await _client.aio.models.embed_content(
-        model=MODEL_EMBEDDING,
-        contents=text,
-        config=types.EmbedContentConfig(
-            task_type="RETRIEVAL_QUERY",
-            output_dimensionality=1536,
-        ),
-    )
+    t = current_trace.get()
+    started = perf_counter() if t is not None else 0.0
+    try:
+        result = await _client.aio.models.embed_content(
+            model=MODEL_EMBEDDING,
+            contents=text,
+            config=types.EmbedContentConfig(
+                task_type="RETRIEVAL_QUERY",
+                output_dimensionality=1536,
+            ),
+        )
+    except BaseException as exc:
+        if t is not None:
+            t.record_llm("gemini.embed_dense_query", MODEL_EMBEDDING, started, error=exc)
+        raise
+    if t is not None:
+        t.record_llm("gemini.embed_dense_query", MODEL_EMBEDDING, started)
     return result.embeddings[0].values
 
 
@@ -64,11 +76,22 @@ async def generate_text(
         config = types.GenerateContentConfig(
             system_instruction=system_instruction,
         )
-    async with asyncio.timeout(settings.gemini_generate_timeout_seconds):
-        response = await _client.aio.models.generate_content(
-            model=model,
-            contents=prompt,
-            config=config,
+    t = current_trace.get()
+    started = perf_counter() if t is not None else 0.0
+    try:
+        async with asyncio.timeout(settings.gemini_generate_timeout_seconds):
+            response = await _client.aio.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=config,
+            )
+    except BaseException as exc:
+        if t is not None:
+            t.record_llm("gemini.generate_text", model, started, error=exc)
+        raise
+    if t is not None:
+        t.record_llm(
+            "gemini.generate_text", model, started, getattr(response, "usage_metadata", None)
         )
     return response.text
 
@@ -92,12 +115,26 @@ async def generate_text_stream(
     # google-genai >=0.8.0 에서 generate_content_stream 이 coroutine 으로 변경됨.
     # 직접 async for 시 'object with __aiter__ method, got coroutine' TypeError.
     # await 로 AsyncIterator 를 먼저 받은 뒤 async for 로 chunk 소비.
-    async with asyncio.timeout(settings.gemini_stream_timeout_seconds):
-        stream = await _client.aio.models.generate_content_stream(
-            model=model,
-            contents=prompt,
-            config=config,
-        )
-        async for chunk in stream:
-            if chunk.text:
-                yield chunk.text
+    t = current_trace.get()
+    started = perf_counter() if t is not None else 0.0
+    usage = None
+    error: BaseException | None = None
+    try:
+        async with asyncio.timeout(settings.gemini_stream_timeout_seconds):
+            stream = await _client.aio.models.generate_content_stream(
+                model=model,
+                contents=prompt,
+                config=config,
+            )
+            async for chunk in stream:
+                if t is not None:
+                    # usage_metadata 는 마지막 chunk 에 누적값으로 온다.
+                    usage = getattr(chunk, "usage_metadata", None) or usage
+                if chunk.text:
+                    yield chunk.text
+    except BaseException as exc:
+        error = exc
+        raise
+    finally:
+        if t is not None:
+            t.record_llm("gemini.generate_text_stream", model, started, usage, error=error)
