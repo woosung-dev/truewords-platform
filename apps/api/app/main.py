@@ -24,6 +24,7 @@ from app.modules.chatbot.router import router as chatbot_router, admin_router as
 from app.modules.admin.dependencies import require_admin_gate
 from app.modules.admin.router import router as admin_router
 from app.modules.admin.analytics_router import router as analytics_router
+from app.modules.admin.rag_trace_router import router as rag_trace_router
 from app.modules.admin.data_router import router as admin_data_router
 from app.modules.datasource.router import router as datasource_router
 from app.modules.datasource.chunks_router import chunks_router
@@ -155,6 +156,7 @@ app.include_router(admin_data_router, dependencies=_ADMIN_GATE)
 app.include_router(datasource_router, dependencies=_ADMIN_GATE)
 app.include_router(chunks_router)  # 공개 유지 — 채팅 원문보기 모달 (자체 chatbot ACL)
 app.include_router(analytics_router, dependencies=_ADMIN_GATE)
+app.include_router(rag_trace_router, dependencies=_ADMIN_GATE)  # 파이프라인 추적 /admin/rag-trace (저장 없음)
 app.include_router(rights_admin_router, dependencies=_ADMIN_GATE)
 app.include_router(hoondok_admin_router, dependencies=_ADMIN_GATE)  # 훈독 편성 /admin/hoondok/daily-readings (Phase 3 A)
 app.include_router(jeongseong_admin_router, dependencies=_ADMIN_GATE)  # 공식 정성 /admin/hoondok/jeongseongs (PLAN-HD-010)
