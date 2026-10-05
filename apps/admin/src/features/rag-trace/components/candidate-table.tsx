@@ -64,8 +64,9 @@ const COLUMNS: { key: SortKey; label: string; title?: string; numeric?: boolean 
   { key: "origin", label: "origin" },
   { key: "dense_rank", label: "dense#", numeric: true },
   { key: "sparse_rank", label: "sparse#", numeric: true },
-  { key: "rrf_score", label: "RRF", numeric: true, title: "1/(2+dense순위)+1/(2+sparse순위) ≥ 0.1" },
-  { key: "qualified", label: "cutoff", title: "tier 점수 기준 통과 여부" },
+  // dense#·sparse# 는 1부터 센다. 백엔드 RRF_K=2 는 0부터 센 순위 기준이라 표 순위로는 1+순위가 된다.
+  { key: "rrf_score", label: "RRF", numeric: true, title: "1/(1+dense#)+1/(1+sparse#) (순위는 1부터)" },
+  { key: "qualified", label: "cutoff", title: "RRF 가 tier 의 score_threshold 이상인지 (적용된 설정의 tiers 참고)" },
   { key: "tier_idx", label: "tier", numeric: true, title: "tier 번호(0부터, weighted 는 source 순서)" },
   { key: "rerank_rank", label: "rerank#(Δ)", numeric: true, title: "Δ = fused# − rerank# (양수면 rerank 로 올라감)" },
   { key: "context_rank", label: "ctx#", numeric: true },
@@ -217,7 +218,7 @@ export function CandidateTable({ candidates }: { candidates: CandidateRow[] }) {
                 <TableCell>{row.origin.toLowerCase() === "fallback_relaxed" ? "완화" : "hybrid"}</TableCell>
                 <TableCell className="text-right tabular-nums">{rank(row.dense_rank)}</TableCell>
                 <TableCell className="text-right tabular-nums">{rank(row.sparse_rank)}</TableCell>
-                <TableCell className="text-right tabular-nums" title="1/(2+dense순위)+1/(2+sparse순위) ≥ 0.1">
+                <TableCell className="text-right tabular-nums">
                   {row.rrf_score == null ? rank(null) : row.rrf_score.toFixed(4)}
                 </TableCell>
                 <TableCell>{row.qualified == null ? rank(null) : row.qualified ? "통과" : "미달"}</TableCell>
@@ -230,8 +231,9 @@ export function CandidateTable({ candidates }: { candidates: CandidateRow[] }) {
                 <TableCell>
                   <DropStageBadge value={row.drop_stage} />
                 </TableCell>
-                <TableCell className="max-w-64 min-w-40">
-                  <TruncateTooltip text={row.preview || "–"} />
+                {/* td 의 max-width 는 표 레이아웃에서 듣지 않아 폭 제한을 span 에 건다. */}
+                <TableCell>
+                  <TruncateTooltip text={row.preview || "–"} className="w-64 max-w-64" />
                 </TableCell>
               </TableRow>
             ))}

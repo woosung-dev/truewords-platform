@@ -33,11 +33,14 @@ const TEXTAREA_CLASS =
 export interface ChatbotOption {
   chatbot_id: string;
   display_name: string;
+  is_active: boolean;
 }
 
 interface Props {
   chatbots: ChatbotOption[];
   chatbotsLoading: boolean;
+  chatbotsError: boolean;
+  onRetryChatbots: () => void;
   pending: boolean;
   onSubmit: (req: RagTraceRequest) => void;
 }
@@ -57,16 +60,28 @@ function ElapsedSeconds() {
   );
 }
 
-export function TraceForm({ chatbots, chatbotsLoading, pending, onSubmit }: Props) {
+// 운영 기본 봇 'all' 을 먼저, 없으면 첫 활성 봇을 고른다(목록은 최신 생성 순이라 첫 봇은 테스트 봇일 수 있다).
+export function defaultChatbotId(chatbots: ChatbotOption[]): string {
+  const all = chatbots.find((b) => b.chatbot_id === "all");
+  return (all ?? chatbots.find((b) => b.is_active) ?? chatbots[0])?.chatbot_id ?? "";
+}
+
+function emptyBotLabel(loading: boolean, error: boolean): string {
+  if (loading) return "불러오는 중…";
+  if (error) return "목록을 불러오지 못함";
+  return "챗봇 없음";
+}
+
+export function TraceForm({ chatbots, chatbotsLoading, chatbotsError, onRetryChatbots, pending, onSubmit }: Props) {
   const [query, setQuery] = useState("");
-  // null = 아직 고르지 않음 → 목록 첫 봇을 쓴다.
+  // null = 아직 고르지 않음 → defaultChatbotId 를 쓴다.
   const [selectedBot, setSelectedBot] = useState<string | null>(null);
   const [answerMode, setAnswerMode] = useState<AnswerMode | "">("");
   const [forceRerank, setForceRerank] = useState(false);
   const [forceRewrite, setForceRewrite] = useState(false);
   const [stopAfter, setStopAfter] = useState<StopAfter>("full");
 
-  const chatbotId = selectedBot ?? chatbots[0]?.chatbot_id ?? "";
+  const chatbotId = selectedBot ?? defaultChatbotId(chatbots);
   const trimmed = query.trim();
   const canSubmit = !pending && trimmed.length > 0 && chatbotId !== "";
 
@@ -88,6 +103,17 @@ export function TraceForm({ chatbots, chatbotsLoading, pending, onSubmit }: Prop
 
   return (
     <form onSubmit={handleSubmit} className="rounded-xl border bg-card p-5 space-y-4">
+      {chatbotsError && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-danger-border bg-danger-soft px-4 py-2 text-sm text-destructive"
+        >
+          <span>챗봇 목록을 불러오지 못했습니다. 권한이나 네트워크를 확인해 주세요.</span>
+          <Button type="button" variant="outline" size="sm" onClick={onRetryChatbots}>
+            다시 시도
+          </Button>
+        </div>
+      )}
       <div className="space-y-1.5">
         <Label htmlFor="trace-query">질문</Label>
         <textarea
@@ -109,10 +135,10 @@ export function TraceForm({ chatbots, chatbotsLoading, pending, onSubmit }: Prop
             disabled={chatbotsLoading || chatbots.length === 0}
             onChange={(e) => setSelectedBot(e.target.value)}
           >
-            {chatbots.length === 0 && <option value="">{chatbotsLoading ? "불러오는 중…" : "챗봇 없음"}</option>}
+            {chatbots.length === 0 && <option value="">{emptyBotLabel(chatbotsLoading, chatbotsError)}</option>}
             {chatbots.map((bot) => (
               <option key={bot.chatbot_id} value={bot.chatbot_id}>
-                {bot.display_name} ({bot.chatbot_id})
+                {bot.display_name} ({bot.chatbot_id}){bot.is_active ? "" : " (비활성)"}
               </option>
             ))}
           </NativeSelect>

@@ -91,7 +91,7 @@ export function TraceSummary({ trace }: { trace: RagTraceResponse }) {
         <Metric label="TTFT" value={formatMs(ttft)} />
         <Metric
           label="LLM 호출 · 토큰"
-          value={`${totals.llm_calls}회 · ${totals.input_tokens.toLocaleString()}/${totals.output_tokens.toLocaleString()}`}
+          value={`${totals.llm_calls}회 · 입력 ${totals.input_tokens.toLocaleString()} · 출력 ${totals.output_tokens.toLocaleString()}`}
         />
         <Metric label="context 수" value={ctx === null ? "–" : String(ctx)} />
         <Metric label="fallback" value={(trace.fallback_type ?? "none").toLowerCase()} />

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RagTraceResponse } from "@/features/rag-trace/types";
@@ -89,8 +89,8 @@ beforeEach(() => {
   mockList.mockReset();
   mockList.mockResolvedValue({
     items: [
-      { chatbot_id: "all", display_name: "전체" },
-      { chatbot_id: "malssum", display_name: "말씀" },
+      { chatbot_id: "malssum", display_name: "말씀", is_active: true },
+      { chatbot_id: "all", display_name: "전체", is_active: true },
     ],
     total: 2,
     limit: 100,
@@ -101,7 +101,7 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("RagTracePage", () => {
-  it("첫 봇과 기본값으로 요청하고 체크하지 않은 override 는 null 로 보낸다", async () => {
+  it("'all' 봇과 기본값으로 요청하고 체크하지 않은 override 는 null 로 보낸다", async () => {
     mockRun.mockResolvedValue(trace());
     renderPage();
     await screen.findByRole("option", { name: "전체 (all)" });
@@ -134,6 +134,32 @@ describe("RagTracePage", () => {
     expect(await screen.findByText(/생성 단계를 실행하지 않았습니다/)).toBeInTheDocument();
   });
 
+  it("'all' 이 없으면 첫 활성 봇을 기본으로 고르고 비활성 봇에 표시를 붙인다", async () => {
+    mockList.mockResolvedValue({
+      items: [
+        { chatbot_id: "test-bot", display_name: "테스트", is_active: false },
+        { chatbot_id: "malssum", display_name: "말씀", is_active: true },
+      ],
+      total: 2,
+      limit: 100,
+      offset: 0,
+    });
+    renderPage();
+    expect(await screen.findByRole("option", { name: "테스트 (test-bot) (비활성)" })).toBeInTheDocument();
+    expect(screen.getByLabelText("챗봇")).toHaveValue("malssum");
+  });
+
+  it("챗봇 목록을 못 불러오면 빈 상태 대신 오류와 다시 시도를 보인다", async () => {
+    mockList.mockRejectedValueOnce(new ApiError(403, { message: "forbidden" }));
+    renderPage();
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("챗봇 목록을 불러오지 못했습니다");
+    expect(screen.queryByRole("option", { name: "챗봇 없음" })).not.toBeInTheDocument();
+    await userEvent.click(within(alert).getByRole("button", { name: "다시 시도" }));
+    expect(await screen.findByRole("option", { name: "전체 (all)" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("질문이 비어 있으면 실행할 수 없다", async () => {
     renderPage();
     await screen.findByRole("option", { name: "전체 (all)" });
@@ -147,7 +173,7 @@ describe("RagTracePage", () => {
     await submit();
     expect(await screen.findByText("1.00s")).toBeInTheDocument(); // 총 지연
     expect(screen.getByText("450ms")).toBeInTheDocument(); // TTFT
-    expect(screen.getByText("2회 · 1,200/300")).toBeInTheDocument();
+    expect(screen.getByText("2회 · 입력 1,200 · 출력 300")).toBeInTheDocument();
     expect(screen.getByText(/현재 설정으로 다시 실행한 결과이며/)).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "단계별 워터폴" })).toBeInTheDocument();
     expect(screen.getByText("말씀선집 1:3")).toBeInTheDocument();
@@ -170,6 +196,14 @@ describe("RagTracePage", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("서버 오류로 실행하지 못했습니다");
     expect(alert).toHaveTextContent("req-1");
+  });
+
+  it("request_id 없는 500(프록시 시간 초과·연결 실패)은 실행 범위를 줄이라고 안내한다", async () => {
+    mockRun.mockRejectedValue(new ApiError(500, "Internal Server Error"));
+    renderPage();
+    await screen.findByRole("option", { name: "전체 (all)" });
+    await submit();
+    expect(await screen.findByRole("alert")).toHaveTextContent("응답 시간이 초과됐거나 서버에 닿지 못했습니다");
   });
 
   it("네트워크 오류는 연결 안내를 보인다", async () => {
@@ -220,6 +254,7 @@ describe("RagTracePage", () => {
     await screen.findByRole("option", { name: "전체 (all)" });
     await submit();
     expect(await screen.findByRole("button", { name: "실행 중..." })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("실행 중입니다");
     expect(screen.getByText(/초 경과/)).toBeInTheDocument();
     resolve(trace());
     await waitFor(() => expect(screen.getByRole("button", { name: "실행" })).toBeEnabled());

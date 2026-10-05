@@ -119,6 +119,16 @@ describe("StageWaterfall", () => {
     expect(screen.getByText("시간 초과")).toBeInTheDocument();
     expect(screen.getByText("오류")).toBeInTheDocument();
   });
+  it("모르는 status 는 정상 막대로 숨기지 않고 원문 배지와 중립 막대로 보인다", () => {
+    render(
+      <StageWaterfall
+        spans={[span({ name: "search", start_ms: 0, duration_ms: 10, status: "degraded" as StageSpan["status"] })]}
+        totalMs={10}
+      />,
+    );
+    expect(screen.getByText("degraded")).toBeInTheDocument();
+    expect(screen.getByTestId("waterfall-bar")).not.toHaveClass("bg-primary");
+  });
 });
 
 describe("buildRows", () => {

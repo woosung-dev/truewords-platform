@@ -43,7 +43,12 @@ function TraceResult({ trace, stopAfter }: { trace: RagTraceResponse; stopAfter:
 }
 
 export default function RagTracePage() {
-  const { data: bots, isLoading: botsLoading } = useQuery({
+  const {
+    data: bots,
+    isLoading: botsLoading,
+    isError: botsError,
+    refetch: refetchBots,
+  } = useQuery({
     queryKey: ["chatbots", "rag-trace", CHATBOT_LIMIT],
     queryFn: () => chatbotAPI.list(CHATBOT_LIMIT),
   });
@@ -53,7 +58,11 @@ export default function RagTracePage() {
     mutationFn: (req: RagTraceRequest) => ragTraceAPI.run(req),
   });
 
-  const chatbots = (bots?.items ?? []).map((b) => ({ chatbot_id: b.chatbot_id, display_name: b.display_name }));
+  const chatbots = (bots?.items ?? []).map((b) => ({
+    chatbot_id: b.chatbot_id,
+    display_name: b.display_name,
+    is_active: b.is_active,
+  }));
 
   return (
     <div className="space-y-4">
@@ -67,12 +76,15 @@ export default function RagTracePage() {
       <TraceForm
         chatbots={chatbots}
         chatbotsLoading={botsLoading}
+        chatbotsError={botsError}
+        onRetryChatbots={() => void refetchBots()}
         pending={mutation.isPending}
         onSubmit={(req) => mutation.mutate(req)}
       />
 
       {mutation.isPending ? (
-        <div className="space-y-3" aria-busy="true" aria-label="실행 중">
+        <div className="space-y-3" role="status" aria-busy="true">
+          <span className="sr-only">실행 중입니다. 최대 약 25초 걸립니다</span>
           <Skeleton className="h-28 w-full" />
           <Skeleton className="h-48 w-full" />
           <Skeleton className="h-64 w-full" />

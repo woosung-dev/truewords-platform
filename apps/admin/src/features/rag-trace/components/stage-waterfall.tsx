@@ -28,10 +28,26 @@ const STATUS_BADGE: Record<SpanStatus, { label: string; tone: StatusTone }> = {
   short_circuit: { label: "조기 종료", tone: "info" },
 };
 
-function normalizeStatus(status: string): SpanStatus {
+// 모르는 status 는 null — 정상으로 숨기지 않고 중립 막대와 원문 배지로 보인다.
+function normalizeStatus(status: string): SpanStatus | null {
   const s = status.toLowerCase();
-  return s in STATUS_BAR ? (s as SpanStatus) : "ok";
+  return s in STATUS_BAR ? (s as SpanStatus) : null;
 }
+
+export function statusBadge(status: string): { label: string; tone: StatusTone } | null {
+  const known = normalizeStatus(status);
+  if (known === null) return { label: status, tone: "neutral" };
+  return known === "ok" ? null : STATUS_BADGE[known];
+}
+
+function statusBar(status: string): string {
+  const known = normalizeStatus(status);
+  return known === null ? "bg-muted-foreground/40" : STATUS_BAR[known];
+}
+
+// 좁은 화면에서는 이름 열을 고정 폭으로 줄여 막대 열 폭을 확보한다.
+// minmax(a,b) 열은 1fr 보다 먼저 b 까지 커지므로 sm 미만에서는 쓰지 않는다.
+const ROW_GRID = "grid grid-cols-[6rem_1fr_3.5rem] gap-2 sm:grid-cols-[minmax(9rem,14rem)_1fr_4.5rem] sm:gap-3";
 
 // 막대 위치·폭(%). analytics FallbackDistribution 과 같은 CSS 막대 방식이다.
 // 아주 짧은 span 도 보이도록 폭은 최소 0.5%, 오른쪽 끝을 넘지 않게 자른다.
@@ -102,11 +118,11 @@ export function waterfallTotal(spans: StageSpan[], totalMs: number): number {
 function Bar({ span, total, overlap }: { span: StageSpan; total: number; overlap?: boolean }) {
   const { left, width } = barGeometry(span.start_ms, span.duration_ms, total);
   return (
-    <div
+    <span
       data-testid="waterfall-bar"
       className={cn(
-        "absolute inset-y-0 rounded-sm",
-        STATUS_BAR[normalizeStatus(span.status)],
+        "absolute inset-y-0 block rounded-sm",
+        statusBar(span.status),
         overlap && "opacity-50 ring-1 ring-card",
       )}
       style={{ left: `${left}%`, width: `${width}%` }}
@@ -178,11 +194,8 @@ export function StageWaterfall({ spans, totalMs }: { spans: StageSpan[]; totalMs
               const start = Math.min(...row.spans.map((s) => s.start_ms));
               const end = Math.max(...row.spans.map((s) => s.start_ms + s.duration_ms));
               return (
-                <li
-                  key={`group-${row.name}`}
-                  className="grid grid-cols-[minmax(9rem,14rem)_1fr_4.5rem] items-center gap-3 px-2 py-1"
-                >
-                  <span className="text-xs font-medium text-muted-foreground">{row.name} (병렬)</span>
+                <li key={`group-${row.name}`} className={cn(ROW_GRID, "items-center px-2 py-1")}>
+                  <span className="min-w-0 truncate text-xs font-medium text-muted-foreground">{row.name} (병렬)</span>
                   <div className="relative h-3 w-full rounded-sm bg-admin-muted" data-testid="waterfall-group">
                     {row.spans.map((s, i) => (
                       <Bar key={`${s.name}-${i}`} span={s} total={total} overlap />
@@ -193,7 +206,7 @@ export function StageWaterfall({ spans, totalMs }: { spans: StageSpan[]; totalMs
               );
             }
             const { span, id, depth } = row;
-            const status = normalizeStatus(span.status);
+            const badge = statusBadge(span.status);
             const expanded = open.has(id);
             return (
               <Fragment key={id}>
@@ -202,7 +215,10 @@ export function StageWaterfall({ spans, totalMs }: { spans: StageSpan[]; totalMs
                     type="button"
                     aria-expanded={expanded}
                     onClick={() => toggle(id)}
-                    className="grid w-full grid-cols-[minmax(9rem,14rem)_1fr_4.5rem] items-center gap-3 rounded-md px-2 py-1 text-left hover:bg-admin-muted/40 focus-visible:outline-2 focus-visible:outline-ring"
+                    className={cn(
+                      ROW_GRID,
+                      "w-full items-center rounded-md px-2 py-1 text-left hover:bg-admin-muted/40 focus-visible:outline-2 focus-visible:outline-ring",
+                    )}
                   >
                     <span
                       className="flex min-w-0 items-center gap-1.5 text-xs"
@@ -215,15 +231,16 @@ export function StageWaterfall({ spans, totalMs }: { spans: StageSpan[]; totalMs
                       <span className={cn("truncate font-mono", depth > 0 && "text-muted-foreground")}>
                         {span.name}
                       </span>
-                      {status !== "ok" && (
-                        <StatusBadge tone={STATUS_BADGE[status].tone} className="h-4 px-1.5 text-[10px]">
-                          {STATUS_BADGE[status].label}
+                      {badge && (
+                        <StatusBadge tone={badge.tone} className="h-4 px-1.5 text-[10px]">
+                          {badge.label}
                         </StatusBadge>
                       )}
                     </span>
-                    <div className="relative h-3 w-full rounded-sm bg-admin-muted">
+                    {/* button 안은 phrasing content 만 허용돼 막대 틀도 span 으로 둔다. */}
+                    <span className="relative block h-3 w-full rounded-sm bg-admin-muted">
                       <Bar span={span} total={total} />
-                    </div>
+                    </span>
                     <span className="text-right text-xs tabular-nums">{formatMs(span.duration_ms)}</span>
                   </button>
                 </li>

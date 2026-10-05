@@ -13,9 +13,15 @@ export function traceErrorMessage(err: unknown): string {
     case 422:
       return "입력값이 올바르지 않습니다. 질문(1~1000자)과 옵션을 확인해 주세요.";
     case 502:
+    case 503:
     case 504:
-      return "응답 시간이 초과되었습니다. 실행 범위를 줄여(검색까지) 다시 시도해 주세요.";
+      return "서버가 응답하지 않습니다. 잠시 후 다시 시도해 주세요.";
     default: {
+      // 백엔드 500 은 JSON 에 request_id 가 실린다. 없으면 Next rewrites 프록시가 만든 500 이다
+      // (proxyTimeout 30초 초과 또는 upstream 연결 실패 시 본문 "Internal Server Error").
+      if (err.status === 500 && !err.requestId) {
+        return "응답 시간이 초과됐거나 서버에 닿지 못했습니다. 실행 범위를 줄여(검색까지) 다시 시도해 주세요.";
+      }
       const suffix = err.requestId ? ` (요청 ID ${err.requestId})` : "";
       return err.status >= 500
         ? `서버 오류로 실행하지 못했습니다. 잠시 후 다시 시도해 주세요.${suffix}`
