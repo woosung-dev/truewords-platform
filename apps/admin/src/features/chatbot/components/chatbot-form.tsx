@@ -33,6 +33,8 @@ export interface ChatbotFormValues {
     search_mode: "cascading" | "weighted";
     tiers: SearchTier[];
     weighted_sources: WeightedSource[];
+    // 검색 결과 LLM 재정렬 토글.
+    rerank_enabled: boolean;
     dictionary_enabled: boolean;
     query_rewrite_enabled: boolean;
     // 봇별 멀티턴(대화 이력) 토글. 기본 true.
@@ -53,6 +55,20 @@ export interface ChatbotFormProps {
   cancelLabel: string;
 }
 
+/**
+ * search_tiers 에 값이 없을 때의 기본값. API 의 SearchTiersConfig 기본값과 같아야 한다 —
+ * 서버는 키가 없는 봇을 이 값으로 실행하므로 다르면 화면 값과 실제 동작이 어긋난다.
+ * contracts/openapi.json 과의 일치는 chatbot-form 테스트가 확인한다.
+ */
+export const SEARCH_TIERS_DEFAULTS = {
+  search_mode: "cascading",
+  rerank_enabled: true,
+  dictionary_enabled: false,
+  query_rewrite_enabled: true,
+  multiturn_enabled: true,
+  raw_rag_only: false,
+} as const;
+
 function buildInitial(initial?: Partial<ChatbotFormValues>): ChatbotFormValues {
   return {
     chatbot_id: initial?.chatbot_id ?? "",
@@ -63,14 +79,15 @@ function buildInitial(initial?: Partial<ChatbotFormValues>): ChatbotFormValues {
     is_active: initial?.is_active ?? true,
     streaming_enabled: initial?.streaming_enabled ?? true,
     search_tiers: {
-      search_mode: initial?.search_tiers?.search_mode ?? "cascading",
+      search_mode: initial?.search_tiers?.search_mode ?? SEARCH_TIERS_DEFAULTS.search_mode,
       tiers: initial?.search_tiers?.tiers ?? [],
       weighted_sources: initial?.search_tiers?.weighted_sources ?? [],
-      dictionary_enabled: initial?.search_tiers?.dictionary_enabled ?? false,
-      query_rewrite_enabled: initial?.search_tiers?.query_rewrite_enabled ?? false,
-      // 멀티턴은 기본 ON — 기존 봇/신규 봇 모두 미설정 시 켜짐 (하위호환).
-      multiturn_enabled: initial?.search_tiers?.multiturn_enabled ?? true,
-      raw_rag_only: initial?.search_tiers?.raw_rag_only ?? false,
+      rerank_enabled: initial?.search_tiers?.rerank_enabled ?? SEARCH_TIERS_DEFAULTS.rerank_enabled,
+      dictionary_enabled: initial?.search_tiers?.dictionary_enabled ?? SEARCH_TIERS_DEFAULTS.dictionary_enabled,
+      query_rewrite_enabled:
+        initial?.search_tiers?.query_rewrite_enabled ?? SEARCH_TIERS_DEFAULTS.query_rewrite_enabled,
+      multiturn_enabled: initial?.search_tiers?.multiturn_enabled ?? SEARCH_TIERS_DEFAULTS.multiturn_enabled,
+      raw_rag_only: initial?.search_tiers?.raw_rag_only ?? SEARCH_TIERS_DEFAULTS.raw_rag_only,
     },
   };
 }
@@ -235,6 +252,20 @@ export function ChatbotForm({
             Query Rewriting
           </Label>
           <span className="text-xs text-muted-foreground">사용자 질문을 종교 용어로 자동 재작성</span>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <Checkbox
+            id="rerank-enabled"
+            checked={values.search_tiers.rerank_enabled}
+            onCheckedChange={(c) => patchSearch("rerank_enabled", c === true)}
+          />
+          <Label htmlFor="rerank-enabled" className="cursor-pointer text-sm">
+            검색 결과 재정렬 (Rerank)
+          </Label>
+          <span className="text-xs text-muted-foreground">
+            검색된 문단을 질문과의 관련도로 다시 정렬합니다 (LLM 호출 1회 추가)
+          </span>
         </div>
 
         <div className="flex items-center gap-2.5">

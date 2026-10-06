@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { chatbotAPI } from "@/features/chatbot/api";
-import { ChatbotForm, type ChatbotFormValues } from "@/features/chatbot/components/chatbot-form";
+import { ChatbotForm, type ChatbotFormValues, SEARCH_TIERS_DEFAULTS } from "@/features/chatbot/components/chatbot-form";
 
 export default function EditChatbotPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -101,14 +101,17 @@ export default function EditChatbotPage({ params }: { params: Promise<{ id: stri
             system_prompt: config.system_prompt ?? "",
             is_active: config.is_active,
             streaming_enabled: config.streaming_enabled,
+            // 서버가 실제로 쓰는 값을 그대로 보여 준다. 비어 있으면 서버 기본값과 같은 값으로 채운다.
             search_tiers: {
-              search_mode: config.search_tiers?.search_mode ?? "cascading",
+              search_mode: config.search_tiers?.search_mode ?? SEARCH_TIERS_DEFAULTS.search_mode,
               tiers: config.search_tiers?.tiers ?? [],
               weighted_sources: config.search_tiers?.weighted_sources ?? [],
-              dictionary_enabled: config.search_tiers?.dictionary_enabled ?? false,
-              query_rewrite_enabled: config.search_tiers?.query_rewrite_enabled ?? false,
-              multiturn_enabled: config.search_tiers?.multiturn_enabled ?? true,
-              raw_rag_only: config.search_tiers?.raw_rag_only ?? false,
+              rerank_enabled: config.search_tiers?.rerank_enabled ?? SEARCH_TIERS_DEFAULTS.rerank_enabled,
+              dictionary_enabled: config.search_tiers?.dictionary_enabled ?? SEARCH_TIERS_DEFAULTS.dictionary_enabled,
+              query_rewrite_enabled:
+                config.search_tiers?.query_rewrite_enabled ?? SEARCH_TIERS_DEFAULTS.query_rewrite_enabled,
+              multiturn_enabled: config.search_tiers?.multiturn_enabled ?? SEARCH_TIERS_DEFAULTS.multiturn_enabled,
+              raw_rag_only: config.search_tiers?.raw_rag_only ?? SEARCH_TIERS_DEFAULTS.raw_rag_only,
             },
           }}
           isSubmitting={mutation.isPending}
