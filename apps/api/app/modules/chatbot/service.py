@@ -16,7 +16,15 @@ from app.modules.chatbot.runtime_config import (
     TierConfig,
     WeightedSourceConfig,
 )
-from app.modules.chatbot.schemas import ChatbotConfigCreate, ChatbotConfigUpdate
+from app.modules.chatbot.schemas import (
+    ChatbotConfigCreate,
+    ChatbotConfigUpdate,
+    SearchTiersConfig,
+)
+
+# search_tiers JSON 에 키가 없을 때 쓰는 값. 관리자 응답(SearchTiersConfig 직렬화)과
+# 같은 기본값을 써야 화면에 보이는 값과 런타임 값이 어긋나지 않는다.
+_TIERS_DEFAULTS = SearchTiersConfig()
 
 
 class ChatbotService:
@@ -114,13 +122,13 @@ class ChatbotService:
                 system_prompt=base_prompt,
                 persona_name=persona,
                 # 레드팀 시연 — search_tiers JSONB 의 raw_rag_only 플래그 (마이그레이션 없이 재사용).
-                raw_rag_only=raw.get("raw_rag_only", False),
+                raw_rag_only=raw.get("raw_rag_only", _TIERS_DEFAULTS.raw_rag_only),
             ),
             retrieval=RetrievalConfig(
-                rerank_enabled=raw.get("rerank_enabled", True),
-                query_rewrite_enabled=raw.get("query_rewrite_enabled", True),
+                rerank_enabled=raw.get("rerank_enabled", _TIERS_DEFAULTS.rerank_enabled),
+                query_rewrite_enabled=raw.get("query_rewrite_enabled", _TIERS_DEFAULTS.query_rewrite_enabled),
                 # 봇별 멀티턴 토글 (search_tiers JSONB 안에 저장, 마이그레이션 없이 재사용).
-                multiturn_enabled=raw.get("multiturn_enabled", True),
+                multiturn_enabled=raw.get("multiturn_enabled", _TIERS_DEFAULTS.multiturn_enabled),
             ),
             safety=SafetyConfig(),
             # P1-F: search_tiers JSONB 안에 함께 저장된 신학 입장 텍스트 (선택).
@@ -165,11 +173,13 @@ class ChatbotService:
                 detail="챗봇 설정을 찾을 수 없습니다",
             )
         updates = data.model_dump(exclude_unset=True)
-        # SearchTiersConfig → dict 변환 (JSONB 저장)
-        if "search_tiers" in updates and updates["search_tiers"] is not None:
-            st = updates["search_tiers"]
-            if not isinstance(st, dict):
-                updates["search_tiers"] = data.search_tiers.model_dump()
+        if data.search_tiers is not None:
+            # 보낸 필드만 저장값 위에 덮는다. 통째로 교체하면 보내지 않은 키
+            # (rerank_enabled, theological_stance 등 스키마 밖 키)가 사라져
+            # 런타임 기본값으로 실효 동작이 바뀐다. tiers 같은 목록은 보낸 값으로 교체.
+            st = data.search_tiers
+            sent = st.model_dump(include=set(st.model_fields_set))
+            updates["search_tiers"] = {**(config.search_tiers or {}), **sent}
         updated = await self.repo.update(config, updates)
         await self.repo.commit()
         return updated

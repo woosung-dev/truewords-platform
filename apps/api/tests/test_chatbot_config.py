@@ -131,8 +131,9 @@ def test_search_tiers_config_empty_tiers():
 
 
 def test_search_tiers_config_query_rewrite_default():
+    # 키 없는 기존 봇의 런타임 해석(ON)과 같은 값이어야 한다 (생성·표시·런타임 대칭).
     config = SearchTiersConfig(tiers=[])
-    assert config.query_rewrite_enabled is False
+    assert config.query_rewrite_enabled is True
 
 
 def test_search_tiers_config_query_rewrite_enabled():

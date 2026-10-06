@@ -5694,7 +5694,7 @@
             "type": "boolean"
           },
           "query_rewrite_enabled": {
-            "default": false,
+            "default": true,
             "title": "Query Rewrite Enabled",
             "type": "boolean"
           },
@@ -5704,7 +5704,7 @@
             "type": "boolean"
           },
           "rerank_enabled": {
-            "default": false,
+            "default": true,
             "title": "Rerank Enabled",
             "type": "boolean"
           },
