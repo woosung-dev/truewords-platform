@@ -31,7 +31,23 @@ def _build_rerank_prompt(query: str, results: list[SearchResult]) -> str:
     return f"질문: {query}\n\n검색된 문단들:\n{passages_text}"
 
 
-def _parse_scores(response_text: str, expected_count: int) -> list[float] | None:
+def _scores_schema(expected_count: int) -> dict:
+    """JSON 모드 응답 스키마 — {"scores": [number × 문단 수]} 만 허용한다."""
+    return {
+        "type": "OBJECT",
+        "properties": {
+            "scores": {
+                "type": "ARRAY",
+                "items": {"type": "NUMBER"},
+                "min_items": expected_count,
+                "max_items": expected_count,
+            },
+        },
+        "required": ["scores"],
+    }
+
+
+def _parse_scores(response_text: str | None, expected_count: int) -> list[float] | None:
     """Gemini 응답에서 점수 리스트 파싱. 실패 시 None 반환."""
     try:
         # JSON 블록에서 추출 (```json ... ``` 래핑 대응)
@@ -41,6 +57,10 @@ def _parse_scores(response_text: str, expected_count: int) -> list[float] | None
             text = text.rsplit("```", 1)[0].strip()
 
         data = json.loads(text)
+        # 점수 배열만 오는 등 dict 가 아닌 JSON 도 파싱 실패다(호출 실패로 새지 않게).
+        if not isinstance(data, dict):
+            logger.warning("Rerank 응답이 객체가 아님: %s", type(data).__name__)
+            return None
         scores = data.get("scores", [])
         if len(scores) != expected_count:
             logger.warning(
@@ -49,7 +69,7 @@ def _parse_scores(response_text: str, expected_count: int) -> list[float] | None
             )
             return None
         return [float(s) for s in scores]
-    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
+    except (json.JSONDecodeError, AttributeError, KeyError, TypeError, ValueError) as e:
         logger.warning("Rerank JSON 파싱 실패: %s", e)
         return None
 
@@ -68,41 +88,42 @@ async def rerank(
     try:
         prompt = _build_rerank_prompt(query, results)
         response_text = await generate_text(
-            prompt, system_instruction=RERANK_SYSTEM_PROMPT,
+            prompt,
+            system_instruction=RERANK_SYSTEM_PROMPT,
+            response_schema=_scores_schema(len(results)),
         )
-        scores = _parse_scores(response_text, len(results))
-
-        if scores is None:
-            # 파싱 실패 → 원본 반환
-            logger.warning("Rerank 파싱 실패, 원본 결과 반환")
-            if t is not None:
-                t.record_rerank(RerankRecord(query, list(results), None, "parse_fail", top_k))
-            return results[:top_k]
-
-        if t is not None:
-            t.record_rerank(RerankRecord(query, list(results), list(scores), "ok", top_k))
-
-        # rerank_score 부여 + 정렬. parent_*/chunk_id 등 메타데이터는 원본에서 그대로 carry.
-        reranked = [
-            SearchResult(
-                text=r.text,
-                volume=r.volume,
-                chunk_index=r.chunk_index,
-                score=r.score,  # 원본 retrieval score 유지
-                source=r.source,
-                rerank_score=s,
-                parent_text=r.parent_text,
-                parent_chunk_index=r.parent_chunk_index,
-                chunk_id=r.chunk_id,
-            )
-            for r, s in zip(results, scores)
-        ]
-        reranked.sort(key=lambda r: r.rerank_score or 0.0, reverse=True)
-        return reranked[:top_k]
-
     except Exception:
-        # API 실패 등 → graceful degradation
-        logger.exception("Rerank 실패, 원본 결과 반환")
+        # API 실패(429·timeout 등) → graceful degradation
+        logger.exception("Rerank 호출 실패, 원본 결과 반환")
         if t is not None:
             t.record_rerank(RerankRecord(query, list(results), None, "api_fail", top_k))
         return results[:top_k]
+
+    scores = _parse_scores(response_text, len(results))
+    if scores is None:
+        # 파싱 실패 → 원본 반환
+        logger.warning("Rerank 파싱 실패, 원본 결과 반환")
+        if t is not None:
+            t.record_rerank(RerankRecord(query, list(results), None, "parse_fail", top_k))
+        return results[:top_k]
+
+    if t is not None:
+        t.record_rerank(RerankRecord(query, list(results), list(scores), "ok", top_k))
+
+    # rerank_score 부여 + 정렬. parent_*/chunk_id 등 메타데이터는 원본에서 그대로 carry.
+    reranked = [
+        SearchResult(
+            text=r.text,
+            volume=r.volume,
+            chunk_index=r.chunk_index,
+            score=r.score,  # 원본 retrieval score 유지
+            source=r.source,
+            rerank_score=s,
+            parent_text=r.parent_text,
+            parent_chunk_index=r.parent_chunk_index,
+            chunk_id=r.chunk_id,
+        )
+        for r, s in zip(results, scores)
+    ]
+    reranked.sort(key=lambda r: r.rerank_score or 0.0, reverse=True)
+    return reranked[:top_k]

@@ -66,16 +66,20 @@ async def generate_text(
     prompt: str,
     system_instruction: str = "",
     model: str = MODEL_GENERATE,
+    response_schema: dict | None = None,
 ) -> str:
     """텍스트 생성 (비동기).
 
     audit 2차 S-4: ``settings.gemini_generate_timeout_seconds`` hard cutoff.
+    ``response_schema`` 를 주면 JSON 모드로 호출해 모델이 그 스키마의 JSON 만 내게 한다.
     """
-    config = types.GenerateContentConfig()
+    config_kwargs: dict = {}
     if system_instruction:
-        config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
-        )
+        config_kwargs["system_instruction"] = system_instruction
+    if response_schema is not None:
+        config_kwargs["response_mime_type"] = "application/json"
+        config_kwargs["response_schema"] = response_schema
+    config = types.GenerateContentConfig(**config_kwargs)
     t = current_trace.get()
     started = perf_counter() if t is not None else 0.0
     try:
