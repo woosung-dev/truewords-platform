@@ -5,6 +5,34 @@ import type { NextConfig } from "next";
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const ADMIN_ORIGIN = process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:3001";
 
+// 모든 응답의 보안 헤더. nonce CSP 는 전 페이지를 동적 렌더로 바꿔 쓰지 않는다 — Next 인라인 부트스트랩 때문에
+// script-src 에 'unsafe-inline' 이 남고, 실효 방어는 frame-ancestors·object-src·base-uri·form-action·connect-src 가 맡는다.
+// 'unsafe-eval' 은 React 개발 모드 오류 스택용이라 dev 에서만 연다.
+const isProd = process.env.NODE_ENV === "production";
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self'",
+  "connect-src 'self'",
+  "media-src 'self' blob:",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join("; ");
+const SECURITY_HEADERS = [
+  { key: "Content-Security-Policy", value: CONTENT_SECURITY_POLICY },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  ...(isProd ? [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }] : []),
+];
+
 const nextConfig: NextConfig = {
   // E2E에서 웹/관리자 쿠키를 hostname으로 분리한다. 개발 리소스만 허용한다.
   allowedDevOrigins: ["127.0.0.1"],
@@ -18,6 +46,7 @@ const nextConfig: NextConfig = {
   experimental: { proxyClientMaxBodySize: "200mb" },
   async headers() {
     return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
       // 훈독 베타는 권리 미확정 정본을 싣는다. layout metadata.robots 와 함께 색인을 막는다.
       { source: "/hoondok/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       { source: "/hoondok", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
