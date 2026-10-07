@@ -52,7 +52,7 @@ from app.core.common.exception_handlers import (
     session_ownership_handler,
     unhandled_exception_handler,
 )
-from app.core.common.middleware import HoondokAccessLogFilter, RequestIdMiddleware
+from app.core.common.middleware import HoondokAccessLogFilter, RequestIdMiddleware, SecurityHeadersMiddleware
 from app.modules.chat.exceptions import SessionOwnershipError
 from app.modules.hoondok.exceptions import PushDisabledError, TtsError
 from app.modules.identity.exceptions import InviteRequiredError
@@ -99,16 +99,23 @@ async def lifespan(app: FastAPI):
         logger.exception("engine.dispose 실패")
 
 
+_is_production = settings.environment == "production"
+
+# 운영에서는 API 문서·스키마를 공개하지 않는다. 계약 내보내기는 app.openapi() 를 직접 호출한다.
 app = FastAPI(
     title="TrueWords RAG Platform",
     version="0.2.0",
     lifespan=lifespan,
+    docs_url=None if _is_production else "/docs",
+    redoc_url=None if _is_production else "/redoc",
+    openapi_url=None if _is_production else "/openapi.json",
 )
 
 # 요청 추적 ID 미들웨어
 # CORS보다 먼저 추가되어 INNERMOST로 실행됨 (CORS가 OUTERMOST로 runs first)
 # CORS preflight 거부에는 request_id가 없지만, 실제 handler 경로(exception handler 포함)에는 정상 동작함
 app.add_middleware(RequestIdMiddleware)
+app.add_middleware(SecurityHeadersMiddleware, hsts=_is_production)
 
 # CORS 미들웨어 (명시된 사용자 웹·관리자 origin만 허용)
 app.add_middleware(

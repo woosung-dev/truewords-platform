@@ -38,8 +38,12 @@ describe("훈독 기능 플래그", () => {
     const bySource = new Map(
       headers.map((h) => [h.source, Object.fromEntries(h.headers.map((x) => [x.key, x.value]))] as const),
     );
-    // 시연 챗 경로(/, /login …)에는 어떤 헤더 규칙도 없다
-    for (const source of bySource.keys()) expect(source.startsWith("/hoondok")).toBe(true);
+    // 시연 챗 경로(/, /login …)에는 전역 보안 헤더 외에 훈독 헤더 규칙이 새지 않는다
+    for (const source of bySource.keys()) {
+      if (source !== "/:path*") expect(source.startsWith("/hoondok")).toBe(true);
+    }
+    expect(bySource.get("/:path*")).not.toHaveProperty("X-Robots-Tag");
+    expect(bySource.get("/:path*")).not.toHaveProperty("Cache-Control");
     expect(bySource.get("/hoondok")).toEqual({ "X-Robots-Tag": "noindex, nofollow" });
     expect(bySource.get("/hoondok/:path*")).toEqual({ "X-Robots-Tag": "noindex, nofollow" });
     expect(bySource.get("/hoondok/fonts/:path*")).toEqual({ "Cache-Control": "public, max-age=31536000, immutable" });

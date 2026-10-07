@@ -30,6 +30,31 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# API 응답은 JSON·SSE·오디오뿐이라 문서로 렌더링될 일이 없다 — 전부 막는다.
+_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+}
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """모든 API 응답에 보안 헤더를 붙인다. HSTS 는 HTTPS 운영에서만 켠다."""
+
+    def __init__(self, app: ASGIApp, hsts: bool) -> None:
+        super().__init__(app)
+        self._headers = dict(_SECURITY_HEADERS)
+        if hsts:
+            self._headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        for key, value in self._headers.items():
+            response.headers.setdefault(key, value)
+        return response
+
+
 # 쿼리를 통째로 지우는 경로: 검색어(개인 관심사)와 push endpoint(기기 식별 capability URL — 소유 이전 upsert 와
 # 결합하면 남의 구독을 가져갈 수 있다).
 _QUERY_STRIPPED_PATHS = frozenset({"/hoondok/search", "/hoondok/me/push"})

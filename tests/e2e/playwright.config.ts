@@ -32,7 +32,7 @@ export default defineConfig({
     },
     {
       name: "split-apps-chromium",
-      testMatch: "split-apps.spec.ts",
+      testMatch: ["split-apps.spec.ts", "security-baseline.spec.ts"],
       use: { browserName: "chromium", baseURL: webOrigin },
     },
     {
