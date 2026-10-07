@@ -54,6 +54,10 @@ class SearchResult:
     parent_chunk_index: int = -1
     # P0-B 원문보기 모달 fetch 용 Qdrant point id. 빈 문자열은 변환 실패/legacy.
     chunk_id: str = ""
+    # payload source 태그 전체 (예: ``("M", "U")``). ``source`` 는 첫 태그만 담는다.
+    tags: tuple[str, ...] = ()
+    # 여러 카테고리 검색을 합칠 때 이 chunk 를 실제로 찾아 준 카테고리 (merge 단계가 채운다).
+    matched_sources: tuple[str, ...] = ()
 
 
 async def hybrid_search(
@@ -167,6 +171,15 @@ def _normalize_source(raw: object) -> str:
     return ""
 
 
+def _source_tags(raw: object) -> tuple[str, ...]:
+    """Qdrant payload 의 source 를 태그 튜플로 정규화 (다중 태그 유지)."""
+    if isinstance(raw, list):
+        return tuple(s for s in raw if isinstance(s, str))
+    if isinstance(raw, str) and raw:
+        return (raw,)
+    return ()
+
+
 def point_to_search_result(point: QdrantPoint) -> "SearchResult":
     """Qdrant point.payload → SearchResult 변환.
 
@@ -199,4 +212,5 @@ def point_to_search_result(point: QdrantPoint) -> "SearchResult":
         parent_text=parent_text,
         parent_chunk_index=parent_chunk_index,
         chunk_id=str(point.id),
+        tags=_source_tags(source_list),
     )

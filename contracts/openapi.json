@@ -360,6 +360,14 @@
             "title": "Key",
             "type": "string"
           },
+          "matched_sources": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Sources",
+            "type": "array"
+          },
           "origin": {
             "enum": [
               "hybrid",

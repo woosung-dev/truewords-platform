@@ -7,7 +7,8 @@ from app.modules.search.hybrid import SearchResult
 
 
 def _make_result(text, score, source):
-    return SearchResult(text=text, volume="vol", chunk_index=0, score=score, source=source)
+    # 서로 다른 point 는 (volume, chunk_index) 가 달라야 병합 단계에서 같은 chunk 로 묶이지 않는다.
+    return SearchResult(text=text, volume=f"vol-{text}", chunk_index=0, score=score, source=source)
 
 
 MOCK_DENSE = [0.1] * 1536
