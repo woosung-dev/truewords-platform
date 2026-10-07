@@ -15,6 +15,7 @@ from app.modules.pipeline.embedder import embed_sparse_async
 from app.modules.qdrant import RawQdrantClient
 from app.modules.search.exceptions import SearchFailedError
 from app.modules.search.hybrid import hybrid_search, SearchResult
+from app.modules.search.merge import merge_unique_results
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,7 @@ async def cascading_search(
         t.tier_plan = [(list(tier.sources), tier.min_results) for tier in config.tiers]
 
     all_results: list[SearchResult] = []
+    groups: list[tuple[list[str], list[SearchResult]]] = []
     tier_failures = 0
     total_tiers = len(config.tiers)
 
@@ -143,7 +145,9 @@ async def cascading_search(
                 },
             )
 
-        all_results.extend(qualified)
+        # 앞 tier 에 이미 담긴 chunk 는 다시 담지 않는다 — min_results 는 고유 문서 수로 판정.
+        groups.append((list(tier.sources), qualified))
+        all_results = merge_unique_results(groups)
 
         stop = len(all_results) >= tier.min_results
         if t is not None:
@@ -165,7 +169,6 @@ async def cascading_search(
     if tier_failures == total_tiers:
         raise SearchFailedError(f"All {total_tiers} search tiers failed")
 
-    all_results.sort(key=lambda r: r.score, reverse=True)
     if t is not None:
         t.record_merge(all_results, top_k)
     return all_results[:top_k]

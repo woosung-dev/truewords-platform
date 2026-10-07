@@ -213,6 +213,20 @@ describe("CandidateTable", () => {
     expect(screen.getByText("(+3)")).toBeInTheDocument();
   });
 
+  it("여러 카테고리가 찾은 chunk 는 source 칸에 M·U 로 보인다", () => {
+    render(
+      <CandidateTable
+        candidates={[
+          cand({ chunk_id: "a", source: "M", matched_sources: ["M", "U"] }),
+          cand({ key: "v1:1", chunk_id: "b", source: "B", matched_sources: [] }),
+        ]}
+      />,
+    );
+    const [multi, single] = screen.getAllByTestId("candidate-row");
+    expect(within(multi).getByText("M·U")).toBeInTheDocument();
+    expect(within(single).getByText("B")).toBeInTheDocument();
+  });
+
   it("후보가 없으면 안내 문구를 보인다", () => {
     render(<CandidateTable candidates={[]} />);
     expect(screen.getByText("검색 후보가 없습니다")).toBeInTheDocument();

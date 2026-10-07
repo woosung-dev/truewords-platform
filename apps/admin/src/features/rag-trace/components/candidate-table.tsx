@@ -214,7 +214,10 @@ export function CandidateTable({ candidates }: { candidates: CandidateRow[] }) {
                   )}
                 </TableCell>
                 <TableCell>{row.volume || "–"}</TableCell>
-                <TableCell>{row.source || "–"}</TableCell>
+                {/* 병합 단계에서 찾아 준 카테고리가 있으면 그것을 보인다(다중 태그 chunk 는 M·U). */}
+                <TableCell>
+                  {row.matched_sources?.length ? row.matched_sources.join("·") : row.source || "–"}
+                </TableCell>
                 <TableCell>{row.origin.toLowerCase() === "fallback_relaxed" ? "완화" : "hybrid"}</TableCell>
                 <TableCell className="text-right tabular-nums">{rank(row.dense_rank)}</TableCell>
                 <TableCell className="text-right tabular-nums">{rank(row.sparse_rank)}</TableCell>

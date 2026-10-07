@@ -169,6 +169,30 @@ def test_duplicate_chunk_across_tiers_gets_duplicate_row() -> None:
     assert "duplicates:1" in warnings
 
 
+def test_candidate_row_shows_categories_that_found_the_chunk() -> None:
+    """병합 단계가 남긴 matched_sources 가 후보 행에 나온다(rerank 출력은 필드를 다시 만든다)."""
+    from dataclasses import replace
+
+    c = TraceCollector()
+    k1 = replace(_sr("k1", 0.5, "M"), tags=("M", "U"), matched_sources=("M", "U"))
+    k2 = replace(_sr("k2", 0.3, "M"), tags=("M",), matched_sources=("M",))
+    c.record_tier(TierRecord(mode="weighted", tier_idx=0, sources=["M"], threshold=0.1,
+                             results=[_sr("k1", 0.5, "M"), _sr("k2", 0.3, "M")], weight=0.5))
+    c.record_tier(TierRecord(mode="weighted", tier_idx=1, sources=["U"], threshold=0.1,
+                             results=[_sr("k1", 0.4, "M")], weight=0.5))
+    c.record_merge([k1, k2], 10)
+    rerank_out = [_sr("k2", 0.3, "M"), _sr("k1", 0.5, "M")]
+
+    rows, warnings = build_candidates(
+        c, None, search_output=[k1, k2], rerank_output=rerank_out, context_slice=2
+    )
+    by_id = {r.chunk_id: r for r in rows}
+    assert len(rows) == 2
+    assert by_id["k1"].matched_sources == ["M", "U"]
+    assert by_id["k2"].matched_sources == ["M"]
+    assert not any(w.startswith("duplicates") for w in warnings)
+
+
 def test_rrf_expected_matches_qdrant_formula() -> None:
     # Qdrant RRF = Σ 1/(2 + rank0). 1위는 0.5, 한쪽 리스트 9위(rank0=8)가 cutoff 0.1.
     assert rrf_expected(1, None) == pytest.approx(0.5)

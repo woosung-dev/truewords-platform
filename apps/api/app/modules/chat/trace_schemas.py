@@ -95,6 +95,8 @@ class CandidateRow(BaseModel):
     cited_rank: int | None = None
     # 같은 chunk 가 병합 목록에 두 번 이상 들어간 경우 두 번째부터 원본 key 를 가리킨다.
     duplicate_of: str | None = None
+    # 병합 단계에서 이 chunk 를 찾아 준 카테고리들 (예: ["M", "U"]). 병합 전 탈락이면 빈 목록.
+    matched_sources: list[str] = []
     # None = 판정 보류(rerank 가 예산 초과·오류로 끝나지 않아 검색 이후를 알 수 없음).
     drop_stage: DropStage | None
 

@@ -10,6 +10,7 @@ from app.modules.chat.trace import TierRecord, current_trace
 from app.modules.pipeline.embedder import embed_sparse_async
 from app.modules.qdrant import RawQdrantClient
 from app.modules.search.hybrid import SearchResult, hybrid_search
+from app.modules.search.merge import merge_unique_results
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,8 @@ async def weighted_search(
     1. 임베딩 1회 계산 (dense + sparse)
     2. 모든 소스를 asyncio.gather로 병렬 검색
     3. 각 소스별 score_threshold로 raw score 필터링 (가중치 곱셈 전)
-    4. score * (weight / total_weight) 기준 정렬 (SearchResult.score는 raw RRF 유지)
+    4. score * (weight / total_weight) 기준 정렬 (SearchResult.score는 raw RRF 유지).
+       다중 태그 chunk 가 여러 소스에서 잡히면 한 번만 남긴다 (``merge_unique_results``).
     5. top_k개 반환 (0건이면 빈 리스트, 예외 없음)
     6. 개별 소스 실패 시 로그 + 스킵 (격리)
 
@@ -115,7 +117,7 @@ async def weighted_search(
     )
 
     # score_threshold 필터 + 병합
-    all_results: list[SearchResult] = []
+    groups: list[tuple[list[str], list[SearchResult]]] = []
     for idx, (ws, results) in enumerate(zip(config.sources, per_source_results)):
         threshold = threshold_map[ws.source]
         qualified = [r for r in results if r.score >= threshold]
@@ -149,13 +151,10 @@ async def weighted_search(
                 },
             )
 
-        all_results.extend(qualified)
+        groups.append(([ws.source], qualified))
 
-    # 가중 점수 기준 정렬 (raw score 유지)
-    all_results.sort(
-        key=lambda r: r.score * weight_map.get(r.source, 0),
-        reverse=True,
-    )
+    # 같은 chunk 는 한 번만, 가중 점수 기준 정렬 (raw score 유지)
+    all_results = merge_unique_results(groups, weights=weight_map)
     if t is not None:
         t.record_merge(all_results, top_k)
     return all_results[:top_k]

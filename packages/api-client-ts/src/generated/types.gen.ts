@@ -233,6 +233,10 @@ export type CandidateRow = {
      */
     key: string;
     /**
+     * Matched Sources
+     */
+    matched_sources?: Array<string>;
+    /**
      * Origin
      */
     origin: 'hybrid' | 'fallback_relaxed';

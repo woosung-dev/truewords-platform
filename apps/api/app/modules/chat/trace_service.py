@@ -329,6 +329,12 @@ def build_candidates(
     for r in [*(c.merged or []), *(search_output or []), *(rerank_output or [])]:
         note(r)
 
+    # rerank 출력은 SearchResult 를 새로 만들어 matched_sources 가 비므로 병합 목록에서 찾는다.
+    matched: dict[str, list[str]] = {}
+    for r in [*(c.merged or []), *(search_output or [])]:
+        if r.matched_sources:
+            matched.setdefault(r.chunk_id, list(r.matched_sources))
+
     merged_ids = [r.chunk_id for r in c.merged] if c.merged is not None else []
     search_ids = [r.chunk_id for r in search_output] if search_output is not None else []
     rerank_ids = [r.chunk_id for r in rerank_output] if rerank_output is not None else None
@@ -431,6 +437,7 @@ def build_candidates(
                     if rerank_pos is not None and rerank_pos < _CITED_N
                     else None,
                     duplicate_of=key if n > 0 else None,
+                    matched_sources=matched.get(cid, []),
                     drop_stage=drop,
                 )
             )
