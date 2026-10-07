@@ -6,7 +6,7 @@
 
 import uuid
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -15,6 +15,10 @@ from app.modules.chatbot.schemas import (
     ChatbotConfigResponse,
     ChatbotConfigUpdate,
 )
+from app.modules.chat.models import MessageRole
+from app.modules.chat.pipeline.context import ChatContext
+from app.modules.chat.pipeline.stages.query_rewrite import QueryRewriteStage
+from app.modules.chat.schemas import ChatRequest
 from app.modules.chatbot.service import ChatbotService
 from app.core.common.clock import utcnow
 
@@ -208,3 +212,54 @@ async def test_create_default_matches_runtime_default():
     assert stored["query_rewrite_enabled"] == key_missing.retrieval.query_rewrite_enabled
     assert stored["multiturn_enabled"] == key_missing.retrieval.multiturn_enabled
     assert stored["raw_rag_only"] == key_missing.generation.raw_rag_only
+
+
+@pytest.mark.asyncio
+async def test_key_missing_bot_runs_rewrite_off_rerank_on():
+    """rewrite·rerank 키가 없는 봇 → rewrite 기본 OFF, rerank 기본 ON."""
+    service, _ = _service_with(_record({"tiers": [{"sources": ["A"]}]}))
+
+    rc = await service.build_runtime_config("cb-sym")
+
+    assert rc.retrieval.query_rewrite_enabled is False
+    assert rc.retrieval.rerank_enabled is True
+
+
+@pytest.mark.asyncio
+async def test_key_missing_bot_still_condenses_followup():
+    """rewrite 기본 OFF 봇도 첫 질문은 그대로 두고, 멀티턴 후속 질문은 condense 한다."""
+    service, _ = _service_with(_record({"tiers": [{"sources": ["A"]}]}))
+    rc = await service.build_runtime_config("cb-sym")
+
+    prev = MagicMock()
+    prev.role = MessageRole.USER
+    prev.content = "효자란?"
+    first = ChatContext(request=ChatRequest(query="효자란?"))
+    first.runtime_config = rc
+    followup = ChatContext(request=ChatRequest(query="그럼 어떻게?"))
+    followup.runtime_config = rc
+    followup.history = [prev]
+
+    with (
+        patch(
+            "app.modules.chat.pipeline.stages.query_rewrite.rewrite_query", new_callable=AsyncMock
+        ) as mock_rewrite,
+        patch(
+            "app.modules.chat.pipeline.stages.query_rewrite.condense_query",
+            new_callable=AsyncMock,
+            return_value="효자 실천 방법",
+        ) as mock_condense,
+        patch(
+            "app.modules.chat.pipeline.stages.query_rewrite.embed_dense_query",
+            new_callable=AsyncMock,
+            return_value=[0.2] * 10,
+        ),
+    ):
+        first_out = await QueryRewriteStage().execute(first)
+        followup_out = await QueryRewriteStage().execute(followup)
+
+    mock_rewrite.assert_not_awaited()
+    assert first_out.search_query == "효자란?"
+    mock_condense.assert_awaited_once()
+    assert mock_condense.call_args.kwargs["term_rewrite"] is False
+    assert followup_out.search_query == "효자 실천 방법"

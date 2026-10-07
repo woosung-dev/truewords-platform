@@ -138,7 +138,7 @@ class ChatbotService:
     async def get_raw_search_tiers(self, chatbot_id: str | None) -> dict | None:
         """저장된 search_tiers JSON 원본. 봇이 없거나 chatbot_id=None 이면 None.
 
-        관리자 rag-trace 가 "키가 없어 기본값 True 로 해석됨" 같은 설정 이유를
+        관리자 rag-trace 가 "키가 없어 기본값으로 해석됨" 같은 설정 이유를
         보여 주는 데만 쓴다. 런타임 동작은 build_runtime_config 가 결정한다.
         """
         if chatbot_id is None:

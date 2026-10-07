@@ -5694,7 +5694,7 @@
             "type": "boolean"
           },
           "query_rewrite_enabled": {
-            "default": true,
+            "default": false,
             "title": "Query Rewrite Enabled",
             "type": "boolean"
           },

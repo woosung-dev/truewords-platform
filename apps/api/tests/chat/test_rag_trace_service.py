@@ -297,6 +297,8 @@ async def test_full_run_applies_safety(harness) -> None:
     cfg = resp.effective_config
     assert cfg is not None
     assert cfg.rerank_enabled is True and cfg.rerank_enabled_reason == "key_missing→default_true"
+    assert cfg.query_rewrite_enabled is False
+    assert cfg.query_rewrite_enabled_reason == "key_missing→default_false"
     assert cfg.sparse_modifier == "none"
     assert cfg.context_slice == 6 and cfg.rerank_top_k == 12
 

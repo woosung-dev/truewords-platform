@@ -64,7 +64,7 @@ export const SEARCH_TIERS_DEFAULTS = {
   search_mode: "cascading",
   rerank_enabled: true,
   dictionary_enabled: false,
-  query_rewrite_enabled: true,
+  query_rewrite_enabled: false,
   multiturn_enabled: true,
   raw_rag_only: false,
 } as const;
