@@ -36,7 +36,7 @@ HOONDOK="${HOONDOK_ENABLED:-0}"
 CACHE_BUST="${SMOKE_CACHE_BUST:-}"
 TIMEOUT="${SMOKE_TIMEOUT_S:-15}"
 # 운영 폰트 파일명은 버전이 박혀 있다(Phase 3 C). 파일을 갈면 여기도 같이 바꾼다.
-FONT_FILE="${SMOKE_FONT_FILE:-PretendardVariable-1.3.9.woff2}"
+FONT_FILE="${SMOKE_FONT_FILE:-PretendardVariable-1.3.9.subset.woff2}"
 
 while [ $# -gt 0 ]; do
   case "$1" in

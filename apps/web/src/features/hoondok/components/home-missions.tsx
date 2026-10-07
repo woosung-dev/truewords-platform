@@ -28,7 +28,8 @@ export function HomeGreeting() {
   return (
     <div className="shot">
       {/* 사진은 화면 폭의 배경이라 Next/Image 대신 정적 <img> 를 쓴다 — 원본이 이미 2x 폭(1440)이고 변환도 없다 */}
-      <img src="/hoondok/photos/home-morning-field.webp" alt="아침 햇살이 드는 들판" />
+      {/* 이 화면의 LCP 요소라 기본(Low) 대신 높은 우선순위로 받는다 */}
+      <img src="/hoondok/photos/home-morning-field.webp" alt="아침 햇살이 드는 들판" fetchPriority="high" />
       <div className="shot__tx">
         <p className="shot__greet">
           밤이 깊을수록 새벽은 가까워요.

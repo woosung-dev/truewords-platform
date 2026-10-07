@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/truewords-fonts";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
