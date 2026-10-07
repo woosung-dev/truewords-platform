@@ -35,7 +35,12 @@ class SearchTiersConfig(BaseModel):
     search_mode: Literal["cascading", "weighted"] = "cascading"
     tiers: list[SearchTierSchema] = Field(default_factory=list)
     weighted_sources: list[WeightedSourceSchema] = Field(default_factory=list)
-    rerank_enabled: bool = False
+    # 아래 기본값은 "저장된 JSON 에 키가 없을 때"의 값이기도 하다. 런타임 조립
+    # (ChatbotService.build_runtime_config)도 이 기본값을 그대로 쓰므로, 생성 기본값·
+    # 관리자 화면 표시값·런타임 해석이 한 곳에서 정해진다. rerank 는 키 없는 기존 봇의
+    # 동작(ON)을 유지하고, rewrite(첫 질문 종교 용어 변환)는 기본 OFF 로 둔다.
+    # rewrite 가 꺼져도 멀티턴 후속 질문 condense(맥락 해소)는 계속 동작한다.
+    rerank_enabled: bool = True
     dictionary_enabled: bool = False
     query_rewrite_enabled: bool = False
     # 봇별 멀티턴(대화 이력) 토글. 기본 ON — 기존 봇은 이 키가 없어도 멀티턴 유지.

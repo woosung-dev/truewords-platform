@@ -71,6 +71,7 @@ from app.modules.chat.trace_schemas import (
     TraceWeightedSource,
 )
 from app.modules.chatbot.runtime_config import ChatbotRuntimeConfig
+from app.modules.chatbot.schemas import SearchTiersConfig
 from app.modules.chatbot.service import ChatbotService
 from app.modules.malssum.service import pick_malssum_for_answer
 from app.modules.qdrant import get_raw_client
@@ -861,7 +862,11 @@ class RagTraceService:
                 return "override"
             if raw is None:
                 return "system_default"
-            return "stored" if key in raw else "key_missing→default_true"
+            if key in raw:
+                return "stored"
+            # 키 없음 → 런타임이 쓰는 SearchTiersConfig 기본값을 그대로 표시한다.
+            default = SearchTiersConfig.model_fields[key].default
+            return f"key_missing→default_{str(default).lower()}"
 
         tiers = rc.search.tiers or DEFAULT_RUNTIME_CONFIG.search.tiers
         return EffectiveConfig(

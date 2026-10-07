@@ -1,7 +1,9 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { ChatbotForm } from "@/features/chatbot/components/chatbot-form";
+import { ChatbotForm, SEARCH_TIERS_DEFAULTS } from "@/features/chatbot/components/chatbot-form";
 
 // SearchTierEditor 가 의존하는 hook mock (기존 test 패턴)
 vi.mock("@/features/data-source/hooks", () => ({
@@ -62,12 +64,58 @@ describe("ChatbotForm", () => {
           search_mode: "cascading",
           tiers: [],
           weighted_sources: [],
+          rerank_enabled: true,
           dictionary_enabled: false,
           query_rewrite_enabled: false,
           multiturn_enabled: true,
         }),
       }),
     );
+  });
+
+  it("edit 모드에서 저장된 rerank 값을 보여 주고 바꾼 값을 그대로 보낸다", () => {
+    const onSubmit = vi.fn();
+    const { container } = render(
+      <ChatbotForm
+        mode="edit"
+        {...baseProps}
+        onSubmit={onSubmit}
+        initialValues={{
+          display_name: "기존챗봇",
+          search_tiers: {
+            search_mode: "cascading",
+            tiers: [],
+            weighted_sources: [],
+            rerank_enabled: false,
+            dictionary_enabled: false,
+            query_rewrite_enabled: false,
+            multiturn_enabled: true,
+            raw_rag_only: false,
+          },
+        }}
+      />,
+    );
+
+    const rerank = screen.getByRole("checkbox", { name: /Rerank/ });
+    expect(rerank).not.toBeChecked();
+    fireEvent.click(rerank);
+    expect(rerank).toBeChecked();
+
+    fireEvent.submit(container.querySelector("form")!);
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search_tiers: expect.objectContaining({ rerank_enabled: true, query_rewrite_enabled: false }),
+      }),
+    );
+  });
+
+  it("폼 기본값이 API 계약(SearchTiersConfig)의 기본값과 같다", () => {
+    // 서버는 키가 없는 봇을 계약 기본값으로 실행한다. 폼 기본값이 다르면 화면 값과 실제 동작이 어긋난다.
+    const spec = JSON.parse(readFileSync(path.resolve(__dirname, "../../../../contracts/openapi.json"), "utf8"));
+    const properties = spec.components.schemas.SearchTiersConfig.properties as Record<string, { default?: unknown }>;
+    for (const [key, value] of Object.entries(SEARCH_TIERS_DEFAULTS)) {
+      expect({ key, value: properties[key]?.default }).toEqual({ key, value });
+    }
   });
 
   it("isSubmitting=true 이면 submit 버튼이 비활성화되고 pending 라벨이 노출된다", () => {

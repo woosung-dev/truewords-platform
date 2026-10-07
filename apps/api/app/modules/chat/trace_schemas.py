@@ -120,7 +120,7 @@ class EffectiveConfig(BaseModel):
     tiers: list[TraceTier] = Field(default_factory=list)
     weighted_sources: list[TraceWeightedSource] = Field(default_factory=list)
     rerank_enabled: bool
-    # stored | key_missing→default_true | override | system_default
+    # stored | key_missing→default_{true|false} | override | system_default
     rerank_enabled_reason: str
     query_rewrite_enabled: bool
     query_rewrite_enabled_reason: str
