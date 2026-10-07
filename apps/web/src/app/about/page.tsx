@@ -1,3 +1,5 @@
+import "@/app/truewords-fonts";
+import "@/app/truewords-reading-fonts";
 import { BookOpenCheck, CalendarClock, ScrollText, ShieldAlert } from "lucide-react";
 import type { Metadata } from "next";
 

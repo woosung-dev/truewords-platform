@@ -74,7 +74,7 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
              "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
 ```
 
-운영에서는 self-host 한다(시안은 jsdelivr CDN). **2026-09-19 확정(PLAN-HD-001 Phase 3 C)**: 가변 폰트 1종 `PretendardVariable-1.3.9.woff2`(1.96MB) 를 `apps/web/public/hoondok/fonts/` 에 두고 `hoondok.css` 의 `@font-face` 로 패밀리명 **`"Pretendard Hoondok"`**(루트 layout CDN 의 `Pretendard Variable` 과 분리해 로드 순서와 무관) · `font-weight: 45 920` · `font-display: swap` 으로 연결한다. 동적 서브셋(92청크 + 생성 CSS)은 유지비로, 정적 4종(2.98MB)은 예산 2MB 초과로 미채택. SIL OFL 1.1 `OFL.txt` 를 같은 폴더에 동봉한다. 사용 굵기는 400·500·600·700 네 단계다.
+운영에서는 self-host 한다(시안은 jsdelivr CDN). **2026-10-07 개정**: 가변 폰트 1종을 KS X 1001 한글 2,350자 + 라틴·문장 부호·기호·한글 자모로 줄인 서브셋 `PretendardVariable-1.3.9.subset.woff2`(약 613KB, 예산 700KB) 를 `apps/web/public/hoondok/fonts/` 에 두고 `hoondok.css` 의 `@font-face` 로 패밀리명 **`"Pretendard Hoondok"`**(다른 Pretendard 와 분리해 로드 순서와 무관) · `font-weight: 45 920` · `font-display: swap` 으로 연결한다. 원본(1.96MB)은 모바일 저속망에서 첫 화면 LCP 를 14초로 늦췄다. 서브셋에 없는 음절은 `--sans` 의 시스템 글꼴로 대체된다. 동적 서브셋(92청크 + 생성 CSS)은 긴 말씀 화면에서 청크 수십 개를 받게 되어 미채택. 재생성: 원본 가변 woff2 에 `pyftsubset --text-file=<KS X 1001 2,350자> --unicodes=U+0020-036F,U+2000-2BFF,U+3000-303F,U+3131-318E,U+3200-33FF,U+FF01-FFEF --layout-features='*' --flavor=woff2`. SIL OFL 1.1 `OFL.txt` 를 같은 폴더에 동봉한다. 사용 굵기는 400·500·600·700 네 단계다.
 
 | 이름 | 크기 | 행간 | 자간 | 굵기 | 쓰는 곳 |
 |---|---|---|---|---|---|
@@ -732,7 +732,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | ID | 항목 | 상태 |
 |---|---|---|
 | `DES-PWA-003-Q2` | 사진 큐레이션 주체와 권리 확인 절차. `picsum.photos` 예시를 대체할 소스가 없으면 홈 히어로를 텍스트 카드로 바꿔야 한다 | 2026-09-16 확정: 베타는 텍스트 카드 → **2026-09-22 되돌림**: 프로토타입이 쓴 picsum 이미지의 Unsplash 원본을 레포 정적 파일로 복원(§1.6 출처 표). 아바타는 이니셜 유지 — 실사용자 자리에 스톡 얼굴을 넣지 않는다 |
-| `DES-PWA-003-Q3` | Pretendard·Phosphor self-host 시 서브셋 범위(동적 서브셋 vs 정적) | **2026-09-16 확정: Phosphor → lucide-react 치환** · **2026-09-19 확정: Pretendard 가변 1종 self-host, 서브셋 없음(§1.2)** |
+| `DES-PWA-003-Q3` | Pretendard·Phosphor self-host 시 서브셋 범위(동적 서브셋 vs 정적) | **2026-09-16 확정: Phosphor → lucide-react 치환** · ~~2026-09-19 서브셋 없음~~ → **2026-10-07 개정: Pretendard 가변 1종 KS X 1001 서브셋(§1.2)** |
 | — | 60대 사용자 3명 대상 200% 확대 실사용 확인 | `[가정]` 단계. S5 베타 전 수행 |
 
 ---
@@ -755,6 +755,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | 2026-09-16 | `SCR-PWA-005` AI 질문 = 묻기 홈("물음 한 장") + 기록 화면 분리. FAB·3탭 세그먼트 제거 | 확정 · §2.9 |
 | 2026-09-16 | 16화면 단일 소스 프로토타입 완성 (`prd/prototypes/hoondok-ds/`). 이 문서의 §4·§5 규칙은 그 프로토타입으로 검증됐다. 테마 비교(DESIGN.md 6종 번역, 독립 심사 C·E 동률 1위)와 내비 7안 비교는 참고로만 쓰고 **A 기준 유지**를 택했다. 비교 산출물은 git 히스토리(PR #269 이전 커밋)에만 남긴다 | 확정 |
 | 2026-09-19 | Pretendard self-host = 가변 1종(1.96MB) · 패밀리명 `"Pretendard Hoondok"` · `font-display: swap` · OFL 동봉. 동적 서브셋·정적 4종 미채택 | 확정 · §1.2 · PLAN-HD-001 Phase 3 C |
+| 2026-10-07 | `DES-PWA-003-Q3` 개정 — Pretendard 를 KS X 1001 서브셋 1종(약 613KB)으로 교체. 모바일 Lighthouse LCP 14.0초 → 6.2초. 빠진 음절은 시스템 글꼴 대체 | 확정 · §1.2 |
 | 2026-09-19 | 앱 아이콘 = "훈" 글자 단색 도형 4종(any 192/512 · maskable 512 · apple 180), **감귤 배경 + 종이색 글자 확정**(종이색 배경 B 안 미채택). manifest `id`·`start_url`·`scope` 는 `/hoondok`(슬래시 없음) | 글자는 2026-09-29 HD 모노그램으로 **대체**, 색·manifest 는 유지 · §1.7 |
 | 2026-09-19 | `--scrim` `rgba(35,33,31,0.45)` 토큰 신설. §2.7 이 값으로만 적던 배경막을 정성 시트 `::backdrop` 이 쓴다 | 확정 · `hoondok.css` |
 | 2026-09-19 | 화면 그룹 CSS 는 `src/app/_hoondok/*.css` 8개로 나누고 `hoondok.css` 는 토큰·공용 규칙만 갖는다. `app/hoondok/` 은 라우트 세그먼트와 충돌하므로 언더스코어 private 폴더다 | 확정 · PLAN-HD-002 W0-W |

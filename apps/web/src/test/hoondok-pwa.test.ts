@@ -105,14 +105,17 @@ describe("훈독 PWA 설치 메타", () => {
     expect(existsSync(path.join(PUBLIC_DIR, "hoondok/icons/favicon.svg"))).toBe(true);
   });
 
-  it("Pretendard self-host: 2MB 이하 woff2 + OFL 동봉 + 별도 패밀리명 @font-face", () => {
-    const font = path.join(PUBLIC_DIR, "hoondok/fonts/PretendardVariable-1.3.9.woff2");
-    expect(statSync(font).size).toBeLessThanOrEqual(2 * 1024 * 1024);
+  it("Pretendard self-host: 700KB 이하 서브셋 woff2 + OFL 동봉 + 별도 패밀리명 @font-face", () => {
+    // 모바일 LCP 예산 — 원본 가변 폰트(2MB)는 저속 4G 에서 첫 화면을 10초 넘게 늦췄다
+    const font = path.join(PUBLIC_DIR, "hoondok/fonts/PretendardVariable-1.3.9.subset.woff2");
+    expect(statSync(font).size).toBeLessThanOrEqual(700 * 1024);
     expect(existsSync(path.join(PUBLIC_DIR, "hoondok/fonts/OFL.txt"))).toBe(true);
     expect(HOONDOK_CSS).toMatch(
-      /@font-face\s*\{[^}]*font-family:\s*"Pretendard Hoondok"[^}]*\/hoondok\/fonts\/PretendardVariable-1\.3\.9\.woff2[^}]*\}/,
+      /@font-face\s*\{[^}]*font-family:\s*"Pretendard Hoondok"[^}]*\/hoondok\/fonts\/PretendardVariable-1\.3\.9\.subset\.woff2[^}]*\}/,
     );
     expect(HOONDOK_CSS).toMatch(/--sans:\s*"Pretendard Hoondok",/);
+    // 시연 챗 폰트(@font-face 400여 개)가 루트 layout 으로 돌아오면 훈독 첫 화면의 렌더 차단 CSS 가 된다
+    expect(readFileSync(path.join(WEB_ROOT, "src/app/layout.tsx"), "utf8")).not.toContain("@fontsource");
   });
 });
 

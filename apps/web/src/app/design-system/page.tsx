@@ -1,5 +1,7 @@
 "use client";
 
+import "@/app/truewords-fonts";
+import "@/app/truewords-reading-fonts";
 import * as React from "react";
 import {
   AnswerSkeleton,
