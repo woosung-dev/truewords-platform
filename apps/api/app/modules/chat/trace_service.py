@@ -654,7 +654,9 @@ class RagTraceService:
                 state.experiment["c2"] = decomposed[1] if decomposed else {"fallback": True}
             if decomposed is not None:
                 ctx.results = decomposed[0]
-                state.warnings.append("decompose_candidates_approx")
+                # 계획 실패(fallback)면 원 질의 검색 결과 그대로라 후보 표도 정확하다.
+                if not decomposed[1].get("fallback"):
+                    state.warnings.append("decompose_candidates_approx")
             else:
                 ctx = await self.search_stage.execute(ctx)
             state.search_output = list(ctx.results)

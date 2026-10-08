@@ -636,3 +636,79 @@ async def test_skip_postprocess_drops_only_postprocess(harness) -> None:
     assert "postprocess_skipped" in resp.warnings
     assert resp.generation is not None and base.generation is not None
     assert resp.generation.context_prompt == base.generation.context_prompt
+
+
+def _with_planner(models: FakeModels, sub_queries: list[str]) -> None:
+    """C2 planner(질의 분해기) 호출에만 JSON 하위 질의를 돌려준다."""
+    original = models.generate_content
+
+    async def generate_content(model, contents, config):
+        if "질의 분해기" in (getattr(config, "system_instruction", None) or ""):
+            text = json.dumps({"sub_queries": sub_queries}, ensure_ascii=False)
+            return SimpleNamespace(text=text, usage_metadata=_Usage())
+        return await original(model, contents, config)
+
+    models.generate_content = generate_content
+
+
+@pytest.mark.asyncio
+async def test_decompose_not_called_for_factoid(harness) -> None:
+    with patch.object(
+        trace_service.c2_decompose, "decomposed_search", new_callable=AsyncMock
+    ) as spy:
+        resp = await harness.service.run(
+            RagTraceRequest(
+                query="참사랑이란 무엇인가요?",
+                stop_after="search",
+                overrides={"intent": "factoid", "decompose": True},
+            )
+        )
+    spy.assert_not_awaited()
+    assert "c2" not in resp.experiment
+    assert not any(s.name == "decompose" for s in resp.spans)
+
+
+@pytest.mark.asyncio
+async def test_decompose_runs_inside_search_span_without_polluting_candidates(harness) -> None:
+    _with_planner(harness.models, ["참사랑의 뜻", "참사랑의 실천"])
+    with patch(
+        "app.modules.chat.experiments.c2_decompose.get_raw_client", return_value=harness.qdrant
+    ):
+        resp = await harness.service.run(
+            RagTraceRequest(query="참사랑이란 무엇인가요?", overrides={"decompose": True})
+        )
+
+    c2 = resp.experiment["c2"]
+    assert c2["planner_status"] == "ok" and c2["sub_counts"] == [5, 5]
+    assert c2["n_from_subqueries_only"] == 0 and c2["llm"]["input_tokens"] == 10
+    assert "decompose_candidates_approx" in resp.warnings
+    assert _top_level(resp) == list(TRACE_STAGES)
+    parent = {s.name: s.parent for s in resp.spans}
+    assert parent["decompose"] == "search" and parent["c2.plan"] == "decompose"
+    assert [s.parent for s in resp.spans if s.name == "c2.sub_search"] == ["decompose"] * 2
+    # 원 질의 1회 + 하위 질의 2회. 디버그 조회는 원 질의 기록만 보고 1번 묶어 부른다.
+    assert harness.qdrant.query_calls == 3 and harness.qdrant.batch_calls == 1
+    assert not any(w.startswith("rrf_mismatch") for w in resp.warnings)
+    assert [r.chunk_id for r in resp.candidates[:5]] == _IDS
+    # intent + planner + rerank + followups + stream
+    assert resp.totals.llm_calls == 5
+
+
+@pytest.mark.asyncio
+async def test_decompose_planner_failure_keeps_current_search(harness) -> None:
+    base = await harness.service.run(
+        RagTraceRequest(query="참사랑이란 무엇인가요?", stop_after="search")
+    )
+    calls_before = harness.qdrant.query_calls
+    # 기본 FakeModels 는 planner 에 JSON 이 아닌 글을 돌려준다 → parse_fail.
+    resp = await harness.service.run(
+        RagTraceRequest(
+            query="참사랑이란 무엇인가요?", stop_after="search", overrides={"decompose": True}
+        )
+    )
+
+    c2 = resp.experiment["c2"]
+    assert c2["fallback"] is True and c2["planner_status"] == "parse_fail"
+    assert "decompose_candidates_approx" not in resp.warnings
+    assert harness.qdrant.query_calls - calls_before == 1  # 원 질의 검색 1회뿐
+    assert [r.chunk_id for r in resp.candidates] == [r.chunk_id for r in base.candidates]
