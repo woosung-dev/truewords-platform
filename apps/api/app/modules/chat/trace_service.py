@@ -26,6 +26,7 @@ from app.core.common.ingestion_facade import IngestionJobRepository, get_corpus_
 from app.modules.cache.service import SemanticCacheService
 from app.modules.chat.history import estimate_tokens, select_history_window
 from app.modules.chat.models import MessageRole, SessionMessage
+from app.modules.chat.experiments import c1_citation, c2_decompose, c3_wiki, result_key
 from app.modules.chat.pipeline.context import ChatContext
 from app.modules.chat.pipeline.stages.cache_check import CacheCheckStage
 from app.modules.chat.pipeline.stages.closing_template import ClosingTemplateStage
@@ -66,6 +67,7 @@ from app.modules.chat.trace_schemas import (
     RagTraceResponse,
     StageSpan,
     TraceTier,
+    TraceOverrides,
     TraceTotals,
     TraceTurn,
     TraceWeightedSource,
@@ -142,6 +144,9 @@ class _RunState:
     rerank_output: list[SearchResult] | None = None
     generation: GenerationTrace | None = None
     raw_tiers: dict | None = None
+    overrides: TraceOverrides | None = None
+    # 실험 경로(c1/c2/c3) 판정 기록. 실험을 끄면 비어 있다.
+    experiment: dict[str, Any] = field(default_factory=dict)
 
 
 def rrf_expected(dense_rank: int | None, sparse_rank: int | None) -> float:
@@ -538,6 +543,7 @@ class RagTraceService:
     async def _execute(
         self, req: RagTraceRequest, pre_cfg: ChatbotRuntimeConfig, state: _RunState
     ) -> None:
+        state.overrides = req.overrides
         ctx = ChatContext(
             request=ChatRequest(
                 query=req.query, chatbot_id=req.chatbot_id, answer_mode=req.answer_mode
@@ -641,7 +647,16 @@ class RagTraceService:
                 }
 
         async with trace_span("search") as span:
-            ctx = await self.search_stage.execute(ctx)
+            decomposed = None
+            if req.overrides.decompose and ctx.intent in ("conceptual", "reasoning"):
+                async with trace_span("decompose"):
+                    decomposed = await c2_decompose.decomposed_search(ctx, self.search_stage)
+                state.experiment["c2"] = decomposed[1] if decomposed else {"fallback": True}
+            if decomposed is not None:
+                ctx.results = decomposed[0]
+                state.warnings.append("decompose_candidates_approx")
+            else:
+                ctx = await self.search_stage.execute(ctx)
             state.search_output = list(ctx.results)
             if span is not None:
                 span.output = {
@@ -667,8 +682,33 @@ class RagTraceService:
                 }
                 if not (ctx.runtime_config and ctx.runtime_config.retrieval.rerank_enabled):
                     span.status = "skipped"
+        if req.overrides.citation_check:
+            async with trace_span("passage_lookup"):
+                sources = [w.source for w in ctx.runtime_config.search.weighted_sources] if (
+                    ctx.runtime_config and ctx.runtime_config.search.weighted_sources
+                ) else []
+                ctx.results, lookup = await c1_citation.passage_lookup(
+                    ctx.request.query, list(ctx.results), sources=sources
+                )
+            state.experiment["c1"] = {"lookup": lookup}
+            if lookup.get("routed"):
+                state.experiment["c1"]["ranking"] = [
+                    result_key(r.volume, r.chunk_index) for r in ctx.results
+                ]
         if req.stop_after == "rerank":
             return
+
+        if req.overrides.citation_check and not state.experiment["c1"]["lookup"].get("routed"):
+            refuse, refusal = c1_citation.should_refuse(ctx.results, reranked=bool(ctx.reranked))
+            state.experiment["c1"]["refusal"] = refusal
+            if refuse:
+                ctx.answer = c1_citation.REFUSAL_ANSWER
+                state.generation = GenerationTrace(system_prompt="", context_prompt="", answer=ctx.answer)
+                ctx.pipeline_state = PipelineState.GENERATED
+                async with trace_span("safety_output"):
+                    ctx = await self.safety_output_stage.execute(ctx)
+                state.generation.answer = ctx.answer or ""
+                return
 
         await self._generate(ctx, state)
 
@@ -676,6 +716,9 @@ class RagTraceService:
             ctx = await self.safety_output_stage.execute(ctx)
         if state.generation is not None:
             state.generation.answer = ctx.answer or ""
+        if req.overrides.skip_postprocess:
+            state.warnings.append("postprocess_skipped")
+            return
 
         async def _in_group(name: str, fn: Callable[[], Awaitable[Any]]) -> Any:
             async with trace_span(name, parallel_group="postprocess"):
@@ -695,6 +738,14 @@ class RagTraceService:
             gen_cfg = configure_generation_for_mode(ctx)
             assert gen_cfg is not None, "trace 경로엔 runtime_config 가 필요합니다"
             context_results = ctx.results[: generation_context_slice_for(ctx.intent)]
+            context_keys = [result_key(r.volume, r.chunk_index) for r in context_results]
+            ov = state.overrides
+            if ov is not None and ov.wiki_first:
+                async with trace_span("wiki_route"):
+                    context_results, context_keys, wiki = c3_wiki.apply_cards(
+                        ctx.request.query, ctx.intent, context_results
+                    )
+                state.experiment["c3"] = wiki
             history_window = select_history_window(ctx.history) or None
             state.generation = GenerationTrace(
                 system_prompt=gen_cfg.system_prompt,
@@ -706,6 +757,7 @@ class RagTraceService:
                     for role, content in (history_window or [])
                 ],
                 answer="",
+                context_keys=context_keys,
             )
             sanitizer = StreamingSanitizer()
             full_answer: list[str] = []
@@ -728,6 +780,17 @@ class RagTraceService:
             if not sanitizer.aborted:
                 sanitizer.flush()
             ctx.answer = abort_guidance if abort_guidance is not None else "".join(full_answer)
+            if ov is not None and ov.citation_check and not sanitizer.aborted:
+                async with trace_span("citation_gate"):
+                    ctx.answer, gate, attempts = await c1_citation.citation_gate(
+                        ctx.answer,
+                        context_results,
+                        regenerate=lambda note: self._regenerate(
+                            ctx, context_results, gen_cfg, history_window, note
+                        ),
+                    )
+                state.experiment.setdefault("c1", {})["gate"] = gate
+                state.generation.attempts = attempts
             state.generation.answer = ctx.answer
             # 스트림 경로는 GENERATED 를 남기지 않는다. trace 는 경고 없이 진행하려고 맞춘다.
             ctx.pipeline_state = PipelineState.GENERATED
@@ -745,6 +808,26 @@ class RagTraceService:
             state.warnings.append("pastoral_hotline_missing_in_stream")
 
     # ---- 디버그 조회 -----------------------------------------------------------
+
+    async def _regenerate(
+        self,
+        ctx: ChatContext,
+        context_results: list[SearchResult],
+        gen_cfg: Any,
+        history_window: list[tuple[str, str]] | None,
+        note: str,
+    ) -> str:
+        """C1 게이트의 재생성 1회. 같은 근거·설정에 검토 메모를 질문 뒤에 붙인다."""
+        async with trace_span("regenerate", "llm"):
+            parts: list[str] = []
+            async for chunk in generate_answer_stream(
+                f"{ctx.request.query}\n\n[검토 메모] {note}",
+                context_results,
+                generation_config=gen_cfg,
+                history=history_window,
+            ):
+                parts.append(chunk)
+            return "".join(parts)
 
     async def _debug_lookup_within(
         self, c: TraceCollector, state: _RunState, until: float
@@ -850,6 +933,7 @@ class RagTraceService:
             totals=_totals(c, pipeline_end),
             warnings=state.warnings,
             partial=state.partial,
+            experiment=state.experiment,
         )
 
     def _effective_config(

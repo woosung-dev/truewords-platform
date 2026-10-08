@@ -43,7 +43,7 @@ from app.core.common.database import get_async_session
 from app.modules.admin.dependencies import get_current_admin
 from app.modules.chat.dependencies import get_cache_service
 from app.modules.chat.trace import TraceCollector, current_trace
-from app.modules.chat.trace_schemas import RagTraceRequest
+from app.modules.chat.trace_schemas import RagTraceRequest, TraceOverrides
 from app.modules.chat.trace_service import TRACE_STAGES, RagTraceService, rrf_expected
 from app.modules.chatbot.dependencies import get_chatbot_service
 from app.modules.chatbot.runtime_config import (
@@ -602,3 +602,37 @@ async def test_hooks_are_noop_without_collector(harness) -> None:
     for mock in mocks:
         mock.assert_not_called()
     assert current_trace.get() is None
+
+
+# ---------------------------------------------------------------------------
+# 실험 플래그(기본 꺼짐) · 후처리 생략
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_flags_off_keep_context_prompt_and_stages(harness) -> None:
+    resp = await harness.service.run(RagTraceRequest(query="참사랑이란 무엇인가요?"))
+
+    assert _top_level(resp) == list(TRACE_STAGES)
+    assert resp.experiment == {}
+    assert resp.generation is not None
+    assert resp.generation.attempts == []
+    # 근거 키는 생성에 넣은 순서 그대로다.
+    ctx_rows = sorted(
+        (c for c in resp.candidates if c.context_rank is not None and c.duplicate_of is None),
+        key=lambda c: c.context_rank,
+    )
+    assert resp.generation.context_keys == [c.key for c in ctx_rows]
+
+
+@pytest.mark.asyncio
+async def test_skip_postprocess_drops_only_postprocess(harness) -> None:
+    base = await harness.service.run(RagTraceRequest(query="참사랑이란 무엇인가요?"))
+    resp = await harness.service.run(
+        RagTraceRequest(query="참사랑이란 무엇인가요?", overrides=TraceOverrides(skip_postprocess=True))
+    )
+
+    assert not [s for s in resp.spans if s.parallel_group == "postprocess"]
+    assert "postprocess_skipped" in resp.warnings
+    assert resp.generation is not None and base.generation is not None
+    assert resp.generation.context_prompt == base.generation.context_prompt
