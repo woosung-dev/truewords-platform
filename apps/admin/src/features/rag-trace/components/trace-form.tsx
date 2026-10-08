@@ -66,6 +66,22 @@ export function defaultChatbotId(chatbots: ChatbotOption[]): string {
   return (all ?? chatbots.find((b) => b.is_active) ?? chatbots[0])?.chatbot_id ?? "";
 }
 
+type ExperimentKey = "citation_check" | "decompose" | "wiki_first" | "skip_postprocess";
+
+const EXPERIMENTS: { key: ExperimentKey; label: string }[] = [
+  { key: "citation_check", label: "실험 C1 인용 검증" },
+  { key: "decompose", label: "실험 C2 질의 분해" },
+  { key: "wiki_first", label: "실험 C3 용어 카드" },
+  { key: "skip_postprocess", label: "후처리 생략" },
+];
+
+const NO_EXPERIMENTS: Record<ExperimentKey, boolean> = {
+  citation_check: false,
+  decompose: false,
+  wiki_first: false,
+  skip_postprocess: false,
+};
+
 function emptyBotLabel(loading: boolean, error: boolean): string {
   if (loading) return "불러오는 중…";
   if (error) return "목록을 불러오지 못함";
@@ -79,6 +95,8 @@ export function TraceForm({ chatbots, chatbotsLoading, chatbotsError, onRetryCha
   const [answerMode, setAnswerMode] = useState<AnswerMode | "">("");
   const [forceRerank, setForceRerank] = useState(false);
   const [forceRewrite, setForceRewrite] = useState(false);
+  // 도입 전 검증 실험(기본 꺼짐). 이 화면의 실행에만 적용된다.
+  const [experiments, setExperiments] = useState<Record<ExperimentKey, boolean>>(NO_EXPERIMENTS);
   const [stopAfter, setStopAfter] = useState<StopAfter>("full");
 
   const chatbotId = selectedBot ?? defaultChatbotId(chatbots);
@@ -96,6 +114,8 @@ export function TraceForm({ chatbots, chatbotsLoading, chatbotsError, onRetryCha
       overrides: {
         rerank_enabled: forceRerank ? true : null,
         query_rewrite_enabled: forceRewrite ? true : null,
+        // 켠 실험만 싣는다 — 기본 요청은 지금과 같다.
+        ...Object.fromEntries(Object.entries(experiments).filter(([, on]) => on)),
       },
       stop_after: stopAfter,
     });
@@ -183,6 +203,18 @@ export function TraceForm({ chatbots, chatbotsLoading, chatbotsError, onRetryCha
             rewrite 강제 켜기
           </Label>
         </div>
+        {EXPERIMENTS.map((x) => (
+          <div key={x.key} className="flex items-center gap-2.5">
+            <Checkbox
+              id={`trace-exp-${x.key}`}
+              checked={experiments[x.key]}
+              onCheckedChange={(c) => setExperiments((prev) => ({ ...prev, [x.key]: c === true }))}
+            />
+            <Label htmlFor={`trace-exp-${x.key}`} className="cursor-pointer text-muted-foreground">
+              {x.label}
+            </Label>
+          </div>
+        ))}
         <div className="ml-auto flex items-center gap-3">
           {pending && <ElapsedSeconds />}
           <Button type="submit" disabled={!canSubmit}>

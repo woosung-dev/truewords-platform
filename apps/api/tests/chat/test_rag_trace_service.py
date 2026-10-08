@@ -43,7 +43,7 @@ from app.core.common.database import get_async_session
 from app.modules.admin.dependencies import get_current_admin
 from app.modules.chat.dependencies import get_cache_service
 from app.modules.chat.trace import TraceCollector, current_trace
-from app.modules.chat.trace_schemas import RagTraceRequest
+from app.modules.chat.trace_schemas import RagTraceRequest, TraceOverrides
 from app.modules.chat.trace_service import TRACE_STAGES, RagTraceService, rrf_expected
 from app.modules.chatbot.dependencies import get_chatbot_service
 from app.modules.chatbot.runtime_config import (
@@ -602,3 +602,136 @@ async def test_hooks_are_noop_without_collector(harness) -> None:
     for mock in mocks:
         mock.assert_not_called()
     assert current_trace.get() is None
+
+
+# ---------------------------------------------------------------------------
+# 실험 플래그(기본 꺼짐) · 후처리 생략
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_flags_off_keep_context_prompt_and_stages(harness) -> None:
+    resp = await harness.service.run(RagTraceRequest(query="참사랑이란 무엇인가요?"))
+
+    assert _top_level(resp) == list(TRACE_STAGES)
+    assert resp.experiment == {}
+    assert resp.generation is not None
+    assert resp.generation.attempts == []
+    # 근거 키는 생성에 넣은 순서 그대로다.
+    ctx_rows = sorted(
+        (c for c in resp.candidates if c.context_rank is not None and c.duplicate_of is None),
+        key=lambda c: c.context_rank,
+    )
+    assert resp.generation.context_keys == [c.key for c in ctx_rows]
+
+
+@pytest.mark.asyncio
+async def test_skip_postprocess_drops_only_postprocess(harness) -> None:
+    base = await harness.service.run(RagTraceRequest(query="참사랑이란 무엇인가요?"))
+    resp = await harness.service.run(
+        RagTraceRequest(query="참사랑이란 무엇인가요?", overrides=TraceOverrides(skip_postprocess=True))
+    )
+
+    assert not [s for s in resp.spans if s.parallel_group == "postprocess"]
+    assert "postprocess_skipped" in resp.warnings
+    assert resp.generation is not None and base.generation is not None
+    assert resp.generation.context_prompt == base.generation.context_prompt
+
+
+def _with_planner(models: FakeModels, sub_queries: list[str]) -> None:
+    """C2 planner(질의 분해기) 호출에만 JSON 하위 질의를 돌려준다."""
+    original = models.generate_content
+
+    async def generate_content(model, contents, config):
+        if "질의 분해기" in (getattr(config, "system_instruction", None) or ""):
+            text = json.dumps({"sub_queries": sub_queries}, ensure_ascii=False)
+            return SimpleNamespace(text=text, usage_metadata=_Usage())
+        return await original(model, contents, config)
+
+    models.generate_content = generate_content
+
+
+@pytest.mark.asyncio
+async def test_decompose_not_called_for_factoid(harness) -> None:
+    with patch.object(
+        trace_service.c2_decompose, "decomposed_search", new_callable=AsyncMock
+    ) as spy:
+        resp = await harness.service.run(
+            RagTraceRequest(
+                query="참사랑이란 무엇인가요?",
+                stop_after="search",
+                overrides={"intent": "factoid", "decompose": True},
+            )
+        )
+    spy.assert_not_awaited()
+    assert "c2" not in resp.experiment
+    assert not any(s.name == "decompose" for s in resp.spans)
+
+
+@pytest.mark.asyncio
+async def test_decompose_runs_inside_search_span_without_polluting_candidates(harness) -> None:
+    _with_planner(harness.models, ["참사랑의 뜻", "참사랑의 실천"])
+    with patch(
+        "app.modules.chat.experiments.c2_decompose.get_raw_client", return_value=harness.qdrant
+    ):
+        resp = await harness.service.run(
+            RagTraceRequest(query="참사랑이란 무엇인가요?", overrides={"decompose": True})
+        )
+
+    c2 = resp.experiment["c2"]
+    assert c2["planner_status"] == "ok" and c2["sub_counts"] == [5, 5]
+    assert c2["n_from_subqueries_only"] == 0 and c2["llm"]["input_tokens"] == 10
+    assert "decompose_candidates_approx" in resp.warnings
+    assert _top_level(resp) == list(TRACE_STAGES)
+    parent = {s.name: s.parent for s in resp.spans}
+    assert parent["decompose"] == "search" and parent["c2.plan"] == "decompose"
+    assert [s.parent for s in resp.spans if s.name == "c2.sub_search"] == ["decompose"] * 2
+    # 원 질의 1회 + 하위 질의 2회. 디버그 조회는 원 질의 기록만 보고 1번 묶어 부른다.
+    assert harness.qdrant.query_calls == 3 and harness.qdrant.batch_calls == 1
+    assert not any(w.startswith("rrf_mismatch") for w in resp.warnings)
+    assert [r.chunk_id for r in resp.candidates[:5]] == _IDS
+    # intent + planner + rerank + followups + stream
+    assert resp.totals.llm_calls == 5
+
+
+@pytest.mark.asyncio
+async def test_decompose_planner_failure_keeps_current_search(harness) -> None:
+    base = await harness.service.run(
+        RagTraceRequest(query="참사랑이란 무엇인가요?", stop_after="search")
+    )
+    calls_before = harness.qdrant.query_calls
+    # 기본 FakeModels 는 planner 에 JSON 이 아닌 글을 돌려준다 → parse_fail.
+    resp = await harness.service.run(
+        RagTraceRequest(
+            query="참사랑이란 무엇인가요?", stop_after="search", overrides={"decompose": True}
+        )
+    )
+
+    c2 = resp.experiment["c2"]
+    assert c2["fallback"] is True and c2["planner_status"] == "parse_fail"
+    assert "decompose_candidates_approx" not in resp.warnings
+    assert harness.qdrant.query_calls - calls_before == 1  # 원 질의 검색 1회뿐
+    assert [r.chunk_id for r in resp.candidates] == [r.chunk_id for r in base.candidates]
+
+
+@pytest.mark.asyncio
+async def test_citation_check_runs_c1_hooks_without_changing_plain_answer(harness) -> None:
+    from app.modules.chat.experiments import c1_citation
+
+    c1_citation.set_book_corpus([])  # 경전 색인을 Qdrant 에서 읽지 않게 비운다
+    try:
+        resp = await harness.service.run(
+            RagTraceRequest(query="참사랑이란 무엇인가요?", overrides=TraceOverrides(citation_check=True))
+        )
+    finally:
+        c1_citation.set_book_loader(None)
+
+    c1 = resp.experiment["c1"]
+    # 봇 source 가 A 뿐이라 구절 조회는 타지 않고, τ 자리표시(0.0)라 거절도 없다.
+    assert c1["lookup"]["routed"] is False
+    assert c1["lookup"]["reason"] == "no_scripture_source"
+    assert c1["refusal"]["refused"] is False
+    assert c1["gate"]["checked"] is True and c1["gate"]["items"] == []
+    assert resp.generation is not None
+    assert resp.generation.answer.startswith("참사랑은 하나님의 사랑입니다.")
+    assert resp.generation.attempts == []

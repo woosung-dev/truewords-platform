@@ -39,6 +39,12 @@ class TraceOverrides(BaseModel):
     rerank_enabled: bool | None = None
     query_rewrite_enabled: bool | None = None
     intent: Intent | None = None
+    # 답변 뒤 병렬 후처리(추천 질문·마무리 문구·말씀 카드)를 건너뛴다. LLM 호출 3회를 아끼는 평가용.
+    skip_postprocess: bool = False
+    # 도입 전 검증 실험(기본 꺼짐). 운영 /chat 에는 없는 경로다.
+    citation_check: bool = False  # C1: 구절 조회 + 사후 인용 게이트 + 근거 부족 거절
+    decompose: bool = False  # C2: 질의 분해 → 병렬 검색 → 앱 수준 RRF
+    wiki_first: bool = False  # C3: 용어 카드를 근거 앞에 넣는다
 
 
 class RagTraceRequest(BaseModel):
@@ -142,6 +148,10 @@ class GenerationTrace(BaseModel):
     context_prompt: str
     history_window: list[TraceTurn] = Field(default_factory=list)
     answer: str
+    # 생성에 실제로 넣은 근거 순서("volume:chunk_index", 용어 카드는 "card:<slug>"). 답변 인용 대응용.
+    context_keys: list[str] = Field(default_factory=list)
+    # 재생성 등으로 여러 번 답했을 때 시도별 답변·판정. 한 번이면 비어 있다.
+    attempts: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class TraceTotals(BaseModel):
@@ -166,3 +176,5 @@ class RagTraceResponse(BaseModel):
     totals: TraceTotals
     warnings: list[str] = Field(default_factory=list)
     partial: bool = False
+    # 실험 경로가 남긴 판정 기록(라우팅·게이트·하위 질의·카드). 실험을 끄면 비어 있다.
+    experiment: dict[str, Any] = Field(default_factory=dict)
