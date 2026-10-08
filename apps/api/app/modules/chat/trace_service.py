@@ -684,9 +684,12 @@ class RagTraceService:
                     span.status = "skipped"
         if req.overrides.citation_check:
             async with trace_span("passage_lookup"):
-                sources = [w.source for w in ctx.runtime_config.search.weighted_sources] if (
-                    ctx.runtime_config and ctx.runtime_config.search.weighted_sources
-                ) else []
+                # cascading 봇은 tiers, weighted 봇은 weighted_sources 에 source 가 있다.
+                search_cfg = ctx.runtime_config.search if ctx.runtime_config else None
+                sources = [
+                    *(s for t in (search_cfg.tiers if search_cfg else []) for s in t.sources),
+                    *(w.source for w in (search_cfg.weighted_sources if search_cfg else [])),
+                ]
                 ctx.results, lookup = await c1_citation.passage_lookup(
                     ctx.request.query, list(ctx.results), sources=sources
                 )

@@ -636,3 +636,26 @@ async def test_skip_postprocess_drops_only_postprocess(harness) -> None:
     assert "postprocess_skipped" in resp.warnings
     assert resp.generation is not None and base.generation is not None
     assert resp.generation.context_prompt == base.generation.context_prompt
+
+
+@pytest.mark.asyncio
+async def test_citation_check_runs_c1_hooks_without_changing_plain_answer(harness) -> None:
+    from app.modules.chat.experiments import c1_citation
+
+    c1_citation.set_book_corpus([])  # 경전 색인을 Qdrant 에서 읽지 않게 비운다
+    try:
+        resp = await harness.service.run(
+            RagTraceRequest(query="참사랑이란 무엇인가요?", overrides=TraceOverrides(citation_check=True))
+        )
+    finally:
+        c1_citation.set_book_loader(None)
+
+    c1 = resp.experiment["c1"]
+    # 봇 source 가 A 뿐이라 구절 조회는 타지 않고, τ 자리표시(0.0)라 거절도 없다.
+    assert c1["lookup"]["routed"] is False
+    assert c1["lookup"]["reason"] == "no_scripture_source"
+    assert c1["refusal"]["refused"] is False
+    assert c1["gate"]["checked"] is True and c1["gate"]["items"] == []
+    assert resp.generation is not None
+    assert resp.generation.answer.startswith("참사랑은 하나님의 사랑입니다.")
+    assert resp.generation.attempts == []
