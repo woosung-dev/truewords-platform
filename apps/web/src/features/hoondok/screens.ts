@@ -88,6 +88,15 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
   { match: "/hoondok/c/", title: "오늘의 책갈피", tabId: "today", variant: "app" },
   { match: "/hoondok/bookmarks", title: "나의 책갈피", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
   { match: "/hoondok/garden", title: "나의 정원", tabId: "garden", variant: "app" },
+  // 맞춤 말씀 (기본값 9·10). 둘 다 나의 정원에서 들어오고 본문은 설정형 560 (personal.css `.ps-form`)
+  {
+    match: "/hoondok/garden/interests",
+    title: "관심사와 마음",
+    backHref: "/hoondok/garden",
+    tabId: "garden",
+    variant: "app",
+  },
+  { match: "/hoondok/pray", title: "마음 한 장", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
   // 나의 기록 (C1). 기기 기록도 정원에서 들어오므로 뒤로는 정원이다
   { match: "/hoondok/records", title: "나의 기록", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
   {

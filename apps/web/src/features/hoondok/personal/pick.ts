@@ -127,6 +127,15 @@ export function buildReason(scored: Pick<CardScore, "interests" | "moods"> | nul
   return `${quotedList(names)} 고르셔서 ${tail}`;
 }
 
+/** 홈 책갈피 카드 아래 한 줄. 이름은 두 개까지만 인용하고, 겹친 이름이 없으면(위기 선택지만 겹침) 이름 없이 말한다. */
+export function homeReason(scored: Pick<CardScore, "interests" | "moods"> | null): string {
+  if (!scored) return FALLBACK_REASON;
+  const moods = scored.moods.filter((o) => o.id !== CRISIS_MOOD_ID);
+  const names = [...scored.interests.map((o) => o.label), ...moods.map((o) => o.label)].slice(0, 2);
+  if (names.length > 0) return `${quotedList(names)} 고르셔서 꽂아 둔 장이에요`;
+  return scored.moods.length > 0 ? "고르신 마음에 맞춰 꽂아 둔 장이에요" : FALLBACK_REASON;
+}
+
 /** 첫 말씀 제목. 계정 이름이 있으면 부르고, 없으면 대체 호칭 없이 "오늘의 첫 말씀". */
 export function firstWordTitle(displayName: string | null | undefined): string {
   const name = displayName?.trim();
