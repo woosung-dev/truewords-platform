@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>훈독 넷째 탭 와이어프레임</title>
+<style>
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#f2f2f2;color:#222;font:16px/1.55 system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;word-break:keep-all;overflow-wrap:anywhere}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+h1{font-size:24px;line-height:1.3;margin:8px 0 4px}
+h2{font-size:20px;line-height:1.35;margin:40px 0 8px;padding-top:16px;border-top:3px solid #aaa}
+h3{font-size:17px;margin:16px 0 6px}
+p{margin:6px 0}
+.note{font-size:13px;line-height:1.45;color:#6b6b6b;margin:4px 0}
+.box{background:#fff;border:1px solid #ccc;border-radius:8px;padding:12px;margin:8px 0}
+.lead{background:#fff;border:2px solid #555;border-radius:10px;padding:14px;margin:12px 0}
+.lead b{font-size:18px}
+.gate{background:#e9e9e9;border-left:6px solid #555;border-radius:4px;padding:10px 12px;margin:10px 0}
+.warn{background:#f6f6f6;border:1px dashed #888;border-radius:6px;padding:8px 10px;margin:8px 0}
+ul,ol{margin:6px 0;padding-left:22px}
+li{margin:4px 0}
+.row{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.row>div{min-width:0;max-width:100%}
+pre{margin:0;white-space:pre-wrap;word-break:break-all;font:15px/1.6 ui-monospace,Menlo,monospace}
+.cap{font-weight:700;margin:0 0 6px;max-width:360px}
+.badge{display:inline-block;font-size:13px;font-weight:700;padding:1px 8px;border-radius:10px;background:#555;color:#fff;vertical-align:middle}
+.badge.l{background:#bbb;color:#222}
+
+/* 표: 넓으면 표, 좁으면 카드 */
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #bbb;margin:8px 0}
+th,td{border:1px solid #ccc;padding:8px;text-align:left;vertical-align:top}
+th{background:#e4e4e4}
+td.k{font-weight:700;background:#f4f4f4}
+@media (max-width:720px){
+  table,tbody,tr,td{display:block;width:100%}
+  thead{display:none}
+  table{border:0;background:transparent}
+  tr{background:#fff;border:1px solid #bbb;border-radius:8px;margin:0 0 10px;padding:4px 0}
+  td{border:0;border-bottom:1px solid #eee;padding:6px 10px}
+  td:last-child{border-bottom:0}
+  td::before{content:attr(data-l);display:block;font-size:13px;color:#6b6b6b;font-weight:400}
+}
+
+/* 탭바 */
+.tb{display:flex;align-items:flex-end;background:#fff;border:1px solid #bbb;border-radius:8px;padding:6px 2px 4px;width:360px;max-width:100%}
+.tb>div{flex:1 1 0;min-width:0;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;font-size:16px;color:#555;text-align:center;line-height:1.15;padding:2px 1px}
+.tb .ic{width:22px;height:22px;background:#c8c8c8;border-radius:5px;margin-bottom:3px;flex:none}
+.tb .on{color:#c24721;font-weight:700}
+.tb .on .ic{background:#c24721}
+.tb .bub{margin-top:-22px}
+.tb .bub .ic{width:44px;height:44px;border-radius:50%;background:#8f8f8f}
+.tb .bub.on .ic{background:#c24721}
+.tb .lock{color:#999;border:1px dashed #aaa;border-radius:6px}
+.tb .lock .ic{background:#e6e6e6}
+.tb small{font-size:13px;display:block}
+
+/* 폰 */
+.phone{width:360px;max-width:100%;background:#fff;border:2px solid #888;border-radius:24px;overflow:hidden;display:flex;flex-direction:column}
+.phone .tb{border:0;border-top:1px solid #bbb;border-radius:0;width:auto;padding-top:12px}
+.scr{padding:12px;display:flex;flex-direction:column;gap:10px;background:#fafafa;min-height:400px;flex:1}
+.scr.s{min-height:0}
+.hd{display:flex;justify-content:space-between;align-items:center;gap:6px;min-height:44px;font-weight:700}
+.hd .ics{display:flex;gap:4px}
+.hd .i{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:#e6e6e6;border-radius:8px;font-size:13px;font-weight:400;color:#555}
+.card{background:#fff;border:1px solid #bbb;border-radius:10px;padding:10px}
+.card.dash{border-style:dashed;background:#f5f5f5}
+.card.big{border-width:2px;border-color:#777}
+.img{background:#d6d6d6;color:#888;display:flex;align-items:center;justify-content:center;border-radius:6px;height:72px;font-size:13px;letter-spacing:2px;margin-bottom:6px}
+.btn{display:flex;align-items:center;justify-content:center;min-height:44px;padding:4px 12px;border:1px solid #888;border-radius:8px;background:#eee;color:#333;font-size:16px;text-align:center}
+.btn.p{background:#444;color:#fff;border-color:#444;font-weight:700}
+.btn.d{border-style:dashed;color:#888;background:#f5f5f5}
+.lnk{display:flex;align-items:center;min-height:44px;color:#333;text-decoration:underline;font-size:16px}
+.btns{display:flex;gap:8px;margin-top:8px}
+.btns .btn{flex:1}
+.src{font-size:16px;color:#666;margin:2px 0 4px}
+.line{font-size:16px;color:#333;background:#efefef;border-radius:6px;padding:6px 8px;margin:6px 0}
+.body{font-size:16px;line-height:1.75;background:#f3f3f3;border-radius:6px;padding:8px;margin:6px 0}
+.hl{background:#d4d4d4;padding:0 2px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.kebab{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#eee;font-size:16px}
+.sheet{background:#fff;border-top:2px solid #777;border-radius:16px 16px 0 0;padding:14px 12px;margin:0 -12px -12px}
+.dim{background:#cfcfcf;border-radius:8px;height:160px;display:flex;align-items:center;justify-content:center;color:#777;font-size:13px}
+.steps{margin:4px 0;padding-left:22px}
+.toast{background:#555;color:#fff;border-radius:8px;padding:8px 10px;font-size:16px;text-align:center}
+.chk td:nth-child(n+2){text-align:center}
+@media (max-width:720px){
+  .chk td:nth-child(n+2){text-align:left}
+  .chk tr,.ann tr{display:grid;grid-template-columns:1fr 1fr}
+  .chk td,.ann td{border-bottom:0}
+  .chk td.k,.ann td.k,.ann td:nth-child(2){grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- 1) 제목·결론 -->
+<h1>훈독 넷째 탭 와이어프레임</h1>
+<p class="note">작성일 2026-10-22 · 결정용 저충실도 와이어프레임 · 회색, 감귤색은 활성 탭에만</p>
+<div class="lead">
+<p><b>지금 권고: 탭은 그대로 두고, 편성 없는 날 홈을 채운다.</b></p>
+<p>넷째 칸 '5분 설교 · 준비 중'은 결정이 날 때까지 잠근 채 둔다. 지금 실제로 막힌 곳은 편성이 9/27에 바닥나 비어 있는 '오늘 훈독'이다.</p>
+<p>탭을 바꾸는 길은 세 갈래다. 4탭, 넷째 = 가정예배, 협회 공급 경로. 각각 사용자 결정과 협회 답이 먼저다.</p>
+<p class="note">근거: 리서치 최종 판정(재판정 반영), 검증 통과 수정판 4건, 설계안 5개(D1~D5)와 판정 3인 합계 D1 24 · D3 17 · D4 17 · D5 15 · D2 14.</p>
+</div>
+
+<!-- 2) 공급 조건별 결론 -->
+<h2>1. 공급 조건별 결론</h2>
+<p>공급은 협회가 앱에 무엇을 주느냐다. 지금은 C다.</p>
+<table>
+<thead><tr><th>공급</th><th>뜻</th><th>탭 결론</th><th>홈 결론</th></tr></thead>
+<tbody>
+<tr><td class="k" data-l="공급">A</td><td data-l="뜻">협회가 권리 포함 주 1편 이상을 서면으로 확정</td><td data-l="탭 결론">5탭 유지. 4탭은 탈락. 홈 카드 1장 → 앱 안 실공급 4주 연속 + 담당자 지정 → 넷째 탭 켜기 재검토(선택지 4)</td><td data-l="홈 결론">공식 편성이 첫 카드. 기본 훈독 순서는 편성 있는 날 멈춘다</td></tr>
+<tr><td class="k" data-l="공급">B</td><td data-l="뜻">기존 아카이브만 있음(가정예배 영상 매주 1편, 권리 서면 없음)</td><td data-l="탭 결론">C와 같다. 탭·임베드·자동 재생에 쓰지 않는다</td><td data-l="홈 결론">정성 카드 안 외부 링크 한 줄까지만 [가정]. 끊기면 그 줄만 빠진다</td></tr>
+<tr><td class="k" data-l="공급">C · 지금</td><td data-l="뜻">공급 없음. 편성 9/27 소진, 보충 책임자 미정</td><td data-l="탭 결론">넷째 탭을 채울 후보 0건. 고를 수 있는 것은 5탭 유지(기본값) 또는 4탭(선택지 2)</td><td data-l="홈 결론">빈 날 채우기가 지금 할 일. 기본 훈독 순서(C075b) 권장</td></tr>
+</tbody>
+</table>
+
+<!-- 3) 결정 묶음 -->
+<h2>2. 결정 묶음</h2>
+<p>결정이 하나도 없으면 오른쪽 끝 열대로 간다. 모두 현행 유지다.</p>
+<table>
+<thead><tr><th>결정</th><th>고를 수 있는 것</th><th>정하면 열리는 것</th><th>결정 없을 때 기본값</th></tr></thead>
+<tbody>
+<tr><td class="k" data-l="결정">① 빈 날 채우기</td><td data-l="고를 수 있는 것">꺼짐 / 기본 훈독 순서(C075b) / 바닥 편성(C038b). 둘 동시 도입 불가</td><td data-l="정하면 열리는 것">'오늘 훈독' 빈 날 종료. 가정예배 말씀 칸 성립</td><td data-l="기본값">꺼짐. '오늘 편성된 말씀이 없어요' 카드</td></tr>
+<tr><td class="k" data-l="결정">② 기본 순서 날 연속 N일</td><td data-l="고를 수 있는 것">건너뜀 유지 / 편성일로 셈(권하지 않음)</td><td data-l="정하면 열리는 것">회귀 테스트 기준 확정</td><td data-l="기본값">건너뜀. 읽으면 +1, 안 읽어도 안 끊김</td></tr>
+<tr><td class="k" data-l="결정">③ 편성 보충 책임자</td><td data-l="고를 수 있는 것">이름·주당 시간 지정 / 미지정</td><td data-l="정하면 열리는 것">공급 C 종료 판단 기준</td><td data-l="기본값">미지정 = 공급 C</td></tr>
+<tr><td class="k" data-l="결정">④ 탭 수·자리 (DEC-PWA-015)</td><td data-l="고를 수 있는 것">5탭 유지 / 4탭(평평 또는 버블) / 5탭 + 넷째 라벨 '가정예배'</td><td data-l="정하면 열리는 것">선택지 2 또는 3 착수. 레포 규칙(apps/web AGENTS.md) 예외 필요</td><td data-l="기본값">5탭 · 넷째 잠금</td></tr>
+<tr><td class="k" data-l="결정">⑤ 협회 질의 1</td><td data-l="고를 수 있는 것">6개월 안 권리 포함 주간 공급 계획: 있음 / 없음</td><td data-l="정하면 열리는 것">있음 → 선택지 4, 4탭 탈락. 없음 → 4탭 열림</td><td data-l="기본값">답 없음 = 현행 유지</td></tr>
+<tr><td class="k" data-l="결정">⑥ 협회 질의 2</td><td data-l="고를 수 있는 것">순서지 편성 주체 (DEC-PWA-020), 비공식 안내 노출, '가정예배' 명칭 사용</td><td data-l="정하면 열리는 것">가능 → 선택지 3 재판정</td><td data-l="기본값">답 없음 = 넷째 라벨 그대로</td></tr>
+<tr><td class="k" data-l="결정">⑦ 다시 만나는 말씀(C034b) 출시</td><td data-l="고를 수 있는 것">운영 DB 읽기 전용 집계 1회 + 익명 일별 카운터 승인 / 미승인</td><td data-l="정하면 열리는 것">형광펜 보유율 10% 이상이면 정원 카드 출시</td><td data-l="기본값">미출시</td></tr>
+<tr><td class="k" data-l="결정">⑧ 9/26 '듣기 바 제거'의 범위</td><td data-l="고를 수 있는 것">AI 음성만 제한 / 오늘 범위를 소리로 듣는 자리 자체 제한</td><td data-l="정하면 열리는 것">앞쪽이면 카드·순서지에 듣기 버튼 가능</td><td data-l="기본값">제한으로 간주. 듣기는 원문 뷰 '이 단락부터 듣기'만</td></tr>
+<tr><td class="k" data-l="결정">⑨ 편성 없는 날 알림</td><td data-l="고를 수 있는 것">보내지 않음 / 기본 순서 날도 보냄 / 책갈피만 있어도 보냄</td><td data-l="정하면 열리는 것">기본 순서와 알림 연동</td><td data-l="기본값">보내지 않음(현행)</td></tr>
+<tr><td class="k" data-l="결정">⑩ 잠금 칸을 눌렀을 때</td><td data-l="고를 수 있는 것">반응 없음(현행) / '준비 중이에요' 짧은 안내</td><td data-l="정하면 열리는 것">눌러도 아무 일 없는 칸 문제 완화</td><td data-l="기본값">반응 없음</td></tr>
+</tbody>
+</table>
+<p class="note">이 밖의 결정(기도하기 카드 활성화, 미검증 후보 검증 실행, 판정 잣대 2건)은 리서치 결정 묶음에 있고 이 화면에는 영향이 없다.</p>
+
+<!-- 4) 선택지 1 -->
+<h2>3. 선택지 1 · 지금 기본값 + 홈 보강 <span class="badge">권고</span></h2>
+<div class="gate">탭은 바꾸지 않는다(tabs.ts·app-shell.tsx 무수정). 바뀌는 곳은 '오늘 훈독' 첫 카드와 '나의 정원' 카드 한 장뿐이다. 협회 답이 없어도 할 수 있다.</div>
+<div class="box">
+<b>켜기 전 필수 조건</b>
+<ol>
+<li>도입 전후 연속 N일(streak_days)이 같은지 보는 회귀 테스트를 먼저 쓴다.</li>
+<li>홈 첫 카드 배치 승인(홈 소관 결정).</li>
+<li>운영자 1명이 순서·시작일을 한 번 승인한다. 천성경은 빼고 시작한다.</li>
+</ol>
+<p><b>빈 날 채우기 두 방식 비교</b></p>
+<table>
+<thead><tr><th>방식</th><th>사람</th><th>준비</th><th>이후 운영</th></tr></thead>
+<tbody>
+<tr><td class="k" data-l="방식">기본 훈독 순서 (C075b)</td><td data-l="사람">운영자 1명</td><td data-l="준비">순서·시작일 1회 승인</td><td data-l="이후 운영">주 0시간. 서버가 계산</td></tr>
+<tr><td class="k" data-l="방식">바닥 편성 (C038b)</td><td data-l="사람">책임자 3명(승인·연간 복사·철회 전파)</td><td data-l="준비">366행 승인, 파일럿 환산 20시간 이하, 스키마 변경, 통과 단락 366개 이상 실측</td><td data-l="이후 운영">해마다 복사·철회 대응</td></tr>
+</tbody>
+</table>
+<p class="note">두 권(원리강론·평화경) 균등 분할 854~863호 = 매일 읽어 약 2.3년. 다 돈 뒤 처음으로 돌아갈지는 [확인 필요].</p>
+</div>
+
+<h3>정보구조 지도</h3>
+<div class="box"><pre>하단 5탭 (변경 없음)
+├ 오늘 훈독 (홈)
+│  ├ 첫 카드
+│  │  ├ 편성 있음 → 공식 편성
+│  │  ├ 없음 + 켜짐 → 기본 순서 ★
+│  │  └ 없음 + 꺼짐 → 빈 상태
+│  ├ 이어 읽기 · 오늘의 책갈피
+│  └ 함께 읽기(조건부) · 기도(잠금)
+├ AI 질문
+├ 말씀 (가운데 돌출) → 서고 615권
+├ 5분 설교 (잠금 · 준비 중)
+└ 나의 정원
+   ├ 다시 만나는 말씀 1장 ★ → 원문 뷰
+   └ 나의 기록 · 정성 연속 N일 · 알림
+전체 메뉴: '준비 중' 3항목 그대로</pre>
+<p class="note">★ 두 곳만 새로 생긴다. 둘 다 사용자 결정 뒤 구현.</p></div>
+
+<h3>탭바</h3>
+<div class="tb"><div class="on"><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="lock"><span class="ic"></span>5분 설교<small>준비 중</small></div><div><span class="ic"></span>나의 정원</div></div>
+<p class="note">현행과 같다. 넷째 칸은 눌러도 이동하지 않는다(결정 ⑩).</p>
+
+<h3>폰 화면</h3>
+<div class="row">
+
+<div><p class="cap">① 홈 · 편성 없음 · 꺼짐 (지금)</p>
+<div class="phone"><div class="scr">
+<div class="hd">훈독<span class="ics"><span class="i">검색</span><span class="i">알림</span><span class="i">메뉴</span></span></div>
+<div class="card dash"><b>오늘 편성된 말씀이 없어요</b><p class="src">서고에서 읽을 말씀을 고를 수 있어요</p><div class="btn">말씀 서고 열기</div></div>
+<div class="card"><b>이어 읽기</b><p class="src">원리강론 제3장 · 지난번 읽던 곳</p><div class="btn">이어 읽기</div></div>
+<div class="card"><b>오늘의 책갈피</b><p class="src">말씀 한 구절 카드</p></div>
+<div class="card dash">함께 읽는 사람들 · 오늘 범위 없음</div>
+<p class="note">편성 없는 날은 알림을 보내지 않는다(현행).</p>
+</div>
+<div class="tb"><div class="on"><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="lock"><span class="ic"></span>5분 설교<small>준비 중</small></div><div><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+<div><p class="cap">② 홈 · 편성 없음 · 기본 훈독 순서 켜짐</p>
+<div class="phone"><div class="scr">
+<div class="hd">훈독<span class="ics"><span class="i">검색</span><span class="i">알림</span><span class="i">메뉴</span></span></div>
+<div class="card big"><div class="img">IMG</div>
+<div class="line">오늘은 편성이 없어 앱이 정한 순서로 이어 읽어요. 공식 편성이 아니에요.</div>
+<b>원리강론 23호 · 제3장 인류 역사 종말론</b>
+<p class="src">약 9분 · 순서: 기본 훈독 순서</p>
+<div class="btn p" style="margin-top:8px">읽기</div></div>
+<div class="card"><b>이어 읽기</b><p class="src">평화경 제2편 · 지난번 읽던 곳</p><div class="btn">이어 읽기</div></div>
+<div class="card"><b>오늘의 책갈피</b><p class="src">말씀 한 구절 카드</p></div>
+<p class="note">홈 카드에는 듣기 버튼을 두지 않는다(결정 ⑧ 전). 듣기는 원문 뷰에서.</p>
+</div>
+<div class="tb"><div class="on"><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="lock"><span class="ic"></span>5분 설교<small>준비 중</small></div><div><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+<div><p class="cap">③ 기본 훈독 순서 원문 뷰</p>
+<div class="phone"><div class="scr">
+<div class="hd"><span class="i">뒤로</span>원리강론<span class="i">Aa</span></div>
+<div class="line">순서: 기본 훈독 순서 · 공식 편성 아님</div>
+<div class="body">원문 단락이 이어집니다. <span class="hl">구절을 고르면 형광펜</span>을 칠할 수 있습니다. 원문 단락이 이어집니다. 원문 단락이 이어집니다.</div>
+<div class="btns"><div class="btn">이 단락부터 듣기</div><div class="btn">질문</div></div>
+<div class="btn p">읽었어요</div>
+<p class="note">읽었어요: 연속 +1. 안 읽어도 연속은 끊기지 않는다. 호 총수·진행률·놓친 호는 보여 주지 않는다.</p>
+</div>
+<div class="tb"><div class="on"><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="lock"><span class="ic"></span>5분 설교<small>준비 중</small></div><div><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+<div><p class="cap">④ 나의 정원 · 처음 한 번 묻기</p>
+<div class="phone"><div class="scr">
+<div class="hd">나의 정원<span class="ics"><span class="i">설정</span></span></div>
+<div class="card big"><b>내가 칠한 형광펜을 여기서 다시 보여 드릴까요?</b>
+<p class="src">하루 한 구절을 원문과 함께 보여 드려요. 나만 봐요. 언제든 설정에서 끌 수 있어요.</p>
+<div class="btns"><div class="btn p">보여 주기</div><div class="btn">그만두기</div></div>
+<p class="note">답하기 전에는 꺼짐. 형광펜이 하나도 없으면 이 질문도 나오지 않는다.</p></div>
+<div class="card"><b>나의 기록</b><p class="src">형광펜 · 메모</p></div>
+<div class="card"><b>정성</b><p class="src">연속 12일</p></div>
+</div>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="lock"><span class="ic"></span>5분 설교<small>준비 중</small></div><div class="on"><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+<div><p class="cap">⑤ 나의 정원 · 다시 만나는 말씀</p>
+<div class="phone"><div class="scr">
+<div class="hd">나의 정원<span class="ics"><span class="i">설정</span></span></div>
+<div class="card big"><div class="top"><b>다시 만나는 말씀</b><span class="kebab">⋯</span></div>
+<p class="body" style="margin:8px 0 4px"><span class="hl">내가 칠해 둔 구절 한 줄이 여기에 보입니다.</span></p>
+<p class="src">원리강론 제1장 · 14일 전</p>
+<div class="btn p">원문에서 이어 읽기</div>
+<p class="note">'⋯' 안에만: 카드 끄기, 이 형광펜 지우기. 카드 겉에는 지우기 버튼을 두지 않는다.</p></div>
+<div class="card"><b>나의 기록</b><p class="src">형광펜 · 메모</p></div>
+<div class="card"><b>정성</b><p class="src">연속 12일</p></div>
+</div>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="lock"><span class="ic"></span>5분 설교<small>준비 중</small></div><div class="on"><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+<div><p class="cap">⑥ 지우기 확인 시트</p>
+<div class="phone"><div class="scr">
+<div class="hd">나의 정원<span class="ics"><span class="i">설정</span></span></div>
+<div class="dim">뒤 화면 흐리게</div>
+<div style="flex:1"></div>
+<div class="sheet">
+<b>이 형광펜을 지울까요?</b>
+<p class="src">나의 기록에서도 사라지고 되돌릴 수 없어요. 다시 보기만 싫다면 '카드 끄기'를 고르세요.</p>
+<div class="btn" style="margin-top:8px">카드 끄기</div>
+<div class="btns"><div class="btn p">취소</div><div class="btn">지우기</div></div>
+</div>
+</div>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="lock"><span class="ic"></span>5분 설교<small>준비 중</small></div><div class="on"><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+</div>
+<div class="box">
+<b>공급 C에서의 빈 상태</b>
+<ul>
+<li>꺼짐: 화면 ①. 빈 카드 하나 + 이어 읽기 + 책갈피. 정원 카드 없음.</li>
+<li>켜짐: 화면 ②. 첫 카드가 채워진다. 정원 카드는 형광펜이 없거나 읽기 권리가 닫히면 통째로 숨긴다. 빈 카드는 그리지 않는다.</li>
+</ul>
+<p class="note">남는 한계: 넷째 칸 잠금은 그대로라 '눌러도 안 되는 칸' 문제는 이 선택지로 풀리지 않는다. 판정자 1명은 기본 훈독 순서를 탈락으로 봤다(일요일 쉼 조건 해석). 그 해석을 따르면 빈 날 채우기는 바닥 편성만 남는다.</p>
+</div>
+
+<!-- 5) 선택지 2 -->
+<h2>4. 선택지 2 · 4탭 (평평한 탭바)</h2>
+<div class="gate">협회 질의 1 답이 '공급 계획 있음'이면 이 선택지는 탈락한다. 답을 받기 전에는 착수하지 않는다. 나중에 공급이 오면 '나의 정원'이 5번째 → 4번째 → 5번째로 두 번 옮긴다.</div>
+<div class="box">
+<b>여는 데 필요한 것</b>
+<ul>
+<li>탭 수 변경 결정(DEC-PWA-015)과 레포 규칙 예외(apps/web AGENTS.md: tabs.ts·app-shell.tsx 불변).</li>
+<li>가운데 돌출 말씀 버블을 없앤다는 원칙 개정(디자인 시스템 §2.8 '앱의 중심이 말씀').</li>
+<li>협회 질의 1 '없음'.</li>
+<li>빈 날 채우기(결정 ①)를 함께 정한다. 4탭만으로는 '오늘 훈독' 빈 날이 그대로다.</li>
+</ul>
+<p><b>한 번에 끝낼 범위(출시 뒤 남는 모순 0)</b>: 탭 정의와 주석('하단 5탭 = 상단 헤더 4'), 탭바 열 수(5 → 4), 전체 메뉴 '준비 중' 3항목, 옛 주소 착지. 한 PR로 묶는다.</p>
+</div>
+
+<h3>탭바 비교 · 평평한 4탭을 고른 이유</h3>
+<p class="cap">고른 안: 평평한 4칸 (D3)</p>
+<div class="tb"><div class="on"><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div><span class="ic"></span>말씀</div><div><span class="ic"></span>나의 정원</div></div>
+<p class="note">잠금 칸 0, 돌출 0, 칸 폭 균등(약 89px). 판정 3인 모두 버블 유지안보다 낫다고 봤다.</p>
+<p class="cap" style="margin-top:12px">비교: 버블 유지 4칸 (D2)</p>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div><span class="ic"></span>나의 정원</div></div>
+<p class="note">버블이 정중앙이 아니라 오른쪽으로 쏠린다(62.5% 지점). 엄지 기준점과 §2.8 원칙이 어긋나 권하지 않는다.</p>
+
+<h3>정보구조 지도</h3>
+<div class="box"><pre>운영 하단 4탭
+├ 오늘 훈독 (홈)
+│  첫 카드 · 이어 읽기 · 책갈피 · 모임
+├ AI 질문
+├ 말씀 (평평한 칸) → 서고 615권
+└ 나의 정원 (5번째 → 4번째)
+옛 넷째 탭 주소 → 착지 화면
+  또는 홈 자동 이동 [확인 필요]
+전체 메뉴: 4묶음
+  '준비 중' 3항목은 숨김·유지 택일
+프리뷰 빌드: 5탭 그대로</pre></div>
+
+<h3>폰 화면</h3>
+<div class="row">
+
+<div><p class="cap">① 홈 · 4탭 (공급 C, 빈 날 채우기 켜짐)</p>
+<div class="phone"><div class="scr">
+<div class="hd">훈독<span class="ics"><span class="i">검색</span><span class="i">알림</span><span class="i">메뉴</span></span></div>
+<div class="card big"><div class="img">IMG</div><div class="line">오늘은 편성이 없어 앱이 정한 순서로 이어 읽어요.</div><b>원리강론 23호</b><div class="btn p" style="margin-top:8px">읽기</div></div>
+<div class="card big"><b>말씀 서고</b><p class="src">이어 읽기 · 원리강론 제3장</p><div class="btns"><div class="btn">이어 읽기</div><div class="btn">서고 열기</div></div></div>
+<div class="card"><b>오늘의 책갈피</b></div>
+<p class="note">버블이 없어진 만큼 서고로 가는 큰 입구를 홈에 둔다. 빈 날 채우기가 꺼져 있으면 첫 카드는 선택지 1의 화면 ①과 같다.</p>
+</div>
+<div class="tb"><div class="on"><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div><span class="ic"></span>말씀</div><div><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+<div><p class="cap">② 옛 넷째 탭 주소로 들어온 경우</p>
+<div class="phone"><div class="scr">
+<div class="hd"><span class="i">뒤로</span>훈독<span class="i">메뉴</span></div>
+<div style="flex:1"></div>
+<div class="card big" style="text-align:center"><b>이 화면은 없어졌어요</b><p class="src">오늘 읽을 말씀은 첫 화면에 있어요.</p><div class="btn p" style="margin-top:8px">오늘 훈독으로</div></div>
+<div style="flex:1"></div>
+<p class="note">숫자 '404'와 '준비 중' 문구를 쓰지 않는다. 버튼은 하나. 홈 자동 이동으로 대신할지는 [확인 필요].</p>
+</div>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div><span class="ic"></span>말씀</div><div><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+<div><p class="cap">③ 전체 메뉴 · '준비 중' 3항목 두 갈래</p>
+<div class="phone"><div class="scr">
+<div class="hd">메뉴<span class="i">닫기</span></div>
+<div class="card"><b>오늘 훈독</b><p class="src">훈독하기 · 오늘의 책갈피 · 모임</p></div>
+<div class="card"><b>AI 질문</b><p class="src">질문 기록</p></div>
+<div class="card"><b>말씀</b><p class="src">말씀 검색 · 서고</p></div>
+<div class="card"><b>나의 정원</b><p class="src">나의 기록 · 알림 · 설치</p></div>
+<div class="card dash"><b>갈래 가: 숨김</b><p class="src">위 4묶음만 보인다</p></div>
+<div class="card dash"><b>갈래 나: 규칙대로 유지</b><p class="src">메뉴에만 '준비 중' 3줄 남김</p></div>
+<p class="note">9/29 메뉴 규칙('꺼진 화면은 숨기지 않고 준비 중')과 '준비 중 0개' 목표가 부딪친다. 한 갈래로 정한다.</p>
+</div>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div><span class="ic"></span>말씀</div><div><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+</div>
+
+<!-- 6) 선택지 3 -->
+<h2>5. 선택지 3 · 5탭 · 넷째 = 가정예배 (조건부)</h2>
+<div class="gate">세 가지가 모두 열리기 전에는 켜지 않는다. 그동안 넷째 칸은 지금처럼 잠금이다.
+<ol>
+<li>빈 날 채우기 켜짐(말씀 칸이 비지 않게)</li>
+<li>협회 질의 2: '가정예배' 명칭과 비공식 순서지 노출 허용</li>
+<li>가정예배 안(B3) 검증 통과</li>
+</ol>
+라벨은 그때 한 번만 바꾼다. 9/29에 '가정예배 → 5분 설교'로 바꾼 것을 되돌리는 다섯 번째 변경이다.</div>
+
+<h3>탭바</h3>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="on"><span class="ic"></span>가정예배</div><div><span class="ic"></span>나의 정원</div></div>
+<p class="note">자리·id·주소(/hoondok/worship)는 그대로. 라벨·아이콘만 바뀐다.</p>
+
+<h3>정보구조 지도</h3>
+<div class="box"><pre>하단 5탭
+├ 오늘 훈독 · AI 질문 · 말씀
+│  (변경 없음)
+├ 가정예배 (라벨·아이콘만)
+│  ├ 이번 주 순서지 개요
+│  ├ 돌아가며 읽기
+│  │  (원문 뷰 재사용)
+│  └ 남는 문장 → 듣기 → 실천
+└ 나의 정원 (변경 없음)
+말씀 칸: 오늘 훈독 범위,
+  없으면 기본 훈독 순서</pre>
+<p class="note">순서 5단계 근거: 식구 목소리 14건의 공통 흐름(감사 → 돌아가며 읽기 → 마음에 남는 문장 → 판단 없이 듣기 → 실천 1개).</p></div>
+
+<h3>폰 화면</h3>
+<div class="row">
+
+<div><p class="cap">① 순서지 개요</p>
+<div class="phone"><div class="scr">
+<div class="hd">가정예배<span class="ics"><span class="i">검색</span><span class="i">알림</span><span class="i">메뉴</span></span></div>
+<div class="card big"><b>이번 주 말씀</b><p class="src">원리강론 23호 · 약 9분</p></div>
+<div class="card"><b>순서</b>
+<ol class="steps"><li>감사</li><li>돌아가며 읽기</li><li>마음에 남는 문장</li><li>판단 없이 듣기</li><li>작은 실천 1개</li></ol></div>
+<p class="src">앱이 만든 안내예요. 협회 공식 순서지는 아니에요.</p>
+<div class="btn p">순서지 시작</div>
+<p class="note">비공식 안내는 앱바 배지가 아니라 시작 버튼 위 한 줄. 앱바 [검색][알림][메뉴]는 그대로.</p>
+</div>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="on"><span class="ic"></span>가정예배</div><div><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+<div><p class="cap">② 돌아가며 읽기 · 2/5</p>
+<div class="phone"><div class="scr">
+<div class="hd"><span class="i">뒤로</span>2/5 돌아가며 읽기<span class="i">Aa</span></div>
+<div class="body" style="font-size:19px">권리 확인된 원문 한 문단을 크게 보여 줍니다. 가족이 한 문단씩 돌아가며 읽습니다.</div>
+<p class="src">다음 분이 이어 읽어 주세요.</p>
+<div class="btn d">기기 낭독으로 듣기 · 결정 ⑧ 대기</div>
+<div class="btn p">다음 문단</div>
+<div class="lnk">원문 뷰에서 이어 읽기</div>
+<p class="note">진한 버튼은 '다음 문단' 하나. 이름·읽은 사람은 저장하지 않는다. 낭독 버튼은 결정 ⑧ 전까지 점선(넣지 않음).</p>
+</div>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="on"><span class="ic"></span>가정예배</div><div><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+<div><p class="cap">③ 마음에 남는 문장 · 실천 · 5/5</p>
+<div class="phone"><div class="scr">
+<div class="hd"><span class="i">뒤로</span>5/5 마무리<span class="i">Aa</span></div>
+<div class="card"><b>마음에 남는 문장</b><p class="src">문장을 골라 형광펜으로 남길 수 있어요(기존 기능).</p></div>
+<div class="card"><b>판단 없이 듣기</b><p class="src">서로의 문장을 듣기만 해요.</p></div>
+<div class="card"><b>작은 실천 1개</b><p class="src">말로 정해요. 앱에 적지 않아요.</p></div>
+<div class="btn p">마치기</div>
+<p class="note">마치기는 연속 N일에 영향 없음. 완료 표시·기록 없음. 한 줄 나눔(모임)과 겹치는 부분은 [확인 필요].</p>
+</div>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="on"><span class="ic"></span>가정예배</div><div><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+</div>
+<div class="box"><b>공급 C에서</b>: 빈 날 채우기가 꺼져 있으면 말씀 칸이 비어 틀만 남는다. 그래서 켜지 않는다(넷째 칸 잠금 유지). 켜져 있으면 말씀 칸은 기본 훈독 순서 호로 채운다.<br><b>공급 B</b>: 가정예배 영상 외부 링크 한 줄만 [가정]. 임베드·자동 재생 없음.</div>
+
+<!-- 7) 선택지 4 -->
+<h2>6. 선택지 4 · 공급 A 경로 (협회가 주 1편을 줄 때)</h2>
+<div class="gate">협회 서면 확정 전에는 카드도 그리지 않는다. 지금(공급 C) 식구가 보는 화면은 선택지 1과 같다. 약속만으로 탭을 켜지 않는다.</div>
+<div class="box">
+<b>단계</b>
+<ol>
+<li>협회 서면 확정(권리 포함 주 1편, 6개월 이상) + 공급 담당자 지정</li>
+<li>홈 둘째 카드 '이번 주 말씀 한 편' (넷째 칸은 잠금 그대로)</li>
+<li>앱 안 실공급 4주 연속 → 넷째 탭 켜기 재검토(결정 ④)</li>
+</ol>
+<p><b>물러서는 규칙</b>: 공급이 2주 비면 홈 카드를 내린다. 탭을 켠 뒤라면 다시 잠근다. 놓친 주·미완료는 표시하지 않는다.</p>
+<p><b>라벨</b>: 영상이면 '5분 설교' 그대로(바꾸지 않음). 순서지면 선택지 3으로 간다. 새 이름은 만들지 않는다.</p>
+</div>
+<table>
+<thead><tr><th>공급물</th><th>새로 만들 것</th><th>매주 사람 일</th></tr></thead>
+<tbody>
+<tr><td class="k" data-l="공급물">설교 영상</td><td data-l="새로 만들 것">설교 API, 관리자 등록, 재생 집계, 임베드 권리 확인(4가지)</td><td data-l="매주 사람 일">수령·등록·권리 확인. 시간은 측정 전 [확인 필요]</td></tr>
+<tr><td class="k" data-l="공급물">순서지·식순</td><td data-l="새로 만들 것">선택지 3 화면(가정예배 안 검증 뒤)</td><td data-l="매주 사람 일">순서지 말씀 범위 입력. 시간은 측정 전 [확인 필요]</td></tr>
+</tbody>
+</table>
+
+<h3>탭바 (3단계에서 켜졌을 때 · 영상)</h3>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="on"><span class="ic"></span>5분 설교</div><div><span class="ic"></span>나의 정원</div></div>
+<p class="note">잠금 해제만. 라벨·자리·수는 그대로.</p>
+
+<h3>정보구조 지도</h3>
+<div class="box"><pre>2단계 (5탭, 넷째 잠금)
+└ 홈
+   ├ 첫 카드: 오늘 훈독
+   └ 둘째 카드: 이번 주 한 편
+      → 한 편 상세
+3단계 (넷째 켜짐)
+└ 5분 설교 /hoondok/worship
+   ├ 이번 주 한 편 → 한 편 상세
+   └ 지난 편 (3편 쌓이기 전에는 숨김)
+홈 둘째 카드는 탭이 켜진 뒤에도 둔다</pre></div>
+
+<h3>폰 화면</h3>
+<div class="row">
+
+<div><p class="cap">① 2단계 홈 · 첫 카드는 오늘 훈독</p>
+<div class="phone"><div class="scr">
+<div class="hd">훈독<span class="ics"><span class="i">검색</span><span class="i">알림</span><span class="i">메뉴</span></span></div>
+<div class="card big"><div class="img">IMG</div><b>오늘 훈독 · 공식 편성</b><div class="btn p" style="margin-top:8px">읽기</div></div>
+<div class="card"><b>이번 주 말씀 한 편</b><p class="src">12분 · 협회 제공</p><div class="btn">영상 보기</div></div>
+<div class="card"><b>오늘의 책갈피</b></div>
+<p class="note">첫 카드는 언제나 오늘 훈독. 주간 카드는 둘째, 작게.</p>
+</div>
+<div class="tb"><div class="on"><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="lock"><span class="ic"></span>5분 설교<small>준비 중</small></div><div><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+<div><p class="cap">② 3단계 넷째 탭 첫 화면</p>
+<div class="phone"><div class="scr">
+<div class="hd">5분 설교<span class="ics"><span class="i">검색</span><span class="i">알림</span><span class="i">메뉴</span></span></div>
+<div class="card big"><div class="img">IMG</div><b>이번 주 한 편</b><p class="src">설교 제목 · 12분</p><div class="btn p" style="margin-top:8px">영상 보기</div></div>
+<div class="card dash"><b>지난 편</b><p class="src">3편이 쌓이면 보여요(그 전에는 섹션 없음)</p></div>
+<p class="note">시청 여부·순위·인기 표시 없음. 없는 주는 빈 칸으로 보여 주지 않는다.</p>
+</div>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="on"><span class="ic"></span>5분 설교</div><div><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+<div><p class="cap">③ 한 편 상세</p>
+<div class="phone"><div class="scr">
+<div class="hd"><span class="i">뒤로</span>이번 주 한 편<span class="i">메뉴</span></div>
+<div class="img" style="height:150px">영상 자리 · 재생 준비 중</div>
+<p class="note">협회가 허락한 범위만 재생. 자동 재생 없음, 시청 정보 외부 전송 없음. 영상이 정해질 때까지 컨트롤은 꺼 둔다(9/29 규칙).</p>
+<div class="card"><b>이어 읽을 말씀</b><p class="src">평화경 제2편</p><div class="btn">원문 이어 읽기</div></div>
+<div class="btn">AI에게 묻기</div>
+<p class="note">AI 답은 공식 해설이 아니며 서버에 저장하지 않는다.</p>
+<div class="btn p">마치기</div>
+</div>
+<div class="tb"><div><span class="ic"></span>오늘 훈독</div><div><span class="ic"></span>AI 질문</div><div class="bub"><span class="ic"></span>말씀</div><div class="on"><span class="ic"></span>5분 설교</div><div><span class="ic"></span>나의 정원</div></div>
+</div></div>
+
+</div>
+
+<!-- 8) 주석 -->
+<h2>7. 화면 요소 주석 · 무엇 · 누가 채움 · 주기</h2>
+<table class="ann">
+<thead><tr><th>요소</th><th>무엇</th><th>누가 채움</th><th>주기</th></tr></thead>
+<tbody>
+<tr><td class="k" data-l="요소">오늘 훈독 카드(공식)</td><td data-l="무엇">그날 편성된 말씀</td><td data-l="누가 채움">관리자 편성(지금 9/27 소진)</td><td data-l="주기">매일</td></tr>
+<tr><td class="k" data-l="요소">기본 훈독 순서 카드</td><td data-l="무엇">원리강론·평화경 약 2,500자 한 호</td><td data-l="누가 채움">서버 계산. 운영자 1명 1회 승인</td><td data-l="주기">편성 없는 날마다 1호</td></tr>
+<tr><td class="k" data-l="요소">빈 상태 카드</td><td data-l="무엇">'오늘 편성된 말씀이 없어요' + 서고 열기</td><td data-l="누가 채움">고정 문구</td><td data-l="주기">편성 없고 꺼진 날</td></tr>
+<tr><td class="k" data-l="요소">이어 읽기</td><td data-l="무엇">지난번 읽던 권·장</td><td data-l="누가 채움">본인 읽기 위치</td><td data-l="주기">읽을 때마다</td></tr>
+<tr><td class="k" data-l="요소">오늘의 책갈피</td><td data-l="무엇">말씀 한 구절 카드(588장)</td><td data-l="누가 채움">관리자 등록, 서버가 그날 카드 계산</td><td data-l="주기">매일</td></tr>
+<tr><td class="k" data-l="요소">함께 읽는 사람들</td><td data-l="무엇">익명 숫자(10명 미만 숨김)·모임</td><td data-l="누가 채움">완료 기록 집계</td><td data-l="주기">매일</td></tr>
+<tr><td class="k" data-l="요소">다시 만나는 말씀</td><td data-l="무엇">본인 형광펜 한 구절 + 출처</td><td data-l="누가 채움">본인 형광펜(읽기 권리 있는 것만)</td><td data-l="주기">하루 1장, 최대 3장</td></tr>
+<tr><td class="k" data-l="요소">정성 연속 N일</td><td data-l="무엇">연속 읽은 날 수(순위 없음)</td><td data-l="누가 채움">서버 계산</td><td data-l="주기">읽을 때마다</td></tr>
+<tr><td class="k" data-l="요소">넷째 칸 잠금</td><td data-l="무엇">'5분 설교 · 준비 중'</td><td data-l="누가 채움">코드 고정</td><td data-l="주기">결정 전까지</td></tr>
+<tr><td class="k" data-l="요소">가정예배 순서지</td><td data-l="무엇">고정 5단계 + 이번 주 말씀 칸</td><td data-l="누가 채움">틀은 고정, 말씀 칸은 편성 또는 기본 순서</td><td data-l="주기">주 1회</td></tr>
+<tr><td class="k" data-l="요소">이번 주 말씀 한 편</td><td data-l="무엇">협회 제공 영상 또는 순서지</td><td data-l="누가 채움">협회 공급 + 앱 편성자 등록</td><td data-l="주기">주 1편</td></tr>
+<tr><td class="k" data-l="요소">관리자 편성 미리보기</td><td data-l="무엇">재고 경고 옆 다음 7호</td><td data-l="누가 채움">서버 계산(운영자용)</td><td data-l="주기">상시</td></tr>
+</tbody>
+</table>
+
+<!-- 9) 원칙 점검 -->
+<h2>8. 확정 원칙 점검표</h2>
+<p class="note">○ 지킴 · △ 조건부(아래 메모) · 해당 없음은 ○로 둔다.</p>
+<table class="chk">
+<thead><tr><th>원칙</th><th>선택지 1</th><th>선택지 2</th><th>선택지 3</th><th>선택지 4</th></tr></thead>
+<tbody>
+<tr><td class="k" data-l="원칙">순위·포인트·보상 없음</td><td data-l="선택지 1">○</td><td data-l="선택지 2">○</td><td data-l="선택지 3">○</td><td data-l="선택지 4">○ 시청 순위·인기 없음</td></tr>
+<tr><td class="k" data-l="원칙">미완료자 표시 없음</td><td data-l="선택지 1">○ 놓친 호 숨김</td><td data-l="선택지 2">○</td><td data-l="선택지 3">○ 완료 기록 없음</td><td data-l="선택지 4">○ 놓친 주 없음</td></tr>
+<tr><td class="k" data-l="원칙">교회 소속 수집 안 함</td><td data-l="선택지 1">○</td><td data-l="선택지 2">○</td><td data-l="선택지 3">○ 이름 저장 없음</td><td data-l="선택지 4">○ 교회장 행·설교 섭외 옮기지 않음</td></tr>
+<tr><td class="k" data-l="원칙">연속 N일 유지</td><td data-l="선택지 1">△ 회귀 테스트 통과가 조건</td><td data-l="선택지 2">○</td><td data-l="선택지 3">○ 마치기 영향 없음</td><td data-l="선택지 4">○</td></tr>
+<tr><td class="k" data-l="원칙">북마크 없음(형광펜·메모)</td><td data-l="선택지 1">○ 형광펜 재노출만</td><td data-l="선택지 2">○</td><td data-l="선택지 3">○ 기존 형광펜</td><td data-l="선택지 4">○</td></tr>
+<tr><td class="k" data-l="원칙">AI는 공식 해설 아님</td><td data-l="선택지 1">○</td><td data-l="선택지 2">○</td><td data-l="선택지 3">○</td><td data-l="선택지 4">○ 화면에 문구</td></tr>
+<tr><td class="k" data-l="원칙">권리 확인된 말씀만</td><td data-l="선택지 1">○ 천성경 제외, 권리 닫히면 숨김</td><td data-l="선택지 2">○</td><td data-l="선택지 3">△ 협회 확인 전 켜지 않음</td><td data-l="선택지 4">△ 서면 범위만 재생</td></tr>
+<tr><td class="k" data-l="원칙">질문·답 서버 미저장</td><td data-l="선택지 1">○</td><td data-l="선택지 2">○</td><td data-l="선택지 3">○ 실천은 말로</td><td data-l="선택지 4">○</td></tr>
+<tr><td class="k" data-l="원칙">하단 탭 5개 이하 · 이름 2~5자</td><td data-l="선택지 1">○ 5탭</td><td data-l="선택지 2">○ 4탭</td><td data-l="선택지 3">○ '가정예배' 4자</td><td data-l="선택지 4">○ '5분 설교' 그대로</td></tr>
+<tr><td class="k" data-l="원칙">9/23 함께 읽기 결정 유지</td><td data-l="선택지 1">○ 모임 오늘 범위 변경 없음</td><td data-l="선택지 2">○</td><td data-l="선택지 3">△ 한 줄 나눔과 겹침 [확인 필요]</td><td data-l="선택지 4">○</td></tr>
+</tbody>
+</table>
+
+<!-- 10) 확인 필요 -->
+<h2>9. [확인 필요]</h2>
+<div class="box"><ol>
+<li>기본 훈독 순서의 '일요일 쉼' 조건 해석. 판정자 1명 해석을 따르면 기본 훈독 순서는 탈락하고 빈 날 채우기는 바닥 편성만 남는다.</li>
+<li>두 권을 다 돈 뒤(약 2.3년) 처음으로 돌아갈지.</li>
+<li>천성경을 기본 순서에 넣을지. 천보가정교회 앱 일일 훈독과 겹치는지 협회 확인.</li>
+<li>9/26 '듣기 바 제거' 결정이 기기 낭독까지 막는지(결정 ⑧).</li>
+<li>형광펜 보유율. 운영 DB를 아직 세지 않았다. 10% 미만이면 정원 카드는 내지 않는다.</li>
+<li>형광펜을 남긴 채 카드에서만 숨기는 기능(숨김 필드)을 만들지. 그 전에는 '카드 끄기'와 '지우기'만 있다.</li>
+<li>4탭일 때 옛 넷째 탭 주소: 착지 화면 또는 홈 자동 이동.</li>
+<li>4탭일 때 전체 메뉴 '준비 중' 3항목: 숨김 또는 유지.</li>
+<li>가정예배 순서지의 편성 주체, '가정예배' 명칭과 비공식 안내 노출(협회 질의 2).</li>
+<li>공급 A일 때 매주 사람 일 시간(수령·등록·권리 확인). 측정 전이다.</li>
+<li>실기기 확인: 알림 착지, 한국어 낭독, 390×844에서 훈독 완료 화면이 2스크롤 미만인지(정원 카드를 완료 화면에도 둘지).</li>
+<li>출시 4주 뒤 판정할 사람과 시점.</li>
+</ol></div>
+<p class="note">이 와이어프레임은 설계 판정용이다. 구현·테스트·출시 승인이 아니다.</p>
+
+</div>
+</body>
+</html>
