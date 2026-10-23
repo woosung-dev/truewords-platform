@@ -217,7 +217,7 @@ export function PrayScreen() {
         <StepHead
           step="share"
           title="이 말씀을 건넬까요?"
-          lede="건네면 말씀 카드만 보내져요. 적은 한 줄은 이 기기에 남아요."
+          lede="말씀 카드만 건네요. 적은 한 줄은 이 기기에 남아요."
           titleRef={titleRef}
         />
         <article className="card malssum onb-word" aria-label={`${card.source_label} 단락`}>

@@ -131,7 +131,7 @@ export function InterestsScreen() {
   function handleSave() {
     save({ ...draft, isCrisis: answers.isCrisis });
     setEdited(null);
-    setStatus("저장했어요. 홈 책갈피에 고른 답이 바로 반영돼요");
+    setStatus("저장했어요. 홈 책갈피가 고른 답에 맞춰 바뀌어요");
   }
 
   function handleClear() {
