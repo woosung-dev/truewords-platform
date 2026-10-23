@@ -20,6 +20,7 @@ import "@/app/_hoondok/together.css";
 import "@/app/_hoondok/together-home.css";
 import "@/app/_hoondok/cards.css";
 import "@/app/_hoondok/menu.css";
+import "@/app/_hoondok/onboarding.css";
 import { HoondokAppShell } from "@/components/hoondok";
 import { isHoondokEnabled } from "@/features/hoondok/flag";
 import { HoondokInAppBrowserBanner } from "@/features/hoondok/install/components/in-app-browser-banner";

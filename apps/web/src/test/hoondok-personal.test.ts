@@ -195,6 +195,14 @@ describe("까닭 문장", () => {
     );
   });
 
+  it("'많이 힘들어요'는 이름으로 인용하지 않는다", () => {
+    const hard = option(MOOD_OPTIONS, "hard");
+    expect(buildReason({ interests: [family], moods: [hard] })).toBe(
+      "‘가정과 부부’를 고르셔서 그 주제와 겹치는 단락을 먼저 골랐어요.",
+    );
+    expect(buildReason({ interests: [], moods: [hard] })).toBe("고르신 마음과 겹치는 단락을 먼저 골랐어요.");
+  });
+
   it("겹친 것이 없으면 폴백 문장", () => {
     expect(buildReason(null)).toBe(FALLBACK_REASON);
     expect(buildReason({ interests: [], moods: [] })).toBe(FALLBACK_REASON);

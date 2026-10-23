@@ -21,9 +21,9 @@ export type HoondokScreen = {
   tabId: HoondokTab["id"];
   /**
    * 본문 폭. home = 홈(≥1024px 앱바 접힘) · read = 산문 640px(`col--read`) · app = 카드/리스트 720px.
-   * 프로토타입에서 `col--read` 를 쓰는 화면만 read 다.
+   * 프로토타입에서 `col--read` 를 쓰는 화면만 read 다. onb = 질문 흐름 — 앱바를 시각적으로 접고(h1 은 보조기기용) 화면이 자기 머리를 그린다.
    */
-  variant: "home" | "read" | "app";
+  variant: "home" | "read" | "app" | "onb";
   /** true 면 앱바·헤더의 알림 아이콘(설정 링크)을 숨긴다. 프로토타입에서 ph-bell 이 없는 화면이다 */
   hideSettingsLink?: true;
   /** true 면 앱바의 검색 아이콘을 숨긴다. 검색 화면 자신이다 — 헤더(≥1024px) 검색 자리는 aria-current 로 남는다 */
@@ -42,6 +42,16 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "today",
     variant: "app",
     hideSettingsLink: true,
+    hideNav: true,
+  },
+  // 맞춤 첫 말씀 질문 흐름 (환영 → 질문 1~3 → 첫 말씀). 탭바·헤더 없이 화면이 단계 머리를 그리므로 앱바 아이콘·뒤로 링크를 두지 않는다
+  {
+    match: "/hoondok/start",
+    title: "첫 말씀 고르기",
+    tabId: "today",
+    variant: "onb",
+    hideSettingsLink: true,
+    hideSearchLink: true,
     hideNav: true,
   },
   {

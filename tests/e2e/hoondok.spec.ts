@@ -155,6 +155,9 @@ test("설치 안내: 직접 완료 뒤 홈 카드 노출 · reload 유지 · 나
   await page.getByLabel(/이메일/).fill(`e2e-install-${Date.now()}@example.com`);
   await page.getByLabel(/비밀번호/).fill("password1");
   await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  // 가입 직후 기본 경로는 맞춤 첫 말씀 질문이다 — 질문 없이 홈으로 간다
+  await expect(page).toHaveURL(/\/hoondok\/start$/);
+  await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
   await expect(page).toHaveURL(/\/hoondok$/);
   await expect(page.getByText("설치님")).toBeVisible();
   const title = page.getByRole("heading", { name: /홈 화면에 추가하면/ });
@@ -181,6 +184,46 @@ test("설치 안내: 직접 완료 뒤 홈 카드 노출 · reload 유지 · 나
   await page.reload();
   await expect(title).toHaveCount(0);
   // 비로그인 온보딩 첫 로드의 /auth/me 401 은 정상 리소스 로그다. 카드 자체의 오류(getSnapshot 캐시 경고 등)만 0 이어야 한다.
+  expect(errors.filter((message) => !/status of 401/.test(message))).toEqual([]);
+});
+
+// 맞춤 첫 말씀 질문 흐름 — 가입 직후에만 들어온다. 답은 이 기기에만 저장하고 카드는 기기에서 고른다(프리뷰 fixture).
+test("가입 → 질문 1~3 → 첫 말씀: 기기에만 저장 · 위기 안내 · 오늘 훈독으로", async ({ page }) => {
+  const errors = await collectConsoleErrors(page);
+  const requests: string[] = [];
+  page.on("request", (request) => requests.push(request.url()));
+  await page.goto("/hoondok/onboarding");
+  await page.getByLabel(/이름/).fill("첫말씀");
+  await page.getByLabel(/이메일/).fill(`e2e-start-${Date.now()}@example.com`);
+  await page.getByLabel(/비밀번호/).fill("password1");
+  await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  await expect(page).toHaveURL(/\/hoondok\/start$/);
+  // 탭바가 없는 온보딩 프레임이다
+  await expect(page.getByRole("navigation", { name: "주 메뉴" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "시작하기" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "어떤 말씀을 자주 펼치고 싶으세요?" })).toBeFocused();
+  await page.getByRole("checkbox", { name: /가정과 부부/ }).click();
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("checkbox", { name: "많이 힘들어요" }).click();
+  await expect(page.getByRole("link", { name: /자살예방상담 109/ })).toHaveAttribute("href", "tel:109");
+  await page.getByRole("button", { name: "다음" }).click();
+  await page.getByRole("button", { name: "첫 말씀 보기" }).click();
+
+  await expect(page.getByRole("heading", { level: 2, name: "첫말씀님을 위해 고른 첫 말씀" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "혼자 견디지 않으셔도 돼요" })).toBeVisible();
+  await expect(page.getByText("앱이 고른 원문 단락이에요. 공식 해설이나 지금 하신 말씀은 아니에요.")).toBeVisible();
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("hoondok:personal:answers") ?? "{}"));
+  expect(stored.interests).toEqual(["family"]);
+  expect(stored.moods).toEqual([]);
+  // 선택값을 주소·요청에 싣지 않는다
+  expect(requests.filter((url) => /family|hard|interests|moods/.test(url))).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(
+    0,
+  );
+
+  await page.getByRole("link", { name: "오늘 훈독으로" }).click();
+  await expect(page).toHaveURL(/\/hoondok$/);
   expect(errors.filter((message) => !/status of 401/.test(message))).toEqual([]);
 });
 
@@ -444,6 +487,9 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
   await page.getByLabel(/이메일/).fill(`e2e-push-${Date.now()}@example.com`);
   await page.getByLabel(/비밀번호/).fill("password1");
   await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  // 가입 직후 기본 경로는 맞춤 첫 말씀 질문이다 — 질문 없이 홈으로 간다
+  await expect(page).toHaveURL(/\/hoondok\/start$/);
+  await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
   await expect(page).toHaveURL(/\/hoondok$/);
   await expect(page.getByText("알림님")).toBeVisible();
   // 헤드리스 Chromium UA 는 인앱 브라우저가 아니다 — 안내 배너가 뜨면 안 된다

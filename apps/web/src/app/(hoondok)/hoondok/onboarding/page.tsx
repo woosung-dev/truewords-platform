@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
+import { afterSignupHref } from "@/features/hoondok/personal/start";
 import { extractInviteCode } from "@/features/hoondok/together/invite-code";
 import { identityAPI } from "@/features/identity/api";
 import { claimDeviceForUser } from "@/features/identity/device-owner";
@@ -71,7 +72,8 @@ function OnboardingForm() {
       queryClient.removeQueries({
         predicate: (query) => query.queryKey[0] === "hoondok" && query.queryKey[1] !== "me",
       });
-      router.replace(mode === "signup" ? carryInviteCode(returnTo, inviteCode) : returnTo);
+      // 가입 직후 돌아갈 곳이 기본값(홈)이면 맞춤 첫 말씀 질문으로 보낸다. 모임 초대 등 returnTo 가 있으면 그쪽이 먼저다
+      router.replace(mode === "signup" ? afterSignupHref(carryInviteCode(returnTo, inviteCode)) : returnTo);
     } catch (error) {
       setMessage(messageFor(error, mode, Boolean(inviteCode.trim())));
     } finally {

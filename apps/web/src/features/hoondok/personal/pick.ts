@@ -109,8 +109,11 @@ const MAX_REASON_NAMES = 3;
  * 고른 까닭 한 문장. 사용자가 고른 이름 중 이 카드와 실제로 겹친 것만 따옴표로 인용한다.
  * 단락 내용을 풀어 쓰지 않는다(공식성) — "겹치는 단락" 이라고만 말한다.
  */
-export function buildReason(pick: Pick<CardScore, "interests" | "moods"> | null): string {
-  if (!pick || (pick.interests.length === 0 && pick.moods.length === 0)) return FALLBACK_REASON;
+export function buildReason(scored: Pick<CardScore, "interests" | "moods"> | null): string {
+  if (!scored || (scored.interests.length === 0 && scored.moods.length === 0)) return FALLBACK_REASON;
+  // "많이 힘들어요"는 이름으로 다시 들추지 않는다 — 위기 안내가 이미 맨 위에 있다
+  const pick = { interests: scored.interests, moods: scored.moods.filter((o) => o.id !== CRISIS_MOOD_ID) };
+  if (pick.interests.length === 0 && pick.moods.length === 0) return "고르신 마음과 겹치는 단락을 먼저 골랐어요.";
   // 주제를 먼저, 마음을 뒤에 적는다(시안 문장 순서). 상한을 넘으면 마음을 한 개 이상 남기고 주제를 줄인다.
   const moods = pick.moods.slice(0, MAX_REASON_NAMES - Math.min(1, pick.interests.length));
   const interests = pick.interests.slice(0, MAX_REASON_NAMES - moods.length);
