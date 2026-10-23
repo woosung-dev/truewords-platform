@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { identityAPI } from "./api";
 import { CURRENT_USER_KEY } from "./use-current-user";
 
-/** 훈독이 이 브라우저에 남기는 localStorage 키 접두 (pending·install·note). */
+/** 훈독이 이 브라우저에 남기는 localStorage 키 접두 (pending·install·note·맞춤 첫 말씀 답과 한 줄). */
 const HOONDOK_STORAGE_PREFIX = "hoondok:";
 
 /** `hoondok:` 접두 키 전부 제거. 저장소는 없거나 던질 수 있으므로 try/catch — 실패해도 삭제 흐름은 계속된다. */

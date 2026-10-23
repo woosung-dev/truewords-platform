@@ -1,5 +1,6 @@
 import { ApiError, createApiClient } from "@truewords/api-client-ts";
 import type {
+  CardListResponse,
   CardPublic,
   CardReceiptItem,
   CardShelf,
@@ -8,8 +9,8 @@ import type {
 } from "@truewords/api-client-ts/types";
 import { hoondokFetch } from "../observability/report";
 
-// 오늘의 책갈피 (PLAN-HD-012, API-HD-047~051). 화면 모델은 생성 SDK 타입 그대로다.
-export type { CardPublic, CardReceiptItem, CardShelf, MyCardsResponse, TodayCardResponse };
+// 오늘의 책갈피 (PLAN-HD-012, API-HD-047~051·054). 화면 모델은 생성 SDK 타입 그대로다.
+export type { CardListResponse, CardPublic, CardReceiptItem, CardShelf, MyCardsResponse, TodayCardResponse };
 export type MyCardsFilter = "received" | "shared";
 
 // 브라우저: 같은 origin 프록시 + 쿠키 (receive·shared 는 CSRF 헤더를 SDK 가 붙인다)
@@ -17,6 +18,8 @@ const browser = createApiClient({ baseUrl: "/api/backend", fetch: hoondokFetch }
 
 export const cardsAPI = {
   today: () => browser.request<TodayCardResponse>("/hoondok/cards/today"),
+  /** active 카드 전부(API-HD-054). 맞춤 카드는 기기에서 고르므로 선택값을 쿼리에 넣지 않는다 */
+  list: () => browser.request<CardListResponse>("/hoondok/cards"),
   get: (id: string) => browser.request<CardPublic>(`/hoondok/cards/${encodeURIComponent(id)}`),
   mine: (filter: MyCardsFilter) =>
     browser.request<MyCardsResponse>(`/hoondok/me/cards${filter === "shared" ? "?filter=shared" : ""}`),
