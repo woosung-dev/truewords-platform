@@ -37,7 +37,8 @@ const DOCUMENT_TITLES: Record<Step, string> = {
 };
 
 const PHOTO = "/hoondok/photos/onboarding-sunlit-field.webp";
-const STORE_LINE = "고른 답은 이 기기에만 저장돼요. 나의 정원에서 바꿀 수 있어요.";
+// 저장 안내 문장은 화면마다 같은 한 문장이다(DESIGN-PLAN §8-8). 바꾸는 곳은 질문 3 막대 힌트가 알린다
+const STORE_LINE = "고른 답은 이 기기에만 저장돼요";
 const BETA_NOTICE = "독립 운영 베타 · 가정연합 공식 앱이 아닙니다";
 
 type Draft = {
@@ -253,11 +254,8 @@ export function StartFlow() {
                   주로 읽는 때와 길이 <span className="badge">선택</span>
                 </dd>
               </div>
-              <div className="onb-asks__row onb-asks__row--not">
-                <dt>묻지 않아요</dt>
-                <dd>소속 교회와 직분</dd>
-              </div>
             </dl>
+            <p className="onb-why onb-asks-not">소속 교회와 직분은 묻지 않아요.</p>
             <StoreLine />
             <div className="onb-welcome__cta">
               <button type="button" className="btn btn-primary btn--pc-auto" onClick={begin}>
@@ -517,6 +515,12 @@ function ResultStep({
           <span className="onb-step__label">첫 말씀</span>
           <span />
         </div>
+        {/* 모바일은 한 열이라 위기 안내를 단계 머리 바로 아래, 제목·까닭보다 먼저 둔다. PC 는 오른쪽 열 맨 위(FirstWordBody) */}
+        {input.isCrisis && (
+          <div className="only-m">
+            <CrisisNotice id="onb-result-crisis-m" />
+          </div>
+        )}
         <div className="onb__intro">
           <Title titleRef={titleRef}>{title}</Title>
           <FirstWordReason state={state} />
@@ -528,10 +532,7 @@ function ResultStep({
         <FirstWordBody state={state} isCrisis={input.isCrisis} />
         <div className="only-m">
           {picked("onb-picked-m")}
-          <p className="onb-why onb-why--store">
-            <Lock size={20} aria-hidden="true" />
-            <span>이 기기에만 저장돼요</span>
-          </p>
+          <StoreLine />
         </div>
         <div className="onb__spacer" />
         <ActionBar count="매일 이런 장이 홈에 꽂혀요" hint="">

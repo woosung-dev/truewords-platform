@@ -145,7 +145,7 @@ describe("맞춤 첫 말씀 질문 흐름", () => {
     expect(await screen.findByText(TODAY_CARD.text)).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "오늘 말씀부터 드릴게요" })).toBeInTheDocument();
     expect(
-      screen.getByText("고르신 주제에 맞는 장을 아직 준비하고 있어요. 오늘 편성된 말씀을 먼저 드려요"),
+      screen.getByText("고르신 주제에 맞는 장을 아직 준비하고 있어요. 오늘 편성된 말씀을 먼저 드려요."),
     ).toBeInTheDocument();
   });
 
@@ -161,7 +161,11 @@ describe("맞춤 첫 말씀 질문 흐름", () => {
     fireEvent.click(screen.getByRole("button", { name: "첫 말씀 보기" }));
     // 재시도 대기(1초) 뒤 오류 상태다
     expect(await screen.findByText("말씀을 받지 못했어요", {}, { timeout: 3000 })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "혼자 견디지 않으셔도 돼요" })).toBeInTheDocument();
+    // 모바일(단계 머리 아래, 제목보다 먼저)·PC(오른쪽 열 맨 위) 자리가 하나씩이고 CSS 가 한쪽만 보인다
+    const notices = screen.getAllByRole("region", { name: "혼자 견디지 않으셔도 돼요" });
+    expect(notices.map((n) => n.id)).toEqual(["onb-result-crisis-m", "onb-result-crisis"]);
+    const title = screen.getByRole("heading", { level: 2 });
+    expect(notices[0].compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // 위기 선택지는 마음 목록이 아니라 오늘 날짜 표시로만 남는다
     const stored = JSON.parse(localStorage.getItem(ANSWERS_KEY) ?? "{}");
     expect(stored.moods).toEqual([]);

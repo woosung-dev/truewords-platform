@@ -73,7 +73,7 @@ export function pickPersonalCard(cards: readonly CardPublic[], input: PickInput,
 // --- 문구 -------------------------------------------------------------------
 
 /** 0점·카드 없음일 때 오늘 편성 카드와 함께 보이는 까닭 문장. */
-export const FALLBACK_REASON = "고르신 주제에 맞는 장을 아직 준비하고 있어요. 오늘 편성된 말씀을 먼저 드려요";
+export const FALLBACK_REASON = "고르신 주제에 맞는 장을 아직 준비하고 있어요. 오늘 편성된 말씀을 먼저 드려요.";
 
 /** 첫 말씀 화면 공식성 안내 한 줄(DESIGN-PLAN §8-7). */
 export const OFFICIAL_NOTICE = "앱이 고른 원문 단락이에요. 공식 해설이나 지금 하신 말씀은 아니에요.";

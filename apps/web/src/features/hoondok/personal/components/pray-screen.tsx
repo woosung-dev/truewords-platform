@@ -4,13 +4,14 @@
 // 건네기는 기존 책갈피 공유 시트로 말씀 카드만 보낸다. 한 줄은 서버·모임으로 보내지 않는다(모임 게시는 후속 결정).
 // 이 화면에서 고른 마음은 저장된 답(질문 흐름·관심사 바꾸기)을 바꾸지 않는다. 그 순간의 마음이라 카드 고르기에만 쓴다.
 // "많이 힘들어요"를 고르면 말씀보다 위기 안내가 먼저다(맞춘 말씀 화면 맨 위).
-import { Check, Lock } from "lucide-react";
+import { Check, Info, Lock } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { CardPublic } from "../../cards/api";
 import { type ShareOutcome, ShareSheet } from "../../cards/components/share-sheet";
 import { useKstDate } from "../../use-kst-date";
 import { CRISIS_MOOD_ID, MOOD_OPTIONS } from "../options";
+import { FALLBACK_REASON } from "../pick";
 import { NOTE_MAX_LENGTH } from "../storage";
 import { usePersonalCard, usePersonalNote } from "../use-personal";
 import { CrisisNotice } from "./crisis-notice";
@@ -58,24 +59,75 @@ function Bar({ children, isSplit = true }: { children: React.ReactNode; isSplit?
   return <div className={isSplit ? "ps-bar ps-bar--split" : "ps-bar"}>{children}</div>;
 }
 
-function CardStep({ mood, onCard }: { mood: string; onCard: (card: CardPublic | null) => void }) {
+// 마음 한 장의 0점 폴백 까닭. 질문 흐름(FALLBACK_REASON)과 같은 문장에서 "주제"만 "마음"으로 바꾼다
+const PRAY_FALLBACK_REASON = FALLBACK_REASON.replace("고르신 주제에", "고르신 마음에");
+
+function CardStep({
+  mood,
+  onCard,
+  titleRef,
+}: {
+  mood: string;
+  onCard: (card: CardPublic | null) => void;
+  titleRef: React.RefObject<HTMLHeadingElement | null>;
+}) {
   const isCrisis = mood === CRISIS_MOOD_ID;
   const input = useMemo(() => ({ interests: [], moods: isCrisis ? [] : [mood], isCrisis }), [mood, isCrisis]);
   const state = usePersonalCard(input);
   const card = state.status === "ready" ? state.card : null;
   useEffect(() => onCard(card), [card, onCard]);
+  const isFallback = state.status === "ready" && state.isFallback;
+  // 겹치는 장이 없어 오늘 편성 카드로 돌아갔으면 "맞춘" 말씀이라고 부르지 않는다(질문 흐름 ResultStep 과 같은 규칙)
+  const title = isFallback ? "오늘 말씀부터 드릴게요" : "지금 마음에 맞춘 말씀이에요";
   // 위기 안내는 까닭·말씀보다 먼저 둔다
   return (
     <>
+      <StepHead step="card" title={title} titleRef={titleRef} />
       {isCrisis && <CrisisNotice id="ps-card-crisis" />}
       {state.status === "ready" && !state.isFallback && <FirstWordReason state={state} />}
-      {state.status === "ready" && state.isFallback && (
+      {state.status === "ready" && state.isFallback && state.card && (
         <p className="onb-why onb-result__why">
-          고르신 마음에 맞는 장을 아직 준비하고 있어요. 오늘 편성된 말씀을 먼저 드려요
+          <Info size={20} aria-hidden="true" />
+          <span>{PRAY_FALLBACK_REASON}</span>
         </p>
       )}
       <FirstWordBody state={state} isCrisis={false} />
     </>
+  );
+}
+
+/** 마음 9개 라디오 칩. Tab 은 고른 칩(없으면 첫 칩)에만 멈추고 화살표로 옮기며 고른다(APG radio group, 질문 3 ChoiceRadioGroup 과 같다). */
+function MoodRadios({ value, onChange }: { value: string | null; onChange: (id: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const current = MOOD_OPTIONS.findIndex((o) => o.id === value);
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key];
+    if (!step) return;
+    event.preventDefault();
+    const next = current < 0 ? 0 : (current + step + MOOD_OPTIONS.length) % MOOD_OPTIONS.length;
+    onChange(MOOD_OPTIONS[next].id);
+    ref.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus();
+  }
+  return (
+    <div className="chips" role="radiogroup" aria-label="지금 마음" ref={ref} onKeyDown={handleKeyDown}>
+      {MOOD_OPTIONS.map((o, index) => {
+        const isOn = value === o.id;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            role="radio"
+            aria-checked={isOn}
+            tabIndex={index === Math.max(current, 0) ? 0 : -1}
+            className="chip-btn ps-chip"
+            onClick={() => onChange(o.id)}
+          >
+            {isOn && <Check size={18} aria-hidden="true" />}
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -126,28 +178,11 @@ export function PrayScreen() {
       <section className="col ps-form">
         <StepHead
           step="mood"
-          title="기도 뒤, 지금 마음은 어떠세요?"
-          lede="하나만 골라 주세요. 그 마음에 맞는 말씀 한 장을 드려요."
+          title="지금 마음은 어떠세요?"
+          lede="기도 뒤나 하루를 마칠 때 한 장 받아 보세요. 마음 하나를 고르면 그에 맞는 말씀을 드려요."
           titleRef={titleRef}
         />
-        <div className="chips" role="radiogroup" aria-label="지금 마음">
-          {MOOD_OPTIONS.map((o) => {
-            const isOn = mood === o.id;
-            return (
-              <button
-                key={o.id}
-                type="button"
-                role="radio"
-                aria-checked={isOn}
-                className="chip-btn ps-chip"
-                onClick={() => setMood(o.id)}
-              >
-                {isOn && <Check size={18} aria-hidden="true" />}
-                {o.label}
-              </button>
-            );
-          })}
-        </div>
+        <MoodRadios value={mood} onChange={setMood} />
         {mood === CRISIS_MOOD_ID && <CrisisNotice id="ps-mood-crisis" />}
         <Bar isSplit={false}>
           <p className="ps-bar__t">고른 마음은 이 기기에만 남아요</p>
@@ -161,8 +196,7 @@ export function PrayScreen() {
   if (step === "card" && mood)
     return (
       <section className="col ps-form">
-        <StepHead step="card" title="지금 마음에 맞춘 말씀이에요" titleRef={titleRef} />
-        <CardStep mood={mood} onCard={setCard} />
+        <CardStep mood={mood} onCard={setCard} titleRef={titleRef} />
         <Bar>
           <Link className="btn btn-ghost" href="/hoondok">
             여기서 마치기

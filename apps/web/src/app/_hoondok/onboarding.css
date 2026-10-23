@@ -134,8 +134,9 @@
     color: var(--ink-3);
     margin-top: 20px;
   }
+  /* 공식성 안내는 장년이 꼭 읽어야 하는 문장이라 본문 보조 크기(저장 안내와 같은 --fs-sm)로 둔다 */
   .onb-official {
-    font-size: var(--fs-xs);
+    font-size: var(--fs-sm);
     color: var(--ink-3);
     margin-top: 12px;
   }
@@ -424,9 +425,8 @@
     margin-left: 6px;
     vertical-align: 2px;
   }
-  .onb-asks__row--not dt {
-    color: var(--ink-2);
-    font-weight: 600;
+  .onb-asks-not {
+    margin-top: 12px;
   }
   .onb-welcome__cta {
     display: flex;
@@ -463,8 +463,12 @@
   .onb-result__card {
     margin-top: 20px;
   }
-  .onb-result__card > .crisis {
+  .onb-result__card .crisis {
     margin-bottom: 16px;
+  }
+  /* 모바일 첫 말씀: 단계 머리 바로 아래 위기 안내 */
+  .onb-result .onb__aside > .only-m > .crisis {
+    margin-top: 8px;
   }
   .onb-word .scripture {
     margin: 12px 0 0;
@@ -504,8 +508,10 @@
     line-height: 1.6;
     color: var(--ink-2);
   }
+  /* PC 에서 btn--pc-auto 가 열 폭으로 늘어나지 않게 버튼은 제 폭만 차지한다 */
   .onb-state .btn {
     margin-top: 8px;
+    align-self: flex-start;
   }
   .onb-skel {
     display: flex;

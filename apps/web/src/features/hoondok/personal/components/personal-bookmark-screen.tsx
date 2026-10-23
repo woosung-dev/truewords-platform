@@ -13,8 +13,13 @@ type Props = { todayCard: CardPublic | null; today: string; from?: string; empty
 
 const noopSubscribe = () => () => {};
 
+/** 어느 장인지 정하기 전의 자리. 책갈피 카드(bm--full)와 같은 비율의 정적 회색 자리만 둔다 */
 function Waiting() {
-  return <section className="col" aria-busy="true" />;
+  return (
+    <section className="col" role="status" aria-busy="true" aria-label="오늘의 책갈피를 불러오는 중">
+      <span className="skeleton bm--full" />
+    </section>
+  );
 }
 
 function Screen({ card, today, from, empty }: Omit<Props, "todayCard"> & { card: CardPublic | null }) {

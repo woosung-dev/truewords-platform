@@ -71,7 +71,12 @@ export function FirstWordReason({ state }: { state: PersonalCardState }) {
 export function FirstWordBody({ state, isCrisis }: { state: PersonalCardState; isCrisis: boolean }) {
   return (
     <div className="onb-result__card">
-      {isCrisis && <CrisisNotice id="onb-result-crisis" />}
+      {/* 질문 흐름 모바일은 ResultStep 이 단계 머리 아래에 따로 둔다 — 여기서는 PC 오른쪽 열 맨 위 한 번만 */}
+      {isCrisis && (
+        <div className="only-pc">
+          <CrisisNotice id="onb-result-crisis" />
+        </div>
+      )}
       {state.status === "loading" && (
         <div className="card onb-skel" aria-busy="true" role="status" aria-label="말씀을 불러오는 중">
           <span className="skeleton" style={{ width: "58%", height: 14 }} />
