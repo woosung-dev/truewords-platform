@@ -1699,6 +1699,16 @@ export type GenerationTrace = {
      */
     answer: string;
     /**
+     * Attempts
+     */
+    attempts?: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Context Keys
+     */
+    context_keys?: Array<string>;
+    /**
      * Context Prompt
      */
     context_prompt: string;
@@ -3159,6 +3169,12 @@ export type RagTraceResponse = {
     candidates?: Array<CandidateRow>;
     effective_config?: EffectiveConfig | null;
     /**
+     * Experiment
+     */
+    experiment?: {
+        [key: string]: unknown;
+    };
+    /**
      * Fallback Type
      */
     fallback_type?: string;
@@ -4125,6 +4141,14 @@ export type TopQuery = {
  */
 export type TraceOverrides = {
     /**
+     * Citation Check
+     */
+    citation_check?: boolean;
+    /**
+     * Decompose
+     */
+    decompose?: boolean;
+    /**
      * Intent
      */
     intent?: 'factoid' | 'conceptual' | 'reasoning' | 'meta' | null;
@@ -4136,6 +4160,14 @@ export type TraceOverrides = {
      * Rerank Enabled
      */
     rerank_enabled?: boolean | null;
+    /**
+     * Skip Postprocess
+     */
+    skip_postprocess?: boolean;
+    /**
+     * Wiki First
+     */
+    wiki_first?: boolean;
 };
 
 /**

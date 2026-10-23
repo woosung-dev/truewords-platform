@@ -2908,6 +2908,21 @@
             "title": "Answer",
             "type": "string"
           },
+          "attempts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Attempts",
+            "type": "array"
+          },
+          "context_keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Keys",
+            "type": "array"
+          },
           "context_prompt": {
             "title": "Context Prompt",
             "type": "string"
@@ -5322,6 +5337,11 @@
               }
             ]
           },
+          "experiment": {
+            "additionalProperties": true,
+            "title": "Experiment",
+            "type": "object"
+          },
           "fallback_type": {
             "default": "none",
             "title": "Fallback Type",
@@ -6808,6 +6828,16 @@
       "TraceOverrides": {
         "description": "이번 실행에만 적용하는 설정. None 이면 봇 설정을 그대로 쓴다.",
         "properties": {
+          "citation_check": {
+            "default": false,
+            "title": "Citation Check",
+            "type": "boolean"
+          },
+          "decompose": {
+            "default": false,
+            "title": "Decompose",
+            "type": "boolean"
+          },
           "intent": {
             "anyOf": [
               {
@@ -6846,6 +6876,16 @@
               }
             ],
             "title": "Rerank Enabled"
+          },
+          "skip_postprocess": {
+            "default": false,
+            "title": "Skip Postprocess",
+            "type": "boolean"
+          },
+          "wiki_first": {
+            "default": false,
+            "title": "Wiki First",
+            "type": "boolean"
           }
         },
         "title": "TraceOverrides",

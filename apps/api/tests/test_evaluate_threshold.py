@@ -1,6 +1,6 @@
 """evaluate_threshold metric 함수 단위 테스트 (Phase 0).
 
-run_search 는 staging 환경 의존이라 stub. 본 테스트는 metric 함수의
+run_search 는 Qdrant·DB·Gemini 에 의존해 여기서 다루지 않는다. 본 테스트는 metric 함수의
 수학적 정확성과 골든셋 로더의 라벨 검증 로직만 검증한다.
 """
 from __future__ import annotations
