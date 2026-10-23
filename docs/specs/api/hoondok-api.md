@@ -57,6 +57,7 @@
 | `API-HD-051` | GET | `/hoondok/me/cards?filter=shared` | `hoondok_token` | HD-012 |
 | `API-HD-052` | GET · POST · PATCH | `/admin/hoondok/cards` · `/admin/hoondok/cards/{card_id}` | `admin_token` + 게이트 (쓰기는 `X-Requested-With`) | HD-012 |
 | `API-HD-053` | GET · POST · PATCH · DELETE | `/hoondok/me/highlights` · `/hoondok/me/highlights/{highlight_id}` | `hoondok_token` (쓰기는 `X-Requested-With`) | HD-007 |
+| `API-HD-054` | GET | `/hoondok/cards` | 없음(공개) | HD-012 |
 
 공통 규칙:
 
@@ -687,4 +688,5 @@ GET → `[{id, name, member_count, created_at}]`(최신순) — 모임원 이름
 - `API-HD-047` 항상 200 `{date, card}` — 그날 고정 카드, 없으면 active 풀 `(created_at, id)` 정렬 후 `date.toordinal() % n`, 풀이 비면 `card: null`. `API-HD-048` active 가 아니면 404.
 - `API-HD-049·050` 멱등 upsert(`received_on` 은 처음 받은 KST 날짜, `shared_at` 은 처음 건넨 시각). 050 은 받지 않은 카드면 받기도 함께 기록한다. 비공개 카드 404.
 - `API-HD-051` `{shelves[{work_title, count}], items[{card, received_on, shared_at}]}` — 책장은 개수 내림차순, 목록은 받은 날 최신순, active 카드만.
+- `API-HD-054` `{items[CardPublic]}` — active 카드 전부, `(created_at, id)` 순, 쿼리 파라미터 없음. 맞춤 첫 말씀은 웹이 기기 안에서 고른다 — 관심 주제·마음 선택값은 서버로 보내지 않는다.
 - `API-HD-052` 목록(`status`·`page`·`page_size`)·등록(기본 draft)·PATCH(`status`·`pinned_on` 만, 그 밖의 필드는 422 — 본문 불변). 같은 날짜 고정은 409. 변경마다 `log_audit`.

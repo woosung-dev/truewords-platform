@@ -8,6 +8,7 @@ import { HoondokButton, MonthCalendar } from "@/components/hoondok";
 import { isHoondokCardsEnabled, isHoondokPreviewEnabled } from "@/features/hoondok/flag";
 import { JeongseongDayBadge, JeongseongProgress } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
+import { PersonalGardenEntry } from "@/features/hoondok/personal/components/garden-entry";
 import { DeviceRecordsEntry } from "@/features/hoondok/records/components/device-records";
 import { RecordsGardenSection } from "@/features/hoondok/records/components/records-section";
 import { useMonthHistory } from "@/features/hoondok/use-history";
@@ -174,6 +175,7 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
             </p>
           </div>
         </div>
+        <PersonalGardenEntry />
         <DeviceRecordsEntry isGuest />
         <GardenNotice />
       </section>
@@ -244,6 +246,8 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
           <JeongseongSection period={jeongseong.data ?? null} />
         </>
       )}
+
+      <PersonalGardenEntry />
 
       <RecordsGardenSection />
 

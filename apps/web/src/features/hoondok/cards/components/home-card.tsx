@@ -3,11 +3,21 @@
 // SCR-PWA-022 홈 "오늘의 책갈피" 카드 (PLAN-HD-012). 받기 전에는 책 이름만 공개하고 책 위로 리본 끝이 보인다.
 // 대기 모션은 800ms 뒤 3초 주기 2회로 멈춘다(CSS, 동작 줄이기면 없음). 오늘 이미 받았으면 "다시 보기" 로 바뀐다.
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { CardPublic } from "../api";
 import { useCardReceipt } from "../use-cards";
 import { Book, bookName } from "./book";
 
-export function BookmarkHomeCard({ card, dateLabel }: { card: CardPublic; dateLabel: string }) {
+export function BookmarkHomeCard({
+  card,
+  dateLabel,
+  footer,
+}: {
+  card: CardPublic;
+  dateLabel: string;
+  /** 카드 맨 아래 한 줄(맞춤 까닭·고르기). 없으면 그리지 않는다 */
+  footer?: ReactNode;
+}) {
   const { isReceived, isResolved } = useCardReceipt(card.id);
   const isShownReceived = isResolved && isReceived;
   return (
@@ -34,6 +44,7 @@ export function BookmarkHomeCard({ card, dateLabel }: { card: CardPublic; dateLa
         <Link className={`btn ${isShownReceived ? "btn-line" : "btn-primary"} bmhome__go`} href="/hoondok/bookmark">
           {isShownReceived ? "책갈피 다시 보기" : "책갈피 꺼내기"}
         </Link>
+        {footer}
       </div>
     </div>
   );

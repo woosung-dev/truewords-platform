@@ -110,6 +110,9 @@
   --font-scripture: var(--sans);
 
   --gutter: 20px;
+  /* 맞춤 첫 말씀 질문 흐름 (_hoondok/onboarding.css). 답 행은 16.5px 두 줄 + 패딩, 하단 막대는 개수 줄 + 50px 버튼 + 패딩 */
+  --onb-row-min: 72px;
+  --onb-bar-h: 108px;
   --measure-read: 640px;
   --measure-app: 720px;
 

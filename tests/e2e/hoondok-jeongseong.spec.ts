@@ -28,6 +28,9 @@ async function signUp(page: Page, name: string) {
   await page.getByLabel(/이메일/).fill(`e2e-jeongseong-${Date.now()}@example.com`);
   await page.getByLabel(/비밀번호/).fill("password1");
   await page.getByRole("button", { name: "가입하고 시작하기" }).click();
+  // 가입 직후 기본 경로는 맞춤 첫 말씀 질문이다 — 질문 없이 홈으로 간다
+  await expect(page).toHaveURL(/\/hoondok\/start$/);
+  await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
   await expect(page).toHaveURL(/\/hoondok$/);
   await expect(page.getByText(`${name}님`)).toBeVisible();
 }

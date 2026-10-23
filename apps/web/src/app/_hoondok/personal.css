@@ -1,0 +1,313 @@
+/* 맞춤 말씀 앱 안 화면 — 홈 책갈피 까닭 줄 · 나의 정원 "나에게 맞추기" · 관심사와 마음 바꾸기 · 마음 한 장.
+   값의 원본은 hoondok.css 토큰이고 시안은 hoondok-onboarding-design(DESIGN-PLAN §5~§7)이다.
+   설정형 화면 둘은 ≥768 에서 560 중앙(정본 015·020 과 같은 근거). 모션은 정본 누름 120ms 뿐이다. */
+[data-app="hoondok"] {
+  /* ---------- 1. 홈 책갈피 카드 아래 한 줄 ---------- */
+  .ps-why {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 16px -18px -16px;
+    padding: 4px 8px 4px 18px;
+    border-top: 1px solid var(--line);
+  }
+  .ps-why > svg {
+    flex: none;
+    color: var(--ink-3);
+  }
+  .ps-why__t {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 10px 0;
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .ps-why__t b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  /* 글자 링크지만 누르는 자리는 44 이상 */
+  .ps-why__go {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 10px;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--accent-strong);
+  }
+
+  /* ---------- 2. 나의 정원 "나에게 맞추기" 목록 ---------- */
+  .ps-list {
+    padding: 0;
+  }
+  .ps-list__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 64px;
+    padding: 12px 16px;
+  }
+  .ps-list__row + .ps-list__row {
+    border-top: 1px solid var(--line);
+  }
+  .ps-list__row > svg {
+    flex: none;
+    color: var(--ink-2);
+  }
+  .ps-list__row > svg:last-child {
+    color: var(--ink-3);
+  }
+
+  /* ---------- 3. 설정형 틀 (관심사 바꾸기 · 마음 한 장) ---------- */
+  .ps-lede {
+    margin-bottom: 4px;
+  }
+  .ps-group {
+    margin-top: 22px;
+  }
+  .ps-sub {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .ps-sub + .ps-sub {
+    margin-top: 14px;
+  }
+  .ps-sub__t {
+    padding: 0;
+    margin-bottom: 8px;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  /* 칩은 정본 .chip-btn 에 높이 48 · 고른 표시 체크만 더한다. 라디오 칩(마음 한 장)은 aria-checked 로 같은 모양 */
+  .ps-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 48px;
+    padding: 10px 16px;
+    font-size: var(--fs-md);
+  }
+  .ps-chip[aria-checked="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 600;
+  }
+  .ps-chip[aria-disabled="true"] {
+    background: var(--surface-2);
+    color: var(--ink-3);
+    cursor: not-allowed;
+  }
+  .ps-chip[aria-disabled="true"]:active {
+    transform: none;
+  }
+  .ps-hint {
+    margin: 10px 0 0;
+    font-size: var(--fs-sm);
+    color: var(--accent-strong);
+  }
+  /* 홈 책갈피 자리 지킴: 책갈피 카드(cards.css .bmhome)와 같은 높이. 회색은 garden.css 공용 .skeleton */
+  .ps-skel .skeleton {
+    min-height: 0;
+  }
+  .ps-skel__book {
+    flex: none;
+    width: 92px;
+    height: 128px;
+  }
+  .ps-skel__bd {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ps-skel__line {
+    height: 14px;
+  }
+  .ps-skel__line--lg {
+    height: 22px;
+  }
+  .ps-skel__btn {
+    height: 50px;
+  }
+  .ps-skel__why {
+    margin-top: 22px;
+  }
+  .ps-clear {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+  .ps-form .crisis {
+    margin-top: 16px;
+  }
+  .ps-form .onb-result__card {
+    margin-top: 16px;
+  }
+
+  /* 하단 행동 막대: 767 까지는 화면 맨 아래에 고정하고 본문 끝에 그만큼 자리를 비운다. 그동안 하단 탭은 숨긴다 —
+     막대와 탭이 겹쳐 쌓이면 844px 화면의 ¼ 가까이를 차지한다(시안 interests-m·pray-*-m 도 탭 없이 막대만). 뒤로는 앱바에 있다.
+     ≥768 은 본문 흐름 안, 마지막 내용 바로 아래에 두고 탭(·PC 헤더)도 그대로다 */
+  @media (max-width: 767.98px) {
+    &:has(.ps-bar) .nav {
+      display: none;
+    }
+  }
+  .ps-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px var(--gutter) calc(12px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+  .col.ps-form:has(> .ps-bar) {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+  .ps-bar__t {
+    margin: 0;
+    min-height: 22px;
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--ink-3);
+  }
+  .ps-bar--split {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+  .ps-bar--split > .ps-bar__t {
+    grid-column: 1 / -1;
+  }
+  .ps-bar--split > .btn-ghost {
+    justify-self: start;
+    width: auto;
+    background: transparent;
+    padding: 0 12px;
+  }
+  .ps-status {
+    margin-top: 12px;
+    color: var(--ink-2);
+  }
+
+  /* ---------- 4. 마음 한 장 단계 머리 ---------- */
+  .ps-head {
+    margin: 4px 0 18px;
+  }
+  .ps-head__step {
+    margin: 0 0 6px;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .ps-head__t {
+    margin: 0;
+    font-size: var(--fs-2xl);
+    font-weight: 700;
+    line-height: 1.35;
+    text-wrap: balance;
+  }
+  .ps-head__t:focus {
+    outline: none;
+  }
+  .ps-head__lede {
+    margin: 8px 0 0;
+    font-size: var(--fs-lg);
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+  .ps-memo__h {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  /* 장년 기준으로 배지 글자를 한 단계 키운다(기본 badge 는 --fs-2xs) */
+  .ps-memo__h .badge {
+    font-size: var(--fs-xs);
+  }
+  .ps-memo__count {
+    margin: 6px 0 0;
+    text-align: right;
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .ps-done {
+    padding-top: 24px;
+    text-align: center;
+  }
+  .ps-done .ps-head__lede {
+    margin-bottom: 20px;
+  }
+
+  /* ---------- md: 768px 이상. 560 중앙 ---------- */
+  @media (min-width: 768px) {
+    .col.ps-form {
+      max-width: 560px;
+    }
+    .app__main:has(.ps-form) .appbar__in {
+      max-width: 560px;
+    }
+    .ps-bar {
+      position: static;
+      margin: 28px 0 0;
+      padding: 16px 0 20px;
+      background: var(--paper);
+    }
+    .col.ps-form:has(> .ps-bar) {
+      padding-bottom: 28px;
+    }
+    .ps-bar > .btn-primary {
+      width: auto;
+      min-width: 200px;
+      margin-left: auto;
+      padding: 0 28px;
+    }
+    .ps-bar:not(.ps-bar--split) {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .ps-bar--split {
+      grid-template-columns: 1fr auto auto;
+      column-gap: 8px;
+    }
+    .ps-bar--split > .ps-bar__t {
+      grid-column: 1;
+      grid-row: 1;
+    }
+    .ps-clear .btn {
+      width: auto;
+      padding: 0 24px;
+    }
+    .ps-done .btn-primary {
+      width: auto;
+      min-width: 220px;
+    }
+  }
+  @media (min-width: 1024px) and (hover: hover) {
+    .ps-why__go:hover,
+    .ps-list__row:hover,
+    .ps-bar--split > .btn-ghost:hover {
+      background: var(--surface-2);
+    }
+  }
+}

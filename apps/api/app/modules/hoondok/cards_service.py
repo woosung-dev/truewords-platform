@@ -19,6 +19,7 @@ from app.modules.hoondok.cards_schemas import (
     CardAdminItem,
     CardAdminListResponse,
     CardAdminUpdate,
+    CardListResponse,
     CardPublic,
     CardReceiptItem,
     CardShelf,
@@ -65,12 +66,17 @@ class CardService:
         """발송기(push_sender)도 쓰는 오늘 카드 조회."""
         return pick_today_card(await self.repo.list_active(), day)
 
-    # --- API-HD-047·048 공개 ---------------------------------------------------
+    # --- API-HD-047·048·054 공개 ---------------------------------------------------
 
     async def get_today(self) -> TodayCardResponse:
         today = self.today_fn()
         card = await self.today_card(today)
         return TodayCardResponse(date=today, card=_public(card) if card else None)
+
+    async def list_public(self) -> CardListResponse:
+        """API-HD-054 active 카드 전부. 순서는 (created_at, id) 로 고정해 같은 풀이면 같은 응답이다."""
+        cards = sorted(await self.repo.list_active(), key=lambda c: (c.created_at, str(c.id)))
+        return CardListResponse(items=[_public(c) for c in cards])
 
     async def _public_card(self, card_id: uuid.UUID) -> WordCard:
         """active 가 아니면(draft·retired·없음) 존재를 알리지 않는 404."""

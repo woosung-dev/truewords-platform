@@ -1,0 +1,749 @@
+/* 맞춤 첫 말씀 질문 흐름 (/hoondok/start) — 환영 · 질문 1~3 · 첫 말씀.
+   값의 원본은 실서비스 시안 hoondok-onboarding-design(DESIGN-PLAN §4~§7)이고 색·글자·모서리는 hoondok.css 토큰만 쓴다.
+   모바일은 한 화면 한 질문 + 하단 고정 행동 막대, ≥1024 는 왼쪽 맥락 400 · 80 · 오른쪽 답 640(합 1120) 2열이다.
+   모션은 정본 4종(선택 150ms · 누름 120ms)뿐이고 단계 전환·위기 안내 펼침에는 애니메이션이 없다. */
+[data-app="hoondok"] {
+  /* ---------- 1. 틀 ---------- */
+  /* 앱바는 보조기기용 h1 으로만 남기고 화면이 단계 머리(뒤로 · 진행 · 건너뛰기)를 그린다 */
+  .app__main--onb .appbar {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .onb {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+  .onb__aside,
+  .onb__main {
+    padding: 0 var(--gutter);
+  }
+  .onb__main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .onb__brand {
+    display: none;
+  }
+  .onb__spacer {
+    flex: 1;
+  }
+
+  /* 단계 머리: [뒤로 44] [진행 막대 + 1 / 3] [건너뛰기] */
+  .onb-step {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--paper);
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 52px;
+    margin: 0 calc(var(--gutter) * -1);
+    padding: 4px 12px 4px 8px;
+  }
+  .onb-step__back {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-sm);
+    display: grid;
+    place-items: center;
+    color: var(--ink-2);
+  }
+  .onb-step__prog {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  /* 정성·챌린지 진행 바(8px)는 "기록"이다. 단계 표시는 더 얇게 둬서 기록과 구분한다 */
+  .onb-step__track {
+    flex: 1;
+    max-width: 160px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .onb-step__fill {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: inherit;
+  }
+  .onb-step__label {
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--ink-2);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .onb-step__skip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 8px;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+
+  .onb__intro {
+    padding-top: 12px;
+  }
+  .onb .onb-title {
+    margin: 0;
+  }
+  .onb .onb-title:focus {
+    outline: none;
+  }
+  .onb .onb-title:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+  .onb .onb-lede {
+    font-size: var(--fs-lg);
+    line-height: 1.55;
+    margin: 10px 0 0;
+  }
+
+  /* 고른 까닭 줄 · 저장 안내 줄 · 공식성 안내 — 아이콘은 상자에 담지 않는다 */
+  .onb-why {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin: 0;
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+  .onb-why svg {
+    flex: none;
+    margin-top: 1px;
+    color: var(--ink-3);
+  }
+  .onb-why--store {
+    color: var(--ink-3);
+    margin-top: 20px;
+  }
+  /* 공식성 안내는 장년이 꼭 읽어야 하는 문장이라 본문 보조 크기(저장 안내와 같은 --fs-sm)로 둔다 */
+  .onb-official {
+    font-size: var(--fs-sm);
+    color: var(--ink-3);
+    margin-top: 12px;
+  }
+
+  /* ---------- 2. 답 행 (ChoiceRow) ---------- */
+  .onb-choices {
+    display: grid;
+    gap: 8px;
+    margin-top: 22px;
+  }
+  .onb-choices__apart {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+  .onb-choices__apart-t {
+    margin: 0;
+    font-size: var(--fs-sm);
+    color: var(--ink-3);
+  }
+  .onb-group {
+    margin-top: 24px;
+  }
+  .onb-group + .onb-group {
+    margin-top: 28px;
+  }
+  .onb-group__title {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: 600;
+  }
+  .onb-group .onb-choices {
+    margin-top: 12px;
+  }
+  .choice {
+    display: grid;
+    grid-template-columns: 1fr 24px;
+    align-items: center;
+    gap: 12px;
+    min-height: var(--onb-row-min);
+    width: 100%;
+    padding: 12px 16px;
+    text-align: left;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    box-shadow: var(--shadow-hairline);
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.12s ease;
+  }
+  .choice:active {
+    transform: scale(0.985);
+  }
+  .choice--single {
+    min-height: 56px;
+  }
+  .choice__tx {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .choice__t {
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--ink);
+  }
+  /* 장년 16px 이상 원칙 — 설명도 같은 크기이고 위계는 굵기·색으로 만든다 */
+  .choice__d {
+    font-size: var(--fs-lg);
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .choice__mark {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--ink-3);
+    background: var(--surface);
+    display: grid;
+    place-items: center;
+    color: transparent;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .choice[role="radio"] .choice__mark svg {
+    display: none;
+  }
+  /* 선택 = accent-soft 바탕 + 1px accent 테두리 + 채운 체크. 색만으로 알리지 않는다(체크 모양이 함께 바뀐다).
+     초록(--ok)은 완료·정본 등급 전용이라 쓰지 않는다 */
+  .choice[aria-checked="true"] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+  .choice[aria-checked="true"] .choice__t {
+    color: var(--accent-strong);
+  }
+  .choice[role="checkbox"][aria-checked="true"] .choice__mark {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+  .choice[role="radio"][aria-checked="true"] .choice__mark {
+    border-color: var(--accent);
+  }
+  .choice[role="radio"][aria-checked="true"] .choice__mark::after {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .choice[aria-disabled="true"] {
+    background: var(--surface-2);
+    border-color: var(--surface-2);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  .choice[aria-disabled="true"] .choice__t {
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .choice[aria-disabled="true"] .choice__mark {
+    border-color: var(--line);
+    background: var(--surface-2);
+  }
+  .choice[aria-disabled="true"]:active {
+    transform: none;
+  }
+
+  /* ---------- 3. 하단 행동 막대 — 질문 화면 셋이 같은 높이 · 같은 자리 ---------- */
+  .onb-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 15;
+    margin: 24px calc(var(--gutter) * -1) 0;
+    min-height: var(--onb-bar-h);
+    padding: 10px var(--gutter) calc(12px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .onb-bar__info {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 22px;
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+  }
+  .onb-bar__count {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .onb-bar__count[data-warn] {
+    color: var(--accent-strong);
+  }
+  .onb-bar__hint {
+    color: var(--ink-3);
+    text-align: right;
+  }
+
+  /* ---------- 4. 위기 안내 (질문 2 · 첫 말씀 같은 블록) ---------- */
+  .crisis {
+    grid-column: 1 / -1;
+    border-radius: var(--r);
+    background: var(--surface-2);
+    padding: 18px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .crisis__title {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .crisis__body {
+    margin: -6px 0 0;
+    font-size: var(--fs-md);
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  .crisis__calls {
+    display: grid;
+    gap: 8px;
+  }
+  /* 전화 버튼은 감귤을 쓰지 않는다 — 감귤은 "다음" 에만 둔다. --ink 바탕 + 흰 글자, 누르는 높이 48 이상 */
+  .call {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 60px;
+    padding: 10px 16px;
+    border-radius: var(--r-sm);
+    background: var(--ink);
+    color: var(--accent-ink);
+    transition:
+      background 0.12s ease,
+      transform 0.12s ease;
+  }
+  .call:active {
+    transform: scale(0.985);
+  }
+  .call:focus-visible {
+    outline-color: var(--ink);
+  }
+  .call__tx {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+  }
+  .call__tx b {
+    font-size: var(--fs-md);
+    font-weight: 600;
+  }
+  .call__tx span {
+    font-size: var(--fs-sm);
+    font-variant-numeric: tabular-nums;
+  }
+  .crisis__after {
+    margin: 0;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+
+  /* ---------- 5. 환영 ---------- */
+  .onb-welcome__photo {
+    margin: 8px 0 0;
+    height: 240px;
+    border-radius: var(--r);
+    overflow: hidden;
+    background: var(--ink);
+  }
+  .onb-welcome__photo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 60%;
+  }
+  .onb-welcome__body {
+    padding: 20px 0 8px;
+  }
+  .onb-welcome .onb__brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .onb-asks {
+    margin: 22px 0 0;
+    border-top: 1px solid var(--line);
+  }
+  .onb-asks__row {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: var(--fs-lg);
+    line-height: 1.5;
+  }
+  .onb-asks__row dt {
+    font-weight: 700;
+  }
+  .onb-asks__row dd {
+    margin: 0;
+    color: var(--ink-2);
+  }
+  .onb-asks__row dd .badge {
+    margin-left: 6px;
+    vertical-align: 2px;
+  }
+  .onb-asks-not {
+    margin-top: 12px;
+  }
+  .onb-welcome__cta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 24px;
+  }
+  /* 글자 버튼 — 밑줄 대신 44px 높이와 굵기로 누를 곳임을 알린다 */
+  .onb-text-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 8px;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .onb-text-btn--accent {
+    color: var(--accent-strong);
+  }
+
+  /* ---------- 6. 첫 말씀 ---------- */
+  .onb-result__why {
+    margin-top: 14px;
+  }
+  /* 사용자가 고른 이름(따옴표 인용)만 진하게 */
+  .onb-result__why b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .onb-result__card {
+    margin-top: 20px;
+  }
+  .onb-result__card .crisis {
+    margin-bottom: 16px;
+  }
+  /* 모바일 첫 말씀: 단계 머리 바로 아래 위기 안내 */
+  .onb-result .onb__aside > .only-m > .crisis {
+    margin-top: 8px;
+  }
+  .onb-word .scripture {
+    margin: 12px 0 0;
+  }
+  .onb-word__acts {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .onb-word__acts .btn-primary {
+    flex: 1;
+    width: auto;
+  }
+  .onb-word__acts .btn-line {
+    width: auto;
+    padding: 0 14px;
+  }
+  .onb-state {
+    border-radius: var(--r);
+    background: var(--surface-2);
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .onb-state__t {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-lg);
+    font-weight: 600;
+  }
+  .onb-state__b {
+    margin: 0;
+    font-size: var(--fs-md);
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  /* PC 에서 btn--pc-auto 가 열 폭으로 늘어나지 않게 버튼은 제 폭만 차지한다 */
+  .onb-state .btn {
+    margin-top: 8px;
+    align-self: flex-start;
+  }
+  .onb-skel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .onb-skel .skeleton {
+    min-height: 0;
+    border-radius: var(--r-xs);
+  }
+  .onb-picked {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .onb-picked__h {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .onb-picked__h h3 {
+    margin: 0;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--ink-3);
+  }
+  .onb-picked__h .onb-text-btn {
+    margin-right: -8px;
+  }
+  .onb-picked .chips {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  /* 읽기 전용 칩 — 누를 수 없으므로 .chip-btn 과 같은 모양이되 눌림 효과가 없다 */
+  .onb-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    font-size: var(--fs-sm);
+  }
+
+  /* ---------- 7. md (768~1023): 1열 · 720 중앙 ---------- */
+  @media (min-width: 768px) {
+    .onb-choices--md-two {
+      grid-template-columns: 1fr 1fr;
+    }
+    .onb__aside,
+    .onb__main {
+      width: 100%;
+      max-width: var(--measure-app);
+      margin: 0 auto;
+    }
+    .onb-welcome__photo {
+      height: 340px;
+    }
+  }
+
+  /* ---------- 8. lg (≥1024): 왼쪽 맥락 400 · 80 · 오른쪽 답 640 ---------- */
+  @media (min-width: 1024px) {
+    .onb {
+      display: grid;
+      /* 1024~1183 폭에서는 사이 간격과 오른쪽 열이 줄어 가로 넘침이 없다 */
+      grid-template-columns: minmax(320px, 400px) minmax(32px, 80px) minmax(0, 640px);
+      justify-content: center;
+      align-items: start;
+      padding: 0 32px;
+    }
+    .onb__aside,
+    .onb__main {
+      padding: 0;
+      max-width: none;
+      margin: 0;
+    }
+    /* 왼쪽 열은 화면 높이를 채우고 저장 안내·베타 고지를 바닥에 붙인다. 스크롤해도 질문 문맥이 남는다 */
+    .onb__aside {
+      grid-column: 1;
+      position: sticky;
+      top: 0;
+      height: 100dvh;
+      padding: 40px 0 32px;
+      display: flex;
+      flex-direction: column;
+    }
+    .onb__main {
+      grid-column: 3;
+      padding-top: 116px;
+      min-height: 100dvh;
+    }
+    .onb__brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 36px;
+      margin-bottom: 36px;
+      font-size: var(--fs-xl);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .onb__pic {
+      margin-top: 32px;
+      flex: 0 1 280px;
+      min-height: 120px;
+      border-radius: var(--r);
+      overflow: hidden;
+      background: var(--ink);
+    }
+    .onb__pic img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 50% 60%;
+    }
+    .onb__foot {
+      margin-top: auto;
+      padding-top: 24px;
+    }
+    .onb__foot .notice {
+      text-align: left;
+      padding-top: 10px;
+    }
+    .onb-step {
+      position: static;
+      margin: 0 0 0 -10px;
+      padding: 0;
+      background: none;
+    }
+    .onb__intro {
+      padding-top: 20px;
+    }
+    .onb-choices {
+      margin-top: 0;
+    }
+    .onb__main > .onb-group:first-child {
+      margin-top: 0;
+    }
+    .onb-choices--pc-two {
+      grid-template-columns: 1fr 1fr;
+    }
+    .onb-bar {
+      margin: 24px 0 0;
+      padding: 16px 0 28px;
+      background: var(--paper);
+    }
+    /* PC 버튼 폭 체계 하나: 막대·카드 속 행동 모두 내용 폭, 최소 220. 막대는 오른쪽, 카드는 왼쪽 정렬 */
+    .onb-bar > .btn {
+      width: auto;
+      min-width: 220px;
+      margin-left: auto;
+      padding: 0 28px;
+    }
+    .onb-word__acts .btn-primary,
+    .onb .btn--pc-auto {
+      flex: 0 0 auto;
+      width: auto;
+      min-width: 220px;
+      padding: 0 28px;
+    }
+    .onb-picked {
+      margin-top: 32px;
+      padding-top: 20px;
+    }
+    .onb .only-m {
+      display: none;
+    }
+
+    .onb-welcome.onb {
+      align-items: center;
+    }
+    .onb-welcome .onb__aside {
+      position: static;
+      height: auto;
+      padding: 0;
+      align-self: center;
+    }
+    .onb-welcome .onb__main {
+      padding-top: 0;
+      min-height: 0;
+      align-self: center;
+      justify-content: center;
+    }
+    .onb-welcome .onb__brand {
+      font-size: var(--fs-xl);
+      margin-bottom: 36px;
+    }
+    .onb-welcome__photo {
+      margin: 0;
+      height: min(640px, calc(100dvh - 160px));
+    }
+    .onb-welcome__body {
+      padding: 0;
+    }
+    .onb-welcome__cta {
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+    }
+    .onb-result__card {
+      margin-top: 0;
+    }
+    /* 첫 말씀은 질문이 아니라서 행동 막대를 카드 바로 아래에 둔다 */
+    .onb-result .onb__main {
+      min-height: 0;
+    }
+    .onb-result .onb__spacer {
+      display: none;
+    }
+
+    @media (hover: hover) {
+      .onb-step__back:hover,
+      .onb-step__skip:hover,
+      .onb-text-btn:hover {
+        background: var(--surface-2);
+      }
+      .call:hover {
+        background: var(--ink-2);
+      }
+      .choice:not([aria-checked="true"]):not([aria-disabled="true"]):hover {
+        background: var(--surface-2);
+      }
+    }
+  }
+  @media (max-width: 1023.98px) {
+    .onb .only-pc {
+      display: none;
+    }
+  }
+}

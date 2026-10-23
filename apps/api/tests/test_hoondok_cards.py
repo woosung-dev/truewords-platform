@@ -174,6 +174,22 @@ async def test_public_card_hides_draft_and_retired(ctx: TestClient):
 
 
 @pytest.mark.asyncio
+async def test_list_cards_returns_only_active_in_stable_order(ctx: TestClient):
+    await add(ctx, make_card(3), make_card(1), make_card(2, status="draft"), make_card(4, status="retired"))
+    res = ctx.get("/hoondok/cards")
+    assert res.status_code == 200
+    items = res.json()["items"]
+    assert [c["id"] for c in items] == [str(uuid.UUID(int=1)), str(uuid.UUID(int=3))]  # draft·retired 제외, 생성순
+    assert all("status" not in c and "pinned_on" not in c for c in items)  # 운영 필드 없음
+
+
+@pytest.mark.asyncio
+async def test_list_cards_empty_pool_is_empty_list(ctx: TestClient):
+    await add(ctx, make_card(1, status="draft"))
+    assert ctx.get("/hoondok/cards").json() == {"items": []}
+
+
+@pytest.mark.asyncio
 async def test_receive_is_idempotent(ctx: TestClient):
     await add(ctx, make_card(1))
     await login(ctx)

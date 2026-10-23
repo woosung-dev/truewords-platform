@@ -34,3 +34,7 @@ export const highlightsKey = (volume?: string) => [...HIGHLIGHTS_KEY, volume ?? 
 
 /** AI 낭독 목소리 목록·켜짐·월 상한 (PLAN-HD-011, API-HD-044). 사용자별 값이 아니다. */
 export const TTS_VOICES_KEY = ["hoondok", "tts-voices"] as const;
+
+/** 오늘의 책갈피 (API-HD-047)·active 카드 전부 (API-HD-054). 사용자별 값이 아니다 — 맞춤 카드는 기기에서 고른다. */
+export const CARDS_TODAY_KEY = ["hoondok", "cards", "today"] as const;
+export const CARDS_LIST_KEY = ["hoondok", "cards", "list"] as const;

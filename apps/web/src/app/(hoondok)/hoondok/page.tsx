@@ -5,26 +5,28 @@
 // 홈은 "오늘 무엇을 할지", 읽기는 `/hoondok/read` 로 분리해야 미션 카드 → 훈독 루프가 산다.
 import { loadToday } from "@/features/hoondok/api";
 import { loadTodayCard } from "@/features/hoondok/cards/api";
-import { BookmarkHomeCard } from "@/features/hoondok/cards/components/home-card";
 import { cardDayLabel } from "@/features/hoondok/cards/format";
 import { HomeGreeting, HomeMissions, HomeTogether } from "@/features/hoondok/components/home-missions";
 import { isHoondokCardsEnabled } from "@/features/hoondok/flag";
 import { InstallCard } from "@/features/hoondok/install/components/install-card";
 import { JeongseongCard } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import { JeongseongSheet } from "@/features/hoondok/jeongseong/components/jeongseong-sheet";
+import { PersonalBookmarkHome } from "@/features/hoondok/personal/components/home-bookmark";
 import { formatKstDate } from "@/features/hoondok/today";
 import { GroupList } from "@/features/hoondok/together/components/group-list";
 
 export default async function HoondokHomePage() {
-  // 오늘의 책갈피(PLAN-HD-012)는 플래그 ON 일 때만 부른다. 풀이 비었거나 못 읽으면 카드를 그리지 않는다.
-  const [today, card] = await Promise.all([loadToday(), isHoondokCardsEnabled() ? loadTodayCard() : null]);
+  // 오늘의 책갈피(PLAN-HD-012)는 플래그 ON 일 때만 부른다. 풀이 비었거나 못 읽으면 오늘 편성 카드는 없다.
+  // 이 기기에 고른 답이 있으면 맞춘 카드로 바뀐다(PersonalBookmarkHome — 답은 기기에만 있어 클라이언트가 고른다).
+  const isCardsEnabled = isHoondokCardsEnabled();
+  const [today, card] = await Promise.all([loadToday(), isCardsEnabled ? loadTodayCard() : null]);
   const { weekday, iso } = formatKstDate();
 
   return (
     <section className="col">
       <HomeGreeting />
 
-      {card && <BookmarkHomeCard card={card} dateLabel={cardDayLabel(iso)} />}
+      {isCardsEnabled && <PersonalBookmarkHome todayCard={card} dateLabel={cardDayLabel(iso)} />}
 
       <HomeMissions today={today} todayWeekday={weekday} />
 

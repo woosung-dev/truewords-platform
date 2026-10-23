@@ -703,6 +703,23 @@
         "title": "CardAdminUpdate",
         "type": "object"
       },
+      "CardListResponse": {
+        "description": "API-HD-054. active 카드 전부 — 웹이 기기 안에서 관심 주제·마음으로 한 장을 고른다(선택값은 서버로 오지 않는다).",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CardPublic"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "CardListResponse",
+        "type": "object"
+      },
       "CardPublic": {
         "description": "공개 카드 1장. `volume`·`chunk_id`·`chunk_index` 로 서고 원문(`/hoondok/words/{volume}?chunk_id=`)에 잇는다.",
         "properties": {
@@ -10862,6 +10879,28 @@
           }
         },
         "summary": "Signup",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/cards": {
+      "get": {
+        "description": "API-HD-054 active 카드 전부(쿼리 파라미터 없음, 인증 없음). 맞춤 카드는 기기에서 고르고 선택값을 보내지 않는다.",
+        "operationId": "list_cards_hoondok_cards_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Cards",
         "tags": [
           "hoondok"
         ]
