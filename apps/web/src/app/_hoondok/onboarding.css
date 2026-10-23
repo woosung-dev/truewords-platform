@@ -580,7 +580,8 @@
   @media (min-width: 1024px) {
     .onb {
       display: grid;
-      grid-template-columns: 400px 80px 640px;
+      /* 1024~1183 폭에서는 사이 간격과 오른쪽 열이 줄어 가로 넘침이 없다 */
+      grid-template-columns: minmax(320px, 400px) minmax(32px, 80px) minmax(0, 640px);
       justify-content: center;
       align-items: start;
       padding: 0 32px;
