@@ -1,4 +1,4 @@
-"""오늘의 책갈피 API (API-HD-047~051, PLAN-HD-012).
+"""오늘의 책갈피 API (API-HD-047~051·054, PLAN-HD-012).
 
 `/hoondok/cards/*` 는 공개(active 카드만), `/hoondok/me/cards*` 는 `hoondok_token` 이며 쓰기는 CSRF 헤더를 요구한다.
 **라우트 순서 주의**: `/cards/today` 가 `/cards/{card_id}` 보다 앞에 있어야 "today" 가 UUID 로 파싱되지 않는다.
@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.modules.hoondok.cards_schemas import (
     CardFilter,
+    CardListResponse,
     CardPublic,
     CardReceiptItem,
     MyCardsResponse,
@@ -21,6 +22,12 @@ from app.modules.identity.dependencies import get_current_user, verify_csrf
 from app.modules.identity.models import User
 
 router = APIRouter(prefix="/hoondok", tags=["hoondok"])
+
+
+@router.get("/cards", response_model=CardListResponse)
+async def list_cards(service: CardService = Depends(get_card_service)) -> CardListResponse:
+    """API-HD-054 active 카드 전부(쿼리 파라미터 없음, 인증 없음). 맞춤 카드는 기기에서 고르고 선택값을 보내지 않는다."""
+    return await service.list_public()
 
 
 @router.get("/cards/today", response_model=TodayCardResponse)

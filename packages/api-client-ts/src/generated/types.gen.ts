@@ -411,6 +411,18 @@ export type CardAdminUpdate = {
 };
 
 /**
+ * CardListResponse
+ *
+ * API-HD-054. active 카드 전부 — 웹이 기기 안에서 관심 주제·마음으로 한 장을 고른다(선택값은 서버로 오지 않는다).
+ */
+export type CardListResponse = {
+    /**
+     * Items
+     */
+    items: Array<CardPublic>;
+};
+
+/**
  * CardPublic
  *
  * 공개 카드 1장. `volume`·`chunk_id`·`chunk_index` 로 서고 원문(`/hoondok/words/{volume}?chunk_id=`)에 잇는다.
@@ -6729,6 +6741,22 @@ export type SignupHoondokAuthSignupPostResponses = {
 };
 
 export type SignupHoondokAuthSignupPostResponse = SignupHoondokAuthSignupPostResponses[keyof SignupHoondokAuthSignupPostResponses];
+
+export type ListCardsHoondokCardsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/cards';
+};
+
+export type ListCardsHoondokCardsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: CardListResponse;
+};
+
+export type ListCardsHoondokCardsGetResponse = ListCardsHoondokCardsGetResponses[keyof ListCardsHoondokCardsGetResponses];
 
 export type GetTodayCardHoondokCardsTodayGetData = {
     body?: never;

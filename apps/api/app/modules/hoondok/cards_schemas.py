@@ -30,6 +30,12 @@ class TodayCardResponse(BaseModel):
     card: CardPublic | None
 
 
+class CardListResponse(BaseModel):
+    """API-HD-054. active 카드 전부 — 웹이 기기 안에서 관심 주제·마음으로 한 장을 고른다(선택값은 서버로 오지 않는다)."""
+
+    items: list[CardPublic]
+
+
 class CardReceiptItem(BaseModel):
     """API-HD-049·050 응답이자 051 목록의 한 줄."""
 
