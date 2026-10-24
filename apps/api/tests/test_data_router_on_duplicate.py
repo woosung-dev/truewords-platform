@@ -80,31 +80,6 @@ def test_predict_outcome_qdrant_only_no_db():
 # ---------------------------------------------------------------------------
 
 
-def test_process_file_standard_wires_strategy_correctly():
-    """_process_file_standard가 strategy 결과를 실제 IO 호출로 wiring해야 한다.
-
-    Strategy 단위 테스트는 정책 자체를 검증, 이 테스트는 wiring(IO 호출) 회귀 잠금.
-    """
-    import inspect
-
-    from app.modules.admin.data_router import _process_file_standard
-
-    src = inspect.getsource(_process_file_standard)
-    # P1 wiring: strategy["needs_reset"] → raw httpx delete + start_chunk=0
-    # (PR-E 이후 sync_client.delete → _sync_delete_by_filter (raw httpx HTTP/1.1))
-    assert 'strategy["needs_reset"]' in src
-    assert "_sync_delete_by_filter" in src
-    assert "start_chunk = 0" in src
-    # P2 wiring: skip 단축 시 complete_job(total_chunks=preserved_total)
-    assert 'strategy["skip_short_circuit"]' in src
-    assert "total_chunks=preserved_total" in src
-    # 정상 적재 완료 후 total_chunks 명시
-    assert "total_chunks=len(chunks)" in src
-    # payload_sources는 strategy에서 가져와 ingest_chunks에 전달
-    assert 'strategy["payload_sources"]' in src or "payload_sources = strategy" in src
-    # _resolve_upload_strategy 호출 자체
-    assert "_resolve_upload_strategy" in src
-
 
 def test_complete_job_accepts_total_chunks_kwarg():
     """skip 단축 경로 + 정상 완료 모두 total_chunks 키워드 인자로 복구 가능해야 함."""

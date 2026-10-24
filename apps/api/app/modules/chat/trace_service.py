@@ -46,7 +46,7 @@ from app.modules.chat.pipeline.state import PipelineState
 from app.modules.chat.prompt import build_context_prompt
 from app.modules.chat.schemas import ChatRequest
 from app.modules.chat.service import DEFAULT_RUNTIME_CONFIG
-from app.modules.chat.stream_generator import generate_answer_stream
+from app.modules.chat.stream_generator import generate_answer_stream, sanitize_answer_stream
 from app.modules.chat.trace import (
     HybridCall,
     SpanRecord,
@@ -81,7 +81,6 @@ from app.modules.search.intent_classifier import (
     rerank_top_k_for,
 )
 from app.modules.search.hybrid import SearchResult
-from app.modules.safety.output_filter import StreamingSanitizer
 
 logger = logging.getLogger(__name__)
 
@@ -707,27 +706,20 @@ class RagTraceService:
                 ],
                 answer="",
             )
-            sanitizer = StreamingSanitizer()
-            full_answer: list[str] = []
-            abort_guidance: str | None = None
-            async for chunk in generate_answer_stream(
-                ctx.request.query,
-                context_results,
-                generation_config=gen_cfg,
-                history=history_window,
-            ):
-                if span is not None and span.ttft_ms is None:
-                    collector = current_trace.get()
-                    if collector is not None:
-                        span.ttft_ms = collector.ms(perf_counter())
-                released = sanitizer.feed(chunk)
-                if sanitizer.aborted:
-                    abort_guidance = released
-                    break
-                full_answer.append(chunk)
-            if not sanitizer.aborted:
-                sanitizer.flush()
-            ctx.answer = abort_guidance if abort_guidance is not None else "".join(full_answer)
+            async def observed_chunks():
+                from contextlib import aclosing
+
+                chunks = generate_answer_stream(ctx.request.query, context_results, generation_config=gen_cfg, history=history_window)
+                async with aclosing(chunks):
+                    async for chunk in chunks:
+                        if span is not None and span.ttft_ms is None:
+                            collector = current_trace.get()
+                            if collector is not None:
+                                span.ttft_ms = collector.ms(perf_counter())
+                        yield chunk
+
+            async for _ in sanitize_answer_stream(observed_chunks(), ctx):
+                pass
             state.generation.answer = ctx.answer
             # 스트림 경로는 GENERATED 를 남기지 않는다. trace 는 경고 없이 진행하려고 맞춘다.
             ctx.pipeline_state = PipelineState.GENERATED
@@ -735,7 +727,7 @@ class RagTraceService:
                 span.output = {
                     "answer_chars": len(ctx.answer or ""),
                     "context_n": len(context_results),
-                    "sanitizer_aborted": sanitizer.aborted,
+                    "sanitizer_aborted": ctx.stream_sanitizer_aborted,
                     "resolved_answer_mode": ctx.resolved_answer_mode,
                 }
         # [확인 필요] 동기 GenerationStage 는 pastoral 답변에 핫라인을 붙이지만 스트림 경로는

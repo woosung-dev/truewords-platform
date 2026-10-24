@@ -183,6 +183,12 @@ def process_file_standard(
         future = asyncio.run_coroutine_threadsafe(coro, loop)
         return future.result()
 
+    _run_file_standard(file_path, filename, source, on_duplicate, run_repo=run_repo, run_async=run_async)
+
+
+def _run_file_standard(file_path: Path, filename: str, source: str, on_duplicate: str, *, run_repo, run_async) -> None:
+    """실제 적재 정책과 I/O 실행. DB·비동기 위임 adapter는 진입점이 조립한다."""
+    volume_key = unicodedata.normalize("NFC", filename)
     try:
         # ADR-30 follow-up: 모든 모드에서 기존 job을 먼저 조회 (skip 단축 + reset 판단용)
         existing_job = run_repo(lambda r: r.get_by_volume_key(volume_key))

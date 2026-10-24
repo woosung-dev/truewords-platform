@@ -1,15 +1,18 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
 import { ModesChart } from "@/features/analytics/components/modes-chart";
-import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
+
 import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
 import type { DailyCount, SearchStats, TopQuery } from "@/features/analytics/types";
+
+const QueryDetailModal = dynamic(() => import("@/features/analytics/components/query-detail-modal"));
 
 // ─────────────────────────────────────────────
 // StatCard (inline, 카드 컴포넌트 미사용 패턴 유지)
@@ -146,7 +149,7 @@ function TopQueriesTable({
 // 메인 페이지
 // ─────────────────────────────────────────────
 export default function AnalyticsPage() {
-  const [selectedQuery, setSelectedQuery] = useState<string | null>(null);
+  const [selectedQuery, setSelectedQuery] = useState<{ query: string; open: boolean } | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["search-stats"],
@@ -244,17 +247,23 @@ export default function AnalyticsPage() {
       {/* 하단 2열 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FallbackDistribution stats={stats} loading={statsLoading} />
-        <TopQueriesTable queries={topQueries} loading={topQueriesLoading} onSelect={(q) => setSelectedQuery(q)} />
+        <TopQueriesTable
+          queries={topQueries}
+          loading={topQueriesLoading}
+          onSelect={(q) => setSelectedQuery({ query: q, open: true })}
+        />
       </div>
 
-      <QueryDetailModal
-        open={selectedQuery !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedQuery(null);
-        }}
-        queryText={selectedQuery}
-        days={30}
-      />
+      {selectedQuery !== null && (
+        <QueryDetailModal
+          open={selectedQuery.open}
+          onOpenChange={(open) => {
+            setSelectedQuery((current) => (current ? { ...current, open } : null));
+          }}
+          queryText={selectedQuery.query}
+          days={30}
+        />
+      )}
     </div>
   );
 }

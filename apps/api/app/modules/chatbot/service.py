@@ -4,6 +4,7 @@ import uuid
 
 from fastapi import HTTPException, status
 
+from app.modules.admin.service import AdminService
 from app.modules.chat.prompt import BASE_SYSTEM_PROMPT
 from app.modules.chatbot.models import ChatbotConfig
 from app.modules.chatbot.repository import ChatbotRepository
@@ -148,7 +149,7 @@ class ChatbotService:
             return None
         return dict(record.search_tiers or {})
 
-    async def create(self, data: ChatbotConfigCreate) -> ChatbotConfig:
+    async def create(self, data: ChatbotConfigCreate, *, commit: bool = True) -> ChatbotConfig:
         existing = await self.repo.get_by_chatbot_id(data.chatbot_id)
         if existing:
             raise HTTPException(
@@ -160,11 +161,12 @@ class ChatbotService:
         dump["search_tiers"] = dump["search_tiers"] if isinstance(dump["search_tiers"], dict) else data.search_tiers.model_dump()
         config = ChatbotConfig(**dump)
         saved = await self.repo.create(config)
-        await self.repo.commit()
+        if commit:
+            await self.repo.commit()
         return saved
 
     async def update(
-        self, config_id: uuid.UUID, data: ChatbotConfigUpdate
+        self, config_id: uuid.UUID, data: ChatbotConfigUpdate, *, commit: bool = True
     ) -> ChatbotConfig:
         config = await self.repo.get_by_id(config_id)
         if config is None:
@@ -181,5 +183,28 @@ class ChatbotService:
             sent = st.model_dump(include=set(st.model_fields_set))
             updates["search_tiers"] = {**(config.search_tiers or {}), **sent}
         updated = await self.repo.update(config, updates)
-        await self.repo.commit()
+        if commit:
+            await self.repo.commit()
         return updated
+
+    async def create_with_audit(self, data: ChatbotConfigCreate, audit: AdminService, actor_id: uuid.UUID) -> ChatbotConfig:
+        config = await self.create(data, commit=False)
+        await audit.log_audit(
+            admin_user_id=actor_id,
+            action="chatbot_config.create",
+            target_table="chatbot_configs",
+            target_id=config.id,
+            changes=data.model_dump(mode="json"),
+        )
+        return config
+
+    async def update_with_audit(self, config_id: uuid.UUID, data: ChatbotConfigUpdate, audit: AdminService, actor_id: uuid.UUID) -> ChatbotConfig:
+        config = await self.update(config_id, data, commit=False)
+        await audit.log_audit(
+            admin_user_id=actor_id,
+            action="chatbot_config.update",
+            target_table="chatbot_configs",
+            target_id=config_id,
+            changes=data.model_dump(exclude_unset=True, mode="json"),
+        )
+        return config

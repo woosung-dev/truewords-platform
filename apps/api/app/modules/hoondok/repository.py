@@ -44,18 +44,21 @@ class DailyReadingRepository:
         )
         return set(result.scalars().all())
 
-    async def create(self, reading: DailyReading) -> DailyReading:
+    async def create(self, reading: DailyReading, *, commit: bool = True) -> DailyReading:
         """unique(reading_date) 위반은 IntegrityError 그대로 — 호출자가 409 로 바꾼다. 실패한 세션은 롤백해 재사용 가능하게 둔다."""
-        return await self._save(reading)
+        return await self._save(reading, commit=commit)
 
-    async def save(self, reading: DailyReading) -> DailyReading:
+    async def save(self, reading: DailyReading, *, commit: bool = True) -> DailyReading:
         """수정 저장. 날짜 변경으로 unique 를 어기면 IntegrityError."""
-        return await self._save(reading)
+        return await self._save(reading, commit=commit)
 
-    async def _save(self, reading: DailyReading) -> DailyReading:
+    async def _save(self, reading: DailyReading, *, commit: bool = True) -> DailyReading:
         self.session.add(reading)
         try:
-            await self.session.commit()
+            if commit:
+                await self.session.commit()
+            else:
+                await self.session.flush()
         except Exception:
             await self.session.rollback()
             raise

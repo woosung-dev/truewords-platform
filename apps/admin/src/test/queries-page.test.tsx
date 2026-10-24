@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { QueryListResponse } from "@/features/analytics/types";
@@ -46,11 +46,9 @@ function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
-    <QueryClientProvider client={client}>
-      <QueriesExplorerPage />
-    </QueryClientProvider>,
-  );
+  return render(<QueriesExplorerPage />, {
+    wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+  });
 }
 
 function fixture(overrides: Partial<QueryListResponse> = {}): QueryListResponse {
@@ -65,12 +63,14 @@ function fixture(overrides: Partial<QueryListResponse> = {}): QueryListResponse 
 }
 
 beforeEach(() => {
+  for (const key of [...mockSearchParams.keys()]) mockSearchParams.delete(key);
   mockGetQueries.mockReset();
   mockPush.mockReset();
 });
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
 });
 
 describe("QueriesExplorerPage", () => {
@@ -166,5 +166,31 @@ describe("QueriesExplorerPage", () => {
     // count 열과 negative_feedback_count 열 모두 "2"를 표시하므로 getAllByText 사용
     const allTwos = await screen.findAllByText("2");
     expect(allTwos.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("검색 URL과 debounce", () => {
+  it("입력 중 필터가 바뀌어도 최신 URL에 검색어를 반영한다", async () => {
+    mockGetQueries.mockResolvedValue(fixture());
+    const view = renderPage();
+    await screen.findByText(/조건에 맞는 질문이 없습니다/);
+    vi.useFakeTimers();
+    fireEvent.change(screen.getByPlaceholderText("질문 검색..."), { target: { value: "감사" } });
+    mockSearchParams.set("days", "90");
+    view.rerender(<QueriesExplorerPage />);
+    act(() => vi.advanceTimersByTime(300));
+    expect(mockPush).toHaveBeenLastCalledWith("/analytics/queries?days=90&q=%EA%B0%90%EC%82%AC&page=1");
+  });
+  it("뒤로 가기는 이전 입력 timer를 취소하고 URL 검색어를 표시한다", async () => {
+    mockGetQueries.mockResolvedValue(fixture());
+    const view = renderPage();
+    await screen.findByText(/조건에 맞는 질문이 없습니다/);
+    vi.useFakeTimers();
+    fireEvent.change(screen.getByPlaceholderText("질문 검색..."), { target: { value: "쓰던 값" } });
+    mockSearchParams.set("q", "이전");
+    view.rerender(<QueriesExplorerPage />);
+    expect(screen.getByPlaceholderText("질문 검색...")).toHaveValue("이전");
+    act(() => vi.advanceTimersByTime(300));
+    expect(mockPush).not.toHaveBeenCalled();
   });
 });

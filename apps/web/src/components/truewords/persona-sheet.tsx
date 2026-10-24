@@ -104,13 +104,18 @@ export interface PersonaSheetProps {
   onValueChange: (value: PersonaMode) => void;
 }
 
-export function PersonaSheet({ open, onOpenChange, value, onValueChange }: PersonaSheetProps) {
-  const [draft, setDraft] = React.useState<PersonaMode>(value);
+export function PersonaSheet(props: PersonaSheetProps) {
+  return (
+    <Sheet open={props.open} onOpenChange={props.onOpenChange}>
+      <SheetContent side="bottom" className="max-h-[85vh] rounded-t-2xl" aria-label="답변 모드 선택">
+        <PersonaSheetBody key={props.open ? props.value : "closed"} {...props} />
+      </SheetContent>
+    </Sheet>
+  );
+}
 
-  // sheet 열릴 때 draft를 현재 value 로 동기화
-  React.useEffect(() => {
-    if (open) setDraft(value);
-  }, [open, value]);
+function PersonaSheetBody({ onOpenChange, value, onValueChange }: PersonaSheetProps) {
+  const [draft, setDraft] = React.useState<PersonaMode>(value);
 
   const handleApply = () => {
     onValueChange(draft);
@@ -118,72 +123,70 @@ export function PersonaSheet({ open, onOpenChange, value, onValueChange }: Perso
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[85vh] rounded-t-2xl" aria-label="답변 모드 선택">
-        <SheetHeader className="px-5 pt-5 pb-3">
-          <SheetTitle className="text-lg">답변 모드</SheetTitle>
-          <SheetDescription>누가 답해주면 좋을까요?</SheetDescription>
-        </SheetHeader>
+    <>
+      <SheetHeader className="px-5 pt-5 pb-3">
+        <SheetTitle className="text-lg">답변 모드</SheetTitle>
+        <SheetDescription>누가 답해주면 좋을까요?</SheetDescription>
+      </SheetHeader>
 
-        <div role="radiogroup" aria-label="답변 모드 5종" className="flex flex-col gap-2 px-4 overflow-y-auto">
-          {PERSONAS.map((p) => {
-            const active = draft === p.key;
-            const { Icon } = p;
-            return (
-              <button
-                key={p.key}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => setDraft(p.key)}
+      <div role="radiogroup" aria-label="답변 모드 5종" className="flex flex-col gap-2 px-4 overflow-y-auto">
+        {PERSONAS.map((p) => {
+          const active = draft === p.key;
+          const { Icon } = p;
+          return (
+            <button
+              key={p.key}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => setDraft(p.key)}
+              className={cn(
+                "group flex items-center gap-4 rounded-2xl border px-4 py-3.5 text-left",
+                "transition-all duration-200 active:scale-[0.99]",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                active ? "border-accent bg-accent/5" : "border-border bg-card hover:bg-accent/5",
+              )}
+            >
+              <span
+                className="inline-flex size-14 shrink-0 items-center justify-center rounded-2xl bg-persona-icon-bg"
+                aria-hidden="true"
+              >
+                <Icon />
+              </span>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">{p.label}</span>
+                  {p.badge ? (
+                    <span className="rounded-full bg-accent/10 px-2 py-0.5 text-2xs font-semibold text-accent">
+                      {p.badge}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-0.5 text-sm text-muted-foreground break-keep-all">{p.description}</p>
+              </div>
+
+              {/* radio dot */}
+              <span
+                aria-hidden="true"
                 className={cn(
-                  "group flex items-center gap-4 rounded-2xl border px-4 py-3.5 text-left",
-                  "transition-all duration-200 active:scale-[0.99]",
-                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  active ? "border-accent bg-accent/5" : "border-border bg-card hover:bg-accent/5",
+                  "inline-flex size-5 shrink-0 items-center justify-center rounded-full border-2",
+                  active ? "border-accent" : "border-border",
                 )}
               >
-                <span
-                  className="inline-flex size-14 shrink-0 items-center justify-center rounded-2xl bg-persona-icon-bg"
-                  aria-hidden="true"
-                >
-                  <Icon />
-                </span>
+                {active ? <span className="size-2.5 rounded-full bg-accent" /> : null}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">{p.label}</span>
-                    {p.badge ? (
-                      <span className="rounded-full bg-accent/10 px-2 py-0.5 text-2xs font-semibold text-accent">
-                        {p.badge}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-0.5 text-sm text-muted-foreground break-keep-all">{p.description}</p>
-                </div>
-
-                {/* radio dot */}
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "inline-flex size-5 shrink-0 items-center justify-center rounded-full border-2",
-                    active ? "border-accent" : "border-border",
-                  )}
-                >
-                  {active ? <span className="size-2.5 rounded-full bg-accent" /> : null}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <SheetFooter className="px-5 pt-3 pb-safe">
-          <ChatButton onClick={handleApply} size="xl" fullWidth>
-            적용하기
-          </ChatButton>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      <SheetFooter className="px-5 pt-3 pb-safe">
+        <ChatButton onClick={handleApply} size="xl" fullWidth>
+          적용하기
+        </ChatButton>
+      </SheetFooter>
+    </>
   );
 }
 

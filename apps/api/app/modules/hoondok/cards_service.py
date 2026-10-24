@@ -12,6 +12,7 @@ from datetime import date
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
+from app.modules.admin.service import AdminService
 from app.core.common.clock import today_kst, utcnow
 from app.modules.hoondok.cards_repository import CardRepository
 from app.modules.hoondok.cards_schemas import (
@@ -147,18 +148,18 @@ class CardAdminService:
         if other is not None and other.id != card_id:
             raise HTTPException(status.HTTP_409_CONFLICT, PIN_CONFLICT)
 
-    async def _save(self, card: WordCard) -> CardAdminItem:
+    async def _save(self, card: WordCard, *, commit: bool = True) -> CardAdminItem:
         try:
-            saved = await self.repo.save_card(card)
+            saved = await self.repo.save_card(card, commit=commit)
         except IntegrityError:
             raise HTTPException(status.HTTP_409_CONFLICT, PIN_CONFLICT) from None
         return CardAdminItem.model_validate(saved, from_attributes=True)
 
-    async def create(self, data: CardAdminCreate) -> CardAdminItem:
+    async def create(self, data: CardAdminCreate, *, commit: bool = True) -> CardAdminItem:
         await self._check_pin(data.pinned_on, None)
-        return await self._save(WordCard(**data.model_dump()))
+        return await self._save(WordCard(**data.model_dump()), commit=commit)
 
-    async def update(self, card_id: uuid.UUID, data: CardAdminUpdate) -> CardAdminItem:
+    async def update(self, card_id: uuid.UUID, data: CardAdminUpdate, *, commit: bool = True) -> CardAdminItem:
         card = await self.repo.get(card_id)
         if card is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "카드를 찾을 수 없어요")
@@ -168,4 +169,26 @@ class CardAdminService:
         await self._check_pin(changes.get("pinned_on"), card.id)
         for key, value in changes.items():
             setattr(card, key, value)
-        return await self._save(card)
+        return await self._save(card, commit=commit)
+
+    async def create_with_audit(self, data: CardAdminCreate, audit: AdminService, actor_id: uuid.UUID) -> CardAdminItem:
+        created = await self.create(data, commit=False)
+        await audit.log_audit(
+            admin_user_id=actor_id,
+            action="word_card.create",
+            target_table="word_cards",
+            target_id=created.id,
+            changes=data.model_dump(mode="json"),
+        )
+        return created
+
+    async def update_with_audit(self, card_id: uuid.UUID, data: CardAdminUpdate, audit: AdminService, actor_id: uuid.UUID) -> CardAdminItem:
+        updated = await self.update(card_id, data, commit=False)
+        await audit.log_audit(
+            admin_user_id=actor_id,
+            action="word_card.update",
+            target_table="word_cards",
+            target_id=card_id,
+            changes=data.model_dump(exclude_unset=True, mode="json"),
+        )
+        return updated

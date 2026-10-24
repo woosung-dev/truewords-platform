@@ -8,10 +8,56 @@ in-flight 처리 강제 중단, IngestionJob RUNNING/PENDING stuck. fix: ``daemo
 from __future__ import annotations
 
 import inspect
+import asyncio
+import queue
 import threading
 import time
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
+import pytest
 
 from app.modules.admin import ingest_worker
+
+
+@pytest.mark.asyncio
+async def test_lifespan_shutdown_keeps_main_loop_running(monkeypatch):
+    """워커의 DB 위임이 끝나기 전에 메인 loop를 join으로 막지 않는다."""
+    import app.main as main
+
+    loop = asyncio.get_running_loop()
+    ready = threading.Event()
+    tasks = queue.Queue()
+    monkeypatch.setattr(ingest_worker, "_INGEST_QUEUE", tasks)
+    monkeypatch.setattr(ingest_worker, "_WORKER_STARTED", threading.Event())
+
+    def work():
+        future = asyncio.run_coroutine_threadsafe(asyncio.sleep(0), loop)
+        ready.set()
+        future.result(timeout=2)
+        assert tasks.get(timeout=2) is None
+        tasks.task_done()
+
+    thread = threading.Thread(target=work)
+    monkeypatch.setattr(ingest_worker, "_worker_thread", thread)
+    ingest_worker._WORKER_STARTED.set()
+    observed = []
+
+    async def dispose():
+        observed.append(thread.is_alive())
+
+    monkeypatch.setattr(main, "init_db", AsyncMock())
+    monkeypatch.setattr(main, "engine", SimpleNamespace(dispose=dispose))
+    shutdown = ingest_worker.shutdown_worker
+    monkeypatch.setattr(main, "shutdown_ingest_worker", lambda **_: shutdown(timeout=0.2))
+    thread.start()
+    assert ready.wait(timeout=1)
+    try:
+        async with main.lifespan(SimpleNamespace(state=SimpleNamespace())):
+            pass
+        assert observed == [False], "DB 정리 전에 워커가 종료돼야 한다"
+    finally:
+        await asyncio.to_thread(thread.join, 2)
 
 
 def test_worker_thread_is_not_daemon() -> None:

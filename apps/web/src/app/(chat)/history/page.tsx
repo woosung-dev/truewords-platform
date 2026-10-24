@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, ChevronLeft, Copy, Inbox, LogOut, MessageSquare, Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 // 대화 기록 페이지 — 로그인 사용자의 지난 대화를 2-pane(목록 + 리딩)으로 열람하고 이어서 대화
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/truewords";
 import { Button } from "@/components/ui/button";
@@ -75,7 +75,7 @@ function inPeriod(iso: string, period: Period): boolean {
 export default function HistoryPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [explicitSelectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [botFilter, setBotFilter] = useState<string>("all");
   const [period, setPeriod] = useState<Period>("all");
@@ -116,10 +116,7 @@ export default function HistoryPage() {
     [filtered],
   );
 
-  // 데스크톱: 아무것도 선택 안 됐으면 첫 항목 자동 선택.
-  useEffect(() => {
-    if (!selectedId && sessions.length > 0) setSelectedId(sessions[0].session_id);
-  }, [sessions, selectedId]);
+  const selectedId = explicitSelectedId ?? sessions[0]?.session_id ?? null;
 
   const selected = sessions.find((s) => s.session_id === selectedId) ?? null;
 

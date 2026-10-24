@@ -18,6 +18,9 @@ from __future__ import annotations
 
 import re
 
+# 원문·낭독·형광펜이 함께 사용하는 한 구간의 청크 수다.
+PAGE_SIZE = 20
+
 from app.modules.datasource.chunk_merge import normalize_for_merge, overlap_length
 
 _PAGE_NUMBER = re.compile(r"^\s*-\s*\d+\s*-\s*$")

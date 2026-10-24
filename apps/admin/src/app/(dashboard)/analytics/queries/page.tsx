@@ -2,15 +2,18 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
-import QueryDetailModal from "@/features/analytics/components/query-detail-modal";
+
 import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
 import type { QuerySortKey } from "@/features/analytics/types";
+
+const QueryDetailModal = dynamic(() => import("@/features/analytics/components/query-detail-modal"));
 
 const DAYS_OPTIONS = [7, 30, 90, 365];
 const SORT_LABEL: Record<QuerySortKey, string> = {
@@ -41,35 +44,20 @@ export default function QueriesExplorerPage() {
   const page = Number(sp.get("page") ?? 1);
   const size = 50;
 
-  const [searchInput, setSearchInput] = useState(q);
-  const [selectedQuery, setSelectedQuery] = useState<string | null>(null);
-
-  useEffect(() => {
-    setSearchInput(q);
-  }, [q]);
-
-  // 검색어 debounce (300ms)
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (searchInput !== q) {
-        updateParams({ q: searchInput, page: 1 });
+  const [selectedQuery, setSelectedQuery] = useState<{ query: string; open: boolean } | null>(null);
+  const queryString = sp.toString();
+  const updateParams = useCallback(
+    (changes: Record<string, string | number>) => {
+      const params = new URLSearchParams(queryString);
+      for (const [k, v] of Object.entries(changes)) {
+        if (v === "") params.delete(k);
+        else params.set(k, String(v));
       }
-    }, 300);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInput]);
-
-  const updateParams = (changes: Record<string, string | number>) => {
-    const params = new URLSearchParams(sp.toString());
-    for (const [k, v] of Object.entries(changes)) {
-      if (v === "" || v === undefined || v === null) {
-        params.delete(k);
-      } else {
-        params.set(k, String(v));
-      }
-    }
-    router.push(`/analytics/queries?${params.toString()}`);
-  };
+      router.push(`/analytics/queries?${params.toString()}`);
+    },
+    [queryString, router],
+  );
+  const search = useCallback((value: string) => updateParams({ q: value, page: 1 }), [updateParams]);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["queries", q, days, sort, page, size],
@@ -100,13 +88,7 @@ export default function QueriesExplorerPage() {
       <div className="rounded-xl border bg-card p-4 space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="질문 검색..."
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
-          />
+          <QuerySearchInput key={q} query={q} onSearch={search} />
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
           <label className="flex items-center gap-1.5">
@@ -178,13 +160,13 @@ export default function QueriesExplorerPage() {
                       className={
                         (i !== 0 ? "border-t " : "") + "cursor-pointer hover:bg-admin-muted/40 transition-colors"
                       }
-                      onClick={() => setSelectedQuery(item.query_text)}
+                      onClick={() => setSelectedQuery({ query: item.query_text, open: true })}
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          setSelectedQuery(item.query_text);
+                          setSelectedQuery({ query: item.query_text, open: true });
                         }
                       }}
                       title="클릭하면 상세 정보를 확인할 수 있습니다"
@@ -239,14 +221,35 @@ export default function QueriesExplorerPage() {
       </div>
 
       {/* 질문 상세 모달 (기존 재사용) */}
-      <QueryDetailModal
-        open={selectedQuery !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedQuery(null);
-        }}
-        queryText={selectedQuery}
-        days={days}
-      />
+      {selectedQuery !== null && (
+        <QueryDetailModal
+          open={selectedQuery.open}
+          onOpenChange={(open) => {
+            setSelectedQuery((current) => (current ? { ...current, open } : null));
+          }}
+          queryText={selectedQuery.query}
+          days={days}
+        />
+      )}
     </div>
+  );
+}
+
+/** URL 검색어가 바뀌면 입력을 새로 열고, 필터 변경에는 진행 중 입력을 유지한다. */
+function QuerySearchInput({ query, onSearch }: { query: string; onSearch: (value: string) => void }) {
+  const [value, setValue] = useState(query);
+  useEffect(() => {
+    if (value === query) return;
+    const timer = setTimeout(() => onSearch(value), 300);
+    return () => clearTimeout(timer);
+  }, [value, query, onSearch]);
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(event) => setValue(event.target.value)}
+      placeholder="질문 검색..."
+      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+    />
   );
 }

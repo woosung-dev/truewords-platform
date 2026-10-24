@@ -17,6 +17,7 @@ from datetime import date, datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
+from app.modules.admin.service import AdminService
 from app.core.common.clock import KST, today_kst, utcnow
 from app.modules.hoondok.groups_repository import GroupRepository
 from app.modules.hoondok.groups_schemas import (
@@ -557,25 +558,34 @@ class GroupAdminService:
     async def list_official(self) -> list[OfficialJeongseongOut]:
         return [self._official(js) for js in await self.repo.list_official_jeongseongs()]
 
-    async def create_official(self, data: OfficialJeongseongInput) -> OfficialJeongseongOut:
+    async def create_official(self, data: OfficialJeongseongInput, *, commit: bool = True) -> OfficialJeongseongOut:
         js = SharedJeongseong(group_id=None, **data.model_dump())
         self.repo.add(js)
-        await self.repo.commit()
+        if commit:
+            await self.repo.commit()
+        else:
+            await self.repo.flush()
         return self._official(js)
 
-    async def update_official(self, jeongseong_id: uuid.UUID, data: OfficialJeongseongInput) -> OfficialJeongseongOut:
+    async def update_official(self, jeongseong_id: uuid.UUID, data: OfficialJeongseongInput, *, commit: bool = True) -> OfficialJeongseongOut:
         js = await self._get_official(jeongseong_id)
         for key, value in data.model_dump().items():
             setattr(js, key, value)
         js.updated_at = self.now_fn()
         self.repo.add(js)
-        await self.repo.commit()
+        if commit:
+            await self.repo.commit()
+        else:
+            await self.repo.flush()
         return self._official(js)
 
-    async def delete_official(self, jeongseong_id: uuid.UUID) -> None:
+    async def delete_official(self, jeongseong_id: uuid.UUID, *, commit: bool = True) -> None:
         await self._get_official(jeongseong_id)
         await self.repo.delete_jeongseong(jeongseong_id)
-        await self.repo.commit()
+        if commit:
+            await self.repo.commit()
+        else:
+            await self.repo.flush()
 
     async def list_groups(self) -> list[AdminGroupItem]:
         return [
@@ -583,8 +593,53 @@ class GroupAdminService:
             for group, count in await self.repo.list_groups_with_counts()
         ]
 
-    async def delete_group(self, group_id: uuid.UUID) -> None:
+    async def delete_group(self, group_id: uuid.UUID, *, commit: bool = True) -> None:
         if await self.repo.get_group(group_id) is None:
             raise _not_found()
         await self.repo.delete_group(group_id)
-        await self.repo.commit()
+        if commit:
+            await self.repo.commit()
+        else:
+            await self.repo.flush()
+
+    async def create_official_with_audit(self, data: OfficialJeongseongInput, audit: AdminService, actor_id: uuid.UUID) -> OfficialJeongseongOut:
+        created = await self.create_official(data, commit=False)
+        await audit.log_audit(
+            admin_user_id=actor_id,
+            action="official_jeongseong.create",
+            target_table="shared_jeongseongs",
+            target_id=created.id,
+            changes=data.model_dump(mode="json"),
+        )
+        return created
+
+    async def update_official_with_audit(self, jeongseong_id: uuid.UUID, data: OfficialJeongseongInput, audit: AdminService, actor_id: uuid.UUID) -> OfficialJeongseongOut:
+        updated = await self.update_official(jeongseong_id, data, commit=False)
+        await audit.log_audit(
+            admin_user_id=actor_id,
+            action="official_jeongseong.update",
+            target_table="shared_jeongseongs",
+            target_id=jeongseong_id,
+            changes=data.model_dump(mode="json"),
+        )
+        return updated
+
+    async def delete_official_with_audit(self, jeongseong_id: uuid.UUID, audit: AdminService, actor_id: uuid.UUID) -> None:
+        await self.delete_official(jeongseong_id, commit=False)
+        await audit.log_audit(
+            admin_user_id=actor_id,
+            action="official_jeongseong.delete",
+            target_table="shared_jeongseongs",
+            target_id=jeongseong_id,
+            changes={},
+        )
+
+    async def delete_group_with_audit(self, group_id: uuid.UUID, audit: AdminService, actor_id: uuid.UUID) -> None:
+        await self.delete_group(group_id, commit=False)
+        await audit.log_audit(
+            admin_user_id=actor_id,
+            action="reading_group.delete",
+            target_table="reading_groups",
+            target_id=group_id,
+            changes={},
+        )

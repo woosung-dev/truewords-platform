@@ -210,7 +210,9 @@ def test_routes_reject_missing_cookie_wrong_gate_and_missing_csrf():
 async def test_http_flow_create_list_today_withdraw(repo: DailyReadingRepository):
     app = _app()
     admin_service = MagicMock()
-    admin_service.log_audit = AsyncMock()
+    async def commit_audit(**_):
+        await repo.session.commit()
+    admin_service.log_audit = AsyncMock(side_effect=commit_audit)
     app.dependency_overrides[get_current_admin] = lambda: GATE_ADMIN
     app.dependency_overrides[get_admin_service] = lambda: admin_service
     app.dependency_overrides[get_daily_reading_admin_service] = lambda: DailyReadingAdminService(

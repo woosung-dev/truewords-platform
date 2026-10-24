@@ -44,14 +44,7 @@ async def create_content_right(
     audit: AdminService = Depends(get_admin_service),
     admin: dict = Depends(get_current_admin),
 ) -> ContentRightResponse:
-    right = await service.save_right(data)
-    await audit.log_audit(
-        admin_user_id=admin["user_id"],
-        action="content_right.create",
-        target_table="content_rights",
-        target_id=right.id,
-        changes=data.model_dump(mode="json"),
-    )
+    right = await service.save_right_with_audit(data, audit, admin["user_id"])
     return ContentRightResponse.model_validate(right)
 
 
@@ -63,14 +56,7 @@ async def bulk_update_content_rights(
     admin: dict = Depends(get_current_admin),
 ) -> BulkRightsResponse:
     """API-HD-027 시리즈 일괄 승인·철회. 등급은 준 경우에만 바꾸고 감사 로그는 1건만 남긴다."""
-    result, target_id = await service.bulk_update(data)
-    await audit.log_audit(
-        admin_user_id=admin["user_id"],
-        action="content_right.bulk",
-        target_table="content_rights",
-        target_id=target_id,  # 시리즈 대표 행 — 실제 범위는 changes 의 book_series·updated 가 갖는다
-        changes={**data.model_dump(mode="json"), "updated": result.updated},
-    )
+    result = await service.bulk_update_with_audit(data, audit, admin["user_id"])
     return result
 
 
@@ -91,12 +77,5 @@ async def update_content_right(
     audit: AdminService = Depends(get_admin_service),
     admin: dict = Depends(get_current_admin),
 ) -> ContentRightResponse:
-    right = await service.save_right(data, right_id)
-    await audit.log_audit(
-        admin_user_id=admin["user_id"],
-        action="content_right.update",
-        target_table="content_rights",
-        target_id=right.id,
-        changes=data.model_dump(mode="json"),
-    )
+    right = await service.save_right_with_audit(data, audit, admin["user_id"], right_id)
     return ContentRightResponse.model_validate(right)

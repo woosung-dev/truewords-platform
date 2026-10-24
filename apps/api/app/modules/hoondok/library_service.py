@@ -6,9 +6,9 @@ from collections import Counter
 
 from fastapi import HTTPException
 
+from app.modules.admin.service import AdminService
 from app.core.common.clock import utcnow
-from app.core.config import settings
-from app.modules.hoondok.display_text import to_display_text
+from app.modules.hoondok.reading_content import ReaderContent
 from app.modules.hoondok.library_repository import LibraryRepository
 from app.modules.hoondok.library_schemas import (
     BulkRightsInput,
@@ -32,25 +32,11 @@ from app.modules.hoondok.library_schemas import (
 from app.modules.hoondok.library_series import label_sort_key, series_title, volume_label
 from app.modules.hoondok.models import ContentRight, PassageHighlight, PassageMark
 from app.modules.qdrant import RawQdrantClient
-from app.modules.qdrant.filters import build_filter, field_match, field_match_any
-from app.modules.search.hybrid import SearchResult, point_to_search_result
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_GRADE = "R"
-# 원문 뷰(API-HD-016)의 페이지 크기. journey_service.PAGE_SIZE 와 같아야 한다 — 서로 import 하면 순환이라 따로 둔다.
-WORDS_PAGE_SIZE = 20
 EXCERPT_CHARS = 300
-
-
-def _point_id(chunk_id: str) -> str | int | None:
-    """Qdrant 포인트 ID(UUID 또는 unsigned integer). 둘 다 아니면 None — 요청에 넣으면 묶음 전체가 거절된다."""
-    try:
-        return str(uuid.UUID(chunk_id))
-    except ValueError:
-        if chunk_id.isdecimal() and 0 <= int(chunk_id) < 2**64:
-            return int(chunk_id)
-        return None
 
 
 def _clean_note(note: str | None) -> str | None:
@@ -247,64 +233,15 @@ class LibraryService:
         겹침 자르기는 chunk_display_text 와 같다 — 페이지 첫 청크는 앞 청크 없이, 나머지는 바로 앞 청크 기준.
         Qdrant 가 실패하면 목록은 그대로 내고 발췌만 모두 비운다.
         """
-        excerpts: list[str | None] = [None] * len(rows)
-        targets: list[tuple[int, PassageMark, str | int]] = []
-        for i, row in enumerate(rows):
-            right = rights.get(row.volume)
-            if right is None or right.status != "allowed" or not right.scope_full_text:
-                continue
-            point_id = _point_id(row.chunk_id)
-            if point_id is not None:
-                targets.append((i, row, point_id))
-        if not targets:
-            return excerpts
+        requests = [(row.volume, row.chunk_id) for row in rows if self._is_full_text(rights.get(row.volume))]
+        if not requests:
+            return [None] * len(rows)
         try:
-            # 같은 청크의 북마크·형광펜은 한 번만 묻는다.
-            ids = list(dict.fromkeys(point_id for _, _, point_id in targets))
-            records = await self.client.retrieve(settings.collection_name, ids=ids)
-            by_id = {str(record.id): point_to_search_result(record) for record in records}
-            matched: dict[int, SearchResult] = {}
-            for i, row, point_id in targets:
-                found = by_id.get(str(point_id))
-                if (
-                    found is not None
-                    and found.volume == row.volume
-                    and isinstance(found.chunk_index, int)
-                    and found.chunk_index >= 0
-                ):
-                    matched[i] = found
-            wanted: dict[str, set[int]] = {}
-            for found in matched.values():
-                if found.chunk_index % WORDS_PAGE_SIZE:
-                    wanted.setdefault(found.volume, set()).add(found.chunk_index - 1)
-            previous: dict[tuple[str, int], str] = {}
-            for volume, indices in wanted.items():
-                points, _ = await self.client.scroll(
-                    settings.collection_name,
-                    scroll_filter=build_filter(
-                        must=[
-                            field_match("volume", volume),
-                            field_match_any("chunk_index", sorted(indices)),
-                        ]
-                    ),
-                    limit=len(indices),
-                    with_vectors=False,
-                )
-                for point in points:
-                    prev = point_to_search_result(point)
-                    previous[(prev.volume, prev.chunk_index)] = prev.text
+            texts = await ReaderContent(self.repo, self.client).excerpt_texts(requests)
         except Exception as exc:
-            # 예외 메시지에 공급자 URL 이 섞일 수 있어 종류만 남긴다.
             logger.warning("훈독 표시 발췌 조회 실패 — 발췌 없이 응답한다 (%s)", type(exc).__name__)
-            return excerpts
-        for i, found in matched.items():
-            prev_text = (
-                previous.get((found.volume, found.chunk_index - 1))
-                if found.chunk_index % WORDS_PAGE_SIZE
-                else None
-            )
-            excerpts[i] = to_display_text(prev_text, found.text)[:EXCERPT_CHARS].rstrip()
-        return excerpts
+            return [None] * len(rows)
+        return [text[:EXCERPT_CHARS].rstrip() if (text := texts.get((row.volume, row.chunk_id))) is not None else None for row in rows]
 
     async def save_mark(self, user_id: uuid.UUID, chunk_id: str, data: MarkInput) -> MarkItem:
         right = await self._readable(data.volume)
@@ -418,7 +355,7 @@ class LibraryService:
 
     # --- API-HD-027·028 admin ------------------------------------------------
 
-    async def bulk_update(self, data: BulkRightsInput) -> tuple[BulkRightsResponse, uuid.UUID]:
+    async def bulk_update(self, data: BulkRightsInput, *, commit: bool = True) -> tuple[BulkRightsResponse, uuid.UUID]:
         """시리즈 전 행 갱신 후 (응답, 대표 행 id) — 감사 로그의 target_id 로 쓴다."""
         rows = [r for r in await self._rights() if r.book_series == data.book_series]
         if not rows:
@@ -431,7 +368,7 @@ class LibraryService:
         }
         if data.authority_grade is not None:
             values["authority_grade"] = data.authority_grade
-        updated = await self.repo.bulk_update_series(data.book_series, values)
+        updated = await self.repo.bulk_update_series(data.book_series, values, commit=commit)
         return BulkRightsResponse(book_series=data.book_series, updated=updated), rows[0].id
 
     async def series_summary(self) -> SeriesSummaryResponse:
@@ -450,3 +387,14 @@ class LibraryService:
         ]
         items.sort(key=lambda i: i.title)
         return SeriesSummaryResponse(items=items)
+
+    async def bulk_update_with_audit(self, data: BulkRightsInput, audit: AdminService, actor_id: uuid.UUID) -> BulkRightsResponse:
+        result, target_id = await self.bulk_update(data, commit=False)
+        await audit.log_audit(
+            admin_user_id=actor_id,
+            action="content_right.bulk",
+            target_table="content_rights",
+            target_id=target_id,  # 시리즈 대표 행 — 실제 범위는 changes 의 book_series·updated 가 갖는다
+            changes={**data.model_dump(mode="json"), "updated": result.updated},
+        )
+        return result

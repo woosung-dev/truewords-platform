@@ -41,11 +41,14 @@ class CardRepository:
         )
         return list(result.scalars().all()), total
 
-    async def save_card(self, card: WordCard) -> WordCard:
+    async def save_card(self, card: WordCard, *, commit: bool = True) -> WordCard:
         """커밋 실패(IntegrityError 포함)는 롤백 뒤 그대로 올린다 — 서비스가 409 로 바꾼다."""
         self.session.add(card)
         try:
-            await self.session.commit()
+            if commit:
+                await self.session.commit()
+            else:
+                await self.session.flush()
         except Exception:
             await self.session.rollback()
             raise

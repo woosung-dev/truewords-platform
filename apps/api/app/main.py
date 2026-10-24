@@ -89,7 +89,7 @@ async def lifespan(app: FastAPI):
     # Cloud Run SIGTERM → lifespan 종료. R-3 in-flight ingest worker 회수 (sentinel
     # + thread join), R-4 asyncpg connection pool 정리 (engine.dispose).
     try:
-        shutdown_ingest_worker(timeout=30.0)
+        await asyncio.to_thread(shutdown_ingest_worker, timeout=30.0)
     except Exception:
         logger.exception("shutdown_ingest_worker 실패")
     try:

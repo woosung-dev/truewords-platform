@@ -666,11 +666,6 @@ def excerpt_of(items: list[dict], chunk_id: str) -> str | None:
     return next(i for i in items if i["chunk_id"] == chunk_id)["excerpt"]
 
 
-def test_excerpt_page_size_matches_words_view():
-    # 페이지 첫 청크 판정이 원문 뷰와 같아야 발췌가 화면 단락과 같다
-    assert library_service.WORDS_PAGE_SIZE == journey_service.PAGE_SIZE
-
-
 @pytest.mark.asyncio
 async def test_marks_without_excerpt_param_keep_shape_and_skip_qdrant(ctx: TestClient):
     qdrant = _RecordingQdrant()

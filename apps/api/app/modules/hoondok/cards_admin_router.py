@@ -26,7 +26,6 @@ cards_admin_router = APIRouter(
     dependencies=[Depends(verify_csrf)],
 )
 
-TARGET_TABLE = "word_cards"
 
 
 @cards_admin_router.get("", response_model=CardAdminListResponse)
@@ -49,14 +48,7 @@ async def create_card(
     current_admin: dict = Depends(get_current_admin),
 ) -> CardAdminItem:
     """API-HD-052 카드 등록 → 201. 409 같은 날짜 고정, 422 검증."""
-    created = await service.create(data)
-    await admin_service.log_audit(
-        admin_user_id=current_admin["user_id"],
-        action="word_card.create",
-        target_table=TARGET_TABLE,
-        target_id=created.id,
-        changes=data.model_dump(mode="json"),
-    )
+    created = await service.create_with_audit(data, admin_service, current_admin["user_id"])
     return created
 
 
@@ -69,12 +61,5 @@ async def update_card(
     current_admin: dict = Depends(get_current_admin),
 ) -> CardAdminItem:
     """API-HD-052 활성화·중지(status)·날짜 고정(pinned_on, null 이면 해제). 404 없음, 409 날짜 충돌, 422 그 밖의 필드(text 포함)."""
-    updated = await service.update(card_id, data)
-    await admin_service.log_audit(
-        admin_user_id=current_admin["user_id"],
-        action="word_card.update",
-        target_table=TARGET_TABLE,
-        target_id=card_id,
-        changes=data.model_dump(exclude_unset=True, mode="json"),
-    )
+    updated = await service.update_with_audit(card_id, data, admin_service, current_admin["user_id"])
     return updated
