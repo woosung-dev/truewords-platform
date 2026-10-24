@@ -1,0 +1,555 @@
+{
+  "검토일": "2026-10-24",
+  "원본커밋": "0ef11993",
+  "최종검증": "make ci 및 make e2e 127/127 passed",
+  "범위": "훈독 사용자 PWA 31개 페이지. 관리자·시연 챗·API 업무 규칙 변경 없음.",
+  "점수검산": "전후 UI/UX와 디자인의 모든 항목에 대해 Σ(등급×배점÷4)=표기 점수, 오차 0.",
+  "자동접근성": {
+    "version": "axe-core 4.14.0",
+    "최초검사": [
+      {
+        "id": "home",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 1
+          }
+        ],
+        "passes": 13
+      },
+      {
+        "id": "read",
+        "violations": [],
+        "incomplete": [],
+        "passes": 17
+      },
+      {
+        "id": "onboarding",
+        "violations": [],
+        "incomplete": [],
+        "passes": 15
+      },
+      {
+        "id": "offline",
+        "violations": [],
+        "incomplete": [],
+        "passes": 11
+      },
+      {
+        "id": "start",
+        "violations": [],
+        "incomplete": [],
+        "passes": 9
+      },
+      {
+        "id": "pray",
+        "violations": [],
+        "incomplete": [],
+        "passes": 14
+      },
+      {
+        "id": "interests",
+        "violations": [],
+        "incomplete": [],
+        "passes": 15
+      },
+      {
+        "id": "ask",
+        "violations": [],
+        "incomplete": [],
+        "passes": 14
+      },
+      {
+        "id": "library",
+        "violations": [],
+        "incomplete": [],
+        "passes": 11
+      },
+      {
+        "id": "series",
+        "violations": [],
+        "incomplete": [],
+        "passes": 11
+      },
+      {
+        "id": "search",
+        "violations": [],
+        "incomplete": [],
+        "passes": 18
+      },
+      {
+        "id": "words",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "nodes": 1
+          }
+        ],
+        "passes": 19
+      },
+      {
+        "id": "garden",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 1
+          }
+        ],
+        "passes": 13
+      },
+      {
+        "id": "records",
+        "violations": [],
+        "incomplete": [],
+        "passes": 11
+      },
+      {
+        "id": "settings",
+        "violations": [],
+        "incomplete": [],
+        "passes": 12
+      },
+      {
+        "id": "group-new",
+        "violations": [
+          {
+            "id": "target-size",
+            "impact": "serious",
+            "description": "Ensure touch targets have sufficient size and space",
+            "nodes": [
+              {
+                "target": [
+                  ".tg-toggle-row"
+                ],
+                "summary": "Fix any of the following:\n  Target has insufficient size because it is partially obscured (smallest space is 316px by 15.5px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 15.6px instead of at least 24px."
+              }
+            ]
+          }
+        ],
+        "incomplete": [],
+        "passes": 18
+      },
+      {
+        "id": "group-join",
+        "violations": [],
+        "incomplete": [],
+        "passes": 18
+      },
+      {
+        "id": "group",
+        "violations": [],
+        "incomplete": [],
+        "passes": 13
+      },
+      {
+        "id": "group-share",
+        "violations": [
+          {
+            "id": "target-size",
+            "impact": "serious",
+            "description": "Ensure touch targets have sufficient size and space",
+            "nodes": [
+              {
+                "target": [
+                  ".btn-ghost"
+                ],
+                "summary": "Fix any of the following:\n  Target has insufficient size because it is partially obscured (smallest space is 350px by 3.8px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 3.8px instead of at least 24px."
+              }
+            ]
+          }
+        ],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 1
+          }
+        ],
+        "passes": 14
+      },
+      {
+        "id": "group-settings",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-prohibited-attr",
+            "nodes": 1
+          }
+        ],
+        "passes": 17
+      },
+      {
+        "id": "bookmark",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 3
+          }
+        ],
+        "passes": 15
+      },
+      {
+        "id": "bookmarks",
+        "violations": [],
+        "incomplete": [],
+        "passes": 17
+      },
+      {
+        "id": "shared-card",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 3
+          }
+        ],
+        "passes": 12
+      },
+      {
+        "id": "worship",
+        "violations": [
+          {
+            "id": "scrollable-region-focusable",
+            "impact": "serious",
+            "description": "Ensure elements that have scrollable content are accessible by keyboard in Safari",
+            "nodes": [
+              {
+                "target": [
+                  ".sm-pastors"
+                ],
+                "summary": "Fix any of the following:\n  Element should have focusable content\n  Element should be focusable"
+              }
+            ]
+          }
+        ],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 8
+          }
+        ],
+        "passes": 15
+      },
+      {
+        "id": "order",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 2
+          }
+        ],
+        "passes": 18
+      },
+      {
+        "id": "request",
+        "violations": [],
+        "incomplete": [],
+        "passes": 21
+      },
+      {
+        "id": "challenge",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 3
+          }
+        ],
+        "passes": 18
+      },
+      {
+        "id": "family",
+        "violations": [
+          {
+            "id": "target-size",
+            "impact": "serious",
+            "description": "Ensure touch targets have sufficient size and space",
+            "nodes": [
+              {
+                "target": [
+                  "li:nth-child(5) > .fm-item--action[type=\"button\"]"
+                ],
+                "summary": "Fix any of the following:\n  Target has insufficient size because it is partially obscured (smallest space is 350px by 4.6px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 4.6px instead of at least 24px."
+              }
+            ]
+          }
+        ],
+        "incomplete": [],
+        "passes": 13
+      },
+      {
+        "id": "ask-log",
+        "violations": [],
+        "incomplete": [],
+        "passes": 19
+      },
+      {
+        "id": "ask-detail",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 4
+          }
+        ],
+        "passes": 11
+      },
+      {
+        "id": "device",
+        "violations": [],
+        "incomplete": [],
+        "passes": 11
+      }
+    ],
+    "처리": {
+      "target-size": "group-new/group-share/family의 부분 노출은 실제 초점·scroll-margin 수정 후 크기와 중앙 hit-test 통과. 전체 자동 스캔의 위반 0이라고 표현하지 않는다.",
+      "scrollable-region-focusable": "교회장 목록 tabindex=0 추가. 실제 ArrowRight 스크롤 회귀 통과.",
+      "incomplete": "도구가 판단하지 못한 항목이며 확인된 실패 0과 다르다. 실제 보조기술·WCAG 인증은 범위 밖이다."
+    }
+  },
+  "초점실측": [
+    {
+      "id": "group-new",
+      "selector": ".tg-toggle-row",
+      "focusedGeometry": {
+        "focused": true,
+        "top": 699.28125,
+        "bottom": 743.53125,
+        "width": 316,
+        "height": 44.25,
+        "navTop": 768
+      },
+      "scrolledGeometry": {
+        "centerHit": true,
+        "top": 699.28125,
+        "bottom": 743.53125,
+        "width": 316,
+        "height": 44.25
+      },
+      "pass": true
+    },
+    {
+      "id": "group-share",
+      "selector": ".btn-ghost",
+      "focusedGeometry": {
+        "focused": true,
+        "top": 693.8125,
+        "bottom": 743.8125,
+        "width": 350,
+        "height": 50,
+        "navTop": 768
+      },
+      "scrolledGeometry": {
+        "centerHit": true,
+        "top": 693.8125,
+        "bottom": 743.8125,
+        "width": 350,
+        "height": 50
+      },
+      "pass": true
+    },
+    {
+      "id": "family",
+      "selector": "li:nth-child(5) > .fm-item--action[type=\"button\"]",
+      "focusedGeometry": {
+        "focused": true,
+        "top": 678.75,
+        "bottom": 743.59375,
+        "width": 350,
+        "height": 64.84375,
+        "navTop": 768
+      },
+      "scrolledGeometry": {
+        "centerHit": true,
+        "top": 678.75,
+        "bottom": 743.59375,
+        "width": 350,
+        "height": 64.84375
+      },
+      "pass": true
+    }
+  ],
+  "실제공유검증": {
+    "preview": false,
+    "imageStatus": 200,
+    "imageContentType": "image/png",
+    "noteInNetwork": 0,
+    "sharedUrlContainsNote": false,
+    "uiSaysCardOnly": true,
+    "privateNoteLocal": true,
+    "focusRestored": true
+  },
+  "성능": {
+    "버전": "Lighthouse 13.5.0",
+    "환경": "로컬 standalone 프로덕션, PREVIEW=0, 비로그인, 모바일 412×823, 동작 줄이기 설정 없음, 페이지별 cold navigation 1회. 통계적 성능 추정·운영 서버 측정이 아니다.",
+    "actual_devtools": {
+      "설정": {
+        "throttlingMethod": "devtools",
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.56,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      },
+      "결과": [
+        {
+          "id": "home",
+          "path": "/hoondok",
+          "performance": 97,
+          "accessibility": 100,
+          "LCP": 1998.1,
+          "CLS": 0.007433080196919119,
+          "TBT": 96.346,
+          "fetchTime": "2026-10-24T13:43:56.236Z",
+          "version": "13.5.0"
+        },
+        {
+          "id": "read",
+          "path": "/hoondok/read",
+          "performance": 98,
+          "accessibility": 100,
+          "LCP": 1992.404,
+          "CLS": 0,
+          "TBT": 43.53700000000026,
+          "fetchTime": "2026-10-24T13:44:31.438Z",
+          "version": "13.5.0"
+        },
+        {
+          "id": "start",
+          "path": "/hoondok/start",
+          "performance": 95,
+          "accessibility": 100,
+          "LCP": 2344.202,
+          "CLS": 0,
+          "TBT": 25.30199999999968,
+          "fetchTime": "2026-10-24T13:45:06.111Z",
+          "version": "13.5.0"
+        }
+      ]
+    },
+    "default_simulate": {
+      "설정": {
+        "throttlingMethod": "simulate",
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "cpuSlowdownMultiplier": 4
+      },
+      "결과": [
+        {
+          "id": "home",
+          "path": "/hoondok",
+          "performance": 55.00000000000001,
+          "accessibility": 100,
+          "LCP": 13432.677899999999,
+          "CLS": 0.007433080196919119,
+          "TBT": 0,
+          "fetchTime": "2026-10-24T13:43:14.208Z",
+          "version": "13.5.0"
+        },
+        {
+          "id": "read",
+          "path": "/hoondok/read",
+          "performance": 55.00000000000001,
+          "accessibility": 100,
+          "LCP": 13357.855500000001,
+          "CLS": 0,
+          "TBT": 0,
+          "fetchTime": "2026-10-24T13:43:26.021Z",
+          "version": "13.5.0"
+        },
+        {
+          "id": "start",
+          "path": "/hoondok/start",
+          "performance": 55.00000000000001,
+          "accessibility": 100,
+          "LCP": 13511.47275,
+          "CLS": 0,
+          "TBT": 0,
+          "fetchTime": "2026-10-24T13:43:36.512Z",
+          "version": "13.5.0"
+        }
+      ]
+    },
+    "이전_swap_simulate": [
+      {
+        "id": "home",
+        "path": "/hoondok",
+        "performance": 55.00000000000001,
+        "accessibility": 100,
+        "LCP": 13438.054499999998,
+        "CLS": 0.012098710290321262,
+        "TBT": 0,
+        "fetchTime": "2026-10-24T13:33:48.240Z",
+        "version": "13.5.0"
+      },
+      {
+        "id": "read",
+        "path": "/hoondok/read",
+        "performance": 55.00000000000001,
+        "accessibility": 100,
+        "LCP": 13361.1456,
+        "CLS": 0,
+        "TBT": 0,
+        "fetchTime": "2026-10-24T13:33:59.161Z",
+        "version": "13.5.0"
+      },
+      {
+        "id": "start",
+        "path": "/hoondok/start",
+        "performance": 55.00000000000001,
+        "accessibility": 100,
+        "LCP": 13586.61765,
+        "CLS": 0,
+        "TBT": 0,
+        "fetchTime": "2026-10-24T13:34:09.691Z",
+        "version": "13.5.0"
+      }
+    ],
+    "해석": "simulate와 실제 DevTools 제한은 측정 방법이 다르다. optional은 실제 저속 첫 방문에서 시스템 글꼴을 유지할 수 있다. 모의 수치 55가 개선됐다고 주장하지 않는다. 실제 제한 결과가 좋아도 운영 CWV/INP 또는 모든 페이지 성능을 보장하지 않는다."
+  },
+  "최종독립코드리뷰": {
+    "차단문제": [],
+    "확인": "source-first·기기전용 메모·카드만 공유·프리뷰 무전송 경계 유지, 책갈피 빈 상태 CTA 정렬 수정 확인. 후속상태 5장 검토. 네트워크 결과는 루트 실행 증거로 구분."
+  },
+  "시행착오": [
+    {
+      "단계": "초회 통합 E2E",
+      "결과": "127개 중 126 통과, 비로그인 이어 읽기 원문 조회 실패. 같은 테스트 단독 3개 통과.",
+      "원인": "API 로그에서 원문 page=1과 sections의 HTTP 429를 확인했다. 감사 부하를 제거한 clean 전체 suite에서도 재현되어, 여러 테스트가 같은 IP의 60초·120회 예산을 공유한 것으로 확인했다.",
+      "수정": "기본 extraHTTPHeaders fixture에 testId 해시 기반 문서용 IPv6 X-Forwarded-For를 적용. 동일 테스트 안에서는 동일 IP와 실제 제한을 유지하며 운영 코드·한도·원문 기대값은 바꾸지 않았다. 수정 후 127개 전체 통과."
+    },
+    {
+      "단계": "성능 초회",
+      "결과": "standalone public 복사 누락 상태의 수치는 제외. 폰트·사진 HTTP 200을 확인한 빌드만 최종 기록."
+    }
+  ],
+  "구현커밋": "3503e25b2e87cafa5c623683358fb96013e33579",
+  "통합E2E": {
+    "command": "make e2e",
+    "passed": 127,
+    "failed": 0,
+    "elapsed": "2.3m",
+    "exit": 0,
+    "실행조건": "감사·Lighthouse와 동시 실행하지 않은 격리 Compose·기본 브라우저별 IP",
+    "HTTP429_500_503": 0,
+    "회귀3개": "200% 저장 막대·가로 목록 키보드·폼 초점 가림 모두 전체 suite 안에서 통과",
+    "비고": "수동 생성 browser.newContext/request.newContext는 자동 fixture 적용을 보장하지 않는다. 프로덕션 요청 제한은 변경하지 않았다."
+  },
+  "검토HTML": {
+    "MCPPlaywright": true,
+    "375_1280px_가로넘침": 0,
+    "화면통과": 31,
+    "미검증": 0,
+    "재검토필터": 0,
+    "검색관심사결과": 4,
+    "이미지확대_Esc_초점복귀": true,
+    "이미지SHA256검증": 217,
+    "누락이미지": 0,
+    "점수최소": 75,
+    "평균_UIUX": 76.29,
+    "평균_디자인": 76.49
+  }
+}
