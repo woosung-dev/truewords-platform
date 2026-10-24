@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="data:," />
+    <title>훈독 디자인 검토</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #fbfaf8;
+        --surface: #fff;
+        --surface-muted: #f1efea;
+        --ink: #23211f;
+        --muted: #625d57;
+        --line: #ddd7ce;
+        --accent: #a03a1a;
+        --accent-soft: #fbe9e1;
+        --ok: #26633f;
+        --ok-soft: #e4f1e8;
+        --radius: 16px;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-padding-block-start: 1.5rem; }
+      body { margin: 0; color: var(--ink); background: var(--paper); font: 400 1rem/1.65 "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; word-break: keep-all; overflow-wrap: anywhere; }
+      button, input, select { font: inherit; }
+      button, a, input, select, summary { -webkit-tap-highlight-color: transparent; }
+      button, summary, select { cursor: pointer; }
+      a { color: var(--accent); text-underline-offset: .2em; }
+      a:hover { text-decoration-thickness: 2px; }
+      :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+      h1, h2, h3, h4, p, dl, figure { margin: 0; }
+      h1, h2, h3, h4 { line-height: 1.35; text-wrap: balance; }
+      h1 { max-width: 22ch; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; }
+      h2 { font-size: clamp(1.5rem, 2.6vw, 2rem); letter-spacing: -.035em; }
+      h3 { font-size: 1.2rem; letter-spacing: -.02em; }
+      h4 { font-size: 1rem; }
+      ul, ol { margin-block: .5rem 0; padding-inline-start: 1.3rem; }
+      li + li { margin-block-start: .35rem; }
+      code { font-size: .88em; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+      [hidden] { display: none !important; }
+      .skip { position: fixed; top: 1rem; left: 1rem; transform: translateY(-200%); z-index: 2; padding: .75rem 1rem; border-radius: 8px; background: var(--ink); color: var(--surface); }
+      .skip:focus { transform: none; }
+      .wrap { width: min(1200px, calc(100% - 3rem)); margin-inline: auto; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding-block: 1.25rem; border-bottom: 1px solid var(--line); }
+      .brand { font-weight: 700; color: var(--ink); text-decoration: none; letter-spacing: -.02em; }
+      .topbar nav { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; }
+      .topbar nav a { display: inline-flex; align-items: center; min-height: 44px; color: var(--muted); font-size: .9rem; text-decoration: none; }
+      .topbar nav a:hover { color: var(--accent); }
+      .intro { padding-block: 3.5rem 2rem; }
+      .intro p { max-width: 65ch; margin-top: 1rem; color: var(--muted); font-size: 1.08rem; }
+      .meta { display: flex; flex-wrap: wrap; gap: .5rem 1.75rem; margin-top: 1.5rem; color: var(--muted); font-size: .875rem; }
+      .meta span { display: inline-flex; flex-wrap: wrap; gap: .4rem; }
+      .meta b { color: var(--ink); font-weight: 500; }
+      .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-block: 1px solid var(--line); padding-block: 1.5rem; }
+      .stat { padding-inline: 1.5rem; border-inline-start: 1px solid var(--line); }
+      .stat:first-child { padding-inline-start: 0; border: 0; }
+      .stat dt { color: var(--muted); font-size: .875rem; }
+      .stat dd { margin: .25rem 0 0; font-size: 2rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+      section { padding-block: 3rem; }
+      section + section { border-top: 1px solid var(--line); }
+      .section-intro { margin-block: .65rem 1.75rem; max-width: 70ch; color: var(--muted); }
+      .notice { padding: 1rem 1.25rem; border-inline-start: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+      .muted { color: var(--muted); }
+      .empty { padding: 1.5rem; background: var(--surface-muted); border-radius: var(--radius); color: var(--muted); }
+      .directions { display: grid; gap: 1.25rem; }
+      .direction { padding: 1.75rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+      .direction[data-selected="true"] { border-color: var(--accent); }
+      .direction-top { display: flex; align-items: start; justify-content: space-between; gap: 1rem; margin-bottom: .75rem; }
+      .direction-id { display: block; margin-bottom: .5rem; font-size: .85rem; font-weight: 600; color: var(--muted); }
+      .direction-state { display: flex; flex-direction: column; align-items: end; gap: .5rem; flex-shrink: 0; }
+      .direction-score { color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+      .direction p { max-width: 75ch; }
+      .direction-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.25rem; }
+      .reason { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
+      .reason h4 { margin-bottom: .4rem; }
+      .tag { display: inline-block; flex-shrink: 0; padding: .25rem .6rem; border: 1px solid currentColor; border-radius: 6px; font-size: .78rem; font-weight: 600; line-height: 1.4; }
+      .tag-pass { color: var(--ok); background: var(--ok-soft); border-color: transparent; }
+      .tag-fail { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+      .tag-pending { color: var(--muted); background: var(--surface-muted); border-color: transparent; }
+      .filters { display: grid; grid-template-columns: minmax(12rem, 1fr) minmax(12rem, .45fr); gap: 1rem; margin-bottom: 1.25rem; }
+      label { display: grid; gap: .4rem; font-size: .875rem; font-weight: 600; }
+      input, select { width: 100%; min-height: 48px; border: 1px solid var(--muted); border-radius: 8px; padding: .6rem .8rem; color: var(--ink); background: var(--surface); font-size: 1rem; }
+      input::placeholder { color: var(--muted); opacity: 1; }
+      .result-count { margin-bottom: 1rem; font-size: .875rem; color: var(--muted); }
+      .page-list { display: grid; gap: .75rem; }
+      .page { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+      .page > summary { display: grid; grid-template-columns: minmax(0, 1fr) 6rem 6rem 6rem; align-items: center; gap: 1rem; padding: 1.25rem 1.5rem; list-style: none; }
+      .page > summary::-webkit-details-marker { display: none; }
+      .page > summary:hover { background: var(--surface-muted); border-radius: var(--radius); }
+      .page[open] > summary { border-bottom: 1px solid var(--line); border-radius: var(--radius) var(--radius) 0 0; }
+      .page-title { display: block; font-size: 1.05rem; font-weight: 600; }
+      .page-path { display: block; margin-top: .25rem; font-size: .8rem; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--muted); }
+      .page-title::after { content: "열기"; margin-inline-start: .6rem; color: var(--muted); font-size: .75rem; font-weight: 400; }
+      .page[open] .page-title::after { content: "접기"; }
+      .score { display: flex; flex-direction: column; align-items: start; gap: .1rem; }
+      .score-label { color: var(--muted); font-size: .75rem; font-weight: 400; }
+      .score-number { font-size: 1.4rem; line-height: 1.3; font-weight: 600; font-variant-numeric: tabular-nums; }
+      .score-number small { color: var(--muted); font-size: .75rem; font-weight: 400; }
+      .score-number[data-fail="true"] { color: var(--accent); }
+      .score-number[data-pending="true"] { color: var(--muted); font-size: .9rem; }
+      .page-content { padding: 1.5rem; }
+      .page-intent { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 1rem 2rem; margin-bottom: 1.5rem; }
+      .page-intent dt { color: var(--muted); font-size: .8rem; }
+      .page-intent dd { margin: .3rem 0 0; }
+      .score-table { width: 100%; border-collapse: collapse; margin-block: 1rem; font-size: .875rem; }
+      th, td { padding: .75rem .8rem; text-align: left; vertical-align: top; }
+      th { color: var(--muted); font-weight: 500; background: var(--surface-muted); }
+      td { border-bottom: 1px solid var(--line); }
+      .score-table td:not(:first-child) { font-variant-numeric: tabular-nums; }
+      .review-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-block: 1.5rem; }
+      .review-notes li { font-size: .925rem; }
+      .subsection { margin-top: 1.75rem; }
+      .evidence-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: .75rem; }
+      .evidence { min-width: 0; }
+      .evidence figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem; padding-block: .5rem; font-size: .85rem; color: var(--muted); }
+      .image-button { display: block; width: 100%; height: 24rem; overflow: hidden; padding: .75rem; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted); text-align: center; }
+      .image-button:hover { border-color: var(--accent); }
+      .image-button img { display: block; margin-inline: auto; max-width: 100%; height: auto; object-fit: contain; object-position: top; }
+      .image-missing { display: grid; min-height: 9rem; align-content: center; text-align: center; padding: 1rem; border: 1px dashed var(--line); border-radius: 10px; background: var(--paper); color: var(--muted); font-size: .9rem; }
+      .checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem 1rem; margin-top: .75rem; }
+      .check { display: flex; align-items: start; gap: .6rem; font-size: .875rem; }
+      .check .tag { min-width: 3.5rem; text-align: center; }
+      .check small { display: block; color: var(--muted); margin-top: .2rem; font-size: .8rem; }
+      .iterations { margin-top: .75rem; }
+      .iterations li { padding-inline-start: .25rem; }
+      .iterations p { margin-top: .25rem; color: var(--muted); font-size: .9rem; }
+      .method-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; }
+      .method-table { width: 100%; border-collapse: collapse; margin-top: .75rem; font-size: .9rem; }
+      .method-table th { background: none; }
+      .method-table td:last-child { width: 4rem; text-align: right; font-variant-numeric: tabular-nums; }
+      .method-note { max-width: 78ch; margin-top: 1.5rem; color: var(--muted); }
+      .method-note p + p { margin-top: .75rem; }
+      .validation { display: grid; gap: .75rem; margin-top: 1.5rem; }
+      .validation-item { padding: 1rem 0; border-bottom: 1px solid var(--line); }
+      .validation-title { display: flex; align-items: start; gap: .75rem; }
+      .validation-item p { margin-top: .5rem; color: var(--muted); font-size: .9rem; white-space: pre-wrap; }
+      footer { padding-block: 1.5rem 3rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
+      footer a { display: inline-flex; align-items: center; min-height: 44px; }
+      dialog { width: min(1180px, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); color: var(--ink); overflow: auto; }
+      dialog::backdrop { background: rgb(35 33 31 / .65); }
+      .dialog-top { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 1rem; border-bottom: 1px solid var(--line); background: var(--paper); }
+      .dialog-top h2 { font-size: 1rem; text-wrap: initial; }
+      .dialog-controls { display: flex; align-items: center; gap: .5rem; flex-shrink: 0; }
+      .dialog-controls a, .dialog-controls button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .4rem .8rem; border: 1px solid var(--line); border-radius: 8px; font-size: .85rem; background: var(--surface); color: var(--ink); }
+      .dialog-image { display: block; max-width: 100%; height: auto; margin-inline: auto; padding: 1rem; }
+      .noscript { margin-block: 2rem; }
+      @media (max-width: 767px) {
+        .wrap { width: calc(100% - 2rem); }
+        .topbar { gap: .4rem; }
+        .topbar nav { width: 100%; gap: .1rem 1.1rem; }
+        .intro { padding-block: 2.25rem 1.5rem; }
+        .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 1rem; }
+        .stat { padding-inline: 0; border: 0; }
+        .stat dd { font-size: 1.75rem; }
+        section { padding-block: 2rem; }
+        .direction { padding: 1.25rem; }
+        .direction-columns, .filters, .page-intent, .review-notes, .evidence-grid, .checks, .method-columns { grid-template-columns: minmax(0, 1fr); }
+        .page > summary { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 1rem .75rem; padding: 1.1rem; }
+        .page-name { grid-column: 1 / -1; }
+        .page-content { padding: 1.1rem; }
+        .score-number { font-size: 1.3rem; }
+        .score-table th, .score-table td { padding: .6rem .35rem; }
+        .evidence-grid { gap: 1.25rem; }
+        .image-button { height: 22rem; }
+        .dialog-top { align-items: start; flex-direction: column; gap: .5rem; }
+        .dialog-controls { width: 100%; justify-content: end; }
+        .dialog-image { padding: .5rem; }
+      }
+      @media print {
+        body { background: white; font-size: 10pt; }
+        .wrap { width: 100%; }
+        .topbar nav, .filters, .skip, footer a, dialog { display: none; }
+        .intro { padding-top: 1rem; }
+        section { padding-block: 1.25rem; }
+        .page { break-inside: avoid; }
+        .page-title::after { content: none; }
+        .image-button { height: auto; max-height: 18rem; }
+      }
+    </style>
+  </head>
+  <body id="top">
+    <a class="skip" href="#main">본문으로 이동</a>
+    <div class="wrap">
+      <header class="topbar">
+        <a class="brand" href="#top">훈독</a>
+        <nav aria-label="검토 기록">
+          <a href="#directions">디자인 대안</a>
+          <a href="#screens">전체 화면</a>
+          <a href="#method">평가 기준</a>
+          <a href="#validation">검증 결과</a>
+        </nav>
+      </header>
+      <main id="main">
+        <div class="intro">
+          <h1 id="report-title">훈독 디자인 검토</h1>
+          <p id="report-summary">페이지의 목적에 맞는 구성과 읽기 경험을 비교하고, 선택의 근거를 남깁니다.</p>
+          <div class="meta" id="report-meta"></div>
+        </div>
+        <dl class="stats" aria-label="전체 검토 상태" id="stats"></dl>
+        <noscript><p class="notice noscript">이 검토 기록의 필터와 이미지 비교를 보려면 JavaScript를 켜 주세요. 원본 데이터는 같은 폴더의 review-data.js에 보관됩니다.</p></noscript>
+        <section id="directions" aria-labelledby="directions-title">
+          <h2 id="directions-title">어떤 방향을 비교했는가</h2>
+          <p class="section-intro">화면을 다르게 구성한 이유와 최종 선택의 근거를 함께 봅니다. 이미지를 누르면 원본 크기로 확인할 수 있습니다.</p>
+          <div class="directions" id="directions-list"></div>
+        </section>
+        <section id="screens" aria-labelledby="screens-title">
+          <h2 id="screens-title">페이지별 변경과 재검토</h2>
+          <p class="section-intro">전체 평균 대신 각 페이지의 UI/UX와 디자인 점수를 확인합니다. 제목을 열면 목적, 변경 전후 이미지, 검사 결과가 나옵니다.</p>
+          <div class="filters">
+            <label for="page-search">화면 찾기<input id="page-search" type="search" placeholder="화면 이름, 경로, 목적 검색" autocomplete="off" /></label>
+            <label for="status-filter">검토 상태<select id="status-filter"><option value="all">전체 화면</option><option value="needs-review">미달·미검증</option><option value="fail">재검토 필요</option><option value="pending">미검증</option><option value="pass">기준 통과</option></select></label>
+          </div>
+          <p class="result-count" id="result-count" role="status" aria-live="polite" aria-atomic="true"></p>
+          <div class="page-list" id="pages-list"></div>
+          <p class="empty" id="no-results" hidden>조건에 맞는 화면이 없습니다. 검색어나 검토 상태를 바꿔 주세요.</p>
+        </section>
+        <section id="method" aria-labelledby="method-title">
+          <h2 id="method-title">점수는 어떻게 정했는가</h2>
+          <p class="section-intro">두 스킬을 참고해 이 작업에 맞게 고정한 평가표입니다. 스킬이 제공하는 공식 점수나 실제 사용자 검증 결과를 뜻하지 않습니다.</p>
+          <div class="method-columns" id="method-tables"></div>
+          <div class="method-note">
+            <p><strong>산식:</strong> 각 항목의 0~4 등급을 배점에 환산해 더합니다. 0은 실패, 1은 심각한 부족, 2는 부분 충족, 3은 충족, 4는 정교하게 충족입니다. UI/UX와 디자인이 각각 75점 이상이어야 합니다.</p>
+            <p><strong>점수 외 통과 조건:</strong> 주요 행동 실패, 가림, 접근 불가, 핵심 대비 실패, 권리·정보 위계 오인과 같은 중대 결함이 없어야 합니다. 점수·증거·검사 기록이 부족하면 미검증으로 남깁니다.</p>
+            <p><strong>적용 범위:</strong> UI/UX Pro Max의 제품 사용성 기준과 Taste의 적용 가능한 미학·카피·장식 검사를 사용합니다. 랜딩 페이지 전용 규칙을 제품 화면에 그대로 적용하지 않습니다.</p>
+          </div>
+          <div class="subsection"><h3>재현 환경</h3><div id="environment"></div></div>
+          <div class="subsection"><h3>평가의 한계</h3><div id="limitations"></div></div>
+        </section>
+        <section id="validation" aria-labelledby="validation-title">
+          <h2 id="validation-title">무엇을 확인했는가</h2>
+          <p class="section-intro">실행한 검사와 남은 제약을 구분합니다. 실행하지 못했거나 결과가 없는 검사는 통과로 표시하지 않습니다.</p>
+          <p><a href="validation-details.json">검증 원자료(JSON)</a> · <a href="evidence-manifest.json">이미지 SHA-256 기록</a></p>
+          <div class="validation" id="validation-list"></div>
+        </section>
+      </main>
+      <footer>
+        <p>선택하지 않은 대안과 최초 화면도 검토 근거로 보존합니다. 스크린샷에는 합성·테스트 데이터만 사용합니다.</p>
+        <a href="#top">맨 위로</a>
+      </footer>
+    </div>
+    <dialog id="image-dialog" aria-labelledby="image-title">
+      <div class="dialog-top">
+        <h2 id="image-title">화면 이미지</h2>
+        <div class="dialog-controls">
+          <a id="image-original" target="_blank" rel="noopener">원본 열기</a>
+          <button id="image-close" type="button" autofocus>닫기</button>
+        </div>
+      </div>
+      <img class="dialog-image" id="image-full" alt="" />
+    </dialog>
+    <!-- 데이터와 증거 이미지는 이 파일 옆에 보관해 서버 없이 열 수 있다. -->
+    <script src="review-data.js"></script>
+    <script>
+      (() => {
+        "use strict";
+        const data = window.HOONDOK_REVIEW || {};
+        const pages = Array.isArray(data.pages) ? data.pages : [];
+        const directions = Array.isArray(data.directions) ? data.directions : [];
+        const method = data.method || {};
+        const byId = (id) => document.getElementById(id);
+        const list = (value) => Array.isArray(value) ? value : value ? [value] : [];
+        const number = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100;
+        const el = (tag, className, text) => {
+          const node = document.createElement(tag);
+          if (className) node.className = className;
+          if (text !== undefined && text !== null) node.textContent = String(text);
+          return node;
+        };
+        const textOf = (value) => {
+          if (typeof value === "string" || typeof value === "number") return String(value);
+          if (!value || typeof value !== "object") return "";
+          return [value.title || value.label || value.name, value.detail || value.note || value.description || value.reason].filter(Boolean).join(": ");
+        };
+        const checkState = (raw) => {
+          const value = raw && typeof raw === "object" ? raw.status : raw;
+          if (value === true || ["pass", "passed", "통과"].includes(value)) return "pass";
+          if (value === false || ["fail", "failed", "blocked", "실패", "미달"].includes(value)) return "fail";
+          if (["n/a", "na", "not-applicable", "해당 없음"].includes(value)) return "na";
+          return "pending";
+        };
+        const tag = (state, label) => el("span", `tag tag-${state === "na" ? "pending" : state}`, label || ({ pass: "통과", fail: "재검토", pending: "미검증", na: "해당 없음" })[state]);
+        const status = (page) => {
+          const scores = page.after || {};
+          const checks = Object.values(page.checks || {});
+          if (checks.some((value) => checkState(value) === "fail")) return "fail";
+          if ([scores.ux, scores.design].some((value) => number(value) && value < 75)) return "fail";
+          const hasPair = list(page.evidence).some((value) => value && value.before && value.after);
+          if (!number(scores.ux) || !number(scores.design) || !hasPair || !checks.length || checks.some((value) => checkState(value) === "pending")) return "pending";
+          return "pass";
+        };
+        const scoreValue = (value) => number(value) ? `${Number(value.toFixed(2))}점` : "미검증";
+        const noteList = (values, fallback = "검토 기록이 아직 없습니다.") => {
+          const items = list(values);
+          if (!items.length) return el("p", "muted", fallback);
+          const ul = el("ul");
+          items.forEach((value) => ul.append(el("li", "", textOf(value))));
+          return ul;
+        };
+        const safeImage = (value) => {
+          if (typeof value !== "string" || !value.trim()) return null;
+          const path = value.trim();
+          // 증거 이미지는 상대 경로나 내장 이미지로만 열어 외부 요청을 만들지 않는다.
+          if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|\/)/i.test(path) && !/^data:image\/(png|jpeg|webp);base64,/i.test(path)) return null;
+          return path;
+        };
+        let imageTrigger = null;
+        const dialog = byId("image-dialog");
+        const closeImage = () => dialog.close();
+        byId("image-close").addEventListener("click", closeImage);
+        dialog.addEventListener("click", (event) => { if (event.target === dialog) closeImage(); });
+        dialog.addEventListener("close", () => {
+          byId("image-full").removeAttribute("src");
+          if (imageTrigger && imageTrigger.isConnected) imageTrigger.focus();
+        });
+        const imageFigure = (source, label) => {
+          const figure = el("figure", "evidence");
+          const src = safeImage(source);
+          if (!src) {
+            figure.append(el("div", "image-missing", "이미지 증거가 아직 없습니다"));
+          } else {
+            const button = el("button", "image-button");
+            button.type = "button";
+            button.setAttribute("aria-label", `${label}, 이미지 크게 보기`);
+            const image = el("img");
+            image.src = src;
+            image.alt = label;
+            image.loading = "lazy";
+            image.addEventListener("error", () => {
+              button.replaceWith(el("div", "image-missing", "이미지를 열지 못했습니다. 증거 파일을 확인해 주세요."));
+            }, { once: true });
+            button.append(image);
+            button.addEventListener("click", () => {
+              imageTrigger = button;
+              byId("image-title").textContent = label;
+              byId("image-full").src = src;
+              byId("image-full").alt = label;
+              byId("image-original").href = src;
+              dialog.showModal();
+            });
+            figure.append(button);
+          }
+          figure.append(el("figcaption", "", label));
+          return figure;
+        };
+        byId("report-title").textContent = data.title || "훈독 디자인 검토";
+        document.title = data.title || "훈독 디자인 검토";
+        if (data.summary) byId("report-summary").textContent = list(data.summary).map(textOf).join(" ");
+        [["최초 기준", data.baselineCommit], ["검토 기준", data.reviewCommit], ["검토일", data.reviewedAt]].forEach(([label, value]) => {
+          if (!value) return;
+          const item = el("span", "", `${label} `);
+          item.append(el("b", "", value));
+          byId("report-meta").append(item);
+        });
+        const counts = { pass: 0, fail: 0, pending: 0 };
+        pages.forEach((page) => counts[status(page)]++);
+        [["등록 화면", pages.length], ["기준 통과", counts.pass], ["재검토 필요", counts.fail], ["미검증", counts.pending]].forEach(([label, value]) => {
+          const item = el("div", "stat");
+          item.append(el("dt", "", label), el("dd", "", value));
+          byId("stats").append(item);
+        });
+        if (!directions.length) byId("directions-list").append(el("p", "empty", "디자인 대안이 아직 등록되지 않았습니다. 최종 선택 전까지 미검토 상태로 둡니다."));
+        directions.forEach((direction) => {
+          const article = el("article", "direction");
+          article.dataset.selected = String(direction.selected === true);
+          const top = el("div", "direction-top");
+          const heading = el("div");
+          if (direction.id) heading.append(el("span", "direction-id", direction.id));
+          heading.append(el("h3", "", direction.title || "이름 없는 대안"));
+          const state = el("div", "direction-state");
+          state.append(tag(direction.selected ? "pass" : "pending", direction.selectionLabel || (direction.selected ? "최종 선택" : "비교 대안")));
+          if (number(direction.score)) state.append(el("span", "direction-score", `시안 비주얼 ${scoreValue(direction.score)}`));
+          top.append(heading, state);
+          article.append(top, el("p", "muted", direction.description || "설명 미등록"));
+          const columns = el("div", "direction-columns");
+          [["장점", direction.pros], ["한계", direction.cons]].forEach(([title, values]) => {
+            const column = el("div");
+            column.append(el("h4", "", title), noteList(values));
+            columns.append(column);
+          });
+          article.append(columns);
+          const screenshots = list(direction.screenshots);
+          if (screenshots.length) {
+            const images = el("div", "evidence-grid");
+            screenshots.forEach((shot) => images.append(imageFigure(shot.src, shot.label || direction.title || "대안 화면")));
+            article.append(images);
+          }
+          const reason = el("div", "reason");
+          reason.append(el("h4", "", direction.selected ? "선택한 이유" : "선택하지 않은 이유"), el("p", "", direction.reason || "선정 판단이 아직 기록되지 않았습니다."));
+          if (list(direction.conditions).length) reason.append(el("h4", "subsection", "최종 구현의 채택 조건"), noteList(direction.conditions));
+          article.append(reason);
+          byId("directions-list").append(article);
+        });
+        const renderedPages = [];
+        pages.forEach((page, index) => {
+          const state = status(page);
+          const details = el("details", "page");
+          details.id = `screen-${index + 1}`;
+          const summary = el("summary");
+          const name = el("span", "page-name");
+          name.append(el("span", "page-title", page.title || page.path || "이름 없는 화면"), el("span", "page-path", page.path || "경로 미등록"));
+          summary.append(name);
+          [["UI/UX", page.after?.ux], ["디자인", page.after?.design]].forEach(([label, value]) => {
+            const item = el("span", "score");
+            const score = el("span", "score-number", number(value) ? Number(value.toFixed(2)) : "미검증");
+            score.dataset.fail = String(number(value) && value < 75);
+            score.dataset.pending = String(!number(value));
+            if (number(value)) score.append(el("small", "", " / 100"));
+            item.append(el("span", "score-label", label), score);
+            summary.append(item);
+          });
+          summary.append(tag(state, ({ pass: "기준 통과", fail: "재검토 필요", pending: "미검증" })[state]));
+          details.append(summary);
+          const content = el("div", "page-content");
+          const intent = el("dl", "page-intent");
+          [["이 화면의 목적", page.purpose], ["주 행동", page.primaryAction]].forEach(([label, value]) => {
+            const item = el("div");
+            item.append(el("dt", "", label), el("dd", "", value || "미등록"));
+            intent.append(item);
+          });
+          content.append(intent);
+          const table = el("table", "score-table");
+          const caption = el("caption", "", "변경 전후 점수");
+          caption.style.textAlign = "left";
+          caption.style.fontWeight = "600";
+          table.append(caption);
+          const head = el("thead");
+          const header = el("tr");
+          ["평가", "변경 전", "변경 후"].forEach((label) => { const cell = el("th", "", label); cell.scope = "col"; header.append(cell); });
+          head.append(header);
+          table.append(head);
+          const body = el("tbody");
+          [["UI/UX", "ux"], ["디자인·Anti-slop", "design"]].forEach(([label, key]) => {
+            const row = el("tr");
+            row.append(el("td", "", label), el("td", "", scoreValue(page.before?.[key])), el("td", "", scoreValue(page.after?.[key])));
+            body.append(row);
+          });
+          table.append(body);
+          content.append(table);
+          const ratings = el("details", "subsection");
+          ratings.append(el("summary", "", "항목별 등급과 점수 계산 보기"));
+          [["UI/UX", "ux"], ["디자인·Anti-slop", "design"]].forEach(([label, key]) => {
+            const breakdown = el("table", "score-table");
+            breakdown.append(el("caption", "", `${label} · 등급 ÷ 4 × 배점의 합계`));
+            const rows = el("tbody");
+            list(method[key]).forEach((dimension, index) => {
+              const row = el("tr");
+              const heading = el("th", "", `${dimension.label} (${dimension.weight}점)`);
+              heading.scope = "row";
+              row.append(heading);
+              ["before", "after"].forEach((phase) => {
+                const rating = page[phase]?.[`${key}Ratings`]?.[index];
+                row.append(el("td", "", number(rating) ? `${phase === "before" ? "전" : "후"} ${rating}/4` : "미검증"));
+              });
+              rows.append(row);
+            });
+            breakdown.append(rows);
+            ratings.append(breakdown);
+          });
+          content.append(ratings);
+          const notes = el("div", "review-notes");
+          [["처음 발견한 문제", page.before?.notes], ["개선·유지한 이유", page.after?.notes]].forEach(([label, values]) => {
+            const column = el("div");
+            column.append(el("h4", "", label), noteList(values));
+            notes.append(column);
+          });
+          content.append(notes);
+          const evidence = el("div", "subsection");
+          evidence.append(el("h4", "", "같은 조건에서 본 변경 전후"));
+          const shots = list(page.evidence);
+          if (!shots.length) evidence.append(el("p", "muted", "비교 이미지가 아직 없습니다."));
+          shots.forEach((shot) => {
+            const pair = el("div", "evidence-grid");
+            const viewport = shot.viewport || "환경 미등록";
+            pair.append(imageFigure(shot.before, `${page.title || page.path} / ${viewport} / 변경 전`), imageFigure(shot.after, `${page.title || page.path} / ${viewport} / 변경 후`));
+            evidence.append(pair);
+          });
+          content.append(evidence);
+          const checksSection = el("div", "subsection");
+          checksSection.append(el("h4", "", "화면 검사"));
+          const checks = Object.entries(page.checks || {});
+          if (!checks.length) checksSection.append(el("p", "muted", "검사 기록이 아직 없습니다."));
+          const checksGrid = el("div", "checks");
+          checks.forEach(([label, value]) => {
+            const item = el("div", "check");
+            const description = el("span", "", label);
+            if (value && typeof value === "object" && (value.note || value.detail)) description.append(el("small", "", value.note || value.detail));
+            item.append(tag(checkState(value)), description);
+            checksGrid.append(item);
+          });
+          checksSection.append(checksGrid);
+          content.append(checksSection);
+          const iterationsSection = el("div", "subsection");
+          iterationsSection.append(el("h4", "", "반복 검토 이력"));
+          const iterations = list(page.iterations);
+          if (!iterations.length) iterationsSection.append(el("p", "muted", "재검토 이력이 아직 없습니다."));
+          const history = el("ol", "iterations");
+          iterations.forEach((value) => {
+            const item = el("li");
+            if (typeof value === "string") item.textContent = value;
+            else if (value && typeof value === "object") {
+              item.append(el("strong", "", value.title || value.label || value.stage || "재검토"));
+              if (value.reviewer || value.date || value.commit) item.append(el("p", "", [value.reviewer, value.date, value.commit].filter(Boolean).join(" / ")));
+              if (value.note || value.detail || value.reason) item.append(el("p", "", value.note || value.detail || value.reason));
+              if (number(value.ux) || number(value.design)) item.append(el("p", "", `UI/UX ${scoreValue(value.ux)} / 디자인 ${scoreValue(value.design)}`));
+              if (list(value.screenshots).length) {
+                const images = el("div", "evidence-grid");
+                list(value.screenshots).forEach((shot) => images.append(imageFigure(shot.src, shot.label || "이전 재심사 화면")));
+                item.append(images);
+              }
+            }
+            history.append(item);
+          });
+          iterationsSection.append(history);
+          content.append(iterationsSection);
+          details.append(content);
+          byId("pages-list").append(details);
+          renderedPages.push({ node: details, state, search: [page.title, page.path, page.purpose, page.primaryAction].filter(Boolean).join(" ").toLocaleLowerCase("ko") });
+        });
+        const filterPages = () => {
+          const query = byId("page-search").value.trim().toLocaleLowerCase("ko");
+          const selected = byId("status-filter").value;
+          let visible = 0;
+          renderedPages.forEach((item) => {
+            const matchState = selected === "all" || selected === item.state || (selected === "needs-review" && item.state !== "pass");
+            const show = matchState && (!query || item.search.includes(query));
+            item.node.hidden = !show;
+            if (show) visible++;
+          });
+          byId("result-count").textContent = `${pages.length}개 중 ${visible}개 화면 표시`;
+          byId("no-results").hidden = visible > 0;
+          if (!pages.length) byId("no-results").textContent = "등록된 화면이 없습니다. review-data.js가 이 파일과 같은 폴더에 있는지 확인해 주세요.";
+        };
+        byId("page-search").addEventListener("input", filterPages);
+        byId("status-filter").addEventListener("change", filterPages);
+        filterPages();
+        const defaults = {
+          ux: [{ label: "목적·과업 명료성", weight: 20 }, { label: "탐색·정보 구조", weight: 20 }, { label: "조작·상태 피드백", weight: 20 }, { label: "접근성·한국어 가독성", weight: 25 }, { label: "반응형·성능", weight: 15 }],
+          design: [{ label: "제품·페이지 목적 적합성", weight: 25 }, { label: "타이포·시각적 위계", weight: 25 }, { label: "여백·밀도·구성", weight: 20 }, { label: "컴포넌트·시각 언어 일관성", weight: 15 }, { label: "카피·장식의 필요성·고유성", weight: 15 }],
+        };
+        [["UI/UX", "ux"], ["디자인·Anti-slop", "design"]].forEach(([title, key]) => {
+          const column = el("div");
+          column.append(el("h3", "", title));
+          const table = el("table", "method-table");
+          const caption = el("caption", "", `${title} 항목별 배점`);
+          caption.style.textAlign = "left";
+          table.append(caption);
+          const body = el("tbody");
+          list(method[key] || defaults[key]).forEach((item) => {
+            const row = el("tr");
+            row.append(el("td", "", item.label || item.name), el("td", "", `${item.weight}점`));
+            body.append(row);
+          });
+          table.append(body);
+          column.append(table);
+          byId("method-tables").append(column);
+        });
+        byId("environment").append(noteList(method.environment, "환경 기록이 아직 없습니다."));
+        byId("limitations").append(noteList(method.limitations, "실제 사용자 연구를 대체하지 않습니다. 브라우저 에뮬레이션은 실제 iPhone 검증과 구분해야 하며, 이 문서에 없는 검사는 검증되지 않았습니다."));
+        const validations = list(data.validation);
+        if (!validations.length) byId("validation-list").append(el("p", "empty", "실행 결과가 아직 등록되지 않았습니다."));
+        validations.forEach((value) => {
+          const item = el("article", "validation-item");
+          const title = el("div", "validation-title");
+          const object = value && typeof value === "object" ? value : { label: value };
+          title.append(tag(checkState(object.status)), el("h3", "", object.label || object.title || object.name || "이름 없는 검사"));
+          item.append(title);
+          if (object.detail || object.note) item.append(el("p", "", object.detail || object.note));
+          byId("validation-list").append(item);
+        });
+      })();
+    </script>
+  </body>
+</html>

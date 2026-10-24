@@ -99,7 +99,7 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
   const [term, setTerm] = useState<Term>("40");
   const [customDays, setCustomDays] = useState("");
   const [startedOn, setStartedOn] = useState(today);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<{ message: string; fieldId: string } | null>(null);
 
   if (isUserLoading) return <GroupLoading />;
   if (!user)
@@ -131,7 +131,7 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
     if (create.isPending) return;
     // 오류는 버튼 위 한 곳에 뜨므로, 고쳐야 할 칸으로 초점을 옮겨 긴 폼에서 찾지 않게 한다
     const fail = (message: string, fieldId: string) => {
-      setFormError(message);
+      setFormError({ message, fieldId });
       document.getElementById(fieldId)?.focus();
     };
     const trimmedName = name.trim();
@@ -158,7 +158,12 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
     });
   };
 
-  const error = formError ?? (create.isError ? createErrorMessage(create.error) : null);
+  const error = formError?.message ?? (create.isError ? createErrorMessage(create.error) : null);
+  const fieldFeedback = (fieldId: string, helpId?: string) => ({
+    "aria-invalid": formError?.fieldId === fieldId || undefined,
+    "aria-describedby":
+      [helpId, formError?.fieldId === fieldId ? "gc-error" : null].filter(Boolean).join(" ") || undefined,
+  });
 
   return (
     <section className="col tg-form tg-page">
@@ -200,7 +205,7 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
             maxLength={GROUP_NAME_MAX}
             autoComplete="off"
             onChange={(event) => setName(event.target.value)}
-            aria-describedby="gc-name-help"
+            {...fieldFeedback("gc-name", "gc-name-help")}
           />
           <span className="field__help" id="gc-name-help">
             {GROUP_NAME_MAX}자까지 · 교회 이름을 쓰지 않아도 돼요. 모임 식구들이 알아볼 별칭이면 충분해요.
@@ -218,7 +223,7 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
             maxLength={DISPLAY_NAME_MAX}
             autoComplete="off"
             onChange={(event) => setDisplayName(event.target.value)}
-            aria-describedby="gc-me-help"
+            {...fieldFeedback("gc-me", "gc-me-help")}
           />
           <span className="field__help" id="gc-me-help">
             {DISPLAY_NAME_MAX}자까지 · 리더로 표시돼요. 실명도 애칭도 괜찮아요.
@@ -268,6 +273,7 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
                   </label>
                   <input
                     id="gc-js-name"
+                    {...fieldFeedback("gc-js-name")}
                     type="text"
                     value={jsTitle}
                     maxLength={JEONGSEONG_TITLE_MAX}
@@ -302,6 +308,7 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
                     </label>
                     <input
                       id="gc-js-days"
+                      {...fieldFeedback("gc-js-days")}
                       type="number"
                       inputMode="numeric"
                       min={1}
@@ -320,7 +327,7 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
                     type="date"
                     value={startedOn}
                     onChange={(event) => setStartedOn(event.target.value)}
-                    aria-describedby="gc-js-start-help"
+                    {...fieldFeedback("gc-js-start", "gc-js-start-help")}
                   />
                   <span className="field__help" id="gc-js-start-help">
                     진행은 &ldquo;N일차&rdquo;로만 보여요. 빠진 날이 있어도 정성은 이어지고, 개인별 기록은 보이지
@@ -332,7 +339,11 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
           </div>
         </div>
 
-        {error && <GroupAlert>{error}</GroupAlert>}
+        {error && (
+          <div id="gc-error">
+            <GroupAlert>{error}</GroupAlert>
+          </div>
+        )}
 
         <div className="tg-cta">
           <HoondokButton type="submit" isLoading={create.isPending}>

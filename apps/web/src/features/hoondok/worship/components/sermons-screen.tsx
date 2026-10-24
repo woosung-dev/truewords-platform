@@ -8,7 +8,8 @@
 import { ChevronRight, Mic } from "lucide-react";
 import Link from "next/link";
 import { AuthorityBadge } from "@/components/hoondok";
-import { PREVIEW_LEAD, SERMONS, WORSHIP_ORDER } from "@/features/hoondok/preview/fixtures/worship";
+import { SERMONS, WORSHIP_ORDER } from "@/features/hoondok/preview/fixtures/worship";
+import { PreviewNotice } from "@/features/hoondok/preview/unavailable";
 import { PreviewAvatar } from "./preview-avatar";
 
 // public/hoondok/photos/sermon-thumb-1..4.webp
@@ -19,7 +20,7 @@ export function SermonsScreen() {
 
   return (
     <section className="col">
-      <p className="notice notice--lead">{PREVIEW_LEAD}</p>
+      <PreviewNotice />
 
       <article className="sm-feat" aria-labelledby="sm-feat-title">
         <h2 className="sect__title">이번 주 설교</h2>
@@ -69,9 +70,9 @@ export function SermonsScreen() {
 
       <div className="sect sm-ask">
         <h2 className="sect__title">교회장께 설교 요청</h2>
-        <p className="sm-ask__lede">듣고 싶은 주제를 적어 보내면 우리 지역 교회장께 전해져요.</p>
+        <p className="sm-ask__lede">주제를 적고 설교를 요청하는 흐름을 살펴보세요. 실제 요청은 보내지 않아요.</p>
         {/* 누를 곳은 아래 버튼 하나다 — 아바타마다 같은 폼으로 가는 링크를 두지 않는다 */}
-        <ul className="sm-pastors" aria-label="우리 지역 교회장">
+        <ul className="sm-pastors" aria-label="우리 지역 교회장" tabIndex={0}>
           {pastors.map((pastor) => (
             <li className="sm-pastor" key={pastor.id}>
               <PreviewAvatar name={pastor.name} />

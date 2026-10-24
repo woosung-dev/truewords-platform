@@ -91,7 +91,7 @@ function OnboardingForm() {
 
   if (!isLoading && user) {
     return (
-      <div className="card" role="status">
+      <div className="card" role="status" data-onboarding-returning="">
         <p className="greet">{user.display_name}님, 이미 로그인돼 있어요.</p>
         {message && <p role="status">{message}</p>}
         <div className="onb-cta">

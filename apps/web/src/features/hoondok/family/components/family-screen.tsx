@@ -14,9 +14,8 @@ import {
 // data-screen="family" 이고, 연결·초대·공개 범위 저장은 이번 범위가 아니라 네트워크 요청을 하나도 보내지 않는다.
 // 초대·추가 버튼은 형태만 두고 왜 눌러도 진행되지 않는지는 색이 아니라 글자가 말한다 (DES-PWA-003 §3.3).
 // 사람별 완료/미완료 배지는 두지 않는다 — 읽은 사람 수만 요약한다 (DEC-PWA-023).
-import { PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
+import { PreviewNotice, PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
 
-const PREVIEW_NOTICE = "미리보기 예시 데이터입니다";
 const FOOT_NOTICE = "연결은 양쪽이 동의할 때만 만들어지고, 언제든 끊을 수 있어요.";
 
 type PendingAction = { title: string; note: string; soon: string };
@@ -99,7 +98,7 @@ function ScopeSection() {
         <h2 className="sect__title">내가 보여주는 범위</h2>
       </div>
       <fieldset className="card fm-scope">
-        <legend className="st-lead">가족과 친구에게 어디까지 보일지 정해요.</legend>
+        <legend className="st-lead">가족과 친구에게 보여줄 범위를 고르는 예시예요.</legend>
         {SCOPE_ROWS.map((row) => (
           <div className="fm-scope__row" key={row.id}>
             <span className="fm-scope__k">{row.label}</span>
@@ -117,7 +116,7 @@ function ScopeSection() {
           </div>
         ))}
       </fieldset>
-      <p className="st-row__soon fm-soon">저장은 준비 중이에요 — 지금은 선택만 바뀝니다</p>
+      <p className="st-row__soon fm-soon">저장은 준비 중이에요. 지금은 선택만 바뀝니다</p>
     </div>
   );
 }
@@ -125,7 +124,7 @@ function ScopeSection() {
 export function FamilyScreen() {
   return (
     <section className="col">
-      <p className="notice notice--lead">{PREVIEW_NOTICE}</p>
+      <PreviewNotice />
 
       <PeopleSection
         title="우리 가족"

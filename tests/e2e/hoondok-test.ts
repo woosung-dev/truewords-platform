@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { test as base, type TestInfo } from "@playwright/test";
 
 export { expect } from "@playwright/test";
@@ -19,6 +20,14 @@ export async function waitPastKstMidnight(windowMs: number, testInfo?: TestInfo)
 }
 
 export const test = base.extend<{ kstDayBoundary: undefined }>({
+  // 서로 다른 브라우저 테스트가 같은 로컬 IP의 원문 요청 예산을 소진하지 않게 한다.
+  // 테스트 안에서는 같은 IP를 유지하므로 실제 요청 제한은 그대로 적용된다.
+  extraHTTPHeaders: async ({ extraHTTPHeaders }, use, testInfo) => {
+    const id = createHash("sha256").update(testInfo.testId).digest("hex").slice(0, 24);
+    const groups = Array.from({ length: 6 }, (_, index) => id.slice(index * 4, index * 4 + 4));
+    const clientIp = `2001:db8:${groups.join(":")}`;
+    await use({ ...extraHTTPHeaders, "X-Forwarded-For": clientIp });
+  },
   kstDayBoundary: [
     // biome-ignore lint/correctness/noEmptyPattern: Playwright fixture 는 첫 인자를 구조 분해로 받아야 한다
     async ({}, use) => {

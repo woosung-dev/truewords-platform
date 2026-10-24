@@ -59,7 +59,7 @@ export function SettingsScreen() {
         <div className="st-stack">
           <ReadNotificationCard push={push} />
           {/* 누를 수 없는 줄이라 caret 을 두지 않는다 (§3.3) */}
-          <div className="st-group">
+          <div className="st-upcoming">
             <div className="st-row">
               <span className="st-row__bd">
                 <b className="st-row__t">그 밖의 알림</b>
@@ -75,11 +75,11 @@ export function SettingsScreen() {
         <div className="sect__head">
           <h2 className="sect__title">그 밖의 설정</h2>
         </div>
-        <div className="st-group">
+        <div className="st-upcoming">
           <div className="st-row">
             <span className="st-row__bd">
               <b className="st-row__t">조용한 시간</b>
-              <span className="st-row__d">오후 10시부터 오전 5시까지 알리지 않아요</span>
+              <span className="st-row__d">알림을 쉬는 시간을 정하는 기능을 준비하고 있어요</span>
             </span>
             <span className="st-row__soon">{SOON}</span>
           </div>

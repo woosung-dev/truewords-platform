@@ -19,7 +19,7 @@ import { useCurrentUser } from "@/features/identity/use-current-user";
 import { useLogout } from "@/features/identity/use-logout";
 import { AccountSection } from "./account-section";
 
-// SCR-PWA-014 나의 정원. 프로필 → 통계 3칸 → 월 달력 → 진행 중인 정성 (프로토타입 data-screen="garden" 순서).
+// SCR-PWA-014 나의 정원. 프로필과 개인 맞춤 진입 뒤에 통계·월 달력·정성·기록을 둔다.
 // 읽기 화면이므로 비로그인을 자동으로 내쫓지 않고(gate.ts 원칙) 안내 카드만 보여준다.
 // "함께 읽는 사람들" 섹션은 프로토타입과 같은 자리(정성 다음)에 두되, 016 이 프리뷰 셸이라 진입 링크만이고 플래그가 꺼지면 그리지 않는다.
 // 정성 진행은 "N일차"로만 적고 빠진 날 수는 쓰지 않는다 (DEC-PWA-023).
@@ -199,6 +199,8 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
         <b className="gd-profile__name">{user.display_name}</b>
       </div>
 
+      <PersonalGardenEntry />
+
       {hasFailed ? (
         <div className="card">
           <div className="empty gd-empty" role="status">
@@ -246,8 +248,6 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
           <JeongseongSection period={jeongseong.data ?? null} />
         </>
       )}
-
-      <PersonalGardenEntry />
 
       <RecordsGardenSection />
 

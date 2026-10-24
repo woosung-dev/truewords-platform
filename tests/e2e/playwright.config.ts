@@ -56,6 +56,7 @@ export default defineConfig({
         "hoondok-cards.spec.ts",
         "hoondok-records.spec.ts",
         "hoondok-personal.spec.ts",
+        "hoondok-design.spec.ts",
       ],
       use: { browserName: "chromium", baseURL: webOrigin },
     },

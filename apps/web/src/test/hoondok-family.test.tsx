@@ -126,7 +126,7 @@ describe("016 가족·친구 프리뷰 셸", () => {
     expect(container.querySelectorAll(".fm-scope__row .toggle")).toHaveLength(2);
     // fieldset + legend 로 한 묶음이다
     expect(container.querySelector("fieldset.fm-scope > legend")).toHaveTextContent(
-      "가족과 친구에게 어디까지 보일지 정해요.",
+      "가족과 친구에게 보여줄 범위를 고르는 예시예요.",
     );
     expect(fetchSpy).not.toHaveBeenCalled();
   });
