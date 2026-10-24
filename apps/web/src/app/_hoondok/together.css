@@ -570,6 +570,10 @@
     color: var(--ink);
   }
   /* 만든 직후 초대 코드 */
+  .tg-invite-settings .tg-code {
+    border: 0;
+    background: var(--surface-2);
+  }
   .tg-code {
     margin: 12px 0 0;
     padding: 16px;

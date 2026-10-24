@@ -14,30 +14,18 @@ import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { EmptyDayLine } from "./empty-day";
 
-/**
- * 히어로 인사. 정본 프로토타입 today 의 `.shot__greet` 자리이며 이 화면에서 가장 큰 글자다.
- * 2026-09-22 `DES-PWA-003-Q2` 되돌림으로 사진 히어로를 복원했다 — 사진은 레포 정적 파일이고
- * 글자는 veil 위(하단 45%)에 놓인다 (DES-PWA-003 §3.2).
- * "이름은 가장 큰 글자 안에" 라는 위계는 그대로다. 이름을 "이번 주" 섹션 메타로 내리면
- * 인사가 비개인화되고 이름이 보조 정보가 된다. 로그인 전에는 같은 문장을 이름 없이 쓴다.
- */
+/** 인사는 짧게 두어 바로 아래의 책갈피와 오늘 읽을 말씀을 먼저 만난다. 이름은 인사 안에서만 쓴다. */
 export function HomeGreeting() {
   const { user } = useCurrentUser();
   const date = useKstDate();
   const { label: dateLabel } = formatKstDate(new Date(`${date}T12:00:00+09:00`));
   return (
-    <div className="shot">
-      {/* 사진은 화면 폭의 배경이라 Next/Image 대신 정적 <img> 를 쓴다 — 원본이 이미 2x 폭(1440)이고 변환도 없다 */}
-      <img src="/hoondok/photos/home-morning-field.webp" alt="아침 햇살이 드는 들판" />
-      <div className="shot__tx">
-        <p className="shot__greet">
-          밤이 깊을수록 새벽은 가까워요.
-          <br />
-          {user ? `${user.display_name}님, 오늘도 함께 읽어요.` : "오늘도 함께 읽어요."}
-        </p>
-        <p className="shot__sub">{dateLabel}</p>
-      </div>
-    </div>
+    <header className="home-greeting">
+      <p className="home-greeting__date">{dateLabel}</p>
+      <h2 className="home-greeting__title">
+        {user ? `${user.display_name}님, 오늘도 함께 읽어요.` : "오늘도 함께 읽어요."}
+      </h2>
+    </header>
   );
 }
 

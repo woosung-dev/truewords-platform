@@ -292,6 +292,7 @@ function InviteButton({ detail }: { detail: GroupDetail }) {
     <>
       <HoondokButton
         isSmall
+        variant="line"
         onClick={async () => {
           const method = await shareInvite({ groupName: detail.name, link: inviteLink(code) });
           setResult(

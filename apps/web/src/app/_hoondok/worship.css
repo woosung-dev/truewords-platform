@@ -15,8 +15,18 @@
   /* ---------- 프리뷰 공통 : 본문 맨 위 머리말 ---------- */
   /* `.notice` 는 화면 맨 아래용이라 위 여백만 갖는다. 머리말로 쓸 때는 아래로 뒤집는다 */
   .notice--lead {
-    padding: 0;
-    margin: 4px 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 16px;
+    margin: 4px 0 20px;
+    border-left: 3px solid var(--accent);
+    background: var(--surface-2);
+    text-align: left;
+    font-size: var(--fs-sm);
+  }
+  .notice--lead strong {
+    color: var(--ink);
   }
   /* 머리말 아래 간격은 화면마다 다음 요소의 margin-top(세그먼트 8·섹션 24·히어로 0)에 휘둘리지 않고 12px 로 같다 */
   .notice--lead + * {
@@ -154,9 +164,12 @@
     flex: none;
   }
 
-  /* ---------- 010 가정예배 히어로 : 사진 180px (DES §5 010 행) ---------- */
-  .ws-hero {
-    height: 180px;
+  /* 순서지에서는 분위기 사진을 짧게 두고 실제 예배 순서를 먼저 만난다. */
+  .shot.ws-hero {
+    height: 120px;
+  }
+  .shot.ws-hero::after {
+    background: var(--veil-80);
   }
   /* veil 위에서는 --accent-strong 이 어두워 읽히지 않는다 — 흰 글자로 되돌린다 (§3.2) */
   .shot .ws-eyebrow {

@@ -94,11 +94,11 @@
 
   /* 글자 크기 8단계 (rem — 브라우저 글자 크기 설정을 따른다, DES §1.2·§3.4).
      px 은 루트 16px 기준 환산값. 새 크기를 만들지 말고 가장 가까운 단계를 쓴다. */
-  --fs-2xs: 0.6875rem; /* 11 — 배지·탭 라벨·소문 */
-  --fs-xs: 0.78125rem; /* 12.5 — 메타·보조 설명 */
+  --fs-2xs: 0.75rem; /* 12 — 배지·탭 라벨 */
+  --fs-xs: 0.84375rem; /* 13.5 — 출처·메타·보조 설명 */
   --fs-sm: 0.875rem; /* 14 — 작은 버튼·칩·보조 본문 */
-  --fs-md: 0.9375rem; /* 15 — 기본 본문 */
-  --fs-lg: 1.03125rem; /* 16.5 — 카드 제목·읽기 본문·입력(iOS 확대 방지 16 이상) */
+  --fs-md: 1rem; /* 16 — 기본 본문 */
+  --fs-lg: 1.0625rem; /* 17 — 카드 제목·입력(iOS 확대 방지 16 이상) */
   --fs-xl: 1.1875rem; /* 19 — 앱바 제목·인사·시트 제목 */
   --fs-2xl: 1.375rem; /* 22 — 말씀 제목 */
   --fs-3xl: 1.5625rem; /* 25 — 온보딩 제목·큰 숫자 */
@@ -152,6 +152,10 @@
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+  /* 브라우저의 초점 스크롤이 고정 앱바·하단 탭 뒤에 컨트롤을 두지 않게 한다. */
+  :is(a, button, input, textarea, select, [tabindex]) {
+    scroll-margin-block: calc(100px + env(safe-area-inset-bottom));
   }
   .btn-primary:focus-visible {
     outline-color: var(--ink);
@@ -554,20 +558,21 @@
   }
   .sect__head {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 12px;
   }
   .sect__title {
-    font-size: var(--fs-lg);
+    font-size: 1.125rem;
     margin: 0;
     font-weight: 600;
   }
   .sect__meta {
     font-size: var(--fs-xs);
     color: var(--ink-2);
-    flex: none;
+    max-width: 100%;
   } /* 머리 오른쪽에 메타와 배지를 함께 둘 때의 묶음 */
   .sect__side {
     display: flex;
@@ -590,7 +595,7 @@
     margin: 8px 0 0;
   }
   .empty__body {
-    font-size: var(--fs-xs);
+    font-size: var(--fs-sm);
     color: var(--ink-2);
     margin: 4px 0 0;
   }
@@ -607,6 +612,45 @@
     font-size: var(--fs-xs);
     color: var(--ink-2);
     margin-top: 12px;
+  }
+
+  /* 홈의 첫 화면은 분위기 사진보다 오늘 만날 말씀과 행동에 공간을 준다. */
+  .home-greeting {
+    padding: 12px 0 4px;
+  }
+  .home-greeting__date {
+    margin: 0 0 8px;
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+  }
+  .home-greeting__title {
+    max-width: 24ch;
+    margin: 0;
+    font-size: var(--fs-3xl);
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  /* 출처는 첫 줄에 보존하고, 원문을 둘러싼 카드 테두리보다 읽기 흐름을 강조한다. */
+  .col--read > .malssum {
+    padding: 12px 0 16px;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+  .col--read > .malssum .lede {
+    font-size: var(--fs-xl);
+    line-height: 1.5;
+    margin: 20px 0;
+  }
+  .col--read > .malssum .scripture {
+    font-size: 1.125rem;
+    line-height: 1.85;
+  }
+  .mission[data-disabled] {
+    padding-block: 10px;
+    border: 0;
   }
 
   /* ---------- 6.5 사진 히어로 (DES §3.2 · 2026-09-22 DES-PWA-003-Q2 되돌림) ----------
@@ -1117,6 +1161,10 @@
     color: var(--accent-strong);
     margin: 8px 0 0;
   }
+  /* 이미 로그인한 사람에게 가입 소개를 반복하지 않고 계속하기를 먼저 보인다. */
+  .col--onb:has([data-onboarding-returning]) > :is(.onb-hero, .onb-title, .onb-lede) {
+    display: none;
+  }
   .onb-title {
     font-size: var(--fs-3xl);
     font-weight: 700;
@@ -1230,6 +1278,14 @@
   .pill-seg button[disabled] {
     cursor: default;
     color: var(--ink-3);
+  }
+  .pill-seg button.pill-seg__unavailable {
+    flex-direction: column;
+    gap: 0;
+    font-size: var(--fs-xs);
+  }
+  .pill-seg__unavailable small {
+    font-size: var(--fs-2xs);
   }
   /* 왜 꺼져 있는지는 색이 아니라 글자가 말한다 (§3.3) — 세그먼트 바로 아래 한 줄 */
   .pill-seg__soon {
@@ -1412,7 +1468,8 @@
   font-family: "Pretendard Hoondok";
   font-style: normal;
   font-weight: 45 920;
-  font-display: swap;
+  /* 느린 첫 방문에서는 시스템 글꼴로 읽기를 유지하고, 늦은 글꼴 교체로 본문을 다시 배치하지 않는다. */
+  font-display: optional;
   src:
     url("/hoondok/fonts/PretendardVariable-1.3.9.woff2") format("woff2-variations"),
     url("/hoondok/fonts/PretendardVariable-1.3.9.woff2") format("woff2");

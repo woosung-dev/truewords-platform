@@ -153,7 +153,7 @@
     margin-top: 16px;
   }
 
-  /* 하단 행동 막대: 767 까지는 화면 맨 아래에 고정하고 본문 끝에 그만큼 자리를 비운다. 그동안 하단 탭은 숨긴다 —
+  /* 하단 행동 막대: 767 까지는 화면 아래에 붙이고 실제 높이만큼 문서 흐름에 자리를 둔다. 그동안 하단 탭은 숨긴다 —
      막대와 탭이 겹쳐 쌓이면 844px 화면의 ¼ 가까이를 차지한다(시안 interests-m·pray-*-m 도 탭 없이 막대만). 뒤로는 앱바에 있다.
      ≥768 은 본문 흐름 안, 마지막 내용 바로 아래에 두고 탭(·PC 헤더)도 그대로다 */
   @media (max-width: 767.98px) {
@@ -162,7 +162,7 @@
     }
   }
   .ps-bar {
-    position: fixed;
+    position: sticky;
     left: 0;
     right: 0;
     bottom: 0;
@@ -173,9 +173,10 @@
     padding: 10px var(--gutter) calc(12px + env(safe-area-inset-bottom));
     background: var(--surface);
     border-top: 1px solid var(--line);
+    margin: 24px calc(-1 * var(--gutter)) 0;
   }
   .col.ps-form:has(> .ps-bar) {
-    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+    padding-bottom: 0;
   }
   .ps-bar__t {
     margin: 0;

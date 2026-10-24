@@ -75,12 +75,19 @@
     margin-top: 12px;
   }
   .gd-empty {
-    padding: 24px 16px;
+    padding: 12px 0;
+    text-align: left;
+  }
+  .gd-empty .empty__ic {
+    display: none;
   }
   .gd-cta {
     display: flex;
     justify-content: center;
     margin: 16px 0 0;
+  }
+  .gd-empty .gd-cta {
+    justify-content: flex-start;
   }
   /* 빈 상태의 다음 행동 버튼은 앱 안에서 한 모양이다 — 질문 기록 `.ql-empty__cta` 와 같이 가운데 좁게 */
   .gd-cta .btn {

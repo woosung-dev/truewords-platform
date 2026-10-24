@@ -271,6 +271,10 @@ describe("SCR-PWA-019 모임 만들기", () => {
     expect(groupsAPI.create).not.toHaveBeenCalled();
     // 오류는 버튼 위에 뜨므로 고칠 칸으로 초점이 옮겨 간다
     expect(screen.getByLabelText("이 모임에서 쓸 내 이름")).toHaveFocus();
+    expect(screen.getByLabelText("이 모임에서 쓸 내 이름")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("이 모임에서 쓸 내 이름")).toHaveAccessibleDescription(
+      expect.stringContaining("이 모임에서 쓸 내 이름을 적어 주세요"),
+    );
   });
 
   it("연타: 요청 중에는 버튼이 잠기고 두 번째 제출은 가지 않는다", async () => {

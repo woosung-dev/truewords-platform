@@ -266,14 +266,11 @@ describe("완료 상태의 계정·날짜 경계", () => {
   });
 });
 
-// 2026-09-22 DES-PWA-003-Q2 되돌림 — 히어로가 다시 사진이다. 사진은 레포 정적 파일이어야 하고
-// (외부 hotlink 금지) 로그인 전 인사에 없는 이름이 들어가면 안 된다.
-describe("HomeGreeting 사진 히어로", () => {
-  it("레포 정적 사진을 싣고 로그인 전에는 이름 없이 인사한다", async () => {
+// 로그인 전에는 다른 사용자의 이름을 인사에 넣지 않는다.
+describe("HomeGreeting 인사", () => {
+  it("로그인 전에는 이름 없이 인사한다", () => {
     loggedOut();
     render(wrap(<HomeGreeting />));
-    const photo = await screen.findByAltText("아침 햇살이 드는 들판");
-    expect(photo.getAttribute("src")).toMatch(/^\/hoondok\/photos\//);
     expect(screen.getByText(/오늘도 함께 읽어요/)).toBeInTheDocument();
     expect(screen.queryByText(/효진님/)).toBeNull();
   });

@@ -7,8 +7,8 @@
 import { Check, HeartHandshake, Users } from "lucide-react";
 import { useState } from "react";
 import { DoneBadge } from "@/components/hoondok";
-import { PREVIEW_LEAD, type PreviewChallenge, SOON } from "@/features/hoondok/preview/fixtures/worship";
-import { PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
+import { type PreviewChallenge, SOON } from "@/features/hoondok/preview/fixtures/worship";
+import { PreviewNotice, PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
 import { ChallengeBadge } from "./challenge-badge";
 import { PreviewAvatar } from "./preview-avatar";
 
@@ -162,7 +162,7 @@ function CalendarCard({ challenge }: { challenge: PreviewChallenge }) {
 export function ChallengeDetail({ challenge }: { challenge: PreviewChallenge }) {
   return (
     <section className="col">
-      <p className="notice notice--lead">{PREVIEW_LEAD}</p>
+      <PreviewNotice />
 
       {/* 사진 히어로 160px (DES-PWA-003 §5 011 행 · 2026-09-22 DES-PWA-003-Q2 되돌림) */}
       <div className="shot ch-hero">

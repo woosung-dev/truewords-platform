@@ -9,7 +9,6 @@
 import { Info, Send } from "lucide-react";
 import { type FormEvent, useId, useState } from "react";
 import {
-  PREVIEW_LEAD,
   REQUEST_KINDS,
   REQUEST_LEDE,
   REQUEST_NOTE,
@@ -18,7 +17,7 @@ import {
   REQUEST_TOPIC_DEFAULT,
   REQUEST_WHEN_OPTIONS,
 } from "@/features/hoondok/preview/fixtures/worship";
-import { PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
+import { PreviewNotice, PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
 import { PreviewAvatar } from "./preview-avatar";
 
 const SUBMIT_MESSAGE = "접수는 준비 중이에요";
@@ -36,7 +35,7 @@ export function SermonRequestForm() {
 
   return (
     <section className="col">
-      <p className="notice notice--lead">{PREVIEW_LEAD}</p>
+      <PreviewNotice />
 
       <p className="rq-lede">{REQUEST_LEDE}</p>
 

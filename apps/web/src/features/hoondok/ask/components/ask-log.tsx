@@ -29,7 +29,7 @@ export function AskLog() {
         {segments.map((item) => (
           <button
             key={item.id}
-            className={item.id === segment ? "is-on" : ""}
+            className={item.isSoon ? "pill-seg__unavailable" : item.id === segment ? "is-on" : ""}
             type="button"
             role="tab"
             id={`ask-seg-${item.id}`}
@@ -40,6 +40,7 @@ export function AskLog() {
             onClick={() => setSegment(item.id)}
           >
             {item.label}
+            {item.isSoon && <small>준비 중</small>}
           </button>
         ))}
       </div>

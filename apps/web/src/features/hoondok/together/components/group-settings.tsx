@@ -186,7 +186,9 @@ function InviteSection({ detail }: { detail: GroupDetail }) {
         {detail.invite_expires_at && <span className="sect__meta">{formatKstDay(detail.invite_expires_at)}까지</span>}
       </div>
       <div className="card">
-        <GroupInviteShare groupName={detail.name} code={detail.invite_code} />
+        <div className="tg-invite-settings">
+          <GroupInviteShare groupName={detail.name} code={detail.invite_code} />
+        </div>
         <p className="tg-again">코드를 받은 사람은 누구나 들어올 수 있어요. 만든 날부터 30일 동안 쓸 수 있어요.</p>
         <div className="tg-regen">
           {/* 코드가 바뀌면 key 로 확인 카드를 닫는다 */}

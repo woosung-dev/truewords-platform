@@ -7,13 +7,8 @@ import { Pencil, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { AuthorityBadge } from "@/components/hoondok";
-import {
-  PREVIEW_CHALLENGES,
-  PREVIEW_LEAD,
-  type PreviewChallenge,
-  WORSHIP_ORDER,
-} from "@/features/hoondok/preview/fixtures/worship";
-import { PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
+import { PREVIEW_CHALLENGES, type PreviewChallenge, WORSHIP_ORDER } from "@/features/hoondok/preview/fixtures/worship";
+import { PreviewNotice, PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
 import { ChallengeBadge } from "./challenge-badge";
 
 function OrderCard({ onSoon }: { onSoon: (message: string) => void }) {
@@ -96,7 +91,7 @@ export function WorshipOrder() {
 
   return (
     <section className="col">
-      <p className="notice notice--lead">{PREVIEW_LEAD}</p>
+      <PreviewNotice />
 
       {/* 사진 히어로 180px (DES-PWA-003 §5 010 행 · 2026-09-22 DES-PWA-003-Q2 되돌림) */}
       <div className="shot ws-hero">

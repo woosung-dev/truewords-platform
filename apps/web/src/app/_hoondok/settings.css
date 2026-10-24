@@ -30,6 +30,14 @@
     flex-direction: column;
     gap: 12px;
   }
+  /* 준비 중인 항목은 작동하는 설정 카드와 구별되는 평면 안내로 둔다. */
+  .st-upcoming {
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+  }
+  .st-upcoming .st-row {
+    padding: 8px 0;
+  }
   .st-row {
     display: flex;
     align-items: center;
