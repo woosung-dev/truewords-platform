@@ -1,6 +1,5 @@
 import type {
   ChatbotConfigResponse,
-  ChatChunkEvent,
   ChatDoneEvent,
   ChatRequest,
   ChatResponse,
@@ -11,7 +10,7 @@ import type {
   SessionListResponse,
 } from "@truewords/api-client-ts/types";
 import { fetchAPI, throwApiError } from "@/lib/api";
-import { parseSSEStream } from "@/lib/sse";
+import { consumeChatStream } from "@/lib/chat-stream";
 
 export type {
   ChatResponse,
@@ -103,29 +102,7 @@ export const chatAPI = {
     if (!res.body) {
       throw new Error("스트리밍 응답이 비어있어요");
     }
-    const reader = res.body.getReader();
-    let hasDone = false;
-    await parseSSEStream(reader, (event) => {
-      if (!event.data) return;
-      switch (event.event) {
-        case "chunk": {
-          const parsed = JSON.parse(event.data) as ChatChunkEvent;
-          if (parsed.text) callbacks.onChunk(parsed.text);
-          return;
-        }
-        case "sources": {
-          callbacks.onSources(JSON.parse(event.data) as ChatSourcesEvent);
-          return;
-        }
-        case "done": {
-          hasDone = true;
-          callbacks.onDone(JSON.parse(event.data) as ChatDoneEvent);
-          return;
-        }
-        // 그 외 이벤트는 무시 (향후 확장 호환).
-      }
-    });
-    if (!hasDone) throw new Error("응답 연결이 종료되었어요. 다시 시도해주세요.");
+    await consumeChatStream(res.body, callbacks);
   },
 
   submitFeedback: async (payload: FeedbackRequest): Promise<FeedbackResponse> => {

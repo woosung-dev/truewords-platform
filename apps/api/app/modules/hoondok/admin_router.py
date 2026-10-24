@@ -40,7 +40,6 @@ admin_router = APIRouter(
     dependencies=[Depends(verify_csrf)],
 )
 
-TARGET_TABLE = "daily_readings"
 
 
 @admin_router.get("", response_model=list[DailyReadingAdminResponse])
@@ -92,14 +91,7 @@ async def create_daily_reading(
     current_admin: dict = Depends(get_current_admin),
 ) -> DailyReadingAdminResponse:
     """API-HD-007 편성 등록. 201 · 409 같은 날짜 · 422 검증."""
-    reading = await service.create(data)
-    await admin_service.log_audit(
-        admin_user_id=current_admin["user_id"],
-        action="daily_reading.create",
-        target_table=TARGET_TABLE,
-        target_id=reading.id,
-        changes=data.model_dump(mode="json"),
-    )
+    reading = await service.create_with_audit(data, admin_service, current_admin["user_id"])
     return DailyReadingAdminResponse.model_validate(reading, from_attributes=True)
 
 
@@ -112,12 +104,5 @@ async def update_daily_reading(
     current_admin: dict = Depends(get_current_admin),
 ) -> DailyReadingAdminResponse:
     """API-HD-008 편성 수정(보낸 필드만). `review_status=withdrawn` 이 철회. 404 없음 · 409 날짜 충돌."""
-    reading = await service.update(reading_id, data)
-    await admin_service.log_audit(
-        admin_user_id=current_admin["user_id"],
-        action="daily_reading.update",
-        target_table=TARGET_TABLE,
-        target_id=reading_id,
-        changes=data.model_dump(exclude_unset=True, mode="json"),
-    )
+    reading = await service.update_with_audit(reading_id, data, admin_service, current_admin["user_id"])
     return DailyReadingAdminResponse.model_validate(reading, from_attributes=True)

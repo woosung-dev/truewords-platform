@@ -9,6 +9,7 @@ import httpx
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
+from app.modules.admin.service import AdminService
 from app.core.common.clock import today_kst, utcnow
 from app.modules.hoondok.candidates import filter_results
 from app.modules.hoondok.jeongseong import compute_progress, period_end
@@ -261,21 +262,43 @@ class DailyReadingAdminService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="편성을 찾을 수 없습니다")
         return reading
 
-    async def create(self, data: DailyReadingAdminCreate) -> DailyReading:
+    async def create(self, data: DailyReadingAdminCreate, *, commit: bool = True) -> DailyReading:
         try:
-            return await self.repo.create(DailyReading(**data.model_dump()))
+            return await self.repo.create(DailyReading(**data.model_dump()), commit=commit)
         except IntegrityError:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="그 날짜에는 이미 편성이 있어요")
 
-    async def update(self, reading_id: uuid.UUID, data: DailyReadingAdminUpdate) -> DailyReading:
+    async def update(self, reading_id: uuid.UUID, data: DailyReadingAdminUpdate, *, commit: bool = True) -> DailyReading:
         reading = await self.get(reading_id)
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(reading, field, value)
         reading.updated_at = utcnow()
         try:
-            return await self.repo.save(reading)
+            return await self.repo.save(reading, commit=commit)
         except IntegrityError:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="그 날짜에는 이미 편성이 있어요")
+
+    async def create_with_audit(self, data: DailyReadingAdminCreate, audit: AdminService, actor_id: uuid.UUID) -> DailyReading:
+        reading = await self.create(data, commit=False)
+        await audit.log_audit(
+            admin_user_id=actor_id,
+            action="daily_reading.create",
+            target_table="daily_readings",
+            target_id=reading.id,
+            changes=data.model_dump(mode="json"),
+        )
+        return reading
+
+    async def update_with_audit(self, reading_id: uuid.UUID, data: DailyReadingAdminUpdate, audit: AdminService, actor_id: uuid.UUID) -> DailyReading:
+        reading = await self.update(reading_id, data, commit=False)
+        await audit.log_audit(
+            admin_user_id=actor_id,
+            action="daily_reading.update",
+            target_table="daily_readings",
+            target_id=reading_id,
+            changes=data.model_dump(exclude_unset=True, mode="json"),
+        )
+        return reading
 
 
 # --- 편성 후보 추출 (API-HD-012, PLAN-HD-003) --------------------------------

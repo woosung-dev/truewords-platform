@@ -109,5 +109,9 @@ class AdminService:
             changes=changes,
             ip_address=ip_address,
         )
-        await self.repo.create_audit_log(log)
-        await self.repo.commit()
+        try:
+            await self.repo.create_audit_log(log)
+            await self.repo.commit()
+        except Exception:
+            await self.repo.rollback()
+            raise

@@ -269,7 +269,7 @@ async def test_chunk_text_trims_overlap_like_words_page(db, tmp_path):
     qdrant.scroll.return_value = ([_point(20, prev, pid=2)], None)
     await service.chunk_audio(CHUNK_ID, "sulafat", USER)
     must = qdrant.scroll.await_args.kwargs["scroll_filter"]["must"]
-    assert {"key": "chunk_index", "match": {"value": 20}} in must
+    assert {"key": "chunk_index", "match": {"any": [20]}} in must
     spoken = synth.await_args.args[1]
     assert spoken == normalize_for_speech(to_display_text(prev, curr))
     assert "겹치는" not in spoken

@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
 import type { HighlightItem, WordChunk } from "@truewords/api-client-ts/types";
 import { ArrowDown, BookOpenText, NotebookPen } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Fragment, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthorityBadge } from "@/components/hoondok";
@@ -48,7 +49,11 @@ import { useReadAloud } from "../tts/use-read-aloud";
 import { type AiVoiceId, chunkAudioUrl } from "../tts/voice-api";
 import { isPendingHighlight, useHighlights, useHighlightWriter, useSavedReadingPosition } from "../use-reading";
 import { useReadingChrome } from "../use-reading-chrome";
-import { AiExplain } from "./ai-explain";
+
+const AiExplain = dynamic(() => import("./ai-explain").then((module) => module.AiExplain), {
+  loading: () => <p role="status">설명 화면을 불러오고 있어요</p>,
+});
+
 import { type HighlightActions, HighlightLayer } from "./highlight-layer";
 import { HighlightNotes } from "./highlight-notes";
 import { HighlightGateSheet, MemoSheet } from "./memo-sheet";

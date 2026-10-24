@@ -63,7 +63,7 @@ class LibraryRepository:
             )
         return rows
 
-    async def bulk_update_series(self, series: str, values: dict) -> int:
+    async def bulk_update_series(self, series: str, values: dict, *, commit: bool = True) -> int:
         """시리즈 전 행을 한 번에 갱신하고 갱신 건수를 돌려준다. 0 건이면 커밋하지 않는다."""
         result = await self.session.execute(
             update(ContentRight)
@@ -74,7 +74,10 @@ class LibraryRepository:
         if updated == 0:
             await self.session.rollback()
             return 0
-        await self.session.commit()
+        if commit:
+            await self.session.commit()
+        else:
+            await self.session.flush()
         return updated
 
     # --- 장 목차 (ENT-HD-010) ------------------------------------------------

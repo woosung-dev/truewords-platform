@@ -403,6 +403,9 @@ async def test_admin_gate_csrf_audit_and_withdrawal(setup):
     _, svc, _, _ = setup
     admin = {"user_id": str(uuid.uuid4()), "email": settings.demo_admin_email}
     audit = AsyncMock()
+    async def commit_audit(**_):
+        await svc.repo.session.commit()
+    audit.log_audit.side_effect = commit_audit
     deps = {
         get_current_admin: lambda: admin,
         get_admin_service: lambda: audit,

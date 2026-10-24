@@ -69,3 +69,20 @@ split:
 - `docs/adr/57-backend-audit-auto-decisions.md` — 1차 audit P1-2 보류
 - `docs/adr/59-second-audit-auto-decisions.md` §5 — 2차 audit 메타 의견 + 사용자 결정 #3
 - `memory/feedback_integration_branch_pr_pattern.md` — 통합 브랜치 패턴 (S6 작업 정합)
+
+## 2026-10-24 재검토: SQL 변경과 감사 기록을 함께 확정
+
+훈독 권리·편성·공식 정성·모임 삭제·책갈피 풀에도 같은 이중 commit 패턴이
+확산되어 §2(c)의 재검토 조건을 충족했다. 관리자 SQL 변경은 감사 insert와
+같은 트랜잭션으로 확정한다. **감사 기록 저장 또는 최종 commit이 실패하면
+변경 데이터도 취소한다.** 변경을 먼저 성공시키고 감사를 비동기로 보완하는
+방식보다 변경과 기록의 일치를 우선한다.
+
+감사 포함 쓰기 진입점은 각 도메인이 소유하고, FastAPI DI가 같은 요청의
+`get_async_session`을 공유한다. 선행 저장은 flush만 수행하며 감사 저장이
+최종 commit을 맡는다. 일반 호출자·시드는 기존 commit 동작을 유지한다.
+트랜잭션 실패 후 결과는 새 DB session에서 검증한다.
+
+이 결정은 위 SQL 쓰기와 챗봇 생성·수정에 적용한다. Qdrant 변경·파일 적재처럼
+외부 저장소를 함께 바꾸는 동작까지 원자적이라고 해석하지 않는다. 범용 감사
+decorator나 별도 outbox·재시도 테이블은 도입하지 않는다.

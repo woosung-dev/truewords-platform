@@ -1,6 +1,5 @@
 """신규 훈독 기능의 권리 게이트. 기존 채팅·편성에는 적용하지 않는다."""
 
-import math
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import date, timedelta
@@ -9,14 +8,13 @@ from typing import Literal
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 
+from app.modules.admin.service import AdminService
 from app.core.common.clock import utcnow
-from app.core.config import settings
-from app.modules.datasource.chunk_merge import merge_with_dedup
 from app.modules.hoondok.candidates import filter_results
 from app.modules.hoondok.display_text import to_display_text
 from app.modules.hoondok.journey_repository import JourneyRepository
 from app.modules.hoondok.library_repository import LibraryRepository
-from app.modules.hoondok.library_schemas import LibraryWork, WordSection
+from app.modules.hoondok.library_schemas import LibraryWork
 from app.modules.hoondok.library_series import series_title
 from app.modules.hoondok.library_service import majority_grade
 from app.modules.hoondok.journey_schemas import (
@@ -24,7 +22,6 @@ from app.modules.hoondok.journey_schemas import (
     JeongseongTodayResponse,
     LibraryItem,
     LibraryResponse,
-    WordChunk,
     WordSearchResponse,
     WordSearchResult,
     WordsResponse,
@@ -34,15 +31,13 @@ from app.modules.hoondok.repository import JeongseongRepository
 from app.modules.hoondok.schemas import DailyReadingPublic
 from app.modules.hoondok.service import today_kst
 from app.modules.qdrant import RawQdrantClient
-from app.modules.qdrant.filters import build_filter, field_match, field_range
 from app.modules.search.exceptions import SearchFailedError
 from app.modules.search.hybrid import (
     SearchResult,
     hybrid_search,
-    point_to_search_result,
 )
 
-PAGE_SIZE = 20
+from app.modules.hoondok.reading_content import ReaderContent
 
 
 class JourneyService:
@@ -73,7 +68,7 @@ class JourneyService:
         return await self.repo.list_rights()
 
     async def save_right(
-        self, data: ContentRightInput, right_id: uuid.UUID | None = None
+        self, data: ContentRightInput, right_id: uuid.UUID | None = None, *, commit: bool = True
     ) -> ContentRight:
         right = await self.repo.get_right(right_id) if right_id else ContentRight()
         if right is None:
@@ -82,7 +77,7 @@ class JourneyService:
             setattr(right, key, value)
         right.updated_at = utcnow()
         try:
-            return await self.repo.save_right(right)
+            return await self.repo.save_right(right, commit=commit)
         except IntegrityError:
             raise HTTPException(409, "이미 등록된 저작물입니다") from None
 
@@ -147,158 +142,11 @@ class JourneyService:
             ]
         )
 
-    async def words(
-        self,
-        volume: str,
-        page: int,
-        chunk_id: str | None,
-        section: int | None = None,
-    ) -> WordsResponse:
-        if volume not in await self.allowed("scope_full_text"):
-            raise HTTPException(404, "원문을 찾을 수 없습니다")
-        # 목차로 들어온 장은 그대로 현재 장이다 — 장 시작이 페이지 경계와 어긋나도 앞 장을 보이지 않는다.
-        requested: WordSection | None = None
-        try:
-            if not chunk_id and section is not None:
-                # chunk_id 가 우선이다 — 검색 결과 진입이 목차 선택보다 구체적이다.
-                found = await self._section_by_position(volume, section)
-                if found is None:
-                    raise HTTPException(404, "원문 구간을 찾을 수 없습니다")
-                page = found.start_chunk_index // PAGE_SIZE + 1
-                requested = WordSection(
-                    position=found.position, level=found.level, title=found.title
-                )
-            if chunk_id:
-                # Qdrant ID는 UUID 또는 unsigned integer뿐이다. 잘못된 ID도 404로 통일한다.
-                try:
-                    point_id: str | int = str(uuid.UUID(chunk_id))
-                except ValueError:
-                    if not chunk_id.isdecimal() or not 0 <= int(chunk_id) < 2**64:
-                        raise HTTPException(404, "원문을 찾을 수 없습니다") from None
-                    point_id = int(chunk_id)
-                records = await self.client.retrieve(
-                    settings.collection_name, ids=[point_id]
-                )
-                if not records or (records[0].payload or {}).get("volume") != volume:
-                    raise HTTPException(404, "원문을 찾을 수 없습니다")
-                index = (records[0].payload or {}).get("chunk_index")
-                if not isinstance(index, int) or index < 0:
-                    raise HTTPException(404, "원문을 찾을 수 없습니다")
-                page = index // PAGE_SIZE + 1
-            volume_filter = build_filter(must=[field_match("volume", volume)])
-            total = await self.client.count(
-                settings.collection_name, count_filter=volume_filter, exact=True
-            )
-            if total == 0 or page > math.ceil(total / PAGE_SIZE):
-                raise HTTPException(404, "원문 구간을 찾을 수 없습니다")
-            points, _ = await self.client.scroll(
-                settings.collection_name,
-                scroll_filter=build_filter(
-                    must=[
-                        field_match("volume", volume),
-                        field_range(
-                            "chunk_index",
-                            gte=(page - 1) * PAGE_SIZE,
-                            lt=page * PAGE_SIZE,
-                        ),
-                    ]
-                ),
-                limit=PAGE_SIZE,
-                with_vectors=False,
-            )
-        except HTTPException:
-            raise
-        except Exception:
-            raise SearchFailedError("훈독 원문 조회 실패") from None
-        current_right = (await self.allowed("scope_full_text")).get(volume)
-        if current_right is None:
-            raise HTTPException(404, "원문을 찾을 수 없습니다")
-        ordered = sorted(
-            (point_to_search_result(p) for p in points), key=lambda r: r.chunk_index
-        )
-        if not ordered:
-            raise HTTPException(404, "원문 구간을 찾을 수 없습니다")
-        # 표시 텍스트는 바로 앞 청크와의 겹침을 잘라낸다. 페이지 첫 청크는 앞이 없다.
-        chunks = [
-            WordChunk(
-                chunk_id=r.chunk_id,
-                chunk_index=r.chunk_index,
-                text=r.text,
-                display_text=to_display_text(
-                    ordered[i - 1].text if i > 0 else None, r.text
-                ),
-            )
-            for i, r in enumerate(ordered)
-        ]
-        body = merge_with_dedup(
-            main_text=chunks[0].text, before=[], after=[c.text for c in chunks[1:]]
-        ).merged_text
-        return WordsResponse(
-            volume=volume,
-            work_title=current_right.work_title,
-            authority_grade=current_right.authority_grade,
-            page=page,
-            page_size=PAGE_SIZE,
-            total_chunks=total,
-            total_pages=math.ceil(total / PAGE_SIZE),
-            chunks=chunks,
-            body=body,
-            section=requested
-            if requested is not None
-            else await self._section_at(volume, chunks[0].chunk_index),
-        )
+    async def words(self, volume: str, page: int, chunk_id: str | None, section: int | None = None) -> WordsResponse:
+        return await ReaderContent(self.repo, self.client, self.sections).words(volume, page, chunk_id, section)
 
     async def chunk_display_text(self, chunk_id: str) -> str | None:
-        """원문 뷰(API-HD-016)가 그 단락에 보이는 display_text 그대로. AI 낭독(PLAN-HD-011)이 합성 원문으로 쓴다.
-
-        full_text 허용 저작물이 아니거나 청크가 없으면 None. 겹침 자르기는 words() 와 같게
-        페이지 첫 청크는 앞 청크 없이, 나머지는 바로 앞 청크 기준으로 한다 — 화면과 들리는 글이 같아야 한다.
-        """
-        try:
-            point_id: str | int = str(uuid.UUID(chunk_id))
-        except ValueError:
-            if not chunk_id.isdecimal() or not 0 <= int(chunk_id) < 2**64:
-                return None
-            point_id = int(chunk_id)
-        try:
-            records = await self.client.retrieve(settings.collection_name, ids=[point_id])
-            if not records:
-                return None
-            current = point_to_search_result(records[0])
-            if not isinstance(current.chunk_index, int) or current.chunk_index < 0:
-                return None
-            if current.volume not in await self.allowed("scope_full_text"):
-                return None
-            previous: str | None = None
-            if current.chunk_index % PAGE_SIZE != 0:
-                points, _ = await self.client.scroll(
-                    settings.collection_name,
-                    scroll_filter=build_filter(
-                        must=[
-                            field_match("volume", current.volume),
-                            field_match("chunk_index", current.chunk_index - 1),
-                        ]
-                    ),
-                    limit=1,
-                    with_vectors=False,
-                )
-                previous = point_to_search_result(points[0]).text if points else None
-        except Exception:
-            raise SearchFailedError("훈독 원문 조회 실패") from None
-        return to_display_text(previous, current.text)
-
-    async def _section_by_position(self, volume: str, position: int):
-        if self.sections is None:
-            return None
-        return await self.sections.get_section_by_position(volume, position)
-
-    async def _section_at(self, volume: str, chunk_index: int) -> WordSection | None:
-        if self.sections is None:
-            return None
-        found = await self.sections.get_section_at(volume, chunk_index)
-        if found is None:
-            return None
-        return WordSection(position=found.position, level=found.level, title=found.title)
+        return await ReaderContent(self.repo, self.client, self.sections).chunk_display_text(chunk_id)
 
     async def today(self, user_id: uuid.UUID) -> JeongseongTodayResponse:
         today = self.today_fn()
@@ -402,6 +250,17 @@ class JourneyService:
                 estimated_minutes=reading.estimated_minutes,
             ),
         )
+
+    async def save_right_with_audit(self, data: ContentRightInput, audit: AdminService, actor_id: uuid.UUID, right_id: uuid.UUID | None = None) -> ContentRight:
+        right = await self.save_right(data, right_id, commit=False)
+        await audit.log_audit(
+            admin_user_id=actor_id,
+            action="content_right.update" if right_id else "content_right.create",
+            target_table="content_rights",
+            target_id=right.id,
+            changes=data.model_dump(mode="json"),
+        )
+        return right
 
 
 def _works(

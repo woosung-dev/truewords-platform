@@ -137,6 +137,15 @@ describe("AI 질문 어댑터 (/chat/stream)", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sseResponse('event: chunk\ndata: {"text":"일부"}\n\n')));
     await expect(requestAsk("질문")).rejects.toThrow("답을 받지 못했어요");
   });
+
+  it.each([
+    ["sources 뒤 끊김", (body: string) => body.slice(0, body.indexOf("event: done"))],
+    ["깨진 done", (body: string) => body.replace('{"disclaimer":"AI 설명은 참고용입니다"}', "{invalid")],
+    ["배열 아닌 sources", (body: string) => body.replace(JSON.stringify([SOURCE]), '{"unexpected":true}')],
+  ])("%s은 완료로 처리하지 않는다", async (_label, corrupt) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sseResponse(corrupt(sseBody([SOURCE])))));
+    await expect(requestAsk("질문")).rejects.toThrow("답을 받지 못했어요");
+  });
 });
 
 describe("묻기 홈 (SCR-PWA-005)", () => {

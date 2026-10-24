@@ -7,8 +7,8 @@ import { hoondokFetch } from "../observability/report";
 //  2) 근거 게이트 — chunk 텍스트를 화면에 바로 흘리지 않고 모아 두었다가 `sources` 가 1건 이상일 때만
 //     답과 근거를 함께 보인다. 0건이면 답을 버리고 "확인할 수 없음" 으로 끝낸다(AC-017-01·04).
 
-import type { ChatChunkEvent, ChatDoneEvent, ChatSourcesEvent, Source } from "@truewords/api-client-ts/types";
-import { parseSSEStream } from "@/lib/sse";
+import type { Source } from "@truewords/api-client-ts/types";
+import { consumeChatStream } from "@/lib/chat-stream";
 
 /**
  * 훈독 질문이 쓰는 봇 슬러그 (`chatbot_id`, UUID 아님).
@@ -69,34 +69,11 @@ export async function requestAsk(question: string, signal?: AbortSignal): Promis
   if (!res.body) throw new AskError("failed");
 
   const chunks: string[] = [];
-  let sources: Source[] | null = null;
-  let disclaimer = "";
-  await parseSSEStream(res.body.getReader(), (event) => {
-    if (!event.data) return;
-    try {
-      switch (event.event) {
-        case "chunk": {
-          const parsed = JSON.parse(event.data) as ChatChunkEvent;
-          if (parsed.text) chunks.push(parsed.text);
-          return;
-        }
-        case "sources": {
-          const parsed = JSON.parse(event.data) as ChatSourcesEvent;
-          sources = parsed.sources ?? [];
-          return;
-        }
-        case "done": {
-          disclaimer = (JSON.parse(event.data) as ChatDoneEvent).disclaimer ?? "";
-          return;
-        }
-        // 그 외 이벤트는 무시 (향후 확장 호환).
-      }
-    } catch {
-      // 깨진 JSON 한 건이 스트림 전체를 끊지 않게 — 근거가 끝내 안 오면 아래에서 실패로 끝난다.
-    }
-  });
-
-  // sources 이벤트 자체가 없으면 연결이 중간에 끊긴 것이다. 0건(빈 배열)은 "근거 없음" 이라 성공 경로다.
-  if (sources === null) throw new AskError("failed");
-  return { answer: chunks.join("").trim(), sources, disclaimer };
+  try {
+    const { sources, done } = await consumeChatStream(res.body, { onChunk: (text) => chunks.push(text) });
+    return { answer: chunks.join("").trim(), sources: sources.sources, disclaimer: done.disclaimer };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") throw error;
+    throw new AskError("failed");
+  }
 }

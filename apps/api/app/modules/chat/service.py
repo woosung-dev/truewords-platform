@@ -37,7 +37,7 @@ from app.modules.search.intent_classifier import generation_context_slice_for
 from app.modules.chat.prompt import BASE_SYSTEM_PROMPT
 from app.modules.chat.repository import ChatRepository
 from app.modules.chat.schemas import ChatRequest, ChatResponse, FeedbackRequest, Source
-from app.modules.chat.stream_generator import generate_answer_stream
+from app.modules.chat.stream_generator import generate_answer_stream, sanitize_answer_stream
 from app.modules.malssum.service import pick_malssum_for_answer
 from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
@@ -50,7 +50,7 @@ from app.modules.chatbot.runtime_config import (
 from app.modules.chatbot.service import ChatbotService
 from app.core.common.ingestion_facade import build_display_name_lookup, get_corpus_updated_at
 from app.modules.pipeline.ingestion_repository import IngestionJobRepository
-from app.modules.safety.output_filter import DISCLAIMER, StreamingSanitizer
+from app.modules.safety.output_filter import DISCLAIMER
 
 
 # R2: chatbot_id=None 일 때 사용할 시스템 기본 RuntimeConfig.
@@ -357,39 +357,13 @@ class ChatService:
             gen_cfg_for_call = configure_generation_for_mode(ctx)
             assert gen_cfg_for_call is not None, "stream 경로엔 runtime_config 가 필요합니다"
             context_results = ctx.results[: generation_context_slice_for(ctx.intent)]
-            # P0-9: SSE chunk 단위 sanitizer. SafetyOutputStage 는 full answer 에만 동작하므로
-            # SENSITIVE_PATTERNS 매칭 시 raw chunk 가 사용자에 도달하는 누출을 막는다.
-            # SENSITIVE_PATTERNS 가 빈 리스트인 한 사실상 pass-through (200자 tail 버퍼링만).
-            sanitizer = StreamingSanitizer()
-            full_answer: list[str] = []
-            abort_guidance: str | None = None
-            async for chunk in generate_answer_stream(
-                request.query,
-                context_results,
-                generation_config=gen_cfg_for_call,
-                # 멀티턴 — 동기 GenerationStage 와 동일한 윈도우 정책으로 이력 주입.
+            chunks = generate_answer_stream(
+                request.query, context_results, generation_config=gen_cfg_for_call,
                 history=select_history_window(ctx.history) or None,
-            ):
-                released = sanitizer.feed(chunk)
-                if sanitizer.aborted:
-                    abort_guidance = released
-                    if released:
-                        yield f"event: chunk\ndata: {json.dumps({'text': released}, ensure_ascii=False)}\n\n"
-                    break
-                full_answer.append(chunk)
-                if released:
-                    yield f"event: chunk\ndata: {json.dumps({'text': released}, ensure_ascii=False)}\n\n"
+            )
+            async for released in sanitize_answer_stream(chunks, ctx):
+                yield f"event: chunk\ndata: {json.dumps({'text': released}, ensure_ascii=False)}\n\n"
 
-            if not sanitizer.aborted:
-                tail = sanitizer.flush()
-                if tail:
-                    yield f"event: chunk\ndata: {json.dumps({'text': tail}, ensure_ascii=False)}\n\n"
-
-            # Safety + 후속 stage (P0-A followups, P1-J closing) 병렬 실행 + Persist.
-            # 동기 process_chat 과 동일한 흐름이라 stream 응답에도 closing/suggested_followups
-            # 가 포함된다 (#12 streaming UI).
-            # abort 분기: guidance 만 persist (raw partial answer 가 DB 에 남지 않도록).
-            ctx.answer = abort_guidance if abort_guidance is not None else "".join(full_answer)
             ctx = await self.safety_output_stage.execute(ctx)
             # 말씀 주제 매칭 LLM 분류를 followups/closing 과 병렬 → 추가 지연 0.
             gathered = await asyncio.gather(

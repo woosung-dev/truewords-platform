@@ -768,7 +768,7 @@ describe("AI 설명 탭", () => {
     fireEvent.click(await screen.findByRole("button", { name: "단락 2 표시하기" }));
     fireEvent.click(screen.getByRole("button", { name: "닫기" }));
     fireEvent.click(screen.getByRole("tab", { name: "AI 설명" }));
-    fireEvent.click(screen.getByRole("button", { name: "이 단락 설명 요청" }));
+    fireEvent.click(await screen.findByRole("button", { name: "이 단락 설명 요청" }));
     await waitFor(() => expect(screen.getByText("쉬운 설명")).toBeInTheDocument());
     expect(requestAsk).toHaveBeenCalledTimes(1);
     expect(requestAsk).toHaveBeenCalledWith(`${EXPLAIN_PREFIX}둘째 단락의 본문`);
@@ -783,7 +783,7 @@ describe("AI 설명 탭", () => {
     fireEvent.click(await screen.findByRole("button", { name: "단락 2 표시하기" }));
     fireEvent.click(screen.getByRole("button", { name: "닫기" }));
     fireEvent.click(screen.getByRole("tab", { name: "AI 설명" }));
-    fireEvent.click(screen.getByRole("button", { name: "이 단락 설명 요청" }));
+    fireEvent.click(await screen.findByRole("button", { name: "이 단락 설명 요청" }));
     expect(await screen.findByText("한 줄 요약", { selector: ".ai-note__head" })).toBeInTheDocument();
     expect(screen.getByText("뼈사랑").tagName).toBe("STRONG");
     expect(screen.queryByText(/###|\*\*/)).toBeNull();
@@ -794,7 +794,7 @@ describe("AI 설명 탭", () => {
     fireEvent.click(await screen.findByRole("button", { name: "단락 1 표시하기" }));
     fireEvent.click(screen.getByRole("button", { name: "닫기" }));
     fireEvent.click(screen.getByRole("tab", { name: "AI 설명" }));
-    fireEvent.click(screen.getByRole("button", { name: "이 단락 설명 요청" }));
+    fireEvent.click(await screen.findByRole("button", { name: "이 단락 설명 요청" }));
     await waitFor(() => expect(screen.getByText(/근거 말씀을 찾지 못했어요/)).toBeInTheDocument());
     expect(screen.queryByText("보이면 안 되는 답")).toBeNull();
   });

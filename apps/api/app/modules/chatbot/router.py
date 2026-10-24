@@ -67,14 +67,7 @@ async def create_config(
     admin_service: AdminService = Depends(get_admin_service),
     current_admin: dict = Depends(get_current_admin),
 ) -> ChatbotConfigResponse:
-    config = await service.create(data)
-    await admin_service.log_audit(
-        admin_user_id=current_admin["user_id"],
-        action="chatbot_config.create",
-        target_table="chatbot_configs",
-        target_id=config.id,
-        changes=data.model_dump(mode="json"),
-    )
+    config = await service.create_with_audit(data, admin_service, current_admin["user_id"])
     return ChatbotConfigResponse.model_validate(config, from_attributes=True)
 
 
@@ -86,12 +79,5 @@ async def update_config(
     admin_service: AdminService = Depends(get_admin_service),
     current_admin: dict = Depends(get_current_admin),
 ) -> ChatbotConfigResponse:
-    config = await service.update(config_id, data)
-    await admin_service.log_audit(
-        admin_user_id=current_admin["user_id"],
-        action="chatbot_config.update",
-        target_table="chatbot_configs",
-        target_id=config_id,
-        changes=data.model_dump(exclude_unset=True, mode="json"),
-    )
+    config = await service.update_with_audit(config_id, data, admin_service, current_admin["user_id"])
     return ChatbotConfigResponse.model_validate(config, from_attributes=True)

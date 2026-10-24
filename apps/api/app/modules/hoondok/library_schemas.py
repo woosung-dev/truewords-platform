@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 from app.modules.hoondok.schemas import AuthorityGrade
+from app.modules.hoondok.display_text import PAGE_SIZE
 
 # 형광펜은 API-HD-053 구절 단위로 옮겼다 — 단락 표시(API-HD-026)는 북마크만 남는다.
 MarkKind = Literal["bookmark"]
@@ -130,7 +131,7 @@ class MarksResponse(BaseModel):
 # 오프셋은 원문 뷰(API-HD-016) 청크 `display_text` 의 글자 위치다(끝은 배타). 한 구절은 여러 단락에
 # 걸칠 수 있지만 한 페이지(PAGE_SIZE 청크) 안이어야 한다 — 화면 하나에서만 고를 수 있기 때문이다.
 
-HIGHLIGHT_PAGE_SIZE = 20  # journey_service.PAGE_SIZE 와 같다
+HIGHLIGHT_PAGE_SIZE = PAGE_SIZE
 
 
 class HighlightInput(BaseModel):

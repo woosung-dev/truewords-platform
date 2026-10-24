@@ -56,6 +56,7 @@ class ChatContext:
     # 빈 dict 면 metadata filter 적용 안 함 (= v5 baseline).
     query_metadata: dict[str, int] = field(default_factory=dict)
     answer: str | None = None
+    stream_sanitizer_aborted: bool = False
     assistant_message: SessionMessage | None = None
 
     # P0-E — 최종 결정된 답변 모드 (standard/theological/pastoral/beginner/kids).

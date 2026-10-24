@@ -32,10 +32,13 @@ class JourneyRepository:
     async def get_right(self, right_id: uuid.UUID) -> ContentRight | None:
         return await self.session.get(ContentRight, right_id)
 
-    async def save_right(self, right: ContentRight) -> ContentRight:
+    async def save_right(self, right: ContentRight, *, commit: bool = True) -> ContentRight:
         self.session.add(right)
         try:
-            await self.session.commit()
+            if commit:
+                await self.session.commit()
+            else:
+                await self.session.flush()
         except Exception:
             await self.session.rollback()
             raise

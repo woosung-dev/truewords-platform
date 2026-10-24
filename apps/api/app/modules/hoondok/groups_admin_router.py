@@ -25,8 +25,6 @@ groups_admin_router = APIRouter(
     dependencies=[Depends(verify_csrf)],
 )
 
-JEONGSEONG_TABLE = "shared_jeongseongs"
-GROUP_TABLE = "reading_groups"
 
 
 @jeongseong_admin_router.get("", response_model=list[OfficialJeongseongOut])
@@ -46,14 +44,7 @@ async def create_official_jeongseong(
     current_admin: dict = Depends(get_current_admin),
 ) -> OfficialJeongseongOut:
     """API-HD-042 공식 정성 등록 → 201. 모든 모임 상세에 자동 표시된다."""
-    created = await service.create_official(data)
-    await admin_service.log_audit(
-        admin_user_id=current_admin["user_id"],
-        action="official_jeongseong.create",
-        target_table=JEONGSEONG_TABLE,
-        target_id=created.id,
-        changes=data.model_dump(mode="json"),
-    )
+    created = await service.create_official_with_audit(data, admin_service, current_admin["user_id"])
     return created
 
 
@@ -66,14 +57,7 @@ async def update_official_jeongseong(
     current_admin: dict = Depends(get_current_admin),
 ) -> OfficialJeongseongOut:
     """API-HD-042 공식 정성 수정(전체 교체). 404 없음·모임 정성."""
-    updated = await service.update_official(jeongseong_id, data)
-    await admin_service.log_audit(
-        admin_user_id=current_admin["user_id"],
-        action="official_jeongseong.update",
-        target_table=JEONGSEONG_TABLE,
-        target_id=jeongseong_id,
-        changes=data.model_dump(mode="json"),
-    )
+    updated = await service.update_official_with_audit(jeongseong_id, data, admin_service, current_admin["user_id"])
     return updated
 
 
@@ -85,14 +69,7 @@ async def delete_official_jeongseong(
     current_admin: dict = Depends(get_current_admin),
 ) -> None:
     """API-HD-042 공식 정성 삭제 → 204. 404 없음·모임 정성."""
-    await service.delete_official(jeongseong_id)
-    await admin_service.log_audit(
-        admin_user_id=current_admin["user_id"],
-        action="official_jeongseong.delete",
-        target_table=JEONGSEONG_TABLE,
-        target_id=jeongseong_id,
-        changes={},
-    )
+    await service.delete_official_with_audit(jeongseong_id, admin_service, current_admin["user_id"])
 
 
 @groups_admin_router.get("", response_model=list[AdminGroupItem])
@@ -112,11 +89,4 @@ async def delete_group(
     current_admin: dict = Depends(get_current_admin),
 ) -> None:
     """API-HD-043 모임 삭제(신고 대응) → 204 + 감사 로그. 404 없음."""
-    await service.delete_group(group_id)
-    await admin_service.log_audit(
-        admin_user_id=current_admin["user_id"],
-        action="reading_group.delete",
-        target_table=GROUP_TABLE,
-        target_id=group_id,
-        changes={},
-    )
+    await service.delete_group_with_audit(group_id, admin_service, current_admin["user_id"])
