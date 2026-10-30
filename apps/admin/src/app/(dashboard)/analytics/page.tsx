@@ -5,11 +5,11 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { QueryErrorNotice } from "@/components/query-error-notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
 import { ModesChart } from "@/features/analytics/components/modes-chart";
 
-import { TruncateTooltip } from "@/features/analytics/components/truncate-tooltip";
 import type { DailyCount, SearchStats, TopQuery } from "@/features/analytics/types";
 
 const QueryDetailModal = dynamic(() => import("@/features/analytics/components/query-detail-modal"));
@@ -119,20 +119,18 @@ function TopQueriesTable({
                 <tr
                   key={i}
                   className={(i !== 0 ? "border-t " : "") + "cursor-pointer hover:bg-admin-muted/40 transition-colors"}
-                  onClick={() => onSelect(q.query_text)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onSelect(q.query_text);
-                    }
-                  }}
-                  title="클릭하면 상세 정보를 확인할 수 있습니다"
                 >
                   <td className="py-2 px-3 text-muted-foreground font-mono text-xs">{i + 1}</td>
                   <td className="py-2 px-3 max-w-0 w-full">
-                    <TruncateTooltip text={q.query_text} />
+                    <button
+                      type="button"
+                      className="block min-h-11 w-full truncate text-left hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                      title={q.query_text}
+                      aria-label={`${q.query_text} 상세 보기`}
+                      onClick={() => onSelect(q.query_text)}
+                    >
+                      {q.query_text}
+                    </button>
                   </td>
                   <td className="py-2 px-3 text-right font-medium">{q.count.toLocaleString()}</td>
                 </tr>
@@ -151,22 +149,46 @@ function TopQueriesTable({
 export default function AnalyticsPage() {
   const [selectedQuery, setSelectedQuery] = useState<{ query: string; open: boolean } | null>(null);
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    isError: statsError,
+    isFetching: statsFetching,
+    refetch: refetchStats,
+  } = useQuery({
     queryKey: ["search-stats"],
     queryFn: () => analyticsAPI.getSearchStats(30),
   });
 
-  const { data: trend, isLoading: trendLoading } = useQuery({
+  const {
+    data: trend,
+    isLoading: trendLoading,
+    isError: trendError,
+    isFetching: trendFetching,
+    refetch: refetchTrend,
+  } = useQuery({
     queryKey: ["daily-trend"],
     queryFn: () => analyticsAPI.getDailyTrend(30),
   });
 
-  const { data: topQueries, isLoading: topQueriesLoading } = useQuery({
+  const {
+    data: topQueries,
+    isLoading: topQueriesLoading,
+    isError: topQueriesError,
+    isFetching: topQueriesFetching,
+    refetch: refetchTopQueries,
+  } = useQuery({
     queryKey: ["top-queries"],
     queryFn: () => analyticsAPI.getTopQueries(30, 10),
   });
 
-  const { data: dailyModes, isLoading: dailyModesLoading } = useQuery({
+  const {
+    data: dailyModes,
+    isLoading: dailyModesLoading,
+    isError: dailyModesError,
+    isFetching: dailyModesFetching,
+    refetch: refetchDailyModes,
+  } = useQuery({
     queryKey: ["daily-modes"],
     queryFn: () => analyticsAPI.getDailyModes(30),
   });
@@ -186,21 +208,29 @@ export default function AnalyticsPage() {
       </div>
 
       {/* 통계 카드 4개 */}
+      {statsError && (
+        <QueryErrorNotice
+          message="검색 통계를 불러오지 못했습니다."
+          hasPreviousData={stats !== undefined}
+          isRetrying={statsFetching}
+          onRetry={() => void refetchStats()}
+        />
+      )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="총 검색 수" value={(stats?.total_searches ?? 0).toLocaleString()} loading={statsLoading} />
+        <StatCard label="총 검색 수" value={stats?.total_searches.toLocaleString() ?? "—"} loading={statsLoading} />
         <StatCard
           label="쿼리 재작성률"
-          value={stats ? `${(stats.rewrite_rate * 100).toFixed(1)}%` : "0%"}
+          value={stats ? `${(stats.rewrite_rate * 100).toFixed(1)}%` : "—"}
           loading={statsLoading}
         />
         <StatCard
           label="결과 없음 비율"
-          value={stats ? `${(stats.zero_result_rate * 100).toFixed(1)}%` : "0%"}
+          value={stats ? `${(stats.zero_result_rate * 100).toFixed(1)}%` : "—"}
           loading={statsLoading}
         />
         <StatCard
           label="평균 지연 시간"
-          value={stats ? `${Math.round(stats.avg_latency_ms).toLocaleString()} ms` : "0 ms"}
+          value={stats ? `${Math.round(stats.avg_latency_ms).toLocaleString()} ms` : "—"}
           loading={statsLoading}
         />
       </div>
@@ -208,10 +238,18 @@ export default function AnalyticsPage() {
       {/* 일별 트렌드 차트 */}
       <div className="rounded-xl border bg-card p-5 space-y-4">
         <h2 className="text-sm font-semibold">일별 검색량 (최근 30일)</h2>
-        {trendLoading ? (
+        {trendError && (
+          <QueryErrorNotice
+            message="일별 검색량을 불러오지 못했습니다."
+            hasPreviousData={trend !== undefined}
+            isRetrying={trendFetching}
+            onRetry={() => void refetchTrend()}
+          />
+        )}
+        {trendError && trend === undefined ? null : trendLoading ? (
           <Skeleton className="h-52 w-full" />
         ) : chartData.length === 0 ? (
-          <div className="h-52 flex items-center justify-center">
+          <div className="min-h-24 flex items-center justify-center">
             <p className="text-sm text-muted-foreground">데이터가 없습니다</p>
           </div>
         ) : (
@@ -242,16 +280,38 @@ export default function AnalyticsPage() {
       </div>
 
       {/* BL-6 — 일별 모드 분포 차트 (4주 시범 운영 baseline) */}
-      <ModesChart rows={dailyModes} loading={dailyModesLoading} />
+      <div className="space-y-3">
+        {dailyModesError && (
+          <QueryErrorNotice
+            message="일별 모드 분포를 불러오지 못했습니다."
+            hasPreviousData={dailyModes !== undefined}
+            isRetrying={dailyModesFetching}
+            onRetry={() => void refetchDailyModes()}
+          />
+        )}
+        {!(dailyModesError && dailyModes === undefined) && <ModesChart rows={dailyModes} loading={dailyModesLoading} />}
+      </div>
 
       {/* 하단 2열 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FallbackDistribution stats={stats} loading={statsLoading} />
-        <TopQueriesTable
-          queries={topQueries}
-          loading={topQueriesLoading}
-          onSelect={(q) => setSelectedQuery({ query: q, open: true })}
-        />
+        {!(statsError && stats === undefined) && <FallbackDistribution stats={stats} loading={statsLoading} />}
+        <div className="space-y-3">
+          {topQueriesError && (
+            <QueryErrorNotice
+              message="인기 질문을 불러오지 못했습니다."
+              hasPreviousData={topQueries !== undefined}
+              isRetrying={topQueriesFetching}
+              onRetry={() => void refetchTopQueries()}
+            />
+          )}
+          {!(topQueriesError && topQueries === undefined) && (
+            <TopQueriesTable
+              queries={topQueries}
+              loading={topQueriesLoading}
+              onSelect={(q) => setSelectedQuery({ query: q, open: true })}
+            />
+          )}
+        </div>
       </div>
 
       {selectedQuery !== null && (

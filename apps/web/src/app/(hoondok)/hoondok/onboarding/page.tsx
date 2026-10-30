@@ -7,7 +7,7 @@ import { ApiError } from "@truewords/api-client-ts";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { type FormEvent, Suspense, useState } from "react";
+import { type FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { afterSignupHref } from "@/features/hoondok/personal/start";
 import { extractInviteCode } from "@/features/hoondok/together/invite-code";
@@ -35,12 +35,13 @@ function messageFor(error: unknown, mode: Mode, hasInviteCode: boolean): string 
   return "서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요";
 }
 
-function OnboardingForm() {
+function OnboardingForm({ mode, onModeChange }: { mode: Mode; onModeChange: (mode: Mode) => void }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const returnTo = safeReturnTo(useSearchParams().get("returnTo"));
   const { user, isLoading } = useCurrentUser();
-  const [mode, setMode] = useState<Mode>("signup");
+  const formRef = useRef<HTMLFormElement>(null);
+  const previousMode = useRef(mode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -49,6 +50,13 @@ function OnboardingForm() {
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const logout = useLogout();
+
+  useEffect(() => {
+    if (previousMode.current !== mode) {
+      formRef.current?.querySelector("input")?.focus();
+      previousMode.current = mode;
+    }
+  }, [mode]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -107,7 +115,7 @@ function OnboardingForm() {
   }
 
   return (
-    <form className="form" onSubmit={handleSubmit} aria-label={mode === "signup" ? "가입" : "로그인"}>
+    <form ref={formRef} className="form" onSubmit={handleSubmit} aria-label={mode === "signup" ? "가입" : "로그인"}>
       {mode === "signup" && (
         <label className="field">
           <span className="field__label">이름</span>
@@ -187,7 +195,7 @@ function OnboardingForm() {
       </div>
       <p className="form__switch">
         {mode === "signup" ? "이미 계정이 있어요? " : "처음이에요? "}
-        <button type="button" onClick={() => setMode(mode === "signup" ? "login" : "signup")}>
+        <button type="button" onClick={() => onModeChange(mode === "signup" ? "login" : "signup")}>
           {mode === "signup" ? "로그인" : "가입하기"}
         </button>
       </p>
@@ -196,6 +204,7 @@ function OnboardingForm() {
 }
 
 export default function HoondokOnboardingPage() {
+  const [mode, setMode] = useState<Mode>("signup");
   return (
     // `col--onb` = 첫 화면만 거터 24px (DES-PWA-003 §5 001 행). 다른 화면의 --gutter 20px 와 의도적으로 다르다.
     <section className="col col--onb">
@@ -204,7 +213,7 @@ export default function HoondokOnboardingPage() {
       <div className="shot onb-hero">
         <img src="/hoondok/photos/onboarding-sunlit-field.webp" alt="아침 햇살 속 들판" />
       </div>
-      <p className="onb-eyebrow">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
+      <p className="onb-eyebrow">독립 운영 베타</p>
       <h2 className="onb-title">
         아침 3분 훈독으로
         <br />
@@ -215,7 +224,7 @@ export default function HoondokOnboardingPage() {
       </p>
       <div className="sect">
         <Suspense fallback={null}>
-          <OnboardingForm />
+          <OnboardingForm mode={mode} onModeChange={setMode} />
         </Suspense>
       </div>
       <p className="notice">

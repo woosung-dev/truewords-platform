@@ -25,7 +25,7 @@ import { AccountSection } from "./account-section";
 // 정성 진행은 "N일차"로만 적고 빠진 날 수는 쓰지 않는다 (DEC-PWA-023).
 // '나의 기록'(C1)은 자기 요청·오류를 따로 가진다 — 표시 목록이 실패해도 통계·달력은 그대로 보인다.
 // 계정(이메일·로그아웃)은 매일 보는 기록과 떨어진 맨 아래에 둔다. 로그아웃하면 이 화면에 머물러 비로그인 카드가 곧 결과 안내가 된다.
-const BETA_NOTICE = "독립 운영 베타 · 가정연합 공식 앱이 아닙니다";
+const BETA_NOTICE = "독립 운영 베타";
 const JEONGSEONG_HREF = "/hoondok?sheet=jeongseong";
 const FAMILY_HREF = "/hoondok/family";
 
@@ -145,7 +145,7 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
 
   if (isUserLoading)
     return (
-      <section className="col">
+      <section className="col gd-screen">
         <GardenSkeleton />
         <GardenNotice />
       </section>
@@ -153,7 +153,7 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
 
   if (!user)
     return (
-      <section className="col">
+      <section className="col gd-screen">
         <div className="card">
           <div className="empty">
             <span className="empty__ic" aria-hidden="true">
@@ -191,7 +191,7 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
   };
 
   return (
-    <section className="col">
+    <section className="col gd-screen">
       <div className="gd-profile">
         <span className="gd-profile__av" aria-hidden="true">
           {Array.from(user.display_name.trim())[0] ?? ""}

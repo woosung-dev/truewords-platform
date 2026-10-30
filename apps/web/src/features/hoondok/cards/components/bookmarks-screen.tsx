@@ -6,6 +6,7 @@ import { Bookmark } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
+import { handleSegmentKeyDown } from "@/features/hoondok/segmented-keyboard";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import type { CardReceiptItem, CardShelf, MyCardsFilter } from "../api";
@@ -194,7 +195,7 @@ export function BookmarksScreen({ initialFilter }: { initialFilter: MyCardsFilte
 
   return (
     <section className="col bks">
-      <div className="bks-seg" role="tablist" aria-label="책갈피 보기">
+      <div className="bks-seg" role="tablist" onKeyDown={handleSegmentKeyDown} aria-label="책갈피 보기">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -202,6 +203,7 @@ export function BookmarksScreen({ initialFilter }: { initialFilter: MyCardsFilte
             role="tab"
             id={`bks-tab-${tab.id}`}
             aria-selected={filter === tab.id}
+            tabIndex={filter === tab.id ? 0 : -1}
             aria-controls="bks-panel"
             onClick={() => setFilter(tab.id)}
           >

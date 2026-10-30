@@ -302,7 +302,7 @@ export default function CategoryTab() {
           <Tag className="w-4 h-4 text-warning mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-warning">
-              Qdrant에 등록되지 않은 소스가 {unregisteredSources.length}개 있습니다
+              분류가 등록되지 않은 데이터 소스가 {unregisteredSources.length}개 있습니다
             </p>
             <p className="text-xs text-warning mt-0.5">검색 티어에서 사용하려면 카테고리로 등록하세요</p>
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -328,15 +328,16 @@ export default function CategoryTab() {
       )}
 
       {/* 테이블 */}
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="rounded-xl border bg-card overflow-x-auto" role="region" aria-label="카테고리 목록" tabIndex={0}>
+        <p className="px-4 py-2 text-xs text-muted-foreground sm:hidden">표를 좌우로 밀어 전체 내용을 확인하세요.</p>
+        <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b bg-admin-muted/40">
               <th className="w-8 px-2 py-2.5" />
               {/* Key 컬럼은 사용자에게 의미가 없어 숨김 (시스템 내부 식별자).
                   새 카테고리 추가 시 backend 가 자동 생성. */}
-              <th className="text-left font-medium px-4 py-2.5">이름</th>
-              <th className="text-left font-medium px-4 py-2.5">문서 / 청크</th>
+              <th className="text-left font-medium px-4 py-2.5 min-w-32 whitespace-nowrap">이름</th>
+              <th className="text-left font-medium px-4 py-2.5 whitespace-nowrap">문서 / 데이터 조각</th>
               <th className="text-left font-medium px-4 py-2.5 hidden sm:table-cell">색상</th>
               <th className="text-center font-medium px-4 py-2.5">상태</th>
               <th className="text-right font-medium px-4 py-2.5">액션</th>
@@ -362,6 +363,8 @@ export default function CategoryTab() {
                       {hasVolumes && (
                         <button
                           type="button"
+                          aria-label={`${cat.name} 문서 ${isExpanded ? "접기" : "펼치기"}`}
+                          aria-expanded={isExpanded}
                           className="p-0.5 rounded hover:bg-primary/10"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -377,9 +380,9 @@ export default function CategoryTab() {
                       )}
                     </td>
                     {/* Key cell 숨김 (header 와 일치) */}
-                    <td className="px-4 py-3 font-medium">{cat.name}</td>
+                    <td className="px-4 py-3 font-medium whitespace-nowrap">{cat.name}</td>
                     {/* 문서 / 청크 */}
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       {statsLoading ? (
                         <Skeleton className="h-4 w-28" />
                       ) : stat && stat.volume_count > 0 ? (
@@ -387,7 +390,7 @@ export default function CategoryTab() {
                           <span className="font-semibold">{stat.volume_count}</span>
                           <span className="text-muted-foreground"> 문서 · </span>
                           <span className="font-semibold">{stat.total_chunks.toLocaleString()}</span>
-                          <span className="text-muted-foreground"> 청크</span>
+                          <span className="text-muted-foreground"> 조각</span>
                         </span>
                       ) : (
                         <span className="text-sm text-muted-foreground">문서 없음</span>
@@ -414,6 +417,7 @@ export default function CategoryTab() {
                           variant="ghost"
                           className="h-7 px-2"
                           title="편집"
+                          aria-label={`${cat.name} 편집`}
                           onClick={(e) => {
                             e.stopPropagation();
                             openEdit(cat);
@@ -430,6 +434,7 @@ export default function CategoryTab() {
                             openTransfer(cat.key, cat.name, cat.color);
                           }}
                           title="문서 관리"
+                          aria-label={`${cat.name} 문서 관리`}
                         >
                           <FolderOpen className="w-3.5 h-3.5" />
                         </Button>
@@ -439,6 +444,7 @@ export default function CategoryTab() {
                             variant="ghost"
                             className="h-7 px-2 text-destructive hover:text-destructive"
                             title="비활성화"
+                            aria-label={`${cat.name} 비활성화`}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeactivate(cat);

@@ -25,12 +25,25 @@ export function ReaderSheet({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const openerRef = useRef<Element | null>(null);
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (dialog) openDialog(dialog);
-    const opener = document.activeElement;
+    if (dialog && !dialog.open) {
+      openerRef.current = document.activeElement;
+      openDialog(dialog);
+    }
     return () => {
-      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+      // DOM에서 모달이 제거되어 배경이 활성화된 다음 복원한다. StrictMode의 재설정은 건너뛴다.
+      queueMicrotask(() => {
+        const opener = openerRef.current;
+        if (
+          !dialog?.isConnected &&
+          opener instanceof HTMLElement &&
+          opener.isConnected &&
+          document.activeElement !== opener
+        )
+          opener.focus();
+      });
     };
   }, []);
   function handleBackdrop(event: MouseEvent<HTMLDialogElement>) {

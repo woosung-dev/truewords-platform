@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { test as base, type TestInfo } from "@playwright/test";
 
 export { expect } from "@playwright/test";
@@ -19,6 +20,13 @@ export async function waitPastKstMidnight(windowMs: number, testInfo?: TestInfo)
 }
 
 export const test = base.extend<{ kstDayBoundary: undefined }>({
+  extraHTTPHeaders: async ({ extraHTTPHeaders }, use) => {
+    // 별도 방문자들이 loopback IP 한 개의 제한을 공유하지 않게 한다. 같은 테스트 안의 제한은 유지한다.
+    const visitorIp = `2001:db8:${randomBytes(12)
+      .toString("hex")
+      .replace(/.{4}(?=.)/g, "$&:")}`;
+    await use({ ...extraHTTPHeaders, "CF-Connecting-IP": visitorIp });
+  },
   kstDayBoundary: [
     // biome-ignore lint/correctness/noEmptyPattern: Playwright fixture 는 첫 인자를 구조 분해로 받아야 한다
     async ({}, use) => {

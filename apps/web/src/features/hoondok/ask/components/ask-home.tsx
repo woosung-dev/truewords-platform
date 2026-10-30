@@ -4,7 +4,7 @@
 // FAB·세그먼트는 없다(DES-PWA-003 §2.9 2026-09-16 정정). 시작 문장은 입력을 채울 뿐 보내지 않는다(AC-017-03).
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState, useSyncExternalStore } from "react";
+import { Suspense, useRef, useState, useSyncExternalStore } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { type AskItem, appendAskItem, EMPTY_ASK_ITEMS, newAskId, readAskItems, subscribeAsk } from "../storage";
 
@@ -23,6 +23,7 @@ const STARTERS = [
 function AskComposer({ today, initialQuestion }: { today: AskTodayLine | null; initialQuestion: string }) {
   const router = useRouter();
   const [question, setQuestion] = useState(initialQuestion);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   // 목록 수는 기기 저장소가 원본이다. 서버 스냅샷이 빈 배열이라 SSR 과 첫 렌더가 같다(TodayNote 와 같은 패턴).
   const items = useSyncExternalStore(subscribeAsk, readAskItems, () => EMPTY_ASK_ITEMS as AskItem[]);
   const savedCount = items.filter((item) => item.isSaved).length;
@@ -52,14 +53,18 @@ function AskComposer({ today, initialQuestion }: { today: AskTodayLine | null; i
           무엇이 궁금하세요?
         </label>
         <textarea
+          ref={inputRef}
           id="qs-input"
+          aria-describedby="qs-help"
           className="qs-input"
           rows={4}
           placeholder={PLACEHOLDER}
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
         />
-        <p className="qs-help">{HELP}</p>
+        <p id="qs-help" className="qs-help">
+          {HELP}
+        </p>
         <HoondokButton type="submit" disabled={!text}>
           물어보기
         </HoondokButton>
@@ -68,7 +73,15 @@ function AskComposer({ today, initialQuestion }: { today: AskTodayLine | null; i
       <div className="qs-starters">
         <p className="qs-starters__k">이렇게 물어볼 수 있어요</p>
         {STARTERS.map((starter) => (
-          <button key={starter} className="chip-btn qs-starter" type="button" onClick={() => setQuestion(starter)}>
+          <button
+            key={starter}
+            className="chip-btn qs-starter"
+            type="button"
+            onClick={() => {
+              setQuestion(starter);
+              inputRef.current?.focus();
+            }}
+          >
             {starter}
           </button>
         ))}
@@ -77,7 +90,7 @@ function AskComposer({ today, initialQuestion }: { today: AskTodayLine | null; i
       <Link className="qs-log" href="/hoondok/ask/log">
         {`내 질문 ${items.length}개와 저장한 답 ${savedCount}개 보기`}
       </Link>
-      <p className="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
+      <p className="notice">독립 운영 베타</p>
     </section>
   );
 }

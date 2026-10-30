@@ -78,7 +78,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-xs text-primary-foreground/50">© 2026 TrueWords Platform</p>
+        <p className="text-xs text-primary-foreground/70">© 2026 TrueWords Platform</p>
       </div>
 
       {/* 우측 로그인 폼 */}
@@ -99,7 +99,10 @@ export default function LoginPage() {
 
           {/* 에러 메시지 */}
           {error && (
-            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
+            <div
+              role="alert"
+              className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive"
+            >
               <AlertCircle className="w-4 h-4 shrink-0" />
               {error}
             </div>
@@ -138,7 +141,6 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   className="absolute right-0 top-0 flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-ring"
-                  tabIndex={-1}
                   aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 표시"}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

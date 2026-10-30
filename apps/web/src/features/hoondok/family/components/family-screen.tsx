@@ -71,7 +71,7 @@ function PeopleSection({
             </span>
             <span className="fm-item__bd">
               <b className="fm-item__t">{action.title}</b>
-              <span className="fm-item__m">{action.note}</span>
+              <span className="fm-item__m">준비 중 · {action.note}</span>
             </span>
           </button>
         </li>
@@ -98,6 +98,9 @@ function ScopeSection() {
       <div className="sect__head">
         <h2 className="sect__title">내가 보여주는 범위</h2>
       </div>
+      <p className="st-row__soon fm-soon" id="family-scope-notice">
+        미리보기예요. 선택만 바뀌고 공개 범위는 저장되지 않아요.
+      </p>
       <fieldset className="card fm-scope">
         <legend className="st-lead">가족과 친구에게 어디까지 보일지 정해요.</legend>
         {SCOPE_ROWS.map((row) => (
@@ -111,13 +114,13 @@ function ScopeSection() {
                 type="button"
                 aria-pressed={scope[row.id] === true}
                 aria-label={`${row.label} 공개`}
+                aria-describedby="family-scope-notice"
                 onClick={() => setScope((prev) => ({ ...prev, [row.id]: prev[row.id] !== true }))}
               />
             )}
           </div>
         ))}
       </fieldset>
-      <p className="st-row__soon fm-soon">저장은 준비 중이에요 — 지금은 선택만 바뀝니다</p>
     </div>
   );
 }

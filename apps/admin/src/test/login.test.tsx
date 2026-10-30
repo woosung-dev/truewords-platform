@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // next/navigation mock
@@ -46,6 +47,17 @@ beforeEach(() => {
 });
 
 describe("LoginPage", () => {
+  it("키보드로 비밀번호 표시를 바꿀 수 있다", async () => {
+    const user = userEvent.setup();
+    render(<LoginPage />);
+    screen.getByLabelText("비밀번호").focus();
+    await user.tab();
+    expect(screen.getByRole("button", { name: "비밀번호 표시" })).toHaveFocus();
+    await user.keyboard(" ");
+    expect(screen.getByLabelText("비밀번호")).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "비밀번호 숨기기" })).toHaveFocus();
+  });
+
   it("이메일과 비밀번호 입력 필드를 렌더링한다", () => {
     render(<LoginPage />);
 
@@ -112,7 +124,7 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "로그인" }));
 
     await waitFor(() => {
-      expect(screen.getByText("이메일 또는 비밀번호가 올바르지 않습니다")).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent("이메일 또는 비밀번호가 올바르지 않습니다");
     });
   });
 

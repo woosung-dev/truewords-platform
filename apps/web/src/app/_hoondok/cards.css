@@ -218,10 +218,15 @@
       radial-gradient(80% 60% at 100% 100%, var(--sheen-35), transparent 70%);
   }
   .bm--full {
+    min-height: 0;
     width: 100%;
     max-width: 420px;
     margin: 0 auto;
-    aspect-ratio: 358 / 540;
+    aspect-ratio: auto;
+  }
+  /* 기본 카드 비율은 유지하고 글자 확대 시 본문 높이만큼 늘어난다. */
+  .bm--full .bm__in {
+    min-height: calc(100cqw * 540 / 358);
   }
   .bm__leaves {
     position: absolute;
@@ -262,6 +267,9 @@
   }
   .bm__eyebrow {
     margin: 0;
+    background: var(--card-paper);
+    padding: 2px 6px;
+    border-radius: var(--r-xs);
     font-size: max(12px, 3.6cqw);
     color: var(--ink-2);
     letter-spacing: 0.02em;
@@ -280,7 +288,7 @@
     justify-content: center;
     align-items: center;
     width: 100%;
-    min-height: 0;
+    min-height: min-content;
   }
   .bm__mark {
     font-size: max(26px, 8cqw);
@@ -467,6 +475,21 @@
     margin: 8px auto 0;
     border-radius: var(--r);
     box-shadow: var(--shadow-2);
+  }
+  /* 예시 카드도 실제 공유 시트와 같은 카드 비중을 유지하되 이미지 API는 호출하지 않는다. */
+  .bmk-share__preview {
+    max-width: 300px;
+    aspect-ratio: auto;
+    margin-top: 8px;
+  }
+  .bmk-share__preview .bm__in {
+    flex: none;
+    min-height: min-content;
+    padding-top: 7cqw;
+  }
+  .bmk-share__preview .bm__body {
+    flex: none;
+    padding: 5cqw 0;
   }
   .bmk-share__lock {
     display: flex;

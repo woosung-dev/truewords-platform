@@ -1,9 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { User } from "lucide-react";
-import { useState } from "react";
+import { ThumbsDown, ThumbsUp, User } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { QueryErrorNotice } from "@/components/query-error-notice";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
@@ -115,7 +116,7 @@ function FeedbackDistributionChart({
       {loading ? (
         <Skeleton className="h-64 w-full" />
       ) : chartData.length === 0 ? (
-        <div className="h-64 flex items-center justify-center">
+        <div className="min-h-24 flex items-center justify-center">
           <p className="text-sm text-muted-foreground">피드백이 없습니다</p>
         </div>
       ) : (
@@ -166,37 +167,51 @@ function FeedbackTable({
   onPolarityChange,
   items,
   loading,
+  errorNotice,
   onSelectSession,
 }: {
   polarity: "positive" | "negative";
   onPolarityChange: (p: "positive" | "negative") => void;
   items?: NegativeFeedbackItem[];
   loading: boolean;
+  errorNotice?: ReactNode;
   onSelectSession: (sessionId: string) => void;
 }) {
   const polarityLabel = polarity === "positive" ? "긍정" : "부정";
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">최근 {polarityLabel} 피드백</h2>
-        <div className="inline-flex rounded-lg border bg-admin-muted/40 p-0.5 text-xs">
+        <div
+          role="group"
+          aria-label="피드백 종류"
+          className="inline-flex rounded-lg border bg-admin-muted/40 p-0.5 text-xs"
+        >
           {(["negative", "positive"] as const).map((p) => (
             <button
               key={p}
+              type="button"
+              aria-pressed={polarity === p}
               onClick={() => onPolarityChange(p)}
-              className={`px-3 py-1 rounded-md transition-colors ${
+              className={`inline-flex min-h-11 items-center gap-1.5 px-3 py-1 rounded-md transition-colors ${
                 polarity === p
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {p === "positive" ? "👍 긍정" : "👎 부정"}
+              {p === "positive" ? (
+                <ThumbsUp size={14} aria-hidden="true" />
+              ) : (
+                <ThumbsDown size={14} aria-hidden="true" />
+              )}
+              {p === "positive" ? "긍정" : "부정"}
             </button>
           ))}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground -mt-2">행을 클릭하면 해당 세션의 전체 대화를 볼 수 있습니다</p>
-      {loading ? (
+      <p className="text-xs text-muted-foreground -mt-2">질문을 선택하면 해당 세션의 전체 대화를 볼 수 있습니다</p>
+      {errorNotice}
+      {errorNotice && items === undefined ? null : loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-10 w-full" />
@@ -205,8 +220,13 @@ function FeedbackTable({
       ) : !items || items.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4 text-center">{polarityLabel} 피드백이 없습니다</p>
       ) : (
-        <div className="overflow-x-auto overflow-hidden rounded-lg border">
-          <table className="w-full text-sm">
+        <div
+          role="region"
+          aria-label="피드백 목록 표 · 좌우로 스크롤할 수 있습니다"
+          tabIndex={0}
+          className="overflow-x-auto rounded-lg border focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          <table className="w-full min-w-[52rem] text-sm">
             <thead>
               <tr className="bg-admin-muted/50 border-b">
                 <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
@@ -226,11 +246,7 @@ function FeedbackTable({
             </thead>
             <tbody>
               {items.map((item, i) => (
-                <tr
-                  key={item.id}
-                  className={`cursor-pointer hover:bg-admin-muted/30 transition-colors ${i !== 0 ? "border-t" : ""}`}
-                  onClick={() => onSelectSession(item.session_id)}
-                >
+                <tr key={item.id} className={`hover:bg-admin-muted/30 transition-colors ${i !== 0 ? "border-t" : ""}`}>
                   <td className="py-2 px-3 text-xs text-muted-foreground whitespace-nowrap">
                     {formatDate(item.created_at)}
                   </td>
@@ -247,9 +263,15 @@ function FeedbackTable({
                     )}
                   </td>
                   <td className="py-2 px-3">
-                    <span className="block truncate max-w-[200px] text-xs" title={item.question}>
+                    <button
+                      type="button"
+                      className="block min-h-11 w-48 truncate text-left text-xs text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                      title={item.question}
+                      aria-label={`${item.question} 대화 보기`}
+                      onClick={() => onSelectSession(item.session_id)}
+                    >
                       {item.question}
-                    </span>
+                    </button>
                   </td>
                   <td className="py-2 px-3">
                     <span
@@ -298,14 +320,26 @@ const DAYS_OPTIONS: { value: number; label: string }[] = [
 export default function FeedbackPage() {
   const [days, setDays] = useState<number>(0); // 0 = 전체 (기본)
 
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const {
+    data: summary,
+    isLoading: summaryLoading,
+    isError: summaryError,
+    isFetching: summaryFetching,
+    refetch: refetchSummary,
+  } = useQuery({
     queryKey: ["feedback-summary", days],
     queryFn: () => analyticsAPI.getFeedbackSummary(days),
   });
 
   const [polarity, setPolarity] = useState<"positive" | "negative">("negative");
 
-  const { data: feedbackList, isLoading: feedbackLoading } = useQuery({
+  const {
+    data: feedbackList,
+    isLoading: feedbackLoading,
+    isError: feedbackError,
+    isFetching: feedbackFetching,
+    refetch: refetchFeedback,
+  } = useQuery({
     queryKey: ["feedback-list", polarity, days],
     queryFn: () => analyticsAPI.getFeedbackList(polarity, 20, 0, days),
   });
@@ -315,7 +349,7 @@ export default function FeedbackPage() {
   return (
     <div className="space-y-6 page-wide">
       {/* 헤더 + 기간 선택 */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">피드백 대시보드</h1>
           <p className="text-sm text-muted-foreground mt-1">사용자 피드백을 분석합니다</p>
@@ -325,7 +359,7 @@ export default function FeedbackPage() {
           <select
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
-            className="rounded-md border bg-background px-2 py-1 text-xs"
+            className="min-h-11 rounded-md border bg-background px-2 py-1 text-sm"
           >
             {DAYS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -337,7 +371,17 @@ export default function FeedbackPage() {
       </div>
 
       {/* 피드백 유형 분포 */}
-      <FeedbackDistributionChart data={summary?.distribution} loading={summaryLoading} />
+      {summaryError && (
+        <QueryErrorNotice
+          message="피드백 유형 분포를 불러오지 못했습니다."
+          hasPreviousData={summary !== undefined}
+          isRetrying={summaryFetching}
+          onRetry={() => void refetchSummary()}
+        />
+      )}
+      {!(summaryError && summary === undefined) && (
+        <FeedbackDistributionChart data={summary?.distribution} loading={summaryLoading} />
+      )}
 
       {/* 피드백 목록 (긍정/부정 토글) */}
       <FeedbackTable
@@ -345,6 +389,16 @@ export default function FeedbackPage() {
         onPolarityChange={setPolarity}
         items={feedbackList}
         loading={feedbackLoading}
+        errorNotice={
+          feedbackError ? (
+            <QueryErrorNotice
+              message="피드백 목록을 불러오지 못했습니다."
+              hasPreviousData={feedbackList !== undefined}
+              isRetrying={feedbackFetching}
+              onRetry={() => void refetchFeedback()}
+            />
+          ) : undefined
+        }
         onSelectSession={setSelectedSessionId}
       />
 

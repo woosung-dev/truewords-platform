@@ -39,7 +39,7 @@ const DOCUMENT_TITLES: Record<Step, string> = {
 const PHOTO = "/hoondok/photos/onboarding-sunlit-field.webp";
 // 저장 안내 문장은 화면마다 같은 한 문장이다(DESIGN-PLAN §8-8). 바꾸는 곳은 질문 3 막대 힌트가 알린다
 const STORE_LINE = "고른 답은 이 기기에만 저장돼요";
-const BETA_NOTICE = "독립 운영 베타 · 가정연합 공식 앱이 아닙니다";
+const BETA_NOTICE = "독립 운영 베타";
 
 type Draft = {
   interests: string[];

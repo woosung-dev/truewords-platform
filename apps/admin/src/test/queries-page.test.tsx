@@ -74,6 +74,22 @@ afterEach(() => {
 });
 
 describe("QueriesExplorerPage", () => {
+  it("검색창과 페이지 이동 버튼을 이름으로 찾을 수 있다", async () => {
+    mockGetQueries.mockResolvedValue(
+      fixture({
+        total: 100,
+        items: [{ query_text: "감사", count: 1, latest_at: "2026-10-30T01:03:00", negative_feedback_count: 0 }],
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    expect(screen.getByRole("textbox", { name: "질문 검색" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "질문 목록" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "이전 페이지" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "다음 페이지" }));
+    expect(mockPush).toHaveBeenCalledWith("/analytics/queries?page=2");
+  });
+
   it("빈 결과면 안내 문구를 보여준다", async () => {
     mockGetQueries.mockResolvedValue(fixture({ total: 0, items: [] }));
     renderPage();

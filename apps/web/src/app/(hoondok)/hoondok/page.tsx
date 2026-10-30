@@ -38,7 +38,7 @@ export default async function HoondokHomePage() {
 
       <InstallCard />
 
-      <p className="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
+      <p className="notice">독립 운영 베타</p>
       <JeongseongSheet />
     </section>
   );

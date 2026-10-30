@@ -17,7 +17,7 @@ export default function HoondokOfflinePage() {
         </span>
         <h2 className="empty__title">지금은 오프라인이에요</h2>
         <p className="empty__body">
-          연결이 돌아오면 오늘 말씀을 다시 불러올게요.
+          연결이 돌아오면 아래 다시 시도를 눌러 오늘 말씀을 불러오세요.
           <br />
           완료 기록은 서버에 있어 사라지지 않아요.
         </p>
@@ -25,7 +25,7 @@ export default function HoondokOfflinePage() {
           다시 시도
         </Link>
       </div>
-      <p className="notice">독립 운영 베타 · 가정연합 공식 앱이 아닙니다</p>
+      <p className="notice">독립 운영 베타</p>
     </section>
   );
 }

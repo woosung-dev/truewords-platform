@@ -82,7 +82,7 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   await expect(page.getByRole("heading", { name: "오늘의 실천" })).toBeVisible();
   await expect(page.locator(".scripture")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /로그인 후 기록돼요/ })).toBeVisible();
-  await page.getByRole("link", { name: /훈독하기/ }).click();
+  await page.getByRole("link", { name: "훈독하기", exact: true }).click();
   await expect(page).toHaveURL(/\/hoondok\/read$/);
   // 훈독하기: 출처 줄(화자·저작물) + 전문 + 완료 버튼 → 비로그인이라 로컬 완료 + 로그인 링크
   await expect(page.locator(".src").first()).toContainText("참");

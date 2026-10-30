@@ -278,7 +278,7 @@
   }
   /* 검색 제안은 용어도 선택된 옵션도 아니다 — 액센트 대신 중립 표면으로 되돌린다 (프로토타입 주석) */
   .howto .term {
-    min-height: 34px;
+    min-height: 44px;
     padding: 5px 12px;
     font-size: var(--fs-sm);
     background: var(--surface);
@@ -1692,5 +1692,15 @@
   }
   to {
     stroke-dashoffset: 0;
+  }
+}
+
+[data-app="hoondok"] {
+  .lb-works-head {
+    flex-wrap: wrap;
+  }
+  .lb-works-head .sect__meta {
+    flex: 0 1 auto;
+    max-width: 100%;
   }
 }

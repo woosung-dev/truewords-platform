@@ -91,7 +91,7 @@ test("설교 섭외 제출: 이동 없이 준비 중 안내 · 네트워크 0", 
   await page.goto("/hoondok/worship/request");
 
   // 필수 필드는 전부 기본값이 있어 그대로 제출된다 — 폼이 실제로 아무 데도 보내지 않는지만 본다.
-  await page.getByRole("button", { name: /요청 보내기/ }).click();
+  await page.getByRole("button", { name: /요청 미리보기/ }).click();
   await expect(page.getByRole("status")).toContainText("준비 중");
   await expect(page).toHaveURL(/\/hoondok\/worship\/request$/);
   expect(apiRequests).toEqual([]);

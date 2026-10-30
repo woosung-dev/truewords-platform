@@ -67,6 +67,18 @@ describe("fetchCurrentUser", () => {
 });
 
 describe("온보딩 (SCR-PWA-001 최소형)", () => {
+  it("로그인 전환 시 기존 사진·소개와 입력값·포커스를 유지한다", async () => {
+    render(wrap(<OnboardingPage />));
+    await screen.findByRole("form", { name: "가입" });
+    fireEvent.change(screen.getByLabelText(/이메일/), { target: { value: "new@example.com" } });
+    expect(screen.getByRole("img", { name: "아침 햇살 속 들판" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "로그인" }));
+    expect(screen.getByRole("img", { name: "아침 햇살 속 들판" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /아침 3분 훈독으로/ })).toBeInTheDocument();
+    expect(screen.getByLabelText(/이메일/)).toHaveValue("new@example.com");
+    expect(screen.getByLabelText(/이메일/)).toHaveFocus();
+  });
+
   async function fillAndSubmit(mode: "signup" | "login") {
     if (mode === "login") fireEvent.click(await screen.findByRole("button", { name: "로그인" }));
     else await screen.findByRole("form", { name: "가입" });

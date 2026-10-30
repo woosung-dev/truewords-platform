@@ -77,7 +77,7 @@ export function LibraryScreen() {
         </div>
       )}
       <div className="sect">
-        <div className="sect__head">
+        <div className="sect__head lb-works-head">
           <h2 className="sect__title">저작물</h2>
           <span className="sect__meta">검색·원문 공개 권리를 확인한 저작물</span>
         </div>

@@ -601,8 +601,12 @@ describe("SCR-PWA-020 한 줄 쓰기", () => {
     const button = screen.getByRole("button", { name: "한 줄 고치기" });
     fireEvent.click(button);
     expect(await screen.findByRole("alert")).toHaveTextContent("한 줄을 적어 주세요");
+    expect(text).toHaveFocus();
+    expect(text).toHaveAttribute("aria-invalid", "true");
+    expect(text).toHaveAccessibleDescription(/한 줄을 적어 주세요/);
     expect(groupsAPI.putTodayShare).not.toHaveBeenCalled();
     fireEvent.change(text, { target: { value: "다시 적어요" } });
+    expect(text).not.toHaveAttribute("aria-invalid");
     fireEvent.click(button);
     await waitFor(() => expect(button).toBeDisabled());
     fireEvent.submit(button.closest("form") as HTMLFormElement);

@@ -174,6 +174,11 @@
     justify-content: space-between;
     gap: 10px;
   }
+  .ch-progress {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
   .ch-bar {
     margin-top: 14px;
   }
@@ -283,7 +288,7 @@
     inset: 0;
     display: grid;
     place-items: center;
-    background: var(--scrim);
+    background: var(--veil-80);
     color: var(--accent-ink);
     font-size: var(--fs-sm);
     font-weight: 600;
@@ -397,13 +402,11 @@
   }
   .sm-pastors {
     display: flex;
+    flex-wrap: wrap;
     gap: 4px;
     margin: 0 0 16px;
     padding: 0;
     list-style: none;
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-    scrollbar-width: none;
   }
   .sm-pastor {
     display: flex;
@@ -411,10 +414,9 @@
     align-items: center;
     gap: 4px;
     flex: none;
-    /* 390 에서 다섯째가 반쯤 보이는 폭 — 잘린 끝이 옆으로 더 있다는 표시다(스크롤바는 숨긴다) */
+    /* 이름과 소속을 잘라 숨기지 않고 좁은 화면에서도 다음 줄로 보낸다. */
     width: 76px;
     text-align: center;
-    scroll-snap-align: start;
   }
   .sm-pastors .pv-avatar {
     width: 44px;
@@ -596,10 +598,6 @@
     /* 순서지 6단계는 순서가 의미이므로 2열로 펼치지 않는다 (DES §4.4-3 허용 목록 밖) */
     .ws-actions {
       grid-template-columns: 1fr auto;
-    }
-    .sm-pastors {
-      flex-wrap: wrap;
-      overflow-x: visible;
     }
     /* 병렬 항목이라 2열을 허용한다 (DES §4.4-3). 넓으면 썸네일을 위로 올려 영상 목록 모양으로 둔다 */
     .sm-list {

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, ArrowRight, Bot, CheckCircle2, Database, Search, ThumbsDown, ThumbsUp } from "lucide-react";
 import Link from "next/link";
+import { QueryErrorNotice } from "@/components/query-error-notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
 import { chatbotAPI } from "@/features/chatbot/api";
@@ -16,7 +17,7 @@ function StatCard({
   loading,
 }: {
   label: string;
-  value: number | string;
+  value: number | string | undefined;
   icon: React.ElementType;
   color?: "default" | "red";
   loading?: boolean;
@@ -38,38 +39,58 @@ function StatCard({
       {loading ? (
         <Skeleton className="h-8 w-16" />
       ) : (
-        <p className={`text-3xl font-bold tracking-tight ${colorMap[color]}`}>{value.toLocaleString()}</p>
+        <p className={`text-3xl font-bold tracking-tight tabular-nums ${colorMap[color]}`}>
+          {value?.toLocaleString() ?? "—"}
+        </p>
       )}
     </div>
   );
 }
 
 export default function DashboardPage() {
-  const { data: chatbots, isLoading: chatbotsLoading } = useQuery({
+  const {
+    data: chatbots,
+    isLoading: chatbotsLoading,
+    isError: chatbotsError,
+    isFetching: chatbotsFetching,
+    refetch: refetchChatbots,
+  } = useQuery({
     queryKey: ["chatbots", 0],
     queryFn: () => chatbotAPI.list(100, 0),
   });
 
-  const { data: status, isLoading: statusLoading } = useQuery({
+  const {
+    data: status,
+    isLoading: statusLoading,
+    isError: statusError,
+    isFetching: statusFetching,
+    refetch: refetchStatus,
+  } = useQuery({
     queryKey: ["ingest-status"],
     queryFn: dataAPI.getStatus,
     staleTime: 30000,
   });
 
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const {
+    data: summary,
+    isLoading: summaryLoading,
+    isError: summaryError,
+    isFetching: summaryFetching,
+    refetch: refetchSummary,
+  } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: analyticsAPI.getDashboardSummary,
     staleTime: 60000,
   });
 
-  const totalChatbots = chatbots?.total ?? 0;
-  const activeChatbots = chatbots?.items.filter((c) => c.is_active).length ?? 0;
-  const totalChunks = status?.summary.total_chunks ?? 0;
-  const failedFiles = status?.summary.failed_count ?? 0;
-  const todayQuestions = summary?.today_questions ?? 0;
-  const weekQuestions = summary?.week_questions ?? 0;
-  const helpfulCount = summary?.feedback_helpful ?? 0;
-  const negativeCount = summary?.feedback_negative ?? 0;
+  const totalChatbots = chatbots?.total;
+  const activeChatbots = chatbots?.items.filter((c) => c.is_active).length;
+  const totalChunks = status?.summary.total_chunks;
+  const failedFiles = status?.summary.failed_count;
+  const todayQuestions = summary?.today_questions;
+  const weekQuestions = summary?.week_questions;
+  const helpfulCount = summary?.feedback_helpful;
+  const negativeCount = summary?.feedback_negative;
 
   return (
     <div className="space-y-6 page-wide">
@@ -78,6 +99,22 @@ export default function DashboardPage() {
         <p className="text-sm text-muted-foreground mt-1">시스템 현황을 한눈에 확인합니다</p>
       </div>
 
+      {chatbotsError && (
+        <QueryErrorNotice
+          message="챗봇 현황을 불러오지 못했습니다."
+          hasPreviousData={chatbots !== undefined}
+          isRetrying={chatbotsFetching}
+          onRetry={() => void refetchChatbots()}
+        />
+      )}
+      {statusError && (
+        <QueryErrorNotice
+          message="문서 처리 현황을 불러오지 못했습니다."
+          hasPreviousData={status !== undefined}
+          isRetrying={statusFetching}
+          onRetry={() => void refetchStatus()}
+        />
+      )}
       {/* KPI 카드 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="전체 챗봇" value={totalChatbots} icon={Bot} loading={chatbotsLoading} />
@@ -87,12 +124,20 @@ export default function DashboardPage() {
           label="처리 실패"
           value={failedFiles}
           icon={AlertCircle}
-          color={failedFiles > 0 ? "red" : "default"}
+          color={(failedFiles ?? 0) > 0 ? "red" : "default"}
           loading={statusLoading}
         />
       </div>
 
       {/* 검색 & 피드백 메트릭 */}
+      {summaryError && (
+        <QueryErrorNotice
+          message="시스템 요약을 불러오지 못했습니다."
+          hasPreviousData={summary !== undefined}
+          isRetrying={summaryFetching}
+          onRetry={() => void refetchSummary()}
+        />
+      )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="오늘 질문" value={todayQuestions} icon={Search} loading={summaryLoading} />
         <StatCard label="이번 주 질문" value={weekQuestions} icon={Search} loading={summaryLoading} />
@@ -101,7 +146,7 @@ export default function DashboardPage() {
           label="부정 피드백"
           value={negativeCount}
           icon={ThumbsDown}
-          color={negativeCount > 0 ? "red" : "default"}
+          color={(negativeCount ?? 0) > 0 ? "red" : "default"}
           loading={summaryLoading}
         />
       </div>

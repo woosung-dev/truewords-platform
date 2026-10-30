@@ -170,7 +170,7 @@ export default function SearchTierEditor({ tiers, onChange }: SearchTierEditorPr
             {/* 점수 임계값 — 슬라이더 + 입력값 연동 */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">
+                <Label htmlFor={`score-threshold-${index}`} className="text-xs text-muted-foreground">
                   점수 임계값
                   <span className="ml-1 text-xs font-normal text-muted-foreground">
                     (RRF fusion 점수 기준, 0.05~0.3 권장)
@@ -179,6 +179,7 @@ export default function SearchTierEditor({ tiers, onChange }: SearchTierEditorPr
               </div>
               <div className="flex items-center gap-3">
                 <Slider
+                  aria-label={`티어 ${index + 1} 점수 임계값`}
                   value={[tier.score_threshold ?? 0.1]}
                   onValueChange={(val) => {
                     const v = Array.isArray(val) ? val[0] : val;
@@ -192,6 +193,7 @@ export default function SearchTierEditor({ tiers, onChange }: SearchTierEditorPr
                   className="flex-1"
                 />
                 <Input
+                  id={`score-threshold-${index}`}
                   type="number"
                   min={0}
                   max={1}

@@ -261,13 +261,12 @@ export const REQUEST_WHEN_OPTIONS: readonly string[] = ["9월 셋째 주", "9월
 /** 최근 훈독·질문에서 자동으로 채워지는 주제 (DES §3.3.7 중복 입력 줄이기) */
 export const REQUEST_TOPIC_DEFAULT = "자녀와 함께 읽는 참사랑";
 
-export const REQUEST_LEDE =
-  "교회장께 5분 설교 또는 전체 설교를 요청해요. 요청은 교회장과 운영자에게만 보이고, 응답은 알림함으로 와요.";
+export const REQUEST_LEDE = "미리보기예요. 입력해도 교회장께 전송되거나 접수되지 않아요.";
 
 export const REQUEST_NOTE =
-  "교회장께서 거절하거나 응답하지 않으실 수 있어요. 응답 기한은 없어요. 접수·확정·거절 상태는 알림함으로 알려 드려요.";
+  "설교 섭외를 접수할 운영 주체가 정해지기 전에는 요청과 알림을 보내지 않아요. 입력 내용은 이 화면에만 남아요.";
 
-export const REQUEST_NOTICE = "요청 내용은 신청자·교회장·운영자에게만 보입니다";
+export const REQUEST_NOTICE = "미리보기에서 입력한 내용은 저장하거나 전송하지 않아요";
 
 /* ----------------------------------------------------------------- 프리뷰 공통 */
 
