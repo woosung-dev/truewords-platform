@@ -17,7 +17,7 @@ import { PreviewUnavailable } from "@/features/hoondok/preview/unavailable";
 import { ChallengeBadge } from "./challenge-badge";
 
 function OrderCard({ onSoon }: { onSoon: (message: string) => void }) {
-  const { source, steps, shareHelp } = WORSHIP_ORDER;
+  const { source, steps } = WORSHIP_ORDER;
   return (
     <div className="card">
       <div className="src ws-order__src">
@@ -42,17 +42,29 @@ function OrderCard({ onSoon }: { onSoon: (message: string) => void }) {
         ))}
       </ol>
       {/* 공유는 가족 그룹 안으로 한정한다 (AC-019-02). 프리뷰에서는 보내지 않고 상태만 알린다 */}
+      <p className="ws-actions__help" id="order-preview-notice">
+        미리보기예요. 보내기와 편집은 준비 중이며, 순서지를 저장하거나 전송하지 않아요.
+      </p>
       <div className="ws-actions">
-        <button className="btn btn-primary" type="button" onClick={() => onSoon("가족에게 보내기는 준비 중이에요")}>
+        <button
+          className="btn btn-line"
+          type="button"
+          aria-describedby="order-preview-notice"
+          onClick={() => onSoon("가족에게 보내기는 준비 중이에요")}
+        >
           <Send size={20} aria-hidden="true" />
-          가족에게 보내기
+          가족에게 보내기 안내
         </button>
-        <button className="btn btn-line" type="button" onClick={() => onSoon("순서지 편집은 준비 중이에요")}>
+        <button
+          className="btn btn-line"
+          type="button"
+          aria-describedby="order-preview-notice"
+          onClick={() => onSoon("순서지 편집은 준비 중이에요")}
+        >
           <Pencil size={20} aria-hidden="true" />
-          편집
+          편집 안내
         </button>
       </div>
-      <p className="ws-actions__help">{shareHelp}</p>
     </div>
   );
 }

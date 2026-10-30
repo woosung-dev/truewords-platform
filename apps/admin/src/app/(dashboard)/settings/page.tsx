@@ -5,6 +5,7 @@ import type { AdminUserResponse } from "@truewords/api-client-ts/types";
 import { Ban, CheckCircle2, Loader2, UserCheck, UserPlus, Users, UserX } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { QueryErrorNotice } from "@/components/query-error-notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,13 +33,24 @@ export default function SettingsPage() {
   const [pendingTarget, setPendingTarget] = useState<AdminUserResponse | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: admins, isLoading } = useQuery({
+  const {
+    data: admins,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => fetchAPI<AdminUserResponse[]>("/admin/users"),
   });
 
   // 본인 계정 식별용 — 자기 자신은 비활성화할 수 없다(백엔드도 400 으로 거부).
-  const { data: me } = useQuery({
+  const {
+    data: me,
+    isError: meError,
+    isFetching: meFetching,
+    refetch: refetchMe,
+  } = useQuery({
     queryKey: ["admin-me"],
     queryFn: () => authAPI.me(),
   });
@@ -208,7 +220,7 @@ export default function SettingsPage() {
                     type="button"
                     aria-pressed={selected}
                     onClick={() => setStatusFilter(f.key)}
-                    className={`min-h-8 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    className={`min-h-11 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                       selected
                         ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
@@ -223,7 +235,23 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {isLoading ? (
+        {isError && (
+          <QueryErrorNotice
+            message="관리자 계정 목록을 불러오지 못했습니다."
+            hasPreviousData={admins !== undefined}
+            isRetrying={isFetching}
+            onRetry={() => void refetch()}
+          />
+        )}
+        {meError && (
+          <QueryErrorNotice
+            message="현재 계정을 확인하지 못했습니다. 상태 변경은 확인 후 가능합니다."
+            hasPreviousData={me !== undefined}
+            isRetrying={meFetching}
+            onRetry={() => void refetchMe()}
+          />
+        )}
+        {isError && admins === undefined ? null : isLoading ? (
           <div className="space-y-2">
             {[0, 1, 2].map((i) => (
               <Skeleton key={i} className="h-10 w-full" />
@@ -244,9 +272,9 @@ export default function SettingsPage() {
             <TableHeader>
               <TableRow className="bg-admin-muted/40 hover:bg-admin-muted/40">
                 <TableHead className="font-semibold text-foreground">이메일</TableHead>
-                <TableHead className="font-semibold text-foreground">역할</TableHead>
-                <TableHead className="font-semibold text-foreground">상태</TableHead>
-                <TableHead className="font-semibold text-foreground">생성일</TableHead>
+                <TableHead className="hidden md:table-cell font-semibold text-foreground">역할</TableHead>
+                <TableHead className="hidden sm:table-cell font-semibold text-foreground">상태</TableHead>
+                <TableHead className="hidden md:table-cell font-semibold text-foreground">생성일</TableHead>
                 <TableHead className="font-semibold text-foreground text-right">액션</TableHead>
               </TableRow>
             </TableHeader>
@@ -258,19 +286,32 @@ export default function SettingsPage() {
                 return (
                   <TableRow key={admin.id} className="hover:bg-admin-muted/30 transition-colors">
                     <TableCell className="font-medium">
-                      <span className="break-all">{admin.email}</span>
+                      <span className="break-all whitespace-normal">{admin.email}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground sm:hidden">
+                        상태: {admin.is_active ? "활성" : "비활성"}
+                      </span>
+                      <details className="md:hidden">
+                        <summary className="cursor-pointer py-3 text-xs font-normal text-primary underline underline-offset-4">
+                          계정 정보
+                        </summary>
+                        <p className="text-xs font-normal text-muted-foreground whitespace-normal">
+                          역할: {admin.role.toLowerCase()}
+                          <br />
+                          생성: {new Date(admin.created_at).toLocaleString("ko-KR")}
+                        </p>
+                      </details>
                       {isSelf && (
                         <Badge className="ml-2 bg-secondary text-muted-foreground hover:bg-secondary border border-border">
                           본인
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <Badge className="bg-secondary text-muted-foreground hover:bg-secondary border border-border">
                         {admin.role.toLowerCase()}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {/* color-not-only — 아이콘 + 텍스트로 색 없이도 상태 구분 */}
                       {admin.is_active ? (
                         <Badge className="gap-1 bg-success-soft text-success hover:bg-success-soft border border-success-border">
@@ -284,7 +325,7 @@ export default function SettingsPage() {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground whitespace-nowrap">
                       {new Date(admin.created_at).toLocaleString("ko-KR")}
                     </TableCell>
                     <TableCell className="text-right">
@@ -293,8 +334,8 @@ export default function SettingsPage() {
                           variant="outline"
                           // destructive-emphasis — 표 안이라 solid 대신 테두리/텍스트로 위험을 표시
                           className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
-                          disabled={isSelf || isBusy}
-                          aria-disabled={isSelf || isBusy}
+                          disabled={!me || isSelf || isBusy}
+                          aria-disabled={!me || isSelf || isBusy}
                           title={isSelf ? "본인 계정은 비활성화할 수 없습니다" : `${admin.email} 비활성화`}
                           aria-label={isSelf ? "본인 계정은 비활성화할 수 없습니다" : `${admin.email} 비활성화`}
                           onClick={() => setPendingTarget(admin)}
@@ -310,8 +351,8 @@ export default function SettingsPage() {
                         // 활성화는 되돌리기(undo) 경로이며 위험하지 않아 확인 없이 즉시 실행
                         <Button
                           variant="outline"
-                          disabled={isBusy}
-                          aria-disabled={isBusy}
+                          disabled={!me || isBusy}
+                          aria-disabled={!me || isBusy}
                           title={`${admin.email} 활성화`}
                           aria-label={`${admin.email} 활성화`}
                           onClick={() =>

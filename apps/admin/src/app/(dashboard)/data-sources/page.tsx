@@ -392,7 +392,7 @@ export default function DataSourcesPage() {
             </Badge>
             <span className="text-muted-foreground">
               적재 대상: <span className="font-mono font-medium text-foreground">{configData.collection_name}</span>
-              <span className="text-muted-foreground/70 ml-1">@ {configData.qdrant_host}</span>
+              <span className="text-muted-foreground ml-1">@ {configData.qdrant_host}</span>
             </span>
           </div>
         )}
@@ -491,7 +491,7 @@ export default function DataSourcesPage() {
               dragActive
                 ? "border-primary bg-primary/5 scale-[1.01]"
                 : "border-muted-foreground/20 hover:border-muted-foreground/40 hover:bg-primary/5"
-            } cursor-pointer`}
+            } cursor-pointer focus-within:border-ring focus-within:ring-2 focus-within:ring-ring`}
           >
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 transition-colors ${
@@ -500,14 +500,20 @@ export default function DataSourcesPage() {
             >
               <ArrowUpFromLine className={`w-5 h-5 ${dragActive ? "text-primary" : "text-muted-foreground"}`} />
             </div>
-            <p className="text-sm font-medium">파일을 드래그하거나 클릭하여 추가</p>
-            <p className="text-xs text-muted-foreground mt-1">TXT, PDF, DOCX · 최대 50MB</p>
+            <p id="upload-label" className="text-sm font-medium">
+              파일을 드래그하거나 클릭하여 추가
+            </p>
+            <p id="upload-help" className="text-xs text-muted-foreground mt-1">
+              TXT, PDF, DOCX · 최대 50MB
+            </p>
             <input
               type="file"
               multiple
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               onChange={handleFileInput}
               accept=".txt,.pdf,.docx"
+              aria-labelledby="upload-label"
+              aria-describedby="upload-help"
             />
           </div>
 
@@ -524,10 +530,10 @@ export default function DataSourcesPage() {
                 aria-describedby="bulk-skip-mode-hint"
               />
               <span className="text-sm">
-                일괄 업로드 default를 <strong>skip</strong>으로 설정
+                일괄 업로드 시 중복 파일은 기본으로 <strong>건너뛰기</strong>
                 <span id="bulk-skip-mode-hint" className="block text-xs text-muted-foreground">
-                  사전 검사 모달에서 권장 옵션이 skip으로 미리 선택됩니다 — 콘텐츠 동일 시 Gemini 호출 0회로 비용 절감.
-                  단건 업로드는 별도 모달이 사용자 의사를 확인합니다.
+                  사전 검사에서 ‘건너뛰기’를 기본으로 선택합니다. 내용이 같은 파일은 다시 처리하지 않아요. 파일을 하나씩
+                  올릴 때는 처리 방법을 직접 선택합니다.
                 </span>
               </span>
             </label>

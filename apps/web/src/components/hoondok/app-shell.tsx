@@ -3,12 +3,25 @@
 import { ArrowLeft, Bell, Menu, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type ReactNode, useCallback, useState } from "react";
+import { type FocusEvent, type ReactNode, useCallback, useState } from "react";
 import { MenuDrawer } from "@/features/hoondok/menu/components/menu-drawer";
 import { HOONDOK_FAVICON_SVG } from "@/features/hoondok/pwa";
 import { HoondokScreenTitleContext } from "@/features/hoondok/screen-title";
 import { screenFor } from "@/features/hoondok/screens";
 import { HOONDOK_TABS } from "@/features/hoondok/tabs";
+
+// 고정 탐색 뒤에 가려진 키보드 초점만 읽기 영역 가운데로 옮긴다.
+function revealFocusedControl(event: FocusEvent<HTMLElement>) {
+  const control = event.target;
+  if (!control.matches(":focus-visible") || control.closest("dialog, .appbar, .ps-bar")) return;
+  const rect = control.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const visible = [rect.top + 2, rect.top + rect.height / 2, rect.bottom - 2].every((y) => {
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, y);
+    return hit === control || (hit !== null && control.contains(hit));
+  });
+  if (!visible) control.scrollIntoView({ block: "center", behavior: "instant" });
+}
 
 // 앱 셸 = 앱바(헤더) + 탭 내비. 탭 정의 한 목록을 <1024px 하단 5탭, ≥1024px 상단 헤더 4 로 렌더한다
 // (DES-PWA-003 §8 2026-09-16 결정). 형태 차이는 hoondok.css .nav 가 담당하고 마크업은 하나다.
@@ -32,7 +45,10 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
 
   return (
     <HoondokScreenTitleContext.Provider value={updateTitle}>
-      <main className={`app__main app__main--${screen.variant}${screen.hideNav ? " app__main--no-nav" : ""}`}>
+      <main
+        onFocusCapture={revealFocusedControl}
+        className={`app__main app__main--${screen.variant}${screen.hideNav ? " app__main--no-nav" : ""}`}
+      >
         <header className="appbar">
           <div className="appbar__in">
             {screen.backHref && (

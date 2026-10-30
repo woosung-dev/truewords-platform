@@ -229,7 +229,7 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 - 루트 `app/favicon.ico`(시연 챗용, `sizes="256x256"`)가 `/hoondok` 응답에도 함께 붙는다. 탭 크기에 딱 맞는 `favicon-32.png`(`32x32`)와 SVG 를 선언해야 훈독 탭에 HD 가 뜬다.
 - 재생성: `rsvg-convert -w <N> -h <N> <원본.svg> -o <출력.png>` (192·512·512·180·96·32). SVG 는 path 뿐이라 폰트 설치가 필요 없다.
 - 설치 메타는 hoondok layout 의 `generateMetadata`·`generateViewport` 에만 붙인다: `manifest` `/hoondok/manifest.webmanifest` · `appleWebApp`(capable, title "훈독", statusBarStyle default) · `icons`(icon 192, apple 180) · `viewport.themeColor` = `--paper`. 플래그 OFF 면 붙이지 않는다. 루트 layout·시연 챗은 무변경.
-- manifest 값: `id`·`start_url`·`scope` = **`/hoondok`(슬래시 없음 — Next `trailingSlash` 기본 false 로 `/hoondok/` 은 308 이고 scope 는 경로 접두 비교라 `/hoondok/` 이면 홈이 범위 밖)**, `display: standalone`, `lang: ko`, `background_color`·`theme_color` = `--paper #fbfaf8`, `description` 에 "FFWPU 공식 앱이 아닙니다" 고지. `theme_color` 는 토큰을 참조할 수 없어 값으로 적고 Vitest(`apps/web/src/test/hoondok-pwa.test.ts`)가 `hoondok.css --paper`·`viewport` 와 일치를 단언한다.
+- manifest 값: `id`·`start_url`·`scope` = **`/hoondok`(슬래시 없음 — Next `trailingSlash` 기본 false 로 `/hoondok/` 은 308 이고 scope 는 경로 접두 비교라 `/hoondok/` 이면 홈이 범위 밖)**, `display: standalone`, `lang: ko`, `background_color`·`theme_color` = `--paper #fbfaf8`, `description` 에 "독립 운영 베타" 표시. `theme_color` 는 토큰을 참조할 수 없어 값으로 적고 Vitest(`apps/web/src/test/hoondok-pwa.test.ts`)가 `hoondok.css --paper`·`viewport` 와 일치를 단언한다.
 
 ---
 

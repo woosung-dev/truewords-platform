@@ -140,15 +140,26 @@ export default function QueriesExplorerPage() {
         ) : !data || data.items.length === 0 ? (
           <p className="text-sm text-muted-foreground py-10 text-center">조건에 맞는 질문이 없습니다</p>
         ) : (
-          <div className="overflow-hidden rounded-lg border">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-lg border" role="region" aria-label="질문 목록" tabIndex={0}>
+            <p className="px-3 py-2 text-xs text-muted-foreground sm:hidden">
+              표를 좌우로 밀어 전체 내용을 확인하세요.
+            </p>
+            <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="bg-admin-muted/50 border-b">
-                  <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground w-10">순위</th>
+                  <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground min-w-12 whitespace-nowrap">
+                    순위
+                  </th>
                   <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">질문</th>
-                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-16">횟수</th>
-                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-14">👎</th>
-                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground w-36">최근 발생</th>
+                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground min-w-16 whitespace-nowrap">
+                    횟수
+                  </th>
+                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
+                    부정 피드백
+                  </th>
+                  <th className="py-2 px-3 text-right text-xs font-medium text-muted-foreground min-w-36 whitespace-nowrap">
+                    최근 발생
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -171,19 +182,21 @@ export default function QueriesExplorerPage() {
                       }}
                       title="클릭하면 상세 정보를 확인할 수 있습니다"
                     >
-                      <td className="py-2 px-3 text-muted-foreground font-mono text-xs">{rank}</td>
+                      <td className="py-2 px-3 text-muted-foreground font-mono text-xs whitespace-nowrap">{rank}</td>
                       <td className="py-2 px-3 max-w-0 w-full">
                         <TruncateTooltip text={item.query_text} />
                       </td>
-                      <td className="py-2 px-3 text-right font-medium">{item.count.toLocaleString()}</td>
-                      <td className="py-2 px-3 text-right">
+                      <td className="py-2 px-3 text-right font-medium whitespace-nowrap">
+                        {item.count.toLocaleString()}
+                      </td>
+                      <td className="py-2 px-3 text-right whitespace-nowrap">
                         {item.negative_feedback_count > 0 ? (
                           <span className="text-destructive font-medium">{item.negative_feedback_count}</span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="py-2 px-3 text-right text-xs text-muted-foreground">
+                      <td className="py-2 px-3 text-right text-xs text-muted-foreground whitespace-nowrap">
                         {formatDateTime(item.latest_at)}
                       </td>
                     </tr>
@@ -201,7 +214,13 @@ export default function QueriesExplorerPage() {
               총 {data.total.toLocaleString()}건 · {size}개/페이지
             </span>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => updateParams({ page: page - 1 })}>
+              <Button
+                size="sm"
+                variant="outline"
+                aria-label="이전 페이지"
+                disabled={page <= 1}
+                onClick={() => updateParams({ page: page - 1 })}
+              >
                 <ChevronLeft className="h-3.5 w-3.5" />
               </Button>
               <span className="px-2 font-mono">
@@ -210,6 +229,7 @@ export default function QueriesExplorerPage() {
               <Button
                 size="sm"
                 variant="outline"
+                aria-label="다음 페이지"
                 disabled={page >= totalPages}
                 onClick={() => updateParams({ page: page + 1 })}
               >
@@ -245,6 +265,7 @@ function QuerySearchInput({ query, onSearch }: { query: string; onSearch: (value
   }, [value, query, onSearch]);
   return (
     <input
+      aria-label="질문 검색"
       type="text"
       value={value}
       onChange={(event) => setValue(event.target.value)}

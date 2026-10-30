@@ -212,7 +212,7 @@
     margin-left: 2px;
     font-size: var(--fs-2xs);
     font-weight: 700;
-    color: var(--accent);
+    color: var(--accent-strong);
   }
   .ask-ev + .ask-ev {
     margin-top: 12px;

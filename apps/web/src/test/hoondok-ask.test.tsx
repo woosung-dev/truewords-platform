@@ -157,6 +157,10 @@ describe("묻기 홈 (SCR-PWA-005)", () => {
     fireEvent.click(screen.getByRole("button", { name: starter }));
 
     expect(screen.getByLabelText("무엇이 궁금하세요?")).toHaveValue(starter);
+    expect(screen.getByLabelText("무엇이 궁금하세요?")).toHaveFocus();
+    expect(screen.getByLabelText("무엇이 궁금하세요?")).toHaveAccessibleDescription(
+      "근거 말씀을 인용해서 답해요. 근거가 없으면 확인할 수 없다고 말해요.",
+    );
     expect(globalThis.fetch).not.toHaveBeenCalled();
     expect(mockPush).not.toHaveBeenCalled();
     expect(readAskItems()).toEqual([]);

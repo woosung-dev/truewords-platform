@@ -6,7 +6,7 @@
 import { BookOpenText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useRef, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { type GroupDetail, groupErrorOf } from "../groups-api";
@@ -58,6 +58,7 @@ function ShareEditor({ detail }: { detail: GroupDetail }) {
   const mine = detail.shares.find((share) => share.is_mine);
   const [body, setBody] = useState(mine?.body ?? "");
   const [formError, setFormError] = useState<string | null>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
   const backHref = groupHref(detail.id);
 
   const submit = (event: FormEvent) => {
@@ -66,6 +67,7 @@ function ShareEditor({ detail }: { detail: GroupDetail }) {
     const normalized = normalizeShareBody(body);
     if (!normalized) {
       setFormError("한 줄을 적어 주세요");
+      textRef.current?.focus();
       return;
     }
     setFormError(null);
@@ -107,12 +109,17 @@ function ShareEditor({ detail }: { detail: GroupDetail }) {
         </label>
         <textarea
           id="gs-text"
+          ref={textRef}
           value={body}
           maxLength={SHARE_MAX}
           rows={3}
           placeholder="오늘 마음에 머문 구절이나 떠오른 사람을 적어 주세요"
-          aria-describedby="gs-count gs-help"
-          onChange={(event) => setBody(event.target.value)}
+          aria-describedby={`gs-count gs-help${error ? " gs-error" : ""}`}
+          aria-invalid={Boolean(formError) || (put.isError && status === 422) || undefined}
+          onChange={(event) => {
+            setBody(event.target.value);
+            setFormError(null);
+          }}
         />
         <span className="tg-count" id="gs-count" aria-live="polite">
           {body.length} / {SHARE_MAX}
@@ -144,7 +151,11 @@ function ShareEditor({ detail }: { detail: GroupDetail }) {
         </div>
       </div>
 
-      {error && <GroupAlert>{error}</GroupAlert>}
+      {error && (
+        <div id="gs-error">
+          <GroupAlert>{error}</GroupAlert>
+        </div>
+      )}
 
       <div className="tg-cta">
         <HoondokButton type="submit" isLoading={put.isPending}>

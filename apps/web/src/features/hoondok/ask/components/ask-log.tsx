@@ -5,6 +5,7 @@
 import { MessageCircleQuestion } from "lucide-react";
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
+import { handleSegmentKeyDown } from "@/features/hoondok/segmented-keyboard";
 import { askMetaLabel } from "../format";
 import { type AskItem, EMPTY_ASK_ITEMS, readAskItems, subscribeAsk } from "../storage";
 
@@ -25,7 +26,7 @@ export function AskLog() {
 
   return (
     <section className="col col--read">
-      <div className="pill-seg" role="tablist" aria-label="질문 기록 보기">
+      <div className="pill-seg" role="tablist" onKeyDown={handleSegmentKeyDown} aria-label="질문 기록 보기">
         {segments.map((item) => (
           <button
             key={item.id}
@@ -34,6 +35,7 @@ export function AskLog() {
             role="tab"
             id={`ask-seg-${item.id}`}
             aria-selected={item.id === segment}
+            tabIndex={item.id === segment ? 0 : -1}
             aria-controls="ask-seg-panel"
             disabled={item.isSoon}
             aria-disabled={item.isSoon}

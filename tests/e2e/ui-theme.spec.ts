@@ -58,6 +58,10 @@ for (const app of ["web", "admin"] as const) {
       await expect(password).toBeFocused();
       await password.fill("test1234");
       await password.press("Tab");
+      if (app === "admin") {
+        await expect(page.getByRole("button", { name: "비밀번호 표시", exact: true })).toBeFocused();
+        await page.keyboard.press("Tab");
+      }
       const login = page.getByRole("button", { name: "로그인", exact: true });
       await expect(login).toBeFocused();
       await expect(login).toHaveCSS("height", "44px");

@@ -138,7 +138,7 @@ export function SermonRequestForm() {
 
         <button className="btn btn-primary rq-submit" type="submit">
           <Send size={20} aria-hidden="true" />
-          요청 보내기
+          요청 미리보기
         </button>
         {/* 제출 결과는 버튼 바로 아래에서 글자로 알린다 — 색만으로 구분하지 않는다 */}
         {status && (

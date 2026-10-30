@@ -50,7 +50,7 @@ const FIELD_ID: Record<keyof DailyReadingFormValues, string> = {
 const TEXTAREA_CLASS =
   "w-full rounded-lg border bg-background px-3 py-2.5 text-sm min-h-[240px] resize-y transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent aria-invalid:border-destructive";
 const SELECT_CLASS =
-  "h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive";
+  "h-8 max-md:min-h-11 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive";
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;

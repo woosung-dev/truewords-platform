@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
+import { handleSegmentKeyDown } from "@/features/hoondok/segmented-keyboard";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { type GroupCreate, groupErrorOf } from "../groups-api";
 import { useCreateGroup, useGroup } from "../use-groups";
@@ -171,7 +172,7 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
           <span className="field__label" id="gc-kind">
             모임 종류
           </span>
-          <div className="tg-opts" role="radiogroup" aria-labelledby="gc-kind">
+          <div className="tg-opts" role="radiogroup" onKeyDown={handleSegmentKeyDown} aria-labelledby="gc-kind">
             <button className="tg-opt" type="button" role="radio" aria-checked="true">
               <span className="radio" aria-hidden="true" />
               <span className="tg-opt__bd">
@@ -179,7 +180,14 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
                 <span>구역·청년·축복 기수처럼 서로 아는 식구 몇 명</span>
               </span>
             </button>
-            <button className="tg-opt" type="button" role="radio" aria-checked="false" aria-disabled="true">
+            <button
+              className="tg-opt"
+              type="button"
+              role="radio"
+              aria-checked="false"
+              aria-disabled="true"
+              tabIndex={-1}
+            >
               <span className="radio" aria-hidden="true" />
               <span className="tg-opt__bd">
                 <b>가족 모임</b>
@@ -279,7 +287,12 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
                   <span className="field__label" id="gc-js-term">
                     기간
                   </span>
-                  <div className="tg-opts tg-opts--row" role="radiogroup" aria-labelledby="gc-js-term">
+                  <div
+                    className="tg-opts tg-opts--row"
+                    role="radiogroup"
+                    onKeyDown={handleSegmentKeyDown}
+                    aria-labelledby="gc-js-term"
+                  >
                     {TERMS.map((option) => (
                       <button
                         key={option.value}
@@ -287,6 +300,7 @@ export function GroupCreateForm({ today, createdId }: GroupCreateFormProps) {
                         type="button"
                         role="radio"
                         aria-checked={term === option.value}
+                        tabIndex={term === option.value ? 0 : -1}
                         onClick={() => setTerm(option.value)}
                       >
                         <Check size={16} className="tg-opt__ck" aria-hidden="true" />

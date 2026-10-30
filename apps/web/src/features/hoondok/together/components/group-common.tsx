@@ -11,7 +11,7 @@ import { onboardingHref } from "@/features/identity/gate";
 import { groupErrorOf } from "../groups-api";
 import { formatInviteCode, inviteLink, type ShareMethod, shareInvite } from "../invite-code";
 
-export const GROUP_BETA_NOTICE = "독립 운영 베타 · 가정연합 공식 앱이 아닙니다";
+export const GROUP_BETA_NOTICE = "독립 운영 베타";
 export const HOME_HREF = "/hoondok";
 export const READ_HREF = "/hoondok/read";
 

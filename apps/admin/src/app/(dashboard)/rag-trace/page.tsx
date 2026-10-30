@@ -65,9 +65,9 @@ export default function RagTracePage() {
   }));
 
   return (
-    <div className="space-y-4">
+    <div className="page-wide space-y-4">
       <div className="space-y-1">
-        <h1 className="text-lg font-semibold">파이프라인 추적</h1>
+        <h1 className="text-2xl font-bold tracking-tight">파이프라인 추적</h1>
         <p className="text-sm text-muted-foreground">
           질문 하나를 운영과 같은 단계로 다시 실행해 단계별 지연·점수·후보 탈락 지점을 봅니다. 결과는 저장하지 않습니다.
         </p>

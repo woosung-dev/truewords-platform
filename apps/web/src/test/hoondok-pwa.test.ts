@@ -82,7 +82,8 @@ describe("훈독 PWA 설치 메타", () => {
       short_name: "훈독",
       lang: "ko",
     });
-    expect(manifest.description).toContain("공식 앱이 아"); // REQ-PWA-001 독립 베타 정체성
+    expect(manifest.description).toContain("독립 운영 베타");
+    expect(manifest.description).not.toContain("공식 앱이"); // REQ-PWA-001 독립 베타 정체성
     expect(PAPER).toBeDefined();
     expect(manifest.theme_color).toBe(PAPER);
     expect(manifest.background_color).toBe(PAPER);

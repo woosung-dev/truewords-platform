@@ -231,6 +231,9 @@
   .choice[role="radio"] .choice__mark svg {
     display: none;
   }
+  .choice[role="checkbox"] .choice__mark {
+    border-radius: 6px;
+  }
   /* 선택 = accent-soft 바탕 + 1px accent 테두리 + 채운 체크. 색만으로 알리지 않는다(체크 모양이 함께 바뀐다).
      초록(--ok)은 완료·정본 등급 전용이라 쓰지 않는다 */
   .choice[aria-checked="true"] {

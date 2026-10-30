@@ -1,3 +1,5 @@
+import { Check } from "lucide-react";
+
 // 요일 스트립 (DES-PWA-003 §2.11 · 홈 "이번 주"). 월요일 시작 7칸.
 // 연속일은 섹션 머리(`.sect__meta`)가 한 번만 말한다 — 스트립 옆에도 두면 같은 숫자가 두 번 보이고,
 // 로그인 여부에 따라 요일 원이 쓸 폭이 달라져 원 크기가 바뀐다.
@@ -19,11 +21,13 @@ export function WeekStrip({ todayWeekday, doneByDay = [] }: WeekStripProps) {
           <li
             key={label}
             className="week__day"
+            aria-label={`${label}요일${doneByDay[index] ? " · 훈독 완료" : ""}`}
             data-done={doneByDay[index] ? "" : undefined}
             data-today={index === todayIndex ? "" : undefined}
             aria-current={index === todayIndex ? "date" : undefined}
           >
             {label}
+            {doneByDay[index] && <Check className="week__check" size={10} aria-hidden="true" />}
           </li>
         ))}
       </ol>

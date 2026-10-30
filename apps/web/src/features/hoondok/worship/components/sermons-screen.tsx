@@ -69,7 +69,7 @@ export function SermonsScreen() {
 
       <div className="sect sm-ask">
         <h2 className="sect__title">교회장께 설교 요청</h2>
-        <p className="sm-ask__lede">듣고 싶은 주제를 적어 보내면 우리 지역 교회장께 전해져요.</p>
+        <p className="sm-ask__lede">설교 요청 양식을 미리 볼 수 있어요. 아직 접수하거나 교회장께 보내지 않아요.</p>
         {/* 누를 곳은 아래 버튼 하나다 — 아바타마다 같은 폼으로 가는 링크를 두지 않는다 */}
         <ul className="sm-pastors" aria-label="우리 지역 교회장">
           {pastors.map((pastor) => (
@@ -82,7 +82,7 @@ export function SermonsScreen() {
         </ul>
         <Link className="btn btn-line" href="/hoondok/worship/request">
           <Mic size={20} aria-hidden="true" />
-          설교 요청하기
+          설교 요청 미리보기
         </Link>
       </div>
 

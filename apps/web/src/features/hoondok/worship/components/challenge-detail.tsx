@@ -38,19 +38,9 @@ function SummaryCard({ challenge }: { challenge: PreviewChallenge }) {
 
   return (
     <div className="card">
-      <div className="stats">
-        <div>
-          <b className="stats__n stats__n--accent">{progress.percent}%</b>
-          <span className="stats__lab">진행률</span>
-        </div>
-        <div>
-          <b className="stats__n">{progress.done}</b>
-          <span className="stats__lab">완료한 날</span>
-        </div>
-        <div>
-          <b className="stats__n">{progress.remainLabel}</b>
-          <span className="stats__lab">남은 날</span>
-        </div>
+      <div className="ch-progress">
+        <b className="stats__n stats__n--accent">{progress.percent}%</b>
+        <span className="stats__lab">진행률</span>
       </div>
       <div
         className="progress ch-bar"
@@ -68,9 +58,17 @@ function SummaryCard({ challenge }: { challenge: PreviewChallenge }) {
         </span>
         <span>{challenge.opener}</span>
       </p>
-      <button className="btn btn-primary ch-join" type="button" onClick={() => setSoon(`참여 표시는 ${SOON}이에요`)}>
+      <p className="ch-bar__foot" id="challenge-preview-notice">
+        미리보기예요. 완료 표시는 준비 중이며 기록은 바뀌지 않아요.
+      </p>
+      <button
+        className="btn btn-line ch-join"
+        type="button"
+        aria-describedby="challenge-preview-notice"
+        onClick={() => setSoon(`참여 표시는 ${SOON}이에요`)}
+      >
         <HeartHandshake size={20} aria-hidden="true" />
-        오늘 훈독 완료로 표시하기
+        완료 표시 안내
       </button>
       {soon && (
         <PreviewUnavailable

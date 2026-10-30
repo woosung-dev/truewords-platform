@@ -21,7 +21,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { authAPI } from "@/features/auth/api";
 import AuthGuard from "@/features/auth/components/auth-guard";
 import { ScheduleStockNavBadge } from "@/features/hoondok/components/schedule-stock";
@@ -61,7 +61,7 @@ function SidebarContent({ onNavigate, onLogout }: { onNavigate?: () => void; onL
       </div>
 
       {/* 네비게이션 */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
         {NAV_ITEMS.map((item) => {
           const isActive = NAV_ITEMS.find((candidate) => pathname.startsWith(candidate.href)) === item;
           const Icon = item.icon;
@@ -158,6 +158,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* 모바일 햄버거 */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger
+                aria-label="관리자 메뉴 열기"
                 className={buttonVariants({
                   variant: "ghost",
                   size: "sm",
@@ -166,7 +167,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               >
                 <Menu className="w-5 h-5" />
               </SheetTrigger>
-              <SheetContent side="left" className="w-56 p-0 border-r border-sidebar-border">
+              <SheetContent
+                side="left"
+                className="w-56 p-0 border-r border-sidebar-border [&_[data-slot=sheet-close]]:text-sidebar-foreground [&_[data-slot=sheet-close]]:hover:bg-sidebar-accent [&_[data-slot=sheet-close]]:focus-visible:ring-sidebar-ring"
+              >
+                <SheetTitle className="sr-only">관리자 메뉴</SheetTitle>
+                <SheetDescription className="sr-only">관리할 화면을 선택하세요.</SheetDescription>
                 <SidebarContent onNavigate={() => setMobileOpen(false)} onLogout={handleLogout} />
               </SheetContent>
             </Sheet>

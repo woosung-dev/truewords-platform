@@ -175,7 +175,8 @@
     border-top: 1px solid var(--line);
   }
   .col.ps-form:has(> .ps-bar) {
-    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+    /* 글자 확대 시 행동 막대도 커지므로 본문 여유를 글자 크기와 함께 늘린다. */
+    padding-bottom: calc(6rem + 24px + env(safe-area-inset-bottom));
   }
   .ps-bar__t {
     margin: 0;

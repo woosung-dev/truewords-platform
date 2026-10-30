@@ -99,7 +99,7 @@ export function CandidatePanel({ onPick }: CandidatePanelProps) {
       <fieldset className="flex flex-wrap gap-x-4 gap-y-1.5">
         <legend className="sr-only">출처 범위</legend>
         {SOURCE_KEYS.map((key) => (
-          <label key={key} className="flex items-center gap-1.5 text-xs cursor-pointer">
+          <label key={key} className="flex min-h-11 items-center gap-1.5 text-xs cursor-pointer">
             <input
               type="checkbox"
               checked={sources.includes(key)}

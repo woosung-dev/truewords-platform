@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import SearchTierEditor from "@/features/chatbot/components/search-tier-editor";
+import WeightedSourceEditor from "@/features/chatbot/components/weighted-source-editor";
 import type { SearchTier } from "@/features/chatbot/types";
 
 // useSearchableCategories 훅 mock
@@ -16,6 +17,12 @@ vi.mock("@/features/data-source/hooks", () => ({
 }));
 
 describe("SearchTierEditor", () => {
+  it("티어별 점수 임계값 입력과 슬라이더에 이름을 제공한다", () => {
+    render(<SearchTierEditor tiers={[{ sources: ["A"], min_results: 3, score_threshold: 0.1 }]} onChange={vi.fn()} />);
+    expect(screen.getByRole("spinbutton", { name: /점수 임계값/ })).toBeInTheDocument();
+    expect(screen.getByLabelText("티어 1 점수 임계값", { selector: 'input[type="range"]' })).toBeInTheDocument();
+  });
+
   // --- 빈 상태 ---
 
   it("빈 티어 배열일 때 빈 상태 메시지를 표시한다", () => {
@@ -160,5 +167,17 @@ describe("SearchTierEditor", () => {
     fireEvent.change(input, { target: { value: "0" } });
 
     expect(onChange).toHaveBeenCalledWith([{ sources: ["A"], min_results: 1, score_threshold: 0.75 }]);
+  });
+});
+
+describe("WeightedSourceEditor 접근성", () => {
+  it("이름으로 소스를 선택하고 비중을 조정할 수 있다", () => {
+    const onChange = vi.fn();
+    render(<WeightedSourceEditor sources={[{ source: "A", weight: 1, score_threshold: 0.1 }]} onChange={onChange} />);
+    expect(screen.getByRole("combobox", { name: "1번째 검색 소스" })).toHaveValue("A");
+    fireEvent.change(screen.getByRole("spinbutton", { name: "말씀선집 비중" }), { target: { value: "2" } });
+    expect(onChange).toHaveBeenCalledWith([{ source: "A", weight: 2, score_threshold: 0.1 }]);
+    expect(screen.getByRole("spinbutton", { name: "말씀선집 점수 임계값" })).toHaveValue(0.1);
+    expect(screen.getByRole("button", { name: "말씀선집 소스 삭제" })).toBeDisabled();
   });
 });

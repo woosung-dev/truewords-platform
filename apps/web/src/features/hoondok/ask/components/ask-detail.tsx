@@ -172,7 +172,6 @@ export function AskDetail({ id }: { id: string }) {
           <div className="sect">
             <div className="sect__head">
               <h3 className="sect__title">AI 설명</h3>
-              <span className="sect__meta">공식 해설 아님</span>
             </div>
             <div className="ai-note">
               <div className="ai-note__lab">
@@ -232,7 +231,7 @@ export function AskDetail({ id }: { id: string }) {
           <div className="sect">
             <div className="sect__head">
               <h3 className="sect__title">이어서 물어보기</h3>
-              <span className="sect__meta">탭해야 보냅니다</span>
+              <span className="sect__meta">누르면 질문창에 담아요</span>
             </div>
             <div className="ask-chips">
               {FOLLOWUPS.map((followup) => (

@@ -7,6 +7,7 @@ import { Highlighter } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { HoondokButton } from "@/components/hoondok";
+import { handleSegmentKeyDown } from "@/features/hoondok/segmented-keyboard";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { libraryAPI } from "../../library/api";
@@ -204,7 +205,7 @@ function RecordsBody({ records }: { records: RecordSet }) {
 
   return (
     <section className="col">
-      <div className="pill-seg" role="tablist" aria-label="기록 종류">
+      <div className="pill-seg" role="tablist" onKeyDown={handleSegmentKeyDown} aria-label="기록 종류">
         {RECORD_TABS.map((tab) => (
           <button
             key={tab.id}
@@ -212,6 +213,7 @@ function RecordsBody({ records }: { records: RecordSet }) {
             role="tab"
             id={`rc-tab-${tab.id}`}
             aria-selected={filter.tab === tab.id}
+            tabIndex={filter.tab === tab.id ? 0 : -1}
             aria-controls="rc-panel"
             className={filter.tab === tab.id ? "is-on" : undefined}
             onClick={() => pick({ tab: tab.id })}

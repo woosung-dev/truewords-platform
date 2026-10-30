@@ -23,6 +23,7 @@ import {
 } from "@/features/hoondok/cards/components/words-card";
 import { sectionsKey, wordsKey } from "@/features/hoondok/query-keys";
 import { useHoondokScreenTitle } from "@/features/hoondok/screen-title";
+import { handleSegmentKeyDown } from "@/features/hoondok/segmented-keyboard";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { libraryAPI, verseNumber, type WordsQuery, wordsHref, wordsPageHref } from "../api";
 import { readHintDismissed, readLastColor, writeHintDismissed, writeLastColor } from "../highlight-prefs";
@@ -544,7 +545,7 @@ export function WordsScreen({
         <ReaderBar onAction={handleReaderAction} />
         <div ref={chromeAnchorRef} />
         <div className="wd-chrome" ref={chromeRef}>
-          <div className="pill-seg" role="tablist" aria-label="원문 보기">
+          <div className="pill-seg" role="tablist" onKeyDown={handleSegmentKeyDown} aria-label="원문 보기">
             {SEGMENTS.map((item) => (
               <button
                 key={item.id}
@@ -552,6 +553,7 @@ export function WordsScreen({
                 role="tab"
                 id={`wd-seg-${item.id}`}
                 aria-selected={segment === item.id}
+                tabIndex={segment === item.id ? 0 : -1}
                 aria-controls="wd-seg-panel"
                 className={segment === item.id ? "is-on" : ""}
                 onClick={() => setSegment(item.id)}

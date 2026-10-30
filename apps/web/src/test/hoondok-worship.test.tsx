@@ -112,6 +112,8 @@ describe("SCR-PWA-013 설교 섭외 폼 — 제출은 준비 중", () => {
     render(<SermonRequestForm />);
 
     const form = screen.getByRole("form", { name: "설교 섭외 신청" });
+    expect(screen.getByText("미리보기예요. 입력해도 교회장께 전송되거나 접수되지 않아요.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "요청 미리보기" })).toBeInTheDocument();
     fireEvent.submit(form);
 
     expect(fetchSpy).not.toHaveBeenCalled();

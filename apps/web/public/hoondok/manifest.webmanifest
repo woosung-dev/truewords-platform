@@ -2,7 +2,7 @@
   "id": "/hoondok",
   "name": "훈독",
   "short_name": "훈독",
-  "description": "아침 3분 훈독 — 독립 운영 베타. FFWPU 공식 앱이 아닙니다.",
+  "description": "아침 3분 훈독 — 독립 운영 베타.",
   "lang": "ko",
   "dir": "ltr",
   "start_url": "/hoondok",

@@ -40,90 +40,96 @@ export default function WeightedSourceEditor({ sources, onChange }: WeightedSour
       {sources.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4 text-center">소스를 추가하세요</p>
       ) : (
-        <>
-          <div className="grid grid-cols-[1fr_80px_100px_40px_60px] gap-2 px-1 text-xs font-medium text-muted-foreground">
-            <span>소스</span>
-            <span>비중</span>
-            <span>점수 임계값</span>
-            <span></span>
-            <span className="text-right">비율</span>
+        <div role="region" aria-label="소스별 검색 비중" tabIndex={0} className="overflow-x-auto">
+          <div className="min-w-[32rem] space-y-3">
+            <div className="grid grid-cols-[1fr_80px_100px_40px_60px] gap-2 px-1 text-xs font-medium text-muted-foreground">
+              <span>소스</span>
+              <span>비중</span>
+              <span>점수 임계값</span>
+              <span></span>
+              <span className="text-right">비율</span>
+            </div>
+
+            {sources.map((s, i) => {
+              const pct = totalWeight > 0 ? (((s.weight ?? 1) / totalWeight) * 100).toFixed(1) : "0.0";
+              const catName = categories.find((c) => c.key === s.source)?.name ?? s.source;
+              return (
+                <div key={`${s.source}-${i}`} className="grid grid-cols-[1fr_80px_100px_40px_60px] gap-2 items-center">
+                  <select
+                    aria-label={`${i + 1}번째 검색 소스`}
+                    value={s.source}
+                    onChange={(e) => updateSource(i, { source: e.target.value })}
+                    className="max-md:min-h-11 text-sm border rounded-md px-2 py-1.5 bg-background"
+                  >
+                    <option value={s.source}>
+                      {catName} ({s.source})
+                    </option>
+                    {categories
+                      .filter((c) => !usedSources.has(c.key) || c.key === s.source)
+                      .map(
+                        (c) =>
+                          c.key !== s.source && (
+                            <option key={c.key} value={c.key}>
+                              {c.name} ({c.key})
+                            </option>
+                          ),
+                      )}
+                  </select>
+
+                  <Input
+                    aria-label={`${catName} 비중`}
+                    type="number"
+                    min={0.1}
+                    max={100}
+                    step="any"
+                    value={s.weight}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!isNaN(val) && val >= 0.1) updateSource(i, { weight: val });
+                    }}
+                    className="h-8 text-sm text-center"
+                  />
+
+                  <Input
+                    aria-label={`${catName} 점수 임계값`}
+                    type="number"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={s.score_threshold}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!isNaN(val)) {
+                        updateSource(i, {
+                          score_threshold: Math.round(Math.max(0, Math.min(1, val)) * 100) / 100,
+                        });
+                      }
+                    }}
+                    className="h-8 text-sm text-center"
+                  />
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`${catName} 소스 삭제`}
+                    onClick={() => removeSource(i)}
+                    disabled={sources.length <= 1}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+
+                  <span className="text-sm text-right tabular-nums text-muted-foreground">{pct}%</span>
+                </div>
+              );
+            })}
+
+            <div className="flex justify-between items-center pt-2 border-t text-sm">
+              <span className="text-muted-foreground">합계: {totalWeight}</span>
+              <span className="tabular-nums font-medium">{totalWeight > 0 ? "100.0%" : "0%"}</span>
+            </div>
           </div>
-
-          {sources.map((s, i) => {
-            const pct = totalWeight > 0 ? (((s.weight ?? 1) / totalWeight) * 100).toFixed(1) : "0.0";
-            const catName = categories.find((c) => c.key === s.source)?.name ?? s.source;
-            return (
-              <div key={`${s.source}-${i}`} className="grid grid-cols-[1fr_80px_100px_40px_60px] gap-2 items-center">
-                <select
-                  value={s.source}
-                  onChange={(e) => updateSource(i, { source: e.target.value })}
-                  className="text-sm border rounded-md px-2 py-1.5 bg-background"
-                >
-                  <option value={s.source}>
-                    {catName} ({s.source})
-                  </option>
-                  {categories
-                    .filter((c) => !usedSources.has(c.key) || c.key === s.source)
-                    .map(
-                      (c) =>
-                        c.key !== s.source && (
-                          <option key={c.key} value={c.key}>
-                            {c.name} ({c.key})
-                          </option>
-                        ),
-                    )}
-                </select>
-
-                <Input
-                  type="number"
-                  min={0.1}
-                  max={100}
-                  step="any"
-                  value={s.weight}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    if (!isNaN(val) && val >= 0.1) updateSource(i, { weight: val });
-                  }}
-                  className="h-8 text-sm text-center"
-                />
-
-                <Input
-                  type="number"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={s.score_threshold}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    if (!isNaN(val)) {
-                      updateSource(i, {
-                        score_threshold: Math.round(Math.max(0, Math.min(1, val)) * 100) / 100,
-                      });
-                    }
-                  }}
-                  className="h-8 text-sm text-center"
-                />
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeSource(i)}
-                  disabled={sources.length <= 1}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </Button>
-
-                <span className="text-sm text-right tabular-nums text-muted-foreground">{pct}%</span>
-              </div>
-            );
-          })}
-
-          <div className="flex justify-between items-center pt-2 border-t text-sm">
-            <span className="text-muted-foreground">합계: {totalWeight}</span>
-            <span className="tabular-nums font-medium">{totalWeight > 0 ? "100.0%" : "0%"}</span>
-          </div>
-        </>
+        </div>
       )}
 
       <Button variant="outline" size="sm" onClick={addSource} disabled={!hasAvailable} className="w-full">

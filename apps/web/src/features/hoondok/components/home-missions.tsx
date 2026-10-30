@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpenText, HandHeart, Library } from "lucide-react";
+import { ArrowRight, BookOpenText, HandHeart, Library } from "lucide-react";
 import Link from "next/link";
 import { MissionCard, WeekStrip } from "@/components/hoondok";
 import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-today";
@@ -26,7 +26,7 @@ export function HomeGreeting() {
   const date = useKstDate();
   const { label: dateLabel } = formatKstDate(new Date(`${date}T12:00:00+09:00`));
   return (
-    <div className="shot">
+    <div className="shot shot--today">
       {/* 사진은 화면 폭의 배경이라 Next/Image 대신 정적 <img> 를 쓴다 — 원본이 이미 2x 폭(1440)이고 변환도 없다 */}
       <img src="/hoondok/photos/home-morning-field.webp" alt="아침 햇살이 드는 들판" />
       <div className="shot__tx">
@@ -36,6 +36,10 @@ export function HomeGreeting() {
           {user ? `${user.display_name}님, 오늘도 함께 읽어요.` : "오늘도 함께 읽어요."}
         </p>
         <p className="shot__sub">{dateLabel}</p>
+        <Link className="btn btn-primary shot__go" href="/hoondok/read">
+          훈독하기
+          <ArrowRight size={18} aria-hidden="true" />
+        </Link>
       </div>
     </div>
   );

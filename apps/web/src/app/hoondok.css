@@ -150,6 +150,8 @@
     cursor: pointer;
   }
   :focus-visible {
+    /* 고정 앱바·탭바 바깥에 키보드 초점 전체를 드러낸다. */
+    scroll-margin-block: calc(8rem + 24px);
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
@@ -184,8 +186,8 @@
     letter-spacing: -0.01em;
   }
   .icon-btn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: var(--r-sm);
     display: grid;
     place-items: center;
@@ -193,15 +195,11 @@
     flex: none;
     position: relative;
   }
-  /* 보이는 크기(40·30·46×28)는 그대로 두고 누르는 자리만 44px 로 넓힌다 (보이지 않는 가상 패딩).
+  /* 작은 체크·토글의 보이는 크기는 유지하고 누르는 자리만 44px 로 넓힌다.
      `.toggle` 은 ::after 가 손잡이라 ::before 를 쓴다 */
-  .icon-btn::after,
   .check::after {
     content: "";
     position: absolute;
-    inset: -2px;
-  }
-  .check::after {
     inset: -9px;
   }
   .icon-btn:active,
@@ -713,7 +711,16 @@
     padding: 0;
     list-style: none;
   }
+  .week__check {
+    position: absolute;
+    right: -2px;
+    bottom: 0;
+    background: var(--paper);
+    color: var(--ok);
+    border-radius: 50%;
+  }
   .week__day {
+    position: relative;
     width: 100%;
     max-width: 34px;
     aspect-ratio: 1;
@@ -734,7 +741,7 @@
   }
   .week__day[data-today] {
     border: 2px solid var(--accent);
-    color: var(--accent);
+    color: var(--accent-strong);
     font-weight: 700;
   }
 
@@ -903,8 +910,8 @@
     .nav__user {
       display: grid;
       place-items: center;
-      width: 36px;
-      height: 36px;
+      width: 44px;
+      height: 44px;
       flex: none;
       margin-left: 8px;
       border-radius: 50%;
@@ -1421,4 +1428,17 @@
 /* 훈독 화면에서만 바깥 문서 배경이 드러나는 세로 오버스크롤을 막는다. */
 html:has([data-app="hoondok"]) {
   overscroll-behavior-y: none;
+}
+
+/* 가로로 든 태블릿도 상단 탐색을 손가락으로 누를 수 있다. */
+[data-app="hoondok"] {
+  @media (min-width: 1024px) and (pointer: coarse) {
+    .nav__item,
+    .nav__item--mid,
+    .nav__search {
+      height: 44px;
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
 }

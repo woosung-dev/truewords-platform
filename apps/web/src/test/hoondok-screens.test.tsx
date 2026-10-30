@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // 화면 레지스트리·탭 단계·앱 셸 (PLAN-HD-002 W0-W). 프리뷰 플래그는 모듈 평가 시 읽히므로 stubEnv 뒤 재import 한다.
@@ -77,6 +77,32 @@ describe("훈독 탭 단계 · 프리뷰 플래그", () => {
 });
 
 describe("훈독 앱 셸", () => {
+  it("고정 내비게이션에 가려진 입력 초점만 가운데로 옮긴다", async () => {
+    vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/hoondok/read" }));
+    const { HoondokAppShell } = await import("../components/hoondok/app-shell");
+    render(
+      <HoondokAppShell>
+        <textarea aria-label="한 줄" />
+      </HoondokAppShell>,
+    );
+    const input = screen.getByRole("textbox", { name: "한 줄" });
+    vi.spyOn(input, "getBoundingClientRect").mockReturnValue(new DOMRect(20, 700, 335, 102));
+    vi.spyOn(input, "matches").mockReturnValue(true);
+    const scroll = vi.spyOn(input, "scrollIntoView");
+    const hit = vi.fn(() => screen.getByRole("navigation", { name: "주 메뉴" }));
+    Object.defineProperty(document, "elementFromPoint", { configurable: true, value: hit });
+    try {
+      fireEvent.focus(input);
+      expect(scroll).toHaveBeenCalledWith({ block: "center", behavior: "instant" });
+      scroll.mockClear();
+      hit.mockReturnValue(input as unknown as HTMLElement);
+      fireEvent.focus(input);
+      expect(scroll).not.toHaveBeenCalled();
+    } finally {
+      Reflect.deleteProperty(document, "elementFromPoint");
+    }
+  });
+
   it("/hoondok/settings: 제목 알림·설치 · 뒤로 → /hoondok/garden · 정원 탭 활성 · 검색은 항상 활성", async () => {
     vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "");
     vi.resetModules();
