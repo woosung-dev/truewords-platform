@@ -88,9 +88,7 @@ export default function SettingsPage() {
     onSuccess: (_data, vars) => {
       // success-feedback — 무엇이 어떻게 됐는지 대상까지 밝힌다.
       toast.success(
-        vars.isActive
-          ? `활성화되었습니다: ${vars.email}`
-          : `비활성화되었습니다: ${vars.email} (새 로그인 차단)`,
+        vars.isActive ? `활성화되었습니다: ${vars.email}` : `비활성화되었습니다: ${vars.email} (새 로그인 차단)`,
       );
       setPendingTarget(null);
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });

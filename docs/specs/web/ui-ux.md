@@ -7,7 +7,7 @@
 ## 현재 구현 기준
 
 - `apps/web`은 `/`, `/history`, `/about`, `/login`과 훈독(`/hoondok/*`)을 소유한다. 채팅·출처/원문 보기·피드백·기록·스트림 취소와 기존 시연 계정 로그인 흐름을 보존한다. 훈독 화면 기준은 [훈독 디자인](hoondok-design-system.md)이 소유한다.
-- 화면·기능 UI는 `src/app`, `src/features`, `src/components/truewords`, primitive는 `src/components/ui`가 소유한다. 표시 유틸은 `src/lib/utils.ts`, 테마·전역 스타일은 `src/app/globals.css`, 폰트 연결은 `src/app/layout.tsx`에 둔다.
+- 화면·기능 UI는 `src/app`, `src/features`, `src/components/truewords`, primitive는 `src/components/ui`가 소유한다. 표시 유틸은 `src/lib/utils.ts`, 테마·전역 스타일은 `src/app/globals.css`, 본문 폰트(Pretendard) 연결은 `src/app/layout.tsx`에 두고, 시연 챗 세리프(`font-display`·본문 세리프)는 쓰는 진입점만 `src/app/truewords-fonts.ts`·`truewords-reading-fonts.ts`를 import 한다(훈독에 세리프 CSS 가 실리지 않게).
 - 기존 paper 계열 화면·폰트·컴포넌트 크기·모션을 이번 소유권 이동에서 재설계하지 않는다.
 - 훈독은 일반 사용자 인증·PWA 설치(manifest)·서비스워커(scope `/hoondok`)·Web Push 알림을 구현했다. 시연 채팅 화면은 이 기능을 쓰지 않는다.
 
