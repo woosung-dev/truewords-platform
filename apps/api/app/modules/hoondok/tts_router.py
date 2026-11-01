@@ -1,10 +1,8 @@
-"""훈독 AI 낭독 목소리 API (PLAN-HD-011, API-HD-044~046).
+"""훈독 AI 낭독 목소리 API (PLAN-HD-011, API-HD-044·045).
 
-목록(044)은 공개. 단락 음성(045·046)은 hoondok_token 로그인 사용자만 — 합성 비용이 드는 경로라
+목록(044)은 공개. 단락 음성(045)은 hoondok_token 로그인 사용자만 — 합성 비용이 드는 경로라
 비로그인 읽기(원문·오늘 말씀은 공개)와 달리 계정을 요구한다. 비로그인은 클라이언트가 브라우저 음성을 쓴다.
 """
-
-import uuid
 
 from fastapi import APIRouter, Depends, Path, Query, Request
 from fastapi.responses import Response
@@ -81,20 +79,3 @@ async def get_chunk_audio(
 ) -> Response:
     """API-HD-045 원문 뷰 단락(청크) 1개의 mp3. 본문은 서버가 display_text 로 조회한다."""
     return _mp3(await service.chunk_audio(chunk_id, voice, user.id))
-
-
-@router.get(
-    "/readings/{reading_id}/{paragraph}",
-    response_class=Response,
-    responses=_audio_responses,
-    dependencies=[Depends(check_tts_limit)],
-)
-async def get_reading_audio(
-    reading_id: uuid.UUID,
-    paragraph: int = Path(ge=0, le=200),
-    voice: str = Query(max_length=16),
-    user: User = Depends(get_current_user),
-    service: TtsService = Depends(get_tts_service),
-) -> Response:
-    """API-HD-046 오늘 훈독 말씀(편성 또는 내 정성)의 단락 1개 mp3. 단락 = 본문을 빈 줄로 나눈 순서(0부터)."""
-    return _mp3(await service.reading_audio(reading_id, paragraph, voice, user.id))

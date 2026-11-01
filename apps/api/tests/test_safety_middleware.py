@@ -150,16 +150,3 @@ def test_check_rate_limit_uses_xff(monkeypatch):
     # pytest-asyncio 1.4 는 async 테스트 뒤 현재 이벤트 루프를 비우므로 get_event_loop() 가 RuntimeError.
     asyncio.run(middleware_mod.check_rate_limit(request))
     assert captured["ip"] == "203.0.113.99"
-
-
-@pytest.mark.asyncio
-async def test_reactions_router_uses_shared_helper():
-    """reactions_router 가 자체 _client_ip 대신 safety.middleware.extract_client_ip 사용.
-
-    audit 2차 C-3 — XFF 파싱 로직이 두 곳에 흩어져 있으면 다음 보안 fix 때 한
-    곳만 갱신될 위험. 단일 진입점 잠금.
-    """
-    from app.modules.chat import reactions_router as rr_mod
-
-    # alias `_client_ip` 가 safety.middleware.extract_client_ip 와 동일 객체여야 함
-    assert rr_mod._client_ip is extract_client_ip

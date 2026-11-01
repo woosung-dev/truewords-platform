@@ -1,6 +1,9 @@
 # 합의된 하위 호환 깨짐만 적는다(oasdiff --err-ignore/--warn-ignore). 한 줄 = "METHOD /path 메시지".
 # 기준이 main 으로 바뀌면 다시 걸리지 않으니, 그 PR 이 머지된 뒤 다음 계약 PR 에서 지운다.
-# 2026-09-29 단락 표시는 북마크만 — 형광펜은 구절 단위(API-HD-053)로 옮겼다. 쓰는 곳이 훈독 웹 하나라 함께 배포한다.
-PUT /hoondok/me/marks/{chunk_id} the `kind` request property const value `bookmark` was added
-PUT /hoondok/me/marks/{chunk_id} removed the enum value `bookmark` of the request property `kind`
-PUT /hoondok/me/marks/{chunk_id} removed the enum value `highlight` of the request property `kind`
+# 2026-11-02 호출처가 없는 API 제거 — 익명 답변 반응(웹 클라이언트 미사용), 단락 표시 API-HD-026, 오늘 훈독 단락 낭독 API-HD-046.
+POST /api/chat/messages/{message_id}/reaction api path removed without deprecation
+GET /api/chat/messages/{message_id}/reactions api path removed without deprecation
+GET /hoondok/me/marks api path removed without deprecation
+DELETE /hoondok/me/marks/{chunk_id} api path removed without deprecation
+PUT /hoondok/me/marks/{chunk_id} api path removed without deprecation
+GET /hoondok/tts/readings/{reading_id}/{paragraph} api path removed without deprecation

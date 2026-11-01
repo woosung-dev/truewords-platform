@@ -12,7 +12,6 @@ export type {
   QueryListItem,
   QueryListResponse,
   QueryOccurrence,
-  ReactionCount,
   SearchStats,
   SessionDetailResponse as SessionDetail,
   SessionMessageItem as SessionMessage,

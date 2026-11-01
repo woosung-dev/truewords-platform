@@ -2,7 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { useQuery } from "@tanstack/react-query";
-import { Bookmark, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,12 +31,6 @@ function normalize(v: string | null | undefined): string {
   return (v ?? "").toLowerCase();
 }
 
-const REACTION_ICON: Record<string, typeof ThumbsUp> = {
-  thumbs_up: ThumbsUp,
-  thumbs_down: ThumbsDown,
-  save: Bookmark,
-};
-
 function formatDateTime(iso: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
@@ -64,23 +58,6 @@ function MessageBubble({ msg }: { msg: SessionMessage }) {
           {isUser ? "사용자" : "챗봇"} · {formatDateTime(msg.created_at)}
         </div>
         <div className="whitespace-pre-wrap break-words">{msg.content}</div>
-
-        {!isUser && (msg.reactions ?? []).length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {(msg.reactions ?? []).map((r) => {
-              const Icon = REACTION_ICON[r.kind] ?? ThumbsUp;
-              return (
-                <span
-                  key={r.kind}
-                  className="inline-flex items-center gap-1 rounded-full bg-background/60 px-2 py-0.5 text-[11px] text-foreground"
-                >
-                  <Icon className="h-3 w-3" />
-                  {r.count}
-                </span>
-              );
-            })}
-          </div>
-        )}
 
         {!isUser && msg.feedback && (
           <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5 text-[11px]">

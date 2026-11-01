@@ -29,7 +29,7 @@
 | `API-HD-023` | GET | `/hoondok/library/{series}` | 없음(공개) | HD-007 |
 | `API-HD-024` | GET | `/hoondok/sections/{volume}` | 없음(공개) | HD-007 |
 | `API-HD-025` | GET · PUT | `/hoondok/me/reading-positions` · `/hoondok/me/reading-position/{volume}` | `hoondok_token` (PUT 은 `X-Requested-With`) | HD-007 |
-| `API-HD-026` | GET · PUT · DELETE | `/hoondok/me/marks` | `hoondok_token` (쓰기는 `X-Requested-With`) | HD-007 |
+| `API-HD-026` | ~~GET · PUT · DELETE~~ | ~~`/hoondok/me/marks`~~ — 제거(2026-11-02) | — | HD-007 |
 | `API-HD-027` | POST | `/admin/hoondok/content-rights/bulk` | `admin_token` + 게이트 + `X-Requested-With` | HD-007 |
 | `API-HD-028` | GET | `/admin/hoondok/content-rights/series` | `admin_token` + `require_admin_gate` | HD-007 |
 | `API-HD-029` | GET | `/hoondok/today/together` | 없음(공개) | HD-009 |
@@ -49,7 +49,7 @@
 | `API-HD-043` | GET · DELETE | `/admin/hoondok/groups` · `/admin/hoondok/groups/{group_id}` | `admin_token` + 게이트 (DELETE 는 `X-Requested-With`) | HD-010 |
 | `API-HD-044` | GET | `/hoondok/tts/voices` | 공개 | HD-011 |
 | `API-HD-045` | GET | `/hoondok/tts/chunks/{chunk_id}?voice=` | `hoondok_token` + limiter | HD-011 |
-| `API-HD-046` | GET | `/hoondok/tts/readings/{reading_id}/{paragraph}?voice=` | `hoondok_token` + limiter | HD-011 |
+| `API-HD-046` | ~~GET~~ | ~~`/hoondok/tts/readings/{reading_id}/{paragraph}`~~ — 제거(2026-11-02) | — | HD-011 |
 | `API-HD-047` | GET | `/hoondok/cards/today` | 없음(공개) | HD-012 |
 | `API-HD-048` | GET | `/hoondok/cards/{card_id}` | 없음(공개) | HD-012 |
 | `API-HD-049` | POST | `/hoondok/me/cards/{card_id}/receive` | `hoondok_token` + `X-Requested-With` | HD-012 |
@@ -353,6 +353,7 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 | 2026-09-29 | API-HD-009 GET 에 `last_ended` 추가(하위 호환). 마친 정성은 주제·각오·기간만 돌려주고 완료한 날 수는 보내지 않는다 — 빠진 날을 드러내지 않는다. 가장 최근에 끝난 기간이 그만둔 기간이면 마무리 카드가 없다 | 확정 |
 | 2026-09-29 | API-HD-009 에 `resolution`(나의 각오, 선택 50자) 추가 — 새 자유 텍스트라 본인 응답에만 담고 모임·가족·관리자 응답에는 넣지 않는다. 수정 API 없음, 계정 삭제 시 기간과 함께 삭제 | 확정(사용자 승인) |
 | 2026-09-29 | C1 기록 화면(정원 '나의 기록'·`/hoondok/records`)은 형광펜·노트를 API-HD-053 에서 읽는다(북마크는 API-HD-026 `excerpt=true`). 수의 상한은 목록마다 따로(형광펜 500·북마크 200)라 한쪽이 차도 다른 쪽 수는 그대로다. 원문이 막힌 권을 가리려고 API-HD-053 에 `readable` 을 추가했다(하위 호환) | 확정 · `readable` 기준 `[가정]` |
+| 2026-11-02 | 호출처가 없는 API-HD-026(단락 표시)·API-HD-046(오늘 훈독 단락 낭독)을 제거. `passage_marks` 테이블·행은 삭제 결정 전까지 보존 | 확정 |
 
 ---
 
@@ -489,24 +490,10 @@ Qdrant 원본 그대로이고 AI 설명·인용은 계속 `text` 를 쓴다. `di
 
 서버 값이 있으면 서버가 우선이고 없으면 기기 값을 1회 올린다. 비로그인은 기기 값만 쓴다(PLAN-HD-007 §2-13).
 
-### API-HD-026 단락 표시 (`hoondok_token`)
+### API-HD-026 단락 표시 — 제거됨
 
-단락 표시는 이제 북마크뿐이다 — 형광펜·메모는 API-HD-053 으로 옮겼다. 예전 `kind=highlight` 행은 DB 에
-남아 있지만 목록에 나오지 않는다. 2026-09-29 부터 웹은 북마크 화면을 없애 이 API 를 부르지 않는다
-(엔드포인트·기존 행은 유지, 제거는 별도 결정).
-
-- `GET /hoondok/me/marks?volume=&kind=&limit=` — 최신순, 본인 북마크만. 항목은
-  `{ chunk_id, chunk_index, volume, kind, color, note, updated_at, work_title, label }`.
-  `limit` 은 1~200이고 기본 200이다 — 표시가 쌓여도 한 요청이 읽는 행 수를 묶어 둔다.
-- `GET /hoondok/me/marks?excerpt=true` — 항목마다 `excerpt: string | null` 이 **추가만** 된다(하위 호환,
-  파라미터가 없으면 키도 없고 Qdrant 도 부르지 않는다). 값은 원문 뷰(`API-HD-016`)가 그 단락에 보이는
-  `display_text` 앞 300자다(페이지 첫 청크는 앞 청크 겹침을 자르지 않는 같은 규칙). 원문(`scope_full_text`)이
-  막힌 권·청크를 못 찾은 경우·Qdrant 실패는 `null` 이고 목록은 200이다. 저장 시점 스냅샷을 두지 않는다 —
-  권리를 거두면 발췌도 함께 사라져야 한다. Qdrant 는 청크 묶음 조회 1회 + 앞 청크가 필요한 권마다 1회만 부른다.
-- `PUT /hoondok/me/marks/{chunk_id}` body `{ volume, chunk_index, kind, color, note }`
-  — `(user_id, chunk_id, kind)` upsert. `kind` 는 `bookmark` 만 받고(`highlight` 는 422), 넘어온 `color` 는
-  버린다. `note` 는 2000자까지. 원문이 허용되지 않은 권은 404.
-- `DELETE /hoondok/me/marks/{chunk_id}?kind=` — 204. 없는 표시도 204이며 남의 표시는 지워지지 않는다.
+2026-11-02 엔드포인트를 없앴다. 웹은 2026-09-29 북마크 화면을 없앤 뒤 부르지 않았다. `passage_marks`
+테이블과 기존 행은 삭제 결정 전까지 그대로 둔다(ID 재사용 금지).
 
 계정 하드 삭제(`API-HD-011`)는 `reading_positions`·`passage_marks`·`passage_highlights` 를 함께 지운다.
 
@@ -655,7 +642,7 @@ GET → `[{id, name, member_count, created_at}]`(최신순) — 모임원 이름
 
 `get_user_data_purgers` 에 `GroupRepository` 가 더해졌다. 모임마다 모임원 행·한 줄·반응을 지우고, 리더였다면 가장 먼저 들어온 식구(`joined_at` 오름차순)에게 리더를 넘긴다. 남은 식구가 없으면 모임을 지운다. 이 사용자가 만든 정성의 `created_by_user_id` 는 NULL 로 비운다.
 
-## PLAN-HD-011 — AI 낭독 목소리 (API-HD-044~046)
+## PLAN-HD-011 — AI 낭독 목소리 (API-HD-044·045)
 
 [계획](../../plans/active/2026-09-25-hoondok-ai-voice.md). Google Cloud Text-to-Speech Chirp 3 HD, 목소리 4종(`sulafat` 기본·`aoede`·`algieba`·`iapetus`) 모두 `speakingRate 0.9`. **임의 텍스트 합성은 없다** — 클라이언트는 식별자만 보내고 서버가 본문을 조회한다. `GOOGLE_TTS_API_KEY` 가 없으면 기능 OFF.
 
@@ -667,18 +654,16 @@ GET → `[{id, name, member_count, created_at}]`(최신순) — 모임원 이름
 
 200 `audio/mpeg` 단락 mp3, `Cache-Control: private, max-age=2592000`, `ETag`, `X-Tts-Cache: hit|miss`. 합성 원문은 원문 뷰(`API-HD-016`)가 그 단락에 보이는 `display_text`(페이지 첫 청크는 앞 청크 겹침을 자르지 않는 같은 규칙) — `scope_full_text` 허용 저작물만.
 
-### API-HD-046 `GET /hoondok/tts/readings/{reading_id}/{paragraph}?voice=`
+### API-HD-046 오늘 훈독 단락 낭독 — 제거됨
 
-> 2026-09-26 부터 웹 화면에서 부르지 않는다(오늘 훈독 듣기 바 제거, PLAN-HD-011 결정 2). 계약은 유지한다.
+2026-09-26 오늘 훈독 듣기 바를 뺀 뒤 부르는 화면이 없어 2026-11-02 엔드포인트를 없앴다(ID 재사용 금지).
 
-오늘 훈독 말씀의 단락(본문을 빈 줄로 나눈 순서, 0부터) mp3. `reading_id` 는 `API-HD-001`·`API-HD-017` 응답의 `reading.id` — 편성(`daily_readings`, 철회·미래 날짜 제외) 또는 **본인** 정성 말씀(`jeongseong_readings`, 진행 중 기간의 오늘 말씀만, `scope_jeongseong` 허용 저작물만).
-
-045·046 공통:
+API-HD-045 규칙:
 
 - 캐시 키 `sha256(voice|0.9|공백 정규화한 본문)`, 저장 `HOONDOK_TTS_CACHE_DIR/{key[:2]}/{key}.mp3`(임시 파일 → `os.replace`). 적중이면 합성·상한 검사 없이 준다. 같은 키 동시 요청은 프로세스 락으로 1회만 합성한다.
 - 새 합성만 `hoondok_tts_usage`(ENT-HD-018) 에 글자 수를 남긴다. 월 상한(`HOONDOK_TTS_MONTHLY_CHAR_LIMIT`)과 사용자 최근 24시간 한도(`HOONDOK_TTS_USER_DAILY_CHAR_LIMIT`, 기본 30,000)를 검사하고 **합성 전에 글자 수를 예약·커밋**한다(전역 락 — 동시 요청이 상한을 넘지 않고, Google 호출 동안 DB 커넥션을 쥐지 않는다). 합성이 실패하면 Google 이 과금했을 수 있는 글자 수(성공한 조각 + 결과를 모르는 조각)로 줄이거나 지우고, 시간 초과는 예약을 그대로 둔다. 캐시 파일은 사용량 커밋 뒤에 쓴다.
 - Google 호출 재시도(1회)는 5xx·연결 실패만. 읽기 타임아웃은 이미 과금됐을 수 있어 재시도하지 않는다. 요청 전체 상한 45초.
-- 오류(`ErrorResponse.error_code`): 401 미인증 · 404 `TTS_SOURCE_NOT_FOUND`(본문 없음·권리 없음·단락 범위 밖) · 422 `TTS_INVALID_VOICE` · 429 `TTS_QUOTA_EXCEEDED`(월 상한) · 429 `TTS_USER_LIMIT_EXCEEDED`(사용자 24시간 한도) · 429 `RATE_LIMIT_EXCEEDED`(요청 빈도 — 웹은 짧게 재시도하는 일시적 오류로 본다) · 502 `TTS_UPSTREAM_FAILED` · 503 `TTS_DISABLED`(키 없음 또는 캐시 디렉터리 쓰기 불가) · 504 `TTS_TIMEOUT`. 검사 순서는 voice → 켜짐 → 본문 → 캐시 → 상한.
+- 오류(`ErrorResponse.error_code`): 401 미인증 · 404 `TTS_SOURCE_NOT_FOUND`(본문 없음·권리 없음) · 422 `TTS_INVALID_VOICE` · 429 `TTS_QUOTA_EXCEEDED`(월 상한) · 429 `TTS_USER_LIMIT_EXCEEDED`(사용자 24시간 한도) · 429 `RATE_LIMIT_EXCEEDED`(요청 빈도 — 웹은 짧게 재시도하는 일시적 오류로 본다) · 502 `TTS_UPSTREAM_FAILED` · 503 `TTS_DISABLED`(키 없음 또는 캐시 디렉터리 쓰기 불가) · 504 `TTS_TIMEOUT`. 검사 순서는 voice → 켜짐 → 본문 → 캐시 → 상한.
 - limiter: 계정 `RateLimiter(60, 60)` + IP `RateLimiter(600, 60)`(모임이 한 IP 를 함께 쓰는 경우). 비용은 요청 수가 아니라 글자 한도가 막는다.
 
 ## PLAN-HD-012 — 오늘의 책갈피 (API-HD-047~052)

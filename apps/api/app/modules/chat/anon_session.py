@@ -1,5 +1,5 @@
 # 비로그인 익명 세션 쿠키(tw_anon_session) 발급/조회 공용 헬퍼
-"""반응(MessageReaction) 과 피드백(AnswerFeedback) 이 공유하는 익명 세션 식별.
+"""피드백(AnswerFeedback) 의 익명 세션 식별.
 
 B2 보안 (Cross-review Codex + Sonnet 합의): user_session_id 를 서버가 HttpOnly
 cookie 로만 발급/관리한다. 클라이언트 임의 입력 → fingerprint 스팸 차단.

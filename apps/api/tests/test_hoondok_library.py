@@ -17,7 +17,6 @@ from app.modules.admin.service import AdminService
 from app.modules.hoondok.dependencies import get_journey_service, get_library_service
 from app.modules.hoondok.journey_repository import JourneyRepository
 from app.modules.hoondok import journey_service, library_service
-from app.modules.hoondok.display_text import to_display_text
 from app.modules.hoondok.journey_service import JourneyService
 from app.modules.hoondok.library_repository import LibraryRepository
 from app.modules.hoondok.library_series import label_sort_key, series_title, volume_label
@@ -422,361 +421,10 @@ async def test_reading_position_404_on_disallowed_volume(ctx: TestClient):
 
 
 @pytest.mark.asyncio
-async def test_marks_upsert_update_and_delete(ctx: TestClient):
-    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
-    await add_right(session, "천성경.docx", book_series="cheonseong_gyeong", work_title="천성경")
-    await login(ctx)
-
-    created = ctx.put(
-        "/hoondok/me/marks/c-1",
-        json={"volume": "천성경.docx", "chunk_index": 7, "kind": "bookmark", "color": 2},
-        headers=XHR,
-    )
-    assert created.status_code == 200
-    assert created.json()["color"] is None  # 북마크는 색을 버린다
-    assert created.json()["note"] is None
-    assert created.json()["work_title"] == "천성경"
-
-    updated = ctx.put(
-        "/hoondok/me/marks/c-1",
-        json={"volume": "천성경.docx", "chunk_index": 7, "kind": "bookmark", "note": "기억할 단락"},
-        headers=XHR,
-    )
-    assert updated.json()["note"] == "기억할 단락"
-    assert len((await session.execute(select(PassageMark))).scalars().all()) == 1  # upsert
-
-    ctx.put(
-        "/hoondok/me/marks/c-2",
-        json={"volume": "천성경.docx", "chunk_index": 8, "kind": "bookmark"},
-        headers=XHR,
-    )
-    assert len(ctx.get("/hoondok/me/marks").json()["items"]) == 2
-    assert len(ctx.get("/hoondok/me/marks?kind=bookmark").json()["items"]) == 2
-    assert len(ctx.get("/hoondok/me/marks?volume=천성경.docx").json()["items"]) == 2
-
-    assert ctx.delete("/hoondok/me/marks/c-1?kind=bookmark", headers=XHR).status_code == 204
-    assert len(ctx.get("/hoondok/me/marks").json()["items"]) == 1
-    # 없는 표시도 204
-    assert ctx.delete("/hoondok/me/marks/nope?kind=bookmark", headers=XHR).status_code == 204
-
-
-@pytest.mark.asyncio
-async def test_mark_highlight_kind_is_rejected_and_volume_must_be_allowed(ctx: TestClient):
-    """형광펜은 API-HD-053 구절 단위로 옮겼다 — 단락 표시의 `kind=highlight` 는 422."""
-    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
-    await add_right(session, "천성경.docx")
-    await login(ctx)
-    assert (
-        ctx.put(
-            "/hoondok/me/marks/c-1",
-            json={"volume": "천성경.docx", "chunk_index": 1, "kind": "highlight", "color": 2},
-            headers=XHR,
-        ).status_code
-        == 422
-    )
-    assert ctx.get("/hoondok/me/marks?kind=highlight").status_code == 422
-    assert ctx.delete("/hoondok/me/marks/c-1?kind=highlight", headers=XHR).status_code == 422
-    assert (
-        ctx.put(
-            "/hoondok/me/marks/c-1",
-            json={"volume": "없음.docx", "chunk_index": 1, "kind": "bookmark"},
-            headers=XHR,
-        ).status_code
-        == 404
-    )
-
-
-@pytest.mark.asyncio
-async def test_marks_list_ignores_legacy_highlight_rows(ctx: TestClient):
-    """예전 `kind="highlight"` 행은 DB 에 남아도 목록에 나오지 않는다 — 나오면 MarkItem 검증이 500 을 낸다."""
-    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
-    await add_right(session, "천성경.docx")
-    user = await login(ctx)
-    session.add_all(
-        [
-            PassageMark(
-                user_id=user.id,
-                chunk_id="c-1",
-                volume="천성경.docx",
-                chunk_index=1,
-                kind="highlight",
-                color=2,
-                note="예전 노트",
-            ),
-            PassageMark(
-                user_id=user.id, chunk_id="c-1", volume="천성경.docx", chunk_index=1, kind="bookmark"
-            ),
-        ]
-    )
-    await session.commit()
-
-    response = ctx.get("/hoondok/me/marks")
-    assert response.status_code == 200
-    assert [(i["chunk_id"], i["kind"]) for i in response.json()["items"]] == [("c-1", "bookmark")]
-    assert len(ctx.get("/hoondok/me/marks?volume=천성경.docx").json()["items"]) == 1
-    # 예전 행은 지우지 않는다(데이터 삭제는 별도 절차)
-    assert len((await session.execute(select(PassageMark))).scalars().all()) == 2
-
-
-@pytest.mark.asyncio
-async def test_other_user_cannot_see_or_delete_my_marks(ctx: TestClient):
-    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
-    await add_right(session, "천성경.docx")
-    await login(ctx, "owner@example.com")
-    ctx.put(
-        "/hoondok/me/marks/c-1",
-        json={"volume": "천성경.docx", "chunk_index": 1, "kind": "bookmark"},
-        headers=XHR,
-    )
-    await login(ctx, "other@example.com")  # 쿠키 교체
-    assert ctx.get("/hoondok/me/marks").json()["items"] == []
-    assert ctx.delete("/hoondok/me/marks/c-1?kind=bookmark", headers=XHR).status_code == 204
-    # 주인의 표시는 그대로다
-    assert len((await session.execute(select(PassageMark))).scalars().all()) == 1
-
-
-@pytest.mark.asyncio
-async def test_marks_list_is_capped_by_limit(ctx: TestClient):
-    """표시가 쌓여도 한 요청이 읽는 행 수가 유한하다(리뷰 P1-3)."""
-    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
-    await add_right(session, "천성경.docx")
-    user = await login(ctx)
-    session.add_all(
-        [
-            PassageMark(
-                user_id=user.id,
-                chunk_id=f"c-{index}",
-                volume="천성경.docx",
-                chunk_index=index,
-                kind="bookmark",
-            )
-            for index in range(5)
-        ]
-    )
-    await session.commit()
-
-    assert len(ctx.get("/hoondok/me/marks").json()["items"]) == 5
-    assert len(ctx.get("/hoondok/me/marks?limit=2").json()["items"]) == 2
-    # 상한을 넘겨 요청하면 422 — 무제한 조회 경로를 열어 두지 않는다
-    assert ctx.get("/hoondok/me/marks?limit=500").status_code == 422
-
-
-# --- API-HD-026 `excerpt=true` 발췌 --------------------------------------------
-
-_OVERLAP = "하나님의 뜻 앞에 서서 참된 마음으로 살아가는 길을 찾아야 합니다. "
-_A_ID = {index: str(uuid.UUID(int=index + 1)) for index in (0, 4, 5, 19, 20)}
-_B_ID = {index: str(uuid.UUID(int=100 + index)) for index in (2, 3)}
-_ELSEWHERE_ID = str(uuid.UUID(int=999))  # payload 의 권이 표시의 권과 다른 청크
-
-
-class _RecordingQdrant:
-    """발췌용 가짜 Qdrant — 호출을 기록하고 point id → (volume, chunk_index, text) 로 답한다."""
-
-    def __init__(self, fail: str | None = None) -> None:
-        self.fail = fail
-        self.calls: list[tuple[str, dict]] = []
-        self.points: dict[str, tuple[str, int, str]] = {
-            _A_ID[0]: ("천성경.docx", 0, "첫 단락입니다. " + BODY),
-            _A_ID[4]: ("천성경.docx", 4, "앞 단락 본문입니다. " * 3 + _OVERLAP),
-            _A_ID[5]: (
-                "천성경.docx",
-                5,
-                _OVERLAP + "그러므로 우리는 오늘도 말씀을 가까이하며 사랑을 실천하는 하루를 보내야 합니다. " + BODY,
-            ),
-            _A_ID[19]: ("천성경.docx", 19, "앞 페이지 끝 단락입니다. " * 3 + _OVERLAP),
-            _A_ID[20]: ("천성경.docx", 20, _OVERLAP + "새 페이지의 첫 단락은 앞 청크와 겹쳐도 자르지 않습니다. " + BODY),
-            _B_ID[2]: ("평화경.docx", 2, "평화경 앞 단락입니다."),
-            _B_ID[3]: ("평화경.docx", 3, "말씀" * 250),
-            _ELSEWHERE_ID: ("평화경.docx", 9, BODY),
-        }
-
-    def _point(self, point_id: str) -> QdrantPoint:
-        volume, index, text = self.points[point_id]
-        return QdrantPoint(point_id, 0, {"volume": volume, "chunk_index": index, "text": text})
-
-    async def retrieve(self, _collection, ids, **_kwargs):
-        self.calls.append(("retrieve", {"ids": list(ids)}))
-        if self.fail == "retrieve":
-            raise RuntimeError("qdrant down")
-        return [self._point(point_id) for point_id in ids if point_id in self.points]
-
-    async def scroll(self, _collection, scroll_filter=None, limit=10, **_kwargs):
-        self.calls.append(("scroll", {"filter": scroll_filter, "limit": limit}))
-        if self.fail == "scroll":
-            raise RuntimeError("qdrant down")
-        volume_cond, index_cond = scroll_filter["must"]
-        indices = set(index_cond["match"]["any"])
-        found = [
-            self._point(point_id)
-            for point_id, (volume, index, _text) in self.points.items()
-            if volume == volume_cond["match"]["value"] and index in indices
-        ]
-        return found[:limit], None
-
-    def kinds(self) -> list[str]:
-        return [kind for kind, _ in self.calls]
-
-
-def use_qdrant(ctx: TestClient, qdrant: _RecordingQdrant) -> None:
-    library = LibraryRepository(ctx.session)  # type: ignore[attr-defined]
-    app.dependency_overrides[get_library_service] = lambda: LibraryService(library, qdrant)  # type: ignore[arg-type]
-
-
-async def seed_excerpt_marks(ctx: TestClient) -> User:
-    """열린 권 2개 + 검색만 열린 권·철회된 권·원장에 없는 권, 잘못된 ID·권이 어긋난 청크."""
-    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
-    await add_right(session, "천성경.docx")
-    await add_right(session, "평화경.docx")
-    await add_right(session, "원리강론.docx", scope_full_text=False)
-    await add_right(session, "통일사상.docx", status="withdrawn")
-    user = await login(ctx)
-    # 단락 표시는 북마크만 남았다(형광펜은 API-HD-053). 예전 highlight 행은 목록에 나오지 않으니 발췌도 묻지 않는다.
-    marks = [
-        (_A_ID[0], "천성경.docx", 0),
-        (_A_ID[5], "천성경.docx", 5),
-        (_A_ID[20], "천성경.docx", 20),
-        (_B_ID[3], "평화경.docx", 3),
-        ("c-1", "천성경.docx", 7),  # Qdrant ID 가 아니다
-        (_ELSEWHERE_ID, "천성경.docx", 9),  # payload 는 평화경
-        (str(uuid.UUID(int=500)), "원리강론.docx", 1),
-        (str(uuid.UUID(int=501)), "통일사상.docx", 1),
-        (str(uuid.UUID(int=502)), "없는 권.docx", 1),
-    ]
-    session.add_all(
-        [
-            PassageMark(user_id=user.id, chunk_id=chunk_id, volume=volume, chunk_index=index, kind="bookmark")
-            for chunk_id, volume, index in marks
-        ]
-        + [
-            PassageMark(
-                user_id=user.id,
-                chunk_id=_A_ID[4],
-                volume="천성경.docx",
-                chunk_index=4,
-                kind="highlight",
-                color=1,
-            )
-        ]
-    )
-    await session.commit()
-    return user
-
-
-def excerpt_of(items: list[dict], chunk_id: str) -> str | None:
-    return next(i for i in items if i["chunk_id"] == chunk_id)["excerpt"]
-
-
-@pytest.mark.asyncio
-async def test_marks_without_excerpt_param_keep_shape_and_skip_qdrant(ctx: TestClient):
-    qdrant = _RecordingQdrant()
-    use_qdrant(ctx, qdrant)
-    await seed_excerpt_marks(ctx)
-
-    for url in ("/hoondok/me/marks", "/hoondok/me/marks?excerpt=false"):
-        items = ctx.get(url).json()["items"]
-        assert len(items) == 9
-        assert all("excerpt" not in item for item in items)
-    put = ctx.put(
-        f"/hoondok/me/marks/{_A_ID[5]}",
-        json={"volume": "천성경.docx", "chunk_index": 5, "kind": "bookmark"},
-        headers=XHR,
-    )
-    assert put.status_code == 200 and "excerpt" not in put.json()
-    assert qdrant.calls == []
-
-
-@pytest.mark.asyncio
-async def test_marks_excerpt_uses_display_text_with_batched_calls(ctx: TestClient):
-    qdrant = _RecordingQdrant()
-    use_qdrant(ctx, qdrant)
-    await seed_excerpt_marks(ctx)
-
-    response = ctx.get("/hoondok/me/marks?excerpt=true")
-    assert response.status_code == 200
-    items = response.json()["items"]
-    assert len(items) == 9 and all("excerpt" in item for item in items)
-
-    # 호출 수: 청크 묶음 retrieve 1회 + 앞 청크가 필요한 권마다 scroll 1회
-    assert qdrant.kinds() == ["retrieve", "scroll", "scroll"]
-    ids = qdrant.calls[0][1]["ids"]
-    assert len(ids) == len(set(ids))
-    # 열린 권의 올바른 ID 만 묻는다 — 잘못된 ID·막힌 권은 보내지 않는다
-    assert set(ids) == {_A_ID[0], _A_ID[5], _A_ID[20], _B_ID[3], _ELSEWHERE_ID}
-    scrolled = {
-        call["filter"]["must"][0]["match"]["value"]: call["filter"]["must"][1]["match"]["any"]
-        for _, call in qdrant.calls[1:]
-    }
-    # 페이지 첫 청크(0·20)는 앞 청크를 찾지 않는다
-    assert scrolled == {"천성경.docx": [4], "평화경.docx": [2]}
-
-    points = qdrant.points
-    # 겹침 제거 — 원문 뷰 display_text 와 같고 앞 청크와 겹친 머리가 없다
-    assert excerpt_of(items, _A_ID[5]) == to_display_text(points[_A_ID[4]][2], points[_A_ID[5]][2])
-    assert excerpt_of(items, _A_ID[5]).startswith("그러므로")
-    # 페이지 첫 청크는 앞 청크 없이 — 겹친 머리를 그대로 둔다
-    assert excerpt_of(items, _A_ID[20]) == to_display_text(None, points[_A_ID[20]][2])
-    assert excerpt_of(items, _A_ID[20]).startswith("하나님의 뜻")
-    assert excerpt_of(items, _A_ID[0]).startswith("첫 단락입니다.")
-    # 300자에서 자른다
-    assert excerpt_of(items, _B_ID[3]) == "말씀" * 150
-
-    # 권리가 막힌 권·원장에 없는 권·잘못된 ID·권이 어긋난 청크는 null
-    for chunk_id in (
-        "c-1",
-        _ELSEWHERE_ID,
-        str(uuid.UUID(int=500)),
-        str(uuid.UUID(int=501)),
-        str(uuid.UUID(int=502)),
-    ):
-        assert excerpt_of(items, chunk_id) is None
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("fail", ["retrieve", "scroll"])
-async def test_marks_excerpt_falls_back_to_null_when_qdrant_fails(ctx: TestClient, fail: str):
-    qdrant = _RecordingQdrant(fail=fail)
-    use_qdrant(ctx, qdrant)
-    await seed_excerpt_marks(ctx)
-
-    response = ctx.get("/hoondok/me/marks?excerpt=true")
-    assert response.status_code == 200
-    items = response.json()["items"]
-    assert len(items) == 9
-    assert all(item["excerpt"] is None for item in items)
-
-
-@pytest.mark.asyncio
-async def test_marks_excerpt_skips_qdrant_when_nothing_is_readable(ctx: TestClient):
-    qdrant = _RecordingQdrant()
-    use_qdrant(ctx, qdrant)
-    session: AsyncSession = ctx.session  # type: ignore[attr-defined]
-    await add_right(session, "원리강론.docx", scope_full_text=False)
-    user = await login(ctx)
-
-    assert ctx.get("/hoondok/me/marks?excerpt=true").json() == {"items": []}
-    session.add(
-        PassageMark(
-            user_id=user.id,
-            chunk_id=str(uuid.UUID(int=500)),
-            volume="원리강론.docx",
-            chunk_index=1,
-            kind="bookmark",
-        )
-    )
-    await session.commit()
-    items = ctx.get("/hoondok/me/marks?excerpt=true").json()["items"]
-    assert [item["excerpt"] for item in items] == [None]
-    assert qdrant.calls == []
-
-
-@pytest.mark.asyncio
 async def test_me_routes_require_login_and_csrf(ctx: TestClient):
     session: AsyncSession = ctx.session  # type: ignore[attr-defined]
     await add_right(session, "천성경.docx")
-    mark = {"volume": "천성경.docx", "chunk_index": 1, "kind": "bookmark"}
     assert ctx.get("/hoondok/me/reading-positions").status_code == 401
-    assert ctx.get("/hoondok/me/marks").status_code == 401
-    assert ctx.put("/hoondok/me/marks/c-1", json=mark, headers=XHR).status_code == 401
 
     highlight_url = f"/hoondok/me/highlights/{uuid.uuid4()}"
     assert ctx.get("/hoondok/me/highlights").status_code == 401
@@ -785,8 +433,6 @@ async def test_me_routes_require_login_and_csrf(ctx: TestClient):
     assert ctx.delete(highlight_url, headers=XHR).status_code == 401
 
     await login(ctx)
-    assert ctx.put("/hoondok/me/marks/c-1", json=mark).status_code == 403
-    assert ctx.delete("/hoondok/me/marks/c-1").status_code == 403
     assert (
         ctx.put("/hoondok/me/reading-position/천성경.docx", json={"chunk_index": 1}).status_code == 403
     )
@@ -807,8 +453,6 @@ def test_csrf_dependency_is_declared_on_every_mutating_route():
 
     mutating = {
         ("PUT", "/hoondok/me/reading-position/{volume:path}"),
-        ("PUT", "/hoondok/me/marks/{chunk_id}"),
-        ("DELETE", "/hoondok/me/marks/{chunk_id}"),
         ("POST", "/hoondok/me/highlights"),
         ("PATCH", "/hoondok/me/highlights/{highlight_id}"),
         ("DELETE", "/hoondok/me/highlights/{highlight_id}"),
@@ -1194,11 +838,11 @@ async def test_account_deletion_purges_library_rows(ctx: TestClient):
     other = await login(ctx, "other@example.com")
     user = await login(ctx)  # 쿠키는 마지막 로그인(본인)
     ctx.put("/hoondok/me/reading-position/천성경.docx", json={"chunk_index": 3}, headers=XHR)
-    ctx.put(
-        "/hoondok/me/marks/c-1",
-        json={"volume": "천성경.docx", "chunk_index": 3, "kind": "bookmark"},
-        headers=XHR,
+    # 표시 API 는 없앴지만 남은 `passage_marks` 행도 계정 삭제 때 함께 지운다
+    session.add(
+        PassageMark(user_id=user.id, chunk_id="c-1", volume="천성경.docx", chunk_index=3, kind="bookmark")
     )
+    await session.commit()
     assert ctx.post("/hoondok/me/highlights", json=HIGHLIGHT, headers=XHR).status_code == 201
     session.add(PassageHighlight(user_id=other.id, **HIGHLIGHT))  # 다른 사람 것은 남아야 한다
     await session.commit()

@@ -192,7 +192,7 @@
 `kind`는 varchar + 앱 Literal 검증이며 이제 `bookmark`만 쓴다. `bookmark`의 `color`는 항상 null이다.
 형광펜·메모는 구절 단위(ENT-HD-021)로 옮겨 `kind=highlight` 행(색·노트)은 더 기록하지 않는다.
 예전 `highlight` 행은 지우지 않고 남기며 API는 읽지 않는다(삭제는 별도 절차).
-남의 표시는 조회·수정·삭제 조건에서 `user_id`로 걸러져 접근할 수 없다.
+2026-11-02 표시 API(API-HD-026)를 제거했다. 테이블·행은 삭제 결정 전까지 보존하고 계정 삭제 purger만 쓴다.
 
 세 테이블 모두 additive-only migration(`n8d9e0f1a2b3`)으로 추가하며 PostgreSQL ENUM이나 기존 컬럼 파괴적 변경을 도입하지 않는다.
 계정 하드 삭제(API-HD-011)는 `reading_positions`·`passage_marks`·`passage_highlights`를 함께 지운다(`LibraryRepository` purger).
