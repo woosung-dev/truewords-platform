@@ -6,6 +6,7 @@ import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -130,7 +131,7 @@ export default function CategoryTab() {
       queryClient.invalidateQueries({ queryKey: ["ingest-status"] });
       setDeleteDialog({ open: false, targets: [], busy: false });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "삭제 실패 — 다시 시도해주세요");
+      toast.error(err instanceof Error ? err.message : "삭제 실패: 다시 시도해주세요");
       setDeleteDialog((prev) => ({ ...prev, busy: false }));
     }
   };
@@ -328,7 +329,7 @@ export default function CategoryTab() {
       )}
 
       {/* 테이블 */}
-      <div className="rounded-xl border bg-card overflow-x-auto" role="region" aria-label="카테고리 목록" tabIndex={0}>
+      <Card className="p-0 overflow-x-auto" role="region" aria-label="카테고리 목록" tabIndex={0}>
         <p className="px-4 py-2 text-xs text-muted-foreground sm:hidden">표를 좌우로 밀어 전체 내용을 확인하세요.</p>
         <table className="w-full min-w-[640px] text-sm">
           <thead>
@@ -521,7 +522,7 @@ export default function CategoryTab() {
                   {uncategorizedVolumes.reduce((sum, v) => sum + v.chunk_count, 0).toLocaleString()}
                 </td>
                 <td className="px-4 py-3 hidden sm:table-cell">
-                  <div className="w-5 h-5 rounded-full bg-admin-muted-foreground/40 border border-muted-foreground/50" />
+                  <div className="w-5 h-5 rounded-full bg-muted-foreground/40 border border-muted-foreground/50" />
                 </td>
                 <td className="px-4 py-3">
                   <Badge className="bg-warning-soft text-warning hover:bg-warning-soft border border-warning-border text-xs">
@@ -549,7 +550,7 @@ export default function CategoryTab() {
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       {/* 추가/수정 Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

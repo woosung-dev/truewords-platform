@@ -232,7 +232,7 @@ export function StageWaterfall({ spans, totalMs }: { spans: StageSpan[]; totalMs
                         {span.name}
                       </span>
                       {badge && (
-                        <StatusBadge tone={badge.tone} className="h-4 px-1.5 text-[10px]">
+                        <StatusBadge tone={badge.tone} className="h-4 px-1.5 text-2xs">
                           {badge.label}
                         </StatusBadge>
                       )}

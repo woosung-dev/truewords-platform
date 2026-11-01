@@ -295,7 +295,6 @@
     line-height: 0.6;
     height: 0.45em;
     color: var(--accent);
-    font-family: Georgia, serif;
     align-self: flex-start;
     margin-left: -1cqw;
   }

@@ -63,7 +63,19 @@
 - 액센트는 **한 화면에 목적 하나**. 활성 탭·주 버튼·진행 바·연속일 숫자가 동시에 액센트일 수 있으나, 새로운 의미에 액센트를 더 배정하지 않는다.
 - 초록(`--ok*`)은 **완료**와 **정본 등급(O1·O2)** 두 곳에만 쓴다 (2026-09-16 `DES-PWA-003-Q1` 확정). 성공 토스트·유효성 통과·오류 없음 표시에는 쓰지 않는다.
 - 상태를 색으로만 알리지 않는다(§3.3). 모든 색 상태에는 아이콘·텍스트·형태 중 하나가 동반된다.
-- 그라데이션은 사진 위 veil 한 곳뿐이다. 버튼·카드·배경에 그라데이션을 쓰지 않는다.
+- 그라데이션은 사진 위 veil(`.shot::after`)과 아래 예외 표의 것뿐이다. 버튼·카드 표면·화면 배경에 그라데이션을 쓰지 않는다.
+
+**정해 둔 예외 (2026-11-02, 운영 CSS 와 맞춤).** 아래는 이미 구현에 있고 이 문서가 허용하는 것이다. 새 예외는 구현 전에 이 표에 먼저 적는다.
+
+| 예외 | 어디 | 이유 |
+|---|---|---|
+| 책갈피·서가 일러스트 팔레트 | `hoondok.css` 첫 토큰 블록의 `--card-paper`·`--cover`·`--cover-2`·`--pages`·`--pages-line`·`--plate`·`--plate-line`·`--table`·`--table-2`·`--shelf`·`--shelf-2`·`--tassel`·`--rib-heart`·`--spine-1~9`, 알파 단계 `--paper-tint`·`--glow`·`--glow-0`·`--sheen-*` | 책·책갈피·탁자·서가를 그리는 그림 색이다. UI 상태 색이 아니므로 액센트 규칙과 글자 대비 판정의 대상이 아니다 |
+| 일러스트 그라데이션 | `_hoondok/cards.css` 의 책 페이지 줄무늬·빛·술 장식(`.bk__pages`·`.bk__glow`·`.bk__tas`), 카드 종이 질감과 가장자리 마스크(`.bm::before`·`.bm__leaves`·`.bm__cup`), 탁자·서가 판(`.bm__table`·`.bks-shelf__board`) | 질감과 입체를 그리는 장식이다. 버튼·카드 표면에는 쓰지 않는다 |
+| 강조 밑줄 | `.wd-card-ul` 의 `linear-gradient(transparent 62%, var(--accent-soft) 62%)` | 글자 아래쪽만 칠하는 형광 밑줄. 색은 `--accent-soft` 한 가지다 |
+| 점 격자 배경 | `.ai-note` 의 `radial-gradient(var(--line) 1px, transparent 1px)` 8px 격자 | AI 노트를 공식 원문과 색이 아닌 형태로 구분한다(§3.3) |
+| 진행 링 | 미니 플레이어 `.wd-mini__pp::before` 의 `conic-gradient` + 링 모양 `mask` | 듣기 진행률을 원 둘레로 보인다 |
+| 반투명 흐림 | 리더 독 `.wd-dock` 의 `backdrop-filter: blur(14px) saturate(1.2)` (`_hoondok/library.css`) | 본문 위에 떠 있는 독의 글자를 읽히게 한다. 흐림은 이 한 곳뿐이다 |
+| 공유 버튼 색 | `--kakao`·`--kakao-ink` | 카카오톡 공유 버튼의 브랜드 지정 색 |
 
 ### 1.2 타이포 스케일
 
@@ -210,7 +222,7 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 | `sermon-thumb-4.webp` | 〃 | https://unsplash.com/photos/VB-w_3dnyvI | Andrew Coelho |
 
 히어로는 1440×900, 썸네일은 720×450 WebP 다. 파일명을 바꿀 때만 캐시가 갱신되도록 `next.config.ts` 가 `/hoondok/photos/:path*` 에 `immutable` 을 준다. 용량 때문에 서비스워커 precache 에는 넣지 않는다 — 오프라인이면 `.shot` 의 `--ink` 바탕이 남고 흰 글자는 그대로 읽힌다.
-- **모션**: 시트 등장 220ms, 체크 전환 150ms, 버튼 누름 120ms, 토글 150ms. 이 네 가지가 전부다. `prefers-reduced-motion: reduce`에서 시트 애니메이션과 전환을 모두 끈다(시안이 이미 구현).
+- **모션**: 전환은 시트 등장 220ms, 체크 전환 150ms, 버튼 누름 120ms, 토글 150ms 를 기준으로 한다. `@keyframes` 는 11개다(2026-11-02 운영 CSS 기준): 공용 `hoondok-spin`(스피너)·`hoondok-sheet-up`(시트)·`hoondok-menu-in`(메뉴 패널), 책갈피 `hoondok-bm-breathe`(홈 대기 중 책갈피 끝 오르내림), 서고·리더 `wd-arrive`(이어 읽기로 도착한 단락 표시)·`wd-skel-pulse`(스켈레톤)·`hl-bar-in`(형광펜 막대)·`rd-toast-in`(리더 토스트)·`wd-dock-pop`(미니 플레이어 등장)·`wd-ring-pop`·`wd-check-draw`(다 읽음 체크). 새 키프레임은 이 목록에 먼저 더한다. `prefers-reduced-motion: reduce`에서 스피너를 뺀 애니메이션과 전환을 모두 끈다(시안이 이미 구현).
 
 ### 1.7 앱 아이콘·설치 메타 (2026-09-19, PLAN-HD-001 Phase 3 C)
 

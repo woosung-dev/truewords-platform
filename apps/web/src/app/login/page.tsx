@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import "@/app/truewords-fonts";
 import { BrandMark } from "@/components/truewords/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

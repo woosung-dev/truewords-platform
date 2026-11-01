@@ -7,6 +7,7 @@ import { Fragment, useState } from "react";
 import { QueryErrorNotice } from "@/components/query-error-notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchAPI } from "@/lib/api";
 
@@ -65,7 +66,7 @@ export default function AuditLogsPage() {
         />
       )}
       {(!isError || logs !== undefined) && (
-        <div className="rounded-xl border bg-card overflow-hidden">
+        <Card className="p-0 overflow-hidden">
           <table className="w-full table-fixed text-sm">
             <thead>
               <tr className="border-b bg-admin-muted/40">
@@ -146,7 +147,7 @@ export default function AuditLogsPage() {
               })}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
 
       {/* 페이지네이션 */}

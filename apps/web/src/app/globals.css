@@ -5,14 +5,16 @@
 /* 이 앱의 src만 스캔해 다른 앱의 UI 변경과 분리한다. */
 @source "../";
 
+/* 앱은 라이트 고정이다(DEC-PWA-017, .dark 를 붙이는 경로 없음). shadcn/tailwind.css 안의 @variant dark 가
+   OS 다크 설정(prefers-color-scheme)에 반응하지 않도록 dark 변형을 붙지 않는 .dark 클래스에 묶어 둔다. */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   /* shadcn 표준 토큰 */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* 자기참조(var(--font-sans))는 순환이라 무효였다 — 실제 글꼴 변수로 연결한다. */
-  --font-sans: var(--font-inter), sans-serif;
+  /* 자기참조(var(--font-sans))는 순환이라 무효였다 — layout.tsx 의 next/font 변수로 연결한다. */
+  --font-sans: var(--font-pretendard), sans-serif;
   /* 고정폭은 웹폰트 없이 시스템 mono 스택을 쓴다. */
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --font-heading: var(--font-sans);
@@ -93,10 +95,9 @@
 }
 
 :root {
-  /* 폰트 패밀리 — layout.tsx 의 Fontsource import 가 @font-face 를 등록한다.
-     대체 폰트는 이전 Google 폰트 로더의 Fallback(Arial·Times New Roman)과 같게 두고 generic(serif)은 넣지 않는다 —
+  /* 세리프 패밀리 — truewords-fonts.ts·truewords-reading-fonts.ts 의 Fontsource import 가 @font-face 를 등록한다.
+     대체 폰트는 이전 Google 폰트 로더의 Fallback(Times New Roman)과 같게 두고 generic(serif)은 넣지 않는다 —
      serif 를 넣으면 Cormorant 에 없는 한글이 시스템 명조로 바뀌어 font-display 제목 모양이 달라진다. */
-  --font-inter: "Inter Variable", Arial;
   --font-reading: "Noto Serif KR", "Times New Roman";
   --font-display: "Cormorant Garamond", "Times New Roman";
   /* TrueWords Light Mode (Plan A.2) — Paper × Scholar × AI */
@@ -179,67 +180,6 @@
   --tw-shadow-card-hover: 0 4px 12px oklch(0.18 0.012 50 / 8%), 0 2px 4px oklch(0.18 0.012 50 / 4%);
   --tw-shadow-float: 0 -4px 16px oklch(0.18 0.012 50 / 8%), 0 -1px 2px oklch(0.18 0.012 50 / 4%);
   --tw-shadow-modal: 0 20px 48px oklch(0.18 0.012 50 / 16%), 0 4px 12px oklch(0.18 0.012 50 / 6%);
-}
-
-/* 현재 .dark 를 붙이는 경로가 없다(ThemeProvider 없음) — 앱은 라이트로 고정이고 이 팔레트는 보존용이다.
-   다크를 켜려면 이 블록의 대비(예: 대화 기록 선택 칩의 흰 글자)부터 다시 검증한다. */
-.dark {
-  /* TrueWords Dark Mode (Plan A.2) — Mahogany × Parchment */
-  /* Background: mahogany ink #1C1714 */
-  --background: oklch(0.18 0.012 50);
-  /* Foreground: parchment #E8DFD4 */
-  --foreground: oklch(0.89 0.025 78);
-  /* Card: oak #251E19 */
-  --card: oklch(0.22 0.012 55);
-  --card-foreground: oklch(0.89 0.025 78);
-  --popover: oklch(0.22 0.012 55);
-  --popover-foreground: oklch(0.89 0.025 78);
-  /* Primary: lighter blue for dark contrast */
-  --primary: oklch(0.77 0.14 264);
-  --primary-foreground: oklch(0.18 0.012 50);
-  --secondary: oklch(0.26 0.014 55);
-  --secondary-foreground: oklch(0.89 0.025 78);
-  --muted: oklch(0.26 0.014 55);
-  --muted-foreground: oklch(0.677 0.022 75);
-  /* Accent: brighter brass for dark */
-  --accent: oklch(0.7 0.166 60);
-  --accent-foreground: oklch(0.18 0.012 50);
-  --destructive: oklch(0.604 0.222 25);
-  --border: oklch(0.33 0.018 60);
-  --input: oklch(0.33 0.018 60);
-  --ring: oklch(0.77 0.14 264);
-  --chart-1: oklch(0.77 0.14 264);
-  --chart-2: oklch(0.7 0.166 60);
-  --chart-3: oklch(0.62 0.152 144);
-  --chart-4: oklch(0.62 0.105 213);
-  --chart-5: oklch(0.604 0.222 25);
-  /* TrueWords 확장 토큰 — Dark */
-  --tw-pastoral: oklch(0.62 0.105 213);
-  --tw-pastoral-fg: oklch(0.18 0.012 50);
-  --tw-success: oklch(0.62 0.152 144);
-  --tw-success-fg: oklch(0.18 0.012 50);
-  --tw-fg-subtle: oklch(0.5 0.02 70);
-  --tw-border-strong: oklch(0.5 0.04 75);
-  --tw-surface-muted: oklch(0.26 0.014 55);
-  /* === Design Tokens Refactor — Dark === */
-  --tw-warning: oklch(0.77 0.15 75);
-  --tw-warning-fg: oklch(0.18 0.012 50);
-  --tw-warning-soft: oklch(0.58 0.155 70 / 18%);
-  --tw-warning-border: oklch(0.58 0.155 70 / 30%);
-  --tw-success-soft: oklch(0.62 0.152 144 / 18%);
-  --tw-success-border: oklch(0.62 0.152 144 / 30%);
-  --tw-danger-soft: oklch(0.604 0.222 25 / 18%);
-  --tw-danger-border: oklch(0.604 0.222 25 / 30%);
-  --tw-info: var(--tw-pastoral);
-  --tw-info-soft: oklch(0.62 0.105 213 / 18%);
-  --tw-info-border: oklch(0.62 0.105 213 / 30%);
-  --tw-persona-icon-bg: oklch(0.28 0.02 60);
-  --tw-highlight: oklch(0.795 0.184 86.047 / 25%);
-  /* Shadow 토큰 — Dark (검정에 가까운 잉크 그림자 더 진하게) */
-  --tw-shadow-card: 0 1px 3px oklch(0 0 0 / 30%), 0 1px 2px oklch(0 0 0 / 20%);
-  --tw-shadow-card-hover: 0 4px 12px oklch(0 0 0 / 40%), 0 2px 4px oklch(0 0 0 / 20%);
-  --tw-shadow-float: 0 -4px 16px oklch(0 0 0 / 40%), 0 -1px 2px oklch(0 0 0 / 20%);
-  --tw-shadow-modal: 0 20px 48px oklch(0 0 0 / 60%), 0 4px 12px oklch(0 0 0 / 30%);
 }
 
 @layer base {

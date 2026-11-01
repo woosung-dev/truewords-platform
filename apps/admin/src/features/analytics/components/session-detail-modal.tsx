@@ -54,13 +54,13 @@ function MessageBubble({ msg }: { msg: SessionMessage }) {
           isUser ? "bg-foreground text-background" : "bg-admin-muted text-foreground"
         }`}
       >
-        <div className={`text-[10px] mb-1 ${isUser ? "text-background/60" : "text-muted-foreground"}`}>
+        <div className={`text-2xs mb-1 ${isUser ? "text-background/60" : "text-muted-foreground"}`}>
           {isUser ? "사용자" : "챗봇"} · {formatDateTime(msg.created_at)}
         </div>
         <div className="whitespace-pre-wrap break-words">{msg.content}</div>
 
         {!isUser && msg.feedback && (
-          <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5 text-[11px]">
+          <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5 text-2xs">
             <div className="flex items-center gap-1.5">
               <Badge variant={normalize(msg.feedback.feedback_type) === "inaccurate" ? "destructive" : "secondary"}>
                 {FEEDBACK_LABELS[normalize(msg.feedback.feedback_type)] ?? msg.feedback.feedback_type}
@@ -72,7 +72,7 @@ function MessageBubble({ msg }: { msg: SessionMessage }) {
         )}
 
         {!isUser && (msg.citations ?? []).length > 0 && (
-          <details className="mt-2 text-[11px]">
+          <details className="mt-2 text-2xs">
             <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
               출처 {(msg.citations ?? []).length}건
             </summary>

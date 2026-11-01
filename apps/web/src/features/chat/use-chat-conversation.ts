@@ -177,7 +177,7 @@ export function useChatConversation(bot: ChatBot | undefined, options: ChatReque
           const friendly = toFriendlyError(error);
           patch((message) => ({
             ...message,
-            content: message.content ? `${message.content}\n\n_— ${friendly.content}_` : friendly.content,
+            content: message.content ? `${message.content}\n\n_(${friendly.content})_` : friendly.content,
             suggestedFollowups: message.suggestedFollowups ?? friendly.suggestedFollowups ?? null,
           }));
         }

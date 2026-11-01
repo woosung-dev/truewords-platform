@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConfirmDeleteDialog } from "@/features/hoondok/components/confirm-delete-dialog";
@@ -61,13 +62,13 @@ export default function HoondokGroupsPage() {
       </div>
 
       {isLoading ? (
-        <div className="rounded-xl border bg-card overflow-hidden">
+        <Card className="p-0 overflow-hidden">
           {["s1", "s2", "s3"].map((key, i) => (
             <div key={key} className={`px-5 py-4 ${i !== 0 ? "border-t" : ""}`}>
               <Skeleton className="h-5 w-full" />
             </div>
           ))}
-        </div>
+        </Card>
       ) : isError ? (
         <div className="rounded-xl border border-dashed p-10 text-center space-y-3">
           <p className="text-muted-foreground text-sm">{loadErrorMessage(error, "모임 목록을 불러올 수 없습니다.")}</p>
@@ -80,7 +81,7 @@ export default function HoondokGroupsPage() {
           <p className="text-muted-foreground text-sm">만들어진 모임이 없습니다.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <Card className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-admin-muted/40 hover:bg-admin-muted/40">
@@ -111,7 +112,7 @@ export default function HoondokGroupsPage() {
               ))}
             </TableBody>
           </Table>
-        </div>
+        </Card>
       )}
 
       <ConfirmDeleteDialog

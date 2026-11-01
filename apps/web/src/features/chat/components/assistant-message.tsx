@@ -1,5 +1,6 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import * as React from "react";
 import type { ChatResponse } from "@/features/chatbot/chat-api";
 import { cn, stripFileExt } from "@/lib/utils";
@@ -177,7 +178,7 @@ export function ClosingCallout({ closing, className }: ClosingCalloutProps) {
         )}
       >
         <div className="mb-1 flex items-center gap-1.5 text-2xs font-semibold text-accent">
-          <span aria-hidden="true">✦</span>
+          <Sparkles className="size-3" aria-hidden="true" />
           <span>마무리 기도/결의</span>
         </div>
         {closing}

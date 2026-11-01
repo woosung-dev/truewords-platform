@@ -1,8 +1,10 @@
 import { BookOpenCheck, CalendarClock, ScrollText, ShieldAlert } from "lucide-react";
 import type { Metadata } from "next";
+import "@/app/truewords-fonts";
+import "@/app/truewords-reading-fonts";
 
 export const metadata: Metadata = {
-  title: "TrueWords — 신학 입장 & 운영 투명성",
+  title: "TrueWords · 신학 입장과 운영 투명성",
   description: "TrueWords AI 챗봇의 운영 원칙, 신학적 입장, 검수 사이클, 한계와 면책을 공개합니다.",
 };
 
