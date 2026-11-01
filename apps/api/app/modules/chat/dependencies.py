@@ -13,8 +13,6 @@ from app.modules.admin.auth import decode_access_token
 from app.modules.admin.dependencies import get_current_admin  # noqa: F401
 from app.modules.cache.service import SemanticCacheService
 from app.modules.cache.setup import ensure_cache_collection
-from app.modules.chat.reactions_repository import MessageReactionRepository
-from app.modules.chat.reactions_service import MessageReactionService
 from app.modules.chat.repository import ChatRepository
 from app.modules.chat.service import ChatService
 from app.modules.chat.trace_service import RagTraceService
@@ -34,18 +32,6 @@ async def get_chat_repository(
     session: AsyncSession = Depends(get_async_session),
 ) -> ChatRepository:
     return ChatRepository(session)
-
-
-async def get_reactions_repository(
-    session: AsyncSession = Depends(get_async_session),
-) -> MessageReactionRepository:
-    return MessageReactionRepository(session)
-
-
-async def get_reactions_service(
-    repo: MessageReactionRepository = Depends(get_reactions_repository),
-) -> MessageReactionService:
-    return MessageReactionService(repo)
 
 
 async def get_ingestion_repository(

@@ -2,7 +2,7 @@
 """Qdrant 클라이언트 팩토리.
 
 audit P0-7 (2026-05-15): 기존 `src/qdrant_client.py` (파일) + `app/modules/qdrant/`
-(패키지) 동명 공존을 해소. 팩토리 + DEPRECATED 호환 헬퍼는 본 모듈 (`qdrant/
+(패키지) 동명 공존을 해소. 팩토리는 본 모듈 (`qdrant/
 factory.py`), startup 헬퍼는 `qdrant/startup.py`. `qdrant/__init__.py` 가 모두
 re-export 하므로 호출처는 `from app.modules.qdrant import ...` 로 일관.
 
@@ -19,13 +19,6 @@ SDK `AsyncQdrantClient` / `QdrantClient` 는 apps/api/scripts 마이그레이션
 from __future__ import annotations
 
 from qdrant_client import AsyncQdrantClient, QdrantClient
-from qdrant_client.models import (
-    Distance,
-    PayloadSchemaType,
-    SparseIndexParams,
-    SparseVectorParams,
-    VectorParams,
-)
 
 from app.core.config import settings
 from app.modules.qdrant.raw_client import RawQdrantClient
@@ -73,28 +66,3 @@ def get_raw_client() -> RawQdrantClient:
 def get_client() -> QdrantClient:
     api_key = settings.qdrant_api_key.get_secret_value() if settings.qdrant_api_key else None
     return QdrantClient(url=settings.qdrant_url, api_key=api_key, timeout=_QDRANT_TIMEOUT)
-
-
-def create_collection(client: QdrantClient, collection_name: str) -> None:
-    """[DEPRECATED for apps/api/src] apps/api/scripts 호환용. 신규 코드는 ``ensure_main_collection`` 사용."""
-    client.create_collection(
-        collection_name=collection_name,
-        vectors_config={"dense": VectorParams(size=1536, distance=Distance.COSINE)},
-        sparse_vectors_config={
-            "sparse": SparseVectorParams(index=SparseIndexParams(on_disk=False))
-        },
-    )
-
-
-def create_payload_indexes(client: QdrantClient, collection_name: str) -> None:
-    """[DEPRECATED for apps/api/src] apps/api/scripts 호환용. 신규 코드는 ``ensure_main_collection`` 사용."""
-    client.create_payload_index(
-        collection_name=collection_name,
-        field_name="source",
-        field_schema=PayloadSchemaType.KEYWORD,
-    )
-    client.create_payload_index(
-        collection_name=collection_name,
-        field_name="volume",
-        field_schema=PayloadSchemaType.KEYWORD,
-    )

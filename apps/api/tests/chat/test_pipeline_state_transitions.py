@@ -22,7 +22,6 @@ from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
     RetrievalConfig,
-    SafetyConfig,
     SearchModeConfig,
 )
 
@@ -34,7 +33,6 @@ def _default_config() -> ChatbotRuntimeConfig:
         search=SearchModeConfig(mode="cascading"),
         generation=GenerationConfig(system_prompt="sp"),
         retrieval=RetrievalConfig(),
-        safety=SafetyConfig(),
     )
 
 

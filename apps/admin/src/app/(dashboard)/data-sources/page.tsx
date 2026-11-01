@@ -50,8 +50,6 @@ export default function DataSourcesPage() {
   const [dragActive, setDragActive] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [activeTab, setActiveTab] = useState<"upload" | "categories" | "jobs">("upload");
-  // Batch API 처리 방식은 PR #95 에서 제거됨. 항상 standard 로 호출 (인자 호환).
-  const mode = "standard" as const;
   // ADR-30 follow-up: 일괄 업로드 시 이미 적재된 파일은 건너뛰는 skip 모드 토글.
   // 단건 업로드(파일 1개)는 dialog가 사용자 선택을 받으므로 이 토글의 영향을 받지 않는다.
   const [bulkSkipMode, setBulkSkipMode] = useState(false);
@@ -190,7 +188,7 @@ export default function DataSourcesPage() {
   ): Promise<UploadResponse | null> => {
     setPendingFiles((prev) => prev.map((f) => (f.id === pf.id ? { ...f, status: "uploading" as const } : f)));
     try {
-      const res = await dataAPI.uploadFile(pf.file, pf.source, mode, onDuplicate);
+      const res = await dataAPI.uploadFile(pf.file, pf.source, onDuplicate);
       // 업로드 성공 → "처리 중" 상태로 변경
       setPendingFiles((prev) => prev.map((f) => (f.id === pf.id ? { ...f, status: "processing" as const } : f)));
       // ADR-30 follow-up: 일괄 업로드는 끝에 통계 토스트 1회만 표시 (BUG-C 픽스).

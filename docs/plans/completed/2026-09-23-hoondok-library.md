@@ -1,7 +1,7 @@
 # PLAN-HD-007 — 말씀 서고 3계층 (저작물 → 권 → 장) + 읽기 기록
 
 - 착수 2026-09-23. 기준 main `d41aeb1`. 통합 브랜치 `dev/hoondok-library`, 산출은 dev→main **PR 1개**.
-- 상위: [`PLAN-HD-005`](../completed/2026-09-21-hoondok-journey-plan.md)(서고·검색·원문 실데이터 개통) 의 후속. 화면은 [`SCR-PWA-007/008/009`](../../prd/17-ffwpu-pwa-prd.md), 규격은 [`DES-PWA-003` §4.3](../../specs/web/hoondok-design-system.md).
+- 상위: [`PLAN-HD-005`](2026-09-21-hoondok-journey-plan.md)(서고·검색·원문 실데이터 개통) 의 후속. 화면은 [`SCR-PWA-007/008/009`](../../prd/17-ffwpu-pwa-prd.md), 규격은 [`DES-PWA-003` §4.3](../../specs/web/hoondok-design-system.md).
 - 이 문서는 오케스트레이터가 소유한다 — 트랙 서브에이전트는 편집하지 않는다.
 - 표기: 라벨 없는 문장은 코드·데이터로 확인한 사실. `[가정]` 은 검증이 필요한 추론, `[확인 필요]` 는 사용자·외부 결정.
 

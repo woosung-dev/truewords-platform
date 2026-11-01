@@ -1,4 +1,4 @@
-"""AI 낭독 DB 접근 (PLAN-HD-011) — 사용량 예약·정산·합계와 오늘 훈독 본문 조회."""
+"""AI 낭독 DB 접근 (PLAN-HD-011) — 사용량 예약·정산·합계."""
 
 import uuid
 from datetime import datetime
@@ -7,7 +7,7 @@ from sqlalchemy import delete, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.modules.hoondok.models import DailyReading, JeongseongPeriod, JeongseongReading, TtsUsage
+from app.modules.hoondok.models import TtsUsage
 
 
 class TtsRepository:
@@ -41,18 +41,3 @@ class TtsRepository:
     async def release(self) -> None:
         """읽기만 한 트랜잭션을 끝내 커넥션을 풀에 돌려준다 — Google 호출 동안 커넥션을 쥐고 있지 않게."""
         await self.session.commit()
-
-    async def get_daily_reading(self, reading_id: uuid.UUID) -> DailyReading | None:
-        return await self.session.get(DailyReading, reading_id)
-
-    async def get_jeongseong_reading(
-        self, reading_id: uuid.UUID
-    ) -> tuple[JeongseongReading, JeongseongPeriod] | None:
-        """정성 말씀 스냅샷과 그 기간. 소유·활성 확인은 서비스가 한다."""
-        result = await self.session.execute(
-            select(JeongseongReading, JeongseongPeriod)
-            .join(JeongseongPeriod, JeongseongPeriod.id == JeongseongReading.period_id)
-            .where(JeongseongReading.id == reading_id)
-        )
-        row = result.first()
-        return (row[0], row[1]) if row else None

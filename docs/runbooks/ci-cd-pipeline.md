@@ -28,7 +28,7 @@ PR은 GitHub Actions에서 검증하고, main 의 CI 가 성공하면 `release.y
 
 루트 `make ci`는 ci.yml의 검사 집합(E2E 제외)을 로컬에서 재현하고, `make e2e`가 `ci-e2e.yml`과 같은 격리 compose·시드·env로 E2E를 돌린다. CI를 바꾸면 두 target과 이 문서를 함께 맞춘다. `make backend-test`는 CI와 같은 env·범위로 전체 회귀를 실행한다(과거의 테스트 제외 옵션은 제거했다). Judge LLM/RAGAS 유료 평가는 CI에 추가하지 않는다.
 
-실제 실행 횟수·통과/실패·외부 의존으로 실행하지 못한 항목은 해당 실행 계획에 남긴다. [최초 M1~M4 완료 증거](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)와 [후속 앱별 UI 분리 검증](../plans/active/2026-09-05-app-owned-ui.md)을 구분한다. 과거 청구 차단 기록을 현재 Actions 장애로 단정하지 않는다.
+실제 실행 횟수·통과/실패·외부 의존으로 실행하지 못한 항목은 해당 실행 계획에 남긴다. [최초 M1~M4 완료 증거](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)와 [후속 앱별 UI 분리 검증](../plans/completed/2026-09-05-app-owned-ui.md)을 구분한다. 과거 청구 차단 기록을 현재 Actions 장애로 단정하지 않는다.
 
 UI·CSS는 앱별 소유이므로 다른 앱의 소스·스타일에 의존하지 않는지 경계 검사를 유지한다. API SDK·ESLint·TypeScript 설정은 공유 패키지로 유지하며 변경 시 양 앱 소비자를 검사한다. Docker 빌드는 각 앱 로컬 UI·테마와 필요한 공유 패키지를 포함한다.
 

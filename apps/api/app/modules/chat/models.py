@@ -150,6 +150,7 @@ class MessageReaction(SQLModel, table=True):
 
     Unique (message_id, user_session_id, kind) — 동일 사용자 동일 메시지에 같은
     반응 중복 저장 방지. 토글 해제 시 row delete.
+    API 제거, 운영 테이블·행은 보존(삭제 결정 전까지). Alembic 메타데이터를 DB 와 맞추려고 모델만 남긴다.
     """
 
     __tablename__ = "chat_message_reactions"

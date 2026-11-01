@@ -5,11 +5,11 @@
 ## 운영·출시
 
 - [ ] 훈독 실기기 검증: Android와 iOS 16.4+에서 설치 → 가입 → 훈독 → 완료를 확인한다. [증거 양식](runbooks/hoondok-pwa-rollout.md#실기기-증거)
-- [ ] 훈독 편성 재고 보충: 2026-09-20 투입한 8일분이 9월 27일경 소진된다. 운영 admin 편성 화면과 [후보 찾기](plans/active/2026-09-20-hoondok-curation-assist.md)를 사용한다.
+- [ ] 훈독 편성 재고 보충: 2026-09-20 투입한 8일분이 9월 27일경 소진된다. 운영 admin 편성 화면과 [후보 찾기](plans/completed/2026-09-20-hoondok-curation-assist.md)를 사용한다.
 - [ ] 말씀 서고 개통: 권리 원장 시드·본문 추출 후 admin에서 각 저작물을 승인한다. 현재 미승인 항목은 사용자에게 보이지 않는다. [운영 절차](runbooks/hoondok-pwa-rollout.md#말씀-서고-개통-절차-plan-hd-007)
 - [ ] 훈독 AI 낭독 목소리 운영 ON: [확인 필요] GCP `gcp-project-504004` 에서 Text-to-Speech 전용 키 발급 → VM `.env` → 캐시 볼륨 → backend 먼저, web 나중. 키가 없으면 브라우저 음성으로만 읽는다. [운영 절차](runbooks/hoondok-pwa-rollout.md#ai-낭독-목소리-운영-on-plan-hd-011)
 - [ ] 훈독 AI 낭독 캐시 디스크 용량 점검: [확인 필요] `/opt/truewords/tts-cache` 증가량과 점검 주기, backend appuser uid 를 실측한다. [AI 목소리 계획](plans/active/2026-09-25-hoondok-ai-voice.md)
-- [ ] 훈독 알림 운영 ON: 2026-09-28 게이트 개정 — 수정 배포 뒤 VAPID 투입·cron 등록 → Android·iPhone 실기기 도착 확인. 기도하기 알림은 기도 기능 기획 뒤 붙인다. [알림 계획](plans/active/2026-09-22-hoondok-notifications.md) · [ON 절차](runbooks/hoondok-pwa-rollout.md#알림-운영-on-절차-plan-hd-006--phase-4)
+- [ ] 훈독 알림 실기기 도착 확인: 2026-09-28 운영 ON(VAPID 투입·cron 등록) 완료. Android·iPhone 실기기에서 도착·탭 이동을 확인한다. 기도하기 알림은 기도 기능 기획 뒤 붙인다. [알림 계획](plans/completed/2026-09-22-hoondok-notifications.md) · [ON 절차](runbooks/hoondok-pwa-rollout.md#알림-운영-on-절차-plan-hd-006--phase-4)
 - [ ] GitHub Actions 비용 차단 재발 여부, `cache-cleanup.yml` 첫 예약 실행, main push 검사와 실패 시 Issue 알림 동작을 확인한다. [CI/CD 결정](adr/2026-09-05-cicd-audit-decisions.md)
 - [ ] 운영 장애 알림 수신 방식을 확정하고 VM에 적용한 뒤 실패를 강제로 재현해 실제 수신을 확인한다. 현재 `NTFY_TOPIC` 미설정이면 알림이 전송되지 않는다. cron 자체가 멈추는 경우를 감지할 dead-man ping도 필요하다. [VM 운영](../infra/oracle-vm/README.md#전달--ntfy-푸시-2026-09-05)
 - [ ] public Git 이력에 값이 남은 레드팀 관리자 계정의 비밀번호가 실제로 교체됐는지 확인한다. 미교체면 즉시 교체한다. [레드팀 가이드](runbooks/redteam-test-guide.md)
@@ -32,10 +32,10 @@
 - [ ] `SemanticCacheService.check_cache`에서 컬렉션 부재 시 캐시 조회가 안전하게 우회되는지 재현하고, 실패하면 `cache_available=False`로 전환한다.
 - [ ] 출처 인용(L2) 정확도와 실제 답변 품질을 코퍼스 확장 후 재측정한다. [메타데이터 필터 검증](adr/53-metadata-filter-poc.md)
 
-- [ ] 원문 읽기에서 청크 경계의 단어 끊김·목차 붙음을 해결할 원본 파일 기반 방안을 검토한다. 원본 형식(PDF/HWP/DOCX)을 확인해야 한다. [원문 계획](plans/active/2026-09-23-hoondok-reader-polish.md)
+- [ ] 원문 읽기에서 청크 경계의 단어 끊김·목차 붙음을 해결할 원본 파일 기반 방안을 검토한다. 원본 형식(PDF/HWP/DOCX)을 확인해야 한다. [원문 계획](plans/completed/2026-09-23-hoondok-reader-polish.md)
 - [ ] 훈독 편성 제목이 본문 첫 문장 발췌로 보이는 로컬 데이터 문제를 운영 데이터와 대조한다. 편성자가 짧은 제목을 입력하는 방안을 우선 확인한다.
-- [ ] 말씀 서고의 시드/추출 dry-run, 단락 position 충돌, API rate limit·페이지네이션, 노트·형광펜 동작, AI 설명 탭 복귀, `MarkInput.volume` 소속 검증을 코드 이슈로 분리해 우선순위를 판단한다. [서고 계획](plans/active/2026-09-23-hoondok-library.md)
-- [ ] 알림 발송기의 암호화 실패 재시도와 전건 실패 시 prune 보호 여부를 운영 로그를 보고 결정한다. [알림 계획](plans/active/2026-09-22-hoondok-notifications.md)
+- [ ] 말씀 서고의 시드/추출 dry-run, 단락 position 충돌, API rate limit·페이지네이션, 노트·형광펜 동작, AI 설명 탭 복귀를 코드 이슈로 분리해 우선순위를 판단한다. [서고 계획](plans/completed/2026-09-23-hoondok-library.md)
+- [ ] 알림 발송기의 암호화 실패 재시도와 전건 실패 시 prune 보호 여부를 운영 로그를 보고 결정한다. [알림 계획](plans/completed/2026-09-22-hoondok-notifications.md)
 - [ ] `ops-check.sh` JSON escaping·backend 장애 중복 진단, Gemini transport 예외 재시도 및 모델 상수 중복을 정리한다. [VM 운영](../infra/oracle-vm/README.md)
 - [ ] 데이터셋 A/B/C/D 확보 후 인제스트, 답변 품질·출처 정확도 평가와 실제 챗봇 조합 검증을 수행한다.
 

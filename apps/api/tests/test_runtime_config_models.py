@@ -8,7 +8,6 @@ from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
     RetrievalConfig,
-    SafetyConfig,
     SearchModeConfig,
     TierConfig,
 )
@@ -21,7 +20,6 @@ def _make_config(**overrides) -> ChatbotRuntimeConfig:
         search=SearchModeConfig(mode="cascading"),
         generation=GenerationConfig(system_prompt="기본 프롬프트"),
         retrieval=RetrievalConfig(),
-        safety=SafetyConfig(),
     )
     base.update(overrides)
     return ChatbotRuntimeConfig(**base)
@@ -50,15 +48,6 @@ def test_retrieval_config_defaults():
     r = RetrievalConfig()
     assert r.rerank_enabled is True
     assert r.query_rewrite_enabled is True
-    assert r.fallback_enabled is True
-    assert r.top_k == 10
-
-
-def test_safety_config_defaults():
-    s = SafetyConfig()
-    assert s.watermark_enabled is True
-    assert s.pii_filter_enabled is True
-    assert s.max_query_length == 1000
 
 
 def test_tier_config_defaults():
@@ -72,8 +61,8 @@ def test_tier_config_defaults():
 def test_tier_config_is_frozen():
     """audit 2차 P-1 (2026-05-15, Agent B P1 9/10): TierConfig 도 frozen=True.
 
-    동일 파일의 다른 6개 Config (WeightedSourceConfig / SearchModeConfig /
-    GenerationConfig / RetrievalConfig / SafetyConfig / ChatbotRuntimeConfig) 와
+    동일 파일의 다른 Config (WeightedSourceConfig / SearchModeConfig /
+    GenerationConfig / RetrievalConfig / ChatbotRuntimeConfig) 와
     정합. ChatbotRuntimeConfig 가 frozen 이라도 tiers list 요소가 mutable 이면
     런타임 변형 위험 — 본 test 가 회귀 차단.
     """

@@ -151,7 +151,7 @@ Phase 3 완료 기준: 운영 `truewords.woosung.dev/hoondok` 을 Android·iOS 1
 
 Phase 3 데이터(7일 중 5일 완료 비율, D7 재방문)를 본 뒤 착수한다. 알림 4종 중 훈독 알림만.
 
-> **2026-09-22 개정 (`PLAN-HD-006`)**: 게이트를 "데이터를 본 뒤 **착수**" 에서 "데이터를 본 뒤 **운영 ON**" 으로 옮겼다. 코드는 [`PLAN-HD-006`](2026-09-22-hoondok-notifications.md) 으로 먼저 구현·머지하고, VAPID 미설정이면 토글은 "준비 중"·발송기는 no-op 이다. 아래 항목 중 두 가지가 바뀌었다 — VAPID 공개키는 build-arg 가 아니라 `GET /hoondok/push/config` 런타임 전달(D1), 발송 관측은 구독 컬럼 + `ops-check` psql(D2). 시각은 `users` 가 아니라 `notification_preferences.read_time`(사용자별, 완료자 생략).
+> **2026-09-22 개정 (`PLAN-HD-006`)**: 게이트를 "데이터를 본 뒤 **착수**" 에서 "데이터를 본 뒤 **운영 ON**" 으로 옮겼다. 코드는 [`PLAN-HD-006`](../completed/2026-09-22-hoondok-notifications.md) 으로 먼저 구현·머지하고, VAPID 미설정이면 토글은 "준비 중"·발송기는 no-op 이다. 아래 항목 중 두 가지가 바뀌었다 — VAPID 공개키는 build-arg 가 아니라 `GET /hoondok/push/config` 런타임 전달(D1), 발송 관측은 구독 컬럼 + `ops-check` psql(D2). 시각은 `users` 가 아니라 `notification_preferences.read_time`(사용자별, 완료자 생략).
 
 - 베타 1차 판정 쿼리 2개(별도 이벤트 수집기 없이).
 - `notifications` 모듈: VAPID 3종(`SecretStr`, `.env.example`·`turbo.json`·Makefile build-arg 동기화), `push_subscriptions`, `POST/DELETE /hoondok/me/push`.
@@ -275,7 +275,7 @@ Phase 별 실행 결과를 여기에 기록한다. 이전 기준선(pytest 964 p
 | 3 | 편성 입력 (편성자가 운영 admin 편성 화면에서 수기 입력) | `ops-check` 불변식 **8건 전부 OK** — `hoondok-today` OK "앞으로 8일분" · `GET /hoondok/today` `status="available"`(참어머님 말씀모음, `authority_grade=R`). §6 완료 기준 "7일분 이상" 충족 | 2026-09-20 |
 | 3 | `make deploy-web HOONDOK_ENABLED=1` (`a93a6c7`, `--no-deps`) | web `a93a6c7` · 실데이터 9라우트 200 · 프리뷰 8라우트 404(`NEXT_PUBLIC_HOONDOK_PREVIEW` 미배선) · `ops-check` 8건 OK · `smoke-web` 12건 OK(`sw-cache` WARN 1) · web 메모리 **53.1 MiB / 512 MiB**(2026-09-19 OFF 기준 57.1 에서 증가 없음 — runbook §메모리 의 `[가정]` 확인) · `sw.js` 무변경이라 킬스위치 위험 불변 | 2026-09-20 |
 | 3 | 마지막 전체 `make e2e` | **85 passed / 0 failed** (`PLAN-HD-004` 최종 게이트, 트리 `edb2545`). 운영 태그 `a93a6c7`·`c066b02` 가 둘 다 이 트리의 조상이라 배포된 코드를 포함한다 — §6 표의 "시연 챗·admin E2E" 를 ✅ 로 올린 근거 | 2026-09-21 |
-| 3-a | 직전 기록(참고) | `85 passed` ([PLAN-HD-002 §8](2026-09-19-hoondok-screens.md), HEAD `c0b0547` = PR #300 트리). 그 위 #301(`c066b02`)이 실행되지 않아 2026-09-20 에 ⚠️ 로 강등했던 근거 | 2026-09-20 |
+| 3-a | 직전 기록(참고) | `85 passed` ([PLAN-HD-002 §8](../completed/2026-09-19-hoondok-screens.md), HEAD `c0b0547` = PR #300 트리). 그 위 #301(`c066b02`)이 실행되지 않아 2026-09-20 에 ⚠️ 로 강등했던 근거 | 2026-09-20 |
 
 ## 10. 결정 기록
 
