@@ -544,7 +544,7 @@ body `{ book_series, status, scope_search, scope_full_text, scope_jeongseong, au
 
 ## API-HD-029 `GET /hoondok/today/together`
 
-> 추가일: 2026-09-23 ([PLAN-HD-009](../../plans/active/2026-09-23-hoondok-together.md) 함께 읽는 사람들 1단계)
+> 추가일: 2026-09-23 ([PLAN-HD-009](../../plans/completed/2026-09-23-hoondok-together.md) 함께 읽는 사람들 1단계)
 
 오늘(KST) 훈독하기(`kind="read"`, 연속일과 같은 kind)를 완료한 **서로 다른 사용자 수**. 익명 전체 집계만 내며
 사람 정보(이름·ID·모임)는 없다. 인증이 필요 없고 항상 200 이다. 라우터는 `app/modules/hoondok/router.py`.
@@ -565,7 +565,7 @@ body `{ book_series, status, scope_search, scope_full_text, scope_jeongseong, au
 
 ## PLAN-HD-010 — 함께 읽는 모임 (API-HD-030~043)
 
-> 추가일: 2026-09-23 ([PLAN-HD-010](../../plans/active/2026-09-23-hoondok-groups.md) 2단계). 라우터 `apps/api/app/modules/hoondok/groups_router.py`(030~041, 공개 블록), `groups_admin_router.py`(042·043, `_ADMIN_GATE`).
+> 추가일: 2026-09-23 ([PLAN-HD-010](../../plans/completed/2026-09-23-hoondok-groups.md) 2단계). 라우터 `apps/api/app/modules/hoondok/groups_router.py`(030~041, 공개 블록), `groups_admin_router.py`(042·043, `_ADMIN_GATE`).
 > 엔티티 [ENT-HD-013~017](../domain/hoondok-entities.md#ent-hd-013-reading_groups--소그룹-모임-plan-hd-010).
 
 ### 공통
@@ -668,7 +668,7 @@ API-HD-045 규칙:
 
 ## PLAN-HD-012 — 오늘의 책갈피 (API-HD-047~052)
 
-[계획](../../plans/active/2026-09-28-hoondok-cards.md). 공개 범위는 `status=active` 카드뿐이고 외부 공유 권리 게이트는 없다(`DEC-PWA-024`). 카드 응답에는 원문 연결용 `volume`·`chunk_id`·`chunk_index` 가 있다.
+[계획](../../plans/completed/2026-09-28-hoondok-cards.md). 공개 범위는 `status=active` 카드뿐이고 외부 공유 권리 게이트는 없다(`DEC-PWA-024`). 카드 응답에는 원문 연결용 `volume`·`chunk_id`·`chunk_index` 가 있다.
 
 - `API-HD-047` 항상 200 `{date, card}` — 그날 고정 카드, 없으면 active 풀 `(created_at, id)` 정렬 후 `date.toordinal() % n`, 풀이 비면 `card: null`. `API-HD-048` active 가 아니면 404.
 - `API-HD-049·050` 멱등 upsert(`received_on` 은 처음 받은 KST 날짜, `shared_at` 은 처음 건넨 시각). 050 은 받지 않은 카드면 받기도 함께 기록한다. 비공개 카드 404.

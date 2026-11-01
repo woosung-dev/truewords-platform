@@ -2,7 +2,7 @@
 
 - 착수 2026-09-20. 기준 main `56a80f7`. 산출은 **PR 1개**(base `main`).
 - 이 문서는 오케스트레이터가 소유한다. 트랙 서브에이전트는 편집하지 않는다.
-- 근거: [`PLAN-HD-001` §6](2026-09-17-hoondok-mvp.md), [runbook §실행 기록](../../runbooks/hoondok-pwa-rollout.md#실행-기록), [`DES-PWA-003`](../../specs/web/hoondok-design-system.md).
+- 근거: [`PLAN-HD-001` §6](../active/2026-09-17-hoondok-mvp.md), [runbook §실행 기록](../../runbooks/hoondok-pwa-rollout.md#실행-기록), [`DES-PWA-003`](../../specs/web/hoondok-design-system.md).
 
 ## 1. 트랙
 

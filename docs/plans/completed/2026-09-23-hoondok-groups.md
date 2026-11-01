@@ -1,7 +1,7 @@
 # PLAN-HD-010 — 훈독 함께 읽는 모임 (2단계)
 
 - 작성 2026-09-23. 상태 **계획 확정, 미착수**. 결정 원본: [PRD F8·`DEC-PWA-023`](../../prd/17-ffwpu-pwa-prd.md), [DES-PWA-003 §5·§8](../../specs/web/hoondok-design-system.md), [벤치마크](../../research/2026-09-23-hoondok-together-benchmark.md), 프로토타입 [`hoondok-ds/app.html`](../../prd/prototypes/hoondok-ds/README.md) `group` · `group-join` · `group-create` · `group-share` · `group-settings`(`?role=member`).
-- 1단계(익명 숫자)는 `PLAN-HD-009`(`docs/plans/active/2026-09-23-hoondok-together.md`, PR #318)가 끝냈다 — `API-HD-029` `GET /hoondok/today/together`, 설정 `HOONDOK_TOGETHER_MIN_COUNT=10`, alembic `q2b3c4d5e6f7`(`mission_logs(mission_date, kind)` 인덱스), web `features/hoondok/together/{api,use-together}.ts` · `components/together-card.tsx` · `app/_hoondok/together.css` · `TOGETHER_KEY ∈ PROGRESS_KEYS`. 이 계획은 그 위에 모임만 더한다. `[가정]` 이 문서 작성 시점에 #318 은 미머지라 링크 대신 경로로 적는다.
+- 1단계(익명 숫자)는 `PLAN-HD-009`(`docs/plans/completed/2026-09-23-hoondok-together.md`, PR #318)가 끝냈다 — `API-HD-029` `GET /hoondok/today/together`, 설정 `HOONDOK_TOGETHER_MIN_COUNT=10`, alembic `q2b3c4d5e6f7`(`mission_logs(mission_date, kind)` 인덱스), web `features/hoondok/together/{api,use-together}.ts` · `components/together-card.tsx` · `app/_hoondok/together.css` · `TOGETHER_KEY ∈ PROGRESS_KEYS`. 이 계획은 그 위에 모임만 더한다. `[가정]` 이 문서 작성 시점에 #318 은 미머지라 링크 대신 경로로 적는다.
 - 착수 기준: **#317(프로토타입·`DEC-PWA-023`)과 #318 이 main 에 머지된 뒤** main 에서 통합 브랜치 `dev/hoondok-groups` 를 자른다. #318 이 착수 시점까지 안 들어갔으면 #318 위에 쌓는다. sub-task PR 은 [통합 브랜치 runbook](../../runbooks/integration-branch-workflow.md) 을 따른다.
 - 표기: 라벨 없는 문장은 코드로 확인한 사실(2026-09-23, main `5116525` + #318). `[가정]` 은 추론, `[확인 필요]` 는 사용자·외부 결정.
 - ID: API `API-HD-030~043`(029 까지 사용), 엔티티 `ENT-HD-013~017`(main·#318 모두 012 까지), 화면 `SCR-PWA-017~021`.

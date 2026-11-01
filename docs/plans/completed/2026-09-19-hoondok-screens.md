@@ -1,7 +1,7 @@
 # PLAN-HD-002 — 훈독 남은 화면 13종 웨이브 실행 계획
 
 - 상태: 2026-09-19 사용자 승인. 방식 3건(웨이브형·로컬 통합·디자인 스킬)은 확정이고(§9), 나머지 기본값은 `[가정]`·`[확인 필요]` 로 표기해 착수한다. 구현은 태스크마다 격리 worktree 서브에이전트가 만들고 오케스트레이터가 브랜치 `claude/hundok-webapp-ui-implementation-e71e67` 에 로컬 `--no-ff` 머지한다. main PR 은 W4 뒤 **1개**, 사용자 승인 시 push 한다(§3).
-- 기준: main `aba5240`(PR #298, PLAN-HD-001 Phase 1~3 C~G 머지). 이 문서 작성 시 브랜치 HEAD 는 그 위 `40c8563`(#299 SW 킬스위치 fix)이다. 입력은 [PRD v2 `PRD-FFWPU-PWA-001`](../../prd/17-ffwpu-pwa-prd.md)(`SCR-PWA-001~016`·`DEC-PWA-0xx`), [디자인 시스템 `DES-PWA-003`](../../specs/web/hoondok-design-system.md)(근거), [프로토타입 `hoondok-ds`](../../prd/prototypes/hoondok-ds/README.md)(`app.html` + `hoondok.css`, 값의 원본), [PLAN-HD-001](./2026-09-17-hoondok-mvp.md)(선행 계획·additive-only 규칙 §3), [훈독 API](../../specs/api/hoondok-api.md)·[훈독 도메인](../../specs/domain/hoondok-entities.md).
+- 기준: main `aba5240`(PR #298, PLAN-HD-001 Phase 1~3 C~G 머지). 이 문서 작성 시 브랜치 HEAD 는 그 위 `40c8563`(#299 SW 킬스위치 fix)이다. 입력은 [PRD v2 `PRD-FFWPU-PWA-001`](../../prd/17-ffwpu-pwa-prd.md)(`SCR-PWA-001~016`·`DEC-PWA-0xx`), [디자인 시스템 `DES-PWA-003`](../../specs/web/hoondok-design-system.md)(근거), [프로토타입 `hoondok-ds`](../../prd/prototypes/hoondok-ds/README.md)(`app.html` + `hoondok.css`, 값의 원본), [PLAN-HD-001](../active/2026-09-17-hoondok-mvp.md)(선행 계획·additive-only 규칙 §3), [훈독 API](../../specs/api/hoondok-api.md)·[훈독 도메인](../../specs/domain/hoondok-entities.md).
 - 출발점(확인된 사실): 16화면 중 `SCR-PWA-001` 최소형·`002` 홈·`003` 훈독하기 + 오프라인 안내(`/hoondok/offline`) + 설치 카드만 구현돼 있다. `tabs.ts` 의 `ask`·`library`·`worship`·`garden` 은 `isDisabled` 자리표시다. 운영 web 은 `HOONDOK_ENABLED=0`(`/hoondok/*` 404).
 - 목표: 남은 화면 13종(`SCR-PWA-004~016`)을 웨이브 4개(W1 실데이터 → W2 AI 질문 → W3 정적 프리뷰 셸 → W4 마무리, W0 는 준비)로 옮기되 **운영 노출은 0** 이다 — 플래그 2개(`NEXT_PUBLIC_HOONDOK_ENABLED`·신규 `NEXT_PUBLIC_HOONDOK_PREVIEW`) 모두 운영 이미지 기본 OFF(§2).
 - 원칙: 코드가 곧 스펙. 스크린샷·시각 대조 캡처·비교 산출물·기각 시안은 커밋하지 않는다. 결정은 이 문서 §9 와 각 스펙의 결정 표에 1~2줄로만 남긴다.
@@ -236,4 +236,4 @@ make e2e
 | 2026-09-19 | **공유 파일 소유** — `tabs.ts`·`app-shell.tsx`·`hoondok.css`·`layout.tsx`·`use-missions.ts`·`index.ts`·`hoondok.spec.ts` 는 W0/W4 만. 예외는 오케스트레이터 1줄 커밋 2건(W2 `ask: live`, W4 export) | 확정 · §3.1 |
 
 
-2026-09-21 후속: [PLAN-HD-005](../completed/2026-09-21-hoondok-journey-plan.md)가 말씀 007~009의 권리 원장과 실데이터 연결을 구현한다. 기존 코퍼스의 volume·chunk_index를 사용하며 Qdrant 재적재·장절 백필은 계속 비범위다.
+2026-09-21 후속: [PLAN-HD-005](2026-09-21-hoondok-journey-plan.md)가 말씀 007~009의 권리 원장과 실데이터 연결을 구현한다. 기존 코퍼스의 volume·chunk_index를 사용하며 Qdrant 재적재·장절 백필은 계속 비범위다.

@@ -273,7 +273,7 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 
 ## 알림 운영 ON 절차 (PLAN-HD-006 · Phase 4)
 
-코드는 main 에 있어도 **VAPID 3값이 VM `.env` 에 없으면 알림은 꺼져 있다** — `GET /hoondok/push/config` 가 `enabled=false` 를 내고 설정 화면 토글은 "준비 중", 발송기는 exit 0 no-op 이다. 켜는 조건은 [`PLAN-HD-006` §6](../plans/active/2026-09-22-hoondok-notifications.md)(2026-09-28 개정: 수정 배포 뒤 사용자 승인). 발송기의 편성 없는 날 생략(§2-11)이 들어간 backend 가 먼저 배포돼 있어야 한다.
+코드는 main 에 있어도 **VAPID 3값이 VM `.env` 에 없으면 알림은 꺼져 있다** — `GET /hoondok/push/config` 가 `enabled=false` 를 내고 설정 화면 토글은 "준비 중", 발송기는 exit 0 no-op 이다. 켜는 조건은 [`PLAN-HD-006` §6](../plans/completed/2026-09-22-hoondok-notifications.md)(2026-09-28 개정: 수정 배포 뒤 사용자 승인). 발송기의 편성 없는 날 생략(§2-11)이 들어간 backend 가 먼저 배포돼 있어야 한다.
 
 ```bash
 # -1. 발송 스크립트·점검 스크립트를 VM 에 둔다. 2026-09-28 실측: send-hoondok-push.sh 는 VM 에 없었고
@@ -359,7 +359,7 @@ ssh truewords-oracle 'sudo du -sh /opt/truewords/tts-cache; sudo find /opt/truew
 
 ## 말씀 서고 개통 절차 (PLAN-HD-007)
 
-운영 `content_rights` 는 0행이라 `/hoondok/library` 가 `{"items":[],"works":[]}` 다. 권리 게이트의 기본값이 "전부 비노출" 이라 결함이 아니고, 아래 순서로 **원장을 채우고 운영자가 승인해야** 서고·검색·원문이 보인다. 근거는 [`PLAN-HD-007` §6](../plans/active/2026-09-23-hoondok-library.md). 스크립트 상세는 [`infra/oracle-vm/README.md` §1회 실행 스크립트](../../infra/oracle-vm/README.md).
+운영 `content_rights` 는 0행이라 `/hoondok/library` 가 `{"items":[],"works":[]}` 다. 권리 게이트의 기본값이 "전부 비노출" 이라 결함이 아니고, 아래 순서로 **원장을 채우고 운영자가 승인해야** 서고·검색·원문이 보인다. 근거는 [`PLAN-HD-007` §6](../plans/completed/2026-09-23-hoondok-library.md). 스크립트 상세는 [`infra/oracle-vm/README.md` §1회 실행 스크립트](../../infra/oracle-vm/README.md).
 
 단계마다 사용자 승인이 필요하다(Git Safety Protocol). 순서를 바꾸지 않는다 — 4 는 3 이 만든 행을 대상으로 하고, 6 은 5 가 끝난 뒤에만 사용자에게 의미가 있다.
 
@@ -439,7 +439,7 @@ PR [#301](https://github.com/woosung-dev/truewords-platform/pull/301) 을 main `
 | `make ops-check` | 8건 OK · `hoondok-today` WARN(편성 0일분) |
 | `make smoke-web HOONDOK_ENABLED=1` | **12건 OK** · `sw-cache` WARN 1(위 §Cloudflare 캐시의 알려진 WARN) |
 
-배포로 들어간 것: 편성 후보 찾기([API-HD-012](../specs/api/hoondok-api.md), [PLAN-HD-003](../plans/active/2026-09-20-hoondok-curation-assist.md)) + PR #300 의 backend API(정성 기간·월 기록·계정 삭제).
+배포로 들어간 것: 편성 후보 찾기([API-HD-012](../specs/api/hoondok-api.md), [PLAN-HD-003](../plans/completed/2026-09-20-hoondok-curation-assist.md)) + PR #300 의 backend API(정성 기간·월 기록·계정 삭제).
 
 검증 실측:
 
@@ -454,7 +454,7 @@ PR [#301](https://github.com/woosung-dev/truewords-platform/pull/301) 을 main `
 
 `ops-check` 의 `hoondok-today` WARN 은 **이 날 해소되지 않았다.** 운영 DB 쓰기는 별도 승인이고, 편성 입력은 편성자가 admin 화면에서 한다(`PLAN-HD-001` 결정 5).
 
-같은 날 편성 입력을 돕는 [`PLAN-HD-003`](../plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, [API-HD-012](../specs/api/hoondok-api.md))를 구현했다. 코퍼스 원문을 검색해 폼을 채우며 생성 AI 가 본문을 만들지 않는다. **같은 날 backend·admin 배포를 마쳐 운영 admin 편성 화면에서 쓸 수 있다**(위 절). 편성 입력 자체는 admin 로그인이 필요하므로 편성자가 한다.
+같은 날 편성 입력을 돕는 [`PLAN-HD-003`](../plans/completed/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, [API-HD-012](../specs/api/hoondok-api.md))를 구현했다. 코퍼스 원문을 검색해 폼을 채우며 생성 AI 가 본문을 만들지 않는다. **같은 날 backend·admin 배포를 마쳐 운영 admin 편성 화면에서 쓸 수 있다**(위 절). 편성 입력 자체는 admin 로그인이 필요하므로 편성자가 한다.
 
 편성자가 admin 편성 화면에서 입력해 **앞으로 8일분**이 됐다. `PLAN-HD-001` §6 완료 기준(7일분 이상)을 넘겼다. 2건까지 넣었을 때 `ops-check` 가 먼저 초록이 됐고(오늘·내일만 보므로), 이어서 8일분까지 채웠다.
 
