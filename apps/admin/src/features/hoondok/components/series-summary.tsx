@@ -28,7 +28,7 @@ export default function SeriesSummary({ query, onBulk }: Props) {
   if (query.data.items.length === 0) {
     return (
       <p className="rounded-xl border border-dashed p-8 text-muted-foreground">
-        권리 원장이 비어 있어요 — VM 에서 <code>seed_content_rights_from_qdrant.py</code> 를 먼저 실행합니다
+        권리 원장이 비어 있어요. VM 에서 <code>seed_content_rights_from_qdrant.py</code> 를 먼저 실행합니다
       </p>
     );
   }

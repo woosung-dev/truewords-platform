@@ -93,7 +93,7 @@ export function fromCandidate(
     body: candidate.text,
     speaker: candidate.suggested_speaker,
     work_title: candidate.work_title,
-    source_note: `말씀 검색 후보 — ${candidate.source_label}`,
+    source_note: `말씀 검색 후보: ${candidate.source_label}`,
     chunk_id: candidate.chunk_id,
   };
 }

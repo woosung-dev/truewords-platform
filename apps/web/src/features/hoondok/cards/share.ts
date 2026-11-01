@@ -27,7 +27,7 @@ export function cardLink(id: string): string {
 
 /** 글로 복사: 본문 · 출처 · 훈독 · 링크. 인사는 사용자가 대화방에서 직접 쓴다(결정 1). */
 export function cardCopyText(card: Pick<CardPublic, "text" | "source_label">, link: string): string {
-  return `“${card.text}”\n— ${card.source_label} · 훈독\n${link}`;
+  return `“${card.text}”\n${card.source_label} · 훈독\n${link}`;
 }
 
 export type CardShareResult = "file" | "link" | "clipboard" | "cancelled" | "none";

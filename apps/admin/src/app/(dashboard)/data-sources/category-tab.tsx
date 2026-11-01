@@ -131,7 +131,7 @@ export default function CategoryTab() {
       queryClient.invalidateQueries({ queryKey: ["ingest-status"] });
       setDeleteDialog({ open: false, targets: [], busy: false });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "삭제 실패 — 다시 시도해주세요");
+      toast.error(err instanceof Error ? err.message : "삭제 실패: 다시 시도해주세요");
       setDeleteDialog((prev) => ({ ...prev, busy: false }));
     }
   };

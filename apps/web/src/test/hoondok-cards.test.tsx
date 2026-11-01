@@ -108,7 +108,7 @@ describe("건네기 공유 폴백 (파일 → 링크 → 클립보드 → 직접
     const result = await shareCard({ card: CARD, link, file, nav: { clipboard: { writeText } as never } });
     expect(result).toBe("clipboard");
     expect(writeText).toHaveBeenCalledWith(cardCopyText(CARD, link));
-    expect(cardCopyText(CARD, link)).toBe(`“${CARD.text}”\n— 천성경 제1편 하나님 p.42 · 훈독\n${link}`);
+    expect(cardCopyText(CARD, link)).toBe(`“${CARD.text}”\n천성경 제1편 하나님 p.42 · 훈독\n${link}`);
   });
 
   it("둘 다 없으면 none(링크 직접 표시), 사용자가 시트를 닫으면 cancelled(복사하지 않음)", async () => {

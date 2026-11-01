@@ -655,7 +655,7 @@ export default function DataSourcesPage() {
             <div className="rounded-xl border border-warning-border bg-warning-soft/40 overflow-hidden">
               <div className="px-4 py-3 border-b border-warning-border bg-warning-soft/60 flex items-center gap-2">
                 <RotateCcw className="w-3.5 h-3.5 text-warning" />
-                <span className="text-xs font-medium text-warning">중단된 파일 — 재개 가능</span>
+                <span className="text-xs font-medium text-warning">중단된 파일 · 재개 가능</span>
                 <span className="text-xs text-warning">
                   같은 파일을 다시 업로드하면 중단 지점부터 이어서 처리합니다
                 </span>

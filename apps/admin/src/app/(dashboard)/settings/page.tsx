@@ -90,7 +90,7 @@ export default function SettingsPage() {
       toast.success(
         vars.isActive
           ? `활성화되었습니다: ${vars.email}`
-          : `비활성화되었습니다: ${vars.email} — 새 로그인이 차단됩니다`,
+          : `비활성화되었습니다: ${vars.email} (새 로그인 차단)`,
       );
       setPendingTarget(null);
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
