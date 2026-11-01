@@ -9,7 +9,6 @@ export function safeHoondokPath(pathname: string): string {
   if (/^\/hoondok\/words\/[^/]+\/?$/.test(path)) return "/hoondok/words/:volume";
   if (/^\/hoondok\/library\/[^/]+\/?$/.test(path)) return "/hoondok/library/:series";
   if (/^\/hoondok\/ask\/(?!log\/?$)[^/]+\/?$/.test(path)) return "/hoondok/ask/:id";
-  if (/^\/hoondok\/worship\/challenge\/[^/]+\/?$/.test(path)) return "/hoondok/worship/challenge/:id";
   // 모임 (PLAN-HD-010). new·join 은 아래 고정 목록이 받는다. 모임 id 는 보내지 않는다.
   const group = /^\/hoondok\/groups\/(?!(?:new|join)\/?$)[^/]+(\/share|\/settings)?\/?$/.exec(path);
   if (group) return `/hoondok/groups/:id${group[1] ?? ""}`;
@@ -26,10 +25,6 @@ export function safeHoondokPath(pathname: string): string {
     "/hoondok/settings",
     "/hoondok/onboarding",
     "/hoondok/offline",
-    "/hoondok/worship",
-    "/hoondok/worship/order",
-    "/hoondok/worship/request",
-    "/hoondok/family",
     "/hoondok/groups/new",
     "/hoondok/groups/join",
     "/hoondok/bookmark",

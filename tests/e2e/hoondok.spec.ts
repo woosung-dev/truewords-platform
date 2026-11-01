@@ -187,7 +187,7 @@ test("설치 안내: 직접 완료 뒤 홈 카드 노출 · reload 유지 · 나
   expect(errors.filter((message) => !/status of 401/.test(message))).toEqual([]);
 });
 
-// 맞춤 첫 말씀 질문 흐름 — 가입 직후에만 들어온다. 답은 이 기기에만 저장하고 카드는 기기에서 고른다(프리뷰 fixture).
+// 맞춤 첫 말씀 질문 흐름 — 가입 직후에만 들어온다. 답은 이 기기에만 저장하고 카드는 기기에서 고른다(시드 카드와 겹치지 않아 오늘 편성 카드로 폴백).
 test("가입 → 질문 1~3 → 첫 말씀: 기기에만 저장 · 위기 안내 · 오늘 훈독으로", async ({ page }) => {
   const errors = await collectConsoleErrors(page);
   const requests: string[] = [];

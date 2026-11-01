@@ -41,8 +41,7 @@ production CSS 최적화는 OKLCH를 Lab으로 표현할 수 있어 색상 문�
 모든 본문은 합성 문장이다. 운영 원문과 Gemini 키는 필요 없다.
 
 `hoondok-library`는 375·768·1280px에서 실제 서고·검색·원문·study 완료와 권리별 응답,
-20청크 페이지 및 chunk_id 직접 이동을 검증한다. `hoondok-preview`의 네트워크 0 계약은
-가정예배 4화면·가족 1화면에만 적용한다. 브라우저 서버·Compose 포트는 단일 담당자가 사용한다.
+20청크 페이지 및 chunk_id 직접 이동을 검증한다. 브라우저 서버·Compose 포트는 단일 담당자가 사용한다.
 
 훈독 스펙은 `@playwright/test` 대신 `./hoondok-test`의 `test`·`expect`를 쓴다. 서버의 "오늘"은 실제 KST 시계라 테스트 도중 자정을 넘으면 앞서 받은 오늘 카드·편성이 어제 것이 된다 — 자정 2분 전부터는 자정을 넘긴 뒤 시작한다.
 

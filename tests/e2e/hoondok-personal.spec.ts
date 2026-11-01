@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./hoondok-test";
 
 // 맞춤 말씀 앱 안 화면: 가입 직후 질문 흐름 → 홈 오늘의 책갈피 아래 한 줄(고르기 / 까닭·바꾸기) → 관심사 바꾸기.
-// 답은 이 기기 localStorage 에만 있고 카드는 기기에서 고른다(프리뷰 플래그라 카드 목록은 fixture). 선택값은 요청에 실리지 않는다.
+// 답은 이 기기 localStorage 에만 있고 카드는 기기에서 고른다(카드 목록은 시드 3장, topic "감사"). 선택값은 요청에 실리지 않는다.
 // 정적 경로(/hoondok/family 등)와 겹치지 않게 쿼리·조각과 요청 본문만 본다
 const SELECTION = /family|tired|thankful|interests|moods/;
 function carriesSelection(url: string, body: string | null): boolean {
@@ -48,7 +48,7 @@ test("고르고 시작하면 홈 책갈피에 까닭 줄이 붙고, 바꾸기에
   await page.getByRole("button", { name: "시작하기" }).click();
   await page.getByRole("checkbox", { name: /가정과 부부/ }).click();
   await page.getByRole("button", { name: "다음" }).click();
-  await page.getByRole("checkbox", { name: "지쳤어요" }).click();
+  await page.getByRole("checkbox", { name: "감사해요" }).click();
   await page.getByRole("button", { name: "다음" }).click();
   await page.getByRole("button", { name: "첫 말씀 보기" }).click();
   await expect(page.getByText("앱이 고른 원문 단락이에요. 공식 해설이나 지금 하신 말씀은 아니에요.")).toBeVisible();
@@ -67,11 +67,11 @@ test("고르고 시작하면 홈 책갈피에 까닭 줄이 붙고, 바꾸기에
   await expect(page).toHaveURL(/\/hoondok\/garden\/interests$/);
   await expect(page.getByRole("button", { name: /많이 힘들어요/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "가정과 부부" })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "감사해요" }).click();
+  await page.getByRole("button", { name: "지쳤어요" }).click();
   await page.getByRole("button", { name: "저장" }).click();
   await expect(page.getByRole("status").filter({ hasText: "저장했어요" })).toBeVisible();
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("hoondok:personal:answers") ?? "{}"));
-  expect(stored.moods).toEqual(["tired", "thankful"]);
+  expect(stored.moods).toEqual(["thankful", "tired"]);
   await noOverflow(page);
 
   // 선택값을 주소·요청에 싣지 않는다

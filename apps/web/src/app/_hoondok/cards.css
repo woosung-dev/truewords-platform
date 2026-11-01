@@ -476,21 +476,6 @@
     border-radius: var(--r);
     box-shadow: var(--shadow-2);
   }
-  /* 예시 카드도 실제 공유 시트와 같은 카드 비중을 유지하되 이미지 API는 호출하지 않는다. */
-  .bmk-share__preview {
-    max-width: 300px;
-    aspect-ratio: auto;
-    margin-top: 8px;
-  }
-  .bmk-share__preview .bm__in {
-    flex: none;
-    min-height: min-content;
-    padding-top: 7cqw;
-  }
-  .bmk-share__preview .bm__body {
-    flex: none;
-    padding: 5cqw 0;
-  }
   .bmk-share__lock {
     display: flex;
     gap: 8px;

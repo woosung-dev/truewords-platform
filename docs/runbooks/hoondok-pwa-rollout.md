@@ -510,6 +510,8 @@ PR [#301](https://github.com/woosung-dev/truewords-platform/pull/301) 을 main `
 
 누출이 구조적으로 불가능한 이유: `apps/web/Dockerfile` 에는 `NEXT_PUBLIC_HOONDOK_ENABLED` ARG 하나뿐이고 `NEXT_PUBLIC_HOONDOK_PREVIEW` 는 Dockerfile·Makefile 어디에도 없다. 넘길 경로 자체가 없다.
 
+> 현재: 프리뷰 플래그와 가정예배·가족 프로토타입 코드는 삭제했다. 필요하면 git 이력에서 복원한다.
+
 `/hoondok/search` 는 실데이터가 아니라 **프리뷰 8라우트 중 하나**다(말씀 3 = `library`·`search`·`words/[id]`). 404 가 정상이다.
 
 #### 브라우저 확인 (375×812)

@@ -16,7 +16,7 @@ import {
   Users,
   Video,
 } from "lucide-react";
-import { isHoondokCardsEnabled, isHoondokPreviewEnabled, isHoondokTogetherEnabled } from "@/features/hoondok/flag";
+import { isHoondokCardsEnabled, isHoondokTogetherEnabled } from "@/features/hoondok/flag";
 
 // 전체 메뉴(앱바 햄버거)의 "메뉴" 탭 목록. 묶음은 하단 5탭과 같은 이름·순서이고, 항목은 이미 있는 화면만 둔다.
 // 꺼진 플래그의 화면은 숨기지 않고 "준비 중" 으로 남긴다 — 탭 내비의 준비 중 탭과 같은 신호다.
@@ -32,6 +32,9 @@ export type MenuItem = {
 export type MenuGroup = { id: string; title: string; items: readonly MenuItem[] };
 
 type MenuItemDef = Omit<MenuItem, "isAvailable"> & { isAvailable?: () => boolean };
+
+/** 화면이 아직 없는 항목 — 늘 "준비 중" 으로 남긴다 */
+const isComingSoon = () => false;
 
 const GROUP_DEFS: readonly { id: string; title: string; items: readonly MenuItemDef[] }[] = [
   {
@@ -88,7 +91,7 @@ const GROUP_DEFS: readonly { id: string; title: string; items: readonly MenuItem
         label: "5분 설교",
         href: "/hoondok/worship",
         icon: Video,
-        isAvailable: isHoondokPreviewEnabled,
+        isAvailable: isComingSoon,
       },
       {
         id: "worship-order",
@@ -96,14 +99,14 @@ const GROUP_DEFS: readonly { id: string; title: string; items: readonly MenuItem
         label: "가정예배 순서지·챌린지",
         href: "/hoondok/worship/order",
         icon: ListOrdered,
-        isAvailable: isHoondokPreviewEnabled,
+        isAvailable: isComingSoon,
       },
       {
         id: "sermon-request",
         label: "설교 섭외",
         href: "/hoondok/worship/request",
         icon: Mic,
-        isAvailable: isHoondokPreviewEnabled,
+        isAvailable: isComingSoon,
       },
     ],
   },
@@ -119,7 +122,7 @@ const GROUP_DEFS: readonly { id: string; title: string; items: readonly MenuItem
         icon: BookMarked,
         isAvailable: isHoondokCardsEnabled,
       },
-      { id: "family", label: "가족·친구", href: "/hoondok/family", icon: Users, isAvailable: isHoondokPreviewEnabled },
+      { id: "family", label: "가족·친구", href: "/hoondok/family", icon: Users, isAvailable: isComingSoon },
       { id: "settings", label: "알림·설치", href: "/hoondok/settings", icon: Bell },
     ],
   },
