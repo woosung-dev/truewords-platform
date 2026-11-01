@@ -12,8 +12,6 @@ audit P0-7 (2026-05-15): 기존 `src/qdrant_client.py` (파일) + `app/modules/q
 """
 
 from app.modules.qdrant.factory import (
-    create_collection,
-    create_payload_indexes,
     get_async_client,
     get_client,
     get_raw_client,
@@ -25,8 +23,6 @@ __all__ = [
     "FacetHit",
     "QdrantPoint",
     "RawQdrantClient",
-    "create_collection",
-    "create_payload_indexes",
     "ensure_main_collection",
     "get_async_client",
     "get_client",
