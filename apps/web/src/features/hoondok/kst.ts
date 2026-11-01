@@ -1,4 +1,5 @@
 import type { WeekDay } from "@truewords/api-client-ts/types";
+import { serverDate } from "@/lib/server-date";
 import { formatKstDate } from "./today";
 
 // KST 달력 계산 (순수 함수). 월 기록 조회 키와 나의 정원 달력 그리드가 쓴다.
@@ -6,11 +7,6 @@ import { formatKstDate } from "./today";
 /** KST 기준 `YYYY-MM`. UTC 23:30 은 KST 다음날이라 월 경계도 KST 로 넘어간다. */
 export function kstMonthKey(now: Date = new Date()): string {
   return formatKstDate(now).iso.slice(0, 7);
-}
-
-/** 서버 시각 문자열 → Date. 오프셋이 없으면 naive UTC(서버 규칙)로 읽는다. */
-export function serverDate(value: string): Date {
-  return new Date(/[zZ]|[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`);
 }
 
 /** 서버 시각 → KST `YYYY-MM-DD`. 읽지 못하면 null. */

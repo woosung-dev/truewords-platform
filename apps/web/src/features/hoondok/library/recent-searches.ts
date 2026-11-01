@@ -1,3 +1,5 @@
+import { safeLocalStorage as storage } from "@/lib/safe-storage";
+
 // SCR-PWA-008 최근 검색 — 기기 전용 저장소 (PLAN-HD-002 W3-L).
 // 검색 자체가 준비 중이라 질의는 서버로 가지 않는다. 입력한 말만 이 브라우저 localStorage 한 키에 남는다.
 // 저장소는 없거나 던질 수 있으므로(사생활 모드·차단) 모든 접근을 try/catch 로 감싼다 — ask/storage.ts 와 같은 규칙.
@@ -11,14 +13,6 @@ export const RECENT_MAX = 8;
 
 /** SSR·저장소 없음의 스냅샷. useSyncExternalStore 가 같은 참조를 봐야 한다. */
 export const EMPTY_RECENT: readonly string[] = [];
-
-function storage(): Storage | null {
-  try {
-    return typeof window === "undefined" ? null : window.localStorage;
-  } catch {
-    return null;
-  }
-}
 
 function readRaw(): string | null {
   try {

@@ -6,8 +6,9 @@ import { AlertCircle, Copy, Share2, Users } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
-import { serverDate as toDate } from "@/features/hoondok/kst";
+import { formatKstMonthDay } from "@/features/hoondok/today";
 import { onboardingHref } from "@/features/identity/gate";
+import { serverDate as toDate } from "@/lib/server-date";
 import { groupErrorOf } from "../groups-api";
 import { formatInviteCode, inviteLink, type ShareMethod, shareInvite } from "../invite-code";
 
@@ -32,14 +33,16 @@ function koreanClock(hour: number, minute: number, isMinuteOptional = false): st
   return `${half} ${clock}:${String(minute).padStart(2, "0")}`;
 }
 
+const KST_HOUR_MINUTE = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Seoul",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
 /** "오전 5:55" — KST 로 고정한다(기기 시간대와 무관). */
 export function formatKstTime(value: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Seoul",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(toDate(value));
+  const parts = KST_HOUR_MINUTE.formatToParts(toDate(value));
   const get = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? "0");
   return koreanClock(get("hour") % 24, get("minute"));
 }
@@ -47,7 +50,7 @@ export function formatKstTime(value: string): string {
 /** "9월 12일" — KST. `YYYY-MM-DD` 날짜만 오면 그 날짜 그대로. */
 export function formatKstDay(value: string): string {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00+09:00`) : toDate(value);
-  return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" }).format(date);
+  return formatKstMonthDay(date);
 }
 
 /** 모임 시간 `HH:MM[:SS]` → "오전 6시" · "오후 8:30". 표시용이다. */

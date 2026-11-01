@@ -3,14 +3,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { loadCard } from "@/features/hoondok/cards/api";
 import { BookmarkCard } from "@/features/hoondok/cards/components/bookmark-card";
 import { cardImagePath, cardWordsHref } from "@/features/hoondok/cards/share";
 import { isHoondokCardsEnabled } from "@/features/hoondok/flag";
+import { WEB_ORIGIN } from "@/lib/origins";
 
 type Props = { params: Promise<{ id: string }> };
 
-const WEB_ORIGIN = process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000";
+// 메타데이터와 화면이 같은 요청 안에서 카드를 한 번만 읽는다.
+const getCard = cache((id: string) => loadCard(id));
 
 /** 설명: 본문 앞부분(80자). 줄바꿈은 공백으로. */
 function excerpt(text: string): string {
@@ -22,7 +25,7 @@ function excerpt(text: string): string {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!isHoondokCardsEnabled()) return {};
   const { id } = await params;
-  const card = await loadCard(id).catch(() => null);
+  const card = await getCard(id).catch(() => null);
   if (!card) return {};
   const title = `오늘의 책갈피 · ${card.work_title}`;
   const description = excerpt(card.text);
@@ -39,7 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function HoondokCardPage({ params }: Props) {
   if (!isHoondokCardsEnabled()) notFound();
   const { id } = await params;
-  const card = await loadCard(id);
+  const card = await getCard(id);
   if (!card) notFound();
   return (
     <section className="col rcv">

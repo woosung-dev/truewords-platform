@@ -1,15 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { createApiClient } from "@truewords/api-client-ts";
 import { useCurrentUser } from "@/features/identity/use-current-user";
+import { hoondokRequest as request } from "../api-client";
 import { jeongseongAPI } from "../jeongseong-api";
-import { hoondokFetch } from "../observability/report";
 import { JEONGSEONG_TODAY_KEY } from "../query-keys";
 import type { TodayResponse } from "../today";
 import { useKstDate } from "../use-kst-date";
-
-const { request } = createApiClient({ baseUrl: "/api/backend", fetch: hoondokFetch });
 
 /** 홈·읽기가 같은 사용자/날짜 쿼리를 공유한다. 비공개 말씀은 서버 렌더로 보내지 않는다. */
 export function useEffectiveToday(initialToday: TodayResponse) {
