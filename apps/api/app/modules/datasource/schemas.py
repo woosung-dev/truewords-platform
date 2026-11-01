@@ -140,7 +140,7 @@ class UploadResponse(BaseModel):
     message: str
     filename: str
     volume_key: str = Field(..., description="NFC 정규화된 volume 식별자 (polling 키)")
-    mode: str = Field(..., description="호환용 입력값 반환. 처리 방식은 항상 standard")
+    mode: str = Field(..., description="호환용 고정값. 처리 방식은 항상 standard")
     on_duplicate: str = Field(..., description="merge | replace | skip")
     predicted_outcome: str = Field(
         ...,

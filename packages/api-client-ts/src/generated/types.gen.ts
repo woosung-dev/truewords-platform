@@ -131,12 +131,6 @@ export type BodyUploadDocumentAdminDataSourcesUploadPost = {
      */
     file: Blob | File;
     /**
-     * Mode
-     *
-     * 호환용 (Batch API 제거됨, 항상 standard)
-     */
-    mode?: string;
-    /**
      * On Duplicate
      *
      * 재업로드 정책 (ADR-30). merge: 기존 카테고리 ∪ 신규 (default), replace: 신규로 통째 교체, skip: COMPLETED 동일 파일이면 임베딩 생략.
@@ -4132,7 +4126,7 @@ export type UploadResponse = {
     /**
      * Mode
      *
-     * 호환용 입력값 반환. 처리 방식은 항상 standard
+     * 호환용 고정값. 처리 방식은 항상 standard
      */
     mode: string;
     /**

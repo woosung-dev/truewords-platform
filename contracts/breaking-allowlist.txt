@@ -7,3 +7,5 @@ GET /hoondok/me/marks api path removed without deprecation
 DELETE /hoondok/me/marks/{chunk_id} api path removed without deprecation
 PUT /hoondok/me/marks/{chunk_id} api path removed without deprecation
 GET /hoondok/tts/readings/{reading_id}/{paragraph} api path removed without deprecation
+# 2026-11-02 업로드 `mode` 입력 제거 — 무시되던 값이다. FastAPI 는 남는 form 필드를 무시해 옛 클라이언트 요청도 그대로 받는다.
+POST /admin/data-sources/upload removed the request property `mode`
