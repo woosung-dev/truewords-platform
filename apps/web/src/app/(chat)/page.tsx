@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowUp,
   BookOpen,
@@ -19,7 +19,9 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, KeyboardEvent, memo, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { BrandIcon, BrandMark, FollowupPills, PERSONAS, PersonaRowTrigger, PersonaSheet } from "@/components/truewords";
+import { BrandIcon, BrandMark } from "@/components/truewords/brand-mark";
+import { FollowupPills } from "@/components/truewords/followup-pills";
+import { PERSONAS, PersonaRowTrigger, PersonaSheet } from "@/components/truewords/persona-sheet";
 import { QuestionInput } from "@/components/truewords/question-input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -29,8 +31,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { authAPI } from "@/features/auth/api";
-import { AssistantMessage, ClosingCallout } from "@/features/chat/components/assistant-message";
+import { useLogout } from "@/features/auth/hooks";
+import { AssistantMessage, ClosingCallout, preloadAnswerMarkdown } from "@/features/chat/components/assistant-message";
+import { clearParticipant, saveParticipant, useParticipant } from "@/features/chat/participant";
 import type { AnswerMode } from "@/features/chat/types";
 import { type Message, stripDisclaimer, useChatConversation } from "@/features/chat/use-chat-conversation";
 import { chatAPI, type FeedbackType } from "@/features/chatbot/chat-api";
@@ -80,7 +83,7 @@ const DISCLAIMER_LINES = [
 
 export default function ChatPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const logout = useLogout();
   const { data: bots = [], isPending: botsLoading } = useQuery({
     queryKey: ["chatbots", "public"],
     queryFn: chatAPI.listBots,
@@ -100,9 +103,11 @@ export default function ChatPage() {
   // 레드팀 시연 — 참여자 식별 게이트. 이름+카테고리 입력 전 채팅 진입 차단.
   // localStorage 로 보존해 새로고침 시 재입력을 막고, "변경" 으로 초기화한다.
   // (입력 폼 디자인은 추후 /design-shotgun A~C 시안으로 교체 예정)
+  const participant = useParticipant();
+  const participantReady = participant !== null;
+  // 게이트 입력값(저장 전)
   const [participantName, setParticipantName] = useState("");
   const [participantCategory, setParticipantCategory] = useState("");
-  const [participantReady, setParticipantReady] = useState(false);
 
   // P0-B — 인용 카드 → 원문보기 모달 상태
   // displayName 은 admin 인라인 편집으로 지정한 사람 친화적 표시명. 모달의
@@ -130,64 +135,36 @@ export default function ChatPage() {
     feedback,
   } = useChatConversation(selectedBotInfo, {
     answer_mode: answerMode,
-    participant_name: participantName,
-    participant_category: participantCategory,
+    participant_name: participant?.name ?? "",
+    participant_category: participant?.category ?? "",
   });
-
-  // 레드팀 시연 — 참여자 게이트 localStorage 복원. 둘 다 있으면 진입 허용.
-  useEffect(() => {
-    try {
-      const n = localStorage.getItem("tw_participant_name") ?? "";
-      const c = localStorage.getItem("tw_participant_category") ?? "";
-      if (n && c) {
-        setParticipantName(n);
-        setParticipantCategory(c);
-        setParticipantReady(true);
-      }
-    } catch {
-      // localStorage 비가용 (프라이빗 모드 등) — 게이트 그대로 노출.
-    }
-  }, []);
 
   const handleParticipantSubmit = useCallback(() => {
     const n = participantName.trim();
     const c = participantCategory.trim();
     if (!n || !c) return;
-    try {
-      localStorage.setItem("tw_participant_name", n);
-      localStorage.setItem("tw_participant_category", c);
-    } catch {
-      // 저장 실패해도 이번 세션 동안은 진행.
-    }
-    setParticipantName(n);
-    setParticipantCategory(c);
-    setParticipantReady(true);
+    saveParticipant({ name: n, category: c });
   }, [participantName, participantCategory]);
 
   const handleParticipantReset = useCallback(() => {
-    try {
-      localStorage.removeItem("tw_participant_name");
-      localStorage.removeItem("tw_participant_category");
-    } catch {
-      // 무시.
-    }
     // 참여자 전환 시 대화 세션을 끊는다(handleNewChat 과 동일). 진행 중 요청은
     // abort — 안 그러면 옛 참여자 응답의 onSources 가 sessionId 를 세팅해 새 참여자
     // 메시지가 옛 세션(옛 participant)에 귀속된다(게이트 핵심 목적 무력화 방지).
     reset();
-    setParticipantReady(false);
-  }, [reset]);
+    // 게이트에 지금 참여자를 채워 둔다(일부만 고쳐 다시 들어갈 수 있게).
+    setParticipantName(participant?.name ?? "");
+    setParticipantCategory(participant?.category ?? "");
+    clearParticipant();
+  }, [reset, participant]);
 
   // 시연용 계정 전환 — 참여자 정보/세션을 함께 정리해 다음 로그인 사용자와 분리한다.
   const handleLogout = useCallback(async () => {
     handleParticipantReset();
-    try {
-      await authAPI.logout();
-    } finally {
-      queryClient.clear();
-      router.push("/login");
-    }
-  }, [handleParticipantReset, router, queryClient]);
+    await logout();
+  }, [handleParticipantReset, logout]);
+
+  // 첫 답변 전에 마크다운 렌더러를 미리 받아 둔다(첫 화면 번들에서는 빠져 있다).
+  useEffect(preloadAnswerMarkdown, []);
 
   // 새 user 메시지가 추가될 때만 그 element 를 viewport 상단으로 스크롤.
   // chunk 누적 동안에는 자동 스크롤 안 함 — 사용자가 답변 첫 줄부터 자연스럽게 읽도록.
@@ -342,8 +319,8 @@ export default function ChatPage() {
             title="참여자 변경"
           >
             <User className="h-3.5 w-3.5" />
-            <span className="font-medium text-foreground">{participantName}</span>
-            <span className="text-muted-foreground">· {participantCategory}</span>
+            <span className="font-medium text-foreground">{participant.name}</span>
+            <span className="text-muted-foreground">· {participant.category}</span>
             <span className="ml-1 text-primary">변경</span>
           </button>
           {messages.length > 0 && (

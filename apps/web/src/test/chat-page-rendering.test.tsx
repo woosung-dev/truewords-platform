@@ -13,6 +13,7 @@ vi.mock("@/features/chat/components/assistant-message", () => ({
     return <p>{props.content}</p>;
   },
   ClosingCallout: () => null,
+  preloadAnswerMarkdown: () => {},
 }));
 vi.mock("@/features/chatbot/chat-api", () => ({ chatAPI: { listBots: vi.fn(), streamMessage: vi.fn() } }));
 const pending = () => {
@@ -68,4 +69,14 @@ it("입력과 새 답변 chunk가 지난 답변을 다시 렌더하지 않는다
     second.resolve();
   });
   expect(renderAnswer.mock.calls.filter(([text]) => text === "첫 번째 답변")).toHaveLength(previousRenders);
+});
+
+it("저장된 참여자가 있으면 참여자 게이트를 건너뛰고 참여자를 보인다", () => {
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <ChatPage />
+    </QueryClientProvider>,
+  );
+  expect(screen.queryByText("TrueWords 시연 참여")).not.toBeInTheDocument();
+  expect(screen.getByText("시연")).toBeInTheDocument();
 });
