@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { QueryErrorNotice } from "@/components/query-error-notice";
 import { StatCard } from "@/components/stat-card";
 import { Card } from "@/components/ui/card";
@@ -15,6 +14,11 @@ import { ModesChart } from "@/features/analytics/components/modes-chart";
 import type { DailyCount, SearchStats, TopQuery } from "@/features/analytics/types";
 
 const QueryDetailModal = dynamic(() => import("@/features/analytics/components/query-detail-modal"));
+// recharts 는 차트가 보일 때만 싣는다. 자리 표시는 차트 높이(208px)와 같게 둔다.
+const DailyTrendBars = dynamic(() => import("@/features/analytics/components/daily-trend-bars"), {
+  ssr: false,
+  loading: () => <Skeleton className="h-52 w-full" />,
+});
 
 // ─────────────────────────────────────────────
 // Fallback 분포 — CSS 수평 바
@@ -243,29 +247,7 @@ export default function AnalyticsPage() {
             <p className="text-sm text-muted-foreground">데이터가 없습니다</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={208}>
-            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  border: "1px solid var(--border)",
-                  background: "var(--card)",
-                  color: "var(--foreground)",
-                }}
-                cursor={{ fill: "var(--muted)" }}
-              />
-              <Bar dataKey="count" name="검색 수" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <DailyTrendBars data={chartData} />
         )}
       </Card>
 

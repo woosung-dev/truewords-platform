@@ -2,8 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { ThumbsDown, ThumbsUp, User } from "lucide-react";
+import dynamic from "next/dynamic";
 import { type ReactNode, useState } from "react";
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { QueryErrorNotice } from "@/components/query-error-notice";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -11,6 +11,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
 import SessionDetailModal from "@/features/analytics/components/session-detail-modal";
 import type { NegativeFeedbackItem } from "@/features/analytics/types";
+
+// recharts 는 차트가 보일 때만 싣는다. 자리 표시는 차트 높이(256px)와 같게 둔다.
+const FeedbackPie = dynamic(() => import("@/features/analytics/components/feedback-pie"), {
+  ssr: false,
+  loading: () => <Skeleton className="h-64 w-full" />,
+});
 
 // ─────────────────────────────────────────────
 // 피드백 유형 상수 (cool slate × admin amber 충돌 회피 팔레트)
@@ -121,40 +127,7 @@ function FeedbackDistributionChart({
           <p className="text-sm text-muted-foreground">피드백이 없습니다</p>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={256}>
-          <PieChart>
-            <Pie
-              data={chartData}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              outerRadius={90}
-              innerRadius={48}
-              paddingAngle={2}
-            >
-              {chartData.map((entry, index) => (
-                <Cell key={index} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              cursor={{ fill: "var(--color-admin-muted)", opacity: 0.4 }}
-              wrapperStyle={{ outline: "none", zIndex: 50 }}
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 8,
-                border: "1px solid var(--color-border)",
-                background: "var(--color-card)",
-                color: "var(--color-foreground)",
-                boxShadow: "0 8px 24px oklch(0 0 0 / 0.10), 0 2px 4px oklch(0 0 0 / 0.06)",
-                padding: "8px 12px",
-              }}
-              itemStyle={{ color: "var(--color-foreground)" }}
-              labelStyle={{ color: "var(--color-foreground)", fontWeight: 600 }}
-            />
-            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-          </PieChart>
-        </ResponsiveContainer>
+        <FeedbackPie data={chartData} />
       )}
     </Card>
   );

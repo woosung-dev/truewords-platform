@@ -1,30 +1,18 @@
 // 일별 resolved_answer_mode 분포 차트 (BL-6 — 4주 시범 운영 baseline)
 "use client";
 
-import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import dynamic from "next/dynamic";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { DailyModeCount } from "@/features/analytics/types";
 
-const MODES = ["standard", "theological", "pastoral", "beginner", "kids"] as const;
-type Mode = (typeof MODES)[number];
+import { MODES, type Mode } from "./modes";
 
-const MODE_LABEL: Record<Mode, string> = {
-  standard: "표준",
-  theological: "신학자",
-  pastoral: "목회상담",
-  beginner: "초신자",
-  kids: "어린이",
-};
-
-// globals.css 의 차트·카테고리 토큰만 쓴다 — 흰 배경 위 비텍스트 대비 3:1 이상(5.2~13:1).
-const MODE_COLOR: Record<Mode, string> = {
-  standard: "var(--tw-cat-slate)",
-  theological: "var(--chart-1)", // navy
-  pastoral: "var(--chart-4)", // 목회 청록(pastoral)
-  beginner: "var(--chart-2)", // brass
-  kids: "var(--tw-cat-rose)",
-};
+// recharts 는 차트가 보일 때만 싣는다. 자리 표시는 차트 높이(260px)와 같게 둔다.
+const ModesBars = dynamic(() => import("./modes-bars"), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[260px] w-full" />,
+});
 
 type PivotRow = { date: string } & Partial<Record<Mode, number>>;
 
@@ -81,32 +69,7 @@ export function ModesChart({ rows, loading }: { rows?: DailyModeCount[]; loading
           <p className="text-sm text-muted-foreground">데이터가 없습니다</p>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-              interval="preserveStartEnd"
-            />
-            <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
-            <Tooltip
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 8,
-                border: "1px solid var(--border)",
-                background: "var(--card)",
-                color: "var(--foreground)",
-              }}
-              cursor={{ fill: "var(--muted)" }}
-            />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
-            {MODES.map((mode) => (
-              <Bar key={mode} dataKey={mode} name={MODE_LABEL[mode]} stackId="modes" fill={MODE_COLOR[mode]} />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
+        <ModesBars data={chartData} />
       )}
     </Card>
   );
