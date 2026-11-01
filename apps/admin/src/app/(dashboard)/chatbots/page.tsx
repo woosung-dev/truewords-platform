@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { chatbotAPI } from "@/features/chatbot/api";
@@ -58,13 +59,13 @@ export default function ChatbotsPage() {
       </div>
 
       {isLoading ? (
-        <div className="rounded-xl border bg-card overflow-hidden">
+        <Card className="p-0 overflow-hidden">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={`px-5 py-4 ${i !== 0 ? "border-t" : ""}`}>
               <Skeleton className="h-5 w-full" />
             </div>
           ))}
-        </div>
+        </Card>
       ) : isError ? (
         <div className="rounded-xl border border-dashed p-10 text-center space-y-3">
           <p className="text-muted-foreground text-sm">목록을 불러올 수 없습니다.</p>
@@ -90,7 +91,7 @@ export default function ChatbotsPage() {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border bg-card">
+          <Card className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-admin-muted/40 hover:bg-admin-muted/40">
@@ -150,7 +151,7 @@ export default function ChatbotsPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </Card>
 
           {/* 페이지네이션 */}
           {totalPages > 1 && (

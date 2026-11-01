@@ -2,6 +2,7 @@
 "use client";
 
 import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { DailyModeCount } from "@/features/analytics/types";
 
@@ -64,7 +65,7 @@ export function ModesChart({ rows, loading }: { rows?: DailyModeCount[]; loading
   const overrideRate = totalPastoral > 0 ? Math.round((pastoralOverride / totalPastoral) * 100) : 0;
 
   return (
-    <div className="rounded-xl border bg-card p-5 space-y-4">
+    <Card className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">일별 모드 분포 (최근 30일, UTC 기준)</h2>
         {totalPastoral > 0 && (
@@ -107,6 +108,6 @@ export function ModesChart({ rows, loading }: { rows?: DailyModeCount[]; loading
           </BarChart>
         </ResponsiveContainer>
       )}
-    </div>
+    </Card>
   );
 }

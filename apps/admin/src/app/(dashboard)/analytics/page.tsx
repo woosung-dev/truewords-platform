@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { QueryErrorNotice } from "@/components/query-error-notice";
+import { StatCard } from "@/components/stat-card";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
 import { ModesChart } from "@/features/analytics/components/modes-chart";
@@ -13,18 +15,6 @@ import { ModesChart } from "@/features/analytics/components/modes-chart";
 import type { DailyCount, SearchStats, TopQuery } from "@/features/analytics/types";
 
 const QueryDetailModal = dynamic(() => import("@/features/analytics/components/query-detail-modal"));
-
-// ─────────────────────────────────────────────
-// StatCard (inline, 카드 컴포넌트 미사용 패턴 유지)
-// ─────────────────────────────────────────────
-function StatCard({ label, value, loading }: { label: string; value: string | number; loading?: boolean }) {
-  return (
-    <div className="rounded-xl border bg-card p-5 space-y-3">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      {loading ? <Skeleton className="h-8 w-20" /> : <p className="text-3xl font-bold tracking-tight">{value}</p>}
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────────
 // Fallback 분포 — CSS 수평 바
@@ -42,7 +32,7 @@ function FallbackDistribution({ stats, loading }: { stats?: SearchStats; loading
   ];
 
   return (
-    <div className="rounded-xl border bg-card p-5 space-y-4">
+    <Card className="space-y-4">
       <h2 className="text-sm font-semibold">Fallback 분포</h2>
       {loading ? (
         <div className="space-y-3">
@@ -72,7 +62,7 @@ function FallbackDistribution({ stats, loading }: { stats?: SearchStats; loading
           })}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -89,7 +79,7 @@ function TopQueriesTable({
   onSelect: (queryText: string) => void;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-5 space-y-4">
+    <Card className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">인기 질문 Top 10</h2>
         <Link href="/analytics/queries" className="text-xs text-primary hover:underline">
@@ -139,7 +129,7 @@ function TopQueriesTable({
           </table>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -236,7 +226,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* 일별 트렌드 차트 */}
-      <div className="rounded-xl border bg-card p-5 space-y-4">
+      <Card className="space-y-4">
         <h2 className="text-sm font-semibold">일별 검색량 (최근 30일)</h2>
         {trendError && (
           <QueryErrorNotice
@@ -277,7 +267,7 @@ export default function AnalyticsPage() {
             </BarChart>
           </ResponsiveContainer>
         )}
-      </div>
+      </Card>
 
       {/* BL-6 — 일별 모드 분포 차트 (4주 시범 운영 baseline) */}
       <div className="space-y-3">

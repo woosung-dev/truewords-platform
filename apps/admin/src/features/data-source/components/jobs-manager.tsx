@@ -7,6 +7,7 @@ import type { StatusTone } from "@/components/status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -101,7 +102,7 @@ export function JobsManager() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
+    <Card className="p-0 overflow-hidden">
       {/* 헤더 */}
       <div className="flex items-center justify-between gap-3 border-b bg-admin-muted/30 px-4 py-3">
         <div className="flex items-center gap-2">
@@ -206,6 +207,6 @@ export function JobsManager() {
           )}
         </>
       )}
-    </div>
+    </Card>
   );
 }

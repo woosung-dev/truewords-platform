@@ -4,48 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, ArrowRight, Bot, CheckCircle2, Database, Search, ThumbsDown, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 import { QueryErrorNotice } from "@/components/query-error-notice";
-import { Skeleton } from "@/components/ui/skeleton";
+import { StatCard } from "@/components/stat-card";
+import { Card } from "@/components/ui/card";
 import { analyticsAPI } from "@/features/analytics/api";
 import { chatbotAPI } from "@/features/chatbot/api";
 import { dataAPI } from "@/features/data-source/api";
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  color = "default",
-  loading,
-}: {
-  label: string;
-  value: number | string | undefined;
-  icon: React.ElementType;
-  color?: "default" | "red";
-  loading?: boolean;
-}) {
-  // KPI 숫자는 중립색이 기본이다. 조치가 필요한 값(실패·부정 피드백 > 0)만 색으로 알린다.
-  const colorMap = {
-    default: "text-foreground",
-    red: "text-destructive",
-  };
-
-  return (
-    <div className="rounded-xl border bg-card p-5 space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{label}</span>
-        <div className="w-8 h-8 rounded-md bg-admin-muted flex items-center justify-center">
-          <Icon className="w-4 h-4 text-muted-foreground" />
-        </div>
-      </div>
-      {loading ? (
-        <Skeleton className="h-8 w-16" />
-      ) : (
-        <p className={`text-3xl font-bold tracking-tight tabular-nums ${colorMap[color]}`}>
-          {value?.toLocaleString() ?? "—"}
-        </p>
-      )}
-    </div>
-  );
-}
 
 export default function DashboardPage() {
   const {
@@ -124,7 +87,7 @@ export default function DashboardPage() {
           label="처리 실패"
           value={failedFiles}
           icon={AlertCircle}
-          color={(failedFiles ?? 0) > 0 ? "red" : "default"}
+          tone={(failedFiles ?? 0) > 0 ? "danger" : "default"}
           loading={statusLoading}
         />
       </div>
@@ -146,7 +109,7 @@ export default function DashboardPage() {
           label="부정 피드백"
           value={negativeCount}
           icon={ThumbsDown}
-          color={(negativeCount ?? 0) > 0 ? "red" : "default"}
+          tone={(negativeCount ?? 0) > 0 ? "danger" : "default"}
           loading={summaryLoading}
         />
       </div>
@@ -198,7 +161,7 @@ export default function DashboardPage() {
               전체 보기 <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          <div className="rounded-xl border bg-card overflow-hidden">
+          <Card className="p-0 overflow-hidden">
             {chatbots.items.slice(0, 5).map((config, i) => (
               <Link
                 key={config.id}
@@ -221,7 +184,7 @@ export default function DashboardPage() {
                 </span>
               </Link>
             ))}
-          </div>
+          </Card>
         </div>
       )}
     </div>

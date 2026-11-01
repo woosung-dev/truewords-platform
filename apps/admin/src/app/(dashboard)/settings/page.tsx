@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { QueryErrorNotice } from "@/components/query-error-notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -143,7 +144,7 @@ export default function SettingsPage() {
       </div>
 
       {/* 관리자 계정 생성 */}
-      <div className="rounded-xl border bg-card p-5 space-y-4 max-w-lg">
+      <Card className="space-y-4 max-w-lg">
         <div className="flex items-center gap-2 border-b pb-3">
           <UserPlus className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">새 관리자 추가</h3>
@@ -196,10 +197,10 @@ export default function SettingsPage() {
             {createMutation.isPending ? "생성 중..." : "관리자 추가"}
           </Button>
         </form>
-      </div>
+      </Card>
 
       {/* 관리자 계정 목록 */}
-      <div className="rounded-xl border bg-card p-5 space-y-4">
+      <Card className="space-y-4">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-3 border-b pb-3">
           <Users className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">관리자 계정 목록</h3>
@@ -378,7 +379,7 @@ export default function SettingsPage() {
             </TableBody>
           </Table>
         )}
-      </div>
+      </Card>
 
       <DeactivateConfirmDialog
         open={pendingTarget !== null}

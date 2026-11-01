@@ -2,6 +2,7 @@
 
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SERIES_TITLE } from "../labels";
 import type { SeriesSummaryItem } from "../types";
@@ -32,7 +33,7 @@ export default function SeriesSummary({ query, onBulk }: Props) {
     );
   }
   return (
-    <div className="rounded-xl border bg-card">
+    <Card className="p-0">
       <Table>
         <TableHeader>
           <TableRow>
@@ -69,6 +70,6 @@ export default function SeriesSummary({ query, onBulk }: Props) {
           ))}
         </TableBody>
       </Table>
-    </div>
+    </Card>
   );
 }

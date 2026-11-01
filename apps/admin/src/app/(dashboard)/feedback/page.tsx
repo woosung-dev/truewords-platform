@@ -6,6 +6,7 @@ import { type ReactNode, useState } from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { QueryErrorNotice } from "@/components/query-error-notice";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
 import SessionDetailModal from "@/features/analytics/components/session-detail-modal";
@@ -111,7 +112,7 @@ function FeedbackDistributionChart({
   });
 
   return (
-    <div className="rounded-xl border bg-card p-5 space-y-4">
+    <Card className="space-y-4">
       <h2 className="text-sm font-semibold">피드백 유형 분포</h2>
       {loading ? (
         <Skeleton className="h-64 w-full" />
@@ -155,7 +156,7 @@ function FeedbackDistributionChart({
           </PieChart>
         </ResponsiveContainer>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -179,7 +180,7 @@ function FeedbackTable({
 }) {
   const polarityLabel = polarity === "positive" ? "긍정" : "부정";
   return (
-    <div className="rounded-xl border bg-card p-5 space-y-4">
+    <Card className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">최근 {polarityLabel} 피드백</h2>
         <div
@@ -300,7 +301,7 @@ function FeedbackTable({
           </table>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
