@@ -106,7 +106,6 @@
   --sans:
     "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
     sans-serif;
-  --serif: "Noto Serif KR", "Apple SD Gothic Neo", serif;
   --font-scripture: var(--sans);
 
   --gutter: 20px;
