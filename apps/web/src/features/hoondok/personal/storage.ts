@@ -1,6 +1,8 @@
 // 맞춤 첫 말씀 답·마음 한 장 한 줄은 이 기기 localStorage 에만 둔다(신앙·마음은 민감정보). 서버·분석·오류 수집으로 보내지 않는다.
 // 키는 `hoondok:` 접두라 로그아웃 "이 기기 기록 지우기"·계정 삭제·기기 주인 변경(clearHoondokStorage)이 함께 지운다.
 // 저장소는 없거나 던질 수 있으므로(사생활 모드·차단) 모든 접근을 try/catch 로 감싼다 — cards/storage.ts 와 같은 관례.
+
+import { safeLocalStorage as storage } from "@/lib/safe-storage";
 import {
   CRISIS_MOOD_ID,
   isInterestId,
@@ -36,14 +38,6 @@ export const EMPTY_ANSWERS: PersonalAnswers = {
 };
 
 export type PersonalNote = { date: string; cardId: string | null; text: string };
-
-function storage(): Storage | null {
-  try {
-    return typeof window === "undefined" ? null : window.localStorage;
-  } catch {
-    return null;
-  }
-}
 
 function notify(): void {
   try {

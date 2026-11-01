@@ -21,14 +21,16 @@ export function isPresetTime(time: string): boolean {
   return READ_TIME_PRESETS.some((preset) => preset.time === time);
 }
 
+const KST_HOUR_MINUTE = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Seoul",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
 /** 지금 KST 의 하루 중 분(0~1439). 서버 발송 기준이 KST 라 기기 시간대와 무관하게 KST 로 잰다. */
 export function kstMinutesNow(now: Date = new Date()): number {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Seoul",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(now);
+  const parts = KST_HOUR_MINUTE.formatToParts(now);
   const get = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? 0);
   return get("hour") * 60 + get("minute");
 }

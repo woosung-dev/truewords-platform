@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { authAPI } from "@/features/auth/api";
+import { useMe } from "@/features/auth/hooks";
 import { ApiError, fetchAPI } from "@/lib/api";
 import DeactivateConfirmDialog from "./deactivate-confirm-dialog";
 
@@ -45,15 +45,7 @@ export default function SettingsPage() {
   });
 
   // 본인 계정 식별용 — 자기 자신은 비활성화할 수 없다(백엔드도 400 으로 거부).
-  const {
-    data: me,
-    isError: meError,
-    isFetching: meFetching,
-    refetch: refetchMe,
-  } = useQuery({
-    queryKey: ["admin-me"],
-    queryFn: () => authAPI.me(),
-  });
+  const { data: me, isError: meError, isFetching: meFetching, refetch: refetchMe } = useMe();
 
   const createMutation = useMutation({
     mutationFn: () =>

@@ -14,7 +14,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,15 @@ export default function DataSourcesPage() {
   const { data: categories = [] } = useActiveCategories();
   const [dragActive, setDragActive] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  // 업로드 뒤 "처리 중" 표시를 지우는 타이머 — 화면을 떠나면 함께 정리한다.
+  const processingTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
+  useEffect(() => {
+    const timers = processingTimers.current;
+    return () => {
+      timers.forEach(clearTimeout);
+      timers.clear();
+    };
+  }, []);
   const [activeTab, setActiveTab] = useState<"upload" | "categories" | "jobs">("upload");
   // ADR-30 follow-up: 일괄 업로드 시 이미 적재된 파일은 건너뛰는 skip 모드 토글.
   // 단건 업로드(파일 1개)는 dialog가 사용자 선택을 받으므로 이 토글의 영향을 받지 않는다.
@@ -199,9 +208,11 @@ export default function DataSourcesPage() {
       queryClient.invalidateQueries({ queryKey: ["category-stats"] });
       queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
       // 10초 후 processing 상태 제거 (status 폴링이 처리 결과를 가져옴)
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        processingTimers.current.delete(timer);
         setPendingFiles((prev) => prev.filter((f) => f.id !== pf.id));
       }, 10000);
+      processingTimers.current.add(timer);
       return res;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : `${pf.file.name} 업로드 실패`);

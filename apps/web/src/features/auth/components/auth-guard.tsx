@@ -1,63 +1,58 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
-import { authAPI } from "@/features/auth/api";
+import { useMe } from "@/features/auth/hooks";
 import { ApiError } from "@/lib/api";
 
+const subscribeNothing = () => () => {};
+const isBrowser = () => true;
+const isServer = () => false;
+
+// 인증 확인(me)과 화면 데이터 요청이 동시에 출발하도록 확인 중에도 children 을 마운트하되 보이지 않게 둔다.
+// 데이터는 서버가 쿠키로 최종 검사하므로(미인증 401 → /login) 숨긴 동안 받은 것이 노출되지 않는다.
+// 확인 실패(401·일시 오류)면 children 을 내려 화면을 보이지 않는다.
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [isAuth, setIsAuth] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
-  const [attempt, setAttempt] = useState(0);
+  // 서버 렌더·hydration 에서는 children 을 그리지 않는다(종전처럼 "확인 중"만) — hydration 직후 바로 마운트된다.
+  const isClient = useSyncExternalStore(subscribeNothing, isBrowser, isServer);
+  const { data, error, refetch } = useMe();
+  const unauthorized = error instanceof ApiError && error.status === 401;
+  // 일시 오류(콜드스타트 5xx·네트워크 단절)는 미인증이 아님 — 재시도 안내
+  const failed = !!error && !unauthorized && !data;
+  const ready = !!data && !unauthorized;
 
   useEffect(() => {
-    authAPI
-      .me()
-      .then(() => {
-        setIsAuth(true);
-      })
-      .catch((err) => {
-        if (err instanceof ApiError && err.status === 401) {
-          router.replace("/login");
-        } else {
-          // 일시 오류(콜드스타트 5xx·네트워크 단절)는 미인증이 아님 — 재시도 안내
-          setFailed(true);
-        }
-      })
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- attempt(재시도) 시에만 재실행
-  }, [attempt]);
+    if (unauthorized) router.replace("/login");
+  }, [unauthorized, router]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">확인 중...</p>
-      </div>
-    );
-  }
+  if (unauthorized) return null;
 
   if (failed) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-3">
         <p className="text-muted-foreground">연결 상태를 확인할 수 없습니다.</p>
-        <Button
-          variant="outline"
-          onClick={() => {
-            setFailed(false);
-            setLoading(true);
-            setAttempt((n) => n + 1);
-          }}
-        >
+        <Button variant="outline" onClick={() => void refetch()}>
           다시 시도
         </Button>
       </div>
     );
   }
 
-  if (!isAuth) return null;
-
-  return <>{children}</>;
+  return (
+    <>
+      {!ready && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+          <p className="text-muted-foreground">확인 중...</p>
+        </div>
+      )}
+      {/* 확인 전에는 투명·스크린리더 숨김. 같은 요소를 유지해야 children 이 다시 마운트되지 않는다. */}
+      {isClient && (
+        <div className={ready ? "contents" : "opacity-0"} aria-hidden={ready ? undefined : true}>
+          {children}
+        </div>
+      )}
+    </>
+  );
 }

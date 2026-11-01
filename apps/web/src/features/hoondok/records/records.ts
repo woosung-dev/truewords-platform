@@ -3,6 +3,7 @@
 // 수는 내 기록이 몇 개인지만 말한다 — 남과 비교·평균·증감·목표는 두지 않는다 (DEC-PWA-019).
 import type { HighlightItem, SectionItem } from "@truewords/api-client-ts/types";
 import { HIGHLIGHT_COLORS, type HighlightColor, toHighlightColor } from "../library/highlight-range";
+import { formatKstMonthDay } from "../today";
 
 export const RECORDS_PATH = "/hoondok/records";
 /** 이 기기에만 있는 기록(오늘의 한 줄·저장한 AI 답). 서버를 부르지 않는다. */
@@ -169,5 +170,5 @@ export function sectionGroups(items: readonly RecordEntry[], sections: readonly 
 export function recordDateLabel(updatedAt: string): string {
   const date = new Date(updatedAt);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" }).format(date);
+  return formatKstMonthDay(date);
 }

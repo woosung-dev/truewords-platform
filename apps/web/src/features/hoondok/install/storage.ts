@@ -1,3 +1,5 @@
+import { safeLocalStorage as storage } from "@/lib/safe-storage";
+
 // 설치 안내 카드 상태 (PLAN-HD-001 Phase 3 E). pending.ts 와 같은 규칙 — 저장소는 없거나 던질 수 있으므로 전부 try/catch.
 // 키 3개가 각각 한 의미다: eligible(직접 완료가 처음 기록됨) · hidden-until("나중에", 30일) · installed(설치 완료).
 const KEY_ELIGIBLE = "hoondok:install:eligible";
@@ -7,14 +9,6 @@ const KEY_INSTALLED = "hoondok:install:installed";
 const CHANGE_EVENT = "hoondok:install-change";
 
 export const INSTALL_DISMISS_DAYS = 30;
-
-function storage(): Storage | null {
-  try {
-    return typeof window === "undefined" ? null : window.localStorage;
-  } catch {
-    return null;
-  }
-}
 
 function read(key: string): string | null {
   try {

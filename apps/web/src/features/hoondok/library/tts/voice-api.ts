@@ -1,11 +1,8 @@
 // PLAN-HD-011 AI 낭독 목소리 API 어댑터. 목록(API-HD-044)은 생성 SDK, 단락 mp3(API-HD-045·046)는 바이너리라
 // SDK 대신 같은 origin 프록시를 직접 fetch 한다. 텍스트는 보내지 않는다 — 서버가 식별자로 본문을 찾는다.
-import { createApiClient } from "@truewords/api-client-ts";
 import type { TtsVoice, TtsVoicesResponse } from "@truewords/api-client-ts/types";
+import { HOONDOK_API_BASE as BASE, hoondokRequest as request } from "../../api-client";
 import { hoondokFetch } from "../../observability/report";
-
-const BASE = "/api/backend";
-const { request } = createApiClient({ baseUrl: BASE, fetch: hoondokFetch });
 
 export type AiVoiceId = TtsVoice["id"];
 /** 브라우저 음성(Web Speech). AI 목소리를 쓸 수 없을 때의 대체 경로다. */
