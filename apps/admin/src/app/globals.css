@@ -11,7 +11,8 @@
   /* shadcn 표준 토큰 */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  /* 자기참조(var(--font-sans))는 순환이라 무효였다 — layout.tsx 의 next/font 변수로 연결한다. */
+  --font-sans: var(--font-pretendard), sans-serif;
   /* 관리자는 mono 웹폰트를 싣지 않는다 — 시스템 고정폭 스택을 쓴다. */
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --font-heading: var(--font-sans);
@@ -75,6 +76,9 @@
   --color-admin-surface: var(--tw-admin-surface);
   --color-admin-muted: var(--tw-admin-muted);
   --color-persona-icon-bg: var(--tw-persona-icon-bg);
+  /* 글자 크기 보조 단계 — 배지·보조 메타의 임의값(10~11px)을 흡수한다. 12px 부터는 text-xs. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -85,9 +89,6 @@
 }
 
 :root {
-  /* 폰트 패밀리 — layout.tsx 의 Fontsource import 가 @font-face 를 등록한다.
-     대체 폰트는 이전 Google 폰트 로더의 Fallback(Arial)과 같게 둔다. 관리자는 본문 세리프·디스플레이 폰트를 쓰지 않는다. */
-  --font-inter: "Inter Variable", Arial;
   /* TrueWords Light Mode (Plan A.2) — Paper × Scholar × AI */
   /* Background: warm paper #FFFBEB */
   --background: oklch(0.988 0.024 95);

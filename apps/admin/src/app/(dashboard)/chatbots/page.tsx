@@ -109,7 +109,7 @@ export default function ChatbotsPage() {
                       <div className="flex items-center gap-2">
                         <div
                           className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                            config.is_active ? "bg-success" : "bg-admin-muted-foreground/40"
+                            config.is_active ? "bg-success" : "bg-muted-foreground/40"
                           }`}
                         />
                         {config.display_name}

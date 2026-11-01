@@ -1,5 +1,7 @@
 import { BookOpenCheck, CalendarClock, ScrollText, ShieldAlert } from "lucide-react";
 import type { Metadata } from "next";
+import "@/app/truewords-fonts";
+import "@/app/truewords-reading-fonts";
 
 export const metadata: Metadata = {
   title: "TrueWords — 신학 입장 & 운영 투명성",

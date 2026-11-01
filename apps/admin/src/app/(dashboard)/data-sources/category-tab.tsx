@@ -521,7 +521,7 @@ export default function CategoryTab() {
                   {uncategorizedVolumes.reduce((sum, v) => sum + v.chunk_count, 0).toLocaleString()}
                 </td>
                 <td className="px-4 py-3 hidden sm:table-cell">
-                  <div className="w-5 h-5 rounded-full bg-admin-muted-foreground/40 border border-muted-foreground/50" />
+                  <div className="w-5 h-5 rounded-full bg-muted-foreground/40 border border-muted-foreground/50" />
                 </td>
                 <td className="px-4 py-3">
                   <Badge className="bg-warning-soft text-warning hover:bg-warning-soft border border-warning-border text-xs">

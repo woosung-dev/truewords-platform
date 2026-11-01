@@ -210,7 +210,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className={`w-2 h-2 rounded-full shrink-0 ${
-                      config.is_active ? "bg-success" : "bg-admin-muted-foreground/40"
+                      config.is_active ? "bg-success" : "bg-muted-foreground/40"
                     }`}
                   />
                   <span className="font-medium text-sm truncate">{config.display_name}</span>

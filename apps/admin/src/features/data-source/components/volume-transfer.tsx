@@ -147,7 +147,7 @@ function TransferPanel({
                           <Badge
                             key={src}
                             variant="outline"
-                            className={cn("h-5 px-1.5 text-[10px] font-mono leading-none", colors.text, colors.bg)}
+                            className={cn("h-5 px-1.5 text-2xs font-mono leading-none", colors.text, colors.bg)}
                           >
                             {src}
                           </Badge>

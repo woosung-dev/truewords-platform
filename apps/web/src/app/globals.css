@@ -11,8 +11,8 @@
   /* shadcn 표준 토큰 */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* 자기참조(var(--font-sans))는 순환이라 무효였다 — 실제 글꼴 변수로 연결한다. */
-  --font-sans: var(--font-inter), sans-serif;
+  /* 자기참조(var(--font-sans))는 순환이라 무효였다 — layout.tsx 의 next/font 변수로 연결한다. */
+  --font-sans: var(--font-pretendard), sans-serif;
   /* 고정폭은 웹폰트 없이 시스템 mono 스택을 쓴다. */
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --font-heading: var(--font-sans);
@@ -93,10 +93,9 @@
 }
 
 :root {
-  /* 폰트 패밀리 — layout.tsx 의 Fontsource import 가 @font-face 를 등록한다.
-     대체 폰트는 이전 Google 폰트 로더의 Fallback(Arial·Times New Roman)과 같게 두고 generic(serif)은 넣지 않는다 —
+  /* 세리프 패밀리 — truewords-fonts.ts·truewords-reading-fonts.ts 의 Fontsource import 가 @font-face 를 등록한다.
+     대체 폰트는 이전 Google 폰트 로더의 Fallback(Times New Roman)과 같게 두고 generic(serif)은 넣지 않는다 —
      serif 를 넣으면 Cormorant 에 없는 한글이 시스템 명조로 바뀌어 font-display 제목 모양이 달라진다. */
-  --font-inter: "Inter Variable", Arial;
   --font-reading: "Noto Serif KR", "Times New Roman";
   --font-display: "Cormorant Garamond", "Times New Roman";
   /* TrueWords Light Mode (Plan A.2) — Paper × Scholar × AI */
