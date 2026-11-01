@@ -16,17 +16,17 @@ dependencies = [
     "greenlet>=3.5.5",
     # Auth
     "python-jose[cryptography]>=3.5.0",
-    "passlib[bcrypt]>=1.7.4",
+    "bcrypt>=5.0.0",
     "pymupdf>=1.28.2",
     "python-docx>=1.2.0",
     "kss>=6.0.6",
     "python-multipart>=0.0.22",
-    "aiosqlite>=0.22.1",
     "pywebpush>=2.5.0",
 ]
 
 [dependency-groups]
 dev = [
+    "aiosqlite>=0.22.1",
     "openpyxl>=3.1.5",
     "pytest>=8.3.0",
     "pytest-asyncio>=1.4.0",
