@@ -14,8 +14,6 @@ import "@/app/_hoondok/sheet.css";
 import "@/app/_hoondok/note.css";
 import "@/app/_hoondok/ask.css";
 import "@/app/_hoondok/library.css";
-import "@/app/_hoondok/worship.css";
-import "@/app/_hoondok/family.css";
 import "@/app/_hoondok/together.css";
 import "@/app/_hoondok/together-home.css";
 import "@/app/_hoondok/cards.css";
@@ -40,7 +38,7 @@ import { HoondokServiceWorker } from "@/features/hoondok/service-worker";
 // 베타 기간 검색 색인 금지 (권리 미확정 정본). next.config headers() 의 X-Robots-Tag 와 짝이다.
 const BASE_METADATA: Metadata = {
   title: "훈독",
-  description: "아침 3분 훈독 — 독립 운영 베타",
+  description: "아침 3분 훈독 · 독립 운영 베타",
   robots: { index: false, follow: false },
 };
 

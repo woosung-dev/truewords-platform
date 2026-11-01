@@ -85,8 +85,6 @@ export default defineConfig({
               NEXT_PUBLIC_DEMO_ADMIN_EMAIL: adminEmail,
               // 훈독 라우트는 플래그 ON 에서만 존재한다. OFF 404 는 Vitest 가 검증한다.
               NEXT_PUBLIC_HOONDOK_ENABLED: "1",
-              // 프리뷰 셸(가정예배·가족)은 두 번째 플래그 뒤에 있다 — 운영 이미지에는 넣지 않는다(PLAN-HD-002 §2).
-              NEXT_PUBLIC_HOONDOK_PREVIEW: "1",
               // 함께 읽는 모임 킬 스위치(PLAN-HD-010 D3) — 배포와 같이 ON.
               NEXT_PUBLIC_HOONDOK_TOGETHER: "1",
               // 오늘의 책갈피(PLAN-HD-012) — 시드 fixture 3장으로 여정을 검증한다.

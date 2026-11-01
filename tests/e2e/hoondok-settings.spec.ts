@@ -63,7 +63,7 @@ test("설정: 알림 준비 중 · 설치 안내 상시 · 내 데이터 삭제 
     await expect(page.getByRole("button", { name: label })).toHaveCount(0);
   }
   await expect(page.getByText("기도하기 · 가정예배 · 공지")).toBeVisible();
-  // 훈독하기 · 그 밖의 알림 · 조용한 시간. 탭 내비의 "말씀 검색 (준비 중)" 은 프리뷰 플래그에 따라 달라지므로 본문(main) 안만 센다
+  // 훈독하기 · 그 밖의 알림 · 조용한 시간. 탭 내비의 준비 중 탭은 세지 않도록 본문(main) 안만 센다
   await expect(page.locator("main").getByText("준비 중")).toHaveCount(3);
   await expect(page.locator("main").getByText("4종")).toHaveCount(0);
   await expect(page.locator("main").getByText("알림함")).toHaveCount(0);

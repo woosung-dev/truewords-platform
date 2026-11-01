@@ -2,7 +2,7 @@
 
 - 시연 챗(`/`, `/history`, `/about`, `/login`)과 훈독(`/hoondok/*`)을 소유한다. 관리자 화면은 `apps/admin`이다. 공통 규칙은 루트 `AGENTS.md`의 "웹 앱 공통"을 따른다.
 - 인증은 둘로 나뉜다. 시연 챗은 기존 시연 계정(`features/auth`·`lib/api.ts`의 `/login` 이동), 훈독은 `src/features/identity`의 일반 사용자 계정(쿠키 `hoondok_token`)이다. 두 경로의 로그인 이동을 섞지 않는다.
-- 훈독은 `NEXT_PUBLIC_HOONDOK_ENABLED=1` 빌드에서만 존재한다. 프리뷰 셸(`NEXT_PUBLIC_HOONDOK_PREVIEW=1`)은 fixture만 쓰고 네트워크 요청이 0이며, 운영 Dockerfile·Makefile에 이 플래그를 넣지 않는다.
+- 훈독은 `NEXT_PUBLIC_HOONDOK_ENABLED=1` 빌드에서만 존재한다. 가정예배·가족 프리뷰 프로토타입(`NEXT_PUBLIC_HOONDOK_PREVIEW`)은 코드에서 삭제했고, 필요하면 git 이력에서 복원한다.
 - 말씀 화면은 권리가 허용된 데이터만 보여준다.
 - 훈독 CSS: 토큰(hex)은 `src/app/hoondok.css` 첫 블록에만 두고 나머지 CSS는 `[data-app="hoondok"]` 스코프와 `var()`만 쓴다(`pnpm hoondok:check`가 검사). 훈독 때문에 `globals.css`·`:root`·루트 layout을 바꾸지 않는다.
 - 새 훈독 화면은 `src/features/hoondok/screens.ts` 레지스트리에 한 줄 추가한다. `tabs.ts`·`app-shell.tsx`는 건드리지 않는다. 공용 컴포넌트는 배럴 `src/components/hoondok/index.ts`로만 가져온다.

@@ -1,5 +1,4 @@
 import { BookOpenText, type LucideIcon, MessageCircle, Sprout, Sunrise, Video } from "lucide-react";
-import { isHoondokPreviewEnabled } from "./flag";
 import { screenFor } from "./screens";
 
 // 하단 5탭 = 상단 헤더 4 의 단일 정의 (DES-PWA-003 §7.1-3, DEC-PWA-015 명칭).
@@ -12,25 +11,24 @@ export type HoondokTab = {
   icon: LucideIcon;
   /** 가운데 "말씀" 돌출 버블 (폰에서만 형태가 성립) */
   isMid?: boolean;
-  /** 화면이 아직 없어 이동하지 않는다 — TAB_STAGE·프리뷰 플래그로 산출 (준비 중 표시만) */
+  /** 화면이 아직 없어 이동하지 않는다 — TAB_STAGE 로 산출 (준비 중 표시만) */
   isDisabled?: boolean;
 };
 
 /**
  * 탭 공개 단계 (PLAN-HD-002 W0-W).
- * live = 항상 이동 · soon = 준비 중(플래그와 무관) · preview = NEXT_PUBLIC_HOONDOK_PREVIEW=1 에서만 이동.
+ * live = 항상 이동 · soon = 준비 중.
  */
-export const TAB_STAGE: Record<HoondokTab["id"], "live" | "soon" | "preview"> = {
+export const TAB_STAGE: Record<HoondokTab["id"], "live" | "soon"> = {
   today: "live",
   ask: "live",
   library: "live",
-  worship: "preview",
+  worship: "soon",
   garden: "live",
 };
 
 export function isTabEnabled(id: HoondokTab["id"]): boolean {
-  const stage = TAB_STAGE[id];
-  return stage === "live" || (stage === "preview" && isHoondokPreviewEnabled());
+  return TAB_STAGE[id] === "live";
 }
 
 const TAB_DEFS: readonly Omit<HoondokTab, "isDisabled">[] = [
@@ -41,7 +39,7 @@ const TAB_DEFS: readonly Omit<HoondokTab, "isDisabled">[] = [
   { id: "garden", label: "나의 정원", href: "/hoondok/garden", icon: Sprout },
 ];
 
-// 플래그는 빌드 시 인라인되므로 모듈 상수로 한 번만 산출한다.
+// 단계는 고정값이라 모듈 상수로 한 번만 산출한다.
 export const HOONDOK_TABS: readonly HoondokTab[] = TAB_DEFS.map((tab) => ({
   ...tab,
   isDisabled: !isTabEnabled(tab.id),

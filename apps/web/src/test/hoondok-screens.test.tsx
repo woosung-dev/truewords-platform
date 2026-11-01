@@ -1,18 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// 화면 레지스트리·탭 단계·앱 셸 (PLAN-HD-002 W0-W). 프리뷰 플래그는 모듈 평가 시 읽히므로 stubEnv 뒤 재import 한다.
+// 화면 레지스트리·탭 단계·앱 셸 (PLAN-HD-002 W0-W).
 afterEach(() => {
-  vi.unstubAllEnvs();
   vi.resetModules();
   vi.restoreAllMocks();
 });
-
-async function loadTabsWithPreview(value: "" | "1") {
-  vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", value);
-  vi.resetModules();
-  return import("../features/hoondok/tabs");
-}
 
 describe("훈독 화면 레지스트리", () => {
   it("제목·뒤로·탭·폭은 프로토타입 TITLES·TAB_OF·col--read 를 따른다", async () => {
@@ -26,22 +19,11 @@ describe("훈독 화면 레지스트리", () => {
     expect(pick("/hoondok/onboarding")).toEqual(["시작하기", "/hoondok", "today", "app"]);
     expect(pick("/hoondok/garden")).toEqual(["나의 정원", undefined, "garden", "app"]);
     expect(pick("/hoondok/settings")).toEqual(["알림·설치", "/hoondok/garden", "garden", "app"]);
-    expect(pick("/hoondok/family")).toEqual(["가족·친구", "/hoondok/garden", "garden", "app"]);
     expect(pick("/hoondok/ask")).toEqual(["AI 질문", undefined, "ask", "read"]);
     expect(pick("/hoondok/ask/log")).toEqual(["질문 기록", "/hoondok/ask", "ask", "read"]);
     expect(pick("/hoondok/ask/q-123")).toEqual(["질문", "/hoondok/ask/log", "ask", "read"]);
     expect(pick("/hoondok/search")).toEqual(["말씀 검색", "/hoondok/library", "library", "app"]);
     expect(pick("/hoondok/words")).toEqual(["원문 읽기", "/hoondok/library", "library", "read"]);
-    // 5분 설교 탭(이전 가정예배) 첫 화면 = 5분 설교, 순서지·챌린지는 하위 화면 (2026-09-29)
-    expect(pick("/hoondok/worship")).toEqual(["5분 설교", undefined, "worship", "app"]);
-    expect(pick("/hoondok/worship/order")).toEqual(["순서지·챌린지", "/hoondok/worship", "worship", "app"]);
-    expect(pick("/hoondok/worship/challenge/family-21")).toEqual([
-      "챌린지",
-      "/hoondok/worship/order",
-      "worship",
-      "app",
-    ]);
-    expect(pick("/hoondok/worship/request")).toEqual(["설교 섭외", "/hoondok/worship", "worship", "app"]);
     // 미등록 경로는 홈 항목으로 떨어진다
     expect(pick("/hoondok/unknown")).toEqual(["오늘 훈독", undefined, "today", "home"]);
   });
@@ -50,29 +32,15 @@ describe("훈독 화면 레지스트리", () => {
     const { activeTabId } = await import("../features/hoondok/tabs");
     expect(activeTabId("/hoondok/read")).toBe("today");
     expect(activeTabId("/hoondok/settings")).toBe("garden");
-    expect(activeTabId("/hoondok/family")).toBe("garden");
     expect(activeTabId("/hoondok/search")).toBe("library");
-    expect(activeTabId("/hoondok/worship/order")).toBe("worship");
   });
 });
 
-describe("훈독 탭 단계 · 프리뷰 플래그", () => {
-  it("OFF(기본): 오늘 훈독·AI 질문·나의 정원만 이동한다", async () => {
-    const { HOONDOK_TABS, TAB_STAGE } = await loadTabsWithPreview("");
+describe("훈독 탭 단계", () => {
+  it("5분 설교만 준비 중이고 나머지 4탭은 이동한다", async () => {
+    const { HOONDOK_TABS, TAB_STAGE } = await import("../features/hoondok/tabs");
     expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual(["today", "ask", "library", "garden"]);
-    expect(TAB_STAGE).toEqual({ today: "live", garden: "live", ask: "live", library: "live", worship: "preview" });
-  });
-
-  it("ON: 말씀·5분 설교가 켜져 5탭이 모두 이동한다", async () => {
-    const { HOONDOK_TABS, isTabEnabled } = await loadTabsWithPreview("1");
-    expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual([
-      "today",
-      "ask",
-      "library",
-      "worship",
-      "garden",
-    ]);
-    expect(isTabEnabled("ask")).toBe(true);
+    expect(TAB_STAGE).toEqual({ today: "live", garden: "live", ask: "live", library: "live", worship: "soon" });
   });
 });
 
@@ -104,7 +72,6 @@ describe("훈독 앱 셸", () => {
   });
 
   it("/hoondok/settings: 제목 알림·설치 · 뒤로 → /hoondok/garden · 정원 탭 활성 · 검색은 항상 활성", async () => {
-    vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "");
     vi.resetModules();
     vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/hoondok/settings" }));
     const { HoondokAppShell } = await import("../components/hoondok/app-shell");
@@ -120,8 +87,7 @@ describe("훈독 앱 셸", () => {
     expect(screen.getAllByRole("link", { name: "말씀 검색" })).toHaveLength(2);
   });
 
-  it("프리뷰 ON: 앱바 아이콘·헤더 검색이 /hoondok/search 링크가 된다", async () => {
-    vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "1");
+  it("홈: 앱바 아이콘·헤더 검색이 /hoondok/search 링크가 된다", async () => {
     vi.resetModules();
     vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/hoondok" }));
     const { HoondokAppShell } = await import("../components/hoondok/app-shell");
@@ -139,7 +105,6 @@ describe("훈독 앱 셸", () => {
 
 describe("훈독 알림·설치 도달 경로 · 온보딩 탭바", () => {
   async function shell(pathname: string) {
-    vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "");
     vi.resetModules();
     vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => pathname }));
     const { HoondokAppShell } = await import("../components/hoondok/app-shell");

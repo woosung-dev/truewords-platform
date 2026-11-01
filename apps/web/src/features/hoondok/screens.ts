@@ -115,7 +115,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     variant: "app",
     hideSettingsLink: true,
   },
-  { match: "/hoondok/family", title: "가족·친구", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
   { match: "/hoondok/ask", title: "AI 질문", tabId: "ask", variant: "read" },
   {
     match: "/hoondok/ask/log",
@@ -153,29 +152,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     backHref: "/hoondok/library",
     tabId: "library",
     variant: "read",
-  },
-  // 5분 설교 탭(이전 가정예배) 첫 화면. 가정예배 순서지·챌린지는 전체 메뉴 > 5분 설교에서 연다 (2026-09-29)
-  { match: "/hoondok/worship", title: "5분 설교", tabId: "worship", variant: "app" },
-  {
-    match: "/hoondok/worship/order",
-    title: "순서지·챌린지",
-    backHref: "/hoondok/worship",
-    tabId: "worship",
-    variant: "app",
-  },
-  {
-    match: "/hoondok/worship/challenge",
-    title: "챌린지",
-    backHref: "/hoondok/worship/order",
-    tabId: "worship",
-    variant: "app",
-  },
-  {
-    match: "/hoondok/worship/request",
-    title: "설교 섭외",
-    backHref: "/hoondok/worship",
-    tabId: "worship",
-    variant: "app",
   },
 ];
 

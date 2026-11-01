@@ -183,7 +183,6 @@ beforeEach(() => {
   vi.mocked(libraryAPI.deleteHighlight).mockImplementation(async (id) => {
     serverHighlights = serverHighlights.filter((item) => item.id !== id);
   });
-  vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "");
   vi.mocked(identityAPI.me).mockRejectedValue(new ApiError(401, { message: "unauthorized" }));
   vi.mocked(libraryAPI.list).mockResolvedValue({ items: [ITEM, OTHER], works: [WORK] });
   vi.mocked(libraryAPI.words).mockResolvedValue(WORDS);
