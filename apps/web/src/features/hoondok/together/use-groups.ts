@@ -4,7 +4,7 @@ import { type QueryClient, type QueryKey, useMutation, useQuery, useQueryClient 
 import { useEffect, useRef } from "react";
 import { GROUPS_KEY, groupKey, groupMembersKey, MY_GROUPS_KEY } from "../query-keys";
 import { useKstDate } from "../use-kst-date";
-import { type GroupCreate, type GroupDetail, type GroupJeongseongInput, groupErrorOf, groupsAPI } from "./groups-api";
+import { type GroupCreate, type GroupDetail, groupErrorOf, groupsAPI } from "./groups-api";
 import { isValidInviteCode, normalizeInviteCode } from "./invite-code";
 
 // 함께 읽는 모임 React Query 훅 (PLAN-HD-010 §6). 화면(W1)·홈 카드(W2)는 여기서만 서버 상태를 읽는다.
@@ -176,24 +176,6 @@ export function useRemoveMember(groupId: string) {
       invalidateGroup(queryClient, groupId);
       void queryClient.invalidateQueries({ queryKey: groupMembersKey(groupId) });
     },
-  });
-}
-
-// ---------- 모임 정성 ----------
-
-export function useAddGroupJeongseong(groupId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (body: GroupJeongseongInput) => groupsAPI.addJeongseong(groupId, body),
-    onSuccess: () => invalidateGroup(queryClient, groupId),
-  });
-}
-
-export function useDeleteGroupJeongseong(groupId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (jeongseongId: string) => groupsAPI.deleteJeongseong(groupId, jeongseongId),
-    onSuccess: () => invalidateGroup(queryClient, groupId),
   });
 }
 

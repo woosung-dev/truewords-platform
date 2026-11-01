@@ -172,10 +172,6 @@ export function writeNote(note: PersonalNote): void {
   write(NOTE_KEY, JSON.stringify({ date: note.date, cardId: note.cardId, text }));
 }
 
-export function clearNote(): void {
-  remove(NOTE_KEY);
-}
-
 /** useSyncExternalStore 용 구독 — 같은 탭 write 와 다른 탭 storage 이벤트. */
 export function subscribePersonal(onChange: () => void): () => void {
   if (typeof window === "undefined") return () => {};

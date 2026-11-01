@@ -120,10 +120,6 @@ export function toggleAskSaved(id: string): boolean {
   return next;
 }
 
-export function removeAskItem(id: string): void {
-  writeAll(readAskItems().filter((item) => item.id !== id));
-}
-
 /** useSyncExternalStore 용 구독 — 같은 탭의 write 와 다른 탭의 storage 이벤트. */
 export function subscribeAsk(onChange: () => void): () => void {
   if (typeof window === "undefined") return () => {};
