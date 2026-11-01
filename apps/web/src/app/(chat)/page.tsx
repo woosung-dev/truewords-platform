@@ -117,12 +117,6 @@ export default function ChatPage() {
   const [answerMode, setAnswerMode] = useState<AnswerMode>("standard");
   const [personaSheetOpen, setPersonaSheetOpen] = useState(false);
 
-  // P0-G — 답변 화면 floating action bar (새 질문 / 북마크 / 공유) 전체 숨김.
-  // 북마크는 백엔드 영속화 미구현이고, 새 질문/공유도 헤더 액션과 중복돼 사용자
-  // 결정으로 일괄 hide. 인프라 도입 시 FloatingActionBar 와 followup sheet 동시 재활성.
-  // const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => new Set());
-  // const [followupOpen, setFollowupOpen] = useState(false);
-
   // 새 질문 전송 시 사용자 메시지를 viewport 상단으로 scrollIntoView 하여
   // 답변이 그 아래에서 점진 노출되는 Claude/ChatGPT 패턴을 따른다.
   // chunk 누적 동안 자동 하단 스크롤로 문맥이 가려지는 어색함 해소.
@@ -267,11 +261,6 @@ export default function ChatPage() {
   // 메시지가 없을 때는 ADR-46 Screen 2 입력 화면(QuestionInput + 맞춤 설정 + footer)을,
   // 메시지가 있으면 기존 채팅 흐름을 유지한다.
   const isEmptyState = messages.length === 0 && !loading;
-
-  // FloatingActionBar 전체 hide. latestAssistant 추출 + 핸들러는 인프라 추가 시 재활성.
-  // - handleFloatingNewQuestion: setFollowupOpen(true) + textarea focus
-  // - handleFloatingBookmark: setBookmarkedIds (영속화 미구현)
-  // - handleFloatingShare: navigator.share / clipboard fallback
 
   // 레드팀 시연 — 참여자 게이트. 이름·카테고리 입력 전에는 채팅 화면을 막는다.
   // (디자인은 추후 /design-shotgun A~C 시안으로 교체 예정 — 현재는 기능 동작용)
@@ -565,8 +554,6 @@ export default function ChatPage() {
           fallbackLabel={chunkModal.displayName ?? undefined}
         />
       )}
-
-      {/* 추천 follow-up sheet 는 FloatingActionBar 와 함께 숨김. 재활성 시 같이 복구. */}
     </div>
   );
 }
