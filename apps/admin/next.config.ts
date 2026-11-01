@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
   experimental: { proxyClientMaxBodySize: "200mb" },
   async redirects() {
     return [
-      ...["history", "about", "design-system"].map((route) => ({
+      ...["history", "about"].map((route) => ({
         source: `/${route}/:path*`,
         destination: `${WEB_ORIGIN}/${route}/:path*`,
         permanent: false,

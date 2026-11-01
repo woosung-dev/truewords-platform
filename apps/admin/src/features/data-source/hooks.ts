@@ -41,16 +41,6 @@ export function useCategoryStats() {
   });
 }
 
-export function useAddVolumeTag() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: VolumeTagRequest) => dataSourceCategoryAPI.addVolumeTag(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["category-stats"] });
-    },
-  });
-}
-
 export function useRemoveVolumeTag() {
   const queryClient = useQueryClient();
   return useMutation({

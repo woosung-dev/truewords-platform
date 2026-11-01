@@ -65,12 +65,12 @@ test("훈독 스코프 토큰은 시연 챗 :root --accent 를 바꾸지 않는�
   );
   expect(rootOnHoondok).not.toBe("#c24721");
 
-  await page.goto("/design-system");
-  const rootOnDesignSystem = await page.evaluate(() =>
+  await page.goto("/login");
+  const rootOnChat = await page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(),
   );
-  expect(rootOnDesignSystem).toBe(rootOnHoondok);
-  expect(rootOnDesignSystem).toMatch(/oklch\(0\.539 0\.166 47\)|lab\(/);
+  expect(rootOnChat).toBe(rootOnHoondok);
+  expect(rootOnChat).toMatch(/oklch\(0\.539 0\.166 47\)|lab\(/);
 });
 
 test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 1일", async ({ page }) => {

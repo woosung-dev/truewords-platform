@@ -72,7 +72,6 @@ export default function DataSourcesPage() {
     newCount: number;
   }>({ open: false, files: [], duplicates: [], newCount: 0 });
 
-  // Gemini 티어 조회 (유료 전용 배치 모드 활성화 여부)
   // 적재 대상 컬렉션 + 환경 — 헤더 indicator 에 표시 (PR #97).
   // 사용자가 "어떤 컬렉션에 데이터가 들어가는지" 인지하여 운영 사고 방지.
   const { data: configData } = useQuery({

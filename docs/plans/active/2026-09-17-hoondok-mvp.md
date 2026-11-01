@@ -116,7 +116,7 @@ Phase 2 완료 기준: `make e2e` 로 루프 재현. `admin_token` 만 가진 �
 
 2026-09-19 답변 반영: **편성자는 비개발자** → `apps/admin` 편성 화면 + `/admin/hoondok/daily-readings` API 로 확정하고 CSV 스크립트 안은 폐기한다(`seed_daily_readings.py` 는 로컬·E2E 시드로만 유지). **약관·법적 주체는 미정** → 베타 고지만 유지(§5 와 같음), 초대 규모 `[가정]` 10~20명 유지. 제한 베타의 실제 제한 수단은 F 의 초대 코드다(`[확인 필요]` — 불필요하면 F 를 생략하고 noindex·비링크 상태로 연다).
 
-조사로 확인한 전제(2026-09-19): `apps/web/public/` 에 PWA 자산 0건(`chat-mockups.html` 만)이고 Dockerfile 이 `public/` 을 그대로 복사하므로 새 정적 파일은 Dockerfile 변경 없이 실린다. 루트 `layout.tsx` 는 시연 챗과 공유되고 `X-Robots-Tag` 헤더는 `/hoondok` 경로 한정이므로 manifest·SW·폰트는 전부 `/hoondok/` 아래에 둔다(§10). `DailyReadingRepository` 는 `get_by_date`·`create` 만 있다. smoke 타깃·클라이언트 오류 관측·Cloudflare 캐시 규칙 문서는 0건이며 G 에서 신설한다. `ops-check.sh` 의 `containers` 는 compose 서비스 목록을 읽고, 이 Phase 는 컨테이너를 늘리지 않는다.
+조사로 확인한 전제(2026-09-19): `apps/web/public/` 에 PWA 자산 0건(당시 `chat-mockups.html` 만, 이후 삭제)이고 Dockerfile 이 `public/` 을 그대로 복사하므로 새 정적 파일은 Dockerfile 변경 없이 실린다. 루트 `layout.tsx` 는 시연 챗과 공유되고 `X-Robots-Tag` 헤더는 `/hoondok` 경로 한정이므로 manifest·SW·폰트는 전부 `/hoondok/` 아래에 둔다(§10). `DailyReadingRepository` 는 `get_by_date`·`create` 만 있다. smoke 타깃·클라이언트 오류 관측·Cloudflare 캐시 규칙 문서는 0건이며 G 에서 신설한다. `ops-check.sh` 의 `containers` 는 compose 서비스 목록을 읽고, 이 Phase 는 컨테이너를 늘리지 않는다.
 
 | sub-PR | 내용 | 완료 기준 |
 |---|---|---|
