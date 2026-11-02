@@ -2,9 +2,11 @@
 
 // 전체 메뉴 (앱바 햄버거). 밀리의 서재 "즐겨찾기" 패널을 참고했다 — 위 띠에 즐겨찾기 칩 두 묶음(메뉴·말씀)과 초기화,
 // 아래에 탭 두 개(메뉴·말씀)와 별 토글 목록. 배경막·포커스 가둠·Esc 는 <dialog>.showModal() 이 맡는다(정성 시트와 같다).
+import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react/dist/ssr/ArrowCounterClockwise";
+import { StarIcon } from "@phosphor-icons/react/dist/ssr/Star";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import { useQuery } from "@tanstack/react-query";
 import type { LibraryWork } from "@truewords/api-client-ts/types";
-import { RotateCcw, Star, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type KeyboardEvent, type MouseEvent, type ReactNode, useEffect, useRef, useState } from "react";
@@ -46,7 +48,7 @@ function volumeSummary(work: LibraryWork): string {
 function StarToggle({ label, isOn, onToggle }: { label: string; isOn: boolean; onToggle: () => void }) {
   return (
     <button className="mn-star" type="button" aria-pressed={isOn} aria-label={`${label} 즐겨찾기`} onClick={onToggle}>
-      <Star size={22} fill={isOn ? "currentColor" : "none"} aria-hidden="true" />
+      <StarIcon size={22} weight={isOn ? "fill" : "regular"} aria-hidden="true" />
     </button>
   );
 }
@@ -78,7 +80,7 @@ function FavGroup({
           aria-label={`${title} 초기화`}
           onClick={onReset}
         >
-          <RotateCcw size={14} aria-hidden="true" />
+          <ArrowCounterClockwiseIcon size={14} aria-hidden="true" />
           초기화
         </button>
       </div>
@@ -86,7 +88,7 @@ function FavGroup({
         <ul className="mn-chips">{children}</ul>
       ) : (
         <p className="mn-empty">
-          <Star size={14} aria-hidden="true" />
+          <StarIcon size={14} aria-hidden="true" />
           {empty}
         </p>
       )}
@@ -294,7 +296,7 @@ export function MenuDrawer({ onClose }: { onClose: () => void }) {
             전체 메뉴
           </h2>
           <button className="icon-btn" type="button" aria-label="전체 메뉴 닫기" onClick={onClose}>
-            <X size={22} aria-hidden="true" />
+            <XIcon size={22} aria-hidden="true" />
           </button>
         </div>
 

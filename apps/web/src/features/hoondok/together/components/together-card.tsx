@@ -4,7 +4,9 @@
 // 오늘 훈독하기를 마친 서로 다른 사용자 수만 보인다. 누가 읽었는지·안 읽은 사람·순위는 그리지 않는다.
 // 서버가 기준 미만이면 count 를 주지 않으므로(is_shown=false) 숫자 대신 대체 문구를 쓴다.
 // 모임 카드·"내 모임" 링크·모임 만들기 진입은 2단계(group-list.tsx)가 따로 그린다. 여기의 2단계는 완료 뒤 한 줄 진입뿐이다.
-import { ChevronRight, MessageCircle, Sunrise } from "lucide-react";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/ssr/CaretRight";
+import { ChatCircleDotsIcon } from "@phosphor-icons/react/dist/ssr/ChatCircleDots";
+import { UsersThreeIcon } from "@phosphor-icons/react/dist/ssr/UsersThree";
 import Link from "next/link";
 import { isHoondokTogetherEnabled } from "../../flag";
 import { useMyGroups } from "../use-groups";
@@ -31,7 +33,7 @@ export function TogetherCard() {
       ) : (
         <div className="card together">
           <span className="tg-ic" aria-hidden="true">
-            <Sunrise size={20} />
+            <UsersThreeIcon size={20} />
           </span>
           <span className="together__bd">
             <b>
@@ -57,7 +59,7 @@ export function TogetherDoneNotice({ isCounted }: { isCounted: boolean }) {
   const count = data.is_shown ? data.count : null;
   return (
     <p className="tg-after__n">
-      <Sunrise size={20} aria-hidden="true" />
+      <UsersThreeIcon size={20} aria-hidden="true" />
       {isCounted && count !== null ? (
         <span>
           당신까지 <b>{formatCount(count)}명</b>이 함께 읽었어요
@@ -83,7 +85,7 @@ export function GroupShareEntry({ isCounted }: { isCounted: boolean }) {
   return (
     <Link className="card together tg-gc tg-share-go" href={`/hoondok/groups/${encodeURIComponent(first.id)}/share`}>
       <span className="tg-ic" aria-hidden="true">
-        <MessageCircle size={20} />
+        <ChatCircleDotsIcon size={20} />
       </span>
       <span className="together__bd">
         <b className="tg-gc__title">
@@ -92,7 +94,7 @@ export function GroupShareEntry({ isCounted }: { isCounted: boolean }) {
         </b>
         <span>식구에게 보여요 · 머문 마음을 한 줄로 나눠요</span>
       </span>
-      <ChevronRight className="tg-gc__go" size={20} aria-hidden="true" />
+      <CaretRightIcon className="tg-gc__go" size={20} aria-hidden="true" />
     </Link>
   );
 }

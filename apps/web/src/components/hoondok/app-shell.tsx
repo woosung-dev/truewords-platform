@@ -1,6 +1,9 @@
 "use client";
 
-import { ArrowLeft, Bell, Menu, Search } from "lucide-react";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowLeft";
+import { BellSimpleIcon } from "@phosphor-icons/react/dist/ssr/BellSimple";
+import { ListIcon } from "@phosphor-icons/react/dist/ssr/List";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type FocusEvent, type ReactNode, useCallback, useState } from "react";
@@ -53,18 +56,18 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
           <div className="appbar__in">
             {screen.backHref && (
               <Link className="icon-btn" href={screen.backHref} aria-label="뒤로">
-                <ArrowLeft size={22} />
+                <ArrowLeftIcon size={22} aria-hidden="true" />
               </Link>
             )}
             <h1 className="appbar__title">{title}</h1>
             {!screen.hideSearchLink && (
               <Link className="icon-btn icon-btn--search" href="/hoondok/search" aria-label="말씀 검색">
-                <Search size={22} />
+                <MagnifyingGlassIcon size={22} aria-hidden="true" />
               </Link>
             )}
             {!screen.hideSettingsLink && (
               <Link className="icon-btn icon-btn--bell" href="/hoondok/settings" aria-label="알림·설치">
-                <Bell size={22} />
+                <BellSimpleIcon size={22} aria-hidden="true" />
               </Link>
             )}
             {!screen.hideNav && (
@@ -76,7 +79,7 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
                 aria-expanded={isMenuOpen}
                 onClick={() => setMenuPath(pathname)}
               >
-                <Menu size={22} />
+                <ListIcon size={22} aria-hidden="true" />
               </button>
             )}
           </div>
@@ -96,7 +99,11 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
             const inner = (
               <>
                 <span className="nav__ic">
-                  <Icon size={tab.isMid ? 27 : 24} fill={isActive && !tab.isMid ? "currentColor" : "none"} />
+                  <Icon
+                    size={tab.isMid ? 27 : 24}
+                    weight={isActive && !tab.isMid ? "fill" : "regular"}
+                    aria-hidden="true"
+                  />
                 </span>
                 {tab.label}
               </>
@@ -116,12 +123,12 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
             href="/hoondok/search"
             aria-current={screen.hideSearchLink ? "page" : undefined}
           >
-            <Search size={20} />
+            <MagnifyingGlassIcon size={20} aria-hidden="true" />
             말씀 검색
           </Link>
           {!screen.hideSettingsLink && (
             <Link className="nav__user" href="/hoondok/settings" aria-label="알림·설치">
-              <Bell size={18} />
+              <BellSimpleIcon size={18} aria-hidden="true" />
             </Link>
           )}
           <button
@@ -132,7 +139,7 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
             aria-expanded={isMenuOpen}
             onClick={() => setMenuPath(pathname)}
           >
-            <Menu size={18} />
+            <ListIcon size={18} aria-hidden="true" />
           </button>
         </nav>
       )}
