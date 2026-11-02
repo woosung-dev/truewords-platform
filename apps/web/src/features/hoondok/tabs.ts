@@ -1,4 +1,9 @@
-import { BookOpenText, type LucideIcon, MessageCircle, Sprout, Sunrise, Video } from "lucide-react";
+import type { Icon } from "@phosphor-icons/react";
+import { BooksIcon } from "@phosphor-icons/react/dist/ssr/Books";
+import { ChatCircleDotsIcon } from "@phosphor-icons/react/dist/ssr/ChatCircleDots";
+import { PlantIcon } from "@phosphor-icons/react/dist/ssr/Plant";
+import { PlayCircleIcon } from "@phosphor-icons/react/dist/ssr/PlayCircle";
+import { SunHorizonIcon } from "@phosphor-icons/react/dist/ssr/SunHorizon";
 import { screenFor } from "./screens";
 
 // 하단 5탭 = 상단 헤더 4 의 단일 정의 (DES-PWA-003 §7.1-3, DEC-PWA-015 명칭).
@@ -8,7 +13,7 @@ export type HoondokTab = {
   id: "today" | "ask" | "library" | "worship" | "garden";
   label: string;
   href: string;
-  icon: LucideIcon;
+  icon: Icon;
   /** 가운데 "말씀" 돌출 버블 (폰에서만 형태가 성립) */
   isMid?: boolean;
   /** 화면이 아직 없어 이동하지 않는다 — TAB_STAGE 로 산출 (준비 중 표시만) */
@@ -32,11 +37,11 @@ export function isTabEnabled(id: HoondokTab["id"]): boolean {
 }
 
 const TAB_DEFS: readonly Omit<HoondokTab, "isDisabled">[] = [
-  { id: "today", label: "오늘 훈독", href: "/hoondok", icon: Sunrise },
-  { id: "ask", label: "AI 질문", href: "/hoondok/ask", icon: MessageCircle },
-  { id: "library", label: "말씀", href: "/hoondok/library", icon: BookOpenText, isMid: true },
-  { id: "worship", label: "5분 설교", href: "/hoondok/worship", icon: Video },
-  { id: "garden", label: "나의 정원", href: "/hoondok/garden", icon: Sprout },
+  { id: "today", label: "오늘 훈독", href: "/hoondok", icon: SunHorizonIcon },
+  { id: "ask", label: "AI 질문", href: "/hoondok/ask", icon: ChatCircleDotsIcon },
+  { id: "library", label: "말씀", href: "/hoondok/library", icon: BooksIcon, isMid: true },
+  { id: "worship", label: "5분 설교", href: "/hoondok/worship", icon: PlayCircleIcon },
+  { id: "garden", label: "나의 정원", href: "/hoondok/garden", icon: PlantIcon },
 ];
 
 // 단계는 고정값이라 모듈 상수로 한 번만 산출한다.

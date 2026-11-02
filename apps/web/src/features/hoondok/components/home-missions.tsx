@@ -1,6 +1,9 @@
 "use client";
 
-import { ArrowRight, BookOpenText, HandHeart, Library } from "lucide-react";
+import { ArrowRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowRight";
+import { BookOpenTextIcon } from "@phosphor-icons/react/dist/ssr/BookOpenText";
+import { BooksIcon } from "@phosphor-icons/react/dist/ssr/Books";
+import { HandsPrayingIcon } from "@phosphor-icons/react/dist/ssr/HandsPraying";
 import Link from "next/link";
 import { MissionCard, WeekStrip } from "@/components/hoondok";
 import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-today";
@@ -38,7 +41,7 @@ export function HomeGreeting() {
         <p className="shot__sub">{dateLabel}</p>
         <Link className="btn btn-primary shot__go" href="/hoondok/read">
           훈독하기
-          <ArrowRight size={18} aria-hidden="true" />
+          <ArrowRightIcon size={18} aria-hidden="true" />
         </Link>
       </div>
     </div>
@@ -92,7 +95,7 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
       kind={`훈독하기 · ${reading?.estimated_minutes ?? 3}분`}
       title={reading?.title ?? "오늘 말씀을 확인하지 못했어요"}
       meta={reading ? `${reading.work_title} · ${reading.speaker}` : "훈독하기에서 다시 불러와요"}
-      icon={BookOpenText}
+      icon={BookOpenTextIcon}
       href="/hoondok/read"
       isPending={!reading && effective.isResolving}
       isDone={isReadDone}
@@ -104,7 +107,7 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
       kind="기도하기 · 1분"
       title="오늘의 기도 제목"
       meta="가족·모임 기도 제목은 다음 단계에서"
-      icon={HandHeart}
+      icon={HandsPrayingIcon}
       isDisabled
     />
   );
@@ -113,7 +116,7 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
       kind="말씀 읽기 · 이어 읽기"
       title={resume.status === "ready" ? resume.title : "말씀 서고"}
       meta={resume.status === "ready" ? resume.meta : "공개된 원문을 읽고 읽음으로 기록해요"}
-      icon={Library}
+      icon={BooksIcon}
       href={resume.status === "ready" ? resume.href : "/hoondok/library"}
       isPending={resume.status === "pending"}
       isDone={study.isDone || Boolean(summary?.today.study)}
