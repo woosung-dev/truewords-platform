@@ -19,7 +19,6 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 from app.modules.chat.router import router as chat_router
 from app.modules.chat.stream_schemas import STREAM_EVENT_MODELS
-from app.modules.chat.reactions_router import reactions_router
 from app.modules.chatbot.router import router as chatbot_router, admin_router as chatbot_admin_router
 from app.modules.admin.dependencies import require_admin_gate
 from app.modules.admin.router import router as admin_router
@@ -134,7 +133,6 @@ app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignor
 
 # 공개 라우터
 app.include_router(chat_router)
-app.include_router(reactions_router)
 app.include_router(chatbot_router)
 app.include_router(journey_router)
 app.include_router(client_errors_router)

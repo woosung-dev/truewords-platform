@@ -24,7 +24,6 @@ from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
     RetrievalConfig,
-    SafetyConfig,
     SearchModeConfig,
     TierConfig,
 )
@@ -57,7 +56,6 @@ def _runtime_config_with_rerank() -> ChatbotRuntimeConfig:
         ),
         generation=GenerationConfig(system_prompt="sp"),
         retrieval=RetrievalConfig(rerank_enabled=True, query_rewrite_enabled=False),
-        safety=SafetyConfig(),
     )
 
 
@@ -202,7 +200,6 @@ async def test_disabled_intent_classifier_uses_default_K() -> None:
             query_rewrite_enabled=False,
             intent_classifier_enabled=False,
         ),
-        safety=SafetyConfig(),
     )
     chatbot_service.build_runtime_config.return_value = config
     session = ResearchSession(id=uuid.uuid4(), chatbot_config_id=None)

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScheduleStockBanner } from "@/features/hoondok/components/schedule-stock";
@@ -64,13 +65,13 @@ export default function HoondokReadingsPage() {
       )}
 
       {isLoading ? (
-        <div className="rounded-xl border bg-card overflow-hidden">
+        <Card className="p-0 overflow-hidden">
           {["s1", "s2", "s3", "s4", "s5"].map((key, i) => (
             <div key={key} className={`px-5 py-4 ${i !== 0 ? "border-t" : ""}`}>
               <Skeleton className="h-5 w-full" />
             </div>
           ))}
-        </div>
+        </Card>
       ) : isError ? (
         <div className="rounded-xl border border-dashed p-10 text-center space-y-3">
           <p className="text-muted-foreground text-sm">편성 목록을 불러올 수 없습니다.</p>
@@ -79,7 +80,7 @@ export default function HoondokReadingsPage() {
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <Card className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-admin-muted/40 hover:bg-admin-muted/40">
@@ -178,7 +179,7 @@ export default function HoondokReadingsPage() {
               })}
             </TableBody>
           </Table>
-        </div>
+        </Card>
       )}
     </div>
   );

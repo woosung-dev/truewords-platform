@@ -1,6 +1,6 @@
 """훈독 AI 낭독 목소리 (PLAN-HD-011).
 
-임의 텍스트는 받지 않는다 — 클라이언트는 식별자(원문 청크 id, 오늘 훈독 말씀 id + 단락 번호)만 보내고
+임의 텍스트는 받지 않는다 — 클라이언트는 식별자(원문 청크 id)만 보내고
 서버가 화면에 보이는 본문을 직접 조회해 합성한다. 처음 들을 때 만들어 파일로 저장하고 이후에는 저장본을 준다.
 
 - 캐시 키 = sha256(voice | speakingRate | 합성할 텍스트). 파일은 `{cache_dir}/{key[:2]}/{key}.mp3`,
@@ -24,7 +24,7 @@ import re
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from weakref import WeakKeyDictionary
 from zoneinfo import ZoneInfo
@@ -33,7 +33,6 @@ from app.core.common.clock import utcnow
 from app.modules.hoondok.exceptions import TtsError
 from app.modules.hoondok.journey_service import JourneyService
 from app.modules.hoondok.models import TtsUsage
-from app.modules.hoondok.service import today_kst
 from app.modules.hoondok.tts_google import TtsUpstreamError, synthesize_mp3
 from app.modules.hoondok.tts_repository import TtsRepository
 from app.modules.hoondok.tts_schemas import TtsVoice, TtsVoiceId, TtsVoicesResponse
@@ -65,14 +64,7 @@ VOICES: dict[str, VoiceSpec] = {
     "iapetus": VoiceSpec("ko-KR-Chirp3-HD-Iapetus", "또렷한 남성", "단정하고 분명한 톤"),
 }
 
-# 오늘 훈독 본문의 단락 = 빈 줄로 나뉜 덩어리. 웹의 splitReadingParagraphs 와 같은 규칙이다.
-_PARAGRAPH_BREAK = re.compile(r"\n\s*\n")
-
 SynthFn = Callable[[str, str], Awaitable[bytes]]  # (google voice name, text) → mp3
-
-
-def split_paragraphs(body: str) -> list[str]:
-    return [part.strip() for part in _PARAGRAPH_BREAK.split(body) if part.strip()]
 
 
 def normalize_for_speech(text: str) -> str:
@@ -142,7 +134,6 @@ class TtsService:
         cache_dir: str | Path,
         synth_fn: SynthFn | None = None,
         month_fn: Callable[[], str] = billing_month,
-        today_fn: Callable[[], date] = today_kst,
         now_fn: Callable[[], datetime] = utcnow,
         request_timeout: float = REQUEST_TIMEOUT_SECONDS,
     ) -> None:
@@ -151,7 +142,7 @@ class TtsService:
         self.monthly_limit, self.user_daily_limit = monthly_limit, user_daily_limit
         self.cache_dir = Path(cache_dir)
         self.synth_fn = synth_fn or self._google
-        self.month_fn, self.today_fn, self.now_fn = month_fn, today_fn, now_fn
+        self.month_fn, self.now_fn = month_fn, now_fn
         self.request_timeout = request_timeout
 
     async def _cache_writable(self) -> bool:
@@ -209,39 +200,6 @@ class TtsService:
         if not text:
             raise self._not_found()
         return await self._audio(voice, spec, text, user_id)
-
-    async def reading_audio(self, reading_id: uuid.UUID, paragraph: int, voice: str, user_id: uuid.UUID) -> TtsAudio:
-        """오늘 훈독(/hoondok/read) 말씀의 단락 1개. 편성 말씀(daily_readings) 또는 내 정성 말씀(jeongseong_readings)."""
-        spec = await self._check(voice)
-        body = await self._reading_body(reading_id, user_id)
-        paragraphs = split_paragraphs(body) if body else []
-        if not 0 <= paragraph < len(paragraphs):
-            raise self._not_found()
-        return await self._audio(voice, spec, paragraphs[paragraph], user_id)
-
-    async def _reading_body(self, reading_id: uuid.UUID, user_id: uuid.UUID) -> str | None:
-        daily = await self.repo.get_daily_reading(reading_id)
-        if daily is not None:
-            # 공개된 편성만 — 철회됐거나 아직 오지 않은 날의 본문은 읽어 주지 않는다.
-            if daily.review_status == "withdrawn" or daily.reading_date > self.today_fn():
-                return None
-            return daily.body
-        found = await self.repo.get_jeongseong_reading(reading_id)
-        if found is None:
-            return None
-        reading, period = found
-        # 정성 말씀은 본인 것만, 화면과 같이 진행 중 기간의 오늘 말씀만, 정성 권리가 지금도 허용된 저작물만.
-        today = self.today_fn()
-        is_current = (
-            period.status == "active"
-            and reading.reading_date == today
-            and today < period.started_on + timedelta(days=period.duration_days)
-        )
-        if period.user_id != user_id or not is_current:
-            return None
-        if reading.volume not in await self.journey.allowed("scope_jeongseong"):
-            return None
-        return reading.body
 
     def _path(self, key: str) -> Path:
         return self.cache_dir / key[:2] / f"{key}.mp3"

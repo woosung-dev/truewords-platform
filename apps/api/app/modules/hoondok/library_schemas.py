@@ -8,8 +8,6 @@ from pydantic import BaseModel, Field, model_validator
 from app.modules.hoondok.schemas import AuthorityGrade
 from app.modules.hoondok.display_text import PAGE_SIZE
 
-# 형광펜은 API-HD-053 구절 단위로 옮겼다 — 단락 표시(API-HD-026)는 북마크만 남는다.
-MarkKind = Literal["bookmark"]
 RightStatus = Literal["pending", "allowed", "withdrawn"]
 
 
@@ -90,41 +88,6 @@ class ReadingPositionItem(BaseModel):
 
 class ReadingPositionsResponse(BaseModel):
     items: list[ReadingPositionItem]
-
-
-# --- API-HD-026 단락 표시 ---------------------------------------------------
-
-
-class MarkInput(BaseModel):
-    volume: str = Field(min_length=1, max_length=512)
-    chunk_index: int = Field(ge=0)
-    kind: MarkKind
-    color: int | None = Field(default=None, ge=1, le=3)
-    note: str | None = Field(default=None, max_length=2000)
-
-    @model_validator(mode="after")
-    def check_color(self) -> "MarkInput":
-        """북마크는 색을 갖지 않는다(넘어와도 버린다)."""
-        self.color = None
-        return self
-
-
-class MarkItem(BaseModel):
-    chunk_id: str
-    chunk_index: int
-    volume: str
-    kind: MarkKind
-    color: int | None
-    note: str | None
-    updated_at: datetime
-    work_title: str
-    label: str
-    # 목록 `?excerpt=true` 일 때만 응답에 나온다 — 원문 뷰 display_text 앞 300자, 원문이 막힌 권·조회 실패는 null.
-    excerpt: str | None = None
-
-
-class MarksResponse(BaseModel):
-    items: list[MarkItem]
 
 
 # --- API-HD-053 구절 형광펜 -------------------------------------------------

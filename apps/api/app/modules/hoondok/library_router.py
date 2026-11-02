@@ -16,9 +16,6 @@ from app.modules.hoondok.library_schemas import (
     HighlightItem,
     HighlightPatch,
     HighlightsResponse,
-    MarkInput,
-    MarkItem,
-    MarksResponse,
     ReadingPositionInput,
     ReadingPositionItem,
     ReadingPositionsResponse,
@@ -78,51 +75,6 @@ async def put_reading_position(
 ) -> ReadingPositionItem:
     """API-HD-025 이어 읽기 upsert. 404 원문 미허용, 403 CSRF, 401 미인증."""
     return await service.save_position(user.id, volume, data.chunk_index)
-
-
-# exclude_unset: `excerpt` 는 요청한 목록에만 키가 생긴다 — 기존 호출의 응답 모양을 바꾸지 않는다.
-@router.get("/me/marks", response_model=MarksResponse, response_model_exclude_unset=True)
-async def get_marks(
-    volume: str | None = Query(default=None, max_length=512),
-    kind: str | None = Query(default=None, pattern="^bookmark$"),
-    limit: int = Query(default=200, ge=1, le=200),
-    excerpt: bool = Query(default=False),
-    user: User = Depends(get_current_user),
-    service: LibraryService = Depends(get_library_service),
-) -> MarksResponse:
-    """API-HD-026 내 표시 목록(최신순). 본인 것만 나온다. `excerpt=true` 면 원문 발췌를 붙인다. 401 미인증."""
-    return await service.list_marks(user.id, volume, kind, limit, excerpt)
-
-
-@router.put(
-    "/me/marks/{chunk_id}",
-    response_model=MarkItem,
-    response_model_exclude_unset=True,
-    dependencies=[Depends(verify_csrf)],
-)
-async def put_mark(
-    chunk_id: str,
-    data: MarkInput,
-    user: User = Depends(get_current_user),
-    service: LibraryService = Depends(get_library_service),
-) -> MarkItem:
-    """API-HD-026 표시 upsert(`user·chunk_id·kind`). 422 형광펜 색 누락, 404 미허용, 403 CSRF, 401."""
-    return await service.save_mark(user.id, chunk_id, data)
-
-
-@router.delete(
-    "/me/marks/{chunk_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(verify_csrf)],
-)
-async def delete_mark(
-    chunk_id: str,
-    kind: str | None = Query(default=None, pattern="^bookmark$"),
-    user: User = Depends(get_current_user),
-    service: LibraryService = Depends(get_library_service),
-) -> None:
-    """API-HD-026 표시 삭제. 본인 것만 지우고 없어도 204. 403 CSRF, 401 미인증."""
-    await service.delete_mark(user.id, chunk_id, kind)
 
 
 @router.get("/me/highlights", response_model=HighlightsResponse)

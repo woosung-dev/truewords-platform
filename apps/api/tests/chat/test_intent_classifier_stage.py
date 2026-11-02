@@ -18,7 +18,6 @@ from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
     RetrievalConfig,
-    SafetyConfig,
     SearchModeConfig,
 )
 from app.modules.search.intent_classifier import (
@@ -35,7 +34,6 @@ def _runtime_config(*, intent_enabled: bool = True) -> ChatbotRuntimeConfig:
         search=SearchModeConfig(mode="cascading"),
         generation=GenerationConfig(system_prompt="sp"),
         retrieval=RetrievalConfig(intent_classifier_enabled=intent_enabled),
-        safety=SafetyConfig(),
     )
 
 

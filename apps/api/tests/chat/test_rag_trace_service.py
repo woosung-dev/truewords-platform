@@ -50,7 +50,6 @@ from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
     RetrievalConfig,
-    SafetyConfig,
     SearchModeConfig,
     TierConfig,
 )
@@ -165,7 +164,6 @@ def _runtime_config(*, multiturn: bool = True, rerank: bool = True) -> ChatbotRu
         retrieval=RetrievalConfig(
             rerank_enabled=rerank, query_rewrite_enabled=False, multiturn_enabled=multiturn
         ),
-        safety=SafetyConfig(),
     )
 
 

@@ -1,5 +1,4 @@
-import { createApiClient } from "@truewords/api-client-ts";
-import { hoondokFetch } from "../observability/report";
+import { hoondokRequest as request } from "../api-client";
 import type {
   NotificationPrefs,
   NotificationPrefsInput,
@@ -10,7 +9,6 @@ import type {
 
 // 알림 설정·구독 API (PLAN-HD-006). 브라우저에서 쿠키와 함께 /api/backend 프록시로 간다 —
 // X-Requested-With 와 credentials 는 createApiClient 의 transport 가 붙인다.
-const { request } = createApiClient({ baseUrl: "/api/backend", fetch: hoondokFetch });
 
 export const notificationsAPI = {
   config: () => request<PushConfig>("/hoondok/push/config"),

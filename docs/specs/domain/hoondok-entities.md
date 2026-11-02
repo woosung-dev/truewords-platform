@@ -13,7 +13,7 @@
 - 상태값은 Postgres ENUM 이 아니라 `varchar` + 애플리케이션 검증이다.
 - 기존 테이블(`admin_users`, `research_sessions` 등)과 FK 를 맺지 않는다. 훈독 계정은 `AdminUser` 와 완전히 분리한다(`REQ-PWA-008`).
 - `[가정]` 라벨이 있는 필드는 Phase 2 구현 시 확정한다.
-- **프리뷰 셸 화면(`SCR-PWA-007`~`013`·`016`)에는 대응하는 엔티티가 없다.** 말씀 서고·검색·원문·가정예배·설교·가족·친구는 `apps/web/src/features/hoondok/preview/fixtures/` 의 표시용 fixture 뿐이며 테이블·API·네트워크 요청이 하나도 없다(PLAN-HD-002 W3). 실데이터 도입은 권리 원장·Qdrant payload 확장·`DEC-PWA-020`·`DEC-PWA-021` 이 정해진 뒤다.
+- **가정예배·설교·가족·친구 화면(`SCR-PWA-010`~`013`·`016`)에는 대응하는 엔티티가 없다.** 프리뷰 프로토타입 코드는 삭제했고 필요하면 git 이력에서 복원한다. 실데이터 도입은 `DEC-PWA-020`·`DEC-PWA-021` 이 정해진 뒤다.
 
 ---
 
@@ -192,7 +192,7 @@
 `kind`는 varchar + 앱 Literal 검증이며 이제 `bookmark`만 쓴다. `bookmark`의 `color`는 항상 null이다.
 형광펜·메모는 구절 단위(ENT-HD-021)로 옮겨 `kind=highlight` 행(색·노트)은 더 기록하지 않는다.
 예전 `highlight` 행은 지우지 않고 남기며 API는 읽지 않는다(삭제는 별도 절차).
-남의 표시는 조회·수정·삭제 조건에서 `user_id`로 걸러져 접근할 수 없다.
+2026-11-02 표시 API(API-HD-026)를 제거했다. 테이블·행은 삭제 결정 전까지 보존하고 계정 삭제 purger만 쓴다.
 
 세 테이블 모두 additive-only migration(`n8d9e0f1a2b3`)으로 추가하며 PostgreSQL ENUM이나 기존 컬럼 파괴적 변경을 도입하지 않는다.
 계정 하드 삭제(API-HD-011)는 `reading_positions`·`passage_marks`·`passage_highlights`를 함께 지운다(`LibraryRepository` purger).

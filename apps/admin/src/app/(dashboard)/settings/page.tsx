@@ -8,11 +8,12 @@ import { toast } from "sonner";
 import { QueryErrorNotice } from "@/components/query-error-notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { authAPI } from "@/features/auth/api";
+import { useMe } from "@/features/auth/hooks";
 import { ApiError, fetchAPI } from "@/lib/api";
 import DeactivateConfirmDialog from "./deactivate-confirm-dialog";
 
@@ -45,15 +46,7 @@ export default function SettingsPage() {
   });
 
   // 본인 계정 식별용 — 자기 자신은 비활성화할 수 없다(백엔드도 400 으로 거부).
-  const {
-    data: me,
-    isError: meError,
-    isFetching: meFetching,
-    refetch: refetchMe,
-  } = useQuery({
-    queryKey: ["admin-me"],
-    queryFn: () => authAPI.me(),
-  });
+  const { data: me, isError: meError, isFetching: meFetching, refetch: refetchMe } = useMe();
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -87,9 +80,7 @@ export default function SettingsPage() {
     onSuccess: (_data, vars) => {
       // success-feedback — 무엇이 어떻게 됐는지 대상까지 밝힌다.
       toast.success(
-        vars.isActive
-          ? `활성화되었습니다: ${vars.email}`
-          : `비활성화되었습니다: ${vars.email} — 새 로그인이 차단됩니다`,
+        vars.isActive ? `활성화되었습니다: ${vars.email}` : `비활성화되었습니다: ${vars.email} (새 로그인 차단)`,
       );
       setPendingTarget(null);
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
@@ -143,7 +134,7 @@ export default function SettingsPage() {
       </div>
 
       {/* 관리자 계정 생성 */}
-      <div className="rounded-xl border bg-card p-5 space-y-4 max-w-lg">
+      <Card className="space-y-4 max-w-lg">
         <div className="flex items-center gap-2 border-b pb-3">
           <UserPlus className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">새 관리자 추가</h3>
@@ -196,10 +187,10 @@ export default function SettingsPage() {
             {createMutation.isPending ? "생성 중..." : "관리자 추가"}
           </Button>
         </form>
-      </div>
+      </Card>
 
       {/* 관리자 계정 목록 */}
-      <div className="rounded-xl border bg-card p-5 space-y-4">
+      <Card className="space-y-4">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-3 border-b pb-3">
           <Users className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">관리자 계정 목록</h3>
@@ -378,7 +369,7 @@ export default function SettingsPage() {
             </TableBody>
           </Table>
         )}
-      </div>
+      </Card>
 
       <DeactivateConfirmDialog
         open={pendingTarget !== null}

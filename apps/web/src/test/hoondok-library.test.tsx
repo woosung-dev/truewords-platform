@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ApiError } from "@truewords/api-client-ts";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let pathname = "/hoondok/library";
 
@@ -75,7 +75,6 @@ beforeEach(() => {
   pathname = "/hoondok/library";
   vi.clearAllMocks();
   localStorage.clear();
-  vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "");
   vi.mocked(libraryAPI.list).mockResolvedValue({ items: [WORK] });
   vi.mocked(libraryAPI.search).mockResolvedValue({ results: [RESULT] });
   vi.mocked(libraryAPI.words).mockResolvedValue(WORDS);
@@ -83,7 +82,6 @@ beforeEach(() => {
   vi.mocked(libraryAPI.readingPositions).mockResolvedValue({ items: [] });
   vi.mocked(identityAPI.me).mockRejectedValue(new ApiError(401, { message: "unauthorized" }));
 });
-afterEach(() => vi.unstubAllEnvs());
 
 function search(value: string) {
   fireEvent.change(screen.getByLabelText("말씀 검색"), { target: { value } });

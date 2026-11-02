@@ -43,7 +43,6 @@ from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
     RetrievalConfig,
-    SafetyConfig,
     SearchModeConfig,
     TierConfig,
 )
@@ -68,7 +67,6 @@ DEFAULT_RUNTIME_CONFIG = ChatbotRuntimeConfig(
     retrieval=RetrievalConfig(
         rerank_enabled=False, query_rewrite_enabled=False, multiturn_enabled=True
     ),
-    safety=SafetyConfig(),
 )
 
 

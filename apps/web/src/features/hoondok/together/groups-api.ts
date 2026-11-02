@@ -1,4 +1,4 @@
-import { ApiError, createApiClient } from "@truewords/api-client-ts";
+import { ApiError } from "@truewords/api-client-ts";
 import type {
   DisplayNameInput,
   GroupCreate,
@@ -16,7 +16,7 @@ import type {
   ReactionState,
   ShareInput,
 } from "@truewords/api-client-ts/types";
-import { hoondokFetch } from "../observability/report";
+import { hoondokRequest as request } from "../api-client";
 
 // 함께 읽는 모임 2단계 (API-HD-030~041, PLAN-HD-010). 브라우저에서 쿠키와 함께 /api/backend 프록시로 간다.
 // POST·PUT·PATCH·DELETE 의 X-Requested-With 는 createApiClient 의 transport 가 붙인다.
@@ -36,8 +36,6 @@ export type {
   MyGroupItem,
   ReactionState,
 };
-
-const { request } = createApiClient({ baseUrl: "/api/backend", fetch: hoondokFetch });
 
 const group = (groupId: string) => `/hoondok/groups/${encodeURIComponent(groupId)}`;
 const invite = (code: string) => `/hoondok/invites/${encodeURIComponent(code)}`;

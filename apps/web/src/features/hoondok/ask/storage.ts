@@ -4,6 +4,7 @@
 // 저장소는 없거나 던질 수 있으므로(사생활 모드·차단) 모든 접근을 try/catch 로 감싼다 — note/storage.ts 와 같은 규칙.
 
 import type { Source } from "@truewords/api-client-ts/types";
+import { safeLocalStorage as storage } from "@/lib/safe-storage";
 
 const KEY = "hoondok:ask:items";
 // note·install 의 이벤트와 분리한다 — 질문 기록 변경이 다른 화면을 다시 그리지 않게.
@@ -30,14 +31,6 @@ export type AskItem = {
   /** 저장 토글. 기본 false 이며 기록 화면의 "저장한 답" 세그먼트가 센다. */
   isSaved?: boolean;
 };
-
-function storage(): Storage | null {
-  try {
-    return typeof window === "undefined" ? null : window.localStorage;
-  } catch {
-    return null;
-  }
-}
 
 function isItem(value: unknown): value is AskItem {
   if (typeof value !== "object" || value === null) return false;
@@ -118,10 +111,6 @@ export function toggleAskSaved(id: string): boolean {
   const next = !item.isSaved;
   updateAskItem(id, { isSaved: next });
   return next;
-}
-
-export function removeAskItem(id: string): void {
-  writeAll(readAskItems().filter((item) => item.id !== id));
 }
 
 /** useSyncExternalStore 용 구독 — 같은 탭의 write 와 다른 탭의 storage 이벤트. */

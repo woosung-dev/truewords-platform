@@ -27,9 +27,9 @@ class TierConfig(BaseModel):
     실수로 인스턴스에 적용되면 검색 결과 0건 위험. 측정 분포 (2026-05-01,
     docs/dev-log/2026-05-01-cascade-distribution-measurement.md) 기반 정정.
 
-    audit 2차 P-1 (2026-05-15, Agent B P1 9/10): 동일 파일의 다른 6개 Config 클래스
+    audit 2차 P-1 (2026-05-15, Agent B P1 9/10): 동일 파일의 다른 Config 클래스
     (WeightedSourceConfig / SearchModeConfig / GenerationConfig / RetrievalConfig /
-    SafetyConfig / ChatbotRuntimeConfig) 는 모두 ``frozen=True`` 인데 본 클래스만
+    ChatbotRuntimeConfig) 는 모두 ``frozen=True`` 인데 본 클래스만
     누락. ChatbotRuntimeConfig 가 frozen 이라도 ``tiers: list[TierConfig]`` 요소가
     mutable 이라 런타임 변형 위험 — 불변 의도 깨짐. 명시적 ``frozen=True`` 추가.
     """
@@ -94,25 +94,13 @@ class GenerationConfig(BaseModel):
 class RetrievalConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    top_k: int = 10
-    score_threshold: float = 0.0
     rerank_enabled: bool = True
-    rerank_top_k: int = 10
     query_rewrite_enabled: bool = True
     # 봇별 멀티턴(대화 이력) 토글. False 면 SessionStage 가 이력을 로드하지 않아
     # condense·이력 주입·후속턴 캐시 게이트가 전부 단일턴 동작으로 복귀한다.
     multiturn_enabled: bool = True
-    fallback_enabled: bool = True
     # Phase D — IntentClassifierStage 토글. False 시 LLM 호출 없이 conceptual default 사용.
     intent_classifier_enabled: bool = True
-
-
-class SafetyConfig(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    watermark_enabled: bool = True
-    pii_filter_enabled: bool = True
-    max_query_length: int = 1000
 
 
 class ChatbotRuntimeConfig(BaseModel):
@@ -125,7 +113,6 @@ class ChatbotRuntimeConfig(BaseModel):
     search: SearchModeConfig
     generation: GenerationConfig
     retrieval: RetrievalConfig
-    safety: SafetyConfig
     # P1-F: 운영 투명성 — 챗봇별 신학 입장 (About 페이지 노출, 후속에서 활용).
     # 미설정 챗봇은 None → About 페이지에서 시스템 기본 카피 사용.
     theological_stance: str | None = None

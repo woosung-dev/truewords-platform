@@ -1,17 +1,19 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Check, ChevronLeft, Copy, Inbox, LogOut, MessageSquare, Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 // 대화 기록 페이지 — 로그인 사용자의 지난 대화를 2-pane(목록 + 리딩)으로 열람하고 이어서 대화
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { BrandMark } from "@/components/truewords";
+import { BrandMark } from "@/components/truewords/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { authAPI } from "@/features/auth/api";
-import { AssistantMessage } from "@/features/chat/components/assistant-message";
+import { useLogout } from "@/features/auth/hooks";
+import { AssistantMessage, preloadAnswerMarkdown } from "@/features/chat/components/assistant-message";
+import { stripDisclaimer } from "@/features/chat/use-chat-conversation";
 import { chatAPI, type SessionListItem } from "@/features/chatbot/chat-api";
+import { serverDate } from "@/lib/server-date";
 
 // ── 날짜 그룹 / 상대시간 유틸 ───────────────────────────────────
 type Bucket = "today" | "yesterday" | "7d" | "30d" | "older";
@@ -24,21 +26,8 @@ const BUCKET_LABEL: Record<Bucket, string> = {
   older: "이전",
 };
 
-// 백엔드 timestamp 는 naive UTC (datetime.utcnow()) — tz 지정자가 없으면 'Z' 를 붙여
-// UTC 로 파싱한다. 안 그러면 브라우저가 로컬시간으로 오해해 KST 기준 9시간 어긋난다.
-function parseUtc(iso: string): Date {
-  return new Date(/([zZ]|[+-]\d\d:?\d\d)$/.test(iso) ? iso : iso + "Z");
-}
-
-// 백엔드 safety layer 가 답변 끝에 붙이는 면책 고지 제거 — 하단 고정 문구와 중복 방지.
-const DISCLAIMER_PREFIX = "\n\n---\n_이 답변은 AI가 생성한";
-function stripDisclaimer(text: string): string {
-  const idx = text.indexOf(DISCLAIMER_PREFIX);
-  return idx >= 0 ? text.slice(0, idx).trimEnd() : text;
-}
-
 function bucketOf(iso: string): Bucket {
-  const d = parseUtc(iso);
+  const d = serverDate(iso);
   const now = new Date();
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const dDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -51,7 +40,7 @@ function bucketOf(iso: string): Bucket {
 }
 
 function relTime(iso: string): string {
-  const d = parseUtc(iso);
+  const d = serverDate(iso);
   const min = Math.floor((Date.now() - d.getTime()) / 60_000);
   if (min < 1) return "방금";
   if (min < 60) return `${min}분 전`;
@@ -74,12 +63,15 @@ function inPeriod(iso: string, period: Period): boolean {
 
 export default function HistoryPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const handleLogout = useLogout();
   const [explicitSelectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [botFilter, setBotFilter] = useState<string>("all");
   const [period, setPeriod] = useState<Period>("all");
   const [showReader, setShowReader] = useState(false); // 모바일 pane 전환
+
+  // 대화 내용을 받는 동안 마크다운 렌더러도 함께 받는다(첫 화면 번들에서는 빠져 있다).
+  useEffect(preloadAnswerMarkdown, []);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["chat-sessions"],
@@ -134,15 +126,6 @@ export default function HistoryPage() {
   const handleContinue = useCallback(() => {
     if (selectedId) router.push(`/?session=${selectedId}`);
   }, [selectedId, router]);
-
-  const handleLogout = useCallback(async () => {
-    try {
-      await authAPI.logout();
-    } finally {
-      queryClient.clear();
-      router.push("/login");
-    }
-  }, [router, queryClient]);
 
   const hasNoSessions = !isLoading && !isError && sessions.length === 0;
 

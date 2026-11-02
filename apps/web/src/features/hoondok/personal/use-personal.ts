@@ -1,13 +1,10 @@
 "use client";
 
 // 맞춤 첫 말씀 훅. 답·한 줄은 이 기기 저장소를 구독하고(storage.ts), 카드는 목록 전체(API-HD-054)를 받아 기기에서 고른다.
-// 프리뷰 셸은 fixture 만 쓴다(네트워크 0).
 import { useQuery } from "@tanstack/react-query";
 import type { CardPublic, TodayCardResponse } from "@truewords/api-client-ts/types";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { cardsAPI } from "../cards/api";
-import { isHoondokPreviewEnabled } from "../flag";
-import { PREVIEW_CARDS, PREVIEW_TODAY_CARD } from "../preview/fixtures/cards";
 import { CARDS_LIST_KEY, CARDS_TODAY_KEY } from "../query-keys";
 import { useKstDate } from "../use-kst-date";
 import { buildReason, FALLBACK_REASON, type PersonalPick, pickPersonalCard } from "./pick";
@@ -53,10 +50,9 @@ export function usePersonalNote() {
 
 /** active 카드 전부. 사용자별 값이 아니라 오래 둔다. */
 export function useCardList() {
-  const isPreview = isHoondokPreviewEnabled();
   return useQuery({
     queryKey: CARDS_LIST_KEY,
-    queryFn: async (): Promise<CardPublic[]> => (isPreview ? [...PREVIEW_CARDS] : (await cardsAPI.list()).items),
+    queryFn: async (): Promise<CardPublic[]> => (await cardsAPI.list()).items,
     retry: 1,
     staleTime: 10 * 60_000,
   });
@@ -64,12 +60,9 @@ export function useCardList() {
 
 /** 오늘 편성 카드(0점 폴백). words-card 와 같은 키라 캐시를 함께 쓴다. */
 function useTodayCard(enabled: boolean) {
-  const isPreview = isHoondokPreviewEnabled();
-  const today = useKstDate();
   return useQuery({
     queryKey: CARDS_TODAY_KEY,
-    queryFn: async (): Promise<TodayCardResponse> =>
-      isPreview ? { date: today, card: PREVIEW_TODAY_CARD } : cardsAPI.today(),
+    queryFn: async (): Promise<TodayCardResponse> => cardsAPI.today(),
     enabled,
     retry: false,
   });

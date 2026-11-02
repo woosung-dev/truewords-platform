@@ -494,24 +494,7 @@ class AnalyticsRepository:
                 "messages": [],
             }
 
-        # 3) 반응 (👍/👎/💾) — kind 별 count
-        reactions_map: dict[UUID, list[dict]] = {mid: [] for mid in msg_ids}
-        rx_result = await self.session.execute(
-            text("""
-                SELECT message_id, kind, COUNT(*)::int AS count
-                FROM chat_message_reactions
-                WHERE message_id = ANY(:ids)
-                GROUP BY message_id, kind
-            """),
-            {"ids": msg_ids},
-        )
-        for row in rx_result.all():
-            reactions_map.setdefault(row.message_id, []).append({
-                "kind": row.kind,
-                "count": row.count,
-            })
-
-        # 4) 피드백 — 메시지별 최신 1건
+        # 3) 피드백 — 메시지별 최신 1건
         feedback_map: dict[UUID, dict] = {}
         fb_result = await self.session.execute(
             text("""
@@ -530,7 +513,7 @@ class AnalyticsRepository:
                 "created_at": row.created_at,
             }
 
-        # 5) 출처 (assistant 메시지)
+        # 4) 출처 (assistant 메시지)
         cite_map: dict[UUID, list[dict]] = {}
         ce_result = await self.session.execute(
             text("""
@@ -553,7 +536,7 @@ class AnalyticsRepository:
                 "rank_position": row.rank_position,
             })
 
-        # 6) 조합
+        # 5) 조합
         messages = [
             {
                 "id": row.id,
@@ -562,7 +545,6 @@ class AnalyticsRepository:
                 "created_at": row.created_at,
                 "resolved_answer_mode": row.resolved_answer_mode,
                 "persona_overridden": row.persona_overridden,
-                "reactions": reactions_map.get(row.id, []),
                 "feedback": feedback_map.get(row.id),
                 "citations": cite_map.get(row.id, []),
             }

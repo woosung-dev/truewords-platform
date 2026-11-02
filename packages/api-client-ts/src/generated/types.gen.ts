@@ -131,12 +131,6 @@ export type BodyUploadDocumentAdminDataSourcesUploadPost = {
      */
     file: Blob | File;
     /**
-     * Mode
-     *
-     * 호환용 (Batch API 제거됨, 항상 standard)
-     */
-    mode?: string;
-    /**
      * On Duplicate
      *
      * 재업로드 정책 (ADR-30). merge: 기존 카테고리 ∪ 신규 (default), replace: 신규로 통째 교체, skip: COMPLETED 동일 파일이면 임베딩 생략.
@@ -2525,88 +2519,6 @@ export type LoginRequest = {
 };
 
 /**
- * MarkInput
- */
-export type MarkInput = {
-    /**
-     * Chunk Index
-     */
-    chunk_index: number;
-    /**
-     * Color
-     */
-    color?: number | null;
-    /**
-     * Kind
-     */
-    kind: 'bookmark';
-    /**
-     * Note
-     */
-    note?: string | null;
-    /**
-     * Volume
-     */
-    volume: string;
-};
-
-/**
- * MarkItem
- */
-export type MarkItem = {
-    /**
-     * Chunk Id
-     */
-    chunk_id: string;
-    /**
-     * Chunk Index
-     */
-    chunk_index: number;
-    /**
-     * Color
-     */
-    color: number | null;
-    /**
-     * Excerpt
-     */
-    excerpt?: string | null;
-    /**
-     * Kind
-     */
-    kind: 'bookmark';
-    /**
-     * Label
-     */
-    label: string;
-    /**
-     * Note
-     */
-    note: string | null;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-    /**
-     * Volume
-     */
-    volume: string;
-    /**
-     * Work Title
-     */
-    work_title: string;
-};
-
-/**
- * MarksResponse
- */
-export type MarksResponse = {
-    /**
-     * Items
-     */
-    items: Array<MarkItem>;
-};
-
-/**
  * MemberItem
  *
  * API-HD-038 — 읽음 상태 필드는 두지 않는다.
@@ -3195,87 +3107,6 @@ export type RagTraceResponse = {
 };
 
 /**
- * ReactionAggregate
- *
- * 단일 message_id 의 반응 카운트 집계 — UI badge 용.
- */
-export type ReactionAggregate = {
-    /**
-     * Message Id
-     */
-    message_id: string;
-    /**
-     * Save
-     */
-    save?: number;
-    /**
-     * Thumbs Down
-     */
-    thumbs_down?: number;
-    /**
-     * Thumbs Up
-     */
-    thumbs_up?: number;
-};
-
-/**
- * ReactionCount
- */
-export type ReactionCount = {
-    /**
-     * Count
-     */
-    count: number;
-    /**
-     * Kind
-     */
-    kind: string;
-};
-
-/**
- * ReactionRequest
- *
- * POST /api/chat/messages/{id}/reaction body.
- *
- * B2 보안: ``user_session_id`` 는 더 이상 클라이언트 입력이 아니다 —
- * 서버가 HttpOnly cookie ``tw_anon_session`` 으로 발급/관리한다.
- */
-export type ReactionRequest = {
-    /**
-     * Kind
-     */
-    kind: 'thumbs_up' | 'thumbs_down' | 'save';
-};
-
-/**
- * ReactionResponse
- *
- * 단일 반응 응답.
- */
-export type ReactionResponse = {
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Kind
-     */
-    kind: 'thumbs_up' | 'thumbs_down' | 'save';
-    /**
-     * Message Id
-     */
-    message_id: string;
-    /**
-     * User Session Id
-     */
-    user_session_id: string;
-};
-
-/**
  * ReactionState
  */
 export type ReactionState = {
@@ -3283,19 +3114,6 @@ export type ReactionState = {
      * Has Reacted
      */
     has_reacted: boolean;
-};
-
-/**
- * ReactionToggleResponse
- *
- * 토글 결과 — added 면 reaction 포함, removed 면 없음.
- */
-export type ReactionToggleResponse = {
-    /**
-     * Action
-     */
-    action: 'added' | 'removed';
-    reaction?: ReactionResponse | null;
 };
 
 /**
@@ -3723,10 +3541,6 @@ export type SessionMessageItem = {
      * Persona Overridden
      */
     persona_overridden?: boolean | null;
-    /**
-     * Reactions
-     */
-    reactions?: Array<ReactionCount>;
     /**
      * Resolved Answer Mode
      */
@@ -4312,7 +4126,7 @@ export type UploadResponse = {
     /**
      * Mode
      *
-     * 호환용 입력값 반환. 처리 방식은 항상 standard
+     * 호환용 고정값. 처리 방식은 항상 standard
      */
     mode: string;
     /**
@@ -6348,66 +6162,6 @@ export type UpdateAdminUserStatusAdminUsersUserIdStatusPatchResponses = {
 
 export type UpdateAdminUserStatusAdminUsersUserIdStatusPatchResponse = UpdateAdminUserStatusAdminUsersUserIdStatusPatchResponses[keyof UpdateAdminUserStatusAdminUsersUserIdStatusPatchResponses];
 
-export type ToggleReactionApiChatMessagesMessageIdReactionPostData = {
-    body: ReactionRequest;
-    path: {
-        /**
-         * Message Id
-         */
-        message_id: string;
-    };
-    query?: never;
-    url: '/api/chat/messages/{message_id}/reaction';
-};
-
-export type ToggleReactionApiChatMessagesMessageIdReactionPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ToggleReactionApiChatMessagesMessageIdReactionPostError = ToggleReactionApiChatMessagesMessageIdReactionPostErrors[keyof ToggleReactionApiChatMessagesMessageIdReactionPostErrors];
-
-export type ToggleReactionApiChatMessagesMessageIdReactionPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: ReactionToggleResponse;
-};
-
-export type ToggleReactionApiChatMessagesMessageIdReactionPostResponse = ToggleReactionApiChatMessagesMessageIdReactionPostResponses[keyof ToggleReactionApiChatMessagesMessageIdReactionPostResponses];
-
-export type GetAggregateApiChatMessagesMessageIdReactionsGetData = {
-    body?: never;
-    path: {
-        /**
-         * Message Id
-         */
-        message_id: string;
-    };
-    query?: never;
-    url: '/api/chat/messages/{message_id}/reactions';
-};
-
-export type GetAggregateApiChatMessagesMessageIdReactionsGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetAggregateApiChatMessagesMessageIdReactionsGetError = GetAggregateApiChatMessagesMessageIdReactionsGetErrors[keyof GetAggregateApiChatMessagesMessageIdReactionsGetErrors];
-
-export type GetAggregateApiChatMessagesMessageIdReactionsGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: ReactionAggregate;
-};
-
-export type GetAggregateApiChatMessagesMessageIdReactionsGetResponse = GetAggregateApiChatMessagesMessageIdReactionsGetResponses[keyof GetAggregateApiChatMessagesMessageIdReactionsGetResponses];
-
 export type GetChunkApiSourcesChunksChunkIdGetData = {
     body?: never;
     path: {
@@ -7734,113 +7488,6 @@ export type GetJeongseongTodayHoondokMeJeongseongTodayGetResponses = {
 
 export type GetJeongseongTodayHoondokMeJeongseongTodayGetResponse = GetJeongseongTodayHoondokMeJeongseongTodayGetResponses[keyof GetJeongseongTodayHoondokMeJeongseongTodayGetResponses];
 
-export type GetMarksHoondokMeMarksGetData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Volume
-         */
-        volume?: string | null;
-        /**
-         * Kind
-         */
-        kind?: string | null;
-        /**
-         * Limit
-         */
-        limit?: number;
-        /**
-         * Excerpt
-         */
-        excerpt?: boolean;
-    };
-    url: '/hoondok/me/marks';
-};
-
-export type GetMarksHoondokMeMarksGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetMarksHoondokMeMarksGetError = GetMarksHoondokMeMarksGetErrors[keyof GetMarksHoondokMeMarksGetErrors];
-
-export type GetMarksHoondokMeMarksGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: MarksResponse;
-};
-
-export type GetMarksHoondokMeMarksGetResponse = GetMarksHoondokMeMarksGetResponses[keyof GetMarksHoondokMeMarksGetResponses];
-
-export type DeleteMarkHoondokMeMarksChunkIdDeleteData = {
-    body?: never;
-    path: {
-        /**
-         * Chunk Id
-         */
-        chunk_id: string;
-    };
-    query?: {
-        /**
-         * Kind
-         */
-        kind?: string | null;
-    };
-    url: '/hoondok/me/marks/{chunk_id}';
-};
-
-export type DeleteMarkHoondokMeMarksChunkIdDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DeleteMarkHoondokMeMarksChunkIdDeleteError = DeleteMarkHoondokMeMarksChunkIdDeleteErrors[keyof DeleteMarkHoondokMeMarksChunkIdDeleteErrors];
-
-export type DeleteMarkHoondokMeMarksChunkIdDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type DeleteMarkHoondokMeMarksChunkIdDeleteResponse = DeleteMarkHoondokMeMarksChunkIdDeleteResponses[keyof DeleteMarkHoondokMeMarksChunkIdDeleteResponses];
-
-export type PutMarkHoondokMeMarksChunkIdPutData = {
-    body: MarkInput;
-    path: {
-        /**
-         * Chunk Id
-         */
-        chunk_id: string;
-    };
-    query?: never;
-    url: '/hoondok/me/marks/{chunk_id}';
-};
-
-export type PutMarkHoondokMeMarksChunkIdPutErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PutMarkHoondokMeMarksChunkIdPutError = PutMarkHoondokMeMarksChunkIdPutErrors[keyof PutMarkHoondokMeMarksChunkIdPutErrors];
-
-export type PutMarkHoondokMeMarksChunkIdPutResponses = {
-    /**
-     * Successful Response
-     */
-    200: MarkItem;
-};
-
-export type PutMarkHoondokMeMarksChunkIdPutResponse = PutMarkHoondokMeMarksChunkIdPutResponses[keyof PutMarkHoondokMeMarksChunkIdPutResponses];
-
 export type GetNotificationsHoondokMeNotificationsGetData = {
     body?: never;
     path?: never;
@@ -8217,69 +7864,6 @@ export type GetChunkAudioHoondokTtsChunksChunkIdGetResponses = {
 };
 
 export type GetChunkAudioHoondokTtsChunksChunkIdGetResponse = GetChunkAudioHoondokTtsChunksChunkIdGetResponses[keyof GetChunkAudioHoondokTtsChunksChunkIdGetResponses];
-
-export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetData = {
-    body?: never;
-    path: {
-        /**
-         * Reading Id
-         */
-        reading_id: string;
-        /**
-         * Paragraph
-         */
-        paragraph: number;
-    };
-    query: {
-        /**
-         * Voice
-         */
-        voice: string;
-    };
-    url: '/hoondok/tts/readings/{reading_id}/{paragraph}';
-};
-
-export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors = {
-    /**
-     * 로그인 필요
-     */
-    401: ErrorResponse;
-    /**
-     * TTS_SOURCE_NOT_FOUND — 본문 없음·권리 없음·단락 번호 범위 밖
-     */
-    404: ErrorResponse;
-    /**
-     * TTS_INVALID_VOICE — 알 수 없는 목소리
-     */
-    422: ErrorResponse;
-    /**
-     * TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 · TTS_USER_LIMIT_EXCEEDED — 사용자 24시간 한도 · RATE_LIMIT_EXCEEDED — 요청 빈도(잠시 뒤 재시도)
-     */
-    429: ErrorResponse;
-    /**
-     * TTS_UPSTREAM_FAILED — Google 오류·네트워크
-     */
-    502: ErrorResponse;
-    /**
-     * TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정 또는 캐시 디렉터리 쓰기 불가
-     */
-    503: ErrorResponse;
-    /**
-     * TTS_TIMEOUT — 합성 시간 상한(45초) 초과
-     */
-    504: ErrorResponse;
-};
-
-export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetError = GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors[keyof GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors];
-
-export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetResponses = {
-    /**
-     * 단락 mp3
-     */
-    200: Blob | File;
-};
-
-export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetResponse = GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetResponses[keyof GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetResponses];
 
 export type GetTtsVoicesHoondokTtsVoicesGetData = {
     body?: never;

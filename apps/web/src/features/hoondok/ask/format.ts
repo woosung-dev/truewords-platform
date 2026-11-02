@@ -1,6 +1,6 @@
 import type { Source } from "@truewords/api-client-ts/types";
 import { stripFileExt } from "@/lib/utils";
-import { formatKstDate } from "../today";
+import { formatKstDate, formatKstMonthDay } from "../today";
 import type { AskItem } from "./storage";
 
 // AI 질문 표시 문구 (순수 함수). 저장된 값은 UTC ISO 라 보여 줄 때만 KST 로 바꾼다.
@@ -11,7 +11,7 @@ export function askDateLabel(createdAt: string, now: Date = new Date()): string 
   if (Number.isNaN(created.getTime())) return "";
   const { iso } = formatKstDate(created);
   if (iso === formatKstDate(now).iso) return "오늘";
-  return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" }).format(created);
+  return formatKstMonthDay(created);
 }
 
 /** 목록 한 줄의 보조 문구 — 날짜 · 답변 상태. 근거 수는 답이 있을 때만 의미가 있다. */

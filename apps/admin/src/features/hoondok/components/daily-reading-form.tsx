@@ -11,6 +11,7 @@
 import { BookOpen, CalendarDays, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type DailyReadingFormValues, emptyValues, type FormErrors, validate } from "@/features/hoondok/form";
@@ -103,7 +104,7 @@ export function DailyReadingForm({
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
       {/* 섹션 1: 편성 */}
-      <div className="rounded-xl border bg-card p-5 space-y-4">
+      <Card className="space-y-4">
         <div className="flex items-center gap-2 border-b pb-3">
           <CalendarDays className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">편성</h3>
@@ -180,10 +181,10 @@ export function DailyReadingForm({
           />
           <FieldError id={FIELD_ID.body} message={errors.body} />
         </div>
-      </div>
+      </Card>
 
       {/* 섹션 2: 출처 (AC-016-01 메타) */}
-      <div className="rounded-xl border bg-card p-5 space-y-4">
+      <Card className="space-y-4">
         <div className="flex items-center gap-2 border-b pb-3">
           <BookOpen className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">출처</h3>
@@ -272,10 +273,10 @@ export function DailyReadingForm({
           />
           <FieldError id={FIELD_ID.chunk_id} message={errors.chunk_id} />
         </div>
-      </div>
+      </Card>
 
       {/* 섹션 3: 공식성·검수 */}
-      <div className="rounded-xl border bg-card p-5 space-y-4">
+      <Card className="space-y-4">
         <div className="flex items-center gap-2 border-b pb-3">
           <ShieldCheck className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">공식성·검수</h3>
@@ -324,7 +325,7 @@ export function DailyReadingForm({
             <p className="text-xs text-muted-foreground">철회하면 그날 홈에 본문이 나오지 않아요. 삭제는 없어요.</p>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* 하단 액션 바 */}
       <div className="sticky bottom-0 flex gap-3 border-t bg-background/80 backdrop-blur-sm py-4 -mx-6 px-6">

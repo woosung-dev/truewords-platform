@@ -228,6 +228,7 @@ class PassageMark(SQLModel, table=True):
 
     형광펜·메모는 구절 단위(ENT-HD-021 `passage_highlights`)로 옮겨 이제 `bookmark` 만 쓴다.
     예전 `kind="highlight"` 행은 지우지 않고 남겨 두되 API 는 읽지 않는다.
+    API 제거, 운영 테이블·행은 보존(삭제 결정 전까지). 계정 삭제 purger 만 이 모델을 쓴다.
     """
 
     __tablename__ = "passage_marks"

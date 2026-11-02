@@ -206,7 +206,7 @@ export function CandidateTable({ candidates }: { candidates: CandidateRow[] }) {
                   {row.duplicate_of && (
                     <StatusBadge
                       tone="warning"
-                      className="ml-1 h-4 px-1.5 text-[10px]"
+                      className="ml-1 h-4 px-1.5 text-2xs"
                       title={`중복: ${row.duplicate_of}`}
                     >
                       중복

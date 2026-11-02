@@ -1,6 +1,7 @@
 // 전체 메뉴의 즐겨찾기. 계정이 아니라 이 기기의 localStorage 한 키에만 둔다 — 로그인 없이 쓰고 서버 계약을 늘리지 않는다.
 // 저장소는 없거나 던질 수 있으므로(사생활 모드·차단) 모든 접근을 try/catch 로 감싼다. 순서는 추가한 순서다.
 import { useSyncExternalStore } from "react";
+import { safeLocalStorage as storage } from "@/lib/safe-storage";
 
 const KEY = "hoondok:favorites";
 const CHANGE_EVENT = "hoondok:favorites-change";
@@ -10,14 +11,6 @@ export type FavoriteWork = { series: string; title: string };
 export type Favorites = { menu: readonly string[]; works: readonly FavoriteWork[] };
 
 export const EMPTY_FAVORITES: Favorites = { menu: [], works: [] };
-
-function storage(): Storage | null {
-  try {
-    return typeof window === "undefined" ? null : window.localStorage;
-  } catch {
-    return null;
-  }
-}
 
 function isFavoriteWork(value: unknown): value is FavoriteWork {
   if (typeof value !== "object" || value === null) return false;

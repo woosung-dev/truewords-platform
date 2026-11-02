@@ -1,12 +1,19 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import * as React from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import type { ChatResponse } from "@/features/chatbot/chat-api";
 import { cn, stripFileExt } from "@/lib/utils";
 
-type Source = NonNullable<ChatResponse["sources"]>[number];
+export type Source = NonNullable<ChatResponse["sources"]>[number];
+
+const loadAnswerMarkdown = () => import("./answer-markdown");
+const AnswerMarkdown = React.lazy(loadAnswerMarkdown);
+
+/** 답변이 오기 전에 마크다운 렌더러를 미리 받아 둔다(첫 화면 번들에는 넣지 않는다). */
+export function preloadAnswerMarkdown(): void {
+  void loadAnswerMarkdown();
+}
 
 export interface AssistantMessageProps {
   /** AI 답변 본문 (면책 고지 strip 후) */
@@ -33,46 +40,11 @@ export function AssistantMessage({ content, sources, onSourceClick, className }:
   return (
     <div className={cn("space-y-3", className)}>
       <div className="prose prose-sm max-w-none prose-chat">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            // [N](cite:N) 마크다운 링크를 클릭 가능한 위첨자로 변환.
-            // sourceMap miss 시에는 disabled button 으로 렌더 → 외부 네비게이션 차단.
-            a: ({ href, children, ...rest }) => {
-              if (href?.startsWith("cite:")) {
-                const num = href.slice("cite:".length);
-                const src = sourceMap.get(num);
-                const disabled = !src;
-                return (
-                  <button
-                    type="button"
-                    disabled={disabled}
-                    aria-label={`출처 ${num}${src ? `: ${src.volume}` : " (연결 없음)"}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (src) onSourceClick?.(src);
-                    }}
-                    className={cn(
-                      "mx-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded bg-accent/10 px-1.5 align-[2px] text-2xs font-bold leading-none text-accent transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
-                      disabled
-                        ? "cursor-not-allowed opacity-60"
-                        : "cursor-pointer hover:bg-accent hover:text-accent-foreground",
-                    )}
-                  >
-                    {num}
-                  </button>
-                );
-              }
-              return (
-                <a href={href} {...rest}>
-                  {children}
-                </a>
-              );
-            },
-          }}
-        >
-          {cleaned}
-        </ReactMarkdown>
+        {/* 마크다운 렌더러(react-markdown + remark-gfm)는 첫 화면 번들에서 빼고 따로 받는다.
+            받는 동안은 같은 본문을 평문으로 보여 줘 스트리밍 중에도 자리가 흔들리지 않는다. */}
+        <React.Suspense fallback={<p className="whitespace-pre-wrap">{cleaned.replace(/\]\(cite:\d+\)/g, "]")}</p>}>
+          <AnswerMarkdown content={cleaned} sourceMap={sourceMap} onSourceClick={onSourceClick} />
+        </React.Suspense>
       </div>
 
       {sources && sources.length > 0 && <SourceCardGrid sources={sources} onSourceClick={onSourceClick} />}
@@ -206,7 +178,7 @@ export function ClosingCallout({ closing, className }: ClosingCalloutProps) {
         )}
       >
         <div className="mb-1 flex items-center gap-1.5 text-2xs font-semibold text-accent">
-          <span aria-hidden="true">✦</span>
+          <Sparkles className="size-3" aria-hidden="true" />
           <span>마무리 기도/결의</span>
         </div>
         {closing}

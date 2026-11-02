@@ -5,7 +5,7 @@
 - 상태: **2안 UI 분리 구현·로컬 검증 완료 — 커밋·푸시 승인** (2026-09-05). PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과와 이번 변경의 검증 증거를 구분한다.
 - 분석 기준: `main`의 `59e3a59`. 운영 서버 접속·배포·실기기 검증은 수행하지 않았다.
 - 실행 계획: [단계별 이전·검증 계획](../plans/completed/2026-09-05-monorepo-migration.md)
-- 후속 결정: [APP-UI-001](../plans/active/2026-09-05-app-owned-ui.md). 최초 `ui-web` 선택을 대체하고 API SDK·ESLint·TypeScript 설정 3개 패키지만 유지한다. 기존 검증 결과는 당시 기록이며 후속 변경의 검증 증거로 재사용하지 않는다.
+- 후속 결정: [APP-UI-001](../plans/completed/2026-09-05-app-owned-ui.md). 최초 `ui-web` 선택을 대체하고 API SDK·ESLint·TypeScript 설정 3개 패키지만 유지한다. 기존 검증 결과는 당시 기록이며 후속 변경의 검증 증거로 재사용하지 않는다.
 
 ## 1. 결정한 방향과 이번 문서의 범위
 

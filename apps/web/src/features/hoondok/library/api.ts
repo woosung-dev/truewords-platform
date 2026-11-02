@@ -1,4 +1,3 @@
-import { createApiClient } from "@truewords/api-client-ts";
 import type {
   HighlightInput,
   HighlightItem,
@@ -12,9 +11,7 @@ import type {
   WordSearchResponse,
   WordsResponse,
 } from "@truewords/api-client-ts/types";
-import { hoondokFetch } from "../observability/report";
-
-const { request } = createApiClient({ baseUrl: "/api/backend", fetch: hoondokFetch });
+import { hoondokRequest as request } from "../api-client";
 
 /** 원문 한 페이지에 담기는 청크 수 (백엔드 `page_size` 고정값). chunk_index → page 환산에 쓴다. */
 export const WORDS_PAGE_SIZE = 20;

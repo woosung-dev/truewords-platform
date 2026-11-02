@@ -27,7 +27,6 @@ import {
   writeAnswers,
   writeNote,
 } from "@/features/hoondok/personal/storage";
-import { PREVIEW_CARDS } from "@/features/hoondok/preview/fixtures/cards";
 import { clearHoondokStorage } from "@/features/identity/use-delete-me";
 
 // 맞춤 첫 말씀 — 기기 안 카드 고르기(점수·동점·0점 폴백)·까닭 문장·기기 저장 내성.
@@ -157,11 +156,6 @@ describe("동점과 폴백", () => {
     expect(pickPersonalCard(ties, { interests: [], moods: [] }, DAY)).toBeNull();
     expect(pickPersonalCard(ties, { interests: ["peace"], moods: ["joy"] }, DAY)).toBeNull();
     expect(pickPersonalCard([], input, DAY)).toBeNull();
-  });
-
-  it("프리뷰 fixture 로도 맞춤·폴백 두 경우를 모두 볼 수 있다", () => {
-    expect(pickPersonalCard(PREVIEW_CARDS, { interests: ["family"], moods: ["tired"] }, DAY)).not.toBeNull();
-    expect(pickPersonalCard(PREVIEW_CARDS, { interests: ["principle"], moods: [] }, DAY)).toBeNull();
   });
 });
 

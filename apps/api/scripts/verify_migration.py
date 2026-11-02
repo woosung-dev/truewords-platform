@@ -4,7 +4,7 @@
   1. 컬렉션별 point count 동일성
   2. 무작위 샘플 N건의 vector·payload 일치 (cosine ≥ 0.999)
 
-환경변수: migrate_cloud_to_vm.py 와 동일
+환경변수: QDRANT_CLOUD_URL·QDRANT_VM_URL (선택 QDRANT_CLOUD_API_KEY·QDRANT_VM_API_KEY)
 사용:
   uv run python scripts/verify_migration.py
   uv run python scripts/verify_migration.py --sample 30 --collections malssum_poc_v5

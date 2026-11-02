@@ -167,73 +167,6 @@ class LibraryRepository:
             position.updated_at = utcnow()
         return await self._save(position)
 
-    # --- 단락 표시 (ENT-HD-012) ---------------------------------------------
-
-    async def list_marks(
-        self,
-        user_id: uuid.UUID,
-        volume: str | None = None,
-        kind: str | None = None,
-        limit: int = 200,
-    ) -> list[PassageMark]:
-        # 예전 `kind="highlight"` 행은 DB 에 남아 있지만 구절 형광펜(ENT-HD-021)으로 옮겨 읽지 않는다.
-        statement = select(PassageMark).where(
-            PassageMark.user_id == user_id, PassageMark.kind == "bookmark"
-        )
-        if volume is not None:
-            statement = statement.where(PassageMark.volume == volume)
-        if kind is not None:
-            statement = statement.where(PassageMark.kind == kind)
-        result = await self.session.execute(
-            statement.order_by(PassageMark.updated_at.desc()).limit(limit)
-        )
-        return list(result.scalars().all())
-
-    async def upsert_mark(
-        self,
-        user_id: uuid.UUID,
-        chunk_id: str,
-        volume: str,
-        chunk_index: int,
-        kind: str,
-        color: int | None,
-        note: str | None,
-    ) -> PassageMark:
-        """`(user, chunk_id, kind)` 로 찾아 갱신한다 — 남의 표시는 조건에서 걸러져 건드릴 수 없다."""
-        result = await self.session.execute(
-            select(PassageMark).where(
-                PassageMark.user_id == user_id,
-                PassageMark.chunk_id == chunk_id,
-                PassageMark.kind == kind,
-            )
-        )
-        mark = result.scalar_one_or_none()
-        if mark is None:
-            mark = PassageMark(
-                user_id=user_id,
-                chunk_id=chunk_id,
-                volume=volume,
-                chunk_index=chunk_index,
-                kind=kind,
-                color=color,
-                note=note,
-            )
-        else:
-            mark.volume, mark.chunk_index = volume, chunk_index
-            mark.color, mark.note = color, note
-            mark.updated_at = utcnow()
-        return await self._save(mark)
-
-    async def delete_mark(self, user_id: uuid.UUID, chunk_id: str, kind: str | None) -> None:
-        """본인 표시만 지운다. 없어도 조용히 지나간다(DELETE 는 멱등)."""
-        statement = delete(PassageMark).where(
-            PassageMark.user_id == user_id, PassageMark.chunk_id == chunk_id
-        )
-        if kind is not None:
-            statement = statement.where(PassageMark.kind == kind)
-        await self.session.execute(statement)
-        await self.session.commit()
-
     # --- 구절 형광펜 (ENT-HD-021) -------------------------------------------
 
     async def list_highlights(
@@ -284,7 +217,7 @@ class LibraryRepository:
             delete(ReadingPosition).where(ReadingPosition.user_id == user_id)
         )
 
-    async def _save[T: (ReadingPosition, PassageMark, PassageHighlight)](self, row: T) -> T:
+    async def _save[T: (ReadingPosition, PassageHighlight)](self, row: T) -> T:
         self.session.add(row)
         try:
             await self.session.commit()

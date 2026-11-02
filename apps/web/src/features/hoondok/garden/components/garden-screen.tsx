@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 // index.ts 의 export 정리는 W4 담당이라 경로를 직접 가리킨다 (PLAN-HD-002 §3.1).
 import { HoondokButton, MonthCalendar } from "@/components/hoondok";
-import { isHoondokCardsEnabled, isHoondokPreviewEnabled } from "@/features/hoondok/flag";
+import { isHoondokCardsEnabled } from "@/features/hoondok/flag";
 import { JeongseongDayBadge, JeongseongProgress } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
 import { PersonalGardenEntry } from "@/features/hoondok/personal/components/garden-entry";
@@ -21,13 +21,11 @@ import { AccountSection } from "./account-section";
 
 // SCR-PWA-014 나의 정원. 프로필 → 통계 3칸 → 월 달력 → 진행 중인 정성 (프로토타입 data-screen="garden" 순서).
 // 읽기 화면이므로 비로그인을 자동으로 내쫓지 않고(gate.ts 원칙) 안내 카드만 보여준다.
-// "함께 읽는 사람들" 섹션은 프로토타입과 같은 자리(정성 다음)에 두되, 016 이 프리뷰 셸이라 진입 링크만이고 플래그가 꺼지면 그리지 않는다.
 // 정성 진행은 "N일차"로만 적고 빠진 날 수는 쓰지 않는다 (DEC-PWA-023).
 // '나의 기록'(C1)은 자기 요청·오류를 따로 가진다 — 표시 목록이 실패해도 통계·달력은 그대로 보인다.
 // 계정(이메일·로그아웃)은 매일 보는 기록과 떨어진 맨 아래에 둔다. 로그아웃하면 이 화면에 머물러 비로그인 카드가 곧 결과 안내가 된다.
 const BETA_NOTICE = "독립 운영 베타";
 const JEONGSEONG_HREF = "/hoondok?sheet=jeongseong";
-const FAMILY_HREF = "/hoondok/family";
 
 export type GardenScreenProps = {
   /** 서버가 계산한 KST 월 `YYYY-MM`. 클라이언트가 다시 계산하면 자정 경계에서 hydration 이 어긋난다 */
@@ -100,26 +98,6 @@ function BookmarksEntrySection() {
         <span className="fm-entry__bd">
           <b>나의 책갈피</b>
           <span>받은 책갈피가 책별로 꽂혀 있어요 · 건넨 책갈피도 여기에</span>
-        </span>
-        <ChevronRight size={20} aria-hidden="true" />
-      </Link>
-    </div>
-  );
-}
-
-/** 016 가족·친구 진입 (W3-F). 프리뷰 플래그가 꺼져 있으면 아무것도 그리지 않는다 — 운영에는 없는 화면이다.
- *  읽은 사람만 보인다는 약속을 제목 아래 글자로 밝힌다 (DEC-PWA-023: 안 읽은 사람의 이름·상태는 없다). */
-function FamilyEntrySection() {
-  if (!isHoondokPreviewEnabled()) return null;
-  return (
-    <div className="sect">
-      <div className="sect__head">
-        <h2 className="sect__title">함께 읽는 사람들</h2>
-      </div>
-      <Link className="card fm-entry" href={FAMILY_HREF}>
-        <span className="fm-entry__bd">
-          <b>가족·친구와 함께 읽어요</b>
-          <span>읽은 사람만 보여요 · 연결과 공개 범위를 확인해요</span>
         </span>
         <ChevronRight size={20} aria-hidden="true" />
       </Link>
@@ -254,8 +232,6 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
       <DeviceRecordsEntry />
 
       <BookmarksEntrySection />
-
-      <FamilyEntrySection />
 
       <AccountSection user={user} logout={logout} />
 
