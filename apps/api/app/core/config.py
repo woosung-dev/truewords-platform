@@ -33,6 +33,8 @@ class Settings(BaseSettings):
 
     # 훈독 Web Push (PLAN-HD-006). 3값이 모두 있어야 구독이 열린다 — 하나라도 비면 기능 OFF(구독 409 PUSH_DISABLED).
     # 공개 키만 클라이언트에 내려간다(API-HD-019). 비밀 키·subject 는 발송기(sub-PR B)만 쓴다.
+    hoondok_push_test_enabled: bool = False
+    hoondok_push_test_emails: list[str] = []
     hoondok_vapid_public_key: str | None = None  # base64url (uncompressed P-256)
     hoondok_vapid_private_key: SecretStr | None = None
     hoondok_vapid_subject: str | None = None  # "mailto:..." 또는 https URL

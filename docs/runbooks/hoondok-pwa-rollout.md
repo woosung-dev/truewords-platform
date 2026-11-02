@@ -616,3 +616,57 @@ make rollback-web TAG=aba5240
 - 하네스: Safari 탭 `PushManager false · Notification false`, 홈 화면 앱 `standalone=true · PushManager true`. 버튼 탭 → iOS 권한 창 → 허용(`granted`) — 클릭 핸들러 안 동기 권한 요청을 제스처로 인정.
 - **구독·도착은 시뮬레이터로 확인할 수 없다.** 구독 요청이 응답 없이 멈추고, 시뮬레이터 로그에 `com.apple.webkit.webpushd` 가 `OS_REASON_CODESIGNING | Launch Constraint Violation` 으로 5분에 27회 기동 실패한다(iPhone 18 Pro 에서도 같다). Apple 푸시 도착·탭은 실제 iPhone(iOS 16.4+ 홈 화면 앱)에서 본다.
 - iOS 27 Safari UA 는 `iPhone OS 18_7 … Version/27.0` 이다(OS 버전 고정). 판정은 OS 버전이 아니라 `iPhone`·standalone 으로 한다.
+
+## 알림 예약 테스트와 5분 주기 전환
+
+정규 발송은 5분마다 실행한다. 예를 들어 06:02 설정은 06:05 실행에서 대상이 된다.
+발송 창·KST 날짜·하루 한 번·읽기 완료 제외 정책은 그대로다. 테스트 예약은 매분 처리하며
+정규 발송 이력을 바꾸지 않는다. 서버 접수 성공은 기기 표시 성공의 증거가 아니다.
+
+### 로컬 준비
+
+1. `pnpm install --frozen-lockfile`, `apps/api`에서 `uv sync --frozen`을 실행한다.
+2. 기존 E2E 실행을 종료한 뒤 `docker compose -p tw-76c8-pwa -f apps/api/docker-compose.e2e.yml up -d --wait`로 전용 인프라를 띄운다. 15432·16333 포트가 점유되어 있으면 먼저 점유자를 확인한다. 다른 프로젝트를 종료하지 않는다.
+3. API 환경은 `ENVIRONMENT=development`, DB `postgresql+asyncpg://truewords:truewords@127.0.0.1:15432/truewords_e2e`, Qdrant `http://127.0.0.1:16333`으로 고정한다. 로컬 전용 VAPID 세 값, JWT secret, `COOKIE_SECURE=true`, `HOONDOK_PUSH_TEST_ENABLED=true`, `HOONDOK_PUSH_TEST_EMAILS=["실제 테스트 계정 이메일"]`을 설정한다. 비밀 값은 gitignore된 `.env`에만 저장한다.
+4. 해당 환경에서 migration과 기존 E2E 시드를 실행한다. API는 18080, web production build는 3300에서 실행한다. `NEXT_PUBLIC_API_URL=http://127.0.0.1:18080`, `NEXT_PUBLIC_HOONDOK_ENABLED=1`로 빌드한다. `cloudflared tunnel --url http://127.0.0.1:3300`의 HTTPS 주소를 기기에서 연다. 터널 주소가 바뀌면 해당 origin에서 설치·로그인·구독을 다시 한다. 개발 서버를 쓰면 반드시 앱의 `dev` 스크립트를 사용한다.
+5. 로컬에서도 정규 처리기는 5분마다, `uv run python scripts/send_hoondok_test_push.py`는 매분 실행한다. Mac이 잠들면 발송도 멈춘다. 자동 E2E와 같은 포트를 동시에 사용하지 않는다. 종료 시 자기 Compose project만 `down`하고 기존 볼륨은 삭제하지 않는다.
+
+### 운영 적용
+
+새 예약 테이블을 포함하므로 DB migration 승인이 필요하다. 기존 배포 승인 절차 후 backend → web을 배포한다.
+VM의 두 스크립트가 최신 배포 동기화 목록에 있는지 확인한 뒤
+`bash ~/truewords/install-hoondok-push-cron.sh`를 실행한다. 이 명령은 기존 훈독 발송 항목만 교체하고
+다른 cron을 보존한다. `crontab -l`에서 정규 `*/5`, 테스트 `*` 항목이 각각 하나인지 확인한다.
+VM `.env`에 테스트 플래그·허용 이메일을 설정한 경우 backend 재생성이 필요하다.
+VAPID 키는 테스트 기능 때문에 교체하지 않는다.
+
+설정의 테스트 영역에서 지금(다음 분 이내)·5분·10분 또는 1~60분 예약을 생성한다.
+알림을 먼저 켜야 하며 현재 기기의 구독만 대상으로 한다. 기기당 대기 예약은 하나,
+계정당 시간당 최대 6회다. 대기 예약은 취소 가능하다. 이력은 계정별 최근 20건을 보여주고
+7일 뒤 삭제한다. `accepted`는 푸시 서비스 접수, `unknown`은 처리 중 중단으로 결과를 알 수 없는 상태다.
+자동 재발송하지 않으며 결과를 확인한 뒤 새 테스트를 만든다. 테스트 푸시 TTL은 5분,
+예정 시각에서 10분 이상 늦은 서버 예약은 발송하지 않는다.
+
+### 실기기 판정표
+
+아래 항목을 로컬 HTTPS와 배포 환경에서 각각 iPhone·Android로 수행한다.
+기록에는 커밋, OS·브라우저 버전, 예정/시도/기기 표시 시각, 화면 상태, 탭 결과를 남긴다.
+기기 식별자·endpoint·토큰은 PR에 붙이지 않는다.
+
+| 항목 | 확인 |
+|---|---|
+| 설치·권한 | iPhone은 홈 화면 앱에서 버튼으로 권한 요청. Android는 사이트·앱 알림 권한 모두 확인 |
+| 수신 | 지금은 전경, 5분은 다른 앱 사용 중, 10분은 앱 종료·화면 잠금 상태에서 확인 |
+| 탭 | 기존 창 재사용·종료 상태 새 창·책갈피 이동·세션 만료 흐름 확인 |
+| PWA | standalone, 재실행, 오프라인 안내, 온라인 복귀, 구버전에서 업데이트 확인 |
+| 제한 환경 | 집중 모드·권한 철회·일시적 오프라인·Android 절전·야간 정규 발송 확인 |
+
+정상 온라인 상태의 테스트 발송 시도는 예정 시각 +90초 이내를 기준으로 한다.
+접수 뒤 2분 내 표시되지 않으면 OS 설정·푸시 서비스·네트워크를 조사한다. 정규 발송은
+별도 테스트 계정의 실제 알림 시간을 다음 5분 경계로 설정해 검증한다. 미완료·발송 가능 편성이
+있어야 하며, 다음 cron에서 중복이 없는지 확인한다. 테스트 예약만 통과해서 정규 발송 완료로 판정하지 않는다.
+8시간 이상 야간 대기 후 정규 알림도 확인한다. 미수행 항목은 미완료로 남긴다.
+
+검증 종료 시 테스트 플래그를 끄고 backend를 재생성한다. 대기 예약은 처리 시 취소된다.
+정규 5분 주기는 유지한다. 장애 시 테스트 cron을 중지하고, 스키마 변경이 포함된 backend는
+기존 migration 복구 절차를 따른다. 서비스워커는 이미지 롤백만으로 기기에서 제거되지 않는다.

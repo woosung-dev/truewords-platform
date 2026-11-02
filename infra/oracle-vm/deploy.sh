@@ -75,7 +75,7 @@ SRC_SHA="${TW_SRC_SHA:-}"
 ORDER="backend admin web"
 # VM ~/truewords 로 복사하는 파일 — cron 이 이 경로를 직접 부른다(README §정기 작업).
 # .env·preserve-images.txt·백업은 절대 건드리지 않는다. 손으로 scp 하던 drift 를 여기서 끊는다.
-SYNC_FILES="docker-compose.yml backup-db.sh cache-cleanup.sh ops-check.sh prune-images.sh refresh-questions.sh restore-drill.sh send-hoondok-push.sh"
+SYNC_FILES="docker-compose.yml backup-db.sh cache-cleanup.sh ops-check.sh prune-images.sh refresh-questions.sh restore-drill.sh send-hoondok-push.sh send-hoondok-test-push.sh install-hoondok-push-cron.sh"
 
 log() { echo "[deploy $(date -u +%FT%TZ)] $*" >&2; }
 die() {

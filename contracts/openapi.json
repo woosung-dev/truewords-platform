@@ -4989,6 +4989,112 @@
         "title": "PushSubscriptionResponse",
         "type": "object"
       },
+      "PushTestInput": {
+        "additionalProperties": false,
+        "properties": {
+          "delay_minutes": {
+            "maximum": 60.0,
+            "minimum": 0.0,
+            "title": "Delay Minutes",
+            "type": "integer"
+          },
+          "endpoint": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint",
+          "delay_minutes",
+          "request_id"
+        ],
+        "title": "PushTestInput",
+        "type": "object"
+      },
+      "PushTestResult": {
+        "properties": {
+          "attempted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempted At"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "scheduled_at": {
+            "format": "date-time",
+            "title": "Scheduled At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subscription_id": {
+            "format": "uuid",
+            "title": "Subscription Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subscription_id",
+          "scheduled_at",
+          "attempted_at",
+          "status",
+          "error_code"
+        ],
+        "title": "PushTestResult",
+        "type": "object"
+      },
+      "PushTestState": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/PushTestResult"
+            },
+            "title": "Jobs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "enabled",
+          "jobs"
+        ],
+        "title": "PushTestState",
+        "type": "object"
+      },
       "QueryDetailResponse": {
         "properties": {
           "days": {
@@ -12708,6 +12814,102 @@
           }
         },
         "summary": "Create Push Subscription",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/push-tests": {
+      "get": {
+        "operationId": "state_hoondok_me_push_tests_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushTestState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "State",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "post": {
+        "operationId": "create_hoondok_me_push_tests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushTestInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushTestResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/push-tests/{job_id}": {
+      "delete": {
+        "operationId": "cancel_hoondok_me_push_tests__job_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel",
         "tags": [
           "hoondok"
         ]

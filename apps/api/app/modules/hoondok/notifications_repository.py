@@ -6,7 +6,7 @@ from sqlalchemy import delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.modules.hoondok.models import NotificationPreference, PushSubscription
+from app.modules.hoondok.models import NotificationPreference, PushSubscription, PushTestJob
 
 
 class NotificationRepository:
@@ -64,6 +64,7 @@ class NotificationRepository:
 
     async def delete_for_user(self, user_id: uuid.UUID) -> None:
         """계정 삭제(API-HD-011)의 일부 — 커밋하지 않는다. MissionLogRepository.delete_for_user 와 같은 규약."""
+        await self.session.execute(delete(PushTestJob).where(PushTestJob.user_id == user_id))
         await self.session.execute(delete(PushSubscription).where(PushSubscription.user_id == user_id))
         await self.session.execute(
             delete(NotificationPreference).where(NotificationPreference.user_id == user_id)

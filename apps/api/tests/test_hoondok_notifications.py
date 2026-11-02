@@ -16,7 +16,7 @@ from sqlmodel import SQLModel, select
 from app.core.config import settings
 from app.main import app
 from app.modules.hoondok.dependencies import get_notification_repository
-from app.modules.hoondok.models import NotificationPreference, PushSubscription
+from app.modules.hoondok.models import PushTestJob, NotificationPreference, PushSubscription
 from app.modules.hoondok.notifications_repository import NotificationRepository
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
 from app.modules.identity.models import User
@@ -56,7 +56,7 @@ async def repo():
     async with engine.begin() as conn:
         await conn.run_sync(
             SQLModel.metadata.create_all,
-            tables=[User.__table__, NotificationPreference.__table__, PushSubscription.__table__],
+            tables=[User.__table__, NotificationPreference.__table__, PushSubscription.__table__, PushTestJob.__table__],
         )
     session = AsyncSession(engine, expire_on_commit=False)
     try:
@@ -109,7 +109,7 @@ async def client():
     async with engine.begin() as conn:
         await conn.run_sync(
             SQLModel.metadata.create_all,
-            tables=[User.__table__, NotificationPreference.__table__, PushSubscription.__table__],
+            tables=[User.__table__, NotificationPreference.__table__, PushSubscription.__table__, PushTestJob.__table__],
         )
     session = AsyncSession(engine, expire_on_commit=False)
     me = User(email="me@example.com", password_hash="x", display_name="효진")
@@ -358,7 +358,7 @@ async def test_account_deletion_purges_notification_rows():
                 JeongseongReading.__table__,
                 ClientErrorEvent.__table__,
                 NotificationPreference.__table__,
-                PushSubscription.__table__,
+                PushSubscription.__table__, PushTestJob.__table__,
                 ReadingPosition.__table__,
                 PassageMark.__table__,
                 PassageHighlight.__table__,
@@ -407,3 +407,27 @@ async def test_account_deletion_purges_notification_rows():
 class _NoopGroups:
     async def delete_for_user(self, _user_id) -> None:
         return None
+
+
+def test_push_test_api_permissions_and_lifecycle(client: TestClient, push_on, monkeypatch):
+    path = "/hoondok/me/push-tests"
+    assert client.get(path).status_code == 401
+    _login(client, client.me)
+    assert client.get(path).json() == {"enabled": False, "jobs": []}
+    monkeypatch.setattr(settings, "hoondok_push_test_enabled", True)
+    monkeypatch.setattr(settings, "hoondok_push_test_emails", [client.me.email])
+    client.post(PUSH, json=_subscription(), headers=XHR)
+    client.put(PREFS, json={"read_enabled": True, "read_time": "06:00"}, headers=XHR)
+    body = {"endpoint": ENDPOINT, "delay_minutes": 5, "request_id": str(uuid.uuid4())}
+    assert client.post(path, json=body).status_code == 403
+    response = client.post(path, json=body, headers=XHR)
+    assert response.status_code == 201
+    job_id = response.json()["id"]
+    assert client.post(path, json=body, headers=XHR).json()["id"] == job_id
+    assert len(client.get(path).json()["jobs"]) == 1
+    assert client.delete(f"{path}/{job_id}").status_code == 403
+    assert client.delete(f"{path}/{job_id}", headers=XHR).status_code == 204
+    assert client.get(path).json()["jobs"][0]["status"] == "cancelled"
+    _login(client, client.other)
+    assert client.get(path).json() == {"enabled": False, "jobs": []}
+    assert client.post(path, json=body, headers=XHR).status_code == 403

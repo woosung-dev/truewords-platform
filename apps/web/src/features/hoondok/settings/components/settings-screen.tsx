@@ -7,6 +7,8 @@ import { inAppBrowser } from "@/features/hoondok/install/platform";
 import { useInstallCard } from "@/features/hoondok/install/use-install-card";
 import { ReadNotificationCard, SOON } from "@/features/hoondok/notifications/components/read-notification-card";
 import { usePushNotifications } from "@/features/hoondok/notifications/use-push-notifications";
+import { useIdentityGate } from "@/features/identity/gate";
+import { PushTestCard } from "../../notifications/components/push-test-card";
 import { DeleteAccountCard } from "./delete-account-card";
 
 // SCR-PWA-015 알림·설치 설정 (PLAN-HD-002 W1-S · PLAN-HD-006 알림).
@@ -47,6 +49,7 @@ function InstallSection() {
 
 export function SettingsScreen() {
   const push = usePushNotifications();
+  const { user } = useIdentityGate();
 
   return (
     <section className="col">
@@ -87,6 +90,7 @@ export function SettingsScreen() {
         <DeleteAccountCard />
       </div>
 
+      {user && <PushTestCard userId={user.id} />}
       <p className="notice">독립 운영 베타</p>
     </section>
   );

@@ -17,7 +17,7 @@
 | `backup-db.sh` | Postgres 백업 (6시간마다 · pg_dump → 무결성 검증 → Object Storage 업로드 → 보관 기간 정리). |
 | `restore-drill.sh` | 백업 복구 리허설. 운영 DB 는 읽기만 하고 임시 DB 로 복원해 대조합니다. |
 | `refresh-questions.sh` | 봇별 추천 질문 주간 갱신. backend 컨테이너 안에서 실행합니다. |
-| `send-hoondok-push.sh` | 훈독 Web Push 발송(PLAN-HD-006). 15분마다 backend 컨테이너 안에서 돌며 발송 창(`read_time` ~ +2h)에 든 사용자에게 보냅니다. VAPID 3값이 `.env` 에 없으면 no-op(exit 0)이라 알림을 켜기 전에 등록해도 무해합니다. |
+| `send-hoondok-push.sh` | 훈독 Web Push 발송(PLAN-HD-006). 5분마다 backend 컨테이너 안에서 돌며 발송 창(`read_time` ~ +2h)에 든 사용자에게 보냅니다. VAPID 3값이 `.env` 에 없으면 no-op(exit 0)이라 알림을 켜기 전에 등록해도 무해합니다. |
 | `prune-images.sh` | truewords 이미지 GC. web/admin/backend repo의 최신 3개·실행 중 이미지·명시적 보존 태그를 남깁니다. 최초 전환 전 admin 태그도 보존 대상으로 지정합니다. 빌드 캐시도 `until=168h` 로 정리합니다. |
 | `preserve-images.example` | VM `preserve-images.txt`의 형식 예제입니다. 실제 전환 전 통합 admin 태그를 기록하면 배포 자동 GC·주간 cron에서도 보존됩니다. |
 | `cache-cleanup.sh` | semantic_cache TTL 만료 point 정리 **수동 진입점**. 스케줄은 `cache-cleanup.yml`(GHA) 이 갖습니다 — cron 에 등록하지 않습니다. |
@@ -342,7 +342,7 @@ sudo docker stats
 30 18 * * 0   /home/ubuntu/truewords/refresh-questions.sh >> /home/ubuntu/truewords-cron.log   2>&1
 45 18 * * *   /home/ubuntu/truewords/ops-check.sh         >> /home/ubuntu/truewords-cron.log   2>&1
 15 19 * * 0   /home/ubuntu/truewords/prune-images.sh     >> /home/ubuntu/truewords-cron.log   2>&1
-*/15 * * * *  /home/ubuntu/truewords/send-hoondok-push.sh >> /home/ubuntu/truewords-cron.log   2>&1
+*/5 * * * *  /home/ubuntu/truewords/send-hoondok-push.sh >> /home/ubuntu/truewords-cron.log   2>&1
 ```
 
 | 작업 | 주기 | 왜 VM 이어야 하는가 |
@@ -351,7 +351,7 @@ sudo docker stats
 | `refresh-questions.sh` | 매주 월 03:30 KST | 같은 이유 (Postgres 필요) |
 | `ops-check.sh` | 매일 03:45 KST | **감시자는 감시 대상과 다른 실패 도메인에 있어야 한다.** GHA 가 멈춘 사고에서 유일하게 정상 작동한 게 VM cron 이었다 |
 | `prune-images.sh` | 매주 월 04:15 KST | 이미지는 VM 로컬 자원이다. 배포 때마다도 돌지만, 배포가 없는 주에도 빌드 캐시가 쌓이므로 주간 보루를 둔다 |
-| `send-hoondok-push.sh` | **15분마다** | Postgres 가 필요하고, GHA 청구 차단으로 예약 작업이 25일간 조용히 멈춘 이력이 있다(PLAN-HD-006 §2-6). 사용자마다 발송 시각이 달라 창에 든 사람을 15분 간격으로 찾는다 — 하루 1회 보장은 `push_subscriptions.last_sent_on` 이 갖는다 |
+| `send-hoondok-push.sh` | **5분마다** | Postgres 가 필요하고, GHA 청구 차단으로 예약 작업이 25일간 조용히 멈춘 이력이 있다(PLAN-HD-006 §2-6). 사용자마다 발송 시각이 달라 창에 든 사람을 5분 간격으로 찾는다 — 하루 1회 보장은 `push_subscriptions.last_sent_on` 이 갖는다 |
 
 `cache-cleanup.sh` 는 **cron 에 등록하지 않는다.** 스케줄 주인은 `.github/workflows/cache-cleanup.yml` 이고 (Qdrant 는 HTTPS 라 어디서든 닿는다), VM 쪽 스크립트는 수동 실행 진입점으로만 남긴다. 스케줄러가 둘이면 같은 작업이 두 번 돈다.
 

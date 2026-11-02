@@ -33,6 +33,7 @@ from app.modules.hoondok.journey_router import router as journey_router
 from app.modules.hoondok.library_router import router as hoondok_library_router
 from app.modules.hoondok.rights_admin_router import router as rights_admin_router
 from app.modules.hoondok.client_errors import router as client_errors_router
+from app.modules.hoondok.push_test_router import router as push_test_router
 from app.modules.hoondok.notifications_router import router as hoondok_notifications_router
 from app.modules.hoondok.admin_router import admin_router as hoondok_admin_router
 from app.modules.hoondok.groups_admin_router import groups_admin_router, jeongseong_admin_router
@@ -139,6 +140,7 @@ app.include_router(chatbot_router)
 app.include_router(journey_router)
 app.include_router(client_errors_router)
 app.include_router(hoondok_router)  # 훈독 공개 읽기 — 비로그인 (PLAN-HD-001 Phase 1)
+app.include_router(push_test_router)
 app.include_router(hoondok_notifications_router)  # 훈독 알림 설정·푸시 구독 (PLAN-HD-006)
 app.include_router(hoondok_library_router)  # 훈독 서고 3계층·읽기 기록 (PLAN-HD-007)
 app.include_router(hoondok_tts_router)  # 훈독 AI 낭독 목소리 /hoondok/tts/* (PLAN-HD-011)

@@ -2976,6 +2976,68 @@ export type PushSubscriptionResponse = {
 };
 
 /**
+ * PushTestInput
+ */
+export type PushTestInput = {
+    /**
+     * Delay Minutes
+     */
+    delay_minutes: number;
+    /**
+     * Endpoint
+     */
+    endpoint: string;
+    /**
+     * Request Id
+     */
+    request_id: string;
+};
+
+/**
+ * PushTestResult
+ */
+export type PushTestResult = {
+    /**
+     * Attempted At
+     */
+    attempted_at: string | null;
+    /**
+     * Error Code
+     */
+    error_code: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Scheduled At
+     */
+    scheduled_at: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Subscription Id
+     */
+    subscription_id: string;
+};
+
+/**
+ * PushTestState
+ */
+export type PushTestState = {
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Jobs
+     */
+    jobs: Array<PushTestResult>;
+};
+
+/**
  * QueryDetailResponse
  */
 export type QueryDetailResponse = {
@@ -7936,6 +7998,77 @@ export type CreatePushSubscriptionHoondokMePushPostResponses = {
 };
 
 export type CreatePushSubscriptionHoondokMePushPostResponse = CreatePushSubscriptionHoondokMePushPostResponses[keyof CreatePushSubscriptionHoondokMePushPostResponses];
+
+export type StateHoondokMePushTestsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/push-tests';
+};
+
+export type StateHoondokMePushTestsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PushTestState;
+};
+
+export type StateHoondokMePushTestsGetResponse = StateHoondokMePushTestsGetResponses[keyof StateHoondokMePushTestsGetResponses];
+
+export type CreateHoondokMePushTestsPostData = {
+    body: PushTestInput;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/push-tests';
+};
+
+export type CreateHoondokMePushTestsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateHoondokMePushTestsPostError = CreateHoondokMePushTestsPostErrors[keyof CreateHoondokMePushTestsPostErrors];
+
+export type CreateHoondokMePushTestsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: PushTestResult;
+};
+
+export type CreateHoondokMePushTestsPostResponse = CreateHoondokMePushTestsPostResponses[keyof CreateHoondokMePushTestsPostResponses];
+
+export type CancelHoondokMePushTestsJobIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Job Id
+         */
+        job_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/push-tests/{job_id}';
+};
+
+export type CancelHoondokMePushTestsJobIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CancelHoondokMePushTestsJobIdDeleteError = CancelHoondokMePushTestsJobIdDeleteErrors[keyof CancelHoondokMePushTestsJobIdDeleteErrors];
+
+export type CancelHoondokMePushTestsJobIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type CancelHoondokMePushTestsJobIdDeleteResponse = CancelHoondokMePushTestsJobIdDeleteResponses[keyof CancelHoondokMePushTestsJobIdDeleteResponses];
 
 export type PutReadingPositionHoondokMeReadingPositionVolumePutData = {
     body: ReadingPositionInput;

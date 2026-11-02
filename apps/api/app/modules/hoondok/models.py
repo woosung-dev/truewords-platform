@@ -416,3 +416,22 @@ class CardReceipt(SQLModel, table=True):
     card_id: uuid.UUID = Field(foreign_key="word_cards.id", index=True)
     received_on: date  # KST. 서버가 today_kst() 로 정한다
     shared_at: datetime | None = Field(default=None)  # 처음 건넨 시각(UTC)
+
+
+class PushTestJob(SQLModel, table=True):
+    """기기별 테스트 예약. 구독 삭제 뒤에도 안전한 결과 이력만 남긴다."""
+
+    __tablename__ = "push_test_jobs"
+    __table_args__ = (
+        Index("uq_push_test_pending", "subscription_id", unique=True,
+              postgresql_where=text("status = 'queued'"), sqlite_where=text("status = 'queued'")),
+    )
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    subscription_id: uuid.UUID = Field(index=True)
+    request_id: uuid.UUID = Field(unique=True)
+    created_at: datetime = Field(default_factory=utcnow)
+    scheduled_at: datetime = Field(index=True)
+    attempted_at: datetime | None = None
+    status: str = Field(default="queued", max_length=20)
+    error_code: str | None = Field(default=None, max_length=32)

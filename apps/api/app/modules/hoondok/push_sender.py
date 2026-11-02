@@ -251,7 +251,7 @@ class PushSenderRepository:
         await self.session.commit()
 
 
-def _deliver(subscription: PushSubscription, payload: dict[str, str], config: Settings) -> None:
+def _deliver(subscription: PushSubscription, payload: dict[str, str], config: Settings, *, ttl: int = TTL_SECONDS) -> None:
     """동기 pywebpush 호출. vapid_claims 는 호출마다 새 dict 다 — 라이브러리가 exp·aud 를 채워 넣는다."""
     private_key = config.hoondok_vapid_private_key
     webpush(
@@ -262,7 +262,7 @@ def _deliver(subscription: PushSubscription, payload: dict[str, str], config: Se
         data=json.dumps(payload, ensure_ascii=False),
         vapid_private_key=private_key.get_secret_value() if private_key else "",
         vapid_claims={"sub": config.hoondok_vapid_subject or ""},
-        ttl=TTL_SECONDS,
+        ttl=ttl,
         headers={"Urgency": URGENCY},
         timeout=DELIVER_TIMEOUT_SECONDS,
     )

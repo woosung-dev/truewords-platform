@@ -213,6 +213,18 @@ describe("훈독 서비스워커 알림 (PLAN-HD-006)", () => {
     expect(broken.self.registration.showNotification).toHaveBeenCalledTimes(3);
   });
 
+  it("push: 깨진 URL·유사 접두 경로는 홈으로 보내고 테스트 태그는 분리한다", async () => {
+    const worker = loadWorker();
+    for (const url of ["http://[", "/hoondok-other", "https://evil.example/hoondok"]) {
+      await worker.dispatch("push", pushEvent({ url }));
+      expect(worker.self.registration.showNotification.mock.lastCall?.[1].data).toEqual({ url: `${ORIGIN}/hoondok` });
+    }
+    await worker.dispatch("push", pushEvent({ kind: "test", test_id: "00000000-0000-0000-0000-000000000001" }));
+    expect(worker.self.registration.showNotification.mock.lastCall?.[1].tag).toBe(
+      "hoondok-test-00000000-0000-0000-0000-000000000001",
+    );
+  });
+
   it("notificationclick: 열린 훈독 창이 있으면 focus + navigate, 없으면 새 창", async () => {
     const hoondokWindow: FakeWindow = {
       url: `${ORIGIN}/hoondok/garden`,

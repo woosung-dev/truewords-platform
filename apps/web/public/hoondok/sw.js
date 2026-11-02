@@ -11,7 +11,7 @@
    런타임에 cache.put 을 하지 않으므로 /api/backend/* · /hoondok/onboarding · 인증 응답은 캐시에 들어갈 수 없다(ARCH-MONO-001 §7).
    sw.js 를 바꾸면 SW_VERSION 을 올린다(캐시 이름). 킬스위치: SW_KILL = true 로 배포하면 다음 방문에서 캐시 전삭제 + 등록 해제.
    rollback-web 만으로는 이미 설치된 SW 가 지워지지 않는다 — 절차는 runbook(Phase 3 G). */
-const SW_VERSION = "2026-09-29.1";
+const SW_VERSION = "2026-11-02.1";
 const SW_KILL = false;
 const CACHE_PREFIX = "hoondok-";
 const CACHE_NAME = `${CACHE_PREFIX}${SW_VERSION}`;
@@ -121,9 +121,15 @@ function notificationContent(event) {
     data = null; // 본문이 JSON 이 아니면 중립 문구로 대신한다
   }
   const source = data && typeof data === "object" ? data : {};
-  const url = typeof source.url === "string" ? new URL(source.url, self.location.origin) : null;
-  const isSafe = url && url.origin === self.location.origin && url.pathname.startsWith(SCOPE_PATH);
+  let url = null;
+  try {
+    url = typeof source.url === "string" ? new URL(source.url, self.location.origin) : null;
+  } catch {
+    // 깨진 URL 도 알림 표시를 막지 않는다.
+  }
+  const isSafe = url && url.origin === self.location.origin && (url.pathname === SCOPE_PATH || url.pathname.startsWith(`${SCOPE_PATH}/`));
   return {
+    tag: source.kind === "test" && typeof source.test_id === "string" && /^[a-f0-9-]{36}$/.test(source.test_id) ? `hoondok-test-${source.test_id}` : NOTIFICATION_TAG,
     title: typeof source.title === "string" && source.title ? source.title : NOTIFICATION_FALLBACK_TITLE,
     body: typeof source.body === "string" ? source.body : "",
     url: isSafe ? url.href : new URL(SCOPE_PATH, self.location.origin).href,
@@ -156,13 +162,13 @@ async function openHoondokWindow(url) {
 
 self.addEventListener("push", (event) => {
   if (SW_KILL) return;
-  const { title, body, url } = notificationContent(event);
+  const { title, body, url, tag } = notificationContent(event);
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
       icon: NOTIFICATION_ICON,
       badge: NOTIFICATION_BADGE,
-      tag: NOTIFICATION_TAG,
+      tag,
       data: { url },
     }),
   );
