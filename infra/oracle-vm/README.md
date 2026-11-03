@@ -665,3 +665,9 @@ Object Storage 사본을 쓸 때는 먼저 내려받는다.
 - [ ] Cloudflare Tunnel은 `truewords-oracle` 전용 토큰만 사용합니다.
 - [ ] `ADMIN_JWT_SECRET`은 production 기본값이 아니며 `COOKIE_SECURE=true`입니다.
 - [ ] 백업 업로드는 Instance Principal 로 인증하며 VM 에 OCI 개인키를 두지 않습니다.
+
+### AI 요약 이미지 저장·복구
+
+AI 요약 이미지는 공개 정적 폴더가 아닌 backend의 `HOONDOK_SUMMARY_MEDIA_DIR=/data/summary-media`에 저장한다. Compose는 호스트 `/opt/truewords/summary-media`를 연결한다. 최초 적용 전 backend의 `appuser` UID/GID를 확인해 해당 디렉터리에 쓰기 권한을 부여한다. 이 디렉터리는 삭제 가능한 TTS 캐시와 달리 **콘텐츠 원본**이다. 현재 DB 자동 백업에 이 파일 디렉터리가 포함된다고 가정하지 않는다. 최초 공개 전 디렉터리의 별도 영속 백업을 구성하고, DB와 같은 복구 시점의 이미지 사본을 보관한다. 복구는 DB의 자산 레코드와 파일을 함께 복원한 뒤 이미지 조회를 확인한다. 이미지 파일이 없는 공개본은 관리자에서 철회하고 원본 파일을 복구한다.
+
+초기 콘텐츠는 `apps/api/scripts/import_ai_summaries.py`로 비공개 초안만 등록한다. 기존 권리 UUID를 명시한 JSON 매핑과 `--dry-run`으로 연결을 확인한 후 실행한다. 기존 slug는 건너뛰며 권리 승인·공개본 변경은 하지 않는다. 원문 청크 연결과 판본 검수가 끝나기 전에는 공개할 수 없다. 코드·스키마 배포는 기존 `make deploy-*` 승인 절차를 따른다.

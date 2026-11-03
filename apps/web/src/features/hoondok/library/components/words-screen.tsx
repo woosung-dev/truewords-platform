@@ -524,6 +524,7 @@ export function WordsScreen({
       </aside>
       <div className="words__main">
         {/* 저작물 제목은 앱바 h1 이 이미 보여준다(screens.ts titleSource: "work") */}
+        <Link className="btn btn-line" href={`/hoondok/summaries?volume=${encodeURIComponent(volume)}`}>AI 요약 살펴보기</Link>
         <div className="masthead">
           {currentSection && <span className="masthead__nm">{currentSection.title}</span>}
           <span className="masthead__dt">

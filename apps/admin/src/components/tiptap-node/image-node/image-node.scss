@@ -1,0 +1,52 @@
+// 본문 인라인 이미지 — 커스텀 코너 리사이즈 NodeView(span). 한 문단에 여러 장 나란히.
+.tiptap.ProseMirror {
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  // NodeView 래퍼(span) — 인라인 블록, 이미지 사이 간격, 핸들 기준 좌표계
+  figure.tiptap-image {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+    max-width: 100%;
+    margin: 0 0.5rem 0.25rem 0;
+    vertical-align: top;
+
+    img {
+      display: block;
+      border-radius: var(--tt-radius-xs, 0.25rem);
+      outline: 2px solid transparent;
+      outline-offset: 1px;
+    }
+  }
+
+  figure.tiptap-image:hover img,
+  figure.tiptap-image.is-selected img {
+    outline-color: var(--tt-brand-color-500, #7b2ac7);
+  }
+
+  // 우하단 코너 리사이즈 핸들(대각선) — hover/선택 시 노출
+  .tiptap-image-handle {
+    position: absolute;
+    right: -0.4375rem;
+    bottom: -0.4375rem;
+    width: 0.875rem;
+    height: 0.875rem;
+    background: var(--tt-brand-color-500, #7b2ac7);
+    border: 2px solid #fff;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    cursor: nwse-resize;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    touch-action: none;
+    z-index: 3;
+  }
+
+  figure.tiptap-image:hover .tiptap-image-handle,
+  figure.tiptap-image.is-selected .tiptap-image-handle {
+    opacity: 1;
+  }
+}

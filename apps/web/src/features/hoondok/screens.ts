@@ -126,6 +126,8 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
   },
   // /hoondok/ask/{id} — log 가 아닌 세그먼트. 위 항목보다 접두가 짧아 최장 매치에서 자연히 밀린다
   { match: "/hoondok/ask/", title: "질문", backHref: "/hoondok/ask/log", tabId: "ask", variant: "read" },
+  { match: "/hoondok/summaries", title: "AI 요약", backHref: "/hoondok/library", tabId: "library", variant: "app" },
+  { match: "/hoondok/summaries/", title: "AI 요약", backHref: "/hoondok/summaries", tabId: "library", variant: "app" },
   { match: "/hoondok/library", title: "말씀", tabId: "library", variant: "app" },
   // /hoondok/library/{series} — 저작물 한 건의 권 목록. 제목은 API-HD-023 의 저작물 제목으로 바뀐다
   {

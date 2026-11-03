@@ -145,6 +145,16 @@ export type BodyUploadDocumentAdminDataSourcesUploadPost = {
 };
 
 /**
+ * Body_upload_summary_image_admin_hoondok_ai_summaries__unit_id__media_post
+ */
+export type BodyUploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPost = {
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
  * BulkRightsInput
  */
 export type BulkRightsInput = {
@@ -3660,6 +3670,50 @@ export type Source = {
 };
 
 /**
+ * SourceBlock
+ */
+export type SourceBlock = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Position
+     */
+    position: number;
+    /**
+     * Section Id
+     */
+    section_id?: string | null;
+    /**
+     * Text
+     */
+    text: string;
+};
+
+/**
+ * SourceBook
+ */
+export type SourceBook = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Volume
+     */
+    volume: string;
+};
+
+/**
  * SourceChunkDetail
  *
  * P0-B — 인용 카드 원문보기 모달용 청크 상세 + dedup 된 연속 문맥.
@@ -3729,6 +3783,267 @@ export type SourceChunkDetail = {
 };
 
 /**
+ * SourcePassages
+ */
+export type SourcePassages = {
+    /**
+     * Blocks
+     */
+    blocks: Array<SourceBlock>;
+    /**
+     * Next Offset
+     */
+    next_offset: number | null;
+    /**
+     * Snapshot Id
+     */
+    snapshot_id: string;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * SourceRangeInput
+ */
+export type SourceRangeInput = {
+    /**
+     * End Block Id
+     */
+    end_block_id: string;
+    /**
+     * End Offset
+     */
+    end_offset?: number | null;
+    /**
+     * Group Title
+     */
+    group_title?: string;
+    /**
+     * Snapshot Id
+     */
+    snapshot_id: string;
+    /**
+     * Start Block Id
+     */
+    start_block_id: string;
+    /**
+     * Start Offset
+     */
+    start_offset?: number;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * SourceRangeMerge
+ */
+export type SourceRangeMerge = {
+    /**
+     * Other Id
+     */
+    other_id: string;
+    /**
+     * Other Version
+     */
+    other_version: number;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * SourceRangeResult
+ */
+export type SourceRangeResult = {
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * End Block Id
+     */
+    end_block_id: string;
+    /**
+     * End Offset
+     */
+    end_offset?: number | null;
+    /**
+     * First
+     */
+    first: string;
+    /**
+     * Group Title
+     */
+    group_title?: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Last
+     */
+    last: string;
+    /**
+     * Snapshot Id
+     */
+    snapshot_id: string;
+    source: SummarySource;
+    /**
+     * Start Block Id
+     */
+    start_block_id: string;
+    /**
+     * Start Offset
+     */
+    start_offset?: number;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * SourceRangeSplit
+ */
+export type SourceRangeSplit = {
+    /**
+     * After Block Id
+     */
+    after_block_id: string;
+    /**
+     * After Offset
+     */
+    after_offset?: number | null;
+    /**
+     * First Title
+     */
+    first_title: string;
+    /**
+     * Second Title
+     */
+    second_title: string;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * SourceRangeUpdate
+ */
+export type SourceRangeUpdate = {
+    /**
+     * End Block Id
+     */
+    end_block_id: string;
+    /**
+     * End Offset
+     */
+    end_offset?: number | null;
+    /**
+     * Group Title
+     */
+    group_title?: string;
+    /**
+     * Snapshot Id
+     */
+    snapshot_id: string;
+    /**
+     * Start Block Id
+     */
+    start_block_id: string;
+    /**
+     * Start Offset
+     */
+    start_offset?: number;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * SourceSection
+ */
+export type SourceSection = {
+    /**
+     * End Block Id
+     */
+    end_block_id: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Level
+     */
+    level: number;
+    /**
+     * Start Block Id
+     */
+    start_block_id: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * SourceSnapshotInfo
+ */
+export type SourceSnapshotInfo = {
+    /**
+     * Block Count
+     */
+    block_count: number;
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * Edition
+     */
+    edition: string;
+    /**
+     * Fingerprint
+     */
+    fingerprint: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Sections
+     */
+    sections: Array<SourceSection>;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
  * StageSpan
  */
 export type StageSpan = {
@@ -3784,6 +4099,337 @@ export type StageSpan = {
 };
 
 /**
+ * SummaryActionInput
+ */
+export type SummaryActionInput = {
+    /**
+     * Action
+     */
+    action: 'request_review' | 'approve' | 'publish' | 'withdraw';
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * SummaryAdminResponse
+ */
+export type SummaryAdminResponse = {
+    /**
+     * Assets
+     */
+    assets: Array<SummaryMediaResponse>;
+    /**
+     * Body
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Body Version
+     */
+    body_version?: 1 | 2;
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * Group Title
+     */
+    group_title?: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Key Points
+     */
+    key_points?: Array<string>;
+    /**
+     * Lead
+     */
+    lead?: string;
+    /**
+     * Position
+     */
+    position?: number | null;
+    /**
+     * Published
+     */
+    published: boolean;
+    /**
+     * Reflection
+     */
+    reflection?: string;
+    /**
+     * Review Status
+     */
+    review_status: 'draft' | 'in_review' | 'approved';
+    /**
+     * Slides
+     */
+    slides?: Array<SummarySlide>;
+    /**
+     * Slug
+     */
+    slug?: string;
+    source?: SummarySource;
+    /**
+     * Source Range Id
+     */
+    source_range_id?: string | null;
+    /**
+     * Source Range Version
+     */
+    source_range_version?: number | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * SummaryDetail
+ */
+export type SummaryDetail = {
+    /**
+     * Assets
+     */
+    assets?: Array<SummaryMediaResponse>;
+    /**
+     * Body
+     */
+    body: {
+        [key: string]: unknown;
+    };
+    /**
+     * Body Version
+     */
+    body_version?: 1 | 2;
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * Cover Url
+     */
+    cover_url?: string | null;
+    /**
+     * Group Title
+     */
+    group_title: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Key Points
+     */
+    key_points: Array<string>;
+    /**
+     * Lead
+     */
+    lead: string;
+    /**
+     * Next Id
+     */
+    next_id?: string | null;
+    /**
+     * Position
+     */
+    position: number;
+    /**
+     * Published
+     */
+    published: boolean;
+    /**
+     * Reflection
+     */
+    reflection: string;
+    /**
+     * Slides
+     */
+    slides: Array<SummaryPublicSlide>;
+    /**
+     * Slug
+     */
+    slug: string;
+    source: SummarySource;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Volume
+     */
+    volume: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * SummaryInput
+ */
+export type SummaryInput = {
+    /**
+     * Body
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Body Version
+     */
+    body_version?: 1 | 2;
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * Group Title
+     */
+    group_title?: string;
+    /**
+     * Key Points
+     */
+    key_points?: Array<string>;
+    /**
+     * Lead
+     */
+    lead?: string;
+    /**
+     * Position
+     */
+    position?: number | null;
+    /**
+     * Reflection
+     */
+    reflection?: string;
+    /**
+     * Slides
+     */
+    slides?: Array<SummarySlide>;
+    /**
+     * Slug
+     */
+    slug?: string;
+    source?: SummarySource;
+    /**
+     * Source Range Id
+     */
+    source_range_id?: string | null;
+    /**
+     * Source Range Version
+     */
+    source_range_version?: number | null;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * SummaryListItem
+ */
+export type SummaryListItem = {
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * Cover Url
+     */
+    cover_url?: string | null;
+    /**
+     * Group Title
+     */
+    group_title: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Lead
+     */
+    lead: string;
+    /**
+     * Position
+     */
+    position: number;
+    /**
+     * Published
+     */
+    published: boolean;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * SummaryMediaResponse
+ */
+export type SummaryMediaResponse = {
+    /**
+     * Height
+     */
+    height?: number | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Mime Type
+     */
+    mime_type: string;
+    /**
+     * Url
+     */
+    url: string;
+    /**
+     * Width
+     */
+    width?: number | null;
+};
+
+/**
+ * SummaryPublicSlide
+ */
+export type SummaryPublicSlide = {
+    /**
+     * Alt
+     */
+    alt?: string;
+    /**
+     * Asset Id
+     */
+    asset_id: string;
+    /**
+     * Caption
+     */
+    caption?: string;
+    /**
+     * Url
+     */
+    url: string;
+};
+
+/**
  * SummaryResponse
  *
  * API-HD-004. 연속일·최대·누적은 read 기준이며 저장하지 않는다. week 는 월요일 시작 7칸.
@@ -3806,6 +4452,123 @@ export type SummaryResponse = {
      * Week
      */
     week: Array<WeekDay>;
+};
+
+/**
+ * SummarySlide
+ */
+export type SummarySlide = {
+    /**
+     * Alt
+     */
+    alt?: string;
+    /**
+     * Asset Id
+     */
+    asset_id: string;
+    /**
+     * Caption
+     */
+    caption?: string;
+};
+
+/**
+ * SummarySource
+ */
+export type SummarySource = {
+    /**
+     * Chunk Ids
+     */
+    chunk_ids?: Array<string>;
+    /**
+     * Edition
+     */
+    edition?: string;
+    /**
+     * Locator
+     */
+    locator?: string;
+    /**
+     * Note
+     */
+    note?: string;
+    /**
+     * Sha256
+     */
+    sha256?: string;
+    /**
+     * Text
+     */
+    text?: string;
+    /**
+     * Verified
+     */
+    verified?: boolean;
+};
+
+/**
+ * SummaryUpdate
+ */
+export type SummaryUpdate = {
+    /**
+     * Body
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Body Version
+     */
+    body_version?: 1 | 2;
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * Group Title
+     */
+    group_title?: string;
+    /**
+     * Key Points
+     */
+    key_points?: Array<string>;
+    /**
+     * Lead
+     */
+    lead?: string;
+    /**
+     * Position
+     */
+    position?: number | null;
+    /**
+     * Reflection
+     */
+    reflection?: string;
+    /**
+     * Slides
+     */
+    slides?: Array<SummarySlide>;
+    /**
+     * Slug
+     */
+    slug?: string;
+    source?: SummarySource;
+    /**
+     * Source Range Id
+     */
+    source_range_id?: string | null;
+    /**
+     * Source Range Version
+     */
+    source_range_version?: number | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Version
+     */
+    version: number;
 };
 
 /**
@@ -5511,6 +6274,201 @@ export type DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses = {
 
 export type DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponse = DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses[keyof DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses];
 
+export type AdminListSummariesAdminHoondokAiSummariesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/ai-summaries';
+};
+
+export type AdminListSummariesAdminHoondokAiSummariesGetResponses = {
+    /**
+     * Response Admin List Summaries Admin Hoondok Ai Summaries Get
+     *
+     * Successful Response
+     */
+    200: Array<SummaryAdminResponse>;
+};
+
+export type AdminListSummariesAdminHoondokAiSummariesGetResponse = AdminListSummariesAdminHoondokAiSummariesGetResponses[keyof AdminListSummariesAdminHoondokAiSummariesGetResponses];
+
+export type CreateSummaryAdminHoondokAiSummariesPostData = {
+    body: SummaryInput;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/ai-summaries';
+};
+
+export type CreateSummaryAdminHoondokAiSummariesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateSummaryAdminHoondokAiSummariesPostError = CreateSummaryAdminHoondokAiSummariesPostErrors[keyof CreateSummaryAdminHoondokAiSummariesPostErrors];
+
+export type CreateSummaryAdminHoondokAiSummariesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: SummaryAdminResponse;
+};
+
+export type CreateSummaryAdminHoondokAiSummariesPostResponse = CreateSummaryAdminHoondokAiSummariesPostResponses[keyof CreateSummaryAdminHoondokAiSummariesPostResponses];
+
+export type AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/ai-summaries/{unit_id}';
+};
+
+export type AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetError = AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetErrors[keyof AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetErrors];
+
+export type AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummaryAdminResponse;
+};
+
+export type AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetResponse = AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetResponses[keyof AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetResponses];
+
+export type UpdateSummaryAdminHoondokAiSummariesUnitIdPutData = {
+    body: SummaryUpdate;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/ai-summaries/{unit_id}';
+};
+
+export type UpdateSummaryAdminHoondokAiSummariesUnitIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateSummaryAdminHoondokAiSummariesUnitIdPutError = UpdateSummaryAdminHoondokAiSummariesUnitIdPutErrors[keyof UpdateSummaryAdminHoondokAiSummariesUnitIdPutErrors];
+
+export type UpdateSummaryAdminHoondokAiSummariesUnitIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummaryAdminResponse;
+};
+
+export type UpdateSummaryAdminHoondokAiSummariesUnitIdPutResponse = UpdateSummaryAdminHoondokAiSummariesUnitIdPutResponses[keyof UpdateSummaryAdminHoondokAiSummariesUnitIdPutResponses];
+
+export type SummaryActionAdminHoondokAiSummariesUnitIdActionsPostData = {
+    body: SummaryActionInput;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/ai-summaries/{unit_id}/actions';
+};
+
+export type SummaryActionAdminHoondokAiSummariesUnitIdActionsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SummaryActionAdminHoondokAiSummariesUnitIdActionsPostError = SummaryActionAdminHoondokAiSummariesUnitIdActionsPostErrors[keyof SummaryActionAdminHoondokAiSummariesUnitIdActionsPostErrors];
+
+export type SummaryActionAdminHoondokAiSummariesUnitIdActionsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummaryAdminResponse;
+};
+
+export type SummaryActionAdminHoondokAiSummariesUnitIdActionsPostResponse = SummaryActionAdminHoondokAiSummariesUnitIdActionsPostResponses[keyof SummaryActionAdminHoondokAiSummariesUnitIdActionsPostResponses];
+
+export type UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostData = {
+    body: BodyUploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPost;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/ai-summaries/{unit_id}/media';
+};
+
+export type UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostError = UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostErrors[keyof UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostErrors];
+
+export type UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: SummaryMediaResponse;
+};
+
+export type UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostResponse = UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostResponses[keyof UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostResponses];
+
+export type AdminSummaryMediaAdminHoondokAiSummariesUnitIdMediaAssetIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+        /**
+         * Asset Id
+         */
+        asset_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/ai-summaries/{unit_id}/media/{asset_id}';
+};
+
+export type AdminSummaryMediaAdminHoondokAiSummariesUnitIdMediaAssetIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminSummaryMediaAdminHoondokAiSummariesUnitIdMediaAssetIdGetError = AdminSummaryMediaAdminHoondokAiSummariesUnitIdMediaAssetIdGetErrors[keyof AdminSummaryMediaAdminHoondokAiSummariesUnitIdMediaAssetIdGetErrors];
+
+export type AdminSummaryMediaAdminHoondokAiSummariesUnitIdMediaAssetIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type ListCardsAdminHoondokCardsGetData = {
     body?: never;
     path?: never;
@@ -6048,6 +7006,276 @@ export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutRespon
 
 export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponse = UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses[keyof UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses];
 
+export type SourceBooksAdminHoondokSourceBooksGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/source-books';
+};
+
+export type SourceBooksAdminHoondokSourceBooksGetResponses = {
+    /**
+     * Response Source Books Admin Hoondok Source Books Get
+     *
+     * Successful Response
+     */
+    200: Array<SourceBook>;
+};
+
+export type SourceBooksAdminHoondokSourceBooksGetResponse = SourceBooksAdminHoondokSourceBooksGetResponses[keyof SourceBooksAdminHoondokSourceBooksGetResponses];
+
+export type CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostData = {
+    body?: never;
+    path: {
+        /**
+         * Right Id
+         */
+        right_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/source-books/{right_id}/snapshots';
+};
+
+export type CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostError = CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostErrors[keyof CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostErrors];
+
+export type CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: SourceSnapshotInfo;
+};
+
+export type CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostResponse = CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostResponses[keyof CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostResponses];
+
+export type SourceRangesAdminHoondokSourceRangesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Content Right Id
+         */
+        content_right_id?: string | null;
+    };
+    url: '/admin/hoondok/source-ranges';
+};
+
+export type SourceRangesAdminHoondokSourceRangesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SourceRangesAdminHoondokSourceRangesGetError = SourceRangesAdminHoondokSourceRangesGetErrors[keyof SourceRangesAdminHoondokSourceRangesGetErrors];
+
+export type SourceRangesAdminHoondokSourceRangesGetResponses = {
+    /**
+     * Response Source Ranges Admin Hoondok Source Ranges Get
+     *
+     * Successful Response
+     */
+    200: Array<SourceRangeResult>;
+};
+
+export type SourceRangesAdminHoondokSourceRangesGetResponse = SourceRangesAdminHoondokSourceRangesGetResponses[keyof SourceRangesAdminHoondokSourceRangesGetResponses];
+
+export type CreateRangeAdminHoondokSourceRangesPostData = {
+    body: SourceRangeInput;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/source-ranges';
+};
+
+export type CreateRangeAdminHoondokSourceRangesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateRangeAdminHoondokSourceRangesPostError = CreateRangeAdminHoondokSourceRangesPostErrors[keyof CreateRangeAdminHoondokSourceRangesPostErrors];
+
+export type CreateRangeAdminHoondokSourceRangesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: SourceRangeResult;
+};
+
+export type CreateRangeAdminHoondokSourceRangesPostResponse = CreateRangeAdminHoondokSourceRangesPostResponses[keyof CreateRangeAdminHoondokSourceRangesPostResponses];
+
+export type SourceRangeAdminHoondokSourceRangesRangeIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Range Id
+         */
+        range_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/source-ranges/{range_id}';
+};
+
+export type SourceRangeAdminHoondokSourceRangesRangeIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SourceRangeAdminHoondokSourceRangesRangeIdGetError = SourceRangeAdminHoondokSourceRangesRangeIdGetErrors[keyof SourceRangeAdminHoondokSourceRangesRangeIdGetErrors];
+
+export type SourceRangeAdminHoondokSourceRangesRangeIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SourceRangeResult;
+};
+
+export type SourceRangeAdminHoondokSourceRangesRangeIdGetResponse = SourceRangeAdminHoondokSourceRangesRangeIdGetResponses[keyof SourceRangeAdminHoondokSourceRangesRangeIdGetResponses];
+
+export type UpdateRangeAdminHoondokSourceRangesRangeIdPutData = {
+    body: SourceRangeUpdate;
+    path: {
+        /**
+         * Range Id
+         */
+        range_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/source-ranges/{range_id}';
+};
+
+export type UpdateRangeAdminHoondokSourceRangesRangeIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateRangeAdminHoondokSourceRangesRangeIdPutError = UpdateRangeAdminHoondokSourceRangesRangeIdPutErrors[keyof UpdateRangeAdminHoondokSourceRangesRangeIdPutErrors];
+
+export type UpdateRangeAdminHoondokSourceRangesRangeIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: SourceRangeResult;
+};
+
+export type UpdateRangeAdminHoondokSourceRangesRangeIdPutResponse = UpdateRangeAdminHoondokSourceRangesRangeIdPutResponses[keyof UpdateRangeAdminHoondokSourceRangesRangeIdPutResponses];
+
+export type MergeRangesAdminHoondokSourceRangesRangeIdMergePostData = {
+    body: SourceRangeMerge;
+    path: {
+        /**
+         * Range Id
+         */
+        range_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/source-ranges/{range_id}/merge';
+};
+
+export type MergeRangesAdminHoondokSourceRangesRangeIdMergePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type MergeRangesAdminHoondokSourceRangesRangeIdMergePostError = MergeRangesAdminHoondokSourceRangesRangeIdMergePostErrors[keyof MergeRangesAdminHoondokSourceRangesRangeIdMergePostErrors];
+
+export type MergeRangesAdminHoondokSourceRangesRangeIdMergePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: SourceRangeResult;
+};
+
+export type MergeRangesAdminHoondokSourceRangesRangeIdMergePostResponse = MergeRangesAdminHoondokSourceRangesRangeIdMergePostResponses[keyof MergeRangesAdminHoondokSourceRangesRangeIdMergePostResponses];
+
+export type SplitRangeAdminHoondokSourceRangesRangeIdSplitPostData = {
+    body: SourceRangeSplit;
+    path: {
+        /**
+         * Range Id
+         */
+        range_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/source-ranges/{range_id}/split';
+};
+
+export type SplitRangeAdminHoondokSourceRangesRangeIdSplitPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SplitRangeAdminHoondokSourceRangesRangeIdSplitPostError = SplitRangeAdminHoondokSourceRangesRangeIdSplitPostErrors[keyof SplitRangeAdminHoondokSourceRangesRangeIdSplitPostErrors];
+
+export type SplitRangeAdminHoondokSourceRangesRangeIdSplitPostResponses = {
+    /**
+     * Response Split Range Admin Hoondok Source Ranges  Range Id  Split Post
+     *
+     * Successful Response
+     */
+    200: Array<SourceRangeResult>;
+};
+
+export type SplitRangeAdminHoondokSourceRangesRangeIdSplitPostResponse = SplitRangeAdminHoondokSourceRangesRangeIdSplitPostResponses[keyof SplitRangeAdminHoondokSourceRangesRangeIdSplitPostResponses];
+
+export type SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetData = {
+    body?: never;
+    path: {
+        /**
+         * Snapshot Id
+         */
+        snapshot_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Start Block Id
+         */
+        start_block_id?: string | null;
+    };
+    url: '/admin/hoondok/source-snapshots/{snapshot_id}/passages';
+};
+
+export type SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetError = SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetErrors[keyof SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetErrors];
+
+export type SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SourcePassages;
+};
+
+export type SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetResponse = SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetResponses[keyof SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetResponses];
+
 export type RunRagTraceAdminRagTracePostData = {
     body: RagTraceRequest;
     path?: never;
@@ -6397,6 +7625,134 @@ export type HealthHealthGetResponses = {
      */
     200: unknown;
 };
+
+export type ListSummariesHoondokAiSummariesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Content Right Id
+         */
+        content_right_id?: string | null;
+        /**
+         * Volume
+         */
+        volume?: string | null;
+    };
+    url: '/hoondok/ai-summaries';
+};
+
+export type ListSummariesHoondokAiSummariesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListSummariesHoondokAiSummariesGetError = ListSummariesHoondokAiSummariesGetErrors[keyof ListSummariesHoondokAiSummariesGetErrors];
+
+export type ListSummariesHoondokAiSummariesGetResponses = {
+    /**
+     * Response List Summaries Hoondok Ai Summaries Get
+     *
+     * Successful Response
+     */
+    200: Array<SummaryListItem>;
+};
+
+export type ListSummariesHoondokAiSummariesGetResponse = ListSummariesHoondokAiSummariesGetResponses[keyof ListSummariesHoondokAiSummariesGetResponses];
+
+export type SummaryDetailHoondokAiSummariesUnitIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+    };
+    query?: never;
+    url: '/hoondok/ai-summaries/{unit_id}';
+};
+
+export type SummaryDetailHoondokAiSummariesUnitIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SummaryDetailHoondokAiSummariesUnitIdGetError = SummaryDetailHoondokAiSummariesUnitIdGetErrors[keyof SummaryDetailHoondokAiSummariesUnitIdGetErrors];
+
+export type SummaryDetailHoondokAiSummariesUnitIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummaryDetail;
+};
+
+export type SummaryDetailHoondokAiSummariesUnitIdGetResponse = SummaryDetailHoondokAiSummariesUnitIdGetResponses[keyof SummaryDetailHoondokAiSummariesUnitIdGetResponses];
+
+export type SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+        /**
+         * Asset Id
+         */
+        asset_id: string;
+    };
+    query?: never;
+    url: '/hoondok/ai-summaries/{unit_id}/media/{asset_id}';
+};
+
+export type SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetError = SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetErrors[keyof SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetErrors];
+
+export type SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type SummarySourceHoondokAiSummariesUnitIdSourceGetData = {
+    body?: never;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+    };
+    query?: never;
+    url: '/hoondok/ai-summaries/{unit_id}/source';
+};
+
+export type SummarySourceHoondokAiSummariesUnitIdSourceGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SummarySourceHoondokAiSummariesUnitIdSourceGetError = SummarySourceHoondokAiSummariesUnitIdSourceGetErrors[keyof SummarySourceHoondokAiSummariesUnitIdSourceGetErrors];
+
+export type SummarySourceHoondokAiSummariesUnitIdSourceGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummarySource;
+};
+
+export type SummarySourceHoondokAiSummariesUnitIdSourceGetResponse = SummarySourceHoondokAiSummariesUnitIdSourceGetResponses[keyof SummarySourceHoondokAiSummariesUnitIdSourceGetResponses];
 
 export type LoginHoondokAuthLoginPostData = {
     body: LoginRequest;

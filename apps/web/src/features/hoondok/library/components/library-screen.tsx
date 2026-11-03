@@ -54,6 +54,7 @@ export function LibraryScreen() {
         <Search size={20} aria-hidden="true" />
         <span>단어, 구절, 상황을 입력해 주세요</span>
       </Link>
+      <Link className="card sum-entry" href="/hoondok/summaries"><BookOpenText size={22} aria-hidden="true" /><span className="resume__bd"><b>AI 요약으로 살펴보기</b><span className="resume__meta">원문을 이미지와 해설로 한 구간씩 읽어요</span></span></Link>
       {resume && (
         <div className="sect">
           <div className="sect__head">

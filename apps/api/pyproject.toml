@@ -23,6 +23,7 @@ dependencies = [
     "python-multipart>=0.0.22",
     "pywebpush>=2.5.0",
     "langchain-text-splitters>=1.1.2",
+    "pillow==12.3.0",
 ]
 
 [dependency-groups]
