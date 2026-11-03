@@ -226,21 +226,21 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 
 ### 1.7 앱 아이콘·설치 메타 (2026-09-19, PLAN-HD-001 Phase 3 C)
 
-앱 아이콘은 **HD 모노그램**(H 오른쪽 기둥과 D 기둥을 하나로 묶고 위에 읽는 자리 표시 한 줄을 둔 직접 그린 벡터, 폰트 없음)의 단색 도형이다. 공식 표장·상징·소속 표기는 넣지 않는다(`REQ-PWA-001` 독립 베타 정체성 — 공식 로고·제휴 표현 금지). 원본은 `apps/web/public/hoondok/icons/` 의 SVG 4종이고 PNG 6장은 거기서 생성한 산출물이다. 아이콘 파일이 곧 시안이며 PR 에서 승인한다.
+앱 아이콘·탭 파비콘·헤더 표지는 **부엉이 마스코트**다(2026-11-03, 이전 HD 모노그램 대체). 공식 표장·상징·소속 표기는 넣지 않는다(`REQ-PWA-001` 독립 베타 정체성 — 공식 로고·제휴 표현 금지). 원본은 저장소 밖 디자인 에셋 폴더(`hundok-production-assets/icons/` — `favicon.png` 얼굴 클로즈업, `pwa-icon-1024x1024.png` 책 든 부엉이, `pwa-maskable-512x512.png`)이고 `apps/web/public/hoondok/icons/` 의 PNG 가 산출물이다. 아이콘 파일이 곧 시안이며 PR 에서 승인한다.
 
-| 파일 | 원본 | 용도 | 규격 |
+| 파일 | 그림 | 용도 | 규격 |
 |---|---|---|---|
-| `icon-192.png` · `icon-512.png` | `hoondok-icon.svg` | manifest `purpose: any`(데스크톱·브라우저 UI) | 모서리 22% 라운드·투명 코너, 모노그램 폭 55% |
-| `icon-maskable-512.png` | `hoondok-icon-maskable.svg` | manifest `purpose: maskable`(Android 런처 마스크) | 풀블리드 정사각, 모노그램 폭 46% — 중앙 80% 안전영역 안(최원점 반지름 157px ≤ 205px) |
-| `apple-touch-icon-180.png` | `hoondok-icon-maskable.svg` | `<link rel="apple-touch-icon">`(iOS 가 22% 라운딩) | 풀블리드 180 |
-| `badge-96.png` | `hoondok-badge.svg` | 알림 `badge`(Android 상태 표시줄 작은 아이콘 — 알파 채널만 쓰므로 컬러 아이콘이면 흰 네모가 된다) | 투명 배경 · 흰 글자만, 세로 여백 10% |
-| `favicon-32.png` | `favicon.svg` | 브라우저 탭 파비콘(hoondok layout `icons.icon`, SVG 도 함께 선언) | 16 격자 전용 판 — 정수 좌표·획 2칸이라 16·32px 에서 흐려지지 않는다. PC 헤더 브랜드 표지(32px)도 이 SVG 를 쓴다 |
+| `icon-192.png` · `icon-512.png` | 책 든 부엉이 | manifest `purpose: any`(데스크톱·브라우저 UI), 알림 `icon` | 모서리 22% 라운드·투명 코너 |
+| `icon-maskable-512.png` | 책 든 부엉이(안전영역 판) | manifest `purpose: maskable`(Android 런처 마스크) | 에셋의 maskable 판 그대로, 풀블리드 |
+| `apple-touch-icon-180.png` | 책 든 부엉이 | `<link rel="apple-touch-icon">`(iOS 가 22% 라운딩) | 풀블리드 180 |
+| `favicon-32.png` | 부엉이 얼굴 | 브라우저 탭 파비콘(hoondok layout `icons.icon`) | 22% 라운드 |
+| `logo-64.png` | 부엉이 얼굴 | PC 헤더·온보딩 브랜드 표지(32px 로 표시) | 22% 라운드, 2배 판 |
+| `badge-96.png` | HD 모노그램(`hoondok-badge.svg`) | 알림 `badge`(Android 상태 표시줄 — 알파 채널만 쓰므로 컬러 그림은 흰 덩어리가 된다) | 투명 배경 · 흰 글자만, 세로 여백 10% |
 
-- 색은 토큰 두 개만 쓴다. **감귤 배경 `--accent #c24721` + 종이색 글자 `--paper #fbfaf8`**(2026-09-19 확정 — 종이색 배경·감귤 글자 B 안은 밝은 홈 화면에서 묻혀 미채택, 비교 시트는 git 히스토리 밖 세션 산출물). 어두운 홈·밝은 홈·iOS 라운딩·Android 원형 마스크 모두에서 글자가 읽힌다.
-- 모노그램은 128 단위 중심선에 획 11(시안 10 에서 런처 48px 가독성 때문에 굵힘)·square 끝·round 이음으로 그린다. 탭 파비콘은 같은 모양을 16 격자에서 획 2칸으로 다시 그린 별도 판이다 — 큰 판을 줄이면 16px 에서 획이 반 픽셀에 걸쳐 흐려진다.
-- 루트 `app/favicon.ico`(시연 챗용, `sizes="256x256"`)가 `/hoondok` 응답에도 함께 붙는다. 탭 크기에 딱 맞는 `favicon-32.png`(`32x32`)와 SVG 를 선언해야 훈독 탭에 HD 가 뜬다.
-- 재생성: `rsvg-convert -w <N> -h <N> <원본.svg> -o <출력.png>` (192·512·512·180·96·32). SVG 는 path 뿐이라 폰트 설치가 필요 없다.
-- 설치 메타는 hoondok layout 의 `generateMetadata`·`generateViewport` 에만 붙인다: `manifest` `/hoondok/manifest.webmanifest` · `appleWebApp`(capable, title "훈독", statusBarStyle default) · `icons`(icon 192, apple 180) · `viewport.themeColor` = `--paper`. 플래그 OFF 면 붙이지 않는다. 루트 layout·시연 챗은 무변경.
+- 알림 배지만 HD 로 남는다. 상태 표시줄은 단색 실루엣만 보여 줘 부엉이 그림이 뭉개지기 때문이다. 재생성: `rsvg-convert -w 96 -h 96 hoondok-badge.svg -o badge-96.png`.
+- 부엉이 PNG 재생성: 원본을 LANCZOS 로 줄이고(32·64·192·512·180), `purpose: any`·파비콘·로고는 22% 라운드 마스크를 씌운 뒤 256색으로 양자화한다(512 가 200KB → 25KB). 색은 원본 그대로이며 감귤 `--accent #c24721`·종이 `--paper #fbfaf8` 와 같은 계열이다.
+- 루트 `app/favicon.ico`(시연 챗용, `sizes="256x256"`)가 `/hoondok` 응답에도 함께 붙는다. 탭 크기에 딱 맞는 `favicon-32.png`(`32x32`)를 선언해야 훈독 탭에 부엉이가 뜬다.
+- 설치 메타는 hoondok layout 의 `generateMetadata`·`generateViewport` 에만 붙인다: `manifest` `/hoondok/manifest.webmanifest` · `appleWebApp`(capable, title "훈독", statusBarStyle default) · `icons`(icon 192·32, apple 180) · `viewport.themeColor` = `--paper`. 플래그 OFF 면 붙이지 않는다. 루트 layout·시연 챗은 무변경.
 - manifest 값: `id`·`start_url`·`scope` = **`/hoondok`(슬래시 없음 — Next `trailingSlash` 기본 false 로 `/hoondok/` 은 308 이고 scope 는 경로 접두 비교라 `/hoondok/` 이면 홈이 범위 밖)**, `display: standalone`, `lang: ko`, `background_color`·`theme_color` = `--paper #fbfaf8`, `description` 에 "독립 운영 베타" 표시. `theme_color` 는 토큰을 참조할 수 없어 값으로 적고 Vitest(`apps/web/src/test/hoondok-pwa.test.ts`)가 `hoondok.css --paper`·`viewport` 와 일치를 단언한다.
 
 ---
@@ -788,12 +788,13 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | 2026-09-29 | **전체 메뉴(햄버거)** — 폰 앱바는 [검색][알림][메뉴], PC 헤더는 알림 원형 버튼 오른쪽 `.nav__menu`. 오른쪽에서 여는 `<dialog>` 패널(폰 전폭·PC 400px). 밀리의 서재 즐겨찾기 패널을 따라 위 띠에 즐겨찾기 칩 2묶음(메뉴·말씀)과 초기화(되돌리기), 아래 밑줄 탭 2개(메뉴·말씀)와 별 토글. 메뉴 묶음은 하단 5탭 순서, 꺼진 플래그 화면은 숨기지 않고 "준비 중". 즐겨찾기는 이 기기 localStorage `hoondok:favorites` 에만 두고 계정·서버에 올리지 않는다 | 확정 · `features/hoondok/menu` |
 | 2026-09-29 | **가정예배 탭 첫 화면 = 5분 설교**(`SCR-PWA-012`, `/hoondok/worship`). 이번 주 순서지·챌린지(`SCR-PWA-010`)는 `/hoondok/worship/order` 로 옮기고 전체 메뉴 > 가정예배와 5분 설교 하단 링크에서 연다. `/hoondok/worship/sermons` 는 없앴다(프리뷰 전용이라 운영 링크 없음). 설교 재생은 YouTube 임베드로 하되 영상 목록이 정해질 때까지 재생 컨트롤은 비활성 | 확정 · 재생 영상 `[확인 필요]` |
 | 2026-09-29 | 넷째 탭 이름 **가정예배 → 5분 설교**(아이콘 `Video`). id `worship`·경로 `/hoondok/worship` 은 그대로. 전체 메뉴 묶음도 "5분 설교"이고, 가정예배라는 말은 항목 "가정예배 순서지·챌린지"와 012 하단 줄에 남긴다. 012 는 볼 것(이번 주·많이 본 설교)을 위에, 부탁할 것(설교 요청)을 아래에 둔다. 재생 불가는 포스터 위 "재생 준비 중" 한 번만 알리고 목록마다 되풀이하지 않는다. 꺼 둔 "전체 설교" 세그먼트·사진 위 배지·제목 따옴표·실측 없는 조회수는 뺐다 | 확정 · `SCR-PWA-012` |
-| 2026-09-29 | 앱 아이콘·파비콘·알림 배지 = **HD 모노그램**(로고 탐색 시안 03 HOONDOK 의 모노그램만 채택, 영문 워드마크는 미채택). 색은 2026-09-19 감귤 배경 + 종이색 글자 유지(시안의 남색은 앱 팔레트에 없음). 탭 파비콘 16 격자 전용 판 추가, PC 헤더 브랜드에 표지 + "훈독". 상표 유사성 검색·3초 인지 테스트는 하지 않았다 | 확정 · §1.7 · 상표 검색 `[확인 필요]` |
+| 2026-09-29 | 앱 아이콘·파비콘·알림 배지 = **HD 모노그램**(로고 탐색 시안 03 HOONDOK 의 모노그램만 채택, 영문 워드마크는 미채택). 색은 2026-09-19 감귤 배경 + 종이색 글자 유지(시안의 남색은 앱 팔레트에 없음). 탭 파비콘 16 격자 전용 판 추가, PC 헤더 브랜드에 표지 + "훈독". 상표 유사성 검색·3초 인지 테스트는 하지 않았다 | 앱 아이콘·파비콘·헤더 표지는 2026-11-03 부엉이로 **대체**, 알림 배지만 유지 · §1.7 |
 | 2026-09-29 | `SCR-PWA-009` 형광펜·메모 단위 = **사용자가 고른 구절**(`API-HD-053`, 2026-09-23 "단락 단위"를 바꿈). 글자를 길게 누르거나 끌어 고르면 뜨는 막대에서 3색·메모·복사. 드래그 없는 경로로 단락 시트의 "단락 전체 칠하기"를 남긴다. 본문을 눌러 단락 시트를 여는 동작은 글자 선택과 겹쳐 없애고 단락 번호 버튼만 연다 | 확정 · §3.6 |
 | 2026-09-29 | 빠진 날을 드러내지 않는다 — 014 달력은 완료 칸에만 원(체크)을 그리고 나머지는 날짜만 둔다("아직"·빈 원 제거). 002·014 정성 카드는 "N일차 · M일 남았어요 · 시작일" 과 **날짜 기준 막대(일차/기간)** 만 쓰고 진행한 날·"7 / 21일"·%·D-day·고정 "새벽" 을 뺀다. 시작 전은 막대 없이 "시작 전 · M월 D일부터" | 확정 · `DEC-PWA-023` · §2.6 |
 | 2026-09-29 | `SCR-PWA-014` 나의 정원 맨 아래 **계정 묶음**(이메일 + 로그아웃). 로그아웃은 서버 기록을 지우지 않아 위험 색을 쓰지 않고, 확인 카드에서 "이 기기에 남은 기록도 지우기"(AI 질문 기록·오늘의 한 줄·읽던 자리 등 `hoondok:*`)를 고른다 — 기본은 지우기(공용 기기 보호). 끄면 기기 주인 표시를 남겨 다른 계정 로그인 때 지운다. 로그아웃하면 이 기기 알림 구독을 해지하고 화면에 머문다 | 확정 · `features/identity/use-logout.ts` |
 | 2026-09-29 | `SCR-PWA-009` 폰 원문 뷰 — 탭·오디오 바는 앱바 아래에 붙어 **내려 읽으면 숨고 올리면 돌아온다**. 리더 바는 떠 있는 알약(형광펜·노트·목차)이고 함께 숨되, 듣는 중에는 "단락 k / n" 미니 플레이어로 줄어 남는다. **북마크·설정은 리더 바에서 뺐다**(북마크는 단락 시트·서고에 남는다). 구간 끝은 다음 구간 한 장 > 읽음 체크 줄 > 이전 구간·질문 글자 링크 순이고, "오늘 훈독" 링크는 읽음 뒤에만 보인다. PC(≥1024px)는 고정 배치 그대로 | 확정 · `use-reading-chrome.ts` |
 | 2026-09-29 | **북마크 제거** — 단락 시트 버튼·단락 번호 표지·서고 "북마크" 절·나의 기록 "북마크" 탭을 없앴다. 모아 두기는 형광펜·메모가 맡고 나의 기록(형광펜·노트)에서 다시 본다. 웹은 `API-HD-026` 을 부르지 않지만 엔드포인트와 기존 행은 남겨 둔다. "오늘의 책갈피"(카드)는 별개 기능이라 그대로 | 확정(사용자 승인) |
+| 2026-11-03 | 앱 아이콘(any·maskable·apple)= **책 든 부엉이**, 탭 파비콘·헤더 표지 = **부엉이 얼굴**(디자인 에셋 폴더 시안 그대로). 알림 배지는 단색 실루엣이라 HD 유지. HD SVG 원본 3종 삭제 | 확정 · §1.7 |
 
 
 ### PLAN-HD-005 여정 연결 결정 (2026-09-21)

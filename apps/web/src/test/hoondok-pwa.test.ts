@@ -52,11 +52,10 @@ describe("훈독 PWA 설치 메타", () => {
     expect(meta.manifest).toBe("/hoondok/manifest.webmanifest");
     expect(meta.appleWebApp).toMatchObject({ capable: true, title: "훈독" });
     expect(meta.icons).toMatchObject({ apple: [{ url: "/hoondok/icons/apple-touch-icon-180.png" }] });
-    // 루트 app/favicon.ico(Next 기본 삼각형, sizes 256x256)도 함께 붙으므로 탭 크기에 딱 맞는 32 와 SVG 가 있어야 탭에서 이긴다
+    // 루트 app/favicon.ico(Next 기본 삼각형, sizes 256x256)도 함께 붙으므로 탭 크기에 딱 맞는 32 가 있어야 탭에서 이긴다
     expect(meta.icons).toMatchObject({
       icon: expect.arrayContaining([
         { url: "/hoondok/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
-        { url: "/hoondok/icons/favicon.svg", type: "image/svg+xml" },
       ]),
     });
     expect(meta.robots).toEqual({ index: false, follow: false });
@@ -103,7 +102,7 @@ describe("훈독 PWA 설치 메타", () => {
       height: 180,
     });
     expect(pngSize(path.join(PUBLIC_DIR, "hoondok/icons/favicon-32.png"))).toEqual({ width: 32, height: 32 });
-    expect(existsSync(path.join(PUBLIC_DIR, "hoondok/icons/favicon.svg"))).toBe(true);
+    expect(pngSize(path.join(PUBLIC_DIR, "hoondok/icons/logo-64.png"))).toEqual({ width: 64, height: 64 });
   });
 
   it("Pretendard self-host: 2MB 이하 woff2 + OFL 동봉 + 별도 패밀리명 @font-face", () => {
