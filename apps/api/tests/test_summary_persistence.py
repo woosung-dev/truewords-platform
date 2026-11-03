@@ -205,7 +205,6 @@ async def test_persistent_admin_to_public_lifecycle(database, tmp_path):
                     stored.status = "withdrawn"
                 await session.commit()
                 assert (await client.get(public)).status_code == 404
-                assert (await client.get(public + "/source")).status_code == 404
                 assert (
                     await client.get(public + "/media/" + slides[0]["asset_id"])
                 ).status_code == 404

@@ -10559,29 +10559,6 @@
       }
     },
     "/admin/hoondok/ai-summaries": {
-      "get": {
-        "operationId": "admin_list_summaries_admin_hoondok_ai_summaries_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/SummaryAdminResponse"
-                  },
-                  "title": "Response Admin List Summaries Admin Hoondok Ai Summaries Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Admin List Summaries",
-        "tags": [
-          "admin-hoondok"
-        ]
-      },
       "post": {
         "operationId": "create_summary_admin_hoondok_ai_summaries_post",
         "requestBody": {
@@ -12845,23 +12822,6 @@
         "parameters": [
           {
             "in": "query",
-            "name": "content_right_id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Content Right Id"
-            }
-          },
-          {
-            "in": "query",
             "name": "volume",
             "required": false,
             "schema": {
@@ -12998,49 +12958,6 @@
           }
         },
         "summary": "Summary Media",
-        "tags": [
-          "hoondok"
-        ]
-      }
-    },
-    "/hoondok/ai-summaries/{unit_id}/source": {
-      "get": {
-        "operationId": "summary_source_hoondok_ai_summaries__unit_id__source_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "unit_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Unit Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SummaryPublicSource"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Summary Source",
         "tags": [
           "hoondok"
         ]

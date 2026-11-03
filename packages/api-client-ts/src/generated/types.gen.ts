@@ -6481,24 +6481,6 @@ export type DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses = {
 
 export type DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponse = DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses[keyof DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses];
 
-export type AdminListSummariesAdminHoondokAiSummariesGetData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/admin/hoondok/ai-summaries';
-};
-
-export type AdminListSummariesAdminHoondokAiSummariesGetResponses = {
-    /**
-     * Response Admin List Summaries Admin Hoondok Ai Summaries Get
-     *
-     * Successful Response
-     */
-    200: Array<SummaryAdminResponse>;
-};
-
-export type AdminListSummariesAdminHoondokAiSummariesGetResponse = AdminListSummariesAdminHoondokAiSummariesGetResponses[keyof AdminListSummariesAdminHoondokAiSummariesGetResponses];
-
 export type CreateSummaryAdminHoondokAiSummariesPostData = {
     body: SummaryInput;
     path?: never;
@@ -7874,10 +7856,6 @@ export type ListSummariesHoondokAiSummariesGetData = {
     path?: never;
     query?: {
         /**
-         * Content Right Id
-         */
-        content_right_id?: string | null;
-        /**
          * Volume
          */
         volume?: string | null;
@@ -7966,36 +7944,6 @@ export type SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetResponses = {
      */
     200: unknown;
 };
-
-export type SummarySourceHoondokAiSummariesUnitIdSourceGetData = {
-    body?: never;
-    path: {
-        /**
-         * Unit Id
-         */
-        unit_id: string;
-    };
-    query?: never;
-    url: '/hoondok/ai-summaries/{unit_id}/source';
-};
-
-export type SummarySourceHoondokAiSummariesUnitIdSourceGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type SummarySourceHoondokAiSummariesUnitIdSourceGetError = SummarySourceHoondokAiSummariesUnitIdSourceGetErrors[keyof SummarySourceHoondokAiSummariesUnitIdSourceGetErrors];
-
-export type SummarySourceHoondokAiSummariesUnitIdSourceGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: SummaryPublicSource;
-};
-
-export type SummarySourceHoondokAiSummariesUnitIdSourceGetResponse = SummarySourceHoondokAiSummariesUnitIdSourceGetResponses[keyof SummarySourceHoondokAiSummariesUnitIdSourceGetResponses];
 
 export type LoginHoondokAuthLoginPostData = {
     body: LoginRequest;

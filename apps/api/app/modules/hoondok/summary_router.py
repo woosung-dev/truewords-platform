@@ -23,7 +23,6 @@ from app.modules.hoondok.summary_schemas import (
     SummaryMediaResponse,
     SummaryListItem,
     SummaryDetail,
-    SummaryPublicSource,
     SummaryTocItem,
 )
 from typing import Literal
@@ -50,12 +49,11 @@ def no_cache(response: Response):
 @router.get("", response_model=list[SummaryListItem])
 async def list_summaries(
     response: Response,
-    content_right_id: uuid.UUID | None = None,
     volume: str | None = None,
     svc: SummaryService = Depends(service),
 ):
     no_cache(response)
-    return await svc.list_public(content_right_id, volume)
+    return await svc.list_public(volume=volume)
 
 
 @router.get("/{unit_id}", response_model=SummaryDetail)
@@ -64,15 +62,6 @@ async def summary_detail(
 ):
     no_cache(response)
     return await svc.detail(unit_id)
-
-
-@router.get("/{unit_id}/source", response_model=SummaryPublicSource)
-async def summary_source(
-    unit_id: uuid.UUID, response: Response, svc: SummaryService = Depends(service)
-):
-    no_cache(response)
-    _, _, payload = await svc.published(unit_id)
-    return payload["source"]
 
 
 @router.get("/{unit_id}/media/{asset_id}")
@@ -88,14 +77,6 @@ async def summary_media(
             "X-Content-Type-Options": "nosniff",
         },
     )
-
-
-@admin_router.get("", response_model=list[SummaryAdminResponse])
-async def admin_list_summaries(
-    response: Response, svc: SummaryService = Depends(service)
-):
-    no_cache(response)
-    return [await svc.admin_item(u) for u in await svc.repo.units()]
 
 
 @admin_router.get("/cheonseong-toc", response_model=list[SummaryTocItem])

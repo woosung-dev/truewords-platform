@@ -679,8 +679,8 @@ API-HD-045 규칙:
 ## 원문 기반 AI 요약
 
 - 단위는 천성경 절(`slug` = `cheon-PP-CC-SS`)이다. 콘텐츠 계약: `lead`·`key_points`·`body`(Tiptap JSON)·`evidence[{claim, from, to}]`(절 안 말씀 번호 범위)·`reflection_questions[]`·`uncertainty[]`·`images[{kind: concept|scene, asset_id, alt, caption}]`(종류별 한 장)·`source{edition, locator, sha256, paragraph_from, paragraph_to, text?}`·`generation{text_model, text_score, text_rounds, image_scores, image_rounds}`. 원문 전문(`source.text`)은 선택이며, 없으면 `sha256`은 판본 파일 해시로 보존한다.
-- `GET /hoondok/ai-summaries`는 `content_right_id` 또는 원시 `volume`으로 필터링하며 공개 개정본이 있는 단위만 낸다(초안·내린 단위는 제목도 내보내지 않는다). 권리 원장이 `allowed`이면서 `scope_full_text=true`인 저작물만 포함한다. `section_position`은 절이 속한 장의 원문 뷰 목차 위치(`volume_sections.position`, 천성경 목차는 편·장까지)이며 찾지 못하면 `null`이다.
-- 상세·원문·이미지는 공개 개정본만 조회하며 매 요청 권리를 다시 확인한다. 미공개·내림·권리 미허용은 404다. 응답은 `private, no-store`다. 공개 응답에는 `uncertainty`·`generation`·원문 검수 메모·검수 여부가 없다(관리자 응답에만).
+- `GET /hoondok/ai-summaries`는 원시 `volume`으로 필터링하며 공개 개정본이 있는 단위만 낸다(초안·내린 단위는 제목도 내보내지 않는다). 권리 원장이 `allowed`이면서 `scope_full_text=true`인 저작물만 포함한다. `section_position`은 절이 속한 장의 원문 뷰 목차 위치(`volume_sections.position`, 천성경 목차는 편·장까지)이며 찾지 못하면 `null`이다.
+- 상세·이미지는 공개 개정본만 조회하며 매 요청 권리를 다시 확인한다. 미공개·내림·권리 미허용은 404다. 응답은 `private, no-store`다. 공개 응답에는 `uncertainty`·`generation`·원문 검수 메모·검수 여부가 없다(관리자 응답에만).
 - 상태(`review_status`, 소문자 직렬화): `draft` → `review`(`request_review`) → `published`(`publish`) → `withdrawn`(`withdraw`) → `published`(`publish`로 복귀). `return_to_draft`는 `review` → `draft`. 작업본 저장은 상태를 `draft`로 되돌리되 기존 공개본은 유지한다. 공개 뒤 고친 작업본을 내리면 상태는 `draft`·`review`를 유지해 검수 없이 재공개되지 않는다. 버전 충돌은 409이고 변경은 감사 기록에 남는다. 공개본은 불변 스냅샷이다.
 - 공개 조건: 판본·위치, 원문 범위를 연결했다면 검수 확인과 실제 Qdrant 원문 청크 대조(저작물·연속 범위·스냅샷), 연결하지 않았다면 `paragraph_from`·`to`, 이미지 소유권과 대체 텍스트가 있는 개념·장면 그림 각 한 장. 원문 판본을 임의로 교정하지 않는다. Tiptap JSON의 허용된 문단·서식과 http(s) 링크만 저장한다.
 - `GET /admin/hoondok/ai-summaries/cheonseong-toc?status=&pyeon=`는 `content/ai-summaries/cheonseong-toc.json`(원문 없는 편·장·절 구조 199절)에 단위 상태(`none`·`draft`·`review`·`published`·`withdrawn`), 공개 여부, 그림 수, `generation.text_score`, 수정일을 합친 발행 관리 목록이다.
@@ -689,13 +689,11 @@ API-HD-045 규칙:
 
 - v2는 문단 정렬, 밑줄·HEX 글자색·강조색·12~64px 글자 크기, 표, 본문 이미지·두 이미지 나란히 배치를 허용한다. 이미지에는 URL 대신 해당 요약 소유의 `asset_id`를 저장한다. 서버는 노드 중첩과 속성 허용 목록을 검사한다.
 - YouTube 노드는 11자리 `video_id`와 0 이상의 `start_seconds`만 받는다. 임의 iframe·HTML·외부 이미지 URL을 저장하지 않는다. 웹 렌더러가 정해진 공급자 URL을 구성한다.
-- 공개 상세의 `assets`는 공개 개정본의 그림(`images`)·본문에서 실제 사용하는 자산만 포함한다. 이미지 조회 역시 이 합집합으로 제한하며, 작업본에만 추가한 이미지와 다른 요약의 자산은 공개할 수 없다. 업로드 응답의 `width`·`height`는 이미지 비율 유지에 사용한다.
-- 업로드는 PNG·JPEG·WebP, 최대 10MB·3,600만 화소이며 실제 이미지 디코딩을 검증한다. 본문 이미지를 추가하더라도 공개에는 개념·장면 그림이 필요하다. 일반 게시글 발행 기능으로 확장하지 않는다.
+- 공개 상세의 `assets`는 공개 개정본의 그림(`images`)·본문에서 실제 사용하는 자산만 포함한다. 이미지 조회 역시 이 합집합으로 제한하며, 작업본에만 추가한 이미지와 다른 요약의 자산은 공개할 수 없다. 관리자·공개 이미지 URL은 자산 응답으로 제공하며 저장된 본문을 URL로 덮어쓰지 않는다. 업로드 응답의 `width`·`height`는 이미지 비율 유지에 사용한다.
+- 업로드는 PNG·JPEG·WebP, 최대 10MB·3,600만 화소이며 실제 이미지 디코딩을 검증한다. 본문 이미지를 추가하더라도 공개에는 개념·장면 그림이 필요하다.
 
 ### 관리자 원문 선택과 리치 본문
 
 - `GET /admin/hoondok/source-books`, `POST /source-books/{right_id}/snapshots`, `GET /source-snapshots/{id}/passages`로 등록 원문을 탐색한다. 문단 식별자는 해당 불변 원문 스냅샷에 속하며 공식 장절 번호가 아니다. 목차는 탐색에만 사용한다.
 - `/admin/hoondok/source-ranges`는 선택 범위 생성·조회·수정과 `/{id}/split`, `/{id}/merge`를 제공한다. `start_offset`·`end_offset`은 시작·끝 문단 내 Unicode codepoint 기준이며 끝은 배타적이다. 기본 `0`·`null`은 문단 전체 선택이다. 변경·병합 충돌은 버전으로 차단하고, 원문 변경 시 재선택을 요구한다.
 - 요약 저장의 `source_range_id`·`source_range_version`은 서버가 원문·해시·순서가 있는 청크 연결로 해석한다. 연결 성공은 판본 검수 완료가 아니며, 새 선택은 `verified=false`다. 구간 재편성은 기존 공개 개정본의 원문을 변경하지 않는다. 기존 직접 원문 입력 계약은 호환하되 새 관리자 화면에서는 내부 주소 입력을 제공하지 않는다.
-- `body_version=2`는 이미지·두 장 이미지 행·표·허용된 색/크기/정렬·YouTube를 지원한다. 이미지는 소유 자산의 `asset_id`, 영상은 `video_id`·`start_seconds`를 저장한다. `blob:` 주소·외부 이미지 URL·임의 iframe/HTML·임의 스타일은 정본에 포함하지 않는다. 기존 버전 1 문서는 유지한다.
-- 공개 미디어는 공개 개정본의 그림과 본문에서 참조한 자산에 한정한다. 관리자 조회용 URL과 공개 URL은 자산 응답으로 제공하며 저장된 본문을 URL로 덮어쓰지 않는다. 업로드는 기존 용량 제한과 실제 이미지 디코딩 검증을 거친다. 공개 조건은 위 상태 항목을 따른다.

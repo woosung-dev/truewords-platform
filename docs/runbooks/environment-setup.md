@@ -79,12 +79,3 @@ uv run alembic current
 ## 검증
 
 루트 `make ci`와 `node tooling/checks/docs-links.mjs`를 실행한다. 전체 pytest는 `apps/api`에서 `GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run --frozen pytest`로 검증한다. 실제 통과 결과는 [현재 계획](../plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)에 기록하며 과거 개수와 구분한다.
-
-## 원문 편집기 worktree 개발 환경
-
-`158e` 편집기 개발은 Compose project `truewords-158e-dev`의 전용 PostgreSQL(15482)·Qdrant(16483/16484)를 사용한다. API는 8180, 웹은 3180, 관리자는 3181이다. 기존 `backend` project와 다른 프로젝트의 볼륨을 재사용하지 않는다.
-
-- API `.env`의 DB는 `truewords_editor_158e`, 컬렉션은 `hoondok_158e_editor_dev`이며 이미지 경로는 `var/editor-dev/media-current`다. 관리자 자격증명은 git에서 제외한 `apps/api/var/editor-dev/credentials.json`에 보관한다.
-- `scripts/bootstrap_summary_dev.py --evidence <원문 추출 폴더>`는 전용 localhost 포트·컬렉션만 허용하며 실제 원문을 적재한다. 검색 임베딩·LLM 호출은 하지 않으므로 이 데이터는 편집·원문 연결 검증용이다. `import_ai_summaries.py`의 `--rights-map var/editor-dev/rights.json`으로 초안을 임포트한다.
-- 실행은 `apps/api`에서 `uv run uvicorn app.main:app --port 8180`, 루트에서 `pnpm --filter @truewords/admin dev --port 3181`과 `pnpm --filter @truewords/web dev --port 3180`이다. Next 앱은 `.env.local`에서 API 8180과 두 앱의 공개 주소를 사용한다.
-- 전체 API 테스트는 개발 `.env`의 DB를 사용하지 않도록 `DATABASE_URL=sqlite+aiosqlite:////tmp/truewords-api-tests.sqlite GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run --frozen pytest -q`처럼 명시적으로 분리한다. 실제 스키마는 서버 기동 전에 Alembic으로 적용한다.
