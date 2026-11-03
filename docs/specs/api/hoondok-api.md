@@ -62,6 +62,9 @@
 | `API-HD-056` | DELETE | `/hoondok/me/questions/{question_id}` | `hoondok_token` + `X-Requested-With` | DEC-PWA-025 |
 | `API-HD-057` | GET | `/hoondok/questions?q=&cursor=&limit=` · `/hoondok/questions/{question_id}` | 없음(공개) | DEC-PWA-025 |
 | `API-HD-058` | GET · PATCH | `/admin/hoondok/questions` · `/admin/hoondok/questions/{question_id}` | `admin_token` + 게이트 (쓰기는 `X-Requested-With`) | DEC-PWA-025 |
+| `API-HD-059` | POST | `/hoondok/ask/stream` (SSE) | `hoondok_token` + `X-Requested-With` + 하루 횟수 | DEC-PWA-025 |
+| `API-HD-060` | GET · PATCH · DELETE | `/hoondok/me/asks` · `/hoondok/me/asks/{session_id}` | `hoondok_token` (쓰기는 `X-Requested-With`) | DEC-PWA-025 |
+| `API-HD-061` | GET | `/hoondok/me/asks/quota` | `hoondok_token` | DEC-PWA-025 |
 
 공통 규칙:
 
@@ -321,18 +324,29 @@ DELETE /hoondok/auth/me
 
 ---
 
-## 훈독 AI 질문 — 신규 엔드포인트 없이 `POST /chat/stream` 재사용 (W2)
+## 훈독 AI 질문 — `POST /hoondok/ask/stream` · `/hoondok/me/asks*` (API-HD-059~061, DEC-PWA-025)
 
-AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만들지 않는다. 시연 챗과 **같은** `POST /chat/stream` SSE 를 그대로 호출하며 요청·응답 스키마, 프롬프트, RAG 정책, 서버 기록 모두 시연 챗과 같다. 백엔드는 이 웨이브에서 한 줄도 바뀌지 않았다.
+AI 질문 화면은 로그인 필수다. 답은 훈독 전용 SSE `POST /hoondok/ask/stream` 으로 받고, 질문·답은 **계정에만** 보관한다(기기 `localStorage` 기록은 쓰지 않는다). 라우터는 `apps/api/app/modules/hoondok/asks_router.py`, 호출부는 `apps/web/src/features/hoondok/ask/ask-stream.ts`·`asks-api.ts` 다.
 
-- 호출부는 `apps/web/src/features/hoondok/ask/ask-stream.ts` 하나다. 경로(같은 origin 프록시 `/api/backend/chat/stream`)·`X-Requested-With: XMLHttpRequest`·쿠키 동봉은 시연 챗(`features/chatbot/chat-api.ts`)과 동일하다.
-- 본문은 `{ query, chatbot_id }` 뿐이다. `chatbot_id` 는 UUID 가 아니라 슬러그이며 `HOONDOK_ASK_CHATBOT_ID = "all"` 상수 하나가 정한다. `[확인 필요]` 훈독 전용 봇이 정해지면 이 상수만 바꾼다.
-- **시연 챗과 다른 점은 둘뿐이고 둘 다 클라이언트 쪽이다.**
-  1. **무기억** — `session_id`(과 `answer_mode`)를 보내지 않는다. `session_id` 는 원래 선택 필드라 서버는 매 질문마다 새 세션을 만든다(`chat/pipeline/stages/session.py`). 이어 묻기도 새 요청이다.
-  2. **근거 게이트** — `chunk` 텍스트를 화면에 바로 흘리지 않고 모아 두었다가 `sources` 이벤트가 **1건 이상일 때만** 답을 보인다(AC-017-01·04). 0건은 오류가 아니라 성공 경로이며 "확인할 수 없음" 으로 끝난다. 서버는 이 게이트를 알지 못한다.
-- **2026-11-04 변경(`DEC-PWA-025`)**: 웹은 이제 `answer_mode`(지정 시)와 `session_id`(이어 묻기)를 보낸다. `sources` 이벤트의 `answer_mode` 는 실제 적용된 모드다(자동 판정 결과 표시용). 공개를 고른 답만 `API-HD-055~058` 로 서버에 남는다.
-- 질문·답·근거는 **서버에 따로 저장하지 않는다.** 브라우저 `localStorage` 한 키 `hoondok:ask:items`(JSON 배열, 최대 50건)에만 둔다(`ask/storage.ts`, `REQ-PWA-015`). 서버에는 시연 챗과 똑같은 `/chat/stream` 요청 기록이 남는다.
-- `sources` 항목은 표시명(`display_name`)·권(`volume`)·본문만 주고 화자·판본·권위 등급은 주지 않는다. 화면은 없는 항목을 지어내지 않는다(AC-017-02).
+### API-HD-059 `POST /hoondok/ask/stream`
+
+- 요청 `{ query, session_id?, answer_mode? }`. 봇(`chatbot_id`)은 서버가 정한다(`HOONDOK_ASK_CHATBOT_ID = "all"`). `session_id` 가 있으면 이어 묻기이며, 이 계정의 AI 질문 대화가 아니면(남의 것·시연 챗 세션·없는 id) 403 `SESSION_FORBIDDEN`. `answer_mode` 가 없으면 서버가 자동으로 고른다.
+- 응답은 `/chat/stream` 과 같은 SSE 이벤트 계약(`chunk` → `sources` → `done`)이다. 답은 기존 RAG·safety·출력 필터 파이프라인을 그대로 지난다. `sources` 이벤트의 `answer_mode` 는 실제 적용된 모드다.
+- **하루 횟수**: KST 자정 기준 하루 5회(`HOONDOK_ASK_DAILY_LIMIT`, 기본 5), 이어 묻기도 1회로 센다. 초과는 429 `ASK_DAILY_LIMIT` — `ErrorResponse.details{limit, used, remaining, resets_at}` + `Retry-After` 헤더. 빈 질문·1000자 초과·차단 패턴(400 `INPUT_BLOCKED`)은 차감 전에 거절하고, 첫 이벤트 전에 실패하면(4xx·5xx) 차감을 되돌린다.
+- **공유 캐시 미사용**: 비공개 질문이라 공유 시맨틱 캐시에 저장·조회하지 않는다. 로그에는 질문 원문 대신 지문만 남긴다.
+- 웹은 `sources` 가 0건이면 답을 보이지 않고 "확인할 수 없음" 으로 끝낸다(AC-017-01·04, 서버는 이 게이트를 알지 못한다). `sources` 항목은 표시명·권·본문만 주고 화자·판본·권위 등급은 주지 않는다(AC-017-02).
+- 오류: 401 미인증 · 400 `INPUT_BLOCKED` · 403 `SESSION_FORBIDDEN` · 429 `ASK_DAILY_LIMIT`·`RATE_LIMIT_EXCEEDED`.
+
+### API-HD-060 `GET · PATCH · DELETE /hoondok/me/asks*`
+
+- `GET /hoondok/me/asks?limit=`(기본 50·최대 100) → `{items[{id, question, answer_mode, turn_count, saved, public_id, public_status, created_at, last_at}]}` 최근 활동순. `id` 는 `session_id` 다(이어 묻기에 그대로 보낸다).
+- `GET /hoondok/me/asks/{session_id}` → `{id, saved, created_at, turns[{message_id, question, answer_md, answer_mode, sources, suggested_followups, public_id, public_status, created_at}]}`. `message_id` 로 공개 신청(API-HD-055)한다.
+- `PATCH` `{saved}` 저장 표시. `DELETE` 는 대화와 그 질문·답 기록을 지운다(204). 공개 신청 복사본은 남으므로 API-HD-056 으로 따로 내린다.
+- 본인 것만 다룬다. 남의 것·없는 것은 구분 없이 404.
+
+### API-HD-061 `GET /hoondok/me/asks/quota`
+
+- `{limit, used, remaining, resets_at}` — 오늘(KST) 남은 횟수. `resets_at` 은 다음 KST 자정(+09:00).
 
 ---
 
@@ -677,7 +691,7 @@ API-HD-045 규칙:
 - `API-HD-056` 본인 것만 실제 삭제(남의 것·없음 404). 같은 답을 다시 신청할 수 있다.
 - `API-HD-057` published 만. 목록은 공개 시각 최신순 `{items[{id, question, preview, answer_mode, published_at}], next_cursor}`, `q` 는 질문 부분 일치(100자 이하), `limit` 기본 20·최대 50. 상세는 `answer_md`·`sources[{source, volume, text}]` 포함, 아니면 404. 작성자 정보는 어떤 응답에도 없다.
 - `API-HD-058` 목록(`status`·`page`·`page_size`, 신청 오래된 순)·PATCH `{status: published|hidden}`, 변경마다 `log_audit`. 계정 삭제 시 그 사용자의 공개 질문도 지운다.
-- `[확인 필요]` 신청자 확인은 "그 `message_id` 를 받은 기기의 로그인 사용자" 가정이다(채팅 세션이 훈독 계정에 묶이지 않음).
+- 신청자는 답이 달린 대화의 소유자(API-HD-059 로 계정에 묶인 세션)여야 한다. 남의 답·익명·시연 챗 답은 없는 답과 같은 404.
 
 ## PLAN-HD-012 — 오늘의 책갈피 (API-HD-047~052)
 
