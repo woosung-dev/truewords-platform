@@ -1,6 +1,8 @@
 """요약 편집·공개 정책. 작업본과 불변 공개본을 분리한다."""
 
+import json
 import uuid
+from functools import lru_cache
 from pathlib import Path
 from fastapi import HTTPException
 from app.modules.hoondok.summary_models import (
@@ -15,8 +17,50 @@ from app.modules.hoondok.summary_schemas import (
     SummaryMediaResponse,
     SummaryListItem,
     SummaryDetail,
+    SummaryTocItem,
     document_asset_ids,
 )
+
+# 천성경 편·장·절 구조(원문 없음). 발행 관리 목록과 원문 뷰 장 연결에 쓴다.
+TOC_PATH = (
+    Path(__file__).resolve().parents[3] / "content/ai-summaries/cheonseong-toc.json"
+)
+STATUSES = ("draft", "review", "published", "withdrawn")
+
+
+@lru_cache(maxsize=1)
+def cheonseong_toc() -> tuple[dict, ...]:
+    return tuple(json.loads(TOC_PATH.read_text(encoding="utf-8")))
+
+
+def toc_entry(slug):
+    return next((e for e in cheonseong_toc() if e["slug"] == slug), None)
+
+
+def normalize_status(value):
+    status = str(value or "draft").lower()
+    return status if status in STATUSES else "draft"
+
+
+def section_position(sections, entry):
+    """절이 속한 장의 원문 뷰 목차 위치. 천성경 목차는 편(1)·장(2)까지만 있다."""
+    if not entry:
+        return None
+
+    def norm(text):
+        return "".join(str(text).split())
+
+    in_pyeon = False
+    for section in sections:
+        if section.level == 1:
+            in_pyeon = norm(section.title) == norm(entry["pyeon_title"])
+        elif in_pyeon and norm(section.title) == norm(entry["jang_title"]):
+            return section.position
+    return None
+
+
+def image_asset_ids(payload):
+    return {uuid.UUID(str(i["asset_id"])) for i in payload.get("images", [])}
 
 
 class SummaryService:
@@ -44,11 +88,36 @@ class SummaryService:
             **unit.draft,
             id=unit.id,
             version=unit.version,
-            review_status=unit.review_status,
+            review_status=normalize_status(unit.review_status),
             published=unit.published_revision_id is not None,
             assets=assets,
             updated_at=unit.updated_at,
         )
+
+    async def admin_toc(self, status=None, pyeon=None):
+        """천성경 199절 전부에 유닛 상태를 합친다. 유닛이 없으면 status=none."""
+        units = {u.slug: u for u in await self.repo.units()}
+        rows = []
+        for entry in cheonseong_toc():
+            if pyeon is not None and entry["pyeon_no"] != pyeon:
+                continue
+            unit = units.get(entry["slug"])
+            row = SummaryTocItem(**entry)
+            if unit:
+                generation = unit.draft.get("generation") or {}
+                row = row.model_copy(
+                    update={
+                        "unit_id": unit.id,
+                        "status": normalize_status(unit.review_status),
+                        "published": unit.published_revision_id is not None,
+                        "image_count": len(unit.draft.get("images", [])),
+                        "text_score": generation.get("text_score"),
+                        "updated_at": unit.updated_at,
+                    }
+                )
+            if status is None or row.status == status:
+                rows.append(row)
+        return rows
 
     async def check_right(self, right_id):
         right = await self.repo.right(right_id)
@@ -56,9 +125,27 @@ class SummaryService:
             raise HTTPException(404, "요약을 찾을 수 없습니다")
         return right
 
+    async def section_for(self, volume, slug, cache=None):
+        entry = toc_entry(slug)
+        if entry is None:
+            return None
+        cache = {} if cache is None else cache
+        if volume not in cache:
+            cache[volume] = list(await self.repo.sections(volume) or [])
+        return section_position(cache[volume], entry)
+
+    def cover_url(self, unit_id, payload):
+        images = sorted(
+            payload.get("images", []), key=lambda i: i["kind"] != "concept"
+        )
+        return self.media_url(unit_id, images[0]["asset_id"]) if images else None
+
     async def list_public(self, right_id=None, volume=None):
-        result = []
+        """공개 개정본이 있는 단위만 내보낸다. 작업본·내린 단위는 제목도 노출하지 않는다."""
+        result, sections = [], {}
         for unit in await self.repo.units(right_id):
+            if not unit.published_revision_id:
+                continue
             right = await self.repo.right(unit.content_right_id)
             if (
                 not right
@@ -67,25 +154,24 @@ class SummaryService:
                 or (volume is not None and right.volume != volume)
             ):
                 continue
-            revision = (
-                await self.repo.revision(unit.published_revision_id)
-                if unit.published_revision_id
-                else None
-            )
-            payload = revision.payload if revision else unit.draft
+            revision = await self.repo.revision(unit.published_revision_id)
+            if not revision:
+                continue
+            payload = revision.payload
             result.append(
                 SummaryListItem(
                     id=unit.id,
                     content_right_id=unit.content_right_id,
                     work_title=right.work_title,
+                    slug=unit.slug,
                     group_title=payload["group_title"],
                     position=payload["position"],
                     title=payload["title"],
-                    lead=payload["lead"] if revision else "",
-                    published=revision is not None,
-                    cover_url=self.media_url(unit.id, payload["slides"][0]["asset_id"])
-                    if revision and payload["slides"]
-                    else None,
+                    lead=payload["lead"],
+                    section_position=await self.section_for(
+                        right.volume, unit.slug, sections
+                    ),
+                    cover_url=self.cover_url(unit.id, payload),
                 )
             )
         return sorted(result, key=lambda x: (x.work_title, x.position))
@@ -104,29 +190,39 @@ class SummaryService:
 
     async def detail(self, unit_id):
         unit, right, payload = await self.published(unit_id)
-        payload = dict(payload, source=dict(payload["source"], note=""))
         following = [
             i
             for i in await self.list_public(unit.content_right_id)
-            if i.published and i.position > payload["position"]
+            if i.position > payload["position"]
         ]
+        used = document_asset_ids(payload["body"]) | image_asset_ids(payload)
+        # 공개 응답은 허용 필드만 골라 담는다 — uncertainty·generation·검수 메모는 제외.
         return SummaryDetail(
-            **{k: v for k, v in payload.items() if k != "slides"},
             id=unit.id,
-            volume=right.volume,
+            content_right_id=unit.content_right_id,
             work_title=right.work_title,
-            published=True,
-            cover_url=self.media_url(unit.id, payload["slides"][0]["asset_id"]),
-            slides=[
-                dict(**s, url=self.media_url(unit.id, s["asset_id"]))
-                for s in payload["slides"]
+            volume=right.volume,
+            slug=unit.slug,
+            group_title=payload["group_title"],
+            position=payload["position"],
+            title=payload["title"],
+            lead=payload["lead"],
+            key_points=payload["key_points"],
+            body=payload["body"],
+            body_version=payload.get("body_version", 1),
+            evidence=payload.get("evidence", []),
+            reflection_questions=payload.get("reflection_questions", []),
+            source=payload["source"],
+            section_position=await self.section_for(right.volume, unit.slug),
+            cover_url=self.cover_url(unit.id, payload),
+            images=[
+                dict(**i, url=self.media_url(unit.id, i["asset_id"]))
+                for i in payload.get("images", [])
             ],
             assets=[
                 self.asset_response(unit.id, asset)
                 for asset in await self.repo.assets(unit.id)
-                if asset.id
-                in document_asset_ids(payload["body"])
-                | {uuid.UUID(s["asset_id"]) for s in payload["slides"]}
+                if asset.id in used
             ],
             next_id=following[0].id if following else None,
         )
@@ -182,7 +278,7 @@ class SummaryService:
             )
         if not await self.repo.right(data.content_right_id):
             raise HTTPException(422, "등록된 원문을 선택하세요")
-        if data.slides or document_asset_ids(data.body):
+        if data.images or document_asset_ids(data.body):
             raise HTTPException(422, "초안 생성 후 이미지를 업로드하세요")
         unit = SummaryUnit(
             content_right_id=data.content_right_id,
@@ -218,8 +314,8 @@ class SummaryService:
         owned = {a.id for a in await self.repo.assets(unit.id)}
         body_ids = document_asset_ids(data.body)
         if (
-            len({s.asset_id for s in data.slides}) != len(data.slides)
-            or any(s.asset_id not in owned for s in data.slides)
+            len({i.asset_id for i in data.images}) != len(data.images)
+            or any(i.asset_id not in owned for i in data.images)
             or not body_ids.issubset(owned)
         ):
             raise HTTPException(422, "이 요약에 업로드한 이미지만 사용할 수 있습니다")
@@ -285,50 +381,65 @@ class SummaryService:
         unit = await self.unit(unit_id, True)
         self.check_version(unit, data.version)
         payload = SummaryInput.model_validate(unit.draft)
+        status = normalize_status(unit.review_status)
         if data.action == "withdraw":
+            if unit.published_revision_id is None:
+                raise HTTPException(409, "공개 중인 요약만 내릴 수 있습니다")
             unit.published_revision_id = None
+            # 공개 뒤 고친 작업본(draft·review)은 상태를 유지한다 — 내린 뒤 재공개로 검수를 건너뛰지 않게
+            if status == "published":
+                unit.review_status = "withdrawn"
         elif data.action == "request_review":
-            if unit.review_status != "draft":
+            if status != "draft":
                 raise HTTPException(409, "초안에서 검수를 요청하세요")
             if (
                 not payload.lead.strip()
-                or not payload.key_points
+                or not any(p.strip() for p in payload.key_points)
                 or not payload.body.get("content")
             ):
-                raise HTTPException(422, "소개·핵심 정리·본문을 작성하세요")
-            unit.review_status = "in_review"
-        elif data.action == "approve":
-            if unit.review_status != "in_review":
-                raise HTTPException(409, "검수 요청된 초안만 승인할 수 있습니다")
-            unit.review_status = "approved"
+                raise HTTPException(422, "핵심 한 줄·요점·본문을 작성하세요")
+            unit.review_status = "review"
+        elif data.action == "return_to_draft":
+            if status != "review":
+                raise HTTPException(409, "검수 중인 요약만 초안으로 되돌릴 수 있습니다")
+            unit.review_status = "draft"
         else:
-            if unit.review_status != "approved":
-                raise HTTPException(409, "승인된 초안만 공개할 수 있습니다")
-            await self.check_right(unit.content_right_id)
-            if (
-                not payload.source.verified
-                or not payload.source.edition.strip()
-                or not payload.source.locator.strip()
-                or not payload.source.text.strip()
-                or not payload.source.chunk_ids
-            ):
+            if status not in ("review", "withdrawn"):
                 raise HTTPException(
-                    422, "원문 범위를 선택하고 내용을 확인한 뒤 검수 완료로 표시해 주세요"
+                    409, "검수 중이거나 내린 요약만 공개할 수 있습니다"
                 )
-            payload = await self.resolve_source(payload)
-            await self.verify_source(payload)
+            await self.check_right(unit.content_right_id)
+            source = payload.source
+            if not source.edition.strip() or not source.locator.strip():
+                raise HTTPException(422, "원문 판본과 위치를 확인하세요")
+            if source.chunk_ids or source.text.strip():
+                # 원문 범위를 연결한 요약은 검수 확인과 실제 원문 대조를 거친다.
+                if (
+                    not source.verified
+                    or not source.text.strip()
+                    or not source.chunk_ids
+                ):
+                    raise HTTPException(
+                        422,
+                        "원문 범위를 선택하고 내용을 확인한 뒤 검수 완료로 표시해 주세요",
+                    )
+                payload = await self.resolve_source(payload)
+                await self.verify_source(payload)
+            elif source.paragraph_from is None or source.paragraph_to is None:
+                raise HTTPException(422, "원문 말씀 번호 범위를 확인하세요")
             await self.check_assets(unit, payload)
-            if len(payload.slides) < 2 or any(
-                not s.alt.strip() for s in payload.slides
+            if {i.kind for i in payload.images} != {"concept", "scene"} or any(
+                not i.alt.strip() for i in payload.images
             ):
                 raise HTTPException(
-                    422, "대체 텍스트가 있는 이미지가 두 장 이상 필요합니다"
+                    422, "대체 텍스트가 있는 개념·장면 그림이 한 장씩 필요합니다"
                 )
             revision = SummaryRevision(
                 unit_id=unit.id, version=unit.version, payload=unit.draft
             )
             await self.repo.save(revision)
             unit.published_revision_id = revision.id
+            unit.review_status = "published"
         unit.version += 1
         return await self.audit(unit, audit, actor, data.action)
 
@@ -383,9 +494,7 @@ class SummaryService:
             await self.unit(unit_id)
         else:
             _, _, payload = await self.published(unit_id)
-            allowed = document_asset_ids(payload["body"]) | {
-                uuid.UUID(s["asset_id"]) for s in payload["slides"]
-            }
+            allowed = document_asset_ids(payload["body"]) | image_asset_ids(payload)
             if asset_id not in allowed:
                 raise HTTPException(404, "이미지를 찾을 수 없습니다")
         asset = next(

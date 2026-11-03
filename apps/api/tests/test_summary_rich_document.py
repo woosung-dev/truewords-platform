@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from app.modules.hoondok.summary_models import SummaryUnit, SummaryRevision
 from app.modules.hoondok.summary_schemas import (
     SummaryInput,
-    SummarySlide,
+    SummaryImage,
     document_asset_ids,
 )
 from app.modules.hoondok.summary_service import SummaryService
@@ -178,7 +178,7 @@ async def test_public_media_allows_published_body_only_and_denies_unused_draft(
     data = payload([image(body_asset)])
     data.slug = "test"
     data.position = 1
-    data.slides = [SummarySlide(asset_id=carousel_asset, alt="캐러셀")]
+    data.images = [SummaryImage(kind="concept", asset_id=carousel_asset, alt="개념 그림")]
     unit = SummaryUnit(
         content_right_id=data.content_right_id,
         slug="test",

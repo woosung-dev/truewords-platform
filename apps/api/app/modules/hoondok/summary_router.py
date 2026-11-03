@@ -23,8 +23,11 @@ from app.modules.hoondok.summary_schemas import (
     SummaryMediaResponse,
     SummaryListItem,
     SummaryDetail,
-    SummarySource,
+    SummaryPublicSource,
+    SummaryTocItem,
 )
+from typing import Literal
+from fastapi import Query
 
 router = APIRouter(prefix="/hoondok/ai-summaries", tags=["hoondok"])
 admin_router = APIRouter(
@@ -63,13 +66,13 @@ async def summary_detail(
     return await svc.detail(unit_id)
 
 
-@router.get("/{unit_id}/source", response_model=SummarySource)
+@router.get("/{unit_id}/source", response_model=SummaryPublicSource)
 async def summary_source(
     unit_id: uuid.UUID, response: Response, svc: SummaryService = Depends(service)
 ):
     no_cache(response)
     _, _, payload = await svc.published(unit_id)
-    return dict(payload["source"], note="")
+    return payload["source"]
 
 
 @router.get("/{unit_id}/media/{asset_id}")
@@ -93,6 +96,19 @@ async def admin_list_summaries(
 ):
     no_cache(response)
     return [await svc.admin_item(u) for u in await svc.repo.units()]
+
+
+@admin_router.get("/cheonseong-toc", response_model=list[SummaryTocItem])
+async def admin_cheonseong_toc(
+    response: Response,
+    status: Literal["none", "draft", "review", "published", "withdrawn"]
+    | None = None,
+    pyeon: int | None = Query(default=None, ge=1, le=13),
+    svc: SummaryService = Depends(service),
+):
+    """천성경 편·장·절 199절 발행 관리 목록. 상태·편으로 거른다."""
+    no_cache(response)
+    return await svc.admin_toc(status, pyeon)
 
 
 @admin_router.get("/{unit_id}", response_model=SummaryAdminResponse)

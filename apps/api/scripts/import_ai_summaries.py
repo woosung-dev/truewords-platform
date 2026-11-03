@@ -2,6 +2,9 @@
 
 uv run python scripts/import_ai_summaries.py content/ai-summaries/manifest.json --rights-map /path/rights.json
 rights.json: {"천성경": "기존 content_right UUID"}
+manifest 는 천성경 절 콘텐츠 JSON(slug·lead·key_points·body·evidence·reflection_questions·
+uncertainty·images[{kind,file,alt,caption}]·source·generation)의 배열이다. 원문 전문은 넣지 않아도 된다.
+이미지 file 은 manifest 폴더 기준 상대 경로다.
 기존 slug는 건너뛴다. 실행 전 --dry-run 으로 판본·권리 연결을 확인한다.
 """
 
@@ -53,7 +56,7 @@ async def run(args):
                 k: v for k, v in entry.items() if k not in {"work_title", "images"}
             }
             payload["content_right_id"] = right_id
-            payload["slides"] = []
+            payload["images"] = []
             payload["source"] = dict(
                 payload.get("source", {}), verified=False, chunk_ids=[]
             )
@@ -66,7 +69,6 @@ async def run(args):
             )
             assets = []
             for number, image in enumerate(entry.get("images", [])):
-                image = {"file": image} if isinstance(image, str) else image
                 path = (manifest_path.parent / image["file"]).resolve()
                 if not path.is_relative_to(manifest_path.parent):
                     raise ValueError("이미지는 manifest 폴더 안에 있어야 합니다")
@@ -89,13 +91,16 @@ async def run(args):
                     filename=f"{asset_id}.{extension}",
                 )
                 assets.append((asset, blob))
-                unit.draft["slides"].append(
+                unit.draft["images"].append(
                     {
+                        "kind": image["kind"],
                         "asset_id": str(asset_id),
                         "alt": image.get("alt", ""),
                         "caption": image.get("caption", ""),
                     }
                 )
+            # 그림 종류·개수 규칙을 저장 전 계약으로 다시 검사한다.
+            SummaryInput.model_validate(unit.draft)
             staged.append((unit, assets))
             print(
                 f"{'CHECK' if args.dry_run else 'IMPORT'} {data.slug}: {work}, 이미지 {len(assets)}장, 비공개 초안"

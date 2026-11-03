@@ -123,6 +123,10 @@ async def test_persistent_admin_to_public_lifecycle(database, tmp_path):
                         "verified": True,
                         "note": "내부 메모",
                     },
+                    evidence=[{"claim": "근거 문장", "from": 1, "to": 2}],
+                    reflection_questions=["되새길 물음"],
+                    uncertainty=["관리자 전용 확인 사항"],
+                    generation={"text_model": "비공개-모델", "text_score": 90},
                 )
                 result = await client.post("/admin/hoondok/ai-summaries", json=payload)
                 assert result.status_code == 201, result.text
@@ -131,7 +135,7 @@ async def test_persistent_admin_to_public_lifecycle(database, tmp_path):
                 public = "/hoondok/ai-summaries/" + item["id"]
                 assert (await client.get(public)).status_code == 404
                 slides = []
-                for i in range(2):
+                for i, kind in enumerate(["concept", "scene"]):
                     uploaded = await client.post(
                         base + "/media", files={"file": (f"{i}.png", PNG, "image/png")}
                     )
@@ -139,6 +143,7 @@ async def test_persistent_admin_to_public_lifecycle(database, tmp_path):
                     asset = uploaded.json()
                     slides.append(
                         {
+                            "kind": kind,
                             "asset_id": asset["id"],
                             "alt": f"그림 {i}",
                             "caption": "원문 이해 그림",
@@ -147,20 +152,41 @@ async def test_persistent_admin_to_public_lifecycle(database, tmp_path):
                     assert (
                         await client.get(public + "/media/" + asset["id"])
                     ).status_code == 404
-                payload.update(slides=slides, version=item["version"])
+                payload.update(images=slides, version=item["version"])
                 updated = await client.put(base, json=payload)
                 assert updated.status_code == 200, updated.text
                 item = updated.json()
-                for action in ["request_review", "approve", "publish"]:
+                for action in ["request_review", "publish"]:
                     result = await client.post(
                         base + "/actions",
                         json={"action": action, "version": item["version"]},
                     )
                     assert result.status_code == 200, result.text
                     item = result.json()
+                    assert item["review_status"] == item["review_status"].lower()
+                assert item["review_status"] == "published"
                 published = await client.get(public)
                 assert published.status_code == 200, published.text
-                assert published.json()["source"]["note"] == ""
+                # 공개 응답에는 관리자 전용 필드가 없다.
+                for secret in ["uncertainty", "generation", "note", "verified"]:
+                    assert secret not in published.json()
+                    assert secret not in published.json()["source"]
+                assert "비공개-모델" not in published.text
+                assert "관리자 전용" not in published.text
+                assert published.json()["evidence"] == [
+                    {"claim": "근거 문장", "from": 1, "to": 2}
+                ]
+                listed = await client.get("/hoondok/ai-summaries")
+                assert "관리자 전용" not in listed.text
+                assert [i["id"] for i in listed.json()] == [item["id"]]
+                admin = (await client.get(base)).json()
+                assert admin["uncertainty"] == ["관리자 전용 확인 사항"]
+                assert admin["generation"]["text_model"] == "비공개-모델"
+                toc = await client.get(
+                    "/admin/hoondok/ai-summaries/cheonseong-toc?status=published"
+                )
+                assert toc.status_code == 200, toc.text
+                assert toc.json() == []
                 image = await client.get(public + "/media/" + slides[0]["asset_id"])
                 assert image.status_code == 200 and image.content == PNG
                 assert "no-store" in image.headers["cache-control"]
@@ -185,7 +211,7 @@ async def test_persistent_admin_to_public_lifecycle(database, tmp_path):
                 assert result.status_code == 200, result.text
                 assert (
                     len((await session.execute(select(AdminAuditLog))).scalars().all())
-                    == 9
+                    == 8
                 )
         finally:
             for provider in [
@@ -200,6 +226,70 @@ async def test_persistent_admin_to_public_lifecycle(database, tmp_path):
         assert unit.published_revision_id is None
         assert unit.draft["title"] == "새 작업본"
         assert len((await fresh.execute(select(SummaryRevision))).scalars().all()) == 1
+
+
+def content_entry(slug):
+    """CONTENT_SCHEMA 계약의 천성경 절 콘텐츠 — 원문 전문 없음."""
+    return {
+        "slug": slug,
+        "work_title": "천성경",
+        "group_title": "제1편 하나님 · 제1장 하나님의 존재와 속성 · 1절 하나님의 실존",
+        "position": int(slug[-2:]),
+        "title": "하나님의 실존",
+        "lead": "핵심 한 줄",
+        "key_points": ["요점1", "요점2", "요점3"],
+        "body": {
+            "type": "doc",
+            "content": [
+                {
+                    "type": "heading",
+                    "attrs": {"level": 2},
+                    "content": [{"type": "text", "text": "소제목"}],
+                },
+                {
+                    "type": "paragraph",
+                    "content": [{"type": "text", "text": "해설 (말씀 5–7)"}],
+                },
+            ],
+        },
+        "evidence": [{"claim": "한 문장", "from": 5, "to": 7}],
+        "reflection_questions": ["되새길 물음"],
+        "uncertainty": ["확인 필요"],
+        "images": [
+            {"kind": kind, "file": f"images/{slug}-{kind}.png", "alt": kind, "caption": "AI가 만든 설명용 이미지"}
+            for kind in ["concept", "scene"]
+        ],
+        "source": {
+            "edition": "천성경 증보판 제공 DOCX",
+            "locator": "제1편 1장 1절 말씀 1–43",
+            "sha256": "d" * 64,
+            "paragraph_from": 1,
+            "paragraph_to": 43,
+        },
+        "generation": {
+            "text_model": "test-model",
+            "text_score": 87,
+            "text_rounds": 2,
+            "image_scores": {"concept": 80, "scene": 82},
+            "image_rounds": {"concept": 1, "scene": 1},
+        },
+    }
+
+
+def fixture_manifest(tmp_path):
+    folder = tmp_path / "content"
+    (folder / "images").mkdir(parents=True, exist_ok=True)
+    entries = [content_entry("cheon-01-01-01"), content_entry("cheon-01-01-02")]
+    for entry in entries:
+        for image in entry["images"]:
+            (folder / image["file"]).write_bytes(PNG)
+    path = folder / "manifest.json"
+    path.write_text(json.dumps(entries, ensure_ascii=False))
+    return path
+
+
+def test_repository_manifest_is_valid_and_empty_until_new_content():
+    assert json.loads(MANIFEST.read_text()) == []
 
 
 def load_importer():
@@ -224,7 +314,7 @@ async def test_content_import_is_private_valid_and_idempotent(
     mapping = tmp_path / "rights.json"
     mapping.write_text(json.dumps({r.work_title: str(r.id) for r in rights}))
     args = argparse.Namespace(
-        manifest=str(MANIFEST), rights_map=str(mapping), dry_run=True
+        manifest=str(fixture_manifest(tmp_path)), rights_map=str(mapping), dry_run=True
     )
     await module.run(args)
     assert not (tmp_path / "media").exists()
@@ -234,16 +324,21 @@ async def test_content_import_is_private_valid_and_idempotent(
     async with factory() as session:
         units = (await session.execute(select(SummaryUnit))).scalars().all()
         assets = (await session.execute(select(SummaryAsset))).scalars().all()
-        assert len(units) == 3 and len(assets) == 9
-        assert len({u.slug for u in units}) == 3
+        assert len(units) == 2 and len(assets) == 4
+        assert len({u.slug for u in units}) == 2
         for unit in units:
             assert unit.published_revision_id is None
             assert unit.review_status == "draft"
             assert unit.draft["source"]["verified"] is False
             assert unit.draft["source"]["chunk_ids"] == []
-            assert len(unit.draft["source"]["sha256"]) == 64
-            assert len(unit.draft["slides"]) == 3
-        assert len(list((tmp_path / "media").iterdir())) == 9
+            assert unit.draft["source"]["text"] == ""
+            assert unit.draft["source"]["sha256"] == "d" * 64
+            assert unit.draft["source"]["paragraph_to"] == 43
+            assert [i["kind"] for i in unit.draft["images"]] == ["concept", "scene"]
+            assert unit.draft["evidence"][0]["from"] == 5
+            assert unit.draft["uncertainty"] == ["확인 필요"]
+            assert unit.draft["generation"]["text_score"] == 87
+        assert len(list((tmp_path / "media").iterdir())) == 4
 
 
 @pytest.mark.asyncio
@@ -273,7 +368,9 @@ async def test_import_copy_failure_rolls_back_files_and_database(
     with pytest.raises(OSError, match="disk full"):
         await module.run(
             argparse.Namespace(
-                manifest=str(MANIFEST), rights_map=str(mapping), dry_run=False
+                manifest=str(fixture_manifest(tmp_path)),
+                rights_map=str(mapping),
+                dry_run=False,
             )
         )
     async with factory() as session:

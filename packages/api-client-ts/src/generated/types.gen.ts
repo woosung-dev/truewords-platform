@@ -4105,7 +4105,7 @@ export type SummaryActionInput = {
     /**
      * Action
      */
-    action: 'request_review' | 'approve' | 'publish' | 'withdraw';
+    action: 'request_review' | 'return_to_draft' | 'publish' | 'withdraw';
     /**
      * Version
      */
@@ -4135,6 +4135,11 @@ export type SummaryAdminResponse = {
      */
     content_right_id: string;
     /**
+     * Evidence
+     */
+    evidence?: Array<SummaryEvidence>;
+    generation?: SummaryGeneration;
+    /**
      * Group Title
      */
     group_title?: string;
@@ -4142,6 +4147,10 @@ export type SummaryAdminResponse = {
      * Id
      */
     id: string;
+    /**
+     * Images
+     */
+    images?: Array<SummaryImage>;
     /**
      * Key Points
      */
@@ -4159,17 +4168,13 @@ export type SummaryAdminResponse = {
      */
     published: boolean;
     /**
-     * Reflection
+     * Reflection Questions
      */
-    reflection?: string;
+    reflection_questions?: Array<string>;
     /**
      * Review Status
      */
-    review_status: 'draft' | 'in_review' | 'approved';
-    /**
-     * Slides
-     */
-    slides?: Array<SummarySlide>;
+    review_status: 'draft' | 'review' | 'published' | 'withdrawn';
     /**
      * Slug
      */
@@ -4187,6 +4192,10 @@ export type SummaryAdminResponse = {
      * Title
      */
     title: string;
+    /**
+     * Uncertainty
+     */
+    uncertainty?: Array<string>;
     /**
      * Updated At
      */
@@ -4224,6 +4233,10 @@ export type SummaryDetail = {
      */
     cover_url?: string | null;
     /**
+     * Evidence
+     */
+    evidence: Array<SummaryEvidence>;
+    /**
      * Group Title
      */
     group_title: string;
@@ -4231,6 +4244,10 @@ export type SummaryDetail = {
      * Id
      */
     id: string;
+    /**
+     * Images
+     */
+    images: Array<SummaryPublicImage>;
     /**
      * Key Points
      */
@@ -4248,22 +4265,18 @@ export type SummaryDetail = {
      */
     position: number;
     /**
-     * Published
+     * Reflection Questions
      */
-    published: boolean;
+    reflection_questions: Array<string>;
     /**
-     * Reflection
+     * Section Position
      */
-    reflection: string;
-    /**
-     * Slides
-     */
-    slides: Array<SummaryPublicSlide>;
+    section_position?: number | null;
     /**
      * Slug
      */
     slug: string;
-    source: SummarySource;
+    source: SummaryPublicSource;
     /**
      * Title
      */
@@ -4276,6 +4289,80 @@ export type SummaryDetail = {
      * Work Title
      */
     work_title: string;
+};
+
+/**
+ * SummaryEvidence
+ *
+ * 요약 문장의 근거 — 절 안 말씀 번호 범위.
+ */
+export type SummaryEvidence = {
+    /**
+     * Claim
+     */
+    claim: string;
+    /**
+     * From
+     */
+    from: number;
+    /**
+     * To
+     */
+    to: number;
+};
+
+/**
+ * SummaryGeneration
+ *
+ * 생성 기록 — 관리자 응답에만 포함한다.
+ */
+export type SummaryGeneration = {
+    /**
+     * Image Rounds
+     */
+    image_rounds?: {
+        [key: string]: number;
+    };
+    /**
+     * Image Scores
+     */
+    image_scores?: {
+        [key: string]: number;
+    };
+    /**
+     * Text Model
+     */
+    text_model?: string;
+    /**
+     * Text Rounds
+     */
+    text_rounds?: number;
+    /**
+     * Text Score
+     */
+    text_score?: number;
+};
+
+/**
+ * SummaryImage
+ */
+export type SummaryImage = {
+    /**
+     * Alt
+     */
+    alt?: string;
+    /**
+     * Asset Id
+     */
+    asset_id: string;
+    /**
+     * Caption
+     */
+    caption?: string;
+    /**
+     * Kind
+     */
+    kind: 'concept' | 'scene';
 };
 
 /**
@@ -4297,9 +4384,18 @@ export type SummaryInput = {
      */
     content_right_id: string;
     /**
+     * Evidence
+     */
+    evidence?: Array<SummaryEvidence>;
+    generation?: SummaryGeneration;
+    /**
      * Group Title
      */
     group_title?: string;
+    /**
+     * Images
+     */
+    images?: Array<SummaryImage>;
     /**
      * Key Points
      */
@@ -4313,13 +4409,9 @@ export type SummaryInput = {
      */
     position?: number | null;
     /**
-     * Reflection
+     * Reflection Questions
      */
-    reflection?: string;
-    /**
-     * Slides
-     */
-    slides?: Array<SummarySlide>;
+    reflection_questions?: Array<string>;
     /**
      * Slug
      */
@@ -4337,6 +4429,10 @@ export type SummaryInput = {
      * Title
      */
     title: string;
+    /**
+     * Uncertainty
+     */
+    uncertainty?: Array<string>;
 };
 
 /**
@@ -4368,9 +4464,13 @@ export type SummaryListItem = {
      */
     position: number;
     /**
-     * Published
+     * Section Position
      */
-    published: boolean;
+    section_position?: number | null;
+    /**
+     * Slug
+     */
+    slug: string;
     /**
      * Title
      */
@@ -4408,13 +4508,13 @@ export type SummaryMediaResponse = {
 };
 
 /**
- * SummaryPublicSlide
+ * SummaryPublicImage
  */
-export type SummaryPublicSlide = {
+export type SummaryPublicImage = {
     /**
      * Alt
      */
-    alt?: string;
+    alt: string;
     /**
      * Asset Id
      */
@@ -4422,11 +4522,47 @@ export type SummaryPublicSlide = {
     /**
      * Caption
      */
-    caption?: string;
+    caption: string;
+    /**
+     * Kind
+     */
+    kind: 'concept' | 'scene';
     /**
      * Url
      */
     url: string;
+};
+
+/**
+ * SummaryPublicSource
+ *
+ * 공개 응답의 원문 정보. 검수 메모·검수 여부는 담지 않는다.
+ */
+export type SummaryPublicSource = {
+    /**
+     * Chunk Ids
+     */
+    chunk_ids?: Array<string>;
+    /**
+     * Edition
+     */
+    edition?: string;
+    /**
+     * Locator
+     */
+    locator?: string;
+    /**
+     * Paragraph From
+     */
+    paragraph_from?: number | null;
+    /**
+     * Paragraph To
+     */
+    paragraph_to?: number | null;
+    /**
+     * Text
+     */
+    text?: string;
 };
 
 /**
@@ -4455,24 +4591,6 @@ export type SummaryResponse = {
 };
 
 /**
- * SummarySlide
- */
-export type SummarySlide = {
-    /**
-     * Alt
-     */
-    alt?: string;
-    /**
-     * Asset Id
-     */
-    asset_id: string;
-    /**
-     * Caption
-     */
-    caption?: string;
-};
-
-/**
  * SummarySource
  */
 export type SummarySource = {
@@ -4493,6 +4611,14 @@ export type SummarySource = {
      */
     note?: string;
     /**
+     * Paragraph From
+     */
+    paragraph_from?: number | null;
+    /**
+     * Paragraph To
+     */
+    paragraph_to?: number | null;
+    /**
      * Sha256
      */
     sha256?: string;
@@ -4504,6 +4630,70 @@ export type SummarySource = {
      * Verified
      */
     verified?: boolean;
+};
+
+/**
+ * SummaryTocItem
+ *
+ * 관리자 발행 관리 목록 한 행 — 천성경 절 하나.
+ */
+export type SummaryTocItem = {
+    /**
+     * Image Count
+     */
+    image_count?: number;
+    /**
+     * Jang No
+     */
+    jang_no: number;
+    /**
+     * Jang Title
+     */
+    jang_title: string;
+    /**
+     * Jeol No
+     */
+    jeol_no: number;
+    /**
+     * Jeol Title
+     */
+    jeol_title: string;
+    /**
+     * Paragraph Count
+     */
+    paragraph_count: number;
+    /**
+     * Published
+     */
+    published?: boolean;
+    /**
+     * Pyeon No
+     */
+    pyeon_no: number;
+    /**
+     * Pyeon Title
+     */
+    pyeon_title: string;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Status
+     */
+    status?: 'none' | 'draft' | 'review' | 'published' | 'withdrawn';
+    /**
+     * Text Score
+     */
+    text_score?: number | null;
+    /**
+     * Unit Id
+     */
+    unit_id?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
 };
 
 /**
@@ -4525,9 +4715,18 @@ export type SummaryUpdate = {
      */
     content_right_id: string;
     /**
+     * Evidence
+     */
+    evidence?: Array<SummaryEvidence>;
+    generation?: SummaryGeneration;
+    /**
      * Group Title
      */
     group_title?: string;
+    /**
+     * Images
+     */
+    images?: Array<SummaryImage>;
     /**
      * Key Points
      */
@@ -4541,13 +4740,9 @@ export type SummaryUpdate = {
      */
     position?: number | null;
     /**
-     * Reflection
+     * Reflection Questions
      */
-    reflection?: string;
-    /**
-     * Slides
-     */
-    slides?: Array<SummarySlide>;
+    reflection_questions?: Array<string>;
     /**
      * Slug
      */
@@ -4565,6 +4760,10 @@ export type SummaryUpdate = {
      * Title
      */
     title: string;
+    /**
+     * Uncertainty
+     */
+    uncertainty?: Array<string>;
     /**
      * Version
      */
@@ -6317,6 +6516,42 @@ export type CreateSummaryAdminHoondokAiSummariesPostResponses = {
 
 export type CreateSummaryAdminHoondokAiSummariesPostResponse = CreateSummaryAdminHoondokAiSummariesPostResponses[keyof CreateSummaryAdminHoondokAiSummariesPostResponses];
 
+export type AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Status
+         */
+        status?: 'none' | 'draft' | 'review' | 'published' | 'withdrawn' | null;
+        /**
+         * Pyeon
+         */
+        pyeon?: number | null;
+    };
+    url: '/admin/hoondok/ai-summaries/cheonseong-toc';
+};
+
+export type AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetError = AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetErrors[keyof AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetErrors];
+
+export type AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetResponses = {
+    /**
+     * Response Admin Cheonseong Toc Admin Hoondok Ai Summaries Cheonseong Toc Get
+     *
+     * Successful Response
+     */
+    200: Array<SummaryTocItem>;
+};
+
+export type AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetResponse = AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetResponses[keyof AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetResponses];
+
 export type AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetData = {
     body?: never;
     path: {
@@ -7749,7 +7984,7 @@ export type SummarySourceHoondokAiSummariesUnitIdSourceGetResponses = {
     /**
      * Successful Response
      */
-    200: SummarySource;
+    200: SummaryPublicSource;
 };
 
 export type SummarySourceHoondokAiSummariesUnitIdSourceGetResponse = SummarySourceHoondokAiSummariesUnitIdSourceGetResponses[keyof SummarySourceHoondokAiSummariesUnitIdSourceGetResponses];

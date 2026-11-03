@@ -6785,7 +6785,7 @@
           "action": {
             "enum": [
               "request_review",
-              "approve",
+              "return_to_draft",
               "publish",
               "withdraw"
             ],
@@ -6834,6 +6834,17 @@
             "title": "Content Right Id",
             "type": "string"
           },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvidence"
+            },
+            "maxItems": 20,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "generation": {
+            "$ref": "#/components/schemas/SummaryGeneration"
+          },
           "group_title": {
             "default": "",
             "maxLength": 300,
@@ -6844,6 +6855,14 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryImage"
+            },
+            "maxItems": 2,
+            "title": "Images",
+            "type": "array"
           },
           "key_points": {
             "items": {
@@ -6875,28 +6894,23 @@
             "title": "Published",
             "type": "boolean"
           },
-          "reflection": {
-            "default": "",
-            "maxLength": 3000,
-            "title": "Reflection",
-            "type": "string"
+          "reflection_questions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Reflection Questions",
+            "type": "array"
           },
           "review_status": {
             "enum": [
               "draft",
-              "in_review",
-              "approved"
+              "review",
+              "published",
+              "withdrawn"
             ],
             "title": "Review Status",
             "type": "string"
-          },
-          "slides": {
-            "items": {
-              "$ref": "#/components/schemas/SummarySlide"
-            },
-            "maxItems": 30,
-            "title": "Slides",
-            "type": "array"
           },
           "slug": {
             "default": "",
@@ -6936,6 +6950,14 @@
             "minLength": 1,
             "title": "Title",
             "type": "string"
+          },
+          "uncertainty": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Uncertainty",
+            "type": "array"
           },
           "updated_at": {
             "format": "date-time",
@@ -6999,6 +7021,13 @@
             ],
             "title": "Cover Url"
           },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
           "group_title": {
             "title": "Group Title",
             "type": "string"
@@ -7007,6 +7036,13 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryPublicImage"
+            },
+            "title": "Images",
+            "type": "array"
           },
           "key_points": {
             "items": {
@@ -7035,27 +7071,30 @@
             "title": "Position",
             "type": "integer"
           },
-          "published": {
-            "title": "Published",
-            "type": "boolean"
-          },
-          "reflection": {
-            "title": "Reflection",
-            "type": "string"
-          },
-          "slides": {
+          "reflection_questions": {
             "items": {
-              "$ref": "#/components/schemas/SummaryPublicSlide"
+              "type": "string"
             },
-            "title": "Slides",
+            "title": "Reflection Questions",
             "type": "array"
+          },
+          "section_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Position"
           },
           "slug": {
             "title": "Slug",
             "type": "string"
           },
           "source": {
-            "$ref": "#/components/schemas/SummarySource"
+            "$ref": "#/components/schemas/SummaryPublicSource"
           },
           "title": {
             "title": "Title",
@@ -7074,20 +7113,126 @@
           "id",
           "content_right_id",
           "work_title",
+          "slug",
           "group_title",
           "position",
           "title",
           "lead",
-          "published",
           "volume",
-          "slug",
           "key_points",
           "body",
-          "reflection",
+          "evidence",
+          "reflection_questions",
           "source",
-          "slides"
+          "images"
         ],
         "title": "SummaryDetail",
+        "type": "object"
+      },
+      "SummaryEvidence": {
+        "additionalProperties": false,
+        "description": "요약 문장의 근거 — 절 안 말씀 번호 범위.",
+        "properties": {
+          "claim": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Claim",
+            "type": "string"
+          },
+          "from": {
+            "minimum": 1.0,
+            "title": "From",
+            "type": "integer"
+          },
+          "to": {
+            "minimum": 1.0,
+            "title": "To",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "claim",
+          "from",
+          "to"
+        ],
+        "title": "SummaryEvidence",
+        "type": "object"
+      },
+      "SummaryGeneration": {
+        "additionalProperties": false,
+        "description": "생성 기록 — 관리자 응답에만 포함한다.",
+        "properties": {
+          "image_rounds": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "maxProperties": 10,
+            "title": "Image Rounds",
+            "type": "object"
+          },
+          "image_scores": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "maxProperties": 10,
+            "title": "Image Scores",
+            "type": "object"
+          },
+          "text_model": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Text Model",
+            "type": "string"
+          },
+          "text_rounds": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Text Rounds",
+            "type": "integer"
+          },
+          "text_score": {
+            "default": 0,
+            "title": "Text Score",
+            "type": "number"
+          }
+        },
+        "title": "SummaryGeneration",
+        "type": "object"
+      },
+      "SummaryImage": {
+        "additionalProperties": false,
+        "properties": {
+          "alt": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Alt",
+            "type": "string"
+          },
+          "asset_id": {
+            "format": "uuid",
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "caption": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Caption",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "concept",
+              "scene"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "asset_id"
+        ],
+        "title": "SummaryImage",
         "type": "object"
       },
       "SummaryInput": {
@@ -7112,11 +7257,30 @@
             "title": "Content Right Id",
             "type": "string"
           },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvidence"
+            },
+            "maxItems": 20,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "generation": {
+            "$ref": "#/components/schemas/SummaryGeneration"
+          },
           "group_title": {
             "default": "",
             "maxLength": 300,
             "title": "Group Title",
             "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryImage"
+            },
+            "maxItems": 2,
+            "title": "Images",
+            "type": "array"
           },
           "key_points": {
             "items": {
@@ -7144,18 +7308,12 @@
             ],
             "title": "Position"
           },
-          "reflection": {
-            "default": "",
-            "maxLength": 3000,
-            "title": "Reflection",
-            "type": "string"
-          },
-          "slides": {
+          "reflection_questions": {
             "items": {
-              "$ref": "#/components/schemas/SummarySlide"
+              "type": "string"
             },
-            "maxItems": 30,
-            "title": "Slides",
+            "maxItems": 5,
+            "title": "Reflection Questions",
             "type": "array"
           },
           "slug": {
@@ -7196,6 +7354,14 @@
             "minLength": 1,
             "title": "Title",
             "type": "string"
+          },
+          "uncertainty": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Uncertainty",
+            "type": "array"
           }
         },
         "required": [
@@ -7240,9 +7406,20 @@
             "title": "Position",
             "type": "integer"
           },
-          "published": {
-            "title": "Published",
-            "type": "boolean"
+          "section_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Position"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
           },
           "title": {
             "title": "Title",
@@ -7257,11 +7434,11 @@
           "id",
           "content_right_id",
           "work_title",
+          "slug",
           "group_title",
           "position",
           "title",
-          "lead",
-          "published"
+          "lead"
         ],
         "title": "SummaryListItem",
         "type": "object"
@@ -7312,12 +7489,9 @@
         "title": "SummaryMediaResponse",
         "type": "object"
       },
-      "SummaryPublicSlide": {
-        "additionalProperties": false,
+      "SummaryPublicImage": {
         "properties": {
           "alt": {
-            "default": "",
-            "maxLength": 500,
             "title": "Alt",
             "type": "string"
           },
@@ -7327,9 +7501,15 @@
             "type": "string"
           },
           "caption": {
-            "default": "",
-            "maxLength": 1000,
             "title": "Caption",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "concept",
+              "scene"
+            ],
+            "title": "Kind",
             "type": "string"
           },
           "url": {
@@ -7338,10 +7518,64 @@
           }
         },
         "required": [
+          "kind",
           "asset_id",
+          "alt",
+          "caption",
           "url"
         ],
-        "title": "SummaryPublicSlide",
+        "title": "SummaryPublicImage",
+        "type": "object"
+      },
+      "SummaryPublicSource": {
+        "description": "공개 응답의 원문 정보. 검수 메모·검수 여부는 담지 않는다.",
+        "properties": {
+          "chunk_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Chunk Ids",
+            "type": "array"
+          },
+          "edition": {
+            "default": "",
+            "title": "Edition",
+            "type": "string"
+          },
+          "locator": {
+            "default": "",
+            "title": "Locator",
+            "type": "string"
+          },
+          "paragraph_from": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph From"
+          },
+          "paragraph_to": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph To"
+          },
+          "text": {
+            "default": "",
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "title": "SummaryPublicSource",
         "type": "object"
       },
       "SummaryResponse": {
@@ -7380,33 +7614,6 @@
         "title": "SummaryResponse",
         "type": "object"
       },
-      "SummarySlide": {
-        "additionalProperties": false,
-        "properties": {
-          "alt": {
-            "default": "",
-            "maxLength": 500,
-            "title": "Alt",
-            "type": "string"
-          },
-          "asset_id": {
-            "format": "uuid",
-            "title": "Asset Id",
-            "type": "string"
-          },
-          "caption": {
-            "default": "",
-            "maxLength": 1000,
-            "title": "Caption",
-            "type": "string"
-          }
-        },
-        "required": [
-          "asset_id"
-        ],
-        "title": "SummarySlide",
-        "type": "object"
-      },
       "SummarySource": {
         "additionalProperties": false,
         "properties": {
@@ -7436,8 +7643,33 @@
             "title": "Note",
             "type": "string"
           },
+          "paragraph_from": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph From"
+          },
+          "paragraph_to": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph To"
+          },
           "sha256": {
             "default": "",
+            "maxLength": 64,
             "title": "Sha256",
             "type": "string"
           },
@@ -7454,6 +7686,112 @@
           }
         },
         "title": "SummarySource",
+        "type": "object"
+      },
+      "SummaryTocItem": {
+        "description": "관리자 발행 관리 목록 한 행 — 천성경 절 하나.",
+        "properties": {
+          "image_count": {
+            "default": 0,
+            "title": "Image Count",
+            "type": "integer"
+          },
+          "jang_no": {
+            "title": "Jang No",
+            "type": "integer"
+          },
+          "jang_title": {
+            "title": "Jang Title",
+            "type": "string"
+          },
+          "jeol_no": {
+            "title": "Jeol No",
+            "type": "integer"
+          },
+          "jeol_title": {
+            "title": "Jeol Title",
+            "type": "string"
+          },
+          "paragraph_count": {
+            "title": "Paragraph Count",
+            "type": "integer"
+          },
+          "published": {
+            "default": false,
+            "title": "Published",
+            "type": "boolean"
+          },
+          "pyeon_no": {
+            "title": "Pyeon No",
+            "type": "integer"
+          },
+          "pyeon_title": {
+            "title": "Pyeon Title",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "default": "none",
+            "enum": [
+              "none",
+              "draft",
+              "review",
+              "published",
+              "withdrawn"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Score"
+          },
+          "unit_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Id"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "slug",
+          "pyeon_no",
+          "pyeon_title",
+          "jang_no",
+          "jang_title",
+          "jeol_no",
+          "jeol_title",
+          "paragraph_count"
+        ],
+        "title": "SummaryTocItem",
         "type": "object"
       },
       "SummaryUpdate": {
@@ -7478,11 +7816,30 @@
             "title": "Content Right Id",
             "type": "string"
           },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvidence"
+            },
+            "maxItems": 20,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "generation": {
+            "$ref": "#/components/schemas/SummaryGeneration"
+          },
           "group_title": {
             "default": "",
             "maxLength": 300,
             "title": "Group Title",
             "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryImage"
+            },
+            "maxItems": 2,
+            "title": "Images",
+            "type": "array"
           },
           "key_points": {
             "items": {
@@ -7510,18 +7867,12 @@
             ],
             "title": "Position"
           },
-          "reflection": {
-            "default": "",
-            "maxLength": 3000,
-            "title": "Reflection",
-            "type": "string"
-          },
-          "slides": {
+          "reflection_questions": {
             "items": {
-              "$ref": "#/components/schemas/SummarySlide"
+              "type": "string"
             },
-            "maxItems": 30,
-            "title": "Slides",
+            "maxItems": 5,
+            "title": "Reflection Questions",
             "type": "array"
           },
           "slug": {
@@ -7562,6 +7913,14 @@
             "minLength": 1,
             "title": "Title",
             "type": "string"
+          },
+          "uncertainty": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Uncertainty",
+            "type": "array"
           },
           "version": {
             "minimum": 1.0,
@@ -10239,6 +10598,85 @@
         ]
       }
     },
+    "/admin/hoondok/ai-summaries/cheonseong-toc": {
+      "get": {
+        "description": "천성경 편·장·절 199절 발행 관리 목록. 상태·편으로 거른다.",
+        "operationId": "admin_cheonseong_toc_admin_hoondok_ai_summaries_cheonseong_toc_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "none",
+                    "draft",
+                    "review",
+                    "published",
+                    "withdrawn"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pyeon",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 13,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pyeon"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SummaryTocItem"
+                  },
+                  "title": "Response Admin Cheonseong Toc Admin Hoondok Ai Summaries Cheonseong Toc Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Cheonseong Toc",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
     "/admin/hoondok/ai-summaries/{unit_id}": {
       "get": {
         "operationId": "admin_summary_detail_admin_hoondok_ai_summaries__unit_id__get",
@@ -12561,7 +12999,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SummarySource"
+                  "$ref": "#/components/schemas/SummaryPublicSource"
                 }
               }
             },

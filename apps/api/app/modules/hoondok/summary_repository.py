@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
-from app.modules.hoondok.models import ContentRight
+from app.modules.hoondok.models import ContentRight, VolumeSection
 from app.modules.hoondok.summary_models import (
     SummaryUnit,
     SummaryRevision,
@@ -33,6 +33,14 @@ class SummaryRepository:
 
     async def right(self, right_id):
         return await self.session.get(ContentRight, right_id)
+
+    async def sections(self, volume):
+        q = select(VolumeSection).where(VolumeSection.volume == volume)
+        return list(
+            (await self.session.execute(q.order_by(VolumeSection.position)))
+            .scalars()
+            .all()
+        )
 
     async def revision(self, revision_id):
         return await self.session.get(SummaryRevision, revision_id)

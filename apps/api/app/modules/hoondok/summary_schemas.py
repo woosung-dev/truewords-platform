@@ -249,14 +249,26 @@ class SummarySource(BaseModel):
     model_config = ConfigDict(extra="forbid")
     edition: str = Field(default="", max_length=300)
     locator: str = Field(default="", max_length=500)
+    # 원문 전문은 선택이다. 근거는 paragraph_from·to 말씀 번호 범위로 남긴다.
     text: str = Field(default="", max_length=100000)
-    sha256: str = ""
+    # text 가 있으면 그 해시, 없으면 판본 파일 해시(콘텐츠 계약의 source.sha256)를 보존한다.
+    sha256: str = Field(default="", max_length=64)
+    paragraph_from: int | None = Field(default=None, ge=1)
+    paragraph_to: int | None = Field(default=None, ge=1)
     chunk_ids: list[str] = Field(default_factory=list, max_length=300)
     verified: bool = False
     note: str = Field(default="", max_length=3000)
 
     @model_validator(mode="after")
     def check_hash(self):
+        if (
+            self.paragraph_from is not None
+            and self.paragraph_to is not None
+            and self.paragraph_to < self.paragraph_from
+        ):
+            raise ValueError("원문 말씀 번호 범위를 확인하세요")
+        if not self.text:
+            return self
         expected = hashlib.sha256(self.text.encode()).hexdigest()
         if self.sha256 and self.sha256 != expected:
             raise ValueError("원문 해시가 일치하지 않습니다")
@@ -264,11 +276,54 @@ class SummarySource(BaseModel):
         return self
 
 
-class SummarySlide(BaseModel):
+class SummaryPublicSource(BaseModel):
+    """공개 응답의 원문 정보. 검수 메모·검수 여부는 담지 않는다."""
+
+    edition: str = ""
+    locator: str = ""
+    text: str = ""
+    paragraph_from: int | None = None
+    paragraph_to: int | None = None
+    chunk_ids: list[str] = Field(default_factory=list)
+
+
+class SummaryEvidence(BaseModel):
+    """요약 문장의 근거 — 절 안 말씀 번호 범위."""
+
+    model_config = ConfigDict(
+        extra="forbid", populate_by_name=True, serialize_by_alias=True
+    )
+    claim: str = Field(min_length=1, max_length=500)
+    from_: int = Field(alias="from", ge=1)
+    to: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def check_range(self):
+        if self.to < self.from_:
+            raise ValueError("근거 말씀 번호 범위를 확인하세요")
+        return self
+
+
+class SummaryImage(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    kind: Literal["concept", "scene"]
     asset_id: uuid.UUID
     alt: str = Field(default="", max_length=500)
     caption: str = Field(default="", max_length=1000)
+
+
+class SummaryGeneration(BaseModel):
+    """생성 기록 — 관리자 응답에만 포함한다."""
+
+    model_config = ConfigDict(extra="forbid")
+    text_model: str = Field(default="", max_length=100)
+    text_score: float = 0
+    text_rounds: int = Field(default=0, ge=0)
+    image_scores: dict[str, float] = Field(default_factory=dict, max_length=10)
+    image_rounds: dict[str, int] = Field(default_factory=dict, max_length=10)
+
+
+SummaryStatus = Literal["draft", "review", "published", "withdrawn"]
 
 
 class SummaryInput(BaseModel):
@@ -284,10 +339,20 @@ class SummaryInput(BaseModel):
     key_points: list[str] = Field(default_factory=list, max_length=10)
     body: dict[str, Any] = Field(default_factory=lambda: {"type": "doc", "content": []})
     body_version: Literal[1, 2] = 1
-    reflection: str = Field(default="", max_length=3000)
+    evidence: list[SummaryEvidence] = Field(default_factory=list, max_length=20)
+    reflection_questions: list[str] = Field(default_factory=list, max_length=5)
+    uncertainty: list[str] = Field(default_factory=list, max_length=20)
     source: SummarySource = Field(default_factory=SummarySource)
-    slides: list[SummarySlide] = Field(default_factory=list, max_length=30)
+    images: list[SummaryImage] = Field(default_factory=list, max_length=2)
+    generation: SummaryGeneration = Field(default_factory=SummaryGeneration)
     _body = field_validator("body")(validate_document)
+
+    @field_validator("images")
+    @classmethod
+    def unique_kinds(cls, value):
+        if len({image.kind for image in value}) != len(value):
+            raise ValueError("개념·장면 그림은 한 장씩만 둘 수 있습니다")
+        return value
 
 
 class SummaryUpdate(SummaryInput):
@@ -295,7 +360,9 @@ class SummaryUpdate(SummaryInput):
 
 
 class SummaryActionInput(BaseModel):
-    action: Literal["request_review", "approve", "publish", "withdraw"]
+    # draft→review(request_review), review→draft(return_to_draft),
+    # review·withdrawn→published(publish), 공개 중→withdrawn(withdraw)
+    action: Literal["request_review", "return_to_draft", "publish", "withdraw"]
     version: int = Field(ge=1)
 
 
@@ -310,25 +377,50 @@ class SummaryMediaResponse(BaseModel):
 class SummaryAdminResponse(SummaryInput):
     id: uuid.UUID
     version: int
-    review_status: Literal["draft", "in_review", "approved"]
+    review_status: SummaryStatus
     published: bool
     assets: list[SummaryMediaResponse]
     updated_at: datetime
+
+
+class SummaryTocItem(BaseModel):
+    """관리자 발행 관리 목록 한 행 — 천성경 절 하나."""
+
+    slug: str
+    pyeon_no: int
+    pyeon_title: str
+    jang_no: int
+    jang_title: str
+    jeol_no: int
+    jeol_title: str
+    paragraph_count: int
+    unit_id: uuid.UUID | None = None
+    status: Literal["none", "draft", "review", "published", "withdrawn"] = "none"
+    published: bool = False
+    image_count: int = 0
+    text_score: float | None = None
+    updated_at: datetime | None = None
 
 
 class SummaryListItem(BaseModel):
     id: uuid.UUID
     content_right_id: uuid.UUID
     work_title: str
+    slug: str
     group_title: str
     position: int
     title: str
     lead: str
-    published: bool
+    # 원문 뷰 목차의 장 위치(volume_sections.position). 찾지 못하면 null.
+    section_position: int | None = None
     cover_url: str | None = None
 
 
-class SummaryPublicSlide(SummarySlide):
+class SummaryPublicImage(BaseModel):
+    kind: Literal["concept", "scene"]
+    asset_id: uuid.UUID
+    alt: str
+    caption: str
     url: str
 
 
@@ -336,10 +428,10 @@ class SummaryDetail(SummaryListItem):
     body_version: Literal[1, 2] = 1
     assets: list[SummaryMediaResponse] = Field(default_factory=list)
     volume: str
-    slug: str
     key_points: list[str]
     body: dict[str, Any]
-    reflection: str
-    source: SummarySource
-    slides: list[SummaryPublicSlide]
+    evidence: list[SummaryEvidence]
+    reflection_questions: list[str]
+    source: SummaryPublicSource
+    images: list[SummaryPublicImage]
     next_id: uuid.UUID | None = None
