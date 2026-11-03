@@ -64,7 +64,7 @@ test("공개 API: 기본 거부 · 검색 전용 · 20청크 구간 · 출처 �
   for (const denied of ["미승인 말씀", "철회 말씀", "검색전용 말씀"]) {
     expect((await request.get(`/api/backend/hoondok/words/${encodeURIComponent(denied)}`)).status()).toBe(404);
   }
-  const first = await request.get(`/api/backend${wordsPath}`);
+  const first = await request.get(`/api/backend/hoondok${wordsPath}`);
   expect(first.status()).toBe(200);
   const firstPage = await first.json();
   expect(firstPage.page_size).toBe(20);
@@ -72,10 +72,10 @@ test("공개 API: 기본 거부 · 검색 전용 · 20청크 구간 · 출처 �
   expect(firstPage.chunks.map((chunk: { chunk_index: number }) => chunk.chunk_index)).toEqual(
     Array.from({ length: 20 }, (_, index) => index),
   );
-  const second = await request.get(`/api/backend${wordsPath}?page=2`);
+  const second = await request.get(`/api/backend/hoondok${wordsPath}?page=2`);
   const secondPage = await second.json();
   expect(secondPage.chunks).toHaveLength(5);
-  const direct = await request.get(`/api/backend${wordsPath}?chunk_id=${secondPage.chunks[0].chunk_id}`);
+  const direct = await request.get(`/api/backend/hoondok${wordsPath}?chunk_id=${secondPage.chunks[0].chunk_id}`);
   expect((await direct.json()).page).toBe(2);
   const search = await request.get("/api/backend/hoondok/search?q=감사&limit=50");
   expect(search.status()).toBe(200);
