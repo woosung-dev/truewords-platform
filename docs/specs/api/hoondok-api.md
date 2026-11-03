@@ -408,6 +408,8 @@ AI 질문 화면과 원문 뷰 "AI 설명"은 로그인 필수다. 답은 훈독
 키·`user_agent` 가 갱신되며 `failed_count` 가 0으로 돌아간다. 다른 계정이 같은 기기를 구독하면
 소유(`user_id`)가 옮겨간다 — 한 기기의 알림이 이전 사용자에게 가지 않게 하려는 것이다.
 `user_agent` 는 장애 분류용이며 200자로 잘라 저장한다(400자 초과 요청은 422).
+`endpoint` 는 https·443 의 브라우저 푸시 서비스 호스트(FCM·Mozilla·Apple·WNS, `PUSH_SERVICE_HOSTS`)만 받고 그 밖은 422 다 —
+발송기가 VM 안에서 이 주소로 POST 하므로 내부 주소로 쓰이지 않게 허용 목록으로 묶는다.
 
 ### `API-HD-022 DELETE /hoondok/me/push?endpoint=`
 
