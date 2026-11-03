@@ -28,6 +28,7 @@ import {
   type LiveAsk,
   type LivePublicOutcome,
   type LiveStatus,
+  clearLivePublicOutcome,
   liveAsksOf,
   readLiveAsks,
   retryLiveAsk,
@@ -596,7 +597,10 @@ export function AskDetail({ id }: { id: string }) {
                   liveOfFirst?.publicOutcome === "submitting" ||
                   (liveOfFirst?.publicOutcome === "done" && !first.publicId)
                 }
-                onChanged={settle}
+                onChanged={() => {
+                  if (liveOfFirst) clearLivePublicOutcome(liveOfFirst.key);
+                  settle();
+                }}
               />
             )}
           </div>

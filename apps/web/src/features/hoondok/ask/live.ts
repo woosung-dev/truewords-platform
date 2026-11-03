@@ -118,6 +118,11 @@ async function submitPublic(key: string, result: AskResult): Promise<void> {
   }
 }
 
+/** 화면에서 공개 상태를 직접 바꾸면(내리기·다시 허용) 자동 신청 결과는 더 쓰지 않는다 — 이후는 서버 기록이 기준. */
+export function clearLivePublicOutcome(key: string): void {
+  patch(key, { publicOutcome: undefined });
+}
+
 export type StartLiveAsk = {
   ownerId: string;
   question: string;
