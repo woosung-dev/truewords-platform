@@ -106,7 +106,7 @@ describe("훈독 PWA 설치 메타", () => {
   });
 
   it("Pretendard self-host: 동적 서브셋 조각마다 파일이 있고 OFL 동봉 + 별도 패밀리명 @font-face", () => {
-    const fontCss = readFileSync(path.resolve(__dirname, "../app/_hoondok/pretendard.css"), "utf8");
+    const fontCss = readFileSync(path.resolve(__dirname, "../app/hoondok-pretendard.css"), "utf8");
     const urls = [...fontCss.matchAll(/url\("(\/hoondok\/fonts\/pretendard-1\.3\.9\/[^"]+\.woff2)"\)/g)].map((m) => m[1]);
     expect(urls.length).toBeGreaterThan(80);
     for (const url of urls) {

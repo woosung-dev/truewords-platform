@@ -86,7 +86,7 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
              "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
 ```
 
-운영에서는 self-host 한다(시안은 jsdelivr CDN). **2026-11-03 변경**: 공식 가변 **동적 서브셋 92조각**(`apps/web/public/hoondok/fonts/pretendard-1.3.9/`, 조각당 ≤44KB)을 `src/app/_hoondok/pretendard.css` 의 `@font-face`·`unicode-range` 로 연결해 화면에 나온 글자의 조각만 받는다(홈 첫 방문 2.0MB → 약 230KB). CSS 는 pretendard@1.3.9 배포 CSS 에서 패밀리명·경로만 바꾼 생성물이라 손으로 고치지 않는다. 패밀리명 **`"Pretendard Hoondok"`**(루트 layout CDN 의 `Pretendard Variable` 과 분리해 로드 순서와 무관) · `font-weight: 45 920` · `font-display: swap` 으로 연결한다. (2026-09-19 의 전체 가변 파일 1종 1.96MB 는 모든 첫 방문에 2MB 를 받게 해 대체했다.) SIL OFL 1.1 `OFL.txt` 를 같은 폴더에 동봉한다. 사용 굵기는 400·500·600·700 네 단계다.
+운영에서는 self-host 한다(시안은 jsdelivr CDN). **2026-11-03 변경**: 공식 가변 **동적 서브셋 92조각**(`apps/web/public/hoondok/fonts/pretendard-1.3.9/`, 조각당 ≤44KB)을 `src/app/hoondok-pretendard.css`(화면 CSS 검사 대상 밖 — 글꼴 선언만 있다) 의 `@font-face`·`unicode-range` 로 연결해 화면에 나온 글자의 조각만 받는다(홈 첫 방문 2.0MB → 약 230KB). CSS 는 pretendard@1.3.9 배포 CSS 에서 패밀리명·경로만 바꾼 생성물이라 손으로 고치지 않는다. 패밀리명 **`"Pretendard Hoondok"`**(루트 layout CDN 의 `Pretendard Variable` 과 분리해 로드 순서와 무관) · `font-weight: 45 920` · `font-display: swap` 으로 연결한다. (2026-09-19 의 전체 가변 파일 1종 1.96MB 는 모든 첫 방문에 2MB 를 받게 해 대체했다.) SIL OFL 1.1 `OFL.txt` 를 같은 폴더에 동봉한다. 사용 굵기는 400·500·600·700 네 단계다.
 
 | 이름 | 크기 | 행간 | 자간 | 굵기 | 쓰는 곳 |
 |---|---|---|---|---|---|

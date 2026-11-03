@@ -1452,7 +1452,7 @@
   }
 }
 
-/* Pretendard Hoondok @font-face 는 _hoondok/pretendard.css(동적 서브셋 92조각)에 있다. */
+/* Pretendard Hoondok @font-face 는 hoondok-pretendard.css(동적 서브셋 92조각)에 있다. */
 
 /* 훈독 화면에서만 바깥 문서 배경이 드러나는 세로 오버스크롤을 막는다. */
 html:has([data-app="hoondok"]) {
