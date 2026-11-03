@@ -68,7 +68,7 @@ ops-check 는 VM **안**을 본다. 컨테이너가 전부 healthy 인데 사용
 
 `scope` 값을 문자열로 단언하는 이유: 홈 `/` 가 범위 밖이면 standalone 에서 브라우저 UI 가 노출된다. 200 만 보면 못 잡는다. `id` 는 예전 값 `/hoondok` 을 유지해야 설치된 앱이 같은 앱으로 남는다.
 
-**`/hoondok` 시절 설치본(2026-11-04 이전).** 예전 SW(scope `/hoondok`)는 브라우저 업데이트 검사로 은퇴 스크립트 `public/hoondok/sw.js` 를 받아 캐시를 지우고 스스로 해제한다. 앱의 등록 코드도 `/hoondok` scope 등록을 지운다. 그 등록에 묶인 푸시 구독은 함께 사라지므로 **기존 알림 구독자는 설정에서 알림을 다시 켜야 한다**(서버는 다음 발송의 404·410 으로 옛 구독을 지운다). 홈 화면 설치본은 manifest 를 다시 읽기 전까지 예전 scope 로 동작할 수 있다 — 주소창이 보이면 다시 설치를 안내한다. `[확인 필요]` iOS 홈 화면 앱의 manifest 갱신 시점
+**`/hoondok` 시절 설치본(2026-11-04 이전).** 예전 SW(scope `/hoondok`)는 브라우저 업데이트 검사로 은퇴 스크립트 `public/hoondok/sw.js` 를 받아 예전 캐시를 지운다. 은퇴 스크립트는 등록을 해제하지 않고 그 등록의 알림을 계속 띄운다(누르면 루트 주소). 등록 해제는 앱이 한다 — 앱을 열면 알림 권한이 허용된 기기는 구독을 루트 등록으로 옮긴 뒤(`POST`/`DELETE /hoondok/me/push`) 예전 등록을 지우고, 구독이 없으면 바로 지운다. 옮기지 못하면(비로그인·iOS 가 제스처 밖 구독을 막음 등) 예전 등록이 남아 알림은 그대로 오고, 설정에서 다시 켜면 그때 정리된다. 이관 기간에는 발송 주소를 `/hoondok/bookmark` 로 둔다(예전 SW 가 `/hoondok` 아래 주소만 받는다). `[확인 필요]` iOS 홈 화면 앱의 제스처 밖 `pushManager.subscribe` 허용 여부와 브라우저별 soft update 시점. 홈 화면 설치본은 manifest 를 다시 읽기 전까지 예전 scope 로 동작할 수 있다 — 주소창이 보이면 다시 설치를 안내한다. `[확인 필요]` iOS 홈 화면 앱의 manifest 갱신 시점
 
 ## 되돌리기
 
@@ -142,7 +142,7 @@ make rollback-web TAG=<배포 전에 적어 둔 sha>
 
 지우려면 **새 `sw.js` 를 배포해서** 스스로 등록을 해제하게 해야 한다.
 
-1. `apps/web/public/sw.js` 에서 `SW_KILL = false` → `true` (은퇴 스크립트 `public/hoondok/sw.js` 는 항상 해제만 한다)
+1. `apps/web/public/sw.js` 에서 `SW_KILL = false` → `true` (은퇴 스크립트 `public/hoondok/sw.js` 는 SW_KILL 이 없다 — 예전 등록을 지우려면 그 파일에 `self.registration.unregister()` 를 넣어 배포한다. 그 등록의 알림 구독도 함께 사라진다)
 2. `SW_VERSION` 을 올린다 (캐시 이름이 바뀌어야 구 캐시가 지워진다)
 3. 커밋 → main 머지 → `make deploy-web HOONDOK_ENABLED=1` (**ON 으로 배포한다** — OFF 로 내리면 SW 등록 컴포넌트가 안 돌아 킬 스크립트가 도달하지 못한다)
 4. 사용자가 앱을 한 번 열면 `caches.keys()` 전삭제 + `registration.unregister()` 가 실행된다

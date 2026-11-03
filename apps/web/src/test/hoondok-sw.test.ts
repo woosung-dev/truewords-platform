@@ -255,7 +255,7 @@ describe("훈독 서비스워커 알림 (PLAN-HD-006)", () => {
 });
 
 describe("은퇴한 /hoondok 서비스워커 (DEC-PWA-026)", () => {
-  it("바로 활성화해 예전 캐시만 지우고 스스로 해제한 뒤 열린 창을 다시 연다 — fetch·push 처리기는 없다", async () => {
+  it("바로 활성화해 예전 캐시만 지우고 열린 창을 다시 연다 — 등록은 해제하지 않는다(푸시 구독 보존), fetch 처리기는 없다", async () => {
     const legacyWindow: FakeWindow = {
       url: `${ORIGIN}/hoondok/read`,
       focus: vi.fn(async () => undefined),
@@ -263,16 +263,39 @@ describe("은퇴한 /hoondok 서비스워커 (DEC-PWA-026)", () => {
     };
     const worker = loadWorker(RETIRED_SW_SOURCE, { windows: [legacyWindow] });
     worker.store.set("hoondok-2026-11-03.2", new Map());
-    worker.store.set("hoondok-root-2026-11-04.1", new Map());
+    worker.store.set("hoondok-root-2026-11-04.2", new Map());
     worker.store.set("other-app", new Map());
     await worker.dispatch("install", {});
     expect(worker.self.skipWaiting).toHaveBeenCalledOnce();
     await worker.dispatch("activate", {});
-    expect([...worker.store.keys()].sort()).toEqual(["hoondok-root-2026-11-04.1", "other-app"]);
-    expect(worker.self.registration.unregister).toHaveBeenCalledOnce();
+    expect([...worker.store.keys()].sort()).toEqual(["hoondok-root-2026-11-04.2", "other-app"]);
+    expect(worker.self.registration.unregister).not.toHaveBeenCalled();
     expect(legacyWindow.navigate).toHaveBeenCalledWith(`${ORIGIN}/hoondok/read`);
     expect(worker.listeners.has("fetch")).toBe(false);
-    expect(worker.listeners.has("push")).toBe(false);
     expect(RETIRED_SW_SOURCE).toMatch(/SW_VERSION = "[^"]+"/);
+  });
+
+  it("앱을 열지 않은 예전 구독자에게도 알림을 띄우고, 주소는 /hoondok 접두를 뗀 루트 경로로 연다", async () => {
+    const worker = loadWorker(RETIRED_SW_SOURCE);
+    await worker.dispatch("push", {
+      data: { json: () => ({ title: "오늘의 책갈피가 꽂혀 있어요", body: "본문", url: "/hoondok/bookmark" }) },
+    });
+    const [title, options] = worker.self.registration.showNotification.mock.calls[0];
+    expect(title).toBe("오늘의 책갈피가 꽂혀 있어요");
+    expect(options).toMatchObject({ tag: "hoondok-read", data: { url: `${ORIGIN}/bookmark` } });
+
+    // 외부 주소는 열지 않는다
+    await worker.dispatch("push", { data: { json: () => ({ title: "t", url: "https://evil.example/x" }) } });
+    expect(worker.self.registration.showNotification.mock.calls[1][1]).toMatchObject({ data: { url: `${ORIGIN}/` } });
+  });
+
+  it("예전 SW 가 띄운 마지막 알림을 눌러도 루트 주소로 창을 연다", async () => {
+    const worker = loadWorker(RETIRED_SW_SOURCE);
+    const close = vi.fn();
+    await worker.dispatch("notificationclick", {
+      notification: { close, data: { url: `${ORIGIN}/hoondok` } },
+    });
+    expect(close).toHaveBeenCalledOnce();
+    expect(worker.self.clients.openWindow).toHaveBeenCalledWith(`${ORIGIN}/`);
   });
 });

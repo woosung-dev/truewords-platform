@@ -1,5 +1,6 @@
 /* 훈독 서비스워커. 웹 루트가 훈독이 되면서(DEC-PWA-026) scope 는 `/` 이고 스크립트도 루트(/sw.js)에 있다.
-   예전 /hoondok scope 등록은 public/hoondok/sw.js(은퇴 스크립트)가 스스로 해제한다.
+   예전 /hoondok scope 등록은 페이지(features/hoondok/notifications/legacy-push.ts)가 알림 구독을 이 등록으로 옮긴 뒤 해제한다.
+   그 전까지는 public/hoondok/sw.js(은퇴 스크립트)가 그 등록의 알림을 띄운다.
    하는 일은 다섯이다.
    (1) install: 오프라인 안내 페이지(/offline) + 그 HTML 이 참조하는 /_next/static 청크 + 아이콘·manifest 를 precache.
    (2) fetch: navigation 이 네트워크 실패하면 /offline 로 302 리다이렉트하고, 그 URL 의 navigation 은 캐시된 안내 HTML 로
@@ -11,7 +12,7 @@
    런타임에 cache.put 을 하지 않으므로 /api/* · /onboarding · 인증 응답은 캐시에 들어갈 수 없다(ARCH-MONO-001 §7).
    sw.js 를 바꾸면 SW_VERSION 을 올린다(캐시 이름). 킬스위치: SW_KILL = true 로 배포하면 다음 방문에서 캐시 전삭제 + 등록 해제.
    rollback-web 만으로는 이미 설치된 SW 가 지워지지 않는다 — 절차는 runbook(Phase 3 G). */
-const SW_VERSION = "2026-11-04.1";
+const SW_VERSION = "2026-11-04.2";
 const SW_KILL = false;
 const CACHE_PREFIX = "hoondok-";
 // 루트 SW 캐시는 hoondok-root-* 다. 은퇴 스크립트(public/hoondok/sw.js)는 이 접두를 남기고 예전 캐시만 지운다.

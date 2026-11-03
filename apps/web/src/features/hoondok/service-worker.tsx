@@ -2,19 +2,11 @@
 
 import { useEffect } from "react";
 import { isHoondokEnabled } from "@/features/hoondok/flag";
+import { retireLegacyRegistration } from "./notifications/legacy-push";
 import { reportClientError } from "./observability/report";
 
 export const HOONDOK_SW_URL = "/sw.js";
 export const HOONDOK_SW_SCOPE = "/";
-/** 웹 루트 이전(DEC-PWA-026) 전의 등록 scope. 남아 있으면 해제한다 — 은퇴 스크립트(public/hoondok/sw.js)도 같은 일을 한다. */
-export const LEGACY_SW_SCOPE = "/hoondok";
-
-/** 예전 /hoondok scope 등록을 해제한다. 그 등록의 푸시 구독도 함께 사라진다(설정 화면이 "다시 켜 주세요" 를 띄운다). */
-async function unregisterLegacy(container: ServiceWorkerContainer): Promise<void> {
-  const legacyScope = new URL(LEGACY_SW_SCOPE, window.location.origin).href;
-  const registrations = await container.getRegistrations();
-  await Promise.all(registrations.filter((r) => r.scope === legacyScope).map((r) => r.unregister()));
-}
 
 // 훈독 SW 등록 (PLAN-HD-001 Phase 3 D). 웹 루트가 훈독이라(DEC-PWA-026) 스크립트는 /sw.js, scope 는 `/` 다.
 //
@@ -30,8 +22,9 @@ export function HoondokServiceWorker() {
     container
       .register(HOONDOK_SW_URL, { scope: HOONDOK_SW_SCOPE, updateViaCache: "none" })
       .catch(() => reportClientError("sw_register"));
-    // 해제 실패는 무해하다 — 그 등록은 /hoondok/* 만 잡고, 그 주소는 서버가 루트로 308 한다.
-    unregisterLegacy(container).catch(() => undefined);
+    // 예전 /hoondok 등록은 알림 구독을 루트 등록으로 옮긴 뒤에만 해제한다. 실패는 무해하다 — 그 등록은 /hoondok/* 만 잡고
+    // (서버가 루트로 308 한다) 은퇴 스크립트가 알림을 계속 띄우며, 다음 방문에서 다시 시도한다.
+    retireLegacyRegistration(container).catch(() => undefined);
   }, []);
   return null;
 }

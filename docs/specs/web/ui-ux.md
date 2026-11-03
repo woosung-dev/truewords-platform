@@ -9,7 +9,7 @@
 - `apps/web`은 훈독 전용이다. 웹 루트(`/`)가 훈독 홈이고 화면 경로는 접두 없이 `/read`·`/ask`·`/library`·`/words/{volume}`·`/garden`·`/c/{id}` 등이다(`DEC-PWA-026`, 2026-11-04). 레드팀 시연 챗 화면(`/` 채팅·`/history`·`/about`·`/login`)은 삭제했고 백엔드 `/chat` API 는 남아 있다. 삭제한 주소는 `/login`→`/onboarding`, `/history`→`/ask`, `/about`→`/` 로 임시 리다이렉트한다. 예전 훈독 주소 `/hoondok`·`/hoondok/*` 는 같은 경로의 루트로 308 하며, 정적 자산(`/hoondok/fonts|icons|photos|cards|mascot|voices/*`·`manifest.webmanifest`·은퇴 `sw.js`)은 경로를 유지한다. 훈독 화면 기준은 [훈독 디자인](hoondok-design-system.md)이 소유한다.
 - 화면은 `src/app/(hoondok)`(route group, 레이아웃이 `[data-app="hoondok"]` 스코프·PWA 메타·서비스워커를 붙인다), 기능 UI는 `src/features/hoondok`·`src/components/hoondok`가 소유한다. 루트 layout·`src/app/globals.css`·`src/components/ui`(토스트)는 훈독 스코프 밖(404·토스트)만 맡는다.
 - 기존 paper 계열 화면·폰트·컴포넌트 크기·모션을 이번 소유권 이동에서 재설계하지 않는다.
-- 훈독은 일반 사용자 인증·PWA 설치(manifest `id` `/hoondok` 유지, `start_url`·`scope` `/`)·서비스워커(`/sw.js`, scope `/`)·Web Push 알림을 구현했다. 예전 `/hoondok` scope 등록은 은퇴 스크립트(`/hoondok/sw.js`)와 앱의 등록 코드가 해제한다.
+- 훈독은 일반 사용자 인증·PWA 설치(manifest `id` `/hoondok` 유지, `start_url`·`scope` `/`)·서비스워커(`/sw.js`, scope `/`)·Web Push 알림을 구현했다. 예전 `/hoondok` scope 등록은 앱이 그 등록의 알림 구독을 루트 등록으로 옮긴 뒤 해제하고, 그 전까지는 은퇴 스크립트(`/hoondok/sw.js`)가 그 등록의 알림을 루트 주소로 연다.
 
 ## 변경 경계와 검증
 

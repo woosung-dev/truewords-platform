@@ -13,9 +13,14 @@ import { clearHoondokStorage } from "./use-delete-me";
  */
 async function unsubscribeThisDevice(): Promise<void> {
   try {
-    const registration = await navigator.serviceWorker?.getRegistration();
-    const subscription = await registration?.pushManager.getSubscription();
-    await subscription?.unsubscribe();
+    // 예전 /hoondok 등록(DEC-PWA-026 이관 전)에 남은 구독도 함께 해지한다 — 이 페이지의 등록만 보면 그 구독으로 알림이 계속 간다.
+    const registrations = (await navigator.serviceWorker?.getRegistrations()) ?? [];
+    await Promise.all(
+      registrations.map(async (registration) => {
+        const subscription = await registration.pushManager?.getSubscription();
+        await subscription?.unsubscribe();
+      }),
+    );
   } catch {
     // 알림 미지원 브라우저·사생활 모드 — 해지할 구독이 없다
   }

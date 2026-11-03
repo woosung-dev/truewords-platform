@@ -123,7 +123,7 @@ describe("훈독 PWA 설치 메타", () => {
 });
 
 describe("훈독 서비스워커 등록 컴포넌트 (Phase 3 D)", () => {
-  it("플래그 ON 이면 /sw.js 를 scope / 으로 등록하고 예전 /hoondok 등록만 해제한다, serviceWorker 미지원이면 no-op", async () => {
+  it("플래그 ON 이면 /sw.js 를 scope / 으로 등록하고 구독 없는 예전 /hoondok 등록만 해제한다, serviceWorker 미지원이면 no-op", async () => {
     vi.stubEnv("NEXT_PUBLIC_HOONDOK_ENABLED", "1");
     vi.resetModules();
     const { HoondokServiceWorker } = await import("../features/hoondok/service-worker");

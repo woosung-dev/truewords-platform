@@ -6,7 +6,7 @@
 - 말씀 화면은 권리가 허용된 데이터만 보여준다.
 - 훈독 CSS: 토큰(hex)은 `src/app/hoondok.css` 첫 블록에만 두고 나머지 CSS는 `[data-app="hoondok"]` 스코프와 `var()`만 쓴다(`pnpm hoondok:check`가 검사). 훈독 토큰을 `globals.css`·`:root`에 두지 않는다.
 - 새 훈독 화면은 `src/features/hoondok/screens.ts` 레지스트리에 한 줄 추가한다. `tabs.ts`·`app-shell.tsx`는 건드리지 않는다. 공용 컴포넌트는 배럴 `src/components/hoondok/index.ts`로만 가져온다.
-- 서비스워커는 `public/sw.js`(scope `/`)를 hoondok layout에서만 등록하고 `/api/*`·`/admin/*`·인증·온보딩 응답을 캐시하지 않는다. manifest `id`(`/hoondok`)는 바꾸지 않는다(설치된 앱이 다른 앱이 된다). 은퇴 스크립트 `public/hoondok/sw.js`는 예전 설치본 해제용이라 지우거나 리다이렉트하지 않는다(200 + `Service-Worker-Allowed: /hoondok`).
+- 서비스워커는 `public/sw.js`(scope `/`)를 hoondok layout에서만 등록하고 `/api/*`·`/admin/*`·인증·온보딩 응답을 캐시하지 않는다. manifest `id`(`/hoondok`)는 바꾸지 않는다(설치된 앱이 다른 앱이 된다). 은퇴 스크립트 `public/hoondok/sw.js`는 예전 `/hoondok` 등록의 알림을 이어 받는 용도라 지우거나 리다이렉트하지 않는다(200 + `Service-Worker-Allowed: /hoondok`). 그 등록은 알림 구독을 루트 등록으로 옮긴 뒤에만 해제한다 — 먼저 해제하면 구독이 사라진다.
 - 개인정보: 오류 수집은 안전한 kind와 정규화 경로만 보내고 질문·검색어·예외 원문·토큰을 담지 않는다. 함께 읽기 숫자는 서버 값만 쓰며 +1 보정이나 미완료자 표시를 하지 않는다. AI 질문은 로그인 필수이고 질문·답은 계정에만 보관한다(기기 `localStorage`에 남기지 않는다). 하루 5회(KST 자정 기준, 이어 묻기 포함)이며 공유 시맨틱 캐시를 쓰지 않는다. 사용자가 공개를 고른 세션 첫 답만 서버가 대화 기록에서 복사해 협회 검수 뒤 익명으로 공개하고, 본인이 내리면 지운다.
 - AI 질문의 답은 `POST /hoondok/ask/stream`으로 받고(기록은 `/hoondok/me/asks*`, 공개 신청·열람은 `/hoondok/*questions`), `sources`가 0건이면 답을 보이지 않는다.
 - 알림 권한 요청은 클릭 핸들러 안에서 동기적으로 시작한다(iOS 제스처 요건).
