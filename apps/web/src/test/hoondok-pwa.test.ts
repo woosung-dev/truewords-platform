@@ -105,13 +105,17 @@ describe("훈독 PWA 설치 메타", () => {
     expect(pngSize(path.join(PUBLIC_DIR, "hoondok/icons/logo-64.png"))).toEqual({ width: 64, height: 64 });
   });
 
-  it("Pretendard self-host: 2MB 이하 woff2 + OFL 동봉 + 별도 패밀리명 @font-face", () => {
-    const font = path.join(PUBLIC_DIR, "hoondok/fonts/PretendardVariable-1.3.9.woff2");
-    expect(statSync(font).size).toBeLessThanOrEqual(2 * 1024 * 1024);
+  it("Pretendard self-host: 동적 서브셋 조각마다 파일이 있고 OFL 동봉 + 별도 패밀리명 @font-face", () => {
+    const fontCss = readFileSync(path.resolve(__dirname, "../app/_hoondok/pretendard.css"), "utf8");
+    const urls = [...fontCss.matchAll(/url\("(\/hoondok\/fonts\/pretendard-1\.3\.9\/[^"]+\.woff2)"\)/g)].map((m) => m[1]);
+    expect(urls.length).toBeGreaterThan(80);
+    for (const url of urls) {
+      // 조각 하나는 작아야 한다 — 전체 파일(2MB)이 섞여 들어오면 서브셋의 의미가 없다
+      expect(statSync(path.join(PUBLIC_DIR, url)).size, url).toBeLessThanOrEqual(64 * 1024);
+    }
+    expect(fontCss.match(/font-family:"Pretendard Hoondok"/g)?.length).toBe(urls.length);
+    expect(fontCss.match(/unicode-range:/g)?.length).toBe(urls.length);
     expect(existsSync(path.join(PUBLIC_DIR, "hoondok/fonts/OFL.txt"))).toBe(true);
-    expect(HOONDOK_CSS).toMatch(
-      /@font-face\s*\{[^}]*font-family:\s*"Pretendard Hoondok"[^}]*\/hoondok\/fonts\/PretendardVariable-1\.3\.9\.woff2[^}]*\}/,
-    );
     expect(HOONDOK_CSS).toMatch(/--sans:\s*"Pretendard Hoondok",/);
   });
 });
