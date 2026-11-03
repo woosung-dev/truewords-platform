@@ -11,7 +11,7 @@
    런타임에 cache.put 을 하지 않으므로 /api/backend/* · /hoondok/onboarding · 인증 응답은 캐시에 들어갈 수 없다(ARCH-MONO-001 §7).
    sw.js 를 바꾸면 SW_VERSION 을 올린다(캐시 이름). 킬스위치: SW_KILL = true 로 배포하면 다음 방문에서 캐시 전삭제 + 등록 해제.
    rollback-web 만으로는 이미 설치된 SW 가 지워지지 않는다 — 절차는 runbook(Phase 3 G). */
-const SW_VERSION = "2026-09-29.1";
+const SW_VERSION = "2026-11-03.1";
 const SW_KILL = false;
 const CACHE_PREFIX = "hoondok-";
 const CACHE_NAME = `${CACHE_PREFIX}${SW_VERSION}`;
@@ -26,6 +26,8 @@ const PRECACHE_URLS = [
   "/hoondok/icons/badge-96.png",
   "/hoondok/icons/favicon.svg",
   "/hoondok/icons/favicon-32.png",
+  // 오프라인 안내의 부엉이(마스코트 플래그 ON). /_next/static 이 아니라 collectNextAssets 가 줍지 않는다.
+  "/hoondok/mascot/owl-rest.webp",
 ];
 // 이 접두의 요청에는 관여하지 않는다(respondWith 없음) — 네트워크 그대로, 캐시 금지.
 const NEVER_TOUCH = ["/api/backend/", "/hoondok/onboarding", "/hoondok/auth"];

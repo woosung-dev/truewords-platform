@@ -581,6 +581,17 @@
     display: grid;
     place-items: center;
   }
+  /* 부엉이 마스코트(NEXT_PUBLIC_HOONDOK_MASCOT) — 아이콘 자리에 들어가는 정지 그림. 모션 없음 */
+  .owl {
+    display: block;
+    flex: none;
+    object-fit: contain;
+  }
+  .day-quiet__ic:has(.owl) {
+    background: transparent;
+    width: 44px;
+    height: 44px;
+  }
   .empty__title {
     font-size: var(--fs-lg);
     font-weight: 600;
