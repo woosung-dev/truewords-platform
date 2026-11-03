@@ -36,7 +36,8 @@ HOONDOK="${HOONDOK_ENABLED:-0}"
 CACHE_BUST="${SMOKE_CACHE_BUST:-}"
 TIMEOUT="${SMOKE_TIMEOUT_S:-15}"
 # 운영 폰트 파일명은 버전이 박혀 있다(Phase 3 C). 파일을 갈면 여기도 같이 바꾼다.
-FONT_FILE="${SMOKE_FONT_FILE:-PretendardVariable-1.3.9.woff2}"
+# 2026-11-03 부터 동적 서브셋 92조각이다 — 한글 자주 쓰는 글자 조각 하나만 본다.
+FONT_FILE="${SMOKE_FONT_FILE:-pretendard-1.3.9/PretendardVariable.subset.91.woff2}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -240,7 +241,7 @@ if [ "$HOONDOK" = "1" ]; then
     record "icons" OK "${#ICONS[@]}개 전부 200"
   fi
 
-  # 폰트는 파일명에 버전이 박혀 있어 1년 immutable 이다. 헤더가 빠지면 2MB 를
+  # 폰트는 파일명에 버전이 박혀 있어 1년 immutable 이다. 헤더가 빠지면 글꼴 조각을
   # 매 방문 다시 받는다 — 느려질 뿐 고장은 아니라 눈에 안 띈다.
   CODE=$(fetch "$FONT")
   FT_CACHE=$(header_value "cache-control")
