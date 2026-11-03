@@ -293,6 +293,12 @@ export function WordsScreen({
   const tocStart = sections.data?.sections.find((item) => item.position === section)?.start_chunk_index ?? null;
   const citedIndex = chunkId ? (doc?.chunks.find((chunk) => chunk.chunk_id === chunkId)?.chunk_index ?? null) : null;
   const scrollTarget = tocStart ?? citedIndex;
+  // 목차로 장에 들어오면 장 시작 단락 바로 위에 "이 장의 AI 요약" 표지를 둔다 — 머리에 두면 스크롤로 지나친다.
+  const chapterSummaries = (summaries.data ?? []).filter(
+    (item) => section !== undefined && item.section_position === section,
+  );
+  const marksAtStart =
+    tocStart !== null && chapterSummaries.length > 0 && Boolean(doc?.chunks.some((c) => c.chunk_index === tocStart));
   // 이어 읽기는 구간 첫 단락이 도착 단락이다(저장값이 그 단락). 라벨이 화면 밖일 때만 라벨 자리로 내린다 —
   // 이미 보이는데 내리면 위의 장 머리글이 앱바 뒤로 가려진다.
   const resumeIndex = isResume ? firstChunkIndex : null;
@@ -306,13 +312,13 @@ export function WordsScreen({
   }, [resumeIndex]);
   useEffect(() => {
     if (scrollTarget === null || lastPage === null) return;
-    const target = document.getElementById(`verse-${scrollTarget}`);
+    const target = document.getElementById(marksAtStart ? "wd-sum-marks" : `verse-${scrollTarget}`);
     // 검색어가 긴 단락 뒤쪽에 있으면 단락 머리 대신 첫 검색어를 화면 가운데로 보낸다.
     const hit = target?.querySelector(".sq-hit");
     // jsdom 에는 scrollIntoView 가 없다 — 없으면 아무 일도 하지 않는다.
     if (hit) hit.scrollIntoView?.({ block: "center" });
     else target?.scrollIntoView?.({ block: "start" });
-  }, [scrollTarget, lastPage]);
+  }, [scrollTarget, lastPage, marksAtStart]);
 
   // 듣기: 단락(청크)마다 표시 텍스트를 읽는다. 구간이 바뀌면 멈추고 처음 상태로 돌아간다.
   const docChunks = doc?.chunks;
@@ -531,11 +537,13 @@ export function WordsScreen({
       </aside>
       <div className="words__main">
         {/* 저작물 제목은 앱바 h1 이 이미 보여준다(screens.ts titleSource: "work") */}
-        <SummaryMarks
-          items={(summaries.data ?? []).filter(
-            (item) => currentSection != null && item.section_position === currentSection.position,
-          )}
-        />
+        {!marksAtStart && (
+          <SummaryMarks
+            items={(summaries.data ?? []).filter(
+              (item) => currentSection != null && item.section_position === currentSection.position,
+            )}
+          />
+        )}
         <div className="masthead">
           {currentSection && <span className="masthead__nm">{currentSection.title}</span>}
           <span className="masthead__dt">
@@ -652,6 +660,11 @@ export function WordsScreen({
                   const isCardChunk = wordsCard.card?.chunk_id === chunk.chunk_id;
                   return (
                     <Fragment key={chunk.chunk_id}>
+                      {marksAtStart && chunk.chunk_index === tocStart && (
+                        <div id="wd-sum-marks">
+                          <SummaryMarks items={chapterSummaries} />
+                        </div>
+                      )}
                       <Verse
                         chunk={chunk}
                         decorations={decorationsByChunk.get(chunk.chunk_index) ?? NO_DECORATIONS}

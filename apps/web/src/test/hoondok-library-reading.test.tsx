@@ -32,6 +32,9 @@ vi.mock("@/features/hoondok/library/api", async (original) => ({
   },
 }));
 vi.mock("@/features/identity/api", () => ({ identityAPI: { me: vi.fn() } }));
+vi.mock("@/features/hoondok/summaries/api", () => ({
+  summariesAPI: { list: vi.fn(async () => []), detail: vi.fn() },
+}));
 vi.mock("@/features/hoondok/missions-api", () => ({ missionsAPI: { summary: vi.fn(), complete: vi.fn() } }));
 vi.mock("@/features/hoondok/ask/ask-stream", async (original) => ({
   ...(await original<object>()),
@@ -46,6 +49,7 @@ import { libraryAPI, seriesHref, wordsHref } from "@/features/hoondok/library/ap
 import { EXPLAIN_PREFIX } from "@/features/hoondok/library/components/ai-explain";
 import { writeLastReading } from "@/features/hoondok/library/last-reading";
 import { missionsAPI } from "@/features/hoondok/missions-api";
+import { summariesAPI } from "@/features/hoondok/summaries/api";
 import { identityAPI } from "@/features/identity/api";
 
 const USER = { id: "u1", email: "a@b.c", display_name: "효진" };
@@ -338,6 +342,36 @@ describe("원문 목차·단락", () => {
     expect(await screen.findByText("제1편 감사의 길", { selector: ".masthead__nm" })).toBeInTheDocument();
     const toc = screen.getByRole("complementary", { name: "목차" });
     expect(within(toc).getByRole("link", { name: "제1편 감사의 길" })).toHaveAttribute("aria-current", "page");
+  });
+  it("목차로 장에 들어오면 이 장의 AI 요약 표지를 장 시작 단락 바로 위에 두고 그리로 내려 준다", async () => {
+    // 장 시작이 페이지 중간이면 머리의 표지는 스크롤로 지나친다 — 독자가 멈추는 자리에 둔다
+    vi.mocked(libraryAPI.sections).mockResolvedValue({
+      volume: VOLUME,
+      sections: [SECTIONS[0], { ...SECTIONS[1], start_chunk_index: 1 }],
+    });
+    vi.mocked(summariesAPI.list).mockResolvedValueOnce([
+      {
+        id: "s1",
+        content_right_id: "book",
+        work_title: ITEM.work_title,
+        slug: "cheon-01-01-01",
+        group_title: "제1편",
+        position: 1,
+        title: "하나님의 실존",
+        lead: "핵심",
+        section_position: 2,
+      },
+    ]);
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    await showWords({ section: "2" });
+    const marks = await screen.findByRole("navigation", { name: "이 장의 AI 요약" });
+    expect(screen.getAllByRole("navigation", { name: "이 장의 AI 요약" })).toHaveLength(1);
+    const start = document.getElementById("verse-1");
+    expect(start && marks.compareDocumentPosition(start) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(document.getElementById("verse-0")?.compareDocumentPosition(marks)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    await waitFor(() => expect(scrollIntoView.mock.contexts.at(-1)).toBe(document.getElementById("wd-sum-marks")));
+    delete (Element.prototype as Partial<Element>).scrollIntoView;
   });
   it("chunk_id 로 들어오면 인용된 단락까지 내려 준다", async () => {
     // 검색 결과·북마크 링크(API-HD-016 chunk_id). 페이지 첫 단락이 아니라 가리킨 단락이 목표다

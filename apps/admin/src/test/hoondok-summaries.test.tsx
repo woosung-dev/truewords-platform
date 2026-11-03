@@ -277,6 +277,37 @@ it("원문을 고르지 않은 새 글은 숨겨진 필드에 막히지 않고 �
   expect(screen.getByLabelText("제목").tagName).toBe("TEXTAREA");
 });
 
+it("원문 사본 없이 가져온 요약은 원문 위치를 보이고, 시작 말씀을 고치면 단락 연결을 푼다", async () => {
+  vi.mocked(summariesAPI.update).mockResolvedValue({ ...draft, version: 4 });
+  show({
+    ...draft,
+    evidence: [{ claim: "근거 문장", from: 5, to: 7, chunk_index: 13, chunk_id: "c-13" }],
+    source: {
+      edition: "천성경 증보판 제공 DOCX",
+      locator: "제1편 1장 1절 말씀 1–43",
+      text: "",
+      sha256: "",
+      paragraph_from: 1,
+      paragraph_to: 43,
+      chunk_ids: [],
+      verified: false,
+    },
+  });
+  expect(screen.getByText("원문 위치가 기록되어 있습니다.")).toBeInTheDocument();
+  expect(screen.getByText("천성경 증보판 제공 DOCX / 제1편 1장 1절 말씀 1–43 (말씀 1–43)")).toBeInTheDocument();
+  expect(screen.queryByText("목차에서 사용할 말씀 범위를 선택해 주세요.")).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("근거 1 시작 말씀 번호"), { target: { value: "6" } });
+  fireEvent.click(screen.getByRole("button", { name: "초안 저장" }));
+  await waitFor(() =>
+    expect(summariesAPI.update).toHaveBeenCalledWith(
+      draft.id,
+      expect.objectContaining({
+        evidence: [{ claim: "근거 문장", from: 6, to: 7, chunk_index: null, chunk_id: null }],
+      }),
+    ),
+  );
+});
+
 it("대문자 상태 값도 소문자로 정규화해 버튼 조건을 정한다", () => {
   show({ ...draft, review_status: "WITHDRAWN" as SummaryAdminResponse["review_status"], published: false });
   expect(screen.getByRole("button", { name: "다시 공개하기" })).toBeEnabled();

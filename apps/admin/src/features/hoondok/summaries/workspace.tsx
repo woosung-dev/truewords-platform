@@ -795,7 +795,14 @@ export function SummaryForm({ initial }: { initial?: SummaryAdminResponse }) {
                     onChange={(e) =>
                       patch(
                         "evidence",
-                        evidence.map((v, i) => (i === index ? { ...v, [key]: Number(e.target.value) } : v)),
+                        evidence.map((v, i) =>
+                          i !== index
+                            ? v
+                            : key === "from"
+                              ? // 시작 말씀이 바뀌면 연결한 단락도 맞지 않는다 — 장 첫머리 링크로 돌아간다.
+                                { ...v, from: Number(e.target.value), chunk_index: null, chunk_id: null }
+                              : { ...v, to: Number(e.target.value) },
+                        ),
                       )
                     }
                   />
@@ -863,8 +870,18 @@ export function SummaryForm({ initial }: { initial?: SummaryAdminResponse }) {
               ? "이 책은 공개 권한을 확인해야 합니다."
               : values.source?.text
                 ? "말씀 범위가 연결되어 있습니다."
-                : "목차에서 사용할 말씀 범위를 선택해 주세요."}
+                : values.source?.locator
+                  ? "원문 위치가 기록되어 있습니다."
+                  : "목차에서 사용할 말씀 범위를 선택해 주세요."}
           </p>
+          {/* 가져온 요약은 원문 사본 없이 판본·위치·말씀 번호만 가진다(콘텐츠 계약). */}
+          {!values.source?.text && values.source?.locator && (
+            <p className="mt-2 text-xs leading-6">
+              {[values.source.edition, values.source.locator].filter(Boolean).join(" / ")}
+              {values.source.paragraph_from != null &&
+                ` (말씀 ${values.source.paragraph_from}–${values.source.paragraph_to ?? values.source.paragraph_from})`}
+            </p>
+          )}
           {values.source?.text && (
             <details className="summary-source-review">
               <summary>연결한 원문 확인</summary>
