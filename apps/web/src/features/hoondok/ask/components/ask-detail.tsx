@@ -5,6 +5,7 @@
 // 연관 말씀 섹션은 `/chat/stream` 이 주지 않는 데이터라 렌더하지 않는다(AC-017-02 — 지어내지 않는다).
 import { useQuery } from "@tanstack/react-query";
 import { CornerDownRight, MessageCircleQuestion, Share2, Sparkles, Sunrise } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { HoondokButton, HoondokMascot } from "@/components/hoondok";
@@ -13,7 +14,8 @@ import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
 import { askErrorMessage, requestAsk } from "../ask-stream";
 import { SOURCE_RANK_UNKNOWN, sourceFields } from "../format";
 import { type AskItem, EMPTY_ASK_ITEMS, readAskItems, subscribeAsk, toggleAskSaved, updateAskItem } from "../storage";
-import { AnswerMarkdown } from "./answer-markdown";
+// react-markdown(unified·micromark) 은 답이 있을 때만 받는다 — 대기·근거 없음 화면의 첫 로드 JS 에서 뺀다.
+const AnswerMarkdown = dynamic(() => import("./answer-markdown").then((module) => module.AnswerMarkdown));
 
 // 이어지는 질문은 답변·근거 맥락에서 제안해야 하지만(AC-017-03) `/chat/stream` 이 주는 suggested_followups 는
 // 시연 챗 말투라 훈독 문장으로 고정한다 `[가정]`. 탭하면 묻기 홈을 채우기만 하고 보내지 않는다.

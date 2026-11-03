@@ -283,7 +283,7 @@ test("PWA 정적 자산: manifest·아이콘 4개·self-host 폰트 200, 스코�
     expect(icon.headers()["content-type"], src).toContain("image/png");
   }
 
-  const font = await page.request.get("/hoondok/fonts/PretendardVariable-1.3.9.woff2");
+  const font = await page.request.get("/hoondok/fonts/pretendard-1.3.9/PretendardVariable.subset.91.woff2");
   expect(font.status()).toBe(200);
   expect(font.headers()["content-type"]).toContain("font/woff2");
   expect(font.headers()["cache-control"]).toContain("immutable");

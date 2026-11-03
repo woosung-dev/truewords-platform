@@ -8,6 +8,7 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import "@/app/hoondok.css";
+import "@/app/hoondok-pretendard.css";
 import "@/app/_hoondok/garden.css";
 import "@/app/_hoondok/settings.css";
 import "@/app/_hoondok/sheet.css";

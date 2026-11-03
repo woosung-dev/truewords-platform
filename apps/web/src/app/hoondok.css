@@ -1452,17 +1452,7 @@
   }
 }
 
-/* Pretendard self-host (PLAN-HD-001 Phase 3 C, DES-PWA-003 §1.2). 다른 Pretendard 와
-   패밀리명을 분리해 로드 순서와 무관하게 이 파일이 쓰인다. 파일명의 버전은 next.config headers() 의 immutable 캐시와 짝이다. */
-@font-face {
-  font-family: "Pretendard Hoondok";
-  font-style: normal;
-  font-weight: 45 920;
-  font-display: swap;
-  src:
-    url("/hoondok/fonts/PretendardVariable-1.3.9.woff2") format("woff2-variations"),
-    url("/hoondok/fonts/PretendardVariable-1.3.9.woff2") format("woff2");
-}
+/* Pretendard Hoondok @font-face 는 hoondok-pretendard.css(동적 서브셋 92조각)에 있다. */
 
 /* 훈독 화면에서만 바깥 문서 배경이 드러나는 세로 오버스크롤을 막는다. */
 html:has([data-app="hoondok"]) {

@@ -86,7 +86,7 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
              "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
 ```
 
-운영에서는 self-host 한다(시안은 jsdelivr CDN). **2026-09-19 확정(PLAN-HD-001 Phase 3 C)**: 가변 폰트 1종 `PretendardVariable-1.3.9.woff2`(1.96MB) 를 `apps/web/public/hoondok/fonts/` 에 두고 `hoondok.css` 의 `@font-face` 로 패밀리명 **`"Pretendard Hoondok"`**(루트 layout CDN 의 `Pretendard Variable` 과 분리해 로드 순서와 무관) · `font-weight: 45 920` · `font-display: swap` 으로 연결한다. 동적 서브셋(92청크 + 생성 CSS)은 유지비로, 정적 4종(2.98MB)은 예산 2MB 초과로 미채택. SIL OFL 1.1 `OFL.txt` 를 같은 폴더에 동봉한다. 사용 굵기는 400·500·600·700 네 단계다.
+운영에서는 self-host 한다(시안은 jsdelivr CDN). **2026-11-03 변경**: 공식 가변 **동적 서브셋 92조각**(`apps/web/public/hoondok/fonts/pretendard-1.3.9/`, 조각당 ≤44KB)을 `src/app/hoondok-pretendard.css`(화면 CSS 검사 대상 밖 — 글꼴 선언만 있다) 의 `@font-face`·`unicode-range` 로 연결해 화면에 나온 글자의 조각만 받는다(홈 첫 방문 2.0MB → 약 230KB). CSS 는 pretendard@1.3.9 배포 CSS 에서 패밀리명·경로만 바꾼 생성물이라 손으로 고치지 않는다. 패밀리명 **`"Pretendard Hoondok"`**(루트 layout CDN 의 `Pretendard Variable` 과 분리해 로드 순서와 무관) · `font-weight: 45 920` · `font-display: swap` 으로 연결한다. (2026-09-19 의 전체 가변 파일 1종 1.96MB 는 모든 첫 방문에 2MB 를 받게 해 대체했다.) SIL OFL 1.1 `OFL.txt` 를 같은 폴더에 동봉한다. 사용 굵기는 400·500·600·700 네 단계다.
 
 | 이름 | 크기 | 행간 | 자간 | 굵기 | 쓰는 곳 |
 |---|---|---|---|---|---|
@@ -795,6 +795,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | 2026-09-29 | `SCR-PWA-009` 폰 원문 뷰 — 탭·오디오 바는 앱바 아래에 붙어 **내려 읽으면 숨고 올리면 돌아온다**. 리더 바는 떠 있는 알약(형광펜·노트·목차)이고 함께 숨되, 듣는 중에는 "단락 k / n" 미니 플레이어로 줄어 남는다. **북마크·설정은 리더 바에서 뺐다**(북마크는 단락 시트·서고에 남는다). 구간 끝은 다음 구간 한 장 > 읽음 체크 줄 > 이전 구간·질문 글자 링크 순이고, "오늘 훈독" 링크는 읽음 뒤에만 보인다. PC(≥1024px)는 고정 배치 그대로 | 확정 · `use-reading-chrome.ts` |
 | 2026-09-29 | **북마크 제거** — 단락 시트 버튼·단락 번호 표지·서고 "북마크" 절·나의 기록 "북마크" 탭을 없앴다. 모아 두기는 형광펜·메모가 맡고 나의 기록(형광펜·노트)에서 다시 본다. 웹은 `API-HD-026` 을 부르지 않지만 엔드포인트와 기존 행은 남겨 둔다. "오늘의 책갈피"(카드)는 별개 기능이라 그대로 | 확정(사용자 승인) |
 | 2026-11-03 | 앱 아이콘(any·maskable·apple)= **책 든 부엉이**, 탭 파비콘·헤더 표지 = **부엉이 얼굴**(디자인 에셋 폴더 시안 그대로). 알림 배지는 단색 실루엣이라 HD 유지. HD SVG 원본 3종 삭제 | 확정 · §1.7 |
+| 2026-11-03 | 훈독 글꼴 = Pretendard **동적 서브셋 92조각**(2026-09-19 "전체 가변 1종" 대체). 운영 실측 모든 훈독 첫 방문이 글꼴 2,011KB 를 받아 모바일 4G 로드 15~27초 | 확정 · §1.2 |
 
 
 ### PLAN-HD-005 여정 연결 결정 (2026-09-21)
