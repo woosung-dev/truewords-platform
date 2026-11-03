@@ -20,8 +20,12 @@ describe("훈독 화면 레지스트리", () => {
     expect(pick("/hoondok/garden")).toEqual(["나의 정원", undefined, "garden", "app"]);
     expect(pick("/hoondok/settings")).toEqual(["알림·설치", "/hoondok/garden", "garden", "app"]);
     expect(pick("/hoondok/ask")).toEqual(["AI 질문", undefined, "ask", "read"]);
-    expect(pick("/hoondok/ask/log")).toEqual(["질문 기록", "/hoondok/ask", "ask", "read"]);
-    expect(pick("/hoondok/ask/q-123")).toEqual(["질문", "/hoondok/ask/log", "ask", "read"]);
+    expect(pick("/hoondok/ask/new")).toEqual(["새 질문하기", undefined, "ask", "onb"]);
+    expect(pick("/hoondok/ask/q-123")).toEqual(["질문", "/hoondok/ask", "ask", "read"]);
+    expect(pick("/hoondok/ask/p/pq1")).toEqual(["공개 질문", "/hoondok/ask", "ask", "read"]);
+    // AI 질문 계열은 앱바의 말씀 검색 아이콘을 숨긴다 — 질문 검색(홈 돋보기)과 헷갈리지 않게
+    for (const pathname of ["/hoondok/ask", "/hoondok/ask/new", "/hoondok/ask/q-123", "/hoondok/ask/p/pq1"])
+      expect(screenFor(pathname).hideSearchLink).toBe(true);
     expect(pick("/hoondok/search")).toEqual(["말씀 검색", "/hoondok/library", "library", "app"]);
     expect(pick("/hoondok/words")).toEqual(["원문 읽기", "/hoondok/library", "library", "read"]);
     // 미등록 경로는 홈 항목으로 떨어진다
@@ -130,12 +134,19 @@ describe("훈독 알림·설치 도달 경로 · 온보딩 탭바", () => {
     expect(links[0]).toHaveAttribute("aria-current", "page");
   });
 
-  it("온보딩·검색·오프라인·질문 기록·알림 설정 자신에는 알림 아이콘이 없다", async () => {
+  it("AI 질문은 앱바 검색 아이콘만 숨기고 헤더 검색 자리를 현재 위치로 표시하지 않는다", async () => {
+    await shell("/hoondok/ask");
+    const links = screen.getAllByRole("link", { name: "말씀 검색" });
+    expect(links).toHaveLength(1);
+    expect(links[0]).not.toHaveAttribute("aria-current");
+  });
+
+  it("온보딩·검색·오프라인·새 질문·알림 설정 자신에는 알림 아이콘이 없다", async () => {
     for (const pathname of [
       "/hoondok/onboarding",
       "/hoondok/search",
       "/hoondok/offline",
-      "/hoondok/ask/log",
+      "/hoondok/ask/new",
       "/hoondok/settings",
     ]) {
       const view = await shell(pathname);

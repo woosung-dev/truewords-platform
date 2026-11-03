@@ -1033,6 +1033,17 @@
       },
       "ChatSourcesEvent": {
         "properties": {
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
           "closing": {
             "anyOf": [
               {
@@ -1092,7 +1103,8 @@
         "required": [
           "sources",
           "session_id",
-          "message_id"
+          "message_id",
+          "answer_mode"
         ],
         "title": "ChatSourcesEvent",
         "type": "object"
@@ -4472,6 +4484,88 @@
         "title": "MyGroupItem",
         "type": "object"
       },
+      "MyPublicQuestionItem": {
+        "description": "내 공개 신청 한 줄. 상태로 검토 중·공개됨·비공개를 보인다.",
+        "properties": {
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "published",
+              "hidden"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "message_id",
+          "question",
+          "answer_mode",
+          "status",
+          "created_at",
+          "reviewed_at"
+        ],
+        "title": "MyPublicQuestionItem",
+        "type": "object"
+      },
+      "MyPublicQuestionListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MyPublicQuestionItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "MyPublicQuestionListResponse",
+        "type": "object"
+      },
       "NegativeFeedbackItem": {
         "properties": {
           "answer_snippet": {
@@ -4727,6 +4821,289 @@
           "offset"
         ],
         "title": "PaginatedResponse[ChatbotConfigResponse]",
+        "type": "object"
+      },
+      "PublicQuestionAdminItem": {
+        "description": "검수 화면 한 줄 — 작성자 정보는 관리자에게도 보이지 않는다.",
+        "properties": {
+          "answer_md": {
+            "title": "Answer Md",
+            "type": "string"
+          },
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/PublicQuestionSource"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "published",
+              "hidden"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "answer_md",
+          "sources",
+          "answer_mode",
+          "status",
+          "created_at",
+          "reviewed_at"
+        ],
+        "title": "PublicQuestionAdminItem",
+        "type": "object"
+      },
+      "PublicQuestionAdminListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicQuestionAdminItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "PublicQuestionAdminListResponse",
+        "type": "object"
+      },
+      "PublicQuestionCreate": {
+        "additionalProperties": false,
+        "description": "공개 신청 본문. 질문·답은 서버가 message_id 로 복사한다 — 본문을 받지 않는다.",
+        "properties": {
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id"
+        ],
+        "title": "PublicQuestionCreate",
+        "type": "object"
+      },
+      "PublicQuestionDetail": {
+        "properties": {
+          "answer_md": {
+            "title": "Answer Md",
+            "type": "string"
+          },
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/PublicQuestionSource"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "answer_md",
+          "sources",
+          "answer_mode",
+          "published_at"
+        ],
+        "title": "PublicQuestionDetail",
+        "type": "object"
+      },
+      "PublicQuestionListResponse": {
+        "description": "최신순. next_cursor 를 다음 요청의 cursor 로 보내면 이어진다(없으면 끝).",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicQuestionSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "PublicQuestionListResponse",
+        "type": "object"
+      },
+      "PublicQuestionReview": {
+        "additionalProperties": false,
+        "description": "PATCH 본문. 공개(published) 또는 숨김(hidden)만 받는다.",
+        "properties": {
+          "status": {
+            "enum": [
+              "published",
+              "hidden"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "PublicQuestionReview",
+        "type": "object"
+      },
+      "PublicQuestionSource": {
+        "description": "근거 말씀 한 줄 — answer_citations 복사본(상위 3건).",
+        "properties": {
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "volume",
+          "text"
+        ],
+        "title": "PublicQuestionSource",
+        "type": "object"
+      },
+      "PublicQuestionSummary": {
+        "description": "공개 목록 한 줄. preview 는 답 앞부분(마크다운 기호 제거).",
+        "properties": {
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "preview": {
+            "title": "Preview",
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "preview",
+          "answer_mode",
+          "published_at"
+        ],
+        "title": "PublicQuestionSummary",
         "type": "object"
       },
       "PushConfigResponse": {
@@ -9806,6 +10183,137 @@
         ]
       }
     },
+    "/admin/hoondok/questions": {
+      "get": {
+        "description": "검수 목록(신청 오래된 순). `status=pending` 이 검수 대기열이다.",
+        "operationId": "list_public_questions_admin_admin_hoondok_questions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pending",
+                    "published",
+                    "hidden"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicQuestionAdminListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Public Questions Admin",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/questions/{question_id}": {
+      "patch": {
+        "description": "공개(published)·숨김(hidden). 404 없음, 422 그 밖의 값.",
+        "operationId": "review_public_question_admin_hoondok_questions__question_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicQuestionReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicQuestionAdminItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review Public Question",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
     "/admin/rag-trace": {
       "post": {
         "operationId": "run_rag_trace_admin_rag_trace_post",
@@ -12123,6 +12631,104 @@
         ]
       }
     },
+    "/hoondok/me/questions": {
+      "get": {
+        "description": "내 공개 신청과 상태(최근 신청순). 401 미인증.",
+        "operationId": "list_my_public_questions_hoondok_me_questions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyPublicQuestionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List My Public Questions",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "post": {
+        "description": "공개 신청 → status=pending. 본인 재신청은 기존 신청을 돌려준다.\n\n404 답 없음, 409 공개할 수 없는 답(마음 돌봄·위기·근거 없음·이어 물은 답) 또는 남이 이미 신청한 답,\n401 미인증, 403 CSRF.",
+        "operationId": "submit_public_question_hoondok_me_questions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicQuestionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyPublicQuestionItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Public Question",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/questions/{question_id}": {
+      "delete": {
+        "description": "내 신청 삭제 — 바로 비노출되고 되살릴 수 없다. 남의 것·없는 것은 404.",
+        "operationId": "delete_my_public_question_hoondok_me_questions__question_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete My Public Question",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/me/reading-position/{volume}": {
       "put": {
         "description": "API-HD-025 이어 읽기 upsert. 404 원문 미허용, 403 CSRF, 401 미인증.",
@@ -12326,6 +12932,133 @@
           }
         },
         "summary": "Get Push Config",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/questions": {
+      "get": {
+        "description": "검수를 거쳐 공개된 질문 목록(최신 공개순). 인증 없음. 422 잘못된 cursor.",
+        "operationId": "list_public_questions_hoondok_questions_get",
+        "parameters": [
+          {
+            "description": "질문 문장 부분 일치(대소문자 무시)",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "질문 문장 부분 일치(대소문자 무시)",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "직전 응답의 next_cursor",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "직전 응답의 next_cursor",
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicQuestionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Public Questions",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/questions/{question_id}": {
+      "get": {
+        "description": "공개 질문 1건. published 가 아니면(검토 중·숨김·없음) 404.",
+        "operationId": "get_public_question_hoondok_questions__question_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicQuestionDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Public Question",
         "tags": [
           "hoondok"
         ]

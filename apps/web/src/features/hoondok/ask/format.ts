@@ -14,6 +14,13 @@ export function askDateLabel(createdAt: string, now: Date = new Date()): string 
   return formatKstMonthDay(created);
 }
 
+/** 상세 제목 아래 날짜 "2026.11.03" (KST). */
+export function askFullDate(createdAt: string): string {
+  const created = new Date(createdAt);
+  if (Number.isNaN(created.getTime())) return "";
+  return formatKstDate(created).iso.replaceAll("-", ".");
+}
+
 /** 목록 한 줄의 보조 문구 — 날짜 · 답변 상태. 근거 수는 답이 있을 때만 의미가 있다. */
 export function askMetaLabel(item: AskItem, now: Date = new Date()): string {
   const date = askDateLabel(item.createdAt, now);
@@ -33,7 +40,7 @@ export function askMetaLabel(item: AskItem, now: Date = new Date()): string {
  * 등급은 주지 않으므로 없는 항목을 지어내지 않는다. 관리자가 지정한 표시명이 있으면 그것을 쓰고 없으면 권으로
  * 되돌리는 것, 파일 확장자를 떼는 것 모두 시연 챗 인용 카드(`features/chat/components/assistant-message.tsx`)와 같다.
  */
-function sourceLabel(source: Source): string {
+export function sourceLabel(source: Pick<Source, "display_name" | "volume">): string {
   return stripFileExt(source.display_name?.trim() || source.volume);
 }
 

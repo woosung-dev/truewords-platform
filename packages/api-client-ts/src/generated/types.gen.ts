@@ -603,6 +603,10 @@ export type ChatResponse = {
  */
 export type ChatSourcesEvent = {
     /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
      * Closing
      */
     closing?: string | null;
@@ -2661,6 +2665,52 @@ export type MyGroupItem = {
 };
 
 /**
+ * MyPublicQuestionItem
+ *
+ * 내 공개 신청 한 줄. 상태로 검토 중·공개됨·비공개를 보인다.
+ */
+export type MyPublicQuestionItem = {
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Message Id
+     */
+    message_id: string;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Reviewed At
+     */
+    reviewed_at: string | null;
+    /**
+     * Status
+     */
+    status: 'pending' | 'published' | 'hidden';
+};
+
+/**
+ * MyPublicQuestionListResponse
+ */
+export type MyPublicQuestionListResponse = {
+    /**
+     * Items
+     */
+    items: Array<MyPublicQuestionItem>;
+};
+
+/**
  * NegativeFeedbackItem
  */
 export type NegativeFeedbackItem = {
@@ -2820,6 +2870,186 @@ export type PaginatedResponseChatbotConfigResponse = {
      * Total
      */
     total: number;
+};
+
+/**
+ * PublicQuestionAdminItem
+ *
+ * 검수 화면 한 줄 — 작성자 정보는 관리자에게도 보이지 않는다.
+ */
+export type PublicQuestionAdminItem = {
+    /**
+     * Answer Md
+     */
+    answer_md: string;
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Reviewed At
+     */
+    reviewed_at: string | null;
+    /**
+     * Sources
+     */
+    sources: Array<PublicQuestionSource>;
+    /**
+     * Status
+     */
+    status: 'pending' | 'published' | 'hidden';
+};
+
+/**
+ * PublicQuestionAdminListResponse
+ */
+export type PublicQuestionAdminListResponse = {
+    /**
+     * Items
+     */
+    items: Array<PublicQuestionAdminItem>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * PublicQuestionCreate
+ *
+ * 공개 신청 본문. 질문·답은 서버가 message_id 로 복사한다 — 본문을 받지 않는다.
+ */
+export type PublicQuestionCreate = {
+    /**
+     * Message Id
+     */
+    message_id: string;
+};
+
+/**
+ * PublicQuestionDetail
+ */
+export type PublicQuestionDetail = {
+    /**
+     * Answer Md
+     */
+    answer_md: string;
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Published At
+     */
+    published_at: string;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Sources
+     */
+    sources: Array<PublicQuestionSource>;
+};
+
+/**
+ * PublicQuestionListResponse
+ *
+ * 최신순. next_cursor 를 다음 요청의 cursor 로 보내면 이어진다(없으면 끝).
+ */
+export type PublicQuestionListResponse = {
+    /**
+     * Items
+     */
+    items: Array<PublicQuestionSummary>;
+    /**
+     * Next Cursor
+     */
+    next_cursor: string | null;
+};
+
+/**
+ * PublicQuestionReview
+ *
+ * PATCH 본문. 공개(published) 또는 숨김(hidden)만 받는다.
+ */
+export type PublicQuestionReview = {
+    /**
+     * Status
+     */
+    status: 'published' | 'hidden';
+};
+
+/**
+ * PublicQuestionSource
+ *
+ * 근거 말씀 한 줄 — answer_citations 복사본(상위 3건).
+ */
+export type PublicQuestionSource = {
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Volume
+     */
+    volume: string;
+};
+
+/**
+ * PublicQuestionSummary
+ *
+ * 공개 목록 한 줄. preview 는 답 앞부분(마크다운 기호 제거).
+ */
+export type PublicQuestionSummary = {
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Preview
+     */
+    preview: string;
+    /**
+     * Published At
+     */
+    published_at: string;
+    /**
+     * Question
+     */
+    question: string;
 };
 
 /**
@@ -6048,6 +6278,74 @@ export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutRespon
 
 export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponse = UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses[keyof UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses];
 
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Status
+         */
+        status?: 'pending' | 'published' | 'hidden' | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/admin/hoondok/questions';
+};
+
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetError = ListPublicQuestionsAdminAdminHoondokQuestionsGetErrors[keyof ListPublicQuestionsAdminAdminHoondokQuestionsGetErrors];
+
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionAdminListResponse;
+};
+
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetResponse = ListPublicQuestionsAdminAdminHoondokQuestionsGetResponses[keyof ListPublicQuestionsAdminAdminHoondokQuestionsGetResponses];
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchData = {
+    body: PublicQuestionReview;
+    path: {
+        /**
+         * Question Id
+         */
+        question_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/questions/{question_id}';
+};
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchError = ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchErrors[keyof ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchErrors];
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionAdminItem;
+};
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchResponse = ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchResponses[keyof ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchResponses];
+
 export type RunRagTraceAdminRagTracePostData = {
     body: RagTraceRequest;
     path?: never;
@@ -7584,6 +7882,77 @@ export type CreatePushSubscriptionHoondokMePushPostResponses = {
 
 export type CreatePushSubscriptionHoondokMePushPostResponse = CreatePushSubscriptionHoondokMePushPostResponses[keyof CreatePushSubscriptionHoondokMePushPostResponses];
 
+export type ListMyPublicQuestionsHoondokMeQuestionsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/questions';
+};
+
+export type ListMyPublicQuestionsHoondokMeQuestionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyPublicQuestionListResponse;
+};
+
+export type ListMyPublicQuestionsHoondokMeQuestionsGetResponse = ListMyPublicQuestionsHoondokMeQuestionsGetResponses[keyof ListMyPublicQuestionsHoondokMeQuestionsGetResponses];
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostData = {
+    body: PublicQuestionCreate;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/questions';
+};
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostError = SubmitPublicQuestionHoondokMeQuestionsPostErrors[keyof SubmitPublicQuestionHoondokMeQuestionsPostErrors];
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: MyPublicQuestionItem;
+};
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostResponse = SubmitPublicQuestionHoondokMeQuestionsPostResponses[keyof SubmitPublicQuestionHoondokMeQuestionsPostResponses];
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Question Id
+         */
+        question_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/questions/{question_id}';
+};
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteError = DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteErrors[keyof DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteErrors];
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteResponse = DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteResponses[keyof DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteResponses];
+
 export type PutReadingPositionHoondokMeReadingPositionVolumePutData = {
     body: ReadingPositionInput;
     path: {
@@ -7709,6 +8078,78 @@ export type GetPushConfigHoondokPushConfigGetResponses = {
 };
 
 export type GetPushConfigHoondokPushConfigGetResponse = GetPushConfigHoondokPushConfigGetResponses[keyof GetPushConfigHoondokPushConfigGetResponses];
+
+export type ListPublicQuestionsHoondokQuestionsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         *
+         * 질문 문장 부분 일치(대소문자 무시)
+         */
+        q?: string | null;
+        /**
+         * Cursor
+         *
+         * 직전 응답의 next_cursor
+         */
+        cursor?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/hoondok/questions';
+};
+
+export type ListPublicQuestionsHoondokQuestionsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListPublicQuestionsHoondokQuestionsGetError = ListPublicQuestionsHoondokQuestionsGetErrors[keyof ListPublicQuestionsHoondokQuestionsGetErrors];
+
+export type ListPublicQuestionsHoondokQuestionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionListResponse;
+};
+
+export type ListPublicQuestionsHoondokQuestionsGetResponse = ListPublicQuestionsHoondokQuestionsGetResponses[keyof ListPublicQuestionsHoondokQuestionsGetResponses];
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Question Id
+         */
+        question_id: string;
+    };
+    query?: never;
+    url: '/hoondok/questions/{question_id}';
+};
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetError = GetPublicQuestionHoondokQuestionsQuestionIdGetErrors[keyof GetPublicQuestionHoondokQuestionsQuestionIdGetErrors];
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionDetail;
+};
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetResponse = GetPublicQuestionHoondokQuestionsQuestionIdGetResponses[keyof GetPublicQuestionHoondokQuestionsQuestionIdGetResponses];
 
 export type SearchWordsHoondokSearchGetData = {
     body?: never;

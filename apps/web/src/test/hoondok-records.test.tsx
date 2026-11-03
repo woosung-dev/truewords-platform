@@ -486,7 +486,10 @@ describe("이 기기에만 있는 기록", () => {
     );
     expect(await screen.findByText("복사했어요")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "저장한 AI 답" }).parentElement).toHaveTextContent("1개");
-    expect(screen.getByRole("link", { name: /AI 질문 기록에서 보기/ })).toHaveAttribute("href", "/hoondok/ask/log");
+    expect(screen.getByRole("link", { name: /AI 질문 기록에서 보기/ })).toHaveAttribute(
+      "href",
+      "/hoondok/ask?tab=mine",
+    );
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
   });

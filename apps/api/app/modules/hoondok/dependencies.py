@@ -15,6 +15,8 @@ from app.modules.hoondok.library_repository import LibraryRepository
 from app.modules.hoondok.library_service import LibraryService
 from app.modules.hoondok.notifications_repository import NotificationRepository
 from app.modules.hoondok.notifications_service import NotificationService
+from app.modules.hoondok.public_questions_repository import PublicQuestionRepository
+from app.modules.hoondok.public_questions_service import PublicQuestionAdminService, PublicQuestionService
 from app.modules.hoondok.repository import DailyReadingRepository, JeongseongRepository, MissionLogRepository
 from app.modules.hoondok.service import (
     DailyReadingAdminService,
@@ -195,3 +197,21 @@ async def get_card_service(repo: CardRepository = Depends(get_card_repository)) 
 
 async def get_card_admin_service(repo: CardRepository = Depends(get_card_repository)) -> CardAdminService:
     return CardAdminService(repo)
+
+
+async def get_public_question_repository(
+    session: AsyncSession = Depends(get_async_session),
+) -> PublicQuestionRepository:
+    return PublicQuestionRepository(session)
+
+
+async def get_public_question_service(
+    repo: PublicQuestionRepository = Depends(get_public_question_repository),
+) -> PublicQuestionService:
+    return PublicQuestionService(repo)
+
+
+async def get_public_question_admin_service(
+    repo: PublicQuestionRepository = Depends(get_public_question_repository),
+) -> PublicQuestionAdminService:
+    return PublicQuestionAdminService(repo)

@@ -326,6 +326,7 @@ async def test_account_deletion_purges_notification_rows():
     """API-HD-011 계정 삭제가 두 테이블을 함께 비운다 — purger 등록 확인(실 리포·실 라우터)."""
     from app.modules.hoondok.dependencies import (
         get_card_repository,
+        get_public_question_repository,
         get_group_repository,
         get_jeongseong_repository,
         get_library_repository,
@@ -382,6 +383,7 @@ async def test_account_deletion_purges_notification_rows():
     app.dependency_overrides[get_library_repository] = lambda: LibraryRepository(session)
     app.dependency_overrides[get_group_repository] = lambda: _NoopGroups()  # 이 테스트는 알림 테이블만 본다
     app.dependency_overrides[get_card_repository] = lambda: _NoopGroups()
+    app.dependency_overrides[get_public_question_repository] = lambda: _NoopGroups()
     try:
         client = TestClient(app)
         client.cookies.set(COOKIE_NAME, IdentityService.issue_token(me))
@@ -395,6 +397,7 @@ async def test_account_deletion_purges_notification_rows():
             get_library_repository,
             get_group_repository,
             get_card_repository,
+            get_public_question_repository,
         ):
             app.dependency_overrides.pop(provider, None)
 

@@ -117,7 +117,8 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
           <Link
             className="nav__search"
             href="/hoondok/search"
-            aria-current={screen.hideSearchLink ? "page" : undefined}
+            // 앱바 아이콘을 숨기는 화면(AI 질문 등)이 모두 검색 화면은 아니다 — 현재 위치는 검색 화면에서만
+            aria-current={screen.match === "/hoondok/search" ? "page" : undefined}
           >
             <MagnifyingGlassIcon size={20} aria-hidden="true" />
             말씀 검색

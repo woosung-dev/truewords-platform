@@ -212,7 +212,10 @@ test("이 기기에만 있는 기록: 날짜 최신순 · 한 번에 복사 · �
   expect(copied).toEqual([
     "2026년 9월 28일\n아이에게 먼저 인사하기\n\n2026년 9월 24일\n끝까지 듣기\n\n2026년 9월 21일\n새벽에 가족 이름 부르며 기도하기",
   ]);
-  await expect(page.getByRole("link", { name: /AI 질문 기록에서 보기/ })).toHaveAttribute("href", "/hoondok/ask/log");
+  await expect(page.getByRole("link", { name: /AI 질문 기록에서 보기/ })).toHaveAttribute(
+    "href",
+    "/hoondok/ask?tab=mine",
+  );
   await page.reload();
   await expect(page.locator(".rc-lines time")).toHaveCount(3);
   expect(backendCalls).toEqual([]);

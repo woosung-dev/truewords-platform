@@ -7,8 +7,8 @@
 - 훈독 CSS: 토큰(hex)은 `src/app/hoondok.css` 첫 블록에만 두고 나머지 CSS는 `[data-app="hoondok"]` 스코프와 `var()`만 쓴다(`pnpm hoondok:check`가 검사). 훈독 때문에 `globals.css`·`:root`·루트 layout을 바꾸지 않는다.
 - 새 훈독 화면은 `src/features/hoondok/screens.ts` 레지스트리에 한 줄 추가한다. `tabs.ts`·`app-shell.tsx`는 건드리지 않는다. 공용 컴포넌트는 배럴 `src/components/hoondok/index.ts`로만 가져온다.
 - 서비스워커(`public/hoondok/sw.js`)는 scope `/hoondok`로 hoondok layout에서만 등록한다. 시연 챗은 제어하지 않고, `/api/backend/*`·인증·온보딩 응답을 캐시하지 않는다.
-- 개인정보: 오류 수집은 안전한 kind와 정규화 경로만 보내고 질문·검색어·예외 원문·토큰을 담지 않는다. 함께 읽기 숫자는 서버 값만 쓰며 +1 보정이나 미완료자 표시를 하지 않는다. AI 질문의 질문·답은 서버에 저장하지 않는다.
-- AI 질문은 새 엔드포인트 없이 `POST /chat/stream`을 재사용하고, `sources`가 0건이면 답을 보이지 않는다.
+- 개인정보: 오류 수집은 안전한 kind와 정규화 경로만 보내고 질문·검색어·예외 원문·토큰을 담지 않는다. 함께 읽기 숫자는 서버 값만 쓰며 +1 보정이나 미완료자 표시를 하지 않는다. AI 질문의 질문·답은 기기에만 둔다. 사용자가 공개를 고른 세션 첫 답만 서버가 대화 기록에서 복사해 협회 검수 뒤 익명으로 공개하고, 본인이 내리면 지운다.
+- AI 질문의 답은 `POST /chat/stream`으로 받고(공개 신청·열람만 `/hoondok/*questions`), `sources`가 0건이면 답을 보이지 않는다.
 - 알림 권한 요청은 클릭 핸들러 안에서 동기적으로 시작한다(iOS 제스처 요건).
 - 개발 서버는 `pnpm --filter @truewords/web dev`로만 띄운다. 이 스크립트의 `NEXT_TRACE_SPAN_THRESHOLD_MS`가 요청 쿼리를 `.next/dev/trace`에 남기지 않게 막는다. 공식 OFF 옵션이 아니며 직접 `next dev`는 이 보호를 우회한다.
 - Next를 올릴 때는 검색 sentinel을 보내 stdout·stderr·디스크 trace에 쿼리가 남지 않는지 다시 확인한다. 과거 trace는 자동 삭제하지 않는다.

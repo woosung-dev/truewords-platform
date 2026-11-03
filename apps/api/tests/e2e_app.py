@@ -57,7 +57,11 @@ class FixtureChatService(ChatService):
                     uuid.uuid5(uuid.NAMESPACE_URL, "hoondok-e2e:말씀선집 001권:0")
                 )
         answer = "".join(event["data"]["text"] for event in events if event["event"] == "chunk")
-        message = await self._persist_assistant_message_only(context.session.id, answer)
+        mode = next(event["data"]["answer_mode"] for event in events if event["event"] == "sources")
+        # 실제 경로처럼 적용 모드를 남겨야 훈독 공개 신청(위기 답 차단 판정)을 E2E 에서 지날 수 있다.
+        message = await self._persist_assistant_message_only(
+            context.session.id, answer, resolved_answer_mode=mode, persona_overridden=False
+        )
         for index, event in enumerate(events):
             if index:
                 await asyncio.sleep(0.25)

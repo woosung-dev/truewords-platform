@@ -105,7 +105,7 @@ export function ReadingEnd({
         ) : (
           <span />
         )}
-        <Link href="/hoondok/ask">
+        <Link href={`/hoondok/ask/new?q=${encodeURIComponent(`${workTitle} 말씀은 어떤 뜻인가요?`)}`}>
           이 말씀에 질문하기
           <ChevronRight size={16} aria-hidden="true" />
         </Link>

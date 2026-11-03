@@ -13,7 +13,7 @@ import { cardDayLabel, cardLongDate } from "../../cards/format";
 import { type DeviceNote, EMPTY_NOTES, readAllNotes, subscribeNote } from "../../note/storage";
 import { DEVICE_RECORDS_PATH } from "../records";
 
-const ASK_LOG_HREF = "/hoondok/ask/log";
+const ASK_LOG_HREF = "/hoondok/ask?tab=mine";
 
 function noopSubscribe(): () => void {
   return () => {};

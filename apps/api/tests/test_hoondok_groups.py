@@ -40,6 +40,7 @@ from app.modules.hoondok.models import (
     SharedJeongseong,
     ShareReaction,
     CardReceipt,
+    PublicQuestion,
     WordCard,
 )
 from app.modules.identity.dependencies import COOKIE_NAME
@@ -101,6 +102,7 @@ async def ctx():
         PassageHighlight,
         WordCard,
         CardReceipt,
+        PublicQuestion,  # 계정 삭제 purger (DEC-PWA-025)
         *GROUP_TABLES,
     ]
     async with engine.begin() as conn:

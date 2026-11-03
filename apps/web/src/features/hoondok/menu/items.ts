@@ -65,8 +65,8 @@ const GROUP_DEFS: readonly { id: string; title: string; items: readonly MenuItem
     id: "ask",
     title: "AI 질문",
     items: [
-      { id: "ask", label: "질문하기", href: "/hoondok/ask", icon: ChatCircleDotsIcon },
-      { id: "ask-log", label: "질문 기록", href: "/hoondok/ask/log", icon: ScrollIcon },
+      { id: "ask", label: "질문하기", href: "/hoondok/ask/new", icon: ChatCircleDotsIcon },
+      { id: "ask-log", label: "질문 기록", href: "/hoondok/ask?tab=mine", icon: ScrollIcon },
     ],
   },
   {

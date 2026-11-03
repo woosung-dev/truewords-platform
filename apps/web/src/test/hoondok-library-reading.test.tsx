@@ -762,6 +762,10 @@ describe("AI 설명 탭", () => {
       answer: "쉬운 설명",
       sources: [{ text: "근거" }] as never,
       disclaimer: "",
+      sessionId: "s1",
+      messageId: "m1",
+      resolvedMode: "standard",
+      followups: [],
     });
     await showWords();
     fireEvent.click(await screen.findByRole("button", { name: "단락 2 표시하기" }));
@@ -777,6 +781,10 @@ describe("AI 설명 탭", () => {
       answer: "### 한 줄 요약\n변치 않는 **뼈사랑**입니다.",
       sources: [{ text: "근거" }] as never,
       disclaimer: "",
+      sessionId: "s1",
+      messageId: "m1",
+      resolvedMode: "standard",
+      followups: [],
     });
     await showWords();
     fireEvent.click(await screen.findByRole("button", { name: "단락 2 표시하기" }));
@@ -788,7 +796,15 @@ describe("AI 설명 탭", () => {
     expect(screen.queryByText(/###|\*\*/)).toBeNull();
   });
   it("근거가 0건이면 답을 보이지 않는다", async () => {
-    vi.mocked(requestAsk).mockResolvedValue({ answer: "보이면 안 되는 답", sources: [], disclaimer: "" });
+    vi.mocked(requestAsk).mockResolvedValue({
+      answer: "보이면 안 되는 답",
+      sources: [],
+      disclaimer: "",
+      sessionId: "s1",
+      messageId: "m1",
+      resolvedMode: "standard",
+      followups: [],
+    });
     await showWords();
     fireEvent.click(await screen.findByRole("button", { name: "단락 1 표시하기" }));
     fireEvent.click(screen.getByRole("button", { name: "닫기" }));
