@@ -75,6 +75,19 @@ it("그림은 개념/장면 토글로 바꾸고 대체 텍스트를 지킨다", 
   expect(screen.getByText("장면 캡션")).toBeInTheDocument();
 });
 
+it("근거에 단락이 연결돼 있으면 그 단락으로, 없으면 장 첫머리로 간다", async () => {
+  vi.mocked(summariesAPI.detail).mockResolvedValue({
+    ...detail,
+    evidence: [
+      { claim: "단락 연결", from: 5, to: 7, chunk_index: 13, chunk_id: "c-13" },
+      { claim: "단락 없음", from: 9, to: 9 },
+    ],
+  });
+  wrap(<SummaryDetailScreen id="one" />);
+  expect(await screen.findByRole("link", { name: "말씀 5–7 원문에서 확인하기" })).toHaveAttribute("href", "/hoondok/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?chunk_id=c-13");
+  expect(screen.getByRole("link", { name: "말씀 9 원문에서 확인하기" })).toHaveAttribute("href", "/hoondok/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?section=2");
+});
+
 it("장 위치가 없으면 원문 첫 화면으로 폴백한다", async () => {
   vi.mocked(summariesAPI.detail).mockResolvedValue({ ...detail, section_position: null });
   wrap(<SummaryDetailScreen id="one" />);

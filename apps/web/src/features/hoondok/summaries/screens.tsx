@@ -123,7 +123,7 @@ export function SummaryDetailScreen({ id }: { id: string }) {
         {/* 5. 차근히 이해하기 */}
         <section id="sum-body" aria-labelledby="sum-body-h"><h3 id="sum-body-h" className="sum-h">차근히 이해하기</h3><SummaryBody body={item.body} assets={item.assets ?? []} /></section>
         {/* 6. 근거 확인하기 */}
-        {item.evidence.length > 0 && <section id="sum-evidence" aria-labelledby="sum-evidence-h"><h3 id="sum-evidence-h" className="sum-h">근거 확인하기</h3><p className="sum-h-note">요약의 주장마다 원문 말씀 번호를 붙였어요.</p><ul className="sum-evidence">{item.evidence.map((e, i) => <li key={i}><p>{e.claim}</p><Link href={toSource} aria-label={`말씀 ${range(e.from, e.to)} 원문에서 확인하기`}>말씀 {range(e.from, e.to)} 원문 보기 <ArrowRight size={14} aria-hidden="true" /></Link></li>)}</ul></section>}
+        {item.evidence.length > 0 && <section id="sum-evidence" aria-labelledby="sum-evidence-h"><h3 id="sum-evidence-h" className="sum-h">근거 확인하기</h3><p className="sum-h-note">요약의 주장마다 원문 말씀 번호를 붙였어요.</p><ul className="sum-evidence">{item.evidence.map((e, i) => <li key={i}><p>{e.claim}</p><Link href={e.chunk_id ? wordsHref(item.volume, e.chunk_id) : toSource} aria-label={`말씀 ${range(e.from, e.to)} 원문에서 확인하기`}>말씀 {range(e.from, e.to)} 원문 보기 <ArrowRight size={14} aria-hidden="true" /></Link></li>)}</ul></section>}
         {/* 7. 되새길 물음 */}
         {item.reflection_questions.length > 0 && <section id="sum-questions" className="sum-reflection" aria-labelledby="sum-questions-h"><h3 id="sum-questions-h">되새길 물음</h3><ul>{item.reflection_questions.map((q, i) => <li key={i}>{q}</li>)}</ul></section>}
         {/* 8. 원문과 함께 읽기 */}

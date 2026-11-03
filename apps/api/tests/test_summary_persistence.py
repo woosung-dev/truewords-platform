@@ -33,7 +33,6 @@ from app.modules.hoondok.summary_router import service
 from app.modules.hoondok.summary_service import SummaryService
 from app.modules.qdrant import QdrantPoint
 
-MANIFEST = Path(__file__).parents[1] / "content/ai-summaries/manifest.json"
 PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
 )
@@ -174,7 +173,13 @@ async def test_persistent_admin_to_public_lifecycle(database, tmp_path):
                 assert "비공개-모델" not in published.text
                 assert "관리자 전용" not in published.text
                 assert published.json()["evidence"] == [
-                    {"claim": "근거 문장", "from": 1, "to": 2}
+                    {
+                        "claim": "근거 문장",
+                        "from": 1,
+                        "to": 2,
+                        "chunk_index": None,
+                        "chunk_id": None,
+                    }
                 ]
                 listed = await client.get("/hoondok/ai-summaries")
                 assert "관리자 전용" not in listed.text
@@ -286,10 +291,6 @@ def fixture_manifest(tmp_path):
     path = folder / "manifest.json"
     path.write_text(json.dumps(entries, ensure_ascii=False))
     return path
-
-
-def test_repository_manifest_is_valid_and_empty_until_new_content():
-    assert json.loads(MANIFEST.read_text()) == []
 
 
 def load_importer():

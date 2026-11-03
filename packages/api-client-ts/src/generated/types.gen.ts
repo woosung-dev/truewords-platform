@@ -4298,6 +4298,14 @@ export type SummaryDetail = {
  */
 export type SummaryEvidence = {
     /**
+     * Chunk Id
+     */
+    chunk_id?: string | null;
+    /**
+     * Chunk Index
+     */
+    chunk_index?: number | null;
+    /**
      * Claim
      */
     claim: string;

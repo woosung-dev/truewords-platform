@@ -296,6 +296,10 @@ class SummaryEvidence(BaseModel):
     claim: str = Field(min_length=1, max_length=500)
     from_: int = Field(alias="from", ge=1)
     to: int = Field(ge=1)
+    # 말씀 from 이 시작하는 원문 뷰 단락. 없으면 원문 뷰는 장 첫머리로 간다.
+    # chunk_id 는 적재 규칙 uuid5("{volume}:{chunk_index}") 값이라 같은 적재본이면 환경과 무관하다.
+    chunk_index: int | None = Field(default=None, ge=0)
+    chunk_id: str | None = Field(default=None, max_length=128)
 
     @model_validator(mode="after")
     def check_range(self):

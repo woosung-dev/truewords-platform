@@ -473,3 +473,28 @@ def test_toc_file_has_structure_only():
         "slug", "pyeon_no", "pyeon_title", "jang_no", "jang_title",
         "jeol_no", "jeol_title", "paragraph_count",
     }
+
+
+def test_bundled_manifest_matches_contract_without_source_text():
+    """가져올 천성경 요약은 계약을 통과하고, 원문 전문 없이 근거 단락 링크만 싣는다."""
+    import json
+    from app.modules.hoondok.summary_service import TOC_PATH
+
+    folder = TOC_PATH.parent
+    entries = json.loads((folder / "manifest.json").read_text())
+    slugs = {row["slug"] for row in json.loads(TOC_PATH.read_text())}
+    for entry in entries:
+        assert entry["slug"] in slugs
+        assert not entry["source"].get("text")
+        for image in entry["images"]:
+            assert (folder / image["file"]).is_file()
+        payload = {k: v for k, v in entry.items() if k not in {"work_title", "images"}}
+        data = SummaryInput.model_validate(
+            {**payload, "content_right_id": uuid.uuid4()}
+        )
+        for evidence in data.evidence:
+            # 링크가 있으면 적재 규칙 uuid5("{volume}:{chunk_index}") 와 맞아야 한다.
+            if evidence.chunk_index is not None:
+                assert evidence.chunk_id == str(
+                    uuid.uuid5(uuid.NAMESPACE_URL, f"천성경.pdf:{evidence.chunk_index}")
+                )

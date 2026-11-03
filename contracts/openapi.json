@@ -7133,6 +7133,30 @@
         "additionalProperties": false,
         "description": "요약 문장의 근거 — 절 안 말씀 번호 범위.",
         "properties": {
+          "chunk_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Id"
+          },
+          "chunk_index": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Index"
+          },
           "claim": {
             "maxLength": 500,
             "minLength": 1,
