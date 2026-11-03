@@ -3,19 +3,6 @@
 [data-app="hoondok"] .sum-header p { color: var(--ink-3); line-height: 1.8; font-size: 13px; }
 [data-app="hoondok"] .sum-header h2 { font-size: 28px; font-weight: 650; line-height: 1.5; letter-spacing: -.04em; margin: 12px 0; word-break: keep-all; }
 [data-app="hoondok"] .sum-header a, [data-app="hoondok"] .sum-next a { color: var(--accent); }
-[data-app="hoondok"] .sum-grid { display: grid; gap: 32px; align-items: start; }
-[data-app="hoondok"] .sum-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: var(--r-xs); background: var(--surface-2); }
-[data-app="hoondok"] .sum-track::-webkit-scrollbar { display: none; }
-[data-app="hoondok"] .sum-slide { margin: 0; flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
-[data-app="hoondok"] .sum-slide img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; }
-[data-app="hoondok"] .sum-controls { display: flex; align-items: center; gap: 2px; padding-top: 12px; color: var(--ink-3); font-size: 12px; }
-[data-app="hoondok"] .sum-controls button, [data-app="hoondok"] .sum-close { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; background: none; color: var(--ink); cursor: pointer; }
-[data-app="hoondok"] .sum-controls button:disabled { opacity: .3; cursor: default; }
-[data-app="hoondok"] .sum-dots { display: flex; margin-right: auto; }
-[data-app="hoondok"] .sum-dots button { min-width: 24px; }
-[data-app="hoondok"] .sum-dots span { width: 6px; height: 6px; background: var(--line); border-radius: 50%; }
-[data-app="hoondok"] .sum-dots [aria-current] span { background: var(--accent); }
-[data-app="hoondok"] .sum-caption { font-size: 13px; line-height: 1.8; color: var(--ink-3); margin: 6px 0 0; }
 [data-app="hoondok"] .sum-reading { min-width: 0; font-size: 17px; line-height: 1.95; word-break: keep-all; overflow-wrap: anywhere; }
 [data-app="hoondok"] .sum-lead { font-size: 21px; font-weight: 550; color: var(--accent-strong); margin: 0 0 24px; }
 [data-app="hoondok"] .sum-points { padding-left: 20px; margin: 0 0 32px; }
@@ -28,29 +15,21 @@
 [data-app="hoondok"] .sum-body blockquote { padding-left: 20px; border-left: 3px solid var(--line); color: var(--ink-2); }
 [data-app="hoondok"] .sum-reflection { margin: 32px 0; padding: 24px; background: var(--surface-2); border-radius: var(--r-xs); }
 [data-app="hoondok"] .sum-reflection h3 { font-size: 15px; margin: 0 0 12px; }
-[data-app="hoondok"] .sum-reflection p { margin: 0; }
+[data-app="hoondok"] .sum-reflection ul { margin: 0; padding-left: 20px; }
 [data-app="hoondok"] .sum-source { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 18px 0; }
-[data-app="hoondok"] .sum-source summary { cursor: pointer; font-size: 15px; font-weight: 600; }
-[data-app="hoondok"] .sum-source pre { white-space: pre-wrap; font-family: inherit; line-height: 2; font-size: 16px; }
+[data-app="hoondok"] .sum-source h3 { font-size: 15px; font-weight: 600; margin: 0; }
 [data-app="hoondok"] .sum-notice { font-size: 12px; line-height: 1.8; color: var(--ink-3); margin-top: 20px; }
 [data-app="hoondok"] .sum-next { border-top: 1px solid var(--line); padding-top: 24px; margin-top: 48px; display: flex; justify-content: space-between; gap: 24px; font-size: 14px; }
 [data-app="hoondok"] .sum-book { margin-bottom: 42px; }
 [data-app="hoondok"] .sum-book h3 { font-size: 20px; margin: 0 0 16px; }
 [data-app="hoondok"] .sum-list { list-style: none; padding: 0; margin: 0; }
 [data-app="hoondok"] .sum-list li { border-top: 1px solid var(--line); }
-[data-app="hoondok"] .sum-list a, [data-app="hoondok"] .sum-list .sum-upcoming { display: flex; padding: 22px 0; gap: 18px; align-items: center; text-decoration: none; }
+[data-app="hoondok"] .sum-list a { display: flex; padding: 22px 0; gap: 18px; align-items: center; text-decoration: none; }
 [data-app="hoondok"] .sum-list img { width: 90px; height: 72px; object-fit: cover; border-radius: var(--r-xs); }
 [data-app="hoondok"] .sum-list strong { display: block; font-size: 17px; line-height: 1.7; }
 [data-app="hoondok"] .sum-list small { color: var(--ink-3); line-height: 1.8; }
-[data-app="hoondok"] .sum-upcoming { color: var(--ink-3); }
-[data-app="hoondok"] .sum-dialog { background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm); width: min(96vw, 1100px); max-height: 94dvh; padding: 16px; }
-[data-app="hoondok"] .sum-dialog::backdrop { background: var(--scrim); }
-[data-app="hoondok"] .sum-dialog img { max-height: 76dvh; width: 100%; object-fit: contain; }
-[data-app="hoondok"] .sum-close { margin-left: auto; }
 @media (min-width: 1024px) {
   [data-app="hoondok"] .sum-page { padding-top: 40px; }
-  [data-app="hoondok"] .sum-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 48px; }
-  [data-app="hoondok"] .sum-carousel { position: sticky; top: 100px; }
 }
 
 [data-app="hoondok"] .sum-entry { display: flex; align-items: center; gap: 14px; padding: 20px; text-decoration: none; }
@@ -68,3 +47,25 @@
 [data-app="hoondok"] .sum-table table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 14px; }
 [data-app="hoondok"] .sum-table td, [data-app="hoondok"] .sum-table th { border: 1px solid var(--line); padding: 11px 12px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
 [data-app="hoondok"] .sum-table th { background: var(--surface-2); font-weight: 650; }
+
+/* AI 요약 상세 블록 — 구조·접근성 기본만. 디자인 다듬기는 다음 단계 */
+[data-app="hoondok"] .sum-page.sum-reading { max-width: 720px; }
+[data-app="hoondok"] .sum-crumb { display: flex; flex-wrap: wrap; gap: 4px 8px; list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--ink-3); }
+[data-app="hoondok"] .sum-crumb li + li::before { content: "›"; margin-right: 8px; }
+[data-app="hoondok"] .sum-crumb a { display: inline-flex; align-items: center; min-height: 44px; }
+[data-app="hoondok"] .sum-meta { margin: 0; }
+[data-app="hoondok"] .sum-h { font-size: 17px; font-weight: 650; margin: 32px 0 12px; }
+[data-app="hoondok"] .sum-figures { margin: 8px 0 32px; }
+[data-app="hoondok"] .sum-figure-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+[data-app="hoondok"] .sum-figure-toggle button { min-height: 44px; min-width: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--r-xs); background: none; color: var(--ink); cursor: pointer; }
+[data-app="hoondok"] .sum-figure-toggle button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-strong); font-weight: 600; }
+[data-app="hoondok"] .sum-figure { margin: 0; }
+[data-app="hoondok"] .sum-figure img { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: contain; border-radius: var(--r-xs); background: var(--surface-2); }
+[data-app="hoondok"] .sum-figure figcaption { margin-top: 8px; font-size: 13px; line-height: 1.8; color: var(--ink-3); }
+[data-app="hoondok"] .sum-evidence { list-style: none; padding: 0; margin: 0; }
+[data-app="hoondok"] .sum-evidence li { border-top: 1px solid var(--line); padding: 12px 0; }
+[data-app="hoondok"] .sum-evidence p { margin: 0 0 4px; }
+[data-app="hoondok"] .sum-evidence a { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--accent); font-size: 14px; }
+[data-app="hoondok"] .sum-marks { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+[data-app="hoondok"] .sum-mark { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-xs); color: var(--ink); text-decoration: none; font-size: 14px; }
+[data-app="hoondok"] .toc__ai { margin-left: 6px; font-size: 11px; color: var(--accent); }

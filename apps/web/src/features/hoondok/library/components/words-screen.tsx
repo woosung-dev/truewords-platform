@@ -65,6 +65,7 @@ import { ReaderToast, useReaderToast } from "./reader-toast";
 import { READER_TOOLS, type ReaderAction } from "./reader-tools";
 import { ReadingEnd } from "./reading-end";
 import { tocLabel, WordsToc } from "./words-toc";
+import { SummaryMarks, usePublishedSummaries } from "../../summaries/screens";
 
 const SEGMENTS = [
   { id: "text", label: "본문" },
@@ -254,6 +255,7 @@ export function WordsScreen({
   const chromeRef = useRef<HTMLDivElement>(null);
   const { user } = useCurrentUser();
   const isLoggedIn = Boolean(user);
+  const summaries = usePublishedSummaries(volume);
 
   const wordsQuery: WordsQuery = { chunkId, section };
   const query = useQuery({
@@ -379,6 +381,10 @@ export function WordsScreen({
   }
 
   const tocSections = sections.data?.sections ?? [];
+  // 공개된 절 요약이 있는 장 — 목차에 "AI 요약" 표지를 붙인다
+  const summaryPositions = new Set(
+    (summaries.data ?? []).flatMap((item) => (item.section_position == null ? [] : [item.section_position])),
+  );
   const currentSection = doc.section ?? null;
   const sectionDetail = currentSection
     ? (tocSections.find((item) => item.position === currentSection.position) ?? null)
@@ -518,13 +524,18 @@ export function WordsScreen({
           workTitle={doc.work_title}
           sections={tocSections}
           currentPosition={currentSection?.position ?? null}
+          summaryPositions={summaryPositions}
           page={doc.page}
           totalPages={doc.total_pages}
         />
       </aside>
       <div className="words__main">
         {/* 저작물 제목은 앱바 h1 이 이미 보여준다(screens.ts titleSource: "work") */}
-        <Link className="btn btn-line" href={`/hoondok/summaries?volume=${encodeURIComponent(volume)}`}>AI 요약 살펴보기</Link>
+        <SummaryMarks
+          items={(summaries.data ?? []).filter(
+            (item) => currentSection != null && item.section_position === currentSection.position,
+          )}
+        />
         <div className="masthead">
           {currentSection && <span className="masthead__nm">{currentSection.title}</span>}
           <span className="masthead__dt">
@@ -684,6 +695,7 @@ export function WordsScreen({
               workTitle={doc.work_title}
               sections={tocSections}
               currentPosition={currentSection?.position ?? null}
+              summaryPositions={summaryPositions}
               page={doc.page}
               totalPages={doc.total_pages}
               onNavigate={() => setSheet(null)}
