@@ -68,7 +68,7 @@ export const libraryAPI = {
 
 /** searchQuery 는 원문 뷰가 검색어에 밑줄을 긋는 데만 쓴다 — 원문 API 로는 보내지 않는다. */
 export function wordsHref(volume: string, chunkId?: string | null, searchQuery?: string): string {
-  const base = `/hoondok/words/${encodeURIComponent(volume)}`;
+  const base = `/words/${encodeURIComponent(volume)}`;
   if (!chunkId) return base;
   const q = searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : "";
   return `${base}?chunk_id=${encodeURIComponent(chunkId)}${q}`;
@@ -80,7 +80,7 @@ export function wordsSectionHref(volume: string, position: number): string {
   return `${wordsHref(volume)}?section=${position}`;
 }
 export function seriesHref(series: string): string {
-  return `/hoondok/library/${encodeURIComponent(series)}`;
+  return `/library/${encodeURIComponent(series)}`;
 }
 /** 청크 번호가 들어 있는 페이지. 서버 이어 읽기 값(chunk_index)을 원문 링크로 바꾼다. */
 export function pageOfChunkIndex(chunkIndex: number): number {

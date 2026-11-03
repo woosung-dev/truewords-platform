@@ -14,7 +14,7 @@ import { START_PATH } from "../start";
 import { hasAnswers } from "../storage";
 import { usePersonalAnswers, usePersonalCard } from "../use-personal";
 
-export const INTERESTS_PATH = "/hoondok/garden/interests";
+export const INTERESTS_PATH = "/garden/interests";
 
 function ReasonLine({
   text,

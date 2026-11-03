@@ -1,6 +1,6 @@
 "use client";
 
-// SCR-PWA-023 /hoondok/bookmark — 받는 순간 → 읽기 (PLAN-HD-012).
+// SCR-PWA-023 /bookmark — 받는 순간 → 읽기 (PLAN-HD-012).
 // 오늘 처음이면 책이 벌어지고 책갈피가 올라와 카드로 펼쳐진다(약 1.6초, 1회). 이미 받은 날은 모션 없이 바로 읽기.
 // 받기 기록: 비로그인은 이 기기(localStorage KST 날짜 키), 로그인은 receive(049) — use-cards.ts.
 // 버튼: 책에 다시 꽂기(주, 역방향 모션 뒤 서고 원문) · 나의 책갈피 · 건네기(시트).
@@ -178,7 +178,7 @@ export function BookmarkScreen({ card, today, from }: { card: CardPublic; today:
           <small>앞뒤 문맥을 원문에서 읽어요</small>
         </button>
         <div className="bmk-row2">
-          <Link className="btn btn-line" href="/hoondok/bookmarks">
+          <Link className="btn btn-line" href="/bookmarks">
             나의 책갈피
           </Link>
           <button className="btn btn-line" type="button" onClick={() => setIsSheetOpen(true)}>

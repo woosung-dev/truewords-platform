@@ -31,7 +31,7 @@ export function AskQuotaNote({ remaining, className = "" }: { remaining: number 
   );
 }
 
-/** 로그인 안내 빈 상태. returnTo 는 로그인 뒤 돌아올 /hoondok 아래 주소다. */
+/** 로그인 안내 빈 상태. returnTo 는 로그인 뒤 돌아올 앱 안 주소다. */
 export function AskLoginGate({
   title,
   body,

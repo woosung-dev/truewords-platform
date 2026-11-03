@@ -370,7 +370,7 @@ export function WordsScreen({
               다시 시도
             </button>
           )}
-          <Link className="btn btn-line" href="/hoondok/library">
+          <Link className="btn btn-line" href="/library">
             서고로 돌아가기
           </Link>
         </div>

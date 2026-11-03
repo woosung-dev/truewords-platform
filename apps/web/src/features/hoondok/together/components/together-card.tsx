@@ -83,7 +83,7 @@ export function GroupShareEntry({ isCounted }: { isCounted: boolean }) {
   if (!first) return null;
 
   return (
-    <Link className="card together tg-gc tg-share-go" href={`/hoondok/groups/${encodeURIComponent(first.id)}/share`}>
+    <Link className="card together tg-gc tg-share-go" href={`/groups/${encodeURIComponent(first.id)}/share`}>
       <span className="tg-ic" aria-hidden="true">
         <ChatCircleDotsIcon size={20} />
       </span>

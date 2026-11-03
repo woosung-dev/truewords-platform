@@ -13,7 +13,7 @@ import { formatKstDate, type TodayResponse } from "@/features/hoondok/today";
 import { useKstDate } from "@/features/hoondok/use-kst-date";
 import { CURRENT_USER_KEY } from "@/features/identity/use-current-user";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/hoondok", useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/", useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/features/hoondok/jeongseong-api", () => ({ jeongseongAPI: { today: vi.fn() } }));
 vi.mock("@/features/hoondok/missions-api", () => ({ missionsAPI: { summary: vi.fn(), complete: vi.fn() } }));
 // 홈 이어 읽기 카드(A1)는 기록이 없으면 서고 안내 그대로다 — 이 파일은 오늘 말씀만 본다
@@ -101,7 +101,7 @@ describe("홈·읽기 공통 오늘 말씀", () => {
     expect(await screen.findByRole("heading", { name: "오늘 정성 말씀" })).toBeInTheDocument();
     expect(screen.getAllByText("오늘 정성 말씀")).toHaveLength(2);
     expect(jeongseongAPI.today).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("link", { name: /말씀 읽기/ })).toHaveAttribute("href", "/hoondok/library");
+    expect(screen.getByRole("link", { name: /말씀 읽기/ })).toHaveAttribute("href", "/library");
     expect(screen.getByRole("button", { name: /말씀 읽기.*완료/ })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: /훈독하기.*완료/ }));
     await waitFor(() => expect(missionsAPI.complete).toHaveBeenCalledWith("read"));

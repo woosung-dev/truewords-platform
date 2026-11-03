@@ -134,9 +134,7 @@ describe("건네기 공유 폴백 (파일 → 링크 → 클립보드 → 직접
   });
 
   it("원문 연결 주소는 인용 단락 + card 파라미터", () => {
-    expect(cardWordsHref(CARD)).toBe(
-      `/hoondok/words/${encodeURIComponent("천성경 제1편")}?chunk_id=chunk-42&card=${CARD.id}`,
-    );
+    expect(cardWordsHref(CARD)).toBe(`/words/${encodeURIComponent("천성경 제1편")}?chunk_id=chunk-42&card=${CARD.id}`);
   });
 });
 
@@ -232,7 +230,7 @@ function wrap(children: ReactNode) {
 describe("받기·읽기 화면 (SCR-PWA-023)", () => {
   beforeEach(() => {
     push.mockReset();
-    vi.doMock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/hoondok/bookmark" }));
+    vi.doMock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/bookmark" }));
     // 비로그인
     fetchMock.mockImplementation(async () => json({ detail: "unauthorized" }, 401));
     vi.stubGlobal("fetch", fetchMock);
@@ -245,7 +243,7 @@ describe("받기·읽기 화면 (SCR-PWA-023)", () => {
     await waitFor(() => expect(reinsert).toBeEnabled());
     expect(readLocalReceipt(TODAY)).toEqual({ date: TODAY, cardId: CARD.id });
     expect(screen.getByText(CARD.text)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "나의 책갈피" })).toHaveAttribute("href", "/hoondok/bookmarks");
+    expect(screen.getByRole("link", { name: "나의 책갈피" })).toHaveAttribute("href", "/bookmarks");
     fireEvent.click(reinsert);
     await waitFor(() => expect(push).toHaveBeenCalledWith(cardWordsHref(CARD)));
   });
@@ -262,7 +260,7 @@ describe("받기·읽기 화면 (SCR-PWA-023)", () => {
     const { BookmarkHomeCard } = await import("@/features/hoondok/cards/components/home-card");
     const { unmount } = render(wrap(<BookmarkHomeCard card={CARD} dateLabel="9월 28일 월요일" />));
     expect(screen.getByText("천성경 제1편")).toBeInTheDocument();
-    expect(await screen.findByRole("link", { name: "책갈피 꺼내기" })).toHaveAttribute("href", "/hoondok/bookmark");
+    expect(await screen.findByRole("link", { name: "책갈피 꺼내기" })).toHaveAttribute("href", "/bookmark");
     unmount();
     writeLocalReceipt({ date: TODAY, cardId: CARD.id });
     render(wrap(<BookmarkHomeCard card={CARD} dateLabel="9월 28일 월요일" />));
@@ -280,19 +278,19 @@ describe("플래그 · 화면 레지스트리", () => {
       throw new Error("NEXT_REDIRECT");
     });
     vi.doMock("next/navigation", () => ({ notFound, redirect, useRouter: () => ({ push }) }));
-    const bookmarks = await import("../app/(hoondok)/hoondok/bookmarks/page");
+    const bookmarks = await import("../app/(hoondok)/bookmarks/page");
     await expect(bookmarks.default({ searchParams: Promise.resolve({}) })).rejects.toThrow("NEXT_NOT_FOUND");
-    const recipient = await import("../app/(hoondok)/hoondok/c/[id]/page");
+    const recipient = await import("../app/(hoondok)/c/[id]/page");
     await expect(recipient.default({ params: Promise.resolve({ id: CARD.id }) })).rejects.toThrow("NEXT_NOT_FOUND");
-    const bookmark = await import("../app/(hoondok)/hoondok/bookmark/page");
+    const bookmark = await import("../app/(hoondok)/bookmark/page");
     await expect(bookmark.default({ searchParams: Promise.resolve({}) })).rejects.toThrow("NEXT_REDIRECT");
-    expect(redirect).toHaveBeenCalledWith("/hoondok");
+    expect(redirect).toHaveBeenCalledWith("/");
   });
 
   it("OFF 면 이미지 라우트도 404", async () => {
     vi.stubEnv("NEXT_PUBLIC_HOONDOK_ENABLED", "1");
     vi.stubEnv("NEXT_PUBLIC_HOONDOK_CARDS", "");
-    const { GET } = await import("../app/(hoondok)/hoondok/c/[id]/image/route");
+    const { GET } = await import("../app/(hoondok)/c/[id]/image/route");
     const response = await GET(new Request("http://x/hoondok/c/1/image?f=link"), {
       params: Promise.resolve({ id: "1" }),
     });
@@ -301,17 +299,17 @@ describe("플래그 · 화면 레지스트리", () => {
 
   it("나의 책갈피는 나의 정원 탭 · 받은 사람 화면은 뒤로 링크 없음", async () => {
     const { screenFor } = await import("@/features/hoondok/screens");
-    expect(screenFor("/hoondok/bookmarks")).toMatchObject({
+    expect(screenFor("/bookmarks")).toMatchObject({
       title: "나의 책갈피",
       tabId: "garden",
-      backHref: "/hoondok/garden",
+      backHref: "/garden",
     });
-    expect(screenFor("/hoondok/bookmark")).toMatchObject({
+    expect(screenFor("/bookmark")).toMatchObject({
       title: "오늘의 책갈피",
       tabId: "today",
-      backHref: "/hoondok",
+      backHref: "/",
     });
-    const recipient = screenFor(`/hoondok/c/${CARD.id}`);
+    const recipient = screenFor(`/c/${CARD.id}`);
     expect(recipient).toMatchObject({ title: "오늘의 책갈피", tabId: "today" });
     expect(recipient.backHref).toBeUndefined();
   });

@@ -6,37 +6,37 @@ export type ClientErrorKind = ClientErrorInput["kind"] | "push_subscribe";
 
 export function safeHoondokPath(pathname: string): string {
   const path = pathname.split(/[?#]/, 1)[0];
-  if (/^\/hoondok\/words\/[^/]+\/?$/.test(path)) return "/hoondok/words/:volume";
-  if (/^\/hoondok\/library\/[^/]+\/?$/.test(path)) return "/hoondok/library/:series";
-  if (/^\/hoondok\/ask\/p\/[^/]+\/?$/.test(path)) return "/hoondok/ask/p/:id";
-  if (/^\/hoondok\/ask\/(?!(?:log|new)\/?$)[^/]+\/?$/.test(path)) return "/hoondok/ask/:id";
+  if (/^\/words\/[^/]+\/?$/.test(path)) return "/words/:volume";
+  if (/^\/library\/[^/]+\/?$/.test(path)) return "/library/:series";
+  if (/^\/ask\/p\/[^/]+\/?$/.test(path)) return "/ask/p/:id";
+  if (/^\/ask\/(?!(?:log|new)\/?$)[^/]+\/?$/.test(path)) return "/ask/:id";
   // 모임 (PLAN-HD-010). new·join 은 아래 고정 목록이 받는다. 모임 id 는 보내지 않는다.
-  const group = /^\/hoondok\/groups\/(?!(?:new|join)\/?$)[^/]+(\/share|\/settings)?\/?$/.exec(path);
-  if (group) return `/hoondok/groups/:id${group[1] ?? ""}`;
+  const group = /^\/groups\/(?!(?:new|join)\/?$)[^/]+(\/share|\/settings)?\/?$/.exec(path);
+  if (group) return `/groups/:id${group[1] ?? ""}`;
   // 받은 사람 화면 (PLAN-HD-012). 카드 id 는 보내지 않는다.
-  if (/^\/hoondok\/c\/[^/]+\/?$/.test(path)) return "/hoondok/c/:id";
+  if (/^\/c\/[^/]+\/?$/.test(path)) return "/c/:id";
   const allowed = [
-    "/hoondok",
-    "/hoondok/read",
-    "/hoondok/library",
-    "/hoondok/search",
-    "/hoondok/ask",
-    "/hoondok/ask/log",
-    "/hoondok/ask/new",
-    "/hoondok/garden",
-    "/hoondok/settings",
-    "/hoondok/onboarding",
-    "/hoondok/offline",
-    "/hoondok/groups/new",
-    "/hoondok/groups/join",
-    "/hoondok/bookmark",
-    "/hoondok/bookmarks",
+    "/",
+    "/read",
+    "/library",
+    "/search",
+    "/ask",
+    "/ask/log",
+    "/ask/new",
+    "/garden",
+    "/settings",
+    "/onboarding",
+    "/offline",
+    "/groups/new",
+    "/groups/join",
+    "/bookmark",
+    "/bookmarks",
   ];
-  return allowed.includes(path) ? path : "/hoondok";
+  return allowed.includes(path) ? path : "/";
 }
 
 export function reportClientError(kind: ClientErrorKind): void {
-  if (typeof window === "undefined" || !/^\/hoondok(?:\/|$)/.test(window.location.pathname)) return;
+  if (typeof window === "undefined") return;
   // 보고 요청은 관찰용 fetch 를 쓰지 않아 보고 실패가 다시 오류 보고를 만들지 않는다.
   void globalThis
     .fetch("/api/backend/hoondok/client-errors", {

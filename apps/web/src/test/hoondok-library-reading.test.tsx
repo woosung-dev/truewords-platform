@@ -7,7 +7,7 @@ import type { HighlightInput, HighlightItem } from "@truewords/api-client-ts/typ
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-let pathname = "/hoondok/library";
+let pathname = "/library";
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
@@ -38,9 +38,9 @@ vi.mock("@/features/hoondok/ask/ask-stream", async (original) => ({
   requestAsk: vi.fn(),
 }));
 
-import SeriesPage from "@/app/(hoondok)/hoondok/library/[series]/page";
-import LibraryPage from "@/app/(hoondok)/hoondok/library/page";
-import WordsPage from "@/app/(hoondok)/hoondok/words/[id]/page";
+import SeriesPage from "@/app/(hoondok)/library/[series]/page";
+import LibraryPage from "@/app/(hoondok)/library/page";
+import WordsPage from "@/app/(hoondok)/words/[id]/page";
 import { requestAsk } from "@/features/hoondok/ask/ask-stream";
 import { libraryAPI, seriesHref, wordsHref } from "@/features/hoondok/library/api";
 import { EXPLAIN_PREFIX } from "@/features/hoondok/library/components/ai-explain";
@@ -155,7 +155,7 @@ async function showWords(searchParams: Record<string, string> = {}) {
 }
 
 beforeEach(() => {
-  pathname = "/hoondok/library";
+  pathname = "/library";
   vi.clearAllMocks();
   localStorage.clear();
   window.getSelection()?.removeAllRanges();
@@ -257,13 +257,13 @@ describe("권 목록 화면", () => {
     await screen.findByRole("link", { name: /001권/ });
     expect(screen.queryByRole("link", { name: /002권/ })).toBeNull();
     expect(screen.getByText("검색 인용만 허용 · 원문 공개 확인 중")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "말씀 검색하기" })).toHaveAttribute("href", "/hoondok/search");
+    expect(screen.getByRole("link", { name: "말씀 검색하기" })).toHaveAttribute("href", "/search");
   });
   it("공개되지 않은 저작물은 404 를 그대로 알리고 서고로 돌려보낸다", async () => {
     vi.mocked(libraryAPI.series).mockRejectedValue(new ApiError(404, { message: "not found" }));
     show(await SeriesPage({ params: Promise.resolve({ series: "없는시리즈" }) }));
     expect(await screen.findByText("이 저작물은 아직 공개되지 않았어요")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "서고로 돌아가기" })).toHaveAttribute("href", "/hoondok/library");
+    expect(screen.getByRole("link", { name: "서고로 돌아가기" })).toHaveAttribute("href", "/library");
   });
 });
 
@@ -651,9 +651,7 @@ describe("구절 형광펜", () => {
     fireEvent.click(toolbar.getByRole("button", { name: "노랑 형광펜" }));
     const gate = within(await screen.findByRole("dialog", { name: "형광펜·메모" }));
     expect(gate.getByText("로그인하면 기록이 남아요")).toBeInTheDocument();
-    expect(gate.getByRole("link", { name: "로그인하고 표시하기" }).getAttribute("href")).toContain(
-      "/hoondok/onboarding",
-    );
+    expect(gate.getByRole("link", { name: "로그인하고 표시하기" }).getAttribute("href")).toContain("/onboarding");
     expect(libraryAPI.createHighlight).not.toHaveBeenCalled();
     expect(libraryAPI.highlights).not.toHaveBeenCalled();
   });

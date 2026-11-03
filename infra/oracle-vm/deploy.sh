@@ -250,8 +250,11 @@ post_check() {
         || { log "backend: DB head '${DB_HEAD}' ≠ 이미지 '${want_head}'"; return 1; }
       ;;
     admin | web)
-      dc exec -T "$svc" node -e "fetch('http://${svc}:3000/login').then(r=>process.exit(r.status<400?0:1),()=>process.exit(1))" >/dev/null 2>&1 \
-        || { log "${svc}: http://${svc}:3000/login 실패"; return 1; }
+      # 웹 루트는 훈독이라(DEC-PWA-026) 시연 챗 /login 이 없다 — docker-compose.yml web healthcheck 와 같은 정적 경로를 친다.
+      local probe=/login
+      [ "$svc" = web ] && probe=/hoondok/manifest.webmanifest
+      dc exec -T "$svc" node -e "fetch('http://${svc}:3000${probe}').then(r=>process.exit(r.status<400?0:1),()=>process.exit(1))" >/dev/null 2>&1 \
+        || { log "${svc}: http://${svc}:3000${probe} 실패"; return 1; }
       ;;
   esac
   return 0

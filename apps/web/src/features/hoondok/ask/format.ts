@@ -37,7 +37,7 @@ export function askMetaLabel(
 /**
  * 근거 카드의 출처 이름. `/chat/stream` 의 sources 는 표시명(display_name)과 권(volume)만 주고 화자·판본·권위
  * 등급은 주지 않으므로 없는 항목을 지어내지 않는다. 관리자가 지정한 표시명이 있으면 그것을 쓰고 없으면 권으로
- * 되돌리는 것, 파일 확장자를 떼는 것 모두 시연 챗 인용 카드(`features/chat/components/assistant-message.tsx`)와 같다.
+ * 되돌리는 것, 파일 확장자를 떼는 것 모두 예전 시연 챗 인용 카드(DEC-PWA-026 에서 삭제)와 같은 규칙이다.
  */
 export function sourceLabel(source: Pick<Source, "display_name" | "volume">): string {
   return stripFileExt(source.display_name?.trim() || source.volume);

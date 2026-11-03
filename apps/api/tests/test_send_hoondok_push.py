@@ -234,7 +234,7 @@ def test_build_payload_is_single_neutral_text():
     assert build_payload() == {
         "title": "오늘의 책갈피가 꽂혀 있어요",
         "body": "한 장 꺼내 읽어 보세요",
-        "url": "/hoondok/bookmark",
+        "url": "/bookmark",
     }
 
 
@@ -243,7 +243,7 @@ def test_build_payload_jeongseong_adds_day_to_body_only():
     assert build_payload(JeongseongDay(day=5)) == {
         "title": "오늘의 책갈피가 꽂혀 있어요",
         "body": "5일차 · 한 장 꺼내 읽어 보세요",
-        "url": "/hoondok/bookmark",
+        "url": "/bookmark",
     }
 
 
@@ -281,7 +281,7 @@ async def test_payload_and_webpush_arguments(factory, push_on, sent_calls):
     assert json.loads(call["data"]) == {
         "title": "오늘의 책갈피가 꽂혀 있어요",
         "body": "한 장 꺼내 읽어 보세요",
-        "url": "/hoondok/bookmark",
+        "url": "/bookmark",
     }
     assert call["vapid_private_key"] == "test-private"
     assert call["vapid_claims"] == {"sub": "mailto:admin@example.com"}
@@ -394,7 +394,7 @@ async def test_no_official_reading_with_jeongseong_in_progress_is_sent(factory, 
     assert json.loads(call["data"]) == {
         "title": "오늘의 책갈피가 꽂혀 있어요",
         "body": "3일차 · 한 장 꺼내 읽어 보세요",
-        "url": "/hoondok/bookmark",
+        "url": "/bookmark",
     }
 
 
@@ -430,7 +430,7 @@ async def test_jeongseong_in_progress_merges_day_into_payload(
     assert json.loads(call["data"]) == {
         "title": "오늘의 책갈피가 꽂혀 있어요",
         "body": f"{day}일차 · 한 장 꺼내 읽어 보세요",
-        "url": "/hoondok/bookmark",
+        "url": "/bookmark",
     }
 
 
@@ -467,7 +467,7 @@ async def test_jeongseong_not_in_progress_is_ignored(
     assert json.loads(call["data"]) == {
         "title": "오늘의 책갈피가 꽂혀 있어요",
         "body": "한 장 꺼내 읽어 보세요",
-        "url": "/hoondok/bookmark",
+        "url": "/bookmark",
     }
 
 
@@ -666,7 +666,7 @@ async def test_to_email_reflects_jeongseong_in_progress(factory, push_on, sent_c
     assert json.loads(call["data"]) == {
         "title": "오늘의 책갈피가 꽂혀 있어요",
         "body": "7일차 · 한 장 꺼내 읽어 보세요",
-        "url": "/hoondok/bookmark",
+        "url": "/bookmark",
     }
 
 

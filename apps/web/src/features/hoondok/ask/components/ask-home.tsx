@@ -45,7 +45,7 @@ export function parseAskTab(raw: string | null): AskHomeTab {
 
 function newQuestionHref(text: string): string {
   const trimmed = text.trim();
-  return trimmed ? `/hoondok/ask/new?q=${encodeURIComponent(trimmed)}` : "/hoondok/ask/new";
+  return trimmed ? `/ask/new?q=${encodeURIComponent(trimmed)}` : "/ask/new";
 }
 
 function RecommendedPanel({ query, term }: { query: string; term: string }) {
@@ -97,7 +97,7 @@ function RecommendedPanel({ query, term }: { query: string; term: string }) {
         <ol className="ql-list">
           {items.map((entry) => (
             <li key={entry.id}>
-              <Link href={`/hoondok/ask/p/${encodeURIComponent(entry.id)}`}>
+              <Link href={`/ask/p/${encodeURIComponent(entry.id)}`}>
                 <span className="ql-q">{entry.question}</span>
                 <span className="ql-m">{answeredByLabel(entry.answer_mode)}</span>
               </Link>
@@ -146,7 +146,7 @@ function MinePanel({ tab, term }: { tab: "saved" | "mine"; term: string }) {
       <AskLoginGate
         title={tab === "saved" ? "로그인하면 저장한 답을 볼 수 있어요" : "로그인하면 내 질문을 볼 수 있어요"}
         body="질문과 답은 내 계정에만 보관돼요. 다른 사람은 볼 수 없어요."
-        returnTo={`/hoondok/ask?tab=${tab}`}
+        returnTo={`/ask?tab=${tab}`}
       />
     );
   }
@@ -200,7 +200,7 @@ function LocalPanel({ tab, items, term }: { tab: "saved" | "mine"; items: MyAskS
     <ol className="ql-list">
       {shown.map((item) => (
         <li key={item.id}>
-          <Link href={`/hoondok/ask/${item.id}`}>
+          <Link href={`/ask/${item.id}`}>
             <span className="ql-q">{item.question}</span>
             <span className="ql-m">
               {askMetaLabel(item)}
@@ -230,7 +230,7 @@ function AskHomeView({ initialTab }: { initialTab: AskHomeTab }) {
   // 탭을 주소에 남겨 상세에서 뒤로 오면 보던 탭으로 돌아온다
   function selectTab(next: AskHomeTab) {
     setTab(next);
-    router.replace(next === "recommended" ? "/hoondok/ask" : `/hoondok/ask?tab=${next}`, { scroll: false });
+    router.replace(next === "recommended" ? "/ask" : `/ask?tab=${next}`, { scroll: false });
   }
   const [isSearching, setIsSearching] = useState(false);
   const [term, setTerm] = useState("");
@@ -327,7 +327,7 @@ function AskHomeView({ initialTab }: { initialTab: AskHomeTab }) {
         고른 것만 이름 없이 추천 질문에 올라가요.
       </p>
 
-      <Link className="ask-fab" href="/hoondok/ask/new">
+      <Link className="ask-fab" href="/ask/new">
         <Plus size={20} aria-hidden="true" />
         질문하기
       </Link>
@@ -336,7 +336,7 @@ function AskHomeView({ initialTab }: { initialTab: AskHomeTab }) {
 }
 
 function AskHomeWithQuery() {
-  // `/hoondok/ask/log` 와 메뉴 "질문 기록" 이 `?tab=mine` 으로 들어온다
+  // `/ask/log` 와 메뉴 "질문 기록" 이 `?tab=mine` 으로 들어온다
   return <AskHomeView initialTab={parseAskTab(useSearchParams().get("tab"))} />;
 }
 

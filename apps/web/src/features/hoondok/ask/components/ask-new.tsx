@@ -66,7 +66,7 @@ function parseChoice(raw: string | null): AnswerChoice {
 export function askNewReturnHref(choice: AnswerChoice): string {
   const params = new URLSearchParams({ resume: "1" });
   if (choice !== "auto") params.set("mode", choice);
-  return `/hoondok/ask/new?${params.toString()}`;
+  return `/ask/new?${params.toString()}`;
 }
 
 function AskNewBar({ onClose, canSend }: { onClose: () => void; canSend?: boolean }) {
@@ -121,7 +121,7 @@ function AskNewForm({ initial }: { initial: AskNewInitial }) {
   // 말씀 단락·훈독 완료에서 열었으면 그 자리로 돌아간다. 이 탭에서 바로 연 화면이면(앱 안 앞 기록 없음) AI 질문 홈으로.
   function handleClose() {
     if (canGoBackInApp()) router.back();
-    else router.push("/hoondok/ask");
+    else router.push("/ask");
   }
 
   function handleSubmit(event: React.FormEvent) {
@@ -137,7 +137,7 @@ function AskNewForm({ initial }: { initial: AskNewInitial }) {
       () => void queryClient.invalidateQueries({ queryKey: ASKS_KEY }),
     );
     // 새 질문 화면은 기록에 남기지 않는다 — 답에서 뒤로 가면 이 화면을 연 자리로 돌아간다
-    router.replace(`/hoondok/ask/${key}`);
+    router.replace(`/ask/${key}`);
   }
 
   if (isGate) {

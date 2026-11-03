@@ -17,7 +17,7 @@ import { useCurrentUser } from "@/features/identity/use-current-user";
 import { dismissClosing, isClosingDismissed } from "../closing";
 import { formatMonthDay, jeongseongDayProgress } from "../format";
 
-const SHEET_HREF = "/hoondok?sheet=jeongseong";
+const SHEET_HREF = "/?sheet=jeongseong";
 
 /** 머리 줄 배지 — 진행 중이면 "N일차", 시작 전이면 "시작 전 · M월 D일부터". 홈 카드와 정원이 함께 쓴다. */
 export function JeongseongDayBadge({ period }: { period: JeongseongPeriodResponse }) {

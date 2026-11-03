@@ -51,7 +51,8 @@ TTL_SECONDS = 7200  # 창을 지난 뒤 배달되는 것을 막는다(창 길이
 URGENCY = "high"  # 정해진 시각 알림이라 안드로이드 Doze 지연 방지(RFC 8030 §5.3 Urgency 헤더)
 # 오늘의 책갈피(PLAN-HD-012)로 연다 — 새 알림 종류를 만들지 않고 훈독하기 알림 1건에 합친다(DEC-PWA-024).
 BODY_TEXT = "한 장 꺼내 읽어 보세요"
-TARGET_URL = "/hoondok/bookmark"
+# 웹 화면 경로다(API 경로 아님). 웹 루트가 훈독이라(DEC-PWA-026) 접두가 없다 — 예전 /hoondok/bookmark 는 웹이 308 한다.
+TARGET_URL = "/bookmark"
 TITLE_TEXT = "오늘의 책갈피가 꽂혀 있어요"  # 말씀 본문·책 이름·신앙 맥락을 넣지 않는다
 MISSION_KIND_READ = "read"
 

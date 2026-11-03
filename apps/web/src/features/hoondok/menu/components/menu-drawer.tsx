@@ -189,7 +189,7 @@ function WorksPanel({
           ))}
         </ul>
       )}
-      <Link className="mn-more" href="/hoondok/library" onClick={onGo}>
+      <Link className="mn-more" href="/library" onClick={onGo}>
         말씀 서고 전체 보기
       </Link>
     </section>

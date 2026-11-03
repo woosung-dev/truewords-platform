@@ -5,7 +5,7 @@ import Link from "next/link";
 import { onboardingHref } from "@/features/identity/gate";
 import { JOIN_PATH } from "../invite-code";
 
-const CREATE_PATH = "/hoondok/groups/new";
+const CREATE_PATH = "/groups/new";
 
 export function GroupEntryCard({ isLoggedIn }: { isLoggedIn: boolean }) {
   const to = (target: string) => (isLoggedIn ? target : onboardingHref(target));

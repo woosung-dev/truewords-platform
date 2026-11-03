@@ -11,7 +11,7 @@ const mockReplace = vi.fn();
 let queryParams: Record<string, string> = {};
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, back: vi.fn(), prefetch: vi.fn() }),
-  usePathname: () => "/hoondok/ask",
+  usePathname: () => "/ask",
   useSearchParams: () => ({ get: (key: string) => queryParams[key] ?? null }),
 }));
 
@@ -38,7 +38,7 @@ vi.mock("@/features/hoondok/ask/asks-api", async (original) => ({
 
 vi.mock("@/features/hoondok/library/api", () => ({
   libraryAPI: { list: vi.fn(async () => ({ items: [] })) },
-  wordsHref: (volume: string) => `/hoondok/words/${encodeURIComponent(volume)}`,
+  wordsHref: (volume: string) => `/words/${encodeURIComponent(volume)}`,
 }));
 
 import {
@@ -247,9 +247,9 @@ describe("AI 질문 홈", () => {
 
     expect(screen.getByRole("tab", { name: "추천" })).toHaveAttribute("aria-selected", "true");
     const example = await screen.findByRole("link", { name: ASK_EXAMPLES[1] });
-    expect(example).toHaveAttribute("href", `/hoondok/ask/new?q=${encodeURIComponent(ASK_EXAMPLES[1])}`);
+    expect(example).toHaveAttribute("href", `/ask/new?q=${encodeURIComponent(ASK_EXAMPLES[1])}`);
     expect(screen.queryByRole("textbox")).toBeNull();
-    expect(screen.getByRole("link", { name: "질문하기" })).toHaveAttribute("href", "/hoondok/ask/new");
+    expect(screen.getByRole("link", { name: "질문하기" })).toHaveAttribute("href", "/ask/new");
   });
 
   it("추천 질문은 비로그인도 보고, 답한 모델과 함께 공개 상세로 이어진다", async () => {
@@ -267,7 +267,7 @@ describe("AI 질문 홈", () => {
     });
     render(<AskHome />);
     const link = await screen.findByRole("link", { name: /참사랑과 보통의 사랑/ });
-    expect(link).toHaveAttribute("href", "/hoondok/ask/p/pq1");
+    expect(link).toHaveAttribute("href", "/ask/p/pq1");
     expect(within(link).getByText("깊은 해설이 답했어요")).toBeInTheDocument();
   });
 
@@ -284,7 +284,7 @@ describe("AI 질문 홈", () => {
     expect(screen.getByText("로그인하면 저장한 답을 볼 수 있어요")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "로그인하기" })).toHaveAttribute(
       "href",
-      `/hoondok/onboarding?returnTo=${encodeURIComponent("/hoondok/ask?tab=saved")}`,
+      `/onboarding?returnTo=${encodeURIComponent("/ask?tab=saved")}`,
     );
     expect(asksAPI.list).not.toHaveBeenCalled();
   });
@@ -306,7 +306,7 @@ describe("AI 질문 홈", () => {
     expect(links[0]).toHaveTextContent("이어서 2번");
     expect(links[1]).toHaveTextContent("깊은 해설");
     expect(links[1]).toHaveTextContent("공개 허용");
-    expect(links[1]).toHaveAttribute("href", "/hoondok/ask/a2");
+    expect(links[1]).toHaveAttribute("href", "/ask/a2");
 
     fireEvent.click(screen.getByRole("tab", { name: "저장" }));
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
@@ -321,7 +321,7 @@ describe("AI 질문 홈", () => {
     expect(screen.getByRole("tab", { name: "내 질문" })).toHaveAttribute("aria-selected", "true");
 
     fireEvent.click(screen.getByRole("tab", { name: "저장" }));
-    expect(mockReplace).toHaveBeenCalledWith("/hoondok/ask?tab=saved", { scroll: false });
+    expect(mockReplace).toHaveBeenCalledWith("/ask?tab=saved", { scroll: false });
   });
 
   it("돋보기 검색은 내 질문을 거르고, Esc 로 닫으면 돋보기로 포커스가 돌아온다", async () => {
@@ -342,7 +342,7 @@ describe("AI 질문 홈", () => {
     fireEvent.change(input, { target: { value: "없는 말" } });
     expect(screen.getByRole("link", { name: /이 말로 새로 묻기/ })).toHaveAttribute(
       "href",
-      `/hoondok/ask/new?q=${encodeURIComponent("없는 말")}`,
+      `/ask/new?q=${encodeURIComponent("없는 말")}`,
     );
 
     fireEvent.keyDown(input, { key: "Escape" });
@@ -374,7 +374,7 @@ describe("새 질문하기", () => {
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.getByRole("link", { name: "로그인하기" })).toHaveAttribute(
       "href",
-      `/hoondok/onboarding?returnTo=${encodeURIComponent("/hoondok/ask/new?resume=1&mode=beginner")}`,
+      `/onboarding?returnTo=${encodeURIComponent("/ask/new?resume=1&mode=beginner")}`,
     );
     expect(window.sessionStorage.getItem("hoondok:ask-draft")).toBe("단락 질문");
     expect(globalThis.fetch).not.toHaveBeenCalled();
@@ -406,7 +406,7 @@ describe("새 질문하기", () => {
     render(<AskNew />);
 
     fireEvent.click(screen.getByRole("button", { name: "보내기" }));
-    expect(mockReplace).toHaveBeenCalledWith(expect.stringMatching(/^\/hoondok\/ask\/live-/));
+    expect(mockReplace).toHaveBeenCalledWith(expect.stringMatching(/^\/ask\/live-/));
     await waitFor(() => expect(readLiveAsks()[0]?.status).toBe("answered"));
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     expect(vi.mocked(globalThis.fetch).mock.calls[0][0]).toBe("/api/backend/hoondok/ask/stream");
@@ -514,7 +514,7 @@ describe("질문·답변 상세", () => {
     fireEvent.click(screen.getByRole("button", { name: "답변 모델 변경" }));
     fireEvent.click(screen.getByRole("radio", { name: /처음 믿는 분/ }));
     fireEvent.click(screen.getByRole("button", { name: "이 모델로 다시 묻기" }));
-    expect(mockPush).toHaveBeenCalledWith(expect.stringMatching(/^\/hoondok\/ask\/live-/));
+    expect(mockPush).toHaveBeenCalledWith(expect.stringMatching(/^\/ask\/live-/));
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(1));
     expect(requestBodies()[0]).toEqual({ query: "정성을 드린다는 게 뭔가요?", answer_mode: "beginner" });
   });
@@ -623,7 +623,7 @@ describe("질문·답변 상세", () => {
     render(<AskDetail id={key} />);
     const fix = await screen.findByRole("link", { name: "고쳐서 다시 묻기" });
     expect(screen.queryByRole("button", { name: "다시 시도" })).toBeNull();
-    expect(fix).toHaveAttribute("href", "/hoondok/ask/new?resume=1");
+    expect(fix).toHaveAttribute("href", "/ask/new?resume=1");
     fireEvent.click(fix);
     expect(window.sessionStorage.getItem("hoondok:ask-draft")).toBe("차단될 질문");
   });
@@ -659,7 +659,7 @@ describe("질문·답변 상세", () => {
 
     vi.mocked(globalThis.fetch).mockResolvedValueOnce(sseResponse(sseBody([SOURCE])));
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(`/hoondok/ask/${SID}`));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(`/ask/${SID}`));
     await act(async () => finish(sseResponse(sseBody([SOURCE]))));
   });
 
@@ -744,7 +744,7 @@ describe("공개 질문 열람", () => {
     expect(await screen.findByText("참사랑은 받기 전에 먼저 주는 사랑입니다.")).toBeInTheDocument();
     expect(screen.getByText("깊은 해설")).toBeInTheDocument();
     expect(screen.getByText("가정은 사랑을 배우는 첫 학교입니다.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "나도 물어보기" })).toHaveAttribute("href", "/hoondok/ask/new");
+    expect(screen.getByRole("link", { name: "나도 물어보기" })).toHaveAttribute("href", "/ask/new");
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 
@@ -758,7 +758,7 @@ describe("공개 질문 열람", () => {
 describe("말씀 단락에서 질문하기", () => {
   it("단락 인용을 채운 새 질문 화면 주소를 만들고, 긴 단락은 앞부분만 담는다", () => {
     const href = passageAskHref("가정은 사랑을 배우는 첫 학교입니다.");
-    expect(href.startsWith("/hoondok/ask/new?q=")).toBe(true);
+    expect(href.startsWith("/ask/new?q=")).toBe(true);
     expect(decodeURIComponent(href.split("q=")[1])).toBe(
       '"가정은 사랑을 배우는 첫 학교입니다."\n\n이 단락은 어떤 뜻인가요?',
     );

@@ -19,7 +19,7 @@ import { consumeChatStream } from "@/lib/chat-stream";
  *
  * `[확인 필요]` 훈독 전용 봇·시스템 프롬프트는 미정이라 기존 봇을 재사용한다(PLAN-HD-002 §9).
  * `all`(전체 검색 = 소스 A·B·C, 말씀선집 포함)을 고른 근거는 두 가지다.
- *  - 시연 챗의 운영 기본값이 `all` 이고(`apps/web/src/app/(chat)/page.tsx`) 실제로 근거가 돌아오는 것이 확인된
+ *  - 시연 챗(삭제됨, DEC-PWA-026)의 운영 기본값이 `all` 이었고 실제로 근거가 돌아오는 것이 확인된
  *    유일한 슬러그다. 없는 슬러그를 보내면 `/chat/stream` 이 404 를 준다.
  *  - 시드의 `malssum_priority` 는 A 단독 티어의 `score_threshold` 가 0.75 로, RuntimeConfig 가 적은
  *    RRF 점수 범위(0.0~0.5, `apps/api/app/modules/chatbot/runtime_config.py`) 위라 근거 0건이 상시화될 위험이 있다.
@@ -120,8 +120,7 @@ async function errorKind(res: Response): Promise<AskErrorKind> {
 /**
  * 질문 1건을 보내고 답·근거·고지를 모아서 돌려준다.
  *
- * 경로·헤더·이벤트 처리 순서는 시연 챗(`features/chatbot/chat-api.ts`)과 같다 — 같은 프록시를 쓰므로
- * `X-Requested-With` 와 쿠키 동봉도 그대로다. `answer_mode`·`session_id` 는 값이 있을 때만 싣는다.
+ * 같은 origin 프록시(`/api/backend`)에 `X-Requested-With` 와 쿠키를 함께 보낸다. `answer_mode`·`session_id` 는 값이 있을 때만 싣는다.
  */
 async function streamAsk(path: string, payload: Record<string, unknown>, options: AskOptions): Promise<AskResult> {
   const { answerMode, sessionId, signal } = options;

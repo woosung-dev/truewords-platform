@@ -72,12 +72,12 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
             )}
             <h1 className="appbar__title">{title}</h1>
             {!screen.hideSearchLink && (
-              <Link className="icon-btn icon-btn--search" href="/hoondok/search" aria-label="말씀 검색">
+              <Link className="icon-btn icon-btn--search" href="/search" aria-label="말씀 검색">
                 <MagnifyingGlassIcon size={22} aria-hidden="true" />
               </Link>
             )}
             {!screen.hideSettingsLink && (
-              <Link className="icon-btn icon-btn--bell" href="/hoondok/settings" aria-label="알림·설치">
+              <Link className="icon-btn icon-btn--bell" href="/settings" aria-label="알림·설치">
                 <BellSimpleIcon size={22} aria-hidden="true" />
               </Link>
             )}
@@ -99,7 +99,7 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
       </main>
       {!screen.hideNav && (
         <nav className="nav" aria-label="주 메뉴">
-          <Link className="nav__brand" href="/hoondok">
+          <Link className="nav__brand" href="/">
             <img className="nav__mark" src={HOONDOK_LOGO} alt="" width={32} height={32} />
             훈독
           </Link>
@@ -127,15 +127,15 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
           })}
           <Link
             className="nav__search"
-            href="/hoondok/search"
+            href="/search"
             // 앱바 아이콘을 숨기는 화면(AI 질문 등)이 모두 검색 화면은 아니다 — 현재 위치는 검색 화면에서만
-            aria-current={screen.match === "/hoondok/search" ? "page" : undefined}
+            aria-current={screen.match === "/search" ? "page" : undefined}
           >
             <MagnifyingGlassIcon size={20} aria-hidden="true" />
             말씀 검색
           </Link>
           {!screen.hideSettingsLink && (
-            <Link className="nav__user" href="/hoondok/settings" aria-label="알림·설치">
+            <Link className="nav__user" href="/settings" aria-label="알림·설치">
               <BellSimpleIcon size={18} aria-hidden="true" />
             </Link>
           )}

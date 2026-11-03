@@ -1,8 +1,7 @@
 import { hoondokRequest as request } from "@/features/hoondok/api-client";
 import type { LoginRequest, SignupRequest, UserEnvelope } from "./types";
 
-// 훈독 계정 API (쿠키 hoondok_token). lib/api.ts 의 공용 client 는 401 에 /login(시연 챗)으로 보내므로
-// 쓰지 않는다 — 401 처리는 features/identity/gate.ts 가 /hoondok/onboarding 으로 한다.
+// 훈독 계정 API (쿠키 hoondok_token). 401 처리는 features/identity/gate.ts 가 /onboarding 으로 한다.
 
 export const identityAPI = {
   signup: (body: SignupRequest) =>

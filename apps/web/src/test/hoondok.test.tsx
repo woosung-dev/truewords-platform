@@ -10,14 +10,14 @@ afterEach(() => {
 });
 
 describe("훈독 기능 플래그", () => {
-  it("OFF(기본) 이면 /hoondok 레이아웃이 notFound 를 호출한다", async () => {
+  it("OFF(기본) 이면 / 레이아웃이 notFound 를 호출한다", async () => {
     vi.stubEnv("NEXT_PUBLIC_HOONDOK_ENABLED", "");
     vi.resetModules();
     const notFound = vi.fn(() => {
       throw new Error("NEXT_NOT_FOUND");
     });
-    vi.doMock("next/navigation", () => ({ notFound, usePathname: () => "/hoondok" }));
-    const { default: Layout } = await import("../app/(hoondok)/hoondok/layout");
+    vi.doMock("next/navigation", () => ({ notFound, usePathname: () => "/" }));
+    const { default: Layout } = await import("../app/(hoondok)/layout");
     expect(() => Layout({ children: null })).toThrow("NEXT_NOT_FOUND");
     expect(notFound).toHaveBeenCalledOnce();
   });
@@ -25,24 +25,24 @@ describe("훈독 기능 플래그", () => {
   it("ON 이면 [data-app=hoondok] 스코프 래퍼로 감싼다", async () => {
     vi.stubEnv("NEXT_PUBLIC_HOONDOK_ENABLED", "1");
     vi.resetModules();
-    vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/hoondok" }));
-    const { default: Layout } = await import("../app/(hoondok)/hoondok/layout");
+    vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/" }));
+    const { default: Layout } = await import("../app/(hoondok)/layout");
     const { container } = render(Layout({ children: <p>본문</p> }));
     expect(container.querySelector('[data-app="hoondok"]')).not.toBeNull();
     expect(screen.getByRole("navigation", { name: "주 메뉴" })).toBeInTheDocument();
   });
 
-  it("훈독 경로 헤더: noindex 전체 · 폰트 immutable · sw.js·manifest no-cache · sw.js Service-Worker-Allowed", async () => {
+  it("훈독 경로 헤더: noindex 전체 · 폰트 immutable · sw.js·manifest no-cache · 은퇴 sw.js Service-Worker-Allowed", async () => {
     const { default: config } = await import("../../next.config");
     const headers = (await config.headers?.()) ?? [];
     const bySource = new Map(
       headers.map((h) => [h.source, Object.fromEntries(h.headers.map((x) => [x.key, x.value]))] as const),
     );
-    // 시연 챗 경로(/, /login …)에는 어떤 헤더 규칙도 없다
-    for (const source of bySource.keys()) expect(source.startsWith("/hoondok")).toBe(true);
-    expect(bySource.get("/hoondok")).toEqual({ "X-Robots-Tag": "noindex, nofollow" });
-    expect(bySource.get("/hoondok/:path*")).toEqual({ "X-Robots-Tag": "noindex, nofollow" });
+    // 웹 루트가 훈독이라(DEC-PWA-026) 색인 금지는 모든 경로에 붙는다
+    expect(bySource.get("/:path*")).toEqual({ "X-Robots-Tag": "noindex, nofollow" });
     expect(bySource.get("/hoondok/fonts/:path*")).toEqual({ "Cache-Control": "public, max-age=31536000, immutable" });
+    expect(bySource.get("/sw.js")).toEqual({ "Cache-Control": "no-cache, must-revalidate" });
+    // 예전 scope(/hoondok) 등록이 은퇴 스크립트로 업데이트되려면 같은 scope 허용이 남아 있어야 한다
     expect(bySource.get("/hoondok/sw.js")).toEqual({
       "Cache-Control": "no-cache, must-revalidate",
       "Service-Worker-Allowed": "/hoondok",
@@ -57,7 +57,7 @@ describe("훈독 탭 정의", () => {
     expect(HOONDOK_TABS).toHaveLength(4);
     expect(new Set(HOONDOK_TABS.map((t) => t.href)).size).toBe(4);
     expect(HOONDOK_TABS.map((t) => t.label)).toEqual(["오늘 훈독", "AI 질문", "말씀", "나의 정원"]);
-    expect(activeTabId("/hoondok/read")).toBe("today");
+    expect(activeTabId("/read")).toBe("today");
     expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual(["today", "ask", "library", "garden"]);
   });
 });
@@ -77,24 +77,17 @@ describe("훈독 컴포넌트", () => {
   });
 
   it("미션 카드는 링크와 체크 버튼이 형제이고, 준비 중이면 둘 다 비활성", async () => {
-    vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/hoondok" }));
+    vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/" }));
     const { MissionCard } = await import("../components/hoondok");
     const { BookOpenText } = await import("lucide-react");
     render(
       <>
-        <MissionCard
-          kind="훈독하기 · 3분"
-          title="A"
-          meta="m"
-          icon={BookOpenText}
-          href="/hoondok/read"
-          onToggle={() => {}}
-        />
+        <MissionCard kind="훈독하기 · 3분" title="A" meta="m" icon={BookOpenText} href="/read" onToggle={() => {}} />
         <MissionCard kind="기도하기 · 1분" title="B" meta="m" icon={BookOpenText} isDisabled />
       </>,
     );
     const link = screen.getByRole("link", { name: /훈독하기/ });
-    expect(link).toHaveAttribute("href", "/hoondok/read");
+    expect(link).toHaveAttribute("href", "/read");
     expect(link.querySelector("button")).toBeNull();
     expect(screen.getByRole("button", { name: "훈독하기 · 3분 완료" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "기도하기 · 1분 완료" })).toBeDisabled();

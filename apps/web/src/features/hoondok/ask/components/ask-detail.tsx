@@ -3,7 +3,7 @@
 // 질문·답변 상세 — 제목·날짜 → 답한 모델(변경) → 핵심 근거 → 답 → 근거 말씀 → 저장·공유·다시 → 공개 → 이어서 한 질문들
 // → 관련 질문 → 하단 고정 "이어서 질문하기"(같은 session_id 로 잇는다).
 // 원본은 계정에 보관된 대화(`GET /hoondok/me/asks/{session_id}`)다. 지금 답을 받는 중인 질문만 메모리(live.ts)에서 그린다 —
-// 새 질문은 임시 주소(`/hoondok/ask/live-…`)로 열렸다가 답이 끝나 대화 id 를 받으면 그 주소로 바꿔 낀다.
+// 새 질문은 임시 주소(`/ask/live-…`)로 열렸다가 답이 끝나 대화 id 를 받으면 그 주소로 바꿔 낀다.
 // 근거 게이트(AC-017-01·04): sources 가 0건이면 답을 보이지 않고 "확인할 수 없음" 으로 끝낸다. 이어서 한 턴도 같다.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@truewords/api-client-ts";
@@ -138,7 +138,7 @@ function AskMissing({ body }: { body: string }) {
         </span>
         <h2 className="empty__title">질문을 찾을 수 없어요</h2>
         <p className="empty__body">{body}</p>
-        <Link className="btn btn-line ql-empty__cta" href="/hoondok/ask?tab=mine">
+        <Link className="btn btn-line ql-empty__cta" href="/ask?tab=mine">
           내 질문으로
         </Link>
       </div>
@@ -336,7 +336,7 @@ export function AskDetail({ id }: { id: string }) {
   // 새 질문이 대화 id 를 받으면(답이 끝나면) 그 주소로 바꿔 낀다 — 새로 고쳐도 계정 기록으로 다시 열린다.
   const nextSession = liveEntry && liveEntry.status !== "pending" ? liveEntry.sessionId : undefined;
   useEffect(() => {
-    if (nextSession) router.replace(`/hoondok/ask/${nextSession}`);
+    if (nextSession) router.replace(`/ask/${nextSession}`);
   }, [nextSession, router]);
 
   useEffect(() => {
@@ -367,7 +367,7 @@ export function AskDetail({ id }: { id: string }) {
         <AskLoginGate
           title="로그인하면 볼 수 있어요"
           body="질문과 답은 내 계정에만 보관돼요. 질문한 계정으로 로그인해 주세요."
-          returnTo={isSession ? `/hoondok/ask/${id}` : "/hoondok/ask?tab=mine"}
+          returnTo={isSession ? `/ask/${id}` : "/ask?tab=mine"}
         />
       </section>
     );
@@ -406,7 +406,7 @@ export function AskDetail({ id }: { id: string }) {
     );
   }
 
-  const returnTo = isSession ? `/hoondok/ask/${id}` : "/hoondok/ask?tab=mine";
+  const returnTo = isSession ? `/ask/${id}` : "/ask?tab=mine";
   const keySource = first.sources[0];
   const lastAnswered = [...turns].reverse().find((turn) => turn.status === "answered");
   const followups = lastAnswered?.followups ?? [];
@@ -434,7 +434,7 @@ export function AskDetail({ id }: { id: string }) {
       { ownerId: user.id, question: first.question, answerMode: choice && choice !== "auto" ? choice : undefined },
       settle,
     );
-    router.push(`/hoondok/ask/${key}`);
+    router.push(`/ask/${key}`);
   }
 
   function handleFollowup(event: React.FormEvent) {
@@ -693,7 +693,7 @@ export function AskDetail({ id }: { id: string }) {
             >
               <ArrowUp size={20} aria-hidden="true" />
             </button>
-            <Link className="icon-btn ask-follow__new" href="/hoondok/ask/new" aria-label="새 질문">
+            <Link className="icon-btn ask-follow__new" href="/ask/new" aria-label="새 질문">
               <PenLine size={20} aria-hidden="true" />
             </Link>
           </div>

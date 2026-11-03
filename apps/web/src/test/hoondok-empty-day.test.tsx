@@ -7,7 +7,7 @@ import type { JeongseongTodayResponse, LibraryItem, SectionItem } from "@truewor
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/hoondok", useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/", useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/features/hoondok/library/api", async (original) => ({
   ...(await original<object>()),
   libraryAPI: { list: vi.fn(), sections: vi.fn(), readingPositions: vi.fn() },
@@ -113,9 +113,7 @@ describe("홈 · 편성 없는 날", () => {
     expect(line.closest("[role=status]")).toHaveTextContent("서고에서 한 권 골라 읽어 보세요.");
     expect(screen.getByText("오늘은 서고에서")).toHaveClass("sect__meta");
     expect(missionOrder(view.container)).toEqual(["안내", "말씀 읽기 · 이어 읽기", "기도하기 · 1분 · 준비 중"]);
-    expect(screen.getAllByRole("link").filter((link) => link.getAttribute("href") === "/hoondok/library")).toHaveLength(
-      1,
-    );
+    expect(screen.getAllByRole("link").filter((link) => link.getAttribute("href") === "/library")).toHaveLength(1);
     expect(screen.queryByText(/기다리고|편성되면|오늘 말씀 대신/)).toBeNull();
     expect(screen.queryByRole("link", { name: /훈독하기/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /훈독하기/ })).toBeNull();
@@ -183,9 +181,7 @@ describe("홈 · 편성 없는 날", () => {
   it("편성 조회 실패는 빈 날이 아니다 — 원인 안내만 하고 오늘 상태 한 줄을 띄우지 않는다", async () => {
     const view = show(<HomeMissions today={FAILED} todayWeekday={2} />);
     expect(await screen.findByText("오늘 편성을 불러오지 못했어요. 연결을 확인해 주세요.")).toBeInTheDocument();
-    await waitFor(() =>
-      expect(screen.getByRole("link", { name: /훈독하기/ })).toHaveAttribute("href", "/hoondok/read"),
-    );
+    await waitFor(() => expect(screen.getByRole("link", { name: /훈독하기/ })).toHaveAttribute("href", "/read"));
     expect(view.container.querySelector(".day-quiet")).toBeNull();
     expect(screen.queryByText(/기다리고|편성되면/)).toBeNull();
   });
@@ -246,7 +242,7 @@ describe("훈독하기(/read) · 편성 없는 날", () => {
     const links = screen.getAllByRole("link");
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
       `${wordsHref(VOLUME)}?page=1&from=resume`,
-      "/hoondok/library",
+      "/library",
     ]);
     expect(screen.getByRole("link", { name: "말씀 서고로 가기" })).toHaveClass("btn-line");
     expect(view.container.querySelector(".scripture")).toBeNull();
@@ -256,7 +252,7 @@ describe("훈독하기(/read) · 편성 없는 날", () => {
   it("기록이 없으면 주 버튼이 '말씀 서고에서 고르기' 다", async () => {
     show(<EffectiveReading today={EMPTY} />);
     const primary = await screen.findByRole("link", { name: "말씀 서고에서 고르기" });
-    expect(primary).toHaveAttribute("href", "/hoondok/library");
+    expect(primary).toHaveAttribute("href", "/library");
     expect(primary).toHaveClass("btn-primary");
     expect(screen.getAllByRole("link")).toHaveLength(1);
     // 상태 카드 문구도 기록이 없다는 사실을 따른다

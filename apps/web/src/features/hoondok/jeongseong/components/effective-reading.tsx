@@ -26,7 +26,7 @@ export function EffectiveReading({ today }: { today: TodayResponse }) {
           <div className="sect">
             <ReadCompleteButton
               isDisabled={effective.isResolving}
-              askHref={`/hoondok/ask/new?q=${encodeURIComponent(`${effective.reading.title} 말씀은 어떤 뜻인가요?`)}`}
+              askHref={`/ask/new?q=${encodeURIComponent(`${effective.reading.title} 말씀은 어떤 뜻인가요?`)}`}
             />
           </div>
         </>

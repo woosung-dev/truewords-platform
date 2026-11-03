@@ -186,7 +186,7 @@ export function SearchScreen() {
               </span>
               <p className="empty__title">검색 결과가 없어요</p>
               <p className="empty__body">검색이 허용된 말씀에서 찾지 못했어요. 다른 단어나 짧은 구절로 찾아보세요.</p>
-              <Link className="btn btn-line" href="/hoondok/library">
+              <Link className="btn btn-line" href="/library">
                 서고로 돌아가기
               </Link>
             </div>
@@ -251,7 +251,7 @@ export function SearchScreen() {
       </div>
 
       <div className="sect">
-        <Link className="ask-hint" href="/hoondok/ask/new">
+        <Link className="ask-hint" href="/ask/new">
           <MessageCircleQuestion size={24} aria-hidden="true" />
           <span>
             <b>궁금한 것이 질문이라면</b>

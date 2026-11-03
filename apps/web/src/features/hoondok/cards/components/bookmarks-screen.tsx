@@ -131,7 +131,7 @@ function Panel({ filter, userId }: { filter: MyCardsFilter; userId: string }) {
             : "오늘 훈독 화면에서 책갈피를 꺼내 보세요."}
         </p>
         <p className="gd-cta">
-          <Link className="btn btn-line btn--sm" href="/hoondok/bookmark">
+          <Link className="btn btn-line btn--sm" href="/bookmark">
             오늘의 책갈피
           </Link>
         </p>
@@ -184,7 +184,7 @@ export function BookmarksScreen({ initialFilter }: { initialFilter: MyCardsFilte
             <h2 className="empty__title">로그인하면 받은 책갈피가 모여요</h2>
             <p className="empty__body">책별로 꽂힌 책장과 건넨 책갈피를 여기에서 볼 수 있어요.</p>
             <p className="gd-cta">
-              <Link className="btn btn-primary" href={onboardingHref("/hoondok/bookmarks")}>
+              <Link className="btn btn-primary" href={onboardingHref("/bookmarks")}>
                 시작하기
               </Link>
             </p>
