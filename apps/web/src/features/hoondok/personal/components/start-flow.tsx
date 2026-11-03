@@ -9,7 +9,7 @@ import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } 
 import { HoondokMascot } from "@/components/hoondok";
 import { isHoondokMascotEnabled } from "@/features/hoondok/flag";
 import { useCurrentUser } from "@/features/identity/use-current-user";
-import { HOONDOK_FAVICON_SVG } from "../../pwa";
+import { HOONDOK_LOGO } from "../../pwa";
 import {
   CRISIS_MOOD_ID,
   countLimitedMoods,
@@ -60,7 +60,7 @@ function toggle(list: readonly string[], id: string): string[] {
 function Brand() {
   return (
     <div className="onb__brand">
-      <img src={HOONDOK_FAVICON_SVG} alt="" width={32} height={32} />
+      <img src={HOONDOK_LOGO} alt="" width={32} height={32} />
       훈독
     </div>
   );
