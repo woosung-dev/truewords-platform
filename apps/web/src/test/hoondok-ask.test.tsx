@@ -41,10 +41,7 @@ vi.mock("@/features/hoondok/library/api", () => ({
   wordsHref: (volume: string) => `/words/${encodeURIComponent(volume)}`,
 }));
 
-import {
-  ASK_QUESTION_MAX,
-  requestHoondokAsk,
-} from "@/features/hoondok/ask/ask-stream";
+import { ASK_QUESTION_MAX, requestHoondokAsk } from "@/features/hoondok/ask/ask-stream";
 import { asksAPI } from "@/features/hoondok/ask/asks-api";
 import { AskDetail } from "@/features/hoondok/ask/components/ask-detail";
 import { ASK_EXAMPLES, AskHome } from "@/features/hoondok/ask/components/ask-home";
