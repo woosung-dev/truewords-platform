@@ -39,7 +39,7 @@ import { withObjectParticle } from "@/features/hoondok/together/josa";
 import { useGroup, useInvitePreview, useToggleReaction } from "@/features/hoondok/together/use-groups";
 import { useCompleteMission } from "@/features/hoondok/use-missions";
 import { identityAPI } from "@/features/identity/api";
-import { carryInviteCode, inviteCodeFromReturnTo } from "@/features/identity/gate";
+import { carryInviteCode, inviteCodeFromReturnTo, safeReturnTo } from "@/features/identity/gate";
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -340,6 +340,8 @@ describe("가입 폼 초대 코드 미리 채움 (D4)", () => {
     expect(inviteCodeFromReturnTo("/groups/join?code=ABCD-2345&x=1")).toBe("ABCD-2345");
     expect(inviteCodeFromReturnTo("/groups/join")).toBe("");
     expect(inviteCodeFromReturnTo("/read?code=ABCD2345")).toBe("");
+    // 배포 전에 열린 탭의 예전 주소도 safeReturnTo 를 거치면 같은 코드가 나온다 (DEC-PWA-026)
+    expect(inviteCodeFromReturnTo(safeReturnTo("/hoondok/groups/join?code=abcd2345"))).toBe("ABCD-2345");
   });
 
   it("참여 링크에서 온 온보딩은 초대 코드 칸이 채워져 있고 그대로 가입에 보낸다", async () => {

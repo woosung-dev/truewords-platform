@@ -39,8 +39,15 @@ describe("returnTo 검증 (open redirect 방지)", () => {
     expect(safeReturnTo("/read")).toBe("/read");
     expect(safeReturnTo("/?x=1")).toBe("/?x=1");
     expect(safeReturnTo("/")).toBe("/");
-    // 예전 주소도 그대로 둔다 — 서버가 308 로 루트 주소에 보낸다
-    expect(safeReturnTo("/hoondok/read")).toBe("/hoondok/read");
+    // 웹 루트 이전 전 주소는 루트 경로로 바꾼다 (DEC-PWA-026)
+    expect(safeReturnTo("/hoondok/read")).toBe("/read");
+    expect(safeReturnTo("/hoondok")).toBe("/");
+    expect(safeReturnTo("/hoondok?x=1")).toBe("/?x=1");
+    expect(safeReturnTo("/hoondok/groups/join?code=ABCD2345")).toBe("/groups/join?code=ABCD2345");
+    expect(safeReturnTo("/hoondokx")).toBe("/hoondokx");
+    expect(safeReturnTo("/hoondok/onboarding")).toBe("/");
+    expect(safeReturnTo("/hoondok//evil.example")).toBe("/");
+    expect(safeReturnTo("/hoondok/\\evil.example")).toBe("/");
     for (const bad of [
       "https://evil.example",
       "//evil.example",

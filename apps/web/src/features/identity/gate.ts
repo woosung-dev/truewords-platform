@@ -8,10 +8,19 @@ import { useCurrentUser } from "./use-current-user";
 
 const ONBOARDING = "/onboarding";
 
-/** returnTo 는 같은 origin 의 절대 경로(`/…`)만 허용한다 (open redirect 방지 — `//`·`/\` 로 시작하면 다른 호스트로 해석된다). 아니면 홈. */
+/** 웹 루트 이전(DEC-PWA-026) 전 주소의 접두. 배포 전에 열린 탭·저장된 링크의 returnTo 에 남아 있다. */
+const LEGACY_PREFIX = /^\/hoondok(?=[/?#]|$)/;
+
+/**
+ * returnTo 는 같은 origin 의 절대 경로(`/…`)만 허용한다 (open redirect 방지 — `//`·`/\` 로 시작하면 다른 호스트로 해석된다). 아니면 홈.
+ * 예전 `/hoondok/…` 주소는 루트 경로로 바꾼 뒤 검사한다 — 그래야 모임 참여 링크의 초대 코드가 가입 칸에 채워지고 308 을 한 번 덜 탄다.
+ */
 export function safeReturnTo(raw: string | null | undefined): string {
-  if (!raw || raw.startsWith(ONBOARDING)) return "/";
-  return /^\/(?![/\\])/.test(raw) ? raw : "/";
+  if (!raw) return "/";
+  const path = raw.replace(LEGACY_PREFIX, "");
+  const normalized = path === "" || /^[?#]/.test(path) ? `/${path}` : path;
+  if (normalized.startsWith(ONBOARDING)) return "/";
+  return /^\/(?![/\\])/.test(normalized) ? normalized : "/";
 }
 
 /**
