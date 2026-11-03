@@ -99,6 +99,15 @@
 
 터널 하나에 두 서버의 커넥터가 동시에 붙으면 Cloudflare 가 요청을 임의 분산해 데이터와 배포 상태가 갈리는 split-brain 이 발생한다. 다른 환경의 토큰을 재사용하지 않는다.
 
+### 엣지 보안 설정 `[확인 필요]` (2026-11-04 보안 점검)
+
+코드로 1차 방어를 넣었지만(로그인 IP 30회/분·IPv6 /64 묶음·프레임 금지 헤더·푸시 호스트 허용 목록) 아래는 저장소 밖이라 소유자가 대시보드·VM 에서 확인한다. 감사 트래픽은 보내지 않는다.
+
+- Security → WAF → Rate limiting rules 에 `/api/backend/hoondok/auth/login`·`/admin/auth/login` 이 들어 있는지. 없으면 엣지 상한을 더한다(앱 상한은 단일 워커 메모리 카운터다).
+- Network 탭의 IPv6 Compatibility·Pseudo IPv4 설정 — `CF-Connecting-IP` 가 IPv6 원본이면 앱이 /64 로 묶는다.
+- Transform Rules 가 X-Frame-Options·CSP 를 덧붙이거나 지우는지(앱 헤더와 겹쳐도 같은 값이면 무방).
+- VM 의 `sudo docker network inspect truewords_net`·`ss -ltnp` 로 인증 없이 POST 를 받는 내부 http 서비스가 있는지(푸시 발송기 SSRF 잔여 위험 판단용).
+
 ### 터널 배치 방식 (2026-09-06 결정: 현행 유지)
 
 이 VM 에는 프로젝트별 cloudflared 컨테이너 4개(터널 4개)가 있다. truewords 의 cloudflared 는 `truewords_net` 에 붙어 **서비스명**(`web:3000`·`admin:3000`·`backend:8080`)으로 라우팅하고 web/admin/backend 는 호스트 포트를 열지 않는다. nexus·kairos·quantbridge 의 cloudflared 는 `network_mode: host` 로 `localhost:<프로젝트별 포트>` 를 가리킨다. Cloudflare 문서는 터널 하나에 hostname 여러 개를 싣는 것을 기본으로 하되 호스트당/앱당 터널 수를 규정하지 않으며, 컨테이너 환경에서는 같은 사용자 정의 네트워크 + 서비스명(zero-port)이 권장 패턴이다. 비교: ① 현행(프로젝트별 터널·격리) ★4 ② 다른 프로젝트도 서비스명 방식으로 ★3(해당 레포를 손볼 때) ③ VM 단일 cloudflared 로 통합 ★2(재시작·오설정이 4프로젝트 동시 장애, 서비스명 충돌) ④ truewords 를 host 모드·localhost 포트로 ★1(포트 공개, 보안 후퇴). 컨테이너 모드에서 `localhost` 는 cloudflared 자신을 가리켜 502 다.
