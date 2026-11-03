@@ -5,7 +5,7 @@
 import { AlertCircle, Copy, Share2, Users } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
-import { HoondokButton } from "@/components/hoondok";
+import { HoondokButton, HoondokMascot } from "@/components/hoondok";
 import { formatKstMonthDay } from "@/features/hoondok/today";
 import { onboardingHref } from "@/features/identity/gate";
 import { serverDate as toDate } from "@/lib/server-date";
@@ -86,7 +86,7 @@ export function GroupLoginRequired({ returnTo, title, body }: { returnTo: string
     <div className="card">
       <div className="empty">
         <span className="empty__ic" aria-hidden="true">
-          <Users size={28} />
+          <HoondokMascot pose="welcome" size={72} fallback={<Users size={28} />} />
         </span>
         <h2 className="empty__title">{title}</h2>
         <p className="empty__body">{body}</p>
@@ -106,7 +106,7 @@ export function GroupUnavailable() {
     <div className="card" role="status">
       <div className="empty">
         <span className="empty__ic" aria-hidden="true">
-          <Users size={28} />
+          <HoondokMascot pose="rest" size={72} fallback={<Users size={28} />} />
         </span>
         <h2 className="empty__title">이 모임을 볼 수 없어요</h2>
         <p className="empty__body">모임에서 나갔거나 모임이 삭제되었을 수 있어요.</p>

@@ -80,6 +80,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("질문 기록 저장소 (기기 전용)", () => {
@@ -248,6 +249,28 @@ describe("질문·답변 상세 (SCR-PWA-006)", () => {
     expect(await screen.findByText("질문을 그만뒀어요. 다시 시도하면 처음부터 찾아요")).toBeInTheDocument();
     expect(readAskItem("q1")?.status).toBe("error");
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+  });
+
+  it("마스코트를 켜면 대기·근거 없음에 찾는 부엉이와 안내 한 줄이 붙고, 답이 나온 화면에는 부엉이가 없다", async () => {
+    vi.stubEnv("NEXT_PUBLIC_HOONDOK_MASCOT", "1");
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+    appendAskItem(item("q1"));
+    const waiting = render(<AskDetail id="q1" />);
+    expect(await screen.findByText("찾은 말씀 안에서만 설명해요.")).toBeInTheDocument();
+    expect(waiting.container.querySelector('.ask-wait img.owl[data-pose="search"]')).not.toBeNull();
+    waiting.unmount();
+
+    appendAskItem(item("q2", { status: "no-sources" }));
+    const none = render(<AskDetail id="q2" />);
+    expect(await screen.findByText("책 이름이나 핵심 낱말을 넣으면 찾기 쉬워요.")).toBeInTheDocument();
+    expect(none.container.querySelector(".ask-fail img.owl")).not.toBeNull();
+    none.unmount();
+
+    appendAskItem(item("q3", { status: "answered", answer: "답 본문", sources: [SOURCE] }));
+    const answered = render(<AskDetail id="q3" />);
+    expect(await screen.findByText(SOURCE.volume)).toBeInTheDocument();
+    // 답 옆에 부엉이가 서면 부엉이가 답하는 존재로 읽힌다
+    expect(answered.container.querySelector(".owl")).toBeNull();
   });
 
   it("근거 카드 출처 줄은 모르는 칸을 '확인되지 않음' 으로 적고 정본 등급 배지를 쓰지 않는다", async () => {

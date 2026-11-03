@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 // index.ts 의 export 정리는 W4 담당이라 경로를 직접 가리킨다 (PLAN-HD-002 §3.1).
 import { HoondokButton, MonthCalendar } from "@/components/hoondok";
-import { isHoondokCardsEnabled } from "@/features/hoondok/flag";
+import { isHoondokCardsEnabled, isHoondokMascotEnabled } from "@/features/hoondok/flag";
 import { JeongseongDayBadge, JeongseongProgress } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import type { JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
 import { PersonalGardenEntry } from "@/features/hoondok/personal/components/garden-entry";
@@ -202,7 +202,8 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
               <div className="stats">
                 <div>
                   <b className="stats__n stats__n--accent">
-                    <Flame size={20} aria-hidden="true" />
+                    {/* 마스코트를 켜면 불꽃(듀오링고 연속일 기호)을 뺀다 — 부엉이와 불꽃이 함께 있으면 연속일 압박으로 읽힌다 */}
+                    {!isHoondokMascotEnabled() && <Flame size={20} aria-hidden="true" />}
                     {stats.streak_days}
                   </b>
                   <span className="stats__lab">현재 연속일</span>

@@ -5,6 +5,7 @@
 import { MessageCircleQuestion } from "lucide-react";
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
+import { HoondokMascot } from "@/components/hoondok";
 import { handleSegmentKeyDown } from "@/features/hoondok/segmented-keyboard";
 import { askMetaLabel } from "../format";
 import { type AskItem, EMPTY_ASK_ITEMS, readAskItems, subscribeAsk } from "../storage";
@@ -52,7 +53,11 @@ export function AskLog() {
         {shown.length === 0 ? (
           <div className="empty">
             <span className="empty__ic">
-              <MessageCircleQuestion size={26} aria-hidden="true" />
+              <HoondokMascot
+                pose="reading"
+                size={72}
+                fallback={<MessageCircleQuestion size={26} aria-hidden="true" />}
+              />
             </span>
             <h2 className="empty__title">{segment === "saved" ? "저장한 답이 없어요" : "아직 질문이 없어요"}</h2>
             <p className="empty__body">말씀을 읽다 생긴 물음을 편하게 적어 보세요.</p>

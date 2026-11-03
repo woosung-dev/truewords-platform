@@ -208,10 +208,11 @@ rollback-admin: ## ⚠️ 이전 admin 이미지로 롤백 (`TAG=<이전 sha>` �
 HOONDOK_ENABLED ?= $(call build_arg,NEXT_PUBLIC_HOONDOK_ENABLED)
 HOONDOK_TOGETHER ?= $(call build_arg,NEXT_PUBLIC_HOONDOK_TOGETHER)
 HOONDOK_CARDS ?= $(call build_arg,NEXT_PUBLIC_HOONDOK_CARDS)
+HOONDOK_MASCOT ?= $(call build_arg,NEXT_PUBLIC_HOONDOK_MASCOT)
 deploy-web: ## [비상] 사용자 웹 배포. 빌드 인자는 build-args.env (다른 값은 FORCE_DEPLOY=1).
 	@$(HEAD_ONLY)
-	@[ -n "$(FORCE_DEPLOY)" ] || [ "$(WEB_URL) $(ADMIN_URL) $(HOONDOK_ENABLED) $(HOONDOK_TOGETHER) $(HOONDOK_CARDS)" = \
-		"$(call build_arg,NEXT_PUBLIC_WEB_URL) $(call build_arg,NEXT_PUBLIC_ADMIN_URL) $(call build_arg,NEXT_PUBLIC_HOONDOK_ENABLED) $(call build_arg,NEXT_PUBLIC_HOONDOK_TOGETHER) $(call build_arg,NEXT_PUBLIC_HOONDOK_CARDS)" ] \
+	@[ -n "$(FORCE_DEPLOY)" ] || [ "$(WEB_URL) $(ADMIN_URL) $(HOONDOK_ENABLED) $(HOONDOK_TOGETHER) $(HOONDOK_CARDS) $(HOONDOK_MASCOT)" = \
+		"$(call build_arg,NEXT_PUBLIC_WEB_URL) $(call build_arg,NEXT_PUBLIC_ADMIN_URL) $(call build_arg,NEXT_PUBLIC_HOONDOK_ENABLED) $(call build_arg,NEXT_PUBLIC_HOONDOK_TOGETHER) $(call build_arg,NEXT_PUBLIC_HOONDOK_CARDS) $(call build_arg,NEXT_PUBLIC_HOONDOK_MASCOT)" ] \
 		|| { echo "❌ 빌드 인자가 $(BUILD_ARGS_FILE) 와 다릅니다 — 파일을 고쳐 머지하거나(정상) 비상이면 FORCE_DEPLOY=1"; exit 1; }
 	@$(MAKE) --no-print-directory deploy-guard DEPLOY_SERVICE=WEB
 	@$(MAKE) --no-print-directory ops-check || echo "⚠️  ops-check 위반 있음 — 배포는 계속합니다. 위 DETAIL 확인."
@@ -221,6 +222,7 @@ deploy-web: ## [비상] 사용자 웹 배포. 빌드 인자는 build-args.env (�
 		--build-arg NEXT_PUBLIC_HOONDOK_ENABLED=$(HOONDOK_ENABLED) \
 		--build-arg NEXT_PUBLIC_HOONDOK_TOGETHER=$(HOONDOK_TOGETHER) \
 		--build-arg NEXT_PUBLIC_HOONDOK_CARDS=$(HOONDOK_CARDS) \
+		--build-arg NEXT_PUBLIC_HOONDOK_MASCOT=$(HOONDOK_MASCOT) \
 		--label org.opencontainers.image.revision=$(DEPLOY_SHA) -t $(WEB_IMG) --load .
 	@$(call TRANSFER_IMAGE,$(WEB_IMG),web-$(TAG))
 	@$(call VM_DEPLOY_SH,$(GUARD_MODE),deploy $(DEPLOY_SHA) web)

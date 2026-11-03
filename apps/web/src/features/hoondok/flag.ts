@@ -17,3 +17,9 @@ export function isHoondokTogetherEnabled(): boolean {
 export function isHoondokCardsEnabled(): boolean {
   return process.env.NEXT_PUBLIC_HOONDOK_CARDS === "1";
 }
+
+// 부엉이 마스코트 (조용한 곁 — 빈 상태·오프라인·편성 없는 날에만). 빌드 시 고정, 미설정 = OFF.
+// OFF 면 지금 아이콘 그대로이고, ON 이면 그 자리에 부엉이 그림이 들어가고 정원 연속일의 불꽃 아이콘이 빠진다.
+export function isHoondokMascotEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_HOONDOK_MASCOT === "1";
+}

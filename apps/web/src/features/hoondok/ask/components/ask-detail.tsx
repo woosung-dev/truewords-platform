@@ -7,7 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { CornerDownRight, MessageCircleQuestion, Share2, Sparkles, Sunrise } from "lucide-react";
 import Link from "next/link";
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { HoondokButton } from "@/components/hoondok";
+import { HoondokButton, HoondokMascot } from "@/components/hoondok";
+import { isHoondokMascotEnabled } from "@/features/hoondok/flag";
 import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
 import { askErrorMessage, requestAsk } from "../ask-stream";
 import { SOURCE_RANK_UNKNOWN, sourceFields } from "../format";
@@ -135,10 +136,13 @@ export function AskDetail({ id }: { id: string }) {
       {/* 대기는 수 초~십여 초다. 회전 1종(1.2s)으로 진행 중임을 알리고 그만둘 길을 함께 둔다 (DES §1.5) */}
       {item.status === "pending" && (
         <div className="ask-wait" role="status" aria-busy="true">
+          {/* 부엉이는 메시지 위에 쌓는다 — 스피너·부엉이·문장이 한 줄에 서면 390px 에서 문장이 끊긴다 */}
+          <HoondokMascot pose="search" size={56} motion="breathe" />
           <p className="ask-wait__msg">
             <span className="ask-spinner" aria-hidden="true" />
             근거 말씀을 찾고 있어요. 잠시만 기다려 주세요.
           </p>
+          {isHoondokMascotEnabled() && <p className="ask-wait__sub">찾은 말씀 안에서만 설명해요.</p>}
           <HoondokButton variant="line" isSmall onClick={handleStop}>
             그만두기
           </HoondokButton>
@@ -160,7 +164,9 @@ export function AskDetail({ id }: { id: string }) {
 
       {item.status === "no-sources" && (
         <div className="card ask-fail" role="status">
+          <HoondokMascot pose="search" size={56} />
           <p className="ask-fail__msg">{GATE_MESSAGE}</p>
+          {isHoondokMascotEnabled() && <p className="ask-fail__sub">책 이름이나 핵심 낱말을 넣으면 찾기 쉬워요.</p>}
           <Link className="btn btn-line btn--sm" href="/hoondok/ask">
             다시 물어보기
           </Link>

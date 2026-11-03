@@ -6,6 +6,8 @@
 import { ArrowLeft, Lock } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { HoondokMascot } from "@/components/hoondok";
+import { isHoondokMascotEnabled } from "@/features/hoondok/flag";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { HOONDOK_FAVICON_SVG } from "../../pwa";
 import {
@@ -237,8 +239,11 @@ export function StartFlow() {
         <div className="onb__main">
           <div className="onb-welcome__body">
             <Brand />
+            {/* 부엉이는 첫 화면에만 둔다 — 질문 단계·위기 안내(CrisisNotice)·첫 말씀에는 두지 않는다 */}
+            <HoondokMascot pose="welcome" size={72} />
             <Title titleRef={titleRef}>먼저 세 가지만 여쭐게요</Title>
             <p className="onb-lede">답에 맞춰 첫 말씀과 오늘 훈독에 꽂아 둘 장을 골라 드려요.</p>
+            {isHoondokMascotEnabled() && <p className="onb-why">고른 답은 나의 정원에서 언제든 바꿀 수 있어요.</p>}
             <dl className="onb-asks">
               <div className="onb-asks__row">
                 <dt>관심 주제</dt>

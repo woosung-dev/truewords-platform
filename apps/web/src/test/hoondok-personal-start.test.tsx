@@ -191,6 +191,29 @@ describe("맞춤 첫 말씀 질문 흐름", () => {
   });
 });
 
+describe("부엉이 마스코트(B 길잡이)", () => {
+  it("플래그를 켜면 첫 화면에만 인사하는 부엉이와 바꾸기 안내가 있고, 질문·위기 안내 단계에는 부엉이가 없다", () => {
+    vi.stubEnv("NEXT_PUBLIC_HOONDOK_MASCOT", "1");
+    const { container } = renderFlow();
+    expect(container.querySelector('img.owl[data-pose="welcome"]')).not.toBeNull();
+    expect(screen.getByText("고른 답은 나의 정원에서 언제든 바꿀 수 있어요.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    expect(container.querySelector(".owl")).toBeNull();
+    fireEvent.click(screen.getByRole("checkbox", { name: /가정과 부부/ }));
+    next();
+    fireEvent.click(screen.getByRole("checkbox", { name: "많이 힘들어요" }));
+    expect(screen.getByRole("region", { name: "혼자 견디지 않으셔도 돼요" })).toBeInTheDocument();
+    expect(container.querySelector(".owl")).toBeNull();
+  });
+
+  it("플래그가 없으면 첫 화면에 부엉이도 바꾸기 안내도 없다", () => {
+    const { container } = renderFlow();
+    expect(container.querySelector(".owl")).toBeNull();
+    expect(screen.queryByText("고른 답은 나의 정원에서 언제든 바꿀 수 있어요.")).toBeNull();
+  });
+});
+
 describe("첫 말씀 제목", () => {
   it("이름이 없으면 대체 호칭 없이 '오늘의 첫 말씀' 이다", async () => {
     currentUser.value = { user: null };

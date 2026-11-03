@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Highlighter } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { HoondokButton } from "@/components/hoondok";
+import { HoondokButton, HoondokMascot } from "@/components/hoondok";
 import { handleSegmentKeyDown } from "@/features/hoondok/segmented-keyboard";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
@@ -47,7 +47,7 @@ export function RecordsEmpty({ title, isNested = false }: { title: string; isNes
   return (
     <div className="empty gd-empty">
       <span className="empty__ic" aria-hidden="true">
-        <Highlighter size={28} />
+        <HoondokMascot pose="reading" size={72} fallback={<Highlighter size={28} />} />
       </span>
       <Heading className="empty__title">{title}</Heading>
       <p className="empty__body">말씀 원문에서 구절을 고르면 형광펜·노트를 남길 수 있어요.</p>
@@ -271,7 +271,7 @@ export function RecordsScreen() {
         <div className="card">
           <div className="empty">
             <span className="empty__ic" aria-hidden="true">
-              <Highlighter size={28} />
+              <HoondokMascot pose="reading" size={72} fallback={<Highlighter size={28} />} />
             </span>
             <h2 className="empty__title">로그인하면 형광펜·노트가 여기에 모여요</h2>
             <p className="empty__body">원문에서 남긴 기록을 책별로, 원문 순서대로 다시 볼 수 있어요.</p>

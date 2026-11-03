@@ -183,6 +183,21 @@
     gap: 8px;
     margin: 0 0 12px;
   }
+  /* 부엉이(마스코트 플래그)는 메시지 위 가운데에 쌓는다 */
+  .ask-wait > .owl,
+  .ask-fail > .owl {
+    margin: 0 auto 10px;
+  }
+  .ask-wait__msg {
+    word-break: keep-all;
+  }
+  .ask-wait__sub,
+  .ask-fail__sub {
+    margin: -6px 0 12px;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+    word-break: keep-all;
+  }
   /* 회전 1종 1.2s 등속 — 크기·굵기·색은 진행 바와 같은 계열이다 (DES §1.5) */
   .ask-spinner {
     width: 16px;

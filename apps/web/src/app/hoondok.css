@@ -19,6 +19,27 @@
   }
 }
 
+/* 부엉이 마스코트 — 놓일 때 1회(settle), AI 대기 중 2회(breathe). @keyframes 는 중첩할 수 없어 최상위에 둔다 */
+@keyframes hoondok-owl-settle {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hoondok-owl-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
 /* ---------- 1. 토큰 (첫 블록 = 유일한 hex 허용 구역) ---------- */
 [data-app="hoondok"] {
   --paper: #fbfaf8;
@@ -580,6 +601,25 @@
     color: var(--ink-3);
     display: grid;
     place-items: center;
+  }
+  /* 부엉이 마스코트(NEXT_PUBLIC_HOONDOK_MASCOT). 모션은 횟수가 정해진 1~2회뿐이고 fill-mode 없이 기본 상태가 끝 상태다 —
+     전역 reduced-motion 규칙이 끄면 부엉이가 바로 제자리에 보인다 */
+  .owl {
+    display: block;
+    flex: none;
+    object-fit: contain;
+    transform-origin: 50% 90%;
+  }
+  .owl--settle {
+    animation: hoondok-owl-settle 320ms ease-out;
+  }
+  .owl--breathe {
+    animation: hoondok-owl-breathe 2.4s ease-in-out 2;
+  }
+  .day-quiet__ic:has(.owl) {
+    background: transparent;
+    width: 44px;
+    height: 44px;
   }
   .empty__title {
     font-size: var(--fs-lg);

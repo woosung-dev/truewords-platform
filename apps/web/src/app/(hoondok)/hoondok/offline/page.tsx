@@ -7,13 +7,14 @@
 // (카드 16px + 빈 상태 36px 이 겹치면 버튼 아래 빈 공간만 남는다).
 import { WifiOff } from "lucide-react";
 import Link from "next/link";
+import { HoondokMascot } from "@/components/hoondok";
 
 export default function HoondokOfflinePage() {
   return (
     <section className="col">
       <div className="empty">
         <span className="empty__ic" aria-hidden="true">
-          <WifiOff size={26} />
+          <HoondokMascot pose="rest" size={72} fallback={<WifiOff size={26} />} />
         </span>
         <h2 className="empty__title">지금은 오프라인이에요</h2>
         <p className="empty__body">
