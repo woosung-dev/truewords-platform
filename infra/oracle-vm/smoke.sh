@@ -217,12 +217,12 @@ if [ "$HOONDOK" = "1" ]; then
   sw_version() { grep -o 'SW_VERSION *= *"[^"]*"' "$1" | head -1 | sed 's/.*"\(.*\)"/\1/'; }
   REPO_SW="$(dirname "$0")/../../apps/web/public/sw.js"
 
-  CODE=$(fetch "$SW")
+  SW_CODE=$(fetch "$SW")
   SW_CACHE=$(header_value "cache-control")
   SERVED_VER=$(sw_version "$BODY_FILE")
   REPO_VER=$([ -f "$REPO_SW" ] && sw_version "$REPO_SW")
-  if [ "$CODE" != "200" ]; then
-    record "sw" FAIL "${SW} → ${CODE} (기대 200)"
+  if [ "$SW_CODE" != "200" ]; then
+    record "sw" FAIL "${SW} → ${SW_CODE} (기대 200)"
   elif [ -z "$SERVED_VER" ]; then
     record "sw" FAIL "본문에 SW_VERSION 이 없다 — 엣지가 sw.js 가 아닌 것을 내고 있다"
   elif [ -n "$REPO_VER" ] && [ "$SERVED_VER" != "$REPO_VER" ]; then
@@ -240,7 +240,7 @@ if [ "$HOONDOK" = "1" ]; then
   else
     record "sw-retired" FAIL "${RETIRED_SW} → ${CODE} · Service-Worker-Allowed '${RETIRED_ALLOWED:-없음}' (기대 200 · /hoondok)"
   fi
-  if [ "$CODE" = "200" ] && ! echo "$SW_CACHE" | grep -qi "no-cache"; then
+  if [ "$SW_CODE" = "200" ] && ! echo "$SW_CACHE" | grep -qi "no-cache"; then
     record "sw-cache" WARN "엣지가 Cache-Control 을 '${SW_CACHE:-없음}' 로 덮어썼다 (오리진은 no-cache) — updateViaCache:none 이 막고 있어 무해하다. 없애려면 Cloudflare Cache Rule: ${SW} → Browser TTL 'Respect origin'"
   fi
 

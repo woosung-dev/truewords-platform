@@ -178,6 +178,9 @@ WARN 을 없애려면 Cloudflare 에 Cache Rule 하나를 건다 (Page Rules 는
 배포 후 응답이 갱신되지 않을 때 확인:
 
 ```bash
+# sw (루트 SW·킬스위치)
+curl -sI https://truewords.woosung.dev/sw.js | grep -i 'cache-control\|cf-cache-status\|age'
+# sw-retired (예전 /hoondok 등록용 은퇴 스크립트)
 curl -sI https://truewords.woosung.dev/hoondok/sw.js | grep -i 'cache-control\|cf-cache-status\|service-worker-allowed'
 ```
 
