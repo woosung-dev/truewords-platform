@@ -66,6 +66,10 @@ const nextConfig: NextConfig = {
       // 308 은 영구이고 메서드를 유지한다. 쿼리는 Next 가 그대로 붙인다. 자산 경로는 LEGACY_HOONDOK_PAGE 가 건너뛴다.
       { source: "/hoondok", destination: "/", permanent: true },
       { source: LEGACY_HOONDOK_PAGE, destination: "/:path", permanent: true },
+      // 삭제한 시연 챗 화면 주소(북마크·공유 링크·홈 화면 바로가기)를 가까운 훈독 화면으로 보낸다. 시연 데이터와 이어지지 않으므로 임시(307)다.
+      { source: "/login", destination: "/onboarding", permanent: false },
+      { source: "/history", destination: "/ask", permanent: false },
+      { source: "/about", destination: "/", permanent: false },
       // 기존 사용자 origin에 남은 관리 URL을 독립 관리자 앱으로 연결한다. `settings` 는 훈독 알림·설치 화면(/settings)이라 뺐다.
       ...["dashboard", "chatbots", "data-sources", "analytics", "feedback", "audit-logs"].map((route) => ({
         source: `/${route}/:path*`,

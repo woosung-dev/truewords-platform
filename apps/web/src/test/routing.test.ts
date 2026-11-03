@@ -65,4 +65,10 @@ describe("웹 루트 = 훈독 (DEC-PWA-026)", () => {
     expect(await legacyRedirect("/settings")).toBeNull();
     expect(await legacyRedirect("/dashboard")).toMatch(/^http:\/\/localhost:3001\/dashboard\//);
   });
+
+  it("삭제한 시연 챗 주소는 가까운 훈독 화면으로 임시 리다이렉트한다", async () => {
+    expect(await legacyRedirect("/login")).toBe("/onboarding");
+    expect(await legacyRedirect("/history")).toBe("/ask");
+    expect(await legacyRedirect("/about")).toBe("/");
+  });
 });
