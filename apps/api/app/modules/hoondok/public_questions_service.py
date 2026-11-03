@@ -4,9 +4,8 @@
 - 마음 돌봄(pastoral)·위기 신호 답, 근거 인용이 없는 답, 이어 물은 답(세션 첫 답이 아님)은 공개하지 않는다(409).
 - 본인이 같은 답을 다시 신청하면 기존 신청을 그대로 돌려준다(응답 유실 복구).
 - 공개 범위는 status=published 뿐. 본인 삭제는 행을 지워 관리자도 되살릴 수 없게 한다.
-
-[확인 필요] 채팅 세션은 훈독 계정에 귀속되지 않는다(익명 세션). 그래서 message_id 를 아는 사람(= 답을 받은 기기)을
-작성자로 본다 — message_id 는 SSE 로 그 기기에만 전달되는 UUID4 다.
+- 신청자는 답이 달린 채팅 세션의 소유자(research_sessions.user_id = 훈독 user id)여야 한다. 아니면 없는 답과 같은 404 —
+  훈독 AI 질문은 POST /hoondok/ask/stream 으로만 계정 세션에 묶인다(DEC-PWA-025 2차).
 """
 
 import re
@@ -37,6 +36,7 @@ PUBLIC_STATUS = "published"
 SOURCE_LIMIT = 3
 PREVIEW_LENGTH = 120
 NOT_FOUND = "질문을 찾을 수 없어요"
+ANSWER_NOT_FOUND = "답을 찾을 수 없어요"
 DUPLICATE = "이미 공개를 신청한 답이에요"
 NOT_SHAREABLE = "마음 돌봄이 필요한 답은 공개할 수 없어요"
 NO_EVIDENCE = "근거 말씀이 없는 답은 공개할 수 없어요"
@@ -90,7 +90,10 @@ class PublicQuestionService:
     async def submit(self, user_id: uuid.UUID, message_id: uuid.UUID) -> MyPublicQuestionItem:
         answer = await self.repo.get_message(message_id)
         if answer is None or answer.role != MessageRole.ASSISTANT:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "답을 찾을 수 없어요")
+            raise HTTPException(status.HTTP_404_NOT_FOUND, ANSWER_NOT_FOUND)
+        if await self.repo.get_session_owner(answer.session_id) != user_id:
+            # 남의 답·익명 세션·시연 챗 답 — 존재 여부를 드러내지 않도록 없는 답과 같은 404.
+            raise HTTPException(status.HTTP_404_NOT_FOUND, ANSWER_NOT_FOUND)
         existing = await self.repo.get_by_message(message_id)
         if existing is not None:
             # 본인 재신청(응답 유실 뒤 다시 신청)은 기존 신청을 돌려줘 기기가 publicId 를 되찾게 한다.
@@ -130,7 +133,11 @@ class PublicQuestionService:
         try:
             saved = await self.repo.save(row)
         except IntegrityError:
-            # 같은 답의 동시 신청 — message_id unique 가 잡았다.
+            # 같은 답의 동시 신청 — message_id unique 가 잡았다. 본인끼리 겹친 것(답 직후 자동 신청 + 버튼)이면
+            # 먼저 들어간 신청을 돌려줘 위의 본인 재신청과 같게 끝낸다.
+            winner = await self.repo.get_by_message(message_id)
+            if winner is not None and winner.user_id == user_id:
+                return _mine(winner)
             raise HTTPException(status.HTTP_409_CONFLICT, DUPLICATE) from None
         return _mine(saved)
 

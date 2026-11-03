@@ -37,7 +37,51 @@ function kstDate(iso: string): string {
   return Number.isNaN(date.getTime()) ? iso : kstTodayIso(date);
 }
 
-/** 사용자가 공개를 신청한 질문·답 검수. 공개한 것만 훈독 질문 목록에 익명으로 나간다. */
+/**
+ * 답 미리보기 — 관리자 앱에는 마크다운 렌더러가 없어(새 의존성 없이) 제목 줄과 **굵게**만 가볍게 처리한다.
+ * 나머지 기호는 원문 그대로 둔다. HTML 로 해석하지 않고 React 텍스트로만 넣는다.
+ */
+function renderInline(text: string) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.length > 4 && part.startsWith("**") && part.endsWith("**") ? (
+      // biome-ignore lint/suspicious/noArrayIndexKey: 한 줄 안에서 순서가 고정된 조각
+      <strong key={i} className="font-semibold">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      part
+    ),
+  );
+}
+
+function AnswerPreview({ text }: { text: string }) {
+  return (
+    <div className="space-y-1 text-sm leading-relaxed">
+      {text.split("\n").map((line, i) => {
+        const heading = /^\s{0,3}#{1,6}\s+(.*?)\s*#*\s*$/.exec(line);
+        if (heading) {
+          return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: 읽기 전용 원문의 줄 순서
+            <p key={i} className="font-semibold pt-2 first:pt-0">
+              {renderInline(heading[1])}
+            </p>
+          );
+        }
+        // 빈 줄은 단락 사이 여백으로 둔다
+        // biome-ignore lint/suspicious/noArrayIndexKey: 읽기 전용 원문의 줄 순서
+        if (line.trim() === "") return <div key={i} className="h-2" aria-hidden />;
+        return (
+          // biome-ignore lint/suspicious/noArrayIndexKey: 읽기 전용 원문의 줄 순서
+          <p key={i} className="whitespace-pre-wrap">
+            {renderInline(line)}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+/** 추천 질문 고르기 — 식구가 공개를 허용한 질문·답(후보) 중 고른 것만 훈독 추천 목록에 익명으로 나간다. */
 export default function HoondokQuestionsPage() {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<QuestionStatus>("pending");
@@ -54,7 +98,7 @@ export default function HoondokQuestionsPage() {
   const reviewMutation = useMutation({
     mutationFn: ({ id, next }: { id: string; next: QuestionReviewStatus }) => questionsAPI.review(id, next),
     onSuccess: (_, { next }) => {
-      toast.success(next === "published" ? "공개했습니다" : "숨겼습니다");
+      toast.success(next === "published" ? "추천했습니다" : "추천에서 뺐습니다");
       refresh();
     },
     onError: (err: Error) => {
@@ -72,15 +116,15 @@ export default function HoondokQuestionsPage() {
   const items = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
   const busy = reviewMutation.isPending;
-  // 뒤쪽 쪽의 마지막 항목을 공개·숨김하면 그 쪽이 비고 쪽 넘김도 사라진다 — 남은 마지막 쪽으로 옮긴다
+  // 뒤쪽 쪽의 마지막 항목을 추천하거나 빼면 그 쪽이 비고 쪽 넘김도 사라진다 — 남은 마지막 쪽으로 옮긴다
   if (data && items.length === 0 && page > 1) setPage(totalPages < page ? totalPages : page - 1);
 
   return (
     <div className="space-y-5 page-wide">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">공개 질문 검수</h1>
+        <h1 className="text-2xl font-bold tracking-tight">추천 질문 고르기</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          사용자가 공개를 신청한 질문과 답이에요. 공개한 것만 훈독 질문 목록에 이름 없이 보여요.
+          식구님들이 공개를 허용한 질문과 답이에요. 추천한 것만 훈독 AI 질문의 추천 목록에 이름 없이 보여요.
         </p>
       </div>
 
@@ -128,7 +172,7 @@ export default function HoondokQuestionsPage() {
                   <TableHead className="font-semibold text-foreground">답변 모델</TableHead>
                   <TableHead className="font-semibold text-foreground">근거</TableHead>
                   <TableHead className="font-semibold text-foreground">상태</TableHead>
-                  <TableHead className="w-32" />
+                  <TableHead className="w-48" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -200,7 +244,7 @@ function QuestionRow({ item, open, onToggle, busy, onReview }: QuestionRowProps)
         <TableCell className="text-right whitespace-nowrap space-x-1.5">
           {item.status !== "published" && (
             <Button size="sm" variant="outline" disabled={busy} onClick={() => onReview("published")}>
-              공개
+              추천하기
             </Button>
           )}
           {item.status !== "hidden" && (
@@ -211,7 +255,7 @@ function QuestionRow({ item, open, onToggle, busy, onReview }: QuestionRowProps)
               disabled={busy}
               onClick={() => onReview("hidden")}
             >
-              숨김
+              추천에서 빼기
             </Button>
           )}
         </TableCell>
@@ -221,8 +265,7 @@ function QuestionRow({ item, open, onToggle, busy, onReview }: QuestionRowProps)
           <TableCell colSpan={6} className="bg-admin-muted/20 whitespace-normal">
             <section id={previewId} aria-label="답 미리보기" className="space-y-3 py-1">
               <p className="text-sm font-medium">{item.question}</p>
-              {/* 관리자 앱에는 마크다운 렌더러가 없어 원문 그대로 보여 준다. */}
-              <p className="text-sm leading-relaxed whitespace-pre-line">{item.answer_md}</p>
+              <AnswerPreview text={item.answer_md} />
               {item.sources.length > 0 && (
                 <div className="space-y-1.5">
                   <h3 className="text-xs font-medium text-muted-foreground">근거 {item.sources.length}건</h3>

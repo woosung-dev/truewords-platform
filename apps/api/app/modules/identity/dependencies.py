@@ -9,7 +9,9 @@ from app.core.common.database import get_async_session
 from app.core.config import settings
 from app.modules.admin.auth import decode_access_token
 from app.modules.hoondok.cards_repository import CardRepository
+from app.modules.hoondok.asks_repository import AskRepository
 from app.modules.hoondok.dependencies import (
+    get_ask_repository,
     get_card_repository,
     get_group_invite_verifier,
     get_group_repository,
@@ -65,6 +67,7 @@ async def get_user_data_purgers(
     groups: GroupRepository = Depends(get_group_repository),
     cards: CardRepository = Depends(get_card_repository),
     public_questions: PublicQuestionRepository = Depends(get_public_question_repository),
+    asks: AskRepository = Depends(get_ask_repository),
 ) -> list[UserDataPurger]:
     """계정 삭제(API-HD-011)에서 함께 지울 훈독 리포. identity → hoondok 의존은 이 DI 한 곳에만 둔다.
 
@@ -72,7 +75,8 @@ async def get_user_data_purgers(
     """
     # library = reading_positions·passage_marks·passage_highlights, groups = 모임원·한 줄·반응 + 리더 자동 이전 (PLAN-HD-010)
     # cards = card_receipts (PLAN-HD-012), public_questions = 공개 신청한 질문 (DEC-PWA-025)
-    return [missions, jeongseong, notifications, library, groups, cards, public_questions]
+    # asks = AI 질문 대화(채팅 세션·메시지·근거 포함)·하루 횟수 (DEC-PWA-025 2차)
+    return [missions, jeongseong, notifications, library, groups, cards, public_questions, asks]
 
 
 def decode_hoondok_token(token: str) -> uuid.UUID | None:

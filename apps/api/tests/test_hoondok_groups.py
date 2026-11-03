@@ -23,7 +23,18 @@ from app.main import app
 from app.modules.hoondok.dependencies import get_group_service, invite_join_limiter, invite_preview_limiter
 from app.modules.hoondok.groups_repository import GroupRepository
 from app.modules.hoondok.groups_service import GroupService, normalize_invite_code
+from app.modules.chat.models import (
+    AnswerCitation,
+    AnswerFeedback,
+    MessageReaction,
+    ResearchSession,
+    SearchEvent,
+    SessionMessage,
+)
 from app.modules.hoondok.models import (
+    AskThread,
+    AskTurn,
+    AskUsage,
     ClientErrorEvent,
     DailyReading,
     GroupMember,
@@ -103,6 +114,16 @@ async def ctx():
         WordCard,
         CardReceipt,
         PublicQuestion,  # 계정 삭제 purger (DEC-PWA-025)
+        # AI 질문 purger (DEC-PWA-025 2차) — 계정 채팅 세션까지 지운다
+        ResearchSession,
+        SessionMessage,
+        SearchEvent,
+        AnswerCitation,
+        AnswerFeedback,
+        MessageReaction,
+        AskThread,
+        AskTurn,
+        AskUsage,
         *GROUP_TABLES,
     ]
     async with engine.begin() as conn:

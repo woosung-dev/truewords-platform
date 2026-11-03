@@ -26,7 +26,6 @@ vi.mock("@/features/hoondok/jeongseong-api", () => ({
   jeongseongAPI: { current: vi.fn(), create: vi.fn(), abandon: vi.fn() },
 }));
 
-import { appendAskItem } from "@/features/hoondok/ask/storage";
 import { GardenScreen } from "@/features/hoondok/garden/components/garden-screen";
 import { historyAPI } from "@/features/hoondok/history-api";
 import { jeongseongAPI } from "@/features/hoondok/jeongseong-api";
@@ -465,14 +464,12 @@ describe("이 기기에만 있는 기록", () => {
     );
   });
 
-  it("한 줄 전부를 날짜와 함께 복사하고 저장한 AI 답은 수와 링크만 보인다 — 서버 요청 0", async () => {
+  it("한 줄 전부를 날짜와 함께 복사한다 — AI 답은 계정에 보관하므로 여기 없다, 서버 요청 0", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     writeNote("2026-09-26", "안부 전화 드리기");
     writeNote("2026-09-28", "먼저 인사하기");
-    appendAskItem({ id: "a1", question: "q1", status: "answered", createdAt: "2026-09-28T00:00:00Z", isSaved: true });
-    appendAskItem({ id: "a2", question: "q2", status: "answered", createdAt: "2026-09-28T00:00:00Z" });
 
     render(<DeviceRecordsScreen />);
     const items = await screen.findAllByRole("listitem");
@@ -485,11 +482,7 @@ describe("이 기기에만 있는 기록", () => {
       expect(writeText).toHaveBeenCalledWith("2026년 9월 28일\n먼저 인사하기\n\n2026년 9월 26일\n안부 전화 드리기"),
     );
     expect(await screen.findByText("복사했어요")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "저장한 AI 답" }).parentElement).toHaveTextContent("1개");
-    expect(screen.getByRole("link", { name: /AI 질문 기록에서 보기/ })).toHaveAttribute(
-      "href",
-      "/hoondok/ask?tab=mine",
-    );
+    expect(screen.queryByRole("heading", { name: "저장한 AI 답" })).not.toBeInTheDocument();
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
   });

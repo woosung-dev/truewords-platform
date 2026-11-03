@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { clearLiveAsks } from "@/features/hoondok/ask/live";
 import { identityAPI } from "./api";
 import { CURRENT_USER_KEY } from "./use-current-user";
 
@@ -37,6 +38,7 @@ export function useDeleteMe() {
       queryClient.removeQueries({ queryKey: ["hoondok"] });
       queryClient.setQueryData(CURRENT_USER_KEY, null);
       clearHoondokStorage();
+      clearLiveAsks();
     },
   });
 }

@@ -55,6 +55,10 @@
     font-size: var(--fs-lg); /* iOS 자동 확대 방지 */
     outline: none;
   }
+  /* 브라우저 기본 지우기(✕)를 숨긴다 — 옆의 "검색 닫기" 와 ✕ 가 둘로 보였다 */
+  .ask-search__in::-webkit-search-cancel-button {
+    appearance: none;
+  }
   .ask-state {
     margin: 0;
     padding: 28px 0;
@@ -154,7 +158,8 @@
     align-items: center;
     gap: 8px;
     min-height: 56px;
-    margin: 0 -10px 8px;
+    /* ✕ 아이콘만 왼쪽 여백으로 당긴다 — 오른쪽까지 당기면 보내기가 본문 열 밖으로 튀어나온다 */
+    margin: 0 0 8px -10px;
   }
   .ask-new__title {
     flex: 1;
@@ -405,6 +410,24 @@
     line-height: 1.35;
     letter-spacing: -0.02em;
     text-wrap: balance;
+  }
+  /* 긴 질문(단락 인용 등)은 3줄로 접는다 — 답이 첫 화면에서 밀려나지 않게 */
+  .ask-q--clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+  .ask-q__more {
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent-strong);
+    font: inherit;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    cursor: pointer;
   }
   .ask-q__meta {
     display: flex;
@@ -720,6 +743,45 @@
     &:has(.ask-follow) .nav {
       display: none;
     }
+  }
+
+  /* ---------- 로그인 안내 · 하루 남은 질문 · 글자 수 (DEC-PWA-025 2차) ---------- */
+  .ask-gate__quote {
+    margin: 12px 0 0;
+    padding: 10px 14px;
+    border-left: 3px solid var(--line);
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+    white-space: pre-line;
+    text-align: left;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+  }
+  .ask-quota {
+    margin: 12px 0 0;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  .ask-quota--out {
+    color: var(--accent-strong);
+    font-weight: 600;
+  }
+  .ask-follow__quota {
+    max-width: var(--measure-read);
+    margin: 0 auto 6px;
+    font-size: var(--fs-xs);
+  }
+  .ask-count {
+    margin: 6px 0 0;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+    text-align: right;
+  }
+  .ask-count--over {
+    color: var(--accent-strong);
+    font-weight: 600;
   }
 }
 

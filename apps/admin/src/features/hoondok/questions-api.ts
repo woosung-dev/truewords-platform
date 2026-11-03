@@ -10,10 +10,11 @@ export type QuestionStatus = PublicQuestionAdminItem["status"];
 export type QuestionReviewStatus = PublicQuestionReview["status"];
 export type QuestionAnswerMode = PublicQuestionAdminItem["answer_mode"];
 
+// 추천 질문 고르기 — 식구가 공개를 허용한 답(후보) 중 관리자가 고른 것만 추천 목록에 나간다.
 export const QUESTION_STATUS_LABEL: Record<QuestionStatus, string> = {
-  pending: "검토 대기",
-  published: "공개",
-  hidden: "숨김",
+  pending: "후보",
+  published: "추천 중",
+  hidden: "추천 안 함",
 };
 
 // 사용자 웹 훈독 질문 화면에서 보이는 답변 모델 이름과 맞춘다(관리자 분석 화면의 "신학자" 등과는 다르다).
@@ -29,7 +30,7 @@ export const QUESTION_PAGE_SIZE = 50;
 
 const BASE = "/admin/hoondok/questions";
 
-// 공개 질문 검수 admin API. 신청자 정보는 응답에 없다. CSRF 헤더는 fetchAPI 가 붙인다.
+// 추천 질문 고르기 admin API. 신청자 정보는 응답에 없다. CSRF 헤더는 fetchAPI 가 붙인다.
 export const questionsAPI = {
   /** 신청이 오래된 순으로 온다. */
   list: (status: QuestionStatus, page: number, pageSize = QUESTION_PAGE_SIZE) => {

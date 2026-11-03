@@ -15,6 +15,7 @@ import re
 
 from app.modules.chat.pipeline.context import ChatContext
 from app.core.common.gemini import MODEL_GENERATE, generate_text
+from app.core.common.log_helpers import query_fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -98,16 +99,16 @@ class SuggestedFollowupsStage:
             )
         except asyncio.TimeoutError:
             logger.warning(
-                "suggested_followups: 타임아웃 (%.1fs 초과) | query=%r",
+                "suggested_followups: 타임아웃 (%.1fs 초과) | query=%s",
                 SUGGESTED_FOLLOWUPS_TIMEOUT_SECONDS,
-                ctx.request.query[:80],
+                query_fingerprint(ctx.request.query),
             )
             ctx.suggested_followups = None
             return ctx
         except Exception as exc:
             logger.warning(
-                "suggested_followups: LLM 호출 실패 | query=%r error=%s",
-                ctx.request.query[:80],
+                "suggested_followups: LLM 호출 실패 | query=%s error=%s",
+                query_fingerprint(ctx.request.query),
                 exc,
             )
             ctx.suggested_followups = None

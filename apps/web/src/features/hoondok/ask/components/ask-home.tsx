@@ -1,19 +1,24 @@
 "use client";
 
-// AI 질문 홈 — 탭 추천(협회가 공개한 Q&A) · 저장 · 내 질문(이 기기) + 돋보기 검색 + "+ 질문하기".
+// AI 질문 홈 — 탭 추천(식구들이 공개를 허용한 답 중 관리자가 고른 Q&A) · 저장 · 내 질문(내 계정) + 돋보기 검색 + "+ 질문하기".
 // 큰 입력창을 두지 않는다: 질문 입력은 "+ 질문하기"나 말씀 단락처럼 행동이 있을 때만 연다(DEC-PWA-025).
-// 검색은 추천 탭이면 서버(`GET /hoondok/questions?q=`), 저장·내 질문 탭이면 기기 안에서 거른다.
-import { useInfiniteQuery } from "@tanstack/react-query";
+// 추천은 로그인 없이 열람하고, 저장·내 질문은 훈독 로그인 뒤 계정 목록(`GET /hoondok/me/asks`)을 읽는다.
+// 검색은 추천 탭이면 서버(`GET /hoondok/questions?q=`), 저장·내 질문 탭이면 받아 온 목록 안에서 거른다.
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import type { MyAskSummary } from "@truewords/api-client-ts/types";
 import { ChevronRight, MessageCircleQuestion, Plus, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { HoondokMascot } from "@/components/hoondok";
 import { handleSegmentKeyDown } from "@/features/hoondok/segmented-keyboard";
+import { useCurrentUser } from "@/features/identity/use-current-user";
+import { ASK_LIST_KEY, asksAPI } from "../asks-api";
 import { askMetaLabel } from "../format";
+import { useClearLegacyAskItems } from "../legacy";
 import { answeredByLabel } from "../modes";
 import { PUBLIC_STATUS_LABEL, publicQuestionsAPI } from "../public-api";
-import { type AskItem, EMPTY_ASK_ITEMS, readAskItems, subscribeAsk } from "../storage";
+import { AskLoginGate } from "./ask-gate";
 
 export type AskHomeTab = "recommended" | "saved" | "mine";
 
@@ -127,9 +132,47 @@ function NewFromSearch({ term }: { term: string }) {
   );
 }
 
-function LocalPanel({ tab, items, term }: { tab: "saved" | "mine"; items: AskItem[]; term: string }) {
+/** 저장·내 질문 탭 — 비로그인이면 로그인 안내, 로그인이면 계정 목록. */
+function MinePanel({ tab, term }: { tab: "saved" | "mine"; term: string }) {
+  const { user, isLoading } = useCurrentUser();
+  const list = useQuery({
+    queryKey: ASK_LIST_KEY,
+    queryFn: ({ signal }) => asksAPI.list(signal),
+    enabled: Boolean(user),
+    retry: false,
+  });
+  if (!user && !isLoading) {
+    return (
+      <AskLoginGate
+        title={tab === "saved" ? "로그인하면 저장한 답을 볼 수 있어요" : "로그인하면 내 질문을 볼 수 있어요"}
+        body="질문과 답은 내 계정에만 보관돼요. 다른 사람은 볼 수 없어요."
+        returnTo={`/hoondok/ask?tab=${tab}`}
+      />
+    );
+  }
+  if (isLoading || list.isPending) {
+    return (
+      <p className="ask-state" role="status" aria-busy="true">
+        내 질문을 불러오고 있어요
+      </p>
+    );
+  }
+  if (list.isError) {
+    return (
+      <div className="ask-state" role="status">
+        <p>내 질문을 불러오지 못했어요.</p>
+        <button className="btn btn-line btn--sm" type="button" onClick={() => void list.refetch()}>
+          다시 시도
+        </button>
+      </div>
+    );
+  }
+  return <LocalPanel tab={tab} items={list.data.items} term={term} />;
+}
+
+function LocalPanel({ tab, items, term }: { tab: "saved" | "mine"; items: MyAskSummary[]; term: string }) {
   const needle = term.trim().toLowerCase();
-  const scoped = tab === "saved" ? items.filter((item) => item.isSaved) : items;
+  const scoped = tab === "saved" ? items.filter((item) => item.saved) : items;
   const shown = needle ? scoped.filter((item) => item.question.toLowerCase().includes(needle)) : scoped;
 
   if (shown.length === 0) {
@@ -161,9 +204,9 @@ function LocalPanel({ tab, items, term }: { tab: "saved" | "mine"; items: AskIte
             <span className="ql-q">{item.question}</span>
             <span className="ql-m">
               {askMetaLabel(item)}
-              {item.isSaved && <span className="badge ql-saved">저장됨</span>}
-              {item.publicStatus && (
-                <span className="badge badge--line ql-saved">{PUBLIC_STATUS_LABEL[item.publicStatus]}</span>
+              {item.saved && <span className="badge ql-saved">저장됨</span>}
+              {item.public_status && (
+                <span className="badge badge--line ql-saved">{PUBLIC_STATUS_LABEL[item.public_status]}</span>
               )}
             </span>
           </Link>
@@ -174,7 +217,7 @@ function LocalPanel({ tab, items, term }: { tab: "saved" | "mine"; items: AskIte
 }
 
 function AskHomeView({ initialTab }: { initialTab: AskHomeTab }) {
-  const items = useSyncExternalStore(subscribeAsk, readAskItems, () => EMPTY_ASK_ITEMS as AskItem[]);
+  useClearLegacyAskItems();
   const router = useRouter();
   const [tab, setTab] = useState<AskHomeTab>(initialTab);
   // 이미 이 화면에 있을 때 메뉴 "질문 기록"(?tab=mine) 으로 오면 다시 마운트되지 않는다 — 주소의 탭을 따른다
@@ -199,10 +242,19 @@ function AskHomeView({ initialTab }: { initialTab: AskHomeTab }) {
     return () => window.clearTimeout(timer);
   }, [term]);
 
+  // 닫은 뒤 포커스가 body 로 떨어지지 않게 돋보기로 돌려준다 — 돋보기는 닫힌 뒤에야 다시 그려지므로 ref 콜백에서 잡는다
+  const shouldRefocusRef = useRef(false);
+  function focusSearchButton(node: HTMLButtonElement | null) {
+    if (!node || !shouldRefocusRef.current) return;
+    shouldRefocusRef.current = false;
+    node.focus();
+  }
+
   function closeSearch() {
     setIsSearching(false);
     setTerm("");
     setQuery("");
+    shouldRefocusRef.current = true;
   }
 
   return (
@@ -213,6 +265,7 @@ function AskHomeView({ initialTab }: { initialTab: AskHomeTab }) {
           <input
             className="ask-search__in"
             type="search"
+            enterKeyHint="search"
             aria-label="질문 검색어"
             placeholder="질문을 찾아보세요"
             maxLength={QUERY_MAX}
@@ -220,6 +273,9 @@ function AskHomeView({ initialTab }: { initialTab: AskHomeTab }) {
             autoFocus
             value={term}
             onChange={(event) => setTerm(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") closeSearch();
+            }}
           />
           <button className="icon-btn" type="button" aria-label="검색 닫기" onClick={closeSearch}>
             <X size={20} aria-hidden="true" />
@@ -247,6 +303,7 @@ function AskHomeView({ initialTab }: { initialTab: AskHomeTab }) {
         </div>
         {!isSearching && (
           <button
+            ref={focusSearchButton}
             className="icon-btn ask-home__search"
             type="button"
             aria-label="질문 검색"
@@ -261,11 +318,14 @@ function AskHomeView({ initialTab }: { initialTab: AskHomeTab }) {
         {tab === "recommended" ? (
           <RecommendedPanel query={isSearching ? query : ""} term={term} />
         ) : (
-          <LocalPanel tab={tab} items={items} term={isSearching ? term : ""} />
+          <MinePanel tab={tab} term={isSearching ? term : ""} />
         )}
       </div>
 
-      <p className="notice">질문과 답은 이 기기에 저장돼요. 공개를 고른 질문만 협회 확인 뒤 익명으로 올라가요.</p>
+      <p className="notice">
+        질문은 로그인한 분만 하루 5번까지 할 수 있어요. 질문과 답은 내 계정에만 보관되고, 공개를 고른 답 중 관리자가
+        고른 것만 이름 없이 추천 질문에 올라가요.
+      </p>
 
       <Link className="ask-fab" href="/hoondok/ask/new">
         <Plus size={20} aria-hidden="true" />

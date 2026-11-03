@@ -115,6 +115,80 @@
         "title": "AdminUserResponse",
         "type": "object"
       },
+      "AskQuota": {
+        "description": "오늘(KST) 남은 질문 횟수. resets_at 은 다음 KST 자정(+09:00).",
+        "properties": {
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "integer"
+          },
+          "resets_at": {
+            "format": "date-time",
+            "title": "Resets At",
+            "type": "string"
+          },
+          "used": {
+            "title": "Used",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit",
+          "used",
+          "remaining",
+          "resets_at"
+        ],
+        "title": "AskQuota",
+        "type": "object"
+      },
+      "AskRequest": {
+        "description": "질문 1건. /chat/stream 과 같은 필드에서 봇(chatbot_id)은 서버가 정한다.\n\n길이(1000자)·빈 질문은 기존 입력 검증이 400 INPUT_BLOCKED 로 거절한다(설정값과 한곳에서 맞추려고 여기서 막지 않는다).",
+        "properties": {
+          "answer_mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "standard",
+                  "theological",
+                  "pastoral",
+                  "beginner",
+                  "kids"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer Mode"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "AskRequest",
+        "type": "object"
+      },
       "AuditLogResponse": {
         "properties": {
           "action": {
@@ -4396,6 +4470,241 @@
           "days"
         ],
         "title": "MonthHistoryResponse",
+        "type": "object"
+      },
+      "MyAskDetail": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "saved": {
+            "title": "Saved",
+            "type": "boolean"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/MyAskTurn"
+            },
+            "title": "Turns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "saved",
+          "created_at",
+          "turns"
+        ],
+        "title": "MyAskDetail",
+        "type": "object"
+      },
+      "MyAskListResponse": {
+        "description": "최근 활동순.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MyAskSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "MyAskListResponse",
+        "type": "object"
+      },
+      "MyAskSummary": {
+        "description": "내 대화 목록 한 줄. id 는 session_id(이어 묻기에 그대로 보낸다).",
+        "properties": {
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_at": {
+            "format": "date-time",
+            "title": "Last At",
+            "type": "string"
+          },
+          "public_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Id"
+          },
+          "public_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pending",
+                  "published",
+                  "hidden"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Status"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "saved": {
+            "title": "Saved",
+            "type": "boolean"
+          },
+          "turn_count": {
+            "title": "Turn Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "answer_mode",
+          "turn_count",
+          "saved",
+          "public_id",
+          "public_status",
+          "created_at",
+          "last_at"
+        ],
+        "title": "MyAskSummary",
+        "type": "object"
+      },
+      "MyAskTurn": {
+        "description": "질문 → 답 한 차례. sources 는 처음 받은 sources 이벤트와 같은 모양(chunk_id 로 원문을 연다).",
+        "properties": {
+          "answer_md": {
+            "title": "Answer Md",
+            "type": "string"
+          },
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          },
+          "public_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Id"
+          },
+          "public_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pending",
+                  "published",
+                  "hidden"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Status"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "suggested_followups": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggested Followups",
+            "type": "array"
+          }
+        },
+        "required": [
+          "message_id",
+          "question",
+          "answer_md",
+          "answer_mode",
+          "sources",
+          "suggested_followups",
+          "public_id",
+          "public_status",
+          "created_at"
+        ],
+        "title": "MyAskTurn",
+        "type": "object"
+      },
+      "MyAskUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "saved": {
+            "title": "Saved",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "saved"
+        ],
+        "title": "MyAskUpdate",
         "type": "object"
       },
       "MyCardsResponse": {
@@ -10862,6 +11171,89 @@
         "summary": "Health"
       }
     },
+    "/hoondok/ask/stream": {
+      "post": {
+        "description": "훈독 AI 질문 SSE — 이벤트 계약은 /chat/stream 과 같다(chunk → sources → done).\n\n하루 횟수를 1회 쓴다(이어 묻기 포함). 답을 만들기 전에 실패하면(4xx·5xx) 횟수를 되돌린다. 401 미인증.",
+        "operationId": "ask_stream_hoondok_ask_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "INPUT_BLOCKED — 빈 질문·1000자 초과·차단 패턴"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "SESSION_FORBIDDEN — 내 대화가 아닌 session_id"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "ASK_DAILY_LIMIT(details: limit·used·remaining·resets_at) 또는 RATE_LIMIT_EXCEEDED"
+          }
+        },
+        "summary": "Ask Stream",
+        "tags": [
+          "hoondok"
+        ],
+        "x-sse-events": {
+          "chunk": {
+            "$ref": "#/components/schemas/ChatChunkEvent"
+          },
+          "done": {
+            "$ref": "#/components/schemas/ChatDoneEvent"
+          },
+          "sources": {
+            "$ref": "#/components/schemas/ChatSourcesEvent"
+          }
+        }
+      }
+    },
     "/hoondok/auth/login": {
       "post": {
         "description": "API-HD-003 로그인 → 200 + 쿠키. 401 은 이메일 존재 여부를 구분하지 않는다.",
@@ -11983,6 +12375,205 @@
         ]
       }
     },
+    "/hoondok/me/asks": {
+      "get": {
+        "description": "내 AI 질문 대화 목록(최근 답 순). 401 미인증.",
+        "operationId": "list_my_asks_hoondok_me_asks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAskListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List My Asks",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/asks/quota": {
+      "get": {
+        "description": "오늘(KST) 남은 질문 횟수. 401 미인증.",
+        "operationId": "get_my_ask_quota_hoondok_me_asks_quota_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskQuota"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get My Ask Quota",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/asks/{session_id}": {
+      "delete": {
+        "description": "대화와 그 질문·답 기록 삭제. 공개 신청 복사본은 남는다(DELETE /hoondok/me/questions/{id} 로 따로 내린다). 404.",
+        "operationId": "delete_my_ask_hoondok_me_asks__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete My Ask",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "get": {
+        "description": "대화 1건의 질문·답 차례. 남의 것·없는 것은 404.",
+        "operationId": "get_my_ask_hoondok_me_asks__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAskDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get My Ask",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "patch": {
+        "description": "저장 표시 켜기·끄기. 남의 것·없는 것은 404.",
+        "operationId": "update_my_ask_hoondok_me_asks__session_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MyAskUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAskDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update My Ask",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/me/cards": {
       "get": {
         "description": "API-HD-051 나의 책갈피 — 책별 개수(책장) + 받은 날 최신순 목록. active 카드만. 401 미인증.",
@@ -12653,7 +13244,7 @@
         ]
       },
       "post": {
-        "description": "공개 신청 → status=pending. 본인 재신청은 기존 신청을 돌려준다.\n\n404 답 없음, 409 공개할 수 없는 답(마음 돌봄·위기·근거 없음·이어 물은 답) 또는 남이 이미 신청한 답,\n401 미인증, 403 CSRF.",
+        "description": "공개 신청 → status=pending. 본인 재신청은 기존 신청을 돌려준다.\n\n404 답 없음 또는 내 계정 대화의 답이 아님, 409 공개할 수 없는 답(마음 돌봄·위기·근거 없음·이어 물은 답),\n401 미인증, 403 CSRF.",
         "operationId": "submit_public_question_hoondok_me_questions_post",
         "requestBody": {
           "content": {

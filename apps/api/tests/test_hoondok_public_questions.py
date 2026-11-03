@@ -86,6 +86,7 @@ async def login(client: TestClient, email: str = "reader@example.com") -> User:
         SignupRequest(email=email, password="password1", display_name="식구")
     )
     client.cookies.set(COOKIE_NAME, IdentityService.issue_token(user))
+    client.me = user  # type: ignore[attr-defined]
     return user
 
 
@@ -98,10 +99,16 @@ async def add_answer(
     overridden: bool | None = False,
     trigger: str | None = None,
     minutes: int = 0,
+    owner: uuid.UUID | None | bool = True,
 ) -> uuid.UUID:
-    """세션 하나에 사용자 질문 → 답(+인용 2건)을 넣고 답 message_id 를 돌려준다."""
+    """세션 하나에 사용자 질문 → 답(+인용 2건)을 넣고 답 message_id 를 돌려준다.
+
+    세션 소유자는 기본으로 마지막에 로그인한 사용자다(owner=True). None 이면 익명 세션.
+    """
     session: AsyncSession = client.session  # type: ignore[attr-defined]
-    chat = ResearchSession()
+    if owner is True:
+        owner = client.me.id  # type: ignore[attr-defined]
+    chat = ResearchSession(user_id=owner)
     session.add(chat)
     await session.flush()
     at = BASE + timedelta(minutes=minutes)
@@ -147,9 +154,11 @@ def publish(client: TestClient, question_id: str):
 
 @pytest.mark.asyncio
 async def test_submit_requires_login_and_csrf(ctx: TestClient):
+    user = await login(ctx)
     message_id = await add_answer(ctx)
+    ctx.cookies.clear()
     assert submit(ctx, message_id).status_code == 401
-    await login(ctx)
+    ctx.cookies.set(COOKIE_NAME, IdentityService.issue_token(user))
     res = ctx.post("/hoondok/me/questions", json={"message_id": str(message_id)})
     assert res.status_code == 403  # CSRF 헤더 없음
     assert ctx.get("/hoondok/me/questions").status_code == 200
@@ -157,8 +166,8 @@ async def test_submit_requires_login_and_csrf(ctx: TestClient):
 
 @pytest.mark.asyncio
 async def test_submit_copies_server_record_as_pending(ctx: TestClient):
-    message_id = await add_answer(ctx)
     await login(ctx)
+    message_id = await add_answer(ctx)
     res = ctx.post(
         "/hoondok/me/questions",
         json={"message_id": str(message_id)},
@@ -176,8 +185,8 @@ async def test_submit_copies_server_record_as_pending(ctx: TestClient):
 
 @pytest.mark.asyncio
 async def test_submit_rejects_client_supplied_text(ctx: TestClient):
-    message_id = await add_answer(ctx)
     await login(ctx)
+    message_id = await add_answer(ctx)
     res = ctx.post(
         "/hoondok/me/questions",
         json={"message_id": str(message_id), "question": "조작된 질문"},
@@ -199,16 +208,16 @@ async def test_submit_rejects_client_supplied_text(ctx: TestClient):
     ],
 )
 async def test_submit_pastoral_or_crisis_answer_is_409(ctx: TestClient, mode, overridden, trigger):
-    message_id = await add_answer(ctx, mode=mode, overridden=overridden, trigger=trigger)
     await login(ctx)
+    message_id = await add_answer(ctx, mode=mode, overridden=overridden, trigger=trigger)
     assert submit(ctx, message_id).status_code == 409
     assert (await ctx.session.execute(select(PublicQuestion))).first() is None  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
 async def test_submit_unknown_or_user_message_is_404(ctx: TestClient):
-    await add_answer(ctx)
     await login(ctx)
+    await add_answer(ctx)
     assert submit(ctx, uuid.uuid4()).status_code == 404
     session: AsyncSession = ctx.session  # type: ignore[attr-defined]
     user_msg = (
@@ -219,33 +228,34 @@ async def test_submit_unknown_or_user_message_is_404(ctx: TestClient):
 
 @pytest.mark.asyncio
 async def test_duplicate_message_returns_own_or_409(ctx: TestClient):
-    message_id = await add_answer(ctx)
     await login(ctx)
+    message_id = await add_answer(ctx)
     first = submit(ctx, message_id)
     assert first.status_code == 201
     # 본인 재신청(응답 유실 뒤 다시 신청)은 기존 신청을 돌려준다 — 기기가 publicId 를 되찾는다.
     again = submit(ctx, message_id)
     assert again.status_code == 201 and again.json()["id"] == first.json()["id"]
     await login(ctx, "other@example.com")
-    assert submit(ctx, message_id).status_code == 409
+    assert submit(ctx, message_id).status_code == 404  # 남의 답은 세션 소유자가 아니라 없는 답과 같다
     assert len((await ctx.session.execute(select(PublicQuestion))).all()) == 1  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
 async def test_answer_without_citations_is_409(ctx: TestClient):
     """캐시 적중 답처럼 인용 기록이 없는 답은 근거 없이 공개되지 않는다."""
+    await login(ctx)
     message_id = await add_answer(ctx)
     session: AsyncSession = ctx.session  # type: ignore[attr-defined]
     for c in (await session.execute(select(AnswerCitation))).scalars().all():
         await session.delete(c)
     await session.commit()
-    await login(ctx)
     assert submit(ctx, message_id).status_code == 409
 
 
 @pytest.mark.asyncio
 async def test_follow_up_answer_is_409(ctx: TestClient):
     """이어 물은 답은 앞 턴의 사연을 이어받을 수 있어 공개하지 않는다 — 세션 첫 답만."""
+    await login(ctx)
     first_id = await add_answer(ctx)
     session: AsyncSession = ctx.session  # type: ignore[attr-defined]
     first = await session.get(SessionMessage, first_id)
@@ -263,9 +273,22 @@ async def test_follow_up_answer_is_409(ctx: TestClient):
     await session.flush()
     session.add(AnswerCitation(message_id=follow.id, source="A", volume=1, volume_raw="말씀선집 001권", text_snippet="근거", rank_position=0))
     await session.commit()
-    await login(ctx)
     assert submit(ctx, follow.id).status_code == 409
     assert submit(ctx, first_id).status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_submit_requires_session_owner(ctx: TestClient):
+    """message_id 를 알아도 세션 소유자가 아니면 404 — 익명(시연 챗) 세션 답·남의 답 모두."""
+    owner = await login(ctx, "owner@example.com")
+    owned = await add_answer(ctx)
+    anonymous = await add_answer(ctx, owner=None, minutes=1)
+    assert submit(ctx, anonymous).status_code == 404
+    await login(ctx, "other@example.com")
+    assert submit(ctx, owned).status_code == 404
+    ctx.cookies.set(COOKIE_NAME, IdentityService.issue_token(owner))
+    assert submit(ctx, owned).status_code == 201
+    assert len((await ctx.session.execute(select(PublicQuestion))).all()) == 1  # type: ignore[attr-defined]
 
 
 # --- 공개 범위 ------------------------------------------------------------------

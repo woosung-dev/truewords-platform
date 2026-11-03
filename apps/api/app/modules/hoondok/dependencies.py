@@ -5,6 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.common.database import get_async_session
 from app.core.config import settings
+from app.core.common.ingestion_facade import IngestionJobRepository
+from app.modules.chat.dependencies import get_chat_repository, get_ingestion_repository
+from app.modules.chat.repository import ChatRepository
+from app.modules.chat.service import ChatService
+from app.modules.chatbot.dependencies import get_chatbot_service
+from app.modules.chatbot.service import ChatbotService
+from app.modules.hoondok.asks_repository import AskRepository
+from app.modules.hoondok.asks_service import AskService
 from app.modules.hoondok.cards_repository import CardRepository
 from app.modules.hoondok.cards_service import CardAdminService, CardService
 from app.modules.hoondok.groups_repository import GroupRepository
@@ -215,3 +223,38 @@ async def get_public_question_admin_service(
     repo: PublicQuestionRepository = Depends(get_public_question_repository),
 ) -> PublicQuestionAdminService:
     return PublicQuestionAdminService(repo)
+
+
+async def get_ask_repository(session: AsyncSession = Depends(get_async_session)) -> AskRepository:
+    return AskRepository(session)
+
+
+async def get_ask_service(repo: AskRepository = Depends(get_ask_repository)) -> AskService:
+    """목록·상세·횟수 조회용 — 채팅 파이프라인(캐시 lazy init 포함)을 조립하지 않는다."""
+    return AskService(repo, None, daily_limit=settings.hoondok_ask_daily_limit)
+
+
+async def get_ask_chat_service(
+    chat_repo: ChatRepository = Depends(get_chat_repository),
+    chatbot_service: ChatbotService = Depends(get_chatbot_service),
+    ingestion_repo: IngestionJobRepository = Depends(get_ingestion_repository),
+) -> ChatService:
+    """훈독 AI 질문용 채팅 파이프라인 — 시맨틱 캐시를 끈다(cache_service=None, 조회·저장 모두).
+
+    캐시는 사용자 구분 없이 공유된다. 켜 두면 비공개 질문 원문과 답이 Qdrant 에 남아 계정·대화 삭제 뒤에도 TTL(7일) 동안
+    보관되고, 비슷한 첫 질문을 한 다른 계정에 그 답이 그대로 나갈 수 있다(비공개 = 내 계정에서만, DEC-PWA-025 2차).
+    """
+    return ChatService(
+        chat_repo=chat_repo,
+        chatbot_service=chatbot_service,
+        cache_service=None,
+        ingestion_repo=ingestion_repo,
+    )
+
+
+async def get_ask_stream_service(
+    repo: AskRepository = Depends(get_ask_repository),
+    chat: ChatService = Depends(get_ask_chat_service),
+) -> AskService:
+    # get_async_session 은 요청당 캐시되므로 횟수 차감·답 기록과 채팅 파이프라인이 같은 세션을 쓴다.
+    return AskService(repo, chat, daily_limit=settings.hoondok_ask_daily_limit)

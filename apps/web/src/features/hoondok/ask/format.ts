@@ -1,7 +1,7 @@
-import type { Source } from "@truewords/api-client-ts/types";
+import type { MyAskSummary, Source } from "@truewords/api-client-ts/types";
 import { stripFileExt } from "@/lib/utils";
 import { formatKstDate, formatKstMonthDay } from "../today";
-import type { AskItem } from "./storage";
+import { answerModeInfo } from "./modes";
 
 // AI 질문 표시 문구 (순수 함수). 저장된 값은 UTC ISO 라 보여 줄 때만 KST 로 바꾼다.
 
@@ -21,18 +21,17 @@ export function askFullDate(createdAt: string): string {
   return formatKstDate(created).iso.replaceAll("-", ".");
 }
 
-/** 목록 한 줄의 보조 문구 — 날짜 · 답변 상태. 근거 수는 답이 있을 때만 의미가 있다. */
-export function askMetaLabel(item: AskItem, now: Date = new Date()): string {
-  const date = askDateLabel(item.createdAt, now);
-  const state =
-    item.status === "answered"
-      ? `근거 말씀 ${item.sources?.length ?? 0}건`
-      : item.status === "no-sources"
-        ? "확인할 수 없음"
-        : item.status === "error"
-          ? "답을 받지 못함"
-          : "답을 기다리는 중";
-  return `${date} · ${state}`;
+/**
+ * 목록 한 줄의 보조 문구 — 날짜 · 답한 모델 · 이어 물은 수. 같은 질문을 다른 모델로 다시 물은 항목을
+ * 모델 이름으로 구분한다(여정 테스트 P2).
+ */
+export function askMetaLabel(
+  item: Pick<MyAskSummary, "created_at" | "answer_mode" | "turn_count">,
+  now: Date = new Date(),
+): string {
+  const parts = [askDateLabel(item.created_at, now), answerModeInfo(item.answer_mode).label];
+  if (item.turn_count > 1) parts.push(`이어서 ${item.turn_count - 1}번`);
+  return parts.filter(Boolean).join(" · ");
 }
 
 /**

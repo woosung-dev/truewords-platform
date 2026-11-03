@@ -49,6 +49,23 @@ describe("훈독 탭 단계", () => {
 });
 
 describe("훈독 앱 셸", () => {
+  it("답 화면 ← 는 앱 안 앞 기록이 있으면 들어온 곳으로, 바로 연 주소면 AI 질문 홈으로 간다", async () => {
+    vi.resetModules();
+    vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/hoondok/ask/q-123" }));
+    const { HoondokAppShell } = await import("../components/hoondok/app-shell");
+    const back = vi.spyOn(window.history, "back").mockImplementation(() => {});
+    render(<HoondokAppShell>본문</HoondokAppShell>);
+    const link = screen.getByRole("link", { name: "뒤로" });
+    expect(link).toHaveAttribute("href", "/hoondok/ask");
+
+    expect(fireEvent.click(link)).toBe(true);
+    expect(back).not.toHaveBeenCalled();
+
+    window.history.pushState({}, "", window.location.href);
+    expect(fireEvent.click(link)).toBe(false);
+    expect(back).toHaveBeenCalledOnce();
+  });
+
   it("고정 내비게이션에 가려진 입력 초점만 가운데로 옮긴다", async () => {
     vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/hoondok/read" }));
     const { HoondokAppShell } = await import("../components/hoondok/app-shell");

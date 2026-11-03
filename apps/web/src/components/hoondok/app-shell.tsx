@@ -8,6 +8,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type FocusEvent, type ReactNode, useCallback, useState } from "react";
 import { MenuDrawer } from "@/features/hoondok/menu/components/menu-drawer";
+import { canGoBackInApp } from "@/features/hoondok/nav-history";
 import { HOONDOK_LOGO } from "@/features/hoondok/pwa";
 import { HoondokScreenTitleContext } from "@/features/hoondok/screen-title";
 import { screenFor } from "@/features/hoondok/screens";
@@ -55,7 +56,17 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
         <header className="appbar">
           <div className="appbar__in">
             {screen.backHref && (
-              <Link className="icon-btn" href={screen.backHref} aria-label="뒤로">
+              <Link
+                className="icon-btn"
+                href={screen.backHref}
+                aria-label="뒤로"
+                onClick={(event) => {
+                  // 답 화면처럼 여러 곳에서 들어오는 화면은 들어온 곳(원문·보던 탭)으로 돌아간다
+                  if (!screen.backToHistory || !canGoBackInApp()) return;
+                  event.preventDefault();
+                  window.history.back();
+                }}
+              >
                 <ArrowLeftIcon size={22} aria-hidden="true" />
               </Link>
             )}

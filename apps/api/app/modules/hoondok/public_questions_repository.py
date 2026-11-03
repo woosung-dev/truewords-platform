@@ -9,7 +9,7 @@ from sqlalchemy import and_, delete, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.modules.chat.models import AnswerCitation, MessageRole, SessionMessage
+from app.modules.chat.models import AnswerCitation, MessageRole, ResearchSession, SessionMessage
 from app.modules.hoondok.models import PublicQuestion
 
 
@@ -21,6 +21,11 @@ class PublicQuestionRepository:
 
     async def get_message(self, message_id: uuid.UUID) -> SessionMessage | None:
         return await self.session.get(SessionMessage, message_id)
+
+    async def get_session_owner(self, session_id: uuid.UUID) -> uuid.UUID | None:
+        """채팅 세션의 소유자(user_id). 익명 세션·없는 세션은 None."""
+        result = await self.session.execute(select(ResearchSession.user_id).where(ResearchSession.id == session_id))
+        return result.scalar_one_or_none()
 
     async def get_question_before(self, answer: SessionMessage) -> SessionMessage | None:
         """같은 세션에서 답 직전(같은 시각 포함)의 마지막 사용자 질문."""

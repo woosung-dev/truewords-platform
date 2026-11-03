@@ -87,6 +87,52 @@ export type AdminUserResponse = {
 };
 
 /**
+ * AskQuota
+ *
+ * 오늘(KST) 남은 질문 횟수. resets_at 은 다음 KST 자정(+09:00).
+ */
+export type AskQuota = {
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Remaining
+     */
+    remaining: number;
+    /**
+     * Resets At
+     */
+    resets_at: string;
+    /**
+     * Used
+     */
+    used: number;
+};
+
+/**
+ * AskRequest
+ *
+ * 질문 1건. /chat/stream 과 같은 필드에서 봇(chatbot_id)은 서버가 정한다.
+ *
+ * 길이(1000자)·빈 질문은 기존 입력 검증이 400 INPUT_BLOCKED 로 거절한다(설정값과 한곳에서 맞추려고 여기서 막지 않는다).
+ */
+export type AskRequest = {
+    /**
+     * Answer Mode
+     */
+    answer_mode?: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids' | null;
+    /**
+     * Query
+     */
+    query: string;
+    /**
+     * Session Id
+     */
+    session_id?: string | null;
+};
+
+/**
  * AuditLogResponse
  */
 export type AuditLogResponse = {
@@ -2606,6 +2652,138 @@ export type MonthHistoryResponse = {
      * Month
      */
     month: string;
+};
+
+/**
+ * MyAskDetail
+ */
+export type MyAskDetail = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Saved
+     */
+    saved: boolean;
+    /**
+     * Turns
+     */
+    turns: Array<MyAskTurn>;
+};
+
+/**
+ * MyAskListResponse
+ *
+ * 최근 활동순.
+ */
+export type MyAskListResponse = {
+    /**
+     * Items
+     */
+    items: Array<MyAskSummary>;
+};
+
+/**
+ * MyAskSummary
+ *
+ * 내 대화 목록 한 줄. id 는 session_id(이어 묻기에 그대로 보낸다).
+ */
+export type MyAskSummary = {
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Last At
+     */
+    last_at: string;
+    /**
+     * Public Id
+     */
+    public_id: string | null;
+    /**
+     * Public Status
+     */
+    public_status: 'pending' | 'published' | 'hidden' | null;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Saved
+     */
+    saved: boolean;
+    /**
+     * Turn Count
+     */
+    turn_count: number;
+};
+
+/**
+ * MyAskTurn
+ *
+ * 질문 → 답 한 차례. sources 는 처음 받은 sources 이벤트와 같은 모양(chunk_id 로 원문을 연다).
+ */
+export type MyAskTurn = {
+    /**
+     * Answer Md
+     */
+    answer_md: string;
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Message Id
+     */
+    message_id: string;
+    /**
+     * Public Id
+     */
+    public_id: string | null;
+    /**
+     * Public Status
+     */
+    public_status: 'pending' | 'published' | 'hidden' | null;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Sources
+     */
+    sources: Array<Source>;
+    /**
+     * Suggested Followups
+     */
+    suggested_followups: Array<string>;
+};
+
+/**
+ * MyAskUpdate
+ */
+export type MyAskUpdate = {
+    /**
+     * Saved
+     */
+    saved: boolean;
 };
 
 /**
@@ -6696,6 +6874,43 @@ export type HealthHealthGetResponses = {
     200: unknown;
 };
 
+export type AskStreamHoondokAskStreamPostData = {
+    body: AskRequest;
+    path?: never;
+    query?: never;
+    url: '/hoondok/ask/stream';
+};
+
+export type AskStreamHoondokAskStreamPostErrors = {
+    /**
+     * INPUT_BLOCKED — 빈 질문·1000자 초과·차단 패턴
+     */
+    400: ErrorResponse;
+    /**
+     * SESSION_FORBIDDEN — 내 대화가 아닌 session_id
+     */
+    403: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * ASK_DAILY_LIMIT(details: limit·used·remaining·resets_at) 또는 RATE_LIMIT_EXCEEDED
+     */
+    429: ErrorResponse;
+};
+
+export type AskStreamHoondokAskStreamPostError = AskStreamHoondokAskStreamPostErrors[keyof AskStreamHoondokAskStreamPostErrors];
+
+export type AskStreamHoondokAskStreamPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type AskStreamHoondokAskStreamPostResponse = AskStreamHoondokAskStreamPostResponses[keyof AskStreamHoondokAskStreamPostResponses];
+
 export type LoginHoondokAuthLoginPostData = {
     body: LoginRequest;
     path?: never;
@@ -7451,6 +7666,142 @@ export type GetSeriesHoondokLibrarySeriesGetResponses = {
 };
 
 export type GetSeriesHoondokLibrarySeriesGetResponse = GetSeriesHoondokLibrarySeriesGetResponses[keyof GetSeriesHoondokLibrarySeriesGetResponses];
+
+export type ListMyAsksHoondokMeAsksGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/hoondok/me/asks';
+};
+
+export type ListMyAsksHoondokMeAsksGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListMyAsksHoondokMeAsksGetError = ListMyAsksHoondokMeAsksGetErrors[keyof ListMyAsksHoondokMeAsksGetErrors];
+
+export type ListMyAsksHoondokMeAsksGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyAskListResponse;
+};
+
+export type ListMyAsksHoondokMeAsksGetResponse = ListMyAsksHoondokMeAsksGetResponses[keyof ListMyAsksHoondokMeAsksGetResponses];
+
+export type GetMyAskQuotaHoondokMeAsksQuotaGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/asks/quota';
+};
+
+export type GetMyAskQuotaHoondokMeAsksQuotaGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: AskQuota;
+};
+
+export type GetMyAskQuotaHoondokMeAsksQuotaGetResponse = GetMyAskQuotaHoondokMeAsksQuotaGetResponses[keyof GetMyAskQuotaHoondokMeAsksQuotaGetResponses];
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/asks/{session_id}';
+};
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteError = DeleteMyAskHoondokMeAsksSessionIdDeleteErrors[keyof DeleteMyAskHoondokMeAsksSessionIdDeleteErrors];
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteResponse = DeleteMyAskHoondokMeAsksSessionIdDeleteResponses[keyof DeleteMyAskHoondokMeAsksSessionIdDeleteResponses];
+
+export type GetMyAskHoondokMeAsksSessionIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/asks/{session_id}';
+};
+
+export type GetMyAskHoondokMeAsksSessionIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMyAskHoondokMeAsksSessionIdGetError = GetMyAskHoondokMeAsksSessionIdGetErrors[keyof GetMyAskHoondokMeAsksSessionIdGetErrors];
+
+export type GetMyAskHoondokMeAsksSessionIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyAskDetail;
+};
+
+export type GetMyAskHoondokMeAsksSessionIdGetResponse = GetMyAskHoondokMeAsksSessionIdGetResponses[keyof GetMyAskHoondokMeAsksSessionIdGetResponses];
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchData = {
+    body: MyAskUpdate;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/asks/{session_id}';
+};
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchError = UpdateMyAskHoondokMeAsksSessionIdPatchErrors[keyof UpdateMyAskHoondokMeAsksSessionIdPatchErrors];
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyAskDetail;
+};
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchResponse = UpdateMyAskHoondokMeAsksSessionIdPatchResponses[keyof UpdateMyAskHoondokMeAsksSessionIdPatchResponses];
 
 export type GetMyCardsHoondokMeCardsGetData = {
     body?: never;

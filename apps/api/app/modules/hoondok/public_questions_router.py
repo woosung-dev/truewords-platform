@@ -54,7 +54,7 @@ async def submit_public_question(
 ) -> MyPublicQuestionItem:
     """공개 신청 → status=pending. 본인 재신청은 기존 신청을 돌려준다.
 
-    404 답 없음, 409 공개할 수 없는 답(마음 돌봄·위기·근거 없음·이어 물은 답) 또는 남이 이미 신청한 답,
+    404 답 없음 또는 내 계정 대화의 답이 아님, 409 공개할 수 없는 답(마음 돌봄·위기·근거 없음·이어 물은 답),
     401 미인증, 403 CSRF.
     """
     return await service.submit(user.id, data.message_id)

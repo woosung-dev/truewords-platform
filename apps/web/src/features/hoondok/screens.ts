@@ -18,6 +18,8 @@ export type HoondokScreen = {
   titleSource?: "work";
   /** 있을 때만 앱바에 뒤로 링크를 그린다. 탭 루트 화면은 없다 */
   backHref?: string;
+  /** true 면 ← 가 앱 안 앞 기록이 있을 때 브라우저 뒤로(들어온 곳)로 간다. 없으면(바로 연 주소) backHref 로 간다 */
+  backToHistory?: true;
   tabId: HoondokTab["id"];
   /**
    * 본문 폭. home = 홈(≥1024px 앱바 접힘) · read = 산문 640px(`col--read`) · app = 카드/리스트 720px.
@@ -132,6 +134,7 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     match: "/hoondok/ask/p/",
     title: "공개 질문",
     backHref: "/hoondok/ask",
+    backToHistory: true,
     tabId: "ask",
     variant: "read",
     hideSearchLink: true,
@@ -141,6 +144,7 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     match: "/hoondok/ask/",
     title: "질문",
     backHref: "/hoondok/ask",
+    backToHistory: true,
     tabId: "ask",
     variant: "read",
     hideSearchLink: true,

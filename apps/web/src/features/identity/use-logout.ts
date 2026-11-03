@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { clearLiveAsks } from "@/features/hoondok/ask/live";
 import { identityAPI } from "./api";
 import { CURRENT_USER_KEY } from "./use-current-user";
 import { clearHoondokStorage } from "./use-delete-me";
@@ -41,6 +42,8 @@ export function useLogout() {
       queryClient.removeQueries({
         predicate: (query) => query.queryKey[0] === "hoondok" && query.queryKey[1] !== "me",
       });
+      // 받는 중인 AI 질문(메모리)은 계정 것이라 지우기 설정과 상관없이 버린다 — 같은 탭에 다음 계정이 로그인한다
+      clearLiveAsks();
       if (clearDevice) clearHoondokStorage();
     },
   });
