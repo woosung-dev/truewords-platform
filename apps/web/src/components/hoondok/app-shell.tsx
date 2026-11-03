@@ -95,15 +95,11 @@ export function HoondokAppShell({ children }: { children: ReactNode }) {
           {HOONDOK_TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = tab.id === screen.tabId;
-            const className = `nav__item${tab.isMid ? " nav__item--mid" : ""}`;
+            const className = "nav__item";
             const inner = (
               <>
                 <span className="nav__ic">
-                  <Icon
-                    size={tab.isMid ? 27 : 24}
-                    weight={isActive && !tab.isMid ? "fill" : "regular"}
-                    aria-hidden="true"
-                  />
+                  <Icon size={24} weight={isActive ? "fill" : "regular"} aria-hidden="true" />
                 </span>
                 {tab.label}
               </>

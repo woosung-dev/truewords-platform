@@ -2,20 +2,17 @@ import type { Icon } from "@phosphor-icons/react";
 import { BooksIcon } from "@phosphor-icons/react/dist/ssr/Books";
 import { ChatCircleDotsIcon } from "@phosphor-icons/react/dist/ssr/ChatCircleDots";
 import { PlantIcon } from "@phosphor-icons/react/dist/ssr/Plant";
-import { PlayCircleIcon } from "@phosphor-icons/react/dist/ssr/PlayCircle";
 import { SunHorizonIcon } from "@phosphor-icons/react/dist/ssr/SunHorizon";
 import { screenFor } from "./screens";
 
-// 하단 5탭 = 상단 헤더 4 의 단일 정의 (DES-PWA-003 §7.1-3, DEC-PWA-015 명칭).
-// 넷째 탭은 첫 화면이 5분 설교라 이름도 "5분 설교"다 (2026-09-29, 이전 "가정예배"). id·경로는 그대로 둔다.
+// 하단 4탭 = 상단 헤더의 단일 정의 (DES-PWA-003 §2.8, DEC-PWA-015 명칭).
+// 공급이 정해지지 않은 5분 설교 탭은 빼고 평평한 4칸으로 둔다 (2026-11-03, 넷째 탭 리서치 선택지 2 · D3).
 // 두 형태는 CSS(hoondok.css .nav) 만 다르고 이 목록 하나를 렌더한다.
 export type HoondokTab = {
-  id: "today" | "ask" | "library" | "worship" | "garden";
+  id: "today" | "ask" | "library" | "garden";
   label: string;
   href: string;
   icon: Icon;
-  /** 가운데 "말씀" 돌출 버블 (폰에서만 형태가 성립) */
-  isMid?: boolean;
   /** 화면이 아직 없어 이동하지 않는다 — TAB_STAGE 로 산출 (준비 중 표시만) */
   isDisabled?: boolean;
 };
@@ -28,7 +25,6 @@ export const TAB_STAGE: Record<HoondokTab["id"], "live" | "soon"> = {
   today: "live",
   ask: "live",
   library: "live",
-  worship: "soon",
   garden: "live",
 };
 
@@ -39,8 +35,7 @@ export function isTabEnabled(id: HoondokTab["id"]): boolean {
 const TAB_DEFS: readonly Omit<HoondokTab, "isDisabled">[] = [
   { id: "today", label: "오늘 훈독", href: "/hoondok", icon: SunHorizonIcon },
   { id: "ask", label: "AI 질문", href: "/hoondok/ask", icon: ChatCircleDotsIcon },
-  { id: "library", label: "말씀", href: "/hoondok/library", icon: BooksIcon, isMid: true },
-  { id: "worship", label: "5분 설교", href: "/hoondok/worship", icon: PlayCircleIcon },
+  { id: "library", label: "말씀", href: "/hoondok/library", icon: BooksIcon },
   { id: "garden", label: "나의 정원", href: "/hoondok/garden", icon: PlantIcon },
 ];
 

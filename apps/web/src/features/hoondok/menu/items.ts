@@ -5,11 +5,8 @@ import { BookmarksSimpleIcon } from "@phosphor-icons/react/dist/ssr/BookmarksSim
 import { BookOpenTextIcon } from "@phosphor-icons/react/dist/ssr/BookOpenText";
 import { BooksIcon } from "@phosphor-icons/react/dist/ssr/Books";
 import { ChatCircleDotsIcon } from "@phosphor-icons/react/dist/ssr/ChatCircleDots";
-import { ListNumbersIcon } from "@phosphor-icons/react/dist/ssr/ListNumbers";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
-import { MicrophoneIcon } from "@phosphor-icons/react/dist/ssr/Microphone";
 import { PlantIcon } from "@phosphor-icons/react/dist/ssr/Plant";
-import { PlayCircleIcon } from "@phosphor-icons/react/dist/ssr/PlayCircle";
 import { ScrollIcon } from "@phosphor-icons/react/dist/ssr/Scroll";
 import { SunHorizonIcon } from "@phosphor-icons/react/dist/ssr/SunHorizon";
 import { UserPlusIcon } from "@phosphor-icons/react/dist/ssr/UserPlus";
@@ -78,34 +75,6 @@ const GROUP_DEFS: readonly { id: string; title: string; items: readonly MenuItem
     items: [
       { id: "library", label: "말씀 서고", href: "/hoondok/library", icon: BooksIcon },
       { id: "search", label: "말씀 검색", href: "/hoondok/search", icon: MagnifyingGlassIcon },
-    ],
-  },
-  {
-    id: "worship",
-    title: "5분 설교",
-    items: [
-      {
-        id: "sermons",
-        label: "5분 설교",
-        href: "/hoondok/worship",
-        icon: PlayCircleIcon,
-        isAvailable: isComingSoon,
-      },
-      {
-        id: "worship-order",
-        // 탭 이름이 5분 설교로 바뀌어 "가정예배" 라는 말이 메뉴에서 사라지지 않게 항목 이름에 남긴다
-        label: "가정예배 순서지·챌린지",
-        href: "/hoondok/worship/order",
-        icon: ListNumbersIcon,
-        isAvailable: isComingSoon,
-      },
-      {
-        id: "sermon-request",
-        label: "설교 섭외",
-        href: "/hoondok/worship/request",
-        icon: MicrophoneIcon,
-        isAvailable: isComingSoon,
-      },
     ],
   },
   {

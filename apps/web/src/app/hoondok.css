@@ -231,7 +231,7 @@
     padding: 4px var(--gutter) 28px;
   }
 
-  /* 하단 5탭 (base·md). 탭 정의는 features/hoondok/tabs.ts 한 곳이다.
+  /* 하단 4탭 (base·md). 탭 정의는 features/hoondok/tabs.ts 한 곳이다.
      스크롤과 무관하게 화면 하단에 붙인다 — 본문 끝까지 내려야 탭이 보이던 문제 */
   .nav {
     flex: none;
@@ -241,7 +241,7 @@
     background: var(--surface);
     border-top: 1px solid var(--line);
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     padding: 8px 6px env(safe-area-inset-bottom);
     min-height: calc(76px + env(safe-area-inset-bottom));
   }
@@ -276,22 +276,8 @@
   .nav__item[aria-disabled="true"] svg {
     stroke-dasharray: 2 2;
   }
-  .nav__item:not(.nav__item--mid):active {
+  .nav__item:active {
     background: var(--surface-2);
-  }
-  .nav__item--mid {
-    margin-top: -24px;
-  }
-  .nav__item--mid .nav__ic {
-    width: 58px;
-    height: 58px;
-    border-radius: 50%;
-    background: var(--accent);
-    color: var(--accent-ink);
-    box-shadow: var(--shadow-2);
-  }
-  .nav__item--mid:active .nav__ic {
-    transform: scale(0.96);
   }
 
   /* ---------- 3. 미션 카드 (DES §2.1) ---------- */
@@ -908,9 +894,7 @@
     .nav__ic {
       display: none;
     }
-    .nav__item,
-    .nav__item--mid {
-      margin-top: 0;
+    .nav__item {
       flex-direction: row;
       height: 40px;
       min-height: 40px;
@@ -1463,7 +1447,6 @@ html:has([data-app="hoondok"]) {
 [data-app="hoondok"] {
   @media (min-width: 1024px) and (pointer: coarse) {
     .nav__item,
-    .nav__item--mid,
     .nav__search {
       height: 44px;
       min-height: 44px;
