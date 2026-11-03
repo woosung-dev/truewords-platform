@@ -86,7 +86,7 @@ export function GroupLoginRequired({ returnTo, title, body }: { returnTo: string
     <div className="card">
       <div className="empty">
         <span className="empty__ic" aria-hidden="true">
-          <Users size={28} />
+          <HoondokMascot pose="welcome" size={72} fallback={<Users size={28} />} />
         </span>
         <h2 className="empty__title">{title}</h2>
         <p className="empty__body">{body}</p>

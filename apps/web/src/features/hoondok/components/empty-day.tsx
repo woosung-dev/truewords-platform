@@ -12,7 +12,7 @@ export function EmptyDayLine({ hint }: { hint: string | null }) {
   return (
     <div className="day-quiet" role="status">
       <span className="day-quiet__ic" aria-hidden="true">
-        <HoondokMascot pose="reading" size={44} fallback={<Calendar size={22} />} />
+        <HoondokMascot pose="reading" size={44} motion="none" fallback={<Calendar size={22} />} />
       </span>
       <span className="day-quiet__bd">
         <b>오늘은 정해진 말씀이 없어요</b>

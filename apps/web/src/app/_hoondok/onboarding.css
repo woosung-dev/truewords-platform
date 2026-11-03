@@ -395,6 +395,14 @@
   .onb-welcome__body {
     padding: 20px 0 8px;
   }
+  /* 부엉이(마스코트 플래그) — 브랜드와 제목 사이, 72px. 사진 히어로와 경쟁하지 않게 작게 둔다 */
+  .onb-welcome__body > .owl {
+    margin: 0 0 10px;
+  }
+  /* 부엉이(마스코트 플래그) — 브랜드와 제목 사이, 72px. 사진 히어로와 경쟁하지 않게 작게 둔다 */
+  .onb-welcome__body > .owl {
+    margin: 0 0 10px;
+  }
   .onb-welcome .onb__brand {
     display: flex;
     align-items: center;
