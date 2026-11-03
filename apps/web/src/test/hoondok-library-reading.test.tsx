@@ -35,13 +35,13 @@ vi.mock("@/features/identity/api", () => ({ identityAPI: { me: vi.fn() } }));
 vi.mock("@/features/hoondok/missions-api", () => ({ missionsAPI: { summary: vi.fn(), complete: vi.fn() } }));
 vi.mock("@/features/hoondok/ask/ask-stream", async (original) => ({
   ...(await original<object>()),
-  requestAsk: vi.fn(),
+  requestHoondokAsk: vi.fn(),
 }));
 
 import SeriesPage from "@/app/(hoondok)/library/[series]/page";
 import LibraryPage from "@/app/(hoondok)/library/page";
 import WordsPage from "@/app/(hoondok)/words/[id]/page";
-import { requestAsk } from "@/features/hoondok/ask/ask-stream";
+import { requestHoondokAsk } from "@/features/hoondok/ask/ask-stream";
 import { libraryAPI, seriesHref, wordsHref } from "@/features/hoondok/library/api";
 import { EXPLAIN_PREFIX } from "@/features/hoondok/library/components/ai-explain";
 import { writeLastReading } from "@/features/hoondok/library/last-reading";
@@ -756,7 +756,7 @@ describe("노트 탭", () => {
 
 describe("AI 설명 탭", () => {
   it("고른 단락만 고정 질문으로 한 번 요청한다", async () => {
-    vi.mocked(requestAsk).mockResolvedValue({
+    vi.mocked(requestHoondokAsk).mockResolvedValue({
       answer: "쉬운 설명",
       sources: [{ text: "근거" }] as never,
       disclaimer: "",
@@ -771,11 +771,11 @@ describe("AI 설명 탭", () => {
     fireEvent.click(screen.getByRole("tab", { name: "AI 설명" }));
     fireEvent.click(await screen.findByRole("button", { name: "이 단락 설명 요청" }));
     await waitFor(() => expect(screen.getByText("쉬운 설명")).toBeInTheDocument());
-    expect(requestAsk).toHaveBeenCalledTimes(1);
-    expect(requestAsk).toHaveBeenCalledWith(`${EXPLAIN_PREFIX}둘째 단락의 본문`);
+    expect(requestHoondokAsk).toHaveBeenCalledTimes(1);
+    expect(requestHoondokAsk).toHaveBeenCalledWith(`${EXPLAIN_PREFIX}둘째 단락의 본문`);
   });
   it("답의 마크다운 기호를 드러내지 않고 소제목·강조로 그린다", async () => {
-    vi.mocked(requestAsk).mockResolvedValue({
+    vi.mocked(requestHoondokAsk).mockResolvedValue({
       answer: "### 한 줄 요약\n변치 않는 **뼈사랑**입니다.",
       sources: [{ text: "근거" }] as never,
       disclaimer: "",
@@ -794,7 +794,7 @@ describe("AI 설명 탭", () => {
     expect(screen.queryByText(/###|\*\*/)).toBeNull();
   });
   it("근거가 0건이면 답을 보이지 않는다", async () => {
-    vi.mocked(requestAsk).mockResolvedValue({
+    vi.mocked(requestHoondokAsk).mockResolvedValue({
       answer: "보이면 안 되는 답",
       sources: [],
       disclaimer: "",

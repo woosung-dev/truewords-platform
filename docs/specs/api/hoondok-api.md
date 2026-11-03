@@ -326,7 +326,7 @@ DELETE /hoondok/auth/me
 
 ## 훈독 AI 질문 — `POST /hoondok/ask/stream` · `/hoondok/me/asks*` (API-HD-059~061, DEC-PWA-025)
 
-AI 질문 화면은 로그인 필수다. 답은 훈독 전용 SSE `POST /hoondok/ask/stream` 으로 받고, 질문·답은 **계정에만** 보관한다(기기 `localStorage` 기록은 쓰지 않는다). 라우터는 `apps/api/app/modules/hoondok/asks_router.py`, 호출부는 `apps/web/src/features/hoondok/ask/ask-stream.ts`·`asks-api.ts` 다.
+AI 질문 화면과 원문 뷰 "AI 설명"은 로그인 필수다. 답은 훈독 전용 SSE `POST /hoondok/ask/stream` 으로 받고, 질문·답은 **계정에만** 보관한다(기기 `localStorage` 기록은 쓰지 않는다). 라우터는 `apps/api/app/modules/hoondok/asks_router.py`, 호출부는 `apps/web/src/features/hoondok/ask/ask-stream.ts`·`asks-api.ts` 다.
 
 ### API-HD-059 `POST /hoondok/ask/stream`
 
@@ -373,6 +373,7 @@ AI 질문 화면은 로그인 필수다. 답은 훈독 전용 SSE `POST /hoondok
 | 2026-09-29 | API-HD-009 에 `resolution`(나의 각오, 선택 50자) 추가 — 새 자유 텍스트라 본인 응답에만 담고 모임·가족·관리자 응답에는 넣지 않는다. 수정 API 없음, 계정 삭제 시 기간과 함께 삭제 | 확정(사용자 승인) |
 | 2026-09-29 | C1 기록 화면(정원 '나의 기록'·`/hoondok/records`)은 형광펜·노트를 API-HD-053 에서 읽는다(북마크는 API-HD-026 `excerpt=true`). 수의 상한은 목록마다 따로(형광펜 500·북마크 200)라 한쪽이 차도 다른 쪽 수는 그대로다. 원문이 막힌 권을 가리려고 API-HD-053 에 `readable` 을 추가했다(하위 호환) | 확정 · `readable` 기준 `[가정]` |
 | 2026-11-02 | 호출처가 없는 API-HD-026(단락 표시)·API-HD-046(오늘 훈독 단락 낭독)을 제거. `passage_marks` 테이블·행은 삭제 결정 전까지 보존 | 확정 |
+| 2026-11-04 | 원문 뷰 "AI 설명"도 `POST /hoondok/ask/stream` 으로 옮겨 로그인·하루 횟수에 넣는다. 익명 `POST /chat`·`/chat/stream` 은 그 비용 상한을 우회하므로 관리자 게이트(`require_admin_gate`) 뒤로 닫았다(보안 점검) | 확정 |
 
 ---
 

@@ -43,8 +43,6 @@ vi.mock("@/features/hoondok/library/api", () => ({
 
 import {
   ASK_QUESTION_MAX,
-  HOONDOK_ASK_CHATBOT_ID,
-  requestAsk,
   requestHoondokAsk,
 } from "@/features/hoondok/ask/ask-stream";
 import { asksAPI } from "@/features/hoondok/ask/asks-api";
@@ -191,13 +189,6 @@ describe("AI 질문 어댑터", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sseResponse(sseBody([SOURCE]))));
     await requestHoondokAsk("이어서", { answerMode: "theological", sessionId: SID });
     expect(requestBodies()[0]).toEqual({ query: "이어서", answer_mode: "theological", session_id: SID });
-  });
-
-  it("원문 AI 설명(requestAsk)은 기존 /chat/stream 과 봇 슬러그를 그대로 쓴다", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(sseResponse(sseBody([SOURCE]))));
-    await requestAsk("설명");
-    expect(vi.mocked(globalThis.fetch).mock.calls[0][0]).toBe("/api/backend/chat/stream");
-    expect(requestBodies()[0]).toEqual({ query: "설명", chatbot_id: HOONDOK_ASK_CHATBOT_ID });
   });
 
   it.each([
