@@ -1,6 +1,6 @@
 # 훈독 PWA 롤아웃·롤백 runbook
 
-- 대상: `/hoondok` 을 운영에서 켜는 배포(`HOONDOK_ENABLED=1`)와 그 되돌리기. 근거 계획은 [`PLAN-HD-001` §6](../plans/active/2026-09-17-hoondok-mvp.md).
+- 대상: 훈독(2026-11-04 `DEC-PWA-026` 부터 웹 루트 `/`, 예전 `/hoondok/*` 은 308)을 운영에서 켜는 배포(`HOONDOK_ENABLED=1`)와 그 되돌리기. 근거 계획은 [`PLAN-HD-001` §6](../plans/active/2026-09-17-hoondok-mvp.md).
 - 상태: **2026-09-20 기준 운영은 플래그 ON** 이다. 현재 태그는 web **`a93a6c7`** · backend·admin `c066b02` 이고 실데이터 9라우트가 200, 프리뷰 8라우트가 404 다. 같은 날 사후 실측으로 확인했을 때는 web `aba5240` 이 이미 `HOONDOK_ENABLED=1` 로 떠 있었는데 **그 최초 ON 배포를 언제 누가 실행했는지는 기록이 없다** — 이 문서에 실행 기록을 남기지 않은 채 배포됐다. 작성 시점(2026-09-19)의 상태는 플래그 OFF(web `b70b6c8`, `/hoondok/*` 전부 404)였다. 측정값과 결정은 [§실행 기록](#실행-기록)에 있다.
 - 이 문서가 다루는 범위는 배포 순서·검증·되돌리기다. 기능 사양은 계획서와 스펙이 소유한다.
 
@@ -52,20 +52,23 @@ ops-check 는 VM **안**을 본다. 컨테이너가 전부 healthy 인데 사용
 
 | 검사 | ON 기대 | OFF 기대 |
 |---|---|---|
-| `chat-login` `/login` | 200 | 200 |
 | `api-health` `/api/backend/health` | 200 | 200 |
 | `api-today` `/api/backend/hoondok/today` | 200 | 200 (backend 는 플래그를 모른다) |
-| `route-home`·`route-read`·`route-onboard` | 200 | 404 |
+| `route-home`·`route-read`·`route-onboard` (`/`·`/read`·`/onboarding`) | 200 | 404 |
+| `legacy-redirect` `/hoondok/read` | 308 → `/read` | 308 (리다이렉트는 플래그와 무관) |
 | `noindex` | `x-robots-tag: noindex` | (검사 안 함) |
-| `manifest` | 200 · `scope=/hoondok` · `no-cache` | INFO |
-| `sw` | 200 · `SW_VERSION` 이 레포와 일치 · `Service-Worker-Allowed: /hoondok` | INFO |
+| `manifest` (`/hoondok/manifest.webmanifest`) | 200 · `scope=/` · `id=/hoondok` · `no-cache` | INFO |
+| `sw` (`/sw.js`) | 200 · `SW_VERSION` 이 레포(`apps/web/public/sw.js`)와 일치 | INFO |
+| `sw-retired` (`/hoondok/sw.js`) | 200(리다이렉트 아님) · `Service-Worker-Allowed: /hoondok` | INFO |
 | `sw-cache` | (헤더가 오염됐을 때만 WARN — 아래 §Cloudflare 캐시) | — |
 | `icons` 4종 | 전부 200 | INFO |
 | `font` | 200 · `immutable` | INFO |
 
 **플래그 OFF 는 정적 자산을 막지 않는다.** `public/` 파일은 라우트와 무관하게 서빙되고 `apps/web` 에는 미들웨어가 없다. 그래서 OFF 배포에서도 `manifest.webmanifest`·`sw.js` 는 200 이다 — 링크가 붙지 않고 등록 코드가 돌지 않을 뿐이다. 무해하지만 사실이므로 smoke 는 OFF 에서 이것들을 FAIL 로 판정하지 않고 상태만 INFO 로 남긴다.
 
-`scope` 값을 문자열로 단언하는 이유: `/hoondok/`(슬래시 포함)이면 standalone 에서 홈 `/hoondok` 이 범위 밖이라 브라우저 UI 가 노출된다. 200 만 보면 못 잡는다.
+`scope` 값을 문자열로 단언하는 이유: 홈 `/` 가 범위 밖이면 standalone 에서 브라우저 UI 가 노출된다. 200 만 보면 못 잡는다. `id` 는 예전 값 `/hoondok` 을 유지해야 설치된 앱이 같은 앱으로 남는다.
+
+**`/hoondok` 시절 설치본(2026-11-04 이전).** 예전 SW(scope `/hoondok`)는 브라우저 업데이트 검사로 은퇴 스크립트 `public/hoondok/sw.js` 를 받아 캐시를 지우고 스스로 해제한다. 앱의 등록 코드도 `/hoondok` scope 등록을 지운다. 그 등록에 묶인 푸시 구독은 함께 사라지므로 **기존 알림 구독자는 설정에서 알림을 다시 켜야 한다**(서버는 다음 발송의 404·410 으로 옛 구독을 지운다). 홈 화면 설치본은 manifest 를 다시 읽기 전까지 예전 scope 로 동작할 수 있다 — 주소창이 보이면 다시 설치를 안내한다. `[확인 필요]` iOS 홈 화면 앱의 manifest 갱신 시점
 
 ## 되돌리기
 
@@ -139,7 +142,7 @@ make rollback-web TAG=<배포 전에 적어 둔 sha>
 
 지우려면 **새 `sw.js` 를 배포해서** 스스로 등록을 해제하게 해야 한다.
 
-1. `apps/web/public/hoondok/sw.js` 에서 `SW_KILL = false` → `true`
+1. `apps/web/public/sw.js` 에서 `SW_KILL = false` → `true` (은퇴 스크립트 `public/hoondok/sw.js` 는 항상 해제만 한다)
 2. `SW_VERSION` 을 올린다 (캐시 이름이 바뀌어야 구 캐시가 지워진다)
 3. 커밋 → main 머지 → `make deploy-web HOONDOK_ENABLED=1` (**ON 으로 배포한다** — OFF 로 내리면 SW 등록 컴포넌트가 안 돌아 킬 스크립트가 도달하지 못한다)
 4. 사용자가 앱을 한 번 열면 `caches.keys()` 전삭제 + `registration.unregister()` 가 실행된다
@@ -167,7 +170,7 @@ make rollback-web TAG=<배포 전에 적어 둔 sha>
 
 WARN 을 없애려면 Cloudflare 에 Cache Rule 하나를 건다 (Page Rules 는 폐기 중이므로 **Cache Rules** 로):
 
-- Match: `/hoondok/sw.js`
+- Match: `/sw.js`, `/hoondok/sw.js`
 - Browser TTL: **Respect origin** — `Bypass cache` 도 되지만 엣지 캐시까지 꺼서 VM 부하가 는다. 우리가 원하는 건 브라우저 헤더만 원본대로 보내는 것이다.
 
 **이 규칙은 레포 밖(대시보드)에 산다.** 안전은 규칙이 아니라 코드(`updateViaCache: "none"`)가 책임지고, 규칙이 조용히 지워지면 `sw-cache` WARN 이 다시 나타난다 — 그 WARN 이 이 설정을 감시하는 유일한 눈이다.
@@ -245,9 +248,9 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 | standalone 확인 | 홈 화면 아이콘에서 열었을 때 브라우저 주소창이 없는지 (scope 검증) |
 | 가입 | 초대 코드 입력 → 201, 틀린 코드 → 403 안내. **게이트 OFF 기간에는 코드 없이 201** 만 확인한다(아래 [§실행 기록](#실행-기록)의 2026-09-20 결정) |
 | 훈독 | 홈 → 훈독하기 → 완료 → 연속일 1 |
-| 오프라인 | 기내 모드에서 앱 실행 → `/hoondok/offline` 안내 |
+| 오프라인 | 기내 모드에서 앱 실행 → `/offline` 안내 |
 | 아이콘 | 홈 화면 아이콘이 감귤 배경 "훈" 으로 보이는지 |
-| 알림 (Phase 4, 운영 ON 뒤에만) | 홈의 "알림 받기" 카드(또는 설정 토글) → 권한 허용 → `send_hoondok_push.py --to-email` 발송 → 잠금 화면 도착 → 탭 시 `/hoondok` 이 열리는지. iOS 는 사파리 탭에서 카드가 설치 안내로 바뀌는지 확인한 뒤, 홈 화면 앱에서 켠다 |
+| 알림 (Phase 4, 운영 ON 뒤에만) | 홈의 "알림 받기" 카드(또는 설정 토글) → 권한 허용 → `send_hoondok_push.py --to-email` 발송 → 잠금 화면 도착 → 탭 시 `/bookmark` 가 열리는지. iOS 는 사파리 탭에서 카드가 설치 안내로 바뀌는지 확인한 뒤, 홈 화면 앱에서 켠다 |
 | 인앱 브라우저 | 카카오톡으로 받은 링크를 열었을 때 외부 브라우저(Safari/Chrome)로 넘어가는지, 안 넘어가면 배너가 보이는지 |
 
 **어디에 적나.** 아래 [§실행 기록](#실행-기록)에 `### <날짜> — 실기기 증거 (<기기>)` 절을 하나 만들어 채운다. `PLAN-HD-001` §6 표의 실기기 행은 그 절을 가리키게 되고, `docs/plans/completed/` 로 옮길 때 함께 첨부한다. 빈 양식:
@@ -265,7 +268,7 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 | 훈독 완료 → 연속일 1 |  |  |
 | 오프라인 안내 |  |  |
 | 아이콘 |  |  |
-| 알림 도착 → 탭 시 `/hoondok` (Phase 4) |  |  |
+| 알림 도착 → 탭 시 `/bookmark` (Phase 4) |  |  |
 | 카카오톡 링크 → 외부 브라우저 |  |  |
 ```
 

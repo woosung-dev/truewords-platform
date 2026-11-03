@@ -8,7 +8,8 @@
 4. SSE 데이터 모델은 `app/modules/chat/stream_schemas.py`, 공유 예시는 `contracts/fixtures/chat-stream.json`이다. 실제 이벤트는 `chunk`, `sources`, `done`; HTTP 오류/중도 끊김을 `done`으로 간주하지 않는다.
 5. 검증은 `GEMINI_API_KEY=test-key-for-ci EMBED_BATCH_SLEEP=0.001 uv run --frozen pytest -q`와 계약 재생성 검사를 실행한다. paid Gemini 평가와 운영 DB·볼륨 변경은 이 검증에 포함하지 않는다.
 6. `/hoondok/words/{volume:path}`는 하위 경로까지 잡는 greedy 라우트다. 그 아래에 경로를 만들지 않고 목차처럼 별도 접두(`/hoondok/sections/{volume:path}`)를 쓴다.
-7. 테스트는 Google TTS를 호출하지 않는다. conftest가 `GOOGLE_TTS_API_KEY`를 비워 낭독을 끈다.
+7. REST 경로는 `/hoondok/*` 그대로지만 웹 화면 주소는 루트 기준이다(`DEC-PWA-026`). 푸시 `url`·오류 경로 정규화 등 서버가 만드는 웹 링크는 `/bookmark`·`/words/…` 처럼 접두 없이 쓴다.
+8. 테스트는 Google TTS를 호출하지 않는다. conftest가 `GOOGLE_TTS_API_KEY`를 비워 낭독을 끈다.
 
 ## RAG·데이터 경계
 

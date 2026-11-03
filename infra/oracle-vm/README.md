@@ -299,6 +299,16 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
 
 `NEXT_PUBLIC_API_URL`은 `apps/web/next.config.ts`·`apps/admin/next.config.ts`의 API rewrite 목적지다. **Next 는 `rewrites` 를 `next build` 시점에 `routes-manifest.json` 으로 굽기 때문에 런타임 env 로는 바뀌지 않는다.** 그래서 두 앱의 `deploy-*`가 `--build-arg NEXT_PUBLIC_API_URL=http://backend:8080` 으로 넣는다. 값을 바꾸려면 재빌드가 필요하다. 앱 간 링크의 `NEXT_PUBLIC_WEB_URL`·`NEXT_PUBLIC_ADMIN_URL`도 빌드에 전달하고, API의 `WEB_FRONTEND_URL`·`ADMIN_FRONTEND_URL`은 확정 origin으로 맞춘다.
 
+#### 도메인 전환 — 메인 도메인 → web, `admin.<도메인>` → admin `[확인 필요]`
+
+웹 루트가 훈독이 된 뒤(`DEC-PWA-026`) 예정된 전환이다. 실제 도메인·DNS·전환 시점은 정해지지 않았다. 코드에는 도메인을 넣지 않고 아래 값만 바꾼다.
+
+1. Tunnel `Published application routes` 에 메인 도메인 → `web:3000`, `admin.<도메인>` → `admin:3001` 을 추가한다(기존 호스트는 전환 확인 전까지 둔다).
+2. `build-args.env` 의 `NEXT_PUBLIC_WEB_URL`·`NEXT_PUBLIC_ADMIN_URL` 을 새 origin 으로 바꾼다 — 번들에 구워지므로 web·admin 재빌드가 필요하다.
+3. VM `.env` 의 `WEB_FRONTEND_URL`·`ADMIN_FRONTEND_URL` 을 새 origin 으로 바꾸고 `make deploy-backend` 로 재기동한다(CORS·메일 링크).
+4. 쿠키(`hoondok_token`·`admin_token`)는 각 호스트 전용이다. `Domain=` 을 붙여 하위 도메인끼리 공유하지 않는다 — 전환하면 사용자는 새 도메인에서 다시 로그인한다.
+5. 예전 호스트는 새 origin 으로 리다이렉트하거나 내린다. 웹 푸시 구독·PWA 설치는 origin 에 묶여 있어 옮겨지지 않는다(다시 켜기·다시 설치 안내).
+
 ### 모노레포 이미지와 SSE 검사 (2026-09-05)
 
 ARM web/admin/API 이미지 3개 빌드·로컬 기동과 양 웹 컨테이너 통합 smoke가 통과했다. 격리 fixture 환경이며 운영 전환은 미실행이다. 최신 실행 결과는 [전환 계획 §5](../../docs/plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거)를 확인한다.
