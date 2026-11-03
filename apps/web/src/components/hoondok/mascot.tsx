@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { isHoondokMascotEnabled } from "@/features/hoondok/flag";
 
-// 포즈 4개만 쓴다. 원본 그림에 박힌 노란 강조선·"z" 를 지운 192px WebP(장당 약 10KB)다.
-// 불꽃(연속일)·하트(반응) 포즈는 제품 규칙(보상 연출·반응 1종) 때문에 들이지 않았다.
+// 포즈 4개만 쓴다. 원본 그림에 박힌 노란 강조선·"z"·불꽃 같은 떨어진 장식을 지운 192px WebP(장당 약 10KB)다.
+// 같은 폴더에 아직 쓰지 않는 포즈(focus·cheer·heart)와 큰 화면용 -512 판도 있다. cheer·heart 는 연속일 축하·반응으로
+// 읽히기 쉬워 보상 연출 금지(DEC-PWA-019)·반응 1종 규칙을 먼저 확인하고 쓴다.
 const POSE_SRC = {
   welcome: "/hoondok/mascot/owl-welcome.webp",
   reading: "/hoondok/mascot/owl-reading.webp",
