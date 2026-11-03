@@ -91,7 +91,9 @@ describe("훈독 PWA 설치 메타", () => {
   it("아이콘 파일이 존재하고 PNG 크기가 sizes 와 같다 (192·512 any · 512 maskable · apple 180 · 파비콘 32)", () => {
     expect(manifest.icons.map((icon) => icon.purpose)).toEqual(["any", "any", "maskable"]);
     for (const icon of manifest.icons) {
-      const file = path.join(PUBLIC_DIR, icon.src);
+      // 설치된 앱은 아이콘 URL 이 바뀌어야 새 그림을 받는다 — 그림을 바꾸면 ?v= 를 올린다
+      expect(icon.src, icon.src).toMatch(/\.png\?v=\d{8}$/);
+      const file = path.join(PUBLIC_DIR, icon.src.split("?")[0]);
       expect(existsSync(file), icon.src).toBe(true);
       expect(icon.type).toBe("image/png");
       const [width, height] = icon.sizes.split("x").map(Number);

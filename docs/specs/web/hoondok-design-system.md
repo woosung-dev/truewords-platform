@@ -239,6 +239,7 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 
 - 알림 배지만 HD 로 남는다. 상태 표시줄은 단색 실루엣만 보여 줘 부엉이 그림이 뭉개지기 때문이다. 재생성: `rsvg-convert -w 96 -h 96 hoondok-badge.svg -o badge-96.png`.
 - 부엉이 PNG 재생성: 원본을 LANCZOS 로 줄이고(32·64·192·512·180), `purpose: any`·파비콘·로고는 22% 라운드 마스크를 씌운 뒤 256색으로 양자화한다(512 가 200KB → 25KB). 색은 원본 그대로이며 감귤 `--accent #c24721`·종이 `--paper #fbfaf8` 와 같은 계열이다.
+- **manifest 아이콘 `src` 끝의 `?v=날짜`는 그림을 바꿀 때마다 올린다.** 이미 설치된 앱(크롬 "앱에서 열기"·데스크톱·안드로이드 홈 화면)은 아이콘 URL 이 바뀌어야 새 그림을 받는다. 파일 내용만 바꾸면 처음 설치할 때 그림(2026-09-19 "훈")이 계속 남는다.
 - 루트 `app/favicon.ico`(시연 챗용, `sizes="256x256"`)가 `/hoondok` 응답에도 함께 붙는다. 탭 크기에 딱 맞는 `favicon-32.png`(`32x32`)를 선언해야 훈독 탭에 부엉이가 뜬다.
 - 설치 메타는 hoondok layout 의 `generateMetadata`·`generateViewport` 에만 붙인다: `manifest` `/hoondok/manifest.webmanifest` · `appleWebApp`(capable, title "훈독", statusBarStyle default) · `icons`(icon 192·32, apple 180) · `viewport.themeColor` = `--paper`. 플래그 OFF 면 붙이지 않는다. 루트 layout·시연 챗은 무변경.
 - manifest 값: `id`·`start_url`·`scope` = **`/hoondok`(슬래시 없음 — Next `trailingSlash` 기본 false 로 `/hoondok/` 은 308 이고 scope 는 경로 접두 비교라 `/hoondok/` 이면 홈이 범위 밖)**, `display: standalone`, `lang: ko`, `background_color`·`theme_color` = `--paper #fbfaf8`, `description` 에 "독립 운영 베타" 표시. `theme_color` 는 토큰을 참조할 수 없어 값으로 적고 Vitest(`apps/web/src/test/hoondok-pwa.test.ts`)가 `hoondok.css --paper`·`viewport` 와 일치를 단언한다.
