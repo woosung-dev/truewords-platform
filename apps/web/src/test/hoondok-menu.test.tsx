@@ -82,11 +82,11 @@ describe("전체 메뉴 드로어", () => {
   it("햄버거로 열고, 닫으면 여는 버튼으로 포커스가 돌아온다", async () => {
     const dialog = openMenu();
     expect(dialog).toHaveAttribute("open");
-    // 목록은 하단 5탭과 같은 묶음 순서다
+    // 목록은 하단 4탭과 같은 묶음 순서다
     const groups = within(dialog)
       .getAllByRole("heading", { level: 3 })
       .map((heading) => heading.textContent);
-    expect(groups).toEqual(["즐겨찾는 메뉴", "즐겨찾는 말씀", "오늘 훈독", "AI 질문", "말씀", "5분 설교", "나의 정원"]);
+    expect(groups).toEqual(["즐겨찾는 메뉴", "즐겨찾는 말씀", "오늘 훈독", "AI 질문", "말씀", "나의 정원"]);
 
     // 읽기는 제목에서 시작한다
     expect(document.activeElement).toBe(within(dialog).getByRole("heading", { name: "전체 메뉴" }));
@@ -103,14 +103,10 @@ describe("전체 메뉴 드로어", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("프리뷰가 꺼진 5분 설교 묶음은 숨기지 않고 '준비 중' 으로 남기며 별이 없다", () => {
+  it("5분 설교 묶음은 메뉴에 없다", () => {
     const dialog = openMenu();
-    const worship = within(dialog)
-      .getByRole("heading", { level: 3, name: "5분 설교" })
-      .closest("section") as HTMLElement;
-    expect(within(worship).getAllByText("준비 중")).toHaveLength(3);
-    expect(within(worship).queryByRole("link")).toBeNull();
-    expect(within(worship).queryByRole("button", { name: /즐겨찾기/ })).toBeNull();
+    expect(within(dialog).queryByRole("heading", { level: 3, name: "5분 설교" })).toBeNull();
+    expect(within(dialog).queryByText("5분 설교")).toBeNull();
   });
 
   it("별을 누르면 위 띠에 칩이 생기고 기기에 남는다. 초기화 뒤 되돌리기로 복구된다", () => {

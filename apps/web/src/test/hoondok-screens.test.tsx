@@ -37,10 +37,10 @@ describe("훈독 화면 레지스트리", () => {
 });
 
 describe("훈독 탭 단계", () => {
-  it("5분 설교만 준비 중이고 나머지 4탭은 이동한다", async () => {
+  it("4탭 모두 이동한다", async () => {
     const { HOONDOK_TABS, TAB_STAGE } = await import("../features/hoondok/tabs");
     expect(HOONDOK_TABS.filter((t) => !t.isDisabled).map((t) => t.id)).toEqual(["today", "ask", "library", "garden"]);
-    expect(TAB_STAGE).toEqual({ today: "live", garden: "live", ask: "live", library: "live", worship: "soon" });
+    expect(TAB_STAGE).toEqual({ today: "live", garden: "live", ask: "live", library: "live" });
   });
 });
 
