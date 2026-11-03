@@ -22,7 +22,7 @@ from app.core.config import settings
 from app.modules.hoondok.models import ContentRight
 from app.modules.hoondok.summary_models import SummaryUnit, SummaryAsset
 from app.modules.hoondok.summary_schemas import SummaryInput
-from app.modules.hoondok.summary_service import SummaryService
+from app.modules.hoondok.summary_service import SummaryService, chunk_point_id
 from app.modules.hoondok.summary_repository import SummaryRepository
 
 
@@ -61,6 +61,14 @@ async def run(args):
                 payload.get("source", {}), verified=False, chunk_ids=[]
             )
             data = SummaryInput.model_validate(payload)
+            for evidence in data.evidence:
+                # 근거 링크는 권리 원장 volume 의 적재본을 가리켜야 한다.
+                if evidence.chunk_index is not None and evidence.chunk_id != (
+                    chunk_point_id(right.volume, evidence.chunk_index)
+                ):
+                    raise ValueError(
+                        f"{data.slug}: 근거 chunk_id 가 {right.volume} 적재본과 다릅니다"
+                    )
             unit = SummaryUnit(
                 id=uuid.uuid5(uuid.NAMESPACE_URL, "truewords:summary:" + data.slug),
                 content_right_id=right_id,

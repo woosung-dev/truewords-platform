@@ -25,6 +25,15 @@ class SummaryRepository:
             (await self.session.execute(q.order_by(SummaryUnit.slug))).scalars().all()
         )
 
+    async def published_units(self, right_id=None):
+        """공개 개정본이 있는 단위와 그 개정본을 한 번에 읽는다."""
+        q = select(SummaryUnit, SummaryRevision).join(
+            SummaryRevision, SummaryRevision.id == SummaryUnit.published_revision_id
+        )
+        if right_id:
+            q = q.where(SummaryUnit.content_right_id == right_id)
+        return [tuple(r) for r in (await self.session.execute(q)).all()]
+
     async def get(self, unit_id: uuid.UUID, lock=False):
         q = select(SummaryUnit).where(SummaryUnit.id == unit_id)
         if lock:

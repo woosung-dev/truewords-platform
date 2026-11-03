@@ -41,6 +41,17 @@ def setup():
     repo.right.return_value = right
     repo.assets.return_value = []
     repo.units.return_value = [unit]
+
+    async def published_units(right_id=None):
+        rows = []
+        for u in await repo.units(right_id):
+            if u.published_revision_id:
+                revision = await repo.revision(u.published_revision_id)
+                if revision:
+                    rows.append((u, revision))
+        return rows
+
+    repo.published_units.side_effect = published_units
     svc = SummaryService(repo, "/tmp/summary-test")
     return svc, repo, unit, data, right
 
@@ -212,7 +223,7 @@ def test_admin_endpoints_require_authentication_and_csrf():
     from app.modules.admin.dependencies import get_current_admin, require_admin_gate
 
     client = TestClient(app, follow_redirects=False)
-    assert client.get("/admin/hoondok/ai-summaries").status_code == 401
+    assert client.get("/admin/hoondok/ai-summaries/cheonseong-toc").status_code == 401
     app.dependency_overrides[get_current_admin] = lambda: {"user_id": uuid.uuid4()}
     app.dependency_overrides[require_admin_gate] = lambda: {}
     try:
@@ -498,3 +509,66 @@ def test_bundled_manifest_matches_contract_without_source_text():
                 assert evidence.chunk_id == str(
                     uuid.uuid5(uuid.NAMESPACE_URL, f"천성경.pdf:{evidence.chunk_index}")
                 )
+
+
+@pytest.mark.asyncio
+async def test_evidence_link_follows_right_volume_not_stored_chunk_id():
+    svc, repo, unit, data, right = published_setup()
+    unit.draft["evidence"] = [
+        {"claim": "근거", "from": 1, "to": 2, "chunk_index": 7, "chunk_id": "stale"}
+    ]
+    await svc.action(
+        unit.id,
+        SummaryActionInput(action="publish", version=unit.version),
+        AsyncMock(),
+        uuid.uuid4(),
+    )
+    evidence = (await svc.detail(unit.id)).evidence[0]
+    assert evidence.chunk_id == str(uuid.uuid5(uuid.NAMESPACE_URL, "book:7"))
+
+
+@pytest.mark.asyncio
+async def test_request_review_rejects_default_body_with_heading_only():
+    svc, repo, unit, data, right = setup()
+    unit.draft["body"] = {
+        "type": "doc",
+        "content": [
+            {
+                "type": "heading",
+                "attrs": {"level": 2},
+                "content": [{"type": "text", "text": "쉽게 풀어 읽기"}],
+            },
+            {"type": "paragraph"},
+        ],
+    }
+    with pytest.raises(HTTPException) as error:
+        await svc.action(
+            unit.id,
+            SummaryActionInput(action="request_review", version=unit.version),
+            AsyncMock(),
+            uuid.uuid4(),
+        )
+    assert error.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_update_with_same_source_range_skips_source_lookup():
+    from app.modules.hoondok.summary_schemas import SummarySource
+
+    svc, repo, unit, data, right = setup()
+    data.source_range_id = uuid.uuid4()
+    data.source_range_version = 1
+    data.source = SummarySource(
+        edition="판본", locator="1절", text="원문", chunk_ids=["c"]
+    )
+    unit.draft = data.model_dump(mode="json")
+    svc.resolve_source = AsyncMock(side_effect=AssertionError("원문 재조회"))
+    update = data.model_dump()
+    update["title"] = "제목만 수정"
+    update["source"] = dict(update["source"], verified=True)
+    await svc.update(
+        unit.id, SummaryUpdate(**update, version=1), AsyncMock(), uuid.uuid4()
+    )
+    assert unit.draft["title"] == "제목만 수정"
+    assert unit.draft["source"]["chunk_ids"] == ["c"]
+    assert unit.draft["source"]["verified"] is True

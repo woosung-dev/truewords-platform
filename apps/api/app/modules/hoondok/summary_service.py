@@ -18,6 +18,7 @@ from app.modules.hoondok.summary_schemas import (
     SummaryListItem,
     SummaryDetail,
     SummaryTocItem,
+    SummarySource,
     document_asset_ids,
 )
 
@@ -61,6 +62,28 @@ def section_position(sections, entry):
 
 def image_asset_ids(payload):
     return {uuid.UUID(str(i["asset_id"])) for i in payload.get("images", [])}
+
+
+def chunk_point_id(volume, chunk_index):
+    """적재 규칙(pipeline/ingestor.py)과 같은 Qdrant point id."""
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"{volume}:{chunk_index}"))
+
+
+def linked_evidence(evidence, volume):
+    """근거 링크는 연결된 권리의 volume 으로 응답 시점에 만든다 — 저장 값은 다른 volume 일 수 있다."""
+    return [
+        dict(e, chunk_id=chunk_point_id(volume, e["chunk_index"]))
+        if e.get("chunk_index") is not None
+        else e
+        for e in evidence
+    ]
+
+
+def body_text(node, in_heading=False):
+    """제목을 뺀 본문 글자. 기본 본문(제목 + 빈 문단)은 빈 문자열이다."""
+    in_heading = in_heading or node.get("type") == "heading"
+    text = "" if in_heading else (node.get("text") or "")
+    return text + "".join(body_text(c, in_heading) for c in node.get("content", []))
 
 
 class SummaryService:
@@ -143,9 +166,8 @@ class SummaryService:
     async def list_public(self, right_id=None, volume=None):
         """공개 개정본이 있는 단위만 내보낸다. 작업본·내린 단위는 제목도 노출하지 않는다."""
         result, sections = [], {}
-        for unit in await self.repo.units(right_id):
-            if not unit.published_revision_id:
-                continue
+        for unit, revision in await self.repo.published_units(right_id):
+            # 권리는 세션 identity map 에 남아 같은 저작물은 한 번만 읽는다.
             right = await self.repo.right(unit.content_right_id)
             if (
                 not right
@@ -153,9 +175,6 @@ class SummaryService:
                 or not right.scope_full_text
                 or (volume is not None and right.volume != volume)
             ):
-                continue
-            revision = await self.repo.revision(unit.published_revision_id)
-            if not revision:
                 continue
             payload = revision.payload
             result.append(
@@ -210,7 +229,7 @@ class SummaryService:
             key_points=payload["key_points"],
             body=payload["body"],
             body_version=payload.get("body_version", 1),
-            evidence=payload.get("evidence", []),
+            evidence=linked_evidence(payload.get("evidence", []), right.volume),
             reflection_questions=payload.get("reflection_questions", []),
             source=payload["source"],
             section_position=await self.section_for(right.volume, unit.slug),
@@ -333,7 +352,24 @@ class SummaryService:
         )
         if data.content_right_id != unit.content_right_id or data.slug != unit.slug:
             raise HTTPException(422, "원문 저작물과 고유 주소는 변경할 수 없습니다")
-        data = await self.resolve_source(data)
+        stored = unit.draft.get("source") or {}
+        if (
+            data.source_range_id is not None
+            and str(data.source_range_id) == str(unit.draft.get("source_range_id"))
+            and data.source_range_version == unit.draft.get("source_range_version")
+            and data.source.text == stored.get("text", "")
+            and data.source.sha256 == stored.get("sha256", "")
+        ):
+            # 같은 원문 범위면 원문 대조 없이 저장한다(공개 시 다시 대조). 검수 표시만 반영한다.
+            data = data.model_copy(
+                update={
+                    "source": SummarySource.model_validate(stored).model_copy(
+                        update={"verified": data.source.verified}
+                    )
+                }
+            )
+        else:
+            data = await self.resolve_source(data)
         await self.check_assets(unit, data)
         unit.draft = data.model_dump(mode="json", exclude={"version"})
         unit.review_status = "draft"
@@ -395,7 +431,7 @@ class SummaryService:
             if (
                 not payload.lead.strip()
                 or not any(p.strip() for p in payload.key_points)
-                or not payload.body.get("content")
+                or not body_text(payload.body).strip()
             ):
                 raise HTTPException(422, "핵심 한 줄·요점·본문을 작성하세요")
             unit.review_status = "review"
