@@ -10,6 +10,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, type ReactNode } from "react";
+import { StatusBadge, type StatusTone } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,15 @@ const STATUS: Record<Status | "none", string> = {
   published: "공개",
   withdrawn: "내림",
 };
+// 발행 관리 트리·편집 화면이 같은 색으로 상태를 읽게 한다
+const STATUS_TONE: Record<Status | "none", StatusTone> = {
+  none: "neutral",
+  draft: "info",
+  review: "warning",
+  published: "success",
+  withdrawn: "danger",
+};
+const STATUS_ORDER: (Status | "none")[] = ["published", "review", "draft", "withdrawn", "none"];
 const KIND_LABEL: Record<ImageKind, string> = { concept: "개념 그림", scene: "장면 그림" };
 // 서버 값은 소문자지만 예전 값·대문자가 와도 같은 상태로 읽는다.
 export function normalizeStatus(value: unknown): Status | "none" {
@@ -255,10 +265,22 @@ export function SummaryList() {
             ))}
           </NativeSelect>
         </Field>
-        <p className="text-sm text-muted-foreground" aria-live="polite">
+        <p className="pb-2 text-sm text-muted-foreground" aria-live="polite">
           {rows.length}절 표시
         </p>
       </div>
+      {all.length > 0 && (
+        <dl className="flex flex-wrap gap-x-5 gap-y-2 text-sm" aria-label="상태별 절 수">
+          {STATUS_ORDER.map((key) => (
+            <div key={key} className="flex items-center gap-2">
+              <dt>
+                <StatusBadge tone={STATUS_TONE[key]}>{STATUS[key]}</StatusBadge>
+              </dt>
+              <dd className="font-medium tabular-nums">{counts[key] ?? 0}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
       {query.isPending && <p role="status">발행 목록을 불러오고 있어요.</p>}
       {query.isError && (
         <div role="alert" className="space-y-3">
@@ -275,24 +297,32 @@ export function SummaryList() {
           </h2>
           {Array.from(pyeonItem.jangs, ([jangNo, jang]) => (
             <div key={jangNo} className="overflow-hidden rounded-xl border bg-card">
-              <h3 className="border-b bg-muted/40 px-4 py-2 text-sm font-medium">
-                제{jangNo}장 {jang.title}
-              </h3>
+              <div className="flex items-center justify-between gap-3 border-b bg-muted/40 px-4 py-2">
+                <h3 className="text-sm font-medium">
+                  제{jangNo}장 {jang.title}
+                </h3>
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                  공개 {jang.rows.filter((row) => normalizeStatus(row.status) === "published").length} /{" "}
+                  {jang.rows.length}절
+                </span>
+              </div>
               <ul className="divide-y">
                 {jang.rows.map((row) => {
                   const rowStatus = normalizeStatus(row.status);
                   const inner = (
                     <>
-                      <span className="min-w-0 flex-1">
+                      <span className="min-w-0 basis-full sm:basis-auto sm:flex-1">
                         <span className="font-medium">
                           {row.jeol_no}절 {row.jeol_title}
                         </span>
-                        <span className="ml-2 text-xs text-muted-foreground">말씀 {row.paragraph_count}개</span>
+                        <span className="ml-2 whitespace-nowrap text-xs text-muted-foreground">
+                          말씀 {row.paragraph_count}개
+                        </span>
                       </span>
-                      <span className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="rounded-full border px-3 py-1">{STATUS[rowStatus]}</span>
+                      <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground tabular-nums">
+                        <StatusBadge tone={STATUS_TONE[rowStatus]}>{STATUS[rowStatus]}</StatusBadge>
                         {row.published && rowStatus !== "published" && (
-                          <span className="rounded-full bg-muted px-3 py-1">공개 중</span>
+                          <StatusBadge tone="success">공개 중</StatusBadge>
                         )}
                         {row.unit_id && <span>그림 {row.image_count}장</span>}
                         {row.text_score != null && <span>점수 {row.text_score}</span>}
@@ -321,7 +351,7 @@ export function SummaryList() {
                       )}
                       {missing === row.slug && (
                         <p id={`missing-${row.slug}`} role="status" className="px-4 pb-3 text-sm text-muted-foreground">
-                          콘텐츠 없음 — 이 절의 AI 요약을 아직 가져오지 않았어요.
+                          콘텐츠 없음: 이 절의 AI 요약을 아직 가져오지 않았어요.
                         </p>
                       )}
                     </li>
@@ -825,10 +855,8 @@ export function SummaryForm({ initial }: { initial?: SummaryAdminResponse }) {
         <aside className="summary-d-settings" aria-label="게시글 설정">
           <h2 className="font-semibold">게시글 설정</h2>
           <div className="mt-4 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-muted px-3 py-1">{status ? STATUS[status] : "새 초안"}</span>
-            {record?.published && status !== "published" && (
-              <span className="rounded-full border px-3 py-1">이전 공개본 공개 중</span>
-            )}
+            <StatusBadge tone={status ? STATUS_TONE[status] : "neutral"}>{status ? STATUS[status] : "새 초안"}</StatusBadge>
+            {record?.published && status !== "published" && <StatusBadge tone="success">이전 공개본 공개 중</StatusBadge>}
           </div>
           <p className="mt-4 text-xs leading-6 text-muted-foreground">
             {selectedRight && selectedRight.status !== "allowed"

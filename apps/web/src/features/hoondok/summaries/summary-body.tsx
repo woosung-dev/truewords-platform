@@ -98,22 +98,52 @@ function textAlign(node: Node): CSSProperties {
       : undefined,
   };
 }
+/** 본문 h2 의 앵커 id. 상세 화면 목차가 같은 순서로 가리킨다. */
+export const bodyHeadingId = (index: number) => `sum-part-${index + 1}`;
+
+function plainText(node: Node): string {
+  return (node.text ?? "") + (node.content ?? []).map(plainText).join("");
+}
+
+function collectHeadings(node: Node, out: Node[]): Node[] {
+  if (node.type === "heading" && Number(node.attrs?.level) === 2) out.push(node);
+  else for (const child of node.content ?? []) collectHeadings(child, out);
+  return out;
+}
+
+/** 본문 h2 소제목 목록(문서 순서). 표시할 수 없는 본문이면 빈 목록. */
+export function bodyHeadings(body: unknown): string[] {
+  if (!documentNode(body) || body.type !== "doc") return [];
+  return collectHeadings(body, []).map((node) => plainText(node).trim());
+}
+
+// 문단 끝 근거 번호 "(말씀 5–7)" 는 본문보다 한 단계 낮춰 보인다.
+const CITE = /(\(말씀 [\d\s,–-]+\))/;
+function withCitations(text: string) {
+  if (!CITE.test(text)) return text;
+  return text.split(CITE).map((part, i) => (i % 2 === 1 ? <span key={i} className="sum-cite">{part}</span> : part));
+}
+
 export function SummaryBody({ body, assets = [] }: { body: unknown; assets?: SummaryMediaResponse[] }) {
   if (!documentNode(body) || body.type !== "doc")
     return <p role="alert">해설을 표시할 수 없어요. 원문을 확인해 주세요.</p>;
+  // 렌더러는 원본 노드 객체를 그대로 넘긴다. h2 마다 bodyHeadings 와 같은 순번 id 를 붙인다.
+  const headingIds = new Map(collectHeadings(body, []).map((node, i) => [node, bodyHeadingId(i)]));
   const resolve = (id: unknown) =>
     assets.find((asset) => asset.id === id && asset.url.startsWith("/api/backend/hoondok/ai-summaries/"))?.url;
   const render = renderJSONContentToReactElement<Mark, Node>({
     nodeMapping: {
       doc: ({ children }) => <>{children}</>,
       paragraph: ({ node, children }) => <p style={textAlign(node)}>{children}</p>,
-      text: ({ node }) => node.text ?? "",
-      heading: ({ node, children }) =>
-        node.attrs?.level === 3 ? (
-          <h3 style={textAlign(node)}>{children}</h3>
-        ) : (
-          <h2 style={textAlign(node)}>{children}</h2>
-        ),
+      text: ({ node }) => (node.marks?.length ? (node.text ?? "") : withCitations(node.text ?? "")),
+      heading: ({ node, children }) => {
+        if (node.attrs?.level === 3) return <h3 style={textAlign(node)}>{children}</h3>;
+        return (
+          <h2 id={headingIds.get(node)} style={textAlign(node)}>
+            {children}
+          </h2>
+        );
+      },
       bulletList: ({ children }) => <ul>{children}</ul>,
       orderedList: ({ node, children }) => (
         <ol start={typeof node.attrs?.start === "number" ? node.attrs.start : undefined}>{children}</ol>

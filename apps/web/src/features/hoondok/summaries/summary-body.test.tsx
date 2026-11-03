@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { SummaryBody } from "./summary-body";
+import { bodyHeadingId, bodyHeadings, SummaryBody } from "./summary-body";
 
 describe("원문 요약 본문", () => {
   it("본문 구조와 서식을 읽기 전용으로 보여준다", () => {
@@ -15,7 +15,7 @@ describe("원문 요약 본문", () => {
         }}
       />,
     );
-    expect(screen.getByRole("heading", { name: "두 가지 길" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "두 가지 길" })).toHaveAttribute("id", bodyHeadingId(0));
     expect(screen.getByText("종교와 과학").tagName).toBe("STRONG");
     expect(document.querySelector("[contenteditable]")).toBeNull();
   });
@@ -40,6 +40,21 @@ describe("원문 요약 본문", () => {
       />,
     );
     expect(screen.queryByRole("link")).toBeNull();
+  });
+  it("목차가 가리키는 소제목 목록과 근거 번호 표시", () => {
+    const body = {
+      type: "doc",
+      content: [
+        { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "들어가며" }] },
+        { type: "paragraph", content: [{ type: "text", text: "하나님은 계십니다. (말씀 5–7)" }] },
+        { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "무형의 하나님" }] },
+      ],
+    };
+    expect(bodyHeadings(body)).toEqual(["들어가며", "무형의 하나님"]);
+    expect(bodyHeadings({ type: "iframe" })).toEqual([]);
+    render(<SummaryBody body={body} />);
+    expect(screen.getByRole("heading", { name: "무형의 하나님" })).toHaveAttribute("id", bodyHeadingId(1));
+    expect(screen.getByText("(말씀 5–7)")).toHaveClass("sum-cite");
   });
 });
 
