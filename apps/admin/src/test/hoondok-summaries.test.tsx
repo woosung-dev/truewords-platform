@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SummaryForm } from "@/features/hoondok/summaries/workspace";
+import { SummaryForm, SummaryList } from "@/features/hoondok/summaries/workspace";
 import { summariesAPI, type SummaryAdminResponse } from "@/features/hoondok/summaries/api";
 import { rightsAPI } from "@/features/hoondok/rights-api";
 import { ApiError } from "@/lib/api";
@@ -12,7 +12,7 @@ vi.mock("@/features/hoondok/rights-api", () => ({
 }));
 vi.mock("@/features/hoondok/summaries/api", () => ({
   summariesAPI: {
-    list: vi.fn(),
+    toc: vi.fn(),
     get: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -88,7 +88,10 @@ const draft: SummaryAdminResponse = {
   lead: "원문을 함께 읽습니다.",
   key_points: ["행복", "본심", "모순"],
   body: { type: "doc", content: [{ type: "paragraph" }] },
-  reflection: "나는 어떻게 살아갈까요?",
+  evidence: [{ claim: "근거 문장", from: 5, to: 7 }],
+  reflection_questions: ["나는 어떻게 살아갈까요?"],
+  uncertainty: ["관리자 확인 사항"],
+  generation: { text_model: "test-model", text_score: 88 },
   source: {
     edition: "제공 판본",
     locator: "총서 앞부분",
@@ -97,10 +100,10 @@ const draft: SummaryAdminResponse = {
     chunk_ids: ["source-1"],
     verified: true,
   },
-  slides: [],
+  images: [],
   assets: [],
   version: 3,
-  review_status: "approved",
+  review_status: "review",
   published: true,
   updated_at: "2026-10-31T00:00:00Z",
 };
@@ -272,4 +275,107 @@ it("원문을 고르지 않은 새 글은 숨겨진 필드에 막히지 않고 �
   expect(await screen.findByRole("alert")).toHaveTextContent("원문 범위를 먼저 선택");
   expect(summariesAPI.create).not.toHaveBeenCalled();
   expect(screen.getByLabelText("제목").tagName).toBe("TEXTAREA");
+});
+
+it("대문자 상태 값도 소문자로 정규화해 버튼 조건을 정한다", () => {
+  show({ ...draft, review_status: "WITHDRAWN" as SummaryAdminResponse["review_status"], published: false });
+  expect(screen.getByRole("button", { name: "다시 공개하기" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "내리기" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "검수 요청" })).toBeDisabled();
+});
+
+it("근거·물음·확인 필요와 개념 그림 교체를 저장 값에 담는다", async () => {
+  vi.mocked(summariesAPI.update).mockResolvedValue({ ...draft, version: 4 });
+  vi.mocked(summariesAPI.upload).mockResolvedValue({
+    id: "44444444-4444-4444-8444-444444444444",
+    url: "/api/backend/admin/hoondok/ai-summaries/unit/media/new",
+    mime_type: "image/webp",
+  });
+  show({
+    ...draft,
+    images: [{ kind: "concept", asset_id: "55555555-5555-4555-8555-555555555555", alt: "옛 개념", caption: "" }],
+  });
+  expect(screen.getByText(/test-model/)).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("근거 1 끝 말씀 번호"), { target: { value: "9" } });
+  fireEvent.change(screen.getByLabelText("되새길 물음 1"), { target: { value: "오늘 나는 무엇을 느꼈나요?" } });
+  fireEvent.change(screen.getByLabelText("개념 그림 업로드"), {
+    target: { files: [new File(["x"], "concept.webp", { type: "image/webp" })] },
+  });
+  await waitFor(() => expect(summariesAPI.upload).toHaveBeenCalled());
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("개념 그림"));
+  fireEvent.click(screen.getByRole("button", { name: "초안 저장" }));
+  await waitFor(() =>
+    expect(summariesAPI.update).toHaveBeenCalledWith(
+      draft.id,
+      expect.objectContaining({
+        evidence: [{ claim: "근거 문장", from: 5, to: 9 }],
+        reflection_questions: ["오늘 나는 무엇을 느꼈나요?"],
+        uncertainty: ["관리자 확인 사항"],
+        images: [
+          {
+            kind: "concept",
+            asset_id: "44444444-4444-4444-8444-444444444444",
+            alt: "옛 개념",
+            caption: "",
+          },
+        ],
+      }),
+    ),
+  );
+});
+
+it("발행 관리 목록은 편·장·절 트리와 상태 거르기, 콘텐츠 없음 안내를 보여준다", async () => {
+  const row = {
+    pyeon_no: 1,
+    pyeon_title: "하나님",
+    jang_no: 1,
+    jang_title: "하나님의 존재와 속성",
+    paragraph_count: 43,
+    image_count: 0,
+    published: false,
+  };
+  vi.mocked(summariesAPI.toc).mockResolvedValue([
+    {
+      ...row,
+      slug: "cheon-01-01-01",
+      jeol_no: 1,
+      jeol_title: "하나님의 실존",
+      unit_id: draft.id,
+      status: "PUBLISHED" as "published",
+      published: true,
+      image_count: 2,
+      text_score: 91,
+      updated_at: "2026-11-01T00:00:00Z",
+    },
+    { ...row, slug: "cheon-01-01-02", jeol_no: 2, jeol_title: "근원이요 본체이신 하나님", status: "none" },
+    {
+      ...row,
+      pyeon_no: 2,
+      pyeon_title: "참부모",
+      slug: "cheon-02-01-01",
+      jeol_no: 1,
+      jeol_title: "참부모의 의미",
+      status: "none",
+    },
+  ]);
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <SummaryList />
+    </QueryClientProvider>,
+  );
+  const link = await screen.findByRole("link", { name: /1절 하나님의 실존/ });
+  expect(link).toHaveAttribute("href", `/hoondok/summaries/${draft.id}/edit`);
+  expect(link).toHaveTextContent("공개");
+  expect(link).toHaveTextContent("그림 2장");
+  expect(link).toHaveTextContent("점수 91");
+  expect(screen.getByRole("heading", { name: "제2편 참부모" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /2절 근원이요 본체이신 하나님/ }));
+  expect(screen.getByRole("status")).toHaveTextContent("콘텐츠 없음");
+  fireEvent.change(screen.getByLabelText("상태"), { target: { value: "published" } });
+  expect(screen.queryByText(/근원이요 본체이신 하나님/)).not.toBeInTheDocument();
+  expect(screen.getByText("1절 표시")).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("상태"), { target: { value: "" } });
+  fireEvent.change(screen.getByLabelText("편"), { target: { value: "2" } });
+  expect(screen.queryByText(/하나님의 실존/)).not.toBeInTheDocument();
+  expect(screen.getByText(/참부모의 의미/)).toBeInTheDocument();
 });

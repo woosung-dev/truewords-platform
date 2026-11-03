@@ -4,13 +4,15 @@ import type {
   SummaryAdminResponse,
   SummaryActionInput,
   SummaryMediaResponse,
+  SummaryTocItem,
 } from "@truewords/api-client-ts/types";
 import { fetchAPI } from "@/lib/api";
 
-export type { SummaryInput, SummaryAdminResponse };
+export type { SummaryInput, SummaryAdminResponse, SummaryTocItem };
 const BASE = "/admin/hoondok/ai-summaries";
 export const summariesAPI = {
-  list: () => fetchAPI<SummaryAdminResponse[]>(BASE),
+  // 천성경 199절 발행 관리 목록. 거르기는 화면에서 한다(편 이름·개수를 함께 보여야 해서).
+  toc: () => fetchAPI<SummaryTocItem[]>(`${BASE}/cheonseong-toc`),
   get: (id: string) => fetchAPI<SummaryAdminResponse>(`${BASE}/${id}`),
   create: (data: SummaryInput) =>
     fetchAPI<SummaryAdminResponse>(BASE, {
