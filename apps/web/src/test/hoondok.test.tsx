@@ -39,7 +39,12 @@ describe("훈독 기능 플래그", () => {
       headers.map((h) => [h.source, Object.fromEntries(h.headers.map((x) => [x.key, x.value]))] as const),
     );
     // 웹 루트가 훈독이라(DEC-PWA-026) 색인 금지는 모든 경로에 붙는다
-    expect(bySource.get("/:path*")).toEqual({ "X-Robots-Tag": "noindex, nofollow" });
+    // 프레임 금지도 모든 경로(보안 점검 web-missing-frame-protection-samesite-none)
+    expect(bySource.get("/:path*")).toEqual({
+      "X-Robots-Tag": "noindex, nofollow",
+      "X-Frame-Options": "DENY",
+      "Content-Security-Policy": "frame-ancestors 'none'",
+    });
     expect(bySource.get("/hoondok/fonts/:path*")).toEqual({ "Cache-Control": "public, max-age=31536000, immutable" });
     expect(bySource.get("/sw.js")).toEqual({ "Cache-Control": "no-cache, must-revalidate" });
     // 예전 scope(/hoondok) 등록이 은퇴 스크립트로 업데이트되려면 같은 scope 허용이 남아 있어야 한다

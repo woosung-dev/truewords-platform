@@ -26,7 +26,15 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       // 훈독 베타는 권리 미확정 정본을 싣는다. 웹 전체가 훈독이므로 모든 경로에 붙인다(layout metadata.robots 와 짝).
-      { source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      // 다른 사이트가 로그인 상태(운영 쿠키 SameSite=None)로 화면을 틀에 넣어 클릭을 유도하지 못하게 한다(보안 점검).
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+        ],
+      },
       // 훈독 self-host 폰트는 파일명에 버전을 고정해 1년 immutable 로 둔다 (PLAN-HD-001 Phase 3 C). public 기본은 max-age=0 이다.
       {
         source: "/hoondok/fonts/:path*",
