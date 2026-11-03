@@ -95,6 +95,21 @@ async def test_login_wrong_password_unknown_email_and_deleted_share_401(repo: Us
     assert exc.value.status_code == 401
 
 
+@pytest.mark.asyncio
+async def test_login_unknown_email_still_runs_bcrypt(repo: UserRepository):
+    """보안 점검 login-bcrypt-short-circuit-timing-enumeration 회귀 —
+    없는 이메일도 bcrypt 비교를 한 번 돌려 응답 시간으로 가입 여부가 드러나지 않는다(API-HD-003)."""
+    from unittest.mock import patch
+
+    from app.modules.admin import auth as auth_module
+
+    service = IdentityService(repo)
+    with patch.object(auth_module, "verify_password", wraps=auth_module.verify_password) as spy:
+        with pytest.raises(HTTPException):
+            await service.login(LoginRequest(email="nobody@example.com", password="password1"))
+    assert spy.call_count == 1
+
+
 # --- 토큰 aud 분리 -----------------------------------------------------------
 
 
