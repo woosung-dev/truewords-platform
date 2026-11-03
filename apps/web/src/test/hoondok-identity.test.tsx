@@ -56,6 +56,12 @@ describe("returnTo 검증 (open redirect 방지)", () => {
       "javascript:alert(1)",
       "/onboarding",
       "/onboarding?returnTo=%2Fread",
+      // 보안 점검 web-safe-return-to-control-char-open-redirect — URL 파서가 탭·줄바꿈을 지우면 `//evil.example`
+      "/\t/evil.example",
+      "/\n/evil.example",
+      "/\r//evil.example",
+      "/hoondok/\t/evil.example",
+      "/\u007f",
       "",
       null,
     ]) {
