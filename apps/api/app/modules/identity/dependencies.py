@@ -13,16 +13,12 @@ from app.modules.hoondok.asks_repository import AskRepository
 from app.modules.hoondok.dependencies import (
     get_ask_repository,
     get_card_repository,
-    get_group_invite_verifier,
-    get_group_repository,
     get_jeongseong_repository,
     get_library_repository,
     get_mission_repository,
     get_notification_repository,
     get_public_question_repository,
 )
-from app.modules.hoondok.groups_repository import GroupRepository
-from app.modules.hoondok.groups_service import GroupInviteVerifier
 from app.modules.hoondok.library_repository import LibraryRepository
 from app.modules.hoondok.notifications_repository import NotificationRepository
 from app.modules.hoondok.public_questions_repository import PublicQuestionRepository
@@ -53,10 +49,8 @@ async def get_identity_repository(
 
 async def get_identity_service(
     repo: UserRepository = Depends(get_identity_repository),
-    invite_verifier: GroupInviteVerifier = Depends(get_group_invite_verifier),
 ) -> IdentityService:
-    # D4: 유효한 모임 초대 코드가 전역 HOONDOK_INVITE_CODE 게이트를 대신 통과한다 (PLAN-HD-010).
-    return IdentityService(repo, invite_verifier=invite_verifier)
+    return IdentityService(repo)
 
 
 async def get_user_data_purgers(
@@ -64,7 +58,6 @@ async def get_user_data_purgers(
     jeongseong: JeongseongRepository = Depends(get_jeongseong_repository),
     notifications: NotificationRepository = Depends(get_notification_repository),
     library: LibraryRepository = Depends(get_library_repository),
-    groups: GroupRepository = Depends(get_group_repository),
     cards: CardRepository = Depends(get_card_repository),
     public_questions: PublicQuestionRepository = Depends(get_public_question_repository),
     asks: AskRepository = Depends(get_ask_repository),
@@ -73,10 +66,10 @@ async def get_user_data_purgers(
 
     get_async_session 은 요청당 캐시되므로 UserRepository 와 같은 세션을 공유하고, 삭제는 사용자 저장 커밋에 묶인다.
     """
-    # library = reading_positions·passage_marks·passage_highlights, groups = 모임원·한 줄·반응 + 리더 자동 이전 (PLAN-HD-010)
+    # library = reading_positions·passage_marks·passage_highlights
     # cards = card_receipts (PLAN-HD-012), public_questions = 공개 신청한 질문 (DEC-PWA-025)
     # asks = AI 질문 대화(채팅 세션·메시지·근거 포함)·하루 횟수 (DEC-PWA-025 2차)
-    return [missions, jeongseong, notifications, library, groups, cards, public_questions, asks]
+    return [missions, jeongseong, notifications, library, cards, public_questions, asks]
 
 
 def decode_hoondok_token(token: str) -> uuid.UUID | None:

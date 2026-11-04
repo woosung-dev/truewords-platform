@@ -851,7 +851,6 @@ async def test_account_deletion_purges_library_rows(ctx: TestClient):
         get_ask_repository,
         get_card_repository,
         get_public_question_repository,
-        get_group_repository,
         get_jeongseong_repository,
         get_library_repository,
         get_mission_repository,
@@ -866,7 +865,6 @@ async def test_account_deletion_purges_library_rows(ctx: TestClient):
     app.dependency_overrides[get_mission_repository] = lambda: _Noop()
     app.dependency_overrides[get_jeongseong_repository] = lambda: _Noop()
     app.dependency_overrides[get_notification_repository] = lambda: _Noop()
-    app.dependency_overrides[get_group_repository] = lambda: _Noop()
     app.dependency_overrides[get_card_repository] = lambda: _Noop()
     app.dependency_overrides[get_public_question_repository] = lambda: _Noop()
     app.dependency_overrides[get_ask_repository] = lambda: _Noop()
@@ -878,7 +876,6 @@ async def test_account_deletion_purges_library_rows(ctx: TestClient):
             get_mission_repository,
             get_jeongseong_repository,
             get_notification_repository,
-            get_group_repository,
             get_card_repository,
             get_public_question_repository,
             get_ask_repository,
