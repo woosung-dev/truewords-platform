@@ -109,6 +109,16 @@ describe("전체 메뉴 드로어", () => {
     expect(within(dialog).queryByText("5분 설교")).toBeNull();
   });
 
+  it("모임 만들기·모임 참여는 가족·친구처럼 준비 중이다 — 링크·즐겨찾기 별이 없다", () => {
+    const dialog = openMenu();
+    for (const label of ["모임 만들기", "모임 참여", "가족·친구"]) {
+      const row = within(dialog).getByText(label).closest(".mn-row") as HTMLElement;
+      expect(within(row).getByText("준비 중")).toBeInTheDocument();
+      expect(within(row).queryByRole("link")).toBeNull();
+      expect(within(row).queryByRole("button")).toBeNull();
+    }
+  });
+
   it("별을 누르면 위 띠에 칩이 생기고 기기에 남는다. 초기화 뒤 되돌리기로 복구된다", () => {
     const dialog = openMenu();
     const band = favBand(dialog, "즐겨찾는 메뉴");
