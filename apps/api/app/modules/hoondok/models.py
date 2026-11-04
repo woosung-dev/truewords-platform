@@ -68,7 +68,7 @@ class JeongseongPeriod(SQLModel, table=True):
 
     진행률(done·missed·percent)은 저장하지 않고 mission_logs 의 read 완료일에서 매번 계산한다(hoondok/jeongseong.py).
     reminder_time 은 사용 중단 — 알림 시각은 notification_preferences.read_time.
-    resolution(나의 각오)은 본인 응답에만 담는다 — 모임·가족·관리자 응답에 넣지 않는다.
+    resolution(나의 각오)은 본인 응답에만 담는다 — 가족·관리자 응답에 넣지 않는다.
     """
 
     __tablename__ = "jeongseong_periods"

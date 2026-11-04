@@ -21,10 +21,10 @@ type Mode = "signup" | "login";
 function messageFor(error: unknown, mode: Mode, hasInviteCode: boolean): string {
   if (error instanceof ApiError) {
     // 403 은 CSRF 와 겹치므로 상태가 아니라 error_code 로 구분한다.
-    // 서버는 빈 코드·틀린 코드·만료 코드를 같은 코드로 주므로 입력 여부로 문구를 나눈다.
+    // 서버는 빈 코드·틀린 코드를 같은 코드로 주므로 입력 여부로 문구를 나눈다.
     if (error.errorCode === "INVITE_REQUIRED")
       return hasInviteCode
-        ? "초대 코드가 맞지 않거나 만료됐어요. 다시 확인해 주세요"
+        ? "초대 코드가 맞지 않아요. 다시 확인해 주세요"
         : "초대 코드가 필요해요. 초대받은 코드를 확인해 주세요";
     if (error.status === 401) return "이메일 또는 비밀번호가 올바르지 않습니다";
     if (error.status === 409) return "이미 가입된 이메일이에요. 로그인해 주세요";
