@@ -57,7 +57,7 @@ export function SummaryListScreen({ volume }: { volume?: string }) {
   }
   return <section className="sum-page sum-index">
     <header className="sum-index__head"><h2>AI 요약</h2><p>핵심 한 줄과 그림으로 먼저 보고, 원문으로 이어 읽어요.</p><p className="sum-notice" role="note"><Info size={15} aria-hidden="true" />{AI_NOTICE}</p></header>
-    {(query.isPending || query.isError) ? <Status pending={query.isPending} retry={() => void query.refetch()} /> : items.length === 0 ? <div className="empty"><p className="empty__title">첫 요약을 준비하고 있어요</p><p className="empty__body">검수를 마친 요약부터 차례로 공개해요.</p><Link className="btn btn-line" href={volume ? wordsHref(volume) : "/library"}>원문 읽기</Link></div> : Array.from(groups, ([title, summaries], index) => <section className="sum-book" key={title} aria-labelledby={`sum-book-${index}`}><h3 id={`sum-book-${index}`}>{title}<span>{summaries.length}편</span></h3><ol className="sum-list">{summaries.map((item) => <li key={item.id}><Link href={`/summaries/${item.id}`}>
+    {(query.isPending || query.isError) ? <Status pending={query.isPending} retry={() => void query.refetch()} /> : items.length === 0 ? <div className="empty"><p className="empty__title">첫 요약을 준비하고 있어요</p><p className="empty__body">검수를 마친 요약부터 차례로 공개해요.</p><Link className="btn btn-line" href={volume ? wordsHref(volume) : "/library"}>원문 읽기</Link></div> : Array.from(groups, ([title, summaries], index) => <section className="sum-book" key={title} aria-labelledby={`sum-book-${index}`}><h3 id={`sum-book-${index}`}>{title}<span>{summaries.length}개</span></h3><ol className="sum-list">{summaries.map((item) => <li key={item.id}><Link href={`/summaries/${item.id}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {item.cover_url ? <img src={item.cover_url} alt="" loading="lazy" /> : <span className="sum-list__ph" aria-hidden="true"><BookOpenText size={22} /></span>}<span className="sum-list__bd"><small>{parentGroup(item.group_title)}</small><strong>{item.title}</strong><span className="sum-list__lead">{item.lead}</span></span><ChevronRight size={18} aria-hidden="true" /></Link></li>)}</ol></section>)}
   </section>;
@@ -140,7 +140,7 @@ export function SummaryDetailScreen({ id }: { id: string }) {
 /** 원문 뷰 머리 표지 — 지금 장에 공개된 절 요약이 있으면 링크로 보인다. */
 export function SummaryMarks({ items }: { items: { id: string; title: string }[] }) {
   if (!items.length) return null;
-  return <nav className="sum-marks" aria-label="이 장의 AI 요약"><p className="sum-marks__lab"><Sparkles size={15} aria-hidden="true" />이 장의 AI 요약 {items.length}편</p><ul>{items.map((item) => <li key={item.id}><Link className="sum-mark" href={`/summaries/${item.id}`}><span className="sum-sr">AI 요약 </span><span className="sum-mark__t">{item.title}</span><ChevronRight size={16} aria-hidden="true" /></Link></li>)}</ul></nav>;
+  return <nav className="sum-marks" aria-label="이 장의 AI 요약"><p className="sum-marks__lab"><Sparkles size={15} aria-hidden="true" />이 장의 AI 요약 {items.length}개</p><ul>{items.map((item) => <li key={item.id}><Link className="sum-mark" href={`/summaries/${item.id}`}><span className="sum-sr">AI 요약 </span><span className="sum-mark__t">{item.title}</span><ChevronRight size={16} aria-hidden="true" /></Link></li>)}</ul></nav>;
 }
 
 /** 이 권의 공개 요약 목록. 원문 뷰가 장별 표지를 붙이는 데 쓴다. */
