@@ -4,7 +4,7 @@ import { ApiError } from "@truewords/api-client-ts";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-let pathname = "/hoondok/library";
+let pathname = "/library";
 
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -28,9 +28,9 @@ vi.mock("@/features/hoondok/library/api", async (original) => ({
 vi.mock("@/features/identity/api", () => ({ identityAPI: { me: vi.fn() } }));
 vi.mock("@/features/hoondok/missions-api", () => ({ missionsAPI: { summary: vi.fn(), complete: vi.fn() } }));
 
-import LibraryPage from "@/app/(hoondok)/hoondok/library/page";
-import SearchPage from "@/app/(hoondok)/hoondok/search/page";
-import WordsPage from "@/app/(hoondok)/hoondok/words/[id]/page";
+import LibraryPage from "@/app/(hoondok)/library/page";
+import SearchPage from "@/app/(hoondok)/search/page";
+import WordsPage from "@/app/(hoondok)/words/[id]/page";
 import { HoondokAppShell } from "@/components/hoondok";
 import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
 import { parseLastReading, writeLastReading } from "@/features/hoondok/library/last-reading";
@@ -72,7 +72,7 @@ const RESULT = {
 };
 
 beforeEach(() => {
-  pathname = "/hoondok/library";
+  pathname = "/library";
   vi.clearAllMocks();
   localStorage.clear();
   vi.mocked(libraryAPI.list).mockResolvedValue({ items: [WORK] });
@@ -99,7 +99,7 @@ describe("말씀 서고", () => {
     show(LibraryPage());
     expect(await screen.findByText("검색 인용만 허용 · 원문 공개 확인 중")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /말씀 1권/ })).toBeNull();
-    expect(screen.getByRole("link", { name: "말씀 검색하기" })).toHaveAttribute("href", "/hoondok/search");
+    expect(screen.getByRole("link", { name: "말씀 검색하기" })).toHaveAttribute("href", "/search");
   });
   it("기기의 마지막 원문 구간은 현재 원문 권리가 허용된 경우에만 이어 읽기에 보인다", async () => {
     writeLastReading({ volume: WORK.volume, page: 2 });
@@ -131,7 +131,7 @@ describe("말씀 서고", () => {
     vi.mocked(libraryAPI.list).mockResolvedValue({ items: [] });
     show(LibraryPage());
     expect(await screen.findByText("공개된 저작물이 아직 없어요")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "오늘 훈독으로 돌아가기" })).toHaveAttribute("href", "/hoondok");
+    expect(screen.getByRole("link", { name: "오늘 훈독으로 돌아가기" })).toHaveAttribute("href", "/");
   });
   it("volume 이 저작물 제목과 같으면 같은 글자를 두 줄 쓰지 않는다", async () => {
     const same = { ...WORK, volume: "말씀선집 001권", work_title: "말씀선집 001권" };
@@ -244,7 +244,7 @@ describe("원문 읽기", () => {
     await waitFor(() => expect(button).toBeEnabled());
     fireEvent.click(button);
     expect(await screen.findByText("오늘 말씀 읽기를 마쳤어요")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "오늘 훈독" })).toHaveAttribute("href", "/hoondok");
+    expect(screen.getByRole("link", { name: "오늘 훈독" })).toHaveAttribute("href", "/");
     expect(localStorage.getItem("hoondok:pending:study")).not.toBeNull();
     expect(localStorage.getItem("hoondok:pending:read")).toBeNull();
   });
@@ -284,7 +284,7 @@ describe("원문 읽기", () => {
     expect(libraryAPI.words).not.toHaveBeenCalled();
   });
   it("실제 저작물 제목을 앱바에 반영하고 원문 구간 목록을 링크로 제공한다", async () => {
-    pathname = `/hoondok/words/${encodeURIComponent(WORK.volume)}`;
+    pathname = `/words/${encodeURIComponent(WORK.volume)}`;
     show(
       <HoondokAppShell>
         {

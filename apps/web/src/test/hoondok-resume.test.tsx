@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
-  usePathname: () => "/hoondok",
+  usePathname: () => "/",
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 vi.mock("@/features/hoondok/library/api", async (original) => ({
@@ -27,7 +27,7 @@ vi.mock("@/features/identity/api", () => ({ identityAPI: { me: vi.fn() } }));
 vi.mock("@/features/hoondok/missions-api", () => ({ missionsAPI: { summary: vi.fn(), complete: vi.fn() } }));
 vi.mock("@/features/hoondok/jeongseong-api", () => ({ jeongseongAPI: { today: vi.fn() } }));
 
-import WordsPage from "@/app/(hoondok)/hoondok/words/[id]/page";
+import WordsPage from "@/app/(hoondok)/words/[id]/page";
 import { HomeMissions } from "@/features/hoondok/components/home-missions";
 import { jeongseongAPI } from "@/features/hoondok/jeongseong-api";
 import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
@@ -259,7 +259,7 @@ describe("홈 이어 읽기 카드", () => {
     show(<HomeMissions today={PUBLIC} todayWeekday={1} />);
     expect(await screen.findByText("말씀 서고")).toBeInTheDocument();
     expect(screen.getByText("공개된 원문을 읽고 읽음으로 기록해요")).toBeInTheDocument();
-    expect(resumeMission()).toHaveAttribute("href", "/hoondok/library");
+    expect(resumeMission()).toHaveAttribute("href", "/library");
     expect(libraryAPI.list).not.toHaveBeenCalled();
   });
   it("원문 공개가 닫힌 권이면 원문 링크를 만들지 않는다", async () => {
@@ -267,7 +267,7 @@ describe("홈 이어 읽기 카드", () => {
     vi.mocked(libraryAPI.list).mockResolvedValue({ items: [{ ...ITEM, scope_full_text: false }], works: [] });
     show(<HomeMissions today={PUBLIC} todayWeekday={1} />);
     expect(await screen.findByText("말씀 서고")).toBeInTheDocument();
-    expect(resumeMission()).toHaveAttribute("href", "/hoondok/library");
+    expect(resumeMission()).toHaveAttribute("href", "/library");
     expect(screen.queryByText(/단락부터/)).toBeNull();
   });
   it("위치 조회가 실패하면 기록 없음과 같은 카드로 떨어진다", async () => {
@@ -275,7 +275,7 @@ describe("홈 이어 읽기 카드", () => {
     vi.mocked(libraryAPI.readingPositions).mockRejectedValue(new ApiError(500, { message: "x" }));
     show(<HomeMissions today={PUBLIC} todayWeekday={1} />);
     expect(await screen.findByText("말씀 서고")).toBeInTheDocument();
-    expect(resumeMission()).toHaveAttribute("href", "/hoondok/library");
+    expect(resumeMission()).toHaveAttribute("href", "/library");
   });
   it("불러오는 동안은 서고 문구를 먼저 보이지 않고 자리만 지킨다", async () => {
     writeLastReading({ volume: VOLUME, page: 1 });

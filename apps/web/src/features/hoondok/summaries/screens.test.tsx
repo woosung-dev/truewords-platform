@@ -40,7 +40,7 @@ const detail: SummaryDetail = {
 it("공개 요약을 링크로 보여주고 AI 안내를 붙인다", async () => {
   vi.mocked(summariesAPI.list).mockResolvedValue([{ id: "one", content_right_id: "book", work_title: "천성경", slug: "cheon-01-01-01", group_title: "제1편 하나님", position: 1, title: "하나님의 실존", lead: "핵심", section_position: 2 }]);
   wrap(<SummaryListScreen />);
-  expect(await screen.findByRole("link", { name: /하나님의 실존/ })).toHaveAttribute("href", "/hoondok/summaries/one");
+  expect(await screen.findByRole("link", { name: /하나님의 실존/ })).toHaveAttribute("href", "/summaries/one");
   expect(screen.getByText(AI_NOTICE)).toBeInTheDocument();
 });
 
@@ -50,7 +50,7 @@ it("상세는 계약의 블록 순서대로 그리고 근거는 원문 뷰 장 �
   const title = await screen.findByRole("heading", { level: 2, name: "하나님의 실존" });
   expect(title).toBeInTheDocument();
   const crumb = screen.getByRole("navigation", { name: "위치" });
-  expect(within(crumb).getByRole("link", { name: "천성경" })).toHaveAttribute("href", "/hoondok/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf");
+  expect(within(crumb).getByRole("link", { name: "천성경" })).toHaveAttribute("href", "/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf");
   expect(crumb).toHaveTextContent("1절 하나님의 실존");
   expect(screen.getByText("AI 요약 · 약 1분")).toBeInTheDocument();
   expect(screen.getByRole("note")).toHaveTextContent(AI_NOTICE);
@@ -61,8 +61,8 @@ it("상세는 계약의 블록 순서대로 그리고 근거는 원문 뷰 장 �
     expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   }
   const evidence = screen.getByRole("link", { name: "말씀 5–7 원문에서 확인하기" });
-  expect(evidence).toHaveAttribute("href", "/hoondok/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?section=2");
-  expect(screen.getByRole("link", { name: "원문 읽기" })).toHaveAttribute("href", "/hoondok/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?section=2");
+  expect(evidence).toHaveAttribute("href", "/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?section=2");
+  expect(screen.getByRole("link", { name: "원문 읽기" })).toHaveAttribute("href", "/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?section=2");
 });
 
 it("그림은 개념/장면 토글로 바꾸고 대체 텍스트를 지킨다", async () => {
@@ -84,21 +84,21 @@ it("근거에 단락이 연결돼 있으면 그 단락으로, 없으면 장 첫�
     ],
   });
   wrap(<SummaryDetailScreen id="one" />);
-  expect(await screen.findByRole("link", { name: "말씀 5–7 원문에서 확인하기" })).toHaveAttribute("href", "/hoondok/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?chunk_id=c-13");
-  expect(screen.getByRole("link", { name: "말씀 9 원문에서 확인하기" })).toHaveAttribute("href", "/hoondok/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?section=2");
+  expect(await screen.findByRole("link", { name: "말씀 5–7 원문에서 확인하기" })).toHaveAttribute("href", "/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?chunk_id=c-13");
+  expect(screen.getByRole("link", { name: "말씀 9 원문에서 확인하기" })).toHaveAttribute("href", "/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?section=2");
 });
 
 it("장 위치가 없으면 원문 첫 화면으로 폴백한다", async () => {
   vi.mocked(summariesAPI.detail).mockResolvedValue({ ...detail, section_position: null });
   wrap(<SummaryDetailScreen id="one" />);
-  expect(await screen.findByRole("link", { name: "원문 읽기" })).toHaveAttribute("href", "/hoondok/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf");
+  expect(await screen.findByRole("link", { name: "원문 읽기" })).toHaveAttribute("href", "/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf");
 });
 
 it("원문 뷰 표지는 요약이 있을 때만 링크로 보인다", () => {
   const { container } = render(<SummaryMarks items={[]} />);
   expect(container).toBeEmptyDOMElement();
   render(<SummaryMarks items={[{ id: "one", title: "하나님의 실존" }]} />);
-  expect(screen.getByRole("link", { name: /AI 요약.*하나님의 실존/ })).toHaveAttribute("href", "/hoondok/summaries/one");
+  expect(screen.getByRole("link", { name: /AI 요약.*하나님의 실존/ })).toHaveAttribute("href", "/summaries/one");
 });
 
 it("읽기 시간은 최소 1분이다", () => {

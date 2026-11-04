@@ -240,9 +240,9 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 - 알림 배지만 HD 로 남는다. 상태 표시줄은 단색 실루엣만 보여 줘 부엉이 그림이 뭉개지기 때문이다. 재생성: `rsvg-convert -w 96 -h 96 hoondok-badge.svg -o badge-96.png`.
 - 부엉이 PNG 재생성: 원본을 LANCZOS 로 줄이고(32·64·192·512·180), `purpose: any`·파비콘·로고는 22% 라운드 마스크를 씌운 뒤 256색으로 양자화한다(512 가 200KB → 25KB). 색은 원본 그대로이며 감귤 `--accent #c24721`·종이 `--paper #fbfaf8` 와 같은 계열이다.
 - **manifest 아이콘 `src` 끝의 `?v=날짜`는 그림을 바꿀 때마다 올린다.** 이미 설치된 앱(크롬 "앱에서 열기"·데스크톱·안드로이드 홈 화면)은 아이콘 URL 이 바뀌어야 새 그림을 받는다. 파일 내용만 바꾸면 처음 설치할 때 그림(2026-09-19 "훈")이 계속 남는다.
-- 루트 `app/favicon.ico`(시연 챗용, `sizes="256x256"`)가 `/hoondok` 응답에도 함께 붙는다. 탭 크기에 딱 맞는 `favicon-32.png`(`32x32`)를 선언해야 훈독 탭에 부엉이가 뜬다.
-- 설치 메타는 hoondok layout 의 `generateMetadata`·`generateViewport` 에만 붙인다: `manifest` `/hoondok/manifest.webmanifest` · `appleWebApp`(capable, title "훈독", statusBarStyle default) · `icons`(icon 192·32, apple 180) · `viewport.themeColor` = `--paper`. 플래그 OFF 면 붙이지 않는다. 루트 layout·시연 챗은 무변경.
-- manifest 값: `id`·`start_url`·`scope` = **`/hoondok`(슬래시 없음 — Next `trailingSlash` 기본 false 로 `/hoondok/` 은 308 이고 scope 는 경로 접두 비교라 `/hoondok/` 이면 홈이 범위 밖)**, `display: standalone`, `lang: ko`, `background_color`·`theme_color` = `--paper #fbfaf8`, `description` 에 "독립 운영 베타" 표시. `theme_color` 는 토큰을 참조할 수 없어 값으로 적고 Vitest(`apps/web/src/test/hoondok-pwa.test.ts`)가 `hoondok.css --paper`·`viewport` 와 일치를 단언한다.
+- 루트 `app/favicon.ico`(`sizes="256x256"`)가 훈독 응답에도 함께 붙는다. 탭 크기에 딱 맞는 `favicon-32.png`(`32x32`)를 선언해야 훈독 탭에 부엉이가 뜬다.
+- 설치 메타는 hoondok layout 의 `generateMetadata`·`generateViewport` 에만 붙인다: `manifest` `/hoondok/manifest.webmanifest` · `appleWebApp`(capable, title "훈독", statusBarStyle default) · `icons`(icon 192·32, apple 180) · `viewport.themeColor` = `--paper`. 플래그 OFF 면 붙이지 않는다. 루트 layout 에는 붙이지 않는다.
+- manifest 값: `start_url`·`scope` = **`/`**(웹 루트 = 훈독, `DEC-PWA-026`), `id` = **`/hoondok`**(예전 start_url — 바꾸면 설치된 앱이 다른 앱이 된다. 2026-09-19 처음 정할 때 슬래시 없이 둔 이유는 Next `trailingSlash` 기본 false 로 `/hoondok/` 이 308 이라서였다), `display: standalone`, `lang: ko`, `background_color`·`theme_color` = `--paper #fbfaf8`, `description` 에 "독립 운영 베타" 표시. `theme_color` 는 토큰을 참조할 수 없어 값으로 적고 Vitest(`apps/web/src/test/hoondok-pwa.test.ts`)가 `hoondok.css --paper`·`viewport` 와 일치를 단언한다.
 
 ---
 
@@ -362,7 +362,9 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 
 ### 2.9 FAB (`SCR-PWA-005`)
 
-> **2026-09-16 변경.** `SCR-PWA-005` 는 FAB 대신 화면 상단의 라벨 있는 입력 + "물어보기" 채움 버튼을 주 행동으로 쓴다(2026-09-16 결정, §8). 아래 FAB 규격은 다른 화면에서 쓸 때를 위해 남긴다. 현재 FAB 를 쓰는 화면은 없다.
+> **2026-11-04 다시 변경.** `SCR-PWA-005` 는 아래 FAB "질문하기" 를 다시 쓴다(목록 홈, `DEC-PWA-025`).
+
+> ~~**2026-09-16 변경.**~~ `SCR-PWA-005` 는 FAB 대신 화면 상단의 라벨 있는 입력 + "물어보기" 채움 버튼을 주 행동으로 쓴다(2026-09-16 결정, §8). 아래 FAB 규격은 다른 화면에서 쓸 때를 위해 남긴다. 현재 FAB 를 쓰는 화면은 없다.
 
 "질문하기" 하나에만 쓴다. 화면당 FAB는 최대 1개다.
 
@@ -679,7 +681,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | 002 | 오늘 훈독 (홈) | 히어로 210px → 요일 스트립 → 미션 3장 세로 → 정성 → 함께 읽는 사람들(익명 숫자 카드 + 모임 카드, `?together=`) | 콘텐츠 720px 중앙, 히어로 260px. 미션은 **세로 유지** | 레일 240px + 본문 720px. 미션 세로 유지. 순서가 "오늘 할 일 1·2·3"이므로 가로 배치 금지 |
 | 003 | 훈독하기 | 출처 줄 → 제목 26px → 인용 → 용어 칩 → AI 설명 → 한 줄 성찰 → 완료 버튼 | 컬럼 전체 **640px** 중앙 | 동일 + 레일. 앱바도 640px 정렬 |
 | 004 | 정성 기간 만들기 | **바텀 시트**, 최대 높이 88% | 동일 | **중앙 모달** 520px, `--shadow-2` |
-| 005 | AI 질문 (묻기 홈) | ~~밑줄 세그먼트 3탭 + 리스트 + FAB 우하단~~ **2026-09-16 정정:** 오늘 말씀 한 줄 → 라벨 있는 입력 → 시작 문장 3개, FAB 없음 (§2.9) | 콘텐츠 720px 중앙 | 동일 + 헤더 검색바 |
+| 005 | AI 질문 (목록 홈) | **2026-11-04:** 밑줄 세그먼트 3탭(추천·저장·내 질문) + 돋보기 + 리스트 + FAB 우하단 (§2.9). ~~2026-09-16: 라벨 있는 입력 + 시작 문장 3개~~ | 콘텐츠 720px 중앙 | 동일 + 헤더 검색바 |
 | 006 | 질문·답변 상세 | AI 박스 → 근거 말씀 카드 → 연관 말씀 → 이어지는 질문 칩 → 저장 토글 | 컬럼 전체 **640px** 중앙 | 동일 + 레일. 근거 카드를 옆 컬럼으로 빼지 않는다 — 번호 인용이 본문과 같은 흐름에 있어야 한다 |
 | 007 | 말씀 서고 | 바로가기 4열 → 이어 읽기 → 저작물 리스트 | 바로가기 4열 유지, **저작물 2열 그리드** | 동일 + 레일. 2-pane 아님 (§4.3) |
 | 008 | 말씀 검색 | 앱바 안 입력 + 결과 카드 + 예시 칩 블록 | 콘텐츠 720px, 발췌 640px | 동일 + 레일. 단일 컬럼 유지 (§4.3) |
@@ -798,6 +800,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | 2026-11-03 | 앱 아이콘(any·maskable·apple)= **책 든 부엉이**, 탭 파비콘·헤더 표지 = **부엉이 얼굴**(디자인 에셋 폴더 시안 그대로). 알림 배지는 단색 실루엣이라 HD 유지. HD SVG 원본 3종 삭제 | 확정 · §1.7 |
 | 2026-11-03 | 훈독 글꼴 = Pretendard **동적 서브셋 92조각**(2026-09-19 "전체 가변 1종" 대체). 운영 실측 모든 훈독 첫 방문이 글꼴 2,011KB 를 받아 모바일 4G 로드 15~27초 | 확정 · §1.2 |
 | 2026-11-03 | 하단 탭 **5 → 4**(오늘 훈독 · AI 질문 · 말씀 · 나의 정원), 5분 설교 탭과 전체 메뉴 '5분 설교' 묶음(준비 중 3항목) 삭제, 말씀 돌출 버블 없이 **평평한 4칸**(넷째 탭 리서치 PR #376 선택지 2 · D3). 공급이 생기면 탭을 다시 연다 | 확정 · §2.8 |
+| 2026-11-04 | `SCR-PWA-005` AI 질문 = **목록 홈**(추천·저장·내 질문 + 돋보기는 누를 때만) + FAB "질문하기" → 새 질문 화면(답변 모델 시트·공개 여부 시트). 2026-09-16 "물음 한 장" 대체. ask 화면은 앱바 말씀 검색 숨김, 원문 단락 시트에 "이 단락으로 질문하기" (`DEC-PWA-025`) | 확정 · §2.9 |
 
 
 ### PLAN-HD-005 여정 연결 결정 (2026-09-21)

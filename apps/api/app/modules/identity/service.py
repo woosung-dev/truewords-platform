@@ -1,5 +1,6 @@
 """훈독 identity Service — 가입·로그인·토큰 발급 · 제한 베타 초대 코드 게이트(+ 모임 코드, D4) · 계정 삭제(API-HD-011)."""
 
+import asyncio
 import secrets
 import uuid
 from collections.abc import Sequence
@@ -10,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.common.clock import utcnow
 from app.core.config import settings
-from app.modules.admin.auth import create_access_token, hash_password, verify_password
+from app.modules.admin.auth import create_access_token, hash_password, verify_login_password
 from app.modules.identity.exceptions import InviteRequiredError
 from app.modules.identity.models import User
 from app.modules.identity.repository import UserRepository
@@ -90,7 +91,10 @@ class IdentityService:
 
     async def login(self, data: LoginRequest) -> User:
         user = await self.repo.get_by_email(data.email)
-        if user is None or user.deleted_at is not None or not verify_password(data.password, user.password_hash):
+        # 없는 계정도 bcrypt 를 돌려 응답 시간으로 가입 여부가 드러나지 않게 한다(API-HD-003).
+        # bcrypt 는 CPU 를 오래 쓰므로 스레드에서 돌려 단일 워커 이벤트 루프를 막지 않는다.
+        ok = await asyncio.to_thread(verify_login_password, data.password, user.password_hash if user is not None else None)
+        if user is None or user.deleted_at is not None or not ok:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=_INVALID_CREDENTIALS)
         return user
 

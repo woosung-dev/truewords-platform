@@ -129,8 +129,10 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    # 웹 루트는 훈독이다(DEC-PWA-026, 시연 챗 /login 삭제). 화면은 훈독 플래그·백엔드 응답에 따라 달라지므로
+    # 헬스체크는 플래그와 무관한 정적 manifest 로 Next 서버 생존만 본다. 화면 확인은 smoke.sh 가 한다.
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/login',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/hoondok/manifest.webmanifest',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3

@@ -17,7 +17,9 @@ from sqlmodel import SQLModel, select
 from app.main import app
 from app.modules.admin.auth import create_access_token
 from app.modules.hoondok.dependencies import (
+    get_ask_repository,
     get_card_repository,
+    get_public_question_repository,
     get_group_repository,
     get_jeongseong_repository,
     get_library_repository,
@@ -256,6 +258,8 @@ def client():
     app.dependency_overrides[get_group_repository] = lambda: groups
     cards = _FakeCards()
     app.dependency_overrides[get_card_repository] = lambda: cards
+    app.dependency_overrides[get_public_question_repository] = lambda: _FakeCards()  # 공개 질문 purger (DEC-PWA-025)
+    app.dependency_overrides[get_ask_repository] = lambda: _FakeCards()  # AI 질문 purger (DEC-PWA-025 2차)
     try:
         c = TestClient(app)
         c.users, c.logs, c.periods = users, logs, periods  # type: ignore[attr-defined]
@@ -270,6 +274,8 @@ def client():
             get_library_repository,
             get_group_repository,
             get_card_repository,
+            get_public_question_repository,
+            get_ask_repository,
         ):
             app.dependency_overrides.pop(dep, None)
 

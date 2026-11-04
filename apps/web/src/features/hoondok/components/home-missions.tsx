@@ -39,7 +39,7 @@ export function HomeGreeting() {
           {user ? `${user.display_name}님, 오늘도 함께 읽어요.` : "오늘도 함께 읽어요."}
         </p>
         <p className="shot__sub">{dateLabel}</p>
-        <Link className="btn btn-primary shot__go" href="/hoondok/read">
+        <Link className="btn btn-primary shot__go" href="/read">
           훈독하기
           <ArrowRightIcon size={18} aria-hidden="true" />
         </Link>
@@ -96,7 +96,7 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
       title={reading?.title ?? "오늘 말씀을 확인하지 못했어요"}
       meta={reading ? `${reading.work_title} · ${reading.speaker}` : "훈독하기에서 다시 불러와요"}
       icon={BookOpenTextIcon}
-      href="/hoondok/read"
+      href="/read"
       isPending={!reading && effective.isResolving}
       isDone={isReadDone}
       onToggle={reading && !effective.isResolving && !isReadDone ? completion.markDone : undefined}
@@ -117,7 +117,7 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
       title={resume.status === "ready" ? resume.title : "말씀 서고"}
       meta={resume.status === "ready" ? resume.meta : "공개된 원문을 읽고 읽음으로 기록해요"}
       icon={BooksIcon}
-      href={resume.status === "ready" ? resume.href : "/hoondok/library"}
+      href={resume.status === "ready" ? resume.href : "/library"}
       isPending={resume.status === "pending"}
       isDone={study.isDone || Boolean(summary?.today.study)}
     />
@@ -177,7 +177,7 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
             <span className="sect__meta">연속 {summary.streak_days}일</span>
           )}
           {!user && !isLoading && (
-            <Link className="sect__meta" href={onboardingHref("/hoondok")}>
+            <Link className="sect__meta" href={onboardingHref("/")}>
               로그인 후 기록돼요 →
             </Link>
           )}

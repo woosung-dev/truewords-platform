@@ -4,7 +4,7 @@ import { expect, test } from "./hoondok-test";
 /**
  * E2E: 훈독 편성 admin 화면 (PLAN-HD-001 Phase 3 sub-PR B).
  *
- * 편성 → 노출 루프: admin 에서 오늘 편성의 제목을 바꾸면 web `/hoondok` 홈이 새 제목을 보여야 한다.
+ * 편성 → 노출 루프: admin 에서 오늘 편성의 제목을 바꾸면 web 홈(`/`)이 새 제목을 보여야 한다.
  * web 홈은 서버 컴포넌트가 매 요청 API 를 읽으므로(cache: no-store) 다음 로드에 바로 반영된다.
  *
  * 사전 조건은 admin-flow.spec.ts 와 같다(게이트 계정 E2E_ADMIN_EMAIL / test1234).
@@ -59,7 +59,7 @@ test.describe("훈독 편성", () => {
     await expect(todayRow.getByText("확인되지 않음")).toBeVisible();
   });
 
-  test("오늘 편성 제목 수정 → web /hoondok 홈에 새 제목 → 원복", async ({ page }) => {
+  test("오늘 편성 제목 수정 → web 홈(/)에 새 제목 → 원복", async ({ page }) => {
     await page.goto("/hoondok");
     const todayRow = page.locator('tr[data-today="true"]');
     await expect(todayRow.getByRole("link", { name: "편집" })).toBeVisible({ timeout: 5_000 });
@@ -81,7 +81,7 @@ test.describe("훈독 편성", () => {
 
     // 편성 → 노출: web 홈(다른 origin, 공개 라우트).
     // 홈에는 말씀 전문이 없고(SCR-PWA-002) 편성 제목은 훈독하기 미션 카드로 드러난다.
-    await page.goto(`${WEB_ORIGIN}/hoondok`);
+    await page.goto(`${WEB_ORIGIN}/`);
     await expect(page.locator(".mission__title").first()).toHaveText(next);
 
     // 원복 — 다른 훈독 스펙은 제목을 단언하지 않지만 시드 상태를 남긴다.

@@ -4,10 +4,10 @@ import type { HoondokTab } from "./tabs";
 // 값의 원본은 프로토타입 app.html 의 TITLES·TAB_OF 맵과 각 화면의 `col--read` 여부다. 새 화면을 만드는 쪽은
 // 이 목록에 한 줄만 더하고 tabs.ts·app-shell.tsx 는 건드리지 않는다.
 export type HoondokScreen = {
-  /** pathname 접두. 끝이 `/` 이면 그 아래 세그먼트만 잡고 자기 자신(`/hoondok/ask`)은 잡지 않는다 */
+  /** pathname 접두. 끝이 `/` 이면 그 아래 세그먼트만 잡고 자기 자신(`/ask`)은 잡지 않는다 */
   match: string;
   /**
-   * 동적 세그먼트 뒤에 고정 세그먼트가 오는 화면(`/hoondok/groups/{id}/share`). 있으면 match 대신 이것으로 판정하고,
+   * 동적 세그먼트 뒤에 고정 세그먼트가 오는 화면(`/groups/{id}/share`). 있으면 match 대신 이것으로 판정하고,
    * match 는 최장 매치 길이·읽기용 템플릿이다. 첫 캡처는 backHref 의 `:id` 를 채운다.
    */
   pattern?: RegExp;
@@ -18,6 +18,8 @@ export type HoondokScreen = {
   titleSource?: "work";
   /** 있을 때만 앱바에 뒤로 링크를 그린다. 탭 루트 화면은 없다 */
   backHref?: string;
+  /** true 면 ← 가 앱 안 앞 기록이 있을 때 브라우저 뒤로(들어온 곳)로 간다. 없으면(바로 연 주소) backHref 로 간다 */
+  backToHistory?: true;
   tabId: HoondokTab["id"];
   /**
    * 본문 폭. home = 홈(≥1024px 앱바 접힘) · read = 산문 640px(`col--read`) · app = 카드/리스트 720px.
@@ -26,19 +28,19 @@ export type HoondokScreen = {
   variant: "home" | "read" | "app" | "onb";
   /** true 면 앱바·헤더의 알림 아이콘(설정 링크)을 숨긴다. 프로토타입에서 ph-bell 이 없는 화면이다 */
   hideSettingsLink?: true;
-  /** true 면 앱바의 검색 아이콘을 숨긴다. 검색 화면 자신이다 — 헤더(≥1024px) 검색 자리는 aria-current 로 남는다 */
+  /** true 면 앱바의 검색 아이콘을 숨긴다(검색 화면 자신·AI 질문 계열). 헤더(≥1024px) 검색 자리는 남는다 */
   hideSearchLink?: true;
   /** true 면 탭 내비를 그리지 않는다. 온보딩은 탭 진입 전이라 내비가 없다 (DES-PWA-003 §2) */
   hideNav?: true;
 };
 
 export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
-  { match: "/hoondok", exact: true, title: "오늘 훈독", tabId: "today", variant: "home" },
-  { match: "/hoondok/read", title: "훈독하기", backHref: "/hoondok", tabId: "today", variant: "read" },
+  { match: "/", exact: true, title: "오늘 훈독", tabId: "today", variant: "home" },
+  { match: "/read", title: "훈독하기", backHref: "/", tabId: "today", variant: "read" },
   {
-    match: "/hoondok/onboarding",
+    match: "/onboarding",
     title: "시작하기",
-    backHref: "/hoondok",
+    backHref: "/",
     tabId: "today",
     variant: "app",
     hideSettingsLink: true,
@@ -46,7 +48,7 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
   },
   // 맞춤 첫 말씀 질문 흐름 (환영 → 질문 1~3 → 첫 말씀). 탭바·헤더 없이 화면이 단계 머리를 그리므로 앱바 아이콘·뒤로 링크를 두지 않는다
   {
-    match: "/hoondok/start",
+    match: "/start",
     title: "첫 말씀 고르기",
     tabId: "today",
     variant: "onb",
@@ -55,103 +57,124 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     hideNav: true,
   },
   {
-    match: "/hoondok/offline",
+    match: "/offline",
     title: "오프라인",
-    backHref: "/hoondok",
+    backHref: "/",
     tabId: "today",
     variant: "app",
     hideSettingsLink: true,
   },
   // 함께 읽는 모임 (PLAN-HD-010, SCR-PWA-017~021). 모두 "오늘 훈독" 탭 귀속이고 값은 프로토타입 TITLES·TAB_OF.
-  // /hoondok/groups/{id} 는 끝 `/` 접두로 잡고, new·join·share·settings 는 더 긴 접두가 최장 매치로 이긴다.
-  { match: "/hoondok/groups/new", title: "모임 만들기", backHref: "/hoondok", tabId: "today", variant: "app" },
-  { match: "/hoondok/groups/join", title: "모임 참여", backHref: "/hoondok", tabId: "today", variant: "app" },
-  { match: "/hoondok/groups/", title: "훈독 모임", backHref: "/hoondok", tabId: "today", variant: "app" },
+  // /groups/{id} 는 끝 `/` 접두로 잡고, new·join·share·settings 는 더 긴 접두가 최장 매치로 이긴다.
+  { match: "/groups/new", title: "모임 만들기", backHref: "/", tabId: "today", variant: "app" },
+  { match: "/groups/join", title: "모임 참여", backHref: "/", tabId: "today", variant: "app" },
+  { match: "/groups/", title: "훈독 모임", backHref: "/", tabId: "today", variant: "app" },
   {
-    match: "/hoondok/groups/:id/share",
-    pattern: /^\/hoondok\/groups\/([^/]+)\/share\/?$/,
+    match: "/groups/:id/share",
+    pattern: /^\/groups\/([^/]+)\/share\/?$/,
     title: "한 줄 나눔",
-    backHref: "/hoondok/groups/:id",
+    backHref: "/groups/:id",
     tabId: "today",
     variant: "app",
   },
   {
-    match: "/hoondok/groups/:id/settings",
-    pattern: /^\/hoondok\/groups\/([^/]+)\/settings\/?$/,
+    match: "/groups/:id/settings",
+    pattern: /^\/groups\/([^/]+)\/settings\/?$/,
     title: "모임 설정",
-    backHref: "/hoondok/groups/:id",
+    backHref: "/groups/:id",
     tabId: "today",
     variant: "app",
   },
-  // 오늘의 책갈피 (PLAN-HD-012, SCR-PWA-023·025·026). 받은 사람 화면(/hoondok/c/{id})은 밖에서 들어오므로 뒤로 링크가 없다.
-  { match: "/hoondok/bookmark", title: "오늘의 책갈피", backHref: "/hoondok", tabId: "today", variant: "app" },
-  { match: "/hoondok/c/", title: "오늘의 책갈피", tabId: "today", variant: "app" },
-  { match: "/hoondok/bookmarks", title: "나의 책갈피", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
-  { match: "/hoondok/garden", title: "나의 정원", tabId: "garden", variant: "app" },
+  // 오늘의 책갈피 (PLAN-HD-012, SCR-PWA-023·025·026). 받은 사람 화면(/c/{id})은 밖에서 들어오므로 뒤로 링크가 없다.
+  { match: "/bookmark", title: "오늘의 책갈피", backHref: "/", tabId: "today", variant: "app" },
+  { match: "/c/", title: "오늘의 책갈피", tabId: "today", variant: "app" },
+  { match: "/bookmarks", title: "나의 책갈피", backHref: "/garden", tabId: "garden", variant: "app" },
+  { match: "/garden", title: "나의 정원", tabId: "garden", variant: "app" },
   // 맞춤 말씀 (기본값 9·10). 둘 다 나의 정원에서 들어오고 본문은 설정형 560 (personal.css `.ps-form`)
   {
-    match: "/hoondok/garden/interests",
+    match: "/garden/interests",
     title: "관심사와 마음",
-    backHref: "/hoondok/garden",
+    backHref: "/garden",
     tabId: "garden",
     variant: "app",
   },
-  { match: "/hoondok/pray", title: "마음 한 장", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
+  { match: "/pray", title: "마음 한 장", backHref: "/garden", tabId: "garden", variant: "app" },
   // 나의 기록 (C1). 기기 기록도 정원에서 들어오므로 뒤로는 정원이다
-  { match: "/hoondok/records", title: "나의 기록", backHref: "/hoondok/garden", tabId: "garden", variant: "app" },
+  { match: "/records", title: "나의 기록", backHref: "/garden", tabId: "garden", variant: "app" },
   {
-    match: "/hoondok/records/device",
+    match: "/records/device",
     title: "이 기기에만 있는 기록",
-    backHref: "/hoondok/garden",
+    backHref: "/garden",
     tabId: "garden",
     variant: "app",
   },
   // 알림 아이콘이 가리키는 화면 자신이라 아이콘을 숨긴다
   {
-    match: "/hoondok/settings",
+    match: "/settings",
     title: "알림·설치",
-    backHref: "/hoondok/garden",
+    backHref: "/garden",
     tabId: "garden",
     variant: "app",
     hideSettingsLink: true,
   },
-  { match: "/hoondok/ask", title: "AI 질문", tabId: "ask", variant: "read" },
+  // AI 질문 계열은 앱바의 말씀 검색 아이콘을 숨긴다 — 질문 검색(홈 돋보기)과 헷갈리지 않게 (DEC-PWA-025).
+  // /ask/log 는 홈 "내 질문" 탭으로 리다이렉트만 하므로 항목이 없다.
+  { match: "/ask", title: "AI 질문", tabId: "ask", variant: "read", hideSearchLink: true },
+  // 새 질문은 전체 화면 — 앱바를 접고 화면이 ✕·제목·보내기 머리를 그린다
   {
-    match: "/hoondok/ask/log",
-    title: "질문 기록",
-    backHref: "/hoondok/ask",
+    match: "/ask/new",
+    title: "새 질문하기",
+    tabId: "ask",
+    variant: "onb",
+    hideSettingsLink: true,
+    hideSearchLink: true,
+    hideNav: true,
+  },
+  {
+    match: "/ask/p/",
+    title: "공개 질문",
+    backHref: "/ask",
+    backToHistory: true,
     tabId: "ask",
     variant: "read",
-    hideSettingsLink: true,
+    hideSearchLink: true,
   },
-  // /hoondok/ask/{id} — log 가 아닌 세그먼트. 위 항목보다 접두가 짧아 최장 매치에서 자연히 밀린다
-  { match: "/hoondok/ask/", title: "질문", backHref: "/hoondok/ask/log", tabId: "ask", variant: "read" },
-  { match: "/hoondok/summaries", title: "AI 요약", backHref: "/hoondok/library", tabId: "library", variant: "app" },
-  { match: "/hoondok/summaries/", title: "AI 요약", backHref: "/hoondok/summaries", tabId: "library", variant: "app" },
-  { match: "/hoondok/library", title: "말씀", tabId: "library", variant: "app" },
-  // /hoondok/library/{series} — 저작물 한 건의 권 목록. 제목은 API-HD-023 의 저작물 제목으로 바뀐다
+  { match: "/summaries", title: "AI 요약", backHref: "/library", tabId: "library", variant: "app" },
+  { match: "/summaries/", title: "AI 요약", backHref: "/summaries", tabId: "library", variant: "app" },
+  // /ask/{id} — new·p 가 아닌 세그먼트. 위 항목보다 접두가 짧아 최장 매치에서 자연히 밀린다
   {
-    match: "/hoondok/library/",
+    match: "/ask/",
+    title: "질문",
+    backHref: "/ask",
+    backToHistory: true,
+    tabId: "ask",
+    variant: "read",
+    hideSearchLink: true,
+  },
+  { match: "/library", title: "말씀", tabId: "library", variant: "app" },
+  // /library/{series} — 저작물 한 건의 권 목록. 제목은 API-HD-023 의 저작물 제목으로 바뀐다
+  {
+    match: "/library/",
     title: "저작물",
     titleSource: "work",
-    backHref: "/hoondok/library",
+    backHref: "/library",
     tabId: "library",
     variant: "app",
   },
   {
-    match: "/hoondok/search",
+    match: "/search",
     title: "말씀 검색",
-    backHref: "/hoondok/library",
+    backHref: "/library",
     tabId: "library",
     variant: "app",
     hideSettingsLink: true,
     hideSearchLink: true,
   },
   {
-    match: "/hoondok/words",
+    match: "/words",
     title: "원문 읽기",
     titleSource: "work",
-    backHref: "/hoondok/library",
+    backHref: "/library",
     tabId: "library",
     variant: "read",
   },

@@ -1,7 +1,7 @@
 // 부엉이 마스코트 플래그: OFF 면 기존 아이콘이 그대로이고, ON 이면 같은 자리에 장식 그림(alt 빈 값)만 들어간다.
 import { render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import HoondokOfflinePage from "@/app/(hoondok)/hoondok/offline/page";
+import HoondokOfflinePage from "@/app/(hoondok)/offline/page";
 
 afterEach(() => vi.unstubAllEnvs());
 

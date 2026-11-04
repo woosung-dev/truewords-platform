@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     hoondok_together_min_count: int = 10
     hoondok_together_cache_seconds: float = 60.0
 
+    # 훈독 AI 질문 하루 횟수 (DEC-PWA-025 2차). 계정별 KST 날짜 단위, 답 요청 1회 = 1회(이어 묻기 포함).
+    # 넘으면 429 ASK_DAILY_LIMIT. LLM 비용 상한용이며 IP 단위 채팅 rate limit 과 별개다.
+    hoondok_ask_daily_limit: int = 5
+
     # 훈독 AI 낭독 목소리 (PLAN-HD-011). Google Cloud Text-to-Speech(Chirp 3 HD) API 키가 없으면 기능 OFF —
     # 음성 API 는 503 TTS_DISABLED, 클라이언트는 브라우저 음성으로 돌아간다. 키는 VM .env 에만 둔다.
     google_tts_api_key: SecretStr | None = None

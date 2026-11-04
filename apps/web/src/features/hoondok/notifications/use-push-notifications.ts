@@ -6,6 +6,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { isUnauthorized, useIdentityGate } from "@/features/identity/gate";
 import { reportClientError } from "../observability/report";
 import { notificationsAPI } from "./api";
+import { retireLegacyRegistration, subscriptionInput } from "./legacy-push";
 import { detectPushSupport, type PushSupport, urlBase64ToUint8Array } from "./push-support";
 import { notificationPrefsKey, PUSH_CONFIG_KEY } from "./query-keys";
 import { type NotificationPrefs, PUSH_DISABLED_CODE } from "./types";
@@ -26,9 +27,6 @@ export const PUSH_MESSAGES = {
   failed: "알림을 바꾸지 못했어요. 잠시 뒤 다시 시도해 주세요",
   otherDevice: "이 기기에서 받으려면 다시 켜 주세요",
 } as const;
-
-/** `POST /hoondok/me/push` 의 user_agent 상한 (초과하면 422). */
-const USER_AGENT_MAX = 400;
 
 /** 브라우저 능력·권한은 구독할 외부 스토어가 없다 — 렌더마다 다시 읽기만 한다. */
 const subscribeNever = () => () => {};
@@ -124,19 +122,15 @@ export function usePushNotifications() {
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(configQuery.data?.public_key ?? ""),
         });
-        const json = subscription.toJSON();
         try {
-          await notificationsAPI.subscribe({
-            endpoint: json.endpoint ?? subscription.endpoint,
-            keys: { p256dh: json.keys?.p256dh ?? "", auth: json.keys?.auth ?? "" },
-            // backend 는 400자를 넘으면 422 로 돌려준다 — 진단용 값 하나 때문에 구독을 잃지 않는다.
-            user_agent: typeof navigator === "undefined" ? null : navigator.userAgent.slice(0, USER_AGENT_MAX),
-          });
+          await notificationsAPI.subscribe(subscriptionInput(subscription));
         } catch (error) {
           // 서버가 받지 못한 구독은 브라우저에도 남기지 않는다(409 PUSH_DISABLED 등 — 고아 구독 방지).
           await subscription.unsubscribe().catch(() => undefined);
           throw error;
         }
+        // 예전 /hoondok 등록에 구독이 남아 있으면(자동 이관 실패 기기) 같은 알림이 두 번 온다 — 지금 정리한다.
+        void retireLegacyRegistration(navigator.serviceWorker).catch(() => undefined);
       }
       if (!intent.readEnabled && prefs.read_enabled) {
         // 이 기기 구독만 지운다. 다른 기기 구독은 그 기기가 끌 때 지워진다.

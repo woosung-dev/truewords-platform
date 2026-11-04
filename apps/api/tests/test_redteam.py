@@ -302,3 +302,32 @@ class TestRateLimiting:
             limiter.check("ip-a")
         # ip-b는 별도 — 통과
         limiter.check("ip-b")
+
+    def test_ipv6_same_64_shares_bucket(self) -> None:
+        """보안 점검 rate-limiter-per-ip-unbounded-keys 회귀 — 같은 /64 안에서 주소를 바꿔도 같은 상한."""
+        from app.modules.safety.exceptions import RateLimitExceededError
+        from app.modules.safety.rate_limiter import RateLimiter
+
+        limiter = RateLimiter(max_requests=2, window_seconds=60)
+        limiter.check("2001:db8:1:2::1")
+        limiter.check("2001:db8:1:2:ffff::9")
+        with pytest.raises(RateLimitExceededError):
+            limiter.check("2001:db8:1:2:abcd::5")
+        limiter.check("2001:db8:1:3::1")  # 다른 /64 는 별도
+        limiter.check("user-id-key")  # IP 가 아닌 키는 그대로
+
+    def test_stale_keys_are_swept(self) -> None:
+        """보안 점검 rate-limiter-per-ip-unbounded-keys 회귀 — 윈도 밖 키는 지워져 메모리가 계속 늘지 않는다."""
+        from unittest.mock import patch
+
+        from app.modules.safety import rate_limiter as module
+
+        now = [1000.0]
+        with patch.object(module.time, "monotonic", side_effect=lambda: now[0]):
+            limiter = module.RateLimiter(max_requests=5, window_seconds=60)
+            for i in range(100):
+                limiter.check(f"10.0.{i // 250}.{i % 250}")
+            assert len(limiter._requests) == 100
+            now[0] += 61
+            limiter.check("10.9.9.9")
+        assert len(limiter._requests) == 1

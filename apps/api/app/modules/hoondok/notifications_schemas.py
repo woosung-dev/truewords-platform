@@ -5,7 +5,6 @@
 """
 
 import uuid
-import ipaddress
 from urllib.parse import urlsplit
 
 from datetime import datetime, time
@@ -61,6 +60,17 @@ class NotificationPreferenceResponse(BaseModel):
     subscription_count: int
 
 
+# 브라우저 푸시 서비스 호스트(정확히 같거나 그 하위 도메인). Chrome·Android·삼성 인터넷·Opera = FCM, Firefox = Mozilla,
+# Safari·iOS = Apple, Edge = WNS. [확인 필요] 이 밖의 브라우저가 구독을 못 한다는 신고가 오면 그 호스트를 더한다.
+PUSH_SERVICE_HOSTS = (
+    "fcm.googleapis.com",
+    "android.googleapis.com",
+    "push.services.mozilla.com",
+    "push.apple.com",
+    "notify.windows.com",
+)
+
+
 class PushSubscriptionKeys(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -79,20 +89,18 @@ class PushSubscriptionInput(BaseModel):
 
     @field_validator("endpoint")
     @classmethod
-    def endpoint_must_be_public_https(cls, value: str) -> str:
-        """발송기가 VM 안에서 이 URL 로 POST 한다 — 내부 주소를 넣어 blind SSRF 로 쓰지 못하게 https·공개 호스트만 받는다."""
+    def endpoint_must_be_push_service(cls, value: str) -> str:
+        """발송기가 VM 안에서 이 URL 로 POST 한다 — 브라우저 푸시 서비스 호스트(https)만 받는다.
+
+        호스트 문자열만 보는 차단 목록은 Compose 서비스 이름(`backend`)·사설 IP 로 풀리는 DNS·정수 IP·리다이렉트로
+        우회돼 blind SSRF 가 된다(보안 점검 push-endpoint-ssrf-dns-redirect). 그래서 허용 목록으로 묶는다.
+        """
         parsed = urlsplit(value)
         host = (parsed.hostname or "").lower()
-        if parsed.scheme != "https" or not host:
+        if parsed.scheme != "https" or not host or parsed.port not in (None, 443):
             raise ValueError("endpoint 는 https URL 이어야 합니다")
-        if host in ("localhost",) or host.endswith((".local", ".internal")):
-            raise ValueError("endpoint 는 공개 호스트여야 합니다")
-        try:
-            addr = ipaddress.ip_address(host)
-        except ValueError:
-            return value
-        if not addr.is_global:
-            raise ValueError("endpoint 는 공개 호스트여야 합니다")
+        if not any(host == suffix or host.endswith("." + suffix) for suffix in PUSH_SERVICE_HOSTS):
+            raise ValueError("endpoint 는 브라우저 푸시 서비스 주소여야 합니다")
         return value
 
     @field_validator("user_agent")

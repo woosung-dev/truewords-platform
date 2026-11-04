@@ -41,22 +41,22 @@ test("두 계정 모임 왕복: 만들기 → 참여 → 한 줄 → 완료자�
     const groupName = `모임${Date.now().toString().slice(-6)}`;
 
     // ---- A: 모임 만들기 → 초대 코드 ----
-    const created = await a.page.goto("/hoondok/groups/new");
+    const created = await a.page.goto("/groups/new");
     expect(created?.status()).toBe(200);
     await a.page.getByLabel("모임 이름").fill(groupName);
     await expect(a.page.getByLabel("이 모임에서 쓸 내 이름")).toHaveValue("리더에이");
     await a.page.getByRole("button", { name: "모임 만들기" }).click();
     await expect(a.page.getByText("모임을 만들었어요")).toBeVisible();
-    await expect(a.page).toHaveURL(/\/hoondok\/groups\/new\?created=/);
+    await expect(a.page).toHaveURL(/\/groups\/new\?created=/);
     const code = (await a.page.locator(".tg-code").innerText()).trim();
     expect(code).toMatch(/^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/);
     await expectNoHorizontalOverflow(a.page);
     await a.page.getByRole("link", { name: /모임으로 가기/ }).click();
-    await expect(a.page).toHaveURL(/\/hoondok\/groups\/[0-9a-f-]{36}$/);
+    await expect(a.page).toHaveURL(/\/groups\/[0-9a-f-]{36}$/);
     const groupPath = new URL(a.page.url()).pathname;
 
     // ---- B: 링크(소문자·하이픈 없음으로 줘도 된다) → 미리보기 → 참여 ----
-    await b.page.goto(`/hoondok/groups/join?code=${code.replace("-", "").toLowerCase()}`);
+    await b.page.goto(`/groups/join?code=${code.replace("-", "").toLowerCase()}`);
     await expect(b.page.getByRole("heading", { name: groupName })).toBeVisible();
     await expect(b.page.getByLabel("초대 코드")).toHaveValue(code);
     await expect(b.page.getByText("모임에 보이는 것")).toBeVisible();
@@ -115,7 +115,7 @@ test("두 계정 모임 왕복: 만들기 → 참여 → 한 줄 → 완료자�
     // ---- B: 새로고침하면 "이 모임을 볼 수 없어요" (오류 화면이 아니다) ----
     await b.page.reload();
     await expect(b.page.getByText("이 모임을 볼 수 없어요")).toBeVisible();
-    await expect(b.page.getByRole("link", { name: "홈으로" })).toHaveAttribute("href", "/hoondok");
+    await expect(b.page.getByRole("link", { name: "홈으로" })).toHaveAttribute("href", "/");
 
     // ---- A: B 의 한 줄·읽음도 함께 사라진다 ----
     await a.page.goto(groupPath);
@@ -127,11 +127,11 @@ test("두 계정 모임 왕복: 만들기 → 참여 → 한 줄 → 완료자�
 });
 
 test("비로그인 참여 링크는 코드를 실은 returnTo 로 온보딩에 보낸다", async ({ page }) => {
-  const response = await page.goto("/hoondok/groups/join?code=7K2M-Q9XD");
+  const response = await page.goto("/groups/join?code=7K2M-Q9XD");
   expect(response?.status()).toBe(200);
   const link = page.getByRole("link", { name: "가입하거나 로그인하기" });
   await expect(link).toHaveAttribute(
     "href",
-    `/hoondok/onboarding?returnTo=${encodeURIComponent("/hoondok/groups/join?code=7K2M-Q9XD")}`,
+    `/onboarding?returnTo=${encodeURIComponent("/groups/join?code=7K2M-Q9XD")}`,
   );
 });

@@ -3,7 +3,7 @@ import { expect, test } from "./hoondok-test";
 
 // 맞춤 말씀 앱 안 화면: 가입 직후 질문 흐름 → 홈 오늘의 책갈피 아래 한 줄(고르기 / 까닭·바꾸기) → 관심사 바꾸기.
 // 답은 이 기기 localStorage 에만 있고 카드는 기기에서 고른다(카드 목록은 시드 3장, topic "감사"). 선택값은 요청에 실리지 않는다.
-// 정적 경로(/hoondok/family 등)와 겹치지 않게 쿼리·조각과 요청 본문만 본다
+// 정적 경로(/family 등)와 겹치지 않게 쿼리·조각과 요청 본문만 본다
 const SELECTION = /family|tired|thankful|interests|moods/;
 function carriesSelection(url: string, body: string | null): boolean {
   const { search, hash } = new URL(url);
@@ -11,12 +11,12 @@ function carriesSelection(url: string, body: string | null): boolean {
 }
 
 async function signUp(page: Page, name: string) {
-  await page.goto("/hoondok/onboarding");
+  await page.goto("/onboarding");
   await page.getByLabel(/이름/).fill(name);
   await page.getByLabel(/이메일/).fill(`e2e-personal-${Date.now()}@example.com`);
   await page.getByLabel(/비밀번호/).fill("password1");
   await page.getByRole("button", { name: "가입하고 시작하기" }).click();
-  await expect(page).toHaveURL(/\/hoondok\/start$/);
+  await expect(page).toHaveURL(/\/start$/);
 }
 
 async function noOverflow(page: Page) {
@@ -29,11 +29,11 @@ test("질문 없이 시작하면 홈 책갈피 아래 '고르기' 줄이 질문 
   await page.setViewportSize({ width: 390, height: 844 });
   await signUp(page, "건너뛴식구");
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(page.getByRole("heading", { level: 2, name: "오늘의 책갈피" })).toBeVisible();
   await expect(page.getByText("관심 주제를 고르면 맞춘 장이 꽂혀요")).toBeVisible();
   const pick = page.getByRole("link", { name: "관심 주제 고르기" });
-  await expect(pick).toHaveAttribute("href", "/hoondok/start");
+  await expect(pick).toHaveAttribute("href", "/start");
   expect((await pick.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
   await noOverflow(page);
 });
@@ -53,7 +53,7 @@ test("고르고 시작하면 홈 책갈피에 까닭 줄이 붙고, 바꾸기에
   await page.getByRole("button", { name: "첫 말씀 보기" }).click();
   await expect(page.getByText("앱이 고른 원문 단락이에요. 공식 해설이나 지금 하신 말씀은 아니에요.")).toBeVisible();
   await page.getByRole("link", { name: "오늘 훈독으로" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
 
   // 홈: 맞춘 카드 + 고른 이름을 인용한 까닭 한 줄 + 바꾸기(44px)
   await expect(page.getByText(/고르셔서 꽂아 둔 장이에요/)).toBeVisible();
@@ -64,7 +64,7 @@ test("고르고 시작하면 홈 책갈피에 까닭 줄이 붙고, 바꾸기에
 
   // 관심사와 마음: 위기 선택지 없음 · 저장은 이 기기에만
   await change.click();
-  await expect(page).toHaveURL(/\/hoondok\/garden\/interests$/);
+  await expect(page).toHaveURL(/\/garden\/interests$/);
   await expect(page.getByRole("button", { name: /많이 힘들어요/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "가정과 부부" })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "지쳤어요" }).click();

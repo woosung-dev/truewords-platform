@@ -11,7 +11,8 @@ from fastapi.responses import JSONResponse
 
 from app.core.common.schemas import ErrorResponse
 from app.modules.chat.exceptions import SessionOwnershipError
-from app.modules.hoondok.exceptions import PushDisabledError, TtsError
+from app.core.common.clock import utcnow
+from app.modules.hoondok.exceptions import AskDailyLimitError, PushDisabledError, TtsError
 from app.modules.identity.exceptions import InviteRequiredError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
 from app.modules.search.exceptions import EmbeddingFailedError, SearchFailedError
@@ -115,6 +116,28 @@ async def tts_error_handler(request: Request, exc: TtsError) -> JSONResponse:
             message=str(exc),
             request_id=rid,
         ).model_dump(),
+    )
+
+
+async def ask_daily_limit_handler(request: Request, exc: AskDailyLimitError) -> JSONResponse:
+    """훈독 AI 질문 하루 횟수 초과 (429, DEC-PWA-025 2차). 질문 본문은 로그에 남기지 않는다."""
+    rid = _get_request_id(request)
+    logger.info("AskDailyLimitError", extra={"request_id": rid})
+    retry_after = max(1, int((exc.resets_at - utcnow()).total_seconds()))
+    return JSONResponse(
+        status_code=429,
+        content=ErrorResponse(
+            error_code="ASK_DAILY_LIMIT",
+            message=str(exc),
+            request_id=rid,
+            details={
+                "limit": exc.limit,
+                "used": exc.used,
+                "remaining": 0,
+                "resets_at": exc.resets_at.isoformat(),
+            },
+        ).model_dump(),
+        headers={"Retry-After": str(retry_after)},
     )
 
 

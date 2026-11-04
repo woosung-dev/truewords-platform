@@ -87,6 +87,52 @@ export type AdminUserResponse = {
 };
 
 /**
+ * AskQuota
+ *
+ * 오늘(KST) 남은 질문 횟수. resets_at 은 다음 KST 자정(+09:00).
+ */
+export type AskQuota = {
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Remaining
+     */
+    remaining: number;
+    /**
+     * Resets At
+     */
+    resets_at: string;
+    /**
+     * Used
+     */
+    used: number;
+};
+
+/**
+ * AskRequest
+ *
+ * 질문 1건. /chat/stream 과 같은 필드에서 봇(chatbot_id)은 서버가 정한다.
+ *
+ * 길이(1000자)·빈 질문은 기존 입력 검증이 400 INPUT_BLOCKED 로 거절한다(설정값과 한곳에서 맞추려고 여기서 막지 않는다).
+ */
+export type AskRequest = {
+    /**
+     * Answer Mode
+     */
+    answer_mode?: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids' | null;
+    /**
+     * Query
+     */
+    query: string;
+    /**
+     * Session Id
+     */
+    session_id?: string | null;
+};
+
+/**
  * AuditLogResponse
  */
 export type AuditLogResponse = {
@@ -612,6 +658,10 @@ export type ChatResponse = {
  * ChatSourcesEvent
  */
 export type ChatSourcesEvent = {
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
     /**
      * Closing
      */
@@ -2615,6 +2665,138 @@ export type MonthHistoryResponse = {
 };
 
 /**
+ * MyAskDetail
+ */
+export type MyAskDetail = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Saved
+     */
+    saved: boolean;
+    /**
+     * Turns
+     */
+    turns: Array<MyAskTurn>;
+};
+
+/**
+ * MyAskListResponse
+ *
+ * 최근 활동순.
+ */
+export type MyAskListResponse = {
+    /**
+     * Items
+     */
+    items: Array<MyAskSummary>;
+};
+
+/**
+ * MyAskSummary
+ *
+ * 내 대화 목록 한 줄. id 는 session_id(이어 묻기에 그대로 보낸다).
+ */
+export type MyAskSummary = {
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Last At
+     */
+    last_at: string;
+    /**
+     * Public Id
+     */
+    public_id: string | null;
+    /**
+     * Public Status
+     */
+    public_status: 'pending' | 'published' | 'hidden' | null;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Saved
+     */
+    saved: boolean;
+    /**
+     * Turn Count
+     */
+    turn_count: number;
+};
+
+/**
+ * MyAskTurn
+ *
+ * 질문 → 답 한 차례. sources 는 처음 받은 sources 이벤트와 같은 모양(chunk_id 로 원문을 연다).
+ */
+export type MyAskTurn = {
+    /**
+     * Answer Md
+     */
+    answer_md: string;
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Message Id
+     */
+    message_id: string;
+    /**
+     * Public Id
+     */
+    public_id: string | null;
+    /**
+     * Public Status
+     */
+    public_status: 'pending' | 'published' | 'hidden' | null;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Sources
+     */
+    sources: Array<Source>;
+    /**
+     * Suggested Followups
+     */
+    suggested_followups: Array<string>;
+};
+
+/**
+ * MyAskUpdate
+ */
+export type MyAskUpdate = {
+    /**
+     * Saved
+     */
+    saved: boolean;
+};
+
+/**
  * MyCardsResponse
  *
  * API-HD-051. shelves 는 개수 내림차순(동률은 책 이름순), items 는 받은 날 최신순.
@@ -2668,6 +2850,52 @@ export type MyGroupItem = {
      * Today Read Count
      */
     today_read_count: number;
+};
+
+/**
+ * MyPublicQuestionItem
+ *
+ * 내 공개 신청 한 줄. 상태로 검토 중·공개됨·비공개를 보인다.
+ */
+export type MyPublicQuestionItem = {
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Message Id
+     */
+    message_id: string;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Reviewed At
+     */
+    reviewed_at: string | null;
+    /**
+     * Status
+     */
+    status: 'pending' | 'published' | 'hidden';
+};
+
+/**
+ * MyPublicQuestionListResponse
+ */
+export type MyPublicQuestionListResponse = {
+    /**
+     * Items
+     */
+    items: Array<MyPublicQuestionItem>;
 };
 
 /**
@@ -2830,6 +3058,186 @@ export type PaginatedResponseChatbotConfigResponse = {
      * Total
      */
     total: number;
+};
+
+/**
+ * PublicQuestionAdminItem
+ *
+ * 검수 화면 한 줄 — 작성자 정보는 관리자에게도 보이지 않는다.
+ */
+export type PublicQuestionAdminItem = {
+    /**
+     * Answer Md
+     */
+    answer_md: string;
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Reviewed At
+     */
+    reviewed_at: string | null;
+    /**
+     * Sources
+     */
+    sources: Array<PublicQuestionSource>;
+    /**
+     * Status
+     */
+    status: 'pending' | 'published' | 'hidden';
+};
+
+/**
+ * PublicQuestionAdminListResponse
+ */
+export type PublicQuestionAdminListResponse = {
+    /**
+     * Items
+     */
+    items: Array<PublicQuestionAdminItem>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * PublicQuestionCreate
+ *
+ * 공개 신청 본문. 질문·답은 서버가 message_id 로 복사한다 — 본문을 받지 않는다.
+ */
+export type PublicQuestionCreate = {
+    /**
+     * Message Id
+     */
+    message_id: string;
+};
+
+/**
+ * PublicQuestionDetail
+ */
+export type PublicQuestionDetail = {
+    /**
+     * Answer Md
+     */
+    answer_md: string;
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Published At
+     */
+    published_at: string;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Sources
+     */
+    sources: Array<PublicQuestionSource>;
+};
+
+/**
+ * PublicQuestionListResponse
+ *
+ * 최신순. next_cursor 를 다음 요청의 cursor 로 보내면 이어진다(없으면 끝).
+ */
+export type PublicQuestionListResponse = {
+    /**
+     * Items
+     */
+    items: Array<PublicQuestionSummary>;
+    /**
+     * Next Cursor
+     */
+    next_cursor: string | null;
+};
+
+/**
+ * PublicQuestionReview
+ *
+ * PATCH 본문. 공개(published) 또는 숨김(hidden)만 받는다.
+ */
+export type PublicQuestionReview = {
+    /**
+     * Status
+     */
+    status: 'published' | 'hidden';
+};
+
+/**
+ * PublicQuestionSource
+ *
+ * 근거 말씀 한 줄 — answer_citations 복사본(상위 3건).
+ */
+export type PublicQuestionSource = {
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Volume
+     */
+    volume: string;
+};
+
+/**
+ * PublicQuestionSummary
+ *
+ * 공개 목록 한 줄. preview 는 답 앞부분(마크다운 기호 제거).
+ */
+export type PublicQuestionSummary = {
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Preview
+     */
+    preview: string;
+    /**
+     * Published At
+     */
+    published_at: string;
+    /**
+     * Question
+     */
+    question: string;
 };
 
 /**
@@ -7231,6 +7639,74 @@ export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutRespon
 
 export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponse = UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses[keyof UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses];
 
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Status
+         */
+        status?: 'pending' | 'published' | 'hidden' | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/admin/hoondok/questions';
+};
+
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetError = ListPublicQuestionsAdminAdminHoondokQuestionsGetErrors[keyof ListPublicQuestionsAdminAdminHoondokQuestionsGetErrors];
+
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionAdminListResponse;
+};
+
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetResponse = ListPublicQuestionsAdminAdminHoondokQuestionsGetResponses[keyof ListPublicQuestionsAdminAdminHoondokQuestionsGetResponses];
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchData = {
+    body: PublicQuestionReview;
+    path: {
+        /**
+         * Question Id
+         */
+        question_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/questions/{question_id}';
+};
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchError = ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchErrors[keyof ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchErrors];
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionAdminItem;
+};
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchResponse = ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchResponses[keyof ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchResponses];
+
 export type SourceBooksAdminHoondokSourceBooksGetData = {
     body?: never;
     path?: never;
@@ -7944,6 +8420,43 @@ export type SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetResponses = {
      */
     200: unknown;
 };
+
+export type AskStreamHoondokAskStreamPostData = {
+    body: AskRequest;
+    path?: never;
+    query?: never;
+    url: '/hoondok/ask/stream';
+};
+
+export type AskStreamHoondokAskStreamPostErrors = {
+    /**
+     * INPUT_BLOCKED — 빈 질문·1000자 초과·차단 패턴
+     */
+    400: ErrorResponse;
+    /**
+     * SESSION_FORBIDDEN — 내 대화가 아닌 session_id
+     */
+    403: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * ASK_DAILY_LIMIT(details: limit·used·remaining·resets_at) 또는 RATE_LIMIT_EXCEEDED
+     */
+    429: ErrorResponse;
+};
+
+export type AskStreamHoondokAskStreamPostError = AskStreamHoondokAskStreamPostErrors[keyof AskStreamHoondokAskStreamPostErrors];
+
+export type AskStreamHoondokAskStreamPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type AskStreamHoondokAskStreamPostResponse = AskStreamHoondokAskStreamPostResponses[keyof AskStreamHoondokAskStreamPostResponses];
 
 export type LoginHoondokAuthLoginPostData = {
     body: LoginRequest;
@@ -8701,6 +9214,142 @@ export type GetSeriesHoondokLibrarySeriesGetResponses = {
 
 export type GetSeriesHoondokLibrarySeriesGetResponse = GetSeriesHoondokLibrarySeriesGetResponses[keyof GetSeriesHoondokLibrarySeriesGetResponses];
 
+export type ListMyAsksHoondokMeAsksGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/hoondok/me/asks';
+};
+
+export type ListMyAsksHoondokMeAsksGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListMyAsksHoondokMeAsksGetError = ListMyAsksHoondokMeAsksGetErrors[keyof ListMyAsksHoondokMeAsksGetErrors];
+
+export type ListMyAsksHoondokMeAsksGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyAskListResponse;
+};
+
+export type ListMyAsksHoondokMeAsksGetResponse = ListMyAsksHoondokMeAsksGetResponses[keyof ListMyAsksHoondokMeAsksGetResponses];
+
+export type GetMyAskQuotaHoondokMeAsksQuotaGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/asks/quota';
+};
+
+export type GetMyAskQuotaHoondokMeAsksQuotaGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: AskQuota;
+};
+
+export type GetMyAskQuotaHoondokMeAsksQuotaGetResponse = GetMyAskQuotaHoondokMeAsksQuotaGetResponses[keyof GetMyAskQuotaHoondokMeAsksQuotaGetResponses];
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/asks/{session_id}';
+};
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteError = DeleteMyAskHoondokMeAsksSessionIdDeleteErrors[keyof DeleteMyAskHoondokMeAsksSessionIdDeleteErrors];
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteResponse = DeleteMyAskHoondokMeAsksSessionIdDeleteResponses[keyof DeleteMyAskHoondokMeAsksSessionIdDeleteResponses];
+
+export type GetMyAskHoondokMeAsksSessionIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/asks/{session_id}';
+};
+
+export type GetMyAskHoondokMeAsksSessionIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMyAskHoondokMeAsksSessionIdGetError = GetMyAskHoondokMeAsksSessionIdGetErrors[keyof GetMyAskHoondokMeAsksSessionIdGetErrors];
+
+export type GetMyAskHoondokMeAsksSessionIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyAskDetail;
+};
+
+export type GetMyAskHoondokMeAsksSessionIdGetResponse = GetMyAskHoondokMeAsksSessionIdGetResponses[keyof GetMyAskHoondokMeAsksSessionIdGetResponses];
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchData = {
+    body: MyAskUpdate;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/asks/{session_id}';
+};
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchError = UpdateMyAskHoondokMeAsksSessionIdPatchErrors[keyof UpdateMyAskHoondokMeAsksSessionIdPatchErrors];
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyAskDetail;
+};
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchResponse = UpdateMyAskHoondokMeAsksSessionIdPatchResponses[keyof UpdateMyAskHoondokMeAsksSessionIdPatchResponses];
+
 export type GetMyCardsHoondokMeCardsGetData = {
     body?: never;
     path?: never;
@@ -9131,6 +9780,77 @@ export type CreatePushSubscriptionHoondokMePushPostResponses = {
 
 export type CreatePushSubscriptionHoondokMePushPostResponse = CreatePushSubscriptionHoondokMePushPostResponses[keyof CreatePushSubscriptionHoondokMePushPostResponses];
 
+export type ListMyPublicQuestionsHoondokMeQuestionsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/questions';
+};
+
+export type ListMyPublicQuestionsHoondokMeQuestionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyPublicQuestionListResponse;
+};
+
+export type ListMyPublicQuestionsHoondokMeQuestionsGetResponse = ListMyPublicQuestionsHoondokMeQuestionsGetResponses[keyof ListMyPublicQuestionsHoondokMeQuestionsGetResponses];
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostData = {
+    body: PublicQuestionCreate;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/questions';
+};
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostError = SubmitPublicQuestionHoondokMeQuestionsPostErrors[keyof SubmitPublicQuestionHoondokMeQuestionsPostErrors];
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: MyPublicQuestionItem;
+};
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostResponse = SubmitPublicQuestionHoondokMeQuestionsPostResponses[keyof SubmitPublicQuestionHoondokMeQuestionsPostResponses];
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Question Id
+         */
+        question_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/questions/{question_id}';
+};
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteError = DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteErrors[keyof DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteErrors];
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteResponse = DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteResponses[keyof DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteResponses];
+
 export type PutReadingPositionHoondokMeReadingPositionVolumePutData = {
     body: ReadingPositionInput;
     path: {
@@ -9256,6 +9976,78 @@ export type GetPushConfigHoondokPushConfigGetResponses = {
 };
 
 export type GetPushConfigHoondokPushConfigGetResponse = GetPushConfigHoondokPushConfigGetResponses[keyof GetPushConfigHoondokPushConfigGetResponses];
+
+export type ListPublicQuestionsHoondokQuestionsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         *
+         * 질문 문장 부분 일치(대소문자 무시)
+         */
+        q?: string | null;
+        /**
+         * Cursor
+         *
+         * 직전 응답의 next_cursor
+         */
+        cursor?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/hoondok/questions';
+};
+
+export type ListPublicQuestionsHoondokQuestionsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListPublicQuestionsHoondokQuestionsGetError = ListPublicQuestionsHoondokQuestionsGetErrors[keyof ListPublicQuestionsHoondokQuestionsGetErrors];
+
+export type ListPublicQuestionsHoondokQuestionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionListResponse;
+};
+
+export type ListPublicQuestionsHoondokQuestionsGetResponse = ListPublicQuestionsHoondokQuestionsGetResponses[keyof ListPublicQuestionsHoondokQuestionsGetResponses];
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Question Id
+         */
+        question_id: string;
+    };
+    query?: never;
+    url: '/hoondok/questions/{question_id}';
+};
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetError = GetPublicQuestionHoondokQuestionsQuestionIdGetErrors[keyof GetPublicQuestionHoondokQuestionsQuestionIdGetErrors];
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionDetail;
+};
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetResponse = GetPublicQuestionHoondokQuestionsQuestionIdGetResponses[keyof GetPublicQuestionHoondokQuestionsQuestionIdGetResponses];
 
 export type SearchWordsHoondokSearchGetData = {
     body?: never;

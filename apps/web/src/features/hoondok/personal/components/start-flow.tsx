@@ -1,6 +1,6 @@
 "use client";
 
-// 맞춤 첫 말씀 질문 흐름 (/hoondok/start): 환영 → 질문 1 관심 주제 → 질문 2 요즘 마음 → 질문 3 읽는 때(선택) → 첫 말씀.
+// 맞춤 첫 말씀 질문 흐름 (/start): 환영 → 질문 1 관심 주제 → 질문 2 요즘 마음 → 질문 3 읽는 때(선택) → 첫 말씀.
 // 단계는 이 화면의 상태이고 주소에 답을 싣지 않는다. 단계가 바뀌면 새 제목(h2)으로 포커스를 옮기고 document.title 을 고친다.
 // 답은 첫 말씀으로 넘어갈 때 이 기기에만 저장한다(storage.ts). 서버·분석·오류 수집으로 보내지 않는다.
 import { ArrowLeft, Lock } from "lucide-react";
@@ -266,7 +266,7 @@ export function StartFlow() {
               <button type="button" className="btn btn-primary btn--pc-auto" onClick={begin}>
                 시작하기
               </button>
-              <Link className="onb-text-btn" href="/hoondok">
+              <Link className="onb-text-btn" href="/">
                 질문 없이 시작하기
               </Link>
             </div>
@@ -541,7 +541,7 @@ function ResultStep({
         </div>
         <div className="onb__spacer" />
         <ActionBar count="매일 이런 장이 홈에 꽂혀요" hint="">
-          <Link className="btn btn-line" href="/hoondok">
+          <Link className="btn btn-line" href="/">
             오늘 훈독으로
           </Link>
         </ActionBar>

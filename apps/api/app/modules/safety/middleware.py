@@ -2,7 +2,11 @@
 
 from fastapi import Request
 
-from app.modules.safety.rate_limiter import get_rate_limiter
+from app.modules.safety.rate_limiter import RateLimiter, get_rate_limiter
+
+# 로그인(훈독·관리자) 시도 상한. bcrypt 가 요청마다 CPU 를 쓰므로 비밀번호 대입·부하를 IP 단위로 묶는다.
+# 교회 Wi-Fi 처럼 NAT 하나 뒤에서 여럿이 로그인해도 막히지 않게 30회/60초로 둔다(초대 코드 limiter 와 같은 기준).
+login_limiter = RateLimiter(max_requests=30, window_seconds=60)
 
 
 def extract_client_ip(request: Request) -> str:
@@ -44,3 +48,8 @@ async def check_rate_limit(request: Request) -> None:
     client_ip = extract_client_ip(request)
     limiter = get_rate_limiter()
     limiter.check(client_ip)
+
+
+async def check_login_rate_limit(request: Request) -> None:
+    """로그인 엔드포인트 전용 IP 상한(채팅 상한과 따로 센다)."""
+    login_limiter.check(extract_client_ip(request))

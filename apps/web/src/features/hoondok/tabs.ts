@@ -33,10 +33,10 @@ export function isTabEnabled(id: HoondokTab["id"]): boolean {
 }
 
 const TAB_DEFS: readonly Omit<HoondokTab, "isDisabled">[] = [
-  { id: "today", label: "오늘 훈독", href: "/hoondok", icon: SunHorizonIcon },
-  { id: "ask", label: "AI 질문", href: "/hoondok/ask", icon: ChatCircleDotsIcon },
-  { id: "library", label: "말씀", href: "/hoondok/library", icon: BooksIcon },
-  { id: "garden", label: "나의 정원", href: "/hoondok/garden", icon: PlantIcon },
+  { id: "today", label: "오늘 훈독", href: "/", icon: SunHorizonIcon },
+  { id: "ask", label: "AI 질문", href: "/ask", icon: ChatCircleDotsIcon },
+  { id: "library", label: "말씀", href: "/library", icon: BooksIcon },
+  { id: "garden", label: "나의 정원", href: "/garden", icon: PlantIcon },
 ];
 
 // 단계는 고정값이라 모듈 상수로 한 번만 산출한다.

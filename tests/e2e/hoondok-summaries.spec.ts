@@ -15,7 +15,7 @@ const PUBLISHED = { slug: "cheon-01-01-01", title: "하나님의 실존" };
 const DRAFT = { slug: "cheon-01-01-02", title: "근원이요 본체이신 하나님" };
 
 test("공개된 AI 요약 상세: 핵심 한 줄 · 요점 · 그림 토글 · 근거 링크 · 고정 안내", async ({ page }) => {
-  await page.goto(`/hoondok/summaries/${summaryId(PUBLISHED.slug)}`);
+  await page.goto(`/summaries/${summaryId(PUBLISHED.slug)}`);
   await expect(page.getByRole("heading", { name: PUBLISHED.title, level: 2, exact: true })).toBeVisible();
   await expect(
     page.getByRole("note").filter({ hasText: "AI가 만든 이해 도움 자료예요. 공식 해설이 아니에요." }),
@@ -42,17 +42,17 @@ test("공개된 AI 요약 상세: 핵심 한 줄 · 요점 · 그림 토글 · �
   // 근거마다 원문 링크가 있다
   const links = page.locator(".sum-evidence a");
   expect(await links.count()).toBeGreaterThan(0);
-  await expect(links.first()).toHaveAttribute("href", /\/hoondok\/words\/.+chunk_id=/);
+  await expect(links.first()).toHaveAttribute("href", /^\/words\/.+chunk_id=/);
 });
 
 test("비공개(draft) 요약은 목록과 상세에서 보이지 않는다", async ({ page }) => {
-  await page.goto("/hoondok/summaries");
+  await page.goto("/summaries");
   await expect(page.getByRole("link", { name: new RegExp(PUBLISHED.title) })).toBeVisible();
   await expect(page.getByRole("link", { name: new RegExp(DRAFT.title) })).toHaveCount(0);
 
   const draft = await page.request.get(`/api/backend/hoondok/ai-summaries/${summaryId(DRAFT.slug)}`);
   expect(draft.status()).toBe(404);
-  await page.goto(`/hoondok/summaries/${summaryId(DRAFT.slug)}`);
+  await page.goto(`/summaries/${summaryId(DRAFT.slug)}`);
   await expect(page.getByText("지금은 읽을 수 없는 요약이에요")).toBeVisible();
   await expect(page.getByRole("heading", { name: DRAFT.title })).toHaveCount(0);
 });

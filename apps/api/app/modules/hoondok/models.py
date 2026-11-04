@@ -22,6 +22,7 @@ MARK_KINDS = ("bookmark", "highlight")
 GROUP_KINDS = ("small_group",)  # 가족 모임은 후속 (PLAN-HD-010)
 GROUP_ROLES = ("leader", "member")
 CARD_STATUSES = ("draft", "active", "retired")  # 오늘의 책갈피 풀 상태 (PLAN-HD-012)
+PUBLIC_QUESTION_STATUSES = ("pending", "published", "hidden")  # 공개 질문 검수 상태 (DEC-PWA-025)
 
 
 class DailyReading(SQLModel, table=True):
@@ -417,3 +418,69 @@ class CardReceipt(SQLModel, table=True):
     card_id: uuid.UUID = Field(foreign_key="word_cards.id", index=True)
     received_on: date  # KST. 서버가 today_kst() 로 정한다
     shared_at: datetime | None = Field(default=None)  # 처음 건넨 시각(UTC)
+
+
+class PublicQuestion(SQLModel, table=True):
+    """공개 질문 (DEC-PWA-025). 사용자가 고른 AI 질문·답만 서버에 복사해 두고, 관리자 검수 뒤 익명으로 보인다.
+
+    질문·답·근거는 session_messages·answer_citations 에서 서버가 복사한다 — 클라이언트가 보낸 본문은 믿지 않는다.
+    `user_id` 는 본인 삭제·계정 삭제용이며 어떤 응답에도 내보내지 않는다. `message_id` 는 FK 를 두지 않는다(복사본).
+    """
+
+    __tablename__ = "hoondok_public_questions"
+    __table_args__ = (UniqueConstraint("message_id", name="uq_hoondok_public_questions_message_id"),)
+
+    id: str = Field(primary_key=True, max_length=16)  # secrets.token_urlsafe — 추측 어려운 짧은 slug
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    message_id: uuid.UUID
+    question: str = Field(sa_column=Column(Text, nullable=False))
+    answer_md: str = Field(sa_column=Column(Text, nullable=False))
+    sources: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    answer_mode: str = Field(max_length=32)
+    status: str = Field(default="pending", max_length=16, index=True)  # PUBLIC_QUESTION_STATUSES
+    created_at: datetime = Field(default_factory=utcnow)
+    reviewed_at: datetime | None = Field(default=None)  # 마지막 검수(공개·숨김) 시각 — 공개 목록의 날짜
+
+
+# --- AI 질문 계정 보관·하루 횟수 (DEC-PWA-025 2차) ------------------------------------
+# 질문·답 원문은 chat 도메인(research_sessions·session_messages)에 이미 남는다. 그 테이블은 시연 챗과 함께 쓰므로
+# 훈독 전용 메타(저장 표시·화면에 보인 근거·횟수)는 여기 따로 둔다. 세션 소유는 research_sessions.user_id(훈독 user id)다.
+
+
+class AskThread(SQLModel, table=True):
+    """훈독 계정에 묶인 AI 질문 대화 1건 = 채팅 세션 1개. 첫 답이 나갈 때 만든다(목록·이어 묻기 소유 확인의 기준)."""
+
+    __tablename__ = "hoondok_ask_threads"
+
+    session_id: uuid.UUID = Field(foreign_key="research_sessions.id", primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    saved: bool = Field(default=False, sa_column_kwargs={"server_default": text("false")})
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class AskTurn(SQLModel, table=True):
+    """답 1개에 화면이 받은 근거·모드·관련 질문.
+
+    answer_citations 에는 chunk_id·표시명이 없고 캐시 답은 인용·모드를 남기지 않는다. 계정에서 다시 열 때 처음과 같은
+    화면을 그리려고 SSE sources 이벤트 값을 그대로 복사해 둔다.
+    """
+
+    __tablename__ = "hoondok_ask_turns"
+
+    message_id: uuid.UUID = Field(foreign_key="session_messages.id", primary_key=True)
+    session_id: uuid.UUID = Field(foreign_key="hoondok_ask_threads.session_id", index=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    answer_mode: str = Field(max_length=32)
+    sources: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    suggested_followups: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class AskUsage(SQLModel, table=True):
+    """계정별 KST 하루 AI 질문 횟수. 조건부 UPDATE(used < limit)로 차감해 동시 요청에도 상한을 넘지 않는다."""
+
+    __tablename__ = "hoondok_ask_usage"
+
+    user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True)
+    day: date = Field(primary_key=True)  # KST 날짜 (today_kst)
+    used: int = Field(default=0)

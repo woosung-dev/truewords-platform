@@ -23,15 +23,15 @@ async function collectConsoleErrors(page: Page) {
 
 /** 새 계정으로 가입해 홈으로 돌아온다 (hoondok.spec.ts 의 가입 흐름). */
 async function signUp(page: Page, name: string) {
-  await page.goto("/hoondok/onboarding");
+  await page.goto("/onboarding");
   await page.getByLabel(/이름/).fill(name);
   await page.getByLabel(/이메일/).fill(`e2e-jeongseong-${Date.now()}@example.com`);
   await page.getByLabel(/비밀번호/).fill("password1");
   await page.getByRole("button", { name: "가입하고 시작하기" }).click();
   // 가입 직후 기본 경로는 맞춤 첫 말씀 질문이다 — 질문 없이 홈으로 간다
-  await expect(page).toHaveURL(/\/hoondok\/start$/);
+  await expect(page).toHaveURL(/\/start$/);
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(page.getByText(`${name}님`)).toBeVisible();
 }
 
@@ -62,7 +62,7 @@ test("정성 시트에서 21일 정성을 만들면 홈 카드가 1일차 · 20�
   // 정성이 없으면 홈은 시트로 보내는 CTA 만 둔다
   await expect(page.getByRole("link", { name: "정성 시작하기" })).toBeVisible();
   await page.getByRole("link", { name: "정성 시작하기" }).click();
-  await expect(page).toHaveURL(/\/hoondok\?sheet=jeongseong$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/\?sheet=jeongseong$/);
 
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
@@ -72,7 +72,7 @@ test("정성 시트에서 21일 정성을 만들면 홈 카드가 1일차 · 20�
   // 정성 알림은 훈독하기 알림에 합쳤다 — 시각 입력 대신 설정 › 훈독하기 링크만 있다
   await expect(dialog.locator('input[type="time"]')).toHaveCount(0);
   const notifyLink = dialog.getByRole("link", { name: "설정 › 훈독하기" });
-  await expect(notifyLink).toHaveAttribute("href", "/hoondok/settings");
+  await expect(notifyLink).toHaveAttribute("href", "/settings");
   // 본문 속 링크여도 터치 영역은 44px (시각 크기는 그대로, 음수 여백으로 넓힌다)
   expect((await notifyLink.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
@@ -90,7 +90,7 @@ test("정성 시트에서 21일 정성을 만들면 홈 카드가 1일차 · 20�
   expect(createdBody).not.toHaveProperty("resolution");
 
   // 성공하면 URL 에서 sheet 가 빠지고 홈 카드가 진행 상태로 바뀐다 (오늘 시작 → 1일차 · 남은 20일)
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(page.getByText("21일 정성 · 감사")).toBeVisible();
   await expect(page.getByText("1일차", { exact: true })).toBeVisible();
   await expect(page.getByText("20일 남았어요")).toBeVisible();
@@ -112,7 +112,7 @@ test("정성 시트에서 21일 정성을 만들면 홈 카드가 1일차 · 20�
 
   // ≥1024px 은 중앙 모달 520px (DES-PWA-003 §2.7)
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/hoondok?sheet=jeongseong");
+  await page.goto("/?sheet=jeongseong");
   const panel = page.locator(".sheet__panel");
   await expect(panel).toBeVisible();
   const box = await panel.boundingBox();
@@ -122,7 +122,7 @@ test("정성 시트에서 21일 정성을 만들면 홈 카드가 1일차 · 20�
 
   // 닫기 = URL 에서 sheet 를 지우는 것 하나. Esc·백드롭도 <dialog> 의 close 이벤트로 같은 경로를 탄다.
   await page.getByRole("button", { name: "닫기" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
 
@@ -141,7 +141,7 @@ test("정원 달력은 완료한 칸에만 원을 그리고, 정성 카드는 �
     data: { topic: "감사", duration_days: 21, started_on: kstIso() },
   });
   expect(created.status()).toBe(201);
-  await page.goto("/hoondok/garden");
+  await page.goto("/garden");
   await expect(page.getByRole("heading", { name: "말씀과 함께한 시간" })).toBeVisible();
 
   const todayCell = page.locator(".gd-cal__day[data-today]");
@@ -177,17 +177,17 @@ test("정원 달력은 완료한 칸에만 원을 그리고, 정성 카드는 �
   expect(upcoming.status()).toBe(201);
   const upcomingLabel = `시작 전 · ${monthDay(kstIso(3))}부터`;
 
-  await page.goto("/hoondok/garden");
+  await page.goto("/garden");
   await expect(gardenCard.getByText(upcomingLabel)).toBeVisible();
   await expect(gardenCard.getByRole("progressbar")).toHaveCount(0);
 
-  await page.goto("/hoondok");
+  await page.goto("/");
   const homeCard = page.locator(".sect").filter({ has: page.getByRole("heading", { name: "정성 기간", exact: true }) });
   await expect(homeCard.getByText(upcomingLabel)).toBeVisible();
   await expect(homeCard.getByRole("progressbar")).toHaveCount(0);
   await expect(homeCard).not.toContainText("남았어요");
 
-  for (const path of ["/hoondok", "/hoondok/garden"]) {
+  for (const path of ["/", "/garden"]) {
     for (const width of [390, 1280]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(path);
@@ -206,7 +206,7 @@ test("각오를 적고 시작하면 홈 카드에 보이고, 마친 뒤에는 �
   const VOW = "하루를 말씀으로 먼저 시작하기";
 
   // ① 나의 각오(선택) — 50자 · 글자 수 · 나만 봐요
-  await page.goto("/hoondok?sheet=jeongseong");
+  await page.goto("/?sheet=jeongseong");
   const dialog = page.getByRole("dialog");
   const vow = dialog.getByLabel(/나의 각오/);
   await expect(vow).toHaveAttribute("maxlength", "50");
@@ -227,7 +227,7 @@ test("각오를 적고 시작하면 홈 카드에 보이고, 마친 뒤에는 �
   expect(period.resolution).toBe(VOW);
 
   // ③ 홈 진행 카드에 각오가 "나만 봐요" 와 함께 보인다
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   const homeCard = page.locator(".sect").filter({ has: page.getByRole("heading", { name: "정성 기간", exact: true }) });
   await expect(homeCard.getByText(VOW)).toBeVisible();
   await expect(homeCard.getByText("나의 각오 · 나만 봐요")).toBeVisible();
@@ -248,7 +248,7 @@ test("각오를 적고 시작하면 홈 카드에 보이고, 마친 뒤에는 �
       ? route.fulfill({ json: { period: null, last_ended: lastEnded } })
       : route.fallback(),
   );
-  await page.goto("/hoondok");
+  await page.goto("/");
   const closing = homeCard.getByRole("article", { name: "정성 기간을 마쳤어요" });
   await expect(closing).toBeVisible();
   await expect(closing).toContainText("가정의 화목");
@@ -264,10 +264,10 @@ test("각오를 적고 시작하면 홈 카드에 보이고, 마친 뒤에는 �
 
   // ⑥ 새 정성 시작하기 → 시트. 시트를 닫으면 마무리 카드는 그대로 남는다
   await closing.getByRole("link", { name: "새 정성 시작하기" }).click();
-  await expect(page).toHaveURL(/\/hoondok\?sheet=jeongseong$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/\?sheet=jeongseong$/);
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("dialog").getByRole("button", { name: "닫기" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(closing).toBeVisible();
 
   // ⑤ 닫기 → 시작 CTA, 새로고침해도 닫힌 채다
@@ -285,7 +285,7 @@ test("각오를 적고 시작하면 홈 카드에 보이고, 마친 뒤에는 �
   expect((await page.request.delete("/api/backend/hoondok/me/jeongseong", { headers })).status()).toBe(204);
   const afterAbandon = await page.request.get("/api/backend/hoondok/me/jeongseong");
   expect(await afterAbandon.json()).toEqual({ period: null, last_ended: null });
-  await page.goto("/hoondok");
+  await page.goto("/");
   await expect(homeCard.getByRole("link", { name: "정성 시작하기" })).toBeVisible();
   await expect(homeCard.getByRole("article")).toHaveCount(0);
 

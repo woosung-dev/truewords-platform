@@ -23,12 +23,12 @@ async function collectConsoleErrors(page: Page) {
 }
 
 async function login(page: Page) {
-  await page.goto("/hoondok/onboarding");
+  await page.goto("/onboarding");
   await page.getByRole("button", { name: "로그인" }).click();
   await page.getByLabel(/이메일/).fill(SEED.email);
   await page.getByLabel(/비밀번호/).fill(SEED.password);
   await page.getByRole("button", { name: "로그인" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
 }
 
 async function overflow(page: Page) {
@@ -45,7 +45,7 @@ test("로그인 → 오늘 완료 → 정원: 통계·달력 오늘 칸·정원 
   });
   expect([201, 409]).toContain(done.status());
 
-  await page.goto("/hoondok/garden");
+  await page.goto("/garden");
   await expect(page.getByRole("heading", { name: "나의 정원", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "말씀과 함께한 시간" })).toBeVisible();
 
@@ -71,14 +71,11 @@ test("로그인 → 오늘 완료 → 정원: 통계·달력 오늘 칸·정원 
 });
 
 test("비로그인 정원: 온보딩 안내만 보이고 기록·정성을 그리지 않는다", async ({ page }) => {
-  await page.goto("/hoondok/garden");
+  await page.goto("/garden");
   await expect(page.getByRole("heading", { name: /로그인하면 훈독 기록과 정성을/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: "시작하기" })).toHaveAttribute(
-    "href",
-    "/hoondok/onboarding?returnTo=%2Fhoondok%2Fgarden",
-  );
+  await expect(page.getByRole("link", { name: "시작하기" })).toHaveAttribute("href", "/onboarding?returnTo=%2Fgarden");
   await expect(page.locator(".gd-cal__grid")).toHaveCount(0);
   await expect(page.locator(".stats")).toHaveCount(0);
   // 읽기 화면은 열어 두고 행동에서만 온보딩으로 보낸다 — 자동 리다이렉트가 없어야 한다
-  await expect(page).toHaveURL(/\/hoondok\/garden$/);
+  await expect(page).toHaveURL(/\/garden$/);
 });

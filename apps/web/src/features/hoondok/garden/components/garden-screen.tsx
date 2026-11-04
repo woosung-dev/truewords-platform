@@ -25,7 +25,7 @@ import { AccountSection } from "./account-section";
 // '나의 기록'(C1)은 자기 요청·오류를 따로 가진다 — 표시 목록이 실패해도 통계·달력은 그대로 보인다.
 // 계정(이메일·로그아웃)은 매일 보는 기록과 떨어진 맨 아래에 둔다. 로그아웃하면 이 화면에 머물러 비로그인 카드가 곧 결과 안내가 된다.
 const BETA_NOTICE = "독립 운영 베타";
-const JEONGSEONG_HREF = "/hoondok?sheet=jeongseong";
+const JEONGSEONG_HREF = "/?sheet=jeongseong";
 
 export type GardenScreenProps = {
   /** 서버가 계산한 KST 월 `YYYY-MM`. 클라이언트가 다시 계산하면 자정 경계에서 hydration 이 어긋난다 */
@@ -94,7 +94,7 @@ function BookmarksEntrySection() {
   if (!isHoondokCardsEnabled()) return null;
   return (
     <div className="sect">
-      <Link className="card fm-entry" href="/hoondok/bookmarks">
+      <Link className="card fm-entry" href="/bookmarks">
         <span className="fm-entry__bd">
           <b>나의 책갈피</b>
           <span>받은 책갈피가 책별로 꽂혀 있어요 · 건넨 책갈피도 여기에</span>
@@ -147,7 +147,7 @@ export function GardenScreen({ month, today }: GardenScreenProps) {
             </p>
             {/* 이 화면의 유일한 행동이라 주 버튼이다 (DES §4 한 화면에 primary 하나) */}
             <p className="gd-cta">
-              <Link className="btn btn-primary" href={onboardingHref("/hoondok/garden")}>
+              <Link className="btn btn-primary" href={onboardingHref("/garden")}>
                 시작하기
               </Link>
             </p>

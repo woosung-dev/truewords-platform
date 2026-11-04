@@ -20,6 +20,7 @@ import logging
 from typing import Literal, get_args
 
 from app.core.common.gemini import MODEL_GENERATE, generate_text
+from app.core.common.log_helpers import query_fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -148,23 +149,23 @@ async def classify_intent(query: str, *, enabled: bool = True) -> Intent:
         )
         intent = _normalize_response(raw)
         logger.info(
-            "intent_classifier: query=%r raw=%r intent=%s",
-            query[:80],
+            "intent_classifier: query=%s raw=%r intent=%s",
+            query_fingerprint(query),
             (raw or "").strip()[:30],
             intent,
         )
         return intent
     except asyncio.TimeoutError:
         logger.warning(
-            "intent_classifier: 타임아웃 (%.1fs 초과), 기본 intent 반환 | query=%r",
+            "intent_classifier: 타임아웃 (%.1fs 초과), 기본 intent 반환 | query=%s",
             INTENT_TIMEOUT_SECONDS,
-            query[:80],
+            query_fingerprint(query),
         )
         return DEFAULT_INTENT
     except Exception as exc:
         logger.warning(
-            "intent_classifier: LLM 호출 실패, 기본 intent 반환 | query=%r error=%s",
-            query[:80],
+            "intent_classifier: LLM 호출 실패, 기본 intent 반환 | query=%s error=%s",
+            query_fingerprint(query),
             exc,
         )
         return DEFAULT_INTENT

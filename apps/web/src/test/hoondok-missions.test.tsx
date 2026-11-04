@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: vi.fn(), prefetch: vi.fn() }),
-  usePathname: () => "/hoondok/read",
+  usePathname: () => "/read",
 }));
 vi.mock("@/features/identity/api", () => ({
   identityAPI: { signup: vi.fn(), login: vi.fn(), logout: vi.fn(), me: vi.fn() },
@@ -28,7 +28,7 @@ import { CURRENT_USER_KEY } from "@/features/identity/use-current-user";
 const USER = { id: "u1", email: "a@b.c", display_name: "효진" };
 const TODAY = formatKstDate().iso;
 const KEY = "hoondok:pending:read";
-const ASK_HREF = "/hoondok/ask?q=%EB%A7%90%EC%94%80";
+const ASK_HREF = "/ask?q=%EB%A7%90%EC%94%80";
 const EMPTY_SUMMARY = {
   today: { read: false, pray: false, study: false },
   streak_days: 0,
@@ -98,7 +98,7 @@ describe("ReadCompleteButton", () => {
     expect(screen.getByRole("status")).toHaveTextContent("오늘 훈독을 마쳤어요");
     expect(screen.getByRole("link", { name: /로그인하면 오늘 기록이 남아요/ })).toHaveAttribute(
       "href",
-      "/hoondok/onboarding?returnTo=%2Fhoondok%2Fread",
+      "/onboarding?returnTo=%2Fread",
     );
     expect(localStorage.getItem(KEY)).toBe(TODAY);
     expect(missionsAPI.complete).not.toHaveBeenCalled();
@@ -134,7 +134,7 @@ describe("ReadCompleteButton", () => {
     render(wrap(<ReadCompleteButton askHref={ASK_HREF} />));
     await waitFor(() => expect(screen.getByRole("button", { name: /훈독 완료/ })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: /훈독 완료/ }));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/hoondok/onboarding?returnTo=%2Fhoondok%2Fread"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/onboarding?returnTo=%2Fread"));
   });
 
   it("소급: 로그인 상태에서 오늘 키가 있으면 한 번만 POST 하고 키를 지운다", async () => {

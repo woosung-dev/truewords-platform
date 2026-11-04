@@ -99,6 +99,15 @@
 
 터널 하나에 두 서버의 커넥터가 동시에 붙으면 Cloudflare 가 요청을 임의 분산해 데이터와 배포 상태가 갈리는 split-brain 이 발생한다. 다른 환경의 토큰을 재사용하지 않는다.
 
+### 엣지 보안 설정 `[확인 필요]` (2026-11-04 보안 점검)
+
+코드로 1차 방어를 넣었지만(로그인 IP 30회/분·IPv6 /64 묶음·프레임 금지 헤더·푸시 호스트 허용 목록) 아래는 저장소 밖이라 소유자가 대시보드·VM 에서 확인한다. 감사 트래픽은 보내지 않는다.
+
+- Security → WAF → Rate limiting rules 에 `/api/backend/hoondok/auth/login`·`/admin/auth/login` 이 들어 있는지. 없으면 엣지 상한을 더한다(앱 상한은 단일 워커 메모리 카운터다).
+- Network 탭의 IPv6 Compatibility·Pseudo IPv4 설정 — `CF-Connecting-IP` 가 IPv6 원본이면 앱이 /64 로 묶는다.
+- Transform Rules 가 X-Frame-Options·CSP 를 덧붙이거나 지우는지(앱 헤더와 겹쳐도 같은 값이면 무방).
+- VM 의 `sudo docker network inspect truewords_net`·`ss -ltnp` 로 인증 없이 POST 를 받는 내부 http 서비스가 있는지(푸시 발송기 SSRF 잔여 위험 판단용).
+
 ### 터널 배치 방식 (2026-09-06 결정: 현행 유지)
 
 이 VM 에는 프로젝트별 cloudflared 컨테이너 4개(터널 4개)가 있다. truewords 의 cloudflared 는 `truewords_net` 에 붙어 **서비스명**(`web:3000`·`admin:3000`·`backend:8080`)으로 라우팅하고 web/admin/backend 는 호스트 포트를 열지 않는다. nexus·kairos·quantbridge 의 cloudflared 는 `network_mode: host` 로 `localhost:<프로젝트별 포트>` 를 가리킨다. Cloudflare 문서는 터널 하나에 hostname 여러 개를 싣는 것을 기본으로 하되 호스트당/앱당 터널 수를 규정하지 않으며, 컨테이너 환경에서는 같은 사용자 정의 네트워크 + 서비스명(zero-port)이 권장 패턴이다. 비교: ① 현행(프로젝트별 터널·격리) ★4 ② 다른 프로젝트도 서비스명 방식으로 ★3(해당 레포를 손볼 때) ③ VM 단일 cloudflared 로 통합 ★2(재시작·오설정이 4프로젝트 동시 장애, 서비스명 충돌) ④ truewords 를 host 모드·localhost 포트로 ★1(포트 공개, 보안 후퇴). 컨테이너 모드에서 `localhost` 는 cloudflared 자신을 가리켜 502 다.
@@ -298,6 +307,16 @@ make oracle-logs                       # compose 로그 follow (최근 100줄)
 ### web/admin 빌드의 build-arg
 
 `NEXT_PUBLIC_API_URL`은 `apps/web/next.config.ts`·`apps/admin/next.config.ts`의 API rewrite 목적지다. **Next 는 `rewrites` 를 `next build` 시점에 `routes-manifest.json` 으로 굽기 때문에 런타임 env 로는 바뀌지 않는다.** 그래서 두 앱의 `deploy-*`가 `--build-arg NEXT_PUBLIC_API_URL=http://backend:8080` 으로 넣는다. 값을 바꾸려면 재빌드가 필요하다. 앱 간 링크의 `NEXT_PUBLIC_WEB_URL`·`NEXT_PUBLIC_ADMIN_URL`도 빌드에 전달하고, API의 `WEB_FRONTEND_URL`·`ADMIN_FRONTEND_URL`은 확정 origin으로 맞춘다.
+
+#### 도메인 전환 — 메인 도메인 → web, `admin.<도메인>` → admin `[확인 필요]`
+
+웹 루트가 훈독이 된 뒤(`DEC-PWA-026`) 예정된 전환이다. 실제 도메인·DNS·전환 시점은 정해지지 않았다. 코드에는 도메인을 넣지 않고 아래 값만 바꾼다.
+
+1. Tunnel `Published application routes` 에 메인 도메인 → `web:3000`, `admin.<도메인>` → `admin:3001` 을 추가한다(기존 호스트는 전환 확인 전까지 둔다).
+2. `build-args.env` 의 `NEXT_PUBLIC_WEB_URL`·`NEXT_PUBLIC_ADMIN_URL` 을 새 origin 으로 바꾼다 — 번들에 구워지므로 web·admin 재빌드가 필요하다.
+3. VM `.env` 의 `WEB_FRONTEND_URL`·`ADMIN_FRONTEND_URL` 을 새 origin 으로 바꾸고 `make deploy-backend` 로 재기동한다(CORS·메일 링크).
+4. 쿠키(`hoondok_token`·`admin_token`)는 각 호스트 전용이다. `Domain=` 을 붙여 하위 도메인끼리 공유하지 않는다 — 전환하면 사용자는 새 도메인에서 다시 로그인한다.
+5. 예전 호스트는 새 origin 으로 리다이렉트하거나 내린다. 웹 푸시 구독·PWA 설치는 origin 에 묶여 있어 옮겨지지 않는다(다시 켜기·다시 설치 안내).
 
 ### 모노레포 이미지와 SSE 검사 (2026-09-05)
 

@@ -23,7 +23,7 @@ import {
   isGroupGone,
 } from "./group-common";
 
-export const NEW_GROUP_PATH = "/hoondok/groups/new";
+export const NEW_GROUP_PATH = "/groups/new";
 export const GROUP_NAME_MAX = 20;
 export const DISPLAY_NAME_MAX = 12;
 export const JEONGSEONG_TITLE_MAX = 24;

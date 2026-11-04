@@ -13,10 +13,10 @@ import { groupErrorOf } from "../groups-api";
 import { formatInviteCode, inviteLink, type ShareMethod, shareInvite } from "../invite-code";
 
 export const GROUP_BETA_NOTICE = "독립 운영 베타";
-export const HOME_HREF = "/hoondok";
-export const READ_HREF = "/hoondok/read";
+export const HOME_HREF = "/";
+export const READ_HREF = "/read";
 
-export const groupHref = (groupId: string) => `/hoondok/groups/${encodeURIComponent(groupId)}`;
+export const groupHref = (groupId: string) => `/groups/${encodeURIComponent(groupId)}`;
 
 // ---------- 표기 ----------
 

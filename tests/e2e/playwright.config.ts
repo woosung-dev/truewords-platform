@@ -27,11 +27,6 @@ export default defineConfig({
       use: { browserName: "chromium", baseURL: adminOrigin },
     },
     {
-      name: "web-chromium",
-      testMatch: "web-flow.spec.ts",
-      use: { browserName: "chromium", baseURL: webOrigin },
-    },
-    {
       name: "split-apps-chromium",
       testMatch: "split-apps.spec.ts",
       use: { browserName: "chromium", baseURL: webOrigin },
@@ -79,7 +74,8 @@ export default defineConfig({
           ...(["web", "admin"] as const).map((app) => ({
             command: `pnpm --filter @truewords/${app} dev`,
             cwd: repoRoot,
-            url: `${app === "web" ? webOrigin : adminOrigin}/login`,
+            // 웹 루트는 훈독 홈이다(DEC-PWA-026, 아래 NEXT_PUBLIC_HOONDOK_ENABLED=1). 관리자는 로그인 화면.
+            url: app === "web" ? `${webOrigin}/` : `${adminOrigin}/login`,
             env: {
               NEXT_PUBLIC_API_URL: apiOrigin,
               NEXT_PUBLIC_WEB_URL: webOrigin,
