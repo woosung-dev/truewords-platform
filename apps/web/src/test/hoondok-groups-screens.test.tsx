@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const router = { push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() };
 vi.mock("next/navigation", () => ({
   useRouter: () => router,
-  usePathname: () => "/hoondok/groups/join",
+  usePathname: () => "/groups/join",
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
@@ -44,11 +44,11 @@ vi.mock("@/features/hoondok/together/groups-api", async (importOriginal) => {
   };
 });
 
-import GroupDetailPage from "@/app/(hoondok)/hoondok/groups/[id]/page";
-import GroupSettingsPage from "@/app/(hoondok)/hoondok/groups/[id]/settings/page";
-import GroupSharePage from "@/app/(hoondok)/hoondok/groups/[id]/share/page";
-import GroupJoinPage from "@/app/(hoondok)/hoondok/groups/join/page";
-import GroupNewPage from "@/app/(hoondok)/hoondok/groups/new/page";
+import GroupDetailPage from "@/app/(hoondok)/groups/[id]/page";
+import GroupSettingsPage from "@/app/(hoondok)/groups/[id]/settings/page";
+import GroupSharePage from "@/app/(hoondok)/groups/[id]/share/page";
+import GroupJoinPage from "@/app/(hoondok)/groups/join/page";
+import GroupNewPage from "@/app/(hoondok)/groups/new/page";
 import { formatKstTime, formatMeetingTime } from "@/features/hoondok/together/components/group-common";
 import { GroupCreateForm } from "@/features/hoondok/together/components/group-create-form";
 import { GroupDetailView } from "@/features/hoondok/together/components/group-detail";
@@ -228,7 +228,7 @@ describe("SCR-PWA-019 모임 만들기", () => {
         meeting_time: null,
       }),
     );
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith(`/hoondok/groups/new?created=${G}`));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith(`/groups/new?created=${G}`));
   });
 
   it("모임 정성 토글을 켜면 제목·기간·시작일을 함께 보낸다 (직접 1~100일)", async () => {
@@ -300,10 +300,10 @@ describe("SCR-PWA-019 모임 만들기", () => {
     renderUi(<GroupCreateForm today="2026-09-23" createdId={G} />);
     expect(await screen.findByText("모임을 만들었어요")).toBeInTheDocument();
     expect(screen.getByLabelText("초대 코드 7K2M-Q9XD")).toHaveTextContent("7K2M-Q9XD");
-    expect(screen.getByRole("link", { name: /모임으로 가기/ })).toHaveAttribute("href", `/hoondok/groups/${G}`);
+    expect(screen.getByRole("link", { name: /모임으로 가기/ })).toHaveAttribute("href", `/groups/${G}`);
     fireEvent.click(screen.getByRole("button", { name: /초대 링크 보내기/ }));
     expect(await screen.findByText("공유를 지원하지 않아 링크를 복사했어요")).toBeInTheDocument();
-    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("/hoondok/groups/join?code=7K2M-Q9XD"));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("/groups/join?code=7K2M-Q9XD"));
   });
 
   it("navigator.share 가 있으면 공유 시트를 연다", async () => {
@@ -368,10 +368,7 @@ describe("SCR-PWA-018 모임 참여", () => {
     vi.mocked(identityAPI.me).mockRejectedValue(apiError(401));
     renderUi(<GroupJoinForm initialCode="7k2mq9xd" />);
     const link = await screen.findByRole("link", { name: "가입하거나 로그인하기" });
-    expect(link).toHaveAttribute(
-      "href",
-      `/hoondok/onboarding?returnTo=${encodeURIComponent("/hoondok/groups/join?code=7K2M-Q9XD")}`,
-    );
+    expect(link).toHaveAttribute("href", `/onboarding?returnTo=${encodeURIComponent("/groups/join?code=7K2M-Q9XD")}`);
     expect(screen.getByText("7K2M-Q9XD")).toBeInTheDocument();
     expect(groupsAPI.previewInvite).not.toHaveBeenCalled();
   });
@@ -393,7 +390,7 @@ describe("SCR-PWA-018 모임 참여", () => {
     vi.mocked(groupsAPI.previewInvite).mockResolvedValue({ ...PREVIEW, is_member: true, group_id: G });
     renderUi(<GroupJoinForm initialCode="7K2M-Q9XD" />);
     expect(await screen.findByText("이미 이 모임 식구예요")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /모임으로 가기/ })).toHaveAttribute("href", `/hoondok/groups/${G}`);
+    expect(screen.getByRole("link", { name: /모임으로 가기/ })).toHaveAttribute("href", `/groups/${G}`);
     expect(screen.queryByRole("button", { name: "모임에 참여하기" })).not.toBeInTheDocument();
   });
 
@@ -406,7 +403,7 @@ describe("SCR-PWA-018 모임 참여", () => {
     fireEvent.change(name, { target: { value: "  민수 " } });
     fireEvent.click(screen.getByRole("button", { name: "모임에 참여하기" }));
     await waitFor(() => expect(groupsAPI.join).toHaveBeenCalledWith("7K2MQ9XD", { display_name: "민수" }));
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/hoondok/groups/${G}`));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/groups/${G}`));
   });
 
   it("공백만 있는 이름은 막고, 요청 중 연타는 한 번만 보낸다", async () => {
@@ -482,8 +479,8 @@ describe("SCR-PWA-017 모임 상세", () => {
     // 출처는 관리자가 적은 source_note 그대로 (QA P2-13)
     expect(screen.getByText("공식 정성 · 출처: 협회 공지")).toBeInTheDocument();
     // 오늘 범위는 훈독하기로, 설정 진입은 모두에게
-    expect(screen.getByRole("link", { name: /오늘 범위/ })).toHaveAttribute("href", "/hoondok/read");
-    expect(screen.getByRole("link", { name: /모임 설정/ })).toHaveAttribute("href", `/hoondok/groups/${G}/settings`);
+    expect(screen.getByRole("link", { name: /오늘 범위/ })).toHaveAttribute("href", "/read");
+    expect(screen.getByRole("link", { name: /모임 설정/ })).toHaveAttribute("href", `/groups/${G}/settings`);
     // 모임원에게는 초대 코드가 없으므로 초대하기 버튼도 없다
     expect(screen.queryByRole("button", { name: /초대하기/ })).not.toBeInTheDocument();
   });
@@ -500,7 +497,7 @@ describe("SCR-PWA-017 모임 상세", () => {
     expect(screen.getByText("2명이 함께 머물렀어요 · 나에게만 보여요")).toBeInTheDocument();
     // 내 한 줄에는 반응 버튼이 없다 — 토글은 남의 한 줄 1개뿐
     expect(screen.getAllByRole("button", { name: "함께 머물렀어요" })).toHaveLength(1);
-    expect(screen.getByRole("link", { name: "고치기" })).toHaveAttribute("href", `/hoondok/groups/${G}/share`);
+    expect(screen.getByRole("link", { name: "고치기" })).toHaveAttribute("href", `/groups/${G}/share`);
     expect(screen.getByRole("link", { name: "내 한 줄 고치기" })).toBeInTheDocument();
   });
 
@@ -532,7 +529,7 @@ describe("SCR-PWA-017 모임 상세", () => {
       }),
     );
     renderUi(<GroupDetailView groupId={G} />);
-    expect(await screen.findByRole("link", { name: "훈독하기" })).toHaveAttribute("href", "/hoondok/read");
+    expect(await screen.findByRole("link", { name: "훈독하기" })).toHaveAttribute("href", "/read");
     expect(screen.queryByRole("link", { name: "한 줄 남기기" })).not.toBeInTheDocument();
   });
 
@@ -554,7 +551,7 @@ describe("SCR-PWA-017 모임 상세", () => {
     vi.mocked(groupsAPI.get).mockRejectedValue(apiError(404, "GROUP_NOT_FOUND"));
     renderUi(<GroupDetailView groupId={G} />);
     expect(await screen.findByText("이 모임을 볼 수 없어요")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "홈으로" })).toHaveAttribute("href", "/hoondok");
+    expect(screen.getByRole("link", { name: "홈으로" })).toHaveAttribute("href", "/");
   });
 
   it("보던 중 내보내지면 — 반응 404 뒤 다시 읽어 안내 화면으로", async () => {
@@ -570,7 +567,7 @@ describe("SCR-PWA-017 모임 상세", () => {
     renderUi(<GroupDetailView groupId={G} />);
     expect(await screen.findByRole("link", { name: "가입하거나 로그인하기" })).toHaveAttribute(
       "href",
-      `/hoondok/onboarding?returnTo=${encodeURIComponent(`/hoondok/groups/${G}`)}`,
+      `/onboarding?returnTo=${encodeURIComponent(`/groups/${G}`)}`,
     );
     expect(groupsAPI.get).not.toHaveBeenCalled();
   });
@@ -588,7 +585,7 @@ describe("SCR-PWA-020 한 줄 쓰기", () => {
     expect(screen.getByText("19 / 100")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "한 줄 남기기" }));
     await waitFor(() => expect(groupsAPI.putTodayShare).toHaveBeenCalledWith(G, { body: "오늘은 감사\n합니다" }));
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/hoondok/groups/${G}`));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/groups/${G}`));
   });
 
   it("이미 남긴 한 줄은 채워서 고친다 · 빈 글은 보내지 않는다 · 연타는 한 번", async () => {
@@ -633,7 +630,7 @@ describe("SCR-PWA-020 한 줄 쓰기", () => {
     renderUi(<GroupShareForm groupId={G} />);
     fireEvent.change(await screen.findByLabelText("새벽별 훈독모임에 남길 한 줄"), { target: { value: "한 줄" } });
     fireEvent.click(screen.getByRole("button", { name: "한 줄 남기기" }));
-    expect(await screen.findByRole("link", { name: "훈독하기" })).toHaveAttribute("href", "/hoondok/read");
+    expect(await screen.findByRole("link", { name: "훈독하기" })).toHaveAttribute("href", "/read");
   });
 
   it("시작 문장을 누르면 입력칸을 채운다", async () => {
@@ -696,7 +693,7 @@ describe("SCR-PWA-021 모임 설정", () => {
     const del = screen.getByRole("group", { name: "모임 삭제 확인" });
     fireEvent.click(within(del).getByRole("button", { name: "모임 삭제" }));
     await waitFor(() => expect(groupsAPI.remove).toHaveBeenCalledWith(G));
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/hoondok"));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"));
   });
 
   it("확인 카드: 취소하면 닫히고 초점이 여는 버튼으로 돌아간다", async () => {
@@ -757,7 +754,7 @@ describe("SCR-PWA-021 모임 설정", () => {
     expect(box).not.toHaveTextContent("을(를)");
     fireEvent.click(within(box).getByRole("button", { name: "나가기" }));
     await waitFor(() => expect(groupsAPI.leave).toHaveBeenCalledWith(G));
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/hoondok"));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/"));
   });
 
   it("내보내진 뒤 설정을 열면 안내 화면", async () => {

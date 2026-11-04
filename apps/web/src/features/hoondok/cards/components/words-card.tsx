@@ -1,6 +1,6 @@
 "use client";
 
-// 원문 연결 (PLAN-HD-012): /hoondok/words/{volume}?chunk_id=…&card={id}.
+// 원문 연결 (PLAN-HD-012): /words/{volume}?chunk_id=…&card={id}.
 // 카드 문장을 단락 display_text 안에서 느슨하게 찾아(match.ts) 밑줄을 긋고 왼쪽 여백에 감귤 리본 끈을 그린다.
 // 못 찾으면 단락 전체를 강조한다. 들어올 때 원문 펼침 모션(쪽 → 리본 끈 → 밑줄), 나갈 때 리본이 걷힌다.
 import { useQuery } from "@tanstack/react-query";
@@ -153,7 +153,7 @@ export function CardPulloutBar({
   ribbonRef: RefObject<HTMLSpanElement | null>;
 }) {
   const router = useRouter();
-  const href = isToday ? "/hoondok/bookmark?from=words" : cardPath(card.id);
+  const href = isToday ? "/bookmark?from=words" : cardPath(card.id);
   async function handleClick() {
     await playSteps(pulloutExitSteps(prefersReducedMotion()), (target) =>
       target === "ribbon" ? ribbonRef.current : null,

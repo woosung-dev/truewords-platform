@@ -1,6 +1,6 @@
 "use client";
 
-// /hoondok/bookmark 맞춤. 홈 카드와 같은 장을 받도록 이 기기에 답이 있으면 맞춘 카드로 받기 화면을 연다.
+// /bookmark 맞춤. 홈 카드와 같은 장을 받도록 이 기기에 답이 있으면 맞춘 카드로 받기 화면을 연다.
 // 받기 API(049)는 아무 active 카드나 받으므로 서버 변경이 없다. 고르기가 끝나기 전에는 받기 화면을 그리지 않는다 —
 // 오늘 편성 카드로 먼저 열리면 그 카드를 받은 것으로 기록하고 모션이 두 번 돈다.
 import { type ReactNode, useSyncExternalStore } from "react";

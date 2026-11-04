@@ -2,7 +2,7 @@
 // 서버도 같은 규칙으로 정규화한다 — 여기서는 입력 표시와 링크 모양만 맞춘다. 판정은 서버 404 가 한다.
 const ALPHABET = /^[0-9A-HJKMNP-TV-Z]{8}$/;
 
-export const JOIN_PATH = "/hoondok/groups/join";
+export const JOIN_PATH = "/groups/join";
 
 // 하이픈 자리에 올 수 있는 문자 — 공백·하이픈·en/em dash 등 (카톡·메모 앱이 하이픈을 대시로 바꾼다)
 const SEPARATORS = /[\s\-\u2010-\u2015\u2212]+/g;

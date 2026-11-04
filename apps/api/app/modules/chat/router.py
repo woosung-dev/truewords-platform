@@ -5,6 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
 
+from app.modules.admin.dependencies import require_admin_gate
 from app.modules.chat.anon_session import get_or_issue_session_id
 from app.modules.chat.dependencies import (
     get_chat_service,
@@ -24,8 +25,13 @@ from app.modules.safety.middleware import check_rate_limit
 
 router = APIRouter(tags=["chat"])
 
+# LLM 비용이 드는 답 생성 경로. 시연 챗 화면은 지웠고(DEC-PWA-026) 훈독 질문·AI 설명은 로그인·하루 횟수가 있는
+# /hoondok/ask/stream 을 쓴다. 익명에게 열어 두면 그 비용 상한을 우회하므로 관리자 게이트 계정(검증용)만 허용한다.
+# 게이트를 레이트리밋보다 먼저 둬 익명 요청은 카운터를 남기지 않고 401 로 끝난다.
+_ANSWER_DEPS = [Depends(require_admin_gate), Depends(check_rate_limit)]
 
-@router.post("/chat", response_model=ChatResponse, dependencies=[Depends(check_rate_limit)])
+
+@router.post("/chat", response_model=ChatResponse, dependencies=_ANSWER_DEPS)
 async def chat(
     request: ChatRequest,
     service: ChatService = Depends(get_chat_service),
@@ -38,7 +44,7 @@ async def chat(
     return await service.process_chat(request, user_id)
 
 
-@router.post("/chat/stream", response_model=None, dependencies=[Depends(check_rate_limit)])
+@router.post("/chat/stream", response_model=None, dependencies=_ANSWER_DEPS)
 async def chat_stream(
     request: ChatRequest,
     service: ChatService = Depends(get_chat_service),

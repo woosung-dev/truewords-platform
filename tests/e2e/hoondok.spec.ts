@@ -2,7 +2,7 @@ import type { BrowserContext, Page } from "@playwright/test";
 import { expect, test } from "./hoondok-test";
 
 // 훈독 Phase 1 스모크 (PLAN-HD-001 §4 sub-PR 1). 플래그 ON 은 playwright.config webServer env 가 준다.
-const PATHS = ["/hoondok", "/hoondok/read", "/hoondok/garden", "/hoondok/settings"] as const;
+const PATHS = ["/", "/read", "/garden", "/settings"] as const;
 const VIEWPORTS = [
   { name: "phone", width: 390, height: 844 },
   { name: "desktop", width: 1280, height: 900 },
@@ -54,36 +54,29 @@ for (const viewport of VIEWPORTS) {
   }
 }
 
-test("훈독 스코프 토큰은 시연 챗 :root --accent 를 바꾸지 않는다", async ({ page }) => {
-  await page.goto("/hoondok");
+test("훈독 스코프 토큰은 루트 :root --accent 를 바꾸지 않는다", async ({ page }) => {
+  await page.goto("/");
   const scoped = await page.evaluate(() =>
     getComputedStyle(document.querySelector('[data-app="hoondok"]')!).getPropertyValue("--accent").trim(),
   );
   expect(scoped).toBe("#c24721");
-  const rootOnHoondok = await page.evaluate(() =>
+  const root = await page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(),
   );
-  expect(rootOnHoondok).not.toBe("#c24721");
-
-  await page.goto("/login");
-  const rootOnChat = await page.evaluate(() =>
-    getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(),
-  );
-  expect(rootOnChat).toBe(rootOnHoondok);
-  expect(rootOnChat).toMatch(/oklch\(0\.539 0\.166 47\)|lab\(/);
+  expect(root).not.toBe("#c24721");
 });
 
 test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 1일", async ({ page }) => {
-  await page.goto("/hoondok");
+  await page.goto("/");
   // 데스크톱 홈은 앱바 h1 을 sr-only 로 접으므로 존재만 확인하고, 보이는 제목은 섹션 h2 로 본다.
   await expect(page.getByRole("heading", { name: "오늘 훈독" })).toBeAttached();
   // 홈에는 말씀 본문이 없다 — 정본이 today 에서 `.lede` 를 숨기고 PRD SCR-PWA-002 도 미션 3종만 둔다.
-  // 오늘 말씀은 미션 카드의 제목으로만 드러나고 전문은 /hoondok/read 가 갖는다.
+  // 오늘 말씀은 미션 카드의 제목으로만 드러나고 전문은 /read 가 갖는다.
   await expect(page.getByRole("heading", { name: "오늘의 실천" })).toBeVisible();
   await expect(page.locator(".scripture")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /로그인 후 기록돼요/ })).toBeVisible();
   await page.getByRole("link", { name: "훈독하기", exact: true }).click();
-  await expect(page).toHaveURL(/\/hoondok\/read$/);
+  await expect(page).toHaveURL(/\/read$/);
   // 훈독하기: 출처 줄(화자·저작물) + 전문 + 완료 버튼 → 비로그인이라 로컬 완료 + 로그인 링크
   await expect(page.locator(".src").first()).toContainText("참");
   await expect(page.locator(".scripture")).toBeVisible();
@@ -94,7 +87,7 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   await page.getByRole("button", { name: "훈독 완료" }).click();
   await expect(page.getByRole("status")).toContainText("오늘 훈독을 마쳤어요");
   await page.getByRole("link", { name: /로그인하면 오늘 기록이 남아요/ }).click();
-  await expect(page).toHaveURL(/\/hoondok\/onboarding\?returnTo=%2Fhoondok%2Fread$/);
+  await expect(page).toHaveURL(/\/onboarding\?returnTo=%2Fread$/);
 
   // 온보딩 최소형: 베타 고지 · 교회 선택 없음 · 가입
   await expect(page.getByText(/독립 운영 베타/).first()).toBeVisible();
@@ -106,11 +99,11 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   await page.getByRole("button", { name: "가입하고 시작하기" }).click();
 
   // returnTo 로 복귀 → 로컬 체크가 당일분으로 소급 기록되고 로그인 링크는 사라진다
-  await expect(page).toHaveURL(/\/hoondok\/read$/);
+  await expect(page).toHaveURL(/\/read$/);
   await expect(page.getByRole("status")).toContainText("오늘 훈독을 마쳤어요");
   await expect(page.getByRole("link", { name: /로그인하면 오늘 기록이 남아요/ })).toHaveCount(0);
   await page.getByRole("link", { name: "뒤로" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(page.getByText("이투이님")).toBeVisible();
   await expect(page.locator(".sect__head", { hasText: "이번 주" })).toContainText("연속 1일");
   await expect(page.locator(".week__day[data-today][data-done]")).toHaveCount(1);
@@ -128,7 +121,7 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
 // PLAN-HD-009 함께 읽는 사람들 1단계 — 익명 숫자 카드. E2E 시드는 오늘 완료자가 10명 미만이라 보통 대체 문구지만,
 // 재실행·다른 테스트가 완료를 쌓을 수 있어 두 문구를 모두 허용하고 API 응답과 화면이 맞는지만 본다.
 test("홈 함께 읽는 사람들: 익명 카드 1장 · 기준 미만이면 숫자 없이 대체 문구", async ({ page }) => {
-  await page.goto("/hoondok");
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "함께 읽는 사람들" })).toBeVisible();
   const card = page.locator(".card.together");
   await expect(card).toHaveCount(1);
@@ -150,15 +143,15 @@ test("홈 함께 읽는 사람들: 익명 카드 1장 · 기준 미만이면 숫
 // 새 계정으로 직접 완료(user → 201 recorded)를 만든다.
 test("설치 안내: 직접 완료 뒤 홈 카드 노출 · reload 유지 · 나중에 30일 숨김", async ({ page }) => {
   const errors = await collectConsoleErrors(page);
-  await page.goto("/hoondok/onboarding");
+  await page.goto("/onboarding");
   await page.getByLabel(/이름/).fill("설치");
   await page.getByLabel(/이메일/).fill(`e2e-install-${Date.now()}@example.com`);
   await page.getByLabel(/비밀번호/).fill("password1");
   await page.getByRole("button", { name: "가입하고 시작하기" }).click();
   // 가입 직후 기본 경로는 맞춤 첫 말씀 질문이다 — 질문 없이 홈으로 간다
-  await expect(page).toHaveURL(/\/hoondok\/start$/);
+  await expect(page).toHaveURL(/\/start$/);
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(page.getByText("설치님")).toBeVisible();
   const title = page.getByRole("heading", { name: /홈 화면에 추가하면/ });
   await expect(title).toHaveCount(0);
@@ -192,12 +185,12 @@ test("가입 → 질문 1~3 → 첫 말씀: 기기에만 저장 · 위기 안내
   const errors = await collectConsoleErrors(page);
   const requests: string[] = [];
   page.on("request", (request) => requests.push(request.url()));
-  await page.goto("/hoondok/onboarding");
+  await page.goto("/onboarding");
   await page.getByLabel(/이름/).fill("첫말씀");
   await page.getByLabel(/이메일/).fill(`e2e-start-${Date.now()}@example.com`);
   await page.getByLabel(/비밀번호/).fill("password1");
   await page.getByRole("button", { name: "가입하고 시작하기" }).click();
-  await expect(page).toHaveURL(/\/hoondok\/start$/);
+  await expect(page).toHaveURL(/\/start$/);
   // 탭바가 없는 온보딩 프레임이다
   await expect(page.getByRole("navigation", { name: "주 메뉴" })).toHaveCount(0);
 
@@ -223,17 +216,17 @@ test("가입 → 질문 1~3 → 첫 말씀: 기기에만 저장 · 위기 안내
   );
 
   await page.getByRole("link", { name: "오늘 훈독으로" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   expect(errors.filter((message) => !/status of 401/.test(message))).toEqual([]);
 });
 
 test("시드 사용자 로그인 → 훈독 완료 → 로그아웃 → 완료 API 401", async ({ page }) => {
-  await page.goto("/hoondok/onboarding");
+  await page.goto("/onboarding");
   await page.getByRole("button", { name: "로그인" }).click();
   await page.getByLabel(/이메일/).fill("hoondok@example.com");
   await page.getByLabel(/비밀번호/).fill("test1234");
   await page.getByRole("button", { name: "로그인" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(page.getByText("시드식구님")).toBeVisible();
 
   const summaryBefore = await (await page.request.get("/api/backend/hoondok/me/summary")).json();
@@ -248,7 +241,7 @@ test("시드 사용자 로그인 → 훈독 완료 → 로그아웃 → 완료 A
   expect(summaryAfter.total_days).toBe(Math.max(summaryBefore.total_days, 1));
 
   // 로그아웃 → 완료·요약 API 는 401, 홈은 여전히 비로그인 열람
-  await page.goto("/hoondok/onboarding");
+  await page.goto("/onboarding");
   await page.getByRole("button", { name: "로그아웃" }).click();
   await expect(page.getByRole("form", { name: "가입" })).toBeVisible();
   expect((await page.request.get("/api/backend/hoondok/me/summary")).status()).toBe(401);
@@ -259,18 +252,20 @@ test("시드 사용자 로그인 → 훈독 완료 → 로그아웃 → 완료 A
       })
     ).status(),
   ).toBe(401);
-  await page.goto("/hoondok");
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "오늘의 실천" })).toBeVisible();
 });
 
 // Phase 3 C — PWA 설치 메타·정적 자산 (PLAN-HD-001 §6 C). 실기기 설치·standalone 증거는 운영 플래그 ON 뒤 G 단계다.
-test("PWA 정적 자산: manifest·아이콘 4개·self-host 폰트 200, 스코프 /hoondok, 폰트 immutable", async ({ page }) => {
+test("PWA 정적 자산: manifest·아이콘 4개·self-host 폰트 200, 스코프 /, 폰트 immutable", async ({ page }) => {
   const manifest = await page.request.get("/hoondok/manifest.webmanifest");
   expect(manifest.status()).toBe(200);
   expect(manifest.headers()["content-type"]).toContain("manifest+json");
   const body = await manifest.json();
-  expect(body.scope).toBe("/hoondok");
-  expect(body.start_url).toBe("/hoondok");
+  // 웹 루트가 훈독이다(DEC-PWA-026). id 는 예전 값을 유지해 설치된 앱이 같은 앱으로 남는다.
+  expect(body.id).toBe("/hoondok");
+  expect(body.scope).toBe("/");
+  expect(body.start_url).toBe("/");
   expect(body.display).toBe("standalone");
 
   const iconPaths: string[] = [
@@ -289,10 +284,8 @@ test("PWA 정적 자산: manifest·아이콘 4개·self-host 폰트 200, 스코�
   expect(font.headers()["cache-control"]).toContain("immutable");
 });
 
-test("설치 메타는 /hoondok 에만 붙고 self-host 폰트가 실제로 로드된다 · 시연 챗 /·/login 에는 없다", async ({
-  page,
-}) => {
-  await page.goto("/hoondok");
+test("설치 메타가 붙고 self-host 폰트가 실제로 로드된다", async ({ page }) => {
+  await page.goto("/");
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/hoondok/manifest.webmanifest");
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(1);
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#fbfaf8");
@@ -306,48 +299,65 @@ test("설치 메타는 /hoondok 에만 붙고 self-host 폰트가 실제로 로�
     );
   });
   expect(fontLoaded).toBe(true);
+});
 
-  for (const path of ["/", "/login"]) {
-    await page.goto(path);
-    await expect(page.locator('link[rel="manifest"]')).toHaveCount(0);
-    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(0);
-    await expect(page.locator('meta[name="theme-color"]')).toHaveCount(0);
+test("예전 /hoondok 주소는 같은 경로의 루트로 308, 자산은 그대로 200", async ({ page }) => {
+  for (const [from, to] of [
+    ["/hoondok", "/"],
+    ["/hoondok/read?x=1", "/read?x=1"],
+    ["/hoondok/c/abc", "/c/abc"],
+  ] as const) {
+    const response = await page.request.get(from, { maxRedirects: 0 });
+    expect(response.status(), from).toBe(308);
+    const location = new URL(response.headers().location, "http://x");
+    expect(location.pathname + location.search, from).toBe(to);
+  }
+  for (const asset of ["/hoondok/sw.js", "/hoondok/manifest.webmanifest", "/hoondok/icons/icon-192.png"]) {
+    expect((await page.request.get(asset, { maxRedirects: 0 })).status(), asset).toBe(200);
   }
 });
 
-// Phase 3 D — 서비스워커 (PLAN-HD-001 §6 D). 오프라인 안내 폴백만, API·인증 응답 캐시 금지, 시연 챗 미제어.
-test("SW: scope /hoondok 등록 · sw.js no-cache + Service-Worker-Allowed · manifest no-cache · /login 은 미제어", async ({
+// Phase 3 D — 서비스워커 (PLAN-HD-001 §6 D). 오프라인 안내 폴백만, API·인증 응답 캐시 금지.
+test("SW: /sw.js 를 scope / 로 등록 · no-cache · 예전 /hoondok 등록은 해제 · 은퇴 sw.js 는 Service-Worker-Allowed /hoondok", async ({
   page,
 }) => {
-  await page.goto("/hoondok");
+  await page.goto("/");
   const scope = await page.evaluate(() => navigator.serviceWorker.ready.then((r) => new URL(r.scope).pathname));
-  expect(scope).toBe("/hoondok");
+  expect(scope).toBe("/");
 
-  const sw = await page.request.get("/hoondok/sw.js");
+  const sw = await page.request.get("/sw.js");
   expect(sw.status()).toBe(200);
   expect(sw.headers()["cache-control"]).toContain("no-cache");
-  expect(sw.headers()["service-worker-allowed"]).toBe("/hoondok");
+  const retired = await page.request.get("/hoondok/sw.js");
+  expect(retired.status()).toBe(200);
+  expect(retired.headers()["service-worker-allowed"]).toBe("/hoondok");
   expect((await page.request.get("/hoondok/manifest.webmanifest")).headers()["cache-control"]).toContain("no-cache");
 
-  // getRegistrations() 는 origin 전체를 돌려주므로 시연 챗은 "제어되지 않음" 으로 본다
-  await page.goto("/login");
-  const controlled = await page.evaluate(() => navigator.serviceWorker.controller !== null);
-  expect(controlled).toBe(false);
+  // 예전 설치본처럼 /hoondok scope 로 은퇴 스크립트를 등록해 두면, 다음 방문에서 앱이 그 등록을 해제한다
+  await page.evaluate(() => navigator.serviceWorker.register("/hoondok/sw.js", { scope: "/hoondok" }).then(() => true));
+  await page.reload();
+  await expect
+    .poll(() =>
+      page.evaluate(async () =>
+        (await navigator.serviceWorker.getRegistrations()).map((r) => new URL(r.scope).pathname),
+      ),
+    )
+    .toEqual(["/"]);
 });
 
-test("오프라인: /hoondok/read 이동 시 /hoondok/offline 로 폴백 렌더(hydration 오류 0) · API·온보딩 응답은 CacheStorage 에 없음", async ({
+test("오프라인: /read 이동 시 /offline 로 폴백 렌더(hydration 오류 0) · API·온보딩 응답은 CacheStorage 에 없음", async ({
   page,
   context,
 }) => {
   const errors = await collectConsoleErrors(page);
-  await page.goto("/hoondok");
+  await page.goto("/");
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
-  await page.waitForFunction(async () => (await caches.match("/hoondok/offline")) !== undefined);
+  await page.waitForFunction(async () => (await caches.match("/offline")) !== undefined);
 
   await context.setOffline(true);
-  await page.goto("/hoondok/read");
-  // 안내 HTML 을 /hoondok/read URL 에 그대로 내면 앱 셸(usePathname) 이 hydration 불일치를 내므로 SW 가 자기 URL 로 보낸다
-  await expect(page).toHaveURL(/\/hoondok\/offline$/);
+  await page.goto("/read");
+  // 안내 HTML 을 /read URL 에 그대로 내면 앱 셸(usePathname) 이 hydration 불일치를 내므로 SW 가 자기 URL 로 보낸다
+  await expect(page).toHaveURL(/\/offline$/);
   await expect(page.getByRole("heading", { name: "지금은 오프라인이에요" })).toBeVisible();
   await expect(page.getByRole("link", { name: "다시 시도" })).toBeVisible();
   await context.setOffline(false);
@@ -358,13 +368,13 @@ test("오프라인: /hoondok/read 이동 시 /hoondok/offline 로 폴백 렌더(
     const hits: string[] = [];
     for (const key of keys) {
       const bucket = await caches.open(key);
-      for (const path of ["/api/backend/hoondok/today", "/api/backend/hoondok/auth/me", "/hoondok/onboarding"]) {
+      for (const path of ["/api/backend/hoondok/today", "/api/backend/hoondok/auth/me", "/onboarding"]) {
         if (await bucket.match(path)) hits.push(`${key}:${path}`);
       }
     }
     return { keys, hits };
   });
-  expect(cache.keys.filter((k) => k.startsWith("hoondok-"))).toHaveLength(1);
+  expect(cache.keys.filter((k) => k.startsWith("hoondok-root-"))).toHaveLength(1);
   expect(cache.hits).toEqual([]);
 });
 
@@ -374,18 +384,18 @@ const FAKE_VAPID_KEY = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSn
 const FAKE_ENDPOINT = "https://push.example/abc";
 
 async function loginAsSeedUser(page: Page) {
-  await page.goto("/hoondok/onboarding");
+  await page.goto("/onboarding");
   await page.getByRole("button", { name: "로그인" }).click();
   await page.getByLabel(/이메일/).fill("hoondok@example.com");
   await page.getByLabel(/비밀번호/).fill("test1234");
   await page.getByRole("button", { name: "로그인" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
 }
 
 test("알림: backend 에 VAPID 가 없으면 훈독하기도 '준비 중' 이고 켤 수 없다", async ({ page }) => {
   const errors = await collectConsoleErrors(page);
   await loginAsSeedUser(page);
-  await page.goto("/hoondok/settings");
+  await page.goto("/settings");
 
   const toggle = page.getByRole("button", { name: "훈독하기 알림" });
   // 훈독하기 · 그 밖의 알림(기도하기·가정예배·공지 한 줄) · 조용한 시간
@@ -436,7 +446,7 @@ test("알림: 권한 허용 → 구독 저장 → 설정 PUT, reload 뒤에도 �
   const subscribeBodies = await stubPushBrowser(page, context);
 
   await loginAsSeedUser(page);
-  await page.goto("/hoondok/settings");
+  await page.goto("/settings");
   const toggle = page.getByRole("button", { name: "훈독하기 알림" });
   await expect(toggle).toBeEnabled();
 
@@ -482,15 +492,15 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
     await route.fulfill({ json: { enabled: true, public_key: FAKE_VAPID_KEY } });
   });
 
-  await page.goto("/hoondok/onboarding");
+  await page.goto("/onboarding");
   await page.getByLabel(/이름/).fill("알림");
   await page.getByLabel(/이메일/).fill(`e2e-push-${Date.now()}@example.com`);
   await page.getByLabel(/비밀번호/).fill("password1");
   await page.getByRole("button", { name: "가입하고 시작하기" }).click();
   // 가입 직후 기본 경로는 맞춤 첫 말씀 질문이다 — 질문 없이 홈으로 간다
-  await expect(page).toHaveURL(/\/hoondok\/start$/);
+  await expect(page).toHaveURL(/\/start$/);
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(page.getByText("알림님")).toBeVisible();
   // 헤드리스 Chromium UA 는 인앱 브라우저가 아니다 — 안내 배너가 뜨면 안 된다
   await expect(page.locator(".inapp")).toHaveCount(0);
@@ -529,10 +539,7 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
   ]);
   await expect(card).toContainText(`매일 ${checkedTime}에 알려 드릴게요`);
   expect(["05:30", "07:30", "12:30", "21:30"]).toContain(savedTime);
-  await expect(card.getByRole("link", { name: "시각은 설정에서 바꿀 수 있어요" })).toHaveAttribute(
-    "href",
-    "/hoondok/settings",
-  );
+  await expect(card.getByRole("link", { name: "시각은 설정에서 바꿀 수 있어요" })).toHaveAttribute("href", "/settings");
 
   // 켜짐의 근거는 서버다 — 새로고침하면 서버 설정(켜짐)을 읽은 뒤 제안 카드는 없고, 설정 토글은 켜져 있다
   const prefsAfterReload = page.waitForResponse(
@@ -542,7 +549,7 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
   expect((await prefsAfterReload).status()).toBe(200);
   await expect(page.getByRole("heading", { name: "오늘의 실천" })).toBeVisible();
   await expect(page.locator(".push-prompt")).toHaveCount(0);
-  await page.goto("/hoondok/settings");
+  await page.goto("/settings");
   await expect(page.getByRole("button", { name: "훈독하기 알림" })).toHaveAttribute("aria-pressed", "true");
   const prefs = await (await page.request.get("/api/backend/hoondok/me/notifications")).json();
   expect(prefs.read_enabled).toBe(true);

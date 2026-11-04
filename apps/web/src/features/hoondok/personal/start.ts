@@ -3,8 +3,8 @@
 // 첫 말씀은 책갈피 카드에서 고르므로 책갈피 플래그가 꺼진 빌드에서는 흐름이 없다.
 import { isHoondokCardsEnabled } from "../flag";
 
-export const START_PATH = "/hoondok/start";
+export const START_PATH = "/start";
 
 export function afterSignupHref(next: string): string {
-  return next === "/hoondok" && isHoondokCardsEnabled() ? START_PATH : next;
+  return next === "/" && isHoondokCardsEnabled() ? START_PATH : next;
 }

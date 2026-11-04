@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // 모임 API 는 fetch 만 바꿔 실제 경로로 검증한다. 사용자·미션 API 는 모듈 mock.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
-  usePathname: () => "/hoondok/read",
+  usePathname: () => "/read",
 }));
 vi.mock("@/features/identity/api", () => ({
   identityAPI: { signup: vi.fn(), login: vi.fn(), logout: vi.fn(), me: vi.fn() },
@@ -125,7 +125,7 @@ describe("GroupList (홈 모임 카드)", () => {
       ]);
     render(wrap(<GroupList />));
     const card = await screen.findByRole("link", { name: /은혜 훈독모임/ });
-    expect(card).toHaveAttribute("href", "/hoondok/groups/g-1");
+    expect(card).toHaveAttribute("href", "/groups/g-1");
     expect(card).toHaveTextContent("은혜 훈독모임 · 오늘 5명이 함께 읽었어요");
     // 공식 정성은 카드 안이 아니라 목록 위 한 줄에 (QA P2-R2-4)
     expect(card).not.toHaveTextContent("특별정성");
@@ -177,9 +177,7 @@ describe("GroupList (홈 모임 카드)", () => {
     myGroups = () => json(Array.from({ length: 7 }, (_, i) => group({ id: `g-${i}`, name: `모임${i}` })));
     render(wrap(<GroupList />));
     await screen.findByText("모임0");
-    expect(
-      screen.getAllByRole("link").filter((a) => a.getAttribute("href")?.startsWith("/hoondok/groups/g-")),
-    ).toHaveLength(5);
+    expect(screen.getAllByRole("link").filter((a) => a.getAttribute("href")?.startsWith("/groups/g-"))).toHaveLength(5);
     expect(screen.queryByText("모임5")).toBeNull();
   });
 
@@ -196,8 +194,8 @@ describe("GroupList (홈 모임 카드)", () => {
   it("로그인 + 모임 없음: 진입 카드가 만들기·참여로 바로 간다", async () => {
     loggedIn();
     render(wrap(<GroupList />));
-    expect(await screen.findByRole("link", { name: "모임 만들기" })).toHaveAttribute("href", "/hoondok/groups/new");
-    expect(screen.getByRole("link", { name: "초대 코드로 참여" })).toHaveAttribute("href", "/hoondok/groups/join");
+    expect(await screen.findByRole("link", { name: "모임 만들기" })).toHaveAttribute("href", "/groups/new");
+    expect(screen.getByRole("link", { name: "초대 코드로 참여" })).toHaveAttribute("href", "/groups/join");
     expect(screen.getByText("가족 모임은 곧 열려요")).toBeInTheDocument();
   });
 
@@ -206,11 +204,11 @@ describe("GroupList (홈 모임 카드)", () => {
     render(wrap(<GroupList />));
     expect(await screen.findByRole("link", { name: "모임 만들기" })).toHaveAttribute(
       "href",
-      "/hoondok/onboarding?returnTo=%2Fhoondok%2Fgroups%2Fnew",
+      "/onboarding?returnTo=%2Fgroups%2Fnew",
     );
     expect(screen.getByRole("link", { name: "초대 코드로 참여" })).toHaveAttribute(
       "href",
-      "/hoondok/onboarding?returnTo=%2Fhoondok%2Fgroups%2Fjoin",
+      "/onboarding?returnTo=%2Fgroups%2Fjoin",
     );
     expect(groupsCalls()).toBe(0);
   });
@@ -221,7 +219,7 @@ describe("GroupList (홈 모임 카드)", () => {
     render(wrap(<GroupList />));
     expect(await screen.findByRole("link", { name: "모임 만들기" })).toHaveAttribute(
       "href",
-      "/hoondok/onboarding?returnTo=%2Fhoondok%2Fgroups%2Fnew",
+      "/onboarding?returnTo=%2Fgroups%2Fnew",
     );
     expect(screen.queryByRole("alert")).toBeNull();
   });
@@ -326,14 +324,14 @@ describe("훈독하기 완료 뒤 한 줄 남기기 진입", () => {
     loggedIn();
     myGroups = () => json([group({ id: "g-a", name: "첫 모임" }), group({ id: "g-b", name: "둘째" })]);
     vi.mocked(missionsAPI.complete).mockResolvedValueOnce(undefined as never);
-    render(wrap(<ReadCompleteButton askHref="/hoondok/ask" />));
+    render(wrap(<ReadCompleteButton askHref="/ask" />));
     const button = await screen.findByRole("button", { name: /훈독 완료/ });
     await waitFor(() => expect(button).toBeEnabled());
     fireEvent.click(button);
     // 개인 "오늘의 한 줄"(나만 봄)과 헷갈리지 않게 공개 나눔임을 이름에 담는다 (QA P2-12)
     const link = await screen.findByRole("link", { name: /첫 모임에 나눔 한 줄 남기기/ });
     expect(link).toHaveTextContent("식구에게 보여요");
-    expect(link).toHaveAttribute("href", "/hoondok/groups/g-a/share");
+    expect(link).toHaveAttribute("href", "/groups/g-a/share");
     expect(screen.queryByText(/둘째/)).toBeNull();
   });
 
@@ -341,7 +339,7 @@ describe("훈독하기 완료 뒤 한 줄 남기기 진입", () => {
     loggedIn();
     myGroups = () => json([group()]);
     vi.mocked(missionsAPI.complete).mockRejectedValueOnce(new TypeError("fetch failed"));
-    render(wrap(<ReadCompleteButton askHref="/hoondok/ask" />));
+    render(wrap(<ReadCompleteButton askHref="/ask" />));
     const button = await screen.findByRole("button", { name: /훈독 완료/ });
     await waitFor(() => expect(button).toBeEnabled());
     fireEvent.click(button);
@@ -352,7 +350,7 @@ describe("훈독하기 완료 뒤 한 줄 남기기 진입", () => {
 
   it("비로그인이면 보이지 않는다", async () => {
     loggedOut();
-    render(wrap(<ReadCompleteButton askHref="/hoondok/ask" />));
+    render(wrap(<ReadCompleteButton askHref="/ask" />));
     await screen.findByText("완료 기록은 로그인 후 남아요");
     fireEvent.click(screen.getByRole("button", { name: /훈독 완료/ }));
     expect(screen.getByRole("status")).toHaveTextContent("오늘 훈독을 마쳤어요");

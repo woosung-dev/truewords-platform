@@ -35,8 +35,8 @@ function pngSize(file: string) {
 async function loadLayout(flag: string) {
   vi.stubEnv("NEXT_PUBLIC_HOONDOK_ENABLED", flag);
   vi.resetModules();
-  vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/hoondok" }));
-  return import("../app/(hoondok)/hoondok/layout");
+  vi.doMock("next/navigation", () => ({ notFound: vi.fn(), usePathname: () => "/" }));
+  return import("../app/(hoondok)/layout");
 }
 
 afterEach(() => {
@@ -54,9 +54,7 @@ describe("훈독 PWA 설치 메타", () => {
     expect(meta.icons).toMatchObject({ apple: [{ url: "/hoondok/icons/apple-touch-icon-180.png" }] });
     // 루트 app/favicon.ico(Next 기본 삼각형, sizes 256x256)도 함께 붙으므로 탭 크기에 딱 맞는 32 가 있어야 탭에서 이긴다
     expect(meta.icons).toMatchObject({
-      icon: expect.arrayContaining([
-        { url: "/hoondok/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
-      ]),
+      icon: expect.arrayContaining([{ url: "/hoondok/icons/favicon-32.png", sizes: "32x32", type: "image/png" }]),
     });
     expect(meta.robots).toEqual({ index: false, follow: false });
     expect(on.generateViewport().themeColor).toBe(PAPER);
@@ -70,12 +68,12 @@ describe("훈독 PWA 설치 메타", () => {
     expect(off.generateViewport().themeColor).toBeUndefined();
   });
 
-  it("manifest 는 /hoondok 스코프(슬래시 없음)·standalone·베타 고지·--paper 색이다", () => {
-    // Next trailingSlash=false 라 /hoondok/ 은 /hoondok 으로 308 된다. 스코프는 경로 접두 비교이므로 슬래시 없이 둔다.
+  it("manifest 는 루트 스코프·standalone·베타 고지·--paper 색이고 id 는 예전 값 그대로다", () => {
+    // 웹 루트가 훈독이다(DEC-PWA-026). id 를 바꾸면 설치된 앱이 다른 앱이 된다 — 예전 start_url 이던 /hoondok 을 유지한다.
     expect(manifest).toMatchObject({
       id: "/hoondok",
-      start_url: "/hoondok",
-      scope: "/hoondok",
+      start_url: "/",
+      scope: "/",
       display: "standalone",
       name: "훈독",
       short_name: "훈독",
@@ -109,7 +107,9 @@ describe("훈독 PWA 설치 메타", () => {
 
   it("Pretendard self-host: 동적 서브셋 조각마다 파일이 있고 OFL 동봉 + 별도 패밀리명 @font-face", () => {
     const fontCss = readFileSync(path.resolve(__dirname, "../app/hoondok-pretendard.css"), "utf8");
-    const urls = [...fontCss.matchAll(/url\("(\/hoondok\/fonts\/pretendard-1\.3\.9\/[^"]+\.woff2)"\)/g)].map((m) => m[1]);
+    const urls = [...fontCss.matchAll(/url\("(\/hoondok\/fonts\/pretendard-1\.3\.9\/[^"]+\.woff2)"\)/g)].map(
+      (m) => m[1],
+    );
     expect(urls.length).toBeGreaterThan(80);
     for (const url of urls) {
       // 조각 하나는 작아야 한다 — 전체 파일(2MB)이 섞여 들어오면 서브셋의 의미가 없다
@@ -123,7 +123,7 @@ describe("훈독 PWA 설치 메타", () => {
 });
 
 describe("훈독 서비스워커 등록 컴포넌트 (Phase 3 D)", () => {
-  it("플래그 ON 이면 /hoondok/sw.js 를 scope /hoondok 으로 등록하고, serviceWorker 미지원이면 no-op", async () => {
+  it("플래그 ON 이면 /sw.js 를 scope / 으로 등록하고 구독 없는 예전 /hoondok 등록만 해제한다, serviceWorker 미지원이면 no-op", async () => {
     vi.stubEnv("NEXT_PUBLIC_HOONDOK_ENABLED", "1");
     vi.resetModules();
     const { HoondokServiceWorker } = await import("../features/hoondok/service-worker");
@@ -133,13 +133,18 @@ describe("훈독 서비스워커 등록 컴포넌트 (Phase 3 D)", () => {
     expect(render(createElement(HoondokServiceWorker)).container.innerHTML).toBe("");
 
     const register = vi.fn(() => Promise.resolve({}));
-    Object.defineProperty(navigator, "serviceWorker", { value: { register }, configurable: true });
+    const legacy = { scope: `${window.location.origin}/hoondok`, unregister: vi.fn(async () => true) };
+    const current = { scope: `${window.location.origin}/`, unregister: vi.fn(async () => true) };
+    const getRegistrations = vi.fn(async () => [legacy, current]);
+    Object.defineProperty(navigator, "serviceWorker", { value: { register, getRegistrations }, configurable: true });
     try {
       render(createElement(HoondokServiceWorker));
+      await vi.waitFor(() => expect(legacy.unregister).toHaveBeenCalledOnce());
+      expect(current.unregister).not.toHaveBeenCalled();
       // updateViaCache:"none" 을 함께 단언한다. Cloudflare 가 sw.js 의 오리진 no-cache 를
       // 4시간으로 덮어쓰므로, 이 옵션이 빠지면 SW_KILL 배포가 그만큼 지연된다.
-      expect(register).toHaveBeenCalledWith("/hoondok/sw.js", {
-        scope: "/hoondok",
+      expect(register).toHaveBeenCalledWith("/sw.js", {
+        scope: "/",
         updateViaCache: "none",
       });
     } finally {

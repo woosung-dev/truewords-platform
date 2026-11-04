@@ -10,8 +10,11 @@ for (const origin of origins) {
 }
 const evidence = [];
 for (const origin of origins) {
-  const page = await fetch(`${origin}/login`);
-  assert.equal(page.status, 200);
+  // 웹 루트는 훈독 홈이다(DEC-PWA-026, 시연 챗 /login 삭제). 훈독 플래그 OFF 이미지는 404 페이지지만
+  // 루트 layout·CSS 는 같아 standalone 자산 검사는 그대로 유효하다.
+  const isWeb = origin === origins[0];
+  const page = await fetch(`${origin}${isWeb ? "/" : "/login"}`);
+  assert.ok(isWeb ? [200, 404].includes(page.status) : page.status === 200, `${origin} 첫 화면 ${page.status}`);
   const html = await page.text();
   const css = html.match(/(?:href=")([^" ]+\.css(?:\?[^" ]*)?)/)?.[1];
   assert.ok(css, "standalone에 CSS 링크가 있어야 합니다");

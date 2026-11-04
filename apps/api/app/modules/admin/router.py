@@ -22,6 +22,7 @@ from app.modules.admin.schemas import (
     UpdateAdminStatusRequest,
 )
 from app.modules.admin.service import AdminService
+from app.modules.safety.middleware import check_login_rate_limit
 from app.core.config import settings
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -37,7 +38,7 @@ _COOKIE_OPTS = {
 }
 
 
-@router.post("/auth/login", response_model=MessageResponse)
+@router.post("/auth/login", response_model=MessageResponse, dependencies=[Depends(check_login_rate_limit)])
 async def login(
     data: AdminLoginRequest,
     response: Response,

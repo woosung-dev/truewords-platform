@@ -12,7 +12,7 @@ import { PUSH_MESSAGES, type usePushNotifications } from "../use-push-notificati
 // 시각은 추천 4칸 + 직접 정하기로 고르고, 고르는 즉시 PUT 한 번으로 저장한다(따로 저장 버튼이 없다).
 export type PushState = ReturnType<typeof usePushNotifications>;
 
-const SETTINGS_PATH = "/hoondok/settings";
+const SETTINGS_PATH = "/settings";
 export const SOON = "준비 중";
 export const READ_TITLE = "훈독하기";
 export const READ_DESCRIPTION = "정한 시간에 하루 한 번 알려드려요";

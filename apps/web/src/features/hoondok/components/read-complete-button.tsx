@@ -53,7 +53,7 @@ export function ReadCompleteButton({ askHref, isDisabled = false }: { askHref: s
             <span>오늘 훈독을 마쳤어요.</span>
           </span>
           {completion.isUnsynced && (
-            <Link className="read-done__note" href={onboardingHref("/hoondok/read")}>
+            <Link className="read-done__note" href={onboardingHref("/read")}>
               로그인하면 오늘 기록이 남아요 →
             </Link>
           )}

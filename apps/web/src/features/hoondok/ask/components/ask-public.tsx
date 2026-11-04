@@ -41,7 +41,7 @@ export function AskPublic({ id }: { id: string }) {
           <p className="empty__body">
             {isGone ? "작성자가 내렸거나 공개가 끝난 질문이에요." : "잠시 뒤 다시 열어 주세요."}
           </p>
-          <Link className="btn btn-line ql-empty__cta" href="/hoondok/ask">
+          <Link className="btn btn-line ql-empty__cta" href="/ask">
             질문 목록으로
           </Link>
         </div>
@@ -103,7 +103,7 @@ export function AskPublic({ id }: { id: string }) {
       )}
 
       <div className="sect">
-        <Link className="btn btn-primary" href="/hoondok/ask/new">
+        <Link className="btn btn-primary" href="/ask/new">
           나도 물어보기
         </Link>
       </div>

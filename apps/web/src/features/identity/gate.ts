@@ -6,16 +6,34 @@ import { useCallback } from "react";
 import { extractInviteCode, formatInviteCode, JOIN_PATH } from "@/features/hoondok/together/invite-code";
 import { useCurrentUser } from "./use-current-user";
 
-const ONBOARDING = "/hoondok/onboarding";
+const ONBOARDING = "/onboarding";
 
-/** returnTo 는 /hoondok 아래 상대 경로만 허용한다 (open redirect 방지). 아니면 홈. */
-export function safeReturnTo(raw: string | null | undefined): string {
-  if (!raw || raw.startsWith("//") || raw.startsWith(ONBOARDING)) return "/hoondok";
-  return /^\/hoondok(\/|\?|$)/.test(raw) ? raw : "/hoondok";
+/** 웹 루트 이전(DEC-PWA-026) 전 주소의 접두. 배포 전에 열린 탭·저장된 링크의 returnTo 에 남아 있다. */
+const LEGACY_PREFIX = /^\/hoondok(?=[/?#]|$)/;
+
+function hasControlChar(value: string): boolean {
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
 }
 
 /**
- * 모임 참여 링크(`/hoondok/groups/join?code=…`)에서 온 가입이면 그 코드를 가입 폼 초대 코드 칸에 미리 채운다
+ * returnTo 는 같은 origin 의 절대 경로(`/…`)만 허용한다 (open redirect 방지 — `//`·`/\` 로 시작하면 다른 호스트로 해석된다). 아니면 홈.
+ * 예전 `/hoondok/…` 주소는 루트 경로로 바꾼 뒤 검사한다 — 그래야 모임 참여 링크의 초대 코드가 가입 칸에 채워지고 308 을 한 번 덜 탄다.
+ * 제어 문자(탭·줄바꿈 등)가 있으면 홈 — 브라우저 URL 파서가 지워 `/\t/evil.example` 이 `//evil.example` 이 된다.
+ */
+export function safeReturnTo(raw: string | null | undefined): string {
+  if (!raw || hasControlChar(raw)) return "/";
+  const path = raw.replace(LEGACY_PREFIX, "");
+  const normalized = path === "" || /^[?#]/.test(path) ? `/${path}` : path;
+  if (normalized.startsWith(ONBOARDING)) return "/";
+  return /^\/(?![/\\])/.test(normalized) ? normalized : "/";
+}
+
+/**
+ * 모임 참여 링크(`/groups/join?code=…`)에서 온 가입이면 그 코드를 가입 폼 초대 코드 칸에 미리 채운다
  * (PLAN-HD-010 D4 — 유효한 모임 코드가 베타 게이트를 대신 통과한다). 그 외 returnTo 는 빈 문자열.
  * 값은 표시·전송용일 뿐이고 판정은 서버가 한다.
  */

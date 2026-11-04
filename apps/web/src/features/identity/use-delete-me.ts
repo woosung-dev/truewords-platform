@@ -28,7 +28,7 @@ export function clearHoondokStorage(): void {
  * 1. ["hoondok"] 접두 캐시 제거 (요약·정성·기록·me)
  * 2. me 캐시를 null 로 다시 세워 관찰자가 재요청 없이 "미인증" 을 본다
  * 3. localStorage 의 hoondok:* 제거
- * /hoondok 이동은 호출자(설정 화면)가 한다. 실패(403 CSRF·5xx)는 error 로 남기고 아무것도 건드리지 않는다.
+ * 홈(/) 이동은 호출자(설정 화면)가 한다. 실패(403 CSRF·5xx)는 error 로 남기고 아무것도 건드리지 않는다.
  */
 export function useDeleteMe() {
   const queryClient = useQueryClient();

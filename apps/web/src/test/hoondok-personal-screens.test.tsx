@@ -92,7 +92,7 @@ describe("홈 책갈피 까닭 한 줄", () => {
     wrap(<PersonalBookmarkHome todayCard={TODAY_CARD} dateLabel="10월 23일" />);
     expect(screen.getByText("천성경 제1편")).toBeInTheDocument();
     expect(screen.getByText("관심 주제를 고르면 맞춘 장이 꽂혀요")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "관심 주제 고르기" })).toHaveAttribute("href", "/hoondok/start");
+    expect(screen.getByRole("link", { name: "관심 주제 고르기" })).toHaveAttribute("href", "/start");
     expect(cards.list).not.toHaveBeenCalled();
   });
 
@@ -102,10 +102,7 @@ describe("홈 책갈피 까닭 한 줄", () => {
     // 마음 일치 2점(위로 카드)이 주제 일치 1점(가정 카드)보다 앞선다
     expect(await screen.findByText("천성경 제5편")).toBeInTheDocument();
     expect(screen.getByText("‘지쳤어요’")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "관심사와 마음 바꾸기" })).toHaveAttribute(
-      "href",
-      "/hoondok/garden/interests",
-    );
+    expect(screen.getByRole("link", { name: "관심사와 마음 바꾸기" })).toHaveAttribute("href", "/garden/interests");
     // 선택값은 요청에 실리지 않는다(쿼리 없는 목록 하나)
     expect(cards.list).toHaveBeenCalledWith();
   });
@@ -194,7 +191,7 @@ describe("마음 한 장", () => {
     expect(screen.getByRole("heading", { level: 2, name: "이 말씀을 건넬까요?" })).toHaveFocus();
     fireEvent.click(screen.getByRole("button", { name: "건네지 않고 마치기" }));
     expect(screen.getByRole("heading", { level: 2, name: "오늘 마음 한 장을 마쳤어요" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "오늘 훈독으로" })).toHaveAttribute("href", "/hoondok");
+    expect(screen.getByRole("link", { name: "오늘 훈독으로" })).toHaveAttribute("href", "/");
     // 마음 한 장의 마음은 저장된 답을 바꾸지 않는다
     expect(localStorage.getItem(ANSWERS_KEY)).toBeNull();
   });

@@ -48,7 +48,7 @@ export function EmptyDayActions({ status }: { status?: "none" | "withdrawn" }) {
       <>
         {card}
         <div className="sect">
-          <Link className="btn btn-primary" href="/hoondok/library">
+          <Link className="btn btn-primary" href="/library">
             말씀 서고에서 고르기
           </Link>
         </div>
@@ -83,7 +83,7 @@ export function EmptyDayActions({ status }: { status?: "none" | "withdrawn" }) {
               </span>
             </div>
           )}
-          <Link className="btn btn-line" href="/hoondok/library">
+          <Link className="btn btn-line" href="/library">
             말씀 서고로 가기
           </Link>
         </div>

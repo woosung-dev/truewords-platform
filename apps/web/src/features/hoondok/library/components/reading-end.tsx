@@ -28,7 +28,7 @@ function StudyCheck() {
               </span>
               오늘 말씀 읽기를 마쳤어요
             </p>
-            <Link className="wd-done__home" href="/hoondok">
+            <Link className="wd-done__home" href="/">
               오늘 훈독
               <ChevronRight size={16} aria-hidden="true" />
             </Link>
@@ -54,7 +54,7 @@ function StudyCheck() {
         )}
       </div>
       {completion.isUnsynced && (
-        <Link className="wd-end__note" href={onboardingHref("/hoondok/library")}>
+        <Link className="wd-end__note" href={onboardingHref("/library")}>
           로그인하면 오늘 기록이 남아요 →
         </Link>
       )}
@@ -105,7 +105,7 @@ export function ReadingEnd({
         ) : (
           <span />
         )}
-        <Link href={`/hoondok/ask/new?q=${encodeURIComponent(`${workTitle} 말씀은 어떤 뜻인가요?`)}`}>
+        <Link href={`/ask/new?q=${encodeURIComponent(`${workTitle} 말씀은 어떤 뜻인가요?`)}`}>
           이 말씀에 질문하기
           <ChevronRight size={16} aria-hidden="true" />
         </Link>

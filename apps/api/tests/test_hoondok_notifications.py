@@ -259,7 +259,7 @@ async def test_subscribe_upserts_by_endpoint_and_transfers_ownership(client: Tes
 
 def test_subscribe_rejects_oversized_endpoint(client: TestClient, push_on):
     _login(client, client.me)  # type: ignore[attr-defined]
-    res = client.post(PUSH, json=_subscription("https://e/" + "x" * 2049), headers=XHR)
+    res = client.post(PUSH, json=_subscription("https://fcm.googleapis.com/" + "x" * 2049), headers=XHR)
     assert res.status_code == 422
 
 
@@ -272,6 +272,14 @@ def test_subscribe_rejects_oversized_endpoint(client: TestClient, push_on):
         "https://localhost/x",
         "https://qdrant.internal/x",
         "not-a-url",
+        # 보안 점검 push-endpoint-ssrf-dns-redirect 회귀 — 호스트 문자열 차단 목록을 비껴가던 주소
+        "https://backend:8080/health",
+        "https://qdrant:6333/collections",
+        "https://127.0.0.1.nip.io/x",
+        "https://2130706433/x",
+        "https://fcm.googleapis.com.evil.example/x",
+        "https://evilfcm.googleapis.com.example/x",
+        "https://fcm.googleapis.com:8443/x",
     ],
 )
 def test_subscribe_rejects_non_public_https_endpoint(client: TestClient, push_on, endpoint: str):
@@ -281,10 +289,24 @@ def test_subscribe_rejects_non_public_https_endpoint(client: TestClient, push_on
     assert res.status_code == 422
 
 
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "https://fcm.googleapis.com/fcm/send/abc",
+        "https://updates.push.services.mozilla.com/wpush/v2/abc",
+        "https://web.push.apple.com/QAbc",
+        "https://wns2-par02p.notify.windows.com/w/?token=abc",
+    ],
+)
+def test_subscribe_accepts_browser_push_services(client: TestClient, push_on, endpoint: str):
+    _login(client, client.me)  # type: ignore[attr-defined]
+    assert client.post(PUSH, json=_subscription(endpoint), headers=XHR).status_code == 201
+
+
 def test_subscribe_truncates_long_user_agent(client: TestClient, push_on):
     _login(client, client.me)  # type: ignore[attr-defined]
     assert client.post(PUSH, json=_subscription(user_agent="U" * 400), headers=XHR).status_code == 201
-    over = client.post(PUSH, json=_subscription("https://e/2", user_agent="U" * 401), headers=XHR)
+    over = client.post(PUSH, json=_subscription("https://fcm.googleapis.com/fcm/send/2", user_agent="U" * 401), headers=XHR)
     assert over.status_code == 422  # 400자 초과는 받지 않는다
 
 

@@ -33,7 +33,7 @@ export function GroupCard({ group }: { group: MyGroupItem }) {
   const initials = group.readers_preview.slice(0, 3);
 
   return (
-    <Link className="card together tg-gc" href={`/hoondok/groups/${encodeURIComponent(group.id)}`}>
+    <Link className="card together tg-gc" href={`/groups/${encodeURIComponent(group.id)}`}>
       {initials.length > 0 && (
         <span className="avatars" aria-hidden="true">
           {initials.map((initial, index) => (

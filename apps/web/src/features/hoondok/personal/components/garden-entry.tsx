@@ -35,7 +35,7 @@ export function PersonalGardenEntry() {
           </span>
           <ChevronRight size={20} aria-hidden="true" />
         </Link>
-        <Link className="ps-list__row" href="/hoondok/pray">
+        <Link className="ps-list__row" href="/pray">
           <PenLine size={22} aria-hidden="true" />
           <span className="fm-entry__bd">
             <b>마음 한 장</b>

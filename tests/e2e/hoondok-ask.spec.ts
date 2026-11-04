@@ -51,13 +51,13 @@ const QUESTION = "정성을 드린다는 게 정확히 뭘 하는 건가요?";
 const ANSWER = "참사랑은 함께 실천하는 사랑입니다.";
 const EVIDENCE = "출처 예시";
 const FOLLOWUP = "어떻게 실천할 수 있나요?";
-const SESSION_URL = /\/hoondok\/ask\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const SESSION_URL = /\/ask\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 test("비로그인은 추천만 보고, 질문·내 질문은 로그인 안내를 받는다", async ({ page }) => {
   const errors = await collectConsoleErrors(page);
   await page.setViewportSize({ width: 390, height: 844 });
 
-  await page.goto("/hoondok/ask");
+  await page.goto("/ask");
   await expect(page.getByRole("tab", { name: "추천" })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".appbar").getByRole("link", { name: "말씀 검색" })).toHaveCount(0);
   await expect(page.getByRole("textbox")).toHaveCount(0);
@@ -65,14 +65,14 @@ test("비로그인은 추천만 보고, 질문·내 질문은 로그인 안내�
   await page.getByRole("tab", { name: "내 질문" }).click();
   await expect(page.getByText("로그인하면 내 질문을 볼 수 있어요")).toBeVisible();
 
-  await page.goto(`/hoondok/ask/new?q=${encodeURIComponent(QUESTION)}`);
+  await page.goto(`/ask/new?q=${encodeURIComponent(QUESTION)}`);
   await expect(page.getByText("질문하려면 로그인이 필요해요")).toBeVisible();
   await expect(page.getByLabel("무엇이 궁금하세요?")).toHaveCount(0);
   const login = page.getByRole("link", { name: "로그인하기" });
-  await expect(login).toHaveAttribute("href", /\/hoondok\/onboarding\?returnTo=/);
+  await expect(login).toHaveAttribute("href", /\/onboarding\?returnTo=/);
   // 질문 원문은 주소(returnTo)에 싣지 않고 이 탭의 sessionStorage 에 맡긴다
   expect(decodeURIComponent((await login.getAttribute("href")) ?? "")).not.toContain(QUESTION);
-  expect(decodeURIComponent((await login.getAttribute("href")) ?? "")).toContain("/hoondok/ask/new?resume=1");
+  expect(decodeURIComponent((await login.getAttribute("href")) ?? "")).toContain("/ask/new?resume=1");
 
   // 서버도 막는다 — 로그인 없이 보낸 질문은 401
   const anonymous = await page.request.post("/api/backend/hoondok/ask/stream", {
@@ -90,9 +90,9 @@ test("로그인 → 질문 → 답 → 이어서 질문 → 저장 → 다시 �
   await signUp(page, "ask-flow");
   await page.setViewportSize({ width: 390, height: 844 });
 
-  await page.goto("/hoondok/ask");
+  await page.goto("/ask");
   await page.getByRole("link", { name: "질문하기" }).click();
-  await expect(page).toHaveURL(/\/hoondok\/ask\/new$/);
+  await expect(page).toHaveURL(/\/ask\/new$/);
   await expect(page.getByText("오늘 남은 질문 5회")).toBeVisible();
   await expect(page.getByRole("button", { name: "보내기" })).toBeDisabled();
   await page.getByLabel("무엇이 궁금하세요?").fill(QUESTION);
@@ -133,8 +133,8 @@ test("로그인 → 질문 → 답 → 이어서 질문 → 저장 → 다시 �
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
 
   // 예전 질문 기록 주소는 홈의 내 질문 탭으로 간다
-  await page.goto("/hoondok/ask/log");
-  await expect(page).toHaveURL(/\/hoondok\/ask\?tab=mine$/);
+  await page.goto("/ask/log");
+  await expect(page).toHaveURL(/\/ask\?tab=mine$/);
   const row = page.getByRole("link", { name: /정성을 드린다는 게/ });
   await expect(row).toBeVisible();
   await expect(row).toContainText("말씀 길잡이");
@@ -145,7 +145,7 @@ test("로그인 → 질문 → 답 → 이어서 질문 → 저장 → 다시 �
   await page.getByRole("link", { name: /정성을 드린다는 게/ }).click();
   await expect(page).toHaveURL(SESSION_URL);
   await page.locator(".appbar").getByRole("link", { name: "뒤로" }).click();
-  await expect(page).toHaveURL(/\/hoondok\/ask\?tab=saved$/);
+  await expect(page).toHaveURL(/\/ask\?tab=saved$/);
   expect(errors).toEqual([]);
 });
 
@@ -164,12 +164,12 @@ test("하루 5번을 다 쓰면 보내기를 잠그고, 서버도 429 로 막는
   expect((await over.json()).error_code).toBe("ASK_DAILY_LIMIT");
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/hoondok/ask/new?q=${encodeURIComponent("여섯 번째")}`);
+  await page.goto(`/ask/new?q=${encodeURIComponent("여섯 번째")}`);
   await expect(page.getByText("오늘 질문을 모두 썼어요. 내일 다시 물어볼 수 있어요(자정 초기화)")).toBeVisible();
   await expect(page.getByRole("button", { name: "보내기" })).toBeDisabled();
 
   // 내 질문에는 5건이 계정에 남아 있다
-  await page.goto("/hoondok/ask?tab=mine");
+  await page.goto("/ask?tab=mine");
   await expect(page.locator(".ql-list li")).toHaveCount(5);
 });
 
@@ -189,7 +189,7 @@ test("근거가 0건이면 답을 보이지 않고 확인할 수 없음으로 �
   );
   await page.setViewportSize({ width: 390, height: 844 });
 
-  await page.goto("/hoondok/ask/new?q=아무도%20모르는%20질문");
+  await page.goto("/ask/new?q=아무도%20모르는%20질문");
   await expect(page.getByLabel("무엇이 궁금하세요?")).toHaveValue("아무도 모르는 질문");
   await page.getByRole("button", { name: "보내기" }).click();
 
@@ -202,21 +202,21 @@ test("근거가 0건이면 답을 보이지 않고 확인할 수 없음으로 �
 test("훈독하기에서 이 말씀에 질문하기로 들어오면 새 질문 화면에 문장이 채워져 있다", async ({ page }) => {
   await signUp(page, "ask-read");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/hoondok/read");
+  await page.goto("/read");
   const link = page.getByRole("link", { name: "이 말씀에 질문하기" });
   await expect(link).toBeVisible();
   await link.click();
-  await expect(page).toHaveURL(/\/hoondok\/ask\/new\?q=/);
+  await expect(page).toHaveURL(/\/ask\/new\?q=/);
   await expect(page.getByLabel("무엇이 궁금하세요?")).toHaveValue(/말씀은 어떤 뜻인가요\?$/);
 });
 
 test("원문 단락을 누르고 이 단락으로 질문하기로 새 질문을 연다", async ({ page }) => {
   await signUp(page, "ask-passage");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/hoondok/words/${encodeURIComponent("말씀선집 355권")}`);
+  await page.goto(`/words/${encodeURIComponent("말씀선집 355권")}`);
   await page.getByRole("button", { name: "단락 1 표시하기" }).click();
   await page.getByRole("dialog").getByRole("link", { name: "이 단락으로 질문하기" }).click();
-  await expect(page).toHaveURL(/\/hoondok\/ask\/new\?q=/);
+  await expect(page).toHaveURL(/\/ask\/new\?q=/);
   const input = page.getByLabel("무엇이 궁금하세요?");
   await expect(input).toHaveValue(/1번째 합성 문장/);
   await expect(input).toHaveValue(/이 단락은 어떤 뜻인가요\?$/);
@@ -231,7 +231,7 @@ test("공개를 골라 보내면 공개 허용으로 신청되고, 확인을 거
   await page.setViewportSize({ width: 390, height: 844 });
   await signUp(page, "ask-public");
 
-  await page.goto("/hoondok/ask/new");
+  await page.goto("/ask/new");
   await page.getByLabel("무엇이 궁금하세요?").fill("감사의 의미를 알려주세요");
   await page.getByRole("button", { name: /공개 여부/ }).click();
   await expect(page.getByText(/관리자가 골라 추천 질문으로 올릴 수 있어요/)).toBeVisible();

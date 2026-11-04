@@ -10,7 +10,7 @@ let returnToParam: string | null = null;
 const routerReplace = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: routerReplace, prefetch: vi.fn() }),
-  usePathname: () => "/hoondok/read",
+  usePathname: () => "/read",
   useSearchParams: () => ({ get: (key: string) => (key === "returnTo" ? returnToParam : null) }),
 }));
 vi.mock("@/features/identity/api", () => ({
@@ -20,14 +20,13 @@ vi.mock("@/features/hoondok/missions-api", () => ({
   missionsAPI: { complete: vi.fn(), summary: vi.fn() },
 }));
 
-import OnboardingPage from "@/app/(hoondok)/hoondok/onboarding/page";
+import OnboardingPage from "@/app/(hoondok)/onboarding/page";
 import { missionsAPI } from "@/features/hoondok/missions-api";
 import { safeHoondokPath } from "@/features/hoondok/observability/report";
 import { GROUPS_KEY, groupKey, groupMembersKey, MY_GROUPS_KEY, PROGRESS_KEYS } from "@/features/hoondok/query-keys";
 import { screenFor } from "@/features/hoondok/screens";
 import { activeTabId } from "@/features/hoondok/tabs";
 import { groupErrorOf, groupsAPI, isGroupError } from "@/features/hoondok/together/groups-api";
-import { withObjectParticle } from "@/features/hoondok/together/josa";
 import {
   extractInviteCode,
   formatInviteCode,
@@ -36,10 +35,11 @@ import {
   normalizeInviteCode,
   shareInvite,
 } from "@/features/hoondok/together/invite-code";
+import { withObjectParticle } from "@/features/hoondok/together/josa";
 import { useGroup, useInvitePreview, useToggleReaction } from "@/features/hoondok/together/use-groups";
 import { useCompleteMission } from "@/features/hoondok/use-missions";
 import { identityAPI } from "@/features/identity/api";
-import { carryInviteCode, inviteCodeFromReturnTo } from "@/features/identity/gate";
+import { carryInviteCode, inviteCodeFromReturnTo, safeReturnTo } from "@/features/identity/gate";
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -215,8 +215,8 @@ describe("초대 코드 (Crockford base32 8자)", () => {
     expect(isValidInviteCode("ABCD-2345-6")).toBe(false);
   });
 
-  it("참여 링크는 현재 origin 의 /hoondok/groups/join?code=XXXX-XXXX", () => {
-    expect(inviteLink("abcd2345")).toBe(`${window.location.origin}/hoondok/groups/join?code=ABCD-2345`);
+  it("참여 링크는 현재 origin 의 /groups/join?code=XXXX-XXXX", () => {
+    expect(inviteLink("abcd2345")).toBe(`${window.location.origin}/groups/join?code=ABCD-2345`);
   });
 });
 
@@ -308,47 +308,44 @@ describe("쿼리 키 · 무효화", () => {
 
 describe("화면 레지스트리 · 오류 경로", () => {
   it("모임 5화면은 '오늘 훈독' 탭이고 하위 화면의 뒤로는 그 모임 상세다", () => {
-    expect(screenFor("/hoondok/groups/new").title).toBe("모임 만들기");
-    expect(screenFor("/hoondok/groups/join").title).toBe("모임 참여");
-    expect(screenFor("/hoondok/groups/abc").title).toBe("훈독 모임");
-    expect(screenFor("/hoondok/groups/abc/share")).toMatchObject({
+    expect(screenFor("/groups/new").title).toBe("모임 만들기");
+    expect(screenFor("/groups/join").title).toBe("모임 참여");
+    expect(screenFor("/groups/abc").title).toBe("훈독 모임");
+    expect(screenFor("/groups/abc/share")).toMatchObject({
       title: "한 줄 나눔",
-      backHref: "/hoondok/groups/abc",
+      backHref: "/groups/abc",
     });
-    expect(screenFor("/hoondok/groups/abc/settings")).toMatchObject({
+    expect(screenFor("/groups/abc/settings")).toMatchObject({
       title: "모임 설정",
-      backHref: "/hoondok/groups/abc",
+      backHref: "/groups/abc",
     });
-    for (const path of [
-      "/hoondok/groups/new",
-      "/hoondok/groups/join",
-      "/hoondok/groups/abc",
-      "/hoondok/groups/abc/share",
-    ])
+    for (const path of ["/groups/new", "/groups/join", "/groups/abc", "/groups/abc/share"])
       expect(activeTabId(path)).toBe("today");
   });
 
   it("모임 id 는 :id 로 가리고 new·join 은 그대로 보낸다", () => {
     const id = "3f2b6c1e-8d4a-4b2e-9c1f-0a1b2c3d4e5f";
-    expect(safeHoondokPath(`/hoondok/groups/${id}`)).toBe("/hoondok/groups/:id");
-    expect(safeHoondokPath(`/hoondok/groups/${id}/share`)).toBe("/hoondok/groups/:id/share");
-    expect(safeHoondokPath(`/hoondok/groups/${id}/settings?x=1`)).toBe("/hoondok/groups/:id/settings");
-    expect(safeHoondokPath("/hoondok/groups/new")).toBe("/hoondok/groups/new");
-    expect(safeHoondokPath("/hoondok/groups/join?code=ABCD-2345")).toBe("/hoondok/groups/join");
-    expect(safeHoondokPath(`/hoondok/groups/${id}/other`)).toBe("/hoondok");
+    expect(safeHoondokPath(`/groups/${id}`)).toBe("/groups/:id");
+    expect(safeHoondokPath(`/groups/${id}/share`)).toBe("/groups/:id/share");
+    expect(safeHoondokPath(`/groups/${id}/settings?x=1`)).toBe("/groups/:id/settings");
+    expect(safeHoondokPath("/groups/new")).toBe("/groups/new");
+    expect(safeHoondokPath("/groups/join?code=ABCD-2345")).toBe("/groups/join");
+    expect(safeHoondokPath(`/groups/${id}/other`)).toBe("/");
   });
 });
 
 describe("가입 폼 초대 코드 미리 채움 (D4)", () => {
   it("returnTo 가 참여 링크일 때만 코드를 꺼낸다", () => {
-    expect(inviteCodeFromReturnTo("/hoondok/groups/join?code=abcd2345")).toBe("ABCD-2345");
-    expect(inviteCodeFromReturnTo("/hoondok/groups/join?code=ABCD-2345&x=1")).toBe("ABCD-2345");
-    expect(inviteCodeFromReturnTo("/hoondok/groups/join")).toBe("");
-    expect(inviteCodeFromReturnTo("/hoondok/read?code=ABCD2345")).toBe("");
+    expect(inviteCodeFromReturnTo("/groups/join?code=abcd2345")).toBe("ABCD-2345");
+    expect(inviteCodeFromReturnTo("/groups/join?code=ABCD-2345&x=1")).toBe("ABCD-2345");
+    expect(inviteCodeFromReturnTo("/groups/join")).toBe("");
+    expect(inviteCodeFromReturnTo("/read?code=ABCD2345")).toBe("");
+    // 배포 전에 열린 탭의 예전 주소도 safeReturnTo 를 거치면 같은 코드가 나온다 (DEC-PWA-026)
+    expect(inviteCodeFromReturnTo(safeReturnTo("/hoondok/groups/join?code=abcd2345"))).toBe("ABCD-2345");
   });
 
   it("참여 링크에서 온 온보딩은 초대 코드 칸이 채워져 있고 그대로 가입에 보낸다", async () => {
-    returnToParam = "/hoondok/groups/join?code=abcd-2345";
+    returnToParam = "/groups/join?code=abcd-2345";
     vi.mocked(identityAPI.signup).mockResolvedValueOnce({ user: { id: "u1", email: "a@b.c", display_name: "효진" } });
     render(<QueryClientProvider client={makeClient()}>{<OnboardingPage />}</QueryClientProvider>);
     await screen.findByRole("form", { name: "가입" });
@@ -363,7 +360,7 @@ describe("가입 폼 초대 코드 미리 채움 (D4)", () => {
   });
 
   it("다른 returnTo 면 비어 있다", async () => {
-    returnToParam = "/hoondok/read";
+    returnToParam = "/read";
     render(<QueryClientProvider client={makeClient()}>{<OnboardingPage />}</QueryClientProvider>);
     await screen.findByRole("form", { name: "가입" });
     expect(screen.getByLabelText(/초대 코드/)).toHaveValue("");
@@ -414,23 +411,21 @@ describe("가입 칸 초대 코드 (QA P2-1 · P2-10 · P2-11)", () => {
   }
 
   it("carryInviteCode — 코드 없는 참여 화면으로 돌아갈 때만 모임 코드를 붙인다", () => {
-    expect(carryInviteCode("/hoondok/groups/join", "wmdm 5qh5")).toBe("/hoondok/groups/join?code=WMDM-5QH5");
-    expect(carryInviteCode("/hoondok/groups/join?code=ABCD-2345", "WMDM-5QH5")).toBe(
-      "/hoondok/groups/join?code=ABCD-2345",
-    );
-    expect(carryInviteCode("/hoondok/groups/join", "QA-BETA-2026")).toBe("/hoondok/groups/join");
-    expect(carryInviteCode("/hoondok", "WMDM-5QH5")).toBe("/hoondok");
-    expect(carryInviteCode("/hoondok/read", "")).toBe("/hoondok/read");
+    expect(carryInviteCode("/groups/join", "wmdm 5qh5")).toBe("/groups/join?code=WMDM-5QH5");
+    expect(carryInviteCode("/groups/join?code=ABCD-2345", "WMDM-5QH5")).toBe("/groups/join?code=ABCD-2345");
+    expect(carryInviteCode("/groups/join", "QA-BETA-2026")).toBe("/groups/join");
+    expect(carryInviteCode("/", "WMDM-5QH5")).toBe("/");
+    expect(carryInviteCode("/read", "")).toBe("/read");
   });
 
   it("홈 '초대 코드로 참여' 에서 온 가입은 넣은 모임 코드를 참여 화면으로 넘긴다", async () => {
-    returnToParam = "/hoondok/groups/join";
+    returnToParam = "/groups/join";
     vi.mocked(identityAPI.signup).mockResolvedValueOnce({ user: { id: "u1", email: "a@b.c", display_name: "효진" } });
     render(<QueryClientProvider client={makeClient()}>{<OnboardingPage />}</QueryClientProvider>);
     await fillSignup();
     fireEvent.change(screen.getByLabelText(/초대 코드/), { target: { value: "xtfw yht0" } });
     fireEvent.submit(screen.getByRole("form"));
-    await waitFor(() => expect(routerReplace).toHaveBeenCalledWith("/hoondok/groups/join?code=XTFW-YHT0"));
+    await waitFor(() => expect(routerReplace).toHaveBeenCalledWith("/groups/join?code=XTFW-YHT0"));
   });
 
   it("카톡 메시지·링크를 붙여 넣으면 코드만 남고, 코드가 안 보이는 글(베타 코드)은 그대로 붙는다", async () => {

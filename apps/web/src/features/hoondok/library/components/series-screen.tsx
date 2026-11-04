@@ -47,7 +47,7 @@ export function SeriesScreen({ series }: { series: string }) {
               다시 시도
             </button>
           )}
-          <Link className="btn btn-line" href="/hoondok/library">
+          <Link className="btn btn-line" href="/library">
             서고로 돌아가기
           </Link>
         </div>
@@ -91,7 +91,7 @@ export function SeriesScreen({ series }: { series: string }) {
               <div key={item.volume} className="shelf__item">
                 {content}
                 <span>검색 인용만 허용 · 원문 공개 확인 중</span>
-                <Link href="/hoondok/search" className="btn btn-line btn--sm">
+                <Link href="/search" className="btn btn-line btn--sm">
                   말씀 검색하기
                 </Link>
               </div>

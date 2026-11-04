@@ -68,7 +68,7 @@ test("정원 나의 기록: 두 가지 수·최근 형광펜 구절 → 노트 �
   await signUp(page, "records");
   const { at } = await seedMarks(page);
 
-  await page.goto("/hoondok/garden");
+  await page.goto("/garden");
   const tally = page.getByRole("navigation", { name: "나의 기록 종류" });
   await expect(tally.getByRole("link", { name: "형광펜 3" })).toBeVisible();
   await expect(tally.getByRole("link", { name: "노트 1" })).toBeVisible();
@@ -78,15 +78,15 @@ test("정원 나의 기록: 두 가지 수·최근 형광펜 구절 → 노트 �
   await expect(latest).toContainText("단락 4");
 
   await tally.getByRole("link", { name: "노트 1" }).click();
-  await expect(page).toHaveURL(/\/hoondok\/records\?tab=note$/);
+  await expect(page).toHaveURL(/\/records\?tab=note$/);
   await expect(page.getByRole("tab", { name: "노트 1" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tabpanel")).toContainText("아이와 함께 읽기");
   await expect(page.getByRole("tabpanel")).toContainText("4번째 합성 문장입니다.");
 
   await page.getByRole("tab", { name: "형광펜 3" }).click();
-  await expect(page).toHaveURL(/\/hoondok\/records$/);
+  await expect(page).toHaveURL(/\/records$/);
   await page.getByRole("group", { name: "형광펜 색" }).getByRole("button", { name: "분홍 1" }).click();
-  await expect(page).toHaveURL(/\/hoondok\/records\?color=3$/);
+  await expect(page).toHaveURL(/\/records\?color=3$/);
   const items = page.getByRole("tabpanel").getByRole("link");
   await expect(items).toHaveCount(1);
 
@@ -96,7 +96,7 @@ test("정원 나의 기록: 두 가지 수·최근 형광펜 구절 → 노트 �
   await expect(page.getByRole("article", { name: "원문 본문" })).toContainText("4번째 합성 문장");
   await expect(page.locator("mark.hl-3")).toHaveText("4번째 합성 문장입니다.");
   await page.goBack();
-  await expect(page).toHaveURL(/\/hoondok\/records\?color=3$/);
+  await expect(page).toHaveURL(/\/records\?color=3$/);
   await expect(page.getByRole("group", { name: "형광펜 색" }).getByRole("button", { name: "분홍 1" })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -106,7 +106,7 @@ test("정원 나의 기록: 두 가지 수·최근 형광펜 구절 → 노트 �
 test("권을 고르면 목차 장 머리 아래 원문 순서로 놓인다", async ({ page }) => {
   await signUp(page, "records-volume");
   await seedMarks(page);
-  await page.goto("/hoondok/records");
+  await page.goto("/records");
   await page.getByRole("group", { name: "권" }).getByRole("button", { name: /355권/ }).click();
   await expect(page).toHaveURL(/volume=/);
   const panel = page.getByRole("tabpanel");
@@ -130,26 +130,26 @@ test("원문이 막힌 권은 '원문 공개 확인 중' 이고 구절·원문 �
       await route.fulfill({ response, json: body });
     },
   );
-  await page.goto("/hoondok/records");
+  await page.goto("/records");
   const panel = page.getByRole("tabpanel");
   await expect(panel.getByText("원문 공개 확인 중")).toHaveCount(3);
   await expect(panel.getByRole("link")).toHaveCount(0);
   await expect(panel.getByText("합성 문장입니다.")).toHaveCount(0);
-  await page.goto("/hoondok/garden");
+  await page.goto("/garden");
   await expect(page.getByRole("link", { name: /최근 형광펜/ })).toHaveCount(0);
   await expect(page.getByText("원문 공개 확인 중")).toBeVisible();
 });
 
 test("기록 0개 · 비로그인 · 시트 색 이름 · 390/1280 넘침 0", async ({ page }) => {
-  await page.goto("/hoondok/records");
+  await page.goto("/records");
   await expect(page.getByRole("heading", { name: "로그인하면 형광펜·노트가 여기에 모여요" })).toBeVisible();
 
   await signUp(page, "records-empty");
-  await page.goto("/hoondok/records");
+  await page.goto("/records");
   await expect(page.getByRole("heading", { name: "아직 남긴 기록이 없어요" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "말씀 서고로 가기" })).toHaveAttribute("href", "/hoondok/library");
+  await expect(page.getByRole("link", { name: "말씀 서고로 가기" })).toHaveAttribute("href", "/library");
 
-  await page.goto(`/hoondok/words/${encodeURIComponent(volume)}`);
+  await page.goto(`/words/${encodeURIComponent(volume)}`);
   await page.getByRole("button", { name: "단락 1 표시하기" }).click();
   const sheet = page.getByRole("dialog");
   for (const name of ["노랑 형광펜", "초록 형광펜", "분홍 형광펜"])
@@ -159,7 +159,7 @@ test("기록 0개 · 비로그인 · 시트 색 이름 · 390/1280 넘침 0", as
   await seedMarks(page);
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const path of ["/hoondok/garden", "/hoondok/records?tab=note", "/hoondok/records?volume=말씀선집+355권"]) {
+    for (const path of ["/garden", "/records?tab=note", "/records?volume=말씀선집+355권"]) {
       await page.goto(path);
       await expect(page.locator(".rc-item, .rc-tally").first()).toBeVisible();
       expect(await overflow(page)).toBe(0);
@@ -181,7 +181,7 @@ test("이 기기에만 있는 기록: 날짜 최신순 · 한 번에 복사 · �
   });
 
   // 기록이 없으면 비로그인 정원에 입구가 없다
-  await page.goto("/hoondok/garden");
+  await page.goto("/garden");
   await expect(page.getByRole("link", { name: "시작하기" })).toBeVisible();
   await expect(page.getByRole("link", { name: /오늘의 한 줄/ })).toHaveCount(0);
 
@@ -190,7 +190,7 @@ test("이 기기에만 있는 기록: 날짜 최신순 · 한 번에 복사 · �
     localStorage.setItem("hoondok:note:2026-09-28", "아이에게 먼저 인사하기");
     localStorage.setItem("hoondok:note:2026-09-24", "끝까지 듣기");
   });
-  await page.goto("/hoondok/garden");
+  await page.goto("/garden");
   const entry = page.getByRole("link", { name: /오늘의 한 줄 3개/ });
   await expect(entry).toBeVisible();
 
@@ -199,7 +199,7 @@ test("이 기기에만 있는 기록: 날짜 최신순 · 한 번에 복사 · �
     if (request.url().includes("/api/backend/")) backendCalls.push(request.url());
   });
   await entry.click();
-  await expect(page).toHaveURL(/\/hoondok\/records\/device$/);
+  await expect(page).toHaveURL(/\/records\/device$/);
   await expect(page.locator(".rc-lines time")).toHaveText(["9월 28일 월요일", "9월 24일 목요일", "9월 21일 월요일"]);
   await page.getByRole("button", { name: "한 줄 모두 글로 복사" }).click();
   await expect(page.getByText("복사했어요")).toBeVisible();

@@ -10,7 +10,7 @@ const replace = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace, prefetch: vi.fn() }),
-  usePathname: () => "/hoondok/records",
+  usePathname: () => "/records",
   useSearchParams: () => searchParams,
 }));
 vi.mock("@/features/identity/api", () => ({
@@ -156,11 +156,11 @@ beforeEach(() => {
 describe("나의 기록 순수 함수", () => {
   it("화면 레지스트리: 두 화면 모두 정원 탭이고 뒤로는 정원이다", () => {
     for (const [path, title] of [
-      ["/hoondok/records", "나의 기록"],
-      ["/hoondok/records/device", "이 기기에만 있는 기록"],
+      ["/records", "나의 기록"],
+      ["/records/device", "이 기기에만 있는 기록"],
     ]) {
       const screen = screenFor(path);
-      expect([screen.title, screen.backHref, screen.tabId]).toEqual([title, "/hoondok/garden", "garden"]);
+      expect([screen.title, screen.backHref, screen.tabId]).toEqual([title, "/garden", "garden"]);
     }
   });
 
@@ -175,10 +175,10 @@ describe("나의 기록 순수 함수", () => {
       color: 3,
       volume: VOLUME,
     });
-    expect(recordsHref()).toBe("/hoondok/records");
-    expect(recordsHref({ tab: "note", color: 3 })).toBe("/hoondok/records?tab=note&color=3");
+    expect(recordsHref()).toBe("/records");
+    expect(recordsHref({ tab: "note", color: 3 })).toBe("/records?tab=note&color=3");
     expect(recordsHref({ color: 2, volume: VOLUME })).toBe(
-      `/hoondok/records?color=2&volume=${encodeURIComponent(VOLUME).replace(/%20/g, "+")}`,
+      `/records?color=2&volume=${encodeURIComponent(VOLUME).replace(/%20/g, "+")}`,
     );
     // 예전 북마크 탭 링크는 형광펜 탭으로 연다
     expect(parseRecordsFilter(new URLSearchParams("tab=bookmark")).tab).toBe("highlight");
@@ -261,15 +261,15 @@ describe("정원 '나의 기록' 섹션", () => {
     loggedIn();
     renderGarden();
     const nav = await screen.findByRole("navigation", { name: "나의 기록 종류" });
-    expect(within(nav).getByRole("link", { name: "형광펜 3" })).toHaveAttribute("href", "/hoondok/records");
+    expect(within(nav).getByRole("link", { name: "형광펜 3" })).toHaveAttribute("href", "/records");
     expect(within(nav).getAllByRole("link")).toHaveLength(2);
-    expect(within(nav).getByRole("link", { name: "노트 1" })).toHaveAttribute("href", "/hoondok/records?tab=note");
+    expect(within(nav).getByRole("link", { name: "노트 1" })).toHaveAttribute("href", "/records?tab=note");
     expect(libraryAPI.highlights).toHaveBeenCalledWith();
     const latest = screen.getByRole("link", { name: /최근 형광펜/ });
     expect(latest).toHaveAttribute("href", wordsHref(VOLUME, "c12"));
     expect(latest.querySelector("mark.hl-3")).toHaveTextContent("단락 12 고른 구절");
     expect(latest).toHaveTextContent("단락 12");
-    expect(screen.getByRole("link", { name: "모두 보기" })).toHaveAttribute("href", "/hoondok/records");
+    expect(screen.getByRole("link", { name: "모두 보기" })).toHaveAttribute("href", "/records");
   });
 
   it("원문이 막힌 최근 형광펜은 quote 대신 안내만 두고 링크를 숨긴다", async () => {
@@ -291,7 +291,7 @@ describe("정원 '나의 기록' 섹션", () => {
     loggedIn([]);
     renderGarden();
     expect(await screen.findByRole("heading", { name: "아직 남긴 기록이 없어요" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "말씀 서고로 가기" })).toHaveAttribute("href", "/hoondok/library");
+    expect(screen.getByRole("link", { name: "말씀 서고로 가기" })).toHaveAttribute("href", "/library");
     expect(screen.queryByRole("navigation", { name: "나의 기록 종류" })).toBeNull();
   });
 
@@ -339,11 +339,11 @@ describe("나의 기록 화면", () => {
     expect(links[0]).toHaveTextContent("분홍");
 
     fireEvent.click(within(tabs).getByRole("tab", { name: "노트 1" }));
-    expect(replace).toHaveBeenLastCalledWith("/hoondok/records?tab=note", { scroll: false });
+    expect(replace).toHaveBeenLastCalledWith("/records?tab=note", { scroll: false });
     const colors = screen.getByRole("group", { name: "형광펜 색" });
     expect(within(colors).getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(within(colors).getByRole("button", { name: "분홍 1" }));
-    expect(replace).toHaveBeenLastCalledWith("/hoondok/records?color=3", { scroll: false });
+    expect(replace).toHaveBeenLastCalledWith("/records?color=3", { scroll: false });
   });
 
   it("URL 의 탭·색을 그대로 보인다 — 뒤로 돌아오면 같은 칩이 골라져 있다", async () => {
@@ -387,7 +387,7 @@ describe("나의 기록 화면", () => {
     expect(quotes).toEqual(["단락 2 고른 구절", "앞 구절", "뒤 구절", "단락 12 고른 구절"]);
 
     fireEvent.click(within(volumes).getByRole("button", { name: "모든 권" }));
-    expect(replace).toHaveBeenLastCalledWith("/hoondok/records", { scroll: false });
+    expect(replace).toHaveBeenLastCalledWith("/records", { scroll: false });
   });
 
   it("원문이 막힌 권의 형광펜은 quote·링크 대신 '원문 공개 확인 중' 이고 내 노트는 남는다", async () => {
@@ -422,7 +422,7 @@ describe("나의 기록 화면", () => {
     loggedIn([]);
     const { unmount } = renderRecords();
     expect(await screen.findByRole("heading", { name: "아직 남긴 기록이 없어요" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "말씀 서고로 가기" })).toHaveAttribute("href", "/hoondok/library");
+    expect(screen.getByRole("link", { name: "말씀 서고로 가기" })).toHaveAttribute("href", "/library");
     unmount();
 
     searchParams = new URLSearchParams("tab=note");
@@ -443,7 +443,7 @@ describe("나의 기록 화면", () => {
     renderRecords();
     expect(await screen.findByRole("link", { name: "시작하기" })).toHaveAttribute(
       "href",
-      expect.stringContaining(encodeURIComponent("/hoondok/records")),
+      expect.stringContaining(encodeURIComponent("/records")),
     );
     expect(libraryAPI.highlights).not.toHaveBeenCalled();
   });
@@ -497,7 +497,7 @@ describe("이 기기에만 있는 기록", () => {
     writeNote("2026-09-28", "먼저 인사하기");
     render(wrap(<GardenScreen month="2026-09" today="2026-09-29" />));
     await screen.findByRole("link", { name: "시작하기" });
-    expect(screen.getByRole("link", { name: /오늘의 한 줄 1개/ })).toHaveAttribute("href", "/hoondok/records/device");
+    expect(screen.getByRole("link", { name: /오늘의 한 줄 1개/ })).toHaveAttribute("href", "/records/device");
     expect(libraryAPI.highlights).not.toHaveBeenCalled();
   });
 });

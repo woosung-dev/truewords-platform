@@ -12,7 +12,7 @@ export function cardWordsHref(card: Pick<CardPublic, "id" | "volume" | "chunk_id
 
 /** 받은 사람 화면 경로. 카톡 링크 카드는 이 주소의 OG(2:1)로 그려진다. */
 export function cardPath(id: string): string {
-  return `/hoondok/c/${encodeURIComponent(id)}`;
+  return `/c/${encodeURIComponent(id)}`;
 }
 
 export function cardImagePath(id: string, format: CardImageFormat): string {

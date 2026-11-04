@@ -4,7 +4,7 @@ import { HoondokErrorListener } from "@/features/hoondok/observability/listener"
 import { hoondokFetch, reportClientError, safeHoondokPath } from "@/features/hoondok/observability/report";
 
 beforeEach(() => {
-  window.history.replaceState({}, "", "/hoondok/search?q=private");
+  window.history.replaceState({}, "", "/search?q=private");
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => new Response(null, { status: 204 })),
@@ -17,11 +17,11 @@ afterEach(() => {
 
 describe("클라이언트 오류 수집", () => {
   it("검색어·질문·노트·예외를 전송하지 않고 동적 경로도 템플릿으로 바꾼다", async () => {
-    expect(safeHoondokPath("/hoondok/words/secret-volume?token=private")).toBe("/hoondok/words/:volume");
-    expect(safeHoondokPath("/hoondok/ask/private-question#secret")).toBe("/hoondok/ask/:id");
-    expect(safeHoondokPath("/hoondok/ask/new?q=private")).toBe("/hoondok/ask/new");
-    expect(safeHoondokPath("/hoondok/ask/p/pub123")).toBe("/hoondok/ask/p/:id");
-    expect(safeHoondokPath("/hoondok/unknown-private-segment")).toBe("/hoondok");
+    expect(safeHoondokPath("/words/secret-volume?token=private")).toBe("/words/:volume");
+    expect(safeHoondokPath("/ask/private-question#secret")).toBe("/ask/:id");
+    expect(safeHoondokPath("/ask/new?q=private")).toBe("/ask/new");
+    expect(safeHoondokPath("/ask/p/pub123")).toBe("/ask/p/:id");
+    expect(safeHoondokPath("/hoondok/unknown-private-segment")).toBe("/");
     render(<HoondokErrorListener />);
     act(() => {
       window.dispatchEvent(
@@ -29,7 +29,7 @@ describe("클라이언트 오류 수집", () => {
       );
     });
     const call = vi.mocked(fetch).mock.calls[0];
-    expect(JSON.parse(String(call[1]?.body))).toEqual({ kind: "unhandled", path: "/hoondok/search" });
+    expect(JSON.parse(String(call[1]?.body))).toEqual({ kind: "unhandled", path: "/search" });
     expect(JSON.stringify(call)).not.toMatch(/secret|private|token/);
   });
   it("훈독 레이아웃을 떠나면 두 전역 리스너를 해제한다", () => {
@@ -46,12 +46,12 @@ describe("클라이언트 오류 수집", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(JSON.parse(String(vi.mocked(fetch).mock.calls[1][1]?.body))).toEqual({
       kind: "api_5xx",
-      path: "/hoondok/search",
+      path: "/search",
     });
   });
-  it("시연 챗 화면은 수집하지 않는다", () => {
+  it("웹 루트 홈에서도 수집한다 — 웹 전체가 훈독이다(DEC-PWA-026)", () => {
     window.history.replaceState({}, "", "/");
     reportClientError("unhandled");
-    expect(fetch).not.toHaveBeenCalled();
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).toEqual({ kind: "unhandled", path: "/" });
   });
 });

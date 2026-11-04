@@ -71,7 +71,7 @@ describe("오늘의 책갈피 카드 풀", () => {
     expect(row("초안 카드 본문").getByText("초안")).toBeInTheDocument();
     expect(row("활성 카드 본문").getByText("2026-10-01")).toBeInTheDocument();
     const link = row("초안 카드 본문").getByRole("link", { name: /천성경 제1편 p\.42/ });
-    expect(link.getAttribute("href")).toMatch(/\/hoondok\/words\/.+\?chunk_id=chunk-1$/);
+    expect(link.getAttribute("href")).toMatch(/^http:\/\/localhost:3000\/words\/.+\?chunk_id=chunk-1$/);
     const today = screen.getByRole("region", { name: "오늘 나가는 카드" });
     expect(await within(today).findByText("활성 카드 본문")).toBeInTheDocument();
     expect(screen.getByText("총 120장 · 1 / 3쪽")).toBeInTheDocument();

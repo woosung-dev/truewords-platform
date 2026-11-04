@@ -1,11 +1,12 @@
 "use client";
 
-// 원문 뷰 "AI 설명" 탭 (PLAN-HD-007 §2-7). 신규 엔드포인트 없이 AI 질문과 같은 `/chat/stream` 어댑터를 쓰고,
-// 사용자가 단락을 고른 뒤 버튼을 누를 때만 1회 요청한다. 답은 저장하지 않는다 — 새로고침하면 사라진다.
+// 원문 뷰 "AI 설명" 탭 (PLAN-HD-007 §2-7). AI 질문과 같은 `/hoondok/ask/stream` 을 써서 로그인·하루 횟수 상한을
+// 함께 받는다(익명 `/chat/stream` 은 비용 상한 밖이라 닫았다). 사용자가 단락을 고른 뒤 버튼을 누를 때만 1회 요청하고,
+// 답은 AI 질문처럼 내 계정 기록에 남는다.
 import { useMutation } from "@tanstack/react-query";
 import type { WordChunk } from "@truewords/api-client-ts/types";
 import { Sparkles } from "lucide-react";
-import { type AskResult, askErrorMessage, requestAsk } from "@/features/hoondok/ask/ask-stream";
+import { type AskResult, askErrorMessage, requestHoondokAsk } from "@/features/hoondok/ask/ask-stream";
 import { AnswerMarkdown } from "@/features/hoondok/ask/components/answer-markdown";
 import { verseNumber } from "../api";
 
@@ -20,7 +21,7 @@ export function explainQuery(text: string): string {
 const GATE_MESSAGE = "근거 말씀을 찾지 못했어요. 다른 단락을 골라 보거나 AI 질문에서 물어봐 주세요";
 
 export function AiExplain({ chunk }: { chunk: WordChunk | null }) {
-  const ask = useMutation<AskResult, unknown, string>({ mutationFn: (query) => requestAsk(query) });
+  const ask = useMutation<AskResult, unknown, string>({ mutationFn: (query) => requestHoondokAsk(query) });
 
   if (!chunk) {
     return (
@@ -68,7 +69,10 @@ export function AiExplain({ chunk }: { chunk: WordChunk | null }) {
             {result.disclaimer && <p className="ai-note__micro">{result.disclaimer}</p>}
           </>
         ))}
-      <p className="notice">설명은 저장하지 않아요. 공식 해설이 아니고 근거 말씀이 있을 때만 보여 드려요.</p>
+      <p className="notice">
+        로그인이 필요하고 하루 질문 횟수를 1회 써요. 설명은 내 질문 기록에 남아요. 공식 해설이 아니고 근거 말씀이 있을
+        때만 보여 드려요.
+      </p>
     </div>
   );
 }

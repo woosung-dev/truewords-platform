@@ -20,7 +20,7 @@ const ASK_QUOTE_MAX = 200;
 export function passageAskHref(displayText: string): string {
   const text = displayText.trim();
   const quote = text.length > ASK_QUOTE_MAX ? `${text.slice(0, ASK_QUOTE_MAX)}…` : text;
-  return `/hoondok/ask/new?q=${encodeURIComponent(`"${quote}"\n\n이 단락은 어떤 뜻인가요?`)}`;
+  return `/ask/new?q=${encodeURIComponent(`"${quote}"\n\n이 단락은 어떤 뜻인가요?`)}`;
 }
 
 export function PassageSheet({
