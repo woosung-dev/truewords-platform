@@ -207,13 +207,12 @@ rollback-admin: ## ⚠️ 이전 admin 이미지로 롤백 (`TAG=<이전 sha>` �
 # 훈독 플래그 — 기본값은 build-args.env(운영 값)다. 다른 값으로 배포하려면 FORCE_DEPLOY=1 이 필요하고
 # deploy.log 에 forced 로 남는다(같은 태그의 GHCR 이미지와 내용이 갈라지므로). 정상 경로는 파일 변경 PR 이다.
 HOONDOK_ENABLED ?= $(call build_arg,NEXT_PUBLIC_HOONDOK_ENABLED)
-HOONDOK_TOGETHER ?= $(call build_arg,NEXT_PUBLIC_HOONDOK_TOGETHER)
 HOONDOK_CARDS ?= $(call build_arg,NEXT_PUBLIC_HOONDOK_CARDS)
 HOONDOK_MASCOT ?= $(call build_arg,NEXT_PUBLIC_HOONDOK_MASCOT)
 deploy-web: ## [비상] 사용자 웹 배포. 빌드 인자는 build-args.env (다른 값은 FORCE_DEPLOY=1).
 	@$(HEAD_ONLY)
-	@[ -n "$(FORCE_DEPLOY)" ] || [ "$(WEB_URL) $(ADMIN_URL) $(HOONDOK_ENABLED) $(HOONDOK_TOGETHER) $(HOONDOK_CARDS) $(HOONDOK_MASCOT)" = \
-		"$(call build_arg,NEXT_PUBLIC_WEB_URL) $(call build_arg,NEXT_PUBLIC_ADMIN_URL) $(call build_arg,NEXT_PUBLIC_HOONDOK_ENABLED) $(call build_arg,NEXT_PUBLIC_HOONDOK_TOGETHER) $(call build_arg,NEXT_PUBLIC_HOONDOK_CARDS) $(call build_arg,NEXT_PUBLIC_HOONDOK_MASCOT)" ] \
+	@[ -n "$(FORCE_DEPLOY)" ] || [ "$(WEB_URL) $(ADMIN_URL) $(HOONDOK_ENABLED) $(HOONDOK_CARDS) $(HOONDOK_MASCOT)" = \
+		"$(call build_arg,NEXT_PUBLIC_WEB_URL) $(call build_arg,NEXT_PUBLIC_ADMIN_URL) $(call build_arg,NEXT_PUBLIC_HOONDOK_ENABLED) $(call build_arg,NEXT_PUBLIC_HOONDOK_CARDS) $(call build_arg,NEXT_PUBLIC_HOONDOK_MASCOT)" ] \
 		|| { echo "❌ 빌드 인자가 $(BUILD_ARGS_FILE) 와 다릅니다 — 파일을 고쳐 머지하거나(정상) 비상이면 FORCE_DEPLOY=1"; exit 1; }
 	@$(MAKE) --no-print-directory deploy-guard DEPLOY_SERVICE=WEB
 	@$(MAKE) --no-print-directory ops-check || echo "⚠️  ops-check 위반 있음 — 배포는 계속합니다. 위 DETAIL 확인."
@@ -221,7 +220,6 @@ deploy-web: ## [비상] 사용자 웹 배포. 빌드 인자는 build-args.env (�
 		--build-arg NEXT_PUBLIC_API_URL=$(call build_arg,NEXT_PUBLIC_API_URL) \
 		--build-arg NEXT_PUBLIC_WEB_URL=$(WEB_URL) --build-arg NEXT_PUBLIC_ADMIN_URL=$(ADMIN_URL) \
 		--build-arg NEXT_PUBLIC_HOONDOK_ENABLED=$(HOONDOK_ENABLED) \
-		--build-arg NEXT_PUBLIC_HOONDOK_TOGETHER=$(HOONDOK_TOGETHER) \
 		--build-arg NEXT_PUBLIC_HOONDOK_CARDS=$(HOONDOK_CARDS) \
 		--build-arg NEXT_PUBLIC_HOONDOK_MASCOT=$(HOONDOK_MASCOT) \
 		--label org.opencontainers.image.revision=$(DEPLOY_SHA) -t $(WEB_IMG) --load .

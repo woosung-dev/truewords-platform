@@ -13,7 +13,6 @@ import { JeongseongCard } from "@/features/hoondok/jeongseong/components/jeongse
 import { JeongseongSheet } from "@/features/hoondok/jeongseong/components/jeongseong-sheet";
 import { PersonalBookmarkHome } from "@/features/hoondok/personal/components/home-bookmark";
 import { formatKstDate } from "@/features/hoondok/today";
-import { GroupList } from "@/features/hoondok/together/components/group-list";
 
 export default async function HoondokHomePage() {
   // 오늘의 책갈피(PLAN-HD-012)는 플래그 ON 일 때만 부른다. 풀이 비었거나 못 읽으면 오늘 편성 카드는 없다.
@@ -32,9 +31,8 @@ export default async function HoondokHomePage() {
 
       <JeongseongCard />
 
-      {/* 함께 읽는 사람들 — 1단계 익명 숫자 카드 1장 (PLAN-HD-009) + 2단계 모임 카드·진입 카드 (PLAN-HD-010, 플래그 OFF 면 없음) */}
+      {/* 함께 읽는 사람들 — 익명 숫자 카드 1장 (PLAN-HD-009) */}
       <HomeTogether today={today} />
-      <GroupList />
 
       <InstallCard />
 

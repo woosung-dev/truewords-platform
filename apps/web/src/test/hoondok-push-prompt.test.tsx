@@ -527,8 +527,8 @@ describe("inAppBrowser — UA 표", () => {
   });
 
   it("외부 브라우저 스킴은 현재 주소 전체를 인코딩해 싣는다", () => {
-    expect(kakaoOpenExternalUrl("https://truewords.woosung.dev/groups/join?code=AB12&x=1")).toBe(
-      "kakaotalk://web/openExternal?url=https%3A%2F%2Ftruewords.woosung.dev%2Fgroups%2Fjoin%3Fcode%3DAB12%26x%3D1",
+    expect(kakaoOpenExternalUrl("https://truewords.woosung.dev/c/AB12?from=kakao&x=1")).toBe(
+      "kakaotalk://web/openExternal?url=https%3A%2F%2Ftruewords.woosung.dev%2Fc%2FAB12%3Ffrom%3Dkakao%26x%3D1",
     );
   });
 });

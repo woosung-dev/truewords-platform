@@ -6,7 +6,7 @@ import type {
 } from "@truewords/api-client-ts/types";
 import { ApiError, fetchAPI } from "@/lib/api";
 import { WEB_ORIGIN } from "@/lib/origins";
-import { mutationErrorMessage } from "./groups-api";
+import { mutationErrorMessage } from "./api-errors";
 
 export type { CardAdminItem, CardAdminListResponse, TodayCardResponse };
 export type CardStatus = CardAdminItem["status"];

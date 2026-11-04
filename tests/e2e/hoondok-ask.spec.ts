@@ -59,7 +59,8 @@ test("비로그인은 추천만 보고, 질문·내 질문은 로그인 안내�
 
   await page.goto("/ask");
   await expect(page.getByRole("tab", { name: "추천" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator(".appbar").getByRole("link", { name: "말씀 검색" })).toHaveCount(0);
+  // 모바일 앱바에도 말씀 검색이 있다(PC 헤더와 같게)
+  await expect(page.locator(".appbar").getByRole("link", { name: "말씀 검색" })).toBeVisible();
   await expect(page.getByRole("textbox")).toHaveCount(0);
 
   await page.getByRole("tab", { name: "내 질문" }).click();

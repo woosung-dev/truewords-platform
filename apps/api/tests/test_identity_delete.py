@@ -20,7 +20,6 @@ from app.modules.hoondok.dependencies import (
     get_ask_repository,
     get_card_repository,
     get_public_question_repository,
-    get_group_repository,
     get_jeongseong_repository,
     get_library_repository,
     get_mission_repository,
@@ -223,17 +222,6 @@ class _FakeLibrary:
         self.purged.append(user_id)
 
 
-class _FakeGroups:
-    """모임 purger (PLAN-HD-010). 실제 삭제·리더 이전은 test_hoondok_groups.py 가 실 리포로 본다."""
-
-    def __init__(self) -> None:
-        self.purged: list[uuid.UUID] = []
-        self.session = MagicMock()
-
-    async def delete_for_user(self, user_id) -> None:
-        self.purged.append(user_id)
-
-
 class _FakeCards:
     """나의 책갈피 purger (PLAN-HD-012). 실제 삭제는 test_hoondok_cards.py 가 실 리포로 본다."""
 
@@ -254,8 +242,6 @@ def client():
     app.dependency_overrides[get_jeongseong_repository] = lambda: periods
     app.dependency_overrides[get_notification_repository] = lambda: notifications
     app.dependency_overrides[get_library_repository] = lambda: library
-    groups = _FakeGroups()
-    app.dependency_overrides[get_group_repository] = lambda: groups
     cards = _FakeCards()
     app.dependency_overrides[get_card_repository] = lambda: cards
     app.dependency_overrides[get_public_question_repository] = lambda: _FakeCards()  # 공개 질문 purger (DEC-PWA-025)
@@ -272,8 +258,7 @@ def client():
             get_jeongseong_repository,
             get_notification_repository,
             get_library_repository,
-            get_group_repository,
-            get_card_repository,
+                    get_card_repository,
             get_public_question_repository,
             get_ask_repository,
         ):

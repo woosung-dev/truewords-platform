@@ -17,7 +17,6 @@ import "@/app/_hoondok/ask.css";
 import "@/app/_hoondok/library.css";
 import "@/app/_hoondok/summaries.css";
 import "@/app/_hoondok/together.css";
-import "@/app/_hoondok/together-home.css";
 import "@/app/_hoondok/cards.css";
 import "@/app/_hoondok/menu.css";
 import "@/app/_hoondok/onboarding.css";

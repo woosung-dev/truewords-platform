@@ -40,7 +40,6 @@ describe("웹 루트 = 훈독 (DEC-PWA-026)", () => {
     expect(await legacyRedirect("/hoondok/read")).toBe("/read");
     expect(await legacyRedirect("/hoondok/c/abc123")).toBe("/c/abc123");
     expect(await legacyRedirect("/hoondok/c/abc123/image")).toBe("/c/abc123/image");
-    expect(await legacyRedirect("/hoondok/groups/join")).toBe("/groups/join");
     expect(await legacyRedirect("/hoondok/ask/p/pq1")).toBe("/ask/p/pq1");
   });
 
@@ -70,5 +69,11 @@ describe("웹 루트 = 훈독 (DEC-PWA-026)", () => {
     expect(await legacyRedirect("/login")).toBe("/onboarding");
     expect(await legacyRedirect("/history")).toBe("/ask");
     expect(await legacyRedirect("/about")).toBe("/");
+  });
+
+  it("삭제한 모임 주소(/groups·/groups/*)는 홈으로 임시 리다이렉트한다", async () => {
+    expect(await legacyRedirect("/groups")).toBe("/");
+    expect(await legacyRedirect("/groups/join")).toBe("/");
+    expect(await legacyRedirect("/groups/abc/share")).toBe("/");
   });
 });

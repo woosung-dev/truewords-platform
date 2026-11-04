@@ -6,11 +6,6 @@ import type { HoondokTab } from "./tabs";
 export type HoondokScreen = {
   /** pathname 접두. 끝이 `/` 이면 그 아래 세그먼트만 잡고 자기 자신(`/ask`)은 잡지 않는다 */
   match: string;
-  /**
-   * 동적 세그먼트 뒤에 고정 세그먼트가 오는 화면(`/groups/{id}/share`). 있으면 match 대신 이것으로 판정하고,
-   * match 는 최장 매치 길이·읽기용 템플릿이다. 첫 캡처는 backHref 의 `:id` 를 채운다.
-   */
-  pattern?: RegExp;
   /** true 면 pathname 이 정확히 같을 때만 (홈) */
   exact?: boolean;
   title: string;
@@ -64,27 +59,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     variant: "app",
     hideSettingsLink: true,
   },
-  // 함께 읽는 모임 (PLAN-HD-010, SCR-PWA-017~021). 모두 "오늘 훈독" 탭 귀속이고 값은 프로토타입 TITLES·TAB_OF.
-  // /groups/{id} 는 끝 `/` 접두로 잡고, new·join·share·settings 는 더 긴 접두가 최장 매치로 이긴다.
-  { match: "/groups/new", title: "모임 만들기", backHref: "/", tabId: "today", variant: "app" },
-  { match: "/groups/join", title: "모임 참여", backHref: "/", tabId: "today", variant: "app" },
-  { match: "/groups/", title: "훈독 모임", backHref: "/", tabId: "today", variant: "app" },
-  {
-    match: "/groups/:id/share",
-    pattern: /^\/groups\/([^/]+)\/share\/?$/,
-    title: "한 줄 나눔",
-    backHref: "/groups/:id",
-    tabId: "today",
-    variant: "app",
-  },
-  {
-    match: "/groups/:id/settings",
-    pattern: /^\/groups\/([^/]+)\/settings\/?$/,
-    title: "모임 설정",
-    backHref: "/groups/:id",
-    tabId: "today",
-    variant: "app",
-  },
   // 오늘의 책갈피 (PLAN-HD-012, SCR-PWA-023·025·026). 받은 사람 화면(/c/{id})은 밖에서 들어오므로 뒤로 링크가 없다.
   { match: "/bookmark", title: "오늘의 책갈피", backHref: "/", tabId: "today", variant: "app" },
   { match: "/c/", title: "오늘의 책갈피", tabId: "today", variant: "app" },
@@ -117,9 +91,9 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     variant: "app",
     hideSettingsLink: true,
   },
-  // AI 질문 계열은 앱바의 말씀 검색 아이콘을 숨긴다 — 질문 검색(홈 돋보기)과 헷갈리지 않게 (DEC-PWA-025).
+  // AI 질문 계열도 모바일 앱바에 말씀 검색을 둔다 — PC 헤더와 같게. 질문 검색(홈 돋보기)은 라벨이 "질문 검색"이라 구분된다.
   // /ask/log 는 홈 "내 질문" 탭으로 리다이렉트만 하므로 항목이 없다.
-  { match: "/ask", title: "AI 질문", tabId: "ask", variant: "read", hideSearchLink: true },
+  { match: "/ask", title: "AI 질문", tabId: "ask", variant: "read" },
   // 새 질문은 전체 화면 — 앱바를 접고 화면이 ✕·제목·보내기 머리를 그린다
   {
     match: "/ask/new",
@@ -137,7 +111,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     backToHistory: true,
     tabId: "ask",
     variant: "read",
-    hideSearchLink: true,
   },
   { match: "/summaries", title: "AI 요약", backHref: "/library", tabId: "library", variant: "app" },
   { match: "/summaries/", title: "AI 요약", backHref: "/summaries", tabId: "library", variant: "app" },
@@ -149,7 +122,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     backToHistory: true,
     tabId: "ask",
     variant: "read",
-    hideSearchLink: true,
   },
   { match: "/library", title: "말씀", tabId: "library", variant: "app" },
   // /library/{series} — 저작물 한 건의 권 목록. 제목은 API-HD-023 의 저작물 제목으로 바뀐다
@@ -183,7 +155,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
 const HOME_SCREEN = HOONDOK_SCREENS[0];
 
 function isMatch(screen: HoondokScreen, pathname: string): boolean {
-  if (screen.pattern) return screen.pattern.test(pathname);
   if (screen.exact) return pathname === screen.match;
   if (pathname === screen.match) return true;
   const prefix = screen.match.endsWith("/") ? screen.match : `${screen.match}/`;
@@ -196,7 +167,5 @@ export function screenFor(pathname: string): HoondokScreen {
   for (const screen of HOONDOK_SCREENS) {
     if (isMatch(screen, pathname) && (!best || screen.match.length > best.match.length)) best = screen;
   }
-  if (!best) return HOME_SCREEN;
-  const id = best.pattern?.exec(pathname)?.[1];
-  return id && best.backHref ? { ...best, backHref: best.backHref.replace(":id", id) } : best;
+  return best ?? HOME_SCREEN;
 }

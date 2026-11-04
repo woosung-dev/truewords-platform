@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// fetchAPI 는 fetch 를 감싸므로 fetch 를 mock 해 URL·메서드·CSRF 헤더를 본다 (hoondok-groups-api.test.ts 와 같은 방식)
+// fetchAPI 는 fetch 를 감싸므로 fetch 를 mock 해 URL·메서드·CSRF 헤더를 본다
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 

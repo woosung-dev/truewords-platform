@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { isNotFound, loadErrorMessage, mutationErrorMessage } from "@/features/hoondok/api-errors";
 import { kstTodayIso } from "@/features/hoondok/dates";
-import { isNotFound, loadErrorMessage, mutationErrorMessage } from "@/features/hoondok/groups-api";
 import {
   ANSWER_MODE_LABEL,
   type PublicQuestionAdminItem,

@@ -3,7 +3,7 @@
 import os
 import time
 import uuid
-from datetime import date, timedelta
+from datetime import date
 from unittest.mock import AsyncMock
 
 import pytest
@@ -23,9 +23,6 @@ from app.modules.chatbot.models import ChatbotConfig
 from app.modules.hoondok.cards_repository import CardRepository
 from app.modules.hoondok.cards_service import CardAdminService
 from app.modules.hoondok.cards_schemas import CardAdminCreate, CardAdminUpdate
-from app.modules.hoondok.groups_repository import GroupRepository
-from app.modules.hoondok.groups_service import GroupAdminService
-from app.modules.hoondok.groups_schemas import OfficialJeongseongInput
 from app.modules.hoondok.journey_repository import JourneyRepository
 from app.modules.hoondok.journey_service import JourneyService
 from app.modules.hoondok.journey_schemas import ContentRightInput
@@ -36,13 +33,10 @@ from app.modules.hoondok.models import (
     ContentRight,
     DailyReading,
     WordCard,
-    SharedJeongseong,
-    ReadingGroup,
 )
 from app.modules.hoondok.repository import DailyReadingRepository, JeongseongRepository
 from app.modules.hoondok.schemas import DailyReadingAdminCreate, DailyReadingAdminUpdate
 from app.modules.hoondok.service import DailyReadingAdminService
-from app.core.common.clock import utcnow
 
 
 @pytest.fixture(scope="module")
@@ -157,34 +151,6 @@ async def prepare(session, case, audit, actor):
         return lambda: service.update_with_audit(
             row.id, CardAdminUpdate(status="retired"), audit, actor
         ), WordCard
-    if case.startswith("official") or case == "group-delete":
-        service = GroupAdminService(GroupRepository(session))
-        if case == "group-delete":
-            group = ReadingGroup(
-                name="모임",
-                invite_code="ABCD-EFGH",
-                invite_expires_at=utcnow() + timedelta(days=30),
-            )
-            session.add(group)
-            await session.commit()
-            return lambda: service.delete_group_with_audit(
-                group.id, audit, actor
-            ), ReadingGroup
-        data = OfficialJeongseongInput(
-            title="정성", started_on=date(2026, 10, 24), duration_days=7
-        )
-        if case == "official-create":
-            return lambda: service.create_official_with_audit(
-                data, audit, actor
-            ), SharedJeongseong
-        row = await service.create_official(data)
-        if case == "official-delete":
-            return lambda: service.delete_official_with_audit(
-                row.id, audit, actor
-            ), SharedJeongseong
-        return lambda: service.update_official_with_audit(
-            row.id, data.model_copy(update={"title": "수정"}), audit, actor
-        ), SharedJeongseong
     service = ChatbotService(ChatbotRepository(session))
     data = ChatbotConfigCreate(chatbot_id="test", display_name="시연")
     if case == "chatbot-create":
@@ -203,10 +169,6 @@ CASES = [
     "daily-update",
     "card-create",
     "card-update",
-    "official-create",
-    "official-update",
-    "official-delete",
-    "group-delete",
     "chatbot-create",
     "chatbot-update",
 ]

@@ -23,9 +23,10 @@ describe("훈독 화면 레지스트리", () => {
     expect(pick("/ask/new")).toEqual(["새 질문하기", undefined, "ask", "onb"]);
     expect(pick("/ask/q-123")).toEqual(["질문", "/ask", "ask", "read"]);
     expect(pick("/ask/p/pq1")).toEqual(["공개 질문", "/ask", "ask", "read"]);
-    // AI 질문 계열은 앱바의 말씀 검색 아이콘을 숨긴다 — 질문 검색(홈 돋보기)과 헷갈리지 않게
-    for (const pathname of ["/ask", "/ask/new", "/ask/q-123", "/ask/p/pq1"])
-      expect(screenFor(pathname).hideSearchLink).toBe(true);
+    // AI 질문 계열도 앱바에 말씀 검색을 둔다(PC 헤더와 같게). 앱바를 접는 새 질문 화면만 숨긴다
+    for (const pathname of ["/ask", "/ask/q-123", "/ask/p/pq1"])
+      expect(screenFor(pathname).hideSearchLink).toBeUndefined();
+    expect(screenFor("/ask/new").hideSearchLink).toBe(true);
     expect(pick("/search")).toEqual(["말씀 검색", "/library", "library", "app"]);
     expect(pick("/words")).toEqual(["원문 읽기", "/library", "library", "read"]);
     // 미등록 경로는 홈 항목으로 떨어진다
@@ -151,11 +152,11 @@ describe("훈독 알림·설치 도달 경로 · 온보딩 탭바", () => {
     expect(links[0]).toHaveAttribute("aria-current", "page");
   });
 
-  it("AI 질문은 앱바 검색 아이콘만 숨기고 헤더 검색 자리를 현재 위치로 표시하지 않는다", async () => {
+  it("AI 질문도 앱바·헤더 둘 다 말씀 검색이 있고, 현재 위치로 표시하지 않는다", async () => {
     await shell("/ask");
     const links = screen.getAllByRole("link", { name: "말씀 검색" });
-    expect(links).toHaveLength(1);
-    expect(links[0]).not.toHaveAttribute("aria-current");
+    expect(links).toHaveLength(2);
+    for (const link of links) expect(link).not.toHaveAttribute("aria-current");
   });
 
   it("온보딩·검색·오프라인·새 질문·알림 설정 자신에는 알림 아이콘이 없다", async () => {

@@ -231,7 +231,7 @@ describe("가입 직후 이동", () => {
   it("돌아갈 곳이 기본값(홈)이고 책갈피가 켜진 빌드일 때만 질문 흐름으로 보낸다", () => {
     vi.stubEnv("NEXT_PUBLIC_HOONDOK_CARDS", "1");
     expect(afterSignupHref("/")).toBe(START_PATH);
-    expect(afterSignupHref("/groups/join?code=7K2MQ9XD")).toBe("/groups/join?code=7K2MQ9XD");
+    expect(afterSignupHref("/read?d=2026-11-04")).toBe("/read?d=2026-11-04");
     expect(afterSignupHref("/read")).toBe("/read");
     vi.stubEnv("NEXT_PUBLIC_HOONDOK_CARDS", "0");
     expect(afterSignupHref("/")).toBe("/");

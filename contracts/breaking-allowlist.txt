@@ -1,11 +1,27 @@
 # 합의된 하위 호환 깨짐만 적는다(oasdiff --err-ignore/--warn-ignore). 한 줄 = "METHOD /path 메시지".
 # 기준이 main 으로 바뀌면 다시 걸리지 않으니, 그 PR 이 머지된 뒤 다음 계약 PR 에서 지운다.
-# 2026-11-02 호출처가 없는 API 제거 — 익명 답변 반응(웹 클라이언트 미사용), 단락 표시 API-HD-026, 오늘 훈독 단락 낭독 API-HD-046.
-POST /api/chat/messages/{message_id}/reaction api path removed without deprecation
-GET /api/chat/messages/{message_id}/reactions api path removed without deprecation
-GET /hoondok/me/marks api path removed without deprecation
-DELETE /hoondok/me/marks/{chunk_id} api path removed without deprecation
-PUT /hoondok/me/marks/{chunk_id} api path removed without deprecation
-GET /hoondok/tts/readings/{reading_id}/{paragraph} api path removed without deprecation
-# 2026-11-02 업로드 `mode` 입력 제거 — 무시되던 값이다. FastAPI 는 남는 form 필드를 무시해 옛 클라이언트 요청도 그대로 받는다.
-POST /admin/data-sources/upload removed the request property `mode`
+# 2026-11-04 훈독 모임 기능 제거(DEC-PWA-027) — 모임 API-HD-030~041·043, 모임 상세에만 보이던 공식 정성 API-HD-042. 호출처는 함께 배포되는 우리 웹·관리자뿐이다.
+DELETE /admin/hoondok/groups/{group_id} api path removed without deprecation
+DELETE /admin/hoondok/jeongseongs/{jeongseong_id} api path removed without deprecation
+DELETE /hoondok/groups/{group_id} api path removed without deprecation
+DELETE /hoondok/groups/{group_id}/jeongseongs/{jeongseong_id} api path removed without deprecation
+DELETE /hoondok/groups/{group_id}/me api path removed without deprecation
+DELETE /hoondok/groups/{group_id}/members/{member_id} api path removed without deprecation
+DELETE /hoondok/groups/{group_id}/shares/{share_id} api path removed without deprecation
+DELETE /hoondok/groups/{group_id}/shares/{share_id}/reaction api path removed without deprecation
+GET /admin/hoondok/groups api path removed without deprecation
+GET /admin/hoondok/jeongseongs api path removed without deprecation
+GET /hoondok/groups/{group_id} api path removed without deprecation
+GET /hoondok/groups/{group_id}/members api path removed without deprecation
+GET /hoondok/invites/{code} api path removed without deprecation
+GET /hoondok/me/groups api path removed without deprecation
+PATCH /hoondok/groups/{group_id} api path removed without deprecation
+PATCH /hoondok/groups/{group_id}/me api path removed without deprecation
+POST /admin/hoondok/jeongseongs api path removed without deprecation
+POST /hoondok/groups api path removed without deprecation
+POST /hoondok/groups/{group_id}/invite api path removed without deprecation
+POST /hoondok/groups/{group_id}/jeongseongs api path removed without deprecation
+POST /hoondok/invites/{code}/join api path removed without deprecation
+PUT /admin/hoondok/jeongseongs/{jeongseong_id} api path removed without deprecation
+PUT /hoondok/groups/{group_id}/shares/today api path removed without deprecation
+PUT /hoondok/groups/{group_id}/shares/{share_id}/reaction api path removed without deprecation

@@ -350,7 +350,6 @@ async def test_account_deletion_purges_notification_rows():
         get_ask_repository,
         get_card_repository,
         get_public_question_repository,
-        get_group_repository,
         get_jeongseong_repository,
         get_library_repository,
         get_mission_repository,
@@ -404,10 +403,9 @@ async def test_account_deletion_purges_notification_rows():
     app.dependency_overrides[get_mission_repository] = lambda: MissionLogRepository(session)
     app.dependency_overrides[get_jeongseong_repository] = lambda: JeongseongRepository(session)
     app.dependency_overrides[get_library_repository] = lambda: LibraryRepository(session)
-    app.dependency_overrides[get_group_repository] = lambda: _NoopGroups()  # 이 테스트는 알림 테이블만 본다
-    app.dependency_overrides[get_card_repository] = lambda: _NoopGroups()
-    app.dependency_overrides[get_public_question_repository] = lambda: _NoopGroups()
-    app.dependency_overrides[get_ask_repository] = lambda: _NoopGroups()
+    app.dependency_overrides[get_card_repository] = lambda: _NoopPurger()  # 이 테스트는 알림 테이블만 본다
+    app.dependency_overrides[get_public_question_repository] = lambda: _NoopPurger()
+    app.dependency_overrides[get_ask_repository] = lambda: _NoopPurger()
     try:
         client = TestClient(app)
         client.cookies.set(COOKIE_NAME, IdentityService.issue_token(me))
@@ -419,7 +417,6 @@ async def test_account_deletion_purges_notification_rows():
             get_mission_repository,
             get_jeongseong_repository,
             get_library_repository,
-            get_group_repository,
             get_card_repository,
             get_public_question_repository,
             get_ask_repository,
@@ -432,6 +429,6 @@ async def test_account_deletion_purges_notification_rows():
     await engine.dispose()
 
 
-class _NoopGroups:
+class _NoopPurger:
     async def delete_for_user(self, _user_id) -> None:
         return None

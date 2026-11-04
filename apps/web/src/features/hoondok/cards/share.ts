@@ -1,5 +1,5 @@
 // 책갈피 건네기 (PLAN-HD-012 결정 4, SCR-PWA-024). 1단계는 Web Share + 2:1 OG 링크 카드이고 카카오 SDK 는 쓰지 않는다.
-// 폴백 순서는 모임 초대(together/invite-code.ts shareInvite)와 같다: 파일 공유 → 링크 공유 → 클립보드 → 직접 표시.
+// 폴백 순서: 파일 공유 → 링크 공유 → 클립보드 → 직접 표시.
 import { wordsHref } from "../library/api";
 import type { CardPublic } from "./api";
 

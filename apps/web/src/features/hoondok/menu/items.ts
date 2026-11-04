@@ -11,7 +11,7 @@ import { ScrollIcon } from "@phosphor-icons/react/dist/ssr/Scroll";
 import { SunHorizonIcon } from "@phosphor-icons/react/dist/ssr/SunHorizon";
 import { UserPlusIcon } from "@phosphor-icons/react/dist/ssr/UserPlus";
 import { UsersThreeIcon } from "@phosphor-icons/react/dist/ssr/UsersThree";
-import { isHoondokCardsEnabled, isHoondokTogetherEnabled } from "@/features/hoondok/flag";
+import { isHoondokCardsEnabled } from "@/features/hoondok/flag";
 
 // 전체 메뉴(앱바 햄버거)의 "메뉴" 탭 목록. 묶음은 하단 5탭과 같은 이름·순서이고, 항목은 이미 있는 화면만 둔다.
 // 꺼진 플래그의 화면은 숨기지 않고 "준비 중" 으로 남긴다 — 탭 내비의 준비 중 탭과 같은 신호다.
@@ -45,20 +45,10 @@ const GROUP_DEFS: readonly { id: string; title: string; items: readonly MenuItem
         icon: BookmarkSimpleIcon,
         isAvailable: isHoondokCardsEnabled,
       },
-      {
-        id: "group-new",
-        label: "모임 만들기",
-        href: "/groups/new",
-        icon: UsersThreeIcon,
-        isAvailable: isHoondokTogetherEnabled,
-      },
-      {
-        id: "group-join",
-        label: "모임 참여",
-        href: "/groups/join",
-        icon: UserPlusIcon,
-        isAvailable: isHoondokTogetherEnabled,
-      },
+      // 모임은 2026-11-04 에 화면·API 를 지웠다(DEC-PWA-027). 다시 열 자리라 가족·친구처럼 "준비 중" 으로만 남긴다.
+      // id 는 예전 즐겨찾기 키 그대로 — 다시 열면 저장된 즐겨찾기가 되살아난다
+      { id: "group-new", label: "모임 만들기", href: "/", icon: UsersThreeIcon, isAvailable: isComingSoon },
+      { id: "group-join", label: "모임 참여", href: "/", icon: UserPlusIcon, isAvailable: isComingSoon },
     ],
   },
   {

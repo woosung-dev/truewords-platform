@@ -5,7 +5,6 @@
 // 저장은 이 기기에만 한다. 계정 동기화 토글은 후속 결정이라 없다.
 import { Check, Info, Lock, Trash2 } from "lucide-react";
 import { useId, useMemo, useState } from "react";
-import { InlineConfirm } from "../../together/components/group-common";
 import {
   CRISIS_MOOD_ID,
   countLimitedMoods,
@@ -18,6 +17,7 @@ import {
   toggleMood,
 } from "../options";
 import { usePersonalAnswers } from "../use-personal";
+import { InlineConfirm } from "./inline-confirm";
 
 type Draft = { interests: string[]; moods: string[]; readingTime: string | null; readingLength: string | null };
 
