@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import Link from "next/link";
 import { DoneBadge, HoondokButton } from "@/components/hoondok";
 import { PushPromptCard } from "@/features/hoondok/notifications/components/push-prompt-card";
-import { GroupShareEntry, TogetherDoneNotice } from "@/features/hoondok/together/components/together-card";
+import { TogetherDoneNotice } from "@/features/hoondok/together/components/together-card";
 import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
@@ -61,10 +61,8 @@ export function ReadCompleteButton({ askHref, isDisabled = false }: { askHref: s
             <span className="read-done__note">기록을 아직 저장하지 못했어요. 연결되면 다시 시도해요.</span>
           )}
         </div>
-        {/* 함께 읽는 사람들 한 줄 (PLAN-HD-009). 서버에 기록된 완료만 집계되므로 로컬만 완료면 "당신까지" 를 쓰지 않는다.
-            모임 한 줄 남기기(PLAN-HD-010)는 저장 응답까지 기다린다 — 서버 미확정이면 한 줄 저장이 READ_REQUIRED 로 막힌다. */}
+        {/* 함께 읽는 사람들 한 줄 (PLAN-HD-009). 서버에 기록된 완료만 집계되므로 로컬만 완료면 "당신까지" 를 쓰지 않는다. */}
         <TogetherDoneNotice isCounted={isCounted} />
-        <GroupShareEntry isCounted={isCounted && !completion.isSaving} />
         {footer}
         {/* 알림 받기 제안 — 오늘 마친 뒤의 두 번째 자리(PLAN-HD-006). 보조 줄은 완료 동작에 붙어 있어야 해서 그 아래에 둔다. */}
         <PushPromptCard placement="after-read" isReadDone />

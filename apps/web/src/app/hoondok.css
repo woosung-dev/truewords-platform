@@ -1098,37 +1098,6 @@
     border-color: var(--line);
   }
 
-  /* 라디오 원 (DES §2.11). 모임 종류·설교 섭외 대상 두 곳이 이 하나를 쓴다.
-     선택 신호는 `role="radio"` 버튼의 aria-checked 또는 라벨 안 네이티브 input:checked 둘 중 하나다 */
-  .radio {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    border: 2px solid var(--ink-3);
-    background: var(--surface);
-    display: grid;
-    place-items: center;
-    flex: none;
-  }
-  [aria-checked="true"] > .radio,
-  label:has(input:checked) > .radio {
-    border-color: var(--accent);
-  }
-  [aria-checked="true"] > .radio::after,
-  label:has(input:checked) > .radio::after {
-    content: "";
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--accent);
-  }
-  /* 꺼진 라디오의 고른 상태는 점으로 남기되 액센트는 걷는다 — 살아 있는 컨트롤처럼 보이지 않게 */
-  [disabled][aria-checked="true"] > .radio {
-    border-color: var(--ink-3);
-  }
-  [disabled][aria-checked="true"] > .radio::after {
-    background: var(--ink-3);
-  }
   .form__switch {
     font-size: var(--fs-xs);
     color: var(--ink-2);
