@@ -117,9 +117,9 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     variant: "app",
     hideSettingsLink: true,
   },
-  // AI 질문 계열은 앱바의 말씀 검색 아이콘을 숨긴다 — 질문 검색(홈 돋보기)과 헷갈리지 않게 (DEC-PWA-025).
+  // AI 질문 계열도 모바일 앱바에 말씀 검색을 둔다 — PC 헤더와 같게. 질문 검색(홈 돋보기)은 라벨이 "질문 검색"이라 구분된다.
   // /ask/log 는 홈 "내 질문" 탭으로 리다이렉트만 하므로 항목이 없다.
-  { match: "/ask", title: "AI 질문", tabId: "ask", variant: "read", hideSearchLink: true },
+  { match: "/ask", title: "AI 질문", tabId: "ask", variant: "read" },
   // 새 질문은 전체 화면 — 앱바를 접고 화면이 ✕·제목·보내기 머리를 그린다
   {
     match: "/ask/new",
@@ -137,7 +137,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     backToHistory: true,
     tabId: "ask",
     variant: "read",
-    hideSearchLink: true,
   },
   // /ask/{id} — new·p 가 아닌 세그먼트. 위 항목보다 접두가 짧아 최장 매치에서 자연히 밀린다
   {
@@ -147,7 +146,6 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     backToHistory: true,
     tabId: "ask",
     variant: "read",
-    hideSearchLink: true,
   },
   { match: "/library", title: "말씀", tabId: "library", variant: "app" },
   // /library/{series} — 저작물 한 건의 권 목록. 제목은 API-HD-023 의 저작물 제목으로 바뀐다
