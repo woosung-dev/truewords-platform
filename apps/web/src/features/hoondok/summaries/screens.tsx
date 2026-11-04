@@ -57,7 +57,7 @@ export function SummaryListScreen({ volume }: { volume?: string }) {
   }
   return <section className="sum-page sum-index">
     <header className="sum-index__head"><h2>AI 요약</h2><p>핵심 한 줄과 그림으로 먼저 보고, 원문으로 이어 읽어요.</p><p className="sum-notice" role="note"><Info size={15} aria-hidden="true" />{AI_NOTICE}</p></header>
-    {(query.isPending || query.isError) ? <Status pending={query.isPending} retry={() => void query.refetch()} /> : items.length === 0 ? <div className="empty"><p className="empty__title">첫 요약을 준비하고 있어요</p><p className="empty__body">검수를 마친 요약부터 차례로 공개해요.</p><Link className="btn btn-line" href={volume ? wordsHref(volume) : "/library"}>원문 읽기</Link></div> : Array.from(groups, ([title, summaries], index) => <section className="sum-book" key={title} aria-labelledby={`sum-book-${index}`}><h3 id={`sum-book-${index}`}>{title}<span>{summaries.length}편</span></h3><ol className="sum-list">{summaries.map((item) => <li key={item.id}><Link href={`/summaries/${item.id}`}>
+    {(query.isPending || query.isError) ? <Status pending={query.isPending} retry={() => void query.refetch()} /> : items.length === 0 ? <div className="empty"><p className="empty__title">첫 요약을 준비하고 있어요</p><p className="empty__body">검수를 마친 요약부터 차례로 공개해요.</p><Link className="btn btn-line" href={volume ? wordsHref(volume) : "/library"}>원문 읽기</Link></div> : Array.from(groups, ([title, summaries], index) => <section className="sum-book" key={title} aria-labelledby={`sum-book-${index}`}><h3 id={`sum-book-${index}`}>{title}<span>{summaries.length}개</span></h3><ol className="sum-list">{summaries.map((item) => <li key={item.id}><Link href={`/summaries/${item.id}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {item.cover_url ? <img src={item.cover_url} alt="" loading="lazy" /> : <span className="sum-list__ph" aria-hidden="true"><BookOpenText size={22} /></span>}<span className="sum-list__bd"><small>{parentGroup(item.group_title)}</small><strong>{item.title}</strong><span className="sum-list__lead">{item.lead}</span></span><ChevronRight size={18} aria-hidden="true" /></Link></li>)}</ol></section>)}
   </section>;
@@ -94,6 +94,8 @@ export function SummaryDetailScreen({ id }: { id: string }) {
   const toSource = sourceHref(item);
   const crumbs = item.group_title.split(" · ").filter(Boolean);
   const headings = bodyHeadings(item.body);
+  // 근거 번호 이름 — 천성경 "말씀", 평화경 "문단"(연설문 안 순번)
+  const unit = item.paragraph_label ?? "말씀";
   const toc: TocEntry[] = [
     { id: "sum-lead", label: "핵심 한 줄" },
     ...(item.key_points.length ? [{ id: "sum-points", label: "요점" }] : []),
@@ -123,12 +125,12 @@ export function SummaryDetailScreen({ id }: { id: string }) {
         {/* 5. 차근히 이해하기 */}
         <section id="sum-body" aria-labelledby="sum-body-h"><h3 id="sum-body-h" className="sum-h">차근히 이해하기</h3><SummaryBody body={item.body} assets={item.assets ?? []} /></section>
         {/* 6. 근거 확인하기 */}
-        {item.evidence.length > 0 && <section id="sum-evidence" aria-labelledby="sum-evidence-h"><h3 id="sum-evidence-h" className="sum-h">근거 확인하기</h3><p className="sum-h-note">요약의 주장마다 원문 말씀 번호를 붙였어요.</p><ul className="sum-evidence">{item.evidence.map((e, i) => <li key={i}><p>{e.claim}</p><Link href={e.chunk_id ? wordsHref(item.volume, e.chunk_id) : toSource} aria-label={`말씀 ${range(e.from, e.to)} 원문에서 확인하기`}>말씀 {range(e.from, e.to)} 원문 보기 <ArrowRight size={14} aria-hidden="true" /></Link></li>)}</ul></section>}
+        {item.evidence.length > 0 && <section id="sum-evidence" aria-labelledby="sum-evidence-h"><h3 id="sum-evidence-h" className="sum-h">근거 확인하기</h3><p className="sum-h-note">요약의 주장마다 원문 {unit} 번호를 붙였어요.</p><ul className="sum-evidence">{item.evidence.map((e, i) => <li key={i}><p>{e.claim}</p><Link href={e.chunk_id ? wordsHref(item.volume, e.chunk_id) : toSource} aria-label={`${unit} ${range(e.from, e.to)} 원문에서 확인하기`}>{unit} {range(e.from, e.to)} 원문 보기 <ArrowRight size={14} aria-hidden="true" /></Link></li>)}</ul></section>}
         {/* 7. 되새길 물음 */}
         {item.reflection_questions.length > 0 && <section id="sum-questions" className="sum-reflection" aria-labelledby="sum-questions-h"><h3 id="sum-questions-h">되새길 물음</h3><ul>{item.reflection_questions.map((q, i) => <li key={i}>{q}</li>)}</ul></section>}
         {/* 8. 원문과 함께 읽기 */}
         <section id="sum-source" className="sum-source" aria-labelledby="sum-source-h"><BookOpenText size={22} aria-hidden="true" /><div><h3 id="sum-source-h">원문과 함께 읽기</h3><p>{[item.source.edition, item.source.locator].filter(Boolean).join(" · ")}</p></div><Link className="btn btn-line" href={toSource}>원문 읽기</Link></section>
-        <nav className="sum-next" aria-label="요약 이동"><Link href="/summaries"><ArrowLeft size={16} aria-hidden="true" />전체 요약</Link>{item.next_id ? <Link href={`/summaries/${item.next_id}`}>다음 요약 읽기 <ArrowRight size={16} aria-hidden="true" /></Link> : <span>다음 절은 준비 중이에요</span>}</nav>
+        <nav className="sum-next" aria-label="요약 이동"><Link href="/summaries"><ArrowLeft size={16} aria-hidden="true" />전체 요약</Link>{item.next_id ? <Link href={`/summaries/${item.next_id}`}>다음 요약 읽기 <ArrowRight size={16} aria-hidden="true" /></Link> : <span>다음 요약은 준비 중이에요</span>}</nav>
       </div>
       <aside className="sum-aside"><SummaryToc entries={toc} /></aside>
     </div>
@@ -138,7 +140,7 @@ export function SummaryDetailScreen({ id }: { id: string }) {
 /** 원문 뷰 머리 표지 — 지금 장에 공개된 절 요약이 있으면 링크로 보인다. */
 export function SummaryMarks({ items }: { items: { id: string; title: string }[] }) {
   if (!items.length) return null;
-  return <nav className="sum-marks" aria-label="이 장의 AI 요약"><p className="sum-marks__lab"><Sparkles size={15} aria-hidden="true" />이 장의 AI 요약 {items.length}편</p><ul>{items.map((item) => <li key={item.id}><Link className="sum-mark" href={`/summaries/${item.id}`}><span className="sum-sr">AI 요약 </span><span className="sum-mark__t">{item.title}</span><ChevronRight size={16} aria-hidden="true" /></Link></li>)}</ul></nav>;
+  return <nav className="sum-marks" aria-label="이 장의 AI 요약"><p className="sum-marks__lab"><Sparkles size={15} aria-hidden="true" />이 장의 AI 요약 {items.length}개</p><ul>{items.map((item) => <li key={item.id}><Link className="sum-mark" href={`/summaries/${item.id}`}><span className="sum-sr">AI 요약 </span><span className="sum-mark__t">{item.title}</span><ChevronRight size={16} aria-hidden="true" /></Link></li>)}</ul></nav>;
 }
 
 /** 이 권의 공개 요약 목록. 원문 뷰가 장별 표지를 붙이는 데 쓴다. */

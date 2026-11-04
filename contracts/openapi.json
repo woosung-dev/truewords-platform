@@ -6804,6 +6804,11 @@
             "title": "Lead",
             "type": "string"
           },
+          "paragraph_label": {
+            "default": "말씀",
+            "title": "Paragraph Label",
+            "type": "string"
+          },
           "position": {
             "anyOf": [
               {
@@ -6992,6 +6997,11 @@
               }
             ],
             "title": "Next Id"
+          },
+          "paragraph_label": {
+            "default": "말씀",
+            "title": "Paragraph Label",
+            "type": "string"
           },
           "position": {
             "title": "Position",
@@ -7639,28 +7649,100 @@
         "type": "object"
       },
       "SummaryTocItem": {
-        "description": "관리자 발행 관리 목록 한 행 — 천성경 절 하나.",
+        "description": "관리자 발행 관리 목록 한 행 — 천성경 절 하나 또는 평화경 연설문(제4편 14 는 장) 하나.",
         "properties": {
+          "chapter_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chapter No"
+          },
+          "chapter_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chapter Title"
+          },
           "image_count": {
             "default": 0,
             "title": "Image Count",
             "type": "integer"
           },
+          "item_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item No"
+          },
+          "item_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Title"
+          },
           "jang_no": {
-            "title": "Jang No",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jang No"
           },
           "jang_title": {
-            "title": "Jang Title",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jang Title"
           },
           "jeol_no": {
-            "title": "Jeol No",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jeol No"
           },
           "jeol_title": {
-            "title": "Jeol Title",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jeol Title"
           },
           "paragraph_count": {
             "title": "Paragraph Count",
@@ -7706,6 +7788,17 @@
             ],
             "title": "Text Score"
           },
+          "toc_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Toc Date"
+          },
           "unit_id": {
             "anyOf": [
               {
@@ -7735,10 +7828,6 @@
           "slug",
           "pyeon_no",
           "pyeon_title",
-          "jang_no",
-          "jang_title",
-          "jeol_no",
-          "jeol_title",
           "paragraph_count"
         ],
         "title": "SummaryTocItem",
@@ -10472,11 +10561,25 @@
         ]
       }
     },
-    "/admin/hoondok/ai-summaries/cheonseong-toc": {
+    "/admin/hoondok/ai-summaries/toc": {
       "get": {
-        "description": "천성경 편·장·절 199절 발행 관리 목록. 상태·편으로 거른다.",
-        "operationId": "admin_cheonseong_toc_admin_hoondok_ai_summaries_cheonseong_toc_get",
+        "description": "경전 목차 발행 관리 목록 — 천성경 199절, 평화경 182 연설문·장. 상태·편으로 거른다.",
+        "operationId": "admin_toc_admin_hoondok_ai_summaries_toc_get",
         "parameters": [
+          {
+            "in": "query",
+            "name": "work",
+            "required": false,
+            "schema": {
+              "default": "cheonseong",
+              "enum": [
+                "cheonseong",
+                "pyeonghwa"
+              ],
+              "title": "Work",
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "status",
@@ -10527,7 +10630,7 @@
                   "items": {
                     "$ref": "#/components/schemas/SummaryTocItem"
                   },
-                  "title": "Response Admin Cheonseong Toc Admin Hoondok Ai Summaries Cheonseong Toc Get",
+                  "title": "Response Admin Toc Admin Hoondok Ai Summaries Toc Get",
                   "type": "array"
                 }
               }
@@ -10545,7 +10648,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Admin Cheonseong Toc",
+        "summary": "Admin Toc",
         "tags": [
           "admin-hoondok"
         ]

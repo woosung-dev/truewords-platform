@@ -380,6 +380,8 @@ class SummaryMediaResponse(BaseModel):
 
 class SummaryAdminResponse(SummaryInput):
     id: uuid.UUID
+    # 근거 번호 이름 — 천성경 "말씀", 평화경 "문단"(공식 번호가 아니라 연설문 안 순번)
+    paragraph_label: str = "말씀"
     version: int
     review_status: SummaryStatus
     published: bool
@@ -388,15 +390,22 @@ class SummaryAdminResponse(SummaryInput):
 
 
 class SummaryTocItem(BaseModel):
-    """관리자 발행 관리 목록 한 행 — 천성경 절 하나."""
+    """관리자 발행 관리 목록 한 행 — 천성경 절 하나 또는 평화경 연설문(제4편 14 는 장) 하나."""
 
     slug: str
     pyeon_no: int
     pyeon_title: str
-    jang_no: int
-    jang_title: str
-    jeol_no: int
-    jeol_title: str
+    # 천성경: 편 › 장 › 절
+    jang_no: int | None = None
+    jang_title: str | None = None
+    jeol_no: int | None = None
+    jeol_title: str | None = None
+    # 평화경: 편 › 연설문(› 장). toc_date 는 목차 표기 "1972.2.4", 장이 없으면 chapter_* 는 null.
+    item_no: int | None = None
+    item_title: str | None = None
+    toc_date: str | None = None
+    chapter_no: int | None = None
+    chapter_title: str | None = None
     paragraph_count: int
     unit_id: uuid.UUID | None = None
     status: Literal["none", "draft", "review", "published", "withdrawn"] = "none"
@@ -430,6 +439,8 @@ class SummaryPublicImage(BaseModel):
 
 class SummaryDetail(SummaryListItem):
     body_version: Literal[1, 2] = 1
+    # 근거 번호 이름 — 천성경 "말씀", 평화경 "문단"
+    paragraph_label: str = "말씀"
     assets: list[SummaryMediaResponse] = Field(default_factory=list)
     volume: str
     key_points: list[str]
