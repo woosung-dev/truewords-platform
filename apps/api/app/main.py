@@ -34,6 +34,8 @@ from app.modules.hoondok.rights_admin_router import router as rights_admin_route
 from app.modules.hoondok.client_errors import router as client_errors_router
 from app.modules.hoondok.notifications_router import router as hoondok_notifications_router
 from app.modules.hoondok.admin_router import admin_router as hoondok_admin_router
+from app.modules.hoondok.source_router import router as source_admin_router
+from app.modules.hoondok.summary_router import router as summary_router, admin_router as summary_admin_router
 from app.modules.hoondok.tts_router import router as hoondok_tts_router
 from app.modules.hoondok.cards_router import router as hoondok_cards_router
 from app.modules.hoondok.cards_admin_router import cards_admin_router
@@ -142,6 +144,7 @@ app.include_router(client_errors_router)
 app.include_router(hoondok_router)  # 훈독 공개 읽기 — 비로그인 (PLAN-HD-001 Phase 1)
 app.include_router(hoondok_notifications_router)  # 훈독 알림 설정·푸시 구독 (PLAN-HD-006)
 app.include_router(hoondok_library_router)  # 훈독 서고 3계층·읽기 기록 (PLAN-HD-007)
+app.include_router(summary_router)
 app.include_router(hoondok_tts_router)  # 훈독 AI 낭독 목소리 /hoondok/tts/* (PLAN-HD-011)
 app.include_router(hoondok_cards_router)  # 오늘의 책갈피 /hoondok/cards·me/cards (PLAN-HD-012)
 app.include_router(hoondok_public_questions_router)  # 공개 질문 /hoondok/questions·me/questions (DEC-PWA-025)
@@ -159,6 +162,8 @@ app.include_router(datasource_router, dependencies=_ADMIN_GATE)
 app.include_router(chunks_router)  # 공개 유지 — 채팅 원문보기 모달 (자체 chatbot ACL)
 app.include_router(analytics_router, dependencies=_ADMIN_GATE)
 app.include_router(rag_trace_router, dependencies=_ADMIN_GATE)  # 파이프라인 추적 /admin/rag-trace (저장 없음)
+app.include_router(summary_admin_router, dependencies=_ADMIN_GATE)
+app.include_router(source_admin_router, dependencies=_ADMIN_GATE)
 app.include_router(rights_admin_router, dependencies=_ADMIN_GATE)
 app.include_router(hoondok_admin_router, dependencies=_ADMIN_GATE)  # 훈독 편성 /admin/hoondok/daily-readings (Phase 3 A)
 app.include_router(cards_admin_router, dependencies=_ADMIN_GATE)  # 책갈피 풀 /admin/hoondok/cards (PLAN-HD-012)

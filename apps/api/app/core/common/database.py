@@ -52,6 +52,8 @@ async def init_db() -> None:
     from app.modules.chatbot.models import ChatbotConfig  # noqa: F401
     from app.modules.datasource.models import DataSourceCategory  # noqa: F401
     from app.modules.hoondok.models import DailyReading, JeongseongPeriod, MissionLog  # noqa: F401
+    from app.modules.hoondok.summary_models import SummaryUnit, SummaryRevision, SummaryAsset  # noqa: F401
+    from app.modules.hoondok.source_models import SourceSnapshot, SourceRange  # noqa: F401
     from app.modules.identity.models import User  # noqa: F401
 
     async with engine.begin() as conn:

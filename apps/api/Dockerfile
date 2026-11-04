@@ -66,6 +66,7 @@ COPY --link --from=builder \
 COPY --link --from=builder /app/app     ./app
 COPY --link --from=builder /app/alembic ./alembic
 COPY --link --from=builder /app/scripts ./scripts
+COPY --link --from=builder /app/content ./content
 
 USER appuser
 

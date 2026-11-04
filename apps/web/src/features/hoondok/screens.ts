@@ -112,6 +112,8 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     tabId: "ask",
     variant: "read",
   },
+  { match: "/summaries", title: "AI 요약", backHref: "/library", tabId: "library", variant: "app" },
+  { match: "/summaries/", title: "AI 요약", backHref: "/summaries", tabId: "library", variant: "app" },
   // /ask/{id} — new·p 가 아닌 세그먼트. 위 항목보다 접두가 짧아 최장 매치에서 자연히 밀린다
   {
     match: "/ask/",

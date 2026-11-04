@@ -29,6 +29,7 @@ import { WEB_ORIGIN } from "@/lib/origins";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
   { href: "/chatbots", label: "챗봇", icon: Bot },
+  { href: "/hoondok/summaries", label: "말씀 AI 요약", icon: ScrollText },
   { href: "/hoondok/rights", label: "훈독 권리", icon: ScrollText },
   { href: "/hoondok/cards", label: "오늘의 책갈피", icon: Bookmark },
   { href: "/hoondok/questions", label: "추천 질문 고르기", icon: MessageCircleQuestionMark },

@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     # [가정] 3만 자 ≈ 원문 구간 15~20개. 넘으면 429 TTS_USER_LIMIT_EXCEEDED, 클라이언트는 기기 음성으로 읽는다.
     hoondok_tts_user_daily_char_limit: int = 30_000
     # 합성한 단락 mp3 저장 위치. 운영은 컨테이너 밖 볼륨으로 마운트한다(infra/oracle-vm/README.md).
+    hoondok_summary_media_dir: str = "var/hoondok-summary-media"
     hoondok_tts_cache_dir: str = "var/hoondok-tts"
 
     def is_hoondok_tts_enabled(self) -> bool:

@@ -232,6 +232,20 @@
         "title": "Body_upload_document_admin_data_sources_upload_post",
         "type": "object"
       },
+      "Body_upload_summary_image_admin_hoondok_ai_summaries__unit_id__media_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_summary_image_admin_hoondok_ai_summaries__unit_id__media_post",
+        "type": "object"
+      },
       "BulkRightsInput": {
         "properties": {
           "authority_grade": {
@@ -6043,6 +6057,69 @@
         "title": "Source",
         "type": "object"
       },
+      "SourceBlock": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "section_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Id"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "label",
+          "text"
+        ],
+        "title": "SourceBlock",
+        "type": "object"
+      },
+      "SourceBook": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "volume"
+        ],
+        "title": "SourceBook",
+        "type": "object"
+      },
       "SourceChunkDetail": {
         "description": "P0-B — 인용 카드 원문보기 모달용 청크 상세 + dedup 된 연속 문맥.\n\nNotebookLM 패턴: 메인 청크 + 같은 volume 의 chunk_index 인접 ±N 청크들을\nsuffix-prefix overlap dedup 후 **하나의 연속 본문** 으로 합쳐 반환한다.\n사용자가 청크 경계의 끊김/중복 없이 자연스러운 reading flow 로 원문을\n확인할 수 있다. 프론트는 ``main_offset_start..main_offset_end`` 범위만\n시각적으로 강조 (좌측 brass border + accent 옅은 배경).\n\nChunking artifact (overlap=150) 의 부산물이 백엔드에서 정리되므로 프론트는\n단순 substring slicing 만 수행.\n\nPoC 정리 (2026-04-29) — P1-B 4중 메타 (volume_no/delivered_at/delivered_place/\nchapter_title + citation_label) 제거. 인덱싱 파이프라인이 4 필드를 채우게\n되면 재추가.",
         "properties": {
@@ -6100,6 +6177,428 @@
           "chunk_id"
         ],
         "title": "SourceChunkDetail",
+        "type": "object"
+      },
+      "SourcePassages": {
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/SourceBlock"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          },
+          "snapshot_id": {
+            "format": "uuid",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "blocks",
+          "total",
+          "next_offset"
+        ],
+        "title": "SourcePassages",
+        "type": "object"
+      },
+      "SourceRangeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "end_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "End Block Id",
+            "type": "string"
+          },
+          "end_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Offset"
+          },
+          "group_title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Group Title",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "format": "uuid",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "start_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Start Block Id",
+            "type": "string"
+          },
+          "start_offset": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start Offset",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "start_block_id",
+          "end_block_id",
+          "title"
+        ],
+        "title": "SourceRangeInput",
+        "type": "object"
+      },
+      "SourceRangeMerge": {
+        "properties": {
+          "other_id": {
+            "format": "uuid",
+            "title": "Other Id",
+            "type": "string"
+          },
+          "other_version": {
+            "minimum": 1.0,
+            "title": "Other Version",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "other_id",
+          "other_version",
+          "title"
+        ],
+        "title": "SourceRangeMerge",
+        "type": "object"
+      },
+      "SourceRangeResult": {
+        "additionalProperties": false,
+        "properties": {
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "end_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "End Block Id",
+            "type": "string"
+          },
+          "end_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Offset"
+          },
+          "first": {
+            "title": "First",
+            "type": "string"
+          },
+          "group_title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Group Title",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last": {
+            "title": "Last",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "format": "uuid",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SummarySource"
+          },
+          "start_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Start Block Id",
+            "type": "string"
+          },
+          "start_offset": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start Offset",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "start_block_id",
+          "end_block_id",
+          "title",
+          "id",
+          "version",
+          "content_right_id",
+          "first",
+          "last",
+          "text",
+          "source"
+        ],
+        "title": "SourceRangeResult",
+        "type": "object"
+      },
+      "SourceRangeSplit": {
+        "properties": {
+          "after_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "After Block Id",
+            "type": "string"
+          },
+          "after_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After Offset"
+          },
+          "first_title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "First Title",
+            "type": "string"
+          },
+          "second_title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Second Title",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "after_block_id",
+          "first_title",
+          "second_title"
+        ],
+        "title": "SourceRangeSplit",
+        "type": "object"
+      },
+      "SourceRangeUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "end_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "End Block Id",
+            "type": "string"
+          },
+          "end_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Offset"
+          },
+          "group_title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Group Title",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "format": "uuid",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "start_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Start Block Id",
+            "type": "string"
+          },
+          "start_offset": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start Offset",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "start_block_id",
+          "end_block_id",
+          "title",
+          "version"
+        ],
+        "title": "SourceRangeUpdate",
+        "type": "object"
+      },
+      "SourceSection": {
+        "properties": {
+          "end_block_id": {
+            "title": "End Block Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "start_block_id": {
+            "title": "Start Block Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "level",
+          "start_block_id",
+          "end_block_id"
+        ],
+        "title": "SourceSection",
+        "type": "object"
+      },
+      "SourceSnapshotInfo": {
+        "properties": {
+          "block_count": {
+            "title": "Block Count",
+            "type": "integer"
+          },
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "edition": {
+            "title": "Edition",
+            "type": "string"
+          },
+          "fingerprint": {
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SourceSection"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "content_right_id",
+          "title",
+          "edition",
+          "fingerprint",
+          "sections",
+          "block_count"
+        ],
+        "title": "SourceSnapshotInfo",
         "type": "object"
       },
       "StageSpan": {
@@ -6207,6 +6706,828 @@
         "title": "StageSpan",
         "type": "object"
       },
+      "SummaryActionInput": {
+        "properties": {
+          "action": {
+            "enum": [
+              "request_review",
+              "return_to_draft",
+              "publish",
+              "withdraw"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action",
+          "version"
+        ],
+        "title": "SummaryActionInput",
+        "type": "object"
+      },
+      "SummaryAdminResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryMediaResponse"
+            },
+            "title": "Assets",
+            "type": "array"
+          },
+          "body": {
+            "additionalProperties": true,
+            "title": "Body",
+            "type": "object"
+          },
+          "body_version": {
+            "default": 1,
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Body Version",
+            "type": "integer"
+          },
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvidence"
+            },
+            "maxItems": 20,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "generation": {
+            "$ref": "#/components/schemas/SummaryGeneration"
+          },
+          "group_title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Group Title",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryImage"
+            },
+            "maxItems": 2,
+            "title": "Images",
+            "type": "array"
+          },
+          "key_points": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Key Points",
+            "type": "array"
+          },
+          "lead": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Lead",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "published": {
+            "title": "Published",
+            "type": "boolean"
+          },
+          "reflection_questions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Reflection Questions",
+            "type": "array"
+          },
+          "review_status": {
+            "enum": [
+              "draft",
+              "review",
+              "published",
+              "withdrawn"
+            ],
+            "title": "Review Status",
+            "type": "string"
+          },
+          "slug": {
+            "default": "",
+            "pattern": "^(?:[a-z0-9][a-z0-9-]{0,99})?$",
+            "title": "Slug",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SummarySource"
+          },
+          "source_range_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Range Id"
+          },
+          "source_range_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Range Version"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "uncertainty": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Uncertainty",
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "content_right_id",
+          "title",
+          "id",
+          "version",
+          "review_status",
+          "published",
+          "assets",
+          "updated_at"
+        ],
+        "title": "SummaryAdminResponse",
+        "type": "object"
+      },
+      "SummaryDetail": {
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryMediaResponse"
+            },
+            "title": "Assets",
+            "type": "array"
+          },
+          "body": {
+            "additionalProperties": true,
+            "title": "Body",
+            "type": "object"
+          },
+          "body_version": {
+            "default": 1,
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Body Version",
+            "type": "integer"
+          },
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Url"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "group_title": {
+            "title": "Group Title",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryPublicImage"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "key_points": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Key Points",
+            "type": "array"
+          },
+          "lead": {
+            "title": "Lead",
+            "type": "string"
+          },
+          "next_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Id"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "reflection_questions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reflection Questions",
+            "type": "array"
+          },
+          "section_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Position"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SummaryPublicSource"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "content_right_id",
+          "work_title",
+          "slug",
+          "group_title",
+          "position",
+          "title",
+          "lead",
+          "volume",
+          "key_points",
+          "body",
+          "evidence",
+          "reflection_questions",
+          "source",
+          "images"
+        ],
+        "title": "SummaryDetail",
+        "type": "object"
+      },
+      "SummaryEvidence": {
+        "additionalProperties": false,
+        "description": "요약 문장의 근거 — 절 안 말씀 번호 범위.",
+        "properties": {
+          "chunk_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Id"
+          },
+          "chunk_index": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Index"
+          },
+          "claim": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Claim",
+            "type": "string"
+          },
+          "from": {
+            "minimum": 1.0,
+            "title": "From",
+            "type": "integer"
+          },
+          "to": {
+            "minimum": 1.0,
+            "title": "To",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "claim",
+          "from",
+          "to"
+        ],
+        "title": "SummaryEvidence",
+        "type": "object"
+      },
+      "SummaryGeneration": {
+        "additionalProperties": false,
+        "description": "생성 기록 — 관리자 응답에만 포함한다.",
+        "properties": {
+          "image_rounds": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "maxProperties": 10,
+            "title": "Image Rounds",
+            "type": "object"
+          },
+          "image_scores": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "maxProperties": 10,
+            "title": "Image Scores",
+            "type": "object"
+          },
+          "text_model": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Text Model",
+            "type": "string"
+          },
+          "text_rounds": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Text Rounds",
+            "type": "integer"
+          },
+          "text_score": {
+            "default": 0,
+            "title": "Text Score",
+            "type": "number"
+          }
+        },
+        "title": "SummaryGeneration",
+        "type": "object"
+      },
+      "SummaryImage": {
+        "additionalProperties": false,
+        "properties": {
+          "alt": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Alt",
+            "type": "string"
+          },
+          "asset_id": {
+            "format": "uuid",
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "caption": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Caption",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "concept",
+              "scene"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "asset_id"
+        ],
+        "title": "SummaryImage",
+        "type": "object"
+      },
+      "SummaryInput": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "additionalProperties": true,
+            "title": "Body",
+            "type": "object"
+          },
+          "body_version": {
+            "default": 1,
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Body Version",
+            "type": "integer"
+          },
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvidence"
+            },
+            "maxItems": 20,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "generation": {
+            "$ref": "#/components/schemas/SummaryGeneration"
+          },
+          "group_title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Group Title",
+            "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryImage"
+            },
+            "maxItems": 2,
+            "title": "Images",
+            "type": "array"
+          },
+          "key_points": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Key Points",
+            "type": "array"
+          },
+          "lead": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Lead",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "reflection_questions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Reflection Questions",
+            "type": "array"
+          },
+          "slug": {
+            "default": "",
+            "pattern": "^(?:[a-z0-9][a-z0-9-]{0,99})?$",
+            "title": "Slug",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SummarySource"
+          },
+          "source_range_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Range Id"
+          },
+          "source_range_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Range Version"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "uncertainty": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Uncertainty",
+            "type": "array"
+          }
+        },
+        "required": [
+          "content_right_id",
+          "title"
+        ],
+        "title": "SummaryInput",
+        "type": "object"
+      },
+      "SummaryListItem": {
+        "properties": {
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Url"
+          },
+          "group_title": {
+            "title": "Group Title",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lead": {
+            "title": "Lead",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "section_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Position"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "content_right_id",
+          "work_title",
+          "slug",
+          "group_title",
+          "position",
+          "title",
+          "lead"
+        ],
+        "title": "SummaryListItem",
+        "type": "object"
+      },
+      "SummaryMediaResponse": {
+        "properties": {
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "mime_type"
+        ],
+        "title": "SummaryMediaResponse",
+        "type": "object"
+      },
+      "SummaryPublicImage": {
+        "properties": {
+          "alt": {
+            "title": "Alt",
+            "type": "string"
+          },
+          "asset_id": {
+            "format": "uuid",
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "caption": {
+            "title": "Caption",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "concept",
+              "scene"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "asset_id",
+          "alt",
+          "caption",
+          "url"
+        ],
+        "title": "SummaryPublicImage",
+        "type": "object"
+      },
+      "SummaryPublicSource": {
+        "description": "공개 응답의 원문 정보. 검수 메모·검수 여부는 담지 않는다.",
+        "properties": {
+          "chunk_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Chunk Ids",
+            "type": "array"
+          },
+          "edition": {
+            "default": "",
+            "title": "Edition",
+            "type": "string"
+          },
+          "locator": {
+            "default": "",
+            "title": "Locator",
+            "type": "string"
+          },
+          "paragraph_from": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph From"
+          },
+          "paragraph_to": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph To"
+          },
+          "text": {
+            "default": "",
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "title": "SummaryPublicSource",
+        "type": "object"
+      },
       "SummaryResponse": {
         "description": "API-HD-004. 연속일·최대·누적은 read 기준이며 저장하지 않는다. week 는 월요일 시작 7칸.",
         "properties": {
@@ -6241,6 +7562,328 @@
           "week"
         ],
         "title": "SummaryResponse",
+        "type": "object"
+      },
+      "SummarySource": {
+        "additionalProperties": false,
+        "properties": {
+          "chunk_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 300,
+            "title": "Chunk Ids",
+            "type": "array"
+          },
+          "edition": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Edition",
+            "type": "string"
+          },
+          "locator": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Locator",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 3000,
+            "title": "Note",
+            "type": "string"
+          },
+          "paragraph_from": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph From"
+          },
+          "paragraph_to": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph To"
+          },
+          "sha256": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Sha256",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 100000,
+            "title": "Text",
+            "type": "string"
+          },
+          "verified": {
+            "default": false,
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "title": "SummarySource",
+        "type": "object"
+      },
+      "SummaryTocItem": {
+        "description": "관리자 발행 관리 목록 한 행 — 천성경 절 하나.",
+        "properties": {
+          "image_count": {
+            "default": 0,
+            "title": "Image Count",
+            "type": "integer"
+          },
+          "jang_no": {
+            "title": "Jang No",
+            "type": "integer"
+          },
+          "jang_title": {
+            "title": "Jang Title",
+            "type": "string"
+          },
+          "jeol_no": {
+            "title": "Jeol No",
+            "type": "integer"
+          },
+          "jeol_title": {
+            "title": "Jeol Title",
+            "type": "string"
+          },
+          "paragraph_count": {
+            "title": "Paragraph Count",
+            "type": "integer"
+          },
+          "published": {
+            "default": false,
+            "title": "Published",
+            "type": "boolean"
+          },
+          "pyeon_no": {
+            "title": "Pyeon No",
+            "type": "integer"
+          },
+          "pyeon_title": {
+            "title": "Pyeon Title",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "default": "none",
+            "enum": [
+              "none",
+              "draft",
+              "review",
+              "published",
+              "withdrawn"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Score"
+          },
+          "unit_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Id"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "slug",
+          "pyeon_no",
+          "pyeon_title",
+          "jang_no",
+          "jang_title",
+          "jeol_no",
+          "jeol_title",
+          "paragraph_count"
+        ],
+        "title": "SummaryTocItem",
+        "type": "object"
+      },
+      "SummaryUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "additionalProperties": true,
+            "title": "Body",
+            "type": "object"
+          },
+          "body_version": {
+            "default": 1,
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Body Version",
+            "type": "integer"
+          },
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvidence"
+            },
+            "maxItems": 20,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "generation": {
+            "$ref": "#/components/schemas/SummaryGeneration"
+          },
+          "group_title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Group Title",
+            "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryImage"
+            },
+            "maxItems": 2,
+            "title": "Images",
+            "type": "array"
+          },
+          "key_points": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Key Points",
+            "type": "array"
+          },
+          "lead": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Lead",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "reflection_questions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Reflection Questions",
+            "type": "array"
+          },
+          "slug": {
+            "default": "",
+            "pattern": "^(?:[a-z0-9][a-z0-9-]{0,99})?$",
+            "title": "Slug",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SummarySource"
+          },
+          "source_range_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Range Id"
+          },
+          "source_range_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Range Version"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "uncertainty": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Uncertainty",
+            "type": "array"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "content_right_id",
+          "title",
+          "version"
+        ],
+        "title": "SummaryUpdate",
         "type": "object"
       },
       "TodayCardResponse": {
@@ -8788,6 +10431,377 @@
         ]
       }
     },
+    "/admin/hoondok/ai-summaries": {
+      "post": {
+        "operationId": "create_summary_admin_hoondok_ai_summaries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummaryInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryAdminResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Summary",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/ai-summaries/cheonseong-toc": {
+      "get": {
+        "description": "천성경 편·장·절 199절 발행 관리 목록. 상태·편으로 거른다.",
+        "operationId": "admin_cheonseong_toc_admin_hoondok_ai_summaries_cheonseong_toc_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "none",
+                    "draft",
+                    "review",
+                    "published",
+                    "withdrawn"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pyeon",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 13,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pyeon"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SummaryTocItem"
+                  },
+                  "title": "Response Admin Cheonseong Toc Admin Hoondok Ai Summaries Cheonseong Toc Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Cheonseong Toc",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/ai-summaries/{unit_id}": {
+      "get": {
+        "operationId": "admin_summary_detail_admin_hoondok_ai_summaries__unit_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryAdminResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Summary Detail",
+        "tags": [
+          "admin-hoondok"
+        ]
+      },
+      "put": {
+        "operationId": "update_summary_admin_hoondok_ai_summaries__unit_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummaryUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryAdminResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Summary",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/ai-summaries/{unit_id}/actions": {
+      "post": {
+        "operationId": "summary_action_admin_hoondok_ai_summaries__unit_id__actions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummaryActionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryAdminResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Summary Action",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/ai-summaries/{unit_id}/media": {
+      "post": {
+        "operationId": "upload_summary_image_admin_hoondok_ai_summaries__unit_id__media_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_summary_image_admin_hoondok_ai_summaries__unit_id__media_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryMediaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Summary Image",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/ai-summaries/{unit_id}/media/{asset_id}": {
+      "get": {
+        "operationId": "admin_summary_media_admin_hoondok_ai_summaries__unit_id__media__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Summary Media",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
     "/admin/hoondok/cards": {
       "get": {
         "description": "API-HD-052 카드 풀 목록(최신 등록순). `status` 로 거른다.",
@@ -9592,6 +11606,454 @@
         ]
       }
     },
+    "/admin/hoondok/source-books": {
+      "get": {
+        "operationId": "source_books_admin_hoondok_source_books_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceBook"
+                  },
+                  "title": "Response Source Books Admin Hoondok Source Books Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Source Books",
+        "tags": [
+          "admin-hoondok-sources"
+        ]
+      }
+    },
+    "/admin/hoondok/source-books/{right_id}/snapshots": {
+      "post": {
+        "operationId": "create_snapshot_admin_hoondok_source_books__right_id__snapshots_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "right_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Right Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceSnapshotInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Snapshot",
+        "tags": [
+          "admin-hoondok-sources"
+        ]
+      }
+    },
+    "/admin/hoondok/source-ranges": {
+      "get": {
+        "operationId": "source_ranges_admin_hoondok_source_ranges_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "content_right_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content Right Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceRangeResult"
+                  },
+                  "title": "Response Source Ranges Admin Hoondok Source Ranges Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Ranges",
+        "tags": [
+          "admin-hoondok-sources"
+        ]
+      },
+      "post": {
+        "operationId": "create_range_admin_hoondok_source_ranges_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceRangeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceRangeResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Range",
+        "tags": [
+          "admin-hoondok-sources"
+        ]
+      }
+    },
+    "/admin/hoondok/source-ranges/{range_id}": {
+      "get": {
+        "operationId": "source_range_admin_hoondok_source_ranges__range_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "range_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Range Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceRangeResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Range",
+        "tags": [
+          "admin-hoondok-sources"
+        ]
+      },
+      "put": {
+        "operationId": "update_range_admin_hoondok_source_ranges__range_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "range_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Range Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceRangeUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceRangeResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Range",
+        "tags": [
+          "admin-hoondok-sources"
+        ]
+      }
+    },
+    "/admin/hoondok/source-ranges/{range_id}/merge": {
+      "post": {
+        "operationId": "merge_ranges_admin_hoondok_source_ranges__range_id__merge_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "range_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Range Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceRangeMerge"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceRangeResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Merge Ranges",
+        "tags": [
+          "admin-hoondok-sources"
+        ]
+      }
+    },
+    "/admin/hoondok/source-ranges/{range_id}/split": {
+      "post": {
+        "operationId": "split_range_admin_hoondok_source_ranges__range_id__split_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "range_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Range Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceRangeSplit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceRangeResult"
+                  },
+                  "title": "Response Split Range Admin Hoondok Source Ranges  Range Id  Split Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Split Range",
+        "tags": [
+          "admin-hoondok-sources"
+        ]
+      }
+    },
+    "/admin/hoondok/source-snapshots/{snapshot_id}/passages": {
+      "get": {
+        "operationId": "source_passages_admin_hoondok_source_snapshots__snapshot_id__passages_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_block_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 36,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Block Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourcePassages"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Passages",
+        "tags": [
+          "admin-hoondok-sources"
+        ]
+      }
+    },
     "/admin/rag-trace": {
       "post": {
         "operationId": "run_rag_trace_admin_rag_trace_post",
@@ -10138,6 +12600,153 @@
           }
         },
         "summary": "Health"
+      }
+    },
+    "/hoondok/ai-summaries": {
+      "get": {
+        "operationId": "list_summaries_hoondok_ai_summaries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "volume",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Volume"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SummaryListItem"
+                  },
+                  "title": "Response List Summaries Hoondok Ai Summaries Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Summaries",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/ai-summaries/{unit_id}": {
+      "get": {
+        "operationId": "summary_detail_hoondok_ai_summaries__unit_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Summary Detail",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/ai-summaries/{unit_id}/media/{asset_id}": {
+      "get": {
+        "operationId": "summary_media_hoondok_ai_summaries__unit_id__media__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Summary Media",
+        "tags": [
+          "hoondok"
+        ]
       }
     },
     "/hoondok/ask/stream": {

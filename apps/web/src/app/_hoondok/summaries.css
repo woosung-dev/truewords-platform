@@ -1,0 +1,164 @@
+/* 천성경 AI 요약 — 목록·상세·원문 뷰 표지.
+   읽기 위계: 핵심 한 줄 → 요점 → 그림 → 본문. 좁은 화면은 한 줄기, 1024px 부터 본문 + 오른쪽 목차 2열. */
+[data-app="hoondok"] .sum-page { width: 100%; max-width: 1120px; padding: 20px var(--gutter) 56px; margin: 0 auto; color: var(--ink); }
+
+/* ---------- 고정 안내 : 차분한 한 줄 ---------- */
+[data-app="hoondok"] .sum-notice { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 12px; border-radius: var(--r-xs); background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-xs); line-height: 1.6; }
+[data-app="hoondok"] .sum-notice svg { flex: none; margin-top: 2px; color: var(--ink-3); }
+
+/* ---------- 목록 ---------- */
+[data-app="hoondok"] .sum-page.sum-index { max-width: 760px; }
+[data-app="hoondok"] .sum-index__head { margin-bottom: 28px; }
+[data-app="hoondok"] .sum-index__head h2 { margin: 0 0 6px; font-size: var(--fs-3xl); font-weight: 700; letter-spacing: -0.03em; }
+[data-app="hoondok"] .sum-index__head > p:not(.sum-notice) { margin: 0 0 16px; color: var(--ink-2); font-size: var(--fs-md); line-height: 1.7; word-break: keep-all; }
+[data-app="hoondok"] .sum-book { margin-bottom: 40px; }
+[data-app="hoondok"] .sum-book h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; font-size: var(--fs-xl); font-weight: 700; }
+[data-app="hoondok"] .sum-book h3 span { color: var(--ink-3); font-size: var(--fs-sm); font-weight: 500; }
+[data-app="hoondok"] .sum-list { list-style: none; padding: 0; margin: 0; }
+[data-app="hoondok"] .sum-list li + li { border-top: 1px solid var(--line); }
+[data-app="hoondok"] .sum-list a { display: grid; grid-template-columns: 96px minmax(0, 1fr) 18px; gap: 16px; align-items: center; padding: 18px 0; color: var(--ink); text-decoration: none; }
+[data-app="hoondok"] .sum-list a > svg { color: var(--ink-3); }
+[data-app="hoondok"] .sum-list img, [data-app="hoondok"] .sum-list__ph { width: 96px; aspect-ratio: 3 / 2; object-fit: cover; border-radius: var(--r-xs); background: var(--surface-2); }
+[data-app="hoondok"] .sum-list__ph { display: grid; place-items: center; color: var(--ink-3); }
+[data-app="hoondok"] .sum-list__bd { display: grid; gap: 2px; min-width: 0; word-break: keep-all; }
+[data-app="hoondok"] .sum-list small { color: var(--ink-3); font-size: var(--fs-xs); line-height: 1.6; }
+[data-app="hoondok"] .sum-list strong { font-size: var(--fs-lg); font-weight: 650; line-height: 1.5; }
+[data-app="hoondok"] .sum-list__lead { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.65; }
+@media (hover: hover) {
+  [data-app="hoondok"] .sum-list a:hover strong { color: var(--accent-strong); }
+}
+
+/* ---------- 상세 : 머리 ---------- */
+[data-app="hoondok"] .sum-reading { word-break: keep-all; overflow-wrap: anywhere; }
+[data-app="hoondok"] .sum-main { min-width: 0; }
+[data-app="hoondok"] .sum-header { padding-bottom: 20px; margin-bottom: 28px; border-bottom: 1px solid var(--line); }
+[data-app="hoondok"] .sum-crumb { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; list-style: none; padding: 0; margin: 0; color: var(--ink-3); font-size: var(--fs-xs); line-height: 1.6; }
+[data-app="hoondok"] .sum-crumb li { display: inline-flex; align-items: center; }
+[data-app="hoondok"] .sum-crumb li + li::before { content: "›"; margin-right: 6px; color: var(--ink-3); }
+/* 줄 높이는 그대로 두고 누를 수 있는 영역만 44px 로 넓힌다 */
+[data-app="hoondok"] .sum-crumb a { display: inline-flex; align-items: center; padding-block: 12px; margin-block: -12px; color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+[data-app="hoondok"] .sum-crumb [aria-current="page"] { color: var(--ink-2); }
+[data-app="hoondok"] .sum-header h2 { margin: 14px 0 8px; font-size: var(--fs-3xl); font-weight: 700; line-height: 1.35; letter-spacing: -0.03em; }
+[data-app="hoondok"] .sum-meta { display: flex; align-items: center; gap: 6px; margin: 0 0 16px; color: var(--ink-2); font-size: var(--fs-sm); font-weight: 500; }
+[data-app="hoondok"] .sum-meta svg { color: var(--accent); }
+
+/* ---------- 핵심 한 줄 · 요점 ---------- */
+[data-app="hoondok"] .sum-lead-block { margin-bottom: 8px; }
+[data-app="hoondok"] .sum-lead-lab { margin: 0 0 8px; color: var(--accent-strong); font-size: var(--fs-sm); font-weight: 650; }
+[data-app="hoondok"] .sum-lead { margin: 0; font-size: 1.3125rem; font-weight: 650; line-height: 1.6; letter-spacing: -0.02em; color: var(--ink); }
+[data-app="hoondok"] .sum-h { margin: 40px 0 12px; font-size: var(--fs-xl); font-weight: 700; line-height: 1.4; }
+[data-app="hoondok"] .sum-h-note { margin: -4px 0 8px; color: var(--ink-3); font-size: var(--fs-sm); line-height: 1.6; }
+[data-app="hoondok"] .sum-points { list-style: none; padding: 0; margin: 0; }
+[data-app="hoondok"] .sum-points li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; padding: 14px 0; font-size: var(--fs-lg); line-height: 1.75; }
+[data-app="hoondok"] .sum-points li + li { border-top: 1px solid var(--line); }
+[data-app="hoondok"] .sum-points__no { display: grid; place-items: center; width: 26px; height: 26px; margin-top: 2px; border-radius: var(--r-full); background: var(--accent-soft); color: var(--accent-strong); font-size: var(--fs-xs); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- 그림 : 개념/장면 토글 · 크게 보기 ---------- */
+[data-app="hoondok"] .sum-figures { margin: 40px 0 0; }
+[data-app="hoondok"] .sum-figure-toggle { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 12px; border-radius: var(--r-sm); background: var(--surface-2); }
+[data-app="hoondok"] .sum-figure-toggle button { min-height: 44px; min-width: 96px; padding: 0 16px; border-radius: var(--r-xs); color: var(--ink-2); font-size: var(--fs-sm); transition: background 0.15s ease, color 0.15s ease; }
+[data-app="hoondok"] .sum-figure-toggle button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 650; box-shadow: var(--shadow-1); }
+[data-app="hoondok"] .sum-figure { margin: 0; }
+[data-app="hoondok"] .sum-figure__frame { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); }
+[data-app="hoondok"] .sum-figure__frame img { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: contain; }
+[data-app="hoondok"] .sum-figure__zoom { position: absolute; right: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: var(--r-full); background: var(--surface); color: var(--ink); font-size: var(--fs-sm); font-weight: 600; box-shadow: var(--shadow-2); }
+[data-app="hoondok"] .sum-figure figcaption { margin-top: 10px; color: var(--ink-3); font-size: var(--fs-xs); line-height: 1.7; }
+[data-app="hoondok"] .sum-zoom { width: min(100vw - 24px, 1280px); max-width: none; margin: auto; max-height: calc(100dvh - 24px); padding: 56px 16px 16px; border: 0; border-radius: var(--r-sm); background: var(--surface); color: var(--ink); }
+[data-app="hoondok"] .sum-zoom::backdrop { background: var(--veil-92); }
+[data-app="hoondok"] .sum-zoom img { display: block; width: 100%; max-height: calc(100dvh - 160px); object-fit: contain; }
+[data-app="hoondok"] .sum-zoom__caption { margin: 12px 4px 0; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.7; }
+[data-app="hoondok"] .sum-zoom__close { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-full); color: var(--ink); }
+
+/* ---------- 차근히 이해하기 : 긴 본문 ---------- */
+[data-app="hoondok"] .sum-body { font-size: var(--fs-lg); line-height: 1.9; color: var(--ink); }
+[data-app="hoondok"] .sum-body p { margin: 0 0 20px; }
+[data-app="hoondok"] .sum-body h2 { margin: 36px 0 10px; font-size: 1.125rem; font-weight: 700; line-height: 1.5; scroll-margin-top: 160px; }
+[data-app="hoondok"] .sum-body h2:first-child { margin-top: 8px; }
+[data-app="hoondok"] .sum-body h3 { margin: 24px 0 8px; font-size: var(--fs-lg); font-weight: 650; }
+[data-app="hoondok"] .sum-body ul, [data-app="hoondok"] .sum-body ol { padding-left: 24px; }
+[data-app="hoondok"] .sum-body blockquote { margin: 20px 0; padding: 12px 16px; border-radius: var(--r-xs); background: var(--surface-2); color: var(--ink-2); }
+[data-app="hoondok"] .sum-cite { color: var(--ink-3); font-size: var(--fs-sm); white-space: nowrap; }
+
+/* ---------- 근거 확인하기 ---------- */
+[data-app="hoondok"] .sum-evidence { list-style: none; padding: 0; margin: 0; }
+[data-app="hoondok"] .sum-evidence li { padding: 14px 0 4px; border-top: 1px solid var(--line); }
+[data-app="hoondok"] .sum-evidence p { margin: 0; font-size: var(--fs-md); line-height: 1.75; }
+[data-app="hoondok"] .sum-evidence a { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--accent-strong); font-size: var(--fs-sm); font-weight: 600; text-decoration: none; }
+@media (hover: hover) {
+  [data-app="hoondok"] .sum-evidence a:hover { text-decoration: underline; text-underline-offset: 3px; }
+}
+
+/* ---------- 되새길 물음 · 원문 · 이동 ---------- */
+[data-app="hoondok"] .sum-reflection { margin: 40px 0 0; padding: 20px; border-radius: var(--r-sm); background: var(--surface-2); }
+[data-app="hoondok"] .sum-reflection h3 { margin: 0 0 8px; color: var(--ink-2); font-size: var(--fs-sm); font-weight: 650; }
+[data-app="hoondok"] .sum-reflection ul { list-style: none; margin: 0; padding: 0; }
+[data-app="hoondok"] .sum-reflection li { padding: 8px 0; font-size: var(--fs-lg); line-height: 1.75; }
+[data-app="hoondok"] .sum-reflection li + li { border-top: 1px solid var(--line); }
+[data-app="hoondok"] .sum-source { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 4px 12px; align-items: start; margin-top: 24px; padding: 18px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); }
+[data-app="hoondok"] .sum-source > svg { margin-top: 2px; color: var(--ink-2); }
+[data-app="hoondok"] .sum-source h3 { margin: 0; font-size: var(--fs-md); font-weight: 650; }
+[data-app="hoondok"] .sum-source p { margin: 2px 0 0; color: var(--ink-3); font-size: var(--fs-xs); line-height: 1.6; }
+[data-app="hoondok"] .sum-source .btn { grid-column: 1 / -1; margin-top: 10px; }
+[data-app="hoondok"] .sum-next { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 32px; padding-top: 8px; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
+[data-app="hoondok"] .sum-next a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--ink-2); text-decoration: none; }
+[data-app="hoondok"] .sum-next a:last-child { color: var(--accent-strong); font-weight: 600; }
+[data-app="hoondok"] .sum-next span { color: var(--ink-3); }
+
+/* ---------- 오른쪽 요약 목차 (넓은 화면만) ---------- */
+[data-app="hoondok"] .sum-aside { display: none; }
+[data-app="hoondok"] .sum-toc__lab { margin: 0 0 6px; color: var(--ink-3); font-size: var(--fs-xs); font-weight: 600; }
+[data-app="hoondok"] .sum-toc ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line); }
+[data-app="hoondok"] .sum-toc a { display: flex; align-items: center; min-height: 40px; margin-left: -1px; padding: 6px 0 6px 14px; border-left: 2px solid transparent; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.5; text-decoration: none; }
+[data-app="hoondok"] .sum-toc .is-sub a { min-height: 32px; padding-left: 26px; color: var(--ink-3); font-size: var(--fs-xs); }
+[data-app="hoondok"] .sum-toc a[aria-current="location"] { border-left-color: var(--accent); color: var(--ink); font-weight: 650; }
+@media (hover: hover) {
+  [data-app="hoondok"] .sum-toc a:hover { color: var(--ink); }
+}
+
+[data-app="hoondok"] [id^="sum-"] { scroll-margin-top: 150px; }
+
+@media (min-width: 768px) {
+  [data-app="hoondok"] .sum-header h2 { font-size: 2rem; }
+  [data-app="hoondok"] .sum-lead { font-size: 1.5rem; }
+  [data-app="hoondok"] .sum-source { grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; }
+  [data-app="hoondok"] .sum-source .btn { grid-column: auto; margin-top: 0; }
+  [data-app="hoondok"] .sum-list a { grid-template-columns: 132px minmax(0, 1fr) 18px; gap: 20px; }
+  [data-app="hoondok"] .sum-list img, [data-app="hoondok"] .sum-list__ph { width: 132px; }
+}
+@media (min-width: 1024px) {
+  [data-app="hoondok"] .sum-page { padding-top: 36px; }
+  /* 본문은 앱바와 같은 가운데 줄에 두고, 목차는 오른쪽 여백에 띄운다 */
+  [data-app="hoondok"] .sum-page.sum-reading { max-width: none; }
+  [data-app="hoondok"] .sum-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 680px) minmax(0, 1fr); gap: 56px; }
+  [data-app="hoondok"] .sum-main { grid-column: 2; }
+  [data-app="hoondok"] .sum-aside { display: block; grid-column: 3; max-width: 232px; }
+  [data-app="hoondok"] .sum-toc { position: sticky; top: 150px; max-height: calc(100dvh - 170px); overflow-y: auto; padding-top: 6px; }
+  [data-app="hoondok"] .sum-zoom { padding: 56px 24px 20px; }
+}
+
+/* ---------- 말씀 서고 진입 카드 · 원문 뷰 표지 ---------- */
+[data-app="hoondok"] .sum-entry { display: flex; align-items: center; gap: 14px; padding: 20px; text-decoration: none; }
+[data-app="hoondok"] .sum-marks { margin-bottom: 16px; padding: 12px 14px 4px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); }
+[data-app="hoondok"] .sum-marks__lab { display: flex; align-items: center; gap: 6px; margin: 0 0 2px; color: var(--accent-strong); font-size: var(--fs-xs); font-weight: 650; }
+[data-app="hoondok"] .sum-marks ul { list-style: none; margin: 0; padding: 0; }
+[data-app="hoondok"] .sum-marks li + li { border-top: 1px solid var(--line); }
+[data-app="hoondok"] .sum-mark { display: flex; align-items: center; gap: 10px; min-height: 48px; color: var(--ink); font-size: var(--fs-md); text-decoration: none; }
+[data-app="hoondok"] .sum-mark__t { flex: 1; min-width: 0; }
+[data-app="hoondok"] .sum-mark > svg { color: var(--ink-3); }
+[data-app="hoondok"] .sum-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+[data-app="hoondok"] .toc__ai { margin-left: 6px; font-size: var(--fs-2xs); color: var(--accent-strong); }
+
+/* ---------- 본문 안 그림·영상·표 (관리자 편집기에서 넣은 블록) ---------- */
+[data-app="hoondok"] .sum-body-image { margin: 28px 0; }
+[data-app="hoondok"] .sum-body-image[data-align="center"] { margin-inline: auto; }
+[data-app="hoondok"] .sum-body-image[data-align="right"] { margin-left: auto; }
+[data-app="hoondok"] .sum-body-image img { display: block; width: 100%; height: auto; border-radius: var(--r-xs); }
+[data-app="hoondok"] .sum-body-image figcaption { margin-top: 10px; color: var(--ink-3); font-size: var(--fs-xs); line-height: 1.8; }
+[data-app="hoondok"] .sum-image-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin: 28px 0; }
+[data-app="hoondok"] .sum-image-row > .sum-body-image { width: 100% !important; margin: 0; }
+[data-app="hoondok"] .sum-video { width: 100%; aspect-ratio: 16 / 9; margin: 28px 0; }
+[data-app="hoondok"] .sum-video iframe { width: 100%; height: 100%; border: 0; border-radius: var(--r-xs); }
+[data-app="hoondok"] .sum-table { overflow-x: auto; margin: 26px 0; }
+[data-app="hoondok"] .sum-table table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: var(--fs-sm); }
+[data-app="hoondok"] .sum-table td, [data-app="hoondok"] .sum-table th { border: 1px solid var(--line); padding: 11px 12px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+[data-app="hoondok"] .sum-table th { background: var(--surface-2); font-weight: 650; }

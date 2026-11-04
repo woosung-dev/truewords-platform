@@ -15,6 +15,7 @@ import "@/app/_hoondok/sheet.css";
 import "@/app/_hoondok/note.css";
 import "@/app/_hoondok/ask.css";
 import "@/app/_hoondok/library.css";
+import "@/app/_hoondok/summaries.css";
 import "@/app/_hoondok/together.css";
 import "@/app/_hoondok/cards.css";
 import "@/app/_hoondok/menu.css";
