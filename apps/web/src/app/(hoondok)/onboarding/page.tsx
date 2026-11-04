@@ -10,10 +10,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
 import { afterSignupHref } from "@/features/hoondok/personal/start";
-import { extractInviteCode } from "@/features/hoondok/together/invite-code";
 import { identityAPI } from "@/features/identity/api";
 import { claimDeviceForUser } from "@/features/identity/device-owner";
-import { carryInviteCode, inviteCodeFromReturnTo, safeReturnTo } from "@/features/identity/gate";
+import { safeReturnTo } from "@/features/identity/gate";
 import { CURRENT_USER_KEY, useCurrentUser } from "@/features/identity/use-current-user";
 import { useLogout } from "@/features/identity/use-logout";
 
@@ -22,10 +21,10 @@ type Mode = "signup" | "login";
 function messageFor(error: unknown, mode: Mode, hasInviteCode: boolean): string {
   if (error instanceof ApiError) {
     // 403 은 CSRF 와 겹치므로 상태가 아니라 error_code 로 구분한다.
-    // 서버는 빈 코드·틀린 코드·만료 코드를 같은 코드로 주므로 입력 여부로 문구를 나눈다.
+    // 서버는 빈 코드·틀린 코드를 같은 코드로 주므로 입력 여부로 문구를 나눈다.
     if (error.errorCode === "INVITE_REQUIRED")
       return hasInviteCode
-        ? "초대 코드가 맞지 않거나 만료됐어요. 다시 확인해 주세요"
+        ? "초대 코드가 맞지 않아요. 다시 확인해 주세요"
         : "초대 코드가 필요해요. 초대받은 코드를 확인해 주세요";
     if (error.status === 401) return "이메일 또는 비밀번호가 올바르지 않습니다";
     if (error.status === 409) return "이미 가입된 이메일이에요. 로그인해 주세요";
@@ -45,8 +44,7 @@ function OnboardingForm({ mode, onModeChange }: { mode: Mode; onModeChange: (mod
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  // 모임 참여 링크에서 왔으면 그 모임 코드로 미리 채운다 (PLAN-HD-010 D4)
-  const [inviteCode, setInviteCode] = useState(() => inviteCodeFromReturnTo(returnTo));
+  const [inviteCode, setInviteCode] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const logout = useLogout();
@@ -80,8 +78,8 @@ function OnboardingForm({ mode, onModeChange }: { mode: Mode; onModeChange: (mod
       queryClient.removeQueries({
         predicate: (query) => query.queryKey[0] === "hoondok" && query.queryKey[1] !== "me",
       });
-      // 가입 직후 돌아갈 곳이 기본값(홈)이면 맞춤 첫 말씀 질문으로 보낸다. 모임 초대 등 returnTo 가 있으면 그쪽이 먼저다
-      router.replace(mode === "signup" ? afterSignupHref(carryInviteCode(returnTo, inviteCode)) : returnTo);
+      // 가입 직후 돌아갈 곳이 기본값(홈)이면 맞춤 첫 말씀 질문으로 보낸다. returnTo 가 따로 있으면 그쪽이 먼저다
+      router.replace(mode === "signup" ? afterSignupHref(returnTo) : returnTo);
     } catch (error) {
       setMessage(messageFor(error, mode, Boolean(inviteCode.trim())));
     } finally {
@@ -165,13 +163,6 @@ function OnboardingForm({ mode, onModeChange }: { mode: Mode; onModeChange: (mod
             maxLength={64}
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value)}
-            onPaste={(e) => {
-              // 카톡 메시지·초대 링크 전체를 붙여 넣으면 모임 코드만 남긴다. 코드가 안 보이면 그대로 붙인다(베타 코드).
-              const code = extractInviteCode(e.clipboardData.getData("text"));
-              if (!code) return;
-              e.preventDefault();
-              setInviteCode(code);
-            }}
           />
           <span className="field__help">베타 초대를 받았다면 입력해요. 없으면 비워 두세요</span>
         </label>

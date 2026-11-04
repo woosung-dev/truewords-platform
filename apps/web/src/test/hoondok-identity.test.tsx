@@ -43,7 +43,7 @@ describe("returnTo 검증 (open redirect 방지)", () => {
     expect(safeReturnTo("/hoondok/read")).toBe("/read");
     expect(safeReturnTo("/hoondok")).toBe("/");
     expect(safeReturnTo("/hoondok?x=1")).toBe("/?x=1");
-    expect(safeReturnTo("/hoondok/groups/join?code=ABCD2345")).toBe("/groups/join?code=ABCD2345");
+    expect(safeReturnTo("/hoondok/words/a?chunk=c1")).toBe("/words/a?chunk=c1");
     expect(safeReturnTo("/hoondokx")).toBe("/hoondokx");
     expect(safeReturnTo("/hoondok/onboarding")).toBe("/");
     expect(safeReturnTo("/hoondok//evil.example")).toBe("/");

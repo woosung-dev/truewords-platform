@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { isNotFound, loadErrorMessage } from "@/features/hoondok/api-errors";
 import {
   CARD_STATUS_LABEL,
   type CardAdminItem,
@@ -21,7 +22,6 @@ import {
   type TodayCardResponse,
 } from "@/features/hoondok/cards-api";
 import { kstTodayIso } from "@/features/hoondok/dates";
-import { isNotFound, loadErrorMessage } from "@/features/hoondok/groups-api";
 
 // 오늘 카드 키가 목록 키로 시작하므로 변경 뒤 무효화 한 번에 둘 다 새로 고친다.
 const LIST_KEY = ["hoondok", "cards"];

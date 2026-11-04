@@ -1,5 +1,5 @@
 """훈독 DB 모델 — ENT-HD-002 daily_readings · ENT-HD-003 mission_logs · ENT-HD-004 jeongseong_periods ·
-ENT-HD-013~017 함께 읽는 모임 · ENT-HD-019·020 오늘의 책갈피 (docs/specs/domain/hoondok-entities.md)."""
+ENT-HD-019·020 오늘의 책갈피 (docs/specs/domain/hoondok-entities.md)."""
 
 import uuid
 from datetime import date, datetime, time
@@ -19,8 +19,6 @@ JEONGSEONG_DURATIONS = (7, 21, 40)  # 앱 검증(Literal). DB CHECK 는 두지 �
 SECTION_LEVELS = (1, 2)  # 1 = 편·장, 2 = 장·절·설교 (PLAN-HD-007)
 SECTION_ORIGINS = ("auto", "manual")  # 추출 스크립트 산출 / 운영자 수기
 MARK_KINDS = ("bookmark", "highlight")
-GROUP_KINDS = ("small_group",)  # 가족 모임은 후속 (PLAN-HD-010)
-GROUP_ROLES = ("leader", "member")
 CARD_STATUSES = ("draft", "active", "retired")  # 오늘의 책갈피 풀 상태 (PLAN-HD-012)
 PUBLIC_QUESTION_STATUSES = ("pending", "published", "hidden")  # 공개 질문 검수 상태 (DEC-PWA-025)
 
@@ -70,7 +68,7 @@ class JeongseongPeriod(SQLModel, table=True):
 
     진행률(done·missed·percent)은 저장하지 않고 mission_logs 의 read 완료일에서 매번 계산한다(hoondok/jeongseong.py).
     reminder_time 은 사용 중단 — 알림 시각은 notification_preferences.read_time.
-    resolution(나의 각오)은 본인 응답에만 담는다 — 모임·가족·관리자 응답에 넣지 않는다.
+    resolution(나의 각오)은 본인 응답에만 담는다 — 가족·관리자 응답에 넣지 않는다.
     """
 
     __tablename__ = "jeongseong_periods"
@@ -272,94 +270,6 @@ class PassageHighlight(SQLModel, table=True):
     note: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
-
-
-# --- 함께 읽는 모임 (PLAN-HD-010, ENT-HD-013~017) ------------------------------------
-# FK 에 ondelete 를 두지 않는다 — 삭제 순서는 GroupRepository 가 명시한다
-# (share_reactions → group_shares → shared_jeongseongs → group_members → reading_groups).
-
-
-class ReadingGroup(SQLModel, table=True):
-    """ENT-HD-013 소그룹 모임. 모임당 유효 초대 코드 1개 — 재발급은 덮어쓰기라 이전 코드는 즉시 무효다."""
-
-    __tablename__ = "reading_groups"
-
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    name: str = Field(max_length=20)  # 별칭. 교회명 필드·검색·공개 목록 없음
-    kind: str = Field(default="small_group", max_length=16)  # GROUP_KINDS
-    meeting_time: time | None = Field(default=None)  # 표시용
-    invite_code: str = Field(max_length=16, unique=True, index=True)  # Crockford base32 XXXX-XXXX
-    invite_expires_at: datetime  # aware UTC
-    created_at: datetime = Field(default_factory=utcnow)
-    updated_at: datetime = Field(default_factory=utcnow)
-
-
-class GroupMember(SQLModel, table=True):
-    """ENT-HD-014 모임원. 탈퇴·내보내기는 행 하드 삭제. 리더는 모임당 1명(부분 unique)."""
-
-    __tablename__ = "group_members"
-    __table_args__ = (
-        UniqueConstraint("group_id", "user_id", name="uq_group_members_group_user"),
-        UniqueConstraint("group_id", "display_name", name="uq_group_members_group_display_name"),
-        Index(
-            "uq_group_members_group_leader",
-            "group_id",
-            unique=True,
-            postgresql_where=text("role = 'leader'"),
-            sqlite_where=text("role = 'leader'"),
-        ),
-    )
-
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    group_id: uuid.UUID = Field(foreign_key="reading_groups.id")  # 선두 unique 가 조회를 받는다
-    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
-    display_name: str = Field(max_length=12)  # 모임별 이름(앞뒤 공백 제거 후 저장)
-    role: str = Field(default="member", max_length=16)  # GROUP_ROLES
-    joined_at: datetime = Field(default_factory=utcnow)
-
-
-class SharedJeongseong(SQLModel, table=True):
-    """ENT-HD-015 함께 드리는 정성. group_id NULL = 공식 정성(모든 모임에 표시). 진행은 저장하지 않는다."""
-
-    __tablename__ = "shared_jeongseongs"
-
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    group_id: uuid.UUID | None = Field(default=None, foreign_key="reading_groups.id", index=True)
-    title: str = Field(max_length=40)
-    started_on: date  # KST
-    duration_days: int  # 1~100, 앱 검증
-    source_note: str | None = Field(default=None, max_length=200)
-    created_by_user_id: uuid.UUID | None = Field(default=None, foreign_key="users.id")
-    created_at: datetime = Field(default_factory=utcnow)
-    updated_at: datetime = Field(default_factory=utcnow)
-
-
-class GroupShare(SQLModel, table=True):
-    """ENT-HD-016 오늘의 한 줄. 1인 1일 1줄 — 다시 쓰면 덮어쓴다."""
-
-    __tablename__ = "group_shares"
-    __table_args__ = (
-        UniqueConstraint("group_id", "member_id", "share_date", name="uq_group_shares_group_member_date"),
-        Index("ix_group_shares_group_date", "group_id", "share_date"),
-    )
-
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    group_id: uuid.UUID = Field(foreign_key="reading_groups.id")
-    member_id: uuid.UUID = Field(foreign_key="group_members.id", index=True)
-    share_date: date  # KST
-    body: str = Field(max_length=100)
-    created_at: datetime = Field(default_factory=utcnow)
-    updated_at: datetime = Field(default_factory=utcnow)
-
-
-class ShareReaction(SQLModel, table=True):
-    """ENT-HD-017 "함께 머물렀어요" 1종. 종류 컬럼이 없고 (share, member) 가 PK 라 멱등이다."""
-
-    __tablename__ = "share_reactions"
-
-    share_id: uuid.UUID = Field(foreign_key="group_shares.id", primary_key=True)
-    member_id: uuid.UUID = Field(foreign_key="group_members.id", primary_key=True, index=True)
-    created_at: datetime = Field(default_factory=utcnow)
 
 
 class TtsUsage(SQLModel, table=True):

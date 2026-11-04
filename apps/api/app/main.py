@@ -34,8 +34,6 @@ from app.modules.hoondok.rights_admin_router import router as rights_admin_route
 from app.modules.hoondok.client_errors import router as client_errors_router
 from app.modules.hoondok.notifications_router import router as hoondok_notifications_router
 from app.modules.hoondok.admin_router import admin_router as hoondok_admin_router
-from app.modules.hoondok.groups_admin_router import groups_admin_router, jeongseong_admin_router
-from app.modules.hoondok.groups_router import router as hoondok_groups_router
 from app.modules.hoondok.tts_router import router as hoondok_tts_router
 from app.modules.hoondok.cards_router import router as hoondok_cards_router
 from app.modules.hoondok.cards_admin_router import cards_admin_router
@@ -146,7 +144,6 @@ app.include_router(hoondok_notifications_router)  # 훈독 알림 설정·푸시
 app.include_router(hoondok_library_router)  # 훈독 서고 3계층·읽기 기록 (PLAN-HD-007)
 app.include_router(hoondok_tts_router)  # 훈독 AI 낭독 목소리 /hoondok/tts/* (PLAN-HD-011)
 app.include_router(hoondok_cards_router)  # 오늘의 책갈피 /hoondok/cards·me/cards (PLAN-HD-012)
-app.include_router(hoondok_groups_router)  # 훈독 함께 읽는 모임 /hoondok/groups·invites·me/groups (PLAN-HD-010)
 app.include_router(hoondok_public_questions_router)  # 공개 질문 /hoondok/questions·me/questions (DEC-PWA-025)
 app.include_router(hoondok_asks_router)  # 훈독 AI 질문 /hoondok/ask/stream·me/asks — 로그인·하루 횟수 (DEC-PWA-025 2차)
 app.include_router(identity_router)  # 훈독 계정 /hoondok/auth/* — 쿠키 hoondok_token (Phase 2)
@@ -164,9 +161,7 @@ app.include_router(analytics_router, dependencies=_ADMIN_GATE)
 app.include_router(rag_trace_router, dependencies=_ADMIN_GATE)  # 파이프라인 추적 /admin/rag-trace (저장 없음)
 app.include_router(rights_admin_router, dependencies=_ADMIN_GATE)
 app.include_router(hoondok_admin_router, dependencies=_ADMIN_GATE)  # 훈독 편성 /admin/hoondok/daily-readings (Phase 3 A)
-app.include_router(jeongseong_admin_router, dependencies=_ADMIN_GATE)  # 공식 정성 /admin/hoondok/jeongseongs (PLAN-HD-010)
 app.include_router(cards_admin_router, dependencies=_ADMIN_GATE)  # 책갈피 풀 /admin/hoondok/cards (PLAN-HD-012)
-app.include_router(groups_admin_router, dependencies=_ADMIN_GATE)  # 모임 목록·삭제 /admin/hoondok/groups (PLAN-HD-010)
 app.include_router(public_questions_admin_router, dependencies=_ADMIN_GATE)  # 공개 질문 검수 /admin/hoondok/questions (DEC-PWA-025)
 
 

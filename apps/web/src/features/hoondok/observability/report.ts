@@ -10,9 +10,6 @@ export function safeHoondokPath(pathname: string): string {
   if (/^\/library\/[^/]+\/?$/.test(path)) return "/library/:series";
   if (/^\/ask\/p\/[^/]+\/?$/.test(path)) return "/ask/p/:id";
   if (/^\/ask\/(?!(?:log|new)\/?$)[^/]+\/?$/.test(path)) return "/ask/:id";
-  // 모임 (PLAN-HD-010). new·join 은 아래 고정 목록이 받는다. 모임 id 는 보내지 않는다.
-  const group = /^\/groups\/(?!(?:new|join)\/?$)[^/]+(\/share|\/settings)?\/?$/.exec(path);
-  if (group) return `/groups/:id${group[1] ?? ""}`;
   // 받은 사람 화면 (PLAN-HD-012). 카드 id 는 보내지 않는다.
   if (/^\/c\/[^/]+\/?$/.test(path)) return "/c/:id";
   const allowed = [
@@ -27,8 +24,6 @@ export function safeHoondokPath(pathname: string): string {
     "/settings",
     "/onboarding",
     "/offline",
-    "/groups/new",
-    "/groups/join",
     "/bookmark",
     "/bookmarks",
   ];

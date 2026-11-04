@@ -35,7 +35,7 @@ import { useRecords } from "../use-records";
 import { RecordItem } from "./record-item";
 
 const LIBRARY_HREF = "/library";
-const PRIVATE_NOTICE = "기록은 나만 봐요. 가족과 모임에도 보이지 않아요.";
+const PRIVATE_NOTICE = "기록은 나만 봐요. 다른 사람에게 보이지 않아요.";
 const EMPTY_TITLE: Record<RecordTab, string> = {
   highlight: "아직 남긴 형광펜이 없어요",
   note: "아직 남긴 노트가 없어요",
