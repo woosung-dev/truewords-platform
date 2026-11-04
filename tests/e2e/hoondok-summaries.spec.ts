@@ -22,7 +22,7 @@ test("공개된 AI 요약 상세: 핵심 한 줄 · 요점 · 그림 토글 · �
   ).toBeVisible();
 
   await expect(page.getByRole("heading", { name: "핵심 한 줄" })).toBeVisible();
-  await expect(page.locator(".sum-lead")).toContainText("천성경은 사람의 몸과 양심");
+  await expect(page.locator(".sum-lead")).toContainText("나는 스스로 생겨나지 않았다");
   await expect(page.getByRole("heading", { name: "요점", exact: true })).toBeVisible();
   await expect(page.locator(".sum-points li")).toHaveCount(3);
 
