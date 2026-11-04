@@ -595,6 +595,9 @@
   .rd-sheet__listen {
     margin-top: 14px;
   }
+  .rd-sheet__ask {
+    margin-top: 10px;
+  }
   .rd-sheet__gate {
     font-size: var(--fs-sm);
     color: var(--ink-2);

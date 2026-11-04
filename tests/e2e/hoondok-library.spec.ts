@@ -135,9 +135,11 @@ test("정성: 같은 날 유지 · 실제 완료 · 전날 이력 뒤 다른 말
 });
 
 test("AI 질문의 실제 응답 근거에서 인용한 원문 구간으로 이동한다", async ({ page }) => {
-  await page.goto("/hoondok/ask");
+  // AI 질문은 훈독 로그인이 필요하다(DEC-PWA-025 2차)
+  await signUp(page, "ask-source");
+  await page.goto("/hoondok/ask/new");
   await page.getByLabel("무엇이 궁금하세요?").fill("감사의 의미를 알려주세요");
-  await page.getByRole("button", { name: "물어보기", exact: true }).click();
+  await page.getByRole("button", { name: "보내기", exact: true }).click();
   await expect(page.locator("main p").filter({ hasText: "참사랑은 함께 실천하는 사랑입니다." })).toBeVisible();
   await page.getByRole("link", { name: "원문 보기", exact: true }).first().click();
   await expect(page).toHaveURL(/\/hoondok\/words\/.+\?chunk_id=/);

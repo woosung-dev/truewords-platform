@@ -8,7 +8,8 @@ export function safeHoondokPath(pathname: string): string {
   const path = pathname.split(/[?#]/, 1)[0];
   if (/^\/hoondok\/words\/[^/]+\/?$/.test(path)) return "/hoondok/words/:volume";
   if (/^\/hoondok\/library\/[^/]+\/?$/.test(path)) return "/hoondok/library/:series";
-  if (/^\/hoondok\/ask\/(?!log\/?$)[^/]+\/?$/.test(path)) return "/hoondok/ask/:id";
+  if (/^\/hoondok\/ask\/p\/[^/]+\/?$/.test(path)) return "/hoondok/ask/p/:id";
+  if (/^\/hoondok\/ask\/(?!(?:log|new)\/?$)[^/]+\/?$/.test(path)) return "/hoondok/ask/:id";
   // 모임 (PLAN-HD-010). new·join 은 아래 고정 목록이 받는다. 모임 id 는 보내지 않는다.
   const group = /^\/hoondok\/groups\/(?!(?:new|join)\/?$)[^/]+(\/share|\/settings)?\/?$/.exec(path);
   if (group) return `/hoondok/groups/:id${group[1] ?? ""}`;
@@ -21,6 +22,7 @@ export function safeHoondokPath(pathname: string): string {
     "/hoondok/search",
     "/hoondok/ask",
     "/hoondok/ask/log",
+    "/hoondok/ask/new",
     "/hoondok/garden",
     "/hoondok/settings",
     "/hoondok/onboarding",

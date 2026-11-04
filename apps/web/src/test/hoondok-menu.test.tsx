@@ -117,7 +117,7 @@ describe("전체 메뉴 드로어", () => {
     const star = within(dialog).getByRole("button", { name: "질문하기 즐겨찾기" });
     fireEvent.click(star);
     expect(star).toHaveAttribute("aria-pressed", "true");
-    expect(within(band).getByRole("link", { name: "질문하기" })).toHaveAttribute("href", "/hoondok/ask");
+    expect(within(band).getByRole("link", { name: "질문하기" })).toHaveAttribute("href", "/hoondok/ask/new");
     expect(JSON.parse(window.localStorage.getItem(KEY) ?? "{}")).toEqual({ menu: ["ask"], works: [] });
 
     fireEvent.click(within(band).getByRole("button", { name: "즐겨찾는 메뉴 초기화" }));

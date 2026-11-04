@@ -2,7 +2,7 @@
 
 import { clearHoondokStorage } from "./use-delete-me";
 
-// 기기 저장 기록(질문·이어 읽기·최근 검색)에는 계정 정보가 없다.
+// 기기 저장 기록(이어 읽기·최근 검색·한 줄)에는 계정 정보가 없다. AI 질문은 계정에 보관한다(DEC-PWA-025 2차).
 // 주인 표시가 없으면 앞 사람이 남긴 질문·답·읽던 위치가 다음에 로그인한 계정 화면에 그대로 보인다.
 const OWNER_KEY = "hoondok:device-owner";
 

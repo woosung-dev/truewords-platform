@@ -167,7 +167,9 @@ test("기록 0개 · 비로그인 · 시트 색 이름 · 390/1280 넘침 0", as
   }
 });
 
-test("이 기기에만 있는 기록: 날짜 최신순 · 한 번에 복사 · 저장한 AI 답 수 · 서버 요청 0", async ({ page }) => {
+test("이 기기에만 있는 기록: 날짜 최신순 · 한 번에 복사 · 서버 요청 0 (AI 답은 계정 보관이라 없다)", async ({
+  page,
+}) => {
   // 클립보드는 권한 없이 확인하도록 writeText 를 기록만 하는 가짜로 바꾼다
   await page.addInitScript(() => {
     const copied: string[] = [];
@@ -187,16 +189,9 @@ test("이 기기에만 있는 기록: 날짜 최신순 · 한 번에 복사 · �
     localStorage.setItem("hoondok:note:2026-09-21", "새벽에 가족 이름 부르며 기도하기");
     localStorage.setItem("hoondok:note:2026-09-28", "아이에게 먼저 인사하기");
     localStorage.setItem("hoondok:note:2026-09-24", "끝까지 듣기");
-    localStorage.setItem(
-      "hoondok:ask:items",
-      JSON.stringify([
-        { id: "a1", question: "q1", status: "answered", createdAt: "2026-09-28T00:00:00Z", isSaved: true },
-        { id: "a2", question: "q2", status: "answered", createdAt: "2026-09-27T00:00:00Z" },
-      ]),
-    );
   });
   await page.goto("/hoondok/garden");
-  const entry = page.getByRole("link", { name: /오늘의 한 줄 3개 · 저장한 AI 답 1개/ });
+  const entry = page.getByRole("link", { name: /오늘의 한 줄 3개/ });
   await expect(entry).toBeVisible();
 
   const backendCalls: string[] = [];
@@ -212,7 +207,7 @@ test("이 기기에만 있는 기록: 날짜 최신순 · 한 번에 복사 · �
   expect(copied).toEqual([
     "2026년 9월 28일\n아이에게 먼저 인사하기\n\n2026년 9월 24일\n끝까지 듣기\n\n2026년 9월 21일\n새벽에 가족 이름 부르며 기도하기",
   ]);
-  await expect(page.getByRole("link", { name: /AI 질문 기록에서 보기/ })).toHaveAttribute("href", "/hoondok/ask/log");
+  await expect(page.getByRole("heading", { name: "저장한 AI 답" })).toHaveCount(0);
   await page.reload();
   await expect(page.locator(".rc-lines time")).toHaveCount(3);
   expect(backendCalls).toEqual([]);

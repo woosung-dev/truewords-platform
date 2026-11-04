@@ -1,50 +1,183 @@
-/* SCR-PWA-005 묻기 홈 · 005b 질문 기록 · 006 질문·답변 상세 (PLAN-HD-002 W2).
-   프로토타입 app.html 의 `.qs-*`·`.ql-*`·`.ask-*` 마크업에는 hoondok.css 규칙이 없어(설치 카드 §2.12 와 같은 사정)
-   여기서 처음 정의한다. 값은 프로토타입 hoondok.css 의 이웃 규칙과 DES-PWA-003 §2.2·§2.10·§2.11 에서 가져왔고
-   색·반경·그림자는 토큰만 쓴다(hex 금지, pnpm hoondok:check). 라이트 단일 테마.
+/* AI 질문 — 홈(탭 목록) · 새 질문하기 · 질문·답변 상세 · 공개 질문 열람.
+   처음엔 PLAN-HD-002 W2(SCR-PWA-005·005b·006)로 만들었고, 2026-11 개편(DEC-PWA-025)에서 홈 입력창을 빼고
+   탭 목록·새 질문·이어 묻기·공개 질문 규칙을 더했다. 값은 프로토타입 hoondok.css 의 이웃 규칙과
+   DES-PWA-003 §2.2·§2.10·§2.11 에서 가져왔고 색·반경·그림자는 토큰만 쓴다(hex 금지, pnpm hoondok:check). 라이트 단일 테마.
 
-   모션은 4종만 — 토글 150ms · 프레스 120ms. 스트리밍 답에는 타이핑 애니메이션을 두지 않는다.
+   모션은 토글 150ms · 프레스 120ms 뿐이다. 스트리밍 답에는 타이핑 애니메이션을 두지 않는다.
    `prefers-reduced-motion` 은 hoondok.css 의 스코프 전역 규칙이 이미 끄지만, 답을 기다리는 스피너만은
    예외다 — 진행 중임을 알리는 필수 정보라 DES-PWA-003 §1.5 가 유지를 요구한다.
 
-   `.badge--line`·`.pill-seg`·`.ai-note` 는 여기서 처음 정의했지만 library·worship·family 도 쓰게 돼
-   PLAN-HD-002 W3 CSS 정리에서 hoondok.css 공용 블록으로 옮겼다. 이 파일에는 005·005b·006 전용 규칙만 남는다. */
+   `.badge--line`·`.pill-seg`·`.ai-note` 는 hoondok.css 공용 블록에 있다. 이 파일에는 AI 질문 전용 규칙만 둔다. */
 /* `@keyframes hoondok-spin` 은 버튼 스피너(.btn__spinner)도 함께 쓰게 돼 hoondok.css 로 옮겼다. 여기서는 참조만 한다. */
 [data-app="hoondok"] {
-  /* ---------- 005 묻기 홈 : 물음 한 장 ---------- */
-  .qs-today {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    margin: 8px 0 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--line);
+  /* ---------- AI 질문 홈 : 탭(추천·저장·내 질문) + 돋보기 + "+ 질문하기" ---------- */
+  /* 떠 있는 "+ 질문하기" 가 마지막 행을 가리지 않게 본문 끝을 비운다 */
+  .ask-home {
+    padding-bottom: calc(5rem + 28px);
   }
-  .qs-today__k {
-    font-size: var(--fs-2xs);
-    font-weight: 600;
+  .ask-home__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .ask-home__tabs {
+    flex: 1;
+    margin-top: 0;
+  }
+  .ask-home__panel {
+    margin-top: 8px;
+  }
+  /* 돋보기를 누르면 그 자리에 열리는 질문 검색창. 입력 경계선은 비텍스트 대비 3:1 (--ink-3) */
+  .ask-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding-left: 14px;
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-sm);
+    background: var(--surface);
     color: var(--ink-3);
   }
-  .qs-today__v {
-    font-size: var(--fs-md);
-    font-weight: 600;
-    line-height: 1.4;
+  .ask-search:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
-  .qs-today__src {
+  .ask-search__in {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--fs-lg); /* iOS 자동 확대 방지 */
+    outline: none;
+  }
+  /* 브라우저 기본 지우기(✕)를 숨긴다 — 옆의 "검색 닫기" 와 ✕ 가 둘로 보였다 */
+  .ask-search__in::-webkit-search-cancel-button {
+    appearance: none;
+  }
+  .ask-state {
+    margin: 0;
+    padding: 28px 0;
+    text-align: center;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  .ask-state p {
+    margin: 0 0 12px;
+  }
+  .ask-state__k {
+    margin: 8px 0 0;
     font-size: var(--fs-xs);
     color: var(--ink-2);
   }
+  .ask-examples {
+    margin-top: 16px;
+  }
+  .ask-examples__k {
+    margin: 0 0 10px;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  /* 예시 질문 — 칩 본체는 hoondok.css 의 `.chip-btn`. 길어서 한 줄에 하나씩 흐른다 */
+  .qs-starter {
+    display: block;
+    width: 100%;
+  }
+  .qs-starter + .qs-starter {
+    margin-top: 8px;
+  }
+  .ask-more {
+    display: flex;
+    margin: 12px auto 0;
+  }
+  /* 검색에 없을 때 "이 말로 새로 묻기" — 좌 안내 · 우 행동 한 줄 */
+  .ask-newline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 48px;
+    margin-top: 12px;
+    padding: 0 14px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  .ask-newline b {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    color: var(--accent-strong);
+    font-weight: 600;
+  }
+  /* 떠 있는 주 행동. 하단 탭(76px) 위에 앉고, 1024px 이상은 탭이 위로 가므로 화면 아래 모서리에 앉는다 */
+  .ask-fab {
+    position: fixed;
+    right: var(--gutter);
+    bottom: calc(76px + env(safe-area-inset-bottom) + 16px);
+    z-index: 22;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 50px;
+    padding: 0 20px;
+    border-radius: var(--r-full);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+    box-shadow: var(--shadow-2);
+    transition: transform 0.12s ease;
+  }
+  .ask-fab:active {
+    transform: scale(0.97);
+  }
+  .ask-fab:focus-visible {
+    outline-color: var(--ink);
+  }
+  @media (min-width: 1024px) {
+    .ask-fab {
+      bottom: 28px;
+      right: max(32px, calc((100% - 1120px) / 2));
+    }
+  }
 
-  /* 라벨-입력 6px 은 `.field` 규격이다. 도움말은 붙여 두고 주 버튼만 한 단계 떨어뜨린다 */
-  .qs-form {
+  /* ---------- 새 질문하기 (전체 화면, 앱바 대신 화면이 머리를 그린다) ---------- */
+  .ask-new {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    padding-top: calc(4px + env(safe-area-inset-top));
   }
-  .qs-form .btn {
+  .ask-new__bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 56px;
+    /* ✕ 아이콘만 왼쪽 여백으로 당긴다 — 오른쪽까지 당기면 보내기가 본문 열 밖으로 튀어나온다 */
+    margin: 0 0 8px -10px;
+  }
+  .ask-new__title {
+    flex: 1;
+    margin: 0;
+    font-size: var(--fs-xl);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .ask-new__label {
+    margin-top: 14px;
+  }
+  .ask-new__input {
+    min-height: 160px;
+  }
+  .ask-new__help {
     margin-top: 10px;
   }
-  /* 화면에서 가장 큰 것은 오늘 읽은 말씀 한 줄이어야 한다 — 라벨은 `.field__label` 로 물러난다 (DES §1.2) */
+  /* 라벨-입력 6px 은 `.field` 규격이다. 라벨은 `.field__label` 로 물러난다 (DES §1.2) */
   .qs-label {
     font-size: var(--fs-xs);
     font-weight: 600;
@@ -74,36 +207,153 @@
     line-height: 1.5;
     color: var(--ink-2);
   }
-
-  .qs-starters {
-    margin-top: 24px;
-  }
-  .qs-starters__k {
-    margin: 0 0 8px;
-    font-size: var(--fs-xs);
-    color: var(--ink-3);
-  }
-  /* 칩 버튼 본체는 hoondok.css 의 `.chip-btn` (DES §2.11). 여기엔 세로로 쌓이는 배치만 둔다 —
-     시작 문장은 길어서 한 줄에 하나씩 흐른다 */
-  .qs-starter {
-    display: block;
-    width: 100%;
-  }
-  .qs-starter + .qs-starter {
-    margin-top: 8px;
-  }
-  .qs-log {
+  /* 답변 모델 고르기 줄 — 카드 한 장 전체가 누르는 자리 */
+  .ask-pick {
     display: flex;
     align-items: center;
-    justify-content: center;
-    min-height: 44px;
-    margin-top: 20px;
-    font-size: var(--fs-sm);
+    gap: 12px;
+    width: 100%;
+    min-height: 60px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: var(--surface);
+    text-align: left;
+  }
+  .ask-pick > svg {
+    color: var(--ink-3);
+    flex: none;
+  }
+  .ask-pick__bd {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .ask-pick__bd b {
+    font-size: var(--fs-md);
     font-weight: 600;
+  }
+  .ask-pick__k {
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .ask-pick__ic,
+  .ask-opt__ic,
+  .ask-model__ic {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--accent-soft);
     color: var(--accent-strong);
   }
+  /* 공개 여부 줄 — 좌 라벨 · 우 현재 값 */
+  .ask-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 52px;
+    margin-top: 12px;
+    padding: 0 2px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+  }
+  .ask-line__k {
+    flex: 1;
+    font-size: var(--fs-md);
+    font-weight: 600;
+  }
+  .ask-line__v {
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  .ask-line > svg {
+    color: var(--ink-3);
+    flex: none;
+  }
 
-  /* ---------- 005b 질문 기록 ---------- */
+  /* 고르기 시트의 선택지 — 라벨 전체가 누르는 자리(56px 이상).
+     선택은 테두리·바탕과 함께 네이티브 라디오 표시로도 보인다(색만으로 구분 금지, §3.3) */
+  .ask-opts {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .ask-opt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    cursor: pointer;
+  }
+  .ask-opt:has(.ask-opt__in:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .ask-opt:has(.ask-opt__in:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .ask-opt[aria-disabled="true"] {
+    cursor: default;
+    color: var(--ink-3);
+  }
+  .ask-opt__in {
+    order: 3;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    flex: none;
+    accent-color: var(--accent);
+  }
+  .ask-opt__in:focus-visible {
+    outline: none;
+  }
+  .ask-opt__bd {
+    flex: 1;
+    min-width: 0;
+  }
+  .ask-opt__bd b {
+    display: block;
+    font-size: var(--fs-md);
+    font-weight: 600;
+  }
+  .ask-opt__bd span {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .ask-opts__note {
+    padding-top: 12px;
+  }
+  .ask-opts__gate {
+    margin: 12px 0 0;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  .ask-opts__login {
+    margin-top: 8px;
+  }
+  .ask-opts__ok {
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  /* ---------- 질문 목록 행 (홈 세 탭 공용) ---------- */
   .ql-list {
     margin: 4px 0 0;
     padding: 0;
@@ -136,6 +386,7 @@
   }
   .ql-m {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     font-size: var(--fs-xs);
@@ -150,7 +401,7 @@
     margin: 16px auto 0;
   }
 
-  /* ---------- 006 질문·답변 상세 ---------- */
+  /* ---------- 질문·답변 상세 ---------- */
   /* `title-1` (DES §1.2) — 질문 상세 제목 */
   .ask-q {
     margin: 10px 0 0;
@@ -160,11 +411,92 @@
     letter-spacing: -0.02em;
     text-wrap: balance;
   }
+  /* 긴 질문(단락 인용 등)은 3줄로 접는다 — 답이 첫 화면에서 밀려나지 않게 */
+  .ask-q--clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+  .ask-q__more {
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent-strong);
+    font: inherit;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    cursor: pointer;
+  }
   .ask-q__meta {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
     margin-top: 10px;
+  }
+  .ask-q__date {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .ask-model {
+    margin-top: 16px;
+    padding: 12px 14px;
+  }
+  .ask-model__k {
+    margin: 0 0 8px;
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .ask-model__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ask-model__bd {
+    flex: 1;
+    min-width: 0;
+  }
+  .ask-model__bd b {
+    display: block;
+    font-size: var(--fs-md);
+    font-weight: 600;
+  }
+  .ask-model__bd span {
+    display: block;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  /* 핵심 근거 말씀 — 답보다 먼저, 인용처럼 왼쪽 선 하나로 묶는다 */
+  .ask-key {
+    margin-top: 16px;
+    padding: 4px 0 4px 14px;
+    border-left: 3px solid var(--accent);
+  }
+  .ask-key__k {
+    margin: 0;
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .ask-key__t {
+    margin: 6px 0 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    overflow: hidden;
+  }
+  .ask-key__go {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    min-height: 44px;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--accent-strong);
   }
   .ask-wait {
     margin: 20px 0 0;
@@ -182,14 +514,12 @@
     justify-content: center;
     gap: 8px;
     margin: 0 0 12px;
+    word-break: keep-all;
   }
   /* 부엉이(마스코트 플래그)는 메시지 위 가운데에 쌓는다 */
   .ask-wait > .owl,
   .ask-fail > .owl {
     margin: 0 auto 10px;
-  }
-  .ask-wait__msg {
-    word-break: keep-all;
   }
   .ask-wait__sub,
   .ask-fail__sub {
@@ -254,6 +584,7 @@
     font-size: var(--fs-md);
   }
 
+  /* 관련 질문 — 누르면 아래 이어서 질문하기 칸을 채운다 */
   .ask-chips {
     display: flex;
     flex-direction: column;
@@ -262,7 +593,9 @@
   .ask-chip {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
+    width: 100%;
     min-height: 44px;
     padding: 11px 14px;
     border: 1px solid var(--line);
@@ -270,6 +603,7 @@
     background: var(--surface);
     font-size: var(--fs-sm);
     line-height: 1.35;
+    text-align: left;
     transition: transform 0.12s ease;
   }
   .ask-chip > svg {
@@ -280,39 +614,174 @@
     transform: scale(0.985);
   }
 
-  .ask-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .ask-row__bd {
-    flex: 1;
-    min-width: 0;
-  }
-  .ask-row__bd b {
-    display: block;
-    font-size: var(--fs-md);
-    font-weight: 600;
-    line-height: 1.35;
-  }
-  .ask-row__bd span {
-    display: block;
-    margin-top: 3px;
-    font-size: var(--fs-xs);
-    line-height: 1.5;
-    color: var(--ink-2);
-  }
   .ask-acts {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 12px;
   }
   /* 값이 하나뿐인 안내 줄 — 좌우 배분(`.hint` 기본)이면 빈 칸이 문장을 오른쪽 끝으로 민다.
      이름은 `.ask-hint`(library.css 의 검색 화면 질문 진입 카드)와 겹치지 않게 둔다 */
   .ask-saved-note {
     justify-content: flex-start;
     gap: 4px;
+  }
+  .ask-public {
+    margin: 12px 0 0;
+    padding: 12px 14px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+  .ask-public p {
+    margin: 0;
+  }
+  .ask-public p + p {
+    margin-top: 8px;
+  }
+  .ask-public .btn {
+    margin-top: 10px;
+  }
+
+  /* 이어서 한 질문 — 내 질문은 오른쪽 말풍선, 답은 아래 같은 패널 */
+  .ask-turn {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    scroll-margin-top: 72px;
+  }
+  .ask-turn__q {
+    margin: 0 0 0 auto;
+    width: fit-content;
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: var(--r) var(--r) var(--r-xs) var(--r);
+    background: var(--surface-2);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    line-height: 1.5;
+  }
+  .ask-turn__by {
+    margin: 14px 0 8px;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .ask-turn__ev {
+    margin-top: 10px;
+  }
+  .ask-turn__ev summary {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+  .ask-turn__ev[open] summary {
+    margin-bottom: 8px;
+  }
+
+  /* 하단 고정 "이어서 질문하기" — 본문 끝을 막대 높이만큼 비운다(글자 확대에 맞춰 rem) */
+  .ask-detail--follow {
+    padding-bottom: calc(5rem + 24px + env(safe-area-inset-bottom));
+  }
+  .ask-follow {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 22;
+    padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+  .ask-follow__in {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: var(--measure-read);
+    margin: 0 auto;
+  }
+  .ask-follow__field {
+    flex: 1;
+    min-width: 0;
+    min-height: 46px;
+    padding: 0 16px;
+    border: 1.5px solid var(--ink-3);
+    border-radius: var(--r-full);
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--fs-lg); /* iOS 자동 확대 방지 */
+  }
+  .ask-follow__field::placeholder {
+    color: var(--ink-3);
+  }
+  .ask-follow__field[disabled] {
+    background: var(--surface-2);
+  }
+  .ask-follow__send {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .ask-follow__send[disabled] {
+    background: var(--surface-2);
+    color: var(--ink-3);
+    cursor: not-allowed;
+  }
+  /* 막대와 하단 탭이 겹쳐 쌓이면 화면 아래 ¼ 을 차지한다 — 막대가 있는 동안 1024px 미만에서 탭을 숨긴다
+     (personal.css `.ps-bar` 와 같은 이유). 뒤로는 앱바에 있다 */
+  @media (max-width: 1023.98px) {
+    &:has(.ask-follow) .nav {
+      display: none;
+    }
+  }
+
+  /* ---------- 로그인 안내 · 하루 남은 질문 · 글자 수 (DEC-PWA-025 2차) ---------- */
+  .ask-gate__quote {
+    margin: 12px 0 0;
+    padding: 10px 14px;
+    border-left: 3px solid var(--line);
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+    white-space: pre-line;
+    text-align: left;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+  }
+  .ask-quota {
+    margin: 12px 0 0;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  .ask-quota--out {
+    color: var(--accent-strong);
+    font-weight: 600;
+  }
+  .ask-follow__quota {
+    max-width: var(--measure-read);
+    margin: 0 auto 6px;
+    font-size: var(--fs-xs);
+  }
+  .ask-count {
+    margin: 6px 0 0;
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+    text-align: right;
+  }
+  .ask-count--over {
+    color: var(--accent-strong);
+    font-weight: 600;
   }
 }
 

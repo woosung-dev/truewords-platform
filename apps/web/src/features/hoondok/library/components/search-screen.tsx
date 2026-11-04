@@ -251,7 +251,7 @@ export function SearchScreen() {
       </div>
 
       <div className="sect">
-        <Link className="ask-hint" href="/hoondok/ask">
+        <Link className="ask-hint" href="/hoondok/ask/new">
           <MessageCircleQuestion size={24} aria-hidden="true" />
           <span>
             <b>궁금한 것이 질문이라면</b>

@@ -6,7 +6,7 @@ import { HIGHLIGHT_COLORS, type HighlightColor, toHighlightColor } from "../libr
 import { formatKstMonthDay } from "../today";
 
 export const RECORDS_PATH = "/hoondok/records";
-/** 이 기기에만 있는 기록(오늘의 한 줄·저장한 AI 답). 서버를 부르지 않는다. */
+/** 이 기기에만 있는 기록(오늘의 한 줄). 서버를 부르지 않는다. */
 export const DEVICE_RECORDS_PATH = "/hoondok/records/device";
 
 /** 한 요청의 상한(서버 기본값, API-HD-053). 이만큼 왔으면 더 있을 수 있어 수 뒤에 "+" 를 붙인다. */

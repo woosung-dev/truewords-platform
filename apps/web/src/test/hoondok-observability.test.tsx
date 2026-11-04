@@ -19,6 +19,8 @@ describe("클라이언트 오류 수집", () => {
   it("검색어·질문·노트·예외를 전송하지 않고 동적 경로도 템플릿으로 바꾼다", async () => {
     expect(safeHoondokPath("/hoondok/words/secret-volume?token=private")).toBe("/hoondok/words/:volume");
     expect(safeHoondokPath("/hoondok/ask/private-question#secret")).toBe("/hoondok/ask/:id");
+    expect(safeHoondokPath("/hoondok/ask/new?q=private")).toBe("/hoondok/ask/new");
+    expect(safeHoondokPath("/hoondok/ask/p/pub123")).toBe("/hoondok/ask/p/:id");
     expect(safeHoondokPath("/hoondok/unknown-private-segment")).toBe("/hoondok");
     render(<HoondokErrorListener />);
     act(() => {

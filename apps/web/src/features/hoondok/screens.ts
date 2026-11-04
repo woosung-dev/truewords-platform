@@ -18,6 +18,8 @@ export type HoondokScreen = {
   titleSource?: "work";
   /** 있을 때만 앱바에 뒤로 링크를 그린다. 탭 루트 화면은 없다 */
   backHref?: string;
+  /** true 면 ← 가 앱 안 앞 기록이 있을 때 브라우저 뒤로(들어온 곳)로 간다. 없으면(바로 연 주소) backHref 로 간다 */
+  backToHistory?: true;
   tabId: HoondokTab["id"];
   /**
    * 본문 폭. home = 홈(≥1024px 앱바 접힘) · read = 산문 640px(`col--read`) · app = 카드/리스트 720px.
@@ -26,7 +28,7 @@ export type HoondokScreen = {
   variant: "home" | "read" | "app" | "onb";
   /** true 면 앱바·헤더의 알림 아이콘(설정 링크)을 숨긴다. 프로토타입에서 ph-bell 이 없는 화면이다 */
   hideSettingsLink?: true;
-  /** true 면 앱바의 검색 아이콘을 숨긴다. 검색 화면 자신이다 — 헤더(≥1024px) 검색 자리는 aria-current 로 남는다 */
+  /** true 면 앱바의 검색 아이콘을 숨긴다(검색 화면 자신·AI 질문 계열). 헤더(≥1024px) 검색 자리는 남는다 */
   hideSearchLink?: true;
   /** true 면 탭 내비를 그리지 않는다. 온보딩은 탭 진입 전이라 내비가 없다 (DES-PWA-003 §2) */
   hideNav?: true;
@@ -115,17 +117,38 @@ export const HOONDOK_SCREENS: readonly HoondokScreen[] = [
     variant: "app",
     hideSettingsLink: true,
   },
-  { match: "/hoondok/ask", title: "AI 질문", tabId: "ask", variant: "read" },
+  // AI 질문 계열은 앱바의 말씀 검색 아이콘을 숨긴다 — 질문 검색(홈 돋보기)과 헷갈리지 않게 (DEC-PWA-025).
+  // /hoondok/ask/log 는 홈 "내 질문" 탭으로 리다이렉트만 하므로 항목이 없다.
+  { match: "/hoondok/ask", title: "AI 질문", tabId: "ask", variant: "read", hideSearchLink: true },
+  // 새 질문은 전체 화면 — 앱바를 접고 화면이 ✕·제목·보내기 머리를 그린다
   {
-    match: "/hoondok/ask/log",
-    title: "질문 기록",
+    match: "/hoondok/ask/new",
+    title: "새 질문하기",
+    tabId: "ask",
+    variant: "onb",
+    hideSettingsLink: true,
+    hideSearchLink: true,
+    hideNav: true,
+  },
+  {
+    match: "/hoondok/ask/p/",
+    title: "공개 질문",
     backHref: "/hoondok/ask",
+    backToHistory: true,
     tabId: "ask",
     variant: "read",
-    hideSettingsLink: true,
+    hideSearchLink: true,
   },
-  // /hoondok/ask/{id} — log 가 아닌 세그먼트. 위 항목보다 접두가 짧아 최장 매치에서 자연히 밀린다
-  { match: "/hoondok/ask/", title: "질문", backHref: "/hoondok/ask/log", tabId: "ask", variant: "read" },
+  // /hoondok/ask/{id} — new·p 가 아닌 세그먼트. 위 항목보다 접두가 짧아 최장 매치에서 자연히 밀린다
+  {
+    match: "/hoondok/ask/",
+    title: "질문",
+    backHref: "/hoondok/ask",
+    backToHistory: true,
+    tabId: "ask",
+    variant: "read",
+    hideSearchLink: true,
+  },
   { match: "/hoondok/library", title: "말씀", tabId: "library", variant: "app" },
   // /hoondok/library/{series} — 저작물 한 건의 권 목록. 제목은 API-HD-023 의 저작물 제목으로 바뀐다
   {
