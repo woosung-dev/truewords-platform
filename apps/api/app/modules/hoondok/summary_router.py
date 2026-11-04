@@ -79,17 +79,18 @@ async def summary_media(
     )
 
 
-@admin_router.get("/cheonseong-toc", response_model=list[SummaryTocItem])
-async def admin_cheonseong_toc(
+@admin_router.get("/toc", response_model=list[SummaryTocItem])
+async def admin_toc(
     response: Response,
+    work: Literal["cheonseong", "pyeonghwa"] = "cheonseong",
     status: Literal["none", "draft", "review", "published", "withdrawn"]
     | None = None,
     pyeon: int | None = Query(default=None, ge=1, le=13),
     svc: SummaryService = Depends(service),
 ):
-    """천성경 편·장·절 199절 발행 관리 목록. 상태·편으로 거른다."""
+    """경전 목차 발행 관리 목록 — 천성경 199절, 평화경 182 연설문·장. 상태·편으로 거른다."""
     no_cache(response)
-    return await svc.admin_toc(status, pyeon)
+    return await svc.admin_toc(status, pyeon, work)
 
 
 @admin_router.get("/{unit_id}", response_model=SummaryAdminResponse)

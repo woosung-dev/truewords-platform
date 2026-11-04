@@ -94,6 +94,8 @@ export function SummaryDetailScreen({ id }: { id: string }) {
   const toSource = sourceHref(item);
   const crumbs = item.group_title.split(" · ").filter(Boolean);
   const headings = bodyHeadings(item.body);
+  // 근거 번호 이름 — 천성경 "말씀", 평화경 "문단"(연설문 안 순번)
+  const unit = item.paragraph_label ?? "말씀";
   const toc: TocEntry[] = [
     { id: "sum-lead", label: "핵심 한 줄" },
     ...(item.key_points.length ? [{ id: "sum-points", label: "요점" }] : []),
@@ -123,12 +125,12 @@ export function SummaryDetailScreen({ id }: { id: string }) {
         {/* 5. 차근히 이해하기 */}
         <section id="sum-body" aria-labelledby="sum-body-h"><h3 id="sum-body-h" className="sum-h">차근히 이해하기</h3><SummaryBody body={item.body} assets={item.assets ?? []} /></section>
         {/* 6. 근거 확인하기 */}
-        {item.evidence.length > 0 && <section id="sum-evidence" aria-labelledby="sum-evidence-h"><h3 id="sum-evidence-h" className="sum-h">근거 확인하기</h3><p className="sum-h-note">요약의 주장마다 원문 말씀 번호를 붙였어요.</p><ul className="sum-evidence">{item.evidence.map((e, i) => <li key={i}><p>{e.claim}</p><Link href={e.chunk_id ? wordsHref(item.volume, e.chunk_id) : toSource} aria-label={`말씀 ${range(e.from, e.to)} 원문에서 확인하기`}>말씀 {range(e.from, e.to)} 원문 보기 <ArrowRight size={14} aria-hidden="true" /></Link></li>)}</ul></section>}
+        {item.evidence.length > 0 && <section id="sum-evidence" aria-labelledby="sum-evidence-h"><h3 id="sum-evidence-h" className="sum-h">근거 확인하기</h3><p className="sum-h-note">요약의 주장마다 원문 {unit} 번호를 붙였어요.</p><ul className="sum-evidence">{item.evidence.map((e, i) => <li key={i}><p>{e.claim}</p><Link href={e.chunk_id ? wordsHref(item.volume, e.chunk_id) : toSource} aria-label={`${unit} ${range(e.from, e.to)} 원문에서 확인하기`}>{unit} {range(e.from, e.to)} 원문 보기 <ArrowRight size={14} aria-hidden="true" /></Link></li>)}</ul></section>}
         {/* 7. 되새길 물음 */}
         {item.reflection_questions.length > 0 && <section id="sum-questions" className="sum-reflection" aria-labelledby="sum-questions-h"><h3 id="sum-questions-h">되새길 물음</h3><ul>{item.reflection_questions.map((q, i) => <li key={i}>{q}</li>)}</ul></section>}
         {/* 8. 원문과 함께 읽기 */}
         <section id="sum-source" className="sum-source" aria-labelledby="sum-source-h"><BookOpenText size={22} aria-hidden="true" /><div><h3 id="sum-source-h">원문과 함께 읽기</h3><p>{[item.source.edition, item.source.locator].filter(Boolean).join(" · ")}</p></div><Link className="btn btn-line" href={toSource}>원문 읽기</Link></section>
-        <nav className="sum-next" aria-label="요약 이동"><Link href="/summaries"><ArrowLeft size={16} aria-hidden="true" />전체 요약</Link>{item.next_id ? <Link href={`/summaries/${item.next_id}`}>다음 요약 읽기 <ArrowRight size={16} aria-hidden="true" /></Link> : <span>다음 절은 준비 중이에요</span>}</nav>
+        <nav className="sum-next" aria-label="요약 이동"><Link href="/summaries"><ArrowLeft size={16} aria-hidden="true" />전체 요약</Link>{item.next_id ? <Link href={`/summaries/${item.next_id}`}>다음 요약 읽기 <ArrowRight size={16} aria-hidden="true" /></Link> : <span>다음 요약은 준비 중이에요</span>}</nav>
       </div>
       <aside className="sum-aside"><SummaryToc entries={toc} /></aside>
     </div>

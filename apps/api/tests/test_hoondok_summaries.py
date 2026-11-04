@@ -223,7 +223,7 @@ def test_admin_endpoints_require_authentication_and_csrf():
     from app.modules.admin.dependencies import get_current_admin, require_admin_gate
 
     client = TestClient(app, follow_redirects=False)
-    assert client.get("/admin/hoondok/ai-summaries/cheonseong-toc").status_code == 401
+    assert client.get("/admin/hoondok/ai-summaries/toc").status_code == 401
     app.dependency_overrides[get_current_admin] = lambda: {"user_id": uuid.uuid4()}
     app.dependency_overrides[require_admin_gate] = lambda: {}
     try:
@@ -475,10 +475,9 @@ async def test_admin_toc_lists_all_199_verses_and_merges_unit_state():
 
 
 def test_toc_file_has_structure_only():
-    import json
-    from app.modules.hoondok.summary_service import TOC_PATH
+    from app.modules.hoondok.summary_service import work_toc
 
-    rows = json.loads(TOC_PATH.read_text())
+    rows = work_toc("cheonseong")
     assert len(rows) == 199
     assert set(rows[0]) == {
         "slug", "pyeon_no", "pyeon_title", "jang_no", "jang_title",
@@ -486,19 +485,79 @@ def test_toc_file_has_structure_only():
     }
 
 
-def test_bundled_manifest_matches_contract_without_source_text():
-    """가져올 천성경 요약은 계약을 통과하고, 원문 전문 없이 근거 단락 링크만 싣는다."""
-    import json
-    from app.modules.hoondok.summary_service import TOC_PATH
+def test_pyeonghwa_toc_is_speech_units_with_chapters_only_in_4_14():
+    """평화경은 편 › 연설문, 제4편 14 만 장 단위. slug 는 번호와 맞고 읽기 순서로 정렬된다."""
+    from app.modules.hoondok.summary_service import work_toc
 
-    folder = TOC_PATH.parent
-    entries = json.loads((folder / "manifest.json").read_text())
-    slugs = {row["slug"] for row in json.loads(TOC_PATH.read_text())}
+    rows = work_toc("pyeonghwa")
+    assert len(rows) == 182 and len({r["slug"] for r in rows}) == 182
+    assert set(rows[0]) == {
+        "slug", "pyeon_no", "pyeon_title", "item_no", "item_title", "toc_date",
+        "chapter_no", "chapter_title", "paragraph_count",
+    }
+    order = [(r["pyeon_no"], r["item_no"], r["chapter_no"] or 0) for r in rows]
+    assert order == sorted(order)
+    for r in rows:
+        slug = f"peace-{r['pyeon_no']:02d}-{r['item_no']:02d}"
+        if r["chapter_no"] is not None:
+            slug += f"-{r['chapter_no']:02d}"
+        assert r["slug"] == slug and r["paragraph_count"] > 0
+    chapters = [r for r in rows if r["chapter_no"] is not None]
+    assert {(r["pyeon_no"], r["item_no"]) for r in chapters} == {(4, 14)}
+    assert rows[0]["toc_date"] == "1972.2.4"
+
+
+@pytest.mark.asyncio
+async def test_admin_toc_by_work_and_paragraph_label():
+    from app.modules.hoondok.summary_service import paragraph_label, section_position
+    from types import SimpleNamespace
+
+    svc, repo, unit, data, right = published_setup()
+    unit.slug = "peace-01-01"
+    rows = await svc.admin_toc(work="pyeonghwa")
+    assert len(rows) == 182 and rows[0].unit_id == unit.id
+    assert rows[0].item_title == "하나님과 인간을 위한 이상세계" and rows[0].jang_no is None
+    assert all(r.unit_id is None for r in await svc.admin_toc())  # 천성경 목차엔 없다
+    assert (await svc.admin_item(unit)).paragraph_label == "문단"
+    assert paragraph_label("cheon-01-01-01") == "말씀"
+    assert paragraph_label("summary-abc") == "말씀"
+    # 원문 뷰 목차의 편(1)·연설문(2) 제목으로 위치를 찾는다
+    sections = [
+        SimpleNamespace(level=1, title="참평화의 근본원리", position=1),
+        SimpleNamespace(level=2, title="하나님과 인간을 위한 이상세계", position=2),
+    ]
+    assert section_position(sections, rows[0].model_dump()) == 2
+
+
+def test_admin_toc_endpoint_rejects_unknown_work():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.modules.admin.dependencies import get_current_admin, require_admin_gate
+
+    app.dependency_overrides[get_current_admin] = lambda: {"user_id": uuid.uuid4()}
+    app.dependency_overrides[require_admin_gate] = lambda: {}
+    try:
+        res = TestClient(app).get("/admin/hoondok/ai-summaries/toc?work=wonri")
+        assert res.status_code == 422
+    finally:
+        app.dependency_overrides.pop(get_current_admin, None)
+        app.dependency_overrides.pop(require_admin_gate, None)
+
+
+def test_bundled_manifest_matches_contract_without_source_text():
+    """가져올 경전 요약은 계약을 통과하고, 원문 전문 없이 근거 단락 링크만 싣는다."""
+    import json
+    from app.modules.hoondok.summary_service import TOC_DIR, WORKS, toc_index
+
+    # 권리 원장 volume — 적재본 파일 이름
+    volumes = {"천성경": "천성경.pdf", "평화경": "평화경.txt"}
+    entries = json.loads((TOC_DIR / "manifest.json").read_text())
     for entry in entries:
-        assert entry["slug"] in slugs
+        work, _ = toc_index()[entry["slug"]]
+        assert entry["work_title"] == WORKS[work]["title"]
         assert not entry["source"].get("text")
         for image in entry["images"]:
-            assert (folder / image["file"]).is_file()
+            assert (TOC_DIR / image["file"]).is_file()
         payload = {k: v for k, v in entry.items() if k not in {"work_title", "images"}}
         data = SummaryInput.model_validate(
             {**payload, "content_right_id": uuid.uuid4()}
@@ -506,8 +565,9 @@ def test_bundled_manifest_matches_contract_without_source_text():
         for evidence in data.evidence:
             # 링크가 있으면 적재 규칙 uuid5("{volume}:{chunk_index}") 와 맞아야 한다.
             if evidence.chunk_index is not None:
+                volume = volumes[entry["work_title"]]
                 assert evidence.chunk_id == str(
-                    uuid.uuid5(uuid.NAMESPACE_URL, f"천성경.pdf:{evidence.chunk_index}")
+                    uuid.uuid5(uuid.NAMESPACE_URL, f"{volume}:{evidence.chunk_index}")
                 )
 
 

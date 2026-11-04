@@ -17,7 +17,13 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { rightsAPI } from "@/features/hoondok/rights-api";
 import { ApiError } from "@/lib/api";
-import { summariesAPI, type SummaryInput, type SummaryAdminResponse, type SummaryTocItem } from "./api";
+import {
+  summariesAPI,
+  type SummaryInput,
+  type SummaryAdminResponse,
+  type SummaryTocItem,
+  type SummaryWork,
+} from "./api";
 import { SummaryEditor, summaryExtensions } from "./editor";
 import { SourcePicker } from "./source-picker";
 import "./summaries.css";
@@ -208,20 +214,50 @@ function ListField({
   );
 }
 
+// 경전별 목차 모양. 천성경은 편 › 장 › 절, 평화경은 편 › 연설문(제4편 14 만 장까지).
+const WORKS: Record<
+  SummaryWork,
+  { title: string; size: number; sizeLabel: string; unit: string; count: string; here: string }
+> = {
+  cheonseong: { title: "천성경", size: 199, sizeLabel: "절", unit: "말씀", count: "절", here: "이 절" },
+  pyeonghwa: { title: "평화경", size: 182, sizeLabel: "개 연설문·장", unit: "문단", count: "개", here: "이 연설문" },
+};
+type TocGroup = { title: string; noun: string; rows: SummaryTocItem[] };
+
 function groupToc(rows: SummaryTocItem[]) {
-  const pyeons = new Map<number, { title: string; jangs: Map<number, { title: string; rows: SummaryTocItem[] }> }>();
+  const pyeons = new Map<number, { title: string; groups: Map<string, TocGroup> }>();
   for (const row of rows) {
-    const pyeon = pyeons.get(row.pyeon_no) ?? { title: row.pyeon_title, jangs: new Map() };
-    const jang = pyeon.jangs.get(row.jang_no) ?? { title: row.jang_title, rows: [] };
-    jang.rows.push(row);
-    pyeon.jangs.set(row.jang_no, jang);
+    const pyeon = pyeons.get(row.pyeon_no) ?? { title: row.pyeon_title, groups: new Map() };
+    // 천성경 절은 장으로, 평화경 장은 연설문으로 묶는다. 장이 없는 평화경 연설문은 한 묶음이다.
+    const [key, title, noun] =
+      row.jang_no != null
+        ? [`jang-${row.jang_no}`, `제${row.jang_no}장 ${row.jang_title ?? ""}`, "절"]
+        : row.chapter_no != null
+          ? [`item-${row.item_no}`, `${row.item_no}. ${row.item_title ?? ""}`, "장"]
+          : ["speeches", "연설문", "편"];
+    const group = pyeon.groups.get(key) ?? { title, noun, rows: [] };
+    group.rows.push(row);
+    pyeon.groups.set(key, group);
     pyeons.set(row.pyeon_no, pyeon);
   }
   return pyeons;
 }
 
+function rowTitle(row: SummaryTocItem): ReactNode {
+  if (row.jeol_no != null) return `${row.jeol_no}절 ${row.jeol_title ?? ""}`;
+  if (row.chapter_no != null) return `${row.chapter_no}장 ${row.chapter_title ?? ""}`;
+  return (
+    <>
+      {row.item_no}. {row.item_title}
+      {row.toc_date && <span className="ml-1 font-normal text-muted-foreground">({row.toc_date})</span>}
+    </>
+  );
+}
+
 export function SummaryList() {
-  const query = useQuery({ queryKey: ["summary-admin", "toc"], queryFn: summariesAPI.toc });
+  const [work, setWork] = useState<SummaryWork>("cheonseong");
+  const meta = WORKS[work];
+  const query = useQuery({ queryKey: ["summary-admin", "toc", work], queryFn: () => summariesAPI.toc(work) });
   const [status, setStatus] = useState("");
   const [pyeon, setPyeon] = useState("");
   const [missing, setMissing] = useState("");
@@ -236,14 +272,34 @@ export function SummaryList() {
     acc[key] = (acc[key] ?? 0) + 1;
     return acc;
   }, {});
+  function changeWork(next: SummaryWork) {
+    // 편 번호는 경전마다 다르다 — 거르기를 비운다
+    setWork(next);
+    setPyeon("");
+    setMissing("");
+  }
   return (
     <div className="page-wide space-y-6">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">천성경 AI 요약 발행 관리</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{meta.title} AI 요약 발행 관리</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          천성경 {all.length || 199}절의 AI 요약 상태를 보고, 검수·공개·내리기를 관리합니다.
+          {meta.title} {all.length || meta.size}
+          {meta.sizeLabel}의 AI 요약 상태를 보고, 검수·공개·내리기를 관리합니다.
         </p>
       </header>
+      <div role="group" aria-label="경전" className="flex flex-wrap gap-1.5">
+        {(Object.keys(WORKS) as SummaryWork[]).map((key) => (
+          <Button
+            key={key}
+            size="sm"
+            variant={work === key ? "default" : "outline"}
+            aria-pressed={work === key}
+            onClick={() => changeWork(key)}
+          >
+            {WORKS[key].title}
+          </Button>
+        ))}
+      </div>
       <div className="flex flex-wrap items-end gap-4">
         <Field label="상태">
           <NativeSelect value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -266,11 +322,12 @@ export function SummaryList() {
           </NativeSelect>
         </Field>
         <p className="pb-2 text-sm text-muted-foreground" aria-live="polite">
-          {rows.length}절 표시
+          {rows.length}
+          {meta.count} 표시
         </p>
       </div>
       {all.length > 0 && (
-        <dl className="flex flex-wrap gap-x-5 gap-y-2 text-sm" aria-label="상태별 절 수">
+        <dl className="flex flex-wrap gap-x-5 gap-y-2 text-sm" aria-label="상태별 개수">
           {STATUS_ORDER.map((key) => (
             <div key={key} className="flex items-center gap-2">
               <dt>
@@ -295,28 +352,25 @@ export function SummaryList() {
           <h2 className="text-lg font-semibold">
             제{pyeonNo}편 {pyeonItem.title}
           </h2>
-          {Array.from(pyeonItem.jangs, ([jangNo, jang]) => (
-            <div key={jangNo} className="overflow-hidden rounded-xl border bg-card">
+          {Array.from(pyeonItem.groups, ([groupKey, group]) => (
+            <div key={groupKey} className="overflow-hidden rounded-xl border bg-card">
               <div className="flex items-center justify-between gap-3 border-b bg-muted/40 px-4 py-2">
-                <h3 className="text-sm font-medium">
-                  제{jangNo}장 {jang.title}
-                </h3>
+                <h3 className="text-sm font-medium">{group.title}</h3>
                 <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  공개 {jang.rows.filter((row) => normalizeStatus(row.status) === "published").length} /{" "}
-                  {jang.rows.length}절
+                  공개 {group.rows.filter((row) => normalizeStatus(row.status) === "published").length} /{" "}
+                  {group.rows.length}
+                  {group.noun}
                 </span>
               </div>
               <ul className="divide-y">
-                {jang.rows.map((row) => {
+                {group.rows.map((row) => {
                   const rowStatus = normalizeStatus(row.status);
                   const inner = (
                     <>
                       <span className="min-w-0 basis-full sm:basis-auto sm:flex-1">
-                        <span className="font-medium">
-                          {row.jeol_no}절 {row.jeol_title}
-                        </span>
+                        <span className="font-medium">{rowTitle(row)}</span>
                         <span className="ml-2 whitespace-nowrap text-xs text-muted-foreground">
-                          말씀 {row.paragraph_count}개
+                          {meta.unit} {row.paragraph_count}개
                         </span>
                       </span>
                       <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground tabular-nums">
@@ -351,7 +405,7 @@ export function SummaryList() {
                       )}
                       {missing === row.slug && (
                         <p id={`missing-${row.slug}`} role="status" className="px-4 pb-3 text-sm text-muted-foreground">
-                          콘텐츠 없음: 이 절의 AI 요약을 아직 가져오지 않았어요.
+                          콘텐츠 없음: {meta.here}의 AI 요약을 아직 가져오지 않았어요.
                         </p>
                       )}
                     </li>
@@ -407,6 +461,8 @@ export function SummaryForm({ initial }: { initial?: SummaryAdminResponse }) {
   const recoveryKey = `truewords:summary-draft:${initial?.id ?? "new"}:${initial?.version ?? 0}`;
   const dirty = JSON.stringify(values) !== saved;
   const selectedRight = rights.data?.find((right) => right.id === values.content_right_id);
+  // 근거 번호 이름은 서버가 경전 목차로 정한다 — 천성경 "말씀", 평화경 "문단"
+  const unit = record?.paragraph_label ?? "말씀";
   const initialId = initial?.id;
   const initialVersion = initial?.version;
   const initialRightId = initial?.content_right_id;
@@ -696,7 +752,7 @@ export function SummaryForm({ initial }: { initial?: SummaryAdminResponse }) {
             className="summary-d-lead"
             value={values.lead ?? ""}
             rows={2}
-            placeholder="이 절의 핵심을 한 줄로 적어 주세요"
+            placeholder="이 요약의 핵심을 한 줄로 적어 주세요"
             onChange={(e) => patch("lead", e.target.value)}
           />
           <section className="summary-editor-section space-y-4" aria-label="요점">
@@ -772,7 +828,7 @@ export function SummaryForm({ initial }: { initial?: SummaryAdminResponse }) {
           />
           <section className="summary-editor-section space-y-4" aria-label="근거 확인하기">
             <h2 className="font-semibold">근거 확인하기</h2>
-            <p className="text-xs leading-6 text-muted-foreground">요약 문장마다 절 안의 말씀 번호 범위를 적어요.</p>
+            <p className="text-xs leading-6 text-muted-foreground">요약 문장마다 원문 {unit} 번호 범위를 적어요.</p>
             {evidence.map((item, index) => (
               <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_80px_80px_auto]" key={index}>
                 <Input
@@ -790,7 +846,7 @@ export function SummaryForm({ initial }: { initial?: SummaryAdminResponse }) {
                     key={key}
                     type="number"
                     min={1}
-                    aria-label={`근거 ${index + 1} ${key === "from" ? "시작" : "끝"} 말씀 번호`}
+                    aria-label={`근거 ${index + 1} ${key === "from" ? "시작" : "끝"} ${unit} 번호`}
                     value={item[key]}
                     onChange={(e) =>
                       patch(
@@ -879,7 +935,7 @@ export function SummaryForm({ initial }: { initial?: SummaryAdminResponse }) {
             <p className="mt-2 text-xs leading-6">
               {[values.source.edition, values.source.locator].filter(Boolean).join(" / ")}
               {values.source.paragraph_from != null &&
-                ` (말씀 ${values.source.paragraph_from}–${values.source.paragraph_to ?? values.source.paragraph_from})`}
+                ` (${unit} ${values.source.paragraph_from}–${values.source.paragraph_to ?? values.source.paragraph_from})`}
             </p>
           )}
           {values.source?.text && (
@@ -1083,7 +1139,7 @@ export function SummaryForm({ initial }: { initial?: SummaryAdminResponse }) {
                     <ul className="mt-3 space-y-2 text-sm leading-7">
                       {evidence.map((item, i) => (
                         <li key={i}>
-                          {item.claim} — 말씀 {item.from}
+                          {item.claim} — {unit} {item.from}
                           {item.to !== item.from ? `–${item.to}` : ""}
                         </li>
                       ))}

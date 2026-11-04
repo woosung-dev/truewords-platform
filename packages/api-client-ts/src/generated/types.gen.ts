@@ -4091,6 +4091,10 @@ export type SummaryAdminResponse = {
      */
     lead?: string;
     /**
+     * Paragraph Label
+     */
+    paragraph_label?: string;
+    /**
      * Position
      */
     position?: number | null;
@@ -4191,6 +4195,10 @@ export type SummaryDetail = {
      * Next Id
      */
     next_id?: string | null;
+    /**
+     * Paragraph Label
+     */
+    paragraph_label?: string;
     /**
      * Position
      */
@@ -4574,29 +4582,45 @@ export type SummarySource = {
 /**
  * SummaryTocItem
  *
- * 관리자 발행 관리 목록 한 행 — 천성경 절 하나.
+ * 관리자 발행 관리 목록 한 행 — 천성경 절 하나 또는 평화경 연설문(제4편 14 는 장) 하나.
  */
 export type SummaryTocItem = {
+    /**
+     * Chapter No
+     */
+    chapter_no?: number | null;
+    /**
+     * Chapter Title
+     */
+    chapter_title?: string | null;
     /**
      * Image Count
      */
     image_count?: number;
     /**
+     * Item No
+     */
+    item_no?: number | null;
+    /**
+     * Item Title
+     */
+    item_title?: string | null;
+    /**
      * Jang No
      */
-    jang_no: number;
+    jang_no?: number | null;
     /**
      * Jang Title
      */
-    jang_title: string;
+    jang_title?: string | null;
     /**
      * Jeol No
      */
-    jeol_no: number;
+    jeol_no?: number | null;
     /**
      * Jeol Title
      */
-    jeol_title: string;
+    jeol_title?: string | null;
     /**
      * Paragraph Count
      */
@@ -4625,6 +4649,10 @@ export type SummaryTocItem = {
      * Text Score
      */
     text_score?: number | null;
+    /**
+     * Toc Date
+     */
+    toc_date?: string | null;
     /**
      * Unit Id
      */
@@ -6401,10 +6429,14 @@ export type CreateSummaryAdminHoondokAiSummariesPostResponses = {
 
 export type CreateSummaryAdminHoondokAiSummariesPostResponse = CreateSummaryAdminHoondokAiSummariesPostResponses[keyof CreateSummaryAdminHoondokAiSummariesPostResponses];
 
-export type AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetData = {
+export type AdminTocAdminHoondokAiSummariesTocGetData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Work
+         */
+        work?: 'cheonseong' | 'pyeonghwa';
         /**
          * Status
          */
@@ -6414,28 +6446,28 @@ export type AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetData = {
          */
         pyeon?: number | null;
     };
-    url: '/admin/hoondok/ai-summaries/cheonseong-toc';
+    url: '/admin/hoondok/ai-summaries/toc';
 };
 
-export type AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetErrors = {
+export type AdminTocAdminHoondokAiSummariesTocGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetError = AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetErrors[keyof AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetErrors];
+export type AdminTocAdminHoondokAiSummariesTocGetError = AdminTocAdminHoondokAiSummariesTocGetErrors[keyof AdminTocAdminHoondokAiSummariesTocGetErrors];
 
-export type AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetResponses = {
+export type AdminTocAdminHoondokAiSummariesTocGetResponses = {
     /**
-     * Response Admin Cheonseong Toc Admin Hoondok Ai Summaries Cheonseong Toc Get
+     * Response Admin Toc Admin Hoondok Ai Summaries Toc Get
      *
      * Successful Response
      */
     200: Array<SummaryTocItem>;
 };
 
-export type AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetResponse = AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetResponses[keyof AdminCheonseongTocAdminHoondokAiSummariesCheonseongTocGetResponses];
+export type AdminTocAdminHoondokAiSummariesTocGetResponse = AdminTocAdminHoondokAiSummariesTocGetResponses[keyof AdminTocAdminHoondokAiSummariesTocGetResponses];
 
 export type AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetData = {
     body?: never;

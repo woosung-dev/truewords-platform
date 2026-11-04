@@ -1,8 +1,8 @@
 """검수 전 요약을 초안으로 임포트. 권리 생성·공개본 덮어쓰기를 하지 않는다.
 
 uv run python scripts/import_ai_summaries.py content/ai-summaries/manifest.json --rights-map /path/rights.json
-rights.json: {"천성경": "기존 content_right UUID"}
-manifest 는 천성경 절 콘텐츠 JSON(slug·lead·key_points·body·evidence·reflection_questions·
+rights.json: {"천성경": "기존 content_right UUID", "평화경": "..."}
+manifest 는 경전 목차 단위(천성경 절·평화경 연설문) 콘텐츠 JSON(slug·lead·key_points·body·evidence·reflection_questions·
 uncertainty·images[{kind,file,alt,caption}]·source·generation)의 배열이다. 원문 전문은 넣지 않아도 된다.
 이미지 file 은 manifest 폴더 기준 상대 경로다.
 기존 slug는 건너뛴다. 실행 전 --dry-run 으로 판본·권리 연결을 확인한다.
@@ -22,7 +22,12 @@ from app.core.config import settings
 from app.modules.hoondok.models import ContentRight
 from app.modules.hoondok.summary_models import SummaryUnit, SummaryAsset
 from app.modules.hoondok.summary_schemas import SummaryInput
-from app.modules.hoondok.summary_service import SummaryService, chunk_point_id
+from app.modules.hoondok.summary_service import (
+    WORKS,
+    SummaryService,
+    chunk_point_id,
+    toc_index,
+)
 from app.modules.hoondok.summary_repository import SummaryRepository
 
 
@@ -38,6 +43,9 @@ async def run(args):
         staged = []
         for entry in entries:
             work = entry["work_title"]
+            listed = toc_index().get(entry["slug"])
+            if listed and WORKS[listed[0]]["title"] != work:
+                raise ValueError(f"{entry['slug']}: {work} 목차의 slug 가 아닙니다")
             if work not in rights:
                 raise ValueError(f"{work}: --rights-map에 기존 원문 UUID를 지정하세요")
             right_id = uuid.UUID(rights[work])

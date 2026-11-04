@@ -188,7 +188,7 @@ async def test_persistent_admin_to_public_lifecycle(database, tmp_path):
                 assert admin["uncertainty"] == ["관리자 전용 확인 사항"]
                 assert admin["generation"]["text_model"] == "비공개-모델"
                 toc = await client.get(
-                    "/admin/hoondok/ai-summaries/cheonseong-toc?status=published"
+                    "/admin/hoondok/ai-summaries/toc?status=published"
                 )
                 assert toc.status_code == 200, toc.text
                 assert toc.json() == []
