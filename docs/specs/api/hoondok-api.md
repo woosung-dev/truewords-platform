@@ -333,6 +333,7 @@ AI 질문 화면과 원문 뷰 "AI 설명"은 로그인 필수다. 답은 훈독
 - 요청 `{ query, session_id?, answer_mode? }`. 봇(`chatbot_id`)은 서버가 정한다(`HOONDOK_ASK_CHATBOT_ID = "all"`). `session_id` 가 있으면 이어 묻기이며, 이 계정의 AI 질문 대화가 아니면(남의 것·시연 챗 세션·없는 id) 403 `SESSION_FORBIDDEN`. `answer_mode` 가 없으면 서버가 자동으로 고른다.
 - 응답은 `/chat/stream` 과 같은 SSE 이벤트 계약(`chunk` → `sources` → `done`)이다. 답은 기존 RAG·safety·출력 필터 파이프라인을 그대로 지난다. `sources` 이벤트의 `answer_mode` 는 실제 적용된 모드다.
 - **하루 횟수**: KST 자정 기준 하루 5회(`HOONDOK_ASK_DAILY_LIMIT`, 기본 5), 이어 묻기도 1회로 센다. 초과는 429 `ASK_DAILY_LIMIT` — `ErrorResponse.details{limit, used, remaining, resets_at}` + `Retry-After` 헤더. 빈 질문·1000자 초과·차단 패턴(400 `INPUT_BLOCKED`)은 차감 전에 거절하고, 첫 이벤트 전에 실패하면(4xx·5xx) 차감을 되돌린다.
+- **권리 필터**: 검색(fallback 포함)은 말씀 검색(API-HD-015)과 같은 `allowed` AND `scope_search` volume 만 Qdrant 쿼리 조건으로 대상 삼는다. 원장에 없는 권은 닫힌 것으로 보고, 허용 권이 0건이면 근거 0건이다.
 - **공유 캐시 미사용**: 비공개 질문이라 공유 시맨틱 캐시에 저장·조회하지 않는다. 로그에는 질문 원문 대신 지문만 남긴다.
 - 웹은 `sources` 가 0건이면 답을 보이지 않고 "확인할 수 없음" 으로 끝낸다(AC-017-01·04, 서버는 이 게이트를 알지 못한다). `sources` 항목은 표시명·권·본문만 주고 화자·판본·권위 등급은 주지 않는다(AC-017-02).
 - 오류: 401 미인증 · 400 `INPUT_BLOCKED` · 403 `SESSION_FORBIDDEN` · 429 `ASK_DAILY_LIMIT`·`RATE_LIMIT_EXCEEDED`.
