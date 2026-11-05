@@ -125,7 +125,7 @@ test("시작 → 숨 고르기 → 본문 → 다 읽었어요 → 마침 → �
   expect((await completed).status()).toBe(200);
   await expect(page.getByRole("heading", { name: "오늘 말씀을 읽었어요" })).toBeVisible();
   await expect(page.getByText(/읽은 장 1\/7/)).toBeVisible();
-  await page.getByRole("link", { name: "넘어가기" }).click();
+  await page.getByRole("link", { name: "오늘 훈독으로" }).click();
 
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(home.getByRole("status")).toHaveText(/오늘 말씀을 읽었어요/);
@@ -197,8 +197,7 @@ test("7장을 모두 읽으면 마침표 → 오늘 훈독으로 하면 다시 �
   await expect(page).toHaveURL(/\/path\/done$/);
   const done = page.locator(".path-done");
   await expect(done.getByRole("heading", { name: "천성경 7일 정성을 마쳤어요" })).toBeVisible();
-  await expect(done.locator("dd").first()).toHaveText("7장");
-  await expect(done.locator("dd").nth(1)).toHaveText("7일");
+  await expect(done.getByText("7장을 7일 동안 읽으셨어요.")).toBeVisible();
   await expect(done.getByText("이번 정성에서 고른 구절은 없어요.")).toBeVisible();
   expect(await done.textContent()).not.toMatch(/%|배지|완벽|축하/);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
