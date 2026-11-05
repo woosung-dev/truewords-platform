@@ -194,6 +194,18 @@
   .path-sect__title {
     font-size: var(--fs-lg);
   }
+  /* 이번 주 읽은 날 — 정성 화면은 본문에 --fs-sm/xs 를 쓰지 않는다(디자인 명세 §0.1).
+     홈의 요일 줄은 그대로 두고 .path-home 안에서만 키운다: 요일 글자 --fs-md · 원 40 · 체크 14 */
+  .path-home .week__day {
+    max-width: 40px;
+    font-size: var(--fs-md);
+  }
+  .path-home .week__check {
+    width: 14px;
+    height: 14px;
+    right: -3px;
+    bottom: -1px;
+  }
 
   /* 장 목록 — 번호 원 44 · 이름 · (다음 장만) 부엉이 40. 장 사이 선은 상태와 무관하게 --line 하나다 */
   .path-steps {
@@ -238,9 +250,10 @@
     color: var(--ok-strong);
     border-color: transparent;
   }
+  /* 다음 장 고리는 --ink — 주황은 "읽기 시작" 버튼 하나에 모은다 */
   .path-step[data-state="next"] .path-step__n {
-    border: 2px solid var(--accent);
-    color: var(--accent-strong);
+    border: 2px solid var(--ink);
+    color: var(--ink);
     font-weight: 700;
   }
   .path-step[data-state="withdrawn"] .path-step__n {
@@ -391,13 +404,11 @@
   .path-flow .onb-title {
     margin: 0;
   }
-  .path .onb-title:focus {
+  /* 프로그램으로 포커스를 옮긴 제목(마침·구절 고르기·숨 고르기)은 상호작용 요소가 아니다 — 고리를 그리지 않는다.
+     새로고침·알림으로 연 화면에서 Chrome 이 focus-visible 로 보고 주황 상자를 그리면 오류처럼 읽힌다 */
+  .path .onb-title[tabindex="-1"]:focus,
+  .path .onb-title[tabindex="-1"]:focus-visible {
     outline: none;
-  }
-  .path .onb-title:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 4px;
-    border-radius: 4px;
   }
   .path .onb-lede {
     margin: 10px 0 0;

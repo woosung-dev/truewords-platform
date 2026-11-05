@@ -76,8 +76,11 @@ function Breath({ step, onDone }: { step: PathStepSummary; onDone: () => void })
   useEffect(() => {
     onDoneRef.current = onDone;
   });
-  // 주소로 들어온 첫 화면이라 제목으로 포커스를 옮기지 않는다(본문으로 넘어갈 때 옮긴다)
+  // 들어오자마자 제목으로 포커스를 옮겨 화면 읽기 사용자에게 "숨 고르기 → 곧 말씀이 열림"을 먼저 읽힌다
+  // (3초 뒤 본문으로 넘어갈 때는 useFocusTitle 이 본문 제목으로 옮긴다)
+  const titleRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
+    titleRef.current?.focus();
     const timer = window.setTimeout(() => onDoneRef.current(), BREATH_MS);
     return () => window.clearTimeout(timer);
   }, []);
@@ -86,7 +89,9 @@ function Breath({ step, onDone }: { step: PathStepSummary; onDone: () => void })
       <PathTop left={CLOSE} right={{ label: "건너뛰기", onClick: onDone }} />
       <div className="path-breath">
         <div className="path-breath__circle" aria-hidden="true" />
-        <h2 className="onb-title">숨을 한 번 고르고 시작해요</h2>
+        <h2 className="onb-title" tabIndex={-1} ref={titleRef}>
+          숨을 한 번 고르고 시작해요
+        </h2>
         <p className="path-breath__sub">{`${step.title} · ${minutesLabel(step.estimated_minutes)}`}</p>
         <p className="path-breath__note">3초 뒤 말씀이 열려요.</p>
       </div>
@@ -168,9 +173,9 @@ function Finish({
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
+  // 위 닫기는 두지 않는다 — 아래 "오늘 훈독으로"와 같은 곳으로 가는 출구가 두 개가 되지 않게(마침표 화면과 같음)
   return (
     <>
-      <PathTop left={CLOSE} />
       <div className="path-finish">
         <h2 className="onb-title" tabIndex={-1} ref={titleRef}>
           오늘 말씀을 읽었어요

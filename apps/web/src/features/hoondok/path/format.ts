@@ -14,11 +14,6 @@ export function minutesLabel(minutes: number): string {
   return `약 ${minutes}분`;
 }
 
-/** "1편 3장이에요" · "머리말이에요/예요" — 받침에 맞춘 서술격 조사. */
-export function withIeyo(word: string): string {
-  return `${word}${hasBatchim(word) ? "이에요" : "예요"}`;
-}
-
 /** "천성경 7일 정성을" — 받침에 맞춘 목적격 조사. */
 export function withEul(word: string): string {
   return `${word}${hasBatchim(word) ? "을" : "를"}`;
