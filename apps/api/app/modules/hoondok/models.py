@@ -394,3 +394,122 @@ class AskUsage(SQLModel, table=True):
     user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True)
     day: date = Field(primary_key=True)  # KST 날짜 (today_kst)
     used: int = Field(default=0)
+
+
+# --- 7일 정성 (읽기 정성, 계획 v2.1 §6) ---------------------------------------------
+# 정성 기간(jeongseong_periods)과 섞지 않는 별도 테이블이다. "진행 중 정성은 하나"는 시작 두 곳의 서비스가
+# 사용자 행 잠금 뒤 두 테이블을 함께 확인해 지킨다. 진행·읽은 날은 저장하지 않고 완료 행에서 계산한다.
+READING_PATH_KINDS = ("fixed", "question", "custom")
+READING_PATH_STATUSES = ("draft", "published", "retired")
+PATH_MINUTES_TIERS = (3, 7, 15)  # 하루 분량(분). 장 스냅샷이 단계마다 따로 있다
+PATH_RUN_STATUSES = ("active", "completed", "abandoned")
+PATH_STEP_MODES = ("full", "half")  # half(앞부분만)는 1b
+PATH_SLOTS = ("dawn", "morning", "evening")  # 읽을 때. 정하지 않음은 NULL
+PATH_FINISH_ACTIONS = ("next", "repeat", "rest")
+
+
+class ReadingPath(SQLModel, table=True):
+    """정성 정의(예: 천성경 7일 정성). 발행 뒤 장은 고치지 않고 version+1 로 새로 만든다."""
+
+    __tablename__ = "reading_paths"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    slug: str = Field(max_length=64, unique=True, index=True)
+    version: int = Field(default=1)
+    kind: str = Field(default="fixed", max_length=16)  # READING_PATH_KINDS
+    title: str = Field(max_length=100)
+    when_line: str | None = Field(default=None, max_length=100)  # "처음 시작할 때" 같은 한 줄
+    book: str = Field(max_length=32)  # "천성경" — 화면 표시용
+    duration_days: int
+    status: str = Field(default="draft", max_length=16)  # READING_PATH_STATUSES
+    sort_order: int = Field(default=0)
+    # custom(사용자 정성) 전용. 계정 삭제는 소프트 삭제라 FK CASCADE 가 돌지 않는다 — purger 가 명시적으로 지운다.
+    owner_user_id: uuid.UUID | None = Field(default=None, foreign_key="users.id", ondelete="CASCADE", index=True)
+    created_by: uuid.UUID | None = Field(default=None, foreign_key="users.id", ondelete="SET NULL")
+    created_at: datetime = Field(default_factory=utcnow)
+    published_at: datetime | None = Field(default=None)
+
+
+class ReadingPathStep(SQLModel, table=True):
+    """정성의 하루 장 스냅샷. 하루 분량 단계(minutes_tier)마다 범위가 다르다.
+
+    chunk_index 범위와 함께 양끝 chunk_id 를 둔다 — 재적재로 index 가 밀리면 id 가 어긋나 그 장을 withdrawn 으로 본다.
+    """
+
+    __tablename__ = "reading_path_steps"
+    __table_args__ = (
+        UniqueConstraint(
+            "path_id", "path_version", "minutes_tier", "day_index", name="uq_reading_path_steps_path_tier_day"
+        ),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    path_id: uuid.UUID = Field(foreign_key="reading_paths.id", ondelete="CASCADE", index=True)
+    path_version: int
+    minutes_tier: int  # PATH_MINUTES_TIERS
+    day_index: int  # 1부터
+    volume: str = Field(max_length=512)  # Qdrant payload 원문 그대로 — 권리 판정 키
+    start_chunk_index: int
+    end_chunk_index: int  # 포함
+    half_end_chunk_index: int | None = Field(default=None)  # 앞부분만(1b)
+    start_chunk_id: str = Field(max_length=128)
+    end_chunk_id: str = Field(max_length=128)
+    title: str = Field(max_length=200)
+    estimated_minutes: int
+
+
+class PathRun(SQLModel, table=True):
+    """식구 한 사람의 정성 진행 1건. 사용자당 active 1건 — 부분 unique 인덱스가 지킨다.
+
+    title·book·duration_days 는 시작 때 복사한다(정의가 바뀌어도 진행 중 화면이 그대로). 날짜로 자동 전환하지 않는다:
+    끝나는 날이 지나도 active 로 남고 마지막 장 완료로 completed, 그만하기로 abandoned 가 된다.
+    """
+
+    __tablename__ = "path_runs"
+    __table_args__ = (
+        Index(
+            "uq_path_runs_user_active",
+            "user_id",
+            unique=True,
+            postgresql_where=text("status = 'active'"),
+            sqlite_where=text("status = 'active'"),  # aiosqlite 테스트에서도 같은 제약을 재현한다
+        ),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", ondelete="CASCADE", index=True)
+    path_id: uuid.UUID = Field(foreign_key="reading_paths.id", index=True)
+    path_version: int
+    minutes_tier: int
+    title: str = Field(max_length=100)
+    book: str = Field(max_length=32)
+    duration_days: int
+    started_on: date  # KST
+    status: str = Field(default="active", max_length=16, sa_column_kwargs={"server_default": "active"})
+    preferred_slot: str | None = Field(default=None, max_length=16)  # PATH_SLOTS
+    extension_days: int = Field(default=0, sa_column_kwargs={"server_default": "0"})  # 늘리기(1b)
+    # 마침표 화면에서 고른 다음 행동. NULL 인 completed run 은 아직 마침표를 보여 줄 run 이다.
+    finish_action: str | None = Field(default=None, max_length=16)  # PATH_FINISH_ACTIONS
+    finished_at: datetime | None = Field(default=None)  # completed·abandoned 시각(UTC)
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class PathStepCompletion(SQLModel, table=True):
+    """장 하나를 읽은 기록. 하루 한 장(unique run·completed_on), 장마다 한 번(unique run·day_index).
+
+    note(남긴 한 줄)는 개인 기록이다 — 본인 응답에만 담고 관리자 지표·미리보기에는 넣지 않는다.
+    """
+
+    __tablename__ = "path_step_completions"
+    __table_args__ = (
+        UniqueConstraint("run_id", "day_index", name="uq_path_step_completions_run_day"),
+        UniqueConstraint("run_id", "completed_on", name="uq_path_step_completions_run_date"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    run_id: uuid.UUID = Field(foreign_key="path_runs.id", ondelete="CASCADE", index=True)
+    day_index: int
+    mode: str = Field(default="full", max_length=16)  # PATH_STEP_MODES
+    completed_on: date  # KST. 서버가 정한다
+    note: str | None = Field(default=None, max_length=200)
+    created_at: datetime = Field(default_factory=utcnow)
