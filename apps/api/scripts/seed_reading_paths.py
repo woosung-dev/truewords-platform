@@ -41,11 +41,13 @@ from app.modules.hoondok.models import (  # noqa: E402
     ReadingPathStep,
     VolumeSection,
 )
+# reading_paths 의 users FK 를 풀려면 users 테이블이 메타데이터에 있어야 한다(없으면 flush 에서 NoReferencedTableError)
+from app.modules.identity.models import User  # noqa: E402, F401
 from app.modules.qdrant.filters import build_filter, field_match, field_range  # noqa: E402
 from app.modules.search.hybrid import point_to_search_result  # noqa: E402
 
 CHARS_PER_MINUTE = 500  # [가정] 어르신 소리 내어 읽기 기준 분당 글자 수
-E2E_CHARS_PER_MINUTE = 10  # fixture 청크(약 170자)가 하루 한 청크가 되게
+E2E_CHARS_PER_MINUTE = 6  # fixture 청크(약 120자)가 15분 단계에서도 하루 한 청크가 되게(21일 정성이 25청크 안에 든다)
 E2E_VOLUME = "말씀선집 355권"  # seed_hoondok_journey.py 의 FIXTURE_VOLUME
 FETCH_WINDOW = 400
 
