@@ -77,7 +77,7 @@ class PathRunView(BaseModel):
     read_today: bool
     # 마지막으로 읽은 날과 오늘 사이의 빈 날 수(읽은 적 없으면 시작 전날 기준). 2 이상이면 돌아온 날
     gap_days: int
-    week_read_dates: list[date]  # 이번 주(일요일 시작)에 읽은 날
+    week_read_dates: list[date]  # 이번 주(월요일 시작)에 읽은 날
     read_days: int  # 읽은 날 수(전체)
     finished_at: datetime | None
     steps: list[PathStepSummary]
