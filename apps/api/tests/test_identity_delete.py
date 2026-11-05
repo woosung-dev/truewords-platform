@@ -24,6 +24,7 @@ from app.modules.hoondok.dependencies import (
     get_library_repository,
     get_mission_repository,
     get_notification_repository,
+    get_path_repository,
 )
 from app.modules.hoondok.models import ClientErrorEvent, JeongseongPeriod, JeongseongReading, MissionLog
 from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
@@ -233,6 +234,16 @@ class _FakeCards:
         self.purged.append(user_id)
 
 
+class _FakePathRuns(_FakeCards):
+    """7일 정성 purger + 정성 기간 시작의 상호 배제 확인(진행 중 7일 정성 없음). 실제 삭제는 test_hoondok_paths.py."""
+
+    async def lock_user(self, user_id) -> None:
+        return None
+
+    async def get_active_run(self, user_id):
+        return None
+
+
 @pytest.fixture
 def client():
     users, logs, periods = _MemoryUsers(), _FakeLogs(), _FakePeriods()
@@ -246,6 +257,7 @@ def client():
     app.dependency_overrides[get_card_repository] = lambda: cards
     app.dependency_overrides[get_public_question_repository] = lambda: _FakeCards()  # 공개 질문 purger (DEC-PWA-025)
     app.dependency_overrides[get_ask_repository] = lambda: _FakeCards()  # AI 질문 purger (DEC-PWA-025 2차)
+    app.dependency_overrides[get_path_repository] = lambda: _FakePathRuns()  # 7일 정성 purger (읽기 정성 1a)
     try:
         c = TestClient(app)
         c.users, c.logs, c.periods = users, logs, periods  # type: ignore[attr-defined]
@@ -261,6 +273,7 @@ def client():
                     get_card_repository,
             get_public_question_repository,
             get_ask_repository,
+            get_path_repository,
         ):
             app.dependency_overrides.pop(dep, None)
 

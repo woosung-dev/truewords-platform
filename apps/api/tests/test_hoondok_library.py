@@ -854,6 +854,7 @@ async def test_account_deletion_purges_library_rows(ctx: TestClient):
         get_jeongseong_repository,
         get_library_repository,
         get_mission_repository,
+        get_path_repository,
         get_notification_repository,
     )
 
@@ -868,6 +869,7 @@ async def test_account_deletion_purges_library_rows(ctx: TestClient):
     app.dependency_overrides[get_card_repository] = lambda: _Noop()
     app.dependency_overrides[get_public_question_repository] = lambda: _Noop()
     app.dependency_overrides[get_ask_repository] = lambda: _Noop()
+    app.dependency_overrides[get_path_repository] = lambda: _Noop()
     try:
         assert ctx.delete("/hoondok/auth/me", headers=XHR).status_code == 204
     finally:
@@ -879,6 +881,7 @@ async def test_account_deletion_purges_library_rows(ctx: TestClient):
             get_card_repository,
             get_public_question_repository,
             get_ask_repository,
+            get_path_repository,
         ):
             app.dependency_overrides.pop(provider, None)
 

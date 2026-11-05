@@ -41,6 +41,7 @@ from app.modules.hoondok.cards_router import router as hoondok_cards_router
 from app.modules.hoondok.cards_admin_router import cards_admin_router
 from app.modules.hoondok.public_questions_router import router as hoondok_public_questions_router
 from app.modules.hoondok.asks_router import router as hoondok_asks_router
+from app.modules.hoondok.paths_router import router as hoondok_paths_router
 from app.modules.hoondok.public_questions_admin_router import public_questions_admin_router
 from app.modules.identity.router import router as identity_router
 from app.core.common.exception_handlers import (
@@ -48,6 +49,7 @@ from app.core.common.exception_handlers import (
     embedding_failed_handler,
     input_blocked_handler,
     invite_required_handler,
+    path_error_handler,
     push_disabled_handler,
     tts_error_handler,
     rate_limit_handler,
@@ -57,7 +59,7 @@ from app.core.common.exception_handlers import (
 )
 from app.core.common.middleware import HoondokAccessLogFilter, RequestIdMiddleware
 from app.modules.chat.exceptions import SessionOwnershipError
-from app.modules.hoondok.exceptions import AskDailyLimitError, PushDisabledError, TtsError
+from app.modules.hoondok.exceptions import AskDailyLimitError, PathError, PushDisabledError, TtsError
 from app.modules.identity.exceptions import InviteRequiredError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
 from app.modules.search.exceptions import EmbeddingFailedError, SearchFailedError
@@ -132,6 +134,7 @@ app.add_exception_handler(InviteRequiredError, invite_required_handler)  # type:
 app.add_exception_handler(PushDisabledError, push_disabled_handler)  # type: ignore[arg-type]
 app.add_exception_handler(TtsError, tts_error_handler)  # type: ignore[arg-type]
 app.add_exception_handler(AskDailyLimitError, ask_daily_limit_handler)  # type: ignore[arg-type]
+app.add_exception_handler(PathError, path_error_handler)  # type: ignore[arg-type]
 
 # Catch-all — 반드시 마지막에 등록 (구체 예외 핸들러가 먼저 매칭되도록)
 app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignore[arg-type]
@@ -148,6 +151,7 @@ app.include_router(summary_router)
 app.include_router(hoondok_tts_router)  # 훈독 AI 낭독 목소리 /hoondok/tts/* (PLAN-HD-011)
 app.include_router(hoondok_cards_router)  # 오늘의 책갈피 /hoondok/cards·me/cards (PLAN-HD-012)
 app.include_router(hoondok_public_questions_router)  # 공개 질문 /hoondok/questions·me/questions (DEC-PWA-025)
+app.include_router(hoondok_paths_router)  # 7일 정성 /hoondok/paths·me/path-runs — 플래그 HOONDOK_PATHS_ENABLED
 app.include_router(hoondok_asks_router)  # 훈독 AI 질문 /hoondok/ask/stream·me/asks — 로그인·하루 횟수 (DEC-PWA-025 2차)
 app.include_router(identity_router)  # 훈독 계정 /hoondok/auth/* — 쿠키 hoondok_token (Phase 2)
 

@@ -35,3 +35,18 @@ class AskDailyLimitError(Exception):
         self.limit = limit
         self.used = used
         self.resets_at = resets_at
+
+
+class PathError(Exception):
+    """7일 정성(읽기 정성) 거절. 클라이언트는 error_code 로 화면을 고른다.
+
+    - 404 PATH_NOT_FOUND · PATH_RUN_NOT_FOUND · PATH_STEP_NOT_FOUND
+    - 409 PATH_RUN_ACTIVE(진행 중 7일 정성) · JEONGSEONG_ACTIVE(진행 중 정성 기간)
+    - 409 ALREADY_READ_TODAY(오늘 다른 장을 이미 읽음) · STEP_OUT_OF_ORDER · PATH_RUN_NOT_ACTIVE · PATH_RUN_NOT_COMPLETED
+    - 403 RIGHTS_CLOSED(시작 때 장 권리 닫힘)
+    """
+
+    def __init__(self, status_code: int, error_code: str, message: str) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.error_code = error_code
