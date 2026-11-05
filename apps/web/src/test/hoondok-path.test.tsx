@@ -1,4 +1,4 @@
-// 7일 정성 (읽기 정성 1a) 웹: 이번 주 읽은 날(일요일 시작) · 돌아온 날 시트 조건 · 부엉이 OFF 배치 · 정성 플래그 OFF.
+// 7일 정성 (읽기 정성 1a) 웹: 이번 주 읽은 날(월요일 시작) · 돌아온 날 시트 조건 · 부엉이 OFF 배치 · 정성 플래그 OFF.
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -13,8 +13,8 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-import HoondokPathPage from "@/app/(hoondok)/path/page";
 import HoondokPathDonePage from "@/app/(hoondok)/path/done/page";
+import HoondokPathPage from "@/app/(hoondok)/path/page";
 import HoondokPathReadPage from "@/app/(hoondok)/path/read/[day]/page";
 import { WeekStrip } from "@/components/hoondok";
 import type { PathRunView, PathStepSummary } from "@/features/hoondok/path/api";
@@ -77,34 +77,29 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("이번 주 읽은 날 (일요일 시작 주)", () => {
-  it("서버 week_read_dates 를 일요일=0 칸으로 옮기고 지난주·오늘 뒤 날짜는 버린다", () => {
-    // 2026-11-04 는 수요일 — 이번 주는 11-01(일)부터다
-    const done = weekDoneByDay("2026-11-04", ["2026-10-31", "2026-11-01", "2026-11-03", "2026-11-06"]);
+describe("이번 주 읽은 날 (월요일 시작 주 — 홈 '이번 주'와 같은 칸)", () => {
+  it("서버 week_read_dates 를 월요일=0 칸으로 옮기고 지난주·오늘 뒤 날짜는 버린다", () => {
+    // 2026-11-04 는 수요일 — 이번 주는 11-02(월)부터다
+    const done = weekDoneByDay("2026-11-04", ["2026-11-01", "2026-11-02", "2026-11-04", "2026-11-06"]);
     expect(done).toEqual([true, false, true, false, false, false, false]);
   });
 
-  it("오늘이 일요일이면 그날 하나만 이번 주다", () => {
-    expect(weekDoneByDay("2026-11-08", ["2026-11-07", "2026-11-08"])).toEqual([
+  it("오늘이 일요일이면 마지막 칸이고 그 주 월요일부터 센다", () => {
+    expect(weekDoneByDay("2026-11-08", ["2026-11-01", "2026-11-02", "2026-11-08"])).toEqual([
       true,
       false,
       false,
       false,
       false,
       false,
-      false,
+      true,
     ]);
   });
 
-  it("WeekStrip startsOn=sun 은 일요일부터 그리고 오늘 칸을 요일 그대로 고른다", () => {
-    const { container } = render(
-      <WeekStrip startsOn="sun" label="이번 주 읽은 날" doneLabel="읽음" todayWeekday={3} doneByDay={[true]} />,
-    );
-    const days = container.querySelectorAll(".week__day");
-    expect(days[0].textContent).toBe("일");
-    expect(days[0].getAttribute("aria-label")).toBe("일요일 · 읽음");
-    expect(days[3].getAttribute("aria-current")).toBe("date");
+  it("WeekStrip 은 보조기기 이름을 바꿔 쓸 수 있다", () => {
+    render(<WeekStrip label="이번 주 읽은 날" doneLabel="읽음" todayWeekday={3} doneByDay={[true]} />);
     expect(screen.getByRole("list", { name: "이번 주 읽은 날" })).toBeTruthy();
+    expect(screen.getByLabelText("월요일 · 읽음")).toBeTruthy();
   });
 
   it("기본 WeekStrip 은 그대로 월요일 시작이다", () => {
