@@ -6,7 +6,8 @@ import { expect, test } from "./hoondok-test";
 // 훈독 7일 정성 (읽기 정성 1a). 시드: `scripts.seed_reading_paths --publish --e2e`(cs7·ph7·cs21) + API HOONDOK_PATHS_ENABLED=true,
 // 웹 NEXT_PUBLIC_HOONDOK_PATHS=1 (playwright.config). 시계는 바꾸지 않는다 — 운영 코드에 시계 오버라이드가 없으므로
 // "며칠 지난 상태"는 DB fixture 가 그 계정의 started_on·completed_on 을 과거로 옮겨 만든다(격리 truewords_e2e 에서만).
-// 플래그 OFF 회귀(홈 카드 없음·/path* 404)는 한 빌드로 두 값을 띄울 수 없는 하네스라 Vitest(hoondok-path.test.tsx)가 맡는다.
+// 플래그 OFF 회귀(홈 카드 없음·/path* 404)는 한 빌드로 두 값을 띄울 수 없는 하네스라 Vitest(hoondok-path.test.tsx)와
+// hoondok-paths-off.spec.ts(E2E_WEB_PATHS_OFF_ORIGIN 이 있을 때만)가 맡는다.
 
 const API_DIR = path.resolve(__dirname, "../../apps/api");
 
@@ -128,7 +129,7 @@ test("시작 → 숨 고르기 → 본문 → 다 읽었어요 → 마침 → �
   await page.getByRole("link", { name: "오늘 훈독으로" }).click();
 
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
-  await expect(home.getByRole("status")).toHaveText(/오늘 말씀을 읽었어요/);
+  await expect(home.getByText("오늘 말씀을 읽었어요", { exact: true })).toBeVisible();
   await expect(home.getByText("읽은 장 1/7")).toBeVisible();
   await expect(home.getByRole("link", { name: "읽기 시작" })).toHaveCount(0);
   // 이번 주 읽은 날 — 오늘 칸이 읽음
@@ -169,8 +170,13 @@ test("사흘 쉬고 돌아온 날 시트 → 평소대로 읽기, 나중에는 �
   await expect(page.locator(".path-home")).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  // 내일이 되면(다시 하루 옮김) 다시 뜬다 → 평소대로 읽기는 다음 장으로 간다
-  shiftPathDays(email, 1);
+  // 내일이 되면 다시 뜬다 → 평소대로 읽기는 다음 장으로 간다. "나중에" 기록은 서버 오늘 날짜 키라 시계를 못 바꾸는
+  // e2e 에서는 그 기록을 지워 다음 날을 흉내 낸다(DB 날짜를 옮겨도 오늘 키는 그대로다).
+  await page.evaluate(() => {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith("hoondok:path-return:")) localStorage.removeItem(key);
+    }
+  });
   await page.goto("/");
   await page.getByRole("dialog").getByRole("link", { name: "평소대로 읽기" }).click();
   await expect(page).toHaveURL(/\/path\/read\/2$/);
