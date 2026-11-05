@@ -13,7 +13,8 @@
         "NEXT_PUBLIC_DEMO_ADMIN_EMAIL",
         "NEXT_PUBLIC_HOONDOK_ENABLED",
         "NEXT_PUBLIC_HOONDOK_CARDS",
-        "NEXT_PUBLIC_HOONDOK_MASCOT"
+        "NEXT_PUBLIC_HOONDOK_MASCOT",
+        "NEXT_PUBLIC_HOONDOK_PATHS"
       ],
       "outputs": [".next/**", "!.next/cache/**"]
     },

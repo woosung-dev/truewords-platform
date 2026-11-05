@@ -222,7 +222,11 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 | `sermon-thumb-4.webp` | 〃 | https://unsplash.com/photos/VB-w_3dnyvI | Andrew Coelho |
 
 히어로는 1440×900, 썸네일은 720×450 WebP 다. 파일명을 바꿀 때만 캐시가 갱신되도록 `next.config.ts` 가 `/hoondok/photos/:path*` 에 `immutable` 을 준다. 용량 때문에 서비스워커 precache 에는 넣지 않는다 — 오프라인이면 `.shot` 의 `--ink` 바탕이 남고 흰 글자는 그대로 읽힌다.
+<<<<<<< HEAD
 - **모션**: 전환은 시트 등장 220ms, 체크 전환 150ms, 버튼 누름 120ms, 토글 150ms 를 기준으로 한다. `@keyframes` 목록(2026-11-09 기준): 공용 `hoondok-spin`(스피너)·`hoondok-sheet-up`(시트)·`hoondok-menu-in`(메뉴 패널), 책갈피 `hoondok-bm-sway`(홈 대기 중 금색 리본 2회 흔들림)·`hoondok-pc-pulse`(사진 카드 미리보기 불러오는 중), 서고·리더 `wd-arrive`(이어 읽기로 도착한 단락 표시)·`wd-skel-pulse`(스켈레톤)·`hl-bar-in`(형광펜 막대)·`rd-toast-in`(리더 토스트)·`wd-dock-pop`(미니 플레이어 등장)·`wd-ring-pop`·`wd-check-draw`(다 읽음 체크), 부엉이 마스코트 `hoondok-owl-settle`(놓일 때 1회)·`hoondok-owl-breathe`(AI 대기 중 2회, 플래그 `NEXT_PUBLIC_HOONDOK_MASCOT`). 새 키프레임은 이 목록에 먼저 더한다. `prefers-reduced-motion: reduce`에서 스피너를 뺀 애니메이션과 전환을 모두 끈다(시안이 이미 구현).
+=======
+- **모션**: 전환은 시트 등장 220ms, 체크 전환 150ms, 버튼 누름 120ms, 토글 150ms 를 기준으로 한다. `@keyframes` 는 14개다(2026-11-05 기준): 공용 `hoondok-spin`(스피너)·`hoondok-sheet-up`(시트)·`hoondok-menu-in`(메뉴 패널), 책갈피 `hoondok-bm-breathe`(홈 대기 중 책갈피 끝 오르내림), 서고·리더 `wd-arrive`(이어 읽기로 도착한 단락 표시)·`wd-skel-pulse`(스켈레톤)·`hl-bar-in`(형광펜 막대)·`rd-toast-in`(리더 토스트)·`wd-dock-pop`(미니 플레이어 등장)·`wd-ring-pop`·`wd-check-draw`(다 읽음 체크), 부엉이 마스코트 `hoondok-owl-settle`(놓일 때 1회)·`hoondok-owl-breathe`(AI 대기 중 2회, 플래그 `NEXT_PUBLIC_HOONDOK_MASCOT`), 7일 정성 `hoondok-path-breath`(숨 고르기 원 3초 1회). 7일 정성의 부엉이는 말하지 않고 세 곳에만 선다: 질문 1 welcome 72 · 정성 홈 다음 장 행 reading 40 · 7일 마침표 heart 96(한 화면 하나, 돌아온 날 시트·본문·날마다 마침에는 없음). 새 키프레임은 이 목록에 먼저 더한다. `prefers-reduced-motion: reduce`에서 스피너를 뺀 애니메이션과 전환을 모두 끈다(시안이 이미 구현).
+>>>>>>> ce110436 (feat(web): 7일 정성 1a 화면·홈 연결·NEXT_PUBLIC_HOONDOK_PATHS 플래그)
 
 ### 1.7 앱 아이콘·설치 메타 (2026-09-19, PLAN-HD-001 Phase 3 C)
 
