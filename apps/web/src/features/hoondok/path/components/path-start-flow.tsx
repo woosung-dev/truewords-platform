@@ -270,7 +270,7 @@ function Flow({ initialStep }: { initialStep: Step }) {
           <Title titleRef={titleRef} id={titleId}>
             하루에 얼마나 읽을까요?
           </Title>
-          <p className="onb-lede">두 가지만 여쭐게요.</p>
+          <p className="onb-lede">분량과 때를 정하고 정성을 고르시면 돼요.</p>
         </div>
         <ChoiceRadioGroup
           className="onb-choices"

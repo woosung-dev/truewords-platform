@@ -5,7 +5,7 @@ import { ApiError } from "@truewords/api-client-ts";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import { isHoondokPathsEnabled } from "../flag";
 import { PATH_RUN_KEY, PATHS_KEY, PROGRESS_KEYS, pathStepKey } from "../query-keys";
-import { type PathRunStart, type PathRunView, type PathRunFinishRequest, pathAPI } from "./api";
+import { type PathRunFinishRequest, type PathRunStart, type PathRunView, pathAPI } from "./api";
 
 // 7일 정성 React Query 어댑터. 진행 상태는 서버가 계산하고(읽은 장·다음 장·빈 날) 화면은 받은 값만 그린다.
 

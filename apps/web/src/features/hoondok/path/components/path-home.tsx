@@ -72,7 +72,8 @@ function stepSub(step: PathStepSummary, readToday: boolean): string {
   if (step.state === "done") return "읽음";
   if (step.state === "withdrawn") return "지금은 열 수 없어요";
   if (step.state === "next") return readToday ? "내일 읽을 장" : "오늘 읽을 장";
-  return minutesLabel(step.estimated_minutes);
+  // 남은 장마다 같은 "약 N분"을 되풀이하지 않는다 — 분량은 오늘 카드(path-today__when)가 한 번 말한다
+  return "";
 }
 
 export function PathStepList({ run }: { run: PathRunView }) {
@@ -93,7 +94,9 @@ export function PathStepList({ run }: { run: PathRunView }) {
               data-state={step.state}
               aria-current={isNext ? "step" : undefined}
             >
-              <span className="path-sr">{`${step.day_index}번째 장, ${step.title}, ${sub}`}</span>
+              <span className="path-sr">
+                {[`${step.day_index}번째 장`, step.title, sub].filter(Boolean).join(", ")}
+              </span>
               <span className="path-step__n" aria-hidden="true">
                 {step.state === "done" ? (
                   <CheckIcon weight="bold" size={20} />
@@ -105,7 +108,7 @@ export function PathStepList({ run }: { run: PathRunView }) {
               </span>
               <span className="path-step__tx" aria-hidden="true">
                 <span className="path-step__t">{step.title}</span>
-                <span className="path-step__s">{sub}</span>
+                {sub && <span className="path-step__s">{sub}</span>}
               </span>
               {isNext && <HoondokMascot pose="reading" size={40} />}
             </li>
@@ -155,8 +158,9 @@ export function PathHome({ run }: { run: PathRunView }) {
         <h2 id="path-home-title" className="path-head__title">
           {run.title}
         </h2>
-        <span className="path-head__count" aria-label={`읽은 장 ${run.total_steps}장 중 ${run.done_steps}장`}>
-          {`읽은 장 ${run.done_steps}/${run.total_steps}`}
+        <span className="path-head__count">
+          <span className="path-sr">{`읽은 장 ${run.total_steps}장 중 ${run.done_steps}장`}</span>
+          <span aria-hidden="true">{`읽은 장 ${run.done_steps}/${run.total_steps}`}</span>
         </span>
       </div>
 
@@ -168,7 +172,7 @@ export function PathHome({ run }: { run: PathRunView }) {
         </p>
         {run.read_today ? (
           <>
-            <p className="path-today__done" role="status">
+            <p className="path-today__done">
               <span className="path-today__ok" aria-hidden="true">
                 <CheckIcon weight="bold" size={20} />
               </span>
@@ -198,7 +202,6 @@ export function PathHome({ run }: { run: PathRunView }) {
           <h3 className="sect__title path-sect__title">이번 주 읽은 날</h3>
         </div>
         <WeekStrip
-          startsOn="sun"
           label="이번 주 읽은 날"
           doneLabel="읽음"
           todayWeekday={weekdayOf(run.today)}
