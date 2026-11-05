@@ -369,13 +369,9 @@
     color: var(--ink-2);
   }
   .path-return__next {
-    margin: 16px 0 0;
-    padding: 12px 14px;
-    border-radius: var(--r-sm);
-    background: var(--surface);
-    border: 1px solid var(--line);
+    margin: 12px 0 0;
     font-size: var(--fs-lg);
-    font-weight: 600;
+    color: var(--ink-2);
   }
   .path-return__cta {
     display: flex;

@@ -95,7 +95,7 @@ function Done({ run }: { run: PathRunView }) {
       <h2 className="onb-title" tabIndex={-1} ref={titleRef}>{`${withEul(run.title)} 마쳤어요`}</h2>
       <p className="path-done__sub">{`${monthDayLabel(run.started_on)}부터 ${monthDayLabel(endOn)}까지`}</p>
       {firstTitle && lastTitle && <p className="path-done__range">{`${firstTitle}부터 ${lastTitle}까지`}</p>}
-      <p className="path-done__tally">{`${run.done_steps}장을 ${run.read_days}일 동안 읽으셨어요.`}</p>
+      <p className="path-done__tally">{`읽은 날 ${run.read_days}일 · 읽은 장 ${run.done_steps}장`}</p>
       <section className="card path-done__box" aria-labelledby={picksId} aria-busy={isPicksLoading || undefined}>
         <h3 className="path-done__h" id={picksId}>
           내가 고른 구절

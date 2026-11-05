@@ -197,7 +197,7 @@ test("7장을 모두 읽으면 마침표 → 오늘 훈독으로 하면 다시 �
   await expect(page).toHaveURL(/\/path\/done$/);
   const done = page.locator(".path-done");
   await expect(done.getByRole("heading", { name: "천성경 7일 정성을 마쳤어요" })).toBeVisible();
-  await expect(done.getByText("7장을 7일 동안 읽으셨어요.")).toBeVisible();
+  await expect(done.getByText("읽은 날 7일 · 읽은 장 7장")).toBeVisible();
   await expect(done.getByText("이번 정성에서 고른 구절은 없어요.")).toBeVisible();
   expect(await done.textContent()).not.toMatch(/%|배지|완벽|축하/);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
