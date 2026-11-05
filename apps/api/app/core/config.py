@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     # 넘으면 429 ASK_DAILY_LIMIT. LLM 비용 상한용이며 IP 단위 채팅 rate limit 과 별개다.
     hoondok_ask_daily_limit: int = 5
 
+    # 훈독 7일 정성(읽기 정성 1a). 끄면 /hoondok/paths·/hoondok/me/path-runs* 가 모두 404 다.
+    # 진행 중 정성 하나 규칙(정성 기간 시작 409)은 플래그와 관계없이 항상 확인한다.
+    hoondok_paths_enabled: bool = False
+
     # 훈독 AI 낭독 목소리 (PLAN-HD-011). Google Cloud Text-to-Speech(Chirp 3 HD) API 키가 없으면 기능 OFF —
     # 음성 API 는 503 TTS_DISABLED, 클라이언트는 브라우저 음성으로 돌아간다. 키는 VM .env 에만 둔다.
     google_tts_api_key: SecretStr | None = None

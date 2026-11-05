@@ -65,6 +65,10 @@
 | `API-HD-059` | POST | `/hoondok/ask/stream` (SSE) | `hoondok_token` + `X-Requested-With` + 하루 횟수 | DEC-PWA-025 |
 | `API-HD-060` | GET · PATCH · DELETE | `/hoondok/me/asks` · `/hoondok/me/asks/{session_id}` | `hoondok_token` (쓰기는 `X-Requested-With`) | DEC-PWA-025 |
 | `API-HD-061` | GET | `/hoondok/me/asks/quota` | `hoondok_token` | DEC-PWA-025 |
+| `API-HD-062` | GET | `/hoondok/paths` | `hoondok_token` · 플래그 | 7일 정성 1a |
+| `API-HD-063` | POST · GET · DELETE | `/hoondok/me/path-runs` · `/hoondok/me/path-runs/current` | `hoondok_token` (쓰기는 `X-Requested-With`) · 플래그 | 7일 정성 1a |
+| `API-HD-064` | GET · POST | `/hoondok/me/path-runs/current/steps/{day_index}` · `…/steps/{day_index}/complete` | `hoondok_token` (쓰기는 `X-Requested-With`) · 플래그 | 7일 정성 1a |
+| `API-HD-065` | POST | `/hoondok/me/path-runs/current/finish` | `hoondok_token` + `X-Requested-With` · 플래그 | 7일 정성 1a |
 
 공통 규칙:
 
@@ -653,3 +657,16 @@ API-HD-045 규칙:
 - `GET /admin/hoondok/source-books`, `POST /source-books/{right_id}/snapshots`, `GET /source-snapshots/{id}/passages`로 등록 원문을 탐색한다. 문단 식별자는 해당 불변 원문 스냅샷에 속하며 공식 장절 번호가 아니다. 목차는 탐색에만 사용한다.
 - `/admin/hoondok/source-ranges`는 선택 범위 생성·조회·수정과 `/{id}/split`, `/{id}/merge`를 제공한다. `start_offset`·`end_offset`은 시작·끝 문단 내 Unicode codepoint 기준이며 끝은 배타적이다. 기본 `0`·`null`은 문단 전체 선택이다. 변경·병합 충돌은 버전으로 차단하고, 원문 변경 시 재선택을 요구한다.
 - 요약 저장의 `source_range_id`·`source_range_version`은 서버가 원문·해시·순서가 있는 청크 연결로 해석한다. 연결 성공은 판본 검수 완료가 아니며, 새 선택은 `verified=false`다. 구간 재편성은 기존 공개 개정본의 원문을 변경하지 않는다. 기존 직접 원문 입력 계약은 호환하되 새 관리자 화면에서는 내부 주소 입력을 제공하지 않는다.
+
+## 7일 정성 1a — `/hoondok/paths` · `/hoondok/me/path-runs*` (API-HD-062~065)
+
+`HOONDOK_PATHS_ENABLED`(기본 false)가 꺼져 있으면 모든 경로가 404 다. 오류는 `ErrorResponse{ error_code, message, request_id }` 다.
+
+- 정성 기간(API-HD-009)과 "진행 중 정성은 하나": 두 시작 경로 모두 사용자 행 잠금 뒤 두 테이블을 확인한다. 7일 정성 시작은 409 `PATH_RUN_ACTIVE`·`JEONGSEONG_ACTIVE`, 정성 기간 시작은 진행 중 7일 정성이 있으면 409 `PATH_RUN_ACTIVE`(플래그와 관계없이 항상).
+- run 은 날짜로 자동 전환하지 않는다. 끝나는 날이 지나도 `active`(`overdue=true`)이고 마지막 장 완료로 `completed`, `DELETE current` 로 `abandoned`.
+- `current` 는 진행 중 run, 또는 마침표 행동(`finish`)을 아직 고르지 않은 `completed` run 이다. 없으면 `{ run: null }`. `today` 는 서버 KST 오늘이다.
+- 장 권리는 `scope_full_text` 와 `scope_jeongseong` 을 모두 요구한다. 시작 때 닫혀 있으면 403 `RIGHTS_CLOSED`, 장을 열 때 닫혔거나 재적재로 chunk_id 가 어긋나면 200 `status:"withdrawn"`(장 상태 `withdrawn`, 완료로 세지 않음).
+- 장 완료(`mode=full` 만, `note` ≤200자)는 완료 행과 그날 `mission_logs` read 를 한 트랜잭션에 넣는다(read 는 이미 있으면 그대로). 순서: 같은 장 재요청 200 기존 값 → 오늘 다른 장 409 `ALREADY_READ_TODAY` → 다음 장이 아니면 409 `STEP_OUT_OF_ORDER`. 응답은 항상 200.
+- `finish {action}`: `next`(+`slug`)·`repeat` 는 같은 하루 분량으로 새 run(응답 `run`), `rest` 는 `run:null`. 진행 중이면 409 `PATH_RUN_NOT_COMPLETED`.
+- `note`(남긴 한 줄)는 본인 응답에만 있다. 계정 삭제(API-HD-011)는 완료 → run → 본인 정성의 장 → 본인 정성 순으로 지우고 `created_by` 는 NULL 로 바꾼다.
+- 시드: `uv run python -m scripts.seed_reading_paths --publish`(분량 = 글자 수 ÷ 분당 500자 [가정], 권리가 닫힌 권이면 실패).
