@@ -28,6 +28,8 @@ from app.modules.chat.trace import current_trace
 from app.modules.pipeline.embedder import embed_sparse_async
 from app.modules.qdrant import RawQdrantClient
 from app.modules.qdrant.filters import (
+    build_filter,
+    field_match_any,
     fusion_rrf,
     prefetch as build_prefetch,
     sparse_vector,
@@ -102,6 +104,7 @@ async def fallback_search(
     top_k: int = 10,
     score_threshold: float = 0.05,
     collection_name: str | None = None,
+    volume_filter: list[str] | None = None,
 ) -> tuple[list[SearchResult], FallbackType]:
     """검색 결과 0건 시 두 단계 fallback.
 
@@ -117,6 +120,7 @@ async def fallback_search(
         sparse_embedding: 사전 계산된 (indices, values) 튜플 (None이면 내부 계산).
         top_k: 반환할 최대 결과 수.
         score_threshold: 이 점수 미만의 결과는 제외한다.
+        volume_filter: 훈독 권리 허용 volume. source 필터는 풀어도 이 조건은 풀지 않는다(빈 목록이면 재검색 생략).
 
     Returns:
         (결과 리스트, fallback 유형) 튜플.
@@ -125,7 +129,13 @@ async def fallback_search(
     if original_results:
         return original_results, "none"
 
-    # 1단계: source 필터 제거 후 전체 재검색
+    if volume_filter == []:
+        return [], "suggestions"
+
+    # 1단계: source 필터 제거 후 전체 재검색 (권리 volume 필터는 유지)
+    relaxed_filter = (
+        build_filter(must=[field_match_any("volume", volume_filter)]) if volume_filter is not None else None
+    )
     # audit 2차 S-5: 원문 query 대신 fingerprint (PII 차단).
     logger.info("Fallback Step 1: relaxed search for query: %s", query_fingerprint(query))
 
@@ -146,14 +156,15 @@ async def fallback_search(
             collection_name=collection_name or settings.collection_name,
             query=fusion_rrf(),
             prefetch=[
-                build_prefetch(dense_embedding, using="dense", limit=50),
+                build_prefetch(dense_embedding, using="dense", limit=50, filter_=relaxed_filter),
                 build_prefetch(
                     sparse_vector(sparse_indices, sparse_values),
                     using="sparse",
                     limit=50,
+                    filter_=relaxed_filter,
                 ),
             ],
-            query_filter=None,
+            query_filter=relaxed_filter,
             limit=top_k,
         )
     except BaseException as exc:
