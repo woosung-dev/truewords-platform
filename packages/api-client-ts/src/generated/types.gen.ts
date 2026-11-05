@@ -2604,6 +2604,267 @@ export type PaginatedResponseChatbotConfigResponse = {
 };
 
 /**
+ * PathRunCurrentResponse
+ *
+ * 진행 중 run, 또는 마침표를 아직 보지 않은 completed run. 없으면 run=null.
+ */
+export type PathRunCurrentResponse = {
+    run: PathRunView | null;
+};
+
+/**
+ * PathRunFinishRequest
+ */
+export type PathRunFinishRequest = {
+    /**
+     * Action
+     */
+    action: 'next' | 'repeat' | 'rest';
+    /**
+     * Slug
+     */
+    slug?: string | null;
+};
+
+/**
+ * PathRunStart
+ */
+export type PathRunStart = {
+    /**
+     * Minutes Tier
+     */
+    minutes_tier: 3 | 7 | 15;
+    /**
+     * Preferred Slot
+     */
+    preferred_slot?: 'dawn' | 'morning' | 'evening' | null;
+    /**
+     * Slug
+     */
+    slug: string;
+};
+
+/**
+ * PathRunView
+ */
+export type PathRunView = {
+    /**
+     * Book
+     */
+    book: string;
+    /**
+     * Day No
+     */
+    day_no: number;
+    /**
+     * Done Steps
+     */
+    done_steps: number;
+    /**
+     * Duration Days
+     */
+    duration_days: number;
+    /**
+     * End On
+     */
+    end_on: string;
+    /**
+     * Finished At
+     */
+    finished_at: string | null;
+    /**
+     * Gap Days
+     */
+    gap_days: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Minutes Tier
+     */
+    minutes_tier: 3 | 7 | 15;
+    /**
+     * Next Step
+     */
+    next_step: number | null;
+    /**
+     * Overdue
+     */
+    overdue: boolean;
+    /**
+     * Preferred Slot
+     */
+    preferred_slot: 'dawn' | 'morning' | 'evening' | null;
+    /**
+     * Read Days
+     */
+    read_days: number;
+    /**
+     * Read Today
+     */
+    read_today: boolean;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Started On
+     */
+    started_on: string;
+    /**
+     * Status
+     */
+    status: 'active' | 'completed' | 'abandoned';
+    /**
+     * Steps
+     */
+    steps: Array<PathStepSummary>;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Today
+     */
+    today: string;
+    /**
+     * Total Steps
+     */
+    total_steps: number;
+    /**
+     * Week Read Dates
+     */
+    week_read_dates: Array<string>;
+};
+
+/**
+ * PathStepCompleteRequest
+ */
+export type PathStepCompleteRequest = {
+    /**
+     * Mode
+     */
+    mode?: 'full';
+    /**
+     * Note
+     */
+    note?: string | null;
+};
+
+/**
+ * PathStepCompleteResponse
+ */
+export type PathStepCompleteResponse = {
+    completion: PathStepCompletionView;
+    run: PathRunView;
+};
+
+/**
+ * PathStepCompletionView
+ */
+export type PathStepCompletionView = {
+    /**
+     * Completed On
+     */
+    completed_on: string;
+    /**
+     * Day Index
+     */
+    day_index: number;
+    /**
+     * Mode
+     */
+    mode: 'full' | 'half';
+    /**
+     * Note
+     */
+    note: string | null;
+};
+
+/**
+ * PathStepContentResponse
+ *
+ * 장 본문. 권리가 닫혔거나 재적재로 범위가 어긋나면 status=withdrawn, chunks=[].
+ */
+export type PathStepContentResponse = {
+    /**
+     * Chunks
+     */
+    chunks: Array<WordChunk>;
+    /**
+     * Day Index
+     */
+    day_index: number;
+    /**
+     * Estimated Minutes
+     */
+    estimated_minutes: number;
+    /**
+     * State
+     */
+    state: 'done' | 'next' | 'upcoming' | 'withdrawn';
+    /**
+     * Status
+     */
+    status: 'available' | 'withdrawn';
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Volume
+     */
+    volume: string;
+    /**
+     * Work Title
+     */
+    work_title: string | null;
+};
+
+/**
+ * PathStepSummary
+ */
+export type PathStepSummary = {
+    /**
+     * Completed On
+     */
+    completed_on?: string | null;
+    /**
+     * Day Index
+     */
+    day_index: number;
+    /**
+     * End Chunk Index
+     */
+    end_chunk_index: number;
+    /**
+     * Estimated Minutes
+     */
+    estimated_minutes: number;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Start Chunk Index
+     */
+    start_chunk_index: number;
+    /**
+     * State
+     */
+    state: 'done' | 'next' | 'upcoming' | 'withdrawn';
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Volume
+     */
+    volume: string;
+};
+
+/**
  * PublicQuestionAdminItem
  *
  * 검수 화면 한 줄 — 작성자 정보는 관리자에게도 보이지 않는다.
@@ -3065,6 +3326,64 @@ export type RagTraceResponse = {
      * Warnings
      */
     warnings?: Array<string>;
+};
+
+/**
+ * ReadingPathListResponse
+ */
+export type ReadingPathListResponse = {
+    /**
+     * Paths
+     */
+    paths: Array<ReadingPathSummary>;
+};
+
+/**
+ * ReadingPathSummary
+ */
+export type ReadingPathSummary = {
+    /**
+     * Book
+     */
+    book: string;
+    /**
+     * Duration Days
+     */
+    duration_days: number;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Tiers
+     */
+    tiers: Array<ReadingPathTier>;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * When Line
+     */
+    when_line: string | null;
+};
+
+/**
+ * ReadingPathTier
+ */
+export type ReadingPathTier = {
+    /**
+     * Estimated Minutes
+     */
+    estimated_minutes: number;
+    /**
+     * Minutes Tier
+     */
+    minutes_tier: 3 | 7 | 15;
+    /**
+     * Total Steps
+     */
+    total_steps: number;
 };
 
 /**
@@ -8550,6 +8869,148 @@ export type PutNotificationsHoondokMeNotificationsPutResponses = {
 
 export type PutNotificationsHoondokMeNotificationsPutResponse = PutNotificationsHoondokMeNotificationsPutResponses[keyof PutNotificationsHoondokMeNotificationsPutResponses];
 
+export type StartPathRunHoondokMePathRunsPostData = {
+    body: PathRunStart;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/path-runs';
+};
+
+export type StartPathRunHoondokMePathRunsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StartPathRunHoondokMePathRunsPostError = StartPathRunHoondokMePathRunsPostErrors[keyof StartPathRunHoondokMePathRunsPostErrors];
+
+export type StartPathRunHoondokMePathRunsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: PathRunCurrentResponse;
+};
+
+export type StartPathRunHoondokMePathRunsPostResponse = StartPathRunHoondokMePathRunsPostResponses[keyof StartPathRunHoondokMePathRunsPostResponses];
+
+export type AbandonPathRunHoondokMePathRunsCurrentDeleteData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/path-runs/current';
+};
+
+export type AbandonPathRunHoondokMePathRunsCurrentDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type AbandonPathRunHoondokMePathRunsCurrentDeleteResponse = AbandonPathRunHoondokMePathRunsCurrentDeleteResponses[keyof AbandonPathRunHoondokMePathRunsCurrentDeleteResponses];
+
+export type GetCurrentPathRunHoondokMePathRunsCurrentGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/path-runs/current';
+};
+
+export type GetCurrentPathRunHoondokMePathRunsCurrentGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PathRunCurrentResponse;
+};
+
+export type GetCurrentPathRunHoondokMePathRunsCurrentGetResponse = GetCurrentPathRunHoondokMePathRunsCurrentGetResponses[keyof GetCurrentPathRunHoondokMePathRunsCurrentGetResponses];
+
+export type FinishPathRunHoondokMePathRunsCurrentFinishPostData = {
+    body: PathRunFinishRequest;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/path-runs/current/finish';
+};
+
+export type FinishPathRunHoondokMePathRunsCurrentFinishPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type FinishPathRunHoondokMePathRunsCurrentFinishPostError = FinishPathRunHoondokMePathRunsCurrentFinishPostErrors[keyof FinishPathRunHoondokMePathRunsCurrentFinishPostErrors];
+
+export type FinishPathRunHoondokMePathRunsCurrentFinishPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: PathRunCurrentResponse;
+};
+
+export type FinishPathRunHoondokMePathRunsCurrentFinishPostResponse = FinishPathRunHoondokMePathRunsCurrentFinishPostResponses[keyof FinishPathRunHoondokMePathRunsCurrentFinishPostResponses];
+
+export type GetPathStepHoondokMePathRunsCurrentStepsDayIndexGetData = {
+    body?: never;
+    path: {
+        /**
+         * Day Index
+         */
+        day_index: number;
+    };
+    query?: never;
+    url: '/hoondok/me/path-runs/current/steps/{day_index}';
+};
+
+export type GetPathStepHoondokMePathRunsCurrentStepsDayIndexGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetPathStepHoondokMePathRunsCurrentStepsDayIndexGetError = GetPathStepHoondokMePathRunsCurrentStepsDayIndexGetErrors[keyof GetPathStepHoondokMePathRunsCurrentStepsDayIndexGetErrors];
+
+export type GetPathStepHoondokMePathRunsCurrentStepsDayIndexGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PathStepContentResponse;
+};
+
+export type GetPathStepHoondokMePathRunsCurrentStepsDayIndexGetResponse = GetPathStepHoondokMePathRunsCurrentStepsDayIndexGetResponses[keyof GetPathStepHoondokMePathRunsCurrentStepsDayIndexGetResponses];
+
+export type CompletePathStepHoondokMePathRunsCurrentStepsDayIndexCompletePostData = {
+    body: PathStepCompleteRequest;
+    path: {
+        /**
+         * Day Index
+         */
+        day_index: number;
+    };
+    query?: never;
+    url: '/hoondok/me/path-runs/current/steps/{day_index}/complete';
+};
+
+export type CompletePathStepHoondokMePathRunsCurrentStepsDayIndexCompletePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CompletePathStepHoondokMePathRunsCurrentStepsDayIndexCompletePostError = CompletePathStepHoondokMePathRunsCurrentStepsDayIndexCompletePostErrors[keyof CompletePathStepHoondokMePathRunsCurrentStepsDayIndexCompletePostErrors];
+
+export type CompletePathStepHoondokMePathRunsCurrentStepsDayIndexCompletePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: PathStepCompleteResponse;
+};
+
+export type CompletePathStepHoondokMePathRunsCurrentStepsDayIndexCompletePostResponse = CompletePathStepHoondokMePathRunsCurrentStepsDayIndexCompletePostResponses[keyof CompletePathStepHoondokMePathRunsCurrentStepsDayIndexCompletePostResponses];
+
 export type DeletePushSubscriptionHoondokMePushDeleteData = {
     body?: never;
     path?: never;
@@ -8785,6 +9246,22 @@ export type CompleteMissionHoondokMissionsKindCompletePostResponses = {
 };
 
 export type CompleteMissionHoondokMissionsKindCompletePostResponse = CompleteMissionHoondokMissionsKindCompletePostResponses[keyof CompleteMissionHoondokMissionsKindCompletePostResponses];
+
+export type ListReadingPathsHoondokPathsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/paths';
+};
+
+export type ListReadingPathsHoondokPathsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReadingPathListResponse;
+};
+
+export type ListReadingPathsHoondokPathsGetResponse = ListReadingPathsHoondokPathsGetResponses[keyof ListReadingPathsHoondokPathsGetResponses];
 
 export type GetPushConfigHoondokPushConfigGetData = {
     body?: never;
