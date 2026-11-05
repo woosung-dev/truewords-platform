@@ -198,11 +198,15 @@ def test_gap_days_counts_empty_days_since_last_read():
     assert gap_days({DAY}, start, DAY) == 0  # 오늘 읽음
 
 
-def test_week_read_dates_starts_on_sunday():
-    sunday = date(2026, 11, 1)
-    dates = {sunday - timedelta(days=1), sunday, DAY - timedelta(days=1), DAY + timedelta(days=1)}
-    assert week_read_dates(dates, DAY) == [sunday, DAY - timedelta(days=1)]
-    assert week_read_dates({sunday}, sunday) == [sunday]
+def test_week_read_dates_starts_on_monday():
+    monday = date(2026, 11, 2)
+    sunday = date(2026, 11, 1)  # 지난주 마지막 날
+    dates = {sunday, monday, DAY - timedelta(days=1), DAY + timedelta(days=1)}
+    assert week_read_dates(dates, DAY) == [monday, DAY - timedelta(days=1)]
+    assert week_read_dates({monday}, monday) == [monday]
+    # 일요일은 그 주(월요일 시작)의 마지막 날이다
+    next_sunday = date(2026, 11, 8)
+    assert week_read_dates({monday, next_sunday}, next_sunday) == [monday, next_sunday]
 
 
 # --- 서비스 (aiosqlite) ------------------------------------------------------------

@@ -69,8 +69,8 @@ def gap_days(dates: set[date], started_on: date, today: date) -> int:
 
 
 def week_read_dates(dates: set[date], today: date) -> list[date]:
-    """이번 주(일요일 시작) 일요일 ~ 오늘 사이에 읽은 날."""
-    week_start = today - timedelta(days=(today.weekday() + 1) % 7)
+    """이번 주(월요일 시작, 홈 '이번 주' 요일 줄과 같다) 월요일 ~ 오늘 사이에 읽은 날."""
+    week_start = today - timedelta(days=today.weekday())
     return sorted(d for d in dates if week_start <= d <= today)
 
 
