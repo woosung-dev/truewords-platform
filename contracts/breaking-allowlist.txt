@@ -25,3 +25,5 @@ POST /hoondok/invites/{code}/join api path removed without deprecation
 PUT /admin/hoondok/jeongseongs/{jeongseong_id} api path removed without deprecation
 PUT /hoondok/groups/{group_id}/shares/today api path removed without deprecation
 PUT /hoondok/groups/{group_id}/shares/{share_id}/reaction api path removed without deprecation
+# 2026-11-04 AI 요약 목차를 경전별로(toc?work=). cheonseong-toc 는 운영에 배포된 적 없는 관리자 전용 경로, 호출처는 함께 배포되는 관리자뿐이다.
+GET /admin/hoondok/ai-summaries/cheonseong-toc api path removed without deprecation

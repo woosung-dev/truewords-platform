@@ -117,8 +117,8 @@ export function bodyHeadings(body: unknown): string[] {
   return collectHeadings(body, []).map((node) => plainText(node).trim());
 }
 
-// 문단 끝 근거 번호 "(말씀 5–7)" 는 본문보다 한 단계 낮춰 보인다.
-const CITE = /(\(말씀 [\d\s,–-]+\))/;
+// 문단 끝 근거 번호 "(말씀 5–7)"·"(문단 5–7)" 는 본문보다 한 단계 낮춰 보인다.
+const CITE = /(\((?:말씀|문단) [\d\s,–-]+\))/;
 function withCitations(text: string) {
   if (!CITE.test(text)) return text;
   return text.split(CITE).map((part, i) => (i % 2 === 1 ? <span key={i} className="sum-cite">{part}</span> : part));

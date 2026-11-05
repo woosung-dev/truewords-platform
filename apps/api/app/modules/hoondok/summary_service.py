@@ -22,20 +22,36 @@ from app.modules.hoondok.summary_schemas import (
     document_asset_ids,
 )
 
-# 천성경 편·장·절 구조(원문 없음). 발행 관리 목록과 원문 뷰 장 연결에 쓴다.
-TOC_PATH = (
-    Path(__file__).resolve().parents[3] / "content/ai-summaries/cheonseong-toc.json"
-)
+# 경전별 목차 구조(원문 없음). 발행 관리 목록과 원문 뷰 장 연결에 쓴다.
+# 천성경은 편·장·절, 평화경은 편·연설문(제4편 14 만 장까지). 평화경 문단 번호는 연설문 안 1부터다.
+TOC_DIR = Path(__file__).resolve().parents[3] / "content/ai-summaries"
+WORKS = {
+    "cheonseong": {"title": "천성경", "toc": "cheonseong-toc.json", "unit": "말씀"},
+    "pyeonghwa": {"title": "평화경", "toc": "pyeonghwa-toc.json", "unit": "문단"},
+}
 STATUSES = ("draft", "review", "published", "withdrawn")
 
 
+@lru_cache(maxsize=None)
+def work_toc(work: str) -> tuple[dict, ...]:
+    rows = json.loads((TOC_DIR / WORKS[work]["toc"]).read_text(encoding="utf-8"))
+    return tuple(sorted(rows, key=lambda e: e["slug"]))
+
+
 @lru_cache(maxsize=1)
-def cheonseong_toc() -> tuple[dict, ...]:
-    return tuple(json.loads(TOC_PATH.read_text(encoding="utf-8")))
+def toc_index() -> dict[str, tuple[str, dict]]:
+    """slug → (경전, 목차 행). 경전마다 slug 접두사가 달라 겹치지 않는다."""
+    return {e["slug"]: (work, e) for work in WORKS for e in work_toc(work)}
 
 
 def toc_entry(slug):
-    return next((e for e in cheonseong_toc() if e["slug"] == slug), None)
+    return toc_index().get(slug, (None, None))[1]
+
+
+def paragraph_label(slug):
+    """근거 번호 이름. 평화경은 공식 문단 번호가 없어 "문단", 나머지는 "말씀"."""
+    work = toc_index().get(slug, (None, None))[0]
+    return WORKS[work]["unit"] if work else "말씀"
 
 
 def normalize_status(value):
@@ -44,7 +60,8 @@ def normalize_status(value):
 
 
 def section_position(sections, entry):
-    """절이 속한 장의 원문 뷰 목차 위치. 천성경 목차는 편(1)·장(2)까지만 있다."""
+    """원문 뷰 목차 위치. 목차는 편(1)과 그 아래 한 단계(2)까지만 있다 —
+    천성경은 절이 속한 장, 평화경은 연설문(제4편 14 의 장은 연설문 위치)이다."""
     if not entry:
         return None
 
@@ -55,7 +72,9 @@ def section_position(sections, entry):
     for section in sections:
         if section.level == 1:
             in_pyeon = norm(section.title) == norm(entry["pyeon_title"])
-        elif in_pyeon and norm(section.title) == norm(entry["jang_title"]):
+        elif in_pyeon and norm(section.title) == norm(
+            entry.get("jang_title") or entry.get("item_title") or ""
+        ):
             return section.position
     return None
 
@@ -110,6 +129,7 @@ class SummaryService:
         return SummaryAdminResponse(
             **unit.draft,
             id=unit.id,
+            paragraph_label=paragraph_label(unit.slug),
             version=unit.version,
             review_status=normalize_status(unit.review_status),
             published=unit.published_revision_id is not None,
@@ -117,11 +137,11 @@ class SummaryService:
             updated_at=unit.updated_at,
         )
 
-    async def admin_toc(self, status=None, pyeon=None):
-        """천성경 199절 전부에 유닛 상태를 합친다. 유닛이 없으면 status=none."""
+    async def admin_toc(self, status=None, pyeon=None, work="cheonseong"):
+        """경전 목차 전부에 유닛 상태를 합친다. 유닛이 없으면 status=none."""
         units = {u.slug: u for u in await self.repo.units()}
         rows = []
-        for entry in cheonseong_toc():
+        for entry in work_toc(work):
             if pyeon is not None and entry["pyeon_no"] != pyeon:
                 continue
             unit = units.get(entry["slug"])
@@ -229,6 +249,7 @@ class SummaryService:
             key_points=payload["key_points"],
             body=payload["body"],
             body_version=payload.get("body_version", 1),
+            paragraph_label=paragraph_label(unit.slug),
             evidence=linked_evidence(payload.get("evidence", []), right.volume),
             reflection_questions=payload.get("reflection_questions", []),
             source=payload["source"],

@@ -9,10 +9,11 @@ import type {
 import { fetchAPI } from "@/lib/api";
 
 export type { SummaryInput, SummaryAdminResponse, SummaryTocItem };
+export type SummaryWork = "cheonseong" | "pyeonghwa";
 const BASE = "/admin/hoondok/ai-summaries";
 export const summariesAPI = {
-  // 천성경 199절 발행 관리 목록. 거르기는 화면에서 한다(편 이름·개수를 함께 보여야 해서).
-  toc: () => fetchAPI<SummaryTocItem[]>(`${BASE}/cheonseong-toc`),
+  // 경전 목차 발행 관리 목록(천성경 199절·평화경 182 연설문·장). 거르기는 화면에서 한다(편 이름·개수를 함께 보여야 해서).
+  toc: (work: SummaryWork) => fetchAPI<SummaryTocItem[]>(`${BASE}/toc?work=${work}`),
   get: (id: string) => fetchAPI<SummaryAdminResponse>(`${BASE}/${id}`),
   create: (data: SummaryInput) =>
     fetchAPI<SummaryAdminResponse>(BASE, {

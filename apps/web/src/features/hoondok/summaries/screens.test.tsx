@@ -88,6 +88,24 @@ it("근거에 단락이 연결돼 있으면 그 단락으로, 없으면 장 첫�
   expect(screen.getByRole("link", { name: "말씀 9 원문에서 확인하기" })).toHaveAttribute("href", "/words/%EC%B2%9C%EC%84%B1%EA%B2%BD.pdf?section=2");
 });
 
+it("평화경은 위치를 편 › 연설문(날짜)로 보이고 근거를 문단 번호로 읽는다", async () => {
+  vi.mocked(summariesAPI.detail).mockResolvedValue({
+    ...detail,
+    work_title: "평화경",
+    volume: "평화경.txt",
+    slug: "peace-01-01",
+    group_title: "제1편 참평화의 근본원리 · 1. 하나님과 인간을 위한 이상세계 (1972.2.4)",
+    title: "하나님과 인간을 위한 이상세계",
+    paragraph_label: "문단",
+    body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "해설 (문단 5–7)" }] }] },
+  });
+  wrap(<SummaryDetailScreen id="one" />);
+  const crumb = await screen.findByRole("navigation", { name: "위치" });
+  expect(crumb).toHaveTextContent("평화경제1편 참평화의 근본원리1. 하나님과 인간을 위한 이상세계 (1972.2.4)");
+  expect(screen.getByRole("link", { name: "문단 5–7 원문에서 확인하기" })).toBeInTheDocument();
+  expect(screen.getByText("(문단 5–7)")).toHaveClass("sum-cite");
+});
+
 it("장 위치가 없으면 원문 첫 화면으로 폴백한다", async () => {
   vi.mocked(summariesAPI.detail).mockResolvedValue({ ...detail, section_position: null });
   wrap(<SummaryDetailScreen id="one" />);

@@ -409,4 +409,52 @@ it("발행 관리 목록은 편·장·절 트리와 상태 거르기, 콘텐츠 
   fireEvent.change(screen.getByLabelText("편"), { target: { value: "2" } });
   expect(screen.queryByText(/하나님의 실존/)).not.toBeInTheDocument();
   expect(screen.getByText(/참부모의 의미/)).toBeInTheDocument();
+  expect(summariesAPI.toc).toHaveBeenCalledWith("cheonseong");
+});
+
+it("평화경으로 바꾸면 편 › 연설문(날짜) 트리와 제4편 14 장, 문단 수를 보여준다", async () => {
+  const speech = {
+    pyeon_no: 1,
+    pyeon_title: "참평화의 근본원리",
+    item_no: 1,
+    item_title: "하나님과 인간을 위한 이상세계",
+    toc_date: "1972.2.4",
+    paragraph_count: 51,
+    image_count: 0,
+    published: false,
+    status: "none" as const,
+  };
+  vi.mocked(summariesAPI.toc).mockImplementation(async (work) =>
+    work === "pyeonghwa"
+      ? [
+          { ...speech, slug: "peace-01-01" },
+          {
+            ...speech,
+            slug: "peace-04-14-01",
+            pyeon_no: 4,
+            pyeon_title: "인류를 구할 참가정운동",
+            item_no: 14,
+            item_title: "천국을 여는 문 참가정",
+            toc_date: null,
+            chapter_no: 1,
+            chapter_title: "가정은 천국의 중심 모형",
+            paragraph_count: 49,
+          },
+        ]
+      : [],
+  );
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <SummaryList />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "평화경" }));
+  expect(await screen.findByRole("heading", { name: "평화경 AI 요약 발행 관리" })).toBeInTheDocument();
+  expect(summariesAPI.toc).toHaveBeenLastCalledWith("pyeonghwa");
+  const speechRow = await screen.findByRole("button", { name: /1\. 하나님과 인간을 위한 이상세계/ });
+  expect(speechRow).toHaveTextContent("(1972.2.4)");
+  expect(speechRow).toHaveTextContent("문단 51개");
+  expect(screen.getByRole("heading", { name: "14. 천국을 여는 문 참가정" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /1장 가정은 천국의 중심 모형/ }));
+  expect(screen.getByRole("status")).toHaveTextContent("이 연설문의 AI 요약");
 });
