@@ -17,7 +17,7 @@ dependencies = [
     # Auth
     "python-jose[cryptography]>=3.5.0",
     "bcrypt>=5.0.0",
-    "pymupdf>=1.28.2",
+    "pymupdf>=2.0",
     "python-docx>=1.2.0",
     "kss>=6.0.6",
     "python-multipart>=0.0.33",
