@@ -52,6 +52,7 @@ export default defineConfig({
         "hoondok-records.spec.ts",
         "hoondok-personal.spec.ts",
         "hoondok-summaries.spec.ts",
+        "hoondok-paths.spec.ts",
       ],
       use: { browserName: "chromium", baseURL: webOrigin },
     },
@@ -66,7 +67,8 @@ export default defineConfig({
             cwd: path.join(repoRoot, "apps/api"),
             url: `${apiOrigin}/health`,
             // 시연 관리자 게이트 계정. 스펙의 E2E_ADMIN_EMAIL 기본값과 같아야 한다.
-            env: { DEMO_ADMIN_EMAIL: adminEmail },
+            // 7일 정성(읽기 정성 1a) API — 웹 NEXT_PUBLIC_HOONDOK_PATHS 와 짝이다
+            env: { DEMO_ADMIN_EMAIL: adminEmail, HOONDOK_PATHS_ENABLED: "true" },
             reuseExistingServer: false,
             timeout: 60_000,
           },
@@ -84,6 +86,8 @@ export default defineConfig({
               NEXT_PUBLIC_HOONDOK_ENABLED: "1",
               // 오늘의 책갈피(PLAN-HD-012) — 시드 fixture 3장으로 여정을 검증한다.
               NEXT_PUBLIC_HOONDOK_CARDS: "1",
+              // 7일 정성(읽기 정성 1a) — 시드 cs7·ph7·cs21(seed_reading_paths --e2e). OFF 회귀는 Vitest 가 검증한다.
+              NEXT_PUBLIC_HOONDOK_PATHS: "1",
             },
             reuseExistingServer: false,
             timeout: 60_000,
