@@ -1,8 +1,10 @@
-// 임베딩 항목 전체 목록과 표시명 인라인 편집을 제공하는 관리 컴포넌트.
+// 임베딩 항목 전체 목록과 표시명 인라인 편집·영구 삭제를 제공하는 관리 컴포넌트.
 "use client";
 
-import { ChevronLeft, ChevronRight, Database, Search } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, Database, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import type { StatusTone } from "@/components/status-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +13,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { dataAPI } from "@/features/data-source/api";
 import { useIngestionJobs } from "@/features/data-source/hooks";
 import type { IngestionJobInfo } from "@/features/data-source/types";
+import DeleteConfirmDialog, { type DeleteTarget } from "./delete-confirm-dialog";
 import { DisplayNameEditor } from "./display-name-editor";
 
 const PAGE_SIZE = 20;
@@ -33,7 +37,22 @@ function JobStatusBadge({ status }: { status: string }) {
   );
 }
 
-function JobTableRow({ job }: { job: IngestionJobInfo }) {
+function DeleteJobButton({ job, onDelete }: { job: IngestionJobInfo; onDelete: (job: IngestionJobInfo) => void }) {
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+      aria-label={`${job.filename} 영구 삭제`}
+      title="파일 영구 삭제 (Qdrant + DB 모두)"
+      onClick={() => onDelete(job)}
+    >
+      <Trash2 className="h-3.5 w-3.5" />
+    </Button>
+  );
+}
+
+function JobTableRow({ job, onDelete }: { job: IngestionJobInfo; onDelete: (job: IngestionJobInfo) => void }) {
   return (
     <TableRow>
       <TableCell className="max-w-[200px]">
@@ -52,11 +71,14 @@ function JobTableRow({ job }: { job: IngestionJobInfo }) {
       <TableCell>
         <JobStatusBadge status={job.status} />
       </TableCell>
+      <TableCell>
+        <DeleteJobButton job={job} onDelete={onDelete} />
+      </TableCell>
     </TableRow>
   );
 }
 
-function JobCard({ job }: { job: IngestionJobInfo }) {
+function JobCard({ job, onDelete }: { job: IngestionJobInfo; onDelete: (job: IngestionJobInfo) => void }) {
   return (
     <div className="space-y-2 rounded-lg border bg-card p-3">
       <div className="flex items-start justify-between gap-2">
@@ -67,6 +89,9 @@ function JobCard({ job }: { job: IngestionJobInfo }) {
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <span>{(job.total_chunks ?? 0).toLocaleString()}청크</span>
+        <span className="ml-auto">
+          <DeleteJobButton job={job} onDelete={onDelete} />
+        </span>
       </div>
       <DisplayNameEditor
         volumeKey={job.volume_key}
@@ -81,6 +106,38 @@ export function JobsManager() {
   const { data: jobs = [], isLoading } = useIngestionJobs();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const queryClient = useQueryClient();
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const openDelete = (job: IngestionJobInfo) => {
+    // 미분류·실패 항목도 여기서 지울 수 있다. 분류 태그는 이 목록 응답에 없어 비워 둔다.
+    setDeleteTarget({ volume: job.volume_key, sources: [], chunkCount: job.total_chunks ?? 0 });
+  };
+
+  const closeDelete = () => {
+    setDeleteTarget(null);
+    setDeleting(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await dataAPI.deleteVolume(deleteTarget.volume);
+      const skipped = (res.skipped ?? []).length;
+      toast.success(
+        `파일 영구 삭제 완료 (총 ${(res.total_chunks_deleted ?? 0).toLocaleString()}개 청크${skipped > 0 ? ` · 스킵 ${skipped}` : ""})`,
+      );
+      for (const key of ["ingestion-jobs", "category-stats", "all-volumes", "ingest-status"]) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
+      closeDelete();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "삭제 실패: 다시 시도해주세요");
+      setDeleting(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     // NFC 정규화: 맥OS NFD 파일명과 브라우저 NFC 입력 간 불일치 방지
@@ -155,11 +212,14 @@ export function JobsManager() {
                   <TableHead>표시명</TableHead>
                   <TableHead className="w-[80px] text-right">청크</TableHead>
                   <TableHead className="w-[80px]">상태</TableHead>
+                  <TableHead className="w-[48px]">
+                    <span className="sr-only">삭제</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginated.map((job) => (
-                  <JobTableRow key={job.volume_key} job={job} />
+                  <JobTableRow key={job.volume_key} job={job} onDelete={openDelete} />
                 ))}
               </TableBody>
             </Table>
@@ -168,7 +228,7 @@ export function JobsManager() {
           {/* 모바일 카드 목록 */}
           <div className="space-y-2 p-3 sm:hidden">
             {paginated.map((job) => (
-              <JobCard key={job.volume_key} job={job} />
+              <JobCard key={job.volume_key} job={job} onDelete={openDelete} />
             ))}
           </div>
 
@@ -207,6 +267,17 @@ export function JobsManager() {
           )}
         </>
       )}
+
+      <DeleteConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) closeDelete();
+        }}
+        targets={deleteTarget ? [deleteTarget] : []}
+        busy={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={closeDelete}
+      />
     </Card>
   );
 }
