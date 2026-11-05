@@ -8,7 +8,7 @@ const mockReplace = vi.fn();
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, prefetch: vi.fn() }),
-  usePathname: () => "/hoondok/settings",
+  usePathname: () => "/settings",
 }));
 vi.mock("@/features/identity/api", () => ({
   identityAPI: { signup: vi.fn(), login: vi.fn(), logout: vi.fn(), me: vi.fn(), deleteMe: vi.fn() },
@@ -123,10 +123,7 @@ describe("SCR-PWA-015 내 데이터 삭제 (API-HD-011)", () => {
     render(wrap(<SettingsScreen />));
 
     expect(await screen.findByText("로그인하면 내 데이터를 관리할 수 있어요")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /로그인/ })).toHaveAttribute(
-      "href",
-      "/hoondok/onboarding?returnTo=%2Fhoondok%2Fsettings",
-    );
+    expect(screen.getByRole("link", { name: /로그인/ })).toHaveAttribute("href", "/onboarding?returnTo=%2Fsettings");
     expect(screen.queryByRole("button", { name: /내 데이터 삭제/ })).toBeNull();
     expect(identityAPI.deleteMe).not.toHaveBeenCalled();
   });
@@ -138,15 +135,13 @@ describe("SCR-PWA-015 내 데이터 삭제 (API-HD-011)", () => {
     const confirm = await openConfirm();
     expect(confirm).toHaveTextContent("정말 지울까요?");
     expect(confirm).toHaveTextContent("되돌릴 수 없어요");
-    // 모임 영향도 알린다 (QA P2-R2-2)
-    expect(confirm).toHaveTextContent("함께 읽는 모임에서도 빠지고 내가 남긴 한 줄은 지워져요");
-    expect(confirm).toHaveTextContent("내가 리더인 모임은 가장 먼저 들어온 식구가 이어받아요");
+    expect(confirm).not.toHaveTextContent("모임");
     // 확인 카드를 열기만 해서는 아무것도 지우지 않는다
     expect(identityAPI.deleteMe).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "지우기" }));
     await waitFor(() => expect(identityAPI.deleteMe).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/hoondok"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/"));
     expect(mockPush).not.toHaveBeenCalled();
   });
 
@@ -167,7 +162,7 @@ describe("SCR-PWA-015 내 데이터 삭제 (API-HD-011)", () => {
     // 401 = 쿠키가 이미 만료됐다 — 오류 문구 대신 온보딩으로 보낸다
     vi.mocked(identityAPI.deleteMe).mockRejectedValueOnce(new ApiError(401, { message: "로그인이 필요합니다" }));
     fireEvent.click(screen.getByRole("button", { name: "지우기" }));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/hoondok/onboarding?returnTo=%2Fhoondok%2Fsettings"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/onboarding?returnTo=%2Fsettings"));
     expect(screen.queryByRole("alert")).toBeNull();
   });
 });

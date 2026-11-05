@@ -1,5 +1,5 @@
 /* =============================================================================
-   hoondok.css — 훈독(/hoondok/*) 전용 토큰·컴포넌트. 값의 원본은
+   hoondok.css — 훈독(웹 루트 전체) 전용 토큰·컴포넌트. 값의 원본은
    docs/prd/prototypes/hoondok-ds/hoondok.css (DES-PWA-003) 이며 이 파일은 그 중
    Phase 1 루프(홈·훈독하기)에 필요한 규칙만 [data-app="hoondok"] 아래로 옮긴 것이다.
 
@@ -16,6 +16,27 @@
 @keyframes hoondok-spin {
   to {
     transform: rotate(1turn);
+  }
+}
+
+/* 부엉이 마스코트 — 놓일 때 1회(settle), AI 대기 중 2회(breathe). @keyframes 는 중첩할 수 없어 최상위에 둔다 */
+@keyframes hoondok-owl-settle {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hoondok-owl-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
   }
 }
 
@@ -106,7 +127,6 @@
   --sans:
     "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
     sans-serif;
-  --serif: "Noto Serif KR", "Apple SD Gothic Neo", serif;
   --font-scripture: var(--sans);
 
   --gutter: 20px;
@@ -211,7 +231,7 @@
     padding: 4px var(--gutter) 28px;
   }
 
-  /* 하단 5탭 (base·md). 탭 정의는 features/hoondok/tabs.ts 한 곳이다.
+  /* 하단 4탭 (base·md). 탭 정의는 features/hoondok/tabs.ts 한 곳이다.
      스크롤과 무관하게 화면 하단에 붙인다 — 본문 끝까지 내려야 탭이 보이던 문제 */
   .nav {
     flex: none;
@@ -221,7 +241,7 @@
     background: var(--surface);
     border-top: 1px solid var(--line);
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     padding: 8px 6px env(safe-area-inset-bottom);
     min-height: calc(76px + env(safe-area-inset-bottom));
   }
@@ -256,22 +276,8 @@
   .nav__item[aria-disabled="true"] svg {
     stroke-dasharray: 2 2;
   }
-  .nav__item:not(.nav__item--mid):active {
+  .nav__item:active {
     background: var(--surface-2);
-  }
-  .nav__item--mid {
-    margin-top: -24px;
-  }
-  .nav__item--mid .nav__ic {
-    width: 58px;
-    height: 58px;
-    border-radius: 50%;
-    background: var(--accent);
-    color: var(--accent-ink);
-    box-shadow: var(--shadow-2);
-  }
-  .nav__item--mid:active .nav__ic {
-    transform: scale(0.96);
   }
 
   /* ---------- 3. 미션 카드 (DES §2.1) ---------- */
@@ -582,6 +588,25 @@
     display: grid;
     place-items: center;
   }
+  /* 부엉이 마스코트(NEXT_PUBLIC_HOONDOK_MASCOT). 모션은 횟수가 정해진 1~2회뿐이고 fill-mode 없이 기본 상태가 끝 상태다 —
+     전역 reduced-motion 규칙이 끄면 부엉이가 바로 제자리에 보인다 */
+  .owl {
+    display: block;
+    flex: none;
+    object-fit: contain;
+    transform-origin: 50% 90%;
+  }
+  .owl--settle {
+    animation: hoondok-owl-settle 320ms ease-out;
+  }
+  .owl--breathe {
+    animation: hoondok-owl-breathe 2.4s ease-in-out 2;
+  }
+  .day-quiet__ic:has(.owl) {
+    background: transparent;
+    width: 44px;
+    height: 44px;
+  }
   .empty__title {
     font-size: var(--fs-lg);
     font-weight: 600;
@@ -861,7 +886,7 @@
       margin-right: 20px;
       gap: 10px;
     }
-    /* HD 표지(파비콘 16 격자 판). 32px = 격자 2배라 획이 흐려지지 않는다 */
+    /* 부엉이 얼굴 표지(logo-64.png 를 32px 로) */
     .nav__mark {
       display: block;
       flex: none;
@@ -869,9 +894,7 @@
     .nav__ic {
       display: none;
     }
-    .nav__item,
-    .nav__item--mid {
-      margin-top: 0;
+    .nav__item {
       flex-direction: row;
       height: 40px;
       min-height: 40px;
@@ -1075,37 +1098,6 @@
     border-color: var(--line);
   }
 
-  /* 라디오 원 (DES §2.11). 모임 종류·설교 섭외 대상 두 곳이 이 하나를 쓴다.
-     선택 신호는 `role="radio"` 버튼의 aria-checked 또는 라벨 안 네이티브 input:checked 둘 중 하나다 */
-  .radio {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    border: 2px solid var(--ink-3);
-    background: var(--surface);
-    display: grid;
-    place-items: center;
-    flex: none;
-  }
-  [aria-checked="true"] > .radio,
-  label:has(input:checked) > .radio {
-    border-color: var(--accent);
-  }
-  [aria-checked="true"] > .radio::after,
-  label:has(input:checked) > .radio::after {
-    content: "";
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--accent);
-  }
-  /* 꺼진 라디오의 고른 상태는 점으로 남기되 액센트는 걷는다 — 살아 있는 컨트롤처럼 보이지 않게 */
-  [disabled][aria-checked="true"] > .radio {
-    border-color: var(--ink-3);
-  }
-  [disabled][aria-checked="true"] > .radio::after {
-    background: var(--ink-3);
-  }
   .form__switch {
     font-size: var(--fs-xs);
     color: var(--ink-2);
@@ -1413,17 +1405,7 @@
   }
 }
 
-/* Pretendard self-host (PLAN-HD-001 Phase 3 C, DES-PWA-003 §1.2). 다른 Pretendard 와
-   패밀리명을 분리해 로드 순서와 무관하게 이 파일이 쓰인다. 파일명의 버전은 next.config headers() 의 immutable 캐시와 짝이다. */
-@font-face {
-  font-family: "Pretendard Hoondok";
-  font-style: normal;
-  font-weight: 45 920;
-  font-display: swap;
-  src:
-    url("/hoondok/fonts/PretendardVariable-1.3.9.woff2") format("woff2-variations"),
-    url("/hoondok/fonts/PretendardVariable-1.3.9.woff2") format("woff2");
-}
+/* Pretendard Hoondok @font-face 는 hoondok-pretendard.css(동적 서브셋 92조각)에 있다. */
 
 /* 훈독 화면에서만 바깥 문서 배경이 드러나는 세로 오버스크롤을 막는다. */
 html:has([data-app="hoondok"]) {
@@ -1434,7 +1416,6 @@ html:has([data-app="hoondok"]) {
 [data-app="hoondok"] {
   @media (min-width: 1024px) and (pointer: coarse) {
     .nav__item,
-    .nav__item--mid,
     .nav__search {
       height: 44px;
       min-height: 44px;

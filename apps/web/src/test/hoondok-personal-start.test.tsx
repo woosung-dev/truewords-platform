@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { CardPublic } from "@truewords/api-client-ts/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// 맞춤 첫 말씀 질문 흐름 (/hoondok/start) — 단계 이동·포커스·두 개 제한·위기 안내·기기 저장·첫 말씀 상태.
+// 맞춤 첫 말씀 질문 흐름 (/start) — 단계 이동·포커스·두 개 제한·위기 안내·기기 저장·첫 말씀 상태.
 const cards = vi.hoisted(() => ({ list: vi.fn(), today: vi.fn() }));
 vi.mock("@/features/hoondok/cards/api", () => ({ cardsAPI: { list: cards.list, today: cards.today } }));
 const currentUser = vi.hoisted(() => ({ value: { user: null as { display_name: string } | null } }));
@@ -58,7 +58,7 @@ describe("맞춤 첫 말씀 질문 흐름", () => {
   it("환영 → 질문 1: 새 제목으로 포커스가 옮겨 가고 문서 제목이 바뀐다", () => {
     renderFlow();
     expect(screen.getByRole("heading", { level: 2, name: "먼저 세 가지만 여쭐게요" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "질문 없이 시작하기" })).toHaveAttribute("href", "/hoondok");
+    expect(screen.getByRole("link", { name: "질문 없이 시작하기" })).toHaveAttribute("href", "/");
     fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
     const title = screen.getByRole("heading", { level: 2, name: "어떤 말씀을 자주 펼치고 싶으세요?" });
     expect(title).toHaveFocus();
@@ -126,7 +126,7 @@ describe("맞춤 첫 말씀 질문 흐름", () => {
     expect(screen.getByText(/고르셔서 그 주제와 겹치는 단락을 먼저 골랐어요/)).toBeInTheDocument();
     expect(screen.getByText("앱이 고른 원문 단락이에요. 공식 해설이나 지금 하신 말씀은 아니에요.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "이 단락 읽기" }).getAttribute("href")).toContain(`card=${FAMILY_CARD.id}`);
-    expect(screen.getByRole("link", { name: "오늘 훈독으로" })).toHaveAttribute("href", "/hoondok");
+    expect(screen.getByRole("link", { name: "오늘 훈독으로" })).toHaveAttribute("href", "/");
     // 예시 구절·등급 배지를 만들지 않는다
     expect(screen.queryByText(/예시 구절|공식 원문/)).not.toBeInTheDocument();
     // 선택값을 주소·요청에 싣지 않는다 — 목록 API 는 인자 없이 부른다
@@ -191,6 +191,29 @@ describe("맞춤 첫 말씀 질문 흐름", () => {
   });
 });
 
+describe("부엉이 마스코트(B 길잡이)", () => {
+  it("플래그를 켜면 첫 화면에만 인사하는 부엉이와 바꾸기 안내가 있고, 질문·위기 안내 단계에는 부엉이가 없다", () => {
+    vi.stubEnv("NEXT_PUBLIC_HOONDOK_MASCOT", "1");
+    const { container } = renderFlow();
+    expect(container.querySelector('img.owl[data-pose="welcome"]')).not.toBeNull();
+    expect(screen.getByText("고른 답은 나의 정원에서 언제든 바꿀 수 있어요.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    expect(container.querySelector(".owl")).toBeNull();
+    fireEvent.click(screen.getByRole("checkbox", { name: /가정과 부부/ }));
+    next();
+    fireEvent.click(screen.getByRole("checkbox", { name: "많이 힘들어요" }));
+    expect(screen.getByRole("region", { name: "혼자 견디지 않으셔도 돼요" })).toBeInTheDocument();
+    expect(container.querySelector(".owl")).toBeNull();
+  });
+
+  it("플래그가 없으면 첫 화면에 부엉이도 바꾸기 안내도 없다", () => {
+    const { container } = renderFlow();
+    expect(container.querySelector(".owl")).toBeNull();
+    expect(screen.queryByText("고른 답은 나의 정원에서 언제든 바꿀 수 있어요.")).toBeNull();
+  });
+});
+
 describe("첫 말씀 제목", () => {
   it("이름이 없으면 대체 호칭 없이 '오늘의 첫 말씀' 이다", async () => {
     currentUser.value = { user: null };
@@ -207,10 +230,10 @@ describe("첫 말씀 제목", () => {
 describe("가입 직후 이동", () => {
   it("돌아갈 곳이 기본값(홈)이고 책갈피가 켜진 빌드일 때만 질문 흐름으로 보낸다", () => {
     vi.stubEnv("NEXT_PUBLIC_HOONDOK_CARDS", "1");
-    expect(afterSignupHref("/hoondok")).toBe(START_PATH);
-    expect(afterSignupHref("/hoondok/groups/join?code=7K2MQ9XD")).toBe("/hoondok/groups/join?code=7K2MQ9XD");
-    expect(afterSignupHref("/hoondok/read")).toBe("/hoondok/read");
+    expect(afterSignupHref("/")).toBe(START_PATH);
+    expect(afterSignupHref("/read?d=2026-11-04")).toBe("/read?d=2026-11-04");
+    expect(afterSignupHref("/read")).toBe("/read");
     vi.stubEnv("NEXT_PUBLIC_HOONDOK_CARDS", "0");
-    expect(afterSignupHref("/hoondok")).toBe("/hoondok");
+    expect(afterSignupHref("/")).toBe("/");
   });
 });

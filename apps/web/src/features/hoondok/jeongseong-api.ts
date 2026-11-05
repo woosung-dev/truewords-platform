@@ -1,11 +1,10 @@
-import { createApiClient } from "@truewords/api-client-ts";
 import type {
   JeongseongCreate,
   JeongseongCurrentResponse,
   JeongseongPeriodResponse,
   JeongseongTodayResponse,
 } from "@truewords/api-client-ts/types";
-import { hoondokFetch } from "./observability/report";
+import { hoondokRequest as request } from "./api-client";
 
 // 정성 기간 (API-HD-009). 브라우저에서 쿠키와 함께 /api/backend 프록시로 간다.
 // POST·DELETE 에 필요한 X-Requested-With 는 createApiClient 의 transport 가 붙인다.
@@ -14,8 +13,6 @@ export type JeongseongProgress = JeongseongPeriodResponse["progress"];
 /** 막 마친 기간(마무리 카드용) — 완료한 날 수는 서버가 보내지 않는다. */
 export type JeongseongLastEnded = NonNullable<JeongseongCurrentResponse["last_ended"]>;
 export type JeongseongDuration = JeongseongCreate["duration_days"];
-
-const { request } = createApiClient({ baseUrl: "/api/backend", fetch: hoondokFetch });
 
 const PATH = "/hoondok/me/jeongseong";
 

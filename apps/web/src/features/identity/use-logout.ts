@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { clearLiveAsks } from "@/features/hoondok/ask/live";
 import { identityAPI } from "./api";
 import { CURRENT_USER_KEY } from "./use-current-user";
 import { clearHoondokStorage } from "./use-delete-me";
@@ -12,9 +13,14 @@ import { clearHoondokStorage } from "./use-delete-me";
  */
 async function unsubscribeThisDevice(): Promise<void> {
   try {
-    const registration = await navigator.serviceWorker?.getRegistration();
-    const subscription = await registration?.pushManager.getSubscription();
-    await subscription?.unsubscribe();
+    // 예전 /hoondok 등록(DEC-PWA-026 이관 전)에 남은 구독도 함께 해지한다 — 이 페이지의 등록만 보면 그 구독으로 알림이 계속 간다.
+    const registrations = (await navigator.serviceWorker?.getRegistrations()) ?? [];
+    await Promise.all(
+      registrations.map(async (registration) => {
+        const subscription = await registration.pushManager?.getSubscription();
+        await subscription?.unsubscribe();
+      }),
+    );
   } catch {
     // 알림 미지원 브라우저·사생활 모드 — 해지할 구독이 없다
   }
@@ -41,6 +47,8 @@ export function useLogout() {
       queryClient.removeQueries({
         predicate: (query) => query.queryKey[0] === "hoondok" && query.queryKey[1] !== "me",
       });
+      // 받는 중인 AI 질문(메모리)은 계정 것이라 지우기 설정과 상관없이 버린다 — 같은 탭에 다음 계정이 로그인한다
+      clearLiveAsks();
       if (clearDevice) clearHoondokStorage();
     },
   });

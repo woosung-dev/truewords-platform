@@ -1,30 +1,25 @@
 "use client";
 
-// 이 기기에만 있는 기록 (C1 결정 9). 오늘의 한 줄(note/storage)과 저장한 AI 답(ask/storage)은 이 브라우저
-// localStorage 에만 있다 — 이 화면과 입구는 서버를 부르지 않는다. 로그아웃에서 '기기 기록 지우기'를 고르거나
+// 이 기기에만 있는 기록 (C1 결정 9). 오늘의 한 줄(note/storage)은 이 브라우저 localStorage 에만 있다
+// (AI 질문은 DEC-PWA-025 2차부터 계정에 보관하므로 여기 없다) — 이 화면과 입구는 서버를 부르지 않는다. 로그아웃에서 '기기 기록 지우기'를 고르거나
 // 기기 주인 표시와 다른 계정으로 로그인하면 이 기록이 지워진다(identity `use-logout`·`device-owner`).
 // 규칙이 경우마다 달라 안내 문구는 "지워질 수 있어요"로 둔다. 계정으로 옮기는 기능은 없으니 한 줄을 글로
 // 한 번에 복사할 길만 둔다.
-import { ChevronRight, Copy, MessageSquareText, Smartphone } from "lucide-react";
+import { ChevronRight, Copy, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
-import { EMPTY_ASK_ITEMS, readAskItems, subscribeAsk } from "../../ask/storage";
 import { cardDayLabel, cardLongDate } from "../../cards/format";
 import { type DeviceNote, EMPTY_NOTES, readAllNotes, subscribeNote } from "../../note/storage";
 import { DEVICE_RECORDS_PATH } from "../records";
-
-const ASK_LOG_HREF = "/hoondok/ask/log";
 
 function noopSubscribe(): () => void {
   return () => {};
 }
 
-/** 한 줄(날짜 최신순)과 저장한 AI 답 수. 서버 렌더와 hydration 첫 렌더는 빈 값이다. */
+/** 한 줄(날짜 최신순). 서버 렌더와 hydration 첫 렌더는 빈 값이다. */
 function useDeviceRecords() {
   const notes = useSyncExternalStore(subscribeNote, readAllNotes, () => EMPTY_NOTES);
-  const askItems = useSyncExternalStore(subscribeAsk, readAskItems, () => EMPTY_ASK_ITEMS);
-  const savedAnswers = askItems.filter((item) => item.isSaved).length;
-  return { notes, savedAnswers };
+  return { notes };
 }
 
 /** 복사할 글 — 날짜 줄 + 한 줄, 빈 줄로 나눈다. 해가 바뀌어도 알아보게 연도를 넣는다. */
@@ -34,14 +29,9 @@ export function notesAsText(notes: readonly DeviceNote[]): string {
 
 /** 정원의 입구. 기기에 남은 기록이 없으면 그리지 않는다. 비로그인 정원에서는 섹션 머리와 함께 둔다. */
 export function DeviceRecordsEntry({ isGuest = false }: { isGuest?: boolean }) {
-  const { notes, savedAnswers } = useDeviceRecords();
-  if (notes.length === 0 && savedAnswers === 0) return null;
-  const summary = [
-    notes.length > 0 && `오늘의 한 줄 ${notes.length}개`,
-    savedAnswers > 0 && `저장한 AI 답 ${savedAnswers}개`,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const { notes } = useDeviceRecords();
+  if (notes.length === 0) return null;
+  const summary = `오늘의 한 줄 ${notes.length}개`;
   return (
     <div className="sect">
       {isGuest && (
@@ -68,7 +58,7 @@ export function DeviceRecordsScreen() {
     () => true,
     () => false,
   );
-  const { notes, savedAnswers } = useDeviceRecords();
+  const { notes } = useDeviceRecords();
   const [copyMessage, setCopyMessage] = useState("");
 
   // 서버 렌더에는 기기 값이 없다 — 빈 상태가 잠깐 비쳤다 바뀌지 않게 hydration 전에는 그리지 않는다.
@@ -96,11 +86,11 @@ export function DeviceRecordsScreen() {
         </div>
       </div>
 
-      {notes.length === 0 && savedAnswers === 0 && (
+      {notes.length === 0 && (
         <div className="card rc-empty">
           <div className="empty gd-empty">
             <h2 className="empty__title">이 기기에 남은 기록이 없어요</h2>
-            <p className="empty__body">오늘 훈독의 ‘오늘의 한 줄’과 AI 질문에서 저장한 답이 여기에 모여요.</p>
+            <p className="empty__body">오늘 훈독의 ‘오늘의 한 줄’이 여기에 모여요.</p>
           </div>
         </div>
       )}
@@ -127,23 +117,6 @@ export function DeviceRecordsScreen() {
             </button>
             <p role="status">{copyMessage || "카카오톡 '나와의 채팅'에 붙여 두면 폰을 바꿔도 남아요."}</p>
           </div>
-        </div>
-      )}
-
-      {savedAnswers > 0 && (
-        <div className="sect">
-          <div className="sect__head">
-            <h2 className="sect__title">저장한 AI 답</h2>
-            <span className="sect__meta">{savedAnswers}개</span>
-          </div>
-          <Link className="card fm-entry" href={ASK_LOG_HREF}>
-            <MessageSquareText size={22} aria-hidden="true" />
-            <span className="fm-entry__bd">
-              <b>AI 질문 기록에서 보기</b>
-              <span>‘저장한 답’에 모여 있어요. AI 답은 공식 해설이 아니에요.</span>
-            </span>
-            <ChevronRight size={20} aria-hidden="true" />
-          </Link>
         </div>
       )}
 

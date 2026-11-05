@@ -35,15 +35,15 @@ function collectConsoleErrors(page: Page) {
 }
 
 async function signUp(page: Page, email: string) {
-  await page.goto("/hoondok/onboarding");
+  await page.goto("/onboarding");
   await page.getByLabel(/이름/).fill("설정");
   await page.getByLabel(/이메일/).fill(email);
   await page.getByLabel(/비밀번호/).fill(PASSWORD);
   await page.getByRole("button", { name: "가입하고 시작하기" }).click();
   // 가입 직후 기본 경로는 맞춤 첫 말씀 질문이다 — 질문 없이 홈으로 간다
-  await expect(page).toHaveURL(/\/hoondok\/start$/);
+  await expect(page).toHaveURL(/\/start$/);
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(page.getByText("설정님")).toBeVisible();
 }
 
@@ -52,7 +52,7 @@ test("설정: 알림 준비 중 · 설치 안내 상시 · 내 데이터 삭제 
   const email = `e2e-settings-${Date.now()}@example.com`;
   await signUp(page, email);
 
-  await page.goto("/hoondok/settings");
+  await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "알림", exact: true })).toBeVisible();
 
   // 로컬 backend 에는 VAPID 가 없다 — 훈독하기도 비활성이고, 나머지 알림은 토글 없이 '그 밖의 알림' 한 줄이다
@@ -63,7 +63,7 @@ test("설정: 알림 준비 중 · 설치 안내 상시 · 내 데이터 삭제 
     await expect(page.getByRole("button", { name: label })).toHaveCount(0);
   }
   await expect(page.getByText("기도하기 · 가정예배 · 공지")).toBeVisible();
-  // 훈독하기 · 그 밖의 알림 · 조용한 시간. 탭 내비의 "말씀 검색 (준비 중)" 은 프리뷰 플래그에 따라 달라지므로 본문(main) 안만 센다
+  // 훈독하기 · 그 밖의 알림 · 조용한 시간. 탭 내비의 준비 중 탭은 세지 않도록 본문(main) 안만 센다
   await expect(page.locator("main").getByText("준비 중")).toHaveCount(3);
   await expect(page.locator("main").getByText("4종")).toHaveCount(0);
   await expect(page.locator("main").getByText("알림함")).toHaveCount(0);
@@ -87,7 +87,7 @@ test("설정: 알림 준비 중 · 설치 안내 상시 · 내 데이터 삭제 
   const confirm = page.getByRole("group", { name: "내 데이터 삭제 확인" });
   await expect(confirm).toContainText("되돌릴 수 없어요");
   await confirm.getByRole("button", { name: "지우기" }).click();
-  await expect(page).toHaveURL(/\/hoondok$/);
+  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
 
   // 쿠키가 지워졌고(요약 401), 같은 자격으로는 다시 로그인되지 않는다(계정 익명화, API-HD-011)
   expect((await page.request.get("/api/backend/hoondok/me/summary")).status()).toBe(401);
@@ -164,7 +164,7 @@ test("설정: 훈독 시간 — 06:00 은 직접 정하기 · 칸을 고르면 P
   await signUp(page, `e2e-read-time-${Date.now()}@example.com`);
   const puts = collectPrefsPuts(page);
 
-  await page.goto("/hoondok/settings");
+  await page.goto("/settings");
   const toggle = page.getByRole("button", { name: "훈독하기 알림" });
   await expect(toggle).toBeEnabled();
   const enabled = prefsSaved(page);
@@ -281,7 +281,7 @@ test("알림 제안 카드: 지금(KST)과 가까운 칸을 미리 고르고, �
   await expect(card).toContainText("매일 오전 7:30에 알려 드릴게요");
 
   // 설정에서도 같은 칸이 골라져 있다
-  await page.goto("/hoondok/settings");
+  await page.goto("/settings");
   await expect(page.getByRole("radio", { name: /아침/ })).toBeChecked();
   await expect(page.getByRole("status").filter({ hasText: "에 알려드려요" })).toContainText(
     "매일 오전 7:30에 알려드려요",

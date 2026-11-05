@@ -1,5 +1,7 @@
 // 비로그인 상태의 "완료" 체크 (AC-016-02). localStorage 에 KST 날짜와 함께 두고 로그인 후 당일분만 소급한다.
 // 저장소는 없거나 던질 수 있으므로(사생활 모드·차단) 모든 접근을 try/catch 로 감싼다.
+
+import { safeLocalStorage as storage } from "@/lib/safe-storage";
 import type { MissionKind } from "./missions-api";
 import { formatKstDate } from "./today";
 
@@ -8,14 +10,6 @@ const CHANGE_EVENT = "hoondok:pending-change";
 
 function pendingKey(kind: MissionKind, userId?: string): string {
   return PREFIX + kind + (userId ? `:${userId}` : "");
-}
-
-function storage(): Storage | null {
-  try {
-    return typeof window === "undefined" ? null : window.localStorage;
-  } catch {
-    return null;
-  }
 }
 
 /** 오늘(KST) 키가 있으면 true. 다른 날짜 키는 자정이 지난 것이라 지우고 false. */

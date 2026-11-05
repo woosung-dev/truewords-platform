@@ -1,6 +1,7 @@
+import { API_ORIGIN } from "@/lib/origins";
+
 // 검색어가 Next rewrite 프록시의 연결 실패 로그에 남지 않도록 이 공개 경로만 직접 전달한다.
 // 검색·권리·검증·요청 제한은 FastAPI가 계속 소유한다. 개인 쿠키는 전달하지 않는다.
-const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export async function GET(request: Request): Promise<Response> {
   try {

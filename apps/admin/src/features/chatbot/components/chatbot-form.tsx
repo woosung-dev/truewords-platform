@@ -10,6 +10,7 @@
 import { Info, Search, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -135,7 +136,7 @@ export function ChatbotForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* 섹션 1: 기본 정보 */}
-      <div className="rounded-xl border bg-card p-5 space-y-4">
+      <Card className="space-y-4">
         <div className="flex items-center gap-2 border-b pb-3">
           <Info className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">기본 정보</h3>
@@ -203,10 +204,10 @@ export function ChatbotForm({
             </span>
           </Label>
         </div>
-      </div>
+      </Card>
 
       {/* 섹션 2: 페르소나 */}
-      <div className="rounded-xl border bg-card p-5 space-y-4">
+      <Card className="space-y-4">
         <div className="flex items-center gap-2 border-b pb-3">
           <User className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">페르소나 설정</h3>
@@ -233,10 +234,10 @@ export function ChatbotForm({
           />
           <p className="text-xs text-muted-foreground">비워두면 기본 시스템 프롬프트가 적용됩니다</p>
         </div>
-      </div>
+      </Card>
 
       {/* 섹션 3: 검색 설정 */}
-      <div className="rounded-xl border bg-card p-5 space-y-4">
+      <Card className="space-y-4">
         <div className="flex items-center gap-2 border-b pb-3">
           <Search className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">검색 티어 설정</h3>
@@ -324,7 +325,7 @@ export function ChatbotForm({
             />
           )}
         </div>
-      </div>
+      </Card>
 
       {/* 하단 액션 바 */}
       {/* 폼(page-form) 폭에 맞춘 하단 고정 버튼 바 — 좌우로 삐져나오지 않는다. */}

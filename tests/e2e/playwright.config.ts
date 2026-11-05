@@ -22,13 +22,9 @@ export default defineConfig({
         "data-source-delete.spec.ts",
         "hoondok-curation.spec.ts",
         "hoondok-rights.spec.ts",
+        "hoondok-summaries-admin.spec.ts",
       ],
       use: { browserName: "chromium", baseURL: adminOrigin },
-    },
-    {
-      name: "web-chromium",
-      testMatch: "web-flow.spec.ts",
-      use: { browserName: "chromium", baseURL: webOrigin },
     },
     {
       name: "split-apps-chromium",
@@ -52,10 +48,10 @@ export default defineConfig({
         "hoondok-library.spec.ts",
         "hoondok-resume.spec.ts",
         "hoondok-empty-day.spec.ts",
-        "hoondok-groups.spec.ts",
         "hoondok-cards.spec.ts",
         "hoondok-records.spec.ts",
         "hoondok-personal.spec.ts",
+        "hoondok-summaries.spec.ts",
       ],
       use: { browserName: "chromium", baseURL: webOrigin },
     },
@@ -77,7 +73,8 @@ export default defineConfig({
           ...(["web", "admin"] as const).map((app) => ({
             command: `pnpm --filter @truewords/${app} dev`,
             cwd: repoRoot,
-            url: `${app === "web" ? webOrigin : adminOrigin}/login`,
+            // 웹 루트는 훈독 홈이다(DEC-PWA-026, 아래 NEXT_PUBLIC_HOONDOK_ENABLED=1). 관리자는 로그인 화면.
+            url: app === "web" ? `${webOrigin}/` : `${adminOrigin}/login`,
             env: {
               NEXT_PUBLIC_API_URL: apiOrigin,
               NEXT_PUBLIC_WEB_URL: webOrigin,
@@ -85,10 +82,6 @@ export default defineConfig({
               NEXT_PUBLIC_DEMO_ADMIN_EMAIL: adminEmail,
               // 훈독 라우트는 플래그 ON 에서만 존재한다. OFF 404 는 Vitest 가 검증한다.
               NEXT_PUBLIC_HOONDOK_ENABLED: "1",
-              // 프리뷰 셸(가정예배·가족)은 두 번째 플래그 뒤에 있다 — 운영 이미지에는 넣지 않는다(PLAN-HD-002 §2).
-              NEXT_PUBLIC_HOONDOK_PREVIEW: "1",
-              // 함께 읽는 모임 킬 스위치(PLAN-HD-010 D3) — 배포와 같이 ON.
-              NEXT_PUBLIC_HOONDOK_TOGETHER: "1",
               // 오늘의 책갈피(PLAN-HD-012) — 시드 fixture 3장으로 여정을 검증한다.
               NEXT_PUBLIC_HOONDOK_CARDS: "1",
             },

@@ -19,4 +19,14 @@ describe("독립 앱 라우팅", () => {
       ]),
     );
   });
+
+  it("모든 경로에 프레임 금지 헤더를 붙인다 (보안 점검 web-missing-frame-protection-samesite-none)", async () => {
+    const { default: config } = await import("../../next.config");
+    const headers = (await config.headers?.()) ?? [];
+    const all = headers.find((h) => h.source === "/:path*");
+    expect(Object.fromEntries((all?.headers ?? []).map((x) => [x.key, x.value]))).toEqual({
+      "X-Frame-Options": "DENY",
+      "Content-Security-Policy": "frame-ancestors 'none'",
+    });
+  });
 });

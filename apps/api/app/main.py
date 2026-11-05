@@ -19,7 +19,6 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 from app.modules.chat.router import router as chat_router
 from app.modules.chat.stream_schemas import STREAM_EVENT_MODELS
-from app.modules.chat.reactions_router import reactions_router
 from app.modules.chatbot.router import router as chatbot_router, admin_router as chatbot_admin_router
 from app.modules.admin.dependencies import require_admin_gate
 from app.modules.admin.router import router as admin_router
@@ -35,13 +34,17 @@ from app.modules.hoondok.rights_admin_router import router as rights_admin_route
 from app.modules.hoondok.client_errors import router as client_errors_router
 from app.modules.hoondok.notifications_router import router as hoondok_notifications_router
 from app.modules.hoondok.admin_router import admin_router as hoondok_admin_router
-from app.modules.hoondok.groups_admin_router import groups_admin_router, jeongseong_admin_router
-from app.modules.hoondok.groups_router import router as hoondok_groups_router
+from app.modules.hoondok.source_router import router as source_admin_router
+from app.modules.hoondok.summary_router import router as summary_router, admin_router as summary_admin_router
 from app.modules.hoondok.tts_router import router as hoondok_tts_router
 from app.modules.hoondok.cards_router import router as hoondok_cards_router
 from app.modules.hoondok.cards_admin_router import cards_admin_router
+from app.modules.hoondok.public_questions_router import router as hoondok_public_questions_router
+from app.modules.hoondok.asks_router import router as hoondok_asks_router
+from app.modules.hoondok.public_questions_admin_router import public_questions_admin_router
 from app.modules.identity.router import router as identity_router
 from app.core.common.exception_handlers import (
+    ask_daily_limit_handler,
     embedding_failed_handler,
     input_blocked_handler,
     invite_required_handler,
@@ -54,7 +57,7 @@ from app.core.common.exception_handlers import (
 )
 from app.core.common.middleware import HoondokAccessLogFilter, RequestIdMiddleware
 from app.modules.chat.exceptions import SessionOwnershipError
-from app.modules.hoondok.exceptions import PushDisabledError, TtsError
+from app.modules.hoondok.exceptions import AskDailyLimitError, PushDisabledError, TtsError
 from app.modules.identity.exceptions import InviteRequiredError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
 from app.modules.search.exceptions import EmbeddingFailedError, SearchFailedError
@@ -128,22 +131,24 @@ app.add_exception_handler(SessionOwnershipError, session_ownership_handler)  # t
 app.add_exception_handler(InviteRequiredError, invite_required_handler)  # type: ignore[arg-type]
 app.add_exception_handler(PushDisabledError, push_disabled_handler)  # type: ignore[arg-type]
 app.add_exception_handler(TtsError, tts_error_handler)  # type: ignore[arg-type]
+app.add_exception_handler(AskDailyLimitError, ask_daily_limit_handler)  # type: ignore[arg-type]
 
 # Catch-all — 반드시 마지막에 등록 (구체 예외 핸들러가 먼저 매칭되도록)
 app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignore[arg-type]
 
 # 공개 라우터
 app.include_router(chat_router)
-app.include_router(reactions_router)
 app.include_router(chatbot_router)
 app.include_router(journey_router)
 app.include_router(client_errors_router)
 app.include_router(hoondok_router)  # 훈독 공개 읽기 — 비로그인 (PLAN-HD-001 Phase 1)
 app.include_router(hoondok_notifications_router)  # 훈독 알림 설정·푸시 구독 (PLAN-HD-006)
 app.include_router(hoondok_library_router)  # 훈독 서고 3계층·읽기 기록 (PLAN-HD-007)
+app.include_router(summary_router)
 app.include_router(hoondok_tts_router)  # 훈독 AI 낭독 목소리 /hoondok/tts/* (PLAN-HD-011)
 app.include_router(hoondok_cards_router)  # 오늘의 책갈피 /hoondok/cards·me/cards (PLAN-HD-012)
-app.include_router(hoondok_groups_router)  # 훈독 함께 읽는 모임 /hoondok/groups·invites·me/groups (PLAN-HD-010)
+app.include_router(hoondok_public_questions_router)  # 공개 질문 /hoondok/questions·me/questions (DEC-PWA-025)
+app.include_router(hoondok_asks_router)  # 훈독 AI 질문 /hoondok/ask/stream·me/asks — 로그인·하루 횟수 (DEC-PWA-025 2차)
 app.include_router(identity_router)  # 훈독 계정 /hoondok/auth/* — 쿠키 hoondok_token (Phase 2)
 
 # ponytail: 레드팀 시연 한시 게이트 — dependencies.require_admin_gate 참조. 시연 후 회수.
@@ -157,11 +162,12 @@ app.include_router(datasource_router, dependencies=_ADMIN_GATE)
 app.include_router(chunks_router)  # 공개 유지 — 채팅 원문보기 모달 (자체 chatbot ACL)
 app.include_router(analytics_router, dependencies=_ADMIN_GATE)
 app.include_router(rag_trace_router, dependencies=_ADMIN_GATE)  # 파이프라인 추적 /admin/rag-trace (저장 없음)
+app.include_router(summary_admin_router, dependencies=_ADMIN_GATE)
+app.include_router(source_admin_router, dependencies=_ADMIN_GATE)
 app.include_router(rights_admin_router, dependencies=_ADMIN_GATE)
 app.include_router(hoondok_admin_router, dependencies=_ADMIN_GATE)  # 훈독 편성 /admin/hoondok/daily-readings (Phase 3 A)
-app.include_router(jeongseong_admin_router, dependencies=_ADMIN_GATE)  # 공식 정성 /admin/hoondok/jeongseongs (PLAN-HD-010)
 app.include_router(cards_admin_router, dependencies=_ADMIN_GATE)  # 책갈피 풀 /admin/hoondok/cards (PLAN-HD-012)
-app.include_router(groups_admin_router, dependencies=_ADMIN_GATE)  # 모임 목록·삭제 /admin/hoondok/groups (PLAN-HD-010)
+app.include_router(public_questions_admin_router, dependencies=_ADMIN_GATE)  # 공개 질문 검수 /admin/hoondok/questions (DEC-PWA-025)
 
 
 @app.get("/health")
@@ -180,14 +186,16 @@ def custom_openapi():
         # Source/FeaturedMalssum은 REST에도 있다. 기존 REST 정의를 유지한다.
         for name, definition in stream_schema["$defs"].items():
             schema["components"]["schemas"].setdefault(name, definition)
-        operation = schema["paths"]["/chat/stream"]["post"]
-        operation["responses"]["200"]["content"] = {
-            "text/event-stream": {"schema": {"type": "string"}}
-        }
-        operation["x-sse-events"] = {
-            event: {"$ref": f"#/components/schemas/{model.__name__}"}
-            for event, model in STREAM_EVENT_MODELS.items()
-        }
+        # 훈독 AI 질문(/hoondok/ask/stream)은 /chat/stream 과 같은 이벤트 계약을 쓴다.
+        for path in ("/chat/stream", "/hoondok/ask/stream"):
+            operation = schema["paths"][path]["post"]
+            operation["responses"]["200"]["content"] = {
+                "text/event-stream": {"schema": {"type": "string"}}
+            }
+            operation["x-sse-events"] = {
+                event: {"$ref": f"#/components/schemas/{model.__name__}"}
+                for event, model in STREAM_EVENT_MODELS.items()
+            }
         app.openapi_schema = schema
     return app.openapi_schema
 

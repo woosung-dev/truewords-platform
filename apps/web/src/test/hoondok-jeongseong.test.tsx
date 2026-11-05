@@ -8,7 +8,7 @@ const mockReplace = vi.fn();
 let sheetParam: string | null = null;
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, prefetch: vi.fn() }),
-  usePathname: () => "/hoondok",
+  usePathname: () => "/",
   useSearchParams: () => ({ get: (key: string) => (key === "sheet" ? sheetParam : null) }),
 }));
 
@@ -116,7 +116,7 @@ describe("정성 시트 (SCR-PWA-004)", () => {
     // 정성 알림은 훈독하기 알림에 합쳤다 — 시각 입력 대신 설정으로 가는 링크만 있다
     expect(document.querySelector('input[type="time"]')).toBeNull();
     expect(screen.queryByLabelText(/알림 시각/)).toBeNull();
-    expect(screen.getByRole("link", { name: "설정 › 훈독하기" })).toHaveAttribute("href", "/hoondok/settings");
+    expect(screen.getByRole("link", { name: "설정 › 훈독하기" })).toHaveAttribute("href", "/settings");
     expect(screen.getByText(/에서 켜고 시각을 정해요/)).toBeInTheDocument();
   });
 
@@ -129,7 +129,7 @@ describe("정성 시트 (SCR-PWA-004)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "감사" }));
     fireEvent.submit(screen.getByRole("form", { name: "정성 기간 만들기" }));
 
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/hoondok", { scroll: false }));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/", { scroll: false }));
     const post = lastPost();
     expect(post.url).toBe("/api/backend/hoondok/me/jeongseong");
     // reminder_time 은 보내지 않는다 (알림 시각은 설정 › 훈독하기 한 곳)
@@ -174,7 +174,7 @@ describe("정성 시트 (SCR-PWA-004)", () => {
     fireEvent.click(screen.getByRole("button", { name: "감사" }));
     fireEvent.submit(screen.getByRole("form", { name: "정성 기간 만들기" }));
 
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/hoondok", { scroll: false }));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/", { scroll: false }));
     expect(lastPost().body).toEqual({ topic: "감사", duration_days: 21, started_on: TODAY, resolution: "날마다 감사" });
   });
 
@@ -201,9 +201,7 @@ describe("정성 시트 (SCR-PWA-004)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "감사" }));
     fireEvent.submit(screen.getByRole("form", { name: "정성 기간 만들기" }));
 
-    await waitFor(() =>
-      expect(mockPush).toHaveBeenCalledWith("/hoondok/onboarding?returnTo=%2Fhoondok%3Fsheet%3Djeongseong"),
-    );
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/onboarding?returnTo=%2F%3Fsheet%3Djeongseong"));
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
@@ -214,7 +212,7 @@ describe("정성 시트 (SCR-PWA-004)", () => {
 
     expect(await screen.findByRole("link", { name: "로그인하고 시작하기" })).toHaveAttribute(
       "href",
-      "/hoondok/onboarding?returnTo=%2Fhoondok%3Fsheet%3Djeongseong",
+      "/onboarding?returnTo=%2F%3Fsheet%3Djeongseong",
     );
     expect(screen.queryByRole("form", { name: "정성 기간 만들기" })).toBeNull();
   });
@@ -227,14 +225,14 @@ describe("정성 시트 (SCR-PWA-004)", () => {
 
     // Esc 는 <dialog>.showModal() 이 close 이벤트로 알려 준다 — 화면은 URL 만 바꾼다
     fireEvent(dialog, new Event("close"));
-    expect(mockReplace).toHaveBeenCalledWith("/hoondok", { scroll: false });
+    expect(mockReplace).toHaveBeenCalledWith("/", { scroll: false });
 
     // 배경막(패널 밖) 클릭도 dialog 가 받는다. 패널 안 클릭은 닫지 않는다.
     mockReplace.mockClear();
     fireEvent.click(screen.getByRole("heading", { name: "정성 기간 만들기" }));
     expect(mockReplace).not.toHaveBeenCalled();
     fireEvent.click(dialog);
-    expect(mockReplace).toHaveBeenCalledWith("/hoondok", { scroll: false });
+    expect(mockReplace).toHaveBeenCalledWith("/", { scroll: false });
   });
 });
 
@@ -327,10 +325,7 @@ describe("홈 정성 카드 (SCR-PWA-002)", () => {
     on("GET", "/hoondok/me/jeongseong", () => json({ period: null }));
     render(wrap(<JeongseongCard />));
 
-    expect(await screen.findByRole("link", { name: "정성 시작하기" })).toHaveAttribute(
-      "href",
-      "/hoondok?sheet=jeongseong",
-    );
+    expect(await screen.findByRole("link", { name: "정성 시작하기" })).toHaveAttribute("href", "/?sheet=jeongseong");
     expect(screen.queryByRole("progressbar")).toBeNull();
   });
 
@@ -370,10 +365,7 @@ describe("홈 정성 카드 (SCR-PWA-002)", () => {
     loggedOut();
     render(wrap(<JeongseongCard />));
     // 값을 지어내지 않는다 — 진행 수치 없이 시작 CTA 만 두고 로그인 요구는 시트가 맡는다
-    expect(await screen.findByRole("link", { name: "정성 시작하기" })).toHaveAttribute(
-      "href",
-      "/hoondok?sheet=jeongseong",
-    );
+    expect(await screen.findByRole("link", { name: "정성 시작하기" })).toHaveAttribute("href", "/?sheet=jeongseong");
     expect(screen.getByText("정성 기간")).toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).toBeNull();
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes("/hoondok/me/jeongseong"))).toBe(false);
@@ -406,7 +398,7 @@ describe("정성 마무리 카드 (API-HD-009 last_ended)", () => {
     const card = await screen.findByRole("article", { name: "정성 기간을 마쳤어요" });
     expect(card).toHaveTextContent("가정의 화목");
     expect(card).toHaveTextContent("매일 새벽 말씀 앞에 앉기");
-    expect(screen.getByRole("link", { name: "새 정성 시작하기" })).toHaveAttribute("href", "/hoondok?sheet=jeongseong");
+    expect(screen.getByRole("link", { name: "새 정성 시작하기" })).toHaveAttribute("href", "/?sheet=jeongseong");
     expect(screen.getByRole("button", { name: "닫기" })).toBeInTheDocument();
     // 함께한 날 수·기간 일수·날짜 범위 — 어느 숫자도 없다(빼기로 빠진 날이 드러나지 않게)
     expect(container.textContent).not.toMatch(/\d/);

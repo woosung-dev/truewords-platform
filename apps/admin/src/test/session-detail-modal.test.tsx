@@ -50,7 +50,6 @@ function detailFixture(overrides: Partial<SessionDetail> = {}): SessionDetail {
         created_at: "2026-05-03T09:06:00",
         resolved_answer_mode: null,
         persona_overridden: null,
-        reactions: [],
         feedback: null,
         citations: [],
       },
@@ -61,7 +60,6 @@ function detailFixture(overrides: Partial<SessionDetail> = {}): SessionDetail {
         created_at: "2026-05-03T09:06:05",
         resolved_answer_mode: "default",
         persona_overridden: false,
-        reactions: [{ kind: "thumbs_down", count: 1 }],
         feedback: {
           feedback_type: "INACCURATE",
           comment: "정확하지 않음",

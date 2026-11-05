@@ -1,14 +1,9 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expect, type Locator, test } from "@playwright/test";
 
 const origins = {
   web: process.env.E2E_WEB_ORIGIN || "http://127.0.0.1:3000",
   admin: process.env.E2E_ADMIN_ORIGIN || "http://localhost:3001",
 };
-
-async function setDarkClass(page: Page, isDark: boolean) {
-  // 테마 전환 UX를 추가하지 않고 기존 .dark CSS의 이동 회귀만 확인한다.
-  await page.evaluate((dark) => document.documentElement.classList.toggle("dark", dark), isDark);
-}
 
 async function expectColor(locator: Locator, property: string, expected: string) {
   // production의 CSS 최적화는 OKLCH를 Lab으로 바꿀 수 있어 문자열 대신 실제 색을 비교한다.
@@ -36,81 +31,45 @@ async function expectColor(locator: Locator, property: string, expected: string)
     .toBeLessThanOrEqual(1);
 }
 
-for (const app of ["web", "admin"] as const) {
-  for (const mode of ["light", "dark"] as const) {
-    test(`${app} ${mode}: 로컬 UI 크기·테마·모바일 Portal·키보드 보존`, async ({ page }, testInfo) => {
-      const isDark = mode === "dark";
-      await page.setViewportSize({ width: 390, height: 844 });
-      await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.goto(`${origins[app]}/login`);
-      const email = page.getByLabel("이메일");
-      const password = page.getByLabel("비밀번호", { exact: true });
-      await expect(email).toBeVisible();
-      await setDarkClass(page, isDark);
-      await expectColor(
-        page.locator("body"),
-        "background-color",
-        isDark ? "oklch(0.18 0.012 50)" : "oklch(0.988 0.024 95)",
-      );
-      await expect(email).toHaveCSS("height", "44px");
-      await email.fill(app === "admin" ? process.env.E2E_ADMIN_EMAIL || "demo-admin@example.com" : "admin@test.com");
-      await email.press("Tab");
-      await expect(password).toBeFocused();
-      await password.fill("test1234");
-      await password.press("Tab");
-      if (app === "admin") {
-        await expect(page.getByRole("button", { name: "비밀번호 표시", exact: true })).toBeFocused();
-        await page.keyboard.press("Tab");
-      }
-      const login = page.getByRole("button", { name: "로그인", exact: true });
-      await expect(login).toBeFocused();
-      await expect(login).toHaveCSS("height", "44px");
-      await login.press("Enter");
+// 관리자 앱은 라이트 테마만 지원한다(다크 팔레트 제거). 라이트 토큰·크기·Portal·키보드만 확인한다.
+// 웹은 시연 챗 로그인·채팅 화면을 지웠다(DEC-PWA-026). 훈독 화면의 토큰·폭은 hoondok*.spec.ts 가 본다.
+for (const app of ["admin"] as const) {
+  test(`${app}: 로컬 UI 크기·테마·모바일 Portal·키보드 보존`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(`${origins[app]}/login`);
+    const email = page.getByLabel("이메일");
+    const password = page.getByLabel("비밀번호", { exact: true });
+    await expect(email).toBeVisible();
+    await expectColor(page.locator("body"), "background-color", "oklch(0.988 0.024 95)");
+    await expect(email).toHaveCSS("height", "44px");
+    await email.fill(process.env.E2E_ADMIN_EMAIL || "demo-admin@example.com");
+    await email.press("Tab");
+    await expect(password).toBeFocused();
+    await password.fill("test1234");
+    await password.press("Tab");
+    await expect(page.getByRole("button", { name: "비밀번호 표시", exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    const login = page.getByRole("button", { name: "로그인", exact: true });
+    await expect(login).toBeFocused();
+    await expect(login).toHaveCSS("height", "44px");
+    await login.press("Enter");
 
-      if (app === "admin") {
-        await expect(page).toHaveURL(`${origins.admin}/chatbots`);
-        await expect(page.getByRole("table")).toBeVisible();
-        await expect(page.locator("body")).toHaveClass(/admin-scope/);
-        await setDarkClass(page, isDark);
-        await expectColor(
-          page.locator("body"),
-          "background-color",
-          isDark ? "oklch(0.18 0.012 50)" : "oklch(0.985 0.005 250)",
-        );
-        await page.locator('[data-slot="sheet-trigger"]').click();
-      } else {
-        await page.getByLabel("이름", { exact: true }).fill("UI 회귀 검증");
-        await page.getByLabel("카테고리 / 소속").fill("격리 테스트");
-        await page.getByRole("button", { name: "채팅 시작" }).click();
-        const send = page.getByRole("button", { name: "질문 보내기" });
-        await expect(send).toBeDisabled();
-        await expect(send).toHaveCSS("height", "48px");
-        await expect(page.locator("body")).not.toHaveClass(/admin-scope/);
-        await setDarkClass(page, isDark);
-        await page.getByRole("button", { name: /^답변 모드/ }).click();
-      }
+    await expect(page).toHaveURL(`${origins.admin}/chatbots`);
+    await expect(page.getByRole("table")).toBeVisible();
+    await expect(page.locator("body")).toHaveClass(/admin-scope/);
+    await expectColor(page.locator("body"), "background-color", "oklch(0.985 0.005 250)");
+    await page.locator('[data-slot="sheet-trigger"]').click();
 
-      const dialog = page.getByRole("dialog");
-      await expect(dialog).toBeVisible();
-      await expectColor(dialog, "background-color", isDark ? "oklch(0.22 0.012 55)" : "oklch(1 0 0)");
-      // Portal은 앱 body의 토큰을 상속해야 하며 다른 앱 CSS를 가져오지 않는다.
-      const expectedBorder =
-        app === "admin"
-          ? isDark
-            ? "oklch(0.33 0.01 250)"
-            : "oklch(0.91 0.005 250)"
-          : isDark
-            ? "oklch(0.33 0.018 60)"
-            : "oklch(0.89 0.025 78)";
-      await expectColor(dialog, "--border", expectedBorder);
-      if (app === "web") {
-        await expect(dialog.getByRole("button", { name: "적용하기" })).toHaveCSS("height", "56px");
-      }
-      const screenshotPath = testInfo.outputPath(`${app}-${mode}-portal.png`);
-      await page.screenshot({ path: screenshotPath, animations: "disabled" });
-      await testInfo.attach(`${app}-${mode}-portal`, { path: screenshotPath, contentType: "image/png" });
-      await page.keyboard.press("Escape");
-      await expect(dialog).not.toBeVisible();
-    });
-  }
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expectColor(dialog, "background-color", "oklch(1 0 0)");
+    // Portal은 앱 body의 토큰을 상속해야 하며 다른 앱 CSS를 가져오지 않는다.
+    await expectColor(dialog, "--border", "oklch(0.91 0.005 250)");
+    const screenshotPath = testInfo.outputPath(`${app}-portal.png`);
+    await page.screenshot({ path: screenshotPath, animations: "disabled" });
+    await testInfo.attach(`${app}-portal`, { path: screenshotPath, contentType: "image/png" });
+    await page.keyboard.press("Escape");
+    await expect(dialog).not.toBeVisible();
+  });
 }

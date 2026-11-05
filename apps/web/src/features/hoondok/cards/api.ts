@@ -7,30 +7,28 @@ import type {
   MyCardsResponse,
   TodayCardResponse,
 } from "@truewords/api-client-ts/types";
-import { hoondokFetch } from "../observability/report";
+import { API_ORIGIN } from "@/lib/origins";
+import { hoondokRequest } from "../api-client";
 
 // 오늘의 책갈피 (PLAN-HD-012, API-HD-047~051·054). 화면 모델은 생성 SDK 타입 그대로다.
 export type { CardListResponse, CardPublic, CardReceiptItem, CardShelf, MyCardsResponse, TodayCardResponse };
 export type MyCardsFilter = "received" | "shared";
 
 // 브라우저: 같은 origin 프록시 + 쿠키 (receive·shared 는 CSRF 헤더를 SDK 가 붙인다)
-const browser = createApiClient({ baseUrl: "/api/backend", fetch: hoondokFetch });
-
 export const cardsAPI = {
-  today: () => browser.request<TodayCardResponse>("/hoondok/cards/today"),
+  today: () => hoondokRequest<TodayCardResponse>("/hoondok/cards/today"),
   /** active 카드 전부(API-HD-054). 맞춤 카드는 기기에서 고르므로 선택값을 쿼리에 넣지 않는다 */
-  list: () => browser.request<CardListResponse>("/hoondok/cards"),
-  get: (id: string) => browser.request<CardPublic>(`/hoondok/cards/${encodeURIComponent(id)}`),
+  list: () => hoondokRequest<CardListResponse>("/hoondok/cards"),
+  get: (id: string) => hoondokRequest<CardPublic>(`/hoondok/cards/${encodeURIComponent(id)}`),
   mine: (filter: MyCardsFilter) =>
-    browser.request<MyCardsResponse>(`/hoondok/me/cards${filter === "shared" ? "?filter=shared" : ""}`),
+    hoondokRequest<MyCardsResponse>(`/hoondok/me/cards${filter === "shared" ? "?filter=shared" : ""}`),
   receive: (id: string) =>
-    browser.request<CardReceiptItem>(`/hoondok/me/cards/${encodeURIComponent(id)}/receive`, { method: "POST" }),
+    hoondokRequest<CardReceiptItem>(`/hoondok/me/cards/${encodeURIComponent(id)}/receive`, { method: "POST" }),
   shared: (id: string) =>
-    browser.request<CardReceiptItem>(`/hoondok/me/cards/${encodeURIComponent(id)}/shared`, { method: "POST" }),
+    hoondokRequest<CardReceiptItem>(`/hoondok/me/cards/${encodeURIComponent(id)}/shared`, { method: "POST" }),
 };
 
 // 서버 컴포넌트·이미지 라우트: 공개 엔드포인트라 API origin 에 직접 간다(features/hoondok/api.ts 와 같은 방식).
-const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 /** 오늘 카드. 풀이 비었거나 API 를 못 읽으면 null — 홈은 카드를 숨기고 읽기 화면은 빈 상태를 보인다. */
 export async function loadTodayCard(fetchImpl: typeof globalThis.fetch = globalThis.fetch): Promise<CardPublic | null> {

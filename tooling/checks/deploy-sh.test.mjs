@@ -290,7 +290,7 @@ test("deploy: 컨테이너 안 HTTP 검사 실패도 교체 실패로 보고 복
     const result = box.run(["deploy", SHA, "web"]);
     // 복구한 이전 web 도 같은 HTTP 검사에 걸리므로 복구 실패(6)가 정확한 판정이다.
     assert.equal(result.status, 6, result.stderr);
-    assert.match(result.stderr, /http:\/\/web:3000\/login 실패/);
+    assert.match(result.stderr, /http:\/\/web:3000\/hoondok\/manifest\.webmanifest 실패/);
   } finally {
     box.cleanup();
   }

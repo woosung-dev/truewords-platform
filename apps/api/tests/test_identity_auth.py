@@ -95,6 +95,21 @@ async def test_login_wrong_password_unknown_email_and_deleted_share_401(repo: Us
     assert exc.value.status_code == 401
 
 
+@pytest.mark.asyncio
+async def test_login_unknown_email_still_runs_bcrypt(repo: UserRepository):
+    """보안 점검 login-bcrypt-short-circuit-timing-enumeration 회귀 —
+    없는 이메일도 bcrypt 비교를 한 번 돌려 응답 시간으로 가입 여부가 드러나지 않는다(API-HD-003)."""
+    from unittest.mock import patch
+
+    from app.modules.admin import auth as auth_module
+
+    service = IdentityService(repo)
+    with patch.object(auth_module, "verify_password", wraps=auth_module.verify_password) as spy:
+        with pytest.raises(HTTPException):
+            await service.login(LoginRequest(email="nobody@example.com", password="password1"))
+    assert spy.call_count == 1
+
+
 # --- 토큰 aud 분리 -----------------------------------------------------------
 
 
@@ -209,6 +224,29 @@ def test_signup_me_logout_cookie_flow(client: TestClient):
 
     bad = client.post("/hoondok/auth/login", json={"email": "new@example.com", "password": "nope-nope"}, headers=XHR)
     assert bad.status_code == 401
+
+
+@pytest.mark.parametrize("path", ["/hoondok/auth/login", "/admin/auth/login"])
+def test_login_attempts_are_rate_limited_per_ip(client: TestClient, path: str):
+    """보안 점검 login-bcrypt-event-loop-no-throttle 회귀 — 로그인은 IP 당 30회/분을 넘으면 bcrypt 전에 429."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from app.modules.admin import auth as auth_module
+    from app.modules.admin.dependencies import get_admin_service
+    from app.modules.admin.service import AdminService
+
+    admin_repo = MagicMock()
+    admin_repo.get_user_by_email = AsyncMock(return_value=None)
+    app.dependency_overrides[get_admin_service] = lambda: AdminService(admin_repo)
+    body = {"email": "nobody@example.com", "password": "password1"}
+    try:
+        with patch.object(auth_module, "verify_password", return_value=False):
+            statuses = [client.post(path, json=body, headers=XHR).status_code for _ in range(30)]
+            assert set(statuses) == {401}
+            over = client.post(path, json=body, headers=XHR)
+    finally:
+        app.dependency_overrides.pop(get_admin_service, None)
+    assert over.status_code == 429
 
 
 def test_me_with_admin_token_only_is_401(client: TestClient):

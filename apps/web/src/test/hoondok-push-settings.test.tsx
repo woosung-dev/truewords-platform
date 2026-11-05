@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // 토글 한 번이 권한·구독·서버 설정 세 단계를 거치므로 단계별로 쪼개면 계약이 드러나지 않는다.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
-  usePathname: () => "/hoondok/settings",
+  usePathname: () => "/settings",
 }));
 vi.mock("@/features/identity/api", () => ({
   identityAPI: { signup: vi.fn(), login: vi.fn(), logout: vi.fn(), me: vi.fn(), deleteMe: vi.fn() },
@@ -368,7 +368,7 @@ describe("켤 수 없는 상태", () => {
 
     expect(await screen.findByRole("link", { name: "로그인하면 알림을 켤 수 있어요" })).toHaveAttribute(
       "href",
-      "/hoondok/onboarding?returnTo=%2Fhoondok%2Fsettings",
+      "/onboarding?returnTo=%2Fsettings",
     );
     expect(screen.getByRole("button", { name: READ_TOGGLE })).toBeDisabled();
     expect(notificationsAPI.prefs).not.toHaveBeenCalled();

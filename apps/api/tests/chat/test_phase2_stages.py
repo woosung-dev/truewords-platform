@@ -14,7 +14,6 @@ from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
     RetrievalConfig,
-    SafetyConfig,
     SearchModeConfig,
 )
 from app.modules.search.hybrid import SearchResult
@@ -30,7 +29,6 @@ def _make_runtime(rerank_enabled=True, query_rewrite_enabled=True):
             rerank_enabled=rerank_enabled,
             query_rewrite_enabled=query_rewrite_enabled,
         ),
-        safety=SafetyConfig(),
     )
 
 

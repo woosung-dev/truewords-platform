@@ -1,6 +1,29 @@
 # 합의된 하위 호환 깨짐만 적는다(oasdiff --err-ignore/--warn-ignore). 한 줄 = "METHOD /path 메시지".
 # 기준이 main 으로 바뀌면 다시 걸리지 않으니, 그 PR 이 머지된 뒤 다음 계약 PR 에서 지운다.
-# 2026-09-29 단락 표시는 북마크만 — 형광펜은 구절 단위(API-HD-053)로 옮겼다. 쓰는 곳이 훈독 웹 하나라 함께 배포한다.
-PUT /hoondok/me/marks/{chunk_id} the `kind` request property const value `bookmark` was added
-PUT /hoondok/me/marks/{chunk_id} removed the enum value `bookmark` of the request property `kind`
-PUT /hoondok/me/marks/{chunk_id} removed the enum value `highlight` of the request property `kind`
+# 2026-11-04 훈독 모임 기능 제거(DEC-PWA-027) — 모임 API-HD-030~041·043, 모임 상세에만 보이던 공식 정성 API-HD-042. 호출처는 함께 배포되는 우리 웹·관리자뿐이다.
+DELETE /admin/hoondok/groups/{group_id} api path removed without deprecation
+DELETE /admin/hoondok/jeongseongs/{jeongseong_id} api path removed without deprecation
+DELETE /hoondok/groups/{group_id} api path removed without deprecation
+DELETE /hoondok/groups/{group_id}/jeongseongs/{jeongseong_id} api path removed without deprecation
+DELETE /hoondok/groups/{group_id}/me api path removed without deprecation
+DELETE /hoondok/groups/{group_id}/members/{member_id} api path removed without deprecation
+DELETE /hoondok/groups/{group_id}/shares/{share_id} api path removed without deprecation
+DELETE /hoondok/groups/{group_id}/shares/{share_id}/reaction api path removed without deprecation
+GET /admin/hoondok/groups api path removed without deprecation
+GET /admin/hoondok/jeongseongs api path removed without deprecation
+GET /hoondok/groups/{group_id} api path removed without deprecation
+GET /hoondok/groups/{group_id}/members api path removed without deprecation
+GET /hoondok/invites/{code} api path removed without deprecation
+GET /hoondok/me/groups api path removed without deprecation
+PATCH /hoondok/groups/{group_id} api path removed without deprecation
+PATCH /hoondok/groups/{group_id}/me api path removed without deprecation
+POST /admin/hoondok/jeongseongs api path removed without deprecation
+POST /hoondok/groups api path removed without deprecation
+POST /hoondok/groups/{group_id}/invite api path removed without deprecation
+POST /hoondok/groups/{group_id}/jeongseongs api path removed without deprecation
+POST /hoondok/invites/{code}/join api path removed without deprecation
+PUT /admin/hoondok/jeongseongs/{jeongseong_id} api path removed without deprecation
+PUT /hoondok/groups/{group_id}/shares/today api path removed without deprecation
+PUT /hoondok/groups/{group_id}/shares/{share_id}/reaction api path removed without deprecation
+# 2026-11-04 AI 요약 목차를 경전별로(toc?work=). cheonseong-toc 는 운영에 배포된 적 없는 관리자 전용 경로, 호출처는 함께 배포되는 관리자뿐이다.
+GET /admin/hoondok/ai-summaries/cheonseong-toc api path removed without deprecation

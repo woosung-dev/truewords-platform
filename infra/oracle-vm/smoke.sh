@@ -22,7 +22,8 @@
 # `make smoke-web`(캐시 우회 없음)의 몫이다.
 #
 # `--hoondok` 은 **기대값**이지 조회가 아니다. 배포할 때 넘긴 값을 그대로 적어
-# "의도한 상태로 떠 있는가" 를 묻는다. 0 인데 /hoondok 이 열려 있으면 실패다.
+# "의도한 상태로 떠 있는가" 를 묻는다. 0 인데 훈독 화면(웹 루트 /)이 열려 있으면 실패다.
+# 웹 루트는 훈독이다(DEC-PWA-026) — 예전 /hoondok/* 화면 주소는 같은 경로의 루트로 308 한다.
 #
 # 종료 코드 0 = 전부 통과, 1 = 위반 있음.
 
@@ -36,7 +37,8 @@ HOONDOK="${HOONDOK_ENABLED:-0}"
 CACHE_BUST="${SMOKE_CACHE_BUST:-}"
 TIMEOUT="${SMOKE_TIMEOUT_S:-15}"
 # 운영 폰트 파일명은 버전이 박혀 있다(Phase 3 C). 파일을 갈면 여기도 같이 바꾼다.
-FONT_FILE="${SMOKE_FONT_FILE:-PretendardVariable-1.3.9.woff2}"
+# 2026-11-03 부터 동적 서브셋 92조각이다 — 한글 자주 쓰는 글자 조각 하나만 본다.
+FONT_FILE="${SMOKE_FONT_FILE:-pretendard-1.3.9/PretendardVariable.subset.91.woff2}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -108,13 +110,8 @@ check_status() {
 
 echo "[$(date '+%F %T')] smoke 시작 — ${BASE_URL} (HOONDOK_ENABLED=${HOONDOK} 기대)"
 
-# ── 1. 시연 챗 ────────────────────────────────────────────────────────────
-# 훈독 배포가 시연 챗을 깨뜨리지 않았는지부터 본다. 두 앱이 같은 이미지·같은
-# 루트 layout 을 쓰므로, 훈독 쪽 변경이 여기서 먼저 터진 적이 있다(Phase 3 D
-# hydration). 훈독이 꺼져 있어도 이 검사는 항상 돈다.
-check_status "chat-login" "/login" 200
-
-# 관리자 앱은 origin 이 다르다. 넘겼을 때만 본다(배포 자동화는 항상 넘긴다).
+# ── 1. 관리자 앱 ──────────────────────────────────────────────────────────
+# 시연 챗(/login 등)은 DEC-PWA-026 에서 지웠다. 관리자 앱은 origin 이 다르다. 넘겼을 때만 본다(배포 자동화는 항상 넘긴다).
 if [ -n "$ADMIN_BASE_URL" ]; then
   CODE=$(fetch "/login" "$ADMIN_BASE_URL")
   if [ "$CODE" = "200" ]; then
@@ -136,7 +133,7 @@ check_status "api-today" "/api/backend/hoondok/today" 200
 # ── 3. 훈독 라우트 (플래그가 결정한다) ────────────────────────────────────
 # 세 라우트를 모두 본다. 플래그는 각 page.tsx 가 개별적으로 읽으므로(미들웨어가
 # 없다) 하나만 확인하면 나머지가 열려 있어도 모른다.
-HOONDOK_ROUTES=("route-home:/hoondok" "route-read:/hoondok/read" "route-onboard:/hoondok/onboarding")
+HOONDOK_ROUTES=("route-home:/" "route-read:/read" "route-onboard:/onboarding")
 if [ "$HOONDOK" = "1" ]; then
   for R in "${HOONDOK_ROUTES[@]}"; do
     check_status "${R%%:*}" "${R#*:}" 200
@@ -144,12 +141,21 @@ if [ "$HOONDOK" = "1" ]; then
 
   # 색인 차단은 훈독이 켜졌을 때 의미가 생긴다. 권리 미확정 정본이 실려 있어
   # 검색 노출을 막는 것이 베타의 전제다(PLAN-HD-001 결정 12 · REQ-PWA-001).
-  CODE=$(fetch "/hoondok")
+  CODE=$(fetch "/")
   ROBOTS=$(header_value "x-robots-tag")
   if [ "$CODE" = "200" ] && echo "$ROBOTS" | grep -qi "noindex"; then
-    record "noindex" OK "/hoondok → x-robots-tag: ${ROBOTS}"
+    record "noindex" OK "/ → x-robots-tag: ${ROBOTS}"
   else
-    record "noindex" FAIL "/hoondok 의 x-robots-tag 가 noindex 가 아니다 (받은 값: '${ROBOTS:-없음}')"
+    record "noindex" FAIL "/ 의 x-robots-tag 가 noindex 가 아니다 (받은 값: '${ROBOTS:-없음}')"
+  fi
+
+  # 예전 주소(설치된 앱 start_url·보낸 알림·퍼진 /hoondok/c/ 링크)가 같은 경로의 루트로 가는지.
+  CODE=$(fetch "/hoondok/read")
+  LOCATION=$(header_value "location")
+  if [ "$CODE" = "308" ] && echo "$LOCATION" | grep -q '^\(https\?://[^/]*\)\?/read\([?]\|$\)'; then
+    record "legacy-redirect" OK "/hoondok/read → 308 ${LOCATION}"
+  else
+    record "legacy-redirect" FAIL "/hoondok/read → ${CODE} ${LOCATION:-} (기대 308 → /read)"
   fi
 else
   for R in "${HOONDOK_ROUTES[@]}"; do
@@ -164,7 +170,8 @@ fi
 # OFF 에서 이것들을 404 로 단언하면, 자산이 아직 없는 구 이미지에서만 통과하고
 # 정상 배포에서 오탐을 낸다. 그래서 OFF 에서는 상태만 INFO 로 남긴다.
 MANIFEST="/hoondok/manifest.webmanifest"
-SW="/hoondok/sw.js"
+SW="/sw.js"
+RETIRED_SW="/hoondok/sw.js"
 ICONS=(
   "/hoondok/icons/icon-192.png"
   "/hoondok/icons/icon-512.png"
@@ -175,19 +182,21 @@ ICONS=(
 FONT="/hoondok/fonts/${FONT_FILE}"
 
 if [ "$HOONDOK" = "1" ]; then
-  # manifest: 존재만으로는 부족하다. scope 가 `/hoondok/`(슬래시 포함)이면
-  # standalone 에서 홈 `/hoondok` 이 범위 밖이라 브라우저 UI 가 노출된다 — §10
-  # 2026-09-19 정정의 핵심이라 값 자체를 단언한다.
+  # manifest: 존재만으로는 부족하다. scope 가 홈(start_url `/`)을 덮지 않으면
+  # standalone 에서 브라우저 UI 가 노출된다 — §10 2026-09-19 정정의 핵심이라 값 자체를 단언한다.
+  # 웹 루트 이전(DEC-PWA-026) 뒤 scope·start_url 은 `/`, id 는 예전 값 `/hoondok` 을 유지한다.
   CODE=$(fetch "$MANIFEST")
   MF_CACHE=$(header_value "cache-control")
   if [ "$CODE" != "200" ]; then
     record "manifest" FAIL "${MANIFEST} → ${CODE} (기대 200)"
-  elif ! grep -q '"scope"[[:space:]]*:[[:space:]]*"/hoondok"' "$BODY_FILE"; then
-    record "manifest" FAIL "scope 가 \"/hoondok\" 이 아니다 — $(grep -o '"scope"[^,]*' "$BODY_FILE" | head -1)"
+  elif ! grep -q '"scope"[[:space:]]*:[[:space:]]*"/"' "$BODY_FILE"; then
+    record "manifest" FAIL "scope 가 \"/\" 가 아니다 — $(grep -o '"scope"[^,]*' "$BODY_FILE" | head -1)"
+  elif ! grep -q '"id"[[:space:]]*:[[:space:]]*"/hoondok"' "$BODY_FILE"; then
+    record "manifest" FAIL "id 가 \"/hoondok\" 이 아니다 — 설치된 앱이 다른 앱으로 보인다"
   elif ! echo "$MF_CACHE" | grep -qi "no-cache"; then
     record "manifest" FAIL "Cache-Control 에 no-cache 가 없다 (받은 값: '${MF_CACHE:-없음}')"
   else
-    record "manifest" OK "200 · scope=/hoondok · ${MF_CACHE}"
+    record "manifest" OK "200 · scope=/ · id=/hoondok · ${MF_CACHE}"
   fi
 
   # sw.js. 킬스위치가 사용자에게 도달하려면 두 가지뿐이다 — 엣지가 최신본을 내고,
@@ -206,25 +215,32 @@ if [ "$HOONDOK" = "1" ]; then
   # deploy-guard(HEAD ∈ origin/main + 클린 트리)를 통과한 트리에서만 나가므로,
   # `make smoke-web` 시점의 레포 값이 곧 방금 배포한 값이다.
   sw_version() { grep -o 'SW_VERSION *= *"[^"]*"' "$1" | head -1 | sed 's/.*"\(.*\)"/\1/'; }
-  REPO_SW="$(dirname "$0")/../../apps/web/public/hoondok/sw.js"
+  REPO_SW="$(dirname "$0")/../../apps/web/public/sw.js"
 
-  CODE=$(fetch "$SW")
+  SW_CODE=$(fetch "$SW")
   SW_CACHE=$(header_value "cache-control")
-  SW_ALLOWED=$(header_value "service-worker-allowed")
   SERVED_VER=$(sw_version "$BODY_FILE")
   REPO_VER=$([ -f "$REPO_SW" ] && sw_version "$REPO_SW")
-  if [ "$CODE" != "200" ]; then
-    record "sw" FAIL "${SW} → ${CODE} (기대 200)"
-  elif [ "$SW_ALLOWED" != "/hoondok" ]; then
-    record "sw" FAIL "Service-Worker-Allowed 가 '/hoondok' 이 아니다 (받은 값: '${SW_ALLOWED:-없음}') — scope 등록 실패"
+  if [ "$SW_CODE" != "200" ]; then
+    record "sw" FAIL "${SW} → ${SW_CODE} (기대 200)"
   elif [ -z "$SERVED_VER" ]; then
     record "sw" FAIL "본문에 SW_VERSION 이 없다 — 엣지가 sw.js 가 아닌 것을 내고 있다"
   elif [ -n "$REPO_VER" ] && [ "$SERVED_VER" != "$REPO_VER" ]; then
     record "sw" FAIL "엣지가 구 스크립트를 서빙 중 (엣지 ${SERVED_VER} ≠ 레포 ${REPO_VER}) — 킬스위치가 도달하지 못한다"
   else
-    record "sw" OK "200 · SW_VERSION ${SERVED_VER} · Service-Worker-Allowed: ${SW_ALLOWED}"
+    record "sw" OK "200 · SW_VERSION ${SERVED_VER}"
   fi
-  if [ "$CODE" = "200" ] && ! echo "$SW_CACHE" | grep -qi "no-cache"; then
+
+  # 은퇴 스크립트. 예전 /hoondok scope 등록이 업데이트 검사로 이것을 받아 스스로 해제한다 —
+  # 리다이렉트되거나 Service-Worker-Allowed 가 빠지면 업데이트가 실패해 예전 SW 가 남는다.
+  CODE=$(fetch "$RETIRED_SW")
+  RETIRED_ALLOWED=$(header_value "service-worker-allowed")
+  if [ "$CODE" = "200" ] && [ "$RETIRED_ALLOWED" = "/hoondok" ]; then
+    record "sw-retired" OK "${RETIRED_SW} 200 · Service-Worker-Allowed: ${RETIRED_ALLOWED}"
+  else
+    record "sw-retired" FAIL "${RETIRED_SW} → ${CODE} · Service-Worker-Allowed '${RETIRED_ALLOWED:-없음}' (기대 200 · /hoondok)"
+  fi
+  if [ "$SW_CODE" = "200" ] && ! echo "$SW_CACHE" | grep -qi "no-cache"; then
     record "sw-cache" WARN "엣지가 Cache-Control 을 '${SW_CACHE:-없음}' 로 덮어썼다 (오리진은 no-cache) — updateViaCache:none 이 막고 있어 무해하다. 없애려면 Cloudflare Cache Rule: ${SW} → Browser TTL 'Respect origin'"
   fi
 
@@ -240,7 +256,7 @@ if [ "$HOONDOK" = "1" ]; then
     record "icons" OK "${#ICONS[@]}개 전부 200"
   fi
 
-  # 폰트는 파일명에 버전이 박혀 있어 1년 immutable 이다. 헤더가 빠지면 2MB 를
+  # 폰트는 파일명에 버전이 박혀 있어 1년 immutable 이다. 헤더가 빠지면 글꼴 조각을
   # 매 방문 다시 받는다 — 느려질 뿐 고장은 아니라 눈에 안 띈다.
   CODE=$(fetch "$FONT")
   FT_CACHE=$(header_value "cache-control")

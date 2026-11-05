@@ -1,5 +1,7 @@
 """훈독 도메인 예외 — 중앙 핸들러(app/core/common/exception_handlers.py)가 ErrorResponse 로 바꾼다."""
 
+from datetime import datetime
+
 
 class PushDisabledError(Exception):
     """VAPID 미설정 상태에서 푸시 구독 시도 (409 PUSH_DISABLED, PLAN-HD-006).
@@ -23,3 +25,13 @@ class TtsError(Exception):
         super().__init__(message)
         self.status_code = status_code
         self.error_code = error_code
+
+
+class AskDailyLimitError(Exception):
+    """훈독 AI 질문 하루 횟수 초과 (429 ASK_DAILY_LIMIT, DEC-PWA-025 2차). KST 자정에 다시 열린다."""
+
+    def __init__(self, limit: int, used: int, resets_at: datetime) -> None:
+        super().__init__(f"오늘 질문 {limit}번을 모두 썼어요. 내일 0시에 다시 물을 수 있어요")
+        self.limit = limit
+        self.used = used
+        self.resets_at = resets_at

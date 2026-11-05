@@ -1,4 +1,4 @@
-"""훈독 AI 낭독 목소리 (PLAN-HD-011, API-HD-044~046) — 캐시·월 상한·꺼짐·식별자 조회·Google 오류·라우터 경계.
+"""훈독 AI 낭독 목소리 (PLAN-HD-011, API-HD-044·045) — 캐시·월 상한·꺼짐·식별자 조회·Google 오류·라우터 경계.
 
 실제 Google 호출은 하지 않는다. 서비스 테스트는 synth_fn 을, 전송층 테스트는 httpx.MockTransport 를 쓴다.
 """
@@ -47,7 +47,6 @@ from app.modules.hoondok.tts_service import (
     billing_month,
     cache_key,
     normalize_for_speech,
-    split_paragraphs,
 )
 from app.modules.identity.dependencies import COOKIE_NAME, get_identity_repository
 from app.modules.identity.models import User
@@ -117,7 +116,6 @@ def _make(
         cache_dir=cache_dir or tmp_path / "cache",
         synth_fn=synth,
         month_fn=lambda: MONTH,
-        today_fn=lambda: TODAY,
         now_fn=lambda: NOW,
         request_timeout=request_timeout,
     )
@@ -280,86 +278,11 @@ async def test_chunk_text_trims_overlap_like_words_page(db, tmp_path):
     qdrant.scroll.assert_not_awaited()
 
 
-# --- 오늘 훈독 단락 --------------------------------------------------------------
-
-
 async def _user(session) -> User:
     user = User(email=f"{uuid.uuid4()}@t.com", display_name="식구", password_hash="x")
     session.add(user)
     await session.commit()
     return user
-
-
-def _daily(reading_date: date = TODAY, **kwargs) -> DailyReading:
-    defaults = dict(
-        reading_date=reading_date,
-        title="오늘 말씀",
-        body="첫째 단락입니다.\n\n  둘째 단락\n입니다.  \n\n\n",
-        speaker="화자",
-        work_title="저작물",
-        authority_grade="O1",
-        review_status="reviewed",
-    )
-    return DailyReading(**{**defaults, **kwargs})
-
-
-def test_split_paragraphs_uses_blank_lines():
-    assert split_paragraphs("가.\n\n  나\n다.  \n \n\n라") == ["가.", "나\n다.", "라"]
-    assert split_paragraphs("   ") == []
-
-
-@pytest.mark.asyncio
-async def test_daily_reading_paragraph_audio(db, tmp_path):
-    reading = _daily()
-    db.add(reading)
-    await db.commit()
-    user = await _user(db)
-    service, _, synth = _make(db, tmp_path)
-    await service.reading_audio(reading.id, 1, "algieba", user.id)
-    assert synth.await_args.args == ("ko-KR-Chirp3-HD-Algieba", "둘째 단락 입니다.")
-    with pytest.raises(TtsError) as exc:
-        await service.reading_audio(reading.id, 2, "algieba", user.id)
-    assert exc.value.error_code == "TTS_SOURCE_NOT_FOUND"
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("reading", [_daily(TODAY + timedelta(days=1)), _daily(review_status="withdrawn")])
-async def test_future_or_withdrawn_daily_reading_is_404(db, tmp_path, reading):
-    db.add(reading)
-    await db.commit()
-    user = await _user(db)
-    service, _, synth = _make(db, tmp_path)
-    with pytest.raises(TtsError) as exc:
-        await service.reading_audio(reading.id, 0, "sulafat", user.id)
-    assert exc.value.status_code == 404
-    synth.assert_not_awaited()
-
-
-@pytest.mark.asyncio
-async def test_jeongseong_reading_only_for_owner_with_rights(db, tmp_path):
-    owner, other = await _user(db), await _user(db)
-    period = JeongseongPeriod(user_id=owner.id, topic="감사", started_on=TODAY, duration_days=7)
-    db.add(period)
-    await db.commit()
-    reading = JeongseongReading(
-        period_id=period.id, reading_date=TODAY, volume="v", chunk_id="1", body="정성 말씀 본문입니다.",
-        title="정성", work_title="저작물",
-    )
-    db.add(reading)
-    await db.commit()
-    service, _, synth = _make(db, tmp_path)
-
-    # 권리가 없으면 본인이어도 404
-    with pytest.raises(TtsError):
-        await service.reading_audio(reading.id, 0, "sulafat", owner.id)
-    await _allow(db, scope_jeongseong=True)
-    with pytest.raises(TtsError) as exc:
-        await service.reading_audio(reading.id, 0, "sulafat", other.id)
-    assert exc.value.status_code == 404
-    synth.assert_not_awaited()
-
-    await service.reading_audio(reading.id, 0, "sulafat", owner.id)
-    assert synth.await_args.args[1] == "정성 말씀 본문입니다."
 
 
 # --- Google 전송층 ---------------------------------------------------------------
@@ -489,7 +412,6 @@ def test_voices_is_public(client):
 
 def test_audio_requires_login(client):
     assert client.get(f"/hoondok/tts/chunks/{CHUNK_ID}?voice=sulafat").status_code == 401
-    assert client.get(f"/hoondok/tts/readings/{uuid.uuid4()}/0?voice=sulafat").status_code == 401
     client.synth.assert_not_awaited()
 
 
@@ -507,7 +429,7 @@ def test_audio_errors_carry_distinct_codes(client):
     client.cookies.set(COOKIE_NAME, IdentityService.issue_token(client.me))
     bad_voice = client.get(f"/hoondok/tts/chunks/{CHUNK_ID}?voice=nope")
     assert (bad_voice.status_code, bad_voice.json()["error_code"]) == (422, "TTS_INVALID_VOICE")
-    missing = client.get(f"/hoondok/tts/readings/{uuid.uuid4()}/0?voice=sulafat")
+    missing = client.get("/hoondok/tts/chunks/not-a-point-id?voice=sulafat")
     assert (missing.status_code, missing.json()["error_code"]) == (404, "TTS_SOURCE_NOT_FOUND")
 
 
@@ -671,28 +593,3 @@ def test_billing_month_follows_pacific_time():
     # 겨울(PST, UTC-8)
     assert billing_month(datetime(2027, 1, 1, 7, 59, tzinfo=timezone.utc)) == "2026-12"
     assert billing_month(datetime(2027, 1, 1, 8, 0, tzinfo=timezone.utc)) == "2027-01"
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("case", ["ended_period", "past_day"])
-async def test_jeongseong_reading_outside_current_period_is_404(db, tmp_path, case):
-    """화면은 진행 중 기간의 오늘 말씀만 보인다 — 지난 말씀·끝난 기간은 합성하지 않는다."""
-    owner = await _user(db)
-    period = JeongseongPeriod(
-        user_id=owner.id, topic="감사", started_on=TODAY - timedelta(days=3), duration_days=7,
-        status="completed" if case == "ended_period" else "active",
-    )
-    db.add(period)
-    await db.commit()
-    reading = JeongseongReading(
-        period_id=period.id, reading_date=TODAY if case == "ended_period" else TODAY - timedelta(days=1),
-        volume="v", chunk_id="1", body="정성 말씀 본문입니다.", title="정성", work_title="저작물",
-    )
-    db.add(reading)
-    await db.commit()
-    await _allow(db, scope_jeongseong=True)
-    service, _, synth = _make(db, tmp_path)
-    with pytest.raises(TtsError) as exc:
-        await service.reading_audio(reading.id, 0, "sulafat", owner.id)
-    assert exc.value.status_code == 404
-    synth.assert_not_awaited()

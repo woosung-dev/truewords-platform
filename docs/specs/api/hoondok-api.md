@@ -29,27 +29,27 @@
 | `API-HD-023` | GET | `/hoondok/library/{series}` | 없음(공개) | HD-007 |
 | `API-HD-024` | GET | `/hoondok/sections/{volume}` | 없음(공개) | HD-007 |
 | `API-HD-025` | GET · PUT | `/hoondok/me/reading-positions` · `/hoondok/me/reading-position/{volume}` | `hoondok_token` (PUT 은 `X-Requested-With`) | HD-007 |
-| `API-HD-026` | GET · PUT · DELETE | `/hoondok/me/marks` | `hoondok_token` (쓰기는 `X-Requested-With`) | HD-007 |
+| `API-HD-026` | ~~GET · PUT · DELETE~~ | ~~`/hoondok/me/marks`~~ — 제거(2026-11-02) | — | HD-007 |
 | `API-HD-027` | POST | `/admin/hoondok/content-rights/bulk` | `admin_token` + 게이트 + `X-Requested-With` | HD-007 |
 | `API-HD-028` | GET | `/admin/hoondok/content-rights/series` | `admin_token` + `require_admin_gate` | HD-007 |
 | `API-HD-029` | GET | `/hoondok/today/together` | 없음(공개) | HD-009 |
-| `API-HD-030` | GET | `/hoondok/me/groups` | `hoondok_token` | HD-010 |
-| `API-HD-031` | POST | `/hoondok/groups` | `hoondok_token` + `X-Requested-With` | HD-010 |
-| `API-HD-032` | GET | `/hoondok/groups/{group_id}` | `hoondok_token` (모임원) | HD-010 |
-| `API-HD-033` | PATCH · DELETE | `/hoondok/groups/{group_id}` | `hoondok_token` (리더) + `X-Requested-With` | HD-010 |
-| `API-HD-034` | POST | `/hoondok/groups/{group_id}/invite` | `hoondok_token` (리더) + `X-Requested-With` | HD-010 |
-| `API-HD-035` | GET | `/hoondok/invites/{code}` | `hoondok_token` + 미리보기 limiter | HD-010 |
-| `API-HD-036` | POST | `/hoondok/invites/{code}/join` | `hoondok_token` + `X-Requested-With` + 참여 limiter | HD-010 |
-| `API-HD-037` | PATCH · DELETE | `/hoondok/groups/{group_id}/me` | `hoondok_token` (모임원) + `X-Requested-With` | HD-010 |
-| `API-HD-038` | GET · DELETE | `/hoondok/groups/{group_id}/members` · `/hoondok/groups/{group_id}/members/{member_id}` | `hoondok_token` (리더), DELETE 는 `X-Requested-With` | HD-010 |
-| `API-HD-039` | POST · DELETE | `/hoondok/groups/{group_id}/jeongseongs` · `/hoondok/groups/{group_id}/jeongseongs/{jeongseong_id}` | `hoondok_token` (리더) + `X-Requested-With` | HD-010 |
-| `API-HD-040` | PUT · DELETE | `/hoondok/groups/{group_id}/shares/today` · `/hoondok/groups/{group_id}/shares/{share_id}` | `hoondok_token` (모임원) + `X-Requested-With` | HD-010 |
-| `API-HD-041` | PUT · DELETE | `/hoondok/groups/{group_id}/shares/{share_id}/reaction` | `hoondok_token` (모임원) + `X-Requested-With` | HD-010 |
-| `API-HD-042` | GET · POST · PUT · DELETE | `/admin/hoondok/jeongseongs` · `/admin/hoondok/jeongseongs/{jeongseong_id}` | `admin_token` + 게이트 (쓰기는 `X-Requested-With`) | HD-010 |
-| `API-HD-043` | GET · DELETE | `/admin/hoondok/groups` · `/admin/hoondok/groups/{group_id}` | `admin_token` + 게이트 (DELETE 는 `X-Requested-With`) | HD-010 |
+| `API-HD-030` | ~~GET~~ | ~~`/hoondok/me/groups`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-031` | ~~POST~~ | ~~`/hoondok/groups`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-032` | ~~GET~~ | ~~`/hoondok/groups/{group_id}`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-033` | ~~PATCH · DELETE~~ | ~~`/hoondok/groups/{group_id}`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-034` | ~~POST~~ | ~~`/hoondok/groups/{group_id}/invite`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-035` | ~~GET~~ | ~~`/hoondok/invites/{code}`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-036` | ~~POST~~ | ~~`/hoondok/invites/{code}/join`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-037` | ~~PATCH · DELETE~~ | ~~`/hoondok/groups/{group_id}/me`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-038` | ~~GET · DELETE~~ | ~~`/hoondok/groups/{group_id}/members` · `/hoondok/groups/{group_id}/members/{member_id}`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-039` | ~~POST · DELETE~~ | ~~`/hoondok/groups/{group_id}/jeongseongs` · `/hoondok/groups/{group_id}/jeongseongs/{jeongseong_id}`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-040` | ~~PUT · DELETE~~ | ~~`/hoondok/groups/{group_id}/shares/today` · `/hoondok/groups/{group_id}/shares/{share_id}`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-041` | ~~PUT · DELETE~~ | ~~`/hoondok/groups/{group_id}/shares/{share_id}/reaction`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-042` | ~~GET · POST · PUT · DELETE~~ | ~~`/admin/hoondok/jeongseongs` · `/admin/hoondok/jeongseongs/{jeongseong_id}`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
+| `API-HD-043` | ~~GET · DELETE~~ | ~~`/admin/hoondok/groups` · `/admin/hoondok/groups/{group_id}`~~ — 제거(2026-11-04, `DEC-PWA-027`) | — | HD-010 |
 | `API-HD-044` | GET | `/hoondok/tts/voices` | 공개 | HD-011 |
 | `API-HD-045` | GET | `/hoondok/tts/chunks/{chunk_id}?voice=` | `hoondok_token` + limiter | HD-011 |
-| `API-HD-046` | GET | `/hoondok/tts/readings/{reading_id}/{paragraph}?voice=` | `hoondok_token` + limiter | HD-011 |
+| `API-HD-046` | ~~GET~~ | ~~`/hoondok/tts/readings/{reading_id}/{paragraph}`~~ — 제거(2026-11-02) | — | HD-011 |
 | `API-HD-047` | GET | `/hoondok/cards/today` | 없음(공개) | HD-012 |
 | `API-HD-048` | GET | `/hoondok/cards/{card_id}` | 없음(공개) | HD-012 |
 | `API-HD-049` | POST | `/hoondok/me/cards/{card_id}/receive` | `hoondok_token` + `X-Requested-With` | HD-012 |
@@ -58,6 +58,13 @@
 | `API-HD-052` | GET · POST · PATCH | `/admin/hoondok/cards` · `/admin/hoondok/cards/{card_id}` | `admin_token` + 게이트 (쓰기는 `X-Requested-With`) | HD-012 |
 | `API-HD-053` | GET · POST · PATCH · DELETE | `/hoondok/me/highlights` · `/hoondok/me/highlights/{highlight_id}` | `hoondok_token` (쓰기는 `X-Requested-With`) | HD-007 |
 | `API-HD-054` | GET | `/hoondok/cards` | 없음(공개) | HD-012 |
+| `API-HD-055` | POST · GET | `/hoondok/me/questions` | `hoondok_token` (쓰기는 `X-Requested-With`) | DEC-PWA-025 |
+| `API-HD-056` | DELETE | `/hoondok/me/questions/{question_id}` | `hoondok_token` + `X-Requested-With` | DEC-PWA-025 |
+| `API-HD-057` | GET | `/hoondok/questions?q=&cursor=&limit=` · `/hoondok/questions/{question_id}` | 없음(공개) | DEC-PWA-025 |
+| `API-HD-058` | GET · PATCH | `/admin/hoondok/questions` · `/admin/hoondok/questions/{question_id}` | `admin_token` + 게이트 (쓰기는 `X-Requested-With`) | DEC-PWA-025 |
+| `API-HD-059` | POST | `/hoondok/ask/stream` (SSE) | `hoondok_token` + `X-Requested-With` + 하루 횟수 | DEC-PWA-025 |
+| `API-HD-060` | GET · PATCH · DELETE | `/hoondok/me/asks` · `/hoondok/me/asks/{session_id}` | `hoondok_token` (쓰기는 `X-Requested-With`) | DEC-PWA-025 |
+| `API-HD-061` | GET | `/hoondok/me/asks/quota` | `hoondok_token` | DEC-PWA-025 |
 
 공통 규칙:
 
@@ -137,7 +144,7 @@ GET /hoondok/today
 
 - login: `{ email, password }` → 200 `{ user }` + 쿠키. 401 자격 불일치(이메일 존재 여부·소프트 삭제 여부를 구분하지 않는다).
 - logout: 204 + 쿠키 만료. 만료·무효 토큰으로도 로그아웃할 수 있게 인증을 요구하지 않는다.
-- me: 200 `{ user }`, 401 미인증(쿠키 없음·무효·`aud≠hoondok`·미존재·삭제 계정). 웹 `features/identity/` 게이트가 401 을 받으면 `/hoondok/onboarding?returnTo=` 로 보낸다.
+- me: 200 `{ user }`, 401 미인증(쿠키 없음·무효·`aud≠hoondok`·미존재·삭제 계정). 웹 `features/identity/` 게이트가 401 을 받으면 웹 화면 `/onboarding?returnTo=` 로 보낸다(웹 루트 = 훈독, `DEC-PWA-026`).
 - 토큰: JWT `aud="hoondok"`, 서명 키는 `ADMIN_JWT_SECRET` 공유. `admin_token`(aud 없음)은 훈독 디코더가 aud 를 명시 검사해 거부하고, 훈독 토큰은 admin 디코더가 `Invalid audience` 로 거부한다.
 
 ## API-HD-004 `GET /hoondok/me/summary` (Phase 2)
@@ -317,17 +324,29 @@ DELETE /hoondok/auth/me
 
 ---
 
-## 훈독 AI 질문 — 신규 엔드포인트 없이 `POST /chat/stream` 재사용 (W2)
+## 훈독 AI 질문 — `POST /hoondok/ask/stream` · `/hoondok/me/asks*` (API-HD-059~061, DEC-PWA-025)
 
-AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만들지 않는다. 시연 챗과 **같은** `POST /chat/stream` SSE 를 그대로 호출하며 요청·응답 스키마, 프롬프트, RAG 정책, 서버 기록 모두 시연 챗과 같다. 백엔드는 이 웨이브에서 한 줄도 바뀌지 않았다.
+AI 질문 화면과 원문 뷰 "AI 설명"은 로그인 필수다. 답은 훈독 전용 SSE `POST /hoondok/ask/stream` 으로 받고, 질문·답은 **계정에만** 보관한다(기기 `localStorage` 기록은 쓰지 않는다). 라우터는 `apps/api/app/modules/hoondok/asks_router.py`, 호출부는 `apps/web/src/features/hoondok/ask/ask-stream.ts`·`asks-api.ts` 다.
 
-- 호출부는 `apps/web/src/features/hoondok/ask/ask-stream.ts` 하나다. 경로(같은 origin 프록시 `/api/backend/chat/stream`)·`X-Requested-With: XMLHttpRequest`·쿠키 동봉은 시연 챗(`features/chatbot/chat-api.ts`)과 동일하다.
-- 본문은 `{ query, chatbot_id }` 뿐이다. `chatbot_id` 는 UUID 가 아니라 슬러그이며 `HOONDOK_ASK_CHATBOT_ID = "all"` 상수 하나가 정한다. `[확인 필요]` 훈독 전용 봇이 정해지면 이 상수만 바꾼다.
-- **시연 챗과 다른 점은 둘뿐이고 둘 다 클라이언트 쪽이다.**
-  1. **무기억** — `session_id`(과 `answer_mode`)를 보내지 않는다. `session_id` 는 원래 선택 필드라 서버는 매 질문마다 새 세션을 만든다(`chat/pipeline/stages/session.py`). 이어 묻기도 새 요청이다.
-  2. **근거 게이트** — `chunk` 텍스트를 화면에 바로 흘리지 않고 모아 두었다가 `sources` 이벤트가 **1건 이상일 때만** 답을 보인다(AC-017-01·04). 0건은 오류가 아니라 성공 경로이며 "확인할 수 없음" 으로 끝난다. 서버는 이 게이트를 알지 못한다.
-- 질문·답·근거는 **서버에 따로 저장하지 않는다.** 브라우저 `localStorage` 한 키 `hoondok:ask:items`(JSON 배열, 최대 50건)에만 둔다(`ask/storage.ts`, `REQ-PWA-015`). 서버에는 시연 챗과 똑같은 `/chat/stream` 요청 기록이 남는다.
-- `sources` 항목은 표시명(`display_name`)·권(`volume`)·본문만 주고 화자·판본·권위 등급은 주지 않는다. 화면은 없는 항목을 지어내지 않는다(AC-017-02).
+### API-HD-059 `POST /hoondok/ask/stream`
+
+- 요청 `{ query, session_id?, answer_mode? }`. 봇(`chatbot_id`)은 서버가 정한다(`HOONDOK_ASK_CHATBOT_ID = "all"`). `session_id` 가 있으면 이어 묻기이며, 이 계정의 AI 질문 대화가 아니면(남의 것·시연 챗 세션·없는 id) 403 `SESSION_FORBIDDEN`. `answer_mode` 가 없으면 서버가 자동으로 고른다.
+- 응답은 `/chat/stream` 과 같은 SSE 이벤트 계약(`chunk` → `sources` → `done`)이다. 답은 기존 RAG·safety·출력 필터 파이프라인을 그대로 지난다. `sources` 이벤트의 `answer_mode` 는 실제 적용된 모드다.
+- **하루 횟수**: KST 자정 기준 하루 5회(`HOONDOK_ASK_DAILY_LIMIT`, 기본 5), 이어 묻기도 1회로 센다. 초과는 429 `ASK_DAILY_LIMIT` — `ErrorResponse.details{limit, used, remaining, resets_at}` + `Retry-After` 헤더. 빈 질문·1000자 초과·차단 패턴(400 `INPUT_BLOCKED`)은 차감 전에 거절하고, 첫 이벤트 전에 실패하면(4xx·5xx) 차감을 되돌린다.
+- **공유 캐시 미사용**: 비공개 질문이라 공유 시맨틱 캐시에 저장·조회하지 않는다. 로그에는 질문 원문 대신 지문만 남긴다.
+- 웹은 `sources` 가 0건이면 답을 보이지 않고 "확인할 수 없음" 으로 끝낸다(AC-017-01·04, 서버는 이 게이트를 알지 못한다). `sources` 항목은 표시명·권·본문만 주고 화자·판본·권위 등급은 주지 않는다(AC-017-02).
+- 오류: 401 미인증 · 400 `INPUT_BLOCKED` · 403 `SESSION_FORBIDDEN` · 429 `ASK_DAILY_LIMIT`·`RATE_LIMIT_EXCEEDED`.
+
+### API-HD-060 `GET · PATCH · DELETE /hoondok/me/asks*`
+
+- `GET /hoondok/me/asks?limit=`(기본 50·최대 100) → `{items[{id, question, answer_mode, turn_count, saved, public_id, public_status, created_at, last_at}]}` 최근 활동순. `id` 는 `session_id` 다(이어 묻기에 그대로 보낸다).
+- `GET /hoondok/me/asks/{session_id}` → `{id, saved, created_at, turns[{message_id, question, answer_md, answer_mode, sources, suggested_followups, public_id, public_status, created_at}]}`. `message_id` 로 공개 신청(API-HD-055)한다.
+- `PATCH` `{saved}` 저장 표시. `DELETE` 는 대화와 그 질문·답 기록을 지운다(204). 공개 신청 복사본은 남으므로 API-HD-056 으로 따로 내린다.
+- 본인 것만 다룬다. 남의 것·없는 것은 구분 없이 404.
+
+### API-HD-061 `GET /hoondok/me/asks/quota`
+
+- `{limit, used, remaining, resets_at}` — 오늘(KST) 남은 횟수. `resets_at` 은 다음 KST 자정(+09:00).
 
 ---
 
@@ -353,6 +372,9 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 | 2026-09-29 | API-HD-009 GET 에 `last_ended` 추가(하위 호환). 마친 정성은 주제·각오·기간만 돌려주고 완료한 날 수는 보내지 않는다 — 빠진 날을 드러내지 않는다. 가장 최근에 끝난 기간이 그만둔 기간이면 마무리 카드가 없다 | 확정 |
 | 2026-09-29 | API-HD-009 에 `resolution`(나의 각오, 선택 50자) 추가 — 새 자유 텍스트라 본인 응답에만 담고 모임·가족·관리자 응답에는 넣지 않는다. 수정 API 없음, 계정 삭제 시 기간과 함께 삭제 | 확정(사용자 승인) |
 | 2026-09-29 | C1 기록 화면(정원 '나의 기록'·`/hoondok/records`)은 형광펜·노트를 API-HD-053 에서 읽는다(북마크는 API-HD-026 `excerpt=true`). 수의 상한은 목록마다 따로(형광펜 500·북마크 200)라 한쪽이 차도 다른 쪽 수는 그대로다. 원문이 막힌 권을 가리려고 API-HD-053 에 `readable` 을 추가했다(하위 호환) | 확정 · `readable` 기준 `[가정]` |
+| 2026-11-02 | 호출처가 없는 API-HD-026(단락 표시)·API-HD-046(오늘 훈독 단락 낭독)을 제거. `passage_marks` 테이블·행은 삭제 결정 전까지 보존 | 확정 |
+| 2026-11-04 | 모임 API-HD-030~043(공식 정성 042 포함)과 가입의 모임 코드 대체 통과를 제거하고 모임 테이블 5개를 drop(`DEC-PWA-027`). 익명 함께 읽기 숫자 API-HD-029 는 유지 | 확정(사용자 요청) |
+| 2026-11-04 | 원문 뷰 "AI 설명"도 `POST /hoondok/ask/stream` 으로 옮겨 로그인·하루 횟수에 넣는다. 익명 `POST /chat`·`/chat/stream` 은 그 비용 상한을 우회하므로 관리자 게이트(`require_admin_gate`) 뒤로 닫았다(보안 점검) | 확정 |
 
 ---
 
@@ -387,6 +409,8 @@ AI 질문 화면(`SCR-PWA-005`·`006`)은 훈독 전용 엔드포인트를 만�
 키·`user_agent` 가 갱신되며 `failed_count` 가 0으로 돌아간다. 다른 계정이 같은 기기를 구독하면
 소유(`user_id`)가 옮겨간다 — 한 기기의 알림이 이전 사용자에게 가지 않게 하려는 것이다.
 `user_agent` 는 장애 분류용이며 200자로 잘라 저장한다(400자 초과 요청은 422).
+`endpoint` 는 https·443 의 브라우저 푸시 서비스 호스트(FCM·Mozilla·Apple·WNS, `PUSH_SERVICE_HOSTS`)만 받고 그 밖은 422 다 —
+발송기가 VM 안에서 이 주소로 POST 하므로 내부 주소로 쓰이지 않게 허용 목록으로 묶는다.
 
 ### `API-HD-022 DELETE /hoondok/me/push?endpoint=`
 
@@ -489,24 +513,10 @@ Qdrant 원본 그대로이고 AI 설명·인용은 계속 `text` 를 쓴다. `di
 
 서버 값이 있으면 서버가 우선이고 없으면 기기 값을 1회 올린다. 비로그인은 기기 값만 쓴다(PLAN-HD-007 §2-13).
 
-### API-HD-026 단락 표시 (`hoondok_token`)
+### API-HD-026 단락 표시 — 제거됨
 
-단락 표시는 이제 북마크뿐이다 — 형광펜·메모는 API-HD-053 으로 옮겼다. 예전 `kind=highlight` 행은 DB 에
-남아 있지만 목록에 나오지 않는다. 2026-09-29 부터 웹은 북마크 화면을 없애 이 API 를 부르지 않는다
-(엔드포인트·기존 행은 유지, 제거는 별도 결정).
-
-- `GET /hoondok/me/marks?volume=&kind=&limit=` — 최신순, 본인 북마크만. 항목은
-  `{ chunk_id, chunk_index, volume, kind, color, note, updated_at, work_title, label }`.
-  `limit` 은 1~200이고 기본 200이다 — 표시가 쌓여도 한 요청이 읽는 행 수를 묶어 둔다.
-- `GET /hoondok/me/marks?excerpt=true` — 항목마다 `excerpt: string | null` 이 **추가만** 된다(하위 호환,
-  파라미터가 없으면 키도 없고 Qdrant 도 부르지 않는다). 값은 원문 뷰(`API-HD-016`)가 그 단락에 보이는
-  `display_text` 앞 300자다(페이지 첫 청크는 앞 청크 겹침을 자르지 않는 같은 규칙). 원문(`scope_full_text`)이
-  막힌 권·청크를 못 찾은 경우·Qdrant 실패는 `null` 이고 목록은 200이다. 저장 시점 스냅샷을 두지 않는다 —
-  권리를 거두면 발췌도 함께 사라져야 한다. Qdrant 는 청크 묶음 조회 1회 + 앞 청크가 필요한 권마다 1회만 부른다.
-- `PUT /hoondok/me/marks/{chunk_id}` body `{ volume, chunk_index, kind, color, note }`
-  — `(user_id, chunk_id, kind)` upsert. `kind` 는 `bookmark` 만 받고(`highlight` 는 422), 넘어온 `color` 는
-  버린다. `note` 는 2000자까지. 원문이 허용되지 않은 권은 404.
-- `DELETE /hoondok/me/marks/{chunk_id}?kind=` — 204. 없는 표시도 204이며 남의 표시는 지워지지 않는다.
+2026-11-02 엔드포인트를 없앴다. 웹은 2026-09-29 북마크 화면을 없앤 뒤 부르지 않았다. `passage_marks`
+테이블과 기존 행은 삭제 결정 전까지 그대로 둔다(ID 재사용 금지).
 
 계정 하드 삭제(`API-HD-011`)는 `reading_positions`·`passage_marks`·`passage_highlights` 를 함께 지운다.
 
@@ -557,7 +567,7 @@ body `{ book_series, status, scope_search, scope_full_text, scope_jeongseong, au
 
 ## API-HD-029 `GET /hoondok/today/together`
 
-> 추가일: 2026-09-23 ([PLAN-HD-009](../../plans/active/2026-09-23-hoondok-together.md) 함께 읽는 사람들 1단계)
+> 추가일: 2026-09-23 ([PLAN-HD-009](../../plans/completed/2026-09-23-hoondok-together.md) 함께 읽는 사람들 1단계)
 
 오늘(KST) 훈독하기(`kind="read"`, 연속일과 같은 kind)를 완료한 **서로 다른 사용자 수**. 익명 전체 집계만 내며
 사람 정보(이름·ID·모임)는 없다. 인증이 필요 없고 항상 200 이다. 라우터는 `app/modules/hoondok/router.py`.
@@ -576,86 +586,11 @@ body `{ book_series, status, scope_search, scope_full_text, scope_jeongseong, au
 
 ---
 
-## PLAN-HD-010 — 함께 읽는 모임 (API-HD-030~043)
+## PLAN-HD-010 — 함께 읽는 모임 (API-HD-030~043) — 제거
 
-> 추가일: 2026-09-23 ([PLAN-HD-010](../../plans/active/2026-09-23-hoondok-groups.md) 2단계). 라우터 `apps/api/app/modules/hoondok/groups_router.py`(030~041, 공개 블록), `groups_admin_router.py`(042·043, `_ADMIN_GATE`).
-> 엔티티 [ENT-HD-013~017](../domain/hoondok-entities.md#ent-hd-013-reading_groups--소그룹-모임-plan-hd-010).
+2026-11-04 `DEC-PWA-027` 로 모임 기능 전체(API-HD-030~043, 모임 상세에만 보이던 공식 정성 API-HD-042 포함)를 지웠다. 테이블 `reading_groups`·`group_members`·`shared_jeongseongs`·`group_shares`·`share_reactions` 는 alembic `zb2c3d4e5f6a` 가 drop 한다. 가입(API-HD-002)의 모임 코드 대체 통과(D4)도 함께 없앴다 — 초대 코드는 전역 `HOONDOK_INVITE_CODE` 만 본다. 익명 숫자 API-HD-029 는 그대로다. 옛 명세는 git 이력에 있다.
 
-### 공통
-
-- **비모임원에게는 모든 모임 라우트가 404 `GROUP_NOT_FOUND`** — 없는 모임과 구분하지 않는다. 모임원이 리더 전용 동작을 부르면 403 `LEADER_ONLY`.
-- 오류는 `{"detail": "<코드>"}` 이다. 409 코드: `LEADER_LIMIT`(리더 3) · `JOIN_LIMIT`(속한 모임 5, 리더인 모임 포함 `[가정]`) · `GROUP_FULL`(정원 50) · `ALREADY_MEMBER` · `DISPLAY_NAME_TAKEN` · `JEONGSEONG_LIMIT`(진행 중·예정 모임 정성 3) · `READ_REQUIRED` · `LEADER_MUST_HANDOVER` · `CANNOT_REMOVE_SELF` · `OWN_SHARE`. 404: `GROUP_NOT_FOUND` · `INVITE_NOT_FOUND` · `MEMBER_NOT_FOUND` · `SHARE_NOT_FOUND` · `JEONGSEONG_NOT_FOUND`. 403: `LEADER_ONLY` · `NOT_ALLOWED`(남의 한 줄 삭제). 422: Pydantic 검증 + `STARTED_ON_OUT_OF_RANGE` · `JEONGSEONG_ALREADY_ENDED`.
-- **개인정보 경계**: 모임원 응답에는 오늘(KST) `mission_logs kind='read'` 완료자만 담는다. 미완료자 목록·수·상태, 전체 인원(`member_count`), `user_id` 는 어떤 모임원 응답에도 없다. 전체 인원은 `API-HD-038`(리더)·`API-HD-043`(admin) 에만 있다.
-- 완료자 `readers[]` 는 표시 이름 가나다순 `{display_name, read_at_kst, is_me, is_leader}`. `read_at_kst` 는 `completed_at`(UTC) 을 `+09:00` 로 바꾼 값.
-- 표시 이름(≤12)·모임 이름(≤20)은 앞뒤 공백을 지운 뒤 검증한다 — 공백만이면 422, 앞뒤 공백만 다른 이름은 같은 이름(409). 한 줄(≤100)은 줄마다 앞뒤 공백 제거·연속 공백 1칸·빈 줄 제거 뒤 1~100자.
-- 정성 `jeongseongs[]` `{id, title, started_on, duration_days, day_index, state, is_official, source_note}` — 공식(`group_id NULL`) + 이 모임 것, 끝난 것은 빠진다. `day_index = (오늘 - started_on) + 1`, 시작 전이면 `day_index=null`·`state=upcoming`. `source_note` 는 공식 정성의 출처(API-HD-042 관리자 입력 그대로, 미입력 null), 모임 정성은 항상 null. 030·032·035 가 같은 형태를 쓴다.
-
-### API-HD-030 `GET /hoondok/me/groups`
-
-`[{id, name, kind, role, my_display_name, today_read_count, readers_preview, jeongseongs}]`(정성 항목에 `source_note` 포함), 0건 `[]`. `today_read_count` 는 오늘 완료자 수, `readers_preview` 는 완료자 이름 첫 글자 최대 3개.
-
-### API-HD-031 `POST /hoondok/groups`
-
-`{name, display_name, meeting_time?, jeongseong?{title(≤24), duration_days(1~100), started_on(오늘±30)}}` → 201 `GroupDetail`(032 와 같은 형태, 리더라 `invite_code` 포함). 만든 사람이 리더다.
-
-### API-HD-032 `GET /hoondok/groups/{group_id}`
-
-`{id, name, kind, leader_display_name, meeting_time, date, today_reading, jeongseongs, readers, shares, me, invite_code, invite_expires_at}`.
-`today_reading` 은 오늘 편성 요약 `{id, reading_date, title, speaker, work_title, chunk_id, estimated_minutes}`(본문 없음, 없거나 철회면 null). `jeongseongs[]` 항목에 `source_note` 가 있다. `shares[]` 는 오늘 것 중 오늘 완료자(`readers`)가 쓴 것만 `{id, display_name, body, created_at_kst, is_mine, has_my_reaction, reaction_count}` — `reaction_count` 는 내 한 줄에만 값, 남의 것은 null. 반응한 사람 목록은 누구에게도 주지 않는다. `me` `{member_id, display_name, role, has_read_today, has_shared_today}`. `invite_code`·`invite_expires_at` 은 리더만 값, 모임원은 null.
-
-### API-HD-033 `PATCH · DELETE /hoondok/groups/{group_id}` (리더)
-
-PATCH `{name}` → 200 `GroupDetail`. DELETE → 204, 모임 하드 삭제(`share_reactions → group_shares → shared_jeongseongs(모임) → group_members → reading_groups`).
-
-### API-HD-034 `POST /hoondok/groups/{group_id}/invite` (리더)
-
-→ 200 `{invite_code, invite_expires_at}`. 새 코드로 덮어써 이전 코드는 즉시 404, 만료는 발급 +30일.
-
-### API-HD-035 `GET /hoondok/invites/{code}`
-
-→ 200 `{name, kind, leader_display_name, jeongseongs, is_member, group_id}`(전체 인원 없음, 정성 항목에 `source_note` 포함). 코드는 대소문자·하이픈·공백을 무시하고 Crockford 별칭(I·L→1, O→0)을 적용해 정규화한다. 잘못·만료·정원 초과는 모두 같은 404 `INVITE_NOT_FOUND`. 이미 모임원이면 정원과 무관하게 `is_member=true` + `group_id`. 미리보기 limiter `RateLimiter(30, 60)` IP 기준(036 참여와 따로 센다) — 초과 429 `RATE_LIMIT_EXCEEDED`(`ErrorResponse`).
-
-### API-HD-036 `POST /hoondok/invites/{code}/join`
-
-`{display_name}` → 201 `{group_id}`. 404 `INVITE_NOT_FOUND` · 409 `ALREADY_MEMBER`·`DISPLAY_NAME_TAKEN`·`GROUP_FULL`·`JOIN_LIMIT`. 사용자 행 → 모임 행 순으로 잠근 뒤(`SELECT ... FOR UPDATE`) 인원을 다시 세어 마지막 자리 경쟁에서도 정원을 넘지 않는다. 이름·중복 가입 경쟁은 unique 제약 IntegrityError → 409. 참여 limiter `RateLimiter(30, 60)` IP 기준(035 미리보기와 따로 세고, 가입 게이트의 모임 코드 검증과 공유) — 초과 429 `RATE_LIMIT_EXCEEDED`. 교회 Wi-Fi 처럼 NAT 하나 뒤의 여러 식구를 위한 한도이며 40bit 코드라 추측 방어는 유지된다.
-
-### API-HD-037 `PATCH · DELETE /hoondok/groups/{group_id}/me`
-
-PATCH `{display_name}` → 200 `me`(409 `DISPLAY_NAME_TAKEN`). DELETE 나가기 → 204, 내 한 줄·내가 누른 반응·내 한 줄에 달린 반응·모임원 행을 지운다. 리더는 다른 식구가 있으면 409 `LEADER_MUST_HANDOVER`, 혼자면 모임을 지운다.
-
-### API-HD-038 `GET /hoondok/groups/{group_id}/members` · `DELETE /.../members/{member_id}` (리더)
-
-GET → `{member_count, items[{id, display_name, role, joined_at}]}`(들어온 순). 읽음 상태 필드는 없다. DELETE 내보내기 → 204, 037 탈퇴와 같은 삭제. 자기 자신 409 `CANNOT_REMOVE_SELF`, 없는 식구 404 `MEMBER_NOT_FOUND`.
-
-### API-HD-039 `POST /hoondok/groups/{group_id}/jeongseongs` · `DELETE /.../jeongseongs/{jeongseong_id}` (리더)
-
-POST `{title(≤24), duration_days(1~100), started_on(오늘±30)}` → 201 정성 항목. 이미 끝난 기간은 422 `JEONGSEONG_ALREADY_ENDED`, 진행 중·예정 모임 정성이 3개면 409 `JEONGSEONG_LIMIT`. 수정 API 는 없다. DELETE 는 이 모임 정성만 — 공식 정성·남의 모임 정성은 404.
-
-### API-HD-040 `PUT /hoondok/groups/{group_id}/shares/today` · `DELETE /.../shares/{share_id}`
-
-PUT `{body}` → 200 내 한 줄(1인 1일 1줄 upsert, 같은 id 유지). 오늘 `read` 미완료면 409 `READ_REQUIRED`. DELETE 는 작성자 또는 리더, 그 외 모임원 403 `NOT_ALLOWED`.
-
-### API-HD-041 `PUT · DELETE /hoondok/groups/{group_id}/shares/{share_id}/reaction`
-
-"함께 머물렀어요" 켜기·끄기 → `{has_reacted}`, 둘 다 멱등. 오늘 한 줄만(지난 한 줄 404), 자기 한 줄 409 `OWN_SHARE`. 알림 없음.
-
-### API-HD-042 `/admin/hoondok/jeongseongs` (admin 게이트)
-
-GET 목록(시작일 내림차순) · POST `{title(≤40), started_on, duration_days(1~100), source_note?(≤200)}` → 201 · PUT `/{id}` 전체 교체 · DELETE `/{id}` 204. 응답 `{id, title, started_on, duration_days, source_note, created_at, updated_at}`. 공식 정성(`group_id IS NULL`)만 다루며 모임 정성 id 는 404. 감사 로그 `official_jeongseong.create|update|delete`(`target_table=shared_jeongseongs`).
-
-### API-HD-043 `/admin/hoondok/groups` (admin 게이트)
-
-GET → `[{id, name, member_count, created_at}]`(최신순) — 모임원 이름·한 줄 본문·초대 코드는 admin 에게도 내지 않는다. DELETE `/{id}` → 204(033 과 같은 하드 삭제) + 감사 로그 `reading_group.delete`, 없는 모임 404.
-
-### API-HD-002 변경 — 모임 초대 코드로 가입 (D4)
-
-`HOONDOK_INVITE_CODE` 가 설정돼 있고 `invite_code` 가 전역 코드와 다르면, 모임 코드 형식일 때만 `InviteCodeVerifier` 에 한 번 더 묻는다. 존재·미만료·정원 미달이면 가입 201, 아니면 기존과 같은 403 `INVITE_REQUIRED`. 모임 코드 형식 검증 시 참여 limiter(`API-HD-036`)를 함께 센다. 가입만 통과시키며 모임 참여는 `API-HD-036` 을 따로 부른다. 전역 코드 미설정이면 기존대로 `invite_code` 를 무시한다(verifier 도 부르지 않는다). identity service 는 hoondok 을 import 하지 않고 `identity/dependencies.py get_identity_service` 가 `GroupInviteVerifier` 를 주입한다.
-
-### API-HD-011 변경 — 계정 삭제
-
-`get_user_data_purgers` 에 `GroupRepository` 가 더해졌다. 모임마다 모임원 행·한 줄·반응을 지우고, 리더였다면 가장 먼저 들어온 식구(`joined_at` 오름차순)에게 리더를 넘긴다. 남은 식구가 없으면 모임을 지운다. 이 사용자가 만든 정성의 `created_by_user_id` 는 NULL 로 비운다.
-
-## PLAN-HD-011 — AI 낭독 목소리 (API-HD-044~046)
+## PLAN-HD-011 — AI 낭독 목소리 (API-HD-044·045)
 
 [계획](../../plans/active/2026-09-25-hoondok-ai-voice.md). Google Cloud Text-to-Speech Chirp 3 HD, 목소리 4종(`sulafat` 기본·`aoede`·`algieba`·`iapetus`) 모두 `speakingRate 0.9`. **임의 텍스트 합성은 없다** — 클라이언트는 식별자만 보내고 서버가 본문을 조회한다. `GOOGLE_TTS_API_KEY` 가 없으면 기능 OFF.
 
@@ -667,26 +602,54 @@ GET → `[{id, name, member_count, created_at}]`(최신순) — 모임원 이름
 
 200 `audio/mpeg` 단락 mp3, `Cache-Control: private, max-age=2592000`, `ETag`, `X-Tts-Cache: hit|miss`. 합성 원문은 원문 뷰(`API-HD-016`)가 그 단락에 보이는 `display_text`(페이지 첫 청크는 앞 청크 겹침을 자르지 않는 같은 규칙) — `scope_full_text` 허용 저작물만.
 
-### API-HD-046 `GET /hoondok/tts/readings/{reading_id}/{paragraph}?voice=`
+### API-HD-046 오늘 훈독 단락 낭독 — 제거됨
 
-> 2026-09-26 부터 웹 화면에서 부르지 않는다(오늘 훈독 듣기 바 제거, PLAN-HD-011 결정 2). 계약은 유지한다.
+2026-09-26 오늘 훈독 듣기 바를 뺀 뒤 부르는 화면이 없어 2026-11-02 엔드포인트를 없앴다(ID 재사용 금지).
 
-오늘 훈독 말씀의 단락(본문을 빈 줄로 나눈 순서, 0부터) mp3. `reading_id` 는 `API-HD-001`·`API-HD-017` 응답의 `reading.id` — 편성(`daily_readings`, 철회·미래 날짜 제외) 또는 **본인** 정성 말씀(`jeongseong_readings`, 진행 중 기간의 오늘 말씀만, `scope_jeongseong` 허용 저작물만).
-
-045·046 공통:
+API-HD-045 규칙:
 
 - 캐시 키 `sha256(voice|0.9|공백 정규화한 본문)`, 저장 `HOONDOK_TTS_CACHE_DIR/{key[:2]}/{key}.mp3`(임시 파일 → `os.replace`). 적중이면 합성·상한 검사 없이 준다. 같은 키 동시 요청은 프로세스 락으로 1회만 합성한다.
 - 새 합성만 `hoondok_tts_usage`(ENT-HD-018) 에 글자 수를 남긴다. 월 상한(`HOONDOK_TTS_MONTHLY_CHAR_LIMIT`)과 사용자 최근 24시간 한도(`HOONDOK_TTS_USER_DAILY_CHAR_LIMIT`, 기본 30,000)를 검사하고 **합성 전에 글자 수를 예약·커밋**한다(전역 락 — 동시 요청이 상한을 넘지 않고, Google 호출 동안 DB 커넥션을 쥐지 않는다). 합성이 실패하면 Google 이 과금했을 수 있는 글자 수(성공한 조각 + 결과를 모르는 조각)로 줄이거나 지우고, 시간 초과는 예약을 그대로 둔다. 캐시 파일은 사용량 커밋 뒤에 쓴다.
 - Google 호출 재시도(1회)는 5xx·연결 실패만. 읽기 타임아웃은 이미 과금됐을 수 있어 재시도하지 않는다. 요청 전체 상한 45초.
-- 오류(`ErrorResponse.error_code`): 401 미인증 · 404 `TTS_SOURCE_NOT_FOUND`(본문 없음·권리 없음·단락 범위 밖) · 422 `TTS_INVALID_VOICE` · 429 `TTS_QUOTA_EXCEEDED`(월 상한) · 429 `TTS_USER_LIMIT_EXCEEDED`(사용자 24시간 한도) · 429 `RATE_LIMIT_EXCEEDED`(요청 빈도 — 웹은 짧게 재시도하는 일시적 오류로 본다) · 502 `TTS_UPSTREAM_FAILED` · 503 `TTS_DISABLED`(키 없음 또는 캐시 디렉터리 쓰기 불가) · 504 `TTS_TIMEOUT`. 검사 순서는 voice → 켜짐 → 본문 → 캐시 → 상한.
+- 오류(`ErrorResponse.error_code`): 401 미인증 · 404 `TTS_SOURCE_NOT_FOUND`(본문 없음·권리 없음) · 422 `TTS_INVALID_VOICE` · 429 `TTS_QUOTA_EXCEEDED`(월 상한) · 429 `TTS_USER_LIMIT_EXCEEDED`(사용자 24시간 한도) · 429 `RATE_LIMIT_EXCEEDED`(요청 빈도 — 웹은 짧게 재시도하는 일시적 오류로 본다) · 502 `TTS_UPSTREAM_FAILED` · 503 `TTS_DISABLED`(키 없음 또는 캐시 디렉터리 쓰기 불가) · 504 `TTS_TIMEOUT`. 검사 순서는 voice → 켜짐 → 본문 → 캐시 → 상한.
 - limiter: 계정 `RateLimiter(60, 60)` + IP `RateLimiter(600, 60)`(모임이 한 IP 를 함께 쓰는 경우). 비용은 요청 수가 아니라 글자 한도가 막는다.
+
+## DEC-PWA-025 — 공개 질문 (API-HD-055~058)
+
+- `API-HD-055` POST `{message_id}` → 201 `MyPublicQuestionItem`(status `pending`). 질문·답·근거(인용 상위 3건)는 서버가 `session_messages`·`answer_citations` 에서 복사한다. 409: 마음 돌봄(pastoral)·모드 미기록(meta·캐시 답)·`persona_overridden`·`crisis_trigger`·근거 0건(`NO_EVIDENCE`)·세션 첫 답이 아님(`NOT_FIRST_ANSWER`)·다른 사용자가 이미 신청. 본인 재신청은 기존 항목을 201로 돌려준다(멱등). GET 은 내 신청 목록(최근순).
+- `API-HD-056` 본인 것만 실제 삭제(남의 것·없음 404). 같은 답을 다시 신청할 수 있다.
+- `API-HD-057` published 만. 목록은 공개 시각 최신순 `{items[{id, question, preview, answer_mode, published_at}], next_cursor}`, `q` 는 질문 부분 일치(100자 이하), `limit` 기본 20·최대 50. 상세는 `answer_md`·`sources[{source, volume, text}]` 포함, 아니면 404. 작성자 정보는 어떤 응답에도 없다.
+- `API-HD-058` 목록(`status`·`page`·`page_size`, 신청 오래된 순)·PATCH `{status: published|hidden}`, 변경마다 `log_audit`. 계정 삭제 시 그 사용자의 공개 질문도 지운다.
+- 신청자는 답이 달린 대화의 소유자(API-HD-059 로 계정에 묶인 세션)여야 한다. 남의 답·익명·시연 챗 답은 없는 답과 같은 404.
 
 ## PLAN-HD-012 — 오늘의 책갈피 (API-HD-047~052)
 
-[계획](../../plans/active/2026-09-28-hoondok-cards.md). 공개 범위는 `status=active` 카드뿐이고 외부 공유 권리 게이트는 없다(`DEC-PWA-024`). 카드 응답에는 원문 연결용 `volume`·`chunk_id`·`chunk_index` 가 있다.
+[계획](../../plans/completed/2026-09-28-hoondok-cards.md). 공개 범위는 `status=active` 카드뿐이고 외부 공유 권리 게이트는 없다(`DEC-PWA-024`). 카드 응답에는 원문 연결용 `volume`·`chunk_id`·`chunk_index` 가 있다.
 
 - `API-HD-047` 항상 200 `{date, card}` — 그날 고정 카드, 없으면 active 풀 `(created_at, id)` 정렬 후 `date.toordinal() % n`, 풀이 비면 `card: null`. `API-HD-048` active 가 아니면 404.
 - `API-HD-049·050` 멱등 upsert(`received_on` 은 처음 받은 KST 날짜, `shared_at` 은 처음 건넨 시각). 050 은 받지 않은 카드면 받기도 함께 기록한다. 비공개 카드 404.
 - `API-HD-051` `{shelves[{work_title, count}], items[{card, received_on, shared_at}]}` — 책장은 개수 내림차순, 목록은 받은 날 최신순, active 카드만.
 - `API-HD-054` `{items[CardPublic]}` — active 카드 전부, `(created_at, id)` 순, 쿼리 파라미터 없음. 맞춤 첫 말씀은 웹이 기기 안에서 고른다 — 관심 주제·마음 선택값은 서버로 보내지 않는다.
 - `API-HD-052` 목록(`status`·`page`·`page_size`)·등록(기본 draft)·PATCH(`status`·`pinned_on` 만, 그 밖의 필드는 422 — 본문 불변). 같은 날짜 고정은 409. 변경마다 `log_audit`.
+
+## 원문 기반 AI 요약
+
+- 단위는 천성경 절(`slug` = `cheon-PP-CC-SS`)이다. 콘텐츠 계약: `lead`·`key_points`·`body`(Tiptap JSON)·`evidence[{claim, from, to}]`(절 안 말씀 번호 범위)·`reflection_questions[]`·`uncertainty[]`·`images[{kind: concept|scene, asset_id, alt, caption}]`(종류별 한 장)·`source{edition, locator, sha256, paragraph_from, paragraph_to, text?}`·`generation{text_model, text_score, text_rounds, image_scores, image_rounds}`. 원문 전문(`source.text`)은 선택이며, 없으면 `sha256`은 판본 파일 해시로 보존한다.
+- `GET /hoondok/ai-summaries`는 원시 `volume`으로 필터링하며 공개 개정본이 있는 단위만 낸다(초안·내린 단위는 제목도 내보내지 않는다). 권리 원장이 `allowed`이면서 `scope_full_text=true`인 저작물만 포함한다. `section_position`은 절이 속한 장의 원문 뷰 목차 위치(`volume_sections.position`, 천성경 목차는 편·장까지)이며 찾지 못하면 `null`이다.
+- 상세·이미지는 공개 개정본만 조회하며 매 요청 권리를 다시 확인한다. 미공개·내림·권리 미허용은 404다. 응답은 `private, no-store`다. 공개 응답에는 `uncertainty`·`generation`·원문 검수 메모·검수 여부가 없다(관리자 응답에만).
+- 상태(`review_status`, 소문자 직렬화): `draft` → `review`(`request_review`) → `published`(`publish`) → `withdrawn`(`withdraw`) → `published`(`publish`로 복귀). `return_to_draft`는 `review` → `draft`. 작업본 저장은 상태를 `draft`로 되돌리되 기존 공개본은 유지한다. 공개 뒤 고친 작업본을 내리면 상태는 `draft`·`review`를 유지해 검수 없이 재공개되지 않는다. 버전 충돌은 409이고 변경은 감사 기록에 남는다. 공개본은 불변 스냅샷이다.
+- 공개 조건: 판본·위치, 원문 범위를 연결했다면 검수 확인과 실제 Qdrant 원문 청크 대조(저작물·연속 범위·스냅샷), 연결하지 않았다면 `paragraph_from`·`to`, 이미지 소유권과 대체 텍스트가 있는 개념·장면 그림 각 한 장. 원문 판본을 임의로 교정하지 않는다. Tiptap JSON의 허용된 문단·서식과 http(s) 링크만 저장한다.
+- `GET /admin/hoondok/ai-summaries/cheonseong-toc?status=&pyeon=`는 `content/ai-summaries/cheonseong-toc.json`(원문 없는 편·장·절 구조 199절)에 단위 상태(`none`·`draft`·`review`·`published`·`withdrawn`), 공개 여부, 그림 수, `generation.text_score`, 수정일을 합친 발행 관리 목록이다.
+
+본문 표현 버전은 `body_version`(기본 1, 리치 본문 2)으로 구분한다.
+
+- v2는 문단 정렬, 밑줄·HEX 글자색·강조색·12~64px 글자 크기, 표, 본문 이미지·두 이미지 나란히 배치를 허용한다. 이미지에는 URL 대신 해당 요약 소유의 `asset_id`를 저장한다. 서버는 노드 중첩과 속성 허용 목록을 검사한다.
+- YouTube 노드는 11자리 `video_id`와 0 이상의 `start_seconds`만 받는다. 임의 iframe·HTML·외부 이미지 URL을 저장하지 않는다. 웹 렌더러가 정해진 공급자 URL을 구성한다.
+- 공개 상세의 `assets`는 공개 개정본의 그림(`images`)·본문에서 실제 사용하는 자산만 포함한다. 이미지 조회 역시 이 합집합으로 제한하며, 작업본에만 추가한 이미지와 다른 요약의 자산은 공개할 수 없다. 관리자·공개 이미지 URL은 자산 응답으로 제공하며 저장된 본문을 URL로 덮어쓰지 않는다. 업로드 응답의 `width`·`height`는 이미지 비율 유지에 사용한다.
+- 업로드는 PNG·JPEG·WebP, 최대 10MB·3,600만 화소이며 실제 이미지 디코딩을 검증한다. 본문 이미지를 추가하더라도 공개에는 개념·장면 그림이 필요하다.
+
+### 관리자 원문 선택과 리치 본문
+
+- `GET /admin/hoondok/source-books`, `POST /source-books/{right_id}/snapshots`, `GET /source-snapshots/{id}/passages`로 등록 원문을 탐색한다. 문단 식별자는 해당 불변 원문 스냅샷에 속하며 공식 장절 번호가 아니다. 목차는 탐색에만 사용한다.
+- `/admin/hoondok/source-ranges`는 선택 범위 생성·조회·수정과 `/{id}/split`, `/{id}/merge`를 제공한다. `start_offset`·`end_offset`은 시작·끝 문단 내 Unicode codepoint 기준이며 끝은 배타적이다. 기본 `0`·`null`은 문단 전체 선택이다. 변경·병합 충돌은 버전으로 차단하고, 원문 변경 시 재선택을 요구한다.
+- 요약 저장의 `source_range_id`·`source_range_version`은 서버가 원문·해시·순서가 있는 청크 연결로 해석한다. 연결 성공은 판본 검수 완료가 아니며, 새 선택은 `verified=false`다. 구간 재편성은 기존 공개 개정본의 원문을 변경하지 않는다. 기존 직접 원문 입력 계약은 호환하되 새 관리자 화면에서는 내부 주소 입력을 제공하지 않는다.

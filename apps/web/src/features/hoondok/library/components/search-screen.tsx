@@ -6,7 +6,6 @@ import { ChevronRight, History, MessageCircleQuestion, Search, SearchX } from "l
 import Link from "next/link";
 import { useId, useRef, useState, useSyncExternalStore } from "react";
 import { AuthorityBadge } from "@/components/hoondok";
-import { PREVIEW_SEARCH_HOWTO } from "@/features/hoondok/preview/fixtures/library";
 import { libraryAPI, wordsHref } from "../api";
 import {
   appendRecentSearch,
@@ -16,6 +15,7 @@ import {
   subscribeRecentSearches,
 } from "../recent-searches";
 import { hasSearchHit, highlightSnippet } from "../search-highlight";
+import { SEARCH_HOWTO } from "../search-howto";
 
 // 프로토타입 앱바 입력의 placeholder·aria-label 그대로.
 const PLACEHOLDER = "단어, 구절, 상황을 입력해 주세요";
@@ -186,7 +186,7 @@ export function SearchScreen() {
               </span>
               <p className="empty__title">검색 결과가 없어요</p>
               <p className="empty__body">검색이 허용된 말씀에서 찾지 못했어요. 다른 단어나 짧은 구절로 찾아보세요.</p>
-              <Link className="btn btn-line" href="/hoondok/library">
+              <Link className="btn btn-line" href="/library">
                 서고로 돌아가기
               </Link>
             </div>
@@ -235,7 +235,7 @@ export function SearchScreen() {
           <h2 className="sect__title">이렇게도 찾을 수 있어요</h2>
         </div>
         <div className="howto">
-          {PREVIEW_SEARCH_HOWTO.map((row) => (
+          {SEARCH_HOWTO.map((row) => (
             <div key={row.key} className="howto__row">
               <span className="howto__k">{row.key}</span>
               <div className="chips">
@@ -251,7 +251,7 @@ export function SearchScreen() {
       </div>
 
       <div className="sect">
-        <Link className="ask-hint" href="/hoondok/ask">
+        <Link className="ask-hint" href="/ask/new">
           <MessageCircleQuestion size={24} aria-hidden="true" />
           <span>
             <b>궁금한 것이 질문이라면</b>

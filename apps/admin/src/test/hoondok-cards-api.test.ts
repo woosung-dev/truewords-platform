@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// fetchAPI 는 fetch 를 감싸므로 fetch 를 mock 해 URL·메서드·CSRF 헤더를 본다 (hoondok-groups-api.test.ts 와 같은 방식)
+// fetchAPI 는 fetch 를 감싸므로 fetch 를 mock 해 URL·메서드·CSRF 헤더를 본다
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
@@ -70,9 +70,9 @@ describe("cardMutationErrorMessage", () => {
 });
 
 describe("cardSourceUrl", () => {
-  it("web 서고 원문 단락 링크 — volume·chunk_id 를 인코딩한다", () => {
+  it("web 서고 원문 단락 링크 — 웹 루트 경로(DEC-PWA-026), volume·chunk_id 를 인코딩한다", () => {
     expect(cards.cardSourceUrl({ volume: "천성경 1.pdf", chunk_id: "a/b" })).toMatch(
-      /\/hoondok\/words\/%EC%B2%9C%EC%84%B1%EA%B2%BD%201\.pdf\?chunk_id=a%2Fb$/,
+      /^https?:\/\/[^/]+\/words\/%EC%B2%9C%EC%84%B1%EA%B2%BD%201\.pdf\?chunk_id=a%2Fb$/,
     );
   });
 });

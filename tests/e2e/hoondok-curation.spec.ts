@@ -4,7 +4,7 @@ import { expect, test } from "./hoondok-test";
 /**
  * E2E: 훈독 편성 admin 화면 (PLAN-HD-001 Phase 3 sub-PR B).
  *
- * 편성 → 노출 루프: admin 에서 오늘 편성의 제목을 바꾸면 web `/hoondok` 홈이 새 제목을 보여야 한다.
+ * 편성 → 노출 루프: admin 에서 오늘 편성의 제목을 바꾸면 web 홈(`/`)이 새 제목을 보여야 한다.
  * web 홈은 서버 컴포넌트가 매 요청 API 를 읽으므로(cache: no-store) 다음 로드에 바로 반영된다.
  *
  * 사전 조건은 admin-flow.spec.ts 와 같다(게이트 계정 E2E_ADMIN_EMAIL / test1234).
@@ -59,7 +59,7 @@ test.describe("훈독 편성", () => {
     await expect(todayRow.getByText("확인되지 않음")).toBeVisible();
   });
 
-  test("오늘 편성 제목 수정 → web /hoondok 홈에 새 제목 → 원복", async ({ page }) => {
+  test("오늘 편성 제목 수정 → web 홈(/)에 새 제목 → 원복", async ({ page }) => {
     await page.goto("/hoondok");
     const todayRow = page.locator('tr[data-today="true"]');
     await expect(todayRow.getByRole("link", { name: "편집" })).toBeVisible({ timeout: 5_000 });
@@ -81,7 +81,7 @@ test.describe("훈독 편성", () => {
 
     // 편성 → 노출: web 홈(다른 origin, 공개 라우트).
     // 홈에는 말씀 전문이 없고(SCR-PWA-002) 편성 제목은 훈독하기 미션 카드로 드러난다.
-    await page.goto(`${WEB_ORIGIN}/hoondok`);
+    await page.goto(`${WEB_ORIGIN}/`);
     await expect(page.locator(".mission__title").first()).toHaveText(next);
 
     // 원복 — 다른 훈독 스펙은 제목을 단언하지 않지만 시드 상태를 남긴다.
@@ -147,53 +147,5 @@ test.describe("훈독 편성", () => {
     await expect(page.getByRole("alert").first()).toContainText("필수");
     await expect(page).toHaveURL(/\/hoondok\/new\?date=/);
     expect(requests).toEqual([]);
-  });
-});
-
-/**
- * 공식 정성 (API-HD-042, PLAN-HD-010 트랙 C): 등록 → 목록 → 수정 → 삭제.
- * 시드에 의존하지 않고 스스로 만든 항목을 마지막에 지워 DB 에 남기지 않는다.
- */
-test.describe("훈독 공식 정성", () => {
-  test.beforeEach(async ({ page }) => {
-    await login(page);
-  });
-
-  test("등록 → 목록에 진행 중 → 제목 수정 → 삭제 확인 후 사라진다", async ({ page }) => {
-    await page.getByRole("link", { name: "공식 정성" }).click();
-    await page.waitForURL("**/hoondok/jeongseongs", { timeout: 5_000 });
-    await expect(page.getByRole("heading", { name: "공식 정성", level: 1 })).toBeVisible();
-
-    const title = `E2E 정성 ${Date.now()}`;
-    await page.getByRole("button", { name: "새 공식 정성" }).click();
-    // 시작일 기본값 = KST 오늘 → 진행 중 1일차
-    await page.locator("#jeongseong-title").fill(title);
-    await page.locator("#jeongseong-duration").fill("100");
-    await page.getByRole("button", { name: "등록" }).click();
-    await expect(page.getByText("공식 정성이 등록되었습니다")).toBeVisible();
-
-    const row = page.locator("tbody tr", { hasText: title });
-    await expect(row).toHaveCount(1);
-    await expect(row.getByText("진행 중")).toBeVisible();
-    await expect(row.getByText("1일차")).toBeVisible();
-
-    const edited = `${title} 수정`;
-    await row.getByRole("button", { name: "수정" }).click();
-    await expect(page.locator("#jeongseong-title")).toHaveValue(title);
-    await page.locator("#jeongseong-title").fill(edited);
-    await page.getByRole("button", { name: "저장" }).click();
-    await expect(page.getByText("저장되었습니다")).toBeVisible();
-    const editedRow = page.locator("tbody tr", { hasText: edited });
-    await expect(editedRow).toHaveCount(1);
-
-    await editedRow.getByRole("button", { name: "삭제" }).click();
-    const dialog = page.getByRole("dialog");
-    await expect(dialog.getByText(/되돌릴 수 없어요/)).toBeVisible();
-    await dialog.getByRole("button", { name: "삭제" }).click();
-    await expect(page.getByText("공식 정성이 삭제되었습니다")).toBeVisible();
-    await expect(page.locator("tbody tr", { hasText: edited })).toHaveCount(0);
-    await page.reload();
-    await expect(page.getByRole("heading", { name: "공식 정성", level: 1 })).toBeVisible();
-    await expect(page.locator("tbody tr", { hasText: edited })).toHaveCount(0);
   });
 });

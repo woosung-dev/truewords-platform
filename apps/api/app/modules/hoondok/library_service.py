@@ -1,6 +1,5 @@
 """말씀 서고 3계층·읽기 기록 (API-HD-023~028·053). 권리 게이트는 API-HD-016 과 같은 기준을 쓴다."""
 
-import logging
 import uuid
 from collections import Counter
 
@@ -8,7 +7,6 @@ from fastapi import HTTPException
 
 from app.modules.admin.service import AdminService
 from app.core.common.clock import utcnow
-from app.modules.hoondok.reading_content import ReaderContent
 from app.modules.hoondok.library_repository import LibraryRepository
 from app.modules.hoondok.library_schemas import (
     BulkRightsInput,
@@ -17,9 +15,6 @@ from app.modules.hoondok.library_schemas import (
     HighlightItem,
     HighlightPatch,
     HighlightsResponse,
-    MarkInput,
-    MarkItem,
-    MarksResponse,
     ReadingPositionItem,
     ReadingPositionsResponse,
     SectionItem,
@@ -30,13 +25,10 @@ from app.modules.hoondok.library_schemas import (
     SeriesVolume,
 )
 from app.modules.hoondok.library_series import label_sort_key, series_title, volume_label
-from app.modules.hoondok.models import ContentRight, PassageHighlight, PassageMark
+from app.modules.hoondok.models import ContentRight, PassageHighlight
 from app.modules.qdrant import RawQdrantClient
 
-logger = logging.getLogger(__name__)
-
 DEFAULT_GRADE = "R"
-EXCERPT_CHARS = 300
 
 
 def _clean_note(note: str | None) -> str | None:
@@ -188,87 +180,6 @@ class LibraryService:
             series=series,
             label=volume_label(volume, series or "", right.work_title),
         )
-
-    # --- API-HD-026 단락 표시 ------------------------------------------------
-
-    async def list_marks(
-        self,
-        user_id: uuid.UUID,
-        volume: str | None,
-        kind: str | None,
-        limit: int = 200,
-        excerpt: bool = False,
-    ) -> MarksResponse:
-        rows = await self.repo.list_marks(user_id, volume, kind, limit)
-        rights = await self._rights_by_volume()
-        # 요청했을 때만 Qdrant 를 부른다 — 원문 화면의 기존 호출은 DB 만 읽는다.
-        excerpts = await self._excerpts(rows, rights) if excerpt else None
-        items = []
-        for i, row in enumerate(rows):
-            work_title, series, label = self._label_of(row.volume, rights)
-            item = MarkItem(
-                chunk_id=row.chunk_id,
-                chunk_index=row.chunk_index,
-                volume=row.volume,
-                kind=row.kind,  # type: ignore[arg-type]
-                color=row.color,
-                note=row.note,
-                updated_at=row.updated_at,
-                work_title=work_title,
-                label=label,
-            )
-            if excerpts is not None:
-                # 요청했을 때만 필드가 set 된다 — 라우트의 exclude_unset 이 기존 응답 모양을 지킨다.
-                item.excerpt = excerpts[i]
-            items.append(item)
-        return MarksResponse(items=items)
-
-    async def _excerpts(
-        self, rows: list[PassageMark], rights: dict[str, ContentRight]
-    ) -> list[str | None]:
-        """행마다 원문 뷰(API-HD-016)가 그 단락에 보이는 display_text 앞 300자. 못 채우면 None.
-
-        원문(full_text)이 열린 권만 채운다 — 저장 시점 스냅샷을 두지 않아 권리를 거두면 발췌도 사라진다.
-        Qdrant 는 청크 묶음 retrieve 1회 + 앞 청크가 필요한 권마다 scroll 1회만 부른다(행마다 부르지 않는다).
-        겹침 자르기는 chunk_display_text 와 같다 — 페이지 첫 청크는 앞 청크 없이, 나머지는 바로 앞 청크 기준.
-        Qdrant 가 실패하면 목록은 그대로 내고 발췌만 모두 비운다.
-        """
-        requests = [(row.volume, row.chunk_id) for row in rows if self._is_full_text(rights.get(row.volume))]
-        if not requests:
-            return [None] * len(rows)
-        try:
-            texts = await ReaderContent(self.repo, self.client).excerpt_texts(requests)
-        except Exception as exc:
-            logger.warning("훈독 표시 발췌 조회 실패 — 발췌 없이 응답한다 (%s)", type(exc).__name__)
-            return [None] * len(rows)
-        return [text[:EXCERPT_CHARS].rstrip() if (text := texts.get((row.volume, row.chunk_id))) is not None else None for row in rows]
-
-    async def save_mark(self, user_id: uuid.UUID, chunk_id: str, data: MarkInput) -> MarkItem:
-        right = await self._readable(data.volume)
-        row = await self.repo.upsert_mark(
-            user_id,
-            chunk_id,
-            data.volume,
-            data.chunk_index,
-            data.kind,
-            data.color,
-            data.note,
-        )
-        series = right.book_series or None
-        return MarkItem(
-            chunk_id=row.chunk_id,
-            chunk_index=row.chunk_index,
-            volume=row.volume,
-            kind=row.kind,  # type: ignore[arg-type]
-            color=row.color,
-            note=row.note,
-            updated_at=row.updated_at,
-            work_title=right.work_title,
-            label=volume_label(row.volume, series or "", right.work_title),
-        )
-
-    async def delete_mark(self, user_id: uuid.UUID, chunk_id: str, kind: str | None) -> None:
-        await self.repo.delete_mark(user_id, chunk_id, kind)
 
     # --- API-HD-053 구절 형광펜 ----------------------------------------------
 

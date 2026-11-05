@@ -5,6 +5,7 @@ import uuid
 from pydantic import BaseModel
 
 from app.modules.chat.schemas import FeaturedMalssum, Source
+from app.modules.chat.types import AnswerMode
 
 
 class ChatChunkEvent(BaseModel):
@@ -18,6 +19,8 @@ class ChatSourcesEvent(BaseModel):
     closing: str | None = None
     suggested_followups: list[str] | None = None
     featured_malssum: FeaturedMalssum | None = None
+    # 실제 적용된 답변 모드(resolve_answer_mode 결과). 요청 모드와 다를 수 있다(위기 신호 → pastoral).
+    answer_mode: AnswerMode
 
 
 class ChatDoneEvent(BaseModel):

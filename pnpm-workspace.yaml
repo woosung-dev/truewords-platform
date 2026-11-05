@@ -3,6 +3,7 @@ packages:
   - packages/*
   - tests/e2e
 allowBuilds:
+  '@parcel/watcher': false
   unrs-resolver: true
 # pnpm 10+ 는 package.json 의 pnpm.overrides 를 읽지 않는다 — 보안 상향(#231·#234) 을 여기로 이동
 overrides:

@@ -11,9 +11,21 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../.."),
   transpilePackages: ["@truewords/api-client-ts"],
   experimental: { proxyClientMaxBodySize: "200mb" },
+  async headers() {
+    // 다른 사이트가 로그인 상태(운영 쿠키 SameSite=None)로 관리자 화면을 틀에 넣어 클릭을 유도하지 못하게 한다(보안 점검).
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
-      ...["history", "about", "design-system"].map((route) => ({
+      ...["history", "about"].map((route) => ({
         source: `/${route}/:path*`,
         destination: `${WEB_ORIGIN}/${route}/:path*`,
         permanent: false,

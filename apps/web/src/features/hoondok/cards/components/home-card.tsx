@@ -41,7 +41,7 @@ export function BookmarkHomeCard({
             </span>
           </div>
         </div>
-        <Link className={`btn ${isShownReceived ? "btn-line" : "btn-primary"} bmhome__go`} href="/hoondok/bookmark">
+        <Link className={`btn ${isShownReceived ? "btn-line" : "btn-primary"} bmhome__go`} href="/bookmark">
           {isShownReceived ? "책갈피 다시 보기" : "책갈피 꺼내기"}
         </Link>
         {footer}

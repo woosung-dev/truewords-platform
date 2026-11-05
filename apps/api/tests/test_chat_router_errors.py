@@ -7,11 +7,37 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.modules.admin.dependencies import require_admin_gate
 
 
 @pytest.fixture
-def client() -> TestClient:
-    return TestClient(app)
+def client():
+    """게이트 계정으로 통과시킨 클라이언트 — 아래 오류 포맷 검사는 게이트 뒤 동작을 본다."""
+    app.dependency_overrides[require_admin_gate] = lambda: None
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.pop(require_admin_gate, None)
+
+
+@pytest.mark.parametrize("path", ["/chat", "/chat/stream"])
+def test_anonymous_chat_answer_routes_are_rejected(path: str):
+    """보안 점검 chat-stream-unauthenticated-bypasses-ask-daily-limit 회귀 —
+    쿠키 없는 답 생성 요청은 파이프라인(LLM 비용)에 닿기 전에 401 이다."""
+    from unittest.mock import AsyncMock
+
+    from app.modules.chat.dependencies import get_chat_service
+
+    service = AsyncMock()
+    app.dependency_overrides[get_chat_service] = lambda: service
+    try:
+        response = TestClient(app).post(path, json={"query": "축복의 의미는?", "chatbot_id": "all"})
+    finally:
+        app.dependency_overrides.pop(get_chat_service, None)
+
+    assert response.status_code == 401
+    service.process_chat.assert_not_called()
+    service.process_chat_stream.assert_not_called()
 
 
 def test_health_endpoint_includes_request_id_header(client: TestClient):

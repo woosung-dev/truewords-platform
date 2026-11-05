@@ -5,30 +5,6 @@ export type ClientOptions = {
 };
 
 /**
- * AdminGroupItem
- *
- * API-HD-043 — 모임원 이름·한 줄 본문은 내지 않는다.
- */
-export type AdminGroupItem = {
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Member Count
-     */
-    member_count: number;
-    /**
-     * Name
-     */
-    name: string;
-};
-
-/**
  * AdminLoginRequest
  */
 export type AdminLoginRequest = {
@@ -87,6 +63,52 @@ export type AdminUserResponse = {
 };
 
 /**
+ * AskQuota
+ *
+ * 오늘(KST) 남은 질문 횟수. resets_at 은 다음 KST 자정(+09:00).
+ */
+export type AskQuota = {
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Remaining
+     */
+    remaining: number;
+    /**
+     * Resets At
+     */
+    resets_at: string;
+    /**
+     * Used
+     */
+    used: number;
+};
+
+/**
+ * AskRequest
+ *
+ * 질문 1건. /chat/stream 과 같은 필드에서 봇(chatbot_id)은 서버가 정한다.
+ *
+ * 길이(1000자)·빈 질문은 기존 입력 검증이 400 INPUT_BLOCKED 로 거절한다(설정값과 한곳에서 맞추려고 여기서 막지 않는다).
+ */
+export type AskRequest = {
+    /**
+     * Answer Mode
+     */
+    answer_mode?: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids' | null;
+    /**
+     * Query
+     */
+    query: string;
+    /**
+     * Session Id
+     */
+    session_id?: string | null;
+};
+
+/**
  * AuditLogResponse
  */
 export type AuditLogResponse = {
@@ -131,12 +153,6 @@ export type BodyUploadDocumentAdminDataSourcesUploadPost = {
      */
     file: Blob | File;
     /**
-     * Mode
-     *
-     * 호환용 (Batch API 제거됨, 항상 standard)
-     */
-    mode?: string;
-    /**
      * On Duplicate
      *
      * 재업로드 정책 (ADR-30). merge: 기존 카테고리 ∪ 신규 (default), replace: 신규로 통째 교체, skip: COMPLETED 동일 파일이면 임베딩 생략.
@@ -148,6 +164,16 @@ export type BodyUploadDocumentAdminDataSourcesUploadPost = {
      * 데이터 소스 카테고리 key (비워두면 미분류로 적재)
      */
     source?: string;
+};
+
+/**
+ * Body_upload_summary_image_admin_hoondok_ai_summaries__unit_id__media_post
+ */
+export type BodyUploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPost = {
+    /**
+     * File
+     */
+    file: Blob | File;
 };
 
 /**
@@ -608,6 +634,10 @@ export type ChatResponse = {
  * ChatSourcesEvent
  */
 export type ChatSourcesEvent = {
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
     /**
      * Closing
      */
@@ -1387,18 +1417,6 @@ export type DataSourceCategoryUpdate = {
 };
 
 /**
- * DisplayNameInput
- *
- * API-HD-036 참여 · API-HD-037 이름 변경. 앞뒤 공백만 다른 이름은 같은 이름이다.
- */
-export type DisplayNameInput = {
-    /**
-     * Display Name
-     */
-    display_name: string;
-};
-
-/**
  * DuplicateCheckResponse
  *
  * 업로드 전 중복 문서 검사 결과.
@@ -1713,235 +1731,6 @@ export type GenerationTrace = {
 };
 
 /**
- * GroupCreate
- */
-export type GroupCreate = {
-    /**
-     * Display Name
-     */
-    display_name: string;
-    jeongseong?: GroupJeongseongInput | null;
-    /**
-     * Meeting Time
-     */
-    meeting_time?: string | null;
-    /**
-     * Name
-     */
-    name: string;
-};
-
-/**
- * GroupDetail
- *
- * API-HD-032 · 031 응답. 전체 인원 없음. invite_code 는 리더에게만 값이 있다.
- */
-export type GroupDetail = {
-    /**
-     * Date
-     */
-    date: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Invite Code
-     */
-    invite_code?: string | null;
-    /**
-     * Invite Expires At
-     */
-    invite_expires_at?: string | null;
-    /**
-     * Jeongseongs
-     */
-    jeongseongs: Array<GroupJeongseongOut>;
-    /**
-     * Kind
-     */
-    kind: 'small_group';
-    /**
-     * Leader Display Name
-     */
-    leader_display_name: string;
-    me: GroupMe;
-    /**
-     * Meeting Time
-     */
-    meeting_time: string | null;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Readers
-     */
-    readers: Array<GroupReader>;
-    /**
-     * Shares
-     */
-    shares: Array<GroupShareOut>;
-    today_reading: TodayReadingSummary | null;
-};
-
-/**
- * GroupJeongseongInput
- *
- * API-HD-031 선택 항목 · API-HD-039 본문. started_on 범위(오늘±30)는 service 가 422 로 검사한다.
- */
-export type GroupJeongseongInput = {
-    /**
-     * Duration Days
-     */
-    duration_days: number;
-    /**
-     * Started On
-     */
-    started_on: string;
-    /**
-     * Title
-     */
-    title: string;
-};
-
-/**
- * GroupJeongseongOut
- *
- * 진행은 저장하지 않는다. day_index = (오늘 - started_on) + 1, 시작 전이면 null(state=upcoming).
- */
-export type GroupJeongseongOut = {
-    /**
-     * Day Index
-     */
-    day_index: number | null;
-    /**
-     * Duration Days
-     */
-    duration_days: number;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Is Official
-     */
-    is_official: boolean;
-    /**
-     * Source Note
-     */
-    source_note: string | null;
-    /**
-     * Started On
-     */
-    started_on: string;
-    /**
-     * State
-     */
-    state: 'upcoming' | 'active';
-    /**
-     * Title
-     */
-    title: string;
-};
-
-/**
- * GroupMe
- */
-export type GroupMe = {
-    /**
-     * Display Name
-     */
-    display_name: string;
-    /**
-     * Has Read Today
-     */
-    has_read_today: boolean;
-    /**
-     * Has Shared Today
-     */
-    has_shared_today: boolean;
-    /**
-     * Member Id
-     */
-    member_id: string;
-    /**
-     * Role
-     */
-    role: 'leader' | 'member';
-};
-
-/**
- * GroupReader
- *
- * 오늘 훈독을 마친 모임원 — 완료자만 존재한다.
- */
-export type GroupReader = {
-    /**
-     * Display Name
-     */
-    display_name: string;
-    /**
-     * Is Leader
-     */
-    is_leader: boolean;
-    /**
-     * Is Me
-     */
-    is_me: boolean;
-    /**
-     * Read At Kst
-     */
-    read_at_kst: string;
-};
-
-/**
- * GroupRename
- */
-export type GroupRename = {
-    /**
-     * Name
-     */
-    name: string;
-};
-
-/**
- * GroupShareOut
- *
- * reaction_count 는 내 한 줄에만 값, 남의 한 줄은 null. 반응한 사람 목록은 주지 않는다.
- */
-export type GroupShareOut = {
-    /**
-     * Body
-     */
-    body: string;
-    /**
-     * Created At Kst
-     */
-    created_at_kst: string;
-    /**
-     * Display Name
-     */
-    display_name: string;
-    /**
-     * Has My Reaction
-     */
-    has_my_reaction: boolean;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Is Mine
-     */
-    is_mine: boolean;
-    /**
-     * Reaction Count
-     */
-    reaction_count: number | null;
-};
-
-/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -2191,52 +1980,6 @@ export type IngestionStatusSummary = {
 };
 
 /**
- * InviteOut
- */
-export type InviteOut = {
-    /**
-     * Invite Code
-     */
-    invite_code: string;
-    /**
-     * Invite Expires At
-     */
-    invite_expires_at: string;
-};
-
-/**
- * InvitePreview
- *
- * API-HD-035. 전체 인원 없음. 이미 모임원이면 is_member=true + group_id.
- */
-export type InvitePreview = {
-    /**
-     * Group Id
-     */
-    group_id?: string | null;
-    /**
-     * Is Member
-     */
-    is_member: boolean;
-    /**
-     * Jeongseongs
-     */
-    jeongseongs: Array<GroupJeongseongOut>;
-    /**
-     * Kind
-     */
-    kind: 'small_group';
-    /**
-     * Leader Display Name
-     */
-    leader_display_name: string;
-    /**
-     * Name
-     */
-    name: string;
-};
-
-/**
  * JeongseongCreate
  *
  * POST 본문. started_on 생략 시 오늘(KST), 허용 범위 오늘~오늘+30 은 service 가 422 로 검사한다.
@@ -2399,16 +2142,6 @@ export type JeongseongTodayResponse = {
 };
 
 /**
- * JoinResult
- */
-export type JoinResult = {
-    /**
-     * Group Id
-     */
-    group_id: string;
-};
-
-/**
  * LibraryItem
  */
 export type LibraryItem = {
@@ -2525,126 +2258,6 @@ export type LoginRequest = {
 };
 
 /**
- * MarkInput
- */
-export type MarkInput = {
-    /**
-     * Chunk Index
-     */
-    chunk_index: number;
-    /**
-     * Color
-     */
-    color?: number | null;
-    /**
-     * Kind
-     */
-    kind: 'bookmark';
-    /**
-     * Note
-     */
-    note?: string | null;
-    /**
-     * Volume
-     */
-    volume: string;
-};
-
-/**
- * MarkItem
- */
-export type MarkItem = {
-    /**
-     * Chunk Id
-     */
-    chunk_id: string;
-    /**
-     * Chunk Index
-     */
-    chunk_index: number;
-    /**
-     * Color
-     */
-    color: number | null;
-    /**
-     * Excerpt
-     */
-    excerpt?: string | null;
-    /**
-     * Kind
-     */
-    kind: 'bookmark';
-    /**
-     * Label
-     */
-    label: string;
-    /**
-     * Note
-     */
-    note: string | null;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-    /**
-     * Volume
-     */
-    volume: string;
-    /**
-     * Work Title
-     */
-    work_title: string;
-};
-
-/**
- * MarksResponse
- */
-export type MarksResponse = {
-    /**
-     * Items
-     */
-    items: Array<MarkItem>;
-};
-
-/**
- * MemberItem
- *
- * API-HD-038 — 읽음 상태 필드는 두지 않는다.
- */
-export type MemberItem = {
-    /**
-     * Display Name
-     */
-    display_name: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Joined At
-     */
-    joined_at: string;
-    /**
-     * Role
-     */
-    role: 'leader' | 'member';
-};
-
-/**
- * MemberList
- */
-export type MemberList = {
-    /**
-     * Items
-     */
-    items: Array<MemberItem>;
-    /**
-     * Member Count
-     */
-    member_count: number;
-};
-
-/**
  * MessageResponse
  *
  * 단순 메시지 응답 (로그인/로그아웃 등).
@@ -2693,6 +2306,138 @@ export type MonthHistoryResponse = {
 };
 
 /**
+ * MyAskDetail
+ */
+export type MyAskDetail = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Saved
+     */
+    saved: boolean;
+    /**
+     * Turns
+     */
+    turns: Array<MyAskTurn>;
+};
+
+/**
+ * MyAskListResponse
+ *
+ * 최근 활동순.
+ */
+export type MyAskListResponse = {
+    /**
+     * Items
+     */
+    items: Array<MyAskSummary>;
+};
+
+/**
+ * MyAskSummary
+ *
+ * 내 대화 목록 한 줄. id 는 session_id(이어 묻기에 그대로 보낸다).
+ */
+export type MyAskSummary = {
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Last At
+     */
+    last_at: string;
+    /**
+     * Public Id
+     */
+    public_id: string | null;
+    /**
+     * Public Status
+     */
+    public_status: 'pending' | 'published' | 'hidden' | null;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Saved
+     */
+    saved: boolean;
+    /**
+     * Turn Count
+     */
+    turn_count: number;
+};
+
+/**
+ * MyAskTurn
+ *
+ * 질문 → 답 한 차례. sources 는 처음 받은 sources 이벤트와 같은 모양(chunk_id 로 원문을 연다).
+ */
+export type MyAskTurn = {
+    /**
+     * Answer Md
+     */
+    answer_md: string;
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Message Id
+     */
+    message_id: string;
+    /**
+     * Public Id
+     */
+    public_id: string | null;
+    /**
+     * Public Status
+     */
+    public_status: 'pending' | 'published' | 'hidden' | null;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Sources
+     */
+    sources: Array<Source>;
+    /**
+     * Suggested Followups
+     */
+    suggested_followups: Array<string>;
+};
+
+/**
+ * MyAskUpdate
+ */
+export type MyAskUpdate = {
+    /**
+     * Saved
+     */
+    saved: boolean;
+};
+
+/**
  * MyCardsResponse
  *
  * API-HD-051. shelves 는 개수 내림차순(동률은 책 이름순), items 는 받은 날 최신순.
@@ -2709,43 +2454,49 @@ export type MyCardsResponse = {
 };
 
 /**
- * MyGroupItem
+ * MyPublicQuestionItem
  *
- * API-HD-030. today_read_count 는 오늘 완료자 수(전체 인원이 아니다).
+ * 내 공개 신청 한 줄. 상태로 검토 중·공개됨·비공개를 보인다.
  */
-export type MyGroupItem = {
+export type MyPublicQuestionItem = {
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Created At
+     */
+    created_at: string;
     /**
      * Id
      */
     id: string;
     /**
-     * Jeongseongs
+     * Message Id
      */
-    jeongseongs: Array<GroupJeongseongOut>;
+    message_id: string;
     /**
-     * Kind
+     * Question
      */
-    kind: 'small_group';
+    question: string;
     /**
-     * My Display Name
+     * Reviewed At
      */
-    my_display_name: string;
+    reviewed_at: string | null;
     /**
-     * Name
+     * Status
      */
-    name: string;
+    status: 'pending' | 'published' | 'hidden';
+};
+
+/**
+ * MyPublicQuestionListResponse
+ */
+export type MyPublicQuestionListResponse = {
     /**
-     * Readers Preview
+     * Items
      */
-    readers_preview: Array<string>;
-    /**
-     * Role
-     */
-    role: 'leader' | 'member';
-    /**
-     * Today Read Count
-     */
-    today_read_count: number;
+    items: Array<MyPublicQuestionItem>;
 };
 
 /**
@@ -2831,64 +2582,6 @@ export type NotificationPreferenceResponse = {
 };
 
 /**
- * OfficialJeongseongInput
- *
- * API-HD-042 공식 정성 등록·수정(전체 교체).
- */
-export type OfficialJeongseongInput = {
-    /**
-     * Duration Days
-     */
-    duration_days: number;
-    /**
-     * Source Note
-     */
-    source_note?: string | null;
-    /**
-     * Started On
-     */
-    started_on: string;
-    /**
-     * Title
-     */
-    title: string;
-};
-
-/**
- * OfficialJeongseongOut
- */
-export type OfficialJeongseongOut = {
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Duration Days
-     */
-    duration_days: number;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Source Note
-     */
-    source_note: string | null;
-    /**
-     * Started On
-     */
-    started_on: string;
-    /**
-     * Title
-     */
-    title: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-};
-
-/**
  * PaginatedResponse[ChatbotConfigResponse]
  */
 export type PaginatedResponseChatbotConfigResponse = {
@@ -2908,6 +2601,186 @@ export type PaginatedResponseChatbotConfigResponse = {
      * Total
      */
     total: number;
+};
+
+/**
+ * PublicQuestionAdminItem
+ *
+ * 검수 화면 한 줄 — 작성자 정보는 관리자에게도 보이지 않는다.
+ */
+export type PublicQuestionAdminItem = {
+    /**
+     * Answer Md
+     */
+    answer_md: string;
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Reviewed At
+     */
+    reviewed_at: string | null;
+    /**
+     * Sources
+     */
+    sources: Array<PublicQuestionSource>;
+    /**
+     * Status
+     */
+    status: 'pending' | 'published' | 'hidden';
+};
+
+/**
+ * PublicQuestionAdminListResponse
+ */
+export type PublicQuestionAdminListResponse = {
+    /**
+     * Items
+     */
+    items: Array<PublicQuestionAdminItem>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * PublicQuestionCreate
+ *
+ * 공개 신청 본문. 질문·답은 서버가 message_id 로 복사한다 — 본문을 받지 않는다.
+ */
+export type PublicQuestionCreate = {
+    /**
+     * Message Id
+     */
+    message_id: string;
+};
+
+/**
+ * PublicQuestionDetail
+ */
+export type PublicQuestionDetail = {
+    /**
+     * Answer Md
+     */
+    answer_md: string;
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Published At
+     */
+    published_at: string;
+    /**
+     * Question
+     */
+    question: string;
+    /**
+     * Sources
+     */
+    sources: Array<PublicQuestionSource>;
+};
+
+/**
+ * PublicQuestionListResponse
+ *
+ * 최신순. next_cursor 를 다음 요청의 cursor 로 보내면 이어진다(없으면 끝).
+ */
+export type PublicQuestionListResponse = {
+    /**
+     * Items
+     */
+    items: Array<PublicQuestionSummary>;
+    /**
+     * Next Cursor
+     */
+    next_cursor: string | null;
+};
+
+/**
+ * PublicQuestionReview
+ *
+ * PATCH 본문. 공개(published) 또는 숨김(hidden)만 받는다.
+ */
+export type PublicQuestionReview = {
+    /**
+     * Status
+     */
+    status: 'published' | 'hidden';
+};
+
+/**
+ * PublicQuestionSource
+ *
+ * 근거 말씀 한 줄 — answer_citations 복사본(상위 3건).
+ */
+export type PublicQuestionSource = {
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Volume
+     */
+    volume: string;
+};
+
+/**
+ * PublicQuestionSummary
+ *
+ * 공개 목록 한 줄. preview 는 답 앞부분(마크다운 기호 제거).
+ */
+export type PublicQuestionSummary = {
+    /**
+     * Answer Mode
+     */
+    answer_mode: 'standard' | 'theological' | 'pastoral' | 'beginner' | 'kids';
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Preview
+     */
+    preview: string;
+    /**
+     * Published At
+     */
+    published_at: string;
+    /**
+     * Question
+     */
+    question: string;
 };
 
 /**
@@ -3192,110 +3065,6 @@ export type RagTraceResponse = {
      * Warnings
      */
     warnings?: Array<string>;
-};
-
-/**
- * ReactionAggregate
- *
- * 단일 message_id 의 반응 카운트 집계 — UI badge 용.
- */
-export type ReactionAggregate = {
-    /**
-     * Message Id
-     */
-    message_id: string;
-    /**
-     * Save
-     */
-    save?: number;
-    /**
-     * Thumbs Down
-     */
-    thumbs_down?: number;
-    /**
-     * Thumbs Up
-     */
-    thumbs_up?: number;
-};
-
-/**
- * ReactionCount
- */
-export type ReactionCount = {
-    /**
-     * Count
-     */
-    count: number;
-    /**
-     * Kind
-     */
-    kind: string;
-};
-
-/**
- * ReactionRequest
- *
- * POST /api/chat/messages/{id}/reaction body.
- *
- * B2 보안: ``user_session_id`` 는 더 이상 클라이언트 입력이 아니다 —
- * 서버가 HttpOnly cookie ``tw_anon_session`` 으로 발급/관리한다.
- */
-export type ReactionRequest = {
-    /**
-     * Kind
-     */
-    kind: 'thumbs_up' | 'thumbs_down' | 'save';
-};
-
-/**
- * ReactionResponse
- *
- * 단일 반응 응답.
- */
-export type ReactionResponse = {
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Kind
-     */
-    kind: 'thumbs_up' | 'thumbs_down' | 'save';
-    /**
-     * Message Id
-     */
-    message_id: string;
-    /**
-     * User Session Id
-     */
-    user_session_id: string;
-};
-
-/**
- * ReactionState
- */
-export type ReactionState = {
-    /**
-     * Has Reacted
-     */
-    has_reacted: boolean;
-};
-
-/**
- * ReactionToggleResponse
- *
- * 토글 결과 — added 면 reaction 포함, removed 면 없음.
- */
-export type ReactionToggleResponse = {
-    /**
-     * Action
-     */
-    action: 'added' | 'removed';
-    reaction?: ReactionResponse | null;
 };
 
 /**
@@ -3724,10 +3493,6 @@ export type SessionMessageItem = {
      */
     persona_overridden?: boolean | null;
     /**
-     * Reactions
-     */
-    reactions?: Array<ReactionCount>;
-    /**
      * Resolved Answer Mode
      */
     resolved_answer_mode?: string | null;
@@ -3759,16 +3524,6 @@ export type SettingsConfigResponse = {
      * Qdrant Host
      */
     qdrant_host: string;
-};
-
-/**
- * ShareInput
- */
-export type ShareInput = {
-    /**
-     * Body
-     */
-    body: string;
 };
 
 /**
@@ -3846,6 +3601,50 @@ export type Source = {
 };
 
 /**
+ * SourceBlock
+ */
+export type SourceBlock = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Position
+     */
+    position: number;
+    /**
+     * Section Id
+     */
+    section_id?: string | null;
+    /**
+     * Text
+     */
+    text: string;
+};
+
+/**
+ * SourceBook
+ */
+export type SourceBook = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Volume
+     */
+    volume: string;
+};
+
+/**
  * SourceChunkDetail
  *
  * P0-B — 인용 카드 원문보기 모달용 청크 상세 + dedup 된 연속 문맥.
@@ -3915,6 +3714,267 @@ export type SourceChunkDetail = {
 };
 
 /**
+ * SourcePassages
+ */
+export type SourcePassages = {
+    /**
+     * Blocks
+     */
+    blocks: Array<SourceBlock>;
+    /**
+     * Next Offset
+     */
+    next_offset: number | null;
+    /**
+     * Snapshot Id
+     */
+    snapshot_id: string;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * SourceRangeInput
+ */
+export type SourceRangeInput = {
+    /**
+     * End Block Id
+     */
+    end_block_id: string;
+    /**
+     * End Offset
+     */
+    end_offset?: number | null;
+    /**
+     * Group Title
+     */
+    group_title?: string;
+    /**
+     * Snapshot Id
+     */
+    snapshot_id: string;
+    /**
+     * Start Block Id
+     */
+    start_block_id: string;
+    /**
+     * Start Offset
+     */
+    start_offset?: number;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * SourceRangeMerge
+ */
+export type SourceRangeMerge = {
+    /**
+     * Other Id
+     */
+    other_id: string;
+    /**
+     * Other Version
+     */
+    other_version: number;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * SourceRangeResult
+ */
+export type SourceRangeResult = {
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * End Block Id
+     */
+    end_block_id: string;
+    /**
+     * End Offset
+     */
+    end_offset?: number | null;
+    /**
+     * First
+     */
+    first: string;
+    /**
+     * Group Title
+     */
+    group_title?: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Last
+     */
+    last: string;
+    /**
+     * Snapshot Id
+     */
+    snapshot_id: string;
+    source: SummarySource;
+    /**
+     * Start Block Id
+     */
+    start_block_id: string;
+    /**
+     * Start Offset
+     */
+    start_offset?: number;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * SourceRangeSplit
+ */
+export type SourceRangeSplit = {
+    /**
+     * After Block Id
+     */
+    after_block_id: string;
+    /**
+     * After Offset
+     */
+    after_offset?: number | null;
+    /**
+     * First Title
+     */
+    first_title: string;
+    /**
+     * Second Title
+     */
+    second_title: string;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * SourceRangeUpdate
+ */
+export type SourceRangeUpdate = {
+    /**
+     * End Block Id
+     */
+    end_block_id: string;
+    /**
+     * End Offset
+     */
+    end_offset?: number | null;
+    /**
+     * Group Title
+     */
+    group_title?: string;
+    /**
+     * Snapshot Id
+     */
+    snapshot_id: string;
+    /**
+     * Start Block Id
+     */
+    start_block_id: string;
+    /**
+     * Start Offset
+     */
+    start_offset?: number;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * SourceSection
+ */
+export type SourceSection = {
+    /**
+     * End Block Id
+     */
+    end_block_id: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Level
+     */
+    level: number;
+    /**
+     * Start Block Id
+     */
+    start_block_id: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * SourceSnapshotInfo
+ */
+export type SourceSnapshotInfo = {
+    /**
+     * Block Count
+     */
+    block_count: number;
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * Edition
+     */
+    edition: string;
+    /**
+     * Fingerprint
+     */
+    fingerprint: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Sections
+     */
+    sections: Array<SourceSection>;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
  * StageSpan
  */
 export type StageSpan = {
@@ -3970,6 +4030,489 @@ export type StageSpan = {
 };
 
 /**
+ * SummaryActionInput
+ */
+export type SummaryActionInput = {
+    /**
+     * Action
+     */
+    action: 'request_review' | 'return_to_draft' | 'publish' | 'withdraw';
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * SummaryAdminResponse
+ */
+export type SummaryAdminResponse = {
+    /**
+     * Assets
+     */
+    assets: Array<SummaryMediaResponse>;
+    /**
+     * Body
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Body Version
+     */
+    body_version?: 1 | 2;
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * Evidence
+     */
+    evidence?: Array<SummaryEvidence>;
+    generation?: SummaryGeneration;
+    /**
+     * Group Title
+     */
+    group_title?: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Images
+     */
+    images?: Array<SummaryImage>;
+    /**
+     * Key Points
+     */
+    key_points?: Array<string>;
+    /**
+     * Lead
+     */
+    lead?: string;
+    /**
+     * Paragraph Label
+     */
+    paragraph_label?: string;
+    /**
+     * Position
+     */
+    position?: number | null;
+    /**
+     * Published
+     */
+    published: boolean;
+    /**
+     * Reflection Questions
+     */
+    reflection_questions?: Array<string>;
+    /**
+     * Review Status
+     */
+    review_status: 'draft' | 'review' | 'published' | 'withdrawn';
+    /**
+     * Slug
+     */
+    slug?: string;
+    source?: SummarySource;
+    /**
+     * Source Range Id
+     */
+    source_range_id?: string | null;
+    /**
+     * Source Range Version
+     */
+    source_range_version?: number | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Uncertainty
+     */
+    uncertainty?: Array<string>;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * SummaryDetail
+ */
+export type SummaryDetail = {
+    /**
+     * Assets
+     */
+    assets?: Array<SummaryMediaResponse>;
+    /**
+     * Body
+     */
+    body: {
+        [key: string]: unknown;
+    };
+    /**
+     * Body Version
+     */
+    body_version?: 1 | 2;
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * Cover Url
+     */
+    cover_url?: string | null;
+    /**
+     * Evidence
+     */
+    evidence: Array<SummaryEvidence>;
+    /**
+     * Group Title
+     */
+    group_title: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Images
+     */
+    images: Array<SummaryPublicImage>;
+    /**
+     * Key Points
+     */
+    key_points: Array<string>;
+    /**
+     * Lead
+     */
+    lead: string;
+    /**
+     * Next Id
+     */
+    next_id?: string | null;
+    /**
+     * Paragraph Label
+     */
+    paragraph_label?: string;
+    /**
+     * Position
+     */
+    position: number;
+    /**
+     * Reflection Questions
+     */
+    reflection_questions: Array<string>;
+    /**
+     * Section Position
+     */
+    section_position?: number | null;
+    /**
+     * Slug
+     */
+    slug: string;
+    source: SummaryPublicSource;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Volume
+     */
+    volume: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * SummaryEvidence
+ *
+ * 요약 문장의 근거 — 절 안 말씀 번호 범위.
+ */
+export type SummaryEvidence = {
+    /**
+     * Chunk Id
+     */
+    chunk_id?: string | null;
+    /**
+     * Chunk Index
+     */
+    chunk_index?: number | null;
+    /**
+     * Claim
+     */
+    claim: string;
+    /**
+     * From
+     */
+    from: number;
+    /**
+     * To
+     */
+    to: number;
+};
+
+/**
+ * SummaryGeneration
+ *
+ * 생성 기록 — 관리자 응답에만 포함한다.
+ */
+export type SummaryGeneration = {
+    /**
+     * Image Rounds
+     */
+    image_rounds?: {
+        [key: string]: number;
+    };
+    /**
+     * Image Scores
+     */
+    image_scores?: {
+        [key: string]: number;
+    };
+    /**
+     * Text Model
+     */
+    text_model?: string;
+    /**
+     * Text Rounds
+     */
+    text_rounds?: number;
+    /**
+     * Text Score
+     */
+    text_score?: number;
+};
+
+/**
+ * SummaryImage
+ */
+export type SummaryImage = {
+    /**
+     * Alt
+     */
+    alt?: string;
+    /**
+     * Asset Id
+     */
+    asset_id: string;
+    /**
+     * Caption
+     */
+    caption?: string;
+    /**
+     * Kind
+     */
+    kind: 'concept' | 'scene';
+};
+
+/**
+ * SummaryInput
+ */
+export type SummaryInput = {
+    /**
+     * Body
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Body Version
+     */
+    body_version?: 1 | 2;
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * Evidence
+     */
+    evidence?: Array<SummaryEvidence>;
+    generation?: SummaryGeneration;
+    /**
+     * Group Title
+     */
+    group_title?: string;
+    /**
+     * Images
+     */
+    images?: Array<SummaryImage>;
+    /**
+     * Key Points
+     */
+    key_points?: Array<string>;
+    /**
+     * Lead
+     */
+    lead?: string;
+    /**
+     * Position
+     */
+    position?: number | null;
+    /**
+     * Reflection Questions
+     */
+    reflection_questions?: Array<string>;
+    /**
+     * Slug
+     */
+    slug?: string;
+    source?: SummarySource;
+    /**
+     * Source Range Id
+     */
+    source_range_id?: string | null;
+    /**
+     * Source Range Version
+     */
+    source_range_version?: number | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Uncertainty
+     */
+    uncertainty?: Array<string>;
+};
+
+/**
+ * SummaryListItem
+ */
+export type SummaryListItem = {
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * Cover Url
+     */
+    cover_url?: string | null;
+    /**
+     * Group Title
+     */
+    group_title: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Lead
+     */
+    lead: string;
+    /**
+     * Position
+     */
+    position: number;
+    /**
+     * Section Position
+     */
+    section_position?: number | null;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Work Title
+     */
+    work_title: string;
+};
+
+/**
+ * SummaryMediaResponse
+ */
+export type SummaryMediaResponse = {
+    /**
+     * Height
+     */
+    height?: number | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Mime Type
+     */
+    mime_type: string;
+    /**
+     * Url
+     */
+    url: string;
+    /**
+     * Width
+     */
+    width?: number | null;
+};
+
+/**
+ * SummaryPublicImage
+ */
+export type SummaryPublicImage = {
+    /**
+     * Alt
+     */
+    alt: string;
+    /**
+     * Asset Id
+     */
+    asset_id: string;
+    /**
+     * Caption
+     */
+    caption: string;
+    /**
+     * Kind
+     */
+    kind: 'concept' | 'scene';
+    /**
+     * Url
+     */
+    url: string;
+};
+
+/**
+ * SummaryPublicSource
+ *
+ * 공개 응답의 원문 정보. 검수 메모·검수 여부는 담지 않는다.
+ */
+export type SummaryPublicSource = {
+    /**
+     * Chunk Ids
+     */
+    chunk_ids?: Array<string>;
+    /**
+     * Edition
+     */
+    edition?: string;
+    /**
+     * Locator
+     */
+    locator?: string;
+    /**
+     * Paragraph From
+     */
+    paragraph_from?: number | null;
+    /**
+     * Paragraph To
+     */
+    paragraph_to?: number | null;
+    /**
+     * Text
+     */
+    text?: string;
+};
+
+/**
  * SummaryResponse
  *
  * API-HD-004. 연속일·최대·누적은 read 기준이며 저장하지 않는다. week 는 월요일 시작 7칸.
@@ -3992,6 +4535,206 @@ export type SummaryResponse = {
      * Week
      */
     week: Array<WeekDay>;
+};
+
+/**
+ * SummarySource
+ */
+export type SummarySource = {
+    /**
+     * Chunk Ids
+     */
+    chunk_ids?: Array<string>;
+    /**
+     * Edition
+     */
+    edition?: string;
+    /**
+     * Locator
+     */
+    locator?: string;
+    /**
+     * Note
+     */
+    note?: string;
+    /**
+     * Paragraph From
+     */
+    paragraph_from?: number | null;
+    /**
+     * Paragraph To
+     */
+    paragraph_to?: number | null;
+    /**
+     * Sha256
+     */
+    sha256?: string;
+    /**
+     * Text
+     */
+    text?: string;
+    /**
+     * Verified
+     */
+    verified?: boolean;
+};
+
+/**
+ * SummaryTocItem
+ *
+ * 관리자 발행 관리 목록 한 행 — 천성경 절 하나 또는 평화경 연설문(제4편 14 는 장) 하나.
+ */
+export type SummaryTocItem = {
+    /**
+     * Chapter No
+     */
+    chapter_no?: number | null;
+    /**
+     * Chapter Title
+     */
+    chapter_title?: string | null;
+    /**
+     * Image Count
+     */
+    image_count?: number;
+    /**
+     * Item No
+     */
+    item_no?: number | null;
+    /**
+     * Item Title
+     */
+    item_title?: string | null;
+    /**
+     * Jang No
+     */
+    jang_no?: number | null;
+    /**
+     * Jang Title
+     */
+    jang_title?: string | null;
+    /**
+     * Jeol No
+     */
+    jeol_no?: number | null;
+    /**
+     * Jeol Title
+     */
+    jeol_title?: string | null;
+    /**
+     * Paragraph Count
+     */
+    paragraph_count: number;
+    /**
+     * Published
+     */
+    published?: boolean;
+    /**
+     * Pyeon No
+     */
+    pyeon_no: number;
+    /**
+     * Pyeon Title
+     */
+    pyeon_title: string;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Status
+     */
+    status?: 'none' | 'draft' | 'review' | 'published' | 'withdrawn';
+    /**
+     * Text Score
+     */
+    text_score?: number | null;
+    /**
+     * Toc Date
+     */
+    toc_date?: string | null;
+    /**
+     * Unit Id
+     */
+    unit_id?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+};
+
+/**
+ * SummaryUpdate
+ */
+export type SummaryUpdate = {
+    /**
+     * Body
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Body Version
+     */
+    body_version?: 1 | 2;
+    /**
+     * Content Right Id
+     */
+    content_right_id: string;
+    /**
+     * Evidence
+     */
+    evidence?: Array<SummaryEvidence>;
+    generation?: SummaryGeneration;
+    /**
+     * Group Title
+     */
+    group_title?: string;
+    /**
+     * Images
+     */
+    images?: Array<SummaryImage>;
+    /**
+     * Key Points
+     */
+    key_points?: Array<string>;
+    /**
+     * Lead
+     */
+    lead?: string;
+    /**
+     * Position
+     */
+    position?: number | null;
+    /**
+     * Reflection Questions
+     */
+    reflection_questions?: Array<string>;
+    /**
+     * Slug
+     */
+    slug?: string;
+    source?: SummarySource;
+    /**
+     * Source Range Id
+     */
+    source_range_id?: string | null;
+    /**
+     * Source Range Version
+     */
+    source_range_version?: number | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Uncertainty
+     */
+    uncertainty?: Array<string>;
+    /**
+     * Version
+     */
+    version: number;
 };
 
 /**
@@ -4040,42 +4783,6 @@ export type TodayReadingResponse = {
      * Status
      */
     status: 'available' | 'none' | 'withdrawn';
-};
-
-/**
- * TodayReadingSummary
- *
- * 오늘 공식 편성 요약. 원문 링크는 web 이 id·chunk_id 로 만든다.
- */
-export type TodayReadingSummary = {
-    /**
-     * Chunk Id
-     */
-    chunk_id: string | null;
-    /**
-     * Estimated Minutes
-     */
-    estimated_minutes: number;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Reading Date
-     */
-    reading_date: string;
-    /**
-     * Speaker
-     */
-    speaker: string;
-    /**
-     * Title
-     */
-    title: string;
-    /**
-     * Work Title
-     */
-    work_title: string;
 };
 
 /**
@@ -4312,7 +5019,7 @@ export type UploadResponse = {
     /**
      * Mode
      *
-     * 호환용 입력값 반환. 처리 방식은 항상 standard
+     * 호환용 고정값. 처리 방식은 항상 standard
      */
     mode: string;
     /**
@@ -5697,6 +6404,223 @@ export type DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses = {
 
 export type DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponse = DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses[keyof DeleteVolumeAdminDataSourcesVolumesVolumeKeyDeleteResponses];
 
+export type CreateSummaryAdminHoondokAiSummariesPostData = {
+    body: SummaryInput;
+    path?: never;
+    query?: never;
+    url: '/admin/hoondok/ai-summaries';
+};
+
+export type CreateSummaryAdminHoondokAiSummariesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateSummaryAdminHoondokAiSummariesPostError = CreateSummaryAdminHoondokAiSummariesPostErrors[keyof CreateSummaryAdminHoondokAiSummariesPostErrors];
+
+export type CreateSummaryAdminHoondokAiSummariesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: SummaryAdminResponse;
+};
+
+export type CreateSummaryAdminHoondokAiSummariesPostResponse = CreateSummaryAdminHoondokAiSummariesPostResponses[keyof CreateSummaryAdminHoondokAiSummariesPostResponses];
+
+export type AdminTocAdminHoondokAiSummariesTocGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Work
+         */
+        work?: 'cheonseong' | 'pyeonghwa';
+        /**
+         * Status
+         */
+        status?: 'none' | 'draft' | 'review' | 'published' | 'withdrawn' | null;
+        /**
+         * Pyeon
+         */
+        pyeon?: number | null;
+    };
+    url: '/admin/hoondok/ai-summaries/toc';
+};
+
+export type AdminTocAdminHoondokAiSummariesTocGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminTocAdminHoondokAiSummariesTocGetError = AdminTocAdminHoondokAiSummariesTocGetErrors[keyof AdminTocAdminHoondokAiSummariesTocGetErrors];
+
+export type AdminTocAdminHoondokAiSummariesTocGetResponses = {
+    /**
+     * Response Admin Toc Admin Hoondok Ai Summaries Toc Get
+     *
+     * Successful Response
+     */
+    200: Array<SummaryTocItem>;
+};
+
+export type AdminTocAdminHoondokAiSummariesTocGetResponse = AdminTocAdminHoondokAiSummariesTocGetResponses[keyof AdminTocAdminHoondokAiSummariesTocGetResponses];
+
+export type AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/ai-summaries/{unit_id}';
+};
+
+export type AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetError = AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetErrors[keyof AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetErrors];
+
+export type AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummaryAdminResponse;
+};
+
+export type AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetResponse = AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetResponses[keyof AdminSummaryDetailAdminHoondokAiSummariesUnitIdGetResponses];
+
+export type UpdateSummaryAdminHoondokAiSummariesUnitIdPutData = {
+    body: SummaryUpdate;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/ai-summaries/{unit_id}';
+};
+
+export type UpdateSummaryAdminHoondokAiSummariesUnitIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateSummaryAdminHoondokAiSummariesUnitIdPutError = UpdateSummaryAdminHoondokAiSummariesUnitIdPutErrors[keyof UpdateSummaryAdminHoondokAiSummariesUnitIdPutErrors];
+
+export type UpdateSummaryAdminHoondokAiSummariesUnitIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummaryAdminResponse;
+};
+
+export type UpdateSummaryAdminHoondokAiSummariesUnitIdPutResponse = UpdateSummaryAdminHoondokAiSummariesUnitIdPutResponses[keyof UpdateSummaryAdminHoondokAiSummariesUnitIdPutResponses];
+
+export type SummaryActionAdminHoondokAiSummariesUnitIdActionsPostData = {
+    body: SummaryActionInput;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/ai-summaries/{unit_id}/actions';
+};
+
+export type SummaryActionAdminHoondokAiSummariesUnitIdActionsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SummaryActionAdminHoondokAiSummariesUnitIdActionsPostError = SummaryActionAdminHoondokAiSummariesUnitIdActionsPostErrors[keyof SummaryActionAdminHoondokAiSummariesUnitIdActionsPostErrors];
+
+export type SummaryActionAdminHoondokAiSummariesUnitIdActionsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummaryAdminResponse;
+};
+
+export type SummaryActionAdminHoondokAiSummariesUnitIdActionsPostResponse = SummaryActionAdminHoondokAiSummariesUnitIdActionsPostResponses[keyof SummaryActionAdminHoondokAiSummariesUnitIdActionsPostResponses];
+
+export type UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostData = {
+    body: BodyUploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPost;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/ai-summaries/{unit_id}/media';
+};
+
+export type UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostError = UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostErrors[keyof UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostErrors];
+
+export type UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: SummaryMediaResponse;
+};
+
+export type UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostResponse = UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostResponses[keyof UploadSummaryImageAdminHoondokAiSummariesUnitIdMediaPostResponses];
+
+export type AdminSummaryMediaAdminHoondokAiSummariesUnitIdMediaAssetIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+        /**
+         * Asset Id
+         */
+        asset_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/ai-summaries/{unit_id}/media/{asset_id}';
+};
+
+export type AdminSummaryMediaAdminHoondokAiSummariesUnitIdMediaAssetIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminSummaryMediaAdminHoondokAiSummariesUnitIdMediaAssetIdGetError = AdminSummaryMediaAdminHoondokAiSummariesUnitIdMediaAssetIdGetErrors[keyof AdminSummaryMediaAdminHoondokAiSummariesUnitIdMediaAssetIdGetErrors];
+
+export type AdminSummaryMediaAdminHoondokAiSummariesUnitIdMediaAssetIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type ListCardsAdminHoondokCardsGetData = {
     body?: never;
     path?: never;
@@ -6083,156 +7007,343 @@ export type UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponses = {
 
 export type UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponse = UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponses[keyof UpdateDailyReadingAdminHoondokDailyReadingsReadingIdPutResponses];
 
-export type ListGroupsAdminHoondokGroupsGetData = {
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Status
+         */
+        status?: 'pending' | 'published' | 'hidden' | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/admin/hoondok/questions';
+};
+
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetError = ListPublicQuestionsAdminAdminHoondokQuestionsGetErrors[keyof ListPublicQuestionsAdminAdminHoondokQuestionsGetErrors];
+
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionAdminListResponse;
+};
+
+export type ListPublicQuestionsAdminAdminHoondokQuestionsGetResponse = ListPublicQuestionsAdminAdminHoondokQuestionsGetResponses[keyof ListPublicQuestionsAdminAdminHoondokQuestionsGetResponses];
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchData = {
+    body: PublicQuestionReview;
+    path: {
+        /**
+         * Question Id
+         */
+        question_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/questions/{question_id}';
+};
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchError = ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchErrors[keyof ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchErrors];
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionAdminItem;
+};
+
+export type ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchResponse = ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchResponses[keyof ReviewPublicQuestionAdminHoondokQuestionsQuestionIdPatchResponses];
+
+export type SourceBooksAdminHoondokSourceBooksGetData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/admin/hoondok/groups';
+    url: '/admin/hoondok/source-books';
 };
 
-export type ListGroupsAdminHoondokGroupsGetResponses = {
+export type SourceBooksAdminHoondokSourceBooksGetResponses = {
     /**
-     * Response List Groups Admin Hoondok Groups Get
+     * Response Source Books Admin Hoondok Source Books Get
      *
      * Successful Response
      */
-    200: Array<AdminGroupItem>;
+    200: Array<SourceBook>;
 };
 
-export type ListGroupsAdminHoondokGroupsGetResponse = ListGroupsAdminHoondokGroupsGetResponses[keyof ListGroupsAdminHoondokGroupsGetResponses];
+export type SourceBooksAdminHoondokSourceBooksGetResponse = SourceBooksAdminHoondokSourceBooksGetResponses[keyof SourceBooksAdminHoondokSourceBooksGetResponses];
 
-export type DeleteGroupAdminHoondokGroupsGroupIdDeleteData = {
+export type CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostData = {
     body?: never;
     path: {
         /**
-         * Group Id
+         * Right Id
          */
-        group_id: string;
+        right_id: string;
     };
     query?: never;
-    url: '/admin/hoondok/groups/{group_id}';
+    url: '/admin/hoondok/source-books/{right_id}/snapshots';
 };
 
-export type DeleteGroupAdminHoondokGroupsGroupIdDeleteErrors = {
+export type CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type DeleteGroupAdminHoondokGroupsGroupIdDeleteError = DeleteGroupAdminHoondokGroupsGroupIdDeleteErrors[keyof DeleteGroupAdminHoondokGroupsGroupIdDeleteErrors];
+export type CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostError = CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostErrors[keyof CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostErrors];
 
-export type DeleteGroupAdminHoondokGroupsGroupIdDeleteResponses = {
+export type CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostResponses = {
     /**
      * Successful Response
      */
-    204: void;
+    200: SourceSnapshotInfo;
 };
 
-export type DeleteGroupAdminHoondokGroupsGroupIdDeleteResponse = DeleteGroupAdminHoondokGroupsGroupIdDeleteResponses[keyof DeleteGroupAdminHoondokGroupsGroupIdDeleteResponses];
+export type CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostResponse = CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostResponses[keyof CreateSnapshotAdminHoondokSourceBooksRightIdSnapshotsPostResponses];
 
-export type ListOfficialJeongseongsAdminHoondokJeongseongsGetData = {
+export type SourceRangesAdminHoondokSourceRangesGetData = {
     body?: never;
     path?: never;
-    query?: never;
-    url: '/admin/hoondok/jeongseongs';
+    query?: {
+        /**
+         * Content Right Id
+         */
+        content_right_id?: string | null;
+    };
+    url: '/admin/hoondok/source-ranges';
 };
 
-export type ListOfficialJeongseongsAdminHoondokJeongseongsGetResponses = {
+export type SourceRangesAdminHoondokSourceRangesGetErrors = {
     /**
-     * Response List Official Jeongseongs Admin Hoondok Jeongseongs Get
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SourceRangesAdminHoondokSourceRangesGetError = SourceRangesAdminHoondokSourceRangesGetErrors[keyof SourceRangesAdminHoondokSourceRangesGetErrors];
+
+export type SourceRangesAdminHoondokSourceRangesGetResponses = {
+    /**
+     * Response Source Ranges Admin Hoondok Source Ranges Get
      *
      * Successful Response
      */
-    200: Array<OfficialJeongseongOut>;
+    200: Array<SourceRangeResult>;
 };
 
-export type ListOfficialJeongseongsAdminHoondokJeongseongsGetResponse = ListOfficialJeongseongsAdminHoondokJeongseongsGetResponses[keyof ListOfficialJeongseongsAdminHoondokJeongseongsGetResponses];
+export type SourceRangesAdminHoondokSourceRangesGetResponse = SourceRangesAdminHoondokSourceRangesGetResponses[keyof SourceRangesAdminHoondokSourceRangesGetResponses];
 
-export type CreateOfficialJeongseongAdminHoondokJeongseongsPostData = {
-    body: OfficialJeongseongInput;
+export type CreateRangeAdminHoondokSourceRangesPostData = {
+    body: SourceRangeInput;
     path?: never;
     query?: never;
-    url: '/admin/hoondok/jeongseongs';
+    url: '/admin/hoondok/source-ranges';
 };
 
-export type CreateOfficialJeongseongAdminHoondokJeongseongsPostErrors = {
+export type CreateRangeAdminHoondokSourceRangesPostErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type CreateOfficialJeongseongAdminHoondokJeongseongsPostError = CreateOfficialJeongseongAdminHoondokJeongseongsPostErrors[keyof CreateOfficialJeongseongAdminHoondokJeongseongsPostErrors];
+export type CreateRangeAdminHoondokSourceRangesPostError = CreateRangeAdminHoondokSourceRangesPostErrors[keyof CreateRangeAdminHoondokSourceRangesPostErrors];
 
-export type CreateOfficialJeongseongAdminHoondokJeongseongsPostResponses = {
+export type CreateRangeAdminHoondokSourceRangesPostResponses = {
     /**
      * Successful Response
      */
-    201: OfficialJeongseongOut;
+    201: SourceRangeResult;
 };
 
-export type CreateOfficialJeongseongAdminHoondokJeongseongsPostResponse = CreateOfficialJeongseongAdminHoondokJeongseongsPostResponses[keyof CreateOfficialJeongseongAdminHoondokJeongseongsPostResponses];
+export type CreateRangeAdminHoondokSourceRangesPostResponse = CreateRangeAdminHoondokSourceRangesPostResponses[keyof CreateRangeAdminHoondokSourceRangesPostResponses];
 
-export type DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteData = {
+export type SourceRangeAdminHoondokSourceRangesRangeIdGetData = {
     body?: never;
     path: {
         /**
-         * Jeongseong Id
+         * Range Id
          */
-        jeongseong_id: string;
+        range_id: string;
     };
     query?: never;
-    url: '/admin/hoondok/jeongseongs/{jeongseong_id}';
+    url: '/admin/hoondok/source-ranges/{range_id}';
 };
 
-export type DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteErrors = {
+export type SourceRangeAdminHoondokSourceRangesRangeIdGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteError = DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteErrors[keyof DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteErrors];
+export type SourceRangeAdminHoondokSourceRangesRangeIdGetError = SourceRangeAdminHoondokSourceRangesRangeIdGetErrors[keyof SourceRangeAdminHoondokSourceRangesRangeIdGetErrors];
 
-export type DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteResponses = {
+export type SourceRangeAdminHoondokSourceRangesRangeIdGetResponses = {
     /**
      * Successful Response
      */
-    204: void;
+    200: SourceRangeResult;
 };
 
-export type DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteResponse = DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteResponses[keyof DeleteOfficialJeongseongAdminHoondokJeongseongsJeongseongIdDeleteResponses];
+export type SourceRangeAdminHoondokSourceRangesRangeIdGetResponse = SourceRangeAdminHoondokSourceRangesRangeIdGetResponses[keyof SourceRangeAdminHoondokSourceRangesRangeIdGetResponses];
 
-export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutData = {
-    body: OfficialJeongseongInput;
+export type UpdateRangeAdminHoondokSourceRangesRangeIdPutData = {
+    body: SourceRangeUpdate;
     path: {
         /**
-         * Jeongseong Id
+         * Range Id
          */
-        jeongseong_id: string;
+        range_id: string;
     };
     query?: never;
-    url: '/admin/hoondok/jeongseongs/{jeongseong_id}';
+    url: '/admin/hoondok/source-ranges/{range_id}';
 };
 
-export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutErrors = {
+export type UpdateRangeAdminHoondokSourceRangesRangeIdPutErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutError = UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutErrors[keyof UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutErrors];
+export type UpdateRangeAdminHoondokSourceRangesRangeIdPutError = UpdateRangeAdminHoondokSourceRangesRangeIdPutErrors[keyof UpdateRangeAdminHoondokSourceRangesRangeIdPutErrors];
 
-export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses = {
+export type UpdateRangeAdminHoondokSourceRangesRangeIdPutResponses = {
     /**
      * Successful Response
      */
-    200: OfficialJeongseongOut;
+    200: SourceRangeResult;
 };
 
-export type UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponse = UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses[keyof UpdateOfficialJeongseongAdminHoondokJeongseongsJeongseongIdPutResponses];
+export type UpdateRangeAdminHoondokSourceRangesRangeIdPutResponse = UpdateRangeAdminHoondokSourceRangesRangeIdPutResponses[keyof UpdateRangeAdminHoondokSourceRangesRangeIdPutResponses];
+
+export type MergeRangesAdminHoondokSourceRangesRangeIdMergePostData = {
+    body: SourceRangeMerge;
+    path: {
+        /**
+         * Range Id
+         */
+        range_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/source-ranges/{range_id}/merge';
+};
+
+export type MergeRangesAdminHoondokSourceRangesRangeIdMergePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type MergeRangesAdminHoondokSourceRangesRangeIdMergePostError = MergeRangesAdminHoondokSourceRangesRangeIdMergePostErrors[keyof MergeRangesAdminHoondokSourceRangesRangeIdMergePostErrors];
+
+export type MergeRangesAdminHoondokSourceRangesRangeIdMergePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: SourceRangeResult;
+};
+
+export type MergeRangesAdminHoondokSourceRangesRangeIdMergePostResponse = MergeRangesAdminHoondokSourceRangesRangeIdMergePostResponses[keyof MergeRangesAdminHoondokSourceRangesRangeIdMergePostResponses];
+
+export type SplitRangeAdminHoondokSourceRangesRangeIdSplitPostData = {
+    body: SourceRangeSplit;
+    path: {
+        /**
+         * Range Id
+         */
+        range_id: string;
+    };
+    query?: never;
+    url: '/admin/hoondok/source-ranges/{range_id}/split';
+};
+
+export type SplitRangeAdminHoondokSourceRangesRangeIdSplitPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SplitRangeAdminHoondokSourceRangesRangeIdSplitPostError = SplitRangeAdminHoondokSourceRangesRangeIdSplitPostErrors[keyof SplitRangeAdminHoondokSourceRangesRangeIdSplitPostErrors];
+
+export type SplitRangeAdminHoondokSourceRangesRangeIdSplitPostResponses = {
+    /**
+     * Response Split Range Admin Hoondok Source Ranges  Range Id  Split Post
+     *
+     * Successful Response
+     */
+    200: Array<SourceRangeResult>;
+};
+
+export type SplitRangeAdminHoondokSourceRangesRangeIdSplitPostResponse = SplitRangeAdminHoondokSourceRangesRangeIdSplitPostResponses[keyof SplitRangeAdminHoondokSourceRangesRangeIdSplitPostResponses];
+
+export type SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetData = {
+    body?: never;
+    path: {
+        /**
+         * Snapshot Id
+         */
+        snapshot_id: string;
+    };
+    query?: {
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Start Block Id
+         */
+        start_block_id?: string | null;
+    };
+    url: '/admin/hoondok/source-snapshots/{snapshot_id}/passages';
+};
+
+export type SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetError = SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetErrors[keyof SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetErrors];
+
+export type SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SourcePassages;
+};
+
+export type SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetResponse = SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetResponses[keyof SourcePassagesAdminHoondokSourceSnapshotsSnapshotIdPassagesGetResponses];
 
 export type RunRagTraceAdminRagTracePostData = {
     body: RagTraceRequest;
@@ -6347,66 +7458,6 @@ export type UpdateAdminUserStatusAdminUsersUserIdStatusPatchResponses = {
 };
 
 export type UpdateAdminUserStatusAdminUsersUserIdStatusPatchResponse = UpdateAdminUserStatusAdminUsersUserIdStatusPatchResponses[keyof UpdateAdminUserStatusAdminUsersUserIdStatusPatchResponses];
-
-export type ToggleReactionApiChatMessagesMessageIdReactionPostData = {
-    body: ReactionRequest;
-    path: {
-        /**
-         * Message Id
-         */
-        message_id: string;
-    };
-    query?: never;
-    url: '/api/chat/messages/{message_id}/reaction';
-};
-
-export type ToggleReactionApiChatMessagesMessageIdReactionPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ToggleReactionApiChatMessagesMessageIdReactionPostError = ToggleReactionApiChatMessagesMessageIdReactionPostErrors[keyof ToggleReactionApiChatMessagesMessageIdReactionPostErrors];
-
-export type ToggleReactionApiChatMessagesMessageIdReactionPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: ReactionToggleResponse;
-};
-
-export type ToggleReactionApiChatMessagesMessageIdReactionPostResponse = ToggleReactionApiChatMessagesMessageIdReactionPostResponses[keyof ToggleReactionApiChatMessagesMessageIdReactionPostResponses];
-
-export type GetAggregateApiChatMessagesMessageIdReactionsGetData = {
-    body?: never;
-    path: {
-        /**
-         * Message Id
-         */
-        message_id: string;
-    };
-    query?: never;
-    url: '/api/chat/messages/{message_id}/reactions';
-};
-
-export type GetAggregateApiChatMessagesMessageIdReactionsGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetAggregateApiChatMessagesMessageIdReactionsGetError = GetAggregateApiChatMessagesMessageIdReactionsGetErrors[keyof GetAggregateApiChatMessagesMessageIdReactionsGetErrors];
-
-export type GetAggregateApiChatMessagesMessageIdReactionsGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: ReactionAggregate;
-};
-
-export type GetAggregateApiChatMessagesMessageIdReactionsGetResponse = GetAggregateApiChatMessagesMessageIdReactionsGetResponses[keyof GetAggregateApiChatMessagesMessageIdReactionsGetResponses];
 
 export type GetChunkApiSourcesChunksChunkIdGetData = {
     body?: never;
@@ -6644,6 +7695,137 @@ export type HealthHealthGetResponses = {
     200: unknown;
 };
 
+export type ListSummariesHoondokAiSummariesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Volume
+         */
+        volume?: string | null;
+    };
+    url: '/hoondok/ai-summaries';
+};
+
+export type ListSummariesHoondokAiSummariesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListSummariesHoondokAiSummariesGetError = ListSummariesHoondokAiSummariesGetErrors[keyof ListSummariesHoondokAiSummariesGetErrors];
+
+export type ListSummariesHoondokAiSummariesGetResponses = {
+    /**
+     * Response List Summaries Hoondok Ai Summaries Get
+     *
+     * Successful Response
+     */
+    200: Array<SummaryListItem>;
+};
+
+export type ListSummariesHoondokAiSummariesGetResponse = ListSummariesHoondokAiSummariesGetResponses[keyof ListSummariesHoondokAiSummariesGetResponses];
+
+export type SummaryDetailHoondokAiSummariesUnitIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+    };
+    query?: never;
+    url: '/hoondok/ai-summaries/{unit_id}';
+};
+
+export type SummaryDetailHoondokAiSummariesUnitIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SummaryDetailHoondokAiSummariesUnitIdGetError = SummaryDetailHoondokAiSummariesUnitIdGetErrors[keyof SummaryDetailHoondokAiSummariesUnitIdGetErrors];
+
+export type SummaryDetailHoondokAiSummariesUnitIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SummaryDetail;
+};
+
+export type SummaryDetailHoondokAiSummariesUnitIdGetResponse = SummaryDetailHoondokAiSummariesUnitIdGetResponses[keyof SummaryDetailHoondokAiSummariesUnitIdGetResponses];
+
+export type SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Unit Id
+         */
+        unit_id: string;
+        /**
+         * Asset Id
+         */
+        asset_id: string;
+    };
+    query?: never;
+    url: '/hoondok/ai-summaries/{unit_id}/media/{asset_id}';
+};
+
+export type SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetError = SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetErrors[keyof SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetErrors];
+
+export type SummaryMediaHoondokAiSummariesUnitIdMediaAssetIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type AskStreamHoondokAskStreamPostData = {
+    body: AskRequest;
+    path?: never;
+    query?: never;
+    url: '/hoondok/ask/stream';
+};
+
+export type AskStreamHoondokAskStreamPostErrors = {
+    /**
+     * INPUT_BLOCKED — 빈 질문·1000자 초과·차단 패턴
+     */
+    400: ErrorResponse;
+    /**
+     * SESSION_FORBIDDEN — 내 대화가 아닌 session_id
+     */
+    403: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * ASK_DAILY_LIMIT(details: limit·used·remaining·resets_at) 또는 RATE_LIMIT_EXCEEDED
+     */
+    429: ErrorResponse;
+};
+
+export type AskStreamHoondokAskStreamPostError = AskStreamHoondokAskStreamPostErrors[keyof AskStreamHoondokAskStreamPostErrors];
+
+export type AskStreamHoondokAskStreamPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type AskStreamHoondokAskStreamPostResponse = AskStreamHoondokAskStreamPostResponses[keyof AskStreamHoondokAskStreamPostResponses];
+
 export type LoginHoondokAuthLoginPostData = {
     body: LoginRequest;
     path?: never;
@@ -6829,531 +8011,6 @@ export type ReportClientErrorHoondokClientErrorsPostResponses = {
 
 export type ReportClientErrorHoondokClientErrorsPostResponse = ReportClientErrorHoondokClientErrorsPostResponses[keyof ReportClientErrorHoondokClientErrorsPostResponses];
 
-export type CreateGroupHoondokGroupsPostData = {
-    body: GroupCreate;
-    path?: never;
-    query?: never;
-    url: '/hoondok/groups';
-};
-
-export type CreateGroupHoondokGroupsPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type CreateGroupHoondokGroupsPostError = CreateGroupHoondokGroupsPostErrors[keyof CreateGroupHoondokGroupsPostErrors];
-
-export type CreateGroupHoondokGroupsPostResponses = {
-    /**
-     * Successful Response
-     */
-    201: GroupDetail;
-};
-
-export type CreateGroupHoondokGroupsPostResponse = CreateGroupHoondokGroupsPostResponses[keyof CreateGroupHoondokGroupsPostResponses];
-
-export type DeleteGroupHoondokGroupsGroupIdDeleteData = {
-    body?: never;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}';
-};
-
-export type DeleteGroupHoondokGroupsGroupIdDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DeleteGroupHoondokGroupsGroupIdDeleteError = DeleteGroupHoondokGroupsGroupIdDeleteErrors[keyof DeleteGroupHoondokGroupsGroupIdDeleteErrors];
-
-export type DeleteGroupHoondokGroupsGroupIdDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type DeleteGroupHoondokGroupsGroupIdDeleteResponse = DeleteGroupHoondokGroupsGroupIdDeleteResponses[keyof DeleteGroupHoondokGroupsGroupIdDeleteResponses];
-
-export type GetGroupHoondokGroupsGroupIdGetData = {
-    body?: never;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}';
-};
-
-export type GetGroupHoondokGroupsGroupIdGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetGroupHoondokGroupsGroupIdGetError = GetGroupHoondokGroupsGroupIdGetErrors[keyof GetGroupHoondokGroupsGroupIdGetErrors];
-
-export type GetGroupHoondokGroupsGroupIdGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: GroupDetail;
-};
-
-export type GetGroupHoondokGroupsGroupIdGetResponse = GetGroupHoondokGroupsGroupIdGetResponses[keyof GetGroupHoondokGroupsGroupIdGetResponses];
-
-export type RenameGroupHoondokGroupsGroupIdPatchData = {
-    body: GroupRename;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}';
-};
-
-export type RenameGroupHoondokGroupsGroupIdPatchErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type RenameGroupHoondokGroupsGroupIdPatchError = RenameGroupHoondokGroupsGroupIdPatchErrors[keyof RenameGroupHoondokGroupsGroupIdPatchErrors];
-
-export type RenameGroupHoondokGroupsGroupIdPatchResponses = {
-    /**
-     * Successful Response
-     */
-    200: GroupDetail;
-};
-
-export type RenameGroupHoondokGroupsGroupIdPatchResponse = RenameGroupHoondokGroupsGroupIdPatchResponses[keyof RenameGroupHoondokGroupsGroupIdPatchResponses];
-
-export type RegenerateInviteHoondokGroupsGroupIdInvitePostData = {
-    body?: never;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}/invite';
-};
-
-export type RegenerateInviteHoondokGroupsGroupIdInvitePostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type RegenerateInviteHoondokGroupsGroupIdInvitePostError = RegenerateInviteHoondokGroupsGroupIdInvitePostErrors[keyof RegenerateInviteHoondokGroupsGroupIdInvitePostErrors];
-
-export type RegenerateInviteHoondokGroupsGroupIdInvitePostResponses = {
-    /**
-     * Successful Response
-     */
-    200: InviteOut;
-};
-
-export type RegenerateInviteHoondokGroupsGroupIdInvitePostResponse = RegenerateInviteHoondokGroupsGroupIdInvitePostResponses[keyof RegenerateInviteHoondokGroupsGroupIdInvitePostResponses];
-
-export type AddJeongseongHoondokGroupsGroupIdJeongseongsPostData = {
-    body: GroupJeongseongInput;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}/jeongseongs';
-};
-
-export type AddJeongseongHoondokGroupsGroupIdJeongseongsPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type AddJeongseongHoondokGroupsGroupIdJeongseongsPostError = AddJeongseongHoondokGroupsGroupIdJeongseongsPostErrors[keyof AddJeongseongHoondokGroupsGroupIdJeongseongsPostErrors];
-
-export type AddJeongseongHoondokGroupsGroupIdJeongseongsPostResponses = {
-    /**
-     * Successful Response
-     */
-    201: GroupJeongseongOut;
-};
-
-export type AddJeongseongHoondokGroupsGroupIdJeongseongsPostResponse = AddJeongseongHoondokGroupsGroupIdJeongseongsPostResponses[keyof AddJeongseongHoondokGroupsGroupIdJeongseongsPostResponses];
-
-export type DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteData = {
-    body?: never;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-        /**
-         * Jeongseong Id
-         */
-        jeongseong_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}/jeongseongs/{jeongseong_id}';
-};
-
-export type DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteError = DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteErrors[keyof DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteErrors];
-
-export type DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteResponse = DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteResponses[keyof DeleteJeongseongHoondokGroupsGroupIdJeongseongsJeongseongIdDeleteResponses];
-
-export type LeaveGroupHoondokGroupsGroupIdMeDeleteData = {
-    body?: never;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}/me';
-};
-
-export type LeaveGroupHoondokGroupsGroupIdMeDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type LeaveGroupHoondokGroupsGroupIdMeDeleteError = LeaveGroupHoondokGroupsGroupIdMeDeleteErrors[keyof LeaveGroupHoondokGroupsGroupIdMeDeleteErrors];
-
-export type LeaveGroupHoondokGroupsGroupIdMeDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type LeaveGroupHoondokGroupsGroupIdMeDeleteResponse = LeaveGroupHoondokGroupsGroupIdMeDeleteResponses[keyof LeaveGroupHoondokGroupsGroupIdMeDeleteResponses];
-
-export type UpdateMyNameHoondokGroupsGroupIdMePatchData = {
-    body: DisplayNameInput;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}/me';
-};
-
-export type UpdateMyNameHoondokGroupsGroupIdMePatchErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type UpdateMyNameHoondokGroupsGroupIdMePatchError = UpdateMyNameHoondokGroupsGroupIdMePatchErrors[keyof UpdateMyNameHoondokGroupsGroupIdMePatchErrors];
-
-export type UpdateMyNameHoondokGroupsGroupIdMePatchResponses = {
-    /**
-     * Successful Response
-     */
-    200: GroupMe;
-};
-
-export type UpdateMyNameHoondokGroupsGroupIdMePatchResponse = UpdateMyNameHoondokGroupsGroupIdMePatchResponses[keyof UpdateMyNameHoondokGroupsGroupIdMePatchResponses];
-
-export type ListMembersHoondokGroupsGroupIdMembersGetData = {
-    body?: never;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}/members';
-};
-
-export type ListMembersHoondokGroupsGroupIdMembersGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListMembersHoondokGroupsGroupIdMembersGetError = ListMembersHoondokGroupsGroupIdMembersGetErrors[keyof ListMembersHoondokGroupsGroupIdMembersGetErrors];
-
-export type ListMembersHoondokGroupsGroupIdMembersGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: MemberList;
-};
-
-export type ListMembersHoondokGroupsGroupIdMembersGetResponse = ListMembersHoondokGroupsGroupIdMembersGetResponses[keyof ListMembersHoondokGroupsGroupIdMembersGetResponses];
-
-export type RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteData = {
-    body?: never;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-        /**
-         * Member Id
-         */
-        member_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}/members/{member_id}';
-};
-
-export type RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteError = RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteErrors[keyof RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteErrors];
-
-export type RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteResponse = RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteResponses[keyof RemoveMemberHoondokGroupsGroupIdMembersMemberIdDeleteResponses];
-
-export type PutTodayShareHoondokGroupsGroupIdSharesTodayPutData = {
-    body: ShareInput;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}/shares/today';
-};
-
-export type PutTodayShareHoondokGroupsGroupIdSharesTodayPutErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PutTodayShareHoondokGroupsGroupIdSharesTodayPutError = PutTodayShareHoondokGroupsGroupIdSharesTodayPutErrors[keyof PutTodayShareHoondokGroupsGroupIdSharesTodayPutErrors];
-
-export type PutTodayShareHoondokGroupsGroupIdSharesTodayPutResponses = {
-    /**
-     * Successful Response
-     */
-    200: GroupShareOut;
-};
-
-export type PutTodayShareHoondokGroupsGroupIdSharesTodayPutResponse = PutTodayShareHoondokGroupsGroupIdSharesTodayPutResponses[keyof PutTodayShareHoondokGroupsGroupIdSharesTodayPutResponses];
-
-export type DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteData = {
-    body?: never;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-        /**
-         * Share Id
-         */
-        share_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}/shares/{share_id}';
-};
-
-export type DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteError = DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteErrors[keyof DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteErrors];
-
-export type DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteResponse = DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteResponses[keyof DeleteShareHoondokGroupsGroupIdSharesShareIdDeleteResponses];
-
-export type UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteData = {
-    body?: never;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-        /**
-         * Share Id
-         */
-        share_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}/shares/{share_id}/reaction';
-};
-
-export type UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteError = UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteErrors[keyof UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteErrors];
-
-export type UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    200: ReactionState;
-};
-
-export type UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteResponse = UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteResponses[keyof UnreactShareHoondokGroupsGroupIdSharesShareIdReactionDeleteResponses];
-
-export type ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutData = {
-    body?: never;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
-        /**
-         * Share Id
-         */
-        share_id: string;
-    };
-    query?: never;
-    url: '/hoondok/groups/{group_id}/shares/{share_id}/reaction';
-};
-
-export type ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutError = ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutErrors[keyof ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutErrors];
-
-export type ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutResponses = {
-    /**
-     * Successful Response
-     */
-    200: ReactionState;
-};
-
-export type ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutResponse = ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutResponses[keyof ReactShareHoondokGroupsGroupIdSharesShareIdReactionPutResponses];
-
-export type PreviewInviteHoondokInvitesCodeGetData = {
-    body?: never;
-    path: {
-        /**
-         * Code
-         */
-        code: string;
-    };
-    query?: never;
-    url: '/hoondok/invites/{code}';
-};
-
-export type PreviewInviteHoondokInvitesCodeGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PreviewInviteHoondokInvitesCodeGetError = PreviewInviteHoondokInvitesCodeGetErrors[keyof PreviewInviteHoondokInvitesCodeGetErrors];
-
-export type PreviewInviteHoondokInvitesCodeGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: InvitePreview;
-};
-
-export type PreviewInviteHoondokInvitesCodeGetResponse = PreviewInviteHoondokInvitesCodeGetResponses[keyof PreviewInviteHoondokInvitesCodeGetResponses];
-
-export type JoinGroupHoondokInvitesCodeJoinPostData = {
-    body: DisplayNameInput;
-    path: {
-        /**
-         * Code
-         */
-        code: string;
-    };
-    query?: never;
-    url: '/hoondok/invites/{code}/join';
-};
-
-export type JoinGroupHoondokInvitesCodeJoinPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type JoinGroupHoondokInvitesCodeJoinPostError = JoinGroupHoondokInvitesCodeJoinPostErrors[keyof JoinGroupHoondokInvitesCodeJoinPostErrors];
-
-export type JoinGroupHoondokInvitesCodeJoinPostResponses = {
-    /**
-     * Successful Response
-     */
-    201: JoinResult;
-};
-
-export type JoinGroupHoondokInvitesCodeJoinPostResponse = JoinGroupHoondokInvitesCodeJoinPostResponses[keyof JoinGroupHoondokInvitesCodeJoinPostResponses];
-
 export type GetLibraryHoondokLibraryGetData = {
     body?: never;
     path?: never;
@@ -7399,6 +8056,142 @@ export type GetSeriesHoondokLibrarySeriesGetResponses = {
 };
 
 export type GetSeriesHoondokLibrarySeriesGetResponse = GetSeriesHoondokLibrarySeriesGetResponses[keyof GetSeriesHoondokLibrarySeriesGetResponses];
+
+export type ListMyAsksHoondokMeAsksGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/hoondok/me/asks';
+};
+
+export type ListMyAsksHoondokMeAsksGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListMyAsksHoondokMeAsksGetError = ListMyAsksHoondokMeAsksGetErrors[keyof ListMyAsksHoondokMeAsksGetErrors];
+
+export type ListMyAsksHoondokMeAsksGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyAskListResponse;
+};
+
+export type ListMyAsksHoondokMeAsksGetResponse = ListMyAsksHoondokMeAsksGetResponses[keyof ListMyAsksHoondokMeAsksGetResponses];
+
+export type GetMyAskQuotaHoondokMeAsksQuotaGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/asks/quota';
+};
+
+export type GetMyAskQuotaHoondokMeAsksQuotaGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: AskQuota;
+};
+
+export type GetMyAskQuotaHoondokMeAsksQuotaGetResponse = GetMyAskQuotaHoondokMeAsksQuotaGetResponses[keyof GetMyAskQuotaHoondokMeAsksQuotaGetResponses];
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/asks/{session_id}';
+};
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteError = DeleteMyAskHoondokMeAsksSessionIdDeleteErrors[keyof DeleteMyAskHoondokMeAsksSessionIdDeleteErrors];
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteMyAskHoondokMeAsksSessionIdDeleteResponse = DeleteMyAskHoondokMeAsksSessionIdDeleteResponses[keyof DeleteMyAskHoondokMeAsksSessionIdDeleteResponses];
+
+export type GetMyAskHoondokMeAsksSessionIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/asks/{session_id}';
+};
+
+export type GetMyAskHoondokMeAsksSessionIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMyAskHoondokMeAsksSessionIdGetError = GetMyAskHoondokMeAsksSessionIdGetErrors[keyof GetMyAskHoondokMeAsksSessionIdGetErrors];
+
+export type GetMyAskHoondokMeAsksSessionIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyAskDetail;
+};
+
+export type GetMyAskHoondokMeAsksSessionIdGetResponse = GetMyAskHoondokMeAsksSessionIdGetResponses[keyof GetMyAskHoondokMeAsksSessionIdGetResponses];
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchData = {
+    body: MyAskUpdate;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/asks/{session_id}';
+};
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchError = UpdateMyAskHoondokMeAsksSessionIdPatchErrors[keyof UpdateMyAskHoondokMeAsksSessionIdPatchErrors];
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyAskDetail;
+};
+
+export type UpdateMyAskHoondokMeAsksSessionIdPatchResponse = UpdateMyAskHoondokMeAsksSessionIdPatchResponses[keyof UpdateMyAskHoondokMeAsksSessionIdPatchResponses];
 
 export type GetMyCardsHoondokMeCardsGetData = {
     body?: never;
@@ -7491,24 +8284,6 @@ export type MarkCardSharedHoondokMeCardsCardIdSharedPostResponses = {
 };
 
 export type MarkCardSharedHoondokMeCardsCardIdSharedPostResponse = MarkCardSharedHoondokMeCardsCardIdSharedPostResponses[keyof MarkCardSharedHoondokMeCardsCardIdSharedPostResponses];
-
-export type ListMyGroupsHoondokMeGroupsGetData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/hoondok/me/groups';
-};
-
-export type ListMyGroupsHoondokMeGroupsGetResponses = {
-    /**
-     * Response List My Groups Hoondok Me Groups Get
-     *
-     * Successful Response
-     */
-    200: Array<MyGroupItem>;
-};
-
-export type ListMyGroupsHoondokMeGroupsGetResponse = ListMyGroupsHoondokMeGroupsGetResponses[keyof ListMyGroupsHoondokMeGroupsGetResponses];
 
 export type GetHighlightsHoondokMeHighlightsGetData = {
     body?: never;
@@ -7734,113 +8509,6 @@ export type GetJeongseongTodayHoondokMeJeongseongTodayGetResponses = {
 
 export type GetJeongseongTodayHoondokMeJeongseongTodayGetResponse = GetJeongseongTodayHoondokMeJeongseongTodayGetResponses[keyof GetJeongseongTodayHoondokMeJeongseongTodayGetResponses];
 
-export type GetMarksHoondokMeMarksGetData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Volume
-         */
-        volume?: string | null;
-        /**
-         * Kind
-         */
-        kind?: string | null;
-        /**
-         * Limit
-         */
-        limit?: number;
-        /**
-         * Excerpt
-         */
-        excerpt?: boolean;
-    };
-    url: '/hoondok/me/marks';
-};
-
-export type GetMarksHoondokMeMarksGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetMarksHoondokMeMarksGetError = GetMarksHoondokMeMarksGetErrors[keyof GetMarksHoondokMeMarksGetErrors];
-
-export type GetMarksHoondokMeMarksGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: MarksResponse;
-};
-
-export type GetMarksHoondokMeMarksGetResponse = GetMarksHoondokMeMarksGetResponses[keyof GetMarksHoondokMeMarksGetResponses];
-
-export type DeleteMarkHoondokMeMarksChunkIdDeleteData = {
-    body?: never;
-    path: {
-        /**
-         * Chunk Id
-         */
-        chunk_id: string;
-    };
-    query?: {
-        /**
-         * Kind
-         */
-        kind?: string | null;
-    };
-    url: '/hoondok/me/marks/{chunk_id}';
-};
-
-export type DeleteMarkHoondokMeMarksChunkIdDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DeleteMarkHoondokMeMarksChunkIdDeleteError = DeleteMarkHoondokMeMarksChunkIdDeleteErrors[keyof DeleteMarkHoondokMeMarksChunkIdDeleteErrors];
-
-export type DeleteMarkHoondokMeMarksChunkIdDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type DeleteMarkHoondokMeMarksChunkIdDeleteResponse = DeleteMarkHoondokMeMarksChunkIdDeleteResponses[keyof DeleteMarkHoondokMeMarksChunkIdDeleteResponses];
-
-export type PutMarkHoondokMeMarksChunkIdPutData = {
-    body: MarkInput;
-    path: {
-        /**
-         * Chunk Id
-         */
-        chunk_id: string;
-    };
-    query?: never;
-    url: '/hoondok/me/marks/{chunk_id}';
-};
-
-export type PutMarkHoondokMeMarksChunkIdPutErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type PutMarkHoondokMeMarksChunkIdPutError = PutMarkHoondokMeMarksChunkIdPutErrors[keyof PutMarkHoondokMeMarksChunkIdPutErrors];
-
-export type PutMarkHoondokMeMarksChunkIdPutResponses = {
-    /**
-     * Successful Response
-     */
-    200: MarkItem;
-};
-
-export type PutMarkHoondokMeMarksChunkIdPutResponse = PutMarkHoondokMeMarksChunkIdPutResponses[keyof PutMarkHoondokMeMarksChunkIdPutResponses];
-
 export type GetNotificationsHoondokMeNotificationsGetData = {
     body?: never;
     path?: never;
@@ -7936,6 +8604,77 @@ export type CreatePushSubscriptionHoondokMePushPostResponses = {
 };
 
 export type CreatePushSubscriptionHoondokMePushPostResponse = CreatePushSubscriptionHoondokMePushPostResponses[keyof CreatePushSubscriptionHoondokMePushPostResponses];
+
+export type ListMyPublicQuestionsHoondokMeQuestionsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/questions';
+};
+
+export type ListMyPublicQuestionsHoondokMeQuestionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyPublicQuestionListResponse;
+};
+
+export type ListMyPublicQuestionsHoondokMeQuestionsGetResponse = ListMyPublicQuestionsHoondokMeQuestionsGetResponses[keyof ListMyPublicQuestionsHoondokMeQuestionsGetResponses];
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostData = {
+    body: PublicQuestionCreate;
+    path?: never;
+    query?: never;
+    url: '/hoondok/me/questions';
+};
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostError = SubmitPublicQuestionHoondokMeQuestionsPostErrors[keyof SubmitPublicQuestionHoondokMeQuestionsPostErrors];
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: MyPublicQuestionItem;
+};
+
+export type SubmitPublicQuestionHoondokMeQuestionsPostResponse = SubmitPublicQuestionHoondokMeQuestionsPostResponses[keyof SubmitPublicQuestionHoondokMeQuestionsPostResponses];
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Question Id
+         */
+        question_id: string;
+    };
+    query?: never;
+    url: '/hoondok/me/questions/{question_id}';
+};
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteError = DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteErrors[keyof DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteErrors];
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteResponse = DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteResponses[keyof DeleteMyPublicQuestionHoondokMeQuestionsQuestionIdDeleteResponses];
 
 export type PutReadingPositionHoondokMeReadingPositionVolumePutData = {
     body: ReadingPositionInput;
@@ -8062,6 +8801,78 @@ export type GetPushConfigHoondokPushConfigGetResponses = {
 };
 
 export type GetPushConfigHoondokPushConfigGetResponse = GetPushConfigHoondokPushConfigGetResponses[keyof GetPushConfigHoondokPushConfigGetResponses];
+
+export type ListPublicQuestionsHoondokQuestionsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         *
+         * 질문 문장 부분 일치(대소문자 무시)
+         */
+        q?: string | null;
+        /**
+         * Cursor
+         *
+         * 직전 응답의 next_cursor
+         */
+        cursor?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/hoondok/questions';
+};
+
+export type ListPublicQuestionsHoondokQuestionsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListPublicQuestionsHoondokQuestionsGetError = ListPublicQuestionsHoondokQuestionsGetErrors[keyof ListPublicQuestionsHoondokQuestionsGetErrors];
+
+export type ListPublicQuestionsHoondokQuestionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionListResponse;
+};
+
+export type ListPublicQuestionsHoondokQuestionsGetResponse = ListPublicQuestionsHoondokQuestionsGetResponses[keyof ListPublicQuestionsHoondokQuestionsGetResponses];
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Question Id
+         */
+        question_id: string;
+    };
+    query?: never;
+    url: '/hoondok/questions/{question_id}';
+};
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetError = GetPublicQuestionHoondokQuestionsQuestionIdGetErrors[keyof GetPublicQuestionHoondokQuestionsQuestionIdGetErrors];
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicQuestionDetail;
+};
+
+export type GetPublicQuestionHoondokQuestionsQuestionIdGetResponse = GetPublicQuestionHoondokQuestionsQuestionIdGetResponses[keyof GetPublicQuestionHoondokQuestionsQuestionIdGetResponses];
 
 export type SearchWordsHoondokSearchGetData = {
     body?: never;
@@ -8217,69 +9028,6 @@ export type GetChunkAudioHoondokTtsChunksChunkIdGetResponses = {
 };
 
 export type GetChunkAudioHoondokTtsChunksChunkIdGetResponse = GetChunkAudioHoondokTtsChunksChunkIdGetResponses[keyof GetChunkAudioHoondokTtsChunksChunkIdGetResponses];
-
-export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetData = {
-    body?: never;
-    path: {
-        /**
-         * Reading Id
-         */
-        reading_id: string;
-        /**
-         * Paragraph
-         */
-        paragraph: number;
-    };
-    query: {
-        /**
-         * Voice
-         */
-        voice: string;
-    };
-    url: '/hoondok/tts/readings/{reading_id}/{paragraph}';
-};
-
-export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors = {
-    /**
-     * 로그인 필요
-     */
-    401: ErrorResponse;
-    /**
-     * TTS_SOURCE_NOT_FOUND — 본문 없음·권리 없음·단락 번호 범위 밖
-     */
-    404: ErrorResponse;
-    /**
-     * TTS_INVALID_VOICE — 알 수 없는 목소리
-     */
-    422: ErrorResponse;
-    /**
-     * TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 · TTS_USER_LIMIT_EXCEEDED — 사용자 24시간 한도 · RATE_LIMIT_EXCEEDED — 요청 빈도(잠시 뒤 재시도)
-     */
-    429: ErrorResponse;
-    /**
-     * TTS_UPSTREAM_FAILED — Google 오류·네트워크
-     */
-    502: ErrorResponse;
-    /**
-     * TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정 또는 캐시 디렉터리 쓰기 불가
-     */
-    503: ErrorResponse;
-    /**
-     * TTS_TIMEOUT — 합성 시간 상한(45초) 초과
-     */
-    504: ErrorResponse;
-};
-
-export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetError = GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors[keyof GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetErrors];
-
-export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetResponses = {
-    /**
-     * 단락 mp3
-     */
-    200: Blob | File;
-};
-
-export type GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetResponse = GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetResponses[keyof GetReadingAudioHoondokTtsReadingsReadingIdParagraphGetResponses];
 
 export type GetTtsVoicesHoondokTtsVoicesGetData = {
     body?: never;

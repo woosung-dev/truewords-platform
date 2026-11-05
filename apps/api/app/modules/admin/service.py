@@ -1,10 +1,11 @@
 """관리자 Service. 비즈니스 로직 담당, AsyncSession import 금지."""
 
+import asyncio
 import uuid
 
 from fastapi import HTTPException, status
 
-from app.modules.admin.auth import create_access_token, hash_password, verify_password
+from app.modules.admin.auth import create_access_token, hash_password, verify_login_password
 from app.modules.admin.models import AdminAuditLog, AdminRole, AdminUser
 from app.modules.admin.repository import AdminRepository
 from app.modules.admin.schemas import AdminLoginRequest, AdminLoginResponse, CreateAdminRequest
@@ -16,7 +17,10 @@ class AdminService:
 
     async def login(self, data: AdminLoginRequest) -> AdminLoginResponse:
         user = await self.repo.get_user_by_email(data.email)
-        if not user or not verify_password(data.password, user.hashed_password):
+        # 없는 계정도 bcrypt 를 돌려 응답 시간으로 관리자 이메일이 드러나지 않게 한다.
+        # bcrypt 는 CPU 를 오래 쓰므로 스레드에서 돌려 단일 워커 이벤트 루프를 막지 않는다.
+        ok = await asyncio.to_thread(verify_login_password, data.password, user.hashed_password if user else None)
+        if not user or not ok:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="이메일 또는 비밀번호가 올바르지 않습니다",

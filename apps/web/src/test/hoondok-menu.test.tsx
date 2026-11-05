@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // 앱바 햄버거 → 전체 메뉴 드로어 + 즐겨찾기 (밀리의 서재 즐겨찾기 패널 벤치마크, 2026-09-29).
 // 즐겨찾기는 이 기기 localStorage 에만 둔다 — 서버 요청 없이 동작해야 하고, 저장소가 깨져도 메뉴는 열린다.
 
-let pathname = "/hoondok/garden";
+let pathname = "/garden";
 vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
 vi.mock("@/features/hoondok/library/api", async (original) => ({
   ...(await original<object>()),
@@ -55,7 +55,7 @@ function favBand(dialog: HTMLElement, title: string) {
 }
 
 beforeEach(() => {
-  pathname = "/hoondok/garden";
+  pathname = "/garden";
   window.localStorage.clear();
   vi.mocked(libraryAPI.list).mockReset();
 });
@@ -82,11 +82,11 @@ describe("전체 메뉴 드로어", () => {
   it("햄버거로 열고, 닫으면 여는 버튼으로 포커스가 돌아온다", async () => {
     const dialog = openMenu();
     expect(dialog).toHaveAttribute("open");
-    // 목록은 하단 5탭과 같은 묶음 순서다
+    // 목록은 하단 4탭과 같은 묶음 순서다
     const groups = within(dialog)
       .getAllByRole("heading", { level: 3 })
       .map((heading) => heading.textContent);
-    expect(groups).toEqual(["즐겨찾는 메뉴", "즐겨찾는 말씀", "오늘 훈독", "AI 질문", "말씀", "5분 설교", "나의 정원"]);
+    expect(groups).toEqual(["즐겨찾는 메뉴", "즐겨찾는 말씀", "오늘 훈독", "AI 질문", "말씀", "나의 정원"]);
 
     // 읽기는 제목에서 시작한다
     expect(document.activeElement).toBe(within(dialog).getByRole("heading", { name: "전체 메뉴" }));
@@ -98,19 +98,25 @@ describe("전체 메뉴 드로어", () => {
 
   it("드로어 밖에서 경로가 바뀌면(뒤로 가기) 새 화면 위에 남지 않고 닫힌다", () => {
     const { view } = openMenu();
-    pathname = "/hoondok/ask";
+    pathname = "/ask";
     view.rerender(<QueryClientProvider client={new QueryClient()}>{shell()}</QueryClientProvider>);
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("프리뷰가 꺼진 5분 설교 묶음은 숨기지 않고 '준비 중' 으로 남기며 별이 없다", () => {
+  it("5분 설교 묶음은 메뉴에 없다", () => {
     const dialog = openMenu();
-    const worship = within(dialog)
-      .getByRole("heading", { level: 3, name: "5분 설교" })
-      .closest("section") as HTMLElement;
-    expect(within(worship).getAllByText("준비 중")).toHaveLength(3);
-    expect(within(worship).queryByRole("link")).toBeNull();
-    expect(within(worship).queryByRole("button", { name: /즐겨찾기/ })).toBeNull();
+    expect(within(dialog).queryByRole("heading", { level: 3, name: "5분 설교" })).toBeNull();
+    expect(within(dialog).queryByText("5분 설교")).toBeNull();
+  });
+
+  it("모임 만들기·모임 참여는 가족·친구처럼 준비 중이다 — 링크·즐겨찾기 별이 없다", () => {
+    const dialog = openMenu();
+    for (const label of ["모임 만들기", "모임 참여", "가족·친구"]) {
+      const row = within(dialog).getByText(label).closest(".mn-row") as HTMLElement;
+      expect(within(row).getByText("준비 중")).toBeInTheDocument();
+      expect(within(row).queryByRole("link")).toBeNull();
+      expect(within(row).queryByRole("button")).toBeNull();
+    }
   });
 
   it("별을 누르면 위 띠에 칩이 생기고 기기에 남는다. 초기화 뒤 되돌리기로 복구된다", () => {
@@ -121,7 +127,7 @@ describe("전체 메뉴 드로어", () => {
     const star = within(dialog).getByRole("button", { name: "질문하기 즐겨찾기" });
     fireEvent.click(star);
     expect(star).toHaveAttribute("aria-pressed", "true");
-    expect(within(band).getByRole("link", { name: "질문하기" })).toHaveAttribute("href", "/hoondok/ask");
+    expect(within(band).getByRole("link", { name: "질문하기" })).toHaveAttribute("href", "/ask/new");
     expect(JSON.parse(window.localStorage.getItem(KEY) ?? "{}")).toEqual({ menu: ["ask"], works: [] });
 
     fireEvent.click(within(band).getByRole("button", { name: "즐겨찾는 메뉴 초기화" }));
@@ -147,7 +153,7 @@ describe("전체 메뉴 드로어", () => {
     const band = favBand(dialog, "즐겨찾는 말씀");
     expect(within(band).getByRole("link", { name: "천성경" })).toHaveAttribute(
       "href",
-      `/hoondok/library/${encodeURIComponent("천성경")}`,
+      `/library/${encodeURIComponent("천성경")}`,
     );
   });
 

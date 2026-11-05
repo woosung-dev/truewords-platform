@@ -21,6 +21,7 @@ from app.modules.chat.pipeline.stages.embedding import EmbeddingStage
 from app.modules.chat.pipeline.stages.generation import (
     GenerationStage,
     configure_generation_for_mode,
+    resolve_answer_mode,
 )
 from app.modules.chat.pipeline.stages.input_validation import InputValidationStage
 from app.modules.chat.pipeline.stages.intent_classifier import IntentClassifierStage
@@ -43,7 +44,6 @@ from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
     RetrievalConfig,
-    SafetyConfig,
     SearchModeConfig,
     TierConfig,
 )
@@ -68,7 +68,6 @@ DEFAULT_RUNTIME_CONFIG = ChatbotRuntimeConfig(
     retrieval=RetrievalConfig(
         rerank_enabled=False, query_rewrite_enabled=False, multiturn_enabled=True
     ),
-    safety=SafetyConfig(),
 )
 
 
@@ -290,9 +289,14 @@ class ChatService:
         # Cache hit early return (SSE — mini-persist)
         if ctx.cache_hit and ctx.cache_response and ctx.session:
             safe_answer = ctx.cache_response.answer
-            assistant_msg = await self._persist_assistant_message_only(
-                ctx.session.id, safe_answer
+            # 캐시는 요청 모드별로 격리돼 있고(cache_check), intent 분류는 캐시 조회 뒤라 아직 없다.
+            # 화면 표시용 모드만 intent 없이 같은 규칙으로 해소한다(위기·정서 키워드 → pastoral).
+            # 메시지에는 모드를 남기지 않는다 — 캐시 답은 원래 질문의 위기 판정·근거 인용을 물려받지 않아
+            # 공개 신청 대상에서 빠져야 한다(모드 없는 답은 공개 신청 409).
+            cache_mode, _, _ = resolve_answer_mode(
+                requested_mode=request.answer_mode, intent=None, query=request.query
             )
+            assistant_msg = await self._persist_assistant_message_only(ctx.session.id, safe_answer)
             yield f"event: chunk\ndata: {json.dumps({'text': safe_answer}, ensure_ascii=False)}\n\n"
             display_name_lookup = await self._build_display_name_lookup()
             sources_data = []
@@ -309,6 +313,7 @@ class ChatService:
                 "closing": None,
                 "suggested_followups": None,
                 "featured_malssum": featured,
+                "answer_mode": cache_mode,
             }
             yield f"event: sources\ndata: {json.dumps(cache_sources_payload, ensure_ascii=False)}\n\n"
             yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
@@ -336,6 +341,9 @@ class ChatService:
                     "suggested_followups": None,
                     # 메타(범위 밖/거부) 응답엔 말씀 카드 미표시.
                     "featured_malssum": None,
+                    # 메타 응답은 모드 모듈을 거치지 않는 고정 안내라 기본 모드(standard)로 표시한다.
+                    # 메시지에는 모드를 남기지 않는다 — 근거 없는 안내문이라 공개 신청 대상이 아니다.
+                    "answer_mode": "standard",
                 }
                 yield f"event: sources\ndata: {json.dumps(meta_sources_payload, ensure_ascii=False)}\n\n"
                 yield f"event: done\ndata: {json.dumps({'disclaimer': DISCLAIMER}, ensure_ascii=False)}\n\n"
@@ -397,6 +405,9 @@ class ChatService:
                 "closing": ctx.closing,
                 "suggested_followups": ctx.suggested_followups,
                 "featured_malssum": featured,
+                # configure_generation_for_mode 가 채운 실제 적용 모드. stream 경로는 runtime_config 가
+                # 항상 있어 None 이 될 수 없지만, 계약상 필수 필드라 resolve 기본값(standard)으로 막아 둔다.
+                "answer_mode": ctx.resolved_answer_mode or "standard",
             }
             yield (
                 f"event: sources\ndata: {json.dumps(sources_payload, ensure_ascii=False)}\n\n"

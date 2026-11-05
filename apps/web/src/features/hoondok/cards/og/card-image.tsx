@@ -172,7 +172,7 @@ function CardImage({ card, assets, format }: { card: CardPublic; assets: ImageAs
             {card.text}
           </div>
           <div style={{ fontSize: isStory ? 34 : 30, color: C.ink2, marginTop: isStory ? 40 : 28 }}>
-            {`— ${card.source_label}`}
+            {card.source_label}
           </div>
         </div>
       </div>

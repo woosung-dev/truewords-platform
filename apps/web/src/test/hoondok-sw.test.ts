@@ -3,9 +3,10 @@ import path from "node:path";
 import vm from "node:vm";
 import { describe, expect, it, vi } from "vitest";
 
-// public/hoondok/sw.js 를 가짜 self·caches·fetch 로 실행해 install/activate/fetch 분기를 단언한다 (PLAN-HD-001 Phase 3 D).
+// public/sw.js(루트 scope, DEC-PWA-026)를 가짜 self·caches·fetch 로 실행해 install/activate/fetch 분기를 단언한다 (PLAN-HD-001 Phase 3 D).
 // push·notificationclick 은 PLAN-HD-006 에서 같은 가짜 self 에 registration.showNotification·clients 를 더해 검증한다.
-const SW_SOURCE = readFileSync(path.resolve(__dirname, "../../public/hoondok/sw.js"), "utf8");
+const SW_SOURCE = readFileSync(path.resolve(__dirname, "../../public/sw.js"), "utf8");
+const RETIRED_SW_SOURCE = readFileSync(path.resolve(__dirname, "../../public/hoondok/sw.js"), "utf8");
 const ORIGIN = "https://truewords.example";
 const OFFLINE_HTML =
   '<html><head><link rel="stylesheet" href="/_next/static/css/app.css"/></head>' +
@@ -84,11 +85,11 @@ describe("훈독 서비스워커", () => {
       return w;
     })();
     const [cacheName] = [...worker.store.keys()];
-    expect(cacheName).toMatch(/^hoondok-/);
+    expect(cacheName).toMatch(/^hoondok-root-/);
     const keys = [...worker.store.get(cacheName)!.keys()];
     expect(keys).toEqual(
       expect.arrayContaining([
-        `${ORIGIN}/hoondok/offline`,
+        `${ORIGIN}/offline`,
         `${ORIGIN}/hoondok/manifest.webmanifest`,
         `${ORIGIN}/hoondok/icons/icon-192.png`,
         `${ORIGIN}/hoondok/icons/icon-maskable-512.png`,
@@ -98,39 +99,42 @@ describe("훈독 서비스워커", () => {
         `${ORIGIN}/_next/static/chunks/main.js?v=1`,
       ]),
     );
-    expect(keys.some((k) => k.includes("/api/backend/") || k.includes("/hoondok/onboarding"))).toBe(false);
+    expect(keys.some((k) => k.includes("/api/backend/") || k.includes("/onboarding"))).toBe(false);
     expect(worker.self.skipWaiting).toHaveBeenCalledOnce();
   });
 
-  it("fetch: /api/backend·/hoondok/onboarding·다른 origin·POST 에는 관여하지 않는다", () => {
+  it("fetch: /api/*·/admin/*·/onboarding·다른 origin·POST 에는 관여하지 않는다", () => {
     const worker = loadWorker();
     const untouched: FakeRequest[] = [
       { url: `${ORIGIN}/api/backend/hoondok/today`, method: "GET", mode: "cors" },
       { url: `${ORIGIN}/api/backend/hoondok/auth/me`, method: "GET", mode: "cors" },
-      { url: `${ORIGIN}/hoondok/onboarding`, method: "GET", mode: "navigate" },
+      { url: `${ORIGIN}/onboarding`, method: "GET", mode: "navigate" },
       { url: `${ORIGIN}/hoondok/missions/read/complete`, method: "POST", mode: "cors" },
       { url: "https://cdn.jsdelivr.net/x.css", method: "GET", mode: "no-cors" },
-      { url: `${ORIGIN}/login`, method: "GET", mode: "navigate" },
+      { url: `${ORIGIN}/api/chat/stream`, method: "GET", mode: "cors" },
+      { url: `${ORIGIN}/admin/auth/me`, method: "GET", mode: "navigate" },
+      // 카드 공유 이미지(라우트 핸들러)는 precache 자산이 아니다
+      { url: `${ORIGIN}/c/abc/image?f=link`, method: "GET", mode: "no-cors" },
     ];
     for (const request of untouched) expect(fetchEvent(worker, request), request.url).toBeUndefined();
   });
 
-  it("fetch: /hoondok 아래 navigation 이 실패하면 /hoondok/offline 로 302, 그 URL 은 precache 된 안내 HTML", async () => {
+  it("fetch: / 아래 navigation 이 실패하면 /offline 로 302, 그 URL 은 precache 된 안내 HTML", async () => {
     const online = loadWorker();
     await online.dispatch("install", {});
     const offlineWorker = loadWorker(SW_SOURCE, { fetchFails: true });
     // install 은 온라인 워커로, fetch 는 오프라인 워커로 — 캐시를 옮겨 붙인다
     for (const [name, bucket] of online.store) offlineWorker.store.set(name, bucket);
     const redirected = await fetchEvent(offlineWorker, {
-      url: `${ORIGIN}/hoondok/read`,
+      url: `${ORIGIN}/read`,
       method: "GET",
       mode: "navigate",
     });
     expect(redirected).toBeInstanceOf(Response);
     expect((redirected as Response).status).toBe(302);
-    expect((redirected as Response).headers.get("location")).toBe(`${ORIGIN}/hoondok/offline`);
+    expect((redirected as Response).headers.get("location")).toBe(`${ORIGIN}/offline`);
     const response = await fetchEvent(offlineWorker, {
-      url: `${ORIGIN}/hoondok/offline`,
+      url: `${ORIGIN}/offline`,
       method: "GET",
       mode: "navigate",
     });
@@ -147,11 +151,14 @@ describe("훈독 서비스워커", () => {
   it("activate: 구버전 hoondok-* 캐시만 지우고 clients.claim 한다", async () => {
     const worker = loadWorker();
     worker.store.set("hoondok-old", new Map());
+    // 예전 /hoondok scope SW 의 캐시 이름 형식
+    worker.store.set("hoondok-2026-11-03.2", new Map());
     worker.store.set("other-app", new Map());
     await worker.dispatch("install", {});
     await worker.dispatch("activate", {});
     const names = [...worker.store.keys()];
     expect(names).not.toContain("hoondok-old");
+    expect(names).not.toContain("hoondok-2026-11-03.2");
     expect(names).toContain("other-app");
     expect(names.filter((n) => n.startsWith("hoondok-"))).toHaveLength(1);
     expect(worker.self.clients.claim).toHaveBeenCalledOnce();
@@ -169,7 +176,7 @@ describe("훈독 서비스워커", () => {
     await worker.dispatch("activate", {});
     expect([...worker.store.keys()]).toEqual([]);
     expect(worker.self.registration.unregister).toHaveBeenCalledOnce();
-    expect(fetchEvent(worker, { url: `${ORIGIN}/hoondok/read`, method: "GET", mode: "navigate" })).toBeUndefined();
+    expect(fetchEvent(worker, { url: `${ORIGIN}/read`, method: "GET", mode: "navigate" })).toBeUndefined();
   });
 });
 
@@ -188,64 +195,107 @@ describe("훈독 서비스워커 알림 (PLAN-HD-006)", () => {
 
   it("push: 서버 페이로드로 알림 하나 — 태그·아이콘·data.url 고정", async () => {
     const worker = loadWorker();
-    await worker.dispatch(
-      "push",
-      pushEvent({ title: "오늘의 말씀이 준비됐어요", body: "참부모경 1편", url: "/hoondok/read" }),
-    );
+    await worker.dispatch("push", pushEvent({ title: "오늘의 말씀이 준비됐어요", body: "참부모경 1편", url: "/read" }));
     expect(worker.self.registration.showNotification).toHaveBeenCalledWith("오늘의 말씀이 준비됐어요", {
       body: "참부모경 1편",
       icon: "/hoondok/icons/icon-192.png",
       badge: "/hoondok/icons/badge-96.png",
       tag: "hoondok-read",
-      data: { url: `${ORIGIN}/hoondok/read` },
+      data: { url: `${ORIGIN}/read` },
     });
   });
 
-  it("push: 데이터가 없거나 깨졌으면 중립 문구 + /hoondok, 외부 url 도 /hoondok 으로 되돌린다", async () => {
+  it("push: 데이터가 없거나 깨졌으면 중립 문구 + /, 외부 url 도 / 으로 되돌린다", async () => {
     const broken = loadWorker();
     await broken.dispatch("push", pushEvent(null, { broken: true }));
     await broken.dispatch("push", {});
     await broken.dispatch("push", pushEvent({ title: "", url: "https://evil.example/hoondok" }));
     for (const [title, options] of broken.self.registration.showNotification.mock.calls) {
       expect(title).toBe("오늘의 읽을거리가 준비됐어요");
-      expect((options as { data: { url: string } }).data.url).toBe(`${ORIGIN}/hoondok`);
+      expect((options as { data: { url: string } }).data.url).toBe(`${ORIGIN}/`);
     }
     expect(broken.self.registration.showNotification).toHaveBeenCalledTimes(3);
   });
 
   it("notificationclick: 열린 훈독 창이 있으면 focus + navigate, 없으면 새 창", async () => {
     const hoondokWindow: FakeWindow = {
-      url: `${ORIGIN}/hoondok/garden`,
+      url: `${ORIGIN}/garden`,
       focus: vi.fn(async () => undefined),
       navigate: vi.fn(async () => undefined),
     };
     const close = vi.fn();
     const withWindow = loadWorker(SW_SOURCE, { windows: [hoondokWindow] });
     await withWindow.dispatch("notificationclick", {
-      notification: { close, data: { url: `${ORIGIN}/hoondok/read` } },
+      notification: { close, data: { url: `${ORIGIN}/read` } },
     });
     expect(close).toHaveBeenCalledOnce();
     expect(hoondokWindow.focus).toHaveBeenCalledOnce();
-    expect(hoondokWindow.navigate).toHaveBeenCalledWith(`${ORIGIN}/hoondok/read`);
+    expect(hoondokWindow.navigate).toHaveBeenCalledWith(`${ORIGIN}/read`);
     expect(withWindow.self.clients.openWindow).not.toHaveBeenCalled();
 
-    // 훈독 밖 창(시연 챗)만 열려 있으면 재사용하지 않는다
-    const otherWindow: FakeWindow = { url: `${ORIGIN}/history`, focus: vi.fn(async () => undefined) };
+    // 다른 origin 창(관리자 앱 등)은 재사용하지 않는다
+    const otherWindow: FakeWindow = { url: "https://admin.truewords.example/", focus: vi.fn(async () => undefined) };
     const withoutWindow = loadWorker(SW_SOURCE, { windows: [otherWindow] });
     await withoutWindow.dispatch("notificationclick", {
-      notification: { close: vi.fn(), data: { url: `${ORIGIN}/hoondok/read` } },
+      notification: { close: vi.fn(), data: { url: `${ORIGIN}/read` } },
     });
     expect(otherWindow.focus).not.toHaveBeenCalled();
-    expect(withoutWindow.self.clients.openWindow).toHaveBeenCalledWith(`${ORIGIN}/hoondok/read`);
+    expect(withoutWindow.self.clients.openWindow).toHaveBeenCalledWith(`${ORIGIN}/read`);
   });
 
   it("킬스위치: SW_KILL=true 면 push·notificationclick 도 아무것도 하지 않는다", async () => {
     const worker = loadWorker(SW_SOURCE.replace("const SW_KILL = false;", "const SW_KILL = true;"));
     await worker.dispatch("push", pushEvent({ title: "x" }));
     const close = vi.fn();
-    await worker.dispatch("notificationclick", { notification: { close, data: { url: `${ORIGIN}/hoondok` } } });
+    await worker.dispatch("notificationclick", { notification: { close, data: { url: `${ORIGIN}/` } } });
     expect(worker.self.registration.showNotification).not.toHaveBeenCalled();
     expect(worker.self.clients.openWindow).not.toHaveBeenCalled();
     expect(close).not.toHaveBeenCalled();
+  });
+});
+
+describe("은퇴한 /hoondok 서비스워커 (DEC-PWA-026)", () => {
+  it("바로 활성화해 예전 캐시만 지우고 열린 창을 다시 연다 — 등록은 해제하지 않는다(푸시 구독 보존), fetch 처리기는 없다", async () => {
+    const legacyWindow: FakeWindow = {
+      url: `${ORIGIN}/hoondok/read`,
+      focus: vi.fn(async () => undefined),
+      navigate: vi.fn(async () => undefined),
+    };
+    const worker = loadWorker(RETIRED_SW_SOURCE, { windows: [legacyWindow] });
+    worker.store.set("hoondok-2026-11-03.2", new Map());
+    worker.store.set("hoondok-root-2026-11-04.2", new Map());
+    worker.store.set("other-app", new Map());
+    await worker.dispatch("install", {});
+    expect(worker.self.skipWaiting).toHaveBeenCalledOnce();
+    await worker.dispatch("activate", {});
+    expect([...worker.store.keys()].sort()).toEqual(["hoondok-root-2026-11-04.2", "other-app"]);
+    expect(worker.self.registration.unregister).not.toHaveBeenCalled();
+    expect(legacyWindow.navigate).toHaveBeenCalledWith(`${ORIGIN}/hoondok/read`);
+    expect(worker.listeners.has("fetch")).toBe(false);
+    expect(RETIRED_SW_SOURCE).toMatch(/SW_VERSION = "[^"]+"/);
+  });
+
+  it("앱을 열지 않은 예전 구독자에게도 알림을 띄우고, 주소는 /hoondok 접두를 뗀 루트 경로로 연다", async () => {
+    const worker = loadWorker(RETIRED_SW_SOURCE);
+    await worker.dispatch("push", {
+      data: { json: () => ({ title: "오늘의 책갈피가 꽂혀 있어요", body: "본문", url: "/hoondok/bookmark" }) },
+    });
+    const [title, options] = worker.self.registration.showNotification.mock.calls[0];
+    expect(title).toBe("오늘의 책갈피가 꽂혀 있어요");
+    expect(options).toMatchObject({ tag: "hoondok-read", data: { url: `${ORIGIN}/bookmark` } });
+
+    // 외부 주소는 열지 않는다
+    await worker.dispatch("push", { data: { json: () => ({ title: "t", url: "https://evil.example/x" }) } });
+    expect(worker.self.registration.showNotification.mock.calls[1][1]).toMatchObject({ data: { url: `${ORIGIN}/` } });
+  });
+
+  it("예전 SW 가 띄운 마지막 알림을 눌러도 루트 주소로 창을 연다", async () => {
+    const worker = loadWorker(RETIRED_SW_SOURCE);
+    const close = vi.fn();
+    await worker.dispatch("notificationclick", {
+      notification: { close, data: { url: `${ORIGIN}/hoondok` } },
+    });
+    expect(close).toHaveBeenCalledOnce();
+    expect(worker.self.clients.openWindow).toHaveBeenCalledWith(`${ORIGIN}/`);
   });
 });

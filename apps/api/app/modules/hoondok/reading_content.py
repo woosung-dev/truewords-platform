@@ -164,36 +164,6 @@ class ReaderContent:
         except Exception:
             raise SearchFailedError("훈독 원문 조회 실패") from None
 
-    async def excerpt_texts(
-        self, requests: list[tuple[str, str]]
-    ) -> dict[tuple[str, str], str]:
-        targets = [
-            (volume, chunk_id, _point_id(chunk_id)) for volume, chunk_id in requests
-        ]
-        ids = list(
-            dict.fromkeys(
-                point_id for _, _, point_id in targets if point_id is not None
-            )
-        )
-        if not ids:
-            return {}
-        records = await self.client.retrieve(settings.collection_name, ids=ids)
-        by_id = {str(record.id): point_to_search_result(record) for record in records}
-        matched = {}
-        for volume, chunk_id, point_id in targets:
-            found = by_id.get(str(point_id))
-            if (
-                found is not None
-                and found.volume == volume
-                and isinstance(found.chunk_index, int)
-                and found.chunk_index >= 0
-            ):
-                matched[(volume, chunk_id)] = found
-        texts = await self._texts(list(matched.values()))
-        return {
-            key: texts[(found.volume, found.chunk_id)] for key, found in matched.items()
-        }
-
     async def _texts(self, chunks: list[SearchResult]) -> dict[tuple[str, str], str]:
         wanted: dict[str, set[int]] = {}
         for chunk in chunks:

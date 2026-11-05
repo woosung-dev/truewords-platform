@@ -1,5 +1,6 @@
-"""훈독 identity Service — 가입·로그인·토큰 발급 · 제한 베타 초대 코드 게이트(+ 모임 코드, D4) · 계정 삭제(API-HD-011)."""
+"""훈독 identity Service — 가입·로그인·토큰 발급 · 제한 베타 초대 코드 게이트 · 계정 삭제(API-HD-011)."""
 
+import asyncio
 import secrets
 import uuid
 from collections.abc import Sequence
@@ -10,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.common.clock import utcnow
 from app.core.config import settings
-from app.modules.admin.auth import create_access_token, hash_password, verify_password
+from app.modules.admin.auth import create_access_token, hash_password, verify_login_password
 from app.modules.identity.exceptions import InviteRequiredError
 from app.modules.identity.models import User
 from app.modules.identity.repository import UserRepository
@@ -31,27 +32,13 @@ def required_invite_code() -> str | None:
     return value or None
 
 
-class InviteCodeVerifier(Protocol):
-    """전역 코드 대신 통과시킬 수 있는 초대 코드 판정기 (PLAN-HD-010 D4 — 유효한 모임 초대 코드).
-
-    identity 는 hoondok 을 import 하지 않는다 — 구현은 identity/dependencies.py 가 주입한다.
-    """
-
-    async def is_valid(self, code: str) -> bool: ...
-
-
-async def check_invite_code(provided: str | None, verifier: InviteCodeVerifier | None = None) -> None:
-    """게이트 ON 이면 누락·불일치를 InviteRequiredError(403) 로. 바이트 상수 시간 비교 — 한글 코드도 TypeError 없이.
-
-    전역 코드와 다르면 verifier(모임 초대 코드)에 한 번 더 묻는다. 게이트 OFF 면 verifier 도 부르지 않는다.
-    """
+async def check_invite_code(provided: str | None) -> None:
+    """게이트 ON 이면 누락·불일치를 InviteRequiredError(403) 로. 바이트 상수 시간 비교 — 한글 코드도 TypeError 없이."""
     expected = required_invite_code()
     if expected is None:
         return
     given = (provided or "").strip()
     if given and secrets.compare_digest(given.encode("utf-8"), expected.encode("utf-8")):
-        return
-    if given and verifier is not None and await verifier.is_valid(given):
         return
     raise InviteRequiredError()
 
@@ -67,13 +54,12 @@ class UserDataPurger(Protocol):
 
 
 class IdentityService:
-    def __init__(self, repo: UserRepository, invite_verifier: InviteCodeVerifier | None = None) -> None:
+    def __init__(self, repo: UserRepository) -> None:
         self.repo = repo
-        self.invite_verifier = invite_verifier
 
     async def signup(self, data: SignupRequest) -> User:
         # 게이트를 중복 검사보다 먼저 — 초대받지 않은 요청에 이메일 존재 여부(409)를 알리지 않는다
-        await check_invite_code(data.invite_code, self.invite_verifier)
+        await check_invite_code(data.invite_code)
         if await self.repo.get_by_email(data.email):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 등록된 이메일입니다")
         user = User(
@@ -90,7 +76,10 @@ class IdentityService:
 
     async def login(self, data: LoginRequest) -> User:
         user = await self.repo.get_by_email(data.email)
-        if user is None or user.deleted_at is not None or not verify_password(data.password, user.password_hash):
+        # 없는 계정도 bcrypt 를 돌려 응답 시간으로 가입 여부가 드러나지 않게 한다(API-HD-003).
+        # bcrypt 는 CPU 를 오래 쓰므로 스레드에서 돌려 단일 워커 이벤트 루프를 막지 않는다.
+        ok = await asyncio.to_thread(verify_login_password, data.password, user.password_hash if user is not None else None)
+        if user is None or user.deleted_at is not None or not ok:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=_INVALID_CREDENTIALS)
         return user
 

@@ -4,7 +4,7 @@
 // 답이 없으면 오늘 편성 카드 그대로에 "고르기" 줄만 붙인다. 받기 흐름·모션은 BookmarkHomeCard 그대로다.
 // 답은 기기 저장소에만 있어 서버·hydration 렌더에서는 어느 장인지 모른다. 그동안과 맞춘 장을 고르는 동안은 같은 높이의
 // 자리(스켈레톤)만 그린다 — 오늘 편성 카드를 먼저 보였다가 다른 장으로 바꾸면 뽑기처럼 보이기 때문이다.
-import { Info } from "lucide-react";
+import { InfoIcon } from "@phosphor-icons/react/dist/ssr/Info";
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import type { CardPublic } from "../../cards/api";
@@ -14,7 +14,7 @@ import { START_PATH } from "../start";
 import { hasAnswers } from "../storage";
 import { usePersonalAnswers, usePersonalCard } from "../use-personal";
 
-export const INTERESTS_PATH = "/hoondok/garden/interests";
+export const INTERESTS_PATH = "/garden/interests";
 
 function ReasonLine({
   text,
@@ -29,7 +29,7 @@ function ReasonLine({
 }) {
   return (
     <div className="ps-why">
-      <Info size={20} aria-hidden="true" />
+      <InfoIcon size={20} aria-hidden="true" />
       <p className="ps-why__t">
         {text.split(/(‘[^’]+’)/).map((part, index) =>
           // biome-ignore lint/suspicious/noArrayIndexKey: 문장 조각은 순서가 곧 정체다

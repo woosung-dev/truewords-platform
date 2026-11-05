@@ -1,4 +1,3 @@
-import { createApiClient } from "@truewords/api-client-ts";
 import type {
   HighlightInput,
   HighlightItem,
@@ -12,9 +11,7 @@ import type {
   WordSearchResponse,
   WordsResponse,
 } from "@truewords/api-client-ts/types";
-import { hoondokFetch } from "../observability/report";
-
-const { request } = createApiClient({ baseUrl: "/api/backend", fetch: hoondokFetch });
+import { hoondokRequest as request } from "../api-client";
 
 /** 원문 한 페이지에 담기는 청크 수 (백엔드 `page_size` 고정값). chunk_index → page 환산에 쓴다. */
 export const WORDS_PAGE_SIZE = 20;
@@ -71,7 +68,7 @@ export const libraryAPI = {
 
 /** searchQuery 는 원문 뷰가 검색어에 밑줄을 긋는 데만 쓴다 — 원문 API 로는 보내지 않는다. */
 export function wordsHref(volume: string, chunkId?: string | null, searchQuery?: string): string {
-  const base = `/hoondok/words/${encodeURIComponent(volume)}`;
+  const base = `/words/${encodeURIComponent(volume)}`;
   if (!chunkId) return base;
   const q = searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : "";
   return `${base}?chunk_id=${encodeURIComponent(chunkId)}${q}`;
@@ -83,7 +80,7 @@ export function wordsSectionHref(volume: string, position: number): string {
   return `${wordsHref(volume)}?section=${position}`;
 }
 export function seriesHref(series: string): string {
-  return `/hoondok/library/${encodeURIComponent(series)}`;
+  return `/library/${encodeURIComponent(series)}`;
 }
 /** 청크 번호가 들어 있는 페이지. 서버 이어 읽기 값(chunk_index)을 원문 링크로 바꾼다. */
 export function pageOfChunkIndex(chunkIndex: number): number {

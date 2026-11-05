@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
 
 // 요일 스트립 (DES-PWA-003 §2.11 · 홈 "이번 주"). 월요일 시작 7칸.
 // 연속일은 섹션 머리(`.sect__meta`)가 한 번만 말한다 — 스트립 옆에도 두면 같은 숫자가 두 번 보이고,
@@ -27,7 +27,7 @@ export function WeekStrip({ todayWeekday, doneByDay = [] }: WeekStripProps) {
             aria-current={index === todayIndex ? "date" : undefined}
           >
             {label}
-            {doneByDay[index] && <Check className="week__check" size={10} aria-hidden="true" />}
+            {doneByDay[index] && <CheckIcon className="week__check" size={10} aria-hidden="true" />}
           </li>
         ))}
       </ol>

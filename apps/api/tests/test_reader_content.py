@@ -1,4 +1,4 @@
-"""원문·낭독·발췌가 같은 청크를 같은 글로 표시하는 계약."""
+"""원문·낭독이 같은 청크를 같은 글로 표시하는 계약."""
 
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -55,13 +55,11 @@ def reader():
 
 
 @pytest.mark.asyncio
-async def test_page_audio_and_legacy_excerpt_share_text():
+async def test_page_and_audio_share_text():
     content, _ = reader()
     page = await content.words("v", 2, None)
-    excerpts = await content.excerpt_texts([("v", "20"), ("v", "21")])
     for chunk in page.chunks:
         assert chunk.display_text == await content.chunk_display_text(chunk.chunk_id)
-        assert chunk.display_text == excerpts[("v", chunk.chunk_id)]
     assert page.chunks[1].display_text.startswith("새로운 문장입니다.")
     assert "겹치는" not in page.chunks[1].display_text
 

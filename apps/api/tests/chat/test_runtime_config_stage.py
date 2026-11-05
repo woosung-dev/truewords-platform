@@ -13,7 +13,6 @@ from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
     RetrievalConfig,
-    SafetyConfig,
     SearchModeConfig,
 )
 
@@ -25,7 +24,6 @@ def _make_config(name: str = "test") -> ChatbotRuntimeConfig:
         search=SearchModeConfig(mode="cascading"),
         generation=GenerationConfig(system_prompt="sp"),
         retrieval=RetrievalConfig(),
-        safety=SafetyConfig(),
     )
 
 

@@ -236,12 +236,14 @@ def test_admin_gate_route_wiring():
     - /admin/* 모든 route 는 auth 3종(login/logout/me — 채팅 AuthGuard 가 me 사용)
       제외하고 require_admin_gate 필수. allowlist 방식이 아니라 전수 검사라서
       admin/router.py 에 게이트 없는 신규 route 가 추가되면 즉시 실패한다.
-    - /admin 밖 공개 경로(chat/chatbots/원문보기 chunks/health)는 게이트 금지.
+    - /admin 밖 공개 경로(chatbots/원문보기 chunks/health 등)는 게이트 금지.
+    - 예외: LLM 답 생성 /chat·/chat/stream 은 게이트 필수(익명 비용 상한 우회 차단, 보안 점검).
     """
     with patch("app.main.init_db", new_callable=AsyncMock):
         from app.main import app
 
     AUTH_OPEN = {"/admin/auth/login", "/admin/auth/logout", "/admin/auth/me"}
+    GATED_ANSWER = {"/chat", "/chat/stream"}
 
     gated_count = 0
     for route, inherited in iter_api_routes(app):
@@ -256,6 +258,8 @@ def test_admin_gate_route_wiring():
             else:
                 gated_count += 1
                 assert has_gate, f"{path} 에 require_admin_gate 누락"
+        elif path in GATED_ANSWER:
+            assert has_gate, f"{path} 에 require_admin_gate 누락"
         else:
             assert not has_gate, f"공개 경로 {path} 가 게이트에 차단됨"
 
@@ -346,3 +350,23 @@ def test_data_router_applies_verify_csrf_at_router_level():
         "data_router APIRouter dependencies 에 verify_csrf 누락 — destructive POST/"
         "PUT/PATCH/DELETE 8 routes 가 CSRF 무방비"
     )
+
+
+
+@pytest.mark.asyncio
+async def test_login_unknown_email_still_runs_bcrypt():
+    """보안 점검 login-bcrypt-short-circuit-timing-enumeration 회귀 —
+    없는 이메일도 bcrypt 비교를 한 번 돌려 응답 시간으로 관리자 이메일이 드러나지 않는다."""
+    from fastapi import HTTPException
+
+    from app.modules.admin import auth as auth_module
+    from app.modules.admin.schemas import AdminLoginRequest
+    from app.modules.admin.service import AdminService
+
+    repo = MagicMock()
+    repo.get_user_by_email = AsyncMock(return_value=None)
+    with patch.object(auth_module, "verify_password", wraps=auth_module.verify_password) as spy:
+        with pytest.raises(HTTPException) as exc:
+            await AdminService(repo).login(AdminLoginRequest(email="nobody@test.com", password="pw12345"))
+    assert exc.value.status_code == 401
+    assert spy.call_count == 1

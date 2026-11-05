@@ -5,7 +5,7 @@
 - 상태: **2안 UI 분리 구현·로컬 검증 완료 — 커밋·푸시 승인** (2026-09-05). PR #221의 새 HEAD 원격 검증은 별도이며 이전 `896a7ae`의 CI 결과와 이번 변경의 검증 증거를 구분한다.
 - 분석 기준: `main`의 `59e3a59`. 운영 서버 접속·배포·실기기 검증은 수행하지 않았다.
 - 실행 계획: [단계별 이전·검증 계획](../plans/completed/2026-09-05-monorepo-migration.md)
-- 후속 결정: [APP-UI-001](../plans/active/2026-09-05-app-owned-ui.md). 최초 `ui-web` 선택을 대체하고 API SDK·ESLint·TypeScript 설정 3개 패키지만 유지한다. 기존 검증 결과는 당시 기록이며 후속 변경의 검증 증거로 재사용하지 않는다.
+- 후속 결정: [APP-UI-001](../plans/completed/2026-09-05-app-owned-ui.md). 최초 `ui-web` 선택을 대체하고 API SDK·ESLint·TypeScript 설정 3개 패키지만 유지한다. 기존 검증 결과는 당시 기록이며 후속 변경의 검증 증거로 재사용하지 않는다.
 
 ## 1. 결정한 방향과 이번 문서의 범위
 
@@ -271,14 +271,14 @@ FCM 도입은 Flutter 단계의 선택이다. iOS FCM에도 APNs와 플랫폼 ca
 
 | 경계 | 구현 |
 |---|---|
-| manifest·아이콘·폰트 | `apps/web/public/hoondok/` · `id`·`start_url`·`scope` 모두 `/hoondok`(슬래시 없음) |
-| 설치 메타 | hoondok layout 의 `generateMetadata`·`generateViewport` — 루트 layout 은 건드리지 않는다(시연 챗과 공유) |
-| SW | `apps/web/public/hoondok/sw.js` · scope `/hoondok` (`Service-Worker-Allowed` 헤더 + `register(..., {scope})`) |
-| 캐시 경계 | 런타임 `cache.put` 이 없다 → 인증·API 응답은 **구조적으로** 캐시 불가. `/api/backend/*`·`/hoondok/onboarding`·`/hoondok/auth*` 는 fetch 미관여 |
-| 오프라인 범위 | `/hoondok/offline` 안내 1장 + 그 HTML 이 참조하는 `/_next/static` 청크. 개인 기록·질문·답변은 넣지 않는다 |
+| manifest·아이콘·폰트 | `apps/web/public/hoondok/` · `start_url`·`scope` `/`, `id` 는 설치본 식별을 위해 `/hoondok` 유지 (웹 루트 = 훈독, DEC-PWA-026) |
+| 설치 메타 | `(hoondok)` route group layout 의 `generateMetadata`·`generateViewport` |
+| SW | `apps/web/public/sw.js` · scope `/` (`register(..., {scope: "/"})`). 은퇴 스크립트 `public/hoondok/sw.js` 는 예전 `/hoondok` 등록용으로 200 + `Service-Worker-Allowed: /hoondok` 을 유지한다 |
+| 캐시 경계 | 런타임 `cache.put` 이 없다 → 인증·API 응답은 **구조적으로** 캐시 불가. `/api/*`·`/admin/*`·`/onboarding` 은 fetch 미관여 |
+| 오프라인 범위 | `/offline` 안내 1장 + 그 HTML 이 참조하는 `/_next/static` 청크. 개인 기록·질문·답변은 넣지 않는다 |
 | SW 제거 | `sw.js` 의 `SW_KILL` 분기 (캐시 전삭제 + `unregister`) |
 | 설치 안내 | `apps/web/src/features/hoondok/install/` · 변형 `hidden`·`ios`·`prompt`·`manual` |
-| 헤더 | `apps/web/next.config.ts` `headers()` — `sw.js`·manifest `no-cache`, 폰트 1년 `immutable`, `/hoondok*` `noindex` |
+| 헤더 | `apps/web/next.config.ts` `headers()` — `sw.js`·manifest `no-cache`, 폰트 1년 `immutable`, 모든 경로 `noindex` |
 | 배포·검증 | `make deploy-web HOONDOK_ENABLED=1` → `make smoke-web` · 절차와 되돌리기는 [훈독 PWA 롤아웃 runbook](../runbooks/hoondok-pwa-rollout.md) |
 
 `apps/admin` 에 SW 를 등록하지 않는다는 원칙은 그대로다. 정적 자산이 기능 플래그를 따르지 않는다는 사실(`apps/web` 에 미들웨어가 없다)은 runbook 에 기록했다.
