@@ -1,8 +1,12 @@
 """훈독 DI 조립."""
 
-from fastapi import Depends
+from collections.abc import Callable
+from datetime import date
+
+from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.common.clock import today_kst
 from app.core.common.database import get_async_session
 from app.core.config import settings
 from app.core.common.ingestion_facade import IngestionJobRepository
@@ -21,6 +25,8 @@ from app.modules.hoondok.library_repository import LibraryRepository
 from app.modules.hoondok.library_service import LibraryService
 from app.modules.hoondok.notifications_repository import NotificationRepository
 from app.modules.hoondok.notifications_service import NotificationService
+from app.modules.hoondok.paths_repository import PathRepository
+from app.modules.hoondok.paths_service import PathService
 from app.modules.hoondok.public_questions_repository import PublicQuestionRepository
 from app.modules.hoondok.public_questions_service import PublicQuestionAdminService, PublicQuestionService
 from app.modules.hoondok.repository import DailyReadingRepository, JeongseongRepository, MissionLogRepository
@@ -90,12 +96,39 @@ async def get_jeongseong_repository(
     return JeongseongRepository(session)
 
 
+async def get_path_repository(session: AsyncSession = Depends(get_async_session)) -> PathRepository:
+    return PathRepository(session)
+
+
+def get_today_fn() -> Callable[[], date]:
+    """KST 오늘 함수. 테스트는 이 의존성을 덮어써 날짜를 고정한다(운영 코드에 시계 오버라이드 없음)."""
+    return today_kst
+
+
 async def get_jeongseong_service(
     repo: JeongseongRepository = Depends(get_jeongseong_repository),
     missions: MissionLogRepository = Depends(get_mission_repository),
+    path_runs: PathRepository = Depends(get_path_repository),
+    today_fn: Callable[[], date] = Depends(get_today_fn),
 ) -> JeongseongService:
-    # get_async_session 은 요청당 캐시되므로 두 리포는 같은 세션을 공유한다.
-    return JeongseongService(repo, missions)
+    # get_async_session 은 요청당 캐시되므로 리포들은 같은 세션을 공유한다.
+    # 7일 정성과의 상호 배제는 HOONDOK_PATHS_ENABLED 와 관계없이 항상 확인한다.
+    return JeongseongService(repo, missions, today_fn=today_fn, path_runs=path_runs)
+
+
+async def require_paths_enabled() -> None:
+    """HOONDOK_PATHS_ENABLED 가 꺼져 있으면 7일 정성 API 는 없는 경로처럼 404."""
+    if not settings.hoondok_paths_enabled:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+
+async def get_path_service(
+    repo: PathRepository = Depends(get_path_repository),
+    missions: MissionLogRepository = Depends(get_mission_repository),
+    jeongseong: JeongseongService = Depends(get_jeongseong_service),
+    today_fn: Callable[[], date] = Depends(get_today_fn),
+) -> PathService:
+    return PathService(repo, missions, jeongseong, get_raw_client(), today_fn=today_fn)
 
 
 async def get_journey_repository(session: AsyncSession = Depends(get_async_session)) -> JourneyRepository:

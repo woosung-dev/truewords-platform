@@ -4,6 +4,7 @@ import calendar
 import uuid
 from collections.abc import Callable
 from datetime import date, timedelta
+from typing import Protocol
 
 import httpx
 from fastapi import HTTPException, status
@@ -12,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from app.modules.admin.service import AdminService
 from app.core.common.clock import today_kst, utcnow
 from app.modules.hoondok.candidates import filter_results
+from app.modules.hoondok.exceptions import PathError
 from app.modules.hoondok.jeongseong import compute_progress, period_end
 from app.modules.hoondok.models import DailyReading, JeongseongPeriod, MissionLog
 from app.modules.hoondok.repository import DailyReadingRepository, JeongseongRepository, MissionLogRepository
@@ -36,6 +38,14 @@ from app.modules.hoondok.schemas import (
 from app.modules.hoondok.streak import compute_summary
 from app.modules.qdrant.raw_client import RawQdrantClient
 from app.modules.search.hybrid import hybrid_search
+
+class PathRunGuard(Protocol):
+    """정성 기간 시작이 보는 7일 정성 진행(PathRepository). service 끼리 순환 import 를 피하려고 모양만 둔다."""
+
+    async def lock_user(self, user_id: uuid.UUID) -> None: ...
+
+    async def get_active_run(self, user_id: uuid.UUID) -> object | None: ...
+
 
 HISTORY_MIN_YEAR = 2020  # 월 기록 조회 하한. 상한은 올해 + 1
 JEONGSEONG_START_WINDOW_DAYS = 30  # 시작일 허용 범위: 오늘 ~ 오늘 + 30
@@ -134,10 +144,13 @@ class JeongseongService:
         repo: JeongseongRepository,
         missions: MissionLogRepository,
         today_fn: Callable[[], date] = today_kst,
+        path_runs: PathRunGuard | None = None,
     ) -> None:
         self.repo = repo
         self.missions = missions
         self.today_fn = today_fn
+        # 7일 정성과의 상호 배제(읽기 정성 1a). 플래그와 관계없이 항상 확인한다.
+        self.path_runs = path_runs
 
     async def get_current(self, user_id: uuid.UUID) -> JeongseongCurrentResponse:
         today = self.today_fn()
@@ -174,6 +187,11 @@ class JeongseongService:
             )
         if await self._resolve_active(user_id, today) is not None:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 진행 중인 정성 기간이 있어요")
+        if self.path_runs is not None:
+            # 사용자 행을 잠근 뒤 7일 정성을 확인한다 — 잠금은 아래 create 커밋까지 유지돼 두 시작 경로가 직렬화된다.
+            await self.path_runs.lock_user(user_id)
+            if await self.path_runs.get_active_run(user_id) is not None:
+                raise PathError(status.HTTP_409_CONFLICT, "PATH_RUN_ACTIVE", "이미 드리고 있는 7일 정성이 있어요")
         period = JeongseongPeriod(
             user_id=user_id,
             topic=data.topic,
@@ -195,6 +213,10 @@ class JeongseongService:
         if period is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="진행 중인 정성 기간이 없어요")
         await self._transition(period, "abandoned")
+
+    async def active_period(self, user_id: uuid.UUID) -> JeongseongPeriod | None:
+        """진행 중·예정 기간. 끝난 active 는 completed 로 정리하고 None (7일 정성 시작이 쓴다)."""
+        return await self._resolve_active(user_id, self.today_fn())
 
     async def _resolve_active(self, user_id: uuid.UUID, today: date) -> JeongseongPeriod | None:
         """active 기간을 돌려주되, end_on 을 지났으면 completed 로 기록하고 None."""

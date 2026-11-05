@@ -169,7 +169,7 @@ jobs:
           case "$SERVICE" in
             backend) keys="" ;;
             admin) keys="$common" ;;
-            web) keys="$common NEXT_PUBLIC_HOONDOK_ENABLED NEXT_PUBLIC_HOONDOK_CARDS NEXT_PUBLIC_HOONDOK_MASCOT" ;;
+            web) keys="$common NEXT_PUBLIC_HOONDOK_ENABLED NEXT_PUBLIC_HOONDOK_CARDS NEXT_PUBLIC_HOONDOK_MASCOT NEXT_PUBLIC_HOONDOK_PATHS" ;;
           esac
           args=""
           for key in $keys; do

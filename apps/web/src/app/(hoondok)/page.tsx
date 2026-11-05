@@ -11,6 +11,7 @@ import { isHoondokCardsEnabled } from "@/features/hoondok/flag";
 import { InstallCard } from "@/features/hoondok/install/components/install-card";
 import { JeongseongCard } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import { JeongseongSheet } from "@/features/hoondok/jeongseong/components/jeongseong-sheet";
+import { PathHomeSlot } from "@/features/hoondok/path/components/path-home-slot";
 import { PersonalBookmarkHome } from "@/features/hoondok/personal/components/home-bookmark";
 import { formatKstDate } from "@/features/hoondok/today";
 
@@ -25,14 +26,17 @@ export default async function HoondokHomePage() {
     <section className="col">
       <HomeGreeting />
 
-      {isCardsEnabled && <PersonalBookmarkHome todayCard={card} dateLabel={cardDayLabel(iso)} />}
+      {/* 7일 정성 — 플래그 OFF 면 children 그대로, 정성 중이면 정성 홈 아래에 오늘의 말씀을 접어 둔다 */}
+      <PathHomeSlot>
+        {isCardsEnabled && <PersonalBookmarkHome todayCard={card} dateLabel={cardDayLabel(iso)} />}
 
-      <HomeMissions today={today} todayWeekday={weekday} />
+        <HomeMissions today={today} todayWeekday={weekday} />
 
-      <JeongseongCard />
+        <JeongseongCard />
 
-      {/* 함께 읽는 사람들 — 익명 숫자 카드 1장 (PLAN-HD-009) */}
-      <HomeTogether today={today} />
+        {/* 함께 읽는 사람들 — 익명 숫자 카드 1장 (PLAN-HD-009) */}
+        <HomeTogether today={today} />
+      </PathHomeSlot>
 
       <InstallCard />
 

@@ -59,10 +59,10 @@ test("정성 시트에서 21일 정성을 만들면 홈 카드가 1일차 · 20�
   await page.setViewportSize({ width: 390, height: 844 });
   await signUp(page, "정성");
 
-  // 정성이 없으면 홈은 시트로 보내는 CTA 만 둔다
-  await expect(page.getByRole("link", { name: "정성 시작하기" })).toBeVisible();
-  await page.getByRole("link", { name: "정성 시작하기" }).click();
-  await expect(page).toHaveURL(/^https?:\/\/[^/]+\/\?sheet=jeongseong$/);
+  // 7일 정성(NEXT_PUBLIC_HOONDOK_PATHS=1)이 켜진 빌드라 홈의 "정성 시작하기"는 7일 정성 입구이고,
+  // 정성 기간 초대 카드는 그리지 않는다 — 시트는 주소로 연다(마무리 카드의 "새 정성 시작하기"와 같은 경로)
+  await expect(page.getByRole("heading", { name: "정성 기간", exact: true })).toHaveCount(0);
+  await page.goto("/?sheet=jeongseong");
 
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
@@ -270,14 +270,13 @@ test("각오를 적고 시작하면 홈 카드에 보이고, 마친 뒤에는 �
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(closing).toBeVisible();
 
-  // ⑤ 닫기 → 시작 CTA, 새로고침해도 닫힌 채다
+  // ⑤ 닫기 → 정성 기간 자리가 비고(7일 정성 빌드는 초대 카드 없음), 새로고침해도 닫힌 채다
   await closing.getByRole("button", { name: "닫기" }).click();
-  await expect(homeCard.getByRole("link", { name: "정성 시작하기" })).toBeVisible();
-  await expect(homeCard.getByRole("article")).toHaveCount(0);
+  await expect(homeCard).toHaveCount(0);
   expect(await page.evaluate((id) => localStorage.getItem(`hoondok:jeongseong-closed:${id}`), period.id)).toBe("1");
   await page.reload();
-  await expect(homeCard.getByRole("link", { name: "정성 시작하기" })).toBeVisible();
-  await expect(homeCard.getByRole("article")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "7일 정성으로 말씀을 읽어 보세요" })).toBeVisible();
+  await expect(homeCard).toHaveCount(0);
 
   // ⑦ 그만한 기간은 마무리 카드가 없다 — 실제 서버 응답(last_ended null)으로 확인한다
   await page.unroute(JEONGSEONG_API);
@@ -286,8 +285,8 @@ test("각오를 적고 시작하면 홈 카드에 보이고, 마친 뒤에는 �
   const afterAbandon = await page.request.get("/api/backend/hoondok/me/jeongseong");
   expect(await afterAbandon.json()).toEqual({ period: null, last_ended: null });
   await page.goto("/");
-  await expect(homeCard.getByRole("link", { name: "정성 시작하기" })).toBeVisible();
-  await expect(homeCard.getByRole("article")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "7일 정성으로 말씀을 읽어 보세요" })).toBeVisible();
+  await expect(homeCard).toHaveCount(0);
 
   expect(errors).toEqual([]);
 });

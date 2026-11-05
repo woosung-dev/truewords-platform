@@ -4414,6 +4414,484 @@
         "title": "PaginatedResponse[ChatbotConfigResponse]",
         "type": "object"
       },
+      "PathRunCurrentResponse": {
+        "description": "진행 중 run, 또는 마침표를 아직 보지 않은 completed run. 없으면 run=null.",
+        "properties": {
+          "run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PathRunView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "run"
+        ],
+        "title": "PathRunCurrentResponse",
+        "type": "object"
+      },
+      "PathRunFinishRequest": {
+        "properties": {
+          "action": {
+            "enum": [
+              "next",
+              "repeat",
+              "rest"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "PathRunFinishRequest",
+        "type": "object"
+      },
+      "PathRunStart": {
+        "properties": {
+          "minutes_tier": {
+            "enum": [
+              3,
+              7,
+              15
+            ],
+            "title": "Minutes Tier",
+            "type": "integer"
+          },
+          "preferred_slot": {
+            "anyOf": [
+              {
+                "enum": [
+                  "dawn",
+                  "morning",
+                  "evening"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Slot"
+          },
+          "slug": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "minutes_tier"
+        ],
+        "title": "PathRunStart",
+        "type": "object"
+      },
+      "PathRunView": {
+        "properties": {
+          "book": {
+            "title": "Book",
+            "type": "string"
+          },
+          "day_no": {
+            "title": "Day No",
+            "type": "integer"
+          },
+          "done_steps": {
+            "title": "Done Steps",
+            "type": "integer"
+          },
+          "duration_days": {
+            "title": "Duration Days",
+            "type": "integer"
+          },
+          "end_on": {
+            "format": "date",
+            "title": "End On",
+            "type": "string"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "gap_days": {
+            "title": "Gap Days",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "minutes_tier": {
+            "enum": [
+              3,
+              7,
+              15
+            ],
+            "title": "Minutes Tier",
+            "type": "integer"
+          },
+          "next_step": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Step"
+          },
+          "overdue": {
+            "title": "Overdue",
+            "type": "boolean"
+          },
+          "preferred_slot": {
+            "anyOf": [
+              {
+                "enum": [
+                  "dawn",
+                  "morning",
+                  "evening"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Slot"
+          },
+          "read_days": {
+            "title": "Read Days",
+            "type": "integer"
+          },
+          "read_today": {
+            "title": "Read Today",
+            "type": "boolean"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "started_on": {
+            "format": "date",
+            "title": "Started On",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "completed",
+              "abandoned"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PathStepSummary"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          },
+          "total_steps": {
+            "title": "Total Steps",
+            "type": "integer"
+          },
+          "week_read_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Week Read Dates",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "book",
+          "duration_days",
+          "minutes_tier",
+          "preferred_slot",
+          "status",
+          "started_on",
+          "today",
+          "day_no",
+          "end_on",
+          "overdue",
+          "total_steps",
+          "done_steps",
+          "next_step",
+          "read_today",
+          "gap_days",
+          "week_read_dates",
+          "read_days",
+          "finished_at",
+          "steps"
+        ],
+        "title": "PathRunView",
+        "type": "object"
+      },
+      "PathStepCompleteRequest": {
+        "properties": {
+          "mode": {
+            "const": "full",
+            "default": "full",
+            "title": "Mode",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "PathStepCompleteRequest",
+        "type": "object"
+      },
+      "PathStepCompleteResponse": {
+        "properties": {
+          "completion": {
+            "$ref": "#/components/schemas/PathStepCompletionView"
+          },
+          "run": {
+            "$ref": "#/components/schemas/PathRunView"
+          }
+        },
+        "required": [
+          "completion",
+          "run"
+        ],
+        "title": "PathStepCompleteResponse",
+        "type": "object"
+      },
+      "PathStepCompletionView": {
+        "properties": {
+          "completed_on": {
+            "format": "date",
+            "title": "Completed On",
+            "type": "string"
+          },
+          "day_index": {
+            "title": "Day Index",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "full",
+              "half"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "day_index",
+          "mode",
+          "completed_on",
+          "note"
+        ],
+        "title": "PathStepCompletionView",
+        "type": "object"
+      },
+      "PathStepContentResponse": {
+        "description": "장 본문. 권리가 닫혔거나 재적재로 범위가 어긋나면 status=withdrawn, chunks=[].",
+        "properties": {
+          "chunks": {
+            "items": {
+              "$ref": "#/components/schemas/WordChunk"
+            },
+            "title": "Chunks",
+            "type": "array"
+          },
+          "day_index": {
+            "title": "Day Index",
+            "type": "integer"
+          },
+          "estimated_minutes": {
+            "title": "Estimated Minutes",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "done",
+              "next",
+              "upcoming",
+              "withdrawn"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "available",
+              "withdrawn"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Title"
+          }
+        },
+        "required": [
+          "status",
+          "day_index",
+          "title",
+          "estimated_minutes",
+          "state",
+          "volume",
+          "work_title",
+          "chunks"
+        ],
+        "title": "PathStepContentResponse",
+        "type": "object"
+      },
+      "PathStepSummary": {
+        "properties": {
+          "completed_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed On"
+          },
+          "day_index": {
+            "title": "Day Index",
+            "type": "integer"
+          },
+          "end_chunk_index": {
+            "title": "End Chunk Index",
+            "type": "integer"
+          },
+          "estimated_minutes": {
+            "title": "Estimated Minutes",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "start_chunk_index": {
+            "title": "Start Chunk Index",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "done",
+              "next",
+              "upcoming",
+              "withdrawn"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          }
+        },
+        "required": [
+          "day_index",
+          "title",
+          "estimated_minutes",
+          "state",
+          "volume",
+          "start_chunk_index",
+          "end_chunk_index"
+        ],
+        "title": "PathStepSummary",
+        "type": "object"
+      },
       "PublicQuestionAdminItem": {
         "description": "검수 화면 한 줄 — 작성자 정보는 관리자에게도 보이지 않는다.",
         "properties": {
@@ -5216,6 +5694,98 @@
           "totals"
         ],
         "title": "RagTraceResponse",
+        "type": "object"
+      },
+      "ReadingPathListResponse": {
+        "properties": {
+          "paths": {
+            "items": {
+              "$ref": "#/components/schemas/ReadingPathSummary"
+            },
+            "title": "Paths",
+            "type": "array"
+          }
+        },
+        "required": [
+          "paths"
+        ],
+        "title": "ReadingPathListResponse",
+        "type": "object"
+      },
+      "ReadingPathSummary": {
+        "properties": {
+          "book": {
+            "title": "Book",
+            "type": "string"
+          },
+          "duration_days": {
+            "title": "Duration Days",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/ReadingPathTier"
+            },
+            "title": "Tiers",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "when_line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "When Line"
+          }
+        },
+        "required": [
+          "slug",
+          "title",
+          "when_line",
+          "book",
+          "duration_days",
+          "tiers"
+        ],
+        "title": "ReadingPathSummary",
+        "type": "object"
+      },
+      "ReadingPathTier": {
+        "properties": {
+          "estimated_minutes": {
+            "title": "Estimated Minutes",
+            "type": "integer"
+          },
+          "minutes_tier": {
+            "enum": [
+              3,
+              7,
+              15
+            ],
+            "title": "Minutes Tier",
+            "type": "integer"
+          },
+          "total_steps": {
+            "title": "Total Steps",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "minutes_tier",
+          "estimated_minutes",
+          "total_steps"
+        ],
+        "title": "ReadingPathTier",
         "type": "object"
       },
       "ReadingPositionInput": {
@@ -13998,6 +14568,225 @@
         ]
       }
     },
+    "/hoondok/me/path-runs": {
+      "post": {
+        "description": "정성 시작. 409 PATH_RUN_ACTIVE·JEONGSEONG_ACTIVE, 403 RIGHTS_CLOSED, 404 PATH_NOT_FOUND.",
+        "operationId": "start_path_run_hoondok_me_path_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PathRunStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathRunCurrentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Path Run",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/path-runs/current": {
+      "delete": {
+        "description": "그만하기 → abandoned. 읽은 기록은 남는다. 404 PATH_RUN_NOT_FOUND.",
+        "operationId": "abandon_path_run_hoondok_me_path_runs_current_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Abandon Path Run",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "get": {
+        "description": "진행 중 run(또는 마침표를 아직 보지 않은 completed run). 없으면 run=null.",
+        "operationId": "get_current_path_run_hoondok_me_path_runs_current_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathRunCurrentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Current Path Run",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/path-runs/current/finish": {
+      "post": {
+        "description": "마친 정성 뒤 다음 행동. next·repeat 은 새 run, rest 는 run=null. 409 PATH_RUN_NOT_COMPLETED.",
+        "operationId": "finish_path_run_hoondok_me_path_runs_current_finish_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PathRunFinishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathRunCurrentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Finish Path Run",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/path-runs/current/steps/{day_index}": {
+      "get": {
+        "description": "장 본문. 권리 닫힘·범위 어긋남이면 200 status=withdrawn. 404 PATH_RUN_NOT_FOUND·PATH_STEP_NOT_FOUND.",
+        "operationId": "get_path_step_hoondok_me_path_runs_current_steps__day_index__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "day_index",
+            "required": true,
+            "schema": {
+              "maximum": 366,
+              "minimum": 1,
+              "title": "Day Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathStepContentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Path Step",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/path-runs/current/steps/{day_index}/complete": {
+      "post": {
+        "description": "장 완료(+ 그날 훈독하기 기록). 같은 장 재요청은 200 기존 값. 409 ALREADY_READ_TODAY·STEP_OUT_OF_ORDER.",
+        "operationId": "complete_path_step_hoondok_me_path_runs_current_steps__day_index__complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "day_index",
+            "required": true,
+            "schema": {
+              "maximum": 366,
+              "minimum": 1,
+              "title": "Day Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PathStepCompleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathStepCompleteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Complete Path Step",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
     "/hoondok/me/push": {
       "delete": {
         "description": "API-HD-022 구독 해지. 본인 것만 지우고 없어도 204. 403 CSRF, 401 미인증.",
@@ -14355,6 +15144,28 @@
           }
         },
         "summary": "Complete Mission",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/paths": {
+      "get": {
+        "description": "발행된 정성 목록(장 권리가 모두 열린 것만)과 하루 분량 단계별 예상 분. 401 미인증.",
+        "operationId": "list_reading_paths_hoondok_paths_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadingPathListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Reading Paths",
         "tags": [
           "hoondok"
         ]
