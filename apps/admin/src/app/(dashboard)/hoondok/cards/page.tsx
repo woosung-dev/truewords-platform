@@ -6,10 +6,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { isNotFound, loadErrorMessage } from "@/features/hoondok/api-errors";
 import {
   CARD_STATUS_LABEL,
   type CardAdminItem,
@@ -20,7 +22,6 @@ import {
   type TodayCardResponse,
 } from "@/features/hoondok/cards-api";
 import { kstTodayIso } from "@/features/hoondok/dates";
-import { isNotFound, loadErrorMessage } from "@/features/hoondok/groups-api";
 
 // 오늘 카드 키가 목록 키로 시작하므로 변경 뒤 무효화 한 번에 둘 다 새로 고친다.
 const LIST_KEY = ["hoondok", "cards"];
@@ -137,13 +138,13 @@ export default function HoondokCardsPage() {
       </div>
 
       {isLoading ? (
-        <div className="rounded-xl border bg-card overflow-hidden">
+        <Card className="p-0 overflow-hidden">
           {["s1", "s2", "s3", "s4", "s5"].map((key, i) => (
             <div key={key} className={`px-5 py-4 ${i !== 0 ? "border-t" : ""}`}>
               <Skeleton className="h-5 w-full" />
             </div>
           ))}
-        </div>
+        </Card>
       ) : isError ? (
         <div className="rounded-xl border border-dashed p-10 text-center space-y-3">
           <p className="text-muted-foreground text-sm">{loadErrorMessage(error, "카드 목록을 불러올 수 없습니다.")}</p>
@@ -157,7 +158,7 @@ export default function HoondokCardsPage() {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border bg-card">
+          <Card className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-admin-muted/40 hover:bg-admin-muted/40">
@@ -193,7 +194,7 @@ export default function HoondokCardsPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </Card>
 
           <nav aria-label="페이지" className="flex items-center justify-between text-sm text-muted-foreground">
             <span>

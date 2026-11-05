@@ -517,4 +517,31 @@
     font-size: var(--fs-xs);
     color: var(--ink-2);
   }
+
+  /* ---------- 진입 카드 : 카드 한 장 = 제목·설명 + 오른쪽 화살표 (나의 책갈피·질문 기록·관심사 줄이 함께 쓴다) ---------- */
+  .fm-entry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .fm-entry__bd {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .fm-entry__bd b {
+    font-size: var(--fs-md);
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .fm-entry__bd span {
+    font-size: var(--fs-xs);
+    color: var(--ink-2);
+  }
+  .fm-entry > svg {
+    flex: none;
+    color: var(--ink-3);
+  }
 }

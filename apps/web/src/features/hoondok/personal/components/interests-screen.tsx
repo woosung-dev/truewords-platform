@@ -1,11 +1,10 @@
 "use client";
 
-// /hoondok/garden/interests — 관심사와 마음 바꾸기 (DESIGN-PLAN §6-7). 질문 흐름과 같은 답을 칩 세 묶음으로 고친다.
+// /garden/interests — 관심사와 마음 바꾸기 (DESIGN-PLAN §6-7). 질문 흐름과 같은 답을 칩 세 묶음으로 고친다.
 // "많이 힘들어요"는 여기 두지 않는다(그날의 위기 안내는 질문 흐름·마음 한 장에서만 연다). 이미 켜진 위기 표시는 저장해도 그대로 둔다.
 // 저장은 이 기기에만 한다. 계정 동기화 토글은 후속 결정이라 없다.
 import { Check, Info, Lock, Trash2 } from "lucide-react";
 import { useId, useMemo, useState } from "react";
-import { InlineConfirm } from "../../together/components/group-common";
 import {
   CRISIS_MOOD_ID,
   countLimitedMoods,
@@ -18,6 +17,7 @@ import {
   toggleMood,
 } from "../options";
 import { usePersonalAnswers } from "../use-personal";
+import { InlineConfirm } from "./inline-confirm";
 
 type Draft = { interests: string[]; moods: string[]; readingTime: string | null; readingLength: string | null };
 

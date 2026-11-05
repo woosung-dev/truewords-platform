@@ -1,37 +1,6 @@
 {
   "components": {
     "schemas": {
-      "AdminGroupItem": {
-        "description": "API-HD-043 — 모임원 이름·한 줄 본문은 내지 않는다.",
-        "properties": {
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "member_count": {
-            "title": "Member Count",
-            "type": "integer"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "member_count",
-          "created_at"
-        ],
-        "title": "AdminGroupItem",
-        "type": "object"
-      },
       "AdminLoginRequest": {
         "properties": {
           "email": {
@@ -115,6 +84,80 @@
         "title": "AdminUserResponse",
         "type": "object"
       },
+      "AskQuota": {
+        "description": "오늘(KST) 남은 질문 횟수. resets_at 은 다음 KST 자정(+09:00).",
+        "properties": {
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "integer"
+          },
+          "resets_at": {
+            "format": "date-time",
+            "title": "Resets At",
+            "type": "string"
+          },
+          "used": {
+            "title": "Used",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit",
+          "used",
+          "remaining",
+          "resets_at"
+        ],
+        "title": "AskQuota",
+        "type": "object"
+      },
+      "AskRequest": {
+        "description": "질문 1건. /chat/stream 과 같은 필드에서 봇(chatbot_id)은 서버가 정한다.\n\n길이(1000자)·빈 질문은 기존 입력 검증이 400 INPUT_BLOCKED 로 거절한다(설정값과 한곳에서 맞추려고 여기서 막지 않는다).",
+        "properties": {
+          "answer_mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "standard",
+                  "theological",
+                  "pastoral",
+                  "beginner",
+                  "kids"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer Mode"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "AskRequest",
+        "type": "object"
+      },
       "AuditLogResponse": {
         "properties": {
           "action": {
@@ -170,12 +213,6 @@
             "title": "File",
             "type": "string"
           },
-          "mode": {
-            "default": "standard",
-            "description": "호환용 (Batch API 제거됨, 항상 standard)",
-            "title": "Mode",
-            "type": "string"
-          },
           "on_duplicate": {
             "default": "merge",
             "description": "재업로드 정책 (ADR-30). merge: 기존 카테고리 ∪ 신규 (default), replace: 신규로 통째 교체, skip: COMPLETED 동일 파일이면 임베딩 생략.",
@@ -193,6 +230,20 @@
           "file"
         ],
         "title": "Body_upload_document_admin_data_sources_upload_post",
+        "type": "object"
+      },
+      "Body_upload_summary_image_admin_hoondok_ai_summaries__unit_id__media_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_summary_image_admin_hoondok_ai_summaries__unit_id__media_post",
         "type": "object"
       },
       "BulkRightsInput": {
@@ -1039,6 +1090,17 @@
       },
       "ChatSourcesEvent": {
         "properties": {
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
           "closing": {
             "anyOf": [
               {
@@ -1098,7 +1160,8 @@
         "required": [
           "sources",
           "session_id",
-          "message_id"
+          "message_id",
+          "answer_mode"
         ],
         "title": "ChatSourcesEvent",
         "type": "object"
@@ -2459,22 +2522,6 @@
         "title": "DataSourceCategoryUpdate",
         "type": "object"
       },
-      "DisplayNameInput": {
-        "description": "API-HD-036 참여 · API-HD-037 이름 변경. 앞뒤 공백만 다른 이름은 같은 이름이다.",
-        "properties": {
-          "display_name": {
-            "maxLength": 12,
-            "minLength": 1,
-            "title": "Display Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "display_name"
-        ],
-        "title": "DisplayNameInput",
-        "type": "object"
-      },
       "DuplicateCheckResponse": {
         "description": "업로드 전 중복 문서 검사 결과.",
         "properties": {
@@ -2932,396 +2979,6 @@
         "title": "GenerationTrace",
         "type": "object"
       },
-      "GroupCreate": {
-        "properties": {
-          "display_name": {
-            "maxLength": 12,
-            "minLength": 1,
-            "title": "Display Name",
-            "type": "string"
-          },
-          "jeongseong": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/GroupJeongseongInput"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meeting_time": {
-            "anyOf": [
-              {
-                "format": "time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meeting Time"
-          },
-          "name": {
-            "maxLength": 20,
-            "minLength": 1,
-            "title": "Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "display_name"
-        ],
-        "title": "GroupCreate",
-        "type": "object"
-      },
-      "GroupDetail": {
-        "description": "API-HD-032 · 031 응답. 전체 인원 없음. invite_code 는 리더에게만 값이 있다.",
-        "properties": {
-          "date": {
-            "format": "date",
-            "title": "Date",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "invite_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Invite Code"
-          },
-          "invite_expires_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Invite Expires At"
-          },
-          "jeongseongs": {
-            "items": {
-              "$ref": "#/components/schemas/GroupJeongseongOut"
-            },
-            "title": "Jeongseongs",
-            "type": "array"
-          },
-          "kind": {
-            "const": "small_group",
-            "title": "Kind",
-            "type": "string"
-          },
-          "leader_display_name": {
-            "title": "Leader Display Name",
-            "type": "string"
-          },
-          "me": {
-            "$ref": "#/components/schemas/GroupMe"
-          },
-          "meeting_time": {
-            "anyOf": [
-              {
-                "format": "time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meeting Time"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "readers": {
-            "items": {
-              "$ref": "#/components/schemas/GroupReader"
-            },
-            "title": "Readers",
-            "type": "array"
-          },
-          "shares": {
-            "items": {
-              "$ref": "#/components/schemas/GroupShareOut"
-            },
-            "title": "Shares",
-            "type": "array"
-          },
-          "today_reading": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/TodayReadingSummary"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "kind",
-          "leader_display_name",
-          "meeting_time",
-          "date",
-          "today_reading",
-          "jeongseongs",
-          "readers",
-          "shares",
-          "me"
-        ],
-        "title": "GroupDetail",
-        "type": "object"
-      },
-      "GroupJeongseongInput": {
-        "description": "API-HD-031 선택 항목 · API-HD-039 본문. started_on 범위(오늘±30)는 service 가 422 로 검사한다.",
-        "properties": {
-          "duration_days": {
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Duration Days",
-            "type": "integer"
-          },
-          "started_on": {
-            "format": "date",
-            "title": "Started On",
-            "type": "string"
-          },
-          "title": {
-            "maxLength": 24,
-            "minLength": 1,
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "title",
-          "duration_days",
-          "started_on"
-        ],
-        "title": "GroupJeongseongInput",
-        "type": "object"
-      },
-      "GroupJeongseongOut": {
-        "description": "진행은 저장하지 않는다. day_index = (오늘 - started_on) + 1, 시작 전이면 null(state=upcoming).",
-        "properties": {
-          "day_index": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Day Index"
-          },
-          "duration_days": {
-            "title": "Duration Days",
-            "type": "integer"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "is_official": {
-            "title": "Is Official",
-            "type": "boolean"
-          },
-          "source_note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source Note"
-          },
-          "started_on": {
-            "format": "date",
-            "title": "Started On",
-            "type": "string"
-          },
-          "state": {
-            "enum": [
-              "upcoming",
-              "active"
-            ],
-            "title": "State",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "started_on",
-          "duration_days",
-          "day_index",
-          "state",
-          "is_official",
-          "source_note"
-        ],
-        "title": "GroupJeongseongOut",
-        "type": "object"
-      },
-      "GroupMe": {
-        "properties": {
-          "display_name": {
-            "title": "Display Name",
-            "type": "string"
-          },
-          "has_read_today": {
-            "title": "Has Read Today",
-            "type": "boolean"
-          },
-          "has_shared_today": {
-            "title": "Has Shared Today",
-            "type": "boolean"
-          },
-          "member_id": {
-            "format": "uuid",
-            "title": "Member Id",
-            "type": "string"
-          },
-          "role": {
-            "enum": [
-              "leader",
-              "member"
-            ],
-            "title": "Role",
-            "type": "string"
-          }
-        },
-        "required": [
-          "member_id",
-          "display_name",
-          "role",
-          "has_read_today",
-          "has_shared_today"
-        ],
-        "title": "GroupMe",
-        "type": "object"
-      },
-      "GroupReader": {
-        "description": "오늘 훈독을 마친 모임원 — 완료자만 존재한다.",
-        "properties": {
-          "display_name": {
-            "title": "Display Name",
-            "type": "string"
-          },
-          "is_leader": {
-            "title": "Is Leader",
-            "type": "boolean"
-          },
-          "is_me": {
-            "title": "Is Me",
-            "type": "boolean"
-          },
-          "read_at_kst": {
-            "format": "date-time",
-            "title": "Read At Kst",
-            "type": "string"
-          }
-        },
-        "required": [
-          "display_name",
-          "read_at_kst",
-          "is_me",
-          "is_leader"
-        ],
-        "title": "GroupReader",
-        "type": "object"
-      },
-      "GroupRename": {
-        "properties": {
-          "name": {
-            "maxLength": 20,
-            "minLength": 1,
-            "title": "Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name"
-        ],
-        "title": "GroupRename",
-        "type": "object"
-      },
-      "GroupShareOut": {
-        "description": "reaction_count 는 내 한 줄에만 값, 남의 한 줄은 null. 반응한 사람 목록은 주지 않는다.",
-        "properties": {
-          "body": {
-            "title": "Body",
-            "type": "string"
-          },
-          "created_at_kst": {
-            "format": "date-time",
-            "title": "Created At Kst",
-            "type": "string"
-          },
-          "display_name": {
-            "title": "Display Name",
-            "type": "string"
-          },
-          "has_my_reaction": {
-            "title": "Has My Reaction",
-            "type": "boolean"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "is_mine": {
-            "title": "Is Mine",
-            "type": "boolean"
-          },
-          "reaction_count": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reaction Count"
-          }
-        },
-        "required": [
-          "id",
-          "display_name",
-          "body",
-          "created_at_kst",
-          "is_mine",
-          "has_my_reaction",
-          "reaction_count"
-        ],
-        "title": "GroupShareOut",
-        "type": "object"
-      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -3679,75 +3336,6 @@
         "title": "IngestionStatusSummary",
         "type": "object"
       },
-      "InviteOut": {
-        "properties": {
-          "invite_code": {
-            "title": "Invite Code",
-            "type": "string"
-          },
-          "invite_expires_at": {
-            "format": "date-time",
-            "title": "Invite Expires At",
-            "type": "string"
-          }
-        },
-        "required": [
-          "invite_code",
-          "invite_expires_at"
-        ],
-        "title": "InviteOut",
-        "type": "object"
-      },
-      "InvitePreview": {
-        "description": "API-HD-035. 전체 인원 없음. 이미 모임원이면 is_member=true + group_id.",
-        "properties": {
-          "group_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Group Id"
-          },
-          "is_member": {
-            "title": "Is Member",
-            "type": "boolean"
-          },
-          "jeongseongs": {
-            "items": {
-              "$ref": "#/components/schemas/GroupJeongseongOut"
-            },
-            "title": "Jeongseongs",
-            "type": "array"
-          },
-          "kind": {
-            "const": "small_group",
-            "title": "Kind",
-            "type": "string"
-          },
-          "leader_display_name": {
-            "title": "Leader Display Name",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "kind",
-          "leader_display_name",
-          "jeongseongs",
-          "is_member"
-        ],
-        "title": "InvitePreview",
-        "type": "object"
-      },
       "JeongseongCreate": {
         "description": "POST 본문. started_on 생략 시 오늘(KST), 허용 범위 오늘~오늘+30 은 service 가 422 로 검사한다.",
         "properties": {
@@ -4063,20 +3651,6 @@
         "title": "JeongseongTodayResponse",
         "type": "object"
       },
-      "JoinResult": {
-        "properties": {
-          "group_id": {
-            "format": "uuid",
-            "title": "Group Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "group_id"
-        ],
-        "title": "JoinResult",
-        "type": "object"
-      },
       "LibraryItem": {
         "properties": {
           "authority_grade": {
@@ -4269,210 +3843,6 @@
         "title": "LoginRequest",
         "type": "object"
       },
-      "MarkInput": {
-        "properties": {
-          "chunk_index": {
-            "minimum": 0.0,
-            "title": "Chunk Index",
-            "type": "integer"
-          },
-          "color": {
-            "anyOf": [
-              {
-                "maximum": 3.0,
-                "minimum": 1.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Color"
-          },
-          "kind": {
-            "const": "bookmark",
-            "title": "Kind",
-            "type": "string"
-          },
-          "note": {
-            "anyOf": [
-              {
-                "maxLength": 2000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
-          },
-          "volume": {
-            "maxLength": 512,
-            "minLength": 1,
-            "title": "Volume",
-            "type": "string"
-          }
-        },
-        "required": [
-          "volume",
-          "chunk_index",
-          "kind"
-        ],
-        "title": "MarkInput",
-        "type": "object"
-      },
-      "MarkItem": {
-        "properties": {
-          "chunk_id": {
-            "title": "Chunk Id",
-            "type": "string"
-          },
-          "chunk_index": {
-            "title": "Chunk Index",
-            "type": "integer"
-          },
-          "color": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Color"
-          },
-          "excerpt": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Excerpt"
-          },
-          "kind": {
-            "const": "bookmark",
-            "title": "Kind",
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
-          },
-          "updated_at": {
-            "format": "date-time",
-            "title": "Updated At",
-            "type": "string"
-          },
-          "volume": {
-            "title": "Volume",
-            "type": "string"
-          },
-          "work_title": {
-            "title": "Work Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "chunk_id",
-          "chunk_index",
-          "volume",
-          "kind",
-          "color",
-          "note",
-          "updated_at",
-          "work_title",
-          "label"
-        ],
-        "title": "MarkItem",
-        "type": "object"
-      },
-      "MarksResponse": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/MarkItem"
-            },
-            "title": "Items",
-            "type": "array"
-          }
-        },
-        "required": [
-          "items"
-        ],
-        "title": "MarksResponse",
-        "type": "object"
-      },
-      "MemberItem": {
-        "description": "API-HD-038 — 읽음 상태 필드는 두지 않는다.",
-        "properties": {
-          "display_name": {
-            "title": "Display Name",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "joined_at": {
-            "format": "date-time",
-            "title": "Joined At",
-            "type": "string"
-          },
-          "role": {
-            "enum": [
-              "leader",
-              "member"
-            ],
-            "title": "Role",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "display_name",
-          "role",
-          "joined_at"
-        ],
-        "title": "MemberItem",
-        "type": "object"
-      },
-      "MemberList": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/MemberItem"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "member_count": {
-            "title": "Member Count",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "member_count",
-          "items"
-        ],
-        "title": "MemberList",
-        "type": "object"
-      },
       "MessageResponse": {
         "description": "단순 메시지 응답 (로그인/로그아웃 등).",
         "properties": {
@@ -4540,6 +3910,241 @@
         "title": "MonthHistoryResponse",
         "type": "object"
       },
+      "MyAskDetail": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "saved": {
+            "title": "Saved",
+            "type": "boolean"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/MyAskTurn"
+            },
+            "title": "Turns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "saved",
+          "created_at",
+          "turns"
+        ],
+        "title": "MyAskDetail",
+        "type": "object"
+      },
+      "MyAskListResponse": {
+        "description": "최근 활동순.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MyAskSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "MyAskListResponse",
+        "type": "object"
+      },
+      "MyAskSummary": {
+        "description": "내 대화 목록 한 줄. id 는 session_id(이어 묻기에 그대로 보낸다).",
+        "properties": {
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_at": {
+            "format": "date-time",
+            "title": "Last At",
+            "type": "string"
+          },
+          "public_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Id"
+          },
+          "public_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pending",
+                  "published",
+                  "hidden"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Status"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "saved": {
+            "title": "Saved",
+            "type": "boolean"
+          },
+          "turn_count": {
+            "title": "Turn Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "answer_mode",
+          "turn_count",
+          "saved",
+          "public_id",
+          "public_status",
+          "created_at",
+          "last_at"
+        ],
+        "title": "MyAskSummary",
+        "type": "object"
+      },
+      "MyAskTurn": {
+        "description": "질문 → 답 한 차례. sources 는 처음 받은 sources 이벤트와 같은 모양(chunk_id 로 원문을 연다).",
+        "properties": {
+          "answer_md": {
+            "title": "Answer Md",
+            "type": "string"
+          },
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          },
+          "public_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Id"
+          },
+          "public_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pending",
+                  "published",
+                  "hidden"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Status"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "suggested_followups": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggested Followups",
+            "type": "array"
+          }
+        },
+        "required": [
+          "message_id",
+          "question",
+          "answer_md",
+          "answer_mode",
+          "sources",
+          "suggested_followups",
+          "public_id",
+          "public_status",
+          "created_at"
+        ],
+        "title": "MyAskTurn",
+        "type": "object"
+      },
+      "MyAskUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "saved": {
+            "title": "Saved",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "saved"
+        ],
+        "title": "MyAskUpdate",
+        "type": "object"
+      },
       "MyCardsResponse": {
         "description": "API-HD-051. shelves 는 개수 내림차순(동률은 책 이름순), items 는 받은 날 최신순.",
         "properties": {
@@ -4565,65 +4170,86 @@
         "title": "MyCardsResponse",
         "type": "object"
       },
-      "MyGroupItem": {
-        "description": "API-HD-030. today_read_count 는 오늘 완료자 수(전체 인원이 아니다).",
+      "MyPublicQuestionItem": {
+        "description": "내 공개 신청 한 줄. 상태로 검토 중·공개됨·비공개를 보인다.",
         "properties": {
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
           "id": {
-            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
-          "jeongseongs": {
-            "items": {
-              "$ref": "#/components/schemas/GroupJeongseongOut"
-            },
-            "title": "Jeongseongs",
-            "type": "array"
-          },
-          "kind": {
-            "const": "small_group",
-            "title": "Kind",
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
             "type": "string"
           },
-          "my_display_name": {
-            "title": "My Display Name",
+          "question": {
+            "title": "Question",
             "type": "string"
           },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "readers_preview": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Readers Preview",
-            "type": "array"
-          },
-          "role": {
-            "enum": [
-              "leader",
-              "member"
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Role",
-            "type": "string"
+            "title": "Reviewed At"
           },
-          "today_read_count": {
-            "title": "Today Read Count",
-            "type": "integer"
+          "status": {
+            "enum": [
+              "pending",
+              "published",
+              "hidden"
+            ],
+            "title": "Status",
+            "type": "string"
           }
         },
         "required": [
           "id",
-          "name",
-          "kind",
-          "role",
-          "my_display_name",
-          "today_read_count",
-          "readers_preview",
-          "jeongseongs"
+          "message_id",
+          "question",
+          "answer_mode",
+          "status",
+          "created_at",
+          "reviewed_at"
         ],
-        "title": "MyGroupItem",
+        "title": "MyPublicQuestionItem",
+        "type": "object"
+      },
+      "MyPublicQuestionListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MyPublicQuestionItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "MyPublicQuestionListResponse",
         "type": "object"
       },
       "NegativeFeedbackItem": {
@@ -4757,101 +4383,6 @@
         "title": "NotificationPreferenceResponse",
         "type": "object"
       },
-      "OfficialJeongseongInput": {
-        "description": "API-HD-042 공식 정성 등록·수정(전체 교체).",
-        "properties": {
-          "duration_days": {
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Duration Days",
-            "type": "integer"
-          },
-          "source_note": {
-            "anyOf": [
-              {
-                "maxLength": 200,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source Note"
-          },
-          "started_on": {
-            "format": "date",
-            "title": "Started On",
-            "type": "string"
-          },
-          "title": {
-            "maxLength": 40,
-            "minLength": 1,
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "title",
-          "started_on",
-          "duration_days"
-        ],
-        "title": "OfficialJeongseongInput",
-        "type": "object"
-      },
-      "OfficialJeongseongOut": {
-        "properties": {
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "duration_days": {
-            "title": "Duration Days",
-            "type": "integer"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "source_note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source Note"
-          },
-          "started_on": {
-            "format": "date",
-            "title": "Started On",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          },
-          "updated_at": {
-            "format": "date-time",
-            "title": "Updated At",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "started_on",
-          "duration_days",
-          "source_note",
-          "created_at",
-          "updated_at"
-        ],
-        "title": "OfficialJeongseongOut",
-        "type": "object"
-      },
       "PaginatedResponse_ChatbotConfigResponse_": {
         "properties": {
           "items": {
@@ -4881,6 +4412,289 @@
           "offset"
         ],
         "title": "PaginatedResponse[ChatbotConfigResponse]",
+        "type": "object"
+      },
+      "PublicQuestionAdminItem": {
+        "description": "검수 화면 한 줄 — 작성자 정보는 관리자에게도 보이지 않는다.",
+        "properties": {
+          "answer_md": {
+            "title": "Answer Md",
+            "type": "string"
+          },
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/PublicQuestionSource"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "published",
+              "hidden"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "answer_md",
+          "sources",
+          "answer_mode",
+          "status",
+          "created_at",
+          "reviewed_at"
+        ],
+        "title": "PublicQuestionAdminItem",
+        "type": "object"
+      },
+      "PublicQuestionAdminListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicQuestionAdminItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "PublicQuestionAdminListResponse",
+        "type": "object"
+      },
+      "PublicQuestionCreate": {
+        "additionalProperties": false,
+        "description": "공개 신청 본문. 질문·답은 서버가 message_id 로 복사한다 — 본문을 받지 않는다.",
+        "properties": {
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id"
+        ],
+        "title": "PublicQuestionCreate",
+        "type": "object"
+      },
+      "PublicQuestionDetail": {
+        "properties": {
+          "answer_md": {
+            "title": "Answer Md",
+            "type": "string"
+          },
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/PublicQuestionSource"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "answer_md",
+          "sources",
+          "answer_mode",
+          "published_at"
+        ],
+        "title": "PublicQuestionDetail",
+        "type": "object"
+      },
+      "PublicQuestionListResponse": {
+        "description": "최신순. next_cursor 를 다음 요청의 cursor 로 보내면 이어진다(없으면 끝).",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicQuestionSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "PublicQuestionListResponse",
+        "type": "object"
+      },
+      "PublicQuestionReview": {
+        "additionalProperties": false,
+        "description": "PATCH 본문. 공개(published) 또는 숨김(hidden)만 받는다.",
+        "properties": {
+          "status": {
+            "enum": [
+              "published",
+              "hidden"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "PublicQuestionReview",
+        "type": "object"
+      },
+      "PublicQuestionSource": {
+        "description": "근거 말씀 한 줄 — answer_citations 복사본(상위 3건).",
+        "properties": {
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "volume",
+          "text"
+        ],
+        "title": "PublicQuestionSource",
+        "type": "object"
+      },
+      "PublicQuestionSummary": {
+        "description": "공개 목록 한 줄. preview 는 답 앞부분(마크다운 기호 제거).",
+        "properties": {
+          "answer_mode": {
+            "enum": [
+              "standard",
+              "theological",
+              "pastoral",
+              "beginner",
+              "kids"
+            ],
+            "title": "Answer Mode",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "preview": {
+            "title": "Preview",
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "preview",
+          "answer_mode",
+          "published_at"
+        ],
+        "title": "PublicQuestionSummary",
         "type": "object"
       },
       "PushConfigResponse": {
@@ -5402,156 +5216,6 @@
           "totals"
         ],
         "title": "RagTraceResponse",
-        "type": "object"
-      },
-      "ReactionAggregate": {
-        "description": "단일 message_id 의 반응 카운트 집계 — UI badge 용.",
-        "properties": {
-          "message_id": {
-            "format": "uuid",
-            "title": "Message Id",
-            "type": "string"
-          },
-          "save": {
-            "default": 0,
-            "title": "Save",
-            "type": "integer"
-          },
-          "thumbs_down": {
-            "default": 0,
-            "title": "Thumbs Down",
-            "type": "integer"
-          },
-          "thumbs_up": {
-            "default": 0,
-            "title": "Thumbs Up",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "message_id"
-        ],
-        "title": "ReactionAggregate",
-        "type": "object"
-      },
-      "ReactionCount": {
-        "properties": {
-          "count": {
-            "title": "Count",
-            "type": "integer"
-          },
-          "kind": {
-            "title": "Kind",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind",
-          "count"
-        ],
-        "title": "ReactionCount",
-        "type": "object"
-      },
-      "ReactionRequest": {
-        "description": "POST /api/chat/messages/{id}/reaction body.\n\nB2 보안: ``user_session_id`` 는 더 이상 클라이언트 입력이 아니다 —\n서버가 HttpOnly cookie ``tw_anon_session`` 으로 발급/관리한다.",
-        "properties": {
-          "kind": {
-            "enum": [
-              "thumbs_up",
-              "thumbs_down",
-              "save"
-            ],
-            "title": "Kind",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind"
-        ],
-        "title": "ReactionRequest",
-        "type": "object"
-      },
-      "ReactionResponse": {
-        "description": "단일 반응 응답.",
-        "properties": {
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "kind": {
-            "enum": [
-              "thumbs_up",
-              "thumbs_down",
-              "save"
-            ],
-            "title": "Kind",
-            "type": "string"
-          },
-          "message_id": {
-            "format": "uuid",
-            "title": "Message Id",
-            "type": "string"
-          },
-          "user_session_id": {
-            "title": "User Session Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "message_id",
-          "user_session_id",
-          "kind",
-          "created_at"
-        ],
-        "title": "ReactionResponse",
-        "type": "object"
-      },
-      "ReactionState": {
-        "properties": {
-          "has_reacted": {
-            "title": "Has Reacted",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "has_reacted"
-        ],
-        "title": "ReactionState",
-        "type": "object"
-      },
-      "ReactionToggleResponse": {
-        "description": "토글 결과 — added 면 reaction 포함, removed 면 없음.",
-        "properties": {
-          "action": {
-            "enum": [
-              "added",
-              "removed"
-            ],
-            "title": "Action",
-            "type": "string"
-          },
-          "reaction": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ReactionResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": [
-          "action"
-        ],
-        "title": "ReactionToggleResponse",
         "type": "object"
       },
       "ReadingPositionInput": {
@@ -6225,13 +5889,6 @@
             ],
             "title": "Persona Overridden"
           },
-          "reactions": {
-            "items": {
-              "$ref": "#/components/schemas/ReactionCount"
-            },
-            "title": "Reactions",
-            "type": "array"
-          },
           "resolved_answer_mode": {
             "anyOf": [
               {
@@ -6284,21 +5941,6 @@
           "qdrant_host"
         ],
         "title": "SettingsConfigResponse",
-        "type": "object"
-      },
-      "ShareInput": {
-        "properties": {
-          "body": {
-            "maxLength": 100,
-            "minLength": 1,
-            "title": "Body",
-            "type": "string"
-          }
-        },
-        "required": [
-          "body"
-        ],
-        "title": "ShareInput",
         "type": "object"
       },
       "SignupRequest": {
@@ -6415,6 +6057,69 @@
         "title": "Source",
         "type": "object"
       },
+      "SourceBlock": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "section_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Id"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "label",
+          "text"
+        ],
+        "title": "SourceBlock",
+        "type": "object"
+      },
+      "SourceBook": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "volume"
+        ],
+        "title": "SourceBook",
+        "type": "object"
+      },
       "SourceChunkDetail": {
         "description": "P0-B — 인용 카드 원문보기 모달용 청크 상세 + dedup 된 연속 문맥.\n\nNotebookLM 패턴: 메인 청크 + 같은 volume 의 chunk_index 인접 ±N 청크들을\nsuffix-prefix overlap dedup 후 **하나의 연속 본문** 으로 합쳐 반환한다.\n사용자가 청크 경계의 끊김/중복 없이 자연스러운 reading flow 로 원문을\n확인할 수 있다. 프론트는 ``main_offset_start..main_offset_end`` 범위만\n시각적으로 강조 (좌측 brass border + accent 옅은 배경).\n\nChunking artifact (overlap=150) 의 부산물이 백엔드에서 정리되므로 프론트는\n단순 substring slicing 만 수행.\n\nPoC 정리 (2026-04-29) — P1-B 4중 메타 (volume_no/delivered_at/delivered_place/\nchapter_title + citation_label) 제거. 인덱싱 파이프라인이 4 필드를 채우게\n되면 재추가.",
         "properties": {
@@ -6472,6 +6177,428 @@
           "chunk_id"
         ],
         "title": "SourceChunkDetail",
+        "type": "object"
+      },
+      "SourcePassages": {
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/SourceBlock"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          },
+          "snapshot_id": {
+            "format": "uuid",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "blocks",
+          "total",
+          "next_offset"
+        ],
+        "title": "SourcePassages",
+        "type": "object"
+      },
+      "SourceRangeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "end_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "End Block Id",
+            "type": "string"
+          },
+          "end_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Offset"
+          },
+          "group_title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Group Title",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "format": "uuid",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "start_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Start Block Id",
+            "type": "string"
+          },
+          "start_offset": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start Offset",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "start_block_id",
+          "end_block_id",
+          "title"
+        ],
+        "title": "SourceRangeInput",
+        "type": "object"
+      },
+      "SourceRangeMerge": {
+        "properties": {
+          "other_id": {
+            "format": "uuid",
+            "title": "Other Id",
+            "type": "string"
+          },
+          "other_version": {
+            "minimum": 1.0,
+            "title": "Other Version",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "other_id",
+          "other_version",
+          "title"
+        ],
+        "title": "SourceRangeMerge",
+        "type": "object"
+      },
+      "SourceRangeResult": {
+        "additionalProperties": false,
+        "properties": {
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "end_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "End Block Id",
+            "type": "string"
+          },
+          "end_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Offset"
+          },
+          "first": {
+            "title": "First",
+            "type": "string"
+          },
+          "group_title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Group Title",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last": {
+            "title": "Last",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "format": "uuid",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SummarySource"
+          },
+          "start_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Start Block Id",
+            "type": "string"
+          },
+          "start_offset": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start Offset",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "start_block_id",
+          "end_block_id",
+          "title",
+          "id",
+          "version",
+          "content_right_id",
+          "first",
+          "last",
+          "text",
+          "source"
+        ],
+        "title": "SourceRangeResult",
+        "type": "object"
+      },
+      "SourceRangeSplit": {
+        "properties": {
+          "after_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "After Block Id",
+            "type": "string"
+          },
+          "after_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After Offset"
+          },
+          "first_title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "First Title",
+            "type": "string"
+          },
+          "second_title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Second Title",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "after_block_id",
+          "first_title",
+          "second_title"
+        ],
+        "title": "SourceRangeSplit",
+        "type": "object"
+      },
+      "SourceRangeUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "end_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "End Block Id",
+            "type": "string"
+          },
+          "end_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Offset"
+          },
+          "group_title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Group Title",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "format": "uuid",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "start_block_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Start Block Id",
+            "type": "string"
+          },
+          "start_offset": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start Offset",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "start_block_id",
+          "end_block_id",
+          "title",
+          "version"
+        ],
+        "title": "SourceRangeUpdate",
+        "type": "object"
+      },
+      "SourceSection": {
+        "properties": {
+          "end_block_id": {
+            "title": "End Block Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "start_block_id": {
+            "title": "Start Block Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "level",
+          "start_block_id",
+          "end_block_id"
+        ],
+        "title": "SourceSection",
+        "type": "object"
+      },
+      "SourceSnapshotInfo": {
+        "properties": {
+          "block_count": {
+            "title": "Block Count",
+            "type": "integer"
+          },
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "edition": {
+            "title": "Edition",
+            "type": "string"
+          },
+          "fingerprint": {
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SourceSection"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "content_right_id",
+          "title",
+          "edition",
+          "fingerprint",
+          "sections",
+          "block_count"
+        ],
+        "title": "SourceSnapshotInfo",
         "type": "object"
       },
       "StageSpan": {
@@ -6579,6 +6706,838 @@
         "title": "StageSpan",
         "type": "object"
       },
+      "SummaryActionInput": {
+        "properties": {
+          "action": {
+            "enum": [
+              "request_review",
+              "return_to_draft",
+              "publish",
+              "withdraw"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action",
+          "version"
+        ],
+        "title": "SummaryActionInput",
+        "type": "object"
+      },
+      "SummaryAdminResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryMediaResponse"
+            },
+            "title": "Assets",
+            "type": "array"
+          },
+          "body": {
+            "additionalProperties": true,
+            "title": "Body",
+            "type": "object"
+          },
+          "body_version": {
+            "default": 1,
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Body Version",
+            "type": "integer"
+          },
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvidence"
+            },
+            "maxItems": 20,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "generation": {
+            "$ref": "#/components/schemas/SummaryGeneration"
+          },
+          "group_title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Group Title",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryImage"
+            },
+            "maxItems": 2,
+            "title": "Images",
+            "type": "array"
+          },
+          "key_points": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Key Points",
+            "type": "array"
+          },
+          "lead": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Lead",
+            "type": "string"
+          },
+          "paragraph_label": {
+            "default": "말씀",
+            "title": "Paragraph Label",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "published": {
+            "title": "Published",
+            "type": "boolean"
+          },
+          "reflection_questions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Reflection Questions",
+            "type": "array"
+          },
+          "review_status": {
+            "enum": [
+              "draft",
+              "review",
+              "published",
+              "withdrawn"
+            ],
+            "title": "Review Status",
+            "type": "string"
+          },
+          "slug": {
+            "default": "",
+            "pattern": "^(?:[a-z0-9][a-z0-9-]{0,99})?$",
+            "title": "Slug",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SummarySource"
+          },
+          "source_range_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Range Id"
+          },
+          "source_range_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Range Version"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "uncertainty": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Uncertainty",
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "content_right_id",
+          "title",
+          "id",
+          "version",
+          "review_status",
+          "published",
+          "assets",
+          "updated_at"
+        ],
+        "title": "SummaryAdminResponse",
+        "type": "object"
+      },
+      "SummaryDetail": {
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryMediaResponse"
+            },
+            "title": "Assets",
+            "type": "array"
+          },
+          "body": {
+            "additionalProperties": true,
+            "title": "Body",
+            "type": "object"
+          },
+          "body_version": {
+            "default": 1,
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Body Version",
+            "type": "integer"
+          },
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Url"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "group_title": {
+            "title": "Group Title",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryPublicImage"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "key_points": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Key Points",
+            "type": "array"
+          },
+          "lead": {
+            "title": "Lead",
+            "type": "string"
+          },
+          "next_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Id"
+          },
+          "paragraph_label": {
+            "default": "말씀",
+            "title": "Paragraph Label",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "reflection_questions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reflection Questions",
+            "type": "array"
+          },
+          "section_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Position"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SummaryPublicSource"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "content_right_id",
+          "work_title",
+          "slug",
+          "group_title",
+          "position",
+          "title",
+          "lead",
+          "volume",
+          "key_points",
+          "body",
+          "evidence",
+          "reflection_questions",
+          "source",
+          "images"
+        ],
+        "title": "SummaryDetail",
+        "type": "object"
+      },
+      "SummaryEvidence": {
+        "additionalProperties": false,
+        "description": "요약 문장의 근거 — 절 안 말씀 번호 범위.",
+        "properties": {
+          "chunk_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Id"
+          },
+          "chunk_index": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Index"
+          },
+          "claim": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Claim",
+            "type": "string"
+          },
+          "from": {
+            "minimum": 1.0,
+            "title": "From",
+            "type": "integer"
+          },
+          "to": {
+            "minimum": 1.0,
+            "title": "To",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "claim",
+          "from",
+          "to"
+        ],
+        "title": "SummaryEvidence",
+        "type": "object"
+      },
+      "SummaryGeneration": {
+        "additionalProperties": false,
+        "description": "생성 기록 — 관리자 응답에만 포함한다.",
+        "properties": {
+          "image_rounds": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "maxProperties": 10,
+            "title": "Image Rounds",
+            "type": "object"
+          },
+          "image_scores": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "maxProperties": 10,
+            "title": "Image Scores",
+            "type": "object"
+          },
+          "text_model": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Text Model",
+            "type": "string"
+          },
+          "text_rounds": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Text Rounds",
+            "type": "integer"
+          },
+          "text_score": {
+            "default": 0,
+            "title": "Text Score",
+            "type": "number"
+          }
+        },
+        "title": "SummaryGeneration",
+        "type": "object"
+      },
+      "SummaryImage": {
+        "additionalProperties": false,
+        "properties": {
+          "alt": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Alt",
+            "type": "string"
+          },
+          "asset_id": {
+            "format": "uuid",
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "caption": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Caption",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "concept",
+              "scene"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "asset_id"
+        ],
+        "title": "SummaryImage",
+        "type": "object"
+      },
+      "SummaryInput": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "additionalProperties": true,
+            "title": "Body",
+            "type": "object"
+          },
+          "body_version": {
+            "default": 1,
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Body Version",
+            "type": "integer"
+          },
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvidence"
+            },
+            "maxItems": 20,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "generation": {
+            "$ref": "#/components/schemas/SummaryGeneration"
+          },
+          "group_title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Group Title",
+            "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryImage"
+            },
+            "maxItems": 2,
+            "title": "Images",
+            "type": "array"
+          },
+          "key_points": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Key Points",
+            "type": "array"
+          },
+          "lead": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Lead",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "reflection_questions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Reflection Questions",
+            "type": "array"
+          },
+          "slug": {
+            "default": "",
+            "pattern": "^(?:[a-z0-9][a-z0-9-]{0,99})?$",
+            "title": "Slug",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SummarySource"
+          },
+          "source_range_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Range Id"
+          },
+          "source_range_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Range Version"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "uncertainty": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Uncertainty",
+            "type": "array"
+          }
+        },
+        "required": [
+          "content_right_id",
+          "title"
+        ],
+        "title": "SummaryInput",
+        "type": "object"
+      },
+      "SummaryListItem": {
+        "properties": {
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Url"
+          },
+          "group_title": {
+            "title": "Group Title",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lead": {
+            "title": "Lead",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "section_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Position"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "work_title": {
+            "title": "Work Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "content_right_id",
+          "work_title",
+          "slug",
+          "group_title",
+          "position",
+          "title",
+          "lead"
+        ],
+        "title": "SummaryListItem",
+        "type": "object"
+      },
+      "SummaryMediaResponse": {
+        "properties": {
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "mime_type"
+        ],
+        "title": "SummaryMediaResponse",
+        "type": "object"
+      },
+      "SummaryPublicImage": {
+        "properties": {
+          "alt": {
+            "title": "Alt",
+            "type": "string"
+          },
+          "asset_id": {
+            "format": "uuid",
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "caption": {
+            "title": "Caption",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "concept",
+              "scene"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "asset_id",
+          "alt",
+          "caption",
+          "url"
+        ],
+        "title": "SummaryPublicImage",
+        "type": "object"
+      },
+      "SummaryPublicSource": {
+        "description": "공개 응답의 원문 정보. 검수 메모·검수 여부는 담지 않는다.",
+        "properties": {
+          "chunk_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Chunk Ids",
+            "type": "array"
+          },
+          "edition": {
+            "default": "",
+            "title": "Edition",
+            "type": "string"
+          },
+          "locator": {
+            "default": "",
+            "title": "Locator",
+            "type": "string"
+          },
+          "paragraph_from": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph From"
+          },
+          "paragraph_to": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph To"
+          },
+          "text": {
+            "default": "",
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "title": "SummaryPublicSource",
+        "type": "object"
+      },
       "SummaryResponse": {
         "description": "API-HD-004. 연속일·최대·누적은 read 기준이며 저장하지 않는다. week 는 월요일 시작 7칸.",
         "properties": {
@@ -6613,6 +7572,407 @@
           "week"
         ],
         "title": "SummaryResponse",
+        "type": "object"
+      },
+      "SummarySource": {
+        "additionalProperties": false,
+        "properties": {
+          "chunk_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 300,
+            "title": "Chunk Ids",
+            "type": "array"
+          },
+          "edition": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Edition",
+            "type": "string"
+          },
+          "locator": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Locator",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 3000,
+            "title": "Note",
+            "type": "string"
+          },
+          "paragraph_from": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph From"
+          },
+          "paragraph_to": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph To"
+          },
+          "sha256": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Sha256",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 100000,
+            "title": "Text",
+            "type": "string"
+          },
+          "verified": {
+            "default": false,
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "title": "SummarySource",
+        "type": "object"
+      },
+      "SummaryTocItem": {
+        "description": "관리자 발행 관리 목록 한 행 — 천성경 절 하나 또는 평화경 연설문(제4편 14 는 장) 하나.",
+        "properties": {
+          "chapter_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chapter No"
+          },
+          "chapter_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chapter Title"
+          },
+          "image_count": {
+            "default": 0,
+            "title": "Image Count",
+            "type": "integer"
+          },
+          "item_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item No"
+          },
+          "item_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Title"
+          },
+          "jang_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jang No"
+          },
+          "jang_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jang Title"
+          },
+          "jeol_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jeol No"
+          },
+          "jeol_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jeol Title"
+          },
+          "paragraph_count": {
+            "title": "Paragraph Count",
+            "type": "integer"
+          },
+          "published": {
+            "default": false,
+            "title": "Published",
+            "type": "boolean"
+          },
+          "pyeon_no": {
+            "title": "Pyeon No",
+            "type": "integer"
+          },
+          "pyeon_title": {
+            "title": "Pyeon Title",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "default": "none",
+            "enum": [
+              "none",
+              "draft",
+              "review",
+              "published",
+              "withdrawn"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Score"
+          },
+          "toc_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Toc Date"
+          },
+          "unit_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Id"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "slug",
+          "pyeon_no",
+          "pyeon_title",
+          "paragraph_count"
+        ],
+        "title": "SummaryTocItem",
+        "type": "object"
+      },
+      "SummaryUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "additionalProperties": true,
+            "title": "Body",
+            "type": "object"
+          },
+          "body_version": {
+            "default": 1,
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Body Version",
+            "type": "integer"
+          },
+          "content_right_id": {
+            "format": "uuid",
+            "title": "Content Right Id",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryEvidence"
+            },
+            "maxItems": 20,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "generation": {
+            "$ref": "#/components/schemas/SummaryGeneration"
+          },
+          "group_title": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Group Title",
+            "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryImage"
+            },
+            "maxItems": 2,
+            "title": "Images",
+            "type": "array"
+          },
+          "key_points": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Key Points",
+            "type": "array"
+          },
+          "lead": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Lead",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "reflection_questions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Reflection Questions",
+            "type": "array"
+          },
+          "slug": {
+            "default": "",
+            "pattern": "^(?:[a-z0-9][a-z0-9-]{0,99})?$",
+            "title": "Slug",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SummarySource"
+          },
+          "source_range_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Range Id"
+          },
+          "source_range_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Range Version"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "uncertainty": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Uncertainty",
+            "type": "array"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "content_right_id",
+          "title",
+          "version"
+        ],
+        "title": "SummaryUpdate",
         "type": "object"
       },
       "TodayCardResponse": {
@@ -6695,59 +8055,6 @@
           "status"
         ],
         "title": "TodayReadingResponse",
-        "type": "object"
-      },
-      "TodayReadingSummary": {
-        "description": "오늘 공식 편성 요약. 원문 링크는 web 이 id·chunk_id 로 만든다.",
-        "properties": {
-          "chunk_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Chunk Id"
-          },
-          "estimated_minutes": {
-            "title": "Estimated Minutes",
-            "type": "integer"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "reading_date": {
-            "format": "date",
-            "title": "Reading Date",
-            "type": "string"
-          },
-          "speaker": {
-            "title": "Speaker",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          },
-          "work_title": {
-            "title": "Work Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "reading_date",
-          "title",
-          "speaker",
-          "work_title",
-          "chunk_id",
-          "estimated_minutes"
-        ],
-        "title": "TodayReadingSummary",
         "type": "object"
       },
       "TogetherTodayResponse": {
@@ -7078,7 +8385,7 @@
             "type": "string"
           },
           "mode": {
-            "description": "호환용 입력값 반환. 처리 방식은 항상 standard",
+            "description": "호환용 고정값. 처리 방식은 항상 standard",
             "title": "Mode",
             "type": "string"
           },
@@ -9213,6 +10520,391 @@
         ]
       }
     },
+    "/admin/hoondok/ai-summaries": {
+      "post": {
+        "operationId": "create_summary_admin_hoondok_ai_summaries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummaryInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryAdminResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Summary",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/ai-summaries/toc": {
+      "get": {
+        "description": "경전 목차 발행 관리 목록 — 천성경 199절, 평화경 182 연설문·장. 상태·편으로 거른다.",
+        "operationId": "admin_toc_admin_hoondok_ai_summaries_toc_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "work",
+            "required": false,
+            "schema": {
+              "default": "cheonseong",
+              "enum": [
+                "cheonseong",
+                "pyeonghwa"
+              ],
+              "title": "Work",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "none",
+                    "draft",
+                    "review",
+                    "published",
+                    "withdrawn"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pyeon",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 13,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pyeon"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SummaryTocItem"
+                  },
+                  "title": "Response Admin Toc Admin Hoondok Ai Summaries Toc Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Toc",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/ai-summaries/{unit_id}": {
+      "get": {
+        "operationId": "admin_summary_detail_admin_hoondok_ai_summaries__unit_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryAdminResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Summary Detail",
+        "tags": [
+          "admin-hoondok"
+        ]
+      },
+      "put": {
+        "operationId": "update_summary_admin_hoondok_ai_summaries__unit_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummaryUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryAdminResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Summary",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/ai-summaries/{unit_id}/actions": {
+      "post": {
+        "operationId": "summary_action_admin_hoondok_ai_summaries__unit_id__actions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummaryActionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryAdminResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Summary Action",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/ai-summaries/{unit_id}/media": {
+      "post": {
+        "operationId": "upload_summary_image_admin_hoondok_ai_summaries__unit_id__media_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_summary_image_admin_hoondok_ai_summaries__unit_id__media_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryMediaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Summary Image",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/ai-summaries/{unit_id}/media/{asset_id}": {
+      "get": {
+        "operationId": "admin_summary_media_admin_hoondok_ai_summaries__unit_id__media__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Summary Media",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
     "/admin/hoondok/cards": {
       "get": {
         "description": "API-HD-052 카드 풀 목록(최신 등록순). `status` 로 거른다.",
@@ -9886,50 +11578,65 @@
         ]
       }
     },
-    "/admin/hoondok/groups": {
+    "/admin/hoondok/questions": {
       "get": {
-        "description": "API-HD-043 모임 목록 — id·name·member_count·created_at 만.",
-        "operationId": "list_groups_admin_hoondok_groups_get",
+        "description": "검수 목록(신청 오래된 순). `status=pending` 이 검수 대기열이다.",
+        "operationId": "list_public_questions_admin_admin_hoondok_questions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pending",
+                    "published",
+                    "hidden"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/AdminGroupItem"
-                  },
-                  "title": "Response List Groups Admin Hoondok Groups Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/PublicQuestionAdminListResponse"
                 }
               }
             },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "List Groups",
-        "tags": [
-          "admin-hoondok"
-        ]
-      }
-    },
-    "/admin/hoondok/groups/{group_id}": {
-      "delete": {
-        "description": "API-HD-043 모임 삭제(신고 대응) → 204 + 감사 로그. 404 없음.",
-        "operationId": "delete_group_admin_hoondok_groups__group_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
             "description": "Successful Response"
           },
           "422": {
@@ -9943,25 +11650,77 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Delete Group",
+        "summary": "List Public Questions Admin",
         "tags": [
           "admin-hoondok"
         ]
       }
     },
-    "/admin/hoondok/jeongseongs": {
+    "/admin/hoondok/questions/{question_id}": {
+      "patch": {
+        "description": "공개(published)·숨김(hidden). 404 없음, 422 그 밖의 값.",
+        "operationId": "review_public_question_admin_hoondok_questions__question_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicQuestionReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicQuestionAdminItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review Public Question",
+        "tags": [
+          "admin-hoondok"
+        ]
+      }
+    },
+    "/admin/hoondok/source-books": {
       "get": {
-        "description": "API-HD-042 공식 정성 목록(시작일 내림차순). 진행 상태는 화면이 started_on·duration_days 로 계산한다.",
-        "operationId": "list_official_jeongseongs_admin_hoondok_jeongseongs_get",
+        "operationId": "source_books_admin_hoondok_source_books_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/OfficialJeongseongOut"
+                    "$ref": "#/components/schemas/SourceBook"
                   },
-                  "title": "Response List Official Jeongseongs Admin Hoondok Jeongseongs Get",
+                  "title": "Response Source Books Admin Hoondok Source Books Get",
                   "type": "array"
                 }
               }
@@ -9969,19 +11728,115 @@
             "description": "Successful Response"
           }
         },
-        "summary": "List Official Jeongseongs",
+        "summary": "Source Books",
         "tags": [
-          "admin-hoondok"
+          "admin-hoondok-sources"
+        ]
+      }
+    },
+    "/admin/hoondok/source-books/{right_id}/snapshots": {
+      "post": {
+        "operationId": "create_snapshot_admin_hoondok_source_books__right_id__snapshots_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "right_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Right Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceSnapshotInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Snapshot",
+        "tags": [
+          "admin-hoondok-sources"
+        ]
+      }
+    },
+    "/admin/hoondok/source-ranges": {
+      "get": {
+        "operationId": "source_ranges_admin_hoondok_source_ranges_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "content_right_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content Right Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceRangeResult"
+                  },
+                  "title": "Response Source Ranges Admin Hoondok Source Ranges Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Ranges",
+        "tags": [
+          "admin-hoondok-sources"
         ]
       },
       "post": {
-        "description": "API-HD-042 공식 정성 등록 → 201. 모든 모임 상세에 자동 표시된다.",
-        "operationId": "create_official_jeongseong_admin_hoondok_jeongseongs_post",
+        "operationId": "create_range_admin_hoondok_source_ranges_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OfficialJeongseongInput"
+                "$ref": "#/components/schemas/SourceRangeInput"
               }
             }
           },
@@ -9992,7 +11847,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OfficialJeongseongOut"
+                  "$ref": "#/components/schemas/SourceRangeResult"
                 }
               }
             },
@@ -10009,30 +11864,36 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Create Official Jeongseong",
+        "summary": "Create Range",
         "tags": [
-          "admin-hoondok"
+          "admin-hoondok-sources"
         ]
       }
     },
-    "/admin/hoondok/jeongseongs/{jeongseong_id}": {
-      "delete": {
-        "description": "API-HD-042 공식 정성 삭제 → 204. 404 없음·모임 정성.",
-        "operationId": "delete_official_jeongseong_admin_hoondok_jeongseongs__jeongseong_id__delete",
+    "/admin/hoondok/source-ranges/{range_id}": {
+      "get": {
+        "operationId": "source_range_admin_hoondok_source_ranges__range_id__get",
         "parameters": [
           {
             "in": "path",
-            "name": "jeongseong_id",
+            "name": "range_id",
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Jeongseong Id",
+              "title": "Range Id",
               "type": "string"
             }
           }
         ],
         "responses": {
-          "204": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceRangeResult"
+                }
+              }
+            },
             "description": "Successful Response"
           },
           "422": {
@@ -10046,22 +11907,21 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Delete Official Jeongseong",
+        "summary": "Source Range",
         "tags": [
-          "admin-hoondok"
+          "admin-hoondok-sources"
         ]
       },
       "put": {
-        "description": "API-HD-042 공식 정성 수정(전체 교체). 404 없음·모임 정성.",
-        "operationId": "update_official_jeongseong_admin_hoondok_jeongseongs__jeongseong_id__put",
+        "operationId": "update_range_admin_hoondok_source_ranges__range_id__put",
         "parameters": [
           {
             "in": "path",
-            "name": "jeongseong_id",
+            "name": "range_id",
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Jeongseong Id",
+              "title": "Range Id",
               "type": "string"
             }
           }
@@ -10070,7 +11930,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OfficialJeongseongInput"
+                "$ref": "#/components/schemas/SourceRangeUpdate"
               }
             }
           },
@@ -10081,7 +11941,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OfficialJeongseongOut"
+                  "$ref": "#/components/schemas/SourceRangeResult"
                 }
               }
             },
@@ -10098,9 +11958,202 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Update Official Jeongseong",
+        "summary": "Update Range",
         "tags": [
-          "admin-hoondok"
+          "admin-hoondok-sources"
+        ]
+      }
+    },
+    "/admin/hoondok/source-ranges/{range_id}/merge": {
+      "post": {
+        "operationId": "merge_ranges_admin_hoondok_source_ranges__range_id__merge_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "range_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Range Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceRangeMerge"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceRangeResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Merge Ranges",
+        "tags": [
+          "admin-hoondok-sources"
+        ]
+      }
+    },
+    "/admin/hoondok/source-ranges/{range_id}/split": {
+      "post": {
+        "operationId": "split_range_admin_hoondok_source_ranges__range_id__split_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "range_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Range Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceRangeSplit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceRangeResult"
+                  },
+                  "title": "Response Split Range Admin Hoondok Source Ranges  Range Id  Split Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Split Range",
+        "tags": [
+          "admin-hoondok-sources"
+        ]
+      }
+    },
+    "/admin/hoondok/source-snapshots/{snapshot_id}/passages": {
+      "get": {
+        "operationId": "source_passages_admin_hoondok_source_snapshots__snapshot_id__passages_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_block_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 36,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Block Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourcePassages"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Passages",
+        "tags": [
+          "admin-hoondok-sources"
         ]
       }
     },
@@ -10283,104 +12336,6 @@
         "summary": "Update Admin User Status",
         "tags": [
           "admin"
-        ]
-      }
-    },
-    "/api/chat/messages/{message_id}/reaction": {
-      "post": {
-        "description": "단일 반응 토글 (P1-A).\n\n인증/세션:\n    - HttpOnly cookie ``tw_anon_session`` 에서 user_session_id 를 읽어 사용한다.\n    - 쿠키 부재 시 서버가 즉시 발급해 Set-Cookie 헤더로 전달.\n    - 클라이언트는 user_session_id 를 직접 제공할 수 없다.\n\nRate limit:\n    - IP 기준. 초과 시 ``RateLimitExceededError``.\n\n토글 시맨틱 (atomic):\n    - 동일 (message_id, anon_session, kind) 가 있으면 제거.\n    - 없으면 INSERT 시도 → ``IntegrityError`` 발생 시 (race) 이미 존재로\n      판단해 \"removed\" 반환 (service 내부에서 처리).",
-        "operationId": "toggle_reaction_api_chat_messages__message_id__reaction_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "message_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Message Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReactionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReactionToggleResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Toggle Reaction",
-        "tags": [
-          "chat-reactions"
-        ]
-      }
-    },
-    "/api/chat/messages/{message_id}/reactions": {
-      "get": {
-        "description": "단일 message_id 의 반응 카운트 (UI badge 용). 인증 불필요 (집계만).",
-        "operationId": "get_aggregate_api_chat_messages__message_id__reactions_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "message_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Message Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReactionAggregate"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Aggregate",
-        "tags": [
-          "chat-reactions"
         ]
       }
     },
@@ -10750,6 +12705,236 @@
         "summary": "Health"
       }
     },
+    "/hoondok/ai-summaries": {
+      "get": {
+        "operationId": "list_summaries_hoondok_ai_summaries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "volume",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Volume"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SummaryListItem"
+                  },
+                  "title": "Response List Summaries Hoondok Ai Summaries Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Summaries",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/ai-summaries/{unit_id}": {
+      "get": {
+        "operationId": "summary_detail_hoondok_ai_summaries__unit_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Summary Detail",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/ai-summaries/{unit_id}/media/{asset_id}": {
+      "get": {
+        "operationId": "summary_media_hoondok_ai_summaries__unit_id__media__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Summary Media",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/ask/stream": {
+      "post": {
+        "description": "훈독 AI 질문 SSE — 이벤트 계약은 /chat/stream 과 같다(chunk → sources → done).\n\n하루 횟수를 1회 쓴다(이어 묻기 포함). 답을 만들기 전에 실패하면(4xx·5xx) 횟수를 되돌린다. 401 미인증.",
+        "operationId": "ask_stream_hoondok_ask_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "INPUT_BLOCKED — 빈 질문·1000자 초과·차단 패턴"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "SESSION_FORBIDDEN — 내 대화가 아닌 session_id"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "ASK_DAILY_LIMIT(details: limit·used·remaining·resets_at) 또는 RATE_LIMIT_EXCEEDED"
+          }
+        },
+        "summary": "Ask Stream",
+        "tags": [
+          "hoondok"
+        ],
+        "x-sse-events": {
+          "chunk": {
+            "$ref": "#/components/schemas/ChatChunkEvent"
+          },
+          "done": {
+            "$ref": "#/components/schemas/ChatDoneEvent"
+          },
+          "sources": {
+            "$ref": "#/components/schemas/ChatSourcesEvent"
+          }
+        }
+      }
+    },
     "/hoondok/auth/login": {
       "post": {
         "description": "API-HD-003 로그인 → 200 + 쿠키. 401 은 이메일 존재 여부를 구분하지 않는다.",
@@ -11006,807 +13191,6 @@
         ]
       }
     },
-    "/hoondok/groups": {
-      "post": {
-        "description": "API-HD-031 모임 만들기 → 201 상세 + invite_code. 409 LEADER_LIMIT·JOIN_LIMIT, 422 검증.",
-        "operationId": "create_group_hoondok_groups_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GroupCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GroupDetail"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Create Group",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
-    "/hoondok/groups/{group_id}": {
-      "delete": {
-        "description": "API-HD-033 모임 하드 삭제(리더) → 204.",
-        "operationId": "delete_group_hoondok_groups__group_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Group",
-        "tags": [
-          "hoondok-groups"
-        ]
-      },
-      "get": {
-        "description": "API-HD-032 모임 상세 — 오늘 완료자만. 전체 인원 없음. 404 비모임원.",
-        "operationId": "get_group_hoondok_groups__group_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GroupDetail"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Group",
-        "tags": [
-          "hoondok-groups"
-        ]
-      },
-      "patch": {
-        "description": "API-HD-033 모임 이름 변경(리더). 403 LEADER_ONLY, 404 비모임원.",
-        "operationId": "rename_group_hoondok_groups__group_id__patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GroupRename"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GroupDetail"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Rename Group",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
-    "/hoondok/groups/{group_id}/invite": {
-      "post": {
-        "description": "API-HD-034 초대 코드 새로 만들기(리더). 이전 코드는 즉시 무효, 만료 30일.",
-        "operationId": "regenerate_invite_hoondok_groups__group_id__invite_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InviteOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Regenerate Invite",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
-    "/hoondok/groups/{group_id}/jeongseongs": {
-      "post": {
-        "description": "API-HD-039 모임 정성 추가(리더). 409 JEONGSEONG_LIMIT, 422 STARTED_ON_OUT_OF_RANGE.",
-        "operationId": "add_jeongseong_hoondok_groups__group_id__jeongseongs_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GroupJeongseongInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GroupJeongseongOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Add Jeongseong",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
-    "/hoondok/groups/{group_id}/jeongseongs/{jeongseong_id}": {
-      "delete": {
-        "description": "API-HD-039 모임 정성 삭제(리더). 공식 정성은 404.",
-        "operationId": "delete_jeongseong_hoondok_groups__group_id__jeongseongs__jeongseong_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "jeongseong_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Jeongseong Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Jeongseong",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
-    "/hoondok/groups/{group_id}/me": {
-      "delete": {
-        "description": "API-HD-037 나가기. 리더는 다른 식구가 있으면 409 LEADER_MUST_HANDOVER, 혼자면 모임 삭제.",
-        "operationId": "leave_group_hoondok_groups__group_id__me_delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Leave Group",
-        "tags": [
-          "hoondok-groups"
-        ]
-      },
-      "patch": {
-        "description": "API-HD-037 모임에서 쓰는 내 이름 변경. 409 DISPLAY_NAME_TAKEN.",
-        "operationId": "update_my_name_hoondok_groups__group_id__me_patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DisplayNameInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GroupMe"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Update My Name",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
-    "/hoondok/groups/{group_id}/members": {
-      "get": {
-        "description": "API-HD-038 식구 목록(리더) — member_count 는 여기만. 읽음 상태 없음.",
-        "operationId": "list_members_hoondok_groups__group_id__members_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MemberList"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "List Members",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
-    "/hoondok/groups/{group_id}/members/{member_id}": {
-      "delete": {
-        "description": "API-HD-038 식구 내보내기(리더). 자기 자신 409 CANNOT_REMOVE_SELF, 404 MEMBER_NOT_FOUND.",
-        "operationId": "remove_member_hoondok_groups__group_id__members__member_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "member_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Member Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Remove Member",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
-    "/hoondok/groups/{group_id}/shares/today": {
-      "put": {
-        "description": "API-HD-040 오늘의 한 줄 저장(덮어쓰기). 오늘 훈독 전이면 409 READ_REQUIRED.",
-        "operationId": "put_today_share_hoondok_groups__group_id__shares_today_put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ShareInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GroupShareOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Put Today Share",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
-    "/hoondok/groups/{group_id}/shares/{share_id}": {
-      "delete": {
-        "description": "API-HD-040 한 줄 삭제 — 작성자 또는 리더. 그 외 403 NOT_ALLOWED.",
-        "operationId": "delete_share_hoondok_groups__group_id__shares__share_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "share_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Share Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Share",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
-    "/hoondok/groups/{group_id}/shares/{share_id}/reaction": {
-      "delete": {
-        "description": "API-HD-041 반응 끄기(멱등).",
-        "operationId": "unreact_share_hoondok_groups__group_id__shares__share_id__reaction_delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "share_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Share Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReactionState"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Unreact Share",
-        "tags": [
-          "hoondok-groups"
-        ]
-      },
-      "put": {
-        "description": "API-HD-041 \"함께 머물렀어요\" 켜기(멱등). 자기 한 줄 409 OWN_SHARE.",
-        "operationId": "react_share_hoondok_groups__group_id__shares__share_id__reaction_put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "group_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Group Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "share_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Share Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReactionState"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "React Share",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
-    "/hoondok/invites/{code}": {
-      "get": {
-        "description": "API-HD-035 초대 미리보기. 잘못·만료·정원 초과는 같은 404 INVITE_NOT_FOUND. 429 limiter.",
-        "operationId": "preview_invite_hoondok_invites__code__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "code",
-            "required": true,
-            "schema": {
-              "title": "Code",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvitePreview"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Preview Invite",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
-    "/hoondok/invites/{code}/join": {
-      "post": {
-        "description": "API-HD-036 참여 → 201. 404 INVITE_NOT_FOUND · 409 ALREADY_MEMBER·DISPLAY_NAME_TAKEN·GROUP_FULL·JOIN_LIMIT.",
-        "operationId": "join_group_hoondok_invites__code__join_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "code",
-            "required": true,
-            "schema": {
-              "title": "Code",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DisplayNameInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JoinResult"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Join Group",
-        "tags": [
-          "hoondok-groups"
-        ]
-      }
-    },
     "/hoondok/library": {
       "get": {
         "operationId": "get_library_hoondok_library_get",
@@ -11866,6 +13250,205 @@
           }
         },
         "summary": "Get Series",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/asks": {
+      "get": {
+        "description": "내 AI 질문 대화 목록(최근 답 순). 401 미인증.",
+        "operationId": "list_my_asks_hoondok_me_asks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAskListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List My Asks",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/asks/quota": {
+      "get": {
+        "description": "오늘(KST) 남은 질문 횟수. 401 미인증.",
+        "operationId": "get_my_ask_quota_hoondok_me_asks_quota_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskQuota"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get My Ask Quota",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/asks/{session_id}": {
+      "delete": {
+        "description": "대화와 그 질문·답 기록 삭제. 공개 신청 복사본은 남는다(DELETE /hoondok/me/questions/{id} 로 따로 내린다). 404.",
+        "operationId": "delete_my_ask_hoondok_me_asks__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete My Ask",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "get": {
+        "description": "대화 1건의 질문·답 차례. 남의 것·없는 것은 404.",
+        "operationId": "get_my_ask_hoondok_me_asks__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAskDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get My Ask",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "patch": {
+        "description": "저장 표시 켜기·끄기. 남의 것·없는 것은 404.",
+        "operationId": "update_my_ask_hoondok_me_asks__session_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MyAskUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAskDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update My Ask",
         "tags": [
           "hoondok"
         ]
@@ -12009,32 +13592,6 @@
         "summary": "Mark Card Shared",
         "tags": [
           "hoondok"
-        ]
-      }
-    },
-    "/hoondok/me/groups": {
-      "get": {
-        "description": "API-HD-030 내 모임. 0건이면 []. 401 미인증.",
-        "operationId": "list_my_groups_hoondok_me_groups_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MyGroupItem"
-                  },
-                  "title": "Response List My Groups Hoondok Me Groups Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "List My Groups",
-        "tags": [
-          "hoondok-groups"
         ]
       }
     },
@@ -12379,200 +13936,6 @@
         ]
       }
     },
-    "/hoondok/me/marks": {
-      "get": {
-        "description": "API-HD-026 내 표시 목록(최신순). 본인 것만 나온다. `excerpt=true` 면 원문 발췌를 붙인다. 401 미인증.",
-        "operationId": "get_marks_hoondok_me_marks_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "volume",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 512,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Volume"
-            }
-          },
-          {
-            "in": "query",
-            "name": "kind",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "pattern": "^bookmark$",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Kind"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 200,
-              "maximum": 200,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "excerpt",
-            "required": false,
-            "schema": {
-              "default": false,
-              "title": "Excerpt",
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MarksResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Marks",
-        "tags": [
-          "hoondok"
-        ]
-      }
-    },
-    "/hoondok/me/marks/{chunk_id}": {
-      "delete": {
-        "description": "API-HD-026 표시 삭제. 본인 것만 지우고 없어도 204. 403 CSRF, 401 미인증.",
-        "operationId": "delete_mark_hoondok_me_marks__chunk_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "chunk_id",
-            "required": true,
-            "schema": {
-              "title": "Chunk Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "kind",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "pattern": "^bookmark$",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Kind"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Mark",
-        "tags": [
-          "hoondok"
-        ]
-      },
-      "put": {
-        "description": "API-HD-026 표시 upsert(`user·chunk_id·kind`). 422 형광펜 색 누락, 404 미허용, 403 CSRF, 401.",
-        "operationId": "put_mark_hoondok_me_marks__chunk_id__put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "chunk_id",
-            "required": true,
-            "schema": {
-              "title": "Chunk Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MarkInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MarkItem"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Put Mark",
-        "tags": [
-          "hoondok"
-        ]
-      }
-    },
     "/hoondok/me/notifications": {
       "get": {
         "description": "API-HD-020 알림 설정. 저장된 행이 없으면 기본값(끔·06:00·neutral). 401 미인증.",
@@ -12708,6 +14071,104 @@
           }
         },
         "summary": "Create Push Subscription",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/questions": {
+      "get": {
+        "description": "내 공개 신청과 상태(최근 신청순). 401 미인증.",
+        "operationId": "list_my_public_questions_hoondok_me_questions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyPublicQuestionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List My Public Questions",
+        "tags": [
+          "hoondok"
+        ]
+      },
+      "post": {
+        "description": "공개 신청 → status=pending. 본인 재신청은 기존 신청을 돌려준다.\n\n404 답 없음 또는 내 계정 대화의 답이 아님, 409 공개할 수 없는 답(마음 돌봄·위기·근거 없음·이어 물은 답),\n401 미인증, 403 CSRF.",
+        "operationId": "submit_public_question_hoondok_me_questions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicQuestionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyPublicQuestionItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Public Question",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/me/questions/{question_id}": {
+      "delete": {
+        "description": "내 신청 삭제 — 바로 비노출되고 되살릴 수 없다. 남의 것·없는 것은 404.",
+        "operationId": "delete_my_public_question_hoondok_me_questions__question_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete My Public Question",
         "tags": [
           "hoondok"
         ]
@@ -12916,6 +14377,133 @@
           }
         },
         "summary": "Get Push Config",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/questions": {
+      "get": {
+        "description": "검수를 거쳐 공개된 질문 목록(최신 공개순). 인증 없음. 422 잘못된 cursor.",
+        "operationId": "list_public_questions_hoondok_questions_get",
+        "parameters": [
+          {
+            "description": "질문 문장 부분 일치(대소문자 무시)",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "질문 문장 부분 일치(대소문자 무시)",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "직전 응답의 next_cursor",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "직전 응답의 next_cursor",
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicQuestionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Public Questions",
+        "tags": [
+          "hoondok"
+        ]
+      }
+    },
+    "/hoondok/questions/{question_id}": {
+      "get": {
+        "description": "공개 질문 1건. published 가 아니면(검토 중·숨김·없음) 404.",
+        "operationId": "get_public_question_hoondok_questions__question_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicQuestionDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Public Question",
         "tags": [
           "hoondok"
         ]
@@ -13169,127 +14757,6 @@
           }
         },
         "summary": "Get Chunk Audio",
-        "tags": [
-          "hoondok"
-        ]
-      }
-    },
-    "/hoondok/tts/readings/{reading_id}/{paragraph}": {
-      "get": {
-        "description": "API-HD-046 오늘 훈독 말씀(편성 또는 내 정성)의 단락 1개 mp3. 단락 = 본문을 빈 줄로 나눈 순서(0부터).",
-        "operationId": "get_reading_audio_hoondok_tts_readings__reading_id___paragraph__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "reading_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Reading Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "paragraph",
-            "required": true,
-            "schema": {
-              "maximum": 200,
-              "minimum": 0,
-              "title": "Paragraph",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "voice",
-            "required": true,
-            "schema": {
-              "maxLength": 16,
-              "title": "Voice",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "audio/mpeg": {}
-            },
-            "description": "단락 mp3"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "로그인 필요"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "TTS_SOURCE_NOT_FOUND — 본문 없음·권리 없음·단락 번호 범위 밖"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "TTS_INVALID_VOICE — 알 수 없는 목소리"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "TTS_QUOTA_EXCEEDED — 이번 달 글자 상한 · TTS_USER_LIMIT_EXCEEDED — 사용자 24시간 한도 · RATE_LIMIT_EXCEEDED — 요청 빈도(잠시 뒤 재시도)"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "TTS_UPSTREAM_FAILED — Google 오류·네트워크"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "TTS_DISABLED — GOOGLE_TTS_API_KEY 미설정 또는 캐시 디렉터리 쓰기 불가"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "TTS_TIMEOUT — 합성 시간 상한(45초) 초과"
-          }
-        },
-        "summary": "Get Reading Audio",
         "tags": [
           "hoondok"
         ]

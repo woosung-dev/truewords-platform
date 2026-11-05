@@ -1,13 +1,15 @@
 "use client";
 
-// 맞춤 첫 말씀 질문 흐름 (/hoondok/start): 환영 → 질문 1 관심 주제 → 질문 2 요즘 마음 → 질문 3 읽는 때(선택) → 첫 말씀.
+// 맞춤 첫 말씀 질문 흐름 (/start): 환영 → 질문 1 관심 주제 → 질문 2 요즘 마음 → 질문 3 읽는 때(선택) → 첫 말씀.
 // 단계는 이 화면의 상태이고 주소에 답을 싣지 않는다. 단계가 바뀌면 새 제목(h2)으로 포커스를 옮기고 document.title 을 고친다.
 // 답은 첫 말씀으로 넘어갈 때 이 기기에만 저장한다(storage.ts). 서버·분석·오류 수집으로 보내지 않는다.
 import { ArrowLeft, Lock } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { HoondokMascot } from "@/components/hoondok";
+import { isHoondokMascotEnabled } from "@/features/hoondok/flag";
 import { useCurrentUser } from "@/features/identity/use-current-user";
-import { HOONDOK_FAVICON_SVG } from "../../pwa";
+import { HOONDOK_LOGO } from "../../pwa";
 import {
   CRISIS_MOOD_ID,
   countLimitedMoods,
@@ -58,7 +60,7 @@ function toggle(list: readonly string[], id: string): string[] {
 function Brand() {
   return (
     <div className="onb__brand">
-      <img src={HOONDOK_FAVICON_SVG} alt="" width={32} height={32} />
+      <img src={HOONDOK_LOGO} alt="" width={32} height={32} />
       훈독
     </div>
   );
@@ -237,8 +239,11 @@ export function StartFlow() {
         <div className="onb__main">
           <div className="onb-welcome__body">
             <Brand />
+            {/* 부엉이는 첫 화면에만 둔다 — 질문 단계·위기 안내(CrisisNotice)·첫 말씀에는 두지 않는다 */}
+            <HoondokMascot pose="welcome" size={72} />
             <Title titleRef={titleRef}>먼저 세 가지만 여쭐게요</Title>
             <p className="onb-lede">답에 맞춰 첫 말씀과 오늘 훈독에 꽂아 둘 장을 골라 드려요.</p>
+            {isHoondokMascotEnabled() && <p className="onb-why">고른 답은 나의 정원에서 언제든 바꿀 수 있어요.</p>}
             <dl className="onb-asks">
               <div className="onb-asks__row">
                 <dt>관심 주제</dt>
@@ -261,7 +266,7 @@ export function StartFlow() {
               <button type="button" className="btn btn-primary btn--pc-auto" onClick={begin}>
                 시작하기
               </button>
-              <Link className="onb-text-btn" href="/hoondok">
+              <Link className="onb-text-btn" href="/">
                 질문 없이 시작하기
               </Link>
             </div>
@@ -536,7 +541,7 @@ function ResultStep({
         </div>
         <div className="onb__spacer" />
         <ActionBar count="매일 이런 장이 홈에 꽂혀요" hint="">
-          <Link className="btn btn-line" href="/hoondok">
+          <Link className="btn btn-line" href="/">
             오늘 훈독으로
           </Link>
         </ActionBar>

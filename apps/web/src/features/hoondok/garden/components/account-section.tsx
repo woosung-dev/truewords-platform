@@ -59,7 +59,7 @@ export function AccountSection({ user, logout }: AccountSectionProps) {
             <span>
               <b className="gd-logout__t">이 기기에 남은 기록도 지우기</b>
               <span className="gd-logout__d">
-                AI 질문 기록·오늘의 한 줄·읽던 자리는 이 기기에만 있어요. 여럿이 쓰는 기기라면 켜 두세요.
+                오늘의 한 줄·읽던 자리는 이 기기에만 있어요. 여럿이 쓰는 기기라면 켜 두세요.
               </span>
             </span>
           </label>

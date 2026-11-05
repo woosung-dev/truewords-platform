@@ -12,6 +12,8 @@ export type WordsTocProps = {
   sections: readonly SectionItem[];
   /** 현재 페이지가 속한 장(`WordsResponse.section.position`). 없으면 강조하지 않는다 */
   currentPosition: number | null;
+  /** 공개된 AI 요약이 있는 장 위치. 해당 장 줄에 "AI 요약" 표지를 붙인다 */
+  summaryPositions?: ReadonlySet<number>;
   page: number;
   totalPages: number;
   onNavigate?: () => void;
@@ -22,6 +24,7 @@ export function WordsToc({
   workTitle,
   sections,
   currentPosition,
+  summaryPositions,
   page,
   totalPages,
   onNavigate,
@@ -41,6 +44,7 @@ export function WordsToc({
               onClick={onNavigate}
             >
               {section.title}
+              {summaryPositions?.has(section.position) && <span className="toc__ai">AI 요약</span>}
             </Link>
           ))
         : Array.from({ length: totalPages }, (_, index) => index + 1).map((sectionPage) => (

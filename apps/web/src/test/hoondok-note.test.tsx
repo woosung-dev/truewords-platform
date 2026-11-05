@@ -111,7 +111,7 @@ describe("TodayNote", () => {
   });
 });
 
-describe("/hoondok/read 조건부 렌더", () => {
+describe("/read 조건부 렌더", () => {
   it("편성이 없으면 한 줄 입력을 그리지 않는다", async () => {
     vi.resetModules();
     vi.doMock("@/features/hoondok/api", () => ({
@@ -121,7 +121,7 @@ describe("/hoondok/read 조건부 렌더", () => {
       useCurrentUser: () => ({ user: null, isLoading: false, isError: false }),
     }));
     const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query");
-    const { default: HoondokReadPage } = await import("../app/(hoondok)/hoondok/read/page");
+    const { default: HoondokReadPage } = await import("../app/(hoondok)/read/page");
 
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>

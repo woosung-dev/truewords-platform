@@ -1,5 +1,5 @@
 // 책갈피 건네기 (PLAN-HD-012 결정 4, SCR-PWA-024). 1단계는 Web Share + 2:1 OG 링크 카드이고 카카오 SDK 는 쓰지 않는다.
-// 폴백 순서는 모임 초대(together/invite-code.ts shareInvite)와 같다: 파일 공유 → 링크 공유 → 클립보드 → 직접 표시.
+// 폴백 순서: 파일 공유 → 링크 공유 → 클립보드 → 직접 표시.
 import { wordsHref } from "../library/api";
 import type { CardPublic } from "./api";
 
@@ -12,7 +12,7 @@ export function cardWordsHref(card: Pick<CardPublic, "id" | "volume" | "chunk_id
 
 /** 받은 사람 화면 경로. 카톡 링크 카드는 이 주소의 OG(2:1)로 그려진다. */
 export function cardPath(id: string): string {
-  return `/hoondok/c/${encodeURIComponent(id)}`;
+  return `/c/${encodeURIComponent(id)}`;
 }
 
 export function cardImagePath(id: string, format: CardImageFormat): string {
@@ -27,7 +27,7 @@ export function cardLink(id: string): string {
 
 /** 글로 복사: 본문 · 출처 · 훈독 · 링크. 인사는 사용자가 대화방에서 직접 쓴다(결정 1). */
 export function cardCopyText(card: Pick<CardPublic, "text" | "source_label">, link: string): string {
-  return `“${card.text}”\n— ${card.source_label} · 훈독\n${link}`;
+  return `“${card.text}”\n${card.source_label} · 훈독\n${link}`;
 }
 
 export type CardShareResult = "file" | "link" | "clipboard" | "cancelled" | "none";

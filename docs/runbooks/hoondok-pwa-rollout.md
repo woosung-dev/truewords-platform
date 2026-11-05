@@ -1,6 +1,6 @@
 # 훈독 PWA 롤아웃·롤백 runbook
 
-- 대상: `/hoondok` 을 운영에서 켜는 배포(`HOONDOK_ENABLED=1`)와 그 되돌리기. 근거 계획은 [`PLAN-HD-001` §6](../plans/active/2026-09-17-hoondok-mvp.md).
+- 대상: 훈독(2026-11-04 `DEC-PWA-026` 부터 웹 루트 `/`, 예전 `/hoondok/*` 은 308)을 운영에서 켜는 배포(`HOONDOK_ENABLED=1`)와 그 되돌리기. 근거 계획은 [`PLAN-HD-001` §6](../plans/active/2026-09-17-hoondok-mvp.md).
 - 상태: **2026-09-20 기준 운영은 플래그 ON** 이다. 현재 태그는 web **`a93a6c7`** · backend·admin `c066b02` 이고 실데이터 9라우트가 200, 프리뷰 8라우트가 404 다. 같은 날 사후 실측으로 확인했을 때는 web `aba5240` 이 이미 `HOONDOK_ENABLED=1` 로 떠 있었는데 **그 최초 ON 배포를 언제 누가 실행했는지는 기록이 없다** — 이 문서에 실행 기록을 남기지 않은 채 배포됐다. 작성 시점(2026-09-19)의 상태는 플래그 OFF(web `b70b6c8`, `/hoondok/*` 전부 404)였다. 측정값과 결정은 [§실행 기록](#실행-기록)에 있다.
 - 이 문서가 다루는 범위는 배포 순서·검증·되돌리기다. 기능 사양은 계획서와 스펙이 소유한다.
 
@@ -52,20 +52,23 @@ ops-check 는 VM **안**을 본다. 컨테이너가 전부 healthy 인데 사용
 
 | 검사 | ON 기대 | OFF 기대 |
 |---|---|---|
-| `chat-login` `/login` | 200 | 200 |
 | `api-health` `/api/backend/health` | 200 | 200 |
 | `api-today` `/api/backend/hoondok/today` | 200 | 200 (backend 는 플래그를 모른다) |
-| `route-home`·`route-read`·`route-onboard` | 200 | 404 |
+| `route-home`·`route-read`·`route-onboard` (`/`·`/read`·`/onboarding`) | 200 | 404 |
+| `legacy-redirect` `/hoondok/read` | 308 → `/read` | 308 (리다이렉트는 플래그와 무관) |
 | `noindex` | `x-robots-tag: noindex` | (검사 안 함) |
-| `manifest` | 200 · `scope=/hoondok` · `no-cache` | INFO |
-| `sw` | 200 · `SW_VERSION` 이 레포와 일치 · `Service-Worker-Allowed: /hoondok` | INFO |
+| `manifest` (`/hoondok/manifest.webmanifest`) | 200 · `scope=/` · `id=/hoondok` · `no-cache` | INFO |
+| `sw` (`/sw.js`) | 200 · `SW_VERSION` 이 레포(`apps/web/public/sw.js`)와 일치 | INFO |
+| `sw-retired` (`/hoondok/sw.js`) | 200(리다이렉트 아님) · `Service-Worker-Allowed: /hoondok` | INFO |
 | `sw-cache` | (헤더가 오염됐을 때만 WARN — 아래 §Cloudflare 캐시) | — |
 | `icons` 4종 | 전부 200 | INFO |
 | `font` | 200 · `immutable` | INFO |
 
 **플래그 OFF 는 정적 자산을 막지 않는다.** `public/` 파일은 라우트와 무관하게 서빙되고 `apps/web` 에는 미들웨어가 없다. 그래서 OFF 배포에서도 `manifest.webmanifest`·`sw.js` 는 200 이다 — 링크가 붙지 않고 등록 코드가 돌지 않을 뿐이다. 무해하지만 사실이므로 smoke 는 OFF 에서 이것들을 FAIL 로 판정하지 않고 상태만 INFO 로 남긴다.
 
-`scope` 값을 문자열로 단언하는 이유: `/hoondok/`(슬래시 포함)이면 standalone 에서 홈 `/hoondok` 이 범위 밖이라 브라우저 UI 가 노출된다. 200 만 보면 못 잡는다.
+`scope` 값을 문자열로 단언하는 이유: 홈 `/` 가 범위 밖이면 standalone 에서 브라우저 UI 가 노출된다. 200 만 보면 못 잡는다. `id` 는 예전 값 `/hoondok` 을 유지해야 설치된 앱이 같은 앱으로 남는다.
+
+**`/hoondok` 시절 설치본(2026-11-04 이전).** 예전 SW(scope `/hoondok`)는 브라우저 업데이트 검사로 은퇴 스크립트 `public/hoondok/sw.js` 를 받아 예전 캐시를 지운다. 은퇴 스크립트는 등록을 해제하지 않고 그 등록의 알림을 계속 띄운다(누르면 루트 주소). 등록 해제는 앱이 한다 — 앱을 열면 알림 권한이 허용된 기기는 구독을 루트 등록으로 옮긴 뒤(`POST`/`DELETE /hoondok/me/push`) 예전 등록을 지우고, 구독이 없으면 바로 지운다. 옮기지 못하면(비로그인·iOS 가 제스처 밖 구독을 막음 등) 예전 등록이 남아 알림은 그대로 오고, 설정에서 다시 켜면 그때 정리된다. 이관 기간에는 발송 주소를 `/hoondok/bookmark` 로 둔다(예전 SW 가 `/hoondok` 아래 주소만 받는다). `[확인 필요]` iOS 홈 화면 앱의 제스처 밖 `pushManager.subscribe` 허용 여부와 브라우저별 soft update 시점. 홈 화면 설치본은 manifest 를 다시 읽기 전까지 예전 scope 로 동작할 수 있다 — 주소창이 보이면 다시 설치를 안내한다. `[확인 필요]` iOS 홈 화면 앱의 manifest 갱신 시점
 
 ## 되돌리기
 
@@ -139,7 +142,7 @@ make rollback-web TAG=<배포 전에 적어 둔 sha>
 
 지우려면 **새 `sw.js` 를 배포해서** 스스로 등록을 해제하게 해야 한다.
 
-1. `apps/web/public/hoondok/sw.js` 에서 `SW_KILL = false` → `true`
+1. `apps/web/public/sw.js` 에서 `SW_KILL = false` → `true` (은퇴 스크립트 `public/hoondok/sw.js` 는 SW_KILL 이 없다 — 예전 등록을 지우려면 그 파일에 `self.registration.unregister()` 를 넣어 배포한다. 그 등록의 알림 구독도 함께 사라진다)
 2. `SW_VERSION` 을 올린다 (캐시 이름이 바뀌어야 구 캐시가 지워진다)
 3. 커밋 → main 머지 → `make deploy-web HOONDOK_ENABLED=1` (**ON 으로 배포한다** — OFF 로 내리면 SW 등록 컴포넌트가 안 돌아 킬 스크립트가 도달하지 못한다)
 4. 사용자가 앱을 한 번 열면 `caches.keys()` 전삭제 + `registration.unregister()` 가 실행된다
@@ -167,7 +170,7 @@ make rollback-web TAG=<배포 전에 적어 둔 sha>
 
 WARN 을 없애려면 Cloudflare 에 Cache Rule 하나를 건다 (Page Rules 는 폐기 중이므로 **Cache Rules** 로):
 
-- Match: `/hoondok/sw.js`
+- Match: `/sw.js`, `/hoondok/sw.js`
 - Browser TTL: **Respect origin** — `Bypass cache` 도 되지만 엣지 캐시까지 꺼서 VM 부하가 는다. 우리가 원하는 건 브라우저 헤더만 원본대로 보내는 것이다.
 
 **이 규칙은 레포 밖(대시보드)에 산다.** 안전은 규칙이 아니라 코드(`updateViaCache: "none"`)가 책임지고, 규칙이 조용히 지워지면 `sw-cache` WARN 이 다시 나타난다 — 그 WARN 이 이 설정을 감시하는 유일한 눈이다.
@@ -175,6 +178,9 @@ WARN 을 없애려면 Cloudflare 에 Cache Rule 하나를 건다 (Page Rules 는
 배포 후 응답이 갱신되지 않을 때 확인:
 
 ```bash
+# sw (루트 SW·킬스위치)
+curl -sI https://truewords.woosung.dev/sw.js | grep -i 'cache-control\|cf-cache-status\|age'
+# sw-retired (예전 /hoondok 등록용 은퇴 스크립트)
 curl -sI https://truewords.woosung.dev/hoondok/sw.js | grep -i 'cache-control\|cf-cache-status\|service-worker-allowed'
 ```
 
@@ -245,9 +251,9 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 | standalone 확인 | 홈 화면 아이콘에서 열었을 때 브라우저 주소창이 없는지 (scope 검증) |
 | 가입 | 초대 코드 입력 → 201, 틀린 코드 → 403 안내. **게이트 OFF 기간에는 코드 없이 201** 만 확인한다(아래 [§실행 기록](#실행-기록)의 2026-09-20 결정) |
 | 훈독 | 홈 → 훈독하기 → 완료 → 연속일 1 |
-| 오프라인 | 기내 모드에서 앱 실행 → `/hoondok/offline` 안내 |
+| 오프라인 | 기내 모드에서 앱 실행 → `/offline` 안내 |
 | 아이콘 | 홈 화면 아이콘이 감귤 배경 "훈" 으로 보이는지 |
-| 알림 (Phase 4, 운영 ON 뒤에만) | 홈의 "알림 받기" 카드(또는 설정 토글) → 권한 허용 → `send_hoondok_push.py --to-email` 발송 → 잠금 화면 도착 → 탭 시 `/hoondok` 이 열리는지. iOS 는 사파리 탭에서 카드가 설치 안내로 바뀌는지 확인한 뒤, 홈 화면 앱에서 켠다 |
+| 알림 (Phase 4, 운영 ON 뒤에만) | 홈의 "알림 받기" 카드(또는 설정 토글) → 권한 허용 → `send_hoondok_push.py --to-email` 발송 → 잠금 화면 도착 → 탭 시 `/bookmark` 가 열리는지. iOS 는 사파리 탭에서 카드가 설치 안내로 바뀌는지 확인한 뒤, 홈 화면 앱에서 켠다 |
 | 인앱 브라우저 | 카카오톡으로 받은 링크를 열었을 때 외부 브라우저(Safari/Chrome)로 넘어가는지, 안 넘어가면 배너가 보이는지 |
 
 **어디에 적나.** 아래 [§실행 기록](#실행-기록)에 `### <날짜> — 실기기 증거 (<기기>)` 절을 하나 만들어 채운다. `PLAN-HD-001` §6 표의 실기기 행은 그 절을 가리키게 되고, `docs/plans/completed/` 로 옮길 때 함께 첨부한다. 빈 양식:
@@ -265,7 +271,7 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 | 훈독 완료 → 연속일 1 |  |  |
 | 오프라인 안내 |  |  |
 | 아이콘 |  |  |
-| 알림 도착 → 탭 시 `/hoondok` (Phase 4) |  |  |
+| 알림 도착 → 탭 시 `/bookmark` (Phase 4) |  |  |
 | 카카오톡 링크 → 외부 브라우저 |  |  |
 ```
 
@@ -273,7 +279,7 @@ Phase 3 완료 기준은 실기기 설치다. 헤드리스 E2E 는 `beforeinstal
 
 ## 알림 운영 ON 절차 (PLAN-HD-006 · Phase 4)
 
-코드는 main 에 있어도 **VAPID 3값이 VM `.env` 에 없으면 알림은 꺼져 있다** — `GET /hoondok/push/config` 가 `enabled=false` 를 내고 설정 화면 토글은 "준비 중", 발송기는 exit 0 no-op 이다. 켜는 조건은 [`PLAN-HD-006` §6](../plans/active/2026-09-22-hoondok-notifications.md)(2026-09-28 개정: 수정 배포 뒤 사용자 승인). 발송기의 편성 없는 날 생략(§2-11)이 들어간 backend 가 먼저 배포돼 있어야 한다.
+코드는 main 에 있어도 **VAPID 3값이 VM `.env` 에 없으면 알림은 꺼져 있다** — `GET /hoondok/push/config` 가 `enabled=false` 를 내고 설정 화면 토글은 "준비 중", 발송기는 exit 0 no-op 이다. 켜는 조건은 [`PLAN-HD-006` §6](../plans/completed/2026-09-22-hoondok-notifications.md)(2026-09-28 개정: 수정 배포 뒤 사용자 승인). 발송기의 편성 없는 날 생략(§2-11)이 들어간 backend 가 먼저 배포돼 있어야 한다.
 
 ```bash
 # -1. 발송 스크립트·점검 스크립트를 VM 에 둔다. 2026-09-28 실측: send-hoondok-push.sh 는 VM 에 없었고
@@ -359,7 +365,7 @@ ssh truewords-oracle 'sudo du -sh /opt/truewords/tts-cache; sudo find /opt/truew
 
 ## 말씀 서고 개통 절차 (PLAN-HD-007)
 
-운영 `content_rights` 는 0행이라 `/hoondok/library` 가 `{"items":[],"works":[]}` 다. 권리 게이트의 기본값이 "전부 비노출" 이라 결함이 아니고, 아래 순서로 **원장을 채우고 운영자가 승인해야** 서고·검색·원문이 보인다. 근거는 [`PLAN-HD-007` §6](../plans/active/2026-09-23-hoondok-library.md). 스크립트 상세는 [`infra/oracle-vm/README.md` §1회 실행 스크립트](../../infra/oracle-vm/README.md).
+운영 `content_rights` 는 0행이라 `/hoondok/library` 가 `{"items":[],"works":[]}` 다. 권리 게이트의 기본값이 "전부 비노출" 이라 결함이 아니고, 아래 순서로 **원장을 채우고 운영자가 승인해야** 서고·검색·원문이 보인다. 근거는 [`PLAN-HD-007` §6](../plans/completed/2026-09-23-hoondok-library.md). 스크립트 상세는 [`infra/oracle-vm/README.md` §1회 실행 스크립트](../../infra/oracle-vm/README.md).
 
 단계마다 사용자 승인이 필요하다(Git Safety Protocol). 순서를 바꾸지 않는다 — 4 는 3 이 만든 행을 대상으로 하고, 6 은 5 가 끝난 뒤에만 사용자에게 의미가 있다.
 
@@ -439,7 +445,7 @@ PR [#301](https://github.com/woosung-dev/truewords-platform/pull/301) 을 main `
 | `make ops-check` | 8건 OK · `hoondok-today` WARN(편성 0일분) |
 | `make smoke-web HOONDOK_ENABLED=1` | **12건 OK** · `sw-cache` WARN 1(위 §Cloudflare 캐시의 알려진 WARN) |
 
-배포로 들어간 것: 편성 후보 찾기([API-HD-012](../specs/api/hoondok-api.md), [PLAN-HD-003](../plans/active/2026-09-20-hoondok-curation-assist.md)) + PR #300 의 backend API(정성 기간·월 기록·계정 삭제).
+배포로 들어간 것: 편성 후보 찾기([API-HD-012](../specs/api/hoondok-api.md), [PLAN-HD-003](../plans/completed/2026-09-20-hoondok-curation-assist.md)) + PR #300 의 backend API(정성 기간·월 기록·계정 삭제).
 
 검증 실측:
 
@@ -454,7 +460,7 @@ PR [#301](https://github.com/woosung-dev/truewords-platform/pull/301) 을 main `
 
 `ops-check` 의 `hoondok-today` WARN 은 **이 날 해소되지 않았다.** 운영 DB 쓰기는 별도 승인이고, 편성 입력은 편성자가 admin 화면에서 한다(`PLAN-HD-001` 결정 5).
 
-같은 날 편성 입력을 돕는 [`PLAN-HD-003`](../plans/active/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, [API-HD-012](../specs/api/hoondok-api.md))를 구현했다. 코퍼스 원문을 검색해 폼을 채우며 생성 AI 가 본문을 만들지 않는다. **같은 날 backend·admin 배포를 마쳐 운영 admin 편성 화면에서 쓸 수 있다**(위 절). 편성 입력 자체는 admin 로그인이 필요하므로 편성자가 한다.
+같은 날 편성 입력을 돕는 [`PLAN-HD-003`](../plans/completed/2026-09-20-hoondok-curation-assist.md) 편성 후보 찾기(추출형, [API-HD-012](../specs/api/hoondok-api.md))를 구현했다. 코퍼스 원문을 검색해 폼을 채우며 생성 AI 가 본문을 만들지 않는다. **같은 날 backend·admin 배포를 마쳐 운영 admin 편성 화면에서 쓸 수 있다**(위 절). 편성 입력 자체는 admin 로그인이 필요하므로 편성자가 한다.
 
 편성자가 admin 편성 화면에서 입력해 **앞으로 8일분**이 됐다. `PLAN-HD-001` §6 완료 기준(7일분 이상)을 넘겼다. 2건까지 넣었을 때 `ops-check` 가 먼저 초록이 됐고(오늘·내일만 보므로), 이어서 8일분까지 채웠다.
 
@@ -509,6 +515,8 @@ PR [#301](https://github.com/woosung-dev/truewords-platform/pull/301) 을 main `
 | `/hoondok/family` | 404 |
 
 누출이 구조적으로 불가능한 이유: `apps/web/Dockerfile` 에는 `NEXT_PUBLIC_HOONDOK_ENABLED` ARG 하나뿐이고 `NEXT_PUBLIC_HOONDOK_PREVIEW` 는 Dockerfile·Makefile 어디에도 없다. 넘길 경로 자체가 없다.
+
+> 현재: 프리뷰 플래그와 가정예배·가족 프로토타입 코드는 삭제했다. 필요하면 git 이력에서 복원한다.
 
 `/hoondok/search` 는 실데이터가 아니라 **프리뷰 8라우트 중 하나**다(말씀 3 = `library`·`search`·`words/[id]`). 404 가 정상이다.
 

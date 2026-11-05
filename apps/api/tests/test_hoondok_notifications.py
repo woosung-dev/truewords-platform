@@ -259,7 +259,7 @@ async def test_subscribe_upserts_by_endpoint_and_transfers_ownership(client: Tes
 
 def test_subscribe_rejects_oversized_endpoint(client: TestClient, push_on):
     _login(client, client.me)  # type: ignore[attr-defined]
-    res = client.post(PUSH, json=_subscription("https://e/" + "x" * 2049), headers=XHR)
+    res = client.post(PUSH, json=_subscription("https://fcm.googleapis.com/" + "x" * 2049), headers=XHR)
     assert res.status_code == 422
 
 
@@ -272,6 +272,14 @@ def test_subscribe_rejects_oversized_endpoint(client: TestClient, push_on):
         "https://localhost/x",
         "https://qdrant.internal/x",
         "not-a-url",
+        # 보안 점검 push-endpoint-ssrf-dns-redirect 회귀 — 호스트 문자열 차단 목록을 비껴가던 주소
+        "https://backend:8080/health",
+        "https://qdrant:6333/collections",
+        "https://127.0.0.1.nip.io/x",
+        "https://2130706433/x",
+        "https://fcm.googleapis.com.evil.example/x",
+        "https://evilfcm.googleapis.com.example/x",
+        "https://fcm.googleapis.com:8443/x",
     ],
 )
 def test_subscribe_rejects_non_public_https_endpoint(client: TestClient, push_on, endpoint: str):
@@ -281,10 +289,24 @@ def test_subscribe_rejects_non_public_https_endpoint(client: TestClient, push_on
     assert res.status_code == 422
 
 
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "https://fcm.googleapis.com/fcm/send/abc",
+        "https://updates.push.services.mozilla.com/wpush/v2/abc",
+        "https://web.push.apple.com/QAbc",
+        "https://wns2-par02p.notify.windows.com/w/?token=abc",
+    ],
+)
+def test_subscribe_accepts_browser_push_services(client: TestClient, push_on, endpoint: str):
+    _login(client, client.me)  # type: ignore[attr-defined]
+    assert client.post(PUSH, json=_subscription(endpoint), headers=XHR).status_code == 201
+
+
 def test_subscribe_truncates_long_user_agent(client: TestClient, push_on):
     _login(client, client.me)  # type: ignore[attr-defined]
     assert client.post(PUSH, json=_subscription(user_agent="U" * 400), headers=XHR).status_code == 201
-    over = client.post(PUSH, json=_subscription("https://e/2", user_agent="U" * 401), headers=XHR)
+    over = client.post(PUSH, json=_subscription("https://fcm.googleapis.com/fcm/send/2", user_agent="U" * 401), headers=XHR)
     assert over.status_code == 422  # 400자 초과는 받지 않는다
 
 
@@ -325,8 +347,9 @@ def test_client_errors_accept_push_subscribe_kind(client: TestClient):
 async def test_account_deletion_purges_notification_rows():
     """API-HD-011 계정 삭제가 두 테이블을 함께 비운다 — purger 등록 확인(실 리포·실 라우터)."""
     from app.modules.hoondok.dependencies import (
+        get_ask_repository,
         get_card_repository,
-        get_group_repository,
+        get_public_question_repository,
         get_jeongseong_repository,
         get_library_repository,
         get_mission_repository,
@@ -380,8 +403,9 @@ async def test_account_deletion_purges_notification_rows():
     app.dependency_overrides[get_mission_repository] = lambda: MissionLogRepository(session)
     app.dependency_overrides[get_jeongseong_repository] = lambda: JeongseongRepository(session)
     app.dependency_overrides[get_library_repository] = lambda: LibraryRepository(session)
-    app.dependency_overrides[get_group_repository] = lambda: _NoopGroups()  # 이 테스트는 알림 테이블만 본다
-    app.dependency_overrides[get_card_repository] = lambda: _NoopGroups()
+    app.dependency_overrides[get_card_repository] = lambda: _NoopPurger()  # 이 테스트는 알림 테이블만 본다
+    app.dependency_overrides[get_public_question_repository] = lambda: _NoopPurger()
+    app.dependency_overrides[get_ask_repository] = lambda: _NoopPurger()
     try:
         client = TestClient(app)
         client.cookies.set(COOKIE_NAME, IdentityService.issue_token(me))
@@ -393,8 +417,9 @@ async def test_account_deletion_purges_notification_rows():
             get_mission_repository,
             get_jeongseong_repository,
             get_library_repository,
-            get_group_repository,
             get_card_repository,
+            get_public_question_repository,
+            get_ask_repository,
         ):
             app.dependency_overrides.pop(provider, None)
 
@@ -404,6 +429,6 @@ async def test_account_deletion_purges_notification_rows():
     await engine.dispose()
 
 
-class _NoopGroups:
+class _NoopPurger:
     async def delete_for_user(self, _user_id) -> None:
         return None

@@ -3,41 +3,32 @@
 import { ApiError } from "@truewords/api-client-ts";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback } from "react";
-import { extractInviteCode, formatInviteCode, JOIN_PATH } from "@/features/hoondok/together/invite-code";
 import { useCurrentUser } from "./use-current-user";
 
-const ONBOARDING = "/hoondok/onboarding";
+const ONBOARDING = "/onboarding";
 
-/** returnTo 는 /hoondok 아래 상대 경로만 허용한다 (open redirect 방지). 아니면 홈. */
+/** 웹 루트 이전(DEC-PWA-026) 전 주소의 접두. 배포 전에 열린 탭·저장된 링크의 returnTo 에 남아 있다. */
+const LEGACY_PREFIX = /^\/hoondok(?=[/?#]|$)/;
+
+function hasControlChar(value: string): boolean {
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+
+/**
+ * returnTo 는 같은 origin 의 절대 경로(`/…`)만 허용한다 (open redirect 방지 — `//`·`/\` 로 시작하면 다른 호스트로 해석된다). 아니면 홈.
+ * 예전 `/hoondok/…` 주소는 루트 경로로 바꾼 뒤 검사한다 — 308 을 한 번 덜 탄다.
+ * 제어 문자(탭·줄바꿈 등)가 있으면 홈 — 브라우저 URL 파서가 지워 `/\t/evil.example` 이 `//evil.example` 이 된다.
+ */
 export function safeReturnTo(raw: string | null | undefined): string {
-  if (!raw || raw.startsWith("//") || raw.startsWith(ONBOARDING)) return "/hoondok";
-  return /^\/hoondok(\/|\?|$)/.test(raw) ? raw : "/hoondok";
-}
-
-/**
- * 모임 참여 링크(`/hoondok/groups/join?code=…`)에서 온 가입이면 그 코드를 가입 폼 초대 코드 칸에 미리 채운다
- * (PLAN-HD-010 D4 — 유효한 모임 코드가 베타 게이트를 대신 통과한다). 그 외 returnTo 는 빈 문자열.
- * 값은 표시·전송용일 뿐이고 판정은 서버가 한다.
- */
-export function inviteCodeFromReturnTo(returnTo: string): string {
-  const [path, query = ""] = returnTo.split("?", 2);
-  if (path.replace(/\/$/, "") !== JOIN_PATH) return "";
-  const code = new URLSearchParams(query).get("code");
-  return code ? formatInviteCode(code).slice(0, 64) : "";
-}
-
-/**
- * 가입 칸에 넣은 모임 코드를 참여 화면으로 넘긴다 (QA P2-11). returnTo 가 코드 없는 참여 화면일 때만
- * `?code=` 를 붙인다 — 베타 코드인지 모임 코드인지는 클라이언트가 모르므로 모양(8자)만 본다. 그 외에는 그대로.
- */
-export function carryInviteCode(returnTo: string, typed: string): string {
-  const [path, query = ""] = returnTo.split("?", 2);
-  if (path.replace(/\/$/, "") !== JOIN_PATH) return returnTo;
-  const params = new URLSearchParams(query);
-  const code = extractInviteCode(typed);
-  if (params.get("code") || !code) return returnTo;
-  params.set("code", code);
-  return `${JOIN_PATH}?${params.toString()}`;
+  if (!raw || hasControlChar(raw)) return "/";
+  const path = raw.replace(LEGACY_PREFIX, "");
+  const normalized = path === "" || /^[?#]/.test(path) ? `/${path}` : path;
+  if (normalized.startsWith(ONBOARDING)) return "/";
+  return /^\/(?![/\\])/.test(normalized) ? normalized : "/";
 }
 
 export function onboardingHref(returnTo?: string | null): string {

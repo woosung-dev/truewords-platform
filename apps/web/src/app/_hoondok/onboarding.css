@@ -1,4 +1,4 @@
-/* 맞춤 첫 말씀 질문 흐름 (/hoondok/start) — 환영 · 질문 1~3 · 첫 말씀.
+/* 맞춤 첫 말씀 질문 흐름 (/start) — 환영 · 질문 1~3 · 첫 말씀.
    값의 원본은 실서비스 시안 hoondok-onboarding-design(DESIGN-PLAN §4~§7)이고 색·글자·모서리는 hoondok.css 토큰만 쓴다.
    모바일은 한 화면 한 질문 + 하단 고정 행동 막대, ≥1024 는 왼쪽 맥락 400 · 80 · 오른쪽 답 640(합 1120) 2열이다.
    모션은 정본 4종(선택 150ms · 누름 120ms)뿐이고 단계 전환·위기 안내 펼침에는 애니메이션이 없다. */
@@ -394,6 +394,13 @@
   }
   .onb-welcome__body {
     padding: 20px 0 8px;
+  }
+  /* 부엉이(마스코트 플래그) — 브랜드와 제목 사이, 72px. 사진 히어로와 경쟁하지 않게 작게 둔다 */
+  .onb-welcome__body > .owl {
+    margin: 0 0 10px;
+  }
+  .onb-welcome__body .onb-lede + .onb-why {
+    margin-top: 8px;
   }
   .onb-welcome .onb__brand {
     display: flex;

@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
-  usePathname: () => "/hoondok/garden",
+  usePathname: () => "/garden",
 }));
 vi.mock("@/features/identity/api", () => ({
   identityAPI: { signup: vi.fn(), login: vi.fn(), logout: vi.fn(), me: vi.fn() },
@@ -137,17 +137,14 @@ describe("MonthCalendar (DES §2.6)", () => {
 });
 
 describe("GardenScreen 비로그인", () => {
-  it("안내 카드 + 온보딩 링크(returnTo=/hoondok/garden)만 보이고 기록 API 를 부르지 않는다", async () => {
+  it("안내 카드 + 온보딩 링크(returnTo=/garden)만 보이고 기록 API 를 부르지 않는다", async () => {
     loggedOut();
     renderGarden();
 
     expect(
       await screen.findByRole("heading", { name: "로그인하면 훈독 기록과 정성을 볼 수 있어요" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "시작하기" })).toHaveAttribute(
-      "href",
-      "/hoondok/onboarding?returnTo=%2Fhoondok%2Fgarden",
-    );
+    expect(screen.getByRole("link", { name: "시작하기" })).toHaveAttribute("href", "/onboarding?returnTo=%2Fgarden");
     expect(missionsAPI.summary).not.toHaveBeenCalled();
     expect(historyAPI.month).not.toHaveBeenCalled();
     expect(jeongseongAPI.current).not.toHaveBeenCalled();
@@ -190,7 +187,7 @@ describe("GardenScreen 로그인", () => {
     renderGarden();
 
     expect(await screen.findByRole("heading", { name: "진행 중인 정성이 없어요" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "새로 시작" })).toHaveAttribute("href", "/hoondok?sheet=jeongseong");
+    expect(screen.getByRole("link", { name: "새로 시작" })).toHaveAttribute("href", "/?sheet=jeongseong");
   });
 
   it("진행 중인 정성은 N일차 · 날짜 기준 막대 · 시작일 · 남은 날만 적는다 (읽은 날 수·퍼센트 없음)", async () => {

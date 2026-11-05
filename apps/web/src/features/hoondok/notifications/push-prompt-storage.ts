@@ -1,3 +1,4 @@
+import { safeLocalStorage as storage } from "@/lib/safe-storage";
 import { formatKstDate } from "../today";
 
 // 알림 받기 제안 카드의 "나중에" 기록 (localStorage 한 키). install/storage.ts 와 같은 규칙 —
@@ -8,14 +9,6 @@ const CHANGE_EVENT = "hoondok:push-prompt-change";
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 type Stored = { declines: number; lastDeclinedOn: string | null };
-
-function storage(): Storage | null {
-  try {
-    return typeof window === "undefined" ? null : window.localStorage;
-  } catch {
-    return null;
-  }
-}
 
 /** 값이 깨졌으면(JSON 아님·음수·소수) 0 으로 본다 — 카드가 한 번 더 보이는 쪽이 영영 안 보이는 쪽보다 낫다. */
 function readStored(): Stored {

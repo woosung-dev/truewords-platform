@@ -7,7 +7,7 @@ import type { HighlightInput, HighlightItem } from "@truewords/api-client-ts/typ
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-let pathname = "/hoondok/library";
+let pathname = "/library";
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
@@ -32,20 +32,24 @@ vi.mock("@/features/hoondok/library/api", async (original) => ({
   },
 }));
 vi.mock("@/features/identity/api", () => ({ identityAPI: { me: vi.fn() } }));
+vi.mock("@/features/hoondok/summaries/api", () => ({
+  summariesAPI: { list: vi.fn(async () => []), detail: vi.fn() },
+}));
 vi.mock("@/features/hoondok/missions-api", () => ({ missionsAPI: { summary: vi.fn(), complete: vi.fn() } }));
 vi.mock("@/features/hoondok/ask/ask-stream", async (original) => ({
   ...(await original<object>()),
-  requestAsk: vi.fn(),
+  requestHoondokAsk: vi.fn(),
 }));
 
-import SeriesPage from "@/app/(hoondok)/hoondok/library/[series]/page";
-import LibraryPage from "@/app/(hoondok)/hoondok/library/page";
-import WordsPage from "@/app/(hoondok)/hoondok/words/[id]/page";
-import { requestAsk } from "@/features/hoondok/ask/ask-stream";
+import SeriesPage from "@/app/(hoondok)/library/[series]/page";
+import LibraryPage from "@/app/(hoondok)/library/page";
+import WordsPage from "@/app/(hoondok)/words/[id]/page";
+import { requestHoondokAsk } from "@/features/hoondok/ask/ask-stream";
 import { libraryAPI, seriesHref, wordsHref } from "@/features/hoondok/library/api";
 import { EXPLAIN_PREFIX } from "@/features/hoondok/library/components/ai-explain";
 import { writeLastReading } from "@/features/hoondok/library/last-reading";
 import { missionsAPI } from "@/features/hoondok/missions-api";
+import { summariesAPI } from "@/features/hoondok/summaries/api";
 import { identityAPI } from "@/features/identity/api";
 
 const USER = { id: "u1", email: "a@b.c", display_name: "효진" };
@@ -155,7 +159,7 @@ async function showWords(searchParams: Record<string, string> = {}) {
 }
 
 beforeEach(() => {
-  pathname = "/hoondok/library";
+  pathname = "/library";
   vi.clearAllMocks();
   localStorage.clear();
   window.getSelection()?.removeAllRanges();
@@ -183,7 +187,6 @@ beforeEach(() => {
   vi.mocked(libraryAPI.deleteHighlight).mockImplementation(async (id) => {
     serverHighlights = serverHighlights.filter((item) => item.id !== id);
   });
-  vi.stubEnv("NEXT_PUBLIC_HOONDOK_PREVIEW", "");
   vi.mocked(identityAPI.me).mockRejectedValue(new ApiError(401, { message: "unauthorized" }));
   vi.mocked(libraryAPI.list).mockResolvedValue({ items: [ITEM, OTHER], works: [WORK] });
   vi.mocked(libraryAPI.words).mockResolvedValue(WORDS);
@@ -258,13 +261,13 @@ describe("권 목록 화면", () => {
     await screen.findByRole("link", { name: /001권/ });
     expect(screen.queryByRole("link", { name: /002권/ })).toBeNull();
     expect(screen.getByText("검색 인용만 허용 · 원문 공개 확인 중")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "말씀 검색하기" })).toHaveAttribute("href", "/hoondok/search");
+    expect(screen.getByRole("link", { name: "말씀 검색하기" })).toHaveAttribute("href", "/search");
   });
   it("공개되지 않은 저작물은 404 를 그대로 알리고 서고로 돌려보낸다", async () => {
     vi.mocked(libraryAPI.series).mockRejectedValue(new ApiError(404, { message: "not found" }));
     show(await SeriesPage({ params: Promise.resolve({ series: "없는시리즈" }) }));
     expect(await screen.findByText("이 저작물은 아직 공개되지 않았어요")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "서고로 돌아가기" })).toHaveAttribute("href", "/hoondok/library");
+    expect(screen.getByRole("link", { name: "서고로 돌아가기" })).toHaveAttribute("href", "/library");
   });
 });
 
@@ -339,6 +342,36 @@ describe("원문 목차·단락", () => {
     expect(await screen.findByText("제1편 감사의 길", { selector: ".masthead__nm" })).toBeInTheDocument();
     const toc = screen.getByRole("complementary", { name: "목차" });
     expect(within(toc).getByRole("link", { name: "제1편 감사의 길" })).toHaveAttribute("aria-current", "page");
+  });
+  it("목차로 장에 들어오면 이 장의 AI 요약 표지를 장 시작 단락 바로 위에 두고 그리로 내려 준다", async () => {
+    // 장 시작이 페이지 중간이면 머리의 표지는 스크롤로 지나친다 — 독자가 멈추는 자리에 둔다
+    vi.mocked(libraryAPI.sections).mockResolvedValue({
+      volume: VOLUME,
+      sections: [SECTIONS[0], { ...SECTIONS[1], start_chunk_index: 1 }],
+    });
+    vi.mocked(summariesAPI.list).mockResolvedValueOnce([
+      {
+        id: "s1",
+        content_right_id: "book",
+        work_title: ITEM.work_title,
+        slug: "cheon-01-01-01",
+        group_title: "제1편",
+        position: 1,
+        title: "하나님의 실존",
+        lead: "핵심",
+        section_position: 2,
+      },
+    ]);
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    await showWords({ section: "2" });
+    const marks = await screen.findByRole("navigation", { name: "이 장의 AI 요약" });
+    expect(screen.getAllByRole("navigation", { name: "이 장의 AI 요약" })).toHaveLength(1);
+    const start = document.getElementById("verse-1");
+    expect(start && marks.compareDocumentPosition(start) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(document.getElementById("verse-0")?.compareDocumentPosition(marks)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    await waitFor(() => expect(scrollIntoView.mock.contexts.at(-1)).toBe(document.getElementById("wd-sum-marks")));
+    delete (Element.prototype as Partial<Element>).scrollIntoView;
   });
   it("chunk_id 로 들어오면 인용된 단락까지 내려 준다", async () => {
     // 검색 결과·북마크 링크(API-HD-016 chunk_id). 페이지 첫 단락이 아니라 가리킨 단락이 목표다
@@ -652,9 +685,7 @@ describe("구절 형광펜", () => {
     fireEvent.click(toolbar.getByRole("button", { name: "노랑 형광펜" }));
     const gate = within(await screen.findByRole("dialog", { name: "형광펜·메모" }));
     expect(gate.getByText("로그인하면 기록이 남아요")).toBeInTheDocument();
-    expect(gate.getByRole("link", { name: "로그인하고 표시하기" }).getAttribute("href")).toContain(
-      "/hoondok/onboarding",
-    );
+    expect(gate.getByRole("link", { name: "로그인하고 표시하기" }).getAttribute("href")).toContain("/onboarding");
     expect(libraryAPI.createHighlight).not.toHaveBeenCalled();
     expect(libraryAPI.highlights).not.toHaveBeenCalled();
   });
@@ -759,10 +790,14 @@ describe("노트 탭", () => {
 
 describe("AI 설명 탭", () => {
   it("고른 단락만 고정 질문으로 한 번 요청한다", async () => {
-    vi.mocked(requestAsk).mockResolvedValue({
+    vi.mocked(requestHoondokAsk).mockResolvedValue({
       answer: "쉬운 설명",
       sources: [{ text: "근거" }] as never,
       disclaimer: "",
+      sessionId: "s1",
+      messageId: "m1",
+      resolvedMode: "standard",
+      followups: [],
     });
     await showWords();
     fireEvent.click(await screen.findByRole("button", { name: "단락 2 표시하기" }));
@@ -770,14 +805,18 @@ describe("AI 설명 탭", () => {
     fireEvent.click(screen.getByRole("tab", { name: "AI 설명" }));
     fireEvent.click(await screen.findByRole("button", { name: "이 단락 설명 요청" }));
     await waitFor(() => expect(screen.getByText("쉬운 설명")).toBeInTheDocument());
-    expect(requestAsk).toHaveBeenCalledTimes(1);
-    expect(requestAsk).toHaveBeenCalledWith(`${EXPLAIN_PREFIX}둘째 단락의 본문`);
+    expect(requestHoondokAsk).toHaveBeenCalledTimes(1);
+    expect(requestHoondokAsk).toHaveBeenCalledWith(`${EXPLAIN_PREFIX}둘째 단락의 본문`);
   });
   it("답의 마크다운 기호를 드러내지 않고 소제목·강조로 그린다", async () => {
-    vi.mocked(requestAsk).mockResolvedValue({
+    vi.mocked(requestHoondokAsk).mockResolvedValue({
       answer: "### 한 줄 요약\n변치 않는 **뼈사랑**입니다.",
       sources: [{ text: "근거" }] as never,
       disclaimer: "",
+      sessionId: "s1",
+      messageId: "m1",
+      resolvedMode: "standard",
+      followups: [],
     });
     await showWords();
     fireEvent.click(await screen.findByRole("button", { name: "단락 2 표시하기" }));
@@ -789,7 +828,15 @@ describe("AI 설명 탭", () => {
     expect(screen.queryByText(/###|\*\*/)).toBeNull();
   });
   it("근거가 0건이면 답을 보이지 않는다", async () => {
-    vi.mocked(requestAsk).mockResolvedValue({ answer: "보이면 안 되는 답", sources: [], disclaimer: "" });
+    vi.mocked(requestHoondokAsk).mockResolvedValue({
+      answer: "보이면 안 되는 답",
+      sources: [],
+      disclaimer: "",
+      sessionId: "s1",
+      messageId: "m1",
+      resolvedMode: "standard",
+      followups: [],
+    });
     await showWords();
     fireEvent.click(await screen.findByRole("button", { name: "단락 1 표시하기" }));
     fireEvent.click(screen.getByRole("button", { name: "닫기" }));

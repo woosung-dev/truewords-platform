@@ -1,4 +1,5 @@
-import { Check, type LucideIcon } from "lucide-react";
+import type { Icon } from "@phosphor-icons/react";
+import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
 import Link from "next/link";
 
 // 미션 카드 (DES-PWA-003 §2.1). 카드 본체는 <a>, 체크는 형제 <button> — 중첩 인터랙티브 금지.
@@ -7,7 +8,7 @@ export type MissionCardProps = {
   kind: string;
   title: string;
   meta: string;
-  icon: LucideIcon;
+  icon: Icon;
   href?: string;
   isDone?: boolean;
   /** 준비 중 (기도하기·말씀 읽기). 이동·체크 모두 비활성 */
@@ -31,7 +32,7 @@ export function MissionCard({
   const body = (
     <>
       <span className="mission__ic">
-        <Icon size={24} />
+        <Icon size={24} aria-hidden="true" />
       </span>
       <span className="mission__bd">
         <span className="mission__kind">{isDisabled ? `${kind} · 준비 중` : kind}</span>
@@ -68,7 +69,7 @@ export function MissionCard({
         disabled={isDisabled || !onToggle}
         onClick={onToggle}
       >
-        <Check size={16} strokeWidth={3} />
+        <CheckIcon size={16} weight="bold" aria-hidden="true" />
       </button>
     </div>
   );

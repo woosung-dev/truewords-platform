@@ -129,6 +129,8 @@ describe("useJeongseong", () => {
   });
 
   it("5xx·네트워크 단절은 error 로 남긴다 (오프라인 ≠ 정성 없음)", async () => {
+    // 5xx 는 오류 수집(POST /api/backend/hoondok/client-errors)도 한 번 부른다 — 웹 전체가 훈독이라 어느 경로에서나 보고한다
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     const down = await renderJeongseong(json({ message: "down" }, 503));
     expect(down.result.isError).toBe(true);
     expect(down.result.error).toBeInstanceOf(ApiError);

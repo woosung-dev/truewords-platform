@@ -28,7 +28,7 @@ const QUERY_MAX = 1000; // RagTraceRequest.query max_length 와 같다.
 
 // 질문 입력은 Textarea primitive 가 없어 기본 <textarea> 에 Input 과 같은 토큰 클래스를 쓴다.
 const TEXTAREA_CLASS =
-  "min-h-20 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base transition-colors outline-none placeholder:text-placeholder focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30";
+  "min-h-20 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base transition-colors outline-none placeholder:text-placeholder focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm";
 
 export interface ChatbotOption {
   chatbot_id: string;

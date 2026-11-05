@@ -14,10 +14,11 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { dataAPI, dataSourceCategoryAPI, type OnDuplicateMode } from "@/features/data-source/api";
 import BulkPrecheckDialog, { type BulkPrecheckEntry } from "@/features/data-source/components/bulk-precheck-dialog";
 import { DisplayNameEditor } from "@/features/data-source/components/display-name-editor";
@@ -49,9 +50,16 @@ export default function DataSourcesPage() {
   const { data: categories = [] } = useActiveCategories();
   const [dragActive, setDragActive] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  // 업로드 뒤 "처리 중" 표시를 지우는 타이머 — 화면을 떠나면 함께 정리한다.
+  const processingTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
+  useEffect(() => {
+    const timers = processingTimers.current;
+    return () => {
+      timers.forEach(clearTimeout);
+      timers.clear();
+    };
+  }, []);
   const [activeTab, setActiveTab] = useState<"upload" | "categories" | "jobs">("upload");
-  // Batch API 처리 방식은 PR #95 에서 제거됨. 항상 standard 로 호출 (인자 호환).
-  const mode = "standard" as const;
   // ADR-30 follow-up: 일괄 업로드 시 이미 적재된 파일은 건너뛰는 skip 모드 토글.
   // 단건 업로드(파일 1개)는 dialog가 사용자 선택을 받으므로 이 토글의 영향을 받지 않는다.
   const [bulkSkipMode, setBulkSkipMode] = useState(false);
@@ -72,7 +80,6 @@ export default function DataSourcesPage() {
     newCount: number;
   }>({ open: false, files: [], duplicates: [], newCount: 0 });
 
-  // Gemini 티어 조회 (유료 전용 배치 모드 활성화 여부)
   // 적재 대상 컬렉션 + 환경 — 헤더 indicator 에 표시 (PR #97).
   // 사용자가 "어떤 컬렉션에 데이터가 들어가는지" 인지하여 운영 사고 방지.
   const { data: configData } = useQuery({
@@ -191,7 +198,7 @@ export default function DataSourcesPage() {
   ): Promise<UploadResponse | null> => {
     setPendingFiles((prev) => prev.map((f) => (f.id === pf.id ? { ...f, status: "uploading" as const } : f)));
     try {
-      const res = await dataAPI.uploadFile(pf.file, pf.source, mode, onDuplicate);
+      const res = await dataAPI.uploadFile(pf.file, pf.source, onDuplicate);
       // 업로드 성공 → "처리 중" 상태로 변경
       setPendingFiles((prev) => prev.map((f) => (f.id === pf.id ? { ...f, status: "processing" as const } : f)));
       // ADR-30 follow-up: 일괄 업로드는 끝에 통계 토스트 1회만 표시 (BUG-C 픽스).
@@ -202,9 +209,11 @@ export default function DataSourcesPage() {
       queryClient.invalidateQueries({ queryKey: ["category-stats"] });
       queryClient.invalidateQueries({ queryKey: ["all-volumes"] });
       // 10초 후 processing 상태 제거 (status 폴링이 처리 결과를 가져옴)
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        processingTimers.current.delete(timer);
         setPendingFiles((prev) => prev.filter((f) => f.id !== pf.id));
       }, 10000);
+      processingTimers.current.add(timer);
       return res;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : `${pf.file.name} 업로드 실패`);
@@ -400,28 +409,28 @@ export default function DataSourcesPage() {
 
       {/* 통계 카드 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="rounded-xl border bg-card p-4">
+        <Card className="p-4">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">총 파일</span>
             <FileText className="w-3.5 h-3.5 text-muted-foreground" />
           </div>
           <p className="text-2xl font-bold mt-1">{totalFiles}</p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
+        </Card>
+        <Card className="p-4">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">생성 청크</span>
             <Database className="w-3.5 h-3.5 text-primary" />
           </div>
           <p className="text-2xl font-bold mt-1 text-primary">{totalChunks.toLocaleString()}</p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
+        </Card>
+        <Card className="p-4">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">처리 완료</span>
             <CheckCircle2 className="w-3.5 h-3.5 text-success" />
           </div>
           <p className="text-2xl font-bold mt-1 text-success">{completedCount}</p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
+        </Card>
+        <Card className="p-4">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">실패</span>
             <AlertCircle className={`w-3.5 h-3.5 ${failedCount > 0 ? "text-destructive" : "text-muted-foreground"}`} />
@@ -429,7 +438,7 @@ export default function DataSourcesPage() {
           <p className={`text-2xl font-bold mt-1 ${failedCount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
             {failedCount}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* 탭 */}
@@ -520,7 +529,7 @@ export default function DataSourcesPage() {
           {/* ADR-30 follow-up — 일괄 업로드 사전 검사 모달의 default 정책에 영향.
               Batch API 처리 방식은 PR #95 에서 제거됨 (polling 인프라 미완성).
               항상 즉시 처리(standard) 로 동작. */}
-          <div className="rounded-xl border bg-card p-4 space-y-3">
+          <Card className="p-4 space-y-3">
             <label className="flex items-start gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -537,11 +546,11 @@ export default function DataSourcesPage() {
                 </span>
               </span>
             </label>
-          </div>
+          </Card>
 
           {/* 대기 목록 */}
           {pendingFiles.length > 0 && (
-            <div className="rounded-xl border bg-card overflow-hidden">
+            <Card className="p-0 overflow-hidden">
               <div className="px-4 py-3 border-b bg-admin-muted/30 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium">파일 목록</span>
@@ -649,7 +658,7 @@ export default function DataSourcesPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* 중단된 파일 — 재개 업로드 */}
@@ -657,7 +666,7 @@ export default function DataSourcesPage() {
             <div className="rounded-xl border border-warning-border bg-warning-soft/40 overflow-hidden">
               <div className="px-4 py-3 border-b border-warning-border bg-warning-soft/60 flex items-center gap-2">
                 <RotateCcw className="w-3.5 h-3.5 text-warning" />
-                <span className="text-xs font-medium text-warning">중단된 파일 — 재개 가능</span>
+                <span className="text-xs font-medium text-warning">중단된 파일 · 재개 가능</span>
                 <span className="text-xs text-warning">
                   같은 파일을 다시 업로드하면 중단 지점부터 이어서 처리합니다
                 </span>
@@ -715,7 +724,7 @@ export default function DataSourcesPage() {
 
           {/* 처리 이력 */}
           {(completedEntries.length > 0 || failedEntries.length > 0) && (
-            <div className="rounded-xl border bg-card overflow-hidden">
+            <Card className="p-0 overflow-hidden">
               <div className="px-4 py-3 border-b bg-admin-muted/30">
                 <span className="text-xs font-medium">처리 이력</span>
                 <span className="text-xs text-muted-foreground ml-2">자동 갱신</span>
@@ -766,18 +775,18 @@ export default function DataSourcesPage() {
                   );
                 })}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* 빈 상태 */}
           {pendingFiles.length === 0 && completedEntries.length === 0 && failedEntries.length === 0 && (
-            <div className="rounded-xl border bg-card flex flex-col items-center justify-center py-16 text-center">
+            <Card className="p-0 flex flex-col items-center justify-center py-16 text-center">
               <div className="w-12 h-12 rounded-full bg-admin-muted flex items-center justify-center mb-4">
                 <Upload className="w-6 h-6 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium">아직 업로드된 문서가 없습니다</p>
               <p className="text-xs text-muted-foreground mt-1">위 영역에 파일을 드래그하거나 클릭하여 시작하세요</p>
-            </div>
+            </Card>
           )}
         </div>
       )}

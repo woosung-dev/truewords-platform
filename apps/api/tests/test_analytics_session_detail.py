@@ -59,7 +59,7 @@ async def test_session_detail_returns_404_when_missing(
 
 
 @pytest.mark.asyncio
-async def test_session_detail_returns_messages_with_reactions_and_feedback(
+async def test_session_detail_returns_messages_with_feedback(
     async_client, override_admin_auth
 ):
     session_id = uuid.uuid4()
@@ -82,7 +82,6 @@ async def test_session_detail_returns_messages_with_reactions_and_feedback(
                 "created_at": datetime(2026, 5, 3, 9, 6, 0, tzinfo=timezone.utc),
                 "resolved_answer_mode": None,
                 "persona_overridden": None,
-                "reactions": [],
                 "feedback": None,
                 "citations": [],
             },
@@ -93,7 +92,6 @@ async def test_session_detail_returns_messages_with_reactions_and_feedback(
                 "created_at": datetime(2026, 5, 3, 9, 6, 5, tzinfo=timezone.utc),
                 "resolved_answer_mode": "default",
                 "persona_overridden": False,
-                "reactions": [{"kind": "thumbs_down", "count": 1}],
                 "feedback": {
                     "feedback_type": "inaccurate",
                     "comment": "정확하지 않음",
@@ -123,9 +121,6 @@ async def test_session_detail_returns_messages_with_reactions_and_feedback(
         assert len(body["messages"]) == 2
         assert body["messages"][0]["role"] == "user"
         assert body["messages"][1]["role"] == "assistant"
-        assert body["messages"][1]["reactions"] == [
-            {"kind": "thumbs_down", "count": 1}
-        ]
         assert body["messages"][1]["feedback"]["feedback_type"] == "inaccurate"
         assert len(body["messages"][1]["citations"]) == 1
     finally:

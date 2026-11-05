@@ -82,7 +82,6 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     source: str = Form("", description="데이터 소스 카테고리 key (비워두면 미분류로 적재)"),
-    mode: str = Form("standard", description="호환용 (Batch API 제거됨, 항상 standard)"),
     on_duplicate: str = Form(
         "merge",
         description=(
@@ -96,7 +95,6 @@ async def upload_document(
     qdrant_service: DataSourceQdrantService = Depends(get_qdrant_service),
 ) -> UploadResponse:
     """업로드된 파일을 백그라운드에서 RAG 지식 베이스로 적재합니다."""
-    _ = mode  # 호환성 유지 — 인자 보존, 항상 standard 동작
     if on_duplicate not in _VALID_ON_DUPLICATE:
         raise HTTPException(
             status_code=400,
@@ -156,13 +154,13 @@ async def upload_document(
     file.file.close()
 
     background_tasks.add_task(
-        _process_file, tmp_path, safe_filename, source, mode, on_duplicate
+        _process_file, tmp_path, safe_filename, source, on_duplicate
     )
     return UploadResponse(
         message="파일 업로드 및 처리 예약 완료",
         filename=safe_filename,
         volume_key=volume_key,
-        mode=mode,
+        mode="standard",
         on_duplicate=on_duplicate,
         predicted_outcome=predicted,
     )

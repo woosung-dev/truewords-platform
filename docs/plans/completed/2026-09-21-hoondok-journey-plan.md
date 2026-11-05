@@ -10,7 +10,7 @@
 >   admin `/hoondok/rights` 승인 전까지 서고·검색·원문이 사용자에게 보이지 않는다(설계상 기본 비노출)
 > - 착수 시 상태: 구현 승인 · 진행 중. 2026-09-21 사전 점검·제품 결정 반영 후 사용자 구현 요청
 > - 기준 커밋: main `7abc4ef`
-> - 선행 문서: [`PLAN-HD-001`](../active/2026-09-17-hoondok-mvp.md) · [`PLAN-HD-002`](../active/2026-09-19-hoondok-screens.md) · [`PLAN-HD-004`](../active/2026-09-20-hoondok-followup-3tracks.md)
+> - 선행 문서: [`PLAN-HD-001`](../active/2026-09-17-hoondok-mvp.md) · [`PLAN-HD-002`](2026-09-19-hoondok-screens.md) · [`PLAN-HD-004`](2026-09-20-hoondok-followup-3tracks.md)
 > - 표기: 라벨 없는 문장은 **코드로 확인한 사실**이다. `[가정]` 은 검증이 필요한 추론,
 >   `[확인 필요]` 는 사용자·외부 결정이 필요한 항목이다
 

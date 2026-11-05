@@ -6,7 +6,7 @@ import type {
 } from "@truewords/api-client-ts/types";
 import { ApiError, fetchAPI } from "@/lib/api";
 import { WEB_ORIGIN } from "@/lib/origins";
-import { mutationErrorMessage } from "./groups-api";
+import { mutationErrorMessage } from "./api-errors";
 
 export type { CardAdminItem, CardAdminListResponse, TodayCardResponse };
 export type CardStatus = CardAdminItem["status"];
@@ -46,5 +46,5 @@ export function cardMutationErrorMessage(err: unknown, fallback: string): string
 
 /** 사용자 웹 서고의 원문 단락 링크. web 의 `wordsHref` 와 같은 모양이다. */
 export function cardSourceUrl(card: { volume: string; chunk_id: string }): string {
-  return `${WEB_ORIGIN}/hoondok/words/${encodeURIComponent(card.volume)}?chunk_id=${encodeURIComponent(card.chunk_id)}`;
+  return `${WEB_ORIGIN}/words/${encodeURIComponent(card.volume)}?chunk_id=${encodeURIComponent(card.chunk_id)}`;
 }

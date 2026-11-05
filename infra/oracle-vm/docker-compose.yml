@@ -77,8 +77,10 @@ services:
       # 훈독 AI 낭독 단락 mp3 캐시 (PLAN-HD-011). 호스트 디렉터리는 backend 컨테이너 appuser 가 쓸 수 있어야 한다
       # (docs/runbooks/hoondok-pwa-rollout.md §AI 낭독 목소리 운영 ON). GOOGLE_TTS_API_KEY 가 없으면 쓰지 않는다.
       - HOONDOK_TTS_CACHE_DIR=/data/tts-cache
+      - HOONDOK_SUMMARY_MEDIA_DIR=/data/summary-media
     volumes:
       - /opt/truewords/tts-cache:/data/tts-cache
+      - /opt/truewords/summary-media:/data/summary-media
     mem_limit: 3g
     stop_grace_period: 40s
     depends_on:
@@ -127,8 +129,10 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    # 웹 루트는 훈독이다(DEC-PWA-026, 시연 챗 /login 삭제). 화면은 훈독 플래그·백엔드 응답에 따라 달라지므로
+    # 헬스체크는 플래그와 무관한 정적 manifest 로 Next 서버 생존만 본다. 화면 확인은 smoke.sh 가 한다.
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/login',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/hoondok/manifest.webmanifest',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3

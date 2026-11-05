@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { analyticsAPI } from "@/features/analytics/api";
 
@@ -85,7 +86,7 @@ export default function QueriesExplorerPage() {
       </div>
 
       {/* 필터 바 */}
-      <div className="rounded-xl border bg-card p-4 space-y-3">
+      <Card className="p-4 space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <QuerySearchInput key={q} query={q} onSearch={search} />
@@ -120,10 +121,10 @@ export default function QueriesExplorerPage() {
             </select>
           </label>
         </div>
-      </div>
+      </Card>
 
       {/* 테이블 */}
-      <div className="rounded-xl border bg-card p-5 space-y-4">
+      <Card className="space-y-4">
         {isLoading && !data ? (
           <div className="space-y-2">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -238,7 +239,7 @@ export default function QueriesExplorerPage() {
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* 질문 상세 모달 (기존 재사용) */}
       {selectedQuery !== null && (

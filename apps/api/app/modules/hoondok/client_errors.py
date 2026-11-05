@@ -39,16 +39,22 @@ error_limiter = RateLimiter(max_requests=20, window_seconds=60)
 
 
 def normalize_error_path(value: str) -> str:
+    """웹 화면 경로 → 개인정보 없는 템플릿. 웹 루트가 훈독이다(DEC-PWA-026).
+
+    예전 클라이언트(설치된 앱의 캐시된 번들)는 `/hoondok/…` 을 보내므로 그 접두를 떼고 같은 규칙으로 본다.
+    """
     path = value.split("?", 1)[0].split("#", 1)[0]
-    if not path.startswith("/hoondok"):
-        return "/hoondok"
-    tail = path[len("/hoondok") :].rstrip("/")
+    if path == "/hoondok" or path.startswith("/hoondok/"):
+        path = path[len("/hoondok") :] or "/"
+    if not path.startswith("/") or path.startswith("//"):
+        return "/"
+    tail = path.rstrip("/")
     if tail in _STATIC_PATHS:
-        return "/hoondok" + tail
+        return tail or "/"
     for prefix in ("/words/", "/ask/"):
         if tail.startswith(prefix):
-            return "/hoondok" + prefix + ":id"
-    return "/hoondok/:screen"
+            return prefix + ":id"
+    return "/:screen"
 
 
 async def check_error_limit(request: Request) -> None:

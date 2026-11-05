@@ -266,3 +266,73 @@ class TestProcessChatStream:
         for src in sources_data["sources"]:
             assert "chunk_id" in src, "stream sources 의 모든 항목에 chunk_id 필요 (frontend 모달 trigger)"
             assert src["chunk_id"], "chunk_id 가 빈 문자열이면 frontend 가 비활성 처리"
+
+
+def _sources_payload(events: list[str]) -> dict:
+    for event in events:
+        if event.startswith("event: sources"):
+            payload = event.split("data: ", 1)[1].strip()
+            STREAM_EVENT_MODELS["sources"].model_validate_json(payload)
+            return json.loads(payload)
+    raise AssertionError("sources 이벤트 없음")
+
+
+class TestSourcesAnswerMode:
+    """sources 이벤트의 answer_mode = 실제 적용 모드 (훈독 "이 모델이 답변했어요")."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("query", "requested", "expected"),
+        [
+            ("참사랑이란 무엇인가요?", "beginner", "beginner"),
+            ("요즘 자살 생각이 들어요", "kids", "pastoral"),  # 위기 신호는 요청 모드를 덮는다
+        ],
+    )
+    @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    @patch("app.modules.chat.pipeline.stages.search.cascading_search", new_callable=AsyncMock)
+    @patch("app.modules.chat.service.generate_answer_stream")
+    @patch("app.modules.qdrant.factory.get_async_client")
+    async def test_normal_path_reports_resolved_mode(
+        self, mock_qdrant, mock_stream, mock_search, mock_embed, query, requested, expected,
+    ) -> None:
+        service, _, _ = _make_chat_service()
+        mock_search.return_value = _make_search_results(3)
+
+        async def fake_gen(*args, **kwargs):
+            yield "답변"
+
+        mock_stream.return_value = fake_gen()
+        request = ChatRequest(query=query, chatbot_id="test", answer_mode=requested)
+        events = [e async for e in service.process_chat_stream(request)]
+        assert _sources_payload(events)["answer_mode"] == expected
+
+    @pytest.mark.asyncio
+    @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    async def test_cache_hit_reports_mode_without_persisting_it(self, mock_embed) -> None:
+        from app.modules.cache.schemas import CacheHit
+
+        cache_service = AsyncMock()
+        cache_service.check_cache.return_value = CacheHit(
+            question="참사랑?", answer="캐시 답변", sources=[], score=0.95, created_at=1.0,
+        )
+        service, chat_repo, _ = _make_chat_service()
+        service.cache_check_stage.cache_service = cache_service
+
+        request = ChatRequest(query="참사랑이란?", chatbot_id="test", answer_mode="theological")
+        events = [e async for e in service.process_chat_stream(request)]
+        assert _sources_payload(events)["answer_mode"] == "theological"
+        saved = chat_repo.create_message.await_args_list[-1].args[0]
+        assert saved.role == MessageRole.ASSISTANT
+        # 캐시 답은 원래 질문의 위기 판정·인용을 물려받지 않는다 — 모드를 남기지 않아 공개 신청 대상에서 빠진다.
+        assert saved.resolved_answer_mode is None
+
+    @pytest.mark.asyncio
+    @patch("app.modules.chat.pipeline.stages.intent_classifier.classify_intent", new_callable=AsyncMock, return_value="meta")
+    @patch("app.modules.chat.pipeline.stages.embedding.embed_dense_query", new_callable=AsyncMock, return_value=[0.1] * 3072)
+    async def test_meta_reports_standard_without_persisting_mode(self, mock_embed, mock_intent) -> None:
+        service, chat_repo, _ = _make_chat_service()
+        request = ChatRequest(query="오늘 날씨 어때?", chatbot_id="test", answer_mode="kids")
+        events = [e async for e in service.process_chat_stream(request)]
+        assert _sources_payload(events)["answer_mode"] == "standard"
+        saved = chat_repo.create_message.await_args_list[-1].args[0]
+        assert saved.resolved_answer_mode is None  # 근거 없는 안내문 — 공개 신청 대상 아님

@@ -6,17 +6,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockReplace = vi.fn();
 const mockPush = vi.fn();
-let returnToParam: string | null = "/hoondok/read";
+let returnToParam: string | null = "/read";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, prefetch: vi.fn() }),
-  usePathname: () => "/hoondok/onboarding",
+  usePathname: () => "/onboarding",
   useSearchParams: () => ({ get: (key: string) => (key === "returnTo" ? returnToParam : null) }),
 }));
 vi.mock("@/features/identity/api", () => ({
   identityAPI: { signup: vi.fn(), login: vi.fn(), logout: vi.fn(), me: vi.fn() },
 }));
 
-import OnboardingPage from "@/app/(hoondok)/hoondok/onboarding/page";
+import OnboardingPage from "@/app/(hoondok)/onboarding/page";
 import { identityAPI } from "@/features/identity/api";
 import { onboardingHref, safeReturnTo } from "@/features/identity/gate";
 import { fetchCurrentUser } from "@/features/identity/use-current-user";
@@ -30,27 +30,44 @@ function wrap(children: ReactNode) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  returnToParam = "/hoondok/read";
+  returnToParam = "/read";
   vi.mocked(identityAPI.me).mockRejectedValue(new ApiError(401, { message: "로그인이 필요합니다" }));
 });
 
 describe("returnTo 검증 (open redirect 방지)", () => {
-  it("/hoondok 아래만 허용하고 나머지는 홈으로", () => {
-    expect(safeReturnTo("/hoondok/read")).toBe("/hoondok/read");
-    expect(safeReturnTo("/hoondok?x=1")).toBe("/hoondok?x=1");
-    expect(safeReturnTo("/hoondok")).toBe("/hoondok");
+  it("같은 origin 의 절대 경로만 허용하고 나머지는 홈으로", () => {
+    expect(safeReturnTo("/read")).toBe("/read");
+    expect(safeReturnTo("/?x=1")).toBe("/?x=1");
+    expect(safeReturnTo("/")).toBe("/");
+    // 웹 루트 이전 전 주소는 루트 경로로 바꾼다 (DEC-PWA-026)
+    expect(safeReturnTo("/hoondok/read")).toBe("/read");
+    expect(safeReturnTo("/hoondok")).toBe("/");
+    expect(safeReturnTo("/hoondok?x=1")).toBe("/?x=1");
+    expect(safeReturnTo("/hoondok/words/a?chunk=c1")).toBe("/words/a?chunk=c1");
+    expect(safeReturnTo("/hoondokx")).toBe("/hoondokx");
+    expect(safeReturnTo("/hoondok/onboarding")).toBe("/");
+    expect(safeReturnTo("/hoondok//evil.example")).toBe("/");
+    expect(safeReturnTo("/hoondok/\\evil.example")).toBe("/");
     for (const bad of [
       "https://evil.example",
       "//evil.example",
-      "/login",
-      "/hoondokx",
-      "/hoondok/onboarding",
+      "/\\evil.example",
+      "read",
+      "javascript:alert(1)",
+      "/onboarding",
+      "/onboarding?returnTo=%2Fread",
+      // 보안 점검 web-safe-return-to-control-char-open-redirect — URL 파서가 탭·줄바꿈을 지우면 `//evil.example`
+      "/\t/evil.example",
+      "/\n/evil.example",
+      "/\r//evil.example",
+      "/hoondok/\t/evil.example",
+      "/\u007f",
       "",
       null,
     ]) {
-      expect(safeReturnTo(bad)).toBe("/hoondok");
+      expect(safeReturnTo(bad)).toBe("/");
     }
-    expect(onboardingHref("/hoondok/read")).toBe("/hoondok/onboarding?returnTo=%2Fhoondok%2Fread");
+    expect(onboardingHref("/read")).toBe("/onboarding?returnTo=%2Fread");
   });
 });
 
@@ -94,7 +111,7 @@ describe("온보딩 (SCR-PWA-001 최소형)", () => {
     expect(screen.getByText(/독립 운영 베타/)).toBeInTheDocument();
     expect(screen.queryByRole("radiogroup")).toBeNull(); // 교회 선택 없음
     await fillAndSubmit("signup");
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/hoondok/read"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/read"));
     expect(identityAPI.signup).toHaveBeenCalledWith({
       email: "new@example.com",
       password: "password1",
@@ -107,7 +124,7 @@ describe("온보딩 (SCR-PWA-001 최소형)", () => {
     vi.mocked(identityAPI.login).mockResolvedValueOnce({ user: USER });
     render(wrap(<OnboardingPage />));
     await fillAndSubmit("login");
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/hoondok"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/"));
   });
 
   it("409 · 401 · 네트워크 오류를 구분해 안내한다", async () => {
@@ -173,7 +190,7 @@ describe("온보딩 (SCR-PWA-001 최소형)", () => {
     await waitFor(() => expect(submit).toHaveAttribute("aria-busy", "true"));
     expect(submit).toBeDisabled();
     settle({ user: USER });
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/hoondok/read"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/read"));
   });
 
   it("이미 로그인이면 폼 대신 계속하기·로그아웃을 보인다", async () => {
@@ -181,7 +198,7 @@ describe("온보딩 (SCR-PWA-001 최소형)", () => {
     vi.mocked(identityAPI.logout).mockResolvedValue({});
     render(wrap(<OnboardingPage />));
     expect(await screen.findByRole("status")).toHaveTextContent("효진님, 이미 로그인돼 있어요");
-    expect(screen.getByRole("link", { name: "계속하기" })).toHaveAttribute("href", "/hoondok/read");
+    expect(screen.getByRole("link", { name: "계속하기" })).toHaveAttribute("href", "/read");
     fireEvent.click(screen.getByRole("button", { name: "로그아웃" }));
     await screen.findByRole("form", { name: "가입" });
     expect(identityAPI.logout).toHaveBeenCalledOnce();

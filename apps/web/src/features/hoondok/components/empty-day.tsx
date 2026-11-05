@@ -4,7 +4,7 @@
 // 내가 읽던 자리(A1 이어 읽기) → 서고 순으로 안내한다. "곧 온다" 는 약속은 하지 않는다.
 import { Calendar } from "lucide-react";
 import Link from "next/link";
-import { MalssumCard } from "@/components/hoondok";
+import { HoondokMascot, MalssumCard } from "@/components/hoondok";
 import { useResumeCard } from "../library/use-resume";
 
 /** 홈 "오늘의 실천" 첫 줄. 누를 곳이 아니라 카드가 아닌 바탕 줄이다. hint 가 null 이면 이어 읽을 기록을 확인하는 중이다. */
@@ -12,7 +12,7 @@ export function EmptyDayLine({ hint }: { hint: string | null }) {
   return (
     <div className="day-quiet" role="status">
       <span className="day-quiet__ic" aria-hidden="true">
-        <Calendar size={22} />
+        <HoondokMascot pose="reading" size={44} motion="none" fallback={<Calendar size={22} />} />
       </span>
       <span className="day-quiet__bd">
         <b>오늘은 정해진 말씀이 없어요</b>
@@ -48,7 +48,7 @@ export function EmptyDayActions({ status }: { status?: "none" | "withdrawn" }) {
       <>
         {card}
         <div className="sect">
-          <Link className="btn btn-primary" href="/hoondok/library">
+          <Link className="btn btn-primary" href="/library">
             말씀 서고에서 고르기
           </Link>
         </div>
@@ -83,7 +83,7 @@ export function EmptyDayActions({ status }: { status?: "none" | "withdrawn" }) {
               </span>
             </div>
           )}
-          <Link className="btn btn-line" href="/hoondok/library">
+          <Link className="btn btn-line" href="/library">
             말씀 서고로 가기
           </Link>
         </div>

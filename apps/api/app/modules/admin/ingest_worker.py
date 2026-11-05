@@ -111,7 +111,6 @@ def enqueue_file_ingestion(
     file_path: Path,
     filename: str,
     source: str,
-    mode: str = "standard",
     on_duplicate: str = "merge",
 ) -> None:
     """BackgroundTask 진입점. standard 워커 큐에 투입.
@@ -119,7 +118,6 @@ def enqueue_file_ingestion(
     ADR-30 follow-up: on_duplicate 정책 (merge/replace/skip) 적용. Batch API 모드는
     polling 인프라 미완성으로 제거됨 (PR #95). standard 즉시 처리만 지원.
     """
-    _ = mode  # 호환성 유지 — 인자 보존, 항상 standard 동작
     _ensure_worker()
     _INGEST_QUEUE.put((file_path, filename, source, on_duplicate))
     logger.info(

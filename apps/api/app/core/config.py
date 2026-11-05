@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     hoondok_together_min_count: int = 10
     hoondok_together_cache_seconds: float = 60.0
 
+    # 훈독 AI 질문 하루 횟수 (DEC-PWA-025 2차). 계정별 KST 날짜 단위, 답 요청 1회 = 1회(이어 묻기 포함).
+    # 넘으면 429 ASK_DAILY_LIMIT. LLM 비용 상한용이며 IP 단위 채팅 rate limit 과 별개다.
+    hoondok_ask_daily_limit: int = 5
+
     # 훈독 AI 낭독 목소리 (PLAN-HD-011). Google Cloud Text-to-Speech(Chirp 3 HD) API 키가 없으면 기능 OFF —
     # 음성 API 는 503 TTS_DISABLED, 클라이언트는 브라우저 음성으로 돌아간다. 키는 VM .env 에만 둔다.
     google_tts_api_key: SecretStr | None = None
@@ -52,6 +56,7 @@ class Settings(BaseSettings):
     # [가정] 3만 자 ≈ 원문 구간 15~20개. 넘으면 429 TTS_USER_LIMIT_EXCEEDED, 클라이언트는 기기 음성으로 읽는다.
     hoondok_tts_user_daily_char_limit: int = 30_000
     # 합성한 단락 mp3 저장 위치. 운영은 컨테이너 밖 볼륨으로 마운트한다(infra/oracle-vm/README.md).
+    hoondok_summary_media_dir: str = "var/hoondok-summary-media"
     hoondok_tts_cache_dir: str = "var/hoondok-tts"
 
     def is_hoondok_tts_enabled(self) -> bool:

@@ -15,6 +15,16 @@ def _empty_featured_malssum(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _reset_login_limiter():
+    """로그인 IP 상한(30회/분)은 프로세스 전역이라 테스트 사이에 비운다 — 모든 TestClient 가 같은 IP 다."""
+    from app.modules.safety.middleware import login_limiter
+
+    login_limiter.reset()
+    yield
+    login_limiter.reset()
+
+
+@pytest.fixture(autouse=True)
 def _demo_admin_gate(monkeypatch):
     """시연 관리자 게이트(env DEMO_ADMIN_EMAIL)를 테스트 고정값으로 맞춘다.
     게이트를 통과해야 하는 테스트는 current_admin 의 email 을 이 값으로 둔다.

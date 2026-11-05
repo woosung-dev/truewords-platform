@@ -10,7 +10,8 @@
         "message_id": "00000000-0000-4000-8000-000000000002",
         "closing": null,
         "suggested_followups": ["어떻게 실천할 수 있나요?"],
-        "featured_malssum": null
+        "featured_malssum": null,
+        "answer_mode": "standard"
       }
     },
     { "event": "done", "data": { "disclaimer": "테스트용 면책 안내" } }
@@ -25,7 +26,8 @@
         "message_id": "00000000-0000-4000-8000-000000000004",
         "closing": null,
         "suggested_followups": null,
-        "featured_malssum": null
+        "featured_malssum": null,
+        "answer_mode": "standard"
       }
     },
     { "event": "done", "data": { "disclaimer": "테스트용 면책 안내" } }

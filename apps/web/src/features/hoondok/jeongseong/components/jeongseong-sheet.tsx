@@ -10,7 +10,7 @@ import { useCurrentUser } from "@/features/identity/use-current-user";
 import { JeongseongForm } from "./jeongseong-form";
 
 const SHEET_PARAM = "jeongseong";
-const HOME = "/hoondok";
+const HOME = "/";
 
 /** showModal·close 가 없는 환경(jsdom 29)에서는 open 속성만 세운다 — 마크업·문구 검증은 그대로 돈다. */
 function openDialog(dialog: HTMLDialogElement): void {

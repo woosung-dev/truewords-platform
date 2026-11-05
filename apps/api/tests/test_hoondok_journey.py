@@ -303,7 +303,7 @@ async def test_error_saves_only_safe_fields(setup):
     )
     row = (await session.execute(select(ClientErrorEvent))).scalar_one()
     assert (
-        row.path == "/hoondok/words/:id"
+        row.path == "/words/:id"
         and row.message == "API 서비스 오류"
         and row.user_id is None
     )
@@ -312,10 +312,17 @@ async def test_error_saves_only_safe_fields(setup):
 @pytest.mark.parametrize(
     "path,expected",
     [
-        ("/hoondok/search?q=SECRET", "/hoondok/search"),
-        ("/hoondok/ask/private", "/hoondok/ask/:id"),
-        ("/other/SECRET", "/hoondok"),
-        ("http://[bad", "/hoondok"),
+        ("/search?q=SECRET", "/search"),
+        ("/ask/private", "/ask/:id"),
+        ("/", "/"),
+        ("/read/", "/read"),
+        ("/other/SECRET", "/:screen"),
+        ("http://[bad", "/"),
+        ("//evil.example/x", "/"),
+        # 예전 클라이언트가 보내는 /hoondok 접두 (DEC-PWA-026 이전 번들)
+        ("/hoondok", "/"),
+        ("/hoondok/search?q=SECRET", "/search"),
+        ("/hoondok/words/private", "/words/:id"),
     ],
 )
 def test_safe_path(path, expected):

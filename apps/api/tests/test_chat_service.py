@@ -12,7 +12,6 @@ from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
     RetrievalConfig,
-    SafetyConfig,
     SearchModeConfig,
     TierConfig,
 )
@@ -65,7 +64,6 @@ def _make_runtime_config(
             rerank_enabled=rerank_enabled,
             query_rewrite_enabled=query_rewrite_enabled,
         ),
-        safety=SafetyConfig(),
     )
 
 

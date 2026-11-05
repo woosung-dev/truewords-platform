@@ -24,14 +24,11 @@ export const dataAPI = {
   uploadFile: async (
     file: File,
     source: string,
-    // Batch API 제거됨 (PR #95). mode 인자는 백엔드 호환을 위해 standard 고정.
-    mode: "standard" = "standard",
     onDuplicate: OnDuplicateMode = "merge",
   ): Promise<UploadResponse> => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("source", source);
-    formData.append("mode", mode);
     formData.append("on_duplicate", onDuplicate);
 
     // 공통 transport가 CSRF/쿠키를 보존하고 multipart boundary는 fetch에 맡긴다.

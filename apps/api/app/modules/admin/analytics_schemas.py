@@ -125,11 +125,6 @@ class QueryListResponse(BaseModel):
     days: int
 
 
-class ReactionCount(BaseModel):
-    kind: str
-    count: int
-
-
 class SessionMessageItem(BaseModel):
     id: uuid.UUID
     role: str
@@ -137,7 +132,6 @@ class SessionMessageItem(BaseModel):
     created_at: datetime
     resolved_answer_mode: str | None = None
     persona_overridden: bool | None = None
-    reactions: list[ReactionCount] = Field(default_factory=list)
     feedback: FeedbackItem | None = None
     citations: list[CitationItem] = Field(default_factory=list)
 

@@ -50,10 +50,11 @@ export function LibraryScreen() {
 
   return (
     <section className="col">
-      <Link className="search-field" href="/hoondok/search">
+      <Link className="search-field" href="/search">
         <Search size={20} aria-hidden="true" />
         <span>단어, 구절, 상황을 입력해 주세요</span>
       </Link>
+      <Link className="card sum-entry" href="/summaries"><BookOpenText size={22} aria-hidden="true" /><span className="resume__bd"><b>AI 요약으로 살펴보기</b><span className="resume__meta">원문을 이미지와 해설로 한 구간씩 읽어요</span></span></Link>
       {resume && (
         <div className="sect">
           <div className="sect__head">
@@ -103,7 +104,7 @@ export function LibraryScreen() {
             </span>
             <p className="empty__title">공개된 저작물이 아직 없어요</p>
             <p className="empty__body">원문 공개 권리가 확인되면 이곳에서 읽을 수 있어요.</p>
-            <Link className="btn btn-line" href="/hoondok">
+            <Link className="btn btn-line" href="/">
               오늘 훈독으로 돌아가기
             </Link>
           </div>
@@ -146,7 +147,7 @@ export function LibraryScreen() {
                 <div key={work.volume} className="shelf__item">
                   {content}
                   <span>검색 인용만 허용 · 원문 공개 확인 중</span>
-                  <Link href="/hoondok/search" className="btn btn-line btn--sm">
+                  <Link href="/search" className="btn btn-line btn--sm">
                     말씀 검색하기
                   </Link>
                 </div>

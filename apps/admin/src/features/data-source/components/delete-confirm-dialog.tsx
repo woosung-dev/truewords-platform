@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { AlertTriangle, FileText, Loader2, Trash2, X } from "lucide-react";
+import { AlertTriangle, Check, FileText, Loader2, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -200,9 +200,14 @@ export default function DeleteConfirmDialog({
               disabled={busy}
             />
             <p id="delete-typed-helper" className="text-xs text-muted-foreground">
-              {matched
-                ? "✓ 일치합니다. 아래 영구 삭제를 누르면 즉시 실행됩니다."
-                : "정확히 일치하지 않으면 영구 삭제 버튼이 활성되지 않습니다."}
+              {matched ? (
+                <>
+                  <Check className="mr-1 inline size-3.5 align-[-2px] text-success" aria-hidden="true" />
+                  일치합니다. 아래 영구 삭제를 누르면 즉시 실행됩니다.
+                </>
+              ) : (
+                "정확히 일치하지 않으면 영구 삭제 버튼이 활성되지 않습니다."
+              )}
             </p>
           </div>
         </div>

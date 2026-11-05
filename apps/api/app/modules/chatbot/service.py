@@ -12,7 +12,6 @@ from app.modules.chatbot.runtime_config import (
     ChatbotRuntimeConfig,
     GenerationConfig,
     RetrievalConfig,
-    SafetyConfig,
     SearchModeConfig,
     TierConfig,
     WeightedSourceConfig,
@@ -131,7 +130,6 @@ class ChatbotService:
                 # 봇별 멀티턴 토글 (search_tiers JSONB 안에 저장, 마이그레이션 없이 재사용).
                 multiturn_enabled=raw.get("multiturn_enabled", _TIERS_DEFAULTS.multiturn_enabled),
             ),
-            safety=SafetyConfig(),
             # P1-F: search_tiers JSONB 안에 함께 저장된 신학 입장 텍스트 (선택).
             theological_stance=raw.get("theological_stance"),
         )

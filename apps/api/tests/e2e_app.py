@@ -1,5 +1,7 @@
 """격리 E2E 전용 진입점. LLM만 fixture로 대체하고 실제 HTTP·인증·DB를 사용한다.
 
+get_chat_service·get_ask_chat_service 를 바꾸므로 /chat/stream 과 훈독 /hoondok/ask/stream(로그인·하루 횟수·계정 기록은 실제 코드) 모두 fixture 답을 준다.
+
 apps/api에서 `uv run uvicorn e2e_app:app --app-dir tests --port 18000`으로 실행한다.
 운영 Docker에는 tests/가 포함되지 않으며 제품 코드에 테스트 플래그를 추가하지 않는다.
 """
@@ -19,6 +21,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.core.config import settings
 from app.main import app
 from app.modules.chat.dependencies import get_chat_repository, get_chat_service
+from app.modules.hoondok.dependencies import get_ask_chat_service
+from app.modules.chat.models import AnswerCitation, MessageRole, SessionMessage
 from app.modules.chat.pipeline.context import ChatContext
 from app.modules.chat.repository import ChatRepository
 from app.modules.chat.schemas import ChatRequest, ChatResponse
@@ -57,7 +61,34 @@ class FixtureChatService(ChatService):
                     uuid.uuid5(uuid.NAMESPACE_URL, "hoondok-e2e:말씀선집 001권:0")
                 )
         answer = "".join(event["data"]["text"] for event in events if event["event"] == "chunk")
-        message = await self._persist_assistant_message_only(context.session.id, answer)
+        sources = next(event["data"] for event in events if event["event"] == "sources")
+        # 실제 PersistStage 처럼 적용 모드와 인용을 남긴다 — 훈독 공개 신청(위기 답·근거 없음 차단)을 E2E 에서 지나야 한다.
+        message = await self.chat_repo.create_message(
+            SessionMessage(
+                session_id=context.session.id,
+                role=MessageRole.ASSISTANT,
+                content=answer,
+                pipeline_version=2,
+                requested_answer_mode=request.answer_mode,
+                resolved_answer_mode=sources["answer_mode"],
+                persona_overridden=False,
+            )
+        )
+        await self.chat_repo.create_citations(
+            [
+                AnswerCitation(
+                    message_id=message.id,
+                    source=source["source"],
+                    volume=0,
+                    volume_raw=source["volume"],
+                    text_snippet=source["text"][:500],
+                    relevance_score=source["score"],
+                    rank_position=rank,
+                )
+                for rank, source in enumerate(sources["sources"])
+            ]
+        )
+        await self.chat_repo.commit()
         for index, event in enumerate(events):
             if index:
                 await asyncio.sleep(0.25)
@@ -87,6 +118,7 @@ async def get_fixture_chat_service(
 
 
 app.dependency_overrides[get_chat_service] = get_fixture_chat_service
+app.dependency_overrides[get_ask_chat_service] = get_fixture_chat_service
 
 
 async def fixture_dense_query(query: str) -> list[float]:

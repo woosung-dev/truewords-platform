@@ -1,12 +1,12 @@
 "use client";
 
-// 나의 기록 (C1, `/hoondok/records?tab=&color=&volume=`). 종류 탭 · 색 칩 · 권 칩으로 좁히고, 권을 고르면
+// 나의 기록 (C1, `/records?tab=&color=&volume=`). 종류 탭 · 색 칩 · 권 칩으로 좁히고, 권을 고르면
 // 목차(API-HD-024) 장 머리 아래에 원문 순서로 놓는다. URL 이 상태의 원본이라 원문을 보고 뒤로 오면 같은 칩이 골라져 있다.
 import { useQuery } from "@tanstack/react-query";
 import { Highlighter } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { HoondokButton } from "@/components/hoondok";
+import { HoondokButton, HoondokMascot } from "@/components/hoondok";
 import { handleSegmentKeyDown } from "@/features/hoondok/segmented-keyboard";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
@@ -34,8 +34,8 @@ import {
 import { useRecords } from "../use-records";
 import { RecordItem } from "./record-item";
 
-const LIBRARY_HREF = "/hoondok/library";
-const PRIVATE_NOTICE = "기록은 나만 봐요. 가족과 모임에도 보이지 않아요.";
+const LIBRARY_HREF = "/library";
+const PRIVATE_NOTICE = "기록은 나만 봐요. 다른 사람에게 보이지 않아요.";
 const EMPTY_TITLE: Record<RecordTab, string> = {
   highlight: "아직 남긴 형광펜이 없어요",
   note: "아직 남긴 노트가 없어요",
@@ -47,7 +47,7 @@ export function RecordsEmpty({ title, isNested = false }: { title: string; isNes
   return (
     <div className="empty gd-empty">
       <span className="empty__ic" aria-hidden="true">
-        <Highlighter size={28} />
+        <HoondokMascot pose="reading" size={72} fallback={<Highlighter size={28} />} />
       </span>
       <Heading className="empty__title">{title}</Heading>
       <p className="empty__body">말씀 원문에서 구절을 고르면 형광펜·노트를 남길 수 있어요.</p>
@@ -271,7 +271,7 @@ export function RecordsScreen() {
         <div className="card">
           <div className="empty">
             <span className="empty__ic" aria-hidden="true">
-              <Highlighter size={28} />
+              <HoondokMascot pose="reading" size={72} fallback={<Highlighter size={28} />} />
             </span>
             <h2 className="empty__title">로그인하면 형광펜·노트가 여기에 모여요</h2>
             <p className="empty__body">원문에서 남긴 기록을 책별로, 원문 순서대로 다시 볼 수 있어요.</p>

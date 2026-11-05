@@ -2,7 +2,7 @@
 
 종교 텍스트 기반 RAG AI 챗봇. 사용자 웹과 관리자 웹은 독립 Next.js 앱이며, 같은 FastAPI의 계정·업무 규칙·검색·대화 기록을 사용한다.
 
-**앱별 UI 소유권 분리(사용자 승인 2안)의 구현·로컬 검증을 완료했고, 2026-09-05 커밋·푸시 승인을 받았다.** PR #221의 새 HEAD 원격 검증은 별도이며, 이전 `896a7ae`의 CI 결과를 이번 변경의 검증 결과로 사용하지 않는다. UI·테마는 각 앱이 소유하고 API SDK·검사 설정만 공유한다. 현재 UI/UX 명세는 신규 디자인 승인이 아니다. 운영 배포는 별도 승인 후 수행하며, PWA 설치·푸시·일반 사용자 인증(M5)과 Flutter 앱은 이번 범위에서 구현하지 않는다.
+UI·테마는 각 앱이 소유하고 API SDK·검사 설정만 공유한다. 사용자 웹의 훈독은 PWA(설치·서비스 워커·Web Push)와 일반 사용자 계정을 쓴다. Flutter 앱은 도입 결정 전까지 만들지 않는다.
 
 ## 1. 저장소 경계
 
@@ -92,11 +92,11 @@ make ci
 node tooling/checks/docs-links.mjs
 ```
 
-M1~M4의 전체 회귀와 E2E·계약 검사는 [이전 실행 계획의 완료 증거](docs/plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거), 후속 UI 분리 검증은 [앱별 UI 실행 계획](docs/plans/active/2026-09-05-app-owned-ui.md)을 확인한다. 이전 문서의 테스트 개수를 이번 실행 결과로 취급하지 않는다.
+M1~M4의 전체 회귀와 E2E·계약 검사는 [이전 실행 계획의 완료 증거](docs/plans/completed/2026-09-05-monorepo-migration.md#5-현재-완료-증거), 후속 UI 분리 검증은 [앱별 UI 실행 계획](docs/plans/completed/2026-09-05-app-owned-ui.md)을 확인한다. 이전 문서의 테스트 개수를 이번 실행 결과로 취급하지 않는다.
 
-**push 자동 배포는 없다.** 기존 Oracle 운영은 통합 Next.js를 포함한 5컨테이너이며, 저장소에는 분리 후 web/admin/API를 포함한 6컨테이너 구성을 준비한다. Cloudflare의 원격 Public Hostname은 Compose 편집으로 바뀌지 않는다.
+**main 머지 뒤 GitHub Actions 로 배포한다.** main 의 CI 가 성공하면 `release.yml` 이 arm64 이미지를 GHCR 에 올리고, 이미지·VM 파일을 바꾼 커밋은 `production` 환경 승인 뒤 Oracle VM 에 배포한다(DB migration 은 `production-migrate` 승인). 상세는 [CI/CD](docs/runbooks/ci-cd-pipeline.md)를 따른다. 운영은 postgres·qdrant·backend·admin·web·cloudflared 6컨테이너다. Cloudflare의 원격 Public Hostname은 Compose 편집으로 바뀌지 않는다.
 
-배포 승인 후 `make deploy-web`·`make deploy-admin`·`make deploy-backend`, 복구에는 대응하는 `rollback-*`과 명시적 이전 `TAG`를 사용한다. 기존 backend 서비스 DNS·이미지 이름은 유지한다. 단일 VM의 Compose 교체를 무중단으로 보장하지 않는다.
+Actions 를 쓸 수 없을 때의 비상 경로는 배포 승인 후 `make deploy-web`·`make deploy-admin`·`make deploy-backend`이고, 복구에는 대응하는 `rollback-*`과 명시적 이전 `TAG`(직전 배포 되돌리기는 `rollback-last`)를 사용한다. 기존 backend 서비스 DNS·이미지 이름은 유지한다. 단일 VM의 Compose 교체를 무중단으로 보장하지 않는다.
 
 ## 5. 문서
 

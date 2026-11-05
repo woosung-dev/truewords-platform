@@ -1,6 +1,8 @@
 // 오늘 받은 책갈피 기록 (PLAN-HD-012). 비로그인은 localStorage 에 "KST 날짜|카드 id" 를 두고 로그인 뒤 당일분만 소급한다
 // (홈 완료 체크 pending.ts 와 같은 규칙). 로그인 사용자도 같은 기기의 재방문 모션을 막으려 계정 키에 같은 값을 둔다.
 // 저장소는 없거나 던질 수 있으므로(사생활 모드·차단) 모든 접근을 try/catch 로 감싼다.
+
+import { safeLocalStorage as storage } from "@/lib/safe-storage";
 import type { CardReceiptItem } from "./api";
 
 const PREFIX = "hoondok:card:received";
@@ -10,14 +12,6 @@ export type LocalReceipt = { date: string; cardId: string };
 
 function key(userId?: string): string {
   return userId ? `${PREFIX}:${userId}` : PREFIX;
-}
-
-function storage(): Storage | null {
-  try {
-    return typeof window === "undefined" ? null : window.localStorage;
-  } catch {
-    return null;
-  }
 }
 
 /** 오늘(KST) 기록만 돌려준다. 다른 날짜 기록은 자정이 지난 것이라 지우고 null. */

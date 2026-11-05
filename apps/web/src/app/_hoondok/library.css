@@ -595,6 +595,9 @@
   .rd-sheet__listen {
     margin-top: 14px;
   }
+  .rd-sheet__ask {
+    margin-top: 10px;
+  }
   .rd-sheet__gate {
     font-size: var(--fs-sm);
     color: var(--ink-2);
@@ -756,8 +759,13 @@
     margin: 4px 0 14px;
     scroll-margin-top: 76px;
   }
+  /* 장 시작 단락 위 "이 장의 AI 요약" 표지 — 목차 점프가 .verse 와 같은 자리에 멈춘다 */
+  #wd-sum-marks {
+    scroll-margin-top: 76px;
+  }
   @media (min-width: 1224px) {
-    .wd-resume {
+    .wd-resume,
+    #wd-sum-marks {
       scroll-margin-top: 148px;
     }
   }

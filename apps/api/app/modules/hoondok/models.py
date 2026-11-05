@@ -1,5 +1,5 @@
 """훈독 DB 모델 — ENT-HD-002 daily_readings · ENT-HD-003 mission_logs · ENT-HD-004 jeongseong_periods ·
-ENT-HD-013~017 함께 읽는 모임 · ENT-HD-019·020 오늘의 책갈피 (docs/specs/domain/hoondok-entities.md)."""
+ENT-HD-019·020 오늘의 책갈피 (docs/specs/domain/hoondok-entities.md)."""
 
 import uuid
 from datetime import date, datetime, time
@@ -19,9 +19,8 @@ JEONGSEONG_DURATIONS = (7, 21, 40)  # 앱 검증(Literal). DB CHECK 는 두지 �
 SECTION_LEVELS = (1, 2)  # 1 = 편·장, 2 = 장·절·설교 (PLAN-HD-007)
 SECTION_ORIGINS = ("auto", "manual")  # 추출 스크립트 산출 / 운영자 수기
 MARK_KINDS = ("bookmark", "highlight")
-GROUP_KINDS = ("small_group",)  # 가족 모임은 후속 (PLAN-HD-010)
-GROUP_ROLES = ("leader", "member")
 CARD_STATUSES = ("draft", "active", "retired")  # 오늘의 책갈피 풀 상태 (PLAN-HD-012)
+PUBLIC_QUESTION_STATUSES = ("pending", "published", "hidden")  # 공개 질문 검수 상태 (DEC-PWA-025)
 
 
 class DailyReading(SQLModel, table=True):
@@ -69,7 +68,7 @@ class JeongseongPeriod(SQLModel, table=True):
 
     진행률(done·missed·percent)은 저장하지 않고 mission_logs 의 read 완료일에서 매번 계산한다(hoondok/jeongseong.py).
     reminder_time 은 사용 중단 — 알림 시각은 notification_preferences.read_time.
-    resolution(나의 각오)은 본인 응답에만 담는다 — 모임·가족·관리자 응답에 넣지 않는다.
+    resolution(나의 각오)은 본인 응답에만 담는다 — 가족·관리자 응답에 넣지 않는다.
     """
 
     __tablename__ = "jeongseong_periods"
@@ -228,6 +227,7 @@ class PassageMark(SQLModel, table=True):
 
     형광펜·메모는 구절 단위(ENT-HD-021 `passage_highlights`)로 옮겨 이제 `bookmark` 만 쓴다.
     예전 `kind="highlight"` 행은 지우지 않고 남겨 두되 API 는 읽지 않는다.
+    API 제거, 운영 테이블·행은 보존(삭제 결정 전까지). 계정 삭제 purger 만 이 모델을 쓴다.
     """
 
     __tablename__ = "passage_marks"
@@ -270,94 +270,6 @@ class PassageHighlight(SQLModel, table=True):
     note: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
-
-
-# --- 함께 읽는 모임 (PLAN-HD-010, ENT-HD-013~017) ------------------------------------
-# FK 에 ondelete 를 두지 않는다 — 삭제 순서는 GroupRepository 가 명시한다
-# (share_reactions → group_shares → shared_jeongseongs → group_members → reading_groups).
-
-
-class ReadingGroup(SQLModel, table=True):
-    """ENT-HD-013 소그룹 모임. 모임당 유효 초대 코드 1개 — 재발급은 덮어쓰기라 이전 코드는 즉시 무효다."""
-
-    __tablename__ = "reading_groups"
-
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    name: str = Field(max_length=20)  # 별칭. 교회명 필드·검색·공개 목록 없음
-    kind: str = Field(default="small_group", max_length=16)  # GROUP_KINDS
-    meeting_time: time | None = Field(default=None)  # 표시용
-    invite_code: str = Field(max_length=16, unique=True, index=True)  # Crockford base32 XXXX-XXXX
-    invite_expires_at: datetime  # aware UTC
-    created_at: datetime = Field(default_factory=utcnow)
-    updated_at: datetime = Field(default_factory=utcnow)
-
-
-class GroupMember(SQLModel, table=True):
-    """ENT-HD-014 모임원. 탈퇴·내보내기는 행 하드 삭제. 리더는 모임당 1명(부분 unique)."""
-
-    __tablename__ = "group_members"
-    __table_args__ = (
-        UniqueConstraint("group_id", "user_id", name="uq_group_members_group_user"),
-        UniqueConstraint("group_id", "display_name", name="uq_group_members_group_display_name"),
-        Index(
-            "uq_group_members_group_leader",
-            "group_id",
-            unique=True,
-            postgresql_where=text("role = 'leader'"),
-            sqlite_where=text("role = 'leader'"),
-        ),
-    )
-
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    group_id: uuid.UUID = Field(foreign_key="reading_groups.id")  # 선두 unique 가 조회를 받는다
-    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
-    display_name: str = Field(max_length=12)  # 모임별 이름(앞뒤 공백 제거 후 저장)
-    role: str = Field(default="member", max_length=16)  # GROUP_ROLES
-    joined_at: datetime = Field(default_factory=utcnow)
-
-
-class SharedJeongseong(SQLModel, table=True):
-    """ENT-HD-015 함께 드리는 정성. group_id NULL = 공식 정성(모든 모임에 표시). 진행은 저장하지 않는다."""
-
-    __tablename__ = "shared_jeongseongs"
-
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    group_id: uuid.UUID | None = Field(default=None, foreign_key="reading_groups.id", index=True)
-    title: str = Field(max_length=40)
-    started_on: date  # KST
-    duration_days: int  # 1~100, 앱 검증
-    source_note: str | None = Field(default=None, max_length=200)
-    created_by_user_id: uuid.UUID | None = Field(default=None, foreign_key="users.id")
-    created_at: datetime = Field(default_factory=utcnow)
-    updated_at: datetime = Field(default_factory=utcnow)
-
-
-class GroupShare(SQLModel, table=True):
-    """ENT-HD-016 오늘의 한 줄. 1인 1일 1줄 — 다시 쓰면 덮어쓴다."""
-
-    __tablename__ = "group_shares"
-    __table_args__ = (
-        UniqueConstraint("group_id", "member_id", "share_date", name="uq_group_shares_group_member_date"),
-        Index("ix_group_shares_group_date", "group_id", "share_date"),
-    )
-
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    group_id: uuid.UUID = Field(foreign_key="reading_groups.id")
-    member_id: uuid.UUID = Field(foreign_key="group_members.id", index=True)
-    share_date: date  # KST
-    body: str = Field(max_length=100)
-    created_at: datetime = Field(default_factory=utcnow)
-    updated_at: datetime = Field(default_factory=utcnow)
-
-
-class ShareReaction(SQLModel, table=True):
-    """ENT-HD-017 "함께 머물렀어요" 1종. 종류 컬럼이 없고 (share, member) 가 PK 라 멱등이다."""
-
-    __tablename__ = "share_reactions"
-
-    share_id: uuid.UUID = Field(foreign_key="group_shares.id", primary_key=True)
-    member_id: uuid.UUID = Field(foreign_key="group_members.id", primary_key=True, index=True)
-    created_at: datetime = Field(default_factory=utcnow)
 
 
 class TtsUsage(SQLModel, table=True):
@@ -416,3 +328,69 @@ class CardReceipt(SQLModel, table=True):
     card_id: uuid.UUID = Field(foreign_key="word_cards.id", index=True)
     received_on: date  # KST. 서버가 today_kst() 로 정한다
     shared_at: datetime | None = Field(default=None)  # 처음 건넨 시각(UTC)
+
+
+class PublicQuestion(SQLModel, table=True):
+    """공개 질문 (DEC-PWA-025). 사용자가 고른 AI 질문·답만 서버에 복사해 두고, 관리자 검수 뒤 익명으로 보인다.
+
+    질문·답·근거는 session_messages·answer_citations 에서 서버가 복사한다 — 클라이언트가 보낸 본문은 믿지 않는다.
+    `user_id` 는 본인 삭제·계정 삭제용이며 어떤 응답에도 내보내지 않는다. `message_id` 는 FK 를 두지 않는다(복사본).
+    """
+
+    __tablename__ = "hoondok_public_questions"
+    __table_args__ = (UniqueConstraint("message_id", name="uq_hoondok_public_questions_message_id"),)
+
+    id: str = Field(primary_key=True, max_length=16)  # secrets.token_urlsafe — 추측 어려운 짧은 slug
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    message_id: uuid.UUID
+    question: str = Field(sa_column=Column(Text, nullable=False))
+    answer_md: str = Field(sa_column=Column(Text, nullable=False))
+    sources: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    answer_mode: str = Field(max_length=32)
+    status: str = Field(default="pending", max_length=16, index=True)  # PUBLIC_QUESTION_STATUSES
+    created_at: datetime = Field(default_factory=utcnow)
+    reviewed_at: datetime | None = Field(default=None)  # 마지막 검수(공개·숨김) 시각 — 공개 목록의 날짜
+
+
+# --- AI 질문 계정 보관·하루 횟수 (DEC-PWA-025 2차) ------------------------------------
+# 질문·답 원문은 chat 도메인(research_sessions·session_messages)에 이미 남는다. 그 테이블은 시연 챗과 함께 쓰므로
+# 훈독 전용 메타(저장 표시·화면에 보인 근거·횟수)는 여기 따로 둔다. 세션 소유는 research_sessions.user_id(훈독 user id)다.
+
+
+class AskThread(SQLModel, table=True):
+    """훈독 계정에 묶인 AI 질문 대화 1건 = 채팅 세션 1개. 첫 답이 나갈 때 만든다(목록·이어 묻기 소유 확인의 기준)."""
+
+    __tablename__ = "hoondok_ask_threads"
+
+    session_id: uuid.UUID = Field(foreign_key="research_sessions.id", primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    saved: bool = Field(default=False, sa_column_kwargs={"server_default": text("false")})
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class AskTurn(SQLModel, table=True):
+    """답 1개에 화면이 받은 근거·모드·관련 질문.
+
+    answer_citations 에는 chunk_id·표시명이 없고 캐시 답은 인용·모드를 남기지 않는다. 계정에서 다시 열 때 처음과 같은
+    화면을 그리려고 SSE sources 이벤트 값을 그대로 복사해 둔다.
+    """
+
+    __tablename__ = "hoondok_ask_turns"
+
+    message_id: uuid.UUID = Field(foreign_key="session_messages.id", primary_key=True)
+    session_id: uuid.UUID = Field(foreign_key="hoondok_ask_threads.session_id", index=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    answer_mode: str = Field(max_length=32)
+    sources: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    suggested_followups: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class AskUsage(SQLModel, table=True):
+    """계정별 KST 하루 AI 질문 횟수. 조건부 UPDATE(used < limit)로 차감해 동시 요청에도 상한을 넘지 않는다."""
+
+    __tablename__ = "hoondok_ask_usage"
+
+    user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True)
+    day: date = Field(primary_key=True)  # KST 날짜 (today_kst)
+    used: int = Field(default=0)

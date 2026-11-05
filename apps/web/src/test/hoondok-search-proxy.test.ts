@@ -78,8 +78,11 @@ describe("검색 전용 웹 프록시", () => {
       typeof logging.incomingRequests === "object" &&
       logging.incomingRequests.ignore?.some((pattern) => pattern.test(path));
     expect(ignored(`/api/backend/hoondok/search?q=${PRIVATE_QUERY}`)).toBe(true);
+    expect(ignored(`/search?q=${PRIVATE_QUERY}`)).toBe(true);
+    // 예전 주소는 308 전에 한 번 들어온다
     expect(ignored(`/hoondok/search?q=${PRIVATE_QUERY}`)).toBe(true);
+    expect(ignored("/searching")).toBe(false);
     expect(ignored("/api/backend/chat/stream")).toBe(false);
-    expect(ignored("/hoondok/read")).toBe(false);
+    expect(ignored("/read")).toBe(false);
   });
 });

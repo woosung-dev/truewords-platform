@@ -1,6 +1,8 @@
 """관리자 JWT 인증 유틸리티."""
 
+import secrets
 from datetime import timedelta
+from functools import cache
 
 import bcrypt
 from jose import JWTError, jwt
@@ -15,6 +17,20 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+
+
+@cache
+def _dummy_hash() -> str:
+    """없는 계정 비교용 해시. 같은 cost 로 만들어 있는 계정과 응답 시간이 같아지게 한다."""
+    return hash_password(secrets.token_urlsafe(16))
+
+
+def verify_login_password(plain: str, hashed: str | None) -> bool:
+    """로그인 비밀번호 검사. 계정이 없어도(hashed=None) bcrypt 를 한 번 돌려 시간으로 가입 여부가 드러나지 않게 한다."""
+    if hashed is None:
+        verify_password(plain, _dummy_hash())
+        return False
+    return verify_password(plain, hashed)
 
 
 def create_access_token(data: dict, expires_minutes: int | None = None) -> str:

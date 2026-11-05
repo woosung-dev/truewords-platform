@@ -1,7 +1,7 @@
 # PLAN-HD-011 — 훈독 AI 낭독 목소리
 
 - 착수 2026-09-25. 기준 main `6b42a80`. 브랜치 `feat/hoondok-ai-voice`, 산출은 PR 1개(푸시·PR·배포·GCP 리소스 생성은 별도 승인).
-- 상위: [`PLAN-HD-008`](2026-09-23-hoondok-reader-polish.md)의 브라우저 듣기(`useSpeechReader`)를 AI 목소리의 대체 경로로 둔다. API 는 [`API-HD-044~046`](../../specs/api/hoondok-api.md#plan-hd-011--ai-낭독-목소리-api-hd-044046), 엔티티는 [`ENT-HD-018`](../../specs/domain/hoondok-entities.md), 운영 절차는 [런북](../../runbooks/hoondok-pwa-rollout.md#ai-낭독-목소리-운영-on-plan-hd-011).
+- 상위: [`PLAN-HD-008`](../completed/2026-09-23-hoondok-reader-polish.md)의 브라우저 듣기(`useSpeechReader`)를 AI 목소리의 대체 경로로 둔다. API 는 [`API-HD-044~046`](../../specs/api/hoondok-api.md#plan-hd-011--ai-낭독-목소리-api-hd-044045), 엔티티는 [`ENT-HD-018`](../../specs/domain/hoondok-entities.md), 운영 절차는 [런북](../../runbooks/hoondok-pwa-rollout.md#ai-낭독-목소리-운영-on-plan-hd-011).
 - 표기: 라벨 없는 문장은 코드·테스트로 확인한 사실. `[가정]` 은 검증이 필요한 추론, `[확인 필요]` 는 사용자·외부 결정.
 
 ## 1. 사용자 결정 (2026-09-25, 재논의 금지)

@@ -3,7 +3,7 @@
  * 옵션 A 톤다운: hue 7가지 유지하되 saturation 을 낮춰 paper 배경 친화.
  * active 상태는 모든 카테고리 동일 brass(--accent) ring 으로 통일.
  *
- * 토큰 정의: admin/src/app/globals.css 의 --tw-cat-* (light) / .dark 의 --tw-cat-* (dark)
+ * 토큰 정의: admin/src/app/globals.css 의 --tw-cat-* (라이트 고정)
  */
 
 const ACTIVE_RING = "ring-2 ring-accent border-accent";

@@ -1,7 +1,7 @@
-import type { Source } from "@truewords/api-client-ts/types";
+import type { MyAskSummary, Source } from "@truewords/api-client-ts/types";
 import { stripFileExt } from "@/lib/utils";
-import { formatKstDate } from "../today";
-import type { AskItem } from "./storage";
+import { formatKstDate, formatKstMonthDay } from "../today";
+import { answerModeInfo } from "./modes";
 
 // AI 질문 표시 문구 (순수 함수). 저장된 값은 UTC ISO 라 보여 줄 때만 KST 로 바꾼다.
 
@@ -11,29 +11,35 @@ export function askDateLabel(createdAt: string, now: Date = new Date()): string 
   if (Number.isNaN(created.getTime())) return "";
   const { iso } = formatKstDate(created);
   if (iso === formatKstDate(now).iso) return "오늘";
-  return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" }).format(created);
+  return formatKstMonthDay(created);
 }
 
-/** 목록 한 줄의 보조 문구 — 날짜 · 답변 상태. 근거 수는 답이 있을 때만 의미가 있다. */
-export function askMetaLabel(item: AskItem, now: Date = new Date()): string {
-  const date = askDateLabel(item.createdAt, now);
-  const state =
-    item.status === "answered"
-      ? `근거 말씀 ${item.sources?.length ?? 0}건`
-      : item.status === "no-sources"
-        ? "확인할 수 없음"
-        : item.status === "error"
-          ? "답을 받지 못함"
-          : "답을 기다리는 중";
-  return `${date} · ${state}`;
+/** 상세 제목 아래 날짜 "2026.11.03" (KST). */
+export function askFullDate(createdAt: string): string {
+  const created = new Date(createdAt);
+  if (Number.isNaN(created.getTime())) return "";
+  return formatKstDate(created).iso.replaceAll("-", ".");
+}
+
+/**
+ * 목록 한 줄의 보조 문구 — 날짜 · 답한 모델 · 이어 물은 수. 같은 질문을 다른 모델로 다시 물은 항목을
+ * 모델 이름으로 구분한다(여정 테스트 P2).
+ */
+export function askMetaLabel(
+  item: Pick<MyAskSummary, "created_at" | "answer_mode" | "turn_count">,
+  now: Date = new Date(),
+): string {
+  const parts = [askDateLabel(item.created_at, now), answerModeInfo(item.answer_mode).label];
+  if (item.turn_count > 1) parts.push(`이어서 ${item.turn_count - 1}번`);
+  return parts.filter(Boolean).join(" · ");
 }
 
 /**
  * 근거 카드의 출처 이름. `/chat/stream` 의 sources 는 표시명(display_name)과 권(volume)만 주고 화자·판본·권위
  * 등급은 주지 않으므로 없는 항목을 지어내지 않는다. 관리자가 지정한 표시명이 있으면 그것을 쓰고 없으면 권으로
- * 되돌리는 것, 파일 확장자를 떼는 것 모두 시연 챗 인용 카드(`features/chat/components/assistant-message.tsx`)와 같다.
+ * 되돌리는 것, 파일 확장자를 떼는 것 모두 예전 시연 챗 인용 카드(DEC-PWA-026 에서 삭제)와 같은 규칙이다.
  */
-function sourceLabel(source: Source): string {
+export function sourceLabel(source: Pick<Source, "display_name" | "volume">): string {
   return stripFileExt(source.display_name?.trim() || source.volume);
 }
 

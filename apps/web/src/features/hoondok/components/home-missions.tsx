@@ -1,6 +1,9 @@
 "use client";
 
-import { ArrowRight, BookOpenText, HandHeart, Library } from "lucide-react";
+import { ArrowRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowRight";
+import { BookOpenTextIcon } from "@phosphor-icons/react/dist/ssr/BookOpenText";
+import { BooksIcon } from "@phosphor-icons/react/dist/ssr/Books";
+import { HandsPrayingIcon } from "@phosphor-icons/react/dist/ssr/HandsPraying";
 import Link from "next/link";
 import { MissionCard, WeekStrip } from "@/components/hoondok";
 import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-today";
@@ -28,7 +31,7 @@ export function HomeGreeting() {
   return (
     <div className="shot shot--today">
       {/* 사진은 화면 폭의 배경이라 Next/Image 대신 정적 <img> 를 쓴다 — 원본이 이미 2x 폭(1440)이고 변환도 없다 */}
-      <img src="/hoondok/photos/home-morning-field.webp" alt="아침 햇살이 드는 들판" />
+      <img src="/hoondok/photos/home-morning-field.webp" alt="아침 햇살이 드는 들판" fetchPriority="high" />
       <div className="shot__tx">
         <p className="shot__greet">
           밤이 깊을수록 새벽은 가까워요.
@@ -36,9 +39,9 @@ export function HomeGreeting() {
           {user ? `${user.display_name}님, 오늘도 함께 읽어요.` : "오늘도 함께 읽어요."}
         </p>
         <p className="shot__sub">{dateLabel}</p>
-        <Link className="btn btn-primary shot__go" href="/hoondok/read">
+        <Link className="btn btn-primary shot__go" href="/read">
           훈독하기
-          <ArrowRight size={18} aria-hidden="true" />
+          <ArrowRightIcon size={18} aria-hidden="true" />
         </Link>
       </div>
     </div>
@@ -92,8 +95,8 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
       kind={`훈독하기 · ${reading?.estimated_minutes ?? 3}분`}
       title={reading?.title ?? "오늘 말씀을 확인하지 못했어요"}
       meta={reading ? `${reading.work_title} · ${reading.speaker}` : "훈독하기에서 다시 불러와요"}
-      icon={BookOpenText}
-      href="/hoondok/read"
+      icon={BookOpenTextIcon}
+      href="/read"
       isPending={!reading && effective.isResolving}
       isDone={isReadDone}
       onToggle={reading && !effective.isResolving && !isReadDone ? completion.markDone : undefined}
@@ -103,8 +106,8 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
     <MissionCard
       kind="기도하기 · 1분"
       title="오늘의 기도 제목"
-      meta="가족·모임 기도 제목은 다음 단계에서"
-      icon={HandHeart}
+      meta="가족 기도 제목은 다음 단계에서"
+      icon={HandsPrayingIcon}
       isDisabled
     />
   );
@@ -113,8 +116,8 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
       kind="말씀 읽기 · 이어 읽기"
       title={resume.status === "ready" ? resume.title : "말씀 서고"}
       meta={resume.status === "ready" ? resume.meta : "공개된 원문을 읽고 읽음으로 기록해요"}
-      icon={Library}
-      href={resume.status === "ready" ? resume.href : "/hoondok/library"}
+      icon={BooksIcon}
+      href={resume.status === "ready" ? resume.href : "/library"}
       isPending={resume.status === "pending"}
       isDone={study.isDone || Boolean(summary?.today.study)}
     />
@@ -174,7 +177,7 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
             <span className="sect__meta">연속 {summary.streak_days}일</span>
           )}
           {!user && !isLoading && (
-            <Link className="sect__meta" href={onboardingHref("/hoondok")}>
+            <Link className="sect__meta" href={onboardingHref("/")}>
               로그인 후 기록돼요 →
             </Link>
           )}

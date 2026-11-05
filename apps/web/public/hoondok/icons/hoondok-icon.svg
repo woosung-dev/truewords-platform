@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- 훈독 앱 아이콘(purpose any). 감귤 #c24721 타일 · 종이색 #fbfaf8 HD 모노그램(시안 03 · 직접 그린 벡터, 폰트 없음). DES-PWA-003 §1.7 -->
-  <rect width="512" height="512" rx="113" fill="#c24721"/>
-  <g fill="none" stroke="#fbfaf8" transform="translate(57.35 82) scale(2.9)">
-    <path d="M25 29V98M25 64H66M66 29V98M66 29H78C101 29 112 42 112 64C112 87 101 98 78 98H66" stroke-width="11" stroke-linecap="square" stroke-linejoin="round"/>
-    <path d="M59 14.5H73" stroke-width="6"/>
-  </g>
-</svg>

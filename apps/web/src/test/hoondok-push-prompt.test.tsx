@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // API 모듈 mock 위에서 권한 → 구독 → 저장까지 본다. 인앱 판정은 UA 표로 본다.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
-  usePathname: () => "/hoondok",
+  usePathname: () => "/",
 }));
 vi.mock("@/features/identity/api", () => ({
   identityAPI: { signup: vi.fn(), login: vi.fn(), logout: vi.fn(), me: vi.fn(), deleteMe: vi.fn() },
@@ -292,10 +292,7 @@ describe("PushPromptCard — ready", () => {
       read_enabled: true,
       read_time: "07:30",
     });
-    expect(screen.getByRole("link", { name: "시각은 설정에서 바꿀 수 있어요" })).toHaveAttribute(
-      "href",
-      "/hoondok/settings",
-    );
+    expect(screen.getByRole("link", { name: "시각은 설정에서 바꿀 수 있어요" })).toHaveAttribute("href", "/settings");
     expect(screen.queryByRole("button", { name: ENABLE_BUTTON })).toBeNull();
   });
 
@@ -530,8 +527,8 @@ describe("inAppBrowser — UA 표", () => {
   });
 
   it("외부 브라우저 스킴은 현재 주소 전체를 인코딩해 싣는다", () => {
-    expect(kakaoOpenExternalUrl("https://truewords.woosung.dev/hoondok/groups/join?code=AB12&x=1")).toBe(
-      "kakaotalk://web/openExternal?url=https%3A%2F%2Ftruewords.woosung.dev%2Fhoondok%2Fgroups%2Fjoin%3Fcode%3DAB12%26x%3D1",
+    expect(kakaoOpenExternalUrl("https://truewords.woosung.dev/c/AB12?from=kakao&x=1")).toBe(
+      "kakaotalk://web/openExternal?url=https%3A%2F%2Ftruewords.woosung.dev%2Fc%2FAB12%3Ffrom%3Dkakao%26x%3D1",
     );
   });
 });

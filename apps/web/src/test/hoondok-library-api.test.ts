@@ -69,8 +69,8 @@ describe("서고 API 경로", () => {
     expect(new Headers(lastCall()[1].headers).get("X-Requested-With")).toBe("XMLHttpRequest");
   });
   it("저작물 링크·장 링크·청크 → 페이지 환산", () => {
-    expect(seriesHref("father_anthology")).toBe("/hoondok/library/father_anthology");
-    expect(wordsSectionHref(VOLUME, 3)).toBe(`/hoondok/words/${ENCODED}?section=3`);
+    expect(seriesHref("father_anthology")).toBe("/library/father_anthology");
+    expect(wordsSectionHref(VOLUME, 3)).toBe(`/words/${ENCODED}?section=3`);
     expect([0, 19, 20, 41].map(pageOfChunkIndex)).toEqual([1, 1, 2, 3]);
   });
 });

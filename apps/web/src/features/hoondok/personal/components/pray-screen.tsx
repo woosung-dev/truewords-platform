@@ -1,7 +1,7 @@
 "use client";
 
-// /hoondok/pray — 마음 한 장 (기본값 9). ① 마음 고르기 ② 맞춘 말씀 ③ 한 줄 적기(기기에만) ④ 건네기.
-// 건네기는 기존 책갈피 공유 시트로 말씀 카드만 보낸다. 한 줄은 서버·모임으로 보내지 않는다(모임 게시는 후속 결정).
+// /pray — 마음 한 장 (기본값 9). ① 마음 고르기 ② 맞춘 말씀 ③ 한 줄 적기(기기에만) ④ 건네기.
+// 건네기는 기존 책갈피 공유 시트로 말씀 카드만 보낸다. 한 줄은 서버로 보내지 않는다.
 // 이 화면에서 고른 마음은 저장된 답(질문 흐름·관심사 바꾸기)을 바꾸지 않는다. 그 순간의 마음이라 카드 고르기에만 쓴다.
 // "많이 힘들어요"를 고르면 말씀보다 위기 안내가 먼저다(맞춘 말씀 화면 맨 위).
 import { Check, Info, Lock } from "lucide-react";
@@ -198,7 +198,7 @@ export function PrayScreen() {
       <section className="col ps-form">
         <CardStep mood={mood} onCard={setCard} titleRef={titleRef} />
         <Bar>
-          <Link className="btn btn-ghost" href="/hoondok">
+          <Link className="btn btn-ghost" href="/">
             여기서 마치기
           </Link>
           <button type="button" className="btn btn-primary" disabled={!card} onClick={() => go("note")}>
@@ -293,7 +293,7 @@ export function PrayScreen() {
       <p className="ps-head__lede">
         {hasNote ? "적은 한 줄은 이 기기에만 남았어요." : "말씀은 원문에서 언제든 다시 읽을 수 있어요."}
       </p>
-      <Link className="btn btn-primary" href="/hoondok">
+      <Link className="btn btn-primary" href="/">
         오늘 훈독으로
       </Link>
     </section>

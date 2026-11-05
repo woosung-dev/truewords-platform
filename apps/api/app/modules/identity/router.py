@@ -13,6 +13,7 @@ from app.modules.identity.dependencies import (
 from app.modules.identity.models import User
 from app.modules.identity.schemas import LoginRequest, SignupRequest, UserEnvelope
 from app.modules.identity.service import IdentityService, UserDataPurger
+from app.modules.safety.middleware import check_login_rate_limit
 
 router = APIRouter(prefix="/hoondok/auth", tags=["hoondok"])
 
@@ -38,7 +39,11 @@ async def signup(
     return UserEnvelope(user=service.to_public(user))
 
 
-@router.post("/login", response_model=UserEnvelope, dependencies=[Depends(verify_csrf)])
+@router.post(
+    "/login",
+    response_model=UserEnvelope,
+    dependencies=[Depends(verify_csrf), Depends(check_login_rate_limit)],
+)
 async def login(
     data: LoginRequest,
     response: Response,
