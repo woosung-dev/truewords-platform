@@ -3,6 +3,7 @@
 // 오늘 훈독 홈의 7일 정성 블록 — 시작 카드 · 정성 홈(오늘 읽을 장 · 이번 주 읽은 날 · 장 목록 · 끝나는 날 · 그만하기) ·
 // 마침 카드 · 불러오는 중 · 돌아온 날 시트. 숫자는 서버 값만 쓴다(읽은 장 N/T). 쉰 날을 세는 "N일째"·퍼센트·막대는 없다.
 // 부엉이는 다음 장 행 한 곳(reading 40)뿐이고, 오늘 읽은 뒤에도 그 자리에 그대로 둔다.
+// 오늘 읽은 뒤 내일 읽을 장은 장 목록의 다음 장 행("내일 읽을 장")이 한 번만 말한다.
 import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
 import { MinusIcon } from "@phosphor-icons/react/dist/ssr/Minus";
 import Link from "next/link";
@@ -20,7 +21,6 @@ import {
   weekDoneByDay,
   weekdayOf,
   withEul,
-  withIeyo,
 } from "../format";
 import { dismissReturnSheet, isReturnSheetDismissed, shouldOfferReturn } from "../return-sheet";
 import { useAbandonPathRun } from "../use-path-run";
@@ -178,7 +178,6 @@ export function PathHome({ run }: { run: PathRunView }) {
               </span>
               오늘 말씀을 읽었어요
             </p>
-            {next && <p className="path-today__note">{`내일은 ${withIeyo(next.title)}.`}</p>}
           </>
         ) : next ? (
           <>

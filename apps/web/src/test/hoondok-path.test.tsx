@@ -20,7 +20,7 @@ import { WeekStrip } from "@/components/hoondok";
 import type { PathRunView, PathStepSummary } from "@/features/hoondok/path/api";
 import { PathReturnSheet, PathStepList } from "@/features/hoondok/path/components/path-home";
 import { PathHomeSlot } from "@/features/hoondok/path/components/path-home-slot";
-import { stepWindow, weekDoneByDay, withEul, withIeyo } from "@/features/hoondok/path/format";
+import { stepWindow, weekDoneByDay, withEul } from "@/features/hoondok/path/format";
 import { dismissReturnSheet, returnSheetKey, shouldOfferReturn } from "@/features/hoondok/path/return-sheet";
 
 const TITLES = Array.from({ length: 7 }, (_, i) => `천성경 1편 ${i + 1}장`);
@@ -113,8 +113,6 @@ describe("이번 주 읽은 날 (월요일 시작 주 — 홈 '이번 주'와 �
 describe("문구 도우미", () => {
   it("받침에 맞춰 조사를 고른다", () => {
     expect(withEul("천성경 7일 정성")).toBe("천성경 7일 정성을");
-    expect(withIeyo("천성경 1편 4장")).toBe("천성경 1편 4장이에요");
-    expect(withIeyo("참사랑 이야기")).toBe("참사랑 이야기예요");
   });
 
   it("21장 정성은 다음 장을 넷째 칸쯤에 두는 7칸 창이다", () => {
