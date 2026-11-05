@@ -9,6 +9,7 @@ import { MissionCard, WeekStrip } from "@/components/hoondok";
 import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-today";
 import { useResumeCard } from "@/features/hoondok/library/use-resume";
 import { PushPromptCard } from "@/features/hoondok/notifications/components/push-prompt-card";
+import { useHeroReadButton } from "@/features/hoondok/path/components/path-home-slot";
 import { formatKstDate, type TodayResponse } from "@/features/hoondok/today";
 import { TogetherCard } from "@/features/hoondok/together/components/together-card";
 import { useKstDate } from "@/features/hoondok/use-kst-date";
@@ -28,6 +29,8 @@ export function HomeGreeting() {
   const { user } = useCurrentUser();
   const date = useKstDate();
   const { label: dateLabel } = formatKstDate(new Date(`${date}T12:00:00+09:00`));
+  // 7일 정성 중이면 오늘 읽을 것은 정성 장 하나다 — 훈독하기 버튼을 그리지 않는다(확인 중에는 자리만 지킨다)
+  const heroButton = useHeroReadButton();
   return (
     <div className="shot shot--today">
       {/* 사진은 화면 폭의 배경이라 Next/Image 대신 정적 <img> 를 쓴다 — 원본이 이미 2x 폭(1440)이고 변환도 없다 */}
@@ -39,10 +42,18 @@ export function HomeGreeting() {
           {user ? `${user.display_name}님, 오늘도 함께 읽어요.` : "오늘도 함께 읽어요."}
         </p>
         <p className="shot__sub">{dateLabel}</p>
-        <Link className="btn btn-primary shot__go" href="/read">
-          훈독하기
-          <ArrowRightIcon size={18} aria-hidden="true" />
-        </Link>
+        {heroButton !== "hide" && (
+          <Link
+            className="btn btn-primary shot__go"
+            href="/read"
+            style={heroButton === "hold" ? { visibility: "hidden" } : undefined}
+            aria-hidden={heroButton === "hold" || undefined}
+            tabIndex={heroButton === "hold" ? -1 : undefined}
+          >
+            훈독하기
+            <ArrowRightIcon size={18} aria-hidden="true" />
+          </Link>
+        )}
       </div>
     </div>
   );

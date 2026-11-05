@@ -16,3 +16,9 @@ export function isHoondokCardsEnabled(): boolean {
 export function isHoondokMascotEnabled(): boolean {
   return process.env.NEXT_PUBLIC_HOONDOK_MASCOT === "1";
 }
+
+// 7일 정성 (읽기 정성 1a). 빌드 시 고정, 미설정 = OFF. OFF 면 홈 시작 카드·정성 홈이 없고 /path* 는 404 다.
+// API 쪽 HOONDOK_PATHS_ENABLED 와 함께 켠다(웹만 켜면 목록이 비어 시작할 정성이 없다고 나온다).
+export function isHoondokPathsEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_HOONDOK_PATHS === "1";
+}

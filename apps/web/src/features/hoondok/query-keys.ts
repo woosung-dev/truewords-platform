@@ -32,3 +32,8 @@ export const TTS_VOICES_KEY = ["hoondok", "tts-voices"] as const;
 /** 오늘의 책갈피 (API-HD-047)·active 카드 전부 (API-HD-054). 사용자별 값이 아니다 — 맞춤 카드는 기기에서 고른다. */
 export const CARDS_TODAY_KEY = ["hoondok", "cards", "today"] as const;
 export const CARDS_LIST_KEY = ["hoondok", "cards", "list"] as const;
+
+// --- 7일 정성 (읽기 정성 1a). 장 완료는 훈독하기 기록도 남기므로 완료 뒤 PROGRESS_KEYS 도 함께 무효화한다.
+export const PATH_RUN_KEY = ["hoondok", "path-run", "current"] as const;
+export const PATHS_KEY = ["hoondok", "paths"] as const;
+export const pathStepKey = (runId: string, day: number) => ["hoondok", "path-step", runId, day] as const;
