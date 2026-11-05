@@ -37,12 +37,20 @@ function JobStatusBadge({ status }: { status: string }) {
   );
 }
 
-function DeleteJobButton({ job, onDelete }: { job: IngestionJobInfo; onDelete: (job: IngestionJobInfo) => void }) {
+function DeleteJobButton({
+  job,
+  onDelete,
+  className = "h-7 w-7",
+}: {
+  job: IngestionJobInfo;
+  onDelete: (job: IngestionJobInfo) => void;
+  className?: string;
+}) {
   return (
     <Button
       size="sm"
       variant="ghost"
-      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+      className={`${className} p-0 text-muted-foreground hover:text-destructive`}
       aria-label={`${job.filename} 영구 삭제`}
       title="파일 영구 삭제 (Qdrant + DB 모두)"
       onClick={() => onDelete(job)}
@@ -89,8 +97,9 @@ function JobCard({ job, onDelete }: { job: IngestionJobInfo; onDelete: (job: Ing
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <span>{(job.total_chunks ?? 0).toLocaleString()}청크</span>
-        <span className="ml-auto">
-          <DeleteJobButton job={job} onDelete={onDelete} />
+        {/* 모바일은 터치 영역 44px 를 확보하되 음수 여백으로 카드 높이는 유지한다 */}
+        <span className="-my-3 -mr-2 ml-auto">
+          <DeleteJobButton job={job} onDelete={onDelete} className="h-11 w-11" />
         </span>
       </div>
       <DisplayNameEditor
