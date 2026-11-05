@@ -31,7 +31,7 @@ export function PathTop({ left, center, right }: { left: TopAction; center?: Rea
   );
 }
 
-/** 질문 단계 진행(1 / 3). 기존 질문 흐름과 같은 얇은 막대다. */
+/** 시작 단계 진행(1 / 3 — 분량 · 때 · 정성 고르기). 기존 질문 흐름과 같은 얇은 막대다. */
 export function PathProgress({ index, total }: { index: number; total: number }) {
   return (
     <div
@@ -40,7 +40,7 @@ export function PathProgress({ index, total }: { index: number; total: number })
       aria-valuemin={0}
       aria-valuemax={total}
       aria-valuenow={index}
-      aria-valuetext={`질문 ${total}개 중 ${index}번째`}
+      aria-valuetext={`${total}단계 중 ${index}단계`}
     >
       <span className="onb-step__track">
         <span className="onb-step__fill" style={{ width: `${(index / total) * 100}%` }} />

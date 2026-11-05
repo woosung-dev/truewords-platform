@@ -1,6 +1,6 @@
 "use client";
 
-// /path/read/[day] — 숨 고르기(3초 자동, 건너뛰기) → 본문 → 다 읽었어요 → 마침(구절 고르기 / 넘어가기).
+// /path/read/[day] — 숨 고르기(3초 자동, 건너뛰기) → 본문 → 다 읽었어요 → 마침(구절 고르기 / 오늘 훈독으로).
 // "다 읽었어요"를 누르는 순간 읽은 날이 남는다 — 마침 화면에서 아무것도 남기지 않아도 된다.
 // 마지막 장을 마치면 마침표(/path/done)로 간다. 부엉이는 이 화면 어디에도 없다.
 // 한 줄 남기기는 1a 에 없다: 완료 요청 뒤 note 만 덧붙이는 API 가 없어서다(같은 장 재요청은 기존 값을 돌려준다).
@@ -134,7 +134,7 @@ function LoadFailed({ error, onRetry }: { error: unknown; onRetry: () => void })
           {isOffline ? "인터넷이 연결되지 않았어요" : "말씀을 불러오지 못했어요"}
         </h2>
         <p className="path-empty__body">
-          {isOffline ? "연결되면 읽던 장부터 다시 열어 드려요." : "잠시 뒤 다시 시도해 주세요."}
+          {isOffline ? "연결되면 다시 시도를 눌러 주세요." : "잠시 뒤 다시 시도해 주세요."}
         </p>
         <div className="path-cta">
           <button type="button" className="btn btn-primary" onClick={onRetry}>
@@ -187,7 +187,7 @@ function Finish({
             마음에 남은 구절 고르기
           </button>
           <Link className="btn btn-line" href="/">
-            {saved ? "오늘 훈독으로" : "넘어가기"}
+            오늘 훈독으로
           </Link>
         </div>
       </div>

@@ -41,15 +41,16 @@ function dayNumber(iso: string): number {
 }
 
 /**
- * 이번 주(일요일 시작) 읽은 날 7칸. 서버 `week_read_dates` 는 일요일부터 오늘까지라 그 범위 밖 날짜는 버린다.
- * 반환 배열의 0번이 일요일이다.
+ * 이번 주(월요일 시작, 홈 "이번 주" 요일 줄과 같다) 읽은 날 7칸. 서버 `week_read_dates` 는 월요일부터 오늘까지라
+ * 그 범위 밖 날짜는 버린다. 반환 배열의 0번이 월요일이다.
  */
 export function weekDoneByDay(today: string, readDates: readonly string[]): boolean[] {
-  const sunday = dayNumber(today) - weekdayOf(today);
+  const todayIndex = (weekdayOf(today) + 6) % 7; // 월=0
+  const monday = dayNumber(today) - todayIndex;
   const done = Array<boolean>(7).fill(false);
   for (const iso of readDates) {
-    const offset = dayNumber(iso) - sunday;
-    if (offset >= 0 && offset <= weekdayOf(today)) done[offset] = true;
+    const offset = dayNumber(iso) - monday;
+    if (offset >= 0 && offset <= todayIndex) done[offset] = true;
   }
   return done;
 }
