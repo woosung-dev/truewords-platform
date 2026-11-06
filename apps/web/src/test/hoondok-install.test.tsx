@@ -5,9 +5,10 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockPush = vi.fn();
+const mockPathname = vi.fn(() => "/read");
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: vi.fn(), prefetch: vi.fn() }),
-  usePathname: () => "/read",
+  usePathname: () => mockPathname(),
 }));
 vi.mock("@/features/identity/api", () => ({
   identityAPI: { signup: vi.fn(), login: vi.fn(), logout: vi.fn(), me: vi.fn() },
@@ -17,7 +18,14 @@ vi.mock("@/features/hoondok/missions-api", () => ({
 }));
 
 import { ReadCompleteButton } from "@/features/hoondok/components/read-complete-button";
-import { INSTALL_CARD_TITLE, InstallCard } from "@/features/hoondok/install/components/install-card";
+import {
+  INSTALL_AFTER_READ_SUB,
+  INSTALL_AFTER_READ_TITLE,
+  INSTALL_CARD_TITLE,
+  INSTALL_HOWTO_LABEL,
+  InstallCard,
+  IOS_INSTALL_STEPS,
+} from "@/features/hoondok/install/components/install-card";
 import { HoondokInstallPromptListener } from "@/features/hoondok/install/components/install-prompt-listener";
 import { isIos, isStandalone } from "@/features/hoondok/install/platform";
 import { consumeDeferredPrompt, getDeferredPrompt } from "@/features/hoondok/install/prompt-store";
@@ -27,9 +35,12 @@ import {
   markInstallEligible,
   markInstalled,
   readInstallState,
+  recordInstallVisit,
 } from "@/features/hoondok/install/storage";
 import { getInstallVariant } from "@/features/hoondok/install/use-install-card";
 import { missionsAPI } from "@/features/hoondok/missions-api";
+import { HoondokNoticeSlot } from "@/features/hoondok/notice/components/notice-slot";
+import { collapseNotice } from "@/features/hoondok/notice/notice-store";
 import { writePending } from "@/features/hoondok/pending";
 import { formatKstDate } from "@/features/hoondok/today";
 import { identityAPI } from "@/features/identity/api";
@@ -91,6 +102,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   consumeDeferredPrompt();
+  collapseNotice();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -113,6 +125,27 @@ describe("install/storage (localStorage 3키)", () => {
     markInstalled();
     expect(localStorage.getItem(KEY_INSTALLED)).toBe("1");
     expect(readInstallState(now).isInstalled).toBe(true);
+  });
+
+  it("나중에는 누를수록 3일 → 7일 → 30일, 그 뒤로는 30일에 머문다", () => {
+    const now = Date.parse("2026-11-05T00:00:00Z");
+    for (const days of [3, 7, 30, 30]) {
+      dismissInstallCard(undefined, now);
+      expect(localStorage.getItem(KEY_HIDDEN_UNTIL)).toBe(new Date(now + days * DAY).toISOString());
+    }
+  });
+
+  it("방문은 KST 날짜로 하루 한 번 세고, 서로 다른 두 번째 날에 자격을 준다", () => {
+    recordInstallVisit("2026-11-05");
+    recordInstallVisit("2026-11-05");
+    expect(readInstallState().isEligible).toBe(false);
+    recordInstallVisit("2026-11-06");
+    expect(readInstallState().isEligible).toBe(true);
+
+    localStorage.clear();
+    localStorage.setItem("hoondok:install:visit", "{broken");
+    recordInstallVisit("2026-11-07"); // 깨진 값은 첫 방문으로 다시 센다
+    expect(readInstallState().isEligible).toBe(false);
   });
 
   it("깨진 hidden-until 은 숨김이 아니고, 저장소가 던져도 예외 없이 '없음' 으로 본다", () => {
@@ -167,6 +200,16 @@ describe("install/platform + getInstallVariant", () => {
     }
   });
 
+  it("인앱 브라우저(카카오톡 등)는 자격이 있어도 hidden — 홈 화면 추가가 안 된다", () => {
+    markInstallEligible();
+    const restore = stubNavigator({ userAgent: `${IPHONE_UA} KAKAOTALK 10.0.0`, maxTouchPoints: 5 });
+    try {
+      expect(getInstallVariant()).toBe("hidden");
+    } finally {
+      restore();
+    }
+  });
+
   it("iPhone UA 와 iPadOS(Macintosh UA + 터치)는 ios, 터치 없는 Mac 은 아니다", () => {
     expect(isIos(IPHONE_UA, 5)).toBe(true);
     expect(isIos(IPADOS_UA, 5)).toBe(true);
@@ -199,91 +242,140 @@ describe("install/platform + getInstallVariant", () => {
   });
 });
 
-describe("InstallCard (홈 조건 렌더)", () => {
+/** 하단 안내 자리 — 기본은 홈 밖 화면(말씀 서고)에서 그린다. 훈독하기는 다 읽은 신호가 있어야 그린다. */
+function renderSlot(path = "/library", extra: ReactNode = null) {
+  mockPathname.mockReturnValue(path);
+  return render(
+    wrap(
+      <>
+        {extra}
+        <HoondokNoticeSlot />
+      </>,
+    ),
+  );
+}
+const slotTitle = () => screen.queryByText(INSTALL_CARD_TITLE);
+
+describe("HoondokNoticeSlot — 설치 안내", () => {
+  afterEach(() => mockPathname.mockReturnValue("/read"));
+
   it("자격 전에는 비어 있고, 자격을 얻으면 같은 트리에서 나타난다 (외부 저장소 구독)", async () => {
     const restore = stubNavigator({ userAgent: DESKTOP_UA, maxTouchPoints: 0 });
     try {
-      const { container } = render(<InstallCard />);
-      expect(container.innerHTML).toBe("");
+      renderSlot();
+      expect(slotTitle()).toBeNull();
       markInstallEligible();
-      expect(await screen.findByRole("heading", { name: INSTALL_CARD_TITLE })).toBeInTheDocument();
+      expect(await screen.findByText(INSTALL_CARD_TITLE)).toBeInTheDocument();
+      // 수동 설치는 그 자리에서 펼쳐 브라우저 메뉴 안내를 보인다
+      fireEvent.click(screen.getByRole("button", { name: INSTALL_HOWTO_LABEL }));
       expect(screen.getByText(/브라우저 메뉴의 '홈 화면에 추가'/)).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "지금 추가" })).toBeNull();
-      expect(screen.queryByText(/알림/)).toBeNull(); // 알림 문구는 Phase 4
     } finally {
       restore();
     }
   });
 
-  it("prompt 변형: 지금 추가 → prompt() 호출, 수락하면 installed 키 + 카드 사라짐", async () => {
+  it("두 번째 방문 날에 자격이 생겨 홈 밖 화면에 뜬다 (방문은 안내 자리가 하루 한 번 센다)", async () => {
     const restore = stubNavigator({ userAgent: DESKTOP_UA, maxTouchPoints: 0 });
     try {
-      render(
-        <>
-          <HoondokInstallPromptListener />
-          <InstallCard />
-        </>,
-      );
+      localStorage.setItem("hoondok:install:visit", JSON.stringify({ last: "2000-01-01", days: 1 }));
+      renderSlot();
+      expect(await screen.findByText(INSTALL_CARD_TITLE)).toBeInTheDocument();
+    } finally {
+      restore();
+    }
+  });
+
+  it("prompt 변형: 설치 → prompt() 호출, 수락하면 installed 키 + 안내 사라짐", async () => {
+    const restore = stubNavigator({ userAgent: DESKTOP_UA, maxTouchPoints: 0 });
+    try {
+      renderSlot("/library", <HoondokInstallPromptListener />);
       const { prompt } = fireInstallPrompt("accepted");
       markInstallEligible();
-      expect(await screen.findByText("앱처럼 설치해 두면 주소창 없이 바로 훈독할 수 있어요.")).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "지금 추가" }));
+      expect(await screen.findByText("버튼 한 번이면 설치돼요")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "설치" }));
       await waitFor(() => expect(prompt).toHaveBeenCalledOnce());
       await waitFor(() => expect(localStorage.getItem(KEY_INSTALLED)).toBe("1"));
-      await waitFor(() => expect(screen.queryByRole("heading", { name: INSTALL_CARD_TITLE })).toBeNull());
+      await waitFor(() => expect(slotTitle()).toBeNull());
       expect(getDeferredPrompt()).toBeNull();
     } finally {
       restore();
     }
   });
 
-  it("prompt 변형: 거절하면 installed 없이 manual 안내로 내려간다", async () => {
+  it("prompt 변형: 거절하면 installed 없이 방법 보기(수동 안내)로 내려간다", async () => {
     const restore = stubNavigator({ userAgent: DESKTOP_UA, maxTouchPoints: 0 });
     try {
-      render(
-        <>
-          <HoondokInstallPromptListener />
-          <InstallCard />
-        </>,
-      );
+      renderSlot("/library", <HoondokInstallPromptListener />);
       const { prompt } = fireInstallPrompt("dismissed");
       markInstallEligible();
-      fireEvent.click(await screen.findByRole("button", { name: "지금 추가" }));
+      fireEvent.click(await screen.findByRole("button", { name: "설치" }));
       await waitFor(() => expect(prompt).toHaveBeenCalledOnce());
-      expect(await screen.findByText(/브라우저 메뉴의 '홈 화면에 추가'/)).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: INSTALL_HOWTO_LABEL })).toBeInTheDocument();
       expect(localStorage.getItem(KEY_INSTALLED)).toBeNull();
     } finally {
       restore();
     }
   });
 
-  it("iOS 변형: 공유 → 홈 화면에 추가 안내, 지금 추가 버튼 없음", async () => {
+  it("iOS: 방법 보기 → 같은 자리에서 3단계로 펼치고, 접기로 한 줄로 돌아온다", async () => {
     markInstallEligible();
     const restore = stubNavigator({ userAgent: IPHONE_UA, maxTouchPoints: 5 });
     try {
-      render(<InstallCard />);
-      expect(await screen.findByText(/공유 버튼.*'홈 화면에 추가'/)).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "지금 추가" })).toBeNull();
-      expect(screen.getByRole("button", { name: "나중에" })).toBeInTheDocument();
+      renderSlot();
+      expect(screen.queryByText(IOS_INSTALL_STEPS[0])).toBeNull();
+      fireEvent.click(await screen.findByRole("button", { name: INSTALL_HOWTO_LABEL }));
+      for (const step of IOS_INSTALL_STEPS) expect(screen.getByText(step)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "접기" }));
+      await waitFor(() => expect(screen.queryByText(IOS_INSTALL_STEPS[0])).toBeNull());
+      expect(screen.getByText(INSTALL_CARD_TITLE)).toBeInTheDocument();
     } finally {
       restore();
     }
   });
 
-  it("나중에 → 30일 숨김 후 사라지고, 기한이 지나면 다시 보인다", async () => {
+  it("나중에 → 첫 번째는 3일 숨김 후 사라지고, 기한이 지나면 다시 보인다", async () => {
     markInstallEligible();
     const restore = stubNavigator({ userAgent: DESKTOP_UA, maxTouchPoints: 0 });
     try {
-      render(<InstallCard />);
+      renderSlot();
       const before = Date.now();
       fireEvent.click(await screen.findByRole("button", { name: "나중에" }));
-      await waitFor(() => expect(screen.queryByRole("heading", { name: INSTALL_CARD_TITLE })).toBeNull());
+      await waitFor(() => expect(slotTitle()).toBeNull());
       const hiddenUntil = Date.parse(localStorage.getItem(KEY_HIDDEN_UNTIL) ?? "");
-      expect(hiddenUntil - before).toBeGreaterThanOrEqual(30 * DAY);
-      expect(hiddenUntil - before).toBeLessThan(30 * DAY + 5_000);
+      expect(hiddenUntil - before).toBeGreaterThanOrEqual(3 * DAY);
+      expect(hiddenUntil - before).toBeLessThan(3 * DAY + 5_000);
 
       dismissInstallCard(-1); // 어제까지 숨김 = 기한 만료
+      expect(await screen.findByText(INSTALL_CARD_TITLE)).toBeInTheDocument();
+    } finally {
+      restore();
+    }
+  });
+
+  it("설정·질문 흐름·탭 바 없는 화면에는 싣지 않고, 훈독하기는 읽는 동안 비워 둔다", () => {
+    markInstallEligible();
+    const restore = stubNavigator({ userAgent: DESKTOP_UA, maxTouchPoints: 0 });
+    try {
+      for (const path of ["/read", "/settings", "/onboarding", "/start"]) {
+        const { unmount } = renderSlot(path);
+        expect(slotTitle()).toBeNull();
+        unmount();
+      }
+    } finally {
+      restore();
+    }
+  });
+});
+
+describe("InstallCard (설정 화면)", () => {
+  it("자격·나중에 숨김과 무관하게 보이고, 나중에 버튼이 없다", async () => {
+    dismissInstallCard();
+    const restore = stubNavigator({ userAgent: IPHONE_UA, maxTouchPoints: 5 });
+    try {
+      render(<InstallCard />);
       expect(await screen.findByRole("heading", { name: INSTALL_CARD_TITLE })).toBeInTheDocument();
+      expect(screen.getByText(/공유 버튼.*'홈 화면에 추가'/)).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "나중에" })).toBeNull();
     } finally {
       restore();
     }
@@ -311,6 +403,24 @@ describe("완료 출처 (use-missions → 설치 자격)", () => {
     fireEvent.click(button);
     expect(await screen.findByRole("status")).toHaveTextContent("오늘 훈독을 마쳤어요");
     await waitFor(() => expect(localStorage.getItem(KEY_ELIGIBLE)).toBe("1"));
+  });
+
+  it("직접 완료 직후 하단 안내 자리가 완료 문구로 '내일' 설치를 권한다", async () => {
+    loggedIn();
+    vi.mocked(missionsAPI.complete).mockResolvedValueOnce({ mission_date: TODAY, kind: "read", completed_at: "x" });
+    const restore = stubNavigator({ userAgent: DESKTOP_UA, maxTouchPoints: 0 });
+    try {
+      renderSlot("/read", <ReadCompleteButton askHref="/ask" />);
+      const button = await screen.findByRole("button", { name: /훈독 완료/ });
+      await waitFor(() => expect(button).toBeEnabled());
+      expect(screen.queryByText(INSTALL_AFTER_READ_SUB)).toBeNull();
+      fireEvent.click(button);
+      expect(await screen.findByText(INSTALL_AFTER_READ_SUB)).toBeInTheDocument();
+      expect(screen.getAllByText(INSTALL_AFTER_READ_TITLE).length).toBeGreaterThan(0);
+    } finally {
+      restore();
+      mockPathname.mockReturnValue("/read");
+    }
   });
 
   it("직접 완료가 409(already)면 recorded 가 아니라 자격을 주지 않는다", async () => {

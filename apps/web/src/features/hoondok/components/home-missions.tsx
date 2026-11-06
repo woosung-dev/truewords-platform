@@ -8,7 +8,7 @@ import Link from "next/link";
 import { MissionCard, WeekStrip } from "@/components/hoondok";
 import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-today";
 import { useResumeCard } from "@/features/hoondok/library/use-resume";
-import { PushPromptCard } from "@/features/hoondok/notifications/components/push-prompt-card";
+import { useNoticeSignal } from "@/features/hoondok/notice/notice-store";
 import { formatKstDate, type TodayResponse } from "@/features/hoondok/today";
 import { TogetherCard } from "@/features/hoondok/together/components/together-card";
 import { useKstDate } from "@/features/hoondok/use-kst-date";
@@ -79,6 +79,8 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
   // 마지막으로 읽던 원문 구간. 기록이 없거나 불러오지 못하면 지금까지와 같은 서고 안내 카드다
   const resume = useResumeCard();
   const isReadDone = completion.isDone || Boolean(summary?.today.read);
+  // 홈에 있다는 신호 — 하단 안내 자리가 설치 안내 또는 알림 제안(첫 방문·오늘 마친 뒤)을 띄운다.
+  useNoticeSignal({ placement: "home", isReadDone });
   // 오늘 편성이 있는지 아직 모른다 — 카드 순서가 빈 날/있는 날 중 어느 쪽인지 정해지지 않았으므로 자리만 잡는다.
   // 일반 편성이 이미 있으면 순서가 정해져 있어 기존대로 훈독하기 카드가 불러오는 중으로 그려진다
   const isUndecided = effective.status !== "available" && effective.isResolving;
@@ -189,10 +191,6 @@ export function HomeMissions({ today, todayWeekday }: { today: TodayResponse; to
           doneByDay={summary?.week.map((day) => day.done) ?? []}
         />
       </div>
-
-      {/* 알림 받기 제안 (PLAN-HD-006). 계정·설정 조회 뒤 늦게 나타나므로 미션 목록 아래에 둔다 — 위에 두면 목록을 밀어
-          체크를 누르려던 손가락이 "나중에" 를 누른다. 오늘 마쳤는지는 여기 isReadDone(미션 체크 즉시 완료 포함)이 알려 준다. */}
-      <PushPromptCard placement="home" isReadDone={isReadDone} />
     </>
   );
 }

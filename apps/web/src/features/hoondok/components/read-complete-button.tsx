@@ -3,7 +3,7 @@
 import { Check } from "lucide-react";
 import Link from "next/link";
 import { DoneBadge, HoondokButton } from "@/components/hoondok";
-import { PushPromptCard } from "@/features/hoondok/notifications/components/push-prompt-card";
+import { useNoticeSignal } from "@/features/hoondok/notice/notice-store";
 import { TogetherDoneNotice } from "@/features/hoondok/together/components/together-card";
 import { useMissionCompletion, useSummary } from "@/features/hoondok/use-missions";
 import { onboardingHref } from "@/features/identity/gate";
@@ -24,6 +24,8 @@ export function ReadCompleteButton({ askHref, isDisabled = false }: { askHref: s
   const isServerDone = Boolean(summary?.today.read);
   const isDone = completion.isDone || isServerDone;
   const isCounted = Boolean(user) && !completion.isUnsynced && !completion.hasSaveFailed;
+  // 방금 마친 순간이 "내일도" 를 권하기 가장 좋다 — 하단 안내 자리가 설치(먼저) 또는 알림 제안을 띄운다.
+  useNoticeSignal(isDone ? { placement: "after-read", isReadDone: true } : null);
 
   // 연속일은 서버가 오늘 완료를 확정했을 때만 적는다. 요약이 오기 전의 0 도, 낙관적 완료 직후의
   // 옛 요약값도 거짓이다 — 저장에 실패한 채 "연속 N일째" 를 말하면 실패 안내와 서로 어긋난다.
@@ -64,8 +66,6 @@ export function ReadCompleteButton({ askHref, isDisabled = false }: { askHref: s
         {/* 함께 읽는 사람들 한 줄 (PLAN-HD-009). 서버에 기록된 완료만 집계되므로 로컬만 완료면 "당신까지" 를 쓰지 않는다. */}
         <TogetherDoneNotice isCounted={isCounted} />
         {footer}
-        {/* 알림 받기 제안 — 오늘 마친 뒤의 두 번째 자리(PLAN-HD-006). 보조 줄은 완료 동작에 붙어 있어야 해서 그 아래에 둔다. */}
-        <PushPromptCard placement="after-read" isReadDone />
       </>
     );
   }

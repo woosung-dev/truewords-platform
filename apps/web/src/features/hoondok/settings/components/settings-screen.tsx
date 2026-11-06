@@ -42,7 +42,7 @@ function InstallSection() {
       </p>
     );
   }
-  return <InstallCard isAlwaysVisible />;
+  return <InstallCard />;
 }
 
 export function SettingsScreen() {
