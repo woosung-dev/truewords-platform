@@ -266,8 +266,10 @@ test("알림 제안 카드: 지금(KST)과 가까운 칸을 미리 고르고, �
   await page.clock.setFixedTime(new Date(`${todayKst}T07:40:00+09:00`));
   await signUp(page, `e2e-prompt-time-${Date.now()}@example.com`);
 
-  const card = page.locator(".push-prompt");
-  const group = card.getByRole("radiogroup", { name: "매일 언제 훈독을 알려 드릴까요?" });
+  const card = page.locator(".notice-slot");
+  // 하단 안내 한 줄 → "시각 고르기" 로 펼쳐야 칸이 보인다
+  await card.getByRole("button", { name: "시각 고르기" }).click();
+  const group = card.getByRole("radiogroup", { name: "알림 받을 시각" });
   await expect(group.getByRole("radio")).toHaveCount(4);
   await expect(group.getByRole("radio", { name: /아침/ })).toBeChecked();
   const button = card.getByRole("button", { name: "오전 7:30에 알림 받기" });
