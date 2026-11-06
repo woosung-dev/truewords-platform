@@ -2,7 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import { reportClientError } from "../observability/report";
-import { isIos, isStandalone } from "./platform";
+import { inAppBrowser, isIos, isStandalone } from "./platform";
 import { consumeDeferredPrompt, getDeferredPrompt } from "./prompt-store";
 import { dismissInstallCard, markInstalled, readInstallState, subscribeInstall } from "./storage";
 
@@ -27,6 +27,8 @@ export function getInstallVariant(
   if (!isAlwaysVisible && (!isEligible || isHidden || isInstalled)) return "hidden";
   // 상시 노출이어도 이미 홈 화면 앱으로 열렸으면 안내할 것이 없다 — 호출자가 한 줄 안내로 바꾼다.
   if (isStandalone()) return "hidden";
+  // 인앱 브라우저(카카오톡 등)는 홈 화면 추가가 안 된다 — 상단 인앱 안내가 대신 말한다.
+  if (inAppBrowser()) return "hidden";
   if (isIos()) return "ios";
   return getDeferredPrompt() ? "prompt" : "manual";
 }

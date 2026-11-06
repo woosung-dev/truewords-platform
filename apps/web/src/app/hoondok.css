@@ -1159,6 +1159,9 @@
     color: var(--accent-strong);
     flex: none;
   }
+  .install__ic:has(.owl) {
+    background: transparent;
+  }
   .install__bd {
     flex: 1;
     min-width: 0;
