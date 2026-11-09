@@ -1,4 +1,4 @@
-/* 홈 "오늘의 하늘" (SCR-PWA-002). 위는 KST 시간대 하늘(인사 · 이번 주 별자리), 지평선에 "오늘 훈독 말씀" 판, 아래 땅에 판들.
+/* 홈 "오늘의 하늘" (SCR-PWA-002). 위는 KST 시간대 하늘(인사 · 이번 주 별자리), 지평선에 "오늘 읽을 말씀" 판, 아래 땅에 판들.
    색은 hoondok.css 토큰만 쓴다(hex·rgba 금지, pnpm hoondok:check). 하늘 바탕은 네 장을 겹쳐 opacity 로, 해·달은 transform 으로 바꾼다.
    모션은 transform·opacity 만이고 동작 줄이기면 hoondok.css 전역 규칙이 흐르는 띠·반짝임·전환을 모두 끈다. */
 
@@ -415,7 +415,7 @@
     color: var(--chip-ink);
   }
 
-  /* ---------- 지평선에 걸친 "오늘 훈독 말씀" 판 ---------- */
+  /* ---------- 지평선에 걸친 "오늘 읽을 말씀" 판 ---------- */
   .home-word {
     position: relative;
     z-index: 2;

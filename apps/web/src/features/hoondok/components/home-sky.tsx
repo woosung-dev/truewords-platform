@@ -1,7 +1,7 @@
 "use client";
 
 // 홈 "오늘의 하늘" (SCR-PWA-002). 위쪽이 KST 시간대(새벽·낮·저녁·밤)에 따라 바뀌는 하늘이고, 그 안에 인사와 이번 주 별자리,
-// 지평선에 걸친 "오늘 훈독 말씀" 판이 있다. 그림은 사진 대신 그라데이션 네 장(opacity 전환)과 잔별·해달(transform)이다.
+// 지평선에 걸친 "오늘 읽을 말씀" 판이 있다. 그림은 사진 대신 그라데이션 네 장(opacity 전환)과 잔별·해달(transform)이다.
 // 시간대: 서버가 요청 시각(KST)으로 고른 값을 serverSlot 으로 받아 hydration 은 그 값으로 하고, 직후 이 기기 시각으로 다시 본다
 // (useSyncExternalStore 의 서버 스냅숏). 경계 시각에 서버·기기가 달라도 불일치 경고 없이 하늘만 한 번 바뀐다.
 import { ArrowRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowRight";
@@ -132,7 +132,7 @@ export function HomeWeek({ today, todayWeekday }: { today: TodayResponse; todayW
 }
 
 /**
- * 지평선에 걸친 "오늘 훈독 말씀" 판. 말씀 본문은 싣지 않는다 — 미션 카드가 이미 보이는 범위(제목·저작물·화자·예상 분)만
+ * 지평선에 걸친 "오늘 읽을 말씀" 판. 말씀 본문은 싣지 않는다 — 미션 카드가 이미 보이는 범위(제목·저작물·화자·예상 분)만
  * 크게 보이고, 전문은 `/read` 가 갖는다. 미션 카드와 같은 effective 편성을 쓰므로 정성 말씀이면 그 제목이다.
  */
 export function HomeWord({ today, serverSlot }: { today: TodayResponse; serverSlot: SkySlot }) {
@@ -148,7 +148,7 @@ export function HomeWord({ today, serverSlot }: { today: TodayResponse; serverSl
         <HoondokMascot pose={SKY_OWL[slot]} size={64} />
       </span>
       <div className="home-word__top">
-        <h2 className="home-word__kicker">오늘 훈독 말씀</h2>
+        <h2 className="home-word__kicker">오늘 읽을 말씀</h2>
         {reading && <span className="home-word__min">{reading.estimated_minutes}분</span>}
       </div>
       <div className="home-word__quote">
