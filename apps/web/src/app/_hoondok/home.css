@@ -700,6 +700,10 @@
       grid-row: 2;
       margin-top: 8px;
     }
+    /* 7일 정성 자리(시작·진행 카드, 접어 둔 오늘의 실천)는 판·실천 아래 한 줄을 다 쓴다 */
+    .home__grid > :not(.home-word, .home__practice, .home__bookmark) {
+      grid-column: 1 / -1;
+    }
     /* 정성 기간 · 함께 읽기는 나란히. 하나만 있으면(빈 날·불러오는 중) 한 줄을 다 쓴다 */
     .home__slices {
       display: flex;
