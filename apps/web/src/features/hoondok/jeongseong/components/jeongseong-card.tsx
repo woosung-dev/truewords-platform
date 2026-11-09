@@ -11,6 +11,7 @@ import { Lock } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { HoondokButton } from "@/components/hoondok";
+import { isHoondokPathsEnabled } from "@/features/hoondok/flag";
 import type { JeongseongLastEnded, JeongseongPeriodResponse } from "@/features/hoondok/jeongseong-api";
 import { useAbandonJeongseong, useJeongseongCurrent } from "@/features/hoondok/use-jeongseong";
 import { useCurrentUser } from "@/features/identity/use-current-user";
@@ -133,6 +134,8 @@ export function JeongseongCard() {
   }
 
   if (!period) {
+    // 7일 정성이 켜지면 홈 맨 위 시작 카드가 정성 입구다 — 정성 기간 초대 카드를 겹쳐 두지 않는다
+    if (isHoondokPathsEnabled()) return null;
     return (
       <JeongseongSection>
         <div className="card js-invite">

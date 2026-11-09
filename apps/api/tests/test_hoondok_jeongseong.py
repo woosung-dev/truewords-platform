@@ -20,7 +20,7 @@ from sqlmodel import SQLModel, select
 from app.core.common.clock import today_kst
 from app.main import app
 from app.modules.admin.auth import create_access_token
-from app.modules.hoondok.dependencies import get_jeongseong_repository, get_mission_repository
+from app.modules.hoondok.dependencies import get_jeongseong_repository, get_mission_repository, get_path_repository
 from app.modules.hoondok.jeongseong import compute_progress
 from app.modules.hoondok.models import ClientErrorEvent, JeongseongPeriod, JeongseongReading, MissionLog
 from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
@@ -428,6 +428,18 @@ class _Periods:
         return period
 
 
+class _NoPathRuns:
+    """7일 정성 상호 배제(읽기 정성 1a) — 이 파일은 진행 중 7일 정성이 없는 경우만 본다."""
+
+    session = MagicMock()
+
+    async def lock_user(self, user_id) -> None:
+        return None
+
+    async def get_active_run(self, user_id):
+        return None
+
+
 class _RacingPeriods(_Periods):
     """동시 생성 경쟁 — 선조회는 비어 있는데 INSERT 순간 부분 unique 가 잡는다."""
 
@@ -445,13 +457,14 @@ def client():
     app.dependency_overrides[get_identity_repository] = lambda: _Users(user)
     app.dependency_overrides[get_mission_repository] = lambda: _Logs()
     app.dependency_overrides[get_jeongseong_repository] = lambda: periods
+    app.dependency_overrides[get_path_repository] = lambda: _NoPathRuns()
     try:
         c = TestClient(app)
         c.hoondok_user = user  # type: ignore[attr-defined]
         c.periods = periods  # type: ignore[attr-defined]
         yield c
     finally:
-        for dep in (get_identity_repository, get_mission_repository, get_jeongseong_repository):
+        for dep in (get_identity_repository, get_mission_repository, get_jeongseong_repository, get_path_repository):
             app.dependency_overrides.pop(dep, None)
 
 

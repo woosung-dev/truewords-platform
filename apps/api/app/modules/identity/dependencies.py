@@ -17,10 +17,12 @@ from app.modules.hoondok.dependencies import (
     get_library_repository,
     get_mission_repository,
     get_notification_repository,
+    get_path_repository,
     get_public_question_repository,
 )
 from app.modules.hoondok.library_repository import LibraryRepository
 from app.modules.hoondok.notifications_repository import NotificationRepository
+from app.modules.hoondok.paths_repository import PathRepository
 from app.modules.hoondok.public_questions_repository import PublicQuestionRepository
 from app.modules.hoondok.repository import JeongseongRepository, MissionLogRepository
 from app.modules.identity.models import User
@@ -61,6 +63,7 @@ async def get_user_data_purgers(
     cards: CardRepository = Depends(get_card_repository),
     public_questions: PublicQuestionRepository = Depends(get_public_question_repository),
     asks: AskRepository = Depends(get_ask_repository),
+    paths: PathRepository = Depends(get_path_repository),
 ) -> list[UserDataPurger]:
     """계정 삭제(API-HD-011)에서 함께 지울 훈독 리포. identity → hoondok 의존은 이 DI 한 곳에만 둔다.
 
@@ -69,7 +72,8 @@ async def get_user_data_purgers(
     # library = reading_positions·passage_marks·passage_highlights
     # cards = card_receipts (PLAN-HD-012), public_questions = 공개 신청한 질문 (DEC-PWA-025)
     # asks = AI 질문 대화(채팅 세션·메시지·근거 포함)·하루 횟수 (DEC-PWA-025 2차)
-    return [missions, jeongseong, notifications, library, cards, public_questions, asks]
+    # paths = 7일 정성 완료·진행·본인 정성 (읽기 정성 1a)
+    return [missions, jeongseong, notifications, library, cards, public_questions, asks, paths]
 
 
 def decode_hoondok_token(token: str) -> uuid.UUID | None:

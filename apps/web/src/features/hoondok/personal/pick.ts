@@ -79,7 +79,7 @@ export const FALLBACK_REASON = "고르신 주제에 맞는 장을 아직 준비�
 export const OFFICIAL_NOTICE = "앱이 고른 원문 단락이에요. 공식 해설이나 지금 하신 말씀은 아니에요.";
 
 /** 마지막 한글 글자에 받침이 있는가. 한글이 아니면(숫자·영문) 받침 없음으로 본다. */
-function hasBatchim(word: string): boolean {
+export function hasBatchim(word: string): boolean {
   const hangul = [...word].reverse().find((ch) => ch >= "가" && ch <= "힣");
   return hangul ? (hangul.charCodeAt(0) - 0xac00) % 28 !== 0 : false;
 }

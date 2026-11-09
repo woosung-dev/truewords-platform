@@ -4,9 +4,12 @@ import uuid
 from datetime import date
 
 from sqlalchemy import delete, func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.core.common.clock import utcnow
 from app.modules.hoondok.models import ClientErrorEvent, DailyReading, JeongseongPeriod, JeongseongReading, MissionLog
 from app.modules.identity.models import User
 
@@ -80,6 +83,26 @@ class MissionLogRepository:
             raise
         await self.session.refresh(log)
         return log
+
+    async def upsert_read_ignore(self, user_id: uuid.UUID, mission_date: date) -> None:
+        """그날 read 완료를 넣되 이미 있으면 그대로 둔다(ON CONFLICT DO NOTHING). 커밋하지 않는다.
+
+        7일 정성 장 완료가 같은 트랜잭션에서 부른다 — 오늘의 말씀을 먼저 읽었어도 장 완료가 실패하지 않게.
+        기존 `create`(API-HD-005 409) 동작은 바꾸지 않는다.
+        """
+        values = {
+            "id": uuid.uuid4(),
+            "user_id": user_id,
+            "mission_date": mission_date,
+            "kind": "read",
+            "completed_at": utcnow(),
+        }
+        dialect = self.session.get_bind().dialect.name
+        insert_fn = pg_insert if dialect == "postgresql" else sqlite_insert
+        stmt = insert_fn(MissionLog).values(**values).on_conflict_do_nothing(
+            index_elements=["user_id", "mission_date", "kind"]
+        )
+        await self.session.execute(stmt)
 
     async def list_dates(self, user_id: uuid.UUID, kind: str) -> list[date]:
         """한 사용자·한 종류의 완료일 전량 (베타 규모, 연속일 계산용)."""

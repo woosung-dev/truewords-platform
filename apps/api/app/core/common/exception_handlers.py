@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from app.core.common.schemas import ErrorResponse
 from app.modules.chat.exceptions import SessionOwnershipError
 from app.core.common.clock import utcnow
-from app.modules.hoondok.exceptions import AskDailyLimitError, PushDisabledError, TtsError
+from app.modules.hoondok.exceptions import AskDailyLimitError, PathError, PushDisabledError, TtsError
 from app.modules.identity.exceptions import InviteRequiredError
 from app.modules.safety.exceptions import InputBlockedError, RateLimitExceededError
 from app.modules.search.exceptions import EmbeddingFailedError, SearchFailedError
@@ -109,6 +109,20 @@ async def tts_error_handler(request: Request, exc: TtsError) -> JSONResponse:
     """AI 낭독 거절 (PLAN-HD-011). 본문·청크 id·API 키는 로그에 남기지 않는다."""
     rid = _get_request_id(request)
     logger.warning("TtsError", extra={"request_id": rid, "error_code": exc.error_code})
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ErrorResponse(
+            error_code=exc.error_code,
+            message=str(exc),
+            request_id=rid,
+        ).model_dump(),
+    )
+
+
+async def path_error_handler(request: Request, exc: PathError) -> JSONResponse:
+    """7일 정성 거절 (읽기 정성 1a). 남긴 한 줄 등 사용자 입력은 로그에 남기지 않는다."""
+    rid = _get_request_id(request)
+    logger.info("PathError", extra={"request_id": rid, "error_code": exc.error_code})
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorResponse(

@@ -1,0 +1,638 @@
+/* 7일 정성 (읽기 정성 1a) — 홈 시작 카드 · 정성 홈 · 접힌 오늘의 말씀 · 돌아온 날 시트 · 시작 질문 · 읽기 · 마침 · 마침표.
+   기존 훈독 화면의 연장이다: .btn(16px 모서리 50px) · .onb-bar(단색 막대) · .card · .choice · .verse 를 그대로 쓰고
+   색·글자·모서리는 hoondok.css 토큰만 쓴다. 정성 화면의 내용 글자는 --fs-md(15) 이상, 핵심 글자·버튼은 --fs-lg 이상.
+   모션은 숨 고르기 원 3초 1회뿐이고 reduced-motion 에서는 hoondok.css 전역 규칙이 끈다. */
+[data-app="hoondok"] {
+  /* ---------- 공통 ---------- */
+  .path .btn {
+    font-size: var(--fs-lg);
+  }
+  .path-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .path-top {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--paper);
+    display: grid;
+    /* 양쪽 칸 폭을 같게 둬야 가운데(진행 막대·제목)가 화면 가운데에 온다 — 빈 쪽은 같은 폭의 빈칸이다 */
+    grid-template-columns: 88px minmax(0, 1fr) 88px;
+    align-items: center;
+    gap: 8px;
+    min-height: 56px;
+    margin: 0 calc(var(--gutter) * -1);
+    padding: 4px 8px;
+  }
+  .path-top > :first-child {
+    justify-self: start;
+  }
+  .path-top > :last-child {
+    justify-self: end;
+  }
+  .path-top__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    min-height: 48px;
+    padding: 0 8px;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .path-top__mid {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+  }
+  .path-top__t {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .path-top__prog {
+    width: 100%;
+    justify-content: center;
+  }
+  .path-top__label {
+    font-size: var(--fs-md);
+  }
+  .path-cta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .path-alert {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    font-size: var(--fs-md);
+    color: var(--ink-2);
+  }
+  .path-alert > svg {
+    flex: none;
+    color: var(--accent-strong);
+  }
+  .path-alert__tx {
+    flex: 1;
+    min-width: 0;
+  }
+  .path-alert--home {
+    margin-top: 16px;
+  }
+  .path-alert .path-alert__retry {
+    width: auto;
+    min-height: 48px;
+  }
+
+  /* ---------- 홈: 시작 카드 · 마침 카드 ---------- */
+  .card.path-start {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+    padding: 18px;
+  }
+  .path-start__title,
+  .path-head__title {
+    margin: 0;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .path-start__body {
+    margin: 0;
+    font-size: var(--fs-lg);
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+  .path-start .btn {
+    margin-top: 4px;
+    font-size: var(--fs-lg);
+  }
+
+  /* ---------- 홈: 정성 홈 ---------- */
+  .path-home {
+    margin-top: 22px;
+  }
+  .path-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .path-head__count {
+    flex: none;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .card.path-today {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 18px;
+  }
+  .path-today__when {
+    margin: 0;
+    font-size: var(--fs-md);
+    color: var(--ink-2);
+  }
+  .path-today__what,
+  .path-today__done {
+    margin: 0;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    line-height: 1.35;
+    text-wrap: balance;
+  }
+  .path-today__done {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .path-today__ok {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--ok-soft);
+    color: var(--ok-strong);
+  }
+  .path-today__note {
+    margin: 0;
+    font-size: var(--fs-lg);
+    color: var(--ink-2);
+  }
+  .path-today .path-today__go {
+    margin-top: 6px;
+    font-size: var(--fs-lg);
+  }
+  .path-sect__title {
+    font-size: var(--fs-lg);
+  }
+  /* 이번 주 읽은 날 — 정성 화면은 본문에 --fs-sm/xs 를 쓰지 않는다(디자인 명세 §0.1).
+     홈의 요일 줄은 그대로 두고 .path-home 안에서만 키운다: 요일 글자 --fs-md · 원 40 · 체크 14 */
+  .path-home .week__day {
+    max-width: 40px;
+    font-size: var(--fs-md);
+  }
+  .path-home .week__check {
+    width: 14px;
+    height: 14px;
+    right: -3px;
+    bottom: -1px;
+  }
+
+  /* 장 목록 — 번호 원 44 · 이름 · (다음 장만) 부엉이 40. 장 사이 선은 상태와 무관하게 --line 하나다 */
+  .path-steps {
+    list-style: none;
+    margin: 22px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .path-step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    min-height: 64px;
+  }
+  .path-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 21px;
+    top: calc(50% + 22px);
+    height: calc(100% - 44px);
+    width: 2px;
+    background: var(--line);
+  }
+  .path-step__n {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-3);
+    background: var(--surface);
+    border: 1.5px solid var(--ink-3);
+  }
+  .path-step[data-state="done"] .path-step__n {
+    background: var(--ok-soft);
+    color: var(--ok-strong);
+    border-color: transparent;
+  }
+  /* 다음 장 고리는 --ink — 주황은 "읽기 시작" 버튼 하나에 모은다 */
+  .path-step[data-state="next"] .path-step__n {
+    border: 2px solid var(--ink);
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .path-step[data-state="withdrawn"] .path-step__n {
+    background: var(--surface-2);
+    border-color: transparent;
+    color: var(--ink-3);
+  }
+  .path-step__tx {
+    min-width: 0;
+  }
+  .path-step__t {
+    display: block;
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--ink);
+  }
+  .path-step[data-state="withdrawn"] .path-step__t {
+    color: var(--ink-3);
+  }
+  .path-step__s {
+    display: block;
+    font-size: var(--fs-md);
+    color: var(--ink-2);
+  }
+  .path-steps__range {
+    margin: 8px 0 0 56px;
+    font-size: var(--fs-md);
+    color: var(--ink-2);
+  }
+  .path-end {
+    margin: 18px 0 0;
+    font-size: var(--fs-md);
+    color: var(--ink-2);
+  }
+  .path-quit {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 48px;
+    margin-top: 12px;
+    font-size: var(--fs-md);
+    font-weight: 500;
+    color: var(--ink-2);
+  }
+  .path-home .tg-confirm {
+    margin-top: 4px;
+  }
+
+  /* 접힌 오늘의 말씀 — 열고 닫을 때 높이 애니메이션 없음 */
+  .path-fold {
+    margin-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+  .path-fold__sum {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 64px;
+    padding: 12px 0;
+    cursor: pointer;
+  }
+  .path-fold__sum::-webkit-details-marker {
+    display: none;
+  }
+  .path-fold__tx {
+    min-width: 0;
+  }
+  .path-fold__tx b {
+    display: block;
+    font-size: var(--fs-lg);
+    font-weight: 600;
+  }
+  .path-fold__tx span {
+    font-size: var(--fs-md);
+    color: var(--ink-2);
+  }
+  .path-fold__act {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 48px;
+    padding: 0 12px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    font-size: var(--fs-md);
+    font-weight: 600;
+  }
+  .path-fold[open] .path-fold__act svg {
+    transform: rotate(180deg);
+  }
+  .path-fold__sum:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--r-sm);
+  }
+  .path-fold__body > :first-child {
+    margin-top: 4px;
+  }
+
+  /* ---------- 시트 (돌아온 날 · 정성 옮기기 확인) ---------- */
+  .path-sheet .js-title:focus {
+    outline: none;
+  }
+  .path-return__body {
+    margin: 8px 0 0;
+    font-size: var(--fs-lg);
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  .path-return__next {
+    margin: 12px 0 0;
+    font-size: var(--fs-lg);
+    color: var(--ink-2);
+  }
+  .path-return__cta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .path-sheet .btn {
+    font-size: var(--fs-lg);
+  }
+  .path-sheet .hint--alert {
+    margin-top: 12px;
+    font-size: var(--fs-md);
+  }
+
+  /* ---------- 시작 질문 흐름 ---------- */
+  .path-flow {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    padding-bottom: 0;
+  }
+  .path-flow .onb__intro > .owl {
+    margin: 4px 0 10px;
+  }
+  .path-flow .onb-title {
+    margin: 0;
+  }
+  /* 프로그램으로 포커스를 옮긴 제목(마침·구절 고르기·숨 고르기)은 상호작용 요소가 아니다 — 고리를 그리지 않는다.
+     새로고침·알림으로 연 화면에서 Chrome 이 focus-visible 로 보고 주황 상자를 그리면 오류처럼 읽힌다 */
+  .path .onb-title[tabindex="-1"]:focus,
+  .path .onb-title[tabindex="-1"]:focus-visible {
+    outline: none;
+  }
+  .path .onb-lede {
+    margin: 10px 0 0;
+    font-size: var(--fs-lg);
+    line-height: 1.55;
+  }
+  .path-flow__p {
+    margin: 8px 0 0;
+    font-size: var(--fs-lg);
+    color: var(--ink-2);
+  }
+  .path-flow .onb-choices {
+    margin-top: 22px;
+  }
+  .path .onb-bar__info {
+    font-size: var(--fs-md);
+  }
+  .path .choice__d {
+    font-size: var(--fs-md);
+  }
+
+  /* ---------- 읽기 ---------- */
+  .path-breath {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+    padding-top: 48px;
+  }
+  .path-breath__circle {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    margin-bottom: 18px;
+    animation: hoondok-path-breath 3s ease-in-out;
+  }
+  .path-breath__sub {
+    margin: 0;
+    font-size: var(--fs-lg);
+    color: var(--ink-2);
+  }
+  .path-breath__note {
+    margin: 0;
+    font-size: var(--fs-md);
+    color: var(--ink-2);
+  }
+  .path-read__meta {
+    margin: 12px 0 0;
+    font-size: var(--fs-md);
+    color: var(--ink-2);
+  }
+  .path-read__title {
+    margin: 4px 0 18px;
+  }
+  .path-read__title:focus {
+    outline: none;
+  }
+  .path-read-skel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .onb-bar.path-bar--solo {
+    min-height: 0;
+  }
+  .path-bar__msg {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    margin: 0;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--accent-strong);
+  }
+  .path-bar__msg > svg {
+    flex: none;
+    margin-top: 1px;
+  }
+  .path-bar__msg--calm {
+    color: var(--ink-2);
+  }
+  .path-picks .choice__t {
+    font-family: var(--font-scripture);
+    font-weight: 400;
+    line-height: 1.6;
+  }
+  .path-finish {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-top: 40px;
+  }
+  .path-finish .path-cta {
+    align-self: stretch;
+  }
+  .path-finish__sub {
+    margin: 10px 0 0;
+    font-size: var(--fs-lg);
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .path-finish__note {
+    margin: 8px 0 0;
+    font-size: var(--fs-lg);
+    color: var(--ink-2);
+  }
+  .path-finish__saved {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    margin: 14px 0 0;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--ok-strong);
+  }
+  /* 한 화면에 부엉이 한 마리 — 접힌 오늘의 말씀 안(빈 날 줄 등)의 부엉이는 그리지 않는다(다음 장 행에 이미 있다) */
+  .path-fold .day-quiet__ic:has(> .owl) {
+    display: none;
+  }
+  /* .empty 의 좌우 20px 안쪽 여백을 버튼만 되돌려 다른 정성 화면의 전체 폭 버튼과 맞춘다 */
+  .path-empty .path-cta {
+    margin-inline: -20px;
+  }
+  .path-empty .empty__title.path-empty__title {
+    font-size: var(--fs-xl);
+  }
+  .path-empty__body {
+    margin: 8px 0 0;
+    font-size: var(--fs-lg);
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+
+  /* ---------- 마침표 ---------- */
+  .path-done {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-top: 48px;
+  }
+  .path-done > .owl {
+    margin-bottom: 12px;
+  }
+  .path-done__sub {
+    margin: 10px 0 0;
+    font-size: var(--fs-lg);
+    color: var(--ink-2);
+  }
+  .path-done__range {
+    margin: 4px 0 0;
+    font-size: var(--fs-md);
+    color: var(--ink-2);
+  }
+  .path-done__box,
+  .path-done__notes,
+  .path-done__alert,
+  .path-done .path-cta {
+    align-self: stretch;
+    text-align: left;
+  }
+  .path-done__tally {
+    margin: 18px 0 0;
+    font-size: var(--fs-lg);
+    color: var(--ink);
+  }
+  .card.path-done__box {
+    margin-top: 14px;
+  }
+  .path-done__h {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: 600;
+  }
+  .path-done__quote {
+    margin: 12px 0 0;
+  }
+  .path-done__empty {
+    margin: 8px 0 0;
+    font-size: var(--fs-md);
+    color: var(--ink-2);
+  }
+  .path-done__notes {
+    margin-top: 18px;
+  }
+  .path-done__notes .js-vow {
+    margin-top: 10px;
+  }
+  .path-done__alert {
+    margin-top: 16px;
+  }
+
+  /* ---------- 불러오는 중 — 실제 배치와 같은 높이 ---------- */
+  .path-skel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .path-skel__card {
+    height: 176px;
+    border-radius: var(--r);
+  }
+  .path-skel__row {
+    height: 56px;
+  }
+  .path-skel__choice {
+    height: var(--onb-row-min);
+    border-radius: var(--r);
+  }
+  .path-skel--done .wd-skel--head {
+    align-self: center;
+  }
+}
+
+/* 숨 고르기 원 — 3초 1회. @keyframes 는 중첩할 수 없어 최상위에 둔다 */
+@keyframes hoondok-path-breath {
+  0% {
+    transform: scale(0.86);
+  }
+  50% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0.92);
+  }
+}
