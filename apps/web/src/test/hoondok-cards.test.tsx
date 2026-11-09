@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { type ReactNode, StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CardPublic, CardReceiptItem } from "@/features/hoondok/cards/api";
 import { bookName, bookParts } from "@/features/hoondok/cards/components/book";
@@ -462,6 +462,107 @@ describe("사진 카드로 건네기 시트 (SCR-PWA-024)", () => {
     expect(await screen.findByText("미리보기를 불러오지 못했어요")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(screen.getByRole("img", { name: /건넬 사진 카드/ })).toBeInTheDocument();
+  });
+});
+
+describe("사진 준비 전에는 건네지 않는다 (SCR-PWA-024·026)", () => {
+  // jsdom 의 File 은 undici Response 의 Blob 을 못 받아 jsdom Blob 을 주는 응답으로 흉내 낸다
+  const pngResponse = () =>
+    ({ ok: true, status: 200, blob: async () => new Blob(["png"], { type: "image/png" }) }) as Response;
+  afterEach(() => {
+    Reflect.deleteProperty(navigator, "share");
+    Reflect.deleteProperty(navigator, "canShare");
+  });
+
+  it("이미지를 받는 동안 보내기 버튼은 '사진 준비 중' 으로 막히고, 준비되면 파일로 건넨다", async () => {
+    let release: (response: Response) => void = () => {};
+    fetchMock.mockImplementation((input) => {
+      if (String(input).includes("/image?"))
+        return new Promise<Response>((resolve) => {
+          release = resolve;
+        });
+      return Promise.resolve(json({ detail: "unauthorized" }, 401));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "share", { value: share, configurable: true });
+    Object.defineProperty(navigator, "canShare", { value: () => true, configurable: true });
+    const { ShareSheet } = await import("@/features/hoondok/cards/components/share-sheet");
+    const onDone = vi.fn();
+    render(wrap(<ShareSheet card={CARD} onClose={() => {}} onDone={onDone} />));
+    const button = screen.getByRole("button", { name: /사진 준비 중/ });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(share).not.toHaveBeenCalled();
+    release(pngResponse());
+    const ready = await screen.findByRole("button", { name: /카카오톡·다른 앱으로 건네기/ });
+    expect(ready).toBeEnabled();
+    fireEvent.click(ready);
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith("file"));
+    expect(share.mock.calls[0][0].files[0]).toBeInstanceOf(File);
+  });
+
+  it("이미지를 못 받으면 실패를 알리고 다시 준비하기로 새로 받는다", async () => {
+    let calls = 0;
+    fetchMock.mockImplementation(async (input) => {
+      if (String(input).includes("/image?")) {
+        calls += 1;
+        return calls === 1 ? new Response("boom", { status: 502 }) : pngResponse();
+      }
+      return json({ detail: "unauthorized" }, 401);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { ShareSheet } = await import("@/features/hoondok/cards/components/share-sheet");
+    render(wrap(<ShareSheet card={CARD} onClose={() => {}} onDone={() => {}} />));
+    expect(await screen.findByText("사진을 준비하지 못했어요")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /카카오톡·다른 앱으로 건네기/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "다시 준비하기" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /카카오톡·다른 앱으로 건네기/ })).toBeEnabled());
+    expect(screen.queryByText("사진을 준비하지 못했어요")).toBeNull();
+  });
+});
+
+describe("부채꼴 포커스 복원 (SCR-PWA-026)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal");
+  });
+
+  it("StrictMode 에서도 닫기를 누르면 열었던 책등으로 포커스가 돌아간다", async () => {
+    Object.defineProperty(HTMLDialogElement.prototype, "showModal", {
+      configurable: true,
+      writable: true,
+      value(this: HTMLDialogElement) {
+        this.setAttribute("open", "");
+        this.querySelector<HTMLButtonElement>("button")?.focus();
+      },
+    });
+    const { FanDialog } = await import("@/features/hoondok/cards/components/fan-dialog");
+    const items: CardReceiptItem[] = [{ card: CARD, received_on: TODAY, shared_at: null }];
+    function Example() {
+      const [isOpen, setIsOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setIsOpen(true)}>
+            책등
+          </button>
+          {isOpen && <FanDialog title="천성경" items={items} onShare={() => {}} onClose={() => setIsOpen(false)} />}
+        </>
+      );
+    }
+    render(
+      <StrictMode>
+        <Example />
+      </StrictMode>,
+    );
+    const opener = screen.getByRole("button", { name: "책등" });
+    opener.focus();
+    fireEvent.click(opener);
+    // 사용자가 실제로 닫기까지의 틈 — StrictMode 재설정의 마이크로태스크가 먼저 끝나야 한다
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(opener).not.toHaveFocus();
+    fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+    await waitFor(() => expect(opener).toHaveFocus());
   });
 });
 

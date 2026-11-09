@@ -4,7 +4,7 @@
 // 고르기: 크기(4:5 카톡·피드 / 9:16 스토리) · 바탕(사진 4장 + 책 색) · 출처 표시(자세히 / 책 이름만). 출처와 훈독 표시는 늘 인쇄한다.
 // 갈래: 카카오톡·다른 앱(Web Share, 파일 → 링크 → 클립보드 → 직접 표시) · 사진 저장 · 글로 복사. 인사 한 줄은 없다(결정 1).
 // 고른 모양은 건넬 때 이 기기에 카드별로 남겨 내 카드 갤러리의 "그대로 다시 건네기" 가 같은 모양으로 연다.
-import { Copy, Download, Lock, MessageCircle } from "lucide-react";
+import { Copy, Download, Loader2, Lock, MessageCircle } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { ReaderSheet } from "@/features/hoondok/library/components/reader-sheet";
 import type { CardPublic } from "../api";
@@ -14,6 +14,7 @@ import {
   CARD_BACKGROUNDS,
   type CardLook,
   defaultLook,
+  FORMAT_OPTIONS,
   type PhotoFormat,
   photoSrc,
   type SourceMode,
@@ -22,23 +23,66 @@ import { type CardShareResult, cardLink, copyCardText, photoCardImagePath, photo
 import { readCardLook, writeCardLook } from "../storage";
 import { ChoiceGroup } from "./choice-group";
 
+export type PreparedImage = {
+  /** 받아 둔 이미지 파일. 준비 중이거나 실패면 null */
+  file: File | null;
+  status: "loading" | "ready" | "error";
+  retry: () => void;
+};
+
 /**
- * 공유 시트가 파일을 바로 받을 수 있도록 지금 고른 이미지를 미리 받아 둔다(iOS 제스처 만료 방지).
- * 고르기를 바꾸면 새로 받고, 받기 전이거나 실패하면 null — 그때는 링크만 보낸다.
+ * 공유 시트가 파일을 바로 받을 수 있도록 지금 고른 이미지를 미리 받아 둔다. 누른 뒤에 받으면
+ * iOS 의 사용자 동작 유효 시간이 지나 공유 시트가 열리지 않으므로, 준비가 끝날 때까지 보내기 버튼을 막는다.
+ * 고르기를 바꾸면 새로 받는다.
  */
-export function usePreparedImage(url: string, name: string): File | null {
-  const [prepared, setPrepared] = useState<{ url: string; file: File } | null>(null);
+export function usePreparedImage(url: string, name: string): PreparedImage {
+  const [attempt, setAttempt] = useState(0);
+  const [result, setResult] = useState<{ key: string; file: File | null } | null>(null);
+  const key = `${url}#${name}#${attempt}`;
   useEffect(() => {
     const controller = new AbortController();
     fetch(url, { signal: controller.signal })
-      .then((response) => (response.ok ? response.blob() : null))
-      .then((blob) => {
-        if (blob) setPrepared({ url, file: new File([blob], name, { type: blob.type || "image/png" }) });
-      })
-      .catch(() => {});
+      .then((response) => (response.ok ? response.blob() : Promise.reject(new Error(`image ${response.status}`))))
+      .then((blob) => setResult({ key, file: new File([blob], name, { type: blob.type || "image/png" }) }))
+      .catch(() => {
+        if (!controller.signal.aborted) setResult({ key, file: null });
+      });
     return () => controller.abort();
-  }, [url, name]);
-  return prepared?.url === url ? prepared.file : null;
+  }, [key, url, name]);
+  const current = result?.key === key ? result : null;
+  return {
+    file: current?.file ?? null,
+    status: current === null ? "loading" : current.file ? "ready" : "error",
+    retry: () => setAttempt((value) => value + 1),
+  };
+}
+
+/** 보내기 버튼. 이미지가 준비될 때까지 "사진 준비 중" 으로 막고, 실패하면 다시 받기를 보인다 */
+export function PreparedShareButton({ prepared, onShare }: { prepared: PreparedImage; onShare: () => void }) {
+  return (
+    <>
+      {prepared.status === "error" && (
+        <div className="pcs-prep-err" role="status">
+          <p>사진을 준비하지 못했어요</p>
+          <button className="btn btn-line btn--sm" type="button" onClick={prepared.retry}>
+            다시 준비하기
+          </button>
+        </div>
+      )}
+      <button
+        className="pc-cta"
+        type="button"
+        disabled={prepared.status !== "ready"}
+        aria-busy={prepared.status === "loading"}
+        onClick={onShare}
+      >
+        {prepared.status === "loading" ? "사진 준비 중" : "카카오톡·다른 앱으로 건네기"}
+        <span className="pc-cta__ic" aria-hidden="true">
+          {prepared.status === "loading" ? <Loader2 size={22} className="pc-cta__spin" /> : <MessageCircle size={22} />}
+        </span>
+      </button>
+    </>
+  );
 }
 
 /** 서버 이미지 미리보기. 불러오는 동안은 같은 비율의 자리, 실패하면 다시 시도 */
@@ -109,10 +153,6 @@ export function ShareToast({ message }: { message: string | null }) {
   );
 }
 
-const FORMAT_OPTIONS: readonly { value: PhotoFormat; label: string }[] = [
-  { value: "feed", label: "4:5 카톡·피드" },
-  { value: "story", label: "9:16 스토리" },
-];
 const SOURCE_OPTIONS: readonly { value: SourceMode; label: string }[] = [
   { value: "full", label: "자세히" },
   { value: "book", label: "책 이름만" },
@@ -135,7 +175,7 @@ export function ShareSheet({
   const [look, setLook] = useState<CardLook>(() => readCardLook(card.id) ?? defaultLook(card.id));
   const imageUrl = photoCardImagePath(card.id, look);
   const fileName = photoFileName(look.format);
-  const file = usePreparedImage(imageUrl, fileName);
+  const prepared = usePreparedImage(imageUrl, fileName);
   const [fallbackLink, setFallbackLink] = useState<string | null>(null);
   const book = bookColorIndex(card.work_title);
 
@@ -144,7 +184,7 @@ export function ShareSheet({
   }
   async function handleShare() {
     const link = cardLink(card.id);
-    const result = await shareCard({ card, link, file });
+    const result = await shareCard({ card, link, file: prepared.file });
     if (result === "none") setFallbackLink(link);
     if (result !== "cancelled" && result !== "none") writeCardLook(card.id, look);
     onDone(result);
@@ -199,12 +239,7 @@ export function ShareSheet({
           </div>
         )}
         <div className="pcs-dock">
-          <button className="pc-cta" type="button" onClick={() => void handleShare()}>
-            카카오톡·다른 앱으로 건네기
-            <span className="pc-cta__ic" aria-hidden="true">
-              <MessageCircle size={22} />
-            </span>
-          </button>
+          <PreparedShareButton prepared={prepared} onShare={() => void handleShare()} />
           <div className="bmk-row2">
             <a
               className="btn btn-line"

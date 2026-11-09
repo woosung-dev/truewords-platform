@@ -281,6 +281,9 @@ function GalleryPanel({ userId }: { userId: string }) {
                 onClick={() => share.open(item.card)}
               >
                 <PhotoCard card={item.card} bg={look.bg} format={look.format} src={look.src} isDecorative />
+                <span className="bks-gal__q" aria-hidden="true">
+                  {item.card.text}
+                </span>
                 <span className="bks-gal__when" aria-hidden="true">
                   {when ?? "건넨 카드"}
                   <span className="bks-gal__again">

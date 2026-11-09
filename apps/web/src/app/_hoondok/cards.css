@@ -927,7 +927,7 @@
     animation: hoondok-fan-in 0.6s ease-out both;
   }
   .bks-fan__card[aria-checked="true"] {
-    transform: rotate(0) translateY(-30px) scale(1.1);
+    transform: rotate(0) translateY(-40px) scale(1.25);
     box-shadow:
       0 30px 60px -10px var(--shade-30),
       0 0 0 3px var(--gold-2);
@@ -995,6 +995,24 @@
   }
   .bks-gal__item .pc {
     border-radius: 17px;
+  }
+  /* 썸네일·부채꼴 카드는 서버 이미지의 축소판이라 글자 바닥(13px)을 두지 않는다. 읽는 글은 카드 아래 줄이 맡는다 */
+  .bks-gal__item .pc__src,
+  .bks-gal__item .pc__mark,
+  .bks-fan__card .pc__src,
+  .bks-fan__card .pc__mark {
+    font-size: 4.2cqw;
+  }
+  .bks-gal__q {
+    display: -webkit-box;
+    margin: 0;
+    padding: 10px 6px 0;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: var(--fs-md);
+    line-height: 1.5;
+    color: var(--ink);
   }
   .bks-gal__when {
     display: flex;
@@ -1185,7 +1203,7 @@
   }
   .pc__src {
     max-width: 68%;
-    font-size: 4.2cqw;
+    font-size: max(13px, 4.2cqw);
     line-height: 1.45;
     color: var(--photo-text-2);
   }
@@ -1194,7 +1212,7 @@
     align-items: center;
     gap: 1.2cqw;
     margin-left: auto;
-    font-size: 4.2cqw;
+    font-size: max(13px, 4.2cqw);
     font-weight: 700;
     letter-spacing: 0.04em;
     white-space: nowrap;
@@ -1354,6 +1372,21 @@
   .pcs-pv__err p {
     margin: 0;
   }
+  .pcs-prep-err {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: var(--fs-lg);
+    color: var(--ink-2);
+  }
+  .pcs-prep-err p {
+    margin: 0;
+  }
+  .pc-cta__spin {
+    animation: hoondok-spin 1.2s linear infinite;
+  }
   .pcs-ctl {
     margin-top: 18px;
   }
@@ -1395,7 +1428,7 @@
     align-items: center;
     gap: 6px;
     min-height: 44px;
-    font-size: var(--fs-sm);
+    font-size: var(--fs-md);
     font-weight: 600;
     color: var(--ink-2);
   }

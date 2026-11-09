@@ -32,6 +32,11 @@ export function photoSrc(bg: PhotoBackground): string {
 /** 비율: 4:5 카톡·피드(1080×1350) / 9:16 스토리(1080×1920) */
 export const PHOTO_FORMATS = ["feed", "story"] as const;
 export type PhotoFormat = (typeof PHOTO_FORMATS)[number];
+/** 크기 고르기(건네기 시트·이번 달 모은 말씀 시트 공용) */
+export const FORMAT_OPTIONS: readonly { value: PhotoFormat; label: string }[] = [
+  { value: "feed", label: "4:5 카톡·피드" },
+  { value: "story", label: "9:16 스토리" },
+];
 
 /** 출처 표시: 자세히(출처 전체) / 책 이름만. 빼기는 없다 — 출처와 훈독 표시는 늘 인쇄한다 */
 export const SOURCE_MODES = ["full", "book"] as const;

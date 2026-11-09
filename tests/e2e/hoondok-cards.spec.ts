@@ -62,7 +62,8 @@ test("홈 카드 → 받기 → 읽기 → 건네기 시트 → 원문 밑줄 �
   const sheet = page.getByRole("dialog", { name: "사진 카드로 건네기" });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByRole("img", { name: /건넬 사진 카드/ })).toBeVisible();
-  await expect(sheet.getByRole("button", { name: /카카오톡·다른 앱으로 건네기/ })).toBeVisible();
+  // 서버 이미지를 받아 둔 뒤에만 보내기 버튼이 열린다
+  await expect(sheet.getByRole("button", { name: /카카오톡·다른 앱으로 건네기/ })).toBeEnabled();
   const save = sheet.getByRole("link", { name: "사진 저장" });
   await expect(save).toHaveAttribute("href", /f=feed&bg=\w+&src=full/);
   await sheet.getByRole("radio", { name: "9:16 스토리" }).click();

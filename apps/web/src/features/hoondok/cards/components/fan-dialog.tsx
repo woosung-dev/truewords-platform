@@ -31,16 +31,27 @@ export function FanDialog({
   const [selectedId, setSelectedId] = useState(shown[0]?.card.id ?? "");
   const selected = shown.find((item) => item.card.id === selectedId) ?? shown[0];
 
-  // 열 때 누른 책등을 기억했다가 닫으면 그 자리로 포커스를 돌려준다(ReaderSheet 와 같은 규칙)
+  const openerRef = useRef<Element | null>(null);
+
+  // 열 때 누른 책등을 기억했다가 닫으면 그 자리로 포커스를 돌려준다(ReaderSheet 와 같은 규칙).
+  // 정리 함수는 늘 돌려준다 — StrictMode 의 두 번째 실행에서 빠지면 닫을 때 포커스가 body 로 간다.
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (!dialog || dialog.open) return;
-    const opener = document.activeElement;
-    if (typeof dialog.showModal === "function") dialog.showModal();
-    else dialog.setAttribute("open", "");
+    if (dialog && !dialog.open) {
+      openerRef.current = document.activeElement;
+      if (typeof dialog.showModal === "function") dialog.showModal();
+      else dialog.setAttribute("open", "");
+    }
     return () => {
       queueMicrotask(() => {
-        if (!dialog.isConnected && opener instanceof HTMLElement && opener.isConnected) opener.focus();
+        const opener = openerRef.current;
+        if (
+          !dialog?.isConnected &&
+          opener instanceof HTMLElement &&
+          opener.isConnected &&
+          document.activeElement !== opener
+        )
+          opener.focus();
       });
     };
   }, []);
