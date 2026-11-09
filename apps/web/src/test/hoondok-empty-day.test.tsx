@@ -18,6 +18,7 @@ vi.mock("@/features/hoondok/jeongseong-api", () => ({ jeongseongAPI: { today: vi
 vi.mock("@/features/hoondok/together/api", () => ({ togetherAPI: { today: vi.fn() } }));
 
 import { HomeMissions, HomeTogether } from "@/features/hoondok/components/home-missions";
+import { HomeWeek } from "@/features/hoondok/components/home-sky";
 import { EffectiveReading } from "@/features/hoondok/jeongseong/components/effective-reading";
 import { jeongseongAPI } from "@/features/hoondok/jeongseong-api";
 import { libraryAPI, wordsHref } from "@/features/hoondok/library/api";
@@ -108,7 +109,7 @@ beforeEach(() => {
 
 describe("홈 · 편성 없는 날", () => {
   it("기록 없음: 오늘 상태 한 줄 뒤 첫 카드가 서고이고 기다림·중복 서고 버튼·죽은 훈독하기 카드가 없다", async () => {
-    const view = show(<HomeMissions today={EMPTY} todayWeekday={2} />);
+    const view = show(<HomeMissions today={EMPTY} />);
     const line = await screen.findByText("오늘은 정해진 말씀이 없어요");
     expect(line.closest("[role=status]")).toHaveTextContent("서고에서 한 권 골라 읽어 보세요.");
     expect(screen.getByText("오늘은 서고에서")).toHaveClass("sect__meta");
@@ -121,7 +122,7 @@ describe("홈 · 편성 없는 날", () => {
 
   it("이어 읽을 기록이 있으면 그 자리가 첫 카드다(A1 카드 그대로)", async () => {
     writeLastReading({ volume: VOLUME, page: 1 });
-    const view = show(<HomeMissions today={EMPTY} todayWeekday={2} />);
+    const view = show(<HomeMissions today={EMPTY} />);
     expect(await screen.findByText("천성경 · 참사랑의 근본")).toBeInTheDocument();
     expect(screen.getByText("읽던 말씀을 이어서 읽어 보세요.")).toBeInTheDocument();
     expect(screen.getByText("오늘은 이어 읽기")).toHaveClass("sect__meta");
@@ -141,7 +142,7 @@ describe("홈 · 편성 없는 날", () => {
         resolveJeongseong = resolve;
       }),
     );
-    const view = show(<HomeMissions today={EMPTY} todayWeekday={2} />);
+    const view = show(<HomeMissions today={EMPTY} />);
     await waitFor(() => expect(jeongseongAPI.today).toHaveBeenCalled());
     const missions = view.container.querySelector(".missions");
     expect(missions).toHaveAttribute("aria-busy", "true");
@@ -163,7 +164,7 @@ describe("홈 · 편성 없는 날", () => {
         resolvePositions = resolve;
       }),
     );
-    show(<HomeMissions today={EMPTY} todayWeekday={2} />);
+    show(<HomeMissions today={EMPTY} />);
     const line = await screen.findByText("오늘은 정해진 말씀이 없어요");
     expect(line.closest("[role=status]")).not.toHaveTextContent(/읽던 말씀|서고에서/);
     expect(screen.queryByText(/^오늘은 (이어 읽기|서고에서)$/)).toBeNull();
@@ -173,13 +174,13 @@ describe("홈 · 편성 없는 날", () => {
   });
 
   it("철회된 날도 빈 날과 같은 안내다", async () => {
-    show(<HomeMissions today={WITHDRAWN} todayWeekday={2} />);
+    show(<HomeMissions today={WITHDRAWN} />);
     expect(await screen.findByText("오늘은 정해진 말씀이 없어요")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /훈독하기/ })).toBeNull();
   });
 
   it("편성 조회 실패는 빈 날이 아니다 — 원인 안내만 하고 오늘 상태 한 줄을 띄우지 않는다", async () => {
-    const view = show(<HomeMissions today={FAILED} todayWeekday={2} />);
+    const view = show(<HomeMissions today={FAILED} />);
     expect(await screen.findByText("오늘 편성을 불러오지 못했어요. 연결을 확인해 주세요.")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("link", { name: /훈독하기/ })).toHaveAttribute("href", "/read"));
     expect(view.container.querySelector(".day-quiet")).toBeNull();
@@ -195,7 +196,12 @@ describe("홈 · 편성 없는 날", () => {
       period_id: "p",
       reading: null,
     } as JeongseongTodayResponse);
-    show(<HomeMissions today={EMPTY} todayWeekday={2} />);
+    show(
+      <>
+        <HomeMissions today={EMPTY} />
+        <HomeWeek today={EMPTY} todayWeekday={2} />
+      </>,
+    );
     expect(await screen.findByText("오늘 주제에 맞는 정성 말씀을 찾지 못했어요.")).toBeInTheDocument();
     expect(screen.getByText("오늘은 정해진 말씀이 없어요")).toBeInTheDocument();
     expect(screen.queryByText(/일반 편성을 보여드려요/)).toBeNull();
@@ -204,7 +210,7 @@ describe("홈 · 편성 없는 날", () => {
   });
 
   it("편성 있는 날은 지금 순서 그대로다(회귀)", async () => {
-    const view = show(<HomeMissions today={AVAILABLE} todayWeekday={2} />);
+    const view = show(<HomeMissions today={AVAILABLE} />);
     await waitFor(() =>
       expect(missionOrder(view.container)).toEqual([
         "훈독하기 · 3분",

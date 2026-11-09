@@ -136,6 +136,59 @@
   --glow-0: rgba(255, 236, 190, 0);
   --sheen-35: rgba(255, 255, 255, 0.35);
   --sheen-70: rgba(255, 255, 255, 0.7);
+  /* 홈 "오늘의 하늘" (SCR-PWA-002). 시간대 네 장의 그라데이션·해달·언덕은 그림 색(§1.1 일러스트 예외)이고,
+     --sky-ink-* · --sky-star-* 는 하늘 위 글자·별 색으로 네 시간대 모두 바탕 대비 AA 를 지킨다. --night-* 는 책갈피 밤 판 */
+  --sky-night-1: #060b18;
+  --sky-night-2: #0e1730;
+  --sky-night-3: #1b2442;
+  --sky-night-4: #2c3050;
+  --sky-night-glow: rgba(227, 196, 142, 0.4);
+  --sky-dawn-1: #19203f;
+  --sky-dawn-2: #2f3562;
+  --sky-dawn-3: #4f4170;
+  --sky-dawn-4: #8a5f76;
+  --sky-dawn-glow: rgba(255, 196, 150, 0.55);
+  --sky-day-1: #79b0dc;
+  --sky-day-2: #a3c9e7;
+  --sky-day-3: #cde3f2;
+  --sky-day-4: #eaf2f6;
+  --sky-day-glow: rgba(255, 244, 214, 0.8);
+  --sky-dusk-1: #1b1a3b;
+  --sky-dusk-2: #3b2b56;
+  --sky-dusk-3: #6c3d58;
+  --sky-dusk-4: #ad5f5a;
+  --sky-dusk-glow: rgba(246, 160, 100, 0.58);
+  --sky-hill-night: #151c35;
+  --sky-hill-dawn: #352f50;
+  --sky-hill-day: #a7c2d6;
+  --sky-hill-dusk: #321f3a;
+  --sky-moon: #f4e8c8;
+  --sky-moon-glow: rgba(244, 232, 200, 0.4);
+  --sky-sun-dawn: #fff4de;
+  --sky-sun-dawn-2: #ffbb8c;
+  --sky-sun-dawn-glow: rgba(255, 200, 150, 0.45);
+  --sky-sun-day: #fffdf3;
+  --sky-sun-day-2: #fff0c2;
+  --sky-sun-day-glow: rgba(255, 249, 222, 0.8);
+  --sky-sun-dusk: #ffe3ba;
+  --sky-sun-dusk-2: #ff9f6c;
+  --sky-sun-dusk-glow: rgba(255, 150, 100, 0.45);
+  --sky-band: rgba(176, 186, 240, 0.2);
+  --sky-band-warm: rgba(255, 200, 185, 0.18);
+  --sky-cloud: rgba(255, 255, 255, 0.7);
+  --sky-ink-light: #ffffff;
+  --sky-ink-light-2: rgba(255, 255, 255, 0.9);
+  --sky-star-empty-light: rgba(255, 255, 255, 0.75);
+  --sky-ink-day: #1b2733;
+  --sky-star-empty-day: rgba(27, 39, 51, 0.6);
+  --sky-star-day: #a8731c;
+  --sky-star-warm: #f6dcaa;
+  --sky-star-glow: rgba(227, 196, 142, 0.6);
+  --sky-star-glow-day: rgba(168, 115, 28, 0.35);
+  --shadow-panel: 0 28px 64px rgba(8, 12, 28, 0.3), 0 2px 8px rgba(8, 12, 28, 0.12);
+  --night-1: #121a31;
+  --night-2: #1e2745;
+  --night-3: #2a2c47;
 
   /* 글자 크기 8단계 (rem — 브라우저 글자 크기 설정을 따른다, DES §1.2·§3.4).
      px 은 루트 16px 기준 환산값. 새 크기를 만들지 말고 가장 가까운 단계를 쓴다. */
@@ -679,28 +732,6 @@
     inset: 0;
     background: linear-gradient(180deg, var(--veil-0) 18%, var(--veil-80) 55%, var(--veil-92) 100%);
   }
-  /* 텍스트는 veil 알파 0.80 이상 구간(하단 45%)에만 둔다 (§3.2) */
-  .shot__tx {
-    position: absolute;
-    left: 18px;
-    right: 18px;
-    bottom: 16px;
-    color: var(--accent-ink);
-    z-index: 1;
-  }
-  .shot__greet {
-    font-size: var(--fs-2xl);
-    font-weight: 700;
-    line-height: 1.35;
-    letter-spacing: -0.02em;
-    text-wrap: balance;
-    margin: 0;
-  }
-  .shot__sub {
-    font-size: var(--fs-xs);
-    opacity: 0.92;
-    margin: 4px 0 0;
-  }
 
   /* ---------- 7. 진행 표시 (프로토타입 hoondok.css §7) ---------- */
   /* 바깥 여백은 쓰는 화면마다 달라 여기 두지 않는다 — 프로토타입도 쓰는 쪽에서 margin-top 을 붙인다. */
@@ -742,57 +773,7 @@
     color: var(--ink-2);
   }
 
-  /* ---------- 8. 요일 스트립 ---------- */
-  .week {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  .week__days {
-    flex: 1;
-    min-width: 0;
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 6px;
-    justify-items: center;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .week__check {
-    position: absolute;
-    right: -2px;
-    bottom: 0;
-    background: var(--paper);
-    color: var(--ok);
-    border-radius: 50%;
-  }
-  .week__day {
-    position: relative;
-    width: 100%;
-    max-width: 34px;
-    aspect-ratio: 1;
-    height: auto;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    font-size: var(--fs-xs);
-    color: var(--ink-3);
-    border: 1px solid var(--ink-3);
-    background: var(--surface);
-  }
-  .week__day[data-done] {
-    background: var(--ok-soft);
-    color: var(--ok-strong);
-    border-color: transparent;
-    font-weight: 600;
-  }
-  .week__day[data-today] {
-    border: 2px solid var(--accent);
-    color: var(--accent-strong);
-    font-weight: 700;
-  }
+  /* ---------- 8. 요일 스트립 — 홈 하늘 별자리로 옮겼다 (_hoondok/home.css) ---------- */
 
   /* ---------- 9. 버튼 (DES §1.5) ---------- */
   .btn {
@@ -979,9 +960,6 @@
       height: 1px;
       overflow: hidden;
       clip: rect(0 0 0 0);
-    }
-    .app__main--home .col {
-      padding-top: 24px;
     }
     .icon-btn--search {
       display: none;

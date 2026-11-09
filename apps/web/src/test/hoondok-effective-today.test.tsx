@@ -4,6 +4,7 @@ import type { JeongseongTodayResponse } from "@truewords/api-client-ts/types";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HomeMissions } from "@/features/hoondok/components/home-missions";
+import { HomeWeek } from "@/features/hoondok/components/home-sky";
 import { EffectiveReading } from "@/features/hoondok/jeongseong/components/effective-reading";
 import { useEffectiveToday } from "@/features/hoondok/jeongseong/use-effective-today";
 import { jeongseongAPI } from "@/features/hoondok/jeongseong-api";
@@ -90,7 +91,7 @@ describe("홈·읽기 공통 오늘 말씀", () => {
     const { wrapper } = setup();
     render(
       <>
-        <HomeMissions today={PUBLIC} todayWeekday={1} />
+        <HomeMissions today={PUBLIC} />
         <EffectiveReading today={PUBLIC} />
       </>,
       { wrapper },
@@ -115,7 +116,8 @@ describe("홈·읽기 공통 오늘 말씀", () => {
       }),
     );
     const { wrapper } = setup();
-    const view = render(<HomeMissions today={PUBLIC} todayWeekday={1} />, { wrapper });
+    // "이번 주" 는 하늘 안 별자리(HomeWeek)로 옮겼다 — 연속일 규칙은 그대로다
+    const view = render(<HomeWeek today={PUBLIC} todayWeekday={1} />, { wrapper });
     expect(view.container.querySelector(".week__streak")).toBeNull();
     expect(screen.queryByText("연속 3일")).toBeNull();
     await act(async () =>

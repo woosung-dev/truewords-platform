@@ -2,17 +2,6 @@
    값은 프로토타입 hoondok.css, 토큰만 사용(hex 금지). 공용 컴포넌트(.card·.sect·.hint·.empty·.btn)는
    hoondok.css 가 갖고 여기에는 이 네 화면만 쓰는 배치·간격을 둔다. */
 [data-app="hoondok"] {
-  /* 행동 버튼으로 높아진 글자 영역 전체에 사진 대비를 확보한다. */
-  .shot--today::after {
-    background: linear-gradient(180deg, var(--veil-0) 0%, var(--veil-80) 25%, var(--veil-92) 100%);
-  }
-  /* 홈 첫 화면에서도 사진과 책갈피를 지나지 않고 오늘 훈독을 열 수 있다. */
-  .shot--today .shot__go {
-    width: fit-content;
-    min-height: 44px;
-    margin-top: 12px;
-    padding: 8px 16px;
-  }
   /* ---------- 001 온보딩 ---------- */
   /* 첫 화면만 거터 24px (DES-PWA-003 §5 001 행). --gutter 토큰은 건드리지 않는다. */
   .col--onb {

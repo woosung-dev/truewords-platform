@@ -76,6 +76,7 @@
 | 진행 링 | 미니 플레이어 `.wd-mini__pp::before` 의 `conic-gradient` + 링 모양 `mask` | 듣기 진행률을 원 둘레로 보인다 |
 | 반투명 흐림 | 리더 독 `.wd-dock` 의 `backdrop-filter: blur(14px) saturate(1.2)` (`_hoondok/library.css`) | 본문 위에 떠 있는 독의 글자를 읽히게 한다. 흐림은 이 한 곳뿐이다 |
 | 공유 버튼 색 | `--kakao`·`--kakao-ink` | 카카오톡 공유 버튼의 브랜드 지정 색 |
+| 홈 하늘 (2026-11-09) | 토큰 `--sky-{night\|dawn\|day\|dusk}-1~4`·`-glow`·`--sky-hill-*`·`--sky-moon*`·`--sky-sun-*`·`--sky-band*`·`--sky-cloud`, 하늘 위 글자·별 `--sky-ink-*`·`--sky-star-*`, 말씀 판 그림자 `--shadow-panel`, 책갈피 밤 판 `--night-1~3`. 그라데이션은 `_hoondok/home.css` 의 `.sky__layer--*`·`.sky__band-half`·해 `.sky__orb`·`.home .bmhome__env` | 시간대 하늘을 그리는 그림이다. 하늘 위 글자는 네 시간대 모두 실제 바탕 픽셀 기준 AA(4.5:1)를 지킨다 |
 
 ### 1.2 타이포 스케일
 
@@ -211,7 +212,7 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 
 | 파일 (`public/hoondok/photos/`) | 쓰는 곳 | Unsplash 원본 | 작가 |
 |---|---|---|---|
-| `home-morning-field.webp` | `SCR-PWA-002` 홈 히어로 | https://unsplash.com/photos/kmF_Aq8gkp0 | Zugr |
+| `home-morning-field.webp` | 책갈피 사진 카드 바탕 `field` | https://unsplash.com/photos/kmF_Aq8gkp0 | Zugr |
 | `onboarding-sunlit-field.webp` | `SCR-PWA-001` 온보딩 히어로 | https://unsplash.com/photos/2FrX56QL7P8 | Alexander Shustov |
 | `worship-bench-family.webp` | `SCR-PWA-010` 가정예배 히어로 | https://unsplash.com/photos/A88emaZe7d8 | Charlie Foster |
 | `sermon-orchard-dusk.webp` | `SCR-PWA-010`·`012` 설교 히어로 | https://unsplash.com/photos/vIqxsp0_p1g | Jennifer Langley |
@@ -222,7 +223,7 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 | `sermon-thumb-4.webp` | 〃 | https://unsplash.com/photos/VB-w_3dnyvI | Andrew Coelho |
 
 히어로는 1440×900, 썸네일은 720×450 WebP 다. 파일명을 바꿀 때만 캐시가 갱신되도록 `next.config.ts` 가 `/hoondok/photos/:path*` 에 `immutable` 을 준다. 용량 때문에 서비스워커 precache 에는 넣지 않는다 — 오프라인이면 `.shot` 의 `--ink` 바탕이 남고 흰 글자는 그대로 읽힌다.
-- **모션**: 전환은 시트 등장 220ms, 체크 전환 150ms, 버튼 누름 120ms, 토글 150ms 를 기준으로 한다. `@keyframes` 목록(2026-11-09 기준): 공용 `hoondok-spin`(스피너)·`hoondok-sheet-up`(시트)·`hoondok-menu-in`(메뉴 패널), 책갈피 `hoondok-bm-sway`(홈 대기 중 금색 리본 2회 흔들림)·`hoondok-pc-pulse`(사진 카드 미리보기 불러오는 중), 서고·리더 `wd-arrive`(이어 읽기로 도착한 단락 표시)·`wd-skel-pulse`(스켈레톤)·`hl-bar-in`(형광펜 막대)·`rd-toast-in`(리더 토스트)·`wd-dock-pop`(미니 플레이어 등장)·`wd-ring-pop`·`wd-check-draw`(다 읽음 체크), 부엉이 마스코트 `hoondok-owl-settle`(놓일 때 1회)·`hoondok-owl-breathe`(AI 대기 중 2회, 플래그 `NEXT_PUBLIC_HOONDOK_MASCOT`), 7일 정성 `hoondok-path-breath`(숨 고르기 원 3초 1회). 7일 정성의 부엉이는 말하지 않고 세 곳에만 선다: 질문 1 welcome 72 · 정성 홈 다음 장 행 reading 40 · 7일 마침표 heart 96(한 화면 하나, 돌아온 날 시트·본문·날마다 마침에는 없음). 새 키프레임은 이 목록에 먼저 더한다. `prefers-reduced-motion: reduce`에서 스피너를 뺀 애니메이션과 전환을 모두 끈다(시안이 이미 구현).
+- **모션**: 전환은 시트 등장 220ms, 체크 전환 150ms, 버튼 누름 120ms, 토글 150ms 를 기준으로 한다. `@keyframes` 목록(2026-11-09 기준): 공용 `hoondok-spin`(스피너)·`hoondok-sheet-up`(시트)·`hoondok-menu-in`(메뉴 패널), 책갈피 `hoondok-bm-sway`(홈 대기 중 금색 리본 2회 흔들림)·`hoondok-pc-pulse`(사진 카드 미리보기 불러오는 중), 서고·리더 `wd-arrive`(이어 읽기로 도착한 단락 표시)·`wd-skel-pulse`(스켈레톤)·`hl-bar-in`(형광펜 막대)·`rd-toast-in`(리더 토스트)·`wd-dock-pop`(미니 플레이어 등장)·`wd-ring-pop`·`wd-check-draw`(다 읽음 체크), 부엉이 마스코트 `hoondok-owl-settle`(놓일 때 1회)·`hoondok-owl-breathe`(AI 대기 중 2회, 플래그 `NEXT_PUBLIC_HOONDOK_MASCOT`), 홈 하늘 `hoondok-sky-twinkle`(잔별)·`hoondok-sky-drift`(은하수 띠·구름 260초)·`hoondok-sky-fade`(별자리 선)·`hoondok-sky-pop`(훈독한 날 별 1회), 7일 정성 `hoondok-path-breath`(숨 고르기 원 3초 1회). 7일 정성의 부엉이는 말하지 않고 세 곳에만 선다: 질문 1 welcome 72 · 정성 홈 다음 장 행 reading 40 · 7일 마침표 heart 96(한 화면 하나, 돌아온 날 시트·본문·날마다 마침에는 없음). 새 키프레임은 이 목록에 먼저 더한다. `prefers-reduced-motion: reduce`에서 스피너를 뺀 애니메이션과 전환을 모두 끈다(시안이 이미 구현).
 
 ### 1.7 앱 아이콘·설치 메타 (2026-09-19, PLAN-HD-001 Phase 3 C)
 
@@ -421,6 +422,15 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 - 구조: `.card` 안에 아이콘 박스 48px(`--accent-soft` 배경 · `--accent-strong` 글자 · `--r-sm`) + 제목 15/600 + 본문 12.5 `--ink-2` + 우측 정렬 액션 `.btn--sm`("지금 추가" primary · "나중에" line). 미션 카드(§2.1)와 같은 치수라 홈 열에서 한 장처럼 읽힌다.
 - 변형은 본문만 다르다: iOS(공유 버튼 → '홈 화면에 추가') · prompt(`beforeinstallprompt` 캡처 시 "지금 추가" 버튼) · manual(Chrome·Safari 에서 열고 브라우저 메뉴). 알림 문구는 Phase 4 라 쓰지 않는다.
 - 노출: 사용자가 직접 완료해 처음 기록된 뒤, standalone 이 아닐 때. "나중에" 는 30일 숨김, 설치 완료(`appinstalled`·prompt 수락) 뒤에는 그 브라우저에서 다시 보이지 않는다.
+
+### 2.13 홈 "오늘의 하늘" (`SCR-PWA-002`, 2026-11-09)
+
+- 시간대는 **KST** 시각으로 고른다: 새벽 4~7시 · 낮 7~17시 · 저녁 17~20시 · 그 밖 밤. 서버가 요청 시각으로 고른 값으로 렌더·hydration 하고, 직후 기기 시각으로 다시 고른다(경계 시각에 둘이 달라도 불일치 경고 없이 하늘만 한 번 바뀐다). 열어 둔 화면은 경계 시각·화면 복귀 때 바뀐다. 시간대를 고르는 버튼·주소 파라미터는 두지 않는다.
+- 하늘 = 그라데이션 네 장(opacity 전환) + 잔별·은하수 띠/구름 + 해·달(transform). 낮만 짙은 글자(`--sky-ink-day`), 나머지는 흰 글자. 부엉이는 시간대별 그림(새벽 welcome · 낮 cheer · 저녁 rest · 밤 reading)이고 완료·연속일로 바꾸지 않는다(`DEC-PWA-019`).
+- 하늘 안에 인사(가장 큰 글자)와 "이번 주" 별자리: 빈 날 점선 빈 별, 훈독한 날 금색 별, 오늘 고리 + "오늘", **연속으로 이어진 날끼리만** 금색 선. 값은 summary(API-HD-004) 그대로다.
+- 지평선에 걸친 "오늘 읽을 말씀" 판에는 미션 카드가 이미 보이는 제목·저작물·화자·예상 분만 싣고 본문은 싣지 않는다. 주 버튼 "훈독하기" → `/read`.
+- 땅: 실천 → 책갈피(밤 판: 남색 + 잔별 + 금색 리본)·타일 → 정성 기간 · 함께 읽기. 1024px 이상은 홈만 1120px 넓은 폭을 쓴다 — 하늘 600px 에 별자리 대각선, 말씀 판은 오른쪽 아래(폭 46%), 땅은 두 칸(실천 / 책갈피·타일), 그 아래 정성 기간 · 함께 읽기 나란히(하나뿐이면 한 줄 전체).
+- 홈의 작은 글자(섹션 메타·미션 종류·메타·베타 고지)는 14px 단계(`--fs-sm`)를 쓴다.
 
 ## 3. 접근성
 
@@ -678,7 +688,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | SCR | 화면 | 390px | 768px | 1280px |
 |---|---|---|---|---|
 | 001 | 온보딩·베타 고지·시작 방법 (2026-09-23: 소속 교회 선택 제거, `DEC-PWA-023`) | 상단 사진 300px + 단일 컬럼, 거터 24px. 탭바 없음 | 콘텐츠 720px 중앙, 사진 높이 340px | 동일. **레일 없음** (온보딩은 탭 진입 전) |
-| 002 | 오늘 훈독 (홈) | 히어로 210px → 요일 스트립 → 미션 3장 세로 → 정성 → 함께 읽는 사람들(익명 숫자 카드, `?together=`. 모임 카드는 2026-11-04 제거) | 콘텐츠 720px 중앙, 히어로 260px. 미션은 **세로 유지** | 레일 240px + 본문 720px. 미션 세로 유지. 순서가 "오늘 할 일 1·2·3"이므로 가로 배치 금지 |
+| 002 | 오늘 훈독 (홈) | **2026-11-09 "오늘의 하늘"(§2.13):** 화면 폭 하늘(인사·이번 주 별자리) → 말씀 판(지평선에 걸침) → 미션 3장 세로 → 책갈피·타일 → 정성 → 함께 읽는 사람들(익명 숫자 카드) | 동일, 별자리 상자만 넓어진다 | 홈만 1120px: 하늘 600px + 별자리 대각선, 말씀 판 오른쪽 아래, 땅 두 칸(실천 / 책갈피). 미션은 세로 유지(순서가 "오늘 할 일 1·2·3") |
 | 003 | 훈독하기 | 출처 줄 → 제목 26px → 인용 → 용어 칩 → AI 설명 → 한 줄 성찰 → 완료 버튼 | 컬럼 전체 **640px** 중앙 | 동일 + 레일. 앱바도 640px 정렬 |
 | 004 | 정성 기간 만들기 | **바텀 시트**, 최대 높이 88% | 동일 | **중앙 모달** 520px, `--shadow-2` |
 | 005 | AI 질문 (목록 홈) | **2026-11-04:** 밑줄 세그먼트 3탭(추천·저장·내 질문) + 돋보기 + 리스트 + FAB 우하단 (§2.9). ~~2026-09-16: 라벨 있는 입력 + 시작 문장 3개~~ | 콘텐츠 720px 중앙 | 동일 + 헤더 검색바 |
@@ -804,6 +814,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | 2026-11-04 | `DEC-PWA-027` 훈독 모임 화면(`SCR-PWA-017~021`)·홈 모임 카드 제거. 모임 전용 CSS(`together.css` 2단계·`together-home.css`)와 쓰는 곳이 없어진 `.radio` 공용 규칙을 지우고, 인라인 확인 카드 `.tg-confirm` 만 남긴다(맞춤 말씀 "모두 지우기"). 프로토타입의 모임 화면은 이력으로만 둔다 | 확정 · §5 |
 | 2026-11-09 | 오늘의 책갈피 = **사진 카드**. 022 홈은 짙은 봉투+금색 리본과 타일(나의 책갈피 N장·내 카드 갤러리), 023 받기는 사진 카드, 024 "사진 카드로 건네기" 시트는 크기(4:5 피드·9:16 스토리)·바탕(사진 4·책 색)·출처(자세히·책 이름만)를 고르고 서버 이미지 `/c/{id}/image?f=feed\|story&bg=&src=` 를 미리보기·저장·공유한다(`f=link\|square` 유지). 출처와 훈독 표시는 늘 인쇄하고 "빼기" 는 두지 않는다. 마지막 모양은 카드별로 기기에만 남긴다. 026 나의 책갈피는 책장(받은 수만큼 두꺼운 책등 → 부채꼴 최대 7장)·내 카드 갤러리(건넨 카드를 그 모양대로 다시 건네기)·이번 달 모은 말씀(`/c/collage/image?ids=&theme=paper\|night&f=`, 4장까지, 건넴 기록 없음) | 확정 · `SCR-PWA-022~024·026` |
 | 2026-11-09 | `SCR-PWA-026` 책장 부채 = **부채 돌리기**(다이얼). 카드는 아래 바깥 공통 회전축으로 돌고 고른 카드는 가운데에 똑바로 선다(금색 테). 넘기기는 양옆 원형 버튼("이전 말씀"·"다음 말씀")·보이는 카드 누르기·가로 드래그(휙 넘겨도 한 장)·←/→/Home/End, 위치는 "2 / 7" 알약. **돌아 감기 없음** — 끝에서는 부채가 살짝 밀렸다 돌아오고 "첫 번째·마지막 말씀이에요"를 읽어 주며 그쪽 버튼은 `aria-disabled`. 1장이면 버튼·알약 없음. 768 이상은 왼쪽 부채 무대 + 오른쪽 글·버튼 칸 | 확정 · `SCR-PWA-026` |
+| 2026-11-09 | `SCR-PWA-002` 홈 = **"오늘의 하늘"**. 사진 히어로를 KST 시간대 하늘(그라데이션·별·해달)로 바꾸고, 요일 스트립을 하늘 안 별자리(연속일만 선으로 잇기)로, 훈독하기 버튼을 지평선 말씀 판(제목·저작물·화자·분만)으로 옮긴다. 책갈피 홈 카드는 밤 판 톤. 1024px 이상은 홈만 넓은 폭 | 확정 · §2.13 |
 
 
 ### PLAN-HD-005 여정 연결 결정 (2026-09-21)
