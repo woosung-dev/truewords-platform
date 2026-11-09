@@ -30,14 +30,21 @@ import {
   OTHER_BANNER_BODY,
   OTHER_BANNER_TITLE,
 } from "@/features/hoondok/install/components/in-app-browser-banner";
-import { INSTALL_CARD_BODY } from "@/features/hoondok/install/components/install-card";
+import {
+  INSTALL_CARD_TITLE,
+  INSTALL_HOWTO_LABEL,
+  IOS_INSTALL_STEPS,
+} from "@/features/hoondok/install/components/install-card";
 import { externalNavigation, inAppBrowser, kakaoOpenExternalUrl } from "@/features/hoondok/install/platform";
 import { markInstallEligible } from "@/features/hoondok/install/storage";
 import { notificationsAPI } from "@/features/hoondok/notifications/api";
+import { HoondokNoticeSlot } from "@/features/hoondok/notice/components/notice-slot";
+import { collapseNotice, type NoticeSignal, useNoticeSignal, useNoticeState } from "@/features/hoondok/notice/notice-store";
 import {
   PUSH_PROMPT_IOS_TITLE,
+  PUSH_PROMPT_PICK_LABEL,
   PUSH_PROMPT_TITLE,
-  PushPromptCard,
+  PushPromptNotice,
 } from "@/features/hoondok/notifications/components/push-prompt-card";
 import { type PushPromptInput, pushPromptVariant } from "@/features/hoondok/notifications/push-prompt-policy";
 import {
@@ -144,11 +151,22 @@ beforeEach(() => {
   restoreNavigator = stubReadyBrowser();
 });
 afterEach(() => {
+  collapseNotice();
   restoreNavigator();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
+
+/** 하단 안내 자리에 놓인 알림 제안 — 펼침 상태는 안내 자리 저장소를 따른다. */
+function PushPromptCard(props: NoticeSignal | { placement: NoticeSignal["placement"]; isReadDone?: boolean }) {
+  const { expanded } = useNoticeState();
+  return <PushPromptNotice {...props} isExpanded={expanded === "push"} />;
+}
+/** 접힌 한 줄의 "시각 고르기" 로 같은 자리에서 펼친다. */
+async function openPicker() {
+  fireEvent.click(await screen.findByRole("button", { name: PUSH_PROMPT_PICK_LABEL }));
+}
 
 /** "…에 알림 받기" — 버튼 문구에 미리 고른 시각이 들어간다. */
 const ENABLE_BUTTON = /에 알림 받기$/;
@@ -163,7 +181,6 @@ describe("pushPromptVariant — 노출 정책", () => {
     declines: 0,
     isDeclinedToday: false,
     isReadDone: false,
-    isInstallCardVisible: false,
   };
 
   it("로그인 · 꺼짐 · ready 면 홈에서 보인다", () => {
@@ -212,14 +229,8 @@ describe("pushPromptVariant — 노출 정책", () => {
     expect(pushPromptVariant({ ...afterRead, isReadDone: true, declines: 5 })).toBe("hidden");
   });
 
-  it("iOS 미설치는 설치 안내 변형이고, 홈에 설치 카드가 이미 보이면 겹치지 않는다", () => {
-    const ios = { ...base, support: "ios-not-installed" as const };
-    expect(pushPromptVariant(ios)).toBe("ios");
-    expect(pushPromptVariant({ ...ios, isInstallCardVisible: true })).toBe("hidden");
-    // 훈독하기 화면에는 설치 카드가 없다 — 겹칠 일이 없으니 그대로 보인다
-    expect(pushPromptVariant({ ...ios, placement: "after-read", isReadDone: true, isInstallCardVisible: true })).toBe(
-      "ios",
-    );
+  it("iOS 미설치는 설치 안내 변형이다 (설치 안내와의 순서는 하단 안내 자리가 정한다)", () => {
+    expect(pushPromptVariant({ ...base, support: "ios-not-installed" })).toBe("ios");
   });
 });
 
@@ -270,9 +281,12 @@ describe("PushPromptCard — ready", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-09-28T22:40:00Z"));
     render(wrap(<PushPromptCard placement="home" />));
-    expect(await screen.findByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeInTheDocument();
+    expect(await screen.findByText(PUSH_PROMPT_TITLE)).toBeInTheDocument();
     expect(screen.getByText("잠금 화면에는 '오늘의 책갈피가 꽂혀 있어요' 처럼 보여요")).toBeInTheDocument();
-    const group = screen.getByRole("radiogroup", { name: PUSH_PROMPT_TITLE });
+    // 접힌 한 줄에는 시각 칸이 없다 — 같은 자리에서 펼쳐야 고른다
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    await openPicker();
+    const group = screen.getByRole("radiogroup", { name: "알림 받을 시각" });
     expect(within(group).getAllByRole("radio")).toHaveLength(4);
     expect(within(group).getByRole("radio", { name: /아침\s*오전 7:30/ })).toBeChecked();
 
@@ -298,6 +312,7 @@ describe("PushPromptCard — ready", () => {
 
   it("다른 칸을 고르면 버튼 문구와 저장 시각이 함께 바뀌고, 훈독 완료 뒤 자리에서는 '내일' 로 안내한다", async () => {
     render(wrap(<PushPromptCard placement="after-read" isReadDone />));
+    await openPicker();
     fireEvent.click(await screen.findByRole("radio", { name: /새벽\s*오전 5:30/ }));
     // 칸을 고르는 것만으로는 권한도 저장도 없다
     expect(Notification.requestPermission).not.toHaveBeenCalled();
@@ -312,6 +327,7 @@ describe("PushPromptCard — ready", () => {
     restoreNavigator();
     restoreNavigator = stubReadyBrowser("denied");
     render(wrap(<PushPromptCard placement="home" />));
+    await openPicker();
     fireEvent.click(await screen.findByRole("button", { name: ENABLE_BUTTON }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(PUSH_MESSAGES.permission);
@@ -325,7 +341,7 @@ describe("PushPromptCard — ready", () => {
   it("나중에: 같은 날에는 어느 자리에서도 다시 묻지 않고, 다음 날 오늘 마친 뒤에 한 번 더 묻는다", async () => {
     const home = render(wrap(<PushPromptCard placement="home" />));
     fireEvent.click(await screen.findByRole("button", { name: "나중에" }));
-    expect(screen.queryByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeNull();
+    expect(screen.queryByText(PUSH_PROMPT_TITLE)).toBeNull();
     expect(JSON.parse(localStorage.getItem(PROMPT_KEY) ?? "null")).toEqual({ declines: 1, lastDeclinedOn: kstToday() });
     home.unmount();
 
@@ -346,7 +362,7 @@ describe("PushPromptCard — ready", () => {
     localStorage.setItem(PROMPT_KEY, JSON.stringify({ declines: 1, lastDeclinedOn: kstYesterday() }));
     const afterRead = render(wrap(<PushPromptCard placement="after-read" isReadDone />));
     fireEvent.click(await screen.findByRole("button", { name: "나중에" }));
-    expect(screen.queryByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeNull();
+    expect(screen.queryByText(PUSH_PROMPT_TITLE)).toBeNull();
     expect(JSON.parse(localStorage.getItem(PROMPT_KEY) ?? "null")).toEqual({ declines: 2, lastDeclinedOn: kstToday() });
     afterRead.unmount();
 
@@ -374,13 +390,13 @@ describe("PushPromptCard — ready", () => {
     expect(view.container).toBeEmptyDOMElement();
     // 같은 자리에서 오늘 완료가 되면(미션 카드 즉시 완료) 그대로 나타난다
     view.rerender(wrap(<PushPromptCard placement="home" isReadDone />, client));
-    expect(await screen.findByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeInTheDocument();
+    expect(await screen.findByText(PUSH_PROMPT_TITLE)).toBeInTheDocument();
   });
 
   it('옛 저장값 {"declines":1}(날짜 없음)은 같은 날로 보지 않아 두 번째 기회를 막지 않는다', async () => {
     localStorage.setItem(PROMPT_KEY, '{"declines":1}');
     render(wrap(<PushPromptCard placement="after-read" isReadDone />));
-    expect(await screen.findByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeInTheDocument();
+    expect(await screen.findByText(PUSH_PROMPT_TITLE)).toBeInTheDocument();
   });
 
   it("저장소가 막혀 있어도 카드는 그려지고 나중에를 누르면 그 자리에서 사라진다", async () => {
@@ -392,7 +408,7 @@ describe("PushPromptCard — ready", () => {
     });
     render(wrap(<PushPromptCard placement="home" />));
     fireEvent.click(await screen.findByRole("button", { name: "나중에" }));
-    expect(screen.queryByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeNull();
+    expect(screen.queryByText(PUSH_PROMPT_TITLE)).toBeNull();
   });
 });
 
@@ -426,7 +442,7 @@ describe("PushPromptCard — 그리지 않는 경우", () => {
 
     // 대조군 — 같은 준비에서 홈 자리는 실제로 보인다(위 숨김이 "불러오는 중" 이 아니었다는 확인)
     render(wrap(<PushPromptCard placement="home" />));
-    expect(await screen.findByRole("heading", { name: PUSH_PROMPT_TITLE })).toBeInTheDocument();
+    expect(await screen.findByText(PUSH_PROMPT_TITLE)).toBeInTheDocument();
   });
 
   it("카카오톡 인앱 브라우저에서는 알림 제안도, 알림 조회도 하지 않는다 (배너가 바깥 브라우저로 보낸다)", async () => {
@@ -450,25 +466,46 @@ describe("PushPromptCard — iOS 사파리 탭", () => {
     );
   });
 
-  it("알림 대신 홈 화면에 추가하라는 안내 — 설치 카드의 iOS 단계 문구를 그대로 쓴다", async () => {
+  it("알림 대신 홈 화면에 추가하라는 안내 — 방법 보기로 설치 3단계를 같은 자리에 펼친다", async () => {
     render(wrap(<PushPromptCard placement="home" />));
-    expect(await screen.findByRole("heading", { name: PUSH_PROMPT_IOS_TITLE })).toBeInTheDocument();
-    expect(screen.getByText(INSTALL_CARD_BODY.ios)).toBeInTheDocument();
+    expect(await screen.findByText(PUSH_PROMPT_IOS_TITLE)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: PUSH_PROMPT_PICK_LABEL })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: INSTALL_HOWTO_LABEL }));
+    for (const step of IOS_INSTALL_STEPS) expect(screen.getByText(step)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: ENABLE_BUTTON })).toBeNull();
     expect(screen.queryAllByRole("radio")).toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "나중에" }));
-    expect(screen.queryByRole("heading", { name: PUSH_PROMPT_IOS_TITLE })).toBeNull();
+    expect(screen.queryByText(PUSH_PROMPT_IOS_TITLE)).toBeNull();
     expect(readPushPromptDeclines()).toBe(1);
   });
 
-  it("홈에 설치 안내 카드가 이미 보이면(첫 완료 뒤) 같은 안내를 겹쳐 싣지 않는다", async () => {
+  it("하단 안내 자리: 설치 안내가 보이는 동안 알림 제안은 쉬고, 설치 안내를 숨기면 같은 자리에 온다", async () => {
     markInstallEligible();
     const client = makeClient();
-    const view = render(wrap(<PushPromptCard placement="home" />, client));
-    await settle(client, { expectPrefs: true });
-    expect(view.container).toBeEmptyDOMElement();
+    render(
+      wrap(
+        <>
+          <HomeSignal />
+          <HoondokNoticeSlot />
+        </>,
+        client,
+      ),
+    );
+    expect(await screen.findByText(INSTALL_CARD_TITLE)).toBeInTheDocument();
+    // 설치 안내가 자리를 차지하는 동안에는 알림 제안을 마운트하지 않는다 — 알림 조회도 없다
+    expect(screen.queryByText(PUSH_PROMPT_IOS_TITLE)).toBeNull();
+    expect(notificationsAPI.config).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "나중에" }));
+    expect(await screen.findByText(PUSH_PROMPT_IOS_TITLE)).toBeInTheDocument();
+    expect(screen.queryByText(INSTALL_CARD_TITLE)).toBeNull();
   });
 });
+
+/** 홈 화면이 보내는 신호만 흉내낸다 (HomeMissions 의 useNoticeSignal). */
+function HomeSignal() {
+  useNoticeSignal({ placement: "home", isReadDone: false });
+  return null;
+}
 
 describe("inAppBrowser — UA 표", () => {
   it.each<[string, string, "kakaotalk" | "other" | null]>([

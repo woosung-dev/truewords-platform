@@ -1,5 +1,5 @@
 // SCR-PWA-002 오늘 훈독 (홈). 비로그인 읽기 + 로그인 시 완료·연속일(Phase 2). 히어로는 텍스트 카드(결정 12).
-// 설치 안내 카드(Phase 3 E)는 직접 완료가 처음 기록된 뒤에만 보이며 자기 조건을 스스로 판정한다.
+// 설치 권유·알림 제안은 layout 의 하단 안내 자리가 그린다 — 홈은 HomeMissions 가 신호만 보낸다.
 // 말씀 본문은 홈에 싣지 않는다 — 정본 프로토타입이 today 에서 `.lede`·`.lede-src` 를 숨기고,
 // PRD SCR-PWA-002 는 미션 3종만 열거하며, DES §2.2 말씀 카드는 SCR-PWA-003·006·008 컴포넌트다.
 // 홈은 "오늘 무엇을 할지", 읽기는 `/read` 로 분리해야 미션 카드 → 훈독 루프가 산다.
@@ -8,7 +8,6 @@ import { loadTodayCard } from "@/features/hoondok/cards/api";
 import { cardDayLabel } from "@/features/hoondok/cards/format";
 import { HomeGreeting, HomeMissions, HomeTogether } from "@/features/hoondok/components/home-missions";
 import { isHoondokCardsEnabled } from "@/features/hoondok/flag";
-import { InstallCard } from "@/features/hoondok/install/components/install-card";
 import { JeongseongCard } from "@/features/hoondok/jeongseong/components/jeongseong-card";
 import { JeongseongSheet } from "@/features/hoondok/jeongseong/components/jeongseong-sheet";
 import { PersonalBookmarkHome } from "@/features/hoondok/personal/components/home-bookmark";
@@ -33,8 +32,6 @@ export default async function HoondokHomePage() {
 
       {/* 함께 읽는 사람들 — 익명 숫자 카드 1장 (PLAN-HD-009) */}
       <HomeTogether today={today} />
-
-      <InstallCard />
 
       <p className="notice">독립 운영 베타</p>
       <JeongseongSheet />

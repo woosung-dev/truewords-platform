@@ -366,22 +366,116 @@
     gap: 8px;
   }
 
-  /* ---------- 알림 받기 제안 카드 (홈 상단 · 훈독하기 완료 아래, PLAN-HD-006) ----------
-     몸통은 설치 안내 카드(.install*)를 그대로 쓴다. 주 버튼은 전폭 `.btn`, "나중에" 는 글자 버튼이라 주 CTA 와 겨루지 않는다. */
-  .push-prompt {
-    margin-top: 16px;
+  /* ---------- 하단 안내 자리 (설치 권유 · 알림 제안, layout 에 하나) ----------
+     하단 4탭 바로 위에 떠 있다. 한 번에 하나만 보이고, 펼치면 같은 자리에서 위로 자란다. */
+  .notice-slot {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(76px + env(safe-area-inset-bottom) + 8px);
+    z-index: 30;
+    max-width: calc(var(--measure-app) - 24px);
+    max-height: calc(100dvh - 160px);
+    overflow-y: auto;
+    margin: 0 auto;
+    padding: 10px 4px 10px 12px;
+    text-align: left;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    box-shadow: var(--shadow-2);
   }
-  /* 홈에서는 "이번 주" 섹션 다음 — 섹션 간격(.sect 24px)에 맞춘다 */
-  .sect + .push-prompt {
-    margin-top: 24px;
+  .notice-slot[data-expanded] {
+    border-color: var(--accent);
   }
-  .push-prompt .st-note {
-    margin: 0;
-  }
-  /* 켠 뒤의 아이콘은 완료 색 — 설치 카드의 액센트 박스와 구분된다 */
-  .push-prompt__ic--on {
+  /* 방금 훈독을 마친 순간 — "오늘 훈독을 마쳤어요" 를 먼저 보게 1.2초 뒤에 조용히 나타난다. 동작 줄이기면 포괄 규칙이 끈다. */
+  .notice-slot[data-tone="done"] {
     background: var(--ok-soft);
-    color: var(--ok-strong);
+    animation: notice-in 280ms ease-out 1.2s both;
+  }
+  @keyframes notice-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  .notice-slot__row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .notice-slot__lead {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+  }
+  .notice-slot__lead:has(.owl) {
+    background: transparent;
+  }
+  .notice-slot[data-tone="done"] .notice-slot__lead {
+    background: var(--ok-strong);
+    color: var(--surface);
+  }
+  .notice-slot__bd {
+    flex: 1;
+    min-width: 0;
+  }
+  .notice-slot__title {
+    margin: 0;
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .notice-slot__sub {
+    margin: 2px 0 0;
+    font-size: var(--fs-xs);
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .notice-slot__row .btn {
+    flex: none;
+  }
+  .notice-slot__close {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    color: var(--ink-2);
+    border-radius: var(--r-sm);
+  }
+  .notice-slot__more {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 8px 4px 0;
+  }
+  .notice-slot__steps {
+    margin: 0;
+    padding-left: 20px;
+    list-style: decimal;
+    font-size: var(--fs-md);
+    line-height: 1.55;
+  }
+  .notice-slot__text,
+  .notice-slot .st-note {
+    margin: 0;
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+  }
+  /* 떠 있는 안내가 화면 끝 내용을 가리지 않게 그만큼 아래 여백을 둔다 */
+  &:has(.notice-slot) .app__main {
+    padding-bottom: 96px;
+  }
+  @media (min-width: 1024px) {
+    .notice-slot {
+      bottom: 24px;
+    }
   }
   .push-prompt__later {
     align-self: center;

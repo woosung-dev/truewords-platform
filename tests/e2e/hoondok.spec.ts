@@ -109,7 +109,7 @@ test("비로그인 완료 → 온보딩 가입 → 당일 소급 → 홈 연속 
   await expect(page.locator(".week__day[data-today][data-done]")).toHaveCount(1);
   await expect(page.getByRole("button", { name: /훈독하기.*완료/ })).toHaveAttribute("aria-pressed", "true");
   // 소급 동기화(sync)로 기록된 완료는 설치 안내 자격이 아니다 (Phase 3 E)
-  await expect(page.getByRole("heading", { name: /홈 화면에 추가하면/ })).toHaveCount(0);
+  await expect(page.locator(".notice-slot", { hasText: /홈 화면에 추가하면/ })).toHaveCount(0);
 
   // 같은 날 재요청은 409 — 화면은 완료 유지, 요약은 그대로 1회
   const again = await page.request.post("/api/backend/hoondok/missions/read/complete", {
@@ -141,7 +141,7 @@ test("홈 함께 읽는 사람들: 익명 카드 1장 · 기준 미만이면 숫
 // Phase 3 E — 설치 안내 카드 (PLAN-HD-001 §6 E). 헤드리스 Chromium 은 beforeinstallprompt 를 발사하지 않으므로 일반 안내(manual)
 // 변형과 자격·숨김 규칙만 본다. prompt()·iOS 공유 분기는 실기기 증거(G 뒤)로 대체한다. 시드 사용자는 재실행 시 이미 완료(체크 disabled)라
 // 새 계정으로 직접 완료(user → 201 recorded)를 만든다.
-test("설치 안내: 직접 완료 뒤 홈 카드 노출 · reload 유지 · 나중에 30일 숨김", async ({ page }) => {
+test("설치 안내: 직접 완료 뒤 하단 안내 노출 · 방법 보기 펼침 · reload 유지 · 첫 나중에 3일 숨김", async ({ page }) => {
   const errors = await collectConsoleErrors(page);
   await page.goto("/onboarding");
   await page.getByLabel(/이름/).fill("설치");
@@ -153,7 +153,8 @@ test("설치 안내: 직접 완료 뒤 홈 카드 노출 · reload 유지 · 나
   await page.getByRole("link", { name: "질문 없이 시작하기" }).click();
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/);
   await expect(page.getByText("설치님")).toBeVisible();
-  const title = page.getByRole("heading", { name: /홈 화면에 추가하면/ });
+  // 설치 안내는 탭 바 위 하단 안내 자리(.notice-slot) 하나에만 뜬다
+  const title = page.locator(".notice-slot").getByText(/홈 화면에 추가하면/);
   await expect(title).toHaveCount(0);
 
   // 홈 미션 카드 체크 = 직접 완료(user) → 201 recorded → 자격. 헤드리스라 prompt 미캡처 → 일반 안내(manual) 변형
@@ -161,8 +162,12 @@ test("설치 안내: 직접 완료 뒤 홈 카드 노출 · reload 유지 · 나
   await check.click();
   await expect(check).toHaveAttribute("aria-pressed", "true");
   await expect(title).toBeVisible();
-  await expect(page.getByText(/브라우저 메뉴의 '홈 화면에 추가'/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "지금 추가" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "설치", exact: true })).toHaveCount(0);
+  // "방법 보기" 는 같은 자리에서 펼쳐 브라우저 메뉴 안내를 보이고, "접기" 로 한 줄로 돌아간다
+  await page.getByRole("button", { name: "방법 보기" }).click();
+  await expect(page.locator(".notice-slot").getByText(/브라우저 메뉴의 '홈 화면에 추가'/)).toBeVisible();
+  await page.getByRole("button", { name: "접기" }).click();
+  await expect(title).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("hoondok:install:eligible"))).toBe("1");
 
   await page.reload();
@@ -172,8 +177,9 @@ test("설치 안내: 직접 완료 뒤 홈 카드 노출 · reload 유지 · 나
   await expect(title).toHaveCount(0);
   const hiddenUntil = await page.evaluate(() => localStorage.getItem("hoondok:install:hidden-until"));
   const hiddenDays = (Date.parse(hiddenUntil ?? "") - Date.now()) / 86_400_000;
-  expect(hiddenDays).toBeGreaterThan(29.9);
-  expect(hiddenDays).toBeLessThanOrEqual(30);
+  // 누른 횟수에 따라 3일 → 7일 → 30일 — 처음은 3일
+  expect(hiddenDays).toBeGreaterThan(2.9);
+  expect(hiddenDays).toBeLessThanOrEqual(3);
   await page.reload();
   await expect(title).toHaveCount(0);
   // 비로그인 온보딩 첫 로드의 /auth/me 401 은 정상 리소스 로그다. 카드 자체의 오류(getSnapshot 캐시 경고 등)만 0 이어야 한다.
@@ -506,19 +512,19 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
   await expect(page.locator(".inapp")).toHaveCount(0);
 
   const missions = page.locator(".missions");
-  const card = page.locator(".push-prompt");
+  const card = page.locator(".notice-slot");
   // 요약(연속일)까지 그려진 뒤 — 목록 위 늦은 요소가 모두 자리 잡은 상태에서 잰다
   await expect(page.locator(".sect__meta").filter({ hasText: /연속 \d+일/ })).toBeVisible();
   await expect(card).toHaveCount(0);
   const missionsBefore = await missions.boundingBox();
   releaseConfig();
-  await expect(card.getByRole("heading", { name: "매일 언제 훈독을 알려 드릴까요?" })).toBeVisible();
+  await expect(card.getByText("매일 언제 훈독을 알려 드릴까요?")).toBeVisible();
   await expect(card).toContainText("오늘의 책갈피가 꽂혀 있어요");
-  // 카드는 미션 목록 아래에 붙고, 나타나도 목록 위치가 그대로다 (위에 끼어들어 밀면 오터치 → "나중에" 영구 거절)
+  // 안내는 탭 바 위 고정 자리에 뜬다 — 나타나도 미션 목록 위치가 그대로다 (밀면 오터치 → "나중에" 거절)
   const missionsAfter = await missions.boundingBox();
-  const cardBox = await card.boundingBox();
   expect(missionsAfter?.y).toBe(missionsBefore?.y);
-  expect(cardBox?.y ?? 0).toBeGreaterThanOrEqual((missionsAfter?.y ?? 0) + (missionsAfter?.height ?? 0));
+  // 접힌 한 줄 → "시각 고르기" 로 같은 자리에서 펼친다
+  await card.getByRole("button", { name: "시각 고르기" }).click();
 
   const subscribed = page.waitForResponse(
     (response) => response.url().includes("/hoondok/me/push") && response.request().method() === "POST",
@@ -548,7 +554,7 @@ test("알림 제안: 가입 → 홈 카드 → 알림 받기 → POST /hoondok/m
   await page.reload();
   expect((await prefsAfterReload).status()).toBe(200);
   await expect(page.getByRole("heading", { name: "오늘의 실천" })).toBeVisible();
-  await expect(page.locator(".push-prompt")).toHaveCount(0);
+  await expect(page.locator(".notice-slot")).toHaveCount(0);
   await page.goto("/settings");
   await expect(page.getByRole("button", { name: "훈독하기 알림" })).toHaveAttribute("aria-pressed", "true");
   const prefs = await (await page.request.get("/api/backend/hoondok/me/notifications")).json();

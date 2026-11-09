@@ -1,7 +1,7 @@
 import type { PushSupport } from "./push-support";
 
 // 알림 받기 제안 카드의 노출 정책 (순수 함수). 알림은 기본으로 켜도록 권하되, OS 규칙상 "허용" 한 번은 사용자가 눌러야 하므로
-// 기본 선택이 "알림 받기" 인 한 장짜리 제안을 두 자리에서만 보인다 — 홈(가입 직후 첫 방문 · 오늘 마친 뒤), 훈독하기 완료 아래.
+// 기본 선택이 "알림 받기" 인 제안을 두 순간에만 하단 안내 자리에 보인다 — 홈(가입 직후 첫 방문 · 오늘 마친 뒤), 훈독하기 완료 직후.
 // "나중에" 두 번이면 더 묻지 않고 설정 화면에서만 켠다. 두 번째 기회는 첫 "나중에" 다음 날부터다.
 // 인앱 브라우저는 여기서 따로 보지 않는다 — detectPushSupport 가 "unsupported" 로 돌려주고, 카드 겉 컴포넌트가 먼저 거른다.
 
@@ -28,8 +28,6 @@ export type PushPromptInput = {
   isDeclinedToday: boolean;
   /** 오늘 훈독을 마쳤는가 — 홈 미션 체크의 즉시 완료도 포함한다 */
   isReadDone: boolean;
-  /** 같은 화면에 설치 안내 카드가 이미 보이는가 (home 자리). iOS 설치 안내가 두 장 겹치지 않게 한다 */
-  isInstallCardVisible: boolean;
 };
 
 export function pushPromptVariant(input: PushPromptInput): PushPromptVariant {
@@ -46,8 +44,6 @@ export function pushPromptVariant(input: PushPromptInput): PushPromptVariant {
     input.declines > 0 && input.declines < PUSH_PROMPT_MAX_DECLINES && input.isReadDone && !input.isDeclinedToday;
   if (!isFirstChance && !isSecondChance) return "hidden";
 
-  if (input.support === "ios-not-installed") {
-    return input.placement === "home" && input.isInstallCardVisible ? "hidden" : "ios";
-  }
-  return "ready";
+  // 설치 안내와의 순서(설치가 먼저)는 하단 안내 자리(HoondokNoticeSlot)가 정한다 — 이 판정은 알림만 본다.
+  return input.support === "ios-not-installed" ? "ios" : "ready";
 }
