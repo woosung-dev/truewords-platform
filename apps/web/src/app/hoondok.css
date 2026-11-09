@@ -73,15 +73,6 @@
   --shelf-2: #b99b79;
   --tassel: #8c3217;
   --rib-heart: #fbe0d3;
-  --spine-1: #e7d6bf;
-  --spine-2: #dbe5d4;
-  --spine-3: #f0dacd;
-  --spine-4: #f2e3c6;
-  --spine-5: #e6dccf;
-  --spine-6: #e3e6dc;
-  --spine-7: #eadbe0;
-  --spine-8: #dde3e6;
-  --spine-9: #efe6d2;
   /* 사진 카드·내 카드 갤러리 (SCR-PWA-022~026 사진 카드 개편). 값은 시안 p4-gallery. 책 색은 og/card-image.tsx 에 사본이 있다 */
   --espresso: #241c16;
   --gold: #c29a5b;
@@ -96,6 +87,8 @@
   --book-5: #4a3a5a;
   --book-6: #3e5656;
   --book-ink: #f6ead3;
+  --shelf-wall: #f1eadf;
+  --shelf-wall-2: #e8dfd0;
   --photo-shade-86: rgba(14, 10, 7, 0.86);
   --photo-shade-52: rgba(14, 10, 7, 0.52);
   --photo-shade-38: rgba(14, 10, 7, 0.38);

@@ -28,6 +28,7 @@ export function ChoiceGroup<T extends string>({
         {options.map((option) => {
           const isOn = option.value === value;
           return (
+            // biome-ignore lint/a11y/useSemanticElements: 그림·알약 모양 고르기 버튼이다 — 방향키 이동은 handleSegmentKeyDown 이 맡는다
             <button
               key={option.value}
               type="button"

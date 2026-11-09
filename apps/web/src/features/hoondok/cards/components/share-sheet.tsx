@@ -5,7 +5,7 @@
 // 갈래: 카카오톡·다른 앱(Web Share, 파일 → 링크 → 클립보드 → 직접 표시) · 사진 저장 · 글로 복사. 인사 한 줄은 없다(결정 1).
 // 고른 모양은 건넬 때 이 기기에 카드별로 남겨 내 카드 갤러리의 "그대로 다시 건네기" 가 같은 모양으로 연다.
 import { Copy, Download, Lock, MessageCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { ReaderSheet } from "@/features/hoondok/library/components/reader-sheet";
 import type { CardPublic } from "../api";
 import {
@@ -79,6 +79,36 @@ export function ImagePreview({ src, alt, format }: { src: string; alt: string; f
 
 export type ShareOutcome = CardShareResult | "copied" | "copy-failed";
 
+const TOAST: Partial<Record<ShareOutcome, string>> = {
+  file: "책갈피를 건넸어요",
+  link: "책갈피를 건넸어요",
+  clipboard: "말씀과 출처·링크를 복사했어요. 대화방에 붙여 넣어 주세요",
+  copied: "말씀과 출처·링크를 글로 복사했어요",
+};
+
+/** 건넨 셈인 결과(건넴 표시 050 대상) */
+export function isGivenOutcome(outcome: ShareOutcome): boolean {
+  return outcome === "file" || outcome === "link" || outcome === "clipboard" || outcome === "copied";
+}
+
+/** 결과 토스트 문구. 로그인 사용자가 보내면(복사 제외) 나의 책갈피에 남았다고 덧붙인다 */
+export function shareToastMessage(outcome: ShareOutcome, isRecorded: boolean): string | null {
+  const message = TOAST[outcome];
+  if (!message) return null;
+  return isRecorded && isGivenOutcome(outcome) && outcome !== "copied"
+    ? `${message} · 나의 책갈피에 남았어요`
+    : message;
+}
+
+/** 토스트 한 줄. 시트(모달)가 열려 있으면 시트 안에 그려야 보인다 — ShareSheet 의 toast 로 넘긴다 */
+export function ShareToast({ message }: { message: string | null }) {
+  return (
+    <p className="bmk-toast" role="status" aria-live="polite" data-on={message ? "1" : undefined}>
+      {message}
+    </p>
+  );
+}
+
 const FORMAT_OPTIONS: readonly { value: PhotoFormat; label: string }[] = [
   { value: "feed", label: "4:5 카톡·피드" },
   { value: "story", label: "9:16 스토리" },
@@ -92,11 +122,14 @@ export function ShareSheet({
   card,
   onClose,
   onDone,
+  toast,
 }: {
   card: CardPublic;
   onClose: () => void;
   /** 결과마다 한 번. 건넴 표시(050)·토스트는 부르는 쪽이 정한다 */
   onDone: (outcome: ShareOutcome) => void;
+  /** 시트 안에 그릴 토스트(ShareToast) */
+  toast?: ReactNode;
 }) {
   // 처음 열 때 이 카드에 마지막으로 고른 모양(없으면 카드별 기본 사진·4:5·자세히)
   const [look, setLook] = useState<CardLook>(() => readCardLook(card.id) ?? defaultLook(card.id));
@@ -125,7 +158,7 @@ export function ShareSheet({
   }
 
   return (
-    <ReaderSheet title="사진 카드로 건네기" onClose={onClose}>
+    <ReaderSheet title="사진 카드로 건네기" onClose={onClose} toast={toast}>
       <div className="pcs">
         <ImagePreview
           src={imageUrl}

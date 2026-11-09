@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CardPublic, CardReceiptItem } from "@/features/hoondok/cards/api";
@@ -462,6 +462,117 @@ describe("사진 카드로 건네기 시트 (SCR-PWA-024)", () => {
     expect(await screen.findByText("미리보기를 불러오지 못했어요")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(screen.getByRole("img", { name: /건넬 사진 카드/ })).toBeInTheDocument();
+  });
+});
+
+describe("나의 책갈피 책장·부채꼴·갤러리·콜라주 (SCR-PWA-026)", () => {
+  const card = (n: number, work = "천성경"): CardPublic => ({
+    ...CARD,
+    id: `${String(n).repeat(8)}-1111-4111-8111-111111111111`,
+    text: `말씀 ${n}번입니다`,
+    work_title: work,
+  });
+  const MONTH = TODAY.slice(0, 7);
+  const received = [1, 2, 3, 4, 5].map((n) => ({
+    card: card(n, n === 5 ? "평화경" : "천성경"),
+    received_on: n === 5 ? "2020-01-01" : TODAY,
+    shared_at: null,
+  }));
+  const sharedItem = { card: card(2), received_on: TODAY, shared_at: `${MONTH}-03T01:00:00Z` };
+
+  beforeEach(() => {
+    vi.doMock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/bookmarks" }));
+    fetchMock.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("/hoondok/auth/me")) return json({ user: { id: "u1", email: "a@b.c", display_name: "효진" } });
+      if (url.includes("filter=shared"))
+        return json({ items: [sharedItem], shelves: [{ work_title: "천성경", count: 1 }] });
+      if (url.includes("/hoondok/me/cards"))
+        return json({
+          items: received,
+          shelves: [
+            { work_title: "천성경", count: 4 },
+            { work_title: "평화경", count: 1 },
+          ],
+        });
+      return json({ detail: "not found" }, 404);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  it("책등 두께는 장수에 비례하고 44px 아래로 내려가지 않는다", async () => {
+    const { spineWidth } = await import("@/features/hoondok/cards/components/bookmarks-screen");
+    expect(spineWidth(4, 4)).toBe(84);
+    expect(spineWidth(1, 4)).toBe(54);
+    expect(spineWidth(0, 0)).toBe(44);
+  });
+
+  it("책등을 누르면 그 책의 카드가 부채꼴로 펼쳐지고, 이 말씀 건네기는 사진 카드 시트를 연다", async () => {
+    const { BookmarksScreen } = await import("@/features/hoondok/cards/components/bookmarks-screen");
+    render(wrap(<BookmarksScreen initialFilter="received" />));
+    const spine = await screen.findByRole("button", { name: "천성경, 책갈피 4장 펼치기" });
+    expect(spine).toHaveStyle({ width: "84px" });
+    expect(screen.getByRole("button", { name: "평화경, 책갈피 1장 펼치기" })).toHaveStyle({ width: "54px" });
+    fireEvent.click(spine);
+    const fan = screen.getByRole("dialog", { name: "천성경" });
+    expect(within(fan).getAllByRole("radio")).toHaveLength(4);
+    fireEvent.click(within(fan).getByRole("radio", { name: "말씀 3번입니다" }));
+    expect(within(fan).getByRole("radio", { name: "말씀 3번입니다" })).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(within(fan).getByRole("button", { name: "이 말씀 건네기" }));
+    const sheet = await screen.findByRole("dialog", { name: "사진 카드로 건네기" });
+    expect(within(sheet).getByRole("img", { name: /말씀 3번입니다/ })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "천성경" })).toBeNull();
+  });
+
+  it("이번 달 받은 카드로만 콜라주를 만들고, 기본 최근 4장 · 4장 넘게는 못 고른다", async () => {
+    const { BookmarksScreen } = await import("@/features/hoondok/cards/components/bookmarks-screen");
+    render(wrap(<BookmarksScreen initialFilter="received" />));
+    expect(await screen.findByText("4장을 한 장에 담아 건네요")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "한 장으로 만들기" }));
+    const sheet = screen.getByRole("dialog", { name: "이번 달 모은 말씀" });
+    const picks = within(sheet).getAllByRole("button", { pressed: true });
+    expect(picks).toHaveLength(4);
+    const ids = received.slice(0, 4).map((item) => item.card.id);
+    expect(within(sheet).getByRole("img", { name: /모은 말씀 4장/ })).toHaveAttribute(
+      "src",
+      `/c/collage/image?ids=${ids.join(",")}&theme=paper&f=feed`,
+    );
+    fireEvent.click(within(sheet).getByRole("radio", { name: "짙은 밤" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: /말씀 2번입니다/ }));
+    expect(within(sheet).getByRole("link", { name: "사진 저장" })).toHaveAttribute(
+      "href",
+      `/c/collage/image?ids=${[ids[0], ids[2], ids[3]].join(",")}&theme=night&f=feed`,
+    );
+    fireEvent.click(within(sheet).getByRole("button", { name: /말씀 2번입니다/ }));
+    expect(within(sheet).queryByText(/말씀 5번입니다/)).toBeNull();
+  });
+
+  it("내 카드 갤러리: 건넨 카드를 마지막 모양 그대로 다시 건네기 시트로 연다", async () => {
+    writeCardLook(sharedItem.card.id, { format: "story", bg: "lake", src: "book" });
+    const { BookmarksScreen } = await import("@/features/hoondok/cards/components/bookmarks-screen");
+    render(wrap(<BookmarksScreen initialFilter="shared" />));
+    expect(await screen.findByRole("tab", { name: /내 카드 갤러리\s*1/ })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(await screen.findByRole("button", { name: /3일에 건넨 카드, 그대로 다시 건네기/ }));
+    const sheet = screen.getByRole("dialog", { name: "사진 카드로 건네기" });
+    expect(within(sheet).getByRole("img", { name: /건넬 사진 카드/ })).toHaveAttribute(
+      "src",
+      `/c/${sharedItem.card.id}/image?f=story&bg=lake&src=book`,
+    );
+  });
+
+  it("목록을 못 불러오면 다시 시도, 건넨 카드가 없으면 빈 갤러리 안내", async () => {
+    fetchMock.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("/hoondok/auth/me")) return json({ user: { id: "u1", email: "a@b.c", display_name: "효진" } });
+      if (url.includes("filter=shared")) return json({ items: [], shelves: [] });
+      return json({ detail: "down" }, 503);
+    });
+    const { BookmarksScreen } = await import("@/features/hoondok/cards/components/bookmarks-screen");
+    render(wrap(<BookmarksScreen initialFilter="received" />));
+    // useMyCards 는 한 번 다시 시도한 뒤 실패를 보인다
+    expect(await screen.findByText("책갈피를 불러오지 못했어요", {}, { timeout: 4000 })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: /내 카드 갤러리/ }));
+    expect(await screen.findByText("아직 건넨 카드가 없어요")).toBeInTheDocument();
   });
 });
 

@@ -26,16 +26,9 @@ import { cardWordsHref } from "../share";
 import { useCardReceipt, useMarkShared } from "../use-cards";
 import { Book, bookName } from "./book";
 import { PhotoCard } from "./photo-card";
-import { type ShareOutcome, ShareSheet } from "./share-sheet";
+import { isGivenOutcome, type ShareOutcome, ShareSheet, ShareToast, shareToastMessage } from "./share-sheet";
 
 type Phase = "wait" | "moment" | "read" | "fold";
-
-const TOAST: Partial<Record<ShareOutcome, string>> = {
-  file: "책갈피를 건넸어요",
-  link: "책갈피를 건넸어요",
-  clipboard: "말씀과 출처·링크를 복사했어요. 대화방에 붙여 넣어 주세요",
-  copied: "말씀과 출처·링크를 글로 복사했어요",
-};
 
 export function BookmarkScreen({ card, today, from }: { card: CardPublic; today: string; from?: string }) {
   const router = useRouter();
@@ -136,10 +129,9 @@ export function BookmarkScreen({ card, today, from }: { card: CardPublic; today:
   }, [toast]);
 
   function handleShareDone(outcome: ShareOutcome) {
-    const isGiven = outcome === "file" || outcome === "link" || outcome === "clipboard" || outcome === "copied";
-    if (isGiven && userId) markShared.mutate(card.id);
-    const message = TOAST[outcome];
-    if (message) setToast(isGiven && userId && outcome !== "copied" ? `${message} · 나의 책갈피에 남았어요` : message);
+    if (isGivenOutcome(outcome) && userId) markShared.mutate(card.id);
+    const message = shareToastMessage(outcome, Boolean(userId));
+    if (message) setToast(message);
     if (outcome === "file" || outcome === "link") setIsSheetOpen(false);
   }
 
@@ -192,10 +184,15 @@ export function BookmarkScreen({ card, today, from }: { card: CardPublic; today:
           </button>
         </div>
       </div>
-      <p className="bmk-toast" role="status" aria-live="polite" data-on={toast ? "1" : undefined}>
-        {toast}
-      </p>
-      {isSheetOpen && <ShareSheet card={card} onClose={() => setIsSheetOpen(false)} onDone={handleShareDone} />}
+      {!isSheetOpen && <ShareToast message={toast} />}
+      {isSheetOpen && (
+        <ShareSheet
+          card={card}
+          onClose={() => setIsSheetOpen(false)}
+          onDone={handleShareDone}
+          toast={<ShareToast message={toast} />}
+        />
+      )}
     </section>
   );
 }
