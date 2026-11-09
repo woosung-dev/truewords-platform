@@ -5,6 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CardPublic, CardReceiptItem } from "@/features/hoondok/cards/api";
 import { bookName, bookParts } from "@/features/hoondok/cards/components/book";
 import { markParagraphs } from "@/features/hoondok/cards/components/words-card";
+import {
+  bookColorIndex,
+  defaultBackground,
+  parseCollageQuery,
+  parseImageQuery,
+  toLook,
+} from "@/features/hoondok/cards/look";
 import { findCardSentence, normalizeForMatch } from "@/features/hoondok/cards/match";
 import {
   foldSteps,
@@ -15,6 +22,7 @@ import {
   type Step,
   totalDuration,
 } from "@/features/hoondok/cards/motion";
+import { collageQuoteSize, collageRows, sourceText } from "@/features/hoondok/cards/og/card-image";
 import { cardCopyText, cardWordsHref, shareCard } from "@/features/hoondok/cards/share";
 import { isReceivedToday, readLocalReceipt, writeLocalReceipt } from "@/features/hoondok/cards/storage";
 import { formatKstDate } from "@/features/hoondok/today";
@@ -135,6 +143,85 @@ describe("건네기 공유 폴백 (파일 → 링크 → 클립보드 → 직접
 
   it("원문 연결 주소는 인용 단락 + card 파라미터", () => {
     expect(cardWordsHref(CARD)).toBe(`/words/${encodeURIComponent("천성경 제1편")}?chunk_id=chunk-42&card=${CARD.id}`);
+  });
+});
+
+describe("사진 카드 이미지 쿼리 (허용 목록)", () => {
+  const q = (query: string) => parseImageQuery(new URLSearchParams(query));
+
+  it("쿼리 없는 주소와 예전 형식은 그대로 — OG·보낸 링크 호환", () => {
+    expect(q("")).toEqual({ format: "link" });
+    expect(q("f=link&bg=lake")).toEqual({ format: "link" });
+    expect(q("f=square&src=book")).toEqual({ format: "square" });
+    expect(q("f=story")).toEqual({ format: "story", bg: "field", src: "full" });
+  });
+
+  it("feed·story 는 bg·src 를 목록 안에서만 받고, 모르는 값은 기본값", () => {
+    expect(q("f=feed&bg=orchard&src=book")).toEqual({ format: "feed", bg: "orchard", src: "book" });
+    expect(q("f=feed&bg=book")).toEqual({ format: "feed", bg: "book", src: "full" });
+    expect(q("f=feed&bg=../../etc&src=none")).toEqual({ format: "feed", bg: "field", src: "full" });
+    expect(q("f=gif")).toEqual({ format: "link" });
+  });
+
+  it("출처: 자세히는 source_label, 책 이름만은 편·권까지의 책 이름. 빼기는 없다", () => {
+    expect(sourceText(CARD, "full")).toBe("천성경 제1편 하나님 p.42");
+    expect(sourceText(CARD, "book")).toBe("천성경 제1편");
+  });
+
+  it("기기에 저장된 모양은 하나라도 목록 밖이면 버린다", () => {
+    expect(toLook({ format: "story", bg: "lake", src: "book" })).toEqual({ format: "story", bg: "lake", src: "book" });
+    expect(toLook({ format: "story", bg: "lake", src: "none" })).toBeNull();
+    expect(toLook("feed")).toBeNull();
+  });
+
+  it("같은 책은 늘 같은 색, 같은 카드는 늘 같은 기본 사진", () => {
+    expect(bookColorIndex("천성경")).toBe(bookColorIndex(" 천성경 "));
+    expect(bookColorIndex("천성경")).toBeGreaterThanOrEqual(1);
+    expect(bookColorIndex("천성경")).toBeLessThanOrEqual(6);
+    expect(defaultBackground(CARD.id)).toBe(defaultBackground(CARD.id));
+  });
+});
+
+describe("이번 달 모은 말씀 콜라주", () => {
+  const ids = ["a", "b", "c", "d", "e"].map((c) => `${c.repeat(8)}-1111-4111-8111-111111111111`);
+
+  it("ids 는 UUID 꼴만, 겹치면 하나로, 4장까지", () => {
+    const parsed = parseCollageQuery(
+      new URLSearchParams(`ids=${[ids[0], ids[0].toUpperCase(), "x", ...ids.slice(1)].join(",")}`),
+    );
+    expect(parsed.ids).toEqual(ids.slice(0, 4));
+    expect(parsed).toMatchObject({ theme: "paper", format: "feed" });
+    expect(parseCollageQuery(new URLSearchParams("ids=../x&theme=red&f=link"))).toEqual({
+      ids: [],
+      theme: "paper",
+      format: "feed",
+    });
+    expect(parseCollageQuery(new URLSearchParams(`ids=${ids[1]}&theme=night&f=story`))).toMatchObject({
+      theme: "night",
+      format: "story",
+    });
+  });
+
+  it("배치: 피드는 2열(3장이면 첫 장 한 줄), 스토리는 한 줄에 한 장", () => {
+    expect(collageRows(1, "feed")).toEqual([1]);
+    expect(collageRows(3, "feed")).toEqual([1, 2]);
+    expect(collageRows(4, "feed")).toEqual([2, 2]);
+    expect(collageRows(4, "story")).toEqual([1, 1, 1, 1]);
+  });
+
+  it("긴 말씀은 줄이지 않고 글자를 줄인다 (22~52px)", () => {
+    const box = { width: 400, height: 380 };
+    expect(collageQuoteSize("짧은 말씀", box)).toBe(52);
+    expect(collageQuoteSize("가".repeat(400), box)).toBe(22);
+  });
+
+  it("ids 가 없으면 400, 플래그 OFF 면 404", async () => {
+    vi.stubEnv("NEXT_PUBLIC_HOONDOK_ENABLED", "1");
+    vi.stubEnv("NEXT_PUBLIC_HOONDOK_CARDS", "1");
+    const { GET } = await import("../app/(hoondok)/c/collage/image/route");
+    expect((await GET(new Request("http://x/c/collage/image?ids=nope"))).status).toBe(400);
+    vi.stubEnv("NEXT_PUBLIC_HOONDOK_CARDS", "");
+    expect((await GET(new Request(`http://x/c/collage/image?ids=${ids[0]}`))).status).toBe(404);
   });
 });
 
