@@ -195,6 +195,20 @@ describe("사진 카드 이미지 쿼리 (허용 목록)", () => {
     expect(bookColorIndex("천성경")).toBeLessThanOrEqual(6);
     expect(defaultBackground(CARD.id)).toBe(defaultBackground(CARD.id));
   });
+
+  it("앞자리가 비슷한 id(md5 기반 UUID)도 기본 사진이 한쪽으로 쏠리지 않는다", () => {
+    // md5('p4view-1'..'p4view-7')::uuid
+    const ids = [
+      "96112c68-2d87-742e-e68b-5ce1b90a2d34",
+      "99c69b66-da44-df8c-23b5-02531868dfce",
+      "920ca1cb-84f2-befa-aef0-a8dfe9a2d0ee",
+      "8670ac1a-828f-53bf-6814-12801e67488d",
+      "f7f4aae7-8adc-5a24-9c1a-aa2ac2aa31e1",
+      "2ee526dc-e111-eba9-2cb1-41fbca408f80",
+      "d9354273-74a7-b80b-9998-3bc904da0187",
+    ];
+    expect(new Set(ids.map(defaultBackground)).size).toBeGreaterThanOrEqual(3);
+  });
 });
 
 describe("이번 달 모은 말씀 콜라주", () => {
@@ -646,6 +660,19 @@ describe("나의 책갈피 책장·부채꼴·갤러리·콜라주 (SCR-PWA-026)
     );
     fireEvent.click(within(sheet).getByRole("button", { name: /말씀 2번입니다/ }));
     expect(within(sheet).queryByText(/말씀 5번입니다/)).toBeNull();
+  });
+
+  it("이번 달 받은 카드가 콜라주 상한보다 많으면 그 가운데 4장까지 고른다고 알린다", async () => {
+    const many = [1, 2, 3, 4, 5, 6].map((n) => ({ card: card(n), received_on: TODAY, shared_at: null }));
+    fetchMock.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("/hoondok/auth/me")) return json({ user: { id: "u1", email: "a@b.c", display_name: "효진" } });
+      if (url.includes("/hoondok/me/cards")) return json({ items: many, shelves: [{ work_title: "천성경", count: 6 }] });
+      return json({ detail: "not found" }, 404);
+    });
+    const { BookmarksScreen } = await import("@/features/hoondok/cards/components/bookmarks-screen");
+    render(wrap(<BookmarksScreen initialFilter="received" />));
+    expect(await screen.findByText("이번 달 6장 가운데 4장까지 골라 한 장에 담아요")).toBeInTheDocument();
   });
 
   it("내 카드 갤러리: 건넨 카드를 마지막 모양 그대로 다시 건네기 시트로 연다", async () => {

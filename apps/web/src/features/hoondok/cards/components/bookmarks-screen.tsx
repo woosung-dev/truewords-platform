@@ -14,7 +14,7 @@ import { useKstDate } from "@/features/hoondok/use-kst-date";
 import { onboardingHref } from "@/features/identity/gate";
 import { useCurrentUser } from "@/features/identity/use-current-user";
 import type { CardPublic, CardReceiptItem, CardShelf, MyCardsFilter } from "../api";
-import { bookColorIndex, COLLAGE_PHOTOS, defaultLook, photoSrc } from "../look";
+import { bookColorIndex, COLLAGE_MAX, COLLAGE_PHOTOS, defaultLook, photoSrc } from "../look";
 import { cardPath } from "../share";
 import { readCardLook } from "../storage";
 import { useMarkShared, useMyCards, useSyncAnonReceipt } from "../use-cards";
@@ -132,7 +132,11 @@ function CollageEntry({ month, count, onOpen }: { month: number; count: number; 
         <div className="bks-collage__bd">
           <span className="bks-collage__k">{month}월</span>
           <b>이번 달 모은 말씀</b>
-          <p>{count}장을 한 장에 담아 건네요</p>
+          <p>
+            {count > COLLAGE_MAX
+              ? `이번 달 ${count}장 가운데 ${COLLAGE_MAX}장까지 골라 한 장에 담아요`
+              : `${count}장을 한 장에 담아 건네요`}
+          </p>
         </div>
         <span className="bks-collage__mosaic" aria-hidden="true">
           {COLLAGE_PHOTOS.map((photo) => (

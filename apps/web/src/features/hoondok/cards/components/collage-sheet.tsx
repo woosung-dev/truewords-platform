@@ -101,12 +101,12 @@ export function CollageSheet({
         <p className="pcs-notice" role="status" aria-live="polite">
           {notice}
         </p>
+        <a className="btn btn-line pcs-more" href={imageUrl} download={fileName}>
+          <Download size={20} aria-hidden="true" />
+          사진 저장
+        </a>
         <div className="pcs-dock">
           <PreparedShareButton prepared={prepared} onShare={() => void handleShare()} />
-          <a className="btn btn-line" href={imageUrl} download={fileName}>
-            <Download size={20} aria-hidden="true" />
-            사진 저장
-          </a>
         </div>
       </div>
     </ReaderSheet>

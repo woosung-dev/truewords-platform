@@ -66,27 +66,29 @@ export function PhotoCard({
         <img className="pc__img" src={photoSrc(bg)} alt="" />
       )}
       <span className="pc__shade" aria-hidden="true" />
-      {format === "feed" ? (
-        <>
-          <Quote className="pc__quote" aria-hidden="true" fill="currentColor" strokeWidth={0} />
-          <div className="pc__body" ref={refs?.inner}>
-            <p className="pc__text">{card.text}</p>
-            <div className="pc__foot">
-              <span className="pc__src">{source}</span>
-              <HoondokMark />
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="pc__panel" ref={refs?.inner}>
+      <div className="pc__in">
+        {format === "feed" ? (
+          <>
             <Quote className="pc__quote" aria-hidden="true" fill="currentColor" strokeWidth={0} />
-            <p className="pc__text">{card.text}</p>
-            <span className="pc__src">{source}</span>
-          </div>
-          <HoondokMark className="pc__mark--story" />
-        </>
-      )}
+            <div className="pc__body" ref={refs?.inner}>
+              <p className="pc__text">{card.text}</p>
+              <div className="pc__foot">
+                <span className="pc__src">{source}</span>
+                <HoondokMark />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="pc__panel" ref={refs?.inner}>
+              <Quote className="pc__quote" aria-hidden="true" fill="currentColor" strokeWidth={0} />
+              <p className="pc__text">{card.text}</p>
+              <span className="pc__src">{source}</span>
+            </div>
+            <HoondokMark className="pc__mark--story" />
+          </>
+        )}
+      </div>
       <span className="pc__veil" aria-hidden="true" ref={refs?.veil} />
     </article>
   );

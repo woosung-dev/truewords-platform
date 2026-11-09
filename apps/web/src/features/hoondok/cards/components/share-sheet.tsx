@@ -256,23 +256,19 @@ export function ShareSheet({
             <input readOnly value={fallbackLink} aria-label="책갈피 링크" onFocus={(event) => event.target.select()} />
           </div>
         )}
+        {/* 아래 고정 영역은 주 버튼 하나만 둔다. 보조 버튼까지 고정하면 작은 화면에서 선택지를 가린다 */}
+        <div className="bmk-row2 pcs-more">
+          <a className="btn btn-line" href={imageUrl} download={fileName} onClick={() => writeCardLook(card.id, look)}>
+            <Download size={20} aria-hidden="true" />
+            사진 저장
+          </a>
+          <button className="btn btn-line" type="button" onClick={() => void handleCopy()}>
+            <Copy size={20} aria-hidden="true" />
+            글로 복사
+          </button>
+        </div>
         <div className="pcs-dock">
           <PreparedShareButton prepared={prepared} onShare={() => void handleShare()} />
-          <div className="bmk-row2">
-            <a
-              className="btn btn-line"
-              href={imageUrl}
-              download={fileName}
-              onClick={() => writeCardLook(card.id, look)}
-            >
-              <Download size={20} aria-hidden="true" />
-              사진 저장
-            </a>
-            <button className="btn btn-line" type="button" onClick={() => void handleCopy()}>
-              <Copy size={20} aria-hidden="true" />
-              글로 복사
-            </button>
-          </div>
         </div>
       </div>
     </ReaderSheet>

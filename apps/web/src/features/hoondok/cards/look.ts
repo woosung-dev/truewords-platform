@@ -63,9 +63,19 @@ export function bookColorIndex(workTitle: string): number {
   return (hash(workTitle.trim()) % BOOK_COLOR_COUNT) + 1;
 }
 
+/** FNV-1a 32bit. 앞자리가 비슷한 id(md5 기반 UUID 등)도 고르게 흩어진다 */
+function fnv1a(text: string): number {
+  let value = 2166136261;
+  for (const char of text) {
+    value ^= char.codePointAt(0) ?? 0;
+    value = Math.imul(value, 16777619) >>> 0;
+  }
+  return value;
+}
+
 /** 카드마다 정해진 기본 사진. 처음 보는 카드도 늘 같은 바탕으로 열린다 */
 export function defaultBackground(cardId: string): PhotoBackground {
-  return PHOTO_BACKGROUNDS[hash(cardId) % PHOTO_BACKGROUNDS.length];
+  return PHOTO_BACKGROUNDS[fnv1a(cardId) % PHOTO_BACKGROUNDS.length];
 }
 
 export function defaultLook(cardId: string): CardLook {
