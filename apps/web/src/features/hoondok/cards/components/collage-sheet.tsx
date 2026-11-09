@@ -61,7 +61,12 @@ export function CollageSheet({
   return (
     <ReaderSheet title="이번 달 모은 말씀" onClose={onClose}>
       <div className="pcs">
-        <ImagePreview src={imageUrl} format={format} alt={`${month}월에 모은 말씀 ${ids.length}장을 담은 사진`} />
+        <ImagePreview
+          src={imageUrl}
+          format={format}
+          attempt={prepared.attempt}
+          alt={`${month}월에 모은 말씀 ${ids.length}장을 담은 사진`}
+        />
         <ChoiceGroup label="크기" value={format} options={FORMAT_OPTIONS} onChange={setFormat} />
         <ChoiceGroup label="바탕" value={theme} options={THEME_OPTIONS} onChange={setTheme} />
         <p className="pcs-lock">

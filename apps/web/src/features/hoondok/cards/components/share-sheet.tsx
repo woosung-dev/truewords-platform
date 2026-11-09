@@ -27,6 +27,8 @@ export type PreparedImage = {
   /** 받아 둔 이미지 파일. 준비 중이거나 실패면 null */
   file: File | null;
   status: "loading" | "ready" | "error";
+  /** 다시 받은 횟수. 미리보기도 같은 횟수로 다시 불러온다 */
+  attempt: number;
   retry: () => void;
 };
 
@@ -53,6 +55,7 @@ export function usePreparedImage(url: string, name: string): PreparedImage {
   return {
     file: current?.file ?? null,
     status: current === null ? "loading" : current.file ? "ready" : "error",
+    attempt,
     retry: () => setAttempt((value) => value + 1),
   };
 }
@@ -85,14 +88,28 @@ export function PreparedShareButton({ prepared, onShare }: { prepared: PreparedI
   );
 }
 
-/** 서버 이미지 미리보기. 불러오는 동안은 같은 비율의 자리, 실패하면 다시 시도 */
-export function ImagePreview({ src, alt, format }: { src: string; alt: string; format: PhotoFormat }) {
-  const [state, setState] = useState<{ src: string; status: "loading" | "ready" | "error"; attempt: number }>({
-    src,
+/**
+ * 서버 이미지 미리보기. 불러오는 동안은 같은 비율의 자리, 실패하면 다시 시도.
+ * `attempt` 가 바뀌면(보내기 파일 "다시 준비하기") 미리보기도 처음부터 다시 불러온다.
+ */
+export function ImagePreview({
+  src,
+  alt,
+  format,
+  attempt = 0,
+}: {
+  src: string;
+  alt: string;
+  format: PhotoFormat;
+  attempt?: number;
+}) {
+  const base = `${src}#${attempt}`;
+  const [state, setState] = useState<{ base: string; status: "loading" | "ready" | "error"; attempt: number }>({
+    base,
     status: "loading",
     attempt: 0,
   });
-  const current = state.src === src ? state : { src, status: "loading" as const, attempt: 0 };
+  const current = state.base === base ? state : { base, status: "loading" as const, attempt: 0 };
   return (
     <div className={`pcs-pv pcs-pv--${format}`} data-status={current.status} aria-busy={current.status === "loading"}>
       {current.status === "error" ? (
@@ -101,20 +118,20 @@ export function ImagePreview({ src, alt, format }: { src: string; alt: string; f
           <button
             className="btn btn-line btn--sm"
             type="button"
-            onClick={() => setState({ src, status: "loading", attempt: current.attempt + 1 })}
+            onClick={() => setState({ base, status: "loading", attempt: current.attempt + 1 })}
           >
             다시 시도
           </button>
         </div>
       ) : (
         <img
-          key={`${src}#${current.attempt}`}
+          key={`${base}#${current.attempt}`}
           src={src}
           alt={alt}
           width={1080}
           height={format === "story" ? 1920 : 1350}
-          onLoad={() => setState({ src, status: "ready", attempt: current.attempt })}
-          onError={() => setState({ src, status: "error", attempt: current.attempt })}
+          onLoad={() => setState({ base, status: "ready", attempt: current.attempt })}
+          onError={() => setState({ base, status: "error", attempt: current.attempt })}
         />
       )}
     </div>
@@ -203,6 +220,7 @@ export function ShareSheet({
         <ImagePreview
           src={imageUrl}
           format={look.format}
+          attempt={prepared.attempt}
           alt={`건넬 사진 카드: ${card.text} (${look.src === "book" ? "책 이름" : card.source_label})`}
         />
         <ChoiceGroup
