@@ -3,6 +3,13 @@
    모션은 transform·opacity 만(features/hoondok/cards/motion.ts). 여기의 CSS 애니메이션은 홈 대기 모션 하나이고 동작 줄이기면 끈다. */
 
 /* 홈 대기: 책갈피 끝이 3px 오르내림, 800ms 뒤 3초 주기 2회 (@keyframes 는 중첩할 수 없어 최상위에 둔다) */
+/* 사진 카드 미리보기를 불러오는 동안 자리만 은은하게 깜박인다(동작 줄이기면 끈다) */
+@keyframes hoondok-pc-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
 @keyframes hoondok-bm-breathe {
   0%,
   100% {
@@ -784,6 +791,364 @@
     margin-top: 16px;
   }
 
+  /* ---------- 9. 사진 카드 (시안 p4 `.card`, 받기·부채꼴·갤러리 공용, cqw 단위) ---------- */
+  .pc {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    overflow: clip;
+    border-radius: var(--r);
+    background: var(--espresso);
+    color: var(--surface);
+    container-type: inline-size;
+    isolation: isolate;
+  }
+  /* overflow: clip 은 스크롤 상자가 아니라서 긴 말씀이면 비율보다 길게 늘어난다(원문은 줄이지 않는다) */
+  .pc--feed {
+    aspect-ratio: 4 / 5;
+    justify-content: flex-end;
+    padding: 20cqw 8cqw 6.5cqw;
+  }
+  .pc--story {
+    aspect-ratio: 9 / 16;
+    justify-content: center;
+    padding: 14cqw 9cqw 18cqw;
+  }
+  .pc--book-1 {
+    --pc-book: var(--book-1);
+  }
+  .pc--book-2 {
+    --pc-book: var(--book-2);
+  }
+  .pc--book-3 {
+    --pc-book: var(--book-3);
+  }
+  .pc--book-4 {
+    --pc-book: var(--book-4);
+  }
+  .pc--book-5 {
+    --pc-book: var(--book-5);
+  }
+  .pc--book-6 {
+    --pc-book: var(--book-6);
+  }
+  .pc__img,
+  .pc__solid,
+  .pc__shade {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .pc__img {
+    z-index: -2;
+    object-fit: cover;
+  }
+  .pc__solid {
+    z-index: -2;
+    background: linear-gradient(160deg, var(--sheen-16), transparent 45%, var(--shade-30)), var(--pc-book);
+  }
+  .pc__shade {
+    z-index: -1;
+    background: linear-gradient(0deg, var(--photo-shade-86) 0%, var(--photo-shade-52) 48%, var(--photo-shade-10) 80%);
+  }
+  .pc--story .pc__shade {
+    background: linear-gradient(180deg, var(--photo-shade-18), var(--photo-shade-38));
+  }
+  .pc--solid .pc__shade {
+    background: none;
+  }
+  .pc__quote {
+    width: 9cqw;
+    height: 9cqw;
+    color: var(--photo-text-2);
+  }
+  .pc--feed .pc__quote {
+    position: absolute;
+    top: 7cqw;
+    left: 8cqw;
+  }
+  .pc__text {
+    margin: 0;
+    font-size: 7cqw;
+    font-weight: 600;
+    line-height: 1.55;
+    letter-spacing: -0.01em;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    text-shadow: 0 1px 12px var(--shade-30);
+  }
+  .pc--q-m .pc__text {
+    font-size: 6.3cqw;
+  }
+  .pc--q-s .pc__text {
+    font-size: 5.6cqw;
+  }
+  .pc--q-xs .pc__text {
+    font-size: 4.9cqw;
+  }
+  .pc__foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 4cqw;
+    margin-top: 6cqw;
+    padding-top: 4cqw;
+    border-top: 1px solid var(--photo-line);
+  }
+  .pc__src {
+    max-width: 68%;
+    font-size: 4.2cqw;
+    line-height: 1.45;
+    color: var(--photo-text-2);
+  }
+  .pc__mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.2cqw;
+    margin-left: auto;
+    font-size: 4.2cqw;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .pc__mark svg {
+    width: 1em;
+    height: 1em;
+    color: var(--gold-2);
+  }
+  .pc__panel {
+    display: flex;
+    flex-direction: column;
+    padding: 9cqw 8cqw 8cqw;
+    border-radius: 7cqw;
+    background: var(--photo-panel);
+    color: var(--ink);
+    box-shadow: 0 4cqw 10cqw var(--shade-30);
+  }
+  .pc--story .pc__quote {
+    margin-bottom: 4cqw;
+    color: var(--gold);
+  }
+  .pc--story .pc__text {
+    font-size: 6.6cqw;
+    text-shadow: none;
+  }
+  .pc--story.pc--q-m .pc__text {
+    font-size: 6cqw;
+  }
+  .pc--story.pc--q-s .pc__text {
+    font-size: 5.4cqw;
+  }
+  .pc--story.pc--q-xs .pc__text {
+    font-size: 4.8cqw;
+  }
+  .pc--story .pc__src {
+    max-width: none;
+    margin-top: 5cqw;
+    color: var(--photo-ink-3);
+  }
+  .pc--solid .pc__panel {
+    background: var(--sheen-10);
+    color: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--sheen-16);
+  }
+  .pc--solid .pc__src {
+    color: var(--photo-text-2);
+  }
+  .pc__mark--story {
+    position: absolute;
+    left: 50%;
+    bottom: 7cqw;
+    margin: 0;
+    font-size: 4.6cqw;
+    transform: translateX(-50%);
+    text-shadow: 0 1px 8px var(--shade-30);
+  }
+  .pc__veil {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: var(--accent);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* 주 버튼 (시안 p4 `.cta`): 짙은 알약 + 오른쪽 둥근 아이콘. 금색은 홈 카드·부채꼴 */
+  .pc-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 58px;
+    padding: 7px 7px 7px 22px;
+    border-radius: var(--r-full);
+    background: var(--espresso);
+    color: var(--photo-paper);
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    text-align: left;
+    text-decoration: none;
+    transition: transform 0.2s ease;
+  }
+  .pc-cta:active {
+    transform: scale(0.98);
+  }
+  .pc-cta:disabled {
+    background: var(--surface-2);
+    color: var(--ink-3);
+    cursor: default;
+  }
+  .pc-cta__ic {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--sheen-16);
+  }
+  .pc-cta--gold {
+    background: var(--gold);
+    color: var(--gold-ink);
+  }
+  .pc-cta--gold .pc-cta__ic {
+    background: var(--sheen-25);
+  }
+  .pc-cta small {
+    display: block;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    opacity: 0.85;
+  }
+
+  /* ---------- 10. 사진 카드로 건네기 시트 (024) · 이번 달 모은 말씀 시트 ---------- */
+  .pcs-pv {
+    display: grid;
+    place-items: center;
+    margin-top: 10px;
+    padding: 20px 0;
+    border-radius: 24px;
+    background: radial-gradient(80% 60% at 50% 40%, var(--surface), var(--surface-2));
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .pcs-pv img {
+    display: block;
+    width: min(240px, 72%);
+    height: auto;
+    border-radius: 14px;
+    background: var(--surface-2);
+    box-shadow: 0 24px 40px -18px var(--umber-28);
+  }
+  .pcs-pv--story img {
+    width: min(176px, 52%);
+  }
+  .pcs-pv[data-status="loading"] img {
+    animation: hoondok-pc-pulse 1.4s ease-in-out infinite;
+  }
+  .pcs-pv__err {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 16px;
+    text-align: center;
+    color: var(--ink-2);
+    font-size: var(--fs-lg);
+  }
+  .pcs-pv__err p {
+    margin: 0;
+  }
+  .pcs-ctl {
+    margin-top: 18px;
+  }
+  .pcs-ctl__lbl {
+    margin: 0 0 8px;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+  }
+  .pcs-seg {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 4px;
+    padding: 4px;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+  }
+  .pcs-seg button {
+    min-height: 48px;
+    padding: 0 8px;
+    border-radius: var(--r-full);
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .pcs-seg button[aria-checked="true"] {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--shadow-1);
+  }
+  .pcs-swatch {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .pcs-swatch button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .pcs-swatch__i {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 14px;
+    background: var(--pc-book, var(--surface-2)) center / cover;
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .pcs-swatch button[aria-checked="true"] {
+    color: var(--ink);
+  }
+  .pcs-swatch button[aria-checked="true"] .pcs-swatch__i {
+    box-shadow:
+      0 0 0 3px var(--paper),
+      0 0 0 5px var(--ink);
+  }
+  .pcs-lock {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 16px 0 0;
+    padding: 10px 12px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    color: var(--ink-2);
+    font-size: var(--fs-md);
+  }
+  .pcs-lock svg {
+    flex: none;
+    color: var(--gold);
+  }
+  .pcs-dock {
+    position: sticky;
+    bottom: -28px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 16px calc(-1 * var(--gutter)) 0;
+    padding: 18px var(--gutter) 12px;
+    background: linear-gradient(180deg, transparent, var(--paper) 18%);
+  }
+
   @media (min-width: 1024px) {
     .bmk-toast {
       bottom: 32px;
@@ -793,6 +1158,11 @@
   @media (prefers-reduced-motion: reduce) {
     .bk--sm.is-waiting .bk__rib {
       animation: none;
+    }
+    .pcs-pv[data-status="loading"] img,
+    .pc-cta {
+      animation: none;
+      transition: none;
     }
   }
 }

@@ -10,6 +10,7 @@ import {
   defaultBackground,
   parseCollageQuery,
   parseImageQuery,
+  sourceText,
   toLook,
 } from "@/features/hoondok/cards/look";
 import { findCardSentence, normalizeForMatch } from "@/features/hoondok/cards/match";
@@ -22,9 +23,23 @@ import {
   type Step,
   totalDuration,
 } from "@/features/hoondok/cards/motion";
-import { collageQuoteSize, collageRows, sourceText } from "@/features/hoondok/cards/og/card-image";
-import { cardCopyText, cardWordsHref, shareCard } from "@/features/hoondok/cards/share";
-import { isReceivedToday, readLocalReceipt, writeLocalReceipt } from "@/features/hoondok/cards/storage";
+import { collageQuoteSize, collageRows } from "@/features/hoondok/cards/og/card-image";
+import {
+  cardCopyText,
+  cardImagePath,
+  cardWordsHref,
+  collageImagePath,
+  photoCardImagePath,
+  shareCard,
+  shareImageFile,
+} from "@/features/hoondok/cards/share";
+import {
+  isReceivedToday,
+  readCardLook,
+  readLocalReceipt,
+  writeCardLook,
+  writeLocalReceipt,
+} from "@/features/hoondok/cards/storage";
 import { formatKstDate } from "@/features/hoondok/today";
 
 // 오늘의 책갈피 (PLAN-HD-012) — 매칭 정규화 · 공유 폴백 3단계 · 동작 줄이기 분기 · 오늘 받음 판정 · 화면 흐름.
@@ -225,6 +240,27 @@ describe("이번 달 모은 말씀 콜라주", () => {
   });
 });
 
+describe("사진 카드 주소 · 이미지 파일 공유", () => {
+  it("예전 link·square 주소는 그대로, 사진 카드는 f·bg·src 를 모두 싣는다", () => {
+    expect(cardImagePath(CARD.id, "link")).toBe(`/c/${CARD.id}/image?f=link`);
+    expect(photoCardImagePath(CARD.id, { format: "story", bg: "lake", src: "book" })).toBe(
+      `/c/${CARD.id}/image?f=story&bg=lake&src=book`,
+    );
+    expect(collageImagePath(["a", "b"], "night", "feed")).toBe("/c/collage/image?ids=a,b&theme=night&f=feed");
+  });
+
+  it("콜라주는 파일만 건넨다 — 파일 공유가 안 되면 링크·클립보드로 내려가지 않고 none", async () => {
+    const file = new File(["png"], "c.png", { type: "image/png" });
+    const share = vi.fn().mockResolvedValue(undefined);
+    expect(await shareImageFile({ file, title: "t", nav: { share, canShare: () => true } })).toBe("file");
+    expect(share).toHaveBeenCalledWith({ title: "t", files: [file] });
+    expect(await shareImageFile({ file, title: "t", nav: { share, canShare: () => false } })).toBe("none");
+    expect(await shareImageFile({ file: null, title: "t", nav: { share, canShare: () => true } })).toBe("none");
+    const closed = vi.fn().mockRejectedValue(new DOMException("closed", "AbortError"));
+    expect(await shareImageFile({ file, title: "t", nav: { share: closed, canShare: () => true } })).toBe("cancelled");
+  });
+});
+
 describe("동작 줄이기 분기 (transform·opacity 만, 줄이면 페이드만)", () => {
   const onlyOpacity = (steps: Step[]) =>
     steps.every((step) =>
@@ -352,6 +388,59 @@ describe("받기·읽기 화면 (SCR-PWA-023)", () => {
     writeLocalReceipt({ date: TODAY, cardId: CARD.id });
     render(wrap(<BookmarkHomeCard card={CARD} dateLabel="9월 28일 월요일" />));
     expect(await screen.findByRole("link", { name: "책갈피 다시 보기" })).toBeInTheDocument();
+  });
+});
+
+describe("사진 카드로 건네기 시트 (SCR-PWA-024)", () => {
+  beforeEach(() => {
+    fetchMock.mockImplementation(async () => json({ detail: "unauthorized" }, 401));
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  it("고른 크기·바탕·출처가 미리보기와 사진 저장 주소에 그대로 실린다", async () => {
+    const { ShareSheet } = await import("@/features/hoondok/cards/components/share-sheet");
+    const onDone = vi.fn();
+    render(wrap(<ShareSheet card={CARD} onClose={() => {}} onDone={onDone} />));
+    const preview = screen.getByRole("img", { name: /건넬 사진 카드/ });
+    expect(preview.getAttribute("src")).toMatch(/f=feed&bg=\w+&src=full$/);
+    fireEvent.click(screen.getByRole("radio", { name: "9:16 스토리" }));
+    fireEvent.click(screen.getByRole("radio", { name: "책 색" }));
+    fireEvent.click(screen.getByRole("radio", { name: "책 이름만" }));
+    const url = `/c/${CARD.id}/image?f=story&bg=book&src=book`;
+    expect(screen.getByRole("img", { name: /건넬 사진 카드/ })).toHaveAttribute("src", url);
+    expect(screen.getByRole("link", { name: "사진 저장" })).toHaveAttribute("href", url);
+    expect(screen.getByRole("radio", { name: "책 색" })).toHaveAttribute("aria-checked", "true");
+    // 빼기는 없다
+    expect(screen.queryByRole("radio", { name: "빼기" })).toBeNull();
+    expect(screen.getByText("출처와 훈독 표시는 카드에 늘 함께 가요")).toBeInTheDocument();
+  });
+
+  it("글로 복사하면 고른 모양을 이 카드에 남기고, 다음에 같은 모양으로 연다", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const { ShareSheet } = await import("@/features/hoondok/cards/components/share-sheet");
+    const onDone = vi.fn();
+    const { unmount } = render(wrap(<ShareSheet card={CARD} onClose={() => {}} onDone={onDone} />));
+    fireEvent.click(screen.getByRole("radio", { name: "호수" }));
+    fireEvent.click(screen.getByRole("button", { name: "글로 복사" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith("copied"));
+    expect(readCardLook(CARD.id)).toEqual({ format: "feed", bg: "lake", src: "full" });
+    unmount();
+    writeCardLook(CARD.id, { format: "story", bg: "orchard", src: "book" });
+    render(wrap(<ShareSheet card={CARD} onClose={() => {}} onDone={onDone} />));
+    expect(screen.getByRole("img", { name: /건넬 사진 카드/ })).toHaveAttribute(
+      "src",
+      `/c/${CARD.id}/image?f=story&bg=orchard&src=book`,
+    );
+  });
+
+  it("미리보기를 못 불러오면 다시 시도를 보인다", async () => {
+    const { ShareSheet } = await import("@/features/hoondok/cards/components/share-sheet");
+    render(wrap(<ShareSheet card={CARD} onClose={() => {}} onDone={() => {}} />));
+    fireEvent.error(screen.getByRole("img", { name: /건넬 사진 카드/ }));
+    expect(await screen.findByText("미리보기를 불러오지 못했어요")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(screen.getByRole("img", { name: /건넬 사진 카드/ })).toBeInTheDocument();
   });
 });
 

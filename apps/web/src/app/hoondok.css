@@ -84,6 +84,36 @@
   --spine-7: #eadbe0;
   --spine-8: #dde3e6;
   --spine-9: #efe6d2;
+  /* 사진 카드·내 카드 갤러리 (SCR-PWA-022~026 사진 카드 개편). 값은 시안 p4-gallery. 책 색은 og/card-image.tsx 에 사본이 있다 */
+  --espresso: #241c16;
+  --gold: #c29a5b;
+  --gold-2: #e3c48e;
+  --gold-ink: #1d150d;
+  --photo-paper: #fbf8f2;
+  --photo-ink-3: #857a6c;
+  --book-1: #2f4a3a;
+  --book-2: #2b3a55;
+  --book-3: #7a3a22;
+  --book-4: #5a4632;
+  --book-5: #4a3a5a;
+  --book-6: #3e5656;
+  --book-ink: #f6ead3;
+  --photo-shade-86: rgba(14, 10, 7, 0.86);
+  --photo-shade-52: rgba(14, 10, 7, 0.52);
+  --photo-shade-38: rgba(14, 10, 7, 0.38);
+  --photo-shade-18: rgba(14, 10, 7, 0.18);
+  --photo-shade-10: rgba(14, 10, 7, 0.1);
+  --photo-line: rgba(255, 255, 255, 0.24);
+  --photo-text-2: rgba(255, 255, 255, 0.86);
+  --photo-panel: rgba(251, 248, 242, 0.9);
+  --photo-night: rgba(22, 17, 13, 0.78);
+  --gold-glow: rgba(194, 154, 91, 0.35);
+  --green-glow: rgba(70, 96, 74, 0.45);
+  --sheen-10: rgba(255, 255, 255, 0.1);
+  --sheen-16: rgba(255, 255, 255, 0.16);
+  --sheen-25: rgba(255, 255, 255, 0.25);
+  --shade-30: rgba(0, 0, 0, 0.3);
+  --umber-28: rgba(56, 40, 24, 0.28);
 
   --r: 16px;
   --r-sm: 12px;

@@ -14,6 +14,7 @@ import {
   type PhotoBackground,
   type PhotoFormat,
   type SourceMode,
+  sourceText,
 } from "../look";
 
 export type { ImageFormat };
@@ -255,11 +256,6 @@ const SOLID_SHEEN = "linear-gradient(160deg, rgba(255,255,255,0.16) 0%, rgba(255
 
 export function bookHex(workTitle: string): string {
   return P.books[bookColorIndex(workTitle) - 1];
-}
-
-/** 출처 줄: 자세히 = source_label, 책 이름만 = 책 이름(편·권 포함) */
-export function sourceText(card: Pick<CardPublic, "source_label" | "work_title" | "volume">, src: SourceMode): string {
-  return src === "book" ? bookName(card) : card.source_label;
 }
 
 function Backdrop({

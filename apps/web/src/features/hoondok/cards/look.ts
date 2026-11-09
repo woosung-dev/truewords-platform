@@ -1,5 +1,7 @@
 // 사진 카드 모양 (SCR-PWA-024 사진 카드로 건네기, 이번 달 모은 말씀). 화면(DOM)과 이미지 라우트(Satori)가 함께 쓰는 순수 모듈이다.
 // 이미지 주소의 쿼리는 여기 허용 목록으로만 읽는다 — 목록 밖 값은 기본값으로 바꾸고 그대로 쓰지 않는다.
+import type { CardPublic } from "./api";
+import { bookName } from "./components/book";
 
 /** 바탕: 사진 4장 + 책 색. 사진 파일은 화면용 webp(public/hoondok/photos)와 이미지 라우트용 JPEG(public/hoondok/cards/bg-*.jpg) 두 벌이다 */
 export const PHOTO_BACKGROUNDS = ["field", "sunlit", "lake", "orchard"] as const;
@@ -34,6 +36,11 @@ export type PhotoFormat = (typeof PHOTO_FORMATS)[number];
 /** 출처 표시: 자세히(출처 전체) / 책 이름만. 빼기는 없다 — 출처와 훈독 표시는 늘 인쇄한다 */
 export const SOURCE_MODES = ["full", "book"] as const;
 export type SourceMode = (typeof SOURCE_MODES)[number];
+
+/** 출처 줄: 자세히 = source_label, 책 이름만 = 책 이름(편·권 포함) */
+export function sourceText(card: Pick<CardPublic, "source_label" | "work_title" | "volume">, src: SourceMode): string {
+  return src === "book" ? bookName(card) : card.source_label;
+}
 
 export type CardLook = { format: PhotoFormat; bg: CardBackground; src: SourceMode };
 
