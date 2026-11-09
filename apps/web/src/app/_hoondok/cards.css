@@ -1,27 +1,24 @@
 /* 오늘의 책갈피 (PLAN-HD-012, SCR-PWA-022~026) — 홈 카드 · 받기/읽기 · 건네기 시트 · 원문 밑줄 · 받은 사람 · 나의 책갈피.
    값의 원본은 승인 시안 bookmark-final.html(목업 A). 색은 hoondok.css 토큰만 쓴다(hex 금지, pnpm hoondok:check).
-   모션은 transform·opacity 만(features/hoondok/cards/motion.ts). 여기의 CSS 애니메이션은 홈 대기 모션 하나이고 동작 줄이기면 끈다. */
+   사진 카드·내 카드 갤러리 개편은 시안 p4-gallery 를 따른다.
+   모션은 transform·opacity 만(features/hoondok/cards/motion.ts). 여기의 CSS 애니메이션(홈 리본·미리보기 깜박임·부채꼴)은 동작 줄이기면 끈다. */
 
-/* 홈 대기: 책갈피 끝이 3px 오르내림, 800ms 뒤 3초 주기 2회 (@keyframes 는 중첩할 수 없어 최상위에 둔다) */
-/* 사진 카드 미리보기를 불러오는 동안 자리만 은은하게 깜박인다(동작 줄이기면 끈다) */
+/* 홈 리본: 800ms 뒤 2회만 6px 내려왔다 돌아간다 */
+@keyframes hoondok-bm-sway {
+  to {
+    transform: translateY(6px);
+  }
+}
+
+/* 사진 카드 미리보기를 불러오는 동안 자리만 은은하게 깜박인다 */
 @keyframes hoondok-pc-pulse {
   50% {
     opacity: 0.55;
   }
 }
 
-@keyframes hoondok-bm-breathe {
-  0%,
-  100% {
-    transform: translateY(9.6em);
-  }
-  50% {
-    transform: translateY(9em);
-  }
-}
-
 [data-app="hoondok"] {
-  /* ---------- 1. 책 (홈 sm · 받는 순간 lg, em 단위로 크기만 바꾼다) ---------- */
+  /* ---------- 1. 책 (받는 순간 무대, em 단위) ---------- */
   .bk {
     position: relative;
     width: 17.6em;
@@ -29,10 +26,7 @@
     font-size: 10px;
     perspective: 42em;
   }
-  /* .bk·.bk--sm 의 font-size(10px·5.1px)는 글자 크기가 아니라 em 으로 그린 책 일러스트의 축척이다 — 타입 스케일 대상이 아니다 */
-  .bk--sm {
-    font-size: 5.1px;
-  }
+  /* .bk 의 font-size(10px)는 글자 크기가 아니라 em 으로 그린 책 일러스트의 축척이다 — 타입 스케일 대상이 아니다 */
   .bk__pages {
     position: absolute;
     left: 1.2em;
@@ -63,15 +57,6 @@
   }
   .bk.is-closed .bk__rib {
     transform: translateY(11em);
-  }
-  .bk--sm.is-closed .bk__rib {
-    transform: translateY(9.6em);
-  }
-  .bk--sm.is-waiting .bk__rib {
-    animation: hoondok-bm-breathe 3s ease-in-out 0.8s 2;
-  }
-  .bk--sm .bk__tas {
-    display: none;
   }
   .bk__rib-body {
     position: absolute;
@@ -162,46 +147,113 @@
     margin-top: 0.4em;
   }
 
-  /* ---------- 2. 홈 카드 (022) ---------- */
+  /* ---------- 2. 홈 카드 (022, 시안 p4 홈): 짙은 바탕 + 금색 리본 + 금색 주 버튼, 아래 타일 두 개 ---------- */
   .bmhome {
-    padding: 18px 18px 16px;
+    padding: 0;
+    overflow: hidden;
   }
-  .bmhome__top {
+  .bmhome__env {
+    position: relative;
     display: flex;
-    gap: 16px;
-    align-items: flex-end;
+    flex-direction: column;
+    min-height: 272px;
+    padding: 26px 22px 22px;
+    background:
+      radial-gradient(120% 70% at 85% 0%, var(--gold-glow), transparent 60%),
+      radial-gradient(90% 60% at 0% 100%, var(--green-glow), transparent 70%), var(--espresso);
+    color: var(--photo-paper);
+    isolation: isolate;
   }
-  .bmhome__book {
-    flex: none;
-    width: 92px;
-    height: 128px;
-    display: grid;
-    place-items: end center;
-    padding-bottom: 2px;
+  .bmhome__rib {
+    position: absolute;
+    top: 0;
+    right: 26px;
+    width: 40px;
+    height: 104px;
+    background: linear-gradient(180deg, var(--gold-2), var(--gold));
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+    transform-origin: 50% 0;
   }
-  .bmhome__bd {
-    min-width: 0;
+  .bmhome__env.is-waiting .bmhome__rib {
+    animation: hoondok-bm-sway 1.6s ease-in-out 0.8s 2 alternate;
   }
   .bmhome__kind {
-    display: block;
-    font-size: var(--fs-xs);
-    color: var(--ink-3);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--gold-2);
+    padding-right: 56px;
   }
   .bmhome__title {
+    margin: 10px 0 auto;
+    padding-right: 56px;
+    font-size: var(--fs-2xl);
+    font-weight: 700;
+    line-height: 1.45;
+    letter-spacing: -0.02em;
+  }
+  .bmhome__go {
+    margin-top: 24px;
+  }
+  .pc-cta--light {
+    background: var(--photo-paper);
+    color: var(--ink);
+  }
+  .pc-cta--light .pc-cta__ic {
+    background: var(--shade-7);
+  }
+  .bmhome > .ps-why {
+    margin: 0;
+    padding-left: 18px;
+    border-top: 0;
+  }
+  .bmhome-tiles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .bmhome-tile {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+    min-height: 124px;
+    padding: 16px;
+    border-radius: 22px;
+    background: var(--surface);
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      var(--shadow-2);
+  }
+  .bmhome-tile:active {
+    transform: scale(0.98);
+  }
+  .bmhome-tile__spines {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 40px;
+  }
+  .bmhome-tile__spines i {
+    display: block;
+    border-radius: 3px;
+    background: var(--pc-book);
+  }
+  .bmhome-tile__num {
+    min-height: 40px;
+    font-size: var(--fs-3xl);
+    font-weight: 700;
+    line-height: 40px;
+  }
+  .bmhome-tile__bd b {
     display: block;
     font-size: var(--fs-lg);
     font-weight: 700;
-    line-height: 1.4;
-    margin: 3px 0 4px;
-    overflow-wrap: anywhere;
   }
-  .bmhome__meta {
-    display: block;
-    font-size: var(--fs-xs);
-    color: var(--ink-2);
-  }
-  .bmhome__go {
-    margin-top: 16px;
+  .bmhome-tile__bd span {
+    font-size: var(--fs-md);
+    color: var(--ink-3);
   }
 
   /* ---------- 3. 책갈피 카드 (목업 A) ---------- */
@@ -375,9 +427,25 @@
   .bmk-stage {
     position: relative;
   }
+  .bmk-date {
+    margin: 0 auto 10px;
+    max-width: 380px;
+    font-size: var(--fs-md);
+    color: var(--ink-3);
+  }
   .bmk-card {
+    max-width: 380px;
+    margin: 0 auto;
     transform-origin: 0 0;
     will-change: transform;
+    box-shadow: 0 30px 50px -24px var(--umber-28);
+  }
+  .bmk-skel {
+    display: block;
+    width: 100%;
+    max-width: 380px;
+    margin: 34px auto 0;
+    aspect-ratio: 4 / 5;
   }
   /* 받음 판정 전에는 카드·버튼을 보이지 않는다(모션을 틀지 결정하기 전) */
   .bmk--wait .bmk-card,
@@ -425,22 +493,10 @@
   .bmk-actions {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
-    max-width: 420px;
-    margin: 12px auto 0;
-  }
-  .btn--tall {
-    min-height: 58px;
-    flex-direction: column;
-    gap: 0;
-    line-height: 1.3;
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
-  .btn--tall small {
-    font-weight: 400;
-    font-size: var(--fs-xs);
+    max-width: 380px;
+    margin: 20px auto 0;
   }
   .bmk-row2 {
     display: grid;
@@ -472,77 +528,7 @@
     opacity: 1;
   }
 
-  /* ---------- 5. 건네기 시트 (024) ---------- */
-  .bmk-share__pv {
-    display: block;
-    width: 100%;
-    max-width: 300px;
-    height: auto;
-    margin: 8px auto 0;
-    border-radius: var(--r);
-    box-shadow: var(--shadow-2);
-  }
-  .bmk-share__lock {
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
-    margin: 16px 0 0;
-    padding: 10px 12px;
-    border-radius: var(--r-sm);
-    background: var(--surface-2);
-    color: var(--ink-2);
-    font-size: var(--fs-xs);
-  }
-  .bmk-share__lock svg {
-    flex: none;
-    margin-top: 1px;
-  }
-  .bmk-share__dests {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 16px;
-  }
-  .bmk-dest {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    width: 100%;
-    min-height: 64px;
-    padding: 10px 14px;
-    text-align: left;
-    color: inherit;
-    text-decoration: none;
-    font: inherit;
-    cursor: pointer;
-  }
-  .bmk-dest__ic {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border-radius: var(--r-sm);
-    background: var(--surface-2);
-    color: var(--ink-2);
-  }
-  .bmk-dest__ic--kk {
-    background: var(--kakao);
-    color: var(--kakao-ink);
-  }
-  .bmk-dest__bd {
-    flex: 1;
-    min-width: 0;
-  }
-  .bmk-dest__bd b {
-    display: block;
-    font-size: var(--fs-md);
-    font-weight: 600;
-  }
-  .bmk-dest__bd span {
-    font-size: var(--fs-xs);
-    color: var(--ink-3);
-  }
+  /* ---------- 5. 건네기 시트 (024): 바로 보낼 수 없을 때 보이는 링크 ---------- */
   .bmk-share__link {
     margin-top: 14px;
     font-size: var(--fs-xs);
@@ -1156,8 +1142,10 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .bk--sm.is-waiting .bk__rib {
+    .bmhome__env.is-waiting .bmhome__rib,
+    .bmhome-tile {
       animation: none;
+      transition: none;
     }
     .pcs-pv[data-status="loading"] img,
     .pc-cta {

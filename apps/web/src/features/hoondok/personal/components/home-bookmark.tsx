@@ -45,7 +45,7 @@ function ReasonLine({
 
 const noopSubscribe = () => () => {};
 
-/** 홈 책갈피 카드와 같은 틀(제목 줄 · 책 자리 · 글 자리 · 버튼 자리 · 한 줄)의 정적 회색 자리. 모션 없음 */
+/** 홈 책갈피 카드와 같은 틀(제목 줄 · 짙은 카드 자리 · 한 줄)의 정적 회색 자리. 모션 없음 */
 function BookmarkHomeSkeleton({ dateLabel }: { dateLabel: string }) {
   return (
     <div className="sect bmhome-sect">
@@ -54,15 +54,7 @@ function BookmarkHomeSkeleton({ dateLabel }: { dateLabel: string }) {
         <span className="sect__meta">{dateLabel}</span>
       </div>
       <div className="card bmhome ps-skel" role="status" aria-busy="true" aria-label="오늘의 책갈피를 불러오는 중">
-        <div className="bmhome__top">
-          <span className="skeleton ps-skel__book" />
-          <div className="bmhome__bd ps-skel__bd">
-            <span className="skeleton ps-skel__line" style={{ width: "40%" }} />
-            <span className="skeleton ps-skel__line ps-skel__line--lg" style={{ width: "70%" }} />
-            <span className="skeleton ps-skel__line" style={{ width: "90%" }} />
-          </div>
-        </div>
-        <span className="skeleton ps-skel__btn bmhome__go" />
+        <span className="skeleton ps-skel__env" />
         <span className="skeleton ps-skel__line ps-skel__why" style={{ width: "75%" }} />
       </div>
     </div>

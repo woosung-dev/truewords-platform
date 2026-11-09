@@ -14,12 +14,6 @@ export function cardDayLabel(iso: string): string {
   return `${month}월 ${day}일 ${weekday}요일`;
 }
 
-/** 카드 머리: "2026. 9. 28." */
-export function cardDotDate(iso: string): string {
-  const { year, month, day } = parts(iso);
-  return `${year}. ${month}. ${day}.`;
-}
-
 /** 받는 순간 머리: "2026년 9월 28일" */
 export function cardLongDate(iso: string): string {
   const { year, month, day } = parts(iso);

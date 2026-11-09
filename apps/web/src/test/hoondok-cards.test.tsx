@@ -388,6 +388,27 @@ describe("받기·읽기 화면 (SCR-PWA-023)", () => {
     writeLocalReceipt({ date: TODAY, cardId: CARD.id });
     render(wrap(<BookmarkHomeCard card={CARD} dateLabel="9월 28일 월요일" />));
     expect(await screen.findByRole("link", { name: "책갈피 다시 보기" })).toBeInTheDocument();
+    // 비로그인에게는 타일이 없다
+    expect(screen.queryByRole("link", { name: /내 카드 갤러리/ })).toBeNull();
+  });
+
+  it("홈 타일: 로그인하면 나의 책갈피·내 카드 갤러리 장수(서버 값)를 보인다", async () => {
+    const item = { card: CARD, received_on: TODAY, shared_at: null };
+    fetchMock.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("/hoondok/auth/me")) return json({ user: { id: "u1", email: "a@b.c", display_name: "효진" } });
+      if (url.includes("filter=shared")) return json({ items: [], shelves: [] });
+      if (url.includes("/hoondok/me/cards"))
+        return json({ items: [item], shelves: [{ work_title: "천성경", count: 1 }] });
+      return json({ detail: "not found" }, 404);
+    });
+    const { BookmarkHomeCard } = await import("@/features/hoondok/cards/components/home-card");
+    render(wrap(<BookmarkHomeCard card={CARD} dateLabel="9월 28일 월요일" />));
+    expect(await screen.findByRole("link", { name: /나의 책갈피\s*1장/ })).toHaveAttribute("href", "/bookmarks");
+    expect(await screen.findByRole("link", { name: /내 카드 갤러리\s*건넨 카드 0장/ })).toHaveAttribute(
+      "href",
+      "/bookmarks?filter=shared",
+    );
   });
 });
 
