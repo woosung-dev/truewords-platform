@@ -241,7 +241,7 @@ describe("홈 이어 읽기 카드", () => {
     vi.mocked(libraryAPI.readingPositions).mockResolvedValue({
       items: [{ ...POSITION, updated_at: new Date().toISOString() }],
     });
-    show(<HomeMissions today={PUBLIC} todayWeekday={1} />);
+    show(<HomeMissions today={PUBLIC} />);
     expect(await screen.findByText("천성경 · 참사랑은 직단거리를 갑니다")).toBeInTheDocument();
     expect(screen.getByText("21단락부터 이어 읽어요 · 오늘")).toBeInTheDocument();
     expect(resumeMission()).toHaveAttribute("href", `${wordsHref(VOLUME)}?page=2&from=resume`);
@@ -249,14 +249,14 @@ describe("홈 이어 읽기 카드", () => {
   });
   it("비로그인은 이 기기의 기록을 서고 권리로 확인해 보인다", async () => {
     writeLastReading({ volume: VOLUME, page: 1 });
-    show(<HomeMissions today={PUBLIC} todayWeekday={1} />);
+    show(<HomeMissions today={PUBLIC} />);
     expect(await screen.findByText("천성경 · 참부모님의 탄생")).toBeInTheDocument();
     expect(screen.getByText("1단락부터 이어 읽어요 · 이 기기에서 읽던 곳")).toBeInTheDocument();
     expect(resumeMission()).toHaveAttribute("href", `${wordsHref(VOLUME)}?page=1&from=resume`);
     expect(libraryAPI.readingPositions).not.toHaveBeenCalled();
   });
   it("기록이 없으면 서고 안내 그대로이고 서고 목록도 부르지 않는다", async () => {
-    show(<HomeMissions today={PUBLIC} todayWeekday={1} />);
+    show(<HomeMissions today={PUBLIC} />);
     expect(await screen.findByText("말씀 서고")).toBeInTheDocument();
     expect(screen.getByText("공개된 원문을 읽고 읽음으로 기록해요")).toBeInTheDocument();
     expect(resumeMission()).toHaveAttribute("href", "/library");
@@ -265,7 +265,7 @@ describe("홈 이어 읽기 카드", () => {
   it("원문 공개가 닫힌 권이면 원문 링크를 만들지 않는다", async () => {
     writeLastReading({ volume: VOLUME, page: 1 });
     vi.mocked(libraryAPI.list).mockResolvedValue({ items: [{ ...ITEM, scope_full_text: false }], works: [] });
-    show(<HomeMissions today={PUBLIC} todayWeekday={1} />);
+    show(<HomeMissions today={PUBLIC} />);
     expect(await screen.findByText("말씀 서고")).toBeInTheDocument();
     expect(resumeMission()).toHaveAttribute("href", "/library");
     expect(screen.queryByText(/단락부터/)).toBeNull();
@@ -273,14 +273,14 @@ describe("홈 이어 읽기 카드", () => {
   it("위치 조회가 실패하면 기록 없음과 같은 카드로 떨어진다", async () => {
     vi.mocked(identityAPI.me).mockResolvedValue({ user: USER });
     vi.mocked(libraryAPI.readingPositions).mockRejectedValue(new ApiError(500, { message: "x" }));
-    show(<HomeMissions today={PUBLIC} todayWeekday={1} />);
+    show(<HomeMissions today={PUBLIC} />);
     expect(await screen.findByText("말씀 서고")).toBeInTheDocument();
     expect(resumeMission()).toHaveAttribute("href", "/library");
   });
   it("불러오는 동안은 서고 문구를 먼저 보이지 않고 자리만 지킨다", async () => {
     writeLastReading({ volume: VOLUME, page: 1 });
     vi.mocked(libraryAPI.list).mockReturnValue(new Promise(() => {}));
-    const view = show(<HomeMissions today={PUBLIC} todayWeekday={1} />);
+    const view = show(<HomeMissions today={PUBLIC} />);
     await waitFor(() => expect(libraryAPI.list).toHaveBeenCalled());
     expect(screen.queryByText("말씀 서고")).toBeNull();
     const card = resumeMission();

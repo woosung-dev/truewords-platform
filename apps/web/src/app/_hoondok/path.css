@@ -194,6 +194,57 @@
   .path-sect__title {
     font-size: var(--fs-lg);
   }
+  /* 요일 원 스트립 — 홈은 하늘 별자리(_hoondok/home.css .sky .week)로 바뀌어 정성 화면만 이 모양을 쓴다 */
+  .path-home .week {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .path-home .week__days {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+    justify-items: center;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .path-home .week__check {
+    position: absolute;
+    right: -2px;
+    bottom: 0;
+    background: var(--paper);
+    color: var(--ok);
+    border-radius: 50%;
+  }
+  .path-home .week__day {
+    position: relative;
+    width: 100%;
+    max-width: 34px;
+    aspect-ratio: 1;
+    height: auto;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    border: 1px solid var(--ink-3);
+    background: var(--surface);
+  }
+  .path-home .week__day[data-done] {
+    background: var(--ok-soft);
+    color: var(--ok-strong);
+    border-color: transparent;
+    font-weight: 600;
+  }
+  .path-home .week__day[data-today] {
+    border: 2px solid var(--accent);
+    color: var(--accent-strong);
+    font-weight: 700;
+  }
   /* 이번 주 읽은 날 — 정성 화면은 본문에 --fs-sm/xs 를 쓰지 않는다(디자인 명세 §0.1).
      홈의 요일 줄은 그대로 두고 .path-home 안에서만 키운다: 요일 글자 --fs-md · 원 40 · 체크 14 */
   .path-home .week__day {

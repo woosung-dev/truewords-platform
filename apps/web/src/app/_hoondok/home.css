@@ -1,0 +1,721 @@
+/* 홈 "오늘의 하늘" (SCR-PWA-002). 위는 KST 시간대 하늘(인사 · 이번 주 별자리), 지평선에 "오늘 훈독 말씀" 판, 아래 땅에 판들.
+   색은 hoondok.css 토큰만 쓴다(hex·rgba 금지, pnpm hoondok:check). 하늘 바탕은 네 장을 겹쳐 opacity 로, 해·달은 transform 으로 바꾼다.
+   모션은 transform·opacity 만이고 동작 줄이기면 hoondok.css 전역 규칙이 흐르는 띠·반짝임·전환을 모두 끈다. */
+
+/* 잔별 반짝임 */
+@keyframes hoondok-sky-twinkle {
+  to {
+    opacity: 0.12;
+  }
+}
+/* 은하수 띠·구름이 아주 느리게 흐른다 */
+@keyframes hoondok-sky-drift {
+  to {
+    transform: translateX(-50%);
+  }
+}
+/* 별자리 선이 나타난다 */
+@keyframes hoondok-sky-fade {
+  from {
+    opacity: 0;
+  }
+}
+/* 훈독한 날의 별이 놓일 때 1회 */
+@keyframes hoondok-sky-pop {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+[data-app="hoondok"] {
+  .home {
+    width: 100%;
+    padding-bottom: 28px;
+    overflow-x: clip;
+  }
+  .home__wrap {
+    width: 100%;
+    max-width: calc(1120px + 2 * var(--gutter));
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  /* ---------- 하늘: 시간대별 글자·별·해달 값 ---------- */
+  .sky {
+    --on-sky: var(--sky-ink-light);
+    --on-sky-2: var(--sky-ink-light-2);
+    --star-empty: var(--sky-star-empty-light);
+    --star-on: var(--gold-2);
+    --star-glow: var(--sky-star-glow);
+    --chip-ink: var(--sky-night-2);
+    --stars-op: 1;
+    --band-op: 1;
+    --band-color: var(--sky-band);
+    --hill: var(--sky-hill-night);
+    /* 해달 자리: 좁은 화면(--ox·--oy), 넓은 화면(--wox·--woy). 하늘 전체 크기 기준 % */
+    --ox: 79%;
+    --oy: 6%;
+    --wox: 82%;
+    --woy: 12%;
+    position: relative;
+    isolation: isolate;
+    color: var(--on-sky);
+  }
+  .sky[data-sky="dawn"] {
+    --star-on: var(--sky-star-warm);
+    --chip-ink: var(--sky-dawn-1);
+    --stars-op: 0.5;
+    --band-op: 0.6;
+    --band-color: var(--sky-band-warm);
+    --hill: var(--sky-hill-dawn);
+    --ox: 56%;
+    --oy: calc(100% - 100px);
+    --wox: 30%;
+    --woy: 74%;
+  }
+  .sky[data-sky="day"] {
+    --on-sky: var(--sky-ink-day);
+    --on-sky-2: var(--sky-ink-day);
+    --star-empty: var(--sky-star-empty-day);
+    --star-on: var(--sky-star-day);
+    --star-glow: var(--sky-star-glow-day);
+    --chip-ink: var(--sky-ink-light);
+    --stars-op: 0;
+    --band-color: var(--sky-cloud);
+    --hill: var(--sky-hill-day);
+    --ox: 76%;
+    --oy: 5%;
+    --wox: 84%;
+    --woy: 9%;
+  }
+  .sky[data-sky="dusk"] {
+    --star-on: var(--sky-star-warm);
+    --chip-ink: var(--sky-dusk-1);
+    --stars-op: 0.35;
+    --band-op: 0.6;
+    --band-color: var(--sky-band-warm);
+    --hill: var(--sky-hill-dusk);
+    --ox: 60%;
+    --oy: calc(100% - 100px);
+    --wox: 46%;
+    --woy: 74%;
+  }
+
+  .sky__bg {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+  }
+  .sky__layer {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1.1s ease;
+  }
+  .sky__layer--night {
+    background:
+      radial-gradient(120% 30% at 50% 100%, var(--sky-night-glow), transparent 72%),
+      linear-gradient(
+        180deg,
+        var(--sky-night-1) 0%,
+        var(--sky-night-2) 40%,
+        var(--sky-night-3) 76%,
+        var(--sky-night-4) 100%
+      );
+  }
+  .sky__layer--dawn {
+    background:
+      radial-gradient(120% 26% at 40% 100%, var(--sky-dawn-glow), transparent 72%),
+      linear-gradient(
+        180deg,
+        var(--sky-dawn-1) 0%,
+        var(--sky-dawn-2) 40%,
+        var(--sky-dawn-3) 76%,
+        var(--sky-dawn-4) 100%
+      );
+  }
+  .sky__layer--day {
+    background:
+      radial-gradient(120% 32% at 50% 100%, var(--sky-day-glow), transparent 72%),
+      linear-gradient(180deg, var(--sky-day-1) 0%, var(--sky-day-2) 45%, var(--sky-day-3) 80%, var(--sky-day-4) 100%);
+  }
+  .sky__layer--dusk {
+    background:
+      radial-gradient(120% 26% at 70% 100%, var(--sky-dusk-glow), transparent 72%),
+      linear-gradient(
+        180deg,
+        var(--sky-dusk-1) 0%,
+        var(--sky-dusk-2) 40%,
+        var(--sky-dusk-3) 76%,
+        var(--sky-dusk-4) 100%
+      );
+  }
+  .sky[data-sky="night"] .sky__layer--night,
+  .sky[data-sky="dawn"] .sky__layer--dawn,
+  .sky[data-sky="day"] .sky__layer--day,
+  .sky[data-sky="dusk"] .sky__layer--dusk {
+    opacity: 1;
+  }
+
+  .sky__stars {
+    position: absolute;
+    inset: 0 0 16% 0;
+    opacity: var(--stars-op);
+    transition: opacity 1.1s ease;
+  }
+  .sky__stars i {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--sky-ink-light);
+  }
+  .sky__stars i.is-twinkle {
+    animation: hoondok-sky-twinkle 5s ease-in-out infinite alternate;
+  }
+  .sky__stars i.is-twinkle:nth-child(3n) {
+    animation-delay: -1.7s;
+  }
+  .sky__stars i.is-twinkle:nth-child(3n + 1) {
+    animation-delay: -3.4s;
+  }
+
+  .sky__band {
+    position: absolute;
+    top: 4%;
+    left: 0;
+    width: 200%;
+    height: 56%;
+    display: flex;
+    opacity: var(--band-op);
+    transition: opacity 1.1s ease;
+    animation: hoondok-sky-drift 260s linear infinite;
+  }
+  .sky__band-half {
+    width: 50%;
+    height: 100%;
+    background:
+      radial-gradient(28% 18% at 12% 38%, var(--band-color), transparent 70%),
+      radial-gradient(22% 14% at 34% 22%, var(--band-color), transparent 70%),
+      radial-gradient(30% 16% at 58% 48%, var(--band-color), transparent 70%),
+      radial-gradient(20% 12% at 82% 30%, var(--band-color), transparent 70%);
+  }
+
+  .sky__orb-pos {
+    position: absolute;
+    inset: 0;
+    transform: translate(var(--ox), var(--oy));
+    transition: transform 1.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .sky__orb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+  }
+  .sky[data-sky="night"] .sky__orb {
+    box-shadow: inset -13px 7px 0 0 var(--sky-moon);
+    filter: drop-shadow(0 0 16px var(--sky-moon-glow));
+  }
+  /* 좁은 화면의 새벽·저녁 해는 말씀 판 뒤 지평선(오른쪽 아래, 별 글자가 없는 자리)에 걸리고 후광이 작다 */
+  .sky[data-sky="dawn"] .sky__orb {
+    background: radial-gradient(circle, var(--sky-sun-dawn) 0%, var(--sky-sun-dawn-2) 100%);
+    box-shadow: 0 0 40px 12px var(--sky-sun-dawn-glow);
+  }
+  .sky[data-sky="day"] .sky__orb {
+    background: radial-gradient(circle, var(--sky-sun-day), var(--sky-sun-day-2));
+    box-shadow: 0 0 80px 30px var(--sky-sun-day-glow);
+  }
+  .sky[data-sky="dusk"] .sky__orb {
+    background: radial-gradient(circle, var(--sky-sun-dusk), var(--sky-sun-dusk-2));
+    box-shadow: 0 0 40px 12px var(--sky-sun-dusk-glow);
+  }
+
+  .sky__horizon {
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 100%;
+    height: 72px;
+    display: block;
+  }
+  .sky__far {
+    fill: var(--hill);
+  }
+  .sky__near {
+    fill: var(--paper);
+  }
+
+  .sky__in {
+    position: relative;
+    padding-top: 14px;
+    padding-bottom: 64px;
+  }
+  .sky__date {
+    margin: 0;
+    font-size: var(--fs-md);
+    font-weight: 500;
+    color: var(--on-sky-2);
+  }
+  .sky__greet {
+    margin: 6px 0 0;
+    font-size: clamp(1.75rem, 1.1rem + 2.6vw, 3.25rem);
+    font-weight: 700;
+    line-height: 1.28;
+    letter-spacing: -0.025em;
+  }
+  .sky__greet span {
+    display: block;
+  }
+  .sky__hello {
+    margin: 8px 0 0;
+    font-size: var(--fs-xl);
+    font-weight: 600;
+  }
+
+  /* ---------- 이번 주 별자리 ---------- */
+  .sky-week {
+    margin-top: 18px;
+  }
+  .sky-week .sect__head {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    column-gap: 10px;
+    row-gap: 0;
+    margin-bottom: 0;
+  }
+  .sky-week .sect__title {
+    font-size: var(--fs-xl);
+    font-weight: 700;
+  }
+  .sky-week .sect__meta {
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--on-sky);
+  }
+  .sky-week a.sect__meta {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .sky-week :focus-visible {
+    outline-color: var(--on-sky);
+  }
+  .sky-week__help {
+    margin: 2px 0 0;
+    font-size: var(--fs-md);
+    color: var(--on-sky-2);
+  }
+
+  .sky .week {
+    position: relative;
+    margin-top: 4px;
+    aspect-ratio: 335 / 136;
+  }
+  .sky .week__lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .sky .week__lines line {
+    stroke: var(--star-on);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+    opacity: 0.9;
+    animation: hoondok-sky-fade 0.8s ease both;
+  }
+  .sky .week__lines--wide {
+    display: none;
+  }
+  .sky .week__days {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sky .week__day {
+    position: absolute;
+    left: calc(var(--nx) * 1%);
+    top: calc(var(--ny) * 1%);
+    width: 0;
+    height: 0;
+  }
+  .sky .week__star {
+    position: absolute;
+    left: -14px;
+    top: -14px;
+    width: 28px;
+    height: 28px;
+    overflow: visible;
+  }
+  /* 빈 날은 점선 빈 별 — 채운 별 모양(Phosphor fill)의 테두리만 점선으로 긋는다. 단위는 아이콘 256 격자 */
+  .sky .week__star path {
+    fill: none;
+    stroke: var(--star-empty);
+    stroke-width: 11;
+    stroke-dasharray: 20 22;
+    stroke-linejoin: round;
+  }
+  .sky .week__day[data-done] .week__star {
+    filter: drop-shadow(0 0 8px var(--star-glow));
+    animation: hoondok-sky-pop 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .sky .week__day[data-done] .week__star path {
+    fill: var(--star-on);
+    stroke: var(--star-on);
+    stroke-dasharray: none;
+  }
+  .sky .week__ring {
+    display: none;
+    position: absolute;
+    left: -22px;
+    top: -22px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid var(--star-on);
+  }
+  .sky .week__day[data-today] .week__ring {
+    display: block;
+  }
+  .sky .week__label {
+    position: absolute;
+    top: 22px;
+    left: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--on-sky);
+    white-space: nowrap;
+  }
+  .sky .week__today {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: var(--r-full);
+    background: var(--on-sky);
+    color: var(--chip-ink);
+  }
+
+  /* ---------- 지평선에 걸친 "오늘 훈독 말씀" 판 ---------- */
+  .home-word {
+    position: relative;
+    z-index: 2;
+    margin-top: -52px;
+    padding: 20px;
+    background: var(--surface);
+    border-radius: 26px;
+    box-shadow: var(--shadow-panel);
+  }
+  .home-word__owl {
+    position: absolute;
+    top: -50px;
+    right: 18px;
+    pointer-events: none;
+  }
+  .home-word__owl .owl {
+    width: 56px;
+    height: 56px;
+  }
+  .home-word__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 28px;
+  }
+  .home-word__kicker {
+    margin: 0;
+    font-size: var(--fs-md);
+    font-weight: 700;
+    color: var(--accent-strong);
+  }
+  .home-word__min {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .home-word__quote {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .home-word__mark {
+    flex: none;
+    margin-top: 2px;
+    color: var(--gold);
+  }
+  .home-word__title {
+    margin: 0;
+    min-width: 0;
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: -0.012em;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+  .home-word__src {
+    margin: 8px 0 0;
+    padding-left: 36px;
+    font-size: var(--fs-md);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .home-word__src b {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .home-word__skel {
+    display: inline-block;
+    width: 14em;
+    max-width: 100%;
+    height: 0.9em;
+    vertical-align: middle;
+    border-radius: var(--r-xs);
+    background: var(--surface-2);
+  }
+  .home-word__skel--short {
+    width: 9em;
+  }
+  .home-word__go {
+    margin-top: 16px;
+    min-height: 54px;
+    border-radius: var(--r-full);
+    font-size: var(--fs-lg);
+  }
+
+  /* ---------- 하늘 아래 땅 ---------- */
+  .home__practice {
+    margin-top: 12px;
+  }
+  .home__bookmark {
+    margin-top: 12px;
+  }
+  .home__bookmark:empty {
+    display: none;
+  }
+  .home__slices {
+    margin-top: 12px;
+  }
+  /* 작은 글자는 13px 이상(40~70대 사용자) — 홈에 쓰는 공용 카드의 12.5px 메타를 14px 단계로 올린다 */
+  .home .sect__meta,
+  .home .mission__kind,
+  .home .mission__meta,
+  .home .hint,
+  .home .js-invite__body,
+  .home .together__bd span,
+  .home .notice {
+    font-size: var(--fs-sm);
+  }
+  .home .notice {
+    padding-top: 28px;
+  }
+
+  /* 오늘의 책갈피: 하늘 한 조각 같은 밤 판(남색 + 잔별 + 금색 리본). 받기 흐름·문구는 home-card.tsx 그대로 */
+  .home .bmhome__env {
+    background: linear-gradient(160deg, var(--night-1) 0%, var(--night-2) 62%, var(--night-3) 100%);
+  }
+  .home .bmhome__env::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+      radial-gradient(1.5px 1.5px at 18% 22%, var(--sheen-70), transparent),
+      radial-gradient(1px 1px at 42% 12%, var(--sheen-70), transparent),
+      radial-gradient(1.5px 1.5px at 66% 30%, var(--sheen-70), transparent),
+      radial-gradient(1px 1px at 30% 58%, var(--sheen-35), transparent),
+      radial-gradient(1px 1px at 84% 64%, var(--sheen-70), transparent),
+      radial-gradient(1.5px 1.5px at 56% 76%, var(--sheen-35), transparent);
+  }
+
+  @media (min-width: 768px) {
+    .sky .week {
+      aspect-ratio: 700 / 220;
+    }
+    .sky__orb {
+      width: 68px;
+      height: 68px;
+    }
+  }
+
+  /* ---------- 넓은 화면: 하늘 전체에 별자리 대각선, 말씀 판은 오른쪽 아래, 땅은 두 칸 ---------- */
+  @media (min-width: 1024px) {
+    .home__wrap {
+      max-width: calc(1120px + 64px);
+      padding-inline: 32px;
+    }
+    .sky {
+      height: 600px;
+    }
+    .sky__in {
+      height: 100%;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    .sky__tx {
+      padding-top: 56px;
+    }
+    .sky__orb-pos {
+      transform: translate(var(--wox), var(--woy));
+    }
+    .sky__orb {
+      width: 92px;
+      height: 92px;
+    }
+    .sky[data-sky="night"] .sky__orb {
+      box-shadow: inset -23px 12px 0 0 var(--sky-moon);
+    }
+    .sky[data-sky="dawn"] .sky__orb {
+      box-shadow: 0 0 60px 22px var(--sky-sun-dawn-glow);
+    }
+    .sky[data-sky="dusk"] .sky__orb {
+      box-shadow: 0 0 70px 26px var(--sky-sun-dusk-glow);
+    }
+    .sky__horizon {
+      height: 120px;
+    }
+    .sky__date {
+      font-size: var(--fs-lg);
+    }
+    .sky__hello {
+      margin-top: 14px;
+      font-size: var(--fs-2xl);
+    }
+    .sky-week {
+      margin: 0;
+    }
+    .sky-week .sect__head,
+    .sky-week__help {
+      position: absolute;
+      left: 32px;
+      max-width: 360px;
+    }
+    .sky-week .sect__head {
+      top: 77%;
+    }
+    .sky-week .sect__title {
+      font-size: var(--fs-2xl);
+    }
+    .sky-week__help {
+      top: calc(77% + 44px);
+    }
+    .sky .week {
+      position: absolute;
+      inset: 0 32px;
+      margin: 0;
+      aspect-ratio: auto;
+      pointer-events: none;
+    }
+    .sky .week__lines--narrow {
+      display: none;
+    }
+    .sky .week__lines--wide {
+      display: block;
+    }
+    .sky .week__day {
+      left: calc(var(--wx) * 1%);
+      top: calc(var(--wy) * 1%);
+    }
+    .sky .week__star {
+      left: -17px;
+      top: -17px;
+      width: 34px;
+      height: 34px;
+    }
+    .sky .week__ring {
+      left: -26px;
+      top: -26px;
+      width: 52px;
+      height: 52px;
+    }
+    .sky .week__label {
+      top: 28px;
+      font-size: var(--fs-lg);
+    }
+
+    .home__grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 46%;
+      column-gap: 48px;
+      align-items: start;
+    }
+    .home-word {
+      grid-column: 2;
+      grid-row: 1;
+      margin-top: -290px;
+      padding: 30px 32px 28px;
+    }
+    .home-word__owl {
+      top: -62px;
+      right: 30px;
+    }
+    .home-word__owl .owl {
+      width: 68px;
+      height: 68px;
+    }
+    .home-word__title {
+      font-size: var(--fs-2xl);
+      line-height: 1.55;
+    }
+    .home-word__go {
+      width: auto;
+      min-width: 220px;
+    }
+    .home__practice {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      margin-top: 16px;
+    }
+    .home__bookmark {
+      grid-column: 2;
+      grid-row: 2;
+      margin-top: 8px;
+    }
+    /* 정성 기간 · 함께 읽기는 나란히. 하나만 있으면(빈 날·불러오는 중) 한 줄을 다 쓴다 */
+    .home__slices {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      margin-top: 24px;
+    }
+    .home__slices > * {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .home__slices > :first-child:not(:only-child) {
+      flex-grow: 1.6;
+    }
+    .home .notice {
+      padding-top: 40px;
+    }
+  }
+}

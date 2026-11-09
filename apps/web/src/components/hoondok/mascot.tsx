@@ -1,15 +1,17 @@
 import type { ReactNode } from "react";
 import { isHoondokMascotEnabled } from "@/features/hoondok/flag";
 
-// 포즈 5개만 쓴다. 원본 그림에 박힌 노란 강조선·"z"·불꽃 같은 떨어진 장식을 지운 192px WebP(장당 약 10KB)다.
-// 같은 폴더에 아직 쓰지 않는 포즈(focus·cheer)와 큰 화면용 -512 판도 있다. cheer 는 연속일 축하로 읽히기 쉬워
-// 보상 연출 금지(DEC-PWA-019)·반응 1종 규칙을 먼저 확인하고 쓴다. heart 는 7일 정성 마침표 한 곳만(결정 4) 쓴다.
+// 포즈 6개만 쓴다. 원본 그림에 박힌 노란 강조선·"z"·불꽃 같은 떨어진 장식을 지운 192px WebP(장당 약 10KB)다.
+// 같은 폴더에 아직 쓰지 않는 포즈(focus)와 큰 화면용 -512 판도 있다. cheer·heart 는 연속일 축하·반응으로
+// 읽히기 쉬워 보상 연출 금지(DEC-PWA-019)·반응 1종 규칙을 먼저 확인하고 쓴다 — cheer 는 홈 하늘의 낮 시간대 그림으로만 쓰고
+// 완료·연속일에 따라 바꾸지 않는다. heart 는 7일 정성 마침표 한 곳만(결정 4) 쓴다.
 const POSE_SRC = {
   welcome: "/hoondok/mascot/owl-welcome.webp",
   reading: "/hoondok/mascot/owl-reading.webp",
   search: "/hoondok/mascot/owl-search.webp",
   rest: "/hoondok/mascot/owl-rest.webp",
   heart: "/hoondok/mascot/owl-heart.webp",
+  cheer: "/hoondok/mascot/owl-cheer.webp",
 } as const;
 
 export type MascotPose = keyof typeof POSE_SRC;
