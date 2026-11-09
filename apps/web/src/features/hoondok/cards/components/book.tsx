@@ -1,7 +1,7 @@
 import type { Ref } from "react";
 import type { CardPublic } from "../api";
 
-// 책 한 권 (시안 `.bk`). 홈 카드(sm)·받는 순간(lg) 이 같은 마크업을 크기만 바꿔 쓴다(em 단위).
+// 책 한 권 (시안 `.bk`). 받는 순간(lg) 무대에서 쓴다(em 단위).
 // 닫힘 = 책갈피가 책 속에 들어가 술·끝만 보인다. 열림 = 모션 시작 상태(리본 제자리). 움직임은 motion.ts 가 준다.
 
 // volume 은 서고 원문 링크 키라 서버가 Qdrant 원본(파일명)을 그대로 준다 — "천성경.pdf" · "말씀선집 355권.pdf".
@@ -33,20 +33,15 @@ export function Book({
   card,
   size,
   isOpen = false,
-  isWaiting = false,
   refs,
 }: {
   card: Pick<CardPublic, "work_title" | "volume">;
-  size: "sm" | "lg";
+  size: "lg";
   isOpen?: boolean;
-  /** 홈 대기 모션: 800ms 뒤 3초 주기로 2회 책갈피 끝이 오르내린다 (동작 줄이기면 없음) */
-  isWaiting?: boolean;
   refs?: BookRefs;
 }) {
   const { title, sub } = bookParts(card);
-  const className = ["bk", `bk--${size}`, isOpen ? "is-open" : "is-closed", isWaiting && "is-waiting"]
-    .filter(Boolean)
-    .join(" ");
+  const className = ["bk", `bk--${size}`, isOpen ? "is-open" : "is-closed"].join(" ");
   return (
     <div className={className} aria-hidden="true">
       <div className="bk__pages" />

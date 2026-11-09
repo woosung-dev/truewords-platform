@@ -4,6 +4,7 @@
 
 import { safeLocalStorage as storage } from "@/lib/safe-storage";
 import type { CardReceiptItem } from "./api";
+import { type CardLook, toLook } from "./look";
 
 const PREFIX = "hoondok:card:received";
 const CHANGE_EVENT = "hoondok:card-change";
@@ -81,4 +82,25 @@ export function isReceivedToday({
 }): boolean {
   if (localReceipt && localReceipt.date === today && localReceipt.cardId === cardId) return true;
   return Boolean(serverItems?.some((item) => item.card.id === cardId && item.received_on === today));
+}
+
+// ---------- 마지막에 고른 사진 카드 모양 (내 카드 갤러리 "그대로 다시 건네기") ----------
+// 카드별로 이 기기에만 둔다(서버 저장 없음). 값은 바탕·비율·출처 표시뿐이라 개인 내용이 아니다.
+const LOOK_PREFIX = "hoondok:card:look:";
+
+export function readCardLook(cardId: string): CardLook | null {
+  try {
+    const raw = storage()?.getItem(`${LOOK_PREFIX}${cardId}`);
+    return raw ? toLook(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeCardLook(cardId: string, look: CardLook): void {
+  try {
+    storage()?.setItem(`${LOOK_PREFIX}${cardId}`, JSON.stringify(look));
+  } catch {
+    // 저장 실패해도 건네기는 그대로 된다 (다음에 기본 모양으로 열릴 뿐)
+  }
 }

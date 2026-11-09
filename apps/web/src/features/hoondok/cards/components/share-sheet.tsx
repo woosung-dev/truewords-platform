@@ -1,109 +1,275 @@
 "use client";
 
-// SCR-PWA-024 건네기 시트 (PLAN-HD-012). 완성 카드(1:1 이미지 그대로)를 먼저 보이고 아래에서 고르기만 한다.
-// 인사 한 줄·이름 보내기는 없다(결정 1) — 인사는 사용자가 카톡 대화방에서 직접 쓴다.
-// 네 갈래: 카카오톡·다른 앱(Web Share, 파일 → 링크 → 클립보드 → 직접 표시) · 스토리 9:16 저장 · 사진 1:1 저장 · 글로 복사.
-import { Copy, Download, Lock, MessageCircle, Smartphone } from "lucide-react";
-import { useEffect, useState } from "react";
+// SCR-PWA-024 사진 카드로 건네기 (시안 p4 스튜디오). 미리보기는 서버가 그린 이미지 그대로다(보내는 것 = 보이는 것).
+// 고르기: 크기(4:5 카톡·피드 / 9:16 스토리) · 바탕(사진 4장 + 책 색) · 출처 표시(자세히 / 책 이름만). 출처와 훈독 표시는 늘 인쇄한다.
+// 갈래: 카카오톡·다른 앱(Web Share, 파일 → 링크 → 클립보드 → 직접 표시) · 사진 저장 · 글로 복사. 인사 한 줄은 없다(결정 1).
+// 고른 모양은 건넬 때 이 기기에 카드별로 남겨 내 카드 갤러리의 "그대로 다시 건네기" 가 같은 모양으로 연다.
+import { Copy, Download, Loader2, Lock, MessageCircle } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
 import { ReaderSheet } from "@/features/hoondok/library/components/reader-sheet";
 import type { CardPublic } from "../api";
-import { type CardShareResult, cardImagePath, cardLink, copyCardText, shareCard } from "../share";
+import {
+  BACKGROUND_LABEL,
+  bookColorIndex,
+  CARD_BACKGROUNDS,
+  type CardLook,
+  defaultLook,
+  FORMAT_OPTIONS,
+  type PhotoFormat,
+  photoSrc,
+  type SourceMode,
+} from "../look";
+import { type CardShareResult, cardLink, copyCardText, photoCardImagePath, photoFileName, shareCard } from "../share";
+import { readCardLook, writeCardLook } from "../storage";
+import { ChoiceGroup } from "./choice-group";
 
-/** 공유 시트가 파일을 바로 받을 수 있도록 1:1 이미지를 미리 받아 둔다(iOS 제스처 만료 방지). 실패하면 링크만 보낸다. */
-function usePreparedImage(cardId: string): File | null {
-  const [file, setFile] = useState<File | null>(null);
+export type PreparedImage = {
+  /** 받아 둔 이미지 파일. 준비 중이거나 실패면 null */
+  file: File | null;
+  status: "loading" | "ready" | "error";
+  /** 다시 받은 횟수. 미리보기도 같은 횟수로 다시 불러온다 */
+  attempt: number;
+  retry: () => void;
+};
+
+/**
+ * 공유 시트가 파일을 바로 받을 수 있도록 지금 고른 이미지를 미리 받아 둔다. 누른 뒤에 받으면
+ * iOS 의 사용자 동작 유효 시간이 지나 공유 시트가 열리지 않으므로, 준비가 끝날 때까지 보내기 버튼을 막는다.
+ * 고르기를 바꾸면 새로 받는다.
+ */
+export function usePreparedImage(url: string, name: string): PreparedImage {
+  const [attempt, setAttempt] = useState(0);
+  const [result, setResult] = useState<{ key: string; file: File | null } | null>(null);
+  const key = `${url}#${name}#${attempt}`;
   useEffect(() => {
     const controller = new AbortController();
-    fetch(cardImagePath(cardId, "square"), { signal: controller.signal })
-      .then((response) => (response.ok ? response.blob() : null))
-      .then((blob) => {
-        if (blob) setFile(new File([blob], "오늘의-책갈피.png", { type: blob.type || "image/png" }));
-      })
-      .catch(() => {});
+    fetch(url, { signal: controller.signal })
+      .then((response) => (response.ok ? response.blob() : Promise.reject(new Error(`image ${response.status}`))))
+      .then((blob) => setResult({ key, file: new File([blob], name, { type: blob.type || "image/png" }) }))
+      .catch(() => {
+        if (!controller.signal.aborted) setResult({ key, file: null });
+      });
     return () => controller.abort();
-  }, [cardId]);
-  return file;
+  }, [key, url, name]);
+  const current = result?.key === key ? result : null;
+  return {
+    file: current?.file ?? null,
+    status: current === null ? "loading" : current.file ? "ready" : "error",
+    attempt,
+    retry: () => setAttempt((value) => value + 1),
+  };
+}
+
+/** 보내기 버튼. 이미지가 준비될 때까지 "사진 준비 중" 으로 막고, 실패하면 다시 받기를 보인다 */
+export function PreparedShareButton({ prepared, onShare }: { prepared: PreparedImage; onShare: () => void }) {
+  return (
+    <>
+      {prepared.status === "error" && (
+        <div className="pcs-prep-err" role="status">
+          <p>사진을 준비하지 못했어요</p>
+          <button className="btn btn-line btn--sm" type="button" onClick={prepared.retry}>
+            다시 준비하기
+          </button>
+        </div>
+      )}
+      <button
+        className="pc-cta"
+        type="button"
+        disabled={prepared.status !== "ready"}
+        aria-busy={prepared.status === "loading"}
+        onClick={onShare}
+      >
+        {prepared.status === "loading" ? "사진 준비 중" : "카카오톡·다른 앱으로 건네기"}
+        <span className="pc-cta__ic" aria-hidden="true">
+          {prepared.status === "loading" ? <Loader2 size={22} className="pc-cta__spin" /> : <MessageCircle size={22} />}
+        </span>
+      </button>
+    </>
+  );
+}
+
+/**
+ * 서버 이미지 미리보기. 불러오는 동안은 같은 비율의 자리, 실패하면 다시 시도.
+ * `attempt` 가 바뀌면(보내기 파일 "다시 준비하기") 미리보기도 처음부터 다시 불러온다.
+ */
+export function ImagePreview({
+  src,
+  alt,
+  format,
+  attempt = 0,
+}: {
+  src: string;
+  alt: string;
+  format: PhotoFormat;
+  attempt?: number;
+}) {
+  const base = `${src}#${attempt}`;
+  const [state, setState] = useState<{ base: string; status: "loading" | "ready" | "error"; attempt: number }>({
+    base,
+    status: "loading",
+    attempt: 0,
+  });
+  const current = state.base === base ? state : { base, status: "loading" as const, attempt: 0 };
+  return (
+    <div className={`pcs-pv pcs-pv--${format}`} data-status={current.status} aria-busy={current.status === "loading"}>
+      {current.status === "error" ? (
+        <div className="pcs-pv__err" role="status">
+          <p>미리보기를 불러오지 못했어요</p>
+          <button
+            className="btn btn-line btn--sm"
+            type="button"
+            onClick={() => setState({ base, status: "loading", attempt: current.attempt + 1 })}
+          >
+            다시 시도
+          </button>
+        </div>
+      ) : (
+        <img
+          key={`${base}#${current.attempt}`}
+          src={src}
+          alt={alt}
+          width={1080}
+          height={format === "story" ? 1920 : 1350}
+          onLoad={() => setState({ base, status: "ready", attempt: current.attempt })}
+          onError={() => setState({ base, status: "error", attempt: current.attempt })}
+        />
+      )}
+    </div>
+  );
 }
 
 export type ShareOutcome = CardShareResult | "copied" | "copy-failed";
+
+const TOAST: Partial<Record<ShareOutcome, string>> = {
+  file: "책갈피를 건넸어요",
+  link: "책갈피를 건넸어요",
+  clipboard: "말씀과 출처·링크를 복사했어요. 대화방에 붙여 넣어 주세요",
+  copied: "말씀과 출처·링크를 글로 복사했어요",
+};
+
+/** 건넨 셈인 결과(건넴 표시 050 대상) */
+export function isGivenOutcome(outcome: ShareOutcome): boolean {
+  return outcome === "file" || outcome === "link" || outcome === "clipboard" || outcome === "copied";
+}
+
+/** 결과 토스트 문구. 로그인 사용자가 보내면(복사 제외) 나의 책갈피에 남았다고 덧붙인다 */
+export function shareToastMessage(outcome: ShareOutcome, isRecorded: boolean): string | null {
+  const message = TOAST[outcome];
+  if (!message) return null;
+  return isRecorded && isGivenOutcome(outcome) && outcome !== "copied"
+    ? `${message} · 나의 책갈피에 남았어요`
+    : message;
+}
+
+/** 토스트 한 줄. 시트(모달)가 열려 있으면 시트 안에 그려야 보인다 — ShareSheet 의 toast 로 넘긴다 */
+export function ShareToast({ message }: { message: string | null }) {
+  return (
+    <p className="bmk-toast" role="status" aria-live="polite" data-on={message ? "1" : undefined}>
+      {message}
+    </p>
+  );
+}
+
+const SOURCE_OPTIONS: readonly { value: SourceMode; label: string }[] = [
+  { value: "full", label: "자세히" },
+  { value: "book", label: "책 이름만" },
+];
 
 export function ShareSheet({
   card,
   onClose,
   onDone,
+  toast,
 }: {
   card: CardPublic;
   onClose: () => void;
   /** 결과마다 한 번. 건넴 표시(050)·토스트는 부르는 쪽이 정한다 */
   onDone: (outcome: ShareOutcome) => void;
+  /** 시트 안에 그릴 토스트(ShareToast) */
+  toast?: ReactNode;
 }) {
-  const file = usePreparedImage(card.id);
+  // 처음 열 때 이 카드에 마지막으로 고른 모양(없으면 카드별 기본 사진·4:5·자세히)
+  const [look, setLook] = useState<CardLook>(() => readCardLook(card.id) ?? defaultLook(card.id));
+  const imageUrl = photoCardImagePath(card.id, look);
+  const fileName = photoFileName(look.format);
+  const prepared = usePreparedImage(imageUrl, fileName);
   const [fallbackLink, setFallbackLink] = useState<string | null>(null);
+  const book = bookColorIndex(card.work_title);
 
+  function change(next: Partial<CardLook>) {
+    setLook((previous) => ({ ...previous, ...next }));
+  }
   async function handleShare() {
     const link = cardLink(card.id);
-    const result = await shareCard({ card, link, file });
+    const result = await shareCard({ card, link, file: prepared.file });
     if (result === "none") setFallbackLink(link);
+    if (result !== "cancelled" && result !== "none") writeCardLook(card.id, look);
     onDone(result);
   }
   async function handleCopy() {
     const link = cardLink(card.id);
     const isCopied = await copyCardText(card, link);
-    if (!isCopied) setFallbackLink(link);
+    if (isCopied) writeCardLook(card.id, look);
+    else setFallbackLink(link);
     onDone(isCopied ? "copied" : "copy-failed");
   }
 
   return (
-    <ReaderSheet title="건네기" onClose={onClose}>
-      <div className="bmk-share">
-        {/* 보내는 이미지 그대로 — 출처와 "훈독" 이 이미지에 인쇄되어 있다 */}
-        <img
-          className="bmk-share__pv"
-          src={cardImagePath(card.id, "square")}
-          width={1080}
-          height={1080}
-          alt={`건넬 책갈피 카드: ${card.text} (${card.source_label})`}
+    <ReaderSheet title="사진 카드로 건네기" onClose={onClose} toast={toast}>
+      <div className="pcs">
+        <ImagePreview
+          src={imageUrl}
+          format={look.format}
+          attempt={prepared.attempt}
+          alt={`건넬 사진 카드: ${card.text} (${look.src === "book" ? "책 이름" : card.source_label})`}
         />
-        <p className="bmk-share__lock">
-          <Lock size={16} aria-hidden="true" />
-          출처({card.source_label})와 훈독 표시는 카드에 늘 함께 가요.
+        <ChoiceGroup
+          label="크기"
+          value={look.format}
+          options={FORMAT_OPTIONS}
+          onChange={(format) => change({ format })}
+        />
+        <ChoiceGroup
+          label="바탕"
+          variant="swatch"
+          value={look.bg}
+          onChange={(bg) => change({ bg })}
+          options={CARD_BACKGROUNDS.map((bg) => ({
+            value: bg,
+            label: BACKGROUND_LABEL[bg],
+            visual:
+              bg === "book" ? (
+                <i className={`pcs-swatch__i pc--book-${book}`} aria-hidden="true" />
+              ) : (
+                <i className="pcs-swatch__i" aria-hidden="true" style={{ backgroundImage: `url(${photoSrc(bg)})` }} />
+              ),
+          }))}
+        />
+        <ChoiceGroup label="출처 표시" value={look.src} options={SOURCE_OPTIONS} onChange={(src) => change({ src })} />
+        <p className="pcs-lock">
+          <Lock size={18} aria-hidden="true" />
+          출처와 훈독 표시는 카드에 늘 함께 가요
         </p>
-        <div className="bmk-share__dests">
-          <button className="card bmk-dest" type="button" onClick={() => void handleShare()}>
-            <span className="bmk-dest__ic bmk-dest__ic--kk" aria-hidden="true">
-              <MessageCircle size={22} />
-            </span>
-            <span className="bmk-dest__bd">
-              <b>카카오톡·다른 앱으로 보내기</b>
-              <span>카드 사진과 링크를 함께 보내요</span>
-            </span>
-          </button>
-          <a className="card bmk-dest" href={cardImagePath(card.id, "story")} download="오늘의-책갈피-세로.png">
-            <span className="bmk-dest__ic" aria-hidden="true">
-              <Smartphone size={22} />
-            </span>
-            <span className="bmk-dest__bd">
-              <b>스토리·상태 사진 저장</b>
-              <span>세로 사진(9:16)으로 저장해요</span>
-            </span>
-          </a>
-          <div className="bmk-row2">
-            <a className="btn btn-line" href={cardImagePath(card.id, "square")} download="오늘의-책갈피.png">
-              <Download size={20} aria-hidden="true" />
-              사진 저장 1:1
-            </a>
-            <button className="btn btn-line" type="button" onClick={() => void handleCopy()}>
-              <Copy size={20} aria-hidden="true" />
-              글로 복사
-            </button>
-          </div>
-        </div>
         {fallbackLink && (
           <div className="bmk-share__link" role="status">
             <p>이 브라우저에서는 바로 보낼 수 없어요. 아래 주소를 길게 눌러 복사해 주세요.</p>
             <input readOnly value={fallbackLink} aria-label="책갈피 링크" onFocus={(event) => event.target.select()} />
           </div>
         )}
+        {/* 아래 고정 영역은 주 버튼 하나만 둔다. 보조 버튼까지 고정하면 작은 화면에서 선택지를 가린다 */}
+        <div className="bmk-row2 pcs-more">
+          <a className="btn btn-line" href={imageUrl} download={fileName} onClick={() => writeCardLook(card.id, look)}>
+            <Download size={20} aria-hidden="true" />
+            사진 저장
+          </a>
+          <button className="btn btn-line" type="button" onClick={() => void handleCopy()}>
+            <Copy size={20} aria-hidden="true" />
+            글로 복사
+          </button>
+        </div>
+        <div className="pcs-dock">
+          <PreparedShareButton prepared={prepared} onShare={() => void handleShare()} />
+        </div>
       </div>
     </ReaderSheet>
   );

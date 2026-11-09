@@ -1,9 +1,8 @@
 // 책갈피 건네기 (PLAN-HD-012 결정 4, SCR-PWA-024). 1단계는 Web Share + 2:1 OG 링크 카드이고 카카오 SDK 는 쓰지 않는다.
-// 폴백 순서: 파일 공유 → 링크 공유 → 클립보드 → 직접 표시.
+// 폴백 순서: 파일 공유 → 링크 공유 → 클립보드 → 직접 표시. 콜라주는 링크 없이 이미지 파일로만 건넨다.
 import { wordsHref } from "../library/api";
 import type { CardPublic } from "./api";
-
-export type CardImageFormat = "link" | "square" | "story";
+import type { CardLook, CollageTheme, PhotoFormat } from "./look";
 
 /** 원문 연결 주소: 인용 단락을 열고 card 로 문장 밑줄·리본을 그린다. */
 export function cardWordsHref(card: Pick<CardPublic, "id" | "volume" | "chunk_id">): string {
@@ -15,8 +14,24 @@ export function cardPath(id: string): string {
   return `/c/${encodeURIComponent(id)}`;
 }
 
-export function cardImagePath(id: string, format: CardImageFormat): string {
+/** 예전 형식(link·square) 이미지. 카톡 미리보기(og:image)는 link 다 */
+export function cardImagePath(id: string, format: "link" | "square"): string {
   return `${cardPath(id)}/image?f=${format}`;
+}
+
+/** 사진 카드 이미지(4:5 feed · 9:16 story). 미리보기와 보내는 파일이 같은 주소다 */
+export function photoCardImagePath(id: string, look: CardLook): string {
+  return `${cardPath(id)}/image?f=${look.format}&bg=${look.bg}&src=${look.src}`;
+}
+
+/** 이번 달 모은 말씀 이미지. id 순서가 칸 순서다 */
+export function collageImagePath(ids: readonly string[], theme: CollageTheme, format: PhotoFormat): string {
+  return `/c/collage/image?ids=${ids.map(encodeURIComponent).join(",")}&theme=${theme}&f=${format}`;
+}
+
+export function photoFileName(format: PhotoFormat, kind: "card" | "collage" = "card"): string {
+  const base = kind === "collage" ? "이번-달-모은-말씀" : "오늘의-책갈피";
+  return format === "story" ? `${base}-세로.png` : `${base}.png`;
 }
 
 /** 브라우저면 현재 origin 을 붙인 절대 URL, 서버 렌더면 상대 경로. */
@@ -78,6 +93,29 @@ export async function shareCard({
     }
   }
   return (await copyCardText(card, link, nav)) ? "clipboard" : "none";
+}
+
+/**
+ * 이미지 파일만 건넨다(콜라주). 파일을 받는 공유 시트가 없으면 "none" — 화면이 사진 저장을 안내한다.
+ * 링크·클립보드로 내려가지 않는다(콜라주는 여러 카드라 하나의 링크가 없다).
+ */
+export async function shareImageFile({
+  file,
+  title,
+  nav = currentNavigator(),
+}: {
+  file: File | null;
+  title: string;
+  nav?: Partial<ShareNavigator>;
+}): Promise<"file" | "cancelled" | "none"> {
+  if (!file || typeof nav?.share !== "function" || typeof nav.canShare !== "function") return "none";
+  if (!nav.canShare({ files: [file] })) return "none";
+  try {
+    await nav.share({ title, files: [file] });
+    return "file";
+  } catch (error) {
+    return isAbort(error) ? "cancelled" : "none";
+  }
 }
 
 /** 글로 복사. 성공하면 true. */

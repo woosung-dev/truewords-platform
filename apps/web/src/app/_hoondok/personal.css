@@ -118,28 +118,18 @@
   .ps-skel .skeleton {
     min-height: 0;
   }
-  .ps-skel__book {
-    flex: none;
-    width: 92px;
-    height: 128px;
-  }
-  .ps-skel__bd {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  /* 홈 책갈피 짙은 카드(cards.css .bmhome__env)와 같은 높이 */
+  .ps-skel__env {
+    display: block;
+    height: 272px;
+    border-radius: 0;
   }
   .ps-skel__line {
     height: 14px;
   }
-  .ps-skel__line--lg {
-    height: 22px;
-  }
-  .ps-skel__btn {
-    height: 50px;
-  }
   .ps-skel__why {
-    margin-top: 22px;
+    display: block;
+    margin: 18px;
   }
   .ps-clear {
     display: flex;

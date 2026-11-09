@@ -3,12 +3,15 @@
 // SCR-PWA-023 /bookmark — 받는 순간 → 읽기 (PLAN-HD-012).
 // 오늘 처음이면 책이 벌어지고 책갈피가 올라와 카드로 펼쳐진다(약 1.6초, 1회). 이미 받은 날은 모션 없이 바로 읽기.
 // 받기 기록: 비로그인은 이 기기(localStorage KST 날짜 키), 로그인은 receive(049) — use-cards.ts.
-// 버튼: 책에 다시 꽂기(주, 역방향 모션 뒤 서고 원문) · 나의 책갈피 · 건네기(시트).
+// 버튼: 책에 다시 꽂기(주, 역방향 모션 뒤 서고 원문) · 나의 책갈피 · 건네기(사진 카드 시트).
+// 펼친 말씀은 사진 카드(시안 p4)다. 바탕은 카드마다 정해진 사진이고 건네기에서 바꿀 수 있다.
+import { BookOpen, Share2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CardPublic } from "../api";
-import { cardDotDate, cardLongDate } from "../format";
+import { cardDayLabel, cardLongDate } from "../format";
+import { defaultBackground } from "../look";
 import {
   clearAnimations,
   flipTransform,
@@ -22,17 +25,10 @@ import {
 import { cardWordsHref } from "../share";
 import { useCardReceipt, useMarkShared } from "../use-cards";
 import { Book, bookName } from "./book";
-import { BookmarkCard } from "./bookmark-card";
-import { type ShareOutcome, ShareSheet } from "./share-sheet";
+import { PhotoCard } from "./photo-card";
+import { isGivenOutcome, type ShareOutcome, ShareSheet, ShareToast, shareToastMessage } from "./share-sheet";
 
 type Phase = "wait" | "moment" | "read" | "fold";
-
-const TOAST: Partial<Record<ShareOutcome, string>> = {
-  file: "책갈피를 건넸어요",
-  link: "책갈피를 건넸어요",
-  clipboard: "말씀과 출처·링크를 복사했어요. 대화방에 붙여 넣어 주세요",
-  copied: "말씀과 출처·링크를 글로 복사했어요",
-};
 
 export function BookmarkScreen({ card, today, from }: { card: CardPublic; today: string; from?: string }) {
   const router = useRouter();
@@ -133,10 +129,9 @@ export function BookmarkScreen({ card, today, from }: { card: CardPublic; today:
   }, [toast]);
 
   function handleShareDone(outcome: ShareOutcome) {
-    const isGiven = outcome === "file" || outcome === "link" || outcome === "clipboard" || outcome === "copied";
-    if (isGiven && userId) markShared.mutate(card.id);
-    const message = TOAST[outcome];
-    if (message) setToast(isGiven && userId && outcome !== "copied" ? `${message} · 나의 책갈피에 남았어요` : message);
+    if (isGivenOutcome(outcome) && userId) markShared.mutate(card.id);
+    const message = shareToastMessage(outcome, Boolean(userId));
+    if (message) setToast(message);
     if (outcome === "file" || outcome === "link") setIsSheetOpen(false);
   }
 
@@ -144,11 +139,13 @@ export function BookmarkScreen({ card, today, from }: { card: CardPublic; today:
   const className = ["bmk", `bmk--${phase}`].join(" ");
   return (
     <section className={`col ${className}`}>
+      <p className="bmk-date">{cardDayLabel(today)}</p>
       <div className="bmk-stage" ref={stageRef}>
-        <BookmarkCard
+        <PhotoCard
           card={card}
-          eyebrow={`오늘의 책갈피 · ${cardDotDate(today)}`}
-          className="bm--full bmk-card"
+          bg={defaultBackground(card.id)}
+          label="오늘의 책갈피 카드"
+          className="bmk-card"
           refs={{ card: bind("card"), inner: bind("inner"), veil: bind("veil") }}
         />
         <div className="bmk-moment" ref={bind("moment")} aria-hidden="true" hidden={!isMomentShown}>
@@ -168,28 +165,34 @@ export function BookmarkScreen({ card, today, from }: { card: CardPublic; today:
         </div>
       </div>
       <div className="bmk-actions" ref={bind("ui")}>
-        <button
-          className="btn btn-primary btn--tall"
-          type="button"
-          disabled={phase !== "read"}
-          onClick={() => setPhase("fold")}
-        >
-          책에 다시 꽂기
-          <small>앞뒤 문맥을 원문에서 읽어요</small>
+        <button className="pc-cta" type="button" disabled={phase !== "read"} onClick={() => setPhase("fold")}>
+          <span>
+            책에 다시 꽂기
+            <small>앞뒤 문맥을 원문에서 읽어요</small>
+          </span>
+          <span className="pc-cta__ic" aria-hidden="true">
+            <BookOpen size={22} />
+          </span>
         </button>
         <div className="bmk-row2">
           <Link className="btn btn-line" href="/bookmarks">
             나의 책갈피
           </Link>
           <button className="btn btn-line" type="button" onClick={() => setIsSheetOpen(true)}>
+            <Share2 size={20} aria-hidden="true" />
             건네기
           </button>
         </div>
       </div>
-      <p className="bmk-toast" role="status" aria-live="polite" data-on={toast ? "1" : undefined}>
-        {toast}
-      </p>
-      {isSheetOpen && <ShareSheet card={card} onClose={() => setIsSheetOpen(false)} onDone={handleShareDone} />}
+      {!isSheetOpen && <ShareToast message={toast} />}
+      {isSheetOpen && (
+        <ShareSheet
+          card={card}
+          onClose={() => setIsSheetOpen(false)}
+          onDone={handleShareDone}
+          toast={<ShareToast message={toast} />}
+        />
+      )}
     </section>
   );
 }

@@ -1,20 +1,24 @@
 /* 오늘의 책갈피 (PLAN-HD-012, SCR-PWA-022~026) — 홈 카드 · 받기/읽기 · 건네기 시트 · 원문 밑줄 · 받은 사람 · 나의 책갈피.
    값의 원본은 승인 시안 bookmark-final.html(목업 A). 색은 hoondok.css 토큰만 쓴다(hex 금지, pnpm hoondok:check).
-   모션은 transform·opacity 만(features/hoondok/cards/motion.ts). 여기의 CSS 애니메이션은 홈 대기 모션 하나이고 동작 줄이기면 끈다. */
+   사진 카드·내 카드 갤러리 개편은 시안 p4-gallery 를 따른다.
+   모션은 transform·opacity 만(features/hoondok/cards/motion.ts). 여기의 CSS 애니메이션(홈 리본·미리보기 깜박임)과 부채 전환은 동작 줄이기면 끈다. */
 
-/* 홈 대기: 책갈피 끝이 3px 오르내림, 800ms 뒤 3초 주기 2회 (@keyframes 는 중첩할 수 없어 최상위에 둔다) */
-@keyframes hoondok-bm-breathe {
-  0%,
-  100% {
-    transform: translateY(9.6em);
+/* 홈 리본: 800ms 뒤 2회만 6px 내려왔다 돌아간다 */
+@keyframes hoondok-bm-sway {
+  to {
+    transform: translateY(6px);
   }
+}
+
+/* 사진 카드 미리보기를 불러오는 동안 자리만 은은하게 깜박인다 */
+@keyframes hoondok-pc-pulse {
   50% {
-    transform: translateY(9em);
+    opacity: 0.55;
   }
 }
 
 [data-app="hoondok"] {
-  /* ---------- 1. 책 (홈 sm · 받는 순간 lg, em 단위로 크기만 바꾼다) ---------- */
+  /* ---------- 1. 책 (받는 순간 무대, em 단위) ---------- */
   .bk {
     position: relative;
     width: 17.6em;
@@ -22,10 +26,7 @@
     font-size: 10px;
     perspective: 42em;
   }
-  /* .bk·.bk--sm 의 font-size(10px·5.1px)는 글자 크기가 아니라 em 으로 그린 책 일러스트의 축척이다 — 타입 스케일 대상이 아니다 */
-  .bk--sm {
-    font-size: 5.1px;
-  }
+  /* .bk 의 font-size(10px)는 글자 크기가 아니라 em 으로 그린 책 일러스트의 축척이다 — 타입 스케일 대상이 아니다 */
   .bk__pages {
     position: absolute;
     left: 1.2em;
@@ -56,15 +57,6 @@
   }
   .bk.is-closed .bk__rib {
     transform: translateY(11em);
-  }
-  .bk--sm.is-closed .bk__rib {
-    transform: translateY(9.6em);
-  }
-  .bk--sm.is-waiting .bk__rib {
-    animation: hoondok-bm-breathe 3s ease-in-out 0.8s 2;
-  }
-  .bk--sm .bk__tas {
-    display: none;
   }
   .bk__rib-body {
     position: absolute;
@@ -155,46 +147,106 @@
     margin-top: 0.4em;
   }
 
-  /* ---------- 2. 홈 카드 (022) ---------- */
+  /* ---------- 2. 홈 카드 (022, 시안 p4 홈): 짙은 바탕 + 금색 리본 + 금색 주 버튼, 아래 타일 두 개 ---------- */
   .bmhome {
-    padding: 18px 18px 16px;
+    padding: 0;
+    overflow: hidden;
   }
-  .bmhome__top {
+  .bmhome__env {
+    position: relative;
     display: flex;
-    gap: 16px;
-    align-items: flex-end;
+    flex-direction: column;
+    min-height: 272px;
+    padding: 26px 22px 22px;
+    background:
+      radial-gradient(120% 70% at 85% 0%, var(--gold-glow), transparent 60%),
+      radial-gradient(90% 60% at 0% 100%, var(--green-glow), transparent 70%), var(--espresso);
+    color: var(--photo-paper);
+    isolation: isolate;
   }
-  .bmhome__book {
-    flex: none;
-    width: 92px;
-    height: 128px;
-    display: grid;
-    place-items: end center;
-    padding-bottom: 2px;
+  .bmhome__rib {
+    position: absolute;
+    top: 0;
+    right: 26px;
+    width: 40px;
+    height: 104px;
+    background: linear-gradient(180deg, var(--gold-2), var(--gold));
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+    transform-origin: 50% 0;
   }
-  .bmhome__bd {
-    min-width: 0;
+  .bmhome__env.is-waiting .bmhome__rib {
+    animation: hoondok-bm-sway 1.6s ease-in-out 0.8s 2 alternate;
   }
   .bmhome__kind {
-    display: block;
-    font-size: var(--fs-xs);
-    color: var(--ink-3);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--gold-2);
+    padding-right: 56px;
   }
   .bmhome__title {
+    margin: 10px 0 auto;
+    padding-right: 56px;
+    font-size: var(--fs-2xl);
+    font-weight: 700;
+    line-height: 1.45;
+    letter-spacing: -0.02em;
+  }
+  .bmhome__go {
+    margin-top: 24px;
+  }
+  .bmhome > .ps-why {
+    margin: 0;
+    padding-left: 18px;
+    border-top: 0;
+  }
+  .bmhome-tiles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .bmhome-tile {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+    min-height: 124px;
+    padding: 16px;
+    border-radius: 22px;
+    background: var(--surface);
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      var(--shadow-2);
+  }
+  .bmhome-tile:active {
+    transform: scale(0.98);
+  }
+  .bmhome-tile__spines {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 40px;
+  }
+  .bmhome-tile__spines i {
+    display: block;
+    border-radius: 3px;
+    background: var(--pc-book);
+  }
+  .bmhome-tile__num {
+    min-height: 40px;
+    font-size: var(--fs-3xl);
+    font-weight: 700;
+    line-height: 40px;
+  }
+  .bmhome-tile__bd b {
     display: block;
     font-size: var(--fs-lg);
     font-weight: 700;
-    line-height: 1.4;
-    margin: 3px 0 4px;
-    overflow-wrap: anywhere;
   }
-  .bmhome__meta {
-    display: block;
-    font-size: var(--fs-xs);
-    color: var(--ink-2);
-  }
-  .bmhome__go {
-    margin-top: 16px;
+  .bmhome-tile__bd span {
+    font-size: var(--fs-md);
+    color: var(--ink-3);
   }
 
   /* ---------- 3. 책갈피 카드 (목업 A) ---------- */
@@ -368,9 +420,25 @@
   .bmk-stage {
     position: relative;
   }
+  .bmk-date {
+    margin: 0 auto 10px;
+    max-width: 380px;
+    font-size: var(--fs-md);
+    color: var(--ink-3);
+  }
   .bmk-card {
+    max-width: 380px;
+    margin: 0 auto;
     transform-origin: 0 0;
     will-change: transform;
+    box-shadow: 0 30px 50px -24px var(--umber-28);
+  }
+  .bmk-skel {
+    display: block;
+    width: 100%;
+    max-width: 380px;
+    margin: 34px auto 0;
+    aspect-ratio: 4 / 5;
   }
   /* 받음 판정 전에는 카드·버튼을 보이지 않는다(모션을 틀지 결정하기 전) */
   .bmk--wait .bmk-card,
@@ -418,22 +486,10 @@
   .bmk-actions {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
-    max-width: 420px;
-    margin: 12px auto 0;
-  }
-  .btn--tall {
-    min-height: 58px;
-    flex-direction: column;
-    gap: 0;
-    line-height: 1.3;
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
-  .btn--tall small {
-    font-weight: 400;
-    font-size: var(--fs-xs);
+    max-width: 380px;
+    margin: 20px auto 0;
   }
   .bmk-row2 {
     display: grid;
@@ -465,77 +521,7 @@
     opacity: 1;
   }
 
-  /* ---------- 5. 건네기 시트 (024) ---------- */
-  .bmk-share__pv {
-    display: block;
-    width: 100%;
-    max-width: 300px;
-    height: auto;
-    margin: 8px auto 0;
-    border-radius: var(--r);
-    box-shadow: var(--shadow-2);
-  }
-  .bmk-share__lock {
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
-    margin: 16px 0 0;
-    padding: 10px 12px;
-    border-radius: var(--r-sm);
-    background: var(--surface-2);
-    color: var(--ink-2);
-    font-size: var(--fs-xs);
-  }
-  .bmk-share__lock svg {
-    flex: none;
-    margin-top: 1px;
-  }
-  .bmk-share__dests {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 16px;
-  }
-  .bmk-dest {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    width: 100%;
-    min-height: 64px;
-    padding: 10px 14px;
-    text-align: left;
-    color: inherit;
-    text-decoration: none;
-    font: inherit;
-    cursor: pointer;
-  }
-  .bmk-dest__ic {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border-radius: var(--r-sm);
-    background: var(--surface-2);
-    color: var(--ink-2);
-  }
-  .bmk-dest__ic--kk {
-    background: var(--kakao);
-    color: var(--kakao-ink);
-  }
-  .bmk-dest__bd {
-    flex: 1;
-    min-width: 0;
-  }
-  .bmk-dest__bd b {
-    display: block;
-    font-size: var(--fs-md);
-    font-weight: 600;
-  }
-  .bmk-dest__bd span {
-    font-size: var(--fs-xs);
-    color: var(--ink-3);
-  }
+  /* ---------- 5. 건네기 시트 (024): 바로 보낼 수 없을 때 보이는 링크 ---------- */
   .bmk-share__link {
     margin-top: 14px;
     font-size: var(--fs-xs);
@@ -604,17 +590,29 @@
     margin: 16px auto 0;
   }
 
-  /* ---------- 8. 나의 책갈피 (026) ---------- */
+  /* ---------- 8. 나의 책갈피 (026, 시안 p4 책장·부채꼴·갤러리) ---------- */
+  .bks-lede {
+    margin: 0 0 14px;
+    font-size: var(--fs-lg);
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
   .bks-seg {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    padding: 3px;
-    border-radius: var(--r-sm);
+    gap: 4px;
+    padding: 4px;
+    border-radius: var(--r-full);
     background: var(--surface-2);
   }
   .bks-seg button {
-    min-height: 44px;
-    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 48px;
+    border-radius: var(--r-full);
+    font-size: var(--fs-lg);
     font-weight: 600;
     color: var(--ink-2);
   }
@@ -623,9 +621,21 @@
     color: var(--ink);
     box-shadow: var(--shadow-1);
   }
+  .bks-seg__n {
+    display: inline-grid;
+    place-items: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: var(--r-full);
+    background: var(--espresso);
+    color: var(--photo-paper);
+    font-size: var(--fs-xs);
+    font-variant-numeric: tabular-nums;
+  }
   .bks-sum {
-    margin: 16px 0 8px;
-    font-size: var(--fs-sm);
+    margin: 18px 0 10px;
+    font-size: var(--fs-md);
     color: var(--ink-2);
   }
   .bks-sum b {
@@ -633,107 +643,110 @@
     font-size: var(--fs-3xl);
     color: var(--ink);
   }
+  /* 책장: 책이 많으면 책장 안에서만 가로로 넘긴다(화면은 가로 스크롤 없음) */
   .bks-shelf {
-    padding-top: 8px;
+    padding: 22px 14px 0;
+    border-radius: 26px;
+    background: linear-gradient(180deg, var(--shelf-wall), var(--shelf-wall-2));
+    box-shadow: inset 0 0 0 1px var(--line);
   }
-  .bks-shelf__stack {
+  .bks-books {
     display: flex;
-    flex-direction: column;
-    gap: 3px;
+    align-items: flex-end;
+    gap: 10px;
+    height: 232px;
+    padding: 12px 4px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .bks-books::-webkit-scrollbar {
+    display: none;
+  }
+  .bks-books > :first-child {
+    margin-left: auto;
+  }
+  .bks-books > :last-child {
+    margin-right: auto;
   }
   .bks-spine {
     position: relative;
+    flex: none;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    min-height: 46px;
-    padding: 0 14px 0 16px;
-    border-radius: 4px 7px 7px 4px;
-    text-align: left;
-    color: var(--ink);
-    font-size: var(--fs-md);
-    font-weight: 600;
-    box-shadow:
-      inset 6px 0 0 var(--shade-7),
-      0 1px 0 var(--shade-5);
+    justify-content: space-between;
+    padding: 20px 0 12px;
+    border-radius: 6px 6px 3px 3px;
+    background:
+      linear-gradient(90deg, var(--shade-30), var(--sheen-10) 14%, transparent 30%, transparent 80%, var(--shade-30)),
+      var(--pc-book);
+    color: var(--book-ink);
+    box-shadow: 0 18px 26px -14px var(--umber-28);
+    transition: transform 0.4s ease;
   }
-  .bks-spine--1 {
-    background: var(--spine-1);
+  .bks-spine::before,
+  .bks-spine::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    height: 2px;
+    background: var(--gold-2);
+    opacity: 0.55;
   }
-  .bks-spine--2 {
-    background: var(--spine-2);
+  .bks-spine::before {
+    top: 10px;
   }
-  .bks-spine--3 {
-    background: var(--spine-3);
+  .bks-spine::after {
+    bottom: 48px;
   }
-  .bks-spine--4 {
-    background: var(--spine-4);
+  .bks-spine:focus-visible {
+    transform: translateY(-8px);
   }
-  .bks-spine--5 {
-    background: var(--spine-5);
-  }
-  .bks-spine--6 {
-    background: var(--spine-6);
-  }
-  .bks-spine--7 {
-    background: var(--spine-7);
-  }
-  .bks-spine--8 {
-    background: var(--spine-8);
-  }
-  .bks-spine--9 {
-    background: var(--spine-9);
-  }
-  /* 선택은 안쪽 2px 테두리로 표현한다 — outline 은 키보드 포커스 링 전용이라 둘이 같은 모양이면 구별되지 않는다 */
-  .bks-spine[aria-pressed="true"] {
-    z-index: 1;
-    box-shadow:
-      inset 0 0 0 2px var(--accent),
-      inset 6px 0 0 var(--shade-7),
-      0 1px 0 var(--shade-5);
+  .bks-spine:active {
+    transform: translateY(-4px) scale(0.98);
   }
   .bks-spine__t {
     flex: 1;
-    min-width: 0;
-    white-space: nowrap;
+    min-height: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
+    writing-mode: vertical-rl;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
   }
   .bks-spine__n {
-    padding: 1px 9px;
+    display: grid;
+    place-items: center;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 6px;
     border-radius: var(--r-full);
-    background: var(--sheen-70);
-    font-size: var(--fs-sm);
+    background: var(--sheen-16);
+    font-size: var(--fs-md);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
-  .bks-spine__tails {
-    position: absolute;
-    right: 62px;
-    bottom: -1px;
-    display: flex;
-    gap: 3px;
-    pointer-events: none;
-  }
-  .bks-spine__tails i {
-    display: block;
-    width: 6px;
-    height: 10px;
-    background: var(--accent);
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%);
-  }
   .bks-shelf__board {
-    height: 10px;
-    margin-top: 6px;
-    border-radius: 3px;
-    background: linear-gradient(180deg, var(--shelf), var(--shelf-2));
+    height: 18px;
+    margin: 0 -14px;
+    border-radius: 0 0 26px 26px;
+    background: linear-gradient(180deg, var(--sheen-70), var(--sheen-35));
+    box-shadow: inset 0 -1px 0 var(--line);
+  }
+  .bks-hint {
+    margin: 10px 0 0;
+    text-align: center;
+    font-size: var(--fs-md);
+    color: var(--ink-3);
   }
   .bks-list {
-    margin-top: 20px;
+    margin-top: 22px;
   }
   .bks-list__h {
     margin: 0 0 6px;
-    font-size: var(--fs-md);
+    font-size: var(--fs-lg);
     font-weight: 700;
   }
   .bks-list ul {
@@ -755,7 +768,7 @@
     width: 10px;
     height: 34px;
     margin-top: 3px;
-    background: var(--accent);
+    background: var(--pc-book, var(--accent));
     clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
   }
   .bks-item__bd {
@@ -764,8 +777,8 @@
   }
   .bks-item__q {
     display: block;
-    font-size: var(--fs-md);
-    line-height: 1.5;
+    font-size: var(--fs-lg);
+    line-height: 1.55;
     word-break: keep-all;
     overflow-wrap: anywhere;
   }
@@ -775,13 +788,924 @@
     gap: 6px;
     align-items: center;
     margin-top: 5px;
-    font-size: var(--fs-xs);
+    font-size: var(--fs-sm);
     color: var(--ink-3);
   }
   .bks-skeleton {
     display: block;
     height: 240px;
     margin-top: 16px;
+  }
+
+  /* 이번 달 모은 말씀 진입점 */
+  .bks-collage {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 18px;
+    padding: 18px;
+    border-radius: 24px;
+    background: linear-gradient(140deg, var(--surface), var(--shelf-wall));
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      var(--shadow-2);
+  }
+  .bks-collage__top {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .bks-collage__bd {
+    flex: 1;
+    min-width: 0;
+  }
+  .bks-collage__k {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--gold);
+  }
+  .bks-collage__bd b {
+    display: block;
+    margin: 4px 0;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+  }
+  .bks-collage__bd p {
+    margin: 0;
+    font-size: var(--fs-md);
+    color: var(--ink-2);
+  }
+  .bks-collage__mosaic {
+    flex: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    width: 84px;
+    transform: rotate(4deg);
+  }
+  .bks-collage__mosaic img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  /* 부채 (시안 A "부채 돌리기"). 짙은 막 위에서 카드 부채가 다이얼처럼 돈다.
+     카드 자리(left·top·회전·크기)는 fan-dialog.tsx 가 무대 크기에 맞춰 인라인으로 준다(features/hoondok/cards/fan-geometry.ts) */
+  .bks-fan {
+    --fan-ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --fan-dur: 0.68s;
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--photo-night);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+    color: var(--photo-paper);
+    /* 바깥 카드가 화면 끝에 걸쳐도 가로 스크롤이 생기지 않게 한다 */
+    overflow: hidden auto;
+    outline: none;
+  }
+  .bks-fan::backdrop {
+    background: var(--scrim);
+  }
+  /* 부채 뒤로 은은한 금빛 (자리는 가운데 카드 중심) */
+  .bks-fan::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      60% 46% at var(--fan-glow-x, 50%) var(--fan-glow-y, 42%),
+      var(--gold-16),
+      transparent 70%
+    );
+  }
+  .bks-fan__in {
+    position: relative;
+    display: grid;
+    grid-template-areas: "head" "stage" "info";
+    grid-template-rows: auto 1fr auto;
+    min-height: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: calc(20px + env(safe-area-inset-top)) var(--gutter) calc(20px + env(safe-area-inset-bottom));
+  }
+  .bks-fan__head {
+    grid-area: head;
+  }
+  .bks-fan__eye {
+    display: inline-block;
+    margin: 0;
+    padding: 6px 14px;
+    border-radius: var(--r-full);
+    background: var(--sheen-10);
+    color: var(--gold-2);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+  }
+  .bks-fan__title {
+    margin: 10px 0 2px;
+    font-size: var(--fs-3xl);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .bks-fan__hint {
+    margin: 0;
+    font-size: var(--fs-md);
+    color: var(--photo-text-2);
+  }
+  /* 무대: 부채 + 넘김 버튼 + 위치 알약 */
+  .bks-fan__stage {
+    grid-area: stage;
+    position: relative;
+    min-height: 300px;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  /* 카드 겹침 순서는 이 안에서만 다툰다. 넘김 버튼은 늘 카드 위 */
+  .bks-fan__deck {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    isolation: isolate;
+  }
+  /* 팔은 아래 회전축을 중심으로 돌고, 카드는 제자리에서 줄고 들린다 */
+  .bks-fan__arm {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition:
+      transform var(--fan-dur) var(--fan-ease),
+      opacity 0.4s var(--fan-ease);
+    will-change: transform;
+  }
+  .bks-fan__card {
+    position: relative;
+    display: block;
+    width: 100%;
+    border-radius: var(--r);
+    transition: transform var(--fan-dur) var(--fan-ease);
+    -webkit-touch-callout: none;
+  }
+  .bks-fan__card .pc {
+    box-shadow:
+      0 2px 4px var(--photo-shade-18),
+      0 24px 48px -18px var(--shade-55);
+  }
+  /* 사진 위 위쪽 빛 한 줄: 종이 카드의 두께 */
+  .bks-fan__card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    box-shadow:
+      inset 0 1px 0 var(--sheen-25),
+      inset 0 0 0 1px var(--sheen-10);
+    pointer-events: none;
+  }
+  /* 가운데에서 멀수록 어두워진다 */
+  .bks-fan__dim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    background: var(--photo-shade-86);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--fan-dur) var(--fan-ease);
+  }
+  /* 고른 카드의 금색 테 + 금빛 번짐 */
+  .bks-fan__ring {
+    position: absolute;
+    inset: -4px;
+    z-index: 2;
+    border: 2px solid var(--gold-2);
+    border-radius: calc(var(--r) + 4px);
+    box-shadow: 0 0 28px var(--gold-glow);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s var(--fan-ease);
+  }
+  .bks-fan.is-gathered .bks-fan__arm,
+  .bks-fan.is-drag .bks-fan__arm,
+  .bks-fan.is-drag .bks-fan__card,
+  .bks-fan.is-drag .bks-fan__dim {
+    transition: none;
+  }
+  /* 넘김 버튼: 얇은 선 화살표가 든 유리 원. 자리는 left·top(누를 때 scale 과 겹치지 않게) */
+  .bks-fan__nav {
+    position: absolute;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--sheen-10);
+    box-shadow:
+      inset 0 0 0 1px var(--sheen-16),
+      0 12px 28px -10px var(--shade-55);
+    color: var(--photo-paper);
+    transition:
+      opacity 0.3s var(--fan-ease),
+      background-color 0.2s var(--fan-ease);
+  }
+  .bks-fan__nav:hover {
+    background: var(--sheen-16);
+  }
+  .bks-fan__nav:active {
+    scale: 0.94;
+  }
+  /* 끝 버튼은 흐려지되 포커스는 남는다(누르면 부채가 살짝 밀렸다 돌아온다) */
+  .bks-fan__nav[aria-disabled="true"] {
+    opacity: 0.32;
+    background: var(--sheen-10);
+    cursor: default;
+  }
+  .bks-fan__nav:focus-visible {
+    outline-color: var(--gold-2);
+    outline-offset: 4px;
+  }
+  .bks-fan__count {
+    position: absolute;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    height: 36px;
+    margin: 0;
+    padding: 0 16px;
+    border-radius: var(--r-full);
+    background: var(--gold-16);
+    box-shadow: inset 0 0 0 1px var(--gold-2-34);
+    color: var(--gold-2);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transform: translateX(-50%);
+  }
+  .bks-fan__count b {
+    margin-right: 0.3em;
+    color: var(--photo-paper);
+    font-weight: 700;
+  }
+  /* 원문과 동작 */
+  .bks-fan__info {
+    grid-area: info;
+    padding-top: 6px;
+  }
+  /* 모든 말씀이 한 칸에 겹친다. 고른 말씀만 보이고, 바뀔 때 먼저 사라진 뒤 새 말씀이 올라온다 */
+  .bks-fan__txt {
+    display: grid;
+  }
+  .bks-fan__say {
+    grid-area: 1 / 1;
+    align-self: center;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 0.18s var(--fan-ease),
+      transform 0.18s var(--fan-ease),
+      visibility 0s 0.18s;
+  }
+  .bks-fan__say[data-on] {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.32s var(--fan-ease) 0.14s,
+      transform 0.32s var(--fan-ease) 0.14s;
+  }
+  .bks-fan__q {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: 500;
+    line-height: 1.6;
+    text-align: center;
+  }
+  .bks-fan__src {
+    margin: 6px 0 0;
+    color: var(--gold-2);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    text-align: center;
+  }
+  .bks-fan__more {
+    margin: 8px 0 0;
+    text-align: center;
+    font-size: var(--fs-sm);
+    color: var(--photo-text-2);
+  }
+  .bks-fan__acts {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .bks-fan__acts .pc-cta {
+    flex: 1;
+    min-width: 0;
+  }
+  .bks-fan__close {
+    flex: none;
+    min-width: 96px;
+    min-height: 58px;
+    padding: 0 22px;
+    border-radius: var(--r-full);
+    background: var(--sheen-10);
+    box-shadow: inset 0 0 0 1px var(--sheen-16);
+    color: var(--photo-paper);
+    font-size: var(--fs-lg);
+    font-weight: 600;
+  }
+  .bks-fan__close:hover {
+    background: var(--sheen-16);
+  }
+  .bks-fan__live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  /* 넓은 화면: 부채는 왼쪽 큰 무대 세로 가운데, 글과 버튼은 오른쪽 */
+  @media (min-width: 768px) {
+    .bks-fan__in {
+      grid-template-areas: "stage head" "stage info";
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 350px);
+      grid-template-rows: 1fr 1fr;
+      column-gap: clamp(24px, 4vw, 64px);
+      max-width: 1240px;
+      padding: 32px clamp(24px, 4vw, 56px);
+    }
+    .bks-fan__head {
+      align-self: end;
+      padding-bottom: 22px;
+    }
+    .bks-fan__info {
+      align-self: start;
+      padding-top: 22px;
+      border-top: 1px solid var(--sheen-16);
+    }
+    .bks-fan__say {
+      align-self: start;
+    }
+    .bks-fan__q,
+    .bks-fan__src,
+    .bks-fan__more {
+      text-align: left;
+    }
+    .bks-fan__q {
+      font-size: var(--fs-xl);
+      line-height: 1.65;
+    }
+    .bks-fan__acts {
+      flex-direction: column;
+      margin-top: 24px;
+    }
+    .bks-fan__close {
+      min-height: 52px;
+    }
+  }
+
+  /* 내 카드 갤러리 */
+  .bks-gal__intro {
+    margin: 18px 0 14px;
+    font-size: var(--fs-lg);
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  .bks-gal {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .bks-gal__item {
+    display: block;
+    width: 100%;
+    padding: 5px;
+    border-radius: 22px;
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--line);
+    text-align: left;
+  }
+  .bks-gal__item:active {
+    transform: scale(0.98);
+  }
+  .bks-gal__item .pc {
+    border-radius: 17px;
+  }
+  /* 썸네일·부채 카드는 서버 이미지의 축소판이라 글자 바닥(13px)을 두지 않는다. 읽는 글은 카드 아래 줄이 맡는다 */
+  .bks-gal__item .pc__src,
+  .bks-gal__item .pc__mark,
+  .bks-fan__card .pc__src,
+  .bks-fan__card .pc__mark {
+    font-size: 4.2cqw;
+  }
+  .bks-gal__q {
+    display: -webkit-box;
+    margin: 0;
+    padding: 10px 6px 0;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: var(--fs-md);
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .bks-gal__when {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 6px 4px;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .bks-gal__again {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 32px;
+    font-size: var(--fs-md);
+    color: var(--ink);
+  }
+
+  /* 콜라주 고르기 */
+  .pcs-picks {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .pcs-pick {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 64px;
+    padding: 12px 14px;
+    border-radius: 18px;
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+    text-align: left;
+  }
+  .pcs-pick[aria-pressed="true"] {
+    box-shadow: inset 0 0 0 2px var(--ink);
+  }
+  .pcs-pick__chip {
+    flex: none;
+    align-self: stretch;
+    width: 8px;
+    border-radius: 4px;
+    background: var(--pc-book);
+  }
+  .pcs-pick__q {
+    flex: 1;
+    min-width: 0;
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: var(--fs-lg);
+    line-height: 1.5;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .pcs-pick__ck {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2px var(--line);
+    color: transparent;
+  }
+  .pcs-pick[aria-pressed="true"] .pcs-pick__ck {
+    background: var(--ink);
+    color: var(--surface);
+    box-shadow: none;
+  }
+  .pcs-notice {
+    min-height: 1.5em;
+    margin: 10px 0 0;
+    font-size: var(--fs-md);
+    color: var(--accent-strong);
+  }
+
+  /* ---------- 9. 사진 카드 (시안 p4 `.card`, 받기·부채꼴·갤러리 공용, cqw 단위) ---------- */
+  .pc {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    overflow: clip;
+    border-radius: var(--r);
+    background: var(--espresso);
+    color: var(--surface);
+    container-type: inline-size;
+    isolation: isolate;
+  }
+  /* overflow: clip 은 스크롤 상자가 아니라서 긴 말씀이면 비율보다 길게 늘어난다(원문은 줄이지 않는다) */
+  .pc--feed {
+    aspect-ratio: 4 / 5;
+  }
+  .pc--story {
+    aspect-ratio: 9 / 16;
+  }
+  /* 컨테이너 자신의 길이에 쓴 cqw 는 바깥 컨테이너(넓은 화면 전체) 기준이 된다. 그래서 여백은 안쪽 래퍼가 갖는다:
+     래퍼의 여백 cqw = 카드(.pc) 폭 기준, 래퍼 안 글자의 cqw = 여백을 뺀 래퍼 폭 기준 */
+  .pc__in {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    container-type: inline-size;
+  }
+  .pc--feed .pc__in {
+    justify-content: flex-end;
+    padding: 20cqw 8cqw 6.5cqw;
+  }
+  .pc--story .pc__in {
+    justify-content: center;
+    padding: 14cqw 9cqw 18cqw;
+  }
+  .pc--book-1 {
+    --pc-book: var(--book-1);
+  }
+  .pc--book-2 {
+    --pc-book: var(--book-2);
+  }
+  .pc--book-3 {
+    --pc-book: var(--book-3);
+  }
+  .pc--book-4 {
+    --pc-book: var(--book-4);
+  }
+  .pc--book-5 {
+    --pc-book: var(--book-5);
+  }
+  .pc--book-6 {
+    --pc-book: var(--book-6);
+  }
+  .pc__img,
+  .pc__solid,
+  .pc__shade {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .pc__img {
+    z-index: -2;
+    object-fit: cover;
+  }
+  .pc__solid {
+    z-index: -2;
+    background: linear-gradient(160deg, var(--sheen-16), transparent 45%, var(--shade-30)), var(--pc-book);
+  }
+  .pc__shade {
+    z-index: -1;
+    background: linear-gradient(0deg, var(--photo-shade-86) 0%, var(--photo-shade-52) 48%, var(--photo-shade-10) 80%);
+  }
+  .pc--story .pc__shade {
+    background: linear-gradient(180deg, var(--photo-shade-18), var(--photo-shade-38));
+  }
+  .pc--solid .pc__shade {
+    background: none;
+  }
+  .pc__quote {
+    width: 9cqw;
+    height: 9cqw;
+    color: var(--photo-text-2);
+  }
+  .pc--feed .pc__quote {
+    position: absolute;
+    top: 7cqw;
+    left: 8cqw;
+  }
+  .pc__text {
+    margin: 0;
+    font-size: 7cqw;
+    font-weight: 600;
+    line-height: 1.55;
+    letter-spacing: -0.01em;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    text-shadow: 0 1px 12px var(--shade-30);
+  }
+  .pc--q-m .pc__text {
+    font-size: 6.3cqw;
+  }
+  .pc--q-s .pc__text {
+    font-size: 5.6cqw;
+  }
+  .pc--q-xs .pc__text {
+    font-size: 4.9cqw;
+  }
+  .pc__foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 4cqw;
+    margin-top: 6cqw;
+    padding-top: 4cqw;
+    border-top: 1px solid var(--photo-line);
+  }
+  .pc__src {
+    max-width: 68%;
+    font-size: max(13px, 4.2cqw);
+    line-height: 1.45;
+    color: var(--photo-text-2);
+  }
+  .pc__mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.2cqw;
+    margin-left: auto;
+    font-size: max(13px, 4.2cqw);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .pc__mark svg {
+    width: 1em;
+    height: 1em;
+    color: var(--gold-2);
+  }
+  .pc__panel {
+    display: flex;
+    flex-direction: column;
+    padding: 9cqw 8cqw 8cqw;
+    border-radius: 7cqw;
+    background: var(--photo-panel);
+    color: var(--ink);
+    box-shadow: 0 4cqw 10cqw var(--shade-30);
+  }
+  .pc--story .pc__quote {
+    margin-bottom: 4cqw;
+    color: var(--gold);
+  }
+  .pc--story .pc__text {
+    font-size: 6.6cqw;
+    text-shadow: none;
+  }
+  .pc--story.pc--q-m .pc__text {
+    font-size: 6cqw;
+  }
+  .pc--story.pc--q-s .pc__text {
+    font-size: 5.4cqw;
+  }
+  .pc--story.pc--q-xs .pc__text {
+    font-size: 4.8cqw;
+  }
+  .pc--story .pc__src {
+    max-width: none;
+    margin-top: 5cqw;
+    color: var(--photo-ink-3);
+  }
+  .pc--solid .pc__panel {
+    background: var(--sheen-10);
+    color: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--sheen-16);
+  }
+  .pc--solid .pc__src {
+    color: var(--photo-text-2);
+  }
+  .pc__mark--story {
+    position: absolute;
+    left: 50%;
+    bottom: 7cqw;
+    margin: 0;
+    font-size: 4.6cqw;
+    transform: translateX(-50%);
+    text-shadow: 0 1px 8px var(--shade-30);
+  }
+  .pc__veil {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: var(--accent);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* 주 버튼 (시안 p4 `.cta`): 짙은 알약 + 오른쪽 둥근 아이콘. 금색은 홈 카드·부채꼴 */
+  .pc-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 58px;
+    padding: 7px 7px 7px 22px;
+    border-radius: var(--r-full);
+    background: var(--espresso);
+    color: var(--photo-paper);
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    text-align: left;
+    text-decoration: none;
+    transition: transform 0.2s ease;
+  }
+  .pc-cta:active {
+    transform: scale(0.98);
+  }
+  .pc-cta:disabled {
+    background: var(--surface-2);
+    color: var(--ink-3);
+    cursor: default;
+  }
+  .pc-cta__ic {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--sheen-16);
+  }
+  .pc-cta--gold {
+    background: var(--gold);
+    color: var(--gold-ink);
+  }
+  .pc-cta--gold .pc-cta__ic {
+    background: var(--sheen-25);
+  }
+  .pc-cta--light {
+    background: var(--photo-paper);
+    color: var(--ink);
+  }
+  .pc-cta--light .pc-cta__ic {
+    background: var(--shade-7);
+  }
+  .pc-cta small {
+    display: block;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    opacity: 0.85;
+  }
+
+  /* ---------- 10. 사진 카드로 건네기 시트 (024) · 이번 달 모은 말씀 시트 ---------- */
+  .pcs-pv {
+    display: grid;
+    place-items: center;
+    margin-top: 10px;
+    padding: 20px 0;
+    border-radius: 24px;
+    background: radial-gradient(80% 60% at 50% 40%, var(--surface), var(--surface-2));
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  /* 미리보기 높이를 화면 높이의 28%로 묶어 작은 화면에서도 크기·바탕 고르기가 첫 화면에 보이게 한다(폭으로 비율 유지) */
+  .pcs-pv img {
+    display: block;
+    width: min(240px, 72%, 28dvh * 4 / 5);
+    height: auto;
+    border-radius: 14px;
+    background: var(--surface-2);
+    box-shadow: 0 24px 40px -18px var(--umber-28);
+  }
+  .pcs-pv--story img {
+    width: min(176px, 52%, 28dvh * 9 / 16);
+  }
+  .pcs-pv[data-status="loading"] img {
+    animation: hoondok-pc-pulse 1.4s ease-in-out infinite;
+  }
+  .pcs-pv__err {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 16px;
+    text-align: center;
+    color: var(--ink-2);
+    font-size: var(--fs-lg);
+  }
+  .pcs-pv__err p {
+    margin: 0;
+  }
+  .pcs-prep-err {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: var(--fs-lg);
+    color: var(--ink-2);
+  }
+  .pcs-prep-err p {
+    margin: 0;
+  }
+  .pc-cta__spin {
+    animation: hoondok-spin 1.2s linear infinite;
+  }
+  .pcs-ctl {
+    margin-top: 18px;
+  }
+  .pcs-ctl__lbl {
+    margin: 0 0 8px;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+  }
+  .pcs-seg {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 4px;
+    padding: 4px;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+  }
+  .pcs-seg button {
+    min-height: 48px;
+    padding: 0 8px;
+    border-radius: var(--r-full);
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .pcs-seg button[aria-checked="true"] {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--shadow-1);
+  }
+  .pcs-swatch {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .pcs-swatch button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .pcs-swatch__i {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 14px;
+    background: var(--pc-book, var(--surface-2)) center / cover;
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .pcs-swatch button[aria-checked="true"] {
+    color: var(--ink);
+  }
+  .pcs-swatch button[aria-checked="true"] .pcs-swatch__i {
+    box-shadow:
+      0 0 0 3px var(--paper),
+      0 0 0 5px var(--ink);
+  }
+  .pcs-lock {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 16px 0 0;
+    padding: 10px 12px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    color: var(--ink-2);
+    font-size: var(--fs-md);
+  }
+  .pcs-lock svg {
+    flex: none;
+    color: var(--gold);
+  }
+  .pcs-more {
+    margin-top: 16px;
+  }
+  .pcs-dock {
+    position: sticky;
+    bottom: -28px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 4px calc(-1 * var(--gutter)) 0;
+    padding: 12px var(--gutter) 12px;
+    background: linear-gradient(180deg, transparent, var(--paper) 18%);
   }
 
   @media (min-width: 1024px) {
@@ -791,8 +1715,22 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .bk--sm.is-waiting .bk__rib {
+    .bmhome__env.is-waiting .bmhome__rib,
+    .bmhome-tile,
+    .bks-spine,
+    .bks-fan__arm,
+    .bks-fan__card,
+    .bks-fan__dim,
+    .bks-fan__ring,
+    .bks-fan__say,
+    .bks-fan__nav {
       animation: none;
+      transition: none;
+    }
+    .pcs-pv[data-status="loading"] img,
+    .pc-cta {
+      animation: none;
+      transition: none;
     }
   }
 }
