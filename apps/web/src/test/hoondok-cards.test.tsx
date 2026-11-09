@@ -13,6 +13,14 @@ import {
   sourceText,
   toLook,
 } from "@/features/hoondok/cards/look";
+import {
+  dragPosition,
+  fanGeometry,
+  fanPose,
+  fitFan,
+  releaseIndex,
+  stepIndex,
+} from "@/features/hoondok/cards/fan-geometry";
 import { findCardSentence, normalizeForMatch } from "@/features/hoondok/cards/match";
 import {
   foldSteps,
@@ -536,6 +544,51 @@ describe("사진 준비 전에는 건네지 않는다 (SCR-PWA-024·026)", () =>
   });
 });
 
+describe("부채 돌리기 모양 계산 (SCR-PWA-026)", () => {
+  it("끝에서 더 넘기면 돌아 감지 않고 멈춘다", () => {
+    expect(stepIndex(0, -1, 7)).toBeNull();
+    expect(stepIndex(6, 1, 7)).toBeNull();
+    expect(stepIndex(2, 1, 7)).toBe(3);
+    expect(stepIndex(0, 1, 1)).toBeNull();
+  });
+
+  it("휙 넘겨도 한 번에 한 장만 더 가고, 끝 너머로는 고무줄처럼 덜 따라간다", () => {
+    expect(releaseIndex(2, -50, 100, 7)).toBe(3);
+    expect(releaseIndex(2, 50, 100, 7)).toBe(1);
+    expect(releaseIndex(6.2, -50, 100, 7)).toBe(6);
+    expect(dragPosition(0, 100, 100, 7)).toBeCloseTo(-0.3);
+    expect(dragPosition(3, -100, 100, 7)).toBe(4);
+  });
+
+  it("1장이면 펼치지 않고 똑바로 선다", () => {
+    const g = fitFan({ count: 1, availW: 367, availH: 330, isWide: false });
+    expect(g.s).toBe(0);
+    expect(fanPose(0, g).angle).toBe(0);
+    expect(g.maxX - g.minX).toBeCloseTo(g.W);
+  });
+
+  it("고른 카드는 가운데 똑바로, 멀수록 더 기울고 작고 어둡다", () => {
+    const g = fanGeometry(240, 7, false);
+    const [mid, one, two] = [0, 1, 2].map((o) => fanPose(o, g));
+    expect(mid.angle).toBe(0);
+    expect(fanPose(-1, g).angle).toBe(-one.angle);
+    expect(two.angle).toBeGreaterThan(one.angle);
+    expect(two.scale).toBeLessThan(one.scale);
+    expect(two.dim).toBeGreaterThan(one.dim);
+  });
+
+  it("7장 부채는 무대 가로를 넘지 않는다 (모바일은 맨 바깥 한 장만 화면 끝에 걸친다)", () => {
+    const wide = fitFan({ count: 7, availW: 1280 - 350 - 112 - 144, availH: 700, isWide: true });
+    expect(wide.maxX - wide.minX).toBeLessThanOrEqual(1280 - 350 - 112 - 144);
+    const narrow = fitFan({ count: 7, availW: 367, availH: 330, isWide: false });
+    expect(narrow.maxX - narrow.minX).toBeLessThanOrEqual(367);
+    expect(narrow.maxY - narrow.minY).toBeLessThanOrEqual(330);
+    // 옆 카드가 누를 수 있는 띠만큼 가운데 카드 밖으로 나와 있다
+    expect(narrow.s).toBeGreaterThan(0);
+    expect(narrow.W).toBeGreaterThan(150);
+  });
+});
+
 describe("부채꼴 포커스 복원 (SCR-PWA-026)", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -630,9 +683,21 @@ describe("나의 책갈피 책장·부채꼴·갤러리·콜라주 (SCR-PWA-026)
     expect(screen.getByRole("button", { name: "평화경, 책갈피 1장 펼치기" })).toHaveStyle({ width: "54px" });
     fireEvent.click(spine);
     const fan = screen.getByRole("dialog", { name: "천성경" });
-    expect(within(fan).getAllByRole("radio")).toHaveLength(4);
-    fireEvent.click(within(fan).getByRole("radio", { name: "말씀 3번입니다" }));
-    expect(within(fan).getByRole("radio", { name: "말씀 3번입니다" })).toHaveAttribute("aria-checked", "true");
+    expect(within(fan).getByRole("button", { name: "말씀 1번입니다" })).toHaveAttribute("aria-current", "true");
+    // 첫 장에서 이전은 흐려지고, 더 넘기면 돌아 감지 않고 알려 준다
+    const prev = within(fan).getByRole("button", { name: "이전 말씀" });
+    expect(prev).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(prev);
+    expect(within(fan).getByText("첫 번째 말씀이에요")).toBeInTheDocument();
+    // 다음 버튼 · 방향키 · 보이는 카드 누르기로 넘긴다
+    fireEvent.click(within(fan).getByRole("button", { name: "다음 말씀" }));
+    expect(within(fan).getByRole("button", { name: "말씀 2번입니다" })).toHaveAttribute("aria-current", "true");
+    fireEvent.keyDown(fan, { key: "End" });
+    expect(within(fan).getByRole("button", { name: "다음 말씀" })).toHaveAttribute("aria-disabled", "true");
+    fireEvent.keyDown(fan, { key: "ArrowRight" });
+    expect(within(fan).getByText("마지막 말씀이에요")).toBeInTheDocument();
+    fireEvent.click(within(fan).getByRole("button", { name: "말씀 3번입니다" }));
+    expect(within(fan).getByRole("button", { name: "말씀 3번입니다" })).toHaveAttribute("aria-current", "true");
     fireEvent.click(within(fan).getByRole("button", { name: "이 말씀 건네기" }));
     const sheet = await screen.findByRole("dialog", { name: "사진 카드로 건네기" });
     expect(within(sheet).getByRole("img", { name: /말씀 3번입니다/ })).toBeInTheDocument();

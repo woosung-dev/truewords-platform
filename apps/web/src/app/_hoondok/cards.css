@@ -1,20 +1,12 @@
 /* 오늘의 책갈피 (PLAN-HD-012, SCR-PWA-022~026) — 홈 카드 · 받기/읽기 · 건네기 시트 · 원문 밑줄 · 받은 사람 · 나의 책갈피.
    값의 원본은 승인 시안 bookmark-final.html(목업 A). 색은 hoondok.css 토큰만 쓴다(hex 금지, pnpm hoondok:check).
    사진 카드·내 카드 갤러리 개편은 시안 p4-gallery 를 따른다.
-   모션은 transform·opacity 만(features/hoondok/cards/motion.ts). 여기의 CSS 애니메이션(홈 리본·미리보기 깜박임·부채꼴)은 동작 줄이기면 끈다. */
+   모션은 transform·opacity 만(features/hoondok/cards/motion.ts). 여기의 CSS 애니메이션(홈 리본·미리보기 깜박임)과 부채 전환은 동작 줄이기면 끈다. */
 
 /* 홈 리본: 800ms 뒤 2회만 6px 내려왔다 돌아간다 */
 @keyframes hoondok-bm-sway {
   to {
     transform: translateY(6px);
-  }
-}
-
-/* 부채꼴 카드: 가운데에서 제 각도로 펼쳐진다(끝 상태는 요소의 transform) */
-@keyframes hoondok-fan-in {
-  from {
-    opacity: 0;
-    transform: rotate(0) translateY(60px);
   }
 }
 
@@ -859,8 +851,11 @@
     border-radius: 8px;
   }
 
-  /* 부채꼴 (시안 p4 `.fan`). 짙은 막 위에서 카드가 펼쳐진다 */
+  /* 부채 (시안 A "부채 돌리기"). 짙은 막 위에서 카드 부채가 다이얼처럼 돈다.
+     카드 자리(left·top·회전·크기)는 fan-dialog.tsx 가 무대 크기에 맞춰 인라인으로 준다(features/hoondok/cards/fan-geometry.ts) */
   .bks-fan {
+    --fan-ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --fan-dur: 0.68s;
     position: fixed;
     inset: 0;
     z-index: 60;
@@ -875,22 +870,40 @@
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
     color: var(--photo-paper);
-    /* 아주 좁은 화면에서도 바깥 카드 모서리 때문에 가로 스크롤이 생기지 않게 한다 */
+    /* 바깥 카드가 화면 끝에 걸쳐도 가로 스크롤이 생기지 않게 한다 */
     overflow: hidden auto;
+    outline: none;
   }
   .bks-fan::backdrop {
     background: var(--scrim);
   }
+  /* 부채 뒤로 은은한 금빛 (자리는 가운데 카드 중심) */
+  .bks-fan::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      60% 46% at var(--fan-glow-x, 50%) var(--fan-glow-y, 42%),
+      var(--gold-16),
+      transparent 70%
+    );
+  }
   .bks-fan__in {
-    display: flex;
-    flex-direction: column;
+    position: relative;
+    display: grid;
+    grid-template-areas: "head" "stage" "info";
+    grid-template-rows: auto 1fr auto;
     min-height: 100%;
-    max-width: 480px;
+    max-width: 520px;
     margin: 0 auto;
-    padding: calc(28px + env(safe-area-inset-top)) var(--gutter) calc(24px + env(safe-area-inset-bottom));
+    padding: calc(20px + env(safe-area-inset-top)) var(--gutter) calc(20px + env(safe-area-inset-bottom));
+  }
+  .bks-fan__head {
+    grid-area: head;
   }
   .bks-fan__eye {
-    align-self: flex-start;
+    display: inline-block;
     margin: 0;
     padding: 6px 14px;
     border-radius: var(--r-full);
@@ -900,72 +913,272 @@
     font-weight: 600;
   }
   .bks-fan__title {
-    margin: 12px 0 4px;
+    margin: 10px 0 2px;
     font-size: var(--fs-3xl);
     font-weight: 700;
+    letter-spacing: -0.01em;
   }
   .bks-fan__hint {
     margin: 0;
     font-size: var(--fs-md);
     color: var(--photo-text-2);
   }
+  /* 무대: 부채 + 넘김 버튼 + 위치 알약 */
   .bks-fan__stage {
+    grid-area: stage;
     position: relative;
-    flex: 1;
-    min-height: 350px;
+    min-height: 300px;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
   }
-  /* 카드 폭은 화면 폭에 비례(375 폭에서 앞 카드 글자가 14px 남짓). 넓어진 만큼 회전 중심을 카드 안쪽으로 올려 7장이 가로로 넘치지 않게 한다 */
-  .bks-fan__card {
-    --fan-w: clamp(150px, 52vw, 220px);
+  /* 카드 겹침 순서는 이 안에서만 다툰다. 넘김 버튼은 늘 카드 위 */
+  .bks-fan__deck {
     position: absolute;
-    left: 50%;
-    bottom: 8px;
-    width: var(--fan-w);
-    margin-left: calc(var(--fan-w) / -2);
+    inset: 0;
+    z-index: 1;
+    isolation: isolate;
+  }
+  /* 팔은 아래 회전축을 중심으로 돌고, 카드는 제자리에서 줄고 들린다 */
+  .bks-fan__arm {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition:
+      transform var(--fan-dur) var(--fan-ease),
+      opacity 0.4s var(--fan-ease);
+    will-change: transform;
+  }
+  .bks-fan__card {
+    position: relative;
+    display: block;
+    width: 100%;
     border-radius: var(--r);
-    transform-origin: 50% 80%;
-    transform: rotate(var(--r));
-    box-shadow: 0 20px 40px -12px var(--shade-30);
-    transition: transform 0.45s ease;
-    animation: hoondok-fan-in 0.6s ease-out both;
+    transition: transform var(--fan-dur) var(--fan-ease);
+    -webkit-touch-callout: none;
   }
-  .bks-fan__card[aria-checked="true"] {
-    transform: rotate(0) translateY(-40px) scale(1.25);
+  .bks-fan__card .pc {
     box-shadow:
-      0 30px 60px -10px var(--shade-30),
-      0 0 0 3px var(--gold-2);
+      0 2px 4px var(--photo-shade-18),
+      0 24px 48px -18px var(--shade-55);
   }
-  .bks-fan__card:focus-visible {
+  /* 사진 위 위쪽 빛 한 줄: 종이 카드의 두께 */
+  .bks-fan__card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    box-shadow:
+      inset 0 1px 0 var(--sheen-25),
+      inset 0 0 0 1px var(--sheen-10);
+    pointer-events: none;
+  }
+  /* 가운데에서 멀수록 어두워진다 */
+  .bks-fan__dim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    background: var(--photo-shade-86);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--fan-dur) var(--fan-ease);
+  }
+  /* 고른 카드의 금색 테 + 금빛 번짐 */
+  .bks-fan__ring {
+    position: absolute;
+    inset: -4px;
+    z-index: 2;
+    border: 2px solid var(--gold-2);
+    border-radius: calc(var(--r) + 4px);
+    box-shadow: 0 0 28px var(--gold-glow);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s var(--fan-ease);
+  }
+  .bks-fan.is-gathered .bks-fan__arm,
+  .bks-fan.is-drag .bks-fan__arm,
+  .bks-fan.is-drag .bks-fan__card,
+  .bks-fan.is-drag .bks-fan__dim {
+    transition: none;
+  }
+  /* 넘김 버튼: 얇은 선 화살표가 든 유리 원. 자리는 left·top(누를 때 scale 과 겹치지 않게) */
+  .bks-fan__nav {
+    position: absolute;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--sheen-10);
+    box-shadow:
+      inset 0 0 0 1px var(--sheen-16),
+      0 12px 28px -10px var(--shade-55);
+    color: var(--photo-paper);
+    transition:
+      opacity 0.3s var(--fan-ease),
+      background-color 0.2s var(--fan-ease);
+  }
+  .bks-fan__nav:hover {
+    background: var(--sheen-16);
+  }
+  .bks-fan__nav:active {
+    scale: 0.94;
+  }
+  /* 끝 버튼은 흐려지되 포커스는 남는다(누르면 부채가 살짝 밀렸다 돌아온다) */
+  .bks-fan__nav[aria-disabled="true"] {
+    opacity: 0.32;
+    background: var(--sheen-10);
+    cursor: default;
+  }
+  .bks-fan__nav:focus-visible {
     outline-color: var(--gold-2);
     outline-offset: 4px;
   }
+  .bks-fan__count {
+    position: absolute;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    height: 36px;
+    margin: 0;
+    padding: 0 16px;
+    border-radius: var(--r-full);
+    background: var(--gold-16);
+    box-shadow: inset 0 0 0 1px var(--gold-2-34);
+    color: var(--gold-2);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transform: translateX(-50%);
+  }
+  .bks-fan__count b {
+    margin-right: 0.3em;
+    color: var(--photo-paper);
+    font-weight: 700;
+  }
+  /* 원문과 동작 */
+  .bks-fan__info {
+    grid-area: info;
+    padding-top: 6px;
+  }
+  /* 모든 말씀이 한 칸에 겹친다. 고른 말씀만 보이고, 바뀔 때 먼저 사라진 뒤 새 말씀이 올라온다 */
+  .bks-fan__txt {
+    display: grid;
+  }
+  .bks-fan__say {
+    grid-area: 1 / 1;
+    align-self: center;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 0.18s var(--fan-ease),
+      transform 0.18s var(--fan-ease),
+      visibility 0s 0.18s;
+  }
+  .bks-fan__say[data-on] {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.32s var(--fan-ease) 0.14s,
+      transform 0.32s var(--fan-ease) 0.14s;
+  }
   .bks-fan__q {
-    min-height: 3em;
-    margin: 16px 0 6px;
+    margin: 0;
     font-size: var(--fs-lg);
+    font-weight: 500;
     line-height: 1.6;
     text-align: center;
   }
+  .bks-fan__src {
+    margin: 6px 0 0;
+    color: var(--gold-2);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    text-align: center;
+  }
   .bks-fan__more {
-    margin: 0 0 6px;
+    margin: 8px 0 0;
     text-align: center;
     font-size: var(--fs-sm);
     color: var(--photo-text-2);
   }
   .bks-fan__acts {
     display: flex;
-    flex-direction: column;
     gap: 10px;
-    margin-top: 10px;
+    margin-top: 16px;
+  }
+  .bks-fan__acts .pc-cta {
+    flex: 1;
+    min-width: 0;
   }
   .bks-fan__close {
-    min-height: 52px;
+    flex: none;
+    min-width: 96px;
+    min-height: 58px;
+    padding: 0 22px;
     border-radius: var(--r-full);
     background: var(--sheen-10);
     box-shadow: inset 0 0 0 1px var(--sheen-16);
     color: var(--photo-paper);
     font-size: var(--fs-lg);
     font-weight: 600;
+  }
+  .bks-fan__close:hover {
+    background: var(--sheen-16);
+  }
+  .bks-fan__live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  /* 넓은 화면: 부채는 왼쪽 큰 무대 세로 가운데, 글과 버튼은 오른쪽 */
+  @media (min-width: 768px) {
+    .bks-fan__in {
+      grid-template-areas: "stage head" "stage info";
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 350px);
+      grid-template-rows: 1fr 1fr;
+      column-gap: clamp(24px, 4vw, 64px);
+      max-width: 1240px;
+      padding: 32px clamp(24px, 4vw, 56px);
+    }
+    .bks-fan__head {
+      align-self: end;
+      padding-bottom: 22px;
+    }
+    .bks-fan__info {
+      align-self: start;
+      padding-top: 22px;
+      border-top: 1px solid var(--sheen-16);
+    }
+    .bks-fan__say {
+      align-self: start;
+    }
+    .bks-fan__q,
+    .bks-fan__src,
+    .bks-fan__more {
+      text-align: left;
+    }
+    .bks-fan__q {
+      font-size: var(--fs-xl);
+      line-height: 1.65;
+    }
+    .bks-fan__acts {
+      flex-direction: column;
+      margin-top: 24px;
+    }
+    .bks-fan__close {
+      min-height: 52px;
+    }
   }
 
   /* 내 카드 갤러리 */
@@ -999,7 +1212,7 @@
   .bks-gal__item .pc {
     border-radius: 17px;
   }
-  /* 썸네일·부채꼴 카드는 서버 이미지의 축소판이라 글자 바닥(13px)을 두지 않는다. 읽는 글은 카드 아래 줄이 맡는다 */
+  /* 썸네일·부채 카드는 서버 이미지의 축소판이라 글자 바닥(13px)을 두지 않는다. 읽는 글은 카드 아래 줄이 맡는다 */
   .bks-gal__item .pc__src,
   .bks-gal__item .pc__mark,
   .bks-fan__card .pc__src,
@@ -1505,7 +1718,12 @@
     .bmhome__env.is-waiting .bmhome__rib,
     .bmhome-tile,
     .bks-spine,
-    .bks-fan__card {
+    .bks-fan__arm,
+    .bks-fan__card,
+    .bks-fan__dim,
+    .bks-fan__ring,
+    .bks-fan__say,
+    .bks-fan__nav {
       animation: none;
       transition: none;
     }

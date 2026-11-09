@@ -222,7 +222,7 @@ font-family: "Pretendard Hoondok", "Pretendard Variable", Pretendard, -apple-sys
 | `sermon-thumb-4.webp` | 〃 | https://unsplash.com/photos/VB-w_3dnyvI | Andrew Coelho |
 
 히어로는 1440×900, 썸네일은 720×450 WebP 다. 파일명을 바꿀 때만 캐시가 갱신되도록 `next.config.ts` 가 `/hoondok/photos/:path*` 에 `immutable` 을 준다. 용량 때문에 서비스워커 precache 에는 넣지 않는다 — 오프라인이면 `.shot` 의 `--ink` 바탕이 남고 흰 글자는 그대로 읽힌다.
-- **모션**: 전환은 시트 등장 220ms, 체크 전환 150ms, 버튼 누름 120ms, 토글 150ms 를 기준으로 한다. `@keyframes` 목록(2026-11-09 기준): 공용 `hoondok-spin`(스피너)·`hoondok-sheet-up`(시트)·`hoondok-menu-in`(메뉴 패널), 책갈피 `hoondok-bm-sway`(홈 대기 중 금색 리본 2회 흔들림)·`hoondok-fan-in`(나의 책갈피 부채꼴 카드 등장)·`hoondok-pc-pulse`(사진 카드 미리보기 불러오는 중), 서고·리더 `wd-arrive`(이어 읽기로 도착한 단락 표시)·`wd-skel-pulse`(스켈레톤)·`hl-bar-in`(형광펜 막대)·`rd-toast-in`(리더 토스트)·`wd-dock-pop`(미니 플레이어 등장)·`wd-ring-pop`·`wd-check-draw`(다 읽음 체크), 부엉이 마스코트 `hoondok-owl-settle`(놓일 때 1회)·`hoondok-owl-breathe`(AI 대기 중 2회, 플래그 `NEXT_PUBLIC_HOONDOK_MASCOT`). 새 키프레임은 이 목록에 먼저 더한다. `prefers-reduced-motion: reduce`에서 스피너를 뺀 애니메이션과 전환을 모두 끈다(시안이 이미 구현).
+- **모션**: 전환은 시트 등장 220ms, 체크 전환 150ms, 버튼 누름 120ms, 토글 150ms 를 기준으로 한다. `@keyframes` 목록(2026-11-09 기준): 공용 `hoondok-spin`(스피너)·`hoondok-sheet-up`(시트)·`hoondok-menu-in`(메뉴 패널), 책갈피 `hoondok-bm-sway`(홈 대기 중 금색 리본 2회 흔들림)·`hoondok-pc-pulse`(사진 카드 미리보기 불러오는 중), 서고·리더 `wd-arrive`(이어 읽기로 도착한 단락 표시)·`wd-skel-pulse`(스켈레톤)·`hl-bar-in`(형광펜 막대)·`rd-toast-in`(리더 토스트)·`wd-dock-pop`(미니 플레이어 등장)·`wd-ring-pop`·`wd-check-draw`(다 읽음 체크), 부엉이 마스코트 `hoondok-owl-settle`(놓일 때 1회)·`hoondok-owl-breathe`(AI 대기 중 2회, 플래그 `NEXT_PUBLIC_HOONDOK_MASCOT`). 새 키프레임은 이 목록에 먼저 더한다. `prefers-reduced-motion: reduce`에서 스피너를 뺀 애니메이션과 전환을 모두 끈다(시안이 이미 구현).
 
 ### 1.7 앱 아이콘·설치 메타 (2026-09-19, PLAN-HD-001 Phase 3 C)
 
@@ -803,6 +803,7 @@ hover 규칙은 전부 `@media (hover: hover)` 안에 둔다. 터치 기기에�
 | 2026-11-04 | `SCR-PWA-005` AI 질문 = **목록 홈**(추천·저장·내 질문 + 돋보기는 누를 때만) + FAB "질문하기" → 새 질문 화면(답변 모델 시트·공개 여부 시트). 2026-09-16 "물음 한 장" 대체. ask 화면도 앱바 말씀 검색 유지(새 질문 화면만 없음 — 2026-11-04 정정), 원문 단락 시트에 "이 단락으로 질문하기" (`DEC-PWA-025`) | 확정 · §2.9 |
 | 2026-11-04 | `DEC-PWA-027` 훈독 모임 화면(`SCR-PWA-017~021`)·홈 모임 카드 제거. 모임 전용 CSS(`together.css` 2단계·`together-home.css`)와 쓰는 곳이 없어진 `.radio` 공용 규칙을 지우고, 인라인 확인 카드 `.tg-confirm` 만 남긴다(맞춤 말씀 "모두 지우기"). 프로토타입의 모임 화면은 이력으로만 둔다 | 확정 · §5 |
 | 2026-11-09 | 오늘의 책갈피 = **사진 카드**. 022 홈은 짙은 봉투+금색 리본과 타일(나의 책갈피 N장·내 카드 갤러리), 023 받기는 사진 카드, 024 "사진 카드로 건네기" 시트는 크기(4:5 피드·9:16 스토리)·바탕(사진 4·책 색)·출처(자세히·책 이름만)를 고르고 서버 이미지 `/c/{id}/image?f=feed\|story&bg=&src=` 를 미리보기·저장·공유한다(`f=link\|square` 유지). 출처와 훈독 표시는 늘 인쇄하고 "빼기" 는 두지 않는다. 마지막 모양은 카드별로 기기에만 남긴다. 026 나의 책갈피는 책장(받은 수만큼 두꺼운 책등 → 부채꼴 최대 7장)·내 카드 갤러리(건넨 카드를 그 모양대로 다시 건네기)·이번 달 모은 말씀(`/c/collage/image?ids=&theme=paper\|night&f=`, 4장까지, 건넴 기록 없음) | 확정 · `SCR-PWA-022~024·026` |
+| 2026-11-09 | `SCR-PWA-026` 책장 부채 = **부채 돌리기**(다이얼). 카드는 아래 바깥 공통 회전축으로 돌고 고른 카드는 가운데에 똑바로 선다(금색 테). 넘기기는 양옆 원형 버튼("이전 말씀"·"다음 말씀")·보이는 카드 누르기·가로 드래그(휙 넘겨도 한 장)·←/→/Home/End, 위치는 "2 / 7" 알약. **돌아 감기 없음** — 끝에서는 부채가 살짝 밀렸다 돌아오고 "첫 번째·마지막 말씀이에요"를 읽어 주며 그쪽 버튼은 `aria-disabled`. 1장이면 버튼·알약 없음. 768 이상은 왼쪽 부채 무대 + 오른쪽 글·버튼 칸 | 확정 · `SCR-PWA-026` |
 
 
 ### PLAN-HD-005 여정 연결 결정 (2026-09-21)
