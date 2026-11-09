@@ -1,7 +1,7 @@
 // 책갈피 공유 이미지 (PLAN-HD-012, SCR-PWA-024). next/og(Satori) 로 서버에서 그린다 — flexbox·절대 위치만, CSS 변수·grid 없음.
 // 색은 hoondok.css 토큰과 같은 값을 여기에 한 번 더 적는다(Satori 는 CSS 변수를 읽지 못한다). 출처와 "훈독" 은 모든 형식에 늘 인쇄한다.
 // link(카톡 미리보기)·square 는 종이 카드 그대로, feed(4:5)·story(9:16) 는 사진 카드다. 사진은 public 의 JPEG 사본(Satori 는 webp 를 못 읽는다).
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import type { CardPublic } from "../api";
 import { bookName } from "../components/book";
 import {
@@ -187,17 +187,11 @@ function CardImage({ card, assets }: { card: CardPublic; assets: ImageAssets }) 
           >
             “
           </div>
-          <div
-            style={{
-              fontSize: quote,
-              lineHeight: 1.6,
-              textAlign: "center",
-              letterSpacing: -0.5,
-              wordBreak: "keep-all",
-            }}
-          >
-            {card.text}
-          </div>
+          <QuoteText
+            text={card.text}
+            size={quote}
+            style={{ justifyContent: "center", lineHeight: 1.6, letterSpacing: -0.5 }}
+          />
           <div style={{ fontSize: 30, color: C.ink2, marginTop: 28 }}>{card.source_label}</div>
         </div>
       </div>
@@ -298,6 +292,24 @@ function Backdrop({
   );
 }
 
+/**
+ * 인용문을 띄어쓰기 단위 조각으로 줄 바꿈한다. Satori 의 keep-all 은 마지막 문장부호 앞에서도 줄을 바꿔
+ * "." 하나가 다음 줄에 혼자 남을 때가 있다 — 어절을 한 덩어리로 두면 그런 일이 없다.
+ */
+function QuoteText({ text, size, style }: { text: string; size: number; style: CSSProperties }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", columnGap: Math.round(size * 0.28), fontSize: size, ...style }}>
+      {text
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((word, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: 같은 어절이 되풀이될 수 있어 순서가 곧 정체다
+          <span key={index}>{word}</span>
+        ))}
+    </div>
+  );
+}
+
 function QuoteMark({ size, color }: { size: number; color: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 256 256" aria-hidden="true">
@@ -365,17 +377,11 @@ function FeedImage({ card, look, assets }: { card: CardPublic; look: PhotoLook; 
           padding: "0 86px 70px",
         }}
       >
-        <div
-          style={{
-            fontSize: imageQuoteSize(card.text, "feed"),
-            lineHeight: 1.55,
-            letterSpacing: -0.5,
-            wordBreak: "keep-all",
-            textShadow: "0 2px 24px rgba(0,0,0,0.3)",
-          }}
-        >
-          {card.text}
-        </div>
+        <QuoteText
+          text={card.text}
+          size={imageQuoteSize(card.text, "feed")}
+          style={{ lineHeight: 1.55, letterSpacing: -0.5, textShadow: "0 2px 24px rgba(0,0,0,0.3)" }}
+        />
         <div
           style={{
             display: "flex",
@@ -434,17 +440,11 @@ function StoryImage({ card, look, assets }: { card: CardPublic; look: PhotoLook;
           }}
         >
           <QuoteMark size={96} color={P.gold} />
-          <div
-            style={{
-              marginTop: 40,
-              fontSize: imageQuoteSize(card.text, "story"),
-              lineHeight: 1.6,
-              letterSpacing: -0.5,
-              wordBreak: "keep-all",
-            }}
-          >
-            {card.text}
-          </div>
+          <QuoteText
+            text={card.text}
+            size={imageQuoteSize(card.text, "story")}
+            style={{ marginTop: 40, lineHeight: 1.6, letterSpacing: -0.5 }}
+          />
           <div
             style={{
               display: "flex",
@@ -604,16 +604,7 @@ export function collageImageElement({
                           "linear-gradient(0deg, rgba(14,10,7,0.88) 0%, rgba(14,10,7,0.5) 60%, rgba(14,10,7,0.2) 100%)",
                       }}
                     />
-                    <div
-                      style={{
-                        display: "flex",
-                        fontSize: collageQuoteSize(card.text, box),
-                        lineHeight: 1.5,
-                        wordBreak: "keep-all",
-                      }}
-                    >
-                      {card.text}
-                    </div>
+                    <QuoteText text={card.text} size={collageQuoteSize(card.text, box)} style={{ lineHeight: 1.5 }} />
                     <div style={{ display: "flex", marginTop: 16, fontSize: 30, color: P.gold2 }}>{bookName(card)}</div>
                   </div>
                 );

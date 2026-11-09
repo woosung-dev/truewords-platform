@@ -203,13 +203,6 @@
   .bmhome__go {
     margin-top: 24px;
   }
-  .pc-cta--light {
-    background: var(--photo-paper);
-    color: var(--ink);
-  }
-  .pc-cta--light .pc-cta__ic {
-    background: var(--shade-7);
-  }
   .bmhome > .ps-why {
     margin: 0;
     padding-left: 18px;
@@ -879,6 +872,8 @@
     padding: 0;
     border: 0;
     background: var(--photo-night);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
     color: var(--photo-paper);
     overflow: auto;
   }
@@ -1307,6 +1302,13 @@
   }
   .pc-cta--gold .pc-cta__ic {
     background: var(--sheen-25);
+  }
+  .pc-cta--light {
+    background: var(--photo-paper);
+    color: var(--ink);
+  }
+  .pc-cta--light .pc-cta__ic {
+    background: var(--shade-7);
   }
   .pc-cta small {
     display: block;
