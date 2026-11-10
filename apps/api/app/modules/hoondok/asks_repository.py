@@ -22,12 +22,23 @@ from app.modules.chat.models import (
     SearchEvent,
     SessionMessage,
 )
-from app.modules.hoondok.models import AskThread, AskTurn, AskUsage, PublicQuestion
+from app.modules.hoondok.models import AskThread, AskTurn, AskUsage, ContentRight, PublicQuestion
 
 
 class AskRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    # --- 권리 ----------------------------------------------------------------------
+
+    async def searchable_volumes(self) -> list[str]:
+        """AI 질문 검색에 쓸 수 있는 volume — 말씀 검색과 같은 기준(allowed + scope_search). 원장에 없는 권은 닫힌 것으로 본다."""
+        result = await self.session.execute(
+            select(ContentRight.volume).where(
+                ContentRight.status == "allowed", ContentRight.scope_search.is_(True)
+            )
+        )
+        return list(result.scalars().all())
 
     # --- 하루 횟수 -------------------------------------------------------------------
 
